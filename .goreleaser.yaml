@@ -1,16 +1,25 @@
 version: 2
 project_name: kiroku
+before:
+  hooks:
+    - go mod tidy -diff
 builds:
   - env: [CGO_ENABLED=0]
     goos: [darwin, linux, windows]
     goarch: [amd64, arm64]
+    flags: [-trimpath]
+    mod_timestamp: "{{ .CommitTimestamp }}"
     ldflags: ["-s -w -X main.version={{.Version}}"]
 archives:
   - formats: [tar.gz]
     format_overrides:
       - goos: windows
         formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files: [README.md, LICENSE]
 checksum:
   name_template: checksums.txt
+release:
+  prerelease: auto # v0.1.0-rc.1 のようなタグはプレリリースにする
 changelog:
   use: github
