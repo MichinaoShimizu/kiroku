@@ -146,7 +146,11 @@ func summaryMarkdown(st *Summary, report []source.Report, title, this string) st
 	if total == 0 {
 		total = 1
 	}
-	L = append(L, projectMarkdown(st, total)...)
+	L = append(L, "", "プロジェクト別:", "")
+	for _, p := range st.Projects {
+		v := p[1].(float64)
+		L = append(L, fmt.Sprintf("- %s: %s（%d%%）", p[0], HM(v), int(core.Round(v*100/total, 0))))
+	}
 	L = append(L, "", "モデル別:", "")
 	if len(u.Models) == 0 {
 		L = append(L, "- なし")
@@ -213,64 +217,4 @@ func summaryMarkdown(st *Summary, report []source.Report, title, this string) st
 	}
 	L = append(L, "- 時刻はこのマシンのタイムゾーンで数えています。どれも履歴から推定した目安です", "")
 	return strings.Join(L, "\n")
-}
-
-// projectMarkdown はプロジェクト別のまとめ: 表と、プロジェクトごとの「長く動いた」「いちばん重い」セッション。
-func projectMarkdown(st *Summary, total float64) []string {
-	dash := func(v float64, f func(float64) string) string {
-		if v == 0 {
-			return "—"
-		}
-		return f(v)
-	}
-	usd := func(v float64) string { return "$" + comma(v, 2) }
-	cr := func(v float64) string { return comma(v, -1) }
-	use := func(t TopSession) string {
-		var p []string
-		if t.Cost > 0 {
-			p = append(p, usd(t.Cost))
-		}
-		if t.Credits > 0 {
-			p = append(p, cr(t.Credits)+" クレジット")
-		}
-		if t.Tokens > 0 && t.Cost == 0 {
-			p = append(p, intComma(t.Tokens)+" トークン")
-		}
-		return strings.Join(p, "・")
-	}
-	L := []string{"", "## プロジェクト別", "",
-		"| プロジェクト | 時間 | 割合 | セッション / 依頼 | トークン | 目安コスト | クレジット | 主なモデル |",
-		"|---|---|---|---|---|---|---|---|"}
-	if len(st.ProjectStats) == 0 {
-		return append(L[:2], "- なし")
-	}
-	for _, p := range st.ProjectStats {
-		var models []string
-		for _, m := range p.Models {
-			models = append(models, m.Model)
-		}
-		L = append(L, fmt.Sprintf("| %s | %s | %d%% | %d / %d | %s | %s | %s | %s |", p.Project, dash(p.Minutes, HM),
-			int(core.Round(p.Minutes*100/total, 0)), p.Sessions, p.Prompts, dash(p.Tokens, intComma), dash(p.Cost, usd),
-			dash(p.Credits, cr), orNone(strings.Join(models, "、"))))
-	}
-	L = append(L, "")
-	for _, p := range st.ProjectStats {
-		var top []string
-		for _, t := range p.Top {
-			top = append(top, fmt.Sprintf("%s（%s）", t.Title, HM(t.Minutes)))
-		}
-		line := fmt.Sprintf("- **%s**: %s", p.Project, orNone(strings.Join(top, "、")))
-		if h := p.Heavy; h != nil && use(*h) != "" {
-			line += fmt.Sprintf("。いちばん重い: %s（%s）", h.Title, use(*h))
-		}
-		L = append(L, line)
-	}
-	return L
-}
-
-func orNone(s string) string {
-	if s == "" {
-		return "—"
-	}
-	return s
 }
