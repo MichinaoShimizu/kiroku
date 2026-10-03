@@ -1,0 +1,4 @@
+# 生成した HTML には依頼文やファイル名が入るのでコミットしない
+kiroku.html
+*.html
+__pycache__/
