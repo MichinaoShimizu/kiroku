@@ -190,10 +190,23 @@ go build .         # ./kiroku ができる
 
 - エージェントを足すときは `internal/source` に `Source` を実装して、`source.All` に加えます。集計（`internal/report`）と画面（`internal/web/template.html`）は、共通のセッションの形（`internal/core`）だけを見ます
 - `testdata/golden.json` と `testdata/golden-week.md` は、Go に移す前の Python 版が同じ合成データから出した結果です。Go 版はこれと同じ数字を出します
-- `v*` のタグを打つと、GitHub Actions が GoReleaser で各 OS 向けのファイルを Releases に載せます
+- PR ごとに、3 OS でのテストに加えて、リリースの予行演習（`goreleaser release --snapshot`、公開はしない）を CI で走らせます
+
+### リリースの出し方
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+`v` で始まるタグを push すると、GitHub Actions が 3 OS でテストしてから、GoReleaser で macOS・Linux・Windows（amd64 / arm64）向けのファイルとチェックサムを作り、Releases に載せます。`v0.2.0-rc.1` のように `-` のつくタグはプレリリースになります。
 
 ## 注意
 
 - 書き出した HTML と週の Markdown には、依頼文やファイルパスがそのまま入ります。人に渡すときは中身を確かめてください（このリポジトリの `.gitignore` では `*.html` と `kiroku-week-*.md` を除外しています）
 - 判断ログは `--journal ~/notes/kiroku` のように、自分用のフォルダに置くのがおすすめです
 - `--serve` は既定で自分の PC からしか開けません（`127.0.0.1` で待ち受け、ほかのホスト名で来たリクエストは断ります）。`--serve 0.0.0.0:8484` のように外に開くと、同じネットワークの人も履歴を見られます
+
+## ライセンス
+
+[MIT](LICENSE)
