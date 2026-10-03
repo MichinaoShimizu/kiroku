@@ -27,7 +27,7 @@ type snapshot struct {
 	gen    float64 // 読んだ時刻（UNIX 秒）。画面はこれが変わったら取り込み直す
 }
 
-// live は --serve の中身。履歴の指紋が変わったときだけ読み直し、最新の集計を配る。
+// live は kiroku serve の中身。履歴の指紋が変わったときだけ読み直し、最新の集計を配る。
 type live struct {
 	mu    sync.RWMutex
 	snap  snapshot
@@ -153,7 +153,7 @@ func serveLive(addr string, every time.Duration, picked []source.Source, load fu
 	logw = io.Discard // ここから先の読み直しでは、エージェントごとの行は出さない
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		return fmt.Errorf("%s で待ち受けできなかったよ（--serve :8485 のように別のポートを試してね）: %w", addr, err)
+		return fmt.Errorf("%s で待ち受けできなかったよ（kiroku serve :8485 のように別のポートを試してね）: %w", addr, err)
 	}
 	addr = ln.Addr().String()
 	url := "http://" + addr + "/"
