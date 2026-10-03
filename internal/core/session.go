@@ -54,6 +54,7 @@ type Builder struct {
 	Subagents                      []Subagent
 	Credits                        []Credit
 	Measures                       []Measure // そのエージェントだけが記録している数字（native.go）
+	Outputs                        []Output  // 成果の印（output.go）。成功したツール呼び出しだけを入れる
 	toolOrder                      []string
 	tools                          map[string]int
 	files                          map[string]bool
@@ -207,9 +208,11 @@ type Session struct {
 	Subagents   []Subagent    `json:"subagents"`
 	Credits     float64       `json:"credits"`
 	Cost        float64       `json:"cost"`
-	Native      []NativeValue `json:"native"` // このセッションの参考指標
-	UEv         []Event       `json:"-"`      // 週ごとの集計用（HTML には入れない）
+	Native      []NativeValue `json:"native"`  // このセッションの参考指標
+	Outputs     OutputTotal   `json:"outputs"` // コミット・PR・変更した行（output.go）
+	UEv         []Event       `json:"-"`       // 週ごとの集計用（HTML には入れない）
 	CEv         []Credit      `json:"-"`
+	OEv         []Output      `json:"-"`
 	Fix         []float64     `json:"-"`
 	Meas        []Measure     `json:"-"`
 }
@@ -300,6 +303,10 @@ func (s *Builder) Finish(gapMin int) *Session {
 	for _, c := range s.Credits {
 		credits += c.V
 	}
+	var outs OutputTotal
+	for _, o := range s.Outputs {
+		outs.Add(o)
+	}
 	if files == nil {
 		files = []string{}
 	}
@@ -316,7 +323,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 		Prompts: prompts, NPrompts: len(s.Prompts), Tools: tools, Files: files, NFiles: nFiles, Resume: strOrNil(s.Resume),
 		Waits: s.Waits(), Interrupts: s.Interrupts, Corrections: s.Corrections(), Models: models,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
-		UEv: uev, CEv: s.Credits, Fix: s.FixTS,
+		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS,
 		Native: AggregateNative(s.Source, s.Measures), Meas: s.Measures,
 	}
 }

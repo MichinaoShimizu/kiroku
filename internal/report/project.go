@@ -10,17 +10,18 @@ import (
 // ProjectStat は期間の中の 1 プロジェクトのまとめ:
 // 何に（どのセッションに）何時間、どれだけのトークン・目安コスト・クレジットを、どのモデル中心に使い、何が重かったか。
 type ProjectStat struct {
-	Project   string       `json:"project"`
-	Minutes   float64      `json:"minutes"`  // 作業していた時間（同時に動いていたプロジェクトとは按分）
-	Sessions  int          `json:"sessions"` // この期間に動いていたセッション
-	Prompts   int          `json:"prompts"`
-	Tokens    float64      `json:"tokens"`
-	Cost      float64      `json:"cost"`
-	Credits   float64      `json:"credits"`
-	Subagents int          `json:"subagents"`
-	Models    []ModelShare `json:"models"` // トークンの多い順（上位 3）
-	Top       []TopSession `json:"top"`    // 長く動いていた順（上位 3）
-	Heavy     *TopSession  `json:"heavy"`  // いちばん重かった（目安コスト、なければクレジット、なければトークン）
+	Project   string           `json:"project"`
+	Minutes   float64          `json:"minutes"`  // 作業していた時間（同時に動いていたプロジェクトとは按分）
+	Sessions  int              `json:"sessions"` // この期間に動いていたセッション
+	Prompts   int              `json:"prompts"`
+	Tokens    float64          `json:"tokens"`
+	Cost      float64          `json:"cost"`
+	Credits   float64          `json:"credits"`
+	Subagents int              `json:"subagents"`
+	Outputs   core.OutputTotal `json:"outputs"` // AI が実行したコミット・PR 作成・変更した行
+	Models    []ModelShare     `json:"models"`  // トークンの多い順（上位 3）
+	Top       []TopSession     `json:"top"`     // 長く動いていた順（上位 3）
+	Heavy     *TopSession      `json:"heavy"`   // いちばん重かった（目安コスト、なければクレジット、なければトークン）
 }
 
 type ModelShare struct {
@@ -133,6 +134,11 @@ func projectStats(data []*core.Session, ws, we float64, minutes map[string]float
 		for _, sa := range d.Subagents {
 			if sa.Start != nil && *sa.Start != 0 && ws <= *sa.Start && *sa.Start < we {
 				a.st.Subagents++
+			}
+		}
+		for _, o := range d.OEv {
+			if in(o.T, d.Start) {
+				a.st.Outputs.Add(o)
 			}
 		}
 		if ts.Minutes == 0 && ts.Tokens == 0 && ts.Credits == 0 {
