@@ -44,7 +44,15 @@ func setup(t *testing.T) (data any, weeks map[string]*report.Week, rep []source.
 		KiroHome:     filepath.Join(h, ".kiro"),
 		KiroStorages: []string{filepath.Join(h, ".config", "Kiro", "User", "globalStorage", "kiro.kiroagent")},
 	})
-	sessions, rep := collect(all, map[string]bool{"claude": true, "kiro": true}, 15)
+	// Python 版にあった 4 つの履歴だけで比べる（あとから足したアダプターは internal/source のテストで確かめる）
+	python := map[string]bool{"Claude Code": true, "Kiro IDE": true, "Kiro CLI": true, "Kiro IDE (旧)": true}
+	var picked []source.Source
+	for _, s := range all {
+		if python[s.Name()] {
+			picked = append(picked, s)
+		}
+	}
+	sessions, rep := collect(picked, map[string]bool{"claude": true, "kiro": true}, 15)
 	weeks = report.AllWeeks(sessions)
 	report.Annotate(weeks, report.ReadJournal(filepath.Join("testdata", "journal")))
 	return sessions, weeks, rep
@@ -98,6 +106,21 @@ func TestWeeklyKeepsHandWrittenSection(t *testing.T) {
 	again := report.WeeklyMarkdown(st, rep, edited)
 	if !contains(again, "- 自分のメモ") {
 		t.Fatal("作り直したら自分で書いた欄が消えた")
+	}
+}
+
+func TestSameConversationCountedOnce(t *testing.T) {
+	h := filepath.Join("testdata", "home")
+	srcs := []source.Source{
+		&source.KiroCLI{Home: filepath.Join(h, ".kiro")},
+		&source.QStore{Label: "Kiro CLI (SQLite)", Fam: "kiro", DB: filepath.Join("testdata", "sqlite", "kiro-cli.sqlite3")},
+	}
+	data, rep := collect(srcs, map[string]bool{"kiro": true}, 15)
+	if rep[1].N != 2 || rep[1].Dup != 1 {
+		t.Fatalf("SQLite: n=%d dup=%d, want 2 と 1（新しい形式にもある会話は外す）", rep[1].N, rep[1].Dup)
+	}
+	if len(data) != rep[0].N+2 {
+		t.Fatalf("セッション数 = %d", len(data))
 	}
 }
 

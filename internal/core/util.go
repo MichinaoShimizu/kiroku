@@ -57,6 +57,12 @@ func ParseTS(v any) (float64, bool) {
 	switch x := v.(type) {
 	case nil:
 		return 0, false
+	case int64: // SQLite の INTEGER 列
+		return ParseTS(float64(x))
+	case int:
+		return ParseTS(float64(x))
+	case []byte:
+		return ParseTS(string(x))
 	case float64:
 		if x > 1e12 {
 			return x / 1000, true

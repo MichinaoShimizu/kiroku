@@ -1,6 +1,6 @@
 # kiroku
 
-AI エージェント（Claude Code・Kiro）の作業履歴を、Google カレンダーみたいな週表示で振り返るツールです。
+AI エージェント（Claude Code・Kiro・Amazon Q）の作業履歴を、Google カレンダーみたいな週表示で振り返るツールです。
 いつ・どのプロジェクトで・何を頼んでいたかが一目でわかります。
 
 ![kiroku の画面（ダミーデータ）](docs/screenshot.png)
@@ -25,9 +25,11 @@ kiroku --weekly 2026-09-30    # その日を含む週
 
 | オプション | 既定 | 説明 |
 |---|---|---|
-| `--sources` | `claude,kiro` | 読む履歴 |
+| `--sources` | `claude,kiro,amazonq` | 読む履歴 |
 | `--root` | `~/.claude/projects` | Claude Code の履歴の場所（`CLAUDE_CONFIG_DIR` も見ます） |
 | `--kiro-home` | `~/.kiro` | Kiro のデータの場所（`KIRO_HOME` も見ます） |
+| `--kiro-cli-db` | OS ごと | Kiro CLI（古い版）の `data.sqlite3` |
+| `--amazonq-db` | OS ごと | Amazon Q Developer CLI の `data.sqlite3` |
 | `--gap` | `15` | 何分あいたら帯を分けるか |
 | `-o`, `--out` | `kiroku.html` | 書き出す HTML |
 | `--no-open` | | ブラウザを開かない |
@@ -133,10 +135,23 @@ kiroku --prices my-prices.json
 | Kiro IDE（v1.0 以降） | `~/.kiro/sessions/<hash>/sess_*/` | 発言ごと |
 | Kiro CLI | `~/.kiro/sessions/cli/` | 依頼ごと |
 | Kiro IDE（v1.0 より前） | `<globalStorage>/kiro.kiroagent/workspace-sessions/` | 開始と最終更新だけ |
+| Kiro CLI（古い版） | `kiro-cli/data.sqlite3`（下の表） | 依頼ごと |
+| Amazon Q Developer CLI | `amazon-q/data.sqlite3`（下の表） | 依頼ごと |
 
-`KIRO_HOME` が設定されていればそちらを見ます。古い Kiro CLI と Amazon Q Developer CLI の `data.sqlite3`、Kiro Crew、Codex は、これから順に対応します。
+`data.sqlite3` の場所:
 
-Kiro の形式には公式ドキュメントがないため、[kiro-history](https://github.com/pajaydev/kiro-history) と [codeburn](https://github.com/getagentseal/codeburn) の実装を参考にしています。読めない履歴があれば issue で教えてください。
+| OS | 場所 |
+|---|---|
+| macOS | `~/Library/Application Support/<kiro-cli か amazon-q>/` |
+| Linux | `$XDG_DATA_HOME`（なければ `~/.local/share`）`/<kiro-cli か amazon-q>/` |
+| Windows | `%LOCALAPPDATA%\<kiro-cli か amazon-q>\`（Kiro CLI は未確認。違っていたら `--kiro-cli-db` で指定してください） |
+
+- `KIRO_HOME` が設定されていればそちらを見ます
+- Kiro CLI は新しい形式（`~/.kiro/sessions/cli`）と SQLite に同じ会話が残ることがあります。同じ会話 ID のものは新しい形式のほうだけを数えます（クレジットが入っているため）。外した数は「計測の状態」に出ます
+- SQLite のほうにはトークンやクレジットが残っていないので、目安コストやクレジットには入りません
+- Kiro Crew と Codex は、これから順に対応します
+
+Kiro の形式には公式ドキュメントがないため、[kiro-history](https://github.com/pajaydev/kiro-history) と [codeburn](https://github.com/getagentseal/codeburn) の実装を参考にしています。SQLite の形は [amazon-q-developer-cli](https://github.com/aws/amazon-q-developer-cli) のソースに合わせています（`conversations_v2` は Kiro CLI だけにあり、参考実装をもとにしています）。読めない履歴があれば issue で教えてください。
 
 ## 開発
 

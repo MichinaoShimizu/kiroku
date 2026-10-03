@@ -93,6 +93,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		stem := strings.TrimSuffix(filepath.Base(metaPath), ".json")
 		sid := firstNonEmpty(core.Str(meta["session_id"]), core.Str(meta["id"]), stem)
 		s := core.NewBuilder("Kiro CLI", sid)
+		s.Key = "kiro-cli:" + sid
 		s.Title, s.Project = core.Str(meta["title"]), core.Str(meta["cwd"])
 		s.Tick(ts(meta["created_at"]))
 		s.Tick(ts(meta["updated_at"]))
