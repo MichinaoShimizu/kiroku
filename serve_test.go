@@ -112,3 +112,37 @@ func TestSameOrigin(t *testing.T) {
 		t.Errorf("0.0.0.0 → %d", w.Code)
 	}
 }
+
+// 書き込みが続いている間は読み直さず、落ち着いたら 1 回だけ読み直す。続きすぎたら max で読み直す。
+func TestSettler(t *testing.T) {
+	t0 := time.Unix(0, 0)
+	at := func(sec int) time.Time { return t0.Add(time.Duration(sec) * time.Second) }
+	s := settler{settle: 10 * time.Second, max: 60 * time.Second}
+	if s.step(false, at(0)) {
+		t.Fatal("変化がないのに読み直した")
+	}
+	// 0〜20 秒は 5 秒ごとに変化、そのあと止まる → 30 秒で読み直し
+	for _, sec := range []int{5, 10, 15, 20} {
+		if s.step(true, at(sec)) {
+			t.Fatalf("%d 秒: 書き込み中に読み直した", sec)
+		}
+	}
+	if s.step(false, at(25)) {
+		t.Fatal("25 秒: まだ落ち着いていないのに読み直した")
+	}
+	if !s.step(false, at(30)) {
+		t.Fatal("30 秒: 落ち着いたのに読み直さない")
+	}
+	if s.step(false, at(35)) {
+		t.Fatal("35 秒: 2 回読み直した")
+	}
+	// 100 秒から書き込みが続く → 最初の変化から 60 秒（160 秒）で読み直す
+	for sec := 100; sec < 160; sec += 5 {
+		if s.step(true, at(sec)) {
+			t.Fatalf("%d 秒: max より前に読み直した", sec)
+		}
+	}
+	if !s.step(true, at(160)) {
+		t.Fatal("160 秒: 書き込みが続いても max で読み直すはず")
+	}
+}

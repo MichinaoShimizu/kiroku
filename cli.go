@@ -160,7 +160,7 @@ func quiet(err error) error {
 func cmdServe(args []string) error {
 	fs := newFS("serve", "serve [flags] [ADDR]\n\nADDR defaults to "+defaultAddr+"; a bare port such as :8485 also works.")
 	c := addCommon(fs)
-	interval := fs.Duration("interval", 5*time.Second, "how often to check the history for changes")
+	interval := fs.Duration("interval", 5*time.Second, "how often to check the history for changes (reloads after writes settle)")
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
 	pos, err := parse(fs, args, 1)
 	if err != nil {

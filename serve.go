@@ -54,14 +54,39 @@ func (l *live) refresh() error {
 	return nil
 }
 
-// watch は every ごとに指紋を取り、変わっていたら読み直す。読み直しは 1 本ずつしか走らない。
-// stop が閉じられたら終わる（テスト用）。
 func (l *live) fingerprint() string {
 	return source.Fingerprint(l.paths)
 }
 
+// settler は、履歴の書き込みが落ち着くのを待ってから読み直すための判定。
+// エージェントが動いている間は履歴が数秒ごとに追記されるので、変化のたびに全部を読み直すと重い。
+// 変化が settle のあいだ止まったら読み直す。書き込みが続いても、最初の変化から max たったら読み直す。
+type settler struct {
+	settle, max    time.Duration
+	pending        bool
+	first, changed time.Time
+}
+
+// step は 1 回の確認の結果（指紋が変わったか）を受け取り、いま読み直すべきかを返す。
+func (s *settler) step(changed bool, now time.Time) bool {
+	if changed {
+		if !s.pending {
+			s.pending, s.first = true, now
+		}
+		s.changed = now
+	}
+	if !s.pending || (now.Sub(s.changed) < s.settle && now.Sub(s.first) < s.max) {
+		return false
+	}
+	s.pending = false
+	return true
+}
+
+// watch は every ごとに指紋を取り、変化が落ち着いたら読み直す（落ち着くまで every の 2 倍、長くても 12 倍）。
+// 読み直しは 1 本ずつしか走らない。stop が閉じられたら終わる（テスト用）。
 func (l *live) watch(every time.Duration, stop <-chan struct{}) {
 	last := l.fingerprint()
+	s := settler{settle: 2 * every, max: 12 * every}
 	t := time.NewTicker(every)
 	defer t.Stop()
 	for {
@@ -71,10 +96,11 @@ func (l *live) watch(every time.Duration, stop <-chan struct{}) {
 		case <-t.C:
 		}
 		fp := l.fingerprint()
-		if fp == last {
+		changed := fp != last
+		last = fp
+		if !s.step(changed, time.Now()) {
 			continue
 		}
-		last = fp
 		before := l.count()
 		if err := l.refresh(); err != nil {
 			fmt.Fprintf(l.print, "読み直しに失敗したよ: %v\n", err)
