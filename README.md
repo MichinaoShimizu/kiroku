@@ -22,11 +22,15 @@ kiroku              # これまでの履歴を kiroku.html に書き出して、
 kiroku --serve      # 手元にサーバーを立てて開く。作業中に増えた履歴もその場で反映する
 kiroku --weekly     # 最新の週の週次サマリーを Markdown で書き出す
 kiroku --monthly    # 最新の月の月次サマリーを Markdown で書き出す
+kiroku version      # 版を表示する
+kiroku update       # 最新の版に入れかえる（--check で確かめるだけ、--to v0.1.1 で版を指定）
 ```
 
 - **`kiroku`** は、起動した時点までの履歴をすべて読み、1 つの HTML に書き出します。そのあと増えた履歴は、もう一度実行すると入ります
 - **`kiroku --serve`** は `http://localhost:8484/` で画面を出し続けます。数秒ごとに履歴フォルダの変化（ファイルの名前・大きさ・更新時刻だけ）を確かめ、変わっていたら読み直します。画面は見ている週・月や選んでいるセッションをそのままに新しい履歴を取り込み、左上に `LIVE` が出ます。止めるときは Ctrl+C
 - **`kiroku --weekly [日付]`** は、その日を含む週の週次サマリーを `kiroku-week-<月曜日>.md` に、**`kiroku --monthly [YYYY-MM]`** は月次サマリーを `kiroku-month-<年-月>.md` に書き出します（下の「週次・月次サマリー」）
+
+- **`kiroku update`** は、GitHub Releases から同じ OS・CPU 向けの最新版を落とし、`checksums.txt` で確かめてから自分自身を置きかえます。置き場所に書き込めないとき（`/usr/local/bin` など）は `sudo kiroku update` で。`go install` やソースからビルドした kiroku（版が `dev`）は入れかえないので、`go install …@latest` で更新してください。v0.1.1 以前には `update` がないので、一度だけ `install.sh` か Releases から入れ直してください
 
 ほかのオプションは、下の「オプション」にまとめています。
 
@@ -161,7 +165,7 @@ Kiro の形式には公式ドキュメントがないため、[kiro-history](htt
 | `--json` | | 集計結果を JSON で書き出す（ほかのツールに渡したいとき） |
 | `--serve [待ち受け先]` | `127.0.0.1:8484` | サーバーを立て、増えた履歴をその場で画面に反映する。`--serve :8485` のようにポートを変えられます |
 | `--interval` | `5s` | `--serve` で履歴の変化を確かめる間隔 |
-| `--version` | | 版を表示する |
+| `--version` | | 版を表示する（`kiroku version` と同じ） |
 
 ## 開発
 

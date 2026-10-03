@@ -8,6 +8,8 @@
 //	kiroku --weekly 2026-09-30     # その日を含む週
 //	kiroku --monthly 2026-09       # その月の月次サマリー
 //	kiroku --serve                 # 手元にサーバーを立てて、増えた履歴をその場で画面に反映する
+//	kiroku version                 # 版を表示する
+//	kiroku update                  # 最新の版に入れかえる
 package main
 
 import (
@@ -84,7 +86,18 @@ func normalizeArgs(args []string) []string {
 }
 
 func main() {
-	if err := run(normalizeArgs(os.Args[1:])); err != nil {
+	cleanupOldExe()
+	args := os.Args[1:]
+	var err error
+	switch {
+	case len(args) > 0 && args[0] == "version":
+		err = runVersion()
+	case len(args) > 0 && args[0] == "update":
+		err = runUpdate(args[1:])
+	default:
+		err = run(normalizeArgs(args))
+	}
+	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
@@ -94,6 +107,7 @@ func run(args []string) error {
 	fs := flag.NewFlagSet("kiroku", flag.ContinueOnError)
 	fs.Usage = func() {
 		fmt.Fprintf(fs.Output(), "kiroku %s — AI エージェントの作業履歴を週カレンダーで振り返る\n\n", version)
+		fmt.Fprint(fs.Output(), "サブコマンド:\n  kiroku version            版を表示する\n  kiroku update [--check]   最新の版に入れかえる（--check は確かめるだけ、--to v0.1.1 で版を指定）\n\nオプション:\n")
 		fs.PrintDefaults()
 	}
 	root := fs.String("root", source.DefaultClaudeRoot(), "Claude Code の履歴の場所")
@@ -121,9 +135,11 @@ func run(args []string) error {
 		}
 		return err
 	}
+	if fs.NArg() > 0 { // 打ちまちがいのサブコマンドで、うっかり全部を読みはじめないように
+		return fmt.Errorf("知らないサブコマンドです: %s（kiroku version / kiroku update / kiroku --help）", fs.Arg(0))
+	}
 	if *showVersion {
-		fmt.Println("kiroku", version)
-		return nil
+		return runVersion()
 	}
 	if *prices != "" {
 		if err := loadPrices(*prices); err != nil {
@@ -319,4 +335,14 @@ func openBrowser(target string) {
 		cmd = exec.Command("xdg-open", target)
 	}
 	_ = cmd.Start()
+}
+
+// cleanupOldExe は、Windows で update したときに残る kiroku.exe.old を消す（使っていなければ）。
+func cleanupOldExe() {
+	if runtime.GOOS != "windows" {
+		return
+	}
+	if exe, err := os.Executable(); err == nil {
+		os.Remove(exe + ".old")
+	}
 }
