@@ -77,6 +77,99 @@ def read_json(path):
         return None
 
 
+# ── 料金（API 換算の目安） ──────────────────────────────────────────
+# USD / 100 万トークン: 入力, 出力, キャッシュ書き込み(5分), キャッシュ書き込み(1時間), キャッシュ読み込み
+# 出典: https://platform.claude.com/docs/en/about-claude/pricing （2026-10 時点）。--prices で上書きできる。
+# モデル ID の先頭一致で引く（長いキーが優先）。サブスクリプションの請求額とは別物。
+PRICES = {
+    "claude-fable-5-1":  (10, 50, 12.5, 20, 0.25),
+    "claude-mythos-5-1": (10, 50, 12.5, 20, 0.25),
+    "claude-fable-5":    (10, 50, 12.5, 20, 1.0),
+    "claude-mythos-5":   (10, 50, 12.5, 20, 1.0),
+    "claude-opus-5-5":   (4, 20, 5, 8, 0.20),
+    "claude-opus-5":     (5, 25, 6.25, 10, 0.50),
+    "claude-opus-4-8":   (5, 25, 6.25, 10, 0.50),
+    "claude-opus-4-7":   (5, 25, 6.25, 10, 0.50),
+    "claude-opus-4-6":   (5, 25, 6.25, 10, 0.50),
+    "claude-opus-4-5":   (5, 25, 6.25, 10, 0.50),
+    "claude-opus-4-1":   (15, 75, 18.75, 30, 1.50),
+    "claude-opus-4":     (15, 75, 18.75, 30, 1.50),
+    "claude-sonnet-5-5": (2, 10, 2.5, 4, 0.20),
+    "claude-sonnet-5":   (2, 10, 2.5, 4, 0.20),
+    "claude-sonnet-4-6": (3, 15, 3.75, 6, 0.30),
+    "claude-sonnet-4-5": (3, 15, 3.75, 6, 0.30),
+    "claude-sonnet-4":   (3, 15, 3.75, 6, 0.30),
+    "claude-haiku-4-5":  (1, 5, 1.25, 2, 0.10),
+    "claude-3-5-haiku":  (0.8, 4, 1, 1.6, 0.08),
+}
+USAGE_KEYS = ("in", "out", "cw", "cw1h", "cr")
+
+
+def model_name(m):
+    """claude-haiku-4-5-20251001 → claude-haiku-4-5（日付の版を落としてまとめる）"""
+    return re.sub(r"-\d{8}$", "", m) if m else m
+
+
+def price_of(model):
+    m = (model or "").lower().replace("anthropic.", "")
+    keys = [k for k in PRICES if m.startswith(k)]
+    return PRICES[max(keys, key=len)] if keys else None
+
+
+def cost_of(model, u):
+    p = price_of(model)
+    return None if p is None else sum(u.get(k, 0) * p[i] for i, k in enumerate(USAGE_KEYS)) / 1e6
+
+
+def read_usage(raw):
+    """message.usage → {in, out, cw, cw1h, cr}。1時間キャッシュの内訳があれば分ける。"""
+    raw = raw if isinstance(raw, dict) else {}
+    n = lambda v: v if isinstance(v, (int, float)) else 0
+    cw = n(raw.get("cache_creation_input_tokens"))
+    cc = raw.get("cache_creation") if isinstance(raw.get("cache_creation"), dict) else {}
+    cw1h = n(cc.get("ephemeral_1h_input_tokens"))
+    return {"in": n(raw.get("input_tokens")), "out": n(raw.get("output_tokens")),
+            "cw": max(0, cw - cw1h), "cw1h": cw1h, "cr": n(raw.get("cache_read_input_tokens"))}
+
+
+class Usage:
+    """1 つの応答が複数行に分かれて記録されるので、メッセージ ID ごとに項目別の最大値をとってから足す。"""
+    def __init__(self):
+        self.by_msg = {}  # mid -> [t, model, usage]
+
+    def add(self, mid, t, model, raw):
+        u, model = read_usage(raw), model_name(model)
+        if not mid:
+            mid = f"_{len(self.by_msg)}"
+        cur = self.by_msg.get(mid)
+        if cur is None:
+            self.by_msg[mid] = [t, model, u]
+        else:
+            cur[0] = cur[0] or t
+            cur[1] = cur[1] or model
+            for k in USAGE_KEYS:
+                cur[2][k] = max(cur[2][k], u[k])
+
+    def events(self):
+        """[(t, model, usage, cost)]"""
+        return [(t, m, u, cost_of(m, u)) for t, m, u in self.by_msg.values() if m != "<synthetic>"]
+
+
+def sum_usage(evs):
+    tot = {k: 0 for k in USAGE_KEYS}
+    cost, unknown = 0.0, 0
+    for _, _, u, c in evs:
+        for k in USAGE_KEYS:
+            tot[k] += u[k]
+        if c is None:
+            unknown += u["in"] + u["out"] + u["cw"] + u["cw1h"] + u["cr"]
+        else:
+            cost += c
+    tot["cost"] = round(cost, 4)
+    tot["unpriced"] = unknown
+    return tot
+
+
 # 言い直し・差し戻しっぽい依頼（こじれたセッションの目印）
 CORRECTION = re.compile(r"違う|ちがう|そうじゃな|やり直|戻して|元に戻|取り消|じゃなくて|"
                         r"\b(?:wrong|revert|undo|not what|that's not|try again)\b", re.I)
@@ -92,6 +185,10 @@ class Session:
         self.prompts, self.times, self.tools, self.files = [], [], {}, set()
         self.agent_times = []  # AI が動いていた時刻（待たせ時間の計算用）
         self.interrupts = 0
+        self.usage = Usage()      # このセッション本体のトークン
+        self.models = {}          # モデル -> 応答数
+        self.subagents = []       # サブエージェントの実行
+        self.credits = []         # Kiro: [(t, クレジット)]
 
     def tick(self, ts):
         if ts is not None:
@@ -132,10 +229,34 @@ class Session:
 
 # ── Claude Code ─────────────────────────────────────────────────────
 
+SUBAGENT_TOOLS = ("Task", "Agent")  # v2.1.63 で Task から Agent に名前が変わった
+
+
+def load_subagent_file(path):
+    """<sessionId>/subagents/agent-<id>.jsonl を 1 本読む。"""
+    u, times, models, tools = Usage(), [], {}, {}
+    for e in read_jsonl(path):
+        ts = parse_ts(e.get("timestamp"))
+        if ts is not None:
+            times.append(ts)
+        msg = e.get("message") or {}
+        if e.get("type") == "assistant":
+            m = model_name(msg.get("model"))
+            if m and m != "<synthetic>":
+                models[m] = models.get(m, 0) + 1
+            u.add(msg.get("id") or e.get("requestId"), ts, m, msg.get("usage"))
+            for b in msg.get("content") or []:
+                if isinstance(b, dict) and b.get("type") == "tool_use":
+                    tools[b.get("name") or "?"] = tools.get(b.get("name") or "?", 0) + 1
+    aid = path.stem[len("agent-"):] if path.stem.startswith("agent-") else path.stem
+    return {"agentId": aid, "start": min(times) if times else None, "end": max(times) if times else None,
+            "events": u.events(), "models": models, "tools": tools}
+
+
 def load_claude(root):
     for path in sorted(Path(root).glob("*/*.jsonl")):
         s = Session("Claude Code", path.stem)
-        summaries = []
+        summaries, calls, side = [], {}, Usage()
         for e in read_jsonl(path):
             typ = e.get("type")
             if typ == "summary" and e.get("summary"):
@@ -151,12 +272,71 @@ def load_claude(root):
             s.project = s.project or e.get("cwd")
             s.branch = s.branch or e.get("gitBranch")
             msg = e.get("message") or {}
+            if typ == "assistant":
+                m = model_name(msg.get("model"))
+                # 古い版はサブエージェントの発言も同じファイルに isSidechain つきで混ざる
+                (side if e.get("isSidechain") else s.usage).add(msg.get("id") or e.get("requestId"), ts, m, msg.get("usage"))
+                if m and m != "<synthetic>" and not e.get("isSidechain"):
+                    s.models[m] = s.models.get(m, 0) + 1
             if typ == "user" and not e.get("isMeta") and not e.get("isSidechain"):
                 s.prompt(ts, text_of(msg.get("content")))
-            elif typ == "assistant" and isinstance(msg.get("content"), list):
+                for b in msg.get("content") if isinstance(msg.get("content"), list) else []:
+                    if isinstance(b, dict) and b.get("type") == "tool_result" and b.get("tool_use_id") in calls:
+                        c = calls[b["tool_use_id"]]
+                        c["end"] = ts
+                        r = e.get("toolUseResult")
+                        if isinstance(r, dict):
+                            c["agentId"] = r.get("agentId") or c.get("agentId")
+                            c["reported"] = {k: r.get(k) for k in ("totalTokens", "totalDurationMs", "totalToolUseCount") if isinstance(r.get(k), (int, float))}
+                            if isinstance(r.get("usage"), dict):
+                                c["reportedUsage"] = read_usage(r["usage"])
+            elif typ == "assistant" and isinstance(msg.get("content"), list) and not e.get("isSidechain"):
                 for b in msg["content"]:
                     if isinstance(b, dict) and b.get("type") == "tool_use":
                         s.tool(b.get("name"), b.get("input"))
+                        if b.get("name") in SUBAGENT_TOOLS:
+                            inp = b.get("input") if isinstance(b.get("input"), dict) else {}
+                            calls[b.get("id")] = {"type": inp.get("subagent_type") or "general-purpose",
+                                                  "desc": (inp.get("description") or "")[:120],
+                                                  "bg": bool(inp.get("run_in_background")), "start": ts, "end": None}
+        # サブエージェントの別ファイル（新しい版）を、agentId か時刻でつなぐ
+        files = [load_subagent_file(f) for f in sorted((path.parent / path.stem / "subagents").glob("*.jsonl"))]
+        order = sorted(calls.values(), key=lambda c: c["start"] or 0)
+        for f in files:
+            c = next((c for c in order if c.get("agentId") and c["agentId"] == f["agentId"]), None)
+            if c is None and f["start"]:
+                c = next((c for c in order if "file" not in c and c["start"] and c["start"] - 5 <= f["start"] <= (c["end"] or f["start"]) + 5), None)
+            if c is None:
+                c = {"type": "subagent", "desc": "", "bg": False, "start": f["start"], "end": f["end"]}
+                order.append(c)
+            c["file"] = f
+        side_evs = side.events() if not files else []
+        for ev in list(side_evs):  # 古い形式: isSidechain の行を、呼び出しの時間帯で振り分ける
+            c = next((c for c in order if ev[0] and c["start"] and c["start"] - 5 <= ev[0] <= (c["end"] or c["start"]) + 5), None)
+            if c is not None:
+                c.setdefault("side", []).append(ev)
+                side_evs.remove(ev)
+        for c in order:
+            f = c.get("file")
+            evs = f["events"] if f else c.get("side", [])
+            if not evs and c.get("reportedUsage"):
+                evs = [(c["start"], None, c["reportedUsage"], None)]
+            tot = sum_usage(evs)
+            if not f and not c.get("reportedUsage") and c.get("reported", {}).get("totalTokens"):
+                tot["reportedTokens"] = c["reported"]["totalTokens"]
+            end = (f and f["end"]) or c["end"]
+            if not end and c.get("reported", {}).get("totalDurationMs") and c["start"]:
+                end = c["start"] + c["reported"]["totalDurationMs"] / 1000
+            s.subagents.append({"type": c["type"], "desc": c["desc"], "bg": c["bg"], "start": c["start"], "end": end,
+                                "model": max(f["models"], key=f["models"].get) if f and f["models"] else
+                                         (c["side"][0][1] if c.get("side") else None),
+                                "tools": (f and sum(f["tools"].values())) or c.get("reported", {}).get("totalToolUseCount", 0),
+                                "usage": tot, "_events": evs})
+        if side_evs:  # 古い形式: どの呼び出しにも入らなかった分は 1 つにまとめる
+            evs = side_evs
+            s.subagents.append({"type": "sidechain", "desc": "", "bg": False, "start": min((t for t, *_ in evs if t), default=None),
+                                "end": max((t for t, *_ in evs if t), default=None), "model": None, "tools": 0,
+                                "usage": sum_usage(evs), "_events": evs})
         s.title = s.title or (summaries[-1] if summaries else None)
         s.project = s.project or path.parent.name
         s.resume = f"cd {s.project} && claude --resume {s.id}"
@@ -192,6 +372,7 @@ def load_kiro_ide(home):
         s = Session("Kiro IDE", meta.get("id") or meta_path.parent.name)
         s.title = meta.get("title")
         s.project = ((meta.get("workspacePaths") or meta.get("rootPaths") or [None])[0])
+        model = meta.get("modelId")
         s.tick(parse_ts(meta.get("createdAt")))
         msgs = meta_path.parent / "messages.jsonl"
         if msgs.exists():
@@ -203,6 +384,13 @@ def load_kiro_ide(home):
                     s.prompt(ts, text_of(p.get("content")))
                 elif p.get("type") == "tool_call":
                     s.tool(p.get("toolName"), p.get("args"))
+                elif p.get("type") == "usage_summary":
+                    used = sum((x or {}).get("usage") or 0 for x in p.get("promptTurnSummaries") or []
+                               if (x or {}).get("unit", "credit").startswith("credit"))
+                    if used:
+                        s.credits.append((ts, used))
+                    if model:
+                        s.models[model] = s.models.get(model, 0) + 1
         yield s
 
 
@@ -220,8 +408,19 @@ def load_kiro_cli(home):
         s.tick(parse_ts(meta.get("updated_at")))
         turns = (((meta.get("session_state") or {}).get("conversation_metadata") or {})
                  .get("user_turn_metadatas") or [])
+        default_model = ((((meta.get("session_state") or {}).get("rts_model_state") or {}).get("model_info") or {})
+                         .get("model_id"))
         for t in turns:
-            s.agent(parse_ts((t or {}).get("end_timestamp")))
+            t = t or {}
+            te = parse_ts(t.get("end_timestamp"))
+            s.agent(te)
+            used = sum((m or {}).get("value") or 0 for m in t.get("metering_usage") or []
+                       if str((m or {}).get("unit", "credit")).startswith("credit"))
+            if used:
+                s.credits.append((te, used))
+            m = t.get("model") or default_model
+            if m:
+                s.models[m] = s.models.get(m, 0) + 1
         log = meta_path.with_suffix(".jsonl")
         if log.exists():
             for e in read_jsonl(log):
@@ -331,6 +530,14 @@ def build(args):
             "waits": s.waits(),
             "interrupts": s.interrupts,
             "corrections": s.corrections(),
+            "models": sorted(s.models.items(), key=lambda kv: -kv[1]),
+            "usage": sum_usage(s.usage.events()),
+            "subagents": [{k: v for k, v in a.items() if not k.startswith("_")} for a in s.subagents],
+            "credits": round(sum(c for _, c in s.credits), 3),
+            "cost": round((sum_usage(s.usage.events())["cost"] + sum(a["usage"]["cost"] for a in s.subagents)), 4),
+            # 週ごとの集計用（HTML には入れない）
+            "_uev": s.usage.events() + [ev for a in s.subagents for ev in a["_events"]],
+            "_cev": s.credits,
         })
     out.sort(key=lambda x: x["start"])
     return out
@@ -430,7 +637,46 @@ def week_stats(data, ws_dt):
                              "score": score, "why": why})
     friction.sort(key=lambda x: -x["score"])
 
+    # AI の使い方: トークン・目安コスト・クレジット・モデル・サブエージェント
+    tok = lambda u: u["in"] + u["out"] + u["cw"] + u["cw1h"] + u["cr"]
+    models, by_proj, heavy, tot = {}, {}, {}, {k: 0 for k in USAGE_KEYS}
+    cost = credits = 0.0
+    for d in data:
+        for t, m, u, c in d["_uev"]:
+            t = t or d["start"]
+            if not (ws <= t < we):
+                continue
+            for k in USAGE_KEYS:
+                tot[k] += u[k]
+            mm = models.setdefault(m or "（不明）", {"tokens": 0, "cost": 0.0, "msgs": 0})
+            mm["tokens"] += tok(u); mm["msgs"] += 1; mm["cost"] += c or 0
+            cost += c or 0
+            by_proj[d["project"]] = by_proj.get(d["project"], 0) + (c or 0)
+            heavy[d["id"]] = heavy.get(d["id"], 0) + (c or 0)
+        for t, c in d["_cev"]:
+            t = t or d["start"]
+            if ws <= t < we:
+                credits += c
+                by_proj.setdefault(d["project"], 0)
+    subs = [a for d in data for a in d["subagents"] if a["start"] and ws <= a["start"] < we]
+    sub_types = {}
+    for a in subs:
+        sub_types[a["type"]] = sub_types.get(a["type"], 0) + 1
+    sub_min = sum(max(0, (a["end"] or a["start"]) - a["start"]) for a in subs) / 60
+    reads = tot["cr"] + tot["cw"] + tot["cw1h"] + tot["in"]
+    usage = {
+        "tokens": sum(tot.values()), "out": tot["out"], "cost": round(cost, 2), "credits": round(credits, 2),
+        "cacheHit": round(tot["cr"] / reads, 3) if reads else None,
+        "models": sorted(([m, round(v["cost"], 2), v["tokens"], v["msgs"]] for m, v in models.items()), key=lambda r: (-r[1], -r[2])),
+        "projects": sorted(([k, round(v, 2)] for k, v in by_proj.items() if v), key=lambda kv: -kv[1]),
+        "subagents": len(subs), "subMin": round(sub_min), "subTypes": sorted(sub_types.items(), key=lambda kv: -kv[1]),
+        "heavy": [{"id": d["id"], "title": d["title"], "project": d["project"], "start": d["start"], "cost": round(heavy[d["id"]], 2),
+                   "subagents": len(d["subagents"])}
+                  for d in sorted((d for d in data if heavy.get(d["id"])), key=lambda d: -heavy[d["id"]])[:3]],
+    }
+
     return {
+        "usage": usage,
         "week": ws_dt.strftime("%Y-%m-%d"),
         "sessions": sum(1 for d in data if d["end"] >= ws and d["start"] < we),
         "prompts": len(prompts),
@@ -502,6 +748,24 @@ def weekly_markdown(st, prev):
         d = ws + timedelta(days=i)
         z = lambda v, f=str: f(v) if v else "—"
         L.append(f"| {d:%m/%d}({'月火水木金土日'[i]}) | {z(x['active'], hm)} | {z(x['night'], hm)} | {z(x['prompts'])} | {z(x['switches'])} |")
+    u = st["usage"]
+    cost_delta = ""
+    if prev:
+        dc = u["cost"] - prev["usage"]["cost"]
+        cost_delta = f"先週から {'+' if dc >= 0 else '−'}${abs(dc):,.2f}・"
+    L += ["", "## AI の使い方", "",
+          "| 指標 | 今週 | メモ |", "|---|---|---|",
+          f"| 目安コスト（API 換算） | ${u['cost']:,.2f} | {cost_delta}サブスクの請求額とは別 |",
+          f"| トークン | {u['tokens']:,} | うち出力 {u['out']:,} |",
+          f"| キャッシュから読んだ割合 | {'—' if u['cacheHit'] is None else str(round(u['cacheHit'] * 100)) + '%'} | 入力のうち |",
+          f"| サブエージェント | {u['subagents']} 回 | 延べ {hm(u['subMin'])} |"]
+    if u["credits"]:
+        L.append(f"| Kiro クレジット | {u['credits']:,} | |")
+    L += ["", "モデル別:", ""]
+    L += [f"- {m}: ${c:,.2f}・{t:,} トークン・{n} 応答" for m, c, t, n in u["models"]] or ["- なし"]
+    if u["heavy"]:
+        L += ["", "重かったセッション:", ""]
+        L += [f"- {datetime.fromtimestamp(h['start']):%m/%d %H:%M} [{h['project']}] {h['title']} — ${h['cost']:,.2f}" for h in u["heavy"]]
     L += ["", "## 集中ブロック", ""]
     L += [f"- {datetime.fromtimestamp(b['t']):%m/%d %H:%M} から {hm(b['min'])}・{b['project']}（{round(b['share'] * 100)}%）"
           for b in st["focus"]] or ["- なし"]
@@ -669,6 +933,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .stat{padding:14px 0 13px;border-bottom:1px solid var(--rule)}
 .stat:nth-child(odd){padding-right:14px;border-right:1px solid var(--rule)}
 .stat:nth-child(even){padding-left:16px}
+.stat:last-child:nth-child(odd){grid-column:1/-1;border-right:0}
 .stat .k{font-size:11.5px;color:var(--ink-3)}
 .stat .v{font:500 22px/1.25 var(--serif);font-variant-numeric:tabular-nums;margin-top:3px}
 .stat .v small{font:500 12px var(--serif);color:var(--ink-2);margin-left:2px}
@@ -733,6 +998,30 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .files li{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:rtl;text-align:left}
 .files li span{direction:ltr;unicode-bidi:plaintext}
 
+/* AI usage */
+.mrow{display:grid;grid-template-columns:1fr auto 40px;gap:10px;align-items:center;padding:6px 0;font-size:12.5px;border-bottom:1px dashed var(--rule)}
+.mrow:last-child{border-bottom:0}
+.mrow .nm{font-family:var(--mono);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.mrow .nm i{width:9px;height:9px;border-radius:2px;background:var(--ink);opacity:var(--o);flex:none}
+.mrow .tm{color:var(--ink-2);font-variant-numeric:tabular-nums;text-align:right}
+.mrow .tm small{color:var(--ink-3);margin-left:6px}
+.mrow .pc{text-align:right;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.mstack{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;margin-bottom:8px}
+.mstack span{background:var(--ink);opacity:var(--o);min-width:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font-size:11.5px;color:var(--ink-2);border:1px solid var(--rule);border-radius:999px;padding:1px 9px;font-variant-numeric:tabular-nums}
+.chips span b{font-weight:600;color:var(--ink);margin-left:4px}
+.chips span.mono{font-family:var(--mono);font-size:11px}
+.sub{padding:9px 0 10px;border-bottom:1px solid var(--rule)}
+.sub:last-child{border-bottom:0}
+.sub .hd{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.sub .ty{font:600 11px var(--mono);color:var(--ink);background:var(--paper-2);border-radius:5px;padding:1px 7px;flex:none}
+.sub .ds{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
+.sub .bg{font-size:10.5px;color:var(--shu-ink);flex:none}
+.sub .lane{position:relative;height:6px;border-radius:3px;background:var(--paper-2);margin:8px 0 6px}
+.sub .lane span{position:absolute;top:0;bottom:0;border-radius:3px;background:var(--c);min-width:3px}
+.sub .ft{display:flex;gap:12px;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.note{font-size:11px;color:var(--ink-3);margin-top:10px;line-height:1.7}
 /* toast & dialog */
 .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,12px);background:var(--ink);color:var(--paper);padding:8px 14px;border-radius:999px;font-size:12.5px;opacity:0;transition:all .25s var(--ease);z-index:30;pointer-events:none}
 .toast.on{opacity:1;transform:translate(-50%,0)}
@@ -833,6 +1122,9 @@ function md(t){ const d = new Date(t*1000); return `${d.getMonth()+1}/${d.getDat
 function dur(m, html){ m = Math.round(m); const h = Math.floor(m/60), r = m%60;
   if (!html) return h ? `${h}時間${r ? String(r).padStart(2,"0")+"分" : ""}` : `${r}分`;
   return h ? `${h}<small>時間</small>${r ? String(r).padStart(2,"0")+"<small>分</small>" : ""}` : `${r}<small>分</small>`; }
+function tok(n){ n = n || 0; return n >= 1e9 ? (n/1e9).toFixed(1)+"B" : n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? Math.round(n/1e3)+"K" : String(n); }
+function usd(v){ return v == null ? "—" : v > 0 && v < 0.01 ? "<$0.01" : "$" + (v >= 100 ? Math.round(v).toLocaleString() : v.toFixed(2)); }
+function shade(i){ return [1,.72,.5,.34,.22,.14][Math.min(i,5)]; }
 function secs(v){ return v == null ? "—" : v < 60 ? `${v}秒` : `${Math.floor(v/60)}分${String(v%60).padStart(2,"0")}秒`; }
 function isoWeek(d){ d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const n = d.getUTCDay() || 7; d.setUTCDate(d.getUTCDate()+4-n);
   const y0 = new Date(Date.UTC(d.getUTCFullYear(),0,1)); return Math.ceil(((d-y0)/864e5+1)/7); }
@@ -929,7 +1221,7 @@ function render(){
 
 /* ── tooltip ── */
 function tipOn(e, bk){ const t = $("#tip"), s = bk.s;
-  t.innerHTML = `<b>${esc(s.title)}</b><div class="r" style="--c:${colorOf(keyOf(s))}"><i></i>${esc(s.project)}${s.branch?` · ${esc(s.branch)}`:""}</div><div class="r">${md(bk.a)} ${hm(bk.a)}–${hm(bk.b)}（${dur((bk.b-bk.a)/60)}）</div><div class="r">${esc(s.source)} · 依頼 ${s.nPrompts} 件</div>`;
+  t.innerHTML = `<b>${esc(s.title)}</b><div class="r" style="--c:${colorOf(keyOf(s))}"><i></i>${esc(s.project)}${s.branch?` · ${esc(s.branch)}`:""}</div><div class="r">${md(bk.a)} ${hm(bk.a)}–${hm(bk.b)}（${dur((bk.b-bk.a)/60)}）</div><div class="r">${esc(s.source)} · 依頼 ${s.nPrompts} 件${s.cost ? ` · ${usd(s.cost)}` : ""}${s.credits ? ` · ${s.credits} クレジット` : ""}${s.subagents.length ? ` · サブエージェント ${s.subagents.length}` : ""}</div>`;
   t.classList.add("on"); tipMove(e); }
 function tipMove(e){ const t = $("#tip"), w = t.offsetWidth, h = t.offsetHeight;
   let x = e.clientX + 14, y = e.clientY + 16; if (x + w > innerWidth - 12) x = e.clientX - w - 14; if (y + h > innerHeight - 12) y = e.clientY - h - 14;
@@ -959,6 +1251,7 @@ function summary(){
       ${stat("AIの延べ稼働", dur(w.ai,true), "並列ぶんも合計")}
       ${stat("セッション / 依頼", `${w.sessions}<small>/</small>${w.prompts}`, "")}
     </div>
+    ${aiUsage(w, pw)}
     <h3>日ごとのリズム</h3>
     <div class="rhythm">${w.days.map((x,i)=>{ const dd = addDays(st.week,i), hgt = x.active/maxDay*84;
       return `<div class="col${key(dd)===today?" today":""}" title="${md(dd.getTime()/1000)} 作業 ${dur(x.active)}・深夜 ${dur(x.night)}・依頼 ${x.prompts}・切り替え ${x.switches}">
@@ -977,6 +1270,26 @@ function summary(){
   P.querySelectorAll(".card").forEach(c => c.onclick = () => select(c.dataset.id));
   bindCopy(P);
 }
+function aiUsage(w, pw){
+  const u = w.usage; if (!u || (!u.tokens && !u.credits)) return "";
+  const stat = (k, v, s) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
+  const dc = pw && pw.usage ? u.cost - pw.usage.cost : null;
+  const totalC = u.models.reduce((t,r)=>t+r[1],0) || 1, totalT = u.models.reduce((t,r)=>t+r[2],0) || 1, byCost = totalC > 0.0001;
+  return `<h3>AIの使い方</h3>
+    <div class="stats" style="margin-top:0">
+      ${u.tokens ? stat("目安コスト（API換算）", usd(u.cost).replace("$","<small>$</small>"), dc==null ? "" : `先週より ${dc>=0?"+":"−"}${usd(Math.abs(dc))}`) : ""}
+      ${u.tokens ? stat("トークン", `${tok(u.tokens)}`, `うち出力 ${tok(u.out)}`) : ""}
+      ${u.tokens ? stat("キャッシュから読んだ割合", u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, "入力のうち") : ""}
+      ${stat("サブエージェント", `${u.subagents}<small>回</small>`, u.subagents ? `延べ ${dur(u.subMin)}` : "使っていません")}
+      ${u.credits ? stat("Kiro クレジット", `${u.credits}`, "履歴に残った実績") : ""}
+    </div>
+    ${u.models.length ? `<div style="margin-top:16px" class="k muted">モデル別${byCost ? "（目安コスト）" : "（トークン）"}</div>
+      <div class="mstack" style="margin-top:8px">${u.models.map((r,i)=>`<span style="flex:${byCost?r[1]:r[2]};--o:${shade(i)}" title="${esc(r[0])}"></span>`).join("")}</div>
+      ${u.models.slice(0,6).map((r,i)=>`<div class="mrow"><span class="nm"><i style="--o:${shade(i)}"></i>${esc(r[0])}</span><span class="tm">${usd(r[1])}<small>${tok(r[2])}</small></span><span class="pc">${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%</span></div>`).join("")}` : ""}
+    ${u.subTypes.length ? `<div style="margin-top:14px" class="chips">${u.subTypes.map(([k,v])=>`<span class="mono">${esc(k)}<b>${v}</b></span>`).join("")}</div>` : ""}
+    ${u.heavy.length ? `<div style="margin-top:16px" class="k muted">重かったセッション</div><div style="margin-top:8px">${u.heavy.map(h=>`<button class="card" data-id="${esc(h.id)}"><span class="ti">${esc(h.title)}</span><span class="me">${md(h.start)} · ${esc(h.project)} · ${usd(h.cost)}${h.subagents?` · サブエージェント ${h.subagents}`:""}</span></button>`).join("")}</div>` : ""}
+    ${u.tokens ? `<p class="note">目安コストは、履歴のトークン数に API の公開料金をかけた換算です。サブスクリプションの請求額とは別物です。料金表は <code>--prices</code> で変えられます。</p>` : ""}`;
+}
 function foot(cmd){
   return `<div class="foot">待たせ時間は、AI が返してから次の依頼を出すまで（30分以内）。切り替えは、続けて出した依頼のプロジェクトが変わった回数です。どれも履歴からの目安で、<b>自分のふりかえり用</b>。人と比べたり評価に使ったりするための数字ではありません。
     ${cmd ? `<div class="code"><code>${esc(cmd)}</code><button class="copy" data-copy="${esc(cmd)}">コピー</button></div>` : ""}
@@ -990,6 +1303,7 @@ function detail(s){
   const active = s.segs.reduce((t,[a,b])=>t+(b-a),0)/60, waits = s.waits.map(x=>x[1]).sort((a,b)=>a-b);
   const med = waits.length ? waits[Math.floor(waits.length/2)] : null, maxT = Math.max(1, ...s.tools.map(t=>t[1]));
   const sameDay = new Date(s.start*1000).toDateString() === new Date(s.end*1000).toDateString();
+  const allTok = [s.usage, ...s.subagents.map(a=>a.usage)].reduce((t,u)=>t + (u ? u.in+u.out+u.cw+u.cw1h+u.cr : 0), 0);
   const P = $("#panel");
   P.innerHTML = `<div class="pane" style="--c:${colorOf(keyOf(s))}">
     <button class="back" id="back"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>週のふりかえりへ</button>
@@ -1002,9 +1316,18 @@ function detail(s){
       <div><div class="k">依頼</div><div class="v">${s.nPrompts}<small>件</small></div></div>
       <div><div class="k">待たせ（中央値）</div><div class="v">${med==null?"—":secs(med).replace(/(分|秒)/g,"<small>$1</small>")}</div></div>
       <div><div class="k">言い直し・中断</div><div class="v">${s.corrections + s.interrupts}<small>回</small></div></div>
+      ${s.source === "Claude Code" ? `<div><div class="k">目安コスト</div><div class="v">${usd(s.cost).replace("$","<small>$</small>")}</div></div>
+      <div><div class="k">トークン</div><div class="v">${tok(allTok)}</div></div>` : s.credits ? `<div><div class="k">Kiro クレジット</div><div class="v">${s.credits}</div></div><div><div class="k">1依頼あたり</div><div class="v">${s.nPrompts ? (s.credits/s.nPrompts).toFixed(2) : "—"}<small>クレジット</small></div></div>` : ""}
     </div>
+    ${s.models.length ? `<h3>使ったモデル</h3><div class="chips">${s.models.map(([m,n])=>`<span class="mono">${esc(m)}<b>${n}</b></span>`).join("")}</div>` : ""}
     <h3>依頼の流れ</h3>
     ${s.prompts.length ? `<ol class="tl">${s.prompts.slice(0,30).map(p=>`<li class="${/違う|ちがう|そうじゃな|やり直|戻して|元に戻|取り消|じゃなくて|wrong|revert|undo/i.test(p.text)?"fix":""}"><time>${p.t?hm(p.t):""}</time><p>${esc(p.text.length>220?p.text.slice(0,220)+"…":p.text)}</p></li>`).join("")}</ol>${s.prompts.length>30?`<p class="more">ほか ${s.nPrompts-30} 件</p>`:""}` : '<p class="none">依頼の記録はありません。</p>'}
+    ${s.subagents.length ? `<h3>サブエージェント · ${s.subagents.length}</h3>${s.subagents.map(a=>{
+        const span = Math.max(1, s.end - s.start), l = a.start ? Math.max(0,(a.start - s.start)/span*100) : 0, w = a.start && a.end ? Math.max(.8,(a.end - a.start)/span*100) : .8;
+        const t = a.usage, tt = t.in + t.out + t.cw + t.cw1h + t.cr;
+        return `<div class="sub"><div class="hd"><span class="ty">${esc(a.type)}</span><span class="ds">${esc(a.desc || "（説明なし）")}</span>${a.bg?'<span class="bg">バックグラウンド</span>':""}</div>
+          <div class="lane"><span style="left:${l}%;width:${Math.min(w,100-l)}%"></span></div>
+          <div class="ft">${a.start?`<span>${hm(a.start)}${a.end?"–"+hm(a.end):""}</span>`:""}${a.start&&a.end?`<span>${dur((a.end-a.start)/60)}</span>`:""}${tt?`<span>${tok(tt)} トークン</span>`:t.reportedTokens?`<span>${tok(t.reportedTokens)} トークン（報告値）</span>`:""}${t.cost?`<span>${usd(t.cost)}</span>`:""}${a.model?`<span>${esc(a.model)}</span>`:""}${a.tools?`<span>ツール ${a.tools} 回</span>`:""}</div></div>`; }).join("")}` : ""}
     <h3>使ったツール</h3>
     ${s.tools.length ? s.tools.map(([k,v])=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track"><span style="width:${v/maxT*100}%"></span></span><span class="n">${v}</span></div>`).join("") : '<p class="none">記録なし</p>'}
     <h3>変更したファイル · ${s.nFiles}</h3>
@@ -1057,10 +1380,16 @@ def main():
     ap.add_argument("--gap", type=int, default=15, help="何分あいたら帯を分けるか（既定 15）")
     ap.add_argument("--sources", default="claude,kiro", help="読むもの（claude,kiro のカンマ区切り）")
     ap.add_argument("--no-open", action="store_true")
+    ap.add_argument("--prices", metavar="JSON", help="料金表の上書き（README 参照）")
     ap.add_argument("--weekly", nargs="?", const="latest", metavar="YYYY-MM-DD",
                     help="その日を含む週のふりかえりを Markdown で書き出す（日付なしなら最新の週）")
     a = ap.parse_args()
     a.sources = {x.strip().lower() for x in a.sources.split(",")}
+    if a.prices:
+        for k, v in json.loads(Path(a.prices).read_text(encoding="utf-8")).items():
+            if isinstance(v, dict):
+                v = [v.get(n, 0) for n in ("input", "output", "cache_write", "cache_write_1h", "cache_read")]
+            PRICES[k.lower()] = tuple(float(x) for x in v)
     data = build(a)
     if not data:
         sys.exit("履歴が 1 件も見つからなかったよ。--root や KIRO_HOME を確認してね")
@@ -1076,7 +1405,8 @@ def main():
         print(f"週のふりかえり → {out}")
         return
     dump = lambda v: json.dumps(v, ensure_ascii=False).replace("</", "<\\/")
-    html = (HTML.replace("__DATA__", dump(data)).replace("__WEEKS__", dump(weeks))
+    public = [{k: v for k, v in d.items() if not k.startswith("_")} for d in data]
+    html = (HTML.replace("__DATA__", dump(public)).replace("__WEEKS__", dump(weeks))
             .replace("__GEN__", str(datetime.now(timezone.utc).timestamp())))
     Path(a.out).write_text(html, encoding="utf-8")
     print(f"{len(data)} セッション → {a.out}")
