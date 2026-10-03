@@ -47,6 +47,7 @@ PR ごとに次を走らせます（`.github/workflows/ci.yml`）。
 
 - `test`（Ubuntu・macOS・Windows）: gofmt・vet・テスト・ビルド
 - `release-dry-run`: `goreleaser release --snapshot`（公開はしない）。リリースの設定が壊れていないかを、タグを打つ前に確かめる
+- `install-script`（Ubuntu・macOS）: `install.sh` に shellcheck をかけ、実際に最新のリリースを入れて `kiroku --version` を確かめる
 
 ## リリースの出し方
 
