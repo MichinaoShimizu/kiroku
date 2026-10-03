@@ -1,18 +1,24 @@
 # kiroku
 
-AI エージェント（Claude Code・Kiro・Amazon Q・Codex）の利用状況を、Google カレンダーのような画面で、あなただけに見せるツールです。
+AI エージェント（Claude Code・Kiro・Amazon Q・Codex）の利用履歴を、Google カレンダーのような画面で可視化するツールです。
 
-限られたクレジットやトークンで AI エージェントを効果的に使えるかは、使う側の改善しだいです。けれど、改善に必要な情報を手に入れられるかどうかも、今は人しだいです。利用状況は各エージェントが手元の PC に記録していますが、場所も形式もばらばらです。kiroku はそれを読み集めて 1 つの画面にまとめ、誰でも自分の使い方を見て改善しやすくします。
+## 目的
 
-- **外部 API を呼びません**。履歴はどこにも送りません
-- **kiroku 自身は AI を呼びません**
-- **書き出すのは静的な HTML ファイル 1 つだけ**です（`kiroku serve` も、それを自分の PC で開くだけ）
+限られたクレジットやトークンの中で AI エージェントを効果的に使えるかどうかは、結局のところ使う側の改善次第です。ところが、改善に必要な情報を誰もが等しく得て、有効な手を打てるかどうかという前提さえも、今は使う側次第になっています。
 
-ネットにつながるのは、自分で実行する `install.sh` と `kiroku update`（GitHub Releases から kiroku 自身を落とす）のときだけです。
+各エージェントは利用履歴を PC 内に記録していますが、保存場所も形式もエージェントごとに異なります。kiroku はそれらを読み取り、1 つの画面にまとめて、あなただけに表示します。誰もが自分の使い方を把握し、改善に取り組みやすくすることが目的です。
+
+- **外部 API を一切呼び出しません**。履歴を PC の外に送ることもありません
+- **kiroku 自身は AI を呼び出しません**
+- **出力は静的な HTML ファイル 1 つだけです**。`kiroku serve` も、同じ HTML を PC 内（`127.0.0.1`）で表示するだけです
+
+ネットワークに接続するのは、`install.sh` と `kiroku update` で kiroku 本体を GitHub Releases からダウンロードするときだけです。
+
+## 画面
 
 ![kiroku の画面（ダミーデータ）](docs/screenshot.png)
 
-いつ・どのプロジェクトで・何を頼んだかを週 / 月のカレンダーで、プロジェクトごと・日ごとの作業時間・トークン・目安コスト・クレジットをサマリーで見られます。
+いつ・どのプロジェクトで・何を依頼したかを週 / 月のカレンダーで、プロジェクト別・日別の作業時間、トークン、目安コスト、クレジットをサマリーで確認できます。
 
 ## インストール
 
@@ -22,27 +28,27 @@ macOS・Linux:
 curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install.sh | sh
 ```
 
-Windows は [Releases](https://github.com/MichinaoShimizu/kiroku/releases) から zip を落として展開してください。Go があれば `go install github.com/MichinaoShimizu/kiroku@latest` でも入ります。
+Windows は [Releases](https://github.com/MichinaoShimizu/kiroku/releases) から zip をダウンロードして展開してください。Go がある場合は `go install github.com/MichinaoShimizu/kiroku@latest` でもインストールできます。
 
 ## アップデート
 
 ```bash
-kiroku update          # 最新版に入れかえる（--check で確かめるだけ）
+kiroku update          # 最新版に更新（--check で確認のみ）
 ```
 
-`/usr/local/bin` など書き込めない場所なら `sudo kiroku update`。`go install` で入れた場合は `go install …@latest` で更新してください。
+`/usr/local/bin` など書き込み権限のない場所にある場合は `sudo kiroku update` を実行してください。`go install` でインストールした場合は `go install github.com/MichinaoShimizu/kiroku@latest` で更新します。
 
 ## 使い方
 
 ```bash
-kiroku serve    # 画面を開く（http://localhost:8484/）。作業中に増えた履歴もその場で反映
-kiroku html     # 静的な HTML（kiroku.html）を書き出して開く
+kiroku serve    # 画面を開く（http://localhost:8484/）。新しい履歴も自動で反映
+kiroku html     # 静的な HTML（kiroku.html）を出力して開く
 kiroku help     # コマンドとオプションの一覧
 ```
 
-書き出した HTML には依頼文やファイルパスがそのまま入ります。人に渡すときは中身を確かめてください。
+出力した HTML には依頼文やファイルパスがそのまま含まれます。人に渡すときは内容を確認してください。
 
-画面の見方・指標の意味・読む履歴・オプションは [docs/guide.md](docs/guide.md)、開発は [docs/development.md](docs/development.md) にあります。
+画面の見方、指標の定義、読み取る履歴、オプションは [docs/guide.md](docs/guide.md)、開発については [docs/development.md](docs/development.md) を参照してください。
 
 ## ライセンス
 
