@@ -19,13 +19,17 @@ type Source interface {
 	Load(emit func(*core.Builder)) error
 }
 
+// Detailer は計測の状態に一言添えたい Source が実装する。
+type Detailer interface{ Detail() string }
+
 // Report は計測の状態に出す、読み込みの結果。
 type Report struct {
-	Name  string  `json:"name"`
-	N     int     `json:"n"`
-	Dup   int     `json:"dup,omitempty"` // ほかの場所と同じ会話だったので数えなかった数
-	Where string  `json:"where"`
-	Error *string `json:"error"`
+	Name   string  `json:"name"`
+	N      int     `json:"n"`
+	Dup    int     `json:"dup,omitempty"` // ほかの場所と同じ会話だったので数えなかった数
+	Detail string  `json:"detail,omitempty"`
+	Where  string  `json:"where"`
+	Error  *string `json:"error"`
 }
 
 // Options は読み込みの設定。
@@ -33,6 +37,7 @@ type Options struct {
 	ClaudeRoot   string
 	KiroHome     string
 	KiroStorages []string // nil なら OS ごとの場所を探す
+	CrewHome     string   // 空なら KIROCREW_HOME か <KiroHome>/crew
 	KiroCLIDB    string   // 空なら OS ごとの場所
 	AmazonQDB    string
 }
@@ -49,7 +54,7 @@ func All(o Options) []Source {
 	return []Source{
 		&Claude{Root: o.ClaudeRoot},
 		&KiroIDE{Home: o.KiroHome},
-		&KiroCLI{Home: o.KiroHome},
+		&KiroCLI{Home: o.KiroHome, CrewHome: q(o.CrewHome, DefaultCrewHome(o.KiroHome))},
 		&QStore{Label: "Kiro CLI (SQLite)", Fam: "kiro", DB: q(o.KiroCLIDB, filepath.Join(DataDir("kiro-cli"), "data.sqlite3")), Command: "kiro-cli chat --resume"},
 		&KiroIDELegacy{Storages: storages(o.KiroStorages)},
 		&QStore{Label: "Amazon Q", Fam: "amazonq", DB: q(o.AmazonQDB, filepath.Join(DataDir("amazon-q"), "data.sqlite3")), Command: "q chat --resume"},

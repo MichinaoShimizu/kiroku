@@ -165,6 +165,9 @@ func WeeklyMarkdown(st *Week, report []source.Report, existing string) string {
 	L = append(L, "## 計測の状態", "")
 	for _, r := range report {
 		line := fmt.Sprintf("- %s: %d セッション", r.Name, r.N)
+		if r.Detail != "" {
+			line += "（" + r.Detail + "）"
+		}
 		if r.Dup > 0 {
 			line += fmt.Sprintf("（ほかの場所と同じ会話 %d 件は数えていません）", r.Dup)
 		}

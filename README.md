@@ -1,6 +1,6 @@
 # kiroku
 
-AI エージェント（Claude Code・Kiro・Amazon Q）の作業履歴を、Google カレンダーみたいな週表示で振り返るツールです。
+AI エージェント（Claude Code・Kiro・Kiro Crew・Amazon Q）の作業履歴を、Google カレンダーみたいな週表示で振り返るツールです。
 いつ・どのプロジェクトで・何を頼んでいたかが一目でわかります。
 
 ![kiroku の画面（ダミーデータ）](docs/screenshot.png)
@@ -28,6 +28,7 @@ kiroku --weekly 2026-09-30    # その日を含む週
 | `--sources` | `claude,kiro,amazonq` | 読む履歴 |
 | `--root` | `~/.claude/projects` | Claude Code の履歴の場所（`CLAUDE_CONFIG_DIR` も見ます） |
 | `--kiro-home` | `~/.kiro` | Kiro のデータの場所（`KIRO_HOME` も見ます） |
+| `--crew-home` | `~/.kiro/crew` | Kiro Crew のデータの場所（`KIROCREW_HOME` も見ます） |
 | `--kiro-cli-db` | OS ごと | Kiro CLI（古い版）の `data.sqlite3` |
 | `--amazonq-db` | OS ごと | Amazon Q Developer CLI の `data.sqlite3` |
 | `--gap` | `15` | 何分あいたら帯を分けるか |
@@ -149,7 +150,8 @@ kiroku --prices my-prices.json
 - `KIRO_HOME` が設定されていればそちらを見ます
 - Kiro CLI は新しい形式（`~/.kiro/sessions/cli`）と SQLite に同じ会話が残ることがあります。同じ会話 ID のものは新しい形式のほうだけを数えます（クレジットが入っているため）。外した数は「計測の状態」に出ます
 - SQLite のほうにはトークンやクレジットが残っていないので、目安コストやクレジットには入りません
-- Kiro Crew と Codex は、これから順に対応します
+- **Kiro Crew** は kiro-cli を動かすので、会話そのものは Kiro CLI の履歴（`~/.kiro/sessions/cli`）に残ります。kiroku はそちらを数え、Crew の `session_map.json` と `subagents/*/state.json` に載っている会話には「Kiro Crew」の目印と、Crew のタイトル（サブエージェントならエージェント名と依頼内容）をつけます。Crew の使用量の記録（`usage/tokens`）は kiro-cli のクレジットと同じものなので、足しません
+- Codex は、これから対応します
 
 Kiro の形式には公式ドキュメントがないため、[kiro-history](https://github.com/pajaydev/kiro-history) と [codeburn](https://github.com/getagentseal/codeburn) の実装を参考にしています。SQLite の形は [amazon-q-developer-cli](https://github.com/aws/amazon-q-developer-cli) のソースに合わせています（`conversations_v2` は Kiro CLI だけにあり、参考実装をもとにしています）。読めない履歴があれば issue で教えてください。
 
