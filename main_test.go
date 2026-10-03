@@ -7,10 +7,12 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 	_ "time/tzdata" // Windows などでも Asia/Tokyo を読めるように
 
+	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/MichinaoShimizu/kiroku/internal/report"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
 )
@@ -54,7 +56,6 @@ func setup(t *testing.T) (data any, weeks map[string]*report.Week, rep []source.
 	}
 	sessions, rep := collect(picked, map[string]bool{"claude": true, "kiro": true}, 15)
 	weeks = report.AllWeeks(sessions)
-	report.Annotate(weeks, report.ReadJournal(filepath.Join("testdata", "journal")))
 	return sessions, weeks, rep
 }
 
@@ -80,32 +81,73 @@ func TestMatchesPythonVersion(t *testing.T) {
 	}
 }
 
-func TestWeeklyMarkdownMatchesPythonVersion(t *testing.T) {
-	_, weeks, rep := setup(t)
-	keys := make([]string, 0, len(weeks))
-	for k := range weeks {
-		keys = append(keys, k)
+// 週次・月次サマリーの Markdown は、testdata/golden-week.md・golden-month.md と同じになる。
+// 数字は Python 版と同じ集計（上の TestMatchesPythonVersion）から来ている。
+// 書式を変えたときは KIROKU_UPDATE_GOLDEN=1 go test . で作り直して、差分を目で確かめる。
+func TestSummaryMarkdown(t *testing.T) {
+	sessions, weeks, rep := setup(t)
+	months := report.AllMonths(sessions.([]*core.Session))
+	last := func(m map[string]*report.Summary) *report.Summary {
+		keys := make([]string, 0, len(m))
+		for k := range m {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		return m[keys[len(keys)-1]]
 	}
-	sort.Strings(keys)
-	got := withoutNative(report.WeeklyMarkdown(weeks[keys[len(keys)-1]], rep, ""))
-	want, err := os.ReadFile("testdata/golden-week.md")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got != string(want) {
-		os.WriteFile(filepath.Join(t.TempDir(), "got.md"), []byte(got), 0o644)
-		t.Errorf("Markdown が違う:\n--- want\n%s\n--- got\n%s", want, got)
+	for _, c := range []struct{ file, got string }{
+		{"testdata/golden-week.md", report.WeeklyMarkdown(last(weeks), rep)},
+		{"testdata/golden-month.md", report.MonthlyMarkdown(months["2026-09"], rep)}, // いちばん記録の多い月
+	} {
+		if os.Getenv("KIROKU_UPDATE_GOLDEN") != "" {
+			os.WriteFile(c.file, []byte(c.got), 0o644)
+		}
+		want, err := os.ReadFile(c.file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if c.got != string(want) {
+			t.Errorf("%s と違う:\n--- want\n%s\n--- got\n%s", c.file, want, c.got)
+		}
 	}
 }
 
-func TestWeeklyKeepsHandWrittenSection(t *testing.T) {
-	_, weeks, rep := setup(t)
-	st := weeks["2026-09-21"]
-	first := report.WeeklyMarkdown(st, rep, "")
-	edited := first + "\n- 自分のメモ\n"
-	again := report.WeeklyMarkdown(st, rep, edited)
-	if !contains(again, "- 自分のメモ") {
-		t.Fatal("作り直したら自分で書いた欄が消えた")
+// 月の集計は、日数ぶんの日を持ち、日ごとの合計が月の作業時間と一致する。
+func TestMonthlySummary(t *testing.T) {
+	sessions, weeks, _ := setup(t)
+	data := sessions.([]*core.Session)
+	for k, m := range report.AllMonths(data) {
+		first, _ := time.ParseInLocation("2006-01", k, time.Local)
+		if want := first.AddDate(0, 1, -1).Day(); len(m.Days) != want {
+			t.Errorf("%s: 日数 %d, want %d", k, len(m.Days), want)
+		}
+		sum := 0
+		for _, d := range m.Days {
+			sum += d.Active
+		}
+		if sum != m.Active {
+			t.Errorf("%s: 日ごとの合計 %d と月の作業時間 %d が違う", k, sum, m.Active)
+		}
+	}
+	all := map[string]*report.Summary{}
+	for k, w := range weeks {
+		if len(w.Days) != 7 {
+			t.Errorf("週 %s の日数 = %d", k, len(w.Days))
+		}
+		all["週 "+k] = w
+	}
+	for k, m := range report.AllMonths(data) {
+		all["月 "+k] = m
+	}
+	// 日ごとの使用量を足すと、期間の使用量になる
+	for k, x := range all {
+		var tok, cost, cr float64
+		for _, d := range x.Days {
+			tok, cost, cr = tok+d.Tokens, cost+d.Cost, cr+d.Credits
+		}
+		if tok != x.Usage.Tokens || math.Abs(cost-x.Usage.Cost) > 0.01 || math.Abs(cr-x.Usage.Credits) > 0.01 {
+			t.Errorf("%s: 日ごとの合計 tokens=%v cost=%v credits=%v、期間 %v %v %v", k, tok, cost, cr, x.Usage.Tokens, x.Usage.Cost, x.Usage.Credits)
+		}
 	}
 }
 
@@ -129,6 +171,9 @@ func TestNormalizeArgs(t *testing.T) {
 		"--weekly":                        {"--weekly=latest"},
 		"--weekly 2026-09-30":             {"--weekly=2026-09-30"},
 		"--weekly --no-open":              {"--weekly=latest", "--no-open"},
+		"--monthly":                       {"--monthly=latest"},
+		"--monthly 2026-09":               {"--monthly=2026-09"},
+		"--monthly --no-open":             {"--monthly=latest", "--no-open"},
 		"--serve":                         {"--serve=127.0.0.1:8484"},
 		"--serve :9000":                   {"--serve=:9000"},
 		"--serve --no-open":               {"--serve=127.0.0.1:8484", "--no-open"},
@@ -140,16 +185,6 @@ func TestNormalizeArgs(t *testing.T) {
 			t.Errorf("%q → %v, want %v", in, got, want)
 		}
 	}
-}
-
-// withoutNative は Go 版で足した「エージェント別の参考指標」の節を外す（Python 版の正解にはないため）。
-func withoutNative(md string) string {
-	i := indexOf(md, "## エージェント別の参考指標")
-	j := indexOf(md, report.Mark)
-	if i < 0 || j < i {
-		return md
-	}
-	return md[:i] + md[j:]
 }
 
 func splitArgs(s string) []string {
@@ -206,7 +241,9 @@ func compare(want, got any, path string, diffs *[]string) {
 			keys[k] = true
 		}
 		for k := range keys {
-			if k == "unpriced" && filepath.Base(filepath.ToSlash(path)) == "usage" || k == "native" {
+			inDay := strings.Contains(path, ".days[") && !strings.Contains(path[strings.LastIndex(path, ".days[")+1:], ".")
+			if k == "unpriced" && filepath.Base(filepath.ToSlash(path)) == "usage" || k == "native" ||
+				inDay && (k == "tokens" || k == "cost" || k == "credits") { // Go 版で足した日ごとの使用量
 				continue
 			}
 			wv, wok := w[k]

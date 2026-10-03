@@ -5,9 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
-	"strings"
 )
 
 // Watcher は、Where() だけでは見張る場所が足りない Source が実装する。
@@ -52,19 +50,4 @@ func Fingerprint(paths []string) string {
 		})
 	}
 	return hex.EncodeToString(h.Sum(nil))
-}
-
-// JournalFiles は判断ログ（kiroku-week-*.md）。フォルダの中までは潜らない。
-func JournalFiles(folder string) []string {
-	entries, err := os.ReadDir(folder)
-	if err != nil {
-		return nil
-	}
-	var out []string
-	for _, e := range entries {
-		if !e.IsDir() && strings.HasPrefix(e.Name(), "kiroku-week-") && strings.HasSuffix(e.Name(), ".md") {
-			out = append(out, filepath.Join(folder, e.Name()))
-		}
-	}
-	return out
 }

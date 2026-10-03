@@ -19,32 +19,32 @@ import (
 
 // snapshot は、ある時点で読んだ履歴の集計。
 type snapshot struct {
-	data  []*core.Session
-	weeks map[string]*report.Week
-	meta  map[string]any
-	rep   []source.Report
-	gen   float64 // 読んだ時刻（UNIX 秒）。画面はこれが変わったら取り込み直す
+	data   []*core.Session
+	weeks  map[string]*report.Week
+	months map[string]*report.Summary
+	meta   map[string]any
+	rep    []source.Report
+	gen    float64 // 読んだ時刻（UNIX 秒）。画面はこれが変わったら取り込み直す
 }
 
 // live は --serve の中身。履歴の指紋が変わったときだけ読み直し、最新の集計を配る。
 type live struct {
-	mu      sync.RWMutex
-	snap    snapshot
-	html    []byte
-	json    []byte
-	load    func() snapshot
-	paths   []string // 履歴の場所
-	journal string   // 判断ログのフォルダ（中までは潜らない）
-	print   io.Writer
+	mu    sync.RWMutex
+	snap  snapshot
+	html  []byte
+	json  []byte
+	load  func() snapshot
+	paths []string // 履歴の場所
+	print io.Writer
 }
 
 func (l *live) refresh() error {
 	snap := l.load()
-	html, err := web.Render(snap.data, snap.weeks, snap.meta, snap.gen, true)
+	html, err := web.Render(snap.data, snap.weeks, snap.months, snap.meta, snap.gen, true)
 	if err != nil {
 		return err
 	}
-	js, err := json.Marshal(map[string]any{"sessions": snap.data, "weeks": snap.weeks, "meta": snap.meta, "generated": snap.gen})
+	js, err := json.Marshal(map[string]any{"sessions": snap.data, "weeks": snap.weeks, "months": snap.months, "meta": snap.meta, "generated": snap.gen})
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func (l *live) refresh() error {
 // watch は every ごとに指紋を取り、変わっていたら読み直す。読み直しは 1 本ずつしか走らない。
 // stop が閉じられたら終わる（テスト用）。
 func (l *live) fingerprint() string {
-	return source.Fingerprint(append(append([]string{}, l.paths...), source.JournalFiles(l.journal)...))
+	return source.Fingerprint(l.paths)
 }
 
 func (l *live) watch(every time.Duration, stop <-chan struct{}) {
@@ -138,7 +138,7 @@ func sameOrigin(addr string, next http.Handler) http.Handler {
 	})
 }
 
-func serveLive(addr string, every time.Duration, picked []source.Source, journal string, load func() snapshot, open bool) error {
+func serveLive(addr string, every time.Duration, picked []source.Source, load func() snapshot, open bool) error {
 	if every < time.Second {
 		every = time.Second
 	}
@@ -146,7 +146,7 @@ func serveLive(addr string, every time.Duration, picked []source.Source, journal
 	for _, s := range picked {
 		paths = append(paths, source.WatchPaths(s)...)
 	}
-	l := &live{load: load, paths: paths, journal: journal, print: logw}
+	l := &live{load: load, paths: paths, print: logw}
 	if err := l.refresh(); err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-// Package report は週ごとの集計・重点とガードレール・判断ログ・Markdown を作る。
+// Package report は週ごと・月ごとの集計（サマリー）と、その Markdown を作る。
 // 時刻はすべてこのマシンのローカル時刻で数える。分単位で「誰が動いていたか」を並べて集計する。
 package report
 
@@ -26,10 +26,13 @@ type Block struct {
 }
 
 type Day struct {
-	Active   int `json:"active"`
-	Night    int `json:"night"`
-	Switches int `json:"switches"`
-	Prompts  int `json:"prompts"`
+	Active   int     `json:"active"`
+	Night    int     `json:"night"`
+	Switches int     `json:"switches"`
+	Prompts  int     `json:"prompts"`
+	Tokens   float64 `json:"tokens"`  // その日のトークン（入力・出力・キャッシュの合計）
+	Cost     float64 `json:"cost"`    // その日の目安コスト（API 換算）
+	Credits  float64 `json:"credits"` // その日の Kiro クレジット
 }
 
 type Friction struct {
@@ -65,36 +68,35 @@ type WeekUsage struct {
 	Unpriced  float64  `json:"-"`
 }
 
-type Metric struct {
-	V *float64 `json:"v"`
-	N *int     `json:"n"`
+// Summary は 1 期間（週か月）の集計。
+type Summary struct {
+	Usage       WeekUsage     `json:"usage"`
+	Start       string        `json:"start"`      // 期間の最初の日（YYYY-MM-DD）
+	FixRate     *float64      `json:"fixRate"`    // 言い直し・中断のあった依頼の割合（%）。依頼がなければ nil
+	CostPerAsk  *float64      `json:"costPerAsk"` // 1 依頼あたりの目安コスト。トークンの記録がなければ nil
+	Sessions    int           `json:"sessions"`
+	Prompts     int           `json:"prompts"`
+	Active      int           `json:"active"`
+	AI          int           `json:"ai"`
+	Parallel    int           `json:"parallel"`
+	MaxConc     int           `json:"maxConc"`
+	Night       int           `json:"night"`
+	Weekend     int           `json:"weekend"`
+	Focus       []Block       `json:"focus"`
+	SwitchesAvg float64       `json:"switchesAvg"`
+	SwitchesMax int           `json:"switchesMax"`
+	WaitMedian  *float64      `json:"waitMedian"`
+	WaitP90     *float64      `json:"waitP90"`
+	WaitCount   int           `json:"waitCount"`
+	Projects    [][2]any      `json:"projects"`
+	Days        []Day         `json:"days"` // 期間の日ごと（週なら 7、月なら 28〜31）
+	Friction    []Friction    `json:"friction"`
+	Native      []NativeGroup `json:"native"` // エージェント別の参考指標
+	start, end  time.Time
 }
 
-type Week struct {
-	Metrics     map[string]Metric `json:"metrics"`
-	Usage       WeekUsage         `json:"usage"`
-	Week        string            `json:"week"`
-	Sessions    int               `json:"sessions"`
-	Prompts     int               `json:"prompts"`
-	Active      int               `json:"active"`
-	AI          int               `json:"ai"`
-	Parallel    int               `json:"parallel"`
-	MaxConc     int               `json:"maxConc"`
-	Night       int               `json:"night"`
-	Weekend     int               `json:"weekend"`
-	Focus       []Block           `json:"focus"`
-	SwitchesAvg float64           `json:"switchesAvg"`
-	SwitchesMax int               `json:"switchesMax"`
-	WaitMedian  *float64          `json:"waitMedian"`
-	WaitP90     *float64          `json:"waitP90"`
-	WaitCount   int               `json:"waitCount"`
-	Projects    [][2]any          `json:"projects"`
-	Days        []Day             `json:"days"`
-	Friction    []Friction        `json:"friction"`
-	Playbook    *Playbook         `json:"playbook"`
-	Native      []NativeGroup     `json:"native"` // エージェント別の参考指標
-	start       time.Time
-}
+// Week は 1 週間ぶんの Summary（互換のための別名）。
+type Week = Summary
 
 // MondayOf はその時刻を含む週の月曜 0 時（ローカル時刻）。
 func MondayOf(ts float64) time.Time {
@@ -128,12 +130,30 @@ func distinctSessions(xs []sp) int {
 }
 
 func fptr(v float64) *float64 { return &v }
-func iptr(v int) *int         { return &v }
+
+// MonthOf はその時刻を含む月の 1 日 0 時（ローカル時刻）。
+func MonthOf(ts float64) time.Time {
+	d := time.Unix(0, int64(ts*1e9)).In(time.Local)
+	return time.Date(d.Year(), d.Month(), 1, 0, 0, 0, 0, time.Local)
+}
 
 // Stats は 1 週ぶんの集計。動いていた時間がなければ nil。
 func Stats(data []*core.Session, wsT time.Time) *Week {
-	ws, we := unix(wsT), unix(wsT.AddDate(0, 0, 7))
+	return Summarize(data, wsT, wsT.AddDate(0, 0, 7))
+}
+
+// Summarize は [from, to) の集計。from と to はローカル時刻の 0 時。動いていた時間がなければ nil。
+func Summarize(data []*core.Session, wsT, weT time.Time) *Summary {
+	ws, we := unix(wsT), unix(weT)
 	n := int(math.Floor((we - ws) / 60))
+	// 日の境目（夏時間でも日付どおりに分ける）
+	var dayStart []float64
+	var dayWeekend []bool
+	for d := wsT; d.Before(weT); d = d.AddDate(0, 0, 1) {
+		dayStart = append(dayStart, unix(d))
+		dayWeekend = append(dayWeekend, d.Weekday() == time.Saturday || d.Weekday() == time.Sunday)
+	}
+	nd := len(dayStart)
 	mins := make([][]sp, n)
 	ai := 0
 	for _, d := range data {
@@ -163,8 +183,14 @@ func Stats(data []*core.Session, wsT time.Time) *Week {
 	projects := map[string]float64{}
 	var projOrder []string
 	parallel, maxConc := 0, 0
-	dayOf := func(m int) int { return min(6, m/1440) } // 夏時間の週は 7 日 ± 1 時間あるので 0〜6 に収める
-	isNight := func(m int) bool { h := (m % 1440) / 60; return h >= NightFrom || h < NightTo }
+	dayOf := func(m int) int {
+		t := ws + float64(m)*60
+		return max(0, sort.Search(nd, func(i int) bool { return dayStart[i] > t })-1)
+	}
+	isNight := func(m int) bool {
+		h := int((ws + float64(m)*60 - dayStart[dayOf(m)]) / 3600)
+		return h >= NightFrom || h < NightTo
+	}
 	night, weekend := 0, 0
 	for _, m := range active {
 		names := distinctProjects(mins[m])
@@ -182,7 +208,7 @@ func Stats(data []*core.Session, wsT time.Time) *Week {
 		if isNight(m) {
 			night++
 		}
-		if dayOf(m) >= 5 {
+		if dayWeekend[dayOf(m)] {
 			weekend++
 		}
 	}
@@ -241,7 +267,7 @@ func Stats(data []*core.Session, wsT time.Time) *Week {
 		}
 		return prompts[i].p < prompts[j].p
 	})
-	days := make([]Day, 7)
+	days := make([]Day, nd)
 	for _, m := range active {
 		days[dayOf(m)].Active++
 		if isNight(m) {
@@ -256,6 +282,35 @@ func Stats(data []*core.Session, wsT time.Time) *Week {
 			days[di].Switches++
 		}
 		prevDay, prevProj = di, x.p
+	}
+	// 日ごとの使用量（トークン・目安コスト・クレジット）は、記録された時刻の日に入れる
+	dayAt := func(t float64) int { return max(0, sort.Search(nd, func(i int) bool { return dayStart[i] > t })-1) }
+	for _, d := range data {
+		for _, e := range d.UEv {
+			t := d.Start
+			if e.T != nil && *e.T != 0 {
+				t = *e.T
+			}
+			if ws <= t && t < we {
+				x := &days[dayAt(t)]
+				x.Tokens += e.U.Total()
+				if e.Cost != nil {
+					x.Cost += *e.Cost
+				}
+			}
+		}
+		for _, c := range d.CEv {
+			t := d.Start
+			if c.T != nil && *c.T != 0 {
+				t = *c.T
+			}
+			if ws <= t && t < we {
+				days[dayAt(t)].Credits += c.V
+			}
+		}
+	}
+	for i := range days {
+		days[i].Cost, days[i].Credits = core.Round(days[i].Cost, 4), core.Round(days[i].Credits, 2)
 	}
 	activeDays, swSum, swMax := 0, 0, 0
 	for _, d := range days {
@@ -332,27 +387,20 @@ func Stats(data []*core.Session, wsT time.Time) *Week {
 		}
 	}
 	np := len(prompts)
-	metrics := map[string]Metric{
-		"fix_rate":        {N: iptr(np)},
-		"focus_blocks":    {V: fptr(float64(len(blocks)))},
-		"switches":        {V: fptr(core.Round(float64(swSum)/float64(activeDays), 1)), N: iptr(activeDays)},
-		"cost_per_prompt": {N: iptr(np)},
-		"night":           {V: fptr(float64(night))},
-		"weekend":         {V: fptr(float64(weekend))},
-	}
+	var fixRate, costPer *float64
 	if np > 0 {
-		metrics["fix_rate"] = Metric{V: fptr(core.Round(float64(fixes)*100/float64(np), 1)), N: iptr(np)}
+		fixRate = fptr(core.Round(float64(fixes)*100/float64(np), 1))
 		if usage.Tokens > 0 {
-			metrics["cost_per_prompt"] = Metric{V: fptr(core.Round(usage.Cost/float64(np), 3)), N: iptr(np)}
+			costPer = fptr(core.Round(usage.Cost/float64(np), 3))
 		}
 	}
-	return &Week{
+	return &Summary{
 		Native:  nativeGroups(data, ws, we),
-		Metrics: metrics, Usage: usage, Week: wsT.Format("2006-01-02"), Sessions: sessions, Prompts: np,
+		FixRate: fixRate, CostPerAsk: costPer, Usage: usage, Start: wsT.Format("2006-01-02"), Sessions: sessions, Prompts: np,
 		Active: len(active), AI: ai, Parallel: parallel, MaxConc: maxConc, Night: night, Weekend: weekend,
 		Focus: blocks, SwitchesAvg: core.Round(float64(swSum)/float64(activeDays), 1), SwitchesMax: swMax,
 		WaitMedian: pick(0.5), WaitP90: pick(0.9), WaitCount: len(waits), Projects: projList, Days: days,
-		Friction: friction, start: wsT,
+		Friction: friction, start: wsT, end: weT,
 	}
 }
 
@@ -547,4 +595,22 @@ func AllWeeks(data []*core.Session) map[string]*Week {
 	return out
 }
 
-func roundN(v float64, n int) float64 { return core.Round(v, n) }
+// AllMonths は記録のあるすべての月を集計する。キーは YYYY-MM。
+func AllMonths(data []*core.Session) map[string]*Summary {
+	out := map[string]*Summary{}
+	seen := map[string]bool{}
+	for _, d := range data {
+		m := MonthOf(d.Start)
+		for unix(m) <= d.End {
+			k := m.Format("2006-01")
+			if !seen[k] {
+				seen[k] = true
+				if st := Summarize(data, m, m.AddDate(0, 1, 0)); st != nil {
+					out[k] = st
+				}
+			}
+			m = m.AddDate(0, 1, 0)
+		}
+	}
+	return out
+}

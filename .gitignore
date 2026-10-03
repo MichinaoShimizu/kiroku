@@ -1,9 +1,9 @@
-# 生成した HTML や週のふりかえりには依頼文やファイル名が入るのでコミットしない
+# 生成した HTML やサマリーの Markdown には依頼文やファイル名が入るのでコミットしない
 kiroku.html
 *.html
 !internal/web/template.html
 kiroku-week-*.md
-!testdata/**/kiroku-week-*.md
+kiroku-month-*.md
 # ビルドしたもの
 /kiroku
 /kiroku.exe

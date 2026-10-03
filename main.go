@@ -4,8 +4,9 @@
 //
 //	kiroku                         # kiroku.html を作ってブラウザで開く
 //	kiroku --sources kiro          # Kiro だけ
-//	kiroku --weekly                # 最新の週のふりかえりを Markdown で書き出す
+//	kiroku --weekly                # 最新の週の週次サマリーを Markdown で書き出す
 //	kiroku --weekly 2026-09-30     # その日を含む週
+//	kiroku --monthly 2026-09       # その月の月次サマリー
 //	kiroku --serve                 # 手元にサーバーを立てて、増えた履歴をその場で画面に反映する
 package main
 
@@ -31,7 +32,10 @@ import (
 
 var version = "dev" // リリース時に -ldflags で入れる
 
-var dateRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
+var (
+	dateRe  = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
+	monthRe = regexp.MustCompile(`^\d{4}-\d{2}$`)
+)
 
 // addrRe は --serve のあとに書ける待ち受け先（:8484、127.0.0.1:8484、localhost:8484 など）。
 var addrRe = regexp.MustCompile(`^[\w.\-\[\]:]*:\d+$`)
@@ -42,7 +46,7 @@ const defaultAddr = "127.0.0.1:8484"
 // logw は読み込みの経過を書く先。--serve の読み直しでは黙らせる。
 var logw io.Writer = os.Stderr
 
-// normalizeArgs は「--weekly」「--serve」だけ（値なし）を --weekly=latest、--serve=127.0.0.1:8484 に直す。flag パッケージは値の省略ができないため。
+// normalizeArgs は「--weekly」「--monthly」「--serve」だけ（値なし）を --weekly=latest、--monthly=latest、--serve=127.0.0.1:8484 に直す。flag パッケージは値の省略ができないため。
 func normalizeArgs(args []string) []string {
 	var out []string
 	for i := 0; i < len(args); i++ {
@@ -53,6 +57,15 @@ func normalizeArgs(args []string) []string {
 				i++
 			} else {
 				out = append(out, "--weekly=latest")
+			}
+			continue
+		}
+		if a == "--monthly" || a == "-monthly" {
+			if i+1 < len(args) && monthRe.MatchString(args[i+1]) {
+				out = append(out, "--monthly="+args[i+1])
+				i++
+			} else {
+				out = append(out, "--monthly=latest")
 			}
 			continue
 		}
@@ -95,8 +108,9 @@ func run(args []string) error {
 	amazonQDB := fs.String("amazonq-db", "", "Amazon Q Developer CLI の data.sqlite3 の場所（空なら OS ごとの場所）")
 	noOpen := fs.Bool("no-open", false, "ブラウザを開かない")
 	prices := fs.String("prices", "", "料金表の上書き（JSON）")
-	journal := fs.String("journal", ".", "週のふりかえり（判断ログ）を置くフォルダ")
-	weekly := fs.String("weekly", "", "その日を含む週のふりかえりを Markdown で書き出す（日付なしなら最新の週）")
+	mdDir := fs.String("md-dir", ".", "--weekly・--monthly の Markdown を置くフォルダ")
+	weekly := fs.String("weekly", "", "その日を含む週の週次サマリーを Markdown で書き出す（日付なしなら最新の週）")
+	monthly := fs.String("monthly", "", "その月（YYYY-MM）の月次サマリーを Markdown で書き出す（なしなら最新の月）")
 	jsonOut := fs.String("json", "", "集計結果を JSON で書き出す（テストや他のツール向け）")
 	serve := fs.String("serve", "", "手元にサーバーを立て、増えた履歴をその場で画面に反映する（待ち受け先を省くと "+defaultAddr+"）")
 	interval := fs.Duration("interval", 5*time.Second, "--serve で履歴の変化を確かめる間隔")
@@ -132,36 +146,35 @@ func run(args []string) error {
 		if data == nil {
 			data = []*core.Session{} // 画面では null ではなく空の一覧として扱う
 		}
-		weeks := report.AllWeeks(data)
-		report.Annotate(weeks, report.ReadJournal(*journal))
-		meta := map[string]any{"report": rep, "version": report.MetricsVersion, "journal": filepath.Clean(*journal),
-			"metrics": report.Metrics, "focus": report.Focus, "decisions": report.Decisions,
-			"baselineMin": report.BaselineMin, "baselineWeeks": report.BaselineWeeks}
-		return snapshot{data: data, weeks: weeks, meta: meta, rep: rep, gen: float64(time.Now().UnixNano()) / 1e9}
+		meta := map[string]any{"report": rep, "mdDir": filepath.Clean(*mdDir)}
+		return snapshot{data: data, weeks: report.AllWeeks(data), months: report.AllMonths(data), meta: meta, rep: rep, gen: float64(time.Now().UnixNano()) / 1e9}
 	}
 	if *serve != "" {
-		if *weekly != "" || *jsonOut != "" {
-			return fmt.Errorf("--serve は --weekly・--json と一緒には使えないよ")
+		if *weekly != "" || *monthly != "" || *jsonOut != "" {
+			return fmt.Errorf("--serve は --weekly・--monthly・--json と一緒には使えないよ")
 		}
-		return serveLive(*serve, *interval, picked, *journal, load, !*noOpen)
+		return serveLive(*serve, *interval, picked, load, !*noOpen)
 	}
 	snap := load()
-	data, weeks, meta, rep := snap.data, snap.weeks, snap.meta, snap.rep
+	data, weeks, months, meta, rep := snap.data, snap.weeks, snap.months, snap.meta, snap.rep
 	if len(data) == 0 {
 		return fmt.Errorf("履歴が 1 件も見つからなかったよ。--root や KIRO_HOME を確認してね")
 	}
 
 	if *weekly != "" {
-		return writeWeekly(weeks, rep, *weekly, *journal)
+		return writeWeekly(weeks, rep, *weekly, *mdDir)
+	}
+	if *monthly != "" {
+		return writeMonthly(months, rep, *monthly, *mdDir)
 	}
 	if *jsonOut != "" {
-		b, err := json.MarshalIndent(map[string]any{"sessions": data, "weeks": weeks, "meta": meta}, "", " ")
+		b, err := json.MarshalIndent(map[string]any{"sessions": data, "weeks": weeks, "months": months, "meta": meta}, "", " ")
 		if err != nil {
 			return err
 		}
 		return os.WriteFile(*jsonOut, b, 0o644)
 	}
-	html, err := web.Render(data, weeks, meta, snap.gen, false)
+	html, err := web.Render(data, weeks, months, meta, snap.gen, false)
 	if err != nil {
 		return err
 	}
@@ -218,11 +231,7 @@ func collect(all []source.Source, want map[string]bool, gap int) ([]*core.Sessio
 func writeWeekly(weeks map[string]*report.Week, rep []source.Report, when, folder string) error {
 	key := ""
 	if when == "latest" {
-		for k := range weeks {
-			if k > key {
-				key = k
-			}
-		}
+		key = latest(weeks)
 	} else {
 		t, err := time.ParseInLocation("2006-01-02", when, time.Local)
 		if err != nil {
@@ -234,22 +243,41 @@ func writeWeekly(weeks map[string]*report.Week, rep []source.Report, when, folde
 	if st == nil {
 		return fmt.Errorf("%s の週には履歴がないよ", key)
 	}
-	path := filepath.Join(folder, "kiroku-week-"+key+".md")
-	existing := ""
-	if b, err := os.ReadFile(path); err == nil {
-		existing = string(b)
+	return writeMarkdown(filepath.Join(folder, "kiroku-week-"+key+".md"), report.WeeklyMarkdown(st, rep), "週次サマリー")
+}
+
+func writeMonthly(months map[string]*report.Summary, rep []source.Report, when, folder string) error {
+	key := when
+	if when == "latest" {
+		key = latest(months)
+	} else if !monthRe.MatchString(when) {
+		return fmt.Errorf("--monthly の月は YYYY-MM で書いてね: %s", when)
 	}
-	if err := os.MkdirAll(folder, 0o755); err != nil {
+	st := months[key]
+	if st == nil {
+		return fmt.Errorf("%s には履歴がないよ", key)
+	}
+	return writeMarkdown(filepath.Join(folder, "kiroku-month-"+key+".md"), report.MonthlyMarkdown(st, rep), "月次サマリー")
+}
+
+func latest(m map[string]*report.Summary) string {
+	key := ""
+	for k := range m {
+		if k > key {
+			key = k
+		}
+	}
+	return key
+}
+
+func writeMarkdown(path, body, what string) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	if err := os.WriteFile(path, []byte(report.WeeklyMarkdown(st, rep, existing)), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
 		return err
 	}
-	note := ""
-	if strings.Contains(existing, report.Mark) {
-		note = "（自分で書いた欄はそのまま残しました）"
-	}
-	fmt.Printf("週のふりかえり → %s%s\n", path, note)
+	fmt.Printf("%s → %s\n", what, path)
 	return nil
 }
 
