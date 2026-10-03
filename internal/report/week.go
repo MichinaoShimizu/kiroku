@@ -1,0 +1,508 @@
+// Package report は週ごとの集計・重点とガードレール・判断ログ・Markdown を作る。
+// 時刻はすべてこのマシンのローカル時刻で数える。分単位で「誰が動いていたか」を並べて集計する。
+package report
+
+import (
+	"fmt"
+	"math"
+	"sort"
+	"time"
+
+	"github.com/MichinaoShimizu/kiroku/internal/core"
+)
+
+const (
+	FocusMin    = 60 // これ以上続いたら「集中ブロック」
+	FocusBridge = 5  // この分数までの切れ目はつながっているとみなす
+	NightFrom   = 22 // 深夜の時間帯
+	NightTo     = 6
+)
+
+type Block struct {
+	T       float64 `json:"t"`
+	Min     int     `json:"min"`
+	Project string  `json:"project"`
+	Share   float64 `json:"share"`
+}
+
+type Day struct {
+	Active   int `json:"active"`
+	Night    int `json:"night"`
+	Switches int `json:"switches"`
+	Prompts  int `json:"prompts"`
+}
+
+type Friction struct {
+	ID      string   `json:"id"`
+	Title   string   `json:"title"`
+	Project string   `json:"project"`
+	Start   float64  `json:"start"`
+	Score   int      `json:"score"`
+	Why     []string `json:"why"`
+}
+
+type Heavy struct {
+	ID        string  `json:"id"`
+	Title     string  `json:"title"`
+	Project   string  `json:"project"`
+	Start     float64 `json:"start"`
+	Cost      float64 `json:"cost"`
+	Subagents int     `json:"subagents"`
+}
+
+type WeekUsage struct {
+	Tokens    float64  `json:"tokens"`
+	Out       float64  `json:"out"`
+	Cost      float64  `json:"cost"`
+	Credits   float64  `json:"credits"`
+	CacheHit  *float64 `json:"cacheHit"`
+	Models    [][4]any `json:"models"`   // [model, cost, tokens, msgs]
+	Projects  [][2]any `json:"projects"` // [project, cost]
+	Subagents int      `json:"subagents"`
+	SubMin    float64  `json:"subMin"`
+	SubTypes  [][2]any `json:"subTypes"`
+	Heavy     []Heavy  `json:"heavy"`
+	Unpriced  float64  `json:"-"`
+}
+
+type Metric struct {
+	V *float64 `json:"v"`
+	N *int     `json:"n"`
+}
+
+type Week struct {
+	Metrics     map[string]Metric `json:"metrics"`
+	Usage       WeekUsage         `json:"usage"`
+	Week        string            `json:"week"`
+	Sessions    int               `json:"sessions"`
+	Prompts     int               `json:"prompts"`
+	Active      int               `json:"active"`
+	AI          int               `json:"ai"`
+	Parallel    int               `json:"parallel"`
+	MaxConc     int               `json:"maxConc"`
+	Night       int               `json:"night"`
+	Weekend     int               `json:"weekend"`
+	Focus       []Block           `json:"focus"`
+	SwitchesAvg float64           `json:"switchesAvg"`
+	SwitchesMax int               `json:"switchesMax"`
+	WaitMedian  *float64          `json:"waitMedian"`
+	WaitP90     *float64          `json:"waitP90"`
+	WaitCount   int               `json:"waitCount"`
+	Projects    [][2]any          `json:"projects"`
+	Days        []Day             `json:"days"`
+	Friction    []Friction        `json:"friction"`
+	Playbook    *Playbook         `json:"playbook"`
+	start       time.Time
+}
+
+// MondayOf はその時刻を含む週の月曜 0 時（ローカル時刻）。
+func MondayOf(ts float64) time.Time {
+	d := time.Unix(0, int64(ts*1e9)).In(time.Local)
+	wd := (int(d.Weekday()) + 6) % 7
+	return time.Date(d.Year(), d.Month(), d.Day()-wd, 0, 0, 0, 0, time.Local)
+}
+
+func unix(t time.Time) float64 { return float64(t.UnixNano()) / 1e9 }
+
+type sp struct{ sid, project string }
+
+func distinctProjects(xs []sp) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, x := range xs {
+		if !seen[x.project] {
+			seen[x.project] = true
+			out = append(out, x.project)
+		}
+	}
+	return out
+}
+
+func distinctSessions(xs []sp) int {
+	seen := map[string]bool{}
+	for _, x := range xs {
+		seen[x.sid] = true
+	}
+	return len(seen)
+}
+
+func fptr(v float64) *float64 { return &v }
+func iptr(v int) *int         { return &v }
+
+// Stats は 1 週ぶんの集計。動いていた時間がなければ nil。
+func Stats(data []*core.Session, wsT time.Time) *Week {
+	ws, we := unix(wsT), unix(wsT.AddDate(0, 0, 7))
+	n := int(math.Floor((we - ws) / 60))
+	mins := make([][]sp, n)
+	ai := 0
+	for _, d := range data {
+		if d.End < ws || d.Start >= we {
+			continue
+		}
+		for _, sg := range d.Segs {
+			m0 := int(math.Max(0, math.Floor((sg[0]-ws)/60)))
+			m1 := int(math.Min(float64(n), math.Ceil((sg[1]-ws)/60)))
+			if m1 > m0 {
+				ai += m1 - m0
+			}
+			for m := m0; m < m1; m++ {
+				mins[m] = append(mins[m], sp{d.ID, d.Project})
+			}
+		}
+	}
+	var active []int
+	for m := 0; m < n; m++ {
+		if len(mins[m]) > 0 {
+			active = append(active, m)
+		}
+	}
+	if len(active) == 0 {
+		return nil
+	}
+	projects := map[string]float64{}
+	var projOrder []string
+	parallel, maxConc := 0, 0
+	dayOf := func(m int) int { return min(6, m/1440) } // 夏時間の週は 7 日 ± 1 時間あるので 0〜6 に収める
+	isNight := func(m int) bool { h := (m % 1440) / 60; return h >= NightFrom || h < NightTo }
+	night, weekend := 0, 0
+	for _, m := range active {
+		names := distinctProjects(mins[m])
+		for _, p := range names {
+			if _, ok := projects[p]; !ok {
+				projOrder = append(projOrder, p)
+			}
+			projects[p] += 1 / float64(len(names))
+		}
+		c := distinctSessions(mins[m])
+		if c >= 2 {
+			parallel++
+		}
+		maxConc = max(maxConc, c)
+		if isNight(m) {
+			night++
+		}
+		if dayOf(m) >= 5 {
+			weekend++
+		}
+	}
+	// 集中ブロック: 途切れ（FocusBridge 分まで）を許して続いた作業
+	blocks := []Block{}
+	start, last := active[0], active[0]
+	flush := func() {
+		if last-start+1 < FocusMin {
+			return
+		}
+		share := map[string]int{}
+		var order []string
+		for k := start; k <= last; k++ {
+			for _, p := range distinctProjects(mins[k]) {
+				if _, ok := share[p]; !ok {
+					order = append(order, p)
+				}
+				share[p]++
+			}
+		}
+		top := order[0]
+		for _, p := range order {
+			if share[p] > share[top] {
+				top = p
+			}
+		}
+		blocks = append(blocks, Block{T: ws + float64(start)*60, Min: last - start + 1, Project: top,
+			Share: core.Round(float64(share[top])/float64(last-start+1), 2)})
+	}
+	for _, m := range active[1:] {
+		if m-last <= FocusBridge+1 {
+			last = m
+			continue
+		}
+		flush()
+		start, last = m, m
+	}
+	flush()
+
+	// 切り替え: 依頼を出した順に並べて、前の依頼とプロジェクトが変わった回数（日ごと）
+	type tp struct {
+		t float64
+		p string
+	}
+	var prompts []tp
+	for _, d := range data {
+		for _, p := range d.Prompts {
+			if p.T != nil && *p.T != 0 && ws <= *p.T && *p.T < we {
+				prompts = append(prompts, tp{*p.T, d.Project})
+			}
+		}
+	}
+	sort.Slice(prompts, func(i, j int) bool {
+		if prompts[i].t != prompts[j].t {
+			return prompts[i].t < prompts[j].t
+		}
+		return prompts[i].p < prompts[j].p
+	})
+	days := make([]Day, 7)
+	for _, m := range active {
+		days[dayOf(m)].Active++
+		if isNight(m) {
+			days[dayOf(m)].Night++
+		}
+	}
+	prevDay, prevProj := -1, ""
+	for _, x := range prompts {
+		di := dayOf(int(math.Floor((x.t - ws) / 60)))
+		days[di].Prompts++
+		if prevDay == di && prevProj != x.p {
+			days[di].Switches++
+		}
+		prevDay, prevProj = di, x.p
+	}
+	activeDays, swSum, swMax := 0, 0, 0
+	for _, d := range days {
+		if d.Active > 0 {
+			activeDays++
+			swSum += d.Switches
+		}
+		swMax = max(swMax, d.Switches)
+	}
+
+	var waits []float64
+	for _, d := range data {
+		for _, w := range d.Waits {
+			if ws <= w[0] && w[0] < we {
+				waits = append(waits, w[1])
+			}
+		}
+	}
+	sort.Float64s(waits)
+	pick := func(q float64) *float64 {
+		if len(waits) == 0 {
+			return nil
+		}
+		return fptr(waits[min(len(waits)-1, int(float64(len(waits))*q))])
+	}
+
+	friction := []Friction{}
+	for _, d := range data {
+		if !(ws <= d.Start && d.Start < we) {
+			continue
+		}
+		why, score := []string{}, 0
+		if d.Corrections > 0 {
+			why = append(why, fmt.Sprintf("言い直し %d 回", d.Corrections))
+			score += 2 * d.Corrections
+		}
+		if d.Interrupts > 0 {
+			why = append(why, fmt.Sprintf("中断 %d 回", d.Interrupts))
+			score += 2 * d.Interrupts
+		}
+		if d.NPrompts >= 15 {
+			why = append(why, fmt.Sprintf("依頼 %d 回", d.NPrompts))
+			score += (d.NPrompts-15)/5 + 1
+		}
+		if score > 0 {
+			friction = append(friction, Friction{d.ID, d.Title, d.Project, d.Start, score, why})
+		}
+	}
+	sort.SliceStable(friction, func(i, j int) bool { return friction[i].Score > friction[j].Score })
+	if len(friction) > 3 {
+		friction = friction[:3]
+	}
+
+	usage := weekUsage(data, ws, we)
+
+	sessions := 0
+	for _, d := range data {
+		if d.End >= ws && d.Start < we {
+			sessions++
+		}
+	}
+	projList := [][2]any{}
+	sort.SliceStable(projOrder, func(i, j int) bool { return projects[projOrder[i]] > projects[projOrder[j]] })
+	for _, p := range projOrder {
+		projList = append(projList, [2]any{p, core.Round(projects[p], 0)})
+	}
+
+	fixes := 0
+	for _, d := range data {
+		for _, t := range d.Fix {
+			if ws <= t && t < we {
+				fixes++
+			}
+		}
+	}
+	np := len(prompts)
+	metrics := map[string]Metric{
+		"fix_rate":        {N: iptr(np)},
+		"focus_blocks":    {V: fptr(float64(len(blocks)))},
+		"switches":        {V: fptr(core.Round(float64(swSum)/float64(activeDays), 1)), N: iptr(activeDays)},
+		"cost_per_prompt": {N: iptr(np)},
+		"night":           {V: fptr(float64(night))},
+		"weekend":         {V: fptr(float64(weekend))},
+	}
+	if np > 0 {
+		metrics["fix_rate"] = Metric{V: fptr(core.Round(float64(fixes)*100/float64(np), 1)), N: iptr(np)}
+		if usage.Tokens > 0 {
+			metrics["cost_per_prompt"] = Metric{V: fptr(core.Round(usage.Cost/float64(np), 3)), N: iptr(np)}
+		}
+	}
+	return &Week{
+		Metrics: metrics, Usage: usage, Week: wsT.Format("2006-01-02"), Sessions: sessions, Prompts: np,
+		Active: len(active), AI: ai, Parallel: parallel, MaxConc: maxConc, Night: night, Weekend: weekend,
+		Focus: blocks, SwitchesAvg: core.Round(float64(swSum)/float64(activeDays), 1), SwitchesMax: swMax,
+		WaitMedian: pick(0.5), WaitP90: pick(0.9), WaitCount: len(waits), Projects: projList, Days: days,
+		Friction: friction, start: wsT,
+	}
+}
+
+// weekUsage は AI の使い方: トークン・目安コスト・クレジット・モデル・サブエージェント。
+func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
+	type mm struct{ tokens, cost, msgs float64 }
+	models := map[string]*mm{}
+	var modelOrder []string
+	byProj := map[string]float64{}
+	var projOrder []string
+	heavy := map[string]float64{}
+	var tot core.Tokens
+	cost, credits, unpriced := 0.0, 0.0, 0.0
+	addProj := func(p string, v float64) {
+		if _, ok := byProj[p]; !ok {
+			projOrder = append(projOrder, p)
+		}
+		byProj[p] += v
+	}
+	for _, d := range data {
+		for _, e := range d.UEv {
+			t := d.Start
+			if e.T != nil && *e.T != 0 {
+				t = *e.T
+			}
+			if !(ws <= t && t < we) {
+				continue
+			}
+			tot.In += e.U.In
+			tot.Out += e.U.Out
+			tot.CW += e.U.CW
+			tot.CW1h += e.U.CW1h
+			tot.CR += e.U.CR
+			name := e.Model
+			if name == "" {
+				name = "（不明）"
+			}
+			if models[name] == nil {
+				models[name] = &mm{}
+				modelOrder = append(modelOrder, name)
+			}
+			c := 0.0
+			if e.Cost != nil {
+				c = *e.Cost
+			} else {
+				unpriced += e.U.Total()
+			}
+			models[name].tokens += e.U.Total()
+			models[name].msgs++
+			models[name].cost += c
+			cost += c
+			addProj(d.Project, c)
+			heavy[d.ID] += c
+		}
+		for _, c := range d.CEv {
+			t := d.Start
+			if c.T != nil && *c.T != 0 {
+				t = *c.T
+			}
+			if ws <= t && t < we {
+				credits += c.V
+				addProj(d.Project, 0)
+			}
+		}
+	}
+	subTypes := map[string]int{}
+	var typeOrder []string
+	nSubs, subSec := 0, 0.0
+	for _, d := range data {
+		for _, a := range d.Subagents {
+			if a.Start == nil || *a.Start == 0 || !(ws <= *a.Start && *a.Start < we) {
+				continue
+			}
+			nSubs++
+			if _, ok := subTypes[a.Type]; !ok {
+				typeOrder = append(typeOrder, a.Type)
+			}
+			subTypes[a.Type]++
+			end := *a.Start
+			if a.End != nil && *a.End != 0 {
+				end = *a.End
+			}
+			subSec += math.Max(0, end-*a.Start)
+		}
+	}
+	reads := tot.CR + tot.CW + tot.CW1h + tot.In
+	var cacheHit *float64
+	if reads > 0 {
+		cacheHit = fptr(core.Round(tot.CR/reads, 3))
+	}
+	mrows := [][4]any{}
+	sort.SliceStable(modelOrder, func(i, j int) bool {
+		a, b := models[modelOrder[i]], models[modelOrder[j]]
+		ca, cb := core.Round(a.cost, 2), core.Round(b.cost, 2)
+		if ca != cb {
+			return ca > cb
+		}
+		return a.tokens > b.tokens
+	})
+	for _, m := range modelOrder {
+		v := models[m]
+		mrows = append(mrows, [4]any{m, core.Round(v.cost, 2), v.tokens, v.msgs})
+	}
+	prows := [][2]any{}
+	sort.SliceStable(projOrder, func(i, j int) bool { return byProj[projOrder[i]] > byProj[projOrder[j]] })
+	for _, p := range projOrder {
+		if byProj[p] != 0 {
+			prows = append(prows, [2]any{p, core.Round(byProj[p], 2)})
+		}
+	}
+	trows := [][2]any{}
+	sort.SliceStable(typeOrder, func(i, j int) bool { return subTypes[typeOrder[i]] > subTypes[typeOrder[j]] })
+	for _, t := range typeOrder {
+		trows = append(trows, [2]any{t, subTypes[t]})
+	}
+	var hs []*core.Session
+	for _, d := range data {
+		if heavy[d.ID] != 0 {
+			hs = append(hs, d)
+		}
+	}
+	sort.SliceStable(hs, func(i, j int) bool { return heavy[hs[i].ID] > heavy[hs[j].ID] })
+	heavyRows := []Heavy{}
+	for i, d := range hs {
+		if i == 3 {
+			break
+		}
+		heavyRows = append(heavyRows, Heavy{d.ID, d.Title, d.Project, d.Start, core.Round(heavy[d.ID], 2), len(d.Subagents)})
+	}
+	return WeekUsage{Tokens: tot.Total(), Out: tot.Out, Cost: core.Round(cost, 2), Credits: core.Round(credits, 2),
+		CacheHit: cacheHit, Models: mrows, Projects: prows, Subagents: nSubs, SubMin: core.Round(subSec/60, 0),
+		SubTypes: trows, Heavy: heavyRows, Unpriced: unpriced}
+}
+
+// AllWeeks は記録のあるすべての週を集計する。キーは月曜の日付。
+func AllWeeks(data []*core.Session) map[string]*Week {
+	out := map[string]*Week{}
+	seen := map[string]bool{}
+	for _, d := range data {
+		w := MondayOf(d.Start)
+		for unix(w) <= d.End {
+			k := w.Format("2006-01-02")
+			if !seen[k] {
+				seen[k] = true
+				if st := Stats(data, w); st != nil {
+					out[k] = st
+				}
+			}
+			w = w.AddDate(0, 0, 7)
+		}
+	}
+	return out
+}
+
+func roundN(v float64, n int) float64 { return core.Round(v, n) }

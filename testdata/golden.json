@@ -1,0 +1,3602 @@
+{
+"sessions": [
+{
+"id": "45502558-80a6-4028-a0ef-6476e9599703",
+"source": "Claude Code",
+"project": "vp",
+"projectPath": "/Users/me/vp",
+"branch": "feat/eval",
+"title": "カレンダー表示を足して",
+"start": 1788367980.0,
+"end": 1788369000.0,
+"events": 19,
+"segs": [
+[
+1788367980.0,
+1788369000.0,
+19
+]
+],
+"prompts": [
+{
+"t": 1788367980.0,
+"text": "カレンダー表示を足して"
+},
+{
+"t": 1788368820.0,
+"text": "READMEを整理して"
+}
+],
+"nPrompts": 2,
+"tools": [
+[
+"Edit",
+3
+],
+[
+"Read",
+2
+],
+[
+"Bash",
+2
+],
+[
+"Agent",
+1
+]
+],
+"files": [
+"/Users/me/vp/src/x1.py",
+"/Users/me/vp/src/x2.py",
+"/Users/me/vp/src/x3.py"
+],
+"nFiles": 3,
+"resume": "cd /Users/me/vp && claude --resume 45502558-80a6-4028-a0ef-6476e9599703",
+"waits": [
+[
+1788368820.0,
+300
+]
+],
+"interrupts": 0,
+"corrections": 0,
+"models": [
+[
+"claude-haiku-4-5",
+16
+]
+],
+"usage": {
+"in": 158,
+"out": 7495,
+"cw": 16933,
+"cw1h": 0,
+"cr": 268430,
+"cost": 0.0856,
+"unpriced": 0
+},
+"subagents": [
+{
+"type": "general-purpose",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1788368520.0,
+"end": 1788368730.0,
+"model": "claude-sonnet-5-5",
+"tools": 4,
+"usage": {
+"in": 70,
+"out": 2674,
+"cw": 5827,
+"cw1h": 0,
+"cr": 127636,
+"cost": 0.067,
+"unpriced": 0
+}
+}
+],
+"credits": 0,
+"cost": 0.1526
+},
+{
+"id": "68cb7e8c-a8e9-4b72-9b9f-95c791d04e02",
+"source": "Claude Code",
+"project": "app",
+"projectPath": "/Users/me/app",
+"branch": "main",
+"title": "READMEを整理して",
+"start": 1788925320.0,
+"end": 1788948240.0,
+"events": 89,
+"segs": [
+[
+1788925320.0,
+1788927360.0,
+20
+],
+[
+1788929160.0,
+1788929460.0,
+6
+],
+[
+1788931260.0,
+1788931740.0,
+5
+],
+[
+1788933540.0,
+1788933600.0,
+2
+],
+[
+1788935340.0,
+1788936300.0,
+11
+],
+[
+1788938100.0,
+1788939420.0,
+19
+],
+[
+1788941220.0,
+1788941340.0,
+5
+],
+[
+1788943140.0,
+1788943440.0,
+4
+],
+[
+1788945240.0,
+1788945300.0,
+2
+],
+[
+1788947040.0,
+1788948240.0,
+15
+]
+],
+"prompts": [
+{
+"t": 1788925320.0,
+"text": "READMEを整理して"
+},
+{
+"t": 1788926880.0,
+"text": "カレンダー表示を足して"
+},
+{
+"t": 1788931260.0,
+"text": "テストが落ちてるので直して"
+},
+{
+"t": 1788936240.0,
+"text": "ログイン画面のバグ調べて"
+},
+{
+"t": 1788938880.0,
+"text": "カレンダー表示を足して"
+},
+{
+"t": 1788941340.0,
+"text": "テストが落ちてるので直して"
+},
+{
+"t": 1788947400.0,
+"text": "評価シナリオを追加したい"
+}
+],
+"nPrompts": 7,
+"tools": [
+[
+"Read",
+16
+],
+[
+"Edit",
+7
+],
+[
+"Bash",
+6
+],
+[
+"Task",
+4
+]
+],
+"files": [
+"/Users/me/app/src/x2.py",
+"/Users/me/app/src/x4.py",
+"/Users/me/app/src/x5.py"
+],
+"nFiles": 3,
+"resume": "cd /Users/me/app && claude --resume 68cb7e8c-a8e9-4b72-9b9f-95c791d04e02",
+"waits": [
+[
+1788926880.0,
+300
+],
+[
+1788931260.0,
+1800
+],
+[
+1788936240.0,
+300
+],
+[
+1788938880.0,
+300
+],
+[
+1788941340.0,
+60
+],
+[
+1788947400.0,
+60
+]
+],
+"interrupts": 0,
+"corrections": 0,
+"models": [
+[
+"claude-opus-5-5",
+66
+]
+],
+"usage": {
+"in": 738,
+"out": 23043,
+"cw": 58557,
+"cw1h": 0,
+"cr": 1034913,
+"cost": 0.9636,
+"unpriced": 0
+},
+"subagents": [
+{
+"type": "Explore",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1788926460.0,
+"end": 1788926820.0,
+"model": "claude-haiku-4-5",
+"tools": 4,
+"usage": {
+"in": 101,
+"out": 2914,
+"cw": 5599,
+"cw1h": 0,
+"cr": 80733,
+"cost": 0.0297,
+"unpriced": 0,
+"reportedTokens": 12345
+}
+},
+{
+"type": "Plan",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1788935340.0,
+"end": 1788935760.0,
+"model": "claude-haiku-4-5",
+"tools": 4,
+"usage": {
+"in": 32,
+"out": 2370,
+"cw": 4720,
+"cw1h": 0,
+"cr": 56540,
+"cost": 0.0234,
+"unpriced": 0,
+"reportedTokens": 12345
+}
+},
+{
+"type": "Explore",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1788939300.0,
+"end": 1788939420.0,
+"model": "claude-haiku-4-5",
+"tools": 4,
+"usage": {
+"in": 78,
+"out": 2972,
+"cw": 3842,
+"cw1h": 0,
+"cr": 35992,
+"cost": 0.0233,
+"unpriced": 0,
+"reportedTokens": 12345
+}
+},
+{
+"type": "Plan",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1788947640.0,
+"end": 1788948060.0,
+"model": "claude-haiku-4-5",
+"tools": 4,
+"usage": {
+"in": 69,
+"out": 1718,
+"cw": 5712,
+"cw1h": 0,
+"cr": 67155,
+"cost": 0.0225,
+"unpriced": 0,
+"reportedTokens": 12345
+}
+}
+],
+"credits": 0,
+"cost": 1.0625
+},
+{
+"id": "5c2c46e3-3212-4c02-83c7-f6e31dc33803",
+"source": "Claude Code",
+"project": "app",
+"projectPath": "/Users/me/app",
+"branch": "main",
+"title": "評価シナリオを追加したい",
+"start": 1789213560.0,
+"end": 1789217220.0,
+"events": 23,
+"segs": [
+[
+1789213560.0,
+1789214040.0,
+5
+],
+[
+1789215840.0,
+1789217220.0,
+18
+]
+],
+"prompts": [
+{
+"t": 1789213560.0,
+"text": "評価シナリオを追加したい"
+},
+{
+"t": 1789216500.0,
+"text": "カレンダー表示を足して"
+}
+],
+"nPrompts": 2,
+"tools": [
+[
+"Bash",
+5
+],
+[
+"Read",
+3
+],
+[
+"Agent",
+1
+],
+[
+"Edit",
+1
+]
+],
+"files": [
+"/Users/me/app/src/x1.py"
+],
+"nFiles": 1,
+"resume": "cd /Users/me/app && claude --resume 5c2c46e3-3212-4c02-83c7-f6e31dc33803",
+"waits": [
+[
+1789216500.0,
+420
+]
+],
+"interrupts": 0,
+"corrections": 0,
+"models": [
+[
+"claude-haiku-4-5",
+20
+]
+],
+"usage": {
+"in": 269,
+"out": 10084,
+"cw": 19289,
+"cw1h": 0,
+"cr": 333698,
+"cost": 0.1082,
+"unpriced": 0
+},
+"subagents": [
+{
+"type": "Explore",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1789216080.0,
+"end": 1789216290.0,
+"model": "claude-sonnet-5-5",
+"tools": 4,
+"usage": {
+"in": 90,
+"out": 2897,
+"cw": 7520,
+"cw1h": 0,
+"cr": 166351,
+"cost": 0.0812,
+"unpriced": 0
+}
+}
+],
+"credits": 0,
+"cost": 0.1894
+},
+{
+"id": "fa1e3455-e4a8-485a-ace2-9a6ccbaea201",
+"source": "Claude Code",
+"project": "blog",
+"projectPath": "/Users/me/blog",
+"branch": "main",
+"title": "カレンダー表示を足して",
+"start": 1789434120.0,
+"end": 1789441800.0,
+"events": 28,
+"segs": [
+[
+1789434120.0,
+1789435980.0,
+15
+],
+[
+1789437780.0,
+1789438140.0,
+8
+],
+[
+1789439940.0,
+1789440000.0,
+3
+],
+[
+1789441800.0,
+1789441860.0,
+2
+]
+],
+"prompts": [
+{
+"t": 1789434120.0,
+"text": "カレンダー表示を足して"
+},
+{
+"t": 1789435920.0,
+"text": "テストが落ちてるので直して"
+},
+{
+"t": 1789439940.0,
+"text": "READMEを整理して"
+}
+],
+"nPrompts": 3,
+"tools": [
+[
+"Edit",
+7
+],
+[
+"Read",
+2
+],
+[
+"Bash",
+2
+],
+[
+"Agent",
+1
+]
+],
+"files": [
+"/Users/me/blog/src/x2.py",
+"/Users/me/blog/src/x3.py",
+"/Users/me/blog/src/x4.py",
+"/Users/me/blog/src/x5.py"
+],
+"nFiles": 4,
+"resume": "cd /Users/me/blog && claude --resume fa1e3455-e4a8-485a-ace2-9a6ccbaea201",
+"waits": [
+[
+1789435920.0,
+660
+],
+[
+1789439940.0,
+1800
+]
+],
+"interrupts": 0,
+"corrections": 0,
+"models": [
+[
+"claude-sonnet-5-5",
+24
+]
+],
+"usage": {
+"in": 208,
+"out": 6667,
+"cw": 15454,
+"cw1h": 0,
+"cr": 363987,
+"cost": 0.1785,
+"unpriced": 0
+},
+"subagents": [
+{
+"type": "Explore",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1789435260.0,
+"end": 1789435470.0,
+"model": "claude-sonnet-5-5",
+"tools": 4,
+"usage": {
+"in": 92,
+"out": 2628,
+"cw": 8141,
+"cw1h": 0,
+"cr": 114933,
+"cost": 0.0698,
+"unpriced": 0
+}
+}
+],
+"credits": 0,
+"cost": 0.2483
+},
+{
+"id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
+"source": "Claude Code",
+"project": "app",
+"projectPath": "/Users/me/app",
+"branch": "fix/login",
+"title": "カレンダー表示を足して",
+"start": 1789804080.0,
+"end": 1789824240.0,
+"events": 84,
+"segs": [
+[
+1789804080.0,
+1789804200.0,
+3
+],
+[
+1789806000.0,
+1789807320.0,
+16
+],
+[
+1789809120.0,
+1789811700.0,
+30
+],
+[
+1789813500.0,
+1789813560.0,
+2
+],
+[
+1789815300.0,
+1789815900.0,
+5
+],
+[
+1789817700.0,
+1789817760.0,
+2
+],
+[
+1789819500.0,
+1789819980.0,
+7
+],
+[
+1789821780.0,
+1789824240.0,
+19
+]
+],
+"prompts": [
+{
+"t": 1789804080.0,
+"text": "カレンダー表示を足して"
+},
+{
+"t": 1789807020.0,
+"text": "READMEを整理して"
+},
+{
+"t": 1789809720.0,
+"text": "違う、そうじゃなくて"
+},
+{
+"t": 1789810620.0,
+"text": "評価シナリオを追加したい"
+},
+{
+"t": 1789811520.0,
+"text": "型エラー直して"
+},
+{
+"t": 1789819500.0,
+"text": "やり直して"
+},
+{
+"t": 1789822140.0,
+"text": "READMEを整理して"
+},
+{
+"t": 1789823940.0,
+"text": "評価シナリオを追加したい"
+}
+],
+"nPrompts": 8,
+"tools": [
+[
+"Read",
+13
+],
+[
+"Bash",
+11
+],
+[
+"Edit",
+8
+],
+[
+"Agent",
+4
+]
+],
+"files": [
+"/Users/me/app/src/x1.py",
+"/Users/me/app/src/x2.py",
+"/Users/me/app/src/x4.py",
+"/Users/me/app/src/x5.py"
+],
+"nFiles": 4,
+"resume": "cd /Users/me/app && claude --resume 6f8a980c-3b83-43eb-b07d-758a36bc2401",
+"waits": [
+[
+1789807020.0,
+420
+],
+[
+1789809720.0,
+300
+],
+[
+1789810620.0,
+60
+],
+[
+1789811520.0,
+300
+],
+[
+1789819500.0,
+1800
+],
+[
+1789822140.0,
+60
+],
+[
+1789823940.0,
+60
+]
+],
+"interrupts": 0,
+"corrections": 2,
+"models": [
+[
+"claude-opus-5-5",
+72
+]
+],
+"usage": {
+"in": 736,
+"out": 25769,
+"cw": 68060,
+"cw1h": 0,
+"cr": 1203415,
+"cost": 1.0993,
+"unpriced": 0
+},
+"subagents": [
+{
+"type": "Plan",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1789806600.0,
+"end": 1789806810.0,
+"model": "claude-sonnet-5-5",
+"tools": 4,
+"usage": {
+"in": 96,
+"out": 3872,
+"cw": 7905,
+"cw1h": 0,
+"cr": 131391,
+"cost": 0.085,
+"unpriced": 0
+}
+},
+{
+"type": "Explore",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1789810200.0,
+"end": 1789810410.0,
+"model": "claude-sonnet-5-5",
+"tools": 4,
+"usage": {
+"in": 81,
+"out": 2894,
+"cw": 10252,
+"cw1h": 0,
+"cr": 140845,
+"cost": 0.0829,
+"unpriced": 0
+}
+},
+{
+"type": "Plan",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1789815300.0,
+"end": 1789815510.0,
+"model": "claude-sonnet-5-5",
+"tools": 4,
+"usage": {
+"in": 47,
+"out": 2117,
+"cw": 6098,
+"cw1h": 0,
+"cr": 112293,
+"cost": 0.059,
+"unpriced": 0
+}
+},
+{
+"type": "Plan",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1789822500.0,
+"end": 1789822710.0,
+"model": "claude-sonnet-5-5",
+"tools": 4,
+"usage": {
+"in": 52,
+"out": 3511,
+"cw": 7784,
+"cw1h": 0,
+"cr": 185247,
+"cost": 0.0917,
+"unpriced": 0
+}
+}
+],
+"credits": 0,
+"cost": 1.4179
+},
+{
+"id": "68cb7e8c-a8e9-4b72-9b9f-95c791d04e00",
+"source": "Claude Code",
+"project": "app",
+"projectPath": "/Users/me/app",
+"branch": "main",
+"title": "READMEを整理して",
+"start": 1790134920.0,
+"end": 1790157840.0,
+"events": 89,
+"segs": [
+[
+1790134920.0,
+1790136960.0,
+20
+],
+[
+1790138760.0,
+1790139060.0,
+6
+],
+[
+1790140860.0,
+1790141340.0,
+5
+],
+[
+1790143140.0,
+1790143200.0,
+2
+],
+[
+1790144940.0,
+1790145900.0,
+11
+],
+[
+1790147700.0,
+1790149020.0,
+19
+],
+[
+1790150820.0,
+1790150940.0,
+5
+],
+[
+1790152740.0,
+1790153040.0,
+4
+],
+[
+1790154840.0,
+1790154900.0,
+2
+],
+[
+1790156640.0,
+1790157840.0,
+15
+]
+],
+"prompts": [
+{
+"t": 1790134920.0,
+"text": "READMEを整理して"
+},
+{
+"t": 1790136480.0,
+"text": "カレンダー表示を足して"
+},
+{
+"t": 1790140860.0,
+"text": "テストが落ちてるので直して"
+},
+{
+"t": 1790145840.0,
+"text": "ログイン画面のバグ調べて"
+},
+{
+"t": 1790148480.0,
+"text": "カレンダー表示を足して"
+},
+{
+"t": 1790150940.0,
+"text": "テストが落ちてるので直して"
+},
+{
+"t": 1790157000.0,
+"text": "評価シナリオを追加したい"
+}
+],
+"nPrompts": 7,
+"tools": [
+[
+"Read",
+16
+],
+[
+"Edit",
+7
+],
+[
+"Bash",
+6
+],
+[
+"Task",
+4
+]
+],
+"files": [
+"/Users/me/app/src/x2.py",
+"/Users/me/app/src/x4.py",
+"/Users/me/app/src/x5.py"
+],
+"nFiles": 3,
+"resume": "cd /Users/me/app && claude --resume 68cb7e8c-a8e9-4b72-9b9f-95c791d04e00",
+"waits": [
+[
+1790136480.0,
+300
+],
+[
+1790140860.0,
+1800
+],
+[
+1790145840.0,
+300
+],
+[
+1790148480.0,
+300
+],
+[
+1790150940.0,
+60
+],
+[
+1790157000.0,
+60
+]
+],
+"interrupts": 0,
+"corrections": 0,
+"models": [
+[
+"claude-opus-5-5",
+66
+]
+],
+"usage": {
+"in": 738,
+"out": 23043,
+"cw": 58557,
+"cw1h": 0,
+"cr": 1034913,
+"cost": 0.9636,
+"unpriced": 0
+},
+"subagents": [
+{
+"type": "Explore",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1790136060.0,
+"end": 1790136420.0,
+"model": "claude-haiku-4-5",
+"tools": 4,
+"usage": {
+"in": 101,
+"out": 2914,
+"cw": 5599,
+"cw1h": 0,
+"cr": 80733,
+"cost": 0.0297,
+"unpriced": 0,
+"reportedTokens": 12345
+}
+},
+{
+"type": "Plan",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1790144940.0,
+"end": 1790145360.0,
+"model": "claude-haiku-4-5",
+"tools": 4,
+"usage": {
+"in": 32,
+"out": 2370,
+"cw": 4720,
+"cw1h": 0,
+"cr": 56540,
+"cost": 0.0234,
+"unpriced": 0,
+"reportedTokens": 12345
+}
+},
+{
+"type": "Explore",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1790148900.0,
+"end": 1790149020.0,
+"model": "claude-haiku-4-5",
+"tools": 4,
+"usage": {
+"in": 78,
+"out": 2972,
+"cw": 3842,
+"cw1h": 0,
+"cr": 35992,
+"cost": 0.0233,
+"unpriced": 0,
+"reportedTokens": 12345
+}
+},
+{
+"type": "Plan",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1790157240.0,
+"end": 1790157660.0,
+"model": "claude-haiku-4-5",
+"tools": 4,
+"usage": {
+"in": 69,
+"out": 1718,
+"cw": 5712,
+"cw1h": 0,
+"cr": 67155,
+"cost": 0.0225,
+"unpriced": 0,
+"reportedTokens": 12345
+}
+}
+],
+"credits": 0,
+"cost": 1.0625
+},
+{
+"id": "d8bda5e8-265b-4f26-8a8a-54c9c8651701",
+"source": "Claude Code",
+"project": "app",
+"projectPath": "/Users/me/app",
+"branch": "main",
+"title": "カレンダー表示を足して",
+"start": 1790316060.0,
+"end": 1790322960.0,
+"events": 24,
+"segs": [
+[
+1790316060.0,
+1790316360.0,
+5
+],
+[
+1790318160.0,
+1790318880.0,
+8
+],
+[
+1790320680.0,
+1790321100.0,
+8
+],
+[
+1790322900.0,
+1790322960.0,
+3
+]
+],
+"prompts": [
+{
+"t": 1790316060.0,
+"text": "カレンダー表示を足して"
+},
+{
+"t": 1790318880.0,
+"text": "READMEを整理して"
+},
+{
+"t": 1790322960.0,
+"text": "やり直して"
+}
+],
+"nPrompts": 3,
+"tools": [
+[
+"Bash",
+4
+],
+[
+"Read",
+3
+],
+[
+"Edit",
+2
+],
+[
+"Agent",
+1
+]
+],
+"files": [
+"/Users/me/app/src/x2.py",
+"/Users/me/app/src/x5.py"
+],
+"nFiles": 2,
+"resume": "cd /Users/me/app && claude --resume d8bda5e8-265b-4f26-8a8a-54c9c8651701",
+"waits": [
+[
+1790318880.0,
+360
+],
+[
+1790322960.0,
+60
+]
+],
+"interrupts": 0,
+"corrections": 1,
+"models": [
+[
+"claude-haiku-4-5",
+20
+]
+],
+"usage": {
+"in": 126,
+"out": 7283,
+"cw": 21616,
+"cw1h": 0,
+"cr": 288744,
+"cost": 0.0924,
+"unpriced": 0
+},
+"subagents": [
+{
+"type": "Explore",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1790318520.0,
+"end": 1790318730.0,
+"model": "claude-sonnet-5-5",
+"tools": 4,
+"usage": {
+"in": 79,
+"out": 3946,
+"cw": 4946,
+"cw1h": 0,
+"cr": 126777,
+"cost": 0.0773,
+"unpriced": 0
+}
+}
+],
+"credits": 0,
+"cost": 0.1697
+},
+{
+"id": "57c94728-2884-42b4-8c7d-b3e65e11e800",
+"source": "Claude Code",
+"project": "vp",
+"projectPath": "/Users/me/vp",
+"branch": "main",
+"title": "型エラー直して",
+"start": 1790403540.0,
+"end": 1790412180.0,
+"events": 56,
+"segs": [
+[
+1790403540.0,
+1790405280.0,
+17
+],
+[
+1790407080.0,
+1790410140.0,
+32
+],
+[
+1790411940.0,
+1790412180.0,
+7
+]
+],
+"prompts": [
+{
+"t": 1790403540.0,
+"text": "型エラー直して"
+},
+{
+"t": 1790405100.0,
+"text": "READMEを整理して"
+},
+{
+"t": 1790407560.0,
+"text": "テストが落ちてるので直して"
+},
+{
+"t": 1790409060.0,
+"text": "型エラー直して"
+},
+{
+"t": 1790410080.0,
+"text": "型エラー直して"
+}
+],
+"nPrompts": 5,
+"tools": [
+[
+"Bash",
+9
+],
+[
+"Read",
+7
+],
+[
+"Edit",
+5
+],
+[
+"Agent",
+3
+]
+],
+"files": [
+"/Users/me/vp/src/x1.py",
+"/Users/me/vp/src/x2.py",
+"/Users/me/vp/src/x4.py"
+],
+"nFiles": 3,
+"resume": "cd /Users/me/vp && claude --resume 57c94728-2884-42b4-8c7d-b3e65e11e800",
+"waits": [
+[
+1790405100.0,
+540
+],
+[
+1790407560.0,
+300
+],
+[
+1790409060.0,
+120
+],
+[
+1790410080.0,
+180
+]
+],
+"interrupts": 0,
+"corrections": 0,
+"models": [
+[
+"claude-haiku-4-5",
+48
+]
+],
+"usage": {
+"in": 546,
+"out": 19639,
+"cw": 45394,
+"cw1h": 0,
+"cr": 825577,
+"cost": 0.238,
+"unpriced": 0
+},
+"subagents": [
+{
+"type": "Plan",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1790404560.0,
+"end": 1790404770.0,
+"model": "claude-sonnet-5-5",
+"tools": 4,
+"usage": {
+"in": 69,
+"out": 2231,
+"cw": 10686,
+"cw1h": 0,
+"cr": 142332,
+"cost": 0.0776,
+"unpriced": 0
+}
+},
+{
+"type": "Explore",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1790408520.0,
+"end": 1790408730.0,
+"model": "claude-sonnet-5-5",
+"tools": 4,
+"usage": {
+"in": 63,
+"out": 3379,
+"cw": 8988,
+"cw1h": 0,
+"cr": 98613,
+"cost": 0.0761,
+"unpriced": 0
+}
+},
+{
+"type": "Plan",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1790412000.0,
+"end": 1790412210.0,
+"model": "claude-sonnet-5-5",
+"tools": 4,
+"usage": {
+"in": 55,
+"out": 2812,
+"cw": 8001,
+"cw1h": 0,
+"cr": 68564,
+"cost": 0.0619,
+"unpriced": 0
+}
+}
+],
+"credits": 0,
+"cost": 0.4536
+},
+{
+"id": "6f8a980c-3b83-43eb-b07d-758a36bc2400",
+"source": "Claude Code",
+"project": "app",
+"projectPath": "/Users/me/app",
+"branch": "fix/login",
+"title": "カレンダー表示を足して",
+"start": 1790408880.0,
+"end": 1790429040.0,
+"events": 84,
+"segs": [
+[
+1790408880.0,
+1790409000.0,
+3
+],
+[
+1790410800.0,
+1790412120.0,
+16
+],
+[
+1790413920.0,
+1790416500.0,
+30
+],
+[
+1790418300.0,
+1790418360.0,
+2
+],
+[
+1790420100.0,
+1790420700.0,
+5
+],
+[
+1790422500.0,
+1790422560.0,
+2
+],
+[
+1790424300.0,
+1790424780.0,
+7
+],
+[
+1790426580.0,
+1790429040.0,
+19
+]
+],
+"prompts": [
+{
+"t": 1790408880.0,
+"text": "カレンダー表示を足して"
+},
+{
+"t": 1790411820.0,
+"text": "READMEを整理して"
+},
+{
+"t": 1790414520.0,
+"text": "違う、そうじゃなくて"
+},
+{
+"t": 1790415420.0,
+"text": "評価シナリオを追加したい"
+},
+{
+"t": 1790416320.0,
+"text": "型エラー直して"
+},
+{
+"t": 1790424300.0,
+"text": "やり直して"
+},
+{
+"t": 1790426940.0,
+"text": "READMEを整理して"
+},
+{
+"t": 1790428740.0,
+"text": "評価シナリオを追加したい"
+}
+],
+"nPrompts": 8,
+"tools": [
+[
+"Read",
+13
+],
+[
+"Bash",
+11
+],
+[
+"Edit",
+8
+],
+[
+"Agent",
+4
+]
+],
+"files": [
+"/Users/me/app/src/x1.py",
+"/Users/me/app/src/x2.py",
+"/Users/me/app/src/x4.py",
+"/Users/me/app/src/x5.py"
+],
+"nFiles": 4,
+"resume": "cd /Users/me/app && claude --resume 6f8a980c-3b83-43eb-b07d-758a36bc2400",
+"waits": [
+[
+1790411820.0,
+420
+],
+[
+1790414520.0,
+300
+],
+[
+1790415420.0,
+60
+],
+[
+1790416320.0,
+300
+],
+[
+1790424300.0,
+1800
+],
+[
+1790426940.0,
+60
+],
+[
+1790428740.0,
+60
+]
+],
+"interrupts": 0,
+"corrections": 2,
+"models": [
+[
+"claude-opus-5-5",
+72
+]
+],
+"usage": {
+"in": 736,
+"out": 25769,
+"cw": 68060,
+"cw1h": 0,
+"cr": 1203415,
+"cost": 1.0993,
+"unpriced": 0
+},
+"subagents": [
+{
+"type": "Plan",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1790411400.0,
+"end": 1790411610.0,
+"model": "claude-sonnet-5-5",
+"tools": 4,
+"usage": {
+"in": 96,
+"out": 3872,
+"cw": 7905,
+"cw1h": 0,
+"cr": 131391,
+"cost": 0.085,
+"unpriced": 0
+}
+},
+{
+"type": "Explore",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1790415000.0,
+"end": 1790415210.0,
+"model": "claude-sonnet-5-5",
+"tools": 4,
+"usage": {
+"in": 81,
+"out": 2894,
+"cw": 10252,
+"cw1h": 0,
+"cr": 140845,
+"cost": 0.0829,
+"unpriced": 0
+}
+},
+{
+"type": "Plan",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1790420100.0,
+"end": 1790420310.0,
+"model": "claude-sonnet-5-5",
+"tools": 4,
+"usage": {
+"in": 47,
+"out": 2117,
+"cw": 6098,
+"cw1h": 0,
+"cr": 112293,
+"cost": 0.059,
+"unpriced": 0
+}
+},
+{
+"type": "Plan",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1790427300.0,
+"end": 1790427510.0,
+"model": "claude-sonnet-5-5",
+"tools": 4,
+"usage": {
+"in": 52,
+"out": 3511,
+"cw": 7784,
+"cw1h": 0,
+"cr": 185247,
+"cost": 0.0917,
+"unpriced": 0
+}
+}
+],
+"credits": 0,
+"cost": 1.4179
+},
+{
+"id": "sess_0ee61246",
+"source": "Kiro IDE",
+"project": "vp",
+"projectPath": "/Users/me/vp",
+"branch": null,
+"title": "Kiro: specを書いて",
+"start": 1790550000.0,
+"end": 1790551440.0,
+"events": 13,
+"segs": [
+[
+1790550000.0,
+1790551440.0,
+13
+]
+],
+"prompts": [
+{
+"t": 1790550180.0,
+"text": "specを書いて"
+},
+{
+"t": 1790550600.0,
+"text": "specを書いて"
+},
+{
+"t": 1790551080.0,
+"text": "specを書いて"
+}
+],
+"nPrompts": 3,
+"tools": [
+[
+"fsWrite",
+6
+]
+],
+"files": [
+"spec.md"
+],
+"nFiles": 1,
+"resume": null,
+"waits": [
+[
+1790550600.0,
+120
+],
+[
+1790551080.0,
+60
+]
+],
+"interrupts": 0,
+"corrections": 0,
+"models": [
+[
+"claude-sonnet-4.5",
+3
+]
+],
+"usage": {
+"in": 0,
+"out": 0,
+"cw": 0,
+"cw1h": 0,
+"cr": 0,
+"cost": 0.0,
+"unpriced": 0
+},
+"subagents": [],
+"credits": 4.92,
+"cost": 0.0
+},
+{
+"id": "372fbe38-1f0c-4f64-882e-d84f0f02817e",
+"source": "Kiro IDE (旧)",
+"project": "old",
+"projectPath": "/Users/me/old",
+"branch": null,
+"title": "旧Kiroのチャット",
+"start": 1790578380.0,
+"end": 1790597280.0,
+"events": 2,
+"segs": [
+[
+1790578380.0,
+1790578440.0,
+1
+],
+[
+1790597280.0,
+1790597340.0,
+1
+]
+],
+"prompts": [
+{
+"t": 1790578380.0,
+"text": "昔の依頼"
+}
+],
+"nPrompts": 1,
+"tools": [],
+"files": [],
+"nFiles": 0,
+"resume": null,
+"waits": [],
+"interrupts": 0,
+"corrections": 0,
+"models": [],
+"usage": {
+"in": 0,
+"out": 0,
+"cw": 0,
+"cw1h": 0,
+"cr": 0,
+"cost": 0.0,
+"unpriced": 0
+},
+"subagents": [],
+"credits": 0,
+"cost": 0.0
+},
+{
+"id": "1e13c3c1-d7ae-41c2-a324-e6a440665d9a",
+"source": "Kiro CLI",
+"project": "infra",
+"projectPath": "/Users/me/infra",
+"branch": null,
+"title": "CLIでデプロイ確認",
+"start": 1790632800.0,
+"end": 1790633760.0,
+"events": 10,
+"segs": [
+[
+1790632800.0,
+1790633760.0,
+10
+]
+],
+"prompts": [
+{
+"t": 1790632800.0,
+"text": "デプロイみて"
+},
+{
+"t": 1790633040.0,
+"text": "デプロイみて"
+},
+{
+"t": 1790633280.0,
+"text": "デプロイみて"
+},
+{
+"t": 1790633520.0,
+"text": "デプロイみて"
+}
+],
+"nPrompts": 4,
+"tools": [],
+"files": [],
+"nFiles": 0,
+"resume": "cd /Users/me/infra && kiro-cli chat --resume-id 1e13c3c1-d7ae-41c2-a324-e6a440665d9a",
+"waits": [],
+"interrupts": 0,
+"corrections": 0,
+"models": [
+[
+"auto",
+4
+]
+],
+"usage": {
+"in": 0,
+"out": 0,
+"cw": 0,
+"cw1h": 0,
+"cr": 0,
+"cost": 0.0,
+"unpriced": 0
+},
+"subagents": [],
+"credits": 3.73,
+"cost": 0.0
+},
+{
+"id": "sess_7e06b008",
+"source": "Kiro IDE",
+"project": "vp",
+"projectPath": "/Users/me/vp",
+"branch": null,
+"title": "Kiro: specを書いて",
+"start": 1790661600.0,
+"end": 1790662920.0,
+"events": 13,
+"segs": [
+[
+1790661600.0,
+1790662920.0,
+13
+]
+],
+"prompts": [
+{
+"t": 1790661660.0,
+"text": "specを書いて"
+},
+{
+"t": 1790662200.0,
+"text": "specを書いて"
+},
+{
+"t": 1790662620.0,
+"text": "specを書いて"
+}
+],
+"nPrompts": 3,
+"tools": [
+[
+"fsWrite",
+6
+]
+],
+"files": [
+"spec.md"
+],
+"nFiles": 1,
+"resume": null,
+"waits": [
+[
+1790662200.0,
+60
+],
+[
+1790662620.0,
+60
+]
+],
+"interrupts": 0,
+"corrections": 0,
+"models": [
+[
+"claude-sonnet-4.5",
+3
+]
+],
+"usage": {
+"in": 0,
+"out": 0,
+"cw": 0,
+"cw1h": 0,
+"cr": 0,
+"cost": 0.0,
+"unpriced": 0
+},
+"subagents": [],
+"credits": 2.08,
+"cost": 0.0
+},
+{
+"id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
+"source": "Kiro CLI",
+"project": "infra",
+"projectPath": "/Users/me/infra",
+"branch": null,
+"title": "CLIでデプロイ確認",
+"start": 1790668800.0,
+"end": 1790669760.0,
+"events": 10,
+"segs": [
+[
+1790668800.0,
+1790669760.0,
+10
+]
+],
+"prompts": [
+{
+"t": 1790668800.0,
+"text": "デプロイみて"
+},
+{
+"t": 1790669040.0,
+"text": "デプロイみて"
+},
+{
+"t": 1790669280.0,
+"text": "デプロイみて"
+},
+{
+"t": 1790669520.0,
+"text": "デプロイみて"
+}
+],
+"nPrompts": 4,
+"tools": [],
+"files": [],
+"nFiles": 0,
+"resume": "cd /Users/me/infra && kiro-cli chat --resume-id 1cb4ad2f-90ba-4c5f-970b-5767003804b9",
+"waits": [],
+"interrupts": 0,
+"corrections": 0,
+"models": [
+[
+"auto",
+4
+]
+],
+"usage": {
+"in": 0,
+"out": 0,
+"cw": 0,
+"cw1h": 0,
+"cr": 0,
+"cost": 0.0,
+"unpriced": 0
+},
+"subagents": [],
+"credits": 3.69,
+"cost": 0.0
+},
+{
+"id": "0d612aac-99c4-4a54-bda2-76ad60b6ddf3",
+"source": "Kiro CLI",
+"project": "infra",
+"projectPath": "/Users/me/infra",
+"branch": null,
+"title": "CLIでデプロイ確認",
+"start": 1790726400.0,
+"end": 1790727360.0,
+"events": 10,
+"segs": [
+[
+1790726400.0,
+1790727360.0,
+10
+]
+],
+"prompts": [
+{
+"t": 1790726400.0,
+"text": "デプロイみて"
+},
+{
+"t": 1790726640.0,
+"text": "デプロイみて"
+},
+{
+"t": 1790726880.0,
+"text": "デプロイみて"
+},
+{
+"t": 1790727120.0,
+"text": "デプロイみて"
+}
+],
+"nPrompts": 4,
+"tools": [],
+"files": [],
+"nFiles": 0,
+"resume": "cd /Users/me/infra && kiro-cli chat --resume-id 0d612aac-99c4-4a54-bda2-76ad60b6ddf3",
+"waits": [],
+"interrupts": 0,
+"corrections": 0,
+"models": [
+[
+"auto",
+4
+]
+],
+"usage": {
+"in": 0,
+"out": 0,
+"cw": 0,
+"cw1h": 0,
+"cr": 0,
+"cost": 0.0,
+"unpriced": 0
+},
+"subagents": [],
+"credits": 2.28,
+"cost": 0.0
+},
+{
+"id": "12c47fa1-6df4-4521-83f6-def4d849922d",
+"source": "Kiro IDE (旧)",
+"project": "old",
+"projectPath": "/Users/me/old",
+"branch": null,
+"title": "旧Kiroのチャット",
+"start": 1790739600.0,
+"end": 1790747940.0,
+"events": 2,
+"segs": [
+[
+1790739600.0,
+1790739660.0,
+1
+],
+[
+1790747940.0,
+1790748000.0,
+1
+]
+],
+"prompts": [
+{
+"t": 1790739600.0,
+"text": "昔の依頼"
+}
+],
+"nPrompts": 1,
+"tools": [],
+"files": [],
+"nFiles": 0,
+"resume": null,
+"waits": [],
+"interrupts": 0,
+"corrections": 0,
+"models": [],
+"usage": {
+"in": 0,
+"out": 0,
+"cw": 0,
+"cw1h": 0,
+"cr": 0,
+"cost": 0.0,
+"unpriced": 0
+},
+"subagents": [],
+"credits": 0,
+"cost": 0.0
+},
+{
+"id": "12971eb2-2ee6-4dd7-9a6e-a50256c0bf1d",
+"source": "Kiro IDE (旧)",
+"project": "old",
+"projectPath": "/Users/me/old",
+"branch": null,
+"title": "旧Kiroのチャット",
+"start": 1790746140.0,
+"end": 1790755500.0,
+"events": 2,
+"segs": [
+[
+1790746140.0,
+1790746200.0,
+1
+],
+[
+1790755500.0,
+1790755560.0,
+1
+]
+],
+"prompts": [
+{
+"t": 1790746140.0,
+"text": "昔の依頼"
+}
+],
+"nPrompts": 1,
+"tools": [],
+"files": [],
+"nFiles": 0,
+"resume": null,
+"waits": [],
+"interrupts": 0,
+"corrections": 0,
+"models": [],
+"usage": {
+"in": 0,
+"out": 0,
+"cw": 0,
+"cw1h": 0,
+"cr": 0,
+"cost": 0.0,
+"unpriced": 0
+},
+"subagents": [],
+"credits": 0,
+"cost": 0.0
+},
+{
+"id": "sess_564f668e",
+"source": "Kiro IDE",
+"project": "vp",
+"projectPath": "/Users/me/vp",
+"branch": null,
+"title": "Kiro: specを書いて",
+"start": 1790748000.0,
+"end": 1790749800.0,
+"events": 13,
+"segs": [
+[
+1790748000.0,
+1790749800.0,
+13
+]
+],
+"prompts": [
+{
+"t": 1790748180.0,
+"text": "specを書いて"
+},
+{
+"t": 1790748780.0,
+"text": "specを書いて"
+},
+{
+"t": 1790749320.0,
+"text": "specを書いて"
+}
+],
+"nPrompts": 3,
+"tools": [
+[
+"fsWrite",
+6
+]
+],
+"files": [
+"spec.md"
+],
+"nFiles": 1,
+"resume": null,
+"waits": [
+[
+1790748780.0,
+180
+],
+[
+1790749320.0,
+120
+]
+],
+"interrupts": 0,
+"corrections": 0,
+"models": [
+[
+"claude-sonnet-4.5",
+3
+]
+],
+"usage": {
+"in": 0,
+"out": 0,
+"cw": 0,
+"cw1h": 0,
+"cr": 0,
+"cost": 0.0,
+"unpriced": 0
+},
+"subagents": [],
+"credits": 3.29,
+"cost": 0.0
+},
+{
+"id": "sess_1640c798",
+"source": "Kiro IDE",
+"project": "vp",
+"projectPath": "/Users/me/vp",
+"branch": null,
+"title": "Kiro: specを書いて",
+"start": 1790751600.0,
+"end": 1790753100.0,
+"events": 13,
+"segs": [
+[
+1790751600.0,
+1790753100.0,
+13
+]
+],
+"prompts": [
+{
+"t": 1790751660.0,
+"text": "specを書いて"
+},
+{
+"t": 1790752080.0,
+"text": "specを書いて"
+},
+{
+"t": 1790752620.0,
+"text": "specを書いて"
+}
+],
+"nPrompts": 3,
+"tools": [
+[
+"fsWrite",
+6
+]
+],
+"files": [
+"spec.md"
+],
+"nFiles": 1,
+"resume": null,
+"waits": [
+[
+1790752080.0,
+60
+],
+[
+1790752620.0,
+60
+]
+],
+"interrupts": 0,
+"corrections": 0,
+"models": [
+[
+"claude-sonnet-4.5",
+3
+]
+],
+"usage": {
+"in": 0,
+"out": 0,
+"cw": 0,
+"cw1h": 0,
+"cr": 0,
+"cost": 0.0,
+"unpriced": 0
+},
+"subagents": [],
+"credits": 3.6,
+"cost": 0.0
+},
+{
+"id": "sess_76df747b",
+"source": "Kiro IDE",
+"project": "vp",
+"projectPath": "/Users/me/vp",
+"branch": null,
+"title": "Kiro: specを書いて",
+"start": 1790820000.0,
+"end": 1790821200.0,
+"events": 13,
+"segs": [
+[
+1790820000.0,
+1790821200.0,
+13
+]
+],
+"prompts": [
+{
+"t": 1790820060.0,
+"text": "specを書いて"
+},
+{
+"t": 1790820660.0,
+"text": "specを書いて"
+},
+{
+"t": 1790821020.0,
+"text": "specを書いて"
+}
+],
+"nPrompts": 3,
+"tools": [
+[
+"fsWrite",
+6
+]
+],
+"files": [
+"spec.md"
+],
+"nFiles": 1,
+"resume": null,
+"waits": [
+[
+1790820660.0,
+180
+],
+[
+1790821020.0,
+60
+]
+],
+"interrupts": 0,
+"corrections": 0,
+"models": [
+[
+"claude-sonnet-4.5",
+3
+]
+],
+"usage": {
+"in": 0,
+"out": 0,
+"cw": 0,
+"cw1h": 0,
+"cr": 0,
+"cost": 0.0,
+"unpriced": 0
+},
+"subagents": [],
+"credits": 4.5,
+"cost": 0.0
+},
+{
+"id": "sess_97d6b4d7",
+"source": "Kiro IDE",
+"project": "vp",
+"projectPath": "/Users/me/vp",
+"branch": null,
+"title": "Kiro: specを書いて",
+"start": 1790985600.0,
+"end": 1790987040.0,
+"events": 13,
+"segs": [
+[
+1790985600.0,
+1790987040.0,
+13
+]
+],
+"prompts": [
+{
+"t": 1790985660.0,
+"text": "specを書いて"
+},
+{
+"t": 1790986260.0,
+"text": "specを書いて"
+},
+{
+"t": 1790986740.0,
+"text": "specを書いて"
+}
+],
+"nPrompts": 3,
+"tools": [
+[
+"fsWrite",
+6
+]
+],
+"files": [
+"spec.md"
+],
+"nFiles": 1,
+"resume": null,
+"waits": [
+[
+1790986260.0,
+180
+],
+[
+1790986740.0,
+60
+]
+],
+"interrupts": 0,
+"corrections": 0,
+"models": [
+[
+"claude-sonnet-4.5",
+3
+]
+],
+"usage": {
+"in": 0,
+"out": 0,
+"cw": 0,
+"cw1h": 0,
+"cr": 0,
+"cost": 0.0,
+"unpriced": 0
+},
+"subagents": [],
+"credits": 2.62,
+"cost": 0.0
+},
+{
+"id": "5c2c46e3-3212-4c02-83c7-f6e31dc33800",
+"source": "Claude Code",
+"project": "app",
+"projectPath": "/Users/me/app",
+"branch": "main",
+"title": "評価シナリオを追加したい",
+"start": 1791027960.0,
+"end": 1791031620.0,
+"events": 23,
+"segs": [
+[
+1791027960.0,
+1791028440.0,
+5
+],
+[
+1791030240.0,
+1791031620.0,
+18
+]
+],
+"prompts": [
+{
+"t": 1791027960.0,
+"text": "評価シナリオを追加したい"
+},
+{
+"t": 1791030900.0,
+"text": "カレンダー表示を足して"
+}
+],
+"nPrompts": 2,
+"tools": [
+[
+"Bash",
+5
+],
+[
+"Read",
+3
+],
+[
+"Agent",
+1
+],
+[
+"Edit",
+1
+]
+],
+"files": [
+"/Users/me/app/src/x1.py"
+],
+"nFiles": 1,
+"resume": "cd /Users/me/app && claude --resume 5c2c46e3-3212-4c02-83c7-f6e31dc33800",
+"waits": [
+[
+1791030900.0,
+420
+]
+],
+"interrupts": 0,
+"corrections": 0,
+"models": [
+[
+"claude-haiku-4-5",
+20
+]
+],
+"usage": {
+"in": 269,
+"out": 10084,
+"cw": 19289,
+"cw1h": 0,
+"cr": 333698,
+"cost": 0.1082,
+"unpriced": 0
+},
+"subagents": [
+{
+"type": "Explore",
+"desc": "関連ファイルを調べる",
+"bg": false,
+"start": 1791030480.0,
+"end": 1791030690.0,
+"model": "claude-sonnet-5-5",
+"tools": 4,
+"usage": {
+"in": 90,
+"out": 2897,
+"cw": 7520,
+"cw1h": 0,
+"cr": 166351,
+"cost": 0.0812,
+"unpriced": 0
+}
+}
+],
+"credits": 0,
+"cost": 0.1894
+}
+],
+"weeks": {
+"2026-08-31": {
+"metrics": {
+"fix_rate": {
+"v": 0.0,
+"n": 2
+},
+"focus_blocks": {
+"v": 0,
+"n": null
+},
+"switches": {
+"v": 0.0,
+"n": 1
+},
+"cost_per_prompt": {
+"v": 0.075,
+"n": 2
+},
+"night": {
+"v": 17,
+"n": null
+},
+"weekend": {
+"v": 0,
+"n": null
+}
+},
+"usage": {
+"tokens": 429223,
+"out": 10169,
+"cost": 0.15,
+"credits": 0.0,
+"cacheHit": 0.945,
+"models": [
+[
+"claude-haiku-4-5",
+0.09,
+293016,
+8
+],
+[
+"claude-sonnet-5-5",
+0.07,
+136207,
+4
+]
+],
+"projects": [
+[
+"vp",
+0.15
+]
+],
+"subagents": 1,
+"subMin": 4,
+"subTypes": [
+[
+"general-purpose",
+1
+]
+],
+"heavy": [
+{
+"id": "45502558-80a6-4028-a0ef-6476e9599703",
+"title": "カレンダー表示を足して",
+"project": "vp",
+"start": 1788367980.0,
+"cost": 0.15,
+"subagents": 1
+}
+]
+},
+"week": "2026-08-31",
+"sessions": 1,
+"prompts": 2,
+"active": 17,
+"ai": 17,
+"parallel": 0,
+"maxConc": 1,
+"night": 17,
+"weekend": 0,
+"focus": [],
+"switchesAvg": 0.0,
+"switchesMax": 0,
+"waitMedian": 300,
+"waitP90": 300,
+"waitCount": 1,
+"projects": [
+[
+"vp",
+17
+]
+],
+"days": [
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+},
+{
+"active": 17,
+"night": 17,
+"switches": 0,
+"prompts": 2
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+}
+],
+"friction": [],
+"playbook": {
+"focus": null,
+"guards": [
+{
+"key": "night",
+"v": 17,
+"n": null,
+"base": {
+"weeks": 0
+},
+"state": "building"
+},
+{
+"key": "weekend",
+"v": 0,
+"n": null,
+"base": {
+"weeks": 0
+},
+"state": "building"
+},
+{
+"key": "fix_rate",
+"v": 0.0,
+"n": 2,
+"base": {
+"weeks": 0
+},
+"state": "building"
+},
+{
+"key": "cost_per_prompt",
+"v": 0.075,
+"n": 2,
+"base": {
+"weeks": 0
+},
+"state": "building"
+}
+],
+"journal": null,
+"prev": null
+}
+},
+"2026-09-07": {
+"metrics": {
+"fix_rate": {
+"v": 0.0,
+"n": 9
+},
+"focus_blocks": {
+"v": 0,
+"n": null
+},
+"switches": {
+"v": 0.0,
+"n": 2
+},
+"cost_per_prompt": {
+"v": 0.139,
+"n": 9
+},
+"night": {
+"v": 0,
+"n": null
+},
+"weekend": {
+"v": 31,
+"n": null
+}
+},
+"usage": {
+"tokens": 1927996,
+"out": 45998,
+"cost": 1.25,
+"credits": 0.0,
+"cacheHit": 0.943,
+"models": [
+[
+"claude-opus-5-5",
+0.96,
+1117251,
+33
+],
+[
+"claude-haiku-4-5",
+0.21,
+633887,
+22
+],
+[
+"claude-sonnet-5-5",
+0.08,
+176858,
+4
+]
+],
+"projects": [
+[
+"app",
+1.25
+]
+],
+"subagents": 5,
+"subMin": 26,
+"subTypes": [
+[
+"Explore",
+3
+],
+[
+"Plan",
+2
+]
+],
+"heavy": [
+{
+"id": "68cb7e8c-a8e9-4b72-9b9f-95c791d04e02",
+"title": "READMEを整理して",
+"project": "app",
+"start": 1788925320.0,
+"cost": 1.06,
+"subagents": 4
+},
+{
+"id": "5c2c46e3-3212-4c02-83c7-f6e31dc33803",
+"title": "評価シナリオを追加したい",
+"project": "app",
+"start": 1789213560.0,
+"cost": 0.19,
+"subagents": 1
+}
+]
+},
+"week": "2026-09-07",
+"sessions": 2,
+"prompts": 9,
+"active": 145,
+"ai": 145,
+"parallel": 0,
+"maxConc": 1,
+"night": 0,
+"weekend": 31,
+"focus": [],
+"switchesAvg": 0.0,
+"switchesMax": 0,
+"waitMedian": 300,
+"waitP90": 1800,
+"waitCount": 7,
+"projects": [
+[
+"app",
+145
+]
+],
+"days": [
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+},
+{
+"active": 114,
+"night": 0,
+"switches": 0,
+"prompts": 7
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+},
+{
+"active": 31,
+"night": 0,
+"switches": 0,
+"prompts": 2
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+}
+],
+"friction": [],
+"playbook": {
+"focus": null,
+"guards": [
+{
+"key": "night",
+"v": 0,
+"n": null,
+"base": {
+"weeks": 1
+},
+"state": "building"
+},
+{
+"key": "weekend",
+"v": 31,
+"n": null,
+"base": {
+"weeks": 1
+},
+"state": "building"
+},
+{
+"key": "fix_rate",
+"v": 0.0,
+"n": 9,
+"base": {
+"weeks": 1
+},
+"state": "building"
+},
+{
+"key": "cost_per_prompt",
+"v": 0.139,
+"n": 9,
+"base": {
+"weeks": 1
+},
+"state": "building"
+}
+],
+"journal": null,
+"prev": null
+}
+},
+"2026-09-14": {
+"metrics": {
+"fix_rate": {
+"v": 18.2,
+"n": 11
+},
+"focus_blocks": {
+"v": 0,
+"n": null
+},
+"switches": {
+"v": 0.0,
+"n": 2
+},
+"cost_per_prompt": {
+"v": 0.152,
+"n": 11
+},
+"night": {
+"v": 24,
+"n": null
+},
+"weekend": {
+"v": 128,
+"n": null
+}
+},
+"usage": {
+"tokens": 2424575,
+"out": 47458,
+"cost": 1.67,
+"credits": 0.0,
+"cacheHit": 0.947,
+"models": [
+[
+"claude-opus-5-5",
+1.1,
+1297980,
+36
+],
+[
+"claude-sonnet-5-5",
+0.57,
+1126595,
+32
+]
+],
+"projects": [
+[
+"app",
+1.42
+],
+[
+"blog",
+0.25
+]
+],
+"subagents": 5,
+"subMin": 18,
+"subTypes": [
+[
+"Plan",
+3
+],
+[
+"Explore",
+2
+]
+],
+"heavy": [
+{
+"id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
+"title": "カレンダー表示を足して",
+"project": "app",
+"start": 1789804080.0,
+"cost": 1.42,
+"subagents": 4
+},
+{
+"id": "fa1e3455-e4a8-485a-ace2-9a6ccbaea201",
+"title": "カレンダー表示を足して",
+"project": "blog",
+"start": 1789434120.0,
+"cost": 0.25,
+"subagents": 1
+}
+]
+},
+"week": "2026-09-14",
+"sessions": 2,
+"prompts": 11,
+"active": 167,
+"ai": 167,
+"parallel": 0,
+"maxConc": 1,
+"night": 24,
+"weekend": 128,
+"focus": [],
+"switchesAvg": 0.0,
+"switchesMax": 0,
+"waitMedian": 300,
+"waitP90": 1800,
+"waitCount": 9,
+"projects": [
+[
+"app",
+128
+],
+[
+"blog",
+39
+]
+],
+"days": [
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+},
+{
+"active": 39,
+"night": 0,
+"switches": 0,
+"prompts": 3
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+},
+{
+"active": 128,
+"night": 24,
+"switches": 0,
+"prompts": 8
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+}
+],
+"friction": [
+{
+"id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
+"title": "カレンダー表示を足して",
+"project": "app",
+"start": 1789804080.0,
+"score": 4,
+"why": [
+"言い直し 2 回"
+]
+}
+],
+"playbook": {
+"focus": null,
+"guards": [
+{
+"key": "night",
+"v": 24,
+"n": null,
+"base": {
+"weeks": 2
+},
+"state": "building"
+},
+{
+"key": "weekend",
+"v": 128,
+"n": null,
+"base": {
+"weeks": 2
+},
+"state": "building"
+},
+{
+"key": "fix_rate",
+"v": 18.2,
+"n": 11,
+"base": {
+"weeks": 2
+},
+"state": "building"
+},
+{
+"key": "cost_per_prompt",
+"v": 0.152,
+"n": 11,
+"base": {
+"weeks": 2
+},
+"state": "building"
+}
+],
+"journal": null,
+"prev": null
+}
+},
+"2026-09-21": {
+"metrics": {
+"fix_rate": {
+"v": 13.0,
+"n": 23
+},
+"focus_blocks": {
+"v": 0,
+"n": null
+},
+"switches": {
+"v": 1.0,
+"n": 3
+},
+"cost_per_prompt": {
+"v": 0.135,
+"n": 23
+},
+"night": {
+"v": 24,
+"n": null
+},
+"weekend": {
+"v": 207,
+"n": null
+}
+},
+"usage": {
+"tokens": 4990729,
+"out": 110470,
+"cost": 3.1,
+"credits": 0.0,
+"cacheHit": 0.942,
+"models": [
+[
+"claude-opus-5-5",
+2.06,
+2415231,
+69
+],
+[
+"claude-sonnet-5-5",
+0.61,
+1096026,
+32
+],
+[
+"claude-haiku-4-5",
+0.43,
+1479472,
+46
+]
+],
+"projects": [
+[
+"app",
+2.65
+],
+[
+"vp",
+0.45
+]
+],
+"subagents": 12,
+"subMin": 50,
+"subTypes": [
+[
+"Plan",
+7
+],
+[
+"Explore",
+5
+]
+],
+"heavy": [
+{
+"id": "6f8a980c-3b83-43eb-b07d-758a36bc2400",
+"title": "カレンダー表示を足して",
+"project": "app",
+"start": 1790408880.0,
+"cost": 1.42,
+"subagents": 4
+},
+{
+"id": "68cb7e8c-a8e9-4b72-9b9f-95c791d04e00",
+"title": "READMEを整理して",
+"project": "app",
+"start": 1790134920.0,
+"cost": 1.06,
+"subagents": 4
+},
+{
+"id": "57c94728-2884-42b4-8c7d-b3e65e11e800",
+"title": "型エラー直して",
+"project": "vp",
+"start": 1790403540.0,
+"cost": 0.45,
+"subagents": 3
+}
+]
+},
+"week": "2026-09-21",
+"sessions": 4,
+"prompts": 23,
+"active": 346,
+"ai": 351,
+"parallel": 5,
+"maxConc": 2,
+"night": 24,
+"weekend": 207,
+"focus": [],
+"switchesAvg": 1.0,
+"switchesMax": 3,
+"waitMedian": 300,
+"waitP90": 1800,
+"waitCount": 19,
+"projects": [
+[
+"app",
+264
+],
+[
+"vp",
+82
+]
+],
+"days": [
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+},
+{
+"active": 114,
+"night": 0,
+"switches": 0,
+"prompts": 7
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+},
+{
+"active": 25,
+"night": 0,
+"switches": 0,
+"prompts": 3
+},
+{
+"active": 207,
+"night": 24,
+"switches": 3,
+"prompts": 13
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+}
+],
+"friction": [
+{
+"id": "6f8a980c-3b83-43eb-b07d-758a36bc2400",
+"title": "カレンダー表示を足して",
+"project": "app",
+"start": 1790408880.0,
+"score": 4,
+"why": [
+"言い直し 2 回"
+]
+},
+{
+"id": "d8bda5e8-265b-4f26-8a8a-54c9c8651701",
+"title": "カレンダー表示を足して",
+"project": "app",
+"start": 1790316060.0,
+"score": 2,
+"why": [
+"言い直し 1 回"
+]
+}
+],
+"playbook": {
+"focus": {
+"key": "delegate",
+"label": "任せられる依頼にする",
+"metric": "fix_rate",
+"v": 13.0,
+"n": 23,
+"base": {
+"weeks": 3,
+"median": 0.0,
+"q1": 0.0,
+"q3": 9.1,
+"limit": 22.75
+},
+"series": [
+[
+"2026-08-31",
+0.0
+],
+[
+"2026-09-07",
+0.0
+],
+[
+"2026-09-14",
+18.2
+],
+[
+"2026-09-21",
+13.0
+]
+]
+},
+"guards": [
+{
+"key": "night",
+"v": 24,
+"n": null,
+"base": {
+"weeks": 3,
+"median": 17.0,
+"q1": 8.5,
+"q3": 20.5,
+"limit": 38.5
+},
+"state": "ok"
+},
+{
+"key": "weekend",
+"v": 207,
+"n": null,
+"base": {
+"weeks": 3,
+"median": 31.0,
+"q1": 15.5,
+"q3": 79.5,
+"limit": 175.5
+},
+"state": "over"
+},
+{
+"key": "cost_per_prompt",
+"v": 0.135,
+"n": 23,
+"base": {
+"weeks": 3,
+"median": 0.139,
+"q1": 0.107,
+"q3": 0.146,
+"limit": 0.203
+},
+"state": "ok"
+},
+{
+"key": "switches",
+"v": 1.0,
+"n": 3,
+"base": {
+"weeks": 3,
+"median": 0.0,
+"q1": 0.0,
+"q3": 0.0,
+"limit": 0.0
+},
+"state": "over"
+}
+],
+"journal": {
+"focus": "delegate",
+"did": null,
+"decision": "継続",
+"reason": "言い直しが多い。依頼に完了条件を書く",
+"next": "依頼の最初に「終わりの条件」を1行書く",
+"checkOn": "2026-10-02",
+"hypothesis": "",
+"file": "kiroku-week-2026-09-21.md"
+},
+"prev": null
+}
+},
+"2026-09-28": {
+"metrics": {
+"fix_rate": {
+"v": 0.0,
+"n": 35
+},
+"focus_blocks": {
+"v": 0,
+"n": null
+},
+"switches": {
+"v": 1.2,
+"n": 5
+},
+"cost_per_prompt": {
+"v": 0.005,
+"n": 35
+},
+"night": {
+"v": 0,
+"n": null
+},
+"weekend": {
+"v": 55,
+"n": null
+}
+},
+"usage": {
+"tokens": 540198,
+"out": 12981,
+"cost": 0.19,
+"credits": 30.71,
+"cacheHit": 0.948,
+"models": [
+[
+"claude-haiku-4-5",
+0.11,
+363340,
+10
+],
+[
+"claude-sonnet-5-5",
+0.08,
+176858,
+4
+]
+],
+"projects": [
+[
+"app",
+0.19
+]
+],
+"subagents": 1,
+"subMin": 4,
+"subTypes": [
+[
+"Explore",
+1
+]
+],
+"heavy": [
+{
+"id": "5c2c46e3-3212-4c02-83c7-f6e31dc33800",
+"title": "評価シナリオを追加したい",
+"project": "app",
+"start": 1791027960.0,
+"cost": 0.19,
+"subagents": 1
+}
+]
+},
+"week": "2026-09-28",
+"sessions": 13,
+"prompts": 35,
+"active": 230,
+"ai": 230,
+"parallel": 0,
+"maxConc": 1,
+"night": 0,
+"weekend": 55,
+"focus": [],
+"switchesAvg": 1.2,
+"switchesMax": 2,
+"waitMedian": 60,
+"waitP90": 180,
+"waitCount": 13,
+"projects": [
+[
+"vp",
+145
+],
+[
+"infra",
+48
+],
+[
+"app",
+31
+],
+[
+"old",
+6
+]
+],
+"days": [
+{
+"active": 26,
+"night": 0,
+"switches": 1,
+"prompts": 4
+},
+{
+"active": 54,
+"night": 0,
+"switches": 2,
+"prompts": 11
+},
+{
+"active": 75,
+"night": 0,
+"switches": 2,
+"prompts": 12
+},
+{
+"active": 20,
+"night": 0,
+"switches": 0,
+"prompts": 3
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+},
+{
+"active": 55,
+"night": 0,
+"switches": 1,
+"prompts": 5
+},
+{
+"active": 0,
+"night": 0,
+"switches": 0,
+"prompts": 0
+}
+],
+"friction": [],
+"playbook": {
+"focus": {
+"key": "delegate",
+"label": "任せられる依頼にする",
+"metric": "fix_rate",
+"v": 0.0,
+"n": 35,
+"base": {
+"weeks": 4,
+"median": 6.5,
+"q1": 0.0,
+"q3": 14.3,
+"limit": 35.75
+},
+"series": [
+[
+"2026-08-31",
+0.0
+],
+[
+"2026-09-07",
+0.0
+],
+[
+"2026-09-14",
+18.2
+],
+[
+"2026-09-21",
+13.0
+],
+[
+"2026-09-28",
+0.0
+]
+]
+},
+"guards": [
+{
+"key": "night",
+"v": 0,
+"n": null,
+"base": {
+"weeks": 4,
+"median": 20.5,
+"q1": 12.75,
+"q3": 24.0,
+"limit": 40.875
+},
+"state": "ok"
+},
+{
+"key": "weekend",
+"v": 55,
+"n": null,
+"base": {
+"weeks": 4,
+"median": 79.5,
+"q1": 23.25,
+"q3": 147.75,
+"limit": 334.5
+},
+"state": "ok"
+},
+{
+"key": "cost_per_prompt",
+"v": 0.005,
+"n": 35,
+"base": {
+"weeks": 4,
+"median": 0.137,
+"q1": 0.12,
+"q3": 0.142,
+"limit": 0.176
+},
+"state": "ok"
+},
+{
+"key": "switches",
+"v": 1.2,
+"n": 5,
+"base": {
+"weeks": 4,
+"median": 0.0,
+"q1": 0.0,
+"q3": 0.25,
+"limit": 0.625
+},
+"state": "over"
+}
+],
+"journal": null,
+"prev": {
+"focus": "delegate",
+"did": null,
+"decision": "継続",
+"reason": "言い直しが多い。依頼に完了条件を書く",
+"next": "依頼の最初に「終わりの条件」を1行書く",
+"checkOn": "2026-10-02",
+"hypothesis": "",
+"file": "kiroku-week-2026-09-21.md"
+}
+}
+}
+}
+}

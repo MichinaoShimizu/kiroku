@@ -1,0 +1,2 @@
+# テストの正解ファイルは改行を変えない（Windows で CRLF にならないように）
+testdata/** -text

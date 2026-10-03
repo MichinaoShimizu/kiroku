@@ -1,33 +1,41 @@
 # kiroku
 
-Claude Code と Kiro の作業履歴を、Google カレンダーみたいな週表示で振り返るツールです。
+AI エージェント（Claude Code・Kiro）の作業履歴を、Google カレンダーみたいな週表示で振り返るツールです。
 いつ・どのプロジェクトで・何を頼んでいたかが一目でわかります。
 
 ![kiroku の画面（ダミーデータ）](docs/screenshot.png)
 
+## 入れ方
+
+macOS・Windows・Linux で、実行ファイル 1 つで動きます。ほかに入れるものはありません。
+
+- [Releases](https://github.com/MichinaoShimizu/kiroku/releases) から、自分の OS 向けのファイルを落として展開する
+- Go が入っていれば: `go install github.com/MichinaoShimizu/kiroku@latest`
+
 ## 使い方
 
-Python 3.8 以上があれば動きます。追加のインストールは不要です。
-
 ```bash
-python3 kiroku.py                    # kiroku.html を作ってブラウザで開く
-python3 kiroku.py --sources kiro     # Kiro だけ
-python3 kiroku.py --sources claude   # Claude Code だけ
-python3 kiroku.py -o out.html --no-open --gap 20
-python3 kiroku.py --weekly           # 最新の週のふりかえりを Markdown で書き出す
-python3 kiroku.py --weekly 2026-09-30  # その日を含む週
+kiroku                        # kiroku.html を作ってブラウザで開く
+kiroku --sources kiro         # Kiro だけ
+kiroku --sources claude       # Claude Code だけ
+kiroku -o out.html --no-open --gap 20
+kiroku --weekly               # 最新の週のふりかえりを Markdown で書き出す
+kiroku --weekly 2026-09-30    # その日を含む週
 ```
 
 | オプション | 既定 | 説明 |
 |---|---|---|
 | `--sources` | `claude,kiro` | 読む履歴 |
 | `--root` | `~/.claude/projects` | Claude Code の履歴の場所（`CLAUDE_CONFIG_DIR` も見ます） |
+| `--kiro-home` | `~/.kiro` | Kiro のデータの場所（`KIRO_HOME` も見ます） |
 | `--gap` | `15` | 何分あいたら帯を分けるか |
 | `-o`, `--out` | `kiroku.html` | 書き出す HTML |
 | `--no-open` | | ブラウザを開かない |
 | `--weekly [日付]` | | 週のふりかえりを `kiroku-week-<月曜日>.md` に書き出す |
 | `--prices` | | 料金表を JSON で上書き（下の「AI の使い方」参照） |
 | `--journal` | `.` | 週のふりかえり（判断ログ）を置くフォルダ。kiroku はここの `kiroku-week-*.md` を読み返します |
+| `--json` | | 集計結果を JSON で書き出す（ほかのツールに渡したいとき） |
+| `--version` | | 版を表示する |
 
 ## 画面でできること
 
@@ -61,10 +69,10 @@ python3 kiroku.py --weekly 2026-09-30  # その日を含む週
 ### 判断の残し方
 
 ```bash
-python3 kiroku.py --weekly --journal ~/notes/kiroku   # 週のふりかえりを書き出す
+kiroku --weekly --journal ~/notes/kiroku   # 週のふりかえりを書き出す
 ```
 
-書き出した Markdown の下のほう（`<!-- kiroku: この線より下は自分で書く欄です … -->` より下）に、重点・先週の一手・判断・理由・次の一手・次に確認する日を書きます。もう一度 `--weekly` を実行しても、この欄は消えません。次に `python3 kiroku.py --journal ~/notes/kiroku` を開くと、画面の「先週の判断と一手」に出ます。重点は、書いていない週には前の週のものを引き継ぎます。
+書き出した Markdown の下のほう（`<!-- kiroku: この線より下は自分で書く欄です … -->` より下）に、重点・先週の一手・判断・理由・次の一手・次に確認する日を書きます。もう一度 `--weekly` を実行しても、この欄は消えません。次に `kiroku --journal ~/notes/kiroku` を開くと、画面の「先週の判断と一手」に出ます。重点は、書いていない週には前の週のものを引き継ぎます。
 
 ### 数字の約束
 
@@ -110,7 +118,7 @@ python3 kiroku.py --weekly --journal ~/notes/kiroku   # 週のふりかえりを
 ```
 
 ```bash
-python3 kiroku.py --prices my-prices.json
+kiroku --prices my-prices.json
 ```
 
 時刻はこのマシンのタイムゾーンで数えます。どれも履歴から推定した目安です。
@@ -126,9 +134,20 @@ python3 kiroku.py --prices my-prices.json
 | Kiro CLI | `~/.kiro/sessions/cli/` | 依頼ごと |
 | Kiro IDE（v1.0 より前） | `<globalStorage>/kiro.kiroagent/workspace-sessions/` | 開始と最終更新だけ |
 
-`KIRO_HOME` が設定されていればそちらを見ます。古い Kiro CLI の `data.sqlite3` は時刻がほとんど残っていないため対象外です。
+`KIRO_HOME` が設定されていればそちらを見ます。古い Kiro CLI と Amazon Q Developer CLI の `data.sqlite3`、Kiro Crew、Codex は、これから順に対応します。
 
 Kiro の形式には公式ドキュメントがないため、[kiro-history](https://github.com/pajaydev/kiro-history) と [codeburn](https://github.com/getagentseal/codeburn) の実装を参考にしています。読めない履歴があれば issue で教えてください。
+
+## 開発
+
+```bash
+go test ./...      # testdata/ の合成データで、集計と Markdown が正解と一致するかを確かめる
+go build .         # ./kiroku ができる
+```
+
+- エージェントを足すときは `internal/source` に `Source` を実装して、`source.All` に加えます。集計（`internal/report`）と画面（`internal/web/template.html`）は、共通のセッションの形（`internal/core`）だけを見ます
+- `testdata/golden.json` と `testdata/golden-week.md` は、Go に移す前の Python 版が同じ合成データから出した結果です。Go 版はこれと同じ数字を出します
+- `v*` のタグを打つと、GitHub Actions が GoReleaser で各 OS 向けのファイルを Releases に載せます
 
 ## 注意
 
