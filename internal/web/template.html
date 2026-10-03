@@ -238,6 +238,11 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .hero .big .u{font:500 14px var(--sans);color:var(--ink-2);margin:0 6px 0 3px}
 .hero .cap{color:var(--ink-2);margin-top:8px;font-size:12.5px}
 .delta{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-2);background:var(--surface-2);border-radius:6px;padding:1px 8px;margin-left:8px;font-variant-numeric:tabular-nums}
+.hb{display:inline-grid;place-items:center;width:16px;height:16px;margin-left:6px;border:1px solid var(--rule-2);border-radius:50%;font:600 10px/1 var(--sans);color:var(--ink-3);vertical-align:1px;flex:none}
+.hb:hover,.hb[aria-expanded="true"]{color:var(--acc-ink);border-color:var(--acc)}
+.hint{margin:8px 0 4px;padding:10px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--rule);font-size:11.5px;line-height:1.65;color:var(--ink-2);font-weight:400;letter-spacing:0}
+.stat:has(> .hint:not([hidden])){grid-column:1/-1} /* 説明を開いたカードは 1 行使う */
+.hint p{margin:0 0 6px}.hint dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 10px}.hint dt{color:var(--ink-3);white-space:nowrap}.hint dd{margin:0}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
 .stat{padding:11px 12px 10px;border-radius:10px;background:var(--surface-2)}
 .stat:last-child:nth-child(odd){grid-column:1/-1}
@@ -669,23 +674,23 @@ function summary(){
   const d = pw ? w.active - pw.active : null;
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
   const total = w.projects.reduce((t,[,v])=>t+v,0) || 1;
-  const stat = (k, v, s) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
-  const ph = (n, t, s) => `<div class="ph"><span class="no">${n}</span><b>${t}</b><span>${s}</span></div>`;
+  const stat = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}${hint(h)}</div>`;
+  const ph = (n, t, s, h) => `<div class="ph"><span class="no">${n}</span><b>${t}${hb(h)}</b><span>${s}</span></div>${hint(h)}`;
   const pct = v => v == null ? "不明" : `${v}<small>%</small>`;
   R.innerHTML = `${head}<div class="rvgrid">
   ${projectPanel(w, ph, unit)}
   <section class="panel">${ph(2, "時間の使い方", "いつ・どれくらい動いていたか")}
     <div class="hero"><div class="big">${dur(w.active,true).replace(/(\d+)/g,'<span class="num">$1</span>').replace(/<small>(.*?)<\/small>/g,'<span class="u">$1</span>')}</div>
-      <div class="cap">どれかのセッションが動いていた時間${d==null?"":`<span class="delta">先${unit}より ${d>=0?"+":"−"}${dur(Math.abs(d))}</span>`}</div></div>
+      <div class="cap">どれかのセッションが動いていた時間${hb("active")}${d==null?"":`<span class="delta">先${unit}より ${d>=0?"+":"−"}${dur(Math.abs(d))}</span>`}</div>${hint("active")}</div>
     <div class="stats">
-      ${stat("集中ブロック（60分以上）", `${w.focus.length}<small>回</small>`, longest ? `最長 ${dur(longest)}` : "まとまった時間はなし")}
-      ${stat("1日の切り替え", `${w.switchesAvg}<small>回</small>`, `最大 ${w.switchesMax} 回`)}
-      ${stat("並列で動かした時間", dur(w.parallel,true), `最大 ${w.maxConc} 本同時`)}
-      ${stat("待たせ時間（中央値）", secs(w.waitMedian).replace(/(分|秒)/g,"<small>$1</small>"), `n=${w.waitCount}・90%点 ${secs(w.waitP90)}・短いほど良いとは限りません`)}
-      ${stat("深夜（22〜6時）", dur(w.night,true), "")}
-      ${stat("週末", dur(w.weekend,true), "")}
-      ${stat("AIの延べ稼働", dur(w.ai,true), "並列ぶんも合計。人の削減時間ではありません")}
-      ${stat("言い直し・中断のあった依頼", pct(w.fixRate), `n=${w.prompts}・依頼文の言葉と中断から推定`)}
+      ${stat("集中ブロック（60分以上）", `${w.focus.length}<small>回</small>`, longest ? `最長 ${dur(longest)}` : "まとまった時間はなし", "focus")}
+      ${stat("1日の切り替え", `${w.switchesAvg}<small>回</small>`, `最大 ${w.switchesMax} 回`, "switches")}
+      ${stat("並列で動かした時間", dur(w.parallel,true), `最大 ${w.maxConc} 本同時`, "parallel")}
+      ${stat("待たせ時間（中央値）", secs(w.waitMedian).replace(/(分|秒)/g,"<small>$1</small>"), `n=${w.waitCount}・90%点 ${secs(w.waitP90)}・短いほど良いとは限りません`, "wait")}
+      ${stat("深夜（22〜6時）", dur(w.night,true), "", "night")}
+      ${stat("週末", dur(w.weekend,true), "", "weekend")}
+      ${stat("AIの延べ稼働", dur(w.ai,true), "並列ぶんも合計。人の削減時間ではありません", "ai")}
+      ${stat("言い直し・中断のあった依頼", pct(w.fixRate), `n=${w.prompts}・依頼文の言葉と中断から推定`, "fix")}
     </div>
     ${foot()}</section>
   <section class="panel">${ph(3, "AI の使い方", "使った量・費用・エージェント")}
@@ -694,12 +699,12 @@ function summary(){
     ${nativeSection(w)}</section>
   <section class="panel shape">${ph(4, M ? "月のかたち" : "週のかたち", "どこに時間を使ったか")}
     ${rhythm(w, M)}
-    <h3>プロジェクトの配分</h3>
+    <h3>プロジェクトの配分${hb("share")}</h3>${hint("share")}
     <div class="stack" role="img" aria-label="プロジェクト別の配分">${w.projects.map(([k,v])=>`<span style="flex:${v};--c:${st.colorBy==="project"?colorOf(k):"var(--ink-3)"}" title="${esc(k)} ${dur(v)}"></span>`).join("")}</div>
     ${w.projects.slice(0,8).map(([k,v])=>`<div class="prow" style="--c:${st.colorBy==="project"?colorOf(k):"var(--ink-3)"}"><i></i><span class="nm">${esc(k)}</span><span class="tm">${dur(v)}</span><span class="pc">${Math.round(v*100/total)}%</span></div>`).join("")}
-    <h3>集中ブロック</h3>
+    <h3>集中ブロック${hb("focusList")}</h3>${hint("focusList")}
     ${w.focus.length ? [...w.focus].sort((a,b)=>b.min-a.min).slice(0,5).map(b=>`<div class="focusrow" style="--c:${st.colorBy==="project"?colorOf(b.project):"var(--ink-3)"}"><span class="when">${md(b.t)} ${hm(b.t)}</span><span class="track2"><span style="width:${b.min/longest*100}%"></span></span><span class="len">${dur(b.min)}</span></div>`).join("") : '<p class="none">60分以上続いた作業はありませんでした。</p>'}
-    <h3>こじれたかもしれない</h3>
+    <h3>こじれたかもしれない${hb("friction")}</h3>${hint("friction")}
     ${w.friction.length ? w.friction.map(f=>`<button class="card" data-id="${esc(f.id)}"><span class="ti">${esc(f.title)}</span><span class="me">${md(f.start)} · ${esc(f.project)} ${f.why.map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}</span></button>`).join("") : '<p class="none">言い直しや中断が目立つセッションはありませんでした。</p>'}
     ${measure(w)}</section>
   <section class="panel ask">${ph(5, "AI に改善案を聞く", "このデータをもとに、使い方の改善案を聞くためのプロンプト")}
@@ -710,7 +715,7 @@ function summary(){
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
   const ac = R.querySelector("#askcopy"); if (ac) ac.onclick = () => copy($("#askpre").textContent);
   R.querySelectorAll("#useBy button").forEach(b => b.onclick = () => { st.use = b.dataset.v; store.set("use", st.use); summary(); });
-  bindCopy(R);
+  bindCopy(R); bindHelp(R);
 }
 /* プロジェクト別：何に何時間、どれだけのトークン・コスト・クレジットを、どのモデル中心に使い、何が重かったか */
 function projectPanel(w, ph, unit){
@@ -731,10 +736,43 @@ function projectPanel(w, ph, unit){
       <div><div class="lab">何に時間を使ったか</div>${p.top.map(t=>`<button class="pses" data-id="${esc(t.id)}"><span class="t">${esc(t.title)}</span><span class="m">${dur(t.minutes)}${use(t) ? " · "+use(t) : ""}</span></button>`).join("")}</div>
       ${p.heavy && use(p.heavy) ? `<button class="pheavy" data-id="${esc(p.heavy.id)}"><em>いちばん重い</em><span class="t">${esc(p.heavy.title)}</span><span class="m">${use(p.heavy)}</span></button>` : ""}
     </article>`; }).join("");
-  return `<section class="panel projs">${ph(1, "プロジェクト別", `この${unit}、どのプロジェクトに時間と AI を使ったか`)}
+  return `<section class="panel projs">${ph(1, "プロジェクト別", `この${unit}、どのプロジェクトに時間と AI を使ったか`, "projects")}
     <div class="pgrid">${cards}</div>
     ${ps.length > LIMIT ? `<button class="pill pmore" id="pmore">${st.allProj ? "上位だけにする" : `ほか ${ps.length - LIMIT} プロジェクトも見る`}</button>` : ""}</section>`;
 }
+/* 指標の読み方：定義・言えること・言えないこと・打てる手。画面の「?」と、改善案プロンプトの前提に使う */
+const HELP = {
+  projects: {n:"プロジェクト別", d:"プロジェクトごとの作業時間・使用量・中心のモデル・重いセッション。同時に動いていた時間は按分", c:"時間と AI をどのプロジェクトに配分したか", x:"プロジェクトの重要度や成果", a:"想定と配分がずれていれば、使い方や優先順位を見直す"},
+  active: {n:"作業していた時間", d:"いずれかのセッションが動いていた時間（重なりは 1 回として計算）", c:"AI と一緒に作業していた時間の総量", x:"人が集中していたか。放置していた時間も含む", a:"前の期間との増減で、AI に頼る割合の変化をつかむ"},
+  ai: {n:"AI の延べ稼働", d:"並列で動いた分も合算したセッションの稼働時間", c:"AI をどれだけ働かせたか。作業していた時間との差は並列の度合い", x:"人が削減できた時間や生産性", a:"作業していた時間とほぼ同じなら、待ち時間に別の作業を並行させる余地がある"},
+  focus: {n:"集中ブロック", d:"5 分以内の中断を挟みつつ 60 分以上続いた作業", c:"まとまった作業時間を確保できていたか", x:"その時間の作業の質", a:"細切れが多ければ、AI に任せる作業を時間帯でまとめる"},
+  focusList: {n:"集中ブロック（一覧）", d:"長い順に 5 件", c:"いつ・どのプロジェクトで長く作業していたか", x:"成果", a:"集中しやすい時間帯を把握して、重い作業をそこに寄せる"},
+  switches: {n:"1 日の切り替え", d:"連続する依頼の間でプロジェクトが変わった回数（1 日平均と最大）", c:"プロジェクトをどれだけ行き来したか", x:"切り替えが悪いかどうか（待ち時間を活用しているだけの場合もある）", a:"多すぎる日は、文脈の切り替えで手戻りが増えていないか確認する"},
+  parallel: {n:"並列で動かした時間", d:"2 つ以上のセッションが同時に動いていた時間と最大の同時数", c:"複数のセッションを並行して回せていたか", x:"並列にした分の成果", a:"少なければ、AI の作業中に別のタスクを任せる"},
+  wait: {n:"待たせ時間", d:"AI の応答から次の依頼までの時間（30 分以内）の中央値と 90 パーセンタイル", c:"AI の応答にどれだけ早く反応していたか", x:"短いほど良いとは限らない（確認せずに進めている可能性もある）", a:"長ければ通知を使う、確認をまとめるなど、応答待ちの扱いを決める"},
+  night: {n:"深夜", d:"22〜6 時の作業時間", c:"時間外にどれだけ作業していたか", x:"働きすぎかどうかの判定", a:"自分のペースの振り返りに使う"},
+  weekend: {n:"週末", d:"土日の作業時間", c:"週末にどれだけ作業していたか", x:"働きすぎかどうかの判定", a:"自分のペースの振り返りに使う"},
+  fix: {n:"言い直し・中断のあった依頼", d:"依頼文の表現（「違う」「やり直して」など）と中断から推定した割合", c:"最初の依頼が意図どおりに伝わらなかった割合の目安", x:"推定のため誤判定がある。原因も分からない", a:"高ければ、依頼文に前提・制約・完了条件を書き足す"},
+  friction: {n:"こじれたかもしれないセッション", d:"言い直し・中断・15 回以上の依頼が多いセッション", c:"手戻りが集中したセッション", x:"こじれた原因", a:"中身を開いて、依頼の仕方や作業の分け方を見直す"},
+  share: {n:"プロジェクトの配分", d:"プロジェクトごとの作業時間の割合", c:"時間の配分", x:"配分の妥当さ", a:"想定と違えば、優先順位を見直す"},
+  rhythm: {n:"日ごと・週ごとのリズム", d:"週表示では日ごと、月表示では週ごとの作業時間（うち深夜）", c:"作業量の波と偏り", x:"波の原因", a:"特定の日に偏っていれば、作業の割り振りを見直す"},
+  daily: {n:"日ごとの使用量", d:"日ごとのトークン・目安コスト・クレジット", c:"どの日に AI を多く使ったか", x:"その日の使い方が適切だったか", a:"突出した日のセッションを開いて、重かった理由を確認する"},
+  cost: {n:"目安コスト（API 換算）", d:"履歴のトークン数に API の公開料金を掛けた換算値", c:"使用量の重さを金額で比べた目安", x:"実際の請求額（サブスクリプションとは異なる）", a:"重いセッションやモデルを特定して、使い方を見直す"},
+  tokens: {n:"トークン", d:"入力・出力・キャッシュ読み取り・キャッシュ書き込みの合計", c:"消費した量", x:"多い・少ないの良し悪し", a:"プロジェクト別・日別の偏りを見る"},
+  cache: {n:"キャッシュから読んだ割合", d:"入力のうちキャッシュから読み取った割合", c:"同じ文脈を再利用できていたか", x:"低い原因（短いセッションが多いだけの場合もある）", a:"低ければ、長い前提を毎回貼り直していないか確認する"},
+  models: {n:"モデル別", d:"モデルごとの目安コストとトークン", c:"どのモデルに使用量が寄っていたか", x:"そのモデルが必要だったか", a:"定型的な作業を軽いモデルに回せないか検討する"},
+  subagents: {n:"サブエージェント", d:"Task / Agent での呼び出し回数・種類・延べ時間", c:"調査などを切り出して任せていたか", x:"任せた効果", a:"本体の文脈を節約する手段として使えているか確認する"},
+  credits: {n:"Kiro クレジット", d:"Kiro の履歴に記録されたクレジットの合計", c:"実際に消費したクレジット", x:"アカウントページとの差（集計期間や他の PC での利用分）", a:"上限に対する消費ペースを管理する"},
+  costPerAsk: {n:"1 依頼あたりの目安コスト", d:"目安コスト ÷ 依頼の数", c:"1 回の依頼の平均的な重さ", x:"依頼の大きさの違い", a:"推移を見て、依頼の粒度の変化をつかむ"},
+  heavy: {n:"重かったセッション", d:"目安コストの大きいセッション上位 3 件", c:"使用量を押し上げたセッション", x:"重さに見合う成果があったか", a:"中身を開いて、文脈の膨らみや手戻りがなかったか確認する"},
+  native: {n:"エージェント別の参考指標", d:"各エージェントが履歴に記録している数値", c:"同じエージェント内での傾向", x:"エージェント同士の比較（定義が異なる）", a:"同じエージェントの期間ごとの変化だけを見る"},
+};
+const openHelp = new Set(); // 再描画（週の移動・自動更新）しても開いた説明は開いたまま
+function hb(id){ return HELP[id] ? `<button class="hb" data-help="${id}" aria-label="${HELP[id].n} の読み方" aria-expanded="${openHelp.has(id)}">?</button>` : ""; }
+function hint(id){ const h = HELP[id]; if (!h) return "";
+  return `<div class="hint" data-hint="${id}"${openHelp.has(id) ? "" : " hidden"}><p>${esc(h.d)}</p><dl><dt>言えること</dt><dd>${esc(h.c)}</dd><dt>言えないこと</dt><dd>${esc(h.x)}</dd><dt>打てる手</dt><dd>${esc(h.a)}</dd></dl></div>`; }
+function bindHelp(root){ root.querySelectorAll(".hb").forEach(b => b.onclick = e => { e.stopPropagation();
+  const t = root.querySelector(`[data-hint="${b.dataset.help}"]`); if (!t) return; t.hidden = !t.hidden; t.hidden ? openHelp.delete(b.dataset.help) : openHelp.add(b.dataset.help); b.setAttribute("aria-expanded", String(!t.hidden)); }); }
 /* AI に改善案を聞くためのプロンプト（kiroku 自身は AI を呼ばない。利用者が自分のエージェントに貼る） */
 function askPrompt(w, pw, M){
   const unit = M ? "月" : "週", u = w.usage || {}, L = [];
@@ -752,6 +790,7 @@ function askPrompt(w, pw, M){
     "- 目安コストは、トークン数に API の公開料金を掛けた換算値です。実際の請求額ではありません",
     "- 指標の定義はエージェントごとに異なります。エージェント同士を直接比較しないでください",
     "- 数値はすべて履歴から推定した目安です。データから言えないことは、推測であると明記してください",
+    "- 各指標の定義と、そこから言えること・言えないことは末尾の「指標の読み方」を参照してください",
     "", "# 全体",
     `- 作業していた時間: ${dur(w.active)}${prev(w.active, pw && pw.active, dur)}`,
     `- AI の延べ稼働（並列分を含む）: ${dur(w.ai)}`,
@@ -796,6 +835,8 @@ function askPrompt(w, pw, M){
     L.push("", "# エージェント別の参考指標");
     w.native.forEach(g => L.push(`- ${g.source}（${g.sessions} セッション）: ` + g.values.map(v => `${v.label} ${nativeText(v)}`).join("、")));
   }
+  L.push("", "# 指標の読み方");
+  Object.values(HELP).forEach(h => L.push(`- ${h.n}: ${h.d}。言えること: ${h.c}。言えないこと: ${h.x}`));
   return L.join("\n");
 }
 /* 日ごとの使用量（トークン・目安コスト・クレジットを切り替え） */
@@ -810,7 +851,7 @@ function usageChart(w, M){
     return `<div class="c${key(dd)===today?" today":""}" title="${md(dd.getTime()/1000)} ${esc(useShort(d) || "使用なし")}">
       ${M ? "" : `<span class="v">${v ? fmt(v) : ""}</span>`}<div class="b" style="height:${v ? Math.max(2, v/max*80) : 0}px"></div>
       <span class="l">${M ? (dd.getDate() === 1 || dd.getDate() % 5 === 0 ? dd.getDate() : "") : DOW[dd.getDay()]}</span></div>`; }).join("");
-  return `<h3>日ごとの使用量</h3>
+  return `<h3>日ごとの使用量${hb("daily")}</h3>${hint("daily")}
     <div class="useg"><div class="segc" role="group" aria-label="使用量の種類" id="useBy">${opts.map(([k,l]) => `<button data-v="${k}" aria-pressed="${k===m}">${l}</button>`).join("")}</div>
       <span class="muted" style="font-size:11.5px">合計 ${fmt(total)}・最大 ${fmt(max)}/日</span></div>
     <div class="ubar" style="grid-template-columns:repeat(${w.days.length},minmax(0,1fr))${M ? ";gap:2px" : ""}">${cols}</div>`;
@@ -825,7 +866,7 @@ function rhythm(w, M){
       c.a += x.active; c.n += x.night; c.p += x.prompts; });
     cols.forEach(c => c.tip = `W${c.l.slice(1)}（${c.k} の週・この月の分） 作業 ${dur(c.a)}・深夜 ${dur(c.n)}・依頼 ${c.p}`); }
   const max = Math.max(1, ...cols.map(c => c.a));
-  return `<h3>${M ? "週ごとのリズム" : "日ごとのリズム"}</h3>
+  return `<h3>${M ? "週ごとのリズム" : "日ごとのリズム"}${hb("rhythm")}</h3>${hint("rhythm")}
     <div class="rhythm" style="grid-template-columns:repeat(${cols.length},1fr)">${cols.map(c => `<div class="col${c.t?" today":""}" title="${esc(c.tip)}">
         <span class="v">${c.a ? (c.a>=60 ? (c.a/60).toFixed(1)+"h" : c.a+"m") : ""}</span>
         <div class="colbar" style="height:${c.a?Math.max(2,c.a/max*84):0}px"><div class="nt" style="height:${c.a?c.n/c.a*100:0}%"></div></div>
@@ -840,22 +881,22 @@ function measure(w){
 }
 function aiUsage(w, pw, unit){
   const u = w.usage; if (!u || (!u.tokens && !u.credits)) return "";
-  const stat = (k, v, s) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
+  const stat = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}${hint(h)}</div>`;
   const dc = pw && pw.usage ? u.cost - pw.usage.cost : null;
   const totalC = u.models.reduce((t,r)=>t+r[1],0) || 1, totalT = u.models.reduce((t,r)=>t+r[2],0) || 1, byCost = totalC > 0.0001;
   return `<div class="stats" style="margin-top:4px">
-      ${u.tokens ? stat("目安コスト（API換算）", usd(u.cost).replace("$","<small>$</small>"), dc==null ? "" : `先${unit||"週"}より ${dc>=0?"+":"−"}${usd(Math.abs(dc))}`) : ""}
-      ${u.tokens ? stat("トークン", `${tok(u.tokens)}`, `うち出力 ${tok(u.out)}・多いほど良いわけではありません`) : ""}
-      ${u.tokens ? stat("キャッシュから読んだ割合", u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, "入力のうち") : ""}
-      ${stat("サブエージェント", `${u.subagents}<small>回</small>`, u.subagents ? `延べ ${dur(u.subMin)}` : "使っていません")}
-      ${u.credits ? stat("Kiro クレジット", `${u.credits}`, "履歴に残った実績") : ""}
-      ${w.costPerAsk != null ? stat("1依頼あたりの目安コスト", usd(w.costPerAsk).replace("$","<small>$</small>"), `n=${w.prompts}`) : ""}
+      ${u.tokens ? stat("目安コスト（API換算）", usd(u.cost).replace("$","<small>$</small>"), dc==null ? "" : `先${unit||"週"}より ${dc>=0?"+":"−"}${usd(Math.abs(dc))}`, "cost") : ""}
+      ${u.tokens ? stat("トークン", `${tok(u.tokens)}`, `うち出力 ${tok(u.out)}・多いほど良いわけではありません`, "tokens") : ""}
+      ${u.tokens ? stat("キャッシュから読んだ割合", u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, "入力のうち", "cache") : ""}
+      ${stat("サブエージェント", `${u.subagents}<small>回</small>`, u.subagents ? `延べ ${dur(u.subMin)}` : "使っていません", "subagents")}
+      ${u.credits ? stat("Kiro クレジット", `${u.credits}`, "履歴に残った実績", "credits") : ""}
+      ${w.costPerAsk != null ? stat("1依頼あたりの目安コスト", usd(w.costPerAsk).replace("$","<small>$</small>"), `n=${w.prompts}`, "costPerAsk") : ""}
     </div>
-    ${u.models.length ? `<div style="margin-top:16px" class="k muted">モデル別${byCost ? "（目安コスト）" : "（トークン）"}</div>
+    ${u.models.length ? `<div style="margin-top:16px" class="k muted">モデル別${byCost ? "（目安コスト）" : "（トークン）"}${hb("models")}</div>${hint("models")}
       <div class="mstack" style="margin-top:8px">${u.models.map((r,i)=>`<span style="flex:${byCost?r[1]:r[2]};--o:${shade(i)}" title="${esc(r[0])}"></span>`).join("")}</div>
       ${u.models.slice(0,6).map((r,i)=>`<div class="mrow"><span class="nm"><i style="--o:${shade(i)}"></i>${esc(r[0])}</span><span class="tm">${usd(r[1])}<small>${tok(r[2])}</small></span><span class="pc">${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%</span></div>`).join("")}` : ""}
     ${u.subTypes.length ? `<div style="margin-top:14px" class="chips">${u.subTypes.map(([k,v])=>`<span class="mono">${esc(k)}<b>${v}</b></span>`).join("")}</div>` : ""}
-    ${u.heavy.length ? `<div style="margin-top:16px" class="k muted">重かったセッション</div><div style="margin-top:8px">${u.heavy.map(h=>`<button class="card" data-id="${esc(h.id)}"><span class="ti">${esc(h.title)}</span><span class="me">${md(h.start)} · ${esc(h.project)} · ${usd(h.cost)}${h.subagents?` · サブエージェント ${h.subagents}`:""}</span></button>`).join("")}</div>` : ""}
+    ${u.heavy.length ? `<div style="margin-top:16px" class="k muted">重かったセッション${hb("heavy")}</div>${hint("heavy")}<div style="margin-top:8px">${u.heavy.map(h=>`<button class="card" data-id="${esc(h.id)}"><span class="ti">${esc(h.title)}</span><span class="me">${md(h.start)} · ${esc(h.project)} · ${usd(h.cost)}${h.subagents?` · サブエージェント ${h.subagents}`:""}</span></button>`).join("")}</div>` : ""}
     ${u.tokens ? `<p class="note">目安コストは、履歴のトークン数に API の公開料金をかけた換算です。サブスクリプションの請求額とは別物です。料金表は <code>--prices</code> で変えられます。</p>` : ""}`;
 }
 function nativeText(v){
@@ -867,7 +908,7 @@ function nativeRows(values){
 }
 function nativeSection(w){
   if (!w.native || !w.native.length) return "";
-  return `<h3>エージェント別の参考指標</h3>
+  return `<h3>エージェント別の参考指標${hb("native")}</h3>${hint("native")}
     ${w.native.map(g=>`<div class="ngroup"><div class="hd"><b>${esc(g.source)}</b><span>${g.sessions} セッション</span></div>${nativeRows(g.values)}</div>`).join("")}
     <p class="note">それぞれのエージェントが記録している数字です。定義がエージェントごとに違うので、エージェント同士では比べないでください。</p>`;
 }
