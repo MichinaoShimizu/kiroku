@@ -31,10 +31,10 @@ func runVersion() error {
 
 // runUpdate は kiroku update: 最新（か --to の版）を落とし、checksums.txt で確かめてから自分自身を置きかえる。
 func runUpdate(args []string) error {
-	fs := flag.NewFlagSet("kiroku update", flag.ContinueOnError)
-	check := fs.Bool("check", false, "新しい版があるか確かめるだけ")
-	to := fs.String("to", "", "入れる版（例: v0.1.1）。なければ最新")
-	force := fs.Bool("force", false, "同じ版や古い版、ソースからビルドした kiroku でも入れかえる")
+	fs := newFS("update", "update [flags]\n\nDownloads the release for this OS/arch, verifies it against checksums.txt\nand replaces the running binary.")
+	check := fs.Bool("check", false, "only check whether a newer release exists")
+	to := fs.String("to", "", "install this `version` (e.g. v0.1.1) instead of the latest")
+	force := fs.Bool("force", false, "replace even when up to date, downgrading, or running a dev build")
 	if err := fs.Parse(args); err != nil {
 		if err == flag.ErrHelp {
 			return nil

@@ -17,19 +17,23 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/web"
 )
 
-const helpText = `kiroku %s — AI エージェント（Claude Code・Kiro・Kiro Crew・Amazon Q・Codex）の作業履歴を振り返る
+const helpText = `kiroku %s - review your AI agent work history (Claude Code, Kiro, Kiro Crew, Amazon Q, Codex)
 
-使い方:
-  kiroku serve [待ち受け先]   画面を開く。作業中に増えた履歴もその場で反映する（いちばんよく使う）
-  kiroku html [-o ファイル]   1 つの HTML に書き出す（持ち運び・共有用）
-  kiroku weekly [日付]        週次サマリーを Markdown に書き出す（日付なしなら最新の週）
-  kiroku monthly [YYYY-MM]    月次サマリーを Markdown に書き出す（なしなら最新の月）
-  kiroku json [-o ファイル]   集計を JSON に書き出す（ほかのツール向け）
-  kiroku version              版を表示する
-  kiroku update [--check]     最新の版に入れかえる
+Usage:
+  kiroku <command> [flags] [args]
 
-まずは:  kiroku serve
-コマンドごとのオプション:  kiroku <コマンド> --help
+Commands:
+  serve [ADDR]          Open the dashboard and keep it live as new history arrives (default 127.0.0.1:8484)
+  html                  Write a self-contained HTML report (default kiroku.html) and open it
+  weekly [YYYY-MM-DD]   Write the weekly summary as Markdown (default: latest week)
+  monthly [YYYY-MM]     Write the monthly summary as Markdown (default: latest month)
+  json                  Write the aggregated data as JSON (default kiroku.json, "-" for stdout)
+  version               Print the version
+  update                Update kiroku to the latest release
+  help                  Show this help
+
+Run "kiroku <command> --help" for a command's flags.
+Get started: kiroku serve
 `
 
 func main() {
@@ -81,15 +85,15 @@ type common struct {
 
 func addCommon(fs *flag.FlagSet) *common {
 	return &common{
-		root:      fs.String("root", source.DefaultClaudeRoot(), "Claude Code の履歴の場所"),
-		kiroHome:  fs.String("kiro-home", source.DefaultKiroHome(), "Kiro のデータの場所（KIRO_HOME）"),
-		crewHome:  fs.String("crew-home", "", "Kiro Crew のデータの場所（空なら KIROCREW_HOME か <kiro-home>/crew）"),
-		kiroCLIDB: fs.String("kiro-cli-db", "", "Kiro CLI（古い版）の data.sqlite3 の場所（空なら OS ごとの場所）"),
-		amazonQDB: fs.String("amazonq-db", "", "Amazon Q Developer CLI の data.sqlite3 の場所（空なら OS ごとの場所）"),
-		codexHome: fs.String("codex-home", "", "Codex のデータの場所（空なら CODEX_HOME か ~/.codex）"),
-		sources:   fs.String("sources", "claude,kiro,amazonq,codex", "読む履歴（カンマ区切り）"),
-		prices:    fs.String("prices", "", "料金表の上書き（JSON）"),
-		gap:       fs.Int("gap", 15, "何分あいたら帯を分けるか"),
+		root:      fs.String("root", source.DefaultClaudeRoot(), "Claude Code history directory"),
+		kiroHome:  fs.String("kiro-home", source.DefaultKiroHome(), "Kiro data directory ($KIRO_HOME)"),
+		crewHome:  fs.String("crew-home", "", "Kiro Crew data directory (default $KIROCREW_HOME or <kiro-home>/crew)"),
+		kiroCLIDB: fs.String("kiro-cli-db", "", "path to the legacy Kiro CLI data.sqlite3 (default: OS-specific)"),
+		amazonQDB: fs.String("amazonq-db", "", "path to the Amazon Q Developer CLI data.sqlite3 (default: OS-specific)"),
+		codexHome: fs.String("codex-home", "", "Codex data directory (default $CODEX_HOME or ~/.codex)"),
+		sources:   fs.String("sources", "claude,kiro,amazonq,codex", "comma-separated list of sources to read"),
+		prices:    fs.String("prices", "", "JSON file overriding the model price table"),
+		gap:       fs.Int("gap", 15, "idle `minutes` that split a session into separate blocks"),
 	}
 }
 
@@ -145,7 +149,7 @@ func parse(fs *flag.FlagSet, args []string, maxPos int) ([]string, error) {
 func newFS(name, usage string) *flag.FlagSet {
 	fs := flag.NewFlagSet(name, flag.ContinueOnError)
 	fs.Usage = func() {
-		fmt.Fprintf(fs.Output(), "使い方: kiroku %s\n\nオプション:\n", usage)
+		fmt.Fprintf(fs.Output(), "Usage:\n  kiroku %s\n\nFlags:\n", usage)
 		fs.PrintDefaults()
 	}
 	return fs
@@ -160,11 +164,11 @@ func quiet(err error) error {
 }
 
 func cmdServe(args []string) error {
-	fs := newFS("serve", "serve [待ち受け先]   （既定 "+defaultAddr+"。:8485 のようにポートだけでも）")
+	fs := newFS("serve", "serve [flags] [ADDR]\n\nADDR defaults to "+defaultAddr+"; a bare port such as :8485 also works.")
 	c := addCommon(fs)
-	interval := fs.Duration("interval", 5*time.Second, "履歴の変化を確かめる間隔")
-	noOpen := fs.Bool("no-open", false, "ブラウザを開かない")
-	mdDir := fs.String("md-dir", ".", "画面に出す Markdown の書き出し先（コマンドの例に使う）")
+	interval := fs.Duration("interval", 5*time.Second, "how often to check the history for changes")
+	noOpen := fs.Bool("no-open", false, "do not open a browser")
+	mdDir := fs.String("md-dir", ".", "directory shown in the dashboard's Markdown export hints")
 	pos, err := parse(fs, args, 1)
 	if err != nil {
 		return quiet(err)
@@ -184,11 +188,11 @@ func cmdServe(args []string) error {
 }
 
 func cmdHTML(args []string) error {
-	fs := newFS("html", "html [-o ファイル]")
+	fs := newFS("html", "html [flags]")
 	c := addCommon(fs)
-	out := fs.String("o", "kiroku.html", "書き出す HTML")
-	fs.StringVar(out, "out", "kiroku.html", "-o と同じ")
-	noOpen := fs.Bool("no-open", false, "ブラウザを開かない")
+	out := fs.String("o", "kiroku.html", "output `file`")
+	fs.StringVar(out, "out", "kiroku.html", "same as -o")
+	noOpen := fs.Bool("no-open", false, "do not open a browser")
 	if _, err := parse(fs, args, 0); err != nil {
 		return quiet(err)
 	}
@@ -200,9 +204,9 @@ func cmdHTML(args []string) error {
 }
 
 func cmdWeekly(args []string) error {
-	fs := newFS("weekly", "weekly [YYYY-MM-DD]   （その日を含む週。なければ最新の週）")
+	fs := newFS("weekly", "weekly [flags] [YYYY-MM-DD]\n\nWrites the week containing the date (default: the latest week).")
 	c := addCommon(fs)
-	mdDir := fs.String("md-dir", ".", "Markdown を置くフォルダ")
+	mdDir := fs.String("md-dir", ".", "output `directory` for the Markdown file")
 	pos, err := parse(fs, args, 1)
 	if err != nil {
 		return quiet(err)
@@ -219,9 +223,9 @@ func cmdWeekly(args []string) error {
 }
 
 func cmdMonthly(args []string) error {
-	fs := newFS("monthly", "monthly [YYYY-MM]   （なければ最新の月）")
+	fs := newFS("monthly", "monthly [flags] [YYYY-MM]\n\nWrites the given month (default: the latest month).")
 	c := addCommon(fs)
-	mdDir := fs.String("md-dir", ".", "Markdown を置くフォルダ")
+	mdDir := fs.String("md-dir", ".", "output `directory` for the Markdown file")
 	pos, err := parse(fs, args, 1)
 	if err != nil {
 		return quiet(err)
@@ -238,10 +242,10 @@ func cmdMonthly(args []string) error {
 }
 
 func cmdJSON(args []string) error {
-	fs := newFS("json", "json [-o ファイル]   （- なら標準出力）")
+	fs := newFS("json", "json [flags]")
 	c := addCommon(fs)
-	out := fs.String("o", "kiroku.json", "書き出す JSON（- なら標準出力）")
-	fs.StringVar(out, "out", "kiroku.json", "-o と同じ")
+	out := fs.String("o", "kiroku.json", "output `file` (\"-\" for stdout)")
+	fs.StringVar(out, "out", "kiroku.json", "same as -o")
 	if _, err := parse(fs, args, 0); err != nil {
 		return quiet(err)
 	}
