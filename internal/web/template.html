@@ -305,14 +305,16 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .note{font-size:11px;color:var(--ink-3);margin-top:10px;line-height:1.7}
 
 /* ── drawer（セッションの詳細） ──────────────────────────── */
-/* 後ろのカレンダーはしっかり沈め、パネルの縁を線と影ではっきりさせる。ダークでは面の明るさが近いので幕を濃くする */
+/* 画面の真ん中に出すモーダル。後ろのカレンダーはしっかり沈め、縁を線と影ではっきりさせる。ダークでは面の明るさが近いので幕を濃くする */
 .scrim{position:fixed;inset:0;z-index:20;background:rgba(10,12,16,.42);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s var(--ease)}
 :root[data-theme="dark"] .scrim{background:rgba(0,0,0,.62)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .scrim{background:rgba(0,0,0,.62)}}
-.drawer{position:fixed;top:0;right:0;bottom:0;z-index:21;width:min(540px,100vw);background:var(--surface);border-left:1px solid var(--rule-2);box-shadow:-30px 0 80px -20px rgba(0,0,0,.55);
-  transform:translateX(102%);transition:transform .32s var(--ease);display:flex;flex-direction:column}
+.drawer{position:fixed;top:50%;left:50%;z-index:21;width:min(720px,calc(100vw - 48px));max-height:min(88vh,960px);background:var(--surface);border:1px solid var(--rule-2);border-radius:18px;
+  box-shadow:0 40px 100px -20px rgba(0,0,0,.6);overflow:hidden;opacity:0;visibility:hidden;pointer-events:none;transform:translate(-50%,-48%) scale(.97);
+  transition:transform .28s var(--ease),opacity .2s var(--ease),visibility 0s .28s;display:flex;flex-direction:column}
 body.open .scrim{opacity:1;pointer-events:auto}
-body.open .drawer{transform:none}
+body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:translate(-50%,-50%);transition:transform .28s var(--ease),opacity .2s var(--ease)}
+.drawer .mini{grid-template-columns:repeat(3,minmax(0,1fr))}
 .drawer .dh{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px 28px;border-bottom:1px solid var(--rule)}
 .drawer .db{overflow:auto;padding:22px 28px 48px;flex:1;scrollbar-width:thin;font-size:14px}
 /* パネルの中は読み物なので、一覧より一回り大きく・濃く */
@@ -381,6 +383,9 @@ dialog h2{margin-top:0}
   .panel{padding:18px 16px}
   .drawer .db{padding:18px 16px 40px}
   .drawer .dh{padding-left:16px}
+  /* スマホでは画面いっぱいに出す */
+  .drawer{width:100vw;height:100dvh;max-height:none;border:0;border-radius:0;transform:translate(-50%,-50%) translateY(16px)}
+  .drawer .mini{grid-template-columns:1fr 1fr}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media (forced-colors:active){.run{border:1px solid CanvasText}}
@@ -424,7 +429,7 @@ dialog h2{margin-top:0}
   <section id="review" aria-live="polite"></section>
 </main>
 <div class="scrim" id="scrim"></div>
-<aside class="drawer" id="drawer" aria-label="セッションの詳細" aria-hidden="true">
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="セッションの詳細" aria-hidden="true">
   <div class="dh"><button class="back" id="back"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>サマリーへ戻る</button>
     <button class="iconbtn" id="close" aria-label="閉じる"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="db" id="panel"></div>
@@ -529,7 +534,7 @@ function render(){
   const s = st.sel && DATA.find(x => x.id === st.sel);
   if (st.sel && !s) st.sel = null;
   if (s) detail(s);
-  document.body.classList.toggle("open", !!s); document.body.classList.toggle("lock", !!s && innerWidth <= 820);
+  document.body.classList.toggle("open", !!s); document.body.classList.toggle("lock", !!s);
   $("#drawer").setAttribute("aria-hidden", String(!s));
   $("#tl").classList.toggle("focus", !!s);
   st.animate = false;
