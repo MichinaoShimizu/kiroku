@@ -265,6 +265,14 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .refhead{margin:40px 0 0;padding-top:18px;border-top:2px solid var(--ink)}
 .refhead .eyebrow{margin-bottom:2px}
 .refhead p{font-size:12px;color:var(--ink-3);margin:4px 0 0}
+/* native metrics */
+.ngroup{border:1px solid var(--rule);border-radius:12px;padding:10px 14px 6px;margin-bottom:10px;background:var(--card)}
+.ngroup .hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px}
+.ngroup .hd b{font:600 13px var(--sans)}
+.ngroup .hd span{font-size:11px;color:var(--ink-3)}
+.nrow{display:grid;grid-template-columns:1fr auto 52px;gap:10px;padding:5px 0;border-top:1px dashed var(--rule);font-size:12.5px;align-items:baseline}
+.nrow .v{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.nrow .n{font-size:11px;color:var(--ink-3);text-align:right;font-variant-numeric:tabular-nums}
 /* AI usage */
 .mrow{display:grid;grid-template-columns:1fr auto 40px;gap:10px;align-items:center;padding:6px 0;font-size:12.5px;border-bottom:1px dashed var(--rule)}
 .mrow:last-child{border-bottom:0}
@@ -522,6 +530,7 @@ function summary(){
       ${stat("セッション / 依頼", `${w.sessions}<small>/</small>${w.prompts}`, "")}
     </div>
     ${aiUsage(w, pw)}
+    ${nativeSection(w)}
     <h3>日ごとのリズム</h3>
     <div class="rhythm">${w.days.map((x,i)=>{ const dd = addDays(st.week,i), hgt = x.active/maxDay*84;
       return `<div class="col${key(dd)===today?" today":""}" title="${md(dd.getTime()/1000)} 作業 ${dur(x.active)}・深夜 ${dur(x.night)}・依頼 ${x.prompts}・切り替え ${x.switches}">
@@ -624,6 +633,19 @@ function aiUsage(w, pw){
     ${u.heavy.length ? `<div style="margin-top:16px" class="k muted">重かったセッション</div><div style="margin-top:8px">${u.heavy.map(h=>`<button class="card" data-id="${esc(h.id)}"><span class="ti">${esc(h.title)}</span><span class="me">${md(h.start)} · ${esc(h.project)} · ${usd(h.cost)}${h.subagents?` · サブエージェント ${h.subagents}`:""}</span></button>`).join("")}</div>` : ""}
     ${u.tokens ? `<p class="note">目安コストは、履歴のトークン数に API の公開料金をかけた換算です。サブスクリプションの請求額とは別物です。料金表は <code>--prices</code> で変えられます。</p>` : ""}`;
 }
+function nativeText(v){
+  const num = (x, d) => Number(x.toFixed(d)).toLocaleString("ja-JP");
+  return v.unit === "%" ? `${num(v.v,1)}%` : v.unit === "秒" ? `${num(v.v,1)}秒` : v.unit === "クレジット" ? `${num(v.v,2)} クレジット` : `${num(v.v,0)} ${v.unit}`;
+}
+function nativeRows(values){
+  return values.map(v=>`<div class="nrow"><span>${esc(v.label)}</span><span class="v">${nativeText(v)}</span><span class="n">n=${v.n}</span></div>`).join("");
+}
+function nativeSection(w){
+  if (!w.native || !w.native.length) return "";
+  return `<h3>エージェント別の参考指標</h3>
+    ${w.native.map(g=>`<div class="ngroup"><div class="hd"><b>${esc(g.source)}</b><span>${g.sessions} セッション</span></div>${nativeRows(g.values)}</div>`).join("")}
+    <p class="note">それぞれのエージェントが記録している数字です。定義がエージェントごとに違うので、エージェント同士では比べないでください。</p>`;
+}
 function foot(cmd){
   return `<div class="foot">待たせ時間は、AI が返してから次の依頼を出すまで（30分以内）。切り替えは、続けて出した依頼のプロジェクトが変わった回数です。どれも履歴からの目安で、<b>自分のふりかえり用</b>。人と比べたり評価に使ったりするための数字ではありません。
     ${cmd ? `<div class="code"><code>${esc(cmd)}</code><button class="copy" data-copy="${esc(cmd)}">コピー</button></div>` : ""}
@@ -662,6 +684,7 @@ function detail(s){
         return `<div class="sub"><div class="hd"><span class="ty">${esc(a.type)}</span><span class="ds">${esc(a.desc || "（説明なし）")}</span>${a.bg?'<span class="bg">バックグラウンド</span>':""}</div>
           <div class="lane"><span style="left:${l}%;width:${Math.min(w,100-l)}%"></span></div>
           <div class="ft">${a.start?`<span>${hm(a.start)}${a.end?"–"+hm(a.end):""}</span>`:""}${a.start&&a.end?`<span>${dur((a.end-a.start)/60)}</span>`:""}${tt?`<span>${tok(tt)} トークン</span>`:t.reportedTokens?`<span>${tok(t.reportedTokens)} トークン（報告値）</span>`:""}${t.cost?`<span>${usd(t.cost)}</span>`:""}${a.model?`<span>${esc(a.model)}</span>`:""}${a.tools?`<span>ツール ${a.tools} 回</span>`:""}</div></div>`; }).join("")}` : ""}
+    ${s.native && s.native.length ? `<h3>${esc(s.source)} の参考指標</h3>${nativeRows(s.native)}<p class="note">このエージェントが記録している数字です。ほかのエージェントとは定義が違います。</p>` : ""}
     <h3>使ったツール</h3>
     ${s.tools.length ? s.tools.map(([k,v])=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track"><span style="width:${v/maxT*100}%"></span></span><span class="n">${v}</span></div>`).join("") : '<p class="none">記録なし</p>'}
     <h3>変更したファイル · ${s.nFiles}</h3>

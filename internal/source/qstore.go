@@ -149,6 +149,20 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 				for _, u := range core.List(tu["tool_uses"]) {
 					um := core.Map(u)
 					s.Tool(firstNonEmpty(core.Str(um["name"]), core.Str(um["orig_name"])), um["args"])
+					s.Measure("tool_calls", t, 1)
+				}
+			}
+			if meta != nil {
+				start, okS := core.Num(meta["request_start_timestamp_ms"])
+				end, okE := core.Num(meta["stream_end_timestamp_ms"])
+				if okS && okE && end >= start {
+					s.Measure("latency", t, (end-start)/1000)
+				}
+				if v, ok := duration(meta["time_to_first_chunk"]); ok {
+					s.Measure("ttfc", t, v)
+				}
+				if v, ok := core.Num(meta["response_size"]); ok {
+					s.Measure("response_size", t, v)
 				}
 			}
 			s.Agent(ts(meta["request_start_timestamp_ms"]))
@@ -163,6 +177,19 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 		emit(s)
 	}
 	return nil
+}
+
+// duration は Rust の Duration（{secs, nanos}）か秒の数値を秒にする。
+func duration(v any) (float64, bool) {
+	if f, ok := core.Num(v); ok {
+		return f, true
+	}
+	m := core.Map(v)
+	secs, ok := core.Num(m["secs"])
+	if !ok {
+		return 0, false
+	}
+	return secs + core.NumOr0(m["nanos"])/1e9, true
 }
 
 // historyEntry は {user, assistant, request_metadata} と、古い版の [user, assistant] の両方を読む。

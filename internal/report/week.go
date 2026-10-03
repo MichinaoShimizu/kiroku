@@ -92,6 +92,7 @@ type Week struct {
 	Days        []Day             `json:"days"`
 	Friction    []Friction        `json:"friction"`
 	Playbook    *Playbook         `json:"playbook"`
+	Native      []NativeGroup     `json:"native"` // エージェント別の参考指標
 	start       time.Time
 }
 
@@ -346,12 +347,53 @@ func Stats(data []*core.Session, wsT time.Time) *Week {
 		}
 	}
 	return &Week{
+		Native:  nativeGroups(data, ws, we),
 		Metrics: metrics, Usage: usage, Week: wsT.Format("2006-01-02"), Sessions: sessions, Prompts: np,
 		Active: len(active), AI: ai, Parallel: parallel, MaxConc: maxConc, Night: night, Weekend: weekend,
 		Focus: blocks, SwitchesAvg: core.Round(float64(swSum)/float64(activeDays), 1), SwitchesMax: swMax,
 		WaitMedian: pick(0.5), WaitP90: pick(0.9), WaitCount: len(waits), Projects: projList, Days: days,
 		Friction: friction, start: wsT,
 	}
+}
+
+// NativeGroup は 1 つのエージェントの参考指標。
+type NativeGroup struct {
+	Source   string             `json:"source"`
+	Sessions int                `json:"sessions"`
+	Values   []core.NativeValue `json:"values"`
+}
+
+// nativeGroups はその週の観測をエージェントごとにまとめる。観測のないエージェントは出さない。
+func nativeGroups(data []*core.Session, ws, we float64) []NativeGroup {
+	by := map[string][]core.Measure{}
+	sess := map[string]int{}
+	var order []string
+	for _, d := range data {
+		used := false
+		for _, m := range d.Meas {
+			t := d.Start
+			if m.T != nil && *m.T != 0 {
+				t = *m.T
+			}
+			if ws <= t && t < we {
+				if _, ok := by[d.Source]; !ok {
+					order = append(order, d.Source)
+				}
+				by[d.Source] = append(by[d.Source], m)
+				used = true
+			}
+		}
+		if used {
+			sess[d.Source]++
+		}
+	}
+	out := []NativeGroup{}
+	for _, src := range order {
+		if vs := core.AggregateNative(src, by[src]); len(vs) > 0 {
+			out = append(out, NativeGroup{Source: src, Sessions: sess[src], Values: vs})
+		}
+	}
+	return out
 }
 
 // weekUsage は AI の使い方: トークン・目安コスト・クレジット・モデル・サブエージェント。

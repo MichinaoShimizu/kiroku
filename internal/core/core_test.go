@@ -62,3 +62,27 @@ func TestRoundHalfEven(t *testing.T) {
 		t.Error("Python の round と同じく偶数に丸める")
 	}
 }
+
+func TestAggregateNative(t *testing.T) {
+	ms := []Measure{
+		{Key: "credits", V: 1.5}, {Key: "turns", V: 1}, {Key: "credits", V: 0.5}, {Key: "turns", V: 1},
+		{Key: "requests", V: 3},
+	}
+	got := map[string]NativeValue{}
+	for _, v := range AggregateNative("Kiro CLI", ms) {
+		got[v.Label] = v
+	}
+	if got["クレジット"].V != 2 || got["1ターンあたりのクレジット"].V != 1 || got["モデルへのリクエスト"].N != 1 {
+		t.Errorf("集計 = %+v", got)
+	}
+	if _, ok := got["組み込みツールの実行"]; ok {
+		t.Error("観測のない指標は出さない（0 と見せない）")
+	}
+	med := AggregateNative("Amazon Q", []Measure{{Key: "latency", V: 3}, {Key: "latency", V: 1}, {Key: "latency", V: 10}, {Key: "latency", V: 2}})
+	if len(med) != 1 || med[0].V != 2.5 {
+		t.Errorf("中央値 = %+v", med)
+	}
+	if AggregateNative("知らないエージェント", ms) == nil || len(AggregateNative("知らないエージェント", ms)) != 0 {
+		t.Error("定義のないエージェントは空")
+	}
+}
