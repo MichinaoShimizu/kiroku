@@ -1,33 +1,21 @@
 // kiroku — AI エージェント（Claude Code・Kiro・Kiro Crew・Amazon Q・Codex）の作業履歴を週カレンダーで振り返る。
 //
-// 使い方:
-//
-//	kiroku                         # kiroku.html を作ってブラウザで開く
-//	kiroku --sources kiro          # Kiro だけ
-//	kiroku --weekly                # 最新の週の週次サマリーを Markdown で書き出す
-//	kiroku --weekly 2026-09-30     # その日を含む週
-//	kiroku --monthly 2026-09       # その月の月次サマリー
-//	kiroku --serve                 # 手元にサーバーを立てて、増えた履歴をその場で画面に反映する
+// 使い方は cli.go（kiroku help）を見てね。
 package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"runtime"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
-	"github.com/MichinaoShimizu/kiroku/internal/report"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
-	"github.com/MichinaoShimizu/kiroku/internal/web"
 )
 
 var version = "dev" // リリース時に -ldflags で入れる
@@ -37,16 +25,16 @@ var (
 	monthRe = regexp.MustCompile(`^\d{4}-\d{2}$`)
 )
 
-// addrRe は --serve のあとに書ける待ち受け先（:8484、127.0.0.1:8484、localhost:8484 など）。
+// addrRe は kiroku serve のあとに書ける待ち受け先（:8484、127.0.0.1:8484、localhost:8484 など）。
 var addrRe = regexp.MustCompile(`^[\w.\-\[\]:]*:\d+$`)
 
-// defaultAddr は --serve の待ち受け先。履歴は人に見せたくないものなので、手元からしか開けないようにする。
+// defaultAddr は kiroku serve の待ち受け先。履歴は人に見せたくないものなので、手元からしか開けないようにする。
 const defaultAddr = "127.0.0.1:8484"
 
-// logw は読み込みの経過を書く先。--serve の読み直しでは黙らせる。
+// logw は読み込みの経過を書く先。serve の読み直しや json -o - では黙らせる。
 var logw io.Writer = os.Stderr
 
-// normalizeArgs は「--weekly」「--monthly」「--serve」だけ（値なし）を --weekly=latest、--monthly=latest、--serve=127.0.0.1:8484 に直す。flag パッケージは値の省略ができないため。
+// normalizeArgs は前の書き方（runLegacy）用。「--weekly」「--monthly」「--serve」だけ（値なし）を --weekly=latest、--monthly=latest、--serve=127.0.0.1:8484 に直す。flag パッケージは値の省略ができないため。
 func normalizeArgs(args []string) []string {
 	var out []string
 	for i := 0; i < len(args); i++ {
@@ -81,113 +69,6 @@ func normalizeArgs(args []string) []string {
 		out = append(out, a)
 	}
 	return out
-}
-
-func main() {
-	if err := run(normalizeArgs(os.Args[1:])); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-}
-
-func run(args []string) error {
-	fs := flag.NewFlagSet("kiroku", flag.ContinueOnError)
-	fs.Usage = func() {
-		fmt.Fprintf(fs.Output(), "kiroku %s — AI エージェントの作業履歴を週カレンダーで振り返る\n\n", version)
-		fs.PrintDefaults()
-	}
-	root := fs.String("root", source.DefaultClaudeRoot(), "Claude Code の履歴の場所")
-	kiroHome := fs.String("kiro-home", source.DefaultKiroHome(), "Kiro のデータの場所（KIRO_HOME）")
-	out := fs.String("out", "kiroku.html", "書き出す HTML")
-	fs.StringVar(out, "o", "kiroku.html", "--out の短い形")
-	gap := fs.Int("gap", 15, "何分あいたら帯を分けるか")
-	sources := fs.String("sources", "claude,kiro,amazonq,codex", "読む履歴（カンマ区切り）")
-	codexHome := fs.String("codex-home", "", "Codex のデータの場所（空なら CODEX_HOME か ~/.codex）")
-	crewHome := fs.String("crew-home", "", "Kiro Crew のデータの場所（空なら KIROCREW_HOME か <kiro-home>/crew）")
-	kiroCLIDB := fs.String("kiro-cli-db", "", "Kiro CLI（古い版）の data.sqlite3 の場所（空なら OS ごとの場所）")
-	amazonQDB := fs.String("amazonq-db", "", "Amazon Q Developer CLI の data.sqlite3 の場所（空なら OS ごとの場所）")
-	noOpen := fs.Bool("no-open", false, "ブラウザを開かない")
-	prices := fs.String("prices", "", "料金表の上書き（JSON）")
-	mdDir := fs.String("md-dir", ".", "--weekly・--monthly の Markdown を置くフォルダ")
-	weekly := fs.String("weekly", "", "その日を含む週の週次サマリーを Markdown で書き出す（日付なしなら最新の週）")
-	monthly := fs.String("monthly", "", "その月（YYYY-MM）の月次サマリーを Markdown で書き出す（なしなら最新の月）")
-	jsonOut := fs.String("json", "", "集計結果を JSON で書き出す（テストや他のツール向け）")
-	serve := fs.String("serve", "", "手元にサーバーを立て、増えた履歴をその場で画面に反映する（待ち受け先を省くと "+defaultAddr+"）")
-	interval := fs.Duration("interval", 5*time.Second, "--serve で履歴の変化を確かめる間隔")
-	showVersion := fs.Bool("version", false, "版を表示する")
-	if err := fs.Parse(args); err != nil {
-		if err == flag.ErrHelp {
-			return nil
-		}
-		return err
-	}
-	if *showVersion {
-		fmt.Println("kiroku", version)
-		return nil
-	}
-	if *prices != "" {
-		if err := loadPrices(*prices); err != nil {
-			return fmt.Errorf("料金表を読めなかったよ: %w", err)
-		}
-	}
-	want := map[string]bool{}
-	for _, s := range strings.Split(*sources, ",") {
-		want[strings.ToLower(strings.TrimSpace(s))] = true
-	}
-	srcs := source.All(source.Options{ClaudeRoot: *root, KiroHome: *kiroHome, KiroCLIDB: *kiroCLIDB, AmazonQDB: *amazonQDB, CrewHome: *crewHome, CodexHome: *codexHome})
-	var picked []source.Source
-	for _, s := range srcs {
-		if want[s.Family()] {
-			picked = append(picked, s)
-		}
-	}
-	load := func() snapshot {
-		data, rep := collect(picked, want, *gap)
-		if data == nil {
-			data = []*core.Session{} // 画面では null ではなく空の一覧として扱う
-		}
-		meta := map[string]any{"report": rep, "mdDir": filepath.Clean(*mdDir)}
-		return snapshot{data: data, weeks: report.AllWeeks(data), months: report.AllMonths(data), meta: meta, rep: rep, gen: float64(time.Now().UnixNano()) / 1e9}
-	}
-	if *serve != "" {
-		if *weekly != "" || *monthly != "" || *jsonOut != "" {
-			return fmt.Errorf("--serve は --weekly・--monthly・--json と一緒には使えないよ")
-		}
-		return serveLive(*serve, *interval, picked, load, !*noOpen)
-	}
-	snap := load()
-	data, weeks, months, meta, rep := snap.data, snap.weeks, snap.months, snap.meta, snap.rep
-	if len(data) == 0 {
-		return fmt.Errorf("履歴が 1 件も見つからなかったよ。--root や KIRO_HOME を確認してね")
-	}
-
-	if *weekly != "" {
-		return writeWeekly(weeks, rep, *weekly, *mdDir)
-	}
-	if *monthly != "" {
-		return writeMonthly(months, rep, *monthly, *mdDir)
-	}
-	if *jsonOut != "" {
-		b, err := json.MarshalIndent(map[string]any{"sessions": data, "weeks": weeks, "months": months, "meta": meta}, "", " ")
-		if err != nil {
-			return err
-		}
-		return os.WriteFile(*jsonOut, b, 0o644)
-	}
-	html, err := web.Render(data, weeks, months, meta, snap.gen, false)
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(*out, []byte(html), 0o644); err != nil {
-		return err
-	}
-	fmt.Printf("%d セッション → %s\n", len(data), *out)
-	if !*noOpen {
-		if abs, err := filepath.Abs(*out); err == nil {
-			openBrowser(abs)
-		}
-	}
-	return nil
 }
 
 func collect(all []source.Source, want map[string]bool, gap int) ([]*core.Session, []source.Report) {
@@ -228,59 +109,6 @@ func collect(all []source.Source, want map[string]bool, gap int) ([]*core.Sessio
 	return data, rep
 }
 
-func writeWeekly(weeks map[string]*report.Week, rep []source.Report, when, folder string) error {
-	key := ""
-	if when == "latest" {
-		key = latest(weeks)
-	} else {
-		t, err := time.ParseInLocation("2006-01-02", when, time.Local)
-		if err != nil {
-			return fmt.Errorf("--weekly の日付は YYYY-MM-DD で書いてね: %s", when)
-		}
-		key = report.MondayOf(float64(t.Unix())).Format("2006-01-02")
-	}
-	st := weeks[key]
-	if st == nil {
-		return fmt.Errorf("%s の週には履歴がないよ", key)
-	}
-	return writeMarkdown(filepath.Join(folder, "kiroku-week-"+key+".md"), report.WeeklyMarkdown(st, rep), "週次サマリー")
-}
-
-func writeMonthly(months map[string]*report.Summary, rep []source.Report, when, folder string) error {
-	key := when
-	if when == "latest" {
-		key = latest(months)
-	} else if !monthRe.MatchString(when) {
-		return fmt.Errorf("--monthly の月は YYYY-MM で書いてね: %s", when)
-	}
-	st := months[key]
-	if st == nil {
-		return fmt.Errorf("%s には履歴がないよ", key)
-	}
-	return writeMarkdown(filepath.Join(folder, "kiroku-month-"+key+".md"), report.MonthlyMarkdown(st, rep), "月次サマリー")
-}
-
-func latest(m map[string]*report.Summary) string {
-	key := ""
-	for k := range m {
-		if k > key {
-			key = k
-		}
-	}
-	return key
-}
-
-func writeMarkdown(path, body, what string) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
-		return err
-	}
-	fmt.Printf("%s → %s\n", what, path)
-	return nil
-}
-
 func loadPrices(path string) error {
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -319,4 +147,14 @@ func openBrowser(target string) {
 		cmd = exec.Command("xdg-open", target)
 	}
 	_ = cmd.Start()
+}
+
+// cleanupOldExe は、Windows で update したときに残る kiroku.exe.old を消す（使っていなければ）。
+func cleanupOldExe() {
+	if runtime.GOOS != "windows" {
+		return
+	}
+	if exe, err := os.Executable(); err == nil {
+		os.Remove(exe + ".old")
+	}
 }

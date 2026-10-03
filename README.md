@@ -3,7 +3,7 @@
 AI エージェント（Claude Code・Kiro・Kiro Crew・Amazon Q・Codex）の作業履歴を、週カレンダーと月カレンダーで振り返るツールです。
 
 - **一目でわかる**：いつ・どのプロジェクトで・何を頼んでいたかを、見慣れた縦型の週カレンダーで見られます
-- **まとめて見られる**：週次サマリー・月次サマリーで、時間の使い方と AI の使い方（トークン・目安コスト・クレジット）をまとめて見られます。Markdown にも書き出せます
+- **まとめて見られる**：週次サマリー・月次サマリーで、時間の使い方と AI の使い方（トークン・目安コスト・クレジット）をまとめて見られます
 - **手元で完結**：各エージェントが自分の PC に残している履歴を読むだけです。どこにも送りません
 
 ![kiroku の画面（ダミーデータ）](docs/screenshot.png)
@@ -12,23 +12,37 @@ AI エージェント（Claude Code・Kiro・Kiro Crew・Amazon Q・Codex）の�
 
 macOS・Windows・Linux で、実行ファイル 1 つで動きます。ほかに入れるものはありません。
 
-- [Releases](https://github.com/MichinaoShimizu/kiroku/releases) に自分の OS 向けのファイルがあれば、落として展開する
-- Go が入っていれば: `go install github.com/MichinaoShimizu/kiroku@latest`
+**macOS・Linux**（おすすめ）:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install.sh | sh
+```
+
+OS と CPU（Intel / Apple Silicon・ARM）に合ったファイルを [Releases](https://github.com/MichinaoShimizu/kiroku/releases) から落とし、`checksums.txt` で確かめてから `/usr/local/bin`（書き込めなければ `~/.local/bin`）に置きます。版は `KIROKU_VERSION=v0.1.1`、置き場所は `KIROKU_INSTALL_DIR=~/bin` のように変えられます（`curl … | KIROKU_INSTALL_DIR=~/bin sh`）。
+
+**Windows**: [Releases](https://github.com/MichinaoShimizu/kiroku/releases) から `kiroku_<版>_windows_<amd64 か arm64>.zip` を落として展開します。
+
+**Go が入っていれば**: `go install github.com/MichinaoShimizu/kiroku@latest`
+
+> macOS で、ブラウザから落とした `kiroku` を開くと「“kiroku”は開いていません」と止められることがあります（Apple の公証をしていないため）。上の `install.sh` か `go install` なら出ません。ブラウザから落とした場合は `xattr -d com.apple.quarantine ./kiroku` で外すか、システム設定 → プライバシーとセキュリティ の「このまま開く」で開けます。
 
 ## 使い方
 
 ```bash
-kiroku              # これまでの履歴を kiroku.html に書き出して、ブラウザで開く
-kiroku --serve      # 手元にサーバーを立てて開く。作業中に増えた履歴もその場で反映する
-kiroku --weekly     # 最新の週の週次サマリーを Markdown で書き出す
-kiroku --monthly    # 最新の月の月次サマリーを Markdown で書き出す
+kiroku serve        # 画面を開く。作業中に増えた履歴もその場で反映する（いちばんよく使う）
+kiroku html         # これまでの履歴を 1 つの HTML（kiroku.html）に書き出して開く
+kiroku json -o -    # 集計を JSON で出す（ほかのツール向け）
+kiroku version      # 版を表示する
+kiroku update       # 最新の版に入れかえる（--check で確かめるだけ、--to v0.1.1 で版を指定）
+kiroku              # 使い方（このヘルプ）を出すだけ
 ```
 
-- **`kiroku`** は、起動した時点までの履歴をすべて読み、1 つの HTML に書き出します。そのあと増えた履歴は、もう一度実行すると入ります
-- **`kiroku --serve`** は `http://localhost:8484/` で画面を出し続けます。数秒ごとに履歴フォルダの変化（ファイルの名前・大きさ・更新時刻だけ）を確かめ、変わっていたら読み直します。画面は見ている週・月や選んでいるセッションをそのままに新しい履歴を取り込み、左上に `LIVE` が出ます。止めるときは Ctrl+C
-- **`kiroku --weekly [日付]`** は、その日を含む週の週次サマリーを `kiroku-week-<月曜日>.md` に、**`kiroku --monthly [YYYY-MM]`** は月次サマリーを `kiroku-month-<年-月>.md` に書き出します（下の「週次・月次サマリー」）
+- **`kiroku serve [待ち受け先]`** は `http://localhost:8484/` で画面を出し続けます。数秒ごとに履歴フォルダの変化（ファイルの名前・大きさ・更新時刻だけ）を確かめ、変わっていたら読み直します。画面は見ている週・月や選んでいるセッションをそのままに新しい履歴を取り込み、左上に `LIVE` が出ます。`kiroku serve :8485` のようにポートを変えられます。止めるときは Ctrl+C
+- **`kiroku html [-o ファイル]`** は、起動した時点までの履歴をすべて読み、1 つの HTML に書き出します。持ち運びや、サーバーを立てずに見たいとき向けです。そのあと増えた履歴は、もう一度実行すると入ります
+- **`kiroku update`** は、GitHub Releases から同じ OS・CPU 向けの最新版を落とし、`checksums.txt` で確かめてから自分自身を置きかえます。置き場所に書き込めないとき（`/usr/local/bin` など）は `sudo kiroku update` で。`go install` やソースからビルドした kiroku（版が `dev`）は入れかえないので、`go install …@latest` で更新してください。v0.1.1 以前には `update` がないので、一度だけ `install.sh` か Releases から入れ直してください
+- 前の書き方（`kiroku --serve`・`--json`・`-o`）も当面は動きます。`--weekly` / `--monthly`（Markdown の書き出し）はなくなりました。週次・月次サマリーは画面で見てください
 
-ほかのオプションは、下の「オプション」にまとめています。
+コマンドごとのオプションは `kiroku <コマンド> --help` か、下の「オプション」を見てください。
 
 ## 画面でできること
 
@@ -46,15 +60,10 @@ kiroku --monthly    # 最新の月の月次サマリーを Markdown で書き出
 
 ## 週次・月次サマリー
 
-カレンダーの下に、その週・月のまとめが出ます。`--weekly` / `--monthly` で同じ内容を Markdown にも書き出せるので、そのまま週報・月報の下書きや Claude への相談に使えます。
+カレンダーの下に、その週・月のまとめが出ます。右上の「週 / 月」で切り替えます。
 
 ![月の表示（ダミーデータ）](docs/summary.png)
 
-```bash
-kiroku --weekly 2026-09-30            # その日を含む週
-kiroku --monthly 2026-09              # 2026 年 9 月
-kiroku --monthly --md-dir ~/notes     # 書き出す場所を変える
-```
 
 | 指標 | 意味 |
 |---|---|
@@ -91,12 +100,12 @@ kiroku --monthly --md-dir ~/notes     # 書き出す場所を変える
 ```
 
 ```bash
-kiroku --prices my-prices.json
+kiroku serve --prices my-prices.json
 ```
 
 ### エージェント別の参考指標
 
-それぞれのエージェントが履歴に残している数字を、エージェントごとに並べます（週次・月次サマリー、その Markdown、セッションの詳細）。定義がエージェントごとに違うので、**エージェント同士では比べないでください**。どれも参照値で、目標ではありません。記録がない数字は 0 ではなく、出しません。
+それぞれのエージェントが履歴に残している数字を、エージェントごとに並べます（週次・月次サマリーと、セッションの詳細）。定義がエージェントごとに違うので、**エージェント同士では比べないでください**。どれも参照値で、目標ではありません。記録がない数字は 0 ではなく、出しません。
 
 | エージェント | 参考指標 |
 |---|---|
@@ -143,6 +152,8 @@ Kiro の形式には公式ドキュメントがないため、[kiro-history](htt
 
 ## オプション
 
+履歴を読むコマンド（`serve`・`html`・`json`）に共通:
+
 | オプション | 既定 | 説明 |
 |---|---|---|
 | `--sources` | `claude,kiro,amazonq,codex` | 読む履歴（カンマ区切り。Kiro Crew は `kiro` に入ります） |
@@ -153,16 +164,18 @@ Kiro の形式には公式ドキュメントがないため、[kiro-history](htt
 | `--amazonq-db` | OS ごと | Amazon Q Developer CLI の `data.sqlite3` |
 | `--codex-home` | `~/.codex` | Codex のデータの場所（`CODEX_HOME` も見ます） |
 | `--gap` | `15` | 何分あいたら帯を分けるか |
-| `-o`, `--out` | `kiroku.html` | 書き出す HTML |
-| `--no-open` | | ブラウザを開かない |
-| `--weekly [日付]` | | その日を含む週の週次サマリーを `kiroku-week-<月曜日>.md` に書き出す（日付なしなら最新の週） |
-| `--monthly [YYYY-MM]` | | その月の月次サマリーを `kiroku-month-<年-月>.md` に書き出す（なしなら最新の月） |
 | `--prices` | | 料金表を JSON で上書き（下の「AI の使い方」参照） |
-| `--md-dir` | `.` | `--weekly` / `--monthly` の Markdown を置くフォルダ |
-| `--json` | | 集計結果を JSON で書き出す（ほかのツールに渡したいとき） |
-| `--serve [待ち受け先]` | `127.0.0.1:8484` | サーバーを立て、増えた履歴をその場で画面に反映する。`--serve :8485` のようにポートを変えられます |
-| `--interval` | `5s` | `--serve` で履歴の変化を確かめる間隔 |
-| `--version` | | 版を表示する |
+
+コマンドごと:
+
+| コマンド | オプション | 既定 | 説明 |
+|---|---|---|---|
+| `serve` | `[待ち受け先]` | `127.0.0.1:8484` | `:8485` のようにポートだけでも |
+| `serve` | `--interval` | `5s` | 履歴の変化を確かめる間隔 |
+| `serve`・`html` | `--no-open` | | ブラウザを開かない |
+| `html` | `-o`, `--out` | `kiroku.html` | 書き出す HTML |
+| `json` | `-o`, `--out` | `kiroku.json` | 書き出す JSON（`-` なら標準出力） |
+| `update` | `--check` / `--to <版>` / `--force` | | 確かめるだけ / 版を指定 / dev 版や同じ版でも入れかえる |
 
 ## 開発
 
@@ -186,9 +199,8 @@ git push origin v0.1.0
 
 ## 注意
 
-- 書き出した HTML と Markdown には、依頼文やファイルパスがそのまま入ります。人に渡すときは中身を確かめてください（このリポジトリの `.gitignore` では `*.html`・`kiroku-week-*.md`・`kiroku-month-*.md` を除外しています）
-- `--weekly` / `--monthly` の Markdown は `--md-dir ~/notes/kiroku` のように、自分用のフォルダに置くのがおすすめです
-- `--serve` は既定で自分の PC からしか開けません（`127.0.0.1` で待ち受け、ほかのホスト名で来たリクエストは断ります）。`--serve 0.0.0.0:8484` のように外に開くと、同じネットワークの人も履歴を見られます
+- 書き出した HTML と JSON には、依頼文やファイルパスがそのまま入ります。人に渡すときは中身を確かめてください（このリポジトリの `.gitignore` では `*.html` と `kiroku.json` を除外しています）
+- `kiroku serve` は既定で自分の PC からしか開けません（`127.0.0.1` で待ち受け、ほかのホスト名で来たリクエストは断ります）。`kiroku serve 0.0.0.0:8484` のように外に開くと、同じネットワークの人も履歴を見られます
 
 ## ライセンス
 

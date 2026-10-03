@@ -6,7 +6,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -78,37 +77,6 @@ func TestMatchesPythonVersion(t *testing.T) {
 			break
 		}
 		t.Error(d)
-	}
-}
-
-// 週次・月次サマリーの Markdown は、testdata/golden-week.md・golden-month.md と同じになる。
-// 数字は Python 版と同じ集計（上の TestMatchesPythonVersion）から来ている。
-// 書式を変えたときは KIROKU_UPDATE_GOLDEN=1 go test . で作り直して、差分を目で確かめる。
-func TestSummaryMarkdown(t *testing.T) {
-	sessions, weeks, rep := setup(t)
-	months := report.AllMonths(sessions.([]*core.Session))
-	last := func(m map[string]*report.Summary) *report.Summary {
-		keys := make([]string, 0, len(m))
-		for k := range m {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		return m[keys[len(keys)-1]]
-	}
-	for _, c := range []struct{ file, got string }{
-		{"testdata/golden-week.md", report.WeeklyMarkdown(last(weeks), rep)},
-		{"testdata/golden-month.md", report.MonthlyMarkdown(months["2026-09"], rep)}, // いちばん記録の多い月
-	} {
-		if os.Getenv("KIROKU_UPDATE_GOLDEN") != "" {
-			os.WriteFile(c.file, []byte(c.got), 0o644)
-		}
-		want, err := os.ReadFile(c.file)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if c.got != string(want) {
-			t.Errorf("%s と違う:\n--- want\n%s\n--- got\n%s", c.file, want, c.got)
-		}
 	}
 }
 
