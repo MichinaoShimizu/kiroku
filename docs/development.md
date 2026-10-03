@@ -8,7 +8,7 @@ kiroku は Go 1 本で書いた、外部ライブラリの少ない CLI です�
 go test ./...      # testdata/ の合成データで、集計と Markdown が正解と一致するかを確かめる
 go vet ./...
 gofmt -l .         # 何も出なければ OK
-go build .         # ./kiroku ができる
+go build .         # ./kiroku ができる（./kiroku serve で画面を開く）
 ```
 
 テストには個人の履歴を使いません。`testdata/` はすべて合成データです。
@@ -17,8 +17,10 @@ go build .         # ./kiroku ができる
 
 | 場所 | 役目 |
 |---|---|
-| `main.go` | オプションの読み取り、履歴の読み込み、HTML / Markdown / JSON の書き出し |
-| `serve.go` | `--serve`（履歴の変化を見張って読み直し、画面に配る） |
+| `cli.go` | サブコマンド（`serve`・`html`・`weekly`・`monthly`・`json`・`version`・`update`）とオプションの読み取り |
+| `main.go` | 履歴の読み込み（重複を外す）、Markdown の書き出し、料金表の上書き |
+| `update.go` | `kiroku update`（Releases から落として確かめ、自分自身を入れかえる） |
+| `serve.go` | `kiroku serve`（履歴の変化を見張って読み直し、画面に配る） |
 | `internal/source` | エージェントごとの履歴を読むアダプター。読み方の細かい決まりは [sources.md](sources.md) |
 | `internal/core` | 共通のセッションの形（`Builder` → `Session`）、トークンと料金、エージェント別の参考指標 |
 | `internal/report` | 週・月の集計（`Summarize`）と、週次・月次サマリーの Markdown |
@@ -30,7 +32,7 @@ go build .         # ./kiroku ができる
 2. `Load` では、会話ごとに `core.Builder` を組み立てて `emit` する（時刻・依頼・ツール・モデル・トークン・クレジット）
 3. 同じ会話がほかの場所にも残るなら `Builder.Key` をそろえる（先に読んだほうだけを使う）
 4. エージェントだけが記録している数字は `Builder.Measure` で残し、`core.NativeDefs` に定義を足す
-5. `--serve` で見張る場所が `Where()` だけで足りなければ `Watch()` を実装する（`internal/source/watch.go`）
+5. `kiroku serve` で見張る場所が `Where()` だけで足りなければ `Watch()` を実装する（`internal/source/watch.go`）
 6. 合成データを `testdata/` に置いてテストを書く
 
 集計（`internal/report`）と画面は共通のセッションの形だけを見るので、ふつうは触らなくて済みます。
