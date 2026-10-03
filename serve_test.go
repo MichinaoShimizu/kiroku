@@ -47,7 +47,7 @@ func TestLiveRefresh(t *testing.T) {
 	}
 	logw = io.Discard
 	defer func() { logw = os.Stderr }()
-	l := &live{load: load, paths: source.WatchPaths(s), journal: home, print: io.Discard}
+	l := &live{load: load, paths: source.WatchPaths(s), print: io.Discard}
 	if err := l.refresh(); err != nil {
 		t.Fatal(err)
 	}

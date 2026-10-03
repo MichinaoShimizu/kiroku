@@ -2457,32 +2457,6 @@
 ],
 "weeks": {
 "2026-08-31": {
-"metrics": {
-"fix_rate": {
-"v": 0.0,
-"n": 2
-},
-"focus_blocks": {
-"v": 0,
-"n": null
-},
-"switches": {
-"v": 0.0,
-"n": 1
-},
-"cost_per_prompt": {
-"v": 0.075,
-"n": 2
-},
-"night": {
-"v": 17,
-"n": null
-},
-"weekend": {
-"v": 0,
-"n": null
-}
-},
 "usage": {
 "tokens": 429223,
 "out": 10169,
@@ -2528,7 +2502,6 @@
 }
 ]
 },
-"week": "2026-08-31",
 "sessions": 1,
 "prompts": 2,
 "active": 17,
@@ -2594,77 +2567,11 @@
 }
 ],
 "friction": [],
-"playbook": {
-"focus": null,
-"guards": [
-{
-"key": "night",
-"v": 17,
-"n": null,
-"base": {
-"weeks": 0
-},
-"state": "building"
-},
-{
-"key": "weekend",
-"v": 0,
-"n": null,
-"base": {
-"weeks": 0
-},
-"state": "building"
-},
-{
-"key": "fix_rate",
-"v": 0.0,
-"n": 2,
-"base": {
-"weeks": 0
-},
-"state": "building"
-},
-{
-"key": "cost_per_prompt",
-"v": 0.075,
-"n": 2,
-"base": {
-"weeks": 0
-},
-"state": "building"
-}
-],
-"journal": null,
-"prev": null
-}
+"start": "2026-08-31",
+"fixRate": 0.0,
+"costPerAsk": 0.075
 },
 "2026-09-07": {
-"metrics": {
-"fix_rate": {
-"v": 0.0,
-"n": 9
-},
-"focus_blocks": {
-"v": 0,
-"n": null
-},
-"switches": {
-"v": 0.0,
-"n": 2
-},
-"cost_per_prompt": {
-"v": 0.139,
-"n": 9
-},
-"night": {
-"v": 0,
-"n": null
-},
-"weekend": {
-"v": 31,
-"n": null
-}
-},
 "usage": {
 "tokens": 1927996,
 "out": 45998,
@@ -2728,7 +2635,6 @@
 }
 ]
 },
-"week": "2026-09-07",
 "sessions": 2,
 "prompts": 9,
 "active": 145,
@@ -2794,77 +2700,11 @@
 }
 ],
 "friction": [],
-"playbook": {
-"focus": null,
-"guards": [
-{
-"key": "night",
-"v": 0,
-"n": null,
-"base": {
-"weeks": 1
-},
-"state": "building"
-},
-{
-"key": "weekend",
-"v": 31,
-"n": null,
-"base": {
-"weeks": 1
-},
-"state": "building"
-},
-{
-"key": "fix_rate",
-"v": 0.0,
-"n": 9,
-"base": {
-"weeks": 1
-},
-"state": "building"
-},
-{
-"key": "cost_per_prompt",
-"v": 0.139,
-"n": 9,
-"base": {
-"weeks": 1
-},
-"state": "building"
-}
-],
-"journal": null,
-"prev": null
-}
+"start": "2026-09-07",
+"fixRate": 0.0,
+"costPerAsk": 0.139
 },
 "2026-09-14": {
-"metrics": {
-"fix_rate": {
-"v": 18.2,
-"n": 11
-},
-"focus_blocks": {
-"v": 0,
-"n": null
-},
-"switches": {
-"v": 0.0,
-"n": 2
-},
-"cost_per_prompt": {
-"v": 0.152,
-"n": 11
-},
-"night": {
-"v": 24,
-"n": null
-},
-"weekend": {
-"v": 128,
-"n": null
-}
-},
 "usage": {
 "tokens": 2424575,
 "out": 47458,
@@ -2926,7 +2766,6 @@
 }
 ]
 },
-"week": "2026-09-14",
 "sessions": 2,
 "prompts": 11,
 "active": 167,
@@ -3007,77 +2846,11 @@
 ]
 }
 ],
-"playbook": {
-"focus": null,
-"guards": [
-{
-"key": "night",
-"v": 24,
-"n": null,
-"base": {
-"weeks": 2
-},
-"state": "building"
-},
-{
-"key": "weekend",
-"v": 128,
-"n": null,
-"base": {
-"weeks": 2
-},
-"state": "building"
-},
-{
-"key": "fix_rate",
-"v": 18.2,
-"n": 11,
-"base": {
-"weeks": 2
-},
-"state": "building"
-},
-{
-"key": "cost_per_prompt",
-"v": 0.152,
-"n": 11,
-"base": {
-"weeks": 2
-},
-"state": "building"
-}
-],
-"journal": null,
-"prev": null
-}
+"start": "2026-09-14",
+"fixRate": 18.2,
+"costPerAsk": 0.152
 },
 "2026-09-21": {
-"metrics": {
-"fix_rate": {
-"v": 13.0,
-"n": 23
-},
-"focus_blocks": {
-"v": 0,
-"n": null
-},
-"switches": {
-"v": 1.0,
-"n": 3
-},
-"cost_per_prompt": {
-"v": 0.135,
-"n": 23
-},
-"night": {
-"v": 24,
-"n": null
-},
-"weekend": {
-"v": 207,
-"n": null
-}
-},
 "usage": {
 "tokens": 4990729,
 "out": 110470,
@@ -3153,7 +2926,6 @@
 }
 ]
 },
-"week": "2026-09-21",
 "sessions": 4,
 "prompts": 23,
 "active": 346,
@@ -3244,133 +3016,11 @@
 ]
 }
 ],
-"playbook": {
-"focus": {
-"key": "delegate",
-"label": "任せられる依頼にする",
-"metric": "fix_rate",
-"v": 13.0,
-"n": 23,
-"base": {
-"weeks": 3,
-"median": 0.0,
-"q1": 0.0,
-"q3": 9.1,
-"limit": 22.75
-},
-"series": [
-[
-"2026-08-31",
-0.0
-],
-[
-"2026-09-07",
-0.0
-],
-[
-"2026-09-14",
-18.2
-],
-[
-"2026-09-21",
-13.0
-]
-]
-},
-"guards": [
-{
-"key": "night",
-"v": 24,
-"n": null,
-"base": {
-"weeks": 3,
-"median": 17.0,
-"q1": 8.5,
-"q3": 20.5,
-"limit": 38.5
-},
-"state": "ok"
-},
-{
-"key": "weekend",
-"v": 207,
-"n": null,
-"base": {
-"weeks": 3,
-"median": 31.0,
-"q1": 15.5,
-"q3": 79.5,
-"limit": 175.5
-},
-"state": "over"
-},
-{
-"key": "cost_per_prompt",
-"v": 0.135,
-"n": 23,
-"base": {
-"weeks": 3,
-"median": 0.139,
-"q1": 0.107,
-"q3": 0.146,
-"limit": 0.203
-},
-"state": "ok"
-},
-{
-"key": "switches",
-"v": 1.0,
-"n": 3,
-"base": {
-"weeks": 3,
-"median": 0.0,
-"q1": 0.0,
-"q3": 0.0,
-"limit": 0.0
-},
-"state": "over"
-}
-],
-"journal": {
-"focus": "delegate",
-"did": null,
-"decision": "継続",
-"reason": "言い直しが多い。依頼に完了条件を書く",
-"next": "依頼の最初に「終わりの条件」を1行書く",
-"checkOn": "2026-10-02",
-"hypothesis": "",
-"file": "kiroku-week-2026-09-21.md"
-},
-"prev": null
-}
+"start": "2026-09-21",
+"fixRate": 13.0,
+"costPerAsk": 0.135
 },
 "2026-09-28": {
-"metrics": {
-"fix_rate": {
-"v": 0.0,
-"n": 35
-},
-"focus_blocks": {
-"v": 0,
-"n": null
-},
-"switches": {
-"v": 1.2,
-"n": 5
-},
-"cost_per_prompt": {
-"v": 0.005,
-"n": 35
-},
-"night": {
-"v": 0,
-"n": null
-},
-"weekend": {
-"v": 55,
-"n": null
-}
-},
 "usage": {
 "tokens": 540198,
 "out": 12981,
@@ -3416,7 +3066,6 @@
 }
 ]
 },
-"week": "2026-09-28",
 "sessions": 13,
 "prompts": 35,
 "active": 230,
@@ -3494,109 +3143,9 @@
 }
 ],
 "friction": [],
-"playbook": {
-"focus": {
-"key": "delegate",
-"label": "任せられる依頼にする",
-"metric": "fix_rate",
-"v": 0.0,
-"n": 35,
-"base": {
-"weeks": 4,
-"median": 6.5,
-"q1": 0.0,
-"q3": 14.3,
-"limit": 35.75
-},
-"series": [
-[
-"2026-08-31",
-0.0
-],
-[
-"2026-09-07",
-0.0
-],
-[
-"2026-09-14",
-18.2
-],
-[
-"2026-09-21",
-13.0
-],
-[
-"2026-09-28",
-0.0
-]
-]
-},
-"guards": [
-{
-"key": "night",
-"v": 0,
-"n": null,
-"base": {
-"weeks": 4,
-"median": 20.5,
-"q1": 12.75,
-"q3": 24.0,
-"limit": 40.875
-},
-"state": "ok"
-},
-{
-"key": "weekend",
-"v": 55,
-"n": null,
-"base": {
-"weeks": 4,
-"median": 79.5,
-"q1": 23.25,
-"q3": 147.75,
-"limit": 334.5
-},
-"state": "ok"
-},
-{
-"key": "cost_per_prompt",
-"v": 0.005,
-"n": 35,
-"base": {
-"weeks": 4,
-"median": 0.137,
-"q1": 0.12,
-"q3": 0.142,
-"limit": 0.176
-},
-"state": "ok"
-},
-{
-"key": "switches",
-"v": 1.2,
-"n": 5,
-"base": {
-"weeks": 4,
-"median": 0.0,
-"q1": 0.0,
-"q3": 0.25,
-"limit": 0.625
-},
-"state": "over"
-}
-],
-"journal": null,
-"prev": {
-"focus": "delegate",
-"did": null,
-"decision": "継続",
-"reason": "言い直しが多い。依頼に完了条件を書く",
-"next": "依頼の最初に「終わりの条件」を1行書く",
-"checkOn": "2026-10-02",
-"hypothesis": "",
-"file": "kiroku-week-2026-09-21.md"
-}
-}
+"start": "2026-09-28",
+"fixRate": 0.0,
+"costPerAsk": 0.005
 }
 }
 }

@@ -70,22 +70,6 @@ func pyFloat(v float64) string {
 
 func intComma(v float64) string { return comma(math.Round(v), 0) }
 
-func FmtMetric(key string, v *float64) string {
-	if v == nil {
-		return "不明"
-	}
-	switch Metrics[key].Unit {
-	case "分":
-		return HM(*v)
-	case "$":
-		if *v < 1 {
-			return "$" + comma(*v, 3)
-		}
-		return "$" + comma(*v, 2)
-	}
-	return strconv.FormatFloat(*v, 'g', 6, 64) + Metrics[key].Unit
-}
-
 // nativeText は参考指標の値を単位つきで書く。
 func nativeText(v core.NativeValue) string {
 	switch v.Unit {
@@ -101,129 +85,43 @@ func nativeText(v core.NativeValue) string {
 	return intComma(v.V) + " " + v.Unit
 }
 
-func withN(key string, v *float64, n *int) string {
-	s := FmtMetric(key, v)
-	if n != nil {
-		s += fmt.Sprintf("（n=%d）", *n)
-	}
-	return s
-}
-
-var stateJA = map[string]string{"ok": "範囲内", "over": "**超過**", "building": "基準づくり中", "unknown": "不明"}
-
-func UserSection(focusLabel string) string {
-	var fl, dl []string
-	for _, f := range Focus {
-		fl = append(fl, f[1])
-	}
-	dl = append(dl, Decisions...)
-	return strings.Join([]string{
-		Mark, "",
-		"## 今週の判断", "",
-		"<!-- 重点は 1 つ: " + strings.Join(fl, " / ") + " -->",
-		"- 重点: " + focusLabel,
-		"<!-- 先週の一手は: " + strings.Join(Did, " / ") + " -->",
-		"- 先週の一手: ",
-		"<!-- 判断は: " + strings.Join(dl, " / ") + "（変化がなければ「判断なし」と理由だけで OK） -->",
-		"- 判断: ", "- 理由: ", "- 次の一手: ", "- 次に確認する日: ", "- まだ確かめていない仮説: ", "",
-		"## ふりかえりメモ", "", "- よかったこと：", "- 詰まったこと：", ""}, "\n")
-}
-
 func local(ts float64) time.Time { return time.Unix(0, int64(ts*1e9)).In(time.Local) }
 
-func orDash(s string) string {
-	if s == "" {
-		return "—"
-	}
-	return s
+// WeeklyMarkdown は週次サマリーを書き出す。
+func WeeklyMarkdown(st *Summary, report []source.Report) string {
+	we := st.end.AddDate(0, 0, -1)
+	return summaryMarkdown(st, report, fmt.Sprintf("# kiroku 週次サマリー %s〜%s", st.start.Format("2006/01/02"), we.Format("01/02")), "今週")
 }
 
-// WeeklyMarkdown は週のふりかえりを書き出す。existing があれば、印の行より下（自分で書いた欄）を残す。
-func WeeklyMarkdown(st *Week, report []source.Report, existing string) string {
+// MonthlyMarkdown は月次サマリーを書き出す。
+func MonthlyMarkdown(st *Summary, report []source.Report) string {
+	return summaryMarkdown(st, report, fmt.Sprintf("# kiroku 月次サマリー %d年%d月", st.start.Year(), int(st.start.Month())), "今月")
+}
+
+func summaryMarkdown(st *Summary, report []source.Report, title, this string) string {
 	ws := st.start
-	we := ws.AddDate(0, 0, 6)
-	pb := st.Playbook
 	longest := 0
 	for _, b := range st.Focus {
 		longest = max(longest, b.Min)
 	}
-	L := []string{fmt.Sprintf("# kiroku 週次ふりかえり %s〜%s", ws.Format("2006/01/02"), we.Format("01/02")), "",
-		"> 自分のふりかえり用の数字です。人と比べたり、評価に使ったりするためのものではありません。",
-		"> 指標の定義 v" + MetricsVersion + "。版が違う週とは比べないでください。", ""}
-	// 1. 重点
-	L = append(L, "## 重点", "")
-	f := pb.Focus
-	if f != nil {
-		b := f.Base
-		baseTxt := fmt.Sprintf("基準づくり中（%d/%d 週）", b.Weeks, BaselineMin)
-		if b.Median != nil {
-			baseTxt = fmt.Sprintf("直前 %d 週の中央値 %s", b.Weeks, FmtMetric(f.Metric, b.Median))
-		}
-		L = append(L, fmt.Sprintf("**%s** — %s: %s（%s）", f.Label, Metrics[f.Metric].Label, withN(f.Metric, f.V, f.N), baseTxt), "")
-		if note := Metrics[f.Metric].Note; note != "" {
-			L = append(L, "_"+note+"_", "")
-		}
-	} else {
-		L = append(L, "まだ選んでいません。下の「今週の判断」の「重点」に 1 つ書いてください。", "")
-	}
-	// 2. ガードレール
-	L = append(L, "## ガードレール", "", "| 指標 | 今週 | 閾値 | 状態 |", "|---|---|---|---|")
-	for _, g := range pb.Guards {
-		lim := fmt.Sprintf("—（%d/%d 週）", g.Base.Weeks, BaselineMin)
-		if g.Base.Limit != nil {
-			lim = FmtMetric(g.Key, g.Base.Limit) + " 以下"
-		}
-		L = append(L, fmt.Sprintf("| %s | %s | %s | %s |", Metrics[g.Key].Label, withN(g.Key, g.V, g.N), lim, stateJA[g.State]))
-	}
-	L = append(L, "", fmt.Sprintf("_閾値は直前 %d 週までの自分の値の、上側の四分位 + 1.5 × 四分位範囲。目標ではありません。_", BaselineWeeks), "")
-	// 3. 計測の状態
-	L = append(L, "## 計測の状態", "")
-	for _, r := range report {
-		line := fmt.Sprintf("- %s: %d セッション", r.Name, r.N)
-		if r.Detail != "" {
-			line += "（" + r.Detail + "）"
-		}
-		if r.Dup > 0 {
-			line += fmt.Sprintf("（ほかの場所と同じ会話 %d 件は数えていません）", r.Dup)
-		}
-		if r.Error != nil {
-			line += "（読めなかったファイルあり: " + *r.Error + "）"
-		}
-		L = append(L, line)
-	}
-	var unknown []string
-	for _, k := range []string{"fix_rate", "focus_blocks", "switches", "cost_per_prompt", "night", "weekend"} {
-		if st.Metrics[k].V == nil {
-			unknown = append(unknown, Metrics[k].Label)
-		}
-	}
-	if len(unknown) > 0 {
-		L = append(L, "- 不明: "+strings.Join(unknown, "、"))
-	}
-	if st.Usage.Unpriced > 0 {
-		L = append(L, fmt.Sprintf("- 料金表にないモデルのトークン %s は目安コストに入っていません", intComma(st.Usage.Unpriced)))
-	}
-	L = append(L, "- 指標の定義: v"+MetricsVersion)
-	// 4. 先週の判断
-	L = append(L, "", "## 先週の判断", "")
-	if pv := pb.Prev; pv != nil {
-		dec := "—"
-		if pv.Decision != nil {
-			dec = *pv.Decision
-		}
-		L = append(L, fmt.Sprintf("- 判断: %s（%s）", dec, pv.File), "- 理由: "+orDash(pv.Reason),
-			"- 次の一手: "+orDash(pv.Next), "- 次に確認する日: "+orDash(pv.CheckOn))
-	} else {
-		L = append(L, "- まだ記録がありません")
-	}
-	// 参照値
+	L := []string{title, "",
+		"> 自分の使い方を振り返るための数字です。人と比べたり、評価に使ったりするためのものではありません。", ""}
 	u := st.Usage
 	cache := "不明"
 	if u.CacheHit != nil {
 		cache = strconv.Itoa(int(core.Round(*u.CacheHit*100, 0))) + "%"
 	}
-	L = append(L, "", "## 参照値", "", "目標ではなく、判断の材料として見る数字です。", "",
-		"| 指標 | 今週 | メモ |", "|---|---|---|",
+	pct := func(v *float64, unit string) string {
+		if v == nil {
+			return "不明"
+		}
+		if unit == "$" {
+			return "$" + comma(*v, 3)
+		}
+		return strconv.FormatFloat(*v, 'f', -1, 64) + unit
+	}
+	L = append(L, "## まとめ", "",
+		"| 指標 | "+this+" | メモ |", "|---|---|---|",
 		fmt.Sprintf("| 作業していた時間 | %s | どれかのセッションが動いていた時間 |", HM(float64(st.Active))),
 		fmt.Sprintf("| AI の延べ稼働 | %s | 並列ぶんも足した合計。人の削減時間ではありません |", HM(float64(st.AI))),
 		fmt.Sprintf("| 集中ブロック（%d分以上） | %d 回 | 最長 %s |", FocusMin, len(st.Focus), HM(float64(longest))),
@@ -234,7 +132,10 @@ func WeeklyMarkdown(st *Week, report []source.Report, existing string) string {
 		fmt.Sprintf("| 目安コスト（API 換算） | $%s | サブスクの請求額とは別 |", comma(u.Cost, 2)),
 		fmt.Sprintf("| トークン | %s | 使った量の説明材料。多いほど良いわけではありません |", intComma(u.Tokens)),
 		fmt.Sprintf("| キャッシュから読んだ割合 | %s | 入力のうち |", cache),
-		fmt.Sprintf("| サブエージェント | %d 回 | 延べ %s |", u.Subagents, HM(u.SubMin)))
+		fmt.Sprintf("| サブエージェント | %d 回 | 延べ %s |", u.Subagents, HM(u.SubMin)),
+		fmt.Sprintf("| 深夜（%d〜%d時）/ 週末 | %s / %s | |", NightFrom, NightTo, HM(float64(st.Night)), HM(float64(st.Weekend))),
+		fmt.Sprintf("| 言い直し・中断のあった依頼 | %s | 依頼文の言葉と中断から推定した目安（n=%d） |", pct(st.FixRate, "%"), st.Prompts),
+		fmt.Sprintf("| 1 依頼あたりの目安コスト | %s | |", pct(st.CostPerAsk, "$")))
 	if u.Credits != 0 {
 		L = append(L, fmt.Sprintf("| Kiro クレジット | %s | |", comma(u.Credits, -1)))
 	}
@@ -258,7 +159,7 @@ func WeeklyMarkdown(st *Week, report []source.Report, existing string) string {
 		L = append(L, fmt.Sprintf("- %s: $%s・%s トークン・%d 応答", m[0], comma(m[1].(float64), 2), intComma(m[2].(float64)), int(m[3].(float64))))
 	}
 	L = append(L, "", "日ごと:", "", "| 日 | 作業 | 深夜 | 依頼 | 切り替え |", "|---|---|---|---|---|")
-	wd := []rune("月火水木金土日")
+	wd := []rune("日月火水木金土")
 	for i, x := range st.Days {
 		d := ws.AddDate(0, 0, i)
 		z := func(v int, hm bool) string {
@@ -270,7 +171,7 @@ func WeeklyMarkdown(st *Week, report []source.Report, existing string) string {
 			}
 			return strconv.Itoa(v)
 		}
-		L = append(L, fmt.Sprintf("| %s(%c) | %s | %s | %s | %s |", d.Format("01/02"), wd[i], z(x.Active, true), z(x.Night, true), z(x.Prompts, false), z(x.Switches, false)))
+		L = append(L, fmt.Sprintf("| %s(%c) | %s | %s | %s | %s |", d.Format("01/02"), wd[d.Weekday()], z(x.Active, true), z(x.Night, true), z(x.Prompts, false), z(x.Switches, false)))
 	}
 	L = append(L, "", "こじれたかもしれないセッション:", "")
 	if len(st.Friction) == 0 {
@@ -283,21 +184,30 @@ func WeeklyMarkdown(st *Week, report []source.Report, existing string) string {
 		L = append(L, "", "## エージェント別の参考指標", "",
 			"_それぞれのエージェントが記録している数字です。定義がエージェントごとに違うので、エージェント同士では比べないでください。_")
 		for _, g := range st.Native {
-			L = append(L, "", fmt.Sprintf("**%s**（%d セッション）", g.Source, g.Sessions), "", "| 指標 | 今週 | n |", "|---|---|---|")
+			L = append(L, "", fmt.Sprintf("**%s**（%d セッション）", g.Source, g.Sessions), "", "| 指標 | "+this+" | n |", "|---|---|---|")
 			for _, v := range g.Values {
 				L = append(L, fmt.Sprintf("| %s | %s | %d |", v.Label, nativeText(v), v.N))
 			}
 		}
 	}
-	L = append(L, "")
-	if i := strings.Index(existing, Mark); existing != "" && i >= 0 {
-		L = append(L, Mark+strings.TrimRight(existing[i+len(Mark):], " \t\r\n")+"\n")
-	} else {
-		label := ""
-		if f != nil {
-			label = f.Label
+	// 計測の状態
+	L = append(L, "", "## 計測の状態", "")
+	for _, r := range report {
+		line := fmt.Sprintf("- %s: %d セッション", r.Name, r.N)
+		if r.Detail != "" {
+			line += "（" + r.Detail + "）"
 		}
-		L = append(L, UserSection(label))
+		if r.Dup > 0 {
+			line += fmt.Sprintf("（ほかの場所と同じ会話 %d 件は数えていません）", r.Dup)
+		}
+		if r.Error != nil {
+			line += "（読めなかったファイルあり: " + *r.Error + "）"
+		}
+		L = append(L, line)
 	}
+	if st.Usage.Unpriced > 0 {
+		L = append(L, fmt.Sprintf("- 料金表にないモデルのトークン %s は目安コストに入っていません", intComma(st.Usage.Unpriced)))
+	}
+	L = append(L, "- 時刻はこのマシンのタイムゾーンで数えています。どれも履歴から推定した目安です", "")
 	return strings.Join(L, "\n")
 }
