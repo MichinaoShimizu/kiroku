@@ -631,7 +631,6 @@ function tipOff(){ $("#tip").classList.remove("on"); }
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
   const head = `<div class="rvhead"><h2>${M ? "月次サマリー" : "週次サマリー"}</h2><p>自分の使い方を振り返るための目安です。人と比べたり、評価に使ったりするための数字ではありません。</p></div>`;
-  const cmd = M ? `kiroku monthly ${mkey(st.month)}` : `kiroku weekly ${key(st.week)}`;
   if (!w){ R.innerHTML = `${head}<div class="rvgrid"><div class="panel"><p class="none">この${unit}の記録はありません。← → で移動できます。</p>${foot()}</div></div>`; bindCopy(R); return; }
   const d = pw ? w.active - pw.active : null;
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
@@ -653,7 +652,7 @@ function summary(){
       ${stat("AIの延べ稼働", dur(w.ai,true), "並列ぶんも合計。人の削減時間ではありません")}
       ${stat("言い直し・中断のあった依頼", pct(w.fixRate), `n=${w.prompts}・依頼文の言葉と中断から推定`)}
     </div>
-    ${foot(cmd)}</section>
+    ${foot()}</section>
   <section class="panel">${ph(2, "AI の使い方", "使った量・費用・エージェント")}
     ${usageChart(w, M)}
     ${aiUsage(w, pw, unit) || '<p class="none">トークンやクレジットの記録はありません。</p>'}
@@ -745,9 +744,8 @@ function nativeSection(w){
     ${w.native.map(g=>`<div class="ngroup"><div class="hd"><b>${esc(g.source)}</b><span>${g.sessions} セッション</span></div>${nativeRows(g.values)}</div>`).join("")}
     <p class="note">それぞれのエージェントが記録している数字です。定義がエージェントごとに違うので、エージェント同士では比べないでください。</p>`;
 }
-function foot(cmd){
-  return `<div class="foot">待たせ時間は、AI が返してから次の依頼を出すまで（30分以内）。切り替えは、続けて出した依頼のプロジェクトが変わった回数です。どれも履歴からの目安です。Markdown に書き出すとき:
-    ${cmd ? `<div class="code"><code>${esc(cmd)}</code><button class="copy" data-copy="${esc(cmd)}">コピー</button></div>` : ""}
+function foot(){
+  return `<div class="foot">待たせ時間は、AI が返してから次の依頼を出すまで（30分以内）。切り替えは、続けて出した依頼のプロジェクトが変わった回数です。どれも履歴からの目安です。
     <div style="margin-top:12px">生成 ${new Date(GENERATED*1000).toLocaleString("ja-JP")} · <button class="muted" id="openhelp" style="text-decoration:underline dotted">ショートカット</button></div></div>`;
 }
 function bindCopy(root){ root.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy)); const h = root.querySelector("#openhelp"); if (h) h.onclick = () => $("#keys").showModal(); }

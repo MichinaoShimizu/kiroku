@@ -25,8 +25,6 @@ Usage:
 Commands:
   serve [ADDR]          Open the dashboard and keep it live as new history arrives (default 127.0.0.1:8484)
   html                  Write a self-contained HTML report (default kiroku.html) and open it
-  weekly [YYYY-MM-DD]   Write the weekly summary as Markdown (default: latest week)
-  monthly [YYYY-MM]     Write the monthly summary as Markdown (default: latest month)
   json                  Write the aggregated data as JSON (default kiroku.json, "-" for stdout)
   version               Print the version
   update                Update kiroku to the latest release
@@ -57,10 +55,6 @@ func dispatch(args []string) error {
 		return cmdServe(args[1:])
 	case "html":
 		return cmdHTML(args[1:])
-	case "weekly":
-		return cmdWeekly(args[1:])
-	case "monthly":
-		return cmdMonthly(args[1:])
 	case "json":
 		return cmdJSON(args[1:])
 	case "version", "--version", "-version", "-v":
@@ -98,7 +92,7 @@ func addCommon(fs *flag.FlagSet) *common {
 }
 
 // loader は、選んだ履歴を読んで集計する関数を作る。
-func (c *common) loader(mdDir string) ([]source.Source, func() snapshot, error) {
+func (c *common) loader() ([]source.Source, func() snapshot, error) {
 	if *c.prices != "" {
 		if err := loadPrices(*c.prices); err != nil {
 			return nil, nil, fmt.Errorf("料金表を読めなかったよ: %w", err)
@@ -121,7 +115,7 @@ func (c *common) loader(mdDir string) ([]source.Source, func() snapshot, error) 
 		if data == nil {
 			data = []*core.Session{} // 画面では null ではなく空の一覧として扱う
 		}
-		meta := map[string]any{"report": rep, "mdDir": filepath.Clean(mdDir)}
+		meta := map[string]any{"report": rep}
 		return snapshot{data: data, weeks: report.AllWeeks(data), months: report.AllMonths(data), meta: meta, rep: rep, gen: float64(time.Now().UnixNano()) / 1e9}
 	}
 	return picked, load, nil
@@ -168,7 +162,6 @@ func cmdServe(args []string) error {
 	c := addCommon(fs)
 	interval := fs.Duration("interval", 5*time.Second, "how often to check the history for changes")
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
-	mdDir := fs.String("md-dir", ".", "directory shown in the dashboard's Markdown export hints")
 	pos, err := parse(fs, args, 1)
 	if err != nil {
 		return quiet(err)
@@ -180,7 +173,7 @@ func cmdServe(args []string) error {
 		}
 		addr = pos[0]
 	}
-	picked, load, err := c.loader(*mdDir)
+	picked, load, err := c.loader()
 	if err != nil {
 		return err
 	}
@@ -196,49 +189,11 @@ func cmdHTML(args []string) error {
 	if _, err := parse(fs, args, 0); err != nil {
 		return quiet(err)
 	}
-	_, load, err := c.loader(".")
+	_, load, err := c.loader()
 	if err != nil {
 		return err
 	}
 	return writeHTML(load(), *out, !*noOpen)
-}
-
-func cmdWeekly(args []string) error {
-	fs := newFS("weekly", "weekly [flags] [YYYY-MM-DD]\n\nWrites the week containing the date (default: the latest week).")
-	c := addCommon(fs)
-	mdDir := fs.String("md-dir", ".", "output `directory` for the Markdown file")
-	pos, err := parse(fs, args, 1)
-	if err != nil {
-		return quiet(err)
-	}
-	when := "latest"
-	if len(pos) == 1 {
-		when = pos[0]
-	}
-	snap, err := loadNonEmpty(c, *mdDir)
-	if err != nil {
-		return err
-	}
-	return writeWeekly(snap.weeks, snap.rep, when, *mdDir)
-}
-
-func cmdMonthly(args []string) error {
-	fs := newFS("monthly", "monthly [flags] [YYYY-MM]\n\nWrites the given month (default: the latest month).")
-	c := addCommon(fs)
-	mdDir := fs.String("md-dir", ".", "output `directory` for the Markdown file")
-	pos, err := parse(fs, args, 1)
-	if err != nil {
-		return quiet(err)
-	}
-	when := "latest"
-	if len(pos) == 1 {
-		when = pos[0]
-	}
-	snap, err := loadNonEmpty(c, *mdDir)
-	if err != nil {
-		return err
-	}
-	return writeMonthly(snap.months, snap.rep, when, *mdDir)
 }
 
 func cmdJSON(args []string) error {
@@ -252,15 +207,15 @@ func cmdJSON(args []string) error {
 	if *out == "-" {
 		logw = io.Discard // 標準出力を JSON だけにする
 	}
-	snap, err := loadNonEmpty(c, ".")
+	snap, err := loadNonEmpty(c)
 	if err != nil {
 		return err
 	}
 	return writeJSON(snap, *out)
 }
 
-func loadNonEmpty(c *common, mdDir string) (snapshot, error) {
-	_, load, err := c.loader(mdDir)
+func loadNonEmpty(c *common) (snapshot, error) {
+	_, load, err := c.loader()
 	if err != nil {
 		return snapshot{}, err
 	}
@@ -303,7 +258,7 @@ func writeJSON(snap snapshot, out string) error {
 	return os.WriteFile(out, b, 0o644)
 }
 
-// runLegacy は前の書き方（kiroku --serve、--weekly、--json など）。何も選ばなければヘルプを出す。
+// runLegacy は前の書き方（kiroku --serve、--json、-o など）。何も選ばなければヘルプを出す。
 func runLegacy(args []string) error {
 	args = normalizeArgs(args)
 	fs := flag.NewFlagSet("kiroku", flag.ContinueOnError)
@@ -312,7 +267,7 @@ func runLegacy(args []string) error {
 	out := fs.String("out", "kiroku.html", "")
 	fs.StringVar(out, "o", "kiroku.html", "")
 	noOpen := fs.Bool("no-open", false, "")
-	mdDir := fs.String("md-dir", ".", "")
+	fs.String("md-dir", ".", "")
 	weekly := fs.String("weekly", "", "")
 	monthly := fs.String("monthly", "", "")
 	jsonOut := fs.String("json", "", "")
@@ -337,37 +292,25 @@ func runLegacy(args []string) error {
 	switch {
 	case *showVersion:
 		return runVersion()
+	case *weekly != "" || *monthly != "":
+		return fmt.Errorf("週次・月次サマリーの Markdown 書き出しはなくなりました。kiroku serve の画面で見てね")
 	case *serve != "":
 		note("kiroku serve")
-		picked, load, err := c.loader(*mdDir)
+		picked, load, err := c.loader()
 		if err != nil {
 			return err
 		}
 		return serveLive(*serve, *interval, picked, load, !*noOpen)
-	case *weekly != "":
-		note("kiroku weekly")
-		snap, err := loadNonEmpty(c, *mdDir)
-		if err != nil {
-			return err
-		}
-		return writeWeekly(snap.weeks, snap.rep, *weekly, *mdDir)
-	case *monthly != "":
-		note("kiroku monthly")
-		snap, err := loadNonEmpty(c, *mdDir)
-		if err != nil {
-			return err
-		}
-		return writeMonthly(snap.months, snap.rep, *monthly, *mdDir)
 	case *jsonOut != "":
 		note("kiroku json -o " + *jsonOut)
-		snap, err := loadNonEmpty(c, *mdDir)
+		snap, err := loadNonEmpty(c)
 		if err != nil {
 			return err
 		}
 		return writeJSON(snap, *jsonOut)
 	case explicitOut:
 		note("kiroku html -o " + *out)
-		_, load, err := c.loader(*mdDir)
+		_, load, err := c.loader()
 		if err != nil {
 			return err
 		}

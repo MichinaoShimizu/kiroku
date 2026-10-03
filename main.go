@@ -9,15 +9,12 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"runtime"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
-	"github.com/MichinaoShimizu/kiroku/internal/report"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
 )
 
@@ -110,59 +107,6 @@ func collect(all []source.Source, want map[string]bool, gap int) ([]*core.Sessio
 	}
 	sort.SliceStable(data, func(i, j int) bool { return data[i].Start < data[j].Start })
 	return data, rep
-}
-
-func writeWeekly(weeks map[string]*report.Week, rep []source.Report, when, folder string) error {
-	key := ""
-	if when == "latest" {
-		key = latest(weeks)
-	} else {
-		t, err := time.ParseInLocation("2006-01-02", when, time.Local)
-		if err != nil {
-			return fmt.Errorf("週の日付は YYYY-MM-DD で書いてね: %s", when)
-		}
-		key = report.MondayOf(float64(t.Unix())).Format("2006-01-02")
-	}
-	st := weeks[key]
-	if st == nil {
-		return fmt.Errorf("%s の週には履歴がないよ", key)
-	}
-	return writeMarkdown(filepath.Join(folder, "kiroku-week-"+key+".md"), report.WeeklyMarkdown(st, rep), "週次サマリー")
-}
-
-func writeMonthly(months map[string]*report.Summary, rep []source.Report, when, folder string) error {
-	key := when
-	if when == "latest" {
-		key = latest(months)
-	} else if !monthRe.MatchString(when) {
-		return fmt.Errorf("月は YYYY-MM で書いてね: %s", when)
-	}
-	st := months[key]
-	if st == nil {
-		return fmt.Errorf("%s には履歴がないよ", key)
-	}
-	return writeMarkdown(filepath.Join(folder, "kiroku-month-"+key+".md"), report.MonthlyMarkdown(st, rep), "月次サマリー")
-}
-
-func latest(m map[string]*report.Summary) string {
-	key := ""
-	for k := range m {
-		if k > key {
-			key = k
-		}
-	}
-	return key
-}
-
-func writeMarkdown(path, body, what string) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
-		return err
-	}
-	fmt.Printf("%s → %s\n", what, path)
-	return nil
 }
 
 func loadPrices(path string) error {

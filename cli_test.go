@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -45,21 +46,25 @@ func TestParseInterspersed(t *testing.T) {
 	}
 }
 
-// サブコマンドで週次・月次サマリーを書き出せる（日付は後ろに置いても読める）。
-func TestWeeklyMonthlySubcommands(t *testing.T) {
+// json サブコマンドで集計を書き出せる（-o はオプションの前後どちらでも）。weekly / monthly はもうない。
+func TestJSONSubcommand(t *testing.T) {
 	setup(t) // タイムゾーンと古い Kiro IDE の更新時刻をそろえる
 	h := filepath.Join("testdata", "home")
-	dir := t.TempDir()
-	common := []string{"--root", filepath.Join(h, ".claude", "projects"), "--kiro-home", filepath.Join(h, ".kiro"), "--md-dir", dir, "--sources", "claude,kiro"}
-	if err := dispatch(append([]string{"weekly"}, append(common, "2026-09-30")...)); err != nil {
+	out := filepath.Join(t.TempDir(), "k.json")
+	args := []string{"json", "--root", filepath.Join(h, ".claude", "projects"), "--kiro-home", filepath.Join(h, ".kiro"), "--sources", "claude,kiro", "-o", out}
+	if err := dispatch(args); err != nil {
 		t.Fatal(err)
 	}
-	if err := dispatch(append([]string{"monthly", "2026-09"}, common...)); err != nil {
-		t.Fatal(err)
+	b, err := os.ReadFile(out)
+	if err != nil || !strings.Contains(string(b), `"months"`) || !strings.Contains(string(b), `"weeks"`) {
+		t.Fatalf("JSON が書き出されていない: %v", err)
 	}
-	for _, f := range []string{"kiroku-week-2026-09-28.md", "kiroku-month-2026-09.md"} {
-		if m, _ := filepath.Glob(filepath.Join(dir, f)); len(m) != 1 {
-			t.Errorf("%s が書き出されていない", f)
+	for _, sub := range []string{"weekly", "monthly"} {
+		if err := dispatch([]string{sub}); err == nil || !strings.Contains(err.Error(), "知らないサブコマンド") {
+			t.Errorf("%s: %v", sub, err)
 		}
+	}
+	if err := dispatch([]string{"--weekly"}); err == nil || !strings.Contains(err.Error(), "なくなりました") {
+		t.Errorf("--weekly: %v", err)
 	}
 }
