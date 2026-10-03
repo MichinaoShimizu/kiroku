@@ -128,6 +128,7 @@ kiroku serve --prices my-prices.json
 | Kiro IDE（v1.0 以降） | `~/.kiro/sessions/<hash>/sess_*/` | 発言ごと |
 | Kiro CLI | `~/.kiro/sessions/cli/` | 依頼ごと |
 | Kiro IDE（v1.0 より前） | `<globalStorage>/kiro.kiroagent/workspace-sessions/` | 開始と最終更新だけ |
+| Kiro Crew | `~/.kiro/crew/`（`session_map.json`・`usage/tokens/`） | 依頼・ターンごと |
 | Kiro CLI（古い版） | `kiro-cli/data.sqlite3`（下の表） | 依頼ごと |
 | Amazon Q Developer CLI | `amazon-q/data.sqlite3`（下の表） | 依頼ごと |
 | Codex CLI | `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`（`.jsonl.zst` も）と `archived_sessions/` | 発言ごと |
@@ -140,15 +141,12 @@ kiroku serve --prices my-prices.json
 | Linux | `$XDG_DATA_HOME`（なければ `~/.local/share`）`/<kiro-cli か amazon-q>/` |
 | Windows | `%LOCALAPPDATA%\<kiro-cli か amazon-q>\`（Kiro CLI は未確認。違っていたら `--kiro-cli-db` で指定してください） |
 
-- `KIRO_HOME` が設定されていればそちらを見ます
-- Kiro CLI は新しい形式（`~/.kiro/sessions/cli`）と SQLite に同じ会話が残ることがあります。同じ会話 ID のものは新しい形式のほうだけを数えます（クレジットが入っているため）。外した数は「計測の状態」に出ます
-- SQLite のほうにはトークンやクレジットが残っていないので、目安コストやクレジットには入りません
-- **Kiro Crew** は kiro-cli を動かすので、会話そのものは Kiro CLI の履歴（`~/.kiro/sessions/cli`）に残ります。kiroku はそちらを数え、Crew の `session_map.json` と `subagents/*/state.json` に載っている会話には「Kiro Crew」の目印と、Crew のタイトル（サブエージェントならエージェント名と依頼内容）をつけます。Crew のダッシュボードから動かした会話は、クレジットが kiro-cli の履歴に残らないことがあるので、Crew が 1 ターンごとに書く使用量の記録（`usage/tokens/<日付>.jsonl`）も読みます。同じ会話は二重に数えないよう、会話ごとに kiro-cli の記録と Crew の記録の多いほうを使います。kiro-cli の会話に結びつかない記録（Crew の裏方の処理 `_bg` は 1 日ごと、ダッシュボードのチャットは会話ごと）は「Kiro Crew」のセッションとして数えます
-- Kiro のクレジットは、履歴に記録された値をそのまま足します（モデルごとの倍率は Kiro が記録時にかけたものを使い、kiroku ではかけ直しません）。古い Kiro IDE（v1.0 より前）と Kiro CLI（SQLite）の履歴にはクレジットが残っていないので、その分は入りません。Crew の使用量の記録は Crew が残している期間（およそ 2 週間）だけです。アカウントページの数字とは、期間（請求期間）やほかの PC で使った分の違いもあります
-- **Codex** のトークンは、同じ値が何度も書き直されるので、同じものは 1 回だけ数えます。新しい版の `token_usage_record` があればそちらを使います。サブエージェントやフォークのファイルは親の履歴を先頭に写しているので、そのファイルが作られた時刻より前の行は数えません。サブエージェントは親のセッションの「サブエージェント」にまとめます。タイトルは `session_index.jsonl` から取ります
-- Codex のモデル（OpenAI）は料金表に入れていないので、目安コストには入りません（「計測の状態」に、料金表にないトークンとして出ます）。入れたいときは `--prices` で足せます
+- `KIRO_HOME`・`KIROCREW_HOME`・`CODEX_HOME`・`CLAUDE_CONFIG_DIR` が設定されていればそちらを見ます
+- 同じ会話が 2 つの場所に残っていても、1 回だけ数えます。外した数は画面の「計測の状態」に出ます
+- Kiro のクレジットは、履歴に記録された値をそのまま足します（モデルごとの倍率はかけ直しません）。古い Kiro IDE（v1.0 より前）と Kiro CLI（SQLite）の履歴にはクレジットが残っていないので、その分は入りません。アカウントページの数字とは、期間（請求期間）やほかの PC で使った分の違いもあります
+- Codex のモデル（OpenAI）は料金表に入れていないので、目安コストには入りません。入れたいときは `--prices` で足せます
 
-Kiro の形式には公式ドキュメントがないため、[kiro-history](https://github.com/pajaydev/kiro-history) と [codeburn](https://github.com/getagentseal/codeburn) の実装を参考にしています。SQLite の形は [amazon-q-developer-cli](https://github.com/aws/amazon-q-developer-cli) のソースに合わせています（`conversations_v2` は Kiro CLI だけにあり、参考実装をもとにしています）。読めない履歴があれば issue で教えてください。
+それぞれの履歴をどう読んで、どう重複を外しているかは [docs/sources.md](docs/sources.md) にまとめています。読めない履歴があれば issue で教えてください。
 
 ## オプション
 
@@ -179,23 +177,7 @@ Kiro の形式には公式ドキュメントがないため、[kiro-history](htt
 
 ## 開発
 
-```bash
-go test ./...      # testdata/ の合成データで、集計と Markdown が正解と一致するかを確かめる
-go build .         # ./kiroku ができる
-```
-
-- エージェントを足すときは `internal/source` に `Source` を実装して、`source.All` に加えます。集計（`internal/report`）と画面（`internal/web/template.html`）は、共通のセッションの形（`internal/core`）だけを見ます
-- `testdata/golden.json` と `testdata/golden-week.md` は、Go に移す前の Python 版が同じ合成データから出した結果です。Go 版はこれと同じ数字を出します
-- PR ごとに、3 OS でのテストに加えて、リリースの予行演習（`goreleaser release --snapshot`、公開はしない）を CI で走らせます
-
-### リリースの出し方
-
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-`v` で始まるタグを push すると、GitHub Actions が 3 OS でテストしてから、GoReleaser で macOS・Linux・Windows（amd64 / arm64）向けのファイルとチェックサムを作り、Releases に載せます。`v0.2.0-rc.1` のように `-` のつくタグはプレリリースになります。
+ビルドとテスト、作り、エージェントの足し方、リリースの出し方は [docs/development.md](docs/development.md) にまとめています。
 
 ## 注意
 
