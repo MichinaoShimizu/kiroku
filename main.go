@@ -69,6 +69,7 @@ func run(args []string) error {
 	fs.StringVar(out, "o", "kiroku.html", "--out の短い形")
 	gap := fs.Int("gap", 15, "何分あいたら帯を分けるか")
 	sources := fs.String("sources", "claude,kiro,amazonq", "読む履歴（カンマ区切り）")
+	crewHome := fs.String("crew-home", "", "Kiro Crew のデータの場所（空なら KIROCREW_HOME か <kiro-home>/crew）")
 	kiroCLIDB := fs.String("kiro-cli-db", "", "Kiro CLI（古い版）の data.sqlite3 の場所（空なら OS ごとの場所）")
 	amazonQDB := fs.String("amazonq-db", "", "Amazon Q Developer CLI の data.sqlite3 の場所（空なら OS ごとの場所）")
 	noOpen := fs.Bool("no-open", false, "ブラウザを開かない")
@@ -96,7 +97,7 @@ func run(args []string) error {
 	for _, s := range strings.Split(*sources, ",") {
 		want[strings.ToLower(strings.TrimSpace(s))] = true
 	}
-	data, rep := collect(source.All(source.Options{ClaudeRoot: *root, KiroHome: *kiroHome, KiroCLIDB: *kiroCLIDB, AmazonQDB: *amazonQDB}), want, *gap)
+	data, rep := collect(source.All(source.Options{ClaudeRoot: *root, KiroHome: *kiroHome, KiroCLIDB: *kiroCLIDB, AmazonQDB: *amazonQDB, CrewHome: *crewHome}), want, *gap)
 	if len(data) == 0 {
 		return fmt.Errorf("履歴が 1 件も見つからなかったよ。--root や KIRO_HOME を確認してね")
 	}
@@ -153,6 +154,9 @@ func collect(all []source.Source, want map[string]bool, gap int) ([]*core.Sessio
 			}
 		})
 		r := source.Report{Name: s.Name(), N: n, Dup: dup, Where: s.Where()}
+		if d, ok := s.(source.Detailer); ok {
+			r.Detail = d.Detail()
+		}
 		if err != nil {
 			msg := err.Error()
 			r.Error = &msg

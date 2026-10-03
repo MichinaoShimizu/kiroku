@@ -1,6 +1,7 @@
 package source
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -77,7 +78,20 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 }
 
 // KiroCLI は Kiro CLI: <KIRO_HOME>/sessions/cli/<id>.json（メタ）+ <id>.jsonl（Prompt/AssistantMessage）。
-type KiroCLI struct{ Home string }
+// Kiro Crew から動かした会話には、Crew の目印とタイトルをつける（crew.go）。
+type KiroCLI struct {
+	Home     string
+	CrewHome string
+	crew     int
+}
+
+// Detail は計測の状態に添える一言。
+func (k *KiroCLI) Detail() string {
+	if k.crew == 0 {
+		return ""
+	}
+	return fmt.Sprintf("うち Kiro Crew から %d 件", k.crew)
+}
 
 func (k *KiroCLI) Name() string   { return "Kiro CLI" }
 func (k *KiroCLI) Family() string { return "kiro" }
@@ -88,6 +102,8 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 	if !isDir(base) {
 		return nil
 	}
+	crew := LoadCrew(k.CrewHome)
+	k.crew = 0
 	for _, metaPath := range glob(filepath.Join(base, "*.json")) {
 		meta := core.Map(core.ReadJSON(metaPath))
 		stem := strings.TrimSuffix(filepath.Base(metaPath), ".json")
@@ -133,6 +149,9 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		})
 		if s.Project != "" {
 			s.Resume = "cd " + s.Project + " && kiro-cli chat --resume-id " + sid
+		}
+		if tagCrew(s, crew) {
+			k.crew++
 		}
 		emit(s)
 	}
