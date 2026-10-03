@@ -126,9 +126,13 @@ func TestSameConversationCountedOnce(t *testing.T) {
 
 func TestNormalizeArgs(t *testing.T) {
 	cases := map[string][]string{
-		"--weekly":            {"--weekly=latest"},
-		"--weekly 2026-09-30": {"--weekly=2026-09-30"},
-		"--weekly --no-open":  {"--weekly=latest", "--no-open"},
+		"--weekly":                        {"--weekly=latest"},
+		"--weekly 2026-09-30":             {"--weekly=2026-09-30"},
+		"--weekly --no-open":              {"--weekly=latest", "--no-open"},
+		"--serve":                         {"--serve=127.0.0.1:8484"},
+		"--serve :9000":                   {"--serve=:9000"},
+		"--serve --no-open":               {"--serve=127.0.0.1:8484", "--no-open"},
+		"--serve localhost:8485 --gap 20": {"--serve=localhost:8485", "--gap", "20"},
 	}
 	for in, want := range cases {
 		got := normalizeArgs(splitArgs(in))
