@@ -1,6 +1,7 @@
 package source
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -84,6 +85,30 @@ func TestAmazonQ(t *testing.T) {
 	old := find(bs, "q-old") // 古い [user, assistant] の形
 	if old == nil || len(old.Prompts) != 1 || old.Prompts[0].Text != "古い形の会話" {
 		t.Errorf("古い形の会話が読めていない: %+v", old)
+	}
+}
+
+func TestSQLiteDSN(t *testing.T) {
+	dsn := sqliteDSN(filepath.Join("..", "..", "testdata", "sqlite", "kiro-cli.sqlite3"))
+	if !strings.HasPrefix(dsn, "file:///") || !strings.Contains(dsn, "/testdata/sqlite/kiro-cli.sqlite3?mode=ro") {
+		t.Errorf("DSN = %q（絶対パスにして file:/// で始める）", dsn)
+	}
+}
+
+// macOS の既定の場所（Application Support）のように、空白などが入っていても開ける。
+func TestSQLitePathWithSpaces(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "Application Support", "kiro-cli #1")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(filepath.Join("..", "..", "testdata", "sqlite", "kiro-cli.sqlite3"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	db := filepath.Join(dir, "data.sqlite3")
+	os.WriteFile(db, b, 0o644)
+	if bs := load(t, &QStore{Label: "Kiro CLI (SQLite)", DB: db}); len(bs) != 3 {
+		t.Fatalf("会話の数 = %d, want 3", len(bs))
 	}
 }
 
