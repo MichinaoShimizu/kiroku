@@ -183,6 +183,9 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .pheavy .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
 .pheavy .m{color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .pmore{margin-top:10px}
+.panel.ask{grid-column:1/-1}
+.askbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px}
+.askpre{margin:0;max-height:320px;overflow:auto;padding:14px 16px;border:1px solid var(--rule);border-radius:10px;background:var(--bg);font:12px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-2);white-space:pre-wrap;word-break:break-word}
 /* ── month（月カレンダー：日ごとの作業量） ───────────────── */
 .mgrid{display:grid;grid-template-columns:44px repeat(7,minmax(0,1fr))}
 .mgrid .mh{padding:10px 12px 8px;font-size:11px;color:var(--ink-3);border-left:1px solid var(--rule);border-bottom:1px solid var(--rule)}
@@ -696,9 +699,14 @@ function summary(){
     ${w.focus.length ? [...w.focus].sort((a,b)=>b.min-a.min).slice(0,5).map(b=>`<div class="focusrow" style="--c:${st.colorBy==="project"?colorOf(b.project):"var(--ink-3)"}"><span class="when">${md(b.t)} ${hm(b.t)}</span><span class="track2"><span style="width:${b.min/longest*100}%"></span></span><span class="len">${dur(b.min)}</span></div>`).join("") : '<p class="none">60分以上続いた作業はありませんでした。</p>'}
     <h3>こじれたかもしれない</h3>
     ${w.friction.length ? w.friction.map(f=>`<button class="card" data-id="${esc(f.id)}"><span class="ti">${esc(f.title)}</span><span class="me">${md(f.start)} · ${esc(f.project)} ${f.why.map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}</span></button>`).join("") : '<p class="none">言い直しや中断が目立つセッションはありませんでした。</p>'}
-    ${measure(w)}</section></div>`;
+    ${measure(w)}</section>
+  <section class="panel ask">${ph(5, "AI に改善案を聞く", "このデータをもとに、使い方の改善案を聞くためのプロンプト")}
+    <div class="askbar"><button class="pill" id="askcopy">プロンプトをコピー</button>
+      <span class="muted" style="font-size:11.5px">お使いの AI エージェントに貼り付けて使います。kiroku は AI を呼び出しません。セッション名（依頼文の一部）とプロジェクト名を含むので、送る前に内容を確認してください。</span></div>
+    <pre class="askpre" id="askpre">${esc(askPrompt(w, pw, M))}</pre></section></div>`;
   R.querySelectorAll(".card,.pses,.pheavy").forEach(c => c.onclick = () => select(c.dataset.id));
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
+  const ac = R.querySelector("#askcopy"); if (ac) ac.onclick = () => copy($("#askpre").textContent);
   R.querySelectorAll("#useBy button").forEach(b => b.onclick = () => { st.use = b.dataset.v; store.set("use", st.use); summary(); });
   bindCopy(R);
 }
@@ -724,6 +732,69 @@ function projectPanel(w, ph, unit){
   return `<section class="panel projs">${ph(1, "プロジェクト別", `この${unit}、どのプロジェクトに時間と AI を使ったか`)}
     <div class="pgrid">${cards}</div>
     ${ps.length > LIMIT ? `<button class="pill pmore" id="pmore">${st.allProj ? "上位だけにする" : `ほか ${ps.length - LIMIT} プロジェクトも見る`}</button>` : ""}</section>`;
+}
+/* AI に改善案を聞くためのプロンプト（kiroku 自身は AI を呼ばない。利用者が自分のエージェントに貼る） */
+function askPrompt(w, pw, M){
+  const unit = M ? "月" : "週", u = w.usage || {}, L = [];
+  const start = M ? st.month : st.week, last = M ? new Date(st.month.getFullYear(), st.month.getMonth()+1, 0) : addDays(st.week, 6);
+  const ymd = d => `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  const cut = t => { t = String(t || "").replace(/\s+/g, " ").trim(); return t.length > 60 ? t.slice(0, 60) + "…" : t; };
+  const use = x => [x.tokens ? `トークン ${tok(x.tokens)}` : "", x.cost >= 0.005 ? `目安コスト ${usd(x.cost)}` : "", x.credits ? `クレジット ${cr(x.credits)}` : ""].filter(Boolean).join("、");
+  const prev = (v, p, f) => p == null ? "" : `（前${unit} ${f(p)}）`;
+  L.push(`あなたは AI エージェント活用のアドバイザーです。以下は、私の AI エージェントの利用履歴を kiroku で集計した ${ymd(start)}〜${ymd(last)}（1 ${unit}間）の数値です。限られたクレジットとトークンの中で AI エージェントをより効果的に使うための改善案を提案してください。`,
+    "", "# 回答してほしいこと",
+    "1. データから読み取れる使い方の特徴（良い点と気になる点）",
+    `2. 優先度の高い改善案を 3 つまで。それぞれに、根拠とした数値と、次の${unit}に試せる具体的な行動を添えてください`,
+    `3. 次の${unit}に効果を確かめるための指標`,
+    "", "# 前提",
+    "- 目安コストは、トークン数に API の公開料金を掛けた換算値です。実際の請求額ではありません",
+    "- 指標の定義はエージェントごとに異なります。エージェント同士を直接比較しないでください",
+    "- 数値はすべて履歴から推定した目安です。データから言えないことは、推測であると明記してください",
+    "", "# 全体",
+    `- 作業していた時間: ${dur(w.active)}${prev(w.active, pw && pw.active, dur)}`,
+    `- AI の延べ稼働（並列分を含む）: ${dur(w.ai)}`,
+    `- セッション / 依頼: ${w.sessions} / ${w.prompts}`,
+    `- 集中ブロック（60 分以上）: ${w.focus.length} 回${w.focus.length ? `、最長 ${dur(Math.max(...w.focus.map(b => b.min)))}` : ""}`,
+    `- 1 日のプロジェクト切り替え: 平均 ${w.switchesAvg} 回、最大 ${w.switchesMax} 回`,
+    `- 並列で動かした時間: ${dur(w.parallel)}（最大 ${w.maxConc} 本同時）`,
+    `- 待たせ時間（AI の応答から次の依頼まで）: 中央値 ${secs(w.waitMedian)}、90 パーセンタイル ${secs(w.waitP90)}（n=${w.waitCount}）`,
+    `- 深夜（22〜6 時）: ${dur(w.night)}、週末: ${dur(w.weekend)}`,
+    `- 言い直し・中断のあった依頼: ${w.fixRate == null ? "不明" : w.fixRate + "%"}（n=${w.prompts}）`);
+  if (u.tokens || u.credits){
+    L.push("", "# AI の使用量");
+    if (u.tokens) L.push(`- トークン: ${tok(u.tokens)}（うち出力 ${tok(u.out)}）`,
+      `- 入力のうちキャッシュから読んだ割合: ${u.cacheHit == null ? "不明" : Math.round(u.cacheHit*100) + "%"}`,
+      `- 目安コスト: ${usd(u.cost)}${prev(u.cost, pw && pw.usage && pw.usage.cost, usd)}${w.costPerAsk != null ? `、1 依頼あたり ${usd(w.costPerAsk)}` : ""}`);
+    if (u.credits) L.push(`- Kiro クレジット: ${cr(u.credits)}`);
+    L.push(`- サブエージェント: ${u.subagents} 回${u.subagents ? `（延べ ${dur(u.subMin)}）` : ""}`);
+    if (u.models.length) L.push("- モデル別: " + u.models.slice(0, 6).map(r => `${r[0]}（目安コスト ${usd(r[1])}、トークン ${tok(r[2])}）`).join("、"));
+  }
+  const start0 = M ? st.month : st.week, days = w.days.map((d, i) => [addDays(start0, i), d]).filter(([, d]) => d.active || d.tokens || d.credits);
+  if (days.length){
+    L.push("", "# 日ごと");
+    days.forEach(([dd, d]) => L.push(`- ${md(dd.getTime()/1000)}: 作業 ${dur(d.active)}、依頼 ${d.prompts}、切り替え ${d.switches}${d.night ? `、深夜 ${dur(d.night)}` : ""}${use(d) ? "、" + use(d) : ""}`));
+  }
+  const ps = (w.projectStats || []).slice(0, 8);
+  if (ps.length){
+    L.push("", "# プロジェクト別");
+    ps.forEach(p => {
+      const mt = p.models.reduce((t, m) => t + m.tokens, 0) || 1;
+      L.push(`## ${p.project}`, `- 作業時間: ${dur(p.minutes)}、セッション / 依頼: ${p.sessions} / ${p.prompts}${use(p) ? "、" + use(p) : ""}`);
+      if (p.models.length) L.push("- 中心のモデル: " + p.models.map(m => `${m.model}（${m.tokens ? Math.round(m.tokens*100/mt) + "%" : m.turns + " 回"}）`).join("、"));
+      if (p.top.length) L.push("- 時間を使ったセッション: " + p.top.map(t => `「${cut(t.title)}」${dur(t.minutes)}${use(t) ? "・" + use(t) : ""}`).join("、"));
+      if (p.heavy && use(p.heavy)) L.push(`- 最も重いセッション: 「${cut(p.heavy.title)}」${use(p.heavy)}`);
+    });
+    if ((w.projectStats || []).length > ps.length) L.push(`- ほか ${w.projectStats.length - ps.length} プロジェクト`);
+  }
+  if (w.friction.length){
+    L.push("", "# こじれたかもしれないセッション");
+    w.friction.forEach(f => L.push(`- 「${cut(f.title)}」（${f.project}）: ${f.why.join("、")}`));
+  }
+  if (w.native && w.native.length){
+    L.push("", "# エージェント別の参考指標");
+    w.native.forEach(g => L.push(`- ${g.source}（${g.sessions} セッション）: ` + g.values.map(v => `${v.label} ${nativeText(v)}`).join("、")));
+  }
+  return L.join("\n");
 }
 /* 日ごとの使用量（トークン・目安コスト・クレジットを切り替え） */
 function usageChart(w, M){
