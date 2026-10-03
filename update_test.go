@@ -88,7 +88,7 @@ func TestSelfUpdate(t *testing.T) {
 }
 
 func TestUnknownSubcommand(t *testing.T) {
-	if err := run([]string{"updat"}); err == nil || !strings.Contains(err.Error(), "知らないサブコマンド") {
+	if err := dispatch([]string{"updat"}); err == nil || !strings.Contains(err.Error(), "知らないサブコマンド") {
 		t.Fatalf("err = %v", err)
 	}
 }

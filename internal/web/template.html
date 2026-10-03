@@ -452,7 +452,7 @@ let WEEKS = __WEEKS__;
 let MONTHS = __MONTHS__;
 let META = __META__;
 let GENERATED = __GEN__;
-const LIVE = __LIVE__; // kiroku --serve で開いたとき true
+const LIVE = __LIVE__; // kiroku serve で開いたとき true
 const DOW = ["日","月","火","水","木","金","土"], SLOTS = 8;
 const $ = s => document.querySelector(s);
 const store = { get(k,d){ try { const v = localStorage.getItem("kiroku:"+k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
@@ -631,7 +631,7 @@ function tipOff(){ $("#tip").classList.remove("on"); }
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
   const head = `<div class="rvhead"><h2>${M ? "月次サマリー" : "週次サマリー"}</h2><p>自分の使い方を振り返るための目安です。人と比べたり、評価に使ったりするための数字ではありません。</p></div>`;
-  const cmd = M ? `kiroku --monthly ${mkey(st.month)}` : `kiroku --weekly ${key(st.week)}`;
+  const cmd = M ? `kiroku monthly ${mkey(st.month)}` : `kiroku weekly ${key(st.week)}`;
   if (!w){ R.innerHTML = `${head}<div class="rvgrid"><div class="panel"><p class="none">この${unit}の記録はありません。← → で移動できます。</p>${foot()}</div></div>`; bindCopy(R); return; }
   const d = pw ? w.active - pw.active : null;
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
@@ -832,7 +832,7 @@ const mq = matchMedia("(max-width:820px)"), ph = () => $("#q").placeholder = mq.
 mq.addEventListener("change", () => { ph(); render(); }); ph();
 applyTheme(); render(); scrollToWork();
 
-/* ── live（kiroku --serve） ── 新しい履歴を見つけたら、見ている週・選んだセッションはそのままで取り込む */
+/* ── live（kiroku serve） ── 新しい履歴を見つけたら、見ている週・選んだセッションはそのままで取り込む */
 if (LIVE){
   const badge = $("#live"); badge.hidden = false;
   let busy = false;
@@ -849,7 +849,7 @@ if (LIVE){
         toast(d > 0 ? `新しいセッションを ${d} 件取り込みました` : "最新の履歴を反映しました");
       }
       badge.classList.remove("off"); badge.title = `履歴が増えると自動で反映します（最終確認 ${new Date().toLocaleTimeString("ja-JP")}）`;
-    } catch(e){ badge.classList.add("off"); badge.title = "kiroku --serve とつながっていません。止めた場合は、もう一度起動すると再開します"; }
+    } catch(e){ badge.classList.add("off"); badge.title = "kiroku serve とつながっていません。止めた場合は、もう一度起動すると再開します"; }
     busy = false;
   }
   setInterval(poll, 3000); document.addEventListener("visibilitychange", poll);
