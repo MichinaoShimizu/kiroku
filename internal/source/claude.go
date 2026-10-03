@@ -90,6 +90,7 @@ func (c *Claude) Load(emit func(*core.Builder)) error {
 		calls := map[string]*call{}
 		var callOrder []*call
 		side := core.NewUsage()
+		pending := map[string][]core.Output{} // 成果の印は、ツールの結果が成功だったときだけ数える
 		core.ReadJSONL(path, func(e core.Obj) {
 			typ := core.Str(e["type"])
 			if typ == "summary" && core.Str(e["summary"]) != "" {
@@ -134,6 +135,12 @@ func (c *Claude) Load(emit func(*core.Builder)) error {
 				s.Prompt(t, core.TextOf(msg["content"]))
 				for _, b := range core.List(msg["content"]) {
 					bm := core.Map(b)
+					if id := core.Str(bm["tool_use_id"]); core.Str(bm["type"]) == "tool_result" && pending[id] != nil {
+						if failed, _ := bm["is_error"].(bool); !failed {
+							s.Outputs = append(s.Outputs, pending[id]...)
+						}
+						delete(pending, id)
+					}
 					c := calls[core.Str(bm["tool_use_id"])]
 					if core.Str(bm["type"]) != "tool_result" || c == nil {
 						continue
@@ -162,6 +169,9 @@ func (c *Claude) Load(emit func(*core.Builder)) error {
 					name := core.Str(bm["name"])
 					s.Tool(name, bm["input"])
 					s.Measure("tool_calls", t, 1)
+					if o := core.Outputs(name, bm["input"], t); len(o) > 0 {
+						pending[core.Str(bm["id"])] = o
+					}
 					if subagentTools[name] {
 						inp := core.Map(bm["input"])
 						bg, _ := inp["run_in_background"].(bool)
