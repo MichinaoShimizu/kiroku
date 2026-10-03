@@ -514,207 +514,538 @@ def weekly_markdown(st, prev):
 
 HTML = r"""<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
 <title>kiroku</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='5' fill='%23c8402f'/%3E%3Ctext x='16' y='23' font-size='19' text-anchor='middle' fill='%23fff' font-family='serif'%3E記%3C/text%3E%3C/svg%3E">
 <style>
-:root{--bg:#fafafa;--panel:#fff;--fg:#1f2328;--mute:#6b7280;--line:#e5e7eb;--today:#eef4ff;--now:#e11d48}
-@media (prefers-color-scheme:dark){:root{--bg:#111318;--panel:#1a1d24;--fg:#e6e8eb;--mute:#9aa1ab;--line:#2a2f38;--today:#1b2433}}
-*{box-sizing:border-box}html,body{margin:0;height:100%}
-body{background:var(--bg);color:var(--fg);font:13px/1.5 system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;display:flex;flex-direction:column}
-header{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
-button,select,input{font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer}
-input{cursor:text;min-width:180px}
-#range{font-weight:600;font-size:15px;margin:0 6px}.mute{color:var(--mute)}
-#legend{display:flex;gap:10px;flex-wrap:wrap;padding:6px 14px;border-bottom:1px solid var(--line)}
-#legend span{display:inline-flex;align-items:center;gap:4px;cursor:pointer;user-select:none}#legend span.off{opacity:.35}
-#legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
-main{flex:1;display:flex;min-height:0}
-#cal{flex:1;overflow:auto;position:relative}
-#heads{display:grid;grid-template-columns:48px repeat(7,1fr);position:sticky;top:0;background:var(--panel);z-index:3;border-bottom:1px solid var(--line)}
-#heads div{padding:6px;text-align:center;color:var(--mute)}#heads .today{color:#2563eb;font-weight:700}
-#grid{display:grid;grid-template-columns:48px repeat(7,1fr);position:relative}
-.hours div{height:var(--hh);border-top:1px solid var(--line);font-size:11px;color:var(--mute);text-align:right;padding-right:4px;transform:translateY(-8px);border:0}
-.day{position:relative;border-left:1px solid var(--line);background-image:linear-gradient(var(--line) 1px,transparent 1px);background-size:100% var(--hh)}
-.day.today{background-color:var(--today)}
-.blk{position:absolute;border-radius:3px;border:1px solid rgba(0,0,0,.25);overflow:hidden;font-size:11px;padding:0 3px;cursor:pointer;color:#111;white-space:nowrap;text-overflow:ellipsis}
-.blk:hover,.blk.sel{outline:2px solid var(--fg);z-index:2}
-.now{position:absolute;left:0;right:0;height:2px;background:var(--now);z-index:2}
-aside{width:420px;max-width:45vw;border-left:1px solid var(--line);background:var(--panel);overflow:auto;padding:14px}
-aside h2{font-size:15px;margin:0 0 6px;overflow-wrap:anywhere}aside h3{font-size:12px;color:var(--mute);margin:14px 0 4px;text-transform:uppercase;letter-spacing:.04em}
-aside ol,aside ul{padding-left:18px;margin:0}aside li{margin:3px 0;overflow-wrap:anywhere}
-.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.tile{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
-.tile b{display:block;font-size:18px;font-variant-numeric:tabular-nums}.tile small{color:var(--mute)}
-.bar{display:grid;grid-template-columns:90px 1fr 130px;align-items:center;gap:6px;margin:3px 0}
-.bar span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar span:last-child{white-space:nowrap;font-size:12px}
-.bar i{height:10px;border-radius:2px;display:block}
-table.days{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}table.days td,table.days th{padding:2px 4px;text-align:right;border-bottom:1px solid var(--line)}
-table.days th:first-child,table.days td:first-child{text-align:left}
-.note{font-size:12px;color:var(--mute);margin-top:12px}
-a.sess{color:inherit;cursor:pointer;text-decoration:underline dotted}
-.chip{display:inline-block;border:1px solid var(--line);border-radius:10px;padding:0 8px;margin:2px 4px 2px 0;font-size:12px}
-code{font-size:12px;word-break:break-all}
-@media (max-width:800px){main{flex-direction:column}aside{width:auto;max-width:none;border-left:0;border-top:1px solid var(--line);max-height:45vh}}
-</style></head><body>
+/* ── tokens ─────────────────────────────────────────────── */
+:root{
+  color-scheme:light;
+  --paper:#f6f3ec; --paper-2:#efebe2; --card:#fbf9f5; --ink:#1d1b18; --ink-2:#55514a; --ink-3:#6b665c;
+  --rule:#e2ddd2; --rule-2:#d3cdc0; --shu:#c8402f; --shu-ink:#a8321f; --badge:#c8402f; --night:rgba(60,64,110,.032); --weekend:rgba(29,27,24,.018); --fillk:1;
+  --shadow:0 1px 2px rgba(40,30,10,.06),0 8px 24px -12px rgba(40,30,10,.18);
+  --grain:.07; --c0:#2f5d9e; --c1:#d9572b; --c2:#1f9b7a; --c3:#e0a100; --c4:#d6699a; --c5:#4f8a1e; --c6:#6b5bb5; --c7:#b8433f; --other:#9a958b;
+  --serif:"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP","Noto Serif CJK JP",serif;
+  --sans:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP","Yu Gothic UI",system-ui,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --ease:cubic-bezier(.2,.7,.1,1);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --paper:#141318; --paper-2:#1b1a20; --card:#1d1c22; --ink:#ece8df; --ink-2:#b5afa3; --ink-3:#8b857a;
+  --rule:#2a2830; --rule-2:#36343d; --shu:#e0614c; --shu-ink:#ef7a65; --badge:#c4503d; --night:rgba(140,150,255,.035); --weekend:rgba(255,255,255,.015); --fillk:1.7;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px -12px rgba(0,0,0,.6);
+  --grain:.0; --c0:#4f7fcc; --c1:#e0683a; --c2:#2aa889; --c3:#bf8a00; --c4:#d0628f; --c5:#5f9c2a; --c6:#8f80dc; --c7:#d65a56; --other:#77736b;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#141318; --paper-2:#1b1a20; --card:#1d1c22; --ink:#ece8df; --ink-2:#b5afa3; --ink-3:#8b857a;
+  --rule:#2a2830; --rule-2:#36343d; --shu:#e0614c; --shu-ink:#ef7a65; --badge:#c4503d; --night:rgba(140,150,255,.035); --weekend:rgba(255,255,255,.015); --fillk:1.7;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px -12px rgba(0,0,0,.6);
+  --grain:.0; --c0:#4f7fcc; --c1:#e0683a; --c2:#2aa889; --c3:#bf8a00; --c4:#d0628f; --c5:#5f9c2a; --c6:#8f80dc; --c7:#d65a56; --other:#77736b;
+}
+
+/* ── base ───────────────────────────────────────────────── */
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;opacity:var(--grain);mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .25 0 0 0 0 .2 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+body{background:var(--paper);color:var(--ink);font:13px/1.6 var(--sans);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden;
+  font-feature-settings:"palt" 1}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+:focus-visible{outline:2px solid var(--shu);outline-offset:2px;border-radius:6px}
+.num{font-family:var(--serif);font-variant-numeric:tabular-nums lining-nums;letter-spacing:-.01em}
+.muted{color:var(--ink-3)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+svg.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ── header ─────────────────────────────────────────────── */
+header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:18px;padding:14px 24px 12px;border-bottom:1px solid var(--rule);background:var(--paper);position:relative;z-index:5}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.seal{width:30px;height:30px;border-radius:7px;background:var(--badge);color:#fff;display:grid;place-items:center;font:600 18px/1 var(--serif);transform:rotate(-4deg);
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.28),0 2px 6px -2px rgba(200,64,47,.6)}
+.word{font:600 19px/1 var(--serif);letter-spacing:.06em}
+.tag{font-size:11px;color:var(--ink-3);letter-spacing:.08em;margin-top:3px}
+.weeknav{display:flex;align-items:center;gap:6px}
+.weeknav .range{min-width:232px;text-align:center;padding:0 6px}
+.range .y{display:block;font-size:10.5px;letter-spacing:.2em;color:var(--ink-3)}
+.range .d{font:500 18px/1.25 var(--serif);letter-spacing:.02em;white-space:nowrap}
+.iconbtn{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;color:var(--ink-2);transition:background .2s var(--ease),color .2s}
+.iconbtn:hover{background:var(--paper-2);color:var(--ink)}
+.pill{height:30px;padding:0 12px;border:1px solid var(--rule-2);border-radius:999px;font-size:12px;color:var(--ink-2);transition:all .2s var(--ease);white-space:nowrap}
+.pill:hover{border-color:var(--ink-3);color:var(--ink)}
+.tools{display:flex;align-items:center;gap:8px;justify-self:end}
+.seg{display:inline-flex;padding:3px;border-radius:10px;background:var(--paper-2);gap:2px}
+.seg button{height:26px;padding:0 10px;border-radius:7px;font-size:12px;color:var(--ink-2);transition:all .2s var(--ease);white-space:nowrap}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.search{position:relative}
+.search input{width:200px;height:32px;border-radius:9px;border:1px solid var(--rule-2);background:var(--card);padding:0 30px 0 32px;font-size:12.5px;transition:border-color .2s,width .3s var(--ease)}
+.search input:focus{outline:none;border-color:var(--ink-3);width:240px}
+.search svg{position:absolute;left:10px;top:8px;color:var(--ink-3)}
+.search kbd{position:absolute;right:8px;top:7px}
+kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid var(--rule-2);color:var(--ink-3);background:var(--card)}
+
+/* ── legend ─────────────────────────────────────────────── */
+.legend{display:flex;align-items:center;gap:6px;padding:10px 24px;border-bottom:1px solid var(--rule);overflow-x:auto;scrollbar-width:none}
+.legend::-webkit-scrollbar{display:none}
+.legend .lab{font-size:11px;letter-spacing:.14em;color:var(--ink-3);margin-right:6px;white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 10px 0 8px;border-radius:999px;font-size:12px;color:var(--ink-2);border:1px solid transparent;transition:all .2s var(--ease);white-space:nowrap}
+.chip:hover{background:var(--paper-2)}
+.chip .dot{width:9px;height:9px;border-radius:3px;background:var(--c)}
+.chip .n{font:11px var(--sans);color:var(--ink-3);font-variant-numeric:tabular-nums}
+.chip[aria-pressed="false"]{opacity:.42}.chip[aria-pressed="false"] .dot{background:transparent;box-shadow:inset 0 0 0 1.5px var(--c)}
+.legend .count{margin-left:auto;font-size:12px;color:var(--ink-3);white-space:nowrap;padding-left:12px}
+
+/* ── layout ─────────────────────────────────────────────── */
+main{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 400px;min-height:0}
+#cal{overflow:auto;position:relative;scroll-behavior:smooth;scrollbar-width:thin}
+aside{border-left:1px solid var(--rule);background:var(--card);overflow:auto;position:relative;scrollbar-width:thin}
+
+/* ── calendar ───────────────────────────────────────────── */
+.heads{display:grid;grid-template-columns:56px repeat(7,minmax(0,1fr));position:sticky;top:0;z-index:4;background:color-mix(in oklab,var(--paper) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+.head{padding:10px 10px 9px;display:flex;align-items:baseline;gap:7px;border-left:1px solid transparent}
+.head .dn{font:500 22px/1 var(--serif);font-variant-numeric:tabular-nums}
+.head .dw{font-size:11px;color:var(--ink-3);letter-spacing:.1em}
+.head .dm{font-size:10.5px;color:var(--shu-ink);letter-spacing:.06em;font-variant-numeric:tabular-nums;order:-1;margin-right:-2px}
+.head.today .dn{color:#fff;background:var(--badge);border-radius:999px;padding:4px 7px 5px;margin:-4px 0 -5px -2px}
+.head.today .dw{color:var(--shu-ink)}
+.grid{display:grid;grid-template-columns:56px repeat(7,minmax(0,1fr));position:relative}
+.hours{position:relative}
+.hours span{position:absolute;right:10px;transform:translateY(-50%);font-size:10.5px;color:var(--ink-3);font-variant-numeric:tabular-nums;letter-spacing:.04em}
+.day{position:relative;border-left:1px solid var(--rule);
+  background-image:linear-gradient(var(--rule) 1px,transparent 1px),linear-gradient(90deg,transparent 0 50%,transparent 50%);
+  background-size:100% var(--hh)}
+.day.we{background-color:var(--weekend)}
+.day.today{background-color:color-mix(in oklab,var(--shu) 4%,transparent)}
+.nightband{position:absolute;left:0;right:0;background:var(--night);pointer-events:none}
+.half{position:absolute;left:0;right:0;border-top:1px dashed color-mix(in oklab,var(--rule) 70%,transparent);pointer-events:none}
+.blk{position:absolute;border-radius:2px 6px 6px 2px;padding:3px 6px 0 7px;overflow:hidden;cursor:pointer;
+  background:color-mix(in oklab,var(--c) calc(var(--fill) * var(--fillk)),var(--paper));box-shadow:inset 3px 0 0 var(--c);
+  font-size:11px;line-height:1.35;color:var(--ink);text-align:left;
+  transition:transform .18s var(--ease),box-shadow .18s var(--ease),opacity .25s var(--ease),filter .25s;
+  animation:rise .5s var(--ease) both;animation-delay:var(--delay,0ms)}
+.blk.thin{border-radius:1px 3px 3px 1px;padding:0}
+.blk .t{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blk .m{display:block;color:var(--ink-2);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.blk:hover{transform:translateY(-1px);box-shadow:inset 3px 0 0 var(--c),var(--shadow);z-index:3}
+.grid.focus .blk{opacity:.28;filter:saturate(.6)}
+.grid.focus .blk.sel{opacity:1;filter:none;box-shadow:inset 3px 0 0 var(--c),0 0 0 1.5px var(--c),var(--shadow);z-index:3}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}}
+.now{position:absolute;left:-5px;right:0;height:0;border-top:1.5px solid var(--shu);z-index:3;pointer-events:none}
+.now::before{content:"";position:absolute;left:0;top:-5px;width:9px;height:9px;border-radius:50%;background:var(--shu);box-shadow:0 0 0 3px color-mix(in oklab,var(--shu) 25%,transparent)}
+.nowlab{position:absolute;right:6px;transform:translateY(-50%);font:600 10px/1 var(--sans);color:#fff;background:var(--badge);padding:3px 5px;border-radius:4px;z-index:3;font-variant-numeric:tabular-nums}
+.empty{position:sticky;top:38%;height:0;margin-left:56px;text-align:center;pointer-events:none;z-index:2}
+.empty div{transform:translateY(-50%)}
+.empty .k{width:72px;height:72px;margin:0 auto;border-radius:16px;border:2px solid var(--rule-2);color:var(--rule-2);display:grid;place-items:center;font:500 40px/1 var(--serif);transform:rotate(-4deg)}
+.empty p{color:var(--ink-3);margin:12px 0 0}
+.daytabs{display:none}
+
+/* tooltip */
+.tip{position:fixed;z-index:20;pointer-events:none;max-width:280px;background:var(--ink);color:var(--paper);border-radius:10px;padding:9px 11px;font-size:12px;line-height:1.5;
+  box-shadow:0 10px 30px -10px rgba(0,0,0,.5);opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s var(--ease)}
+.tip.on{opacity:1;transform:none}
+.tip b{display:block;font-weight:600;margin-bottom:2px}
+.tip .r{display:flex;align-items:center;gap:6px;color:color-mix(in oklab,var(--paper) 72%,transparent);font-variant-numeric:tabular-nums}
+.tip .r i{width:8px;height:8px;border-radius:2px;background:var(--c)}
+
+/* ── panel ──────────────────────────────────────────────── */
+.pane{padding:26px 28px 40px;animation:fade .35s var(--ease) both}
+@keyframes fade{from{opacity:0;transform:translateX(8px)}}
+.eyebrow{font-size:10.5px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.eyebrow .dot{width:8px;height:8px;border-radius:2px;background:var(--c)}
+h2{font:500 21px/1.45 var(--serif);margin:6px 0 4px;letter-spacing:.01em;overflow-wrap:anywhere}
+h3{font:600 11px/1 var(--sans);letter-spacing:.18em;color:var(--ink-3);margin:30px 0 12px;display:flex;align-items:center;gap:10px}
+h3::after{content:"";flex:1;height:1px;background:var(--rule)}
+.hero{margin:18px 0 6px}
+.hero .big{display:flex;align-items:baseline;gap:2px}
+.hero .big .num{font-size:52px;line-height:1;font-weight:500}
+.hero .big .u{font:500 15px var(--serif);color:var(--ink-2);margin:0 6px 0 3px}
+.hero .cap{color:var(--ink-2);margin-top:8px;font-size:12.5px}
+.delta{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-2);background:var(--paper-2);border-radius:999px;padding:2px 9px;margin-left:8px;font-variant-numeric:tabular-nums}
+.stats{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--rule);margin-top:20px}
+.stat{padding:14px 0 13px;border-bottom:1px solid var(--rule)}
+.stat:nth-child(odd){padding-right:14px;border-right:1px solid var(--rule)}
+.stat:nth-child(even){padding-left:16px}
+.stat .k{font-size:11.5px;color:var(--ink-3)}
+.stat .v{font:500 22px/1.25 var(--serif);font-variant-numeric:tabular-nums;margin-top:3px}
+.stat .v small{font:500 12px var(--serif);color:var(--ink-2);margin-left:2px}
+.stat .s{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.rhythm{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:end;height:132px;padding-top:6px}
+.col{display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;cursor:default;min-width:0}
+.bar{width:100%;max-width:30px;border-radius:4px 4px 1px 1px;background:var(--ink);opacity:.82;display:flex;flex-direction:column-reverse;overflow:hidden;min-height:2px;transition:opacity .2s}
+.bar .nt{background:repeating-linear-gradient(135deg,var(--ink) 0 2px,var(--ink-3) 2px 4px)}
+.col:hover .bar{opacity:1}
+.col .l{font-size:11px;color:var(--ink-3)}
+.col.today .l{color:var(--shu-ink);font-weight:600}
+.col .v{font-size:10.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;height:14px}
+.keyrow{display:flex;gap:14px;font-size:11px;color:var(--ink-3);margin-top:14px;justify-content:flex-end}
+.keyrow i{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:5px;background:var(--ink);opacity:.82}
+.keyrow i.nt{background:repeating-linear-gradient(135deg,var(--ink) 0 2px,var(--ink-3) 2px 4px)}
+.stack{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;margin-bottom:12px}
+.stack span{background:var(--c);min-width:2px}
+.prow{display:grid;grid-template-columns:12px 1fr auto 42px;align-items:center;gap:8px;padding:5px 0;font-size:12.5px}
+.prow i{width:9px;height:9px;border-radius:3px;background:var(--c)}
+.prow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .tm{color:var(--ink-2);font-variant-numeric:tabular-nums}
+.prow .pc{text-align:right;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.focusrow{display:grid;grid-template-columns:86px 1fr 62px;gap:10px;align-items:center;padding:5px 0;font-size:12px}
+.focusrow .when{color:var(--ink-2);font-variant-numeric:tabular-nums}
+.focusrow .track{height:6px;border-radius:3px;background:var(--paper-2);overflow:hidden}
+.focusrow .track span{display:block;height:100%;background:var(--c);border-radius:3px}
+.focusrow .len{text-align:right;font-variant-numeric:tabular-nums}
+.card{display:block;width:100%;text-align:left;padding:11px 13px;border:1px solid var(--rule);border-radius:10px;margin-bottom:8px;transition:all .2s var(--ease);background:var(--card)}
+.card:hover{border-color:var(--rule-2);box-shadow:var(--shadow);transform:translateY(-1px)}
+.card .ti{font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .me{font-size:11.5px;color:var(--ink-3);display:flex;gap:8px;align-items:center;margin-top:3px;flex-wrap:wrap}
+.tagx{font-size:11px;color:var(--shu-ink);background:color-mix(in oklab,var(--shu) 10%,transparent);border-radius:4px;padding:0 6px}
+.none{color:var(--ink-3);font-size:12.5px}
+.foot{margin-top:30px;padding-top:16px;border-top:1px solid var(--rule);font-size:11.5px;color:var(--ink-3);line-height:1.75}
+.code{display:flex;align-items:center;gap:8px;margin-top:10px;background:var(--paper-2);border-radius:8px;padding:7px 8px 7px 11px;font:11.5px/1.5 var(--mono);color:var(--ink-2)}
+.code code{flex:1;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
+.copy{font:11px var(--sans);color:var(--ink-2);border:1px solid var(--rule-2);border-radius:6px;padding:3px 8px;background:var(--card);flex:none}
+.copy:hover{color:var(--ink);border-color:var(--ink-3)}
+.back{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3);margin-bottom:18px}
+.back:hover{color:var(--ink)}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.meta span{font-size:11.5px;color:var(--ink-2);border:1px solid var(--rule);border-radius:999px;padding:1px 9px}
+.mini{display:grid;grid-template-columns:1fr 1fr;margin-top:18px;border-top:1px solid var(--rule)}
+.mini>div{padding:11px 0 10px;border-bottom:1px solid var(--rule)}
+.mini>div:nth-child(odd){border-right:1px solid var(--rule);padding-right:12px}.mini>div:nth-child(even){padding-left:16px}
+.mini .k{font-size:11px;color:var(--ink-3)}
+.mini .v{font:500 20px/1.3 var(--serif);font-variant-numeric:tabular-nums}.mini .v small{font-size:12px;color:var(--ink-2);margin-left:1px}
+.tl{list-style:none;margin:0;padding:0;position:relative}
+.tl::before{content:"";position:absolute;left:44px;top:6px;bottom:6px;width:1px;background:var(--rule)}
+.tl li{display:grid;grid-template-columns:38px 1fr;gap:18px;padding:5px 0;position:relative;font-size:12.5px;line-height:1.6}
+.tl li::before{content:"";position:absolute;left:41px;top:12px;width:7px;height:7px;border-radius:50%;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--c)}
+.tl li.fix::before{background:var(--shu);box-shadow:none}
+.tl time{color:var(--ink-3);font-variant-numeric:tabular-nums;font-size:11.5px;padding-top:1px}
+.tl p{margin:0;overflow-wrap:anywhere}
+.more{font-size:12px;color:var(--ink-3);margin:6px 0 0 56px}
+.trow{display:grid;grid-template-columns:110px 1fr 28px;gap:10px;align-items:center;font-size:12px;padding:3px 0}
+.trow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);font-size:11.5px}
+.trow .track{height:6px;border-radius:3px;background:var(--paper-2)}
+.trow .track span{display:block;height:100%;border-radius:3px;background:var(--ink-3)}
+.trow .n{text-align:right;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.files{list-style:none;padding:0;margin:0;font:11.5px/1.7 var(--mono);color:var(--ink-2)}
+.files li{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:rtl;text-align:left}
+.files li span{direction:ltr;unicode-bidi:plaintext}
+
+/* toast & dialog */
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,12px);background:var(--ink);color:var(--paper);padding:8px 14px;border-radius:999px;font-size:12.5px;opacity:0;transition:all .25s var(--ease);z-index:30;pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+dialog{border:0;border-radius:16px;padding:26px 28px;background:var(--card);color:var(--ink);box-shadow:0 30px 80px -20px rgba(0,0,0,.45);width:min(420px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(20,18,15,.35);backdrop-filter:blur(3px)}
+dialog h2{margin-top:0}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:9px 16px;font-size:12.5px;margin-top:14px;align-items:center}
+.keys kbd{justify-self:start}
+
+/* ── responsive ─────────────────────────────────────────── */
+@media (max-width:1180px){main{grid-template-columns:minmax(0,1fr) 340px}.pane{padding:22px 20px 36px}.search input{width:150px}.search input:focus{width:180px}}
+@media (max-width:1280px){.tag{display:none}}
+@media (max-width:1100px){.tools .seg:not(.zoom){display:none}.search kbd{display:none}}
+@media (max-width:820px){
+  body{overflow:auto;height:auto}
+  header{grid-template-columns:1fr auto;gap:10px;padding:12px 16px}
+  .weeknav{order:3;grid-column:1/-1;justify-content:space-between}
+  .tools{margin-left:auto}.tools .seg,.tools .zoom{display:none}
+  .search input,.search input:focus{width:130px}
+  .legend{padding:8px 16px}
+  main{display:block}
+  #cal{overflow:visible;height:auto}
+  .daytabs{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:8px 12px;border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--paper);z-index:6}
+  .daytabs button{padding:6px 0 7px;border-radius:9px;display:flex;flex-direction:column;align-items:center;gap:1px;color:var(--ink-2)}
+  .daytabs b{font:500 17px/1.1 var(--serif)}.daytabs small{font-size:10px;color:var(--ink-3)}
+  .daytabs button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}.daytabs button[aria-pressed="true"] small{color:inherit;opacity:.7}
+  .daytabs button.has::after{content:"";width:4px;height:4px;border-radius:50%;background:var(--shu);margin-top:2px}
+  .heads{display:none}
+  .grid{grid-template-columns:48px minmax(0,1fr);max-height:62vh;overflow:auto}
+  .grid .day.mh{display:none}
+  .empty{margin-left:48px;top:30%}
+  aside{border-left:0;border-top:1px solid var(--rule)}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media (forced-colors:active){.blk{border:1px solid CanvasText}}
+</style></head>
+<body>
 <header>
-  <b style="font-size:15px;margin-right:6px">kiroku</b>
-  <button id="today">今週</button><button id="prev">◀</button><button id="next">▶</button>
-  <span id="range"></span><span class="mute" id="count"></span>
-  <span style="flex:1"></span>
-  <label class="mute">色分け <select id="colorBy"><option value="project">プロジェクト</option><option value="branch">ブランチ</option><option value="source">ツール</option></select></label>
-  <button id="summary">週のまとめ</button>
-  <button id="zout">−</button><button id="zin">＋</button>
-  <input id="q" placeholder="検索（タイトル・依頼文）">
+  <div class="brand"><div class="seal" aria-hidden="true">記</div><div><div class="word">kiroku</div><div class="tag">AIと過ごした時間の記録</div></div></div>
+  <nav class="weeknav" aria-label="週の移動">
+    <button class="iconbtn" id="prev" aria-label="前の週"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <div class="range" aria-live="polite"><span class="y" id="ry"></span><span class="d" id="rd"></span></div>
+    <button class="iconbtn" id="next" aria-label="次の週"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button class="pill" id="today">今週</button>
+  </nav>
+  <div class="tools">
+    <div class="seg" role="group" aria-label="色分け" id="colorBy">
+      <button data-v="project">プロジェクト</button><button data-v="branch">ブランチ</button><button data-v="source">ツール</button>
+    </div>
+    <div class="seg zoom" role="group" aria-label="ズーム">
+      <button id="zout" aria-label="縮小">−</button><button id="zin" aria-label="拡大">＋</button>
+    </div>
+    <label class="search"><span class="sr">検索</span>
+      <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+      <input id="q" type="search" placeholder="タイトル・依頼文で探す" autocomplete="off"><kbd>/</kbd></label>
+    <button class="iconbtn" id="theme" aria-label="テーマを切り替え"></button>
+    <button class="iconbtn" id="help" aria-label="ショートカット"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 014.8.9c0 1.7-2.4 2.2-2.4 3.6M12 17h.01"/></svg></button>
+  </div>
 </header>
-<div id="legend"></div>
-<main><div id="cal"><div id="heads"></div><div id="grid"></div></div>
-<aside id="detail"></aside></main>
+<div class="legend" id="legend" aria-label="凡例"></div>
+<main>
+  <section id="cal" aria-label="週カレンダー">
+    <div class="daytabs" id="daytabs" role="group" aria-label="曜日"></div>
+    <div class="heads" id="heads"></div>
+    <div class="grid" id="grid"></div>
+  </section>
+  <aside id="panel" aria-live="polite"></aside>
+</main>
+<div class="tip" id="tip" role="tooltip"></div>
+<div class="toast" id="toast" role="status"></div>
+<dialog id="keys">
+  <div class="eyebrow">Shortcuts</div><h2>キーボード操作</h2>
+  <div class="keys">
+    <kbd>←</kbd><span>前の週</span><kbd>→</kbd><span>次の週</span><kbd>T</kbd><span>今週に戻る</span>
+    <kbd>/</kbd><span>検索</span><kbd>+</kbd><span>拡大（<kbd>−</kbd> で縮小）</span>
+    <kbd>Esc</kbd><span>選択を外して週のまとめに戻る</span><kbd>?</kbd><span>この一覧</span>
+  </div>
+  <form method="dialog" style="margin-top:22px;text-align:right"><button class="pill">閉じる</button></form>
+</dialog>
 <script>
 const DATA = __DATA__;
-const GENERATED = __GEN__;
 const WEEKS = __WEEKS__;
-const PALETTE = ["#a78bfa","#f0b35a","#7dd3a8","#7aa7f0","#f28b8b","#c49a6c","#5fc4d0","#e58fd6","#b5c26b","#9ca3af","#f6a2b5","#86b0a0"];
-const DOW = ["日","月","火","水","木","金","土"];
+const GENERATED = __GEN__;
+const DOW = ["日","月","火","水","木","金","土"], SLOTS = 8;
 const $ = s => document.querySelector(s);
-let hh = 40, weekStart = mondayOf(new Date()), colorBy = "project", hidden = new Set(), selected = null, q = "";
-function mondayOf(d){ d = new Date(d); d.setHours(0,0,0,0); d.setDate(d.getDate() - ((d.getDay()+6)%7)); return d; }
-function fmt(t,o){ return new Date(t*1000).toLocaleString("ja-JP",o); }
-function hm(t){ return fmt(t,{hour:"2-digit",minute:"2-digit"}); }
-function dur(s){ s = Math.round(s/60); return s < 60 ? s+"分" : Math.floor(s/60)+"時間"+(s%60 ? (s%60)+"分" : ""); }
-function esc(s){ return String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
-const keyOf = s => colorBy === "project" ? s.project : colorBy === "source" ? s.source : (s.project + " @ " + (s.branch || "-"));
-let colors = {};
-function assignColors(){
-  const counts = {}; DATA.forEach(s => counts[keyOf(s)] = (counts[keyOf(s)]||0) + 1);
-  colors = {}; Object.keys(counts).sort((a,b)=>counts[b]-counts[a]).forEach((k,i)=>colors[k]=PALETTE[i%PALETTE.length]);
-  return counts;
+const store = { get(k,d){ try { const v = localStorage.getItem("kiroku:"+k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
+                set(k,v){ try { localStorage.setItem("kiroku:"+k, JSON.stringify(v)); } catch(e){} } };
+const st = { hh: store.get("hh", 44), colorBy: store.get("colorBy", "project"), theme: store.get("theme", "auto"),
+             week: mondayOf(new Date()), hidden: new Set(), sel: null, q: "", mday: (new Date().getDay()+6)%7, animate: true };
+
+/* ── helpers ── */
+function mondayOf(d){ d = new Date(d); d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d; }
+function addDays(d,n){ d = new Date(d); d.setDate(d.getDate()+n); return d; }
+function key(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function hm(t){ return new Date(t*1000).toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"}); }
+function md(t){ const d = new Date(t*1000); return `${d.getMonth()+1}/${d.getDate()}(${DOW[d.getDay()]})`; }
+function dur(m, html){ m = Math.round(m); const h = Math.floor(m/60), r = m%60;
+  if (!html) return h ? `${h}時間${r ? String(r).padStart(2,"0")+"分" : ""}` : `${r}分`;
+  return h ? `${h}<small>時間</small>${r ? String(r).padStart(2,"0")+"<small>分</small>" : ""}` : `${r}<small>分</small>`; }
+function secs(v){ return v == null ? "—" : v < 60 ? `${v}秒` : `${Math.floor(v/60)}分${String(v%60).padStart(2,"0")}秒`; }
+function isoWeek(d){ d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const n = d.getUTCDay() || 7; d.setUTCDate(d.getUTCDate()+4-n);
+  const y0 = new Date(Date.UTC(d.getUTCFullYear(),0,1)); return Math.ceil(((d-y0)/864e5+1)/7); }
+const keyOf = s => st.colorBy === "project" ? s.project : st.colorBy === "source" ? s.source : `${s.project} · ${s.branch || "—"}`;
+let slot = {};
+function assignColors(){ // 全期間の多い順に固定。週を変えても、非表示にしても色は変わらない
+  const n = {}; DATA.forEach(s => n[keyOf(s)] = (n[keyOf(s)]||0) + 1);
+  slot = {}; Object.keys(n).sort((a,b)=>n[b]-n[a]).forEach((k,i) => slot[k] = i < SLOTS ? `var(--c${i})` : "var(--other)");
 }
+const colorOf = k => slot[k] || "var(--other)";
 function matches(s){
-  if (hidden.has(keyOf(s))) return false;
-  if (!q) return true;
-  const hay = (s.title + " " + s.source + " " + s.project + " " + (s.branch||"") + " " + s.prompts.map(p=>p.text).join(" ")).toLowerCase();
-  return hay.includes(q);
+  if (st.hidden.has(keyOf(s))) return false;
+  if (!st.q) return true;
+  return (s.title+" "+s.project+" "+(s.branch||"")+" "+s.source+" "+s.prompts.map(p=>p.text).join(" ")).toLowerCase().includes(st.q);
 }
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(()=>t.classList.remove("on"), 1600); }
+async function copy(text){ try { await navigator.clipboard.writeText(text); toast("コピーしました"); } catch(e){ toast("コピーできませんでした"); } }
+const ICON = { auto:'<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 000 16z" fill="currentColor"/></svg>',
+  light:'<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6L6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></svg>',
+  dark:'<svg class="i" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>' };
+function applyTheme(){ const r = document.documentElement; st.theme === "auto" ? r.removeAttribute("data-theme") : r.setAttribute("data-theme", st.theme);
+  $("#theme").innerHTML = ICON[st.theme]; $("#theme").setAttribute("aria-label", `テーマ: ${{auto:"自動",light:"ライト",dark:"ダーク"}[st.theme]}`); }
+
+/* ── render ── */
 function render(){
-  document.documentElement.style.setProperty("--hh", hh+"px");
-  const ws = weekStart.getTime()/1000, we = ws + 7*86400, todayIdx = Math.floor((mondayOf(new Date()).getTime()/1000 === ws) ? ((new Date().getDay()+6)%7) : -1);
-  const end = new Date((we-1)*1000);
-  $("#range").textContent = `${weekStart.getFullYear()}年${weekStart.getMonth()+1}/${weekStart.getDate()}〜${end.getMonth()+1}/${end.getDate()}`;
-  const counts = assignColors();
-  // legend
-  const weekKeys = {}; DATA.filter(s=>s.end>=ws && s.start<we).forEach(s=>weekKeys[keyOf(s)]=(weekKeys[keyOf(s)]||0)+1);
-  $("#legend").innerHTML = Object.keys(weekKeys).sort((a,b)=>weekKeys[b]-weekKeys[a]).map(k =>
-    `<span data-k="${esc(k)}" class="${hidden.has(k)?"off":""}"><i style="background:${colors[k]}"></i>${esc(k)} <b class="mute">${weekKeys[k]}</b></span>`).join("") || '<span class="mute">この週のセッションはありません</span>';
-  document.querySelectorAll("#legend span[data-k]").forEach(el => el.onclick = () => { const k = el.dataset.k; hidden.has(k) ? hidden.delete(k) : hidden.add(k); render(); });
-  // heads
-  let h = "<div></div>";
-  for (let i=0;i<7;i++){ const d = new Date(weekStart); d.setDate(d.getDate()+i);
-    h += `<div class="${i===todayIdx?"today":""}">${DOW[d.getDay()]} ${d.getMonth()+1}/${d.getDate()}</div>`; }
-  $("#heads").innerHTML = h;
+  document.documentElement.style.setProperty("--hh", st.hh+"px");
+  assignColors();
+  const ws = st.week.getTime()/1000, we = addDays(st.week,7).getTime()/1000;
+  const todayKey = key(new Date()), end = addDays(st.week,6);
+  $("#ry").textContent = `${st.week.getFullYear()} · WEEK ${isoWeek(st.week)}`;
+  $("#rd").textContent = `${st.week.getMonth()+1}月${st.week.getDate()}日 — ${end.getMonth()+1}月${end.getDate()}日`;
+  document.querySelectorAll("#colorBy button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.colorBy));
+
+  const inWeek = DATA.filter(s => s.end >= ws && s.start < we);
+  const shown = inWeek.filter(matches);
+  // legend（今週あるものを多い順に）
+  const cnt = {}; inWeek.forEach(s => cnt[keyOf(s)] = (cnt[keyOf(s)]||0)+1);
+  $("#legend").innerHTML = `<span class="lab">${{project:"プロジェクト",branch:"ブランチ",source:"ツール"}[st.colorBy]}</span>` +
+    Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}"><span class="dot"></span>${esc(k)}<span class="n">${cnt[k]}</span></button>`).join("") +
+    (inWeek.length ? "" : '<span class="muted" style="font-size:12px">この週の記録はありません</span>') + `<span class="count">${shown.length} / ${inWeek.length} セッション</span>`;
+  document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
+
+  // day heads + tabs
+  const dayHas = Array.from({length:7}, () => false);
+  shown.forEach(s => s.segs.forEach(([a,b]) => { for (let d=0; d<7; d++){ const ds = addDays(st.week,d).getTime()/1000; if (Math.min(b, ds+86400) > Math.max(a, ds)) dayHas[d] = true; } }));
+  let h = '<div></div>', tabs = "";
+  for (let i=0;i<7;i++){ const d = addDays(st.week,i), t = key(d) === todayKey;
+    h += `<div class="head${t?" today":""}"><span class="dn">${d.getDate()}</span><span class="dw">${DOW[d.getDay()]}</span>${i===0||d.getDate()===1?`<span class="dm">${d.getMonth()+1}月</span>`:""}</div>`;
+    tabs += `<button aria-pressed="${i===st.mday}" data-i="${i}" class="${dayHas[i]?"has":""}"><small>${DOW[d.getDay()]}</small><b>${d.getDate()}</b></button>`; }
+  $("#heads").innerHTML = h; $("#daytabs").innerHTML = tabs;
+  document.querySelectorAll("#daytabs button").forEach(b => b.onclick = () => { st.mday = +b.dataset.i; st.animate = true; render(); });
+
   // grid
-  let g = '<div class="hours">' + Array.from({length:24},(_,i)=>`<div>${i?i+":00":""}</div>`).join("") + "</div>";
-  for (let i=0;i<7;i++) g += `<div class="day ${i===todayIdx?"today":""}" style="height:${24*hh}px" data-i="${i}"></div>`;
-  $("#grid").innerHTML = g;
-  const days = [...document.querySelectorAll(".day")];
-  // collect blocks per day, split at midnight
-  const perDay = Array.from({length:7},()=>[]);
-  let n = 0;
-  DATA.forEach(s => {
-    if (s.end < ws || s.start >= we || !matches(s)) return; n++;
-    s.segs.forEach(([a,b,cnt]) => {
-      for (let d=0; d<7; d++){
-        const ds = ws + d*86400, de = ds + 86400;
-        // DST を気にするなら Date で日境界を作るべきだが、日本時間なら問題なし
-        const x = Math.max(a, ds), y = Math.min(b, de);
-        if (y > x) perDay[d].push({s, a:x, b:y, cnt});
-      }
-    });
-  });
-  $("#count").textContent = `${n} セッション / 全 ${DATA.length}`;
+  const H = 24*st.hh;
+  let g = `<div class="hours" style="height:${H}px">` + Array.from({length:23},(_,i)=>`<span style="top:${(i+1)*st.hh}px">${String(i+1).padStart(2,"0")}:00</span>`).join("") + "</div>";
+  for (let i=0;i<7;i++){ const d = addDays(st.week,i);
+    g += `<div class="day${d.getDay()%6===0?" we":""}${key(d)===todayKey?" today":""}${i!==st.mday?" mh":""}" style="height:${H}px" data-i="${i}">
+      <div class="nightband" style="top:0;height:${6*st.hh}px"></div><div class="nightband" style="top:${22*st.hh}px;height:${2*st.hh}px"></div>
+      ${st.hh >= 56 ? Array.from({length:24},(_,k)=>`<div class="half" style="top:${(k+.5)*st.hh}px"></div>`).join("") : ""}</div>`; }
+  const grid = $("#grid"); grid.innerHTML = g; grid.classList.toggle("focus", !!st.sel);
+  const days = [...grid.querySelectorAll(".day")];
+
+  const perDay = Array.from({length:7}, () => []);
+  shown.forEach(s => s.segs.forEach(([a,b,n]) => { for (let d=0; d<7; d++){
+    const ds = addDays(st.week,d).getTime()/1000, de = addDays(st.week,d+1).getTime()/1000, x = Math.max(a,ds), y = Math.min(b,de);
+    if (y > x) perDay[d].push({s, a:x, b:y, n, ds}); } }));
   perDay.forEach((blocks, d) => {
-    const ds = ws + d*86400;
-    blocks.sort((p,r)=>p.a-r.a);
-    const lanes = [];  // 重なりはレーンに分けて横に並べる
-    blocks.forEach(bk => { let i = lanes.findIndex(e => e <= bk.a); if (i<0){ i = lanes.length; lanes.push(0);} lanes[i] = bk.b + 120; bk.lane = i; });
-    const L = Math.max(1, lanes.length);
-    blocks.forEach(bk => {
-      const top = (bk.a-ds)/3600*hh, height = Math.max(3, (bk.b-bk.a)/3600*hh);
-      const el = document.createElement("div");
-      el.className = "blk" + (selected===bk.s.id ? " sel" : "");
-      const dens = Math.min(1, bk.cnt / Math.max(1,(bk.b-bk.a)/60) / 3); // 1 分あたりの発言量で濃さ
-      el.style.cssText = `top:${top}px;height:${height}px;left:calc(${bk.lane/L*100}% + 1px);width:calc(${100/L}% - 2px);background:${colors[keyOf(bk.s)]};opacity:${0.45+0.55*dens}`;
-      el.title = `${bk.s.title}\n[${bk.s.source}] ${bk.s.project}${bk.s.branch?" @ "+bk.s.branch:""}\n${hm(bk.a)}–${hm(bk.b)}`;
-      if (height > 14) el.textContent = bk.s.title;
-      el.onclick = () => { selected = bk.s.id; showDetail(bk.s); render(); };
+    blocks.sort((p,q) => p.a-q.a || q.b-p.b);
+    // 重なるものだけ横に並べる（クラスタごとにレーン数を決める）
+    let cluster = [], cEnd = -1;
+    const flush = () => { const lanes = []; cluster.forEach(bk => { let i = lanes.findIndex(e => e <= bk.a); if (i<0){ i = lanes.length; lanes.push(0); } lanes[i] = bk.b; bk.lane = i; }); cluster.forEach(bk => bk.L = lanes.length); cluster = []; };
+    blocks.forEach(bk => { if (bk.a >= cEnd) { flush(); cEnd = bk.b; } else cEnd = Math.max(cEnd, bk.b); cluster.push(bk); }); flush();
+    blocks.forEach((bk, j) => {
+      const top = (bk.a-bk.ds)/3600*st.hh, height = Math.max(4, (bk.b-bk.a)/3600*st.hh - 1);
+      const dens = Math.min(1, bk.n / Math.max(1,(bk.b-bk.a)/60) / 2.5);
+      const el = document.createElement("button");
+      el.className = "blk" + (height < 10 ? " thin" : "") + (st.sel === bk.s.id ? " sel" : "");
+      el.style.cssText = `top:${top}px;height:${height}px;left:calc(${bk.lane/bk.L*100}% + 3px);width:calc(${100/bk.L}% - 6px);--c:${colorOf(keyOf(bk.s))};--fill:${Math.round(14+30*dens)}%;${st.animate?`--delay:${d*28+Math.min(j,12)*8}ms`:"animation:none"}`;
+      el.setAttribute("aria-label", `${bk.s.title}、${bk.s.project}、${md(bk.a)} ${hm(bk.a)}から${hm(bk.b)}`);
+      if (height >= 18) el.innerHTML = `<span class="t">${esc(bk.s.title)}</span>` + (height >= 34 ? `<span class="m">${hm(bk.a)}–${hm(bk.b)} · ${esc(bk.s.project)}</span>` : "");
+      el.onclick = e => { e.stopPropagation(); select(bk.s.id); };
+      el.onmouseenter = e => tipOn(e, bk); el.onmousemove = tipMove; el.onmouseleave = tipOff;
       days[d].appendChild(el);
     });
   });
-  if (todayIdx >= 0){ const now = Date.now()/1000, ds = ws + todayIdx*86400; const ln = document.createElement("div"); ln.className="now"; ln.style.top = ((now-ds)/3600*hh)+"px"; days[todayIdx].appendChild(ln); }
-  if (!selected) showSummary();
+  const oldEmpty = $("#cal .empty"); if (oldEmpty) oldEmpty.remove();
+  if (!shown.length) $("#heads").insertAdjacentHTML("afterend", `<div class="empty"><div><div class="k">空</div><p>${inWeek.length ? "条件に合うセッションはありません" : "この週の記録はありません"}</p></div></div>`);
+  const nowS = Date.now()/1000;
+  if (nowS >= ws && nowS < we){ const di = Math.floor((nowS-ws)/86400), ds = addDays(st.week,di).getTime()/1000, y = (nowS-ds)/3600*st.hh;
+    days[di].insertAdjacentHTML("beforeend", `<div class="now" style="top:${y}px"></div><div class="nowlab" style="top:${y}px">${hm(nowS)}</div>`); }
+  st.animate = false;
+  st.sel ? detail(DATA.find(s => s.id === st.sel)) : summary();
 }
-function weekKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
-function mins(m){ m = Math.round(m); return m < 60 ? m+"分" : Math.floor(m/60)+"時間"+String(m%60).padStart(2,"0")+"分"; }
-function secs(v){ return v == null ? "—" : v < 60 ? v+"秒" : Math.floor(v/60)+"分"+String(v%60).padStart(2,"0")+"秒"; }
-function showSummary(){
-  const st = WEEKS[weekKey(weekStart)];
-  const p = new Date(weekStart); p.setDate(p.getDate()-7);
-  const prev = WEEKS[weekKey(p)];
-  const gen = `<p class="note">生成: ${new Date(GENERATED*1000).toLocaleString("ja-JP")}</p>`;
-  if (!st){ $("#detail").innerHTML = '<h2>週のまとめ</h2><p class="mute">この週は作業の記録がありません。</p>' + gen; return; }
-  const diff = (k) => { if (!prev) return ""; const d = st[k]-prev[k]; return `<small>先週から ${d>=0?"+":"−"}${mins(Math.abs(d))}</small>`; };
-  const longest = Math.max(0, ...st.focus.map(b=>b.min));
-  const total = st.projects.reduce((t,[,v])=>t+v,0) || 1, top = st.projects.length ? st.projects[0][1] : 1;
-  const tile = (label, value, sub) => `<div class="tile"><small>${label}</small><b>${value}</b>${sub||""}</div>`;
-  $("#detail").innerHTML = `
-    <h2>週のまとめ</h2>
-    <div class="tiles">
-      ${tile("作業していた時間", mins(st.active), diff("active"))}
-      ${tile("AI の延べ稼働", mins(st.ai), "<small>並列ぶんも合計</small>")}
-      ${tile("集中ブロック（60分以上）", st.focus.length+" 回", `<small>最長 ${mins(longest)}</small>`)}
-      ${tile("1日の切り替え", "平均 "+st.switchesAvg+" 回", `<small>最大 ${st.switchesMax} 回</small>`)}
-      ${tile("並列で動かした時間", mins(st.parallel), `<small>最大 ${st.maxConc} 本同時</small>`)}
-      ${tile("待たせ時間（中央値）", secs(st.waitMedian), `<small>90%点 ${secs(st.waitP90)}</small>`)}
-      ${tile("深夜（22〜6時）", mins(st.night), "")}
-      ${tile("週末", mins(st.weekend), "")}
+
+/* ── tooltip ── */
+function tipOn(e, bk){ const t = $("#tip"), s = bk.s;
+  t.innerHTML = `<b>${esc(s.title)}</b><div class="r" style="--c:${colorOf(keyOf(s))}"><i></i>${esc(s.project)}${s.branch?` · ${esc(s.branch)}`:""}</div><div class="r">${md(bk.a)} ${hm(bk.a)}–${hm(bk.b)}（${dur((bk.b-bk.a)/60)}）</div><div class="r">${esc(s.source)} · 依頼 ${s.nPrompts} 件</div>`;
+  t.classList.add("on"); tipMove(e); }
+function tipMove(e){ const t = $("#tip"), w = t.offsetWidth, h = t.offsetHeight;
+  let x = e.clientX + 14, y = e.clientY + 16; if (x + w > innerWidth - 12) x = e.clientX - w - 14; if (y + h > innerHeight - 12) y = e.clientY - h - 14;
+  t.style.left = x+"px"; t.style.top = y+"px"; }
+function tipOff(){ $("#tip").classList.remove("on"); }
+
+/* ── panel: week summary ── */
+function summary(){
+  const w = WEEKS[key(st.week)], pw = WEEKS[key(addDays(st.week,-7))], P = $("#panel");
+  const head = `<div class="eyebrow">Week ${isoWeek(st.week)} · Reflection</div><h2>今週のふりかえり</h2>`;
+  if (!w){ P.innerHTML = `<div class="pane">${head}<p class="none" style="margin-top:14px">この週の記録はありません。<br>← → で週を移動できます。</p>${foot()}</div>`; return; }
+  const d = pw ? w.active - pw.active : null;
+  const longest = Math.max(0, ...w.focus.map(b=>b.min));
+  const maxDay = Math.max(1, ...w.days.map(x=>x.active)), total = w.projects.reduce((t,[,v])=>t+v,0) || 1;
+  const stat = (k, v, s) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
+  const today = key(new Date());
+  P.innerHTML = `<div class="pane">${head}
+    <div class="hero"><div class="big num">${dur(w.active,true).replace(/(\d+)/g,'<span class="num">$1</span>').replace(/<small>(.*?)<\/small>/g,'<span class="u">$1</span>')}</div>
+      <div class="cap">AIと一緒に手を動かしていた時間${d==null?"":`<span class="delta">先週より ${d>=0?"+":"−"}${dur(Math.abs(d))}</span>`}</div></div>
+    <div class="stats">
+      ${stat("集中ブロック（60分以上）", `${w.focus.length}<small>回</small>`, longest ? `最長 ${dur(longest)}` : "まとまった時間はなし")}
+      ${stat("1日の切り替え", `${w.switchesAvg}<small>回</small>`, `最大 ${w.switchesMax} 回`)}
+      ${stat("並列で動かした時間", dur(w.parallel,true), `最大 ${w.maxConc} 本同時`)}
+      ${stat("待たせ時間（中央値）", secs(w.waitMedian).replace(/(分|秒)/g,"<small>$1</small>"), `90%点 ${secs(w.waitP90)}`)}
+      ${stat("深夜（22〜6時）", dur(w.night,true), "")}
+      ${stat("週末", dur(w.weekend,true), "")}
+      ${stat("AIの延べ稼働", dur(w.ai,true), "並列ぶんも合計")}
+      ${stat("セッション / 依頼", `${w.sessions}<small>/</small>${w.prompts}`, "")}
     </div>
-    <h3>プロジェクト別の配分</h3>
-    ${st.projects.map(([k,v])=>`<div class="bar"><span title="${esc(k)}">${esc(k)}</span><i style="width:${Math.max(1,v/top*100)}%;background:${colors[k]||"#9ca3af"}"></i><span class="mute">${mins(v)}・${Math.round(v*100/total)}%</span></div>`).join("")}
-    <h3>日ごと</h3>
-    <table class="days"><tr><th></th><th>作業</th><th>深夜</th><th>依頼</th><th>切替</th></tr>
-    ${st.days.map((x,i)=>{ const d = new Date(weekStart); d.setDate(d.getDate()+i);
-      return `<tr><td>${d.getMonth()+1}/${d.getDate()}(${DOW[d.getDay()]})</td><td>${x.active?mins(x.active):"—"}</td><td>${x.night?mins(x.night):"—"}</td><td>${x.prompts||"—"}</td><td>${x.switches||"—"}</td></tr>`; }).join("")}
-    </table>
-    <h3>こじれたかもしれないセッション</h3>
-    <ol>${st.friction.map(f=>`<li><a class="sess" data-id="${esc(f.id)}">${esc(f.title)}</a> <span class="mute">[${esc(f.project)}] ${f.why.join("、")}</span></li>`).join("") || '<li class="mute">なし</li>'}</ol>
-    <p class="note">待たせ時間 = AI が返してから次の依頼を出すまで（30分以内のもの）。切り替え = 続けて出した依頼のプロジェクトが変わった回数。<br>自分のふりかえり用の数字です。人と比べたり評価に使ったりするためのものではありません。</p>
-    <p class="note">Markdown で書き出す: <code>python3 kiroku.py --weekly ${weekKey(weekStart)}</code></p>${gen}`;
-  document.querySelectorAll("a.sess").forEach(a => a.onclick = () => { const s = DATA.find(x=>x.id===a.dataset.id); if (s){ selected = s.id; showDetail(s); render(); } });
+    <h3>日ごとのリズム</h3>
+    <div class="rhythm">${w.days.map((x,i)=>{ const dd = addDays(st.week,i), hgt = x.active/maxDay*84;
+      return `<div class="col${key(dd)===today?" today":""}" title="${md(dd.getTime()/1000)} 作業 ${dur(x.active)}・深夜 ${dur(x.night)}・依頼 ${x.prompts}・切り替え ${x.switches}">
+        <span class="v">${x.active ? (x.active>=60 ? (x.active/60).toFixed(1)+"h" : x.active+"m") : ""}</span>
+        <div class="bar" style="height:${x.active?Math.max(2,hgt):0}px"><div class="nt" style="height:${x.active?x.night/x.active*100:0}%"></div></div>
+        <span class="l">${DOW[dd.getDay()]}</span></div>`; }).join("")}</div>
+    <div class="keyrow"><span><i></i>作業</span><span><i class="nt"></i>うち深夜</span></div>
+    <h3>プロジェクトの配分</h3>
+    <div class="stack" role="img" aria-label="プロジェクト別の配分">${w.projects.map(([k,v])=>`<span style="flex:${v};--c:${st.colorBy==="project"?colorOf(k):"var(--ink-3)"}" title="${esc(k)} ${dur(v)}"></span>`).join("")}</div>
+    ${w.projects.slice(0,8).map(([k,v])=>`<div class="prow" style="--c:${st.colorBy==="project"?colorOf(k):"var(--ink-3)"}"><i></i><span class="nm">${esc(k)}</span><span class="tm">${dur(v)}</span><span class="pc">${Math.round(v*100/total)}%</span></div>`).join("")}
+    <h3>集中ブロック</h3>
+    ${w.focus.length ? w.focus.sort((a,b)=>b.min-a.min).slice(0,5).map(b=>`<div class="focusrow" style="--c:${st.colorBy==="project"?colorOf(b.project):"var(--ink-3)"}"><span class="when">${md(b.t)} ${hm(b.t)}</span><span class="track"><span style="width:${b.min/longest*100}%"></span></span><span class="len">${dur(b.min)}</span></div>`).join("") : '<p class="none">60分以上続いた作業はありませんでした。</p>'}
+    <h3>こじれたかもしれない</h3>
+    ${w.friction.length ? w.friction.map(f=>`<button class="card" data-id="${esc(f.id)}"><span class="ti">${esc(f.title)}</span><span class="me">${md(f.start)} · ${esc(f.project)} ${f.why.map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}</span></button>`).join("") : '<p class="none">言い直しや中断が目立つセッションはありませんでした。</p>'}
+    ${foot(`python3 kiroku.py --weekly ${key(st.week)}`)}</div>`;
+  P.querySelectorAll(".card").forEach(c => c.onclick = () => select(c.dataset.id));
+  bindCopy(P);
 }
-function showDetail(s){
-  const active = s.segs.reduce((t,[a,b])=>t+(b-a),0);
-  $("#detail").innerHTML = `
+function foot(cmd){
+  return `<div class="foot">待たせ時間は、AI が返してから次の依頼を出すまで（30分以内）。切り替えは、続けて出した依頼のプロジェクトが変わった回数です。どれも履歴からの目安で、<b>自分のふりかえり用</b>。人と比べたり評価に使ったりするための数字ではありません。
+    ${cmd ? `<div class="code"><code>${esc(cmd)}</code><button class="copy" data-copy="${esc(cmd)}">コピー</button></div>` : ""}
+    <div style="margin-top:12px">生成 ${new Date(GENERATED*1000).toLocaleString("ja-JP")} · <button class="muted" id="openhelp" style="text-decoration:underline dotted">ショートカット</button></div></div>`;
+}
+function bindCopy(root){ root.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy)); const h = root.querySelector("#openhelp"); if (h) h.onclick = () => $("#keys").showModal(); }
+
+/* ── panel: session detail ── */
+function detail(s){
+  if (!s){ st.sel = null; return summary(); }
+  const active = s.segs.reduce((t,[a,b])=>t+(b-a),0)/60, waits = s.waits.map(x=>x[1]).sort((a,b)=>a-b);
+  const med = waits.length ? waits[Math.floor(waits.length/2)] : null, maxT = Math.max(1, ...s.tools.map(t=>t[1]));
+  const sameDay = new Date(s.start*1000).toDateString() === new Date(s.end*1000).toDateString();
+  const P = $("#panel");
+  P.innerHTML = `<div class="pane" style="--c:${colorOf(keyOf(s))}">
+    <button class="back" id="back"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>週のふりかえりへ</button>
+    <div class="eyebrow"><span class="dot"></span>${esc(s.source)}</div>
     <h2>${esc(s.title)}</h2>
-    <div class="mute">${fmt(s.start,{month:"numeric",day:"numeric",weekday:"short",hour:"2-digit",minute:"2-digit"})} 〜 ${fmt(s.end,{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
-    <div style="margin-top:6px"><span class="chip" style="background:${colors[keyOf(s)]};color:#111">${esc(s.project)}</span><span class="chip">${esc(s.source)}</span>${s.branch?`<span class="chip">${esc(s.branch)}</span>`:""}
-      <span class="chip">実働 ${dur(active)}</span><span class="chip">依頼 ${s.nPrompts} 件</span><span class="chip">イベント ${s.events}</span></div>
-    <h3>依頼の流れ</h3><ol>${s.prompts.map(p=>`<li><span class="mute">${hm(p.t)}</span> ${esc(p.text.length>200?p.text.slice(0,200)+"…":p.text)}</li>`).join("") || '<li class="mute">なし</li>'}</ol>
-    <h3>使ったツール</h3><div>${s.tools.map(([k,v])=>`<span class="chip">${esc(k)} ${v}</span>`).join("") || '<span class="mute">なし</span>'}</div>
-    <h3>変更したファイル ${s.nFiles} 件</h3><ul>${s.files.map(f=>`<li><code>${esc(f)}</code></li>`).join("")}</ul>
-    ${s.resume?`<h3>再開</h3><code>${esc(s.resume)}</code>`:""}`;
+    <div class="muted" style="font-variant-numeric:tabular-nums">${md(s.start)} ${hm(s.start)} 〜 ${sameDay ? "" : md(s.end)+" "}${hm(s.end)}</div>
+    <div class="meta"><span>${esc(s.project)}</span>${s.branch?`<span>${esc(s.branch)}</span>`:""}</div>
+    <div class="mini">
+      <div><div class="k">実働</div><div class="v">${dur(active,true)}</div></div>
+      <div><div class="k">依頼</div><div class="v">${s.nPrompts}<small>件</small></div></div>
+      <div><div class="k">待たせ（中央値）</div><div class="v">${med==null?"—":secs(med).replace(/(分|秒)/g,"<small>$1</small>")}</div></div>
+      <div><div class="k">言い直し・中断</div><div class="v">${s.corrections + s.interrupts}<small>回</small></div></div>
+    </div>
+    <h3>依頼の流れ</h3>
+    ${s.prompts.length ? `<ol class="tl">${s.prompts.slice(0,30).map(p=>`<li class="${/違う|ちがう|そうじゃな|やり直|戻して|元に戻|取り消|じゃなくて|wrong|revert|undo/i.test(p.text)?"fix":""}"><time>${p.t?hm(p.t):""}</time><p>${esc(p.text.length>220?p.text.slice(0,220)+"…":p.text)}</p></li>`).join("")}</ol>${s.prompts.length>30?`<p class="more">ほか ${s.nPrompts-30} 件</p>`:""}` : '<p class="none">依頼の記録はありません。</p>'}
+    <h3>使ったツール</h3>
+    ${s.tools.length ? s.tools.map(([k,v])=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track"><span style="width:${v/maxT*100}%"></span></span><span class="n">${v}</span></div>`).join("") : '<p class="none">記録なし</p>'}
+    <h3>変更したファイル · ${s.nFiles}</h3>
+    ${s.files.length ? `<ul class="files">${s.files.map(f=>`<li title="${esc(f)}"><span>${esc(f)}</span></li>`).join("")}</ul>` : '<p class="none">なし</p>'}
+    ${s.resume ? `<h3>続きから再開</h3><div class="code"><code>${esc(s.resume)}</code><button class="copy" data-copy="${esc(s.resume)}">コピー</button></div>` : ""}
+  </div>`;
+  $("#back").onclick = () => select(null);
+  bindCopy(P);
 }
-$("#prev").onclick = () => { weekStart.setDate(weekStart.getDate()-7); render(); };
-$("#next").onclick = () => { weekStart.setDate(weekStart.getDate()+7); render(); };
-$("#today").onclick = () => { weekStart = mondayOf(new Date()); render(); };
-$("#zin").onclick = () => { hh = Math.min(160, hh+10); render(); };
-$("#zout").onclick = () => { hh = Math.max(16, hh-10); render(); };
-$("#colorBy").onchange = e => { colorBy = e.target.value; hidden.clear(); render(); };
-$("#q").oninput = e => { q = e.target.value.trim().toLowerCase(); render(); };
-document.addEventListener("keydown", e => { if (e.target.tagName==="INPUT") return; if (e.key==="ArrowLeft") $("#prev").click(); if (e.key==="ArrowRight") $("#next").click(); if (e.key==="t") $("#today").click(); });
-$("#summary").onclick = () => { selected = null; render(); };
-// 最新セッションのある週から開く
-if (DATA.length && !DATA.some(s => s.end >= weekStart.getTime()/1000)) weekStart = mondayOf(new Date(DATA[DATA.length-1].end*1000));
-render();
-setTimeout(()=>{ $("#cal").scrollTop = 8*hh; }, 0);
+function select(id){ st.sel = id; render(); if (innerWidth <= 820 && id) $("#panel").scrollIntoView({behavior:"smooth"}); else $("#panel").scrollTop = 0; }
+
+/* ── events ── */
+function go(n){ st.week = n == null ? mondayOf(new Date()) : addDays(st.week, 7*n); st.sel = null; st.animate = true;
+  if (n == null) st.mday = (new Date().getDay()+6)%7; render(); scrollToWork(); }
+$("#prev").onclick = () => go(-1); $("#next").onclick = () => go(1); $("#today").onclick = () => go(null);
+$("#zin").onclick = () => zoom(12); $("#zout").onclick = () => zoom(-12);
+function zoom(dv){ st.hh = Math.max(24, Math.min(120, st.hh+dv)); store.set("hh", st.hh); render(); }
+document.querySelectorAll("#colorBy button").forEach(b => b.onclick = () => { st.colorBy = b.dataset.v; st.hidden.clear(); store.set("colorBy", st.colorBy); render(); });
+$("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); render(); };
+$("#theme").onclick = () => { st.theme = {auto:"light",light:"dark",dark:"auto"}[st.theme]; store.set("theme", st.theme); applyTheme(); };
+$("#help").onclick = () => $("#keys").showModal();
+$("#grid").onclick = e => { if (e.target.classList.contains("day") && st.sel) select(null); };
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT"){ if (e.key === "Escape") e.target.blur(); return; }
+  if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open) return;
+  const k = e.key;
+  if (k === "ArrowLeft") go(-1); else if (k === "ArrowRight") go(1); else if (k === "t" || k === "T") go(null);
+  else if (k === "/"){ e.preventDefault(); $("#q").focus(); } else if (k === "+" || k === "=") zoom(12); else if (k === "-") zoom(-12);
+  else if (k === "Escape" && st.sel) select(null); else if (k === "?") $("#keys").showModal();
+});
+function scrollToWork(){ // その週でいちばん早く始まった時刻の少し前へ
+  const ws = st.week.getTime()/1000, we = ws + 7*86400; let first = 24;
+  DATA.forEach(s => s.segs.forEach(([a,b]) => { if (b > ws && a < we){ const d = new Date(Math.max(a,ws)*1000); first = Math.min(first, d.getHours()); } }));
+  const y = Math.max(0, (first === 24 ? 8 : first) - 1) * st.hh, el = innerWidth <= 820 ? $("#grid") : $("#cal");
+  el.style.scrollBehavior = "auto"; el.scrollTop = y; el.style.scrollBehavior = "";
+}
+// 今週に記録がなければ、いちばん新しい記録の週から開く
+if (DATA.length && !WEEKS[key(st.week)]) { st.week = mondayOf(new Date(DATA[DATA.length-1].end*1000)); st.mday = (new Date(DATA[DATA.length-1].end*1000).getDay()+6)%7; }
+const mq = matchMedia("(max-width:820px)"), ph = () => $("#q").placeholder = mq.matches ? "検索" : "タイトル・依頼文で探す";
+mq.addEventListener("change", () => { ph(); render(); }); ph();
+applyTheme(); render(); scrollToWork();
 </script></body></html>
 """
 
