@@ -18,6 +18,7 @@ import json
 import os
 import platform
 import re
+import statistics
 import sys
 import webbrowser
 from datetime import datetime, timedelta, timezone
@@ -185,6 +186,7 @@ class Session:
         self.prompts, self.times, self.tools, self.files = [], [], {}, set()
         self.agent_times = []  # AI が動いていた時刻（待たせ時間の計算用）
         self.interrupts = 0
+        self.fix_ts = []          # 言い直し・中断の時刻
         self.usage = Usage()      # このセッション本体のトークン
         self.models = {}          # モデル -> 応答数
         self.subagents = []       # サブエージェントの実行
@@ -202,8 +204,11 @@ class Session:
     def prompt(self, ts, text):
         if text and text.lstrip().startswith("[Request interrupted"):
             self.interrupts += 1
+            self.fix_ts.append(ts)
         if text and not is_noise(text):
             self.prompts.append({"t": ts, "text": text.strip()[:400]})
+            if CORRECTION.search(text):
+                self.fix_ts.append(ts)
 
     def waits(self):
         """AI が最後に動いてから、人が次の依頼を出すまでの秒数（30 分以内のものだけ）。"""
@@ -481,6 +486,7 @@ def segments(times, gap_sec):
 
 
 def collect(args):
+    args.report = []  # 計測の状態として画面と Markdown に出す
     loaders = []
     if "claude" in args.sources:
         root = Path(args.root)
@@ -493,14 +499,16 @@ def collect(args):
         storages = [g for g in kiro_global_storage() if g.is_dir()]
         loaders.append(("Kiro IDE (旧)", " / ".join(map(str, storages)) or "なし", load_kiro_ide_legacy(storages)))
     for name, where, gen in loaders:
-        n = 0
+        n, err = 0, None
         try:
             for s in gen:
                 n += 1
                 yield s
         except OSError as e:
+            err = str(e)
             print(f"  {name}: 読めないファイルがあったのでスキップ ({e})", file=sys.stderr)
         print(f"  {name}: {n} セッション ({where})", file=sys.stderr)
+        args.report.append({"name": name, "n": n, "where": str(where), "error": err})
 
 
 def build(args):
@@ -538,6 +546,7 @@ def build(args):
             # 週ごとの集計用（HTML には入れない）
             "_uev": s.usage.events() + [ev for a in s.subagents for ev in a["_events"]],
             "_cev": s.credits,
+            "_fix": [t for t in s.fix_ts if t],
         })
     out.sort(key=lambda x: x["start"])
     return out
@@ -675,7 +684,20 @@ def week_stats(data, ws_dt):
                   for d in sorted((d for d in data if heavy.get(d["id"])), key=lambda d: -heavy[d["id"]])[:3]],
     }
 
+    fixes = sum(1 for d in data for t in d["_fix"] if ws <= t < we)
+    n_prompts = len(prompts)
+    claude_tokens = usage["tokens"] > 0
+    metrics = {
+        "fix_rate": {"v": round(fixes * 100 / n_prompts, 1) if n_prompts else None, "n": n_prompts},
+        "focus_blocks": {"v": len(blocks), "n": None},
+        "switches": {"v": round(sum(x["switches"] for x in active_days) / len(active_days), 1), "n": len(active_days)},
+        "cost_per_prompt": {"v": round(usage["cost"] / n_prompts, 3) if n_prompts and claude_tokens else None, "n": n_prompts},
+        "night": {"v": night, "n": None},
+        "weekend": {"v": weekend, "n": None},
+    }
+
     return {
+        "metrics": metrics,
         "usage": usage,
         "week": ws_dt.strftime("%Y-%m-%d"),
         "sessions": sum(1 for d in data if d["end"] >= ws and d["start"] < we),
@@ -691,6 +713,112 @@ def week_stats(data, ws_dt):
         "days": days,
         "friction": friction[:3],
     }
+
+
+# ── 重点・ガードレール・判断ログ（kpi-playbook の考え方） ──────────────────
+# 重点は本人が週ごとに 1 つ選ぶ。ガードレールは目標ではなく閾値で、本人の過去の週から決める。
+# 率には分母を添え、データがないときは 0 ではなく「不明」にする。
+
+METRICS_VERSION = "1"  # 指標の定義を変えたら上げる。版が違う週は比べない
+METRICS = {
+    "fix_rate": {"label": "言い直し・中断のあった依頼の割合", "unit": "%", "better": "down",
+                 "note": "修正依頼回数の代理（依頼文の言葉と中断から推定。PR 上の修正依頼そのものではありません）"},
+    "focus_blocks": {"label": "集中ブロック（60分以上）", "unit": "回", "better": "up", "note": ""},
+    "switches": {"label": "1日のプロジェクト切り替え（平均）", "unit": "回", "better": "down", "note": "作業した日の平均"},
+    "cost_per_prompt": {"label": "1依頼あたりの目安コスト", "unit": "$", "better": "down",
+                        "note": "API 換算の目安。サブスクの請求額とは別。成果あたりの費用ではありません"},
+    "night": {"label": "深夜（22〜6時）の作業", "unit": "分", "better": "down", "note": "働き方の健全さの代理"},
+    "weekend": {"label": "週末の作業", "unit": "分", "better": "down", "note": "働き方の健全さの代理"},
+}
+FOCUS = [  # (key, その週に強めたいこと, 見る指標)
+    ("delegate", "任せられる依頼にする", "fix_rate"),
+    ("deep", "まとまった時間を守る", "focus_blocks"),
+    ("switch", "切り替えを減らす", "switches"),
+    ("cost", "費用に見合う使い方にする", "cost_per_prompt"),
+]
+GUARDS = ["night", "weekend", "fix_rate", "cost_per_prompt"]
+BASELINE_WEEKS, BASELINE_MIN = 8, 3
+DECISIONS = ["継続", "変更", "中止", "保留", "判断なし"]
+DID = ["やった", "一部", "やっていない", "なし"]
+MARK = "<!-- kiroku: この線より下は自分で書く欄です。--weekly で作り直しても残ります -->"
+JOURNAL_FIELDS = {"重点": "focus", "先週の一手": "did", "判断": "decision", "理由": "reason",
+                  "次の一手": "next", "次に確認する日": "checkOn", "まだ確かめていない仮説": "hypothesis"}
+
+
+def focus_of(text):
+    t = (text or "").strip()
+    return next((f for f in FOCUS if t and (t == f[0] or t == f[1] or f[1] in t)), None)
+
+
+def read_journal(folder):
+    """kiroku-week-YYYY-MM-DD.md の「今週の判断」を読む。"""
+    out = {}
+    for path in sorted(Path(folder).glob("kiroku-week-*.md")):
+        key = path.stem[len("kiroku-week-"):]
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        mine = text.split(MARK, 1)[1] if MARK in text else text
+        sec = re.search(r"^##\s*今週の判断\s*$(.*?)(?=^##\s|\Z)", mine, re.M | re.S)
+        if not sec:
+            continue
+        ent = {}
+        for line in sec.group(1).splitlines():
+            m = re.match(r"^\s*[-*]\s*([^:：]+)[:：]\s*(.*)$", line)
+            if m and m.group(1).strip() in JOURNAL_FIELDS:
+                ent[JOURNAL_FIELDS[m.group(1).strip()]] = m.group(2).strip()
+        f = focus_of(ent.get("focus"))
+        ent["focus"] = f[0] if f else None
+        if ent.get("decision") not in DECISIONS:
+            ent["decision"] = None
+        if ent.get("did") not in DID:
+            ent["did"] = None
+        ent["file"] = path.name
+        out[key] = ent
+    return out
+
+
+def annotate_weeks(weeks, journal):
+    """各週に重点・ガードレールの判定・先週の判断を足す。基準値は本人の直前の週から。"""
+    keys = sorted(weeks)
+    focus = None
+    for i, k in enumerate(keys):
+        st = weeks[k]
+        prior = [weeks[x] for x in keys[:i]][-BASELINE_WEEKS:]
+
+        def base(mk):
+            vals = [w["metrics"][mk]["v"] for w in prior if w["metrics"][mk]["v"] is not None]
+            if len(vals) < BASELINE_MIN:
+                return {"weeks": len(vals)}
+            q1, med, q3 = statistics.quantiles(vals, n=4, method="inclusive")
+            return {"weeks": len(vals), "median": round(med, 3), "q1": round(q1, 3), "q3": round(q3, 3),
+                    "limit": round(q3 + 1.5 * (q3 - q1), 3)}
+        j = journal.get(k, {})
+        focus = j.get("focus") or focus  # 書いていない週は前の週の重点を引き継ぐ
+        f = next((x for x in FOCUS if x[0] == focus), None)
+        guards = [g for g in GUARDS if not f or g != f[2]]
+        if f and f[2] in GUARDS:
+            guards.append("switches")
+        gl = []
+        for g in guards:
+            m, b = st["metrics"][g], base(g)
+            if m["v"] is None:
+                state = "unknown"
+            elif "limit" not in b:
+                state = "building"
+            elif m["v"] > b["limit"] and m["v"] > 0:
+                state = "over"
+            else:
+                state = "ok"
+            gl.append({"key": g, "v": m["v"], "n": m["n"], "base": b, "state": state})
+        prev = next((journal[x] for x in sorted(journal, reverse=True) if x < k and
+                     any(journal[x].get(f2) for f2 in ("decision", "next", "reason"))), None)
+        st["playbook"] = {
+            "focus": f and {"key": f[0], "label": f[1], "metric": f[2], **st["metrics"][f[2]], "base": base(f[2]),
+                            "series": [[w["week"], w["metrics"][f[2]]["v"]] for w in prior[-7:] + [st]]},
+            "guards": gl, "journal": j or None, "prev": prev,
+        }
 
 
 def all_weeks(data):
@@ -716,63 +844,115 @@ def secs(v):
     return "—" if v is None else (f"{v}秒" if v < 60 else f"{v // 60}分{v % 60:02d}秒")
 
 
-def delta(cur, prev, key, fmt=hm):
-    if not prev:
-        return ""
-    d = cur[key] - prev[key]
-    return f"（先週から {'+' if d >= 0 else '−'}{fmt(abs(d))}）"
+def fmt_metric(key, v):
+    if v is None:
+        return "不明"
+    u = METRICS[key]["unit"]
+    if u == "分":
+        return hm(v)
+    if u == "$":
+        return f"${v:,.3f}" if v < 1 else f"${v:,.2f}"
+    return f"{v:g}{u}"
 
 
-def weekly_markdown(st, prev):
+def with_n(key, m):
+    return fmt_metric(key, m["v"]) + (f"（n={m['n']}）" if m.get("n") is not None else "")
+
+
+STATE_JA = {"ok": "範囲内", "over": "**超過**", "building": "基準づくり中", "unknown": "不明"}
+
+
+def user_section(focus_label):
+    return "\n".join([
+        MARK, "",
+        "## 今週の判断", "",
+        f"<!-- 重点は 1 つ: {' / '.join(f[1] for f in FOCUS)} -->",
+        f"- 重点: {focus_label or ''}",
+        f"<!-- 先週の一手は: {' / '.join(DID)} -->",
+        "- 先週の一手: ",
+        f"<!-- 判断は: {' / '.join(DECISIONS)}（変化がなければ「判断なし」と理由だけで OK） -->",
+        "- 判断: ", "- 理由: ", "- 次の一手: ", "- 次に確認する日: ", "- まだ確かめていない仮説: ", "",
+        "## ふりかえりメモ", "", "- よかったこと：", "- 詰まったこと：", ""])
+
+
+def weekly_markdown(st, prev, report, existing=None):
     ws = datetime.strptime(st["week"], "%Y-%m-%d")
     we = ws + timedelta(days=6)
+    pb = st["playbook"]
     longest = max((b["min"] for b in st["focus"]), default=0)
     L = [f"# kiroku 週次ふりかえり {ws:%Y/%m/%d}〜{we:%m/%d}", "",
-         "> 自分のふりかえり用の数字です。人と比べたり評価に使ったりするためのものではありません。", "",
-         "## 注意の使い方", "",
-         "| 指標 | 今週 | メモ |", "|---|---|---|",
-         f"| 作業していた時間 | {hm(st['active'])} | {delta(st, prev, 'active')} どれかのセッションが動いていた時間 |",
-         f"| AI の延べ稼働 | {hm(st['ai'])} | 並列で動かした分も足した合計 |",
-         f"| 集中ブロック（{FOCUS_MIN}分以上） | {len(st['focus'])} 回 | 最長 {hm(longest)} |",
-         f"| 1 日の切り替え | 平均 {st['switchesAvg']} 回 | 最大 {st['switchesMax']} 回 |",
-         f"| 並列で動かしていた時間 | {hm(st['parallel'])} | 最大 {st['maxConc']} 本同時 |",
-         f"| 深夜（{NIGHT[0]}〜{NIGHT[1]}時） | {hm(st['night'])} | |",
-         f"| 週末 | {hm(st['weekend'])} | |",
-         f"| 待たせ時間 | 中央値 {secs(st['waitMedian'])} | 90%点 {secs(st['waitP90'])}（{st['waitCount']} 回） |",
-         f"| セッション / 依頼 | {st['sessions']} / {st['prompts']} | |", "",
-         "## プロジェクト別の配分", ""]
-    total = sum(v for _, v in st["projects"]) or 1
-    L += [f"- {k}: {hm(v)}（{round(v * 100 / total)}%）" for k, v in st["projects"]]
-    L += ["", "## 日ごと", "", "| 日 | 作業 | 深夜 | 依頼 | 切り替え |", "|---|---|---|---|---|"]
-    for i, x in enumerate(st["days"]):
-        d = ws + timedelta(days=i)
-        z = lambda v, f=str: f(v) if v else "—"
-        L.append(f"| {d:%m/%d}({'月火水木金土日'[i]}) | {z(x['active'], hm)} | {z(x['night'], hm)} | {z(x['prompts'])} | {z(x['switches'])} |")
+         "> 自分のふりかえり用の数字です。人と比べたり、評価に使ったりするためのものではありません。",
+         f"> 指標の定義 v{METRICS_VERSION}。版が違う週とは比べないでください。", ""]
+    # 1. 重点
+    L += ["## 重点", ""]
+    f = pb["focus"]
+    if f:
+        b = f["base"]
+        base_txt = f"直前 {b['weeks']} 週の中央値 {fmt_metric(f['metric'], b['median'])}" if "median" in b else f"基準づくり中（{b['weeks']}/{BASELINE_MIN} 週）"
+        L += [f"**{f['label']}** — {METRICS[f['metric']]['label']}: {with_n(f['metric'], f)}（{base_txt}）", ""]
+        if METRICS[f["metric"]]["note"]:
+            L += [f"_{METRICS[f['metric']]['note']}_", ""]
+    else:
+        L += ["まだ選んでいません。下の「今週の判断」の「重点」に 1 つ書いてください。", ""]
+    # 2. ガードレール
+    L += ["## ガードレール", "", "| 指標 | 今週 | 閾値 | 状態 |", "|---|---|---|---|"]
+    for g in pb["guards"]:
+        b = g["base"]
+        lim = f"{fmt_metric(g['key'], b['limit'])} 以下" if "limit" in b else f"—（{b['weeks']}/{BASELINE_MIN} 週）"
+        L.append(f"| {METRICS[g['key']]['label']} | {with_n(g['key'], g)} | {lim} | {STATE_JA[g['state']]} |")
+    L += ["", f"_閾値は直前 {BASELINE_WEEKS} 週までの自分の値の、上側の四分位 + 1.5 × 四分位範囲。目標ではありません。_", ""]
+    # 3. 計測の状態
+    L += ["## 計測の状態", ""]
+    for r in report:
+        L.append(f"- {r['name']}: {r['n']} セッション" + (f"（読めなかったファイルあり: {r['error']}）" if r["error"] else ""))
+    unknown = [METRICS[k]["label"] for k, m in st["metrics"].items() if m["v"] is None]
+    if unknown:
+        L.append(f"- 不明: {'、'.join(unknown)}")
+    if st["usage"].get("unpriced"):
+        L.append(f"- 料金表にないモデルのトークン {st['usage']['unpriced']:,} は目安コストに入っていません")
+    L.append(f"- 指標の定義: v{METRICS_VERSION}")
+    # 4. 先週の判断
+    L += ["", "## 先週の判断", ""]
+    pv = pb["prev"]
+    if pv:
+        L += [f"- 判断: {pv.get('decision') or '—'}（{pv['file']}）", f"- 理由: {pv.get('reason') or '—'}",
+              f"- 次の一手: {pv.get('next') or '—'}", f"- 次に確認する日: {pv.get('checkOn') or '—'}"]
+    else:
+        L.append("- まだ記録がありません")
+    # 参照値
     u = st["usage"]
-    cost_delta = ""
-    if prev:
-        dc = u["cost"] - prev["usage"]["cost"]
-        cost_delta = f"先週から {'+' if dc >= 0 else '−'}${abs(dc):,.2f}・"
-    L += ["", "## AI の使い方", "",
+    L += ["", "## 参照値", "", "目標ではなく、判断の材料として見る数字です。", "",
           "| 指標 | 今週 | メモ |", "|---|---|---|",
-          f"| 目安コスト（API 換算） | ${u['cost']:,.2f} | {cost_delta}サブスクの請求額とは別 |",
-          f"| トークン | {u['tokens']:,} | うち出力 {u['out']:,} |",
-          f"| キャッシュから読んだ割合 | {'—' if u['cacheHit'] is None else str(round(u['cacheHit'] * 100)) + '%'} | 入力のうち |",
+          f"| 作業していた時間 | {hm(st['active'])} | どれかのセッションが動いていた時間 |",
+          f"| AI の延べ稼働 | {hm(st['ai'])} | 並列ぶんも足した合計。人の削減時間ではありません |",
+          f"| 集中ブロック（{FOCUS_MIN}分以上） | {len(st['focus'])} 回 | 最長 {hm(longest)} |",
+          f"| 1 日の切り替え | 平均 {st['switchesAvg']} 回 | 最大 {st['switchesMax']} 回 |",
+          f"| 並列で動かしていた時間 | {hm(st['parallel'])} | 最大 {st['maxConc']} 本同時 |",
+          f"| 待たせ時間 | 中央値 {secs(st['waitMedian'])}（n={st['waitCount']}） | 90%点 {secs(st['waitP90'])}。短いほど良いとは限りません |",
+          f"| セッション / 依頼 | {st['sessions']} / {st['prompts']} | |",
+          f"| 目安コスト（API 換算） | ${u['cost']:,.2f} | サブスクの請求額とは別 |",
+          f"| トークン | {u['tokens']:,} | 使った量の説明材料。多いほど良いわけではありません |",
+          f"| キャッシュから読んだ割合 | {'不明' if u['cacheHit'] is None else str(round(u['cacheHit'] * 100)) + '%'} | 入力のうち |",
           f"| サブエージェント | {u['subagents']} 回 | 延べ {hm(u['subMin'])} |"]
     if u["credits"]:
         L.append(f"| Kiro クレジット | {u['credits']:,} | |")
-    L += ["", "モデル別:", ""]
-    L += [f"- {m}: ${c:,.2f}・{t:,} トークン・{n} 応答" for m, c, t, n in u["models"]] or ["- なし"]
-    if u["heavy"]:
-        L += ["", "重かったセッション:", ""]
-        L += [f"- {datetime.fromtimestamp(h['start']):%m/%d %H:%M} [{h['project']}] {h['title']} — ${h['cost']:,.2f}" for h in u["heavy"]]
-    L += ["", "## 集中ブロック", ""]
-    L += [f"- {datetime.fromtimestamp(b['t']):%m/%d %H:%M} から {hm(b['min'])}・{b['project']}（{round(b['share'] * 100)}%）"
-          for b in st["focus"]] or ["- なし"]
-    L += ["", "## こじれたかもしれないセッション", ""]
-    L += [f"- {datetime.fromtimestamp(f['start']):%m/%d %H:%M} [{f['project']}] {f['title']} — {'、'.join(f['why'])}"
-          for f in st["friction"]] or ["- なし"]
-    L += ["", "## ふりかえりメモ", "", "- よかったこと：", "- 詰まったこと：", "- 来週ためすこと：", ""]
+    total = sum(v for _, v in st["projects"]) or 1
+    L += ["", "プロジェクト別:", ""] + [f"- {k}: {hm(v)}（{round(v * 100 / total)}%）" for k, v in st["projects"]]
+    L += ["", "モデル別:", ""] + ([f"- {m}: ${c:,.2f}・{t:,} トークン・{n} 応答" for m, c, t, n in u["models"]] or ["- なし"])
+    L += ["", "日ごと:", "", "| 日 | 作業 | 深夜 | 依頼 | 切り替え |", "|---|---|---|---|---|"]
+    for i, x in enumerate(st["days"]):
+        d = ws + timedelta(days=i)
+        z = lambda v, fn=str: fn(v) if v else "—"
+        L.append(f"| {d:%m/%d}({'月火水木金土日'[i]}) | {z(x['active'], hm)} | {z(x['night'], hm)} | {z(x['prompts'])} | {z(x['switches'])} |")
+    L += ["", "こじれたかもしれないセッション:", ""]
+    L += [f"- {datetime.fromtimestamp(x['start']):%m/%d %H:%M} [{x['project']}] {x['title']} — {'、'.join(x['why'])}"
+          for x in st["friction"]] or ["- なし"]
+    L.append("")
+    if existing and MARK in existing:
+        mine = existing.split(MARK, 1)[1]
+        L.append(MARK + mine.rstrip() + "\n")
+    else:
+        L.append(user_section(f and f["label"]))
     return "\n".join(L)
 
 
@@ -998,6 +1178,51 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .files li{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:rtl;text-align:left}
 .files li span{direction:ltr;unicode-bidi:plaintext}
 
+/* playbook */
+.focuscard{margin:18px 0 4px;padding:18px 18px 16px;border:1px solid var(--rule-2);border-radius:14px;background:var(--paper);position:relative}
+.focuscard .csf{font:500 17px/1.4 var(--serif);margin:4px 0 10px}
+.focuscard .mlabel{font-size:12px;color:var(--ink-2)}
+.focuscard .row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:4px}
+.focuscard .val{display:flex;align-items:baseline;gap:4px}
+.focuscard .val .num{font-size:44px;line-height:1.05;font-weight:500}
+.focuscard .val .u{font:500 14px var(--serif);color:var(--ink-2)}
+.focuscard .meta2{font-size:11.5px;color:var(--ink-3);margin-top:6px;font-variant-numeric:tabular-nums}
+.focuscard .note{margin-top:8px}
+.spark{width:132px;height:44px;flex:none;overflow:visible}
+.spark .ln{fill:none;stroke:var(--ink-3);stroke-width:1.5}
+.spark .md{stroke:var(--rule-2);stroke-dasharray:3 3}
+.spark .pt{fill:var(--card);stroke:var(--ink-3);stroke-width:1.5}
+.spark .cur{fill:var(--ink);stroke:var(--ink)}
+.choose{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:6px}
+.choose li{font-size:12.5px;padding:7px 10px;border:1px dashed var(--rule-2);border-radius:8px;display:flex;justify-content:space-between;gap:8px}
+.choose li span:last-child{color:var(--ink-3);font-size:11.5px;text-align:right}
+.steps{counter-reset:step}
+.step h3::before{counter-increment:step;content:counter(step);font:600 11px/18px var(--sans);width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;background:var(--ink);color:var(--paper);letter-spacing:0}
+.grow{display:grid;grid-template-columns:1fr auto auto;gap:4px 12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--rule);font-size:12.5px}
+.grow:last-of-type{border-bottom:0}
+.grow .nm{min-width:0}
+.grow .nm small{display:block;color:var(--ink-3);font-size:11px;line-height:1.5}
+.grow .v{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.grow .v small{color:var(--ink-3);margin-left:3px}
+.state{font-size:11px;border-radius:999px;padding:1px 8px;white-space:nowrap;border:1px solid var(--rule-2);color:var(--ink-2)}
+.state.over{background:var(--badge);border-color:var(--badge);color:#fff;font-weight:600}
+.state.building,.state.unknown{border-style:dashed;color:var(--ink-3)}
+.mlist{list-style:none;padding:0;margin:0;font-size:12px;color:var(--ink-2)}
+.mlist li{padding:3px 0;display:flex;gap:8px}
+.mlist li::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--ink-3);margin-top:8px;flex:none}
+.mlist li.warn::before{background:var(--shu)}
+.decision{border:1px solid var(--rule);border-radius:12px;padding:12px 14px;background:var(--card)}
+.decision dl{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;margin:8px 0 0;font-size:12.5px}
+.decision dt{color:var(--ink-3)}
+.decision dd{margin:0;overflow-wrap:anywhere}
+.dchip{display:inline-block;font:600 12px var(--sans);padding:2px 10px;border-radius:999px;background:var(--ink);color:var(--paper)}
+.dchip.none{background:transparent;color:var(--ink-3);border:1px dashed var(--rule-2);font-weight:500}
+.due{font-size:11px;color:var(--shu-ink);margin-left:8px}
+.optrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.optrow span{font-size:11.5px;border:1px solid var(--rule-2);border-radius:999px;padding:1px 9px;color:var(--ink-2)}
+.refhead{margin:40px 0 0;padding-top:18px;border-top:2px solid var(--ink)}
+.refhead .eyebrow{margin-bottom:2px}
+.refhead p{font-size:12px;color:var(--ink-3);margin:4px 0 0}
 /* AI usage */
 .mrow{display:grid;grid-template-columns:1fr auto 40px;gap:10px;align-items:center;padding:6px 0;font-size:12.5px;border-bottom:1px dashed var(--rule)}
 .mrow:last-child{border-bottom:0}
@@ -1104,6 +1329,7 @@ dialog h2{margin-top:0}
 <script>
 const DATA = __DATA__;
 const WEEKS = __WEEKS__;
+const META = __META__;
 const GENERATED = __GEN__;
 const DOW = ["日","月","火","水","木","金","土"], SLOTS = 8;
 const $ = s => document.querySelector(s);
@@ -1239,16 +1465,18 @@ function summary(){
   const stat = (k, v, s) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
   const today = key(new Date());
   P.innerHTML = `<div class="pane">${head}
-    <div class="hero"><div class="big num">${dur(w.active,true).replace(/(\d+)/g,'<span class="num">$1</span>').replace(/<small>(.*?)<\/small>/g,'<span class="u">$1</span>')}</div>
-      <div class="cap">AIと一緒に手を動かしていた時間${d==null?"":`<span class="delta">先週より ${d>=0?"+":"−"}${dur(Math.abs(d))}</span>`}</div></div>
+    ${playbook(w)}
+    <div class="refhead"><div class="eyebrow">Reference</div><h2 style="font-size:18px;margin:0">参照値</h2><p>目標ではなく、判断の材料として見る数字です。</p></div>
+    <div class="hero" style="margin-top:14px"><div class="big num" style="font-size:.7em">${dur(w.active,true).replace(/(\d+)/g,'<span class="num" style="font-size:36px">$1</span>').replace(/<small>(.*?)<\/small>/g,'<span class="u">$1</span>')}</div>
+      <div class="cap">どれかのセッションが動いていた時間${d==null?"":`<span class="delta">先週より ${d>=0?"+":"−"}${dur(Math.abs(d))}</span>`}</div></div>
     <div class="stats">
       ${stat("集中ブロック（60分以上）", `${w.focus.length}<small>回</small>`, longest ? `最長 ${dur(longest)}` : "まとまった時間はなし")}
       ${stat("1日の切り替え", `${w.switchesAvg}<small>回</small>`, `最大 ${w.switchesMax} 回`)}
       ${stat("並列で動かした時間", dur(w.parallel,true), `最大 ${w.maxConc} 本同時`)}
-      ${stat("待たせ時間（中央値）", secs(w.waitMedian).replace(/(分|秒)/g,"<small>$1</small>"), `90%点 ${secs(w.waitP90)}`)}
+      ${stat("待たせ時間（中央値）", secs(w.waitMedian).replace(/(分|秒)/g,"<small>$1</small>"), `n=${w.waitCount}・90%点 ${secs(w.waitP90)}・短いほど良いとは限りません`)}
       ${stat("深夜（22〜6時）", dur(w.night,true), "")}
       ${stat("週末", dur(w.weekend,true), "")}
-      ${stat("AIの延べ稼働", dur(w.ai,true), "並列ぶんも合計")}
+      ${stat("AIの延べ稼働", dur(w.ai,true), "並列ぶんも合計。人の削減時間ではありません")}
       ${stat("セッション / 依頼", `${w.sessions}<small>/</small>${w.prompts}`, "")}
     </div>
     ${aiUsage(w, pw)}
@@ -1270,15 +1498,79 @@ function summary(){
   P.querySelectorAll(".card").forEach(c => c.onclick = () => select(c.dataset.id));
   bindCopy(P);
 }
+function fmtM(k, v){ if (v == null) return "不明"; const u = META.metrics[k].unit;
+  return u === "分" ? dur(v) : u === "$" ? (v < 1 ? "$"+v.toFixed(3) : usd(v)) : `${v}${u}`; }
+function bigM(k, v){ if (v == null) return `<span class="num">不明</span>`; const u = META.metrics[k].unit;
+  if (u === "分") return dur(v,true).replace(/(\d+)/g,'<span class="num">$1</span>').replace(/<small>(.*?)<\/small>/g,'<span class="u">$1</span>');
+  if (u === "$") return `<span class="u">$</span><span class="num">${v < 1 ? v.toFixed(3) : v.toFixed(2)}</span>`;
+  return `<span class="num">${v}</span><span class="u">${u}</span>`; }
+function spark(series, median){
+  const pts = series.filter(p => p[1] != null); if (pts.length < 2) return "";
+  const vals = pts.map(p=>p[1]).concat(median != null ? [median] : []), lo = Math.min(...vals), hi = Math.max(...vals), W = 132, H = 44, pad = 5;
+  const x = i => pad + i*(W-2*pad)/(series.length-1), y = v => hi === lo ? H/2 : H-pad - (v-lo)/(hi-lo)*(H-2*pad);
+  let d = "", started = false; series.forEach((p,i) => { if (p[1] == null){ started = false; return; } d += `${started?"L":"M"}${x(i).toFixed(1)},${y(p[1]).toFixed(1)}`; started = true; });
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="直近${series.length}週の推移">
+    ${median != null ? `<line class="md" x1="${pad}" x2="${W-pad}" y1="${y(median)}" y2="${y(median)}"/>` : ""}<path class="ln" d="${d}"/>
+    ${series.map((p,i)=> p[1]==null ? "" : `<circle class="pt${i===series.length-1?" cur":""}" cx="${x(i)}" cy="${y(p[1])}" r="${i===series.length-1?3.2:2.4}"><title>${p[0]}: ${fmtM(series.k||"",p[1])}</title></circle>`).join("")}</svg>`;
+}
+function playbook(w){
+  const pb = w.playbook; if (!pb) return "";
+  const wkEnd = key(addDays(st.week,6)), cmd = `python3 kiroku.py --weekly ${key(st.week)}${META.journal && META.journal !== "." ? ` --journal ${META.journal}` : ""}`;
+  // 重点
+  let f;
+  if (pb.focus){ const x = pb.focus, m = META.metrics[x.metric], b = x.base; x.series.k = x.metric;
+    f = `<div class="focuscard"><div class="eyebrow">今週の重点</div><div class="csf">${esc(x.label)}</div>
+      <div class="mlabel">${esc(m.label)}</div>
+      <div class="row"><div class="val">${bigM(x.metric, x.v)}</div>${spark(x.series, b.median)}</div>
+      <div class="meta2">${x.n != null ? `n=${x.n} · ` : ""}${b.median != null ? `直前${b.weeks}週の中央値 ${fmtM(x.metric, b.median)}（点線）` : `基準づくり中（${b.weeks}/${META.baselineMin}週）`}<br>${m.better === "down" ? "↓ 下がる方向をめざします" : "↑ 上がる方向をめざします"}</div>
+      ${m.note ? `<p class="note">${esc(m.note)}</p>` : ""}</div>`;
+  } else {
+    f = `<div class="focuscard"><div class="eyebrow">今週の重点</div><div class="csf">まだ選んでいません</div>
+      <div class="mlabel">その週に強めたいことを1つだけ選ぶと、見る数字がここに出ます。</div>
+      <ul class="choose">${META.focus.map(([k,l,mk])=>`<li><span>${esc(l)}</span><span>${esc(META.metrics[mk].label)}</span></li>`).join("")}</ul>
+      <p class="note">週のふりかえりを書き出して、「今週の判断」の「重点」に1つ書いてください。</p>
+      <div class="code"><code>${esc(cmd)}</code><button class="copy" data-copy="${esc(cmd)}">コピー</button></div></div>`;
+  }
+  // ① ガードレール
+  const over = pb.guards.filter(g=>g.state==="over").length;
+  const g = pb.guards.map(x => { const m = META.metrics[x.key], b = x.base;
+    return `<div class="grow"><span class="nm">${esc(m.label)}<small>${b.limit != null ? `閾値 ${fmtM(x.key, b.limit)} 以下` : `基準づくり中（${b.weeks}/${META.baselineMin}週）`}</small></span>
+      <span class="v">${fmtM(x.key, x.v)}${x.n != null ? `<small>n=${x.n}</small>` : ""}</span>
+      <span class="state ${x.state}">${{ok:"範囲内",over:"超過",building:"基準づくり中",unknown:"不明"}[x.state]}</span></div>`; }).join("");
+  // ② 計測の状態
+  const unknown = Object.entries(w.metrics).filter(([,m])=>m.v==null).map(([k])=>META.metrics[k].label);
+  const meas = [...META.report.map(r => `<li class="${r.error?"warn":""}">${esc(r.name)}: ${r.n} セッション${r.error?`（読めなかったファイルあり）`:""}</li>`),
+    ...(unknown.length ? [`<li class="warn">不明: ${esc(unknown.join("、"))}</li>`] : []),
+    ...(w.usage && w.usage.unpriced ? [`<li class="warn">料金表にないモデルのトークン ${tok(w.usage.unpriced)} は目安コストに入っていません</li>`] : []),
+    `<li>指標の定義 v${esc(META.version)}・閾値は直前${META.baselineWeeks}週までの自分の値（上側の四分位 + 1.5×四分位範囲）</li>`].join("");
+  // ③ 先週の判断
+  const pv = pb.prev, due = pv && pv.checkOn && pv.checkOn <= wkEnd;
+  const prev = pv ? `<div class="decision"><span class="dchip${pv.decision?"":" none"}">${esc(pv.decision || "判断の記入なし")}</span>${due?`<span class="due">確認する週です（${esc(pv.checkOn)}）</span>`:""}
+      <dl><dt>理由</dt><dd>${esc(pv.reason || "—")}</dd><dt>次の一手</dt><dd>${esc(pv.next || "—")}</dd>
+      ${pb.journal && pb.journal.did ? `<dt>やったか</dt><dd>${esc(pb.journal.did)}</dd>` : ""}<dt>確認日</dt><dd>${esc(pv.checkOn || "—")}</dd><dt>記録</dt><dd class="muted">${esc(pv.file)}</dd></dl></div>`
+    : `<p class="none">まだ判断の記録がありません。</p>`;
+  // ④ 今週の判断
+  const j = pb.journal;
+  const now = j && (j.decision || j.reason || j.next) ? `<div class="decision"><span class="dchip${j.decision?"":" none"}">${esc(j.decision || "判断の記入なし")}</span>
+      <dl><dt>理由</dt><dd>${esc(j.reason || "—")}</dd><dt>次の一手</dt><dd>${esc(j.next || "—")}</dd><dt>確認日</dt><dd>${esc(j.checkOn || "—")}</dd>${j.hypothesis?`<dt>仮説</dt><dd>${esc(j.hypothesis)}</dd>`:""}</dl></div>`
+    : `<p class="none" style="font-size:12.5px">①〜③を見て、1つ選んで理由を残します。変化がなければ「判断なし」と理由だけでOKです。</p>
+      <div class="optrow">${META.decisions.map(x=>`<span>${esc(x)}</span>`).join("")}</div>
+      <div class="code"><code>${esc(cmd)}</code><button class="copy" data-copy="${esc(cmd)}">コピー</button></div>`;
+  return `${f}<div class="steps">
+    <div class="step"><h3>ガードレール${over ? `<span class="state over" style="margin-left:4px">${over}件 超過</span>` : ""}</h3>${g}</div>
+    <div class="step"><h3>計測の状態</h3><ul class="mlist">${meas}</ul></div>
+    <div class="step"><h3>先週の判断と一手</h3>${prev}</div>
+    <div class="step"><h3>今週の判断</h3>${now}</div></div>`;
+}
 function aiUsage(w, pw){
   const u = w.usage; if (!u || (!u.tokens && !u.credits)) return "";
   const stat = (k, v, s) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
   const dc = pw && pw.usage ? u.cost - pw.usage.cost : null;
   const totalC = u.models.reduce((t,r)=>t+r[1],0) || 1, totalT = u.models.reduce((t,r)=>t+r[2],0) || 1, byCost = totalC > 0.0001;
-  return `<h3>AIの使い方</h3>
+  return `<h3>AIの使い方（使った量と費用）</h3>
     <div class="stats" style="margin-top:0">
       ${u.tokens ? stat("目安コスト（API換算）", usd(u.cost).replace("$","<small>$</small>"), dc==null ? "" : `先週より ${dc>=0?"+":"−"}${usd(Math.abs(dc))}`) : ""}
-      ${u.tokens ? stat("トークン", `${tok(u.tokens)}`, `うち出力 ${tok(u.out)}`) : ""}
+      ${u.tokens ? stat("トークン", `${tok(u.tokens)}`, `うち出力 ${tok(u.out)}・多いほど良いわけではありません`) : ""}
       ${u.tokens ? stat("キャッシュから読んだ割合", u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, "入力のうち") : ""}
       ${stat("サブエージェント", `${u.subagents}<small>回</small>`, u.subagents ? `延べ ${dur(u.subMin)}` : "使っていません")}
       ${u.credits ? stat("Kiro クレジット", `${u.credits}`, "履歴に残った実績") : ""}
@@ -1381,6 +1673,7 @@ def main():
     ap.add_argument("--sources", default="claude,kiro", help="読むもの（claude,kiro のカンマ区切り）")
     ap.add_argument("--no-open", action="store_true")
     ap.add_argument("--prices", metavar="JSON", help="料金表の上書き（README 参照）")
+    ap.add_argument("--journal", default=".", metavar="DIR", help="週のふりかえり（判断ログ）を置くフォルダ（既定 .）")
     ap.add_argument("--weekly", nargs="?", const="latest", metavar="YYYY-MM-DD",
                     help="その日を含む週のふりかえりを Markdown で書き出す（日付なしなら最新の週）")
     a = ap.parse_args()
@@ -1394,19 +1687,26 @@ def main():
     if not data:
         sys.exit("履歴が 1 件も見つからなかったよ。--root や KIRO_HOME を確認してね")
     weeks = all_weeks(data)
+    journal = read_journal(a.journal)
+    annotate_weeks(weeks, journal)
     if a.weekly:
         key = max(weeks) if a.weekly == "latest" else monday_of(
             datetime.strptime(a.weekly, "%Y-%m-%d").timestamp()).strftime("%Y-%m-%d")
         if key not in weeks:
             sys.exit(f"{key} の週には履歴がないよ")
         prev = weeks.get((datetime.strptime(key, "%Y-%m-%d") - timedelta(days=7)).strftime("%Y-%m-%d"))
-        out = Path(f"kiroku-week-{key}.md")
-        out.write_text(weekly_markdown(weeks[key], prev), encoding="utf-8")
-        print(f"週のふりかえり → {out}")
+        out = Path(a.journal) / f"kiroku-week-{key}.md"
+        existing = out.read_text(encoding="utf-8") if out.exists() else None
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(weekly_markdown(weeks[key], prev, a.report, existing), encoding="utf-8")
+        print(f"週のふりかえり → {out}" + ("（自分で書いた欄はそのまま残しました）" if existing and MARK in existing else ""))
         return
     dump = lambda v: json.dumps(v, ensure_ascii=False).replace("</", "<\\/")
     public = [{k: v for k, v in d.items() if not k.startswith("_")} for d in data]
-    html = (HTML.replace("__DATA__", dump(public)).replace("__WEEKS__", dump(weeks))
+    meta = {"report": a.report, "version": METRICS_VERSION, "journal": str(Path(a.journal)),
+            "metrics": METRICS, "focus": [list(f) for f in FOCUS], "decisions": DECISIONS,
+            "baselineMin": BASELINE_MIN, "baselineWeeks": BASELINE_WEEKS}
+    html = (HTML.replace("__DATA__", dump(public)).replace("__WEEKS__", dump(weeks)).replace("__META__", dump(meta))
             .replace("__GEN__", str(datetime.now(timezone.utc).timestamp())))
     Path(a.out).write_text(html, encoding="utf-8")
     print(f"{len(data)} セッション → {a.out}")
