@@ -114,6 +114,17 @@ func (s *Builder) Tool(name string, args any) {
 	}
 }
 
+// ToolCounts はツールごとの回数。
+func (s *Builder) ToolCounts() map[string]int { return s.tools }
+
+// AddEvent は、メッセージ ID で重ねる必要のない使用量（Codex など）をそのまま足す。モデルも数える。
+func (s *Builder) AddEvent(e Event) {
+	s.Usage.order = append(s.Usage.order, "_e"+itoa(len(s.Usage.order)))
+	ev := e
+	s.Usage.byMsg[s.Usage.order[len(s.Usage.order)-1]] = &ev
+	s.Model(e.Model)
+}
+
 // Model は使ったモデルを 1 回数える。
 func (s *Builder) Model(m string) {
 	if m == "" || m == "<synthetic>" {
