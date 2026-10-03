@@ -243,7 +243,8 @@ func compare(want, got any, path string, diffs *[]string) {
 		for k := range keys {
 			inDay := strings.Contains(path, ".days[") && !strings.Contains(path[strings.LastIndex(path, ".days[")+1:], ".")
 			if k == "unpriced" && filepath.Base(filepath.ToSlash(path)) == "usage" || k == "native" ||
-				inDay && (k == "tokens" || k == "cost" || k == "credits") { // Go 版で足した日ごとの使用量
+				inDay && (k == "tokens" || k == "cost" || k == "credits") || // Go 版で足した日ごとの使用量
+				k == "projectStats" { // Go 版で足したプロジェクト別のまとめ
 				continue
 			}
 			wv, wok := w[k]
