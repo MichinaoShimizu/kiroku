@@ -50,8 +50,8 @@ base="https://github.com/$REPO/releases/download/$version"
 tmp=$(mktemp -d 2>/dev/null || mktemp -d -t kiroku)
 trap 'rm -rf "$tmp"' EXIT INT TERM
 
-say "kiroku $version（$os/$arch）を落としています…"
-curl -fsSL -o "$tmp/$file" "$base/$file" || die "$file を落とせませんでした（$base）"
+say "kiroku ${version}（$os/${arch}）を落としています…"
+curl -fsSL -o "$tmp/$file" "$base/$file" || die "$file を落とせませんでした（${base}）"
 curl -fsSL -o "$tmp/checksums.txt" "$base/checksums.txt" || die "checksums.txt を落とせませんでした"
 
 want=$(awk -v f="$file" '$2 == f { print $1 }' "$tmp/checksums.txt")
@@ -63,7 +63,7 @@ elif command -v shasum >/dev/null 2>&1; then
 else
   die "sha256sum か shasum が必要です"
 fi
-[ "$got" = "$want" ] || die "チェックサムが合いません（$file）"
+[ "$got" = "$want" ] || die "チェックサムが合いません（${file}）"
 
 tar -xzf "$tmp/$file" -C "$tmp" kiroku || die "展開できませんでした"
 
