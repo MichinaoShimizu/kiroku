@@ -80,6 +80,16 @@ func tagCrew(s *core.Builder, crew map[string]CrewInfo) bool {
 		return false
 	}
 	s.Source = "Kiro Crew"
+	var first *float64
+	for i := range s.Times {
+		if first == nil || s.Times[i] < *first {
+			first = &s.Times[i]
+		}
+	}
+	s.Measure("crew_sessions", first, 1)
+	if info.Subagent {
+		s.Measure("crew_subagents", first, 1)
+	}
 	if info.Subagent {
 		title := "サブエージェント"
 		if info.Agent != "" {

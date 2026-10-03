@@ -53,6 +53,7 @@ type Builder struct {
 	Usage                          *Usage
 	Subagents                      []Subagent
 	Credits                        []Credit
+	Measures                       []Measure // そのエージェントだけが記録している数字（native.go）
 	toolOrder                      []string
 	tools                          map[string]int
 	files                          map[string]bool
@@ -112,6 +113,11 @@ func (s *Builder) Tool(name string, args any) {
 	if fp != "" && editTools[name] {
 		s.files[fp] = true
 	}
+}
+
+// Measure はそのエージェントだけが記録している数字を 1 つ足す。
+func (s *Builder) Measure(key string, t *float64, v float64) {
+	s.Measures = append(s.Measures, Measure{Key: key, T: t, V: v})
 }
 
 // ToolCounts はツールごとの回数。
@@ -177,33 +183,35 @@ func (s *Builder) Corrections() int {
 
 // Session は画面と JSON に出すセッション。
 type Session struct {
-	ID          string       `json:"id"`
-	Source      string       `json:"source"`
-	Project     string       `json:"project"`
-	ProjectPath string       `json:"projectPath"`
-	Branch      *string      `json:"branch"`
-	Title       string       `json:"title"`
-	Start       float64      `json:"start"`
-	End         float64      `json:"end"`
-	Events      int          `json:"events"`
-	Segs        [][3]float64 `json:"segs"`
-	Prompts     []Prompt     `json:"prompts"`
-	NPrompts    int          `json:"nPrompts"`
-	Tools       [][2]any     `json:"tools"`
-	Files       []string     `json:"files"`
-	NFiles      int          `json:"nFiles"`
-	Resume      *string      `json:"resume"`
-	Waits       [][2]float64 `json:"waits"`
-	Interrupts  int          `json:"interrupts"`
-	Corrections int          `json:"corrections"`
-	Models      [][2]any     `json:"models"`
-	Usage       UsageTotal   `json:"usage"`
-	Subagents   []Subagent   `json:"subagents"`
-	Credits     float64      `json:"credits"`
-	Cost        float64      `json:"cost"`
-	UEv         []Event      `json:"-"` // 週ごとの集計用（HTML には入れない）
-	CEv         []Credit     `json:"-"`
-	Fix         []float64    `json:"-"`
+	ID          string        `json:"id"`
+	Source      string        `json:"source"`
+	Project     string        `json:"project"`
+	ProjectPath string        `json:"projectPath"`
+	Branch      *string       `json:"branch"`
+	Title       string        `json:"title"`
+	Start       float64       `json:"start"`
+	End         float64       `json:"end"`
+	Events      int           `json:"events"`
+	Segs        [][3]float64  `json:"segs"`
+	Prompts     []Prompt      `json:"prompts"`
+	NPrompts    int           `json:"nPrompts"`
+	Tools       [][2]any      `json:"tools"`
+	Files       []string      `json:"files"`
+	NFiles      int           `json:"nFiles"`
+	Resume      *string       `json:"resume"`
+	Waits       [][2]float64  `json:"waits"`
+	Interrupts  int           `json:"interrupts"`
+	Corrections int           `json:"corrections"`
+	Models      [][2]any      `json:"models"`
+	Usage       UsageTotal    `json:"usage"`
+	Subagents   []Subagent    `json:"subagents"`
+	Credits     float64       `json:"credits"`
+	Cost        float64       `json:"cost"`
+	Native      []NativeValue `json:"native"` // このセッションの参考指標
+	UEv         []Event       `json:"-"`      // 週ごとの集計用（HTML には入れない）
+	CEv         []Credit      `json:"-"`
+	Fix         []float64     `json:"-"`
+	Meas        []Measure     `json:"-"`
 }
 
 func ptr[T any](v T) *T { return &v }
@@ -309,6 +317,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 		Waits: s.Waits(), Interrupts: s.Interrupts, Corrections: s.Corrections(), Models: models,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
 		UEv: uev, CEv: s.Credits, Fix: s.FixTS,
+		Native: AggregateNative(s.Source, s.Measures), Meas: s.Measures,
 	}
 }
 

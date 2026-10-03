@@ -63,6 +63,9 @@ func TestKiroCLISQLite(t *testing.T) {
 	if len(f.Waits) == 0 {
 		t.Error("待たせ時間が取れていない（request_metadata の時刻）")
 	}
+	if n := nativeOf(f); n["応答にかかった時間（中央値）"].V != 20 || n["ツール呼び出し"].V != 1 {
+		t.Errorf("参考指標 = %+v", f.Native)
+	}
 	b := find(bs, "conv-b")
 	if b == nil || b.Project != "/Users/me/ci" || b.Resume != "cd /Users/me/ci && kiro-cli chat --resume" {
 		t.Fatalf("conv-b = %+v", b)

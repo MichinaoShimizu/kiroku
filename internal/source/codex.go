@@ -118,6 +118,7 @@ func (c *Codex) Load(emit func(*core.Builder)) error {
 		var prevTotal core.Tokens
 		records := map[string]bool{}
 		var fromCounts, fromRecords []core.Event
+		var countMeas, recordMeas []core.Measure
 		readCodex(path, func(e core.Obj) {
 			t := ts(e["timestamp"])
 			p := core.Map(e["payload"])
@@ -161,6 +162,9 @@ func (c *Codex) Load(emit func(*core.Builder)) error {
 					}{t, core.Str(p["message"])})
 				case "token_count":
 					s.Agent(t)
+					if v, ok := core.Num(core.Get(p, "rate_limits", "primary", "used_percent")); ok {
+						s.Measure("rate_limit", t, v)
+					}
 					info := core.Map(p["info"])
 					if info == nil {
 						return
@@ -180,6 +184,7 @@ func (c *Codex) Load(emit func(*core.Builder)) error {
 					}
 					lastInfo, lastTotal, prevTotal = string(raw), total, cur
 					fromCounts = append(fromCounts, core.Event{T: t, U: u, Model: cf.model})
+					countMeas = append(countMeas, codexMeasures(t, core.Map(info["last_token_usage"]), core.NumOr0(info["model_context_window"]))...)
 				default:
 					s.Agent(t)
 				}
@@ -191,15 +196,18 @@ func (c *Codex) Load(emit func(*core.Builder)) error {
 				}
 				records[id] = true
 				fromRecords = append(fromRecords, core.Event{T: t, U: codexTokens(p["usage"]), Model: cf.model})
+				recordMeas = append(recordMeas, codexMeasures(t, core.Map(p["usage"]), 0)...)
 			case "response_item":
 				switch core.Str(p["type"]) {
 				case "function_call":
 					var args any
 					json.Unmarshal([]byte(core.Str(p["arguments"])), &args)
 					s.Tool(core.Str(p["name"]), args)
+					s.Measure("tool_calls", t, 1)
 					s.Agent(t)
 				case "custom_tool_call":
 					s.Tool(core.Str(p["name"]), nil)
+					s.Measure("tool_calls", t, 1)
 					s.Agent(t)
 				case "message":
 					if core.Str(p["role"]) == "user" {
@@ -225,10 +233,16 @@ func (c *Codex) Load(emit func(*core.Builder)) error {
 		if cf.b == nil {
 			continue
 		}
-		pending := fromCounts
+		pending, meas := fromCounts, countMeas
 		if len(fromRecords) > 0 { // 新しい版は token_usage_record だけを使う（token_count と同じものを重ねて書いている）
-			pending = fromRecords
+			pending, meas = fromRecords, recordMeas
+			for _, m := range countMeas { // コンテキストの使用率は token_count にしかない
+				if m.Key == "context_used" {
+					meas = append(meas, m)
+				}
+			}
 		}
+		cf.b.Measures = append(cf.b.Measures, meas...)
 		// 依頼の文は event_msg.user_message を使う。ない古い版だけ response_item の user を使う
 		msgs := userMsgs
 		if len(msgs) == 0 {
@@ -256,6 +270,7 @@ func (c *Codex) Load(emit func(*core.Builder)) error {
 			continue
 		}
 		parent := byID[cf.parent].b
+		parent.Measures = append(parent.Measures, cf.b.Measures...) // サブエージェントの分も親のセッションの数字に入れる
 		var start, end *float64
 		if len(cf.b.Times) > 0 {
 			ts := append([]float64(nil), cf.b.Times...)
@@ -289,6 +304,25 @@ func (c *Codex) Load(emit func(*core.Builder)) error {
 		emit(s)
 	}
 	return nil
+}
+
+// codexMeasures は 1 回の応答の使用量から参考指標を作る。
+func codexMeasures(t *float64, u core.Obj, window float64) []core.Measure {
+	if u == nil {
+		return nil
+	}
+	in, cached := core.NumOr0(u["input_tokens"]), core.NumOr0(u["cached_input_tokens"])
+	ms := []core.Measure{
+		{Key: "responses", T: t, V: 1},
+		{Key: "reasoning", T: t, V: core.NumOr0(u["reasoning_output_tokens"])},
+		{Key: "output", T: t, V: core.NumOr0(u["output_tokens"])},
+		{Key: "cache_read", T: t, V: cached},
+		{Key: "input_all", T: t, V: in + core.NumOr0(u["cache_write_input_tokens"])},
+	}
+	if window > 0 {
+		ms = append(ms, core.Measure{Key: "context_used", T: t, V: in / window})
+	}
+	return ms
 }
 
 func firstPrompt(b *core.Builder) string {

@@ -86,6 +86,21 @@ func FmtMetric(key string, v *float64) string {
 	return strconv.FormatFloat(*v, 'g', 6, 64) + Metrics[key].Unit
 }
 
+// nativeText は参考指標の値を単位つきで書く。
+func nativeText(v core.NativeValue) string {
+	switch v.Unit {
+	case "%":
+		return strconv.FormatFloat(core.Round(v.V, 1), 'f', -1, 64) + "%"
+	case "秒":
+		return strconv.FormatFloat(core.Round(v.V, 1), 'f', -1, 64) + "秒"
+	case "クレジット":
+		return strconv.FormatFloat(core.Round(v.V, 2), 'f', -1, 64) + " クレジット"
+	case "トークン", "文字":
+		return intComma(v.V) + " " + v.Unit
+	}
+	return intComma(v.V) + " " + v.Unit
+}
+
 func withN(key string, v *float64, n *int) string {
 	s := FmtMetric(key, v)
 	if n != nil {
@@ -263,6 +278,16 @@ func WeeklyMarkdown(st *Week, report []source.Report, existing string) string {
 	}
 	for _, x := range st.Friction {
 		L = append(L, fmt.Sprintf("- %s [%s] %s — %s", local(x.Start).Format("01/02 15:04"), x.Project, x.Title, strings.Join(x.Why, "、")))
+	}
+	if len(st.Native) > 0 {
+		L = append(L, "", "## エージェント別の参考指標", "",
+			"_それぞれのエージェントが記録している数字です。定義がエージェントごとに違うので、エージェント同士では比べないでください。_")
+		for _, g := range st.Native {
+			L = append(L, "", fmt.Sprintf("**%s**（%d セッション）", g.Source, g.Sessions), "", "| 指標 | 今週 | n |", "|---|---|---|")
+			for _, v := range g.Values {
+				L = append(L, fmt.Sprintf("| %s | %s | %d |", v.Label, nativeText(v), v.N))
+			}
+		}
 	}
 	L = append(L, "")
 	if i := strings.Index(existing, Mark); existing != "" && i >= 0 {

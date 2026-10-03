@@ -161,6 +161,7 @@ func (c *Claude) Load(emit func(*core.Builder)) error {
 					}
 					name := core.Str(bm["name"])
 					s.Tool(name, bm["input"])
+					s.Measure("tool_calls", t, 1)
 					if subagentTools[name] {
 						inp := core.Map(bm["input"])
 						bg, _ := inp["run_in_background"].(bool)
@@ -289,6 +290,15 @@ func (c *Claude) Load(emit func(*core.Builder)) error {
 				}
 			}
 			s.Subagents = append(s.Subagents, core.Subagent{Type: "sidechain", Start: lo, End: hi, Usage: core.SumUsage(sideEvs), Events: sideEvs})
+		}
+		for _, ev := range s.Usage.Events() { // 1 つの応答は 1 回だけ（メッセージ ID でまとめたあと）
+			s.Measure("responses", ev.T, 1)
+			s.Measure("out_per_response", ev.T, ev.U.Out)
+			s.Measure("cache_read", ev.T, ev.U.CR)
+			s.Measure("input_all", ev.T, ev.U.In+ev.U.CW+ev.U.CW1h+ev.U.CR)
+		}
+		for _, a := range s.Subagents {
+			s.Measure("subagents", a.Start, 1)
 		}
 		if s.Title == "" && len(summaries) > 0 {
 			s.Title = summaries[len(summaries)-1]

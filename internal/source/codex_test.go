@@ -78,4 +78,25 @@ func TestCodex(t *testing.T) {
 	}
 }
 
-var _ = core.Round
+func nativeOf(f *core.Session) map[string]core.NativeValue {
+	out := map[string]core.NativeValue{}
+	for _, v := range f.Native {
+		out[v.Label] = v
+	}
+	return out
+}
+
+func TestCodexNativeMetrics(t *testing.T) {
+	bs := load(t, &Codex{Home: codexHome(t)})
+	n := nativeOf(find(bs, "thr-main").Finish(15))
+	// 親の 2 回 + サブエージェントの 1 回（同じ値の書き直しは数えない）
+	if n["応答の数"].V != 3 || n["ツール呼び出し"].V != 3 {
+		t.Errorf("応答/ツール = %+v %+v", n["応答の数"], n["ツール呼び出し"])
+	}
+	if v := n["コンテキストの最大使用率"]; v.N == 0 || v.V < 0.5 || v.V > 0.6 { // 1500 / 272000
+		t.Errorf("コンテキストの使用率 = %+v", v)
+	}
+	if _, ok := n["レート制限の最大使用率"]; ok {
+		t.Error("記録がなければ出さない")
+	}
+}

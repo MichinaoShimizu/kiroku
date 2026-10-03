@@ -65,10 +65,14 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 			switch typ {
 			case "tool_call":
 				s.Tool(core.Str(p["toolName"]), p["args"])
+				s.Measure("tool_calls", t, 1)
 			case "usage_summary":
-				if used := creditsOf(p["promptTurnSummaries"], "unit", "usage"); used != 0 {
+				used := creditsOf(p["promptTurnSummaries"], "unit", "usage")
+				if used != 0 {
 					s.Credits = append(s.Credits, core.Credit{T: t, V: used})
 				}
+				s.Measure("credits", t, used)
+				s.Measure("turns", t, 1)
 				s.Model(model)
 			}
 		})
@@ -118,8 +122,17 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			tm := core.Map(t)
 			te := ts(tm["end_timestamp"])
 			s.Agent(te)
-			if used := creditsOf(tm["metering_usage"], "unit", "value"); used != 0 {
+			used := creditsOf(tm["metering_usage"], "unit", "value")
+			if used != 0 {
 				s.Credits = append(s.Credits, core.Credit{T: te, V: used})
+			}
+			s.Measure("credits", te, used)
+			s.Measure("turns", te, 1)
+			if v, ok := core.Num(tm["total_request_count"]); ok {
+				s.Measure("requests", te, v)
+			}
+			if v, ok := core.Num(tm["builtin_tool_uses"]); ok {
+				s.Measure("builtin_tools", te, v)
 			}
 			s.Model(firstNonEmpty(core.Str(tm["model"]), defaultModel))
 		}

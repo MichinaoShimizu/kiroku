@@ -87,7 +87,7 @@ func TestWeeklyMarkdownMatchesPythonVersion(t *testing.T) {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	got := report.WeeklyMarkdown(weeks[keys[len(keys)-1]], rep, "")
+	got := withoutNative(report.WeeklyMarkdown(weeks[keys[len(keys)-1]], rep, ""))
 	want, err := os.ReadFile("testdata/golden-week.md")
 	if err != nil {
 		t.Fatal(err)
@@ -138,6 +138,16 @@ func TestNormalizeArgs(t *testing.T) {
 	}
 }
 
+// withoutNative は Go 版で足した「エージェント別の参考指標」の節を外す（Python 版の正解にはないため）。
+func withoutNative(md string) string {
+	i := indexOf(md, "## エージェント別の参考指標")
+	j := indexOf(md, report.Mark)
+	if i < 0 || j < i {
+		return md
+	}
+	return md[:i] + md[j:]
+}
+
 func splitArgs(s string) []string {
 	var out []string
 	cur := ""
@@ -175,7 +185,7 @@ func roundTrip(t *testing.T, v any) any {
 	return out
 }
 
-// compare は数値を誤差つきで比べる。Go 版で増やした週の usage.unpriced は Python 版になかったので比べない。
+// compare は数値を誤差つきで比べる。Go 版で増やした項目（週の usage.unpriced、native）は Python 版になかったので比べない。
 func compare(want, got any, path string, diffs *[]string) {
 	switch w := want.(type) {
 	case map[string]any:
@@ -192,7 +202,7 @@ func compare(want, got any, path string, diffs *[]string) {
 			keys[k] = true
 		}
 		for k := range keys {
-			if k == "unpriced" && filepath.Base(filepath.ToSlash(path)) == "usage" {
+			if k == "unpriced" && filepath.Base(filepath.ToSlash(path)) == "usage" || k == "native" {
 				continue
 			}
 			wv, wok := w[k]
