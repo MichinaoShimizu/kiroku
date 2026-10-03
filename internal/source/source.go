@@ -23,6 +23,7 @@ type Source interface {
 type Report struct {
 	Name  string  `json:"name"`
 	N     int     `json:"n"`
+	Dup   int     `json:"dup,omitempty"` // ほかの場所と同じ会話だったので数えなかった数
 	Where string  `json:"where"`
 	Error *string `json:"error"`
 }
@@ -32,6 +33,15 @@ type Options struct {
 	ClaudeRoot   string
 	KiroHome     string
 	KiroStorages []string // nil なら OS ごとの場所を探す
+	KiroCLIDB    string   // 空なら OS ごとの場所
+	AmazonQDB    string
+}
+
+func q(v, def string) string {
+	if v != "" {
+		return v
+	}
+	return def
 }
 
 // All は対応しているすべての履歴。並びは画面の「計測の状態」の順。
@@ -40,7 +50,9 @@ func All(o Options) []Source {
 		&Claude{Root: o.ClaudeRoot},
 		&KiroIDE{Home: o.KiroHome},
 		&KiroCLI{Home: o.KiroHome},
+		&QStore{Label: "Kiro CLI (SQLite)", Fam: "kiro", DB: q(o.KiroCLIDB, filepath.Join(DataDir("kiro-cli"), "data.sqlite3")), Command: "kiro-cli chat --resume"},
 		&KiroIDELegacy{Storages: storages(o.KiroStorages)},
+		&QStore{Label: "Amazon Q", Fam: "amazonq", DB: q(o.AmazonQDB, filepath.Join(DataDir("amazon-q"), "data.sqlite3")), Command: "q chat --resume"},
 	}
 }
 

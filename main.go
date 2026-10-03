@@ -68,7 +68,9 @@ func run(args []string) error {
 	out := fs.String("out", "kiroku.html", "書き出す HTML")
 	fs.StringVar(out, "o", "kiroku.html", "--out の短い形")
 	gap := fs.Int("gap", 15, "何分あいたら帯を分けるか")
-	sources := fs.String("sources", "claude,kiro", "読む履歴（カンマ区切り）")
+	sources := fs.String("sources", "claude,kiro,amazonq", "読む履歴（カンマ区切り）")
+	kiroCLIDB := fs.String("kiro-cli-db", "", "Kiro CLI（古い版）の data.sqlite3 の場所（空なら OS ごとの場所）")
+	amazonQDB := fs.String("amazonq-db", "", "Amazon Q Developer CLI の data.sqlite3 の場所（空なら OS ごとの場所）")
 	noOpen := fs.Bool("no-open", false, "ブラウザを開かない")
 	prices := fs.String("prices", "", "料金表の上書き（JSON）")
 	journal := fs.String("journal", ".", "週のふりかえり（判断ログ）を置くフォルダ")
@@ -94,7 +96,7 @@ func run(args []string) error {
 	for _, s := range strings.Split(*sources, ",") {
 		want[strings.ToLower(strings.TrimSpace(s))] = true
 	}
-	data, rep := collect(source.All(source.Options{ClaudeRoot: *root, KiroHome: *kiroHome}), want, *gap)
+	data, rep := collect(source.All(source.Options{ClaudeRoot: *root, KiroHome: *kiroHome, KiroCLIDB: *kiroCLIDB, AmazonQDB: *amazonQDB}), want, *gap)
 	if len(data) == 0 {
 		return fmt.Errorf("履歴が 1 件も見つからなかったよ。--root や KIRO_HOME を確認してね")
 	}
@@ -131,18 +133,26 @@ func run(args []string) error {
 func collect(all []source.Source, want map[string]bool, gap int) ([]*core.Session, []source.Report) {
 	var data []*core.Session
 	var rep []source.Report
+	seen := map[string]bool{} // 同じ会話が 2 か所に残っていたら、先に読んだほうを使う
 	for _, s := range all {
 		if !want[s.Family()] {
 			continue
 		}
-		n := 0
+		n, dup := 0, 0
 		err := s.Load(func(b *core.Builder) {
+			if b.Key != "" {
+				if seen[b.Key] {
+					dup++
+					return
+				}
+				seen[b.Key] = true
+			}
 			n++
 			if sess := b.Finish(gap); sess != nil {
 				data = append(data, sess)
 			}
 		})
-		r := source.Report{Name: s.Name(), N: n, Where: s.Where()}
+		r := source.Report{Name: s.Name(), N: n, Dup: dup, Where: s.Where()}
 		if err != nil {
 			msg := err.Error()
 			r.Error = &msg

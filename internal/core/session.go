@@ -43,6 +43,7 @@ type Credit struct {
 // Builder は 1 つのセッションを読みながら組み立てる。アダプターはこれだけを触る。
 type Builder struct {
 	Source, ID                     string
+	Key                            string // 同じ会話が 2 つの場所に残るとき、先に読んだほうだけを使うための鍵
 	Project, Branch, Title, Resume string
 	Prompts                        []Prompt
 	Times                          []float64

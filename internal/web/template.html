@@ -581,7 +581,7 @@ function playbook(w){
       <span class="state ${x.state}">${{ok:"範囲内",over:"超過",building:"基準づくり中",unknown:"不明"}[x.state]}</span></div>`; }).join("");
   // ② 計測の状態
   const unknown = Object.entries(w.metrics).filter(([,m])=>m.v==null).map(([k])=>META.metrics[k].label);
-  const meas = [...META.report.map(r => `<li class="${r.error?"warn":""}">${esc(r.name)}: ${r.n} セッション${r.error?`（読めなかったファイルあり）`:""}</li>`),
+  const meas = [...META.report.map(r => `<li class="${r.error?"warn":""}">${esc(r.name)}: ${r.n} セッション${r.dup?`（ほかの場所と同じ会話 ${r.dup} 件は数えていません）`:""}${r.error?`（読めなかったファイルあり）`:""}</li>`),
     ...(unknown.length ? [`<li class="warn">不明: ${esc(unknown.join("、"))}</li>`] : []),
     ...(w.usage && w.usage.unpriced ? [`<li class="warn">料金表にないモデルのトークン ${tok(w.usage.unpriced)} は目安コストに入っていません</li>`] : []),
     `<li>指標の定義 v${esc(META.version)}・閾値は直前${META.baselineWeeks}週までの自分の値（上側の四分位 + 1.5×四分位範囲）</li>`].join("");
