@@ -1,0 +1,12 @@
+{"id": "0", "timestamp": "2026-09-30T07:01:00Z", "payload": {"type": "user", "content": "specを書いて"}}
+{"id": "1", "timestamp": "2026-09-30T07:02:00Z", "payload": {"type": "tool_call", "toolName": "fsWrite", "args": {"path": "spec.md"}}}
+{"id": "2", "timestamp": "2026-09-30T07:05:00Z", "payload": {"type": "tool_call", "toolName": "fsWrite", "args": {"path": "spec.md"}}}
+{"id": "3", "timestamp": "2026-09-30T07:07:00Z", "payload": {"type": "usage_summary", "promptTurnSummaries": [{"usage": 0.72, "unit": "credit"}]}}
+{"id": "4", "timestamp": "2026-09-30T07:08:00Z", "payload": {"type": "user", "content": "specを書いて"}}
+{"id": "5", "timestamp": "2026-09-30T07:11:00Z", "payload": {"type": "tool_call", "toolName": "fsWrite", "args": {"path": "spec.md"}}}
+{"id": "6", "timestamp": "2026-09-30T07:14:00Z", "payload": {"type": "tool_call", "toolName": "fsWrite", "args": {"path": "spec.md"}}}
+{"id": "7", "timestamp": "2026-09-30T07:16:00Z", "payload": {"type": "usage_summary", "promptTurnSummaries": [{"usage": 1.61, "unit": "credit"}]}}
+{"id": "8", "timestamp": "2026-09-30T07:17:00Z", "payload": {"type": "user", "content": "specを書いて"}}
+{"id": "9", "timestamp": "2026-09-30T07:19:00Z", "payload": {"type": "tool_call", "toolName": "fsWrite", "args": {"path": "spec.md"}}}
+{"id": "10", "timestamp": "2026-09-30T07:22:00Z", "payload": {"type": "tool_call", "toolName": "fsWrite", "args": {"path": "spec.md"}}}
+{"id": "11", "timestamp": "2026-09-30T07:25:00Z", "payload": {"type": "usage_summary", "promptTurnSummaries": [{"usage": 1.27, "unit": "credit"}]}}
