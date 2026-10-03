@@ -5,7 +5,7 @@ kiroku は Go 1 本で書いた、外部ライブラリの少ない CLI です�
 ## ビルドとテスト
 
 ```bash
-go test ./...      # testdata/ の合成データで、集計と Markdown が正解と一致するかを確かめる
+go test ./...      # testdata/ の合成データで、集計が正解と一致するかを確かめる
 go vet ./...
 gofmt -l .         # 何も出なければ OK
 go build .         # ./kiroku ができる（./kiroku serve で画面を開く）
@@ -17,13 +17,13 @@ go build .         # ./kiroku ができる（./kiroku serve で画面を開く�
 
 | 場所 | 役目 |
 |---|---|
-| `cli.go` | サブコマンド（`serve`・`html`・`weekly`・`monthly`・`json`・`version`・`update`）とオプションの読み取り |
-| `main.go` | 履歴の読み込み（重複を外す）、Markdown の書き出し、料金表の上書き |
+| `cli.go` | サブコマンド（`serve`・`html`・`json`・`version`・`update`）とオプションの読み取り |
+| `main.go` | 履歴の読み込み（重複を外す）、料金表の上書き |
 | `update.go` | `kiroku update`（Releases から落として確かめ、自分自身を入れかえる） |
 | `serve.go` | `kiroku serve`（履歴の変化を見張って読み直し、画面に配る） |
 | `internal/source` | エージェントごとの履歴を読むアダプター。読み方の細かい決まりは [sources.md](sources.md) |
 | `internal/core` | 共通のセッションの形（`Builder` → `Session`）、トークンと料金、エージェント別の参考指標 |
-| `internal/report` | 週・月の集計（`Summarize`）と、週次・月次サマリーの Markdown |
+| `internal/report` | 週・月の集計（`Summarize`）とプロジェクト別のまとめ |
 | `internal/web/template.html` | 画面。1 ファイルの HTML に集計の JSON を埋め込んで書き出す |
 
 ### エージェントを足すとき
@@ -39,17 +39,7 @@ go build .         # ./kiroku ができる（./kiroku serve で画面を開く�
 
 ## 正解データ（golden）
 
-| ファイル | 中身 |
-|---|---|
-| `testdata/golden.json` | 集計の JSON。Go に移す前の Python 版が同じ合成データから出した数字で、Go 版はこれと同じ数字を出す（Go 版で足した項目は比べない） |
-| `testdata/golden-week.md` / `golden-month.md` | 週次・月次サマリーの Markdown をそのまま保存したもの |
-
-Markdown の書式を変えたときは、作り直して差分を目で確かめます。
-
-```bash
-KIROKU_UPDATE_GOLDEN=1 go test .
-git diff testdata/
-```
+`testdata/golden.json` は集計の JSON です。Go に移す前の Python 版が同じ合成データから出した数字で、Go 版はこれと同じ数字を出します（Go 版で足した項目は比べません）。集計を変えて数字が変わるときは、なぜ変わるのかを PR に書いてから更新します。
 
 ## CI
 
