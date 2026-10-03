@@ -1,4 +1,4 @@
-// kiroku — AI エージェント（Claude Code・Kiro・Kiro Crew・Amazon Q・Codex）の作業履歴を週カレンダーで振り返る。
+// kiroku — AI エージェント（Claude Code・Kiro・Kiro Crew・Amazon Q・Codex）の作業履歴を週のタイムラインで振り返る。
 //
 // 使い方:
 //
@@ -80,7 +80,7 @@ func main() {
 func run(args []string) error {
 	fs := flag.NewFlagSet("kiroku", flag.ContinueOnError)
 	fs.Usage = func() {
-		fmt.Fprintf(fs.Output(), "kiroku %s — AI エージェントの作業履歴を週カレンダーで振り返る\n\n", version)
+		fmt.Fprintf(fs.Output(), "kiroku %s — AI エージェントの作業履歴を週のタイムラインで振り返る\n\n", version)
 		fs.PrintDefaults()
 	}
 	root := fs.String("root", source.DefaultClaudeRoot(), "Claude Code の履歴の場所")

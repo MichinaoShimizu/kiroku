@@ -3,355 +3,373 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>kiroku</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='5' fill='%23c8402f'/%3E%3Ctext x='16' y='23' font-size='19' text-anchor='middle' fill='%23fff' font-family='serif'%3E記%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2315171c'/%3E%3Crect x='6' y='8' width='13' height='4' rx='2' fill='%23818cf8'/%3E%3Crect x='11' y='14' width='15' height='4' rx='2' fill='%23fff'/%3E%3Crect x='6' y='20' width='9' height='4' rx='2' fill='%23fff' opacity='.55'/%3E%3C/svg%3E">
 <style>
-/* ── tokens ─────────────────────────────────────────────── */
+/* ── tokens ─────────────────────────────────────────────
+   グラファイトの面に、インディゴを 1 色だけ。区分の色は Okabe–Ito（色覚の違いがあっても見分けやすい 8 色） */
 :root{
   color-scheme:light;
-  --paper:#f6f3ec; --paper-2:#efebe2; --card:#fbf9f5; --ink:#1d1b18; --ink-2:#55514a; --ink-3:#6b665c;
-  --rule:#e2ddd2; --rule-2:#d3cdc0; --shu:#c8402f; --shu-ink:#a8321f; --badge:#c8402f; --night:rgba(60,64,110,.032); --weekend:rgba(29,27,24,.018); --fillk:1;
-  --shadow:0 1px 2px rgba(40,30,10,.06),0 8px 24px -12px rgba(40,30,10,.18);
-  --grain:.07; --c0:#2f5d9e; --c1:#d9572b; --c2:#1f9b7a; --c3:#e0a100; --c4:#d6699a; --c5:#4f8a1e; --c6:#6b5bb5; --c7:#b8433f; --other:#9a958b;
-  --serif:"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP","Noto Serif CJK JP",serif;
-  --sans:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP","Yu Gothic UI",system-ui,sans-serif;
-  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
-  --ease:cubic-bezier(.2,.7,.1,1);
+  --bg:#f3f4f6; --surface:#ffffff; --surface-2:#eceef2; --ink:#121419; --ink-2:#464b56; --ink-3:#5f6573;
+  --rule:#e1e4ea; --rule-2:#cdd2db; --acc:#4338ca; --acc-ink:#3730a3; --on-acc:#ffffff; --acc-soft:rgba(67,56,202,.08); --warn:#b42318; --on-warn:#ffffff;
+  --night:rgba(18,20,25,.035); --weekend:rgba(18,20,25,.022);
+  --shadow:0 1px 2px rgba(16,18,24,.06),0 12px 32px -14px rgba(16,18,24,.22);
+  --c0:#0072b2; --c1:#d55e00; --c2:#009e73; --c3:#cc79a7; --c4:#e69f00; --c5:#56b4e9; --c6:#7a5cc4; --c7:#9a8a00; --other:#9aa0ab;
+  --sans:"Inter","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP","Yu Gothic UI",system-ui,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,monospace;
+  --ease:cubic-bezier(.2,.7,.1,1); --lab:104px;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   color-scheme:dark;
-  --paper:#141318; --paper-2:#1b1a20; --card:#1d1c22; --ink:#ece8df; --ink-2:#b5afa3; --ink-3:#8b857a;
-  --rule:#2a2830; --rule-2:#36343d; --shu:#e0614c; --shu-ink:#ef7a65; --badge:#c4503d; --night:rgba(140,150,255,.035); --weekend:rgba(255,255,255,.015); --fillk:1.7;
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px -12px rgba(0,0,0,.6);
-  --grain:.0; --c0:#4f7fcc; --c1:#e0683a; --c2:#2aa889; --c3:#bf8a00; --c4:#d0628f; --c5:#5f9c2a; --c6:#8f80dc; --c7:#d65a56; --other:#77736b;
+  --bg:#0e0f13; --surface:#16181e; --surface-2:#1e2129; --ink:#eceef3; --ink-2:#b4b9c4; --ink-3:#8c92a0;
+  --rule:#252832; --rule-2:#333743; --acc:#818cf8; --acc-ink:#a5b4fc; --on-acc:#0e0f13; --acc-soft:rgba(129,140,248,.12); --warn:#f97066; --on-warn:#0e0f13;
+  --night:rgba(255,255,255,.025); --weekend:rgba(255,255,255,.018);
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -16px rgba(0,0,0,.7);
+  --c0:#3a9be0; --c1:#f07a2b; --c2:#1fbf8f; --c3:#e08fbd; --c4:#f2b53a; --c5:#7cc6f0; --c6:#9c84e6; --c7:#c9b51c; --other:#6b7180;
 }}
 :root[data-theme="dark"]{
   color-scheme:dark;
-  --paper:#141318; --paper-2:#1b1a20; --card:#1d1c22; --ink:#ece8df; --ink-2:#b5afa3; --ink-3:#8b857a;
-  --rule:#2a2830; --rule-2:#36343d; --shu:#e0614c; --shu-ink:#ef7a65; --badge:#c4503d; --night:rgba(140,150,255,.035); --weekend:rgba(255,255,255,.015); --fillk:1.7;
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px -12px rgba(0,0,0,.6);
-  --grain:.0; --c0:#4f7fcc; --c1:#e0683a; --c2:#2aa889; --c3:#bf8a00; --c4:#d0628f; --c5:#5f9c2a; --c6:#8f80dc; --c7:#d65a56; --other:#77736b;
+  --bg:#0e0f13; --surface:#16181e; --surface-2:#1e2129; --ink:#eceef3; --ink-2:#b4b9c4; --ink-3:#8c92a0;
+  --rule:#252832; --rule-2:#333743; --acc:#818cf8; --acc-ink:#a5b4fc; --on-acc:#0e0f13; --acc-soft:rgba(129,140,248,.12); --warn:#f97066; --on-warn:#0e0f13;
+  --night:rgba(255,255,255,.025); --weekend:rgba(255,255,255,.018);
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -16px rgba(0,0,0,.7);
+  --c0:#3a9be0; --c1:#f07a2b; --c2:#1fbf8f; --c3:#e08fbd; --c4:#f2b53a; --c5:#7cc6f0; --c6:#9c84e6; --c7:#c9b51c; --other:#6b7180;
 }
 
 /* ── base ───────────────────────────────────────────────── */
 *{box-sizing:border-box}
-html,body{margin:0;height:100%}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;opacity:var(--grain);mix-blend-mode:multiply;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .25 0 0 0 0 .2 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-body{background:var(--paper);color:var(--ink);font:13px/1.6 var(--sans);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden;
-  font-feature-settings:"palt" 1}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.6 var(--sans);-webkit-font-smoothing:antialiased;font-feature-settings:"palt" 1}
+body.lock{overflow:hidden}
 button,input{font:inherit;color:inherit}
 button{cursor:pointer;background:none;border:0;padding:0}
-:focus-visible{outline:2px solid var(--shu);outline-offset:2px;border-radius:6px}
-.num{font-family:var(--serif);font-variant-numeric:tabular-nums lining-nums;letter-spacing:-.01em}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:6px}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .muted{color:var(--ink-3)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-svg.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+svg.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.wrap{max-width:1560px;margin:0 auto;padding:0 28px}
 
 /* ── header ─────────────────────────────────────────────── */
-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:18px;padding:14px 24px 12px;border-bottom:1px solid var(--rule);background:var(--paper);position:relative;z-index:5}
-.brand{display:flex;align-items:center;gap:10px;min-width:0}
-.seal{width:30px;height:30px;border-radius:7px;background:var(--badge);color:#fff;display:grid;place-items:center;font:600 18px/1 var(--serif);transform:rotate(-4deg);
-  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.28),0 2px 6px -2px rgba(200,64,47,.6)}
-.word{font:600 19px/1 var(--serif);letter-spacing:.06em}
-.tag{font-size:11px;color:var(--ink-3);letter-spacing:.08em;margin-top:3px}
-.live{display:inline-flex;align-items:center;gap:5px;margin-left:8px;vertical-align:3px;font:600 9.5px/1 var(--sans);letter-spacing:.14em;color:var(--shu-ink);border:1px solid currentColor;border-radius:99px;padding:3px 7px 3px 6px}
+header{position:sticky;top:0;z-index:10;background:color-mix(in oklab,var(--bg) 86%,transparent);backdrop-filter:saturate(1.4) blur(12px);border-bottom:1px solid var(--rule)}
+.bar{display:flex;align-items:center;gap:16px;height:60px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0}
+.mark{width:28px;height:28px;flex:none}
+.word{font:700 16px/1 var(--sans);letter-spacing:-.01em}
+.tag{font-size:11.5px;color:var(--ink-3);padding-left:10px;margin-left:2px;border-left:1px solid var(--rule-2);white-space:nowrap}
+.live{display:inline-flex;align-items:center;gap:6px;font:600 10px/1 var(--sans);letter-spacing:.12em;color:var(--acc-ink);background:var(--acc-soft);border-radius:99px;padding:5px 8px 5px 7px}
 .live::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 2.4s var(--ease) infinite}
-.live.off{color:var(--ink-3)} .live.off::before{animation:none;opacity:.5}
+.live.off{color:var(--ink-3);background:var(--surface-2)} .live.off::before{animation:none;opacity:.5}
 .live[hidden]{display:none}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
-.weeknav{display:flex;align-items:center;gap:6px}
-.weeknav .range{min-width:232px;text-align:center;padding:0 6px}
-.range .y{display:block;font-size:10.5px;letter-spacing:.2em;color:var(--ink-3)}
-.range .d{font:500 18px/1.25 var(--serif);letter-spacing:.02em;white-space:nowrap}
 .iconbtn{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;color:var(--ink-2);transition:background .2s var(--ease),color .2s}
-.iconbtn:hover{background:var(--paper-2);color:var(--ink)}
-.pill{height:30px;padding:0 12px;border:1px solid var(--rule-2);border-radius:999px;font-size:12px;color:var(--ink-2);transition:all .2s var(--ease);white-space:nowrap}
+.iconbtn:hover{background:var(--surface-2);color:var(--ink)}
+.pill{height:30px;padding:0 12px;border:1px solid var(--rule-2);border-radius:8px;font-size:12px;color:var(--ink-2);background:var(--surface);transition:all .2s var(--ease);white-space:nowrap}
 .pill:hover{border-color:var(--ink-3);color:var(--ink)}
-.tools{display:flex;align-items:center;gap:8px;justify-self:end}
-.seg{display:inline-flex;padding:3px;border-radius:10px;background:var(--paper-2);gap:2px}
-.seg button{height:26px;padding:0 10px;border-radius:7px;font-size:12px;color:var(--ink-2);transition:all .2s var(--ease);white-space:nowrap}
-.seg button:hover{color:var(--ink)}
-.seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.segc{display:inline-flex;padding:3px;border-radius:10px;background:var(--surface-2);gap:2px}
+.segc button{height:26px;padding:0 10px;border-radius:7px;font-size:12px;color:var(--ink-2);transition:all .2s var(--ease);white-space:nowrap}
+.segc button:hover{color:var(--ink)}
+.segc button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
 .search{position:relative}
-.search input{width:200px;height:32px;border-radius:9px;border:1px solid var(--rule-2);background:var(--card);padding:0 30px 0 32px;font-size:12.5px;transition:border-color .2s,width .3s var(--ease)}
-.search input:focus{outline:none;border-color:var(--ink-3);width:240px}
+.search input{width:220px;height:32px;border-radius:9px;border:1px solid var(--rule-2);background:var(--surface);padding:0 30px 0 32px;font-size:12.5px;transition:border-color .2s,width .3s var(--ease)}
+.search input:focus{outline:none;border-color:var(--acc);width:260px}
 .search svg{position:absolute;left:10px;top:8px;color:var(--ink-3)}
 .search kbd{position:absolute;right:8px;top:7px}
-kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid var(--rule-2);color:var(--ink-3);background:var(--card)}
+kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid var(--rule-2);color:var(--ink-3);background:var(--surface)}
+
+/* ── week strip ─────────────────────────────────────────── */
+.week{display:flex;align-items:flex-end;gap:28px;padding:26px 0 18px;flex-wrap:wrap}
+.wk{display:flex;align-items:center;gap:6px}
+.wk .lbl{min-width:0}
+.wk .y{font:600 11px/1 var(--sans);letter-spacing:.14em;color:var(--acc-ink);text-transform:uppercase}
+.wk .d{font:700 30px/1.1 var(--sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap;margin-top:6px}
+.wk .d span{color:var(--ink-3);font-weight:500;margin:0 .18em}
+.wk .nav{display:flex;gap:4px;align-self:flex-end;margin-left:10px}
+.kpis{display:flex;gap:0;margin-left:auto;border:1px solid var(--rule);border-radius:14px;background:var(--surface);overflow:hidden}
+.kpi{padding:10px 18px 9px;min-width:118px;border-left:1px solid var(--rule)}
+.kpi:first-child{border-left:0}
+.kpi .k{font-size:11px;color:var(--ink-3);white-space:nowrap}
+.kpi .v{font:700 20px/1.3 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpi .v small{font-size:11.5px;font-weight:500;color:var(--ink-2);margin-left:2px}
+.kpi.alert .v{color:var(--warn)}
 
 /* ── legend ─────────────────────────────────────────────── */
-.legend{display:flex;align-items:center;gap:6px;padding:10px 24px;border-bottom:1px solid var(--rule);overflow-x:auto;scrollbar-width:none}
+.legend{display:flex;align-items:center;gap:6px;padding:0 0 12px;overflow-x:auto;scrollbar-width:none}
 .legend::-webkit-scrollbar{display:none}
-.legend .lab{font-size:11px;letter-spacing:.14em;color:var(--ink-3);margin-right:6px;white-space:nowrap}
-.chip{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 10px 0 8px;border-radius:999px;font-size:12px;color:var(--ink-2);border:1px solid transparent;transition:all .2s var(--ease);white-space:nowrap}
-.chip:hover{background:var(--paper-2)}
-.chip .dot{width:9px;height:9px;border-radius:3px;background:var(--c)}
-.chip .n{font:11px var(--sans);color:var(--ink-3);font-variant-numeric:tabular-nums}
-.chip[aria-pressed="false"]{opacity:.42}.chip[aria-pressed="false"] .dot{background:transparent;box-shadow:inset 0 0 0 1.5px var(--c)}
+.legend .lab{font-size:11px;letter-spacing:.08em;color:var(--ink-3);margin-right:4px;white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 10px 0 9px;border-radius:7px;font-size:12px;color:var(--ink-2);border:1px solid var(--rule);background:var(--surface);transition:all .2s var(--ease);white-space:nowrap}
+.chip:hover{border-color:var(--rule-2)}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.chip .n{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.chip[aria-pressed="false"]{opacity:.45}.chip[aria-pressed="false"] .dot{background:transparent;box-shadow:inset 0 0 0 1.5px var(--c)}
 .legend .count{margin-left:auto;font-size:12px;color:var(--ink-3);white-space:nowrap;padding-left:12px}
 
-/* ── layout ─────────────────────────────────────────────── */
-main{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 400px;min-height:0}
-#cal{overflow:auto;position:relative;scroll-behavior:smooth;scrollbar-width:thin}
-aside{border-left:1px solid var(--rule);background:var(--card);overflow:auto;position:relative;scrollbar-width:thin}
-
-/* ── calendar ───────────────────────────────────────────── */
-.heads{display:grid;grid-template-columns:56px repeat(7,minmax(0,1fr));position:sticky;top:0;z-index:4;background:color-mix(in oklab,var(--paper) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
-.head{padding:10px 10px 9px;display:flex;align-items:baseline;gap:7px;border-left:1px solid transparent}
-.head .dn{font:500 22px/1 var(--serif);font-variant-numeric:tabular-nums}
-.head .dw{font-size:11px;color:var(--ink-3);letter-spacing:.1em}
-.head .dm{font-size:10.5px;color:var(--shu-ink);letter-spacing:.06em;font-variant-numeric:tabular-nums;order:-1;margin-right:-2px}
-.head.today .dn{color:#fff;background:var(--badge);border-radius:999px;padding:4px 7px 5px;margin:-4px 0 -5px -2px}
-.head.today .dw{color:var(--shu-ink)}
-.grid{display:grid;grid-template-columns:56px repeat(7,minmax(0,1fr));position:relative}
-.hours{position:relative}
-.hours span{position:absolute;right:10px;transform:translateY(-50%);font-size:10.5px;color:var(--ink-3);font-variant-numeric:tabular-nums;letter-spacing:.04em}
-.day{position:relative;border-left:1px solid var(--rule);
-  background-image:linear-gradient(var(--rule) 1px,transparent 1px),linear-gradient(90deg,transparent 0 50%,transparent 50%);
-  background-size:100% var(--hh)}
-.day.we{background-color:var(--weekend)}
-.day.today{background-color:color-mix(in oklab,var(--shu) 4%,transparent)}
-.nightband{position:absolute;left:0;right:0;background:var(--night);pointer-events:none}
-.half{position:absolute;left:0;right:0;border-top:1px dashed color-mix(in oklab,var(--rule) 70%,transparent);pointer-events:none}
-.blk{position:absolute;border-radius:2px 6px 6px 2px;padding:3px 6px 0 7px;overflow:hidden;cursor:pointer;
-  background:color-mix(in oklab,var(--c) calc(var(--fill) * var(--fillk)),var(--paper));box-shadow:inset 3px 0 0 var(--c);
-  font-size:11px;line-height:1.35;color:var(--ink);text-align:left;
+/* ── timeline（曜日が行、時刻が横軸） ───────────────────── */
+.tlbox{background:var(--surface);border:1px solid var(--rule);border-radius:16px;overflow:hidden;position:relative}
+.tlscroll{overflow-x:auto;scrollbar-width:thin}
+.tlin{width:calc(var(--lab) + (100% - var(--lab)) * var(--z,1));min-width:760px;position:relative}
+.axis,.row{display:flex}
+.axis{height:30px;border-bottom:1px solid var(--rule)}
+.axis .corner,.row .lab{width:var(--lab);flex:none;position:sticky;left:0;z-index:3;background:var(--surface)}
+.axis .ticks{flex:1;position:relative}
+.axis .ticks span{position:absolute;top:9px;transform:translateX(-50%);font-size:10.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.axis .ticks span.now{color:var(--on-acc);background:var(--acc);border-radius:5px;padding:1px 5px;top:6px;font-weight:600;z-index:2}
+.row{border-bottom:1px solid var(--rule);min-height:44px}
+.row:last-child{border-bottom:0}
+.row .lab{display:flex;flex-direction:column;justify-content:center;padding:6px 12px 6px 16px;border-right:1px solid var(--rule)}
+.row .lab .dd{display:flex;align-items:baseline;gap:6px}
+.row .lab b{font:700 15px/1.1 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.row .lab i{font-style:normal;font-size:11px;color:var(--ink-3)}
+.row .lab small{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums;margin-top:2px}
+.row.today .lab{box-shadow:inset 3px 0 0 var(--acc)}
+.row.today .lab b,.row.today .lab i{color:var(--acc-ink)}
+.row.we .track{background-color:var(--weekend)}
+.track{flex:1;position:relative;padding:7px 0;
+  background-image:repeating-linear-gradient(90deg,var(--rule) 0 1px,transparent 1px calc(100% / 24))}
+.track .nb{position:absolute;top:0;bottom:0;background:var(--night);pointer-events:none}
+.run{position:absolute;height:18px;border-radius:9px;padding:0 8px 0 7px;display:flex;align-items:center;gap:6px;overflow:hidden;cursor:pointer;
+  background:color-mix(in oklab,var(--c) var(--fill),var(--surface));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--c) 55%,transparent);
+  font-size:11px;line-height:1;color:var(--ink);text-align:left;white-space:nowrap;
   transition:transform .18s var(--ease),box-shadow .18s var(--ease),opacity .25s var(--ease),filter .25s;
-  animation:rise .5s var(--ease) both;animation-delay:var(--delay,0ms)}
-.blk.thin{border-radius:1px 3px 3px 1px;padding:0}
-.blk .t{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.blk .m{display:block;color:var(--ink-2);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
-.blk:hover{transform:translateY(-1px);box-shadow:inset 3px 0 0 var(--c),var(--shadow);z-index:3}
-.grid.focus .blk{opacity:.28;filter:saturate(.6)}
-.grid.focus .blk.sel{opacity:1;filter:none;box-shadow:inset 3px 0 0 var(--c),0 0 0 1.5px var(--c),var(--shadow);z-index:3}
-@keyframes rise{from{opacity:0;transform:translateY(6px)}}
-.now{position:absolute;left:-5px;right:0;height:0;border-top:1.5px solid var(--shu);z-index:3;pointer-events:none}
-.now::before{content:"";position:absolute;left:0;top:-5px;width:9px;height:9px;border-radius:50%;background:var(--shu);box-shadow:0 0 0 3px color-mix(in oklab,var(--shu) 25%,transparent)}
-.nowlab{position:absolute;right:6px;transform:translateY(-50%);font:600 10px/1 var(--sans);color:#fff;background:var(--badge);padding:3px 5px;border-radius:4px;z-index:3;font-variant-numeric:tabular-nums}
-.empty{position:sticky;top:38%;height:0;margin-left:56px;text-align:center;pointer-events:none;z-index:2}
-.empty div{transform:translateY(-50%)}
-.empty .k{width:72px;height:72px;margin:0 auto;border-radius:16px;border:2px solid var(--rule-2);color:var(--rule-2);display:grid;place-items:center;font:500 40px/1 var(--serif);transform:rotate(-4deg)}
-.empty p{color:var(--ink-3);margin:12px 0 0}
-.daytabs{display:none}
+  animation:grow .55s var(--ease) both;animation-delay:var(--delay,0ms);transform-origin:left center}
+.run.lbl::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c);flex:none}
+.run.tiny{padding:0}
+.run .t{overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.run:hover{box-shadow:inset 0 0 0 1.5px var(--c),var(--shadow);z-index:2}
+.tlbox.focus .run{opacity:.25;filter:saturate(.5)}
+.tlbox.focus .run.sel{opacity:1;filter:none;box-shadow:inset 0 0 0 2px var(--c),var(--shadow);z-index:2}
+@keyframes grow{from{opacity:0;transform:scaleX(.6)}}
+.nowline{position:absolute;top:0;bottom:0;width:0;border-left:1.5px solid var(--acc);z-index:1;pointer-events:none}
+.nowline::before{content:"";position:absolute;left:-5px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--acc)}
+.empty{padding:56px 16px 60px;text-align:center;color:var(--ink-3)}
+.empty svg{width:56px;height:56px;color:var(--rule-2);stroke-width:1.2}
+.empty p{margin:10px 0 0}
 
 /* tooltip */
-.tip{position:fixed;z-index:20;pointer-events:none;max-width:280px;background:var(--ink);color:var(--paper);border-radius:10px;padding:9px 11px;font-size:12px;line-height:1.5;
+.tip{position:fixed;z-index:40;pointer-events:none;max-width:300px;background:var(--ink);color:var(--bg);border-radius:10px;padding:9px 11px;font-size:12px;line-height:1.5;
   box-shadow:0 10px 30px -10px rgba(0,0,0,.5);opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s var(--ease)}
 .tip.on{opacity:1;transform:none}
 .tip b{display:block;font-weight:600;margin-bottom:2px}
-.tip .r{display:flex;align-items:center;gap:6px;color:color-mix(in oklab,var(--paper) 72%,transparent);font-variant-numeric:tabular-nums}
-.tip .r i{width:8px;height:8px;border-radius:2px;background:var(--c)}
+.tip .r{display:flex;align-items:center;gap:6px;color:color-mix(in oklab,var(--bg) 72%,transparent);font-variant-numeric:tabular-nums}
+.tip .r i{width:8px;height:8px;border-radius:50%;background:var(--c)}
 
-/* ── panel ──────────────────────────────────────────────── */
-.pane{padding:26px 28px 40px;animation:fade .35s var(--ease) both}
-@keyframes fade{from{opacity:0;transform:translateX(8px)}}
-.eyebrow{font-size:10.5px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase;display:flex;align-items:center;gap:8px}
-.eyebrow .dot{width:8px;height:8px;border-radius:2px;background:var(--c)}
-h2{font:500 21px/1.45 var(--serif);margin:6px 0 4px;letter-spacing:.01em;overflow-wrap:anywhere}
-h3{font:600 11px/1 var(--sans);letter-spacing:.18em;color:var(--ink-3);margin:30px 0 12px;display:flex;align-items:center;gap:10px}
+/* ── review（ふりかえり：判断・参照値・かたち の 3 列） ──── */
+.rvhead{display:flex;align-items:baseline;gap:14px;padding:40px 0 16px;flex-wrap:wrap}
+.rvhead h2{font:700 22px/1.2 var(--sans);letter-spacing:-.02em;margin:0}
+.rvhead p{margin:0;color:var(--ink-3);font-size:12.5px}
+.rvgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start;padding-bottom:48px}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:16px;padding:20px 22px 22px;min-width:0}
+.panel.decide{border-color:color-mix(in oklab,var(--acc) 35%,var(--rule))}
+.ph{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.ph .no{font:700 11px/22px var(--sans);width:22px;height:22px;border-radius:7px;text-align:center;background:var(--ink);color:var(--bg)}
+.panel.decide .ph .no{background:var(--acc);color:var(--on-acc)}
+.ph b{font:700 14px/1.3 var(--sans)}
+.ph span{font-size:11.5px;color:var(--ink-3)}
+.eyebrow{font-size:10.5px;letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase;display:flex;align-items:center;gap:8px;font-weight:600}
+.eyebrow .dot{width:8px;height:8px;border-radius:50%;background:var(--c)}
+h2{font:700 19px/1.4 var(--sans);margin:6px 0 4px;letter-spacing:-.01em;overflow-wrap:anywhere}
+h3{font:600 12px/1.2 var(--sans);color:var(--ink-2);margin:24px 0 10px;display:flex;align-items:center;gap:10px}
 h3::after{content:"";flex:1;height:1px;background:var(--rule)}
-.hero{margin:18px 0 6px}
+.hero{margin:10px 0 4px}
 .hero .big{display:flex;align-items:baseline;gap:2px}
-.hero .big .num{font-size:52px;line-height:1;font-weight:500}
-.hero .big .u{font:500 15px var(--serif);color:var(--ink-2);margin:0 6px 0 3px}
+.hero .big .num{font:700 40px/1 var(--sans);letter-spacing:-.04em}
+.hero .big .u{font:500 14px var(--sans);color:var(--ink-2);margin:0 6px 0 3px}
 .hero .cap{color:var(--ink-2);margin-top:8px;font-size:12.5px}
-.delta{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-2);background:var(--paper-2);border-radius:999px;padding:2px 9px;margin-left:8px;font-variant-numeric:tabular-nums}
-.stats{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--rule);margin-top:20px}
-.stat{padding:14px 0 13px;border-bottom:1px solid var(--rule)}
-.stat:nth-child(odd){padding-right:14px;border-right:1px solid var(--rule)}
-.stat:nth-child(even){padding-left:16px}
-.stat:last-child:nth-child(odd){grid-column:1/-1;border-right:0}
+.delta{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-2);background:var(--surface-2);border-radius:6px;padding:1px 8px;margin-left:8px;font-variant-numeric:tabular-nums}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.stat{padding:11px 12px 10px;border-radius:10px;background:var(--surface-2)}
+.stat:last-child:nth-child(odd){grid-column:1/-1}
 .stat .k{font-size:11.5px;color:var(--ink-3)}
-.stat .v{font:500 22px/1.25 var(--serif);font-variant-numeric:tabular-nums;margin-top:3px}
-.stat .v small{font:500 12px var(--serif);color:var(--ink-2);margin-left:2px}
-.stat .s{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
-.rhythm{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:end;height:132px;padding-top:6px}
+.stat .v{font:700 19px/1.3 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin-top:2px}
+.stat .v small{font-size:11.5px;font-weight:500;color:var(--ink-2);margin-left:2px}
+.stat .s{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums;line-height:1.5;margin-top:2px}
+.rhythm{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:end;height:128px;padding-top:6px}
 .col{display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;cursor:default;min-width:0}
-.bar{width:100%;max-width:30px;border-radius:4px 4px 1px 1px;background:var(--ink);opacity:.82;display:flex;flex-direction:column-reverse;overflow:hidden;min-height:2px;transition:opacity .2s}
-.bar .nt{background:repeating-linear-gradient(135deg,var(--ink) 0 2px,var(--ink-3) 2px 4px)}
-.col:hover .bar{opacity:1}
+.colbar{width:100%;max-width:28px;border-radius:6px;background:var(--acc);display:flex;flex-direction:column-reverse;overflow:hidden;min-height:2px;opacity:.85;transition:opacity .2s}
+.colbar .nt{background:repeating-linear-gradient(135deg,var(--acc) 0 2px,color-mix(in oklab,var(--acc) 40%,var(--surface)) 2px 4px)}
+.col:hover .colbar{opacity:1}
 .col .l{font-size:11px;color:var(--ink-3)}
-.col.today .l{color:var(--shu-ink);font-weight:600}
+.col.today .l{color:var(--acc-ink);font-weight:700}
 .col .v{font-size:10.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;height:14px}
-.keyrow{display:flex;gap:14px;font-size:11px;color:var(--ink-3);margin-top:14px;justify-content:flex-end}
-.keyrow i{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:5px;background:var(--ink);opacity:.82}
-.keyrow i.nt{background:repeating-linear-gradient(135deg,var(--ink) 0 2px,var(--ink-3) 2px 4px)}
-.stack{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;margin-bottom:12px}
+.keyrow{display:flex;gap:14px;font-size:11px;color:var(--ink-3);margin-top:12px;justify-content:flex-end}
+.keyrow i{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:-1px;margin-right:5px;background:var(--acc);opacity:.85}
+.keyrow i.nt{background:repeating-linear-gradient(135deg,var(--acc) 0 2px,color-mix(in oklab,var(--acc) 40%,var(--surface)) 2px 4px)}
+.stack{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;margin-bottom:10px}
 .stack span{background:var(--c);min-width:2px}
-.prow{display:grid;grid-template-columns:12px 1fr auto 42px;align-items:center;gap:8px;padding:5px 0;font-size:12.5px}
-.prow i{width:9px;height:9px;border-radius:3px;background:var(--c)}
+.prow{display:grid;grid-template-columns:12px 1fr auto 40px;align-items:center;gap:8px;padding:4px 0;font-size:12.5px}
+.prow i{width:8px;height:8px;border-radius:50%;background:var(--c)}
 .prow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .prow .tm{color:var(--ink-2);font-variant-numeric:tabular-nums}
 .prow .pc{text-align:right;color:var(--ink-3);font-variant-numeric:tabular-nums}
-.focusrow{display:grid;grid-template-columns:86px 1fr 62px;gap:10px;align-items:center;padding:5px 0;font-size:12px}
+.focusrow{display:grid;grid-template-columns:86px 1fr 62px;gap:10px;align-items:center;padding:4px 0;font-size:12px}
 .focusrow .when{color:var(--ink-2);font-variant-numeric:tabular-nums}
-.focusrow .track{height:6px;border-radius:3px;background:var(--paper-2);overflow:hidden}
-.focusrow .track span{display:block;height:100%;background:var(--c);border-radius:3px}
+.focusrow .track2{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.focusrow .track2 span{display:block;height:100%;background:var(--c);border-radius:3px}
 .focusrow .len{text-align:right;font-variant-numeric:tabular-nums}
-.card{display:block;width:100%;text-align:left;padding:11px 13px;border:1px solid var(--rule);border-radius:10px;margin-bottom:8px;transition:all .2s var(--ease);background:var(--card)}
+.card{display:block;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--rule);border-radius:10px;margin-bottom:8px;transition:all .2s var(--ease);background:var(--surface)}
 .card:hover{border-color:var(--rule-2);box-shadow:var(--shadow);transform:translateY(-1px)}
 .card .ti{font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card .me{font-size:11.5px;color:var(--ink-3);display:flex;gap:8px;align-items:center;margin-top:3px;flex-wrap:wrap}
-.tagx{font-size:11px;color:var(--shu-ink);background:color-mix(in oklab,var(--shu) 10%,transparent);border-radius:4px;padding:0 6px}
+.tagx{font-size:11px;color:var(--warn);background:color-mix(in oklab,var(--warn) 10%,transparent);border-radius:4px;padding:0 6px}
 .none{color:var(--ink-3);font-size:12.5px}
-.foot{margin-top:30px;padding-top:16px;border-top:1px solid var(--rule);font-size:11.5px;color:var(--ink-3);line-height:1.75}
-.code{display:flex;align-items:center;gap:8px;margin-top:10px;background:var(--paper-2);border-radius:8px;padding:7px 8px 7px 11px;font:11.5px/1.5 var(--mono);color:var(--ink-2)}
+.foot{margin-top:24px;padding-top:14px;border-top:1px solid var(--rule);font-size:11.5px;color:var(--ink-3);line-height:1.75}
+.code{display:flex;align-items:center;gap:8px;margin-top:10px;background:var(--surface-2);border-radius:8px;padding:7px 8px 7px 11px;font:11.5px/1.5 var(--mono);color:var(--ink-2)}
 .code code{flex:1;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
-.copy{font:11px var(--sans);color:var(--ink-2);border:1px solid var(--rule-2);border-radius:6px;padding:3px 8px;background:var(--card);flex:none}
+.copy{font:11px var(--sans);color:var(--ink-2);border:1px solid var(--rule-2);border-radius:6px;padding:3px 8px;background:var(--surface);flex:none}
 .copy:hover{color:var(--ink);border-color:var(--ink-3)}
-.back{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3);margin-bottom:18px}
+.back{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3)}
 .back:hover{color:var(--ink)}
 .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.meta span{font-size:11.5px;color:var(--ink-2);border:1px solid var(--rule);border-radius:999px;padding:1px 9px}
-.mini{display:grid;grid-template-columns:1fr 1fr;margin-top:18px;border-top:1px solid var(--rule)}
-.mini>div{padding:11px 0 10px;border-bottom:1px solid var(--rule)}
-.mini>div:nth-child(odd){border-right:1px solid var(--rule);padding-right:12px}.mini>div:nth-child(even){padding-left:16px}
+.meta span{font-size:11.5px;color:var(--ink-2);background:var(--surface-2);border-radius:6px;padding:1px 9px}
+.mini{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+.mini>div{padding:10px 12px;border-radius:10px;background:var(--surface-2)}
 .mini .k{font-size:11px;color:var(--ink-3)}
-.mini .v{font:500 20px/1.3 var(--serif);font-variant-numeric:tabular-nums}.mini .v small{font-size:12px;color:var(--ink-2);margin-left:1px}
+.mini .v{font:700 18px/1.3 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em}.mini .v small{font-size:11.5px;font-weight:500;color:var(--ink-2);margin-left:1px}
 .tl{list-style:none;margin:0;padding:0;position:relative}
 .tl::before{content:"";position:absolute;left:44px;top:6px;bottom:6px;width:1px;background:var(--rule)}
 .tl li{display:grid;grid-template-columns:38px 1fr;gap:18px;padding:5px 0;position:relative;font-size:12.5px;line-height:1.6}
-.tl li::before{content:"";position:absolute;left:41px;top:12px;width:7px;height:7px;border-radius:50%;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--c)}
-.tl li.fix::before{background:var(--shu);box-shadow:none}
+.tl li::before{content:"";position:absolute;left:41px;top:12px;width:7px;height:7px;border-radius:50%;background:var(--surface);box-shadow:inset 0 0 0 1.5px var(--c)}
+.tl li.fix::before{background:var(--warn);box-shadow:none}
 .tl time{color:var(--ink-3);font-variant-numeric:tabular-nums;font-size:11.5px;padding-top:1px}
 .tl p{margin:0;overflow-wrap:anywhere}
 .more{font-size:12px;color:var(--ink-3);margin:6px 0 0 56px}
 .trow{display:grid;grid-template-columns:110px 1fr 28px;gap:10px;align-items:center;font-size:12px;padding:3px 0}
 .trow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);font-size:11.5px}
-.trow .track{height:6px;border-radius:3px;background:var(--paper-2)}
-.trow .track span{display:block;height:100%;border-radius:3px;background:var(--ink-3)}
+.trow .track2{height:6px;border-radius:3px;background:var(--surface-2)}
+.trow .track2 span{display:block;height:100%;border-radius:3px;background:var(--ink-3)}
 .trow .n{text-align:right;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .files{list-style:none;padding:0;margin:0;font:11.5px/1.7 var(--mono);color:var(--ink-2)}
 .files li{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:rtl;text-align:left}
 .files li span{direction:ltr;unicode-bidi:plaintext}
 
-/* playbook */
-.focuscard{margin:18px 0 4px;padding:18px 18px 16px;border:1px solid var(--rule-2);border-radius:14px;background:var(--paper);position:relative}
-.focuscard .csf{font:500 17px/1.4 var(--serif);margin:4px 0 10px}
+/* 判断の流れ */
+.focuscard{margin:12px 0 4px;padding:16px 16px 14px;border-radius:12px;background:var(--acc-soft);position:relative}
+.focuscard .csf{font:700 16px/1.4 var(--sans);margin:4px 0 10px}
 .focuscard .mlabel{font-size:12px;color:var(--ink-2)}
-.focuscard .row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:4px}
+.focuscard .row2{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:4px}
 .focuscard .val{display:flex;align-items:baseline;gap:4px}
-.focuscard .val .num{font-size:44px;line-height:1.05;font-weight:500}
-.focuscard .val .u{font:500 14px var(--serif);color:var(--ink-2)}
+.focuscard .val .num{font:700 40px/1.05 var(--sans);letter-spacing:-.04em}
+.focuscard .val .u{font:500 14px var(--sans);color:var(--ink-2)}
 .focuscard .meta2{font-size:11.5px;color:var(--ink-3);margin-top:6px;font-variant-numeric:tabular-nums}
 .focuscard .note{margin-top:8px}
 .spark{width:132px;height:44px;flex:none;overflow:visible}
-.spark .ln{fill:none;stroke:var(--ink-3);stroke-width:1.5}
+.spark .ln{fill:none;stroke:var(--acc);stroke-width:1.75}
 .spark .md{stroke:var(--rule-2);stroke-dasharray:3 3}
-.spark .pt{fill:var(--card);stroke:var(--ink-3);stroke-width:1.5}
-.spark .cur{fill:var(--ink);stroke:var(--ink)}
+.spark .pt{fill:var(--surface);stroke:var(--acc);stroke-width:1.5}
+.spark .cur{fill:var(--acc);stroke:var(--acc)}
 .choose{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:6px}
-.choose li{font-size:12.5px;padding:7px 10px;border:1px dashed var(--rule-2);border-radius:8px;display:flex;justify-content:space-between;gap:8px}
+.choose li{font-size:12.5px;padding:7px 10px;border:1px dashed color-mix(in oklab,var(--acc) 35%,var(--rule-2));border-radius:8px;display:flex;justify-content:space-between;gap:8px;background:var(--surface)}
 .choose li span:last-child{color:var(--ink-3);font-size:11.5px;text-align:right}
 .steps{counter-reset:step}
-.step h3::before{counter-increment:step;content:counter(step);font:600 11px/18px var(--sans);width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;background:var(--ink);color:var(--paper);letter-spacing:0}
+.step h3::before{counter-increment:step;content:counter(step,lower-alpha);font:700 10.5px/18px var(--sans);width:18px;height:18px;border-radius:6px;display:inline-grid;place-items:center;background:var(--surface-2);color:var(--ink-2)}
 .grow{display:grid;grid-template-columns:1fr auto auto;gap:4px 12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--rule);font-size:12.5px}
 .grow:last-of-type{border-bottom:0}
 .grow .nm{min-width:0}
 .grow .nm small{display:block;color:var(--ink-3);font-size:11px;line-height:1.5}
 .grow .v{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .grow .v small{color:var(--ink-3);margin-left:3px}
-.state{font-size:11px;border-radius:999px;padding:1px 8px;white-space:nowrap;border:1px solid var(--rule-2);color:var(--ink-2)}
-.state.over{background:var(--badge);border-color:var(--badge);color:#fff;font-weight:600}
-.state.building,.state.unknown{border-style:dashed;color:var(--ink-3)}
+.state{font-size:11px;border-radius:6px;padding:1px 8px;white-space:nowrap;background:var(--surface-2);color:var(--ink-2)}
+.state.over{background:var(--warn);color:var(--on-warn);font-weight:600}
+.state.building,.state.unknown{background:transparent;box-shadow:inset 0 0 0 1px var(--rule-2);color:var(--ink-3)}
 .mlist{list-style:none;padding:0;margin:0;font-size:12px;color:var(--ink-2)}
 .mlist li{padding:3px 0;display:flex;gap:8px}
 .mlist li::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--ink-3);margin-top:8px;flex:none}
-.mlist li.warn::before{background:var(--shu)}
-.decision{border:1px solid var(--rule);border-radius:12px;padding:12px 14px;background:var(--card)}
+.mlist li.warn::before{background:var(--warn)}
+.decision{border:1px solid var(--rule);border-radius:12px;padding:12px 14px;background:var(--surface)}
 .decision dl{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;margin:8px 0 0;font-size:12.5px}
 .decision dt{color:var(--ink-3)}
 .decision dd{margin:0;overflow-wrap:anywhere}
-.dchip{display:inline-block;font:600 12px var(--sans);padding:2px 10px;border-radius:999px;background:var(--ink);color:var(--paper)}
-.dchip.none{background:transparent;color:var(--ink-3);border:1px dashed var(--rule-2);font-weight:500}
-.due{font-size:11px;color:var(--shu-ink);margin-left:8px}
+.dchip{display:inline-block;font:600 12px var(--sans);padding:2px 10px;border-radius:6px;background:var(--acc);color:var(--on-acc)}
+.dchip.none{background:transparent;color:var(--ink-3);box-shadow:inset 0 0 0 1px var(--rule-2);font-weight:500}
+.due{font-size:11px;color:var(--warn);margin-left:8px}
 .optrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.optrow span{font-size:11.5px;border:1px solid var(--rule-2);border-radius:999px;padding:1px 9px;color:var(--ink-2)}
-.refhead{margin:40px 0 0;padding-top:18px;border-top:2px solid var(--ink)}
-.refhead .eyebrow{margin-bottom:2px}
-.refhead p{font-size:12px;color:var(--ink-3);margin:4px 0 0}
-/* native metrics */
-.ngroup{border:1px solid var(--rule);border-radius:12px;padding:10px 14px 6px;margin-bottom:10px;background:var(--card)}
+.optrow span{font-size:11.5px;border:1px solid var(--rule-2);border-radius:6px;padding:1px 9px;color:var(--ink-2)}
+/* エージェント別 */
+.ngroup{border:1px solid var(--rule);border-radius:12px;padding:10px 14px 6px;margin-bottom:10px}
 .ngroup .hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px}
 .ngroup .hd b{font:600 13px var(--sans)}
 .ngroup .hd span{font-size:11px;color:var(--ink-3)}
 .nrow{display:grid;grid-template-columns:1fr auto 52px;gap:10px;padding:5px 0;border-top:1px dashed var(--rule);font-size:12.5px;align-items:baseline}
 .nrow .v{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .nrow .n{font-size:11px;color:var(--ink-3);text-align:right;font-variant-numeric:tabular-nums}
-/* AI usage */
+/* AI の使い方 */
 .mrow{display:grid;grid-template-columns:1fr auto 40px;gap:10px;align-items:center;padding:6px 0;font-size:12.5px;border-bottom:1px dashed var(--rule)}
 .mrow:last-child{border-bottom:0}
 .mrow .nm{font-family:var(--mono);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:8px}
-.mrow .nm i{width:9px;height:9px;border-radius:2px;background:var(--ink);opacity:var(--o);flex:none}
+.mrow .nm i{width:9px;height:9px;border-radius:3px;background:var(--acc);opacity:var(--o);flex:none}
 .mrow .tm{color:var(--ink-2);font-variant-numeric:tabular-nums;text-align:right}
 .mrow .tm small{color:var(--ink-3);margin-left:6px}
 .mrow .pc{text-align:right;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .mstack{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;margin-bottom:8px}
-.mstack span{background:var(--ink);opacity:var(--o);min-width:2px}
+.mstack span{background:var(--acc);opacity:var(--o);min-width:2px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chips span{font-size:11.5px;color:var(--ink-2);border:1px solid var(--rule);border-radius:999px;padding:1px 9px;font-variant-numeric:tabular-nums}
+.chips span{font-size:11.5px;color:var(--ink-2);background:var(--surface-2);border-radius:6px;padding:1px 9px;font-variant-numeric:tabular-nums}
 .chips span b{font-weight:600;color:var(--ink);margin-left:4px}
 .chips span.mono{font-family:var(--mono);font-size:11px}
 .sub{padding:9px 0 10px;border-bottom:1px solid var(--rule)}
 .sub:last-child{border-bottom:0}
 .sub .hd{display:flex;align-items:center;gap:8px;font-size:12.5px}
-.sub .ty{font:600 11px var(--mono);color:var(--ink);background:var(--paper-2);border-radius:5px;padding:1px 7px;flex:none}
+.sub .ty{font:600 11px var(--mono);color:var(--ink);background:var(--surface-2);border-radius:5px;padding:1px 7px;flex:none}
 .sub .ds{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
-.sub .bg{font-size:10.5px;color:var(--shu-ink);flex:none}
-.sub .lane{position:relative;height:6px;border-radius:3px;background:var(--paper-2);margin:8px 0 6px}
+.sub .bg{font-size:10.5px;color:var(--acc-ink);flex:none}
+.sub .lane{position:relative;height:6px;border-radius:3px;background:var(--surface-2);margin:8px 0 6px}
 .sub .lane span{position:absolute;top:0;bottom:0;border-radius:3px;background:var(--c);min-width:3px}
 .sub .ft{display:flex;gap:12px;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums;flex-wrap:wrap}
 .note{font-size:11px;color:var(--ink-3);margin-top:10px;line-height:1.7}
+
+/* ── drawer（セッションの詳細） ──────────────────────────── */
+.scrim{position:fixed;inset:0;z-index:20;background:rgba(10,12,16,.28);opacity:0;pointer-events:none;transition:opacity .25s var(--ease)}
+.drawer{position:fixed;top:0;right:0;bottom:0;z-index:21;width:min(480px,100vw);background:var(--surface);border-left:1px solid var(--rule);box-shadow:-24px 0 60px -30px rgba(0,0,0,.45);
+  transform:translateX(102%);transition:transform .32s var(--ease);display:flex;flex-direction:column}
+body.open .scrim{opacity:1;pointer-events:auto}
+body.open .drawer{transform:none}
+.drawer .dh{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px 24px;border-bottom:1px solid var(--rule)}
+.drawer .db{overflow:auto;padding:20px 24px 40px;flex:1;scrollbar-width:thin}
+
 /* toast & dialog */
-.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,12px);background:var(--ink);color:var(--paper);padding:8px 14px;border-radius:999px;font-size:12.5px;opacity:0;transition:all .25s var(--ease);z-index:30;pointer-events:none}
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,12px);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:10px;font-size:12.5px;opacity:0;transition:all .25s var(--ease);z-index:50;pointer-events:none}
 .toast.on{opacity:1;transform:translate(-50%,0)}
-dialog{border:0;border-radius:16px;padding:26px 28px;background:var(--card);color:var(--ink);box-shadow:0 30px 80px -20px rgba(0,0,0,.45);width:min(420px,calc(100vw - 32px))}
-dialog::backdrop{background:rgba(20,18,15,.35);backdrop-filter:blur(3px)}
+dialog{border:0;border-radius:16px;padding:26px 28px;background:var(--surface);color:var(--ink);box-shadow:0 30px 80px -20px rgba(0,0,0,.45);width:min(420px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(10,12,16,.35);backdrop-filter:blur(3px)}
 dialog h2{margin-top:0}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:9px 16px;font-size:12.5px;margin-top:14px;align-items:center}
 .keys kbd{justify-self:start}
 
 /* ── responsive ─────────────────────────────────────────── */
-@media (max-width:1180px){main{grid-template-columns:minmax(0,1fr) 340px}.pane{padding:22px 20px 36px}.search input{width:150px}.search input:focus{width:180px}}
-@media (max-width:1280px){.tag{display:none}}
-@media (max-width:1100px){.tools .seg:not(.zoom){display:none}.search kbd{display:none}}
+@media (max-width:1320px){.rvgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel.shape{grid-column:1/-1}}
+@media (max-width:1180px){.tag{display:none}.kpis{margin-left:0;width:100%}.kpi{flex:1;min-width:0}}
+@media (max-width:1000px){#colorBy{display:none}.search kbd{display:none}.search input,.search input:focus{width:160px}}
 @media (max-width:820px){
-  body{overflow:auto;height:auto}
-  header{grid-template-columns:1fr auto;gap:10px;padding:12px 16px}
-  .weeknav{order:3;grid-column:1/-1;justify-content:space-between}
-  .tools{margin-left:auto}.tools .seg,.tools .zoom{display:none}
-  .search input,.search input:focus{width:130px}
-  .legend{padding:8px 16px}
-  main{display:block}
-  #cal{overflow:visible;height:auto}
-  .daytabs{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:8px 12px;border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--paper);z-index:6}
-  .daytabs button{padding:6px 0 7px;border-radius:9px;display:flex;flex-direction:column;align-items:center;gap:1px;color:var(--ink-2)}
-  .daytabs b{font:500 17px/1.1 var(--serif)}.daytabs small{font-size:10px;color:var(--ink-3)}
-  .daytabs button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}.daytabs button[aria-pressed="true"] small{color:inherit;opacity:.7}
-  .daytabs button.has::after{content:"";width:4px;height:4px;border-radius:50%;background:var(--shu);margin-top:2px}
-  .heads{display:none}
-  .grid{grid-template-columns:48px minmax(0,1fr);max-height:62vh;overflow:auto}
-  .grid .day.mh{display:none}
-  .empty{margin-left:48px;top:30%}
-  aside{border-left:0;border-top:1px solid var(--rule)}
+  .wrap{padding:0 16px}
+  .bar{height:54px;gap:8px}
+  .zoom{display:none}
+  .search input,.search input:focus{width:120px}
+  .week{padding:18px 0 14px;gap:14px}
+  .wk .d{font-size:24px}
+  .kpis{display:grid;grid-template-columns:1fr 1fr}
+  .kpi{border-left:0;border-top:1px solid var(--rule)}
+  .kpi:nth-child(-n+2){border-top:0}.kpi:nth-child(even){border-left:1px solid var(--rule)}
+  .kpi:last-child:nth-child(odd){grid-column:1/-1}
+  :root{--lab:76px}
+  .row .lab{padding:6px 8px 6px 12px}
+  .rvgrid{grid-template-columns:minmax(0,1fr)}
+  .panel{padding:18px 16px}
+  .drawer .db{padding:18px 16px 40px}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
-@media (forced-colors:active){.blk{border:1px solid CanvasText}}
+@media (forced-colors:active){.run{border:1px solid CanvasText}}
 </style></head>
 <body>
 <header>
-  <div class="brand"><div class="seal" aria-hidden="true">記</div><div><div class="word">kiroku<span class="live" id="live" hidden title="履歴が増えると自動で反映します">LIVE</span></div><div class="tag">AIと過ごした時間の記録</div></div></div>
-  <nav class="weeknav" aria-label="週の移動">
-    <button class="iconbtn" id="prev" aria-label="前の週"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
-    <div class="range" aria-live="polite"><span class="y" id="ry"></span><span class="d" id="rd"></span></div>
-    <button class="iconbtn" id="next" aria-label="次の週"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-    <button class="pill" id="today">今週</button>
-  </nav>
-  <div class="tools">
-    <div class="seg" role="group" aria-label="色分け" id="colorBy">
+  <div class="wrap bar">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--ink)"/><rect x="6" y="8" width="13" height="4" rx="2" fill="var(--acc)"/><rect x="11" y="14" width="15" height="4" rx="2" fill="var(--bg)"/><rect x="6" y="20" width="9" height="4" rx="2" fill="var(--bg)" opacity=".55"/></svg>
+      <span class="word">kiroku</span><span class="tag">AIと過ごした時間の記録</span>
+      <span class="live" id="live" hidden title="履歴が増えると自動で反映します">LIVE</span>
+    </div>
+    <div class="segc" role="group" aria-label="色分け" id="colorBy">
       <button data-v="project">プロジェクト</button><button data-v="branch">ブランチ</button><button data-v="source">ツール</button>
     </div>
-    <div class="seg zoom" role="group" aria-label="ズーム">
+    <div class="segc zoom" role="group" aria-label="時間軸のズーム">
       <button id="zout" aria-label="縮小">−</button><button id="zin" aria-label="拡大">＋</button>
     </div>
     <label class="search"><span class="sr">検索</span>
@@ -361,23 +379,36 @@ dialog h2{margin-top:0}
     <button class="iconbtn" id="help" aria-label="ショートカット"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 014.8.9c0 1.7-2.4 2.2-2.4 3.6M12 17h.01"/></svg></button>
   </div>
 </header>
-<div class="legend" id="legend" aria-label="凡例"></div>
-<main>
-  <section id="cal" aria-label="週カレンダー">
-    <div class="daytabs" id="daytabs" role="group" aria-label="曜日"></div>
-    <div class="heads" id="heads"></div>
-    <div class="grid" id="grid"></div>
+<main class="wrap">
+  <section class="week" aria-label="週">
+    <nav class="wk" aria-label="週の移動">
+      <div class="lbl" aria-live="polite"><div class="y" id="ry"></div><div class="d" id="rd"></div></div>
+      <div class="nav">
+        <button class="iconbtn" id="prev" aria-label="前の週"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <button class="iconbtn" id="next" aria-label="次の週"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button class="pill" id="today">今週</button>
+      </div>
+    </nav>
+    <div class="kpis" id="kpis"></div>
   </section>
-  <aside id="panel" aria-live="polite"></aside>
+  <div class="legend" id="legend" aria-label="凡例"></div>
+  <section class="tlbox" id="tl" aria-label="週のタイムライン"></section>
+  <section id="review" aria-live="polite"></section>
 </main>
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="セッションの詳細" aria-hidden="true">
+  <div class="dh"><button class="back" id="back"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>週のふりかえりへ</button>
+    <button class="iconbtn" id="close" aria-label="閉じる"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="db" id="panel"></div>
+</aside>
 <div class="tip" id="tip" role="tooltip"></div>
 <div class="toast" id="toast" role="status"></div>
 <dialog id="keys">
   <div class="eyebrow">Shortcuts</div><h2>キーボード操作</h2>
   <div class="keys">
     <kbd>←</kbd><span>前の週</span><kbd>→</kbd><span>次の週</span><kbd>T</kbd><span>今週に戻る</span>
-    <kbd>/</kbd><span>検索</span><kbd>+</kbd><span>拡大（<kbd>−</kbd> で縮小）</span>
-    <kbd>Esc</kbd><span>選択を外して週のまとめに戻る</span><kbd>?</kbd><span>この一覧</span>
+    <kbd>/</kbd><span>検索</span><kbd>+</kbd><span>時間軸を拡大（<kbd>−</kbd> で縮小）</span>
+    <kbd>Esc</kbd><span>詳細を閉じる</span><kbd>?</kbd><span>この一覧</span>
   </div>
   <form method="dialog" style="margin-top:22px;text-align:right"><button class="pill">閉じる</button></form>
 </dialog>
@@ -391,8 +422,8 @@ const DOW = ["日","月","火","水","木","金","土"], SLOTS = 8;
 const $ = s => document.querySelector(s);
 const store = { get(k,d){ try { const v = localStorage.getItem("kiroku:"+k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
                 set(k,v){ try { localStorage.setItem("kiroku:"+k, JSON.stringify(v)); } catch(e){} } };
-const st = { hh: store.get("hh", 44), colorBy: store.get("colorBy", "project"), theme: store.get("theme", "auto"),
-             week: mondayOf(new Date()), hidden: new Set(), sel: null, q: "", mday: (new Date().getDay()+6)%7, animate: true };
+const st = { z: store.get("z", 0), colorBy: store.get("colorBy", "project"), theme: store.get("theme", "auto"),
+             week: mondayOf(new Date()), hidden: new Set(), sel: null, q: "", animate: true };
 
 /* ── helpers ── */
 function mondayOf(d){ d = new Date(d); d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d; }
@@ -431,74 +462,90 @@ function applyTheme(){ const r = document.documentElement; st.theme === "auto" ?
   $("#theme").innerHTML = ICON[st.theme]; $("#theme").setAttribute("aria-label", `テーマ: ${{auto:"自動",light:"ライト",dark:"ダーク"}[st.theme]}`); }
 
 /* ── render ── */
+const ZOOMS = [1, 1.5, 2, 3, 4];
 function render(){
-  document.documentElement.style.setProperty("--hh", st.hh+"px");
   assignColors();
   const ws = st.week.getTime()/1000, we = addDays(st.week,7).getTime()/1000;
   const todayKey = key(new Date()), end = addDays(st.week,6);
-  $("#ry").textContent = `${st.week.getFullYear()} · WEEK ${isoWeek(st.week)}`;
-  $("#rd").textContent = `${st.week.getMonth()+1}月${st.week.getDate()}日 — ${end.getMonth()+1}月${end.getDate()}日`;
+  $("#ry").textContent = `${st.week.getFullYear()} · Week ${isoWeek(st.week)}`;
+  $("#rd").innerHTML = `${st.week.getMonth()+1}.${st.week.getDate()}<span>—</span>${end.getMonth()+1}.${end.getDate()}`;
   document.querySelectorAll("#colorBy button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.colorBy));
 
   const inWeek = DATA.filter(s => s.end >= ws && s.start < we);
   const shown = inWeek.filter(matches);
+  kpis();
   // legend（今週あるものを多い順に）
   const cnt = {}; inWeek.forEach(s => cnt[keyOf(s)] = (cnt[keyOf(s)]||0)+1);
   $("#legend").innerHTML = `<span class="lab">${{project:"プロジェクト",branch:"ブランチ",source:"ツール"}[st.colorBy]}</span>` +
     Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}"><span class="dot"></span>${esc(k)}<span class="n">${cnt[k]}</span></button>`).join("") +
-    (inWeek.length ? "" : '<span class="muted" style="font-size:12px">この週の記録はありません</span>') + `<span class="count">${shown.length} / ${inWeek.length} セッション</span>`;
+    `<span class="count">${shown.length} / ${inWeek.length} セッション</span>`;
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
 
-  // day heads + tabs
-  const dayHas = Array.from({length:7}, () => false);
-  shown.forEach(s => s.segs.forEach(([a,b]) => { for (let d=0; d<7; d++){ const ds = addDays(st.week,d).getTime()/1000; if (Math.min(b, ds+86400) > Math.max(a, ds)) dayHas[d] = true; } }));
-  let h = '<div></div>', tabs = "";
-  for (let i=0;i<7;i++){ const d = addDays(st.week,i), t = key(d) === todayKey;
-    h += `<div class="head${t?" today":""}"><span class="dn">${d.getDate()}</span><span class="dw">${DOW[d.getDay()]}</span>${i===0||d.getDate()===1?`<span class="dm">${d.getMonth()+1}月</span>`:""}</div>`;
-    tabs += `<button aria-pressed="${i===st.mday}" data-i="${i}" class="${dayHas[i]?"has":""}"><small>${DOW[d.getDay()]}</small><b>${d.getDate()}</b></button>`; }
-  $("#heads").innerHTML = h; $("#daytabs").innerHTML = tabs;
-  document.querySelectorAll("#daytabs button").forEach(b => b.onclick = () => { st.mday = +b.dataset.i; st.animate = true; render(); });
-
-  // grid
-  const H = 24*st.hh;
-  let g = `<div class="hours" style="height:${H}px">` + Array.from({length:23},(_,i)=>`<span style="top:${(i+1)*st.hh}px">${String(i+1).padStart(2,"0")}:00</span>`).join("") + "</div>";
-  for (let i=0;i<7;i++){ const d = addDays(st.week,i);
-    g += `<div class="day${d.getDay()%6===0?" we":""}${key(d)===todayKey?" today":""}${i!==st.mday?" mh":""}" style="height:${H}px" data-i="${i}">
-      <div class="nightband" style="top:0;height:${6*st.hh}px"></div><div class="nightband" style="top:${22*st.hh}px;height:${2*st.hh}px"></div>
-      ${st.hh >= 56 ? Array.from({length:24},(_,k)=>`<div class="half" style="top:${(k+.5)*st.hh}px"></div>`).join("") : ""}</div>`; }
-  const grid = $("#grid"); grid.innerHTML = g; grid.classList.toggle("focus", !!st.sel);
-  const days = [...grid.querySelectorAll(".day")];
-
-  const perDay = Array.from({length:7}, () => []);
-  shown.forEach(s => s.segs.forEach(([a,b,n]) => { for (let d=0; d<7; d++){
-    const ds = addDays(st.week,d).getTime()/1000, de = addDays(st.week,d+1).getTime()/1000, x = Math.max(a,ds), y = Math.min(b,de);
-    if (y > x) perDay[d].push({s, a:x, b:y, n, ds}); } }));
-  perDay.forEach((blocks, d) => {
-    blocks.sort((p,q) => p.a-q.a || q.b-p.b);
-    // 重なるものだけ横に並べる（クラスタごとにレーン数を決める）
-    let cluster = [], cEnd = -1;
-    const flush = () => { const lanes = []; cluster.forEach(bk => { let i = lanes.findIndex(e => e <= bk.a); if (i<0){ i = lanes.length; lanes.push(0); } lanes[i] = bk.b; bk.lane = i; }); cluster.forEach(bk => bk.L = lanes.length); cluster = []; };
-    blocks.forEach(bk => { if (bk.a >= cEnd) { flush(); cEnd = bk.b; } else cEnd = Math.max(cEnd, bk.b); cluster.push(bk); }); flush();
-    blocks.forEach((bk, j) => {
-      const top = (bk.a-bk.ds)/3600*st.hh, height = Math.max(4, (bk.b-bk.a)/3600*st.hh - 1);
-      const dens = Math.min(1, bk.n / Math.max(1,(bk.b-bk.a)/60) / 2.5);
-      const el = document.createElement("button");
-      el.className = "blk" + (height < 10 ? " thin" : "") + (st.sel === bk.s.id ? " sel" : "");
-      el.style.cssText = `top:${top}px;height:${height}px;left:calc(${bk.lane/bk.L*100}% + 3px);width:calc(${100/bk.L}% - 6px);--c:${colorOf(keyOf(bk.s))};--fill:${Math.round(14+30*dens)}%;${st.animate?`--delay:${d*28+Math.min(j,12)*8}ms`:"animation:none"}`;
-      el.setAttribute("aria-label", `${bk.s.title}、${bk.s.project}、${md(bk.a)} ${hm(bk.a)}から${hm(bk.b)}`);
-      if (height >= 18) el.innerHTML = `<span class="t">${esc(bk.s.title)}</span>` + (height >= 34 ? `<span class="m">${hm(bk.a)}–${hm(bk.b)} · ${esc(bk.s.project)}</span>` : "");
-      el.onclick = e => { e.stopPropagation(); select(bk.s.id); };
-      el.onmouseenter = e => tipOn(e, bk); el.onmousemove = tipMove; el.onmouseleave = tipOff;
-      days[d].appendChild(el);
-    });
-  });
-  const oldEmpty = $("#cal .empty"); if (oldEmpty) oldEmpty.remove();
-  if (!shown.length) $("#heads").insertAdjacentHTML("afterend", `<div class="empty"><div><div class="k">空</div><p>${inWeek.length ? "条件に合うセッションはありません" : "この週の記録はありません"}</p></div></div>`);
-  const nowS = Date.now()/1000;
-  if (nowS >= ws && nowS < we){ const di = Math.floor((nowS-ws)/86400), ds = addDays(st.week,di).getTime()/1000, y = (nowS-ds)/3600*st.hh;
-    days[di].insertAdjacentHTML("beforeend", `<div class="now" style="top:${y}px"></div><div class="nowlab" style="top:${y}px">${hm(nowS)}</div>`); }
+  timeline(shown, inWeek, ws, we, todayKey);
+  summary();
+  const s = st.sel && DATA.find(x => x.id === st.sel);
+  if (st.sel && !s) st.sel = null;
+  if (s) detail(s);
+  document.body.classList.toggle("open", !!s); document.body.classList.toggle("lock", !!s && innerWidth <= 820);
+  $("#drawer").setAttribute("aria-hidden", String(!s));
+  $("#tl").classList.toggle("focus", !!s);
   st.animate = false;
-  st.sel ? detail(DATA.find(s => s.id === st.sel)) : summary();
+}
+
+/* 週の要点（上の帯） */
+function kpis(){
+  const w = WEEKS[key(st.week)], K = $("#kpis");
+  if (!w){ K.innerHTML = `<div class="kpi"><div class="k">この週</div><div class="v">記録なし</div></div>`; return; }
+  const over = w.playbook ? w.playbook.guards.filter(g => g.state === "over").length : 0;
+  const kpi = (k, v, cls) => `<div class="kpi${cls?" "+cls:""}"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  const u = w.usage || {};
+  K.innerHTML = kpi("作業していた時間", dur(w.active, true)) + kpi("集中ブロック", `${w.focus.length}<small>回</small>`) +
+    kpi("セッション / 依頼", `${w.sessions}<small>/</small>${w.prompts}`) +
+    (u.tokens ? kpi("目安コスト", usd(u.cost).replace("$","<small>$</small>")) : u.credits ? kpi("Kiro クレジット", `${u.credits}`) : "") +
+    kpi("ガードレール", over ? `${over}<small>件 超過</small>` : `<small>範囲内</small>`, over ? "alert" : "");
+}
+
+/* 週のタイムライン：曜日が行、0〜24 時が横軸。重なるセッションは行の中で段を分ける */
+function timeline(shown, inWeek, ws, we, todayKey){
+  const T = $("#tl"), z = ZOOMS[st.z] || 1;
+  if (!inWeek.length || !shown.length){
+    T.innerHTML = `<div class="empty"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><p>${inWeek.length ? "条件に合うセッションはありません" : "この週の記録はありません。← → で週を移動できます"}</p></div>`;
+    return;
+  }
+  const keep = T.querySelector(".tlscroll"), sl = keep ? keep.scrollLeft : 0;
+  const nowS = Date.now()/1000, w = WEEKS[key(st.week)];
+  const pxMin = Math.max(760, T.clientWidth) * z / 1440; // 1 分あたりの幅（ラベルを出すかの目安）
+  const pct = (t, ds) => (t-ds)/86400*100;
+  let ticks = "";
+  for (let h=0; h<24; h += (z >= 2 ? 1 : 3)) ticks += `<span style="left:${h/24*100}%">${h === 0 ? "" : String(h).padStart(2,"0")}</span>`;
+  if (nowS >= ws && nowS < we){ const ds = new Date(nowS*1000); ds.setHours(0,0,0,0); ticks += `<span class="now" style="left:${pct(nowS, ds.getTime()/1000)}%">${hm(nowS)}</span>`; }
+  let rows = "";
+  const runs = [];
+  for (let d=0; d<7; d++){
+    const day = addDays(st.week,d), ds = day.getTime()/1000, de = addDays(st.week,d+1).getTime()/1000;
+    const blocks = [];
+    shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
+    blocks.sort((p,q) => p.a-q.a || q.b-p.b);
+    const lanes = []; // 段ごとの終わりの時刻
+    blocks.forEach(bk => { let i = lanes.findIndex(e => e <= bk.a - 60); if (i < 0){ i = lanes.length; lanes.push(0); } lanes[i] = bk.b; bk.lane = i; });
+    const act = w && w.days[d] ? w.days[d].active : 0, isToday = key(day) === todayKey;
+    let html = `<div class="nb" style="left:0;width:${6/24*100}%"></div><div class="nb" style="left:${22/24*100}%;right:0"></div>`;
+    blocks.forEach((bk, j) => {
+      const left = pct(bk.a, ds), width = Math.max(.25, pct(bk.b, ds) - left), mins = (bk.b-bk.a)/60;
+      const dens = Math.min(1, bk.n / Math.max(1, mins) / 2.5), id = runs.length;
+      runs.push(bk);
+      html += `<button class="run${mins*pxMin < 16 ? " tiny" : ""}${mins*pxMin >= 76 ? " lbl" : ""}${st.sel === bk.s.id ? " sel" : ""}" data-r="${id}" style="left:${left}%;width:${width}%;top:${7 + bk.lane*22}px;--c:${colorOf(keyOf(bk.s))};--fill:${Math.round(16+30*dens)}%;${st.animate?`--delay:${d*30+Math.min(j,14)*10}ms`:"animation:none"}" aria-label="${esc(`${bk.s.title}、${bk.s.project}、${md(bk.a)} ${hm(bk.a)}から${hm(bk.b)}`)}">${mins*pxMin >= 76 ? `<span class="t">${esc(bk.s.title)}</span>` : ""}</button>`;
+    });
+    if (isToday && nowS >= ds && nowS < de) html += `<div class="nowline" style="left:${pct(nowS, ds)}%"></div>`;
+    rows += `<div class="row${day.getDay()%6===0?" we":""}${isToday?" today":""}">
+      <div class="lab"><div class="dd"><b>${day.getMonth()+1}/${day.getDate()}</b><i>${DOW[day.getDay()]}</i></div><small>${act ? dur(act) : "—"}</small></div>
+      <div class="track" style="min-height:${Math.max(1, lanes.length)*22 + 14}px">${html}</div></div>`;
+  }
+  T.innerHTML = `<div class="tlscroll"><div class="tlin" style="--z:${z}"><div class="axis"><div class="corner"></div><div class="ticks">${ticks}</div></div>${rows}</div></div>`;
+  const sc = T.querySelector(".tlscroll"); sc.scrollLeft = sl;
+  T.querySelectorAll(".run").forEach(el => { const bk = runs[+el.dataset.r];
+    el.onclick = e => { e.stopPropagation(); select(bk.s.id); };
+    el.onmouseenter = e => tipOn(e, bk); el.onmousemove = tipMove; el.onmouseleave = tipOff; });
 }
 
 /* ── tooltip ── */
@@ -510,20 +557,21 @@ function tipMove(e){ const t = $("#tip"), w = t.offsetWidth, h = t.offsetHeight;
   t.style.left = x+"px"; t.style.top = y+"px"; }
 function tipOff(){ $("#tip").classList.remove("on"); }
 
-/* ── panel: week summary ── */
+/* ── ふりかえり：① 判断の流れ ② 参照値 ③ 週のかたち ── */
 function summary(){
-  const w = WEEKS[key(st.week)], pw = WEEKS[key(addDays(st.week,-7))], P = $("#panel");
-  const head = `<div class="eyebrow">Week ${isoWeek(st.week)} · Reflection</div><h2>今週のふりかえり</h2>`;
-  if (!w){ P.innerHTML = `<div class="pane">${head}<p class="none" style="margin-top:14px">この週の記録はありません。<br>← → で週を移動できます。</p>${foot()}</div>`; return; }
+  const w = WEEKS[key(st.week)], pw = WEEKS[key(addDays(st.week,-7))], R = $("#review");
+  const head = `<div class="rvhead"><h2>今週のふりかえり</h2><p>左から順に読むと、今週の判断までたどり着きます。</p></div>`;
+  if (!w){ R.innerHTML = `${head}<div class="rvgrid"><div class="panel">${foot()}</div></div>`; bindCopy(R); return; }
   const d = pw ? w.active - pw.active : null;
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
   const maxDay = Math.max(1, ...w.days.map(x=>x.active)), total = w.projects.reduce((t,[,v])=>t+v,0) || 1;
   const stat = (k, v, s) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
   const today = key(new Date());
-  P.innerHTML = `<div class="pane">${head}
-    ${playbook(w)}
-    <div class="refhead"><div class="eyebrow">Reference</div><h2 style="font-size:18px;margin:0">参照値</h2><p>目標ではなく、判断の材料として見る数字です。</p></div>
-    <div class="hero" style="margin-top:14px"><div class="big num" style="font-size:.7em">${dur(w.active,true).replace(/(\d+)/g,'<span class="num" style="font-size:36px">$1</span>').replace(/<small>(.*?)<\/small>/g,'<span class="u">$1</span>')}</div>
+  const ph = (n, t, s) => `<div class="ph"><span class="no">${n}</span><b>${t}</b><span>${s}</span></div>`;
+  R.innerHTML = `${head}<div class="rvgrid">
+  <section class="panel decide">${ph(1, "判断の流れ", "重点 → ガードレール → 判断")}${playbook(w) || '<p class="none">この週の判断の材料はまだありません。</p>'}</section>
+  <section class="panel ref">${ph(2, "参照値", "目標ではなく、判断の材料")}
+    <div class="hero"><div class="big">${dur(w.active,true).replace(/(\d+)/g,'<span class="num">$1</span>').replace(/<small>(.*?)<\/small>/g,'<span class="u">$1</span>')}</div>
       <div class="cap">どれかのセッションが動いていた時間${d==null?"":`<span class="delta">先週より ${d>=0?"+":"−"}${dur(Math.abs(d))}</span>`}</div></div>
     <div class="stats">
       ${stat("集中ブロック（60分以上）", `${w.focus.length}<small>回</small>`, longest ? `最長 ${dur(longest)}` : "まとまった時間はなし")}
@@ -536,24 +584,25 @@ function summary(){
       ${stat("セッション / 依頼", `${w.sessions}<small>/</small>${w.prompts}`, "")}
     </div>
     ${aiUsage(w, pw)}
-    ${nativeSection(w)}
+    ${nativeSection(w)}</section>
+  <section class="panel shape">${ph(3, "週のかたち", "いつ・どこに時間を使ったか")}
     <h3>日ごとのリズム</h3>
     <div class="rhythm">${w.days.map((x,i)=>{ const dd = addDays(st.week,i), hgt = x.active/maxDay*84;
       return `<div class="col${key(dd)===today?" today":""}" title="${md(dd.getTime()/1000)} 作業 ${dur(x.active)}・深夜 ${dur(x.night)}・依頼 ${x.prompts}・切り替え ${x.switches}">
         <span class="v">${x.active ? (x.active>=60 ? (x.active/60).toFixed(1)+"h" : x.active+"m") : ""}</span>
-        <div class="bar" style="height:${x.active?Math.max(2,hgt):0}px"><div class="nt" style="height:${x.active?x.night/x.active*100:0}%"></div></div>
+        <div class="colbar" style="height:${x.active?Math.max(2,hgt):0}px"><div class="nt" style="height:${x.active?x.night/x.active*100:0}%"></div></div>
         <span class="l">${DOW[dd.getDay()]}</span></div>`; }).join("")}</div>
     <div class="keyrow"><span><i></i>作業</span><span><i class="nt"></i>うち深夜</span></div>
     <h3>プロジェクトの配分</h3>
     <div class="stack" role="img" aria-label="プロジェクト別の配分">${w.projects.map(([k,v])=>`<span style="flex:${v};--c:${st.colorBy==="project"?colorOf(k):"var(--ink-3)"}" title="${esc(k)} ${dur(v)}"></span>`).join("")}</div>
     ${w.projects.slice(0,8).map(([k,v])=>`<div class="prow" style="--c:${st.colorBy==="project"?colorOf(k):"var(--ink-3)"}"><i></i><span class="nm">${esc(k)}</span><span class="tm">${dur(v)}</span><span class="pc">${Math.round(v*100/total)}%</span></div>`).join("")}
     <h3>集中ブロック</h3>
-    ${w.focus.length ? w.focus.sort((a,b)=>b.min-a.min).slice(0,5).map(b=>`<div class="focusrow" style="--c:${st.colorBy==="project"?colorOf(b.project):"var(--ink-3)"}"><span class="when">${md(b.t)} ${hm(b.t)}</span><span class="track"><span style="width:${b.min/longest*100}%"></span></span><span class="len">${dur(b.min)}</span></div>`).join("") : '<p class="none">60分以上続いた作業はありませんでした。</p>'}
+    ${w.focus.length ? [...w.focus].sort((a,b)=>b.min-a.min).slice(0,5).map(b=>`<div class="focusrow" style="--c:${st.colorBy==="project"?colorOf(b.project):"var(--ink-3)"}"><span class="when">${md(b.t)} ${hm(b.t)}</span><span class="track2"><span style="width:${b.min/longest*100}%"></span></span><span class="len">${dur(b.min)}</span></div>`).join("") : '<p class="none">60分以上続いた作業はありませんでした。</p>'}
     <h3>こじれたかもしれない</h3>
     ${w.friction.length ? w.friction.map(f=>`<button class="card" data-id="${esc(f.id)}"><span class="ti">${esc(f.title)}</span><span class="me">${md(f.start)} · ${esc(f.project)} ${f.why.map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}</span></button>`).join("") : '<p class="none">言い直しや中断が目立つセッションはありませんでした。</p>'}
-    ${foot(`kiroku --weekly ${key(st.week)}`)}</div>`;
-  P.querySelectorAll(".card").forEach(c => c.onclick = () => select(c.dataset.id));
-  bindCopy(P);
+    ${foot(`kiroku --weekly ${key(st.week)}`)}</section></div>`;
+  R.querySelectorAll(".card").forEach(c => c.onclick = () => select(c.dataset.id));
+  bindCopy(R);
 }
 function fmtM(k, v){ if (v == null) return "不明"; const u = META.metrics[k].unit;
   return u === "分" ? dur(v) : u === "$" ? (v < 1 ? "$"+v.toFixed(3) : usd(v)) : `${v}${u}`; }
@@ -578,7 +627,7 @@ function playbook(w){
   if (pb.focus){ const x = pb.focus, m = META.metrics[x.metric], b = x.base; x.series.k = x.metric;
     f = `<div class="focuscard"><div class="eyebrow">今週の重点</div><div class="csf">${esc(x.label)}</div>
       <div class="mlabel">${esc(m.label)}</div>
-      <div class="row"><div class="val">${bigM(x.metric, x.v)}</div>${spark(x.series, b.median)}</div>
+      <div class="row2"><div class="val">${bigM(x.metric, x.v)}</div>${spark(x.series, b.median)}</div>
       <div class="meta2">${x.n != null ? `n=${x.n} · ` : ""}${b.median != null ? `直前${b.weeks}週の中央値 ${fmtM(x.metric, b.median)}（点線）` : `基準づくり中（${b.weeks}/${META.baselineMin}週）`}<br>${m.better === "down" ? "↓ 下がる方向をめざします" : "↑ 上がる方向をめざします"}</div>
       ${m.note ? `<p class="note">${esc(m.note)}</p>` : ""}</div>`;
   } else {
@@ -610,7 +659,7 @@ function playbook(w){
   const j = pb.journal;
   const now = j && (j.decision || j.reason || j.next) ? `<div class="decision"><span class="dchip${j.decision?"":" none"}">${esc(j.decision || "判断の記入なし")}</span>
       <dl><dt>理由</dt><dd>${esc(j.reason || "—")}</dd><dt>次の一手</dt><dd>${esc(j.next || "—")}</dd><dt>確認日</dt><dd>${esc(j.checkOn || "—")}</dd>${j.hypothesis?`<dt>仮説</dt><dd>${esc(j.hypothesis)}</dd>`:""}</dl></div>`
-    : `<p class="none" style="font-size:12.5px">①〜③を見て、1つ選んで理由を残します。変化がなければ「判断なし」と理由だけでOKです。</p>
+    : `<p class="none" style="font-size:12.5px">a〜c を見て、1つ選んで理由を残します。変化がなければ「判断なし」と理由だけでOKです。</p>
       <div class="optrow">${META.decisions.map(x=>`<span>${esc(x)}</span>`).join("")}</div>
       <div class="code"><code>${esc(cmd)}</code><button class="copy" data-copy="${esc(cmd)}">コピー</button></div>`;
   return `${f}<div class="steps">
@@ -659,7 +708,7 @@ function foot(cmd){
 }
 function bindCopy(root){ root.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy)); const h = root.querySelector("#openhelp"); if (h) h.onclick = () => $("#keys").showModal(); }
 
-/* ── panel: session detail ── */
+/* ── drawer: session detail ── */
 function detail(s){
   if (!s){ st.sel = null; return summary(); }
   const active = s.segs.reduce((t,[a,b])=>t+(b-a),0)/60, waits = s.waits.map(x=>x[1]).sort((a,b)=>a-b);
@@ -667,8 +716,7 @@ function detail(s){
   const sameDay = new Date(s.start*1000).toDateString() === new Date(s.end*1000).toDateString();
   const allTok = [s.usage, ...s.subagents.map(a=>a.usage)].reduce((t,u)=>t + (u ? u.in+u.out+u.cw+u.cw1h+u.cr : 0), 0);
   const P = $("#panel");
-  P.innerHTML = `<div class="pane" style="--c:${colorOf(keyOf(s))}">
-    <button class="back" id="back"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>週のふりかえりへ</button>
+  P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
     <div class="eyebrow"><span class="dot"></span>${esc(s.source)}</div>
     <h2>${esc(s.title)}</h2>
     <div class="muted" style="font-variant-numeric:tabular-nums">${md(s.start)} ${hm(s.start)} 〜 ${sameDay ? "" : md(s.end)+" "}${hm(s.end)}</div>
@@ -692,43 +740,42 @@ function detail(s){
           <div class="ft">${a.start?`<span>${hm(a.start)}${a.end?"–"+hm(a.end):""}</span>`:""}${a.start&&a.end?`<span>${dur((a.end-a.start)/60)}</span>`:""}${tt?`<span>${tok(tt)} トークン</span>`:t.reportedTokens?`<span>${tok(t.reportedTokens)} トークン（報告値）</span>`:""}${t.cost?`<span>${usd(t.cost)}</span>`:""}${a.model?`<span>${esc(a.model)}</span>`:""}${a.tools?`<span>ツール ${a.tools} 回</span>`:""}</div></div>`; }).join("")}` : ""}
     ${s.native && s.native.length ? `<h3>${esc(s.source)} の参考指標</h3>${nativeRows(s.native)}<p class="note">このエージェントが記録している数字です。ほかのエージェントとは定義が違います。</p>` : ""}
     <h3>使ったツール</h3>
-    ${s.tools.length ? s.tools.map(([k,v])=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track"><span style="width:${v/maxT*100}%"></span></span><span class="n">${v}</span></div>`).join("") : '<p class="none">記録なし</p>'}
+    ${s.tools.length ? s.tools.map(([k,v])=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track2"><span style="width:${v/maxT*100}%"></span></span><span class="n">${v}</span></div>`).join("") : '<p class="none">記録なし</p>'}
     <h3>変更したファイル · ${s.nFiles}</h3>
     ${s.files.length ? `<ul class="files">${s.files.map(f=>`<li title="${esc(f)}"><span>${esc(f)}</span></li>`).join("")}</ul>` : '<p class="none">なし</p>'}
     ${s.resume ? `<h3>続きから再開</h3><div class="code"><code>${esc(s.resume)}</code><button class="copy" data-copy="${esc(s.resume)}">コピー</button></div>` : ""}
   </div>`;
-  $("#back").onclick = () => select(null);
   bindCopy(P);
 }
-function select(id){ st.sel = id; render(); if (innerWidth <= 820 && id) $("#panel").scrollIntoView({behavior:"smooth"}); else $("#panel").scrollTop = 0; }
+function select(id){ st.sel = id; tipOff(); render(); if (id) $("#panel").scrollTop = 0; }
 
 /* ── events ── */
-function go(n){ st.week = n == null ? mondayOf(new Date()) : addDays(st.week, 7*n); st.sel = null; st.animate = true;
-  if (n == null) st.mday = (new Date().getDay()+6)%7; render(); scrollToWork(); }
+function go(n){ st.week = n == null ? mondayOf(new Date()) : addDays(st.week, 7*n); st.sel = null; st.animate = true; render(); scrollToWork(); }
 $("#prev").onclick = () => go(-1); $("#next").onclick = () => go(1); $("#today").onclick = () => go(null);
-$("#zin").onclick = () => zoom(12); $("#zout").onclick = () => zoom(-12);
-function zoom(dv){ st.hh = Math.max(24, Math.min(120, st.hh+dv)); store.set("hh", st.hh); render(); }
+$("#zin").onclick = () => zoom(1); $("#zout").onclick = () => zoom(-1);
+function zoom(dv){ st.z = Math.max(0, Math.min(ZOOMS.length-1, st.z+dv)); store.set("z", st.z); render(); scrollToWork(); }
 document.querySelectorAll("#colorBy button").forEach(b => b.onclick = () => { st.colorBy = b.dataset.v; st.hidden.clear(); store.set("colorBy", st.colorBy); render(); });
 $("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); render(); };
 $("#theme").onclick = () => { st.theme = {auto:"light",light:"dark",dark:"auto"}[st.theme]; store.set("theme", st.theme); applyTheme(); };
 $("#help").onclick = () => $("#keys").showModal();
-$("#grid").onclick = e => { if (e.target.classList.contains("day") && st.sel) select(null); };
+$("#scrim").onclick = () => select(null); $("#close").onclick = () => select(null); $("#back").onclick = () => select(null);
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT"){ if (e.key === "Escape") e.target.blur(); return; }
   if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open) return;
   const k = e.key;
   if (k === "ArrowLeft") go(-1); else if (k === "ArrowRight") go(1); else if (k === "t" || k === "T") go(null);
-  else if (k === "/"){ e.preventDefault(); $("#q").focus(); } else if (k === "+" || k === "=") zoom(12); else if (k === "-") zoom(-12);
+  else if (k === "/"){ e.preventDefault(); $("#q").focus(); } else if (k === "+" || k === "=") zoom(1); else if (k === "-") zoom(-1);
   else if (k === "Escape" && st.sel) select(null); else if (k === "?") $("#keys").showModal();
 });
-function scrollToWork(){ // その週でいちばん早く始まった時刻の少し前へ
+function scrollToWork(){ // 拡大しているときは、その週でいちばん早く始まった時刻の少し前へ
+  const sc = $("#tl .tlscroll"); if (!sc) return;
   const ws = st.week.getTime()/1000, we = ws + 7*86400; let first = 24;
   DATA.forEach(s => s.segs.forEach(([a,b]) => { if (b > ws && a < we){ const d = new Date(Math.max(a,ws)*1000); first = Math.min(first, d.getHours()); } }));
-  const y = Math.max(0, (first === 24 ? 8 : first) - 1) * st.hh, el = innerWidth <= 820 ? $("#grid") : $("#cal");
-  el.style.scrollBehavior = "auto"; el.scrollTop = y; el.style.scrollBehavior = "";
+  const inner = sc.firstElementChild, lab = sc.querySelector(".row .lab"), lw = lab ? lab.offsetWidth : 0;
+  sc.scrollLeft = Math.max(0, ((first === 24 ? 8 : first) - 1) / 24 * (inner.offsetWidth - lw));
 }
 // 今週に記録がなければ、いちばん新しい記録の週から開く
-if (DATA.length && !WEEKS[key(st.week)]) { st.week = mondayOf(new Date(DATA[DATA.length-1].end*1000)); st.mday = (new Date(DATA[DATA.length-1].end*1000).getDay()+6)%7; }
+if (DATA.length && !WEEKS[key(st.week)]) st.week = mondayOf(new Date(DATA[DATA.length-1].end*1000));
 const mq = matchMedia("(max-width:820px)"), ph = () => $("#q").placeholder = mq.matches ? "検索" : "タイトル・依頼文で探す";
 mq.addEventListener("change", () => { ph(); render(); }); ph();
 applyTheme(); render(); scrollToWork();
