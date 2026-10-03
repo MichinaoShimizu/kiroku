@@ -17,9 +17,10 @@ import argparse
 import json
 import os
 import platform
+import re
 import sys
 import webbrowser
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -76,6 +77,11 @@ def read_json(path):
         return None
 
 
+# 言い直し・差し戻しっぽい依頼（こじれたセッションの目印）
+CORRECTION = re.compile(r"違う|ちがう|そうじゃな|やり直|戻して|元に戻|取り消|じゃなくて|"
+                        r"\b(?:wrong|revert|undo|not what|that's not|try again)\b", re.I)
+
+
 class Session:
     EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit",  # Claude Code
                   "fsWrite", "fsAppend", "strReplace", "fs_write", "write", "editCode"}  # Kiro
@@ -84,14 +90,36 @@ class Session:
         self.source, self.id = source, sid
         self.project = self.branch = self.title = self.resume = None
         self.prompts, self.times, self.tools, self.files = [], [], {}, set()
+        self.agent_times = []  # AI が動いていた時刻（待たせ時間の計算用）
+        self.interrupts = 0
 
     def tick(self, ts):
         if ts is not None:
             self.times.append(ts)
 
+    def agent(self, ts):
+        self.tick(ts)
+        if ts is not None:
+            self.agent_times.append(ts)
+
     def prompt(self, ts, text):
+        if text and text.lstrip().startswith("[Request interrupted"):
+            self.interrupts += 1
         if text and not is_noise(text):
             self.prompts.append({"t": ts, "text": text.strip()[:400]})
+
+    def waits(self):
+        """AI が最後に動いてから、人が次の依頼を出すまでの秒数（30 分以内のものだけ）。"""
+        agent, out, prev = sorted(self.agent_times), [], None
+        for p in sorted(x["t"] for x in self.prompts if x["t"]):
+            last = max((a for a in agent if (prev is None or a > prev) and a < p), default=None)
+            if last is not None and 0 < p - last <= 1800:
+                out.append([p, round(p - last)])
+            prev = p
+        return out
+
+    def corrections(self):
+        return sum(1 for x in self.prompts if CORRECTION.search(x["text"]))
 
     def tool(self, name, args=None):
         name = name or "?"
@@ -119,7 +147,7 @@ def load_claude(root):
             ts = parse_ts(e.get("timestamp"))
             if ts is None:
                 continue
-            s.tick(ts)
+            s.agent(ts) if typ == "assistant" else s.tick(ts)
             s.project = s.project or e.get("cwd")
             s.branch = s.branch or e.get("gitBranch")
             msg = e.get("message") or {}
@@ -169,8 +197,8 @@ def load_kiro_ide(home):
         if msgs.exists():
             for e in read_jsonl(msgs):
                 ts = parse_ts(e.get("timestamp"))
-                s.tick(ts)
                 p = e.get("payload") or {}
+                s.tick(ts) if p.get("type") == "user" else s.agent(ts)
                 if p.get("type") == "user":
                     s.prompt(ts, text_of(p.get("content")))
                 elif p.get("type") == "tool_call":
@@ -193,13 +221,13 @@ def load_kiro_cli(home):
         turns = (((meta.get("session_state") or {}).get("conversation_metadata") or {})
                  .get("user_turn_metadatas") or [])
         for t in turns:
-            s.tick(parse_ts((t or {}).get("end_timestamp")))
+            s.agent(parse_ts((t or {}).get("end_timestamp")))
         log = meta_path.with_suffix(".jsonl")
         if log.exists():
             for e in read_jsonl(log):
                 data = e.get("data") or {}
                 ts = parse_ts(e.get("timestamp") or (data.get("meta") or {}).get("timestamp"))
-                s.tick(ts)
+                s.tick(ts) if e.get("kind") == "Prompt" else s.agent(ts)
                 if e.get("kind") == "Prompt":
                     s.prompt(ts, text_of(data.get("content")))
                 elif e.get("kind") == "AssistantMessage":
@@ -300,9 +328,188 @@ def build(args):
             "files": sorted(s.files)[:30],
             "nFiles": len(s.files),
             "resume": s.resume,
+            "waits": s.waits(),
+            "interrupts": s.interrupts,
+            "corrections": s.corrections(),
         })
     out.sort(key=lambda x: x["start"])
     return out
+
+
+# ── 週のふりかえり ──────────────────────────────────────────────────
+# 時刻はすべてこのマシンのローカル時刻で数える。分単位で「誰が動いていたか」を並べて集計する。
+
+FOCUS_MIN = 60      # これ以上続いたら「集中ブロック」
+FOCUS_BRIDGE = 5    # この分数までの切れ目はつながっているとみなす
+NIGHT = (22, 6)     # 深夜の時間帯
+
+
+def monday_of(ts):
+    d = datetime.fromtimestamp(ts)
+    return datetime(d.year, d.month, d.day) - timedelta(days=d.weekday())
+
+
+def week_stats(data, ws_dt):
+    ws = ws_dt.timestamp()
+    we = (ws_dt + timedelta(days=7)).timestamp()
+    n = int((we - ws) // 60)
+    mins = [[] for _ in range(n)]  # 分ごとに動いていた (セッション, プロジェクト)
+    ai_min = 0
+    for d in data:
+        if d["end"] < ws or d["start"] >= we:
+            continue
+        for a, b, _ in d["segs"]:
+            m0, m1 = max(0, int((a - ws) // 60)), min(n, int(-(-(b - ws) // 60)))
+            ai_min += max(0, m1 - m0)
+            for m in range(m0, m1):
+                mins[m].append((d["id"], d["project"]))
+    active = [m for m in range(n) if mins[m]]
+    if not active:
+        return None
+
+    projects = {}
+    for m in active:
+        names = {p for _, p in mins[m]}
+        for p in names:
+            projects[p] = projects.get(p, 0) + 1 / len(names)
+    parallel = sum(1 for m in active if len({sid for sid, _ in mins[m]}) >= 2)
+    max_conc = max(len({sid for sid, _ in mins[m]}) for m in active)
+    day_of = lambda m: min(6, m // 1440)  # 夏時間の週は 7 日 ± 1 時間あるので 0〜6 に収める
+    is_night = lambda m: (m % 1440) // 60 >= NIGHT[0] or (m % 1440) // 60 < NIGHT[1]
+    night = sum(1 for m in active if is_night(m))
+    weekend = sum(1 for m in active if day_of(m) >= 5)
+
+    # 集中ブロック: 途切れ（FOCUS_BRIDGE 分まで）を許して続いた作業
+    blocks, start, last = [], active[0], active[0]
+    for m in active[1:] + [None]:
+        if m is not None and m - last <= FOCUS_BRIDGE + 1:
+            last = m
+            continue
+        if last - start + 1 >= FOCUS_MIN:
+            share = {}
+            for k in range(start, last + 1):
+                for p in {p for _, p in mins[k]}:
+                    share[p] = share.get(p, 0) + 1
+            top = max(share, key=share.get)
+            blocks.append({"t": ws + start * 60, "min": last - start + 1, "project": top,
+                           "share": round(share[top] / (last - start + 1), 2)})
+        if m is not None:
+            start = last = m
+
+    # 切り替え: 依頼を出した順に並べて、前の依頼とプロジェクトが変わった回数（日ごと）
+    prompts = sorted((p["t"], d["project"]) for d in data for p in d["prompts"] if p["t"] and ws <= p["t"] < we)
+    days = [{"active": 0, "night": 0, "switches": 0, "prompts": 0} for _ in range(7)]
+    for m in active:
+        days[day_of(m)]["active"] += 1
+        days[day_of(m)]["night"] += is_night(m)
+    prev = None
+    for t, proj in prompts:
+        di = day_of(int((t - ws) // 60))
+        days[di]["prompts"] += 1
+        if prev and prev[0] == di and prev[1] != proj:
+            days[di]["switches"] += 1
+        prev = (di, proj)
+    active_days = [x for x in days if x["active"]]
+
+    waits = sorted(w for d in data for t, w in d["waits"] if ws <= t < we)
+    pick = lambda q: waits[min(len(waits) - 1, int(len(waits) * q))] if waits else None
+
+    friction = []
+    for d in data:
+        if not (ws <= d["start"] < we):
+            continue
+        why, score = [], 0
+        if d["corrections"]:
+            why.append(f"言い直し {d['corrections']} 回"); score += 2 * d["corrections"]
+        if d["interrupts"]:
+            why.append(f"中断 {d['interrupts']} 回"); score += 2 * d["interrupts"]
+        if d["nPrompts"] >= 15:
+            why.append(f"依頼 {d['nPrompts']} 回"); score += (d["nPrompts"] - 15) // 5 + 1
+        if score:
+            friction.append({"id": d["id"], "title": d["title"], "project": d["project"], "start": d["start"],
+                             "score": score, "why": why})
+    friction.sort(key=lambda x: -x["score"])
+
+    return {
+        "week": ws_dt.strftime("%Y-%m-%d"),
+        "sessions": sum(1 for d in data if d["end"] >= ws and d["start"] < we),
+        "prompts": len(prompts),
+        "active": len(active), "ai": ai_min,
+        "parallel": parallel, "maxConc": max_conc,
+        "night": night, "weekend": weekend,
+        "focus": blocks,
+        "switchesAvg": round(sum(x["switches"] for x in active_days) / len(active_days), 1),
+        "switchesMax": max(x["switches"] for x in days),
+        "waitMedian": pick(0.5), "waitP90": pick(0.9), "waitCount": len(waits),
+        "projects": sorted(([k, round(v)] for k, v in projects.items()), key=lambda kv: -kv[1]),
+        "days": days,
+        "friction": friction[:3],
+    }
+
+
+def all_weeks(data):
+    out, seen = {}, set()
+    for d in data:
+        w = monday_of(d["start"])
+        while w.timestamp() <= d["end"]:
+            if w not in seen:
+                seen.add(w)
+                st = week_stats(data, w)
+                if st:
+                    out[st["week"]] = st
+            w += timedelta(days=7)
+    return out
+
+
+def hm(minutes):
+    minutes = int(round(minutes))
+    return f"{minutes // 60}時間{minutes % 60:02d}分" if minutes >= 60 else f"{minutes}分"
+
+
+def secs(v):
+    return "—" if v is None else (f"{v}秒" if v < 60 else f"{v // 60}分{v % 60:02d}秒")
+
+
+def delta(cur, prev, key, fmt=hm):
+    if not prev:
+        return ""
+    d = cur[key] - prev[key]
+    return f"（先週から {'+' if d >= 0 else '−'}{fmt(abs(d))}）"
+
+
+def weekly_markdown(st, prev):
+    ws = datetime.strptime(st["week"], "%Y-%m-%d")
+    we = ws + timedelta(days=6)
+    longest = max((b["min"] for b in st["focus"]), default=0)
+    L = [f"# kiroku 週次ふりかえり {ws:%Y/%m/%d}〜{we:%m/%d}", "",
+         "> 自分のふりかえり用の数字です。人と比べたり評価に使ったりするためのものではありません。", "",
+         "## 注意の使い方", "",
+         "| 指標 | 今週 | メモ |", "|---|---|---|",
+         f"| 作業していた時間 | {hm(st['active'])} | {delta(st, prev, 'active')} どれかのセッションが動いていた時間 |",
+         f"| AI の延べ稼働 | {hm(st['ai'])} | 並列で動かした分も足した合計 |",
+         f"| 集中ブロック（{FOCUS_MIN}分以上） | {len(st['focus'])} 回 | 最長 {hm(longest)} |",
+         f"| 1 日の切り替え | 平均 {st['switchesAvg']} 回 | 最大 {st['switchesMax']} 回 |",
+         f"| 並列で動かしていた時間 | {hm(st['parallel'])} | 最大 {st['maxConc']} 本同時 |",
+         f"| 深夜（{NIGHT[0]}〜{NIGHT[1]}時） | {hm(st['night'])} | |",
+         f"| 週末 | {hm(st['weekend'])} | |",
+         f"| 待たせ時間 | 中央値 {secs(st['waitMedian'])} | 90%点 {secs(st['waitP90'])}（{st['waitCount']} 回） |",
+         f"| セッション / 依頼 | {st['sessions']} / {st['prompts']} | |", "",
+         "## プロジェクト別の配分", ""]
+    total = sum(v for _, v in st["projects"]) or 1
+    L += [f"- {k}: {hm(v)}（{round(v * 100 / total)}%）" for k, v in st["projects"]]
+    L += ["", "## 日ごと", "", "| 日 | 作業 | 深夜 | 依頼 | 切り替え |", "|---|---|---|---|---|"]
+    for i, x in enumerate(st["days"]):
+        d = ws + timedelta(days=i)
+        z = lambda v, f=str: f(v) if v else "—"
+        L.append(f"| {d:%m/%d}({'月火水木金土日'[i]}) | {z(x['active'], hm)} | {z(x['night'], hm)} | {z(x['prompts'])} | {z(x['switches'])} |")
+    L += ["", "## 集中ブロック", ""]
+    L += [f"- {datetime.fromtimestamp(b['t']):%m/%d %H:%M} から {hm(b['min'])}・{b['project']}（{round(b['share'] * 100)}%）"
+          for b in st["focus"]] or ["- なし"]
+    L += ["", "## こじれたかもしれないセッション", ""]
+    L += [f"- {datetime.fromtimestamp(f['start']):%m/%d %H:%M} [{f['project']}] {f['title']} — {'、'.join(f['why'])}"
+          for f in st["friction"]] or ["- なし"]
+    L += ["", "## ふりかえりメモ", "", "- よかったこと：", "- 詰まったこと：", "- 来週ためすこと：", ""]
+    return "\n".join(L)
 
 
 HTML = r"""<!doctype html>
@@ -335,6 +542,16 @@ main{flex:1;display:flex;min-height:0}
 aside{width:420px;max-width:45vw;border-left:1px solid var(--line);background:var(--panel);overflow:auto;padding:14px}
 aside h2{font-size:15px;margin:0 0 6px;overflow-wrap:anywhere}aside h3{font-size:12px;color:var(--mute);margin:14px 0 4px;text-transform:uppercase;letter-spacing:.04em}
 aside ol,aside ul{padding-left:18px;margin:0}aside li{margin:3px 0;overflow-wrap:anywhere}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.tile{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.tile b{display:block;font-size:18px;font-variant-numeric:tabular-nums}.tile small{color:var(--mute)}
+.bar{display:grid;grid-template-columns:90px 1fr 130px;align-items:center;gap:6px;margin:3px 0}
+.bar span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar span:last-child{white-space:nowrap;font-size:12px}
+.bar i{height:10px;border-radius:2px;display:block}
+table.days{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}table.days td,table.days th{padding:2px 4px;text-align:right;border-bottom:1px solid var(--line)}
+table.days th:first-child,table.days td:first-child{text-align:left}
+.note{font-size:12px;color:var(--mute);margin-top:12px}
+a.sess{color:inherit;cursor:pointer;text-decoration:underline dotted}
 .chip{display:inline-block;border:1px solid var(--line);border-radius:10px;padding:0 8px;margin:2px 4px 2px 0;font-size:12px}
 code{font-size:12px;word-break:break-all}
 @media (max-width:800px){main{flex-direction:column}aside{width:auto;max-width:none;border-left:0;border-top:1px solid var(--line);max-height:45vh}}
@@ -345,15 +562,17 @@ code{font-size:12px;word-break:break-all}
   <span id="range"></span><span class="mute" id="count"></span>
   <span style="flex:1"></span>
   <label class="mute">色分け <select id="colorBy"><option value="project">プロジェクト</option><option value="branch">ブランチ</option><option value="source">ツール</option></select></label>
+  <button id="summary">週のまとめ</button>
   <button id="zout">−</button><button id="zin">＋</button>
   <input id="q" placeholder="検索（タイトル・依頼文）">
 </header>
 <div id="legend"></div>
 <main><div id="cal"><div id="heads"></div><div id="grid"></div></div>
-<aside id="detail"><p class="mute">帯をクリックすると、そのセッションの中身がここに出ます。</p><p class="mute" id="gen"></p></aside></main>
+<aside id="detail"></aside></main>
 <script>
 const DATA = __DATA__;
 const GENERATED = __GEN__;
+const WEEKS = __WEEKS__;
 const PALETTE = ["#a78bfa","#f0b35a","#7dd3a8","#7aa7f0","#f28b8b","#c49a6c","#5fc4d0","#e58fd6","#b5c26b","#9ca3af","#f6a2b5","#86b0a0"];
 const DOW = ["日","月","火","水","木","金","土"];
 const $ = s => document.querySelector(s);
@@ -431,6 +650,45 @@ function render(){
     });
   });
   if (todayIdx >= 0){ const now = Date.now()/1000, ds = ws + todayIdx*86400; const ln = document.createElement("div"); ln.className="now"; ln.style.top = ((now-ds)/3600*hh)+"px"; days[todayIdx].appendChild(ln); }
+  if (!selected) showSummary();
+}
+function weekKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function mins(m){ m = Math.round(m); return m < 60 ? m+"分" : Math.floor(m/60)+"時間"+String(m%60).padStart(2,"0")+"分"; }
+function secs(v){ return v == null ? "—" : v < 60 ? v+"秒" : Math.floor(v/60)+"分"+String(v%60).padStart(2,"0")+"秒"; }
+function showSummary(){
+  const st = WEEKS[weekKey(weekStart)];
+  const p = new Date(weekStart); p.setDate(p.getDate()-7);
+  const prev = WEEKS[weekKey(p)];
+  const gen = `<p class="note">生成: ${new Date(GENERATED*1000).toLocaleString("ja-JP")}</p>`;
+  if (!st){ $("#detail").innerHTML = '<h2>週のまとめ</h2><p class="mute">この週は作業の記録がありません。</p>' + gen; return; }
+  const diff = (k) => { if (!prev) return ""; const d = st[k]-prev[k]; return `<small>先週から ${d>=0?"+":"−"}${mins(Math.abs(d))}</small>`; };
+  const longest = Math.max(0, ...st.focus.map(b=>b.min));
+  const total = st.projects.reduce((t,[,v])=>t+v,0) || 1, top = st.projects.length ? st.projects[0][1] : 1;
+  const tile = (label, value, sub) => `<div class="tile"><small>${label}</small><b>${value}</b>${sub||""}</div>`;
+  $("#detail").innerHTML = `
+    <h2>週のまとめ</h2>
+    <div class="tiles">
+      ${tile("作業していた時間", mins(st.active), diff("active"))}
+      ${tile("AI の延べ稼働", mins(st.ai), "<small>並列ぶんも合計</small>")}
+      ${tile("集中ブロック（60分以上）", st.focus.length+" 回", `<small>最長 ${mins(longest)}</small>`)}
+      ${tile("1日の切り替え", "平均 "+st.switchesAvg+" 回", `<small>最大 ${st.switchesMax} 回</small>`)}
+      ${tile("並列で動かした時間", mins(st.parallel), `<small>最大 ${st.maxConc} 本同時</small>`)}
+      ${tile("待たせ時間（中央値）", secs(st.waitMedian), `<small>90%点 ${secs(st.waitP90)}</small>`)}
+      ${tile("深夜（22〜6時）", mins(st.night), "")}
+      ${tile("週末", mins(st.weekend), "")}
+    </div>
+    <h3>プロジェクト別の配分</h3>
+    ${st.projects.map(([k,v])=>`<div class="bar"><span title="${esc(k)}">${esc(k)}</span><i style="width:${Math.max(1,v/top*100)}%;background:${colors[k]||"#9ca3af"}"></i><span class="mute">${mins(v)}・${Math.round(v*100/total)}%</span></div>`).join("")}
+    <h3>日ごと</h3>
+    <table class="days"><tr><th></th><th>作業</th><th>深夜</th><th>依頼</th><th>切替</th></tr>
+    ${st.days.map((x,i)=>{ const d = new Date(weekStart); d.setDate(d.getDate()+i);
+      return `<tr><td>${d.getMonth()+1}/${d.getDate()}(${DOW[d.getDay()]})</td><td>${x.active?mins(x.active):"—"}</td><td>${x.night?mins(x.night):"—"}</td><td>${x.prompts||"—"}</td><td>${x.switches||"—"}</td></tr>`; }).join("")}
+    </table>
+    <h3>こじれたかもしれないセッション</h3>
+    <ol>${st.friction.map(f=>`<li><a class="sess" data-id="${esc(f.id)}">${esc(f.title)}</a> <span class="mute">[${esc(f.project)}] ${f.why.join("、")}</span></li>`).join("") || '<li class="mute">なし</li>'}</ol>
+    <p class="note">待たせ時間 = AI が返してから次の依頼を出すまで（30分以内のもの）。切り替え = 続けて出した依頼のプロジェクトが変わった回数。<br>自分のふりかえり用の数字です。人と比べたり評価に使ったりするためのものではありません。</p>
+    <p class="note">Markdown で書き出す: <code>python3 kiroku.py --weekly ${weekKey(weekStart)}</code></p>${gen}`;
+  document.querySelectorAll("a.sess").forEach(a => a.onclick = () => { const s = DATA.find(x=>x.id===a.dataset.id); if (s){ selected = s.id; showDetail(s); render(); } });
 }
 function showDetail(s){
   const active = s.segs.reduce((t,[a,b])=>t+(b-a),0);
@@ -452,7 +710,7 @@ $("#zout").onclick = () => { hh = Math.max(16, hh-10); render(); };
 $("#colorBy").onchange = e => { colorBy = e.target.value; hidden.clear(); render(); };
 $("#q").oninput = e => { q = e.target.value.trim().toLowerCase(); render(); };
 document.addEventListener("keydown", e => { if (e.target.tagName==="INPUT") return; if (e.key==="ArrowLeft") $("#prev").click(); if (e.key==="ArrowRight") $("#next").click(); if (e.key==="t") $("#today").click(); });
-$("#gen").textContent = "生成: " + new Date(GENERATED*1000).toLocaleString("ja-JP");
+$("#summary").onclick = () => { selected = null; render(); };
 // 最新セッションのある週から開く
 if (DATA.length && !DATA.some(s => s.end >= weekStart.getTime()/1000)) weekStart = mondayOf(new Date(DATA[DATA.length-1].end*1000));
 render();
@@ -468,13 +726,27 @@ def main():
     ap.add_argument("--gap", type=int, default=15, help="何分あいたら帯を分けるか（既定 15）")
     ap.add_argument("--sources", default="claude,kiro", help="読むもの（claude,kiro のカンマ区切り）")
     ap.add_argument("--no-open", action="store_true")
+    ap.add_argument("--weekly", nargs="?", const="latest", metavar="YYYY-MM-DD",
+                    help="その日を含む週のふりかえりを Markdown で書き出す（日付なしなら最新の週）")
     a = ap.parse_args()
     a.sources = {x.strip().lower() for x in a.sources.split(",")}
     data = build(a)
     if not data:
         sys.exit("履歴が 1 件も見つからなかったよ。--root や KIRO_HOME を確認してね")
-    payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
-    html = HTML.replace("__DATA__", payload).replace("__GEN__", str(datetime.now(timezone.utc).timestamp()))
+    weeks = all_weeks(data)
+    if a.weekly:
+        key = max(weeks) if a.weekly == "latest" else monday_of(
+            datetime.strptime(a.weekly, "%Y-%m-%d").timestamp()).strftime("%Y-%m-%d")
+        if key not in weeks:
+            sys.exit(f"{key} の週には履歴がないよ")
+        prev = weeks.get((datetime.strptime(key, "%Y-%m-%d") - timedelta(days=7)).strftime("%Y-%m-%d"))
+        out = Path(f"kiroku-week-{key}.md")
+        out.write_text(weekly_markdown(weeks[key], prev), encoding="utf-8")
+        print(f"週のふりかえり → {out}")
+        return
+    dump = lambda v: json.dumps(v, ensure_ascii=False).replace("</", "<\\/")
+    html = (HTML.replace("__DATA__", dump(data)).replace("__WEEKS__", dump(weeks))
+            .replace("__GEN__", str(datetime.now(timezone.utc).timestamp())))
     Path(a.out).write_text(html, encoding="utf-8")
     print(f"{len(data)} セッション → {a.out}")
     if not a.no_open:
