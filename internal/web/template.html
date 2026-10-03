@@ -144,6 +144,16 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .empty svg{width:56px;height:56px;color:var(--rule-2);stroke-width:1.2}
 .empty p{margin:10px 0 0}
 
+.head .use,.cell .use{display:block;font-size:10.5px;color:var(--acc-ink);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ubar{display:grid;gap:3px;align-items:end;height:132px;padding-top:6px}
+.ubar .c{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;height:100%;min-width:0}
+.ubar .b{width:100%;max-width:26px;border-radius:4px 4px 2px 2px;background:var(--acc);opacity:.85;min-height:0}
+.ubar .c:hover .b{opacity:1}
+.ubar .l{font-size:10px;color:var(--ink-3);font-variant-numeric:tabular-nums;height:12px}
+.ubar .c.today .l{color:var(--acc-ink);font-weight:700}
+.ubar .v{font-size:10px;color:var(--ink-2);font-variant-numeric:tabular-nums;height:12px;white-space:nowrap}
+.useg{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:2px 0 4px}
+.useg .segc button{height:24px;font-size:11.5px}
 /* ── month（月カレンダー：日ごとの作業量） ───────────────── */
 .mgrid{display:grid;grid-template-columns:44px repeat(7,minmax(0,1fr))}
 .mgrid .mh{padding:10px 12px 8px;font-size:11px;color:var(--ink-3);border-left:1px solid var(--rule);border-bottom:1px solid var(--rule)}
@@ -407,7 +417,7 @@ const $ = s => document.querySelector(s);
 const store = { get(k,d){ try { const v = localStorage.getItem("kiroku:"+k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
                 set(k,v){ try { localStorage.setItem("kiroku:"+k, JSON.stringify(v)); } catch(e){} } };
 const st = { z: store.get("zh", 2), colorBy: store.get("colorBy", "project"), theme: store.get("theme", "auto"),
-             week: mondayOf(new Date()), month: monthOf(new Date()), mode: store.get("mode", "week"),
+             week: mondayOf(new Date()), month: monthOf(new Date()), mode: store.get("mode", "week"), use: store.get("use", "tokens"),
              hidden: new Set(), sel: null, q: "", animate: true };
 
 /* ── helpers ── */
@@ -424,6 +434,8 @@ function dur(m, html){ m = Math.round(m); const h = Math.floor(m/60), r = m%60;
   return h ? `${h}<small>時間</small>${r ? String(r).padStart(2,"0")+"<small>分</small>" : ""}` : `${r}<small>分</small>`; }
 function tok(n){ n = n || 0; return n >= 1e9 ? (n/1e9).toFixed(1)+"B" : n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? Math.round(n/1e3)+"K" : String(n); }
 function usd(v){ return v == null ? "—" : v > 0 && v < 0.01 ? "<$0.01" : "$" + (v >= 100 ? Math.round(v).toLocaleString() : v.toFixed(2)); }
+function cr(v){ return `${Number(v.toFixed(2)).toLocaleString("ja-JP")} cr`; }
+function useShort(d){ if (!d) return ""; const p = []; if (d.tokens) p.push(tok(d.tokens)); if (d.cost >= 0.005) p.push(usd(d.cost)); if (d.credits) p.push(cr(d.credits)); return p.join(" · "); }
 function shade(i){ return [1,.72,.5,.34,.22,.14][Math.min(i,5)]; }
 function secs(v){ return v == null ? "—" : v < 60 ? `${v}秒` : `${Math.floor(v/60)}分${String(v%60).padStart(2,"0")}秒`; }
 function isoWeek(d){ d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const n = d.getUTCDay() || 7; d.setUTCDate(d.getUTCDate()+4-n);
@@ -494,8 +506,9 @@ function kpis(){
   const kpi = (k, v) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div></div>`;
   const u = w.usage || {}, days = w.days.filter(d => d.active).length;
   K.innerHTML = kpi("作業していた時間", dur(w.active, true)) + kpi("作業した日", `${days}<small>/ ${w.days.length} 日</small>`) +
-    kpi("集中ブロック", `${w.focus.length}<small>回</small>`) + kpi("セッション / 依頼", `${w.sessions}<small>/</small>${w.prompts}`) +
-    (u.tokens ? kpi("目安コスト", usd(u.cost).replace("$","<small>$</small>")) : u.credits ? kpi("Kiro クレジット", `${u.credits}`) : "");
+    kpi("セッション / 依頼", `${w.sessions}<small>/</small>${w.prompts}`) +
+    (u.tokens ? kpi("トークン", tok(u.tokens)) + kpi("目安コスト", usd(u.cost).replace("$","<small>$</small>")) : "") +
+    (u.credits ? kpi("Kiro クレジット", `${Number(u.credits.toFixed(2)).toLocaleString("ja-JP")}<small>cr</small>`) : "");
 }
 
 /* 月のカレンダー：日ごとの作業時間を濃さで、プロジェクトの配分を細い帯で */
@@ -512,8 +525,8 @@ function monthGrid(shown, ms, me, todayKey){
       const x = S ? S.days[d.getDate()-1] : null, act = x ? x.active : 0;
       const by = {}; shown.forEach(s => s.segs.forEach(([a,b]) => { const o = Math.min(b,de) - Math.max(a,ds); if (o > 0) by[keyOf(s)] = (by[keyOf(s)]||0) + o; }));
       const pj = Object.entries(by).sort((a,b)=>b[1]-a[1]);
-      h += `<button class="cell${d.getDay()%6===0?" we":""}${key(d)===todayKey?" today":""}" data-w="${key(mondayOf(d))}" style="--heat:${(act/max).toFixed(3)}" title="${md(ds)} 作業 ${dur(act)}${x ? `・依頼 ${x.prompts}・深夜 ${dur(x.night)}` : ""}">
-        <span class="dn">${d.getDate()}</span>${act ? `<span class="ac">${dur(act, true)}</span><span class="sub2">依頼 ${x.prompts}</span>` : ""}
+      h += `<button class="cell${d.getDay()%6===0?" we":""}${key(d)===todayKey?" today":""}" data-w="${key(mondayOf(d))}" style="--heat:${(act/max).toFixed(3)}" title="${md(ds)} 作業 ${dur(act)}${x ? `・依頼 ${x.prompts}・深夜 ${dur(x.night)}${useShort(x) ? `・${useShort(x)}` : ""}` : ""}">
+        <span class="dn">${d.getDate()}</span>${act ? `<span class="ac">${dur(act, true)}</span><span class="sub2">依頼 ${x.prompts}</span>` : ""}${x && useShort(x) ? `<span class="use">${useShort(x)}</span>` : ""}
         ${pj.length ? `<span class="pj">${pj.map(([k,v])=>`<span style="flex:${v};--c:${colorOf(k)}"></span>`).join("")}</span>` : ""}</button>`;
     }
   }
@@ -538,7 +551,8 @@ function timeline(shown, inWeek, ws, we, todayKey){
   for (let d=0; d<7; d++){
     const day = addDays(st.week,d), ds = day.getTime()/1000, de = addDays(st.week,d+1).getTime()/1000, isToday = key(day) === todayKey;
     const act = w && w.days[d] ? w.days[d].active : 0;
-    heads += `<div class="head${isToday?" today":""}"><div class="dd"><b>${day.getMonth()+1}/${day.getDate()}</b><i>${DOW[day.getDay()]}</i></div><small>${act ? dur(act) : "—"}</small></div>`;
+    const dU = w && w.days[d] ? useShort(w.days[d]) : "";
+    heads += `<div class="head${isToday?" today":""}"><div class="dd"><b>${day.getMonth()+1}/${day.getDate()}</b><i>${DOW[day.getDay()]}</i></div><small>${act ? dur(act) : "—"}</small>${dU ? `<span class="use" title="トークン・目安コスト・クレジット">${dU}</span>` : ""}</div>`;
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
@@ -600,6 +614,7 @@ function summary(){
     </div>
     ${foot(cmd)}</section>
   <section class="panel">${ph(2, "AI の使い方", "使った量・費用・エージェント")}
+    ${usageChart(w, M)}
     ${aiUsage(w, pw, unit) || '<p class="none">トークンやクレジットの記録はありません。</p>'}
     ${nativeSection(w)}</section>
   <section class="panel shape">${ph(3, M ? "月のかたち" : "週のかたち", "どこに時間を使ったか")}
@@ -613,13 +628,31 @@ function summary(){
     ${w.friction.length ? w.friction.map(f=>`<button class="card" data-id="${esc(f.id)}"><span class="ti">${esc(f.title)}</span><span class="me">${md(f.start)} · ${esc(f.project)} ${f.why.map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}</span></button>`).join("") : '<p class="none">言い直しや中断が目立つセッションはありませんでした。</p>'}
     ${measure(w)}</section></div>`;
   R.querySelectorAll(".card").forEach(c => c.onclick = () => select(c.dataset.id));
+  R.querySelectorAll("#useBy button").forEach(b => b.onclick = () => { st.use = b.dataset.v; store.set("use", st.use); summary(); });
   bindCopy(R);
+}
+/* 日ごとの使用量（トークン・目安コスト・クレジットを切り替え） */
+function usageChart(w, M){
+  const has = {tokens: w.days.some(d => d.tokens), cost: w.days.some(d => d.cost >= 0.005), credits: w.days.some(d => d.credits)};
+  const opts = [["tokens","トークン"],["cost","目安コスト"],["credits","クレジット"]].filter(([k]) => has[k]);
+  if (!opts.length) return "";
+  const m = has[st.use] ? st.use : opts[0][0], fmt = {tokens: tok, cost: usd, credits: cr}[m];
+  const max = Math.max(...w.days.map(d => d[m] || 0)) || 1, today = key(new Date()), total = w.days.reduce((t,d) => t + (d[m]||0), 0);
+  const start = M ? st.month : st.week;
+  const cols = w.days.map((d,i) => { const dd = addDays(start, i), v = d[m] || 0;
+    return `<div class="c${key(dd)===today?" today":""}" title="${md(dd.getTime()/1000)} ${esc(useShort(d) || "使用なし")}">
+      ${M ? "" : `<span class="v">${v ? fmt(v) : ""}</span>`}<div class="b" style="height:${v ? Math.max(2, v/max*80) : 0}px"></div>
+      <span class="l">${M ? (dd.getDate() === 1 || dd.getDate() % 5 === 0 ? dd.getDate() : "") : DOW[dd.getDay()]}</span></div>`; }).join("");
+  return `<h3>日ごとの使用量</h3>
+    <div class="useg"><div class="segc" role="group" aria-label="使用量の種類" id="useBy">${opts.map(([k,l]) => `<button data-v="${k}" aria-pressed="${k===m}">${l}</button>`).join("")}</div>
+      <span class="muted" style="font-size:11.5px">合計 ${fmt(total)}・最大 ${fmt(max)}/日</span></div>
+    <div class="ubar" style="grid-template-columns:repeat(${w.days.length},minmax(0,1fr))${M ? ";gap:2px" : ""}">${cols}</div>`;
 }
 /* 週なら日ごと、月なら週ごとの棒 */
 function rhythm(w, M){
   const today = key(new Date());
   let cols;
-  if (!M) cols = w.days.map((x,i) => { const dd = addDays(st.week,i); return {l:DOW[dd.getDay()], a:x.active, n:x.night, t:key(dd)===today, tip:`${md(dd.getTime()/1000)} 作業 ${dur(x.active)}・深夜 ${dur(x.night)}・依頼 ${x.prompts}・切り替え ${x.switches}`}; });
+  if (!M) cols = w.days.map((x,i) => { const dd = addDays(st.week,i); return {l:DOW[dd.getDay()], a:x.active, n:x.night, t:key(dd)===today, tip:`${md(dd.getTime()/1000)} 作業 ${dur(x.active)}・深夜 ${dur(x.night)}・依頼 ${x.prompts}・切り替え ${x.switches}${useShort(x) ? "・"+useShort(x) : ""}`}; });
   else { cols = []; w.days.forEach((x,i) => { const dd = new Date(st.month.getFullYear(), st.month.getMonth(), i+1), k = key(mondayOf(dd));
       let c = cols.find(c => c.k === k); if (!c){ c = {k, l:`W${isoWeek(dd)}`, a:0, n:0, p:0, t:k===key(mondayOf(new Date()))}; cols.push(c); }
       c.a += x.active; c.n += x.night; c.p += x.prompts; });

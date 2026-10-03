@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 	_ "time/tzdata" // Windows などでも Asia/Tokyo を読めるように
@@ -128,9 +129,24 @@ func TestMonthlySummary(t *testing.T) {
 			t.Errorf("%s: 日ごとの合計 %d と月の作業時間 %d が違う", k, sum, m.Active)
 		}
 	}
+	all := map[string]*report.Summary{}
 	for k, w := range weeks {
 		if len(w.Days) != 7 {
 			t.Errorf("週 %s の日数 = %d", k, len(w.Days))
+		}
+		all["週 "+k] = w
+	}
+	for k, m := range report.AllMonths(data) {
+		all["月 "+k] = m
+	}
+	// 日ごとの使用量を足すと、期間の使用量になる
+	for k, x := range all {
+		var tok, cost, cr float64
+		for _, d := range x.Days {
+			tok, cost, cr = tok+d.Tokens, cost+d.Cost, cr+d.Credits
+		}
+		if tok != x.Usage.Tokens || math.Abs(cost-x.Usage.Cost) > 0.01 || math.Abs(cr-x.Usage.Credits) > 0.01 {
+			t.Errorf("%s: 日ごとの合計 tokens=%v cost=%v credits=%v、期間 %v %v %v", k, tok, cost, cr, x.Usage.Tokens, x.Usage.Cost, x.Usage.Credits)
 		}
 	}
 }
@@ -225,7 +241,9 @@ func compare(want, got any, path string, diffs *[]string) {
 			keys[k] = true
 		}
 		for k := range keys {
-			if k == "unpriced" && filepath.Base(filepath.ToSlash(path)) == "usage" || k == "native" {
+			inDay := strings.Contains(path, ".days[") && !strings.Contains(path[strings.LastIndex(path, ".days[")+1:], ".")
+			if k == "unpriced" && filepath.Base(filepath.ToSlash(path)) == "usage" || k == "native" ||
+				inDay && (k == "tokens" || k == "cost" || k == "credits") { // Go 版で足した日ごとの使用量
 				continue
 			}
 			wv, wok := w[k]

@@ -158,7 +158,7 @@ func summaryMarkdown(st *Summary, report []source.Report, title, this string) st
 	for _, m := range u.Models {
 		L = append(L, fmt.Sprintf("- %s: $%s・%s トークン・%d 応答", m[0], comma(m[1].(float64), 2), intComma(m[2].(float64)), int(m[3].(float64))))
 	}
-	L = append(L, "", "日ごと:", "", "| 日 | 作業 | 深夜 | 依頼 | 切り替え |", "|---|---|---|---|---|")
+	L = append(L, "", "日ごと:", "", "| 日 | 作業 | 深夜 | 依頼 | 切り替え | トークン | 目安コスト | クレジット |", "|---|---|---|---|---|---|---|---|")
 	wd := []rune("日月火水木金土")
 	for i, x := range st.Days {
 		d := ws.AddDate(0, 0, i)
@@ -171,7 +171,14 @@ func summaryMarkdown(st *Summary, report []source.Report, title, this string) st
 			}
 			return strconv.Itoa(v)
 		}
-		L = append(L, fmt.Sprintf("| %s(%c) | %s | %s | %s | %s |", d.Format("01/02"), wd[d.Weekday()], z(x.Active, true), z(x.Night, true), z(x.Prompts, false), z(x.Switches, false)))
+		zf := func(v float64, f func(float64) string) string {
+			if v == 0 {
+				return "—"
+			}
+			return f(v)
+		}
+		L = append(L, fmt.Sprintf("| %s(%c) | %s | %s | %s | %s | %s | %s | %s |", d.Format("01/02"), wd[d.Weekday()], z(x.Active, true), z(x.Night, true), z(x.Prompts, false), z(x.Switches, false),
+			zf(x.Tokens, intComma), zf(x.Cost, func(v float64) string { return "$" + comma(v, 2) }), zf(x.Credits, func(v float64) string { return comma(v, -1) })))
 	}
 	L = append(L, "", "こじれたかもしれないセッション:", "")
 	if len(st.Friction) == 0 {

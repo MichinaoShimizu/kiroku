@@ -26,10 +26,13 @@ type Block struct {
 }
 
 type Day struct {
-	Active   int `json:"active"`
-	Night    int `json:"night"`
-	Switches int `json:"switches"`
-	Prompts  int `json:"prompts"`
+	Active   int     `json:"active"`
+	Night    int     `json:"night"`
+	Switches int     `json:"switches"`
+	Prompts  int     `json:"prompts"`
+	Tokens   float64 `json:"tokens"`  // その日のトークン（入力・出力・キャッシュの合計）
+	Cost     float64 `json:"cost"`    // その日の目安コスト（API 換算）
+	Credits  float64 `json:"credits"` // その日の Kiro クレジット
 }
 
 type Friction struct {
@@ -279,6 +282,35 @@ func Summarize(data []*core.Session, wsT, weT time.Time) *Summary {
 			days[di].Switches++
 		}
 		prevDay, prevProj = di, x.p
+	}
+	// 日ごとの使用量（トークン・目安コスト・クレジット）は、記録された時刻の日に入れる
+	dayAt := func(t float64) int { return max(0, sort.Search(nd, func(i int) bool { return dayStart[i] > t })-1) }
+	for _, d := range data {
+		for _, e := range d.UEv {
+			t := d.Start
+			if e.T != nil && *e.T != 0 {
+				t = *e.T
+			}
+			if ws <= t && t < we {
+				x := &days[dayAt(t)]
+				x.Tokens += e.U.Total()
+				if e.Cost != nil {
+					x.Cost += *e.Cost
+				}
+			}
+		}
+		for _, c := range d.CEv {
+			t := d.Start
+			if c.T != nil && *c.T != 0 {
+				t = *c.T
+			}
+			if ws <= t && t < we {
+				days[dayAt(t)].Credits += c.V
+			}
+		}
+	}
+	for i := range days {
+		days[i].Cost, days[i].Credits = core.Round(days[i].Cost, 4), core.Round(days[i].Credits, 2)
 	}
 	activeDays, swSum, swMax := 0, 0, 0
 	for _, d := range days {
