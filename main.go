@@ -6,12 +6,14 @@
 //	kiroku --sources kiro          # Kiro だけ
 //	kiroku --weekly                # 最新の週のふりかえりを Markdown で書き出す
 //	kiroku --weekly 2026-09-30     # その日を含む週
+//	kiroku --serve                 # 手元にサーバーを立てて、増えた履歴をその場で画面に反映する
 package main
 
 import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -31,7 +33,16 @@ var version = "dev" // リリース時に -ldflags で入れる
 
 var dateRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
 
-// normalizeArgs は「--weekly」だけ（日付なし）を --weekly=latest に直す。flag パッケージは値の省略ができないため。
+// addrRe は --serve のあとに書ける待ち受け先（:8484、127.0.0.1:8484、localhost:8484 など）。
+var addrRe = regexp.MustCompile(`^[\w.\-\[\]:]*:\d+$`)
+
+// defaultAddr は --serve の待ち受け先。履歴は人に見せたくないものなので、手元からしか開けないようにする。
+const defaultAddr = "127.0.0.1:8484"
+
+// logw は読み込みの経過を書く先。--serve の読み直しでは黙らせる。
+var logw io.Writer = os.Stderr
+
+// normalizeArgs は「--weekly」「--serve」だけ（値なし）を --weekly=latest、--serve=127.0.0.1:8484 に直す。flag パッケージは値の省略ができないため。
 func normalizeArgs(args []string) []string {
 	var out []string
 	for i := 0; i < len(args); i++ {
@@ -42,6 +53,15 @@ func normalizeArgs(args []string) []string {
 				i++
 			} else {
 				out = append(out, "--weekly=latest")
+			}
+			continue
+		}
+		if a == "--serve" || a == "-serve" {
+			if i+1 < len(args) && addrRe.MatchString(args[i+1]) {
+				out = append(out, "--serve="+args[i+1])
+				i++
+			} else {
+				out = append(out, "--serve="+defaultAddr)
 			}
 			continue
 		}
@@ -78,6 +98,8 @@ func run(args []string) error {
 	journal := fs.String("journal", ".", "週のふりかえり（判断ログ）を置くフォルダ")
 	weekly := fs.String("weekly", "", "その日を含む週のふりかえりを Markdown で書き出す（日付なしなら最新の週）")
 	jsonOut := fs.String("json", "", "集計結果を JSON で書き出す（テストや他のツール向け）")
+	serve := fs.String("serve", "", "手元にサーバーを立て、増えた履歴をその場で画面に反映する（待ち受け先を省くと "+defaultAddr+"）")
+	interval := fs.Duration("interval", 5*time.Second, "--serve で履歴の変化を確かめる間隔")
 	showVersion := fs.Bool("version", false, "版を表示する")
 	if err := fs.Parse(args); err != nil {
 		if err == flag.ErrHelp {
@@ -98,19 +120,40 @@ func run(args []string) error {
 	for _, s := range strings.Split(*sources, ",") {
 		want[strings.ToLower(strings.TrimSpace(s))] = true
 	}
-	data, rep := collect(source.All(source.Options{ClaudeRoot: *root, KiroHome: *kiroHome, KiroCLIDB: *kiroCLIDB, AmazonQDB: *amazonQDB, CrewHome: *crewHome, CodexHome: *codexHome}), want, *gap)
+	srcs := source.All(source.Options{ClaudeRoot: *root, KiroHome: *kiroHome, KiroCLIDB: *kiroCLIDB, AmazonQDB: *amazonQDB, CrewHome: *crewHome, CodexHome: *codexHome})
+	var picked []source.Source
+	for _, s := range srcs {
+		if want[s.Family()] {
+			picked = append(picked, s)
+		}
+	}
+	load := func() snapshot {
+		data, rep := collect(picked, want, *gap)
+		if data == nil {
+			data = []*core.Session{} // 画面では null ではなく空の一覧として扱う
+		}
+		weeks := report.AllWeeks(data)
+		report.Annotate(weeks, report.ReadJournal(*journal))
+		meta := map[string]any{"report": rep, "version": report.MetricsVersion, "journal": filepath.Clean(*journal),
+			"metrics": report.Metrics, "focus": report.Focus, "decisions": report.Decisions,
+			"baselineMin": report.BaselineMin, "baselineWeeks": report.BaselineWeeks}
+		return snapshot{data: data, weeks: weeks, meta: meta, rep: rep, gen: float64(time.Now().UnixNano()) / 1e9}
+	}
+	if *serve != "" {
+		if *weekly != "" || *jsonOut != "" {
+			return fmt.Errorf("--serve は --weekly・--json と一緒には使えないよ")
+		}
+		return serveLive(*serve, *interval, picked, *journal, load, !*noOpen)
+	}
+	snap := load()
+	data, weeks, meta, rep := snap.data, snap.weeks, snap.meta, snap.rep
 	if len(data) == 0 {
 		return fmt.Errorf("履歴が 1 件も見つからなかったよ。--root や KIRO_HOME を確認してね")
 	}
-	weeks := report.AllWeeks(data)
-	report.Annotate(weeks, report.ReadJournal(*journal))
 
 	if *weekly != "" {
 		return writeWeekly(weeks, rep, *weekly, *journal)
 	}
-	meta := map[string]any{"report": rep, "version": report.MetricsVersion, "journal": filepath.Clean(*journal),
-		"metrics": report.Metrics, "focus": report.Focus, "decisions": report.Decisions,
-		"baselineMin": report.BaselineMin, "baselineWeeks": report.BaselineWeeks}
 	if *jsonOut != "" {
 		b, err := json.MarshalIndent(map[string]any{"sessions": data, "weeks": weeks, "meta": meta}, "", " ")
 		if err != nil {
@@ -118,7 +161,7 @@ func run(args []string) error {
 		}
 		return os.WriteFile(*jsonOut, b, 0o644)
 	}
-	html, err := web.Render(data, weeks, meta, float64(time.Now().UnixNano())/1e9)
+	html, err := web.Render(data, weeks, meta, snap.gen, false)
 	if err != nil {
 		return err
 	}
@@ -127,7 +170,9 @@ func run(args []string) error {
 	}
 	fmt.Printf("%d セッション → %s\n", len(data), *out)
 	if !*noOpen {
-		openBrowser(*out)
+		if abs, err := filepath.Abs(*out); err == nil {
+			openBrowser(abs)
+		}
 	}
 	return nil
 }
@@ -161,9 +206,9 @@ func collect(all []source.Source, want map[string]bool, gap int) ([]*core.Sessio
 		if err != nil {
 			msg := err.Error()
 			r.Error = &msg
-			fmt.Fprintf(os.Stderr, "  %s: 読めないファイルがあったのでスキップ (%s)\n", s.Name(), msg)
+			fmt.Fprintf(logw, "  %s: 読めないファイルがあったのでスキップ (%s)\n", s.Name(), msg)
 		}
-		fmt.Fprintf(os.Stderr, "  %s: %d セッション (%s)\n", s.Name(), n, s.Where())
+		fmt.Fprintf(logw, "  %s: %d セッション (%s)\n", s.Name(), n, s.Where())
 		rep = append(rep, r)
 	}
 	sort.SliceStable(data, func(i, j int) bool { return data[i].Start < data[j].Start })
@@ -234,19 +279,16 @@ func loadPrices(path string) error {
 	return nil
 }
 
-func openBrowser(path string) {
-	abs, err := filepath.Abs(path)
-	if err != nil {
-		return
-	}
+// openBrowser は、ファイルの絶対パスか URL を既定のブラウザで開く。
+func openBrowser(target string) {
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "darwin":
-		cmd = exec.Command("open", abs)
+		cmd = exec.Command("open", target)
 	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", abs)
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", target)
 	default:
-		cmd = exec.Command("xdg-open", abs)
+		cmd = exec.Command("xdg-open", target)
 	}
 	_ = cmd.Start()
 }
