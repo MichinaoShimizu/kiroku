@@ -84,7 +84,8 @@ fi
 
 say "入れました: $dir/kiroku（$("$dir/kiroku" --version)）"
 case ":$PATH:" in
-  *":$dir:"*) say "kiroku と打つと始まります" ;;
+  *":$dir:"*) say "kiroku serve で始まります（kiroku help で使い方）" ;;
   *) say "$dir が PATH に入っていません。シェルの設定に次の 1 行を足してください:"
-     say "  export PATH=\"$dir:\$PATH\"" ;;
+     say "  export PATH=\"$dir:\$PATH\""
+     say "そのあと kiroku serve で始まります" ;;
 esac
