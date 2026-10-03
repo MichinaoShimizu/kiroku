@@ -1,0 +1,6 @@
+{"_type": "tokens", "ts": "2026-09-29T17:05:00+09:00", "slot": "dashboard:main/1759400000.123", "model": "auto", "input": 0, "output": 0, "credits": 2.0, "turns": 0, "duration_ms": 60000}
+{"_type": "tokens", "ts": "2026-09-29T17:10:00+09:00", "slot": "dashboard:main/1759400000.123", "model": "auto", "input": 0, "output": 0, "credits": 2.5, "turns": 0, "duration_ms": 90000}
+{"_type": "tokens", "ts": "2026-09-29T09:00:00+09:00", "slot": "_bg", "model": "auto", "credits": 0.25, "turns": 0, "duration_ms": 3000}
+{"_type": "tokens", "ts": "2026-09-29T21:00:00+09:00", "slot": "chat-9-1790000000", "model": "deepseek-3.2", "credits": 1.25, "turns": 0, "duration_ms": 70000}
+{"_type": "audit", "ts": "2026-09-29T21:00:00+09:00", "slot": "chat-9-1790000000", "credits": 99}
+{"_type": "tokens", "ts": "2026-09-29T21:01:00+09:00", "slot": "chat-9-1790000000", "model": "deepseek-3.2", "credits": -1}

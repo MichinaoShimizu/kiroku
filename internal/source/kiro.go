@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
@@ -84,17 +85,27 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 // KiroCLI は Kiro CLI: <KIRO_HOME>/sessions/cli/<id>.json（メタ）+ <id>.jsonl（Prompt/AssistantMessage）。
 // Kiro Crew から動かした会話には、Crew の目印とタイトルをつける（crew.go）。
 type KiroCLI struct {
-	Home     string
-	CrewHome string
-	crew     int
+	Home      string
+	CrewHome  string
+	crew      int     // Crew から動かした kiro-cli の会話
+	crewFixed int     // Crew の使用量の記録でクレジットを補った会話
+	crewOnly  int     // kiro-cli の会話に結びつかない Crew の記録
+	crewCr    float64 // そのクレジット
 }
 
 // Detail は計測の状態に添える一言。
 func (k *KiroCLI) Detail() string {
-	if k.crew == 0 {
-		return ""
+	var parts []string
+	if k.crew > 0 {
+		parts = append(parts, fmt.Sprintf("うち Kiro Crew から %d 件", k.crew))
 	}
-	return fmt.Sprintf("うち Kiro Crew から %d 件", k.crew)
+	if k.crewFixed > 0 {
+		parts = append(parts, fmt.Sprintf("Crew の使用量の記録でクレジットを補った会話 %d 件", k.crewFixed))
+	}
+	if k.crewOnly > 0 {
+		parts = append(parts, fmt.Sprintf("Crew の使用量の記録だけにある %d 件（%.2f クレジット）", k.crewOnly, k.crewCr))
+	}
+	return strings.Join(parts, "・")
 }
 
 func (k *KiroCLI) Name() string   { return "Kiro CLI" }
@@ -107,7 +118,16 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		return nil
 	}
 	crew := LoadCrew(k.CrewHome)
-	k.crew = 0
+	usage := loadCrewUsage(k.CrewHome)
+	k.crew, k.crewFixed, k.crewOnly, k.crewCr = 0, 0, 0, 0
+	slotInfo := map[string]*CrewInfo{}
+	for _, info := range crew {
+		if !info.Subagent {
+			i := info
+			slotInfo[info.Key] = &i
+		}
+	}
+	used := map[string]bool{}
 	for _, metaPath := range glob(filepath.Join(base, "*.json")) {
 		meta := core.Map(core.ReadJSON(metaPath))
 		stem := strings.TrimSuffix(filepath.Base(metaPath), ".json")
@@ -165,8 +185,29 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		}
 		if tagCrew(s, crew) {
 			k.crew++
+			if info := crew[s.ID]; !info.Subagent && len(usage[info.Key]) > 0 {
+				used[info.Key] = true
+				if useCrewCredits(s, usage[info.Key]) {
+					k.crewFixed++
+				}
+			}
 		}
 		emit(s)
+	}
+	// kiro-cli の会話に結びつかない Crew の記録
+	slots := make([]string, 0, len(usage))
+	for slot := range usage {
+		if !used[slot] {
+			slots = append(slots, slot)
+		}
+	}
+	sort.Strings(slots)
+	for _, slot := range slots {
+		for _, s := range crewOnly(slot, usage[slot], slotInfo[slot]) {
+			k.crewOnly++
+			k.crewCr += sumCredits(s.Credits)
+			emit(s)
+		}
 	}
 	return nil
 }
