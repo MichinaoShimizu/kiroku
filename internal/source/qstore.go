@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 	_ "modernc.org/sqlite" // C を使わない SQLite。どの OS にもそのままビルドできる
@@ -50,12 +51,18 @@ func DataDir(app string) string {
 	}
 }
 
+// sqliteDSN は読み取り専用で開くための URI。Windows は file:///C:/… の形にする必要がある。
 func sqliteDSN(path string) string {
+	if abs, err := filepath.Abs(path); err == nil {
+		path = abs
+	}
 	p := filepath.ToSlash(path)
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == "windows" && !strings.HasPrefix(p, "/") {
 		p = "/" + p
 	}
-	return "file:" + p + "?mode=ro&_pragma=busy_timeout(2000)"
+	// URI の中で意味を持つ文字は %HH にする（macOS の "Application Support" の空白など）
+	p = strings.NewReplacer("%", "%25", "?", "%3f", "#", "%23", " ", "%20").Replace(p)
+	return "file://" + p + "?mode=ro&_pragma=busy_timeout(2000)"
 }
 
 type qRow struct {
@@ -72,6 +79,9 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 		return err
 	}
 	defer db.Close()
+	if err := db.Ping(); err != nil {
+		return err // 開けなかったことを「計測の状態」に出す
+	}
 	var rows []qRow
 	seen := map[string]bool{}
 	// 新しいほう（v2）を先に読み、同じ会話 ID は古いほうから読まない
