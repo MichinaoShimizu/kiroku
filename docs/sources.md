@@ -1,6 +1,6 @@
 # 履歴の読み方
 
-kiroku が各エージェントの履歴をどこから、どう読んでいるかのまとめです。置き場所の一覧は [README の「読む履歴」](../README.md#読む履歴) にあります。どのアダプターも、読んだ結果を共通のセッションの形（`internal/core` の `Builder`）にそろえます。
+kiroku が各エージェントの履歴をどこから、どう読んでいるかのまとめです。置き場所の一覧は [ガイドの「読み取る履歴」](guide.md#読み取る履歴) にあります。どのアダプターも、読んだ結果を共通のセッションの形（`internal/core` の `Builder`）にそろえます。
 
 ## Claude Code
 
@@ -38,7 +38,7 @@ kiroku が各エージェントの履歴をどこから、どう読んでいる�
 
 ## Amazon Q Developer CLI
 
-`amazon-q/data.sqlite3`（場所は README の表）。Kiro CLI の古い版と同じ形。`internal/source/qstore.go`
+`amazon-q/data.sqlite3`（場所は [guide.md](guide.md#読み取る履歴) の表）。Kiro CLI の古い版と同じ形。`internal/source/qstore.go`
 
 ## Codex CLI
 
