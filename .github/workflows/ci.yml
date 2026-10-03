@@ -41,3 +41,20 @@ jobs:
         with:
           version: "~> v2"
           args: release --snapshot --clean
+
+  # install.sh が最新のリリースを落として置けるか（macOS は shasum、Linux は sha256sum の道を通る）
+  install-script:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        if: runner.os == 'Linux'
+        run: shellcheck install.sh
+      - name: install
+        run: |
+          KIROKU_INSTALL_DIR="$RUNNER_TEMP/bin" sh install.sh
+          "$RUNNER_TEMP/bin/kiroku" --version

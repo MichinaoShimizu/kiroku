@@ -12,8 +12,19 @@ AI エージェント（Claude Code・Kiro・Kiro Crew・Amazon Q・Codex）の�
 
 macOS・Windows・Linux で、実行ファイル 1 つで動きます。ほかに入れるものはありません。
 
-- [Releases](https://github.com/MichinaoShimizu/kiroku/releases) に自分の OS 向けのファイルがあれば、落として展開する
-- Go が入っていれば: `go install github.com/MichinaoShimizu/kiroku@latest`
+**macOS・Linux**（おすすめ）:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install.sh | sh
+```
+
+OS と CPU（Intel / Apple Silicon・ARM）に合ったファイルを [Releases](https://github.com/MichinaoShimizu/kiroku/releases) から落とし、`checksums.txt` で確かめてから `/usr/local/bin`（書き込めなければ `~/.local/bin`）に置きます。版は `KIROKU_VERSION=v0.1.1`、置き場所は `KIROKU_INSTALL_DIR=~/bin` のように変えられます（`curl … | KIROKU_INSTALL_DIR=~/bin sh`）。
+
+**Windows**: [Releases](https://github.com/MichinaoShimizu/kiroku/releases) から `kiroku_<版>_windows_<amd64 か arm64>.zip` を落として展開します。
+
+**Go が入っていれば**: `go install github.com/MichinaoShimizu/kiroku@latest`
+
+> macOS で、ブラウザから落とした `kiroku` を開くと「“kiroku”は開いていません」と止められることがあります（Apple の公証をしていないため）。上の `install.sh` か `go install` なら出ません。ブラウザから落とした場合は `xattr -d com.apple.quarantine ./kiroku` で外すか、システム設定 → プライバシーとセキュリティ の「このまま開く」で開けます。
 
 ## 使い方
 
