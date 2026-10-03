@@ -4,6 +4,7 @@ package core
 import (
 	"bufio"
 	"encoding/json"
+	"io"
 	"math"
 	"os"
 	"strconv"
@@ -146,7 +147,12 @@ func ReadJSONL(path string, fn func(Obj)) error {
 		return err
 	}
 	defer f.Close()
-	r := bufio.NewReaderSize(f, 1<<20)
+	return ReadJSONLFrom(f, fn)
+}
+
+// ReadJSONLFrom は ReadJSONL の io.Reader 版（圧縮されたファイルなど）。
+func ReadJSONLFrom(src io.Reader, fn func(Obj)) error {
+	r := bufio.NewReaderSize(src, 1<<20)
 	for {
 		line, err := r.ReadBytes('\n')
 		if len(line) > 0 {

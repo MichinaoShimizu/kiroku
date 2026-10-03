@@ -1,6 +1,6 @@
 # kiroku
 
-AI エージェント（Claude Code・Kiro・Kiro Crew・Amazon Q）の作業履歴を、Google カレンダーみたいな週表示で振り返るツールです。
+AI エージェント（Claude Code・Kiro・Kiro Crew・Amazon Q・Codex）の作業履歴を、Google カレンダーみたいな週表示で振り返るツールです。
 いつ・どのプロジェクトで・何を頼んでいたかが一目でわかります。
 
 ![kiroku の画面（ダミーデータ）](docs/screenshot.png)
@@ -25,12 +25,13 @@ kiroku --weekly 2026-09-30    # その日を含む週
 
 | オプション | 既定 | 説明 |
 |---|---|---|
-| `--sources` | `claude,kiro,amazonq` | 読む履歴 |
+| `--sources` | `claude,kiro,amazonq,codex` | 読む履歴 |
 | `--root` | `~/.claude/projects` | Claude Code の履歴の場所（`CLAUDE_CONFIG_DIR` も見ます） |
 | `--kiro-home` | `~/.kiro` | Kiro のデータの場所（`KIRO_HOME` も見ます） |
 | `--crew-home` | `~/.kiro/crew` | Kiro Crew のデータの場所（`KIROCREW_HOME` も見ます） |
 | `--kiro-cli-db` | OS ごと | Kiro CLI（古い版）の `data.sqlite3` |
 | `--amazonq-db` | OS ごと | Amazon Q Developer CLI の `data.sqlite3` |
+| `--codex-home` | `~/.codex` | Codex のデータの場所（`CODEX_HOME` も見ます） |
 | `--gap` | `15` | 何分あいたら帯を分けるか |
 | `-o`, `--out` | `kiroku.html` | 書き出す HTML |
 | `--no-open` | | ブラウザを開かない |
@@ -138,6 +139,7 @@ kiroku --prices my-prices.json
 | Kiro IDE（v1.0 より前） | `<globalStorage>/kiro.kiroagent/workspace-sessions/` | 開始と最終更新だけ |
 | Kiro CLI（古い版） | `kiro-cli/data.sqlite3`（下の表） | 依頼ごと |
 | Amazon Q Developer CLI | `amazon-q/data.sqlite3`（下の表） | 依頼ごと |
+| Codex CLI | `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`（`.jsonl.zst` も）と `archived_sessions/` | 発言ごと |
 
 `data.sqlite3` の場所:
 
@@ -151,7 +153,8 @@ kiroku --prices my-prices.json
 - Kiro CLI は新しい形式（`~/.kiro/sessions/cli`）と SQLite に同じ会話が残ることがあります。同じ会話 ID のものは新しい形式のほうだけを数えます（クレジットが入っているため）。外した数は「計測の状態」に出ます
 - SQLite のほうにはトークンやクレジットが残っていないので、目安コストやクレジットには入りません
 - **Kiro Crew** は kiro-cli を動かすので、会話そのものは Kiro CLI の履歴（`~/.kiro/sessions/cli`）に残ります。kiroku はそちらを数え、Crew の `session_map.json` と `subagents/*/state.json` に載っている会話には「Kiro Crew」の目印と、Crew のタイトル（サブエージェントならエージェント名と依頼内容）をつけます。Crew の使用量の記録（`usage/tokens`）は kiro-cli のクレジットと同じものなので、足しません
-- Codex は、これから対応します
+- **Codex** のトークンは、同じ値が何度も書き直されるので、同じものは 1 回だけ数えます。新しい版の `token_usage_record` があればそちらを使います。サブエージェントやフォークのファイルは親の履歴を先頭に写しているので、そのファイルが作られた時刻より前の行は数えません。サブエージェントは親のセッションの「サブエージェント」にまとめます。タイトルは `session_index.jsonl` から取ります
+- Codex のモデル（OpenAI）は料金表に入れていないので、目安コストには入りません（「計測の状態」に、料金表にないトークンとして出ます）。入れたいときは `--prices` で足せます
 
 Kiro の形式には公式ドキュメントがないため、[kiro-history](https://github.com/pajaydev/kiro-history) と [codeburn](https://github.com/getagentseal/codeburn) の実装を参考にしています。SQLite の形は [amazon-q-developer-cli](https://github.com/aws/amazon-q-developer-cli) のソースに合わせています（`conversations_v2` は Kiro CLI だけにあり、参考実装をもとにしています）。読めない履歴があれば issue で教えてください。
 

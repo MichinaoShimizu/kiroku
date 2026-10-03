@@ -1,4 +1,4 @@
-// kiroku — AI エージェント（Claude Code・Kiro など）の作業履歴を週カレンダーで振り返る。
+// kiroku — AI エージェント（Claude Code・Kiro・Kiro Crew・Amazon Q・Codex）の作業履歴を週カレンダーで振り返る。
 //
 // 使い方:
 //
@@ -68,7 +68,8 @@ func run(args []string) error {
 	out := fs.String("out", "kiroku.html", "書き出す HTML")
 	fs.StringVar(out, "o", "kiroku.html", "--out の短い形")
 	gap := fs.Int("gap", 15, "何分あいたら帯を分けるか")
-	sources := fs.String("sources", "claude,kiro,amazonq", "読む履歴（カンマ区切り）")
+	sources := fs.String("sources", "claude,kiro,amazonq,codex", "読む履歴（カンマ区切り）")
+	codexHome := fs.String("codex-home", "", "Codex のデータの場所（空なら CODEX_HOME か ~/.codex）")
 	crewHome := fs.String("crew-home", "", "Kiro Crew のデータの場所（空なら KIROCREW_HOME か <kiro-home>/crew）")
 	kiroCLIDB := fs.String("kiro-cli-db", "", "Kiro CLI（古い版）の data.sqlite3 の場所（空なら OS ごとの場所）")
 	amazonQDB := fs.String("amazonq-db", "", "Amazon Q Developer CLI の data.sqlite3 の場所（空なら OS ごとの場所）")
@@ -97,7 +98,7 @@ func run(args []string) error {
 	for _, s := range strings.Split(*sources, ",") {
 		want[strings.ToLower(strings.TrimSpace(s))] = true
 	}
-	data, rep := collect(source.All(source.Options{ClaudeRoot: *root, KiroHome: *kiroHome, KiroCLIDB: *kiroCLIDB, AmazonQDB: *amazonQDB, CrewHome: *crewHome}), want, *gap)
+	data, rep := collect(source.All(source.Options{ClaudeRoot: *root, KiroHome: *kiroHome, KiroCLIDB: *kiroCLIDB, AmazonQDB: *amazonQDB, CrewHome: *crewHome, CodexHome: *codexHome}), want, *gap)
 	if len(data) == 0 {
 		return fmt.Errorf("履歴が 1 件も見つからなかったよ。--root や KIRO_HOME を確認してね")
 	}

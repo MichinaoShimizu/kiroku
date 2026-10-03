@@ -40,6 +40,7 @@ type Options struct {
 	CrewHome     string   // 空なら KIROCREW_HOME か <KiroHome>/crew
 	KiroCLIDB    string   // 空なら OS ごとの場所
 	AmazonQDB    string
+	CodexHome    string // 空なら CODEX_HOME か ~/.codex
 }
 
 func q(v, def string) string {
@@ -58,6 +59,7 @@ func All(o Options) []Source {
 		&QStore{Label: "Kiro CLI (SQLite)", Fam: "kiro", DB: q(o.KiroCLIDB, filepath.Join(DataDir("kiro-cli"), "data.sqlite3")), Command: "kiro-cli chat --resume"},
 		&KiroIDELegacy{Storages: storages(o.KiroStorages)},
 		&QStore{Label: "Amazon Q", Fam: "amazonq", DB: q(o.AmazonQDB, filepath.Join(DataDir("amazon-q"), "data.sqlite3")), Command: "q chat --resume"},
+		&Codex{Home: q(o.CodexHome, DefaultCodexHome())},
 	}
 }
 
