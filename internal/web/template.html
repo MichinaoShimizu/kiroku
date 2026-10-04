@@ -70,8 +70,8 @@ header{position:sticky;top:0;z-index:10;background:color-mix(in oklab,var(--bg) 
 .segc button:hover{color:var(--ink)}
 .segc button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
 .search{position:relative}
-.search input{width:220px;height:32px;border-radius:9px;border:1px solid var(--rule-2);background:var(--surface);padding:0 30px 0 32px;font-size:12.5px;transition:border-color .2s,width .3s var(--ease)}
-.search input:focus{outline:none;border-color:var(--acc);width:260px}
+.search input{width:250px;height:32px;border-radius:9px;border:1px solid var(--rule-2);background:var(--surface);padding:0 30px 0 32px;font-size:12.5px;transition:border-color .2s,width .3s var(--ease)}
+.search input:focus{outline:none;border-color:var(--acc);width:290px}
 .search svg{position:absolute;left:10px;top:8px;color:var(--ink-3)}
 .search kbd{position:absolute;right:8px;top:7px}
 kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid var(--rule-2);color:var(--ink-3);background:var(--surface)}
@@ -260,6 +260,22 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .rvhead{display:flex;align-items:baseline;gap:14px;padding:40px 0 16px;flex-wrap:wrap}
 .rvhead h2{font:700 22px/1.2 var(--sans);letter-spacing:-.02em;margin:0}
 .rvhead p{margin:0;color:var(--ink-3);font-size:12.5px}
+.rvhead .pill{margin-left:auto;align-self:center}
+.rvhead .rpt{color:var(--acc-ink);border-color:color-mix(in oklab,var(--acc) 35%,var(--rule-2));font-weight:600}
+.rvgrid.srgrid{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+#review{scroll-margin-top:64px}
+.srow{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;width:100%;text-align:left;padding:10px 4px;border-top:1px solid var(--rule)}
+.srow:first-of-type{border-top:0}
+.srow:hover .ti{color:var(--acc-ink);text-decoration:underline}
+.srow time{font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums;display:flex;flex-direction:column}
+.srow time small{color:var(--ink-3);font-size:11px}
+.srow .b{display:flex;flex-direction:column;gap:3px;min-width:0}
+.srow .ti{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow .ti i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--c);margin-right:7px;vertical-align:1px}
+.srow .me{font-size:11.5px;color:var(--ink-3)}
+.srow .hit{font-size:12px;color:var(--ink-2);line-height:1.6;overflow-wrap:anywhere}
+.srow .hit em{font-style:normal;font-size:10.5px;font-weight:700;color:var(--ink-3);margin-right:6px}
+.srow mark{background:color-mix(in oklab,var(--c4) 35%,transparent);color:inherit;border-radius:3px;padding:0 1px}
 .rvgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start;padding-bottom:48px}
 .panel{background:var(--surface);border:1px solid var(--rule);border-radius:16px;padding:20px 22px 22px;min-width:0}
 .ph{display:flex;align-items:center;gap:10px;margin-bottom:6px}
@@ -448,6 +464,8 @@ dialog h2{margin-top:0}
 @media (max-width:1180px){.tag{display:none}.kpis{margin-left:0;width:100%}.kpi{flex:1;min-width:0}}
 @media (max-width:1000px){#colorBy{display:none}.search kbd{display:none}.search input,.search input:focus{width:160px}}
 @media (max-width:820px){
+  .rvgrid.srgrid{grid-template-columns:1fr}
+  .rvhead .pill{margin-left:0}
   .fgrid{grid-template-columns:1fr}
   .mgrid{grid-template-columns:28px repeat(7,minmax(0,1fr))}
   .cell{min-height:64px;padding:6px 6px 7px}.cell .sub2,.cell .ac{display:none}.cell .acs{display:block;font:700 12px/1.2 var(--sans);font-variant-numeric:tabular-nums;margin-top:auto}
@@ -494,7 +512,7 @@ dialog h2{margin-top:0}
     </div>
     <label class="search"><span class="sr">検索</span>
       <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
-      <input id="q" type="search" placeholder="タイトル・依頼文で探す" autocomplete="off"><kbd>/</kbd></label>
+      <input id="q" type="search" placeholder="依頼文・ファイル・コミットで探す" autocomplete="off"><kbd>/</kbd></label>
     <button class="iconbtn" id="theme" aria-label="テーマを切り替え"></button>
     <button class="iconbtn" id="help" aria-label="ショートカット"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 014.8.9c0 1.7-2.4 2.2-2.4 3.6M12 17h.01"/></svg></button>
   </div>
@@ -578,8 +596,15 @@ function assignColors(){ // 全期間の多い順に固定。週を変えても�
 const colorOf = k => slot[k] || "var(--other)";
 function matches(s){
   if (st.hidden.has(keyOf(s))) return false;
-  if (!st.q) return true;
-  return (s.title+" "+s.project+" "+(s.branch||"")+" "+s.source+" "+s.prompts.map(p=>p.text).join(" ")).toLowerCase().includes(st.q);
+  return !st.q || searchText(s).includes(st.q);
+}
+/* 検索の対象：タイトル・依頼文・プロジェクト・ブランチ・ツール・変更したファイル・PR・そのセッションの間のコミット（件名・ハッシュ・ファイル） */
+const SQ = new WeakMap(); // DATA が入れ替わる（自動更新）と作り直される
+function searchText(s){
+  let t = SQ.get(s);
+  if (t == null){ t = [s.title, s.project, s.branch || "", s.source, ...s.prompts.map(p => p.text), ...s.files, ...(s.prs || []),
+      ...commitsOf(s).flatMap(c => [c.hash, c.subject, ...(c.files || []).map(f => f.path)])].join("\n").toLowerCase(); SQ.set(s, t); }
+  return t;
 }
 function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(()=>t.classList.remove("on"), 1600); }
 async function copy(text){ try { await navigator.clipboard.writeText(text); toast("コピーしました"); } catch(e){ toast("コピーできませんでした"); } }
@@ -614,11 +639,12 @@ function render(){
   const cnt = {}; inRange.forEach(s => cnt[keyOf(s)] = (cnt[keyOf(s)]||0)+1);
   $("#legend").innerHTML = `<span class="lab">${{project:"プロジェクト",branch:"ブランチ",source:"ツール"}[st.colorBy]}</span>` +
     Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}"><span class="dot"></span>${esc(k)}<span class="n">${cnt[k]}</span></button>`).join("") +
-    `<span class="count">${shown.length} / ${inRange.length} セッション</span>`;
+    `<span class="count">${shown.length} / ${inRange.length} セッション${st.q ? ` · <button class="flink" id="tosr">全期間の検索結果 ↓</button>` : ""}</span>`;
+  const tosr = $("#tosr"); if (tosr) tosr.onclick = () => $("#review").scrollIntoView({behavior:"smooth"});
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
 
   M ? monthGrid(shown, ws, we, todayKey) : timeline(shown, inRange, ws, we, todayKey);
-  try { summary(); } catch(e){ // サマリーで失敗しても、カレンダーと詳細は使えるようにする
+  try { st.q ? searchPanel() : summary(); } catch(e){ // サマリーで失敗しても、カレンダーと詳細は使えるようにする
     console.error(e); $("#review").innerHTML = `<div class="panel"><p class="none">この期間のサマリーを表示できませんでした（${esc(e.message)}）。issue で教えてください。</p></div>`; }
   const gc = st.sel && st.sel.startsWith("git:") && (META.git || []).find(x => "git:" + x.hash === st.sel);
   const s = !gc && st.sel && DATA.find(x => x.id === st.sel), open = !!(s || gc);
@@ -728,7 +754,7 @@ function tipOff(){ $("#tip").classList.remove("on"); }
 /* ── 週次・月次サマリー：① 気づきと試せること ② プロジェクト別 ③ コストと成果 ④ 時間 ⑤ AI ⑥ かたち ⑦ 改善案を聞く ── */
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
-  const head = `<div class="rvhead"><h2>${M ? "月次サマリー" : "週次サマリー"}</h2><p>自分の使い方を振り返るための目安です。人と比べたり、評価に使ったりするための数字ではありません。</p></div>`;
+  const head = `<div class="rvhead"><h2>${M ? "月次サマリー" : "週次サマリー"}</h2><p>自分の使い方を振り返るための目安です。人と比べたり、評価に使ったりするための数字ではありません。</p>${w ? `<button class="pill rpt" id="rptcopy" title="プロジェクトごとに、やったこと・コミット・PR を Markdown でコピーします">${M ? "月報" : "週報"}の下書きをコピー</button>` : ""}</div>`;
   if (!w){ R.innerHTML = `${head}<div class="rvgrid"><div class="panel"><p class="none">この${unit}の記録はありません。← → で移動できます。</p>${foot()}</div></div>`; bindCopy(R); return; }
   const d = pw ? w.active - pw.active : null;
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
@@ -778,6 +804,7 @@ function summary(){
     t.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center"});
     if (t.classList.contains("hb") && t.getAttribute("aria-expanded") !== "true") t.click(); });
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
+  const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy(reportText(w, M));
   const ac = R.querySelector("#askcopy"); if (ac) ac.onclick = () => copy($("#askpre").textContent);
   R.querySelectorAll("#useBy button").forEach(b => b.onclick = () => { st.use = b.dataset.v; store.set("use", st.use); summary(); });
   bindCopy(R); bindHelp(R);
@@ -973,6 +1000,68 @@ function findPanel(w, pw, unit, ph){
       ${rest.length ? `<details class="fmore"><summary>ほかの気づき（${rest.length} 件）</summary><div class="fgrid">${rest.map((f,i) => card(f, i+3)).join("")}</div></details>` : ""}`
       : `<p class="fok">決めた基準を超えた指標はありませんでした。下のプロジェクト別やコストと成果で、先${unit}との違いを確かめられます。</p>`}
     <p class="note">基準は一律の目安で、良し悪しの判定ではありません。1 つ選んで次の${unit}に試し、同じ指標で変化を確かめてください。もっと掘り下げるなら <button class="flink" data-goto="ask">⑦ AI に改善案を聞く</button></p></section>`;
+}
+/* 全期間の検索結果：どこに一致したかを抜き出して並べる。押すとその週を開いて詳細を出す */
+function snip(t, q){
+  t = String(t || "").replace(/\s+/g, " "); const i = t.toLowerCase().indexOf(q); if (i < 0) return null;
+  const a = Math.max(0, i - 36), b = Math.min(t.length, i + q.length + 64);
+  return `${a ? "…" : ""}${esc(t.slice(a, i))}<mark>${esc(t.slice(i, i + q.length))}</mark>${esc(t.slice(i + q.length, b))}${b < t.length ? "…" : ""}`;
+}
+function hitOf(s, q){
+  const tries = [["タイトル", [s.title]], ["依頼", s.prompts.map(p => p.text)], ["ファイル", s.files], ["PR", s.prs || []],
+    ["コミット", commitsOf(s).flatMap(c => [`${c.hash.slice(0,7)} ${c.subject}`, ...(c.files || []).map(f => f.path)])],
+    ["プロジェクト", [s.project, s.branch || "", s.source]]];
+  for (const [label, xs] of tries) for (const x of xs){ const h = snip(x, q); if (h) return {label, h}; }
+  return {label: "", h: ""};
+}
+function searchPanel(){
+  const R = $("#review"), q = st.q, LIMIT = 100;
+  const ss = DATA.filter(s => !st.hidden.has(keyOf(s)) && searchText(s).includes(q)).sort((a,b) => b.start - a.start);
+  const cs = (META.git || []).filter(c => [c.hash, c.subject, c.body || "", ...(c.files || []).map(f => f.path)].join("\n").toLowerCase().includes(q)).sort((a,b) => b.t - a.t);
+  const row = s => { const h = hitOf(s, q);
+    return `<button class="srow" data-s="${esc(s.id)}" style="--c:${colorOf(keyOf(s))}"><time>${md(s.start)}<small>${hm(s.start)}</small></time>
+      <span class="b"><span class="ti"><i></i>${esc(s.title)}</span><span class="me">${esc(s.project)}${s.branch ? ` · ${esc(s.branch)}` : ""} · ${esc(s.source)}</span>
+      ${h.h ? `<span class="hit"><em>${h.label}</em>${h.h}</span>` : ""}</span></button>`; };
+  const crow = c => `<button class="srow" data-c="${esc(c.hash)}" style="--c:${colorOf(c.project)}"><time>${md(c.t)}<small>${hm(c.t)}</small></time>
+      <span class="b"><span class="ti"><i></i>${snip(c.subject, q) || esc(c.subject)}</span><span class="me">${esc(c.project)}${c.branch ? ` · ${esc(c.branch)}` : ""} · <span class="mono">${esc(c.hash.slice(0,7))}</span> · ${c.nFiles} ファイル +${c.added} −${c.removed}</span>
+      ${(() => { const f = (c.files || []).find(f => f.path.toLowerCase().includes(q)); return f ? `<span class="hit"><em>ファイル</em>${snip(f.path, q)}</span>` : ""; })()}</span></button>`;
+  R.innerHTML = `<div class="rvhead"><h2>検索結果</h2><p>「${esc(q)}」に一致したもの（全期間）。依頼文・変更したファイル・コミット・PR も探します。押すとその週を開きます。</p>
+      <button class="pill" id="sclear">検索をやめる</button></div>
+    <div class="rvgrid srgrid">
+      <section class="panel"><div class="ph"><b>セッション · ${ss.length}</b></div>
+        ${ss.length ? ss.slice(0, LIMIT).map(row).join("") + (ss.length > LIMIT ? `<p class="more">ほか ${ss.length - LIMIT} 件。言葉を足して絞り込めます。</p>` : "") : '<p class="none">一致するセッションはありません。</p>'}</section>
+      <section class="panel"><div class="ph"><b>コミット · ${cs.length}</b></div>
+        ${cs.length ? cs.slice(0, LIMIT).map(crow).join("") + (cs.length > LIMIT ? `<p class="more">ほか ${cs.length - LIMIT} 件</p>` : "") : `<p class="none">${(META.git || []).length ? "一致するコミットはありません。" : "git のコミットは読み込まれていません。"}</p>`}</section>
+    </div>`;
+  const open = (t, id) => { st.mode = "week"; store.set("mode", "week"); st.week = mondayOf(new Date(t*1000)); select(id); };
+  R.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { const s = DATA.find(x => x.id === b.dataset.s); if (s) open(s.start, s.id); });
+  R.querySelectorAll("[data-c]").forEach(b => b.onclick = () => { const c = META.git.find(x => x.hash === b.dataset.c); if (c) open(c.t, "git:" + c.hash); });
+  $("#sclear").onclick = () => { $("#q").value = ""; st.q = ""; render(); };
+}
+/* 週報・月報の下書き：プロジェクトごとに、やったこと（セッション）・コミット・PR を Markdown で並べる（AI は使わない） */
+function reportText(w, M){
+  const {ws, we} = period(), unit = M ? "月" : "週", L = [];
+  const start = M ? st.month : st.week, last = M ? new Date(st.month.getFullYear(), st.month.getMonth()+1, 0) : addDays(st.week, 6);
+  const ymd = d => `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  const ses = DATA.filter(s => s.segs.some(([a,b]) => b > ws && a < we) && !st.hidden.has(keyOf(s))).sort((a,b) => a.start - b.start);
+  const gits = (META.git || []).filter(c => c.t >= ws && c.t < we).sort((a,b) => a.t - b.t);
+  const g = w.git || {};
+  L.push(`## ${ymd(start)}〜${ymd(last)} の作業（${M ? "月報" : "週報"}の下書き）`, "",
+    `- 作業していた時間 ${dur(w.active)}・セッション ${w.sessions}・依頼 ${w.prompts}${g.commits ? `・コミット ${g.commits}（うち AI ${g.ai}）` : ""}${w.outputs && w.outputs.prs ? `・PR ${w.outputs.prs}` : ""}`);
+  const projs = [...new Set([...(w.projects || []).map(([k]) => k), ...gits.map(c => c.project)])];
+  projs.forEach(pj => {
+    const ps = ses.filter(s => s.project === pj), pc = gits.filter(c => c.project === pj), prs = [...new Set(ps.flatMap(s => s.prs || []))];
+    if (!ps.length && !pc.length) return;
+    const min = ((w.projects || []).find(([k]) => k === pj) || [0, 0])[1];
+    L.push("", `### ${pj}${min ? `（${dur(min)}）` : ""}`);
+    if (ps.length){ L.push("", "やったこと:");
+      const seen = new Map(); ps.forEach(s => { const t = s.title.replace(/\s+/g, " ").trim(); const x = seen.get(t); x ? x.n++ : seen.set(t, {s, n: 1}); });
+      [...seen.values()].forEach(({s, n}) => L.push(`- ${s.title.replace(/\s+/g, " ").trim()}（${md(s.start)}${n > 1 ? ` ほか ${n-1} 回` : ""}・${s.source}）`)); }
+    if (pc.length){ L.push("", "コミット:"); pc.slice(-15).forEach(c => L.push(`- ${c.url ? `[${c.hash.slice(0,7)}](${c.url})` : c.hash.slice(0,7)} ${c.subject}`)); if (pc.length > 15) L.push(`- ほか ${pc.length - 15} 件`); }
+    if (prs.length){ L.push("", "PR:"); prs.forEach(u => L.push(`- ${u}`)); }
+  });
+  L.push("", `<!-- kiroku で生成。セッション名は依頼文の冒頭です。共有する前に、${unit}の内容を確認・編集してください -->`);
+  return L.join("\n");
 }
 /* 成果の印：AI が実行したコミット・PR 作成・変更した行（成果そのものではなく代理） */
 function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）と、残ったもの（成果の印）を並べる
@@ -1247,7 +1336,7 @@ function scrollToWork(){ // その週の作業が始まるころの少し前へ
 // 今週に記録がなければ、いちばん新しい記録の週から開く
 if (DATA.length && !WEEKS[key(st.week)]) st.week = mondayOf(new Date(DATA[DATA.length-1].end*1000));
 if (DATA.length && !MONTHS[mkey(st.month)]) st.month = monthOf(new Date(DATA[DATA.length-1].end*1000));
-const mq = matchMedia("(max-width:820px)"), ph = () => $("#q").placeholder = mq.matches ? "検索" : "タイトル・依頼文で探す";
+const mq = matchMedia("(max-width:820px)"), ph = () => $("#q").placeholder = mq.matches ? "検索" : "依頼文・ファイル・コミットで探す";
 mq.addEventListener("change", () => { ph(); render(); }); ph();
 applyTheme(); render(); scrollToWork();
 
