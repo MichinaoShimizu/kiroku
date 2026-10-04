@@ -95,7 +95,7 @@ func collect(all []source.Source, want map[string]bool, gap int) ([]*core.Sessio
 		})
 		r := source.Report{Name: s.Name(), N: n, Dup: dup, Where: s.Where()}
 		if d, ok := s.(source.Detailer); ok {
-			r.Detail = d.Detail()
+			r.Detail, r.DetailEn = d.Detail(), d.DetailEn()
 		}
 		if err != nil {
 			msg := err.Error()

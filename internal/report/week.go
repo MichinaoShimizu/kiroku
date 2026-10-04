@@ -44,6 +44,7 @@ type Friction struct {
 	Start   float64  `json:"start"`
 	Score   int      `json:"score"`
 	Why     []string `json:"why"`
+	WhyEn   []string `json:"whyEn"` // 英語表示のときの理由（Why と同じ順）
 }
 
 type Heavy struct {
@@ -374,21 +375,24 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 		if !(ws <= d.Start && d.Start < we) {
 			continue
 		}
-		why, score := []string{}, 0
+		why, whyEn, score := []string{}, []string{}, 0
 		if d.Corrections > 0 {
 			why = append(why, fmt.Sprintf("言い直し %d 回", d.Corrections))
+			whyEn = append(whyEn, plural(d.Corrections, "correction"))
 			score += 2 * d.Corrections
 		}
 		if d.Interrupts > 0 {
 			why = append(why, fmt.Sprintf("中断 %d 回", d.Interrupts))
+			whyEn = append(whyEn, plural(d.Interrupts, "interruption"))
 			score += 2 * d.Interrupts
 		}
 		if d.NPrompts >= 15 {
 			why = append(why, fmt.Sprintf("依頼 %d 回", d.NPrompts))
+			whyEn = append(whyEn, plural(d.NPrompts, "prompt"))
 			score += (d.NPrompts-15)/5 + 1
 		}
 		if score > 0 {
-			friction = append(friction, Friction{d.ID, d.Title, d.Project, d.Start, score, why})
+			friction = append(friction, Friction{d.ID, d.Title, d.Project, d.Start, score, why, whyEn})
 		}
 	}
 	sort.SliceStable(friction, func(i, j int) bool { return friction[i].Score > friction[j].Score })
@@ -669,4 +673,12 @@ func AllMonths(data []*core.Session, commits ...gitlog.Commit) map[string]*Summa
 		}
 	}
 	return out
+}
+
+// plural は英語表示のための「1 correction」「2 corrections」。
+func plural(n int, word string) string {
+	if n == 1 {
+		return "1 " + word
+	}
+	return fmt.Sprintf("%d %ss", n, word)
 }

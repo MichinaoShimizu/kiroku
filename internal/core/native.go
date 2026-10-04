@@ -15,6 +15,7 @@ type Measure struct {
 // NativeDef は参考指標の定義。Agg は sum / avg / median / max / ratio（Num÷Den）。
 type NativeDef struct {
 	Key, Label, Unit, Agg string
+	LabelEn               string  // 英語表示のときのラベル
 	Num, Den              string  // ratio のとき
 	Scale                 float64 // 表示用の倍率（割合なら 100）
 }
@@ -22,57 +23,58 @@ type NativeDef struct {
 // NativeDefs はエージェント（Source の名前）ごとの参考指標。並びは画面の順。
 var NativeDefs = map[string][]NativeDef{
 	"Claude Code": {
-		{Key: "responses", Label: "応答の数", Unit: "回", Agg: "sum"},
-		{Key: "out_per_response", Label: "1応答あたりの出力トークン", Unit: "トークン", Agg: "avg"},
-		{Key: "cache_ratio", Label: "入力のうちキャッシュから読んだ割合", Unit: "%", Agg: "ratio", Num: "cache_read", Den: "input_all", Scale: 100},
-		{Key: "tool_calls", Label: "ツール呼び出し", Unit: "回", Agg: "sum"},
-		{Key: "subagents", Label: "サブエージェントの実行", Unit: "回", Agg: "sum"},
+		{Key: "responses", Label: "応答の数", LabelEn: "Responses", Unit: "回", Agg: "sum"},
+		{Key: "out_per_response", Label: "1応答あたりの出力トークン", LabelEn: "Output tokens per response", Unit: "トークン", Agg: "avg"},
+		{Key: "cache_ratio", Label: "入力のうちキャッシュから読んだ割合", LabelEn: "Share of input read from cache", Unit: "%", Agg: "ratio", Num: "cache_read", Den: "input_all", Scale: 100},
+		{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},
+		{Key: "subagents", Label: "サブエージェントの実行", LabelEn: "Subagent runs", Unit: "回", Agg: "sum"},
 	},
 	"Kiro CLI": {
-		{Key: "credits", Label: "クレジット", Unit: "クレジット", Agg: "sum"},
-		{Key: "turns", Label: "ターン", Unit: "回", Agg: "sum"},
-		{Key: "credits_per_turn", Label: "1ターンあたりのクレジット", Unit: "クレジット", Agg: "ratio", Num: "credits", Den: "turns", Scale: 1},
-		{Key: "requests", Label: "モデルへのリクエスト", Unit: "回", Agg: "sum"},
-		{Key: "builtin_tools", Label: "組み込みツールの実行", Unit: "回", Agg: "sum"},
+		{Key: "credits", Label: "クレジット", LabelEn: "Credits", Unit: "クレジット", Agg: "sum"},
+		{Key: "turns", Label: "ターン", LabelEn: "Turns", Unit: "回", Agg: "sum"},
+		{Key: "credits_per_turn", Label: "1ターンあたりのクレジット", LabelEn: "Credits per turn", Unit: "クレジット", Agg: "ratio", Num: "credits", Den: "turns", Scale: 1},
+		{Key: "requests", Label: "モデルへのリクエスト", LabelEn: "Model requests", Unit: "回", Agg: "sum"},
+		{Key: "builtin_tools", Label: "組み込みツールの実行", LabelEn: "Built-in tool runs", Unit: "回", Agg: "sum"},
 	},
 	"Kiro IDE": {
-		{Key: "credits", Label: "クレジット", Unit: "クレジット", Agg: "sum"},
-		{Key: "turns", Label: "ターン", Unit: "回", Agg: "sum"},
-		{Key: "credits_per_turn", Label: "1ターンあたりのクレジット", Unit: "クレジット", Agg: "ratio", Num: "credits", Den: "turns", Scale: 1},
-		{Key: "tool_calls", Label: "ツール呼び出し", Unit: "回", Agg: "sum"},
+		{Key: "credits", Label: "クレジット", LabelEn: "Credits", Unit: "クレジット", Agg: "sum"},
+		{Key: "turns", Label: "ターン", LabelEn: "Turns", Unit: "回", Agg: "sum"},
+		{Key: "credits_per_turn", Label: "1ターンあたりのクレジット", LabelEn: "Credits per turn", Unit: "クレジット", Agg: "ratio", Num: "credits", Den: "turns", Scale: 1},
+		{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},
 	},
 	"Kiro CLI (SQLite)": qstoreDefs,
 	"Amazon Q":          qstoreDefs,
 	"Kiro Crew": {
-		{Key: "crew_sessions", Label: "Crew から動かした会話", Unit: "件", Agg: "sum"},
-		{Key: "crew_subagents", Label: "うちサブエージェント", Unit: "件", Agg: "sum"},
-		{Key: "credits", Label: "クレジット", Unit: "クレジット", Agg: "sum"},
-		{Key: "turns", Label: "ターン", Unit: "回", Agg: "sum"},
+		{Key: "crew_sessions", Label: "Crew から動かした会話", LabelEn: "Conversations run from Crew", Unit: "件", Agg: "sum"},
+		{Key: "crew_subagents", Label: "うちサブエージェント", LabelEn: "Of which subagents", Unit: "件", Agg: "sum"},
+		{Key: "credits", Label: "クレジット", LabelEn: "Credits", Unit: "クレジット", Agg: "sum"},
+		{Key: "turns", Label: "ターン", LabelEn: "Turns", Unit: "回", Agg: "sum"},
 	},
 	"Codex": {
-		{Key: "responses", Label: "応答の数", Unit: "回", Agg: "sum"},
-		{Key: "reasoning", Label: "推論トークン", Unit: "トークン", Agg: "sum"},
-		{Key: "reasoning_ratio", Label: "出力のうち推論の割合", Unit: "%", Agg: "ratio", Num: "reasoning", Den: "output", Scale: 100},
-		{Key: "cache_ratio", Label: "入力のうちキャッシュから読んだ割合", Unit: "%", Agg: "ratio", Num: "cache_read", Den: "input_all", Scale: 100},
-		{Key: "context_used", Label: "コンテキストの最大使用率", Unit: "%", Agg: "max", Scale: 100},
-		{Key: "rate_limit", Label: "レート制限の最大使用率", Unit: "%", Agg: "max"},
-		{Key: "tool_calls", Label: "ツール呼び出し", Unit: "回", Agg: "sum"},
+		{Key: "responses", Label: "応答の数", LabelEn: "Responses", Unit: "回", Agg: "sum"},
+		{Key: "reasoning", Label: "推論トークン", LabelEn: "Reasoning tokens", Unit: "トークン", Agg: "sum"},
+		{Key: "reasoning_ratio", Label: "出力のうち推論の割合", LabelEn: "Share of output spent on reasoning", Unit: "%", Agg: "ratio", Num: "reasoning", Den: "output", Scale: 100},
+		{Key: "cache_ratio", Label: "入力のうちキャッシュから読んだ割合", LabelEn: "Share of input read from cache", Unit: "%", Agg: "ratio", Num: "cache_read", Den: "input_all", Scale: 100},
+		{Key: "context_used", Label: "コンテキストの最大使用率", LabelEn: "Peak context usage", Unit: "%", Agg: "max", Scale: 100},
+		{Key: "rate_limit", Label: "レート制限の最大使用率", LabelEn: "Peak rate-limit usage", Unit: "%", Agg: "max"},
+		{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},
 	},
 }
 
 var qstoreDefs = []NativeDef{
-	{Key: "ttfc", Label: "最初の返事までの時間（中央値）", Unit: "秒", Agg: "median"},
-	{Key: "latency", Label: "応答にかかった時間（中央値）", Unit: "秒", Agg: "median"},
-	{Key: "response_size", Label: "応答の長さ（平均）", Unit: "文字", Agg: "avg"},
-	{Key: "tool_calls", Label: "ツール呼び出し", Unit: "回", Agg: "sum"},
+	{Key: "ttfc", Label: "最初の返事までの時間（中央値）", LabelEn: "Time to first reply (median)", Unit: "秒", Agg: "median"},
+	{Key: "latency", Label: "応答にかかった時間（中央値）", LabelEn: "Response time (median)", Unit: "秒", Agg: "median"},
+	{Key: "response_size", Label: "応答の長さ（平均）", LabelEn: "Response length (average)", Unit: "文字", Agg: "avg"},
+	{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},
 }
 
 // NativeValue は 1 つの参考指標の値。
 type NativeValue struct {
-	Label string  `json:"label"`
-	Unit  string  `json:"unit"`
-	V     float64 `json:"v"`
-	N     int     `json:"n"` // 元になった観測の数
+	Label   string  `json:"label"`
+	LabelEn string  `json:"labelEn"` // 英語表示のときのラベル
+	Unit    string  `json:"unit"`
+	V       float64 `json:"v"`
+	N       int     `json:"n"` // 元になった観測の数
 }
 
 // AggregateNative は観測を定義に沿ってまとめる。観測のない指標は出さない（0 と見せないため）。
@@ -130,7 +132,7 @@ func AggregateNative(source string, ms []Measure) []NativeValue {
 			}
 			v *= scale
 		}
-		out = append(out, NativeValue{Label: d.Label, Unit: d.Unit, V: Round(v, 2), N: n})
+		out = append(out, NativeValue{Label: d.Label, LabelEn: d.LabelEn, Unit: d.Unit, V: Round(v, 2), N: n})
 	}
 	return out
 }
