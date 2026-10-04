@@ -19,17 +19,21 @@ type Source interface {
 	Load(emit func(*core.Builder)) error
 }
 
-// Detailer は計測の状態に一言添えたい Source が実装する。
-type Detailer interface{ Detail() string }
+// Detailer は計測の状態に一言添えたい Source が実装する。DetailEn は英語表示のときの一言。
+type Detailer interface {
+	Detail() string
+	DetailEn() string
+}
 
 // Report は計測の状態に出す、読み込みの結果。
 type Report struct {
-	Name   string  `json:"name"`
-	N      int     `json:"n"`
-	Dup    int     `json:"dup,omitempty"` // ほかの場所と同じ会話だったので数えなかった数
-	Detail string  `json:"detail,omitempty"`
-	Where  string  `json:"where"`
-	Error  *string `json:"error"`
+	Name     string  `json:"name"`
+	N        int     `json:"n"`
+	Dup      int     `json:"dup,omitempty"` // ほかの場所と同じ会話だったので数えなかった数
+	Detail   string  `json:"detail,omitempty"`
+	DetailEn string  `json:"detailEn,omitempty"` // 英語表示のときの Detail
+	Where    string  `json:"where"`
+	Error    *string `json:"error"`
 }
 
 // Options は読み込みの設定。

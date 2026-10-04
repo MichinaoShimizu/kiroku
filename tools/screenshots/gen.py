@@ -1,4 +1,5 @@
 """スクリーンショット用のダミーの Claude Code の履歴を作る（架空の 4 プロジェクト、今日までの約 5 週間）。
+スクリーンショットは英語表示で撮るので、依頼文も英語にする。
 
   python3 gen.py <出力先>   → <出力先>/home/.claude/projects と <出力先>/repos/<プロジェクト>
 """
@@ -8,15 +9,15 @@ REPOS = os.path.join(OUT, "repos")
 random.seed(7)
 JST = dt.timezone(dt.timedelta(hours=9))
 projects = {
- "web-app": ["ログイン画面のバリデーションを直して","決済フローのE2Eテストを追加して","ダッシュボードの表示が遅いので原因を調べて","APIのエラーハンドリングを整理して","依存パッケージを更新して"],
- "data-pipeline": ["日次バッチの失敗を調べて","スキーマ変更のマイグレーションを書いて","集計クエリを高速化して","CSV取り込みの文字化けを直して"],
- "mobile": ["プッシュ通知の設定画面を作って","クラッシュログを解析して","ダークモード対応して"],
- "docs": ["READMEを整理して","APIリファレンスを更新して","リリースノートを書いて"],
+ "web-app": ["Fix validation on the login form","Add E2E tests for the checkout flow","Find out why the dashboard loads slowly","Clean up API error handling","Update dependencies"],
+ "data-pipeline": ["Investigate the failing nightly batch","Write a migration for the schema change","Speed up the aggregation query","Fix garbled characters in CSV import"],
+ "mobile": ["Build the push notification settings screen","Analyze the crash logs","Add dark mode support"],
+ "docs": ["Tidy up the README","Update the API reference","Write the release notes"],
 }
 branches = {"web-app":["main","feat/checkout","fix/login"],"data-pipeline":["main","feat/migrate"],"mobile":["main","feat/push"],"docs":["main"]}
 models = ["claude-opus-5-5"]*3 + ["claude-sonnet-5-5"]*4 + ["claude-haiku-4-5-20251001"]
-retry = ["違う、そうじゃなくて","やり直して","もう一度確認して"]
-follow = ["続けて","テストも通して","差分を見せて","それでOK、次へ","型エラーが出てる","もう少しシンプルにして"]
+retry = ["No, that's not what I meant","Revert that and try again","Check it once more"]
+follow = ["Continue","Make the tests pass too","Show me the diff","Looks good, next","There is a type error","Make it simpler"]
 tools = ["Read","Edit","Bash","Grep","Write"]
 now = dt.datetime.now(JST)
 today = now.replace(hour=0,minute=0,second=0,microsecond=0)
@@ -53,7 +54,7 @@ for d in range(35, -1, -1):
                     inp = {"file_path":f"{cwd}/src/{random.choice(['app','api','util','view'])}.ts"} if tool=="Read" else {"command":"npm test"} if tool=="Bash" else {"pattern":"TODO"}
                 content = [{"type":"tool_use","id":"t"+mid,"name":tool,"input":inp}]
                 if random.random()<0.05:
-                    content = [{"type":"tool_use","id":"t"+mid,"name":"Task","input":{"subagent_type":random.choice(["Explore","general-purpose"]),"description":"コードを調べる","prompt":"関連箇所を探して"}}]
+                    content = [{"type":"tool_use","id":"t"+mid,"name":"Task","input":{"subagent_type":random.choice(["Explore","general-purpose"]),"description":"Explore the code","prompt":"Find the related code"}}]
                 lines.append({"type":"assistant","timestamp":t.isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"requestId":"req_"+mid,"message":{"id":mid,"model":model,"role":"assistant","content":content,"usage":usage}})
                 out = "ok"
                 if "gh pr create" in content[0]["input"].get("command", ""):

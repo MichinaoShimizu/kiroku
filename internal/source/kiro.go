@@ -113,6 +113,24 @@ func (k *KiroCLI) Detail() string {
 	return strings.Join(parts, "・")
 }
 
+// DetailEn は Detail の英語版（英語表示の画面に出す）。
+func (k *KiroCLI) DetailEn() string {
+	var parts []string
+	if k.crew > 0 {
+		parts = append(parts, fmt.Sprintf("%d from Kiro Crew", k.crew))
+	}
+	if k.crewFixed > 0 {
+		parts = append(parts, fmt.Sprintf("%d with credits filled in from Crew usage records", k.crewFixed))
+	}
+	if k.crewText > 0 {
+		parts = append(parts, fmt.Sprintf("%d found only in Crew transcripts", k.crewText))
+	}
+	if k.crewOnly > 0 {
+		parts = append(parts, fmt.Sprintf("%d found only in Crew usage records (%.2f credits)", k.crewOnly, k.crewCr))
+	}
+	return strings.Join(parts, "; ")
+}
+
 func (k *KiroCLI) Name() string   { return "Kiro CLI" }
 func (k *KiroCLI) Family() string { return "kiro" }
 func (k *KiroCLI) Where() string  { return filepath.Join(k.Home, "sessions", "cli") }

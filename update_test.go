@@ -75,7 +75,7 @@ func TestSelfUpdate(t *testing.T) {
 	// チェックサムが合わなければ入れかえない
 	sums = strings.Repeat("0", 64) + "  " + name + "\n"
 	os.WriteFile(exe, []byte("old"), 0o755)
-	if err := selfUpdate(srv.Client(), "v9.9.9", "linux", "amd64", exe); err == nil || !strings.Contains(err.Error(), "チェックサム") {
+	if err := selfUpdate(srv.Client(), "v9.9.9", "linux", "amd64", exe); err == nil || !strings.Contains(err.Error(), "checksum mismatch") {
 		t.Fatalf("チェックサム違いを通した: %v", err)
 	}
 	if got, _ := os.ReadFile(exe); string(got) != "old" {
@@ -88,7 +88,7 @@ func TestSelfUpdate(t *testing.T) {
 }
 
 func TestUnknownSubcommand(t *testing.T) {
-	if err := dispatch([]string{"updat"}); err == nil || !strings.Contains(err.Error(), "知らないサブコマンド") {
+	if err := dispatch([]string{"updat"}); err == nil || !strings.Contains(err.Error(), "unknown command") {
 		t.Fatalf("err = %v", err)
 	}
 }

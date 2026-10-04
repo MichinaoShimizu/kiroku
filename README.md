@@ -4,7 +4,7 @@ English | [日本語](README.ja.md)
 
 See how you actually work with AI coding agents. kiroku reads the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), Amazon Q and Codex, and shows it as a Google Calendar–style view.
 
-> The interface is currently in Japanese. English support is planned.
+> The interface is in English, or in Japanese when your browser language is Japanese. You can switch it with the language menu in the header.
 
 ## Why
 

@@ -95,14 +95,14 @@ func collect(all []source.Source, want map[string]bool, gap int) ([]*core.Sessio
 		})
 		r := source.Report{Name: s.Name(), N: n, Dup: dup, Where: s.Where()}
 		if d, ok := s.(source.Detailer); ok {
-			r.Detail = d.Detail()
+			r.Detail, r.DetailEn = d.Detail(), d.DetailEn()
 		}
 		if err != nil {
 			msg := err.Error()
 			r.Error = &msg
-			fmt.Fprintf(logw, "  %s: 読めないファイルがあったのでスキップ (%s)\n", s.Name(), msg)
+			fmt.Fprintf(logw, "  %s: skipped unreadable files (%s)\n", s.Name(), msg)
 		}
-		fmt.Fprintf(logw, "  %s: %d セッション (%s)\n", s.Name(), n, s.Where())
+		fmt.Fprintf(logw, "  %s: %d sessions (%s)\n", s.Name(), n, s.Where())
 		rep = append(rep, r)
 	}
 	sort.SliceStable(data, func(i, j int) bool { return data[i].Start < data[j].Start })

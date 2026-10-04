@@ -46,7 +46,7 @@ func runUpdate(args []string) error {
 	if target == "" {
 		v, err := latestVersion(client)
 		if err != nil {
-			return fmt.Errorf("最新の版を調べられなかったよ: %w", err)
+			return fmt.Errorf("could not check the latest version: %w", err)
 		}
 		target = v
 	}
@@ -58,19 +58,19 @@ func runUpdate(args []string) error {
 	if *check {
 		switch {
 		case version == "dev":
-			fmt.Printf("最新は %s（この kiroku はソースからビルドした dev 版）\n", target)
+			fmt.Printf("latest is %s (this kiroku is a dev build from source)\n", target)
 		case newer:
-			fmt.Printf("新しい版があります: %s → %s（kiroku update で入れかえ）\n", cur, target)
+			fmt.Printf("a new version is available: %s → %s (run \"kiroku update\")\n", cur, target)
 		default:
-			fmt.Printf("最新です（%s）\n", cur)
+			fmt.Printf("already up to date (%s)\n", cur)
 		}
 		return nil
 	}
 	if version == "dev" && !*force {
-		return fmt.Errorf("この kiroku はソースからビルドした dev 版なので入れかえないよ。go install github.com/MichinaoShimizu/kiroku@latest で更新するか、--force をつけてね")
+		return fmt.Errorf("this kiroku is a dev build from source, so it will not replace itself; run \"go install github.com/MichinaoShimizu/kiroku@latest\" or pass --force")
 	}
 	if !newer && *to == "" && !*force {
-		fmt.Printf("最新です（%s）\n", cur)
+		fmt.Printf("already up to date (%s)\n", cur)
 		return nil
 	}
 	exe, err := os.Executable()
@@ -80,11 +80,11 @@ func runUpdate(args []string) error {
 	if p, err := filepath.EvalSymlinks(exe); err == nil {
 		exe = p
 	}
-	fmt.Printf("kiroku %s を落としています…\n", target)
+	fmt.Printf("downloading kiroku %s…\n", target)
 	if err := selfUpdate(client, target, runtime.GOOS, runtime.GOARCH, exe); err != nil {
 		return err
 	}
-	fmt.Printf("%s → %s に入れかえました（%s）\n", cur, target, exe)
+	fmt.Printf("updated %s → %s (%s)\n", cur, target, exe)
 	return nil
 }
 
@@ -100,7 +100,7 @@ func latestVersion(client *http.Client) (string, error) {
 	loc := resp.Header.Get("Location")
 	i := strings.LastIndex(loc, "/tag/")
 	if i < 0 {
-		return "", fmt.Errorf("リリースが見つからない（%s）", resp.Status)
+		return "", fmt.Errorf("release not found (%s)", resp.Status)
 	}
 	return loc[i+len("/tag/"):], nil
 }
@@ -150,11 +150,11 @@ func selfUpdate(client *http.Client, tag, goos, goarch, exe string) error {
 	base := releaseBase + "/releases/download/" + tag + "/"
 	archive, err := fetch(client, base+name)
 	if err != nil {
-		return fmt.Errorf("%s を落とせなかったよ: %w", name, err)
+		return fmt.Errorf("could not download %s: %w", name, err)
 	}
 	sums, err := fetch(client, base+"checksums.txt")
 	if err != nil {
-		return fmt.Errorf("checksums.txt を落とせなかったよ: %w", err)
+		return fmt.Errorf("could not download checksums.txt: %w", err)
 	}
 	want := ""
 	for _, line := range strings.Split(string(sums), "\n") {
@@ -163,10 +163,10 @@ func selfUpdate(client *http.Client, tag, goos, goarch, exe string) error {
 		}
 	}
 	if want == "" {
-		return fmt.Errorf("checksums.txt に %s がないよ", name)
+		return fmt.Errorf("%s is not listed in checksums.txt", name)
 	}
 	if got := sha256.Sum256(archive); hex.EncodeToString(got[:]) != want {
-		return fmt.Errorf("チェックサムが合わないので入れかえないよ（%s）", name)
+		return fmt.Errorf("checksum mismatch, not updating (%s)", name)
 	}
 	bin := "kiroku"
 	if goos == "windows" {
@@ -208,7 +208,7 @@ func extract(archive []byte, ext, bin string) ([]byte, error) {
 				return io.ReadAll(rc)
 			}
 		}
-		return nil, fmt.Errorf("アーカイブに %s がないよ", bin)
+		return nil, fmt.Errorf("%s not found in the archive", bin)
 	}
 	gz, err := gzip.NewReader(bytes.NewReader(archive))
 	if err != nil {
@@ -218,7 +218,7 @@ func extract(archive []byte, ext, bin string) ([]byte, error) {
 	for {
 		h, err := tr.Next()
 		if err == io.EOF {
-			return nil, fmt.Errorf("アーカイブに %s がないよ", bin)
+			return nil, fmt.Errorf("%s not found in the archive", bin)
 		}
 		if err != nil {
 			return nil, err
@@ -235,7 +235,7 @@ func replaceExe(exe string, body []byte) error {
 	dir := filepath.Dir(exe)
 	tmp, err := os.CreateTemp(dir, ".kiroku-new-*")
 	if err != nil {
-		return fmt.Errorf("%s に書き込めないよ（sudo が必要な場所かも）: %w", dir, err)
+		return fmt.Errorf("cannot write to %s (it may need sudo): %w", dir, err)
 	}
 	defer os.Remove(tmp.Name())
 	if _, err := tmp.Write(body); err != nil {

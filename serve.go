@@ -105,11 +105,11 @@ func (l *live) watch(every time.Duration, stop <-chan struct{}) {
 		}
 		before := l.count()
 		if err := l.refresh(); err != nil {
-			fmt.Fprintf(l.print, "読み直しに失敗したよ: %v\n", err)
+			fmt.Fprintf(l.print, "reload failed: %v\n", err)
 			continue
 		}
 		after := l.count()
-		fmt.Fprintf(l.print, "%s 履歴の変化を反映 → %d セッション（%+d）\n", time.Now().Format("15:04:05"), after, after-before)
+		fmt.Fprintf(l.print, "%s history changed → %d sessions (%+d)\n", time.Now().Format("15:04:05"), after, after-before)
 	}
 }
 
@@ -209,14 +209,14 @@ func serveLive(addr string, every time.Duration, picked []source.Source, load fu
 	logw = io.Discard // ここから先の読み直しでは、エージェントごとの行は出さない
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		return fmt.Errorf("%s で待ち受けできなかったよ（kiroku serve :8485 のように別のポートを試してね）: %w", addr, err)
+		return fmt.Errorf("could not listen on %s (try another port, e.g. \"kiroku serve :8485\"): %w", addr, err)
 	}
 	addr = ln.Addr().String()
 	url := "http://" + addr + "/"
 	if host, port, _ := net.SplitHostPort(addr); host == "127.0.0.1" || host == "::" || host == "0.0.0.0" || host == "" {
 		url = "http://localhost:" + port + "/"
 	}
-	fmt.Fprintf(l.print, "%d セッション → %s （%s ごとに履歴の変化を確かめます。止めるときは Ctrl+C）\n", l.count(), url, every)
+	fmt.Fprintf(l.print, "%d sessions → %s (checking for new history every %s; press Ctrl+C to stop)\n", l.count(), url, every)
 	go l.watch(every, nil)
 	if open {
 		openBrowser(url)

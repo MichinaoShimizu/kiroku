@@ -1,12 +1,12 @@
 // docs/screenshot.png と docs/summary.png を撮る。gen.py と mkgit.py で作ったダミーデータの HTML を使う。
 //   node capture.mjs <kiroku.html> <docs のディレクトリ>
-// Playwright が必要（npm i -g playwright など）。時刻は Asia/Tokyo、ライトテーマ、1440x900。
+// Playwright が必要（npm i -g playwright など）。英語表示（en-US）・ダークテーマ・時刻は Asia/Tokyo・1440x900。
 import { chromium } from "playwright";
 import path from "node:path";
 
 const [html, docs] = process.argv.slice(2);
 const b = await chromium.launch();
-const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, timezoneId: "Asia/Tokyo", locale: "ja-JP", colorScheme: "light" });
+const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, timezoneId: "Asia/Tokyo", locale: "en-US", colorScheme: "dark" });
 const p = await ctx.newPage();
 await p.goto("file://" + path.resolve(html));
 await p.waitForTimeout(600);
