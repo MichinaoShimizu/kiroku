@@ -91,6 +91,7 @@ type KiroCLI struct {
 	crewFixed int     // Crew の使用量の記録でクレジットを補った会話
 	crewOnly  int     // kiro-cli の会話に結びつかない Crew の記録
 	crewCr    float64 // そのクレジット
+	crewText  int     // Crew の会話の記録だけにある会話
 }
 
 // Detail は計測の状態に添える一言。
@@ -101,6 +102,9 @@ func (k *KiroCLI) Detail() string {
 	}
 	if k.crewFixed > 0 {
 		parts = append(parts, fmt.Sprintf("Crew の使用量の記録でクレジットを補った会話 %d 件", k.crewFixed))
+	}
+	if k.crewText > 0 {
+		parts = append(parts, fmt.Sprintf("Crew の会話の記録だけにある %d 件", k.crewText))
 	}
 	if k.crewOnly > 0 {
 		parts = append(parts, fmt.Sprintf("Crew の使用量の記録だけにある %d 件（%.2f クレジット）", k.crewOnly, k.crewCr))
@@ -119,7 +123,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 	}
 	crew := LoadCrew(k.CrewHome)
 	usage := loadCrewUsage(k.CrewHome)
-	k.crew, k.crewFixed, k.crewOnly, k.crewCr = 0, 0, 0, 0
+	k.crew, k.crewFixed, k.crewOnly, k.crewCr, k.crewText = 0, 0, 0, 0, 0
 	slotInfo := map[string]*CrewInfo{}
 	for _, info := range crew {
 		if !info.Subagent {
@@ -127,7 +131,8 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			slotInfo[info.Key] = &i
 		}
 	}
-	used := map[string]bool{}
+	used := map[string]bool{}     // 使用量の記録を kiro-cli の会話に結びつけた会話キー
+	seenRows := map[string]bool{} // 会話の記録を使った（kiro-cli の会話に結びついた）会話キー
 	for _, metaPath := range glob(filepath.Join(base, "*.json")) {
 		meta := core.Map(core.ReadJSON(metaPath))
 		stem := strings.TrimSuffix(filepath.Base(metaPath), ".json")
@@ -185,10 +190,17 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		}
 		if tagCrew(s, crew) {
 			k.crew++
-			if info := crew[s.ID]; !info.Subagent && len(usage[info.Key]) > 0 {
-				used[info.Key] = true
-				if useCrewCredits(s, usage[info.Key]) {
-					k.crewFixed++
+			if info := crew[s.ID]; !info.Subagent {
+				seenRows[info.Key] = true
+				if len(s.Prompts) == 0 { // Crew から動かした会話は、kiro-cli の履歴に依頼が残らないことがある
+					_, rows := readCrewTranscript(crewTranscriptPath(k.CrewHome, info.Key))
+					addCrewRows(s, rows)
+				}
+				if len(usage[info.Key]) > 0 {
+					used[info.Key] = true
+					if useCrewCredits(s, usage[info.Key]) {
+						k.crewFixed++
+					}
 				}
 			}
 		}
@@ -203,9 +215,47 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 	}
 	sort.Strings(slots)
 	for _, slot := range slots {
-		for _, s := range crewOnly(slot, usage[slot], slotInfo[slot]) {
+		seenRows[slot] = true
+		for _, s := range crewOnly(k.CrewHome, slot, usage[slot], slotInfo[slot]) {
 			k.crewOnly++
 			k.crewCr += sumCredits(s.Credits)
+			emit(s)
+		}
+	}
+	// 会話の記録だけがある Crew の会話（使用量の記録も kiro-cli の会話もないもの）
+	if k.CrewHome != "" {
+		seenFile := map[string]bool{}
+		for key := range seenRows {
+			seenFile[crewTranscriptPath(k.CrewHome, key)] = true
+		}
+		byFile := map[string]*CrewInfo{}
+		for key, info := range slotInfo {
+			byFile[crewTranscriptPath(k.CrewHome, key)] = info
+		}
+		for _, p := range glob(filepath.Join(k.CrewHome, "sessions", "*.jsonl")) {
+			if seenFile[p] {
+				continue
+			}
+			title, rows := readCrewTranscript(p)
+			if len(rows) == 0 {
+				continue
+			}
+			stem := strings.TrimSuffix(filepath.Base(p), ".jsonl")
+			s := core.NewBuilder("Kiro Crew", "crew:"+stem)
+			s.Key = "kiro-crew:" + stem
+			s.Title, s.Project = firstNonEmpty(title, "Kiro Crew: "+stem), "(Kiro Crew)"
+			if info := byFile[p]; info != nil && info.Cwd != "" {
+				s.Project = info.Cwd
+			}
+			addCrewRows(s, rows)
+			var first *float64
+			for i := range s.Times {
+				if first == nil || s.Times[i] < *first {
+					first = &s.Times[i]
+				}
+			}
+			s.Measure("crew_sessions", first, 1)
+			k.crewText++
 			emit(s)
 		}
 	}
