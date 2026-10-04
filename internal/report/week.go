@@ -73,33 +73,34 @@ type WeekUsage struct {
 
 // Summary は 1 期間（週か月）の集計。
 type Summary struct {
-	Usage         WeekUsage        `json:"usage"`
-	Start         string           `json:"start"`         // 期間の最初の日（YYYY-MM-DD）
-	FixRate       *float64         `json:"fixRate"`       // 言い直し・中断のあった依頼の割合（%）。依頼がなければ nil
-	CostPerAsk    *float64         `json:"costPerAsk"`    // 1 依頼あたりの目安コスト。トークンの記録がなければ nil
-	Outputs       core.OutputTotal `json:"outputs"`       // AI が実行したコミット・PR 作成・変更した行（成果の代理）
-	OutSessions   int              `json:"outSessions"`   // コミットか PR 作成まで行ったセッションの数
-	CostPerCommit *float64         `json:"costPerCommit"` // 1 コミットあたりの目安コスト。コミットかトークンの記録がなければ nil
-	Git           GitTotal         `json:"git"`           // 手元の git リポジトリのコミット（gitlog）
-	Sessions      int              `json:"sessions"`
-	Prompts       int              `json:"prompts"`
-	Active        int              `json:"active"`
-	AI            int              `json:"ai"`
-	Parallel      int              `json:"parallel"`
-	MaxConc       int              `json:"maxConc"`
-	Night         int              `json:"night"`
-	Weekend       int              `json:"weekend"`
-	Focus         []Block          `json:"focus"`
-	SwitchesAvg   float64          `json:"switchesAvg"`
-	SwitchesMax   int              `json:"switchesMax"`
-	WaitMedian    *float64         `json:"waitMedian"`
-	WaitP90       *float64         `json:"waitP90"`
-	WaitCount     int              `json:"waitCount"`
-	Projects      [][2]any         `json:"projects"`
-	ProjectStats  []ProjectStat    `json:"projectStats"` // プロジェクト別のまとめ（project.go）
-	Days          []Day            `json:"days"`         // 期間の日ごと（週なら 7、月なら 28〜31）
-	Friction      []Friction       `json:"friction"`
-	Native        []NativeGroup    `json:"native"` // エージェント別の参考指標
+	Usage         WeekUsage          `json:"usage"`
+	Start         string             `json:"start"`         // 期間の最初の日（YYYY-MM-DD）
+	FixRate       *float64           `json:"fixRate"`       // 言い直し・中断のあった依頼の割合（%）。依頼がなければ nil
+	CostPerAsk    *float64           `json:"costPerAsk"`    // 1 依頼あたりの目安コスト。トークンの記録がなければ nil
+	Outputs       core.OutputTotal   `json:"outputs"`       // AI が実行したコミット・PR 作成・変更した行（成果の代理）
+	OutSessions   int                `json:"outSessions"`   // コミットか PR 作成まで行ったセッションの数
+	CostPerCommit *float64           `json:"costPerCommit"` // 1 コミットあたりの目安コスト。コミットかトークンの記録がなければ nil
+	Git           GitTotal           `json:"git"`           // 手元の git リポジトリのコミット（gitlog）
+	Sessions      int                `json:"sessions"`
+	Prompts       int                `json:"prompts"`
+	Active        int                `json:"active"`
+	AI            int                `json:"ai"`
+	Parallel      int                `json:"parallel"`
+	MaxConc       int                `json:"maxConc"`
+	Night         int                `json:"night"`
+	Weekend       int                `json:"weekend"`
+	Focus         []Block            `json:"focus"`
+	SwitchesAvg   float64            `json:"switchesAvg"`
+	SwitchesMax   int                `json:"switchesMax"`
+	WaitMedian    *float64           `json:"waitMedian"`
+	WaitP90       *float64           `json:"waitP90"`
+	WaitCount     int                `json:"waitCount"`
+	Projects      [][2]any           `json:"projects"`
+	ProjectStats  []ProjectStat      `json:"projectStats"` // プロジェクト別のまとめ（project.go）
+	Shares        map[string][]Share `json:"shares"`       // ブランチ・エージェントごとの配分（share.go）
+	Days          []Day              `json:"days"`         // 期間の日ごと（週なら 7、月なら 28〜31）
+	Friction      []Friction         `json:"friction"`
+	Native        []NativeGroup      `json:"native"` // エージェント別の参考指標
 	start, end    time.Time
 }
 
@@ -456,6 +457,7 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 		Outputs: outs, OutSessions: outSes, CostPerCommit: costPerCommit, Git: gitTot,
 		Native:       nativeGroups(data, ws, we),
 		ProjectStats: projectStats(data, ws, we, projects, projOrder, commits),
+		Shares:       map[string][]Share{"branch": shares(data, ws, we, mins, ShareKeys["branch"]), "source": shares(data, ws, we, mins, ShareKeys["source"])},
 		FixRate:      fixRate, CostPerAsk: costPer, Usage: usage, Start: wsT.Format("2006-01-02"), Sessions: sessions, Prompts: np,
 		Active: len(active), AI: ai, Parallel: parallel, MaxConc: maxConc, Night: night, Weekend: weekend,
 		Focus: blocks, SwitchesAvg: core.Round(float64(swSum)/float64(activeDays), 1), SwitchesMax: swMax,
