@@ -544,6 +544,7 @@ dialog.yr h3{font:700 15px/1.4 var(--sans);margin:30px 0 10px}
 @media (max-width:1320px){.rvgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel.shape{grid-column:1/-1}}
 @media (max-width:1180px){.tag{display:none}.kpis{margin-left:0;width:100%}.kpi{flex:1;min-width:0}}
 @media (max-width:1000px){#colorBy{display:none}.cbsel{display:inline-block}.legend .lab .ln{display:none}.search kbd{display:none}.search input,.search input:focus{width:160px}}
+@media (max-width:480px){#help{display:none}} /* ショートカットの一覧は、キーボードのないスマホでは使わないので、ロゴと検索の場所を空ける */
 @media (max-width:820px){
   .rvgrid.srgrid{grid-template-columns:1fr}
   .rvhead .pill{margin-left:0}
@@ -556,9 +557,12 @@ dialog.yr h3{font:700 15px/1.4 var(--sans);margin:30px 0 10px}
   .bar{height:54px;gap:8px}
   .zoom{display:none}
   .search input,.search input:focus{width:120px}
+  .brand{flex-shrink:0} /* ロゴは削らず、狭いときは検索欄のほうを縮める */
+  .search{flex:1 1 auto;min-width:0;max-width:120px}.search input,.search input:focus{width:100%}
   .week{padding:18px 0 14px;gap:14px}
   .wk .d{font-size:24px}
   .wk{flex-wrap:wrap;row-gap:10px} /* 英語のように長い文言でも、移動のボタンが画面の外に出ないように */
+  .wk .nav{flex-wrap:wrap;row-gap:8px;margin-left:0;min-width:0} /* ボタンが増えても、狭い画面では折り返す */
   .kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
   .kpi{border-left:1px solid var(--rule);border-top:1px solid var(--rule);padding:8px 10px 7px}
   .kpi:nth-child(-n+3){border-top:0}.kpi:nth-child(3n+1){border-left:0}
