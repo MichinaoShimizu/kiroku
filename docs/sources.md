@@ -13,7 +13,7 @@ kiroku が各エージェントの履歴をどこから、どう読んでいる�
 
 ## Kiro IDE
 
-- v1.0 以降: `~/.kiro/sessions/<hash>/sess_*/session.json` + `messages.jsonl`。発言ごとの時刻と、`usage_summary` の `promptTurnSummaries` にあるクレジット
+- v1.0 以降: `~/.kiro/sessions/`（`~/.kiro` は `KIRO_HOME` があればそちら。以下同じ）の `<hash>/sess_*/session.json` + `messages.jsonl`。発言ごとの時刻と、`usage_summary` の `promptTurnSummaries` にあるクレジット
 - v1.0 より前: `<globalStorage>/kiro.kiroagent/workspace-sessions/`。発言ごとの時刻がないので、開始 = 作成日時、終了 = ファイルの更新時刻のざっくり表示。クレジットは残っていない
 
 `internal/source/kiro.go`
@@ -37,7 +37,7 @@ kiroku が各エージェントの履歴をどこから、どう読んでいる�
 - 同じ会話は二重に数えないよう、会話ごとに kiro-cli の記録と Crew の記録の多いほうを使う
 - kiro-cli の会話に結びつかない記録は「Kiro Crew」のセッションにする。Crew の裏方の処理（`slot: "_bg"`）は 1 日ごと、ダッシュボードのチャットは会話ごと
 - Crew の会話の記録（`sessions/<会話キー>.jsonl`。1 行目がメタデータ、2 行目から `role`・`content`・`ts`・`tools`）も読む。kiro-cli の履歴に依頼が残っていない会話（ダッシュボードから動かしたものなど）と、kiro-cli の会話に結びつかない会話は、ここから依頼の流れ・時刻・使ったツールを補う。使用量の記録も kiro-cli の会話もなく、会話の記録だけがあるものも「Kiro Crew」のセッションにする
-- 会話の記録は、溢れた古い行が `sessions/archive/<名前>__<日時>.jsonl` に退避される（既定で 7 日残す）ので、残っていればそれも古い順に読む。会話を閉じたり期限が過ぎたりして記録が消えた会話は、使用量の記録だけのセッションになり、依頼の流れは出せない
+- 会話の記録は、溢れた古い行が `sessions/archive/<名前>__<日時>.jsonl` に退避される（残す期間は Crew の `session.archive_retention_days` で決まり、版や設定で変わる）ので、残っていればそれも古い順に読む。会話を閉じたり期限が過ぎたりして記録が消えた会話は、使用量の記録だけのセッションになり、依頼の流れは出せない
 - Crew の使用量の記録は、Crew が残している期間（およそ 2 週間）だけ
 
 ## Amazon Q Developer CLI
@@ -52,6 +52,14 @@ kiroku が各エージェントの履歴をどこから、どう読んでいる�
 - サブエージェントやフォークのファイルは親の履歴を先頭に写しているので、そのファイルが作られた時刻より前の行は数えない。サブエージェントは親のセッションの「サブエージェント」にまとめる
 - タイトルは `session_index.jsonl` から取る
 - モデル（OpenAI）は料金表に入れていないので、目安コストには入らない（「計測の状態」に、料金表にないトークンとして出る）。`--prices` で足せる
+
+## Git
+
+セッションの作業場所（cwd）にある git リポジトリから、手元の `git log` で自分（`user.email`）のコミットを読む。git がない環境や、リポジトリでない場所は飛ばす。`internal/gitlog/gitlog.go`
+
+## 履歴の保存期間
+
+`Retainer` を実装したアダプターが、古い履歴を消す設定を返す。Claude Code は `settings.json` の `cleanupPeriodDays`（既定 30 日）を読む。Kiro Crew は `session.archive_retention_days` を返すが、日数は読めないので不明として出す。詳しくは [ガイドの「履歴の保存期間」](guide.md#履歴の保存期間)
 
 ## クレジットとモデルの倍率
 

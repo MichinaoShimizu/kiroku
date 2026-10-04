@@ -82,10 +82,10 @@ if [ "$os" = darwin ] && command -v xattr >/dev/null 2>&1; then
   xattr -d com.apple.quarantine "$dir/kiroku" 2>/dev/null || true
 fi
 
-say "installed: $dir/kiroku ($("$dir/kiroku" --version))"
+say "installed $("$dir/kiroku" --version) to $dir/kiroku"
 case ":$PATH:" in
   *":$dir:"*) say "run \"kiroku serve\" to start (\"kiroku help\" for usage)" ;;
-  *) say "$dir is not in your PATH. Add this line to your shell config:"
+  *) say "$dir is not in your PATH. Add this line to your shell config (e.g. ~/.zshrc or ~/.bashrc):"
      say "  export PATH=\"$dir:\$PATH\""
      say "then run \"kiroku serve\" to start" ;;
 esac

@@ -40,7 +40,7 @@ jobs:
           fi
           sh tools/release-notes.sh "$v" > /dev/null
           want=$(sh tools/next-version.sh "$v")
-          if [ "$v" != "$want" ]; then
+          if [ "${v%%-*}" != "$want" ]; then  # v0.2.0-rc.1 のようなプレリリースは v0.2.0 と比べる
             echo "::error::$v の中身からすると、版は $want です。CHANGELOG を直してください"
             exit 1
           fi

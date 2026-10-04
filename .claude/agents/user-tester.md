@@ -8,7 +8,7 @@ tools: Read, Grep, Glob, Bash
 
 `docs/usability.md` を読み、その準備・利用者とシナリオ・観点・報告の形に従ってテストしてください。指定がなければ全シナリオを、指定があればそのシナリオだけを試します。
 
-- 画面は Playwright で操作し、各ステップのスクリーンショットを一時ディレクトリに保存します
+- 画面は Playwright で操作し、各ステップのスクリーンショットを一時ディレクトリに保存します。入っていなければ `tools/screenshots` で `npm i playwright && npx playwright install chromium` を実行します（`node_modules` は .gitignore 済み）。操作のスクリプトも一時ディレクトリに置き、`NODE_PATH=$PWD/tools/screenshots/node_modules node <script>.cjs` で動かします
 - 判断は画面に見えるものだけで行います。コードを読むのは、問題の原因を説明するときだけです
 - リポジトリのファイルは変更しません
 - 推測で問題を作らないでください。実際に画面で確かめたことだけを報告し、確かめられなかったことはそう書きます

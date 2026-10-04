@@ -174,3 +174,12 @@ func TestServeHistory(t *testing.T) {
 		}
 	}
 }
+
+// ポートだけを指定しても、手元だけで待ち受ける（同じネットワークのほかの人に履歴を見せない）。
+func TestListenAddr(t *testing.T) {
+	for in, want := range map[string]string{":8485": "127.0.0.1:8485", "127.0.0.1:9000": "127.0.0.1:9000", "0.0.0.0:8484": "0.0.0.0:8484", "[::1]:8484": "[::1]:8484"} {
+		if got := listenAddr(in); got != want {
+			t.Errorf("listenAddr(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

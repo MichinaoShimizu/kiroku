@@ -4,7 +4,7 @@
 #   ### Added がある → minor
 #   それ以外（Changed / Fixed / Removed だけ）→ patch
 # Usage: sh tools/next-version.sh [節の名前（既定: Unreleased）] [CHANGELOG.md]
-#        前の版は、その節より下にある最初の版の節（なければ最新のタグ）
+#        前の版は、その節より下にある最初の正式な版の節（なければ最新の正式なタグ）。プレリリース（v0.2.0-rc.1）は飛ばす
 set -eu
 sec=${1:-Unreleased}
 file=${2:-CHANGELOG.md}
@@ -13,8 +13,8 @@ if [ -z "$(printf '%s' "$body" | tr -d '[:space:]')" ]; then
   echo "next-version: \"## $sec\" in $file is missing or empty" >&2
   exit 1
 fi
-prev=$(awk -v v="$sec" '/^## / { if (seen && $2 ~ /^v[0-9]/) { print $2; exit } if ($2 == v) seen = 1 }' "$file")
-[ -n "$prev" ] || prev=$(git tag --list 'v*' --sort=-v:refname 2>/dev/null | head -1)
+prev=$(awk -v v="$sec" '/^## / { if (seen && $2 ~ /^v[0-9]+\.[0-9]+\.[0-9]+$/) { print $2; exit } if ($2 == v) seen = 1 }' "$file")
+[ -n "$prev" ] || prev=$(git tag --list 'v*' --sort=-v:refname 2>/dev/null | grep -v -- - | head -1 || true)
 [ -n "$prev" ] || prev=v0.0.0
 IFS=. read -r ma mi pa <<VER
 $(printf '%s' "${prev#v}" | sed 's/-.*//')

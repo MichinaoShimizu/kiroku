@@ -50,7 +50,7 @@ jobs:
           case "$top" in v*) ;; *) exit 0 ;; esac
           git rev-parse -q --verify "refs/tags/$top" >/dev/null && exit 0
           want=$(sh tools/next-version.sh "$top")
-          if [ "$top" != "$want" ]; then
+          if [ "${top%%-*}" != "$want" ]; then  # v0.2.0-rc.1 のようなプレリリースは v0.2.0 と比べる
             echo "::error file=CHANGELOG.md::$top の中身からすると、版は $want です（sh tools/next-version.sh $top）"
             exit 1
           fi

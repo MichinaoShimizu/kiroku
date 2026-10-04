@@ -194,6 +194,16 @@ func sameOrigin(addr string, next http.Handler) http.Handler {
 	})
 }
 
+// listenAddr は、ポートだけ（:8485）のときに手元（127.0.0.1）だけで待ち受けるようにする。
+// ポートだけを全部のネットワークで待ち受けると、同じネットワークのほかの人から履歴が見えてしまうため。
+// 外に開くときは 0.0.0.0:8485 のようにはっきり書く。
+func listenAddr(addr string) string {
+	if strings.HasPrefix(addr, ":") {
+		return "127.0.0.1" + addr
+	}
+	return addr
+}
+
 func serveLive(addr string, every time.Duration, picked []source.Source, load func() snapshot, open bool) error {
 	if every < time.Second {
 		every = time.Second
@@ -207,6 +217,7 @@ func serveLive(addr string, every time.Duration, picked []source.Source, load fu
 		return err
 	}
 	logw = io.Discard // ここから先の読み直しでは、エージェントごとの行は出さない
+	addr = listenAddr(addr)
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("could not listen on %s (try another port, e.g. \"kiroku serve :8485\"): %w", addr, err)
