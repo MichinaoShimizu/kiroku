@@ -68,7 +68,8 @@ type WeekUsage struct {
 	SubMin    float64  `json:"subMin"`
 	SubTypes  [][2]any `json:"subTypes"`
 	Heavy     []Heavy  `json:"heavy"`
-	Unpriced  float64  `json:"-"`
+	Unpriced  float64  `json:"unpriced"`       // 料金表にないモデルのトークン（目安コストに入らない）
+	UnpricedM []string `json:"unpricedModels"` // そのモデル（トークンの多い順）
 }
 
 // Summary は 1 期間（週か月）の集計。
@@ -508,7 +509,7 @@ func nativeGroups(data []*core.Session, ws, we float64) []NativeGroup {
 
 // weekUsage は AI の使い方: トークン・目安コスト・クレジット・モデル・サブエージェント。
 func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
-	type mm struct{ tokens, cost, msgs float64 }
+	type mm struct{ tokens, cost, msgs, unpriced float64 }
 	models := map[string]*mm{}
 	var modelOrder []string
 	byProj := map[string]float64{}
@@ -549,6 +550,7 @@ func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
 				c = *e.Cost
 			} else {
 				unpriced += e.U.Total()
+				models[name].unpriced += e.U.Total()
 			}
 			models[name].tokens += e.U.Total()
 			models[name].msgs++
@@ -606,6 +608,13 @@ func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
 		v := models[m]
 		mrows = append(mrows, [4]any{m, core.Round(v.cost, 2), v.tokens, v.msgs})
 	}
+	unpricedM := []string{}
+	for _, m := range modelOrder {
+		if models[m].unpriced > 0 {
+			unpricedM = append(unpricedM, m)
+		}
+	}
+	sort.SliceStable(unpricedM, func(i, j int) bool { return models[unpricedM[i]].unpriced > models[unpricedM[j]].unpriced })
 	prows := [][2]any{}
 	sort.SliceStable(projOrder, func(i, j int) bool { return byProj[projOrder[i]] > byProj[projOrder[j]] })
 	for _, p := range projOrder {
@@ -634,7 +643,7 @@ func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
 	}
 	return WeekUsage{Tokens: tot.Total(), Out: tot.Out, Cost: core.Round(cost, 2), Credits: core.Round(credits, 2),
 		CacheHit: cacheHit, Models: mrows, Projects: prows, Subagents: nSubs, SubMin: core.Round(subSec/60, 0),
-		SubTypes: trows, Heavy: heavyRows, Unpriced: unpriced}
+		SubTypes: trows, Heavy: heavyRows, Unpriced: unpriced, UnpricedM: unpricedM}
 }
 
 // AllWeeks は記録のあるすべての週を集計する。キーは月曜の日付。
