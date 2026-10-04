@@ -10,7 +10,7 @@ func TestApplyReported(t *testing.T) {
 	main := []Event{
 		{T: f(100), Model: "claude-opus-5-5", U: Tokens{Out: 100}, Cost: f(1)},
 		{T: f(200), Model: "claude-opus-5-5", U: Tokens{Out: 300}, Cost: f(3)},
-		{T: f(300), Model: "claude-new-9", U: Tokens{Out: 10}},               // 料金表にないモデル
+		{T: f(300), Model: "claude-new-9", U: Tokens{Out: 10}},                 // 料金表にないモデル
 		{T: f(900), Model: "claude-opus-5-5", U: Tokens{Out: 100}, Cost: f(1)}, // 記録の期間の外（あとから）
 	}
 	sub := []Event{{T: f(250), Model: "claude-opus-5-5", U: Tokens{Out: 100}, Cost: f(4)}}
