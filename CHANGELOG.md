@@ -2,6 +2,16 @@
 
 Notable changes to kiroku. Each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- Findings are just "Findings": the "Try this" box on each card is gone. What you can try for each metric is still in its "?" explanation, which "See … →" opens
+
+### Fixed
+
+- On phones, the page was wider than the screen, so it could be zoomed out and the session detail could open off screen
+
 ## v0.1.6 - 2026-10-04
 
 ### Added
