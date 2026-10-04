@@ -330,6 +330,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .hero .big .u{font:500 14px var(--sans);color:var(--ink-2);margin:0 6px 0 3px}
 .hero .cap{color:var(--ink-2);margin-top:8px;font-size:12.5px}
 .delta{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-2);background:var(--surface-2);border-radius:6px;padding:1px 8px;margin-left:8px;font-variant-numeric:tabular-nums}
+.nw{white-space:nowrap}
 .hb{opacity:.6;display:inline-grid;place-items:center;width:16px;height:16px;margin-left:6px;border:1px solid var(--rule-2);border-radius:50%;font:600 10px/1 var(--sans);color:var(--ink-3);vertical-align:1px;flex:none}
 .hb:hover,.hb[aria-expanded="true"]{color:var(--acc-ink);border-color:var(--acc)}
 .hint{margin:8px 0 4px;padding:10px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--rule);font-size:11.5px;line-height:1.65;color:var(--ink-2);font-weight:400;letter-spacing:0}
@@ -859,7 +860,7 @@ function summary(){
       <span class="muted" style="font-size:11.5px">${tr("プロジェクトごとに、やったこと・コミット・PR をまとめた Markdown です。セッション名は依頼文の冒頭なので、直してから貼ってください。", "Markdown with what you did, commits and pull requests for each project. Session names are the start of your prompts, so edit them before pasting.")}</span></div>
     <pre class="askpre" id="rptpre">${esc(reportText(w, M))}</pre></section>` : ""}`;
   if (!w){ R.innerHTML = `${head}<div class="rvgrid"><div class="panel"><p class="none">${tr(`この${unit}の記録はありません。← → で移動できます。`, `No records ${uThis(unit)}. Use ← → to move.`)}</p>${foot()}</div></div>`; bindCopy(R); return; }
-  const n = soFar(), d = !pw ? null : n == null ? w.active - pw.active : w.active - pw.days.slice(0, n).reduce((t, x) => t + x.active, 0); // 途中の期間は、前の期間の同じ日までと比べる
+  const V = vsPrev(pw, unit);
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
   const total = w.projects.reduce((t,[,v])=>t+v,0) || 1;
   const stat = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}${hint(h)}</div>`;
@@ -872,7 +873,7 @@ function summary(){
   ${outcomePanel(w, pw, unit, ph, stat)}
   <section class="panel">${ph(4, tr("時間の使い方", "How you spent time"), tr("いつ・どれくらい動いていたか", "When and how long sessions ran"))}
     <div class="hero"><div class="big">${dur(w.active,true).replace(/(\d+)/g,'<span class="num">$1</span>').replace(/<small>(.*?)<\/small>/g,'<span class="u">$1</span>')}</div>
-      <div class="cap">${tr("どれかのセッションが動いていた時間", "Time when any session was running")}${hb("active")}${d==null?"":`<span class="delta">${n == null ? tr(`先${unit}より`, `vs ${uLast(unit)}`) : tr(`先${unit}の同じ日までより`, `vs the same point ${uLast(unit)}`)} ${d>=0?"+":"−"}${dur(Math.abs(d))}</span>`}</div>${hint("active")}</div>
+      <div class="cap">${tr("どれかのセッションが動いていた時間", "Time when any session was running")}${hb("active")}${pw ? `<span class="delta">${V.diff(w.active, V.of("active", pw.active), dur)}</span>` : ""}</div>${hint("active")}</div>
     <div class="stats">
       ${stat(tr("集中ブロック（60分以上）", "Focus blocks (60+ min)"), times(w.focus.length), longest ? tr(`最長 ${dur(longest)}`, `Longest ${dur(longest)}`) : tr("まとまった時間はなし", "No long stretches"), "focus")}
       ${stat(tr("深夜（22〜6時）", "Late night (22:00–6:00)"), dur(w.night,true), "", "night")}
@@ -994,7 +995,7 @@ const HELP = {
   rhythm: {n:"日ごと・週ごとのリズム", d:"週表示では日ごと、月表示では週ごとの作業時間（うち深夜）", c:"作業量の波と偏り", x:"波の原因", a:"特定の日に偏っていれば、作業の割り振りを見直す"},
   daily: {n:"日ごとの使用量", d:"日ごとのトークン・目安コスト・クレジット", c:"どの日に AI を多く使ったか", x:"その日の使い方が適切だったか", a:"突出した日のセッションを開いて、重かった理由を確認する"},
   cost: {n:"目安コスト（API 換算）", d:"API の公開料金で換算した使用料。Claude Code が自身の使用料を記録しているセッションはその値（料金の改定・新しいモデル・自動要約など履歴に残らない呼び出しも含む）、ないときは履歴のトークン数に kiroku の料金表を掛けた値", c:"使用量の重さを金額で比べた目安", x:"実際の請求額（サブスクリプションとは異なる）", a:"重いセッションやモデルを特定して、使い方を見直す"},
-  projection: {n:"月末の見込み（推定）", d:"今月の途中で、月の初めから今日までの目安コスト（とクレジット）を、経った時間の割合で月末まで伸ばした値。月の初めの 7 日は出さない", c:"このペースだと今月どれくらいになりそうか", x:"実際の請求額や、これからの使い方（ペースが変われば外れる）", a:"多すぎるなら、重いセッションやモデルを見直す"},
+  projection: {n:"月末の見込み（推定）", d:"今月の途中で、月の初めから今日までの目安コスト（とクレジット）を今日までの日数で割り、月の日数を掛けた値。月の初めの 7 日と最後の日は出さない", c:"このペースだと今月どれくらいになりそうか", x:"実際の請求額や、これからの使い方（ペースが変われば外れる）", a:"多すぎるなら、重いセッションやモデルを見直す"},
   tokens: {n:"トークン", d:"入力・出力・キャッシュ読み取り・キャッシュ書き込みの合計", c:"消費した量", x:"多い・少ないの良し悪し", a:"プロジェクト別・日別の偏りを見る"},
   cache: {n:"キャッシュから読んだ割合", d:"入力のうちキャッシュから読み取った割合", c:"同じ文脈を再利用できていたか", x:"低い原因（短いセッションが多いだけの場合もある）", a:"低ければ、長い前提を毎回貼り直していないか確認する"},
   models: {n:"モデル別", d:"モデルごとの目安コストとトークン", c:"どのモデルに使用量が寄っていたか", x:"そのモデルが必要だったか", a:"定型的な作業を軽いモデルに回せないか検討する"},
@@ -1033,7 +1034,7 @@ const HELP_EN = {
   rhythm: {n: "Daily and weekly rhythm", d: "Work time per day in week view and per week in month view (with late night)", c: "Ups and downs in your workload", x: "What caused them", a: "If work piles up on certain days, rethink how you distribute it"},
   daily: {n: "Daily usage", d: "Tokens, estimated cost and credits per day", c: "Which days you used AI the most", x: "Whether that day's usage was appropriate", a: "Open the sessions on outlier days to see why they were heavy"},
   cost: {n: "Estimated cost (API pricing)", d: "Usage priced at public API rates. Uses the cost Claude Code records for itself when available (this also covers price changes, new models and calls not in the history, such as auto-compaction); otherwise tokens in the history times the kiroku price table", c: "A rough way to compare how heavy usage was, in money", x: "What you are actually billed (subscriptions differ)", a: "Find the heavy sessions and models and rethink how you use them"},
-  projection: {n: "Month-end projection (estimate)", d: "In a month in progress, the estimated cost (and credits) from the 1st through today, scaled up to the whole month by the share of the month that has passed. Not shown for the first 7 days", c: "Roughly where this month is heading at the current pace", x: "Your actual bill, or how you will work from now on (it is off if the pace changes)", a: "If it is too high, look at the heavy sessions and models"},
+  projection: {n: "Month-end projection (estimate)", d: "In a month in progress, the estimated cost (and credits) from the 1st through today, divided by the days so far and multiplied by the days in the month. Not shown for the first 7 days or on the last day", c: "Roughly where this month is heading at the current pace", x: "Your actual bill, or how you will work from now on (it is off if the pace changes)", a: "If it is too high, look at the heavy sessions and models"},
   tokens: {n: "Tokens", d: "Input, output, cache reads and cache writes combined", c: "How much you consumed", x: "Whether more or less is good", a: "Look for skew by project and by day"},
   cache: {n: "Share of input read from cache", d: "The share of input tokens read from cache", c: "Whether the same context was reused", x: "Why it is low (it may just be many short sessions)", a: "If low, check whether you paste long background every time"},
   models: {n: "By model", d: "Estimated cost and tokens per model", c: "Which models your usage leaned toward", x: "Whether that model was needed", a: "Consider moving routine work to lighter models"},
@@ -1057,7 +1058,9 @@ function hint(id){ const h = H()[id]; if (!h) return "";
   return `<div class="hint" data-hint="${id}"${openHelp.has(id) ? "" : " hidden"}><p>${esc(h.d)}</p><dl><dt>${tr("言えること", "Tells you")}</dt><dd>${esc(h.c)}</dd><dt>${tr("言えないこと", "Doesn't tell you")}</dt><dd>${esc(h.x)}</dd><dt>${tr("打てる手", "What to try")}</dt><dd>${esc(h.a)}</dd></dl></div>`; }
 
 function bindHelp(root){ root.querySelectorAll(".hb").forEach(b => b.onclick = e => { e.stopPropagation();
-  const t = root.querySelector(`[data-hint="${b.dataset.help}"]`); if (!t) return; t.hidden = !t.hidden; t.hidden ? openHelp.delete(b.dataset.help) : openHelp.add(b.dataset.help); b.setAttribute("aria-expanded", String(!t.hidden)); }); }
+  let t = null; // 同じ指標の説明が画面に 2 か所あるので、押したボタンにいちばん近いものを開く
+  for (let a = b.parentElement; a && !t; a = a === root ? null : a.parentElement) t = a.querySelector(`[data-hint="${b.dataset.help}"]`);
+  if (!t) return; t.hidden = !t.hidden; t.hidden ? openHelp.delete(b.dataset.help) : openHelp.add(b.dataset.help); b.setAttribute("aria-expanded", String(!t.hidden)); }); }
 /* AI に改善案を聞くためのプロンプト（kiroku 自身は AI を呼ばない。利用者が自分のエージェントに貼る） */
 function askPrompt(w, pw, M){
   const unit = M ? "月" : "週", u = w.usage || {}, L = [];
@@ -1065,7 +1068,8 @@ function askPrompt(w, pw, M){
   const ymd = d => `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
   const cut = t => { t = String(t || "").replace(/\s+/g, " ").trim(); return t.length > 60 ? t.slice(0, 60) + "…" : t; };
   const use = x => [x.tokens ? tr(`トークン ${tok(x.tokens)}`, `tokens ${tok(x.tokens)}`) : "", x.cost >= 0.005 ? tr(`目安コスト ${usd(x.cost)}`, `estimated cost ${usd(x.cost)}`) : "", x.credits ? tr(`クレジット ${cr(x.credits)}`, `credits ${cr(x.credits)}`) : ""].filter(Boolean).join(tr("、", ", "));
-  const prev = (v, p, f) => p == null ? "" : tr(`（前${unit} ${f(p)}）`, ` (previous ${M ? "month" : "week"}: ${f(p)})`);
+  const V = vsPrev(pw, unit); // 途中の期間は、前の期間の同じ日までと比べる
+  const prev = (v, p, f, k) => (p = V.of(k, p)) == null ? "" : V.n == null ? tr(`（前${unit} ${f(p)}）`, ` (previous ${M ? "month" : "week"}: ${f(p)})`) : tr(`（前${unit}の ${V.range} ${f(p)}）`, ` (${V.range} of the previous ${M ? "month" : "week"}: ${f(p)})`);
   const sep = tr("、", ", "), wk = M ? "month" : "week";
   L.push(tr(`あなたは AI エージェント活用のアドバイザーです。以下は、私の AI エージェントの利用履歴を kiroku で集計した ${ymd(start)}〜${ymd(last)}（1 ${unit}間）の数値です。限られたクレジットとトークンの中で AI エージェントをより効果的に使うための改善案を提案してください。`,
       `You are an advisor on using AI agents effectively. Below are figures from my AI agent history for ${ymd(start)}–${ymd(last)} (one ${wk}), aggregated with kiroku. Suggest improvements that help me use AI agents more effectively within limited credits and tokens.`),
@@ -1077,11 +1081,12 @@ function askPrompt(w, pw, M){
     tr("- 目安コストは、トークン数に API の公開料金を掛けた換算値です。実際の請求額ではありません", "- Estimated cost is token counts priced at public API rates. It is not what I am actually billed"),
     tr("- 指標の定義はエージェントごとに異なります。エージェント同士を直接比較しないでください", "- Metric definitions differ by agent. Don't compare agents directly"),
     tr("- 数値はすべて履歴から推定した目安です。データから言えないことは、推測であると明記してください", "- All figures are rough estimates from history. Clearly mark anything the data can't support as a guess"),
+    ...(V.n == null ? [] : [tr(`- この${unit}はまだ途中です（${ymd(start)}〜${ymd(today0())} の ${V.n} 日分）。前${unit}の値は、前${unit}の同じ日まで（${V.range}）のものです`, `- This ${wk} is still in progress (${V.n} days, ${ymd(start)}–${ymd(today0())}). Figures for the previous ${wk} cover the same days (${V.range})`)]),
     tr("- 各指標の定義と、そこから言えること・言えないことは末尾の「指標の読み方」を参照してください", "- See \"How to read the metrics\" at the end for each metric's definition and what it can and cannot tell you"),
     "", tr("# kiroku が基準で拾った気づき（判定ではなく候補）", "# Findings kiroku flagged by threshold (candidates, not verdicts)"),
     ...(() => { const F = findList(w, pw, unit); return F.length ? F.map(f => tr(`- ${f.see.replace(/<[^>]+>/g, "")}（基準: ${f.rule}）`, `- ${f.see.replace(/<[^>]+>/g, "")} (threshold: ${f.rule.charAt(0).toLowerCase() + f.rule.slice(1)})`)) : [tr("- 基準を超えた指標はありませんでした", "- No metric crossed a threshold")]; })(),
     "", tr("# 全体", "# Overall"),
-    tr(`- 作業していた時間: ${dur(w.active)}${prev(w.active, pw && pw.active, dur)}`, `- Active time: ${dur(w.active)}${prev(w.active, pw && pw.active, dur)}`),
+    tr(`- 作業していた時間: ${dur(w.active)}${prev(w.active, pw && pw.active, dur, "active")}`, `- Active time: ${dur(w.active)}${prev(w.active, pw && pw.active, dur, "active")}`),
     tr(`- AI の延べ稼働（並列分を含む）: ${dur(w.ai)}`, `- Total AI run time (including parallel runs): ${dur(w.ai)}`),
     tr(`- セッション / 依頼: ${w.sessions} / ${w.prompts}`, `- Sessions / prompts: ${w.sessions} / ${w.prompts}`),
     tr(`- 集中ブロック（60 分以上）: ${w.focus.length} 回${w.focus.length ? `、最長 ${dur(Math.max(...w.focus.map(b => b.min)))}` : ""}`, `- Focus blocks (60+ min): ${w.focus.length}${w.focus.length ? `, longest ${dur(Math.max(...w.focus.map(b => b.min)))}` : ""}`),
@@ -1095,7 +1100,7 @@ function askPrompt(w, pw, M){
     L.push("", tr("# AI の使用量", "# AI usage"));
     if (u.tokens) L.push(tr(`- トークン: ${tok(u.tokens)}（うち出力 ${tok(u.out)}）`, `- Tokens: ${tok(u.tokens)} (output ${tok(u.out)})`),
       tr(`- 入力のうちキャッシュから読んだ割合: ${u.cacheHit == null ? "不明" : Math.round(u.cacheHit*100) + "%"}`, `- Share of input read from cache: ${u.cacheHit == null ? "unknown" : Math.round(u.cacheHit*100) + "%"}`),
-      tr(`- 目安コスト: ${usd(u.cost)}${prev(u.cost, pw && pw.usage && pw.usage.cost, usd)}${w.costPerAsk != null ? `、1 依頼あたり ${usd(w.costPerAsk)}` : ""}`, `- Estimated cost: ${usd(u.cost)}${prev(u.cost, pw && pw.usage && pw.usage.cost, usd)}${w.costPerAsk != null ? `, ${usd(w.costPerAsk)} per prompt` : ""}`));
+      tr(`- 目安コスト: ${usd(u.cost)}${prev(u.cost, pw && pw.usage && pw.usage.cost, usd, "cost")}${w.costPerAsk != null ? `、1 依頼あたり ${usd(w.costPerAsk)}` : ""}`, `- Estimated cost: ${usd(u.cost)}${prev(u.cost, pw && pw.usage && pw.usage.cost, usd, "cost")}${w.costPerAsk != null ? `, ${usd(w.costPerAsk)} per prompt` : ""}`));
     if (u.credits) L.push(tr(`- Kiro クレジット: ${cr(u.credits)}`, `- Kiro credits: ${cr(u.credits)}`));
     L.push(tr(`- サブエージェント: ${u.subagents} 回${u.subagents ? `（延べ ${dur(u.subMin)}）` : ""}`, `- Subagents: ${u.subagents}${u.subagents ? ` (total ${dur(u.subMin)})` : ""}`));
     if (u.models.length) L.push(tr("- モデル別: ", "- By model: ") + u.models.slice(0, 6).map(r => tr(`${mn(r[0])}（目安コスト ${usd(r[1])}、トークン ${tok(r[2])}）`, `${mn(r[0])} (estimated cost ${usd(r[1])}, tokens ${tok(r[2])})`)).join(sep));
@@ -1213,8 +1218,9 @@ function findList(w, pw, unit){
   const {xs: idle, c: idleC} = idleOf(ws, we);
   if (u.cost >= 2 && idleC >= u.cost * 0.4)
     add("heavy", 30 + Math.round(idleC*50/u.cost), tr(`目安コストの ${Math.round(idleC*100/u.cost)}%（${usd(idleC)}）が、コミットも PR もないセッションでした`, `${Math.round(idleC*100/u.cost)}% of estimated cost (${usd(idleC)}) went to sessions with no commit or pull request`), tr("調査や相談なら問題ありません。途中で止まったのなら、理由を確かめる価値があります", "Fine for research or discussion. If they stopped partway, it's worth finding out why"), tr("$1 以上のセッションの合計が、全体（$2 以上）の 40% 以上", "Sessions of $1+ total 40%+ of all cost ($2+)"), idle.slice(0,3).map(s => s.id));
-  if (pw && pw.usage && pw.usage.cost >= 1 && u.cost >= pw.usage.cost * 1.5)
-    add("cost", 25, tr(`目安コストが先${unit}の ${(u.cost/pw.usage.cost).toFixed(1)} 倍（${usd(pw.usage.cost)} → ${usd(u.cost)}）になりました`, `Estimated cost was ${(u.cost/pw.usage.cost).toFixed(1)}× ${uLast(unit)} (${usd(pw.usage.cost)} → ${usd(u.cost)})`), tr("増えた分が、どのプロジェクト・セッションに出たかで意味が変わります", "What it means depends on which projects and sessions the increase came from"), tr(`先${unit}の 1.5 倍以上`, `1.5× ${uLast(unit)} or more`));
+  const V = vsPrev(pw, unit), pc = V.of("cost", pw && pw.usage && pw.usage.cost), pl = V.n == null ? tr(`先${unit}`, uLast(unit)) : tr(`先${unit}の ${V.range}`, V.range); // 途中の期間は、前の期間の同じ日までと比べる
+  if (pc != null && pc >= 1 && u.cost >= pc * 1.5)
+    add("cost", 25, tr(`目安コストが${pl}の ${(u.cost/pc).toFixed(1)} 倍（${usd(pc)} → ${usd(u.cost)}）になりました`, `Estimated cost was ${(u.cost/pc).toFixed(1)}× ${pl} (${usd(pc)} → ${usd(u.cost)})`), tr("増えた分が、どのプロジェクト・セッションに出たかで意味が変わります", "What it means depends on which projects and sessions the increase came from"), tr(`先${unit}の 1.5 倍以上`, `1.5× ${uLast(unit)} or more`));
   if (pw && pw.costPerCommit != null && w.costPerCommit != null && o.commits >= 3 && w.costPerCommit >= pw.costPerCommit * 1.5)
     add("costPerCommit", 22, tr(`1 コミットあたりの目安コストが ${usd(pw.costPerCommit)} → ${usd(w.costPerCommit)} に増えました`, `Estimated cost per commit rose from ${usd(pw.costPerCommit)} to ${usd(w.costPerCommit)}`), tr("区切りまで進めるのに、前より重くなっています", "Reaching a checkpoint is getting heavier than before"), tr(`コミット 3 回以上で、先${unit}の 1.5 倍以上`, `1.5× ${uLast(unit)} or more, with 3+ commits`));
   if (u.cacheHit != null && u.tokens >= 1e6 && u.cacheHit < 0.5)
@@ -1317,16 +1323,16 @@ function reportText(w, M){
 function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）と、残ったもの（成果の印）を並べる
   const o = w.outputs || {commits:0, prs:0, added:0, removed:0}, g = w.git, u = w.usage || {};
   const hasOut = o.commits || o.prs || o.added || o.removed || (g && g.commits);
-  const po = pw && pw.outputs, vs = tr(`先${unit}より`, `vs ${uLast(unit)}`), d = (a, b) => b == null ? "" : `${vs} ${a-b>=0?"+":"−"}${Math.abs(a-b)}`;
+  const po = pw && pw.outputs, V = vsPrev(pw, unit), d = (a, b) => V.diff(a, V.of(null, b)); // AI のコミットと PR は日ごとの値がないので、途中の期間は比べない
   const n = v => v.toLocaleString(LOC()), times = v => tr(`${v}<small>回</small>`, `${v}`);
   const cost = [
-    stat(tr("作業していた時間", "Active time"), dur(w.active,true), pw ? `${vs} ${w.active-pw.active>=0?"+":"−"}${dur(Math.abs(w.active-pw.active))}` : "", "active"),
-    u.tokens ? stat(tr("目安コスト", "Estimated cost"), usd(u.cost).replace("$","<small>$</small>"), pw && pw.usage ? `${vs} ${u.cost-pw.usage.cost>=0?"+":"−"}${usd(Math.abs(u.cost-pw.usage.cost))}` : "", "cost") : "",
+    stat(tr("作業していた時間", "Active time"), dur(w.active,true), V.diff(w.active, V.of("active", pw && pw.active), dur), "active"),
+    u.tokens ? stat(tr("目安コスト", "Estimated cost"), usd(u.cost).replace("$","<small>$</small>"), V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost") : "",
     u.tokens ? stat(tr("トークン", "Tokens"), tok(u.tokens), tr(`うち出力 ${tok(u.out)}`, `Output ${tok(u.out)}`), "tokens") : "",
     u.credits ? stat(tr("Kiro クレジット", "Kiro credits"), `${u.credits}`, tr("履歴に残った実績", "As recorded in history"), "credits") : "",
   ].join("");
   const out = hasOut ? [
-    g && g.commits ? stat(tr("Git のコミット", "Git commits"), times(g.commits), tr(`うち AI ${g.ai}・git の記録で +${n(g.added)} −${n(g.removed)} 行${pw && pw.git ? `・${d(g.commits, pw.git.commits)}` : ""}`, `${g.ai} by AI · +${n(g.added)} −${n(g.removed)} lines per git${pw && pw.git ? ` · ${d(g.commits, pw.git.commits)}` : ""}`), "gitCommits") : "",
+    g && g.commits ? stat(tr("Git のコミット", "Git commits"), times(g.commits), tr(`うち AI ${g.ai}・git の記録で +${n(g.added)} −${n(g.removed)} 行${pw && pw.git ? `・${V.diff(g.commits, V.of("commits", pw.git.commits))}` : ""}`, `${g.ai} by AI · +${n(g.added)} −${n(g.removed)} lines per git${pw && pw.git ? ` · ${V.diff(g.commits, V.of("commits", pw.git.commits))}` : ""}`), "gitCommits") : "",
     stat(tr("AI のコミット", "AI commits"), times(o.commits), d(o.commits, po && po.commits), "commits"),
     stat(tr("PR の作成", "Pull requests"), tr(`${o.prs}<small>件</small>`, `${o.prs}`), d(o.prs, po && po.prs), "prs"),
     stat(tr("AI が編集した行（推定）", "Lines edited by AI (est.)"), `<small>+</small>${n(o.added)}`, tr(`削除 ${n(o.removed)} 行・編集の前後から推定。コミットしなかった編集や書き直しも数えるため、git の記録より多くなりがちです`, `${n(o.removed)} removed · estimated by comparing before and after edits. Includes uncommitted edits and rewrites, so it tends to exceed git's numbers`), "lines"),
@@ -1402,23 +1408,33 @@ function measure(w){
 // soFar は、今見ている期間が途中なら、始まりから今日までの日数（今日を含む）。終わった期間や先の期間は null。
 function soFar(){ const {ws, we} = period(), now = nowMs()/1000;
   return ws <= now && now < we ? Math.min(Math.ceil((now - ws) / 86400), Math.round((we - ws) / 86400)) : null; }
+// vsPrev は、前の期間との比べ方。途中の期間は、前の期間の同じ日まで（先頭から今日と同じ日数）と比べる。
+// 途中の値を前の期間まるごとと比べると、いつも少なく見えるため。
+//   label: 差に添える言葉、range: 比べた前の期間の日付（途中のときだけ）
+//   of(f, whole): 比べる前の期間の値。途中なら日ごとの集計 f の合計（日ごとの値がない指標は null）、終わった期間なら whole
+//   diff(a, b, fmt): 「<label> +差」。b が null なら空
+function vsPrev(pw, unit){
+  const n0 = pw ? soFar() : null, n = n0 == null ? null : Math.min(n0, pw.days.length), mdy = d => `${d.getMonth()+1}/${d.getDate()}`; // 先月が今月より短いときは、先月の最後の日まで
+  const a = n == null ? null : new Date(periodBack(1).ws * 1000), range = n == null ? "" : n === 1 ? mdy(a) : `${mdy(a)}${tr("〜", "–")}${mdy(addDays(a, n - 1))}`;
+  const label = n == null ? tr(`先${unit}より`, `vs ${uLast(unit)}`) : tr(`先${unit}の ${range} より`, `vs ${range}`);
+  const of = (f, whole) => !pw || whole == null ? null : n == null ? whole : f ? pw.days.slice(0, n).reduce((t, d) => t + (d[f] || 0), 0) : null;
+  const diff = (a, b, fmt = x => x) => b == null ? "" : `${label} <span class="nw">${a-b>=0?"+":"−"}${fmt(Math.abs(a-b))}</span>`;
+  return {n, range, label, of, diff};
+}
 // projection は、今月の途中なら、今日までのペースが月末まで続いたときの目安コストとクレジット（推定）。
-// 月の初めは日数が少なく当てにならないので、7 日たつまでは出さない。
+// 今日までの日数（今日を含む）で割り、月の日数を掛ける。月の初めは日数が少なく当てにならないので 7 日たつまで、
+// 最後の日は実績とほとんど変わらないので出さない。
 function projection(w){ const {ws, we} = period(), now = nowMs()/1000, u = w.usage;
-  if (st.mode !== "month" || !u || !(ws <= now && now < we) || now - ws < 7 * 86400) return null;
-  const k = (we - ws) / (now - ws);
-  return {cost: u.tokens ? u.cost * k : null, credits: u.credits ? u.credits * k : null, days: Math.ceil((now - ws) / 86400)}; }
+  if (st.mode !== "month" || !u || !(ws <= now && now < we) || now - ws < 7 * 86400 || we - now < 86400) return null;
+  const days = Math.ceil((now - ws) / 86400), k = Math.round((we - ws) / 86400) / days;
+  return {cost: u.tokens ? u.cost * k : null, credits: u.credits ? u.credits * k : null, days}; }
 function aiUsage(w, pw, unit){
   const u = w.usage; if (!u || (!u.tokens && !u.credits)) return "";
   const stat = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}${hint(h)}</div>`;
-  // 途中の期間は、前の期間の同じ日までと比べる（途中の値を、前の期間まるごとと比べると、いつも少なく見えるため）
-  const n = soFar(), upTo = (x, f) => x.days.slice(0, n).reduce((t, d) => t + (d[f] || 0), 0);
-  const dc = !pw || !pw.usage ? null : n == null ? u.cost - pw.usage.cost : u.cost - upTo(pw, "cost");
-  const vsLast = n == null ? tr(`先${unit||"週"}より`, `vs ${uLast(unit||"週")}`) : tr(`先${unit||"週"}の同じ日までより`, `vs the same point ${uLast(unit||"週")}`);
-  const pj = projection(w);
+  const V = vsPrev(pw, unit || "週"), pj = projection(w);
   const totalC = u.models.reduce((t,r)=>t+r[1],0) || 1, totalT = u.models.reduce((t,r)=>t+r[2],0) || 1, byCost = totalC > 0.0001;
   return `<div class="stats" style="margin-top:4px">
-      ${u.tokens ? stat(tr("目安コスト（API換算）", "Estimated cost (API pricing)"), usd(u.cost).replace("$","<small>$</small>"), dc==null ? "" : `${vsLast} ${dc>=0?"+":"−"}${usd(Math.abs(dc))}`, "cost") : ""}
+      ${u.tokens ? stat(tr("目安コスト（API換算）", "Estimated cost (API pricing)"), usd(u.cost).replace("$","<small>$</small>"), V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost") : ""}
       ${pj ? stat(tr("月末の見込み（推定）", "Month-end projection (estimate)"), [pj.cost != null ? "≈ " + usd(pj.cost).replace("$","<small>$</small>") : "", pj.credits != null ? (pj.cost != null ? `<small> · </small>` : "≈ ") + tr(`${Math.round(pj.credits)}<small> クレジット</small>`, `${Math.round(pj.credits)}<small> credits</small>`) : ""].join(""), tr(`今日までの ${pj.days} 日のペースが続いた場合`, `If the pace of the first ${pj.days} days continues`), "projection") : ""}
       ${u.tokens ? stat(tr("トークン", "Tokens"), `${tok(u.tokens)}`, tr(`うち出力 ${tok(u.out)}・多いほど良いわけではありません`, `Output ${tok(u.out)} · more is not better`), "tokens") : ""}
       ${u.tokens ? stat(tr("キャッシュから読んだ割合", "Read from cache"), u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, tr("入力のうち", "Share of input"), "cache") : ""}

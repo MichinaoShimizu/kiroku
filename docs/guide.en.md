@@ -104,7 +104,7 @@ The image shows the English view. In a Japanese browser it is shown in Japanese 
 | Metric | Definition |
 |---|---|
 | Estimated cost (API pricing) | Usage priced at public API rates. For sessions where Claude Code records its own cost (`cost-state`), that value is used (this also covers price changes, new models and calls not left in the history, such as auto-compaction). Otherwise, tokens in the history are multiplied by the kiroku price table. It differs from what a subscription bills |
-| Month-end projection (estimate) | Shown only in the month view while the month is in progress: the estimated cost (and credits) from the 1st through today, scaled up to the whole month by the share of the month that has passed. It assumes the pace so far continues, and is not shown for the first 7 days. For a period in progress, "vs last month" and "vs last week" compare with the same point in the previous period |
+| Month-end projection (estimate) | Shown only in the month view while the month is in progress: the estimated cost (and credits) from the 1st through today, divided by the days so far (including today) and multiplied by the days in the month. It assumes the pace so far continues, and is not shown for the first 7 days or on the last day. For a period in progress, comparisons with the previous period use the same days of it (for example "vs 9/1–9/20"). AI commits and pull requests have no daily figures, so they are not compared while a period is in progress |
 | Tokens | Input, output, cache reads and cache writes combined. Because one response is recorded across several lines, they are grouped by message ID before counting |
 | Share of input read from cache | The share of input read from cache |
 | By model | Estimated cost and tokens per model |
