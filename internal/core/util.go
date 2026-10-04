@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -196,3 +197,10 @@ func Runes(s string, n int) string {
 	}
 	return s
 }
+
+// limitText は、エージェントが返した利用上限（使用量の上限・レート制限）のエラー文。
+// 例: "Claude AI usage limit reached|1750000000"、"5-hour limit reached ∙ resets 3pm"、"API Error: 429 …rate_limit_error…"
+var limitText = regexp.MustCompile(`(?i)usage limit|limit reached|limit will reset|hit your (usage )?limit|reached your .{0,20}limit|rate[_ ]limit|\b429\b`)
+
+// IsLimitError は、文が利用上限のエラーかどうか。
+func IsLimitError(text string) bool { return limitText.MatchString(text) }

@@ -49,6 +49,7 @@ type Builder struct {
 	Times                          []float64
 	AgentTimes                     []float64
 	Interrupts                     int
+	Limits                         []float64 // 利用上限（使用量の上限・レート制限）に当たった時刻
 	FixTS                          []float64
 	Usage                          *Usage
 	Subagents                      []Subagent
@@ -95,6 +96,17 @@ func (s *Builder) Prompt(ts *float64, text string) {
 			s.FixTS = append(s.FixTS, *ts)
 		}
 	}
+}
+
+// Limit は利用上限のエラーを記録する。同じ上限で続けて出たもの（1 分以内）は 1 回と数える。
+func (s *Builder) Limit(ts *float64) {
+	if ts == nil {
+		return
+	}
+	if n := len(s.Limits); n > 0 && *ts-s.Limits[n-1] < 60 {
+		return
+	}
+	s.Limits = append(s.Limits, *ts)
 }
 
 func (s *Builder) Tool(name string, args any) {
@@ -204,6 +216,7 @@ type Session struct {
 	Resume       *string       `json:"resume"`
 	Waits        [][2]float64  `json:"waits"`
 	Interrupts   int           `json:"interrupts"`
+	Limits       []float64     `json:"limits"` // 利用上限に当たった時刻
 	Corrections  int           `json:"corrections"`
 	Models       [][2]any      `json:"models"`
 	Usage        UsageTotal    `json:"usage"`
@@ -344,7 +357,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 		ID: s.ID, Source: s.Source, Project: name, ProjectPath: project, Branch: strOrNil(s.Branch), Title: title,
 		Start: times[0], End: times[len(times)-1], Events: len(times), Segs: Segments(times, float64(gapMin*60)),
 		Prompts: prompts, NPrompts: len(s.Prompts), Tools: tools, Files: files, NFiles: nFiles, Resume: strOrNil(s.Resume),
-		Waits: s.Waits(), Interrupts: s.Interrupts, Corrections: s.Corrections(), Models: models,
+		Waits: s.Waits(), Interrupts: s.Interrupts, Limits: limits(s.Limits), Corrections: s.Corrections(), Models: models,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
 		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: len(s.Reported) > 0, File: s.File, PRs: prs,
 		Native: AggregateNative(s.Source, s.Measures), Meas: s.Measures,
@@ -366,3 +379,10 @@ func sortedCounts(order []string, counts map[string]int, limit int) [][2]any {
 }
 
 var _ = ptr[int]
+
+func limits(xs []float64) []float64 {
+	if xs == nil {
+		return []float64{}
+	}
+	return xs
+}

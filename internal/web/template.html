@@ -134,10 +134,12 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .run .t::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c);flex:none}
 .run .t span{overflow:hidden;text-overflow:ellipsis}
 .run .m{color:var(--ink-2);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
-.run:hover{box-shadow:inset 0 0 0 1.5px var(--c),var(--shadow);z-index:2}
+.run:hover{box-shadow:inset 0 0 0 1.5px var(--c),var(--shadow);z-index:4}
 .tlbox.focus .run{opacity:.25;filter:saturate(.5)}
 .tlbox.focus .run.sel{opacity:1;filter:none;box-shadow:inset 0 0 0 2px var(--c),var(--shadow);z-index:2}
 @keyframes rise{from{opacity:0;transform:translateY(6px)}}
+.lim{position:absolute;left:3px;z-index:3;height:16px;margin-top:-8px;padding:0 6px;border-radius:8px;font-size:10px;font-weight:700;line-height:16px;color:var(--on-warn);background:var(--warn);box-shadow:0 0 0 2px var(--surface)}
+.lim:hover{filter:brightness(1.1)}
 .nowline{position:absolute;left:0;right:0;height:0;border-top:1.5px solid var(--acc);z-index:3;pointer-events:none}
 .nowline::before{content:"";position:absolute;left:-4px;top:-4.5px;width:8px;height:8px;border-radius:50%;background:var(--acc)}
 .empty{padding:56px 16px 60px;text-align:center;color:var(--ink-3)}
@@ -181,6 +183,9 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .sact{display:flex;flex-direction:column;gap:6px;margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--acc-soft)}
 .sact .pill{align-self:flex-start;color:var(--acc-ink);border-color:color-mix(in oklab,var(--acc) 35%,var(--rule-2));font-weight:600}
 .sact span{font-size:11.5px;color:var(--ink-2);line-height:1.6}
+.moreS{margin-top:10px}
+.moreS summary{cursor:pointer;font-size:12.5px;color:var(--ink-2);padding:4px 0}
+.moreS .stats{margin-top:8px}
 .ocl{font:600 11px/1 var(--sans);letter-spacing:.06em;color:var(--ink-3);margin:6px 0 -6px}
 .stats.s3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px;margin-top:12px}
@@ -640,6 +645,7 @@ function kpis(){
     kpi("セッション / 依頼", `${w.sessions}<small>/</small>${w.prompts}`) +
     (u.tokens ? kpi("トークン", tok(u.tokens)) + kpi("目安コスト", usd(u.cost).replace("$","<small>$</small>")) : "") +
     (u.credits ? kpi("Kiro クレジット", `${Number(u.credits.toFixed(2)).toLocaleString("ja-JP")}<small>cr</small>`) : "") +
+    (() => { const {ws, we} = period(), n = limitHits(ws, we).length; return n ? kpi("利用上限に当たった", `<span style="color:var(--warn)">${n}</span><small>回</small>`) : ""; })() +
     (w.git && w.git.commits ? kpi("コミット（うち AI）", `${w.git.commits}<small>（${w.git.ai}）</small>`) :
      w.outputs && w.outputs.commits ? kpi("AI のコミット", `${w.outputs.commits}<small>回</small>`) : "");
 }
@@ -705,11 +711,13 @@ function timeline(shown, inWeek, ws, we, todayKey){
     (META.git || []).forEach(c => { if (!(c.t >= ds && c.t < de && (!st.hidden.size || st.colorBy !== "project" || !st.hidden.has(c.project)))) return;
       const y = (c.t-ds)/3600*hh; let ln = glanes.findIndex(v => y - v >= 19); if (ln < 0){ ln = glanes.length; glanes.push(0); } glanes[ln] = y;
       html += `<button class="gc${c.ai ? " ai" : ""}${st.sel === "git:"+c.hash ? " sel" : ""}" data-c="${esc(c.hash)}" style="top:${y}px;--ln:${ln}" title="${esc(`${hm(c.t)} ${c.project}${c.branch ? " · "+c.branch : ""} · ${c.hash}\n${c.subject}\n${c.nFiles} ファイル +${c.added} −${c.removed}${c.ai ? " · AI が実行" : ""}`)}" aria-label="${esc(`コミット ${hm(c.t)} ${c.subject}`)}">${GIT_ICON}<span>${esc(c.hash.slice(0,7))}</span></button>`; });
+    limitHits(ds, de).filter(h => matches(h.s)).forEach(h => { html += `<button class="lim" data-id="${esc(h.s.id)}" style="top:${(h.t-ds)/3600*hh}px" title="${esc(`${hm(h.t)} 利用上限に当たりました（${h.s.title}）`)}" aria-label="${esc(`${hm(h.t)} 利用上限`)}">上限</button>`; });
     if (isToday && nowS >= ds && nowS < de) html += `<div class="nowline" style="top:${(nowS-ds)/3600*hh}px"></div>`;
     cols += `<div class="day${day.getDay()%6===0?" we":""}${isToday?" today":""}" style="height:${H}px">${html}</div>`;
   }
   T.innerHTML = `<div class="calscroll" style="--hh:${hh}px"><div class="calin"><div class="heads">${heads}</div><div class="cgrid"><div class="hours" style="height:${H}px">${hours}</div>${cols}</div></div></div>`;
   if (top != null) T.querySelector(".calscroll").scrollTop = top;
+  T.querySelectorAll(".lim").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); });
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });
   T.querySelectorAll(".run").forEach(el => { const bk = runs[+el.dataset.r];
     el.onclick = e => { e.stopPropagation(); select(bk.s.id); };
@@ -745,14 +753,17 @@ function summary(){
       <div class="cap">どれかのセッションが動いていた時間${hb("active")}${d==null?"":`<span class="delta">先${unit}より ${d>=0?"+":"−"}${dur(Math.abs(d))}</span>`}</div>${hint("active")}</div>
     <div class="stats">
       ${stat("集中ブロック（60分以上）", `${w.focus.length}<small>回</small>`, longest ? `最長 ${dur(longest)}` : "まとまった時間はなし", "focus")}
-      ${stat("1日の切り替え", `${w.switchesAvg}<small>回</small>`, `最大 ${w.switchesMax} 回`, "switches")}
-      ${stat("並列で動かした時間", dur(w.parallel,true), `最大 ${w.maxConc} 本同時`, "parallel")}
-      ${stat("待たせ時間（中央値）", secs(w.waitMedian).replace(/(分|秒)/g,"<small>$1</small>"), `n=${w.waitCount}・90%点 ${secs(w.waitP90)}・短いほど良いとは限りません`, "wait")}
       ${stat("深夜（22〜6時）", dur(w.night,true), "", "night")}
       ${stat("週末", dur(w.weekend,true), "", "weekend")}
       ${stat("AIの延べ稼働", dur(w.ai,true), "並列ぶんも合計。人の削減時間ではありません", "ai")}
-      ${stat("言い直し・中断のあった依頼", pct(w.fixRate), `n=${w.prompts}・依頼文の言葉と中断から推定`, "fix")}
+      ${(() => { const {ws, we} = period(), H = limitHits(ws, we); return stat("利用上限に当たった", `${H.length}<small>回</small>`, H.length ? H.slice(-4).map(h => `${md(h.t)} ${hm(h.t)}`).join("・") + (H.length > 4 ? " など" : "") : "Claude Code の履歴から", "limits"); })()}
     </div>
+    <details class="moreS" id="moreS"${st.moreS ? " open" : ""}><summary>詳しい指標（推定を含む）</summary><div class="stats">
+      ${stat("言い直し・中断のあった依頼", pct(w.fixRate), `n=${w.prompts}・依頼文の言葉と中断から推定`, "fix")}
+      ${stat("1日の切り替え", `${w.switchesAvg}<small>回</small>`, `最大 ${w.switchesMax} 回`, "switches")}
+      ${stat("並列で動かした時間", dur(w.parallel,true), `最大 ${w.maxConc} 本同時`, "parallel")}
+      ${stat("待たせ時間（中央値）", secs(w.waitMedian).replace(/(分|秒)/g,"<small>$1</small>"), `n=${w.waitCount}・90%点 ${secs(w.waitP90)}・短いほど良いとは限りません`, "wait")}
+    </div></details>
     ${foot()}</section>
   <section class="panel">${ph(5, "AI の使い方", "使った量・費用・エージェント")}
     ${usageChart(w, M)}
@@ -775,9 +786,11 @@ function summary(){
   R.querySelectorAll(".card,.pses,.pheavy,.fses").forEach(c => c.onclick = () => select(c.dataset.id));
   R.querySelectorAll("[data-goto]").forEach(b => b.onclick = () => { // 気づきから、元の指標へ移動して説明を開く
     const t = R.querySelector(`.panel:not(.fd) .hb[data-help="${b.dataset.goto}"]`) || R.querySelector(`.panel.${b.dataset.goto}`); if (!t) return;
+    const dt = t.closest("details"); if (dt && !dt.open){ dt.open = true; st.moreS = true; }
     t.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center"});
     if (t.classList.contains("hb") && t.getAttribute("aria-expanded") !== "true") t.click(); });
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
+  const ms = R.querySelector("#moreS"); if (ms) ms.ontoggle = () => { st.moreS = ms.open; };
   const ac = R.querySelector("#askcopy"); if (ac) ac.onclick = () => copy($("#askpre").textContent);
   R.querySelectorAll("#useBy button").forEach(b => b.onclick = () => { st.use = b.dataset.v; store.set("use", st.use); summary(); });
   bindCopy(R); bindHelp(R);
@@ -820,6 +833,7 @@ const HELP = {
   night: {n:"深夜", d:"22〜6 時の作業時間", c:"時間外にどれだけ作業していたか", x:"働きすぎかどうかの判定", a:"自分のペースの振り返りに使う"},
   weekend: {n:"週末", d:"土日の作業時間", c:"週末にどれだけ作業していたか", x:"働きすぎかどうかの判定", a:"自分のペースの振り返りに使う"},
   fix: {n:"言い直し・中断のあった依頼", d:"依頼文の表現（「違う」「やり直して」など）と中断から推定した割合", c:"最初の依頼が意図どおりに伝わらなかった割合の目安", x:"推定のため誤判定がある。原因も分からない", a:"高ければ、依頼文に前提・制約・完了条件を書き足す"},
+  limits: {n:"利用上限に当たった回数", d:"Claude Code の履歴に残った、利用上限（使用量の上限・レート制限）のエラーの回数と時刻。1 分以内に続いたものは 1 回", c:"どの時間帯・どの作業で上限に当たり、作業が止まったか", x:"上限までの残り。ほかのエージェントや、ブラウザ・アプリでの利用分", a:"重い作業を時間帯で分ける、軽いモデルに振り分ける、長い会話は区切って新しく始める"},
   friction: {n:"こじれたかもしれないセッション", d:"言い直し・中断・15 回以上の依頼が多いセッション", c:"手戻りが集中したセッション", x:"こじれた原因", a:"中身を開いて、依頼の仕方や作業の分け方を見直す"},
   share: {n:"プロジェクトの配分", d:"プロジェクトごとの作業時間の割合", c:"時間の配分", x:"配分の妥当さ", a:"想定と違えば、優先順位を見直す"},
   rhythm: {n:"日ごと・週ごとのリズム", d:"週表示では日ごと、月表示では週ごとの作業時間（うち深夜）", c:"作業量の波と偏り", x:"波の原因", a:"特定の日に偏っていれば、作業の割り振りを見直す"},
@@ -876,7 +890,8 @@ function askPrompt(w, pw, M){
     `- 並列で動かした時間: ${dur(w.parallel)}（最大 ${w.maxConc} 本同時）`,
     `- 待たせ時間（AI の応答から次の依頼まで）: 中央値 ${secs(w.waitMedian)}、90 パーセンタイル ${secs(w.waitP90)}（n=${w.waitCount}）`,
     `- 深夜（22〜6 時）: ${dur(w.night)}、週末: ${dur(w.weekend)}`,
-    `- 言い直し・中断のあった依頼: ${w.fixRate == null ? "不明" : w.fixRate + "%"}（n=${w.prompts}）`);
+    `- 言い直し・中断のあった依頼: ${w.fixRate == null ? "不明" : w.fixRate + "%"}（n=${w.prompts}）`,
+    `- 利用上限に当たった回数（Claude Code）: ${(() => { const {ws, we} = period(), H = limitHits(ws, we); return H.length ? `${H.length} 回（${H.map(h => `${md(h.t)} ${hm(h.t)}`).join("、")}）` : "0 回"; })()}`);
   if (u.tokens || u.credits){
     L.push("", "# AI の使用量");
     if (u.tokens) L.push(`- トークン: ${tok(u.tokens)}（うち出力 ${tok(u.out)}）`,
@@ -927,10 +942,15 @@ function askPrompt(w, pw, M){
   Object.values(HELP).forEach(h => L.push(`- ${h.n}: ${h.d}。言えること: ${h.c}。言えないこと: ${h.x}`));
   return L.join("\n");
 }
+/* 期間 [ws, we) に利用上限に当たった時刻と、そのセッション */
+function limitHits(ws, we){ const H = []; DATA.forEach(s => (s.limits || []).forEach(t => { if (t >= ws && t < we) H.push({t, s}); })); return H.sort((a,b) => a.t - b.t); }
 /* 気づきと、試せること：指標が決まった基準を超えたものを拾う（AI は使わない。判定ではなく、確かめる候補） */
 function findList(w, pw, unit){
   const F = [], u = w.usage || {}, o = w.outputs || {}, {ws, we} = period();
   const add = (k, score, see, why, rule, ids, act) => F.push({k, score, see, why, rule, ids: ids || [], act: act || HELP[k].a});
+  const LH = limitHits(ws, we);
+  if (LH.length)
+    add("limits", 40, `利用上限に ${LH.length} 回当たりました（${LH.slice(-3).map(h => `${md(h.t)} ${hm(h.t)}`).join("、")}${LH.length > 3 ? " など" : ""}）`, "上限に当たると、解除されるまで作業が止まります。直前の使い方に原因があることが多いです", "1 回以上", [...new Set(LH.map(h => h.s.id))].slice(-3));
   if (w.fixRate != null && w.prompts >= 10 && w.fixRate >= 20)
     add("fix", w.fixRate, `依頼の ${w.fixRate}% で、言い直しや中断がありました`, "最初の依頼が伝わらないと、やり直す分だけ時間とトークンを使います", "依頼 10 件以上で 20% 以上", w.friction.map(f => f.id));
   else if (w.friction.length)
@@ -1149,6 +1169,7 @@ function detail(s){
       <div><div class="k">依頼</div><div class="v">${s.nPrompts}<small>件</small></div></div>
       <div><div class="k">待たせ（中央値）</div><div class="v">${med==null?"—":secs(med).replace(/(分|秒)/g,"<small>$1</small>")}</div></div>
       <div><div class="k">言い直し・中断</div><div class="v">${s.corrections + s.interrupts}<small>回</small></div></div>
+      ${s.limits && s.limits.length ? `<div><div class="k">利用上限に当たった</div><div class="v" style="color:var(--warn)">${s.limits.length}<small>回</small></div><div class="k" style="margin-top:2px">${s.limits.map(hm).join("・")}</div></div>` : ""}
       ${s.source === "Claude Code" ? `<div><div class="k">目安コスト${s.costReported ? "（Claude Code の集計）" : ""}</div><div class="v">${usd(s.cost).replace("$","<small>$</small>")}</div></div>
       <div><div class="k">トークン</div><div class="v">${tok(allTok)}</div></div>
       ${s.outputs && (s.outputs.commits || s.outputs.prs) ? `<div><div class="k">コミット / PR</div><div class="v">${s.outputs.commits}<small>/</small>${s.outputs.prs}</div></div>` : ""}
@@ -1196,6 +1217,7 @@ function sessionPrompt(s, active, med){
     `- エージェント: ${s.source}`, `- プロジェクト: ${s.project}${s.branch ? `（ブランチ ${s.branch}）` : ""}`,
     `- 時間: ${md(s.start)} ${hm(s.start)}〜${hm(s.end)}、作業していた時間 ${dur(active)}`,
     `- 依頼: ${s.nPrompts} 件、言い直し ${s.corrections} 回、中断 ${s.interrupts} 回${med == null ? "" : `、待たせ時間の中央値 ${secs(med)}`}`];
+  if (s.limits && s.limits.length) L.push(`- 利用上限に当たった: ${s.limits.length} 回（${s.limits.map(hm).join("、")}）`);
   if (s.cost) L.push(`- 目安コスト: ${usd(s.cost)}`);
   if (s.credits) L.push(`- Kiro クレジット: ${s.credits}`);
   if (o.commits || o.prs) L.push(`- コミット ${o.commits} 回、PR ${o.prs} 件、変更した行 +${o.added} −${o.removed}`);
