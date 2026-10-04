@@ -386,12 +386,19 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .scrim{position:fixed;inset:0;z-index:20;background:rgba(10,12,16,.42);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s var(--ease)}
 :root[data-theme="dark"] .scrim{background:rgba(0,0,0,.62)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .scrim{background:rgba(0,0,0,.62)}}
-.drawer{position:fixed;top:50%;left:50%;z-index:21;width:min(720px,calc(100vw - 48px));max-height:min(88vh,960px);background:var(--surface);border:1px solid var(--rule-2);border-radius:18px;
+.drawer{position:fixed;top:50%;left:50%;z-index:21;width:min(760px,calc(100vw - 48px));max-height:min(92vh,1100px);background:var(--surface);border:1px solid var(--rule-2);border-radius:18px;
   box-shadow:0 40px 100px -20px rgba(0,0,0,.6);overflow:hidden;opacity:0;visibility:hidden;pointer-events:none;transform:translate(-50%,-48%) scale(.97);
   transition:transform .28s var(--ease),opacity .2s var(--ease),visibility 0s .28s;display:flex;flex-direction:column}
 body.open .scrim{opacity:1;pointer-events:auto}
 body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:translate(-50%,-50%);transition:transform .28s var(--ease),opacity .2s var(--ease)}
 .drawer .mini{grid-template-columns:repeat(3,minmax(0,1fr))}
+/* 広い画面では、左に「何をしたか」（数値・依頼の流れ）、右に「何が残ったか」（コミット・PR・ファイル） */
+@media (min-width:1100px){
+  .drawer{width:min(1080px,calc(100vw - 48px))}
+  .drawer .dcols{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:0 40px;margin-top:18px}
+  .drawer .dcol>:first-child{margin-top:0}
+  .drawer .dcol+.dcol{border-left:1px solid var(--rule);padding-left:40px}
+}
 .drawer .dh{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px 28px;border-bottom:1px solid var(--rule)}
 .drawer .db{overflow:auto;padding:22px 28px 48px;flex:1;scrollbar-width:thin;font-size:14px}
 /* パネルの中は読み物なので、一覧より一回り大きく・濃く */
@@ -1106,18 +1113,20 @@ function commitDetail(c){
     <h2>${esc(c.subject)}</h2>
     <div class="muted" style="font-variant-numeric:tabular-nums">${md(c.t)} ${hm(c.t)}</div>
     <div class="meta"><span>${esc(c.project)}</span>${c.branch ? `<span>${esc(c.branch)}</span>` : ""}${ext(c.url, `<span class="mono">${esc(c.hash.slice(0,7))}</span>`)}</div>
+    <div class="dcols"><div class="dcol">
     <div class="mini">
       <div><div class="k">変更したファイル</div><div class="v">${c.nFiles}<small>件</small></div></div>
       <div><div class="k">追加</div><div class="v"><small>+</small>${c.added}<small>行</small></div></div>
       <div><div class="k">削除</div><div class="v"><small>−</small>${c.removed}<small>行</small></div></div>
     </div>
     ${c.body ? `<h3>本文</h3><p class="gbody">${esc(c.body)}</p>` : ""}
-    <h3>変更したファイル · ${c.nFiles}</h3>
-    ${c.files.length ? fileRows(c.files, c.nFiles) : '<p class="none">なし</p>'}
     ${ses ? `<h3>${c.session ? "このコミットを作ったセッション" : "この時間に動いていたセッション"}</h3><button class="card" data-id="${esc(ses.id)}"><span class="ti">${esc(ses.title)}</span><span class="me">${md(ses.start)} ${hm(ses.start)}–${hm(ses.end)} · ${esc(ses.source)}</span></button>` : ""}
     ${c.url ? `<p style="margin-top:14px">${ext(c.url, "リモートでこのコミットを開く ↗", "pill")}</p>` : ""}
+    </div><div class="dcol">
+    <h3>変更したファイル · ${c.nFiles}</h3>
+    ${c.files.length ? fileRows(c.files, c.nFiles) : '<p class="none">なし</p>'}
     <h3>リポジトリ</h3><div class="code"><code>${esc(`git -C ${c.repo} show ${c.hash}`)}</code><button class="copy" data-copy="${esc(`git -C ${c.repo} show ${c.hash}`)}">コピー</button></div>
-  </div>`;
+  </div></div></div>`;
   P.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.id));
   bindCopy(P);
 }
@@ -1134,6 +1143,7 @@ function detail(s){
     <h2>${esc(s.title)}</h2>
     <div class="muted" style="font-variant-numeric:tabular-nums">${md(s.start)} ${hm(s.start)} 〜 ${sameDay ? "" : md(s.end)+" "}${hm(s.end)}</div>
     <div class="meta"><span>${esc(s.project)}</span>${s.branch?`<span>${esc(s.branch)}</span>`:""}</div>
+    <div class="dcols"><div class="dcol">
     <div class="mini">
       <div><div class="k">作業していた時間</div><div class="v">${dur(active,true)}</div></div>
       <div><div class="k">依頼</div><div class="v">${s.nPrompts}<small>件</small></div></div>
@@ -1146,7 +1156,6 @@ function detail(s){
     </div>
     <div class="sact"><button class="pill" id="sreview">このセッションを AI と振り返る（プロンプトをコピー）</button>
       <span>依頼の流れと数値から、依頼の仕方や作業の分け方の改善点を聞きます。依頼文を含むので、送る前に確認してください。</span></div>
-    ${s.models.length ? `<h3>使ったモデル</h3><div class="chips">${s.models.map(([m,n])=>`<span class="mono">${esc(m)}<b>${n}</b></span>`).join("")}</div>` : ""}
     <h3>依頼の流れ</h3>
     ${s.prompts.length ? `<ol class="tl">${s.prompts.slice(0,30).map(p=>`<li class="${/違う|ちがう|そうじゃな|やり直|戻して|元に戻|取り消|じゃなくて|wrong|revert|undo/i.test(p.text)?"fix":""}"><time>${p.t?hm(p.t):""}</time><p>${esc(p.text.length>220?p.text.slice(0,220)+"…":p.text)}</p></li>`).join("")}</ol>${s.prompts.length>30?`<p class="more">ほか ${s.nPrompts-30} 件</p>`:""}` : `<p class="none">依頼の記録はありません。${s.source === "Kiro Crew" ? "Kiro Crew は会話の記録を一定期間で消すため、使用量の記録だけが残っている会話です。" : ""}</p>`}
     ${s.subagents.length ? `<h3>サブエージェント · ${s.subagents.length}</h3>${s.subagents.map(a=>{
@@ -1156,16 +1165,18 @@ function detail(s){
           <div class="lane"><span style="left:${l}%;width:${Math.min(w,100-l)}%"></span></div>
           <div class="ft">${a.start?`<span>${hm(a.start)}${a.end?"–"+hm(a.end):""}</span>`:""}${a.start&&a.end?`<span>${dur((a.end-a.start)/60)}</span>`:""}${tt?`<span>${tok(tt)} トークン</span>`:t.reportedTokens?`<span>${tok(t.reportedTokens)} トークン（報告値）</span>`:""}${t.cost?`<span>${usd(t.cost)}</span>`:""}${a.model?`<span>${esc(a.model)}</span>`:""}${a.tools?`<span>ツール ${a.tools} 回</span>`:""}</div></div>`; }).join("")}` : ""}
     ${s.native && s.native.length ? `<h3>${esc(s.source)} の参考指標</h3>${nativeRows(s.native)}<p class="note">このエージェントが記録している数字です。ほかのエージェントとは定義が違います。</p>` : ""}
+    </div><div class="dcol">
     ${sessionCommits(s)}
-    <h3>使ったツール</h3>
-    ${s.tools.length ? s.tools.map(([k,v])=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track2"><span style="width:${v/maxT*100}%"></span></span><span class="n">${v}</span></div>`).join("") : '<p class="none">記録なし</p>'}
     ${s.prs && s.prs.length ? `<h3>作った PR · ${s.prs.length}</h3><ul class="files">${s.prs.map(u => `<li title="${esc(u)}"><span>${ext(u, esc(u.replace(/^https?:\/\//, "")))}</span></li>`).join("")}</ul>` : ""}
     <h3>変更したファイル · ${s.nFiles}</h3>
     ${s.files.length ? `<ul class="files">${s.files.map(f=>{ const u = fileLink(s, f); return `<li title="${esc(f)}"><span>${u ? ext(u, esc(f)) : esc(f)}</span></li>`; }).join("")}</ul>` : '<p class="none">なし</p>'}
     ${s.files.length && commitsOf(s).some(c => c.url) ? '<p class="note">リンクは、このセッションの間のコミットでの、そのファイルを開きます。</p>' : ""}
+    ${s.models.length ? `<h3>使ったモデル</h3><div class="chips">${s.models.map(([m,n])=>`<span class="mono">${esc(m)}<b>${n}</b></span>`).join("")}</div>` : ""}
+    <h3>使ったツール</h3>
+    ${s.tools.length ? s.tools.map(([k,v])=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track2"><span style="width:${v/maxT*100}%"></span></span><span class="n">${v}</span></div>`).join("") : '<p class="none">記録なし</p>'}
     ${s.file ? `<h3>履歴ファイル</h3><div class="code"><code>${esc(s.file)}</code><a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" target="_blank" rel="noopener">開く</a><button class="copy" data-copy="${esc(s.file)}">コピー</button></div>` : ""}
     ${s.resume ? `<h3>続きから再開</h3><div class="code"><code>${esc(s.resume)}</code><button class="copy" data-copy="${esc(s.resume)}">コピー</button></div>` : ""}
-  </div>`;
+  </div></div></div>`;
   P.querySelectorAll("[data-git]").forEach(b => b.onclick = () => select("git:" + b.dataset.git));
   P.querySelector("#sreview").onclick = () => copy(sessionPrompt(s, active, med));
   bindCopy(P);
