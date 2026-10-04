@@ -25,7 +25,7 @@ func creditsOf(list any, unitKey, valueKey string) float64 {
 		if !ok {
 			unit = "credit"
 		}
-		if strings.HasPrefix(unit, "credit") {
+		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(unit)), "credit") { // "credit"・"Credits" など、表記の揺れを許す
 			used += core.NumOr0(m[valueKey])
 		}
 	}
