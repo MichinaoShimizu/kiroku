@@ -2,6 +2,18 @@
 
 Notable changes to kiroku. Each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- The weekly and monthly report draft opens as text you can read before copying
+- Findings are just "Findings": the "Try this" box on each card is gone. What you can try for each metric is still in its "?" explanation, which "See … →" opens
+
+### Fixed
+
+- On phones, the page was wider than the screen, so it could be zoomed out and the session detail could open off screen
+- Finding cards grew wider than the screen when a session name was long, and project cards overflowed on 320px-wide screens
+
 ## v0.1.6 - 2026-10-04
 
 ### Added

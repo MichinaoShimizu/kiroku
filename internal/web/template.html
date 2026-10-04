@@ -93,7 +93,7 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .kpi.alert .v{color:var(--warn)}
 
 /* ── legend ─────────────────────────────────────────────── */
-.legend{display:flex;align-items:center;gap:6px;padding:0 0 12px;overflow-x:auto;scrollbar-width:none}
+.legend{position:relative;display:flex;align-items:center;gap:6px;padding:0 0 12px;overflow-x:auto;scrollbar-width:none} /* 読み上げ用の .sr（absolute）が横スクロールの外へはみ出してページを広げないように */
 .legend::-webkit-scrollbar{display:none}
 .legend .lab{font-size:11px;letter-spacing:.08em;color:var(--ink-3);margin-right:4px;white-space:nowrap}
 .legend .lab small{letter-spacing:0;font-size:10px;margin-left:2px}
@@ -166,14 +166,12 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .ocgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:24px;margin-top:8px}
 .panel.fd{grid-column:1/-1}
 .fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;margin-top:10px}
-.fcard{position:relative;display:flex;flex-direction:column;gap:8px;padding:14px 16px 12px;border:1px solid var(--rule);border-radius:12px;background:var(--surface);border-top:3px solid var(--acc)}
+.fcard{position:relative;min-width:0;overflow-wrap:anywhere;display:flex;flex-direction:column;gap:8px;padding:14px 16px 12px;border:1px solid var(--rule);border-radius:12px;background:var(--surface);border-top:3px solid var(--acc)}
 .fno{position:absolute;top:12px;right:14px;font:700 11px/1 var(--sans);color:var(--ink-3)}
 .fcard p{margin:0}
 .fcard .see{font-size:14px;font-weight:650;line-height:1.55;padding-right:18px}
 .fcard .why{font-size:12px;color:var(--ink-2);line-height:1.65}
-.fcard .act{display:flex;flex-direction:column;gap:3px;padding:9px 11px;border-radius:8px;background:var(--acc-soft);font-size:12.5px;line-height:1.6}
-.fcard .act b{font-size:10.5px;letter-spacing:.06em;color:var(--acc-ink)}
-.fss{display:flex;flex-direction:column;gap:2px}
+.fss{display:flex;flex-direction:column;gap:2px;min-width:0}
 .fses{display:flex;align-items:center;gap:7px;font-size:12px;text-align:left;padding:3px 0;min-width:0}
 .fses i{width:7px;height:7px;border-radius:50%;background:var(--c);flex:none}
 .fses small{color:var(--ink-3);font-size:11px;flex:none}
@@ -189,7 +187,6 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .spark circle{fill:var(--acc)}
 .spark small{font-size:10.5px;line-height:1.4}
 .spark small b{color:var(--ink-2);font-size:11.5px;font-variant-numeric:tabular-nums;margin-right:2px}
-.fcard .act{position:relative}
 .fmore summary{cursor:pointer;font-size:12.5px;color:var(--ink-2)}
 .fok{font-size:13px;color:var(--ink-2);margin-top:8px}
 .sact{display:flex;flex-direction:column;gap:6px;margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--acc-soft)}
@@ -219,7 +216,7 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .shtab th:first-child,.shtab td:first-child{text-align:left;max-width:0;width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .shtab td:first-child i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c);margin-right:6px}
 .shtab tr:last-child td{border-bottom:0}
-.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px;margin-top:12px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,310px),1fr));gap:12px;margin-top:12px}
 .pcard{border:1px solid var(--rule);border-radius:14px;padding:14px 16px 12px;display:flex;flex-direction:column;gap:10px;min-width:0;
   background:linear-gradient(180deg,color-mix(in oklab,var(--c) 7%,var(--surface)),var(--surface) 70px)}
 .pcard .hd{display:flex;align-items:center;gap:8px;min-width:0}
@@ -300,6 +297,7 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .rvhead h2{font:700 22px/1.2 var(--sans);letter-spacing:-.02em;margin:0}
 .rvhead p{margin:0;color:var(--ink-3);font-size:12.5px}
 .rvhead .pill{margin-left:auto;align-self:center}
+.rptbox{margin-bottom:16px}
 .rvhead .rpt{color:var(--acc-ink);border-color:color-mix(in oklab,var(--acc) 35%,var(--rule-2));font-weight:600}
 .rvgrid.srgrid{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
 #review{scroll-margin-top:64px}
@@ -853,10 +851,13 @@ function tipMove(e){ const t = $("#tip"), w = t.offsetWidth, h = t.offsetHeight;
   t.style.left = x+"px"; t.style.top = y+"px"; }
 function tipOff(){ $("#tip").classList.remove("on"); }
 
-/* ── 週次・月次サマリー：① 気づきと試せること ② プロジェクト別 ③ コストと成果 ④ 時間 ⑤ AI ⑥ かたち ⑦ 改善案を聞く ── */
+/* ── 週次・月次サマリー：① 気づき ② プロジェクト別 ③ コストと成果 ④ 時間 ⑤ AI ⑥ かたち ⑦ 改善案を聞く ── */
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
-  const head = `<div class="rvhead"><h2>${M ? tr("月次サマリー", "Monthly summary") : tr("週次サマリー", "Weekly summary")}</h2><p>${tr("自分の使い方を振り返るための目安です。人と比べたり、評価に使ったりするための数字ではありません。", "Rough figures for reflecting on how you work. They are not for comparing people or for evaluations.")}</p>${w ? `<button class="pill rpt" id="rptcopy" title="${tr("プロジェクトごとに、やったこと・コミット・PR を Markdown でコピーします", "Copies what you did, commits and pull requests for each project as Markdown")}">${tr(`${M ? "月報" : "週報"}の下書きをコピー`, `Copy ${M ? "monthly" : "weekly"} report draft`)}</button>` : ""}</div>`;
+  const head = `<div class="rvhead"><h2>${M ? tr("月次サマリー", "Monthly summary") : tr("週次サマリー", "Weekly summary")}</h2><p>${tr("自分の使い方を振り返るための目安です。人と比べたり、評価に使ったりするための数字ではありません。", "Rough figures for reflecting on how you work. They are not for comparing people or for evaluations.")}</p>${w ? `<button class="pill rpt" id="rpttog" aria-expanded="${!!st.rpt}" aria-controls="rptbox">${tr(`${M ? "月報" : "週報"}の下書き`, `${M ? "Monthly" : "Weekly"} report draft`)}</button>` : ""}</div>${w ? `<section class="panel rptbox" id="rptbox"${st.rpt ? "" : " hidden"} aria-label="${tr(`${M ? "月報" : "週報"}の下書き`, `${M ? "Monthly" : "Weekly"} report draft`)}">
+    <div class="askbar"><button class="pill" id="rptcopy">${tr("コピー", "Copy")}</button><button class="pill" id="rptclose">${tr("閉じる", "Close")}</button>
+      <span class="muted" style="font-size:11.5px">${tr("プロジェクトごとに、やったこと・コミット・PR をまとめた Markdown です。セッション名は依頼文の冒頭なので、直してから貼ってください。", "Markdown with what you did, commits and pull requests for each project. Session names are the start of your prompts, so edit them before pasting.")}</span></div>
+    <pre class="askpre" id="rptpre">${esc(reportText(w, M))}</pre></section>` : ""}`;
   if (!w){ R.innerHTML = `${head}<div class="rvgrid"><div class="panel"><p class="none">${tr(`この${unit}の記録はありません。← → で移動できます。`, `No records ${uThis(unit)}. Use ← → to move.`)}</p>${foot()}</div></div>`; bindCopy(R); return; }
   const d = pw ? w.active - pw.active : null;
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
@@ -913,7 +914,9 @@ function summary(){
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
   const ko = R.querySelector("#keepoff"); if (ko) ko.onclick = () => { store.set("keepNoticeOff", true); summary(); };
   const ms = R.querySelector("#moreS"); if (ms) ms.ontoggle = () => { st.moreS = ms.open; };
-  const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy(reportText(w, M), tr("コピーしました。セッション名は依頼文の冒頭なので、直してから貼ってください", "Copied. Session names are the start of your prompts, so edit them before pasting"), 4500);
+  const rt = R.querySelector("#rpttog"), rb = R.querySelector("#rptbox"), rpt = open => { st.rpt = open; rb.hidden = !open; rt.setAttribute("aria-expanded", open); if (open) rb.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest"}); else rt.focus(); };
+  if (rt && rb){ rt.onclick = () => rpt(!st.rpt); R.querySelector("#rptclose").onclick = () => rpt(false); }
+  const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy($("#rptpre").textContent, tr("コピーしました。セッション名は依頼文の冒頭なので、直してから貼ってください", "Copied. Session names are the start of your prompts, so edit them before pasting"), 4500);
 
   const ac = R.querySelector("#askcopy"); if (ac) ac.onclick = () => copy($("#askpre").textContent);
   R.querySelectorAll("#useBy button").forEach(b => b.onclick = () => { st.use = b.dataset.v; store.set("use", st.use); summary(); });
@@ -971,7 +974,7 @@ function projectPanel(w, ph, unit){
 }
 /* 指標の読み方：定義・言えること・言えないこと・打てる手。画面の「?」と、改善案プロンプトの前提に使う */
 const HELP = {
-  findings: {n:"気づきと、試せること", d:"各指標が決まった基準を超えたものを、優先度の高い順に 3 件まで（残りは折りたたみ）", c:"どの指標から見直すとよさそうか", x:"良し悪しの判定。基準は一律の目安で、使い方によっては当てはまらない", a:"1 つ選んで次の期間に試し、同じ指標で変化を確かめる"},
+  findings: {n:"気づき", d:"各指標が決まった基準を超えたものを、優先度の高い順に 3 件まで（残りは折りたたみ）", c:"どの指標から見直すとよさそうか", x:"良し悪しの判定。基準は一律の目安で、使い方によっては当てはまらない", a:"1 つ選んで次の期間に試し、同じ指標で変化を確かめる"},
   projects: {n:"プロジェクト別", d:"プロジェクトごとの作業時間・使用量・中心のモデル・重いセッション。同時に動いていた時間は按分", c:"時間と AI をどのプロジェクトに配分したか", x:"プロジェクトの重要度や成果", a:"想定と配分がずれていれば、使い方や優先順位を見直す"},
   active: {n:"作業していた時間", d:"いずれかのセッションが動いていた時間（重なりは 1 回として計算）", c:"AI と一緒に作業していた時間の総量", x:"人が集中していたか。放置していた時間も含む", a:"前の期間との増減で、AI に頼る割合の変化をつかむ"},
   ai: {n:"AI の延べ稼働", d:"並列で動いた分も合算したセッションの稼働時間", c:"AI をどれだけ働かせたか。作業していた時間との差は並列の度合い", x:"人が削減できた時間や生産性", a:"作業していた時間とほぼ同じなら、待ち時間に別の作業を並行させる余地がある"},
@@ -1009,7 +1012,7 @@ const HELP = {
 };
 /* HELP の英語版。キーは HELP と同じ（help_test.go で確かめる）。書式は HELP と変えてある（TestHelpMatchesGuide は HELP だけを docs/guide.md と照合する） */
 const HELP_EN = {
-  findings: {n: "Findings and things to try", d: "Metrics that crossed a fixed threshold, up to 3 in priority order (the rest are collapsed)", c: "Which metric is worth reviewing first", x: "Whether something is good or bad. Thresholds are generic and may not fit how you work", a: "Pick one, try it next period, and check the change with the same metric"},
+  findings: {n: "Findings", d: "Metrics that crossed a fixed threshold, up to 3 in priority order (the rest are collapsed)", c: "Which metric is worth reviewing first", x: "Whether something is good or bad. Thresholds are generic and may not fit how you work", a: "Pick one, try it next period, and check the change with the same metric"},
   projects: {n: "By project", d: "Time, usage, main models and heaviest session per project. Time when several projects ran at once is split between them", c: "How you divided time and AI across projects", x: "How important or successful a project was", a: "If the split differs from what you intended, revisit how you work or your priorities"},
   active: {n: "Active time", d: "Time when any session was running (overlaps count once)", c: "Total time you worked together with AI", x: "Whether you were focused. Includes time you left a session idle", a: "Compare with the previous period to see how much more or less you rely on AI"},
   ai: {n: "Total AI run time", d: "Session run time added up, including sessions running in parallel", c: "How much work you gave to AI. The gap from active time shows how much ran in parallel", x: "Time saved or productivity", a: "If it is close to active time, you could do other work while waiting"},
@@ -1178,7 +1181,6 @@ function periodBack(i){ // 表示中の期間から i 個前の期間
 }
 function periodLabel(mode, k){ const [y, m, d] = k.split("-").map(Number); // 期間の名前（"2026-05" か "2026-05-04"）
   return mode === "month" ? `${y}/${m}` : tr(`${m}/${d} の週`, `week of ${m}/${d}`); }
-const actText = k => k === "night" ? tr("意図したものでなければ、終える時刻を先に決めておく。長い作業は日中に AI へ任せる", "If it wasn't intended, decide on a stop time in advance. Hand long tasks to AI during the day") : H()[k] ? H()[k].a : "";
 function metricAt(k, p){ if (!MET[k] || !p.S) return null; const v = MET[k].f(p.S, p.ws, p.we); return v == null || Number.isNaN(v) ? null : v; }
 function spark(k){ // 8 期間の推移（記録のない期間は飛ばす）
   if (!MET[k]) return "";
@@ -1189,10 +1191,10 @@ function spark(k){ // 8 期間の推移（記録のない期間は飛ばす）
   const txt = tr(`${st.mode === "month" ? "8 か月" : "8 週"}の推移：${pts.map(p => `${p.l} ${fmtM(k, p.v)}`).join("、")}`, `${st.mode === "month" ? "8-month" : "8-week"} trend: ${pts.map(p => `${p.l} ${fmtM(k, p.v)}`).join(", ")}`);
   return `<span class="spark" title="${esc(pts.map(p => `${p.l}: ${fmtM(k, p.v)}`).join("\n"))}"><span class="sr">${esc(txt)}</span><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true"><polyline points="${line}"/>${pts[7].v != null ? `<circle cx="${x(7)}" cy="${y(pts[7].v)}" r="2.6"/>` : ""}</svg><small aria-hidden="true"><b>${fmtM(k, pts[7].v)}</b>${tr(`（${st.mode === "month" ? "8 か月" : "8 週"}で ${fmtM(k, lo)}〜${fmtM(k, hi)}・${MET[k].low ? "下がるほど" : "上がるほど"}望ましい）`, ` (${fmtM(k, lo)}–${fmtM(k, hi)} over ${st.mode === "month" ? "8 months" : "8 weeks"} · ${MET[k].low ? "lower" : "higher"} is better)`)}</small></span>`;
 }
-/* 気づきと、試せること：指標が決まった基準を超えたものを拾う（AI は使わない。判定ではなく、確かめる候補） */
+/* 気づき：指標が決まった基準を超えたものを拾う（AI は使わない。判定ではなく、確かめる候補） */
 function findList(w, pw, unit){
   const F = [], u = w.usage || {}, o = w.outputs || {}, {ws, we} = period();
-  const add = (k, score, see, why, rule, ids) => F.push({k, score, see, why, rule, ids: ids || [], act: actText(k)});
+  const add = (k, score, see, why, rule, ids) => F.push({k, score, see, why, rule, ids: ids || []});
   const LH = limitHits(ws, we);
   if (LH.length)
     add("limits", 40, tr(`利用上限に ${LH.length} 回当たりました（${LH.slice(-3).map(h => `${md(h.t)} ${hm(h.t)}`).join("、")}${LH.length > 3 ? " など" : ""}）`, `Hit the usage limit ${LH.length === 1 ? "once" : LH.length + " times"} (${LH.slice(-3).map(h => `${md(h.t)} ${hm(h.t)}`).join(", ")}${LH.length > 3 ? ", …" : ""})`), tr("上限に当たると、解除されるまで作業が止まります。直前の使い方に原因があることが多いです", "Hitting a limit stops your work until it resets. The cause is often in how you worked just before"), tr("1 回以上", "1 or more"), [...new Set(LH.map(h => h.s.id))].slice(-3));
@@ -1235,15 +1237,14 @@ function findPanel(w, pw, unit, ph){
       <div class="fno">${i+1}</div>
       <p class="see">${f.see}</p><p class="why">${esc(f.why)}</p>
       ${spark(f.k)}
-      <div class="act"><b>${tr("試せること", "Try this")}</b><span>${esc(f.act)}</span></div>
       ${f.ids.length ? `<div class="fss">${ses(f.ids)}</div>` : ""}
       <div class="ff"><button class="flink" data-goto="${GOTO[f.k] || f.k}">${tr(`「${esc(H()[GOTO[f.k] || f.k].n)}」を見る →`, `See "${esc(H()[GOTO[f.k] || f.k].n)}" →`)}</button><span title="${tr("この気づきを出す基準", "The threshold for this finding")}">${tr("基準：", "Threshold: ")}${esc(f.rule)}</span></div></article>`;
   const top = F.slice(0, 3), rest = F.slice(3);
-  return `<section class="panel fd">${ph(1, tr("気づきと、試せること", "Findings and things to try"), tr(`この${unit}の数値から、見直すとよさそうな点`, `What may be worth revisiting, based on ${uThis(unit)}'s numbers`), "findings")}
+  return `<section class="panel fd">${ph(1, tr("気づき", "Findings"), tr(`この${unit}の数値から、見直すとよさそうな点`, `What may be worth revisiting, based on ${uThis(unit)}'s numbers`), "findings")}
     ${F.length ? `<div class="fgrid">${top.map(card).join("")}</div>
       ${rest.length ? `<details class="fmore"><summary>${tr(`ほかの気づき（${rest.length} 件）`, `More findings (${rest.length})`)}</summary><div class="fgrid">${rest.map((f,i) => card(f, i+3)).join("")}</div></details>` : ""}`
       : `<p class="fok">${tr(`決めた基準を超えた指標はありませんでした。下のプロジェクト別やコストと成果で、先${unit}との違いを確かめられます。`, `No metric crossed a threshold. See By project and Cost and outputs below for changes since ${uLast(unit)}.`)}</p>`}
-    <p class="note">${tr(`基準は一律の目安で、良し悪しの判定ではありません。1 つ選んで次の${unit}に試し、同じ指標で変化を確かめてください。もっと掘り下げるなら`, `Thresholds are generic guides, not verdicts. Pick one, try it ${uNext(unit)}, and check the change with the same metric. To dig deeper, use`)} <button class="flink" data-goto="ask">${tr("⑦ AI に改善案を聞く", "⑦ Ask AI for suggestions")}</button></p></section>`;
+    <p class="note">${tr(`基準は一律の目安で、良し悪しの判定ではありません。「〜を見る」で元の指標と打てる手を開けます。もっと掘り下げるなら`, `Thresholds are generic guides, not verdicts. "See … →" opens the original metric and what you can try. To dig deeper, use`)} <button class="flink" data-goto="ask">${tr("⑦ AI に改善案を聞く", "⑦ Ask AI for suggestions")}</button></p></section>`;
 
 }
 /* 全期間の検索結果：どこに一致したかを抜き出して並べる。押すとその週を開いて詳細を出す */
