@@ -14,7 +14,7 @@ const envs = [
   { name: "en 1440", locale: "en-US", viewport: { width: 1440, height: 900 } },
   { name: "ja 1000", locale: "ja-JP", viewport: { width: 1000, height: 800 } },
   { name: "ja 390 スマホ", locale: "ja-JP", viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
-  { name: "en 360 スマホ", locale: "en-US", viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: true }, // 英語は文言が長く、はみ出しやすい
+  { name: "en 320 スマホ", locale: "en-US", viewport: { width: 320, height: 680 }, isMobile: true, hasTouch: true }, // 英語は文言が長く、いちばん狭い画面ではみ出しやすい
 ];
 
 let failed = 0;
@@ -50,6 +50,7 @@ for (const env of envs) {
     check("セッションが読み込まれている", await p.evaluate("DATA.length") > 0);
     const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
     check("横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
+    check("ロゴが検索欄に隠れない", await p.evaluate(() => document.querySelector(".brand .word").getBoundingClientRect().right <= document.querySelector(".search").getBoundingClientRect().left));
   });
 
   await step("テーマ", async () => {
