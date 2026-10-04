@@ -63,7 +63,7 @@ kiroku が各エージェントの履歴をどこから、どう読んでいる�
 
 `Retainer` を実装したアダプターが、古い履歴を消す設定を返す。Claude Code は `settings.json` の `cleanupPeriodDays`（既定 30 日）を読む。Kiro Crew は `session.archive_retention_days` を返すが、日数は読めないので不明として出す。詳しくは [ガイドの「履歴の保存期間」](guide.md#履歴の保存期間)
 
-`kiroku archive` のコピー: `Keeper` を実装したアダプター（Claude Code と Kiro CLI の Crew の分）が、残す元の場所とコピーの場所を返す。オンなら読む前に `internal/archive.Sync` が、元の場所の `.jsonl` を同じ相対パスの `.jsonl.zst` に圧縮して残す（更新時刻が変わったものだけ）。読むときは、元のファイルがないコピーだけを足す（Claude Code は `<保存場所>/claude/<プロジェクト>/<会話 ID>.jsonl.zst` とサブエージェント、Crew は `<保存場所>/crew/sessions/archive/`）。元があれば元を読むので、二重には数えない
+`kiroku archive` のコピー: `Keeper` を実装したアダプター（Claude Code と Kiro CLI の Crew の分）が、残す元の場所とコピーの場所を返す。オンなら読む前に `internal/archive.Sync` が、元の場所の `.jsonl` を同じ相対パスの `.jsonl.zst` に圧縮して残す（更新時刻が変わったものだけ。元の場所がシンボリックリンクなら、たどった先を残す）。読むときは、元のファイルがないコピーだけを足す（Claude Code は `<保存場所>/claude/<プロジェクト>/<会話 ID>.jsonl.zst` とサブエージェント。会話が残っていても、消えたサブエージェントのファイルはコピーから足す。Crew は `<保存場所>/crew/sessions/archive/`）。元があれば元を読むので、二重には数えない
 
 ## クレジットとモデルの倍率
 

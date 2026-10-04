@@ -156,7 +156,16 @@ func (c *Claude) Keep() []Kept {
 func (c *Claude) Units() []Unit {
 	var out []Unit
 	for _, path := range glob(filepath.Join(c.Root, "*", "*.jsonl")) {
-		out = append(out, claudeUnit(path, ".jsonl"))
+		u := claudeUnit(path, ".jsonl")
+		if c.Archive != "" { // 再開した会話では、古いサブエージェントのファイルだけが消えていることがある。消えたものはコピーから読む
+			stem, proj := stemOf(path), filepath.Base(filepath.Dir(path))
+			for _, cp := range glob(filepath.Join(c.Archive, proj, stem, "subagents", "*.jsonl.zst")) {
+				if !isFile(filepath.Join(filepath.Dir(path), stem, "subagents", strings.TrimSuffix(filepath.Base(cp), ".zst"))) {
+					u.Files = append(u.Files, cp)
+				}
+			}
+		}
+		out = append(out, u)
 	}
 	if c.Archive != "" {
 		for _, path := range glob(filepath.Join(c.Archive, "*", "*.jsonl.zst")) {

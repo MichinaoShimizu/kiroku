@@ -69,7 +69,7 @@ func Disable(dir string) error {
 
 // Usage は保存したコピーの数と、圧縮後の大きさ（バイト）。
 func Usage(dir string) (files int, bytes int64) {
-	_ = filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+	_ = filepath.WalkDir(resolve(dir), func(p string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(p, ".zst") {
 			return nil
 		}
@@ -100,6 +100,7 @@ func Sync(src, dst string) (int, error) {
 	if st, err := os.Stat(src); err != nil || !st.IsDir() {
 		return 0, nil
 	}
+	src = resolve(src) // WalkDir は起点のシンボリックリンクをたどらない（~/.claude/projects がリンクでも中を残す）
 	n := 0
 	var first error
 	err := filepath.WalkDir(src, func(p string, d fs.DirEntry, err error) error {
@@ -133,6 +134,14 @@ func Sync(src, dst string) (int, error) {
 		first = err
 	}
 	return n, first
+}
+
+// resolve は、シンボリックリンクをたどった本当の場所（たどれなければそのまま）。
+func resolve(p string) string {
+	if r, err := filepath.EvalSymlinks(p); err == nil {
+		return r
+	}
+	return p
 }
 
 // compress は src を zstd で圧縮して dst に書く。途中で失敗しても前のコピーは残る（一時ファイルに書いてから置きかえる）。
