@@ -90,3 +90,18 @@ func TestClaudeLimits(t *testing.T) {
 		t.Errorf("利用上限 = %v, want 2 回（01:02 と 06:01）", got)
 	}
 }
+
+// 保存期間：settings.json に cleanupPeriodDays がなければ既定の 30 日（未設定）、あればその値。
+func TestClaudeRetention(t *testing.T) {
+	home := t.TempDir()
+	root := filepath.Join(home, "projects")
+	os.MkdirAll(root, 0o755)
+	c := &Claude{Root: root}
+	if r := c.Retention(); r.Days != 30 || r.Set || r.Setting != "cleanupPeriodDays" || r.Docs == "" {
+		t.Errorf("未設定 = %+v, want 30 日・未設定", r)
+	}
+	os.WriteFile(filepath.Join(home, "settings.json"), []byte(`{"cleanupPeriodDays": 3650}`), 0o644)
+	if r := c.Retention(); r.Days != 3650 || !r.Set {
+		t.Errorf("設定あり = %+v, want 3650 日・設定済み", r)
+	}
+}

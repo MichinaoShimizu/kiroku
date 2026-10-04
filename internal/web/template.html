@@ -209,6 +209,12 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .sact{display:flex;flex-direction:column;gap:6px;margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--acc-soft)}
 .sact .pill{align-self:flex-start;color:var(--acc-ink);border-color:color-mix(in oklab,var(--acc) 35%,var(--rule-2));font-weight:600}
 .sact span{font-size:11.5px;color:var(--ink-2);line-height:1.6}
+.keep{margin:0 0 16px;padding:14px 18px;border-radius:12px;border:1px solid color-mix(in oklab,var(--warn) 45%,var(--rule));background:color-mix(in oklab,var(--warn) 7%,var(--surface))}
+.keep b{display:block;font-size:14px;color:var(--warn);margin-bottom:4px}
+.keep p{margin:0;font-size:12.5px;line-height:1.7;color:var(--ink-2)}
+.keep code,.mlist code{font-size:11.5px;padding:0 4px;border-radius:4px;background:var(--surface-2)}
+.keep .ka{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.mlist .kw{color:var(--warn)}
 .moreS{margin-top:10px}
 .moreS summary{cursor:pointer;font-size:12.5px;color:var(--ink-2);padding:4px 0}
 .moreS .stats{margin-top:8px}
@@ -860,7 +866,7 @@ function summary(){
   const ph = (n, t, s, h) => `<div class="ph"><span class="no">${n}</span><b>${t}${hb(h)}</b><span>${s}</span></div>${hint(h)}`;
   const pct = v => v == null ? tr("不明", "Unknown") : `${v}<small>%</small>`;
   const times = n => tr(`${n}<small>回</small>`, `${n}`);
-  R.innerHTML = `${head}<div class="rvgrid">
+  R.innerHTML = `${head}${keepNotice()}<div class="rvgrid">
   ${findPanel(w, pw, unit, ph)}
   ${projectPanel(w, ph, unit)}
   ${outcomePanel(w, pw, unit, ph, stat)}
@@ -909,6 +915,7 @@ function summary(){
   R.querySelectorAll("[data-try]").forEach(b => b.onclick = () => { const f = findList(w, pw, unit).find(x => x.k === b.dataset.try), p = periodBack(0); if (!f) return;
     store.set("try", {k: f.k, act: f.act, mode: st.mode, start: p.key, label: p.label, base: metricAt(f.k, p)}); toast(tr("次の期間に、同じ指標で比べます", "Next period, you'll see the same metric compared")); summary(); });
   const ts = R.querySelector("#trystop"); if (ts) ts.onclick = () => { store.set("try", null); summary(); };
+  const ko = R.querySelector("#keepoff"); if (ko) ko.onclick = () => { store.set("keepNoticeOff", true); summary(); };
   const ms = R.querySelector("#moreS"); if (ms) ms.ontoggle = () => { st.moreS = ms.open; };
   const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy(reportText(w, M), tr("コピーしました。セッション名は依頼文の冒頭なので、直してから貼ってください", "Copied. Session names are the start of your prompts, so edit them before pasting"), 4500);
 
@@ -1369,9 +1376,26 @@ function rhythm(w, M){
     <div class="keyrow"><span><i></i>${tr("作業", "Active")}</span><span><i class="nt"></i>${tr("うち深夜", "Late night")}</span></div>`;
 }
 /* 計測の状態 */
+/* 履歴を自動で消すエージェント（既定のままの Claude Code など）を知らせ、公式ドキュメントへ案内する。閉じたら出さない */
+function keepNotice(){
+  if (store.get("keepNoticeOff", false)) return "";
+  const r = (META.report || []).find(r => r.n && r.retention && r.retention.days && !r.retention.set); if (!r) return "";
+  const k = r.retention, snippet = `"${k.setting}": 3650`;
+  return `<div class="keep" role="note"><b>${tr("過去の履歴が消えます", "Your older history will be deleted")}</b>
+    <p>${tr(`${esc(sn(r.name))} は、${k.days} 日より古い会話の記録を自動で消します（<code>${esc(k.setting)}</code> が既定値のまま）。消えた分は kiroku でも見られなくなり、元に戻せません。残すには、設定ファイル（<code>~/.claude/settings.json</code>）に <code>${esc(snippet)}</code> のように長い日数を設定してください。`,
+      `${esc(sn(r.name))} automatically deletes conversation history older than ${k.days} days (<code>${esc(k.setting)}</code> is at its default). Deleted history cannot be shown by kiroku and cannot be recovered. To keep it, set a long period such as <code>${esc(snippet)}</code> in your settings file (<code>~/.claude/settings.json</code>).`)}</p>
+    <div class="ka">${ext(k.docs, tr("公式ドキュメントで設定方法を見る ↗", "See how to set it in the official docs ↗"), "pill")}<button class="pill" data-copy="${esc(snippet)}">${tr("設定をコピー", "Copy setting")}</button><button class="pill" id="keepoff">${tr("閉じる", "Dismiss")}</button></div></div>`;
+}
+function keepRow(r){ // 計測の状態に添える：どこまでさかのぼれるか、いつ消えるか
+  const d = r.oldest ? new Date(r.oldest*1000) : null, o = d ? `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}` : "";
+  const k = r.retention, link = k && k.docs ? ` ${ext(k.docs, tr("公式ドキュメント ↗", "official docs ↗"))}` : "";
+  return (o ? tr(`・最も古い記録 ${o}`, ` · oldest record ${o}`) : "") +
+    (!k ? "" : k.days && !k.set ? `<br><span class="kw">${tr(`${k.days} 日より古い記録は自動で消えます（<code>${esc(k.setting)}</code> が既定値）`, `Records older than ${k.days} days are deleted automatically (<code>${esc(k.setting)}</code> is at its default)`)}${link}</span>`
+      : k.days ? `<br>${tr(`保存期間 ${k.days} 日（<code>${esc(k.setting)}</code>）`, `Kept for ${k.days} days (<code>${esc(k.setting)}</code>)`)}`
+      : `<br>${tr(`古い記録は一定期間で消えます（<code>${esc(k.setting)}</code>）`, `Older records are deleted after a period (<code>${esc(k.setting)}</code>)`)}${link}`); }
 function measure(w){
   const rows = META.report.map(r => { const dt = EN() && r.detailEn || r.detail;
-    return `<li class="${r.error?"warn":""}">${esc(sn(r.name))}: ${tr(`${r.n} セッション`, plural(r.n, "session"))}${dt?tr(`（${esc(dt)}）`, ` (${esc(dt)})`):""}${r.dup?tr(`（ほかの場所と同じ会話 ${r.dup} 件は数えていません）`, ` (${plural(r.dup, "duplicate conversation")} found elsewhere not counted)`):""}${r.error?tr(`（読めなかったファイルあり）`, ` (some files couldn't be read)`):""}</li>`; });
+    return `<li class="${r.error?"warn":""}">${esc(sn(r.name))}: ${tr(`${r.n} セッション`, plural(r.n, "session"))}${dt?tr(`（${esc(dt)}）`, ` (${esc(dt)})`):""}${r.dup?tr(`（ほかの場所と同じ会話 ${r.dup} 件は数えていません）`, ` (${plural(r.dup, "duplicate conversation")} found elsewhere not counted)`):""}${r.error?tr(`（読めなかったファイルあり）`, ` (some files couldn't be read)`):""}${keepRow(r)}</li>`; });
   if (w.usage && w.usage.unpriced) rows.push(`<li class="warn">${tr(`料金表にないモデルのトークン ${tok(w.usage.unpriced)} は目安コストに入っていません`, `${tok(w.usage.unpriced)} tokens from models not in the price table are not included in the estimated cost`)}</li>`);
   return `<h3>${tr("計測の状態", "Data sources")}</h3><ul class="mlist">${rows.join("")}</ul>`;
 }

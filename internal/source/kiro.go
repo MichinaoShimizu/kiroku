@@ -131,7 +131,16 @@ func (k *KiroCLI) DetailEn() string {
 	return strings.Join(parts, "; ")
 }
 
-func (k *KiroCLI) Name() string   { return "Kiro CLI" }
+func (k *KiroCLI) Name() string { return "Kiro CLI" }
+
+// Retention は Kiro Crew の会話の記録の保存期間（session.archive_retention_days）。Crew を使っているときだけ。
+// 日数は Crew の版や設定で変わり、kiroku からは読めないので 0（わからない）にする。
+func (k *KiroCLI) Retention() *Retention {
+	if k.CrewHome == "" || !isDir(k.CrewHome) {
+		return nil
+	}
+	return &Retention{Setting: "session.archive_retention_days", Docs: "https://kiro.dev/docs/crew/configuration/"}
+}
 func (k *KiroCLI) Family() string { return "kiro" }
 func (k *KiroCLI) Where() string  { return filepath.Join(k.Home, "sessions", "cli") }
 

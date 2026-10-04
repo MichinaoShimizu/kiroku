@@ -60,6 +60,8 @@ kiroku help     # list commands and options
 
 The HTML contains your prompts, file paths and commit messages as they are. Check its content before sharing it with anyone.
 
+Some agents delete old history on their own. Claude Code, for example, deletes conversations older than 30 days by default. See [History retention](docs/guide.en.md#history-retention) to keep more of your past.
+
 For how to read the view, metric definitions, which histories are read and all options, see [docs/guide.en.md](docs/guide.en.md). For development, see [docs/development.md](docs/development.md) (Japanese).
 
 ## Contributing

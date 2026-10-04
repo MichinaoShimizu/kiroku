@@ -27,13 +27,28 @@ type Detailer interface {
 
 // Report は計測の状態に出す、読み込みの結果。
 type Report struct {
-	Name     string  `json:"name"`
-	N        int     `json:"n"`
-	Dup      int     `json:"dup,omitempty"` // ほかの場所と同じ会話だったので数えなかった数
-	Detail   string  `json:"detail,omitempty"`
-	DetailEn string  `json:"detailEn,omitempty"` // 英語表示のときの Detail
-	Where    string  `json:"where"`
-	Error    *string `json:"error"`
+	Name     string     `json:"name"`
+	N        int        `json:"n"`
+	Dup      int        `json:"dup,omitempty"` // ほかの場所と同じ会話だったので数えなかった数
+	Detail   string     `json:"detail,omitempty"`
+	DetailEn string     `json:"detailEn,omitempty"` // 英語表示のときの Detail
+	Where    string     `json:"where"`
+	Error    *string    `json:"error"`
+	Oldest   float64    `json:"oldest,omitempty"`    // いちばん古い記録の時刻（UNIX 秒）。これより前は見られない
+	Keep     *Retention `json:"retention,omitempty"` // エージェントが履歴を自動で消す設定
+}
+
+// Retention は、エージェントが古い履歴を自動で消す設定。画面で、過去の分が見られなくなることを知らせ、公式ドキュメントへ案内する。
+type Retention struct {
+	Days    int    `json:"days"`    // 何日より古いものを消すか（0 はわからない）
+	Set     bool   `json:"set"`     // 利用者が設定しているか（false なら既定値のまま）
+	Setting string `json:"setting"` // 設定の名前
+	Docs    string `json:"docs"`    // 公式ドキュメント
+}
+
+// Retainer は、履歴を自動で消すエージェントの Source が実装する。
+type Retainer interface {
+	Retention() *Retention
 }
 
 // Options は読み込みの設定。

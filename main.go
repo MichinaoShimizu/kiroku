@@ -79,7 +79,7 @@ func collect(all []source.Source, want map[string]bool, gap int) ([]*core.Sessio
 		if !want[s.Family()] {
 			continue
 		}
-		n, dup := 0, 0
+		n, dup, oldest := 0, 0, 0.0
 		err := s.Load(func(b *core.Builder) {
 			if b.Key != "" {
 				if seen[b.Key] {
@@ -91,9 +91,15 @@ func collect(all []source.Source, want map[string]bool, gap int) ([]*core.Sessio
 			n++
 			if sess := b.Finish(gap); sess != nil {
 				data = append(data, sess)
+				if sess.Start > 0 && (oldest == 0 || sess.Start < oldest) {
+					oldest = sess.Start
+				}
 			}
 		})
-		r := source.Report{Name: s.Name(), N: n, Dup: dup, Where: s.Where()}
+		r := source.Report{Name: s.Name(), N: n, Dup: dup, Where: s.Where(), Oldest: oldest}
+		if k, ok := s.(source.Retainer); ok {
+			r.Keep = k.Retention()
+		}
 		if d, ok := s.(source.Detailer); ok {
 			r.Detail, r.DetailEn = d.Detail(), d.DetailEn()
 		}

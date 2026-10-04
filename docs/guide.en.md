@@ -220,6 +220,26 @@ Location of `data.sqlite3`:
 
 How each history is read and how duplicates are excluded is described in [sources.md](sources.md) (Japanese). If some history cannot be read, let us know in an issue.
 
+### History retention
+
+Some agents delete old history automatically. Deleted history cannot be shown by kiroku and cannot be recovered, so set this up early if you want to look back further. In the view, "Data sources" shows the oldest record for each agent, and a notice appears above the summary (with a link to the official docs) when an agent will delete history under its default setting.
+
+| Agent | Deletes automatically? | Setting |
+|---|---|---|
+| Claude Code | **Yes.** By default it silently deletes conversation history older than 30 days after a session starts | [`cleanupPeriodDays`](https://code.claude.com/docs/en/settings-reference#cleanupperioddays) in `~/.claude/settings.json` (days, minimum 1; `0` fails validation, so use a large value such as `3650` for long retention) |
+| Kiro Crew | **Yes.** It deletes conversation records (`sessions/archive/`) after a period that depends on the Crew version and settings | Crew's [`session.archive_retention_days`](https://kiro.dev/docs/crew/configuration/) |
+| Kiro IDE, Kiro CLI, Amazon Q, Codex | Their official docs do not describe age-based automatic deletion (manual cleanup exists) | — |
+
+Example for Claude Code:
+
+```json
+{
+  "cleanupPeriodDays": 3650
+}
+```
+
+kiroku reads only your user settings (`~/.claude/settings.json`, or under `CLAUDE_CONFIG_DIR` if set). If the period is set in project or organization settings, the notice may not match the actual period.
+
 ## Options
 
 Common to the commands that read history (`serve`, `html`, `json`):

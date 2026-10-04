@@ -16,6 +16,16 @@ func (c *Claude) Name() string   { return "Claude Code" }
 func (c *Claude) Family() string { return "claude" }
 func (c *Claude) Where() string  { return c.Root }
 
+// Retention は Claude Code の cleanupPeriodDays（既定 30 日。起動後に、それより古い会話の記録を黙って消す）。
+// 利用者の設定（projects の隣の settings.json）だけを見る。プロジェクトの設定や組織の設定にある場合は読まない。
+func (c *Claude) Retention() *Retention {
+	r := &Retention{Days: 30, Setting: "cleanupPeriodDays", Docs: "https://code.claude.com/docs/en/settings-reference#cleanupperioddays"}
+	if v, ok := core.Num(core.Map(core.ReadJSON(filepath.Join(filepath.Dir(c.Root), "settings.json")))["cleanupPeriodDays"]); ok && v >= 1 {
+		r.Days, r.Set = int(v), true
+	}
+	return r
+}
+
 // サブエージェントのツール名。v2.1.63 で Task から Agent に変わった。
 var subagentTools = map[string]bool{"Task": true, "Agent": true}
 
