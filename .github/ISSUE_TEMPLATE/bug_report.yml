@@ -13,6 +13,15 @@ body:
       description: Output of `kiroku version`
     validations:
       required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install kiroku?
+      options:
+        - install.sh
+        - Releases (zip / tar.gz)
+        - go install
+        - Built from source
   - type: input
     id: os
     attributes:
@@ -41,4 +50,4 @@ body:
     id: steps
     attributes:
       label: How to reproduce
-      description: Commands you ran, and the "Data sources" section at the bottom of the summary if relevant
+      description: Commands you ran, and the "Data sources" list at the end of ⑥ Shape of the week / month if relevant

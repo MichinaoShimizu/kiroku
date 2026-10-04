@@ -16,7 +16,7 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/source"
 )
 
-// testdata/ は合成データ（個人の履歴は入っていない）。golden.json と golden-week.md は、
+// testdata/ は合成データ（個人の履歴は入っていない）。golden.json は、
 // Go に移す前の Python 版 kiroku が同じデータから出した結果。Go 版がそれと同じ数字を出すことを確かめる。
 
 func setup(t *testing.T) (data any, weeks map[string]*report.Week, rep []source.Report) {

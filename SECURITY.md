@@ -12,7 +12,7 @@ Reports in English or Japanese are welcome. You can expect a first response with
 
 Especially relevant areas:
 
-- `kiroku serve`: it listens on `127.0.0.1` only, rejects requests from other origins, and serves the original history file only for sessions in the current snapshot
+- `kiroku serve`: it listens on `127.0.0.1` only (a bare port such as `:8485` also stays on `127.0.0.1`) and rejects requests whose Host is not `localhost`, `127.0.0.1` or `[::1]` (DNS rebinding protection). Listening on another address such as `0.0.0.0:8484` must be chosen explicitly and turns that check off. It serves an original history file (`.json` / `.jsonl` only) only for sessions in the current snapshot
 - The generated HTML: user data must be escaped, and nothing should be sent off the machine
 - `install.sh` and `kiroku update`: releases are verified against `checksums.txt` before replacing the binary
 

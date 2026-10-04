@@ -14,12 +14,14 @@ Changes must keep kiroku's promises:
 
 ```bash
 go test ./...                      # tests
-gofmt -l . && go vet ./...         # format and vet (CI runs both)
+test -z "$(gofmt -l .)" && go vet ./...   # format and vet (CI runs both)
 go run . serve                     # try it with your own history
 sh tools/screenshots/run.sh --html /tmp/kiroku-demo.html   # an HTML with dummy data
 ```
 
-Go 1.23 or later is required. [docs/development.md](docs/development.md) (Japanese) explains the layout and how adapters work.
+Go 1.23 or later is required. The dummy-data HTML needs Python 3 and git; refreshing the screenshots also needs Node.js and Playwright (`npm i playwright && npx playwright install chromium` in `tools/screenshots`).
+
+[docs/development.md](docs/development.md) (Japanese) covers the layout, how to add an agent, tests and golden data, CI, and the release procedure. A release is a PR that renames `## Unreleased` to `## vX.Y.Z - YYYY-MM-DD`; merging it tags and releases automatically (`.github/workflows/tag.yml`).
 
 ## Changelog
 
@@ -36,4 +38,4 @@ The view is `internal/web/template.html`. When you change it:
 
 ## Privacy
 
-Never commit or attach real agent history, even in issues. Tests use synthetic data under `testdata/` and `/Users/me`.
+Never commit or attach real agent history, even in issues. Tests use synthetic data under `testdata/`, with placeholder paths such as `/Users/me`.

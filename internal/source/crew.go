@@ -109,7 +109,7 @@ func crewTranscriptPath(home, key string) string {
 }
 
 // readCrewKey は会話キーの記録を読む。Crew は古い行を sessions/archive/<名前>__<日時>.jsonl に退避する
-// （既定で 7 日残す）ので、残っていればそちらも古い順に読む。
+// （残す期間は session.archive_retention_days で決まり、Crew の版や設定で変わる）ので、残っていればそちらも古い順に読む。
 func readCrewKey(home, key string) (title string, rows []crewRow) {
 	stem := unsafeKey.ReplaceAllString(key, "_")
 	segs := glob(filepath.Join(home, "sessions", "archive", stem+"__*.jsonl"))

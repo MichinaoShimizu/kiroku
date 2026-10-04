@@ -18,14 +18,14 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/web"
 )
 
-const helpText = `kiroku %s - review your AI agent work history (Claude Code, Kiro, Kiro Crew, Amazon Q, Codex)
+const helpText = `kiroku %s - see your AI coding agent history as a calendar (Claude Code, Kiro, Kiro Crew, Amazon Q, Codex)
 
 Usage:
   kiroku <command> [flags] [args]
 
 Commands:
-  serve [ADDR]          Open the dashboard and keep it live as new history arrives (default 127.0.0.1:8484)
-  html                  Write a self-contained HTML report (default kiroku.html) and open it
+  serve [ADDR]          Open the view in your browser and keep it updated as new history arrives (default 127.0.0.1:8484)
+  html                  Write the view as a single static HTML file (default kiroku.html) and open it
   json                  Write the aggregated data as JSON (default kiroku.json, "-" for stdout)
   version               Print the version
   update                Update kiroku to the latest release
@@ -80,13 +80,13 @@ type common struct {
 
 func addCommon(fs *flag.FlagSet) *common {
 	return &common{
-		root:      fs.String("root", source.DefaultClaudeRoot(), "Claude Code history directory"),
+		root:      fs.String("root", source.DefaultClaudeRoot(), "Claude Code history directory ($CLAUDE_CONFIG_DIR/projects or ~/.claude/projects)"),
 		kiroHome:  fs.String("kiro-home", source.DefaultKiroHome(), "Kiro data directory ($KIRO_HOME)"),
 		crewHome:  fs.String("crew-home", "", "Kiro Crew data directory (default $KIROCREW_HOME or <kiro-home>/crew)"),
 		kiroCLIDB: fs.String("kiro-cli-db", "", "path to the legacy Kiro CLI data.sqlite3 (default: OS-specific)"),
 		amazonQDB: fs.String("amazonq-db", "", "path to the Amazon Q Developer CLI data.sqlite3 (default: OS-specific)"),
 		codexHome: fs.String("codex-home", "", "Codex data directory (default $CODEX_HOME or ~/.codex)"),
-		sources:   fs.String("sources", "claude,kiro,amazonq,codex", "comma-separated list of sources to read"),
+		sources:   fs.String("sources", "claude,kiro,amazonq,codex", "comma-separated sources to read: claude, kiro (includes Kiro Crew), amazonq, codex"),
 		prices:    fs.String("prices", "", "JSON file overriding the model price table"),
 		gap:       fs.Int("gap", 15, "idle `minutes` that split a session into separate blocks"),
 	}
@@ -167,7 +167,7 @@ func quiet(err error) error {
 }
 
 func cmdServe(args []string) error {
-	fs := newFS("serve", "serve [flags] [ADDR]\n\nADDR defaults to "+defaultAddr+"; a bare port such as :8485 also works.")
+	fs := newFS("serve", "serve [flags] [ADDR]\n\nADDR defaults to "+defaultAddr+". A bare port such as :8485 also listens on 127.0.0.1 only.\nTo let other devices open it, write the address explicitly (e.g. 0.0.0.0:8485); anyone on your network can then see your history.")
 	c := addCommon(fs)
 	interval := fs.Duration("interval", 5*time.Second, "how often to check the history for changes (reloads after writes settle)")
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
@@ -230,14 +230,14 @@ func loadNonEmpty(c *common) (snapshot, error) {
 	}
 	snap := load()
 	if len(snap.data) == 0 {
-		return snap, fmt.Errorf("no history found; check --root or KIRO_HOME")
+		return snap, fmt.Errorf("no history found; check where your agents keep it (--root, --kiro-home, --codex-home, --amazonq-db; see \"kiroku html --help\")")
 	}
 	return snap, nil
 }
 
 func writeHTML(snap snapshot, out string, open bool) error {
 	if len(snap.data) == 0 {
-		return fmt.Errorf("no history found; check --root or KIRO_HOME")
+		return fmt.Errorf("no history found; check where your agents keep it (--root, --kiro-home, --codex-home, --amazonq-db; see \"kiroku html --help\")")
 	}
 	html, err := web.Render(snap.data, snap.weeks, snap.months, snap.meta, snap.gen, false)
 	if err != nil {

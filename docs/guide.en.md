@@ -15,7 +15,7 @@ curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install
 This downloads the file for your OS and CPU (Intel / Apple Silicon and ARM) from [Releases](https://github.com/MichinaoShimizu/kiroku/releases), verifies it with `checksums.txt`, and places it in `/usr/local/bin` (or `~/.local/bin` if that is not writable). You can set the version and install location with environment variables.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install.sh | KIROKU_VERSION=v0.1.1 KIROKU_INSTALL_DIR=~/bin sh
+curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install.sh | KIROKU_VERSION=v0.1.7 KIROKU_INSTALL_DIR=~/bin sh
 ```
 
 ### Windows
@@ -34,39 +34,46 @@ go install github.com/MichinaoShimizu/kiroku@latest
 
 | Command | Description |
 |---|---|
-| `kiroku serve [ADDR]` | Keeps showing the view at `http://localhost:8484/`. Every few seconds it checks the history folders for changes (file names, sizes and modification times only) and reloads once writing settles (when changes stop for 10 seconds; even if an agent keeps writing, it reloads within 60 seconds at most). New history appears while the week or month you are viewing and the selected session stay as they are, and `LIVE` is shown at the top left. Change the port with, for example, `kiroku serve :8485`. Press Ctrl+C to quit |
-| `kiroku html [-o FILE]` | Reads all history up to now and writes it to a single HTML file. Use it to carry the view around or to look at it without starting a server. Run it again to include later history |
+| `kiroku serve [ADDR]` | Serves the view at `http://localhost:8484/` and keeps it up to date. Every few seconds it checks the history folders for changes (file names, sizes and modification times only) and reloads once writing settles (when changes stop for 10 seconds; even if an agent keeps writing, it reloads within 60 seconds at most). New history appears while the week or month you are viewing and the selected session stay as they are, and `LIVE` is shown at the top left. Change the port with, for example, `kiroku serve :8485` (a bare port still listens on `127.0.0.1` only). Press Ctrl+C to quit |
+| `kiroku html [-o FILE]` | Reads all history up to now and writes it to a single HTML file, then opens it in your browser (`--no-open` to skip). Use it to carry the view around or to look at it without starting a server. Run it again to include later history |
 | `kiroku json [-o FILE]` | Writes the aggregated data as JSON (`-o -` for stdout) |
 | `kiroku version` | Prints the version |
 | `kiroku update` | Downloads the latest release for the same OS and CPU from GitHub Releases, verifies it with `checksums.txt`, and replaces itself. In a location you cannot write to (such as `/usr/local/bin`), run `sudo kiroku update`. kiroku installed with `go install` or built from source (version `dev`) is not replaced, so update it with `go install …@latest`. v0.1.1 and earlier have no `update`, so reinstall once with `install.sh` or from Releases |
+
+`kiroku help` lists commands; `kiroku <command> --help` shows its options.
 
 The old forms `kiroku --serve`, `--json` and `-o` still work for now. `--weekly` / `--monthly` (Markdown output) have been removed. Use the view for weekly and monthly summaries.
 
 ## View
 
-- The vertical week calendar shows sessions as bars. The more messages, the darker the bar, and sessions that overlap in time are placed side by side
-- Switch between "Week / Month" at the top right. The month calendar shows each day's active time as color intensity and the project breakdown as thin bars. Click a date to go to that week in the week calendar
-- Above the calendar, the key figures for the week or month are shown (Active time, Active days, Sessions / prompts, Tokens, Estimated cost, Kiro credits, Commits (by AI)). Items with no records are not shown
+- The vertical week calendar shows sessions as bars. The more messages per minute, the darker the bar, and sessions that overlap in time are placed side by side
+- Switch between "Week / Month" at the top right. The month calendar shows each day's active time as color intensity and the project breakdown as thin bars. Each day also shows its commit count. Click a date, or "W##" on the left, to go to that week in the week calendar
+- Above the calendar, the key figures for the week or month are shown (Active time, Active days, Sessions / prompts, Tokens, Estimated cost, Kiro credits, Usage limit hits, Commits (by AI)). Items with no records are not shown
 - Tokens, estimated cost and credits per day are shown in the day headings of the week calendar and in each day of the month calendar. In the summary, "Daily usage" lets you switch between the three as a bar chart
 - Color by Project / Branch / Agent (on narrow screens, from the selector to the left of the legend). The numbers in the legend are session counts; click an item to show or hide it
 - Click a bar to show its details (the prompt flow with times, models used, subagents, tools used, files changed and the resume command). On wide screens, numbers and the prompt flow (what was done) are on the left, and commits, pull requests and files changed (what was left behind) are on the right. "Review this session with AI (copy prompt)" copies a prompt that asks an AI how to improve the way you prompted and split the work, based on the prompt flow and numbers (it includes your prompts, so check it before sending)
-- In the week calendar, days with commits show commit marks on the right edge at their times (they do not overlap session bars; touch one to see the short hash; like the count under the date, days are split by the times shown). Click a mark to see the commit details (subject, message body, project, branch, hash, lines added and removed per file changed, the session that made the commit, and a `git show` command). Session details list the commits made during that session
+- In the week calendar, days with commits show commit marks on the right edge at their times (they don't overlap session bars; touch one to see its short hash; the number under the date is that day's commit count). Click a mark to see the commit details (subject, message body, project, branch, hash, lines added and removed per file changed, the session that made the commit, and a `git show` command). Session details list the commits made during that session
 - Anything that can be a link is a link
   - Git commits and files changed: if the remote (`origin`) is GitHub, GitLab, Bitbucket or similar, they open the page for that commit or file
   - A session's "Files changed": a file changed by a commit made during that session opens the page for that file as of that commit
   - A session's "Pull requests created": opens pull requests created by AI (URLs that appeared in the results of `gh pr create` or GitHub tools)
   - A session's "History file": opens the original history of that session. In `kiroku serve` it opens from the view (only history files of loaded sessions are served, and only to the view on your machine); in `kiroku html` it opens via `file://`. SQLite histories cannot be opened, so you can only copy the path
-- Below the calendar, the weekly and monthly summary is shown. At the top, ① Findings shows up to 3 metrics that crossed a threshold, in priority order, as cards with what was observed, why it matters, the related sessions and the "Threshold". Press "See … →" to jump to the original metric and open its explanation. Each card shows that metric's 8-week trend (8 months in month view). To see whether something you tried worked, check this trend in later periods. ② By project starts with bars and a table showing what share of active time, tokens, estimated cost and credits went where (top 5 plus Other). The grouping follows the Project / Branch / Agent switch at the top. Comparing the rows shows, for example, a project, branch or agent whose share of estimated cost is larger than its share of time. Below that, the cards show, for each project, which sessions took how many hours, how many tokens, how much estimated cost and credits, which models were mainly used, and which session was the heaviest, along with output signals. ③ Cost and outputs puts what you spent (active time, estimated cost, tokens, credits) next to what was left behind (commits, pull requests, lines changed and so on). Then come ④ How you spent time, ⑤ How you used AI, ⑥ Shape of the week / month, and finally ⑦ Ask AI for suggestions. In ④ How you spent time, metrics that include estimates (corrections and interruptions, switches, parallel, wait time) are collapsed under "More metrics (includes estimates)"
+- Below the calendar, the weekly and monthly summary is shown
+  - ① Findings: up to 3 metrics that crossed a threshold, highest priority first (the rest under "More findings"), as cards with what was observed, why it matters, the related sessions and the "Threshold". Press "See … →" to jump to the original metric and open its explanation. Each card shows that metric's 8-week trend (8 months in month view). To see whether something you tried worked, check this trend in later periods
+  - ② By project: starts with bars and a table showing what share of active time, tokens, estimated cost and credits went where (top 5 plus Other). The grouping follows the Project / Branch / Agent switch at the top. Comparing the rows shows, for example, a project, branch or agent whose share of estimated cost is larger than its share of time. Below that, the cards show, for each project, which sessions took how many hours, how many tokens, how much estimated cost and credits, which models were mainly used, and which session was the heaviest, along with output signals (beyond 6 projects, press "Show N more projects")
+  - ③ Cost and outputs: what you spent (active time, estimated cost, tokens, credits) next to what was left behind (commits, pull requests, lines changed and so on)
+  - ④ How you spent time: metrics that include estimates (corrections and interruptions, switches, parallel, wait time) are collapsed under "More metrics (includes estimates)"
+  - Then come ⑤ How you used AI, ⑥ Shape of the week / month (ending with "Data sources") and ⑦ Ask AI for suggestions
 - Press "?" on any metric to see its definition and what it tells you, what it doesn't tell you, and what to try
 - "Ask AI for suggestions" shows a prompt, based on the figures for the week or month shown, that asks an AI for suggestions on how you use it. Copy it with "Copy prompt" and paste it into the AI agent you use (kiroku itself never calls an AI). It includes session names (parts of your prompts) and project names, so check it before sending
-- Search (top right, `/`): in addition to prompts, titles, projects and branches, it searches files changed, pull requests and commits made during each session (subject, hash, files). The calendar shows only matching sessions, and all-time search results (with excerpts showing where they matched) appear in place of the summary. Press a result to open its week and show the details
-- Weekly and monthly report drafts: "Weekly report draft" in the summary heading opens the Markdown text with what you did (session names), commits and pull requests for each project. Check it, then press "Copy". Session names are the start of your prompts, so check and edit them before sharing
+- Search (top right, `/`): in addition to prompts, titles, projects, branches and agents, it searches files changed, pull requests and commits made during each session (subject, hash, files). The calendar shows only matching sessions, and all-time results appear in place of the summary in two lists, Sessions and Commits (matched on subject, body, hash and files changed), with excerpts showing where they matched. Items hidden in the legend are left out. Press a result to open its week and show the details
+- Weekly and monthly report drafts: "Weekly report draft" ("Monthly report draft" in month view) in the summary heading opens the Markdown text with what you did (session names), commits and pull requests for each project. Check it, then press "Copy"; "Close" hides it. Sessions hidden in the legend are left out. Session names are the start of your prompts, so check and edit them before sharing
 - Opening details moves focus into them, and closing them returns focus to the bar or card you opened them from. When you move from one detail to another (a commit or session), "Back" takes you back
-- Keyboard shortcuts: `←` `→` to move by week or month, `T` for this week or month, `W` `M` to switch between week and month, `/` to search, `+` `−` to zoom, `Esc` to close details, `?` to show the list
-- The view's language follows your browser's language: Japanese or English (Japanese in a Japanese browser). You can switch it with the selector at the top right, and your choice is saved in the browser. Images in the README and this guide show the English view
-- Choose the theme from auto, light and dark (the button at the top right). Color by, zoom and theme settings are saved in the browser
+- Keyboard shortcuts: `←` `→` to move by week or month, `T` for this week or month, `W` `M` to switch between week and month, `/` to search, `+` `−` to zoom, `Esc` to close details, `?` to show the shortcut list
+- The view is in Japanese in a Japanese-language browser, and in English otherwise. You can switch it with the selector at the top right, and your choice is saved in the browser. Images in the README and this guide show the English view
+- Choose the theme from auto, light and dark (the button at the top right). Color by, zoom, theme, week / month view and the Daily usage type are saved in the browser
 - At smartphone widths, the week calendar scrolls horizontally (when opened, it shows the last day you worked up to today and the day before), and the summary is shown in a single column
-- Colors are 8 colors based on the Okabe–Ito palette, so they stay easy to tell apart for people with different color vision. The 9th and later are shown in gray
+- The palette has 8 colors based on Okabe–Ito, chosen to stay distinguishable across types of color vision. From the 9th item on, items are gray
 
 ## Weekly and monthly summary
 
@@ -76,7 +83,7 @@ The image shows the English view. In a Japanese browser it is shown in Japanese 
 
 | Metric | Definition |
 |---|---|
-| Findings | Shows metrics that crossed the following thresholds, in priority order: hit a usage limit 1 or more times / there are Long conversations (later input 4× or more the first part, peak 100K tokens or more, $0.5 or more) / Expensive models for light work total 10% or more of estimated cost ($2 or more) and $1 or more / Claude Code sessions of $1 or more estimated cost with no commit or pull request make up 40% or more of the period's estimated cost ($2 or more) / estimated cost is 1.5× the previous period or more / estimated cost per commit is 1.5× the previous period or more (3 or more commits) / Prompts with corrections or interruptions are 20% or more (10 or more prompts), or there are Sessions with possible friction / Share of input read from cache is under 50% (1M tokens or more) / Sessions that reached a commit are under 25% (5 or more sessions) / Project switches per day average 5 or more / no Focus blocks with 4 hours or more of work / the 90th percentile of Wait time is 15 minutes or more (n≥10) / Late night is 2 hours or more and 25% or more of work |
+| Findings | Shows up to 3 metrics that crossed these thresholds, highest priority first; the rest are folded under "More findings" (the list below is not in priority order): hit a usage limit 1 or more times / there are Long conversations (later input 4× or more the first part, peak 100K tokens or more, $0.5 or more) / Expensive models for light work total 10% or more of estimated cost ($2 or more) and $1 or more / Claude Code sessions of $1 or more estimated cost with no commit or pull request make up 40% or more of the period's estimated cost ($2 or more) / estimated cost is 1.5× the previous period ($1 or more) or more / estimated cost per commit is 1.5× the previous period or more (3 or more commits) / Prompts with corrections or interruptions are 20% or more (10 or more prompts), or there are Sessions with possible friction / Share of input read from cache is under 50% (1M tokens or more) / Sessions that reached a commit are under 25% (5 or more sessions, with at least one commit or pull request) / Project switches per day average 5 or more / no Focus blocks with 4 hours or more of work / the 90th percentile of Wait time is 15 minutes or more (n≥10) / Late night is 2 hours or more and 25% or more of work |
 | By project | Per project: active time and its share, number of sessions / prompts, tokens, estimated cost and credits, main models (share of tokens; counts for agents that don't record tokens), the top 3 sessions by run time, and the heaviest session (judged by estimated cost, else credits, else tokens). Time when several projects ran at once is split between them |
 | Active time | Time when any session was running (overlaps count once) |
 | Total AI run time | Time added up, including sessions running in parallel |
@@ -89,7 +96,7 @@ The image shows the English view. In a Japanese browser it is shown in Japanese 
 | Long conversations | Sessions where the input read per response (new input plus cache reads and writes) in the last quarter of the conversation was at least 4 times that of the first quarter, peaking at 100K tokens or more (estimated cost $0.5 or more; only sessions with 8 or more responses, from agents that record tokens) |
 | Expensive models for light work | Total for sessions that mainly used Opus-class models, had 3 or fewer prompts, edited no files and cost $0.3 or more |
 | Usage limit hits | Count and times of usage limit errors (usage caps and rate limits) left in Claude Code history. Hits within 1 minute count once. The calendar shows them with a red "Limit" mark |
-| Sessions with possible friction | Sessions with many corrections, interruptions or 15 or more prompts |
+| Sessions with possible friction | Up to 3 sessions started in the period with at least one correction or interruption, or 15 or more prompts, most first |
 | Daily and weekly rhythm | Work time per day in week view and per week in month view (with late night) |
 
 ### How you used AI
@@ -106,7 +113,7 @@ The image shows the English view. In a Japanese browser it is shown in Japanese 
 | Estimated cost per prompt | Estimated cost ÷ number of prompts |
 | Heaviest sessions | The top 3 sessions by estimated cost |
 
-The price table is used for sessions where Claude Code does not record its cost (such as older versions of Claude Code). It contains the [public prices](https://platform.claude.com/docs/en/about-claude/pricing) as of October 2026. For price changes or models it does not include, override it with JSON (model IDs match by prefix; units are USD per million tokens).
+The price table is used for sessions where Claude Code does not record its cost (such as older versions of Claude Code). It contains the [public prices](https://platform.claude.com/docs/en/about-claude/pricing) as of October 2026. For price changes or models it does not include, override it with JSON (model IDs match by prefix; units are USD per million tokens). Fields you leave out are treated as 0. An array `[input, output, cache_write, cache_write_1h, cache_read]` also works.
 
 ```json
 {"claude-opus-5-5": {"input": 4, "output": 20, "cache_write": 5, "cache_write_1h": 8, "cache_read": 0.2}}
@@ -120,7 +127,7 @@ kiroku serve --prices my-prices.json
 
 Proxy numbers for outcomes, shown next to costs such as time and tokens, to check whether your usage led to work that left a trace.
 
-- **Git commits** are counted by reading the repositories agents worked in (each session's working directory) with your local `git`, counting your own commits (`git config user.email`). Commits made by hand are included. Commits whose time matches (within 2 minutes) a commit an agent ran with a tool are counted as "Run by AI". The calendar shows them as commit marks and short-hash badges (filled ones were run by AI). They are not read where the `git` command is unavailable
+- **Git commits** are counted by reading the repositories agents worked in (each session's working directory) with your local `git`, counting your own commits (`git config user.email`; in repositories without `user.email`, everyone's commits are counted). Commits made by hand are included. Commits whose time matches (within 2 minutes) a commit an agent ran with a tool are counted as "Run by AI". The calendar shows them as commit marks and short-hash badges (filled ones were run by AI). They are not read where the `git` command is unavailable
 - Everything else counts only what AI ran with tools and succeeded (currently Claude Code only)
 
 | Metric | Definition |
@@ -198,7 +205,7 @@ Press "?" on any metric in the view to see the same explanation. It is also incl
 | Claude Code | `~/.claude/projects/*/*.jsonl` | Per message |
 | Kiro IDE (v1.0 and later) | `~/.kiro/sessions/<hash>/sess_*/` | Per message |
 | Kiro CLI | `~/.kiro/sessions/cli/` | Per prompt |
-| Kiro IDE (before v1.0) | `<globalStorage>/kiro.kiroagent/workspace-sessions/` | Start and last update only |
+| Kiro IDE (before v1.0) | `<globalStorage>/kiro.kiroagent/workspace-sessions/` (`<globalStorage>` is `~/Library/Application Support/Kiro/User/globalStorage` on macOS, `%APPDATA%\Kiro\User\globalStorage` on Windows, and `~/.config/Kiro/User/globalStorage` or `~/.kiro-server/data/User/globalStorage` on Linux) | Start and last update only |
 | Kiro Crew | `~/.kiro/crew/` (`session_map.json`, `usage/tokens/`) | Per prompt or turn |
 | Kiro CLI (old versions) | `kiro-cli/data.sqlite3` (table below) | Per prompt |
 | Amazon Q Developer CLI | `amazon-q/data.sqlite3` (table below) | Per prompt |
@@ -213,8 +220,8 @@ Location of `data.sqlite3`:
 | Linux | `$XDG_DATA_HOME` (`~/.local/share` if unset)`/<kiro-cli or amazon-q>/` |
 | Windows | `%LOCALAPPDATA%\<kiro-cli or amazon-q>\` (unverified for Kiro CLI; if it differs, specify it with `--kiro-cli-db`) |
 
-- If `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME` or `CLAUDE_CONFIG_DIR` is set, that location is read
-- Even if the same conversation is recorded in two places, it is counted once. The number excluded is shown under "Data sources" in the view
+- If `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME` or `CLAUDE_CONFIG_DIR` is set, that location is read (for `CLAUDE_CONFIG_DIR`, its `projects/` folder)
+- Even if the same conversation is recorded in two places, it is counted once. The number excluded is shown under "Data sources" (at the end of ⑥ in the summary)
 - Kiro credits are the values recorded in history, summed as they are (per-model multipliers are not reapplied). Histories from Kiro IDE (before v1.0) and Kiro CLI (SQLite) do not record credits, so that usage is not included. Variations in how the unit is written (`credit`, `Credits` and so on) are treated the same. Numbers may differ from your account page because of the period (billing period), use on other computers, old history Kiro has deleted, and use outside chat (such as agent hooks, which leave no history)
 - Codex models (OpenAI) are not in the price table, so they are not included in the estimated cost. To include them, add them with `--prices`
 
@@ -222,11 +229,11 @@ How each history is read and how duplicates are excluded is described in [source
 
 ### History retention
 
-Some agents delete old history automatically. Deleted history cannot be shown by kiroku and cannot be recovered, so set this up early if you want to look back further. In the view, "Data sources" shows the oldest record for each agent, and a notice appears above the summary (with a link to the official docs) when an agent will delete history under its default setting.
+Some agents delete old history automatically. Deleted history cannot be shown by kiroku and cannot be recovered, so set this up early if you want to look back further. In the view, "Data sources" shows the oldest record for each agent, and while Claude Code is still on its 30-day default, a notice appears above the summary (with a link to the official docs and a button to copy the setting; once dismissed, it stays hidden in that browser). For Kiro Crew, whose period kiroku cannot read, "Data sources" only notes that it deletes history.
 
 | Agent | Deletes automatically? | Setting |
 |---|---|---|
-| Claude Code | **Yes.** By default it silently deletes conversation history older than 30 days after a session starts | [`cleanupPeriodDays`](https://code.claude.com/docs/en/settings-reference#cleanupperioddays) in `~/.claude/settings.json` (days, minimum 1; `0` fails validation, so use a large value such as `3650` for long retention) |
+| Claude Code | **Yes.** By default it silently deletes conversation history older than 30 days at startup | [`cleanupPeriodDays`](https://code.claude.com/docs/en/settings-reference#cleanupperioddays) in `~/.claude/settings.json` (days, minimum 1; `0` fails validation, so use a large value such as `3650` for long retention) |
 | Kiro Crew | **Yes.** It deletes conversation records (`sessions/archive/`) after a period that depends on the Crew version and settings | Crew's [`session.archive_retention_days`](https://kiro.dev/docs/crew/configuration/) |
 | Kiro IDE, Kiro CLI, Amazon Q, Codex | Their official docs do not describe age-based automatic deletion (manual cleanup exists) | — |
 
@@ -247,9 +254,9 @@ Common to the commands that read history (`serve`, `html`, `json`):
 | Option | Default | Description |
 |---|---|---|
 | `--sources` | `claude,kiro,amazonq,codex` | Histories to read (comma-separated; Kiro Crew is included in `kiro`) |
-| `--root` | `~/.claude/projects` | Location of Claude Code history (`CLAUDE_CONFIG_DIR` is also used) |
+| `--root` | `~/.claude/projects` (`$CLAUDE_CONFIG_DIR/projects` if set) | Location of Claude Code history |
 | `--kiro-home` | `~/.kiro` | Location of Kiro data (`KIRO_HOME` is also used) |
-| `--crew-home` | `~/.kiro/crew` | Location of Kiro Crew data (`KIROCREW_HOME` is also used) |
+| `--crew-home` | `<--kiro-home>/crew` | Location of Kiro Crew data (`KIROCREW_HOME` takes precedence) |
 | `--kiro-cli-db` | Per OS | `data.sqlite3` of Kiro CLI (old versions) |
 | `--amazonq-db` | Per OS | `data.sqlite3` of Amazon Q Developer CLI |
 | `--codex-home` | `~/.codex` | Location of Codex data (`CODEX_HOME` is also used) |
@@ -260,7 +267,7 @@ Per command:
 
 | Command | Option | Default | Description |
 |---|---|---|---|
-| `serve` | `[ADDR]` | `127.0.0.1:8484` | A port alone, such as `:8485`, also works |
+| `serve` | `[ADDR]` | `127.0.0.1:8484` | A port alone, such as `:8485`, also works (it listens on `127.0.0.1`). To open it from other devices, write an address such as `0.0.0.0:8485` (anyone on your network can then see your history) |
 | `serve` | `--interval` | `5s` | How often to check history for changes. Reloads when changes stop for twice the interval (at most 12 times the interval) |
 | `serve`, `html` | `--no-open` | | Don't open the browser |
 | `html` | `-o`, `--out` | `kiroku.html` | HTML file to write |

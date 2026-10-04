@@ -544,7 +544,7 @@ dialog h2{margin-top:0}
       <span class="live" id="live" hidden title="履歴が増えると自動で反映します">LIVE</span>
     </div>
     <div class="segc" role="group" aria-label="色分け" id="colorBy">
-      <button data-v="project">プロジェクト</button><button data-v="branch">ブランチ</button><button data-v="source">ツール</button>
+      <button data-v="project">プロジェクト</button><button data-v="branch">ブランチ</button><button data-v="source">エージェント</button>
     </div>
     <div class="segc zoom" role="group" aria-label="ズーム">
       <button id="zout" aria-label="縮小">−</button><button id="zin" aria-label="拡大">＋</button>
@@ -675,7 +675,7 @@ const ICON = { auto:'<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" 
   dark:'<svg class="i" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>' };
 function applyTheme(){ const r = document.documentElement; st.theme === "auto" ? r.removeAttribute("data-theme") : r.setAttribute("data-theme", st.theme);
   $("#theme").innerHTML = ICON[st.theme]; $("#theme").setAttribute("aria-label", tr(`テーマ: ${{auto:"自動",light:"ライト",dark:"ダーク"}[st.theme]}`, `Theme: ${{auto:"auto",light:"light",dark:"dark"}[st.theme]}`)); }
-const CB = () => ({project: tr("プロジェクト", "Project"), branch: tr("ブランチ", "Branch"), source: tr("ツール", "Agent")});
+const CB = () => ({project: tr("プロジェクト", "Project"), branch: tr("ブランチ", "Branch"), source: tr("エージェント", "Agent")});
 const BACK_ICON = $("#back").querySelector("svg").outerHTML;
 /* 静的な HTML の文言を、言語に合わせて設定し直す */
 function applyLang(){
@@ -989,7 +989,7 @@ const HELP = {
   limits: {n:"利用上限に当たった回数", d:"Claude Code の履歴に残った、利用上限（使用量の上限・レート制限）のエラーの回数と時刻。1 分以内に続いたものは 1 回", c:"どの時間帯・どの作業で上限に当たり、作業が止まったか", x:"上限までの残り。ほかのエージェントや、ブラウザ・アプリでの利用分", a:"重い作業を時間帯で分ける、軽いモデルに振り分ける、長い会話は区切って新しく始める"},
   longctx: {n:"長くなった会話", d:"1 回の応答で読んだ入力（新しい入力とキャッシュの読み書き）が、会話の後半 4 分の 1 で前半 4 分の 1 の 4 倍以上になり、最大 10 万トークン以上になったセッション（目安コスト $0.5 以上。トークンを記録するエージェントのみ）", c:"会話を続けたことで、1 回あたりの応答が重くなったセッション", x:"会話を続けたほうがよかったかどうか（前の文脈が必要な作業もある）", a:"区切りのいいところで要点をメモに残し、新しいセッションで続ける"},
   modelfit: {n:"軽い作業での高いモデル", d:"主に Opus 系のモデルを使い、依頼 3 件以下でファイルを編集しなかった、目安コスト $0.3 以上のセッションの合計", c:"高いモデルを使った短い作業にかかった量", x:"そのモデルが必要だったかどうか（難しい調査や設計の相談もある）", a:"調べものや相談は、まず軽いモデルで試し、足りなければ切り替える"},
-  friction: {n:"こじれたかもしれないセッション", d:"言い直し・中断・15 回以上の依頼が多いセッション", c:"手戻りが集中したセッション", x:"こじれた原因", a:"中身を開いて、依頼の仕方や作業の分け方を見直す"},
+  friction: {n:"こじれたかもしれないセッション", d:"期間中に始まったセッションのうち、言い直し・中断が 1 回以上か依頼が 15 回以上のものを、多い順に 3 件", c:"手戻りが集中したセッション", x:"こじれた原因", a:"中身を開いて、依頼の仕方や作業の分け方を見直す"},
   share: {n:"プロジェクトの配分", d:"プロジェクトごとの作業時間の割合", c:"時間の配分", x:"配分の妥当さ", a:"想定と違えば、優先順位を見直す"},
   rhythm: {n:"日ごと・週ごとのリズム", d:"週表示では日ごと、月表示では週ごとの作業時間（うち深夜）", c:"作業量の波と偏り", x:"波の原因", a:"特定の日に偏っていれば、作業の割り振りを見直す"},
   daily: {n:"日ごとの使用量", d:"日ごとのトークン・目安コスト・クレジット", c:"どの日に AI を多く使ったか", x:"その日の使い方が適切だったか", a:"突出した日のセッションを開いて、重かった理由を確認する"},
@@ -1027,7 +1027,7 @@ const HELP_EN = {
   limits: {n: "Usage limit hits", d: "Count and times of usage limit errors (usage caps and rate limits) in Claude Code history. Hits within 1 minute count once", c: "When and during which work you hit a limit and had to stop", x: "How much headroom is left. Usage from other agents, the browser or the app", a: "Spread heavy work over time, use lighter models, and start new sessions for long conversations"},
   longctx: {n: "Long conversations", d: "Sessions where the input read per response (new input plus cache reads and writes) in the last quarter of the conversation was at least 4 times that of the first quarter, peaking at 100K tokens or more (estimated cost $0.5 or more; only agents that record tokens)", c: "Sessions where each response got heavier as the conversation went on", x: "Whether continuing the conversation was the right call (some work needs the earlier context)", a: "At a good stopping point, write down the key points and continue in a new session"},
   modelfit: {n: "Expensive models for light work", d: "Total for sessions that mainly used Opus-class models, had 3 or fewer prompts, edited no files and cost $0.3 or more", c: "How much went to short tasks on an expensive model", x: "Whether that model was needed (some research or design questions are hard)", a: "Try a lighter model first for research and questions, and switch if it falls short"},
-  friction: {n: "Sessions with possible friction", d: "Sessions with many corrections, interruptions or 15 or more prompts", c: "Sessions where rework piled up", x: "Why it went wrong", a: "Open them and rethink how you prompted and split the work"},
+  friction: {n: "Sessions with possible friction", d: "Up to 3 sessions started in the period with at least one correction or interruption, or 15 or more prompts, most first", c: "Sessions where rework piled up", x: "Why it went wrong", a: "Open them and rethink how you prompted and split the work"},
   share: {n: "Time by project", d: "Share of work time per project", c: "How you split your time", x: "Whether the split was right", a: "If it differs from what you intended, revisit your priorities"},
   rhythm: {n: "Daily and weekly rhythm", d: "Work time per day in week view and per week in month view (with late night)", c: "Ups and downs in your workload", x: "What caused them", a: "If work piles up on certain days, rethink how you distribute it"},
   daily: {n: "Daily usage", d: "Tokens, estimated cost and credits per day", c: "Which days you used AI the most", x: "Whether that day's usage was appropriate", a: "Open the sessions on outlier days to see why they were heavy"},
@@ -1153,7 +1153,7 @@ const mainModel = s => ((s.models || []).slice().sort((a,b) => b[1] - a[1])[0] |
 function lightOf(ws, we){ // 編集のない短いセッションで、高いモデル（Opus 系）を使ったもの
   const xs = DATA.filter(s => inP(s, ws, we) && /opus/i.test(mainModel(s)) && s.nPrompts <= 3 && !s.nFiles && s.cost >= 0.3).sort((a,b) => b.cost - a.cost);
   return {xs, c: xs.reduce((t,s) => t + s.cost, 0)}; }
-/* 指標の値（推移と、試していることの答え合わせ用）。low: 小さいほうが望ましい方向 */
+/* 指標の値（気づきのカードの推移用）。low: 小さいほうが望ましい方向 */
 const pctOf = (a, b) => b ? Math.round(a * 100 / b) : null;
 const MET = {
   limits: {f: (w, ws, we) => limitHits(ws, we).length, low: true, u: "回"},
@@ -1256,7 +1256,7 @@ function snip(t, q){
 function hitOf(s, q){
   const tries = [[tr("タイトル", "Title"), [s.title]], [tr("依頼", "Prompt"), s.prompts.map(p => p.text)], [tr("ファイル", "File"), s.files], ["PR", s.prs || []],
     [tr("コミット", "Commit"), commitsOf(s).flatMap(c => [`${c.hash.slice(0,7)} ${c.subject}`, ...(c.files || []).map(f => f.path)])],
-    [tr("プロジェクト", "Project"), [s.project]], [tr("ブランチ", "Branch"), [s.branch || ""]], [tr("ツール", "Agent"), [s.source]]];
+    [tr("プロジェクト", "Project"), [s.project]], [tr("ブランチ", "Branch"), [s.branch || ""]], [tr("エージェント", "Agent"), [s.source]]];
   for (const [label, xs] of tries) for (const x of xs){ const h = snip(x, q); if (h) return {label, h}; }
   return {label: "", h: ""};
 }

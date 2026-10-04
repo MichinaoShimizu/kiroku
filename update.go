@@ -34,7 +34,7 @@ func runUpdate(args []string) error {
 	fs := newFS("update", "update [flags]\n\nDownloads the release for this OS/arch, verifies it against checksums.txt\nand replaces the running binary.")
 	check := fs.Bool("check", false, "only check whether a newer release exists")
 	to := fs.String("to", "", "install this `version` (e.g. v0.1.1) instead of the latest")
-	force := fs.Bool("force", false, "replace even when up to date, downgrading, or running a dev build")
+	force := fs.Bool("force", false, "replace even when already up to date or running a dev build (--to alone can also install an older version)")
 	if err := fs.Parse(args); err != nil {
 		if err == flag.ErrHelp {
 			return nil

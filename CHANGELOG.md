@@ -1,6 +1,17 @@
 # Changelog
 
-Notable changes to kiroku. Each release on GitHub uses its section here as the release notes.
+Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
+
+## Unreleased
+
+### Changed
+
+- The Japanese view calls the "Agent" switch エージェント instead of ツール, matching the docs
+- Clearer help text: `kiroku help`, `serve --help`, `update --force` and the "no history found" hint
+
+### Fixed
+
+- `kiroku serve :8485` (a port alone) listened on every network interface and turned off the Host check, so others on the same network could open your history. It now listens on `127.0.0.1` only; write `0.0.0.0:8485` to open it to other devices on purpose
 
 ## v0.1.7 - 2026-10-04
 
