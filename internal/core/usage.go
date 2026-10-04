@@ -8,6 +8,9 @@ import (
 // Prices は USD / 100 万トークン: 入力, 出力, キャッシュ書き込み(5分), キャッシュ書き込み(1時間), キャッシュ読み込み。
 // 出典: https://platform.claude.com/docs/en/about-claude/pricing （2026-10 時点）。--prices で上書きできる。
 // モデル ID の先頭一致で引く（長いキーが優先）。サブスクリプションの請求額とは別物。
+// PricesAsOf は収録した料金の時点。画面にも出す。料金表を更新したら合わせて変える。
+const PricesAsOf = "2026-10"
+
 var Prices = map[string][5]float64{
 	"claude-fable-5-1":  {10, 50, 12.5, 20, 0.25},
 	"claude-mythos-5-1": {10, 50, 12.5, 20, 0.25},

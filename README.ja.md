@@ -1,8 +1,12 @@
 # kiroku
 
+[![CI](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml/badge.svg)](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/MichinaoShimizu/kiroku)](https://github.com/MichinaoShimizu/kiroku/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 [English](README.md) | 日本語
 
 AI エージェント（Claude Code・Kiro・Kiro Crew・Amazon Q・Codex）の利用履歴を、Google カレンダーのような画面で可視化するツールです。
+
+**[デモを試す](https://michinaoshimizu.github.io/kiroku/)**（ダミーデータ。ブラウザだけで動きます）
 
 ## 目的
 
@@ -59,6 +63,10 @@ kiroku help     # コマンドとオプションの一覧
 出力した HTML には依頼文やファイルパス、コミットメッセージがそのまま含まれます。人に渡すときは内容を確認してください。
 
 画面の見方、指標の定義、読み取る履歴、オプションは [docs/guide.md](docs/guide.md)、開発については [docs/development.md](docs/development.md) を参照してください。
+
+## 貢献
+
+Issue と Pull Request は日本語・英語のどちらでも歓迎します。[CONTRIBUTING.md](CONTRIBUTING.md) を参照し、脆弱性は [SECURITY.md](SECURITY.md) のとおり非公開で報告してください。
 
 ## ライセンス
 

@@ -1,8 +1,12 @@
 # kiroku
 
+[![CI](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml/badge.svg)](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/MichinaoShimizu/kiroku)](https://github.com/MichinaoShimizu/kiroku/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 English | [日本語](README.ja.md)
 
 See how you actually work with AI coding agents. kiroku reads the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), Amazon Q and Codex, and shows it as a Google Calendar–style view.
+
+**[Try the live demo](https://michinaoshimizu.github.io/kiroku/)** (dummy data, runs in your browser).
 
 ## Why
 
@@ -57,6 +61,10 @@ kiroku help     # list commands and options
 The HTML contains your prompts, file paths and commit messages as they are. Check its content before sharing it with anyone.
 
 For how to read the view, metric definitions, which histories are read and all options, see [docs/guide.md](docs/guide.md) (Japanese). For development, see [docs/development.md](docs/development.md) (Japanese).
+
+## Contributing
+
+Issues and pull requests are welcome in English or Japanese. See [CONTRIBUTING.md](CONTRIBUTING.md), and report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
 ## License
 

@@ -1,0 +1,44 @@
+name: Bug report
+description: Something is wrong or missing in kiroku
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. **Do not paste real agent history**: it can contain private prompts and paths. Describe the shape of the data instead, or redact it. English or Japanese is fine.
+  - type: input
+    id: version
+    attributes:
+      label: kiroku version
+      description: Output of `kiroku version`
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: macOS 15 / Ubuntu 24.04 / Windows 11
+    validations:
+      required: true
+  - type: checkboxes
+    id: agents
+    attributes:
+      label: Agents involved
+      options:
+        - label: Claude Code
+        - label: Kiro IDE
+        - label: Kiro CLI
+        - label: Kiro Crew
+        - label: Amazon Q
+        - label: Codex
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce
+      description: Commands you ran, and the "Data sources" section at the bottom of the summary if relevant
