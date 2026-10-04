@@ -110,6 +110,20 @@ for (const env of envs) {
     await p.keyboard.press("Escape");
   });
 
+  await step("ふりかえり", async () => {
+    await p.keyboard.press("y"); await pause();
+    check("y でふりかえりが開く", await p.locator("#yr").evaluate(d => d.open));
+    check("シェア用の画像に光が描かれている", await p.locator("#yrcard").evaluate(c => {
+      const d = c.getContext("2d").getImageData(0, 430, c.width, c.height - 430).data; let lit = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] + d[i+1] + d[i+2] > 240) lit++;
+      return lit > 200; }));
+    check("光の名前が出る", (await p.locator(".yrtn").innerText()).trim().length > 0);
+    const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
+    check("ふりかえりが横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
+    await p.keyboard.press("Escape"); await pause();
+    check("Esc でふりかえりを閉じる", !(await p.locator("#yr").evaluate(d => d.open)));
+  });
+
   check("スクリプトのエラーがない", errors.length === 0, errors.join(" / "));
   await ctx.close();
 }

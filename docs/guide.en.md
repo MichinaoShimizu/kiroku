@@ -68,8 +68,21 @@ The old forms `kiroku --serve`, `--json` and `-o` still work for now. `--weekly`
 - "Ask AI for suggestions" shows a prompt, based on the figures for the week or month shown, that asks an AI for suggestions on how you use it. Copy it with "Copy prompt" and paste it into the AI agent you use (kiroku itself never calls an AI). It includes session names (parts of your prompts) and project names, so check it before sending
 - Search (top right, `/`): in addition to prompts, titles, projects, branches and agents, it searches files changed, pull requests and commits made during each session (subject, hash, files). The calendar shows only matching sessions, and all-time results appear in place of the summary in two lists, Sessions and Commits (matched on subject, body, hash and files changed), with excerpts showing where they matched. Items hidden in the legend are left out. Press a result to open its week and show the details
 - Weekly and monthly report drafts: "Weekly report draft" ("Monthly report draft" in month view) in the summary heading opens the Markdown text with what you did (session names), commits and pull requests for each project. Check it, then press "Copy"; "Close" hides it. Sessions hidden in the legend are left out. Session names are the start of your prompts, so check and edit them before sharing
+- Year in review: "Year in review" next to the period controls (`Y`) opens the year's "exposure". Across is the date and down is the time of day (6:00 to 6:00 the next morning, so late-night work lands at the bottom of the previous day's column); each stretch of active time in a session is drawn as a streak of light, colored by agent and brighter where sessions overlapped. Choose the year at the top right
+  - An image to share: active time, sessions, commits, pull requests, the agent breakdown and the streaks of light as a 1600×900 image. Get it with "Save as PNG" or "Copy image", and choose what to include (commits and PRs, your light, the agent breakdown). The image is made in the page and sent nowhere; prompts, project names, branches, files and estimated cost are never included. The streaks start from the first day with history (at least 8 weeks)
+  - Your light: the shape of your year, named in photography terms (not a verdict). The first match from the top is chosen
+
+    | Your light | Rule |
+    |---|---|
+    | Night Glow | 30% or more of active time is late at night (22:00–6:00) |
+    | Daybreak | 25% or more of active time is between 5:00 and 9:00 (compared using the total active stretches of sessions) |
+    | Multiple Exposure | 3 or more agents, each with 10% or more of active time |
+    | Long Exposure | 45 minutes or more of active time per session, with 10 prompts or fewer on average |
+    | Burst | 15 or more prompts per session on average |
+    | Refocus | 15% or more of prompts had a correction or interruption |
+    | Daylight | None of the above |
 - Opening details moves focus into them, and closing them returns focus to the bar or card you opened them from. When you move from one detail to another (a commit or session), "Back" takes you back
-- Keyboard shortcuts: `←` `→` to move by week or month, `T` for this week or month, `W` `M` to switch between week and month, `/` to search, `+` `−` to zoom, `Esc` to close details, `?` to show the shortcut list
+- Keyboard shortcuts: `←` `→` to move by week or month, `T` for this week or month, `W` `M` to switch between week and month, `Y` for the year in review, `/` to search, `+` `−` to zoom, `Esc` to close details, `?` to show the shortcut list
 - The view is in Japanese in a Japanese-language browser, and in English otherwise. You can switch it with the selector at the top right, and your choice is saved in the browser. Images in the README and this guide show the English view
 - Choose the theme from auto, light and dark (the button at the top right). Color by, zoom, theme, week / month view and the Daily usage type are saved in the browser
 - At smartphone widths, the week calendar scrolls horizontally (when opened, it shows the last day you worked up to today and the day before), and the summary is shown in a single column
