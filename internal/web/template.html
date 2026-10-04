@@ -579,7 +579,8 @@ function render(){
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
 
   M ? monthGrid(shown, ws, we, todayKey) : timeline(shown, inRange, ws, we, todayKey);
-  summary();
+  try { summary(); } catch(e){ // サマリーで失敗しても、カレンダーと詳細は使えるようにする
+    console.error(e); $("#review").innerHTML = `<div class="panel"><p class="none">この期間のサマリーを表示できませんでした（${esc(e.message)}）。issue で教えてください。</p></div>`; }
   const gc = st.sel && st.sel.startsWith("git:") && (META.git || []).find(x => "git:" + x.hash === st.sel);
   const s = !gc && st.sel && DATA.find(x => x.id === st.sel), open = !!(s || gc);
   if (st.sel && !open) st.sel = null;
