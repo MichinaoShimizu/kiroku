@@ -1,0 +1,8874 @@
+{
+ "months": {
+  "2026-09": {
+   "active": 850,
+   "ai": 860,
+   "costPerAsk": 0.077,
+   "costPerCommit": null,
+   "days": [
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 17,
+     "commits": 0,
+     "cost": 0.1526,
+     "credits": 0,
+     "night": 17,
+     "prompts": 2,
+     "switches": 0,
+     "tokens": 429223
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 114,
+     "commits": 0,
+     "cost": 1.0626,
+     "credits": 0,
+     "night": 0,
+     "prompts": 7,
+     "switches": 0,
+     "tokens": 1387798
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 31,
+     "commits": 0,
+     "cost": 0.1894,
+     "credits": 0,
+     "night": 0,
+     "prompts": 2,
+     "switches": 0,
+     "tokens": 540198
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 39,
+     "commits": 0,
+     "cost": 0.2483,
+     "credits": 0,
+     "night": 0,
+     "prompts": 3,
+     "switches": 0,
+     "tokens": 512110
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 128,
+     "commits": 0,
+     "cost": 1.4179,
+     "credits": 0,
+     "night": 24,
+     "prompts": 8,
+     "switches": 0,
+     "tokens": 1912465
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 1,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 1,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 1,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 1,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 114,
+     "commits": 0,
+     "cost": 1.0626,
+     "credits": 0,
+     "night": 0,
+     "prompts": 7,
+     "switches": 0,
+     "tokens": 1387798
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 25,
+     "commits": 0,
+     "cost": 0.1698,
+     "credits": 0,
+     "night": 0,
+     "prompts": 3,
+     "switches": 0,
+     "tokens": 453517
+    },
+    {
+     "active": 207,
+     "commits": 0,
+     "cost": 1.8716,
+     "credits": 0,
+     "night": 24,
+     "prompts": 13,
+     "switches": 3,
+     "tokens": 3149414
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 26,
+     "commits": 0,
+     "cost": 0,
+     "credits": 4.92,
+     "night": 0,
+     "prompts": 4,
+     "switches": 1,
+     "tokens": 0
+    },
+    {
+     "active": 65,
+     "commits": 0,
+     "cost": 0,
+     "credits": 11.81,
+     "night": 0,
+     "prompts": 15,
+     "switches": 5,
+     "tokens": 3300
+    },
+    {
+     "active": 82,
+     "commits": 0,
+     "cost": 0,
+     "credits": 9.67,
+     "night": 0,
+     "prompts": 14,
+     "switches": 5,
+     "tokens": 4100
+    }
+   ],
+   "fixRate": 8.8,
+   "focus": [],
+   "friction": [
+    {
+     "id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
+     "project": "app",
+     "score": 4,
+     "start": 1789804080,
+     "title": "カレンダー表示を足して",
+     "why": [
+      "言い直し 2 回"
+     ],
+     "whyEn": [
+      "2 corrections"
+     ]
+    },
+    {
+     "id": "6f8a980c-3b83-43eb-b07d-758a36bc2400",
+     "project": "app",
+     "score": 4,
+     "start": 1790408880,
+     "title": "カレンダー表示を足して",
+     "why": [
+      "言い直し 2 回"
+     ],
+     "whyEn": [
+      "2 corrections"
+     ]
+    },
+    {
+     "id": "d8bda5e8-265b-4f26-8a8a-54c9c8651701",
+     "project": "app",
+     "score": 2,
+     "start": 1790316060,
+     "title": "カレンダー表示を足して",
+     "why": [
+      "言い直し 1 回"
+     ],
+     "whyEn": [
+      "1 correction"
+     ]
+    }
+   ],
+   "git": {
+    "added": 0,
+    "ai": 0,
+    "commits": 0,
+    "removed": 0
+   },
+   "maxConc": 2,
+   "native": [
+    {
+     "sessions": 9,
+     "source": "Claude Code",
+     "values": [
+      {
+       "label": "応答の数",
+       "labelEn": "Responses",
+       "n": 202,
+       "unit": "回",
+       "v": 202
+      },
+      {
+       "label": "1応答あたりの出力トークン",
+       "labelEn": "Output tokens per response",
+       "n": 202,
+       "unit": "トークン",
+       "v": 736.59
+      },
+      {
+       "label": "入力のうちキャッシュから読んだ割合",
+       "labelEn": "Share of input read from cache",
+       "n": 202,
+       "unit": "%",
+       "v": 94.57
+      },
+      {
+       "label": "ツール呼び出し",
+       "labelEn": "Tool calls",
+       "n": 202,
+       "unit": "回",
+       "v": 202
+      },
+      {
+       "label": "サブエージェントの実行",
+       "labelEn": "Subagent runs",
+       "n": 23,
+       "unit": "回",
+       "v": 23
+      }
+     ]
+    },
+    {
+     "sessions": 1,
+     "source": "Amazon Q",
+     "values": [
+      {
+       "label": "応答にかかった時間（中央値）",
+       "labelEn": "Response time (median)",
+       "n": 1,
+       "unit": "秒",
+       "v": 20
+      }
+     ]
+    },
+    {
+     "sessions": 4,
+     "source": "Kiro IDE",
+     "values": [
+      {
+       "label": "クレジット",
+       "labelEn": "Credits",
+       "n": 12,
+       "unit": "クレジット",
+       "v": 13.89
+      },
+      {
+       "label": "ターン",
+       "labelEn": "Turns",
+       "n": 12,
+       "unit": "回",
+       "v": 12
+      },
+      {
+       "label": "1ターンあたりのクレジット",
+       "labelEn": "Credits per turn",
+       "n": 12,
+       "unit": "クレジット",
+       "v": 1.16
+      },
+      {
+       "label": "ツール呼び出し",
+       "labelEn": "Tool calls",
+       "n": 24,
+       "unit": "回",
+       "v": 24
+      }
+     ]
+    },
+    {
+     "sessions": 6,
+     "source": "Kiro Crew",
+     "values": [
+      {
+       "label": "Crew から動かした会話",
+       "labelEn": "Conversations run from Crew",
+       "n": 6,
+       "unit": "件",
+       "v": 6
+      },
+      {
+       "label": "うちサブエージェント",
+       "labelEn": "Of which subagents",
+       "n": 1,
+       "unit": "件",
+       "v": 1
+      },
+      {
+       "label": "クレジット",
+       "labelEn": "Credits",
+       "n": 13,
+       "unit": "クレジット",
+       "v": 12.51
+      },
+      {
+       "label": "ターン",
+       "labelEn": "Turns",
+       "n": 13,
+       "unit": "回",
+       "v": 13
+      }
+     ]
+    },
+    {
+     "sessions": 2,
+     "source": "Kiro CLI (SQLite)",
+     "values": [
+      {
+       "label": "応答にかかった時間（中央値）",
+       "labelEn": "Response time (median)",
+       "n": 5,
+       "unit": "秒",
+       "v": 20
+      },
+      {
+       "label": "ツール呼び出し",
+       "labelEn": "Tool calls",
+       "n": 2,
+       "unit": "回",
+       "v": 2
+      }
+     ]
+    },
+    {
+     "sessions": 2,
+     "source": "Codex",
+     "values": [
+      {
+       "label": "応答の数",
+       "labelEn": "Responses",
+       "n": 5,
+       "unit": "回",
+       "v": 5
+      },
+      {
+       "label": "推論トークン",
+       "labelEn": "Reasoning tokens",
+       "n": 5,
+       "unit": "トークン",
+       "v": 0
+      },
+      {
+       "label": "出力のうち推論の割合",
+       "labelEn": "Share of output spent on reasoning",
+       "n": 5,
+       "unit": "%",
+       "v": 0
+      },
+      {
+       "label": "入力のうちキャッシュから読んだ割合",
+       "labelEn": "Share of input read from cache",
+       "n": 5,
+       "unit": "%",
+       "v": 54.69
+      },
+      {
+       "label": "コンテキストの最大使用率",
+       "labelEn": "Peak context usage",
+       "n": 4,
+       "unit": "%",
+       "v": 1.1
+      },
+      {
+       "label": "ツール呼び出し",
+       "labelEn": "Tool calls",
+       "n": 3,
+       "unit": "回",
+       "v": 3
+      }
+     ]
+    }
+   ],
+   "night": 65,
+   "outSessions": 0,
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "parallel": 10,
+   "projectStats": [
+    {
+     "cost": 5.3201,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 1.4179,
+      "credits": 0,
+      "id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
+      "minutes": 128,
+      "source": "Claude Code",
+      "start": 1789804080,
+      "title": "カレンダー表示を足して",
+      "tokens": 1912465
+     },
+     "minutes": 542,
+     "models": [
+      {
+       "cost": 4.1258,
+       "model": "claude-opus-5-5",
+       "tokens": 4830462,
+       "turns": 138
+      },
+      {
+       "cost": 0.7956,
+       "model": "claude-sonnet-5-5",
+       "tokens": 1541576,
+       "turns": 40
+      },
+      {
+       "cost": 0.3987,
+       "model": "claude-haiku-4-5",
+       "tokens": 1222203,
+       "turns": 44
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "app",
+     "prompts": 37,
+     "sessions": 7,
+     "subagents": 18,
+     "tokens": 7594241,
+     "top": [
+      {
+       "cost": 1.4179,
+       "credits": 0,
+       "id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
+       "minutes": 128,
+       "source": "Claude Code",
+       "start": 1789804080,
+       "title": "カレンダー表示を足して",
+       "tokens": 1912465
+      },
+      {
+       "cost": 1.4179,
+       "credits": 0,
+       "id": "6f8a980c-3b83-43eb-b07d-758a36bc2400",
+       "minutes": 128,
+       "source": "Claude Code",
+       "start": 1790408880,
+       "title": "カレンダー表示を足して",
+       "tokens": 1912465
+      },
+      {
+       "cost": 1.0626,
+       "credits": 0,
+       "id": "68cb7e8c-a8e9-4b72-9b9f-95c791d04e02",
+       "minutes": 114,
+       "source": "Claude Code",
+       "start": 1788925320,
+       "title": "READMEを整理して",
+       "tokens": 1387798
+      }
+     ]
+    },
+    {
+     "cost": 0.6063,
+     "credits": 13.89,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 0.4537,
+      "credits": 0,
+      "id": "57c94728-2884-42b4-8c7d-b3e65e11e800",
+      "minutes": 84,
+      "source": "Claude Code",
+      "start": 1790403540,
+      "title": "型エラー直して",
+      "tokens": 1236949
+     },
+     "minutes": 200,
+     "models": [
+      {
+       "cost": 0.3237,
+       "model": "claude-haiku-4-5",
+       "tokens": 1184172,
+       "turns": 32
+      },
+      {
+       "cost": 0.2827,
+       "model": "claude-sonnet-5-5",
+       "tokens": 482000,
+       "turns": 16
+      },
+      {
+       "cost": 0,
+       "model": "claude-sonnet-4.5",
+       "tokens": 0,
+       "turns": 12
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "vp",
+     "prompts": 19,
+     "sessions": 6,
+     "subagents": 4,
+     "tokens": 1666172,
+     "top": [
+      {
+       "cost": 0.4537,
+       "credits": 0,
+       "id": "57c94728-2884-42b4-8c7d-b3e65e11e800",
+       "minutes": 84,
+       "source": "Claude Code",
+       "start": 1790403540,
+       "title": "型エラー直して",
+       "tokens": 1236949
+      },
+      {
+       "cost": 0,
+       "credits": 3.29,
+       "id": "sess_564f668e",
+       "minutes": 30,
+       "source": "Kiro IDE",
+       "start": 1790748000,
+       "title": "Kiro: specを書いて",
+       "tokens": 0
+      },
+      {
+       "cost": 0,
+       "credits": 3.6,
+       "id": "sess_1640c798",
+       "minutes": 25,
+       "source": "Kiro IDE",
+       "start": 1790751600,
+       "title": "Kiro: specを書いて",
+       "tokens": 0
+      }
+     ]
+    },
+    {
+     "cost": 0,
+     "credits": 10.51,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 0,
+      "credits": 4.5,
+      "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
+      "minutes": 16,
+      "source": "Kiro Crew",
+      "start": 1790668800,
+      "title": "夜間のデプロイ見張り",
+      "tokens": 0
+     },
+     "minutes": 48,
+     "models": [
+      {
+       "cost": 0,
+       "model": "auto",
+       "tokens": 0,
+       "turns": 14
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "infra",
+     "prompts": 12,
+     "sessions": 3,
+     "subagents": 0,
+     "tokens": 0,
+     "top": [
+      {
+       "cost": 0,
+       "credits": 3.73,
+       "id": "1e13c3c1-d7ae-41c2-a324-e6a440665d9a",
+       "minutes": 16,
+       "source": "Kiro Crew",
+       "start": 1790632800,
+       "title": "CLIでデプロイ確認",
+       "tokens": 0
+      },
+      {
+       "cost": 0,
+       "credits": 4.5,
+       "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
+       "minutes": 16,
+       "source": "Kiro Crew",
+       "start": 1790668800,
+       "title": "夜間のデプロイ見張り",
+       "tokens": 0
+      },
+      {
+       "cost": 0,
+       "credits": 2.28,
+       "id": "0d612aac-99c4-4a54-bda2-76ad60b6ddf3",
+       "minutes": 16,
+       "source": "Kiro Crew",
+       "start": 1790726400,
+       "title": "サブエージェント reviewer: PR #12 をレビューして",
+       "tokens": 0
+      }
+     ]
+    },
+    {
+     "cost": 0.2483,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 0.2483,
+      "credits": 0,
+      "id": "fa1e3455-e4a8-485a-ace2-9a6ccbaea201",
+      "minutes": 39,
+      "source": "Claude Code",
+      "start": 1789434120,
+      "title": "カレンダー表示を足して",
+      "tokens": 512110
+     },
+     "minutes": 39,
+     "models": [
+      {
+       "cost": 0.2483,
+       "model": "claude-sonnet-5-5",
+       "tokens": 512110,
+       "turns": 16
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "blog",
+     "prompts": 3,
+     "sessions": 1,
+     "subagents": 1,
+     "tokens": 512110,
+     "top": [
+      {
+       "cost": 0.2483,
+       "credits": 0,
+       "id": "fa1e3455-e4a8-485a-ace2-9a6ccbaea201",
+       "minutes": 39,
+       "source": "Claude Code",
+       "start": 1789434120,
+       "title": "カレンダー表示を足して",
+       "tokens": 512110
+      }
+     ]
+    },
+    {
+     "cost": 0,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": null,
+     "minutes": 7,
+     "models": [],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "old",
+     "prompts": 4,
+     "sessions": 4,
+     "subagents": 0,
+     "tokens": 0,
+     "top": [
+      {
+       "cost": 0,
+       "credits": 0,
+       "id": "372fbe38-1f0c-4f64-882e-d84f0f02817e",
+       "minutes": 2,
+       "source": "Kiro IDE (旧)",
+       "start": 1790578380,
+       "title": "旧Kiroのチャット",
+       "tokens": 0
+      },
+      {
+       "cost": 0,
+       "credits": 0,
+       "id": "12c47fa1-6df4-4521-83f6-def4d849922d",
+       "minutes": 2,
+       "source": "Kiro IDE (旧)",
+       "start": 1790739600,
+       "title": "旧Kiroのチャット",
+       "tokens": 0
+      },
+      {
+       "cost": 0,
+       "credits": 0,
+       "id": "12971eb2-2ee6-4dd7-9a6e-a50256c0bf1d",
+       "minutes": 2,
+       "source": "Kiro IDE (旧)",
+       "start": 1790746140,
+       "title": "旧Kiroのチャット",
+       "tokens": 0
+      }
+     ]
+    },
+    {
+     "cost": 0,
+     "credits": 2,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 0,
+      "credits": 1.25,
+      "id": "crew:dashboard:chat-9-1790000000",
+      "minutes": 1,
+      "source": "Kiro Crew",
+      "start": 1790683130,
+      "title": "Kiro Crew: dashboard:chat-9-1790000000",
+      "tokens": 0
+     },
+     "minutes": 6,
+     "models": [
+      {
+       "cost": 0,
+       "model": "auto",
+       "tokens": 0,
+       "turns": 2
+      },
+      {
+       "cost": 0,
+       "model": "deepseek-3.2",
+       "tokens": 0,
+       "turns": 1
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "(Kiro Crew)",
+     "prompts": 0,
+     "sessions": 3,
+     "subagents": 0,
+     "tokens": 0,
+     "top": [
+      {
+       "cost": 0,
+       "credits": 0.25,
+       "id": "crew:_bg:2026-09-29",
+       "minutes": 1,
+       "source": "Kiro Crew",
+       "start": 1790639997,
+       "title": "Kiro Crew の裏方の処理",
+       "tokens": 0
+      },
+      {
+       "cost": 0,
+       "credits": 1.25,
+       "id": "crew:dashboard:chat-9-1790000000",
+       "minutes": 1,
+       "source": "Kiro Crew",
+       "start": 1790683130,
+       "title": "Kiro Crew: dashboard:chat-9-1790000000",
+       "tokens": 0
+      },
+      {
+       "cost": 0,
+       "credits": 0.5,
+       "id": "crew:_bg:2026-09-30",
+       "minutes": 1,
+       "source": "Kiro Crew",
+       "start": 1790726397,
+       "title": "Kiro Crew の裏方の処理",
+       "tokens": 0
+      }
+     ]
+    },
+    {
+     "cost": 0,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": null,
+     "minutes": 4,
+     "models": [],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "ci",
+     "prompts": 1,
+     "sessions": 1,
+     "subagents": 0,
+     "tokens": 0,
+     "top": [
+      {
+       "cost": 0,
+       "credits": 0,
+       "id": "conv-b",
+       "minutes": 3,
+       "source": "Kiro CLI (SQLite)",
+       "start": 1790769600,
+       "title": "CIが落ちてる原因を調べて",
+       "tokens": 0
+      }
+     ]
+    },
+    {
+     "cost": 0,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 0,
+      "credits": 0,
+      "id": "thr-main",
+      "minutes": 3,
+      "source": "Codex",
+      "start": 1790643601,
+      "title": "ヘッダーのボタンの色",
+      "tokens": 3300
+     },
+     "minutes": 2,
+     "models": [
+      {
+       "cost": 0,
+       "model": "gpt-5-codex",
+       "tokens": 2850,
+       "turns": 2
+      },
+      {
+       "cost": 0,
+       "model": "gpt-5-codex-mini",
+       "tokens": 450,
+       "turns": 1
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "web",
+     "prompts": 2,
+     "sessions": 1,
+     "subagents": 1,
+     "tokens": 3300,
+     "top": [
+      {
+       "cost": 0,
+       "credits": 0,
+       "id": "thr-main",
+       "minutes": 3,
+       "source": "Codex",
+       "start": 1790643601,
+       "title": "ヘッダーのボタンの色",
+       "tokens": 3300
+      }
+     ]
+    },
+    {
+     "cost": 0,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 0,
+      "credits": 0,
+      "id": "thr-new",
+      "minutes": 1,
+      "source": "Codex",
+      "start": 1790744401,
+      "title": "APIのテストを足して",
+      "tokens": 4100
+     },
+     "minutes": 2,
+     "models": [
+      {
+       "cost": 0,
+       "model": "gpt-5.2-codex",
+       "tokens": 4100,
+       "turns": 2
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "api",
+     "prompts": 1,
+     "sessions": 1,
+     "subagents": 0,
+     "tokens": 4100,
+     "top": [
+      {
+       "cost": 0,
+       "credits": 0,
+       "id": "thr-new",
+       "minutes": 1,
+       "source": "Codex",
+       "start": 1790744401,
+       "title": "APIのテストを足して",
+       "tokens": 4100
+      }
+     ]
+    },
+    {
+     "cost": 0,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": null,
+     "minutes": 1,
+     "models": [],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "aws",
+     "prompts": 1,
+     "sessions": 1,
+     "subagents": 0,
+     "tokens": 0,
+     "top": [
+      {
+       "cost": 0,
+       "credits": 0,
+       "id": "q-1",
+       "minutes": 1,
+       "source": "Amazon Q",
+       "start": 1789970400,
+       "title": "S3のバケット一覧を出すスクリプト",
+       "tokens": 0
+      }
+     ]
+    }
+   ],
+   "projects": [
+    [
+     "app",
+     542
+    ],
+    [
+     "vp",
+     200
+    ],
+    [
+     "infra",
+     48
+    ],
+    [
+     "blog",
+     39
+    ],
+    [
+     "old",
+     7
+    ],
+    [
+     "(Kiro Crew)",
+     6
+    ],
+    [
+     "ci",
+     4
+    ],
+    [
+     "web",
+     2
+    ],
+    [
+     "api",
+     2
+    ],
+    [
+     "aws",
+     1
+    ]
+   ],
+   "prompts": 80,
+   "sessions": 28,
+   "shares": {
+    "branch": [
+     {
+      "cost": 2.4844,
+      "credits": 0,
+      "key": "app · main",
+      "minutes": 284,
+      "tokens": 3769311
+     },
+     {
+      "cost": 2.8357,
+      "credits": 0,
+      "key": "app · fix/login",
+      "minutes": 254,
+      "tokens": 3824930
+     },
+     {
+      "cost": 0,
+      "credits": 13.89,
+      "key": "vp · —",
+      "minutes": 101,
+      "tokens": 0
+     },
+     {
+      "cost": 0.4537,
+      "credits": 0,
+      "key": "vp · main",
+      "minutes": 82,
+      "tokens": 1236949
+     },
+     {
+      "cost": 0,
+      "credits": 10.51,
+      "key": "infra · —",
+      "minutes": 48,
+      "tokens": 0
+     },
+     {
+      "cost": 0.2483,
+      "credits": 0,
+      "key": "blog · main",
+      "minutes": 39,
+      "tokens": 512110
+     },
+     {
+      "cost": 0.1526,
+      "credits": 0,
+      "key": "vp · feat/eval",
+      "minutes": 17,
+      "tokens": 429223
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "old · —",
+      "minutes": 7,
+      "tokens": 0
+     },
+     {
+      "cost": 0,
+      "credits": 2,
+      "key": "(Kiro Crew) · —",
+      "minutes": 6,
+      "tokens": 0
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "app · —",
+      "minutes": 5,
+      "tokens": 0
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "ci · —",
+      "minutes": 4,
+      "tokens": 0
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "api · —",
+      "minutes": 2,
+      "tokens": 4100
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "web · feat/button",
+      "minutes": 2,
+      "tokens": 3300
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "aws · —",
+      "minutes": 1,
+      "tokens": 0
+     }
+    ],
+    "source": [
+     {
+      "cost": 6.1748,
+      "credits": 0,
+      "key": "Claude Code",
+      "minutes": 675,
+      "tokens": 9772523
+     },
+     {
+      "cost": 0,
+      "credits": 13.89,
+      "key": "Kiro IDE",
+      "minutes": 101,
+      "tokens": 0
+     },
+     {
+      "cost": 0,
+      "credits": 12.51,
+      "key": "Kiro Crew",
+      "minutes": 53,
+      "tokens": 0
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "Kiro CLI (SQLite)",
+      "minutes": 9,
+      "tokens": 0
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "Kiro IDE (旧)",
+      "minutes": 6,
+      "tokens": 0
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "Codex",
+      "minutes": 4,
+      "tokens": 7400
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "Amazon Q",
+      "minutes": 2,
+      "tokens": 0
+     }
+    ]
+   },
+   "start": "2026-09-01",
+   "switchesAvg": 1.1,
+   "switchesMax": 5,
+   "usage": {
+    "cacheHit": 0.944,
+    "cost": 6.17,
+    "credits": 26.4,
+    "heavy": [
+     {
+      "cost": 1.42,
+      "id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
+      "project": "app",
+      "start": 1789804080,
+      "subagents": 4,
+      "title": "カレンダー表示を足して"
+     },
+     {
+      "cost": 1.42,
+      "id": "6f8a980c-3b83-43eb-b07d-758a36bc2400",
+      "project": "app",
+      "start": 1790408880,
+      "subagents": 4,
+      "title": "カレンダー表示を足して"
+     },
+     {
+      "cost": 1.06,
+      "id": "68cb7e8c-a8e9-4b72-9b9f-95c791d04e02",
+      "project": "app",
+      "start": 1788925320,
+      "subagents": 4,
+      "title": "READMEを整理して"
+     }
+    ],
+    "models": [
+     [
+      "claude-opus-5-5",
+      4.13,
+      4830462,
+      138
+     ],
+     [
+      "claude-sonnet-5-5",
+      1.33,
+      2535686,
+      72
+     ],
+     [
+      "claude-haiku-4-5",
+      0.72,
+      2406375,
+      76
+     ],
+     [
+      "gpt-5.2-codex",
+      0,
+      4100,
+      2
+     ],
+     [
+      "gpt-5-codex",
+      0,
+      2850,
+      2
+     ],
+     [
+      "gpt-5-codex-mini",
+      0,
+      450,
+      1
+     ]
+    ],
+    "out": 215095,
+    "projects": [
+     [
+      "app",
+      5.32
+     ],
+     [
+      "vp",
+      0.61
+     ],
+     [
+      "blog",
+      0.25
+     ]
+    ],
+    "subMin": 97,
+    "subTypes": [
+     [
+      "Plan",
+      12
+     ],
+     [
+      "Explore",
+      10
+     ],
+     [
+      "general-purpose",
+      1
+     ],
+     [
+      "explorer",
+      1
+     ]
+    ],
+    "subagents": 24,
+    "tokens": 9779923,
+    "unpriced": 7400,
+    "unpricedModels": [
+     "gpt-5.2-codex",
+     "gpt-5-codex",
+     "gpt-5-codex-mini"
+    ]
+   },
+   "waitCount": 50,
+   "waitMedian": 180,
+   "waitP90": 1800,
+   "weekend": 366
+  },
+  "2026-10": {
+   "active": 75,
+   "ai": 75,
+   "costPerAsk": 0.024,
+   "costPerCommit": null,
+   "days": [
+    {
+     "active": 20,
+     "commits": 0,
+     "cost": 0,
+     "credits": 4.5,
+     "night": 0,
+     "prompts": 3,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 55,
+     "commits": 0,
+     "cost": 0.1894,
+     "credits": 2.62,
+     "night": 0,
+     "prompts": 5,
+     "switches": 1,
+     "tokens": 540198
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    }
+   ],
+   "fixRate": 0,
+   "focus": [],
+   "friction": [],
+   "git": {
+    "added": 0,
+    "ai": 0,
+    "commits": 0,
+    "removed": 0
+   },
+   "maxConc": 1,
+   "native": [
+    {
+     "sessions": 2,
+     "source": "Kiro IDE",
+     "values": [
+      {
+       "label": "クレジット",
+       "labelEn": "Credits",
+       "n": 6,
+       "unit": "クレジット",
+       "v": 7.12
+      },
+      {
+       "label": "ターン",
+       "labelEn": "Turns",
+       "n": 6,
+       "unit": "回",
+       "v": 6
+      },
+      {
+       "label": "1ターンあたりのクレジット",
+       "labelEn": "Credits per turn",
+       "n": 6,
+       "unit": "クレジット",
+       "v": 1.19
+      },
+      {
+       "label": "ツール呼び出し",
+       "labelEn": "Tool calls",
+       "n": 12,
+       "unit": "回",
+       "v": 12
+      }
+     ]
+    },
+    {
+     "sessions": 1,
+     "source": "Claude Code",
+     "values": [
+      {
+       "label": "応答の数",
+       "labelEn": "Responses",
+       "n": 10,
+       "unit": "回",
+       "v": 10
+      },
+      {
+       "label": "1応答あたりの出力トークン",
+       "labelEn": "Output tokens per response",
+       "n": 10,
+       "unit": "トークン",
+       "v": 1008.4
+      },
+      {
+       "label": "入力のうちキャッシュから読んだ割合",
+       "labelEn": "Share of input read from cache",
+       "n": 10,
+       "unit": "%",
+       "v": 94.46
+      },
+      {
+       "label": "ツール呼び出し",
+       "labelEn": "Tool calls",
+       "n": 10,
+       "unit": "回",
+       "v": 10
+      },
+      {
+       "label": "サブエージェントの実行",
+       "labelEn": "Subagent runs",
+       "n": 1,
+       "unit": "回",
+       "v": 1
+      }
+     ]
+    }
+   ],
+   "night": 0,
+   "outSessions": 0,
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "parallel": 0,
+   "projectStats": [
+    {
+     "cost": 0,
+     "credits": 7.12,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 0,
+      "credits": 4.5,
+      "id": "sess_76df747b",
+      "minutes": 20,
+      "source": "Kiro IDE",
+      "start": 1790820000,
+      "title": "Kiro: specを書いて",
+      "tokens": 0
+     },
+     "minutes": 44,
+     "models": [
+      {
+       "cost": 0,
+       "model": "claude-sonnet-4.5",
+       "tokens": 0,
+       "turns": 6
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "vp",
+     "prompts": 6,
+     "sessions": 2,
+     "subagents": 0,
+     "tokens": 0,
+     "top": [
+      {
+       "cost": 0,
+       "credits": 2.62,
+       "id": "sess_97d6b4d7",
+       "minutes": 24,
+       "source": "Kiro IDE",
+       "start": 1790985600,
+       "title": "Kiro: specを書いて",
+       "tokens": 0
+      },
+      {
+       "cost": 0,
+       "credits": 4.5,
+       "id": "sess_76df747b",
+       "minutes": 20,
+       "source": "Kiro IDE",
+       "start": 1790820000,
+       "title": "Kiro: specを書いて",
+       "tokens": 0
+      }
+     ]
+    },
+    {
+     "cost": 0.1894,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 0.1894,
+      "credits": 0,
+      "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33800",
+      "minutes": 31,
+      "source": "Claude Code",
+      "start": 1791027960,
+      "title": "評価シナリオを追加したい",
+      "tokens": 540198
+     },
+     "minutes": 31,
+     "models": [
+      {
+       "cost": 0.1082,
+       "model": "claude-haiku-4-5",
+       "tokens": 363340,
+       "turns": 10
+      },
+      {
+       "cost": 0.0812,
+       "model": "claude-sonnet-5-5",
+       "tokens": 176858,
+       "turns": 4
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "app",
+     "prompts": 2,
+     "sessions": 1,
+     "subagents": 1,
+     "tokens": 540198,
+     "top": [
+      {
+       "cost": 0.1894,
+       "credits": 0,
+       "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33800",
+       "minutes": 31,
+       "source": "Claude Code",
+       "start": 1791027960,
+       "title": "評価シナリオを追加したい",
+       "tokens": 540198
+      }
+     ]
+    }
+   ],
+   "projects": [
+    [
+     "vp",
+     44
+    ],
+    [
+     "app",
+     31
+    ]
+   ],
+   "prompts": 8,
+   "sessions": 3,
+   "shares": {
+    "branch": [
+     {
+      "cost": 0,
+      "credits": 7.12,
+      "key": "vp · —",
+      "minutes": 44,
+      "tokens": 0
+     },
+     {
+      "cost": 0.1894,
+      "credits": 0,
+      "key": "app · main",
+      "minutes": 31,
+      "tokens": 540198
+     }
+    ],
+    "source": [
+     {
+      "cost": 0,
+      "credits": 7.12,
+      "key": "Kiro IDE",
+      "minutes": 44,
+      "tokens": 0
+     },
+     {
+      "cost": 0.1894,
+      "credits": 0,
+      "key": "Claude Code",
+      "minutes": 31,
+      "tokens": 540198
+     }
+    ]
+   },
+   "start": "2026-10-01",
+   "switchesAvg": 0.5,
+   "switchesMax": 1,
+   "usage": {
+    "cacheHit": 0.948,
+    "cost": 0.19,
+    "credits": 7.12,
+    "heavy": [
+     {
+      "cost": 0.19,
+      "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33800",
+      "project": "app",
+      "start": 1791027960,
+      "subagents": 1,
+      "title": "評価シナリオを追加したい"
+     }
+    ],
+    "models": [
+     [
+      "claude-haiku-4-5",
+      0.11,
+      363340,
+      10
+     ],
+     [
+      "claude-sonnet-5-5",
+      0.08,
+      176858,
+      4
+     ]
+    ],
+    "out": 12981,
+    "projects": [
+     [
+      "app",
+      0.19
+     ]
+    ],
+    "subMin": 4,
+    "subTypes": [
+     [
+      "Explore",
+      1
+     ]
+    ],
+    "subagents": 1,
+    "tokens": 540198,
+    "unpriced": 0,
+    "unpricedModels": []
+   },
+   "waitCount": 5,
+   "waitMedian": 180,
+   "waitP90": 420,
+   "weekend": 55
+  }
+ },
+ "sessions": [
+  {
+   "branch": "feat/eval",
+   "corrections": 0,
+   "cost": 0.1526,
+   "credits": 0,
+   "ctx": [
+    46297.5,
+    35322.5,
+    60856
+   ],
+   "end": 1788369000,
+   "events": 19,
+   "file": "testdata/home/.claude/projects/-Users-me-vp/45502558-80a6-4028-a0ef-6476e9599703.jsonl",
+   "files": [
+    "/Users/me/vp/src/x1.py",
+    "/Users/me/vp/src/x2.py",
+    "/Users/me/vp/src/x3.py"
+   ],
+   "id": "45502558-80a6-4028-a0ef-6476e9599703",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-haiku-4-5",
+     16
+    ]
+   ],
+   "nFiles": 3,
+   "nPrompts": 2,
+   "native": [
+    {
+     "label": "応答の数",
+     "labelEn": "Responses",
+     "n": 8,
+     "unit": "回",
+     "v": 8
+    },
+    {
+     "label": "1応答あたりの出力トークン",
+     "labelEn": "Output tokens per response",
+     "n": 8,
+     "unit": "トークン",
+     "v": 936.88
+    },
+    {
+     "label": "入力のうちキャッシュから読んだ割合",
+     "labelEn": "Share of input read from cache",
+     "n": 8,
+     "unit": "%",
+     "v": 94.01
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 8,
+     "unit": "回",
+     "v": 8
+    },
+    {
+     "label": "サブエージェントの実行",
+     "labelEn": "Subagent runs",
+     "n": 1,
+     "unit": "回",
+     "v": 1
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "vp",
+   "projectPath": "/Users/me/vp",
+   "prompts": [
+    {
+     "t": 1788367980,
+     "text": "カレンダー表示を足して"
+    },
+    {
+     "t": 1788368820,
+     "text": "READMEを整理して"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/vp \u0026\u0026 claude --resume 45502558-80a6-4028-a0ef-6476e9599703",
+   "segs": [
+    [
+     1788367980,
+     1788369000,
+     19
+    ]
+   ],
+   "source": "Claude Code",
+   "start": 1788367980,
+   "subagents": [
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1788368730,
+     "model": "claude-sonnet-5-5",
+     "start": 1788368520,
+     "tools": 4,
+     "type": "general-purpose",
+     "usage": {
+      "cost": 0.067,
+      "cr": 127636,
+      "cw": 5827,
+      "cw1h": 0,
+      "in": 70,
+      "out": 2674,
+      "unpriced": 0
+     }
+    }
+   ],
+   "title": "カレンダー表示を足して",
+   "tools": [
+    [
+     "Edit",
+     3
+    ],
+    [
+     "Read",
+     2
+    ],
+    [
+     "Bash",
+     2
+    ],
+    [
+     "Agent",
+     1
+    ]
+   ],
+   "usage": {
+    "cost": 0.0856,
+    "cr": 268430,
+    "cw": 16933,
+    "cw1h": 0,
+    "in": 158,
+    "out": 7495,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1788368820,
+     300
+    ]
+   ]
+  },
+  {
+   "branch": "main",
+   "corrections": 0,
+   "cost": 1.0625,
+   "credits": 0,
+   "ctx": [
+    34045,
+    43134,
+    61468
+   ],
+   "end": 1788948240,
+   "events": 89,
+   "file": "testdata/home/.claude/projects/-Users-me-app/68cb7e8c-a8e9-4b72-9b9f-95c791d04e02.jsonl",
+   "files": [
+    "/Users/me/app/src/x2.py",
+    "/Users/me/app/src/x4.py",
+    "/Users/me/app/src/x5.py"
+   ],
+   "id": "68cb7e8c-a8e9-4b72-9b9f-95c791d04e02",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-opus-5-5",
+     66
+    ]
+   ],
+   "nFiles": 3,
+   "nPrompts": 7,
+   "native": [
+    {
+     "label": "応答の数",
+     "labelEn": "Responses",
+     "n": 33,
+     "unit": "回",
+     "v": 33
+    },
+    {
+     "label": "1応答あたりの出力トークン",
+     "labelEn": "Output tokens per response",
+     "n": 33,
+     "unit": "トークン",
+     "v": 698.27
+    },
+    {
+     "label": "入力のうちキャッシュから読んだ割合",
+     "labelEn": "Share of input read from cache",
+     "n": 33,
+     "unit": "%",
+     "v": 94.58
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 33,
+     "unit": "回",
+     "v": 33
+    },
+    {
+     "label": "サブエージェントの実行",
+     "labelEn": "Subagent runs",
+     "n": 4,
+     "unit": "回",
+     "v": 4
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "app",
+   "projectPath": "/Users/me/app",
+   "prompts": [
+    {
+     "t": 1788925320,
+     "text": "READMEを整理して"
+    },
+    {
+     "t": 1788926880,
+     "text": "カレンダー表示を足して"
+    },
+    {
+     "t": 1788931260,
+     "text": "テストが落ちてるので直して"
+    },
+    {
+     "t": 1788936240,
+     "text": "ログイン画面のバグ調べて"
+    },
+    {
+     "t": 1788938880,
+     "text": "カレンダー表示を足して"
+    },
+    {
+     "t": 1788941340,
+     "text": "テストが落ちてるので直して"
+    },
+    {
+     "t": 1788947400,
+     "text": "評価シナリオを追加したい"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/app \u0026\u0026 claude --resume 68cb7e8c-a8e9-4b72-9b9f-95c791d04e02",
+   "segs": [
+    [
+     1788925320,
+     1788927360,
+     20
+    ],
+    [
+     1788929160,
+     1788929460,
+     6
+    ],
+    [
+     1788931260,
+     1788931740,
+     5
+    ],
+    [
+     1788933540,
+     1788933600,
+     2
+    ],
+    [
+     1788935340,
+     1788936300,
+     11
+    ],
+    [
+     1788938100,
+     1788939420,
+     19
+    ],
+    [
+     1788941220,
+     1788941340,
+     5
+    ],
+    [
+     1788943140,
+     1788943440,
+     4
+    ],
+    [
+     1788945240,
+     1788945300,
+     2
+    ],
+    [
+     1788947040,
+     1788948240,
+     15
+    ]
+   ],
+   "source": "Claude Code",
+   "start": 1788925320,
+   "subagents": [
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1788926820,
+     "model": "claude-haiku-4-5",
+     "start": 1788926460,
+     "tools": 4,
+     "type": "Explore",
+     "usage": {
+      "cost": 0.0297,
+      "cr": 80733,
+      "cw": 5599,
+      "cw1h": 0,
+      "in": 101,
+      "out": 2914,
+      "reportedTokens": 12345,
+      "unpriced": 0
+     }
+    },
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1788935760,
+     "model": "claude-haiku-4-5",
+     "start": 1788935340,
+     "tools": 4,
+     "type": "Plan",
+     "usage": {
+      "cost": 0.0234,
+      "cr": 56540,
+      "cw": 4720,
+      "cw1h": 0,
+      "in": 32,
+      "out": 2370,
+      "reportedTokens": 12345,
+      "unpriced": 0
+     }
+    },
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1788939420,
+     "model": "claude-haiku-4-5",
+     "start": 1788939300,
+     "tools": 4,
+     "type": "Explore",
+     "usage": {
+      "cost": 0.0233,
+      "cr": 35992,
+      "cw": 3842,
+      "cw1h": 0,
+      "in": 78,
+      "out": 2972,
+      "reportedTokens": 12345,
+      "unpriced": 0
+     }
+    },
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1788948060,
+     "model": "claude-haiku-4-5",
+     "start": 1788947640,
+     "tools": 4,
+     "type": "Plan",
+     "usage": {
+      "cost": 0.0225,
+      "cr": 67155,
+      "cw": 5712,
+      "cw1h": 0,
+      "in": 69,
+      "out": 1718,
+      "reportedTokens": 12345,
+      "unpriced": 0
+     }
+    }
+   ],
+   "title": "READMEを整理して",
+   "tools": [
+    [
+     "Read",
+     16
+    ],
+    [
+     "Edit",
+     7
+    ],
+    [
+     "Bash",
+     6
+    ],
+    [
+     "Task",
+     4
+    ]
+   ],
+   "usage": {
+    "cost": 0.9636,
+    "cr": 1034913,
+    "cw": 58557,
+    "cw1h": 0,
+    "in": 738,
+    "out": 23043,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1788926880,
+     300
+    ],
+    [
+     1788931260,
+     1800
+    ],
+    [
+     1788936240,
+     300
+    ],
+    [
+     1788938880,
+     300
+    ],
+    [
+     1788941340,
+     60
+    ],
+    [
+     1788947400,
+     60
+    ]
+   ]
+  },
+  {
+   "branch": "main",
+   "corrections": 0,
+   "cost": 0.1894,
+   "credits": 0,
+   "ctx": [
+    23955,
+    44436,
+    49169
+   ],
+   "end": 1789217220,
+   "events": 23,
+   "file": "testdata/home/.claude/projects/-Users-me-app/5c2c46e3-3212-4c02-83c7-f6e31dc33803.jsonl",
+   "files": [
+    "/Users/me/app/src/x1.py"
+   ],
+   "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33803",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-haiku-4-5",
+     20
+    ]
+   ],
+   "nFiles": 1,
+   "nPrompts": 2,
+   "native": [
+    {
+     "label": "応答の数",
+     "labelEn": "Responses",
+     "n": 10,
+     "unit": "回",
+     "v": 10
+    },
+    {
+     "label": "1応答あたりの出力トークン",
+     "labelEn": "Output tokens per response",
+     "n": 10,
+     "unit": "トークン",
+     "v": 1008.4
+    },
+    {
+     "label": "入力のうちキャッシュから読んだ割合",
+     "labelEn": "Share of input read from cache",
+     "n": 10,
+     "unit": "%",
+     "v": 94.46
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 10,
+     "unit": "回",
+     "v": 10
+    },
+    {
+     "label": "サブエージェントの実行",
+     "labelEn": "Subagent runs",
+     "n": 1,
+     "unit": "回",
+     "v": 1
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "app",
+   "projectPath": "/Users/me/app",
+   "prompts": [
+    {
+     "t": 1789213560,
+     "text": "評価シナリオを追加したい"
+    },
+    {
+     "t": 1789216500,
+     "text": "カレンダー表示を足して"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/app \u0026\u0026 claude --resume 5c2c46e3-3212-4c02-83c7-f6e31dc33803",
+   "segs": [
+    [
+     1789213560,
+     1789214040,
+     5
+    ],
+    [
+     1789215840,
+     1789217220,
+     18
+    ]
+   ],
+   "source": "Claude Code",
+   "start": 1789213560,
+   "subagents": [
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1789216290,
+     "model": "claude-sonnet-5-5",
+     "start": 1789216080,
+     "tools": 4,
+     "type": "Explore",
+     "usage": {
+      "cost": 0.0812,
+      "cr": 166351,
+      "cw": 7520,
+      "cw1h": 0,
+      "in": 90,
+      "out": 2897,
+      "unpriced": 0
+     }
+    }
+   ],
+   "title": "評価シナリオを追加したい",
+   "tools": [
+    [
+     "Bash",
+     5
+    ],
+    [
+     "Read",
+     3
+    ],
+    [
+     "Agent",
+     1
+    ],
+    [
+     "Edit",
+     1
+    ]
+   ],
+   "usage": {
+    "cost": 0.1082,
+    "cr": 333698,
+    "cw": 19289,
+    "cw1h": 0,
+    "in": 269,
+    "out": 10084,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1789216500,
+     420
+    ]
+   ]
+  },
+  {
+   "branch": "main",
+   "corrections": 0,
+   "cost": 0.2483,
+   "credits": 0,
+   "ctx": [
+    30098,
+    39687,
+    57070
+   ],
+   "end": 1789441800,
+   "events": 28,
+   "file": "testdata/home/.claude/projects/-Users-me-blog/fa1e3455-e4a8-485a-ace2-9a6ccbaea201.jsonl",
+   "files": [
+    "/Users/me/blog/src/x2.py",
+    "/Users/me/blog/src/x3.py",
+    "/Users/me/blog/src/x4.py",
+    "/Users/me/blog/src/x5.py"
+   ],
+   "id": "fa1e3455-e4a8-485a-ace2-9a6ccbaea201",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-sonnet-5-5",
+     24
+    ]
+   ],
+   "nFiles": 4,
+   "nPrompts": 3,
+   "native": [
+    {
+     "label": "応答の数",
+     "labelEn": "Responses",
+     "n": 12,
+     "unit": "回",
+     "v": 12
+    },
+    {
+     "label": "1応答あたりの出力トークン",
+     "labelEn": "Output tokens per response",
+     "n": 12,
+     "unit": "トークン",
+     "v": 555.58
+    },
+    {
+     "label": "入力のうちキャッシュから読んだ割合",
+     "labelEn": "Share of input read from cache",
+     "n": 12,
+     "unit": "%",
+     "v": 95.87
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 12,
+     "unit": "回",
+     "v": 12
+    },
+    {
+     "label": "サブエージェントの実行",
+     "labelEn": "Subagent runs",
+     "n": 1,
+     "unit": "回",
+     "v": 1
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "blog",
+   "projectPath": "/Users/me/blog",
+   "prompts": [
+    {
+     "t": 1789434120,
+     "text": "カレンダー表示を足して"
+    },
+    {
+     "t": 1789435920,
+     "text": "テストが落ちてるので直して"
+    },
+    {
+     "t": 1789439940,
+     "text": "READMEを整理して"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/blog \u0026\u0026 claude --resume fa1e3455-e4a8-485a-ace2-9a6ccbaea201",
+   "segs": [
+    [
+     1789434120,
+     1789435980,
+     15
+    ],
+    [
+     1789437780,
+     1789438140,
+     8
+    ],
+    [
+     1789439940,
+     1789440000,
+     3
+    ],
+    [
+     1789441800,
+     1789441860,
+     2
+    ]
+   ],
+   "source": "Claude Code",
+   "start": 1789434120,
+   "subagents": [
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1789435470,
+     "model": "claude-sonnet-5-5",
+     "start": 1789435260,
+     "tools": 4,
+     "type": "Explore",
+     "usage": {
+      "cost": 0.0698,
+      "cr": 114933,
+      "cw": 8141,
+      "cw1h": 0,
+      "in": 92,
+      "out": 2628,
+      "unpriced": 0
+     }
+    }
+   ],
+   "title": "カレンダー表示を足して",
+   "tools": [
+    [
+     "Edit",
+     7
+    ],
+    [
+     "Read",
+     2
+    ],
+    [
+     "Bash",
+     2
+    ],
+    [
+     "Agent",
+     1
+    ]
+   ],
+   "usage": {
+    "cost": 0.1785,
+    "cr": 363987,
+    "cw": 15454,
+    "cw1h": 0,
+    "in": 208,
+    "out": 6667,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1789435920,
+     660
+    ],
+    [
+     1789439940,
+     1800
+    ]
+   ]
+  },
+  {
+   "branch": "fix/login",
+   "corrections": 2,
+   "cost": 1.4179,
+   "credits": 0,
+   "ctx": [
+    35826,
+    29970,
+    59635
+   ],
+   "end": 1789824240,
+   "events": 84,
+   "file": "testdata/home/.claude/projects/-Users-me-app/6f8a980c-3b83-43eb-b07d-758a36bc2401.jsonl",
+   "files": [
+    "/Users/me/app/src/x1.py",
+    "/Users/me/app/src/x2.py",
+    "/Users/me/app/src/x4.py",
+    "/Users/me/app/src/x5.py"
+   ],
+   "id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-opus-5-5",
+     72
+    ]
+   ],
+   "nFiles": 4,
+   "nPrompts": 8,
+   "native": [
+    {
+     "label": "応答の数",
+     "labelEn": "Responses",
+     "n": 36,
+     "unit": "回",
+     "v": 36
+    },
+    {
+     "label": "1応答あたりの出力トークン",
+     "labelEn": "Output tokens per response",
+     "n": 36,
+     "unit": "トークン",
+     "v": 715.81
+    },
+    {
+     "label": "入力のうちキャッシュから読んだ割合",
+     "labelEn": "Share of input read from cache",
+     "n": 36,
+     "unit": "%",
+     "v": 94.59
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 36,
+     "unit": "回",
+     "v": 36
+    },
+    {
+     "label": "サブエージェントの実行",
+     "labelEn": "Subagent runs",
+     "n": 4,
+     "unit": "回",
+     "v": 4
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "app",
+   "projectPath": "/Users/me/app",
+   "prompts": [
+    {
+     "t": 1789804080,
+     "text": "カレンダー表示を足して"
+    },
+    {
+     "t": 1789807020,
+     "text": "READMEを整理して"
+    },
+    {
+     "t": 1789809720,
+     "text": "違う、そうじゃなくて"
+    },
+    {
+     "t": 1789810620,
+     "text": "評価シナリオを追加したい"
+    },
+    {
+     "t": 1789811520,
+     "text": "型エラー直して"
+    },
+    {
+     "t": 1789819500,
+     "text": "やり直して"
+    },
+    {
+     "t": 1789822140,
+     "text": "READMEを整理して"
+    },
+    {
+     "t": 1789823940,
+     "text": "評価シナリオを追加したい"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/app \u0026\u0026 claude --resume 6f8a980c-3b83-43eb-b07d-758a36bc2401",
+   "segs": [
+    [
+     1789804080,
+     1789804200,
+     3
+    ],
+    [
+     1789806000,
+     1789807320,
+     16
+    ],
+    [
+     1789809120,
+     1789811700,
+     30
+    ],
+    [
+     1789813500,
+     1789813560,
+     2
+    ],
+    [
+     1789815300,
+     1789815900,
+     5
+    ],
+    [
+     1789817700,
+     1789817760,
+     2
+    ],
+    [
+     1789819500,
+     1789819980,
+     7
+    ],
+    [
+     1789821780,
+     1789824240,
+     19
+    ]
+   ],
+   "source": "Claude Code",
+   "start": 1789804080,
+   "subagents": [
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1789806810,
+     "model": "claude-sonnet-5-5",
+     "start": 1789806600,
+     "tools": 4,
+     "type": "Plan",
+     "usage": {
+      "cost": 0.085,
+      "cr": 131391,
+      "cw": 7905,
+      "cw1h": 0,
+      "in": 96,
+      "out": 3872,
+      "unpriced": 0
+     }
+    },
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1789810410,
+     "model": "claude-sonnet-5-5",
+     "start": 1789810200,
+     "tools": 4,
+     "type": "Explore",
+     "usage": {
+      "cost": 0.0829,
+      "cr": 140845,
+      "cw": 10252,
+      "cw1h": 0,
+      "in": 81,
+      "out": 2894,
+      "unpriced": 0
+     }
+    },
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1789815510,
+     "model": "claude-sonnet-5-5",
+     "start": 1789815300,
+     "tools": 4,
+     "type": "Plan",
+     "usage": {
+      "cost": 0.059,
+      "cr": 112293,
+      "cw": 6098,
+      "cw1h": 0,
+      "in": 47,
+      "out": 2117,
+      "unpriced": 0
+     }
+    },
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1789822710,
+     "model": "claude-sonnet-5-5",
+     "start": 1789822500,
+     "tools": 4,
+     "type": "Plan",
+     "usage": {
+      "cost": 0.0917,
+      "cr": 185247,
+      "cw": 7784,
+      "cw1h": 0,
+      "in": 52,
+      "out": 3511,
+      "unpriced": 0
+     }
+    }
+   ],
+   "title": "カレンダー表示を足して",
+   "tools": [
+    [
+     "Read",
+     13
+    ],
+    [
+     "Bash",
+     11
+    ],
+    [
+     "Edit",
+     8
+    ],
+    [
+     "Agent",
+     4
+    ]
+   ],
+   "usage": {
+    "cost": 1.0993,
+    "cr": 1203415,
+    "cw": 68060,
+    "cw1h": 0,
+    "in": 736,
+    "out": 25769,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1789807020,
+     420
+    ],
+    [
+     1789809720,
+     300
+    ],
+    [
+     1789810620,
+     60
+    ],
+    [
+     1789811520,
+     300
+    ],
+    [
+     1789819500,
+     1800
+    ],
+    [
+     1789822140,
+     60
+    ],
+    [
+     1789823940,
+     60
+    ]
+   ]
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 0,
+   "ctx": [],
+   "end": 1789970422,
+   "events": 3,
+   "file": "testdata/sqlite/amazon-q.sqlite3",
+   "files": [],
+   "id": "q-1",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-3-7-sonnet",
+     1
+    ]
+   ],
+   "nFiles": 0,
+   "nPrompts": 1,
+   "native": [
+    {
+     "label": "応答にかかった時間（中央値）",
+     "labelEn": "Response time (median)",
+     "n": 1,
+     "unit": "秒",
+     "v": 20
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "aws",
+   "projectPath": "/Users/me/aws",
+   "prompts": [
+    {
+     "t": 1789970400,
+     "text": "S3のバケット一覧を出すスクリプト"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/aws \u0026\u0026 q chat --resume",
+   "segs": [
+    [
+     1789970400,
+     1789970460,
+     3
+    ]
+   ],
+   "source": "Amazon Q",
+   "start": 1789970400,
+   "subagents": [],
+   "title": "S3のバケット一覧を出すスクリプト",
+   "tools": [],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": []
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 0,
+   "ctx": [],
+   "end": 1790035200,
+   "events": 1,
+   "file": "testdata/sqlite/amazon-q.sqlite3",
+   "files": [],
+   "id": "q-old",
+   "interrupts": 0,
+   "limits": [],
+   "models": [],
+   "nFiles": 0,
+   "nPrompts": 1,
+   "native": [],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "old",
+   "projectPath": "/Users/me/old",
+   "prompts": [
+    {
+     "t": 1790035200,
+     "text": "古い形の会話"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/old \u0026\u0026 q chat --resume",
+   "segs": [
+    [
+     1790035200,
+     1790035260,
+     1
+    ]
+   ],
+   "source": "Amazon Q",
+   "start": 1790035200,
+   "subagents": [],
+   "title": "古い形の会話",
+   "tools": [],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": []
+  },
+  {
+   "branch": "main",
+   "corrections": 0,
+   "cost": 1.0625,
+   "credits": 0,
+   "ctx": [
+    34045,
+    43134,
+    61468
+   ],
+   "end": 1790157840,
+   "events": 89,
+   "file": "testdata/home/.claude/projects/-Users-me-app/68cb7e8c-a8e9-4b72-9b9f-95c791d04e00.jsonl",
+   "files": [
+    "/Users/me/app/src/x2.py",
+    "/Users/me/app/src/x4.py",
+    "/Users/me/app/src/x5.py"
+   ],
+   "id": "68cb7e8c-a8e9-4b72-9b9f-95c791d04e00",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-opus-5-5",
+     66
+    ]
+   ],
+   "nFiles": 3,
+   "nPrompts": 7,
+   "native": [
+    {
+     "label": "応答の数",
+     "labelEn": "Responses",
+     "n": 33,
+     "unit": "回",
+     "v": 33
+    },
+    {
+     "label": "1応答あたりの出力トークン",
+     "labelEn": "Output tokens per response",
+     "n": 33,
+     "unit": "トークン",
+     "v": 698.27
+    },
+    {
+     "label": "入力のうちキャッシュから読んだ割合",
+     "labelEn": "Share of input read from cache",
+     "n": 33,
+     "unit": "%",
+     "v": 94.58
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 33,
+     "unit": "回",
+     "v": 33
+    },
+    {
+     "label": "サブエージェントの実行",
+     "labelEn": "Subagent runs",
+     "n": 4,
+     "unit": "回",
+     "v": 4
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "app",
+   "projectPath": "/Users/me/app",
+   "prompts": [
+    {
+     "t": 1790134920,
+     "text": "READMEを整理して"
+    },
+    {
+     "t": 1790136480,
+     "text": "カレンダー表示を足して"
+    },
+    {
+     "t": 1790140860,
+     "text": "テストが落ちてるので直して"
+    },
+    {
+     "t": 1790145840,
+     "text": "ログイン画面のバグ調べて"
+    },
+    {
+     "t": 1790148480,
+     "text": "カレンダー表示を足して"
+    },
+    {
+     "t": 1790150940,
+     "text": "テストが落ちてるので直して"
+    },
+    {
+     "t": 1790157000,
+     "text": "評価シナリオを追加したい"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/app \u0026\u0026 claude --resume 68cb7e8c-a8e9-4b72-9b9f-95c791d04e00",
+   "segs": [
+    [
+     1790134920,
+     1790136960,
+     20
+    ],
+    [
+     1790138760,
+     1790139060,
+     6
+    ],
+    [
+     1790140860,
+     1790141340,
+     5
+    ],
+    [
+     1790143140,
+     1790143200,
+     2
+    ],
+    [
+     1790144940,
+     1790145900,
+     11
+    ],
+    [
+     1790147700,
+     1790149020,
+     19
+    ],
+    [
+     1790150820,
+     1790150940,
+     5
+    ],
+    [
+     1790152740,
+     1790153040,
+     4
+    ],
+    [
+     1790154840,
+     1790154900,
+     2
+    ],
+    [
+     1790156640,
+     1790157840,
+     15
+    ]
+   ],
+   "source": "Claude Code",
+   "start": 1790134920,
+   "subagents": [
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1790136420,
+     "model": "claude-haiku-4-5",
+     "start": 1790136060,
+     "tools": 4,
+     "type": "Explore",
+     "usage": {
+      "cost": 0.0297,
+      "cr": 80733,
+      "cw": 5599,
+      "cw1h": 0,
+      "in": 101,
+      "out": 2914,
+      "reportedTokens": 12345,
+      "unpriced": 0
+     }
+    },
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1790145360,
+     "model": "claude-haiku-4-5",
+     "start": 1790144940,
+     "tools": 4,
+     "type": "Plan",
+     "usage": {
+      "cost": 0.0234,
+      "cr": 56540,
+      "cw": 4720,
+      "cw1h": 0,
+      "in": 32,
+      "out": 2370,
+      "reportedTokens": 12345,
+      "unpriced": 0
+     }
+    },
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1790149020,
+     "model": "claude-haiku-4-5",
+     "start": 1790148900,
+     "tools": 4,
+     "type": "Explore",
+     "usage": {
+      "cost": 0.0233,
+      "cr": 35992,
+      "cw": 3842,
+      "cw1h": 0,
+      "in": 78,
+      "out": 2972,
+      "reportedTokens": 12345,
+      "unpriced": 0
+     }
+    },
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1790157660,
+     "model": "claude-haiku-4-5",
+     "start": 1790157240,
+     "tools": 4,
+     "type": "Plan",
+     "usage": {
+      "cost": 0.0225,
+      "cr": 67155,
+      "cw": 5712,
+      "cw1h": 0,
+      "in": 69,
+      "out": 1718,
+      "reportedTokens": 12345,
+      "unpriced": 0
+     }
+    }
+   ],
+   "title": "READMEを整理して",
+   "tools": [
+    [
+     "Read",
+     16
+    ],
+    [
+     "Edit",
+     7
+    ],
+    [
+     "Bash",
+     6
+    ],
+    [
+     "Task",
+     4
+    ]
+   ],
+   "usage": {
+    "cost": 0.9636,
+    "cr": 1034913,
+    "cw": 58557,
+    "cw1h": 0,
+    "in": 738,
+    "out": 23043,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1790136480,
+     300
+    ],
+    [
+     1790140860,
+     1800
+    ],
+    [
+     1790145840,
+     300
+    ],
+    [
+     1790148480,
+     300
+    ],
+    [
+     1790150940,
+     60
+    ],
+    [
+     1790157000,
+     60
+    ]
+   ]
+  },
+  {
+   "branch": "main",
+   "corrections": 1,
+   "cost": 0.1697,
+   "credits": 0,
+   "ctx": [
+    33460.5,
+    22315.5,
+    57594
+   ],
+   "end": 1790322960,
+   "events": 24,
+   "file": "testdata/home/.claude/projects/-Users-me-app/d8bda5e8-265b-4f26-8a8a-54c9c8651701.jsonl",
+   "files": [
+    "/Users/me/app/src/x2.py",
+    "/Users/me/app/src/x5.py"
+   ],
+   "id": "d8bda5e8-265b-4f26-8a8a-54c9c8651701",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-haiku-4-5",
+     20
+    ]
+   ],
+   "nFiles": 2,
+   "nPrompts": 3,
+   "native": [
+    {
+     "label": "応答の数",
+     "labelEn": "Responses",
+     "n": 10,
+     "unit": "回",
+     "v": 10
+    },
+    {
+     "label": "1応答あたりの出力トークン",
+     "labelEn": "Output tokens per response",
+     "n": 10,
+     "unit": "トークン",
+     "v": 728.3
+    },
+    {
+     "label": "入力のうちキャッシュから読んだ割合",
+     "labelEn": "Share of input read from cache",
+     "n": 10,
+     "unit": "%",
+     "v": 93
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 10,
+     "unit": "回",
+     "v": 10
+    },
+    {
+     "label": "サブエージェントの実行",
+     "labelEn": "Subagent runs",
+     "n": 1,
+     "unit": "回",
+     "v": 1
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "app",
+   "projectPath": "/Users/me/app",
+   "prompts": [
+    {
+     "t": 1790316060,
+     "text": "カレンダー表示を足して"
+    },
+    {
+     "t": 1790318880,
+     "text": "READMEを整理して"
+    },
+    {
+     "t": 1790322960,
+     "text": "やり直して"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/app \u0026\u0026 claude --resume d8bda5e8-265b-4f26-8a8a-54c9c8651701",
+   "segs": [
+    [
+     1790316060,
+     1790316360,
+     5
+    ],
+    [
+     1790318160,
+     1790318880,
+     8
+    ],
+    [
+     1790320680,
+     1790321100,
+     8
+    ],
+    [
+     1790322900,
+     1790322960,
+     3
+    ]
+   ],
+   "source": "Claude Code",
+   "start": 1790316060,
+   "subagents": [
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1790318730,
+     "model": "claude-sonnet-5-5",
+     "start": 1790318520,
+     "tools": 4,
+     "type": "Explore",
+     "usage": {
+      "cost": 0.0773,
+      "cr": 126777,
+      "cw": 4946,
+      "cw1h": 0,
+      "in": 79,
+      "out": 3946,
+      "unpriced": 0
+     }
+    }
+   ],
+   "title": "カレンダー表示を足して",
+   "tools": [
+    [
+     "Bash",
+     4
+    ],
+    [
+     "Read",
+     3
+    ],
+    [
+     "Edit",
+     2
+    ],
+    [
+     "Agent",
+     1
+    ]
+   ],
+   "usage": {
+    "cost": 0.0924,
+    "cr": 288744,
+    "cw": 21616,
+    "cw1h": 0,
+    "in": 126,
+    "out": 7283,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1790318880,
+     360
+    ],
+    [
+     1790322960,
+     60
+    ]
+   ]
+  },
+  {
+   "branch": "main",
+   "corrections": 0,
+   "cost": 0.4536,
+   "credits": 0,
+   "ctx": [
+    40872.5,
+    51605.5,
+    60266
+   ],
+   "end": 1790412180,
+   "events": 56,
+   "file": "testdata/home/.claude/projects/-Users-me-vp/57c94728-2884-42b4-8c7d-b3e65e11e800.jsonl",
+   "files": [
+    "/Users/me/vp/src/x1.py",
+    "/Users/me/vp/src/x2.py",
+    "/Users/me/vp/src/x4.py"
+   ],
+   "id": "57c94728-2884-42b4-8c7d-b3e65e11e800",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-haiku-4-5",
+     48
+    ]
+   ],
+   "nFiles": 3,
+   "nPrompts": 5,
+   "native": [
+    {
+     "label": "応答の数",
+     "labelEn": "Responses",
+     "n": 24,
+     "unit": "回",
+     "v": 24
+    },
+    {
+     "label": "1応答あたりの出力トークン",
+     "labelEn": "Output tokens per response",
+     "n": 24,
+     "unit": "トークン",
+     "v": 818.29
+    },
+    {
+     "label": "入力のうちキャッシュから読んだ割合",
+     "labelEn": "Share of input read from cache",
+     "n": 24,
+     "unit": "%",
+     "v": 94.73
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 24,
+     "unit": "回",
+     "v": 24
+    },
+    {
+     "label": "サブエージェントの実行",
+     "labelEn": "Subagent runs",
+     "n": 3,
+     "unit": "回",
+     "v": 3
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "vp",
+   "projectPath": "/Users/me/vp",
+   "prompts": [
+    {
+     "t": 1790403540,
+     "text": "型エラー直して"
+    },
+    {
+     "t": 1790405100,
+     "text": "READMEを整理して"
+    },
+    {
+     "t": 1790407560,
+     "text": "テストが落ちてるので直して"
+    },
+    {
+     "t": 1790409060,
+     "text": "型エラー直して"
+    },
+    {
+     "t": 1790410080,
+     "text": "型エラー直して"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/vp \u0026\u0026 claude --resume 57c94728-2884-42b4-8c7d-b3e65e11e800",
+   "segs": [
+    [
+     1790403540,
+     1790405280,
+     17
+    ],
+    [
+     1790407080,
+     1790410140,
+     32
+    ],
+    [
+     1790411940,
+     1790412180,
+     7
+    ]
+   ],
+   "source": "Claude Code",
+   "start": 1790403540,
+   "subagents": [
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1790404770,
+     "model": "claude-sonnet-5-5",
+     "start": 1790404560,
+     "tools": 4,
+     "type": "Plan",
+     "usage": {
+      "cost": 0.0776,
+      "cr": 142332,
+      "cw": 10686,
+      "cw1h": 0,
+      "in": 69,
+      "out": 2231,
+      "unpriced": 0
+     }
+    },
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1790408730,
+     "model": "claude-sonnet-5-5",
+     "start": 1790408520,
+     "tools": 4,
+     "type": "Explore",
+     "usage": {
+      "cost": 0.0761,
+      "cr": 98613,
+      "cw": 8988,
+      "cw1h": 0,
+      "in": 63,
+      "out": 3379,
+      "unpriced": 0
+     }
+    },
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1790412210,
+     "model": "claude-sonnet-5-5",
+     "start": 1790412000,
+     "tools": 4,
+     "type": "Plan",
+     "usage": {
+      "cost": 0.0619,
+      "cr": 68564,
+      "cw": 8001,
+      "cw1h": 0,
+      "in": 55,
+      "out": 2812,
+      "unpriced": 0
+     }
+    }
+   ],
+   "title": "型エラー直して",
+   "tools": [
+    [
+     "Bash",
+     9
+    ],
+    [
+     "Read",
+     7
+    ],
+    [
+     "Edit",
+     5
+    ],
+    [
+     "Agent",
+     3
+    ]
+   ],
+   "usage": {
+    "cost": 0.238,
+    "cr": 825577,
+    "cw": 45394,
+    "cw1h": 0,
+    "in": 546,
+    "out": 19639,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1790405100,
+     540
+    ],
+    [
+     1790407560,
+     300
+    ],
+    [
+     1790409060,
+     120
+    ],
+    [
+     1790410080,
+     180
+    ]
+   ]
+  },
+  {
+   "branch": "fix/login",
+   "corrections": 2,
+   "cost": 1.4179,
+   "credits": 0,
+   "ctx": [
+    35826,
+    29970,
+    59635
+   ],
+   "end": 1790429040,
+   "events": 84,
+   "file": "testdata/home/.claude/projects/-Users-me-app/6f8a980c-3b83-43eb-b07d-758a36bc2400.jsonl",
+   "files": [
+    "/Users/me/app/src/x1.py",
+    "/Users/me/app/src/x2.py",
+    "/Users/me/app/src/x4.py",
+    "/Users/me/app/src/x5.py"
+   ],
+   "id": "6f8a980c-3b83-43eb-b07d-758a36bc2400",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-opus-5-5",
+     72
+    ]
+   ],
+   "nFiles": 4,
+   "nPrompts": 8,
+   "native": [
+    {
+     "label": "応答の数",
+     "labelEn": "Responses",
+     "n": 36,
+     "unit": "回",
+     "v": 36
+    },
+    {
+     "label": "1応答あたりの出力トークン",
+     "labelEn": "Output tokens per response",
+     "n": 36,
+     "unit": "トークン",
+     "v": 715.81
+    },
+    {
+     "label": "入力のうちキャッシュから読んだ割合",
+     "labelEn": "Share of input read from cache",
+     "n": 36,
+     "unit": "%",
+     "v": 94.59
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 36,
+     "unit": "回",
+     "v": 36
+    },
+    {
+     "label": "サブエージェントの実行",
+     "labelEn": "Subagent runs",
+     "n": 4,
+     "unit": "回",
+     "v": 4
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "app",
+   "projectPath": "/Users/me/app",
+   "prompts": [
+    {
+     "t": 1790408880,
+     "text": "カレンダー表示を足して"
+    },
+    {
+     "t": 1790411820,
+     "text": "READMEを整理して"
+    },
+    {
+     "t": 1790414520,
+     "text": "違う、そうじゃなくて"
+    },
+    {
+     "t": 1790415420,
+     "text": "評価シナリオを追加したい"
+    },
+    {
+     "t": 1790416320,
+     "text": "型エラー直して"
+    },
+    {
+     "t": 1790424300,
+     "text": "やり直して"
+    },
+    {
+     "t": 1790426940,
+     "text": "READMEを整理して"
+    },
+    {
+     "t": 1790428740,
+     "text": "評価シナリオを追加したい"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/app \u0026\u0026 claude --resume 6f8a980c-3b83-43eb-b07d-758a36bc2400",
+   "segs": [
+    [
+     1790408880,
+     1790409000,
+     3
+    ],
+    [
+     1790410800,
+     1790412120,
+     16
+    ],
+    [
+     1790413920,
+     1790416500,
+     30
+    ],
+    [
+     1790418300,
+     1790418360,
+     2
+    ],
+    [
+     1790420100,
+     1790420700,
+     5
+    ],
+    [
+     1790422500,
+     1790422560,
+     2
+    ],
+    [
+     1790424300,
+     1790424780,
+     7
+    ],
+    [
+     1790426580,
+     1790429040,
+     19
+    ]
+   ],
+   "source": "Claude Code",
+   "start": 1790408880,
+   "subagents": [
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1790411610,
+     "model": "claude-sonnet-5-5",
+     "start": 1790411400,
+     "tools": 4,
+     "type": "Plan",
+     "usage": {
+      "cost": 0.085,
+      "cr": 131391,
+      "cw": 7905,
+      "cw1h": 0,
+      "in": 96,
+      "out": 3872,
+      "unpriced": 0
+     }
+    },
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1790415210,
+     "model": "claude-sonnet-5-5",
+     "start": 1790415000,
+     "tools": 4,
+     "type": "Explore",
+     "usage": {
+      "cost": 0.0829,
+      "cr": 140845,
+      "cw": 10252,
+      "cw1h": 0,
+      "in": 81,
+      "out": 2894,
+      "unpriced": 0
+     }
+    },
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1790420310,
+     "model": "claude-sonnet-5-5",
+     "start": 1790420100,
+     "tools": 4,
+     "type": "Plan",
+     "usage": {
+      "cost": 0.059,
+      "cr": 112293,
+      "cw": 6098,
+      "cw1h": 0,
+      "in": 47,
+      "out": 2117,
+      "unpriced": 0
+     }
+    },
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1790427510,
+     "model": "claude-sonnet-5-5",
+     "start": 1790427300,
+     "tools": 4,
+     "type": "Plan",
+     "usage": {
+      "cost": 0.0917,
+      "cr": 185247,
+      "cw": 7784,
+      "cw1h": 0,
+      "in": 52,
+      "out": 3511,
+      "unpriced": 0
+     }
+    }
+   ],
+   "title": "カレンダー表示を足して",
+   "tools": [
+    [
+     "Read",
+     13
+    ],
+    [
+     "Bash",
+     11
+    ],
+    [
+     "Edit",
+     8
+    ],
+    [
+     "Agent",
+     4
+    ]
+   ],
+   "usage": {
+    "cost": 1.0993,
+    "cr": 1203415,
+    "cw": 68060,
+    "cw1h": 0,
+    "in": 736,
+    "out": 25769,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1790411820,
+     420
+    ],
+    [
+     1790414520,
+     300
+    ],
+    [
+     1790415420,
+     60
+    ],
+    [
+     1790416320,
+     300
+    ],
+    [
+     1790424300,
+     1800
+    ],
+    [
+     1790426940,
+     60
+    ],
+    [
+     1790428740,
+     60
+    ]
+   ]
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 4.92,
+   "ctx": [],
+   "end": 1790551440,
+   "events": 13,
+   "file": "testdata/home/.kiro/sessions/abc/sess_0ee61246/messages.jsonl",
+   "files": [
+    "spec.md"
+   ],
+   "id": "sess_0ee61246",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-sonnet-4.5",
+     3
+    ]
+   ],
+   "nFiles": 1,
+   "nPrompts": 3,
+   "native": [
+    {
+     "label": "クレジット",
+     "labelEn": "Credits",
+     "n": 3,
+     "unit": "クレジット",
+     "v": 4.92
+    },
+    {
+     "label": "ターン",
+     "labelEn": "Turns",
+     "n": 3,
+     "unit": "回",
+     "v": 3
+    },
+    {
+     "label": "1ターンあたりのクレジット",
+     "labelEn": "Credits per turn",
+     "n": 3,
+     "unit": "クレジット",
+     "v": 1.64
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 6,
+     "unit": "回",
+     "v": 6
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "vp",
+   "projectPath": "/Users/me/vp",
+   "prompts": [
+    {
+     "t": 1790550180,
+     "text": "specを書いて"
+    },
+    {
+     "t": 1790550600,
+     "text": "specを書いて"
+    },
+    {
+     "t": 1790551080,
+     "text": "specを書いて"
+    }
+   ],
+   "prs": [],
+   "resume": null,
+   "segs": [
+    [
+     1790550000,
+     1790551440,
+     13
+    ]
+   ],
+   "source": "Kiro IDE",
+   "start": 1790550000,
+   "subagents": [],
+   "title": "Kiro: specを書いて",
+   "tools": [
+    [
+     "fsWrite",
+     6
+    ]
+   ],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1790550600,
+     120
+    ],
+    [
+     1790551080,
+     60
+    ]
+   ]
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 0,
+   "ctx": [],
+   "end": 1790597280,
+   "events": 2,
+   "file": "testdata/home/.config/Kiro/User/globalStorage/kiro.kiroagent/workspace-sessions/d3M=/372fbe38-1f0c-4f64-882e-d84f0f02817e.json",
+   "files": [],
+   "id": "372fbe38-1f0c-4f64-882e-d84f0f02817e",
+   "interrupts": 0,
+   "limits": [],
+   "models": [],
+   "nFiles": 0,
+   "nPrompts": 1,
+   "native": [],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "old",
+   "projectPath": "/Users/me/old",
+   "prompts": [
+    {
+     "t": 1790578380,
+     "text": "昔の依頼"
+    }
+   ],
+   "prs": [],
+   "resume": null,
+   "segs": [
+    [
+     1790578380,
+     1790578440,
+     1
+    ],
+    [
+     1790597280,
+     1790597340,
+     1
+    ]
+   ],
+   "source": "Kiro IDE (旧)",
+   "start": 1790578380,
+   "subagents": [],
+   "title": "旧Kiroのチャット",
+   "tools": [],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": []
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 3.73,
+   "ctx": [],
+   "end": 1790633760,
+   "events": 10,
+   "file": "testdata/home/.kiro/sessions/cli/1e13c3c1-d7ae-41c2-a324-e6a440665d9a.jsonl",
+   "files": [],
+   "id": "1e13c3c1-d7ae-41c2-a324-e6a440665d9a",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "auto",
+     4
+    ]
+   ],
+   "nFiles": 0,
+   "nPrompts": 4,
+   "native": [
+    {
+     "label": "Crew から動かした会話",
+     "labelEn": "Conversations run from Crew",
+     "n": 1,
+     "unit": "件",
+     "v": 1
+    },
+    {
+     "label": "クレジット",
+     "labelEn": "Credits",
+     "n": 4,
+     "unit": "クレジット",
+     "v": 3.73
+    },
+    {
+     "label": "ターン",
+     "labelEn": "Turns",
+     "n": 4,
+     "unit": "回",
+     "v": 4
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "infra",
+   "projectPath": "/Users/me/infra",
+   "prompts": [
+    {
+     "t": 1790632800,
+     "text": "デプロイみて"
+    },
+    {
+     "t": 1790633040,
+     "text": "デプロイみて"
+    },
+    {
+     "t": 1790633280,
+     "text": "デプロイみて"
+    },
+    {
+     "t": 1790633520,
+     "text": "デプロイみて"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/infra \u0026\u0026 kiro-cli chat --resume-id 1e13c3c1-d7ae-41c2-a324-e6a440665d9a",
+   "segs": [
+    [
+     1790632800,
+     1790633760,
+     10
+    ]
+   ],
+   "source": "Kiro Crew",
+   "start": 1790632800,
+   "subagents": [],
+   "title": "CLIでデプロイ確認",
+   "tools": [],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": []
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 0.25,
+   "ctx": [],
+   "end": 1790640000,
+   "events": 2,
+   "files": [],
+   "id": "crew:_bg:2026-09-29",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "auto",
+     1
+    ]
+   ],
+   "nFiles": 0,
+   "nPrompts": 0,
+   "native": [
+    {
+     "label": "Crew から動かした会話",
+     "labelEn": "Conversations run from Crew",
+     "n": 1,
+     "unit": "件",
+     "v": 1
+    },
+    {
+     "label": "クレジット",
+     "labelEn": "Credits",
+     "n": 1,
+     "unit": "クレジット",
+     "v": 0.25
+    },
+    {
+     "label": "ターン",
+     "labelEn": "Turns",
+     "n": 1,
+     "unit": "回",
+     "v": 1
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "(Kiro Crew)",
+   "projectPath": "(Kiro Crew)",
+   "prompts": [],
+   "prs": [],
+   "resume": null,
+   "segs": [
+    [
+     1790639997,
+     1790640057,
+     2
+    ]
+   ],
+   "source": "Kiro Crew",
+   "start": 1790639997,
+   "subagents": [],
+   "title": "Kiro Crew の裏方の処理",
+   "tools": [],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": []
+  },
+  {
+   "branch": null,
+   "corrections": 1,
+   "cost": 0,
+   "credits": 0,
+   "ctx": [],
+   "end": 1790643960,
+   "events": 11,
+   "file": "testdata/sqlite/kiro-cli.sqlite3",
+   "files": [
+    "/Users/me/app/test/login.spec.ts"
+   ],
+   "id": "conv-a",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-sonnet-4.5",
+     3
+    ]
+   ],
+   "nFiles": 1,
+   "nPrompts": 2,
+   "native": [
+    {
+     "label": "応答にかかった時間（中央値）",
+     "labelEn": "Response time (median)",
+     "n": 3,
+     "unit": "秒",
+     "v": 20
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 1,
+     "unit": "回",
+     "v": 1
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "app",
+   "projectPath": "/Users/me/app",
+   "prompts": [
+    {
+     "t": 1790643600,
+     "text": "ログイン画面のテストを書いて"
+    },
+    {
+     "t": 1790643900,
+     "text": "違う、E2Eじゃなくて単体テストで"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/app \u0026\u0026 kiro-cli chat --resume",
+   "segs": [
+    [
+     1790643540,
+     1790643960,
+     11
+    ]
+   ],
+   "source": "Kiro CLI (SQLite)",
+   "start": 1790643540,
+   "subagents": [],
+   "title": "ログイン画面のテストを書いて",
+   "tools": [
+    [
+     "fs_write",
+     1
+    ]
+   ],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1790643900,
+     218
+    ]
+   ]
+  },
+  {
+   "branch": "feat/button",
+   "corrections": 1,
+   "cost": 0,
+   "credits": 0,
+   "ctx": [],
+   "end": 1790643810,
+   "events": 11,
+   "file": "$CODEX/sessions/2026/09/29/rollout-2026-09-29T10-00-00-thr-main.jsonl",
+   "files": [],
+   "id": "thr-main",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "gpt-5-codex",
+     2
+    ]
+   ],
+   "nFiles": 0,
+   "nPrompts": 2,
+   "native": [
+    {
+     "label": "応答の数",
+     "labelEn": "Responses",
+     "n": 3,
+     "unit": "回",
+     "v": 3
+    },
+    {
+     "label": "推論トークン",
+     "labelEn": "Reasoning tokens",
+     "n": 3,
+     "unit": "トークン",
+     "v": 0
+    },
+    {
+     "label": "出力のうち推論の割合",
+     "labelEn": "Share of output spent on reasoning",
+     "n": 3,
+     "unit": "%",
+     "v": 0
+    },
+    {
+     "label": "入力のうちキャッシュから読んだ割合",
+     "labelEn": "Share of input read from cache",
+     "n": 3,
+     "unit": "%",
+     "v": 72.41
+    },
+    {
+     "label": "コンテキストの最大使用率",
+     "labelEn": "Peak context usage",
+     "n": 3,
+     "unit": "%",
+     "v": 0.55
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 3,
+     "unit": "回",
+     "v": 3
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "web",
+   "projectPath": "/Users/me/web",
+   "prompts": [
+    {
+     "t": 1790643602,
+     "text": "ボタンの色を直して"
+    },
+    {
+     "t": 1790643780,
+     "text": "違う、そっちじゃなくてヘッダーのボタン"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/web \u0026\u0026 codex resume thr-main",
+   "segs": [
+    [
+     1790643601,
+     1790643810,
+     11
+    ]
+   ],
+   "source": "Codex",
+   "start": 1790643601,
+   "subagents": [
+    {
+     "bg": false,
+     "desc": "ボタンのスタイルがどこで決まっているか調べる",
+     "end": 1790643720,
+     "model": "gpt-5-codex-mini",
+     "start": 1790643661,
+     "tools": 1,
+     "type": "explorer",
+     "usage": {
+      "cost": 0,
+      "cr": 100,
+      "cw": 0,
+      "cw1h": 0,
+      "in": 300,
+      "out": 50,
+      "unpriced": 450
+     }
+    }
+   ],
+   "title": "ヘッダーのボタンの色",
+   "tools": [
+    [
+     "shell",
+     1
+    ],
+    [
+     "apply_patch",
+     1
+    ]
+   ],
+   "usage": {
+    "cost": 0,
+    "cr": 2000,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 500,
+    "out": 350,
+    "unpriced": 2850
+   },
+   "waits": [
+    [
+     1790643602,
+     1
+    ],
+    [
+     1790643780,
+     149
+    ]
+   ]
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 2.08,
+   "ctx": [],
+   "end": 1790662920,
+   "events": 13,
+   "file": "testdata/home/.kiro/sessions/abc/sess_7e06b008/messages.jsonl",
+   "files": [
+    "spec.md"
+   ],
+   "id": "sess_7e06b008",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-sonnet-4.5",
+     3
+    ]
+   ],
+   "nFiles": 1,
+   "nPrompts": 3,
+   "native": [
+    {
+     "label": "クレジット",
+     "labelEn": "Credits",
+     "n": 3,
+     "unit": "クレジット",
+     "v": 2.08
+    },
+    {
+     "label": "ターン",
+     "labelEn": "Turns",
+     "n": 3,
+     "unit": "回",
+     "v": 3
+    },
+    {
+     "label": "1ターンあたりのクレジット",
+     "labelEn": "Credits per turn",
+     "n": 3,
+     "unit": "クレジット",
+     "v": 0.69
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 6,
+     "unit": "回",
+     "v": 6
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "vp",
+   "projectPath": "/Users/me/vp",
+   "prompts": [
+    {
+     "t": 1790661660,
+     "text": "specを書いて"
+    },
+    {
+     "t": 1790662200,
+     "text": "specを書いて"
+    },
+    {
+     "t": 1790662620,
+     "text": "specを書いて"
+    }
+   ],
+   "prs": [],
+   "resume": null,
+   "segs": [
+    [
+     1790661600,
+     1790662920,
+     13
+    ]
+   ],
+   "source": "Kiro IDE",
+   "start": 1790661600,
+   "subagents": [],
+   "title": "Kiro: specを書いて",
+   "tools": [
+    [
+     "fsWrite",
+     6
+    ]
+   ],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1790662200,
+     60
+    ],
+    [
+     1790662620,
+     60
+    ]
+   ]
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 4.5,
+   "ctx": [],
+   "end": 1790669760,
+   "events": 14,
+   "file": "testdata/home/.kiro/sessions/cli/1cb4ad2f-90ba-4c5f-970b-5767003804b9.jsonl",
+   "files": [],
+   "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "auto",
+     6
+    ]
+   ],
+   "nFiles": 0,
+   "nPrompts": 4,
+   "native": [
+    {
+     "label": "Crew から動かした会話",
+     "labelEn": "Conversations run from Crew",
+     "n": 1,
+     "unit": "件",
+     "v": 1
+    },
+    {
+     "label": "クレジット",
+     "labelEn": "Credits",
+     "n": 2,
+     "unit": "クレジット",
+     "v": 4.5
+    },
+    {
+     "label": "ターン",
+     "labelEn": "Turns",
+     "n": 2,
+     "unit": "回",
+     "v": 2
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "infra",
+   "projectPath": "/Users/me/infra",
+   "prompts": [
+    {
+     "t": 1790668800,
+     "text": "デプロイみて"
+    },
+    {
+     "t": 1790669040,
+     "text": "デプロイみて"
+    },
+    {
+     "t": 1790669280,
+     "text": "デプロイみて"
+    },
+    {
+     "t": 1790669520,
+     "text": "デプロイみて"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/infra \u0026\u0026 kiro-cli chat --resume-id 1cb4ad2f-90ba-4c5f-970b-5767003804b9",
+   "segs": [
+    [
+     1790668800,
+     1790669760,
+     14
+    ]
+   ],
+   "source": "Kiro Crew",
+   "start": 1790668800,
+   "subagents": [],
+   "title": "夜間のデプロイ見張り",
+   "tools": [],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1790669280,
+     180
+    ],
+    [
+     1790669520,
+     120
+    ]
+   ]
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 1.25,
+   "ctx": [],
+   "end": 1790683200,
+   "events": 2,
+   "files": [],
+   "id": "crew:dashboard:chat-9-1790000000",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "deepseek-3.2",
+     1
+    ]
+   ],
+   "nFiles": 0,
+   "nPrompts": 0,
+   "native": [
+    {
+     "label": "Crew から動かした会話",
+     "labelEn": "Conversations run from Crew",
+     "n": 1,
+     "unit": "件",
+     "v": 1
+    },
+    {
+     "label": "クレジット",
+     "labelEn": "Credits",
+     "n": 1,
+     "unit": "クレジット",
+     "v": 1.25
+    },
+    {
+     "label": "ターン",
+     "labelEn": "Turns",
+     "n": 1,
+     "unit": "回",
+     "v": 1
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "(Kiro Crew)",
+   "projectPath": "(Kiro Crew)",
+   "prompts": [],
+   "prs": [],
+   "resume": null,
+   "segs": [
+    [
+     1790683130,
+     1790683200,
+     2
+    ]
+   ],
+   "source": "Kiro Crew",
+   "start": 1790683130,
+   "subagents": [],
+   "title": "Kiro Crew: dashboard:chat-9-1790000000",
+   "tools": [],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": []
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 0.5,
+   "ctx": [],
+   "end": 1790726400,
+   "events": 2,
+   "files": [],
+   "id": "crew:_bg:2026-09-30",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "auto",
+     1
+    ]
+   ],
+   "nFiles": 0,
+   "nPrompts": 0,
+   "native": [
+    {
+     "label": "Crew から動かした会話",
+     "labelEn": "Conversations run from Crew",
+     "n": 1,
+     "unit": "件",
+     "v": 1
+    },
+    {
+     "label": "クレジット",
+     "labelEn": "Credits",
+     "n": 1,
+     "unit": "クレジット",
+     "v": 0.5
+    },
+    {
+     "label": "ターン",
+     "labelEn": "Turns",
+     "n": 1,
+     "unit": "回",
+     "v": 1
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "(Kiro Crew)",
+   "projectPath": "(Kiro Crew)",
+   "prompts": [],
+   "prs": [],
+   "resume": null,
+   "segs": [
+    [
+     1790726397,
+     1790726457,
+     2
+    ]
+   ],
+   "source": "Kiro Crew",
+   "start": 1790726397,
+   "subagents": [],
+   "title": "Kiro Crew の裏方の処理",
+   "tools": [],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": []
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 2.28,
+   "ctx": [],
+   "end": 1790727360,
+   "events": 10,
+   "file": "testdata/home/.kiro/sessions/cli/0d612aac-99c4-4a54-bda2-76ad60b6ddf3.jsonl",
+   "files": [],
+   "id": "0d612aac-99c4-4a54-bda2-76ad60b6ddf3",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "auto",
+     4
+    ]
+   ],
+   "nFiles": 0,
+   "nPrompts": 4,
+   "native": [
+    {
+     "label": "Crew から動かした会話",
+     "labelEn": "Conversations run from Crew",
+     "n": 1,
+     "unit": "件",
+     "v": 1
+    },
+    {
+     "label": "うちサブエージェント",
+     "labelEn": "Of which subagents",
+     "n": 1,
+     "unit": "件",
+     "v": 1
+    },
+    {
+     "label": "クレジット",
+     "labelEn": "Credits",
+     "n": 4,
+     "unit": "クレジット",
+     "v": 2.28
+    },
+    {
+     "label": "ターン",
+     "labelEn": "Turns",
+     "n": 4,
+     "unit": "回",
+     "v": 4
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "infra",
+   "projectPath": "/Users/me/infra",
+   "prompts": [
+    {
+     "t": 1790726400,
+     "text": "デプロイみて"
+    },
+    {
+     "t": 1790726640,
+     "text": "デプロイみて"
+    },
+    {
+     "t": 1790726880,
+     "text": "デプロイみて"
+    },
+    {
+     "t": 1790727120,
+     "text": "デプロイみて"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/infra \u0026\u0026 kiro-cli chat --resume-id 0d612aac-99c4-4a54-bda2-76ad60b6ddf3",
+   "segs": [
+    [
+     1790726400,
+     1790727360,
+     10
+    ]
+   ],
+   "source": "Kiro Crew",
+   "start": 1790726400,
+   "subagents": [],
+   "title": "サブエージェント reviewer: PR #12 をレビューして",
+   "tools": [],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": []
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 0,
+   "ctx": [],
+   "end": 1790747940,
+   "events": 2,
+   "file": "testdata/home/.config/Kiro/User/globalStorage/kiro.kiroagent/workspace-sessions/d3M=/12c47fa1-6df4-4521-83f6-def4d849922d.json",
+   "files": [],
+   "id": "12c47fa1-6df4-4521-83f6-def4d849922d",
+   "interrupts": 0,
+   "limits": [],
+   "models": [],
+   "nFiles": 0,
+   "nPrompts": 1,
+   "native": [],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "old",
+   "projectPath": "/Users/me/old",
+   "prompts": [
+    {
+     "t": 1790739600,
+     "text": "昔の依頼"
+    }
+   ],
+   "prs": [],
+   "resume": null,
+   "segs": [
+    [
+     1790739600,
+     1790739660,
+     1
+    ],
+    [
+     1790747940,
+     1790748000,
+     1
+    ]
+   ],
+   "source": "Kiro IDE (旧)",
+   "start": 1790739600,
+   "subagents": [],
+   "title": "旧Kiroのチャット",
+   "tools": [],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": []
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 0,
+   "ctx": [],
+   "end": 1790744460,
+   "events": 6,
+   "file": "$CODEX/sessions/2026/09/30/rollout-2026-09-30T14-00-00-thr-new.jsonl.zst",
+   "files": [],
+   "id": "thr-new",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "gpt-5.2-codex",
+     2
+    ]
+   ],
+   "nFiles": 0,
+   "nPrompts": 1,
+   "native": [
+    {
+     "label": "応答の数",
+     "labelEn": "Responses",
+     "n": 2,
+     "unit": "回",
+     "v": 2
+    },
+    {
+     "label": "推論トークン",
+     "labelEn": "Reasoning tokens",
+     "n": 2,
+     "unit": "トークン",
+     "v": 0
+    },
+    {
+     "label": "出力のうち推論の割合",
+     "labelEn": "Share of output spent on reasoning",
+     "n": 2,
+     "unit": "%",
+     "v": 0
+    },
+    {
+     "label": "入力のうちキャッシュから読んだ割合",
+     "labelEn": "Share of input read from cache",
+     "n": 2,
+     "unit": "%",
+     "v": 40
+    },
+    {
+     "label": "コンテキストの最大使用率",
+     "labelEn": "Peak context usage",
+     "n": 1,
+     "unit": "%",
+     "v": 1.1
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "api",
+   "projectPath": "/Users/me/api",
+   "prompts": [
+    {
+     "t": 1790744402,
+     "text": "APIのテストを足して"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/api \u0026\u0026 codex resume thr-new",
+   "segs": [
+    [
+     1790744401,
+     1790744461,
+     6
+    ]
+   ],
+   "source": "Codex",
+   "start": 1790744401,
+   "subagents": [],
+   "title": "APIのテストを足して",
+   "tools": [],
+   "usage": {
+    "cost": 0,
+    "cr": 1400,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 2100,
+    "out": 600,
+    "unpriced": 4100
+   },
+   "waits": [
+    [
+     1790744402,
+     1
+    ]
+   ]
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 0,
+   "ctx": [],
+   "end": 1790755500,
+   "events": 2,
+   "file": "testdata/home/.config/Kiro/User/globalStorage/kiro.kiroagent/workspace-sessions/d3M=/12971eb2-2ee6-4dd7-9a6e-a50256c0bf1d.json",
+   "files": [],
+   "id": "12971eb2-2ee6-4dd7-9a6e-a50256c0bf1d",
+   "interrupts": 0,
+   "limits": [],
+   "models": [],
+   "nFiles": 0,
+   "nPrompts": 1,
+   "native": [],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "old",
+   "projectPath": "/Users/me/old",
+   "prompts": [
+    {
+     "t": 1790746140,
+     "text": "昔の依頼"
+    }
+   ],
+   "prs": [],
+   "resume": null,
+   "segs": [
+    [
+     1790746140,
+     1790746200,
+     1
+    ],
+    [
+     1790755500,
+     1790755560,
+     1
+    ]
+   ],
+   "source": "Kiro IDE (旧)",
+   "start": 1790746140,
+   "subagents": [],
+   "title": "旧Kiroのチャット",
+   "tools": [],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": []
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 3.29,
+   "ctx": [],
+   "end": 1790749800,
+   "events": 13,
+   "file": "testdata/home/.kiro/sessions/abc/sess_564f668e/messages.jsonl",
+   "files": [
+    "spec.md"
+   ],
+   "id": "sess_564f668e",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-sonnet-4.5",
+     3
+    ]
+   ],
+   "nFiles": 1,
+   "nPrompts": 3,
+   "native": [
+    {
+     "label": "クレジット",
+     "labelEn": "Credits",
+     "n": 3,
+     "unit": "クレジット",
+     "v": 3.29
+    },
+    {
+     "label": "ターン",
+     "labelEn": "Turns",
+     "n": 3,
+     "unit": "回",
+     "v": 3
+    },
+    {
+     "label": "1ターンあたりのクレジット",
+     "labelEn": "Credits per turn",
+     "n": 3,
+     "unit": "クレジット",
+     "v": 1.1
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 6,
+     "unit": "回",
+     "v": 6
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "vp",
+   "projectPath": "/Users/me/vp",
+   "prompts": [
+    {
+     "t": 1790748180,
+     "text": "specを書いて"
+    },
+    {
+     "t": 1790748780,
+     "text": "specを書いて"
+    },
+    {
+     "t": 1790749320,
+     "text": "specを書いて"
+    }
+   ],
+   "prs": [],
+   "resume": null,
+   "segs": [
+    [
+     1790748000,
+     1790749800,
+     13
+    ]
+   ],
+   "source": "Kiro IDE",
+   "start": 1790748000,
+   "subagents": [],
+   "title": "Kiro: specを書いて",
+   "tools": [
+    [
+     "fsWrite",
+     6
+    ]
+   ],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1790748780,
+     180
+    ],
+    [
+     1790749320,
+     120
+    ]
+   ]
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 3.6,
+   "ctx": [],
+   "end": 1790753100,
+   "events": 13,
+   "file": "testdata/home/.kiro/sessions/abc/sess_1640c798/messages.jsonl",
+   "files": [
+    "spec.md"
+   ],
+   "id": "sess_1640c798",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-sonnet-4.5",
+     3
+    ]
+   ],
+   "nFiles": 1,
+   "nPrompts": 3,
+   "native": [
+    {
+     "label": "クレジット",
+     "labelEn": "Credits",
+     "n": 3,
+     "unit": "クレジット",
+     "v": 3.6
+    },
+    {
+     "label": "ターン",
+     "labelEn": "Turns",
+     "n": 3,
+     "unit": "回",
+     "v": 3
+    },
+    {
+     "label": "1ターンあたりのクレジット",
+     "labelEn": "Credits per turn",
+     "n": 3,
+     "unit": "クレジット",
+     "v": 1.2
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 6,
+     "unit": "回",
+     "v": 6
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "vp",
+   "projectPath": "/Users/me/vp",
+   "prompts": [
+    {
+     "t": 1790751660,
+     "text": "specを書いて"
+    },
+    {
+     "t": 1790752080,
+     "text": "specを書いて"
+    },
+    {
+     "t": 1790752620,
+     "text": "specを書いて"
+    }
+   ],
+   "prs": [],
+   "resume": null,
+   "segs": [
+    [
+     1790751600,
+     1790753100,
+     13
+    ]
+   ],
+   "source": "Kiro IDE",
+   "start": 1790751600,
+   "subagents": [],
+   "title": "Kiro: specを書いて",
+   "tools": [
+    [
+     "fsWrite",
+     6
+    ]
+   ],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1790752080,
+     60
+    ],
+    [
+     1790752620,
+     60
+    ]
+   ]
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 0,
+   "ctx": [],
+   "end": 1790769801,
+   "events": 6,
+   "file": "testdata/sqlite/kiro-cli.sqlite3",
+   "files": [],
+   "id": "conv-b",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-opus-4.5",
+     2
+    ]
+   ],
+   "nFiles": 0,
+   "nPrompts": 1,
+   "native": [
+    {
+     "label": "応答にかかった時間（中央値）",
+     "labelEn": "Response time (median)",
+     "n": 2,
+     "unit": "秒",
+     "v": 20
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 1,
+     "unit": "回",
+     "v": 1
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "ci",
+   "projectPath": "/Users/me/ci",
+   "prompts": [
+    {
+     "t": 1790769600,
+     "text": "CIが落ちてる原因を調べて"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/ci \u0026\u0026 kiro-cli chat --resume",
+   "segs": [
+    [
+     1790769600,
+     1790769801,
+     6
+    ]
+   ],
+   "source": "Kiro CLI (SQLite)",
+   "start": 1790769600,
+   "subagents": [],
+   "title": "CIが落ちてる原因を調べて",
+   "tools": [
+    [
+     "execute_bash",
+     1
+    ]
+   ],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": []
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 4.5,
+   "ctx": [],
+   "end": 1790821200,
+   "events": 13,
+   "file": "testdata/home/.kiro/sessions/abc/sess_76df747b/messages.jsonl",
+   "files": [
+    "spec.md"
+   ],
+   "id": "sess_76df747b",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-sonnet-4.5",
+     3
+    ]
+   ],
+   "nFiles": 1,
+   "nPrompts": 3,
+   "native": [
+    {
+     "label": "クレジット",
+     "labelEn": "Credits",
+     "n": 3,
+     "unit": "クレジット",
+     "v": 4.5
+    },
+    {
+     "label": "ターン",
+     "labelEn": "Turns",
+     "n": 3,
+     "unit": "回",
+     "v": 3
+    },
+    {
+     "label": "1ターンあたりのクレジット",
+     "labelEn": "Credits per turn",
+     "n": 3,
+     "unit": "クレジット",
+     "v": 1.5
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 6,
+     "unit": "回",
+     "v": 6
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "vp",
+   "projectPath": "/Users/me/vp",
+   "prompts": [
+    {
+     "t": 1790820060,
+     "text": "specを書いて"
+    },
+    {
+     "t": 1790820660,
+     "text": "specを書いて"
+    },
+    {
+     "t": 1790821020,
+     "text": "specを書いて"
+    }
+   ],
+   "prs": [],
+   "resume": null,
+   "segs": [
+    [
+     1790820000,
+     1790821200,
+     13
+    ]
+   ],
+   "source": "Kiro IDE",
+   "start": 1790820000,
+   "subagents": [],
+   "title": "Kiro: specを書いて",
+   "tools": [
+    [
+     "fsWrite",
+     6
+    ]
+   ],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1790820660,
+     180
+    ],
+    [
+     1790821020,
+     60
+    ]
+   ]
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 2.62,
+   "ctx": [],
+   "end": 1790987040,
+   "events": 13,
+   "file": "testdata/home/.kiro/sessions/abc/sess_97d6b4d7/messages.jsonl",
+   "files": [
+    "spec.md"
+   ],
+   "id": "sess_97d6b4d7",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-sonnet-4.5",
+     3
+    ]
+   ],
+   "nFiles": 1,
+   "nPrompts": 3,
+   "native": [
+    {
+     "label": "クレジット",
+     "labelEn": "Credits",
+     "n": 3,
+     "unit": "クレジット",
+     "v": 2.62
+    },
+    {
+     "label": "ターン",
+     "labelEn": "Turns",
+     "n": 3,
+     "unit": "回",
+     "v": 3
+    },
+    {
+     "label": "1ターンあたりのクレジット",
+     "labelEn": "Credits per turn",
+     "n": 3,
+     "unit": "クレジット",
+     "v": 0.87
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 6,
+     "unit": "回",
+     "v": 6
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "vp",
+   "projectPath": "/Users/me/vp",
+   "prompts": [
+    {
+     "t": 1790985660,
+     "text": "specを書いて"
+    },
+    {
+     "t": 1790986260,
+     "text": "specを書いて"
+    },
+    {
+     "t": 1790986740,
+     "text": "specを書いて"
+    }
+   ],
+   "prs": [],
+   "resume": null,
+   "segs": [
+    [
+     1790985600,
+     1790987040,
+     13
+    ]
+   ],
+   "source": "Kiro IDE",
+   "start": 1790985600,
+   "subagents": [],
+   "title": "Kiro: specを書いて",
+   "tools": [
+    [
+     "fsWrite",
+     6
+    ]
+   ],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1790986260,
+     180
+    ],
+    [
+     1790986740,
+     60
+    ]
+   ]
+  },
+  {
+   "branch": "main",
+   "corrections": 0,
+   "cost": 0.1894,
+   "credits": 0,
+   "ctx": [
+    23955,
+    44436,
+    49169
+   ],
+   "end": 1791031620,
+   "events": 23,
+   "file": "testdata/home/.claude/projects/-Users-me-app/5c2c46e3-3212-4c02-83c7-f6e31dc33800.jsonl",
+   "files": [
+    "/Users/me/app/src/x1.py"
+   ],
+   "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33800",
+   "interrupts": 0,
+   "limits": [],
+   "models": [
+    [
+     "claude-haiku-4-5",
+     20
+    ]
+   ],
+   "nFiles": 1,
+   "nPrompts": 2,
+   "native": [
+    {
+     "label": "応答の数",
+     "labelEn": "Responses",
+     "n": 10,
+     "unit": "回",
+     "v": 10
+    },
+    {
+     "label": "1応答あたりの出力トークン",
+     "labelEn": "Output tokens per response",
+     "n": 10,
+     "unit": "トークン",
+     "v": 1008.4
+    },
+    {
+     "label": "入力のうちキャッシュから読んだ割合",
+     "labelEn": "Share of input read from cache",
+     "n": 10,
+     "unit": "%",
+     "v": 94.46
+    },
+    {
+     "label": "ツール呼び出し",
+     "labelEn": "Tool calls",
+     "n": 10,
+     "unit": "回",
+     "v": 10
+    },
+    {
+     "label": "サブエージェントの実行",
+     "labelEn": "Subagent runs",
+     "n": 1,
+     "unit": "回",
+     "v": 1
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "project": "app",
+   "projectPath": "/Users/me/app",
+   "prompts": [
+    {
+     "t": 1791027960,
+     "text": "評価シナリオを追加したい"
+    },
+    {
+     "t": 1791030900,
+     "text": "カレンダー表示を足して"
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/app \u0026\u0026 claude --resume 5c2c46e3-3212-4c02-83c7-f6e31dc33800",
+   "segs": [
+    [
+     1791027960,
+     1791028440,
+     5
+    ],
+    [
+     1791030240,
+     1791031620,
+     18
+    ]
+   ],
+   "source": "Claude Code",
+   "start": 1791027960,
+   "subagents": [
+    {
+     "bg": false,
+     "desc": "関連ファイルを調べる",
+     "end": 1791030690,
+     "model": "claude-sonnet-5-5",
+     "start": 1791030480,
+     "tools": 4,
+     "type": "Explore",
+     "usage": {
+      "cost": 0.0812,
+      "cr": 166351,
+      "cw": 7520,
+      "cw1h": 0,
+      "in": 90,
+      "out": 2897,
+      "unpriced": 0
+     }
+    }
+   ],
+   "title": "評価シナリオを追加したい",
+   "tools": [
+    [
+     "Bash",
+     5
+    ],
+    [
+     "Read",
+     3
+    ],
+    [
+     "Agent",
+     1
+    ],
+    [
+     "Edit",
+     1
+    ]
+   ],
+   "usage": {
+    "cost": 0.1082,
+    "cr": 333698,
+    "cw": 19289,
+    "cw1h": 0,
+    "in": 269,
+    "out": 10084,
+    "unpriced": 0
+   },
+   "waits": [
+    [
+     1791030900,
+     420
+    ]
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "error": null,
+   "n": 10,
+   "name": "Claude Code",
+   "oldest": 1788367980,
+   "retention": {
+    "days": 30,
+    "docs": "https://code.claude.com/docs/en/settings-reference#cleanupperioddays",
+    "set": false,
+    "setting": "cleanupPeriodDays"
+   },
+   "where": "testdata/home/.claude/projects"
+  },
+  {
+   "error": null,
+   "n": 6,
+   "name": "Kiro IDE",
+   "oldest": 1790550000,
+   "where": "testdata/home/.kiro/sessions"
+  },
+  {
+   "detail": "うち Kiro Crew から 3 件・Crew の使用量の記録でクレジットを補った会話 1 件・Crew の使用量の記録だけにある 3 件（2.00 クレジット）",
+   "detailEn": "3 from Kiro Crew; 1 with credits filled in from Crew usage records; 3 found only in Crew usage records (2.00 credits)",
+   "error": null,
+   "n": 6,
+   "name": "Kiro CLI",
+   "oldest": 1790632800,
+   "retention": {
+    "days": 0,
+    "docs": "https://kiro.dev/docs/crew/configuration/",
+    "set": false,
+    "setting": "session.archive_retention_days"
+   },
+   "where": "testdata/home/.kiro/sessions/cli"
+  },
+  {
+   "dup": 1,
+   "error": null,
+   "n": 2,
+   "name": "Kiro CLI (SQLite)",
+   "oldest": 1790643540,
+   "where": "testdata/sqlite/kiro-cli.sqlite3"
+  },
+  {
+   "error": null,
+   "n": 3,
+   "name": "Kiro IDE (旧)",
+   "oldest": 1790578380,
+   "where": "testdata/home/.config/Kiro/User/globalStorage/kiro.kiroagent"
+  },
+  {
+   "error": null,
+   "n": 2,
+   "name": "Amazon Q",
+   "oldest": 1789970400,
+   "where": "testdata/sqlite/amazon-q.sqlite3"
+  },
+  {
+   "error": null,
+   "n": 2,
+   "name": "Codex",
+   "oldest": 1790643601,
+   "where": "$CODEX"
+  }
+ ],
+ "weeks": {
+  "2026-08-31": {
+   "active": 17,
+   "ai": 17,
+   "costPerAsk": 0.075,
+   "costPerCommit": null,
+   "days": [
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 17,
+     "commits": 0,
+     "cost": 0.1526,
+     "credits": 0,
+     "night": 17,
+     "prompts": 2,
+     "switches": 0,
+     "tokens": 429223
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    }
+   ],
+   "fixRate": 0,
+   "focus": [],
+   "friction": [],
+   "git": {
+    "added": 0,
+    "ai": 0,
+    "commits": 0,
+    "removed": 0
+   },
+   "maxConc": 1,
+   "native": [
+    {
+     "sessions": 1,
+     "source": "Claude Code",
+     "values": [
+      {
+       "label": "応答の数",
+       "labelEn": "Responses",
+       "n": 8,
+       "unit": "回",
+       "v": 8
+      },
+      {
+       "label": "1応答あたりの出力トークン",
+       "labelEn": "Output tokens per response",
+       "n": 8,
+       "unit": "トークン",
+       "v": 936.88
+      },
+      {
+       "label": "入力のうちキャッシュから読んだ割合",
+       "labelEn": "Share of input read from cache",
+       "n": 8,
+       "unit": "%",
+       "v": 94.01
+      },
+      {
+       "label": "ツール呼び出し",
+       "labelEn": "Tool calls",
+       "n": 8,
+       "unit": "回",
+       "v": 8
+      },
+      {
+       "label": "サブエージェントの実行",
+       "labelEn": "Subagent runs",
+       "n": 1,
+       "unit": "回",
+       "v": 1
+      }
+     ]
+    }
+   ],
+   "night": 17,
+   "outSessions": 0,
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "parallel": 0,
+   "projectStats": [
+    {
+     "cost": 0.1526,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 0.1526,
+      "credits": 0,
+      "id": "45502558-80a6-4028-a0ef-6476e9599703",
+      "minutes": 17,
+      "source": "Claude Code",
+      "start": 1788367980,
+      "title": "カレンダー表示を足して",
+      "tokens": 429223
+     },
+     "minutes": 17,
+     "models": [
+      {
+       "cost": 0.0856,
+       "model": "claude-haiku-4-5",
+       "tokens": 293016,
+       "turns": 8
+      },
+      {
+       "cost": 0.067,
+       "model": "claude-sonnet-5-5",
+       "tokens": 136207,
+       "turns": 4
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "vp",
+     "prompts": 2,
+     "sessions": 1,
+     "subagents": 1,
+     "tokens": 429223,
+     "top": [
+      {
+       "cost": 0.1526,
+       "credits": 0,
+       "id": "45502558-80a6-4028-a0ef-6476e9599703",
+       "minutes": 17,
+       "source": "Claude Code",
+       "start": 1788367980,
+       "title": "カレンダー表示を足して",
+       "tokens": 429223
+      }
+     ]
+    }
+   ],
+   "projects": [
+    [
+     "vp",
+     17
+    ]
+   ],
+   "prompts": 2,
+   "sessions": 1,
+   "shares": {
+    "branch": [
+     {
+      "cost": 0.1526,
+      "credits": 0,
+      "key": "vp · feat/eval",
+      "minutes": 17,
+      "tokens": 429223
+     }
+    ],
+    "source": [
+     {
+      "cost": 0.1526,
+      "credits": 0,
+      "key": "Claude Code",
+      "minutes": 17,
+      "tokens": 429223
+     }
+    ]
+   },
+   "start": "2026-08-31",
+   "switchesAvg": 0,
+   "switchesMax": 0,
+   "usage": {
+    "cacheHit": 0.945,
+    "cost": 0.15,
+    "credits": 0,
+    "heavy": [
+     {
+      "cost": 0.15,
+      "id": "45502558-80a6-4028-a0ef-6476e9599703",
+      "project": "vp",
+      "start": 1788367980,
+      "subagents": 1,
+      "title": "カレンダー表示を足して"
+     }
+    ],
+    "models": [
+     [
+      "claude-haiku-4-5",
+      0.09,
+      293016,
+      8
+     ],
+     [
+      "claude-sonnet-5-5",
+      0.07,
+      136207,
+      4
+     ]
+    ],
+    "out": 10169,
+    "projects": [
+     [
+      "vp",
+      0.15
+     ]
+    ],
+    "subMin": 4,
+    "subTypes": [
+     [
+      "general-purpose",
+      1
+     ]
+    ],
+    "subagents": 1,
+    "tokens": 429223,
+    "unpriced": 0,
+    "unpricedModels": []
+   },
+   "waitCount": 1,
+   "waitMedian": 300,
+   "waitP90": 300,
+   "weekend": 0
+  },
+  "2026-09-07": {
+   "active": 145,
+   "ai": 145,
+   "costPerAsk": 0.139,
+   "costPerCommit": null,
+   "days": [
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 114,
+     "commits": 0,
+     "cost": 1.0626,
+     "credits": 0,
+     "night": 0,
+     "prompts": 7,
+     "switches": 0,
+     "tokens": 1387798
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 31,
+     "commits": 0,
+     "cost": 0.1894,
+     "credits": 0,
+     "night": 0,
+     "prompts": 2,
+     "switches": 0,
+     "tokens": 540198
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    }
+   ],
+   "fixRate": 0,
+   "focus": [],
+   "friction": [],
+   "git": {
+    "added": 0,
+    "ai": 0,
+    "commits": 0,
+    "removed": 0
+   },
+   "maxConc": 1,
+   "native": [
+    {
+     "sessions": 2,
+     "source": "Claude Code",
+     "values": [
+      {
+       "label": "応答の数",
+       "labelEn": "Responses",
+       "n": 43,
+       "unit": "回",
+       "v": 43
+      },
+      {
+       "label": "1応答あたりの出力トークン",
+       "labelEn": "Output tokens per response",
+       "n": 43,
+       "unit": "トークン",
+       "v": 770.4
+      },
+      {
+       "label": "入力のうちキャッシュから読んだ割合",
+       "labelEn": "Share of input read from cache",
+       "n": 43,
+       "unit": "%",
+       "v": 94.55
+      },
+      {
+       "label": "ツール呼び出し",
+       "labelEn": "Tool calls",
+       "n": 43,
+       "unit": "回",
+       "v": 43
+      },
+      {
+       "label": "サブエージェントの実行",
+       "labelEn": "Subagent runs",
+       "n": 5,
+       "unit": "回",
+       "v": 5
+      }
+     ]
+    }
+   ],
+   "night": 0,
+   "outSessions": 0,
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "parallel": 0,
+   "projectStats": [
+    {
+     "cost": 1.252,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 1.0626,
+      "credits": 0,
+      "id": "68cb7e8c-a8e9-4b72-9b9f-95c791d04e02",
+      "minutes": 114,
+      "source": "Claude Code",
+      "start": 1788925320,
+      "title": "READMEを整理して",
+      "tokens": 1387798
+     },
+     "minutes": 145,
+     "models": [
+      {
+       "cost": 0.9636,
+       "model": "claude-opus-5-5",
+       "tokens": 1117251,
+       "turns": 33
+      },
+      {
+       "cost": 0.2072,
+       "model": "claude-haiku-4-5",
+       "tokens": 633887,
+       "turns": 22
+      },
+      {
+       "cost": 0.0812,
+       "model": "claude-sonnet-5-5",
+       "tokens": 176858,
+       "turns": 4
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "app",
+     "prompts": 9,
+     "sessions": 2,
+     "subagents": 5,
+     "tokens": 1927996,
+     "top": [
+      {
+       "cost": 1.0626,
+       "credits": 0,
+       "id": "68cb7e8c-a8e9-4b72-9b9f-95c791d04e02",
+       "minutes": 114,
+       "source": "Claude Code",
+       "start": 1788925320,
+       "title": "READMEを整理して",
+       "tokens": 1387798
+      },
+      {
+       "cost": 0.1894,
+       "credits": 0,
+       "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33803",
+       "minutes": 31,
+       "source": "Claude Code",
+       "start": 1789213560,
+       "title": "評価シナリオを追加したい",
+       "tokens": 540198
+      }
+     ]
+    }
+   ],
+   "projects": [
+    [
+     "app",
+     145
+    ]
+   ],
+   "prompts": 9,
+   "sessions": 2,
+   "shares": {
+    "branch": [
+     {
+      "cost": 1.252,
+      "credits": 0,
+      "key": "app · main",
+      "minutes": 145,
+      "tokens": 1927996
+     }
+    ],
+    "source": [
+     {
+      "cost": 1.252,
+      "credits": 0,
+      "key": "Claude Code",
+      "minutes": 145,
+      "tokens": 1927996
+     }
+    ]
+   },
+   "start": "2026-09-07",
+   "switchesAvg": 0,
+   "switchesMax": 0,
+   "usage": {
+    "cacheHit": 0.943,
+    "cost": 1.25,
+    "credits": 0,
+    "heavy": [
+     {
+      "cost": 1.06,
+      "id": "68cb7e8c-a8e9-4b72-9b9f-95c791d04e02",
+      "project": "app",
+      "start": 1788925320,
+      "subagents": 4,
+      "title": "READMEを整理して"
+     },
+     {
+      "cost": 0.19,
+      "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33803",
+      "project": "app",
+      "start": 1789213560,
+      "subagents": 1,
+      "title": "評価シナリオを追加したい"
+     }
+    ],
+    "models": [
+     [
+      "claude-opus-5-5",
+      0.96,
+      1117251,
+      33
+     ],
+     [
+      "claude-haiku-4-5",
+      0.21,
+      633887,
+      22
+     ],
+     [
+      "claude-sonnet-5-5",
+      0.08,
+      176858,
+      4
+     ]
+    ],
+    "out": 45998,
+    "projects": [
+     [
+      "app",
+      1.25
+     ]
+    ],
+    "subMin": 26,
+    "subTypes": [
+     [
+      "Explore",
+      3
+     ],
+     [
+      "Plan",
+      2
+     ]
+    ],
+    "subagents": 5,
+    "tokens": 1927996,
+    "unpriced": 0,
+    "unpricedModels": []
+   },
+   "waitCount": 7,
+   "waitMedian": 300,
+   "waitP90": 1800,
+   "weekend": 31
+  },
+  "2026-09-14": {
+   "active": 167,
+   "ai": 167,
+   "costPerAsk": 0.152,
+   "costPerCommit": null,
+   "days": [
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 39,
+     "commits": 0,
+     "cost": 0.2483,
+     "credits": 0,
+     "night": 0,
+     "prompts": 3,
+     "switches": 0,
+     "tokens": 512110
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 128,
+     "commits": 0,
+     "cost": 1.4179,
+     "credits": 0,
+     "night": 24,
+     "prompts": 8,
+     "switches": 0,
+     "tokens": 1912465
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    }
+   ],
+   "fixRate": 18.2,
+   "focus": [],
+   "friction": [
+    {
+     "id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
+     "project": "app",
+     "score": 4,
+     "start": 1789804080,
+     "title": "カレンダー表示を足して",
+     "why": [
+      "言い直し 2 回"
+     ],
+     "whyEn": [
+      "2 corrections"
+     ]
+    }
+   ],
+   "git": {
+    "added": 0,
+    "ai": 0,
+    "commits": 0,
+    "removed": 0
+   },
+   "maxConc": 1,
+   "native": [
+    {
+     "sessions": 2,
+     "source": "Claude Code",
+     "values": [
+      {
+       "label": "応答の数",
+       "labelEn": "Responses",
+       "n": 48,
+       "unit": "回",
+       "v": 48
+      },
+      {
+       "label": "1応答あたりの出力トークン",
+       "labelEn": "Output tokens per response",
+       "n": 48,
+       "unit": "トークン",
+       "v": 675.75
+      },
+      {
+       "label": "入力のうちキャッシュから読んだ割合",
+       "labelEn": "Share of input read from cache",
+       "n": 48,
+       "unit": "%",
+       "v": 94.89
+      },
+      {
+       "label": "ツール呼び出し",
+       "labelEn": "Tool calls",
+       "n": 48,
+       "unit": "回",
+       "v": 48
+      },
+      {
+       "label": "サブエージェントの実行",
+       "labelEn": "Subagent runs",
+       "n": 5,
+       "unit": "回",
+       "v": 5
+      }
+     ]
+    }
+   ],
+   "night": 24,
+   "outSessions": 0,
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "parallel": 0,
+   "projectStats": [
+    {
+     "cost": 1.4179,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 1.4179,
+      "credits": 0,
+      "id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
+      "minutes": 128,
+      "source": "Claude Code",
+      "start": 1789804080,
+      "title": "カレンダー表示を足して",
+      "tokens": 1912465
+     },
+     "minutes": 128,
+     "models": [
+      {
+       "cost": 1.0993,
+       "model": "claude-opus-5-5",
+       "tokens": 1297980,
+       "turns": 36
+      },
+      {
+       "cost": 0.3185,
+       "model": "claude-sonnet-5-5",
+       "tokens": 614485,
+       "turns": 16
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "app",
+     "prompts": 8,
+     "sessions": 1,
+     "subagents": 4,
+     "tokens": 1912465,
+     "top": [
+      {
+       "cost": 1.4179,
+       "credits": 0,
+       "id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
+       "minutes": 128,
+       "source": "Claude Code",
+       "start": 1789804080,
+       "title": "カレンダー表示を足して",
+       "tokens": 1912465
+      }
+     ]
+    },
+    {
+     "cost": 0.2483,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 0.2483,
+      "credits": 0,
+      "id": "fa1e3455-e4a8-485a-ace2-9a6ccbaea201",
+      "minutes": 39,
+      "source": "Claude Code",
+      "start": 1789434120,
+      "title": "カレンダー表示を足して",
+      "tokens": 512110
+     },
+     "minutes": 39,
+     "models": [
+      {
+       "cost": 0.2483,
+       "model": "claude-sonnet-5-5",
+       "tokens": 512110,
+       "turns": 16
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "blog",
+     "prompts": 3,
+     "sessions": 1,
+     "subagents": 1,
+     "tokens": 512110,
+     "top": [
+      {
+       "cost": 0.2483,
+       "credits": 0,
+       "id": "fa1e3455-e4a8-485a-ace2-9a6ccbaea201",
+       "minutes": 39,
+       "source": "Claude Code",
+       "start": 1789434120,
+       "title": "カレンダー表示を足して",
+       "tokens": 512110
+      }
+     ]
+    }
+   ],
+   "projects": [
+    [
+     "app",
+     128
+    ],
+    [
+     "blog",
+     39
+    ]
+   ],
+   "prompts": 11,
+   "sessions": 2,
+   "shares": {
+    "branch": [
+     {
+      "cost": 1.4179,
+      "credits": 0,
+      "key": "app · fix/login",
+      "minutes": 128,
+      "tokens": 1912465
+     },
+     {
+      "cost": 0.2483,
+      "credits": 0,
+      "key": "blog · main",
+      "minutes": 39,
+      "tokens": 512110
+     }
+    ],
+    "source": [
+     {
+      "cost": 1.6662,
+      "credits": 0,
+      "key": "Claude Code",
+      "minutes": 167,
+      "tokens": 2424575
+     }
+    ]
+   },
+   "start": "2026-09-14",
+   "switchesAvg": 0,
+   "switchesMax": 0,
+   "usage": {
+    "cacheHit": 0.947,
+    "cost": 1.67,
+    "credits": 0,
+    "heavy": [
+     {
+      "cost": 1.42,
+      "id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
+      "project": "app",
+      "start": 1789804080,
+      "subagents": 4,
+      "title": "カレンダー表示を足して"
+     },
+     {
+      "cost": 0.25,
+      "id": "fa1e3455-e4a8-485a-ace2-9a6ccbaea201",
+      "project": "blog",
+      "start": 1789434120,
+      "subagents": 1,
+      "title": "カレンダー表示を足して"
+     }
+    ],
+    "models": [
+     [
+      "claude-opus-5-5",
+      1.1,
+      1297980,
+      36
+     ],
+     [
+      "claude-sonnet-5-5",
+      0.57,
+      1126595,
+      32
+     ]
+    ],
+    "out": 47458,
+    "projects": [
+     [
+      "app",
+      1.42
+     ],
+     [
+      "blog",
+      0.25
+     ]
+    ],
+    "subMin": 18,
+    "subTypes": [
+     [
+      "Plan",
+      3
+     ],
+     [
+      "Explore",
+      2
+     ]
+    ],
+    "subagents": 5,
+    "tokens": 2424575,
+    "unpriced": 0,
+    "unpricedModels": []
+   },
+   "waitCount": 9,
+   "waitMedian": 300,
+   "waitP90": 1800,
+   "weekend": 128
+  },
+  "2026-09-21": {
+   "active": 348,
+   "ai": 353,
+   "costPerAsk": 0.124,
+   "costPerCommit": null,
+   "days": [
+    {
+     "active": 1,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 1,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 1,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 1,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 114,
+     "commits": 0,
+     "cost": 1.0626,
+     "credits": 0,
+     "night": 0,
+     "prompts": 7,
+     "switches": 0,
+     "tokens": 1387798
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 25,
+     "commits": 0,
+     "cost": 0.1698,
+     "credits": 0,
+     "night": 0,
+     "prompts": 3,
+     "switches": 0,
+     "tokens": 453517
+    },
+    {
+     "active": 207,
+     "commits": 0,
+     "cost": 1.8716,
+     "credits": 0,
+     "night": 24,
+     "prompts": 13,
+     "switches": 3,
+     "tokens": 3149414
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    }
+   ],
+   "fixRate": 12,
+   "focus": [],
+   "friction": [
+    {
+     "id": "6f8a980c-3b83-43eb-b07d-758a36bc2400",
+     "project": "app",
+     "score": 4,
+     "start": 1790408880,
+     "title": "カレンダー表示を足して",
+     "why": [
+      "言い直し 2 回"
+     ],
+     "whyEn": [
+      "2 corrections"
+     ]
+    },
+    {
+     "id": "d8bda5e8-265b-4f26-8a8a-54c9c8651701",
+     "project": "app",
+     "score": 2,
+     "start": 1790316060,
+     "title": "カレンダー表示を足して",
+     "why": [
+      "言い直し 1 回"
+     ],
+     "whyEn": [
+      "1 correction"
+     ]
+    }
+   ],
+   "git": {
+    "added": 0,
+    "ai": 0,
+    "commits": 0,
+    "removed": 0
+   },
+   "maxConc": 2,
+   "native": [
+    {
+     "sessions": 1,
+     "source": "Amazon Q",
+     "values": [
+      {
+       "label": "応答にかかった時間（中央値）",
+       "labelEn": "Response time (median)",
+       "n": 1,
+       "unit": "秒",
+       "v": 20
+      }
+     ]
+    },
+    {
+     "sessions": 4,
+     "source": "Claude Code",
+     "values": [
+      {
+       "label": "応答の数",
+       "labelEn": "Responses",
+       "n": 103,
+       "unit": "回",
+       "v": 103
+      },
+      {
+       "label": "1応答あたりの出力トークン",
+       "labelEn": "Output tokens per response",
+       "n": 103,
+       "unit": "トークン",
+       "v": 735.28
+      },
+      {
+       "label": "入力のうちキャッシュから読んだ割合",
+       "labelEn": "Share of input read from cache",
+       "n": 103,
+       "unit": "%",
+       "v": 94.48
+      },
+      {
+       "label": "ツール呼び出し",
+       "labelEn": "Tool calls",
+       "n": 103,
+       "unit": "回",
+       "v": 103
+      },
+      {
+       "label": "サブエージェントの実行",
+       "labelEn": "Subagent runs",
+       "n": 12,
+       "unit": "回",
+       "v": 12
+      }
+     ]
+    }
+   ],
+   "night": 24,
+   "outSessions": 0,
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "parallel": 5,
+   "projectStats": [
+    {
+     "cost": 2.6502,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 1.4179,
+      "credits": 0,
+      "id": "6f8a980c-3b83-43eb-b07d-758a36bc2400",
+      "minutes": 128,
+      "source": "Claude Code",
+      "start": 1790408880,
+      "title": "カレンダー表示を足して",
+      "tokens": 1912465
+     },
+     "minutes": 264,
+     "models": [
+      {
+       "cost": 2.0629,
+       "model": "claude-opus-5-5",
+       "tokens": 2415231,
+       "turns": 69
+      },
+      {
+       "cost": 0.3959,
+       "model": "claude-sonnet-5-5",
+       "tokens": 750233,
+       "turns": 20
+      },
+      {
+       "cost": 0.1915,
+       "model": "claude-haiku-4-5",
+       "tokens": 588316,
+       "turns": 22
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "app",
+     "prompts": 18,
+     "sessions": 3,
+     "subagents": 9,
+     "tokens": 3753780,
+     "top": [
+      {
+       "cost": 1.4179,
+       "credits": 0,
+       "id": "6f8a980c-3b83-43eb-b07d-758a36bc2400",
+       "minutes": 128,
+       "source": "Claude Code",
+       "start": 1790408880,
+       "title": "カレンダー表示を足して",
+       "tokens": 1912465
+      },
+      {
+       "cost": 1.0626,
+       "credits": 0,
+       "id": "68cb7e8c-a8e9-4b72-9b9f-95c791d04e00",
+       "minutes": 114,
+       "source": "Claude Code",
+       "start": 1790134920,
+       "title": "READMEを整理して",
+       "tokens": 1387798
+      },
+      {
+       "cost": 0.1698,
+       "credits": 0,
+       "id": "d8bda5e8-265b-4f26-8a8a-54c9c8651701",
+       "minutes": 25,
+       "source": "Claude Code",
+       "start": 1790316060,
+       "title": "カレンダー表示を足して",
+       "tokens": 453517
+      }
+     ]
+    },
+    {
+     "cost": 0.4537,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 0.4537,
+      "credits": 0,
+      "id": "57c94728-2884-42b4-8c7d-b3e65e11e800",
+      "minutes": 84,
+      "source": "Claude Code",
+      "start": 1790403540,
+      "title": "型エラー直して",
+      "tokens": 1236949
+     },
+     "minutes": 82,
+     "models": [
+      {
+       "cost": 0.238,
+       "model": "claude-haiku-4-5",
+       "tokens": 891156,
+       "turns": 24
+      },
+      {
+       "cost": 0.2157,
+       "model": "claude-sonnet-5-5",
+       "tokens": 345793,
+       "turns": 12
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "vp",
+     "prompts": 5,
+     "sessions": 1,
+     "subagents": 3,
+     "tokens": 1236949,
+     "top": [
+      {
+       "cost": 0.4537,
+       "credits": 0,
+       "id": "57c94728-2884-42b4-8c7d-b3e65e11e800",
+       "minutes": 84,
+       "source": "Claude Code",
+       "start": 1790403540,
+       "title": "型エラー直して",
+       "tokens": 1236949
+      }
+     ]
+    },
+    {
+     "cost": 0,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": null,
+     "minutes": 1,
+     "models": [],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "aws",
+     "prompts": 1,
+     "sessions": 1,
+     "subagents": 0,
+     "tokens": 0,
+     "top": [
+      {
+       "cost": 0,
+       "credits": 0,
+       "id": "q-1",
+       "minutes": 1,
+       "source": "Amazon Q",
+       "start": 1789970400,
+       "title": "S3のバケット一覧を出すスクリプト",
+       "tokens": 0
+      }
+     ]
+    },
+    {
+     "cost": 0,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": null,
+     "minutes": 1,
+     "models": [],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "old",
+     "prompts": 1,
+     "sessions": 1,
+     "subagents": 0,
+     "tokens": 0,
+     "top": [
+      {
+       "cost": 0,
+       "credits": 0,
+       "id": "q-old",
+       "minutes": 1,
+       "source": "Amazon Q",
+       "start": 1790035200,
+       "title": "古い形の会話",
+       "tokens": 0
+      }
+     ]
+    }
+   ],
+   "projects": [
+    [
+     "app",
+     264
+    ],
+    [
+     "vp",
+     82
+    ],
+    [
+     "aws",
+     1
+    ],
+    [
+     "old",
+     1
+    ]
+   ],
+   "prompts": 25,
+   "sessions": 6,
+   "shares": {
+    "branch": [
+     {
+      "cost": 1.2324,
+      "credits": 0,
+      "key": "app · main",
+      "minutes": 139,
+      "tokens": 1841315
+     },
+     {
+      "cost": 1.4179,
+      "credits": 0,
+      "key": "app · fix/login",
+      "minutes": 126,
+      "tokens": 1912465
+     },
+     {
+      "cost": 0.4537,
+      "credits": 0,
+      "key": "vp · main",
+      "minutes": 82,
+      "tokens": 1236949
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "aws · —",
+      "minutes": 1,
+      "tokens": 0
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "old · —",
+      "minutes": 1,
+      "tokens": 0
+     }
+    ],
+    "source": [
+     {
+      "cost": 3.104,
+      "credits": 0,
+      "key": "Claude Code",
+      "minutes": 346,
+      "tokens": 4990729
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "Amazon Q",
+      "minutes": 2,
+      "tokens": 0
+     }
+    ]
+   },
+   "start": "2026-09-21",
+   "switchesAvg": 0.6,
+   "switchesMax": 3,
+   "usage": {
+    "cacheHit": 0.942,
+    "cost": 3.1,
+    "credits": 0,
+    "heavy": [
+     {
+      "cost": 1.42,
+      "id": "6f8a980c-3b83-43eb-b07d-758a36bc2400",
+      "project": "app",
+      "start": 1790408880,
+      "subagents": 4,
+      "title": "カレンダー表示を足して"
+     },
+     {
+      "cost": 1.06,
+      "id": "68cb7e8c-a8e9-4b72-9b9f-95c791d04e00",
+      "project": "app",
+      "start": 1790134920,
+      "subagents": 4,
+      "title": "READMEを整理して"
+     },
+     {
+      "cost": 0.45,
+      "id": "57c94728-2884-42b4-8c7d-b3e65e11e800",
+      "project": "vp",
+      "start": 1790403540,
+      "subagents": 3,
+      "title": "型エラー直して"
+     }
+    ],
+    "models": [
+     [
+      "claude-opus-5-5",
+      2.06,
+      2415231,
+      69
+     ],
+     [
+      "claude-sonnet-5-5",
+      0.61,
+      1096026,
+      32
+     ],
+     [
+      "claude-haiku-4-5",
+      0.43,
+      1479472,
+      46
+     ]
+    ],
+    "out": 110470,
+    "projects": [
+     [
+      "app",
+      2.65
+     ],
+     [
+      "vp",
+      0.45
+     ]
+    ],
+    "subMin": 50,
+    "subTypes": [
+     [
+      "Plan",
+      7
+     ],
+     [
+      "Explore",
+      5
+     ]
+    ],
+    "subagents": 12,
+    "tokens": 4990729,
+    "unpriced": 0,
+    "unpricedModels": []
+   },
+   "waitCount": 19,
+   "waitMedian": 300,
+   "waitP90": 1800,
+   "weekend": 207
+  },
+  "2026-09-28": {
+   "active": 248,
+   "ai": 253,
+   "costPerAsk": 0.005,
+   "costPerCommit": null,
+   "days": [
+    {
+     "active": 26,
+     "commits": 0,
+     "cost": 0,
+     "credits": 4.92,
+     "night": 0,
+     "prompts": 4,
+     "switches": 1,
+     "tokens": 0
+    },
+    {
+     "active": 65,
+     "commits": 0,
+     "cost": 0,
+     "credits": 11.81,
+     "night": 0,
+     "prompts": 15,
+     "switches": 5,
+     "tokens": 3300
+    },
+    {
+     "active": 82,
+     "commits": 0,
+     "cost": 0,
+     "credits": 9.67,
+     "night": 0,
+     "prompts": 14,
+     "switches": 5,
+     "tokens": 4100
+    },
+    {
+     "active": 20,
+     "commits": 0,
+     "cost": 0,
+     "credits": 4.5,
+     "night": 0,
+     "prompts": 3,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    },
+    {
+     "active": 55,
+     "commits": 0,
+     "cost": 0.1894,
+     "credits": 2.62,
+     "night": 0,
+     "prompts": 5,
+     "switches": 1,
+     "tokens": 540198
+    },
+    {
+     "active": 0,
+     "commits": 0,
+     "cost": 0,
+     "credits": 0,
+     "night": 0,
+     "prompts": 0,
+     "switches": 0,
+     "tokens": 0
+    }
+   ],
+   "fixRate": 4.9,
+   "focus": [],
+   "friction": [
+    {
+     "id": "conv-a",
+     "project": "app",
+     "score": 2,
+     "start": 1790643540,
+     "title": "ログイン画面のテストを書いて",
+     "why": [
+      "言い直し 1 回"
+     ],
+     "whyEn": [
+      "1 correction"
+     ]
+    },
+    {
+     "id": "thr-main",
+     "project": "web",
+     "score": 2,
+     "start": 1790643601,
+     "title": "ヘッダーのボタンの色",
+     "why": [
+      "言い直し 1 回"
+     ],
+     "whyEn": [
+      "1 correction"
+     ]
+    }
+   ],
+   "git": {
+    "added": 0,
+    "ai": 0,
+    "commits": 0,
+    "removed": 0
+   },
+   "maxConc": 2,
+   "native": [
+    {
+     "sessions": 6,
+     "source": "Kiro IDE",
+     "values": [
+      {
+       "label": "クレジット",
+       "labelEn": "Credits",
+       "n": 18,
+       "unit": "クレジット",
+       "v": 21.01
+      },
+      {
+       "label": "ターン",
+       "labelEn": "Turns",
+       "n": 18,
+       "unit": "回",
+       "v": 18
+      },
+      {
+       "label": "1ターンあたりのクレジット",
+       "labelEn": "Credits per turn",
+       "n": 18,
+       "unit": "クレジット",
+       "v": 1.17
+      },
+      {
+       "label": "ツール呼び出し",
+       "labelEn": "Tool calls",
+       "n": 36,
+       "unit": "回",
+       "v": 36
+      }
+     ]
+    },
+    {
+     "sessions": 6,
+     "source": "Kiro Crew",
+     "values": [
+      {
+       "label": "Crew から動かした会話",
+       "labelEn": "Conversations run from Crew",
+       "n": 6,
+       "unit": "件",
+       "v": 6
+      },
+      {
+       "label": "うちサブエージェント",
+       "labelEn": "Of which subagents",
+       "n": 1,
+       "unit": "件",
+       "v": 1
+      },
+      {
+       "label": "クレジット",
+       "labelEn": "Credits",
+       "n": 13,
+       "unit": "クレジット",
+       "v": 12.51
+      },
+      {
+       "label": "ターン",
+       "labelEn": "Turns",
+       "n": 13,
+       "unit": "回",
+       "v": 13
+      }
+     ]
+    },
+    {
+     "sessions": 2,
+     "source": "Kiro CLI (SQLite)",
+     "values": [
+      {
+       "label": "応答にかかった時間（中央値）",
+       "labelEn": "Response time (median)",
+       "n": 5,
+       "unit": "秒",
+       "v": 20
+      },
+      {
+       "label": "ツール呼び出し",
+       "labelEn": "Tool calls",
+       "n": 2,
+       "unit": "回",
+       "v": 2
+      }
+     ]
+    },
+    {
+     "sessions": 2,
+     "source": "Codex",
+     "values": [
+      {
+       "label": "応答の数",
+       "labelEn": "Responses",
+       "n": 5,
+       "unit": "回",
+       "v": 5
+      },
+      {
+       "label": "推論トークン",
+       "labelEn": "Reasoning tokens",
+       "n": 5,
+       "unit": "トークン",
+       "v": 0
+      },
+      {
+       "label": "出力のうち推論の割合",
+       "labelEn": "Share of output spent on reasoning",
+       "n": 5,
+       "unit": "%",
+       "v": 0
+      },
+      {
+       "label": "入力のうちキャッシュから読んだ割合",
+       "labelEn": "Share of input read from cache",
+       "n": 5,
+       "unit": "%",
+       "v": 54.69
+      },
+      {
+       "label": "コンテキストの最大使用率",
+       "labelEn": "Peak context usage",
+       "n": 4,
+       "unit": "%",
+       "v": 1.1
+      },
+      {
+       "label": "ツール呼び出し",
+       "labelEn": "Tool calls",
+       "n": 3,
+       "unit": "回",
+       "v": 3
+      }
+     ]
+    },
+    {
+     "sessions": 1,
+     "source": "Claude Code",
+     "values": [
+      {
+       "label": "応答の数",
+       "labelEn": "Responses",
+       "n": 10,
+       "unit": "回",
+       "v": 10
+      },
+      {
+       "label": "1応答あたりの出力トークン",
+       "labelEn": "Output tokens per response",
+       "n": 10,
+       "unit": "トークン",
+       "v": 1008.4
+      },
+      {
+       "label": "入力のうちキャッシュから読んだ割合",
+       "labelEn": "Share of input read from cache",
+       "n": 10,
+       "unit": "%",
+       "v": 94.46
+      },
+      {
+       "label": "ツール呼び出し",
+       "labelEn": "Tool calls",
+       "n": 10,
+       "unit": "回",
+       "v": 10
+      },
+      {
+       "label": "サブエージェントの実行",
+       "labelEn": "Subagent runs",
+       "n": 1,
+       "unit": "回",
+       "v": 1
+      }
+     ]
+    }
+   ],
+   "night": 0,
+   "outSessions": 0,
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "parallel": 5,
+   "projectStats": [
+    {
+     "cost": 0,
+     "credits": 21.01,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 0,
+      "credits": 4.92,
+      "id": "sess_0ee61246",
+      "minutes": 24,
+      "source": "Kiro IDE",
+      "start": 1790550000,
+      "title": "Kiro: specを書いて",
+      "tokens": 0
+     },
+     "minutes": 145,
+     "models": [
+      {
+       "cost": 0,
+       "model": "claude-sonnet-4.5",
+       "tokens": 0,
+       "turns": 18
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "vp",
+     "prompts": 18,
+     "sessions": 6,
+     "subagents": 0,
+     "tokens": 0,
+     "top": [
+      {
+       "cost": 0,
+       "credits": 3.29,
+       "id": "sess_564f668e",
+       "minutes": 30,
+       "source": "Kiro IDE",
+       "start": 1790748000,
+       "title": "Kiro: specを書いて",
+       "tokens": 0
+      },
+      {
+       "cost": 0,
+       "credits": 3.6,
+       "id": "sess_1640c798",
+       "minutes": 25,
+       "source": "Kiro IDE",
+       "start": 1790751600,
+       "title": "Kiro: specを書いて",
+       "tokens": 0
+      },
+      {
+       "cost": 0,
+       "credits": 4.92,
+       "id": "sess_0ee61246",
+       "minutes": 24,
+       "source": "Kiro IDE",
+       "start": 1790550000,
+       "title": "Kiro: specを書いて",
+       "tokens": 0
+      }
+     ]
+    },
+    {
+     "cost": 0,
+     "credits": 10.51,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 0,
+      "credits": 4.5,
+      "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
+      "minutes": 16,
+      "source": "Kiro Crew",
+      "start": 1790668800,
+      "title": "夜間のデプロイ見張り",
+      "tokens": 0
+     },
+     "minutes": 48,
+     "models": [
+      {
+       "cost": 0,
+       "model": "auto",
+       "tokens": 0,
+       "turns": 14
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "infra",
+     "prompts": 12,
+     "sessions": 3,
+     "subagents": 0,
+     "tokens": 0,
+     "top": [
+      {
+       "cost": 0,
+       "credits": 3.73,
+       "id": "1e13c3c1-d7ae-41c2-a324-e6a440665d9a",
+       "minutes": 16,
+       "source": "Kiro Crew",
+       "start": 1790632800,
+       "title": "CLIでデプロイ確認",
+       "tokens": 0
+      },
+      {
+       "cost": 0,
+       "credits": 4.5,
+       "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
+       "minutes": 16,
+       "source": "Kiro Crew",
+       "start": 1790668800,
+       "title": "夜間のデプロイ見張り",
+       "tokens": 0
+      },
+      {
+       "cost": 0,
+       "credits": 2.28,
+       "id": "0d612aac-99c4-4a54-bda2-76ad60b6ddf3",
+       "minutes": 16,
+       "source": "Kiro Crew",
+       "start": 1790726400,
+       "title": "サブエージェント reviewer: PR #12 をレビューして",
+       "tokens": 0
+      }
+     ]
+    },
+    {
+     "cost": 0.1894,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 0.1894,
+      "credits": 0,
+      "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33800",
+      "minutes": 31,
+      "source": "Claude Code",
+      "start": 1791027960,
+      "title": "評価シナリオを追加したい",
+      "tokens": 540198
+     },
+     "minutes": 36,
+     "models": [
+      {
+       "cost": 0.1082,
+       "model": "claude-haiku-4-5",
+       "tokens": 363340,
+       "turns": 10
+      },
+      {
+       "cost": 0.0812,
+       "model": "claude-sonnet-5-5",
+       "tokens": 176858,
+       "turns": 4
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "app",
+     "prompts": 4,
+     "sessions": 2,
+     "subagents": 1,
+     "tokens": 540198,
+     "top": [
+      {
+       "cost": 0.1894,
+       "credits": 0,
+       "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33800",
+       "minutes": 31,
+       "source": "Claude Code",
+       "start": 1791027960,
+       "title": "評価シナリオを追加したい",
+       "tokens": 540198
+      },
+      {
+       "cost": 0,
+       "credits": 0,
+       "id": "conv-a",
+       "minutes": 7,
+       "source": "Kiro CLI (SQLite)",
+       "start": 1790643540,
+       "title": "ログイン画面のテストを書いて",
+       "tokens": 0
+      }
+     ]
+    },
+    {
+     "cost": 0,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": null,
+     "minutes": 6,
+     "models": [],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "old",
+     "prompts": 3,
+     "sessions": 3,
+     "subagents": 0,
+     "tokens": 0,
+     "top": [
+      {
+       "cost": 0,
+       "credits": 0,
+       "id": "372fbe38-1f0c-4f64-882e-d84f0f02817e",
+       "minutes": 2,
+       "source": "Kiro IDE (旧)",
+       "start": 1790578380,
+       "title": "旧Kiroのチャット",
+       "tokens": 0
+      },
+      {
+       "cost": 0,
+       "credits": 0,
+       "id": "12c47fa1-6df4-4521-83f6-def4d849922d",
+       "minutes": 2,
+       "source": "Kiro IDE (旧)",
+       "start": 1790739600,
+       "title": "旧Kiroのチャット",
+       "tokens": 0
+      },
+      {
+       "cost": 0,
+       "credits": 0,
+       "id": "12971eb2-2ee6-4dd7-9a6e-a50256c0bf1d",
+       "minutes": 2,
+       "source": "Kiro IDE (旧)",
+       "start": 1790746140,
+       "title": "旧Kiroのチャット",
+       "tokens": 0
+      }
+     ]
+    },
+    {
+     "cost": 0,
+     "credits": 2,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 0,
+      "credits": 1.25,
+      "id": "crew:dashboard:chat-9-1790000000",
+      "minutes": 1,
+      "source": "Kiro Crew",
+      "start": 1790683130,
+      "title": "Kiro Crew: dashboard:chat-9-1790000000",
+      "tokens": 0
+     },
+     "minutes": 6,
+     "models": [
+      {
+       "cost": 0,
+       "model": "auto",
+       "tokens": 0,
+       "turns": 2
+      },
+      {
+       "cost": 0,
+       "model": "deepseek-3.2",
+       "tokens": 0,
+       "turns": 1
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "(Kiro Crew)",
+     "prompts": 0,
+     "sessions": 3,
+     "subagents": 0,
+     "tokens": 0,
+     "top": [
+      {
+       "cost": 0,
+       "credits": 0.25,
+       "id": "crew:_bg:2026-09-29",
+       "minutes": 1,
+       "source": "Kiro Crew",
+       "start": 1790639997,
+       "title": "Kiro Crew の裏方の処理",
+       "tokens": 0
+      },
+      {
+       "cost": 0,
+       "credits": 1.25,
+       "id": "crew:dashboard:chat-9-1790000000",
+       "minutes": 1,
+       "source": "Kiro Crew",
+       "start": 1790683130,
+       "title": "Kiro Crew: dashboard:chat-9-1790000000",
+       "tokens": 0
+      },
+      {
+       "cost": 0,
+       "credits": 0.5,
+       "id": "crew:_bg:2026-09-30",
+       "minutes": 1,
+       "source": "Kiro Crew",
+       "start": 1790726397,
+       "title": "Kiro Crew の裏方の処理",
+       "tokens": 0
+      }
+     ]
+    },
+    {
+     "cost": 0,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": null,
+     "minutes": 4,
+     "models": [],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "ci",
+     "prompts": 1,
+     "sessions": 1,
+     "subagents": 0,
+     "tokens": 0,
+     "top": [
+      {
+       "cost": 0,
+       "credits": 0,
+       "id": "conv-b",
+       "minutes": 3,
+       "source": "Kiro CLI (SQLite)",
+       "start": 1790769600,
+       "title": "CIが落ちてる原因を調べて",
+       "tokens": 0
+      }
+     ]
+    },
+    {
+     "cost": 0,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 0,
+      "credits": 0,
+      "id": "thr-main",
+      "minutes": 3,
+      "source": "Codex",
+      "start": 1790643601,
+      "title": "ヘッダーのボタンの色",
+      "tokens": 3300
+     },
+     "minutes": 2,
+     "models": [
+      {
+       "cost": 0,
+       "model": "gpt-5-codex",
+       "tokens": 2850,
+       "turns": 2
+      },
+      {
+       "cost": 0,
+       "model": "gpt-5-codex-mini",
+       "tokens": 450,
+       "turns": 1
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "web",
+     "prompts": 2,
+     "sessions": 1,
+     "subagents": 1,
+     "tokens": 3300,
+     "top": [
+      {
+       "cost": 0,
+       "credits": 0,
+       "id": "thr-main",
+       "minutes": 3,
+       "source": "Codex",
+       "start": 1790643601,
+       "title": "ヘッダーのボタンの色",
+       "tokens": 3300
+      }
+     ]
+    },
+    {
+     "cost": 0,
+     "credits": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "heavy": {
+      "cost": 0,
+      "credits": 0,
+      "id": "thr-new",
+      "minutes": 1,
+      "source": "Codex",
+      "start": 1790744401,
+      "title": "APIのテストを足して",
+      "tokens": 4100
+     },
+     "minutes": 2,
+     "models": [
+      {
+       "cost": 0,
+       "model": "gpt-5.2-codex",
+       "tokens": 4100,
+       "turns": 2
+      }
+     ],
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "project": "api",
+     "prompts": 1,
+     "sessions": 1,
+     "subagents": 0,
+     "tokens": 4100,
+     "top": [
+      {
+       "cost": 0,
+       "credits": 0,
+       "id": "thr-new",
+       "minutes": 1,
+       "source": "Codex",
+       "start": 1790744401,
+       "title": "APIのテストを足して",
+       "tokens": 4100
+      }
+     ]
+    }
+   ],
+   "projects": [
+    [
+     "vp",
+     145
+    ],
+    [
+     "infra",
+     48
+    ],
+    [
+     "app",
+     36
+    ],
+    [
+     "old",
+     6
+    ],
+    [
+     "(Kiro Crew)",
+     6
+    ],
+    [
+     "ci",
+     4
+    ],
+    [
+     "web",
+     2
+    ],
+    [
+     "api",
+     2
+    ]
+   ],
+   "prompts": 41,
+   "sessions": 20,
+   "shares": {
+    "branch": [
+     {
+      "cost": 0,
+      "credits": 21.01,
+      "key": "vp · —",
+      "minutes": 145,
+      "tokens": 0
+     },
+     {
+      "cost": 0,
+      "credits": 10.51,
+      "key": "infra · —",
+      "minutes": 48,
+      "tokens": 0
+     },
+     {
+      "cost": 0.1894,
+      "credits": 0,
+      "key": "app · main",
+      "minutes": 31,
+      "tokens": 540198
+     },
+     {
+      "cost": 0,
+      "credits": 2,
+      "key": "(Kiro Crew) · —",
+      "minutes": 6,
+      "tokens": 0
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "old · —",
+      "minutes": 6,
+      "tokens": 0
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "app · —",
+      "minutes": 5,
+      "tokens": 0
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "ci · —",
+      "minutes": 4,
+      "tokens": 0
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "api · —",
+      "minutes": 2,
+      "tokens": 4100
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "web · feat/button",
+      "minutes": 2,
+      "tokens": 3300
+     }
+    ],
+    "source": [
+     {
+      "cost": 0,
+      "credits": 21.01,
+      "key": "Kiro IDE",
+      "minutes": 145,
+      "tokens": 0
+     },
+     {
+      "cost": 0,
+      "credits": 12.51,
+      "key": "Kiro Crew",
+      "minutes": 53,
+      "tokens": 0
+     },
+     {
+      "cost": 0.1894,
+      "credits": 0,
+      "key": "Claude Code",
+      "minutes": 31,
+      "tokens": 540198
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "Kiro CLI (SQLite)",
+      "minutes": 9,
+      "tokens": 0
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "Kiro IDE (旧)",
+      "minutes": 6,
+      "tokens": 0
+     },
+     {
+      "cost": 0,
+      "credits": 0,
+      "key": "Codex",
+      "minutes": 4,
+      "tokens": 7400
+     }
+    ]
+   },
+   "start": "2026-09-28",
+   "switchesAvg": 2.4,
+   "switchesMax": 5,
+   "usage": {
+    "cacheHit": 0.944,
+    "cost": 0.19,
+    "credits": 33.52,
+    "heavy": [
+     {
+      "cost": 0.19,
+      "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33800",
+      "project": "app",
+      "start": 1791027960,
+      "subagents": 1,
+      "title": "評価シナリオを追加したい"
+     }
+    ],
+    "models": [
+     [
+      "claude-haiku-4-5",
+      0.11,
+      363340,
+      10
+     ],
+     [
+      "claude-sonnet-5-5",
+      0.08,
+      176858,
+      4
+     ],
+     [
+      "gpt-5.2-codex",
+      0,
+      4100,
+      2
+     ],
+     [
+      "gpt-5-codex",
+      0,
+      2850,
+      2
+     ],
+     [
+      "gpt-5-codex-mini",
+      0,
+      450,
+      1
+     ]
+    ],
+    "out": 13981,
+    "projects": [
+     [
+      "app",
+      0.19
+     ]
+    ],
+    "subMin": 4,
+    "subTypes": [
+     [
+      "explorer",
+      1
+     ],
+     [
+      "Explore",
+      1
+     ]
+    ],
+    "subagents": 2,
+    "tokens": 547598,
+    "unpriced": 7400,
+    "unpricedModels": [
+     "gpt-5.2-codex",
+     "gpt-5-codex",
+     "gpt-5-codex-mini"
+    ]
+   },
+   "waitCount": 19,
+   "waitMedian": 120,
+   "waitP90": 218,
+   "weekend": 55
+  }
+ }
+}
