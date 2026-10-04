@@ -64,6 +64,7 @@ for (const env of envs) {
 
   await step("週の移動", async () => {
     const label = () => p.locator("#rd").innerText();
+    await p.keyboard.press("t"); await pause(); // 今週に記録がないとき（日本時間の月曜の朝など）は、開いた週が今週ではないので、先に今週へ移っておく
     const before = await label();
     await p.keyboard.press("ArrowLeft"); await pause();
     check("← で前の週へ移る", await label() !== before, `${before} のまま`);
