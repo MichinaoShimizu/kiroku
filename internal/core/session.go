@@ -8,7 +8,7 @@ import (
 )
 
 // Correction は言い直し・差し戻しっぽい依頼（こじれたセッションの目印）。
-var Correction = regexp.MustCompile(`(?i)違う|ちがう|そうじゃな|やり直|戻して|元に戻|取り消|じゃなくて|\b(?:wrong|revert|undo|not what|that's not|try again)\b`)
+var Correction = regexp.MustCompile(`(?i)違う|ちがう|そうじゃな|やり直|戻して|元に戻|取り消|じゃなくて|\b(?:wrong|incorrect|nope|revert|undo|roll ?back|start over|not what|that's not|try again|(?:doesn't|does not|didn't|did not|still not|isn't|is not) work(?:ing)?|still (?:broken|failing|fails)|you broke)\b`)
 
 var editTools = map[string]bool{
 	"Edit": true, "Write": true, "MultiEdit": true, "NotebookEdit": true, // Claude Code

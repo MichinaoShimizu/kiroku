@@ -120,7 +120,7 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 		if commits == nil {
 			commits = []gitlog.Commit{}
 		}
-		meta := map[string]any{"report": rep, "git": commits}
+		meta := map[string]any{"report": rep, "git": commits, "prices": map[string]any{"asOf": core.PricesAsOf, "custom": *c.prices != ""}}
 		return snapshot{data: data, weeks: report.AllWeeks(data, commits...), months: report.AllMonths(data, commits...), meta: meta, rep: rep, gen: float64(time.Now().UnixNano()) / 1e9}
 	}
 	return picked, load, nil

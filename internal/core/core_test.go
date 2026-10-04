@@ -86,3 +86,17 @@ func TestAggregateNative(t *testing.T) {
 		t.Error("定義のないエージェントは空")
 	}
 }
+
+// 言い直しの判定は、日本語と英語のよくある言い回しを拾い、ふつうの依頼は拾わない。
+func TestCorrection(t *testing.T) {
+	for _, s := range []string{"違う、そうじゃなくて", "やり直して", "No, that's wrong", "Revert that and try again", "It still doesn't work", "The build is still failing", "nope", "Roll back the last change"} {
+		if !Correction.MatchString(s) {
+			t.Errorf("拾うべき: %q", s)
+		}
+	}
+	for _, s := range []string{"Fix validation on the login form", "Add a working example", "Write the release notes", "Make the tests pass too", "テストも通して"} {
+		if Correction.MatchString(s) {
+			t.Errorf("拾わないべき: %q", s)
+		}
+	}
+}
