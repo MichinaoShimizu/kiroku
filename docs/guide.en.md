@@ -104,6 +104,7 @@ The image shows the English view. In a Japanese browser it is shown in Japanese 
 | Metric | Definition |
 |---|---|
 | Estimated cost (API pricing) | Usage priced at public API rates. For sessions where Claude Code records its own cost (`cost-state`), that value is used (this also covers price changes, new models and calls not left in the history, such as auto-compaction). Otherwise, tokens in the history are multiplied by the kiroku price table. It differs from what a subscription bills |
+| Month-end projection (estimate) | Shown only in the month view while the month is in progress: the estimated cost (and credits) from the 1st through today, scaled up to the whole month by the share of the month that has passed. It assumes the pace so far continues, and is not shown for the first 7 days. For a period in progress, "vs last month" and "vs last week" compare with the same point in the previous period |
 | Tokens | Input, output, cache reads and cache writes combined. Because one response is recorded across several lines, they are grouped by message ID before counting |
 | Share of input read from cache | The share of input read from cache |
 | By model | Estimated cost and tokens per model |
@@ -182,6 +183,7 @@ Press "?" on any metric in the view to see the same explanation. It is also incl
 | Daily and weekly rhythm | Ups and downs in your workload | What caused them | If work piles up on certain days, rethink how you distribute it |
 | Daily usage | Which days you used AI the most | Whether that day's usage was appropriate | Open the sessions on outlier days to see why they were heavy |
 | Estimated cost (API pricing) | A rough way to compare how heavy usage was, in money | What you are actually billed (subscriptions differ) | Find the heavy sessions and models and rethink how you use them |
+| Month-end projection (estimate) | Roughly where this month is heading at the current pace | Your actual bill, or how you will work from now on (it is off if the pace changes) | If it is too high, look at the heavy sessions and models |
 | Tokens | How much you consumed | Whether more or less is good | Look for skew by project and by day |
 | Share of input read from cache | Whether the same context was reused | Why it is low (it may just be many short sessions) | If low, check whether you paste long background every time |
 | By model | Which models your usage leaned toward | Whether that model was needed | Consider moving routine work to lighter models |

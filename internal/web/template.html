@@ -859,7 +859,7 @@ function summary(){
       <span class="muted" style="font-size:11.5px">${tr("プロジェクトごとに、やったこと・コミット・PR をまとめた Markdown です。セッション名は依頼文の冒頭なので、直してから貼ってください。", "Markdown with what you did, commits and pull requests for each project. Session names are the start of your prompts, so edit them before pasting.")}</span></div>
     <pre class="askpre" id="rptpre">${esc(reportText(w, M))}</pre></section>` : ""}`;
   if (!w){ R.innerHTML = `${head}<div class="rvgrid"><div class="panel"><p class="none">${tr(`この${unit}の記録はありません。← → で移動できます。`, `No records ${uThis(unit)}. Use ← → to move.`)}</p>${foot()}</div></div>`; bindCopy(R); return; }
-  const d = pw ? w.active - pw.active : null;
+  const n = soFar(), d = !pw ? null : n == null ? w.active - pw.active : w.active - pw.days.slice(0, n).reduce((t, x) => t + x.active, 0); // 途中の期間は、前の期間の同じ日までと比べる
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
   const total = w.projects.reduce((t,[,v])=>t+v,0) || 1;
   const stat = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}${hint(h)}</div>`;
@@ -872,7 +872,7 @@ function summary(){
   ${outcomePanel(w, pw, unit, ph, stat)}
   <section class="panel">${ph(4, tr("時間の使い方", "How you spent time"), tr("いつ・どれくらい動いていたか", "When and how long sessions ran"))}
     <div class="hero"><div class="big">${dur(w.active,true).replace(/(\d+)/g,'<span class="num">$1</span>').replace(/<small>(.*?)<\/small>/g,'<span class="u">$1</span>')}</div>
-      <div class="cap">${tr("どれかのセッションが動いていた時間", "Time when any session was running")}${hb("active")}${d==null?"":`<span class="delta">${tr(`先${unit}より`, `vs ${uLast(unit)}`)} ${d>=0?"+":"−"}${dur(Math.abs(d))}</span>`}</div>${hint("active")}</div>
+      <div class="cap">${tr("どれかのセッションが動いていた時間", "Time when any session was running")}${hb("active")}${d==null?"":`<span class="delta">${n == null ? tr(`先${unit}より`, `vs ${uLast(unit)}`) : tr(`先${unit}の同じ日までより`, `vs the same point ${uLast(unit)}`)} ${d>=0?"+":"−"}${dur(Math.abs(d))}</span>`}</div>${hint("active")}</div>
     <div class="stats">
       ${stat(tr("集中ブロック（60分以上）", "Focus blocks (60+ min)"), times(w.focus.length), longest ? tr(`最長 ${dur(longest)}`, `Longest ${dur(longest)}`) : tr("まとまった時間はなし", "No long stretches"), "focus")}
       ${stat(tr("深夜（22〜6時）", "Late night (22:00–6:00)"), dur(w.night,true), "", "night")}
@@ -994,6 +994,7 @@ const HELP = {
   rhythm: {n:"日ごと・週ごとのリズム", d:"週表示では日ごと、月表示では週ごとの作業時間（うち深夜）", c:"作業量の波と偏り", x:"波の原因", a:"特定の日に偏っていれば、作業の割り振りを見直す"},
   daily: {n:"日ごとの使用量", d:"日ごとのトークン・目安コスト・クレジット", c:"どの日に AI を多く使ったか", x:"その日の使い方が適切だったか", a:"突出した日のセッションを開いて、重かった理由を確認する"},
   cost: {n:"目安コスト（API 換算）", d:"API の公開料金で換算した使用料。Claude Code が自身の使用料を記録しているセッションはその値（料金の改定・新しいモデル・自動要約など履歴に残らない呼び出しも含む）、ないときは履歴のトークン数に kiroku の料金表を掛けた値", c:"使用量の重さを金額で比べた目安", x:"実際の請求額（サブスクリプションとは異なる）", a:"重いセッションやモデルを特定して、使い方を見直す"},
+  projection: {n:"月末の見込み（推定）", d:"今月の途中で、月の初めから今日までの目安コスト（とクレジット）を、経った時間の割合で月末まで伸ばした値。月の初めの 7 日は出さない", c:"このペースだと今月どれくらいになりそうか", x:"実際の請求額や、これからの使い方（ペースが変われば外れる）", a:"多すぎるなら、重いセッションやモデルを見直す"},
   tokens: {n:"トークン", d:"入力・出力・キャッシュ読み取り・キャッシュ書き込みの合計", c:"消費した量", x:"多い・少ないの良し悪し", a:"プロジェクト別・日別の偏りを見る"},
   cache: {n:"キャッシュから読んだ割合", d:"入力のうちキャッシュから読み取った割合", c:"同じ文脈を再利用できていたか", x:"低い原因（短いセッションが多いだけの場合もある）", a:"低ければ、長い前提を毎回貼り直していないか確認する"},
   models: {n:"モデル別", d:"モデルごとの目安コストとトークン", c:"どのモデルに使用量が寄っていたか", x:"そのモデルが必要だったか", a:"定型的な作業を軽いモデルに回せないか検討する"},
@@ -1032,6 +1033,7 @@ const HELP_EN = {
   rhythm: {n: "Daily and weekly rhythm", d: "Work time per day in week view and per week in month view (with late night)", c: "Ups and downs in your workload", x: "What caused them", a: "If work piles up on certain days, rethink how you distribute it"},
   daily: {n: "Daily usage", d: "Tokens, estimated cost and credits per day", c: "Which days you used AI the most", x: "Whether that day's usage was appropriate", a: "Open the sessions on outlier days to see why they were heavy"},
   cost: {n: "Estimated cost (API pricing)", d: "Usage priced at public API rates. Uses the cost Claude Code records for itself when available (this also covers price changes, new models and calls not in the history, such as auto-compaction); otherwise tokens in the history times the kiroku price table", c: "A rough way to compare how heavy usage was, in money", x: "What you are actually billed (subscriptions differ)", a: "Find the heavy sessions and models and rethink how you use them"},
+  projection: {n: "Month-end projection (estimate)", d: "In a month in progress, the estimated cost (and credits) from the 1st through today, scaled up to the whole month by the share of the month that has passed. Not shown for the first 7 days", c: "Roughly where this month is heading at the current pace", x: "Your actual bill, or how you will work from now on (it is off if the pace changes)", a: "If it is too high, look at the heavy sessions and models"},
   tokens: {n: "Tokens", d: "Input, output, cache reads and cache writes combined", c: "How much you consumed", x: "Whether more or less is good", a: "Look for skew by project and by day"},
   cache: {n: "Share of input read from cache", d: "The share of input tokens read from cache", c: "Whether the same context was reused", x: "Why it is low (it may just be many short sessions)", a: "If low, check whether you paste long background every time"},
   models: {n: "By model", d: "Estimated cost and tokens per model", c: "Which models your usage leaned toward", x: "Whether that model was needed", a: "Consider moving routine work to lighter models"},
@@ -1397,13 +1399,27 @@ function measure(w){
     rows.push(`<li class="warn">${tr(`料金表にないモデルのトークン ${tok(w.usage.unpriced)} は目安コストに入っていません${ms ? `（${ms}）` : ""}。<code>--prices</code> で料金を足せます`, `${tok(w.usage.unpriced)} tokens from models not in the price table are not included in the estimated cost${ms ? ` (${ms})` : ""}. Add their prices with <code>--prices</code>`)}</li>`); }
   return `<h3>${tr("計測の状態", "Data sources")}</h3><ul class="mlist">${rows.join("")}</ul>`;
 }
+// soFar は、今見ている期間が途中なら、始まりから今日までの日数（今日を含む）。終わった期間や先の期間は null。
+function soFar(){ const {ws, we} = period(), now = nowMs()/1000;
+  return ws <= now && now < we ? Math.min(Math.ceil((now - ws) / 86400), Math.round((we - ws) / 86400)) : null; }
+// projection は、今月の途中なら、今日までのペースが月末まで続いたときの目安コストとクレジット（推定）。
+// 月の初めは日数が少なく当てにならないので、7 日たつまでは出さない。
+function projection(w){ const {ws, we} = period(), now = nowMs()/1000, u = w.usage;
+  if (st.mode !== "month" || !u || !(ws <= now && now < we) || now - ws < 7 * 86400) return null;
+  const k = (we - ws) / (now - ws);
+  return {cost: u.tokens ? u.cost * k : null, credits: u.credits ? u.credits * k : null, days: Math.ceil((now - ws) / 86400)}; }
 function aiUsage(w, pw, unit){
   const u = w.usage; if (!u || (!u.tokens && !u.credits)) return "";
   const stat = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}${hint(h)}</div>`;
-  const dc = pw && pw.usage ? u.cost - pw.usage.cost : null;
+  // 途中の期間は、前の期間の同じ日までと比べる（途中の値を、前の期間まるごとと比べると、いつも少なく見えるため）
+  const n = soFar(), upTo = (x, f) => x.days.slice(0, n).reduce((t, d) => t + (d[f] || 0), 0);
+  const dc = !pw || !pw.usage ? null : n == null ? u.cost - pw.usage.cost : u.cost - upTo(pw, "cost");
+  const vsLast = n == null ? tr(`先${unit||"週"}より`, `vs ${uLast(unit||"週")}`) : tr(`先${unit||"週"}の同じ日までより`, `vs the same point ${uLast(unit||"週")}`);
+  const pj = projection(w);
   const totalC = u.models.reduce((t,r)=>t+r[1],0) || 1, totalT = u.models.reduce((t,r)=>t+r[2],0) || 1, byCost = totalC > 0.0001;
   return `<div class="stats" style="margin-top:4px">
-      ${u.tokens ? stat(tr("目安コスト（API換算）", "Estimated cost (API pricing)"), usd(u.cost).replace("$","<small>$</small>"), dc==null ? "" : `${tr(`先${unit||"週"}より`, `vs ${uLast(unit||"週")}`)} ${dc>=0?"+":"−"}${usd(Math.abs(dc))}`, "cost") : ""}
+      ${u.tokens ? stat(tr("目安コスト（API換算）", "Estimated cost (API pricing)"), usd(u.cost).replace("$","<small>$</small>"), dc==null ? "" : `${vsLast} ${dc>=0?"+":"−"}${usd(Math.abs(dc))}`, "cost") : ""}
+      ${pj ? stat(tr("月末の見込み（推定）", "Month-end projection (estimate)"), [pj.cost != null ? "≈ " + usd(pj.cost).replace("$","<small>$</small>") : "", pj.credits != null ? (pj.cost != null ? `<small> · </small>` : "≈ ") + tr(`${Math.round(pj.credits)}<small> クレジット</small>`, `${Math.round(pj.credits)}<small> credits</small>`) : ""].join(""), tr(`今日までの ${pj.days} 日のペースが続いた場合`, `If the pace of the first ${pj.days} days continues`), "projection") : ""}
       ${u.tokens ? stat(tr("トークン", "Tokens"), `${tok(u.tokens)}`, tr(`うち出力 ${tok(u.out)}・多いほど良いわけではありません`, `Output ${tok(u.out)} · more is not better`), "tokens") : ""}
       ${u.tokens ? stat(tr("キャッシュから読んだ割合", "Read from cache"), u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, tr("入力のうち", "Share of input"), "cache") : ""}
       ${stat(tr("サブエージェント", "Subagents"), tr(`${u.subagents}<small>回</small>`, `${u.subagents}`), u.subagents ? tr(`延べ ${dur(u.subMin)}`, `Total ${dur(u.subMin)}`) : tr("使っていません", "Not used"), "subagents")}

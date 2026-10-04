@@ -2,6 +2,16 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Added
+
+- Month-end projection (estimate) in the monthly summary while the month is in progress: the estimated cost and credits if the pace so far continues. Not shown for the first 7 days of the month
+
+### Changed
+
+- For a week or month in progress, "vs last week" and "vs last month" for estimated cost and active time now compare with the same point in the previous period, instead of the whole previous period (which always made the current one look smaller)
+
 ## v0.1.10 - 2026-10-04
 
 ### Fixed
