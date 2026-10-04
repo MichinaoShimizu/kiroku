@@ -4,7 +4,7 @@
 
 English | [日本語](README.ja.md)
 
-See how you actually work with AI coding agents. kiroku reads the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), Amazon Q Developer CLI and Codex CLI, and shows it as a Google Calendar–style view.
+**Your AI work history, visualized.** kiroku reads the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), Amazon Q Developer CLI and Codex CLI, and shows it as a Google Calendar–style view.
 
 **[Try the live demo](https://michinaoshimizu.github.io/kiroku/)** (dummy data, runs in your browser).
 

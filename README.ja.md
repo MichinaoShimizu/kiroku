@@ -4,7 +4,7 @@
 
 [English](README.md) | 日本語
 
-AI エージェント（Claude Code・Kiro（IDE・CLI・Kiro Crew）・Amazon Q Developer CLI・Codex CLI）の利用履歴を、Google カレンダーのような画面で可視化するツールです。
+**AI 作業履歴の可視化。** AI エージェント（Claude Code・Kiro（IDE・CLI・Kiro Crew）・Amazon Q Developer CLI・Codex CLI）の利用履歴を、Google カレンダーのような画面で見られるようにするツールです。
 
 **[デモを試す](https://michinaoshimizu.github.io/kiroku/)**（ダミーデータ。ブラウザだけで動きます）
 
