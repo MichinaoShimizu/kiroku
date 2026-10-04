@@ -128,8 +128,14 @@ func TestCollectWorktree(t *testing.T) {
 	if c := got["by hand right after"]; c.AI {
 		t.Error("1 回の実行は 1 つのコミットにだけ結びつける（直後に手で行ったコミットは AI にしない）")
 	}
+	want, err := os.Stat(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, c := range cs {
-		if c.Project != "app" || c.Repo != dir {
+		// git は本当のパスを返す（macOS の /var → /private/var、Windows の短い名前など）ので、同じフォルダかで比べる
+		got, err := os.Stat(c.Repo)
+		if c.Project != "app" || err != nil || !os.SameFile(got, want) {
 			t.Errorf("%q: project %q repo %q, want 本体の app・%s", c.Subject, c.Project, c.Repo, dir)
 		}
 	}
