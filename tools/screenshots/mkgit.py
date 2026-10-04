@@ -1,0 +1,35 @@
+"""gen.py の履歴に合わせて、ダミーの git リポジトリを作る（AI が実行したコミットと、手で行ったコミット）。
+
+  python3 mkgit.py <出力先>
+"""
+import json, glob, os, subprocess, random, sys, datetime as dt
+OUT = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else "out")
+random.seed(3)
+R=os.path.join(OUT,'repos')
+ev=[]
+for f in glob.glob(os.path.join(OUT,'home','.claude','projects','*','*.jsonl')):
+    for l in open(f):
+        o=json.loads(l)
+        if o['type']!='assistant': continue
+        for c in o['message']['content']:
+            if c.get('name')=='Bash' and 'git commit' in c['input'].get('command',''):
+                ev.append((o['cwd'], dt.datetime.fromisoformat(o['timestamp']).timestamp()+3, 'AI', 'update'))
+# hand commits
+projs=set(e[0] for e in ev) | {f"{R}/{p}" for p in ["web-app","data-pipeline","mobile","docs"]}
+now=dt.datetime.now().timestamp()
+for p in projs:
+    for _ in range(random.randint(6,14)):
+        t=now-random.uniform(0,35)*86400
+        ev.append((p,t,'hand',random.choice(["fix typo","refactor","update deps","add tests","tweak styles"])))
+ev.sort(key=lambda e:e[1])
+for p in projs:
+    os.makedirs(p,exist_ok=True)
+    if not os.path.isdir(p+'/.git'):
+        subprocess.run(['git','-C',p,'init','-q']); subprocess.run(['git','-C',p,'config','user.email','me@example.com']); subprocess.run(['git','-C',p,'config','user.name','me'])
+for i,(p,t,kind,msg) in enumerate(ev):
+    with open(f"{p}/f{i%7}.txt","a") as fh: fh.write("line\n"*random.randint(1,40))
+    subprocess.run(['git','-C',p,'add','-A'])
+    d=dt.datetime.fromtimestamp(t).astimezone().isoformat()
+    env=dict(os.environ,GIT_AUTHOR_DATE=d,GIT_COMMITTER_DATE=d)
+    subprocess.run(['git','-C',p,'commit','-qm',msg],env=env,check=True)
+print(len(ev))
