@@ -32,6 +32,7 @@ kiroku が各エージェントの履歴をどこから、どう読んでいる�
 
 - Crew は kiro-cli を ACP で動かすので、会話そのものは Kiro CLI の履歴に残る。kiroku はそちらを数え、`session_map.json` と `subagents/*/state.json` に載っている会話に「Kiro Crew」の目印と、Crew のタイトル（サブエージェントならエージェント名と依頼内容）をつける
 - Crew のダッシュボードから動かした会話は、クレジットが kiro-cli の履歴に残らないことがある。Crew が 1 ターンごとに書く使用量の記録（`usage/tokens/<日付>.jsonl` の `_type: "tokens"` の行）も読む
+- 使用量の記録の `slot` は、ダッシュボードの会話だと `chat-<連番>-<UNIX 秒>` の形で残る。会話のキー（`session_map.json` や会話の記録のファイル名）は `dashboard:chat-…` なので、Crew の `spend_key_for_slot` と同じ規則でそろえてから結びつける
 - 同じ会話は二重に数えないよう、会話ごとに kiro-cli の記録と Crew の記録の多いほうを使う
 - kiro-cli の会話に結びつかない記録は「Kiro Crew」のセッションにする。Crew の裏方の処理（`slot: "_bg"`）は 1 日ごと、ダッシュボードのチャットは会話ごと
 - Crew の会話の記録（`sessions/<会話キー>.jsonl`。1 行目がメタデータ、2 行目から `role`・`content`・`ts`・`tools`）も読む。kiro-cli の履歴に依頼が残っていない会話（ダッシュボードから動かしたものなど）と、kiro-cli の会話に結びつかない会話は、ここから依頼の流れ・時刻・使ったツールを補う。使用量の記録も kiro-cli の会話もなく、会話の記録だけがあるものも「Kiro Crew」のセッションにする
