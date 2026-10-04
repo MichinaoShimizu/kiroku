@@ -11,6 +11,7 @@ Notable changes to kiroku. Each release on GitHub uses its section here as the r
 - Live demo with dummy data on GitHub Pages
 - `SECURITY.md` and `CONTRIBUTING.md`
 - The date of the price table used for estimated cost
+- Share bars in "By project": what share of active time, tokens, estimated cost and credits went to each project, side by side, with a table of the percentages
 
 ### Changed
 
