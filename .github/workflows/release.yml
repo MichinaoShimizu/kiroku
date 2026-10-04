@@ -2,9 +2,15 @@ name: Release
 
 # v で始まるタグ（例: v0.1.0）を push すると、3 OS でテストしてから
 # GoReleaser で各 OS 向けのファイルを作り、GitHub Releases に載せる。
+# tag.yml がタグを打ったときは、ここを呼び出す（GITHUB_TOKEN で push したタグでは push の起動がかからないため）。
 on:
   push:
     tags: ["v*"]
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
 
 permissions:
   contents: read
@@ -18,6 +24,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -32,16 +40,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
       # リリースノートは CHANGELOG.md のその版の節（英語）を使う。節がなければここで止まる
       - name: Release notes
-        run: sh tools/release-notes.sh "$GITHUB_REF_NAME" > "$RUNNER_TEMP/notes.md"
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: sh tools/release-notes.sh "$TAG" > "$RUNNER_TEMP/notes.md"
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
           args: release --clean --release-notes ${{ runner.temp }}/notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_CURRENT_TAG: ${{ inputs.tag || github.ref_name }}

@@ -1,0 +1,53 @@
+name: Tag
+
+# CHANGELOG.md のいちばん上の節が「## v0.1.6 - 2026-10-04」のような版で、そのタグがまだなければ、
+# タグを打って Release（release.yml）を動かす。リリースは「Unreleased を版に書き換える PR」をマージするだけで出る。
+# 手で動かすこともできる（Actions → Tag → Run workflow）。
+on:
+  push:
+    branches: [main]
+    paths: [CHANGELOG.md]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tag
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: tag
+        run: |
+          v=$(grep -m1 '^## ' CHANGELOG.md | cut -d' ' -f2)
+          if ! printf '%s' "$v" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'; then
+            echo "いちばん上の節は「$v」なので、タグは打たない"
+            exit 0
+          fi
+          if git rev-parse -q --verify "refs/tags/$v" >/dev/null; then
+            echo "$v はもうある"
+            exit 0
+          fi
+          sh tools/release-notes.sh "$v" > /dev/null
+          git tag "$v"
+          git push origin "$v"
+          echo "tag=$v" >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: tag
+    if: needs.tag.outputs.tag != ''
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ needs.tag.outputs.tag }}
