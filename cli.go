@@ -121,6 +121,10 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 			commits = []gitlog.Commit{}
 		}
 		meta := map[string]any{"report": rep, "git": commits, "prices": map[string]any{"asOf": core.PricesAsOf, "custom": *c.prices != ""}}
+		if os.Getenv("KIROKU_DEMO") != "" { // デモ（ダミーデータ）：画面は、この時間帯の時計で見せる
+			_, off := time.Now().Zone()
+			meta["demo"] = map[string]any{"offset": off}
+		}
 		return snapshot{data: data, weeks: report.AllWeeks(data, commits...), months: report.AllMonths(data, commits...), meta: meta, rep: rep, gen: float64(time.Now().UnixNano()) / 1e9}
 	}
 	return picked, load, nil

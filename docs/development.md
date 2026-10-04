@@ -48,7 +48,7 @@ PR ごとに次を走らせます（`.github/workflows/ci.yml`）。
 - `test`（Ubuntu・macOS・Windows）: gofmt・vet・テスト・ビルド
 - `release-dry-run`: `goreleaser release --snapshot`（公開はしない）。リリースの設定が壊れていないかを、タグを打つ前に確かめる
 - `install-script`（Ubuntu・macOS）: `install.sh` に shellcheck をかけ、実際に最新のリリースを入れて `kiroku --version` を確かめる
-- `Demo`（`.github/workflows/pages.yml`）: main への push と毎週月曜に、ダミーデータの HTML を作って GitHub Pages に公開する（README の Live demo）。使うには Settings → Pages → Source を「GitHub Actions」にする
+- `Demo`（`.github/workflows/pages.yml`）: main への push と毎週月曜に、ダミーデータの HTML を作って GitHub Pages に公開する（README の Live demo）。使うには Settings → Pages → Source を「GitHub Actions」にする。ダミーデータは日本時間で作るので、集計も日本時間（`TZ=Asia/Tokyo`）で区切り、画面は `KIROKU_DEMO` の目印があるとき、見る人の時間帯にかかわらず日本時間の時計で表示する（海外から開いても深夜の作業に見えないように）
 
 ## リリースの出し方
 
