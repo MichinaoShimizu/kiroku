@@ -58,6 +58,36 @@ func TestClaudeReadsArchivedCopy(t *testing.T) {
 	}
 }
 
+// 再開した会話で、古いサブエージェントのファイルだけが消えたときは、そのコピーを読む。元が残っているものは元を読む。
+func TestClaudeReadsArchivedSubagentOfLiveSession(t *testing.T) {
+	root, arch := t.TempDir(), t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	sub := filepath.Join(dir, "s1", "subagents")
+	os.MkdirAll(sub, 0o755)
+	line := `{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"依頼"}}` + "\n"
+	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(line), 0o644)
+	os.WriteFile(filepath.Join(sub, "agent-old.jsonl"), []byte(line), 0o644)
+	os.WriteFile(filepath.Join(sub, "agent-new.jsonl"), []byte(line), 0o644)
+	c := &Claude{Root: root, Archive: arch}
+	for _, k := range c.Keep() {
+		if _, err := archive.Sync(k.Src, k.Dst); err != nil {
+			t.Fatal(err)
+		}
+	}
+	os.Remove(filepath.Join(sub, "agent-old.jsonl"))
+	units := c.Units()
+	if len(units) != 1 {
+		t.Fatalf("Unit = %d, want 1", len(units))
+	}
+	var got []string
+	for _, f := range units[0].Files[1:] {
+		got = append(got, filepath.Base(f))
+	}
+	if strings.Join(got, ",") != "agent-new.jsonl,agent-old.jsonl.zst" {
+		t.Errorf("サブエージェントのファイル = %v", got)
+	}
+}
+
 // Kiro Crew が消した退避の記録（sessions/archive）は、kiroku archive のコピーから読む。
 func TestCrewReadsArchivedCopy(t *testing.T) {
 	ch, arch := t.TempDir(), t.TempDir()

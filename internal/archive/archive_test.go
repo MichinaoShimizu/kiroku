@@ -96,3 +96,20 @@ func TestPath(t *testing.T) {
 		t.Error("元の場所の外のファイル")
 	}
 }
+
+// 元の場所がシンボリックリンクでも、中のファイルを残す（WalkDir は起点のリンクをたどらない）
+func TestSyncSymlinkRoot(t *testing.T) {
+	real, dst := t.TempDir(), t.TempDir()
+	os.MkdirAll(filepath.Join(real, "proj"), 0o755)
+	os.WriteFile(filepath.Join(real, "proj", "s1.jsonl"), []byte(`{"n":1}`+"\n"), 0o644)
+	link := filepath.Join(t.TempDir(), "projects")
+	if err := os.Symlink(real, link); err != nil {
+		t.Skip("シンボリックリンクを作れない:", err)
+	}
+	if n, err := Sync(link, dst); n != 1 || err != nil {
+		t.Fatalf("Sync = %d %v, want 1", n, err)
+	}
+	if _, err := os.Stat(filepath.Join(dst, "proj", "s1.jsonl.zst")); err != nil {
+		t.Error("コピーがない:", err)
+	}
+}
