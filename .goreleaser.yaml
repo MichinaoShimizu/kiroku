@@ -16,7 +16,7 @@ archives:
       - goos: windows
         formats: [zip]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    files: [README.md, LICENSE]
+    files: [README.md, README.ja.md, LICENSE]
 checksum:
   name_template: checksums.txt
 release:
