@@ -52,16 +52,24 @@ PR ごとに次を走らせます（`.github/workflows/ci.yml`）。
 
 ## リリースの出し方
 
-`CHANGELOG.md` の `## Unreleased` を `## v0.1.6 - 2026-10-05` のように書き換える PR を作り、main にマージします（英語で書く。中身がそのままリリースノートになる）。マージすると、`.github/workflows/tag.yml` がいちばん上の節の版でタグを打ち、そのまま Release を動かします。タグを手で打つ必要はありません。
+版の番号は、`## Unreleased` の中身からセマンティック バージョニングで決めます。`sh tools/next-version.sh` で次の番号がわかります。
+
+| Unreleased の中身 | 上げる桁 |
+|---|---|
+| `BREAKING` と書いた変更（コマンド・オプション・出力ファイルなど、使い方の互換が崩れるもの。画面の見た目だけの変更は含めない） | 1.0 以降は major、0.x の間は minor |
+| `### Added` がある | minor |
+| `### Changed`・`### Fixed`・`### Removed` だけ | patch |
+
+`CHANGELOG.md` の `## Unreleased` を `## v0.1.8 - 2026-10-05` のように、その番号に書き換える PR を作り、main にマージします（英語で書く。中身がそのままリリースノートになる）。マージすると、`.github/workflows/tag.yml` がいちばん上の節の版でタグを打ち、そのまま Release を動かします。タグを手で打つ必要はありません。
 
 うまく動かなかったときは、Actions → Tag → Run workflow で動かし直せます。手でタグを打って push しても、これまでどおりリリースされます。
 
 ```bash
-git tag v0.1.6
-git push origin v0.1.6
+git tag v0.1.8
+git push origin v0.1.8
 ```
 
-変更を入れる PR では、利用者に見える変化を `## Unreleased` に英語で足しておきます（リリースの直後で見出しがなければ、いちばん上に `## Unreleased` から作ります）。CHANGELOG にタグと同じ版の節がないと、リリースは作られずに止まります（`sh tools/release-notes.sh v0.1.6` で手元でも確かめられます）。
+変更を入れる PR では、利用者に見える変化を `## Unreleased` に英語で足しておきます（リリースの直後で見出しがなければ、いちばん上に `## Unreleased` から作ります）。CHANGELOG にタグと同じ版の節がないと、リリースは作られずに止まります（`sh tools/release-notes.sh v0.1.8` で手元でも確かめられます）。番号が中身と合わないときも、CI（release-dry-run）と Tag で止まります。
 
 Release（`.github/workflows/release.yml`）は、3 OS でテストしてから、GoReleaser で macOS・Linux・Windows（amd64 / arm64）向けのファイルとチェックサムを作り、Releases に載せます。`v0.2.0-rc.1` のように `-` のつくタグはプレリリースになります。
 

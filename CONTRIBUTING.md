@@ -23,7 +23,7 @@ Go 1.23 or later is required. [docs/development.md](docs/development.md) (Japane
 
 ## Changelog
 
-Add user-visible changes to `## Unreleased` in [CHANGELOG.md](CHANGELOG.md), in English (create the heading at the top if it is not there). That section becomes the release notes.
+Add user-visible changes to `## Unreleased` in [CHANGELOG.md](CHANGELOG.md), in English (create the heading at the top if it is not there). That section becomes the release notes, and decides the next version: `BREAKING` (a change that breaks commands, options or output files) bumps minor while in 0.x and major from 1.0, `### Added` bumps minor, and anything else bumps patch (`sh tools/next-version.sh`).
 
 ## Changing the view
 
