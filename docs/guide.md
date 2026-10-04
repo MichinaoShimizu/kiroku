@@ -1,5 +1,7 @@
 # kiroku ガイド
 
+[English](guide.en.md) | 日本語
+
 README（[日本語](../README.ja.md)・[English](../README.md)）の補足です。インストールとコマンドの詳細、画面の見方、指標の定義、読み取る履歴、オプションをまとめています。
 
 ## インストール
