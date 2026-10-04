@@ -155,7 +155,10 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .useg{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:2px 0 4px}
 .useg .segc button{height:24px;font-size:11.5px}
 /* ── project（プロジェクト別のまとめ） ──────────────────── */
-.panel.projs{grid-column:1/-1}
+.panel.projs,.panel.oc{grid-column:1/-1}
+.ocgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:24px;margin-top:8px}
+.ocl{font:600 11px/1 var(--sans);letter-spacing:.06em;color:var(--ink-3);margin:6px 0 -6px}
+.stats.s3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px;margin-top:12px}
 .pcard{border:1px solid var(--rule);border-radius:14px;padding:14px 16px 12px;display:flex;flex-direction:column;gap:10px;min-width:0;
   background:linear-gradient(180deg,color-mix(in oklab,var(--c) 7%,var(--surface)),var(--surface) 70px)}
@@ -185,7 +188,7 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .pmore{margin-top:10px}
 .xl{color:var(--acc-ink);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--acc) 40%,transparent);text-underline-offset:2px}.xl:hover{text-decoration-color:currentColor}
 a.pill{display:inline-flex;align-items:center;text-decoration:none}
-.gc{position:absolute;right:3px;display:inline-flex;align-items:center;gap:3px;height:17px;margin-top:-8.5px;padding:0 5px 0 3px;border-radius:9px;background:var(--surface);border:1px solid var(--ink-3);color:var(--ink-2);font:600 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.gc{position:absolute;right:calc(3px + var(--ln,0) * 70px);display:inline-flex;align-items:center;gap:3px;height:17px;margin-top:-8.5px;padding:0 5px 0 3px;border-radius:9px;background:var(--surface);border:1px solid var(--ink-3);color:var(--ink-2);font:600 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .gc.ai{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
 .gc:hover,.gc.sel{box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 35%,transparent);z-index:3}
 .gi{width:13px;height:13px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;vertical-align:-2px;margin-right:2px}
@@ -250,7 +253,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .hero .big .u{font:500 14px var(--sans);color:var(--ink-2);margin:0 6px 0 3px}
 .hero .cap{color:var(--ink-2);margin-top:8px;font-size:12.5px}
 .delta{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-2);background:var(--surface-2);border-radius:6px;padding:1px 8px;margin-left:8px;font-variant-numeric:tabular-nums}
-.hb{display:inline-grid;place-items:center;width:16px;height:16px;margin-left:6px;border:1px solid var(--rule-2);border-radius:50%;font:600 10px/1 var(--sans);color:var(--ink-3);vertical-align:1px;flex:none}
+.hb{opacity:.6;display:inline-grid;place-items:center;width:16px;height:16px;margin-left:6px;border:1px solid var(--rule-2);border-radius:50%;font:600 10px/1 var(--sans);color:var(--ink-3);vertical-align:1px;flex:none}
 .hb:hover,.hb[aria-expanded="true"]{color:var(--acc-ink);border-color:var(--acc)}
 .hint{margin:8px 0 4px;padding:10px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--rule);font-size:11.5px;line-height:1.65;color:var(--ink-2);font-weight:400;letter-spacing:0}
 .stat:has(> .hint:not([hidden])){grid-column:1/-1} /* 説明を開いたカードは 1 行使う */
@@ -424,10 +427,12 @@ dialog h2{margin-top:0}
   .search input,.search input:focus{width:120px}
   .week{padding:18px 0 14px;gap:14px}
   .wk .d{font-size:24px}
-  .kpis{display:grid;grid-template-columns:1fr 1fr}
-  .kpi{border-left:0;border-top:1px solid var(--rule)}
-  .kpi:nth-child(-n+2){border-top:0}.kpi:nth-child(even){border-left:1px solid var(--rule)}
-  .kpi:last-child:nth-child(odd){grid-column:1/-1}
+  .kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .kpi{border-left:1px solid var(--rule);border-top:1px solid var(--rule);padding:8px 10px 7px}
+  .kpi:nth-child(-n+3){border-top:0}.kpi:nth-child(3n+1){border-left:0}
+  .kpi .k{font-size:10px;white-space:normal;line-height:1.3}.kpi .v{font-size:16px}
+  .gc{right:calc(3px + var(--ln,0) * 24px);padding:0 3px}.gc span{display:none}.gc .gi{margin:0}
+  .ocgrid{grid-template-columns:minmax(0,1fr);gap:12px}.stats.s3{grid-template-columns:1fr 1fr}
   .calin{min-width:660px}
   .calscroll{max-height:70vh}
   .rvgrid{grid-template-columns:minmax(0,1fr)}
@@ -603,8 +608,8 @@ function kpis(){
     kpi("セッション / 依頼", `${w.sessions}<small>/</small>${w.prompts}`) +
     (u.tokens ? kpi("トークン", tok(u.tokens)) + kpi("目安コスト", usd(u.cost).replace("$","<small>$</small>")) : "") +
     (u.credits ? kpi("Kiro クレジット", `${Number(u.credits.toFixed(2)).toLocaleString("ja-JP")}<small>cr</small>`) : "") +
-    (w.git && w.git.commits ? kpi("Git のコミット", `${w.git.commits}<small>回</small>`) : "") +
-    (w.outputs && (w.outputs.commits || w.outputs.prs) ? kpi("AI のコミット / PR", `${w.outputs.commits}<small>/</small>${w.outputs.prs}`) : "");
+    (w.git && w.git.commits ? kpi("コミット（うち AI）", `${w.git.commits}<small>（${w.git.ai}）</small>`) :
+     w.outputs && w.outputs.commits ? kpi("AI のコミット", `${w.outputs.commits}<small>回</small>`) : "");
 }
 
 /* 月のカレンダー：日ごとの作業時間を濃さで、プロジェクトの配分を細い帯で */
@@ -663,8 +668,10 @@ function timeline(shown, inWeek, ws, we, todayKey){
       runs.push(bk);
       html += `<button class="run${h < 16 ? " thin" : ""}${st.sel === bk.s.id ? " sel" : ""}" data-r="${id}" style="top:${y}px;height:${h}px;left:calc(${bk.lane/bk.L*100}% + 3px);width:calc(${100/bk.L}% - 6px);--c:${colorOf(keyOf(bk.s))};--fill:${Math.round(16+30*dens)}%;${st.animate?`--delay:${d*30+Math.min(j,14)*10}ms`:"animation:none"}" aria-label="${esc(`${bk.s.title}、${bk.s.project}、${md(bk.a)} ${hm(bk.a)}から${hm(bk.b)}`)}">${h >= 20 ? `<span class="t"><span>${esc(bk.s.title)}</span></span>` + (h >= 38 ? `<span class="m">${hm(bk.a)}–${hm(bk.b)} · ${esc(bk.s.project)}</span>` : "") : ""}</button>`;
     });
-    (META.git || []).forEach(c => { if (c.t >= ds && c.t < de && (!st.hidden.size || st.colorBy !== "project" || !st.hidden.has(c.project)))
-      html += `<button class="gc${c.ai ? " ai" : ""}${st.sel === "git:"+c.hash ? " sel" : ""}" data-c="${esc(c.hash)}" style="top:${(c.t-ds)/3600*hh}px" title="${esc(`${hm(c.t)} ${c.project}${c.branch ? " · "+c.branch : ""} · ${c.hash}\n${c.subject}\n${c.nFiles} ファイル +${c.added} −${c.removed}${c.ai ? " · AI が実行" : ""}`)}" aria-label="${esc(`コミット ${hm(c.t)} ${c.subject}`)}">${GIT_ICON}<span>${esc(c.hash.slice(0,7))}</span></button>`; });
+    const glanes = []; // 時刻の近いコミットは重ならないよう、右から順に横へずらす
+    (META.git || []).forEach(c => { if (!(c.t >= ds && c.t < de && (!st.hidden.size || st.colorBy !== "project" || !st.hidden.has(c.project)))) return;
+      const y = (c.t-ds)/3600*hh; let ln = glanes.findIndex(v => y - v >= 19); if (ln < 0){ ln = glanes.length; glanes.push(0); } glanes[ln] = y;
+      html += `<button class="gc${c.ai ? " ai" : ""}${st.sel === "git:"+c.hash ? " sel" : ""}" data-c="${esc(c.hash)}" style="top:${y}px;--ln:${ln}" title="${esc(`${hm(c.t)} ${c.project}${c.branch ? " · "+c.branch : ""} · ${c.hash}\n${c.subject}\n${c.nFiles} ファイル +${c.added} −${c.removed}${c.ai ? " · AI が実行" : ""}`)}" aria-label="${esc(`コミット ${hm(c.t)} ${c.subject}`)}">${GIT_ICON}<span>${esc(c.hash.slice(0,7))}</span></button>`; });
     if (isToday && nowS >= ds && nowS < de) html += `<div class="nowline" style="top:${(nowS-ds)/3600*hh}px"></div>`;
     cols += `<div class="day${day.getDay()%6===0?" we":""}${isToday?" today":""}" style="height:${H}px">${html}</div>`;
   }
@@ -698,7 +705,8 @@ function summary(){
   const pct = v => v == null ? "不明" : `${v}<small>%</small>`;
   R.innerHTML = `${head}<div class="rvgrid">
   ${projectPanel(w, ph, unit)}
-  <section class="panel">${ph(2, "時間の使い方", "いつ・どれくらい動いていたか")}
+  ${outcomePanel(w, pw, unit, ph, stat)}
+  <section class="panel">${ph(3, "時間の使い方", "いつ・どれくらい動いていたか")}
     <div class="hero"><div class="big">${dur(w.active,true).replace(/(\d+)/g,'<span class="num">$1</span>').replace(/<small>(.*?)<\/small>/g,'<span class="u">$1</span>')}</div>
       <div class="cap">どれかのセッションが動いていた時間${hb("active")}${d==null?"":`<span class="delta">先${unit}より ${d>=0?"+":"−"}${dur(Math.abs(d))}</span>`}</div>${hint("active")}</div>
     <div class="stats">
@@ -712,12 +720,11 @@ function summary(){
       ${stat("言い直し・中断のあった依頼", pct(w.fixRate), `n=${w.prompts}・依頼文の言葉と中断から推定`, "fix")}
     </div>
     ${foot()}</section>
-  <section class="panel">${ph(3, "AI の使い方", "使った量・費用・エージェント")}
+  <section class="panel">${ph(4, "AI の使い方", "使った量・費用・エージェント")}
     ${usageChart(w, M)}
     ${aiUsage(w, pw, unit) || '<p class="none">トークンやクレジットの記録はありません。</p>'}
-    ${outputSection(w, pw, unit)}
     ${nativeSection(w)}</section>
-  <section class="panel shape">${ph(4, M ? "月のかたち" : "週のかたち", "どこに時間を使ったか")}
+  <section class="panel shape">${ph(5, M ? "月のかたち" : "週のかたち", "どこに時間を使ったか")}
     ${rhythm(w, M)}
     <h3>プロジェクトの配分${hb("share")}</h3>${hint("share")}
     <div class="stack" role="img" aria-label="プロジェクト別の配分">${w.projects.map(([k,v])=>`<span style="flex:${v};--c:${st.colorBy==="project"?colorOf(k):"var(--ink-3)"}" title="${esc(k)} ${dur(v)}"></span>`).join("")}</div>
@@ -727,7 +734,7 @@ function summary(){
     <h3>こじれたかもしれない${hb("friction")}</h3>${hint("friction")}
     ${w.friction.length ? w.friction.map(f=>`<button class="card" data-id="${esc(f.id)}"><span class="ti">${esc(f.title)}</span><span class="me">${md(f.start)} · ${esc(f.project)} ${f.why.map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}</span></button>`).join("") : '<p class="none">言い直しや中断が目立つセッションはありませんでした。</p>'}
     ${measure(w)}</section>
-  <section class="panel ask">${ph(5, "AI に改善案を聞く", "このデータをもとに、使い方の改善案を聞くためのプロンプト")}
+  <section class="panel ask">${ph(6, "AI に改善案を聞く", "このデータをもとに、使い方の改善案を聞くためのプロンプト")}
     <div class="askbar"><button class="pill" id="askcopy">プロンプトをコピー</button>
       <span class="muted" style="font-size:11.5px">お使いの AI エージェントに貼り付けて使います。kiroku は AI を呼び出しません。セッション名（依頼文の一部）とプロジェクト名を含むので、送る前に内容を確認してください。</span></div>
     <pre class="askpre" id="askpre">${esc(askPrompt(w, pw, M))}</pre></section></div>`;
@@ -752,8 +759,7 @@ function projectPanel(w, ph, unit){
         <div><div class="k">トークン</div><div class="v">${p.tokens ? tok(p.tokens) : "—"}</div></div>
         <div><div class="k">目安コスト</div><div class="v">${p.cost >= 0.005 ? usd(p.cost) : "—"}</div></div>
         <div><div class="k">クレジット</div><div class="v">${p.credits ? cr(p.credits) : "—"}</div></div></div>
-      ${p.git && p.git.commits ? `<div><div class="lab">Git のコミット</div><div class="pout">${p.git.commits} 回（うち AI ${p.git.ai}） · <span>+${p.git.added} −${p.git.removed} 行</span></div></div>` : ""}
-      ${p.outputs && (p.outputs.commits || p.outputs.prs || p.outputs.added) ? `<div><div class="lab">成果の印（AI が実行）</div><div class="pout">コミット ${p.outputs.commits} · PR ${p.outputs.prs} · <span>+${p.outputs.added} −${p.outputs.removed} 行</span></div></div>` : ""}
+      ${(p.git && p.git.commits) || (p.outputs && (p.outputs.commits || p.outputs.prs)) ? `<div><div class="lab">成果の印</div><div class="pout">コミット ${p.git && p.git.commits ? `${p.git.commits}（AI ${p.git.ai}）` : p.outputs.commits} · PR ${p.outputs ? p.outputs.prs : 0} · <span>+${p.git && p.git.commits ? p.git.added : p.outputs.added} −${p.git && p.git.commits ? p.git.removed : p.outputs.removed} 行</span></div></div>` : ""}
       ${p.models.length ? `<div><div class="lab">中心のモデル</div><div class="mods">${p.models.map(m=>`<span title="${esc(m.model)}">${esc(m.model)}<b>${m.tokens ? Math.round(m.tokens*100/mt)+"%" : m.turns+"回"}</b></span>`).join("")}</div></div>` : ""}
       <div><div class="lab">何に時間を使ったか</div>${p.top.map(t=>`<button class="pses" data-id="${esc(t.id)}"><span class="t">${esc(t.title)}</span><span class="m">${dur(t.minutes)}${use(t) ? " · "+use(t) : ""}</span></button>`).join("")}</div>
       ${p.heavy && use(p.heavy) ? `<button class="pheavy" data-id="${esc(p.heavy.id)}"><em>いちばん重い</em><span class="t">${esc(p.heavy.title)}</span><span class="m">${use(p.heavy)}</span></button>` : ""}
@@ -881,21 +887,30 @@ function askPrompt(w, pw, M){
   return L.join("\n");
 }
 /* 成果の印：AI が実行したコミット・PR 作成・変更した行（成果そのものではなく代理） */
-function outputSection(w, pw, unit){
-  const o = w.outputs || {commits:0, prs:0, added:0, removed:0}, g = w.git;
-  if (!(o.commits || o.prs || o.added || o.removed || (g && g.commits))) return "";
-  const stat = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}${hint(h)}</div>`;
+function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）と、残ったもの（成果の印）を並べる
+  const o = w.outputs || {commits:0, prs:0, added:0, removed:0}, g = w.git, u = w.usage || {};
+  const hasOut = o.commits || o.prs || o.added || o.removed || (g && g.commits);
   const po = pw && pw.outputs, d = (a, b) => b == null ? "" : `先${unit}より ${a-b>=0?"+":"−"}${Math.abs(a-b)}`;
-  return `<h3>成果の印${hb("outputs")}</h3>${hint("outputs")}
-    <div class="stats">
-      ${g && g.commits ? stat("Git のコミット", `${g.commits}<small>回</small>`, `うち AI が実行 ${g.ai}・+${g.added.toLocaleString("ja-JP")} −${g.removed.toLocaleString("ja-JP")} 行${pw && pw.git ? `・${d(g.commits, pw.git.commits)}` : ""}`, "gitCommits") : ""}
-      ${stat("コミット", `${o.commits}<small>回</small>`, d(o.commits, po && po.commits), "commits")}
-      ${stat("PR の作成", `${o.prs}<small>件</small>`, d(o.prs, po && po.prs), "prs")}
-      ${stat("変更した行", `<small>+</small>${o.added.toLocaleString("ja-JP")}`, `削除 ${o.removed.toLocaleString("ja-JP")} 行・編集の前後から推定`, "lines")}
-      ${stat("コミットまで行ったセッション", `${w.outSessions}<small>/ ${w.sessions}</small>`, w.sessions ? `${Math.round(w.outSessions*100/w.sessions)}%` : "", "outSessions")}
-      ${w.costPerCommit != null ? stat("1コミットあたりの目安コスト", usd(w.costPerCommit).replace("$","<small>$</small>"), `n=${o.commits}`, "costPerCommit") : ""}
+  const cost = [
+    stat("作業していた時間", dur(w.active,true), pw ? `先${unit}より ${w.active-pw.active>=0?"+":"−"}${dur(Math.abs(w.active-pw.active))}` : "", "active"),
+    u.tokens ? stat("目安コスト", usd(u.cost).replace("$","<small>$</small>"), pw && pw.usage ? `先${unit}より ${u.cost-pw.usage.cost>=0?"+":"−"}${usd(Math.abs(u.cost-pw.usage.cost))}` : "", "cost") : "",
+    u.tokens ? stat("トークン", tok(u.tokens), `うち出力 ${tok(u.out)}`, "tokens") : "",
+    u.credits ? stat("Kiro クレジット", `${u.credits}`, "履歴に残った実績", "credits") : "",
+  ].join("");
+  const out = hasOut ? [
+    g && g.commits ? stat("Git のコミット", `${g.commits}<small>回</small>`, `うち AI ${g.ai}・+${g.added.toLocaleString("ja-JP")} −${g.removed.toLocaleString("ja-JP")} 行${pw && pw.git ? `・${d(g.commits, pw.git.commits)}` : ""}`, "gitCommits") : "",
+    stat("AI のコミット", `${o.commits}<small>回</small>`, d(o.commits, po && po.commits), "commits"),
+    stat("PR の作成", `${o.prs}<small>件</small>`, d(o.prs, po && po.prs), "prs"),
+    stat("変更した行", `<small>+</small>${o.added.toLocaleString("ja-JP")}`, `削除 ${o.removed.toLocaleString("ja-JP")} 行・編集の前後から推定`, "lines"),
+    stat("コミットまで行ったセッション", `${w.outSessions}<small>/ ${w.sessions}</small>`, w.sessions ? `${Math.round(w.outSessions*100/w.sessions)}%` : "", "outSessions"),
+    w.costPerCommit != null ? stat("1コミットあたりの目安コスト", usd(w.costPerCommit).replace("$","<small>$</small>"), `n=${o.commits}`, "costPerCommit") : "",
+  ].join("") : "";
+  return `<section class="panel oc">${ph(2, "コストと成果", `この${unit}に使ったものと、形に残ったもの`, "outputs")}
+    <div class="ocgrid">
+      <div><div class="ocl">使ったもの</div><div class="stats">${cost}</div></div>
+      <div><div class="ocl">残ったもの（成果の印）</div>${out ? `<div class="stats s3">${out}</div>` : '<p class="none">コミットや PR の記録はありません。</p>'}</div>
     </div>
-    <p class="note">「Git のコミット」は、エージェントが作業したリポジトリにある自分のコミット（手で行ったものを含む）です。それ以外は AI がツールで実行し、成功したものだけを数えます（現在は Claude Code のみ）。数は成果の代理であり、価値ではありません。</p>`;
+    <p class="note">「Git のコミット」は、エージェントが作業したリポジトリにある自分のコミット（手で行ったものを含む）です。それ以外は AI がツールで実行し、成功したものだけを数えます（現在は Claude Code のみ）。数は成果の代理であり、価値ではありません。</p></section>`;
 }
 /* 日ごとの使用量（トークン・目安コスト・クレジットを切り替え） */
 function usageChart(w, M){
@@ -1099,10 +1114,12 @@ document.addEventListener("keydown", e => {
   else if (k === "Escape" && st.sel) select(null); else if (k === "?") $("#keys").showModal();
   else if (k === "w" || k === "W") setMode("week"); else if (k === "m" || k === "M") setMode("month");
 });
-function scrollToWork(){ // その週でいちばん早く始まった時刻の少し前へ
+function scrollToWork(){ // その週の作業が始まるころの少し前へ
   const sc = $("#tl .calscroll"); if (!sc) return;
-  const ws = st.week.getTime()/1000, we = ws + 7*86400; let first = 24;
-  DATA.forEach(s => s.segs.forEach(([a,b]) => { if (b > ws && a < we){ const d = new Date(Math.max(a,ws)*1000); first = Math.min(first, d.getHours()); } }));
+  const ws = st.week.getTime()/1000, we = ws + 7*86400, hs = [];
+  DATA.forEach(s => s.segs.forEach(([a,b]) => { if (b > ws && a < we) hs.push(new Date(Math.max(a,ws)*1000).getHours()); }));
+  hs.sort((a,b) => a-b); // 深夜の 1 本に引っぱられないよう、早いほうから 2 割の開始時刻へ
+  const first = hs.length ? hs[Math.floor(hs.length*0.2)] : 24;
   sc.scrollTop = Math.max(0, Math.max(0, (first === 24 ? 8 : first) - 1) * (HOURS[st.z] || 44) - 14);
 }
 // 今週に記録がなければ、いちばん新しい記録の週から開く
