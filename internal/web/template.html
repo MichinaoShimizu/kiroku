@@ -122,7 +122,7 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .hours span.now{right:4px;color:var(--on-acc);background:var(--acc);border-radius:5px;padding:1px 4px;font-weight:600;z-index:3}
 .day{position:relative;border-left:1px solid var(--rule);background-image:linear-gradient(var(--rule) 1px,transparent 1px);background-size:100% var(--hh)}
 .day.we{background-color:var(--weekend)}
-.day.today{background-color:var(--acc-soft)}
+.day.today{background-color:color-mix(in oklab,var(--acc) 4%,transparent)}
 .day .nb{position:absolute;left:0;right:0;background:var(--night);pointer-events:none}
 .run{position:absolute;border-radius:8px;padding:4px 7px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;gap:2px;
   background:color-mix(in oklab,var(--c) var(--fill),var(--surface));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--c) 55%,transparent);
@@ -178,6 +178,9 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .fmore{margin-top:12px}
 .fmore summary{cursor:pointer;font-size:12.5px;color:var(--ink-2)}
 .fok{font-size:13px;color:var(--ink-2);margin-top:8px}
+.sact{display:flex;flex-direction:column;gap:6px;margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--acc-soft)}
+.sact .pill{align-self:flex-start;color:var(--acc-ink);border-color:color-mix(in oklab,var(--acc) 35%,var(--rule-2));font-weight:600}
+.sact span{font-size:11.5px;color:var(--ink-2);line-height:1.6}
 .ocl{font:600 11px/1 var(--sans);letter-spacing:.06em;color:var(--ink-3);margin:6px 0 -6px}
 .stats.s3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px;margin-top:12px}
@@ -453,7 +456,7 @@ dialog h2{margin-top:0}
   .kpi{border-left:1px solid var(--rule);border-top:1px solid var(--rule);padding:8px 10px 7px}
   .kpi:nth-child(-n+3){border-top:0}.kpi:nth-child(3n+1){border-left:0}
   .kpi .k{font-size:10px;white-space:normal;line-height:1.3}.kpi .v{font-size:16px}
-  .gc{right:calc(3px + var(--ln,0) * 24px);padding:0 3px}.gc span{display:none}.gc .gi{margin:0}
+  .gc{right:calc(2px + var(--ln,0) * 17px);width:15px;height:15px;margin-top:-7.5px;padding:0;justify-content:center}.gc span{display:none}.gc .gi{margin:0;width:11px;height:11px}
   .ocgrid{grid-template-columns:minmax(0,1fr);gap:12px}.stats.s3{grid-template-columns:1fr 1fr}
   .calin{min-width:660px}
   .calscroll{max-height:70vh}
@@ -668,7 +671,8 @@ function timeline(shown, inWeek, ws, we, todayKey){
   const keep = T.querySelector(".calscroll"), top = keep ? keep.scrollTop : null;
   const nowS = Date.now()/1000, w = WEEKS[key(st.week)];
   let heads = '<div></div>', hours = "", cols = "";
-  for (let h=1; h<24; h++) hours += `<span style="top:${h*hh}px">${String(h).padStart(2,"0")}:00</span>`;
+  const nowH = nowS >= ws && nowS < we ? (() => { const d0 = new Date(nowS*1000); d0.setHours(0,0,0,0); return (nowS - d0.getTime()/1000)/3600; })() : -9;
+  for (let h=1; h<24; h++) if (Math.abs(h - nowH) * hh >= 14) hours += `<span style="top:${h*hh}px">${String(h).padStart(2,"0")}:00</span>`;
   if (nowS >= ws && nowS < we){ const d0 = new Date(nowS*1000); d0.setHours(0,0,0,0); hours += `<span class="now" style="top:${(nowS - d0.getTime()/1000)/3600*hh}px">${hm(nowS)}</span>`; }
   const runs = [];
   for (let d=0; d<7; d++){
@@ -1131,7 +1135,7 @@ function detail(s){
     <div class="muted" style="font-variant-numeric:tabular-nums">${md(s.start)} ${hm(s.start)} 〜 ${sameDay ? "" : md(s.end)+" "}${hm(s.end)}</div>
     <div class="meta"><span>${esc(s.project)}</span>${s.branch?`<span>${esc(s.branch)}</span>`:""}</div>
     <div class="mini">
-      <div><div class="k">実働</div><div class="v">${dur(active,true)}</div></div>
+      <div><div class="k">作業していた時間</div><div class="v">${dur(active,true)}</div></div>
       <div><div class="k">依頼</div><div class="v">${s.nPrompts}<small>件</small></div></div>
       <div><div class="k">待たせ（中央値）</div><div class="v">${med==null?"—":secs(med).replace(/(分|秒)/g,"<small>$1</small>")}</div></div>
       <div><div class="k">言い直し・中断</div><div class="v">${s.corrections + s.interrupts}<small>回</small></div></div>
@@ -1140,6 +1144,8 @@ function detail(s){
       ${s.outputs && (s.outputs.commits || s.outputs.prs) ? `<div><div class="k">コミット / PR</div><div class="v">${s.outputs.commits}<small>/</small>${s.outputs.prs}</div></div>` : ""}
       ${s.outputs && (s.outputs.added || s.outputs.removed) ? `<div><div class="k">変更した行</div><div class="v"><small>+</small>${s.outputs.added}<small> −${s.outputs.removed}</small></div></div>` : ""}` : s.credits ? `<div><div class="k">Kiro クレジット</div><div class="v">${s.credits}</div></div><div><div class="k">1依頼あたり</div><div class="v">${s.nPrompts ? (s.credits/s.nPrompts).toFixed(2) : "—"}<small>クレジット</small></div></div>` : ""}
     </div>
+    <div class="sact"><button class="pill" id="sreview">このセッションを AI と振り返る（プロンプトをコピー）</button>
+      <span>依頼の流れと数値から、依頼の仕方や作業の分け方の改善点を聞きます。依頼文を含むので、送る前に確認してください。</span></div>
     ${s.models.length ? `<h3>使ったモデル</h3><div class="chips">${s.models.map(([m,n])=>`<span class="mono">${esc(m)}<b>${n}</b></span>`).join("")}</div>` : ""}
     <h3>依頼の流れ</h3>
     ${s.prompts.length ? `<ol class="tl">${s.prompts.slice(0,30).map(p=>`<li class="${/違う|ちがう|そうじゃな|やり直|戻して|元に戻|取り消|じゃなくて|wrong|revert|undo/i.test(p.text)?"fix":""}"><time>${p.t?hm(p.t):""}</time><p>${esc(p.text.length>220?p.text.slice(0,220)+"…":p.text)}</p></li>`).join("")}</ol>${s.prompts.length>30?`<p class="more">ほか ${s.nPrompts-30} 件</p>`:""}` : `<p class="none">依頼の記録はありません。${s.source === "Kiro Crew" ? "Kiro Crew は会話の記録を一定期間で消すため、使用量の記録だけが残っている会話です。" : ""}</p>`}
@@ -1161,7 +1167,35 @@ function detail(s){
     ${s.resume ? `<h3>続きから再開</h3><div class="code"><code>${esc(s.resume)}</code><button class="copy" data-copy="${esc(s.resume)}">コピー</button></div>` : ""}
   </div>`;
   P.querySelectorAll("[data-git]").forEach(b => b.onclick = () => select("git:" + b.dataset.git));
+  P.querySelector("#sreview").onclick = () => copy(sessionPrompt(s, active, med));
   bindCopy(P);
+}
+/* 1 つのセッションを AI と振り返るためのプロンプト（kiroku 自身は AI を呼ばない） */
+function sessionPrompt(s, active, med){
+  const o = s.outputs || {}, L = [
+    "あなたは AI エージェント活用のアドバイザーです。以下は、私が AI エージェントと行った 1 つのセッションの記録です（kiroku で集計）。",
+    "", "# 回答してほしいこと",
+    "1. このセッションの進め方で良かった点",
+    "2. 最初の依頼にあれば手戻りを減らせた情報（前提・制約・完了条件など）",
+    "3. 依頼の分け方や順番の改善案と、次に同じような作業をするときの最初の依頼文の例",
+    "", "# 前提",
+    "- 数値は履歴から推定した目安です。データから言えないことは、推測であると明記してください",
+    "- 目安コストは API の公開料金での換算値で、実際の請求額ではありません",
+    "", "# セッション",
+    `- エージェント: ${s.source}`, `- プロジェクト: ${s.project}${s.branch ? `（ブランチ ${s.branch}）` : ""}`,
+    `- 時間: ${md(s.start)} ${hm(s.start)}〜${hm(s.end)}、作業していた時間 ${dur(active)}`,
+    `- 依頼: ${s.nPrompts} 件、言い直し ${s.corrections} 回、中断 ${s.interrupts} 回${med == null ? "" : `、待たせ時間の中央値 ${secs(med)}`}`];
+  if (s.cost) L.push(`- 目安コスト: ${usd(s.cost)}`);
+  if (s.credits) L.push(`- Kiro クレジット: ${s.credits}`);
+  if (o.commits || o.prs) L.push(`- コミット ${o.commits} 回、PR ${o.prs} 件、変更した行 +${o.added} −${o.removed}`);
+  else L.push("- コミット・PR の記録はありません");
+  if (s.tools.length) L.push(`- よく使ったツール: ${s.tools.slice(0,6).map(([k,v]) => `${k} ${v}`).join("、")}`);
+  if (s.subagents.length) L.push(`- サブエージェント: ${s.subagents.length} 回`);
+  L.push("", "# 依頼の流れ（時刻と依頼文。長いものは省略）");
+  if (s.prompts.length) s.prompts.slice(0, 40).forEach(p => { const t = String(p.text || "").replace(/\s+/g, " ").trim(); L.push(`- ${p.t ? hm(p.t) : "--:--"} ${t.length > 300 ? t.slice(0, 300) + "…" : t}`); });
+  else L.push("- 依頼の記録はありません");
+  if (s.prompts.length > 40) L.push(`- ほか ${s.nPrompts - 40} 件`);
+  return L.join("\n");
 }
 function select(id){ st.sel = id; tipOff(); render(); if (id) $("#panel").scrollTop = 0; }
 
