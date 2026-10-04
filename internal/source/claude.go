@@ -36,11 +36,13 @@ type subFile struct {
 	modelOrder []string
 	models     map[string]int
 	tools      int
+	outputs    []core.Output // サブエージェントが成功させたコミット・PR・編集した行
 }
 
 func loadSubagentFile(path string) subFile {
 	u := core.NewUsage()
 	f := subFile{models: map[string]int{}}
+	pending := outputs{}
 	var times []float64
 	core.ReadJSONL(path, func(e core.Obj) {
 		t := ts(e["timestamp"])
@@ -58,9 +60,15 @@ func loadSubagentFile(path string) subFile {
 			}
 			u.Add(firstNonEmpty(core.Str(msg["id"]), core.Str(e["requestId"])), t, core.Str(msg["model"]), msg["usage"])
 			for _, b := range core.List(msg["content"]) {
-				if core.Str(core.Map(b)["type"]) == "tool_use" {
+				if bm := core.Map(b); core.Str(bm["type"]) == "tool_use" {
 					f.tools++
+					pending.use(core.Str(bm["id"]), core.Str(bm["name"]), bm["input"], t)
 				}
+			}
+		}
+		if core.Str(e["type"]) == "user" {
+			for _, b := range core.List(msg["content"]) {
+				f.outputs = append(f.outputs, pending.result(core.Map(b), e, t)...)
 			}
 		}
 	})
@@ -72,6 +80,40 @@ func loadSubagentFile(path string) subFile {
 	}
 	f.events = u.Events()
 	return f
+}
+
+// outputs は、ツールの呼び出しから成果の印（コミット・PR・編集した行）を拾い、結果が成功だったときだけ返す。
+type outputs map[string][]core.Output
+
+func (p outputs) use(id, name string, input any, t *float64) {
+	if o := core.Outputs(name, input, t); len(o) > 0 {
+		p[id] = o
+	}
+}
+
+// result は tool_result の行（block）から、成功した呼び出しの成果の印を返す。時刻は結果の時刻にする
+// （許可の確認待ちや長い pre-commit で、実際のコミットは呼び出しより後になるため。git のコミットとの突き合わせに使う）。
+func (p outputs) result(block core.Obj, e core.Obj, t *float64) []core.Output {
+	id := core.Str(block["tool_use_id"])
+	if core.Str(block["type"]) != "tool_result" || p[id] == nil {
+		return nil
+	}
+	defer delete(p, id)
+	if failed, _ := block["is_error"].(bool); failed {
+		return nil
+	}
+	url := core.PRURL(core.TextOf(block["content"]) + " " + resultText(e["toolUseResult"]))
+	var out []core.Output
+	for _, o := range p[id] {
+		if o.Kind == "pr" {
+			o.URL = url
+		}
+		if t != nil {
+			o.T = t
+		}
+		out = append(out, o)
+	}
+	return out
 }
 
 type call struct {
@@ -116,12 +158,13 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	path := u.Key
 	stem := strings.TrimSuffix(filepath.Base(path), ".jsonl")
 	s := core.NewBuilder("Claude Code", stem)
+	s.TracksOutputs = true
 	s.File = path
 	var summaries []string
 	calls := map[string]*call{}
 	var callOrder []*call
 	side := core.NewUsage()
-	pending := map[string][]core.Output{} // 成果の印は、ツールの結果が成功だったときだけ数える
+	pending := outputs{} // 成果の印は、ツールの結果が成功だったときだけ数える
 	var lastT *float64
 	procs := map[float64]*core.ReportedCost{} // Claude Code 自身の使用料（cost-state）。プロセスの起動時刻ごとに最新の累計
 	var procOrder []float64
@@ -194,18 +237,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			s.Prompt(t, core.TextOf(msg["content"]))
 			for _, b := range core.List(msg["content"]) {
 				bm := core.Map(b)
-				if id := core.Str(bm["tool_use_id"]); core.Str(bm["type"]) == "tool_result" && pending[id] != nil {
-					if failed, _ := bm["is_error"].(bool); !failed {
-						url := core.PRURL(core.TextOf(bm["content"]) + " " + resultText(e["toolUseResult"]))
-						for _, o := range pending[id] {
-							if o.Kind == "pr" {
-								o.URL = url
-							}
-							s.Outputs = append(s.Outputs, o)
-						}
-					}
-					delete(pending, id)
-				}
+				s.Outputs = append(s.Outputs, pending.result(bm, e, t)...)
 				c := calls[core.Str(bm["tool_use_id"])]
 				if core.Str(bm["type"]) != "tool_result" || c == nil {
 					continue
@@ -234,9 +266,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 				name := core.Str(bm["name"])
 				s.Tool(name, bm["input"])
 				s.Measure("tool_calls", t, 1)
-				if o := core.Outputs(name, bm["input"], t); len(o) > 0 {
-					pending[core.Str(bm["id"])] = o
-				}
+				pending.use(core.Str(bm["id"]), name, bm["input"], t)
 				if subagentTools[name] {
 					inp := core.Map(bm["input"])
 					bg, _ := inp["run_in_background"].(bool)
@@ -251,7 +281,9 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	// サブエージェントの別ファイル（新しい版）を、agentId か時刻でつなぐ
 	var files []subFile
 	for _, f := range glob(filepath.Join(filepath.Dir(path), stem, "subagents", "*.jsonl")) {
-		files = append(files, loadSubagentFile(f))
+		sf := loadSubagentFile(f)
+		files = append(files, sf)
+		s.Outputs = append(s.Outputs, sf.outputs...) // サブエージェントに任せた編集・コミット・PR も、そのセッションの成果
 	}
 	order := append([]*call(nil), callOrder...)
 	sort.SliceStable(order, func(i, j int) bool { return val(order[i].start) < val(order[j].start) })

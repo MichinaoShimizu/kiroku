@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
 
 // 成果の印（コミット・PR・変更した行）は、ツールの結果が成功したものだけを数える。
@@ -136,5 +138,54 @@ func TestClaudePromptFlow(t *testing.T) {
 	}
 	if n := len(bs[0].FixTS); n != 0 {
 		t.Errorf("言い直し = %d, want 0（要約の文面を言い直しと数えない）", n)
+	}
+}
+
+// サブエージェント（subagents/*.jsonl）が成功させた編集・コミット・PR も、そのセッションの成果に入る。
+// 成果の時刻は結果の時刻（許可の確認待ちなどで、呼び出しから遅れて実行されるため）。
+func TestClaudeSubagentOutputsAndResultTime(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	os.MkdirAll(filepath.Join(dir, "s1", "subagents"), 0o755)
+	main := []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"サブエージェントに任せて"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:01:00Z","message":{"id":"m1","model":"claude-sonnet-5-5","content":[{"type":"tool_use","id":"t1","name":"Agent","input":{"subagent_type":"general-purpose","description":"実装"}}]}}`,
+		`{"type":"user","timestamp":"2026-09-30T01:20:00Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"done"}]},"toolUseResult":{"agentId":"ag1"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:21:00Z","message":{"id":"m2","model":"claude-sonnet-5-5","content":[{"type":"tool_use","id":"t2","name":"Bash","input":{"command":"git commit -m main"}}]}}`,
+		`{"type":"user","timestamp":"2026-09-30T01:27:00Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t2","content":"[main abc] main"}]}}`,
+	}
+	sub := []string{
+		`{"type":"assistant","timestamp":"2026-09-30T01:02:00Z","message":{"id":"s1","model":"claude-sonnet-5-5","content":[{"type":"tool_use","id":"u1","name":"Write","input":{"file_path":"/Users/me/app/b.go","content":"a\nb\nc\n"}}]}}`,
+		`{"type":"user","timestamp":"2026-09-30T01:02:05Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"u1","content":"ok"}]}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:03:00Z","message":{"id":"s2","model":"claude-sonnet-5-5","content":[{"type":"tool_use","id":"u2","name":"Bash","input":{"command":"git commit -am sub && gh pr create --fill"}}]}}`,
+		`{"type":"user","timestamp":"2026-09-30T01:03:30Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"u2","content":"https://github.com/o/r/pull/2"}]}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:04:00Z","message":{"id":"s3","model":"claude-sonnet-5-5","content":[{"type":"tool_use","id":"u3","name":"Bash","input":{"command":"git commit -m fails"}}]}}`,
+		`{"type":"user","timestamp":"2026-09-30T01:04:10Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"u3","is_error":true,"content":"hook failed"}]}}`,
+	}
+	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(strings.Join(main, "\n")+"\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, "s1", "subagents", "agent-ag1.jsonl"), []byte(strings.Join(sub, "\n")+"\n"), 0o644)
+	bs := load(t, &Claude{Root: root})
+	if len(bs) != 1 {
+		t.Fatalf("セッション数 = %d, want 1", len(bs))
+	}
+	got := map[string]float64{}
+	var mainCommit float64
+	for _, o := range bs[0].Outputs {
+		got[o.Kind] += o.V
+		if o.Kind == "commit" && o.T != nil && *o.T > mainCommit {
+			mainCommit = *o.T
+		}
+	}
+	want := map[string]float64{"commit": 2, "pr": 1, "added": 3}
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("%s = %v, want %v（サブエージェントの成功した分も数え、失敗は数えない）", k, got[k], v)
+		}
+	}
+	if r, _ := core.ParseTS("2026-09-30T01:27:00Z"); mainCommit != r {
+		t.Errorf("コミットの時刻 = %v, want %v（結果の時刻）", mainCommit, r)
+	}
+	if s := bs[0].Finish(15); len(s.PRs) != 1 || s.PRs[0] != "https://github.com/o/r/pull/2" {
+		t.Errorf("サブエージェントの PR の URL = %v", s.PRs)
 	}
 }

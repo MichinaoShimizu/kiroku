@@ -137,8 +137,8 @@ Proxy numbers for outcomes, shown next to costs such as time and tokens, to chec
 | Commits | Number of successful `git commit` runs by AI (excluding `--dry-run`). Commits made by hand are not included |
 | Pull requests | Number of pull requests created by AI (`gh pr create` and tools whose names end in `create_pull_request`) |
 | Lines edited by AI (estimated) | Lines added and removed in files AI edited or created, comparing before and after (rough). Counted from `Edit`, `MultiEdit` and `Write` |
-| Sessions that reached a commit | Number and share of sessions that made a commit or created a pull request in the period |
-| Estimated cost per commit | Estimated cost ÷ number of commits |
+| Sessions that reached a commit | Number and share of sessions that made a commit or created a pull request in the period (including those made by subagents). Only Claude Code sessions are counted, since only Claude Code outputs are recorded |
+| Estimated cost per commit | Estimated cost of Claude Code sessions ÷ number of commits. Other agents' cost is left out |
 
 ### Agent-specific metrics
 

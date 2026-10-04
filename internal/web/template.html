@@ -1008,8 +1008,8 @@ const HELP = {
   commits: {n:"コミット", d:"AI が実行して成功した git commit の回数", c:"作業が区切りまで進んだ回数の目安", x:"変更の価値や大きさ。コミットの粒度は人や作業で異なる", a:"コストに対してコミットが少ない期間は、何に時間を使ったかを確認する"},
   prs: {n:"PR の作成", d:"AI が作成した Pull Request の数（gh pr create と GitHub のツール）", c:"レビューに出せる単位まで仕上がった回数", x:"マージされたか、価値があったか", a:"作成までの手戻りが多ければ、依頼の単位を小さくする"},
   lines: {n:"AI が編集した行（推定）", d:"AI が編集・作成したファイルの、編集前後を比べた追加・削除の行数（目安）", c:"AI が手を入れた量", x:"価値や品質（生成コードや整形で大きく増える）", a:"量そのものを目標にせず、コストとの釣り合いの確認に使う"},
-  outSessions: {n:"コミットまで行ったセッション", d:"期間中にコミットか PR 作成まで行ったセッションの数と割合", c:"使ったセッションのうち、形に残った割合", x:"調査や相談など、コミットを目的としないセッションの価値", a:"割合が低ければ、途中で止まったセッションの理由を確かめる"},
-  costPerCommit: {n:"1 コミットあたりの目安コスト", d:"目安コスト ÷ コミットの回数", c:"区切りまで進めるのにかかった重さの目安", x:"コミットの大きさの違い。手で行ったコミットは含まない", a:"推移を見て、同じ作業を軽く進められているかを確かめる"},
+  outSessions: {n:"コミットまで行ったセッション", d:"期間中にコミットか PR 作成まで行ったセッションの数と割合。成果を記録できる Claude Code のセッションだけで数える", c:"使ったセッションのうち、形に残った割合", x:"調査や相談など、コミットを目的としないセッションの価値", a:"割合が低ければ、途中で止まったセッションの理由を確かめる"},
+  costPerCommit: {n:"1 コミットあたりの目安コスト", d:"Claude Code のセッションの目安コスト ÷ コミットの回数（成果を記録できるのは Claude Code だけなので、ほかのエージェントのコストは入れない）", c:"区切りまで進めるのにかかった重さの目安", x:"コミットの大きさの違い。手で行ったコミットは含まない", a:"推移を見て、同じ作業を軽く進められているかを確かめる"},
   native: {n:"エージェント別の参考指標", d:"各エージェントが履歴に記録している数値", c:"同じエージェント内での傾向", x:"エージェント同士の比較（定義が異なる）", a:"同じエージェントの期間ごとの変化だけを見る"},
 };
 /* HELP の英語版。キーは HELP と同じ（help_test.go で確かめる）。書式は HELP と変えてある（TestHelpMatchesGuide は HELP だけを docs/guide.md と照合する） */
@@ -1047,8 +1047,8 @@ const HELP_EN = {
   commits: {n: "Commits", d: "Number of git commits that AI ran successfully", c: "Roughly how often work reached a checkpoint", x: "The value or size of the changes. Commit size varies by person and task", a: "In periods with few commits for the cost, check where the time went"},
   prs: {n: "Pull requests", d: "Number of pull requests created by AI (gh pr create and GitHub tools)", c: "How often work was ready for review", x: "Whether they were merged or valuable", a: "If there is a lot of rework before creating one, make each request smaller"},
   lines: {n: "Lines edited by AI (estimated)", d: "Lines added and removed in files AI edited or created, comparing before and after (rough)", c: "How much AI touched", x: "Value or quality (generated code and formatting inflate it)", a: "Don't make volume a goal; use it to check cost against output"},
-  outSessions: {n: "Sessions that reached a commit", d: "Number and share of sessions that made a commit or pull request in the period", c: "The share of sessions that left something behind", x: "The value of sessions not meant to commit, such as research or discussion", a: "If the share is low, find out why sessions stopped partway"},
-  costPerCommit: {n: "Estimated cost per commit", d: "Estimated cost ÷ number of commits", c: "Roughly how heavy it was to reach a checkpoint", x: "Differences in commit size. Commits made by hand are not included", a: "Watch the trend to see whether similar work is getting lighter"},
+  outSessions: {n: "Sessions that reached a commit", d: "Number and share of sessions that made a commit or pull request in the period, counting only Claude Code sessions, the only agent whose outputs are recorded", c: "The share of sessions that left something behind", x: "The value of sessions not meant to commit, such as research or discussion", a: "If the share is low, find out why sessions stopped partway"},
+  costPerCommit: {n: "Estimated cost per commit", d: "Estimated cost of Claude Code sessions ÷ number of commits (only Claude Code records outputs, so other agents' cost is left out)", c: "Roughly how heavy it was to reach a checkpoint", x: "Differences in commit size. Commits made by hand are not included", a: "Watch the trend to see whether similar work is getting lighter"},
   native: {n: "Agent-specific metrics", d: "Numbers each agent records in its history", c: "Trends within the same agent", x: "Comparisons between agents (definitions differ)", a: "Only look at changes over time for the same agent"},
 };
 const H = () => EN() ? HELP_EN : HELP; // 表示中の言語の HELP
@@ -1112,7 +1112,7 @@ function askPrompt(w, pw, M){
     L.push("", tr("# 成果の印（AI が実行して成功したもの。Claude Code のみ）", "# Output signals (run by AI and succeeded; Claude Code only)"),
       tr(`- コミット: ${o.commits} 回、PR の作成: ${o.prs} 件`, `- Commits: ${o.commits}, pull requests created: ${o.prs}`),
       tr(`- AI が編集した行（推定）: 追加 ${o.added}、削除 ${o.removed}`, `- Lines edited by AI (estimated): ${o.added} added, ${o.removed} removed`),
-      tr(`- コミットまで行ったセッション: ${w.outSessions} / ${w.sessions}`, `- Sessions that reached a commit: ${w.outSessions} / ${w.sessions}`));
+      tr(`- コミットまで行ったセッション: ${w.outSessions} / ${w.outBase ?? w.sessions}`, `- Sessions that reached a commit: ${w.outSessions} / ${w.outBase ?? w.sessions}`));
     if (w.costPerCommit != null) L.push(tr(`- 1 コミットあたりの目安コスト: ${usd(w.costPerCommit)}`, `- Estimated cost per commit: ${usd(w.costPerCommit)}`));
   }
   const start0 = M ? st.month : st.week, days = w.days.map((d, i) => [addDays(start0, i), d]).filter(([, d]) => d.active || d.tokens || d.credits || d.commits);
@@ -1172,7 +1172,7 @@ const MET = {
   fix: {f: w => w.fixRate, low: true, u: "%"},
   friction: {f: w => w.friction.length, low: true, u: "件"},
   cache: {f: w => w.usage && w.usage.cacheHit != null ? Math.round(w.usage.cacheHit * 100) : null, low: false, u: "%"},
-  outSessions: {f: w => pctOf(w.outSessions, w.sessions), low: false, u: "%"},
+  outSessions: {f: w => pctOf(w.outSessions, w.outBase ?? w.sessions), low: false, u: "%"},
   switches: {f: w => w.switchesAvg, low: true, u: "回"},
   focus: {f: w => w.focus.length, low: false, u: "回"},
   wait: {f: w => w.waitP90 != null ? Math.round(w.waitP90 / 60) : null, low: true, u: "分"},
@@ -1225,8 +1225,8 @@ function findList(w, pw, unit){
     add("costPerCommit", 22, tr(`1 コミットあたりの目安コストが ${usd(pw.costPerCommit)} → ${usd(w.costPerCommit)} に増えました`, `Estimated cost per commit rose from ${usd(pw.costPerCommit)} to ${usd(w.costPerCommit)}`), tr("区切りまで進めるのに、前より重くなっています", "Reaching a checkpoint is getting heavier than before"), tr(`コミット 3 回以上で、先${unit}の 1.5 倍以上`, `1.5× ${uLast(unit)} or more, with 3+ commits`));
   if (u.cacheHit != null && u.tokens >= 1e6 && u.cacheHit < 0.5)
     add("cache", 20, tr(`入力のうちキャッシュから読んだ割合が ${Math.round(u.cacheHit*100)}% でした`, `Only ${Math.round(u.cacheHit*100)}% of input was read from cache`), tr("同じ文脈を毎回読み直しているかもしれません", "You may be re-sending the same context every time"), tr("トークン 1M 以上で 50% 未満", "Under 50%, with 1M+ tokens"));
-  if (w.sessions >= 5 && (o.commits || o.prs || (w.git && w.git.commits)) && w.outSessions / w.sessions < 0.25)
-    add("outSessions", 16, tr(`コミットまで行ったセッションは ${w.sessions} 件中 ${w.outSessions} 件でした`, `${w.outSessions} of ${w.sessions} sessions reached a commit`), tr("途中で止まったセッションが多いかもしれません", "Many sessions may have stopped partway"), tr("セッション 5 件以上で 25% 未満", "Under 25%, with 5+ sessions"));
+  if ((w.outBase ?? w.sessions) >= 5 && (o.commits || o.prs || (w.git && w.git.commits)) && w.outSessions / (w.outBase ?? w.sessions) < 0.25)
+    add("outSessions", 16, tr(`コミットまで行ったセッションは ${w.outBase ?? w.sessions} 件中 ${w.outSessions} 件でした`, `${w.outSessions} of ${w.outBase ?? w.sessions} sessions reached a commit`), tr("途中で止まったセッションが多いかもしれません", "Many sessions may have stopped partway"), tr("セッション 5 件以上で 25% 未満", "Under 25%, with 5+ sessions"));
   if (w.switchesAvg >= 5)
     add("switches", 14, tr(`1 日に平均 ${w.switchesAvg} 回、プロジェクトを切り替えていました`, `You switched projects ${w.switchesAvg} times a day on average`), tr("文脈を切り替えるたびに、思い出す時間と手戻りが増えがちです", "Each context switch tends to add ramp-up time and rework"), tr("1 日平均 5 回以上", "5+ per day on average"));
   if (!w.focus.length && w.active >= 240)
@@ -1336,7 +1336,7 @@ function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）�
     stat(tr("AI のコミット", "AI commits"), times(o.commits), d(o.commits, po && po.commits), "commits"),
     stat(tr("PR の作成", "Pull requests"), tr(`${o.prs}<small>件</small>`, `${o.prs}`), d(o.prs, po && po.prs), "prs"),
     stat(tr("AI が編集した行（推定）", "Lines edited by AI (est.)"), `<small>+</small>${n(o.added)}`, tr(`削除 ${n(o.removed)} 行・編集の前後から推定。コミットしなかった編集や書き直しも数えるため、git の記録より多くなりがちです`, `${n(o.removed)} removed · estimated by comparing before and after edits. Includes uncommitted edits and rewrites, so it tends to exceed git's numbers`), "lines"),
-    stat(tr("コミットまで行ったセッション", "Sessions that reached a commit"), `${w.outSessions}<small>/ ${w.sessions}</small>`, w.sessions ? `${Math.round(w.outSessions*100/w.sessions)}%` : "", "outSessions"),
+    stat(tr("コミットまで行ったセッション", "Sessions that reached a commit"), `${w.outSessions}<small>/ ${w.outBase ?? w.sessions}</small>`, (w.outBase ?? w.sessions) ? `${Math.round(w.outSessions*100/(w.outBase ?? w.sessions))}%` : "", "outSessions"),
     w.costPerCommit != null ? stat(tr("1コミットあたりの目安コスト", "Estimated cost per commit"), usd(w.costPerCommit).replace("$","<small>$</small>"), `n=${o.commits}`, "costPerCommit") : "",
   ].join("") : "";
   return `<section class="panel oc">${ph(3, tr("コストと成果", "Cost and outputs"), tr(`この${unit}に使ったものと、形に残ったもの`, `What you spent ${uThis(unit)} and what it left behind`), "outputs")}

@@ -89,6 +89,7 @@ type Builder struct {
 	Outputs                        []Output       // 成果の印（output.go）。成功したツール呼び出しだけを入れる
 	Reported                       []ReportedCost // エージェント自身が記録した使用料（reported.go）
 	File                           string         // 履歴のファイル（画面から開けるように）
+	TracksOutputs                  bool           // 成果の印（コミット・PR・編集した行）を記録できるエージェントか（Outputs が空でも、成果がなかったとわかる）
 	toolOrder                      []string
 	tools                          map[string]int
 	files                          map[string]bool
@@ -266,6 +267,7 @@ type Session struct {
 	OEv          []Output      `json:"-"`
 	Fix          []float64     `json:"-"`
 	Meas         []Measure     `json:"-"`
+	OutTracked   bool          `json:"-"` // 成果の印を記録できるエージェントのセッション（Builder.TracksOutputs）
 }
 
 func ptr[T any](v T) *T { return &v }
@@ -394,7 +396,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 		Waits: s.Waits(), Interrupts: s.Interrupts, Limits: limits(s.Limits), Ctx: ctx, Corrections: s.Corrections(), Models: models,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
 		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: len(s.Reported) > 0, File: s.File, PRs: prs,
-		Native: AggregateNative(s.Source, s.Measures), Meas: s.Measures,
+		Native: AggregateNative(s.Source, s.Measures), Meas: s.Measures, OutTracked: s.TracksOutputs,
 	}
 }
 

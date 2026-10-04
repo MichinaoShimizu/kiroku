@@ -550,6 +550,7 @@
     }
    ],
    "night": 65,
+   "outBase": 9,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -1889,6 +1890,7 @@
     }
    ],
    "night": 0,
+   "outBase": 1,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -6449,6 +6451,7 @@
     }
    ],
    "night": 17,
+   "outBase": 1,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -6731,6 +6734,7 @@
     }
    ],
    "night": 0,
+   "outBase": 2,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -7061,6 +7065,7 @@
     }
    ],
    "night": 24,
+   "outBase": 2,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -7462,6 +7467,7 @@
     }
    ],
    "night": 24,
+   "outBase": 4,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -8140,6 +8146,7 @@
     }
    ],
    "night": 0,
+   "outBase": 1,
    "outSessions": 0,
    "outputs": {
     "added": 0,
