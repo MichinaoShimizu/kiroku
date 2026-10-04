@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
+	"github.com/MichinaoShimizu/kiroku/internal/gitlog"
 	"github.com/MichinaoShimizu/kiroku/internal/report"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
 	"github.com/MichinaoShimizu/kiroku/internal/web"
@@ -75,6 +76,7 @@ func dispatch(args []string) error {
 type common struct {
 	root, kiroHome, crewHome, kiroCLIDB, amazonQDB, codexHome, sources, prices *string
 	gap                                                                        *int
+	git                                                                        *bool
 }
 
 func addCommon(fs *flag.FlagSet) *common {
@@ -88,6 +90,7 @@ func addCommon(fs *flag.FlagSet) *common {
 		sources:   fs.String("sources", "claude,kiro,amazonq,codex", "comma-separated list of sources to read"),
 		prices:    fs.String("prices", "", "JSON file overriding the model price table"),
 		gap:       fs.Int("gap", 15, "idle `minutes` that split a session into separate blocks"),
+		git:       fs.Bool("git", true, "read your commits from the local git repositories the agents worked in (--git=false to skip)"),
 	}
 }
 
@@ -115,8 +118,14 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 		if data == nil {
 			data = []*core.Session{} // 画面では null ではなく空の一覧として扱う
 		}
-		meta := map[string]any{"report": rep}
-		return snapshot{data: data, weeks: report.AllWeeks(data), months: report.AllMonths(data), meta: meta, rep: rep, gen: float64(time.Now().UnixNano()) / 1e9}
+		commits := []gitlog.Commit{}
+		if *c.git {
+			if cs := gitlog.Collect(data); cs != nil {
+				commits = cs
+			}
+		}
+		meta := map[string]any{"report": rep, "git": commits}
+		return snapshot{data: data, weeks: report.AllWeeks(data, commits...), months: report.AllMonths(data, commits...), meta: meta, rep: rep, gen: float64(time.Now().UnixNano()) / 1e9}
 	}
 	return picked, load, nil
 }
