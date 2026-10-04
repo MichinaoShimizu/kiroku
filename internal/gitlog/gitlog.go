@@ -18,9 +18,10 @@ import (
 
 // Commit は 1 つのコミット。
 type Commit struct {
-	Hash    string     `json:"hash"`    // 短いハッシュ
-	T       float64    `json:"t"`       // 作成日時（author date、UNIX 秒）
-	Project string     `json:"project"` // セッションと同じプロジェクト名
+	Hash    string     `json:"hash"`          // ハッシュ（画面では先頭 7 文字）
+	URL     string     `json:"url,omitempty"` // リモート（GitHub など）のコミットのページ
+	T       float64    `json:"t"`             // 作成日時（author date、UNIX 秒）
+	Project string     `json:"project"`       // セッションと同じプロジェクト名
 	Subject string     `json:"subject"`
 	Body    string     `json:"body,omitempty"`   // 件名のあとの本文（先頭 600 文字）
 	Branch  string     `json:"branch,omitempty"` // たどり着いた ref（git log --source）。ブランチの目安
@@ -36,6 +37,7 @@ type Commit struct {
 // FileStat は 1 つのファイルの変更行数（バイナリは -1）。
 type FileStat struct {
 	Path    string `json:"path"`
+	URL     string `json:"url,omitempty"` // リモートでのそのコミットのファイル
 	Added   int    `json:"added"`
 	Removed int    `json:"removed"`
 }
@@ -59,6 +61,7 @@ type aiCommit struct {
 
 type repo struct {
 	top, project string
+	web          string // リモートの Web の URL（https://github.com/owner/repo など）。わからなければ ""
 	since        float64
 	ai           []aiCommit
 }
@@ -127,8 +130,11 @@ func Collect(data []*core.Session) []Commit {
 
 func readRepo(ctx context.Context, r *repo) []Commit {
 	email, _ := git(ctx, r.top, "config", "user.email")
+	if remote, err := git(ctx, r.top, "remote", "get-url", "origin"); err == nil {
+		r.web = WebURL(remote)
+	}
 	args := []string{"log", "--all", "--source", "--no-merges", "--no-color", "-n", strconv.Itoa(MaxPerRepo),
-		"--since=@" + strconv.FormatInt(int64(r.since)-86400, 10), "--format=%x1e%h%x1f%at%x1f%S%x1f%s%x1f%b%x1d", "--numstat"}
+		"--since=@" + strconv.FormatInt(int64(r.since)-86400, 10), "--format=%x1e%H%x1f%at%x1f%S%x1f%s%x1f%b%x1d", "--numstat"}
 	if e := strings.TrimSpace(email); e != "" {
 		args = append(args, "--author="+e)
 	}
@@ -151,14 +157,14 @@ func readRepo(ctx context.Context, r *repo) []Commit {
 		if err != nil {
 			continue
 		}
-		c := Commit{Hash: f[0], T: t, Project: r.project, Repo: r.top, Branch: branchOf(f[2]), Subject: core.Runes(f[3], 160),
+		c := Commit{Hash: f[0], URL: commitURL(r.web, f[0]), T: t, Project: r.project, Repo: r.top, Branch: branchOf(f[2]), Subject: core.Runes(f[3], 160),
 			Body: core.Runes(strings.TrimSpace(f[4]), 600), Files: []FileStat{}}
 		for _, line := range strings.Split(stat, "\n") {
 			cols := strings.SplitN(line, "\t", 3)
 			if len(cols) != 3 {
 				continue
 			}
-			fs := FileStat{Path: cols[2], Added: -1, Removed: -1}
+			fs := FileStat{Path: cols[2], URL: fileURL(r.web, f[0], cols[2]), Added: -1, Removed: -1}
 			if a, err := strconv.Atoi(cols[0]); err == nil {
 				fs.Added = a
 				c.Added += a
@@ -190,4 +196,62 @@ func branchOf(ref string) string {
 		}
 	}
 	return ref
+}
+
+// WebURL はリモートの URL を Web で開ける URL にする（git@host:owner/repo.git → https://host/owner/repo）。
+// ローカルのパスなど、Web にならないものは ""。
+func WebURL(remote string) string {
+	r := strings.TrimSpace(remote)
+	switch {
+	case strings.HasPrefix(r, "git@"): // git@github.com:owner/repo.git
+		host, path, ok := strings.Cut(strings.TrimPrefix(r, "git@"), ":")
+		if !ok {
+			return ""
+		}
+		r = "https://" + host + "/" + path
+	case strings.HasPrefix(r, "ssh://"): // ssh://git@host:22/owner/repo.git
+		rest := strings.TrimPrefix(r, "ssh://")
+		if i := strings.Index(rest, "@"); i >= 0 {
+			rest = rest[i+1:]
+		}
+		host, path, ok := strings.Cut(rest, "/")
+		if !ok {
+			return ""
+		}
+		if h, _, ok := strings.Cut(host, ":"); ok {
+			host = h
+		}
+		r = "https://" + host + "/" + path
+	case strings.HasPrefix(r, "https://"), strings.HasPrefix(r, "http://"):
+		scheme, rest, _ := strings.Cut(r, "://")
+		if i := strings.Index(rest, "@"); i >= 0 && i < strings.Index(rest+"/", "/") { // https://user:token@host/... の資格情報は落とす
+			rest = rest[i+1:]
+		}
+		r = scheme + "://" + rest
+	default:
+		return ""
+	}
+	return strings.TrimSuffix(strings.TrimSuffix(r, "/"), ".git")
+}
+
+func isBitbucket(web string) bool { return strings.Contains(web, "://bitbucket.org/") }
+
+func commitURL(web, hash string) string {
+	if web == "" {
+		return ""
+	}
+	if isBitbucket(web) {
+		return web + "/commits/" + hash
+	}
+	return web + "/commit/" + hash // GitHub・GitLab（/-/commit へ転送される）・Gitea など
+}
+
+func fileURL(web, hash, path string) string {
+	if web == "" || strings.Contains(path, "=>") { // 名前の変更（a => b）は 1 つのパスにならない
+		return ""
+	}
+	if isBitbucket(web) {
+		return web + "/src/" + hash + "/" + path
+	}
+	return web + "/blob/" + hash + "/" + path
 }

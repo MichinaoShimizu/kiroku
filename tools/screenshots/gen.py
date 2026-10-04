@@ -54,7 +54,10 @@ for d in range(35, -1, -1):
                 if random.random()<0.05:
                     content = [{"type":"tool_use","id":"t"+mid,"name":"Task","input":{"subagent_type":random.choice(["Explore","general-purpose"]),"description":"コードを調べる","prompt":"関連箇所を探して"}}]
                 lines.append({"type":"assistant","timestamp":t.isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"requestId":"req_"+mid,"message":{"id":mid,"model":model,"role":"assistant","content":content,"usage":usage}})
-                tr = {"type":"tool_result","tool_use_id":content[0]["id"],"content":"ok"}
+                out = "ok"
+                if "gh pr create" in content[0]["input"].get("command", ""):
+                    out = f"https://github.com/example/{p}/pull/{random.randint(10, 300)}"
+                tr = {"type":"tool_result","tool_use_id":content[0]["id"],"content":out}
                 if random.random() < 0.04: tr["is_error"] = True
                 lines.append({"type":"user","timestamp":(t+dt.timedelta(seconds=5)).isoformat(),"cwd":cwd,"sessionId":sid,"message":{"role":"user","content":[tr]}})
             t += dt.timedelta(seconds=random.randint(30, 600))

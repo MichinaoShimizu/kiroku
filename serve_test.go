@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/MichinaoShimizu/kiroku/internal/report"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
 )
@@ -144,5 +145,32 @@ func TestSettler(t *testing.T) {
 	}
 	if !s.step(true, at(160)) {
 		t.Fatal("160 秒: 書き込みが続いても max で読み直すはず")
+	}
+}
+
+// /history は、読み込んだセッションの履歴ファイルだけを返す。
+func TestServeHistory(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "s1.jsonl")
+	os.WriteFile(p, []byte(`{"type":"user"}`+"\n"), 0o644)
+	l := &live{snap: snapshot{data: []*core.Session{{ID: "s1", File: p}, {ID: "db", File: filepath.Join(dir, "data.sqlite3")}}}}
+	srv := httptest.NewServer(l.handler())
+	defer srv.Close()
+	get := func(q string) (int, string) {
+		r, err := http.Get(srv.URL + "/history?" + q)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer r.Body.Close()
+		b, _ := io.ReadAll(r.Body)
+		return r.StatusCode, string(b)
+	}
+	if code, body := get("id=s1"); code != 200 || !strings.Contains(body, `"type":"user"`) {
+		t.Errorf("s1 = %d %q", code, body)
+	}
+	for _, q := range []string{"id=nope", "id=db", "id=../../etc/passwd", "path=" + p} {
+		if code, _ := get(q); code != 404 {
+			t.Errorf("%s = %d, want 404", q, code)
+		}
 	}
 }

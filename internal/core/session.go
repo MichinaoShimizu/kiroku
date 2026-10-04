@@ -56,6 +56,7 @@ type Builder struct {
 	Measures                       []Measure      // そのエージェントだけが記録している数字（native.go）
 	Outputs                        []Output       // 成果の印（output.go）。成功したツール呼び出しだけを入れる
 	Reported                       []ReportedCost // エージェント自身が記録した使用料（reported.go）
+	File                           string         // 履歴のファイル（画面から開けるように）
 	toolOrder                      []string
 	tools                          map[string]int
 	files                          map[string]bool
@@ -212,6 +213,8 @@ type Session struct {
 	Native       []NativeValue `json:"native"`                 // このセッションの参考指標
 	Outputs      OutputTotal   `json:"outputs"`                // コミット・PR・変更した行（output.go）
 	CostReported bool          `json:"costReported,omitempty"` // 目安コストにエージェント自身の記録を使った
+	File         string        `json:"file,omitempty"`         // 履歴のファイル
+	PRs          []string      `json:"prs"`                    // AI が作った PR の URL（わかったもの）
 	UEv          []Event       `json:"-"`                      // 週ごとの集計用（HTML には入れない）
 	CEv          []Credit      `json:"-"`
 	OEv          []Output      `json:"-"`
@@ -320,8 +323,12 @@ func (s *Builder) Finish(gapMin int) *Session {
 		credits += c.V
 	}
 	var outs OutputTotal
+	prs := []string{}
 	for _, o := range s.Outputs {
 		outs.Add(o)
+		if o.Kind == "pr" && o.URL != "" {
+			prs = append(prs, o.URL)
+		}
 	}
 	if files == nil {
 		files = []string{}
@@ -339,7 +346,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 		Prompts: prompts, NPrompts: len(s.Prompts), Tools: tools, Files: files, NFiles: nFiles, Resume: strOrNil(s.Resume),
 		Waits: s.Waits(), Interrupts: s.Interrupts, Corrections: s.Corrections(), Models: models,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
-		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: len(s.Reported) > 0,
+		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: len(s.Reported) > 0, File: s.File, PRs: prs,
 		Native: AggregateNative(s.Source, s.Measures), Meas: s.Measures,
 	}
 }

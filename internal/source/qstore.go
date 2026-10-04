@@ -126,6 +126,7 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 			id = x.key
 		}
 		s := core.NewBuilder(q.Label, id)
+		s.File = q.DB
 		s.Key = "kiro-cli:" + id // 新しい形式（~/.kiro/sessions/cli）と同じ会話なら、そちらを使う
 		s.Project = x.key
 		s.Tick(ts(x.created))

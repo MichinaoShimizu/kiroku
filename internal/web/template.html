@@ -183,6 +183,8 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .pheavy .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
 .pheavy .m{color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .pmore{margin-top:10px}
+.xl{color:var(--acc-ink);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--acc) 40%,transparent);text-underline-offset:2px}.xl:hover{text-decoration-color:currentColor}
+a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .gc{position:absolute;right:3px;display:inline-flex;align-items:center;gap:3px;height:17px;margin-top:-8.5px;padding:0 5px 0 3px;border-radius:9px;background:var(--surface);border:1px solid var(--ink-3);color:var(--ink-2);font:600 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .gc.ai{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
 .gc:hover,.gc.sel{box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 35%,transparent);z-index:3}
@@ -976,13 +978,25 @@ function bindCopy(root){ root.querySelectorAll("[data-copy]").forEach(b => b.onc
 
 /* git のコミットの印（コミットのノード: 線の上の丸） */
 const GIT_ICON = `<svg class="gi" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8h4.2M10.8 8H15"/><circle cx="8" cy="8" r="2.8"/></svg>`;
+/* リンク：外のページ（GitHub など）は新しいタブで開く */
+function ext(url, label, cls){ return url ? `<a class="xl${cls ? " "+cls : ""}" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label}</a>` : label; }
+function fileHref(path){ // HTML で見るときの履歴ファイルの file:// の URL（Windows のパスにも対応）
+  const p = path.replace(/\\/g, "/");
+  return "file://" + (/^[A-Za-z]:/.test(p) ? "/" : "") + p.split("/").map(encodeURIComponent).join("/").replace(/%3A/g, ":");
+}
 /* ── drawer: git のコミット ── */
 function commitsOf(s){ // セッションが作ったコミットと、同じプロジェクトでセッションの間（終わってから 10 分まで）のコミット
   return (META.git || []).filter(c => c.session === s.id || (!c.session && c.project === s.project && c.t >= s.start - 60 && c.t <= s.end + 600));
 }
 function fileRows(files, n){
   const num = v => v < 0 ? "bin" : v;
-  return `<ul class="gfiles">${files.map(f => `<li title="${esc(f.path)}"><span>${esc(f.path)}</span><b><i>+${num(f.added)}</i> −${num(f.removed)}</b></li>`).join("")}</ul>${n > files.length ? `<p class="more">ほか ${n - files.length} ファイル</p>` : ""}`;
+  return `<ul class="gfiles">${files.map(f => `<li title="${esc(f.path)}"><span>${ext(f.url, esc(f.path))}</span><b><i>+${num(f.added)}</i> −${num(f.removed)}</b></li>`).join("")}</ul>${n > files.length ? `<p class="more">ほか ${n - files.length} ファイル</p>` : ""}`;
+}
+function fileLink(s, abs){ // セッションの間のコミットのうち、最後にそのファイルを変えたコミットでのリンク
+  const p = abs.replace(/\\/g, "/");
+  let url = "";
+  commitsOf(s).forEach(c => (c.files || []).forEach(f => { if (f.url && (p === f.path || p.endsWith("/" + f.path))) url = f.url; }));
+  return url;
 }
 function sessionCommits(s){
   const cs = commitsOf(s); if (!cs.length) return "";
@@ -995,7 +1009,7 @@ function commitDetail(c){
     <div class="eyebrow"><span class="dot"></span>GIT · ${c.ai ? "AI が実行" : "手で（またはほかのツールで）"}</div>
     <h2>${esc(c.subject)}</h2>
     <div class="muted" style="font-variant-numeric:tabular-nums">${md(c.t)} ${hm(c.t)}</div>
-    <div class="meta"><span>${esc(c.project)}</span>${c.branch ? `<span>${esc(c.branch)}</span>` : ""}<span class="mono">${esc(c.hash)}</span></div>
+    <div class="meta"><span>${esc(c.project)}</span>${c.branch ? `<span>${esc(c.branch)}</span>` : ""}${ext(c.url, `<span class="mono">${esc(c.hash.slice(0,7))}</span>`)}</div>
     <div class="mini">
       <div><div class="k">変更したファイル</div><div class="v">${c.nFiles}<small>件</small></div></div>
       <div><div class="k">追加</div><div class="v"><small>+</small>${c.added}<small>行</small></div></div>
@@ -1005,6 +1019,7 @@ function commitDetail(c){
     <h3>変更したファイル · ${c.nFiles}</h3>
     ${c.files.length ? fileRows(c.files, c.nFiles) : '<p class="none">なし</p>'}
     ${ses ? `<h3>${c.session ? "このコミットを作ったセッション" : "この時間に動いていたセッション"}</h3><button class="card" data-id="${esc(ses.id)}"><span class="ti">${esc(ses.title)}</span><span class="me">${md(ses.start)} ${hm(ses.start)}–${hm(ses.end)} · ${esc(ses.source)}</span></button>` : ""}
+    ${c.url ? `<p style="margin-top:14px">${ext(c.url, "リモートでこのコミットを開く ↗", "pill")}</p>` : ""}
     <h3>リポジトリ</h3><div class="code"><code>${esc(`git -C ${c.repo} show ${c.hash}`)}</code><button class="copy" data-copy="${esc(`git -C ${c.repo} show ${c.hash}`)}">コピー</button></div>
   </div>`;
   P.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.id));
@@ -1046,8 +1061,11 @@ function detail(s){
     ${sessionCommits(s)}
     <h3>使ったツール</h3>
     ${s.tools.length ? s.tools.map(([k,v])=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track2"><span style="width:${v/maxT*100}%"></span></span><span class="n">${v}</span></div>`).join("") : '<p class="none">記録なし</p>'}
+    ${s.prs && s.prs.length ? `<h3>作った PR · ${s.prs.length}</h3><ul class="files">${s.prs.map(u => `<li title="${esc(u)}"><span>${ext(u, esc(u.replace(/^https?:\/\//, "")))}</span></li>`).join("")}</ul>` : ""}
     <h3>変更したファイル · ${s.nFiles}</h3>
-    ${s.files.length ? `<ul class="files">${s.files.map(f=>`<li title="${esc(f)}"><span>${esc(f)}</span></li>`).join("")}</ul>` : '<p class="none">なし</p>'}
+    ${s.files.length ? `<ul class="files">${s.files.map(f=>{ const u = fileLink(s, f); return `<li title="${esc(f)}"><span>${u ? ext(u, esc(f)) : esc(f)}</span></li>`; }).join("")}</ul>` : '<p class="none">なし</p>'}
+    ${s.files.length && commitsOf(s).some(c => c.url) ? '<p class="note">リンクは、このセッションの間のコミットでの、そのファイルを開きます。</p>' : ""}
+    ${s.file ? `<h3>履歴ファイル</h3><div class="code"><code>${esc(s.file)}</code><a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" target="_blank" rel="noopener">開く</a><button class="copy" data-copy="${esc(s.file)}">コピー</button></div>` : ""}
     ${s.resume ? `<h3>続きから再開</h3><div class="code"><code>${esc(s.resume)}</code><button class="copy" data-copy="${esc(s.resume)}">コピー</button></div>` : ""}
   </div>`;
   P.querySelectorAll("[data-git]").forEach(b => b.onclick = () => select("git:" + b.dataset.git));

@@ -7,7 +7,9 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -137,6 +139,34 @@ func (l *live) handler() http.Handler {
 		l.mu.RLock()
 		defer l.mu.RUnlock()
 		send(w, "application/json", l.json)
+	})
+	// /history?id=<セッション ID> は、そのセッションの履歴ファイルをそのまま見せる（テキストの履歴だけ）。
+	// 読めるのは読み込んだセッションの履歴ファイルだけで、任意のパスは受け付けない。
+	mux.HandleFunc("/history", func(w http.ResponseWriter, r *http.Request) {
+		id := r.URL.Query().Get("id")
+		l.mu.RLock()
+		path := ""
+		for _, d := range l.snap.data {
+			if d.ID == id {
+				path = d.File
+				break
+			}
+		}
+		l.mu.RUnlock()
+		if path == "" || !(strings.HasSuffix(path, ".jsonl") || strings.HasSuffix(path, ".json")) {
+			http.NotFound(w, r)
+			return
+		}
+		f, err := os.Open(path)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		defer f.Close()
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		_, _ = io.Copy(w, f)
 	})
 	mux.HandleFunc("/stamp", func(w http.ResponseWriter, r *http.Request) {
 		l.mu.RLock()

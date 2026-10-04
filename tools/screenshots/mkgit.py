@@ -25,7 +25,7 @@ ev.sort(key=lambda e:e[1])
 for p in projs:
     os.makedirs(p,exist_ok=True)
     if not os.path.isdir(p+'/.git'):
-        subprocess.run(['git','-C',p,'init','-q']); subprocess.run(['git','-C',p,'config','user.email','me@example.com']); subprocess.run(['git','-C',p,'config','user.name','me'])
+        subprocess.run(['git','-C',p,'init','-q']); subprocess.run(['git','-C',p,'config','user.email','me@example.com']); subprocess.run(['git','-C',p,'config','user.name','me']); subprocess.run(['git','-C',p,'remote','add','origin',f'git@github.com:example/{os.path.basename(p)}.git'])
 for i,(p,t,kind,msg) in enumerate(ev):
     with open(f"{p}/f{i%7}.txt","a") as fh: fh.write("line\n"*random.randint(1,40))
     subprocess.run(['git','-C',p,'add','-A'])

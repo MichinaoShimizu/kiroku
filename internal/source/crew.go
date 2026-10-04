@@ -301,6 +301,9 @@ func crewOnly(home, slot string, turns []crewTurn, info *CrewInfo) []*core.Build
 			id += ":" + g
 		}
 		s := core.NewBuilder("Kiro Crew", id)
+		if slot != "_bg" && home != "" && len(rows) > 0 {
+			s.File = crewTranscriptPath(home, slot)
+		}
 		s.Key = "kiro-crew:" + id[len("crew:"):]
 		switch {
 		case slot == "_bg":
