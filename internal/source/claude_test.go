@@ -105,3 +105,36 @@ func TestClaudeRetention(t *testing.T) {
 		t.Errorf("設定あり = %+v, want 3650 日・設定済み", r)
 	}
 }
+
+// 依頼の流れ：作業中に送った依頼（queued_command の添付だけに残る）を拾い、
+// 自動要約の「This session is being continued…」や、ほかのエージェント・通知からの割り込みは依頼に数えない。
+func TestClaudePromptFlow(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	os.MkdirAll(dir, 0o755)
+	lines := []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"一覧を作って"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:01:00Z","message":{"id":"m1","model":"claude-sonnet-5-5","content":[{"type":"text","text":"作ります"}]}}`,
+		`{"type":"queue-operation","operation":"enqueue","timestamp":"2026-09-30T01:01:30Z","content":"ブランチ単位でも"}`,
+		`{"type":"attachment","timestamp":"2026-09-30T01:01:30Z","attachment":{"type":"queued_command","prompt":"ブランチ単位でも","commandMode":"prompt","origin":{"kind":"human"},"humanTurn":true}}`,
+		`{"type":"attachment","timestamp":"2026-09-30T01:01:40Z","attachment":{"type":"queued_command","prompt":"別のエージェントからの連絡","commandMode":"prompt","origin":{"kind":"peer"}}}`,
+		`{"type":"attachment","timestamp":"2026-09-30T01:01:50Z","attachment":{"type":"queued_command","prompt":"タスクが終わりました","commandMode":"task-notification"}}`,
+		`{"type":"user","timestamp":"2026-09-30T02:00:00Z","isCompactSummary":true,"isVisibleInTranscriptOnly":true,"message":{"role":"user","content":"This session is being continued from a previous conversation that ran out of context. The user said that was wrong."}}`,
+		`{"type":"user","timestamp":"2026-09-30T02:01:00Z","message":{"role":"user","content":"続けて"}}`,
+	}
+	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644)
+	bs := load(t, &Claude{Root: root})
+	if len(bs) != 1 {
+		t.Fatalf("セッション数 = %d, want 1", len(bs))
+	}
+	var got []string
+	for _, p := range bs[0].Prompts {
+		got = append(got, p.Text)
+	}
+	if want := []string{"一覧を作って", "ブランチ単位でも", "続けて"}; strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Errorf("依頼 = %q, want %q", got, want)
+	}
+	if n := len(bs[0].FixTS); n != 0 {
+		t.Errorf("言い直し = %d, want 0（要約の文面を言い直しと数えない）", n)
+	}
+}

@@ -160,7 +160,18 @@ func (c *Claude) Load(emit func(*core.Builder)) error {
 					s.Limit(t)
 				}
 			}
-			if typ == "user" && !meta && !sidechain {
+			// 作業中に送った依頼は、user の行ではなく queued_command の添付だけに残る（absorbed_mid_turn）。
+			// 人が送ったもの（origin.kind が human）だけを依頼に数え、ほかのエージェントや通知からのものは除く
+			if a := core.Map(e["attachment"]); typ == "attachment" && core.Str(a["type"]) == "queued_command" && !sidechain {
+				human, _ := a["humanTurn"].(bool)
+				if k := core.Str(core.Map(a["origin"])["kind"]); (k == "human" || k == "" && human) && core.Str(a["commandMode"]) != "task-notification" {
+					s.Prompt(t, core.TextOf(a["prompt"]))
+				}
+				return
+			}
+			// 会話が長くなって自動で要約したときの「This session is being continued…」は、依頼ではない
+			compact, _ := e["isCompactSummary"].(bool)
+			if typ == "user" && !meta && !sidechain && !compact {
 				s.Prompt(t, core.TextOf(msg["content"]))
 				for _, b := range core.List(msg["content"]) {
 					bm := core.Map(b)
