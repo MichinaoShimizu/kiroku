@@ -7,3 +7,5 @@ kiroku.json
 /kiroku
 /kiroku.exe
 /dist/
+tools/screenshots/node_modules/
+tools/screenshots/package*.json

@@ -57,3 +57,14 @@ git push origin v0.1.0
 ```
 
 `v` で始まるタグを push すると、GitHub Actions（`.github/workflows/release.yml`）が 3 OS でテストしてから、GoReleaser で macOS・Linux・Windows（amd64 / arm64）向けのファイルとチェックサムを作り、Releases に載せます。`v0.2.0-rc.1` のように `-` のつくタグはプレリリースになります。
+
+## スクリーンショット
+
+README とガイドの画像（`docs/screenshot.png`・`docs/summary.png`）は、ダミーデータから撮り直せます。画面を変えたときは、あわせて更新してください。
+
+```bash
+cd tools/screenshots && npm i playwright && cd ../..
+sh tools/screenshots/run.sh
+```
+
+`gen.py` が架空の 4 プロジェクト・約 5 週間の Claude Code の履歴を、`mkgit.py` がそれに合わせた git のリポジトリを一時ディレクトリに作ります。`capture.mjs` が先週の週カレンダーと週次サマリーを 1440x900（Asia/Tokyo・ライトテーマ）で撮ります。
