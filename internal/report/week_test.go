@@ -67,7 +67,7 @@ func TestPeriodsIncludeRecordsOutsideSessionRange(t *testing.T) {
 	}
 }
 
-// 「コミットまで行ったセッション」の割合と「1 コミットあたりの目安コスト」は、成果を記録できる
+// 「コミットまで行ったセッション」の割合と「1 コミットあたりの目安コスト」は、アウトプットを記録できる
 // エージェント（Claude Code）のセッションとコストだけで出す。ほかのエージェントが混ざっても変わらない。
 func TestOutputsOnlyFromTrackedSessions(t *testing.T) {
 	ws := time.Date(2026, 9, 28, 0, 0, 0, 0, time.Local)

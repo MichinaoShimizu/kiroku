@@ -8,6 +8,15 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - `kiroku archive on` keeps compressed copies of history that agents delete automatically (Claude Code conversations, Kiro Crew's `sessions/archive/`), and shows deleted conversations from those copies. It is off until you turn it on; the notice about Claude Code's 30-day default also offers "Keep a copy in kiroku" in `kiroku serve`. Copies stay on your computer (`--archive-dir` or `KIROKU_ARCHIVE_DIR` to choose where). `kiroku archive` shows the status, and `kiroku archive off` stops it. "Data sources" shows how many conversations came from the copies
 
+### Changed
+
+- The theme is now dark by default, and the button switches between dark and light. A theme saved as "auto" opens in dark
+- "Cost and outputs" no longer calls commits, pull requests and edited lines 成果 (results) in Japanese; they are アウトプット (outputs), the amount produced, not its value or productivity. "Output signals" is now "Outputs"
+
+### Fixed
+
+- The theme button cycled auto → light → dark, so on a light system the first press stayed light and it took two presses to see a change
+
 ## v0.2.1 - 2026-10-04
 
 ### Fixed

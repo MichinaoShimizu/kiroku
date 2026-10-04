@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8">
+<html lang="ja" data-theme="dark"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>kiroku</title>
@@ -18,14 +18,6 @@
   --mono:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,monospace;
   --ease:cubic-bezier(.2,.7,.1,1);
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  color-scheme:dark;
-  --bg:#0e0f13; --surface:#16181e; --surface-2:#1e2129; --ink:#eceef3; --ink-2:#b4b9c4; --ink-3:#8c92a0;
-  --rule:#252832; --rule-2:#333743; --acc:#818cf8; --acc-ink:#a5b4fc; --on-acc:#0e0f13; --heatk:42%; --acc-soft:rgba(129,140,248,.12); --warn:#f97066; --on-warn:#0e0f13;
-  --night:rgba(255,255,255,.025); --weekend:rgba(255,255,255,.018);
-  --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -16px rgba(0,0,0,.7);
-  --c0:#3a9be0; --c1:#f07a2b; --c2:#1fbf8f; --c3:#e08fbd; --c4:#f2b53a; --c5:#7cc6f0; --c6:#9c84e6; --c7:#c9b51c; --other:#6b7180;
-}}
 :root[data-theme="dark"]{
   color-scheme:dark;
   --bg:#0e0f13; --surface:#16181e; --surface-2:#1e2129; --ink:#eceef3; --ink-2:#b4b9c4; --ink-3:#8c92a0;
@@ -439,7 +431,6 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 /* 画面の真ん中に出すモーダル。後ろのカレンダーはしっかり沈め、縁を線と影ではっきりさせる。ダークでは面の明るさが近いので幕を濃くする */
 .scrim{position:fixed;inset:0;z-index:20;background:rgba(10,12,16,.42);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s var(--ease)}
 :root[data-theme="dark"] .scrim{background:rgba(0,0,0,.62)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .scrim{background:rgba(0,0,0,.62)}}
 .drawer{position:fixed;top:50%;left:50%;z-index:21;width:min(760px,calc(100vw - 48px));max-height:min(92vh,1100px);background:var(--surface);border:1px solid var(--rule-2);border-radius:18px;
   box-shadow:0 40px 100px -20px rgba(0,0,0,.6);overflow:hidden;opacity:0;visibility:hidden;pointer-events:none;transform:translate(-50%,-48%) scale(.97);
   transition:transform .28s var(--ease),opacity .2s var(--ease),visibility 0s .28s;display:flex;flex-direction:column}
@@ -624,7 +615,7 @@ const SRC_EN = {"Kiro IDE (旧)": "Kiro IDE (legacy)"}; // 画面に出すエー
 const sn = x => EN() && SRC_EN[x] || x;
 const mn = x => EN() && /^[（(]不明[）)]$/.test(x) ? "(unknown)" : x; // 名前のわからないモデル
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many || one + "s"}`;
-const st = { z: store.get("zh", 2), colorBy: store.get("colorBy", "project"), theme: store.get("theme", "auto"),
+const st = { z: store.get("zh", 2), colorBy: store.get("colorBy", "project"), theme: store.get("theme", "dark") === "light" ? "light" : "dark", // 既定はダーク（以前の「自動」もダークにする）
              week: mondayOf(today0()), month: monthOf(today0()), mode: store.get("mode", "week"), use: store.get("use", "tokens"),
              hidden: new Set(), sel: null, back: [], q: "", animate: true };
 
@@ -671,11 +662,11 @@ function searchText(s){
 }
 function toast(msg, ms){ const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(()=>t.classList.remove("on"), ms || 1600); }
 async function copy(text, msg, ms){ try { await navigator.clipboard.writeText(text); toast(msg || tr("コピーしました", "Copied"), ms); } catch(e){ toast(tr("コピーできませんでした", "Couldn't copy")); } }
-const ICON = { auto:'<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 000 16z" fill="currentColor"/></svg>',
-  light:'<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6L6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></svg>',
+const ICON = { light:'<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6L6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></svg>',
   dark:'<svg class="i" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>' };
-function applyTheme(){ const r = document.documentElement; st.theme === "auto" ? r.removeAttribute("data-theme") : r.setAttribute("data-theme", st.theme);
-  $("#theme").innerHTML = ICON[st.theme]; $("#theme").setAttribute("aria-label", tr(`テーマ: ${{auto:"自動",light:"ライト",dark:"ダーク"}[st.theme]}`, `Theme: ${{auto:"auto",light:"light",dark:"dark"}[st.theme]}`)); }
+function applyTheme(){ document.documentElement.setAttribute("data-theme", st.theme); // ボタンには、押すと切り替わる先のテーマを出す
+  const next = st.theme === "dark" ? "light" : "dark";
+  $("#theme").innerHTML = ICON[next]; $("#theme").setAttribute("aria-label", tr(`${{light:"ライト",dark:"ダーク"}[next]}テーマに切り替え`, `Switch to ${next} theme`)); }
 const CB = () => ({project: tr("プロジェクト", "Project"), branch: tr("ブランチ", "Branch"), source: tr("エージェント", "Agent")});
 const BACK_ICON = $("#back").querySelector("svg").outerHTML;
 /* 静的な HTML の文言を、言語に合わせて設定し直す */
@@ -852,7 +843,7 @@ function tipMove(e){ const t = $("#tip"), w = t.offsetWidth, h = t.offsetHeight;
   t.style.left = x+"px"; t.style.top = y+"px"; }
 function tipOff(){ $("#tip").classList.remove("on"); }
 
-/* ── 週次・月次サマリー：① 気づき ② プロジェクト別 ③ コストと成果 ④ 時間 ⑤ AI ⑥ かたち ⑦ 改善案を聞く ── */
+/* ── 週次・月次サマリー：① 気づき ② プロジェクト別 ③ コストとアウトプット ④ 時間 ⑤ AI ⑥ かたち ⑦ 改善案を聞く ── */
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
   const head = `<div class="rvhead"><h2>${M ? tr("月次サマリー", "Monthly summary") : tr("週次サマリー", "Weekly summary")}</h2><p>${tr("自分の使い方を振り返るための目安です。人と比べたり、評価に使ったりするための数字ではありません。", "Rough figures for reflecting on how you work. They are not for comparing people or for evaluations.")}</p>${w ? `<button class="pill rpt" id="rpttog" aria-expanded="${!!st.rpt}" aria-controls="rptbox">${tr(`${M ? "月報" : "週報"}の下書き`, `${M ? "Monthly" : "Weekly"} report draft`)}</button>` : ""}</div>${w ? `<section class="panel rptbox" id="rptbox"${st.rpt ? "" : " hidden"} aria-label="${tr(`${M ? "月報" : "週報"}の下書き`, `${M ? "Monthly" : "Weekly"} report draft`)}">
@@ -963,7 +954,7 @@ function projectPanel(w, ph, unit){
         <div><div class="k">${tr("トークン", "Tokens")}</div><div class="v">${p.tokens ? tok(p.tokens) : "—"}</div></div>
         <div><div class="k">${tr("目安コスト", "Est. cost")}</div><div class="v">${p.cost >= 0.005 ? usd(p.cost) : "—"}</div></div>
         <div><div class="k">${tr("クレジット", "Credits")}</div><div class="v">${p.credits ? cr(p.credits) : "—"}</div></div></div>
-      ${(p.git && p.git.commits) || (p.outputs && (p.outputs.commits || p.outputs.prs)) ? `<div><div class="lab">${tr("成果の印", "Output signals")}</div><div class="pout">${tr("コミット", "Commits")} ${p.git && p.git.commits ? tr(`${p.git.commits}（AI ${p.git.ai}）`, `${p.git.commits} (AI ${p.git.ai})`) : p.outputs.commits} · PR ${p.outputs ? p.outputs.prs : 0} · <span>+${p.git && p.git.commits ? p.git.added : p.outputs.added} −${p.git && p.git.commits ? p.git.removed : p.outputs.removed}${tr(" 行", " lines")}</span></div></div>` : ""}
+      ${(p.git && p.git.commits) || (p.outputs && (p.outputs.commits || p.outputs.prs)) ? `<div><div class="lab">${tr("アウトプット", "Outputs")}</div><div class="pout">${tr("コミット", "Commits")} ${p.git && p.git.commits ? tr(`${p.git.commits}（AI ${p.git.ai}）`, `${p.git.commits} (AI ${p.git.ai})`) : p.outputs.commits} · PR ${p.outputs ? p.outputs.prs : 0} · <span>+${p.git && p.git.commits ? p.git.added : p.outputs.added} −${p.git && p.git.commits ? p.git.removed : p.outputs.removed}${tr(" 行", " lines")}</span></div></div>` : ""}
       ${p.models.length ? `<div><div class="lab">${tr("中心のモデル", "Main models")}</div><div class="mods">${p.models.map(m=>`<span title="${esc(mn(m.model))}">${esc(mn(m.model))}<b>${m.tokens ? Math.round(m.tokens*100/mt)+"%" : tr(m.turns+"回", plural(m.turns, "turn"))}</b></span>`).join("")}</div></div>` : ""}
       <div><div class="lab">${tr("何に時間を使ったか", "Where the time went")}</div>${p.top.map(t=>`<button class="pses" data-id="${esc(t.id)}"><span class="t">${esc(t.title)}</span><span class="m">${dur(t.minutes)}${use(t) ? " · "+use(t) : ""}</span></button>`).join("")}</div>
       ${p.heavy && use(p.heavy) ? `<button class="pheavy" data-id="${esc(p.heavy.id)}"><em>${tr("いちばん重い", "Heaviest")}</em><span class="t">${esc(p.heavy.title)}</span><span class="m">${use(p.heavy)}</span></button>` : ""}
@@ -977,13 +968,13 @@ function projectPanel(w, ph, unit){
 /* 指標の読み方：定義・言えること・言えないこと・打てる手。画面の「?」と、改善案プロンプトの前提に使う */
 const HELP = {
   findings: {n:"気づき", d:"各指標が決まった基準を超えたものを、優先度の高い順に 3 件まで（残りは折りたたみ）", c:"どの指標から見直すとよさそうか", x:"良し悪しの判定。基準は一律の目安で、使い方によっては当てはまらない", a:"1 つ選んで次の期間に試し、同じ指標で変化を確かめる"},
-  projects: {n:"プロジェクト別", d:"プロジェクトごとの作業時間・使用量・中心のモデル・重いセッション。同時に動いていた時間は按分", c:"時間と AI をどのプロジェクトに配分したか", x:"プロジェクトの重要度や成果", a:"想定と配分がずれていれば、使い方や優先順位を見直す"},
+  projects: {n:"プロジェクト別", d:"プロジェクトごとの作業時間・使用量・中心のモデル・重いセッション。同時に動いていた時間は按分", c:"時間と AI をどのプロジェクトに配分したか", x:"プロジェクトの重要度や価値", a:"想定と配分がずれていれば、使い方や優先順位を見直す"},
   active: {n:"作業していた時間", d:"いずれかのセッションが動いていた時間（重なりは 1 回として計算）", c:"AI と一緒に作業していた時間の総量", x:"人が集中していたか。放置していた時間も含む", a:"前の期間との増減で、AI に頼る割合の変化をつかむ"},
   ai: {n:"AI の延べ稼働", d:"並列で動いた分も合算したセッションの稼働時間", c:"AI をどれだけ働かせたか。作業していた時間との差は並列の度合い", x:"人が削減できた時間や生産性", a:"作業していた時間とほぼ同じなら、待ち時間に別の作業を並行させる余地がある"},
   focus: {n:"集中ブロック", d:"60 分以上続いた作業。途切れは、1 つのセッションの中は区切りの分数（既定 15 分）まで、セッションどうしの間は 5 分までつながっているとみなす", c:"まとまった作業時間を確保できていたか", x:"その時間の作業の質", a:"細切れが多ければ、AI に任せる作業を時間帯でまとめる"},
-  focusList: {n:"集中ブロック（一覧）", d:"長い順に 5 件", c:"いつ・どのプロジェクトで長く作業していたか", x:"成果", a:"集中しやすい時間帯を把握して、重い作業をそこに寄せる"},
+  focusList: {n:"集中ブロック（一覧）", d:"長い順に 5 件", c:"いつ・どのプロジェクトで長く作業していたか", x:"その時間の価値", a:"集中しやすい時間帯を把握して、重い作業をそこに寄せる"},
   switches: {n:"1 日の切り替え", d:"連続する依頼の間でプロジェクトが変わった回数（1 日平均と最大）", c:"プロジェクトをどれだけ行き来したか", x:"切り替えが悪いかどうか（待ち時間を活用しているだけの場合もある）", a:"多すぎる日は、文脈の切り替えで手戻りが増えていないか確認する"},
-  parallel: {n:"並列で動かした時間", d:"2 つ以上のセッションが同時に動いていた時間と最大の同時数", c:"複数のセッションを並行して回せていたか", x:"並列にした分の成果", a:"少なければ、AI の作業中に別のタスクを任せる"},
+  parallel: {n:"並列で動かした時間", d:"2 つ以上のセッションが同時に動いていた時間と最大の同時数", c:"複数のセッションを並行して回せていたか", x:"並列にした分の価値", a:"少なければ、AI の作業中に別のタスクを任せる"},
   wait: {n:"待たせ時間", d:"AI の応答から次の依頼までの時間（30 分以内）の中央値と 90 パーセンタイル", c:"AI の応答にどれだけ早く反応していたか", x:"短いほど良いとは限らない（確認せずに進めている可能性もある）", a:"長ければ通知を使う、確認をまとめるなど、応答待ちの扱いを決める"},
   night: {n:"深夜", d:"22〜6 時の作業時間", c:"時間外にどれだけ作業していたか", x:"働きすぎかどうかの判定", a:"自分のペースの振り返りに使う"},
   weekend: {n:"週末", d:"土日の作業時間", c:"週末にどれだけ作業していたか", x:"働きすぎかどうかの判定", a:"自分のペースの振り返りに使う"},
@@ -1003,14 +994,14 @@ const HELP = {
   subagents: {n:"サブエージェント", d:"Task / Agent での呼び出し回数・種類・延べ時間", c:"調査などを切り出して任せていたか", x:"任せた効果", a:"本体の文脈を節約する手段として使えているか確認する"},
   credits: {n:"Kiro クレジット", d:"Kiro の履歴に記録されたクレジットの合計", c:"実際に消費したクレジット", x:"アカウントページとの差（集計期間や他の PC での利用分）", a:"上限に対する消費ペースを管理する"},
   costPerAsk: {n:"1 依頼あたりの目安コスト", d:"目安コスト ÷ 依頼の数", c:"1 回の依頼の平均的な重さ", x:"依頼の大きさの違い", a:"推移を見て、依頼の粒度の変化をつかむ"},
-  heavy: {n:"重かったセッション", d:"目安コストの大きいセッション上位 3 件", c:"使用量を押し上げたセッション", x:"重さに見合う成果があったか", a:"中身を開いて、文脈の膨らみや手戻りがなかったか確認する"},
-  outputs: {n:"成果の印", d:"AI がツールで実行して成功したコミット・PR 作成・ファイル編集（現在は Claude Code のみ）", c:"使ったコストが、形に残る作業につながったか", x:"成果の価値や品質。手で行ったコミットは含まない", a:"コストと並べて、形にならなかった使い方がないか見直す"},
+  heavy: {n:"重かったセッション", d:"目安コストの大きいセッション上位 3 件", c:"使用量を押し上げたセッション", x:"重さに見合う価値があったか", a:"中身を開いて、文脈の膨らみや手戻りがなかったか確認する"},
+  outputs: {n:"アウトプット", d:"AI がツールで実行して成功したコミット・PR 作成・ファイル編集（現在は Claude Code のみ）", c:"使ったコストが、形に残る作業につながったか", x:"価値・品質・生産性。手で行ったコミットは含まない", a:"コストと並べて、形にならなかった使い方がないか見直す"},
   gitCommits: {n:"Git のコミット", d:"エージェントが作業したリポジトリにある、自分（user.email）のコミット。手で行ったものも含む。カレンダーの各日の右端の印は 1 つのコミット（塗りつぶしは AI が実行したもの。触れると短いハッシュを表示）", c:"AI と作業した時間が、どれだけ記録に残る変更になったか", x:"変更の価値。リポジトリの外の作業や、ほかの人のコミット", a:"作業時間やコストが多いのにコミットが少ない日は、何に時間を使ったかを確認する"},
   commits: {n:"コミット", d:"AI が実行して成功した git commit の回数", c:"作業が区切りまで進んだ回数の目安", x:"変更の価値や大きさ。コミットの粒度は人や作業で異なる", a:"コストに対してコミットが少ない期間は、何に時間を使ったかを確認する"},
   prs: {n:"PR の作成", d:"AI が作成した Pull Request の数（gh pr create と GitHub のツール）", c:"レビューに出せる単位まで仕上がった回数", x:"マージされたか、価値があったか", a:"作成までの手戻りが多ければ、依頼の単位を小さくする"},
   lines: {n:"AI が編集した行（推定）", d:"AI が編集・作成したファイルの、編集前後を比べた追加・削除の行数（目安）", c:"AI が手を入れた量", x:"価値や品質（生成コードや整形で大きく増える）", a:"量そのものを目標にせず、コストとの釣り合いの確認に使う"},
-  outSessions: {n:"コミットまで行ったセッション", d:"期間中にコミットか PR 作成まで行ったセッションの数と割合。成果を記録できる Claude Code のセッションだけで数える", c:"使ったセッションのうち、形に残った割合", x:"調査や相談など、コミットを目的としないセッションの価値", a:"割合が低ければ、途中で止まったセッションの理由を確かめる"},
-  costPerCommit: {n:"1 コミットあたりの目安コスト", d:"Claude Code のセッションの目安コスト ÷ コミットの回数（成果を記録できるのは Claude Code だけなので、ほかのエージェントのコストは入れない）", c:"区切りまで進めるのにかかった重さの目安", x:"コミットの大きさの違い。手で行ったコミットは含まない", a:"推移を見て、同じ作業を軽く進められているかを確かめる"},
+  outSessions: {n:"コミットまで行ったセッション", d:"期間中にコミットか PR 作成まで行ったセッションの数と割合。アウトプットを記録できる Claude Code のセッションだけで数える", c:"使ったセッションのうち、形に残った割合", x:"調査や相談など、コミットを目的としないセッションの価値", a:"割合が低ければ、途中で止まったセッションの理由を確かめる"},
+  costPerCommit: {n:"1 コミットあたりの目安コスト", d:"Claude Code のセッションの目安コスト ÷ コミットの回数（アウトプットを記録できるのは Claude Code だけなので、ほかのエージェントのコストは入れない）", c:"区切りまで進めるのにかかった重さの目安", x:"コミットの大きさの違い。手で行ったコミットは含まない", a:"推移を見て、同じ作業を軽く進められているかを確かめる"},
   native: {n:"エージェント別の参考指標", d:"各エージェントが履歴に記録している数値", c:"同じエージェント内での傾向", x:"エージェント同士の比較（定義が異なる）", a:"同じエージェントの期間ごとの変化だけを見る"},
 };
 /* HELP の英語版。キーは HELP と同じ（help_test.go で確かめる）。書式は HELP と変えてある（TestHelpMatchesGuide は HELP だけを docs/guide.md と照合する） */
@@ -1043,7 +1034,7 @@ const HELP_EN = {
   credits: {n: "Kiro credits", d: "Total credits recorded in Kiro history", c: "Credits actually consumed", x: "Differences from your account page (period boundaries or use on other machines)", a: "Track your pace against your limit"},
   costPerAsk: {n: "Estimated cost per prompt", d: "Estimated cost ÷ number of prompts", c: "How heavy a typical prompt was", x: "Differences in prompt size", a: "Watch the trend to see how the size of your prompts changes"},
   heavy: {n: "Heaviest sessions", d: "The 3 sessions with the highest estimated cost", c: "Sessions that drove usage up", x: "Whether the result was worth it", a: "Open them and check for growing context or rework"},
-  outputs: {n: "Output signals", d: "Commits, pull requests and file edits that AI ran with tools and that succeeded (Claude Code only for now)", c: "Whether the cost turned into work that left a trace", x: "The value or quality of the output. Commits you made by hand are not included", a: "Put them next to cost and look for usage that produced nothing"},
+  outputs: {n: "Outputs", d: "Commits, pull requests and file edits that AI ran with tools and that succeeded (Claude Code only for now)", c: "Whether the cost turned into work that left a trace", x: "Value, quality or productivity. Commits you made by hand are not included", a: "Put them next to cost and look for usage that produced nothing"},
   gitCommits: {n: "Git commits", d: "Your own commits (user.email) in the repositories agents worked in, including ones made by hand. Each mark on the right edge of a day in the calendar is one commit (filled = run by AI; touch it to see the short hash)", c: "How much of your time with AI became recorded changes", x: "The value of the changes. Work outside the repositories or commits by others", a: "On days with much time or cost but few commits, check where the time went"},
   commits: {n: "Commits", d: "Number of git commits that AI ran successfully", c: "Roughly how often work reached a checkpoint", x: "The value or size of the changes. Commit size varies by person and task", a: "In periods with few commits for the cost, check where the time went"},
   prs: {n: "Pull requests", d: "Number of pull requests created by AI (gh pr create and GitHub tools)", c: "How often work was ready for review", x: "Whether they were merged or valuable", a: "If there is a lot of rework before creating one, make each request smaller"},
@@ -1110,7 +1101,7 @@ function askPrompt(w, pw, M){
   if (w.git && w.git.commits) L.push("", tr("# Git のコミット（エージェントが作業したリポジトリの、自分のコミット）", "# Git commits (my own commits in the repositories agents worked in)"),
     tr(`- ${w.git.commits} 回（うち AI が実行 ${w.git.ai} 回）、git の記録で +${w.git.added} −${w.git.removed} 行`, `- ${w.git.commits} (${w.git.ai} run by AI), +${w.git.added} −${w.git.removed} lines per git`));
   if (o && (o.commits || o.prs || o.added || o.removed)){
-    L.push("", tr("# 成果の印（AI が実行して成功したもの。Claude Code のみ）", "# Output signals (run by AI and succeeded; Claude Code only)"),
+    L.push("", tr("# アウトプット（AI が実行して成功したもの。Claude Code のみ）", "# Outputs (run by AI and succeeded; Claude Code only)"),
       tr(`- コミット: ${o.commits} 回、PR の作成: ${o.prs} 件`, `- Commits: ${o.commits}, pull requests created: ${o.prs}`),
       tr(`- AI が編集した行（推定）: 追加 ${o.added}、削除 ${o.removed}`, `- Lines edited by AI (estimated): ${o.added} added, ${o.removed} removed`),
       tr(`- コミットまで行ったセッション: ${w.outSessions} / ${w.outBase ?? w.sessions}`, `- Sessions that reached a commit: ${w.outSessions} / ${w.outBase ?? w.sessions}`));
@@ -1129,7 +1120,7 @@ function askPrompt(w, pw, M){
       const mt = p.models.reduce((t, m) => t + m.tokens, 0) || 1;
       L.push(`## ${p.project}`, tr(`- 作業時間: ${dur(p.minutes)}、セッション / 依頼: ${p.sessions} / ${p.prompts}${use(p) ? "、" + use(p) : ""}`, `- Active time: ${dur(p.minutes)}, sessions / prompts: ${p.sessions} / ${p.prompts}${use(p) ? ", " + use(p) : ""}`));
       if (p.git && p.git.commits) L.push(tr(`- Git のコミット: ${p.git.commits} 回（うち AI ${p.git.ai}）、+${p.git.added} −${p.git.removed} 行`, `- Git commits: ${p.git.commits} (${p.git.ai} by AI), +${p.git.added} −${p.git.removed} lines`));
-      if (p.outputs && (p.outputs.commits || p.outputs.prs || p.outputs.added)) L.push(tr(`- 成果の印: コミット ${p.outputs.commits}、PR ${p.outputs.prs}、変更した行 +${p.outputs.added} −${p.outputs.removed}`, `- Output signals: commits ${p.outputs.commits}, pull requests ${p.outputs.prs}, lines changed +${p.outputs.added} −${p.outputs.removed}`));
+      if (p.outputs && (p.outputs.commits || p.outputs.prs || p.outputs.added)) L.push(tr(`- アウトプット: コミット ${p.outputs.commits}、PR ${p.outputs.prs}、変更した行 +${p.outputs.added} −${p.outputs.removed}`, `- Outputs: commits ${p.outputs.commits}, pull requests ${p.outputs.prs}, lines changed +${p.outputs.added} −${p.outputs.removed}`));
       if (p.models.length) L.push(tr("- 中心のモデル: ", "- Main models: ") + p.models.map(m => tr(`${mn(m.model)}（${m.tokens ? Math.round(m.tokens*100/mt) + "%" : m.turns + " 回"}）`, `${mn(m.model)} (${m.tokens ? Math.round(m.tokens*100/mt) + "%" : plural(m.turns, "turn")})`)).join(sep));
       if (p.top.length) L.push(tr("- 時間を使ったセッション: ", "- Sessions that took the most time: ") + p.top.map(t => tr(`「${cut(t.title)}」${dur(t.minutes)}${use(t) ? "・" + use(t) : ""}`, `"${cut(t.title)}" ${dur(t.minutes)}${use(t) ? ", " + use(t) : ""}`)).join(sep));
       if (p.heavy && use(p.heavy)) L.push(tr(`- 最も重いセッション: 「${cut(p.heavy.title)}」${use(p.heavy)}`, `- Heaviest session: "${cut(p.heavy.title)}" ${use(p.heavy)}`));
@@ -1152,7 +1143,7 @@ function askPrompt(w, pw, M){
 function limitHits(ws, we){ const H = []; DATA.forEach(s => (s.limits || []).forEach(t => { if (t >= ws && t < we) H.push({t, s}); })); return H.sort((a,b) => a.t - b.t); }
 /* 気づきの判定に使う部品（期間 [ws, we) を渡す。推移の計算でも使う） */
 const inP = (s, ws, we) => s.segs.some(([a,b]) => b > ws && a < we);
-function idleOf(ws, we){ // 目安コストが大きいのにコミットも PR もないセッション（成果の印を記録できる Claude Code のみ）
+function idleOf(ws, we){ // 目安コストが大きいのにコミットも PR もないセッション（アウトプットを記録できる Claude Code のみ）
   const xs = DATA.filter(s => s.cost >= 1 && /claude/i.test(s.source) && !(s.outputs && (s.outputs.commits || s.outputs.prs)) && inP(s, ws, we)).sort((a,b) => b.cost - a.cost);
   return {xs, c: xs.reduce((t,s) => t + s.cost, 0)}; }
 function longCtxOf(ws, we){ // 会話が長くなり、1 回の応答で読む入力が大きく増えたセッション
@@ -1252,7 +1243,7 @@ function findPanel(w, pw, unit, ph){
   return `<section class="panel fd">${ph(1, tr("気づき", "Findings"), tr(`この${unit}の数値から、見直すとよさそうな点`, `What may be worth revisiting, based on ${uThis(unit)}'s numbers`), "findings")}
     ${F.length ? `<div class="fgrid">${top.map(card).join("")}</div>
       ${rest.length ? `<details class="fmore"><summary>${tr(`ほかの気づき（${rest.length} 件）`, `More findings (${rest.length})`)}</summary><div class="fgrid">${rest.map((f,i) => card(f, i+3)).join("")}</div></details>` : ""}`
-      : `<p class="fok">${tr(`決めた基準を超えた指標はありませんでした。下のプロジェクト別やコストと成果で、先${unit}との違いを確かめられます。`, `No metric crossed a threshold. See By project and Cost and outputs below for changes since ${uLast(unit)}.`)}</p>`}
+      : `<p class="fok">${tr(`決めた基準を超えた指標はありませんでした。下のプロジェクト別やコストとアウトプットで、先${unit}との違いを確かめられます。`, `No metric crossed a threshold. See By project and Cost and outputs below for changes since ${uLast(unit)}.`)}</p>`}
     <p class="note">${tr(`基準は一律の目安で、良し悪しの判定ではありません。「〜を見る」で元の指標と打てる手を開けます。もっと掘り下げるなら`, `Thresholds are generic guides, not verdicts. "See … →" opens the original metric and what you can try. To dig deeper, use`)} <button class="flink" data-goto="ask">${tr("⑦ AI に改善案を聞く", "⑦ Ask AI for suggestions")}</button></p></section>`;
 
 }
@@ -1320,8 +1311,8 @@ function reportText(w, M){
 
   return L.join("\n");
 }
-/* 成果の印：AI が実行したコミット・PR 作成・変更した行（成果そのものではなく代理） */
-function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）と、残ったもの（成果の印）を並べる
+/* アウトプット：AI が実行したコミット・PR 作成・変更した行（出したものの量。価値や生産性ではない） */
+function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）と、残ったもの（アウトプット）を並べる
   const o = w.outputs || {commits:0, prs:0, added:0, removed:0}, g = w.git, u = w.usage || {};
   const hasOut = o.commits || o.prs || o.added || o.removed || (g && g.commits);
   const po = pw && pw.outputs, V = vsPrev(pw, unit), d = (a, b) => V.diff(a, V.of(null, b)); // AI のコミットと PR は日ごとの値がないので、途中の期間は比べない
@@ -1340,12 +1331,12 @@ function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）�
     stat(tr("コミットまで行ったセッション", "Sessions that reached a commit"), `${w.outSessions}<small>/ ${w.outBase ?? w.sessions}</small>`, (w.outBase ?? w.sessions) ? `${Math.round(w.outSessions*100/(w.outBase ?? w.sessions))}%` : "", "outSessions"),
     w.costPerCommit != null ? stat(tr("1コミットあたりの目安コスト", "Estimated cost per commit"), usd(w.costPerCommit).replace("$","<small>$</small>"), `n=${o.commits}`, "costPerCommit") : "",
   ].join("") : "";
-  return `<section class="panel oc">${ph(3, tr("コストと成果", "Cost and outputs"), tr(`この${unit}に使ったものと、形に残ったもの`, `What you spent ${uThis(unit)} and what it left behind`), "outputs")}
+  return `<section class="panel oc">${ph(3, tr("コストとアウトプット", "Cost and outputs"), tr(`この${unit}に使ったものと、形に残ったもの`, `What you spent ${uThis(unit)} and what it left behind`), "outputs")}
     <div class="ocgrid">
       <div><div class="ocl">${tr("使ったもの", "Spent")}</div><div class="stats">${cost}</div></div>
-      <div><div class="ocl">${tr("残ったもの（成果の印）", "Left behind (output signals)")}</div>${out ? `<div class="stats s3">${out}</div>` : `<p class="none">${tr("コミットや PR の記録はありません。", "No commits or pull requests recorded.")}</p>`}</div>
+      <div><div class="ocl">${tr("残ったもの（アウトプット）", "Left behind (outputs)")}</div>${out ? `<div class="stats s3">${out}</div>` : `<p class="none">${tr("コミットや PR の記録はありません。", "No commits or pull requests recorded.")}</p>`}</div>
     </div>
-    <p class="note">${tr("「Git のコミット」は、エージェントが作業したリポジトリにある自分のコミット（手で行ったものを含む）です。それ以外は AI がツールで実行し、成功したものだけを数えます（現在は Claude Code のみ）。数は成果の代理であり、価値ではありません。", "\"Git commits\" are your own commits in the repositories agents worked in (including ones made by hand). Everything else counts only what AI ran with tools and that succeeded (Claude Code only for now). The counts stand in for output; they are not its value.")}</p></section>`;
+    <p class="note">${tr("「Git のコミット」は、エージェントが作業したリポジトリにある自分のコミット（手で行ったものを含む）です。それ以外は AI がツールで実行し、成功したものだけを数えます（現在は Claude Code のみ）。数は出したものの量で、価値や生産性ではありません。", "\"Git commits\" are your own commits in the repositories agents worked in (including ones made by hand). Everything else counts only what AI ran with tools and that succeeded (Claude Code only for now). The counts measure what was produced, not its value or productivity.")}</p></section>`;
 }
 /* 日ごとの使用量（トークン・目安コスト・クレジットを切り替え） */
 function usageChart(w, M){
@@ -1647,7 +1638,7 @@ $("#zin").onclick = () => zoom(1); $("#zout").onclick = () => zoom(-1);
 function zoom(dv){ st.z = Math.max(0, Math.min(HOURS.length-1, st.z+dv)); store.set("zh", st.z); render(); scrollToWork(); }
 document.querySelectorAll("#colorBy button").forEach(b => b.onclick = () => { st.colorBy = b.dataset.v; st.hidden.clear(); store.set("colorBy", st.colorBy); render(); });
 $("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); render(); };
-$("#theme").onclick = () => { st.theme = {auto:"light",light:"dark",dark:"auto"}[st.theme]; store.set("theme", st.theme); applyTheme(); };
+$("#theme").onclick = () => { st.theme = st.theme === "dark" ? "light" : "dark"; store.set("theme", st.theme); applyTheme(); };
 $("#help").onclick = () => $("#keys").showModal();
 $("#lang").onchange = e => { LANG = e.target.value === "en" ? "en" : "ja"; store.set("lang", LANG); applyLang(); applyTheme(); ph(); render(); };
 $("#scrim").onclick = () => select(null); $("#close").onclick = () => select(null); $("#back").onclick = () => { const prev = st.back.pop(); st.sel = prev || null; render(); $("#panel").scrollTop = 0; };

@@ -78,9 +78,9 @@ type Summary struct {
 	Start         string             `json:"start"`         // 期間の最初の日（YYYY-MM-DD）
 	FixRate       *float64           `json:"fixRate"`       // 言い直し・中断のあった依頼の割合（%）。依頼がなければ nil
 	CostPerAsk    *float64           `json:"costPerAsk"`    // 1 依頼あたりの目安コスト。トークンの記録がなければ nil
-	Outputs       core.OutputTotal   `json:"outputs"`       // AI が実行したコミット・PR 作成・変更した行（成果の代理）
+	Outputs       core.OutputTotal   `json:"outputs"`       // AI が実行したコミット・PR 作成・変更した行（アウトプットの量）
 	OutSessions   int                `json:"outSessions"`   // コミットか PR 作成まで行ったセッションの数
-	OutBase       int                `json:"outBase"`       // そのうち、成果の印を記録できるエージェント（いまは Claude Code）のセッションの数。OutSessions の割合の分母
+	OutBase       int                `json:"outBase"`       // そのうち、アウトプットを記録できるエージェント（いまは Claude Code）のセッションの数。OutSessions の割合の分母
 	CostPerCommit *float64           `json:"costPerCommit"` // 1 コミットあたりの目安コスト。コミットかトークンの記録がなければ nil
 	Git           GitTotal           `json:"git"`           // 手元の git リポジトリのコミット（gitlog）
 	Sessions      int                `json:"sessions"`
@@ -433,7 +433,7 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 			costPer = fptr(core.Round(usage.Cost/float64(np), 3))
 		}
 	}
-	// 成果の印は Claude Code だけが記録するので、割合と 1 コミットあたりのコストは、Claude Code のセッションとコストだけで出す
+	// アウトプットは Claude Code だけが記録するので、割合と 1 コミットあたりのコストは、Claude Code のセッションとコストだけで出す
 	// （ほかのエージェントのセッションやコストが分母に混ざると、割合は低く、1 コミットあたりのコストは高く出る）
 	var outs core.OutputTotal
 	outSes, outBase, outCost := 0, 0, 0.0

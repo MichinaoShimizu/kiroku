@@ -75,7 +75,7 @@ PR と main への push で、`.github/workflows/ci.yml` が次を走らせま�
 
 - `test`（Ubuntu・macOS・Windows）: gofmt（Windows 以外）・vet・テスト・ビルド
 - `release-dry-run`: `goreleaser release --snapshot`（公開はしない。`go mod tidy -diff` で go.mod の整理漏れも止まる）、CHANGELOG のいちばん上の節からのリリースノートの抜き出し、その節がまだタグのない版なら番号が `tools/next-version.sh` の結果と合うかの確認
-- `e2e`: ダミーデータの HTML を Chromium で開き、`tools/screenshots/smoke.mjs` で大事な流れ（週の移動・セッションの詳細の開閉・週報の下書き・検索・月表示とショートカット）が動くか、横にはみ出さないか、スクリプトのエラーがないかを、日本語・英語・ダーク・1440px・1000px・390px で確かめる
+- `e2e`: ダミーデータの HTML を Chromium で開き、`tools/screenshots/smoke.mjs` で大事な流れ（テーマの切り替え・週の移動・セッションの詳細の開閉・週報の下書き・検索・月表示とショートカット）が動くか、横にはみ出さないか、スクリプトのエラーがないかを、日本語・英語・1440px・1000px・390px で確かめる
 - `install-script`（Ubuntu・macOS）: `install.sh` に shellcheck をかけ（Ubuntu のみ）、実際に最新のリリースを入れて `kiroku --version` を確かめる
 
 ほかのワークフロー:

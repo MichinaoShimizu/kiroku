@@ -10,7 +10,7 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
 
-// 成果の印（コミット・PR・変更した行）は、ツールの結果が成功したものだけを数える。
+// アウトプット（コミット・PR・変更した行）は、ツールの結果が成功したものだけを数える。
 func TestClaudeOutputs(t *testing.T) {
 	root := t.TempDir()
 	dir := filepath.Join(root, "-Users-me-app")
@@ -141,8 +141,8 @@ func TestClaudePromptFlow(t *testing.T) {
 	}
 }
 
-// サブエージェント（subagents/*.jsonl）が成功させた編集・コミット・PR も、そのセッションの成果に入る。
-// 成果の時刻は結果の時刻（許可の確認待ちなどで、呼び出しから遅れて実行されるため）。
+// サブエージェント（subagents/*.jsonl）が成功させた編集・コミット・PR も、そのセッションのアウトプットに入る。
+// アウトプットの時刻は結果の時刻（許可の確認待ちなどで、呼び出しから遅れて実行されるため）。
 func TestClaudeSubagentOutputsAndResultTime(t *testing.T) {
 	root := t.TempDir()
 	dir := filepath.Join(root, "-Users-me-app")

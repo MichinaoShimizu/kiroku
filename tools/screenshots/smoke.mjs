@@ -10,10 +10,10 @@ if (!html) { console.error("使い方: node smoke.mjs <kiroku.html>"); process.e
 const url = "file://" + path.resolve(html);
 
 const envs = [
-  { name: "ja 1440 ライト", locale: "ja-JP", viewport: { width: 1440, height: 900 }, colorScheme: "light" },
-  { name: "en 1440 ダーク", locale: "en-US", viewport: { width: 1440, height: 900 }, colorScheme: "dark" },
-  { name: "ja 1000", locale: "ja-JP", viewport: { width: 1000, height: 800 }, colorScheme: "light" },
-  { name: "ja 390 スマホ", locale: "ja-JP", viewport: { width: 390, height: 844 }, colorScheme: "light", isMobile: true, hasTouch: true },
+  { name: "ja 1440", locale: "ja-JP", viewport: { width: 1440, height: 900 } },
+  { name: "en 1440", locale: "en-US", viewport: { width: 1440, height: 900 } },
+  { name: "ja 1000", locale: "ja-JP", viewport: { width: 1000, height: 800 } },
+  { name: "ja 390 スマホ", locale: "ja-JP", viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
 ];
 
 let failed = 0;
@@ -49,6 +49,15 @@ for (const env of envs) {
     check("セッションが読み込まれている", await p.evaluate("DATA.length") > 0);
     const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
     check("横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
+  });
+
+  await step("テーマ", async () => {
+    const theme = () => p.evaluate(() => document.documentElement.dataset.theme);
+    check("既定はダーク", await theme() === "dark", await theme());
+    await p.locator("#theme").click(); await pause();
+    check("押すとライトになる", await theme() === "light", await theme());
+    await p.locator("#theme").click(); await pause();
+    check("もう一度押すとダークに戻る", await theme() === "dark", await theme());
   });
 
   await step("週の移動", async () => {

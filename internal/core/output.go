@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-// Output は AI が実行して形になった成果の印（コミット・PR の作成・変更した行）。
-// 成果そのものではなく、その代理として数える。
+// Output は AI が実行して形になったアウトプット（コミット・PR の作成・変更した行）。
+// 価値や生産性ではなく、出したものの量として数える。
 type Output struct {
 	T    *float64
 	Kind string // commit / pr / added / removed
@@ -14,7 +14,7 @@ type Output struct {
 	URL  string // PR の URL（ツールの結果からわかったとき）
 }
 
-// OutputTotal はセッションや期間の成果の合計。
+// OutputTotal はセッションや期間のアウトプットの合計。
 type OutputTotal struct {
 	Commits float64 `json:"commits"`
 	PRs     float64 `json:"prs"`
@@ -45,7 +45,7 @@ var (
 	prRe     = regexp.MustCompile(`(^|[;&|(\s])gh\s+pr\s+create\b`)
 )
 
-// Outputs は 1 回のツール呼び出しが成果にあたるかを調べる（成功したかは呼び出し側が確かめる）。
+// Outputs は 1 回のツール呼び出しがアウトプットにあたるかを調べる（成功したかは呼び出し側が確かめる）。
 //   - シェル: git commit（--dry-run を除く）・gh pr create
 //   - PR を作るツール（名前が create_pull_request で終わるもの。GitHub の MCP など）
 //   - ファイルの編集・作成: 変更前後の行を比べた追加・削除の行数
