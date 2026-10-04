@@ -78,7 +78,7 @@ go install github.com/MichinaoShimizu/kiroku@latest
 
 | 指標 | 定義 |
 |---|---|
-| 目安コスト（API 換算） | 履歴のトークン数に API の公開料金を掛けた換算値。サブスクリプションの請求額とは異なります |
+| 目安コスト（API 換算） | API の公開料金で換算した使用料。Claude Code が自身の使用料（`cost-state`）を記録しているセッションはその値を使います（料金の改定・新しいモデル・自動要約など履歴に残らない呼び出しも含む）。ないときは履歴のトークン数に kiroku の料金表を掛けます。サブスクリプションの請求額とは異なります |
 | トークン | 入力・出力・キャッシュ読み取り・キャッシュ書き込みの合計。1 つの応答が複数行に分けて記録されるため、メッセージ ID ごとにまとめてから数えます |
 | キャッシュから読んだ割合 | 入力のうちキャッシュから読み取った割合 |
 | モデル別 | モデルごとの目安コストとトークン |
@@ -88,7 +88,7 @@ go install github.com/MichinaoShimizu/kiroku@latest
 | 1 依頼あたりの目安コスト | 目安コスト ÷ 依頼の数 |
 | 重かったセッション | 目安コストの大きいセッション上位 3 件 |
 
-料金表には 2026 年 10 月時点の[公開料金](https://platform.claude.com/docs/en/about-claude/pricing)を収録しています。料金の改定や未収録のモデルには、JSON で上書きして対応できます（モデル ID の前方一致、単位は USD / 100 万トークン）。
+料金表は、Claude Code が使用料を記録していないセッション（古い版の Claude Code など）に使います。料金表には 2026 年 10 月時点の[公開料金](https://platform.claude.com/docs/en/about-claude/pricing)を収録しています。料金の改定や未収録のモデルには、JSON で上書きして対応できます（モデル ID の前方一致、単位は USD / 100 万トークン）。
 
 ```json
 {"claude-opus-5-5": {"input": 4, "output": 20, "cache_write": 5, "cache_write_1h": 8, "cache_read": 0.2}}

@@ -53,8 +53,9 @@ type Builder struct {
 	Usage                          *Usage
 	Subagents                      []Subagent
 	Credits                        []Credit
-	Measures                       []Measure // そのエージェントだけが記録している数字（native.go）
-	Outputs                        []Output  // 成果の印（output.go）。成功したツール呼び出しだけを入れる
+	Measures                       []Measure      // そのエージェントだけが記録している数字（native.go）
+	Outputs                        []Output       // 成果の印（output.go）。成功したツール呼び出しだけを入れる
+	Reported                       []ReportedCost // エージェント自身が記録した使用料（reported.go）
 	toolOrder                      []string
 	tools                          map[string]int
 	files                          map[string]bool
@@ -184,37 +185,38 @@ func (s *Builder) Corrections() int {
 
 // Session は画面と JSON に出すセッション。
 type Session struct {
-	ID          string        `json:"id"`
-	Source      string        `json:"source"`
-	Project     string        `json:"project"`
-	ProjectPath string        `json:"projectPath"`
-	Branch      *string       `json:"branch"`
-	Title       string        `json:"title"`
-	Start       float64       `json:"start"`
-	End         float64       `json:"end"`
-	Events      int           `json:"events"`
-	Segs        [][3]float64  `json:"segs"`
-	Prompts     []Prompt      `json:"prompts"`
-	NPrompts    int           `json:"nPrompts"`
-	Tools       [][2]any      `json:"tools"`
-	Files       []string      `json:"files"`
-	NFiles      int           `json:"nFiles"`
-	Resume      *string       `json:"resume"`
-	Waits       [][2]float64  `json:"waits"`
-	Interrupts  int           `json:"interrupts"`
-	Corrections int           `json:"corrections"`
-	Models      [][2]any      `json:"models"`
-	Usage       UsageTotal    `json:"usage"`
-	Subagents   []Subagent    `json:"subagents"`
-	Credits     float64       `json:"credits"`
-	Cost        float64       `json:"cost"`
-	Native      []NativeValue `json:"native"`  // このセッションの参考指標
-	Outputs     OutputTotal   `json:"outputs"` // コミット・PR・変更した行（output.go）
-	UEv         []Event       `json:"-"`       // 週ごとの集計用（HTML には入れない）
-	CEv         []Credit      `json:"-"`
-	OEv         []Output      `json:"-"`
-	Fix         []float64     `json:"-"`
-	Meas        []Measure     `json:"-"`
+	ID           string        `json:"id"`
+	Source       string        `json:"source"`
+	Project      string        `json:"project"`
+	ProjectPath  string        `json:"projectPath"`
+	Branch       *string       `json:"branch"`
+	Title        string        `json:"title"`
+	Start        float64       `json:"start"`
+	End          float64       `json:"end"`
+	Events       int           `json:"events"`
+	Segs         [][3]float64  `json:"segs"`
+	Prompts      []Prompt      `json:"prompts"`
+	NPrompts     int           `json:"nPrompts"`
+	Tools        [][2]any      `json:"tools"`
+	Files        []string      `json:"files"`
+	NFiles       int           `json:"nFiles"`
+	Resume       *string       `json:"resume"`
+	Waits        [][2]float64  `json:"waits"`
+	Interrupts   int           `json:"interrupts"`
+	Corrections  int           `json:"corrections"`
+	Models       [][2]any      `json:"models"`
+	Usage        UsageTotal    `json:"usage"`
+	Subagents    []Subagent    `json:"subagents"`
+	Credits      float64       `json:"credits"`
+	Cost         float64       `json:"cost"`
+	Native       []NativeValue `json:"native"`                 // このセッションの参考指標
+	Outputs      OutputTotal   `json:"outputs"`                // コミット・PR・変更した行（output.go）
+	CostReported bool          `json:"costReported,omitempty"` // 目安コストにエージェント自身の記録を使った
+	UEv          []Event       `json:"-"`                      // 週ごとの集計用（HTML には入れない）
+	CEv          []Credit      `json:"-"`
+	OEv          []Output      `json:"-"`
+	Fix          []float64     `json:"-"`
+	Meas         []Measure     `json:"-"`
 }
 
 func ptr[T any](v T) *T { return &v }
@@ -292,6 +294,20 @@ func (s *Builder) Finish(gapMin int) *Session {
 		prompts = prompts[:50]
 	}
 	main := s.Usage.Events()
+	if len(s.Reported) > 0 {
+		groups := [][]Event{main}
+		for _, a := range s.Subagents {
+			groups = append(groups, a.Events)
+		}
+		main = append(main, applyReported(s.Reported, groups...)...)
+		for i := range s.Subagents {
+			if len(s.Subagents[i].Events) > 0 {
+				rt := s.Subagents[i].Usage.ReportedTokens
+				s.Subagents[i].Usage = SumUsage(s.Subagents[i].Events)
+				s.Subagents[i].Usage.ReportedTokens = rt
+			}
+		}
+	}
 	mainSum := SumUsage(main)
 	cost := mainSum.Cost
 	uev := append([]Event(nil), main...)
@@ -323,7 +339,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 		Prompts: prompts, NPrompts: len(s.Prompts), Tools: tools, Files: files, NFiles: nFiles, Resume: strOrNil(s.Resume),
 		Waits: s.Waits(), Interrupts: s.Interrupts, Corrections: s.Corrections(), Models: models,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
-		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS,
+		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: len(s.Reported) > 0,
 		Native: AggregateNative(s.Source, s.Measures), Meas: s.Measures,
 	}
 }
