@@ -512,8 +512,10 @@ dialog.yr h3{font:700 15px/1.4 var(--sans);margin:30px 0 10px}
 .yropts label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
 .yract{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .yrtype{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;align-items:start}
-.yrtn{writing-mode:vertical-rl;font:800 44px/1 var(--mincho);letter-spacing:.1em;white-space:nowrap}
-.yrtn.h{writing-mode:horizontal-tb;font-size:30px;letter-spacing:0}
+.yrtn{display:flex;flex-direction:row-reverse;align-items:flex-start;gap:8px;font:800 44px/1 var(--mincho);letter-spacing:.1em;white-space:nowrap}
+.yrtn>span{writing-mode:vertical-rl}
+.yrtn.h{flex-direction:column;gap:4px;font-size:30px;letter-spacing:0}.yrtn.h>span{writing-mode:horizontal-tb}
+.yrtn .pre{font-size:20px;font-weight:700;color:#d98a3a}.yrtn .pre.over{color:var(--warn)}
 .yrtd{margin:0;font-size:14px}
 .yrev{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0 0}
 .yrev div{border-top:1px solid var(--rule);padding-top:8px;min-width:0}
@@ -522,8 +524,19 @@ dialog.yr h3{font:700 15px/1.4 var(--sans);margin:30px 0 10px}
 .yrtypes summary{cursor:pointer;font-size:12px;color:var(--ink-2);margin-top:14px}
 .yrtypes ul{list-style:none;padding:0;margin:8px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 18px;font-size:12px;color:var(--ink-2)}
 .yrtypes b{color:var(--ink)}
+.yrgrade{margin-top:14px}
+.yrexp{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;border:1px solid var(--rule-2);color:var(--ink-2)}
+.yrexp.ok{color:var(--acc-ink);border-color:var(--acc)}.yrexp.over{color:var(--warn);border-color:var(--warn)}
+.yrmeter{display:grid;gap:10px;margin:12px 0 0}
+.yrmeter div{display:grid;grid-template-columns:9em minmax(0,1fr);gap:12px;align-items:center;border-top:1px solid var(--rule);padding-top:8px}
+.yrmeter dt{font-weight:700;font-size:13px}.yrmeter dt small{display:block;font-weight:400;font-size:11px;color:var(--ink-3)}
+.yrmeter dd{margin:0;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;min-width:0}
+.yrmeter .pp{display:inline-flex;gap:3px}.yrmeter .pp i{width:10px;height:8px;border-radius:3px;background:var(--rule-2)}.yrmeter .pp i.on{background:#ffae57;box-shadow:0 0 8px rgba(255,174,87,.6)}
+.yrmeter .pv{font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.yrmeter .neg .pp i.on{background:#ff7a5c;box-shadow:0 0 8px rgba(255,122,92,.6)}.yrgrade .yrexp + .yrexp{margin-left:6px}
 @media (max-width:820px){dialog.yr{padding:18px 16px 24px;width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}
-  .yrhow,.yrev,.yrtypes ul,.yrtype{grid-template-columns:minmax(0,1fr)}.yrtn{writing-mode:horizontal-tb;font-size:30px;letter-spacing:0}}
+  .yrhow,.yrev,.yrtypes ul,.yrtype{grid-template-columns:minmax(0,1fr)}.yrtn{flex-direction:column;gap:4px;font-size:30px;letter-spacing:0}.yrtn>span{writing-mode:horizontal-tb}
+  .yrmeter div{grid-template-columns:minmax(0,1fr)}}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:9px 16px;font-size:12.5px;margin-top:14px;align-items:center}
 .keys kbd{justify-self:start}
 
@@ -1672,7 +1685,7 @@ const PLATE = ["#3a9be0","#f07a2b","#1fbf8f","#e08fbd","#f2b53a","#7cc6f0","#9c8
 const FONT = { mincho: '"Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP","Noto Serif CJK JP",serif',
   sans: '"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP","Yu Gothic UI",system-ui,sans-serif',
   mono: 'ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,monospace' };
-const yr = { y: null, x: null, L: null, opt: Object.assign({out: true, type: true, agents: true}, store.get("yrOpt", {})) };
+const yr = { y: null, x: null, L: null, G: null, opt: Object.assign({out: true, type: true, grade: true, agents: true}, store.get("yrOpt", {})) };
 function yearsOf(){ return [...new Set(Object.keys(MONTHS).map(k => +k.slice(0, 4)))].sort((a, b) => a - b); }
 function yearData(y){
   const ms = Object.keys(MONTHS).filter(k => k.startsWith(y + "-")).sort().map(k => MONTHS[k]);
@@ -1703,11 +1716,28 @@ function yearData(y){
     });
   });
   const ht = hist.reduce((a, v) => a + v, 0) || 1, now = today0();
+  // 腕前に使う数字（gradeOf）。割合は、記録のある期間・エージェントだけで出す
+  const outBase = sum(m => m.outBase), cost = sum(m => m.usage && m.usage.cost), nY = Math.max(1, nses);
+  const mods = {}; ms.forEach(m => ((m.usage || {}).models || []).forEach(([k, , t]) => mods[k] = (mods[k] || 0) + (t || 0)));
+  const mT = Object.values(mods).reduce((a, v) => a + v, 0);
+  // 上達：記録のある月が 4 か月以上なら、前半と後半で言い直しの割合と 1 コミットあたりのコストを比べる
+  const half = ms.filter(m => m.prompts), hv = xs => { const p = xs.reduce((a, m) => a + (m.fixRate == null ? 0 : m.prompts), 0), c = xs.reduce((a, m) => a + (m.outputs ? m.outputs.commits : 0), 0);
+    return {fix: p ? xs.reduce((a, m) => a + (m.fixRate == null ? 0 : m.fixRate * m.prompts), 0)/p : null, cpc: c >= 3 ? xs.reduce((a, m) => a + (m.costPerCommit == null ? 0 : m.costPerCommit * m.outputs.commits), 0)/c : null}; };
+  const h1 = half.length >= 4 ? hv(half.slice(0, half.length >> 1)) : null, h2 = h1 && hv(half.slice(half.length >> 1));
+  const grow = !!h1 && (h1.fix != null && h2.fix != null && h1.fix - h2.fix >= 3 || h1.cpc != null && h2.cpc != null && h2.cpc <= h1.cpc * .8);
+  const first = DATA.find(s => s.start >= y0 && s.start < y1), span = Math.max(1, Math.round(((now.getFullYear() === y ? +now/1000 : y1) - (first ? Math.max(y0, first.start) : y0))/86400));
   return { y, nd, active, lines, agents, streak, sessions: nses,
     nightPct: active ? night/active*100 : 0, morningPct: (hist[5] + hist[6] + hist[7] + hist[8])/ht*100, peak: hist.indexOf(Math.max(...hist)),
     fix: fixP ? sum(m => m.fixRate == null ? 0 : m.fixRate * m.prompts)/fixP : null,
     avgMin: nses ? segMin/nses : 0, perSes: nses ? nprompts/nses : 0,
     commits: sum(m => m.git && m.git.commits), prs: sum(m => m.outputs && m.outputs.prs),
+    days: on.size, prompts: nprompts, span, fixP, outBase, grow,
+    reach: outBase >= 5 ? sum(m => m.outSessions)/outBase*100 : null,
+    perCommit: outBase >= 5 && sum(m => m.outputs && m.outputs.commits) ? sum(m => m.prompts)/sum(m => m.outputs.commits) : null,
+    parPct: active ? sum(m => m.parallel)/active*100 : 0, subagents: sum(m => m.usage && m.usage.subagents),
+    models: mT ? Object.values(mods).filter(v => v/mT >= .1).length : 0,
+    longPct: longCtxOf(y0, y1).length/nY*100, idlePct: cost >= 1 ? idleOf(y0, y1).c/cost*100 : null, lightPct: cost >= 1 ? lightOf(y0, y1).c/cost*100 : null,
+    limits: limitHits(y0, y1).length,
     partial: now.getFullYear() === y ? now : null };
 }
 /* 光の名前：使い方の傾向を写真の言葉で表す（良し悪しではない）。上から順に、最初に当てはまったもの */
@@ -1733,6 +1763,37 @@ const LIGHTS = [
   {k: "day", ja: "昼光型", en: "Daylight", m: "peak", t: () => true,
    dj: "日中に、落ち着いて AI と進める。", de: "You work with AI steadily through the day.",
    rj: "ほかのどれにも当てはまらない", re: "None of the above"}];
+/* 腕前：光の名前（型）とは別に、4 つのメーターで積み重ね・仕上げる力・使いこなしの幅・回り道を 0〜1 で測る。露光の画面だけの遊びで、週次・月次サマリーには使わない */
+const TIERS = [ // 点数で決める 10 段階（10% ごと）
+  ["見習い", "Novice"], ["入門", "Beginner"], ["駆け出し", "Apprentice"], ["一人前", "Competent"], ["腕利き", "Skilled"],
+  ["熟練", "Expert"], ["達人", "Master"], ["名人", "Virtuoso"], ["巨匠", "Grandmaster"], ["伝説", "Legendary"]].map(([ja, en], i) => ({ja, en, u: i === 9 ? Infinity : (i + 1)/10}));
+const OVERS = [ // 露出オーバー（働き方の危うさ・回り道が多すぎる）。上から順に、最初に当てはまったものを等級の代わりに冠にする
+  {k: "blown", ja: "白飛びした", en: "Blown-Out", t: x => x.streak >= 30 && x.active/Math.max(1, x.days) >= 120 || x.nightPct >= 40 && x.streak >= 14,
+   rj: "1 日平均 2 時間以上で 30 日以上休みなく続けたか、深夜の作業が 40% 以上で 14 日以上休みなし", re: "30+ days in a row without a break at 2+ hours a day, or 40%+ late at night with 14+ days in a row"},
+  {k: "film", ja: "フィルム切れの", en: "Out-of-Film", t: x => x.limits >= 10,
+   rj: "利用上限に 10 回以上当たった", re: "Hit a usage limit 10 or more times"},
+  {k: "noise", ja: "ノイズの多い", en: "Grainy", t: (x, G) => G.m.noise != null && G.m.noise >= .6,
+   rj: "ノイズ（回り道）が 60% 以上", re: "Noise (detours) at 60% or more"}];
+function gradeOf(x){
+  const c = v => Math.max(0, Math.min(1, v)), avg = a => (a = a.filter(v => v != null)).length ? a.reduce((s, v) => s + v, 0)/a.length : null;
+  const top2 = a => avg(a.slice().sort((p, q) => q - p).slice(0, 2)); // 使いこなしの幅は、どれか 2 つが得意なら高くなる
+  const f = Math.max(.5, Math.min(1, x.span/365)); // 年の途中や使い始めの年は、経った日数のぶんだけ満点を下げる（使い始めてすぐ満点にならないよう、半分まで）
+  const eff = 1/(x.agents.reduce((s, g) => s + (g.pct/100)**2, 0) || 1); // 使い分けの度合い（1 つだけなら 1、3 つを均等なら 3）
+  const m = {
+    shutter: avg([c(x.days/(180*f)), c(Math.log1p(x.prompts)/Math.log1p(3000*f)), c(Math.log1p(x.active/60)/Math.log1p(800*f))]),
+    focus: avg([x.reach == null ? null : c(x.reach/50), x.perCommit == null ? null : c((20 - x.perCommit)/15)]), // コミットまで 50%・5 依頼で 1 コミットで満点
+    multi: top2([c(x.parPct/30), c(Math.log1p(x.subagents)/Math.log1p(200*f)), c((eff - 1)/2), c((x.models - 1)/2)]),
+    noise: avg([x.fix == null ? null : c((x.fix - 5)/20), c(x.longPct/15), x.idlePct == null ? null : c(x.idlePct/40), x.lightPct == null ? null : c(x.lightPct/20)]) };
+  const base = avg([m.shutter, m.focus, m.multi]) || 0, score = Math.max(0, base - .4*(m.noise || 0));
+  let ti = TIERS.findIndex(t => score < t.u);
+  if (x.grow) ti = Math.min(TIERS.length - 1, ti + 1); // 上達していれば 1 段上げる
+  if (ti === TIERS.length - 1 && !([m.shutter, m.focus ?? 1, m.multi].every(v => v >= .8) && (m.noise || 0) <= .2)) ti--; // 伝説は 3 つとも高く、ノイズが少ないときだけ
+  const G = {m, score, tier: TIERS[ti], grow: x.grow};
+  G.over = OVERS.find(o => o.t(x, G));
+  G.exp = G.over ? "over" : score < .4 ? "under" : "ok";
+  return G;
+}
+const pips = v => v == null ? 0 : Math.max(0, Math.min(10, Math.round(v*10))); // メーターの 10 段階
 function lightMetric(k, x){
   return ({ night: [tr("深夜（22〜6 時）の作業", "Late-night work (22:00–6:00)"), `${Math.round(x.nightPct)}%`],
     morning: [tr("5〜9 時の作業", "Work between 5:00 and 9:00"), `${Math.round(x.morningPct)}%`],
@@ -1766,6 +1827,16 @@ function drawPlate(){
   const r = cv.getBoundingClientRect(), p = Math.min(2, devicePixelRatio || 1), W = Math.round(r.width*p), H = Math.round(r.height*p);
   if (!W || !H) return; cv.width = W; cv.height = H; exposure(cv.getContext("2d"), 0, 0, W, H, yr.x, p, true);
 }
+function cardMeters(g, X, Y, ink2, amber){ // シェア画像の腕前：4 つのメーターを 10 段階で
+  const G = yr.G; g.save(); g.textAlign = "left"; g.textBaseline = "alphabetic";
+  [["shutter", tr("シャッター数", "SHUTTER")], ["focus", tr("ピント", "FOCUS")], ["multi", tr("多重度", "LAYERS")], ["noise", tr("ノイズ", "NOISE")]].forEach(([k, n], r) => {
+    const y = Y + r*38, p = pips(G.m[k]), on = k === "noise" ? "#ff7a5c" : amber;
+    g.fillStyle = ink2; g.font = `500 ${EN() ? 16 : 20}px ${EN() ? FONT.mono : FONT.sans}`; if (EN() && "letterSpacing" in g) g.letterSpacing = "3px"; g.fillText(n, X, y); if ("letterSpacing" in g) g.letterSpacing = "0px";
+    for (let i = 0; i < 10; i++){ g.fillStyle = i < p ? on : "rgba(255,255,255,.12)"; g.shadowColor = on; g.shadowBlur = i < p ? 10 : 0;
+      g.beginPath(); g.roundRect ? g.roundRect(X + 140 + i*16, y - 14, 12, 12, 4) : g.rect(X + 140 + i*16, y - 14, 12, 12); g.fill(); }
+    g.shadowBlur = 0; });
+  g.restore();
+}
 function drawCard(){
   const cv = $("#yrcard"); if (!cv || !yr.x) return;
   const x = yr.x, L = yr.L, o = yr.opt, W = 1600, H = 900, g = cv.getContext("2d");
@@ -1796,19 +1867,27 @@ function drawCard(){
   items.forEach(([n, l]) => { g.font = `500 26px ${FONT.mono}`; g.fillStyle = ink; const t = n.toLocaleString(LOC()); g.fillText(t, cx, 412); cx += g.measureText(t).width + 10;
     g.font = `500 24px ${FONT.sans}`; g.fillStyle = ink2; g.fillText(l, cx, 412); cx += g.measureText(l).width + 40; });
   if (o.type && L){
+    const G = yr.G, pre = o.grade ? (G.over ? tr(G.over.ja, G.over.en) : tr(`${G.tier.ja}の`, G.tier.en)) : "", hot = "#ff7a5c", pc = o.grade && G.over ? hot : amber;
     g.shadowColor = "rgba(255,174,87,.5)"; g.shadowBlur = 36;
     if (EN()){
       g.textAlign = "right"; g.shadowBlur = 0; g.fillStyle = ink2; g.font = `500 20px ${FONT.mono}`; ls("4px"); g.fillText("YOUR LIGHT", W - 80, 110); ls("0px");
-      g.shadowBlur = 36; g.fillStyle = amber; g.font = `800 64px ${FONT.mincho}`; g.fillText(L.en, W - 80, 190);
+      if (pre){ g.shadowColor = pc; g.shadowBlur = 24; g.fillStyle = pc; g.font = `700 34px ${FONT.mincho}`; g.fillText(pre, W - 80, 160); }
+      g.shadowColor = "rgba(255,174,87,.5)"; g.shadowBlur = 36; g.fillStyle = amber; g.font = `800 64px ${FONT.mincho}`; g.fillText(L.en, W - 80, pre ? 228 : 190);
+      g.shadowBlur = 0; if (o.grade) cardMeters(g, W - 80 - 300, 280, ink2, amber);
     } else {
-      const ch = [...L.ja], sz = Math.min(92, 300/ch.length), x0 = W - 80 - sz;
-      g.textAlign = "center"; g.textBaseline = "top"; g.fillStyle = amber; g.font = `800 ${sz}px ${FONT.mincho}`;
+      // 縦書きは右から読むので、冠（等級）を右の列に小さく、名前をその左に置く
+      const pc2 = [...pre], ps = pre ? Math.min(34, 300/pc2.length) : 0, ch = [...L.ja], sz = Math.min(92, 300/ch.length), x0 = W - 80 - sz - (pre ? ps + 14 : 0);
+      g.textAlign = "center"; g.textBaseline = "top";
+      if (pre){ g.save(); g.shadowColor = pc; g.shadowBlur = 20; g.fillStyle = pc; g.font = `700 ${ps}px ${FONT.mincho}`; pc2.forEach((c, i) => g.fillText(c, W - 80 - ps/2, 96 + i*ps*1.08)); g.restore(); }
+      g.fillStyle = amber; g.font = `800 ${sz}px ${FONT.mincho}`;
       ch.forEach((c, i) => g.fillText(c, x0 + sz/2, 92 + i*sz*1.04));
+      const lx = x0 - 30;
       g.shadowBlur = 0; g.fillStyle = ink2; g.font = `500 20px ${FONT.sans}`;
-      [..."あなたの光の名前"].forEach((c, i) => g.fillText(c, x0 - 30, 96 + i*25));
+      [..."あなたの光の名前"].forEach((c, i) => g.fillText(c, lx, 96 + i*25));
       const bottom = 92 + ch.length*sz*1.04;
       if (bottom + 74 < top + 10){ const sx = x0 + sz/2 - 27, sy = bottom + 16; g.strokeStyle = amber; g.lineWidth = 2; g.strokeRect(sx, sy, 54, 54);
         g.fillStyle = amber; g.font = `800 20px ${FONT.mincho}`; g.fillText("記", sx + 27, sy + 5); g.fillText("録", sx + 27, sy + 28); }
+      if (o.grade){ g.textBaseline = "alphabetic"; cardMeters(g, lx - 50 - 300, 130, ink2, amber); }
     }
     g.shadowBlur = 0; g.textAlign = "left"; g.textBaseline = "alphabetic";
   }
@@ -1822,7 +1901,7 @@ function drawCard(){
 function renderYear(){
   const ys = yearsOf(), dlg = $("#yr"); if (!ys.length) return;
   if (!ys.includes(yr.y)) yr.y = ys.includes(today0().getFullYear()) ? today0().getFullYear() : ys[ys.length-1];
-  const x = yr.x = yearData(yr.y), L = yr.L = LIGHTS.find(l => l.t(x)), pt = x.partial;
+  const x = yr.x = yearData(yr.y), L = yr.L = LIGHTS.find(l => l.t(x)), G = yr.G = gradeOf(x), pt = x.partial;
   const pos = d => (Math.round((d - new Date(x.y, 0, 1))/864e5)/x.nd*100).toFixed(2);
   const months = Array.from({length: 12}, (_, i) => `<span style="left:${pos(new Date(x.y, i, 1))}%">${EN() ? new Date(x.y, i, 1).toLocaleString("en-US", {month: "short"}) : `${i+1}月`}</span>`).join("");
   const hours = [["6", 0], ["12", 25], ["18", 50], ["0", 75], ["6", 100]].map(([h, t]) => `<span style="top:${t}%">${tr(`${h}時`, `${h}:00`)}</span>`).join("");
@@ -1840,17 +1919,23 @@ function renderYear(){
 
   <h3>${tr("シェア用の 1 枚", "An image to share")}</h3>
   <canvas class="yrcard" id="yrcard" width="1600" height="900" role="img" aria-label="${esc(tr(`シェア用の画像。${x.y} 年に AI と過ごした時間 ${dur(x.active)}`, `Image to share: ${dur(x.active)} with AI in ${x.y}`))}"></canvas>
-  <div class="yropts">${opt("out", tr("コミット・PR", "Commits and PRs"))}${opt("type", tr("光の名前", "Your light"))}${opt("agents", tr("エージェントの内訳", "Agent breakdown"))}</div>
+  <div class="yropts">${opt("out", tr("コミット・PR", "Commits and PRs"))}${opt("type", tr("光の名前", "Your light"))}${opt("grade", tr("腕前", "Skill"))}${opt("agents", tr("エージェントの内訳", "Agent breakdown"))}</div>
   <div class="yract"><button class="pill" id="yrsave">${tr("PNG で保存", "Save as PNG")}</button><button class="pill" id="yrcopy">${tr("画像をコピー", "Copy image")}</button></div>
   <p class="note">${tr("画像に載るのは、作業していた時間・セッション数などの集計と光の筋だけです。依頼文・プロジェクト名・ブランチ・ファイル・目安コストは載りません。画像はこのブラウザの中で作り、どこにも送りません。", "The image shows only totals such as active time and sessions, and the streaks of light. Prompts, project names, branches, files and estimated cost are never included. It is made in this browser and sent nowhere.")}</p>
 
   <h3>${tr("あなたの光の名前", "Your light")}</h3>
-  <div class="yrtype"><div class="yrtn${EN() ? " h" : ""}">${name(L)}</div><div>
+  <div class="yrtype"><div class="yrtn${EN() ? " h" : ""}"><span class="pre${G.over ? " over" : ""}">${esc(G.over ? tr(G.over.ja, G.over.en) : tr(`${G.tier.ja}の`, G.tier.en))}</span><span>${name(L)}</span></div><div>
     <p class="yrtd">${tr(L.dj, L.de)}</p>
+    <div class="yrgrade"><div class="yrexp ${G.exp}">${{under: tr("露出アンダー：これから伸びる", "Underexposed: room to grow"), ok: tr("適正露出：いい写り", "Well exposed"), over: tr(`露出オーバー：${G.over ? G.over.rj : ""}`, `Overexposed: ${G.over ? G.over.re : ""}`)}[G.exp]}</div>${G.grow ? `<div class="yrexp ok">${tr("↗ 上達中：前半より後半がうまくなった（等級を 1 段上げています）", "↗ Improving: the second half beat the first (one level up)")}</div>` : ""}
+      ${meters(x, G)}</div>
     <dl class="yrev">${ev.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>
     <p class="note">${tr(`光の名前は、この 1 年の使い方の傾向を写真の言葉で表したもので、良し悪しではありません。決め手：${L.rj}`, `Your light describes the shape of your year in photography terms. It is not a verdict. Why: ${L.re}`)}${x.active < 600 ? tr("（記録が少ないので、参考程度に）", " (based on little history, so take it lightly)") : ""}</p>
     <details class="yrtypes"><summary>${tr("七つの光の名前と基準", "All seven and how they are chosen")}</summary><ul>${LIGHTS.map(l => `<li><b>${name(l)}</b> — ${tr(l.rj, l.re)}</li>`).join("")}</ul>
-      <p class="note">${tr("上から順に、最初に当てはまったものを選びます。", "The first one that matches, from the top, is chosen.")}</p></details></div></div>`;
+      <p class="note">${tr("上から順に、最初に当てはまったものを選びます。", "The first one that matches, from the top, is chosen.")}</p></details>
+    <details class="yrtypes"><summary>${tr("腕前の等級と露出オーバー", "Skill levels and overexposure")}</summary>
+      <ul>${TIERS.map((t, i) => `<li><b>${tr(t.ja, t.en)}</b> — ${tr(`点数が ${i*10}〜${i*10 + 10}%`, `Score ${i*10}–${i*10 + 10}%`)}</li>`).join("")}
+        ${OVERS.map(o => `<li><b>${tr(o.ja.replace(/(した|の)$/, ""), o.en)}</b> — ${tr(o.rj, o.re)}</li>`).join("")}</ul>
+      <p class="note">${tr("点数は、シャッター数・ピント・多重度の平均から、ノイズの 4 割を引いたものです。伝説は 3 つがどれも 80% 以上で、ノイズが 20% 以下のときだけ。年の前半より後半で言い直しが 3 ポイント以上減るか、1 コミットあたりのコストが 2 割以上下がると「上達中」として 1 段上がります。シャッター数は作業した日数（180 日）・依頼の数（3,000 件）・作業時間（800 時間）、ピントはコミットか PR まで行った割合（50%）と 1 コミットあたりの依頼の少なさ（5 件）、多重度は並列の割合（30%）・サブエージェント（200 回）・エージェントとモデルの使い分けのうち得意な 2 つ、ノイズは言い直し・長くなった会話・コミットにつながらなかったコスト・軽い作業に高いモデルから出します（かっこは満点の目安。年の途中は、経った日数のぶん半分まで下げます）。数字は目安で、腕前と関係のない理由でも上下するので、遊びとして見てください。", "The score is the average of shutter count, focus and layers, minus 40% of noise. Legendary needs all three at 80% or more and noise at 20% or less. If corrections drop by 3 points or cost per commit falls by 20% from the first half of the year to the second, you are \"improving\" and go up one level. Shutter count comes from active days (180), prompts (3,000) and active time (800 hours); focus from sessions that reached a commit or pull request (50%) and few prompts per commit (5); layers from your best two of parallel time (30%), subagents (200 runs), and using several agents and models; noise from corrections, long conversations, cost with no commit and expensive models for light work (full marks in brackets, scaled down to as little as half for a year in progress). These are rough proxies that can move for reasons unrelated to skill, so treat it as a game.")}</p></details></details></div></div>`;
   $("#yrsel").onchange = e => { yr.y = +e.target.value; renderYear(); };
   dlg.querySelectorAll("[data-o]").forEach(c => c.onchange = () => { yr.opt[c.dataset.o] = c.checked; store.set("yrOpt", yr.opt); drawCard(); });
   const blob = () => new Promise(res => $("#yrcard").toBlob(res, "image/png"));
@@ -1861,6 +1946,16 @@ function renderYear(){
     catch(e){ toast(tr("画像をコピーできませんでした。PNG で保存してください", "Couldn't copy the image. Save it as a PNG instead"), 2600); } };
   drawPlate(); drawCard();
   const sc = dlg.querySelector(".yrscroll"); sc.scrollLeft = sc.scrollWidth; // 狭い画面では、新しい記録の側を見せる
+}
+function meters(x, G){
+  const pct = v => v == null ? "—" : `${Math.round(v)}%`;
+  const rows = [
+    ["shutter", tr("シャッター数", "Shutter count"), tr("積み重ね", "Practice"), tr(`${x.days} 日・依頼 ${x.prompts.toLocaleString(LOC())} 件・${dur(x.active)}`, `${plural(x.days, "day")} · ${plural(x.prompts, "prompt")} · ${dur(x.active)}`)],
+    ["focus", tr("ピント", "Focus"), tr("仕上げる力", "Follow-through"), tr(`コミットまで ${pct(x.reach)}・1 コミットあたり依頼 ${x.perCommit == null ? "—" : x.perCommit.toFixed(1) + " 件"}`, `To commit ${pct(x.reach)} · ${x.perCommit == null ? "—" : x.perCommit.toFixed(1)} prompts per commit`)],
+    ["multi", tr("多重度", "Layers"), tr("使いこなしの幅", "Range"), tr(`並列 ${pct(x.parPct)}・サブエージェント ${x.subagents} 回・エージェント ${x.agents.length}・モデル ${x.models}`, `Parallel ${pct(x.parPct)} · ${plural(x.subagents, "subagent run")} · ${plural(x.agents.length, "agent")} · ${plural(x.models, "model")}`)],
+    ["noise", tr("ノイズ", "Noise"), tr("回り道（少ないほど澄んだ写り）", "Detours (fewer means a cleaner shot)"), tr(`言い直し ${pct(x.fix)}・長くなった会話 ${pct(x.longPct)}・コミットにつながらなかったコスト ${pct(x.idlePct)}・軽い作業に高いモデル ${pct(x.lightPct)}`, `Corrections ${pct(x.fix)} · long conversations ${pct(x.longPct)} · cost with no commit ${pct(x.idlePct)} · expensive models for light work ${pct(x.lightPct)}`)]];
+  return `<dl class="yrmeter">${rows.map(([k, n, sub, v]) => { const p = pips(G.m[k]);
+    return `<div${k === "noise" ? ' class="neg"' : ""}><dt>${n}<small>${sub}</small></dt><dd><span class="pp" role="img" aria-label="${tr(`10 段階の ${p}`, `${p} of 10`)}">${"<i class=on></i>".repeat(p)}${"<i></i>".repeat(10 - p)}</span><span class="pv">${v}</span></dd></div>`; }).join("")}</dl>`;
 }
 function openYear(){ const d = $("#yr"); if (!d.open) d.showModal(); renderYear(); }
 
