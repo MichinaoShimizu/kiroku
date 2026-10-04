@@ -89,3 +89,5 @@ case ":$PATH:" in
      say "  export PATH=\"$dir:\$PATH\""
      say "then run \"kiroku serve\" to start" ;;
 esac
+say "tip: Claude Code deletes conversations older than 30 days by default. To keep more history for kiroku, set \"cleanupPeriodDays\": 3650 in ~/.claude/settings.json"
+say "     https://code.claude.com/docs/en/settings-reference#cleanupperioddays"

@@ -44,6 +44,18 @@ curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install
 
 Windows は [Releases](https://github.com/MichinaoShimizu/kiroku/releases) から zip をダウンロードして展開してください。Go がある場合は `go install github.com/MichinaoShimizu/kiroku@latest` でもインストールできます。
 
+## 履歴を残す設定
+
+kiroku が表示できるのは、エージェントが残している履歴だけです。**Claude Code は、既定では 30 日より古い会話を自動で消します**。消えた履歴は元に戻せないので、インストールしたらすぐ、長い期間を設定してください。`~/.claude/settings.json` に次を加えます（[公式ドキュメント](https://code.claude.com/docs/en/settings-reference#cleanupperioddays)）。
+
+```json
+{
+  "cleanupPeriodDays": 3650
+}
+```
+
+Kiro Crew も古い会話の記録を消します（`session.archive_retention_days`）。既定のまま消える設定のときは、kiroku の画面でもお知らせします。エージェントごとの詳細は [履歴の保存期間](docs/guide.md#履歴の保存期間) を参照してください。
+
 ## アップデート
 
 ```bash
@@ -61,8 +73,6 @@ kiroku help     # コマンドとオプションの一覧
 ```
 
 出力した HTML には依頼文やファイルパス、コミットメッセージがそのまま含まれます。人に渡すときは内容を確認してください。
-
-エージェントによっては、古い履歴を自動で消します（たとえば Claude Code は、既定で 30 日より古い会話を消します）。過去の分を残すには [履歴の保存期間](docs/guide.md#履歴の保存期間) を参照してください。
 
 画面の見方、指標の定義、読み取る履歴、オプションは [docs/guide.md](docs/guide.md)、開発については [docs/development.md](docs/development.md) を参照してください。
 
