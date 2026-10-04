@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -19,14 +18,30 @@ import (
 
 // Commit は 1 つのコミット。
 type Commit struct {
-	Hash    string  `json:"hash"`    // 短いハッシュ
-	T       float64 `json:"t"`       // 作成日時（author date、UNIX 秒）
-	Project string  `json:"project"` // セッションと同じプロジェクト名
-	Subject string  `json:"subject"`
-	Added   int     `json:"added"`
-	Removed int     `json:"removed"`
-	AI      bool    `json:"ai"` // エージェントがツールで実行したコミット（時刻が 2 分以内で一致）
+	Hash    string     `json:"hash"`    // 短いハッシュ
+	T       float64    `json:"t"`       // 作成日時（author date、UNIX 秒）
+	Project string     `json:"project"` // セッションと同じプロジェクト名
+	Subject string     `json:"subject"`
+	Body    string     `json:"body,omitempty"`   // 件名のあとの本文（先頭 600 文字）
+	Branch  string     `json:"branch,omitempty"` // たどり着いた ref（git log --source）。ブランチの目安
+	Repo    string     `json:"repo"`             // リポジトリのルート
+	Added   int        `json:"added"`
+	Removed int        `json:"removed"`
+	Files   []FileStat `json:"files"`             // 変更したファイル（先頭 MaxFiles 件）
+	NFiles  int        `json:"nFiles"`            // 変更したファイルの数
+	AI      bool       `json:"ai"`                // エージェントがツールで実行したコミット（時刻が 2 分以内で一致）
+	Session string     `json:"session,omitempty"` // AI が実行したときの、そのセッションの ID
 }
+
+// FileStat は 1 つのファイルの変更行数（バイナリは -1）。
+type FileStat struct {
+	Path    string `json:"path"`
+	Added   int    `json:"added"`
+	Removed int    `json:"removed"`
+}
+
+// MaxFiles は 1 つのコミットについて残すファイルの数。
+const MaxFiles = 40
 
 // MaxPerRepo は 1 つのリポジトリから読むコミットの上限。
 const MaxPerRepo = 5000
@@ -37,10 +52,15 @@ var git = func(ctx context.Context, dir string, args ...string) (string, error) 
 	return string(out), err
 }
 
+type aiCommit struct {
+	t       float64
+	session string
+}
+
 type repo struct {
 	top, project string
 	since        float64
-	aiTimes      []float64
+	ai           []aiCommit
 }
 
 // Collect はセッションの作業場所にあるリポジトリから、利用者自身（user.email）のコミットを読む。
@@ -84,7 +104,7 @@ func Collect(data []*core.Session) []Commit {
 		r.since = math.Min(r.since, d.Start)
 		for _, o := range d.OEv {
 			if o.Kind == "commit" && o.T != nil {
-				r.aiTimes = append(r.aiTimes, *o.T)
+				r.ai = append(r.ai, aiCommit{*o.T, d.ID})
 			}
 		}
 	}
@@ -105,12 +125,10 @@ func Collect(data []*core.Session) []Commit {
 	return out
 }
 
-var statRe = regexp.MustCompile(`(\d+) insertion|(\d+) deletion`)
-
 func readRepo(ctx context.Context, r *repo) []Commit {
 	email, _ := git(ctx, r.top, "config", "user.email")
-	args := []string{"log", "--all", "--no-merges", "--no-color", "-n", strconv.Itoa(MaxPerRepo),
-		"--since=@" + strconv.FormatInt(int64(r.since)-86400, 10), "--format=%x1e%h%x1f%at%x1f%s", "--shortstat"}
+	args := []string{"log", "--all", "--source", "--no-merges", "--no-color", "-n", strconv.Itoa(MaxPerRepo),
+		"--since=@" + strconv.FormatInt(int64(r.since)-86400, 10), "--format=%x1e%h%x1f%at%x1f%S%x1f%s%x1f%b%x1d", "--numstat"}
 	if e := strings.TrimSpace(email); e != "" {
 		args = append(args, "--author="+e)
 	}
@@ -118,34 +136,58 @@ func readRepo(ctx context.Context, r *repo) []Commit {
 	if err != nil {
 		return nil
 	}
-	sort.Float64s(r.aiTimes)
+	sort.Slice(r.ai, func(i, j int) bool { return r.ai[i].t < r.ai[j].t })
 	var out []Commit
 	for _, rec := range strings.Split(raw, "\x1e") {
-		rec = strings.TrimSpace(rec)
-		if rec == "" {
+		head, stat, ok := strings.Cut(rec, "\x1d")
+		if !ok {
 			continue
 		}
-		head, stat, _ := strings.Cut(rec, "\n")
-		f := strings.SplitN(head, "\x1f", 3)
-		if len(f) < 3 {
+		f := strings.SplitN(head, "\x1f", 5)
+		if len(f) < 5 {
 			continue
 		}
 		t, err := strconv.ParseFloat(f[1], 64)
 		if err != nil {
 			continue
 		}
-		c := Commit{Hash: f[0], T: t, Project: r.project, Subject: core.Runes(f[2], 120)}
-		for _, m := range statRe.FindAllStringSubmatch(stat, -1) {
-			if m[1] != "" {
-				c.Added, _ = strconv.Atoi(m[1])
+		c := Commit{Hash: f[0], T: t, Project: r.project, Repo: r.top, Branch: branchOf(f[2]), Subject: core.Runes(f[3], 160),
+			Body: core.Runes(strings.TrimSpace(f[4]), 600), Files: []FileStat{}}
+		for _, line := range strings.Split(stat, "\n") {
+			cols := strings.SplitN(line, "\t", 3)
+			if len(cols) != 3 {
+				continue
 			}
-			if m[2] != "" {
-				c.Removed, _ = strconv.Atoi(m[2])
+			fs := FileStat{Path: cols[2], Added: -1, Removed: -1}
+			if a, err := strconv.Atoi(cols[0]); err == nil {
+				fs.Added = a
+				c.Added += a
+			}
+			if d, err := strconv.Atoi(cols[1]); err == nil {
+				fs.Removed = d
+				c.Removed += d
+			}
+			c.NFiles++
+			if len(c.Files) < MaxFiles {
+				c.Files = append(c.Files, fs)
 			}
 		}
-		i := sort.SearchFloat64s(r.aiTimes, t-120)
-		c.AI = i < len(r.aiTimes) && r.aiTimes[i] <= t+120
+		i := sort.Search(len(r.ai), func(i int) bool { return r.ai[i].t >= t-120 })
+		if i < len(r.ai) && r.ai[i].t <= t+120 {
+			c.AI, c.Session = true, r.ai[i].session
+		}
 		out = append(out, c)
 	}
 	return out
+}
+
+// branchOf は git log --source の ref をブランチ名らしく短くする（refs/heads/x → x、refs/remotes/origin/x → origin/x）。
+func branchOf(ref string) string {
+	ref = strings.TrimSpace(ref)
+	for _, p := range []string{"refs/heads/", "refs/remotes/", "refs/"} {
+		if strings.HasPrefix(ref, p) {
+			return strings.TrimPrefix(ref, p)
+		}
+	}
+	return ref
 }
