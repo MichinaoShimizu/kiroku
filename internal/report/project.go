@@ -56,7 +56,7 @@ func projectStats(data []*core.Session, ws, we float64, minutes map[string]float
 	get := func(p string) *acc {
 		a := by[p]
 		if a == nil {
-			a = &acc{st: ProjectStat{Project: p, Minutes: core.Round(minutes[p], 0)}, models: map[string]*ModelShare{}}
+			a = &acc{st: ProjectStat{Project: p, Minutes: core.Round(minutes[p], 0), Models: []ModelShare{}, Top: []TopSession{}}, models: map[string]*ModelShare{}}
 			by[p] = a
 		}
 		return a
