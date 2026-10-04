@@ -84,6 +84,15 @@ for (const env of envs) {
     check("Esc で詳細が閉じる", !await drawerOpen());
   });
 
+  await step("見直す候補", async () => {
+    const n = await p.locator(".flagsum .flink").count();
+    check("見直す候補の数だけ、指標に印が付く", n > 0 && await p.locator(".fl").count() >= n, `候補 ${n}`);
+    const id = await p.locator(".flagsum .flink").first().getAttribute("data-goto");
+    await p.locator(".flagsum .flink").first().click(); await pause();
+    check("候補を押すと、その指標の説明が開く", await p.locator(`.panel .hb[data-help="${id}"]`).first().getAttribute("aria-expanded") === "true", id);
+    await open();
+  });
+
   await step("週報の下書き", async () => {
     const tog = p.locator("#rpttog");
     await tog.scrollIntoViewIfNeeded();
