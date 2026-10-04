@@ -29,6 +29,7 @@ The view is in English or Japanese, following your browser's language; switch it
 - **Calendar**: when, in which project, and what you asked, by week or month. Your local git commits appear alongside, so you can see what changed where.
 - **Findings**: metrics that crossed a threshold, in priority order, each with what was observed, why it matters, the related sessions and an 8-week (or 8-month) trend.
 - **Summary**: cost (time, tokens, estimated cost, credits) next to outcomes (commits, pull requests, lines edited by AI), by project and by day. Share bars compare each project's, branch's or agent's share of active time with its share of tokens, estimated cost and credits. Every metric explains what it can and cannot tell you.
+- **Year in review**: your year of active time drawn like a long-exposure photo (date across, time of day down), with a name for your pattern ("your light") and an image to share, saved as a PNG or copied. The image shows only totals and the streaks of light, never prompts or project names.
 - **Search and weekly report**: search prompts, edited files and commits across all time, and preview and copy a weekly or monthly report draft of what you did, your commits and pull requests.
 - **Ask AI for suggestions**: build a prompt from the shown week, month or a single session that asks an AI for suggestions on how you use it. Copy it into the agent you already use.
 
