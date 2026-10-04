@@ -22,6 +22,7 @@ import (
 //
 //	<KIROCREW_HOME か ~/.kiro/crew>/session_map.json        {会話キー: {"sid": kiro-cli の会話 ID, "cwd": …} か "sid"}
 //	<…>/sessions/<キー>.jsonl                               1 行目 {"_type": "metadata", "title", "agent", "model", …}
+//	                                                         2 行目から {"role": "user"|"assistant"|…, "content", "ts", "tools"?: [ツール名]}
 //	<…>/subagents/<id>/state.json                          {"task", "agent", "parent_session", "session_id"?, …}
 //	<…>/usage/tokens/<YYYY-MM-DD>.jsonl                     {"_type": "tokens", "ts", "slot": 会話キー, "model", "credits", "duration_ms", …}
 
@@ -80,6 +81,58 @@ func LoadCrew(home string) map[string]CrewInfo {
 			Task: core.Runes(strings.TrimSpace(core.Str(st["task"])), 120)}
 	}
 	return out
+}
+
+// crewRow は Crew の会話の 1 行。
+type crewRow struct {
+	t     *float64
+	role  string
+	text  string
+	tools []string
+}
+
+// crewTranscriptPath は会話キーの記録ファイル（Crew の history._safe_key と同じ名前）。
+func crewTranscriptPath(home, key string) string {
+	return filepath.Join(home, "sessions", unsafeKey.ReplaceAllString(key, "_")+".jsonl")
+}
+
+// readCrewTranscript は Crew の会話の記録を読む。title は 1 行目のメタデータのタイトル。
+func readCrewTranscript(path string) (title string, rows []crewRow) {
+	core.ReadJSONL(path, func(e core.Obj) {
+		if core.Str(e["_type"]) == "metadata" {
+			title = firstNonEmpty(title, core.Str(e["title"]))
+			return
+		}
+		r := crewRow{t: ts(e["ts"]), role: core.Str(e["role"]), text: core.TextOf(e["content"])}
+		for _, x := range core.List(e["tools"]) {
+			if n := core.Str(x); n != "" {
+				r.tools = append(r.tools, n)
+			}
+		}
+		if r.role != "" {
+			rows = append(rows, r)
+		}
+	})
+	return title, rows
+}
+
+// addCrewRows は Crew の会話の記録から、依頼の流れ・時刻・使ったツールを足す。
+// kiro-cli の履歴に依頼が残っていない会話（Crew のダッシュボードから動かしたものなど）のため。
+func addCrewRows(s *core.Builder, rows []crewRow) {
+	for _, r := range rows {
+		switch r.role {
+		case "user":
+			s.Tick(r.t)
+			s.Prompt(r.t, r.text)
+		case "assistant":
+			s.Agent(r.t)
+		default: // tool / tool_call / tool_result など
+			s.Agent(r.t)
+		}
+		for _, n := range r.tools {
+			s.Tool(n, nil)
+		}
+	}
 }
 
 // tagCrew は Crew から動かした kiro-cli の会話に目印とタイトルをつける。つけたら true。
@@ -197,7 +250,12 @@ func addCrewTurns(s *core.Builder, turns []crewTurn) {
 
 // crewOnly は kiro-cli の会話に結びつかない Crew の記録を、Crew のセッションにする。
 // 裏方の処理（_bg）は 1 日ごとにまとめる。
-func crewOnly(slot string, turns []crewTurn, info *CrewInfo) []*core.Builder {
+func crewOnly(home, slot string, turns []crewTurn, info *CrewInfo) []*core.Builder {
+	var title string
+	var rows []crewRow
+	if slot != "_bg" && home != "" {
+		title, rows = readCrewTranscript(crewTranscriptPath(home, slot))
+	}
 	groups := map[string][]crewTurn{}
 	var order []string
 	for _, x := range turns {
@@ -223,6 +281,8 @@ func crewOnly(slot string, turns []crewTurn, info *CrewInfo) []*core.Builder {
 			s.Title = "Kiro Crew の裏方の処理"
 		case info != nil && info.Title != "":
 			s.Title = info.Title
+		case title != "":
+			s.Title = title
 		default:
 			s.Title = "Kiro Crew: " + slot
 		}
@@ -231,6 +291,7 @@ func crewOnly(slot string, turns []crewTurn, info *CrewInfo) []*core.Builder {
 			s.Project = info.Cwd
 		}
 		addCrewTurns(s, groups[g])
+		addCrewRows(s, rows)
 		first := groups[g][0].start
 		s.Measure("crew_sessions", &first, 1)
 		out = append(out, s)
