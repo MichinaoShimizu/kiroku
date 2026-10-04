@@ -43,3 +43,26 @@ func TestWeekUsageUnpriced(t *testing.T) {
 		t.Errorf("料金表にないモデルがなければ空の一覧（null にしない）: %s", b)
 	}
 }
+
+// 期間の集計は、期間に関わるセッションだけを選んで行う（span.go）。セッションの区間の外にある記録
+// （例: 区間より後に記録された使用量）も、その記録の期間に入る。
+func TestPeriodsIncludeRecordsOutsideSessionRange(t *testing.T) {
+	w1 := time.Date(2026, 9, 21, 0, 0, 0, 0, time.Local)
+	w2 := w1.AddDate(0, 0, 7)
+	a0, b0 := float64(w1.Add(34*time.Hour).Unix()), float64(w2.Add(34*time.Hour).Unix())
+	late := b0 + 60 // a の使用量だが、時刻は次の週
+	cost := 1.0
+	a := &core.Session{ID: "a", Source: "Claude Code", Project: "app", Start: a0, End: a0 + 600,
+		Segs: [][3]float64{{a0, a0 + 600, 2}}, Prompts: []core.Prompt{},
+		UEv: []core.Event{{T: &late, Model: "m", U: core.Tokens{In: 1000}, Cost: &cost}}}
+	b := &core.Session{ID: "b", Source: "Claude Code", Project: "app", Start: b0, End: b0 + 600,
+		Segs: [][3]float64{{b0, b0 + 600, 2}}, Prompts: []core.Prompt{}}
+	weeks := AllWeeks([]*core.Session{a, b})
+	w := weeks[w2.Format("2006-01-02")]
+	if w == nil {
+		t.Fatal("次の週の集計がない")
+	}
+	if w.Usage.Tokens != 1000 {
+		t.Errorf("次の週の使用量 = %v, want 1000（区間の外の記録も、その時刻の週に入れる）", w.Usage.Tokens)
+	}
+}

@@ -111,8 +111,9 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 		}
 	}
 	gap := *c.gap
+	cache := newLoadCache() // kiroku serve の読み直しで、変わっていない履歴を読み直さない
 	load := func() snapshot {
-		data, rep := collect(picked, want, gap)
+		data, rep := collectCached(picked, want, gap, cache)
 		if data == nil {
 			data = []*core.Session{} // 画面では null ではなく空の一覧として扱う
 		}
