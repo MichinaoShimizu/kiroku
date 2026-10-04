@@ -2,7 +2,7 @@
 
 Notable changes to kiroku. Each release on GitHub uses its section here as the release notes.
 
-## Unreleased
+## v0.1.7 - 2026-10-04
 
 ### Changed
 
