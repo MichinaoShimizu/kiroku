@@ -39,6 +39,11 @@ jobs:
             exit 0
           fi
           sh tools/release-notes.sh "$v" > /dev/null
+          want=$(sh tools/next-version.sh "$v")
+          if [ "$v" != "$want" ]; then
+            echo "::error::$v の中身からすると、版は $want です。CHANGELOG を直してください"
+            exit 1
+          fi
           git tag "$v"
           git push origin "$v"
           echo "tag=$v" >> "$GITHUB_OUTPUT"

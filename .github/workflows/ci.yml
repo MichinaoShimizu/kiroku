@@ -43,6 +43,17 @@ jobs:
           args: release --snapshot --clean
       # リリースノートを抜き出す仕組みが壊れていないか（いちばん上の節で試す。Unreleased か、タグを打つ直前の版）
       - run: sh tools/release-notes.sh "$(grep -m1 '^## ' CHANGELOG.md | cut -d' ' -f2)"
+      # リリースする版（まだタグのない、いちばん上の版の節）が、中身から決まる番号と合っているか（tools/next-version.sh）
+      - name: Version matches the changelog
+        run: |
+          top=$(grep -m1 '^## ' CHANGELOG.md | cut -d' ' -f2)
+          case "$top" in v*) ;; *) exit 0 ;; esac
+          git rev-parse -q --verify "refs/tags/$top" >/dev/null && exit 0
+          want=$(sh tools/next-version.sh "$top")
+          if [ "$top" != "$want" ]; then
+            echo "::error file=CHANGELOG.md::$top の中身からすると、版は $want です（sh tools/next-version.sh $top）"
+            exit 1
+          fi
 
   # install.sh が最新のリリースを落として置けるか（macOS は shasum、Linux は sha256sum の道を通る）
   install-script:
