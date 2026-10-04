@@ -16,7 +16,7 @@ func TestHelpWithoutSubcommand(t *testing.T) {
 			t.Errorf("%v: %v", args, err)
 		}
 	}
-	if err := dispatch([]string{"serv"}); err == nil || !strings.Contains(err.Error(), "知らないサブコマンド") {
+	if err := dispatch([]string{"serv"}); err == nil || !strings.Contains(err.Error(), "unknown command") {
 		t.Errorf("打ちまちがい: %v", err)
 	}
 }
@@ -60,11 +60,11 @@ func TestJSONSubcommand(t *testing.T) {
 		t.Fatalf("JSON が書き出されていない: %v", err)
 	}
 	for _, sub := range []string{"weekly", "monthly"} {
-		if err := dispatch([]string{sub}); err == nil || !strings.Contains(err.Error(), "知らないサブコマンド") {
+		if err := dispatch([]string{sub}); err == nil || !strings.Contains(err.Error(), "unknown command") {
 			t.Errorf("%s: %v", sub, err)
 		}
 	}
-	if err := dispatch([]string{"--weekly"}); err == nil || !strings.Contains(err.Error(), "なくなりました") {
+	if err := dispatch([]string{"--weekly"}); err == nil || !strings.Contains(err.Error(), "has been removed") {
 		t.Errorf("--weekly: %v", err)
 	}
 }

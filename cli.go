@@ -69,7 +69,7 @@ func dispatch(args []string) error {
 	if strings.HasPrefix(args[0], "-") {
 		return runLegacy(args) // 前の書き方（kiroku --serve など）
 	}
-	return fmt.Errorf("知らないサブコマンドです: %s（kiroku help で一覧）", args[0])
+	return fmt.Errorf("unknown command: %s (run \"kiroku help\" for the list)", args[0])
 }
 
 // common は、履歴を読むコマンドに共通のオプション。
@@ -96,7 +96,7 @@ func addCommon(fs *flag.FlagSet) *common {
 func (c *common) loader() ([]source.Source, func() snapshot, error) {
 	if *c.prices != "" {
 		if err := loadPrices(*c.prices); err != nil {
-			return nil, nil, fmt.Errorf("料金表を読めなかったよ: %w", err)
+			return nil, nil, fmt.Errorf("could not read the price table: %w", err)
 		}
 	}
 	want := map[string]bool{}
@@ -140,7 +140,7 @@ func parse(fs *flag.FlagSet, args []string, maxPos int) ([]string, error) {
 		args = fs.Args()[1:]
 	}
 	if len(pos) > maxPos {
-		return nil, fmt.Errorf("引数が多すぎるよ: %s（kiroku %s --help）", strings.Join(pos[maxPos:], " "), fs.Name())
+		return nil, fmt.Errorf("too many arguments: %s (see \"kiroku %s --help\")", strings.Join(pos[maxPos:], " "), fs.Name())
 	}
 	return pos, nil
 }
@@ -174,7 +174,7 @@ func cmdServe(args []string) error {
 	addr := defaultAddr
 	if len(pos) == 1 {
 		if !addrRe.MatchString(pos[0]) {
-			return fmt.Errorf("待ち受け先は :8485 や 127.0.0.1:8485 の形で書いてね: %s", pos[0])
+			return fmt.Errorf("the address must look like :8485 or 127.0.0.1:8485: %s", pos[0])
 		}
 		addr = pos[0]
 	}
@@ -226,14 +226,14 @@ func loadNonEmpty(c *common) (snapshot, error) {
 	}
 	snap := load()
 	if len(snap.data) == 0 {
-		return snap, fmt.Errorf("履歴が 1 件も見つからなかったよ。--root や KIRO_HOME を確認してね")
+		return snap, fmt.Errorf("no history found; check --root or KIRO_HOME")
 	}
 	return snap, nil
 }
 
 func writeHTML(snap snapshot, out string, open bool) error {
 	if len(snap.data) == 0 {
-		return fmt.Errorf("履歴が 1 件も見つからなかったよ。--root や KIRO_HOME を確認してね")
+		return fmt.Errorf("no history found; check --root or KIRO_HOME")
 	}
 	html, err := web.Render(snap.data, snap.weeks, snap.months, snap.meta, snap.gen, false)
 	if err != nil {
@@ -242,7 +242,7 @@ func writeHTML(snap snapshot, out string, open bool) error {
 	if err := os.WriteFile(out, []byte(html), 0o644); err != nil {
 		return err
 	}
-	fmt.Printf("%d セッション → %s\n", len(snap.data), out)
+	fmt.Printf("%d sessions → %s\n", len(snap.data), out)
 	if open {
 		if abs, err := filepath.Abs(out); err == nil {
 			openBrowser(abs)
@@ -283,7 +283,7 @@ func runLegacy(args []string) error {
 		return quiet(err)
 	}
 	if fs.NArg() > 0 {
-		return fmt.Errorf("知らないサブコマンドです: %s（kiroku help で一覧）", fs.Arg(0))
+		return fmt.Errorf("unknown command: %s (run \"kiroku help\" for the list)", fs.Arg(0))
 	}
 	explicitOut := false
 	fs.Visit(func(f *flag.Flag) {
@@ -292,13 +292,13 @@ func runLegacy(args []string) error {
 		}
 	})
 	note := func(newForm string) {
-		fmt.Fprintf(os.Stderr, "（この書き方は古くなりました。これからは %s を使ってね）\n", newForm)
+		fmt.Fprintf(os.Stderr, "(this form is deprecated; use %s instead)\n", newForm)
 	}
 	switch {
 	case *showVersion:
 		return runVersion()
 	case *weekly != "" || *monthly != "":
-		return fmt.Errorf("週次・月次サマリーの Markdown 書き出しはなくなりました。kiroku serve の画面で見てね")
+		return fmt.Errorf("the Markdown weekly/monthly summary has been removed; use \"kiroku serve\" instead")
 	case *serve != "":
 		note("kiroku serve")
 		picked, load, err := c.loader()

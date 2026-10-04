@@ -16,32 +16,32 @@ REPO="MichinaoShimizu/kiroku"
 say() { printf '%s\n' "$*"; }
 die() { printf 'kiroku: %s\n' "$*" >&2; exit 1; }
 
-command -v curl >/dev/null 2>&1 || die "curl が必要です"
-command -v tar >/dev/null 2>&1 || die "tar が必要です"
+command -v curl >/dev/null 2>&1 || die "curl is required"
+command -v tar >/dev/null 2>&1 || die "tar is required"
 
 case "$(uname -s)" in
   Darwin) os=darwin ;;
   Linux) os=linux ;;
-  *) die "この OS には対応していません: $(uname -s)。Windows は https://github.com/$REPO/releases から zip を落としてください" ;;
+  *) die "unsupported OS: $(uname -s). On Windows, download the zip from https://github.com/$REPO/releases" ;;
 esac
 
 case "$(uname -m)" in
   x86_64 | amd64) arch=amd64 ;;
   arm64 | aarch64) arch=arm64 ;;
-  *) die "この CPU には対応していません: $(uname -m)" ;;
+  *) die "unsupported CPU: $(uname -m)" ;;
 esac
 
 # 最新の版は、releases/latest のリダイレクト先から読む（API の回数制限にかからない）
 version="${KIROKU_VERSION:-}"
 if [ -z "$version" ]; then
   url=$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/$REPO/releases/latest") ||
-    die "最新の版を調べられませんでした"
+    die "could not check the latest version"
   version="${url##*/}"
 fi
 case "$version" in
   v[0-9]*) ;;
   [0-9]*) version="v$version" ;;
-  *) die "版の形が読めません: $version" ;;
+  *) die "unexpected version format: $version" ;;
 esac
 
 file="kiroku_${version#v}_${os}_${arch}.tar.gz"
@@ -50,22 +50,22 @@ base="https://github.com/$REPO/releases/download/$version"
 tmp=$(mktemp -d 2>/dev/null || mktemp -d -t kiroku)
 trap 'rm -rf "$tmp"' EXIT INT TERM
 
-say "kiroku ${version}（$os/${arch}）を落としています…"
-curl -fsSL -o "$tmp/$file" "$base/$file" || die "$file を落とせませんでした（${base}）"
-curl -fsSL -o "$tmp/checksums.txt" "$base/checksums.txt" || die "checksums.txt を落とせませんでした"
+say "downloading kiroku ${version} ($os/${arch})…"
+curl -fsSL -o "$tmp/$file" "$base/$file" || die "could not download $file (${base})"
+curl -fsSL -o "$tmp/checksums.txt" "$base/checksums.txt" || die "could not download checksums.txt"
 
 want=$(awk -v f="$file" '$2 == f { print $1 }' "$tmp/checksums.txt")
-[ -n "$want" ] || die "checksums.txt に $file がありません"
+[ -n "$want" ] || die "$file is not listed in checksums.txt"
 if command -v sha256sum >/dev/null 2>&1; then
   got=$(sha256sum "$tmp/$file" | awk '{ print $1 }')
 elif command -v shasum >/dev/null 2>&1; then
   got=$(shasum -a 256 "$tmp/$file" | awk '{ print $1 }')
 else
-  die "sha256sum か shasum が必要です"
+  die "sha256sum or shasum is required"
 fi
-[ "$got" = "$want" ] || die "チェックサムが合いません（${file}）"
+[ "$got" = "$want" ] || die "checksum mismatch (${file})"
 
-tar -xzf "$tmp/$file" -C "$tmp" kiroku || die "展開できませんでした"
+tar -xzf "$tmp/$file" -C "$tmp" kiroku || die "could not extract the archive"
 
 dir="${KIROKU_INSTALL_DIR:-}"
 if [ -z "$dir" ]; then
@@ -75,17 +75,17 @@ if [ -z "$dir" ]; then
     dir="$HOME/.local/bin"
   fi
 fi
-mkdir -p "$dir" || die "$dir を作れませんでした"
-mv -f "$tmp/kiroku" "$dir/kiroku" || die "$dir に置けませんでした（KIROKU_INSTALL_DIR で場所を変えられます）"
+mkdir -p "$dir" || die "could not create $dir"
+mv -f "$tmp/kiroku" "$dir/kiroku" || die "could not install into $dir (set KIROKU_INSTALL_DIR to choose another place)"
 chmod +x "$dir/kiroku"
 if [ "$os" = darwin ] && command -v xattr >/dev/null 2>&1; then
   xattr -d com.apple.quarantine "$dir/kiroku" 2>/dev/null || true
 fi
 
-say "入れました: $dir/kiroku（$("$dir/kiroku" --version)）"
+say "installed: $dir/kiroku ($("$dir/kiroku" --version))"
 case ":$PATH:" in
-  *":$dir:"*) say "kiroku serve で始まります（kiroku help で使い方）" ;;
-  *) say "$dir が PATH に入っていません。シェルの設定に次の 1 行を足してください:"
+  *":$dir:"*) say "run \"kiroku serve\" to start (\"kiroku help\" for usage)" ;;
+  *) say "$dir is not in your PATH. Add this line to your shell config:"
      say "  export PATH=\"$dir:\$PATH\""
-     say "そのあと kiroku serve で始まります" ;;
+     say "then run \"kiroku serve\" to start" ;;
 esac
