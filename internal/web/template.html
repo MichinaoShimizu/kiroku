@@ -165,17 +165,19 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .fses:hover span{color:var(--acc-ink);text-decoration:underline}
 .flink{color:var(--acc-ink);font-size:11.5px;font-weight:600}
 .flink:hover{text-decoration:underline}
-.spark{display:inline-flex;align-items:center;gap:8px;color:var(--ink-3)}
+.spark{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;color:var(--ink-3);min-width:0}
 .spark svg{flex:none;overflow:visible}
 .spark polyline{fill:none;stroke:var(--acc);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
 .spark circle{fill:var(--acc)}
-.spark small{font-size:10.5px;line-height:1.4}
+.spark small{font-size:10.5px;line-height:1.4;flex:1 1 12em;min-width:0}
 .spark small b{color:var(--ink-2);font-size:11.5px;font-variant-numeric:tabular-nums;margin-right:2px}
 .flagsum{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 14px;font-size:12.5px}
 .flagsum .lbl{display:inline-flex;align-items:center;gap:6px;font-weight:650;color:var(--ink-2)}
 .flagsum .hint{flex-basis:100%}
 .fdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 3px var(--acc-soft);flex:none}
-.stat.flagged{box-shadow:inset 3px 0 0 var(--acc)}
+.stat.flagged{box-shadow:inset 3px 0 0 var(--acc);grid-column:1/-1}
+.fl .more{margin:0;font-size:11px}
+.moreS summary .fdot{margin-left:8px;vertical-align:1px}
 .fl{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding:8px 0 2px;border-top:1px dashed var(--rule-2);min-width:0;overflow-wrap:anywhere}
 .fl p{margin:0}
 .fl .see{font-size:12.5px;font-weight:600;line-height:1.55;color:var(--ink)}
@@ -183,7 +185,7 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .fl .rule{font-size:11px;color:var(--ink-3)}
 .fl .why{font-size:11.5px;color:var(--ink-2);line-height:1.6}
 .sact{display:flex;flex-direction:column;gap:6px;margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--acc-soft)}
-.sact .pill{align-self:flex-start;color:var(--acc-ink);border-color:color-mix(in oklab,var(--acc) 35%,var(--rule-2));font-weight:600}
+.sact .pill{align-self:flex-start;max-width:100%;height:auto;min-height:30px;padding:6px 12px;white-space:normal;text-align:left;line-height:1.45;color:var(--acc-ink);border-color:color-mix(in oklab,var(--acc) 35%,var(--rule-2));font-weight:600}
 .sact span{font-size:11.5px;color:var(--ink-2);line-height:1.6}
 .keep{margin:0 0 16px;padding:14px 18px;border-radius:12px;border:1px solid color-mix(in oklab,var(--warn) 45%,var(--rule));background:color-mix(in oklab,var(--warn) 7%,var(--surface))}
 .keep b{display:block;font-size:14px;color:var(--warn);margin-bottom:4px}
@@ -219,7 +221,7 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .pcard .bar2{height:5px;border-radius:3px;background:var(--surface-2);overflow:hidden;margin-top:-4px}
 .pcard .bar2 span{display:block;height:100%;background:var(--c);border-radius:3px}
 .pcard .kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
-.pcard .kv>div{background:var(--surface-2);border-radius:8px;padding:6px 10px;min-width:0;display:flex;justify-content:space-between;align-items:baseline;gap:0 8px;flex-wrap:wrap} /* 長いラベル（英語など）では、値を次の行へ */
+.pcard .kv>div{background:var(--surface-2);border-radius:8px;padding:6px 10px;min-width:0} /* 値はいつもラベルの下に（値の長さでカードごとに並びが変わらないように） */
 .pcard .kv .k{font-size:10.5px;color:var(--ink-3);white-space:nowrap}
 .pcard .kv .v{font:700 14px/1.3 var(--sans);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pcard .lab{font-size:11px;color:var(--ink-3);margin-bottom:4px}
@@ -386,6 +388,12 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl time{color:var(--ink-3);font-variant-numeric:tabular-nums;font-size:11.5px;padding-top:1px}
 .tl p{margin:0;overflow-wrap:anywhere}
 .more{font-size:12px;color:var(--ink-3);margin:6px 0 0 56px}
+.tl li[hidden]{display:none}
+.tl .pfull{white-space:pre-wrap}
+.pexp,.pall{color:var(--acc-ink);font-weight:600}
+.pexp{font-size:11.5px;white-space:nowrap}
+.pexp:hover,.pall:hover{text-decoration:underline}
+button.more{display:block;text-align:left}
 .trow{display:grid;grid-template-columns:110px 1fr 28px;gap:10px;align-items:center;font-size:12px;padding:3px 0}
 .trow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);font-size:11.5px}
 .trow .track2{height:6px;border-radius:3px;background:var(--surface-2)}
@@ -513,9 +521,10 @@ dialog.yr h3{font:700 15px/1.4 var(--sans);margin:30px 0 10px}
 .yract{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .yrtype{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;align-items:start}
 .yrtn{display:flex;flex-direction:row-reverse;align-items:flex-start;gap:8px;font:800 44px/1 var(--mincho);letter-spacing:.1em;white-space:nowrap}
-.yrtn>span{writing-mode:vertical-rl}
-.yrtn.h{flex-direction:column;gap:4px;font-size:30px;letter-spacing:0}.yrtn.h>span{writing-mode:horizontal-tb}
-.yrtn .pre{font-size:20px;font-weight:700;color:#d98a3a}.yrtn .pre.over{color:var(--warn)}
+.yrtn>span{display:flex;flex-direction:column;align-items:center;gap:.1em} /* 縦書きは 1 字ずつ積む（writing-mode は縦の送り幅を持たないフォントで潰れる） */
+.yrtn i{font-style:normal}.yrtn i.r{transform:rotate(90deg)}
+.yrtn.h{flex-direction:column;gap:4px;font-size:30px;letter-spacing:0}.yrtn.h>span{display:inline}
+.yrtn .pre{font-size:20px;font-weight:700;color:#d98a3a}:root:not([data-theme="dark"]) .yrtn .pre:not(.over){color:#a85a12} /* 白地でも 3:1 以上 */.yrtn .pre.over{color:var(--warn)}
 .yrtd{margin:0;font-size:14px}
 .yrev{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0 0}
 .yrev div{border-top:1px solid var(--rule);padding-top:8px;min-width:0}
@@ -535,7 +544,7 @@ dialog.yr h3{font:700 15px/1.4 var(--sans);margin:30px 0 10px}
 .yrmeter .pv{font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .yrmeter .neg .pp i.on{background:#ff7a5c;box-shadow:0 0 8px rgba(255,122,92,.6)}.yrgrade .yrexp + .yrexp{margin-left:6px}
 @media (max-width:820px){dialog.yr{padding:18px 16px 24px;width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}
-  .yrhow,.yrev,.yrtypes ul,.yrtype{grid-template-columns:minmax(0,1fr)}.yrtn{flex-direction:column;gap:4px;font-size:30px;letter-spacing:0}.yrtn>span{writing-mode:horizontal-tb}
+  .yrhow,.yrev,.yrtypes ul,.yrtype{grid-template-columns:minmax(0,1fr)}.yrtn{flex-direction:column;gap:4px;font-size:30px;letter-spacing:0}.yrtn>span{display:block}.yrtn i.r{transform:none}
   .yrmeter div{grid-template-columns:minmax(0,1fr)}}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:9px 16px;font-size:12.5px;margin-top:14px;align-items:center}
 .keys kbd{justify-self:start}
@@ -543,7 +552,7 @@ dialog.yr h3{font:700 15px/1.4 var(--sans);margin:30px 0 10px}
 /* ── responsive ─────────────────────────────────────────── */
 @media (max-width:1320px){.rvgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel.shape{grid-column:1/-1}}
 @media (max-width:1180px){.tag{display:none}.kpis{margin-left:0;width:100%}.kpi{flex:1;min-width:0}}
-@media (max-width:1000px){#colorBy{display:none}.cbsel{display:inline-block}.legend .lab .ln{display:none}.search kbd{display:none}.search input,.search input:focus{width:160px}}
+@media (max-width:1000px){#colorBy{display:none}.cbsel{display:inline-block}.legend .lab .ln{display:none}.search kbd{display:none}.search input,.search input:focus{width:160px;padding-right:10px}}
 @media (max-width:480px){#help{display:none}} /* ショートカットの一覧は、キーボードのないスマホでは使わないので、ロゴと検索の場所を空ける */
 @media (max-width:820px){
   .rvgrid.srgrid{grid-template-columns:1fr}
@@ -596,7 +605,7 @@ dialog.yr h3{font:700 15px/1.4 var(--sans);margin:30px 0 10px}
     </div>
     <label class="search"><span class="sr">検索</span>
       <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
-      <input id="q" type="search" placeholder="依頼文・ファイル・コミットで探す" autocomplete="off"><kbd>/</kbd></label>
+      <input id="q" type="search" placeholder="依頼・ファイル・コミット" autocomplete="off"><kbd>/</kbd></label>
     <label class="langsel"><span class="sr">言語 / Language</span><select id="lang"><option value="ja">日本語</option><option value="en">English</option></select></label>
     <button class="iconbtn" id="theme" aria-label="テーマを切り替え"></button>
     <button class="iconbtn" id="help" aria-label="ショートカット"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 014.8.9c0 1.7-2.4 2.2-2.4 3.6M12 17h.01"/></svg></button>
@@ -829,7 +838,7 @@ function monthGrid(shown, ms, me, todayKey){
       const by = {}; shown.forEach(s => s.segs.forEach(([a,b]) => { const o = Math.min(b,de) - Math.max(a,ds); if (o > 0) by[keyOf(s)] = (by[keyOf(s)]||0) + o; }));
       const pj = Object.entries(by).sort((a,b)=>b[1]-a[1]);
       h += `<button class="cell${d.getDay()%6===0?" we":""}${key(d)===todayKey?" today":""}" data-w="${key(mondayOf(d))}" style="--heat:${(act/max).toFixed(3)}" title="${tr(`${md(ds)} 作業 ${dur(act)}${x ? `・依頼 ${x.prompts}・深夜 ${dur(x.night)}${useShort(x) ? `・${useShort(x)}` : ""}` : ""}`, `${md(ds)} active ${dur(act)}${x ? ` · ${plural(x.prompts, "prompt")} · late night ${dur(x.night)}${useShort(x) ? ` · ${useShort(x)}` : ""}` : ""}`)}">
-        <span class="dn">${d.getDate()}</span>${act ? `<span class="ac">${dur(act, true)}</span><span class="acs">${act >= 60 ? (act/60).toFixed(1)+"h" : act+"m"}</span><span class="sub2">${tr(`依頼 ${x.prompts}`, plural(x.prompts, "prompt"))}</span>` : ""}${x && useShort(x) ? `<span class="use">${useShort(x)}</span>` : ""}${x && x.commits ? `<span class="gcm" title="${tr("git のコミット", "Git commits")}">${GIT_ICON}${x.commits}</span>` : ""}
+        <span class="dn">${d.getDate()}</span>${act ? `<span class="ac">${dur(act, true)}</span><span class="acs">${act >= 60 ? (act/60).toFixed(1)+tr("時間", "h") : act+tr("分", "m")}</span><span class="sub2">${tr(`依頼 ${x.prompts}`, plural(x.prompts, "prompt"))}</span>` : ""}${x && useShort(x) ? `<span class="use">${useShort(x)}</span>` : ""}${x && x.commits ? `<span class="gcm" title="${tr("git のコミット", "Git commits")}">${GIT_ICON}${x.commits}</span>` : ""}
         ${pj.length ? `<span class="pj">${pj.map(([k,v])=>`<span style="flex:${v};--c:${colorOf(k)}"></span>`).join("")}</span>` : ""}</button>`;
     }
   }
@@ -842,7 +851,7 @@ function monthGrid(shown, ms, me, todayKey){
 function timeline(shown, inWeek, ws, we, todayKey){
   const T = $("#tl"), hh = HOURS[st.z] || 44, H = 24*hh;
   if (!inWeek.length || !shown.length){
-    T.innerHTML = `<div class="empty"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><p>${inWeek.length ? tr("条件に合うセッションはありません", "No sessions match the current filters") : tr("この週の記録はありません。← → で週を移動できます", "No records this week. Use ← → to move between weeks")}</p></div>`;
+    T.innerHTML = `<div class="empty"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><p>${inWeek.length ? tr("条件に合うセッションはありません", "No sessions match the current filters") : tr("この週の記録はありません。← → で週を移動できます。", "No records this week. Use ← → to move between weeks.")}</p></div>`;
     return;
   }
   const keep = T.querySelector(".calscroll"), top = keep ? keep.scrollTop : null;
@@ -906,7 +915,7 @@ function summary(){
     <div class="askbar"><button class="pill" id="rptcopy">${tr("コピー", "Copy")}</button><button class="pill" id="rptclose">${tr("閉じる", "Close")}</button>
       <span class="muted" style="font-size:11.5px">${tr("プロジェクトごとに、やったこと・コミット・PR をまとめた Markdown です。セッション名は依頼文の冒頭なので、直してから貼ってください。", "Markdown with what you did, commits and pull requests for each project. Session names are the start of your prompts, so edit them before pasting.")}</span></div>
     <pre class="askpre" id="rptpre">${esc(reportText(w, M))}</pre></section>` : ""}`;
-  if (!w){ R.innerHTML = `${head}<div class="rvgrid"><div class="panel"><p class="none">${tr(`この${unit}の記録はありません。← → で移動できます。`, `No records ${uThis(unit)}. Use ← → to move.`)}</p>${foot()}</div></div>`; bindCopy(R); return; }
+  if (!w){ R.innerHTML = `${head}<div class="rvgrid"><div class="panel"><p class="none">${tr(`この${unit}の記録はありません。`, `No records ${uThis(unit)}.`)}</p>${foot()}</div></div>`; bindCopy(R); return; }
   const V = vsPrev(pw, unit);
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
   const total = w.projects.reduce((t,[,v])=>t+v,0) || 1;
@@ -930,7 +939,7 @@ function summary(){
     </div>
     <details class="moreS" id="moreS"${st.moreS ? " open" : ""}><summary>${tr("詳しい指標（推定を含む）", "More metrics (includes estimates)")}</summary><div class="stats">
       ${stat(tr("言い直し・中断のあった依頼", "Prompts with corrections or interruptions"), pct(w.fixRate), tr(`n=${w.prompts}・依頼文の言葉と中断から推定`, `n=${w.prompts} · estimated from prompt wording and interruptions`), "fix")}
-      ${stat(tr("1日の切り替え", "Project switches per day"), times(w.switchesAvg), tr(`最大 ${w.switchesMax} 回`, `Max ${w.switchesMax}`), "switches")}
+      ${stat(tr("1 日の切り替え", "Project switches per day"), times(w.switchesAvg), tr(`最大 ${w.switchesMax} 回`, `Max ${w.switchesMax}`), "switches")}
       ${stat(tr("並列で動かした時間", "Parallel time"), dur(w.parallel,true), tr(`最大 ${w.maxConc} 本同時`, `Up to ${w.maxConc} at once`), "parallel")}
       ${stat(tr("待たせ時間（中央値）", "Wait time (median)"), secsH(w.waitMedian), tr(`n=${w.waitCount}・90%点 ${secs(w.waitP90)}・短いほど良いとは限りません`, `n=${w.waitCount} · 90th percentile ${secs(w.waitP90)} · shorter is not always better`), "wait")}
     </div></details>
@@ -946,7 +955,7 @@ function summary(){
     ${w.projects.slice(0,8).map(([k,v])=>`<div class="prow" style="--c:${st.colorBy==="project"?colorOf(k):"var(--ink-3)"}"><i></i><span class="nm">${esc(k)}</span><span class="tm">${dur(v)}</span><span class="pc">${Math.round(v*100/total)}%</span></div>`).join("")}
     <h3>${tr("集中ブロック", "Focus blocks")}${hb("focusList")}</h3>${hint("focusList")}
     ${w.focus.length ? [...w.focus].sort((a,b)=>b.min-a.min).slice(0,5).map(b=>`<div class="focusrow" style="--c:${st.colorBy==="project"?colorOf(b.project):"var(--ink-3)"}"><span class="when">${md(b.t)} ${hm(b.t)}</span><span class="track2"><span style="width:${b.min/longest*100}%"></span></span><span class="len">${dur(b.min)}</span></div>`).join("") : `<p class="none">${tr("60分以上続いた作業はありませんでした。", "No work lasted 60 minutes or more.")}</p>`}
-    <h3>${tr("こじれたかもしれない", "Possible friction")}${hb("friction")}</h3>${hint("friction")}
+    <h3>${tr("こじれたかもしれないセッション", "Possible friction")}${hb("friction")}</h3>${hint("friction")}
     ${w.friction.length ? w.friction.map(f=>`<button class="card" data-id="${esc(f.id)}"><span class="ti">${esc(f.title)}</span><span class="me">${md(f.start)} · ${esc(f.project)} ${whyOf(f).map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}</span></button>`).join("") : `<p class="none">${tr("言い直しや中断が目立つセッションはありませんでした。", "No sessions stood out for corrections or interruptions.")}</p>`}
     ${measure(w)}</section>
   <section class="panel ask">${ph(6, tr("AI に改善案を聞く", "Ask AI for suggestions"), tr("このデータをもとに、使い方の改善案を聞くためのプロンプト", "A prompt that asks for suggestions based on this data"))}
@@ -963,7 +972,7 @@ function summary(){
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
   const ko = R.querySelector("#keepoff"); if (ko) ko.onclick = () => { store.set("keepNoticeOff", true); summary(); };
   const ka = R.querySelector("#keeparch"); if (ka) ka.onclick = () => { ka.disabled = true; keepArchive(); };
-  const ms = R.querySelector("#moreS"); if (ms) ms.ontoggle = () => { st.moreS = ms.open; };
+  const ms = R.querySelector("#moreS"); if (ms) ms.ontoggle = () => { if (ms.dataset.auto){ delete ms.dataset.auto; return; } st.moreS = ms.open; }; // 印のために自動で開いたときは、次の期間に持ち越さない
   const rt = R.querySelector("#rpttog"), rb = R.querySelector("#rptbox"), rpt = open => { st.rpt = open; rb.hidden = !open; rt.setAttribute("aria-expanded", open); if (open) rb.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest"}); else rt.focus(); };
   if (rt && rb){ rt.onclick = () => rpt(!st.rpt); R.querySelector("#rptclose").onclick = () => rpt(false); }
   const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy($("#rptpre").textContent, tr("コピーしました。セッション名は依頼文の冒頭なので、直してから貼ってください", "Copied. Session names are the start of your prompts, so edit them before pasting"), 4500);
@@ -1228,7 +1237,7 @@ const MET = {
   night: {f: w => pctOf(w.night, w.active), low: true, u: "%"},
 };
 const UNIT_EN = {"回": "", "件": "", "分": " min"};
-const fmtM = (k, v) => v == null ? "—" : MET[k].fmt ? MET[k].fmt(v) : `${Math.round(v * 10) / 10}${EN() ? UNIT_EN[MET[k].u] ?? MET[k].u ?? "" : MET[k].u || ""}`;
+const fmtM = (k, v) => v == null ? "—" : MET[k].fmt ? MET[k].fmt(v) : `${Math.round(v * 10) / 10}${EN() ? UNIT_EN[MET[k].u] ?? MET[k].u ?? "" : MET[k].u === "%" ? "%" : MET[k].u ? " " + MET[k].u : ""}`; // 本文と同じく「8 件」「5.2 回」
 function periodBack(i){ // 表示中の期間から i 個前の期間
   if (st.mode === "month"){ const a = new Date(st.month.getFullYear(), st.month.getMonth() - i, 1), b = new Date(a.getFullYear(), a.getMonth() + 1, 1);
     return {S: MONTHS[mkey(a)], ws: a.getTime()/1000, we: b.getTime()/1000, label: periodLabel("month", mkey(a)), key: mkey(a)}; }
@@ -1253,20 +1262,20 @@ function findList(w, pw, unit){
   const add = (k, score, see, why, rule, ids) => F.push({k, score, see, why, rule, ids: ids || []});
   const LH = limitHits(ws, we);
   if (LH.length)
-    add("limits", 40, tr(`利用上限に ${LH.length} 回当たりました（${LH.slice(-3).map(h => `${md(h.t)} ${hm(h.t)}`).join("、")}${LH.length > 3 ? " など" : ""}）`, `Hit the usage limit ${LH.length === 1 ? "once" : LH.length + " times"} (${LH.slice(-3).map(h => `${md(h.t)} ${hm(h.t)}`).join(", ")}${LH.length > 3 ? ", …" : ""})`), tr("上限に当たると、解除されるまで作業が止まります。直前の使い方に原因があることが多いです", "Hitting a limit stops your work until it resets. The cause is often in how you worked just before"), tr("1 回以上", "1 or more"), [...new Set(LH.map(h => h.s.id))].slice(-3));
+    add("limits", 40, tr(`利用上限に ${LH.length} 回当たりました（${LH.slice(-3).map(h => `${md(h.t)} ${hm(h.t)}`).join("、")}${LH.length > 3 ? " など" : ""}）`, `Hit the usage limit ${LH.length === 1 ? "once" : LH.length + " times"} (${LH.slice(-3).map(h => `${md(h.t)} ${hm(h.t)}`).join(", ")}${LH.length > 3 ? ", …" : ""})`), tr("上限に当たると、解除されるまで作業が止まります。直前の使い方に原因があることが多いです", "Hitting a limit stops your work until it resets. The cause is often in how you worked just before"), tr("1 回以上", "1 or more"), [...new Set(LH.map(h => h.s.id))].reverse());
   if (w.fixRate != null && w.prompts >= 10 && w.fixRate >= 20)
     add("fix", w.fixRate, tr(`依頼の ${w.fixRate}% で、言い直しや中断がありました`, `${w.fixRate}% of prompts had corrections or interruptions`), tr("最初の依頼が伝わらないと、やり直す分だけ時間とトークンを使います", "When a first prompt misses, redoing it costs time and tokens"), tr("依頼 10 件以上で 20% 以上", "20% or more, with 10+ prompts"), w.friction.map(f => f.id));
   else if (w.friction.length)
     add("friction", 18, tr(`こじれたかもしれないセッションが ${w.friction.length} 件ありました`, `${plural(w.friction.length, "session")} with possible friction`), tr("手戻りが特定のセッションに集中しています。中身を見ると原因の見当がつきます", "Rework is concentrated in a few sessions. Opening them usually hints at the cause"), tr("言い直し・中断・15 回以上の依頼が多い", "Many corrections, interruptions or 15+ prompts"), w.friction.map(f => f.id));
   const LC = longCtxOf(ws, we);
   if (LC.length)
-    add("longctx", 34, tr(`会話が長くなり、1 回の応答で読む入力が前半の ${Math.round(Math.max(...LC.map(s => s.ctx[1] / s.ctx[0])))} 倍まで増えたセッションが ${LC.length} 件（最大 ${tok(Math.max(...LC.map(s => s.ctx[2])))} トークン）`, `${plural(LC.length, "session")} where the conversation grew long and the input read per response rose to ${Math.round(Math.max(...LC.map(s => s.ctx[1] / s.ctx[0])))}× the first part (peak ${tok(Math.max(...LC.map(s => s.ctx[2])))} tokens)`), tr("会話が長くなるほど、毎回それまでの文脈を読み直すため、同じような依頼でも 1 回あたりが重くなります", "The longer a conversation, the more earlier context each response rereads, so similar prompts get heavier"), tr("後半の入力が前半の 4 倍以上・最大 10 万トークン以上・$0.5 以上", "Later input 4×+ the first part, peak 100K+ tokens, $0.5+"), LC.slice(0,3).map(s => s.id));
+    add("longctx", 34, tr(`会話が長くなり、1 回の応答で読む入力が前半の ${Math.round(Math.max(...LC.map(s => s.ctx[1] / s.ctx[0])))} 倍まで増えたセッションが ${LC.length} 件（最大 ${tok(Math.max(...LC.map(s => s.ctx[2])))} トークン）`, `${plural(LC.length, "session")} where the conversation grew long and the input read per response rose to ${Math.round(Math.max(...LC.map(s => s.ctx[1] / s.ctx[0])))}× the first part (peak ${tok(Math.max(...LC.map(s => s.ctx[2])))} tokens)`), tr("会話が長くなるほど、毎回それまでの文脈を読み直すため、同じような依頼でも 1 回あたりが重くなります", "The longer a conversation, the more earlier context each response rereads, so similar prompts get heavier"), tr("後半の入力が前半の 4 倍以上・最大 10 万トークン以上・$0.5 以上", "Later input 4×+ the first part, peak 100K+ tokens, $0.5+"), LC.map(s => s.id));
   const LT = lightOf(ws, we);
   if (u.cost >= 2 && LT.c >= Math.max(1, u.cost * 0.1))
-    add("modelfit", 24, tr(`編集のない短いセッションで、Opus 系のモデルに ${usd(LT.c)}（目安コストの ${Math.round(LT.c*100/u.cost)}%）を使っていました`, `Short sessions with no edits spent ${usd(LT.c)} (${Math.round(LT.c*100/u.cost)}% of estimated cost) on Opus-class models`), tr("調べものや相談なら、軽いモデルでも足りることがあります", "For research and questions, a lighter model is often enough"), tr("依頼 3 件以下・編集なし・$0.3 以上の合計が、全体（$2 以上）の 10% 以上かつ $1 以上", "Sessions with ≤3 prompts, no edits and $0.3+ total 10%+ of all cost ($2+) and $1+"), LT.xs.slice(0,3).map(s => s.id));
+    add("modelfit", 24, tr(`編集のない短いセッションで、Opus 系のモデルに ${usd(LT.c)}（目安コストの ${Math.round(LT.c*100/u.cost)}%）を使っていました`, `Short sessions with no edits spent ${usd(LT.c)} (${Math.round(LT.c*100/u.cost)}% of estimated cost) on Opus-class models`), tr("調べものや相談なら、軽いモデルでも足りることがあります", "For research and questions, a lighter model is often enough"), tr("依頼 3 件以下・編集なし・$0.3 以上の合計が、全体（$2 以上）の 10% 以上かつ $1 以上", "Sessions with ≤3 prompts, no edits and $0.3+ total 10%+ of all cost ($2+) and $1+"), LT.xs.map(s => s.id));
   const {xs: idle, c: idleC} = idleOf(ws, we);
   if (u.cost >= 2 && idleC >= u.cost * 0.4)
-    add("heavy", 30 + Math.round(idleC*50/u.cost), tr(`目安コストの ${Math.round(idleC*100/u.cost)}%（${usd(idleC)}）が、コミットも PR もないセッションでした`, `${Math.round(idleC*100/u.cost)}% of estimated cost (${usd(idleC)}) went to sessions with no commit or pull request`), tr("調査や相談なら問題ありません。途中で止まったのなら、理由を確かめる価値があります", "Fine for research or discussion. If they stopped partway, it's worth finding out why"), tr("$1 以上のセッションの合計が、全体（$2 以上）の 40% 以上", "Sessions of $1+ total 40%+ of all cost ($2+)"), idle.slice(0,3).map(s => s.id));
+    add("heavy", 30 + Math.round(idleC*50/u.cost), tr(`目安コストの ${Math.round(idleC*100/u.cost)}%（${usd(idleC)}）が、コミットも PR もないセッションでした`, `${Math.round(idleC*100/u.cost)}% of estimated cost (${usd(idleC)}) went to sessions with no commit or pull request`), tr("調査や相談なら問題ありません。途中で止まったのなら、理由を確かめる価値があります", "Fine for research or discussion. If they stopped partway, it's worth finding out why"), tr("$1 以上のセッションの合計が、全体（$2 以上）の 40% 以上", "Sessions of $1+ total 40%+ of all cost ($2+)"), idle.map(s => s.id));
   const V = vsPrev(pw, unit), pc = V.of("cost", pw && pw.usage && pw.usage.cost), pl = V.n == null ? tr(`先${unit}`, uLast(unit)) : tr(`先${unit}の ${V.range}`, V.range); // 途中の期間は、前の期間の同じ日までと比べる
   if (pc != null && pc >= 1 && u.cost >= pc * 1.5)
     add("cost", 25, tr(`目安コストが${pl}の ${(u.cost/pc).toFixed(1)} 倍（${usd(pc)} → ${usd(u.cost)}）になりました`, `Estimated cost was ${(u.cost/pc).toFixed(1)}× ${pl} (${usd(pc)} → ${usd(u.cost)})`), tr("増えた分が、どのプロジェクト・セッションに出たかで意味が変わります", "What it means depends on which projects and sessions the increase came from"), tr(`先${unit}の 1.5 倍以上`, `1.5× ${uLast(unit)} or more`));
@@ -1297,7 +1306,11 @@ function placeFlags(R, F){ // 基準を超えた指標の、その場に印・�
   const ses = ids => ids.map(id => { const s = DATA.find(x => x.id === id); return s ? `<button class="fses" data-id="${esc(id)}" style="--c:${colorOf(keyOf(s))}"><i></i><span>${esc(s.title)}</span><small>${md(s.start)}</small></button>` : ""; }).join("");
   F.forEach(f => {
     const t = R.querySelector(`.panel .hb[data-help="${GOTO[f.k] || f.k}"]`); if (!t) return;
-    const html = `<div class="fl"><p class="see"><i class="fdot"></i>${f.see}</p><p class="why">${esc(f.why)}</p>${spark(f.k)}${f.ids.length && f.k !== "friction" ? `<div class="fss">${ses(f.ids)}</div>` : ""}<p class="rule">${tr("基準：", "Threshold: ")}${esc(f.rule)}</p></div>`;
+    const panel = t.closest(".panel"), shown = new Set([...panel.querySelectorAll(".card[data-id]")].map(c => c.dataset.id)); // すぐ下にカードで並ぶセッションは繰り返さない
+    const ids = f.k === "friction" ? [] : f.ids.filter(id => !shown.has(id)), more = ids.length - 3;
+    const html = `<div class="fl"><p class="see"><i class="fdot"></i>${f.see}</p><p class="why">${esc(f.why)}</p>${spark(f.k)}${ids.length ? `<div class="fss">${ses(ids.slice(0, 3))}${more > 0 ? `<p class="more">${tr(`ほか ${more} 件`, `${more} more`)}</p>` : ""}</div>` : ""}<p class="rule">${tr("基準：", "Threshold: ")}${esc(f.rule)}</p></div>`;
+    const dt = t.closest("details"); // 閉じた折りたたみの中の印は、見出しにも出し、自分で閉じていなければ開いておく
+    if (dt){ const sm = dt.querySelector("summary"); if (!sm.querySelector(".fdot")) sm.insertAdjacentHTML("beforeend", `<i class="fdot" title="${tr("基準を超えた指標があります", "A metric crossed a threshold")}"></i>`); if (st.moreS !== false && !dt.open){ dt.dataset.auto = "1"; dt.open = true; } }
     const stat = t.closest(".stat");
     if (stat){ stat.classList.add("flagged"); stat.insertAdjacentHTML("beforeend", html); return; }
     const a = t.closest("h3, .ph, .cap, div"), next = a.nextElementSibling;
@@ -1424,7 +1437,7 @@ function rhythm(w, M){
   const max = Math.max(1, ...cols.map(c => c.a));
   return `<h3>${M ? tr("週ごとのリズム", "Weekly rhythm") : tr("日ごとのリズム", "Daily rhythm")}${hb("rhythm")}</h3>${hint("rhythm")}
     <div class="rhythm" style="grid-template-columns:repeat(${cols.length},1fr)">${cols.map(c => `<div class="col${c.t?" today":""}" title="${esc(c.tip)}">
-        <span class="v">${c.a ? (c.a>=60 ? (c.a/60).toFixed(1)+"h" : c.a+"m") : ""}</span>
+        <span class="v">${c.a ? (c.a>=60 ? (c.a/60).toFixed(1)+tr("時間", "h") : c.a+tr("分", "m")) : ""}</span>
         <div class="colbar" style="height:${c.a?Math.max(2,c.a/max*84):0}px"><div class="nt" style="height:${c.a?c.n/c.a*100:0}%"></div></div>
         <span class="l">${c.l}</span></div>`).join("")}</div>
     <div class="keyrow"><span><i></i>${tr("作業", "Active")}</span><span><i class="nt"></i>${tr("うち深夜", "Late night")}</span></div>`;
@@ -1501,7 +1514,7 @@ function aiUsage(w, pw, unit){
   const V = vsPrev(pw, unit || "週"), pj = projection(w);
   const totalC = u.models.reduce((t,r)=>t+r[1],0) || 1, totalT = u.models.reduce((t,r)=>t+r[2],0) || 1, byCost = totalC > 0.0001;
   return `<div class="stats" style="margin-top:4px">
-      ${u.tokens ? stat(tr("目安コスト（API換算）", "Estimated cost (API pricing)"), usd(u.cost).replace("$","<small>$</small>"), V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost") : ""}
+      ${u.tokens ? stat(tr("目安コスト（API 換算）", "Estimated cost (API pricing)"), usd(u.cost).replace("$","<small>$</small>"), V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost") : ""}
       ${pj ? stat(tr("月末の見込み（推定）", "Month-end projection (estimate)"), [pj.cost != null ? "≈ " + usd(pj.cost).replace("$","<small>$</small>") : "", pj.credits != null ? (pj.cost != null ? `<small> · </small>` : "≈ ") + tr(`${Math.round(pj.credits)}<small> クレジット</small>`, `${Math.round(pj.credits)}<small> credits</small>`) : ""].join(""), tr(`今日までの ${pj.days} 日のペースが続いた場合`, `If the pace of the first ${pj.days} days continues`), "projection") : ""}
       ${u.tokens ? stat(tr("トークン", "Tokens"), `${tok(u.tokens)}`, tr(`うち出力 ${tok(u.out)}・多いほど良いわけではありません`, `Output ${tok(u.out)} · more is not better`), "tokens") : ""}
       ${u.tokens ? stat(tr("キャッシュから読んだ割合", "Read from cache"), u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, tr("入力のうち", "Share of input"), "cache") : ""}
@@ -1591,6 +1604,7 @@ function commitDetail(c){
   bindCopy(P);
 }
 /* ── drawer: session detail ── */
+const FIXRE = /違う|ちがう|そうじゃな|やり直|戻して|元に戻|取り消|じゃなくて|\b(?:wrong|incorrect|nope|revert|undo|roll ?back|start over|not what|that's not|try again|(?:doesn't|does not|didn't|did not|still not|isn't|is not) work(?:ing)?|still (?:broken|failing|fails)|you broke)\b/i; // 言い直し・中断らしい依頼（依頼の流れで点の色を変える）
 function detail(s){
   if (!s){ st.sel = null; return summary(); }
   const active = s.segs.reduce((t,[a,b])=>t+(b-a),0)/60, waits = s.waits.map(x=>x[1]).sort((a,b)=>a-b);
@@ -1618,7 +1632,8 @@ function detail(s){
     <div class="sact"><button class="pill" id="sreview">${tr("このセッションを AI と振り返る（プロンプトをコピー）", "Review this session with AI (copy prompt)")}</button>
       <span>${tr("依頼の流れと数値から、依頼の仕方や作業の分け方の改善点を聞きます。依頼文を含むので、送る前に確認してください。", "Asks for ways to improve how you prompted and split the work, based on the prompt flow and numbers. It includes your prompts, so review it before sending.")}</span></div>
     <h3>${tr("依頼の流れ", "Prompt flow")}</h3>
-    ${s.prompts.length ? `<ol class="tl">${s.prompts.slice(0,30).map(p=>`<li class="${/違う|ちがう|そうじゃな|やり直|戻して|元に戻|取り消|じゃなくて|\b(?:wrong|incorrect|nope|revert|undo|roll ?back|start over|not what|that's not|try again|(?:doesn't|does not|didn't|did not|still not|isn't|is not) work(?:ing)?|still (?:broken|failing|fails)|you broke)\b/i.test(p.text)?"fix":""}"><time>${p.t?hm(p.t):""}</time><p>${esc(p.text.length>220?p.text.slice(0,220)+"…":p.text)}</p></li>`).join("")}</ol>${s.prompts.length>30?`<p class="more">${tr(`ほか ${s.nPrompts-30} 件`, `${s.nPrompts-30} more`)}</p>`:""}` : `<p class="none">${tr("依頼の記録はありません。", "No prompts recorded.")}${s.source === "Kiro Crew" ? tr("Kiro Crew は会話の記録を一定期間で消すため、使用量の記録だけが残っている会話です。", " Kiro Crew deletes conversation records after a while, so only the usage record remains for this conversation.") : ""}</p>`}
+    ${s.prompts.length ? `<ol class="tl">${s.prompts.map((p,i)=>{ const t = String(p.text || ""), long = t.length > 220; // 長い依頼は「全文」で開く。31 件目からは「残りを表示」で出す
+      return `<li class="${FIXRE.test(t)?"fix":""}"${i >= 30 ? " hidden" : ""}><time>${p.t?hm(p.t):""}</time><p>${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}</span> <button class="pexp" aria-expanded="false">${tr("全文", "Show all")}</button>` : esc(t)}</p></li>`; }).join("")}</ol>${s.prompts.length>30?`<button class="more pall">${tr(`残り ${s.prompts.length-30} 件を表示`, `Show ${s.prompts.length-30} more`)}</button>`:""}${s.nPrompts>s.prompts.length?`<p class="more pcap"${s.prompts.length>30?" hidden":""}>${tr(`ほか ${s.nPrompts-s.prompts.length} 件（依頼の流れに残すのは先頭 ${s.prompts.length} 件まで）`, `${s.nPrompts-s.prompts.length} more (the prompt flow keeps the first ${s.prompts.length})`)}</p>`:""}` : `<p class="none">${tr("依頼の記録はありません。", "No prompts recorded.")}${s.source === "Kiro Crew" ? tr("Kiro Crew は会話の記録を一定期間で消すため、使用量の記録だけが残っている会話です。", " Kiro Crew deletes conversation records after a while, so only the usage record remains for this conversation.") : ""}</p>`}
     ${s.subagents.length ? `<h3>${tr("サブエージェント", "Subagents")} · ${s.subagents.length}</h3>${s.subagents.map(a=>{
         const span = Math.max(1, s.end - s.start), l = a.start ? Math.max(0,(a.start - s.start)/span*100) : 0, w = a.start && a.end ? Math.max(.8,(a.end - a.start)/span*100) : .8;
         const t = a.usage, tt = t.in + t.out + t.cw + t.cw1h + t.cr;
@@ -1641,6 +1656,9 @@ function detail(s){
   </div></div></div>`;
   P.querySelectorAll("[data-git]").forEach(b => b.onclick = () => select("git:" + b.dataset.git));
   P.querySelector("#sreview").onclick = () => copy(sessionPrompt(s, active, med));
+  P.querySelectorAll(".pexp").forEach(b => b.onclick = () => { const li = b.closest("li"), open = b.getAttribute("aria-expanded") !== "true";
+    li.querySelector(".pshort").hidden = open; li.querySelector(".pfull").hidden = !open; b.setAttribute("aria-expanded", open); b.textContent = open ? tr("閉じる", "Show less") : tr("全文", "Show all"); });
+  const pall = P.querySelector(".pall"); if (pall) pall.onclick = () => { P.querySelectorAll(".tl li[hidden]").forEach(li => li.hidden = false); const cap = P.querySelector(".pcap"); if (cap) cap.hidden = false; pall.remove(); };
   bindCopy(P);
 }
 /* 1 つのセッションを AI と振り返るためのプロンプト（kiroku 自身は AI を呼ばない） */
@@ -1910,6 +1928,7 @@ function renderYear(){
   const months = Array.from({length: 12}, (_, i) => `<span style="left:${pos(new Date(x.y, i, 1))}%">${EN() ? new Date(x.y, i, 1).toLocaleString("en-US", {month: "short"}) : `${i+1}月`}</span>`).join("");
   const hours = [["6", 0], ["12", 25], ["18", 50], ["0", 75], ["6", 100]].map(([h, t]) => `<span style="top:${t}%">${tr(`${h}時`, `${h}:00`)}</span>`).join("");
   const ev = [L.m, ...["night", "avg", "per"].filter(k => k !== L.m)].slice(0, 3).map(k => lightMetric(k, x));
+  const vt = t => EN() ? esc(t) : [...t].map(c => `<i${/[ー〜～]/.test(c) ? ' class="r"' : ""}>${esc(c)}</i>`).join(""); // 縦書き：1 字ずつ（長音は縦向きに回す）
   const name = l => tr(l.ja, l.en), opt = (k, l) => `<label><input type="checkbox" data-o="${k}"${yr.opt[k] ? " checked" : ""}>${l}</label>`;
   dlg.innerHTML = `<div class="yrhd"><div><div class="eyebrow">${tr("ふりかえり", "Year in review")}</div><h2 id="yrh">${tr(`${x.y} 年の露光`, `${x.y} exposure`)}</h2></div>
     <label><span class="sr">${tr("年", "Year")}</span><select id="yrsel">${ys.map(v => `<option value="${v}"${v === x.y ? " selected" : ""}>${v}</option>`).join("")}</select></label>
@@ -1928,7 +1947,7 @@ function renderYear(){
   <p class="note">${tr("画像に載るのは、作業していた時間・セッション数などの集計と光の筋だけです。依頼文・プロジェクト名・ブランチ・ファイル・目安コストは載りません。画像はこのブラウザの中で作り、どこにも送りません。", "The image shows only totals such as active time and sessions, and the streaks of light. Prompts, project names, branches, files and estimated cost are never included. It is made in this browser and sent nowhere.")}</p>
 
   <h3>${tr("あなたの光の名前", "Your light")}</h3>
-  <div class="yrtype"><div class="yrtn${EN() ? " h" : ""}"><span class="pre${G.over ? " over" : ""}">${esc(G.over ? tr(G.over.ja, G.over.en) : tr(`${G.tier.ja}の`, G.tier.en))}</span><span>${name(L)}</span></div><div>
+  <div class="yrtype"><div class="yrtn${EN() ? " h" : ""}"><span class="pre${G.over ? " over" : ""}">${vt(G.over ? tr(G.over.ja, G.over.en) : tr(`${G.tier.ja}の`, G.tier.en))}</span><span>${vt(name(L))}</span></div><div>
     <p class="yrtd">${tr(L.dj, L.de)}</p>
     <div class="yrgrade"><div class="yrexp ${G.exp}">${{under: tr("露出アンダー：これから伸びる", "Underexposed: room to grow"), ok: tr("適正露出：いい写り", "Well exposed"), over: tr(`露出オーバー：${G.over ? G.over.rj : ""}`, `Overexposed: ${G.over ? G.over.re : ""}`)}[G.exp]}</div>${G.grow ? `<div class="yrexp ok">${tr("↗ 上達中：前半より後半がうまくなった（等級を 1 段上げています）", "↗ Improving: the second half beat the first (one level up)")}</div>` : ""}
       ${meters(x, G)}</div>
@@ -2012,7 +2031,7 @@ function langLabels(){ const narrow = matchMedia("(max-width:820px)").matches; /
   $("#lang").options[0].text = narrow ? "JA" : "日本語"; $("#lang").options[1].text = narrow ? "EN" : "English"; }
 matchMedia("(max-width:820px)").addEventListener("change", langLabels);
 const mq = matchMedia("(max-width:1000px)"),
- ph = () => $("#q").placeholder = mq.matches ? tr("検索", "Search") : tr("依頼文・ファイル・コミットで探す", "Prompts, files, commits"); // 狭い画面では入力欄も狭いので短く
+ ph = () => $("#q").placeholder = mq.matches ? tr("検索", "Search") : tr("依頼・ファイル・コミット", "Prompts, files, commits"); // 狭い画面では入力欄も狭いので短く
 mq.addEventListener("change", () => { ph(); render(); }); ph();
 applyLang(); applyTheme(); render(); scrollToWork();
 

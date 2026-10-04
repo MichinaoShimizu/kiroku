@@ -2,6 +2,22 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- Session details: a long prompt in the prompt flow opens in full with "Show all", and "Show N more" shows the prompts after the 30th (up to the first 50)
+
+### Fixed
+
+- The 8-week trend note on a metric that crossed a threshold was squeezed into a narrow column, one character per line, on phones and at 1000px. A marked metric now spans the full row, so the card next to it is no longer stretched with empty space
+- "Review this session with AI (copy prompt)" ran past its box on narrow phones in Japanese
+- A metric marked inside the collapsed "More metrics" was hidden; the section now opens and its heading shows the mark
+- In the year in review, the vertical name of your light could collapse into an unreadable block when no Japanese serif font was installed, and the level was low-contrast in the light theme
+- A marked metric listed the same sessions as the cards right below it, and now says how many more there are
+- Japanese wording: labels now match the "Worth a look" links, units in trend notes are spaced like the text, day cells say 時間/分 instead of h/m, the empty week no longer repeats the ← → hint, and the search placeholder is no longer cut off
+- Cards in By project lay out their numbers the same way regardless of the value's length
+
 ## v0.3.1 - 2026-10-04
 
 ### Changed
