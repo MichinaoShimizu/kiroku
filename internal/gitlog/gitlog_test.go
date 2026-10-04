@@ -37,7 +37,7 @@ func TestCollect(t *testing.T) {
 			"commit", "-q", "-m", msg)
 	}
 	commit("a.txt", "by agent", "me@example.com", base+600)
-	commit("b.txt", "by hand", "me@example.com", base+3600)
+	commit("b.txt", "by hand\n\nbody line", "me@example.com", base+3600)
 	commit("c.txt", "someone else", "other@example.com", base+4000)
 
 	aiAt := float64(base + 590)
@@ -47,8 +47,14 @@ func TestCollect(t *testing.T) {
 	if len(cs) != 2 {
 		t.Fatalf("コミット数 = %d, want 2（ほかの人のコミットは読まない）: %+v", len(cs), cs)
 	}
-	if cs[0].Subject != "by agent" || !cs[0].AI || cs[0].Added != 2 || cs[0].Project != filepath.Base(dir) {
-		t.Errorf("1 つめ = %+v, want by agent・AI・+2", cs[0])
+	if cs[0].Subject != "by agent" || !cs[0].AI || cs[0].Session != "s1" || cs[0].Added != 2 || cs[0].Project != filepath.Base(dir) {
+		t.Errorf("1 つめ = %+v, want by agent・AI（s1）・+2", cs[0])
+	}
+	if c := cs[0]; c.NFiles != 1 || len(c.Files) != 1 || c.Files[0].Path != "a.txt" || c.Files[0].Added != 2 || c.Branch == "" || c.Repo == "" {
+		t.Errorf("変更したファイル・ブランチ = %+v", c)
+	}
+	if cs[1].Body != "body line" {
+		t.Errorf("本文 = %q", cs[1].Body)
 	}
 	if cs[1].Subject != "by hand" || cs[1].AI {
 		t.Errorf("2 つめ = %+v, want by hand・手で", cs[1])
