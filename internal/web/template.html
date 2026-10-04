@@ -178,6 +178,26 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .flink{color:var(--acc-ink);font-size:11.5px;font-weight:600}
 .flink:hover{text-decoration:underline}
 .fmore{margin-top:12px}
+.spark{display:inline-flex;align-items:center;gap:8px;color:var(--ink-3)}
+.spark svg{flex:none;overflow:visible}
+.spark polyline{fill:none;stroke:var(--acc);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+.spark circle{fill:var(--acc)}
+.spark small{font-size:10.5px;line-height:1.4}
+.fcard .act{position:relative}
+.fcard .ftry{align-self:flex-start;margin-top:6px;height:26px;font-size:11.5px;color:var(--acc-ink);border-color:color-mix(in oklab,var(--acc) 35%,var(--rule-2));font-weight:600}
+.fcard .trying{font-style:normal;font-size:11px;font-weight:700;color:var(--acc-ink);margin-top:4px}
+.trybar{display:flex;flex-direction:column;gap:8px;margin:10px 0 4px;padding:12px 16px;border-radius:12px;border:1px solid color-mix(in oklab,var(--acc) 35%,var(--rule));background:var(--acc-soft)}
+.trybar .th{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.trybar .th>b{font-size:10.5px;letter-spacing:.06em;color:var(--on-acc);background:var(--acc);padding:2px 8px;border-radius:999px}
+.trybar .tt{font-weight:650;font-size:13.5px}
+.trybar .th .muted{font-size:11.5px}
+.trybar .tb{font-size:12.5px;color:var(--ink-2);display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.trybar .tb b{color:var(--ink);font-variant-numeric:tabular-nums}
+.trybar .tf{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.vd{font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px}
+.vd.good{color:var(--c2);background:color-mix(in oklab,var(--c2) 14%,transparent)}
+.vd.bad{color:var(--warn);background:color-mix(in oklab,var(--warn) 12%,transparent)}
+.vd.same{color:var(--ink-2);background:var(--surface-2)}
 .fmore summary{cursor:pointer;font-size:12.5px;color:var(--ink-2)}
 .fok{font-size:13px;color:var(--ink-2);margin-top:8px}
 .sact{display:flex;flex-direction:column;gap:6px;margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--acc-soft)}
@@ -816,6 +836,9 @@ function summary(){
     t.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center"});
     if (t.classList.contains("hb") && t.getAttribute("aria-expanded") !== "true") t.click(); });
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
+  R.querySelectorAll("[data-try]").forEach(b => b.onclick = () => { const f = findList(w, pw, unit).find(x => x.k === b.dataset.try), p = periodBack(0); if (!f) return;
+    store.set("try", {k: f.k, act: f.act, mode: st.mode, start: p.key, label: p.label, base: metricAt(f.k, p)}); toast("次の期間に、同じ指標で比べます"); summary(); });
+  const ts = R.querySelector("#trystop"); if (ts) ts.onclick = () => { store.set("try", null); summary(); };
   const ms = R.querySelector("#moreS"); if (ms) ms.ontoggle = () => { st.moreS = ms.open; };
   const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy(reportText(w, M));
   const ac = R.querySelector("#askcopy"); if (ac) ac.onclick = () => copy($("#askpre").textContent);
@@ -861,6 +884,8 @@ const HELP = {
   weekend: {n:"週末", d:"土日の作業時間", c:"週末にどれだけ作業していたか", x:"働きすぎかどうかの判定", a:"自分のペースの振り返りに使う"},
   fix: {n:"言い直し・中断のあった依頼", d:"依頼文の表現（「違う」「やり直して」など）と中断から推定した割合", c:"最初の依頼が意図どおりに伝わらなかった割合の目安", x:"推定のため誤判定がある。原因も分からない", a:"高ければ、依頼文に前提・制約・完了条件を書き足す"},
   limits: {n:"利用上限に当たった回数", d:"Claude Code の履歴に残った、利用上限（使用量の上限・レート制限）のエラーの回数と時刻。1 分以内に続いたものは 1 回", c:"どの時間帯・どの作業で上限に当たり、作業が止まったか", x:"上限までの残り。ほかのエージェントや、ブラウザ・アプリでの利用分", a:"重い作業を時間帯で分ける、軽いモデルに振り分ける、長い会話は区切って新しく始める"},
+  longctx: {n:"長くなった会話", d:"1 回の応答で読んだ入力（新しい入力とキャッシュの読み書き）が、会話の後半 4 分の 1 で前半 4 分の 1 の 4 倍以上になり、最大 10 万トークン以上になったセッション（目安コスト $0.5 以上。トークンを記録するエージェントのみ）", c:"会話を続けたことで、1 回あたりの応答が重くなったセッション", x:"会話を続けたほうがよかったかどうか（前の文脈が必要な作業もある）", a:"区切りのいいところで要点をメモに残し、新しいセッションで続ける"},
+  modelfit: {n:"軽い作業での高いモデル", d:"主に Opus 系のモデルを使い、依頼 3 件以下でファイルを編集しなかった、目安コスト $0.3 以上のセッションの合計", c:"高いモデルを使った短い作業にかかった量", x:"そのモデルが必要だったかどうか（難しい調査や設計の相談もある）", a:"調べものや相談は、まず軽いモデルで試し、足りなければ切り替える"},
   friction: {n:"こじれたかもしれないセッション", d:"言い直し・中断・15 回以上の依頼が多いセッション", c:"手戻りが集中したセッション", x:"こじれた原因", a:"中身を開いて、依頼の仕方や作業の分け方を見直す"},
   share: {n:"プロジェクトの配分", d:"プロジェクトごとの作業時間の割合", c:"時間の配分", x:"配分の妥当さ", a:"想定と違えば、優先順位を見直す"},
   rhythm: {n:"日ごと・週ごとのリズム", d:"週表示では日ごと、月表示では週ごとの作業時間（うち深夜）", c:"作業量の波と偏り", x:"波の原因", a:"特定の日に偏っていれば、作業の割り振りを見直す"},
@@ -906,6 +931,7 @@ function askPrompt(w, pw, M){
     "- 指標の定義はエージェントごとに異なります。エージェント同士を直接比較しないでください",
     "- 数値はすべて履歴から推定した目安です。データから言えないことは、推測であると明記してください",
     "- 各指標の定義と、そこから言えること・言えないことは末尾の「指標の読み方」を参照してください",
+    ...(() => { const T = store.get("try", null); return T && HELP[T.k] ? ["", "# いま試していること", `- ${T.act}（${T.label}から。指標: ${HELP[T.k].n}、試す前 ${fmtM(T.k, T.base)}、この${unit} ${fmtM(T.k, metricAt(T.k, periodBack(0)))}）`, `- 推移: ${(() => { const r = []; for (let i = 7; i >= 0; i--){ const p = periodBack(i); r.push(`${p.label} ${fmtM(T.k, metricAt(T.k, p))}`); } return r.join("、"); })()}`] : []; })(),
     "", "# kiroku が基準で拾った気づき（判定ではなく候補）",
     ...(() => { const F = findList(w, pw, unit); return F.length ? F.map(f => `- ${f.see.replace(/<[^>]+>/g, "")}（基準: ${f.rule}）`) : ["- 基準を超えた指標はありませんでした"]; })(),
     "", "# 全体",
@@ -971,6 +997,66 @@ function askPrompt(w, pw, M){
 }
 /* 期間 [ws, we) に利用上限に当たった時刻と、そのセッション */
 function limitHits(ws, we){ const H = []; DATA.forEach(s => (s.limits || []).forEach(t => { if (t >= ws && t < we) H.push({t, s}); })); return H.sort((a,b) => a.t - b.t); }
+/* 気づきの判定に使う部品（期間 [ws, we) を渡す。推移の計算でも使う） */
+const inP = (s, ws, we) => s.segs.some(([a,b]) => b > ws && a < we);
+function idleOf(ws, we){ // 目安コストが大きいのにコミットも PR もないセッション（成果の印を記録できる Claude Code のみ）
+  const xs = DATA.filter(s => s.cost >= 1 && /claude/i.test(s.source) && !(s.outputs && (s.outputs.commits || s.outputs.prs)) && inP(s, ws, we)).sort((a,b) => b.cost - a.cost);
+  return {xs, c: xs.reduce((t,s) => t + s.cost, 0)}; }
+function longCtxOf(ws, we){ // 会話が長くなり、1 回の応答で読む入力が大きく増えたセッション
+  return DATA.filter(s => inP(s, ws, we) && s.ctx && s.ctx.length === 3 && s.ctx[0] > 0 && s.ctx[1] >= s.ctx[0] * 4 && s.ctx[2] >= 1e5 && s.cost >= 0.5).sort((a,b) => b.cost - a.cost); }
+const mainModel = s => ((s.models || []).slice().sort((a,b) => b[1] - a[1])[0] || [""])[0];
+function lightOf(ws, we){ // 編集のない短いセッションで、高いモデル（Opus 系）を使ったもの
+  const xs = DATA.filter(s => inP(s, ws, we) && /opus/i.test(mainModel(s)) && s.nPrompts <= 3 && !s.nFiles && s.cost >= 0.3).sort((a,b) => b.cost - a.cost);
+  return {xs, c: xs.reduce((t,s) => t + s.cost, 0)}; }
+/* 指標の値（推移と、試していることの答え合わせ用）。low: 小さいほうが望ましい方向 */
+const pctOf = (a, b) => b ? Math.round(a * 100 / b) : null;
+const MET = {
+  limits: {f: (w, ws, we) => limitHits(ws, we).length, low: true, u: "回"},
+  longctx: {f: (w, ws, we) => longCtxOf(ws, we).length, low: true, u: "件"},
+  heavy: {f: (w, ws, we) => w.usage && w.usage.cost >= 0.01 ? pctOf(idleOf(ws, we).c, w.usage.cost) : null, low: true, u: "%"},
+  cost: {f: w => w.usage ? w.usage.cost : null, low: true, fmt: v => usd(v)},
+  costPerCommit: {f: w => w.costPerCommit, low: true, fmt: v => usd(v)},
+  modelfit: {f: (w, ws, we) => w.usage && w.usage.cost >= 0.01 ? pctOf(lightOf(ws, we).c, w.usage.cost) : null, low: true, u: "%"},
+  fix: {f: w => w.fixRate, low: true, u: "%"},
+  friction: {f: w => w.friction.length, low: true, u: "件"},
+  cache: {f: w => w.usage && w.usage.cacheHit != null ? Math.round(w.usage.cacheHit * 100) : null, low: false, u: "%"},
+  outSessions: {f: w => pctOf(w.outSessions, w.sessions), low: false, u: "%"},
+  switches: {f: w => w.switchesAvg, low: true, u: "回"},
+  focus: {f: w => w.focus.length, low: false, u: "回"},
+  wait: {f: w => w.waitP90 != null ? Math.round(w.waitP90 / 60) : null, low: true, u: "分"},
+  night: {f: w => pctOf(w.night, w.active), low: true, u: "%"},
+};
+const fmtM = (k, v) => v == null ? "—" : MET[k].fmt ? MET[k].fmt(v) : `${Math.round(v * 10) / 10}${MET[k].u || ""}`;
+function periodBack(i){ // 表示中の期間から i 個前の期間
+  if (st.mode === "month"){ const a = new Date(st.month.getFullYear(), st.month.getMonth() - i, 1), b = new Date(a.getFullYear(), a.getMonth() + 1, 1);
+    return {S: MONTHS[mkey(a)], ws: a.getTime()/1000, we: b.getTime()/1000, label: `${a.getFullYear()}/${a.getMonth()+1}`, key: mkey(a)}; }
+  const a = addDays(st.week, -7 * i);
+  return {S: WEEKS[key(a)], ws: a.getTime()/1000, we: addDays(a, 7).getTime()/1000, label: `${a.getMonth()+1}/${a.getDate()} の週`, key: key(a)};
+}
+function metricAt(k, p){ if (!MET[k] || !p.S) return null; const v = MET[k].f(p.S, p.ws, p.we); return v == null || Number.isNaN(v) ? null : v; }
+function spark(k){ // 8 期間の推移（記録のない期間は飛ばす）
+  if (!MET[k]) return "";
+  const pts = []; for (let i = 7; i >= 0; i--){ const p = periodBack(i); pts.push({v: metricAt(k, p), l: p.label}); }
+  const vs = pts.filter(p => p.v != null).map(p => p.v); if (vs.length < 2) return "";
+  const lo = Math.min(...vs), hi = Math.max(...vs), W = 112, H = 26, x = i => 4 + i * (W - 8) / 7, y = v => hi === lo ? H / 2 : H - 4 - (v - lo) / (hi - lo) * (H - 8);
+  const line = pts.map((p, i) => p.v == null ? null : `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).filter(Boolean).join(" ");
+  return `<span class="spark" title="${esc(pts.map(p => `${p.l}: ${fmtM(k, p.v)}`).join("\n"))}"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true"><polyline points="${line}"/>${pts[7].v != null ? `<circle cx="${x(7)}" cy="${y(pts[7].v)}" r="2.6"/>` : ""}</svg><small>${st.mode === "month" ? "8 か月" : "8 週"}の推移（${MET[k].low ? "下がるほど" : "上がるほど"}望ましい方向）</small></span>`;
+}
+/* 試していること：気づきから 1 つ選び、その期間の値と、表示中の期間の値を比べる（ブラウザに保存） */
+function tryBar(unit){
+  const T = store.get("try", null); if (!T || !MET[T.k] || !HELP[T.k]) return "";
+  const cur = periodBack(0), name = HELP[T.k].n, head = `<b>試していること</b><span class="tt">${esc(T.act)}</span><span class="muted">（${esc(name)}・${esc(T.label)}から）</span>`;
+  let body;
+  if (T.mode !== st.mode) body = `${T.mode === "month" ? "月" : "週"}表示に切り替えると、試す前と比べられます。`;
+  else if (cur.key === T.start) body = `ここから試し始めました（${fmtM(T.k, T.base)}）。次の${unit}以降を開くと、同じ指標で比べます。`;
+  else if (cur.key < T.start) body = `試す前の期間を表示しています。`;
+  else { const now = metricAt(T.k, cur);
+    if (now == null || T.base == null) body = `この${unit}の「${esc(name)}」は記録がありません。`;
+    else { const d = now - T.base, rel = T.base ? Math.abs(d) / Math.abs(T.base) : (d ? 1 : 0), good = MET[T.k].low ? d < 0 : d > 0;
+      const v = rel < 0.1 ? ["same", "ほぼ変わらず"] : good ? ["good", "望ましい方向に変化"] : ["bad", "望ましくない方向に変化"];
+      body = `試す前 <b>${fmtM(T.k, T.base)}</b> → この${unit} <b>${fmtM(T.k, now)}</b> <span class="vd ${v[0]}">${v[1]}</span><span class="muted">1 回の差は揺れることがあります。推移で確かめてください。</span>`; } }
+  return `<div class="trybar"><div class="th">${head}</div><div class="tb">${body}</div><div class="tf">${spark(T.k)}<button class="pill" id="trystop">やめる</button></div></div>`;
+}
 /* 気づきと、試せること：指標が決まった基準を超えたものを拾う（AI は使わない。判定ではなく、確かめる候補） */
 function findList(w, pw, unit){
   const F = [], u = w.usage || {}, o = w.outputs || {}, {ws, we} = period();
@@ -982,9 +1068,13 @@ function findList(w, pw, unit){
     add("fix", w.fixRate, `依頼の ${w.fixRate}% で、言い直しや中断がありました`, "最初の依頼が伝わらないと、やり直す分だけ時間とトークンを使います", "依頼 10 件以上で 20% 以上", w.friction.map(f => f.id));
   else if (w.friction.length)
     add("friction", 18, `こじれたかもしれないセッションが ${w.friction.length} 件ありました`, "手戻りが特定のセッションに集中しています。中身を見ると原因の見当がつきます", "言い直し・中断・15 回以上の依頼が多い", w.friction.map(f => f.id));
-  // 目安コストが大きいのにコミットも PR もないセッション（成果の印を記録できる Claude Code のみ）
-  const idle = DATA.filter(s => s.cost >= 1 && /claude/i.test(s.source) && !(s.outputs && (s.outputs.commits || s.outputs.prs)) && s.segs.some(([a,b]) => b > ws && a < we)).sort((a,b) => b.cost - a.cost);
-  const idleC = idle.reduce((t,s) => t + s.cost, 0);
+  const LC = longCtxOf(ws, we);
+  if (LC.length)
+    add("longctx", 34, `${LC.length} 件のセッションで、会話の後半には 1 回の応答で読む入力が前半の ${Math.round(Math.max(...LC.map(s => s.ctx[1] / s.ctx[0])))} 倍まで増えていました（最大 ${tok(Math.max(...LC.map(s => s.ctx[2])))} トークン）`, "会話が長くなるほど、毎回それまでの文脈を読み直すため、同じような依頼でも 1 回あたりが重くなります", "後半の入力が前半の 4 倍以上・最大 10 万トークン以上・$0.5 以上", LC.slice(0,3).map(s => s.id));
+  const LT = lightOf(ws, we);
+  if (u.cost >= 2 && LT.c >= Math.max(1, u.cost * 0.1))
+    add("modelfit", 24, `編集のない短いセッションで、Opus 系のモデルに ${usd(LT.c)}（目安コストの ${Math.round(LT.c*100/u.cost)}%）を使っていました`, "調べものや相談なら、軽いモデルでも足りることがあります", "依頼 3 件以下・編集なし・$0.3 以上の合計が、全体（$2 以上）の 10% 以上かつ $1 以上", LT.xs.slice(0,3).map(s => s.id));
+  const {xs: idle, c: idleC} = idleOf(ws, we);
   if (u.cost >= 2 && idleC >= u.cost * 0.4)
     add("heavy", 30 + Math.round(idleC*50/u.cost), `目安コストの ${Math.round(idleC*100/u.cost)}%（${usd(idleC)}）が、コミットも PR もないセッションでした`, "調査や相談なら問題ありません。途中で止まったのなら、理由を確かめる価値があります", "$1 以上のセッションの合計が、全体（$2 以上）の 40% 以上", idle.slice(0,3).map(s => s.id));
   if (pw && pw.usage && pw.usage.cost >= 1 && u.cost >= pw.usage.cost * 1.5)
@@ -1005,17 +1095,20 @@ function findList(w, pw, unit){
     add("night", 8, `作業の ${Math.round(w.night*100/w.active)}%（${dur(w.night)}）が 22〜6 時でした`, "意図したものかどうか、自分のペースを振り返る材料です", "2 時間以上で、作業の 25% 以上", null, "意図したものでなければ、終える時刻を先に決めておく。長い作業は日中に AI へ任せる");
   return F.sort((a,b) => b.score - a.score);
 }
+const GOTO = {longctx: "heavy", modelfit: "models"}; // 専用の指標がない気づきは、関係する指標へ
 function findPanel(w, pw, unit, ph){
-  const F = findList(w, pw, unit);
+  const F = findList(w, pw, unit), T = store.get("try", null);
   const ses = ids => ids.map(id => { const s = DATA.find(x => x.id === id); return s ? `<button class="fses" data-id="${esc(id)}" style="--c:${colorOf(keyOf(s))}"><i></i><span>${esc(s.title)}</span><small>${md(s.start)}</small></button>` : ""; }).join("");
   const card = (f, i) => `<article class="fcard">
       <div class="fno">${i+1}</div>
       <p class="see">${f.see}</p><p class="why">${esc(f.why)}</p>
-      <div class="act"><b>試せること</b><span>${esc(f.act)}</span></div>
+      ${spark(f.k)}
+      <div class="act"><b>試せること</b><span>${esc(f.act)}</span>${MET[f.k] ? (T && T.k === f.k ? '<em class="trying">試しています</em>' : `<button class="pill ftry" data-try="${f.k}">これを試す</button>`) : ""}</div>
       ${f.ids.length ? `<div class="fss">${ses(f.ids)}</div>` : ""}
-      <div class="ff"><button class="flink" data-goto="${f.k}">「${esc(HELP[f.k].n)}」を見る →</button><span title="この気づきを出す基準">基準：${esc(f.rule)}</span></div></article>`;
+      <div class="ff"><button class="flink" data-goto="${GOTO[f.k] || f.k}">「${esc(HELP[GOTO[f.k] || f.k].n)}」を見る →</button><span title="この気づきを出す基準">基準：${esc(f.rule)}</span></div></article>`;
   const top = F.slice(0, 3), rest = F.slice(3);
   return `<section class="panel fd">${ph(1, "気づきと、試せること", `この${unit}の数値から、見直すとよさそうな点`, "findings")}
+    ${tryBar(unit)}
     ${F.length ? `<div class="fgrid">${top.map(card).join("")}</div>
       ${rest.length ? `<details class="fmore"><summary>ほかの気づき（${rest.length} 件）</summary><div class="fgrid">${rest.map((f,i) => card(f, i+3)).join("")}</div></details>` : ""}`
       : `<p class="fok">決めた基準を超えた指標はありませんでした。下のプロジェクト別やコストと成果で、先${unit}との違いを確かめられます。</p>`}

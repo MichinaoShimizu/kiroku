@@ -32,13 +32,14 @@ for d in range(35, -1, -1):
         model = random.choice(models)
         t = start; lines = []
         nprompt = random.randint(2, 14)
+        grow = random.choice([0, 0, 1, 4]); step = 0  # 会話が長くなるほど文脈が増えるセッションを混ぜる
         for i in range(nprompt):
             txt = random.choice(projects[p]) if i == 0 else (random.choice(retry) if random.random()<0.08 else random.choice(follow))
             lines.append({"type":"user","timestamp":t.isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"message":{"role":"user","content":txt}})
             for k in range(random.randint(1,5)):
                 t += dt.timedelta(seconds=random.randint(20,240))
                 mid = "msg_"+uuid.uuid4().hex[:10]
-                usage = {"input_tokens":random.randint(5,200),"output_tokens":random.randint(100,3000),"cache_creation_input_tokens":random.randint(500,8000),"cache_read_input_tokens":random.randint(20000,150000)}
+                usage = {"input_tokens":random.randint(5,200),"output_tokens":random.randint(100,3000),"cache_creation_input_tokens":random.randint(500,8000),"cache_read_input_tokens":random.randint(15000,40000) + step * grow * 5000}; step += 1
                 tool = random.choice(tools)
                 if i == nprompt-1 and k == 0 and random.random() < 0.6: tool = "Commit"
                 if tool == "Commit":
