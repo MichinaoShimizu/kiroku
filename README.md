@@ -25,7 +25,7 @@ kiroku connects to the network only when `install.sh` or `kiroku update` downloa
 ![kiroku (dummy data)](docs/screenshot.png)
 
 - **Calendar**: when, in which project, and what you asked, by week or month. Your local git commits appear alongside, so you can see what changed where.
-- **Findings and things to try**: metrics that crossed a threshold, each with what was observed, why it matters, one thing to try, the related sessions and an 8-week trend. Pick one with "Try this" and the next weeks show the before-and-after.
+- **Findings and things to try**: metrics that crossed a threshold, each with what was observed, why it matters, one thing to try, the related sessions and an 8-week trend.
 - **Summary**: cost (time, tokens, estimated cost, credits) next to outcomes (commits, pull requests, lines edited by AI), by project and by day. Every metric explains what it can and cannot tell you.
 - **Search and weekly report**: search prompts, edited files and commits across all time, and copy a weekly report draft of what you did, your commits and pull requests.
 - **Improvement prompts**: build a prompt from the shown week, month or a single session that asks an AI for suggestions on how you use it. Copy it into the agent you already use.
