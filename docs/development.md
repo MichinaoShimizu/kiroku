@@ -29,7 +29,7 @@ go build .         # ./kiroku ができる（./kiroku serve で画面を開く�
 | `internal/gitlog` | セッションの作業場所の git リポジトリからコミットを読む（git がなければ飛ばす） |
 | `internal/web` | `template.html` が画面。`web.go` が集計の JSON を埋め込んで 1 ファイルの HTML にする。`help_test.go`・`script_test.go` が画面の説明とスクリプトを確かめる |
 | `testdata/` | 合成の履歴（`home/`・`codex/`・`crew/`・`sqlite/`）、`golden.json`、`mtimes.json` |
-| `tools/` | `release-notes.sh`・`next-version.sh`（リリース）、`screenshots/`（ダミーデータ・デモ・スクリーンショット） |
+| `tools/` | `release-notes.sh`・`next-version.sh`（リリース）、`screenshots/`（ダミーデータ・デモ・スクリーンショット・画面の e2e） |
 | `install.sh`・`.goreleaser.yaml` | インストーラーと、リリースのファイルの作り方 |
 
 料金表は `internal/core/usage.go` の `Prices` です。更新したら `PricesAsOf`（画面に出る時点）も変えます。
@@ -62,6 +62,7 @@ PR と main への push で、`.github/workflows/ci.yml` が次を走らせま�
 
 - `test`（Ubuntu・macOS・Windows）: gofmt（Windows 以外）・vet・テスト・ビルド
 - `release-dry-run`: `goreleaser release --snapshot`（公開はしない。`go mod tidy -diff` で go.mod の整理漏れも止まる）、CHANGELOG のいちばん上の節からのリリースノートの抜き出し、その節がまだタグのない版なら番号が `tools/next-version.sh` の結果と合うかの確認
+- `e2e`: ダミーデータの HTML を Chromium で開き、`tools/screenshots/smoke.mjs` で大事な流れ（週の移動・セッションの詳細の開閉・週報の下書き・検索・月表示とショートカット）が動くか、横にはみ出さないか、スクリプトのエラーがないかを、日本語・英語・ダーク・1440px・1000px・390px で確かめる
 - `install-script`（Ubuntu・macOS）: `install.sh` に shellcheck をかけ（Ubuntu のみ）、実際に最新のリリースを入れて `kiroku --version` を確かめる
 
 ほかのワークフロー:
@@ -102,7 +103,20 @@ Release（`.github/workflows/release.yml`）は、3 OS でテストしてから�
 - **UI**：日本語・英語（英語は文言が長くなりがち）、ライト・ダーク、デスクトップ（1440px）・狭い画面（1000px）・スマホ（390px）で崩れや重なりがないか
 - **UX**：マウスを載せないと読めない情報をなくす（タッチ端末向け）。キーボードで操作でき、読み上げで意味が通るか
 - **2 か国語**：文言は `tr(日本語, English)` で両方書く。指標の説明は `HELP` と `HELP_EN`（`TestHelpEnMatchesHelp` でそろっているかを確かめる）
+- **動作**：`smoke.mjs` で大事な流れが動くかを確かめる（下の「画面の e2e」）。要素の id やキー操作を変えたら、`smoke.mjs` も合わせる
 - **ドキュメント**：README（英・日）・`docs/guide.md` と `docs/guide.en.md`（指標の表は `TestHelpMatchesGuide`・`TestHelpEnMatchesGuide` で画面と照合）・スクリーンショットを同じ変更で更新する
+
+## 画面の e2e
+
+CI の `e2e` と同じことを手元で走らせるには、Node.js と Playwright が要ります。
+
+```bash
+(cd tools/screenshots && npm i --no-save playwright && npx playwright install chromium)
+sh tools/screenshots/run.sh --html /tmp/kiroku.html
+node tools/screenshots/smoke.mjs /tmp/kiroku.html   # 失敗した項目だけ FAIL と出て、終了コードが 1 になる
+```
+
+見るのは「動くか」だけです。わかりやすさや言葉は、[usability.md](usability.md) のシナリオで確かめます。
 
 ## スクリーンショット
 
