@@ -18,6 +18,10 @@ Notable changes to kiroku. Each release on GitHub uses its section here as the r
 - The demo shows daytime work whatever time zone you open it from
 - "Corrections" also count English phrases such as "that's wrong" or "try again"
 
+### Removed
+
+- The "Try this" button on findings and the before-and-after bar it showed. Each finding still suggests one thing to try, and its 8-week trend shows whether it changed
+
 ## v0.1.5 - 2026-10-04
 
 ### Added

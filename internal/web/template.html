@@ -190,20 +190,6 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .spark small{font-size:10.5px;line-height:1.4}
 .spark small b{color:var(--ink-2);font-size:11.5px;font-variant-numeric:tabular-nums;margin-right:2px}
 .fcard .act{position:relative}
-.fcard .ftry{align-self:flex-start;margin-top:6px;height:26px;font-size:11.5px;color:var(--acc-ink);border-color:color-mix(in oklab,var(--acc) 35%,var(--rule-2));font-weight:600}
-.fcard .trying{font-style:normal;font-size:11px;font-weight:700;color:var(--acc-ink);margin-top:4px}
-.trybar{display:flex;flex-direction:column;gap:8px;margin:10px 0 4px;padding:12px 16px;border-radius:12px;border:1px solid color-mix(in oklab,var(--acc) 35%,var(--rule));background:var(--acc-soft)}
-.trybar .th{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
-.trybar .th>b{font-size:10.5px;letter-spacing:.06em;color:var(--on-acc);background:var(--acc);padding:2px 8px;border-radius:999px}
-.trybar .tt{font-weight:650;font-size:13.5px}
-.trybar .th .muted{font-size:11.5px}
-.trybar .tb{font-size:12.5px;color:var(--ink-2);display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
-.trybar .tb b{color:var(--ink);font-variant-numeric:tabular-nums}
-.trybar .tf{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.vd{font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px}
-.vd.good{color:var(--c2);background:color-mix(in oklab,var(--c2) 14%,transparent)}
-.vd.bad{color:var(--warn);background:color-mix(in oklab,var(--warn) 12%,transparent)}
-.vd.same{color:var(--ink-2);background:var(--surface-2)}
 .fmore summary{cursor:pointer;font-size:12.5px;color:var(--ink-2)}
 .fok{font-size:13px;color:var(--ink-2);margin-top:8px}
 .sact{display:flex;flex-direction:column;gap:6px;margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--acc-soft)}
@@ -923,9 +909,6 @@ function summary(){
     t.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center"});
     if (t.classList.contains("hb") && t.getAttribute("aria-expanded") !== "true") t.click(); });
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
-  R.querySelectorAll("[data-try]").forEach(b => b.onclick = () => { const f = findList(w, pw, unit).find(x => x.k === b.dataset.try), p = periodBack(0); if (!f) return;
-    store.set("try", {k: f.k, act: f.act, mode: st.mode, start: p.key, label: p.label, base: metricAt(f.k, p)}); toast(tr("次の期間に、同じ指標で比べます", "Next period, you'll see the same metric compared")); summary(); });
-  const ts = R.querySelector("#trystop"); if (ts) ts.onclick = () => { store.set("try", null); summary(); };
   const ko = R.querySelector("#keepoff"); if (ko) ko.onclick = () => { store.set("keepNoticeOff", true); summary(); };
   const ms = R.querySelector("#moreS"); if (ms) ms.ontoggle = () => { st.moreS = ms.open; };
   const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy(reportText(w, M), tr("コピーしました。セッション名は依頼文の冒頭なので、直してから貼ってください", "Copied. Session names are the start of your prompts, so edit them before pasting"), 4500);
@@ -1085,7 +1068,6 @@ function askPrompt(w, pw, M){
     tr("- 指標の定義はエージェントごとに異なります。エージェント同士を直接比較しないでください", "- Metric definitions differ by agent. Don't compare agents directly"),
     tr("- 数値はすべて履歴から推定した目安です。データから言えないことは、推測であると明記してください", "- All figures are rough estimates from history. Clearly mark anything the data can't support as a guess"),
     tr("- 各指標の定義と、そこから言えること・言えないことは末尾の「指標の読み方」を参照してください", "- See \"How to read the metrics\" at the end for each metric's definition and what it can and cannot tell you"),
-    ...(() => { const T = store.get("try", null); return T && H()[T.k] ? ["", tr("# いま試していること", "# What I'm trying now"), tr(`- ${actOf(T)}（${tryLabel(T)}から。指標: ${H()[T.k].n}、試す前 ${fmtM(T.k, T.base)}、この${unit} ${fmtM(T.k, metricAt(T.k, periodBack(0)))}）`, `- ${actOf(T)} (since ${tryLabel(T)}; metric: ${H()[T.k].n}; before: ${fmtM(T.k, T.base)}; ${uThis(unit)}: ${fmtM(T.k, metricAt(T.k, periodBack(0)))})`), `- ${tr("推移", "Trend")}: ${(() => { const r = []; for (let i = 7; i >= 0; i--){ const p = periodBack(i); r.push(`${p.label} ${fmtM(T.k, metricAt(T.k, p))}`); } return r.join(sep); })()}`] : []; })(),
     "", tr("# kiroku が基準で拾った気づき（判定ではなく候補）", "# Findings kiroku flagged by threshold (candidates, not verdicts)"),
     ...(() => { const F = findList(w, pw, unit); return F.length ? F.map(f => tr(`- ${f.see.replace(/<[^>]+>/g, "")}（基準: ${f.rule}）`, `- ${f.see.replace(/<[^>]+>/g, "")} (threshold: ${f.rule.charAt(0).toLowerCase() + f.rule.slice(1)})`)) : [tr("- 基準を超えた指標はありませんでした", "- No metric crossed a threshold")]; })(),
     "", tr("# 全体", "# Overall"),
@@ -1191,9 +1173,7 @@ function periodBack(i){ // 表示中の期間から i 個前の期間
 }
 function periodLabel(mode, k){ const [y, m, d] = k.split("-").map(Number); // 期間の名前（"2026-05" か "2026-05-04"）
   return mode === "month" ? `${y}/${m}` : tr(`${m}/${d} の週`, `week of ${m}/${d}`); }
-const tryLabel = T => T.start ? periodLabel(T.mode, T.start) : T.label; // 試し始めた期間（表示中の言語で）
 const actText = k => k === "night" ? tr("意図したものでなければ、終える時刻を先に決めておく。長い作業は日中に AI へ任せる", "If it wasn't intended, decide on a stop time in advance. Hand long tasks to AI during the day") : H()[k] ? H()[k].a : "";
-const actOf = T => actText(T.k) || T.act; // 試していること（表示中の言語で）
 function metricAt(k, p){ if (!MET[k] || !p.S) return null; const v = MET[k].f(p.S, p.ws, p.we); return v == null || Number.isNaN(v) ? null : v; }
 function spark(k){ // 8 期間の推移（記録のない期間は飛ばす）
   if (!MET[k]) return "";
@@ -1203,22 +1183,6 @@ function spark(k){ // 8 期間の推移（記録のない期間は飛ばす）
   const line = pts.map((p, i) => p.v == null ? null : `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).filter(Boolean).join(" ");
   const txt = tr(`${st.mode === "month" ? "8 か月" : "8 週"}の推移：${pts.map(p => `${p.l} ${fmtM(k, p.v)}`).join("、")}`, `${st.mode === "month" ? "8-month" : "8-week"} trend: ${pts.map(p => `${p.l} ${fmtM(k, p.v)}`).join(", ")}`);
   return `<span class="spark" title="${esc(pts.map(p => `${p.l}: ${fmtM(k, p.v)}`).join("\n"))}"><span class="sr">${esc(txt)}</span><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true"><polyline points="${line}"/>${pts[7].v != null ? `<circle cx="${x(7)}" cy="${y(pts[7].v)}" r="2.6"/>` : ""}</svg><small aria-hidden="true"><b>${fmtM(k, pts[7].v)}</b>${tr(`（${st.mode === "month" ? "8 か月" : "8 週"}で ${fmtM(k, lo)}〜${fmtM(k, hi)}・${MET[k].low ? "下がるほど" : "上がるほど"}望ましい）`, ` (${fmtM(k, lo)}–${fmtM(k, hi)} over ${st.mode === "month" ? "8 months" : "8 weeks"} · ${MET[k].low ? "lower" : "higher"} is better)`)}</small></span>`;
-}
-/* 試していること：気づきから 1 つ選び、その期間の値と、表示中の期間の値を比べる（ブラウザに保存） */
-function tryBar(unit){
-  const T = store.get("try", null); if (!T || !MET[T.k] || !H()[T.k]) return "";
-  const cur = periodBack(0), name = H()[T.k].n, head = `<b>${tr("試していること", "Trying")}</b><span class="tt">${esc(actOf(T))}</span><span class="muted">${tr(`（${esc(name)}・${esc(tryLabel(T))}から）`, `(${esc(name)} · since ${esc(tryLabel(T))})`)}</span>`;
-  let body;
-  if (T.mode !== st.mode) body = tr(`${T.mode === "month" ? "月" : "週"}表示に切り替えると、試す前と比べられます。`, `Switch to ${T.mode === "month" ? "month" : "week"} view to compare with before.`);
-  else if (cur.key === T.start) body = tr(`ここから試し始めました（${fmtM(T.k, T.base)}）。次の${unit}以降を開くと、同じ指標で比べます。`, `You started trying this here (${fmtM(T.k, T.base)}). Open ${uNext(unit)} or later to compare the same metric.`);
-  else if (cur.key < T.start) body = tr(`試す前の期間を表示しています。`, `You're viewing a period before you started.`);
-  else { const now = metricAt(T.k, cur);
-    if (now == null || T.base == null) body = tr(`この${unit}の「${esc(name)}」は記録がありません。`, `No records for "${esc(name)}" ${uThis(unit)}.`);
-    else { const d = now - T.base, rel = T.base ? Math.abs(d) / Math.abs(T.base) : (d ? 1 : 0), good = MET[T.k].low ? d < 0 : d > 0;
-      const v = rel < 0.1 ? ["same", tr("ほぼ変わらず", "About the same")] : good ? ["good", tr("望ましい方向に変化", "Moved the right way")] : ["bad", tr("望ましくない方向に変化", "Moved the wrong way")];
-      body = `${tr("試す前", "Before")} <b>${fmtM(T.k, T.base)}</b> → ${tr(`この${unit}`, uThis(unit))} <b>${fmtM(T.k, now)}</b> <span class="vd ${v[0]}">${v[1]}</span><span class="muted">${tr("1 回の差は揺れることがあります。推移で確かめてください。", "A single difference can be noise. Check the trend.")}</span>`; } }
-  return `<div class="trybar"><div class="th">${head}</div><div class="tb">${body}</div><div class="tf">${spark(T.k)}<button class="pill" id="trystop">${tr("やめる", "Stop")}</button></div></div>`;
-
 }
 /* 気づきと、試せること：指標が決まった基準を超えたものを拾う（AI は使わない。判定ではなく、確かめる候補） */
 function findList(w, pw, unit){
@@ -1260,18 +1224,17 @@ function findList(w, pw, unit){
 }
 const GOTO = {longctx: "heavy", modelfit: "models"}; // 専用の指標がない気づきは、関係する指標へ
 function findPanel(w, pw, unit, ph){
-  const F = findList(w, pw, unit), T = store.get("try", null);
+  const F = findList(w, pw, unit);
   const ses = ids => ids.map(id => { const s = DATA.find(x => x.id === id); return s ? `<button class="fses" data-id="${esc(id)}" style="--c:${colorOf(keyOf(s))}"><i></i><span>${esc(s.title)}</span><small>${md(s.start)}</small></button>` : ""; }).join("");
   const card = (f, i) => `<article class="fcard">
       <div class="fno">${i+1}</div>
       <p class="see">${f.see}</p><p class="why">${esc(f.why)}</p>
       ${spark(f.k)}
-      <div class="act"><b>${tr("試せること", "Try this")}</b><span>${esc(f.act)}</span>${MET[f.k] ? (T && T.k === f.k ? `<em class="trying">${tr("試しています", "Trying now")}</em>` : `<button class="pill ftry" data-try="${f.k}"${T ? ` title="${tr(`いま試している「${esc(actOf(T))}」をやめて、こちらに切り替えます`, `Stops trying "${esc(actOf(T))}" and switches to this`)}"` : ""}>${T ? tr("こちらに切り替える", "Switch to this") : tr("これを試す", "Try this")}</button>`) : ""}</div>
+      <div class="act"><b>${tr("試せること", "Try this")}</b><span>${esc(f.act)}</span></div>
       ${f.ids.length ? `<div class="fss">${ses(f.ids)}</div>` : ""}
       <div class="ff"><button class="flink" data-goto="${GOTO[f.k] || f.k}">${tr(`「${esc(H()[GOTO[f.k] || f.k].n)}」を見る →`, `See "${esc(H()[GOTO[f.k] || f.k].n)}" →`)}</button><span title="${tr("この気づきを出す基準", "The threshold for this finding")}">${tr("基準：", "Threshold: ")}${esc(f.rule)}</span></div></article>`;
   const top = F.slice(0, 3), rest = F.slice(3);
   return `<section class="panel fd">${ph(1, tr("気づきと、試せること", "Findings and things to try"), tr(`この${unit}の数値から、見直すとよさそうな点`, `What may be worth revisiting, based on ${uThis(unit)}'s numbers`), "findings")}
-    ${tryBar(unit)}
     ${F.length ? `<div class="fgrid">${top.map(card).join("")}</div>
       ${rest.length ? `<details class="fmore"><summary>${tr(`ほかの気づき（${rest.length} 件）`, `More findings (${rest.length})`)}</summary><div class="fgrid">${rest.map((f,i) => card(f, i+3)).join("")}</div></details>` : ""}`
       : `<p class="fok">${tr(`決めた基準を超えた指標はありませんでした。下のプロジェクト別やコストと成果で、先${unit}との違いを確かめられます。`, `No metric crossed a threshold. See By project and Cost and outputs below for changes since ${uLast(unit)}.`)}</p>`}
