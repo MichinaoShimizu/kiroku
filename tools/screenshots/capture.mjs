@@ -1,8 +1,9 @@
-// docs/screenshot.png と docs/summary.png を撮る。gen.py と mkgit.py で作ったダミーデータの HTML を使う。
+// docs/screenshot.png・docs/summary.png・docs/year.png を撮る。gen.py と mkgit.py で作ったダミーデータの HTML を使う。
 //   node capture.mjs <kiroku.html> <docs のディレクトリ>
-// Playwright が必要（このディレクトリで npm i playwright と npx playwright install chromium）。英語表示（en-US）・ダークテーマ・時刻は Asia/Tokyo・1440x900。
+// Playwright が必要（このディレクトリで npm i playwright と npx playwright install chromium）。英語表示（en-US）・ダークテーマ（既定）・時刻は Asia/Tokyo・1440x900。
 import { chromium } from "playwright";
 import path from "node:path";
+import fs from "node:fs/promises";
 
 const [html, docs] = process.argv.slice(2);
 const b = await chromium.launch();
@@ -18,4 +19,8 @@ await p.screenshot({ path: path.join(docs, "screenshot.png") });
 await p.evaluate(() => { const e = document.querySelector("#review"); window.scrollTo(0, e.getBoundingClientRect().top + window.scrollY - 20); });
 await p.waitForTimeout(400);
 await p.screenshot({ path: path.join(docs, "summary.png") });
+await p.keyboard.press("y"); // 1 年の露光。シェア用の画像（1600x900）をそのまま保存する
+await p.waitForTimeout(600);
+const png = await p.evaluate(() => document.querySelector("#yrcard").toDataURL("image/png").split(",")[1]);
+await fs.writeFile(path.join(docs, "year.png"), Buffer.from(png, "base64"));
 await b.close();

@@ -86,10 +86,10 @@ type Builder struct {
 	Subagents                      []Subagent
 	Credits                        []Credit
 	Measures                       []Measure      // そのエージェントだけが記録している数字（native.go）
-	Outputs                        []Output       // 成果の印（output.go）。成功したツール呼び出しだけを入れる
+	Outputs                        []Output       // アウトプット（output.go）。成功したツール呼び出しだけを入れる
 	Reported                       []ReportedCost // エージェント自身が記録した使用料（reported.go）
 	File                           string         // 履歴のファイル（画面から開けるように）
-	TracksOutputs                  bool           // 成果の印（コミット・PR・編集した行）を記録できるエージェントか（Outputs が空でも、成果がなかったとわかる）
+	TracksOutputs                  bool           // アウトプット（コミット・PR・編集した行）を記録できるエージェントか（Outputs が空でも、アウトプットがなかったとわかる）
 	toolOrder                      []string
 	tools                          map[string]int
 	files                          map[string]bool
@@ -267,7 +267,7 @@ type Session struct {
 	OEv          []Output      `json:"-"`
 	Fix          []float64     `json:"-"`
 	Meas         []Measure     `json:"-"`
-	OutTracked   bool          `json:"-"` // 成果の印を記録できるエージェントのセッション（Builder.TracksOutputs）
+	OutTracked   bool          `json:"-"` // アウトプットを記録できるエージェントのセッション（Builder.TracksOutputs）
 }
 
 func ptr[T any](v T) *T { return &v }

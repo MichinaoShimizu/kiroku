@@ -61,7 +61,7 @@ The old forms `kiroku --serve`, `--json` and `-o` still work for now. `--weekly`
   - A session's "History file": opens the original history of that session. In `kiroku serve` it opens from the view (only history files of loaded sessions are served, and only to the view on your machine); in `kiroku html` it opens via `file://`. SQLite histories cannot be opened, so you can only copy the path
 - Below the calendar, the weekly and monthly summary is shown
   - ① Findings: up to 3 metrics that crossed a threshold, highest priority first (the rest under "More findings"), as cards with what was observed, why it matters, the related sessions and the "Threshold". Press "See … →" to jump to the original metric and open its explanation. Each card shows that metric's 8-week trend (8 months in month view). To see whether something you tried worked, check this trend in later periods
-  - ② By project: starts with bars and a table showing what share of active time, tokens, estimated cost and credits went where (top 5 plus Other). The grouping follows the Project / Branch / Agent switch at the top. Comparing the rows shows, for example, a project, branch or agent whose share of estimated cost is larger than its share of time. Below that, the cards show, for each project, which sessions took how many hours, how many tokens, how much estimated cost and credits, which models were mainly used, and which session was the heaviest, along with output signals (beyond 6 projects, press "Show N more projects")
+  - ② By project: starts with bars and a table showing what share of active time, tokens, estimated cost and credits went where (top 5 plus Other). The grouping follows the Project / Branch / Agent switch at the top. Comparing the rows shows, for example, a project, branch or agent whose share of estimated cost is larger than its share of time. Below that, the cards show, for each project, which sessions took how many hours, how many tokens, how much estimated cost and credits, which models were mainly used, and which session was the heaviest, along with outputs (beyond 6 projects, press "Show N more projects")
   - ③ Cost and outputs: what you spent (active time, estimated cost, tokens, credits) next to what was left behind (commits, pull requests, lines changed and so on)
   - ④ How you spent time: metrics that include estimates (corrections and interruptions, switches, parallel, wait time) are collapsed under "More metrics (includes estimates)"
   - Then come ⑤ How you used AI, ⑥ Shape of the week / month (ending with "Data sources") and ⑦ Ask AI for suggestions
@@ -71,6 +71,9 @@ The old forms `kiroku --serve`, `--json` and `-o` still work for now. `--weekly`
 - Weekly and monthly report drafts: "Weekly report draft" ("Monthly report draft" in month view) in the summary heading opens the Markdown text with what you did (session names), commits and pull requests for each project. Check it, then press "Copy"; "Close" hides it. Sessions hidden in the legend are left out. Session names are the start of your prompts, so check and edit them before sharing
 - Year in review: "Year in review" next to the period controls (`Y`) opens the year's "exposure". Across is the date and down is the time of day (6:00 to 6:00 the next morning, so late-night work lands at the bottom of the previous day's column); each stretch of active time in a session is drawn as a streak of light, colored by agent and brighter where sessions overlapped. Choose the year at the top right
   - An image to share: active time, sessions, commits, pull requests, the agent breakdown and the streaks of light as a 1600×900 image. Get it with "Save as PNG" or "Copy image", and choose what to include (commits and PRs, your light, the agent breakdown). The image is made in the page and sent nowhere; prompts, project names, branches, files and estimated cost are never included. The streaks start from the first day with history (at least 8 weeks)
+
+    ![Year in review share image (dummy data)](year.png)
+
   - Your light: the shape of your year, named in photography terms (not a verdict). The first match from the top is chosen
 
     | Your light | Rule |
@@ -85,7 +88,7 @@ The old forms `kiroku --serve`, `--json` and `-o` still work for now. `--weekly`
 - Opening details moves focus into them, and closing them returns focus to the bar or card you opened them from. When you move from one detail to another (a commit or session), "Back" takes you back
 - Keyboard shortcuts: `←` `→` to move by week or month, `T` for this week or month, `W` `M` to switch between week and month, `Y` for the year in review, `/` to search, `+` `−` to zoom, `Esc` to close details, `?` to show the shortcut list
 - The view is in Japanese in a Japanese-language browser, and in English otherwise. You can switch it with the selector at the top right, and your choice is saved in the browser. Images in the README and this guide show the English view
-- Choose the theme from auto, light and dark (the button at the top right). Color by, zoom, theme, week / month view and the Daily usage type are saved in the browser
+- Switch between dark (the default) and light themes with the button at the top right. Color by, zoom, theme, week / month view and the Daily usage type are saved in the browser
 - At smartphone widths, the week calendar scrolls horizontally (when opened, it shows the last day you worked up to today and the day before), and the summary is shown in a single column
 - The palette has 8 colors based on Okabe–Ito, chosen to stay distinguishable across types of color vision. From the 9th item on, items are gray
 
@@ -138,9 +141,9 @@ The price table is used for sessions where Claude Code does not record its cost 
 kiroku serve --prices my-prices.json
 ```
 
-### Output signals
+### Outputs
 
-Proxy numbers for outcomes, shown next to costs such as time and tokens, to check whether your usage led to work that left a trace.
+Numbers shown next to costs such as time and tokens, to check whether your usage led to work that left a trace. They count how much was produced (outputs), not its value or productivity.
 
 - **Git commits** are counted by reading the repositories agents worked in (each session's working directory) with your local `git`, counting your own commits (`git config user.email`; in repositories without `user.email`, everyone's commits are counted). Commits made by hand are included. Commits whose time matches (within 2 minutes of when the tool returned) a commit an agent ran with a tool are counted as "Run by AI". Each run is matched to the one nearest commit only. A git worktree is treated as the same repository as its main checkout. The calendar shows them as commit marks and short-hash badges (filled ones were run by AI). They are not read where the `git` command is unavailable
 - Everything else counts only what AI ran with tools and succeeded (currently Claude Code only)
@@ -205,7 +208,7 @@ Press "?" on any metric in the view to see the same explanation. It is also incl
 | Kiro credits | Credits actually consumed | Differences from your account page (period boundaries or use on other machines) | Track your pace against your limit |
 | Estimated cost per prompt | How heavy a typical prompt was | Differences in prompt size | Watch the trend to see how the size of your prompts changes |
 | Heaviest sessions | Sessions that drove usage up | Whether the result was worth it | Open them and check for growing context or rework |
-| Output signals | Whether the cost turned into work that left a trace | The value or quality of the output. Commits you made by hand are not included | Put them next to cost and look for usage that produced nothing |
+| Outputs | Whether the cost turned into work that left a trace | Value, quality or productivity. Commits you made by hand are not included | Put them next to cost and look for usage that produced nothing |
 | Git commits | How much of your time with AI became recorded changes | The value of the changes. Work outside the repositories or commits by others | On days with much time or cost but few commits, check where the time went |
 | Commits | Roughly how often work reached a checkpoint | The value or size of the changes. Commit size varies by person and task | In periods with few commits for the cost, check where the time went |
 | Pull requests | How often work was ready for review | Whether they were merged or valuable | If there is a lot of rework before creating one, make each request smaller |

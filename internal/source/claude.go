@@ -84,7 +84,7 @@ func loadSubagentFile(path string) subFile {
 	return f
 }
 
-// outputs は、ツールの呼び出しから成果の印（コミット・PR・編集した行）を拾い、結果が成功だったときだけ返す。
+// outputs は、ツールの呼び出しからアウトプット（コミット・PR・編集した行）を拾い、結果が成功だったときだけ返す。
 type outputs map[string][]core.Output
 
 func (p outputs) use(id, name string, input any, t *float64) {
@@ -93,7 +93,7 @@ func (p outputs) use(id, name string, input any, t *float64) {
 	}
 }
 
-// result は tool_result の行（block）から、成功した呼び出しの成果の印を返す。時刻は結果の時刻にする
+// result は tool_result の行（block）から、成功した呼び出しのアウトプットを返す。時刻は結果の時刻にする
 // （許可の確認待ちや長い pre-commit で、実際のコミットは呼び出しより後になるため。git のコミットとの突き合わせに使う）。
 func (p outputs) result(block core.Obj, e core.Obj, t *float64) []core.Output {
 	id := core.Str(block["tool_use_id"])
@@ -195,7 +195,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	calls := map[string]*call{}
 	var callOrder []*call
 	side := core.NewUsage()
-	pending := outputs{} // 成果の印は、ツールの結果が成功だったときだけ数える
+	pending := outputs{} // アウトプットは、ツールの結果が成功だったときだけ数える
 	var lastT *float64
 	procs := map[float64]*core.ReportedCost{} // Claude Code 自身の使用料（cost-state）。プロセスの起動時刻ごとに最新の累計
 	var procOrder []float64
@@ -314,7 +314,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	for _, f := range u.Files[1:] {
 		sf := loadSubagentFile(f)
 		files = append(files, sf)
-		s.Outputs = append(s.Outputs, sf.outputs...) // サブエージェントに任せた編集・コミット・PR も、そのセッションの成果
+		s.Outputs = append(s.Outputs, sf.outputs...) // サブエージェントに任せた編集・コミット・PR も、そのセッションのアウトプット
 	}
 	order := append([]*call(nil), callOrder...)
 	sort.SliceStable(order, func(i, j int) bool { return val(order[i].start) < val(order[j].start) })

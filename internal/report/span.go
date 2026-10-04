@@ -6,7 +6,7 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
 
-// span は、セッションの記録（区間・依頼・使用量・成果など）が散らばっている時刻の幅。
+// span は、セッションの記録（区間・依頼・使用量・アウトプットなど）が散らばっている時刻の幅。
 // 期間の集計は、この幅が期間と重なるセッションだけを見れば足りる。
 type span struct{ lo, hi float64 }
 

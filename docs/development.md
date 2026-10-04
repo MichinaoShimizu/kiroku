@@ -75,7 +75,7 @@ PR と main への push で、`.github/workflows/ci.yml` が次を走らせま�
 
 - `test`（Ubuntu・macOS・Windows）: gofmt（Windows 以外）・vet・テスト・ビルド
 - `release-dry-run`: `goreleaser release --snapshot`（公開はしない。`go mod tidy -diff` で go.mod の整理漏れも止まる）、CHANGELOG のいちばん上の節からのリリースノートの抜き出し、その節がまだタグのない版なら番号が `tools/next-version.sh` の結果と合うかの確認
-- `e2e`: ダミーデータの HTML を Chromium で開き、`tools/screenshots/smoke.mjs` で大事な流れ（週の移動・セッションの詳細の開閉・週報の下書き・検索・月表示とショートカット）が動くか、横にはみ出さないか、スクリプトのエラーがないかを、日本語・英語・ダーク・1440px・1000px・390px で確かめる
+- `e2e`: ダミーデータの HTML を Chromium で開き、`tools/screenshots/smoke.mjs` で大事な流れ（テーマの切り替え・週の移動・セッションの詳細の開閉・週報の下書き・検索・月表示とショートカット）が動くか、横にはみ出さないか、スクリプトのエラーがないかを、日本語・英語・1440px・1000px・390px で確かめる
 - `install-script`（Ubuntu・macOS）: `install.sh` に shellcheck をかけ（Ubuntu のみ）、実際に最新のリリースを入れて `kiroku --version` を確かめる
 
 ほかのワークフロー:
@@ -133,14 +133,14 @@ node tools/screenshots/smoke.mjs /tmp/kiroku.html   # 失敗した項目だけ F
 
 ## スクリーンショット
 
-README とガイドの画像（`docs/screenshot.png`・`docs/summary.png`）は、ダミーデータから撮り直せます。画面を変えたときは、あわせて更新してください。
+README とガイドの画像（`docs/screenshot.png`・`docs/summary.png`・`docs/year.png`）は、ダミーデータから撮り直せます。画面を変えたときは、あわせて更新してください。
 
 ```bash
 cd tools/screenshots && npm i playwright && npx playwright install chromium && cd ../..
 sh tools/screenshots/run.sh
 ```
 
-`gen.py` が架空の 4 プロジェクト・約 5 週間の Claude Code の履歴を、`mkgit.py` がそれに合わせた git のリポジトリを一時ディレクトリに作ります。`capture.mjs` が先週の週カレンダーと週次サマリーを 1440x900（英語表示・ダークテーマ・Asia/Tokyo）で撮ります。日本語のブラウザでは画面は日本語で表示されますが、README（英語・日本語）とガイドでは同じ英語の画像を使います。
+`gen.py` が架空の 4 プロジェクト・約 5 週間の Claude Code の履歴を、`mkgit.py` がそれに合わせた git のリポジトリを一時ディレクトリに作ります。`capture.mjs` が先週の週カレンダーと週次サマリーを 1440x900（英語表示・ダークテーマ・Asia/Tokyo）で撮り、1 年の露光のシェア用画像（1600x900）を保存します。日本語のブラウザでは画面は日本語で表示されますが、README（英語・日本語）とガイドでは同じ英語の画像を使います。
 
 `sh tools/screenshots/run.sh --html <出力先.html>` は、ダミーデータの HTML だけを作ります（Node は不要）。`KIROKU_DEMO=1` がつき、どの時間帯から開いても日本時間の時計で表示します。一時ディレクトリの git リポジトリは消えるので、コミットのリンクは開けません。
 
