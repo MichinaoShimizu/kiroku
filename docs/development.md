@@ -28,7 +28,7 @@ go build .         # ./kiroku ができる（./kiroku serve で画面を開く�
 | `internal/report` | 週・月の集計（`Summarize`）、プロジェクト別のまとめ（`project.go`）、ブランチ・エージェントごとの配分（`share.go`） |
 | `internal/gitlog` | セッションの作業場所の git リポジトリからコミットを読む（git がなければ飛ばす） |
 | `internal/web` | `template.html` が画面。`web.go` が集計の JSON を埋め込んで 1 ファイルの HTML にする。`help_test.go`・`script_test.go` が画面の説明とスクリプトを確かめる |
-| `testdata/` | 合成の履歴（`home/`・`codex/`・`crew/`・`sqlite/`）、`golden.json`、`mtimes.json` |
+| `testdata/` | 合成の履歴（`home/`・`codex/`・`crew/`・`sqlite/`）、`golden.json`、`snapshot.json`、`mtimes.json` |
 | `tools/` | `release-notes.sh`・`next-version.sh`（リリース）、`screenshots/`（ダミーデータ・デモ・スクリーンショット・画面の e2e） |
 | `install.sh`・`.goreleaser.yaml` | インストーラーと、リリースのファイルの作り方 |
 
@@ -43,7 +43,7 @@ go build .         # ./kiroku ができる（./kiroku serve で画面を開く�
 5. `kiroku serve` で見張る場所が `Where()` だけで足りなければ `Watch()` を実装する（`internal/source/watch.go`）
 6. 履歴を自動で消すエージェントなら `Retainer`（`Retention()`）を、計測の状態に一言添えるなら `Detailer` を実装する
 7. 新しい `Family` なら `cli.go` の `--sources` の既定値に加える。置き場所を変えられるようにするなら `source.Options`・`addCommon` のオプション・環境変数（`Default…`）を足す
-8. 合成データを `testdata/` に置いてテストを書く（golden は Python 版の 4 つの履歴だけなので、新しいアダプターは `internal/source/<名前>_test.go` で確かめる）
+8. 合成データを `testdata/` に置いてテストを書く（golden は Python 版の 4 つの履歴だけなので、新しいアダプターは `internal/source/<名前>_test.go` で確かめる）。`snapshot_test.go` の読み込みにも加えて、スナップショットを作り直す
 9. ガイド（英・日）の「読み取る履歴」と「履歴の保存期間」、`docs/sources.md`、README の対応エージェント、`cli.go` のヘルプを更新する
 
 集計（`internal/report`）と画面は共通のセッションの形だけを見るので、ふつうは触らなくて済みます。
@@ -55,6 +55,17 @@ go build .         # ./kiroku ができる（./kiroku serve で画面を開く�
 - 比べるのは Python 版にあった 4 つの履歴（Claude Code・Kiro IDE・Kiro CLI・Kiro IDE（旧））だけで、時刻は Asia/Tokyo で区切ります。古い Kiro IDE はファイルの更新時刻を使うので、テストは `testdata/mtimes.json` から戻します
 - JSON に項目を足したときは、`main_test.go` の `compare` の除外の一覧に加えます（加えないと、golden にない項目として失敗します）
 - 集計を変えて数字が変わるときは、なぜ変わるのかを PR に書いてから golden を更新します
+
+## スナップショット
+
+`testdata/snapshot.json` は、`testdata/` のすべての合成データ（Claude Code・Kiro IDE・Kiro CLI・Kiro Crew・SQLite の Kiro CLI と Amazon Q・Kiro IDE（旧）・Codex）を読んだ Go 版の出力（セッション・週・月・計測の状態）です。`TestSnapshot`（`snapshot_test.go`）が、golden が見ない履歴と項目も含めて、数字が意図せず変わっていないかを確かめます。
+
+- 比べるときは、数値の端数の違い（OS や CPU による）だけを許し、項目の増減も差として出します。パスの区切りは `/` に、Codex の一時ディレクトリは `$CODEX` にそろえます
+- 集計や JSON の項目を変えたときは、差が意図どおりかを確かめ、なぜ変わるのかを PR に書いてから作り直します
+
+```bash
+go test -run TestSnapshot -update .
+```
 
 ## CI
 
