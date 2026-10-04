@@ -176,3 +176,17 @@ func TestCrewSpendKey(t *testing.T) {
 		}
 	}
 }
+
+// クレジットの単位は表記が揺れても数える。クレジット以外の単位は数えない。
+func TestCreditsOfUnit(t *testing.T) {
+	list := []any{
+		map[string]any{"unit": "credit", "value": 1.0},
+		map[string]any{"unit": "Credits", "value": 0.5},
+		map[string]any{"unit": " CREDIT ", "value": 0.25},
+		map[string]any{"value": 2.0}, // 単位がなければクレジット
+		map[string]any{"unit": "token", "value": 100.0},
+	}
+	if got := creditsOf(list, "unit", "value"); got != 3.75 {
+		t.Errorf("creditsOf = %v, want 3.75", got)
+	}
+}
