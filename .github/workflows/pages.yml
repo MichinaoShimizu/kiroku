@@ -1,0 +1,47 @@
+name: Demo
+
+# README の「Live demo」：ダミーデータの HTML を GitHub Pages に公開する。
+# ダミーデータは実行した日までの約 5 週間なので、週に 1 回作り直して「今週」が空にならないようにする。
+# 使うには、リポジトリの Settings → Pages → Source を「GitHub Actions」にする。
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build the demo HTML
+        run: |
+          mkdir -p _site
+          sh tools/screenshots/run.sh --html "$PWD/_site/index.html"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
