@@ -127,6 +127,7 @@ for (const env of envs) {
       for (let i = 0; i < d.length; i += 4) if (d[i] + d[i+1] + d[i+2] > 240) lit++;
       return lit > 200; }));
     check("光の名前が出る", (await p.locator(".yrtn").innerText()).trim().length > 0);
+    check("腕前のメーターが 4 つ出る", await p.locator(".yrmeter > div").count() === 4);
     const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
     check("1 年の露光が横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
     await p.keyboard.press("Escape"); await pause();
