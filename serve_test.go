@@ -71,9 +71,9 @@ func TestLiveRefresh(t *testing.T) {
 		t.Fatalf("最初のセッション数 = %d, want 1", l.count())
 	}
 
-	stop := make(chan struct{})
-	defer close(stop)
-	go l.watch(20*time.Millisecond, stop)
+	stop, done := make(chan struct{}), make(chan struct{})
+	defer func() { close(stop); <-done }() // 読み直しの途中で次のテストへ進まない（time.Local を書きかえるテストと競合する）
+	go func() { l.watch(20*time.Millisecond, stop); close(done) }()
 	time.Sleep(60 * time.Millisecond)
 	add("1e13c3c1-d7ae-41c2-a324-e6a440665d9a")
 	deadline := time.Now().Add(5 * time.Second)

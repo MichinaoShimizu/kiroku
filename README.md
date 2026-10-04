@@ -57,6 +57,8 @@ kiroku can only show history that your agents still keep, and **Claude Code dele
 }
 ```
 
+If you'd rather not change it, run `kiroku archive on` and kiroku keeps compressed copies of that history on your computer and shows deleted conversations from them ([details](docs/guide.en.md#keep-a-copy-of-history-in-kiroku)).
+
 kiroku shows a notice above the summary while Claude Code is still on its 30-day default. Kiro Crew also deletes old conversation records (`session.archive_retention_days`); kiroku notes this under "Data sources". See [History retention](docs/guide.en.md#history-retention) for each agent.
 
 ## Update

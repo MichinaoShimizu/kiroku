@@ -29,7 +29,8 @@ type Detailer interface {
 type Report struct {
 	Name     string     `json:"name"`
 	N        int        `json:"n"`
-	Dup      int        `json:"dup,omitempty"` // ほかの場所と同じ会話だったので数えなかった数
+	Dup      int        `json:"dup,omitempty"`      // ほかの場所と同じ会話だったので数えなかった数
+	Archived int        `json:"archived,omitempty"` // 元の履歴が消えていて、kiroku archive のコピーから読んだ数
 	Detail   string     `json:"detail,omitempty"`
 	DetailEn string     `json:"detailEn,omitempty"` // 英語表示のときの Detail
 	Where    string     `json:"where"`
@@ -51,6 +52,15 @@ type Retainer interface {
 	Retention() *Retention
 }
 
+// Keeper は、古い履歴を自動で消すエージェントの Source が実装する。kiroku archive がオンなら、
+// Src の下の .jsonl を Dst の下に圧縮して残す（internal/archive.Sync）。Source は、元が消えたらコピーを読む。
+type Keeper interface {
+	Keep() []Kept
+}
+
+// Kept は、残す元の場所と、コピーを置く場所。
+type Kept struct{ Src, Dst string }
+
 // Options は読み込みの設定。
 type Options struct {
 	ClaudeRoot   string
@@ -60,6 +70,7 @@ type Options struct {
 	KiroCLIDB    string   // 空なら OS ごとの場所
 	AmazonQDB    string
 	CodexHome    string // 空なら CODEX_HOME か ~/.codex
+	Archive      string // kiroku archive の保存場所（空ならコピーを読まない）
 }
 
 func q(v, def string) string {
@@ -72,14 +83,22 @@ func q(v, def string) string {
 // All は対応しているすべての履歴。並びは画面の「計測の状態」の順。
 func All(o Options) []Source {
 	return []Source{
-		&Claude{Root: o.ClaudeRoot},
+		&Claude{Root: o.ClaudeRoot, Archive: sub(o.Archive, "claude")},
 		&KiroIDE{Home: o.KiroHome},
-		&KiroCLI{Home: o.KiroHome, CrewHome: q(o.CrewHome, DefaultCrewHome(o.KiroHome))},
+		&KiroCLI{Home: o.KiroHome, CrewHome: q(o.CrewHome, DefaultCrewHome(o.KiroHome)), CrewArchive: sub(o.Archive, "crew")},
 		&QStore{Label: "Kiro CLI (SQLite)", Fam: "kiro", DB: q(o.KiroCLIDB, filepath.Join(DataDir("kiro-cli"), "data.sqlite3")), Command: "kiro-cli chat --resume"},
 		&KiroIDELegacy{Storages: storages(o.KiroStorages)},
 		&QStore{Label: "Amazon Q", Fam: "amazonq", DB: q(o.AmazonQDB, filepath.Join(DataDir("amazon-q"), "data.sqlite3")), Command: "q chat --resume"},
 		&Codex{Home: q(o.CodexHome, DefaultCodexHome())},
 	}
+}
+
+// sub は保存場所 dir の下のフォルダ（dir が空なら空）。
+func sub(dir, name string) string {
+	if dir == "" {
+		return ""
+	}
+	return filepath.Join(dir, name)
 }
 
 func storages(s []string) []string {

@@ -954,6 +954,7 @@ function summary(){
     if (t.classList.contains("hb") && t.getAttribute("aria-expanded") !== "true") t.click(); });
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
   const ko = R.querySelector("#keepoff"); if (ko) ko.onclick = () => { store.set("keepNoticeOff", true); summary(); };
+  const ka = R.querySelector("#keeparch"); if (ka) ka.onclick = () => { ka.disabled = true; keepArchive(); };
   const ms = R.querySelector("#moreS"); if (ms) ms.ontoggle = () => { st.moreS = ms.open; };
   const rt = R.querySelector("#rpttog"), rb = R.querySelector("#rptbox"), rpt = open => { st.rpt = open; rb.hidden = !open; rt.setAttribute("aria-expanded", open); if (open) rb.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest"}); else rt.focus(); };
   if (rt && rb){ rt.onclick = () => rpt(!st.rpt); R.querySelector("#rptclose").onclick = () => rpt(false); }
@@ -1423,24 +1424,42 @@ function rhythm(w, M){
 /* 計測の状態 */
 /* 履歴を自動で消すエージェント（既定のままの Claude Code など）を知らせ、公式ドキュメントへ案内する。閉じたら出さない */
 function keepNotice(){
-  if (store.get("keepNoticeOff", false)) return "";
+  if (store.get("keepNoticeOff", false) || archOn()) return ""; // kiroku がコピーを残していれば、消えても見られる
   const r = (META.report || []).find(r => r.n && r.retention && r.retention.days && !r.retention.set); if (!r) return "";
-  const k = r.retention, snippet = `"${k.setting}": 3650`;
+  const k = r.retention, snippet = `"${k.setting}": 3650`, cmd = "kiroku archive on";
   return `<div class="keep" role="note"><b>${tr("過去の履歴が消えます", "Your older history will be deleted")}</b>
     <p>${tr(`${esc(sn(r.name))} は、${k.days} 日より古い会話の記録を自動で消します（<code>${esc(k.setting)}</code> が既定値のまま）。消えた分は kiroku でも見られなくなり、元に戻せません。残すには、設定ファイル（<code>~/.claude/settings.json</code>）に <code>${esc(snippet)}</code> のように長い日数を設定してください。`,
       `${esc(sn(r.name))} automatically deletes conversation history older than ${k.days} days (<code>${esc(k.setting)}</code> is at its default). Deleted history cannot be shown by kiroku and cannot be recovered. To keep it, set a long period such as <code>${esc(snippet)}</code> in your settings file (<code>~/.claude/settings.json</code>).`)}</p>
-    <div class="ka">${ext(k.docs, tr("公式ドキュメントで設定方法を見る ↗", "See how to set it in the official docs ↗"), "pill")}<button class="pill" data-copy="${esc(snippet)}">${tr("設定をコピー", "Copy setting")}</button><button class="pill" id="keepoff">${tr("閉じる", "Dismiss")}</button></div></div>`;
+    <p>${tr(`設定を変えない場合は、kiroku に履歴のコピーを残すこともできます。kiroku を開くたびに圧縮して保存し、消えた会話もコピーから表示します（コピーはこのパソコンの中だけに置きます）。${LIVE ? "" : `オンにするには <code>${cmd}</code> を実行します。`}`,
+      `If you'd rather not change the setting, kiroku can keep a copy of the history instead. It saves a compressed copy each time you open kiroku and shows deleted conversations from it (copies stay on this computer only).${LIVE ? "" : ` To turn it on, run <code>${cmd}</code>.`}`)}</p>
+    <div class="ka">${ext(k.docs, tr("公式ドキュメントで設定方法を見る ↗", "See how to set it in the official docs ↗"), "pill")}<button class="pill" data-copy="${esc(snippet)}">${tr("設定をコピー", "Copy setting")}</button>${LIVE ? `<button class="pill" id="keeparch">${tr("kiroku にコピーを残す", "Keep a copy in kiroku")}</button>` : `<button class="pill" data-copy="${cmd}">${tr("コマンドをコピー", "Copy command")}</button>`}<button class="pill" id="keepoff">${tr("閉じる", "Dismiss")}</button></div></div>`;
 }
+function archOn(){ return !!(META.archive && META.archive.on); }
+function bytes(n){ return n >= 1<<30 ? (n/(1<<30)).toFixed(1)+" GB" : n >= 1<<20 ? (n/(1<<20)).toFixed(1)+" MB" : n >= 1<<10 ? (n/(1<<10)).toFixed(1)+" KB" : n+" B"; }
+// keepArchive は「kiroku にコピーを残す」（kiroku serve のときだけ）。kiroku archive on と同じことをして、集計を取り込み直す。
+async function keepArchive(){
+  try {
+    const r = await fetch("archive", {method:"POST", headers:{"X-Kiroku":"1"}, cache:"no-store"}); if (!r.ok) throw new Error(r.status);
+    applyData(await r.json()); render();
+    toast(tr("コピーを残しました。これからは kiroku を開くたびに保存します", "Kept a copy. kiroku will save one each time you open it"), 4500);
+  } catch(e){ toast(tr("コピーを残せませんでした。kiroku archive on を実行してください", "Couldn't keep a copy. Run kiroku archive on instead"), 4500); }
+}
+function applyData(j){ DATA = j.sessions || []; WEEKS = j.weeks || {}; MONTHS = j.months || {}; META = j.meta; GENERATED = j.generated; if (st.sel && !DATA.some(s => s.id === st.sel)) st.sel = null; }
 function keepRow(r){ // 計測の状態に添える：どこまでさかのぼれるか、いつ消えるか
   const d = r.oldest ? new Date(r.oldest*1000) : null, o = d ? `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}` : "";
   const k = r.retention, link = k && k.docs ? ` ${ext(k.docs, tr("公式ドキュメント ↗", "official docs ↗"))}` : "";
   return (o ? tr(`・最も古い記録 ${o}`, ` · oldest record ${o}`) : "") +
-    (!k ? "" : k.days && !k.set ? `<br><span class="kw">${tr(`${k.days} 日より古い記録は自動で消えます（<code>${esc(k.setting)}</code> が既定値）`, `Records older than ${k.days} days are deleted automatically (<code>${esc(k.setting)}</code> is at its default)`)}${link}</span>`
+    (r.archived ? tr(`・消えた会話 ${r.archived} 件は kiroku のコピーから表示`, ` · ${plural(r.archived, "deleted conversation")} shown from kiroku's copy`) : "") +
+    (!k ? "" : k.days && !k.set && archOn() ? `<br>${tr(`${k.days} 日より古い記録は自動で消えますが、kiroku がコピーを残しています`, `Records older than ${k.days} days are deleted automatically, but kiroku keeps a copy`)}`
+      : k.days && !k.set ? `<br><span class="kw">${tr(`${k.days} 日より古い記録は自動で消えます（<code>${esc(k.setting)}</code> が既定値）`, `Records older than ${k.days} days are deleted automatically (<code>${esc(k.setting)}</code> is at its default)`)}${link}</span>`
       : k.days ? `<br>${tr(`保存期間 ${k.days} 日（<code>${esc(k.setting)}</code>）`, `Kept for ${k.days} days (<code>${esc(k.setting)}</code>)`)}`
       : `<br>${tr(`古い記録は一定期間で消えます（<code>${esc(k.setting)}</code>）`, `Older records are deleted after a period (<code>${esc(k.setting)}</code>)`)}${link}`); }
 function measure(w){
   const rows = META.report.map(r => { const dt = EN() && r.detailEn || r.detail;
     return `<li class="${r.error?"warn":""}">${esc(sn(r.name))}: ${tr(`${r.n} セッション`, plural(r.n, "session"))}${dt?tr(`（${esc(dt)}）`, ` (${esc(dt)})`):""}${r.dup?tr(`（ほかの場所と同じ会話 ${r.dup} 件は数えていません）`, ` (${plural(r.dup, "duplicate conversation")} found elsewhere not counted)`):""}${r.error?tr(`（読めなかったファイルあり）`, ` (some files couldn't be read)`):""}${keepRow(r)}</li>`; });
+  const a = META.archive; // kiroku archive
+  if (a && (a.on || a.files)) rows.push(`<li>${a.on ? tr(`kiroku のコピー: 保存中（${a.files} ファイル・${bytes(a.bytes)}）`, `kiroku's copy: on (${plural(a.files, "file")}, ${bytes(a.bytes)})`)
+      : tr(`kiroku のコピー: 保存は止めています。これまでのコピー（${a.files} ファイル・${bytes(a.bytes)}）は表示します`, `kiroku's copy: off. Copies kept so far (${plural(a.files, "file")}, ${bytes(a.bytes)}) are still shown`)}<br><code>${esc(a.dir)}</code></li>`);
   if (w.usage && w.usage.unpriced) { const ms = (w.usage.unpricedModels || []).map(m => `<code>${esc(mn(m))}</code>`).join(tr("・", ", "));
     rows.push(`<li class="warn">${tr(`料金表にないモデルのトークン ${tok(w.usage.unpriced)} は目安コストに入っていません${ms ? `（${ms}）` : ""}。<code>--prices</code> で料金を足せます`, `${tok(w.usage.unpriced)} tokens from models not in the price table are not included in the estimated cost${ms ? ` (${ms})` : ""}. Add their prices with <code>--prices</code>`)}</li>`); }
   return `<h3>${tr("計測の状態", "Data sources")}</h3><ul class="mlist">${rows.join("")}</ul>`;
@@ -1917,8 +1936,7 @@ if (LIVE){
       const r = await fetch("stamp", {cache:"no-store"}); if (!r.ok) throw new Error(r.status);
       if (parseFloat(await r.text()) !== GENERATED){
         const j = await (await fetch("data.json", {cache:"no-store"})).json(), before = DATA.length;
-        DATA = j.sessions || []; WEEKS = j.weeks || {}; MONTHS = j.months || {}; META = j.meta; GENERATED = j.generated;
-        if (st.sel && !DATA.some(s => s.id === st.sel)) st.sel = null;
+        applyData(j);
         render(); if ($("#yr").open) renderYear();
         const d = DATA.length - before;
         toast(d > 0 ? tr(`新しいセッションを ${d} 件取り込みました`, `Added ${plural(d, "new session")}`) : tr("最新の履歴を反映しました", "Updated to the latest history"));

@@ -2,6 +2,7 @@ package source
 
 import (
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -10,7 +11,8 @@ import (
 )
 
 // Claude は Claude Code の履歴: <root>/<project>/<sessionId>.jsonl と <sessionId>/subagents/agent-<id>.jsonl。
-type Claude struct{ Root string }
+// Archive は kiroku archive のコピーの場所（<保存場所>/claude。同じ並びで .jsonl.zst）。元の会話が消えていれば、コピーを読む。
+type Claude struct{ Root, Archive string }
 
 func (c *Claude) Name() string   { return "Claude Code" }
 func (c *Claude) Family() string { return "claude" }
@@ -72,7 +74,7 @@ func loadSubagentFile(path string) subFile {
 			}
 		}
 	})
-	stem := strings.TrimSuffix(filepath.Base(path), ".jsonl")
+	stem := stemOf(path)
 	f.agentID = strings.TrimPrefix(stem, "agent-")
 	if len(times) > 0 {
 		sort.Float64s(times)
@@ -142,21 +144,50 @@ func (c *Claude) Load(emit func(*core.Builder)) error {
 	return nil
 }
 
-// Units は会話ごとのファイルと、そのサブエージェントのファイル。
+// Keep は、kiroku archive で残す場所（Claude Code は古い会話を消すため）。
+func (c *Claude) Keep() []Kept {
+	if c.Archive == "" {
+		return nil
+	}
+	return []Kept{{Src: c.Root, Dst: c.Archive}}
+}
+
+// Units は会話ごとのファイルと、そのサブエージェントのファイル。元の会話が消えていて kiroku archive のコピーがあれば、コピーを読む。
 func (c *Claude) Units() []Unit {
 	var out []Unit
 	for _, path := range glob(filepath.Join(c.Root, "*", "*.jsonl")) {
-		stem := strings.TrimSuffix(filepath.Base(path), ".jsonl")
-		files := append([]string{path}, glob(filepath.Join(filepath.Dir(path), stem, "subagents", "*.jsonl"))...)
-		out = append(out, Unit{Key: path, Files: files})
+		out = append(out, claudeUnit(path, ".jsonl"))
+	}
+	if c.Archive != "" {
+		for _, path := range glob(filepath.Join(c.Archive, "*", "*.jsonl.zst")) {
+			if isFile(filepath.Join(c.Root, filepath.Base(filepath.Dir(path)), stemOf(path)+".jsonl")) {
+				continue // 元の会話があれば、そちらを読む
+			}
+			out = append(out, claudeUnit(path, ".jsonl.zst"))
+		}
 	}
 	return out
+}
+
+func claudeUnit(path, ext string) Unit {
+	files := append([]string{path}, glob(filepath.Join(filepath.Dir(path), stemOf(path), "subagents", "*"+ext))...)
+	return Unit{Key: path, Files: files}
+}
+
+// stemOf は履歴ファイルの名前から .jsonl（kiroku archive のコピーなら .jsonl.zst）を除いたもの。
+func stemOf(path string) string {
+	return strings.TrimSuffix(strings.TrimSuffix(filepath.Base(path), ".zst"), ".jsonl")
+}
+
+func isFile(p string) bool {
+	st, err := os.Stat(p)
+	return err == nil && !st.IsDir()
 }
 
 // LoadUnit は 1 つの会話（Units の 1 つ）を読む。
 func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	path := u.Key
-	stem := strings.TrimSuffix(filepath.Base(path), ".jsonl")
+	stem := stemOf(path)
 	s := core.NewBuilder("Claude Code", stem)
 	s.TracksOutputs = true
 	s.File = path
@@ -280,7 +311,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	})
 	// サブエージェントの別ファイル（新しい版）を、agentId か時刻でつなぐ
 	var files []subFile
-	for _, f := range glob(filepath.Join(filepath.Dir(path), stem, "subagents", "*.jsonl")) {
+	for _, f := range u.Files[1:] {
 		sf := loadSubagentFile(f)
 		files = append(files, sf)
 		s.Outputs = append(s.Outputs, sf.outputs...) // サブエージェントに任せた編集・コミット・PR も、そのセッションの成果
@@ -416,7 +447,9 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	if s.Project == "" {
 		s.Project = filepath.Base(filepath.Dir(path))
 	}
-	s.Resume = "cd " + s.Project + " && claude --resume " + s.ID
+	if !strings.HasSuffix(path, ".zst") { // 消えた会話（kiroku archive のコピー）は Claude Code で再開できない
+		s.Resume = "cd " + s.Project + " && claude --resume " + s.ID
+	}
 	emit(s)
 	return nil
 }

@@ -110,10 +110,18 @@ func crewTranscriptPath(home, key string) string {
 
 // readCrewKey は会話キーの記録を読む。Crew は古い行を sessions/archive/<名前>__<日時>.jsonl に退避する
 // （残す期間は session.archive_retention_days で決まり、Crew の版や設定で変わる）ので、残っていればそちらも古い順に読む。
-func readCrewKey(home, key string) (title string, rows []crewRow) {
+// 退避した記録が消えていても、kiroku archive のコピー（arch の下の同じ並び。.jsonl.zst）があればそれを読む。
+func readCrewKey(home, arch, key string) (title string, rows []crewRow) {
 	stem := unsafeKey.ReplaceAllString(key, "_")
 	segs := glob(filepath.Join(home, "sessions", "archive", stem+"__*.jsonl"))
-	sort.Strings(segs)
+	if arch != "" {
+		for _, p := range glob(filepath.Join(arch, "sessions", "archive", stem+"__*.jsonl.zst")) {
+			if !isFile(filepath.Join(home, "sessions", "archive", strings.TrimSuffix(filepath.Base(p), ".zst"))) {
+				segs = append(segs, p)
+			}
+		}
+	}
+	sort.Slice(segs, func(i, j int) bool { return filepath.Base(segs[i]) < filepath.Base(segs[j]) }) // 名前の日時の順
 	for _, p := range append(segs, crewTranscriptPath(home, key)) {
 		t, rs := readCrewTranscript(p)
 		title = firstNonEmpty(title, t)
@@ -276,11 +284,11 @@ func addCrewTurns(s *core.Builder, turns []crewTurn) {
 
 // crewOnly は kiro-cli の会話に結びつかない Crew の記録を、Crew のセッションにする。
 // 裏方の処理（_bg）は 1 日ごとにまとめる。
-func crewOnly(home, slot string, turns []crewTurn, info *CrewInfo) []*core.Builder {
+func crewOnly(home, arch, slot string, turns []crewTurn, info *CrewInfo) []*core.Builder {
 	var title string
 	var rows []crewRow
 	if slot != "_bg" && home != "" {
-		title, rows = readCrewKey(home, slot)
+		title, rows = readCrewKey(home, arch, slot)
 	}
 	groups := map[string][]crewTurn{}
 	var order []string

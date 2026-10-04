@@ -37,6 +37,7 @@ go install github.com/MichinaoShimizu/kiroku@latest
 | `kiroku serve [ADDR]` | Serves the view at `http://localhost:8484/` and keeps it up to date. Every few seconds it checks the history folders for changes (file names, sizes and modification times only) and reloads once writing settles (when changes stop for 10 seconds; even if an agent keeps writing, it reloads within 60 seconds at most). New history appears while the week or month you are viewing and the selected session stay as they are, and `LIVE` is shown at the top left. Change the port with, for example, `kiroku serve :8485` (a bare port still listens on `127.0.0.1` only). Press Ctrl+C to quit |
 | `kiroku html [-o FILE]` | Reads all history up to now and writes it to a single HTML file, then opens it in your browser (`--no-open` to skip). Use it to carry the view around or to look at it without starting a server. Run it again to include later history |
 | `kiroku json [-o FILE]` | Writes the aggregated data as JSON (`-o -` for stdout) |
+| `kiroku archive [on\|off]` | Keeps compressed copies of history that agents delete automatically (Claude Code, Kiro Crew) in kiroku's own folder (see "[Keep a copy of history in kiroku](#keep-a-copy-of-history-in-kiroku)"). With no argument, shows the status (on or off, location, number and size of files) |
 | `kiroku version` | Prints the version |
 | `kiroku update` | Downloads the latest release for the same OS and CPU from GitHub Releases, verifies it with `checksums.txt`, and replaces itself. In a location you cannot write to (such as `/usr/local/bin`), run `sudo kiroku update`. kiroku installed with `go install` or built from source (version `dev`) is not replaced, so update it with `go install …@latest`. v0.1.1 and earlier have no `update`, so reinstall once with `install.sh` or from Releases |
 
@@ -262,6 +263,17 @@ Example for Claude Code:
 
 kiroku reads only your user settings (`~/.claude/settings.json`, or under `CLAUDE_CONFIG_DIR` if set). If the period is set in project or organization settings, the notice may not match the actual period.
 
+### Keep a copy of history in kiroku
+
+If you'd rather not change the setting, kiroku can keep a copy of the history instead. It is off until you turn it on.
+
+- Run `kiroku archive on`, or press "Keep a copy in kiroku" in the notice in the `kiroku serve` view. kiroku saves the current history right away, then saves new and appended history each time it reads history (`serve` reloads, `html`, `json`)
+- Only history from agents that delete it automatically is saved (Claude Code conversations, and Kiro Crew's `sessions/archive/`). Each file is compressed with zstd and kept in the same layout as the original
+- When the original conversation is deleted, kiroku shows it from the copy. "Data sources" shows how many conversations came from the copy, and the number and size of the saved files. Claude Code conversations shown from the copy have no "Resume" command (Claude Code no longer has them)
+- The copies live in `~/.local/share/kiroku/archive` on Linux (under `XDG_DATA_HOME` if set), `~/Library/Application Support/kiroku/archive` on macOS and `%LocalAppData%\kiroku\archive` on Windows. Change it with `--archive-dir` or `KIROKU_ARCHIVE_DIR`. Copies stay on this computer and are never sent anywhere
+- `kiroku archive off` stops saving and asks whether to delete the copies already kept (only if you answer `y` in a terminal). If you keep them, kiroku still shows them
+- History deleted while kiroku is not opened cannot be saved, so open kiroku at least once before the period ends. The conversations exist in one more place, so even conversations you deleted on purpose remain in kiroku's copy
+
 ## Options
 
 Common to the commands that read history (`serve`, `html`, `json`):
@@ -277,6 +289,7 @@ Common to the commands that read history (`serve`, `html`, `json`):
 | `--codex-home` | `~/.codex` | Location of Codex data (`CODEX_HOME` is also used) |
 | `--gap` | `15` | Idle time (minutes) that splits session bars |
 | `--prices` | | Override the price table with JSON (see "How you used AI") |
+| `--archive-dir` | Per-OS location (see "Keep a copy of history in kiroku") | Where `kiroku archive` keeps copies (`KIROKU_ARCHIVE_DIR` is also used) |
 
 Per command:
 
