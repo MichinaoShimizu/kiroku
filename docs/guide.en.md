@@ -87,7 +87,7 @@ The image shows the English view. In a Japanese browser it is shown in Japanese 
 | By project | Per project: active time and its share, number of sessions / prompts, tokens, estimated cost and credits, main models (share of tokens; counts for agents that don't record tokens), the top 3 sessions by run time, and the heaviest session (judged by estimated cost, else credits, else tokens). Time when several projects ran at once is split between them |
 | Active time | Time when any session was running (overlaps count once) |
 | Total AI run time | Time added up, including sessions running in parallel |
-| Focus blocks | Work that continued for 60 minutes or more, allowing breaks of up to 5 minutes, and the project that took most of it |
+| Focus blocks | Work that continued for 60 minutes or more, and the project that took most of it. Gaps within a session up to the session gap (`--gap`, 15 minutes by default) and gaps of up to 5 minutes between sessions are treated as continuous |
 | Project switches per day | How often the project changed between consecutive prompts |
 | Parallel time | Time when 2 or more sessions ran at once, and the most at once |
 | Wait time | Median and 90th percentile of the time from an AI reply to your next prompt (up to 30 minutes) |
@@ -128,7 +128,7 @@ kiroku serve --prices my-prices.json
 
 Proxy numbers for outcomes, shown next to costs such as time and tokens, to check whether your usage led to work that left a trace.
 
-- **Git commits** are counted by reading the repositories agents worked in (each session's working directory) with your local `git`, counting your own commits (`git config user.email`; in repositories without `user.email`, everyone's commits are counted). Commits made by hand are included. Commits whose time matches (within 2 minutes) a commit an agent ran with a tool are counted as "Run by AI". The calendar shows them as commit marks and short-hash badges (filled ones were run by AI). They are not read where the `git` command is unavailable
+- **Git commits** are counted by reading the repositories agents worked in (each session's working directory) with your local `git`, counting your own commits (`git config user.email`; in repositories without `user.email`, everyone's commits are counted). Commits made by hand are included. Commits whose time matches (within 2 minutes of when the tool returned) a commit an agent ran with a tool are counted as "Run by AI". Each run is matched to the one nearest commit only. A git worktree is treated as the same repository as its main checkout. The calendar shows them as commit marks and short-hash badges (filled ones were run by AI). They are not read where the `git` command is unavailable
 - Everything else counts only what AI ran with tools and succeeded (currently Claude Code only)
 
 | Metric | Definition |
