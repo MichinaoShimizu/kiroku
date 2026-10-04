@@ -7,8 +7,39 @@ import (
 	"strings"
 )
 
-// Correction は言い直し・差し戻しっぽい依頼（こじれたセッションの目印）。
-var Correction = regexp.MustCompile(`(?i)違う|ちがう|そうじゃな|やり直|戻して|元に戻|取り消|じゃなくて|\b(?:wrong|incorrect|nope|revert|undo|roll ?back|start over|not what|that's not|try again|(?:doesn't|does not|didn't|did not|still not|isn't|is not) work(?:ing)?|still (?:broken|failing|fails)|you broke)\b`)
+// 言い直し・差し戻しっぽい依頼（こじれたセッションの目印）の言い回し。依頼の冒頭（humanHead）だけを見る。
+// 「違う色にして」「undo ボタンを足して」のような、言葉が同じだけのふつうの依頼は拾わない。
+var (
+	correctionStart = regexp.MustCompile(`(?im)^\s*(?:(?:違う|ちがう|違います|違いました)(?:[、。,.!！?？\s]|よ|って|ね|$)|(?:いや|いいえ)[、。,\s]|(?:no|nope)(?:[,.!]|\s*$)|nope\b|(?:wrong|incorrect|not quite)\b)`)
+	correctionAny   = regexp.MustCompile(`(?i)それは違|そうじゃな|そうではな|じゃなくて|ではなくて|やり直して|やりなおして|元に戻|戻して|取り消して|まだ直って|直ってな|直っていな|\b(?:(?:that|this|it)(?:'s| is) (?:not (?:what|right|it)\b|wrong\b|incorrect\b)|not what i (?:asked|wanted|meant)|(?:revert|undo|roll ?back) (?:it|that|this|these|those|your|the (?:last|previous|latest)|what you|everything|all)\b|start over|you broke|(?:still|is still|it's still) (?:not working|broken|failing|fails|wrong|not fixed)|(?:doesn't|does not|didn't|did not|isn't|is not|still doesn't|still does not) work(?:ing)?\b)|(?:^|[.!,;]\s*)try again\b`)
+)
+
+// humanHead は依頼の冒頭の、人が書いた部分（コードブロック・引用・字下げしたログより前の 3 行まで）。
+// 貼り付けたエラーやログの中の言葉を、言い直しと取り違えないため。
+func humanHead(text string) string {
+	var lines []string
+	for _, l := range strings.Split(text, "\n") {
+		if strings.HasPrefix(strings.TrimSpace(l), "```") {
+			break
+		}
+		if strings.TrimSpace(l) == "" || strings.HasPrefix(l, ">") || strings.HasPrefix(l, " ") || strings.HasPrefix(l, "\t") {
+			continue
+		}
+		if lines = append(lines, l); len(lines) == 3 {
+			break
+		}
+	}
+	return Runes(strings.Join(lines, "\n"), 200)
+}
+
+// IsCorrection は、依頼が言い直し・差し戻しっぽいか。会話の最初の依頼（first）は、まだ直すものがないので拾わない。
+func IsCorrection(text string, first bool) bool {
+	if first {
+		return false
+	}
+	h := humanHead(text)
+	return correctionStart.MatchString(h) || correctionAny.MatchString(h)
+}
 
 var editTools = map[string]bool{
 	"Edit": true, "Write": true, "MultiEdit": true, "NotebookEdit": true, // Claude Code
@@ -91,8 +122,9 @@ func (s *Builder) Prompt(ts *float64, text string) {
 		}
 	}
 	if text != "" && !IsNoise(text) {
+		first := len(s.Prompts) == 0
 		s.Prompts = append(s.Prompts, Prompt{T: ts, Text: Runes(strings.TrimSpace(text), 400)})
-		if Correction.MatchString(text) && ts != nil {
+		if IsCorrection(text, first) && ts != nil {
 			s.FixTS = append(s.FixTS, *ts)
 		}
 	}
@@ -188,8 +220,8 @@ func (s *Builder) Waits() [][2]float64 {
 
 func (s *Builder) Corrections() int {
 	n := 0
-	for _, p := range s.Prompts {
-		if Correction.MatchString(p.Text) {
+	for i, p := range s.Prompts {
+		if IsCorrection(p.Text, i == 0) {
 			n++
 		}
 	}
