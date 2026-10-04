@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/MichinaoShimizu/kiroku/internal/archive"
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/MichinaoShimizu/kiroku/internal/gitlog"
 	"github.com/MichinaoShimizu/kiroku/internal/report"
@@ -27,6 +28,7 @@ Commands:
   serve [ADDR]          Open the view in your browser and keep it updated as new history arrives (default 127.0.0.1:8484)
   html                  Write the view as a single static HTML file (default kiroku.html) and open it
   json                  Write the aggregated data as JSON (default kiroku.json, "-" for stdout)
+  archive [on|off]      Keep compressed copies of history that agents delete (Claude Code, Kiro Crew); no argument shows the status
   version               Print the version
   update                Update kiroku to the latest release
   help                  Show this help
@@ -58,6 +60,8 @@ func dispatch(args []string) error {
 		return cmdHTML(args[1:])
 	case "json":
 		return cmdJSON(args[1:])
+	case "archive":
+		return cmdArchive(args[1:])
 	case "version", "--version", "-version", "-v":
 		return runVersion()
 	case "update":
@@ -74,45 +78,63 @@ func dispatch(args []string) error {
 
 // common は、履歴を読むコマンドに共通のオプション。
 type common struct {
-	root, kiroHome, crewHome, kiroCLIDB, amazonQDB, codexHome, sources, prices *string
-	gap                                                                        *int
+	root, kiroHome, crewHome, kiroCLIDB, amazonQDB, codexHome, sources, prices, archiveDir *string
+	gap                                                                                    *int
 }
 
 func addCommon(fs *flag.FlagSet) *common {
 	return &common{
-		root:      fs.String("root", source.DefaultClaudeRoot(), "Claude Code history directory ($CLAUDE_CONFIG_DIR/projects or ~/.claude/projects)"),
-		kiroHome:  fs.String("kiro-home", source.DefaultKiroHome(), "Kiro data directory ($KIRO_HOME)"),
-		crewHome:  fs.String("crew-home", "", "Kiro Crew data directory (default $KIROCREW_HOME or <kiro-home>/crew)"),
-		kiroCLIDB: fs.String("kiro-cli-db", "", "path to the legacy Kiro CLI data.sqlite3 (default: OS-specific)"),
-		amazonQDB: fs.String("amazonq-db", "", "path to the Amazon Q Developer CLI data.sqlite3 (default: OS-specific)"),
-		codexHome: fs.String("codex-home", "", "Codex data directory (default $CODEX_HOME or ~/.codex)"),
-		sources:   fs.String("sources", "claude,kiro,amazonq,codex", "comma-separated sources to read: claude, kiro (includes Kiro Crew), amazonq, codex"),
-		prices:    fs.String("prices", "", "JSON file overriding the model price table"),
-		gap:       fs.Int("gap", 15, "idle `minutes` that split a session into separate blocks"),
+		root:       fs.String("root", source.DefaultClaudeRoot(), "Claude Code history directory ($CLAUDE_CONFIG_DIR/projects or ~/.claude/projects)"),
+		kiroHome:   fs.String("kiro-home", source.DefaultKiroHome(), "Kiro data directory ($KIRO_HOME)"),
+		crewHome:   fs.String("crew-home", "", "Kiro Crew data directory (default $KIROCREW_HOME or <kiro-home>/crew)"),
+		kiroCLIDB:  fs.String("kiro-cli-db", "", "path to the legacy Kiro CLI data.sqlite3 (default: OS-specific)"),
+		amazonQDB:  fs.String("amazonq-db", "", "path to the Amazon Q Developer CLI data.sqlite3 (default: OS-specific)"),
+		codexHome:  fs.String("codex-home", "", "Codex data directory (default $CODEX_HOME or ~/.codex)"),
+		sources:    fs.String("sources", "claude,kiro,amazonq,codex", "comma-separated sources to read: claude, kiro (includes Kiro Crew), amazonq, codex"),
+		prices:     fs.String("prices", "", "JSON file overriding the model price table"),
+		gap:        fs.Int("gap", 15, "idle `minutes` that split a session into separate blocks"),
+		archiveDir: fs.String("archive-dir", archive.DefaultDir(), "where \"kiroku archive\" keeps copies of deleted history ($KIROKU_ARCHIVE_DIR)"),
 	}
 }
 
-// loader は、選んだ履歴を読んで集計する関数を作る。
-func (c *common) loader() ([]source.Source, func() snapshot, error) {
-	if *c.prices != "" {
-		if err := loadPrices(*c.prices); err != nil {
-			return nil, nil, fmt.Errorf("could not read the price table: %w", err)
-		}
-	}
+// picked は選んだ履歴。
+func (c *common) picked() ([]source.Source, map[string]bool) {
 	want := map[string]bool{}
 	for _, s := range strings.Split(*c.sources, ",") {
 		want[strings.ToLower(strings.TrimSpace(s))] = true
 	}
 	var picked []source.Source
 	for _, s := range source.All(source.Options{ClaudeRoot: *c.root, KiroHome: *c.kiroHome, KiroCLIDB: *c.kiroCLIDB,
-		AmazonQDB: *c.amazonQDB, CrewHome: *c.crewHome, CodexHome: *c.codexHome}) {
+		AmazonQDB: *c.amazonQDB, CrewHome: *c.crewHome, CodexHome: *c.codexHome, Archive: *c.archiveDir}) {
 		if want[s.Family()] {
 			picked = append(picked, s)
 		}
 	}
+	return picked, want
+}
+
+// keepFn は、kiroku serve の画面から kiroku archive をオンにする関数（コピーは次の読み直しで残す）。
+func (c *common) keepFn() func() error {
+	dir := *c.archiveDir
+	return func() error { return archive.Enable(dir) }
+}
+
+// loader は、選んだ履歴を読んで集計する関数を作る。kiroku archive がオンなら、読む前に消える履歴のコピーを残す。
+func (c *common) loader() ([]source.Source, func() snapshot, error) {
+	if *c.prices != "" {
+		if err := loadPrices(*c.prices); err != nil {
+			return nil, nil, fmt.Errorf("could not read the price table: %w", err)
+		}
+	}
+	picked, want := c.picked()
+	dir := *c.archiveDir
 	gap := *c.gap
 	cache := newLoadCache() // kiroku serve の読み直しで、変わっていない履歴を読み直さない
 	load := func() snapshot {
+		on := archive.Enabled(dir)
+		if on {
+			keepCopies(picked, dir)
+		}
 		data, rep := collectCached(picked, want, gap, cache)
 		if data == nil {
 			data = []*core.Session{} // 画面では null ではなく空の一覧として扱う
@@ -121,7 +143,9 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 		if commits == nil {
 			commits = []gitlog.Commit{}
 		}
-		meta := map[string]any{"report": rep, "git": commits, "prices": map[string]any{"asOf": core.PricesAsOf, "custom": *c.prices != ""}}
+		files, size := archive.Usage(dir)
+		meta := map[string]any{"report": rep, "git": commits, "prices": map[string]any{"asOf": core.PricesAsOf, "custom": *c.prices != ""},
+			"archive": map[string]any{"on": on, "dir": dir, "files": files, "bytes": size}}
 		if os.Getenv("KIROKU_DEMO") != "" { // デモ（ダミーデータ）：画面は、この時間帯の時計で見せる
 			_, off := time.Now().Zone()
 			meta["demo"] = map[string]any{"offset": off}
@@ -187,7 +211,7 @@ func cmdServe(args []string) error {
 	if err != nil {
 		return err
 	}
-	return serveLive(addr, *interval, picked, load, !*noOpen)
+	return serveLive(addr, *interval, picked, load, c.keepFn(), !*noOpen)
 }
 
 func cmdHTML(args []string) error {
@@ -310,7 +334,7 @@ func runLegacy(args []string) error {
 		if err != nil {
 			return err
 		}
-		return serveLive(*serve, *interval, picked, load, !*noOpen)
+		return serveLive(*serve, *interval, picked, load, c.keepFn(), !*noOpen)
 	case *jsonOut != "":
 		note("kiroku json -o " + *jsonOut)
 		snap, err := loadNonEmpty(c)

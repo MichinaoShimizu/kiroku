@@ -13,6 +13,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/klauspost/compress/zstd"
+
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/MichinaoShimizu/kiroku/internal/report"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
@@ -38,9 +40,14 @@ type live struct {
 	load  func() snapshot
 	paths []string // 履歴の場所
 	print io.Writer
+	keep  func() error // 画面から kiroku archive をオンにする（nil ならできない）
+
+	reload sync.Mutex // 読み直しは 1 本ずつ（load の中の loadCache は同時に使えない）
 }
 
 func (l *live) refresh() error {
+	l.reload.Lock()
+	defer l.reload.Unlock()
 	snap := l.load()
 	html, err := web.Render(snap.data, snap.weeks, snap.months, snap.meta, snap.gen, true)
 	if err != nil {
@@ -153,7 +160,7 @@ func (l *live) handler() http.Handler {
 			}
 		}
 		l.mu.RUnlock()
-		if path == "" || !(strings.HasSuffix(path, ".jsonl") || strings.HasSuffix(path, ".json")) {
+		if path == "" || !(strings.HasSuffix(path, ".jsonl") || strings.HasSuffix(path, ".json") || strings.HasSuffix(path, ".jsonl.zst")) {
 			http.NotFound(w, r)
 			return
 		}
@@ -163,10 +170,44 @@ func (l *live) handler() http.Handler {
 			return
 		}
 		defer f.Close()
+		var body io.Reader = f
+		if strings.HasSuffix(path, ".zst") { // kiroku archive や Codex の圧縮した履歴は、ほどいて見せる
+			d, err := zstd.NewReader(f)
+			if err != nil {
+				http.NotFound(w, r)
+				return
+			}
+			defer d.Close()
+			body = d
+		}
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		_, _ = io.Copy(w, f)
+		_, _ = io.Copy(w, body)
+	})
+	// POST /archive は、画面の「kiroku にコピーを残す」（kiroku archive on と同じ）。新しい集計を返す。
+	// ほかのサイトのページから押させないよう、画面だけが付ける X-Kiroku ヘッダーを求める
+	// （付けるとブラウザは先に確認の問い合わせ（preflight）をするが、ここは答えないので、ほかのサイトからは送れない）。
+	mux.HandleFunc("/archive", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.Header.Get("X-Kiroku") != "1" || (r.Header.Get("Origin") != "" && r.Header.Get("Origin") != "http://"+r.Host) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		if l.keep == nil {
+			http.NotFound(w, r)
+			return
+		}
+		if err := l.keep(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if err := l.refresh(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		l.mu.RLock()
+		defer l.mu.RUnlock()
+		send(w, "application/json", l.json)
 	})
 	mux.HandleFunc("/stamp", func(w http.ResponseWriter, r *http.Request) {
 		l.mu.RLock()
@@ -204,7 +245,8 @@ func listenAddr(addr string) string {
 	return addr
 }
 
-func serveLive(addr string, every time.Duration, picked []source.Source, load func() snapshot, open bool) error {
+// serveLive は kiroku serve。keep は画面から kiroku archive をオンにする関数。
+func serveLive(addr string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool) error {
 	if every < time.Second {
 		every = time.Second
 	}
@@ -212,7 +254,7 @@ func serveLive(addr string, every time.Duration, picked []source.Source, load fu
 	for _, s := range picked {
 		paths = append(paths, source.WatchPaths(s)...)
 	}
-	l := &live{load: load, paths: paths, print: logw}
+	l := &live{load: load, paths: paths, print: logw, keep: keep}
 	if err := l.refresh(); err != nil {
 		return err
 	}

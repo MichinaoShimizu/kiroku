@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
-	"github.com/klauspost/compress/zstd"
 )
 
 // Codex は OpenAI Codex CLI の履歴: <CODEX_HOME か ~/.codex>/sessions/YYYY/MM/DD/rollout-*.jsonl（新しい版は .jsonl.zst）
@@ -66,23 +65,6 @@ func (c *Codex) files() []string {
 	return out
 }
 
-func readCodex(path string, fn func(core.Obj)) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	if strings.HasSuffix(path, ".zst") {
-		d, err := zstd.NewReader(f)
-		if err != nil {
-			return err
-		}
-		defer d.Close()
-		return core.ReadJSONLFrom(d, fn)
-	}
-	return core.ReadJSONLFrom(f, fn)
-}
-
 // titles は session_index.jsonl（{id, thread_name}、後のほうが新しい）。
 func (c *Codex) titles() map[string]string {
 	out := map[string]string{}
@@ -119,7 +101,7 @@ func (c *Codex) Load(emit func(*core.Builder)) error {
 		records := map[string]bool{}
 		var fromCounts, fromRecords []core.Event
 		var countMeas, recordMeas []core.Measure
-		readCodex(path, func(e core.Obj) {
+		core.ReadJSONL(path, func(e core.Obj) {
 			t := ts(e["timestamp"])
 			p := core.Map(e["payload"])
 			typ := core.Str(e["type"])

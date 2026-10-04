@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/klauspost/compress/zstd"
 )
 
 // Obj は JSON のオブジェクトを読むための小さな道具。
@@ -141,13 +143,21 @@ func IsNoise(text string) bool {
 	return t == "" || strings.HasPrefix(t, "<") || strings.HasPrefix(t, "Caveat:") || strings.HasPrefix(t, "[Request interrupted")
 }
 
-// ReadJSONL は 1 行ずつ JSON を読む。壊れた行は飛ばす。
+// ReadJSONL は 1 行ずつ JSON を読む。壊れた行は飛ばす。名前が .zst で終わるファイルは zstd で圧縮されたものとして読む。
 func ReadJSONL(path string, fn func(Obj)) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
+	if strings.HasSuffix(path, ".zst") {
+		d, err := zstd.NewReader(f)
+		if err != nil {
+			return err
+		}
+		defer d.Close()
+		return ReadJSONLFrom(d, fn)
+	}
 	return ReadJSONLFrom(f, fn)
 }
 
