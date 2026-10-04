@@ -220,6 +220,26 @@ kiroku serve --prices my-prices.json
 
 各履歴の読み取り方と重複の除外方法は [sources.md](sources.md) にまとめています。読み取れない履歴があれば issue で知らせてください。
 
+### 履歴の保存期間
+
+エージェントによっては、古い履歴を自動で消します。消えた履歴は kiroku でも見られなくなり、元に戻せません。過去の分を振り返りたい場合は、早めに設定してください。画面の「計測の状態」には、エージェントごとの最も古い記録の日付を表示し、既定のまま消える設定のときは、サマリーの上でお知らせします（公式ドキュメントへのリンク付き）。
+
+| エージェント | 自動で消すか | 設定 |
+|---|---|---|
+| Claude Code | **消す**。既定では 30 日より古い会話の記録を、起動後に通知なしで消します | `~/.claude/settings.json` の [`cleanupPeriodDays`](https://code.claude.com/docs/en/settings-reference#cleanupperioddays)（日数。最小 1。`0` はエラーになるため、長く残すには `3650` のような大きな値にします） |
+| Kiro Crew | **消す**。会話の記録（`sessions/archive/`）を一定期間で消します。期間は Crew の版や設定によります | Crew の [`session.archive_retention_days`](https://kiro.dev/docs/crew/configuration/) |
+| Kiro IDE・Kiro CLI・Amazon Q・Codex | 公式ドキュメントに、期間で自動的に消すという記載はありません（手動で消す機能はあります） | — |
+
+Claude Code の設定の例:
+
+```json
+{
+  "cleanupPeriodDays": 3650
+}
+```
+
+kiroku が読むのは利用者の設定（`~/.claude/settings.json`、`CLAUDE_CONFIG_DIR` があればその下）だけです。プロジェクトや組織の設定で指定している場合は、お知らせが出ても実際の期間とは異なることがあります。
+
 ## オプション
 
 履歴を読み取るコマンド（`serve`・`html`・`json`）に共通:

@@ -67,3 +67,6 @@ for d in range(35, -1, -1):
         dirn = os.path.join(OUT, "home", ".claude", "projects", f"-Users-me-{p}"); os.makedirs(dirn, exist_ok=True)
         with open(f"{dirn}/{sid}.jsonl","w") as f:
             for l in lines: f.write(json.dumps(l, ensure_ascii=False)+"\n")
+# 履歴を長く残す設定にしておく（既定の 30 日のままだと、画面に「過去の履歴が消えます」のお知らせが出る）
+os.makedirs(os.path.join(OUT, "home", ".claude"), exist_ok=True)
+json.dump({"cleanupPeriodDays": 3650}, open(os.path.join(OUT, "home", ".claude", "settings.json"), "w"))

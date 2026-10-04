@@ -42,6 +42,18 @@ curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install
 
 On Windows, download the zip from [Releases](https://github.com/MichinaoShimizu/kiroku/releases) and extract it. With Go installed, `go install github.com/MichinaoShimizu/kiroku@latest` also works.
 
+## Keep your history
+
+kiroku can only show history that your agents still keep, and **Claude Code deletes conversations older than 30 days by default**. Deleted history cannot be recovered, so set a longer period right after installing. Add this to `~/.claude/settings.json` ([official docs](https://code.claude.com/docs/en/settings-reference#cleanupperioddays)):
+
+```json
+{
+  "cleanupPeriodDays": 3650
+}
+```
+
+Kiro Crew also deletes old conversation records (`session.archive_retention_days`). kiroku shows a notice when an agent is still on a deleting default. See [History retention](docs/guide.en.md#history-retention) for each agent.
+
 ## Update
 
 ```bash
