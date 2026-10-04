@@ -23,6 +23,7 @@ go build .         # ./kiroku ができる（./kiroku serve で画面を開く�
 | `main.go` | 履歴の読み込み（重複を外す）、料金表の上書き |
 | `update.go` | `kiroku update`（Releases から落として確かめ、自分自身を入れかえる） |
 | `serve.go` | `kiroku serve`（履歴の変化を見張って読み直し、画面に配る） |
+| `cache.go` | 読み直しのとき、前回から変わっていない履歴を読まない（エージェントごとの指紋と、`source.Splitter` の会話ごとの印で見る） |
 | `internal/source` | エージェントごとの履歴を読むアダプター。読み方の細かい決まりは [sources.md](sources.md) |
 | `internal/core` | 共通のセッションの形（`Builder` → `Session`）、トークンと料金、エージェント別の参考指標 |
 | `internal/report` | 週・月の集計（`Summarize`）、プロジェクト別のまとめ（`project.go`）、ブランチ・エージェントごとの配分（`share.go`） |
@@ -41,10 +42,11 @@ go build .         # ./kiroku ができる（./kiroku serve で画面を開く�
 3. 同じ会話がほかの場所にも残るなら `Builder.Key` をそろえる（先に読んだほうだけを使う）
 4. エージェントだけが記録している数字は `Builder.Measure` で残し、`core.NativeDefs` に定義を足す
 5. `kiroku serve` で見張る場所が `Where()` だけで足りなければ `Watch()` を実装する（`internal/source/watch.go`）
-6. 履歴を自動で消すエージェントなら `Retainer`（`Retention()`）を、計測の状態に一言添えるなら `Detailer` を実装する
-7. 新しい `Family` なら `cli.go` の `--sources` の既定値に加える。置き場所を変えられるようにするなら `source.Options`・`addCommon` のオプション・環境変数（`Default…`）を足す
-8. 合成データを `testdata/` に置いてテストを書く（golden は Python 版の 4 つの履歴だけなので、新しいアダプターは `internal/source/<名前>_test.go` で確かめる）。`snapshot_test.go` の読み込みにも加えて、スナップショットを作り直す
-9. ガイド（英・日）の「読み取る履歴」と「履歴の保存期間」、`docs/sources.md`、README の対応エージェント、`cli.go` のヘルプを更新する
+6. 会話ごとにファイルが分かれていて、ほかのファイルと突き合わせずに読めるなら、`Splitter`（`Units` / `LoadUnit`）も実装する。`kiroku serve` は、変わった会話だけを読み直す（実装しなければ、見張る場所が変わったときにエージェントの分を全部読み直す）
+7. 履歴を自動で消すエージェントなら `Retainer`（`Retention()`）を、計測の状態に一言添えるなら `Detailer` を実装する
+8. 新しい `Family` なら `cli.go` の `--sources` の既定値に加える。置き場所を変えられるようにするなら `source.Options`・`addCommon` のオプション・環境変数（`Default…`）を足す
+9. 合成データを `testdata/` に置いてテストを書く（golden は Python 版の 4 つの履歴だけなので、新しいアダプターは `internal/source/<名前>_test.go` で確かめる）。`snapshot_test.go` の読み込みにも加えて、スナップショットを作り直す
+10. ガイド（英・日）の「読み取る履歴」と「履歴の保存期間」、`docs/sources.md`、README の対応エージェント、`cli.go` のヘルプを更新する
 
 集計（`internal/report`）と画面は共通のセッションの形だけを見るので、ふつうは触らなくて済みます。
 

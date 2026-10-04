@@ -650,13 +650,14 @@ func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
 func AllWeeks(data []*core.Session, commits ...gitlog.Commit) map[string]*Week {
 	out := map[string]*Week{}
 	seen := map[string]bool{}
+	ps := newPeriods(data)
 	for _, d := range data {
 		w := MondayOf(d.Start)
 		for unix(w) <= d.End {
 			k := w.Format("2006-01-02")
 			if !seen[k] {
 				seen[k] = true
-				if st := Stats(data, w, commits...); st != nil {
+				if st := Stats(ps.within(unix(w), unix(w.AddDate(0, 0, 7))), w, commits...); st != nil {
 					out[k] = st
 				}
 			}
@@ -670,13 +671,14 @@ func AllWeeks(data []*core.Session, commits ...gitlog.Commit) map[string]*Week {
 func AllMonths(data []*core.Session, commits ...gitlog.Commit) map[string]*Summary {
 	out := map[string]*Summary{}
 	seen := map[string]bool{}
+	ps := newPeriods(data)
 	for _, d := range data {
 		m := MonthOf(d.Start)
 		for unix(m) <= d.End {
 			k := m.Format("2006-01")
 			if !seen[k] {
 				seen[k] = true
-				if st := Summarize(data, m, m.AddDate(0, 1, 0), commits...); st != nil {
+				if st := Summarize(ps.within(unix(m), unix(m.AddDate(0, 1, 0))), m, m.AddDate(0, 1, 0), commits...); st != nil {
 					out[k] = st
 				}
 			}

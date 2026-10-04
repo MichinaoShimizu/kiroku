@@ -5,7 +5,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
+
+	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
 
 // Watcher は、Where() だけでは見張る場所が足りない Source が実装する。
@@ -48,6 +51,32 @@ func Fingerprint(paths []string) string {
 			fmt.Fprintf(h, "%s\x00%d\x00%d\n", p, info.Size(), info.ModTime().UnixNano())
 			return nil
 		})
+	}
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// Unit は、ほかと切り離して読める履歴のひとまとまり（例: Claude Code の 1 つの会話のファイルと、そのサブエージェントのファイル）。
+type Unit struct {
+	Key   string   // ひとまとまりを見分ける名前（ふつうはおもなファイルのパス）
+	Files []string // 読むファイル。どれかが変わったら読み直す
+}
+
+// Splitter は、Unit ごとに読める Source が実装する。kiroku serve は、変わっていない Unit を読み直さない。
+// Load は、すべての Unit を LoadUnit したのと同じ結果になるようにする。
+type Splitter interface {
+	Units() []Unit
+	LoadUnit(u Unit, emit func(*core.Builder)) error
+}
+
+// Stamp は、files の名前・大きさ・更新時刻をまとめた印（ないファイルは「ない」として入れる）。
+func Stamp(files []string) string {
+	h := sha256.New()
+	for _, p := range files {
+		if info, err := os.Stat(p); err == nil {
+			fmt.Fprintf(h, "%s\x00%d\x00%d\n", p, info.Size(), info.ModTime().UnixNano())
+		} else {
+			fmt.Fprintf(h, "%s\x00-\n", p)
+		}
 	}
 	return hex.EncodeToString(h.Sum(nil))
 }

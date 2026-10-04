@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/report"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
@@ -196,6 +197,45 @@ func short(v any) string {
 	b, _ := json.Marshal(v)
 	if len(b) > 80 {
 		return string(b[:80]) + "…"
+	}
+	return string(b)
+}
+
+// AllWeeks・AllMonths は期間に関わるセッションだけを選んで集計する（report/span.go）。
+// すべてのセッションを渡して集計したときと同じになるかを、すべての合成データで確かめる。
+// セッションに時刻を持つ項目を足して span.go に入れ忘れると、ここで違いが出る。
+func TestPeriodsMatchFullScan(t *testing.T) {
+	setup(t)
+	h := filepath.Join("testdata", "home")
+	all := source.All(source.Options{
+		ClaudeRoot:   filepath.Join(h, ".claude", "projects"),
+		KiroHome:     filepath.Join(h, ".kiro"),
+		KiroStorages: []string{filepath.Join(h, ".config", "Kiro", "User", "globalStorage", "kiro.kiroagent")},
+		CrewHome:     filepath.Join("testdata", "crew"),
+		KiroCLIDB:    filepath.Join("testdata", "sqlite", "kiro-cli.sqlite3"),
+		AmazonQDB:    filepath.Join("testdata", "sqlite", "amazon-q.sqlite3"),
+		CodexHome:    codexHome(t),
+	})
+	data, _ := collect(all, map[string]bool{"claude": true, "kiro": true, "amazonq": true, "codex": true}, 15)
+	for k, w := range report.AllWeeks(data) {
+		ws, _ := time.ParseInLocation("2006-01-02", k, time.Local)
+		if full, _ := json.Marshal(report.Stats(data, ws)); string(full) != mustJSON(t, w) {
+			t.Errorf("週 %s: 期間に関わるセッションだけで集計すると、結果が変わる", k)
+		}
+	}
+	for k, m := range report.AllMonths(data) {
+		ms, _ := time.ParseInLocation("2006-01", k, time.Local)
+		if full, _ := json.Marshal(report.Summarize(data, ms, ms.AddDate(0, 1, 0))); string(full) != mustJSON(t, m) {
+			t.Errorf("月 %s: 期間に関わるセッションだけで集計すると、結果が変わる", k)
+		}
+	}
+}
+
+func mustJSON(t *testing.T, v any) string {
+	t.Helper()
+	b, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
 	}
 	return string(b)
 }
