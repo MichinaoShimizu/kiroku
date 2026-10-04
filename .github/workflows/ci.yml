@@ -27,6 +27,25 @@ jobs:
       - run: go test ./...
       - run: go build -o kiroku-ci .
 
+  # 画面の大事な流れ（週の移動・詳細・週報の下書き・検索・スマホのはみ出し）が、ブラウザで動くか
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright
+        working-directory: tools/screenshots
+        run: |
+          npm i --no-save --no-package-lock playwright
+          npx playwright install --with-deps chromium
+      - run: sh tools/screenshots/run.sh --html "$RUNNER_TEMP/kiroku.html"
+      - run: node tools/screenshots/smoke.mjs "$RUNNER_TEMP/kiroku.html"
+
   # リリースの設定が壊れていないかを、タグを打つ前に確かめる（公開はしない）
   release-dry-run:
     runs-on: ubuntu-latest
