@@ -118,6 +118,11 @@ func TestKiroCrewTranscript(t *testing.T) {
 {"role": "user", "content": "API の遅さを調べて", "ts": "2026-09-30T11:00:00+09:00"}
 {"role": "assistant", "content": "調べます", "ts": "2026-09-30T11:02:00+09:00", "tools": ["fs_read", "execute_bash"]}
 `), 0o644)
+	// 退避された古い行（sessions/archive/<名前>__<日時>.jsonl）も読む
+	os.MkdirAll(filepath.Join(ch, "sessions", "archive"), 0o755)
+	os.WriteFile(filepath.Join(ch, "sessions", "archive", "dashboard_chat-9-1790000000__20260930-100000.jsonl"), []byte(`{"_type": "archive", "reason": "rotate"}
+{"role": "user", "content": "まず現状を教えて", "ts": "2026-09-30T10:55:00+09:00"}
+`), 0o644)
 	os.WriteFile(filepath.Join(ch, "sessions", "slack_C1_123.jsonl"), []byte(`{"_type": "metadata", "title": "Slack の相談"}
 {"role": "user", "content": "リリースノートを書いて", "ts": "2026-09-30T13:00:00+09:00"}
 {"role": "assistant", "content": "書きました", "ts": "2026-09-30T13:05:00+09:00"}
@@ -139,7 +144,7 @@ func TestKiroCrewTranscript(t *testing.T) {
 	if got := prompts("1cb4ad2f-90ba-4c5f-970b-5767003804b9"); len(got) != 1 || got[0] != "デプロイを見ておいて" {
 		t.Errorf("kiro-cli に依頼がない会話 = %v, want Crew の記録から補う", got)
 	}
-	if got := prompts("crew:dashboard:chat-9-1790000000"); len(got) != 1 || got[0] != "API の遅さを調べて" {
+	if got := prompts("crew:dashboard:chat-9-1790000000"); len(got) != 2 || got[0] != "まず現状を教えて" || got[1] != "API の遅さを調べて" {
 		t.Errorf("使用量だけの会話の依頼 = %v", got)
 	}
 	if b := by["crew:dashboard:chat-9-1790000000"]; b.Title != "API の調査" || b.ToolCounts()["execute_bash"] != 1 {

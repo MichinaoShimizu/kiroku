@@ -108,6 +108,20 @@ func crewTranscriptPath(home, key string) string {
 	return filepath.Join(home, "sessions", unsafeKey.ReplaceAllString(key, "_")+".jsonl")
 }
 
+// readCrewKey は会話キーの記録を読む。Crew は古い行を sessions/archive/<名前>__<日時>.jsonl に退避する
+// （既定で 7 日残す）ので、残っていればそちらも古い順に読む。
+func readCrewKey(home, key string) (title string, rows []crewRow) {
+	stem := unsafeKey.ReplaceAllString(key, "_")
+	segs := glob(filepath.Join(home, "sessions", "archive", stem+"__*.jsonl"))
+	sort.Strings(segs)
+	for _, p := range append(segs, crewTranscriptPath(home, key)) {
+		t, rs := readCrewTranscript(p)
+		title = firstNonEmpty(title, t)
+		rows = append(rows, rs...)
+	}
+	return title, rows
+}
+
 // readCrewTranscript は Crew の会話の記録を読む。title は 1 行目のメタデータのタイトル。
 func readCrewTranscript(path string) (title string, rows []crewRow) {
 	core.ReadJSONL(path, func(e core.Obj) {
@@ -266,7 +280,7 @@ func crewOnly(home, slot string, turns []crewTurn, info *CrewInfo) []*core.Build
 	var title string
 	var rows []crewRow
 	if slot != "_bg" && home != "" {
-		title, rows = readCrewTranscript(crewTranscriptPath(home, slot))
+		title, rows = readCrewKey(home, slot)
 	}
 	groups := map[string][]crewTurn{}
 	var order []string

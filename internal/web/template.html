@@ -990,7 +990,7 @@ function detail(s){
     </div>
     ${s.models.length ? `<h3>使ったモデル</h3><div class="chips">${s.models.map(([m,n])=>`<span class="mono">${esc(m)}<b>${n}</b></span>`).join("")}</div>` : ""}
     <h3>依頼の流れ</h3>
-    ${s.prompts.length ? `<ol class="tl">${s.prompts.slice(0,30).map(p=>`<li class="${/違う|ちがう|そうじゃな|やり直|戻して|元に戻|取り消|じゃなくて|wrong|revert|undo/i.test(p.text)?"fix":""}"><time>${p.t?hm(p.t):""}</time><p>${esc(p.text.length>220?p.text.slice(0,220)+"…":p.text)}</p></li>`).join("")}</ol>${s.prompts.length>30?`<p class="more">ほか ${s.nPrompts-30} 件</p>`:""}` : '<p class="none">依頼の記録はありません。</p>'}
+    ${s.prompts.length ? `<ol class="tl">${s.prompts.slice(0,30).map(p=>`<li class="${/違う|ちがう|そうじゃな|やり直|戻して|元に戻|取り消|じゃなくて|wrong|revert|undo/i.test(p.text)?"fix":""}"><time>${p.t?hm(p.t):""}</time><p>${esc(p.text.length>220?p.text.slice(0,220)+"…":p.text)}</p></li>`).join("")}</ol>${s.prompts.length>30?`<p class="more">ほか ${s.nPrompts-30} 件</p>`:""}` : `<p class="none">依頼の記録はありません。${s.source === "Kiro Crew" ? "Kiro Crew は会話の記録を一定期間で消すため、使用量の記録だけが残っている会話です。" : ""}</p>`}
     ${s.subagents.length ? `<h3>サブエージェント · ${s.subagents.length}</h3>${s.subagents.map(a=>{
         const span = Math.max(1, s.end - s.start), l = a.start ? Math.max(0,(a.start - s.start)/span*100) : 0, w = a.start && a.end ? Math.max(.8,(a.end - a.start)/span*100) : .8;
         const t = a.usage, tt = t.in + t.out + t.cw + t.cw1h + t.cr;
