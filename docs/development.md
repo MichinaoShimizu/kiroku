@@ -68,3 +68,7 @@ sh tools/screenshots/run.sh
 ```
 
 `gen.py` が架空の 4 プロジェクト・約 5 週間の Claude Code の履歴を、`mkgit.py` がそれに合わせた git のリポジトリを一時ディレクトリに作ります。`capture.mjs` が先週の週カレンダーと週次サマリーを 1440x900（Asia/Tokyo・ライトテーマ）で撮ります。
+
+## 利用者目線のテスト
+
+画面を変えたら、[docs/usability.md](usability.md) のシナリオで、使う側から目的を達成できるかを確かめます。Claude Code では `user-tester` エージェント（`.claude/agents/user-tester.md`）が、このシナリオに沿ってテストします。
