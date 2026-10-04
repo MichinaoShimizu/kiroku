@@ -157,6 +157,27 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 /* ── project（プロジェクト別のまとめ） ──────────────────── */
 .panel.projs,.panel.oc{grid-column:1/-1}
 .ocgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:24px;margin-top:8px}
+.panel.fd{grid-column:1/-1}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;margin-top:10px}
+.fcard{position:relative;display:flex;flex-direction:column;gap:8px;padding:14px 16px 12px;border:1px solid var(--rule);border-radius:12px;background:var(--surface);border-top:3px solid var(--acc)}
+.fno{position:absolute;top:12px;right:14px;font:700 11px/1 var(--sans);color:var(--ink-3)}
+.fcard p{margin:0}
+.fcard .see{font-size:14px;font-weight:650;line-height:1.55;padding-right:18px}
+.fcard .why{font-size:12px;color:var(--ink-2);line-height:1.65}
+.fcard .act{display:flex;flex-direction:column;gap:3px;padding:9px 11px;border-radius:8px;background:var(--acc-soft);font-size:12.5px;line-height:1.6}
+.fcard .act b{font-size:10.5px;letter-spacing:.06em;color:var(--acc-ink)}
+.fss{display:flex;flex-direction:column;gap:2px}
+.fses{display:flex;align-items:center;gap:7px;font-size:12px;text-align:left;padding:3px 0;min-width:0}
+.fses i{width:7px;height:7px;border-radius:50%;background:var(--c);flex:none}
+.fses small{color:var(--ink-3);font-size:11px;flex:none}
+.fses span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fses:hover span{color:var(--acc-ink);text-decoration:underline}
+.ff{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 10px;margin-top:auto;padding-top:6px;border-top:1px dashed var(--rule);font-size:11px;color:var(--ink-3)}
+.flink{color:var(--acc-ink);font-size:11.5px;font-weight:600}
+.flink:hover{text-decoration:underline}
+.fmore{margin-top:12px}
+.fmore summary{cursor:pointer;font-size:12.5px;color:var(--ink-2)}
+.fok{font-size:13px;color:var(--ink-2);margin-top:8px}
 .ocl{font:600 11px/1 var(--sans);letter-spacing:.06em;color:var(--ink-3);margin:6px 0 -6px}
 .stats.s3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px;margin-top:12px}
@@ -417,6 +438,7 @@ dialog h2{margin-top:0}
 @media (max-width:1180px){.tag{display:none}.kpis{margin-left:0;width:100%}.kpi{flex:1;min-width:0}}
 @media (max-width:1000px){#colorBy{display:none}.search kbd{display:none}.search input,.search input:focus{width:160px}}
 @media (max-width:820px){
+  .fgrid{grid-template-columns:1fr}
   .mgrid{grid-template-columns:28px repeat(7,minmax(0,1fr))}
   .cell{min-height:64px;padding:6px 6px 7px}.cell .sub2,.cell .ac{display:none}.cell .acs{display:block;font:700 12px/1.2 var(--sans);font-variant-numeric:tabular-nums;margin-top:auto}
   .ph{flex-wrap:wrap;row-gap:2px}.ph span:not(.no){flex-basis:100%;padding-left:32px}
@@ -692,7 +714,7 @@ function tipMove(e){ const t = $("#tip"), w = t.offsetWidth, h = t.offsetHeight;
   t.style.left = x+"px"; t.style.top = y+"px"; }
 function tipOff(){ $("#tip").classList.remove("on"); }
 
-/* ── 週次・月次サマリー：① プロジェクト別 ② 時間の使い方 ③ AI の使い方 ④ 週・月のかたち ── */
+/* ── 週次・月次サマリー：① 気づきと試せること ② プロジェクト別 ③ コストと成果 ④ 時間 ⑤ AI ⑥ かたち ⑦ 改善案を聞く ── */
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
   const head = `<div class="rvhead"><h2>${M ? "月次サマリー" : "週次サマリー"}</h2><p>自分の使い方を振り返るための目安です。人と比べたり、評価に使ったりするための数字ではありません。</p></div>`;
@@ -704,9 +726,10 @@ function summary(){
   const ph = (n, t, s, h) => `<div class="ph"><span class="no">${n}</span><b>${t}${hb(h)}</b><span>${s}</span></div>${hint(h)}`;
   const pct = v => v == null ? "不明" : `${v}<small>%</small>`;
   R.innerHTML = `${head}<div class="rvgrid">
+  ${findPanel(w, pw, unit, ph)}
   ${projectPanel(w, ph, unit)}
   ${outcomePanel(w, pw, unit, ph, stat)}
-  <section class="panel">${ph(3, "時間の使い方", "いつ・どれくらい動いていたか")}
+  <section class="panel">${ph(4, "時間の使い方", "いつ・どれくらい動いていたか")}
     <div class="hero"><div class="big">${dur(w.active,true).replace(/(\d+)/g,'<span class="num">$1</span>').replace(/<small>(.*?)<\/small>/g,'<span class="u">$1</span>')}</div>
       <div class="cap">どれかのセッションが動いていた時間${hb("active")}${d==null?"":`<span class="delta">先${unit}より ${d>=0?"+":"−"}${dur(Math.abs(d))}</span>`}</div>${hint("active")}</div>
     <div class="stats">
@@ -720,11 +743,11 @@ function summary(){
       ${stat("言い直し・中断のあった依頼", pct(w.fixRate), `n=${w.prompts}・依頼文の言葉と中断から推定`, "fix")}
     </div>
     ${foot()}</section>
-  <section class="panel">${ph(4, "AI の使い方", "使った量・費用・エージェント")}
+  <section class="panel">${ph(5, "AI の使い方", "使った量・費用・エージェント")}
     ${usageChart(w, M)}
     ${aiUsage(w, pw, unit) || '<p class="none">トークンやクレジットの記録はありません。</p>'}
     ${nativeSection(w)}</section>
-  <section class="panel shape">${ph(5, M ? "月のかたち" : "週のかたち", "どこに時間を使ったか")}
+  <section class="panel shape">${ph(6, M ? "月のかたち" : "週のかたち", "どこに時間を使ったか")}
     ${rhythm(w, M)}
     <h3>プロジェクトの配分${hb("share")}</h3>${hint("share")}
     <div class="stack" role="img" aria-label="プロジェクト別の配分">${w.projects.map(([k,v])=>`<span style="flex:${v};--c:${st.colorBy==="project"?colorOf(k):"var(--ink-3)"}" title="${esc(k)} ${dur(v)}"></span>`).join("")}</div>
@@ -734,11 +757,15 @@ function summary(){
     <h3>こじれたかもしれない${hb("friction")}</h3>${hint("friction")}
     ${w.friction.length ? w.friction.map(f=>`<button class="card" data-id="${esc(f.id)}"><span class="ti">${esc(f.title)}</span><span class="me">${md(f.start)} · ${esc(f.project)} ${f.why.map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}</span></button>`).join("") : '<p class="none">言い直しや中断が目立つセッションはありませんでした。</p>'}
     ${measure(w)}</section>
-  <section class="panel ask">${ph(6, "AI に改善案を聞く", "このデータをもとに、使い方の改善案を聞くためのプロンプト")}
+  <section class="panel ask">${ph(7, "AI に改善案を聞く", "このデータをもとに、使い方の改善案を聞くためのプロンプト")}
     <div class="askbar"><button class="pill" id="askcopy">プロンプトをコピー</button>
       <span class="muted" style="font-size:11.5px">お使いの AI エージェントに貼り付けて使います。kiroku は AI を呼び出しません。セッション名（依頼文の一部）とプロジェクト名を含むので、送る前に内容を確認してください。</span></div>
     <pre class="askpre" id="askpre">${esc(askPrompt(w, pw, M))}</pre></section></div>`;
-  R.querySelectorAll(".card,.pses,.pheavy").forEach(c => c.onclick = () => select(c.dataset.id));
+  R.querySelectorAll(".card,.pses,.pheavy,.fses").forEach(c => c.onclick = () => select(c.dataset.id));
+  R.querySelectorAll("[data-goto]").forEach(b => b.onclick = () => { // 気づきから、元の指標へ移動して説明を開く
+    const t = R.querySelector(`.panel:not(.fd) .hb[data-help="${b.dataset.goto}"]`) || R.querySelector(`.panel.${b.dataset.goto}`); if (!t) return;
+    t.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center"});
+    if (t.classList.contains("hb") && t.getAttribute("aria-expanded") !== "true") t.click(); });
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
   const ac = R.querySelector("#askcopy"); if (ac) ac.onclick = () => copy($("#askpre").textContent);
   R.querySelectorAll("#useBy button").forEach(b => b.onclick = () => { st.use = b.dataset.v; store.set("use", st.use); summary(); });
@@ -764,12 +791,13 @@ function projectPanel(w, ph, unit){
       <div><div class="lab">何に時間を使ったか</div>${p.top.map(t=>`<button class="pses" data-id="${esc(t.id)}"><span class="t">${esc(t.title)}</span><span class="m">${dur(t.minutes)}${use(t) ? " · "+use(t) : ""}</span></button>`).join("")}</div>
       ${p.heavy && use(p.heavy) ? `<button class="pheavy" data-id="${esc(p.heavy.id)}"><em>いちばん重い</em><span class="t">${esc(p.heavy.title)}</span><span class="m">${use(p.heavy)}</span></button>` : ""}
     </article>`; }).join("");
-  return `<section class="panel projs">${ph(1, "プロジェクト別", `この${unit}、どのプロジェクトに時間と AI を使ったか`, "projects")}
+  return `<section class="panel projs">${ph(2, "プロジェクト別", `この${unit}、どのプロジェクトに時間と AI を使ったか`, "projects")}
     <div class="pgrid">${cards}</div>
     ${ps.length > LIMIT ? `<button class="pill pmore" id="pmore">${st.allProj ? "上位だけにする" : `ほか ${ps.length - LIMIT} プロジェクトも見る`}</button>` : ""}</section>`;
 }
 /* 指標の読み方：定義・言えること・言えないこと・打てる手。画面の「?」と、改善案プロンプトの前提に使う */
 const HELP = {
+  findings: {n:"気づきと、試せること", d:"各指標が決まった基準を超えたものを、優先度の高い順に 3 件まで（残りは折りたたみ）", c:"どの指標から見直すとよさそうか", x:"良し悪しの判定。基準は一律の目安で、使い方によっては当てはまらない", a:"1 つ選んで次の期間に試し、同じ指標で変化を確かめる"},
   projects: {n:"プロジェクト別", d:"プロジェクトごとの作業時間・使用量・中心のモデル・重いセッション。同時に動いていた時間は按分", c:"時間と AI をどのプロジェクトに配分したか", x:"プロジェクトの重要度や成果", a:"想定と配分がずれていれば、使い方や優先順位を見直す"},
   active: {n:"作業していた時間", d:"いずれかのセッションが動いていた時間（重なりは 1 回として計算）", c:"AI と一緒に作業していた時間の総量", x:"人が集中していたか。放置していた時間も含む", a:"前の期間との増減で、AI に頼る割合の変化をつかむ"},
   ai: {n:"AI の延べ稼働", d:"並列で動いた分も合算したセッションの稼働時間", c:"AI をどれだけ働かせたか。作業していた時間との差は並列の度合い", x:"人が削減できた時間や生産性", a:"作業していた時間とほぼ同じなら、待ち時間に別の作業を並行させる余地がある"},
@@ -826,6 +854,8 @@ function askPrompt(w, pw, M){
     "- 指標の定義はエージェントごとに異なります。エージェント同士を直接比較しないでください",
     "- 数値はすべて履歴から推定した目安です。データから言えないことは、推測であると明記してください",
     "- 各指標の定義と、そこから言えること・言えないことは末尾の「指標の読み方」を参照してください",
+    "", "# kiroku が基準で拾った気づき（判定ではなく候補）",
+    ...(() => { const F = findList(w, pw, unit); return F.length ? F.map(f => `- ${f.see.replace(/<[^>]+>/g, "")}（基準: ${f.rule}）`) : ["- 基準を超えた指標はありませんでした"]; })(),
     "", "# 全体",
     `- 作業していた時間: ${dur(w.active)}${prev(w.active, pw && pw.active, dur)}`,
     `- AI の延べ稼働（並列分を含む）: ${dur(w.ai)}`,
@@ -886,6 +916,53 @@ function askPrompt(w, pw, M){
   Object.values(HELP).forEach(h => L.push(`- ${h.n}: ${h.d}。言えること: ${h.c}。言えないこと: ${h.x}`));
   return L.join("\n");
 }
+/* 気づきと、試せること：指標が決まった基準を超えたものを拾う（AI は使わない。判定ではなく、確かめる候補） */
+function findList(w, pw, unit){
+  const F = [], u = w.usage || {}, o = w.outputs || {}, {ws, we} = period();
+  const add = (k, score, see, why, rule, ids, act) => F.push({k, score, see, why, rule, ids: ids || [], act: act || HELP[k].a});
+  if (w.fixRate != null && w.prompts >= 10 && w.fixRate >= 20)
+    add("fix", w.fixRate, `依頼の ${w.fixRate}% で、言い直しや中断がありました`, "最初の依頼が伝わらないと、やり直す分だけ時間とトークンを使います", "依頼 10 件以上で 20% 以上", w.friction.map(f => f.id));
+  else if (w.friction.length)
+    add("friction", 18, `こじれたかもしれないセッションが ${w.friction.length} 件ありました`, "手戻りが特定のセッションに集中しています。中身を見ると原因の見当がつきます", "言い直し・中断・15 回以上の依頼が多い", w.friction.map(f => f.id));
+  // 目安コストが大きいのにコミットも PR もないセッション（成果の印を記録できる Claude Code のみ）
+  const idle = DATA.filter(s => s.cost >= 1 && /claude/i.test(s.source) && !(s.outputs && (s.outputs.commits || s.outputs.prs)) && s.segs.some(([a,b]) => b > ws && a < we)).sort((a,b) => b.cost - a.cost);
+  const idleC = idle.reduce((t,s) => t + s.cost, 0);
+  if (u.cost >= 2 && idleC >= u.cost * 0.4)
+    add("heavy", 30 + Math.round(idleC*50/u.cost), `目安コストの ${Math.round(idleC*100/u.cost)}%（${usd(idleC)}）が、コミットも PR もないセッションでした`, "調査や相談なら問題ありません。途中で止まったのなら、理由を確かめる価値があります", "$1 以上のセッションの合計が、全体（$2 以上）の 40% 以上", idle.slice(0,3).map(s => s.id));
+  if (pw && pw.usage && pw.usage.cost >= 1 && u.cost >= pw.usage.cost * 1.5)
+    add("cost", 25, `目安コストが先${unit}の ${(u.cost/pw.usage.cost).toFixed(1)} 倍（${usd(pw.usage.cost)} → ${usd(u.cost)}）になりました`, "増えた分が、どのプロジェクト・セッションに出たかで意味が変わります", `先${unit}の 1.5 倍以上`);
+  if (pw && pw.costPerCommit != null && w.costPerCommit != null && o.commits >= 3 && w.costPerCommit >= pw.costPerCommit * 1.5)
+    add("costPerCommit", 22, `1 コミットあたりの目安コストが ${usd(pw.costPerCommit)} → ${usd(w.costPerCommit)} に増えました`, "区切りまで進めるのに、前より重くなっています", `コミット 3 回以上で、先${unit}の 1.5 倍以上`);
+  if (u.cacheHit != null && u.tokens >= 1e6 && u.cacheHit < 0.5)
+    add("cache", 20, `入力のうちキャッシュから読んだ割合が ${Math.round(u.cacheHit*100)}% でした`, "同じ文脈を毎回読み直しているかもしれません", "トークン 1M 以上で 50% 未満");
+  if (w.sessions >= 5 && (o.commits || o.prs || (w.git && w.git.commits)) && w.outSessions / w.sessions < 0.25)
+    add("outSessions", 16, `コミットまで行ったセッションは ${w.sessions} 件中 ${w.outSessions} 件でした`, "途中で止まったセッションが多いかもしれません", "セッション 5 件以上で 25% 未満");
+  if (w.switchesAvg >= 5)
+    add("switches", 14, `1 日に平均 ${w.switchesAvg} 回、プロジェクトを切り替えていました`, "文脈を切り替えるたびに、思い出す時間と手戻りが増えがちです", "1 日平均 5 回以上");
+  if (!w.focus.length && w.active >= 240)
+    add("focus", 12, `${dur(w.active)} 作業しましたが、60 分以上続いた時間はありませんでした`, "細切れの時間では、大きな作業を AI に任せにくくなります", "作業 4 時間以上で集中ブロック 0 回");
+  if (w.waitP90 != null && w.waitCount >= 10 && w.waitP90 >= 900)
+    add("wait", 10, `AI の応答から次の依頼まで、長いときは ${secs(w.waitP90)} 空いていました`, "応答に気づくまで、AI が止まっていたかもしれません", "90% 点が 15 分以上");
+  if (w.night >= 120 && w.night >= w.active * 0.25)
+    add("night", 8, `作業の ${Math.round(w.night*100/w.active)}%（${dur(w.night)}）が 22〜6 時でした`, "意図したものかどうか、自分のペースを振り返る材料です", "2 時間以上で、作業の 25% 以上", null, "意図したものでなければ、終える時刻を先に決めておく。長い作業は日中に AI へ任せる");
+  return F.sort((a,b) => b.score - a.score);
+}
+function findPanel(w, pw, unit, ph){
+  const F = findList(w, pw, unit);
+  const ses = ids => ids.map(id => { const s = DATA.find(x => x.id === id); return s ? `<button class="fses" data-id="${esc(id)}" style="--c:${colorOf(keyOf(s))}"><i></i><span>${esc(s.title)}</span><small>${md(s.start)}</small></button>` : ""; }).join("");
+  const card = (f, i) => `<article class="fcard">
+      <div class="fno">${i+1}</div>
+      <p class="see">${f.see}</p><p class="why">${esc(f.why)}</p>
+      <div class="act"><b>試せること</b><span>${esc(f.act)}</span></div>
+      ${f.ids.length ? `<div class="fss">${ses(f.ids)}</div>` : ""}
+      <div class="ff"><button class="flink" data-goto="${f.k}">「${esc(HELP[f.k].n)}」を見る →</button><span title="この気づきを出す基準">基準：${esc(f.rule)}</span></div></article>`;
+  const top = F.slice(0, 3), rest = F.slice(3);
+  return `<section class="panel fd">${ph(1, "気づきと、試せること", `この${unit}の数値から、見直すとよさそうな点`, "findings")}
+    ${F.length ? `<div class="fgrid">${top.map(card).join("")}</div>
+      ${rest.length ? `<details class="fmore"><summary>ほかの気づき（${rest.length} 件）</summary><div class="fgrid">${rest.map((f,i) => card(f, i+3)).join("")}</div></details>` : ""}`
+      : `<p class="fok">決めた基準を超えた指標はありませんでした。下のプロジェクト別やコストと成果で、先${unit}との違いを確かめられます。</p>`}
+    <p class="note">基準は一律の目安で、良し悪しの判定ではありません。1 つ選んで次の${unit}に試し、同じ指標で変化を確かめてください。もっと掘り下げるなら <button class="flink" data-goto="ask">⑦ AI に改善案を聞く</button></p></section>`;
+}
 /* 成果の印：AI が実行したコミット・PR 作成・変更した行（成果そのものではなく代理） */
 function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）と、残ったもの（成果の印）を並べる
   const o = w.outputs || {commits:0, prs:0, added:0, removed:0}, g = w.git, u = w.usage || {};
@@ -905,7 +982,7 @@ function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）�
     stat("コミットまで行ったセッション", `${w.outSessions}<small>/ ${w.sessions}</small>`, w.sessions ? `${Math.round(w.outSessions*100/w.sessions)}%` : "", "outSessions"),
     w.costPerCommit != null ? stat("1コミットあたりの目安コスト", usd(w.costPerCommit).replace("$","<small>$</small>"), `n=${o.commits}`, "costPerCommit") : "",
   ].join("") : "";
-  return `<section class="panel oc">${ph(2, "コストと成果", `この${unit}に使ったものと、形に残ったもの`, "outputs")}
+  return `<section class="panel oc">${ph(3, "コストと成果", `この${unit}に使ったものと、形に残ったもの`, "outputs")}
     <div class="ocgrid">
       <div><div class="ocl">使ったもの</div><div class="stats">${cost}</div></div>
       <div><div class="ocl">残ったもの（成果の印）</div>${out ? `<div class="stats s3">${out}</div>` : '<p class="none">コミットや PR の記録はありません。</p>'}</div>
