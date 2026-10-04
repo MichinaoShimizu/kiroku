@@ -183,9 +183,11 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .pheavy .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
 .pheavy .m{color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .pmore{margin-top:10px}
-.gc{position:absolute;right:3px;width:9px;height:9px;margin-top:-4.5px;transform:rotate(45deg);background:var(--surface);border:1.5px solid var(--ink-2);border-radius:2px;z-index:2;pointer-events:auto}
-.gc.ai{background:var(--acc);border-color:var(--acc)}
+.gc{position:absolute;right:3px;display:inline-flex;align-items:center;gap:3px;height:17px;margin-top:-8.5px;padding:0 5px 0 3px;border-radius:9px;background:var(--surface);border:1px solid var(--ink-3);color:var(--ink-2);font:600 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.gc.ai{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
 .gc:hover,.gc.sel{box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 35%,transparent);z-index:3}
+.gi{width:13px;height:13px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;vertical-align:-2px;margin-right:2px}
+.gtag{display:inline-flex;align-items:center;gap:2px;padding:0 5px 0 3px;border-radius:8px;border:1px solid var(--ink-3);font:600 10.5px/16px ui-monospace,SFMono-Regular,Menlo,monospace;font-style:normal;color:var(--ink-2)}.gtag.ai{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
 .drawer .gfiles{font-size:12.5px;line-height:1.8;list-style:none;padding:0;margin:0}.drawer .gfiles li{display:flex;gap:10px;justify-content:space-between;border-bottom:1px dashed var(--rule)}.drawer .gfiles span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.drawer .gfiles b{font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink-3)}.drawer .gfiles b i{font-style:normal;color:var(--acc-ink)}
 .drawer .gbody{white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--ink-2);margin:0}
 .drawer .gc-row{display:flex;gap:10px;width:100%;text-align:left;padding:8px 0;border-bottom:1px dashed var(--rule);font-size:13px}.drawer .gc-row time{color:var(--ink-3);font-variant-numeric:tabular-nums}.drawer .gc-row span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.drawer .gc-row b{font-weight:500;color:var(--ink-3);font-variant-numeric:tabular-nums}
@@ -617,7 +619,7 @@ function monthGrid(shown, ms, me, todayKey){
       const by = {}; shown.forEach(s => s.segs.forEach(([a,b]) => { const o = Math.min(b,de) - Math.max(a,ds); if (o > 0) by[keyOf(s)] = (by[keyOf(s)]||0) + o; }));
       const pj = Object.entries(by).sort((a,b)=>b[1]-a[1]);
       h += `<button class="cell${d.getDay()%6===0?" we":""}${key(d)===todayKey?" today":""}" data-w="${key(mondayOf(d))}" style="--heat:${(act/max).toFixed(3)}" title="${md(ds)} 作業 ${dur(act)}${x ? `・依頼 ${x.prompts}・深夜 ${dur(x.night)}${useShort(x) ? `・${useShort(x)}` : ""}` : ""}">
-        <span class="dn">${d.getDate()}</span>${act ? `<span class="ac">${dur(act, true)}</span><span class="acs">${act >= 60 ? (act/60).toFixed(1)+"h" : act+"m"}</span><span class="sub2">依頼 ${x.prompts}</span>` : ""}${x && useShort(x) ? `<span class="use">${useShort(x)}</span>` : ""}${x && x.commits ? `<span class="gcm">◆ ${x.commits}</span>` : ""}
+        <span class="dn">${d.getDate()}</span>${act ? `<span class="ac">${dur(act, true)}</span><span class="acs">${act >= 60 ? (act/60).toFixed(1)+"h" : act+"m"}</span><span class="sub2">依頼 ${x.prompts}</span>` : ""}${x && useShort(x) ? `<span class="use">${useShort(x)}</span>` : ""}${x && x.commits ? `<span class="gcm" title="git のコミット">${GIT_ICON}${x.commits}</span>` : ""}
         ${pj.length ? `<span class="pj">${pj.map(([k,v])=>`<span style="flex:${v};--c:${colorOf(k)}"></span>`).join("")}</span>` : ""}</button>`;
     }
   }
@@ -643,7 +645,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const day = addDays(st.week,d), ds = day.getTime()/1000, de = addDays(st.week,d+1).getTime()/1000, isToday = key(day) === todayKey;
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dU = w && w.days[d] ? useShort(w.days[d]) : "";
-    heads += `<div class="head${isToday?" today":""}"><div class="dd"><b>${day.getMonth()+1}/${day.getDate()}</b><i>${DOW[day.getDay()]}</i></div><small>${act ? dur(act) : "—"}</small>${dU ? `<span class="use" title="トークン・目安コスト・クレジット">${dU}</span>` : ""}${w && w.days[d] && w.days[d].commits ? `<span class="gch" title="git のコミット">◆ ${w.days[d].commits}</span>` : ""}</div>`;
+    heads += `<div class="head${isToday?" today":""}"><div class="dd"><b>${day.getMonth()+1}/${day.getDate()}</b><i>${DOW[day.getDay()]}</i></div><small>${act ? dur(act) : "—"}</small>${dU ? `<span class="use" title="トークン・目安コスト・クレジット">${dU}</span>` : ""}${w && w.days[d] && w.days[d].commits ? `<span class="gch" title="git のコミット">${GIT_ICON}${w.days[d].commits}</span>` : ""}</div>`;
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
@@ -659,7 +661,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
       html += `<button class="run${h < 16 ? " thin" : ""}${st.sel === bk.s.id ? " sel" : ""}" data-r="${id}" style="top:${y}px;height:${h}px;left:calc(${bk.lane/bk.L*100}% + 3px);width:calc(${100/bk.L}% - 6px);--c:${colorOf(keyOf(bk.s))};--fill:${Math.round(16+30*dens)}%;${st.animate?`--delay:${d*30+Math.min(j,14)*10}ms`:"animation:none"}" aria-label="${esc(`${bk.s.title}、${bk.s.project}、${md(bk.a)} ${hm(bk.a)}から${hm(bk.b)}`)}">${h >= 20 ? `<span class="t"><span>${esc(bk.s.title)}</span></span>` + (h >= 38 ? `<span class="m">${hm(bk.a)}–${hm(bk.b)} · ${esc(bk.s.project)}</span>` : "") : ""}</button>`;
     });
     (META.git || []).forEach(c => { if (c.t >= ds && c.t < de && (!st.hidden.size || st.colorBy !== "project" || !st.hidden.has(c.project)))
-      html += `<button class="gc${c.ai ? " ai" : ""}${st.sel === "git:"+c.hash ? " sel" : ""}" data-c="${esc(c.hash)}" style="top:${(c.t-ds)/3600*hh}px" title="${esc(`${hm(c.t)} ${c.project}${c.branch ? " · "+c.branch : ""} · ${c.hash}\n${c.subject}\n${c.nFiles} ファイル +${c.added} −${c.removed}${c.ai ? " · AI が実行" : ""}`)}" aria-label="${esc(`コミット ${hm(c.t)} ${c.subject}`)}"></button>`; });
+      html += `<button class="gc${c.ai ? " ai" : ""}${st.sel === "git:"+c.hash ? " sel" : ""}" data-c="${esc(c.hash)}" style="top:${(c.t-ds)/3600*hh}px" title="${esc(`${hm(c.t)} ${c.project}${c.branch ? " · "+c.branch : ""} · ${c.hash}\n${c.subject}\n${c.nFiles} ファイル +${c.added} −${c.removed}${c.ai ? " · AI が実行" : ""}`)}" aria-label="${esc(`コミット ${hm(c.t)} ${c.subject}`)}">${GIT_ICON}<span>${esc(c.hash.slice(0,7))}</span></button>`; });
     if (isToday && nowS >= ds && nowS < de) html += `<div class="nowline" style="top:${(nowS-ds)/3600*hh}px"></div>`;
     cols += `<div class="day${day.getDay()%6===0?" we":""}${isToday?" today":""}" style="height:${H}px">${html}</div>`;
   }
@@ -783,7 +785,7 @@ const HELP = {
   costPerAsk: {n:"1 依頼あたりの目安コスト", d:"目安コスト ÷ 依頼の数", c:"1 回の依頼の平均的な重さ", x:"依頼の大きさの違い", a:"推移を見て、依頼の粒度の変化をつかむ"},
   heavy: {n:"重かったセッション", d:"目安コストの大きいセッション上位 3 件", c:"使用量を押し上げたセッション", x:"重さに見合う成果があったか", a:"中身を開いて、文脈の膨らみや手戻りがなかったか確認する"},
   outputs: {n:"成果の印", d:"AI がツールで実行して成功したコミット・PR 作成・ファイル編集（現在は Claude Code のみ）", c:"使ったコストが、形に残る作業につながったか", x:"成果の価値や品質。手で行ったコミットは含まない", a:"コストと並べて、形にならなかった使い方がないか見直す"},
-  gitCommits: {n:"Git のコミット", d:"エージェントが作業したリポジトリにある、自分（user.email）のコミット。手で行ったものも含む。カレンダーの ◆ は 1 つのコミット（塗りつぶしは AI が実行したもの）", c:"AI と作業した時間が、どれだけ記録に残る変更になったか", x:"変更の価値。リポジトリの外の作業や、ほかの人のコミット", a:"作業時間やコストが多いのにコミットが少ない日は、何に時間を使ったかを確認する"},
+  gitCommits: {n:"Git のコミット", d:"エージェントが作業したリポジトリにある、自分（user.email）のコミット。手で行ったものも含む。カレンダーのコミットのバッジ（短いハッシュ）は 1 つのコミット（塗りつぶしは AI が実行したもの）", c:"AI と作業した時間が、どれだけ記録に残る変更になったか", x:"変更の価値。リポジトリの外の作業や、ほかの人のコミット", a:"作業時間やコストが多いのにコミットが少ない日は、何に時間を使ったかを確認する"},
   commits: {n:"コミット", d:"AI が実行して成功した git commit の回数", c:"作業が区切りまで進んだ回数の目安", x:"変更の価値や大きさ。コミットの粒度は人や作業で異なる", a:"コストに対してコミットが少ない期間は、何に時間を使ったかを確認する"},
   prs: {n:"PR の作成", d:"AI が作成した Pull Request の数（gh pr create と GitHub のツール）", c:"レビューに出せる単位まで仕上がった回数", x:"マージされたか、価値があったか", a:"作成までの手戻りが多ければ、依頼の単位を小さくする"},
   lines: {n:"変更した行", d:"AI が編集・作成したファイルの、編集前後を比べた追加・削除の行数（目安）", c:"AI が手を入れた量", x:"価値や品質（生成コードや整形で大きく増える）", a:"量そのものを目標にせず、コストとの釣り合いの確認に使う"},
@@ -971,6 +973,8 @@ function foot(){
 }
 function bindCopy(root){ root.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy)); const h = root.querySelector("#openhelp"); if (h) h.onclick = () => $("#keys").showModal(); }
 
+/* git のコミットの印（コミットのノード: 線の上の丸） */
+const GIT_ICON = `<svg class="gi" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8h4.2M10.8 8H15"/><circle cx="8" cy="8" r="2.8"/></svg>`;
 /* ── drawer: git のコミット ── */
 function commitsOf(s){ // セッションが作ったコミットと、同じプロジェクトでセッションの間（終わってから 10 分まで）のコミット
   return (META.git || []).filter(c => c.session === s.id || (!c.session && c.project === s.project && c.t >= s.start - 60 && c.t <= s.end + 600));
@@ -981,7 +985,7 @@ function fileRows(files, n){
 }
 function sessionCommits(s){
   const cs = commitsOf(s); if (!cs.length) return "";
-  return `<h3>このセッションの間のコミット · ${cs.length}</h3>${cs.map(c => `<button class="gc-row" data-git="${esc(c.hash)}"><time>${hm(c.t)}</time><span>${c.ai ? "◆" : "◇"} ${esc(c.subject)}</span><b>+${c.added} −${c.removed}</b></button>`).join("")}`;
+  return `<h3>このセッションの間のコミット · ${cs.length}</h3>${cs.map(c => `<button class="gc-row" data-git="${esc(c.hash)}"><time>${hm(c.t)}</time><span><i class="gtag${c.ai ? " ai" : ""}">${GIT_ICON}${esc(c.hash.slice(0,7))}</i> ${esc(c.subject)}</span><b>+${c.added} −${c.removed}</b></button>`).join("")}`;
 }
 function commitDetail(c){
   const ses = DATA.find(x => x.id === c.session) || DATA.find(x => x.project === c.project && c.t >= x.start - 60 && c.t <= x.end + 600);
