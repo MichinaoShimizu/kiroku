@@ -86,13 +86,23 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 // KiroCLI は Kiro CLI: <KIRO_HOME>/sessions/cli/<id>.json（メタ）+ <id>.jsonl（Prompt/AssistantMessage）。
 // Kiro Crew から動かした会話には、Crew の目印とタイトルをつける（crew.go）。
 type KiroCLI struct {
-	Home      string
-	CrewHome  string
-	crew      int     // Crew から動かした kiro-cli の会話
-	crewFixed int     // Crew の使用量の記録でクレジットを補った会話
-	crewOnly  int     // kiro-cli の会話に結びつかない Crew の記録
-	crewCr    float64 // そのクレジット
-	crewText  int     // Crew の会話の記録だけにある会話
+	Home        string
+	CrewHome    string
+	CrewArchive string  // kiroku archive の Crew のコピーの場所（<保存場所>/crew）
+	crew        int     // Crew から動かした kiro-cli の会話
+	crewFixed   int     // Crew の使用量の記録でクレジットを補った会話
+	crewOnly    int     // kiro-cli の会話に結びつかない Crew の記録
+	crewCr      float64 // そのクレジット
+	crewText    int     // Crew の会話の記録だけにある会話
+}
+
+// Keep は、kiroku archive で残す場所（Kiro Crew は退避した古い会話の記録を消すため）。
+func (k *KiroCLI) Keep() []Kept {
+	if k.CrewArchive == "" || k.CrewHome == "" {
+		return nil
+	}
+	rel := filepath.Join("sessions", "archive")
+	return []Kept{{Src: filepath.Join(k.CrewHome, rel), Dst: filepath.Join(k.CrewArchive, rel)}}
 }
 
 // Detail は計測の状態に添える一言。
@@ -222,7 +232,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			if info := crew[s.ID]; !info.Subagent {
 				seenRows[info.Key] = true
 				if len(s.Prompts) == 0 { // Crew から動かした会話は、kiro-cli の履歴に依頼が残らないことがある
-					_, rows := readCrewKey(k.CrewHome, info.Key)
+					_, rows := readCrewKey(k.CrewHome, k.CrewArchive, info.Key)
 					addCrewRows(s, rows)
 				}
 				if len(usage[info.Key]) > 0 {
@@ -245,7 +255,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 	sort.Strings(slots)
 	for _, slot := range slots {
 		seenRows[slot] = true
-		for _, s := range crewOnly(k.CrewHome, slot, usage[slot], slotInfo[slot]) {
+		for _, s := range crewOnly(k.CrewHome, k.CrewArchive, slot, usage[slot], slotInfo[slot]) {
 			k.crewOnly++
 			k.crewCr += sumCredits(s.Credits)
 			emit(s)

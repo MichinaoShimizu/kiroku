@@ -43,7 +43,7 @@ go build .         # ./kiroku ができる（./kiroku serve で画面を開く�
 4. エージェントだけが記録している数字は `Builder.Measure` で残し、`core.NativeDefs` に定義を足す
 5. `kiroku serve` で見張る場所が `Where()` だけで足りなければ `Watch()` を実装する（`internal/source/watch.go`）
 6. 会話ごとにファイルが分かれていて、ほかのファイルと突き合わせずに読めるなら、`Splitter`（`Units` / `LoadUnit`）も実装する。`kiroku serve` は、変わった会話だけを読み直す（実装しなければ、見張る場所が変わったときにエージェントの分を全部読み直す）
-7. 履歴を自動で消すエージェントなら `Retainer`（`Retention()`）を、計測の状態に一言添えるなら `Detailer` を実装する
+7. 履歴を自動で消すエージェントなら `Retainer`（`Retention()`）と、`kiroku archive` でコピーを残す `Keeper`（`Keep()`。元が消えたらコピーを読むようにする）を、計測の状態に一言添えるなら `Detailer` を実装する
 8. 新しい `Family` なら `cli.go` の `--sources` の既定値に加える。置き場所を変えられるようにするなら `source.Options`・`addCommon` のオプション・環境変数（`Default…`）を足す
 9. 合成データを `testdata/` に置いてテストを書く（golden は Python 版の 4 つの履歴だけなので、新しいアダプターは `internal/source/<名前>_test.go` で確かめる）。`snapshot_test.go` の読み込みにも加えて、スナップショットを作り直す
 10. ガイド（英・日）の「読み取る履歴」と「履歴の保存期間」、`docs/sources.md`、README の対応エージェント、`cli.go` のヘルプを更新する

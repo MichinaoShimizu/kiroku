@@ -37,6 +37,7 @@ go install github.com/MichinaoShimizu/kiroku@latest
 | `kiroku serve [待ち受けアドレス]` | `http://localhost:8484/` で画面を表示し続けます。数秒ごとに履歴フォルダの変化（ファイル名・サイズ・更新日時のみ）を確認し、書き込みが落ち着いてから読み直します（変化が 10 秒止まったら。エージェントが書き込み続けていても、最長 60 秒で読み直します）。表示中の週・月や選択中のセッションはそのままで新しい履歴が反映され、左上に `LIVE` と表示されます。`kiroku serve :8485` のようにポートを変更できます（ポートだけのときも手元の `127.0.0.1` で待ち受けます）。Ctrl+C で終了します |
 | `kiroku html [-o ファイル]` | 実行時点までの履歴をすべて読み取り、1 つの HTML ファイルに出力し、ブラウザで開きます（`--no-open` で開かない）。持ち運ぶときや、サーバーを起動せずに見たいときに使います。その後の履歴を反映するには再実行してください |
 | `kiroku json [-o ファイル]` | 集計結果を JSON で出力します（`-o -` で標準出力） |
+| `kiroku archive [on\|off]` | エージェントが自動で消す履歴（Claude Code・Kiro Crew）のコピーを、kiroku の保存場所に圧縮して残します（「[kiroku に履歴のコピーを残す](#kiroku-に履歴のコピーを残す)」参照）。引数なしで状態（オンかオフか・保存場所・ファイル数と大きさ）を表示します |
 | `kiroku version` | バージョンを表示します |
 | `kiroku update` | GitHub Releases から同じ OS・CPU 向けの最新版をダウンロードし、`checksums.txt` で検証してから自身を置き換えます。書き込み権限のない場所（`/usr/local/bin` など）では `sudo kiroku update` を実行してください。`go install` やソースからビルドした kiroku（バージョンが `dev`）は置き換えないため、`go install …@latest` で更新してください。v0.1.1 以前には `update` がないため、一度だけ `install.sh` か Releases から再インストールしてください |
 
@@ -249,6 +250,17 @@ Claude Code の設定の例:
 
 kiroku が読むのは利用者の設定（`~/.claude/settings.json`、`CLAUDE_CONFIG_DIR` があればその下）だけです。プロジェクトや組織の設定で指定している場合は、お知らせが出ても実際の期間とは異なることがあります。
 
+### kiroku に履歴のコピーを残す
+
+設定を変えない場合は、kiroku に履歴のコピーを残すこともできます。最初はオフで、自分でオンにしたときだけ保存します。
+
+- `kiroku archive on` を実行するか、`kiroku serve` の画面のお知らせで「kiroku にコピーを残す」を押すとオンになります。オンにした時点の履歴をすぐ保存し、その後は kiroku が履歴を読むたび（`serve` の読み直し・`html`・`json`）に、新しい履歴と追記された履歴を保存します
+- 保存するのは、自動で消すエージェントの履歴だけです（Claude Code の会話の記録と、Kiro Crew の `sessions/archive/`）。元のファイルを zstd で圧縮し、元の場所と同じ並びで置きます
+- 元の会話が消えると、コピーから表示します。「計測の状態」に、コピーから表示した会話の数と、保存したファイルの数・大きさを表示します。コピーから表示した Claude Code の会話は、「続きから再開」のコマンドを表示しません（Claude Code 側に記録がないため）
+- 保存場所は Linux が `~/.local/share/kiroku/archive`（`XDG_DATA_HOME` があればその下）、macOS が `~/Library/Application Support/kiroku/archive`、Windows が `%LocalAppData%\kiroku\archive` です。`--archive-dir` か `KIROKU_ARCHIVE_DIR` で変えられます。コピーはこのパソコンの中だけに置き、どこにも送りません
+- `kiroku archive off` で保存をやめます。すでに保存したコピーを消すかを聞きます（端末で `y` と答えたときだけ消します）。消さなければ、止めたあともコピーから表示します
+- kiroku を開かないあいだに消えた履歴は保存できません。期間が過ぎる前に一度は kiroku を開いてください。会話の中身がもう 1 か所に残るので、わざと消した会話も kiroku 側には残ります
+
 ## オプション
 
 履歴を読み取るコマンド（`serve`・`html`・`json`）に共通:
@@ -264,6 +276,7 @@ kiroku が読むのは利用者の設定（`~/.claude/settings.json`、`CLAUDE_C
 | `--codex-home` | `~/.codex` | Codex のデータの場所（`CODEX_HOME` も参照） |
 | `--gap` | `15` | セッションの帯を分ける空き時間（分） |
 | `--prices` | | 料金表を JSON で上書き（「AI の使い方」参照） |
+| `--archive-dir` | OS ごとの場所（「kiroku に履歴のコピーを残す」参照） | `kiroku archive` のコピーの保存場所（`KIROKU_ARCHIVE_DIR` も参照） |
 
 コマンドごと:
 
