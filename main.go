@@ -72,6 +72,11 @@ func normalizeArgs(args []string) []string {
 }
 
 func collect(all []source.Source, want map[string]bool, gap int) ([]*core.Session, []source.Report) {
+	return collectCached(all, want, gap, nil)
+}
+
+// collectCached は collect と同じ。cache があれば、前回から変わっていない履歴は読み直さない（kiroku serve 用）。
+func collectCached(all []source.Source, want map[string]bool, gap int, cache *loadCache) ([]*core.Session, []source.Report) {
 	var data []*core.Session
 	var rep []source.Report
 	seen := map[string]bool{} // 同じ会話が 2 か所に残っていたら、先に読んだほうを使う
@@ -80,22 +85,23 @@ func collect(all []source.Source, want map[string]bool, gap int) ([]*core.Sessio
 			continue
 		}
 		n, dup, oldest := 0, 0, 0.0
-		err := s.Load(func(b *core.Builder) {
-			if b.Key != "" {
-				if seen[b.Key] {
+		outs, err := cache.load(s, gap)
+		for _, o := range outs {
+			if o.key != "" {
+				if seen[o.key] {
 					dup++
-					return
+					continue
 				}
-				seen[b.Key] = true
+				seen[o.key] = true
 			}
 			n++
-			if sess := b.Finish(gap); sess != nil {
+			if sess := o.sess; sess != nil {
 				data = append(data, sess)
 				if sess.Start > 0 && (oldest == 0 || sess.Start < oldest) {
 					oldest = sess.Start
 				}
 			}
-		})
+		}
 		r := source.Report{Name: s.Name(), N: n, Dup: dup, Where: s.Where(), Oldest: oldest}
 		if k, ok := s.(source.Retainer); ok {
 			r.Keep = k.Retention()
