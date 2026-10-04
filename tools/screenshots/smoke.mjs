@@ -132,6 +132,13 @@ for (const env of envs) {
   });
 
   await step("1 年の露光", async () => {
+    const on = await p.evaluate(() => YEAR_ON);
+    if (!on){ // 一旦隠している間は、ボタンも Y キーも出ないことだけ確かめる
+      check("1 年の露光のボタンが出ない", await p.locator("#yrbtn").isHidden());
+      await p.keyboard.press("y"); await pause();
+      check("y で 1 年の露光が開かない", !(await p.locator("#yr").evaluate(d => d.open)));
+      return;
+    }
     await p.keyboard.press("y"); await pause();
     check("y で 1 年の露光が開く", await p.locator("#yr").evaluate(d => d.open));
     check("シェア用の画像に光が描かれている", await p.locator("#yrcard").evaluate(c => {

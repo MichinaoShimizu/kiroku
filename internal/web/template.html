@@ -619,7 +619,7 @@ dialog.yr h3{font:700 15px/1.4 var(--sans);margin:30px 0 10px}
         <button class="iconbtn" id="prev" aria-label="前へ"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
         <button class="iconbtn" id="next" aria-label="次へ"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
         <button class="pill" id="today">今週</button>
-        <button class="pill" id="yrbtn" aria-haspopup="dialog">1 年の露光</button>
+        <button class="pill" id="yrbtn" aria-haspopup="dialog" hidden>1 年の露光</button>
         <div class="segc mode" role="group" aria-label="表示" id="mode"><button data-v="week">週</button><button data-v="month">月</button></div>
       </div>
     </nav>
@@ -642,7 +642,7 @@ dialog.yr h3{font:700 15px/1.4 var(--sans);margin:30px 0 10px}
   <div class="keys">
     <kbd>←</kbd><span>前の週 / 月</span><kbd>→</kbd><span>次の週 / 月</span><kbd>T</kbd><span>今週 / 今月に戻る</span>
     <kbd>/</kbd><span>検索</span><kbd>+</kbd><span>拡大（<kbd>−</kbd> で縮小）</span>
-    <kbd>W</kbd><span>週の表示</span><kbd>M</kbd><span>月の表示</span><kbd>Y</kbd><span>1 年の露光</span>
+    <kbd>W</kbd><span>週の表示</span><kbd>M</kbd><span>月の表示</span>
     <kbd>Esc</kbd><span>詳細を閉じる</span><kbd>?</kbd><span>この一覧</span>
   </div>
   <form method="dialog" style="margin-top:22px;text-align:right"><button class="pill">閉じる</button></form>
@@ -663,6 +663,7 @@ function shiftTimes(x){ if (!SHIFT) return x;
   return walk(x); }
 [DATA, WEEKS, MONTHS, META, GENERATED] = [shiftTimes(DATA), shiftTimes(WEEKS), shiftTimes(MONTHS), shiftTimes(META), shiftTimes(GENERATED)];
 const LIVE = __LIVE__; // kiroku serve で開いたとき true
+const YEAR_ON = false; // 1 年の露光は一旦隠す（ボタンと Y キーを出さない）。戻すときは true にする
 const SLOTS = 8;
 const $ = s => document.querySelector(s);
 const store = { get(k,d){ try { const v = localStorage.getItem("kiroku:"+k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
@@ -751,7 +752,7 @@ function applyLang(){
   <div class="keys">
     <kbd>←</kbd><span>${tr("前の週 / 月", "Previous week / month")}</span><kbd>→</kbd><span>${tr("次の週 / 月", "Next week / month")}</span><kbd>T</kbd><span>${tr("今週 / 今月に戻る", "Back to this week / month")}</span>
     <kbd>/</kbd><span>${tr("検索", "Search")}</span><kbd>+</kbd><span>${tr("拡大（<kbd>−</kbd> で縮小）", "Zoom in (<kbd>−</kbd> to zoom out)")}</span>
-    <kbd>W</kbd><span>${tr("週の表示", "Week view")}</span><kbd>M</kbd><span>${tr("月の表示", "Month view")}</span><kbd>Y</kbd><span>${tr("1 年の露光", "Year in review")}</span>
+    <kbd>W</kbd><span>${tr("週の表示", "Week view")}</span><kbd>M</kbd><span>${tr("月の表示", "Month view")}</span>${YEAR_ON ? `<kbd>Y</kbd><span>${tr("1 年の露光", "Year in review")}</span>` : ""}
     <kbd>Esc</kbd><span>${tr("詳細を閉じる", "Close details")}</span><kbd>?</kbd><span>${tr("この一覧", "This list")}</span>
   </div>
   <form method="dialog" style="margin-top:22px;text-align:right"><button class="pill">${tr("閉じる", "Close")}</button></form>`;
@@ -771,7 +772,7 @@ function render(){
   if (M){ $("#ry").textContent = `${st.month.getFullYear()} · Month`; $("#rd").innerHTML = `${st.month.getFullYear()}<span>.</span>${st.month.getMonth()+1}`; }
   else { $("#ry").textContent = `${st.week.getFullYear()} · Week ${isoWeek(st.week)}`; $("#rd").innerHTML = `${st.week.getMonth()+1}.${st.week.getDate()}<span>—</span>${end.getMonth()+1}.${end.getDate()}`; }
   $("#today").textContent = M ? tr("今月", "This month") : tr("今週", "This week");
-  $("#yrbtn").textContent = tr("1 年の露光", "Year in review"); $("#yrbtn").hidden = !DATA.length;
+  $("#yrbtn").textContent = tr("1 年の露光", "Year in review"); $("#yrbtn").hidden = !YEAR_ON || !DATA.length;
   $("#prev").setAttribute("aria-label", M ? tr("前の月", "Previous month") : tr("前の週", "Previous week")); $("#next").setAttribute("aria-label", M ? tr("次の月", "Next month") : tr("次の週", "Next week"));
   document.querySelectorAll("#mode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.mode));
   document.querySelectorAll("#colorBy button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.colorBy));
@@ -2010,7 +2011,7 @@ document.addEventListener("keydown", e => {
   else if (k === "/"){ e.preventDefault(); $("#q").focus(); } else if (k === "+" || k === "=") zoom(1); else if (k === "-") zoom(-1);
   else if (k === "Escape" && st.sel) select(null); else if (k === "?") $("#keys").showModal();
   else if (k === "w" || k === "W") setMode("week"); else if (k === "m" || k === "M") setMode("month");
-  else if ((k === "y" || k === "Y") && DATA.length) openYear();
+  else if ((k === "y" || k === "Y") && YEAR_ON && DATA.length) openYear();
 });
 function scrollToWork(){ // その週の作業が始まるころの少し前へ
   const sc = $("#tl .calscroll"); if (!sc) return;

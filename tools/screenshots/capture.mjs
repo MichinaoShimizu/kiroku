@@ -19,8 +19,10 @@ await p.screenshot({ path: path.join(docs, "screenshot.png") });
 await p.evaluate(() => { const e = document.querySelector("#review"); window.scrollTo(0, e.getBoundingClientRect().top + window.scrollY - 20); });
 await p.waitForTimeout(400);
 await p.screenshot({ path: path.join(docs, "summary.png") });
-await p.keyboard.press("y"); // 1 年の露光。シェア用の画像（1600x900）をそのまま保存する
-await p.waitForTimeout(600);
-const png = await p.evaluate(() => document.querySelector("#yrcard").toDataURL("image/png").split(",")[1]);
-await fs.writeFile(path.join(docs, "year.png"), Buffer.from(png, "base64"));
+if (await p.evaluate(() => YEAR_ON)) { // 1 年の露光（一旦隠している間は、year.png を撮り直さない）。シェア用の画像（1600x900）をそのまま保存する
+  await p.evaluate(() => openYear());
+  await p.waitForTimeout(600);
+  const png = await p.evaluate(() => document.querySelector("#yrcard").toDataURL("image/png").split(",")[1]);
+  await fs.writeFile(path.join(docs, "year.png"), Buffer.from(png, "base64"));
+}
 await b.close();
