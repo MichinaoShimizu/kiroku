@@ -768,7 +768,7 @@ const HELP = {
   share: {n:"プロジェクトの配分", d:"プロジェクトごとの作業時間の割合", c:"時間の配分", x:"配分の妥当さ", a:"想定と違えば、優先順位を見直す"},
   rhythm: {n:"日ごと・週ごとのリズム", d:"週表示では日ごと、月表示では週ごとの作業時間（うち深夜）", c:"作業量の波と偏り", x:"波の原因", a:"特定の日に偏っていれば、作業の割り振りを見直す"},
   daily: {n:"日ごとの使用量", d:"日ごとのトークン・目安コスト・クレジット", c:"どの日に AI を多く使ったか", x:"その日の使い方が適切だったか", a:"突出した日のセッションを開いて、重かった理由を確認する"},
-  cost: {n:"目安コスト（API 換算）", d:"履歴のトークン数に API の公開料金を掛けた換算値", c:"使用量の重さを金額で比べた目安", x:"実際の請求額（サブスクリプションとは異なる）", a:"重いセッションやモデルを特定して、使い方を見直す"},
+  cost: {n:"目安コスト（API 換算）", d:"API の公開料金で換算した使用料。Claude Code が自身の使用料を記録しているセッションはその値（料金の改定・新しいモデル・自動要約など履歴に残らない呼び出しも含む）、ないときは履歴のトークン数に kiroku の料金表を掛けた値", c:"使用量の重さを金額で比べた目安", x:"実際の請求額（サブスクリプションとは異なる）", a:"重いセッションやモデルを特定して、使い方を見直す"},
   tokens: {n:"トークン", d:"入力・出力・キャッシュ読み取り・キャッシュ書き込みの合計", c:"消費した量", x:"多い・少ないの良し悪し", a:"プロジェクト別・日別の偏りを見る"},
   cache: {n:"キャッシュから読んだ割合", d:"入力のうちキャッシュから読み取った割合", c:"同じ文脈を再利用できていたか", x:"低い原因（短いセッションが多いだけの場合もある）", a:"低ければ、長い前提を毎回貼り直していないか確認する"},
   models: {n:"モデル別", d:"モデルごとの目安コストとトークン", c:"どのモデルに使用量が寄っていたか", x:"そのモデルが必要だったか", a:"定型的な作業を軽いモデルに回せないか検討する"},
@@ -944,7 +944,7 @@ function aiUsage(w, pw, unit){
       ${u.models.slice(0,6).map((r,i)=>`<div class="mrow"><span class="nm"><i style="--o:${shade(i)}"></i>${esc(r[0])}</span><span class="tm">${usd(r[1])}<small>${tok(r[2])}</small></span><span class="pc">${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%</span></div>`).join("")}` : ""}
     ${u.subTypes.length ? `<div style="margin-top:14px" class="chips">${u.subTypes.map(([k,v])=>`<span class="mono">${esc(k)}<b>${v}</b></span>`).join("")}</div>` : ""}
     ${u.heavy.length ? `<div style="margin-top:16px" class="k muted">重かったセッション${hb("heavy")}</div>${hint("heavy")}<div style="margin-top:8px">${u.heavy.map(h=>`<button class="card" data-id="${esc(h.id)}"><span class="ti">${esc(h.title)}</span><span class="me">${md(h.start)} · ${esc(h.project)} · ${usd(h.cost)}${h.subagents?` · サブエージェント ${h.subagents}`:""}</span></button>`).join("")}</div>` : ""}
-    ${u.tokens ? `<p class="note">目安コストは、履歴のトークン数に API の公開料金をかけた換算です。サブスクリプションの請求額とは別物です。料金表は <code>--prices</code> で変えられます。</p>` : ""}`;
+    ${u.tokens ? `<p class="note">目安コストは API の公開料金での換算です。Claude Code が自身の使用料を記録しているセッションはその値を、ないときは履歴のトークン数に kiroku の料金表を掛けた値を使います。サブスクリプションの請求額とは別物です。料金表は <code>--prices</code> で変えられます。</p>` : ""}`;
 }
 function nativeText(v){
   const num = (x, d) => Number(x.toFixed(d)).toLocaleString("ja-JP");
@@ -983,7 +983,7 @@ function detail(s){
       <div><div class="k">依頼</div><div class="v">${s.nPrompts}<small>件</small></div></div>
       <div><div class="k">待たせ（中央値）</div><div class="v">${med==null?"—":secs(med).replace(/(分|秒)/g,"<small>$1</small>")}</div></div>
       <div><div class="k">言い直し・中断</div><div class="v">${s.corrections + s.interrupts}<small>回</small></div></div>
-      ${s.source === "Claude Code" ? `<div><div class="k">目安コスト</div><div class="v">${usd(s.cost).replace("$","<small>$</small>")}</div></div>
+      ${s.source === "Claude Code" ? `<div><div class="k">目安コスト${s.costReported ? "（Claude Code の集計）" : ""}</div><div class="v">${usd(s.cost).replace("$","<small>$</small>")}</div></div>
       <div><div class="k">トークン</div><div class="v">${tok(allTok)}</div></div>
       ${s.outputs && (s.outputs.commits || s.outputs.prs) ? `<div><div class="k">コミット / PR</div><div class="v">${s.outputs.commits}<small>/</small>${s.outputs.prs}</div></div>` : ""}
       ${s.outputs && (s.outputs.added || s.outputs.removed) ? `<div><div class="k">変更した行</div><div class="v"><small>+</small>${s.outputs.added}<small> −${s.outputs.removed}</small></div></div>` : ""}` : s.credits ? `<div><div class="k">Kiro クレジット</div><div class="v">${s.credits}</div></div><div><div class="k">1依頼あたり</div><div class="v">${s.nPrompts ? (s.credits/s.nPrompts).toFixed(2) : "—"}<small>クレジット</small></div></div>` : ""}

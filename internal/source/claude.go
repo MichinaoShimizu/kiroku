@@ -91,6 +91,9 @@ func (c *Claude) Load(emit func(*core.Builder)) error {
 		var callOrder []*call
 		side := core.NewUsage()
 		pending := map[string][]core.Output{} // 成果の印は、ツールの結果が成功だったときだけ数える
+		var lastT *float64
+		procs := map[float64]*core.ReportedCost{} // Claude Code 自身の使用料（cost-state）。プロセスの起動時刻ごとに最新の累計
+		var procOrder []float64
 		core.ReadJSONL(path, func(e core.Obj) {
 			typ := core.Str(e["type"])
 			if typ == "summary" && core.Str(e["summary"]) != "" {
@@ -101,10 +104,20 @@ func (c *Claude) Load(emit func(*core.Builder)) error {
 				s.Title = firstNonEmpty(core.Str(e["customTitle"]), core.Str(e["title"]))
 				return
 			}
+			if typ == "cost-state" {
+				if r := readCostState(e, lastT); r != nil {
+					if procs[r.From] == nil {
+						procOrder = append(procOrder, r.From)
+					}
+					procs[r.From] = r
+				}
+				return
+			}
 			t := ts(e["timestamp"])
 			if t == nil {
 				return
 			}
+			lastT = t
 			if typ == "assistant" {
 				s.Agent(t)
 			} else {
@@ -310,6 +323,9 @@ func (c *Claude) Load(emit func(*core.Builder)) error {
 		for _, a := range s.Subagents {
 			s.Measure("subagents", a.Start, 1)
 		}
+		for _, k := range procOrder {
+			s.Reported = append(s.Reported, *procs[k])
+		}
 		if s.Title == "" && len(summaries) > 0 {
 			s.Title = summaries[len(summaries)-1]
 		}
@@ -327,4 +343,32 @@ func val(p *float64) float64 {
 		return 0
 	}
 	return *p
+}
+
+// readCostState は Claude Code の cost-state（プロセスの起動からの累計）を読む。
+// 行に時刻がないので、直前の行の時刻までを対象の期間とする。
+func readCostState(e core.Obj, lastT *float64) *core.ReportedCost {
+	start, ok := core.Num(e["startTime"])
+	if !ok || lastT == nil {
+		return nil
+	}
+	r := &core.ReportedCost{From: start / 1000, To: *lastT, Models: map[string]core.ReportedModel{}}
+	for name, v := range core.Map(e["modelUsage"]) {
+		m := core.Map(v)
+		cost, ok := core.Num(m["costUSD"])
+		if !ok {
+			continue
+		}
+		u := core.Tokens{In: core.NumOr0(m["inputTokens"]), Out: core.NumOr0(m["outputTokens"]),
+			CW: core.NumOr0(m["cacheCreationInputTokens"]), CR: core.NumOr0(m["cacheReadInputTokens"])}
+		model := core.ModelName(name)
+		prev := r.Models[model] // 日付の版違いは 1 つにまとめる
+		prev.Cost += cost
+		prev.U = core.Tokens{In: prev.U.In + u.In, Out: prev.U.Out + u.Out, CW: prev.U.CW + u.CW, CR: prev.U.CR + u.CR}
+		r.Models[model] = prev
+	}
+	if len(r.Models) == 0 || r.To < r.From {
+		return nil
+	}
+	return r
 }
