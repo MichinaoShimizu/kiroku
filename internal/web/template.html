@@ -166,12 +166,12 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .ocgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:24px;margin-top:8px}
 .panel.fd{grid-column:1/-1}
 .fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;margin-top:10px}
-.fcard{position:relative;display:flex;flex-direction:column;gap:8px;padding:14px 16px 12px;border:1px solid var(--rule);border-radius:12px;background:var(--surface);border-top:3px solid var(--acc)}
+.fcard{position:relative;min-width:0;overflow-wrap:anywhere;display:flex;flex-direction:column;gap:8px;padding:14px 16px 12px;border:1px solid var(--rule);border-radius:12px;background:var(--surface);border-top:3px solid var(--acc)}
 .fno{position:absolute;top:12px;right:14px;font:700 11px/1 var(--sans);color:var(--ink-3)}
 .fcard p{margin:0}
 .fcard .see{font-size:14px;font-weight:650;line-height:1.55;padding-right:18px}
 .fcard .why{font-size:12px;color:var(--ink-2);line-height:1.65}
-.fss{display:flex;flex-direction:column;gap:2px}
+.fss{display:flex;flex-direction:column;gap:2px;min-width:0}
 .fses{display:flex;align-items:center;gap:7px;font-size:12px;text-align:left;padding:3px 0;min-width:0}
 .fses i{width:7px;height:7px;border-radius:50%;background:var(--c);flex:none}
 .fses small{color:var(--ink-3);font-size:11px;flex:none}
@@ -216,7 +216,7 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .shtab th:first-child,.shtab td:first-child{text-align:left;max-width:0;width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .shtab td:first-child i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c);margin-right:6px}
 .shtab tr:last-child td{border-bottom:0}
-.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px;margin-top:12px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,310px),1fr));gap:12px;margin-top:12px}
 .pcard{border:1px solid var(--rule);border-radius:14px;padding:14px 16px 12px;display:flex;flex-direction:column;gap:10px;min-width:0;
   background:linear-gradient(180deg,color-mix(in oklab,var(--c) 7%,var(--surface)),var(--surface) 70px)}
 .pcard .hd{display:flex;align-items:center;gap:8px;min-width:0}
@@ -297,6 +297,7 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .rvhead h2{font:700 22px/1.2 var(--sans);letter-spacing:-.02em;margin:0}
 .rvhead p{margin:0;color:var(--ink-3);font-size:12.5px}
 .rvhead .pill{margin-left:auto;align-self:center}
+.rptbox{margin-bottom:16px}
 .rvhead .rpt{color:var(--acc-ink);border-color:color-mix(in oklab,var(--acc) 35%,var(--rule-2));font-weight:600}
 .rvgrid.srgrid{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
 #review{scroll-margin-top:64px}
@@ -853,7 +854,10 @@ function tipOff(){ $("#tip").classList.remove("on"); }
 /* ── 週次・月次サマリー：① 気づき ② プロジェクト別 ③ コストと成果 ④ 時間 ⑤ AI ⑥ かたち ⑦ 改善案を聞く ── */
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
-  const head = `<div class="rvhead"><h2>${M ? tr("月次サマリー", "Monthly summary") : tr("週次サマリー", "Weekly summary")}</h2><p>${tr("自分の使い方を振り返るための目安です。人と比べたり、評価に使ったりするための数字ではありません。", "Rough figures for reflecting on how you work. They are not for comparing people or for evaluations.")}</p>${w ? `<button class="pill rpt" id="rptcopy" title="${tr("プロジェクトごとに、やったこと・コミット・PR を Markdown でコピーします", "Copies what you did, commits and pull requests for each project as Markdown")}">${tr(`${M ? "月報" : "週報"}の下書きをコピー`, `Copy ${M ? "monthly" : "weekly"} report draft`)}</button>` : ""}</div>`;
+  const head = `<div class="rvhead"><h2>${M ? tr("月次サマリー", "Monthly summary") : tr("週次サマリー", "Weekly summary")}</h2><p>${tr("自分の使い方を振り返るための目安です。人と比べたり、評価に使ったりするための数字ではありません。", "Rough figures for reflecting on how you work. They are not for comparing people or for evaluations.")}</p>${w ? `<button class="pill rpt" id="rpttog" aria-expanded="${!!st.rpt}" aria-controls="rptbox">${tr(`${M ? "月報" : "週報"}の下書き`, `${M ? "Monthly" : "Weekly"} report draft`)}</button>` : ""}</div>${w ? `<section class="panel rptbox" id="rptbox"${st.rpt ? "" : " hidden"} aria-label="${tr(`${M ? "月報" : "週報"}の下書き`, `${M ? "Monthly" : "Weekly"} report draft`)}">
+    <div class="askbar"><button class="pill" id="rptcopy">${tr("コピー", "Copy")}</button><button class="pill" id="rptclose">${tr("閉じる", "Close")}</button>
+      <span class="muted" style="font-size:11.5px">${tr("プロジェクトごとに、やったこと・コミット・PR をまとめた Markdown です。セッション名は依頼文の冒頭なので、直してから貼ってください。", "Markdown with what you did, commits and pull requests for each project. Session names are the start of your prompts, so edit them before pasting.")}</span></div>
+    <pre class="askpre" id="rptpre">${esc(reportText(w, M))}</pre></section>` : ""}`;
   if (!w){ R.innerHTML = `${head}<div class="rvgrid"><div class="panel"><p class="none">${tr(`この${unit}の記録はありません。← → で移動できます。`, `No records ${uThis(unit)}. Use ← → to move.`)}</p>${foot()}</div></div>`; bindCopy(R); return; }
   const d = pw ? w.active - pw.active : null;
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
@@ -910,7 +914,9 @@ function summary(){
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
   const ko = R.querySelector("#keepoff"); if (ko) ko.onclick = () => { store.set("keepNoticeOff", true); summary(); };
   const ms = R.querySelector("#moreS"); if (ms) ms.ontoggle = () => { st.moreS = ms.open; };
-  const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy(reportText(w, M), tr("コピーしました。セッション名は依頼文の冒頭なので、直してから貼ってください", "Copied. Session names are the start of your prompts, so edit them before pasting"), 4500);
+  const rt = R.querySelector("#rpttog"), rb = R.querySelector("#rptbox"), rpt = open => { st.rpt = open; rb.hidden = !open; rt.setAttribute("aria-expanded", open); if (open) rb.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest"}); else rt.focus(); };
+  if (rt && rb){ rt.onclick = () => rpt(!st.rpt); R.querySelector("#rptclose").onclick = () => rpt(false); }
+  const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy($("#rptpre").textContent, tr("コピーしました。セッション名は依頼文の冒頭なので、直してから貼ってください", "Copied. Session names are the start of your prompts, so edit them before pasting"), 4500);
 
   const ac = R.querySelector("#askcopy"); if (ac) ac.onclick = () => copy($("#askpre").textContent);
   R.querySelectorAll("#useBy button").forEach(b => b.onclick = () => { st.use = b.dataset.v; store.set("use", st.use); summary(); });
