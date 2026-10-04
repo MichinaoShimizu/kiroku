@@ -145,6 +145,10 @@ func (c *Claude) Load(emit func(*core.Builder)) error {
 				if !sidechain {
 					s.Model(m)
 				}
+				// 利用上限のエラーは、Claude Code が作った発言（isApiErrorMessage・モデル <synthetic>）として残る
+				if apiErr, _ := e["isApiErrorMessage"].(bool); (apiErr || core.Str(msg["model"]) == "<synthetic>") && core.IsLimitError(core.TextOf(msg["content"])) {
+					s.Limit(t)
+				}
 			}
 			if typ == "user" && !meta && !sidechain {
 				s.Prompt(t, core.TextOf(msg["content"]))

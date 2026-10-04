@@ -66,3 +66,27 @@ func TestClaudeCostState(t *testing.T) {
 		t.Errorf("目安コスト = %v（reported=%v）, want Claude Code の記録 0.5", s.Cost, s.CostReported)
 	}
 }
+
+// 利用上限のエラー（Claude Code が作る発言）を時刻つきで拾う。続けて出たものは 1 回、ふつうの発言は数えない。
+func TestClaudeLimits(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	os.MkdirAll(dir, 0o755)
+	lines := []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"rate limit の処理を直して"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:01:00Z","message":{"id":"m1","model":"claude-sonnet-5-5","content":[{"type":"text","text":"rate limit の処理を直しました"}]}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:02:00Z","isApiErrorMessage":true,"message":{"id":"e1","model":"<synthetic>","content":[{"type":"text","text":"Claude AI usage limit reached|1790000000"}]}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:02:20Z","isApiErrorMessage":true,"message":{"id":"e2","model":"<synthetic>","content":[{"type":"text","text":"5-hour limit reached ∙ resets 3pm"}]}}`,
+		`{"type":"user","timestamp":"2026-09-30T06:00:00Z","message":{"role":"user","content":"続けて"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T06:01:00Z","isApiErrorMessage":true,"message":{"id":"e3","model":"<synthetic>","content":[{"type":"text","text":"API Error: 429 {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\"}}"}]}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T06:02:00Z","isApiErrorMessage":true,"message":{"id":"e4","model":"<synthetic>","content":[{"type":"text","text":"API Error: Connection error."}]}}`,
+	}
+	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644)
+	bs := load(t, &Claude{Root: root})
+	if len(bs) != 1 {
+		t.Fatalf("セッション数 = %d, want 1", len(bs))
+	}
+	if got := bs[0].Finish(15).Limits; len(got) != 2 {
+		t.Errorf("利用上限 = %v, want 2 回（01:02 と 06:01）", got)
+	}
+}
