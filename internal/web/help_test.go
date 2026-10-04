@@ -41,6 +41,25 @@ func TestHelpMatchesGuide(t *testing.T) {
 	}
 }
 
+// 英語表示の説明（HELP_EN）と、英語版ガイドの「How to read the metrics」の表が食い違わないようにする。
+func TestHelpEnMatchesGuide(t *testing.T) {
+	guide, err := os.ReadFile("../../docs/guide.en.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	re := regexp.MustCompile(`\{n: "([^"]+)", d: "[^"]+", c: "([^"]+)", x: "([^"]+)", a: "([^"]+)"\}`)
+	rows := re.FindAllStringSubmatch(block(t, "HELP_EN"), -1)
+	if len(rows) == 0 {
+		t.Fatal("HELP_EN が見つからない")
+	}
+	for _, r := range rows {
+		want := "| " + r[1] + " | " + r[2] + " | " + r[3] + " | " + r[4] + " |"
+		if !strings.Contains(string(guide), want) {
+			t.Errorf("docs/guide.en.md の「How to read the metrics」に %s の行がない（または画面と違う）", r[1])
+		}
+	}
+}
+
 // 英語表示の説明（HELP_EN）が、HELP と同じ指標を同じ順で持ち、どれも 4 つの欄が埋まっていること。
 func TestHelpEnMatchesHelp(t *testing.T) {
 	keyRe := regexp.MustCompile(`(?m)^\s*(\w+):\s*\{`)
