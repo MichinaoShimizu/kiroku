@@ -21,6 +21,10 @@ sh tools/screenshots/run.sh --html /tmp/kiroku-demo.html   # an HTML with dummy 
 
 Go 1.23 or later is required. [docs/development.md](docs/development.md) (Japanese) explains the layout and how adapters work.
 
+## Changelog
+
+Add user-visible changes to `## Unreleased` in [CHANGELOG.md](CHANGELOG.md), in English. That section becomes the release notes.
+
 ## Changing the view
 
 The view is `internal/web/template.html`. When you change it:

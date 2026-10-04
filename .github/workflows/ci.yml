@@ -41,6 +41,8 @@ jobs:
         with:
           version: "~> v2"
           args: release --snapshot --clean
+      # リリースノートを抜き出す仕組みが壊れていないか（未リリースの節で試す）
+      - run: sh tools/release-notes.sh Unreleased
 
   # install.sh が最新のリリースを落として置けるか（macOS は shasum、Linux は sha256sum の道を通る）
   install-script:

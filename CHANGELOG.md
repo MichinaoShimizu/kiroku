@@ -1,0 +1,96 @@
+# Changelog
+
+Notable changes to kiroku. Each release on GitHub uses its section here as the release notes.
+
+## Unreleased
+
+### Added
+
+- A notice when an agent is set to delete old history, with a link to the official docs and the setting to copy (Claude Code `cleanupPeriodDays`, Kiro Crew `session.archive_retention_days`). Data sources show the oldest record and the retention period
+- English guide (`docs/guide.en.md`)
+- Live demo with dummy data on GitHub Pages
+- `SECURITY.md` and `CONTRIBUTING.md`
+- The date of the price table used for estimated cost
+
+### Changed
+
+- The demo shows daytime work whatever time zone you open it from
+- "Corrections" also count English phrases such as "that's wrong" or "try again"
+
+## v0.1.5 - 2026-10-04
+
+### Added
+
+- English UI, chosen from the browser language and switchable in the header. Command output is in English
+- English README (the Japanese one moves to `README.ja.md`)
+- Findings based on solid records, 8-week trends, and a way to check whether what you tried worked
+- A weekly report draft, and search across all periods, including files and commits
+- Usage-limit hits, with estimated metrics folded away
+- Links to commits, changed files, pull requests and history files
+
+### Changed
+
+- A larger detail view that puts "what was done" and "what was left" side by side on wide screens
+- Reworked information design: findings first, then things to try
+
+### Fixed
+
+- Kiro credits are counted whatever the case or spacing of the unit
+- The detail view did not open in weeks with a session that had no model record
+- Problems found in user-perspective testing
+
+## v0.1.4 - 2026-10-04
+
+### Added
+
+- Details of git commits: where, what and how they changed
+
+### Changed
+
+- Estimated cost uses Claude Code's own cost records when they exist
+
+### Fixed
+
+- Kiro Crew dashboard conversation keys now match
+
+## v0.1.3 - 2026-10-04
+
+### Added
+
+- Local git commits on the calendar and in summaries
+- The request flow of Kiro Crew sessions, filled in from Crew's conversation records
+
+## v0.1.2 - 2026-10-04
+
+### Added
+
+- `install.sh` for one-line installs on macOS and Linux
+- `kiroku version` and `kiroku update`
+- Per-project summaries in the weekly and monthly views
+- A prompt that asks an AI for improvement ideas
+- Outcome marks: commits, pull requests created and lines changed
+- Metric explanations shown by default
+
+### Changed
+
+- Subcommands are the main interface, with `serve` first
+- Session details open in a centered modal
+- `serve` re-reads history after writing settles
+
+### Removed
+
+- The Markdown export
+
+### Fixed
+
+- Layout at phone width
+
+## v0.1.1 - 2026-10-03
+
+### Added
+
+- Kiro Crew credits from its usage records
+
+## v0.1.0 - 2026-10-03
+
+First release: a calendar of Claude Code, Kiro, Amazon Q Developer CLI and Codex sessions, with weekly and monthly summaries, tokens, estimated cost and Kiro credits, and a live view with `kiroku serve`.
