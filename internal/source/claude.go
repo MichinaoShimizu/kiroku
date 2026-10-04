@@ -1,6 +1,7 @@
 package source
 
 import (
+	"encoding/json"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -86,6 +87,7 @@ func (c *Claude) Load(emit func(*core.Builder)) error {
 	for _, path := range glob(filepath.Join(c.Root, "*", "*.jsonl")) {
 		stem := strings.TrimSuffix(filepath.Base(path), ".jsonl")
 		s := core.NewBuilder("Claude Code", stem)
+		s.File = path
 		var summaries []string
 		calls := map[string]*call{}
 		var callOrder []*call
@@ -150,7 +152,13 @@ func (c *Claude) Load(emit func(*core.Builder)) error {
 					bm := core.Map(b)
 					if id := core.Str(bm["tool_use_id"]); core.Str(bm["type"]) == "tool_result" && pending[id] != nil {
 						if failed, _ := bm["is_error"].(bool); !failed {
-							s.Outputs = append(s.Outputs, pending[id]...)
+							url := core.PRURL(core.TextOf(bm["content"]) + " " + resultText(e["toolUseResult"]))
+							for _, o := range pending[id] {
+								if o.Kind == "pr" {
+									o.URL = url
+								}
+								s.Outputs = append(s.Outputs, o)
+							}
 						}
 						delete(pending, id)
 					}
@@ -371,4 +379,16 @@ func readCostState(e core.Obj, lastT *float64) *core.ReportedCost {
 		return nil
 	}
 	return r
+}
+
+// resultText はツールの結果（toolUseResult）を文字列にする。PR の URL を探すため。
+func resultText(v any) string {
+	switch x := v.(type) {
+	case string:
+		return x
+	case nil:
+		return ""
+	}
+	b, _ := json.Marshal(v)
+	return string(b)
 }

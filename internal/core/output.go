@@ -11,6 +11,7 @@ type Output struct {
 	T    *float64
 	Kind string // commit / pr / added / removed
 	V    float64
+	URL  string // PR の URL（ツールの結果からわかったとき）
 }
 
 // OutputTotal はセッションや期間の成果の合計。
@@ -101,4 +102,11 @@ func lineDiff(before, after string) (added, removed float64) {
 		a, b = a[:len(a)-1], b[:len(b)-1]
 	}
 	return float64(len(b)), float64(len(a))
+}
+
+var prURL = regexp.MustCompile(`https?://[^\s"'<>()\[\]\\]+/(?:pull|pulls|-/merge_requests|merge_requests|pull-requests)/\d+`)
+
+// PRURL はツールの結果の文字列から、PR（マージリクエスト）の URL を探す。なければ ""。
+func PRURL(result string) string {
+	return prURL.FindString(result)
 }

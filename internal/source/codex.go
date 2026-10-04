@@ -136,6 +136,7 @@ func (c *Codex) Load(emit func(*core.Builder)) error {
 					cf.parent = firstNonEmpty(core.Str(spawn["parent_thread_id"]), core.Str(p["parent_thread_id"]))
 					cf.role = firstNonEmpty(core.Str(spawn["agent_role"]), core.Str(p["agent_role"]), core.Str(spawn["agent_nickname"]), core.Str(p["agent_nickname"]))
 					cf.b = core.NewBuilder("Codex", cf.id)
+					cf.b.File = cf.path
 				}
 				return
 			}

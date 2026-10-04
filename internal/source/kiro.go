@@ -44,6 +44,7 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		}
 		meta := core.Map(core.ReadJSON(metaPath))
 		s := core.NewBuilder("Kiro IDE", firstNonEmpty(core.Str(meta["id"]), filepath.Base(dir)))
+		s.File = filepath.Join(dir, "messages.jsonl")
 		s.Title = core.Str(meta["title"])
 		for _, key := range []string{"workspacePaths", "rootPaths"} {
 			if l := core.List(meta[key]); len(l) > 0 {
@@ -138,6 +139,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		stem := strings.TrimSuffix(filepath.Base(metaPath), ".json")
 		sid := firstNonEmpty(core.Str(meta["session_id"]), core.Str(meta["id"]), stem)
 		s := core.NewBuilder("Kiro CLI", sid)
+		s.File = strings.TrimSuffix(metaPath, ".json") + ".jsonl"
 		s.Key = "kiro-cli:" + sid
 		s.Title, s.Project = core.Str(meta["title"]), core.Str(meta["cwd"])
 		s.Tick(ts(meta["created_at"]))
@@ -242,6 +244,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			}
 			stem := strings.TrimSuffix(filepath.Base(p), ".jsonl")
 			s := core.NewBuilder("Kiro Crew", "crew:"+stem)
+			s.File = p
 			s.Key = "kiro-crew:" + stem
 			s.Title, s.Project = firstNonEmpty(title, "Kiro Crew: "+stem), "(Kiro Crew)"
 			if info := byFile[p]; info != nil && info.Cwd != "" {
@@ -288,6 +291,7 @@ func (k *KiroIDELegacy) Load(emit func(*core.Builder)) error {
 				f := filepath.Join(filepath.Dir(index), id+".json")
 				data := core.Map(core.ReadJSON(f))
 				s := core.NewBuilder("Kiro IDE (旧)", id)
+				s.File = f
 				s.Title = firstNonEmpty(core.Str(em["title"]), core.Str(data["title"]))
 				s.Project = firstNonEmpty(core.Str(data["workspacePath"]), core.Str(data["workspaceDirectory"]), core.Str(em["workspaceDirectory"]))
 				start := ts(em["dateCreated"])

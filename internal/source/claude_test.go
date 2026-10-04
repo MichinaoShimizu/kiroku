@@ -33,6 +33,9 @@ func TestClaudeOutputs(t *testing.T) {
 		got[o.Kind] += o.V
 	}
 	want := map[string]float64{"commit": 1, "pr": 1, "added": 2, "removed": 1}
+	if s := bs[0].Finish(15); len(s.PRs) != 1 || s.PRs[0] != "https://github.com/o/r/pull/1" || s.File == "" {
+		t.Errorf("PR の URL・履歴ファイル = %v %q", s.PRs, s.File)
+	}
 	for k, v := range want {
 		if got[k] != v {
 			t.Errorf("%s = %v, want %v（失敗・結果のない呼び出しは数えない）", k, got[k], v)
