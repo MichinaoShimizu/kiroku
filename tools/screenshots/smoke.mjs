@@ -14,6 +14,7 @@ const envs = [
   { name: "en 1440", locale: "en-US", viewport: { width: 1440, height: 900 } },
   { name: "ja 1000", locale: "ja-JP", viewport: { width: 1000, height: 800 } },
   { name: "ja 390 スマホ", locale: "ja-JP", viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
+  { name: "en 360 スマホ", locale: "en-US", viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: true }, // 英語は文言が長く、はみ出しやすい
 ];
 
 let failed = 0;
