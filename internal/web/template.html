@@ -206,6 +206,19 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .moreS .stats{margin-top:8px}
 .ocl{font:600 11px/1 var(--sans);letter-spacing:.06em;color:var(--ink-3);margin:6px 0 -6px}
 .stats.s3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.shh{margin:12px 0 2px}
+.shn{margin:0;font-size:11px;color:var(--ink-3)}
+.sharebox{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:8px 28px;align-items:center;margin-top:10px}
+@media (max-width:1000px){.sharebox{grid-template-columns:minmax(0,1fr)}}
+.share{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;align-items:center}
+.share .k{font-size:11.5px;color:var(--ink-2);white-space:nowrap}
+.share .stack{margin:0;height:14px;border-radius:4px}
+.shtab{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.shtab th,.shtab td{padding:4px 6px;text-align:right;border-bottom:1px solid var(--rule)}
+.shtab th{font-weight:600;color:var(--ink-3);font-size:11px}
+.shtab th:first-child,.shtab td:first-child{text-align:left;max-width:0;width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.shtab td:first-child i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c);margin-right:6px}
+.shtab tr:last-child td{border-bottom:0}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px;margin-top:12px}
 .pcard{border:1px solid var(--rule);border-radius:14px;padding:14px 16px 12px;display:flex;flex-direction:column;gap:10px;min-width:0;
   background:linear-gradient(180deg,color-mix(in oklab,var(--c) 7%,var(--surface)),var(--surface) 70px)}
@@ -911,6 +924,25 @@ const uThis = unit => tr(`この${unit}`, unit === "月" ? "this month" : "this 
 const uLast = unit => tr(`先${unit}`, unit === "月" ? "last month" : "last week");
 const uNext = unit => tr(`次の${unit}`, unit === "月" ? "next month" : "next week");
 const whyOf = f => EN() && f.whyEn && f.whyEn.length === f.why.length ? f.whyEn : f.why; // こじれた理由（Go が両方の言語で書く）
+/* 配分：作業時間・トークン・目安コスト・クレジットのそれぞれで、何割をどのくくりに使ったか。くくりは色分け（プロジェクト・ブランチ・エージェント）に合わせる。
+   指標を縦に並べ、「時間の割にコストが多い」のようなずれを見比べられるようにする（上位 5 つ＋その他） */
+function shareBlock(w, ps){
+  const all = st.colorBy === "project" ? ps.map(p => ({key: p.project, minutes: p.minutes, tokens: p.tokens, cost: p.cost, credits: p.credits})) : ((w.shares || {})[st.colorBy] || []);
+  const head = `<h3 class="shh">${tr(`${CB()[st.colorBy]}ごとの配分`, `Share by ${CB()[st.colorBy].toLowerCase()}`)}</h3><p class="shn">${tr("上の「プロジェクト・ブランチ・エージェント」の切り替えに合わせて変わります", "Follows the Project / Branch / Agent switch at the top")}</p>`;
+  if (!all.length) return "";
+  if (all.length < 2) return head + `<p class="none">${tr(`この期間の${CB()[st.colorBy]}は「${esc(all[0].key)}」だけです。`, `Only "${esc(all[0].key)}" this period.`)}</p>`;
+  const N = 5, top = all.slice(0, N), rest = all.slice(N);
+  const rows = top.map(p => ({name: p.key, c: colorOf(p.key), v: p}));
+  if (rest.length) rows.push({name: tr(`その他（${rest.length}）`, `Other (${rest.length})`), c: "var(--other)", other: true,
+    v: rest.reduce((a, p) => ({minutes: a.minutes + p.minutes, tokens: a.tokens + p.tokens, cost: a.cost + p.cost, credits: a.credits + p.credits}), {minutes: 0, tokens: 0, cost: 0, credits: 0})});
+  const ms = [["minutes", tr("作業時間", "Active time"), dur], ["tokens", tr("トークン", "Tokens"), tok], ["cost", tr("目安コスト", "Est. cost"), usd], ["credits", tr("クレジット", "Credits"), cr]]
+    .map(([k, n, f]) => ({k, n, f, t: rows.reduce((t, r) => t + (r.v[k] || 0), 0)})).filter(m => m.t > 0);
+  if (!ms.length) return "";
+  const pc = (r, m) => Math.round((r.v[m.k] || 0) * 100 / m.t);
+  const bars = ms.map(m => `<span class="k">${m.n}</span><div class="stack" role="img" aria-label="${esc(`${m.n}: ${rows.map(r => `${r.name} ${pc(r, m)}%`).join(", ")}`)}">${rows.filter(r => r.v[m.k] > 0).map(r => `<span style="flex:${r.v[m.k]};--c:${r.c}" title="${esc(`${r.name}: ${m.f(r.v[m.k])} (${pc(r, m)}%)`)}"></span>`).join("")}</div>`).join("");
+  const tab = `<table class="shtab"><thead><tr><th scope="col">${CB()[st.colorBy]}</th>${ms.map(m => `<th scope="col">${m.n}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr style="--c:${r.c}"><td title="${esc(r.name)}"><i aria-hidden="true"></i>${esc(r.name)}</td>${ms.map(m => `<td>${r.v[m.k] ? pc(r, m) + "%" : "—"}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  return `${head}<div class="sharebox"><div class="share">${bars}</div>${tab}</div>`;
+}
 /* プロジェクト別：何に何時間、どれだけのトークン・コスト・クレジットを、どのモデル中心に使い、何が重かったか */
 function projectPanel(w, ph, unit){
   const ps = w.projectStats || []; if (!ps.length) return "";
@@ -932,6 +964,7 @@ function projectPanel(w, ph, unit){
       ${p.heavy && use(p.heavy) ? `<button class="pheavy" data-id="${esc(p.heavy.id)}"><em>${tr("いちばん重い", "Heaviest")}</em><span class="t">${esc(p.heavy.title)}</span><span class="m">${use(p.heavy)}</span></button>` : ""}
     </article>`; }).join("");
   return `<section class="panel projs">${ph(2, tr("プロジェクト別", "By project"), tr(`この${unit}、どのプロジェクトに時間と AI を使ったか`, `Where your time and AI went ${uThis(unit)}`), "projects")}
+    ${shareBlock(w, ps)}
     <div class="pgrid">${cards}</div>
     ${ps.length > LIMIT ? `<button class="pill pmore" id="pmore">${st.allProj ? tr("上位だけにする", "Show top projects only") : tr(`ほか ${ps.length - LIMIT} プロジェクトも見る`, `Show ${plural(ps.length - LIMIT, "more project")}`)}</button>` : ""}</section>`;
 
