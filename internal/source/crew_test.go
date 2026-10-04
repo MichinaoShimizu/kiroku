@@ -70,7 +70,7 @@ func TestKiroCrewUsage(t *testing.T) {
 		t.Errorf("kiro-cli の記録が多いときは置きかえない: %v", v)
 	}
 	// kiro-cli にない記録: 裏方の処理は日ごと、チャットは会話ごと。壊れた行（credits が負）と tokens 以外の行は数えない
-	for id, want := range map[string]float64{"crew:_bg:2026-09-29": 0.25, "crew:_bg:2026-09-30": 0.5, "crew:chat-9-1790000000": 1.25} {
+	for id, want := range map[string]float64{"crew:_bg:2026-09-29": 0.25, "crew:_bg:2026-09-30": 0.5, "crew:dashboard:chat-9-1790000000": 1.25} {
 		b := by[id]
 		if b == nil {
 			t.Errorf("%s がない", id)
@@ -83,7 +83,7 @@ func TestKiroCrewUsage(t *testing.T) {
 			t.Errorf("%s: source=%q key=%q", id, b.Source, b.Key)
 		}
 	}
-	if s := by["crew:chat-9-1790000000"].Finish(15); s == nil || s.Models[0][0] != "deepseek-3.2" {
+	if s := by["crew:dashboard:chat-9-1790000000"].Finish(15); s == nil || s.Models[0][0] != "deepseek-3.2" {
 		t.Errorf("Crew のセッションのモデル = %+v", s)
 	}
 }
@@ -114,9 +114,14 @@ func TestKiroCrewTranscript(t *testing.T) {
 	// Crew のダッシュボードから動かした会話: kiro-cli の履歴に依頼が残っていない
 	os.WriteFile(filepath.Join(kh, "sessions", "cli", "1cb4ad2f-90ba-4c5f-970b-5767003804b9.jsonl"), nil, 0o644)
 	// kiro-cli の会話に結びつかない記録（使用量だけ）と、会話の記録だけの会話
-	os.WriteFile(filepath.Join(ch, "sessions", "chat-9-1790000000.jsonl"), []byte(`{"_type": "metadata", "title": "API の調査"}
+	os.WriteFile(filepath.Join(ch, "sessions", "dashboard_chat-9-1790000000.jsonl"), []byte(`{"_type": "metadata", "title": "API の調査"}
 {"role": "user", "content": "API の遅さを調べて", "ts": "2026-09-30T11:00:00+09:00"}
 {"role": "assistant", "content": "調べます", "ts": "2026-09-30T11:02:00+09:00", "tools": ["fs_read", "execute_bash"]}
+`), 0o644)
+	// 退避された古い行（sessions/archive/<名前>__<日時>.jsonl）も読む
+	os.MkdirAll(filepath.Join(ch, "sessions", "archive"), 0o755)
+	os.WriteFile(filepath.Join(ch, "sessions", "archive", "dashboard_chat-9-1790000000__20260930-100000.jsonl"), []byte(`{"_type": "archive", "reason": "rotate"}
+{"role": "user", "content": "まず現状を教えて", "ts": "2026-09-30T10:55:00+09:00"}
 `), 0o644)
 	os.WriteFile(filepath.Join(ch, "sessions", "slack_C1_123.jsonl"), []byte(`{"_type": "metadata", "title": "Slack の相談"}
 {"role": "user", "content": "リリースノートを書いて", "ts": "2026-09-30T13:00:00+09:00"}
@@ -139,10 +144,10 @@ func TestKiroCrewTranscript(t *testing.T) {
 	if got := prompts("1cb4ad2f-90ba-4c5f-970b-5767003804b9"); len(got) != 1 || got[0] != "デプロイを見ておいて" {
 		t.Errorf("kiro-cli に依頼がない会話 = %v, want Crew の記録から補う", got)
 	}
-	if got := prompts("crew:chat-9-1790000000"); len(got) != 1 || got[0] != "API の遅さを調べて" {
+	if got := prompts("crew:dashboard:chat-9-1790000000"); len(got) != 2 || got[0] != "まず現状を教えて" || got[1] != "API の遅さを調べて" {
 		t.Errorf("使用量だけの会話の依頼 = %v", got)
 	}
-	if b := by["crew:chat-9-1790000000"]; b.Title != "API の調査" || b.ToolCounts()["execute_bash"] != 1 {
+	if b := by["crew:dashboard:chat-9-1790000000"]; b.Title != "API の調査" || b.ToolCounts()["execute_bash"] != 1 {
 		t.Errorf("使用量だけの会話: title=%q tools=%v", b.Title, b.ToolCounts())
 	}
 	if b := by["crew:slack_C1_123"]; b == nil || b.Title != "Slack の相談" || len(b.Prompts) != 1 || b.Source != "Kiro Crew" {
@@ -154,5 +159,20 @@ func TestKiroCrewTranscript(t *testing.T) {
 	// 記録が kiro-cli にも Crew にもある会話は二重に出さない（dashboard の記録は kiro-cli の会話に使った）
 	if by["crew:dashboard_main_1759400000.123"] != nil {
 		t.Error("kiro-cli の会話に結びついた記録を、別の会話として出している")
+	}
+}
+
+// 使用量の記録のダッシュボードの会話キーは、会話のキー（dashboard:chat-…）にそろえる。
+func TestCrewSpendKey(t *testing.T) {
+	for in, want := range map[string]string{
+		"chat-89-1788925480":            "dashboard:chat-89-1788925480",
+		"dashboard:chat-89-1788925480":  "dashboard:chat-89-1788925480",
+		"dashboard:main/1759400000.123": "dashboard:main/1759400000.123",
+		"_bg":                           "_bg",
+		"slack:123.456":                 "slack:123.456",
+	} {
+		if got := spendKey(in); got != want {
+			t.Errorf("spendKey(%q) = %q, want %q", in, got, want)
+		}
 	}
 }

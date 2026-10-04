@@ -193,7 +193,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			if info := crew[s.ID]; !info.Subagent {
 				seenRows[info.Key] = true
 				if len(s.Prompts) == 0 { // Crew から動かした会話は、kiro-cli の履歴に依頼が残らないことがある
-					_, rows := readCrewTranscript(crewTranscriptPath(k.CrewHome, info.Key))
+					_, rows := readCrewKey(k.CrewHome, info.Key)
 					addCrewRows(s, rows)
 				}
 				if len(usage[info.Key]) > 0 {

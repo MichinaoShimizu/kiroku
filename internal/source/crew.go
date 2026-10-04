@@ -46,6 +46,18 @@ func DefaultCrewHome(kiroHome string) string {
 
 var unsafeKey = regexp.MustCompile(`[^\w\-.]`)
 
+// bareChatSlot は使用量の記録に残るダッシュボードの会話キー（chat-<連番>-<UNIX 秒>）。
+// 会話そのものは dashboard:chat-… のキーで扱われる（Crew の usage.spend_key_for_slot と同じ規則）。
+var bareChatSlot = regexp.MustCompile(`^chat-\d+-\d+$`)
+
+// spendKey は使用量の記録の slot を、会話のキー（session_map や会話の記録と同じ形）にそろえる。
+func spendKey(slot string) string {
+	if bareChatSlot.MatchString(slot) {
+		return "dashboard:" + slot
+	}
+	return slot
+}
+
 // LoadCrew は kiro-cli の会話 ID → Crew の情報。Crew がなければ空。
 func LoadCrew(home string) map[string]CrewInfo {
 	out := map[string]CrewInfo{}
@@ -94,6 +106,20 @@ type crewRow struct {
 // crewTranscriptPath は会話キーの記録ファイル（Crew の history._safe_key と同じ名前）。
 func crewTranscriptPath(home, key string) string {
 	return filepath.Join(home, "sessions", unsafeKey.ReplaceAllString(key, "_")+".jsonl")
+}
+
+// readCrewKey は会話キーの記録を読む。Crew は古い行を sessions/archive/<名前>__<日時>.jsonl に退避する
+// （既定で 7 日残す）ので、残っていればそちらも古い順に読む。
+func readCrewKey(home, key string) (title string, rows []crewRow) {
+	stem := unsafeKey.ReplaceAllString(key, "_")
+	segs := glob(filepath.Join(home, "sessions", "archive", stem+"__*.jsonl"))
+	sort.Strings(segs)
+	for _, p := range append(segs, crewTranscriptPath(home, key)) {
+		t, rs := readCrewTranscript(p)
+		title = firstNonEmpty(title, t)
+		rows = append(rows, rs...)
+	}
+	return title, rows
 }
 
 // readCrewTranscript は Crew の会話の記録を読む。title は 1 行目のメタデータのタイトル。
@@ -193,7 +219,7 @@ func loadCrewUsage(home string) map[string][]crewTurn {
 			if d, ok := core.Num(e["duration_ms"]); ok && d > 0 {
 				start -= d / 1000
 			}
-			slot := core.Str(e["slot"])
+			slot := spendKey(core.Str(e["slot"]))
 			out[slot] = append(out[slot], crewTurn{t: *t, start: start, credits: c, model: core.Str(e["model"])})
 		})
 	}
@@ -254,7 +280,7 @@ func crewOnly(home, slot string, turns []crewTurn, info *CrewInfo) []*core.Build
 	var title string
 	var rows []crewRow
 	if slot != "_bg" && home != "" {
-		title, rows = readCrewTranscript(crewTranscriptPath(home, slot))
+		title, rows = readCrewKey(home, slot)
 	}
 	groups := map[string][]crewTurn{}
 	var order []string
