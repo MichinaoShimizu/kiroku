@@ -64,6 +64,30 @@ type repo struct {
 	web          string // リモートの Web の URL（https://github.com/owner/repo など）。わからなければ ""
 	since        float64
 	ai           []aiCommit
+	rootProject  string // project を決めたセッションの作業ツリーのルート
+}
+
+// repoOf は、作業場所の作業ツリーのルートと、共通の git ディレクトリ（git worktree でも本体と同じ）を返す。リポジトリでなければ空。
+func repoOf(ctx context.Context, p string) [2]string {
+	if st, err := os.Stat(p); err != nil || !st.IsDir() {
+		return [2]string{}
+	}
+	out, err := git(ctx, p, "rev-parse", "--show-toplevel", "--git-common-dir")
+	if err != nil {
+		return [2]string{}
+	}
+	f := strings.Split(strings.TrimSpace(out), "\n")
+	if len(f) < 2 {
+		return [2]string{}
+	}
+	top, common := filepath.Clean(strings.TrimSpace(f[0])), strings.TrimSpace(f[1])
+	if !filepath.IsAbs(common) { // 古い git は作業場所からの相対パスで返す
+		common = filepath.Join(p, common)
+	}
+	if c, err := filepath.EvalSymlinks(common); err == nil {
+		common = c
+	}
+	return [2]string{top, filepath.Clean(common)}
 }
 
 // Collect はセッションの作業場所にあるリポジトリから、利用者自身（user.email）のコミットを読む。
@@ -74,35 +98,34 @@ func Collect(data []*core.Session) []Commit {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	tops := map[string]string{} // 作業場所 → リポジトリのルート（なければ ""）
-	repos := map[string]*repo{}
+	tops := map[string][2]string{} // 作業場所 → [作業ツリーのルート, 共通の git ディレクトリ]（リポジトリでなければ空）
+	repos := map[string]*repo{}    // 共通の git ディレクトリごと。本体と git worktree は同じリポジトリとしてまとめる
 	var order []string
 	for _, d := range data {
 		p := d.ProjectPath
 		if p == "" || !filepath.IsAbs(p) {
 			continue
 		}
-		top, ok := tops[p]
+		tc, ok := tops[p]
 		if !ok {
-			if st, err := os.Stat(p); err == nil && st.IsDir() {
-				out, err := git(ctx, p, "rev-parse", "--show-toplevel")
-				if err == nil {
-					top = filepath.Clean(strings.TrimSpace(out))
-				}
-			}
-			tops[p] = top
+			tc = repoOf(ctx, p)
+			tops[p] = tc
 		}
+		top, common := tc[0], tc[1]
 		if top == "" {
 			continue
 		}
-		r := repos[top]
+		r := repos[common]
 		if r == nil {
 			r = &repo{top: top, project: d.Project, since: d.Start}
-			repos[top] = r
-			order = append(order, top)
+			repos[common] = r
+			order = append(order, common)
 		}
-		if filepath.Clean(p) == top { // ルートで作業したセッションの名前を優先する
-			r.project = d.Project
+		if main := filepath.Dir(common); filepath.Base(common) == ".git" && top == main && r.top != main {
+			r.top = main // 本体の作業ツリーがわかれば、そちらを使う
+		}
+		if filepath.Clean(p) == top && (r.rootProject == "" || top == r.top) { // ルートで作業したセッションの名前を優先する（本体のルートをいちばんに）
+			r.project, r.rootProject = d.Project, top
 		}
 		r.since = math.Min(r.since, d.Start)
 		for _, o := range d.OEv {
@@ -178,11 +201,20 @@ func readRepo(ctx context.Context, r *repo) []Commit {
 				c.Files = append(c.Files, fs)
 			}
 		}
-		i := sort.Search(len(r.ai), func(i int) bool { return r.ai[i].t >= t-120 })
-		if i < len(r.ai) && r.ai[i].t <= t+120 {
-			c.AI, c.Session = true, r.ai[i].session
-		}
 		out = append(out, c)
+	}
+	// エージェントが実行したコミット（前後 2 分）と結びつける。1 回の実行は、いちばん近い 1 つのコミットにだけ結びつける
+	// （近くで手で行ったコミットまで、AI のコミットとしないため）
+	for _, a := range r.ai {
+		best := -1
+		for i := range out {
+			if d := math.Abs(out[i].T - a.t); d <= 120 && !out[i].AI && (best < 0 || d < math.Abs(out[best].T-a.t)) {
+				best = i
+			}
+		}
+		if best >= 0 {
+			out[best].AI, out[best].Session = true, a.session
+		}
 	}
 	return out
 }

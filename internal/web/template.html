@@ -979,14 +979,14 @@ const HELP = {
   projects: {n:"プロジェクト別", d:"プロジェクトごとの作業時間・使用量・中心のモデル・重いセッション。同時に動いていた時間は按分", c:"時間と AI をどのプロジェクトに配分したか", x:"プロジェクトの重要度や成果", a:"想定と配分がずれていれば、使い方や優先順位を見直す"},
   active: {n:"作業していた時間", d:"いずれかのセッションが動いていた時間（重なりは 1 回として計算）", c:"AI と一緒に作業していた時間の総量", x:"人が集中していたか。放置していた時間も含む", a:"前の期間との増減で、AI に頼る割合の変化をつかむ"},
   ai: {n:"AI の延べ稼働", d:"並列で動いた分も合算したセッションの稼働時間", c:"AI をどれだけ働かせたか。作業していた時間との差は並列の度合い", x:"人が削減できた時間や生産性", a:"作業していた時間とほぼ同じなら、待ち時間に別の作業を並行させる余地がある"},
-  focus: {n:"集中ブロック", d:"5 分以内の中断を挟みつつ 60 分以上続いた作業", c:"まとまった作業時間を確保できていたか", x:"その時間の作業の質", a:"細切れが多ければ、AI に任せる作業を時間帯でまとめる"},
+  focus: {n:"集中ブロック", d:"60 分以上続いた作業。途切れは、1 つのセッションの中は区切りの分数（既定 15 分）まで、セッションどうしの間は 5 分までつながっているとみなす", c:"まとまった作業時間を確保できていたか", x:"その時間の作業の質", a:"細切れが多ければ、AI に任せる作業を時間帯でまとめる"},
   focusList: {n:"集中ブロック（一覧）", d:"長い順に 5 件", c:"いつ・どのプロジェクトで長く作業していたか", x:"成果", a:"集中しやすい時間帯を把握して、重い作業をそこに寄せる"},
   switches: {n:"1 日の切り替え", d:"連続する依頼の間でプロジェクトが変わった回数（1 日平均と最大）", c:"プロジェクトをどれだけ行き来したか", x:"切り替えが悪いかどうか（待ち時間を活用しているだけの場合もある）", a:"多すぎる日は、文脈の切り替えで手戻りが増えていないか確認する"},
   parallel: {n:"並列で動かした時間", d:"2 つ以上のセッションが同時に動いていた時間と最大の同時数", c:"複数のセッションを並行して回せていたか", x:"並列にした分の成果", a:"少なければ、AI の作業中に別のタスクを任せる"},
   wait: {n:"待たせ時間", d:"AI の応答から次の依頼までの時間（30 分以内）の中央値と 90 パーセンタイル", c:"AI の応答にどれだけ早く反応していたか", x:"短いほど良いとは限らない（確認せずに進めている可能性もある）", a:"長ければ通知を使う、確認をまとめるなど、応答待ちの扱いを決める"},
   night: {n:"深夜", d:"22〜6 時の作業時間", c:"時間外にどれだけ作業していたか", x:"働きすぎかどうかの判定", a:"自分のペースの振り返りに使う"},
   weekend: {n:"週末", d:"土日の作業時間", c:"週末にどれだけ作業していたか", x:"働きすぎかどうかの判定", a:"自分のペースの振り返りに使う"},
-  fix: {n:"言い直し・中断のあった依頼", d:"依頼文の表現（「違う」「やり直して」など）と中断から推定した割合", c:"最初の依頼が意図どおりに伝わらなかった割合の目安", x:"推定のため誤判定がある。原因も分からない", a:"高ければ、依頼文に前提・制約・完了条件を書き足す"},
+  fix: {n:"言い直し・中断のあった依頼", d:"依頼文の冒頭の表現（「違う、」「やり直して」「元に戻して」など）と中断から推定した割合。会話の最初の依頼と、貼り付けたコードやログの中の言葉は数えない", c:"最初の依頼が意図どおりに伝わらなかった割合の目安", x:"推定のため誤判定がある。原因も分からない", a:"高ければ、依頼文に前提・制約・完了条件を書き足す"},
   limits: {n:"利用上限に当たった回数", d:"Claude Code の履歴に残った、利用上限（使用量の上限・レート制限）のエラーの回数と時刻。1 分以内に続いたものは 1 回", c:"どの時間帯・どの作業で上限に当たり、作業が止まったか", x:"上限までの残り。ほかのエージェントや、ブラウザ・アプリでの利用分", a:"重い作業を時間帯で分ける、軽いモデルに振り分ける、長い会話は区切って新しく始める"},
   longctx: {n:"長くなった会話", d:"1 回の応答で読んだ入力（新しい入力とキャッシュの読み書き）が、会話の後半 4 分の 1 で前半 4 分の 1 の 4 倍以上になり、最大 10 万トークン以上になったセッション（目安コスト $0.5 以上。トークンを記録するエージェントのみ）", c:"会話を続けたことで、1 回あたりの応答が重くなったセッション", x:"会話を続けたほうがよかったかどうか（前の文脈が必要な作業もある）", a:"区切りのいいところで要点をメモに残し、新しいセッションで続ける"},
   modelfit: {n:"軽い作業での高いモデル", d:"主に Opus 系のモデルを使い、依頼 3 件以下でファイルを編集しなかった、目安コスト $0.3 以上のセッションの合計", c:"高いモデルを使った短い作業にかかった量", x:"そのモデルが必要だったかどうか（難しい調査や設計の相談もある）", a:"調べものや相談は、まず軽いモデルで試し、足りなければ切り替える"},
@@ -1008,8 +1008,8 @@ const HELP = {
   commits: {n:"コミット", d:"AI が実行して成功した git commit の回数", c:"作業が区切りまで進んだ回数の目安", x:"変更の価値や大きさ。コミットの粒度は人や作業で異なる", a:"コストに対してコミットが少ない期間は、何に時間を使ったかを確認する"},
   prs: {n:"PR の作成", d:"AI が作成した Pull Request の数（gh pr create と GitHub のツール）", c:"レビューに出せる単位まで仕上がった回数", x:"マージされたか、価値があったか", a:"作成までの手戻りが多ければ、依頼の単位を小さくする"},
   lines: {n:"AI が編集した行（推定）", d:"AI が編集・作成したファイルの、編集前後を比べた追加・削除の行数（目安）", c:"AI が手を入れた量", x:"価値や品質（生成コードや整形で大きく増える）", a:"量そのものを目標にせず、コストとの釣り合いの確認に使う"},
-  outSessions: {n:"コミットまで行ったセッション", d:"期間中にコミットか PR 作成まで行ったセッションの数と割合", c:"使ったセッションのうち、形に残った割合", x:"調査や相談など、コミットを目的としないセッションの価値", a:"割合が低ければ、途中で止まったセッションの理由を確かめる"},
-  costPerCommit: {n:"1 コミットあたりの目安コスト", d:"目安コスト ÷ コミットの回数", c:"区切りまで進めるのにかかった重さの目安", x:"コミットの大きさの違い。手で行ったコミットは含まない", a:"推移を見て、同じ作業を軽く進められているかを確かめる"},
+  outSessions: {n:"コミットまで行ったセッション", d:"期間中にコミットか PR 作成まで行ったセッションの数と割合。成果を記録できる Claude Code のセッションだけで数える", c:"使ったセッションのうち、形に残った割合", x:"調査や相談など、コミットを目的としないセッションの価値", a:"割合が低ければ、途中で止まったセッションの理由を確かめる"},
+  costPerCommit: {n:"1 コミットあたりの目安コスト", d:"Claude Code のセッションの目安コスト ÷ コミットの回数（成果を記録できるのは Claude Code だけなので、ほかのエージェントのコストは入れない）", c:"区切りまで進めるのにかかった重さの目安", x:"コミットの大きさの違い。手で行ったコミットは含まない", a:"推移を見て、同じ作業を軽く進められているかを確かめる"},
   native: {n:"エージェント別の参考指標", d:"各エージェントが履歴に記録している数値", c:"同じエージェント内での傾向", x:"エージェント同士の比較（定義が異なる）", a:"同じエージェントの期間ごとの変化だけを見る"},
 };
 /* HELP の英語版。キーは HELP と同じ（help_test.go で確かめる）。書式は HELP と変えてある（TestHelpMatchesGuide は HELP だけを docs/guide.md と照合する） */
@@ -1018,14 +1018,14 @@ const HELP_EN = {
   projects: {n: "By project", d: "Time, usage, main models and heaviest session per project. Time when several projects ran at once is split between them", c: "How you divided time and AI across projects", x: "How important or successful a project was", a: "If the split differs from what you intended, revisit how you work or your priorities"},
   active: {n: "Active time", d: "Time when any session was running (overlaps count once)", c: "Total time you worked together with AI", x: "Whether you were focused. Includes time you left a session idle", a: "Compare with the previous period to see how much more or less you rely on AI"},
   ai: {n: "Total AI run time", d: "Session run time added up, including sessions running in parallel", c: "How much work you gave to AI. The gap from active time shows how much ran in parallel", x: "Time saved or productivity", a: "If it is close to active time, you could do other work while waiting"},
-  focus: {n: "Focus blocks", d: "Work that continued for 60 minutes or more, allowing breaks of up to 5 minutes", c: "Whether you had long stretches of uninterrupted work", x: "The quality of the work in that time", a: "If your time is fragmented, group the work you hand to AI into blocks of time"},
+  focus: {n: "Focus blocks", d: "Work that continued for 60 minutes or more. Gaps within a session up to the session gap (15 minutes by default) and gaps of up to 5 minutes between sessions are treated as continuous", c: "Whether you had long stretches of uninterrupted work", x: "The quality of the work in that time", a: "If your time is fragmented, group the work you hand to AI into blocks of time"},
   focusList: {n: "Focus blocks (list)", d: "The 5 longest", c: "When and in which project you worked for long stretches", x: "Outcomes", a: "Learn when you focus best and schedule heavy work then"},
   switches: {n: "Project switches per day", d: "How often the project changed between consecutive prompts (daily average and maximum)", c: "How much you moved between projects", x: "Whether switching is bad (you may just be using wait time well)", a: "On heavy days, check whether context switching caused rework"},
   parallel: {n: "Parallel time", d: "Time when 2 or more sessions ran at once, and the most at once", c: "Whether you kept several sessions going in parallel", x: "What the parallel work achieved", a: "If low, give AI another task while it works"},
   wait: {n: "Wait time", d: "Median and 90th percentile of the time from an AI reply to your next prompt (up to 30 minutes)", c: "How quickly you responded to AI replies", x: "Shorter is not always better (you may be moving on without checking)", a: "If long, use notifications or batch your reviews"},
   night: {n: "Late night", d: "Work time between 22:00 and 6:00", c: "How much you worked outside normal hours", x: "Whether you are overworking", a: "Use it to reflect on your own pace"},
   weekend: {n: "Weekend", d: "Work time on Saturdays and Sundays", c: "How much you worked on weekends", x: "Whether you are overworking", a: "Use it to reflect on your own pace"},
-  fix: {n: "Prompts with corrections or interruptions", d: "Share estimated from prompt wording (such as 'wrong' or 'redo') and interruptions", c: "Roughly how often a first prompt did not get your intent across", x: "Estimates can be wrong, and they don't show the cause", a: "If high, add background, constraints and done criteria to your prompts"},
+  fix: {n: "Prompts with corrections or interruptions", d: "Share estimated from the opening words of each prompt (such as 'No, that's wrong' or 'undo that') and interruptions. The first prompt of a conversation and words inside pasted code or logs are not counted", c: "Roughly how often a first prompt did not get your intent across", x: "Estimates can be wrong, and they don't show the cause", a: "If high, add background, constraints and done criteria to your prompts"},
   limits: {n: "Usage limit hits", d: "Count and times of usage limit errors (usage caps and rate limits) in Claude Code history. Hits within 1 minute count once", c: "When and during which work you hit a limit and had to stop", x: "How much headroom is left. Usage from other agents, the browser or the app", a: "Spread heavy work over time, use lighter models, and start new sessions for long conversations"},
   longctx: {n: "Long conversations", d: "Sessions where the input read per response (new input plus cache reads and writes) in the last quarter of the conversation was at least 4 times that of the first quarter, peaking at 100K tokens or more (estimated cost $0.5 or more; only agents that record tokens)", c: "Sessions where each response got heavier as the conversation went on", x: "Whether continuing the conversation was the right call (some work needs the earlier context)", a: "At a good stopping point, write down the key points and continue in a new session"},
   modelfit: {n: "Expensive models for light work", d: "Total for sessions that mainly used Opus-class models, had 3 or fewer prompts, edited no files and cost $0.3 or more", c: "How much went to short tasks on an expensive model", x: "Whether that model was needed (some research or design questions are hard)", a: "Try a lighter model first for research and questions, and switch if it falls short"},
@@ -1047,8 +1047,8 @@ const HELP_EN = {
   commits: {n: "Commits", d: "Number of git commits that AI ran successfully", c: "Roughly how often work reached a checkpoint", x: "The value or size of the changes. Commit size varies by person and task", a: "In periods with few commits for the cost, check where the time went"},
   prs: {n: "Pull requests", d: "Number of pull requests created by AI (gh pr create and GitHub tools)", c: "How often work was ready for review", x: "Whether they were merged or valuable", a: "If there is a lot of rework before creating one, make each request smaller"},
   lines: {n: "Lines edited by AI (estimated)", d: "Lines added and removed in files AI edited or created, comparing before and after (rough)", c: "How much AI touched", x: "Value or quality (generated code and formatting inflate it)", a: "Don't make volume a goal; use it to check cost against output"},
-  outSessions: {n: "Sessions that reached a commit", d: "Number and share of sessions that made a commit or pull request in the period", c: "The share of sessions that left something behind", x: "The value of sessions not meant to commit, such as research or discussion", a: "If the share is low, find out why sessions stopped partway"},
-  costPerCommit: {n: "Estimated cost per commit", d: "Estimated cost ÷ number of commits", c: "Roughly how heavy it was to reach a checkpoint", x: "Differences in commit size. Commits made by hand are not included", a: "Watch the trend to see whether similar work is getting lighter"},
+  outSessions: {n: "Sessions that reached a commit", d: "Number and share of sessions that made a commit or pull request in the period, counting only Claude Code sessions, the only agent whose outputs are recorded", c: "The share of sessions that left something behind", x: "The value of sessions not meant to commit, such as research or discussion", a: "If the share is low, find out why sessions stopped partway"},
+  costPerCommit: {n: "Estimated cost per commit", d: "Estimated cost of Claude Code sessions ÷ number of commits (only Claude Code records outputs, so other agents' cost is left out)", c: "Roughly how heavy it was to reach a checkpoint", x: "Differences in commit size. Commits made by hand are not included", a: "Watch the trend to see whether similar work is getting lighter"},
   native: {n: "Agent-specific metrics", d: "Numbers each agent records in its history", c: "Trends within the same agent", x: "Comparisons between agents (definitions differ)", a: "Only look at changes over time for the same agent"},
 };
 const H = () => EN() ? HELP_EN : HELP; // 表示中の言語の HELP
@@ -1112,7 +1112,7 @@ function askPrompt(w, pw, M){
     L.push("", tr("# 成果の印（AI が実行して成功したもの。Claude Code のみ）", "# Output signals (run by AI and succeeded; Claude Code only)"),
       tr(`- コミット: ${o.commits} 回、PR の作成: ${o.prs} 件`, `- Commits: ${o.commits}, pull requests created: ${o.prs}`),
       tr(`- AI が編集した行（推定）: 追加 ${o.added}、削除 ${o.removed}`, `- Lines edited by AI (estimated): ${o.added} added, ${o.removed} removed`),
-      tr(`- コミットまで行ったセッション: ${w.outSessions} / ${w.sessions}`, `- Sessions that reached a commit: ${w.outSessions} / ${w.sessions}`));
+      tr(`- コミットまで行ったセッション: ${w.outSessions} / ${w.outBase ?? w.sessions}`, `- Sessions that reached a commit: ${w.outSessions} / ${w.outBase ?? w.sessions}`));
     if (w.costPerCommit != null) L.push(tr(`- 1 コミットあたりの目安コスト: ${usd(w.costPerCommit)}`, `- Estimated cost per commit: ${usd(w.costPerCommit)}`));
   }
   const start0 = M ? st.month : st.week, days = w.days.map((d, i) => [addDays(start0, i), d]).filter(([, d]) => d.active || d.tokens || d.credits || d.commits);
@@ -1172,7 +1172,7 @@ const MET = {
   fix: {f: w => w.fixRate, low: true, u: "%"},
   friction: {f: w => w.friction.length, low: true, u: "件"},
   cache: {f: w => w.usage && w.usage.cacheHit != null ? Math.round(w.usage.cacheHit * 100) : null, low: false, u: "%"},
-  outSessions: {f: w => pctOf(w.outSessions, w.sessions), low: false, u: "%"},
+  outSessions: {f: w => pctOf(w.outSessions, w.outBase ?? w.sessions), low: false, u: "%"},
   switches: {f: w => w.switchesAvg, low: true, u: "回"},
   focus: {f: w => w.focus.length, low: false, u: "回"},
   wait: {f: w => w.waitP90 != null ? Math.round(w.waitP90 / 60) : null, low: true, u: "分"},
@@ -1225,8 +1225,8 @@ function findList(w, pw, unit){
     add("costPerCommit", 22, tr(`1 コミットあたりの目安コストが ${usd(pw.costPerCommit)} → ${usd(w.costPerCommit)} に増えました`, `Estimated cost per commit rose from ${usd(pw.costPerCommit)} to ${usd(w.costPerCommit)}`), tr("区切りまで進めるのに、前より重くなっています", "Reaching a checkpoint is getting heavier than before"), tr(`コミット 3 回以上で、先${unit}の 1.5 倍以上`, `1.5× ${uLast(unit)} or more, with 3+ commits`));
   if (u.cacheHit != null && u.tokens >= 1e6 && u.cacheHit < 0.5)
     add("cache", 20, tr(`入力のうちキャッシュから読んだ割合が ${Math.round(u.cacheHit*100)}% でした`, `Only ${Math.round(u.cacheHit*100)}% of input was read from cache`), tr("同じ文脈を毎回読み直しているかもしれません", "You may be re-sending the same context every time"), tr("トークン 1M 以上で 50% 未満", "Under 50%, with 1M+ tokens"));
-  if (w.sessions >= 5 && (o.commits || o.prs || (w.git && w.git.commits)) && w.outSessions / w.sessions < 0.25)
-    add("outSessions", 16, tr(`コミットまで行ったセッションは ${w.sessions} 件中 ${w.outSessions} 件でした`, `${w.outSessions} of ${w.sessions} sessions reached a commit`), tr("途中で止まったセッションが多いかもしれません", "Many sessions may have stopped partway"), tr("セッション 5 件以上で 25% 未満", "Under 25%, with 5+ sessions"));
+  if ((w.outBase ?? w.sessions) >= 5 && (o.commits || o.prs || (w.git && w.git.commits)) && w.outSessions / (w.outBase ?? w.sessions) < 0.25)
+    add("outSessions", 16, tr(`コミットまで行ったセッションは ${w.outBase ?? w.sessions} 件中 ${w.outSessions} 件でした`, `${w.outSessions} of ${w.outBase ?? w.sessions} sessions reached a commit`), tr("途中で止まったセッションが多いかもしれません", "Many sessions may have stopped partway"), tr("セッション 5 件以上で 25% 未満", "Under 25%, with 5+ sessions"));
   if (w.switchesAvg >= 5)
     add("switches", 14, tr(`1 日に平均 ${w.switchesAvg} 回、プロジェクトを切り替えていました`, `You switched projects ${w.switchesAvg} times a day on average`), tr("文脈を切り替えるたびに、思い出す時間と手戻りが増えがちです", "Each context switch tends to add ramp-up time and rework"), tr("1 日平均 5 回以上", "5+ per day on average"));
   if (!w.focus.length && w.active >= 240)
@@ -1336,7 +1336,7 @@ function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）�
     stat(tr("AI のコミット", "AI commits"), times(o.commits), d(o.commits, po && po.commits), "commits"),
     stat(tr("PR の作成", "Pull requests"), tr(`${o.prs}<small>件</small>`, `${o.prs}`), d(o.prs, po && po.prs), "prs"),
     stat(tr("AI が編集した行（推定）", "Lines edited by AI (est.)"), `<small>+</small>${n(o.added)}`, tr(`削除 ${n(o.removed)} 行・編集の前後から推定。コミットしなかった編集や書き直しも数えるため、git の記録より多くなりがちです`, `${n(o.removed)} removed · estimated by comparing before and after edits. Includes uncommitted edits and rewrites, so it tends to exceed git's numbers`), "lines"),
-    stat(tr("コミットまで行ったセッション", "Sessions that reached a commit"), `${w.outSessions}<small>/ ${w.sessions}</small>`, w.sessions ? `${Math.round(w.outSessions*100/w.sessions)}%` : "", "outSessions"),
+    stat(tr("コミットまで行ったセッション", "Sessions that reached a commit"), `${w.outSessions}<small>/ ${w.outBase ?? w.sessions}</small>`, (w.outBase ?? w.sessions) ? `${Math.round(w.outSessions*100/(w.outBase ?? w.sessions))}%` : "", "outSessions"),
     w.costPerCommit != null ? stat(tr("1コミットあたりの目安コスト", "Estimated cost per commit"), usd(w.costPerCommit).replace("$","<small>$</small>"), `n=${o.commits}`, "costPerCommit") : "",
   ].join("") : "";
   return `<section class="panel oc">${ph(3, tr("コストと成果", "Cost and outputs"), tr(`この${unit}に使ったものと、形に残ったもの`, `What you spent ${uThis(unit)} and what it left behind`), "outputs")}

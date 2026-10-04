@@ -66,3 +66,25 @@ func TestPeriodsIncludeRecordsOutsideSessionRange(t *testing.T) {
 		t.Errorf("次の週の使用量 = %v, want 1000（区間の外の記録も、その時刻の週に入れる）", w.Usage.Tokens)
 	}
 }
+
+// 「コミットまで行ったセッション」の割合と「1 コミットあたりの目安コスト」は、成果を記録できる
+// エージェント（Claude Code）のセッションとコストだけで出す。ほかのエージェントが混ざっても変わらない。
+func TestOutputsOnlyFromTrackedSessions(t *testing.T) {
+	ws := time.Date(2026, 9, 28, 0, 0, 0, 0, time.Local)
+	start := float64(ws.Add(10 * time.Hour).Unix())
+	c1, c2 := 2.0, 30.0
+	seg := [][3]float64{{start, start + 600, 2}}
+	claude := &core.Session{ID: "c", Source: "Claude Code", Project: "app", Start: start, End: start + 600, Segs: seg, Prompts: []core.Prompt{}, OutTracked: true,
+		UEv: []core.Event{{T: &start, Model: "m", U: core.Tokens{In: 1}, Cost: &c1}},
+		OEv: []core.Output{{T: &start, Kind: "commit", V: 1}}}
+	idle := &core.Session{ID: "i", Source: "Claude Code", Project: "app", Start: start, End: start + 600, Segs: seg, Prompts: []core.Prompt{}, OutTracked: true}
+	other := &core.Session{ID: "o", Source: "Codex", Project: "app", Start: start, End: start + 600, Segs: seg, Prompts: []core.Prompt{},
+		UEv: []core.Event{{T: &start, Model: "m", U: core.Tokens{In: 1}, Cost: &c2}}}
+	w := Summarize([]*core.Session{claude, idle, other}, ws, ws.AddDate(0, 0, 7))
+	if w.Sessions != 3 || w.OutBase != 2 || w.OutSessions != 1 {
+		t.Errorf("sessions/outBase/outSessions = %d %d %d, want 3 2 1", w.Sessions, w.OutBase, w.OutSessions)
+	}
+	if w.CostPerCommit == nil || *w.CostPerCommit != 2 {
+		t.Errorf("1 コミットあたり = %v, want 2（Codex のコストは入れない）", w.CostPerCommit)
+	}
+}

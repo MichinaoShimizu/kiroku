@@ -87,12 +87,12 @@ The image shows the English view. In a Japanese browser it is shown in Japanese 
 | By project | Per project: active time and its share, number of sessions / prompts, tokens, estimated cost and credits, main models (share of tokens; counts for agents that don't record tokens), the top 3 sessions by run time, and the heaviest session (judged by estimated cost, else credits, else tokens). Time when several projects ran at once is split between them |
 | Active time | Time when any session was running (overlaps count once) |
 | Total AI run time | Time added up, including sessions running in parallel |
-| Focus blocks | Work that continued for 60 minutes or more, allowing breaks of up to 5 minutes, and the project that took most of it |
+| Focus blocks | Work that continued for 60 minutes or more, and the project that took most of it. Gaps within a session up to the session gap (`--gap`, 15 minutes by default) and gaps of up to 5 minutes between sessions are treated as continuous |
 | Project switches per day | How often the project changed between consecutive prompts |
 | Parallel time | Time when 2 or more sessions ran at once, and the most at once |
 | Wait time | Median and 90th percentile of the time from an AI reply to your next prompt (up to 30 minutes) |
 | Late night / Weekend | Work time between 22:00 and 6:00, and on Saturdays and Sundays |
-| Prompts with corrections or interruptions | Share estimated from prompt wording (such as "wrong" or "redo") and interruptions. The number of prompts (n) is shown alongside |
+| Prompts with corrections or interruptions | Share estimated from the opening words of each prompt (such as "No, that's wrong" or "undo that") and interruptions. The first prompt of a conversation and words inside pasted code, quotes or indented logs are not counted, nor are ordinary requests that merely share the words, such as "add an undo button". The number of prompts (n) is shown alongside |
 | Long conversations | Sessions where the input read per response (new input plus cache reads and writes) in the last quarter of the conversation was at least 4 times that of the first quarter, peaking at 100K tokens or more (estimated cost $0.5 or more; only sessions with 8 or more responses, from agents that record tokens) |
 | Expensive models for light work | Total for sessions that mainly used Opus-class models, had 3 or fewer prompts, edited no files and cost $0.3 or more |
 | Usage limit hits | Count and times of usage limit errors (usage caps and rate limits) left in Claude Code history. Hits within 1 minute count once. The calendar shows them with a red "Limit" mark |
@@ -103,7 +103,7 @@ The image shows the English view. In a Japanese browser it is shown in Japanese 
 
 | Metric | Definition |
 |---|---|
-| Estimated cost (API pricing) | Usage priced at public API rates. For sessions where Claude Code records its own cost (`cost-state`), that value is used (this also covers price changes, new models and calls not left in the history, such as auto-compaction). Otherwise, tokens in the history are multiplied by the kiroku price table. It differs from what a subscription bills |
+| Estimated cost (API pricing) | Usage priced at public API rates. For sessions where Claude Code records its own cost (`cost-state`), that value is used (this also covers price changes, new models and calls not left in the history, such as auto-compaction). Otherwise, tokens in the history are multiplied by the kiroku price table, doubled for responses recorded in fast mode (`speed: "fast"`) and multiplied by 1.1 for US-only inference (`inference_geo: "us"`). It differs from what a subscription bills |
 | Month-end projection (estimate) | Shown only in the month view while the month is in progress: the estimated cost (and credits) from the 1st through today, divided by the days so far (including today) and multiplied by the days in the month. It assumes the pace so far continues, and is not shown for the first 7 days or on the last day. For a period in progress, comparisons with the previous period use the same days of it (for example "vs 9/1–9/20"). AI commits and pull requests have no daily figures, so they are not compared while a period is in progress |
 | Tokens | Input, output, cache reads and cache writes combined. Because one response is recorded across several lines, they are grouped by message ID before counting |
 | Share of input read from cache | The share of input read from cache |
@@ -128,7 +128,7 @@ kiroku serve --prices my-prices.json
 
 Proxy numbers for outcomes, shown next to costs such as time and tokens, to check whether your usage led to work that left a trace.
 
-- **Git commits** are counted by reading the repositories agents worked in (each session's working directory) with your local `git`, counting your own commits (`git config user.email`; in repositories without `user.email`, everyone's commits are counted). Commits made by hand are included. Commits whose time matches (within 2 minutes) a commit an agent ran with a tool are counted as "Run by AI". The calendar shows them as commit marks and short-hash badges (filled ones were run by AI). They are not read where the `git` command is unavailable
+- **Git commits** are counted by reading the repositories agents worked in (each session's working directory) with your local `git`, counting your own commits (`git config user.email`; in repositories without `user.email`, everyone's commits are counted). Commits made by hand are included. Commits whose time matches (within 2 minutes of when the tool returned) a commit an agent ran with a tool are counted as "Run by AI". Each run is matched to the one nearest commit only. A git worktree is treated as the same repository as its main checkout. The calendar shows them as commit marks and short-hash badges (filled ones were run by AI). They are not read where the `git` command is unavailable
 - Everything else counts only what AI ran with tools and succeeded (currently Claude Code only)
 
 | Metric | Definition |
@@ -137,8 +137,8 @@ Proxy numbers for outcomes, shown next to costs such as time and tokens, to chec
 | Commits | Number of successful `git commit` runs by AI (excluding `--dry-run`). Commits made by hand are not included |
 | Pull requests | Number of pull requests created by AI (`gh pr create` and tools whose names end in `create_pull_request`) |
 | Lines edited by AI (estimated) | Lines added and removed in files AI edited or created, comparing before and after (rough). Counted from `Edit`, `MultiEdit` and `Write` |
-| Sessions that reached a commit | Number and share of sessions that made a commit or created a pull request in the period |
-| Estimated cost per commit | Estimated cost ÷ number of commits |
+| Sessions that reached a commit | Number and share of sessions that made a commit or created a pull request in the period (including those made by subagents). Only Claude Code sessions are counted, since only Claude Code outputs are recorded |
+| Estimated cost per commit | Estimated cost of Claude Code sessions ÷ number of commits. Other agents' cost is left out |
 
 ### Agent-specific metrics
 

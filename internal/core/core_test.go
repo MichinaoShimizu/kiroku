@@ -87,16 +87,27 @@ func TestAggregateNative(t *testing.T) {
 	}
 }
 
-// 言い直しの判定は、日本語と英語のよくある言い回しを拾い、ふつうの依頼は拾わない。
+// 言い直しの判定は、日本語と英語のよくある言い回しを拾い、ふつうの依頼・貼り付けたログ・会話の最初の依頼は拾わない（例は correction_cases_test.go）。
 func TestCorrection(t *testing.T) {
-	for _, s := range []string{"違う、そうじゃなくて", "やり直して", "No, that's wrong", "Revert that and try again", "It still doesn't work", "The build is still failing", "nope", "Roll back the last change"} {
-		if !Correction.MatchString(s) {
-			t.Errorf("拾うべき: %q", s)
+	for _, c := range correctionCases {
+		if got := IsCorrection(c.text, c.first); got != c.want {
+			t.Errorf("IsCorrection(%q, first=%v) = %v, want %v", c.text, c.first, got, c.want)
 		}
 	}
-	for _, s := range []string{"Fix validation on the login form", "Add a working example", "Write the release notes", "Make the tests pass too", "テストも通して"} {
-		if Correction.MatchString(s) {
-			t.Errorf("拾わないべき: %q", s)
+}
+
+// fast モードは通常の 2 倍、US 内だけの推論は 1.1 倍（重ねて掛かる）。記録が分かれていても、どれかの行にあれば効く。
+func TestUsageRateMultipliers(t *testing.T) {
+	u := NewUsage()
+	ts := 1.0
+	u.Add("a", &ts, "claude-opus-5-5", map[string]any{"input_tokens": 1e6})
+	u.Add("b", &ts, "claude-opus-5-5", map[string]any{"input_tokens": 1e6, "speed": "fast"})
+	u.Add("c", &ts, "claude-opus-5-5", map[string]any{"input_tokens": 1e6})
+	u.Add("c", &ts, "claude-opus-5-5", map[string]any{"input_tokens": 1e6, "speed": "fast", "inference_geo": "us"})
+	want := map[int]float64{0: 4, 1: 8, 2: 8.8}
+	for i, e := range u.Events() {
+		if e.Cost == nil || Round(*e.Cost, 4) != want[i] {
+			t.Errorf("event %d cost = %v, want %v", i, e.Cost, want[i])
 		}
 	}
 }

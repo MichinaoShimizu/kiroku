@@ -97,6 +97,21 @@ type Event struct {
 	Model string
 	U     Tokens
 	Cost  *float64
+	Mult  float64 // 料金表の値に掛ける倍率（fast モード・US 内だけの推論）。0 は 1 と同じ
+}
+
+// rateMult は、応答の usage に記録された料金の倍率。
+// fast モード（usage.speed が "fast"）は通常の 2 倍、US 内だけの推論（usage.inference_geo が "us"）は 1.1 倍で、重ねて掛かる。
+// 出典: https://platform.claude.com/docs/en/about-claude/pricing （Fast mode pricing・Data residency pricing）
+func rateMult(raw any) float64 {
+	m, k := Map(raw), 1.0
+	if strings.EqualFold(Str(m["speed"]), "fast") {
+		k *= 2
+	}
+	if strings.EqualFold(Str(m["inference_geo"]), "us") {
+		k *= 1.1
+	}
+	return k
 }
 
 // Usage は、1 つの応答が複数行に分かれて記録されるので、メッセージ ID ごとに項目別の最大値をとってから足す。
@@ -114,10 +129,11 @@ func (u *Usage) Add(mid string, t *float64, model string, raw any) {
 	}
 	cur, ok := u.byMsg[mid]
 	if !ok {
-		u.byMsg[mid] = &Event{T: t, Model: model, U: tok}
+		u.byMsg[mid] = &Event{T: t, Model: model, U: tok, Mult: rateMult(raw)}
 		u.order = append(u.order, mid)
 		return
 	}
+	cur.Mult = max(cur.Mult, rateMult(raw))
 	if cur.T == nil || *cur.T == 0 {
 		cur.T = t
 	}
@@ -138,6 +154,9 @@ func (u *Usage) Events() []Event {
 			continue
 		}
 		if c, ok := CostOf(e.Model, e.U); ok {
+			if e.Mult > 0 {
+				c *= e.Mult
+			}
 			e.Cost = &c
 		}
 		out = append(out, e)

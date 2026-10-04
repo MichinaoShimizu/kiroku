@@ -80,6 +80,7 @@ type Summary struct {
 	CostPerAsk    *float64           `json:"costPerAsk"`    // 1 依頼あたりの目安コスト。トークンの記録がなければ nil
 	Outputs       core.OutputTotal   `json:"outputs"`       // AI が実行したコミット・PR 作成・変更した行（成果の代理）
 	OutSessions   int                `json:"outSessions"`   // コミットか PR 作成まで行ったセッションの数
+	OutBase       int                `json:"outBase"`       // そのうち、成果の印を記録できるエージェント（いまは Claude Code）のセッションの数。OutSessions の割合の分母
 	CostPerCommit *float64           `json:"costPerCommit"` // 1 コミットあたりの目安コスト。コミットかトークンの記録がなければ nil
 	Git           GitTotal           `json:"git"`           // 手元の git リポジトリのコミット（gitlog）
 	Sessions      int                `json:"sessions"`
@@ -432,9 +433,25 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 			costPer = fptr(core.Round(usage.Cost/float64(np), 3))
 		}
 	}
+	// 成果の印は Claude Code だけが記録するので、割合と 1 コミットあたりのコストは、Claude Code のセッションとコストだけで出す
+	// （ほかのエージェントのセッションやコストが分母に混ざると、割合は低く、1 コミットあたりのコストは高く出る）
 	var outs core.OutputTotal
-	outSes := 0
+	outSes, outBase, outCost := 0, 0, 0.0
 	for _, d := range data {
+		if d.OutTracked && d.End >= ws && d.Start < we {
+			outBase++
+		}
+		if d.OutTracked {
+			for _, e := range d.UEv {
+				t := d.Start
+				if e.T != nil && *e.T != 0 {
+					t = *e.T
+				}
+				if ws <= t && t < we && e.Cost != nil {
+					outCost += *e.Cost
+				}
+			}
+		}
 		shipped := false
 		for _, o := range d.OEv {
 			t := d.Start
@@ -451,11 +468,11 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 		}
 	}
 	var costPerCommit *float64
-	if outs.Commits > 0 && usage.Tokens > 0 {
-		costPerCommit = fptr(core.Round(usage.Cost/outs.Commits, 2))
+	if outs.Commits > 0 && outCost > 0 {
+		costPerCommit = fptr(core.Round(outCost/outs.Commits, 2))
 	}
 	return &Summary{
-		Outputs: outs, OutSessions: outSes, CostPerCommit: costPerCommit, Git: gitTot,
+		Outputs: outs, OutSessions: outSes, OutBase: outBase, CostPerCommit: costPerCommit, Git: gitTot,
 		Native:       nativeGroups(data, ws, we),
 		ProjectStats: projectStats(data, ws, we, projects, projOrder, commits),
 		Shares:       map[string][]Share{"branch": shares(data, ws, we, mins, ShareKeys["branch"]), "source": shares(data, ws, we, mins, ShareKeys["source"])},
