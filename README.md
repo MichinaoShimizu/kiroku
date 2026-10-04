@@ -4,8 +4,6 @@ English | [日本語](README.ja.md)
 
 See how you actually work with AI coding agents. kiroku reads the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), Amazon Q and Codex, and shows it as a Google Calendar–style view.
 
-> The interface is in English, or in Japanese when your browser language is Japanese. You can switch it with the language menu in the header.
-
 ## Why
 
 Getting real value out of limited credits and tokens depends on how you use your agents. But even the information you need to improve is unevenly available today: every agent keeps its history on your machine, each in a different place and format.
