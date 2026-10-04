@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
+	"github.com/MichinaoShimizu/kiroku/internal/gitlog"
 )
 
 // ProjectStat は期間の中の 1 プロジェクトのまとめ:
@@ -19,6 +20,7 @@ type ProjectStat struct {
 	Credits   float64          `json:"credits"`
 	Subagents int              `json:"subagents"`
 	Outputs   core.OutputTotal `json:"outputs"` // AI が実行したコミット・PR 作成・変更した行
+	Git       GitTotal         `json:"git"`     // 手元の git のコミット
 	Models    []ModelShare     `json:"models"`  // トークンの多い順（上位 3）
 	Top       []TopSession     `json:"top"`     // 長く動いていた順（上位 3）
 	Heavy     *TopSession      `json:"heavy"`   // いちばん重かった（目安コスト、なければクレジット、なければトークン）
@@ -43,7 +45,7 @@ type TopSession struct {
 }
 
 // projectStats はプロジェクトごとのまとめ。minutes は Summarize で按分した作業時間、order はその多い順。
-func projectStats(data []*core.Session, ws, we float64, minutes map[string]float64, order []string) []ProjectStat {
+func projectStats(data []*core.Session, ws, we float64, minutes map[string]float64, order []string, commits []gitlog.Commit) []ProjectStat {
 	type acc struct {
 		st     ProjectStat
 		models map[string]*ModelShare
@@ -149,6 +151,11 @@ func projectStats(data []*core.Session, ws, we float64, minutes map[string]float
 		a.st.Cost += ts.Cost
 		a.st.Credits += ts.Credits
 		a.ses = append(a.ses, ts)
+	}
+	for _, c := range commits {
+		if ws <= c.T && c.T < we && by[c.Project] != nil {
+			by[c.Project].st.Git.add(c)
+		}
 	}
 	seen := map[string]bool{}
 	var names []string

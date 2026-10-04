@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
+	"github.com/MichinaoShimizu/kiroku/internal/gitlog"
 )
 
 const (
@@ -33,6 +34,7 @@ type Day struct {
 	Tokens   float64 `json:"tokens"`  // その日のトークン（入力・出力・キャッシュの合計）
 	Cost     float64 `json:"cost"`    // その日の目安コスト（API 換算）
 	Credits  float64 `json:"credits"` // その日の Kiro クレジット
+	Commits  int     `json:"commits"` // その日の git のコミット（手元のリポジトリ）
 }
 
 type Friction struct {
@@ -77,6 +79,7 @@ type Summary struct {
 	Outputs       core.OutputTotal `json:"outputs"`       // AI が実行したコミット・PR 作成・変更した行（成果の代理）
 	OutSessions   int              `json:"outSessions"`   // コミットか PR 作成まで行ったセッションの数
 	CostPerCommit *float64         `json:"costPerCommit"` // 1 コミットあたりの目安コスト。コミットかトークンの記録がなければ nil
+	Git           GitTotal         `json:"git"`           // 手元の git リポジトリのコミット（gitlog）
 	Sessions      int              `json:"sessions"`
 	Prompts       int              `json:"prompts"`
 	Active        int              `json:"active"`
@@ -142,12 +145,30 @@ func MonthOf(ts float64) time.Time {
 }
 
 // Stats は 1 週ぶんの集計。動いていた時間がなければ nil。
-func Stats(data []*core.Session, wsT time.Time) *Week {
-	return Summarize(data, wsT, wsT.AddDate(0, 0, 7))
+func Stats(data []*core.Session, wsT time.Time, commits ...gitlog.Commit) *Week {
+	return Summarize(data, wsT, wsT.AddDate(0, 0, 7), commits...)
+}
+
+// GitTotal は期間の git のコミットのまとめ。
+type GitTotal struct {
+	Commits int `json:"commits"`
+	AI      int `json:"ai"` // うちエージェントが実行したもの
+	Added   int `json:"added"`
+	Removed int `json:"removed"`
+}
+
+func (g *GitTotal) add(c gitlog.Commit) {
+	g.Commits++
+	if c.AI {
+		g.AI++
+	}
+	g.Added += c.Added
+	g.Removed += c.Removed
 }
 
 // Summarize は [from, to) の集計。from と to はローカル時刻の 0 時。動いていた時間がなければ nil。
-func Summarize(data []*core.Session, wsT, weT time.Time) *Summary {
+// commits は手元の git のコミット（なくてもよい）。
+func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commit) *Summary {
 	ws, we := unix(wsT), unix(weT)
 	n := int(math.Floor((we - ws) / 60))
 	// 日の境目（夏時間でも日付どおりに分ける）
@@ -313,6 +334,13 @@ func Summarize(data []*core.Session, wsT, weT time.Time) *Summary {
 			}
 		}
 	}
+	var gitTot GitTotal
+	for _, c := range commits {
+		if ws <= c.T && c.T < we {
+			days[dayAt(c.T)].Commits++
+			gitTot.add(c)
+		}
+	}
 	for i := range days {
 		days[i].Cost, days[i].Credits = core.Round(days[i].Cost, 4), core.Round(days[i].Credits, 2)
 	}
@@ -421,9 +449,9 @@ func Summarize(data []*core.Session, wsT, weT time.Time) *Summary {
 		costPerCommit = fptr(core.Round(usage.Cost/outs.Commits, 2))
 	}
 	return &Summary{
-		Outputs: outs, OutSessions: outSes, CostPerCommit: costPerCommit,
+		Outputs: outs, OutSessions: outSes, CostPerCommit: costPerCommit, Git: gitTot,
 		Native:       nativeGroups(data, ws, we),
-		ProjectStats: projectStats(data, ws, we, projects, projOrder),
+		ProjectStats: projectStats(data, ws, we, projects, projOrder, commits),
 		FixRate:      fixRate, CostPerAsk: costPer, Usage: usage, Start: wsT.Format("2006-01-02"), Sessions: sessions, Prompts: np,
 		Active: len(active), AI: ai, Parallel: parallel, MaxConc: maxConc, Night: night, Weekend: weekend,
 		Focus: blocks, SwitchesAvg: core.Round(float64(swSum)/float64(activeDays), 1), SwitchesMax: swMax,
@@ -604,7 +632,7 @@ func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
 }
 
 // AllWeeks は記録のあるすべての週を集計する。キーは月曜の日付。
-func AllWeeks(data []*core.Session) map[string]*Week {
+func AllWeeks(data []*core.Session, commits ...gitlog.Commit) map[string]*Week {
 	out := map[string]*Week{}
 	seen := map[string]bool{}
 	for _, d := range data {
@@ -613,7 +641,7 @@ func AllWeeks(data []*core.Session) map[string]*Week {
 			k := w.Format("2006-01-02")
 			if !seen[k] {
 				seen[k] = true
-				if st := Stats(data, w); st != nil {
+				if st := Stats(data, w, commits...); st != nil {
 					out[k] = st
 				}
 			}
@@ -624,7 +652,7 @@ func AllWeeks(data []*core.Session) map[string]*Week {
 }
 
 // AllMonths は記録のあるすべての月を集計する。キーは YYYY-MM。
-func AllMonths(data []*core.Session) map[string]*Summary {
+func AllMonths(data []*core.Session, commits ...gitlog.Commit) map[string]*Summary {
 	out := map[string]*Summary{}
 	seen := map[string]bool{}
 	for _, d := range data {
@@ -633,7 +661,7 @@ func AllMonths(data []*core.Session) map[string]*Summary {
 			k := m.Format("2006-01")
 			if !seen[k] {
 				seen[k] = true
-				if st := Summarize(data, m, m.AddDate(0, 1, 0)); st != nil {
+				if st := Summarize(data, m, m.AddDate(0, 1, 0), commits...); st != nil {
 					out[k] = st
 				}
 			}

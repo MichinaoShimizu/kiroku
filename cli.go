@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
+	"github.com/MichinaoShimizu/kiroku/internal/gitlog"
 	"github.com/MichinaoShimizu/kiroku/internal/report"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
 	"github.com/MichinaoShimizu/kiroku/internal/web"
@@ -115,8 +116,12 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 		if data == nil {
 			data = []*core.Session{} // 画面では null ではなく空の一覧として扱う
 		}
-		meta := map[string]any{"report": rep}
-		return snapshot{data: data, weeks: report.AllWeeks(data), months: report.AllMonths(data), meta: meta, rep: rep, gen: float64(time.Now().UnixNano()) / 1e9}
+		commits := gitlog.Collect(data) // git がなければ空
+		if commits == nil {
+			commits = []gitlog.Commit{}
+		}
+		meta := map[string]any{"report": rep, "git": commits}
+		return snapshot{data: data, weeks: report.AllWeeks(data, commits...), months: report.AllMonths(data, commits...), meta: meta, rep: rep, gen: float64(time.Now().UnixNano()) / 1e9}
 	}
 	return picked, load, nil
 }

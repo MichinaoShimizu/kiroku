@@ -46,7 +46,7 @@ kiroku html     # 静的な HTML（kiroku.html）を出力して開く
 kiroku help     # コマンドとオプションの一覧
 ```
 
-出力した HTML には依頼文やファイルパスがそのまま含まれます。人に渡すときは内容を確認してください。
+出力した HTML には依頼文やファイルパス、コミットメッセージがそのまま含まれます。人に渡すときは内容を確認してください。
 
 画面の見方、指標の定義、読み取る履歴、オプションは [docs/guide.md](docs/guide.md)、開発については [docs/development.md](docs/development.md) を参照してください。
 
