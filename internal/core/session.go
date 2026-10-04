@@ -217,6 +217,7 @@ type Session struct {
 	Waits        [][2]float64  `json:"waits"`
 	Interrupts   int           `json:"interrupts"`
 	Limits       []float64     `json:"limits"` // 利用上限に当たった時刻
+	Ctx          []float64     `json:"ctx"`    // 1 回の応答で読んだ入力（文脈）の大きさ [前半, 後半, 最大]（context.go）
 	Corrections  int           `json:"corrections"`
 	Models       [][2]any      `json:"models"`
 	Usage        UsageTotal    `json:"usage"`
@@ -310,6 +311,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 		prompts = prompts[:50]
 	}
 	main := s.Usage.Events()
+	ctx := ContextGrowth(main)
 	if len(s.Reported) > 0 {
 		groups := [][]Event{main}
 		for _, a := range s.Subagents {
@@ -357,7 +359,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 		ID: s.ID, Source: s.Source, Project: name, ProjectPath: project, Branch: strOrNil(s.Branch), Title: title,
 		Start: times[0], End: times[len(times)-1], Events: len(times), Segs: Segments(times, float64(gapMin*60)),
 		Prompts: prompts, NPrompts: len(s.Prompts), Tools: tools, Files: files, NFiles: nFiles, Resume: strOrNil(s.Resume),
-		Waits: s.Waits(), Interrupts: s.Interrupts, Limits: limits(s.Limits), Corrections: s.Corrections(), Models: models,
+		Waits: s.Waits(), Interrupts: s.Interrupts, Limits: limits(s.Limits), Ctx: ctx, Corrections: s.Corrections(), Models: models,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
 		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: len(s.Reported) > 0, File: s.File, PRs: prs,
 		Native: AggregateNative(s.Source, s.Measures), Meas: s.Measures,
