@@ -36,9 +36,12 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      # リリースノートは CHANGELOG.md のその版の節（英語）を使う。節がなければここで止まる
+      - name: Release notes
+        run: sh tools/release-notes.sh "$GITHUB_REF_NAME" > "$RUNNER_TEMP/notes.md"
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
-          args: release --clean
+          args: release --clean --release-notes ${{ runner.temp }}/notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -46,16 +46,21 @@ go build .         # ./kiroku ができる（./kiroku serve で画面を開く�
 PR ごとに次を走らせます（`.github/workflows/ci.yml`）。
 
 - `test`（Ubuntu・macOS・Windows）: gofmt・vet・テスト・ビルド
-- `release-dry-run`: `goreleaser release --snapshot`（公開はしない）。リリースの設定が壊れていないかを、タグを打つ前に確かめる
+- `release-dry-run`: `goreleaser release --snapshot`（公開はしない）と、CHANGELOG からのリリースノートの抜き出し。リリースの設定が壊れていないかを、タグを打つ前に確かめる
 - `install-script`（Ubuntu・macOS）: `install.sh` に shellcheck をかけ、実際に最新のリリースを入れて `kiroku --version` を確かめる
 - `Demo`（`.github/workflows/pages.yml`）: main への push と毎週月曜に、ダミーデータの HTML を作って GitHub Pages に公開する（README の Live demo）。使うには Settings → Pages → Source を「GitHub Actions」にする。ダミーデータは日本時間で作るので、集計も日本時間（`TZ=Asia/Tokyo`）で区切り、画面は `KIROKU_DEMO` の目印があるとき、見る人の時間帯にかかわらず日本時間の時計で表示する（海外から開いても深夜の作業に見えないように）
 
 ## リリースの出し方
 
+1. `CHANGELOG.md` の `## Unreleased` を `## v0.1.6 - 2026-10-05` のように書き換えて main に入れる（英語で書く。中身がそのままリリースノートになる）
+2. タグを打って push する
+
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.6
+git push origin v0.1.6
 ```
+
+変更を入れる PR では、利用者に見える変化を `## Unreleased` に英語で足しておきます。CHANGELOG にタグと同じ版の節がないと、リリースは作られずに止まります（`sh tools/release-notes.sh v0.1.6` で手元でも確かめられます）。
 
 `v` で始まるタグを push すると、GitHub Actions（`.github/workflows/release.yml`）が 3 OS でテストしてから、GoReleaser で macOS・Linux・Windows（amd64 / arm64）向けのファイルとチェックサムを作り、Releases に載せます。`v0.2.0-rc.1` のように `-` のつくタグはプレリリースになります。
 
