@@ -41,8 +41,8 @@ jobs:
         with:
           version: "~> v2"
           args: release --snapshot --clean
-      # リリースノートを抜き出す仕組みが壊れていないか（未リリースの節で試す）
-      - run: sh tools/release-notes.sh Unreleased
+      # リリースノートを抜き出す仕組みが壊れていないか（いちばん上の節で試す。Unreleased か、タグを打つ直前の版）
+      - run: sh tools/release-notes.sh "$(grep -m1 '^## ' CHANGELOG.md | cut -d' ' -f2)"
 
   # install.sh が最新のリリースを落として置けるか（macOS は shasum、Linux は sha256sum の道を通る）
   install-script:

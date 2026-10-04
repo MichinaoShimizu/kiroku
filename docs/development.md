@@ -60,7 +60,7 @@ git tag v0.1.6
 git push origin v0.1.6
 ```
 
-変更を入れる PR では、利用者に見える変化を `## Unreleased` に英語で足しておきます。CHANGELOG にタグと同じ版の節がないと、リリースは作られずに止まります（`sh tools/release-notes.sh v0.1.6` で手元でも確かめられます）。
+変更を入れる PR では、利用者に見える変化を `## Unreleased` に英語で足しておきます（リリースの直後で見出しがなければ、いちばん上に `## Unreleased` から作ります）。CHANGELOG にタグと同じ版の節がないと、リリースは作られずに止まります（`sh tools/release-notes.sh v0.1.6` で手元でも確かめられます）。
 
 `v` で始まるタグを push すると、GitHub Actions（`.github/workflows/release.yml`）が 3 OS でテストしてから、GoReleaser で macOS・Linux・Windows（amd64 / arm64）向けのファイルとチェックサムを作り、Releases に載せます。`v0.2.0-rc.1` のように `-` のつくタグはプレリリースになります。
 

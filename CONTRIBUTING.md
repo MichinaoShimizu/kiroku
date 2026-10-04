@@ -23,7 +23,7 @@ Go 1.23 or later is required. [docs/development.md](docs/development.md) (Japane
 
 ## Changelog
 
-Add user-visible changes to `## Unreleased` in [CHANGELOG.md](CHANGELOG.md), in English. That section becomes the release notes.
+Add user-visible changes to `## Unreleased` in [CHANGELOG.md](CHANGELOG.md), in English (create the heading at the top if it is not there). That section becomes the release notes.
 
 ## Changing the view
 
