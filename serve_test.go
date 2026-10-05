@@ -175,6 +175,38 @@ func TestServeHistory(t *testing.T) {
 	}
 }
 
+// /prompt は、HTML では切った依頼文の全文を返す。
+func TestServePrompt(t *testing.T) {
+	ts := 1000.0
+	b := core.NewBuilder("Claude Code", "s1")
+	b.Tick(&ts)
+	b.Prompt(&ts, "短い依頼")
+	b.Prompt(&ts, strings.Repeat("長", core.PromptRunes)+"最後")
+	l := &live{snap: snapshot{data: []*core.Session{b.Finish(15)}}}
+	srv := httptest.NewServer(l.handler())
+	defer srv.Close()
+	get := func(q string) (int, string) {
+		r, err := http.Get(srv.URL + "/prompt?" + q)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer r.Body.Close()
+		body, _ := io.ReadAll(r.Body)
+		return r.StatusCode, string(body)
+	}
+	if code, body := get("id=s1&i=1"); code != 200 || !strings.HasSuffix(body, "最後") {
+		t.Errorf("i=1 = %d %q", code, body)
+	}
+	if code, body := get("id=s1&i=0"); code != 200 || body != "短い依頼" {
+		t.Errorf("i=0 = %d %q", code, body)
+	}
+	for _, q := range []string{"id=s1&i=2", "id=s1&i=-1", "id=s1", "id=nope&i=0"} {
+		if code, _ := get(q); code != 404 {
+			t.Errorf("%s = %d, want 404", q, code)
+		}
+	}
+}
+
 // ポートだけを指定しても、手元だけで待ち受ける（同じネットワークのほかの人に履歴を見せない）。
 func TestListenAddr(t *testing.T) {
 	for in, want := range map[string]string{":8485": "127.0.0.1:8485", "127.0.0.1:9000": "127.0.0.1:9000", "0.0.0.0:8484": "0.0.0.0:8484", "[::1]:8484": "[::1]:8484"} {

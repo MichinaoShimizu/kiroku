@@ -1,6 +1,7 @@
 package core
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -109,5 +110,65 @@ func TestUsageRateMultipliers(t *testing.T) {
 		if e.Cost == nil || Round(*e.Cost, 4) != want[i] {
 			t.Errorf("event %d cost = %v, want %v", i, e.Cost, want[i])
 		}
+	}
+}
+
+func TestPromptFlow(t *testing.T) {
+	f := func(v float64) *float64 { return &v }
+	b := NewBuilder("Claude Code", "s")
+	b.Prompt(f(1000), "最初の依頼")
+	b.Agent(f(1010))
+	b.Agent(f(1100))
+	b.Prompt(f(1160), "[Request interrupted by user]")
+	b.Prompt(f(1200), strings.Repeat("あ", PromptRunes+5))
+	b.Agent(f(1500))
+	b.Prompt(f(5000), "AI が動く前に次の依頼")
+	b.Prompt(nil, "時刻のない依頼")
+	b.Outputs = append(b.Outputs, Output{T: f(1400), Kind: "pr", V: 1, URL: "https://example.com/pr/1"})
+	s := b.Finish(15)
+	if len(s.Prompts) != 4 || s.Interrupts != 1 || len(s.InterruptsAt) != 1 || s.InterruptsAt[0] != 1160 {
+		t.Fatalf("prompts %d, interrupts %d %v", len(s.Prompts), s.Interrupts, s.InterruptsAt)
+	}
+	// 1 件目は 1100 まで AI が動き、1200 の依頼まで 100 秒待たせた
+	if p := s.Prompts[0]; p.Work != 100 || p.Wait != 100 {
+		t.Errorf("1 件目 work %v wait %v", p.Work, p.Wait)
+	}
+	// 2 件目は切られて元の長さが残り、Full で全文が読める
+	if p := s.Prompts[1]; p.Len != PromptRunes+5 || len([]rune(p.Text)) != PromptRunes || len([]rune(p.Full())) != PromptRunes+5 || p.Work != 300 || p.Wait != 3500 {
+		t.Errorf("2 件目 len %d text %d full %d work %v wait %v", p.Len, len([]rune(p.Text)), len([]rune(p.Full())), p.Work, p.Wait)
+	}
+	// 間に AI が動いていない依頼と、時刻のない依頼には入れない
+	for _, p := range s.Prompts[2:] {
+		if p.Work != 0 || p.Wait != 0 || p.Len != 0 || p.Full() != p.Text {
+			t.Errorf("%q: work %v wait %v len %d", p.Text, p.Work, p.Wait, p.Len)
+		}
+	}
+	if len(s.PRAt) != 1 || s.PRAt[0].T != 1400 || s.PRAt[0].URL == "" {
+		t.Errorf("prAt %v", s.PRAt)
+	}
+}
+
+// サブエージェントが動いていた間は、待たせに数えない。
+func TestPromptFlowCountsSubagents(t *testing.T) {
+	f := func(v float64) *float64 { return &v }
+	b := NewBuilder("Claude Code", "s")
+	b.Prompt(f(1000), "調べて")
+	b.Agent(f(1060))
+	b.Subagents = append(b.Subagents, Subagent{Type: "Explore", Start: f(1060), End: f(1500)})
+	b.Prompt(f(1600), "次")
+	if p := b.Finish(15).Prompts[0]; p.Work != 500 || p.Wait != 100 {
+		t.Errorf("work %v wait %v", p.Work, p.Wait)
+	}
+}
+
+func TestPromptFlowKeepsAllPrompts(t *testing.T) {
+	b := NewBuilder("Claude Code", "s")
+	for i := 0; i < 80; i++ {
+		v := float64(1000 + i*60)
+		b.Tick(&v)
+		b.Prompt(&v, "依頼")
+	}
+	if s := b.Finish(15); len(s.Prompts) != 80 || s.NPrompts != 80 {
+		t.Errorf("prompts %d / %d", len(s.Prompts), s.NPrompts)
 	}
 }

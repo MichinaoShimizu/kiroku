@@ -185,6 +185,32 @@ func (l *live) handler() http.Handler {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		_, _ = io.Copy(w, body)
 	})
+	// /prompt?id=<セッション ID>&i=<何件目> は、HTML には先頭だけを入れた依頼文の全文を返す（依頼の流れの「全文を読み込む」）。
+	mux.HandleFunc("/prompt", func(w http.ResponseWriter, r *http.Request) {
+		id, i := r.URL.Query().Get("id"), -1
+		if n, err := strconv.Atoi(r.URL.Query().Get("i")); err == nil {
+			i = n
+		}
+		text := ""
+		l.mu.RLock()
+		for _, d := range l.snap.data {
+			if d.ID == id {
+				if i >= 0 && i < len(d.Prompts) {
+					text = d.Prompts[i].Full()
+				}
+				break
+			}
+		}
+		l.mu.RUnlock()
+		if text == "" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		_, _ = io.WriteString(w, text)
+	})
 	// POST /archive は、画面の「kiroku にコピーを残す」（kiroku archive on と同じ）。新しい集計を返す。
 	// ほかのサイトのページから押させないよう、画面だけが付ける X-Kiroku ヘッダーを求める
 	// （付けるとブラウザは先に確認の問い合わせ（preflight）をするが、ここは答えないので、ほかのサイトからは送れない）。

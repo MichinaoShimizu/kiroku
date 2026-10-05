@@ -2144,6 +2144,7 @@
    ],
    "id": "45502558-80a6-4028-a0ef-6476e9599703",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -2196,16 +2197,20 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "vp",
    "projectPath": "/Users/me/vp",
    "prompts": [
     {
      "t": 1788367980,
-     "text": "カレンダー表示を足して"
+     "text": "カレンダー表示を足して",
+     "wait": 90,
+     "work": 750
     },
     {
      "t": 1788368820,
-     "text": "READMEを整理して"
+     "text": "READMEを整理して",
+     "work": 180
     }
    ],
    "prs": [],
@@ -2294,6 +2299,7 @@
    ],
    "id": "68cb7e8c-a8e9-4b72-9b9f-95c791d04e02",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -2346,36 +2352,50 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "app",
    "projectPath": "/Users/me/app",
    "prompts": [
     {
      "t": 1788925320,
-     "text": "READMEを整理して"
+     "text": "READMEを整理して",
+     "wait": 60,
+     "work": 1500
     },
     {
      "t": 1788926880,
-     "text": "カレンダー表示を足して"
+     "text": "カレンダー表示を足して",
+     "wait": 1800,
+     "work": 2580
     },
     {
      "t": 1788931260,
-     "text": "テストが落ちてるので直して"
+     "text": "テストが落ちてるので直して",
+     "wait": 300,
+     "work": 4680
     },
     {
      "t": 1788936240,
-     "text": "ログイン画面のバグ調べて"
+     "text": "ログイン画面のバグ調べて",
+     "wait": 300,
+     "work": 2340
     },
     {
      "t": 1788938880,
-     "text": "カレンダー表示を足して"
+     "text": "カレンダー表示を足して",
+     "wait": 60,
+     "work": 2400
     },
     {
      "t": 1788941340,
-     "text": "テストが落ちてるので直して"
+     "text": "テストが落ちてるので直して",
+     "wait": 60,
+     "work": 6000
     },
     {
      "t": 1788947400,
-     "text": "評価シナリオを追加したい"
+     "text": "評価シナリオを追加したい",
+     "work": 840
     }
    ],
    "prs": [],
@@ -2585,6 +2605,7 @@
    ],
    "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33803",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -2637,16 +2658,20 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "app",
    "projectPath": "/Users/me/app",
    "prompts": [
     {
      "t": 1789213560,
-     "text": "評価シナリオを追加したい"
+     "text": "評価シナリオを追加したい",
+     "wait": 210,
+     "work": 2730
     },
     {
      "t": 1789216500,
-     "text": "カレンダー表示を足して"
+     "text": "カレンダー表示を足して",
+     "work": 720
     }
    ],
    "prs": [],
@@ -2741,6 +2766,7 @@
    ],
    "id": "fa1e3455-e4a8-485a-ace2-9a6ccbaea201",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -2793,20 +2819,26 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "blog",
    "projectPath": "/Users/me/blog",
    "prompts": [
     {
      "t": 1789434120,
-     "text": "カレンダー表示を足して"
+     "text": "カレンダー表示を足して",
+     "wait": 450,
+     "work": 1350
     },
     {
      "t": 1789435920,
-     "text": "テストが落ちてるので直して"
+     "text": "テストが落ちてるので直して",
+     "wait": 1800,
+     "work": 2220
     },
     {
      "t": 1789439940,
-     "text": "READMEを整理して"
+     "text": "READMEを整理して",
+     "work": 1860
     }
    ],
    "prs": [],
@@ -2915,6 +2947,7 @@
    ],
    "id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -2967,40 +3000,56 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "app",
    "projectPath": "/Users/me/app",
    "prompts": [
     {
      "t": 1789804080,
-     "text": "カレンダー表示を足して"
+     "text": "カレンダー表示を足して",
+     "wait": 210,
+     "work": 2730
     },
     {
      "t": 1789807020,
-     "text": "READMEを整理して"
+     "text": "READMEを整理して",
+     "wait": 300,
+     "work": 2400
     },
     {
      "t": 1789809720,
-     "text": "違う、そうじゃなくて"
+     "text": "違う、そうじゃなくて",
+     "wait": 60,
+     "work": 840
     },
     {
      "t": 1789810620,
-     "text": "評価シナリオを追加したい"
+     "text": "評価シナリオを追加したい",
+     "wait": 300,
+     "work": 600
     },
     {
      "t": 1789811520,
-     "text": "型エラー直して"
+     "text": "型エラー直して",
+     "wait": 1800,
+     "work": 6180
     },
     {
      "t": 1789819500,
-     "text": "やり直して"
+     "text": "やり直して",
+     "wait": 60,
+     "work": 2580
     },
     {
      "t": 1789822140,
-     "text": "READMEを整理して"
+     "text": "READMEを整理して",
+     "wait": 60,
+     "work": 1740
     },
     {
      "t": 1789823940,
-     "text": "評価シナリオを追加したい"
+     "text": "評価シナリオを追加したい",
+     "work": 300
     }
    ],
    "prs": [],
@@ -3194,6 +3243,7 @@
    "files": [],
    "id": "q-1",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -3218,12 +3268,14 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "aws",
    "projectPath": "/Users/me/aws",
    "prompts": [
     {
      "t": 1789970400,
-     "text": "S3のバケット一覧を出すスクリプト"
+     "text": "S3のバケット一覧を出すスクリプト",
+     "work": 22
     }
    ],
    "prs": [],
@@ -3263,6 +3315,7 @@
    "files": [],
    "id": "q-old",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [],
    "nFiles": 0,
@@ -3274,6 +3327,7 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "old",
    "projectPath": "/Users/me/old",
    "prompts": [
@@ -3327,6 +3381,7 @@
    ],
    "id": "68cb7e8c-a8e9-4b72-9b9f-95c791d04e00",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -3379,36 +3434,50 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "app",
    "projectPath": "/Users/me/app",
    "prompts": [
     {
      "t": 1790134920,
-     "text": "READMEを整理して"
+     "text": "READMEを整理して",
+     "wait": 60,
+     "work": 1500
     },
     {
      "t": 1790136480,
-     "text": "カレンダー表示を足して"
+     "text": "カレンダー表示を足して",
+     "wait": 1800,
+     "work": 2580
     },
     {
      "t": 1790140860,
-     "text": "テストが落ちてるので直して"
+     "text": "テストが落ちてるので直して",
+     "wait": 300,
+     "work": 4680
     },
     {
      "t": 1790145840,
-     "text": "ログイン画面のバグ調べて"
+     "text": "ログイン画面のバグ調べて",
+     "wait": 300,
+     "work": 2340
     },
     {
      "t": 1790148480,
-     "text": "カレンダー表示を足して"
+     "text": "カレンダー表示を足して",
+     "wait": 60,
+     "work": 2400
     },
     {
      "t": 1790150940,
-     "text": "テストが落ちてるので直して"
+     "text": "テストが落ちてるので直して",
+     "wait": 60,
+     "work": 6000
     },
     {
      "t": 1790157000,
-     "text": "評価シナリオを追加したい"
+     "text": "評価シナリオを追加したい",
+     "work": 840
     }
    ],
    "prs": [],
@@ -3619,6 +3688,7 @@
    ],
    "id": "d8bda5e8-265b-4f26-8a8a-54c9c8651701",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -3671,16 +3741,21 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "app",
    "projectPath": "/Users/me/app",
    "prompts": [
     {
      "t": 1790316060,
-     "text": "カレンダー表示を足して"
+     "text": "カレンダー表示を足して",
+     "wait": 150,
+     "work": 2670
     },
     {
      "t": 1790318880,
-     "text": "READMEを整理して"
+     "text": "READMEを整理して",
+     "wait": 60,
+     "work": 4020
     },
     {
      "t": 1790322960,
@@ -3792,6 +3867,7 @@
    ],
    "id": "57c94728-2884-42b4-8c7d-b3e65e11e800",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -3844,28 +3920,38 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "vp",
    "projectPath": "/Users/me/vp",
    "prompts": [
     {
      "t": 1790403540,
-     "text": "型エラー直して"
+     "text": "型エラー直して",
+     "wait": 330,
+     "work": 1230
     },
     {
      "t": 1790405100,
-     "text": "READMEを整理して"
+     "text": "READMEを整理して",
+     "wait": 300,
+     "work": 2160
     },
     {
      "t": 1790407560,
-     "text": "テストが落ちてるので直して"
+     "text": "テストが落ちてるので直して",
+     "wait": 120,
+     "work": 1380
     },
     {
      "t": 1790409060,
-     "text": "型エラー直して"
+     "text": "型エラー直して",
+     "wait": 180,
+     "work": 840
     },
     {
      "t": 1790410080,
-     "text": "型エラー直して"
+     "text": "型エラー直して",
+     "work": 2130
     }
    ],
    "prs": [],
@@ -4013,6 +4099,7 @@
    ],
    "id": "6f8a980c-3b83-43eb-b07d-758a36bc2400",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -4065,40 +4152,56 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "app",
    "projectPath": "/Users/me/app",
    "prompts": [
     {
      "t": 1790408880,
-     "text": "カレンダー表示を足して"
+     "text": "カレンダー表示を足して",
+     "wait": 210,
+     "work": 2730
     },
     {
      "t": 1790411820,
-     "text": "READMEを整理して"
+     "text": "READMEを整理して",
+     "wait": 300,
+     "work": 2400
     },
     {
      "t": 1790414520,
-     "text": "違う、そうじゃなくて"
+     "text": "違う、そうじゃなくて",
+     "wait": 60,
+     "work": 840
     },
     {
      "t": 1790415420,
-     "text": "評価シナリオを追加したい"
+     "text": "評価シナリオを追加したい",
+     "wait": 300,
+     "work": 600
     },
     {
      "t": 1790416320,
-     "text": "型エラー直して"
+     "text": "型エラー直して",
+     "wait": 1800,
+     "work": 6180
     },
     {
      "t": 1790424300,
-     "text": "やり直して"
+     "text": "やり直して",
+     "wait": 60,
+     "work": 2580
     },
     {
      "t": 1790426940,
-     "text": "READMEを整理して"
+     "text": "READMEを整理して",
+     "wait": 60,
+     "work": 1740
     },
     {
      "t": 1790428740,
-     "text": "評価シナリオを追加したい"
+     "text": "評価シナリオを追加したい",
+     "work": 300
     }
    ],
    "prs": [],
@@ -4294,6 +4397,7 @@
    ],
    "id": "sess_0ee61246",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -4339,20 +4443,26 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "vp",
    "projectPath": "/Users/me/vp",
    "prompts": [
     {
      "t": 1790550180,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "wait": 120,
+     "work": 300
     },
     {
      "t": 1790550600,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "wait": 60,
+     "work": 420
     },
     {
      "t": 1790551080,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "work": 360
     }
    ],
    "prs": [],
@@ -4406,6 +4516,7 @@
    "files": [],
    "id": "372fbe38-1f0c-4f64-882e-d84f0f02817e",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [],
    "nFiles": 0,
@@ -4417,6 +4528,7 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "old",
    "projectPath": "/Users/me/old",
    "prompts": [
@@ -4467,6 +4579,7 @@
    "files": [],
    "id": "1e13c3c1-d7ae-41c2-a324-e6a440665d9a",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -4505,6 +4618,7 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "infra",
    "projectPath": "/Users/me/infra",
    "prompts": [
@@ -4522,7 +4636,8 @@
     },
     {
      "t": 1790633520,
-     "text": "デプロイみて"
+     "text": "デプロイみて",
+     "work": 240
     }
    ],
    "prs": [],
@@ -4561,6 +4676,7 @@
    "files": [],
    "id": "crew:_bg:2026-09-29",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -4599,6 +4715,7 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "(Kiro Crew)",
    "projectPath": "(Kiro Crew)",
    "prompts": [],
@@ -4641,6 +4758,7 @@
    ],
    "id": "conv-a",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -4672,16 +4790,20 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "app",
    "projectPath": "/Users/me/app",
    "prompts": [
     {
      "t": 1790643600,
-     "text": "ログイン画面のテストを書いて"
+     "text": "ログイン画面のテストを書いて",
+     "wait": 218,
+     "work": 82
     },
     {
      "t": 1790643900,
-     "text": "違う、E2Eじゃなくて単体テストで"
+     "text": "違う、E2Eじゃなくて単体テストで",
+     "work": 23
     }
    ],
    "prs": [],
@@ -4731,6 +4853,7 @@
    "files": [],
    "id": "thr-main",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -4790,16 +4913,20 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "web",
    "projectPath": "/Users/me/web",
    "prompts": [
     {
      "t": 1790643602,
-     "text": "ボタンの色を直して"
+     "text": "ボタンの色を直して",
+     "wait": 60,
+     "work": 118
     },
     {
      "t": 1790643780,
-     "text": "違う、そっちじゃなくてヘッダーのボタン"
+     "text": "違う、そっちじゃなくてヘッダーのボタン",
+     "work": 30
     }
    ],
    "prs": [],
@@ -4878,6 +5005,7 @@
    ],
    "id": "sess_7e06b008",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -4923,20 +5051,26 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "vp",
    "projectPath": "/Users/me/vp",
    "prompts": [
     {
      "t": 1790661660,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "wait": 60,
+     "work": 480
     },
     {
      "t": 1790662200,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "wait": 60,
+     "work": 360
     },
     {
      "t": 1790662620,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "work": 300
     }
    ],
    "prs": [],
@@ -4990,6 +5124,7 @@
    "files": [],
    "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -5028,6 +5163,7 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "infra",
    "projectPath": "/Users/me/infra",
    "prompts": [
@@ -5037,15 +5173,20 @@
     },
     {
      "t": 1790669040,
-     "text": "デプロイみて"
+     "text": "デプロイみて",
+     "wait": 180,
+     "work": 60
     },
     {
      "t": 1790669280,
-     "text": "デプロイみて"
+     "text": "デプロイみて",
+     "wait": 120,
+     "work": 120
     },
     {
      "t": 1790669520,
-     "text": "デプロイみて"
+     "text": "デプロイみて",
+     "work": 240
     }
    ],
    "prs": [],
@@ -5093,6 +5234,7 @@
    "files": [],
    "id": "crew:dashboard:chat-9-1790000000",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -5131,6 +5273,7 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "(Kiro Crew)",
    "projectPath": "(Kiro Crew)",
    "prompts": [],
@@ -5170,6 +5313,7 @@
    "files": [],
    "id": "crew:_bg:2026-09-30",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -5208,6 +5352,7 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "(Kiro Crew)",
    "projectPath": "(Kiro Crew)",
    "prompts": [],
@@ -5248,6 +5393,7 @@
    "files": [],
    "id": "0d612aac-99c4-4a54-bda2-76ad60b6ddf3",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -5293,6 +5439,7 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "infra",
    "projectPath": "/Users/me/infra",
    "prompts": [
@@ -5310,7 +5457,8 @@
     },
     {
      "t": 1790727120,
-     "text": "デプロイみて"
+     "text": "デプロイみて",
+     "work": 240
     }
    ],
    "prs": [],
@@ -5350,6 +5498,7 @@
    "files": [],
    "id": "12c47fa1-6df4-4521-83f6-def4d849922d",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [],
    "nFiles": 0,
@@ -5361,6 +5510,7 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "old",
    "projectPath": "/Users/me/old",
    "prompts": [
@@ -5411,6 +5561,7 @@
    "files": [],
    "id": "thr-new",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -5463,12 +5614,14 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "api",
    "projectPath": "/Users/me/api",
    "prompts": [
     {
      "t": 1790744402,
-     "text": "APIのテストを足して"
+     "text": "APIのテストを足して",
+     "work": 58
     }
    ],
    "prs": [],
@@ -5513,6 +5666,7 @@
    "files": [],
    "id": "12971eb2-2ee6-4dd7-9a6e-a50256c0bf1d",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [],
    "nFiles": 0,
@@ -5524,6 +5678,7 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "old",
    "projectPath": "/Users/me/old",
    "prompts": [
@@ -5576,6 +5731,7 @@
    ],
    "id": "sess_564f668e",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -5621,20 +5777,26 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "vp",
    "projectPath": "/Users/me/vp",
    "prompts": [
     {
      "t": 1790748180,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "wait": 180,
+     "work": 420
     },
     {
      "t": 1790748780,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "wait": 120,
+     "work": 420
     },
     {
      "t": 1790749320,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "work": 480
     }
    ],
    "prs": [],
@@ -5690,6 +5852,7 @@
    ],
    "id": "sess_1640c798",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -5735,20 +5898,26 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "vp",
    "projectPath": "/Users/me/vp",
    "prompts": [
     {
      "t": 1790751660,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "wait": 60,
+     "work": 360
     },
     {
      "t": 1790752080,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "wait": 60,
+     "work": 480
     },
     {
      "t": 1790752620,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "work": 480
     }
    ],
    "prs": [],
@@ -5802,6 +5971,7 @@
    "files": [],
    "id": "conv-b",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -5833,12 +6003,14 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "ci",
    "projectPath": "/Users/me/ci",
    "prompts": [
     {
      "t": 1790769600,
-     "text": "CIが落ちてる原因を調べて"
+     "text": "CIが落ちてる原因を調べて",
+     "work": 201
     }
    ],
    "prs": [],
@@ -5885,6 +6057,7 @@
    ],
    "id": "sess_76df747b",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -5930,20 +6103,26 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "vp",
    "projectPath": "/Users/me/vp",
    "prompts": [
     {
      "t": 1790820060,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "wait": 180,
+     "work": 420
     },
     {
      "t": 1790820660,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "wait": 60,
+     "work": 300
     },
     {
      "t": 1790821020,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "work": 180
     }
    ],
    "prs": [],
@@ -5999,6 +6178,7 @@
    ],
    "id": "sess_97d6b4d7",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -6044,20 +6224,26 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "vp",
    "projectPath": "/Users/me/vp",
    "prompts": [
     {
      "t": 1790985660,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "wait": 180,
+     "work": 420
     },
     {
      "t": 1790986260,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "wait": 60,
+     "work": 420
     },
     {
      "t": 1790986740,
-     "text": "specを書いて"
+     "text": "specを書いて",
+     "work": 300
     }
    ],
    "prs": [],
@@ -6117,6 +6303,7 @@
    ],
    "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33800",
    "interrupts": 0,
+   "interruptsAt": [],
    "limits": [],
    "models": [
     [
@@ -6169,16 +6356,20 @@
     "prs": 0,
     "removed": 0
    },
+   "prAt": [],
    "project": "app",
    "projectPath": "/Users/me/app",
    "prompts": [
     {
      "t": 1791027960,
-     "text": "評価シナリオを追加したい"
+     "text": "評価シナリオを追加したい",
+     "wait": 210,
+     "work": 2730
     },
     {
      "t": 1791030900,
-     "text": "カレンダー表示を足して"
+     "text": "カレンダー表示を足して",
+     "work": 720
     }
    ],
    "prs": [],
