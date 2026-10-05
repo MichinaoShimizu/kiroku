@@ -19,16 +19,21 @@ var (
 	//go:embed app.js
 	script string
 
-	template = assemble(skeleton, "/*@style.css*/\n", style, "//@app.js\n", script)
+	template = assemble(skeleton, "/*@style.css*/", style, "//@app.js", script)
 )
 
-// assemble は置き場の行を中身に入れかえる。置き場がちょうど 1 つずつないときは、作りの誤りなので止める。
+// assemble は置き場の行（行末の改行ごと）を中身に入れかえる。Windows で CRLF に変わっていても同じように扱う。
+// 置き場がちょうど 1 つずつないときは、作りの誤りなので止める。
 func assemble(s string, pairs ...string) string {
 	for i := 0; i < len(pairs); i += 2 {
-		if strings.Count(s, pairs[i]) != 1 {
-			panic("web: " + strings.TrimSpace(pairs[i]) + " の置き場がちょうど 1 つではない")
+		mark, body := pairs[i], pairs[i+1]
+		if strings.Count(s, mark) != 1 {
+			panic("web: " + mark + " の置き場がちょうど 1 つではない")
 		}
-		s = strings.Replace(s, pairs[i], pairs[i+1], 1)
+		j := strings.Index(s, mark)
+		k := j + len(mark)
+		k += len(s[k:]) - len(strings.TrimPrefix(strings.TrimPrefix(s[k:], "\r"), "\n"))
+		s = s[:j] + body + s[k:]
 	}
 	return s
 }
