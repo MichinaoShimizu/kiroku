@@ -1,69 +1,69 @@
-# 開発
+# Development
 
-kiroku は Go 1 本で書いた、外部ライブラリの少ない CLI です（SQLite は `modernc.org/sqlite`、zstd は `klauspost/compress` を使い、cgo なしでビルドします）。
+kiroku is a CLI written entirely in Go with few external libraries (SQLite via `modernc.org/sqlite` and zstd via `klauspost/compress`, built without cgo).
 
-## ビルドとテスト
+## Building and testing
 
-Go 1.23 以降が要ります。Node があると `internal/web/script_test.go` が `node --check` で画面のスクリプトの構文も確かめます（なければ省略）。スクリーンショットとデモには Python 3 と git、撮影にはさらに Node.js と Playwright が要ります。
+Go 1.23 or later is required. If Node is available, `internal/web/script_test.go` also checks the view's script syntax with `node --check` (skipped otherwise). Screenshots and the demo need Python 3 and git; taking screenshots also needs Node.js and Playwright.
 
 ```bash
-go test ./...      # testdata/ の合成データで、集計が正解と一致するかを確かめる
+go test ./...      # checks that the aggregates match the expected values, using synthetic data in testdata/
 go vet ./...
-gofmt -l .         # 何も出なければ OK
-go build .         # ./kiroku ができる（./kiroku serve で画面を開く）
+gofmt -l .         # OK if nothing is printed
+go build .         # builds ./kiroku (open the view with ./kiroku serve)
 ```
 
-テストには個人の履歴を使いません。`testdata/` はすべて合成データで、パスも `/Users/me` のような架空のものを使います。実際の履歴は、issue を含めてコミット・添付しません。
+Tests never use personal history. Everything in `testdata/` is synthetic, with made-up paths such as `/Users/me`. Never commit or attach real history, including in issues.
 
-## 作り
+## Layout
 
-| 場所 | 役目 |
+| Location | Role |
 |---|---|
-| `cli.go` | サブコマンド（`serve`・`html`・`json`・`version`・`update`・`help`）とオプションの読み取り、前の書き方（`kiroku --serve` など） |
-| `main.go` | 履歴の読み込み（重複を外す）、料金表の上書き |
-| `update.go` | `kiroku update`（Releases から落として確かめ、自分自身を入れかえる） |
-| `serve.go` | `kiroku serve`（履歴の変化を見張って読み直し、画面に配る） |
-| `cache.go` | 読み直しのとき、前回から変わっていない履歴を読まない（エージェントごとの指紋と、`source.Splitter` の会話ごとの印で見る） |
-| `internal/source` | エージェントごとの履歴を読むアダプター。読み方の細かい決まりは [sources.md](sources.md) |
-| `internal/core` | 共通のセッションの形（`Builder` → `Session`）、トークンと料金、エージェント別の参考指標 |
-| `internal/report` | 週・月の集計（`Summarize`）、プロジェクト別のまとめ（`project.go`）、ブランチ・エージェントごとの配分（`share.go`） |
-| `internal/gitlog` | セッションの作業場所の git リポジトリからコミットを読む（git がなければ飛ばす） |
-| `internal/web` | 画面。`template.html`（骨組み）・`style.css`・`app.js` に分けて書き、`web.go` がそれらと集計の JSON をはめこんで 1 ファイルの HTML にする。`help_test.go`・`script_test.go` が画面の説明とスクリプトを確かめる |
-| `testdata/` | 合成の履歴（`home/`・`codex/`・`crew/`・`sqlite/`）、`golden.json`、`snapshot.json`、`mtimes.json` |
-| `tools/` | `release-notes.sh`・`next-version.sh`（リリース）、`screenshots/`（ダミーデータ・デモ・スクリーンショット・画面の e2e） |
-| `install.sh`・`.goreleaser.yaml` | インストーラーと、リリースのファイルの作り方 |
+| `cli.go` | Subcommands (`serve`, `html`, `json`, `version`, `update`, `help`), option parsing, and the old syntax (`kiroku --serve` and so on) |
+| `main.go` | Loading history (removing duplicates), overriding the price table |
+| `update.go` | `kiroku update` (downloads from Releases, verifies, and replaces itself) |
+| `serve.go` | `kiroku serve` (watches history for changes, reloads, and pushes to the view) |
+| `cache.go` | On reload, skips history unchanged since last time (using a per-agent fingerprint and the per-conversation marks of `source.Splitter`) |
+| `internal/source` | Adapters that read each agent's history. Details on how they read are in [sources.md](sources.md) |
+| `internal/core` | The common session shape (`Builder` → `Session`), tokens and pricing, agent-specific metrics |
+| `internal/report` | Weekly and monthly aggregates (`Summarize`), per-project summaries (`project.go`), shares by branch and agent (`share.go`) |
+| `internal/gitlog` | Reads commits from the git repository in each session's working directory (skipped without git) |
+| `internal/web` | The view. Written as `template.html` (markup), `style.css` and `app.js`; `web.go` combines them with the aggregate JSON into one HTML file. `help_test.go` and `script_test.go` check the view's explanations and script |
+| `testdata/` | Synthetic history (`home/`, `codex/`, `crew/`, `sqlite/`), `golden.json`, `snapshot.json`, `mtimes.json` |
+| `tools/` | `release-notes.sh` and `next-version.sh` (releases), `screenshots/` (dummy data, demo, screenshots and the view's e2e) |
+| `install.sh`, `.goreleaser.yaml` | The installer, and how release files are built |
 
-料金表は `internal/core/usage.go` の `Prices` です。更新したら `PricesAsOf`（画面に出る時点）も変えます。
+The price table is `Prices` in `internal/core/usage.go`. When you update it, also change `PricesAsOf` (the date shown in the view).
 
-### エージェントを足すとき
+### Adding an agent
 
-1. `internal/source` に `Source`（`Name` / `Family` / `Where` / `Load`）を実装して、`source.All` に加える
-2. `Load` では、会話ごとに `core.Builder` を組み立てて `emit` する（時刻・プロンプト・ツール・モデル・トークン・クレジット）
-3. 同じ会話がほかの場所にも残るなら `Builder.Key` をそろえる（先に読んだほうだけを使う）
-4. エージェントだけが記録している数字は `Builder.Measure` で残し、`core.NativeDefs` に定義を足す
-5. `kiroku serve` で見張る場所が `Where()` だけで足りなければ `Watch()` を実装する（`internal/source/watch.go`）
-6. 会話ごとにファイルが分かれていて、ほかのファイルと突き合わせずに読めるなら、`Splitter`（`Units` / `LoadUnit`）も実装する。`kiroku serve` は、変わった会話だけを読み直す（実装しなければ、見張る場所が変わったときにエージェントの分を全部読み直す）
-7. 履歴を自動で消すエージェントなら `Retainer`（`Retention()`）と、`kiroku archive` でコピーを残す `Keeper`（`Keep()`。元が消えたらコピーを読むようにする）を、計測の状態に一言添えるなら `Detailer` を実装する
-8. 新しい `Family` なら `cli.go` の `--sources` の既定値に加える。置き場所を変えられるようにするなら `source.Options`・`addCommon` のオプション・環境変数（`Default…`）を足す
-9. 合成データを `testdata/` に置いてテストを書く（golden は Python 版の 4 つの履歴だけなので、新しいアダプターは `internal/source/<名前>_test.go` で確かめる）。`snapshot_test.go` の読み込みにも加えて、スナップショットを作り直す
-10. ガイド（英・日）の「読み取る履歴」と「履歴の保存期間」、`docs/sources.md`、README の対応エージェント、`cli.go` のヘルプを更新する
+1. Implement `Source` (`Name` / `Family` / `Where` / `Load`) in `internal/source` and add it to `source.All`
+2. In `Load`, build a `core.Builder` for each conversation and `emit` it (times, prompts, tools, models, tokens, credits)
+3. If the same conversation is also stored elsewhere, make `Builder.Key` match (only the one read first is used)
+4. Record numbers only that agent tracks with `Builder.Measure`, and add their definitions to `core.NativeDefs`
+5. If `Where()` alone is not enough for what `kiroku serve` watches, implement `Watch()` (`internal/source/watch.go`)
+6. If each conversation is in its own file and can be read without cross-checking other files, also implement `Splitter` (`Units` / `LoadUnit`). `kiroku serve` then reloads only the conversations that changed (without it, the whole agent is reloaded when a watched location changes)
+7. For an agent that deletes history automatically, implement `Retainer` (`Retention()`) and `Keeper` (`Keep()`, which keeps a copy with `kiroku archive` and reads the copy once the original is gone); implement `Detailer` to add a note to the data sources status
+8. For a new `Family`, add it to the default of `--sources` in `cli.go`. To make its location configurable, add `source.Options`, an option in `addCommon`, and an environment variable (`Default…`)
+9. Put synthetic data in `testdata/` and write tests (golden covers only the Python version's 4 histories, so check new adapters in `internal/source/<name>_test.go`). Also add it to the loading in `snapshot_test.go` and regenerate the snapshot
+10. Update "Histories read" and "History retention" in the guide, `docs/sources.md`, the supported agents in the README, and the help in `cli.go`
 
-集計（`internal/report`）と画面は共通のセッションの形だけを見るので、ふつうは触らなくて済みます。
+Aggregation (`internal/report`) and the view only see the common session shape, so you usually don't need to touch them.
 
-## 正解データ（golden）
+## Golden data
 
-`testdata/golden.json` は集計の JSON です。Go に移す前の Python 版が同じ合成データ（`testdata/home`）から出した数字で、`TestMatchesPythonVersion`（`main_test.go`）が Go 版の数字と比べます。
+`testdata/golden.json` is the aggregate JSON. It holds the numbers the Python version (before the port to Go) produced from the same synthetic data (`testdata/home`), and `TestMatchesPythonVersion` (`main_test.go`) compares the Go version's numbers against them.
 
-- 比べるのは Python 版にあった 4 つの履歴（Claude Code・Kiro IDE・Kiro CLI・Kiro IDE（旧））だけで、時刻は Asia/Tokyo で区切ります。古い Kiro IDE はファイルの更新時刻を使うので、テストは `testdata/mtimes.json` から戻します
-- JSON に項目を足したときは、`main_test.go` の `compare` の除外の一覧に加えます（加えないと、golden にない項目として失敗します）
-- 集計を変えて数字が変わるときは、なぜ変わるのかを PR に書いてから golden を更新します
+- Only the 4 histories the Python version had are compared (Claude Code, Kiro IDE, Kiro CLI, Kiro IDE (legacy)), with time split in Asia/Tokyo. The legacy Kiro IDE uses file modification times, so the test restores them from `testdata/mtimes.json`
+- When you add a field to the JSON, add it to the exclusion list in `compare` in `main_test.go` (otherwise it fails as a field missing from golden)
+- When a change to aggregation changes the numbers, explain why in the PR before updating golden
 
-## スナップショット
+## Snapshot
 
-`testdata/snapshot.json` は、`testdata/` のすべての合成データ（Claude Code・Kiro IDE・Kiro CLI・Kiro Crew・SQLite の Kiro CLI と Amazon Q・Kiro IDE（旧）・Codex）を読んだ Go 版の出力（セッション・週・月・計測の状態）です。`TestSnapshot`（`snapshot_test.go`）が、golden が見ない履歴と項目も含めて、数字が意図せず変わっていないかを確かめます。
+`testdata/snapshot.json` is the Go version's output (sessions, weeks, months and data sources status) from reading all synthetic data in `testdata/` (Claude Code, Kiro IDE, Kiro CLI, Kiro Crew, Kiro CLI and Amazon Q in SQLite, Kiro IDE (legacy), Codex). `TestSnapshot` (`snapshot_test.go`) checks that numbers haven't changed unintentionally, including histories and fields golden doesn't cover.
 
-- 比べるときは、数値の端数の違い（OS や CPU による）だけを許し、項目の増減も差として出します。パスの区切りは `/` に、Codex の一時ディレクトリは `$CODEX` にそろえます
-- 集計や JSON の項目を変えたときは、差が意図どおりかを確かめ、なぜ変わるのかを PR に書いてから作り直します
+- The comparison allows only rounding differences in numbers (which vary by OS and CPU), and reports added or removed fields as differences. Path separators are normalized to `/`, and Codex's temporary directory to `$CODEX`
+- When you change aggregation or JSON fields, check that the difference is intended and explain why in the PR before regenerating
 
 ```bash
 go test -run TestSnapshot -update .
@@ -71,79 +71,79 @@ go test -run TestSnapshot -update .
 
 ## CI
 
-PR と main への push で、`.github/workflows/ci.yml` が次を走らせます。
+On PRs and pushes to main, `.github/workflows/ci.yml` runs the following.
 
-- `test`（Ubuntu・macOS・Windows）: gofmt（Windows 以外）・vet・テスト・ビルド
-- `release-dry-run`: `goreleaser release --snapshot`（公開はしない。`go mod tidy -diff` で go.mod の整理漏れも止まる）、CHANGELOG のいちばん上の節からのリリースノートの抜き出し、その節がまだタグのない版なら番号が `tools/next-version.sh` の結果と合うかの確認
-- `e2e`: ダミーデータの HTML を Chromium で開き、`tools/screenshots/smoke.mjs` で大事な流れ（テーマの切り替え・週の移動・セッションの詳細の開閉と閉じたあとの戻り先・週報の下書き・検索・月表示とショートカット）が動くか、横にはみ出さないか、スクリプトのエラーがないかを、日本語・英語・1440px・1000px・390px・320px（英語）で確かめる
-- `install-script`（Ubuntu・macOS）: `install.sh` に shellcheck をかけ（Ubuntu のみ）、実際に最新のリリースを入れて `kiroku --version` を確かめる
+- `test` (Ubuntu, macOS, Windows): gofmt (except Windows), vet, tests, build
+- `release-dry-run`: `goreleaser release --snapshot` (does not publish; `go mod tidy -diff` also catches an untidy go.mod), extracting release notes from the top section of the CHANGELOG, and, if that section is a version not yet tagged, checking that its number matches `tools/next-version.sh`
+- `e2e`: opens the dummy-data HTML in Chromium and uses `tools/screenshots/smoke.mjs` to check that the key flows work (switching themes, moving between weeks, opening and closing session details and where focus returns after closing, the weekly report draft, search, month view and shortcuts), that nothing overflows sideways, and that there are no script errors, at 1440px, 1000px, 390px and 320px
+- `install-script` (Ubuntu, macOS): runs shellcheck on `install.sh` (Ubuntu only), actually installs the latest release, and checks `kiroku --version`
 
-ほかのワークフロー:
+Other workflows:
 
-- `Tag`（`tag.yml`）: main で CHANGELOG.md が変わったとき（と手動）。下の「リリースの出し方」を参照
-- `Release`（`release.yml`）: `v*` タグの push か、Tag からの呼び出し
-- `Demo`（`pages.yml`）: main への push・毎週月曜（UTC 3:17）・手動で、ダミーデータの HTML を作って GitHub Pages に公開する（README の Live demo）。使うには Settings → Pages → Source を「GitHub Actions」にする。ダミーデータは日本時間で作るので、集計も日本時間（`TZ=Asia/Tokyo`）で区切り、画面は `KIROKU_DEMO` の目印があるとき、見る人の時間帯にかかわらず日本時間の時計で表示する（海外から開いても深夜の作業に見えないように）
+- `Tag` (`tag.yml`): when CHANGELOG.md changes on main (and manually). See "Making a release" below
+- `Release` (`release.yml`): on a push of a `v*` tag, or when called from Tag
+- `Demo` (`pages.yml`): on pushes to main, every Monday (3:17 UTC) and manually, builds the dummy-data HTML and publishes it to GitHub Pages (the Live demo in the README). To use it, set Settings → Pages → Source to "GitHub Actions". The dummy data is made in Japan time, so aggregation is also split in Japan time (`TZ=Asia/Tokyo`), and when the `KIROKU_DEMO` marker is present the view shows a Japan-time clock regardless of the viewer's time zone (so it doesn't look like late-night work when opened from abroad)
 
-## リリースの出し方
+## Making a release
 
-版の番号は、`## Unreleased` の中身からセマンティック バージョニングで決めます。`sh tools/next-version.sh` で次の番号がわかります。
+The version number is decided from the contents of `## Unreleased` by semantic versioning. `sh tools/next-version.sh` prints the next number.
 
-| Unreleased の中身 | 上げる桁 |
+| Contents of Unreleased | Part to bump |
 |---|---|
-| `BREAKING` と書いた変更（コマンド・オプション・出力ファイルなど、使い方の互換が崩れるもの。画面の見た目だけの変更は含めない） | 1.0 以降は major、0.x の間は minor |
-| `### Added` がある | minor |
-| それ以外（`### Changed`・`### Fixed`・`### Removed` など） | patch |
+| A change marked `BREAKING` (one that breaks compatibility in usage, such as commands, options or output files; changes only to the view's appearance don't count) | major from 1.0, minor while in 0.x |
+| Has `### Added` | minor |
+| Anything else (`### Changed`, `### Fixed`, `### Removed` and so on) | patch |
 
-`CHANGELOG.md` の `## Unreleased` を `## v0.1.8 - 2026-10-05` のように、その番号に書き換える PR を作り、main にマージします（英語で書く。中身がそのままリリースノートになる）。マージすると、`.github/workflows/tag.yml` がいちばん上の節の版でタグを打ち、そのまま Release を動かします。タグを手で打つ必要はありません。
+Make a PR that renames `## Unreleased` in `CHANGELOG.md` to that number, like `## v0.1.8 - 2026-10-05`, and merge it into main (write it in English; its contents become the release notes as is). On merge, `.github/workflows/tag.yml` tags the version of the top section and runs Release directly. There is no need to tag by hand.
 
-うまく動かなかったときは、Actions → Tag → Run workflow で動かし直せます。手でタグを打って push しても、これまでどおりリリースされます。
+If it didn't work, you can rerun it from Actions → Tag → Run workflow. Tagging and pushing by hand also still releases as before.
 
 ```bash
 git tag v0.1.8
 git push origin v0.1.8
 ```
 
-変更を入れる PR では、利用者に見える変化を `## Unreleased` に英語で足しておきます（リリースの直後で見出しがなければ、いちばん上に `## Unreleased` から作ります）。CHANGELOG にタグと同じ版の節がないと、リリースは作られずに止まります（`sh tools/release-notes.sh v0.1.8` で手元でも確かめられます）。番号が中身と合わないときも、CI（release-dry-run）と Tag で止まります。
+In PRs with changes, add user-visible changes to `## Unreleased` in English (right after a release, when the heading is missing, create `## Unreleased` at the top). If the CHANGELOG has no section for the tagged version, the release stops without being created (you can check locally with `sh tools/release-notes.sh v0.1.8`). If the number doesn't match the contents, CI (release-dry-run) and Tag also stop.
 
-Release（`.github/workflows/release.yml`）は、3 OS でテストしてから、GoReleaser で macOS・Linux・Windows（amd64 / arm64）向けのファイルとチェックサムを作り、Releases に載せます。`v0.2.0-rc.1` のように `-` のつく版はプレリリースになります（`.goreleaser.yaml` の `prerelease: auto`）。番号の確認では `-` より前（`v0.2.0`）を `next-version.sh` の結果と比べます。
+Release (`.github/workflows/release.yml`) tests on 3 OSes, then uses GoReleaser to build files and checksums for macOS, Linux and Windows (amd64 / arm64) and publishes them to Releases. Versions with a `-`, such as `v0.2.0-rc.1`, become prereleases (`prerelease: auto` in `.goreleaser.yaml`). The number check compares the part before the `-` (`v0.2.0`) with the result of `next-version.sh`.
 
-## 画面を変えるとき
+## Changing the view
 
-画面（`internal/web` の `template.html`・`style.css`・`app.js`）を変えるときは、機能だけでなく情報設計・UI・UX も毎回見直します。
+When you change the view (`template.html`, `style.css` and `app.js` in `internal/web`), review not just the feature but also the information architecture, UI and UX every time.
 
-- **情報設計**：利用者が「何が起きたか → なぜ気にするか → 次に何をするか → どう確かめるか」の順にたどれるか。結論を先に書き、確度の低い数値は奥にしまう
-- **言葉**：同じものは同じ用語で呼ぶ（例：「作業していた時間」）。推定の値には推定であることと基準を添え、良し悪しの判定にしない
-- **UI**：日本語・英語（英語は文言が長くなりがち）、ライト・ダーク、デスクトップ（1440px）・狭い画面（1000px）・スマホ（390px）で崩れや重なりがないか
-- **UX**：マウスを載せないと読めない情報をなくす（タッチ端末向け）。キーボードで操作でき、読み上げで意味が通るか
-- **2 か国語**：文言は `tr(日本語, English)` で両方書く。指標の説明は `HELP` と `HELP_EN`（`TestHelpEnMatchesHelp` でそろっているかを確かめる）
-- **動作**：`smoke.mjs` で大事な流れが動くかを確かめる（下の「画面の e2e」）。要素の id やキー操作を変えたら、`smoke.mjs` も合わせる
-- **ドキュメント**：README（英・日）・`docs/guide.md` と `docs/guide.en.md`（指標の表は `TestHelpMatchesGuide`・`TestHelpEnMatchesGuide` で画面と照合）・スクリーンショットを同じ変更で更新する
+- **Information architecture**: can users follow "what happened → why it matters → what to do next → how to check" in that order? Put the conclusion first, and tuck low-confidence numbers further in
+- **Wording**: call the same thing by the same term (e.g. "Active time"). Label estimated values as estimates with their basis, and don't turn them into verdicts of good or bad
+- **UI**: no breakage or overlap in light and dark, on desktop (1440px), narrow screens (1000px) and phones (390px), including long labels
+- **UX**: no information that can only be read by hovering (for touch devices). Can it be operated by keyboard, and does it make sense read aloud
+- **Metric explanations**: they live in `HELP` (`TestHelpMatchesGuide` checks them against the "How to read the metrics" table in `docs/guide.md`)
+- **Behavior**: check that the key flows work with `smoke.mjs` (see "The view's e2e" below). If you change element ids or key bindings, update `smoke.mjs` to match
+- **Docs**: update the README, `docs/guide.md` and the screenshots in the same change
 
-## 画面の e2e
+## The view's e2e
 
-CI の `e2e` と同じことを手元で走らせるには、Node.js と Playwright が要ります。
+To run the same thing as CI's `e2e` locally, you need Node.js and Playwright.
 
 ```bash
 (cd tools/screenshots && npm i --no-save playwright && npx playwright install chromium)
 sh tools/screenshots/run.sh --html /tmp/kiroku.html
-node tools/screenshots/smoke.mjs /tmp/kiroku.html   # 失敗した項目だけ FAIL と出て、終了コードが 1 になる
+node tools/screenshots/smoke.mjs /tmp/kiroku.html   # prints FAIL only for failed items and exits with code 1
 ```
 
-見るのは「動くか」だけです。わかりやすさや言葉は、[usability.md](usability.md) のシナリオで確かめます。
+This only checks that things work. Clarity and wording are checked with the scenarios in [usability.md](usability.md).
 
-## スクリーンショット
+## Screenshots
 
-README とガイドの画像（`docs/screenshot.png`・`docs/summary.png`・`docs/year.png`）は、ダミーデータから撮り直せます。画面を変えたときは、あわせて更新してください。
+The images in the README and the guide (`docs/screenshot.png`, `docs/summary.png`, `docs/year.png`) can be retaken from dummy data. When you change the view, update them as well.
 
 ```bash
 cd tools/screenshots && npm i playwright && npx playwright install chromium && cd ../..
 sh tools/screenshots/run.sh
 ```
 
-`gen.py` が架空の 4 プロジェクト・約 5 週間の Claude Code の履歴を、`mkgit.py` がそれに合わせた git のリポジトリを一時ディレクトリに作ります。`capture.mjs` が先週の週カレンダーと週次サマリーを 1440x900（英語表示・ダークテーマ・Asia/Tokyo）で撮り、1 年の露光のシェア用画像（1600x900）を保存します。日本語のブラウザでは画面は日本語で表示されますが、README（英語・日本語）とガイドでは同じ英語の画像を使います。
+`gen.py` creates about 5 weeks of Claude Code history for 4 made-up projects, and `mkgit.py` creates matching git repositories, in a temporary directory. `capture.mjs` takes the week calendar and weekly summary for last week at 1440x900 (dark theme, Asia/Tokyo), and saves the Year in review share image (1600x900).
 
-`sh tools/screenshots/run.sh --html <出力先.html>` は、ダミーデータの HTML だけを作ります（Node は不要）。`KIROKU_DEMO=1` がつき、どの時間帯から開いても日本時間の時計で表示します。一時ディレクトリの git リポジトリは消えるので、コミットのリンクは開けません。
+`sh tools/screenshots/run.sh --html <output.html>` builds only the dummy-data HTML (no Node needed). It sets `KIROKU_DEMO=1` and shows a Japan-time clock from any time zone. The git repositories in the temporary directory are deleted, so commit links don't open.
 
-## 利用者目線のテスト
+## User testing
 
-画面を変えたら、[docs/usability.md](usability.md) のシナリオで、使う側から目的を達成できるかを確かめます。Claude Code では `user-tester` エージェント（`.claude/agents/user-tester.md`）が、このシナリオに沿ってテストします。
+When you change the view, use the scenarios in [docs/usability.md](usability.md) to check that users can reach their goals. In Claude Code, the `user-tester` agent (`.claude/agents/user-tester.md`) tests along these scenarios.

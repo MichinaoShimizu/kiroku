@@ -394,14 +394,14 @@ func (s *Builder) Finish(gapMin int) *Session {
 	sort.Float64s(times)
 	project := s.Project
 	if project == "" {
-		project = "(不明)"
+		project = "(unknown)"
 	}
 	title := s.Title
 	if title == "" {
 		if len(s.Prompts) > 0 {
 			title = Runes(strings.SplitN(s.Prompts[0].Text, "\n", 2)[0], 80)
 		} else {
-			title = "(無題)"
+			title = "(untitled)"
 		}
 	}
 	name := basename(project)

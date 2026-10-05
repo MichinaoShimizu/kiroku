@@ -187,7 +187,7 @@ func tagCrew(s *core.Builder, crew map[string]CrewInfo) bool {
 		s.Measure("crew_subagents", first, 1)
 	}
 	if info.Subagent {
-		title := "サブエージェント"
+		title := "Subagent"
 		if info.Agent != "" {
 			title += " " + info.Agent
 		}
@@ -315,7 +315,7 @@ func crewOnly(home, arch, slot string, turns []crewTurn, info *CrewInfo) []*core
 		s.Key = "kiro-crew:" + id[len("crew:"):]
 		switch {
 		case slot == "_bg":
-			s.Title = "Kiro Crew の裏方の処理"
+			s.Title = "Kiro Crew background work"
 		case info != nil && info.Title != "":
 			s.Title = info.Title
 		case title != "":

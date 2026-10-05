@@ -46,7 +46,7 @@ func setup(t *testing.T) (data any, weeks map[string]*report.Week, rep []source.
 		KiroStorages: []string{filepath.Join(h, ".config", "Kiro", "User", "globalStorage", "kiro.kiroagent")},
 	})
 	// Python 版にあった 4 つの履歴だけで比べる（あとから足したアダプターは internal/source のテストで確かめる）
-	python := map[string]bool{"Claude Code": true, "Kiro IDE": true, "Kiro CLI": true, "Kiro IDE (旧)": true}
+	python := map[string]bool{"Claude Code": true, "Kiro IDE": true, "Kiro CLI": true, "Kiro IDE (legacy)": true}
 	var picked []source.Source
 	for _, s := range all {
 		if python[s.Name()] {

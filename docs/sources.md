@@ -1,75 +1,75 @@
-# 履歴の読み方
+# How histories are read
 
-kiroku が各エージェントの履歴をどこから、どう読んでいるかのまとめです。置き場所の一覧は [ガイドの「読み取る履歴」](guide.md#読み取る履歴) にあります。どのアダプターも、読んだ結果を共通のセッションの形（`internal/core` の `Builder`）にそろえます。
+This page summarizes where kiroku reads each agent's history from and how. The list of locations is in [the guide's "Histories read"](guide.md#histories-read). Every adapter converts what it reads into the common session shape (`Builder` in `internal/core`).
 
 ## Claude Code
 
-`~/.claude/projects/*/*.jsonl`（`CLAUDE_CONFIG_DIR` があればその下の `projects`）。`internal/source/claude.go`
+`~/.claude/projects/*/*.jsonl` (or `projects` under `CLAUDE_CONFIG_DIR` when it is set). `internal/source/claude.go`
 
-- 時刻は発言ごと。プロンプトは `type: "user"` の行、AI の動きは `assistant` の行
-- AI が作業している間に送ったプロンプトは、`user` の行ではなく `type: "attachment"` の `queued_command`（`origin.kind: "human"`）にだけ残るので、そこからも拾う。ほかのエージェントからの連絡（`peer`）やタスクの通知（`task-notification`）はプロンプトに数えない
-- 会話が長くなって自動で要約したときの `isCompactSummary` の行（「This session is being continued…」）はプロンプトに数えない
-- `user` の行の文は `internal/core/kind.go` で分ける。スラッシュコマンド（`<command-name>` と `<command-args>`）は「/名前 引数」、`<bash-input>` は「! コマンド」として、人が打ったプロンプトに数える（`kind` が `command`・`shell`）。`<system-reminder>` は文の中にあっても外す。`<task-notification>`・`<user-prompt-submit-hook>`・`<local-command-stdout>` などのタグで始まる文、`Caveat:`、`isMeta` の行（スラッシュコマンドが展開した中身など）、要約、人以外から届いた `queued_command` は、プロンプトに数えず `notes`（種類と先頭 160 文字。1 セッション 300 件まで）に残し、プロンプトの流れに別の色で出す
-- トークンは、1 つの応答が複数行に分かれて記録されるので、メッセージ ID ごとにまとめてから数える（項目ごとに最大の値を使う）
-- サブエージェントは `Task` / `Agent` の呼び出しと、`<セッション>/subagents/agent-*.jsonl`（古い版は `isSidechain` の行を時間で割り当て）から読む
-- 目安コストは、Claude Code が書く `type: "cost-state"` の行（プロセスの起動 `startTime` からのモデル別の累計 `modelUsage[].costUSD`）があればそれに合わせる。プロセスごとに最新の累計を使い、起動から直前の行の時刻までの応答に、kiroku の料金表での見積もりの比で配る（見積もれないモデルはトークンの比）。履歴に応答がないモデル（タイトル付けなど）の分は、その時刻の 1 件として足す。記録のない期間（古い版、最後の記録より後）は kiroku の料金表で見積もる
+- Timestamps are per message. Prompts are `type: "user"` lines; the AI's activity is `assistant` lines
+- A prompt sent while the AI is working is recorded only as a `queued_command` (`origin.kind: "human"`) in a `type: "attachment"` line, not as a `user` line, so it is picked up from there too. Messages from other agents (`peer`) and task notifications (`task-notification`) are not counted as prompts
+- `isCompactSummary` lines written when a long conversation is summarized automatically ("This session is being continued…") are not counted as prompts
+- The text of `user` lines is classified in `internal/core/kind.go`. Slash commands (`<command-name>` and `<command-args>`) become "/name args" and `<bash-input>` becomes "! command", and both count as prompts the person typed (`kind` is `command` or `shell`). `<system-reminder>` is stripped even when it appears inside the text. Text starting with tags such as `<task-notification>`, `<user-prompt-submit-hook>` or `<local-command-stdout>`, `Caveat:`, `isMeta` lines (such as the expanded text of a slash command), summaries, and `queued_command` entries not sent by a person are not counted as prompts; they are kept in `notes` (kind and first 160 characters, up to 300 per session) and shown in the prompt flow in a different color
+- A single response is recorded across several lines, so tokens are grouped by message ID before counting (taking the largest value for each field)
+- Subagents are read from `Task` / `Agent` calls and from `<session>/subagents/agent-*.jsonl` (older versions assign `isSidechain` lines by time)
+- Estimated cost follows the `type: "cost-state"` lines Claude Code writes (per-model running totals `modelUsage[].costUSD` since the process started at `startTime`) when they exist. The latest total for each process is used and spread over the responses from process start up to the time of the preceding line, in proportion to kiroku's price-table estimates (by token ratio for models it cannot price). Cost for models with no responses in the history (such as title generation) is added as one entry at that time. Periods with no such record (older versions, or after the last record) are estimated from kiroku's price table
 
 ## Kiro IDE
 
-- v1.0 以降: `~/.kiro/sessions/`（`~/.kiro` は `KIRO_HOME` があればそちら。以下同じ）の `<hash>/sess_*/session.json` + `messages.jsonl`。発言ごとの時刻と、`usage_summary` の `promptTurnSummaries` にあるクレジット
-- v1.0 より前: `<globalStorage>/kiro.kiroagent/workspace-sessions/`。発言ごとの時刻がないので、開始 = 作成日時、終了 = ファイルの更新時刻のざっくり表示。クレジットは残っていない
+- v1.0 and later: `<hash>/sess_*/session.json` + `messages.jsonl` under `~/.kiro/sessions/` (`~/.kiro` means `KIRO_HOME` when it is set; the same applies below). Per-message timestamps, and credits from `promptTurnSummaries` in `usage_summary`
+- Before v1.0: `<globalStorage>/kiro.kiroagent/workspace-sessions/`. There are no per-message timestamps, so it is shown roughly with start = creation time and end = file modification time. No credits are recorded
 
 `internal/source/kiro.go`
 
 ## Kiro CLI
 
-`~/.kiro/sessions/cli/<id>.json`（メタ）+ `<id>.jsonl`（会話）。`internal/source/kiro.go`
+`~/.kiro/sessions/cli/<id>.json` (metadata) + `<id>.jsonl` (conversation). `internal/source/kiro.go`
 
-- クレジットは `session_state.conversation_metadata.user_turn_metadatas[].metering_usage`（`unit` が `credit` の `value`）
-- 古い版は SQLite（`data.sqlite3` の `conversations` / `conversations_v2`）。`internal/source/qstore.go`
-- 新しい形式と SQLite に同じ会話が残ることがある。同じ会話 ID のものは新しい形式のほうだけを数える（クレジットが入っているため）。外した数は「計測の状態」に出る
-- SQLite のほうにはトークンやクレジットが残っていないので、目安コストやクレジットには入らない
+- Credits come from `session_state.conversation_metadata.user_turn_metadatas[].metering_usage` (the `value` where `unit` is `credit`)
+- Older versions use SQLite (`conversations` / `conversations_v2` in `data.sqlite3`). `internal/source/qstore.go`
+- The same conversation can appear in both the new format and SQLite. For a given conversation ID, only the new format is counted (because it has credits). The number left out appears in "Data sources"
+- The SQLite history has no tokens or credits, so it is not included in estimated cost or credits
 
 ## Kiro Crew
 
-`~/.kiro/crew`（`KIROCREW_HOME` があればそちら）。`internal/source/crew.go`
+`~/.kiro/crew` (or `KIROCREW_HOME` when it is set). `internal/source/crew.go`
 
-- Crew は kiro-cli を ACP で動かすので、会話そのものは Kiro CLI の履歴に残る。kiroku はそちらを数え、`session_map.json` と `subagents/*/state.json` に載っている会話に「Kiro Crew」の目印と、Crew のタイトル（サブエージェントならエージェント名とプロンプトの内容）をつける
-- Crew のダッシュボードから動かした会話は、クレジットが kiro-cli の履歴に残らないことがある。Crew が 1 ターンごとに書く使用量の記録（`usage/tokens/<日付>.jsonl` の `_type: "tokens"` の行）も読む
-- 使用量の記録の `slot` は、ダッシュボードの会話だと `chat-<連番>-<UNIX 秒>` の形で残る。会話のキー（`session_map.json` や会話の記録のファイル名）は `dashboard:chat-…` なので、Crew の `spend_key_for_slot` と同じ規則でそろえてから結びつける
-- 同じ会話は二重に数えないよう、会話ごとに kiro-cli の記録と Crew の記録の多いほうを使う
-- kiro-cli の会話に結びつかない記録は「Kiro Crew」のセッションにする。Crew の裏方の処理（`slot: "_bg"`）は 1 日ごと、ダッシュボードのチャットは会話ごと
-- Crew の会話の記録（`sessions/<会話キー>.jsonl`。1 行目がメタデータ、2 行目から `role`・`content`・`ts`・`tools`）も読む。kiro-cli の履歴にプロンプトが残っていない会話（ダッシュボードから動かしたものなど）と、kiro-cli の会話に結びつかない会話は、ここからプロンプトの流れ・時刻・使ったツールを補う。使用量の記録も kiro-cli の会話もなく、会話の記録だけがあるものも「Kiro Crew」のセッションにする
-- 会話の記録は、溢れた古い行が `sessions/archive/<名前>__<日時>.jsonl` に退避される（残す期間は Crew の `session.archive_retention_days` で決まり、版や設定で変わる）ので、残っていればそれも古い順に読む。会話を閉じたり期限が過ぎたりして記録が消えた会話は、使用量の記録だけのセッションになり、プロンプトの流れは出せない
-- Crew の使用量の記録は、Crew が残している期間（およそ 2 週間）だけ
+- Crew runs kiro-cli over ACP, so the conversations themselves are recorded in the Kiro CLI history. kiroku counts them there and marks the conversations listed in `session_map.json` and `subagents/*/state.json` as "Kiro Crew", with Crew's title (for a subagent, the agent name and the prompt)
+- Conversations run from the Crew dashboard may not have their credits recorded in the kiro-cli history. kiroku also reads the usage records Crew writes every turn (`_type: "tokens"` lines in `usage/tokens/<date>.jsonl`)
+- In usage records, the `slot` of a dashboard conversation is recorded as `chat-<sequence>-<UNIX seconds>`. Conversation keys (in `session_map.json` and the conversation log file names) are `dashboard:chat-…`, so they are normalized with the same rule as Crew's `spend_key_for_slot` before matching
+- To avoid counting a conversation twice, whichever of the kiro-cli record and the Crew record is larger is used for each conversation
+- Records that do not match a kiro-cli conversation become "Kiro Crew" sessions: Crew's background work (`slot: "_bg"`) per day, and dashboard chats per conversation
+- Crew's conversation logs (`sessions/<conversation key>.jsonl`; the first line is metadata, then `role`, `content`, `ts` and `tools` from the second line) are read too. For conversations whose prompts are not in the kiro-cli history (such as those run from the dashboard) and conversations that do not match a kiro-cli conversation, the prompt flow, times and tools used are filled in from here. A conversation that has only a conversation log, with neither usage records nor a kiro-cli conversation, also becomes a "Kiro Crew" session
+- Older lines that overflow a conversation log are moved to `sessions/archive/<name>__<datetime>.jsonl` (how long they are kept is set by Crew's `session.archive_retention_days` and varies by version and settings), so those are also read, oldest first, while they exist. For a conversation whose log is gone because it was closed or expired, the session comes from usage records only and has no prompt flow
+- Crew's usage records cover only the period Crew keeps them (about two weeks)
 
 ## Amazon Q Developer CLI
 
-`amazon-q/data.sqlite3`（場所は [guide.md](guide.md#読み取る履歴) の表）。Kiro CLI の古い版と同じ形。`internal/source/qstore.go`
+`amazon-q/data.sqlite3` (location in the table in [guide.md](guide.md#histories-read)). Same format as older Kiro CLI versions. `internal/source/qstore.go`
 
 ## Codex CLI
 
-`~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`（`.jsonl.zst` も）と `archived_sessions/`（`CODEX_HOME` があればそちら）。`internal/source/codex.go`
+`~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` (and `.jsonl.zst`) and `archived_sessions/` (under `CODEX_HOME` when it is set). `internal/source/codex.go`
 
-- トークンは同じ値が何度も書き直されるので、同じものは 1 回だけ数える。新しい版の `token_usage_record` があればそちらを使う
-- サブエージェントやフォークのファイルは親の履歴を先頭に写しているので、そのファイルが作られた時刻より前の行は数えない。サブエージェントは親のセッションの「サブエージェント」にまとめる
-- タイトルは `session_index.jsonl` から取る
-- モデル（OpenAI）は料金表に入れていないので、目安コストには入らない（「計測の状態」に、料金表にないトークンとして出る）。`--prices` で足せる
+- The same token values are written repeatedly, so each is counted once. Newer versions' `token_usage_record` is used when present
+- Subagent and fork files copy the parent's history at the top, so lines before the file was created are not counted. Subagents are grouped under "Subagents" in the parent session
+- Titles come from `session_index.jsonl`
+- Models (OpenAI) are not in the price table, so they are not included in estimated cost (they appear in "Data sources" as tokens not in the price table). They can be added with `--prices`
 
 ## Git
 
-セッションの作業場所（cwd）にある git リポジトリから、手元の `git log` で自分（`user.email`）のコミットを読む。git がない環境や、リポジトリでない場所は飛ばす。`internal/gitlog/gitlog.go`
+Commits by you (`user.email`) are read with the local `git log` from the git repository in the session's working directory (cwd). Environments without git, and locations that are not repositories, are skipped. `internal/gitlog/gitlog.go`
 
-## 履歴の保存期間
+## History retention
 
-`Retainer` を実装したアダプターが、古い履歴を消す設定を返す。Claude Code は `settings.json` の `cleanupPeriodDays`（既定 30 日）を読む。Kiro Crew は `session.archive_retention_days` を返すが、日数は読めないので不明として出す。詳しくは [ガイドの「履歴の保存期間」](guide.md#履歴の保存期間)
+Adapters that implement `Retainer` return the settings that delete old history. Claude Code reads `cleanupPeriodDays` in `settings.json` (30 days by default). Kiro Crew returns `session.archive_retention_days`, but the number of days cannot be read, so it is shown as unknown. See [the guide's "History retention"](guide.md#history-retention) for details
 
-`kiroku archive` のコピー: `Keeper` を実装したアダプター（Claude Code と Kiro CLI の Crew の分）が、残す元の場所とコピーの場所を返す。オンなら読む前に `internal/archive.Sync` が、元の場所の `.jsonl` を同じ相対パスの `.jsonl.zst` に圧縮して残す（更新時刻が変わったものだけ。元の場所がシンボリックリンクなら、たどった先を残す）。読むときは、元のファイルがないコピーだけを足す（Claude Code は `<保存場所>/claude/<プロジェクト>/<会話 ID>.jsonl.zst` とサブエージェント。会話が残っていても、消えたサブエージェントのファイルはコピーから足す。Crew は `<保存場所>/crew/sessions/archive/`）。元があれば元を読むので、二重には数えない
+Copies with `kiroku archive`: adapters that implement `Keeper` (Claude Code, and Crew's part of Kiro CLI) return the source locations to keep and where to put the copies. When on, `internal/archive.Sync` runs before reading and compresses each `.jsonl` in the source location to a `.jsonl.zst` at the same relative path (only files whose modification time changed; if the source location is a symbolic link, the target is kept). When reading, only copies whose original file is gone are added (Claude Code: `<archive location>/claude/<project>/<conversation ID>.jsonl.zst` and subagents; subagent files that were deleted are added from the copy even if the conversation itself remains. Crew: `<archive location>/crew/sessions/archive/`). When the original exists it is read instead, so nothing is counted twice
 
-## クレジットとモデルの倍率
+## Credits and model multipliers
 
-Kiro のクレジットは、履歴に記録された値をそのまま足します。モデルごとの倍率は Kiro が記録するときにかけたものを使い、kiroku ではかけ直しません。
+Kiro credits are added up exactly as recorded in the history. Per-model multipliers are the ones Kiro applied when recording, and kiroku does not apply them again.
 
-## 参考にしたもの
+## References
 
-Kiro の形式には公式ドキュメントがないため、[kiro-history](https://github.com/pajaydev/kiro-history) と [codeburn](https://github.com/getagentseal/codeburn) の実装を参考にしています。SQLite の形は [amazon-q-developer-cli](https://github.com/aws/amazon-q-developer-cli) のソースに合わせています（`conversations_v2` は Kiro CLI だけにあり、参考実装をもとにしています）。Kiro Crew は、Crew 付属の `credit_spend.py` が読んでいる使用量の記録と、Crew の `history.py` が書く会話の記録に合わせています。
+Kiro's formats have no official documentation, so kiroku follows the implementations of [kiro-history](https://github.com/pajaydev/kiro-history) and [codeburn](https://github.com/getagentseal/codeburn). The SQLite layout follows the source of [amazon-q-developer-cli](https://github.com/aws/amazon-q-developer-cli) (`conversations_v2` exists only in Kiro CLI and is based on the reference implementations). Kiro Crew follows the usage records read by Crew's bundled `credit_spend.py` and the conversation logs written by Crew's `history.py`.

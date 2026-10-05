@@ -2,8 +2,6 @@
 
 [![CI](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml/badge.svg)](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/MichinaoShimizu/kiroku)](https://github.com/MichinaoShimizu/kiroku/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-English | [日本語](README.ja.md)
-
 **Your AI work history, visualized.** kiroku reads the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), Amazon Q Developer CLI and Codex CLI, and shows it as a Google Calendar–style view.
 
 **[Try the live demo](https://michinaoshimizu.github.io/kiroku/)** (dummy data, runs in your browser).
@@ -23,8 +21,6 @@ kiroku connects to the network only when `install.sh` or `kiroku update` (includ
 ## What you get
 
 ![kiroku (dummy data)](docs/screenshot.png)
-
-The view opens in English; switch to Japanese with the selector at the top right (your choice is saved in the browser).
 
 - **Calendar**: when, in which project, and what you asked, by week or month. Your local git commits appear alongside, so you can see what changed where.
 - **Worth a look**: metrics that crossed a threshold are marked where they appear, with what was observed, why it matters, the related sessions and an 8-week (or 8-month) trend, and listed in priority order at the top of the summary.
@@ -56,7 +52,7 @@ kiroku can only show history that your agents still keep, and **Claude Code dele
 }
 ```
 
-If you'd rather not change it, run `kiroku archive on` and kiroku keeps compressed copies of that history on your computer and shows deleted conversations from them ([details](docs/guide.en.md#keep-a-copy-of-history-in-kiroku)).
+If you'd rather not change it, run `kiroku archive on` and kiroku keeps compressed copies of that history on your computer and shows deleted conversations from them ([details](docs/guide.md#keep-a-copy-of-history-in-kiroku)).
 
 kiroku shows a notice above the summary while Claude Code is still on its 30-day default. Kiro Crew also deletes old conversation records (`session.archive_retention_days`); kiroku notes this under "Data sources". See [History retention](docs/guide.en.md#history-retention) for each agent.
 
@@ -66,7 +62,7 @@ kiroku shows a notice above the summary while Claude Code is still on its 30-day
 kiroku update          # update to the latest version (--check to only check)
 ```
 
-See [Commands](docs/guide.en.md#commands) for `sudo`, `go install` and specific versions.
+See [Commands](docs/guide.md#commands) for `sudo`, `go install` and specific versions.
 
 ## Usage
 
@@ -78,7 +74,7 @@ kiroku help     # list commands ("kiroku <command> --help" for options)
 
 The HTML contains your prompts, file paths and commit messages as they are. Check its content before sharing it with anyone.
 
-For how to read the view, metric definitions, which histories are read and all options, see [docs/guide.en.md](docs/guide.en.md). For development, see [docs/development.md](docs/development.md) (Japanese).
+For how to read the view, metric definitions, which histories are read and all options, see [docs/guide.md](docs/guide.md). For development, see [docs/development.md](docs/development.md).
 
 ## Uninstall
 

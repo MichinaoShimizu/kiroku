@@ -22,13 +22,13 @@ func block(t *testing.T, name string) string {
 	return template[i : i+j]
 }
 
-// 画面の「?」の説明（HELP）と、ガイドの「指標の読み方」の表が食い違わないようにする。
+// 画面の「?」の説明（HELP）と、ガイドの「How to read the metrics」の表が食い違わないようにする。
 func TestHelpMatchesGuide(t *testing.T) {
 	guide, err := os.ReadFile("../../docs/guide.md")
 	if err != nil {
 		t.Fatal(err)
 	}
-	re := regexp.MustCompile(`\{n:"([^"]+)", d:"[^"]+", c:"([^"]+)", x:"([^"]+)", a:"([^"]+)"\}`)
+	re := regexp.MustCompile(`\{n: "([^"]+)", d: "[^"]+", c: "([^"]+)", x: "([^"]+)", a: "([^"]+)"\}`)
 	rows := re.FindAllStringSubmatch(block(t, "HELP"), -1)
 	if len(rows) == 0 {
 		t.Fatal("HELP が見つからない")
@@ -36,54 +36,20 @@ func TestHelpMatchesGuide(t *testing.T) {
 	for _, r := range rows {
 		want := "| " + r[1] + " | " + r[2] + " | " + r[3] + " | " + r[4] + " |"
 		if !strings.Contains(string(guide), want) {
-			t.Errorf("docs/guide.md の「指標の読み方」に %s の行がない（または画面と違う）", r[1])
+			t.Errorf("docs/guide.md の「How to read the metrics」に %s の行がない（または画面と違う）", r[1])
 		}
 	}
 }
 
-// 英語表示の説明（HELP_EN）と、英語版ガイドの「How to read the metrics」の表が食い違わないようにする。
-func TestHelpEnMatchesGuide(t *testing.T) {
-	guide, err := os.ReadFile("../../docs/guide.en.md")
-	if err != nil {
-		t.Fatal(err)
-	}
-	re := regexp.MustCompile(`\{n: "([^"]+)", d: "[^"]+", c: "([^"]+)", x: "([^"]+)", a: "([^"]+)"\}`)
-	rows := re.FindAllStringSubmatch(block(t, "HELP_EN"), -1)
-	if len(rows) == 0 {
-		t.Fatal("HELP_EN が見つからない")
-	}
-	for _, r := range rows {
-		want := "| " + r[1] + " | " + r[2] + " | " + r[3] + " | " + r[4] + " |"
-		if !strings.Contains(string(guide), want) {
-			t.Errorf("docs/guide.en.md の「How to read the metrics」に %s の行がない（または画面と違う）", r[1])
-		}
-	}
-}
-
-// 英語表示の説明（HELP_EN）が、HELP と同じ指標を同じ順で持ち、どれも 4 つの欄が埋まっていること。
-func TestHelpEnMatchesHelp(t *testing.T) {
-	keyRe := regexp.MustCompile(`(?m)^\s*(\w+):\s*\{`)
-	keys := func(name string) []string {
-		var ks []string
-		for _, m := range keyRe.FindAllStringSubmatch(block(t, name), -1) {
-			ks = append(ks, m[1])
-		}
-		return ks
-	}
-	ja, en := keys("HELP"), keys("HELP_EN")
-	if len(ja) == 0 {
-		t.Fatal("HELP のキーが見つからない")
-	}
-	if strings.Join(ja, ",") != strings.Join(en, ",") {
-		t.Errorf("HELP と HELP_EN のキーが違う\nHELP:    %v\nHELP_EN: %v", ja, en)
-	}
+// HELP のどの行も 4 つの欄が埋まっていて、日本語が残っていないこと。
+func TestHelpFields(t *testing.T) {
 	fields := regexp.MustCompile(`\{n: "[^"]+", d: "[^"]+", c: "[^"]+", x: "[^"]+", a: "[^"]+"\}`)
-	for _, line := range strings.Split(block(t, "HELP_EN"), "\n")[1:] {
+	for _, line := range strings.Split(block(t, "HELP"), "\n")[1:] {
 		if strings.TrimSpace(line) != "" && !fields.MatchString(line) {
-			t.Errorf("HELP_EN の行の形が違う（n・d・c・x・a がそろっていない）: %.60s", strings.TrimSpace(line))
+			t.Errorf("HELP の行の形が違う（n・d・c・x・a がそろっていない）: %.60s", strings.TrimSpace(line))
 		}
 	}
-	if regexp.MustCompile(`\p{Han}|\p{Hiragana}|\p{Katakana}`).MatchString(block(t, "HELP_EN")) {
-		t.Error("HELP_EN に日本語が残っている")
+	if regexp.MustCompile(`\p{Han}|\p{Hiragana}|\p{Katakana}`).MatchString(block(t, "HELP")) {
+		t.Error("HELP に日本語が残っている")
 	}
 }
