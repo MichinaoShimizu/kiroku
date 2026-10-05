@@ -139,12 +139,15 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 		if data == nil {
 			data = []*core.Session{} // 画面では null ではなく空の一覧として扱う
 		}
-		commits := gitlog.Collect(data) // git がなければ空
+		commits, pushes := gitlog.CollectAll(data) // git がなければ空
 		if commits == nil {
 			commits = []gitlog.Commit{}
 		}
+		if pushes == nil {
+			pushes = []gitlog.Push{}
+		}
 		files, size := archive.Usage(dir)
-		meta := map[string]any{"report": rep, "git": commits, "prices": map[string]any{"asOf": core.PricesAsOf, "custom": *c.prices != ""},
+		meta := map[string]any{"report": rep, "git": commits, "push": pushes, "prices": map[string]any{"asOf": core.PricesAsOf, "custom": *c.prices != ""},
 			"archive": map[string]any{"on": on, "dir": dir, "files": files, "bytes": size}}
 		if os.Getenv("KIROKU_DEMO") != "" { // デモ（ダミーデータ）：画面は、この時間帯の時計で見せる
 			_, off := time.Now().Zone()
