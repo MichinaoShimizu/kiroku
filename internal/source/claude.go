@@ -208,6 +208,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	var lastT *float64
 	procs := map[float64]*core.ReportedCost{} // Claude Code 自身の使用料（cost-state）。プロセスの起動時刻ごとに最新の累計
 	var procOrder []float64
+	branches := map[string]int{}
 	core.ReadJSONL(path, func(e core.Obj) {
 		typ := core.Str(e["type"])
 		if typ == "summary" && core.Str(e["summary"]) != "" {
@@ -240,8 +241,8 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		if s.Project == "" {
 			s.Project = core.Str(e["cwd"])
 		}
-		if s.Branch == "" {
-			s.Branch = core.Str(e["gitBranch"])
+		if b := core.Str(e["gitBranch"]); b != "" { // 途中でブランチを切り替えても、いちばん多くの行が記録されたブランチにする（Load の最後で決める）
+			branches[b]++
 		}
 		msg := core.Map(e["message"])
 		sidechain, _ := e["isSidechain"].(bool)
@@ -458,6 +459,11 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	}
 	for _, k := range procOrder {
 		s.Reported = append(s.Reported, *procs[k])
+	}
+	for b, n := range branches { // 同じ数なら名前の順で決め、読むたびに変わらないようにする
+		if m := branches[s.Branch]; n > m || n == m && b < s.Branch {
+			s.Branch = b
+		}
 	}
 	if s.Title == "" && len(summaries) > 0 {
 		s.Title = summaries[len(summaries)-1]

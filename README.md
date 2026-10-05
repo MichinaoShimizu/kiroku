@@ -24,7 +24,7 @@ kiroku connects to the network only when `install.sh` or `kiroku update` (includ
 
 ![kiroku (dummy data)](docs/screenshot.png)
 
-The view is in English or Japanese, following your browser's language; switch it with the selector at the top right.
+The view opens in English; switch to Japanese with the selector at the top right (your choice is saved in the browser).
 
 - **Calendar**: when, in which project, and what you asked, by week or month. Your local git commits appear alongside, so you can see what changed where.
 - **Worth a look**: metrics that crossed a threshold are marked where they appear, with what was observed, why it matters, the related sessions and an 8-week (or 8-month) trend, and listed in priority order at the top of the summary.

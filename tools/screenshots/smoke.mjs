@@ -33,6 +33,7 @@ for (const env of envs) {
   p.on("pageerror", e => errors.push(e.message));
   p.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
   const en = env.locale.startsWith("en");
+  await p.addInitScript(l => { try { if (!localStorage.getItem("kiroku:lang")) localStorage.setItem("kiroku:lang", JSON.stringify(l)); } catch (e) {} }, en ? "en" : "ja"); // 既定は英語なので、日本語の環境では選んだことにする
   const pause = () => p.waitForTimeout(300);
   const drawerOpen = async () => await p.locator("#drawer").getAttribute("aria-hidden") === "false";
   // 1 つの流れが途中で止まっても、失敗として数えて次の流れへ進む（開き直して、記録のそろった先週から始める）
@@ -86,7 +87,7 @@ for (const env of envs) {
     const box = await p.locator("#drawer").boundingBox();
     check("詳細が画面に収まる", box && box.x >= -1 && box.x + box.width <= env.viewport.width + 1, JSON.stringify(box));
     await p.locator('#flowBy button[data-v="user"]').click(); await pause();
-    check("「あなたのプロンプトだけ」で、出来事が隠れる", await p.evaluate(() => [...document.querySelectorAll("#drawer .tl li.ev")].every(li => !li.offsetParent)));
+    check("「ユーザープロンプトだけ」で、出来事が隠れる", await p.evaluate(() => [...document.querySelectorAll("#drawer .tl li.ev")].every(li => !li.offsetParent)));
     await p.locator('#flowBy button[data-v="all"]').click(); await pause();
     await p.keyboard.press("Escape"); await pause();
     check("Esc で詳細が閉じる", !await drawerOpen());
