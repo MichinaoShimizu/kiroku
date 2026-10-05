@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode/utf8"
 )
 
 // 言い直し・差し戻しっぽい依頼（こじれたセッションの目印）の言い回し。依頼の冒頭（humanHead）だけを見る。
@@ -46,10 +47,28 @@ var editTools = map[string]bool{
 	"fsWrite": true, "fsAppend": true, "strReplace": true, "fs_write": true, "write": true, "editCode": true, // Kiro
 }
 
-// Prompt は人が出した依頼。
+// Prompt は人が出した依頼。Text は先頭 PromptRunes 文字まで（HTML に入れるので）。
 type Prompt struct {
 	T    *float64 `json:"t"`
 	Text string   `json:"text"`
+	Len  int      `json:"len,omitempty"`  // Text を切ったとき、元の文字数
+	Work float64  `json:"work,omitempty"` // 依頼から、次の依頼までに AI が最後に動いた時刻までの秒数（推定）
+	Wait float64  `json:"wait,omitempty"` // AI が最後に動いてから、次の依頼までの秒数（待たせ）
+	full string   // 切る前の依頼文（kiroku serve で全文を見せるため。HTML・JSON には入れない）
+}
+
+// PromptRunes は、HTML に入れる依頼文の長さ（文字数）。
+const PromptRunes = 400
+
+// fullRunes は、kiroku serve が全文として覚えておく長さの上限（貼り付けた長いログでメモリを使い切らないように）。
+const fullRunes = 100000
+
+// Full は切る前の依頼文。切っていなければ Text と同じ。
+func (p Prompt) Full() string {
+	if p.full != "" {
+		return p.full
+	}
+	return p.Text
 }
 
 // Subagent はサブエージェント（子のエージェント）の 1 回の実行。
@@ -80,6 +99,7 @@ type Builder struct {
 	Times                          []float64
 	AgentTimes                     []float64
 	Interrupts                     int
+	InterruptTS                    []float64 // 中断した時刻
 	Limits                         []float64 // 利用上限（使用量の上限・レート制限）に当たった時刻
 	FixTS                          []float64
 	Usage                          *Usage
@@ -120,11 +140,17 @@ func (s *Builder) Prompt(ts *float64, text string) {
 		s.Interrupts++
 		if ts != nil {
 			s.FixTS = append(s.FixTS, *ts)
+			s.InterruptTS = append(s.InterruptTS, *ts)
 		}
 	}
 	if text != "" && !IsNoise(text) {
 		first := len(s.Prompts) == 0
-		s.Prompts = append(s.Prompts, Prompt{T: ts, Text: Runes(strings.TrimSpace(text), 400)})
+		t := strings.TrimSpace(text)
+		p := Prompt{T: ts, Text: Runes(t, PromptRunes)}
+		if n := utf8.RuneCountInString(t); n > PromptRunes {
+			p.Len, p.full = n, Runes(t, fullRunes)
+		}
+		s.Prompts = append(s.Prompts, p)
 		if IsCorrection(text, first) && ts != nil {
 			s.FixTS = append(s.FixTS, *ts)
 		}
@@ -219,6 +245,38 @@ func (s *Builder) Waits() [][2]float64 {
 	return out
 }
 
+// promptTimes は、依頼ごとに AI が動いていた秒数（Work）と、そのあと人が次の依頼を出すまでの秒数（Wait）を入れる。
+// 依頼から次の依頼（最後の依頼なら終わり）までの間で、AI が最後に動いた時刻を区切りにする。時刻のない依頼と、その間に AI が動いていない依頼には入れない。
+func (s *Builder) promptTimes(ps []Prompt) []Prompt {
+	agent := append([]float64(nil), s.AgentTimes...)
+	sort.Float64s(agent)
+	out := make([]Prompt, len(ps))
+	copy(out, ps)
+	for i := range out {
+		if out[i].T == nil || *out[i].T == 0 {
+			continue
+		}
+		p := *out[i].T
+		next := math.Inf(1)
+		for _, q := range out[i+1:] {
+			if q.T != nil && *q.T > p {
+				next = *q.T
+				break
+			}
+		}
+		// p より後で next より前の、いちばん遅い AI の時刻
+		j := sort.Search(len(agent), func(k int) bool { return agent[k] >= next }) - 1
+		if j < 0 || agent[j] <= p {
+			continue
+		}
+		out[i].Work = Round(agent[j]-p, 0)
+		if !math.IsInf(next, 1) {
+			out[i].Wait = Round(next-agent[j], 0)
+		}
+	}
+	return out
+}
+
 func (s *Builder) Corrections() int {
 	n := 0
 	for i, p := range s.Prompts {
@@ -249,8 +307,9 @@ type Session struct {
 	Resume       *string       `json:"resume"`
 	Waits        [][2]float64  `json:"waits"`
 	Interrupts   int           `json:"interrupts"`
-	Limits       []float64     `json:"limits"` // 利用上限に当たった時刻
-	Ctx          []float64     `json:"ctx"`    // 1 回の応答で読んだ入力（文脈）の大きさ [前半, 後半, 最大]（context.go）
+	InterruptsAt []float64     `json:"interruptsAt"` // 中断した時刻
+	Limits       []float64     `json:"limits"`       // 利用上限に当たった時刻
+	Ctx          []float64     `json:"ctx"`          // 1 回の応答で読んだ入力（文脈）の大きさ [前半, 後半, 最大]（context.go）
 	Corrections  int           `json:"corrections"`
 	Models       [][2]any      `json:"models"`
 	Usage        UsageTotal    `json:"usage"`
@@ -262,12 +321,19 @@ type Session struct {
 	CostReported bool          `json:"costReported,omitempty"` // 目安コストにエージェント自身の記録を使った
 	File         string        `json:"file,omitempty"`         // 履歴のファイル
 	PRs          []string      `json:"prs"`                    // AI が作った PR の URL（わかったもの）
+	PRAt         []PRAt        `json:"prAt"`                   // AI が PR を作った時刻（依頼の流れに出す）
 	UEv          []Event       `json:"-"`                      // 週ごとの集計用（HTML には入れない）
 	CEv          []Credit      `json:"-"`
 	OEv          []Output      `json:"-"`
 	Fix          []float64     `json:"-"`
 	Meas         []Measure     `json:"-"`
 	OutTracked   bool          `json:"-"` // アウトプットを記録できるエージェントのセッション（Builder.TracksOutputs）
+}
+
+// PRAt は AI が PR を作った時刻と、わかれば URL。
+type PRAt struct {
+	T   float64 `json:"t"`
+	URL string  `json:"url,omitempty"`
 }
 
 func ptr[T any](v T) *T { return &v }
@@ -340,10 +406,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 	if len(files) > 30 {
 		files = files[:30]
 	}
-	prompts := s.Prompts
-	if len(prompts) > 50 {
-		prompts = prompts[:50]
-	}
+	prompts := s.promptTimes(s.Prompts)
 	main := s.Usage.Events()
 	ctx := ContextGrowth(main)
 	if len(s.Reported) > 0 {
@@ -372,13 +435,18 @@ func (s *Builder) Finish(gapMin int) *Session {
 		credits += c.V
 	}
 	var outs OutputTotal
-	prs := []string{}
+	prs, prAt := []string{}, []PRAt{}
 	for _, o := range s.Outputs {
 		outs.Add(o)
 		if o.Kind == "pr" && o.URL != "" {
 			prs = append(prs, o.URL)
 		}
+		if o.Kind == "pr" && o.T != nil && *o.T != 0 {
+			prAt = append(prAt, PRAt{T: *o.T, URL: o.URL})
+		}
 	}
+	interrupts := append([]float64{}, s.InterruptTS...)
+	sort.Float64s(interrupts)
 	if files == nil {
 		files = []string{}
 	}
@@ -393,9 +461,9 @@ func (s *Builder) Finish(gapMin int) *Session {
 		ID: s.ID, Source: s.Source, Project: name, ProjectPath: project, Branch: strOrNil(s.Branch), Title: title,
 		Start: times[0], End: times[len(times)-1], Events: len(times), Segs: Segments(times, float64(gapMin*60)),
 		Prompts: prompts, NPrompts: len(s.Prompts), Tools: tools, Files: files, NFiles: nFiles, Resume: strOrNil(s.Resume),
-		Waits: s.Waits(), Interrupts: s.Interrupts, Limits: limits(s.Limits), Ctx: ctx, Corrections: s.Corrections(), Models: models,
+		Waits: s.Waits(), Interrupts: s.Interrupts, InterruptsAt: interrupts, Limits: limits(s.Limits), Ctx: ctx, Corrections: s.Corrections(), Models: models,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
-		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: len(s.Reported) > 0, File: s.File, PRs: prs,
+		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: len(s.Reported) > 0, File: s.File, PRs: prs, PRAt: prAt,
 		Native: AggregateNative(s.Source, s.Measures), Meas: s.Measures, OutTracked: s.TracksOutputs,
 	}
 }

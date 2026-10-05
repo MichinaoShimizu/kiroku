@@ -5,6 +5,8 @@ import (
 	_ "embed"
 	"encoding/json"
 	"strings"
+
+	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
 
 //go:embed template.html
@@ -15,7 +17,7 @@ var template string
 // live が true なら、画面は /stamp を見張って新しい履歴を取り込む（--serve 用）。
 func Render(data, weeks, months, meta any, generated float64, live bool) (string, error) {
 	repl := []string{}
-	for k, v := range map[string]any{"__DATA__": data, "__WEEKS__": weeks, "__MONTHS__": months, "__META__": meta, "__GEN__": generated, "__LIVE__": live} {
+	for k, v := range map[string]any{"__DATA__": data, "__WEEKS__": weeks, "__MONTHS__": months, "__META__": meta, "__GEN__": generated, "__LIVE__": live, "__PROMPT_RUNES__": core.PromptRunes} {
 		b, err := json.Marshal(v)
 		if err != nil {
 			return "", err
