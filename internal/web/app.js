@@ -25,6 +25,7 @@ const tr = (ja, en) => EN() ? en : ja;
 const LOC = () => tr("ja-JP", "en-US");
 const DOW_JA = ["日","月","火","水","木","金","土"], DOW_EN = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const dow = i => (EN() ? DOW_EN : DOW_JA)[i];
+const wkc = i => i === 6 ? " sat" : i === 0 ? " sun" : ""; // 曜日（getDay）から、土日の色のクラス
 const SRC_EN = {"Kiro IDE (旧)": "Kiro IDE (legacy)"}; // 画面に出すエージェント名（英語表示のとき）
 const sn = x => EN() && SRC_EN[x] || x;
 const mn = x => EN() && /^[（(]不明[）)]$/.test(x) ? "(unknown)" : x; // 名前のわからないモデル
@@ -179,7 +180,7 @@ function kpis(){
 function monthGrid(shown, ms, me, todayKey){
   const T = $("#tl"), S = MONTHS[mkey(st.month)], first = mondayOf(st.month);
   const max = S ? Math.max(1, ...S.days.map(d => d.active)) : 1;
-  let h = `<div class="mgrid"><div class="mh"></div>${[1,2,3,4,5,6,0].map(i=>`<div class="mh">${dow(i)}</div>`).join("")}`;
+  let h = `<div class="mgrid"><div class="mh"></div>${[1,2,3,4,5,6,0].map(i=>`<div class="mh${wkc(i)}">${dow(i)}</div>`).join("")}`;
   for (let r = 0; r < 6; r++){
     const wk = addDays(first, 7*r); if (wk.getTime()/1000 >= me) break;
     h += `<button class="wkno" data-w="${key(wk)}" title="${tr("この週を開く", "Open this week")}">W${isoWeek(wk)}</button>`;
@@ -191,7 +192,7 @@ function monthGrid(shown, ms, me, todayKey){
       const pj = Object.entries(by).sort((a,b)=>b[1]-a[1]), nS = shown.filter(s => inP(s, ds, de)).length;
       const use = !x ? null : x.tokens ? [tr("トークン", "Tokens"), tok(x.tokens)] : x.credits ? [tr("クレジット", "Credits"), cr(x.credits)] : null; // トークンがなければ（Kiro など）クレジット
       const rows = act ? [[tr("作業", "Active"), dur(act)], use, [tr("セッション", "Sessions"), nS], [tr("プロンプト", "Prompts"), x.prompts]].filter(Boolean) : [];
-      h += `<button class="cell${d.getDay()%6===0?" we":""}${key(d)===todayKey?" today":""}" data-w="${key(mondayOf(d))}" style="--heat:${(act/max).toFixed(3)}"${tipAttr(md(ds), act ? [tr(`作業 ${dur(act)}`, `Active ${dur(act)}`), tr(`セッション ${nS}`, `Sessions ${nS}`), tr(`プロンプト ${x.prompts}`, `Prompts ${x.prompts}`), tr(`深夜 ${dur(x.night)}`, `Late night ${dur(x.night)}`), ...useLines(x), x.commits ? tr(`Git のコミット ${x.commits}`, `Git commits ${x.commits}`) : ""] : tr("記録なし", "No records"))}>
+      h += `<button class="cell${d.getDay()%6===0?" we":""}${wkc(d.getDay())}${key(d)===todayKey?" today":""}" data-w="${key(mondayOf(d))}" style="--heat:${(act/max).toFixed(3)}"${tipAttr(md(ds), act ? [tr(`作業 ${dur(act)}`, `Active ${dur(act)}`), tr(`セッション ${nS}`, `Sessions ${nS}`), tr(`プロンプト ${x.prompts}`, `Prompts ${x.prompts}`), tr(`深夜 ${dur(x.night)}`, `Late night ${dur(x.night)}`), ...useLines(x), x.commits ? tr(`Git のコミット ${x.commits}`, `Git commits ${x.commits}`) : ""] : tr("記録なし", "No records"))}>
         <span class="dn">${d.getDate()}</span>${rows.length ? `<dl class="cm">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl><span class="acs">${act >= 60 ? (act/60).toFixed(1)+"h" : act+"m"}</span>${use ? `<span class="uss">${x.tokens ? tokS(x.tokens) : use[1]}</span>` : ""}` : ""}
         ${pj.length ? `<span class="pj">${pj.map(([k,v])=>`<span style="flex:${v};--c:${colorOf(k)}"></span>`).join("")}</span>` : ""}</button>`;
     }
@@ -220,7 +221,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dU = w && w.days[d] ? useShort(w.days[d]) : "";
     const dayGit = (META.git || []).filter(c => c.t >= ds && c.t < de && (!st.hidden.size || st.colorBy !== "project" || !st.hidden.has(c.project))).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}"><div class="dd"><b>${day.getMonth()+1}/${day.getDate()}</b><i>${dow(day.getDay())}</i></div><small>${act ? dur(act) : "—"}</small>${dU ? `<span class="use"${tipAttr(`${md(ds)} ${tr("の使用量", "usage")}`, useLines(w && w.days[d]))}>${dU}</span>` : ""}${dayGit.length ? `<span class="gch" title="${tr("git のコミット", "Git commits")}">${GIT_ICON}${dayGit.length}</span>` : ""}</div>`;
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${day.getMonth()+1}/${day.getDate()}</b><i>${dow(day.getDay())}</i></div><small>${act ? dur(act) : "—"}</small>${dU ? `<span class="use"${tipAttr(`${md(ds)} ${tr("の使用量", "usage")}`, useLines(w && w.days[d]))}>${dU}</span>` : ""}${dayGit.length ? `<span class="gch" title="${tr("git のコミット", "Git commits")}">${GIT_ICON}${dayGit.length}</span>` : ""}</div>`;
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
@@ -241,7 +242,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
       html += `<button class="gc${c.ai ? " ai" : ""}${st.sel === "git:"+c.hash ? " sel" : ""}" data-c="${esc(c.hash)}" style="top:${y}px" title="${esc(`${hm(c.t)} ${c.project}${c.branch ? " · "+c.branch : ""} · ${c.hash}\n${c.subject}\n${tr(`${c.nFiles} ファイル`, plural(c.nFiles, "file"))} +${c.added} −${c.removed}${c.ai ? tr(" · AI が実行", " · run by AI") : ""}`)}" aria-label="${esc(tr(`コミット ${hm(c.t)} ${c.subject}`, `Commit ${hm(c.t)} ${c.subject}`))}">${GIT_ICON}<span>${esc(c.hash.slice(0,7))}</span></button>`; });
     limitHits(ds, de).filter(h => matches(h.s)).forEach(h => { html += `<button class="lim" data-id="${esc(h.s.id)}" style="top:${(h.t-ds)/3600*hh}px" title="${esc(tr(`${hm(h.t)} 利用上限に当たりました（${h.s.title}）`, `${hm(h.t)} Hit the usage limit (${h.s.title})`))}" aria-label="${esc(tr(`${hm(h.t)} 利用上限`, `${hm(h.t)} usage limit`))}">${tr("上限", "Limit")}</button>`; });
     if (isToday && nowS >= ds && nowS < de) html += `<div class="nowline" style="top:${(nowS-ds)/3600*hh}px"></div>`;
-    cols += `<div class="day${day.getDay()%6===0?" we":""}${isToday?" today":""}" style="height:${H}px;--g:${dayGit.length ? 18 : 0}px">${html}</div>`;
+    cols += `<div class="day${day.getDay()%6===0?" we":""}${wkc(day.getDay())}${isToday?" today":""}" style="height:${H}px;--g:${dayGit.length ? 18 : 0}px">${html}</div>`;
   }
   T.innerHTML = `<div class="calscroll" style="--hh:${hh}px"><div class="calin"><div class="heads">${heads}</div><div class="cgrid"><div class="hours" style="height:${H}px">${hours}</div>${cols}</div></div></div>`;
   const sc = T.querySelector(".calscroll");
@@ -831,7 +832,7 @@ function usageChart(w, M){
   const max = Math.max(...w.days.map(d => d[m] || 0)) || 1, today = key(today0()), total = w.days.reduce((t,d) => t + (d[m]||0), 0);
   const start = M ? st.month : st.week;
   const cols = w.days.map((d,i) => { const dd = addDays(start, i), v = d[m] || 0;
-    return `<div class="c${key(dd)===today?" today":""}"${tipAttr(md(dd.getTime()/1000), useLines(d).length ? useLines(d) : tr("使用なし", "No usage"))}>
+    return `<div class="c${key(dd)===today?" today":""}${wkc(dd.getDay())}"${tipAttr(md(dd.getTime()/1000), useLines(d).length ? useLines(d) : tr("使用なし", "No usage"))}>
       ${M ? "" : `<span class="v">${v ? fmt(v) : ""}</span>`}<div class="b" style="height:${v ? Math.max(2, v/max*112) : 0}px"></div>
       <span class="l">${M ? (dd.getDate() === 1 || dd.getDate() % 5 === 0 ? dd.getDate() : "") : dow(dd.getDay())}</span></div>`; }).join("");
   return `<h3>${tr("日ごとの使用量", "Daily usage")}${hb("daily")}</h3>${hint("daily")}
@@ -843,14 +844,14 @@ function usageChart(w, M){
 function rhythm(w, M){
   const today = key(today0());
   let cols;
-  if (!M) cols = w.days.map((x,i) => { const dd = addDays(st.week,i); return {l:dow(dd.getDay()), a:x.active, n:x.night, t:key(dd)===today, tip:[md(dd.getTime()/1000), tr(`作業 ${dur(x.active)}`, `Active ${dur(x.active)}`), tr(`深夜 ${dur(x.night)}`, `Late night ${dur(x.night)}`), tr(`プロンプト ${x.prompts}`, `Prompts ${x.prompts}`), tr(`切り替え ${x.switches}`, `Switches ${x.switches}`), ...useLines(x)]}; });
+  if (!M) cols = w.days.map((x,i) => { const dd = addDays(st.week,i); return {l:dow(dd.getDay()), w:wkc(dd.getDay()), a:x.active, n:x.night, t:key(dd)===today, tip:[md(dd.getTime()/1000), tr(`作業 ${dur(x.active)}`, `Active ${dur(x.active)}`), tr(`深夜 ${dur(x.night)}`, `Late night ${dur(x.night)}`), tr(`プロンプト ${x.prompts}`, `Prompts ${x.prompts}`), tr(`切り替え ${x.switches}`, `Switches ${x.switches}`), ...useLines(x)]}; });
   else { cols = []; w.days.forEach((x,i) => { const dd = new Date(st.month.getFullYear(), st.month.getMonth(), i+1), k = key(mondayOf(dd));
       let c = cols.find(c => c.k === k); if (!c){ c = {k, l:`W${isoWeek(dd)}`, a:0, n:0, p:0, t:k===key(mondayOf(today0()))}; cols.push(c); }
       c.a += x.active; c.n += x.night; c.p += x.prompts; });
     cols.forEach(c => c.tip = [tr(`W${c.l.slice(1)}（${c.k} の週・この月の分）`, `W${c.l.slice(1)} (week of ${c.k}, this month's part)`), tr(`作業 ${dur(c.a)}`, `Active ${dur(c.a)}`), tr(`深夜 ${dur(c.n)}`, `Late night ${dur(c.n)}`), tr(`プロンプト ${c.p}`, `Prompts ${c.p}`)]); }
   const max = Math.max(1, ...cols.map(c => c.a));
   return `<h3>${M ? tr("週ごとのリズム", "Weekly rhythm") : tr("日ごとのリズム", "Daily rhythm")}${hb("rhythm")}</h3>${hint("rhythm")}
-    <div class="rhythm" style="grid-template-columns:repeat(${cols.length},1fr)">${cols.map(c => `<div class="col${c.t?" today":""}"${tipAttr(c.tip)}>
+    <div class="rhythm" style="grid-template-columns:repeat(${cols.length},1fr)">${cols.map(c => `<div class="col${c.t?" today":""}${c.w || ""}"${tipAttr(c.tip)}>
         <span class="v">${c.a ? (c.a>=60 ? (c.a/60).toFixed(1)+tr("時間", "h") : c.a+tr("分", "m")) : ""}</span>
         <div class="colbar" style="height:${c.a?Math.max(2,c.a/max*84):0}px"><div class="nt" style="height:${c.a?c.n/c.a*100:0}%"></div></div>
         <span class="l">${c.l}</span></div>`).join("")}</div>

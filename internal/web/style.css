@@ -5,6 +5,7 @@
   --bg:#f3f4f6; --surface:#ffffff; --surface-2:#eceef2; --ink:#121419; --ink-2:#464b56; --ink-3:#5f6573;
   --rule:#e1e4ea; --rule-2:#cdd2db; --acc:#4338ca; --acc-ink:#3730a3; --on-acc:#ffffff; --heatk:22%; --acc-soft:rgba(67,56,202,.08); --warn:#b42318; --on-warn:#ffffff;
   --night:rgba(18,20,25,.035); --weekend:rgba(18,20,25,.022);
+  --sat:#1d4ed8; --sun:#dc2626; --sat-bg:rgba(37,99,235,.06); --sun-bg:rgba(220,38,38,.06); /* 土曜は青、日曜は赤（日本のカレンダーと同じ） */
   --shadow:0 1px 2px rgba(16,18,24,.06),0 12px 32px -14px rgba(16,18,24,.22);
   --c0:#0072b2; --c1:#d55e00; --c2:#009e73; --c3:#cc79a7; --c4:#e69f00; --c5:#56b4e9; --c6:#7a5cc4; --c7:#9a8a00; --other:#9aa0ab;
   --sans:"Inter","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP","Yu Gothic UI",system-ui,sans-serif;
@@ -17,6 +18,7 @@
   --bg:#0e0f13; --surface:#16181e; --surface-2:#1e2129; --ink:#eceef3; --ink-2:#b4b9c4; --ink-3:#8c92a0;
   --rule:#252832; --rule-2:#333743; --acc:#818cf8; --acc-ink:#a5b4fc; --on-acc:#0e0f13; --heatk:42%; --acc-soft:rgba(129,140,248,.12); --warn:#f97066; --on-warn:#0e0f13;
   --night:rgba(255,255,255,.025); --weekend:rgba(255,255,255,.018);
+  --sat:#8fb3ff; --sun:#ff8f8f; --sat-bg:rgba(110,150,255,.075); --sun-bg:rgba(255,110,110,.075);
   --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -16px rgba(0,0,0,.7);
   --c0:#3a9be0; --c1:#f07a2b; --c2:#1fbf8f; --c3:#e08fbd; --c4:#f2b53a; --c5:#7cc6f0; --c6:#9c84e6; --c7:#c9b51c; --other:#6b7180;
 }
@@ -113,6 +115,10 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .hours span.now{right:4px;color:var(--on-acc);background:var(--acc);border-radius:5px;padding:1px 4px;font-weight:600;z-index:3}
 .day{position:relative;border-left:1px solid var(--rule);background-image:linear-gradient(var(--rule) 1px,transparent 1px);background-size:100% var(--hh)}
 .day.we{background-color:var(--weekend)}
+.day.sat{background-color:var(--sat-bg)}.day.sun{background-color:var(--sun-bg)}
+.head.sat b,.head.sat i,.mgrid .mh.sat,.cell.sat .dn,.ubar .c.sat .l,.rhythm .col.sat .l{color:var(--sat)}
+.head.sun b,.head.sun i,.mgrid .mh.sun,.cell.sun .dn,.ubar .c.sun .l,.rhythm .col.sun .l{color:var(--sun)}
+.head.sat{background:var(--sat-bg)}.head.sun{background:var(--sun-bg)}.mgrid .mh.sat,.mgrid .mh.sun,.ubar .c.sat .l,.ubar .c.sun .l,.rhythm .col.sat .l,.rhythm .col.sun .l{font-weight:700}
 .day.today{background-color:color-mix(in oklab,var(--acc) 4%,transparent)}
 .day .nb{position:absolute;left:0;right:0;background:var(--night);pointer-events:none}
 .run{position:absolute;border-radius:8px;padding:4px 7px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;gap:2px;
@@ -279,6 +285,7 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .cell:hover{box-shadow:inset 0 0 0 1.5px var(--acc);z-index:1}
 .cell.out{background:var(--surface);opacity:.35;pointer-events:none}
 .cell.we{background-image:linear-gradient(var(--weekend),var(--weekend))}
+.cell.sat{background-image:linear-gradient(var(--sat-bg),var(--sat-bg))}.cell.sun{background-image:linear-gradient(var(--sun-bg),var(--sun-bg))}
 .cell .dn{font:700 14px/1 var(--sans);font-variant-numeric:tabular-nums}
 .cell.today .dn{color:var(--on-acc);background:var(--acc);border-radius:6px;padding:3px 5px;margin:-3px 0 0 -5px;align-self:flex-start}
 .cell .acs{display:none}
