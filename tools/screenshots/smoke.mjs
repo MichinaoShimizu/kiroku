@@ -71,6 +71,10 @@ for (const env of envs) {
     await p.keyboard.press("t"); await pause();
     check("t で今週へ戻る", await label() === before, await label());
     await p.keyboard.press("ArrowLeft"); await pause(); // 以降は、記録のそろった先週で試す
+    const cut = await p.evaluate(() => { const hd = document.querySelector("#tl .heads").getBoundingClientRect().bottom;
+      return [...document.querySelectorAll("#tl .run")].filter(r => { const b = r.getBoundingClientRect(); return b.top < hd - 1 && b.bottom > hd + 1; }).length; });
+    check("開いた位置で、日付の見出しに半分隠れたブロックがない", cut === 0, `${cut} 件`);
+    check("過ぎた週は月曜から見える", await p.evaluate(() => document.querySelector("#tl .calscroll").scrollLeft) === 0);
   });
 
   await step("セッションの詳細", async () => {
