@@ -29,7 +29,7 @@ Add user-visible changes to `## Unreleased` in [CHANGELOG.md](CHANGELOG.md), in 
 
 ## Changing the view
 
-The view is `internal/web/template.html`. When you change it:
+The view lives in `internal/web`: `template.html` (markup), `style.css` and `app.js`, put together into one HTML file by `web.go`. When you change it:
 
 - Write both languages with `tr(Japanese, English)`. Metric explanations live in `HELP` and `HELP_EN`, and tests check them against `docs/guide.md` and `docs/guide.en.md`
 - Check light and dark, and 1440px, 1000px and phone widths

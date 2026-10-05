@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// block は template.html の `const <name> = {` から、次の `};` までを返す。
+// block は画面のスクリプト（app.js）の `const <name> = {` から、次の `};` までを返す。
 func block(t *testing.T, name string) string {
 	t.Helper()
 	start := "const " + name + " = {"
