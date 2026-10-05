@@ -451,11 +451,6 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	for _, ev := range s.Usage.Events() { // 1 つの応答は 1 回だけ（メッセージ ID でまとめたあと）
 		s.Measure("responses", ev.T, 1)
 		s.Measure("out_per_response", ev.T, ev.U.Out)
-		s.Measure("cache_read", ev.T, ev.U.CR)
-		s.Measure("input_all", ev.T, ev.U.In+ev.U.CW+ev.U.CW1h+ev.U.CR)
-	}
-	for _, a := range s.Subagents {
-		s.Measure("subagents", a.Start, 1)
 	}
 	for _, k := range procOrder {
 		s.Reported = append(s.Reported, *procs[k])

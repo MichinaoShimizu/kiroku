@@ -294,13 +294,11 @@ func codexMeasures(t *float64, u core.Obj, window float64) []core.Measure {
 	if u == nil {
 		return nil
 	}
-	in, cached := core.NumOr0(u["input_tokens"]), core.NumOr0(u["cached_input_tokens"])
+	in := core.NumOr0(u["input_tokens"])
 	ms := []core.Measure{
 		{Key: "responses", T: t, V: 1},
 		{Key: "reasoning", T: t, V: core.NumOr0(u["reasoning_output_tokens"])},
 		{Key: "output", T: t, V: core.NumOr0(u["output_tokens"])},
-		{Key: "cache_read", T: t, V: cached},
-		{Key: "input_all", T: t, V: in + core.NumOr0(u["cache_write_input_tokens"])},
 	}
 	if window > 0 {
 		ms = append(ms, core.Measure{Key: "context_used", T: t, V: in / window})
