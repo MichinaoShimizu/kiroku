@@ -38,7 +38,7 @@ go build .         # ./kiroku ができる（./kiroku serve で画面を開く�
 ### エージェントを足すとき
 
 1. `internal/source` に `Source`（`Name` / `Family` / `Where` / `Load`）を実装して、`source.All` に加える
-2. `Load` では、会話ごとに `core.Builder` を組み立てて `emit` する（時刻・依頼・ツール・モデル・トークン・クレジット）
+2. `Load` では、会話ごとに `core.Builder` を組み立てて `emit` する（時刻・プロンプト・ツール・モデル・トークン・クレジット）
 3. 同じ会話がほかの場所にも残るなら `Builder.Key` をそろえる（先に読んだほうだけを使う）
 4. エージェントだけが記録している数字は `Builder.Measure` で残し、`core.NativeDefs` に定義を足す
 5. `kiroku serve` で見張る場所が `Where()` だけで足りなければ `Watch()` を実装する（`internal/source/watch.go`）
