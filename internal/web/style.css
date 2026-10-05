@@ -190,14 +190,15 @@ kbd{font:var(--fs-xs)/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px
 .flagsum{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 14px;font-size:var(--fs-sm)}
 .flagsum .lbl{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--ink-2)}
 .flagsum .hint{flex-basis:100%}
-.fdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 3px var(--acc-soft);flex:none}
+.ic{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-2px} /* 形で見分ける印（app.js の ICON_PATH） */
+.fdot{color:var(--acc)} /* 見直す候補の印 */
 .stat.flagged{box-shadow:inset 3px 0 0 var(--acc);grid-column:1/-1}
 .fl .more{margin:0;font-size:var(--fs-xs)}
-.moreS summary .fdot{margin-left:8px;vertical-align:1px}
+.moreS summary .fdot{margin-left:8px}
 .fl{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding:8px 0 2px;border-top:1px dashed var(--rule-2);min-width:0;overflow-wrap:anywhere}
 .fl p{margin:0}
 .fl .see{font-size:var(--fs-sm);font-weight:600;line-height:1.6;color:var(--ink)}
-.fl .see .fdot{margin-right:7px;vertical-align:1px}
+.fl .see .fdot{margin-right:6px}
 .fl .rule{font-size:var(--fs-xs);color:var(--ink-3)}
 .fl .why{font-size:var(--fs-xs);color:var(--ink-2);line-height:1.6}
 .sact{display:flex;flex-direction:column;gap:6px;margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--acc-soft)}
@@ -386,10 +387,12 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl li::before{content:"";position:absolute;left:41px;top:12px;width:7px;height:7px;border-radius:50%;background:var(--surface);box-shadow:inset 0 0 0 1.5px var(--c)}
 .tl li.fix::before{background:var(--warn);box-shadow:none}
 .tl li.ev{font-size:var(--fs-sm);color:var(--ink-2);padding:2px 0}
-.tl li.ev::before,.tlkey .ke{border-radius:1px;transform:rotate(45deg);background:var(--ink-3);box-shadow:none}
+.tl li.ev::before{display:none}
+.tl li.ev>.ic{position:absolute;left:38px;top:5px;width:13px;height:13px;padding:1px;box-sizing:content-box;background:var(--surface);color:var(--ink-3)} /* 出来事は点の代わりに種類の印（線の上に重ねる） */
+.drawer .tl li.ev>.ic{left:42px;top:7px}
 .tl li.ev::before{top:10px;width:6px;height:6px;left:41.5px}
-.tl li.ev.ai::before,.tlkey .ke.ai{background:var(--acc)}
-.tl li.ev.int::before,.tl li.ev.warn::before,.tlkey .ke.int{background:var(--warn);transform:none}
+.tl li.ev.ai>.ic,.tl li.ev.pr>.ic,.tlkey .kev.commit .ic,.tlkey .kev.pr .ic{color:var(--acc)}
+.tl li.ev.int>.ic,.tl li.ev.warn>.ic,.tlkey .kev.int .ic,.tlkey .kev.warn .ic{color:var(--warn)}
 .tl li.ev.int .evl,.tl li.ev.warn .evl{color:var(--warn);font-weight:600}
 .tl li.pr:focus{outline:none}.tl li.pr:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:6px}
 .tl li.ev p{display:flex;gap:6px;min-width:0;white-space:nowrap}
@@ -402,7 +405,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl .pcut{color:var(--ink-3);white-space:normal;font-size:var(--fs-xs)}
 .tlkey{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0 0 8px;font-size:var(--fs-xs);color:var(--ink-3)}
 .tlkey span{display:inline-flex;align-items:center;gap:6px}
-.tlkey i{flex:none;width:7px;height:7px}
+.tlkey i{flex:none;width:7px;height:7px}.tlkey .ic{width:12px;height:12px}
 .tlkey .kp{border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--c)}.tlkey .kp.fix{background:var(--warn);box-shadow:none}
 .pload{font-size:var(--fs-xs);color:var(--acc-ink);font-weight:600;padding:1px 8px;border:1px solid var(--acc);border-radius:99px;margin-left:2px}.pload:hover{text-decoration:underline}
 .tl time{color:var(--ink-3);font-variant-numeric:tabular-nums;font-size:var(--fs-xs);padding-top:1px}
@@ -414,7 +417,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl .pkind{display:inline-block;margin-right:6px;padding:0 6px;border-radius:5px;font-size:var(--fs-xs);font-weight:600;line-height:1.6;vertical-align:1px;color:var(--c4);background:color-mix(in oklab,var(--c4) 16%,transparent)}
 .tl .pkind.big{color:var(--warn);background:color-mix(in oklab,var(--warn) 14%,transparent)}
 .tl li.ev.note{color:var(--ink-3)}.tl li.ev.note .evl{color:var(--c6)}
-.tl li.ev.note::before,.tlkey .ke.note{background:var(--c6)}
+.tl li.ev.note>.ic,.tlkey .kev.note .ic{color:var(--c6)}
 .tlkey .kp.cmd{box-shadow:inset 0 0 0 1.5px var(--c4)}
 .tl.only-user li.ev,.tl.only-user li.gap{display:none}
 .flowbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px}
@@ -623,3 +626,7 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media (forced-colors:active){.run{border:1px solid CanvasText}}
 @media (max-width:400px){.cell{padding:5px 3px 6px}.cell .acs{font-size:var(--fs-xs)}.cell .uss{font-size:var(--fs-2xs)}} /* いちばん狭い画面でも、月のマスの時間とトークンが切れないように */
+
+.pkind .ic{width:11px;height:11px;margin-right:3px;vertical-align:-1px} /* コマンド（/）・シェル（>_） */
+.lim{display:inline-flex;align-items:center;gap:3px}.lim .ic{width:10px;height:10px;stroke-width:1.8} /* 利用上限 */
+.agm{display:inline-grid;place-items:center;min-width:14px;height:14px;padding:0 3px;margin-right:5px;border-radius:4px;border:1px solid var(--rule-2);background:var(--surface-2);color:var(--ink-2);font:700 var(--fs-2xs)/1 var(--mono);font-style:normal;letter-spacing:0;text-transform:none;vertical-align:1px} /* エージェントの頭文字（ロゴは使わない） */
