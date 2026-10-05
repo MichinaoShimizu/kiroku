@@ -189,7 +189,7 @@ function monthGrid(shown, ms, me, todayKey){
       const x = S ? S.days[d.getDate()-1] : null, act = x ? x.active : 0;
       const by = {}; shown.forEach(s => s.segs.forEach(([a,b]) => { const o = Math.min(b,de) - Math.max(a,ds); if (o > 0) by[keyOf(s)] = (by[keyOf(s)]||0) + o; }));
       const pj = Object.entries(by).sort((a,b)=>b[1]-a[1]);
-      h += `<button class="cell${d.getDay()%6===0?" we":""}${key(d)===todayKey?" today":""}" data-w="${key(mondayOf(d))}" style="--heat:${(act/max).toFixed(3)}" title="${tr(`${md(ds)} 作業 ${dur(act)}${x ? `・プロンプト ${x.prompts}・深夜 ${dur(x.night)}${useShort(x) ? `・${useShort(x)}` : ""}` : ""}`, `${md(ds)} active ${dur(act)}${x ? ` · ${plural(x.prompts, "prompt")} · late night ${dur(x.night)}${useShort(x) ? ` · ${useShort(x)}` : ""}` : ""}`)}">
+      h += `<button class="cell${d.getDay()%6===0?" we":""}${key(d)===todayKey?" today":""}" data-w="${key(mondayOf(d))}" style="--heat:${(act/max).toFixed(3)}" data-tip="${tr(`${md(ds)} 作業 ${dur(act)}${x ? `・プロンプト ${x.prompts}・深夜 ${dur(x.night)}${useLines(x).length ? `・${useLines(x).join("・")}` : ""}` : ""}`, `${md(ds)} active ${dur(act)}${x ? ` · ${plural(x.prompts, "prompt")} · late night ${dur(x.night)}${useLines(x).length ? ` · ${useLines(x).join(" · ")}` : ""}` : ""}`)}">
         <span class="dn">${d.getDate()}</span>${act ? `<span class="ac">${dur(act, true)}</span><span class="acs">${act >= 60 ? (act/60).toFixed(1)+tr("時間", "h") : act+tr("分", "m")}</span><span class="sub2">${tr(`プロンプト ${x.prompts}`, plural(x.prompts, "prompt"))}</span>` : ""}${x && useShort(x) ? `<span class="use">${useShort(x)}</span>` : ""}${x && x.commits ? `<span class="gcm" title="${tr("git のコミット", "Git commits")}">${GIT_ICON}${x.commits}</span>` : ""}
         ${pj.length ? `<span class="pj">${pj.map(([k,v])=>`<span style="flex:${v};--c:${colorOf(k)}"></span>`).join("")}</span>` : ""}</button>`;
     }
@@ -218,7 +218,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dU = w && w.days[d] ? useShort(w.days[d]) : "";
     const dayGit = (META.git || []).filter(c => c.t >= ds && c.t < de && (!st.hidden.size || st.colorBy !== "project" || !st.hidden.has(c.project))).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}"><div class="dd"><b>${day.getMonth()+1}/${day.getDate()}</b><i>${dow(day.getDay())}</i></div><small>${act ? dur(act) : "—"}</small>${dU ? `<span class="use" title="${tr("トークン・目安コスト・クレジット", "Tokens · estimated cost · credits")}">${dU}</span>` : ""}${dayGit.length ? `<span class="gch" title="${tr("git のコミット", "Git commits")}">${GIT_ICON}${dayGit.length}</span>` : ""}</div>`;
+    heads += `<div class="head${isToday?" today":""}"><div class="dd"><b>${day.getMonth()+1}/${day.getDate()}</b><i>${dow(day.getDay())}</i></div><small>${act ? dur(act) : "—"}</small>${dU ? `<span class="use"${tipAttr(`${md(ds)} ${tr("の使用量", "usage")}`, useLines(w && w.days[d]))}>${dU}</span>` : ""}${dayGit.length ? `<span class="gch" title="${tr("git のコミット", "Git commits")}">${GIT_ICON}${dayGit.length}</span>` : ""}</div>`;
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
@@ -261,6 +261,16 @@ function tipMove(e){ const t = $("#tip"), w = t.offsetWidth, h = t.offsetHeight;
   let x = e.clientX + 14, y = e.clientY + 16; if (x + w > innerWidth - 12) x = e.clientX - w - 14; if (y + h > innerHeight - 12) y = e.clientY - h - 14;
   t.style.left = x+"px"; t.style.top = y+"px"; }
 function tipOff(){ $("#tip").classList.remove("on"); }
+// グラフの棒・帯・点は data-tip に書いた文を、マウスを載せる（タッチでは触れる）とすぐ出す。1 行目は見出し、続く行は「名前 値」
+const useLines = d => d ? [d.tokens ? tr(`トークン ${tok(d.tokens)}`, `Tokens ${tok(d.tokens)}`) : "", d.cost >= 0.005 ? tr(`目安コスト ${usd(d.cost)}`, `Estimated cost ${usd(d.cost)}`) : "", d.credits ? tr(`クレジット ${cr(d.credits)}`, `Credits ${cr(d.credits)}`) : ""].filter(Boolean) : [];
+const tipAttr = (...lines) => ` data-tip="${esc(lines.flat().filter(Boolean).join("\n"))}"`;
+function tipText(e, text){ const t = $("#tip"), [h, ...r] = (text.includes("\n") ? text : text.replace(/・| · /g, "\n")).split("\n"); // 1 行で書いたもの（月表示の日など）は「・」で行に分ける
+  t.innerHTML = `<b>${esc(h)}</b>${r.map(x => `<div class="r">${esc(x)}</div>`).join("")}`; t.classList.add("on"); tipMove(e); }
+document.addEventListener("pointerover", e => { const el = e.target.closest && e.target.closest("[data-tip]"); if (el) tipText(e, el.dataset.tip); });
+document.addEventListener("pointermove", e => { const el = e.target.closest && e.target.closest("[data-tip]"); if (!el) return; // スクロールで消えたあとも、動かせばまた出す
+  if ($("#tip").classList.contains("on")) tipMove(e); else tipText(e, el.dataset.tip); });
+document.addEventListener("pointerout", e => { const el = e.target.closest && e.target.closest("[data-tip]"); if (el && !(e.relatedTarget && el.contains(e.relatedTarget))) tipOff(); });
+addEventListener("scroll", () => { if (!st.sel) tipOff(); }, {passive: true, capture: true});
 
 /* ── 週次・月次サマリー：① プロジェクト別 ② コストとアウトプット ③ 時間 ④ AI ⑤ かたち ⑥ 改善案を聞く。基準を超えた指標には、その場に印と推移を付ける ── */
 function summary(){
@@ -299,13 +309,12 @@ function summary(){
     </div></details>
     ${foot()}</section>
   <section class="panel">${ph(4, tr("AI の使い方", "How you used AI"), tr("使った量・費用・エージェント", "Usage, cost and agents"))}
-    ${usageChart(w, M)}
     ${aiUsage(w, pw, unit) || `<p class="none">${tr("トークンやクレジットの記録はありません。", "No token or credit records.")}</p>`}
     ${nativeSection(w)}</section>
   <section class="panel shape">${ph(5, M ? tr("月のかたち", "Shape of the month") : tr("週のかたち", "Shape of the week"), tr("どこに時間を使ったか", "Where your time went"))}
     ${rhythm(w, M)}
     <h3>${tr("プロジェクトの配分", "Time by project")}${hb("share")}</h3>${hint("share")}
-    <div class="stack" role="img" aria-label="${tr("プロジェクト別の配分", "Time by project")}">${w.projects.map(([k,v])=>`<span style="flex:${v};--c:${st.colorBy==="project"?colorOf(k):"var(--ink-3)"}" title="${esc(k)} ${dur(v)}"></span>`).join("")}</div>
+    <div class="stack" role="img" aria-label="${tr("プロジェクト別の配分", "Time by project")}">${w.projects.map(([k,v])=>`<span style="flex:${v};--c:${st.colorBy==="project"?colorOf(k):"var(--ink-3)"}" ${tipAttr(k, `${dur(v)}${tr(`（${Math.round(v*100/total)}%）`, ` (${Math.round(v*100/total)}%)`)}`)}></span>`).join("")}</div>
     ${w.projects.slice(0,8).map(([k,v])=>`<div class="prow" style="--c:${st.colorBy==="project"?colorOf(k):"var(--ink-3)"}"><i></i><span class="nm">${esc(k)}</span><span class="tm">${dur(v)}</span><span class="pc">${Math.round(v*100/total)}%</span></div>`).join("")}
     <h3>${tr("集中ブロック", "Focus blocks")}${hb("focusList")}</h3>${hint("focusList")}
     ${w.focus.length ? [...w.focus].sort((a,b)=>b.min-a.min).slice(0,5).map(b=>`<div class="focusrow" style="--c:${st.colorBy==="project"?colorOf(b.project):"var(--ink-3)"}"><span class="when">${md(b.t)} ${hm(b.t)}</span><span class="track2"><span style="width:${b.min/longest*100}%"></span></span><span class="len">${dur(b.min)}</span></div>`).join("") : `<p class="none">${tr("60分以上続いた作業はありませんでした。", "No work lasted 60 minutes or more.")}</p>`}
@@ -357,7 +366,7 @@ function shareBlock(w, ps){
     .map(([k, n, f]) => ({k, n, f, t: rows.reduce((t, r) => t + (r.v[k] || 0), 0)})).filter(m => m.t > 0);
   if (!ms.length) return "";
   const pc = (r, m) => Math.round((r.v[m.k] || 0) * 100 / m.t);
-  const bars = ms.map(m => `<span class="k">${m.n}</span><div class="stack" role="img" aria-label="${esc(`${m.n}: ${rows.map(r => `${r.name} ${pc(r, m)}%`).join(", ")}`)}">${rows.filter(r => r.v[m.k] > 0).map(r => `<span style="flex:${r.v[m.k]};--c:${r.c}" title="${esc(`${r.name}: ${m.f(r.v[m.k])} (${pc(r, m)}%)`)}"></span>`).join("")}</div>`).join("");
+  const bars = ms.map(m => `<span class="k">${m.n}</span><div class="stack" role="img" aria-label="${esc(`${m.n}: ${rows.map(r => `${r.name} ${pc(r, m)}%`).join(", ")}`)}">${rows.filter(r => r.v[m.k] > 0).map(r => `<span style="flex:${r.v[m.k]};--c:${r.c}" ${tipAttr(r.name, `${m.n} ${m.f(r.v[m.k])}${tr(`（${pc(r, m)}%）`, ` (${pc(r, m)}%)`)}`)}></span>`).join("")}</div>`).join("");
   const tab = `<table class="shtab"><thead><tr><th scope="col">${CB()[st.colorBy]}</th>${ms.map(m => `<th scope="col">${m.n}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr style="--c:${r.c}"><td title="${esc(r.name)}"><i aria-hidden="true"></i>${esc(r.name)}</td>${ms.map(m => `<td>${r.v[m.k] ? pc(r, m) + "%" : "—"}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
   return `${head}<div class="sharebox"><div class="share">${bars}</div>${tab}</div>`;
 }
@@ -630,7 +639,8 @@ function spark(k){ // 8 期間の推移（記録のない期間は飛ばす）
   const lo = Math.min(...vs), hi = Math.max(...vs), rng = lo === hi ? fmtM(k, lo) : `${fmtM(k, lo)}${tr("〜", "–")}${fmtM(k, hi)}`, W = 112, H = 26, x = i => 4 + i * (W - 8) / 7, y = v => hi === lo ? H / 2 : H - 4 - (v - lo) / (hi - lo) * (H - 8);
   const line = pts.map((p, i) => p.v == null ? null : `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).filter(Boolean).join(" ");
   const txt = tr(`${st.mode === "month" ? "8 か月" : "8 週"}の推移：${pts.map(p => `${p.l} ${fmtM(k, p.v)}`).join("、")}`, `${st.mode === "month" ? "8-month" : "8-week"} trend: ${pts.map(p => `${p.l} ${fmtM(k, p.v)}`).join(", ")}`);
-  return `<span class="spark" title="${esc(pts.map(p => `${p.l}: ${fmtM(k, p.v)}`).join("\n"))}"><span class="sr">${esc(txt)}</span><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true"><polyline points="${line}"/>${pts[7].v != null ? `<circle cx="${x(7)}" cy="${y(pts[7].v)}" r="2.6"/>` : ""}</svg><small aria-hidden="true"><b>${fmtM(k, pts[7].v)}</b>${tr(`（${st.mode === "month" ? "8 か月" : "8 週"}で ${rng}・印は${MET[k].low ? "高い" : "低い"}ときに付く）`, ` (${rng} over ${st.mode === "month" ? "8 months" : "8 weeks"} · flagged when ${MET[k].low ? "high" : "low"})`)}</small></span>`;
+  const hits = pts.map((p, i) => `<rect class="hit" x="${(x(i) - (W - 8) / 14).toFixed(1)}" y="0" width="${((W - 8) / 7).toFixed(1)}" height="${H}"${tipAttr(p.l, fmtM(k, p.v) === "—" ? tr("記録なし", "No records") : fmtM(k, p.v))}/>`).join(""); // 点ごとに、その期間の値を出す
+  return `<span class="spark"><span class="sr">${esc(txt)}</span><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true"><polyline points="${line}"/>${pts.map((p, i) => p.v == null ? "" : `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="1.6"/>`).join("")}${pts[7].v != null ? `<circle cx="${x(7)}" cy="${y(pts[7].v)}" r="2.6"/>` : ""}${hits}</svg><small aria-hidden="true"><b>${fmtM(k, pts[7].v)}</b>${tr(`（${st.mode === "month" ? "8 か月" : "8 週"}で ${rng}・印は${MET[k].low ? "高い" : "低い"}ときに付く）`, ` (${rng} over ${st.mode === "month" ? "8 months" : "8 weeks"} · flagged when ${MET[k].low ? "high" : "low"})`)}</small></span>`;
 }
 /* 見直す候補：指標が決まった基準を超えたものを拾う（AI は使わない。判定ではなく、確かめる候補） */
 function findList(w, pw, unit){
@@ -790,6 +800,7 @@ function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）�
       ${side("left", tr("残ったもの", "Left behind"), tr("アウトプット", "Outputs"), out ? `<div class="stats">${out}</div>` : `<p class="none">${tr("コミットや PR の記録はありません。", "No commits or pull requests recorded.")}</p>`)}
     </div>
     ${cmp ? `<div class="occmp"><div class="ocl"><b>${tr("くらべる", "Compared")}</b><span>${tr("使ったものに対して、どれだけ残ったか", "How much was left behind for what you spent")}</span></div><div class="stats">${cmp}</div></div>` : ""}
+    <div class="ocdaily">${usageChart(w, unit === "月")}</div>
     <p class="note">${tr("「Git のコミット」は、エージェントが作業したリポジトリにある自分のコミット（手で行ったものを含む）です。それ以外は AI がツールで実行し、成功したものだけを数えます（現在は Claude Code のみ）。数は出したものの量で、価値や生産性ではありません。", "\"Git commits\" are your own commits in the repositories agents worked in (including ones made by hand). Everything else counts only what AI ran with tools and that succeeded (Claude Code only for now). The counts measure what was produced, not its value or productivity.")}</p></section>`;
 }
 /* 日ごとの使用量（トークン・目安コスト・クレジットを切り替え） */
@@ -801,8 +812,8 @@ function usageChart(w, M){
   const max = Math.max(...w.days.map(d => d[m] || 0)) || 1, today = key(today0()), total = w.days.reduce((t,d) => t + (d[m]||0), 0);
   const start = M ? st.month : st.week;
   const cols = w.days.map((d,i) => { const dd = addDays(start, i), v = d[m] || 0;
-    return `<div class="c${key(dd)===today?" today":""}" title="${md(dd.getTime()/1000)} ${esc(useShort(d) || tr("使用なし", "No usage"))}">
-      ${M ? "" : `<span class="v">${v ? fmt(v) : ""}</span>`}<div class="b" style="height:${v ? Math.max(2, v/max*80) : 0}px"></div>
+    return `<div class="c${key(dd)===today?" today":""}"${tipAttr(md(dd.getTime()/1000), useLines(d).length ? useLines(d) : tr("使用なし", "No usage"))}>
+      ${M ? "" : `<span class="v">${v ? fmt(v) : ""}</span>`}<div class="b" style="height:${v ? Math.max(2, v/max*112) : 0}px"></div>
       <span class="l">${M ? (dd.getDate() === 1 || dd.getDate() % 5 === 0 ? dd.getDate() : "") : dow(dd.getDay())}</span></div>`; }).join("");
   return `<h3>${tr("日ごとの使用量", "Daily usage")}${hb("daily")}</h3>${hint("daily")}
     <div class="useg"><div class="segc" role="group" aria-label="${tr("使用量の種類", "Usage type")}" id="useBy">${opts.map(([k,l]) => `<button data-v="${k}" aria-pressed="${k===m}">${l}</button>`).join("")}</div>
@@ -813,14 +824,14 @@ function usageChart(w, M){
 function rhythm(w, M){
   const today = key(today0());
   let cols;
-  if (!M) cols = w.days.map((x,i) => { const dd = addDays(st.week,i); return {l:dow(dd.getDay()), a:x.active, n:x.night, t:key(dd)===today, tip:tr(`${md(dd.getTime()/1000)} 作業 ${dur(x.active)}・深夜 ${dur(x.night)}・プロンプト ${x.prompts}・切り替え ${x.switches}${useShort(x) ? "・"+useShort(x) : ""}`, `${md(dd.getTime()/1000)} active ${dur(x.active)} · late night ${dur(x.night)} · prompts ${x.prompts} · switches ${x.switches}${useShort(x) ? " · "+useShort(x) : ""}`)}; });
+  if (!M) cols = w.days.map((x,i) => { const dd = addDays(st.week,i); return {l:dow(dd.getDay()), a:x.active, n:x.night, t:key(dd)===today, tip:[md(dd.getTime()/1000), tr(`作業 ${dur(x.active)}`, `Active ${dur(x.active)}`), tr(`深夜 ${dur(x.night)}`, `Late night ${dur(x.night)}`), tr(`プロンプト ${x.prompts}`, `Prompts ${x.prompts}`), tr(`切り替え ${x.switches}`, `Switches ${x.switches}`), ...useLines(x)]}; });
   else { cols = []; w.days.forEach((x,i) => { const dd = new Date(st.month.getFullYear(), st.month.getMonth(), i+1), k = key(mondayOf(dd));
       let c = cols.find(c => c.k === k); if (!c){ c = {k, l:`W${isoWeek(dd)}`, a:0, n:0, p:0, t:k===key(mondayOf(today0()))}; cols.push(c); }
       c.a += x.active; c.n += x.night; c.p += x.prompts; });
-    cols.forEach(c => c.tip = tr(`W${c.l.slice(1)}（${c.k} の週・この月の分） 作業 ${dur(c.a)}・深夜 ${dur(c.n)}・プロンプト ${c.p}`, `W${c.l.slice(1)} (week of ${c.k}, this month's part) active ${dur(c.a)} · late night ${dur(c.n)} · prompts ${c.p}`)); }
+    cols.forEach(c => c.tip = [tr(`W${c.l.slice(1)}（${c.k} の週・この月の分）`, `W${c.l.slice(1)} (week of ${c.k}, this month's part)`), tr(`作業 ${dur(c.a)}`, `Active ${dur(c.a)}`), tr(`深夜 ${dur(c.n)}`, `Late night ${dur(c.n)}`), tr(`プロンプト ${c.p}`, `Prompts ${c.p}`)]); }
   const max = Math.max(1, ...cols.map(c => c.a));
   return `<h3>${M ? tr("週ごとのリズム", "Weekly rhythm") : tr("日ごとのリズム", "Daily rhythm")}${hb("rhythm")}</h3>${hint("rhythm")}
-    <div class="rhythm" style="grid-template-columns:repeat(${cols.length},1fr)">${cols.map(c => `<div class="col${c.t?" today":""}" title="${esc(c.tip)}">
+    <div class="rhythm" style="grid-template-columns:repeat(${cols.length},1fr)">${cols.map(c => `<div class="col${c.t?" today":""}"${tipAttr(c.tip)}>
         <span class="v">${c.a ? (c.a>=60 ? (c.a/60).toFixed(1)+tr("時間", "h") : c.a+tr("分", "m")) : ""}</span>
         <div class="colbar" style="height:${c.a?Math.max(2,c.a/max*84):0}px"><div class="nt" style="height:${c.a?c.n/c.a*100:0}%"></div></div>
         <span class="l">${c.l}</span></div>`).join("")}</div>
@@ -907,7 +918,7 @@ function aiUsage(w, pw, unit){
       ${w.costPerAsk != null ? stat(tr("1 プロンプトあたりの目安コスト", "Estimated cost per prompt"), usd(w.costPerAsk).replace("$","<small>$</small>"), `n=${w.prompts}`, "costPerAsk") : ""}
     </div>
     ${u.models.length ? `<div style="margin-top:16px" class="k muted">${tr("モデル別", "By model")}${byCost ? tr("（目安コスト）", " (estimated cost)") : tr("（トークン）", " (tokens)")}${hb("models")}</div>${hint("models")}
-      <div class="mstack" style="margin-top:8px">${u.models.map((r,i)=>`<span style="flex:${byCost?r[1]:r[2]};--o:${shade(i)}" title="${esc(mn(r[0]))}"></span>`).join("")}</div>
+      <div class="mstack" style="margin-top:8px">${u.models.map((r,i)=>`<span style="flex:${byCost?r[1]:r[2]};--o:${shade(i)}"${tipAttr(mn(r[0]), tr(`目安コスト ${usd(r[1])}`, `Estimated cost ${usd(r[1])}`), tr(`トークン ${tok(r[2])}`, `Tokens ${tok(r[2])}`), `${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%`)}></span>`).join("")}</div>
       ${u.models.slice(0,6).map((r,i)=>`<div class="mrow"><span class="nm"><i style="--o:${shade(i)}"></i>${esc(mn(r[0]))}</span><span class="tm">${!r[1] && (u.unpricedModels || []).includes(r[0]) ? `<span title="${tr("料金表にないモデル", "Not in the price table")}">—</span>` : usd(r[1])}<small>${tok(r[2])}</small></span><span class="pc">${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%</span></div>`).join("")}` : ""}
     ${u.subTypes.length ? `<div style="margin-top:14px" class="chips">${u.subTypes.map(([k,v])=>`<span class="mono">${esc(k)}<b>${v}</b></span>`).join("")}</div>` : ""}
     ${u.heavy.length ? `<div style="margin-top:16px" class="k muted">${tr("重かったセッション", "Heaviest sessions")}${hb("heavy")}</div>${hint("heavy")}<div style="margin-top:8px">${u.heavy.map(h=>`<button class="card" data-id="${esc(h.id)}"><span class="ti">${esc(h.title)}</span><span class="me">${md(h.start)} · ${esc(h.project)} · ${usd(h.cost)}${h.subagents?tr(` · サブエージェント ${h.subagents}`, ` · ${plural(h.subagents, "subagent")}`):""}</span></button>`).join("")}</div>` : ""}
