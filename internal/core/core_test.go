@@ -148,6 +148,19 @@ func TestPromptFlow(t *testing.T) {
 	}
 }
 
+// サブエージェントが動いていた間は、待たせに数えない。
+func TestPromptFlowCountsSubagents(t *testing.T) {
+	f := func(v float64) *float64 { return &v }
+	b := NewBuilder("Claude Code", "s")
+	b.Prompt(f(1000), "調べて")
+	b.Agent(f(1060))
+	b.Subagents = append(b.Subagents, Subagent{Type: "Explore", Start: f(1060), End: f(1500)})
+	b.Prompt(f(1600), "次")
+	if p := b.Finish(15).Prompts[0]; p.Work != 500 || p.Wait != 100 {
+		t.Errorf("work %v wait %v", p.Work, p.Wait)
+	}
+}
+
 func TestPromptFlowKeepsAllPrompts(t *testing.T) {
 	b := NewBuilder("Claude Code", "s")
 	for i := 0; i < 80; i++ {

@@ -10,6 +10,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Each prompt in the flow shows how long the AI worked and how long it waited for you (estimates from timestamps), and breaks of more than 30 minutes are marked. A key above the flow explains the marks
 - With `kiroku serve`, "Load the full prompt" reads a prompt longer than the 400 characters kept in the HTML to the end. Without it, the flow says how long the prompt was
 
+### Changed
+
+- Going back from a detail opened from another (such as a commit opened from the prompt flow) returns to where you were reading, instead of the top
+
 ### Fixed
 
 - Sessions with more than 50 prompts lost the rest: the prompt flow stopped at 50, and those prompts were left out of daily prompt counts, project switches and the prompt count by project. All prompts are now kept

@@ -247,8 +247,14 @@ func (s *Builder) Waits() [][2]float64 {
 
 // promptTimes は、依頼ごとに AI が動いていた秒数（Work）と、そのあと人が次の依頼を出すまでの秒数（Wait）を入れる。
 // 依頼から次の依頼（最後の依頼なら終わり）までの間で、AI が最後に動いた時刻を区切りにする。時刻のない依頼と、その間に AI が動いていない依頼には入れない。
+// サブエージェントが終わった時刻も、AI が動いていた時刻に入れる（親の会話に結果が残らなくても、待たせに数えないように）。
 func (s *Builder) promptTimes(ps []Prompt) []Prompt {
 	agent := append([]float64(nil), s.AgentTimes...)
+	for _, a := range s.Subagents {
+		if a.End != nil && *a.End != 0 {
+			agent = append(agent, *a.End)
+		}
+	}
 	sort.Float64s(agent)
 	out := make([]Prompt, len(ps))
 	copy(out, ps)
