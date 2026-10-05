@@ -48,9 +48,9 @@ The old forms `kiroku --serve`, `--json` and `-o` still work for now. `--weekly`
 ## View
 
 - The vertical week calendar shows sessions as bars. The more messages per minute, the darker the bar, and sessions that overlap in time are placed side by side
-- Switch between "Week / Month" at the top right. The month calendar shows each day's active time as color intensity and the project breakdown as thin bars. Each day lists its active time, tokens (credits when no tokens were recorded), sessions and prompts, each labeled (on phones, only active time and tokens). Point at a day to also see late-night time, estimated cost and commits. Click a date, or "W##" on the left, to go to that week in the week calendar
+- Switch between "Week / Month" at the top right. The month calendar shows each day's active time as color intensity and the project breakdown as thin bars. Each day lists its active time, tokens (credits when no tokens were recorded), sessions and prompts, each labeled (on phones, only active time and tokens). Point at a day to also see estimated cost and commits. Click a date, or "W##" on the left, to go to that week in the week calendar
 - Above the calendar, the key figures for the week or month are shown (Active time, Active days, Sessions / prompts, Tokens, Estimated cost, Kiro credits, Usage limit hits, Commits (by AI)). Items with no records are not shown
-- Tokens, estimated cost and credits per day are shown in the day headings of the week calendar and in each day of the month calendar. In the summary, "Daily usage" (at the bottom of "② Cost and outputs") lets you switch between the three as a bar chart. Point at a bar, band or point in any chart (or touch it) to see the values for that day or item
+- Tokens, estimated cost and credits per day are shown in the day headings of the week calendar and in each day of the month calendar. In the summary, "Daily trend" (at the bottom of "② Cost and outputs") switches a per-day bar chart between tokens, credits, estimated cost, active time, sessions and prompts (per day in month view too). Point at a bar, band or point in any chart (or touch it) to see the values for that day or item
 - Color by Project / Branch / Agent (on narrow screens, from the selector to the left of the legend). The numbers in the legend are session counts; click an item to show or hide it
 - Click a bar to show its details (the prompt flow with times, models used, subagents, tools used, files changed and the resume command). The prompt flow puts your prompts and what happened between them (commits, pull requests created, usage limit hits, interruptions and subagents starting) in one line, in time order. Each prompt shows how long the AI worked (from the prompt to the AI's last activity before the next prompt) and the wait (from there to the next prompt), and a break of more than 30 minutes is marked like "13:50–15:20: 1h 30m gap" (both are estimates from the history's timestamps; time while a subagent was running is not counted as a wait). Prompts that look like corrections (guessed from the wording) get a different dot, and a key above the flow explains the marks. Slash commands you typed (such as `/review`) and `!` shell commands count as prompts and get a "Command" or "Shell" tag in their own color. Things that entered the conversation without you typing them (background task notifications, `<system-reminder>`, hook and command output, automatic conversation summaries, instructions sent by another agent or a schedule, the expanded text of a slash command and so on) are not counted as prompts and appear in the flow in another color, labeled with their kind. "Only user prompts" above the flow narrows it to what the user typed, and "Copy prompts" copies just those as Markdown with times. It shows 30 prompts first, and "Show N more prompts" shows the rest. "Show all" opens a long prompt. The HTML keeps the first 400 characters of each prompt; longer ones show "Read more (N characters)", and when opened with `kiroku serve`, "Load the full prompt" reads it to the end. Opening a commit from the flow and pressing back returns to where you were reading. On wide screens, numbers and the prompt flow (what was done) are on the left, and commits, pull requests and files changed (what was left behind) are on the right. "Review this session with AI (copy prompt)" copies a prompt that asks an AI how to improve the way you prompted and split the work, based on the prompt flow and numbers (it includes your prompts, so check it before sending)
 - In the week calendar, days with commits show commit marks on the right edge at their times (they don't overlap session bars; touch one to see its short hash; the number under the date is that day's commit count). Click a mark to see the commit details (subject, message body, project, branch, hash, lines added and removed per file changed, the session that made the commit, and a `git show` command). Session details list the commits made during that session
@@ -62,7 +62,7 @@ The old forms `kiroku --serve`, `--json` and `-o` still work for now. `--weekly`
 - Below the calendar, the weekly and monthly summary is shown
   - Worth a look: a metric that crossed a threshold is marked (●) where it appears, with what was observed, why it matters, its 8-week trend (8 months in month view), the related sessions and the threshold. "Worth a look" at the top of the summary lists those metrics in priority order; press one to jump to it and open its explanation. To see whether something you tried worked, check the trend in later periods
   - ① By project: starts with bars and a table showing what share of active time, tokens, estimated cost and credits went where (top 5 plus Other). The grouping follows the Project / Branch / Agent switch at the top. Comparing the rows shows, for example, a project, branch or agent whose share of estimated cost is larger than its share of time. Below that, the cards show, for each project, which sessions took how many hours, how many tokens, how much estimated cost and credits, which models were mainly used, and which session was the heaviest, along with outputs (beyond 6 projects, press "Show N more projects")
-  - ② Cost and outputs: what you spent (active time, estimated cost, tokens, credits) → what was left behind (commits, pull requests, lines changed and so on), side by side, followed by the metrics that compare the two ("Compared") and the daily usage bar chart
+  - ② Cost and outputs: what you spent (active time, estimated cost, tokens, credits) → what was left behind (commits, pull requests, lines changed and so on), side by side, followed by the metrics that compare the two ("Compared") and the daily trend bar chart
   - ③ How you spent time: metrics that include estimates (corrections and interruptions, switches, parallel, wait time) are collapsed under "More metrics (includes estimates)"
   - Then come ④ How you used AI, ⑤ Shape of the week / month (ending with "Data sources") and ⑥ Ask AI for suggestions
 - Press "?" on any metric to see its definition and what it tells you, what it doesn't tell you, and what to try
@@ -79,7 +79,6 @@ The old forms `kiroku --serve`, `--json` and `-o` still work for now. `--weekly`
 
     | Your light | Rule |
     |---|---|
-    | Night Glow | 30% or more of active time is late at night (22:00–6:00) |
     | Daybreak | 25% or more of active time is between 5:00 and 9:00 (compared using the total active stretches of sessions) |
     | Multiple Exposure | 3 or more agents, each with 10% or more of active time |
     | Long Exposure | 45 minutes or more of active time per session, with 10 prompts or fewer on average |
@@ -100,13 +99,13 @@ The old forms `kiroku --serve`, `--json` and `-o` still work for now. `--weekly`
 
     | Overexposed | Rule |
     |---|---|
-    | Blown-Out | 30+ days in a row without a break at 2+ hours a day, or 40%+ late at night (22:00–6:00) with 14+ days in a row |
+    | Blown-Out | 30+ days in a row without a break at 2+ hours a day |
     | Out-of-Film | Hit a usage limit 10 or more times |
     | Grainy | Noise at 60% or more |
 - Opening details moves focus into them, and closing them returns focus to the bar or card you opened them from. When you move from one detail to another (a commit or session), "Back" takes you back
 - Keyboard shortcuts: `←` `→` to move by week or month, `T` for this week or month, `W` `M` to switch between week and month, `/` to search, `+` `−` to zoom, `Esc` to close details, `?` to show the shortcut list
 - The view opens in English. You can switch to Japanese with the selector at the top right, and your choice is saved in the browser. Images in the README and this guide show the English view
-- Switch between dark (the default) and light themes with the button at the top right. Color by, zoom, theme, week / month view and the Daily usage type are saved in the browser
+- Switch between dark (the default) and light themes with the button at the top right. Color by, zoom, theme, week / month view and what Daily trend shows are saved in the browser
 - At smartphone widths, the week calendar scrolls horizontally (when opened, it shows the last day you worked up to today and the day before), and the summary is shown in a single column
 - The palette has 8 colors based on Okabe–Ito, chosen to stay distinguishable across types of color vision. From the 9th item on, items are gray
 
@@ -118,7 +117,7 @@ The image shows the English view. In a Japanese browser it is shown in Japanese 
 
 | Metric | Definition |
 |---|---|
-| Worth a look | Marks the metrics that crossed these thresholds and lists their names in priority order (the list below is not in priority order): hit a usage limit 1 or more times / there are Long conversations (later input 4× or more the first part, peak 100K tokens or more, $0.5 or more) / Expensive models for light work total 10% or more of estimated cost ($2 or more) and $1 or more / Claude Code sessions of $1 or more estimated cost with no commit or pull request make up 40% or more of the period's estimated cost ($2 or more) / estimated cost is 1.5× the previous period ($1 or more) or more / estimated cost per commit is 1.5× the previous period or more (3 or more commits) / Prompts with corrections or interruptions are 20% or more (10 or more prompts), or there are Sessions with possible friction / Share of input read from cache is under 50% (1M tokens or more) / Sessions that reached a commit are under 25% (5 or more sessions, with at least one commit or pull request) / Project switches per day average 5 or more / no Focus blocks with 4 hours or more of work / the 90th percentile of Wait time is 15 minutes or more (n≥10) / Late night is 2 hours or more and 25% or more of work |
+| Worth a look | Marks the metrics that crossed these thresholds and lists their names in priority order (the list below is not in priority order): hit a usage limit 1 or more times / there are Long conversations (later input 4× or more the first part, peak 100K tokens or more, $0.5 or more) / Expensive models for light work total 10% or more of estimated cost ($2 or more) and $1 or more / Claude Code sessions of $1 or more estimated cost with no commit or pull request make up 40% or more of the period's estimated cost ($2 or more) / estimated cost is 1.5× the previous period ($1 or more) or more / estimated cost per commit is 1.5× the previous period or more (3 or more commits) / Prompts with corrections or interruptions are 20% or more (10 or more prompts), or there are Sessions with possible friction / Share of input read from cache is under 50% (1M tokens or more) / Sessions that reached a commit are under 25% (5 or more sessions, with at least one commit or pull request) / Project switches per day average 5 or more / no Focus blocks with 4 hours or more of work / the 90th percentile of Wait time is 15 minutes or more (n≥10) |
 | By project | Per project: active time and its share, number of sessions / prompts, tokens, estimated cost and credits, main models (share of tokens; counts for agents that don't record tokens), the top 3 sessions by run time, and the heaviest session (judged by estimated cost, else credits, else tokens). Time when several projects ran at once is split between them |
 | Active time | Time when any session was running (overlaps count once) |
 | Total AI run time | Time added up, including sessions running in parallel |
@@ -126,7 +125,7 @@ The image shows the English view. In a Japanese browser it is shown in Japanese 
 | Project switches per day | How often the project changed between consecutive prompts |
 | Parallel time | Time when 2 or more sessions ran at once, and the most at once |
 | Wait time | Median and 90th percentile of the time from an AI reply to your next prompt (up to 30 minutes) |
-| Late night / Weekend | Work time between 22:00 and 6:00, and on Saturdays and Sundays |
+| Weekend | Work time on Saturdays and Sundays |
 | Prompts with corrections or interruptions | Share estimated from the opening words of each prompt (such as "No, that's wrong" or "undo that") and interruptions. The first prompt of a conversation and words inside pasted code, quotes or indented logs are not counted, nor are ordinary requests that merely share the words, such as "add an undo button". The number of prompts (n) is shown alongside |
 | Long conversations | Sessions where the input read per response (new input plus cache reads and writes) in the last quarter of the conversation was at least 4 times that of the first quarter, peaking at 100K tokens or more (estimated cost $0.5 or more; only sessions with 8 or more responses, from agents that record tokens) |
 | Expensive models for light work | Total for sessions that mainly used Opus-class models, had 3 or fewer prompts, edited no files and cost $0.3 or more |
@@ -134,7 +133,6 @@ The image shows the English view. In a Japanese browser it is shown in Japanese 
 | Sessions with possible friction | Up to 3 sessions started in the period with at least one correction or interruption, or 15 or more prompts, most first |
 | Oversized prompts | Number of prompts of 4,000+ characters in the period, and the length of the longest |
 | Repeated prompts | Prompts of 12+ characters in the period, grouped by how similar their text is; up to 3 written in 3 or more sessions, most first |
-| Daily and weekly rhythm | Work time per day in week view and per week in month view (with late night) |
 
 ### How you used AI
 
@@ -147,7 +145,7 @@ The image shows the English view. In a Japanese browser it is shown in Japanese 
 | By model | Estimated cost and tokens per model |
 | Subagents | Number of `Task` / `Agent` calls, their types and total run time. Session details show when, to which type, what was asked, and how long it took |
 | Kiro credits | Actual credits recorded in Kiro history |
-| Daily usage | Tokens, estimated cost and credits per day, counted on the day they were recorded |
+| Daily trend | A bar chart per day that switches between tokens, credits, estimated cost, active time, sessions and prompts; tokens and the like are counted on the day they were recorded |
 | Estimated cost per prompt | Estimated cost ÷ number of prompts |
 | Heaviest sessions | The top 3 sessions by estimated cost |
 
@@ -209,7 +207,6 @@ Press "?" on any metric in the view to see the same explanation. It is also incl
 | Project switches per day | How much you moved between projects | Whether switching is bad (you may just be using wait time well) | If high, next period limit each day to 2–3 projects |
 | Parallel time | Whether you kept several sessions going in parallel | What the parallel work achieved | If low, give AI another task while it works |
 | Wait time | How quickly you responded to AI replies | Shorter is not always better (you may be moving on without checking) | If long, use notifications or batch your reviews |
-| Late night | How much you worked outside normal hours | Whether you are overworking | If not intended, set a time to stop working next period |
 | Weekend | How much you worked on weekends | Whether you are overworking | If not intended, pick a day off for next period |
 | Prompts with corrections or interruptions | Roughly how often a first prompt did not get your intent across | Estimates can be wrong, and they don't show the cause | If high, add background, constraints and done criteria to your prompts |
 | Long conversations | Sessions where each response got heavier as the conversation went on | Whether continuing the conversation was the right call (some work needs the earlier context) | At a good stopping point, write down the key points and continue in a new session |
@@ -219,8 +216,7 @@ Press "?" on any metric in the view to see the same explanation. It is also incl
 | Oversized prompts | Whether you hand over large inputs at once, such as pasting whole logs or documents | Whether that length was needed (some long prompts, like design explanations, are fine) | Next period, put long logs or documents in a file and write only its path and the part to look at |
 | Repeated prompts | Routine requests you type every time | Whether those requests worked well | Next period, write the most repeated one once as a custom command or in CLAUDE.md |
 | Time by project | How you split your time | Whether the split was right | If it differs from what you intended, revisit your priorities |
-| Daily and weekly rhythm | Ups and downs in your workload | What caused them | If work piles up on certain days, rethink how you distribute it |
-| Daily usage | Which days you used AI the most | Whether that day's usage was appropriate | Open the sessions on outlier days to see why they were heavy |
+| Daily trend | Which days you worked the most and used AI the most | Whether that day's usage was appropriate | Open the sessions on outlier days to see why they were heavy |
 | Estimated cost (API pricing) | A rough way to compare how heavy usage was, in money | What you are actually billed (subscriptions differ) | Open the sessions behind the increase, and next period keep that kind of work in shorter conversations |
 | Month-end projection (estimate) | Roughly where this month is heading at the current pace | Your actual bill, or how you will work from now on (it is off if the pace changes) | If it is too high, look at the heavy sessions and models |
 | Tokens | How much you consumed | Whether more or less is good | Look for skew by project and by day |

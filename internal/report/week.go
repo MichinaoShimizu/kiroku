@@ -15,8 +15,6 @@ import (
 const (
 	FocusMin    = 60 // これ以上続いたら「集中ブロック」
 	FocusBridge = 5  // この分数までの切れ目はつながっているとみなす
-	NightFrom   = 22 // 深夜の時間帯
-	NightTo     = 6
 )
 
 type Block struct {
@@ -28,7 +26,6 @@ type Block struct {
 
 type Day struct {
 	Active   int     `json:"active"`
-	Night    int     `json:"night"`
 	Switches int     `json:"switches"`
 	Prompts  int     `json:"prompts"`
 	Tokens   float64 `json:"tokens"`  // その日のトークン（入力・出力・キャッシュの合計）
@@ -89,7 +86,6 @@ type Summary struct {
 	AI            int                `json:"ai"`
 	Parallel      int                `json:"parallel"`
 	MaxConc       int                `json:"maxConc"`
-	Night         int                `json:"night"`
 	Weekend       int                `json:"weekend"`
 	Focus         []Block            `json:"focus"`
 	SwitchesAvg   float64            `json:"switchesAvg"`
@@ -216,11 +212,7 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 		t := ws + float64(m)*60
 		return max(0, sort.Search(nd, func(i int) bool { return dayStart[i] > t })-1)
 	}
-	isNight := func(m int) bool {
-		h := int((ws + float64(m)*60 - dayStart[dayOf(m)]) / 3600)
-		return h >= NightFrom || h < NightTo
-	}
-	night, weekend := 0, 0
+	weekend := 0
 	for _, m := range active {
 		names := distinctProjects(mins[m])
 		for _, p := range names {
@@ -234,9 +226,6 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 			parallel++
 		}
 		maxConc = max(maxConc, c)
-		if isNight(m) {
-			night++
-		}
 		if dayWeekend[dayOf(m)] {
 			weekend++
 		}
@@ -299,9 +288,6 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 	days := make([]Day, nd)
 	for _, m := range active {
 		days[dayOf(m)].Active++
-		if isNight(m) {
-			days[dayOf(m)].Night++
-		}
 	}
 	prevDay, prevProj := -1, ""
 	for _, x := range prompts {
@@ -477,7 +463,7 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 		ProjectStats: projectStats(data, ws, we, projects, projOrder, commits),
 		Shares:       map[string][]Share{"branch": shares(data, ws, we, mins, ShareKeys["branch"]), "source": shares(data, ws, we, mins, ShareKeys["source"])},
 		FixRate:      fixRate, CostPerAsk: costPer, Usage: usage, Start: wsT.Format("2006-01-02"), Sessions: sessions, Prompts: np,
-		Active: len(active), AI: ai, Parallel: parallel, MaxConc: maxConc, Night: night, Weekend: weekend,
+		Active: len(active), AI: ai, Parallel: parallel, MaxConc: maxConc, Weekend: weekend,
 		Focus: blocks, SwitchesAvg: core.Round(float64(swSum)/float64(activeDays), 1), SwitchesMax: swMax,
 		WaitMedian: pick(0.5), WaitP90: pick(0.9), WaitCount: len(waits), Projects: projList, Days: days,
 		Friction: friction, start: wsT, end: weT,

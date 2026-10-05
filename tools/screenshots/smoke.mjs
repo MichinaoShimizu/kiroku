@@ -113,7 +113,7 @@ for (const env of envs) {
     const n = await p.locator(".flagsum .flink").count();
     const bar = p.locator("#review .ubar .c[data-tip]").first(); await bar.scrollIntoViewIfNeeded(); await pause();
     const bb = await bar.boundingBox(); await p.mouse.move(bb.x + bb.width / 2, bb.y + bb.height - 20); await p.waitForTimeout(100);
-    check("日ごとの使用量の棒にマウスを載せると値が出る", await p.evaluate(() => document.querySelector("#tip").classList.contains("on") && /\d/.test(document.querySelector("#tip").innerText)));
+    check("日ごとの推移の棒にマウスを載せると値が出る", await p.evaluate(() => document.querySelector("#tip").classList.contains("on") && /\d/.test(document.querySelector("#tip").innerText)));
     await p.mouse.move(0, 0);
     check("繰り返したプロンプトの欄がある", await p.locator('#review .hb[data-help="repeats"]').count() > 0);
     check("見直す候補の数だけ、指標に印が付く", n > 0 && await p.locator(".fl").count() >= n, `候補 ${n}`);

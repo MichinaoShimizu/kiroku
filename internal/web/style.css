@@ -4,7 +4,7 @@
   color-scheme:light;
   --bg:#f3f4f6; --surface:#ffffff; --surface-2:#eceef2; --ink:#121419; --ink-2:#464b56; --ink-3:#5f6573;
   --rule:#e1e4ea; --rule-2:#cdd2db; --acc:#4338ca; --acc-ink:#3730a3; --on-acc:#ffffff; --heatk:22%; --acc-soft:rgba(67,56,202,.08); --warn:#b42318; --on-warn:#ffffff;
-  --night:rgba(18,20,25,.035); --weekend:rgba(18,20,25,.022);
+  --weekend:rgba(18,20,25,.022);
   --sat:#1d4ed8; --sun:#dc2626; --sat-bg:rgba(37,99,235,.06); --sun-bg:rgba(220,38,38,.06); /* 土曜は青、日曜は赤（日本のカレンダーと同じ） */
   --shadow:0 1px 2px rgba(16,18,24,.06),0 12px 32px -14px rgba(16,18,24,.22);
   --c0:#0072b2; --c1:#d55e00; --c2:#009e73; --c3:#cc79a7; --c4:#e69f00; --c5:#56b4e9; --c6:#7a5cc4; --c7:#9a8a00; --other:#9aa0ab;
@@ -17,7 +17,7 @@
   color-scheme:dark;
   --bg:#0e0f13; --surface:#16181e; --surface-2:#1e2129; --ink:#eceef3; --ink-2:#b4b9c4; --ink-3:#8c92a0;
   --rule:#252832; --rule-2:#333743; --acc:#818cf8; --acc-ink:#a5b4fc; --on-acc:#0e0f13; --heatk:42%; --acc-soft:rgba(129,140,248,.12); --warn:#f97066; --on-warn:#0e0f13;
-  --night:rgba(255,255,255,.025); --weekend:rgba(255,255,255,.018);
+  --weekend:rgba(255,255,255,.018);
   --sat:#8fb3ff; --sun:#ff8f8f; --sat-bg:rgba(110,150,255,.075); --sun-bg:rgba(255,110,110,.075);
   --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -16px rgba(0,0,0,.7);
   --c0:#3a9be0; --c1:#f07a2b; --c2:#1fbf8f; --c3:#e08fbd; --c4:#f2b53a; --c5:#7cc6f0; --c6:#9c84e6; --c7:#c9b51c; --other:#6b7180;
@@ -116,11 +116,10 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .day{position:relative;border-left:1px solid var(--rule);background-image:linear-gradient(var(--rule) 1px,transparent 1px);background-size:100% var(--hh)}
 .day.we{background-color:var(--weekend)}
 .day.sat{background-color:var(--sat-bg)}.day.sun{background-color:var(--sun-bg)}
-.head.sat b,.head.sat i,.mgrid .mh.sat,.cell.sat .dn,.ubar .c.sat .l,.rhythm .col.sat .l{color:var(--sat)}
-.head.sun b,.head.sun i,.mgrid .mh.sun,.cell.sun .dn,.ubar .c.sun .l,.rhythm .col.sun .l{color:var(--sun)}
-.head.sat{background:var(--sat-bg)}.head.sun{background:var(--sun-bg)}.mgrid .mh.sat,.mgrid .mh.sun,.ubar .c.sat .l,.ubar .c.sun .l,.rhythm .col.sat .l,.rhythm .col.sun .l{font-weight:700}
+.head.sat b,.head.sat i,.mgrid .mh.sat,.cell.sat .dn,.ubar .c.sat .l{color:var(--sat)}
+.head.sun b,.head.sun i,.mgrid .mh.sun,.cell.sun .dn,.ubar .c.sun .l{color:var(--sun)}
+.head.sat{background:var(--sat-bg)}.head.sun{background:var(--sun-bg)}.mgrid .mh.sat,.mgrid .mh.sun,.ubar .c.sat .l,.ubar .c.sun .l{font-weight:700}
 .day.today{background-color:color-mix(in oklab,var(--acc) 4%,transparent)}
-.day .nb{position:absolute;left:0;right:0;background:var(--night);pointer-events:none}
 .run{position:absolute;border-radius:8px;padding:4px 7px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;gap:2px;
   background:color-mix(in oklab,var(--c) var(--fill),var(--surface));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--c) 55%,transparent);
   font-size:11px;line-height:1.3;color:var(--ink);text-align:left;
@@ -156,9 +155,10 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .ubar .v{font-size:11.5px;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums;height:14px;white-space:nowrap}
 .ubar .c[data-tip]:hover .b{box-shadow:0 0 0 2px color-mix(in oklab,var(--acc) 40%,transparent)}
 .ocdaily{margin-top:18px;padding-top:4px;border-top:1px dashed var(--rule-2)}.ocdaily h3{margin-top:12px;font-size:12.5px;font-weight:700;color:var(--ink)}
-.stack>span[data-tip]:hover,.mstack>span[data-tip]:hover,.rhythm .col[data-tip]:hover .colbar{filter:brightness(1.15)}
+.stack>span[data-tip]:hover,.mstack>span[data-tip]:hover{filter:brightness(1.15)}
 .useg{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:2px 0 4px}
 .useg .segc button{height:24px;font-size:11.5px}
+.useg{flex-wrap:wrap;row-gap:6px}.useg .segc{flex-wrap:wrap;max-width:100%} /* 見るものが多いとき、狭い画面ではタブを折り返す */
 /* ── project（プロジェクト別のまとめ） ──────────────────── */
 .panel.projs,.panel.oc{grid-column:1/-1}
 /* コストとアウトプット：使ったもの → 残ったもの を左右に、くらべる指標を下に。両側とも 2 列で、カードの最低の高さをそろえる */
@@ -361,17 +361,6 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .stat .v{font:700 19px/1.3 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin-top:2px}
 .stat .v small{font-size:11.5px;font-weight:500;color:var(--ink-2);margin-left:2px}
 .stat .s{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums;line-height:1.5;margin-top:2px}
-.rhythm{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:end;height:128px;padding-top:6px}
-.col{display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;cursor:default;min-width:0}
-.colbar{width:100%;max-width:28px;border-radius:6px;background:var(--acc);display:flex;flex-direction:column-reverse;overflow:hidden;min-height:2px;opacity:.85;transition:opacity .2s}
-.colbar .nt{background:repeating-linear-gradient(135deg,var(--acc) 0 2px,color-mix(in oklab,var(--acc) 40%,var(--surface)) 2px 4px)}
-.col:hover .colbar{opacity:1}
-.col .l{font-size:11px;color:var(--ink-3)}
-.col.today .l{color:var(--acc-ink);font-weight:700}
-.col .v{font-size:10.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;height:14px}
-.keyrow{display:flex;gap:14px;font-size:11px;color:var(--ink-3);margin-top:12px;justify-content:flex-end}
-.keyrow i{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:-1px;margin-right:5px;background:var(--acc);opacity:.85}
-.keyrow i.nt{background:repeating-linear-gradient(135deg,var(--acc) 0 2px,color-mix(in oklab,var(--acc) 40%,var(--surface)) 2px 4px)}
 .stack{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;margin-bottom:10px}
 .stack span{background:var(--c);min-width:2px}
 .prow{display:grid;grid-template-columns:12px 1fr auto 40px;align-items:center;gap:8px;padding:4px 0;font-size:12.5px}
