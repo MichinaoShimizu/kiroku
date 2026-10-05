@@ -103,7 +103,7 @@ function render(){
   // legend（この期間にあるものを多い順に）
   const cnt = {}; inRange.forEach(s => cnt[keyOf(s)] = (cnt[keyOf(s)]||0)+1);
   $("#legend").innerHTML = `<label class="cbsel"><span class="sr">Color by</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${l}</option>`).join("")}</select></label><span class="lab"><span class="ln">${CB()[st.colorBy]}</span><small> (sessions)</small></span>` +
-    Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}" title="${esc(`${(k)}: ${plural(cnt[k], "session")} (click to show or hide)`)}"><span class="dot"></span>${esc((k))}<span class="n">${cnt[k]}<span class="sr"> sessions</span></span></button>`).join("") +
+    Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}" title="${esc(`${(k)}: ${plural(cnt[k], "session")} (click to show or hide)`)}"><span class="dot"></span>${st.colorBy === "source" ? agMark(k) : ""}${esc((k))}<span class="n">${cnt[k]}<span class="sr"> sessions</span></span></button>`).join("") +
     `<span class="count">${shown.length} / ${inRange.length} sessions${st.q ? ` · <button class="flink" id="tosr">All-time search results ↓</button>` : ""}</span>`;
   const cb2 = $("#cb2"); if (cb2) cb2.onchange = () => { st.colorBy = cb2.value; st.hidden.clear(); store.set("colorBy", st.colorBy); render(); };
   const tosr = $("#tosr"); if (tosr) tosr.onclick = () => $("#review").scrollIntoView({behavior:"smooth"});
@@ -215,7 +215,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     dayGit.forEach(c => {
       const y = Math.max((c.t-ds)/3600*hh, gy + 17); gy = y;
       html += `<button class="gc${c.ai ? " ai" : ""}${st.sel === "git:"+c.hash ? " sel" : ""}" data-c="${esc(c.hash)}" style="top:${y}px" title="${esc(`${hm(c.t)} ${c.project}${c.branch ? " · "+c.branch : ""} · ${c.hash}\n${c.subject}\n${plural(c.nFiles, "file")} +${c.added} −${c.removed}${c.ai ? " · run by AI" : ""}`)}" aria-label="${esc(`Commit ${hm(c.t)} ${c.subject}`)}">${GIT_ICON}<span>${esc(c.hash.slice(0,7))}</span></button>`; });
-    limitHits(ds, de).filter(h => matches(h.s)).forEach(h => { html += `<button class="lim" data-id="${esc(h.s.id)}" style="top:${(h.t-ds)/3600*hh}px" title="${esc(`${hm(h.t)} Hit the usage limit (${h.s.title})`)}" aria-label="${esc(`${hm(h.t)} usage limit`)}">Limit</button>`; });
+    limitHits(ds, de).filter(h => matches(h.s)).forEach(h => { html += `<button class="lim" data-id="${esc(h.s.id)}" style="top:${(h.t-ds)/3600*hh}px" title="${esc(`${hm(h.t)} Hit the usage limit (${h.s.title})`)}" aria-label="${esc(`${hm(h.t)} usage limit`)}">${ico("limit")}Limit</button>`; });
     if (isToday && nowS >= ds && nowS < de) html += `<div class="nowline" style="top:${(nowS-ds)/3600*hh}px"></div>`;
     cols += `<div class="day${day.getDay()%6===0?" we":""}${wkc(day.getDay())}${isToday?" today":""}" style="height:${H}px;--g:${dayGit.length ? 18 : 0}px">${html}</div>`;
   }
@@ -621,7 +621,7 @@ function findList(w, pw, unit){
 const GOTO = {longctx: "heavy", modelfit: "models"}; // 専用の指標がない候補は、関係する指標に印を付ける
 function flagSum(F){ // サマリーの先頭に、基準を超えた指標の名前だけを優先度の高い順に並べる（押すとその指標へ）
   const ids = [...new Set(F.map(f => GOTO[f.k] || f.k))];
-  return `<div class="flagsum"><span class="lbl"><i class="fdot"></i>Worth a look${hb("findings")}</span>${ids.length
+  return `<div class="flagsum"><span class="lbl">${ico("flag", "fdot")}Worth a look${hb("findings")}</span>${ids.length
     ? ids.map(id => `<button class="flink" data-goto="${id}">${esc(H()[id].n)}</button>`).join("")
     : `<span class="muted">No metric crossed a threshold</span>`}${hint("findings")}</div>`;
 }
@@ -632,9 +632,9 @@ function placeFlags(R, F){ // 基準を超えた指標の、その場に印・�
     const panel = t.closest(".panel"), shown = new Set([...panel.querySelectorAll(".card[data-id]")].map(c => c.dataset.id)); // すぐ下にカードで並ぶセッションは繰り返さない
     const ids = f.k === "friction" ? [] : f.ids.filter(id => !shown.has(id)), more = ids.length - 3;
     const own = !GOTO[f.k] && t.closest(".stat"); // 自分の数字の上に出す印は、数字の言い直し（見えたこと）を省く
-    const html = `<div class="fl">${own ? "" : `<p class="see"><i class="fdot"></i>${f.see}</p>`}<p class="why">${esc(f.why)}</p>${spark(f.k)}${ids.length ? `<div class="fss">${ses(ids.slice(0, 3))}${more > 0 ? `<p class="more">${`${more} more`}</p>` : ""}</div>` : ""}<p class="rule">Threshold: ${esc(f.rule)}</p></div>`;
+    const html = `<div class="fl">${own ? "" : `<p class="see">${ico("flag", "fdot")}${f.see}</p>`}<p class="why">${esc(f.why)}</p>${spark(f.k)}${ids.length ? `<div class="fss">${ses(ids.slice(0, 3))}${more > 0 ? `<p class="more">${`${more} more`}</p>` : ""}</div>` : ""}<p class="rule">Threshold: ${esc(f.rule)}</p></div>`;
     const dt = t.closest("details"); // 閉じた折りたたみの中の印は、見出しにも出し、自分で閉じていなければ開いておく
-    if (dt){ const sm = dt.querySelector("summary"); if (!sm.querySelector(".fdot")) sm.insertAdjacentHTML("beforeend", `<i class="fdot" title="A metric crossed a threshold"></i>`); if (st.moreS !== false && !dt.open){ dt.dataset.auto = "1"; dt.open = true; } }
+    if (dt){ const sm = dt.querySelector("summary"); if (!sm.querySelector(".fdot")) sm.insertAdjacentHTML("beforeend", `<span title="A metric crossed a threshold">${ico("flag", "fdot")}</span>`); if (st.moreS !== false && !dt.open){ dt.dataset.auto = "1"; dt.open = true; } }
     const stat = t.closest(".stat");
     if (stat){ stat.classList.add("flagged"); stat.insertAdjacentHTML("beforeend", html); return; }
     const a = t.closest("h3, .ph, .cap, div"), next = a.nextElementSibling;
@@ -858,6 +858,22 @@ function bindCopy(root){ root.querySelectorAll("[data-copy]").forEach(b => b.onc
 
 /* git のコミットの印（コミットのノード: 線の上の丸） */
 const GIT_ICON = `<svg class="gi" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8h4.2M10.8 8H15"/><circle cx="8" cy="8" r="2.8"/></svg>`;
+/* 色だけに頼らず、形でも見分けられるようにする小さな印（16×16、線は currentColor）。意味は必ず文字（凡例・ツールチップ）でも出す */
+const ICON_PATH = {
+  commit: '<path d="M1 8h4.2M10.8 8H15"/><circle cx="8" cy="8" r="2.8"/>',
+  pr: '<circle cx="4" cy="3.5" r="1.6"/><circle cx="4" cy="12.5" r="1.6"/><circle cx="12" cy="12.5" r="1.6"/><path d="M4 5.1v5.8M12 10.9V7a2.5 2.5 0 0 0-2.5-2.5H7M8.5 3 7 4.5 8.5 6"/>',
+  limit: '<path d="M4 2h8M4 14h8M5 2c0 3.2 3 4.3 3 6s-3 2.8-3 6M11 2c0 3.2-3 4.3-3 6s3 2.8 3 6"/>',
+  int: '<circle cx="8" cy="8" r="6"/><path d="M6.4 5.6v4.8M9.6 5.6v4.8"/>',
+  agent: '<path d="M3 2.5v4a3 3 0 0 0 3 3h7M10 6.5l3 3-3 3"/>',
+  note: '<path d="M4.2 10.8V7a3.8 3.8 0 0 1 7.6 0v3.8l1.2 1.4H3zM6.6 14a1.5 1.5 0 0 0 2.8 0"/>',
+  command: '<path d="M10.5 2.5 5.5 13.5"/>',
+  shell: '<path d="M3 4.5 6.5 8 3 11.5M8 12h5"/>',
+  flag: '<path d="M8 1.8 14.6 13.4H1.4z"/><path d="M8 6.2v3.4M8 11.4v.1"/>',
+};
+const ico = (k, cls = "") => `<svg class="ic${cls ? " " + cls : ""}" viewBox="0 0 16 16" aria-hidden="true">${ICON_PATH[k] || ""}</svg>`;
+/* エージェントの目印：ロゴは使わず、頭文字のバッジにする */
+const AG_MARK = {"Claude Code": "CC", "Kiro IDE": "KI", "Kiro IDE (legacy)": "KI", "Kiro CLI": "KC", "Kiro CLI (SQLite)": "KC", "Kiro Crew": "KW", "Amazon Q": "Q", "Codex": "CX"};
+const agMark = name => `<i class="agm" aria-hidden="true">${esc(AG_MARK[name] || String(name).slice(0, 2).toUpperCase())}</i>`;
 /* リンク：外のページ（GitHub など）は新しいタブで開く */
 function ext(url, label, cls){ return url ? `<a class="xl${cls ? " "+cls : ""}" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label}</a>` : label; }
 function fileHref(path){ // HTML で見るときの履歴ファイルの file:// の URL（Windows のパスにも対応）
@@ -917,7 +933,7 @@ function detail(s){
   const allTok = [s.usage, ...s.subagents.map(a=>a.usage)].reduce((t,u)=>t + (u ? u.in+u.out+u.cw+u.cw1h+u.cr : 0), 0);
   const P = $("#panel");
   P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
-    <div class="eyebrow"><span class="dot"></span>${esc((s.source))}</div>
+    <div class="eyebrow"><span class="dot"></span>${agMark(s.source)}${esc((s.source))}</div>
     <h2>${esc(s.title)}</h2>
     <div class="muted" style="font-variant-numeric:tabular-nums">${md(s.start)} ${hm(s.start)} – ${sameDay ? "" : md(s.end)+" "}${hm(s.end)}</div>
     <div class="meta"><span>${esc(s.project)}</span>${s.branch?`<span>${esc(s.branch)}</span>`:""}</div>
@@ -1003,13 +1019,14 @@ function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面で�
   s.subagents.forEach(a => { if (a.start) ev.push({t: a.start, k: "agent", l: "Subagent", d: `<span class="evd"><span class="mono">${esc(a.type)}</span>${a.desc ? ` · ${esc(a.desc)}` : ""}</span>`}); });
   return ev.sort((a, b) => a.t - b.t);
 }
+const EV_ICON = {commit: "commit", pr: "pr", warn: "limit", int: "int", agent: "agent", note: "note"}; // 流れの出来事の種類 → 印
 const pexpLabel = p => p.len > 0 ? `Read more (${p.len.toLocaleString()} characters)` : "Show all";
 function promptFlow(s){
   const ev = flowEvents(s), rows = [];
   let e = 0, n = 0, hiddenEv = 0, gap = null; // gap: 前のプロンプトのあと、長くあいたところ {from: AI が最後に動いた時刻, v: 秒}
   const hide = () => n > FLOW_SHOW ? " hidden" : "";
   const flush = until => { for (; e < ev.length && ev[e].t < until; e++){ if (hide()) hiddenEv++;
-    rows.push(`<li class="ev ${ev[e].k}"${hide()}><time>${hm(ev[e].t)}</time><p><span class="evl">${ev[e].l}</span>${ev[e].d || ""}</p></li>`); } };
+    rows.push(`<li class="ev ${ev[e].k}"${hide()}><time>${hm(ev[e].t)}</time>${ico(EV_ICON[ev[e].k.split(" ")[0]])}<p><span class="evl">${ev[e].l}</span>${ev[e].d || ""}</p></li>`); } };
   s.prompts.forEach((p, i) => {
     if (p.t){ flush(p.t); // あいた間に起きたこと（手でのコミットなど）は、区切りの上に出す
       if (gap){ rows.push(`<li class="gap"${hide()}><p>${`${hm(gap.from)}–${hm(p.t)}: ${span(gap.v)} gap`}</p></li>`); gap = null; } }
@@ -1017,18 +1034,17 @@ function promptFlow(s){
     const t = String(p.text || ""), long = t.length > 220, fix = !p.kind && FIXRE.test(t), cut = p.len > 0;
     const more = cut ? `<span class="pcut"> ${`(first ${PROMPT_RUNES} of ${p.len.toLocaleString()} characters)`}${LIVE ? ` <button class="pload" data-i="${i}">Load the full prompt</button>` : ` Open with kiroku serve to read it in full.`}</span>` : "";
     const meta = [p.work ? `AI worked ${span(p.work)}` : "", p.wait && p.wait <= FLOW_GAP ? `wait ${secs(p.wait)}` : ""].filter(Boolean).join(" · ");
-    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + p.kind : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><p>${fix ? `<span class="sr">Looks like a correction: </span>` : ""}${p.kind ? `<span class="pkind">${PKIND()[p.kind] || esc(p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${`Long · ${plen(p).toLocaleString()} chars`}</span>` : ""}<span class="ptext">${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${pexpLabel(p)}</button>` : esc(t)}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
+    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + p.kind : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><p>${fix ? `<span class="sr">Looks like a correction: </span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${PKIND()[p.kind] || esc(p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${`Long · ${plen(p).toLocaleString()} chars`}</span>` : ""}<span class="ptext">${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${pexpLabel(p)}</button>` : esc(t)}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
     if (p.t && p.wait > FLOW_GAP) gap = {from: p.t + p.work, v: p.wait};
   });
   flush(Infinity);
   const fixes = s.prompts.some(p => !p.kind && FIXRE.test(String(p.text || ""))), kinds = new Set(ev.map(x => x.k.split(" ")[0])), cmds = s.prompts.some(p => p.kind);
   const names = list => { const t = list.filter(([k]) => kinds.has(k)).map(([, x]) => x).join(", "); return t.charAt(0).toUpperCase() + t.slice(1); }; // そのセッションにあるものの名前だけ
-  const warn = names([["int", "interruption"], ["warn", "usage limit"]]), other = names([["commit", "commit"], ["pr", "pull request"], ["agent", "subagent"]]);
   const key = [`<span><i class="kp"></i>User prompt</span>`,
     cmds ? `<span><i class="kp cmd"></i>Commands the user typed (/ or !)</span>` : "",
-    kinds.has("note") ? `<span><i class="ke note"></i>Added automatically (notifications, summaries, hooks; not counted as prompts)</span>` : "",
+    kinds.has("note") ? `<span class="kev note">${ico("note")}Added automatically (notifications, summaries, hooks; not counted as prompts)</span>` : "",
     fixes ? `<span><i class="kp fix"></i>Looks like a correction (guessed from the wording)</span>` : "",
-    warn ? `<span><i class="ke int"></i>${warn}</span>` : "", other ? `<span><i class="ke"></i>${other}</span>` : ""].filter(Boolean).join("");
+    ...[["commit", "Commit"], ["pr", "Pull request"], ["agent", "Subagent"], ["int", "Interruption"], ["warn", "Usage limit"]].filter(([k]) => kinds.has(k)).map(([k, l]) => `<span class="kev ${k}">${ico(EV_ICON[k])}${l}</span>`)].filter(Boolean).join("");
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";
   const bar = `<div class="flowbar"><div class="segc" role="group" aria-label="Show" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">Everything</button><button data-v="user" aria-pressed="${!!st.flowUser}">Only user prompts</button></div><button class="pill" id="pcopy">Copy prompts</button></div>`;
   return `${bar}<div class="tlkey">${key}</div><ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${`Show ${plural(rest, "more prompt")}${also}`}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${"\"AI worked\" is the time from a prompt to the AI's last activity; \"wait\" is the time from there to your next prompt. Both are estimates from the history's timestamps."}</p>` : ""}`;
