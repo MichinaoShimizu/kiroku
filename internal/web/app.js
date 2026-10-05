@@ -319,7 +319,6 @@ function summary(){
     ${aiUsage(w, pw, unit) || `<p class="none">${tr("トークンやクレジットの記録はありません。", "No token or credit records.")}</p>`}
     ${nativeSection(w)}</section>
   <section class="panel shape">${ph(5, M ? tr("月のかたち", "Shape of the month") : tr("週のかたち", "Shape of the week"), tr("どこに時間を使ったか", "Where your time went"))}
-    ${rhythm(w, M)}
     <h3>${tr("プロジェクトの配分", "Time by project")}${hb("share")}</h3>${hint("share")}
     <div class="stack" role="img" aria-label="${tr("プロジェクト別の配分", "Time by project")}">${w.projects.map(([k,v])=>`<span style="flex:${v};--c:${st.colorBy==="project"?colorOf(k):"var(--ink-3)"}" ${tipAttr(k, `${dur(v)}${tr(`（${Math.round(v*100/total)}%）`, ` (${Math.round(v*100/total)}%)`)}`)}></span>`).join("")}</div>
     ${w.projects.slice(0,8).map(([k,v])=>`<div class="prow" style="--c:${st.colorBy==="project"?colorOf(k):"var(--ink-3)"}"><i></i><span class="nm">${esc(k)}</span><span class="tm">${dur(v)}</span><span class="pc">${Math.round(v*100/total)}%</span></div>`).join("")}
@@ -426,8 +425,7 @@ const HELP = {
   bigPrompts: {n:"長すぎるプロンプト", d:"期間中の 4,000 文字以上のプロンプトの数と、いちばん長いものの文字数", c:"ログや資料をそのまま貼るなど、1 回に大きな入力を渡していないか", x:"その長さが必要だったか（設計の説明など、長くて良いものもある）", a:"次の期間は、長いログや資料はファイルにして、パスと見てほしいところだけを書く"},
   repeats: {n:"繰り返したプロンプト", d:"期間中の 12 文字以上のプロンプトを、文字の並びの似かたでまとめ、3 つ以上のセッションで書いたものを多い順に 3 件", c:"毎回書いている決まったプロンプト", x:"そのプロンプトでうまくいったかどうか", a:"次の期間は、いちばん多いプロンプトをカスタムコマンドか CLAUDE.md に一度書いておく"},
   share: {n:"プロジェクトの配分", d:"プロジェクトごとの作業時間の割合", c:"時間の配分", x:"配分の妥当さ", a:"想定と違えば、優先順位を見直す"},
-  rhythm: {n:"日ごと・週ごとのリズム", d:"週表示では日ごと、月表示では週ごとの作業時間（うち深夜）", c:"作業量の波と偏り", x:"波の原因", a:"特定の日に偏っていれば、作業の割り振りを見直す"},
-  daily: {n:"日ごとの使用量", d:"日ごとのトークン・目安コスト・クレジット", c:"どの日に AI を多く使ったか", x:"その日の使い方が適切だったか", a:"突出した日のセッションを開いて、重かった理由を確認する"},
+  daily: {n:"日ごとの推移", d:"日ごとのトークン・クレジット・目安コスト・作業時間（うち深夜）・セッション・プロンプトを切り替えて見る棒グラフ", c:"どの日に多く作業し、AI を多く使ったか", x:"その日の使い方が適切だったか", a:"突出した日のセッションを開いて、重かった理由を確認する"},
   cost: {n:"目安コスト（API 換算）", d:"API の公開料金で換算した使用料。Claude Code が自身の使用料を記録しているセッションはその値（料金の改定・新しいモデル・自動要約など履歴に残らない呼び出しも含む）、ないときは履歴のトークン数に kiroku の料金表を掛けた値", c:"使用量の重さを金額で比べた目安", x:"実際の請求額（サブスクリプションとは異なる）", a:"増えた分のセッションを開き、同じ種類の作業は次の期間、会話を短く区切って進める"},
   projection: {n:"月末の見込み（推定）", d:"今月の途中で、月の初めから今日までの目安コスト（とクレジット）を今日までの日数で割り、月の日数を掛けた値。月の初めの 7 日と最後の日は出さない", c:"このペースだと今月どれくらいになりそうか", x:"実際の請求額や、これからの使い方（ペースが変われば外れる）", a:"多すぎるなら、重いセッションやモデルを見直す"},
   tokens: {n:"トークン", d:"入力・出力・キャッシュ読み取り・キャッシュ書き込みの合計", c:"消費した量", x:"多い・少ないの良し悪し", a:"プロジェクト別・日別の偏りを見る"},
@@ -467,8 +465,7 @@ const HELP_EN = {
   bigPrompts: {n: "Oversized prompts", d: "Number of prompts of 4,000+ characters in the period, and the length of the longest", c: "Whether you hand over large inputs at once, such as pasting whole logs or documents", x: "Whether that length was needed (some long prompts, like design explanations, are fine)", a: "Next period, put long logs or documents in a file and write only its path and the part to look at"},
   repeats: {n: "Repeated prompts", d: "Prompts of 12+ characters in the period, grouped by how similar their text is; up to 3 written in 3 or more sessions, most first", c: "Routine requests you type every time", x: "Whether those requests worked well", a: "Next period, write the most repeated one once as a custom command or in CLAUDE.md"},
   share: {n: "Time by project", d: "Share of work time per project", c: "How you split your time", x: "Whether the split was right", a: "If it differs from what you intended, revisit your priorities"},
-  rhythm: {n: "Daily and weekly rhythm", d: "Work time per day in week view and per week in month view (with late night)", c: "Ups and downs in your workload", x: "What caused them", a: "If work piles up on certain days, rethink how you distribute it"},
-  daily: {n: "Daily usage", d: "Tokens, estimated cost and credits per day", c: "Which days you used AI the most", x: "Whether that day's usage was appropriate", a: "Open the sessions on outlier days to see why they were heavy"},
+  daily: {n: "Daily trend", d: "A bar chart per day that switches between tokens, credits, estimated cost, active time (with late night), sessions and prompts", c: "Which days you worked the most and used AI the most", x: "Whether that day's usage was appropriate", a: "Open the sessions on outlier days to see why they were heavy"},
   cost: {n: "Estimated cost (API pricing)", d: "Usage priced at public API rates. Uses the cost Claude Code records for itself when available (this also covers price changes, new models and calls not in the history, such as auto-compaction); otherwise tokens in the history times the kiroku price table", c: "A rough way to compare how heavy usage was, in money", x: "What you are actually billed (subscriptions differ)", a: "Open the sessions behind the increase, and next period keep that kind of work in shorter conversations"},
   projection: {n: "Month-end projection (estimate)", d: "In a month in progress, the estimated cost (and credits) from the 1st through today, divided by the days so far and multiplied by the days in the month. Not shown for the first 7 days or on the last day", c: "Roughly where this month is heading at the current pace", x: "Your actual bill, or how you will work from now on (it is off if the pace changes)", a: "If it is too high, look at the heavy sessions and models"},
   tokens: {n: "Tokens", d: "Input, output, cache reads and cache writes combined", c: "How much you consumed", x: "Whether more or less is good", a: "Look for skew by project and by day"},
@@ -823,39 +820,28 @@ function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）�
     <div class="ocdaily">${usageChart(w, unit === "月")}</div>
     <p class="note">${tr("「Git のコミット」は、エージェントが作業したリポジトリにある自分のコミット（手で行ったものを含む）です。それ以外は AI がツールで実行し、成功したものだけを数えます（現在は Claude Code のみ）。数は出したものの量で、価値や生産性ではありません。", "\"Git commits\" are your own commits in the repositories agents worked in (including ones made by hand). Everything else counts only what AI ran with tools and that succeeded (Claude Code only for now). The counts measure what was produced, not its value or productivity.")}</p></section>`;
 }
-/* 日ごとの使用量（トークン・目安コスト・クレジットを切り替え） */
-function usageChart(w, M){
-  const has = {tokens: w.days.some(d => d.tokens), cost: w.days.some(d => d.cost >= 0.005), credits: w.days.some(d => d.credits)};
-  const opts = [["tokens",tr("トークン", "Tokens")],["cost",tr("目安コスト", "Estimated cost")],["credits",tr("クレジット", "Credits")]].filter(([k]) => has[k]);
+/* 日ごとの推移（トークン・クレジット・目安コスト・作業時間・セッション・プロンプトを切り替え。今までのリズムもここにまとめた） */
+function usageChart(w, M){ // 日ごとの推移：トークン・クレジット・目安コスト・作業時間・セッション・プロンプトを切り替えて 1 本の棒グラフで見る
+  const start = M ? st.month : st.week, today = key(today0());
+  const days = w.days.map((d, i) => { const dd = addDays(start, i), ds = dd.getTime()/1000;
+    return {...d, dd, sessions: DATA.filter(s => inP(s, ds, ds + 86400)).length}; });
+  const hrs = a => a >= 60 ? (a/60).toFixed(1)+tr("時間", "h") : a+tr("分", "m"), n = v => String(v);
+  const all = [["tokens", tr("トークン", "Tokens"), tok], ["credits", tr("クレジット", "Credits"), cr], ["cost", tr("目安コスト", "Estimated cost"), usd],
+    ["active", tr("作業時間", "Active time"), hrs], ["sessions", tr("セッション", "Sessions"), n], ["prompts", tr("プロンプト", "Prompts"), n]];
+  const opts = all.filter(([k]) => days.some(d => k === "cost" ? d.cost >= 0.005 : d[k]));
   if (!opts.length) return "";
-  const m = has[st.use] ? st.use : opts[0][0], fmt = {tokens: tok, cost: usd, credits: cr}[m];
-  const max = Math.max(...w.days.map(d => d[m] || 0)) || 1, today = key(today0()), total = w.days.reduce((t,d) => t + (d[m]||0), 0);
-  const start = M ? st.month : st.week;
-  const cols = w.days.map((d,i) => { const dd = addDays(start, i), v = d[m] || 0;
-    return `<div class="c${key(dd)===today?" today":""}${wkc(dd.getDay())}"${tipAttr(md(dd.getTime()/1000), useLines(d).length ? useLines(d) : tr("使用なし", "No usage"))}>
-      ${M ? "" : `<span class="v">${v ? fmt(v) : ""}</span>`}<div class="b" style="height:${v ? Math.max(2, v/max*112) : 0}px"></div>
+  const [m, , fmt] = opts.find(([k]) => k === st.use) || opts[0];
+  const max = Math.max(...days.map(d => d[m] || 0)) || 1, total = days.reduce((t,d) => t + (d[m]||0), 0);
+  const cols = days.map(d => { const v = d[m] || 0, dd = d.dd;
+    const tip = [tr(`作業 ${dur(d.active)}`, `Active ${dur(d.active)}`) + (d.night ? tr(`（うち深夜 ${dur(d.night)}）`, ` (late night ${dur(d.night)})`) : ""), tr(`セッション ${d.sessions}`, `Sessions ${d.sessions}`), tr(`プロンプト ${d.prompts}`, `Prompts ${d.prompts}`), ...useLines(d)];
+    return `<div class="c${key(dd)===today?" today":""}${wkc(dd.getDay())}"${tipAttr(md(dd.getTime()/1000), d.active || d.tokens || d.credits ? tip : tr("記録なし", "No records"))}>
+      ${M ? "" : `<span class="v">${v ? fmt(v) : ""}</span>`}<div class="b" style="height:${v ? Math.max(2, v/max*112) : 0}px">${m === "active" && v ? `<div class="nt" style="height:${d.night/v*100}%"></div>` : ""}</div>
       <span class="l">${M ? (dd.getDate() === 1 || dd.getDate() % 5 === 0 ? dd.getDate() : "") : dow(dd.getDay())}</span></div>`; }).join("");
-  return `<h3>${tr("日ごとの使用量", "Daily usage")}${hb("daily")}</h3>${hint("daily")}
-    <div class="useg"><div class="segc" role="group" aria-label="${tr("使用量の種類", "Usage type")}" id="useBy">${opts.map(([k,l]) => `<button data-v="${k}" aria-pressed="${k===m}">${l}</button>`).join("")}</div>
+  return `<h3>${tr("日ごとの推移", "Daily trend")}${hb("daily")}</h3>${hint("daily")}
+    <div class="useg"><div class="segc" role="group" aria-label="${tr("見るもの", "Show")}" id="useBy">${opts.map(([k,l]) => `<button data-v="${k}" aria-pressed="${k===m}">${l}</button>`).join("")}</div>
       <span class="muted" style="font-size:11.5px">${tr(`合計 ${fmt(total)}・最大 ${fmt(max)}/日`, `Total ${fmt(total)} · max ${fmt(max)}/day`)}</span></div>
-    <div class="ubar" style="grid-template-columns:repeat(${w.days.length},minmax(0,1fr))${M ? ";gap:2px" : ""}">${cols}</div>`;
-}
-/* 週なら日ごと、月なら週ごとの棒 */
-function rhythm(w, M){
-  const today = key(today0());
-  let cols;
-  if (!M) cols = w.days.map((x,i) => { const dd = addDays(st.week,i); return {l:dow(dd.getDay()), w:wkc(dd.getDay()), a:x.active, n:x.night, t:key(dd)===today, tip:[md(dd.getTime()/1000), tr(`作業 ${dur(x.active)}`, `Active ${dur(x.active)}`), tr(`深夜 ${dur(x.night)}`, `Late night ${dur(x.night)}`), tr(`プロンプト ${x.prompts}`, `Prompts ${x.prompts}`), tr(`切り替え ${x.switches}`, `Switches ${x.switches}`), ...useLines(x)]}; });
-  else { cols = []; w.days.forEach((x,i) => { const dd = new Date(st.month.getFullYear(), st.month.getMonth(), i+1), k = key(mondayOf(dd));
-      let c = cols.find(c => c.k === k); if (!c){ c = {k, l:`W${isoWeek(dd)}`, a:0, n:0, p:0, t:k===key(mondayOf(today0()))}; cols.push(c); }
-      c.a += x.active; c.n += x.night; c.p += x.prompts; });
-    cols.forEach(c => c.tip = [tr(`W${c.l.slice(1)}（${c.k} の週・この月の分）`, `W${c.l.slice(1)} (week of ${c.k}, this month's part)`), tr(`作業 ${dur(c.a)}`, `Active ${dur(c.a)}`), tr(`深夜 ${dur(c.n)}`, `Late night ${dur(c.n)}`), tr(`プロンプト ${c.p}`, `Prompts ${c.p}`)]); }
-  const max = Math.max(1, ...cols.map(c => c.a));
-  return `<h3>${M ? tr("週ごとのリズム", "Weekly rhythm") : tr("日ごとのリズム", "Daily rhythm")}${hb("rhythm")}</h3>${hint("rhythm")}
-    <div class="rhythm" style="grid-template-columns:repeat(${cols.length},1fr)">${cols.map(c => `<div class="col${c.t?" today":""}${c.w || ""}"${tipAttr(c.tip)}>
-        <span class="v">${c.a ? (c.a>=60 ? (c.a/60).toFixed(1)+tr("時間", "h") : c.a+tr("分", "m")) : ""}</span>
-        <div class="colbar" style="height:${c.a?Math.max(2,c.a/max*84):0}px"><div class="nt" style="height:${c.a?c.n/c.a*100:0}%"></div></div>
-        <span class="l">${c.l}</span></div>`).join("")}</div>
-    <div class="keyrow"><span><i></i>${tr("作業", "Active")}</span><span><i class="nt"></i>${tr("うち深夜", "Late night")}</span></div>`;
+    <div class="ubar" style="grid-template-columns:repeat(${days.length},minmax(0,1fr))${M ? ";gap:2px" : ""}">${cols}</div>
+    ${m === "active" ? `<div class="keyrow"><span><i></i>${tr("作業", "Active")}</span><span><i class="nt"></i>${tr("うち深夜（22〜6 時）", "Late night (22:00–6:00)")}</span></div>` : ""}`;
 }
 /* 計測の状態 */
 /* 履歴を自動で消すエージェント（既定のままの Claude Code など）を知らせ、公式ドキュメントへ案内する。閉じたら出さない */
