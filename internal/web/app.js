@@ -152,8 +152,9 @@ function render(){
   document.querySelector("header").inert = document.querySelector("main").inert = open; // 背後に Tab で入らない
   $("#back").hidden = !st.back.length;
   if (open && (!focusDrawer.was || focusDrawer.sel !== st.sel)) $(st.back.length ? "#back" : "#close").focus();
-  if (!open && focusDrawer.was) focusOpener(focusDrawer.first);
-  if (open && !focusDrawer.was) focusDrawer.first = st.sel;
+  if (!open && focusDrawer.was) focusOpener(focusDrawer.first, focusDrawer.from);
+  if (open && !focusDrawer.was){ focusDrawer.first = st.sel; focusDrawer.from = focusDrawer.next; }
+  focusDrawer.next = null;
   focusDrawer.was = open; focusDrawer.sel = st.sel;
   $("#tl").classList.toggle("focus", open);
   st.animate = false;
@@ -1090,13 +1091,24 @@ function sessionPrompt(s, active, med){
   if (s.prompts.length > 40) L.push(tr(`- ほか ${s.nPrompts - 40} 件`, `- ${s.nPrompts - 40} more`));
   return L.join("\n");
 }
-const focusDrawer = {was: false, sel: null, first: null};
-function focusOpener(sel){ // 閉じたら、詳細を開いた要素（帯・バッジ・カード）へフォーカスを戻す
+const focusDrawer = {was: false, sel: null, first: null, from: null, next: null};
+const OPENER_ATTRS = ["data-sid", "data-id", "data-s", "data-c", "data-git"];
+let lastClick = null; addEventListener("click", e => { lastClick = e.target; }, true); // Safari はボタンを押してもフォーカスが移らないので、押した要素も覚える
+function openerOf(el){ // 詳細を開いた要素を、描き直したあとも同じものを探せる形で覚える（どの枠の、どの属性の、何番目か）
+  el = el && el.closest && el.closest(OPENER_ATTRS.map(a => `[${a}]`).join(","));
+  const root = el && el.closest("#tl, #review"), a = root && OPENER_ATTRS.find(a => el.hasAttribute(a));
+  if (!a) return null;
+  const q = `[${a}="${CSS.escape(el.getAttribute(a))}"]`;
+  return {root: root.id, q, n: [...root.querySelectorAll(q)].indexOf(el), y: scrollY}; }
+function focusOpener(sel, from){ // 閉じたら、詳細を開いた要素（帯・バッジ・カード・検索結果）へフォーカスと読んでいた位置を戻す
+  if (from){ const r = document.getElementById(from.root), el = r && r.querySelectorAll(from.q)[from.n];
+    if (el){ scrollTo(0, from.y); el.focus({preventScroll: true}); return; } }
   if (!sel) return; const v = CSS.escape(sel.replace(/^git:/, ""));
   const el = sel.startsWith("git:") ? document.querySelector(`.gc[data-c="${v}"],[data-git="${v}"],[data-c="${v}"]`)
     : document.querySelector(`.run[data-sid="${v}"],[data-id="${v}"],[data-s="${v}"]`);
   if (el) el.focus({preventScroll: false}); }
 function select(id){ // 詳細の中で別の詳細へ移ったときは、戻れるように前のものを積む
+  if (id && !st.sel) focusDrawer.next = openerOf(lastClick) || openerOf(document.activeElement);
   if (id && st.sel && id !== st.sel){ st.back.push(st.sel); (st.backTop ||= []).push($("#panel").scrollTop); } else if (!id){ st.back = []; st.backTop = []; } // 戻ったとき、読んでいた位置に戻す
   st.sel = id; tipOff(); render(); if (id) $("#panel").scrollTop = 0; }
 
@@ -1387,7 +1399,16 @@ function openYear(){ const d = $("#yr"); if (!d.open) d.showModal(); renderYear(
 function go(n){
   if (st.mode === "month") st.month = n == null ? monthOf(today0()) : new Date(st.month.getFullYear(), st.month.getMonth()+n, 1);
   else st.week = n == null ? mondayOf(today0()) : addDays(st.week, 7*n);
-  st.sel = null; st.back = []; st.backTop = []; st.animate = true; $("#toast").classList.remove("on"); render(); scrollToWork(); }
+  const inCal = !!document.activeElement?.closest?.("#tl");
+  st.sel = null; st.back = []; st.backTop = []; st.animate = true; $("#toast").classList.remove("on"); render(); scrollToWork();
+  if (inCal) keepCalFocus(n); }
+function keepCalFocus(n){ // カレンダーの中にいたまま期間を移ったら、描き直しで消えたフォーカスを、新しい期間の最初のブロック（なければ押したボタン）へ
+  const sc = $("#tl .calscroll"), top = sc ? sc.scrollTop : 0;
+  const box = sc && sc.getBoundingClientRect(), head = sc && sc.querySelector(".head"), y0 = box ? box.top + (head ? head.offsetHeight : 0) : -Infinity;
+  const cands = [...$("#tl").querySelectorAll(".run, button.cell")], seen = cands.find(el => el.getBoundingClientRect().top >= y0); // 見出しに隠れていないもの
+  const el = seen || cands[0] || $(n == null ? "#today" : n < 0 ? "#prev" : "#next");
+  if (el) el.focus({preventScroll: true});
+  if (sc) sc.scrollTop = top; }
 function setMode(m){ if (m === "month" && st.mode !== "month") st.month = monthOf(addDays(st.week, 3));
   if (m === "week" && st.mode === "month" && monthOf(st.week).getTime() !== st.month.getTime()) st.week = mondayOf(st.month);
   st.mode = m; store.set("mode", m); st.sel = null; st.animate = true; render(); scrollToWork(); }
