@@ -40,9 +40,9 @@ function dur(m, html){ m = Math.round(m); const h = Math.floor(m/60), r = m%60;
   const u = x => html ? `<small>${x}</small>` : x; return h ? `${h}${u("h")}${r ? ` ${r}${u("m")}` : ""}` : `${r}${u("m")}`; }
 function tok(n){ n = n || 0; return n >= 1e9 ? (n/1e9).toFixed(1)+"B" : n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? Math.round(n/1e3)+"K" : String(n); }
 function usd(v){ return v == null ? "—" : v > 0 && v < 0.01 ? "<$0.01" : "$" + (v >= 100 ? Math.round(v).toLocaleString() : v.toFixed(2)); }
-function cr(v){ return `${Number(v.toFixed(2)).toLocaleString(LOC())} cr`; }
+const crN = v => v >= 1 || v <= 0 ? Math.round(v).toLocaleString(LOC()) : v.toFixed(2); // クレジットは整数で（1 未満だけ小数 2 桁）
+function cr(v){ return `${crN(v)} cr`; }
 const tokS = v => v >= 1e7 ? Math.round(v/1e6)+"M" : v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e4 ? Math.round(v/1e3)+"K" : tok(v); // 狭いマス用に、桁を減らしたトークン
-function useShort(d){ if (!d) return ""; const p = []; if (d.tokens) p.push(tok(d.tokens)); if (d.cost >= 0.005) p.push(usd(d.cost)); if (d.credits) p.push(cr(d.credits)); return p.join(" · "); }
 function shade(i){ return [1,.72,.5,.34,.22,.14][Math.min(i,5)]; }
 function secs(v){ return v == null ? "—" : (v < 60 ? `${v}s` : `${Math.floor(v/60)}m ${v%60}s`); }
 function secsH(v){ return secs(v).replace(/(?<=\d)([ms])\b/g, "<small>$1</small>"); } // 単位を小さく
@@ -138,12 +138,19 @@ function kpis(){
   K.innerHTML = kpi("Active time", dur(w.active, true)) + kpi("Active days", `${days}<small>/ ${w.days.length}</small>`) +
     kpi("Sessions / prompts", `${w.sessions}<small>/</small>${w.prompts}`) +
     (u.tokens ? kpi("Tokens", tok(u.tokens)) + kpi("Estimated cost", usd(u.cost).replace("$","<small>$</small>")) : "") +
-    (u.credits ? kpi("Kiro credits", `${Number(u.credits.toFixed(2)).toLocaleString(LOC())}<small>cr</small>`) : "") +
+    (u.credits ? kpi("Kiro credits", `${crN(u.credits)}<small>cr</small>`) : "") +
     (() => { const {ws, we} = period(), n = limitHits(ws, we).length; return n ? kpi("Usage limit hits", `<span style="color:var(--warn)">${n}</span>`) : ""; })() +
     (w.git && w.git.commits ? kpi("Commits (by AI)", `${w.git.commits}<small>${` (${w.git.ai})`}</small>`) :
      w.outputs && w.outputs.commits ? kpi("AI commits", `${w.outputs.commits}`) : "");
 }
 
+/* カレンダーの各日（月表示では各週も）に並べる 4 つ：作業時間・トークン（なければクレジット）・セッション・Git のコミット */
+function calRows(act, u, nS, nC){
+  const use = !u ? null : u.tokens ? ["Tokens", tok(u.tokens)] : u.credits ? ["Credits", cr(u.credits)] : null; // トークンがなければ（Kiro など）クレジット
+  return [["Active", act ? dur(act) : "—", "k"], use && [...use, "k"], ["Sessions", nS], ["Commits", nC]].filter(Boolean);
+}
+const calDl = rows => `<dl class="cm">${rows.map(([k, v, c]) => `<div${c ? ` class="${c}"` : ""}><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>`; // k は強く出す値
+const calShort = (act, u) => `<span class="acs">${act >= 60 ? (act/60).toFixed(1)+"h" : act+"m"}</span>${u && (u.tokens || u.credits) ? `<span class="uss">${u.tokens ? tokS(u.tokens) : cr(u.credits)}</span>` : ""}`; // スマホでは作業時間とトークン（なければクレジット）だけ
 /* 月のカレンダー：日ごとの作業時間を濃さで、プロジェクトの配分を細い帯で */
 function monthGrid(shown, ms, me, todayKey){
   const T = $("#tl"), S = MONTHS[mkey(st.month)], first = mondayOf(st.month);
@@ -151,21 +158,21 @@ function monthGrid(shown, ms, me, todayKey){
   let h = `<div class="mgrid"><div class="mh"></div>${[1,2,3,4,5,6,0].map(i=>`<div class="mh${wkc(i)}">${dow(i)}</div>`).join("")}`;
   for (let r = 0; r < 6; r++){
     const wk = addDays(first, 7*r); if (wk.getTime()/1000 >= me) break;
-    h += `<button class="wkno" data-w="${key(wk)}" title="Open this week">W${isoWeek(wk)}</button>`;
+    const W = WEEKS[key(wk)], wa = W ? W.active : 0, wc = W && W.git ? W.git.commits : 0; // 週の合計（月の外の日も含む、その週まるごと）
+    h += `<button class="cell wkc" data-w="${key(wk)}"${tipAttr(`Week ${isoWeek(wk)}`, W ? [`Active ${dur(wa)}`, `Sessions ${W.sessions}`, ...useLines(W.usage), `Git commits ${wc}`] : "No records")}><span class="dn">W${isoWeek(wk)}</span>${W && wa ? calDl(calRows(wa, W.usage, W.sessions, wc)) + calShort(wa, W.usage) : ""}</button>`;
     for (let c = 0; c < 7; c++){
       const d = addDays(wk, c), ds = d.getTime()/1000, de = addDays(d,1).getTime()/1000, inM = d.getMonth() === st.month.getMonth();
       if (!inM){ h += `<div class="cell out"><span class="dn">${d.getDate()}</span></div>`; continue; }
       const x = S ? S.days[d.getDate()-1] : null, act = x ? x.active : 0;
       const by = {}; shown.forEach(s => s.segs.forEach(([a,b]) => { const o = Math.min(b,de) - Math.max(a,ds); if (o > 0) by[keyOf(s)] = (by[keyOf(s)]||0) + o; }));
       const pj = Object.entries(by).sort((a,b)=>b[1]-a[1]), nS = shown.filter(s => inP(s, ds, de)).length;
-      const use = !x ? null : x.tokens ? ["Tokens", tok(x.tokens)] : x.credits ? ["Credits", cr(x.credits)] : null; // トークンがなければ（Kiro など）クレジット
-      const rows = act ? [["Active", dur(act)], use, ["Sessions", nS], ["Prompts", x.prompts]].filter(Boolean) : [];
-      h += `<button class="cell${d.getDay()%6===0?" we":""}${wkc(d.getDay())}${key(d)===todayKey?" today":""}" data-w="${key(mondayOf(d))}" style="--heat:${(act/max).toFixed(3)}"${tipAttr(md(ds), act ? [`Active ${dur(act)}`, `Sessions ${nS}`, `Prompts ${x.prompts}`, ...useLines(x), x.commits ? `Git commits ${x.commits}` : ""] : "No records")}>
-        <span class="dn">${d.getDate()}</span>${rows.length ? `<dl class="cm">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl><span class="acs">${act >= 60 ? (act/60).toFixed(1)+"h" : act+"m"}</span>${use ? `<span class="uss">${x.tokens ? tokS(x.tokens) : use[1]}</span>` : ""}` : ""}
+      const nC = x && x.commits || 0;
+      h += `<button class="cell${d.getDay()%6===0?" we":""}${wkc(d.getDay())}${key(d)===todayKey?" today":""}" data-w="${key(mondayOf(d))}" style="--heat:${(act/max).toFixed(3)}"${tipAttr(md(ds), act ? [`Active ${dur(act)}`, `Sessions ${nS}`, ...useLines(x), `Git commits ${nC}`] : "No records")}>
+        <span class="dn">${d.getDate()}</span>${act ? calDl(calRows(act, x, nS, nC)) + calShort(act, x) : ""}
         ${pj.length ? `<span class="pj">${pj.map(([k,v])=>`<span style="flex:${v};--c:${colorOf(k)}"></span>`).join("")}</span>` : ""}</button>`;
     }
   }
-  h += `</div><div class="mlegend"><span style="white-space:nowrap">Less</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${matchMedia("(max-width:820px)").matches ? "More (active time) · Each day shows active time and tokens (or credits) · Tap a date to open that week" : "More (active time) · Each day shows active time, tokens (or credits), sessions and prompts · Click a date to open that week"}</div>`;
+  h += `</div><div class="mlegend"><span style="white-space:nowrap">Less</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${matchMedia("(max-width:820px)").matches ? "More (active time) · Each day and week shows active time and tokens (or credits) · Tap a date or week to open it" : "More (active time) · Each day, and each week on the left, shows active time, tokens (or credits), sessions and Git commits · Click a date or week to open it"}</div>`;
   T.innerHTML = h;
   T.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { const [y,m,dd] = b.dataset.w.split("-").map(Number); st.week = new Date(y, m-1, dd); setMode("week"); });
 }
@@ -187,9 +194,9 @@ function timeline(shown, inWeek, ws, we, todayKey){
   for (let d=0; d<7; d++){
     const day = addDays(st.week,d), ds = day.getTime()/1000, de = addDays(st.week,d+1).getTime()/1000, isToday = key(day) === todayKey;
     const act = w && w.days[d] ? w.days[d].active : 0;
-    const dU = w && w.days[d] ? useShort(w.days[d]) : "";
+    const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
     const dayGit = (META.git || []).filter(c => c.t >= ds && c.t < de && (!st.hidden.size || st.colorBy !== "project" || !st.hidden.has(c.project))).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${day.getMonth()+1}/${day.getDate()}</b><i>${dow(day.getDay())}</i></div><small>${act ? dur(act) : "—"}</small>${dU ? `<span class="use"${tipAttr(`${md(ds)} usage`, useLines(w && w.days[d]))}>${dU}</span>` : ""}${dayGit.length ? `<span class="gch" title="Git commits">${GIT_ICON}${dayGit.length}</span>` : ""}</div>`;
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${day.getMonth()+1}/${day.getDate()}</b><i>${dow(day.getDay())}</i></div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`Active ${dur(act)}`, `Sessions ${nS}`, ...useLines(dW), `Git commits ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length))}</div>` : `<small>—</small>`}</div>`;
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
@@ -225,7 +232,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
 
 /* ── tooltip ── */
 function tipOn(e, bk){ const t = $("#tip"), s = bk.s;
-  t.innerHTML = `<b>${esc(s.title)}</b><div class="r" style="--c:${colorOf(keyOf(s))}"><i></i>${esc(s.project)}${s.branch?` · ${esc(s.branch)}`:""}</div><div class="r">${md(bk.a)} ${hm(bk.a)}–${hm(bk.b)}${` (${dur((bk.b-bk.a)/60)})`}</div><div class="r">${esc((s.source))} · ${plural(s.nPrompts, "prompt")}${s.cost ? ` · ${usd(s.cost)}` : ""}${s.credits ? ` · ${s.credits} credits` : ""}${s.subagents.length ? ` · ${plural(s.subagents.length, "subagent")}` : ""}</div>`;
+  t.innerHTML = `<b>${esc(s.title)}</b><div class="r" style="--c:${colorOf(keyOf(s))}"><i></i>${esc(s.project)}${s.branch?` · ${esc(s.branch)}`:""}</div><div class="r">${md(bk.a)} ${hm(bk.a)}–${hm(bk.b)}${` (${dur((bk.b-bk.a)/60)})`}</div><div class="r">${esc((s.source))} · ${plural(s.nPrompts, "prompt")}${s.cost ? ` · ${usd(s.cost)}` : ""}${s.credits ? ` · ${crN(s.credits)} credits` : ""}${s.subagents.length ? ` · ${plural(s.subagents.length, "subagent")}` : ""}</div>`;
 
   t.classList.add("on"); tipMove(e); }
 function tipMove(e){ const t = $("#tip"), w = t.offsetWidth, h = t.offsetHeight;
@@ -355,7 +362,7 @@ function projectPanel(w, ph, unit){
         <div><div class="k">Tokens</div><div class="v">${p.tokens ? tok(p.tokens) : "—"}</div></div>
         <div><div class="k">Est. cost</div><div class="v">${p.cost >= 0.005 ? usd(p.cost) : "—"}</div></div>
         <div><div class="k">Credits</div><div class="v">${p.credits ? cr(p.credits) : "—"}</div></div></div>
-      ${(p.git && p.git.commits) || (p.outputs && (p.outputs.commits || p.outputs.prs)) ? `<div><div class="lab">Outputs</div><div class="pout">Commits ${p.git && p.git.commits ? `${p.git.commits} (AI ${p.git.ai})` : p.outputs.commits} · PR ${p.outputs ? p.outputs.prs : 0} · <span>+${p.git && p.git.commits ? p.git.added : p.outputs.added} −${p.git && p.git.commits ? p.git.removed : p.outputs.removed} lines</span></div></div>` : ""}
+      ${p.git && p.git.commits ? `<div><div class="lab">Outputs</div><div class="pout">Commits ${p.git.commits} (AI ${p.git.ai}) · <span>+${p.git.added} −${p.git.removed} lines</span></div></div>` : p.outputs && p.outputs.commits ? `<div><div class="lab">Outputs</div><div class="pout">AI commits ${p.outputs.commits}</div></div>` : ""}
       ${p.models.length ? `<div><div class="lab">Main models</div><div class="mods">${p.models.map(m=>`<span title="${esc((m.model))}">${esc((m.model))}<b>${m.tokens ? Math.round(m.tokens*100/mt)+"%" : plural(m.turns, "turn")}</b></span>`).join("")}</div></div>` : ""}
       <div><div class="lab">Top sessions</div>${p.top.map(t=>`<button class="pses" data-id="${esc(t.id)}"><span class="t">${esc(t.title)}</span><span class="m">${dur(t.minutes)}${use(t) ? " · "+use(t) : ""}</span></button>`).join("")}</div>
     </article>`; }).join("");
@@ -397,8 +404,6 @@ const HELP = {
   outputs: {n: "Outputs", d: "Commits, pull requests and file edits that AI ran with tools and that succeeded (Claude Code only for now)", c: "Whether the cost turned into work that left a trace", x: "Value, quality or productivity. Commits you made by hand are not included", a: "Put them next to cost and look for usage that produced nothing"},
   gitCommits: {n: "Git commits", d: "Your own commits (user.email) in the repositories agents worked in, including ones made by hand. Each mark on the right edge of a day in the calendar is one commit (filled = run by AI; touch it to see the short hash)", c: "How much of your time with AI became recorded changes", x: "The value of the changes. Work outside the repositories or commits by others", a: "On days with much time or cost but few commits, check where the time went"},
   commits: {n: "Commits", d: "Number of git commits that AI ran successfully", c: "Roughly how often work reached a checkpoint", x: "The value or size of the changes. Commit size varies by person and task", a: "In periods with few commits for the cost, check where the time went"},
-  prs: {n: "Pull requests", d: "Number of pull requests created by AI (gh pr create and GitHub tools)", c: "How often work was ready for review", x: "Whether they were merged or valuable", a: "If there is a lot of rework before creating one, make each request smaller"},
-  lines: {n: "Lines edited by AI (estimated)", d: "Lines added and removed in files AI edited or created, comparing before and after (rough)", c: "How much AI touched", x: "Value or quality (generated code and formatting inflate it)", a: "Don't make volume a goal; use it to check cost against output"},
   outSessions: {n: "Sessions that reached a commit", d: "Number and share of sessions that made a commit or pull request in the period, counting only Claude Code sessions, the only agent whose outputs are recorded", c: "The share of sessions that left something behind", x: "The value of sessions not meant to commit, such as research or discussion", a: "If low, next period state at the start of each session what done looks like (when to commit)"},
   costPerCommit: {n: "Estimated cost per commit", d: "Estimated cost of Claude Code sessions ÷ number of commits (only Claude Code records outputs, so other agents' cost is left out)", c: "Roughly how heavy it was to reach a checkpoint", x: "Differences in commit size. Commits made by hand are not included", a: "Next period, keep each prompt to one change and commit often"},
   native: {n: "Agent-specific metrics", d: "Numbers each agent records in its history", c: "Trends within the same agent", x: "Comparisons between agents (definitions differ)", a: "Only look at changes over time for the same agent"},
@@ -459,10 +464,9 @@ function askPrompt(w, pw, M){
   const o = w.outputs;
   if (w.git && w.git.commits) L.push("", "# Git commits (my own commits in the repositories agents worked in)",
     `- ${w.git.commits} (${w.git.ai} run by AI), +${w.git.added} −${w.git.removed} lines per git`);
-  if (o && (o.commits || o.prs || o.added || o.removed)){
+  if (o && o.commits){
     L.push("", "# Outputs (run by AI and succeeded; Claude Code only)",
-      `- Commits: ${o.commits}, pull requests created: ${o.prs}`,
-      `- Lines edited by AI (estimated): ${o.added} added, ${o.removed} removed`,
+      `- Commits: ${o.commits}`,
       `- Sessions that reached a commit: ${w.outSessions} / ${w.outBase ?? w.sessions}`);
     if (w.costPerCommit != null) L.push(`- Estimated cost per commit: ${usd(w.costPerCommit)}`);
   }
@@ -478,7 +482,7 @@ function askPrompt(w, pw, M){
       const mt = p.models.reduce((t, m) => t + m.tokens, 0) || 1;
       L.push(`## ${p.project}`, `- Active time: ${dur(p.minutes)}, sessions / prompts: ${p.sessions} / ${p.prompts}${use(p) ? ", " + use(p) : ""}`);
       if (p.git && p.git.commits) L.push(`- Git commits: ${p.git.commits} (${p.git.ai} by AI), +${p.git.added} −${p.git.removed} lines`);
-      if (p.outputs && (p.outputs.commits || p.outputs.prs || p.outputs.added)) L.push(`- Outputs: commits ${p.outputs.commits}, pull requests ${p.outputs.prs}, lines changed +${p.outputs.added} −${p.outputs.removed}`);
+      else if (p.outputs && p.outputs.commits) L.push(`- AI commits: ${p.outputs.commits}`);
       if (p.models.length) L.push("- Main models: " + p.models.map(m => `${(m.model)} (${m.tokens ? Math.round(m.tokens*100/mt) + "%" : plural(m.turns, "turn")})`).join(sep));
       if (p.top.length) L.push("- Sessions that took the most time: " + p.top.map(t => `"${cut(t.title)}" ${dur(t.minutes)}${use(t) ? ", " + use(t) : ""}`).join(sep));
       if (p.heavy && use(p.heavy)) L.push(`- Heaviest session: "${cut(p.heavy.title)}" ${use(p.heavy)}`);
@@ -701,35 +705,31 @@ function reportText(w, M){
   return L.join("\n");
 }
 /* アウトプット：AI が実行したコミット・PR 作成・変更した行（出したものの量。価値や生産性ではない） */
-function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）→ 残ったもの（アウトプット）を左右に並べ、2 つを比べた指標を下にまとめる
-  const o = w.outputs || {commits:0, prs:0, added:0, removed:0}, g = w.git, u = w.usage || {};
-  const hasOut = o.commits || o.prs || o.added || o.removed || (g && g.commits);
+function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）→ 残ったもの（コミットと、使ったものと比べた指標）を左右に並べる
+  const o = w.outputs || {commits:0}, g = w.git, u = w.usage || {};
+  const hasOut = o.commits || (g && g.commits);
   const po = pw && pw.outputs, V = vsPrev(pw, unit), d = (a, b) => V.diff(a, V.of(null, b)); // AI のコミットと PR は日ごとの値がないので、途中の期間は比べない
   const n = v => v.toLocaleString(LOC()), times = v => `${v}`, base = w.outBase ?? w.sessions;
   const cost = [
     stat("Active time", dur(w.active,true), V.diff(w.active, V.of("active", pw && pw.active), dur), "active"),
     u.tokens ? stat("Estimated cost", usd(u.cost).replace("$","<small>$</small>"), V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost") : "",
     u.tokens ? stat("Tokens", tok(u.tokens), `Output ${tok(u.out)}`, "tokens") : "",
-    u.credits ? stat("Kiro credits", `${u.credits}`, "As recorded in history", "credits") : "",
+    u.credits ? stat("Kiro credits", crN(u.credits), "As recorded in history", "credits") : "",
   ].join("");
   const out = hasOut ? [
     g && g.commits ? stat("Git commits", times(g.commits), `${g.ai} by AI · +${n(g.added)} −${n(g.removed)} lines${pw && pw.git ? ` · ${V.diff(g.commits, V.of("commits", pw.git.commits))}` : ""}`, "gitCommits") : "",
     g && g.commits ? "" : stat("AI commits", times(o.commits), d(o.commits, po && po.commits), "commits"), // Git のコミットがあれば「うち AI」に出ている
-    stat("Pull requests", `${o.prs}`, d(o.prs, po && po.prs), "prs"),
-    stat("Lines edited by AI (est.)", `<small>+</small>${n(o.added)}`, `${n(o.removed)} removed`, "lines"),
-  ].join("") : "";
-  const cmp = hasOut ? [ // 2 つを比べた指標。何と何を割ったかを添える
+    // 使ったものと比べた指標。何と何を割ったかを添える
     w.costPerCommit != null ? stat("Estimated cost per commit", usd(w.costPerCommit).replace("$","<small>$</small>"), `Estimated cost ${usd(u.cost)} ÷ ${plural(o.commits, "AI commit")}`, "costPerCommit") : "",
     stat("Sessions that reached a commit", base ? `${Math.round(w.outSessions*100/base)}<small>%</small>` : "—", `${w.outSessions} of ${plural(base, "session")}`, "outSessions"),
   ].join("") : "";
   const side = (cls, label, sub, body) => `<div class="ocside ${cls}"><div class="ocl"><b>${label}</b><span>${sub}</span></div>${body}</div>`;
-  return `<section class="panel oc">${ph(2, "Cost and outputs", `What you spent ${uThis(unit)} and what it left behind`, "outputs")}
+  return `<section class="panel oc">${ph(2, "Cost and outputs", `What you spent ${uThis(unit)} and what came out of it`, "outputs")}
     <div class="ocgrid">
-      ${side("spent", "Spent", "Time and cost", `<div class="stats">${cost}</div>`)}
+      ${side("spent", "Cost", "Time and usage", `<div class="stats">${cost}</div>`)}
       <div class="ocarrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-      ${side("left", "Left behind", "Outputs", out ? `<div class="stats">${out}</div>` : `<p class="none">No commits or pull requests recorded.</p>`)}
+      ${side("left", "Outputs", "Commits and cost per commit", out ? `<div class="stats">${out}</div>` : `<p class="none">No commits recorded.</p>`)}
     </div>
-    ${cmp ? `<div class="occmp"><div class="ocl"><b>Compared</b><span>How much was left behind for what you spent</span></div><div class="stats">${cmp}</div></div>` : ""}
     <div class="ocdaily">${usageChart(w, unit === "月")}</div></section>`;
 }
 /* 日ごとの推移（トークン・クレジット・目安コスト・作業時間・セッション・プロンプトを切り替え。今までのリズムもここにまとめた） */
@@ -839,7 +839,7 @@ function aiUsage(w, pw, unit){
 function nativeText(v){
   const num = (x, d) => Number(x.toFixed(d)).toLocaleString(LOC());
   const u = {"回": "", "件": "", "トークン": " tokens", "文字": " chars"}[v.unit]; // 単位は Go の定義（日本語）を英語に読みかえる
-  return v.unit === "%" ? `${num(v.v,1)}%` : v.unit === "秒" ? `${num(v.v,1)}s` : v.unit === "クレジット" ? `${num(v.v,2)} credits` : `${num(v.v,0)}${u ?? " " + v.unit}`;
+  return v.unit === "%" ? `${num(v.v,1)}%` : v.unit === "秒" ? `${num(v.v,1)}s` : v.unit === "クレジット" ? `${crN(v.v)} credits` : `${num(v.v,0)}${u ?? " " + v.unit}`;
 }
 const nlabel = v => v.labelEn || v.label; // 参考指標の名前（Go の英語の名前）
 function nativeRows(values){
@@ -931,9 +931,9 @@ function detail(s){
       ${s.source === "Claude Code" ? `<div><div class="k">Estimated cost${s.costReported ? " (from Claude Code)" : ""}</div><div class="v">${usd(s.cost).replace("$","<small>$</small>")}</div></div>
       <div><div class="k">Tokens</div><div class="v">${tok(allTok)}</div></div>
       ${(() => { const cs = commitsOf(s), ai = cs.filter(c => c.ai).length, o = s.outputs || {}; // 右の「このセッションの間のコミット」と同じ数え方（手でのコミットも入れ、うち AI を添える）
-        if (!cs.length) return o.commits || o.prs ? `<div><div class="k">Commits / PRs</div><div class="v">${o.commits}<small>/</small>${o.prs}</div></div>` : ""; // git を読めないときは、AI が実行した回数
+        if (!cs.length) return o.commits ? `<div><div class="k">AI commits</div><div class="v">${o.commits}</div></div>` : ""; // git を読めないときは、AI が実行した回数
         return `<div><div class="k">Commits (by AI)</div><div class="v">${cs.length}<small>${` (${ai})`}</small></div></div>${o.prs ? `<div><div class="k">Pull requests created</div><div class="v">${o.prs}</div></div>` : ""}`; })()}
-      ${s.outputs && (s.outputs.added || s.outputs.removed) ? `<div><div class="k">Lines edited by AI (est.)</div><div class="v"><small>+</small>${s.outputs.added}<small> −${s.outputs.removed}</small></div></div>` : ""}` : s.credits ? `<div><div class="k">Kiro credits</div><div class="v">${s.credits}</div></div><div><div class="k">Per prompt</div><div class="v">${s.nPrompts ? (s.credits/s.nPrompts).toFixed(2) : "—"}<small> credits</small></div></div>` : ""}
+` : s.credits ? `<div><div class="k">Kiro credits</div><div class="v">${crN(s.credits)}</div></div><div><div class="k">Per prompt</div><div class="v">${s.nPrompts ? crN(s.credits/s.nPrompts) : "—"}<small> credits</small></div></div>` : ""}
     </div>
     <div class="sact"><button class="pill" id="sreview">Review this session with AI (copy prompt)</button>
       <span>Asks for ways to improve how you prompted and split the work, based on the prompt flow and numbers. It includes your prompts, so review it before sending.</span></div>
@@ -1050,9 +1050,8 @@ function sessionPrompt(s, active, med){
     `- Prompts: ${s.nPrompts}, corrections: ${s.corrections}, interruptions: ${s.interrupts}${med == null ? "" : `, median wait time ${secs(med)}`}`];
   if (s.limits && s.limits.length) L.push(`- Usage limit hits: ${s.limits.length} (${s.limits.map(hm).join(", ")})`);
   if (s.cost) L.push(`- Estimated cost: ${usd(s.cost)}`);
-  if (s.credits) L.push(`- Kiro credits: ${s.credits}`);
-  if (o.commits || o.prs) L.push(`- Commits: ${o.commits}, pull requests: ${o.prs}, lines edited by AI (estimated): +${o.added} −${o.removed}`);
-  else L.push("- No commits or pull requests recorded");
+  if (s.credits) L.push(`- Kiro credits: ${crN(s.credits)}`);
+  L.push(o.commits ? `- Commits: ${o.commits}${o.prs ? `, pull requests: ${o.prs}` : ""}` : "- No commits recorded");
   if (s.tools.length) L.push(`- Most used tools: ${s.tools.slice(0,6).map(([k,v]) => `${k} ${v}`).join(", ")}`);
   if (s.subagents.length) L.push(`- Subagents: ${s.subagents.length}`);
   L.push("", "# Prompt flow (time and prompt; long ones are truncated)");
