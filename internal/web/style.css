@@ -125,6 +125,9 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .run .t::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c);flex:none}
 .run .t span{overflow:hidden;text-overflow:ellipsis}
 .run .m{color:var(--ink-2);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+/* 重なって細くなった帯（スマホや 1000px）では、名前が 1 文字で切れないよう、印と時刻を外して名前を折り返す */
+.run{container-type:inline-size}
+@container (max-width:64px){.run .t{white-space:normal;align-items:flex-start}.run .t::before{display:none}.run .t span{overflow-wrap:anywhere}.run .m{display:none}}
 .run:hover{box-shadow:inset 0 0 0 1.5px var(--c),var(--shadow);z-index:4}
 .tlbox.focus .run{opacity:.25;filter:saturate(.5)}
 .tlbox.focus .run.sel{opacity:1;filter:none;box-shadow:inset 0 0 0 2px var(--c),var(--shadow);z-index:2}

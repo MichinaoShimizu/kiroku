@@ -242,7 +242,9 @@ function timeline(shown, inWeek, ws, we, todayKey){
     cols += `<div class="day${day.getDay()%6===0?" we":""}${isToday?" today":""}" style="height:${H}px;--g:${dayGit.length ? 18 : 0}px">${html}</div>`;
   }
   T.innerHTML = `<div class="calscroll" style="--hh:${hh}px"><div class="calin"><div class="heads">${heads}</div><div class="cgrid"><div class="hours" style="height:${H}px">${hours}</div>${cols}</div></div></div>`;
-  if (top != null) T.querySelector(".calscroll").scrollTop = top;
+  const sc = T.querySelector(".calscroll");
+  sc.style.scrollPaddingTop = T.querySelector(".heads").offsetHeight + "px"; sc.style.scrollPaddingLeft = "56px"; // Tab で移ったブロックが、固定の日付・時刻の下に隠れないように
+  if (top != null) sc.scrollTop = top;
   T.querySelectorAll(".lim").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); });
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });
   T.querySelectorAll(".run").forEach(el => { const bk = runs[+el.dataset.r];
@@ -1438,12 +1440,14 @@ function scrollToWork(){ // その週の作業が始まるころの少し前へ
   const sc = $("#tl .calscroll"); if (!sc) return;
   const ws = st.week.getTime()/1000, we = ws + 7*86400, hs = [];
   DATA.forEach(s => s.segs.forEach(([a,b]) => { if (b > ws && a < we) hs.push(new Date(Math.max(a,ws)*1000).getHours()); }));
-  hs.sort((a,b) => a-b); // 深夜の 1 本に引っぱられないよう、早いほうから 2 割の開始時刻へ
-  const first = hs.length ? hs[Math.floor(hs.length*0.2)] : 24;
-  sc.scrollTop = Math.max(0, Math.max(0, (first === 24 ? 8 : first) - 1) * (HOURS[st.z] || 44) - 14);
-  if (sc.scrollWidth > sc.clientWidth + 4){ // 横にスクロールする狭い画面では、今日までで最後に作業した日を見せる
+  hs.sort((a,b) => a-b);
+  // 朝 6 時より前（夜の帯）の開始が 2 割に満たなければ、深夜の数本に引っぱられないよう、6 時以降でいちばん早い開始時刻へ。
+  // 夜型で 2 割を超えるなら、今までどおり早いほうから 2 割の開始時刻へ
+  const day = hs.filter(h => h >= 6), first = !hs.length ? 8 : day.length >= hs.length*0.8 ? day[0] : hs[Math.floor(hs.length*0.2)];
+  sc.scrollTop = Math.max(0, first * (HOURS[st.z] || 44) - 14); // その時刻の線がちょうど日付の下に見えるように
+  if (sc.scrollWidth > sc.clientWidth + 4){ // 横にスクロールする狭い画面では、今週は今日までで最後に作業した日を、過ぎた週は月曜から見せる
     const w = WEEKS[key(st.week)], now = nowMs()/1000, heads = sc.querySelectorAll(".head");
-    let i = -1; if (w) w.days.forEach((d, j) => { if (d.active && ws + j*86400 <= now) i = j; });
+    let i = -1; if (w && now < we) w.days.forEach((d, j) => { if (d.active && ws + j*86400 <= now) i = j; });
     const h = heads[i]; sc.scrollLeft = h ? Math.max(0, h.offsetLeft - 56 - h.offsetWidth) : 0; } // その日と前の日が収まるように
 }
 // 今週に記録がなければ、いちばん新しい記録の週から開く
