@@ -28,7 +28,7 @@ go build .         # ./kiroku ができる（./kiroku serve で画面を開く�
 | `internal/core` | 共通のセッションの形（`Builder` → `Session`）、トークンと料金、エージェント別の参考指標 |
 | `internal/report` | 週・月の集計（`Summarize`）、プロジェクト別のまとめ（`project.go`）、ブランチ・エージェントごとの配分（`share.go`） |
 | `internal/gitlog` | セッションの作業場所の git リポジトリからコミットを読む（git がなければ飛ばす） |
-| `internal/web` | `template.html` が画面。`web.go` が集計の JSON を埋め込んで 1 ファイルの HTML にする。`help_test.go`・`script_test.go` が画面の説明とスクリプトを確かめる |
+| `internal/web` | 画面。`template.html`（骨組み）・`style.css`・`app.js` に分けて書き、`web.go` がそれらと集計の JSON をはめこんで 1 ファイルの HTML にする。`help_test.go`・`script_test.go` が画面の説明とスクリプトを確かめる |
 | `testdata/` | 合成の履歴（`home/`・`codex/`・`crew/`・`sqlite/`）、`golden.json`、`snapshot.json`、`mtimes.json` |
 | `tools/` | `release-notes.sh`・`next-version.sh`（リリース）、`screenshots/`（ダミーデータ・デモ・スクリーンショット・画面の e2e） |
 | `install.sh`・`.goreleaser.yaml` | インストーラーと、リリースのファイルの作り方 |
@@ -109,7 +109,7 @@ Release（`.github/workflows/release.yml`）は、3 OS でテストしてから�
 
 ## 画面を変えるとき
 
-画面（`internal/web/template.html`）を変えるときは、機能だけでなく情報設計・UI・UX も毎回見直します。
+画面（`internal/web` の `template.html`・`style.css`・`app.js`）を変えるときは、機能だけでなく情報設計・UI・UX も毎回見直します。
 
 - **情報設計**：利用者が「何が起きたか → なぜ気にするか → 次に何をするか → どう確かめるか」の順にたどれるか。結論を先に書き、確度の低い数値は奥にしまう
 - **言葉**：同じものは同じ用語で呼ぶ（例：「作業していた時間」）。推定の値には推定であることと基準を添え、良し悪しの判定にしない

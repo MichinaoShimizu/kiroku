@@ -9,8 +9,29 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
 
-//go:embed template.html
-var template string
+// 画面は template.html（骨組み）・style.css・app.js に分けて書き、
+// 起動時に置き場（/*@style.css*/ と //@app.js の行）へはめこんで 1 ファイルにする。
+var (
+	//go:embed template.html
+	skeleton string
+	//go:embed style.css
+	style string
+	//go:embed app.js
+	script string
+
+	template = assemble(skeleton, "/*@style.css*/\n", style, "//@app.js\n", script)
+)
+
+// assemble は置き場の行を中身に入れかえる。置き場がちょうど 1 つずつないときは、作りの誤りなので止める。
+func assemble(s string, pairs ...string) string {
+	for i := 0; i < len(pairs); i += 2 {
+		if strings.Count(s, pairs[i]) != 1 {
+			panic("web: " + strings.TrimSpace(pairs[i]) + " の置き場がちょうど 1 つではない")
+		}
+		s = strings.Replace(s, pairs[i], pairs[i+1], 1)
+	}
+	return s
+}
 
 // Render は __DATA__ などの置き場に JSON を入れる。
 // encoding/json は < > & を < などに変えるので、</script> で閉じられる心配はない。
