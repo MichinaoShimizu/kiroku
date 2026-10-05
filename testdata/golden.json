@@ -2508,7 +2508,6 @@
 "ai": 17,
 "parallel": 0,
 "maxConc": 1,
-"night": 17,
 "weekend": 0,
 "focus": [],
 "switchesAvg": 0.0,
@@ -2525,43 +2524,36 @@
 "days": [
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 },
 {
 "active": 17,
-"night": 17,
 "switches": 0,
 "prompts": 2
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 }
@@ -2641,7 +2633,6 @@
 "ai": 145,
 "parallel": 0,
 "maxConc": 1,
-"night": 0,
 "weekend": 31,
 "focus": [],
 "switchesAvg": 0.0,
@@ -2658,43 +2649,36 @@
 "days": [
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 },
 {
 "active": 114,
-"night": 0,
 "switches": 0,
 "prompts": 7
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 },
 {
 "active": 31,
-"night": 0,
 "switches": 0,
 "prompts": 2
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 }
@@ -2772,7 +2756,6 @@
 "ai": 167,
 "parallel": 0,
 "maxConc": 1,
-"night": 24,
 "weekend": 128,
 "focus": [],
 "switchesAvg": 0.0,
@@ -2793,43 +2776,36 @@
 "days": [
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 },
 {
 "active": 39,
-"night": 0,
 "switches": 0,
 "prompts": 3
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 },
 {
 "active": 128,
-"night": 24,
 "switches": 0,
 "prompts": 8
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 }
@@ -2932,7 +2908,6 @@
 "ai": 351,
 "parallel": 5,
 "maxConc": 2,
-"night": 24,
 "weekend": 207,
 "focus": [],
 "switchesAvg": 1.0,
@@ -2953,43 +2928,36 @@
 "days": [
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 },
 {
 "active": 114,
-"night": 0,
 "switches": 0,
 "prompts": 7
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 },
 {
 "active": 25,
-"night": 0,
 "switches": 0,
 "prompts": 3
 },
 {
 "active": 207,
-"night": 24,
 "switches": 3,
 "prompts": 13
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 }
@@ -3072,7 +3040,6 @@
 "ai": 230,
 "parallel": 0,
 "maxConc": 1,
-"night": 0,
 "weekend": 55,
 "focus": [],
 "switchesAvg": 1.2,
@@ -3101,43 +3068,36 @@
 "days": [
 {
 "active": 26,
-"night": 0,
 "switches": 1,
 "prompts": 4
 },
 {
 "active": 54,
-"night": 0,
 "switches": 2,
 "prompts": 11
 },
 {
 "active": 75,
-"night": 0,
 "switches": 2,
 "prompts": 12
 },
 {
 "active": 20,
-"night": 0,
 "switches": 0,
 "prompts": 3
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 },
 {
 "active": 55,
-"night": 0,
 "switches": 1,
 "prompts": 5
 },
 {
 "active": 0,
-"night": 0,
 "switches": 0,
 "prompts": 0
 }
