@@ -13,6 +13,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 ### Changed
 
 - Going back from a detail opened from another (such as a commit opened from the prompt flow) returns to where you were reading, instead of the top
+- Session details count commits the same way as "Commits during this session": the card is now "Commits (by AI)", including commits made by hand during the session, and pull requests have their own card. Without git history it still shows the commits and pull requests the AI ran
 
 ### Fixed
 
