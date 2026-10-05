@@ -24,7 +24,7 @@ kiroku connects to the network only when `install.sh` or `kiroku update` (includ
 
 - **Calendar**: when, in which project, and what you asked, by week or month. Your local git commits appear alongside, so you can see what changed where.
 - **Worth a look**: metrics that crossed a threshold are marked where they appear, with what was observed, why it matters, the related sessions and an 8-week (or 8-month) trend, and listed in priority order at the top of the summary.
-- **Summary**: cost (time, tokens, estimated cost, credits) next to outputs (commits, pull requests, lines edited by AI), by project and by day. Share bars compare each project's, branch's or agent's share of active time with its share of tokens, estimated cost and credits. It also picks up prompts you keep typing, which you could save as a command or in CLAUDE.md. Every metric explains what it can and cannot tell you.
+- **Summary**: cost (time, tokens, estimated cost, credits) next to outputs (commits, cost per commit, sessions that reached a commit), by project and by day. Share bars compare each project's, branch's or agent's share of active time with its share of tokens, estimated cost and credits. It also picks up prompts you keep typing, which you could save as a command or in CLAUDE.md. Every metric explains what it can and cannot tell you.
 - **Search and weekly report**: search prompts, edited files and commits across all time, and preview and copy a weekly or monthly report draft of what you did, your commits and pull requests.
 - **Ask AI for suggestions**: build a prompt from the shown week, month or a single session that asks an AI for suggestions on how you use it. Copy it into the agent you already use.
 

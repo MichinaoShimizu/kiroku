@@ -60,7 +60,7 @@ The old forms `kiroku --serve`, `--json` and `-o` still work for now. `--weekly`
 - Below the calendar, the weekly and monthly summary is shown
   - Worth a look: a metric that crossed a threshold is marked (●) where it appears, with what was observed, why it matters, its 8-week trend (8 months in month view), the related sessions and the threshold. "Worth a look" at the top of the summary lists those metrics in priority order; press one to jump to it and open its explanation. To see whether something you tried worked, check the trend in later periods
   - ① By project: starts with bars and a table showing what share of active time, tokens, estimated cost and credits went where (top 5 plus Other). The grouping follows the Project / Branch / Agent switch at the top. Comparing the rows shows, for example, a project, branch or agent whose share of estimated cost is larger than its share of time. Below that, the cards show, for each project, which sessions took how many hours, how many tokens, how much estimated cost and credits, and which models were mainly used, along with outputs (beyond 6 projects, press "Show N more projects")
-  - ② Cost and outputs: what you spent (active time, estimated cost, tokens, credits) → what was left behind (commits, pull requests, lines changed and so on), side by side, followed by the metrics that compare the two ("Compared") and the daily trend bar chart
+  - ② Cost and outputs: what you spent (active time, estimated cost, tokens, credits) → what was left behind (commits, plus the metrics that compare the two sides: estimated cost per commit and sessions that reached a commit), side by side, followed by the daily trend bar chart. Credits are shown as whole numbers
   - ③ How you spent time: metrics that include estimates (corrections and interruptions, switches, parallel, wait time) are collapsed under "More metrics (includes estimates)"
   - Then come ④ How you used AI (cache, subagents, models, heaviest sessions and so on; active time, estimated cost, tokens and credits appear only in ②), ⑤ Shape of the week / month (focus blocks, sessions with possible friction and repeated prompts, each shown only when there are any) and ⑥ Ask AI for suggestions, with "Data sources" (history read, retention and the price table for estimated cost) at the very bottom
 - Press "?" on any metric to see its definition and what it tells you, what it doesn't tell you, and what to try
@@ -165,8 +165,6 @@ Numbers shown next to costs such as time and tokens, to check whether your usage
 |---|---|
 | Git commits | Your own commits in local repositories (excluding merge commits). Read from the day before the first session in that repository |
 | Commits | Number of successful `git commit` runs by AI (excluding `--dry-run`). Commits made by hand are not included |
-| Pull requests | Number of pull requests created by AI (`gh pr create` and tools whose names end in `create_pull_request`) |
-| Lines edited by AI (estimated) | Lines added and removed in files AI edited or created, comparing before and after (rough). Counted from `Edit`, `MultiEdit` and `Write` |
 | Sessions that reached a commit | Number and share of sessions that made a commit or created a pull request in the period (including those made by subagents). Only Claude Code sessions are counted, since only Claude Code outputs are recorded |
 | Estimated cost per commit | Estimated cost of Claude Code sessions ÷ number of commits. Other agents' cost is left out |
 
@@ -223,8 +221,6 @@ Press "?" on any metric in the view to see the same explanation. It is also incl
 | Outputs | Whether the cost turned into work that left a trace | Value, quality or productivity. Commits you made by hand are not included | Put them next to cost and look for usage that produced nothing |
 | Git commits | How much of your time with AI became recorded changes | The value of the changes. Work outside the repositories or commits by others | On days with much time or cost but few commits, check where the time went |
 | Commits | Roughly how often work reached a checkpoint | The value or size of the changes. Commit size varies by person and task | In periods with few commits for the cost, check where the time went |
-| Pull requests | How often work was ready for review | Whether they were merged or valuable | If there is a lot of rework before creating one, make each request smaller |
-| Lines edited by AI (estimated) | How much AI touched | Value or quality (generated code and formatting inflate it) | Don't make volume a goal; use it to check cost against output |
 | Sessions that reached a commit | The share of sessions that left something behind | The value of sessions not meant to commit, such as research or discussion | If low, next period state at the start of each session what done looks like (when to commit) |
 | Estimated cost per commit | Roughly how heavy it was to reach a checkpoint | Differences in commit size. Commits made by hand are not included | Next period, keep each prompt to one change and commit often |
 | Agent-specific metrics | Trends within the same agent | Comparisons between agents (definitions differ) | Only look at changes over time for the same agent |
