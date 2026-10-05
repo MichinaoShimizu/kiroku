@@ -92,8 +92,9 @@ for (const env of envs) {
     const card = p.locator("#review .card[data-id]").first();
     check("サマリーにセッションのカードがある", await card.count() > 0);
     await card.scrollIntoViewIfNeeded();
-    const [y, id] = [await p.evaluate("scrollY"), await card.getAttribute("data-id")];
+    const id = await card.getAttribute("data-id");
     await card.click(); await pause();
+    const y = await p.evaluate("scrollY"); // 開いた時点の位置（クリックの前に Playwright がスクロールし直すことがあるので、開いてから測る。開いている間はページが動かない）
     await p.keyboard.press("Escape"); await pause();
     const after = await p.evaluate("scrollY");
     check("閉じてもサマリーの位置のまま", Math.abs(after - y) <= 2, `${y} → ${after}`);
