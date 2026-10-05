@@ -83,6 +83,21 @@ for (const env of envs) {
     check("詳細が画面に収まる", box && box.x >= -1 && box.x + box.width <= env.viewport.width + 1, JSON.stringify(box));
     await p.keyboard.press("Escape"); await pause();
     check("Esc で詳細が閉じる", !await drawerOpen());
+    await run.focus(); await p.keyboard.press("ArrowLeft"); await pause();
+    check("ブロックにいたまま週を移っても、フォーカスがカレンダーに残る", await p.evaluate(() => !!document.activeElement.closest("#tl")), await p.evaluate(() => document.activeElement.tagName));
+    await p.keyboard.press("ArrowRight"); await pause();
+  });
+
+  await step("詳細を閉じると読んでいた場所へ戻る", async () => {
+    const card = p.locator("#review .card[data-id]").first();
+    check("サマリーにセッションのカードがある", await card.count() > 0);
+    await card.scrollIntoViewIfNeeded();
+    const [y, id] = [await p.evaluate("scrollY"), await card.getAttribute("data-id")];
+    await card.click(); await pause();
+    await p.keyboard.press("Escape"); await pause();
+    const after = await p.evaluate("scrollY");
+    check("閉じてもサマリーの位置のまま", Math.abs(after - y) <= 2, `${y} → ${after}`);
+    check("閉じるとカードにフォーカスが戻る", await p.evaluate(id => { const a = document.activeElement; return a.dataset.id === id && !!a.closest("#review"); }, id));
   });
 
   await step("見直す候補", async () => {
@@ -118,6 +133,7 @@ for (const env of envs) {
     await p.locator(".srow[data-s]").first().click(); await pause();
     check("検索結果から詳細が開く", await drawerOpen());
     await p.keyboard.press("Escape"); await pause();
+    check("閉じると検索結果に戻る", await p.evaluate(() => !!document.activeElement.closest("#review .srow[data-s]")));
     await p.locator("#sclear").click(); await pause();
     check("検索をやめるとサマリーに戻る", await p.locator("#q").inputValue() === "" && await p.locator("#rpttog").count() > 0);
   });
