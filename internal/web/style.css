@@ -5,7 +5,7 @@
   --bg:#f3f4f6; --surface:#ffffff; --surface-2:#eceef2; --ink:#121419; --ink-2:#464b56; --ink-3:#5f6573;
   --rule:#e1e4ea; --rule-2:#cdd2db; --acc:#4338ca; --acc-ink:#3730a3; --on-acc:#ffffff; --heatk:22%; --acc-soft:rgba(67,56,202,.08); --warn:#b42318; --on-warn:#ffffff;
   --weekend:rgba(18,20,25,.022);
-  --sat:#1d4ed8; --sun:#dc2626; --sat-bg:rgba(37,99,235,.06); --sun-bg:rgba(220,38,38,.06); /* 土曜は青、日曜は赤（日本のカレンダーと同じ） */
+  --sat:#1d4ed8; --sun:#b91c1c; --sat-bg:rgba(37,99,235,.06); --sun-bg:rgba(220,38,38,.06); /* 土曜は青、日曜は赤（日本のカレンダーと同じ） */
   --shadow:0 1px 2px rgba(16,18,24,.06),0 12px 32px -14px rgba(16,18,24,.22);
   --c0:#0072b2; --c1:#d55e00; --c2:#009e73; --c3:#cc79a7; --c4:#e69f00; --c5:#56b4e9; --c6:#7a5cc4; --c7:#9a8a00; --other:#9aa0ab;
   --sans:"Inter","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP","Yu Gothic UI",system-ui,sans-serif;
@@ -283,10 +283,9 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .cell .acs{display:none}
 .cm{display:grid;gap:1px}.cell .cm{margin:auto 0 2px}.head .cm{margin-top:6px} /* カレンダーの各日・各週の 4 つ（作業時間・トークン・セッション・コミット） */
 .cm div{display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-width:0}
-.cm dt{font-size:10.5px;color:var(--ink-3);white-space:nowrap}
-.cm dd{margin:0;font-size:12px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cm div:first-child dd{font-size:13.5px;font-weight:700}
-.cm div:nth-child(2) dd{color:var(--acc-ink)}
+.cm dt{font-size:10.5px;color:var(--ink-2);white-space:nowrap} /* 濃さで色の付くマスの上でも読めるよう、ラベルも ink-3 より濃く */
+.cm dd{margin:0;font-size:12px;font-weight:600;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cm .k dd{font-size:13.5px;font-weight:700;color:var(--ink)} /* 作業時間とトークン（クレジット）を強く、セッションとコミットは控えめに。色は使わず濃さと太さで分ける */
 .cell .uss{display:none}
 .cell .pj{display:flex;gap:2px;height:5px;border-radius:3px;overflow:hidden}
 .cell .pj span{background:var(--c);min-width:2px}
@@ -589,8 +588,8 @@ dialog.yr h3{font:700 15px/1.4 var(--sans);margin:30px 0 10px}
   .rvgrid.srgrid{grid-template-columns:1fr}
   .rvhead .pill{margin-left:0}
   .mgrid{grid-template-columns:42px repeat(7,minmax(0,1fr))}
-  .head{padding:8px 8px 7px}.head .cm div:first-child dd{font-size:12.5px} /* 狭い列でも週の各日の 4 つが切れないように */
-  .cell{min-height:64px;padding:6px 6px 7px}.cell .cm{display:none}.cell .acs{display:block;font:700 12px/1.2 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap;margin-top:auto}.cell .uss{display:block;font-size:10.5px;font-weight:650;color:var(--acc-ink);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} /* スマホでは作業時間とトークン（なければクレジット）だけ */
+  .head{padding:8px 8px 7px}.head .cm .k dd{font-size:12.5px} /* 狭い列でも週の各日の 4 つが切れないように */
+  .cell{min-height:64px;padding:6px 6px 7px}.cell .cm{display:none}.cell .acs{display:block;font:700 12px/1.2 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap;margin-top:auto}.cell .uss{display:block;font-size:10.5px;font-weight:650;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} /* スマホでは作業時間とトークン（なければクレジット）だけ */
   .ph{flex-wrap:wrap;row-gap:2px}.ph span:not(.no){flex-basis:100%;padding-left:32px}
   .mgrid .mh{padding:8px 6px}
   .wrap{padding:0 16px}

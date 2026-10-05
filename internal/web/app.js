@@ -147,9 +147,9 @@ function kpis(){
 /* カレンダーの各日（月表示では各週も）に並べる 4 つ：作業時間・トークン（なければクレジット）・セッション・Git のコミット */
 function calRows(act, u, nS, nC){
   const use = !u ? null : u.tokens ? ["Tokens", tok(u.tokens)] : u.credits ? ["Credits", cr(u.credits)] : null; // トークンがなければ（Kiro など）クレジット
-  return [["Active", act ? dur(act) : "—"], use, ["Sessions", nS], ["Commits", nC]].filter(Boolean);
+  return [["Active", act ? dur(act) : "—", "k"], use && [...use, "k"], ["Sessions", nS], ["Commits", nC]].filter(Boolean);
 }
-const calDl = rows => `<dl class="cm">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>`;
+const calDl = rows => `<dl class="cm">${rows.map(([k, v, c]) => `<div${c ? ` class="${c}"` : ""}><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>`; // k は強く出す値
 const calShort = (act, u) => `<span class="acs">${act >= 60 ? (act/60).toFixed(1)+"h" : act+"m"}</span>${u && (u.tokens || u.credits) ? `<span class="uss">${u.tokens ? tokS(u.tokens) : cr(u.credits)}</span>` : ""}`; // スマホでは作業時間とトークン（なければクレジット）だけ
 /* 月のカレンダー：日ごとの作業時間を濃さで、プロジェクトの配分を細い帯で */
 function monthGrid(shown, ms, me, todayKey){
@@ -724,11 +724,11 @@ function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）�
     stat("Sessions that reached a commit", base ? `${Math.round(w.outSessions*100/base)}<small>%</small>` : "—", `${w.outSessions} of ${plural(base, "session")}`, "outSessions"),
   ].join("") : "";
   const side = (cls, label, sub, body) => `<div class="ocside ${cls}"><div class="ocl"><b>${label}</b><span>${sub}</span></div>${body}</div>`;
-  return `<section class="panel oc">${ph(2, "Cost and outputs", `What you spent ${uThis(unit)} and what it left behind`, "outputs")}
+  return `<section class="panel oc">${ph(2, "Cost and outputs", `What you spent ${uThis(unit)} and what came out of it`, "outputs")}
     <div class="ocgrid">
-      ${side("spent", "Spent", "Time and cost", `<div class="stats">${cost}</div>`)}
+      ${side("spent", "Cost", "Time and usage", `<div class="stats">${cost}</div>`)}
       <div class="ocarrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-      ${side("left", "Left behind", "Commits", out ? `<div class="stats">${out}</div>` : `<p class="none">No commits recorded.</p>`)}
+      ${side("left", "Outputs", "Commits and cost per commit", out ? `<div class="stats">${out}</div>` : `<p class="none">No commits recorded.</p>`)}
     </div>
     <div class="ocdaily">${usageChart(w, unit === "月")}</div></section>`;
 }
