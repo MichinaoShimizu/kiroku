@@ -9,6 +9,7 @@ kiroku が各エージェントの履歴をどこから、どう読んでいる�
 - 時刻は発言ごと。プロンプトは `type: "user"` の行、AI の動きは `assistant` の行
 - AI が作業している間に送ったプロンプトは、`user` の行ではなく `type: "attachment"` の `queued_command`（`origin.kind: "human"`）にだけ残るので、そこからも拾う。ほかのエージェントからの連絡（`peer`）やタスクの通知（`task-notification`）はプロンプトに数えない
 - 会話が長くなって自動で要約したときの `isCompactSummary` の行（「This session is being continued…」）はプロンプトに数えない
+- `user` の行の文は `internal/core/kind.go` で分ける。スラッシュコマンド（`<command-name>` と `<command-args>`）は「/名前 引数」、`<bash-input>` は「! コマンド」として、人が打ったプロンプトに数える（`kind` が `command`・`shell`）。`<system-reminder>` は文の中にあっても外す。`<task-notification>`・`<user-prompt-submit-hook>`・`<local-command-stdout>` などのタグで始まる文、`Caveat:`、`isMeta` の行（スラッシュコマンドが展開した中身など）、要約、人以外から届いた `queued_command` は、プロンプトに数えず `notes`（種類と先頭 160 文字。1 セッション 300 件まで）に残し、プロンプトの流れに別の色で出す
 - トークンは、1 つの応答が複数行に分かれて記録されるので、メッセージ ID ごとにまとめてから数える（項目ごとに最大の値を使う）
 - サブエージェントは `Task` / `Agent` の呼び出しと、`<セッション>/subagents/agent-*.jsonl`（古い版は `isSidechain` の行を時間で割り当て）から読む
 - 目安コストは、Claude Code が書く `type: "cost-state"` の行（プロセスの起動 `startTime` からのモデル別の累計 `modelUsage[].costUSD`）があればそれに合わせる。プロセスごとに最新の累計を使い、起動から直前の行の時刻までの応答に、kiroku の料金表での見積もりの比で配る（見積もれないモデルはトークンの比）。履歴に応答がないモデル（タイトル付けなど）の分は、その時刻の 1 件として足す。記録のない期間（古い版、最後の記録より後）は kiroku の料金表で見積もる

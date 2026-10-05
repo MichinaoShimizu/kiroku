@@ -4,8 +4,15 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Added
+
+- The prompt flow tells apart what you typed from what entered the conversation on its own. Slash commands (such as `/review`) and `!` shell commands now count as your prompts, tagged "Command" or "Shell" in their own color. Notifications, `<system-reminder>`, hook and command output, automatic summaries, instructions from other agents or schedules and the expanded text of slash commands appear in another color with their kind, and are not counted as prompts. Before, all of these, slash commands included, were left out
+- "Only your prompts" in the prompt flow shows just what you typed, and "Copy prompts" copies it as Markdown with times. "Export prompts" in the summary heading does the same for the whole week or month, grouped by session
+- The JSON output has `kind` on prompts (`command` or `shell`) and `notes` on sessions
+
 ### Changed
 
+- Each day in the month calendar now lists, with labels, active time, tokens (credits when there are no tokens), sessions and prompts, instead of unlabeled numbers. Point at a day to also see late-night time, estimated cost and commits. On phones it shows active time and tokens in a shorter form so they no longer wrap or get cut off
 - The Japanese view, guide and README now call what you send to an agent a "プロンプト" (prompt) everywhere, instead of "依頼". The English view already said "prompt". The search box at the top is a little wider so the longer placeholder fits, and on phones the numbers in the header line up even when a label wraps
 - Daily tokens, cost and credits stand out more: "Daily usage" moved up into "Cost and outputs" with taller bars and bolder values, and the per-day usage under each date in the calendar is larger and bolder
 - Every chart now shows its values as soon as you point at it (or touch it): daily usage bars, the daily rhythm, project, share and model bands, each point of an 8-week trend, and the usage under calendar dates, with each value on its own labeled line. Before, some showed only after the browser's slow tooltip, and trend lines showed nothing per point
