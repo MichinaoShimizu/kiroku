@@ -761,11 +761,11 @@ function reportText(w, M){
   return L.join("\n");
 }
 /* アウトプット：AI が実行したコミット・PR 作成・変更した行（出したものの量。価値や生産性ではない） */
-function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）と、残ったもの（アウトプット）を並べる
+function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）→ 残ったもの（アウトプット）を左右に並べ、2 つを比べた指標を下にまとめる
   const o = w.outputs || {commits:0, prs:0, added:0, removed:0}, g = w.git, u = w.usage || {};
   const hasOut = o.commits || o.prs || o.added || o.removed || (g && g.commits);
   const po = pw && pw.outputs, V = vsPrev(pw, unit), d = (a, b) => V.diff(a, V.of(null, b)); // AI のコミットと PR は日ごとの値がないので、途中の期間は比べない
-  const n = v => v.toLocaleString(LOC()), times = v => tr(`${v}<small>回</small>`, `${v}`);
+  const n = v => v.toLocaleString(LOC()), times = v => tr(`${v}<small>回</small>`, `${v}`), base = w.outBase ?? w.sessions;
   const cost = [
     stat(tr("作業していた時間", "Active time"), dur(w.active,true), V.diff(w.active, V.of("active", pw && pw.active), dur), "active"),
     u.tokens ? stat(tr("目安コスト", "Estimated cost"), usd(u.cost).replace("$","<small>$</small>"), V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost") : "",
@@ -773,18 +773,23 @@ function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）�
     u.credits ? stat(tr("Kiro クレジット", "Kiro credits"), `${u.credits}`, tr("履歴に残った実績", "As recorded in history"), "credits") : "",
   ].join("");
   const out = hasOut ? [
-    g && g.commits ? stat(tr("Git のコミット", "Git commits"), times(g.commits), tr(`うち AI ${g.ai}・git の記録で +${n(g.added)} −${n(g.removed)} 行${pw && pw.git ? `・${V.diff(g.commits, V.of("commits", pw.git.commits))}` : ""}`, `${g.ai} by AI · +${n(g.added)} −${n(g.removed)} lines per git${pw && pw.git ? ` · ${V.diff(g.commits, V.of("commits", pw.git.commits))}` : ""}`), "gitCommits") : "",
+    g && g.commits ? stat(tr("Git のコミット", "Git commits"), times(g.commits), tr(`うち AI ${g.ai}・+${n(g.added)} −${n(g.removed)} 行${pw && pw.git ? `・${V.diff(g.commits, V.of("commits", pw.git.commits))}` : ""}`, `${g.ai} by AI · +${n(g.added)} −${n(g.removed)} lines${pw && pw.git ? ` · ${V.diff(g.commits, V.of("commits", pw.git.commits))}` : ""}`), "gitCommits") : "",
     stat(tr("AI のコミット", "AI commits"), times(o.commits), d(o.commits, po && po.commits), "commits"),
     stat(tr("PR の作成", "Pull requests"), tr(`${o.prs}<small>件</small>`, `${o.prs}`), d(o.prs, po && po.prs), "prs"),
-    stat(tr("AI が編集した行（推定）", "Lines edited by AI (est.)"), `<small>+</small>${n(o.added)}`, tr(`削除 ${n(o.removed)} 行・編集の前後から推定。コミットしなかった編集や書き直しも数えるため、git の記録より多くなりがちです`, `${n(o.removed)} removed · estimated by comparing before and after edits. Includes uncommitted edits and rewrites, so it tends to exceed git's numbers`), "lines"),
-    stat(tr("コミットまで行ったセッション", "Sessions that reached a commit"), `${w.outSessions}<small>/ ${w.outBase ?? w.sessions}</small>`, (w.outBase ?? w.sessions) ? `${Math.round(w.outSessions*100/(w.outBase ?? w.sessions))}%` : "", "outSessions"),
-    w.costPerCommit != null ? stat(tr("1コミットあたりの目安コスト", "Estimated cost per commit"), usd(w.costPerCommit).replace("$","<small>$</small>"), `n=${o.commits}`, "costPerCommit") : "",
+    stat(tr("AI が編集した行（推定）", "Lines edited by AI (est.)"), `<small>+</small>${n(o.added)}`, tr(`削除 ${n(o.removed)} 行・コミットしなかった編集も数える`, `${n(o.removed)} removed · includes uncommitted edits`), "lines"),
   ].join("") : "";
+  const cmp = hasOut ? [ // 2 つを比べた指標。何と何を割ったかを添える
+    w.costPerCommit != null ? stat(tr("1 コミットあたりの目安コスト", "Estimated cost per commit"), usd(w.costPerCommit).replace("$","<small>$</small>"), tr(`目安コスト ${usd(u.cost)} ÷ AI のコミット ${o.commits} 回`, `Estimated cost ${usd(u.cost)} ÷ ${plural(o.commits, "AI commit")}`), "costPerCommit") : "",
+    stat(tr("コミットまで行ったセッション", "Sessions that reached a commit"), base ? `${Math.round(w.outSessions*100/base)}<small>%</small>` : "—", tr(`${base} セッション中 ${w.outSessions}`, `${w.outSessions} of ${plural(base, "session")}`), "outSessions"),
+  ].join("") : "";
+  const side = (cls, label, sub, body) => `<div class="ocside ${cls}"><div class="ocl"><b>${label}</b><span>${sub}</span></div>${body}</div>`;
   return `<section class="panel oc">${ph(2, tr("コストとアウトプット", "Cost and outputs"), tr(`この${unit}に使ったものと、形に残ったもの`, `What you spent ${uThis(unit)} and what it left behind`), "outputs")}
     <div class="ocgrid">
-      <div><div class="ocl">${tr("使ったもの", "Spent")}</div><div class="stats">${cost}</div></div>
-      <div><div class="ocl">${tr("残ったもの（アウトプット）", "Left behind (outputs)")}</div>${out ? `<div class="stats s3">${out}</div>` : `<p class="none">${tr("コミットや PR の記録はありません。", "No commits or pull requests recorded.")}</p>`}</div>
+      ${side("spent", tr("使ったもの", "Spent"), tr("時間・費用", "Time and cost"), `<div class="stats">${cost}</div>`)}
+      <div class="ocarrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      ${side("left", tr("残ったもの", "Left behind"), tr("アウトプット", "Outputs"), out ? `<div class="stats">${out}</div>` : `<p class="none">${tr("コミットや PR の記録はありません。", "No commits or pull requests recorded.")}</p>`)}
     </div>
+    ${cmp ? `<div class="occmp"><div class="ocl"><b>${tr("くらべる", "Compared")}</b><span>${tr("使ったものに対して、どれだけ残ったか", "How much was left behind for what you spent")}</span></div><div class="stats">${cmp}</div></div>` : ""}
     <p class="note">${tr("「Git のコミット」は、エージェントが作業したリポジトリにある自分のコミット（手で行ったものを含む）です。それ以外は AI がツールで実行し、成功したものだけを数えます（現在は Claude Code のみ）。数は出したものの量で、価値や生産性ではありません。", "\"Git commits\" are your own commits in the repositories agents worked in (including ones made by hand). Everything else counts only what AI ran with tools and that succeeded (Claude Code only for now). The counts measure what was produced, not its value or productivity.")}</p></section>`;
 }
 /* 日ごとの使用量（トークン・目安コスト・クレジットを切り替え） */

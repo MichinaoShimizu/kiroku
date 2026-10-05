@@ -152,7 +152,19 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .useg .segc button{height:24px;font-size:11.5px}
 /* ── project（プロジェクト別のまとめ） ──────────────────── */
 .panel.projs,.panel.oc{grid-column:1/-1}
-.ocgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:24px;margin-top:8px}
+/* コストとアウトプット：使ったもの → 残ったもの を左右に、くらべる指標を下に。両側とも 2 列で、カードの最低の高さをそろえる */
+.ocgrid{display:grid;grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);gap:0 14px;margin-top:14px;align-items:start}
+.ocside{--side:var(--ink-3);display:flex;flex-direction:column;min-width:0}
+.ocside.spent{--side:var(--c4)}.ocside.left{--side:var(--c2)}
+.ocside .stats,.occmp .stats{margin-top:10px} /* 同じ行のカードは高さがそろう。印の付いたカードは 1 行を使うので、ほかの行を引き伸ばさない */
+.oc .stat{min-height:84px;display:flex;flex-direction:column}
+.ocside .stats{grid-auto-flow:row dense} /* 印の付いたカードが 1 行を使っても、空いたところをほかのカードで埋める */
+.ocside .stats:has(.flagged) .stat:last-child:nth-child(odd):not(.flagged){grid-column:auto}
+.oc .stat .s{margin-top:auto;padding-top:2px}
+.ocarrow{display:flex;align-items:center;justify-content:center;align-self:stretch;color:var(--ink-3)}
+.ocarrow svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.occmp{--side:var(--acc);margin-top:18px;padding-top:14px;border-top:1px dashed var(--rule-2)}
+.occmp .stats{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:56px} /* 上の左右の列（間は 14 + 矢印 28 + 14）に端をそろえる */
 .fss{display:flex;flex-direction:column;gap:2px;min-width:0}
 .fses{display:flex;align-items:center;gap:7px;font-size:12px;text-align:left;padding:3px 0;min-width:0}
 .fses i{width:7px;height:7px;border-radius:50%;background:var(--c);flex:none}
@@ -192,7 +204,7 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .moreS{margin-top:10px}
 .moreS summary{cursor:pointer;font-size:12.5px;color:var(--ink-2);padding:4px 0}
 .moreS .stats{margin-top:8px}
-.ocl{font:600 11px/1 var(--sans);letter-spacing:.06em;color:var(--ink-3);margin:6px 0 -6px}
+.ocl{display:flex;align-items:baseline;gap:8px;padding-top:8px;border-top:2px solid var(--side,var(--rule-2));font-size:11.5px;color:var(--ink-3)}.ocl b{font-size:12.5px;font-weight:700;color:var(--ink);letter-spacing:.02em}.occmp .ocl{border-top:0;padding-top:0}
 .stats.s3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .shh{margin:12px 0 2px}
 .shn{margin:0;font-size:11px;color:var(--ink-3)}
@@ -596,7 +608,7 @@ dialog.yr h3{font:700 15px/1.4 var(--sans);margin:30px 0 10px}
   .kpi{border-left:1px solid var(--rule);border-top:1px solid var(--rule);padding:8px 10px 7px}
   .kpi:nth-child(-n+3){border-top:0}.kpi:nth-child(3n+1){border-left:0}
   .kpi .k{font-size:10px;white-space:normal;line-height:1.3}.kpi .v{font-size:16px}
-  .ocgrid{grid-template-columns:minmax(0,1fr);gap:12px}.stats.s3{grid-template-columns:1fr 1fr}
+  .ocgrid{grid-template-columns:minmax(0,1fr);gap:4px}.ocarrow{transform:rotate(90deg);height:28px}.occmp .stats{column-gap:8px}.stats.s3{grid-template-columns:1fr 1fr}
   .calin{min-width:860px} /* スマホでは横にスクロールさせ、1 日の幅を確保する（コミットの印の溝があっても帯を読めるように） */
   .calscroll{max-height:70vh}
   .rvgrid{grid-template-columns:minmax(0,1fr)}
