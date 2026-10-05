@@ -1,10 +1,11 @@
-"""gen.py の履歴に合わせて、ダミーの git リポジトリを作る（AI が実行したコミットと、手で行ったコミット）。
+"""gen.py の履歴に合わせて、ダミーの git リポジトリを作る（AI が実行したコミットと、手で行ったコミット、ときどきの push）。
 
   python3 mkgit.py <出力先>
 """
 import json, glob, os, subprocess, random, sys, datetime as dt
 OUT = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else "out")
 random.seed(3)
+push=random.Random(7) # push の分は別の乱数にして、コミットの中身は変えない
 R=os.path.join(OUT,'repos')
 ev=[]
 for f in glob.glob(os.path.join(OUT,'home','.claude','projects','*','*.jsonl')):
@@ -32,4 +33,7 @@ for i,(p,t,kind,msg) in enumerate(ev):
     d=dt.datetime.fromtimestamp(t).astimezone().isoformat()
     env=dict(os.environ,GIT_AUTHOR_DATE=d,GIT_COMMITTER_DATE=d)
     subprocess.run(['git','-C',p,'commit','-qm',msg],env=env,check=True)
+    if push.random() < 0.35: # ときどき push した（リモートには送れないので、push と同じ reflog の行だけを残す）
+        pt=dt.datetime.fromtimestamp(t+push.uniform(60,1200)).astimezone().isoformat()
+        subprocess.run(['git','-C',p,'update-ref','-m','update by push','refs/remotes/origin/main','HEAD'],env=dict(os.environ,GIT_COMMITTER_DATE=pt),check=True)
 print(len(ev))

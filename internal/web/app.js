@@ -211,19 +211,26 @@ function timeline(shown, inWeek, ws, we, todayKey){
       runs.push(bk);
       html += `<button class="run${h < 16 ? " thin" : ""}${st.sel === bk.s.id ? " sel" : ""}" data-r="${id}" data-sid="${esc(bk.s.id)}" style="top:${y}px;height:${h}px;left:calc((100% - var(--g)) * ${(bk.lane/bk.L).toFixed(4)} + 3px);width:calc((100% - var(--g)) / ${bk.L} - 6px);--c:${colorOf(keyOf(bk.s))};--fill:${Math.round(16+30*dens)}%;${st.animate?`--delay:${d*30+Math.min(j,14)*10}ms`:"animation:none"}" aria-label="${esc(`${bk.s.title}, ${bk.s.project}, ${md(bk.a)} ${hm(bk.a)} to ${hm(bk.b)}`)}">${h >= 20 ? `<span class="t"><span>${esc(bk.s.title)}</span></span>` + (h >= 38 ? `<span class="m">${hm(bk.a)}–${hm(bk.b)} · ${esc(bk.s.project)}</span>` : "") : ""}</button>`;
     });
-    let gy = -99; // コミットは右端の溝に、時刻の順に置く（近すぎるものは少し下へずらす）
-    dayGit.forEach(c => {
-      const y = Math.max((c.t-ds)/3600*hh, gy + 17); gy = y;
+    // 右端の溝に、コミット・push・PR を時刻の順に置く（近すぎるものは少し下へずらす）
+    const showP = p => !st.hidden.size || st.colorBy !== "project" || !st.hidden.has(p);
+    const marks = [...dayGit.map(c => ({t: c.t, c})),
+      ...(META.push || []).filter(p => p.t >= ds && p.t < de && showP(p.project)).map(p => ({t: p.t, p})),
+      ...shown.flatMap(s => (s.prAt || []).filter(x => x.t >= ds && x.t < de).map(x => ({t: x.t, r: x, s})))].sort((a, b) => a.t - b.t);
+    let gy = -99;
+    marks.forEach(({t, c, p, r, s}) => {
+      const y = Math.max((t-ds)/3600*hh, gy + 17); gy = y;
+      if (p){ html += `<span class="gm push" style="top:${y}px" title="${esc(`${hm(t)} Pushed to ${p.ref}${p.commits ? ` (${plural(p.commits, "commit")})` : ""} · ${p.project}\nFrom this computer (git reflog)`)}">${ico("push")}</span>`; return; }
+      if (r){ html += `<button class="gm prm" data-id="${esc(s.id)}" style="top:${y}px" title="${esc(`${hm(t)} Created a pull request · ${s.project}${r.url ? "\n" + r.url : ""}\nRecorded when an agent created it`)}" aria-label="${esc(`Pull request ${hm(t)}`)}">${ico("pr")}</button>`; return; }
       html += `<button class="gc${c.ai ? " ai" : ""}${st.sel === "git:"+c.hash ? " sel" : ""}" data-c="${esc(c.hash)}" style="top:${y}px" title="${esc(`${hm(c.t)} ${c.project}${c.branch ? " · "+c.branch : ""} · ${c.hash}\n${c.subject}\n${plural(c.nFiles, "file")} +${c.added} −${c.removed}${c.ai ? " · run by AI" : ""}`)}" aria-label="${esc(`Commit ${hm(c.t)} ${c.subject}`)}">${GIT_ICON}<span>${esc(c.hash.slice(0,7))}</span></button>`; });
     limitHits(ds, de).filter(h => matches(h.s)).forEach(h => { html += `<button class="lim" data-id="${esc(h.s.id)}" style="top:${(h.t-ds)/3600*hh}px" title="${esc(`${hm(h.t)} Hit the usage limit (${h.s.title})`)}" aria-label="${esc(`${hm(h.t)} usage limit`)}">${ico("limit")}Limit</button>`; });
     if (isToday && nowS >= ds && nowS < de) html += `<div class="nowline" style="top:${(nowS-ds)/3600*hh}px"></div>`;
-    cols += `<div class="day${day.getDay()%6===0?" we":""}${wkc(day.getDay())}${isToday?" today":""}" style="height:${H}px;--g:${dayGit.length ? 18 : 0}px">${html}</div>`;
+    cols += `<div class="day${day.getDay()%6===0?" we":""}${wkc(day.getDay())}${isToday?" today":""}" style="height:${H}px;--g:${marks.length ? 18 : 0}px">${html}</div>`;
   }
   T.innerHTML = `<div class="calscroll" style="--hh:${hh}px"><div class="calin"><div class="heads">${heads}</div><div class="cgrid"><div class="hours" style="height:${H}px">${hours}</div>${cols}</div></div></div>`;
   const sc = T.querySelector(".calscroll");
   sc.style.scrollPaddingTop = T.querySelector(".heads").offsetHeight + "px"; sc.style.scrollPaddingLeft = "56px"; // Tab で移ったブロックが、固定の日付・時刻の下に隠れないように
   if (top != null) sc.scrollTop = top;
-  T.querySelectorAll(".lim").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); });
+  T.querySelectorAll(".lim,.gm.prm").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); });
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });
   T.querySelectorAll(".run").forEach(el => { const bk = runs[+el.dataset.r];
     el.onclick = e => { e.stopPropagation(); select(bk.s.id); };
@@ -865,6 +872,7 @@ const ICON_PATH = {
   limit: '<path d="M4 2h8M4 14h8M5 2c0 3.2 3 4.3 3 6s-3 2.8-3 6M11 2c0 3.2-3 4.3-3 6s3 2.8 3 6"/>',
   int: '<circle cx="8" cy="8" r="6"/><path d="M6.4 5.6v4.8M9.6 5.6v4.8"/>',
   agent: '<path d="M3 2.5v4a3 3 0 0 0 3 3h7M10 6.5l3 3-3 3"/>',
+  push: '<path d="M8 12V2.8M4.2 6.6 8 2.8l3.8 3.8M3.5 14h9"/>',
   note: '<path d="M4.2 10.8V7a3.8 3.8 0 0 1 7.6 0v3.8l1.2 1.4H3zM6.6 14a1.5 1.5 0 0 0 2.8 0"/>',
   command: '<path d="M10.5 2.5 5.5 13.5"/>',
   shell: '<path d="M3 4.5 6.5 8 3 11.5M8 12h5"/>',
@@ -1012,6 +1020,7 @@ function userPrompts(s){ // 人が打ったプロンプトだけを、時刻つ�
 function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面では d だけを省略する）
   const ev = [];
   commitsOf(s).forEach(c => ev.push({t: c.t, k: c.ai ? "commit ai" : "commit", l: c.ai ? "AI committed" : "Committed by hand", d: `<button class="evd" data-git="${esc(c.hash)}"><i class="gtag${c.ai ? " ai" : ""}">${GIT_ICON}${esc(c.hash.slice(0,7))}</i> ${esc(c.subject)}</button>`}));
+  (META.push || []).filter(p => p.project === s.project && p.t >= s.start && p.t <= s.end + 600).forEach(p => ev.push({t: p.t, k: "push", l: "Pushed", d: `<span class="evd">${p.url ? ext(p.url, esc(p.ref)) : esc(p.ref)}${p.commits ? ` · ${plural(p.commits, "commit")}` : ""}</span>`})); // この PC からの push（git reflog）
   (s.prAt || []).forEach(p => ev.push({t: p.t, k: "pr", l: "Created a pull request", d: p.url ? `<span class="evd">${ext(p.url, esc(prName(p.url)))}</span>` : ""}));
   (s.limits || []).forEach(t => ev.push({t, k: "warn", l: "Hit a usage limit"}));
   (s.interruptsAt || []).forEach(t => ev.push({t, k: "int", l: "Interrupted"}));
@@ -1019,7 +1028,7 @@ function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面で�
   s.subagents.forEach(a => { if (a.start) ev.push({t: a.start, k: "agent", l: "Subagent", d: `<span class="evd"><span class="mono">${esc(a.type)}</span>${a.desc ? ` · ${esc(a.desc)}` : ""}</span>`}); });
   return ev.sort((a, b) => a.t - b.t);
 }
-const EV_ICON = {commit: "commit", pr: "pr", warn: "limit", int: "int", agent: "agent", note: "note"}; // 流れの出来事の種類 → 印
+const EV_ICON = {commit: "commit", push: "push", pr: "pr", warn: "limit", int: "int", agent: "agent", note: "note"}; // 流れの出来事の種類 → 印
 const pexpLabel = p => p.len > 0 ? `Read more (${p.len.toLocaleString()} characters)` : "Show all";
 function promptFlow(s){
   const ev = flowEvents(s), rows = [];
@@ -1044,7 +1053,7 @@ function promptFlow(s){
     cmds ? `<span><i class="kp cmd"></i>Commands the user typed (/ or !)</span>` : "",
     kinds.has("note") ? `<span class="kev note">${ico("note")}Added automatically (notifications, summaries, hooks; not counted as prompts)</span>` : "",
     fixes ? `<span><i class="kp fix"></i>Looks like a correction (guessed from the wording)</span>` : "",
-    ...[["commit", "Commit"], ["pr", "Pull request"], ["agent", "Subagent"], ["int", "Interruption"], ["warn", "Usage limit"]].filter(([k]) => kinds.has(k)).map(([k, l]) => `<span class="kev ${k}">${ico(EV_ICON[k])}${l}</span>`)].filter(Boolean).join("");
+    ...[["commit", "Commit"], ["push", "Push"], ["pr", "Pull request"], ["agent", "Subagent"], ["int", "Interruption"], ["warn", "Usage limit"]].filter(([k]) => kinds.has(k)).map(([k, l]) => `<span class="kev ${k}">${ico(EV_ICON[k])}${l}</span>`)].filter(Boolean).join("");
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";
   const bar = `<div class="flowbar"><div class="segc" role="group" aria-label="Show" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">Everything</button><button data-v="user" aria-pressed="${!!st.flowUser}">Only user prompts</button></div><button class="pill" id="pcopy">Copy prompts</button></div>`;
   return `${bar}<div class="tlkey">${key}</div><ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${`Show ${plural(rest, "more prompt")}${also}`}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${"\"AI worked\" is the time from a prompt to the AI's last activity; \"wait\" is the time from there to your next prompt. Both are estimates from the history's timestamps."}</p>` : ""}`;

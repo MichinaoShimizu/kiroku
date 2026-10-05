@@ -34,6 +34,21 @@ type Commit struct {
 	Session string     `json:"session,omitempty"` // AI が実行したときの、そのセッションの ID
 }
 
+// Push は、この PC から行った push の 1 回（リモート追跡ブランチの reflog の「update by push」）。
+// ほかの PC からの push や、reflog の期限（既定 90 日）より古いものは残っていない。
+type Push struct {
+	T       float64 `json:"t"`             // push した時刻（UNIX 秒）
+	Project string  `json:"project"`       // セッションと同じプロジェクト名
+	Repo    string  `json:"repo"`          // リポジトリのルート
+	Ref     string  `json:"ref"`           // 送った先（origin/main など）
+	Hash    string  `json:"hash"`          // push したあとの先頭のコミット
+	Commits int     `json:"commits"`       // 送ったコミットの数（前の位置がわからなければ 0）
+	URL     string  `json:"url,omitempty"` // リモートでの先頭のコミットのページ
+}
+
+// MaxPushRefs は 1 つのリポジトリから reflog を読むリモート追跡ブランチの上限。
+const MaxPushRefs = 200
+
 // FileStat は 1 つのファイルの変更行数（バイナリは -1）。
 type FileStat struct {
 	Path    string `json:"path"`
@@ -93,8 +108,14 @@ func repoOf(ctx context.Context, p string) [2]string {
 // Collect はセッションの作業場所にあるリポジトリから、利用者自身（user.email）のコミットを読む。
 // 期間は、そのリポジトリでの最初のセッションの 1 日前から。
 func Collect(data []*core.Session) []Commit {
+	cs, _ := CollectAll(data)
+	return cs
+}
+
+// CollectAll はコミットに加えて、この PC から行った push も読む（どちらも手元の git だけで、外には問い合わせない）。
+func CollectAll(data []*core.Session) ([]Commit, []Push) {
 	if _, err := exec.LookPath("git"); err != nil {
-		return nil
+		return nil, nil
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -136,9 +157,11 @@ func Collect(data []*core.Session) []Commit {
 	}
 	seen := map[string]bool{}
 	var out []Commit
+	var pushes []Push
 	for _, top := range order {
 		r := repos[top]
 		cs := readRepo(ctx, r)
+		pushes = append(pushes, readPushes(ctx, r)...)
 		for _, c := range cs {
 			if seen[c.Hash] {
 				continue
@@ -148,6 +171,54 @@ func Collect(data []*core.Session) []Commit {
 		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].T < out[j].T })
+	sort.SliceStable(pushes, func(i, j int) bool { return pushes[i].T < pushes[j].T })
+	return out, pushes
+}
+
+// readPushes はリモート追跡ブランチの reflog から「update by push」の行を読む。readRepo のあと（r.web が決まってから）に呼ぶ。
+func readPushes(ctx context.Context, r *repo) []Push {
+	refs, err := git(ctx, r.top, "for-each-ref", "--format=%(refname)", "refs/remotes")
+	if err != nil {
+		return nil
+	}
+	var out []Push
+	for i, ref := range strings.Fields(refs) {
+		if i >= MaxPushRefs {
+			break
+		}
+		if strings.HasSuffix(ref, "/HEAD") {
+			continue
+		}
+		raw, err := git(ctx, r.top, "reflog", "show", "--date=unix", "--format=%H%x1f%gd%x1f%gs", ref, "--")
+		if err != nil {
+			continue
+		}
+		lines := strings.Split(strings.TrimSpace(raw), "\n") // 新しい順
+		for j := len(lines) - 1; j >= 0; j-- {               // 古い順に足す（同じ秒の push も順番どおりに並ぶよう）
+			line := lines[j]
+			f := strings.SplitN(line, "\x1f", 3)
+			if len(f) < 3 || !strings.HasPrefix(f[2], "update by push") {
+				continue
+			}
+			at := strings.LastIndex(f[1], "@{")
+			if at < 0 {
+				continue
+			}
+			t, err := strconv.ParseFloat(strings.TrimSuffix(f[1][at+2:], "}"), 64)
+			if err != nil || t < r.since-86400 {
+				continue
+			}
+			p := Push{T: t, Project: r.project, Repo: r.top, Ref: branchOf(ref), Hash: f[0], URL: commitURL(r.web, f[0])}
+			if j+1 < len(lines) { // ひとつ前の位置から、送ったコミットの数を数える
+				if prev := strings.SplitN(lines[j+1], "\x1f", 2)[0]; prev != "" && prev != f[0] {
+					if n, err := git(ctx, r.top, "rev-list", "--count", prev+".."+f[0]); err == nil {
+						p.Commits, _ = strconv.Atoi(strings.TrimSpace(n))
+					}
+				}
+			}
+			out = append(out, p)
+		}
+	}
 	return out
 }
 

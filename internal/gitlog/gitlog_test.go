@@ -140,3 +140,35 @@ func TestCollectWorktree(t *testing.T) {
 		}
 	}
 }
+
+// この PC から行った push を、リモート追跡ブランチの reflog から読む（fetch で動いたものは数えない）。
+func TestCollectPushes(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git がない")
+	}
+	remote, dir := t.TempDir(), t.TempDir()
+	run(t, remote, nil, "init", "-q", "--bare")
+	run(t, dir, nil, "init", "-q", "-b", "main")
+	run(t, dir, nil, "config", "user.email", "me@example.com")
+	run(t, dir, nil, "config", "user.name", "me")
+	run(t, dir, nil, "remote", "add", "origin", remote)
+	commit := func(file string) {
+		os.WriteFile(filepath.Join(dir, file), []byte("a\n"), 0o644)
+		run(t, dir, nil, "add", file)
+		run(t, dir, nil, "commit", "-q", "-m", file)
+	}
+	commit("a.txt")
+	run(t, dir, nil, "push", "-q", "-u", "origin", "main")
+	commit("b.txt")
+	commit("c.txt")
+	run(t, dir, nil, "push", "-q")
+	run(t, dir, nil, "fetch", "-q")
+	s := &core.Session{ID: "s1", Project: "app", ProjectPath: dir, Start: float64(time.Now().Add(-time.Hour).Unix())}
+	_, ps := CollectAll([]*core.Session{s})
+	if len(ps) != 2 {
+		t.Fatalf("push の数 = %d, want 2: %+v", len(ps), ps)
+	}
+	if p := ps[1]; p.Ref != "origin/main" || p.Commits != 2 || p.Project != "app" || len(p.Hash) != 40 || p.T == 0 {
+		t.Errorf("2 回目の push = %+v, want origin/main・2 コミット", p)
+	}
+}
