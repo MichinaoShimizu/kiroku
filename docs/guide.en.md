@@ -131,6 +131,7 @@ The image shows the English view. In a Japanese browser it is shown in Japanese 
 | Expensive models for light work | Total for sessions that mainly used Opus-class models, had 3 or fewer prompts, edited no files and cost $0.3 or more |
 | Usage limit hits | Count and times of usage limit errors (usage caps and rate limits) left in Claude Code history. Hits within 1 minute count once. The calendar shows them with a red "Limit" mark |
 | Sessions with possible friction | Up to 3 sessions started in the period with at least one correction or interruption, or 15 or more prompts, most first |
+| Repeated prompts | Prompts of 12+ characters in the period, grouped by how similar their text is; up to 3 written in 3 or more sessions, most first |
 | Daily and weekly rhythm | Work time per day in week view and per week in month view (with late night) |
 
 ### How you used AI
@@ -213,6 +214,7 @@ Press "?" on any metric in the view to see the same explanation. It is also incl
 | Expensive models for light work | How much went to short tasks on an expensive model | Whether that model was needed (some research or design questions are hard) | Try a lighter model first for research and questions, and switch if it falls short |
 | Usage limit hits | When and during which work you hit a limit and had to stop | How much headroom is left. Usage from other agents, the browser or the app | Spread heavy work over time, use lighter models, and start new sessions for long conversations |
 | Sessions with possible friction | Sessions where rework piled up | Why it went wrong | Next period, split big requests into one step per prompt |
+| Repeated prompts | Routine requests you type every time | Whether those requests worked well | Next period, write the most repeated one once as a custom command or in CLAUDE.md |
 | Time by project | How you split your time | Whether the split was right | If it differs from what you intended, revisit your priorities |
 | Daily and weekly rhythm | Ups and downs in your workload | What caused them | If work piles up on certain days, rethink how you distribute it |
 | Daily usage | Which days you used AI the most | Whether that day's usage was appropriate | Open the sessions on outlier days to see why they were heavy |
