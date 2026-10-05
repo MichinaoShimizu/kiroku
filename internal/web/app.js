@@ -1425,6 +1425,9 @@ function scrollToWork(){ // その週の作業が始まるころの少し前へ
 }
 // 今週に記録がなければ、いちばん新しい記録の週から開く
 if (DATA.length && !WEEKS[key(st.week)]) st.week = mondayOf(new Date(DATA[DATA.length-1].end*1000));
+// デモは週に 1 回（月曜）作り直すので、今週は記録が少ないことが多い。平日がそろったいちばん新しい週から開く
+if (META && META.demo){ const full = Object.keys(WEEKS).filter(k => WEEKS[k].days.slice(0,5).every(d => d.active)).sort().pop();
+  if (full){ const [y,m,dd] = full.split("-").map(Number); st.week = new Date(y, m-1, dd); } }
 if (DATA.length && !MONTHS[mkey(st.month)]) st.month = monthOf(new Date(DATA[DATA.length-1].end*1000));
 const mq = matchMedia("(max-width:1000px)"),
  ph = () => $("#q").placeholder = mq.matches ? "Search" : "Prompts, files, commits"; // 狭い画面では入力欄も狭いので短く
