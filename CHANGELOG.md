@@ -9,6 +9,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - "Cost and outputs" no longer shows pull requests and lines edited by AI: they were only counted from Claude Code tool calls on this computer, so they often read 0. Git commits (with their lines) remain. The project cards and the "Ask AI" prompt drop them too; pull request links still appear in a session's details and in the report draft when they were recorded
 - "Compared" is no longer a separate row: estimated cost per commit and sessions that reached a commit now sit under "Left behind"
 - Credits are shown as whole numbers (below 1, with two decimals)
+- The week and month calendars show the same four figures, labeled: active time, tokens (or credits), sessions and Git commits. In the month calendar, Git commits replace prompts, and the week column on the left (W40 and so on) now shows the four for that week. The week calendar's day headings use the same layout instead of the time, a usage line and a commit icon
 
 ## v0.7.0 - 2026-10-05
 
