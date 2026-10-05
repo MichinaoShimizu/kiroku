@@ -12,58 +12,57 @@
   <div class="wrap bar">
     <div class="brand">
       <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--ink)"/><rect x="6" y="8" width="13" height="4" rx="2" fill="var(--acc)"/><rect x="11" y="14" width="15" height="4" rx="2" fill="var(--bg)"/><rect x="6" y="20" width="9" height="4" rx="2" fill="var(--bg)" opacity=".55"/></svg>
-      <span class="word">kiroku</span><span class="tag">AIと過ごした時間の記録</span>
-      <span class="live" id="live" hidden title="履歴が増えると自動で反映します">LIVE</span>
+      <span class="word">kiroku</span><span class="tag">A record of your time with AI</span>
+      <span class="live" id="live" hidden title="Updates automatically as your history grows">LIVE</span>
     </div>
-    <div class="segc" role="group" aria-label="色分け" id="colorBy">
-      <button data-v="project">プロジェクト</button><button data-v="branch">ブランチ</button><button data-v="source">エージェント</button>
+    <div class="segc" role="group" aria-label="Color by" id="colorBy">
+      <button data-v="project">Project</button><button data-v="branch">Branch</button><button data-v="source">Agent</button>
     </div>
-    <div class="segc zoom" role="group" aria-label="ズーム">
-      <button id="zout" aria-label="縮小">−</button><button id="zin" aria-label="拡大">＋</button>
+    <div class="segc zoom" role="group" aria-label="Zoom">
+      <button id="zout" aria-label="Zoom out">−</button><button id="zin" aria-label="Zoom in">+</button>
     </div>
-    <label class="search"><span class="sr">検索</span>
+    <label class="search"><span class="sr">Search</span>
       <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
-      <input id="q" type="search" placeholder="プロンプト・ファイル・コミット" autocomplete="off"><kbd>/</kbd></label>
-    <label class="langsel"><span class="sr">言語 / Language</span><select id="lang"><option value="ja">日本語</option><option value="en">English</option></select></label>
-    <button class="iconbtn" id="theme" aria-label="テーマを切り替え"></button>
-    <button class="iconbtn" id="help" aria-label="ショートカット"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 014.8.9c0 1.7-2.4 2.2-2.4 3.6M12 17h.01"/></svg></button>
+      <input id="q" type="search" placeholder="Prompts, files, commits" autocomplete="off"><kbd>/</kbd></label>
+    <button class="iconbtn" id="theme" aria-label="Switch theme"></button>
+    <button class="iconbtn" id="help" aria-label="Keyboard shortcuts"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 014.8.9c0 1.7-2.4 2.2-2.4 3.6M12 17h.01"/></svg></button>
   </div>
 </header>
 <main class="wrap">
-  <section class="week" aria-label="期間">
-    <nav class="wk" aria-label="期間の移動">
+  <section class="week" aria-label="Period">
+    <nav class="wk" aria-label="Change period">
       <div class="lbl" aria-live="polite"><div class="y" id="ry"></div><div class="d" id="rd"></div></div>
       <div class="nav">
-        <button class="iconbtn" id="prev" aria-label="前へ"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
-        <button class="iconbtn" id="next" aria-label="次へ"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-        <button class="pill" id="today">今週</button>
-        <button class="pill" id="yrbtn" aria-haspopup="dialog" hidden>1 年の露光</button>
-        <div class="segc mode" role="group" aria-label="表示" id="mode"><button data-v="week">週</button><button data-v="month">月</button></div>
+        <button class="iconbtn" id="prev" aria-label="Previous"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <button class="iconbtn" id="next" aria-label="Next"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button class="pill" id="today">This week</button>
+        <button class="pill" id="yrbtn" aria-haspopup="dialog" hidden>Year in review</button>
+        <div class="segc mode" role="group" aria-label="View" id="mode"><button data-v="week">Week</button><button data-v="month">Month</button></div>
       </div>
     </nav>
     <div class="kpis" id="kpis"></div>
   </section>
-  <div class="legend" id="legend" aria-label="凡例"></div>
-  <section class="tlbox" id="tl" aria-label="カレンダー"></section>
+  <div class="legend" id="legend" aria-label="Legend"></div>
+  <section class="tlbox" id="tl" aria-label="Calendar"></section>
   <section id="review" aria-live="polite"></section>
 </main>
 <div class="scrim" id="scrim"></div>
-<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="セッションの詳細" aria-hidden="true">
-  <div class="dh"><button class="back" id="back"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>前の詳細に戻る</button>
-    <button class="iconbtn" id="close" aria-label="閉じる"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Session details" aria-hidden="true">
+  <div class="dh"><button class="back" id="back"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Back</button>
+    <button class="iconbtn" id="close" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="db" id="panel"></div>
 </aside>
 <div class="tip" id="tip" role="tooltip"></div>
 <div class="toast" id="toast" role="status"></div>
 <dialog id="keys">
-  <div class="eyebrow">Shortcuts</div><h2>キーボード操作</h2>
+  <div class="eyebrow">Shortcuts</div><h2>Keyboard shortcuts</h2>
   <div class="keys">
-    <kbd>←</kbd><span>前の週 / 月</span><kbd>→</kbd><span>次の週 / 月</span><kbd>T</kbd><span>今週 / 今月に戻る</span>
-    <kbd>/</kbd><span>検索</span><kbd>+</kbd><span>拡大（<kbd>−</kbd> で縮小）</span>
-    <kbd>W</kbd><span>週の表示</span><kbd>M</kbd><span>月の表示</span>
-    <kbd>Esc</kbd><span>詳細を閉じる</span><kbd>?</kbd><span>この一覧</span>
+    <kbd>←</kbd><span>Previous week / month</span><kbd>→</kbd><span>Next week / month</span><kbd>T</kbd><span>Back to this week / month</span>
+    <kbd>/</kbd><span>Search</span><kbd>+</kbd><span>Zoom in (<kbd>−</kbd> to zoom out)</span>
+    <kbd>W</kbd><span>Week view</span><kbd>M</kbd><span>Month view</span>
+    <kbd>Esc</kbd><span>Close details</span><kbd>?</kbd><span>This list</span>
   </div>
-  <form method="dialog" style="margin-top:22px;text-align:right"><button class="pill">閉じる</button></form>
+  <form method="dialog" style="margin-top:22px;text-align:right"><button class="pill">Close</button></form>
 </dialog>
 <dialog id="yr" class="yr" aria-labelledby="yrh"></dialog>
 <script>

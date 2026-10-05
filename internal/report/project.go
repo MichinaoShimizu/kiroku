@@ -92,7 +92,7 @@ func projectStats(data []*core.Session, ws, we float64, minutes map[string]float
 			ts.Tokens += tok
 			name := e.Model
 			if name == "" {
-				name = "（不明）"
+				name = "(unknown)"
 			}
 			m := a.models[name]
 			if m == nil {

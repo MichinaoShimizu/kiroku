@@ -1,18 +1,16 @@
-# kiroku ガイド
+# kiroku guide
 
-[English](guide.en.md) | 日本語
+This guide supplements the [README](../README.md). It covers installation and commands in detail, how to read the view, metric definitions, which histories are read, and options.
 
-README（[日本語](../README.ja.md)・[English](../README.md)）の補足です。インストールとコマンドの詳細、画面の見方、指標の定義、読み取る履歴、オプションをまとめています。
+## Install
 
-## インストール
-
-### macOS・Linux（推奨）
+### macOS and Linux (recommended)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install.sh | sh
 ```
 
-OS と CPU（Intel / Apple Silicon・ARM）に合ったファイルを [Releases](https://github.com/MichinaoShimizu/kiroku/releases) からダウンロードし、`checksums.txt` で検証してから `/usr/local/bin`（書き込めない場合は `~/.local/bin`）に配置します。環境変数でバージョンと配置先を指定できます。
+This downloads the file for your OS and CPU (Intel / Apple Silicon and ARM) from [Releases](https://github.com/MichinaoShimizu/kiroku/releases), verifies it with `checksums.txt`, and places it in `/usr/local/bin` (or `~/.local/bin` if that is not writable). You can set the version and install location with environment variables.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install.sh | KIROKU_VERSION=v0.1.7 KIROKU_INSTALL_DIR=~/bin sh
@@ -20,7 +18,7 @@ curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install
 
 ### Windows
 
-[Releases](https://github.com/MichinaoShimizu/kiroku/releases) から `kiroku_<バージョン>_windows_<amd64 または arm64>.zip` をダウンロードして展開します。
+Download `kiroku_<version>_windows_<amd64 or arm64>.zip` from [Releases](https://github.com/MichinaoShimizu/kiroku/releases) and extract it.
 
 ### Go
 
@@ -28,128 +26,125 @@ curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install
 go install github.com/MichinaoShimizu/kiroku@latest
 ```
 
-> macOS でブラウザからダウンロードした `kiroku` を開くと、「“kiroku”は開いていません」と表示されることがあります（Apple の公証を受けていないため）。`install.sh` と `go install` ではこの警告は出ません。ブラウザからダウンロードした場合は `xattr -d com.apple.quarantine ./kiroku` を実行するか、システム設定 → プライバシーとセキュリティ の「このまま開く」から開いてください。
+> On macOS, opening a `kiroku` downloaded with a browser may show "“kiroku” Not Opened" (because it is not notarized by Apple). `install.sh` and `go install` do not trigger this warning. If you downloaded it with a browser, run `xattr -d com.apple.quarantine ./kiroku`, or open it with "Open Anyway" in System Settings → Privacy & Security.
 
-## コマンド
+## Commands
 
-| コマンド | 説明 |
+| Command | Description |
 |---|---|
-| `kiroku serve [待ち受けアドレス]` | `http://localhost:8484/` で画面を表示し続けます。数秒ごとに履歴フォルダの変化（ファイル名・サイズ・更新日時のみ）を確認し、書き込みが落ち着いてから読み直します（変化が 10 秒止まったら。エージェントが書き込み続けていても、最長 60 秒で読み直します）。表示中の週・月や選択中のセッションはそのままで新しい履歴が反映され、左上に `LIVE` と表示されます。`kiroku serve :8485` のようにポートを変更できます（ポートだけのときも手元の `127.0.0.1` で待ち受けます）。Ctrl+C で終了します |
-| `kiroku html [-o ファイル]` | 実行時点までの履歴をすべて読み取り、1 つの HTML ファイルに出力し、ブラウザで開きます（`--no-open` で開かない）。持ち運ぶときや、サーバーを起動せずに見たいときに使います。その後の履歴を反映するには再実行してください |
-| `kiroku json [-o ファイル]` | 集計結果を JSON で出力します（`-o -` で標準出力） |
-| `kiroku archive [on\|off]` | エージェントが自動で消す履歴（Claude Code・Kiro Crew）のコピーを、kiroku の保存場所に圧縮して残します（「[kiroku に履歴のコピーを残す](#kiroku-に履歴のコピーを残す)」参照）。引数なしで状態（オンかオフか・保存場所・ファイル数と大きさ）を表示します |
-| `kiroku version` | バージョンを表示します |
-| `kiroku update` | GitHub Releases から同じ OS・CPU 向けの最新版をダウンロードし、`checksums.txt` で検証してから自身を置き換えます。書き込み権限のない場所（`/usr/local/bin` など）では `sudo kiroku update` を実行してください。`go install` やソースからビルドした kiroku（バージョンが `dev`）は置き換えないため、`go install …@latest` で更新してください。v0.1.1 以前には `update` がないため、一度だけ `install.sh` か Releases から再インストールしてください |
+| `kiroku serve [ADDR]` | Serves the view at `http://localhost:8484/` and keeps it up to date. Every few seconds it checks the history folders for changes (file names, sizes and modification times only) and reloads once writing settles (when changes stop for 10 seconds; even if an agent keeps writing, it reloads within 60 seconds at most). New history appears while the week or month you are viewing and the selected session stay as they are, and `LIVE` is shown at the top left. Change the port with, for example, `kiroku serve :8485` (a bare port still listens on `127.0.0.1` only). Press Ctrl+C to quit |
+| `kiroku html [-o FILE]` | Reads all history up to now and writes it to a single HTML file, then opens it in your browser (`--no-open` to skip). Use it to carry the view around or to look at it without starting a server. Run it again to include later history |
+| `kiroku json [-o FILE]` | Writes the aggregated data as JSON (`-o -` for stdout) |
+| `kiroku archive [on\|off]` | Keeps compressed copies of history that agents delete automatically (Claude Code, Kiro Crew) in kiroku's own folder (see "[Keep a copy of history in kiroku](#keep-a-copy-of-history-in-kiroku)"). With no argument, shows the status (on or off, location, number and size of files) |
+| `kiroku version` | Prints the version |
+| `kiroku update` | Downloads the latest release for the same OS and CPU from GitHub Releases, verifies it with `checksums.txt`, and replaces itself. In a location you cannot write to (such as `/usr/local/bin`), run `sudo kiroku update`. kiroku installed with `go install` or built from source (version `dev`) is not replaced, so update it with `go install …@latest`. v0.1.1 and earlier have no `update`, so reinstall once with `install.sh` or from Releases |
 
-`kiroku help` でコマンドの一覧、`kiroku <コマンド> --help` でオプションを表示します。
+`kiroku help` lists commands; `kiroku <command> --help` shows its options.
 
-旧形式の `kiroku --serve`・`--json`・`-o` も当面は使えます。`--weekly` / `--monthly`（Markdown 出力）は廃止しました。週次・月次サマリーは画面で確認してください。
+The old forms `kiroku --serve`, `--json` and `-o` still work for now. `--weekly` / `--monthly` (Markdown output) have been removed. Use the view for weekly and monthly summaries.
 
-## 画面
+## View
 
-- 縦型の週カレンダーに、セッションを帯で表示します。時間あたりの発言が多いほど濃く表示し、時間が重なるセッションは横に並べます
-- 右上の「週 / 月」で表示を切り替えます。月カレンダーでは、日ごとの作業時間を色の濃さで、プロジェクトの内訳を細い帯で表示します。各日には、作業時間・トークン（トークンの記録がなければクレジット）・セッションの数・プロンプトの数を、名前を付けて並べます（スマホでは作業時間とトークンだけ）。マウスを載せると、目安コスト・コミットの数も出ます。日付か左の「W〇〇」をクリックすると、その週の週カレンダーに移動します
-- カレンダーの上に、その週・月の要点（作業時間・作業日・セッション / プロンプト・トークン・目安コスト・Kiro クレジット・利用上限に当たった回数・コミット（うち AI））を表示します。記録のない項目は出しません
-- 日ごとのトークン・目安コスト・クレジットを、週カレンダーの曜日見出しと月カレンダーの各日に表示します。サマリーの「日ごとの推移」（「② コストとアウトプット」の下）では、トークン・クレジット・目安コスト・作業時間・セッション・プロンプトを切り替えて、日ごとの棒グラフで確認できます（月表示でも日ごと）。グラフの棒・帯・点にマウスを載せる（タッチでは触れる）と、その日や項目の値が出ます
-- 色分けはプロジェクト / ブランチ / エージェントから選べます（幅の狭い画面では凡例の左の選択欄から）。凡例の数はセッション数で、クリックすると表示・非表示を切り替えます
-- 帯をクリックすると、詳細を表示します（時刻つきのプロンプトの流れ、使用したモデル、サブエージェント、使用したツール、変更したファイル、再開コマンド）。プロンプトの流れは、プロンプトと、その間に起きたこと（コミット・PR の作成・利用上限・中断・サブエージェントの開始）を時刻の順に 1 本に並べます。プロンプトごとに「AI が動いた」時間（プロンプトから、次のプロンプトまでに AI が最後に動いた時刻まで）と「待たせ」（そこから次のプロンプトまで）を添え、30 分より長くあいたところには「13:50〜15:20、1時間30分あいた」のような区切りを入れます（どちらも履歴の時刻から推定した目安。サブエージェントが動いていた間は待たせに入れません）。言い直しらしいプロンプト（言葉から自動で判定した目安）は点の色を変え、印の意味は流れの上の凡例に出します。ユーザーが打ったスラッシュコマンド（`/review` など）と `!` のシェルのコマンドはプロンプトに数え、「コマンド」「シェル」の印を付けて色を変えます。人が打っていないのに会話に入ったもの（バックグラウンドの処理の通知、`<system-reminder>`、hook やコマンドの出力、会話の自動の要約、ほかのエージェントや予定から送られた指示、スラッシュコマンドが展開した中身など）は、プロンプトには数えず、別の色で種類の名前を付けて流れに並べます。流れの上の「ユーザープロンプトだけ」で、人が打ったプロンプトだけに絞れ、「プロンプトをコピー」でそれだけを時刻つきの Markdown でコピーできます。はじめに 30 件を出し、「残り N 件のプロンプトを表示」ですべて出します。長いプロンプトは「全文」で開けます。HTML に入れるプロンプトは先頭 400 文字までで、それより長いものは「続きを読む（元は N 文字）」と出し、`kiroku serve` で開いているときは「全文を読み込む」で最後まで読めます。流れからコミットの詳細を開いて「前の詳細に戻る」と、読んでいた位置に戻ります。広い画面では、左に数値とプロンプトの流れ（何をしたか）、右にコミット・PR・変更したファイル（何が残ったか）を並べます。「このセッションを AI と振り返る（プロンプトをコピー）」を押すと、プロンプトの流れと数値から、プロンプトの書き方や作業の分け方の改善点を AI に聞くためのプロンプトをコピーします（プロンプトを含むので、送る前に確認してください）
-- 週カレンダーで、コミットのある日は右端にコミットの印を時刻の位置に並べます（セッションの帯とは重ねません。触れると短いハッシュを表示します。日付の下の数はその日のコミット数です）。印をクリックすると、コミットの詳細を表示します（件名・本文・プロジェクト・ブランチ・ハッシュ、変更したファイルごとの追加・削除の行数、そのコミットを作ったセッション、`git show` のコマンド）。セッションの詳細には、そのセッションの間のコミットを並べます
-- リンクにできるものはリンクにしています
-  - git のコミット・変更したファイル：リモート（`origin`）が GitHub・GitLab・Bitbucket などなら、そのコミットとファイルのページを開きます
-  - セッションの「変更したファイル」：そのセッションの間のコミットで変わったファイルなら、そのコミットでのファイルのページを開きます
-  - セッションの「作った PR」：AI が作った PR（`gh pr create` や GitHub のツールの結果に出た URL）を開きます
-  - セッションの「履歴ファイル」：そのセッションの元の履歴を開きます。`kiroku serve` では画面から（読み込んだセッションの履歴ファイルだけを、手元の画面にだけ返します）、`kiroku html` では `file://` で開きます。SQLite の履歴は開けないので、パスのコピーだけです
-- カレンダーの下に、週次・月次サマリーを表示します
-  - 見直す候補：基準を超えた指標には、その指標の場所に印（●）を付け、見えたこと・なぜ気にするか・8 週（月表示では 8 か月）の推移・該当するセッション・基準を添えます。サマリーのいちばん上の「見直す候補」に、その指標の名前を優先度の高い順に並べ、押すとその指標へ移動して説明を開きます。試したことが効いたかは、次の期間以降にこの推移で確かめます
-  - ① プロジェクト別：いちばん上に、作業時間・トークン・目安コスト・クレジットのそれぞれを何割どこに使ったかを、横に並んだ帯と表で示します（上位 5 つ＋その他）。くくりは上の「プロジェクト・ブランチ・エージェント」の切り替えに合わせて変わります。指標どうしを見比べると「時間の割に目安コストが多い」プロジェクトやブランチ、エージェントがわかります。その下のカードでは、プロジェクトごとに「どのセッションに何時間、どれだけのトークン・目安コスト・クレジットを、どのモデルを中心に使ったか」とアウトプットを示します（6 つを超える分は「ほか N プロジェクトも見る」で表示）
-  - ② コストとアウトプット：使ったもの（作業時間・目安コスト・トークン・クレジット）→ 残ったもの（コミット・PR・変更した行など）を左右に並べ、その下に 2 つを比べた指標（「くらべる」）と、日ごとの推移の棒グラフを置きます
-  - ③ 時間の使い方：推定を含む指標（言い直し・中断、切り替え、並列、待たせ時間）は「詳しい指標（推定を含む）」に折りたたんでいます
-  - ④ AI の使い方（キャッシュ・サブエージェント・モデル別・重かったセッションなど。作業時間・目安コスト・トークン・クレジットは ② にだけ出します）、⑤ 週 / 月のかたち（集中ブロック・こじれたかもしれないセッション・繰り返したプロンプト。ないものは出しません）、⑥ AI に改善案を聞く が続き、いちばん下に「計測の状態」（読んだ履歴・保存期間・目安コストの料金表）を表示します
-- 各指標の「?」を押すと、定義と、そこから言えること・言えないこと・打てる手を表示します
-- 「AI に改善案を聞く」には、表示中の週・月の集計をもとに、使い方の改善案を AI に聞くためのプロンプトを表示します。「プロンプトをコピー」でコピーし、お使いの AI エージェントに貼り付けて使います（kiroku 自身は AI を呼び出しません）。セッション名（プロンプトの一部）とプロジェクト名を含むため、送る前に内容を確認してください
-- 検索（右上、`/`）：プロンプト・タイトル・プロジェクト・ブランチ・エージェントに加えて、変更したファイル・PR・そのセッションの間のコミット（件名・ハッシュ・ファイル）も探します。カレンダーは一致したセッションだけを表示し、サマリーの位置に全期間の検索結果を「セッション」と「コミット」（件名・本文・ハッシュ・変更したファイルで一致）に分けて、一致した箇所の抜粋つきで表示します。凡例で非表示にしたものは除きます。結果を押すと、その週を開いて詳細を表示します
-- プロンプトを書き出す：サマリーの見出しの「プロンプトを書き出す」を押すと、表示中の週・月のユーザープロンプト（コマンドを含む。自動で入ったものは除く）だけを、セッションごとに時刻の順で並べた Markdown を表示し、コピーできます
-- 週報・月報の下書き：サマリーの見出しの「週報の下書き」（月表示では「月報の下書き」）を押すと、プロジェクトごとに、やったこと（セッション名）・コミット・PR をまとめた Markdown の文面が開きます。文面を確かめてから「コピー」でコピーし、「閉じる」で閉じます。凡例で非表示にしたセッションは含めません。セッション名はプロンプトの冒頭なので、共有する前に確認・編集してください
-- 1 年の露光（いまは画面から外しています。以下は戻したときの説明です）：期間の移動の横の「1 年の露光」（`Y`）で開きます。横に日付、縦に 1 日の時刻（朝 6 時から翌朝 6 時。深夜の作業は前の日の列の下のほうに写ります）をとり、セッションの作業していた区間を光の筋で描きます。色はエージェント、同時に動いていたほど明るく写ります。右上で年を選べます
-  - シェア用の 1 枚：作業時間・セッション数・コミット・PR・エージェントの内訳と光の筋を、1600×900 の画像にします。「PNG で保存」「画像をコピー」で取り出せます。載せる項目（コミット・PR、光の名前、腕前、エージェントの内訳）は選べます。画像は画面の中で作るだけで、どこにも送りません。プロンプト・プロジェクト名・ブランチ・ファイル・目安コストは載りません。光の筋は、記録のある日から（短ければ 8 週ぶん）を写します
+- The vertical week calendar shows sessions as bars. The more messages per minute, the darker the bar, and sessions that overlap in time are placed side by side
+- Switch between "Week / Month" at the top right. The month calendar shows each day's active time as color intensity and the project breakdown as thin bars. Each day lists its active time, tokens (credits when no tokens were recorded), sessions and prompts, each labeled (on phones, only active time and tokens). Point at a day to also see estimated cost and commits. Click a date, or "W##" on the left, to go to that week in the week calendar
+- Above the calendar, the key figures for the week or month are shown (Active time, Active days, Sessions / prompts, Tokens, Estimated cost, Kiro credits, Usage limit hits, Commits (by AI)). Items with no records are not shown
+- Tokens, estimated cost and credits per day are shown in the day headings of the week calendar and in each day of the month calendar. In the summary, "Daily trend" (at the bottom of "② Cost and outputs") switches a per-day bar chart between tokens, credits, estimated cost, active time, sessions and prompts (per day in month view too). Point at a bar, band or point in any chart (or touch it) to see the values for that day or item
+- Color by Project / Branch / Agent (on narrow screens, from the selector to the left of the legend). The numbers in the legend are session counts; click an item to show or hide it
+- Click a bar to show its details (the prompt flow with times, models used, subagents, tools used, files changed and the resume command). The prompt flow puts your prompts and what happened between them (commits, pull requests created, usage limit hits, interruptions and subagents starting) in one line, in time order. Each prompt shows how long the AI worked (from the prompt to the AI's last activity before the next prompt) and the wait (from there to the next prompt), and a break of more than 30 minutes is marked like "13:50–15:20: 1h 30m gap" (both are estimates from the history's timestamps; time while a subagent was running is not counted as a wait). Prompts that look like corrections (guessed from the wording) get a different dot, and a key above the flow explains the marks. Slash commands you typed (such as `/review`) and `!` shell commands count as prompts and get a "Command" or "Shell" tag in their own color. Things that entered the conversation without you typing them (background task notifications, `<system-reminder>`, hook and command output, automatic conversation summaries, instructions sent by another agent or a schedule, the expanded text of a slash command and so on) are not counted as prompts and appear in the flow in another color, labeled with their kind. "Only user prompts" above the flow narrows it to what the user typed, and "Copy prompts" copies just those as Markdown with times. It shows 30 prompts first, and "Show N more prompts" shows the rest. "Show all" opens a long prompt. The HTML keeps the first 400 characters of each prompt; longer ones show "Read more (N characters)", and when opened with `kiroku serve`, "Load the full prompt" reads it to the end. Opening a commit from the flow and pressing back returns to where you were reading. On wide screens, numbers and the prompt flow (what was done) are on the left, and commits, pull requests and files changed (what was left behind) are on the right. "Review this session with AI (copy prompt)" copies a prompt that asks an AI how to improve the way you prompted and split the work, based on the prompt flow and numbers (it includes your prompts, so check it before sending)
+- In the week calendar, days with commits show commit marks on the right edge at their times (they don't overlap session bars; touch one to see its short hash; the number under the date is that day's commit count). Click a mark to see the commit details (subject, message body, project, branch, hash, lines added and removed per file changed, the session that made the commit, and a `git show` command). Session details list the commits made during that session
+- Anything that can be a link is a link
+  - Git commits and files changed: if the remote (`origin`) is GitHub, GitLab, Bitbucket or similar, they open the page for that commit or file
+  - A session's "Files changed": a file changed by a commit made during that session opens the page for that file as of that commit
+  - A session's "Pull requests created": opens pull requests created by AI (URLs that appeared in the results of `gh pr create` or GitHub tools)
+  - A session's "History file": opens the original history of that session. In `kiroku serve` it opens from the view (only history files of loaded sessions are served, and only to the view on your machine); in `kiroku html` it opens via `file://`. SQLite histories cannot be opened, so you can only copy the path
+- Below the calendar, the weekly and monthly summary is shown
+  - Worth a look: a metric that crossed a threshold is marked (●) where it appears, with what was observed, why it matters, its 8-week trend (8 months in month view), the related sessions and the threshold. "Worth a look" at the top of the summary lists those metrics in priority order; press one to jump to it and open its explanation. To see whether something you tried worked, check the trend in later periods
+  - ① By project: starts with bars and a table showing what share of active time, tokens, estimated cost and credits went where (top 5 plus Other). The grouping follows the Project / Branch / Agent switch at the top. Comparing the rows shows, for example, a project, branch or agent whose share of estimated cost is larger than its share of time. Below that, the cards show, for each project, which sessions took how many hours, how many tokens, how much estimated cost and credits, and which models were mainly used, along with outputs (beyond 6 projects, press "Show N more projects")
+  - ② Cost and outputs: what you spent (active time, estimated cost, tokens, credits) → what was left behind (commits, pull requests, lines changed and so on), side by side, followed by the metrics that compare the two ("Compared") and the daily trend bar chart
+  - ③ How you spent time: metrics that include estimates (corrections and interruptions, switches, parallel, wait time) are collapsed under "More metrics (includes estimates)"
+  - Then come ④ How you used AI (cache, subagents, models, heaviest sessions and so on; active time, estimated cost, tokens and credits appear only in ②), ⑤ Shape of the week / month (focus blocks, sessions with possible friction and repeated prompts, each shown only when there are any) and ⑥ Ask AI for suggestions, with "Data sources" (history read, retention and the price table for estimated cost) at the very bottom
+- Press "?" on any metric to see its definition and what it tells you, what it doesn't tell you, and what to try
+- "Ask AI for suggestions" shows a prompt, based on the figures for the week or month shown, that asks an AI for suggestions on how you use it. Copy it with "Copy prompt" and paste it into the AI agent you use (kiroku itself never calls an AI). It includes session names (parts of your prompts) and project names, so check it before sending
+- Search (top right, `/`): in addition to prompts, titles, projects, branches and agents, it searches files changed, pull requests and commits made during each session (subject, hash, files). The calendar shows only matching sessions, and all-time results appear in place of the summary in two lists, Sessions and Commits (matched on subject, body, hash and files changed), with excerpts showing where they matched. Items hidden in the legend are left out. Press a result to open its week and show the details
+- Export prompts: "Export prompts" in the summary heading shows Markdown with only the user prompts in the shown week or month (commands included, automatic entries left out), by session in time order, and lets you copy it
+- Weekly and monthly report drafts: "Weekly report draft" ("Monthly report draft" in month view) in the summary heading opens the Markdown text with what you did (session names), commits and pull requests for each project. Check it, then press "Copy"; "Close" hides it. Sessions hidden in the legend are left out. Session names are the start of your prompts, so check and edit them before sharing
+- Year in review (currently hidden; the following describes it for when it returns): "Year in review" next to the period controls (`Y`) opens the year's "exposure". Across is the date and down is the time of day (6:00 to 6:00 the next morning, so late-night work lands at the bottom of the previous day's column); each stretch of active time in a session is drawn as a streak of light, colored by agent and brighter where sessions overlapped. Choose the year at the top right
+  - An image to share: active time, sessions, commits, pull requests, the agent breakdown and the streaks of light as a 1600×900 image. Get it with "Save as PNG" or "Copy image", and choose what to include (commits and PRs, your light, skill, the agent breakdown). The image is made in the page and sent nowhere; prompts, project names, branches, files and estimated cost are never included. The streaks start from the first day with history (at least 8 weeks)
 
-    ![1 年の露光のシェア用画像（ダミーデータ）](year.png)
+    ![Year in review share image (dummy data)](year.png)
 
-  - 光の名前：その年の使い方の傾向を、写真の言葉で示します（良し悪しではありません）。上から順に、最初に当てはまったものを選びます
+  - Your light: the shape of your year, named in photography terms (not a verdict). The first match from the top is chosen
 
-    | 光の名前 | 基準 |
+    | Your light | Rule |
     |---|---|
-    | 朝焼け型 | 5〜9 時の作業が 25% 以上（セッションの作業していた区間の合計で比べる） |
-    | 多重露光型 | 3 つ以上のエージェントを、それぞれ作業時間の 10% 以上使った |
-    | 長時間露光型 | 1 セッションの作業が平均 45 分以上で、プロンプトは平均 10 件以下 |
-    | 連写型 | 1 セッションのプロンプトが平均 15 件以上 |
-    | ピント合わせ型 | 言い直し・中断のあったプロンプトが 15% 以上 |
-    | 昼光型 | ほかのどれにも当てはまらない |
+    | Daybreak | 25% or more of active time is between 5:00 and 9:00 (compared using the total active stretches of sessions) |
+    | Multiple Exposure | 3 or more agents, each with 10% or more of active time |
+    | Long Exposure | 45 minutes or more of active time per session, with 10 prompts or fewer on average |
+    | Burst | 15 or more prompts per session on average |
+    | Refocus | 15% or more of prompts had a correction or interruption |
+    | Daylight | None of the above |
 
-  - 腕前：光の名前（型）とは別に、4 つのメーターを 10 段階で示し、点数で等級を付けます（「熟練の長時間露光型」のように、名前の前に付きます）。数字は目安で、腕前と関係のない理由でも上下するので、遊びとして見てください。週次・月次サマリーには使いません
+  - Skill: separate from your light (the type), four meters on a 10-step scale, and a level from the score that goes before the name ("Master Long Exposure"). The numbers are rough proxies that can move for reasons unrelated to skill, so treat it as a game. It is not used in the weekly or monthly summary
 
-    | メーター | 表すもの | 元にする数字（かっこは満点の目安） |
+    | Meter | Shows | Based on (full marks in brackets) |
     |---|---|---|
-    | シャッター数 | 積み重ね | 作業日数（180 日）、プロンプトの数（3,000 件、対数）、作業時間（800 時間、対数） |
-    | ピント | 仕上げる力 | コミットか PR まで行ったセッションの割合（50%）、1 コミットあたりのプロンプトの少なさ（5 件。Claude Code のみ） |
-    | 多重度 | 使いこなしの幅 | 並列で動かした時間の割合（30%）、サブエージェント（200 回、対数）、エージェントの使い分け（3 つを均等）、モデルの使い分け（10% 以上を 3 つ）のうち、得意な 2 つ |
-    | ノイズ | 回り道（少ないほど澄んだ写り） | 言い直し・中断のあったプロンプトの割合（5% で 0、25% で満点）、長くなった会話の割合（15%）、コストが大きいのにコミットも PR もないセッションのコストの割合（40%）、軽い作業に高いモデルを使ったコストの割合（20%） |
+    | Shutter count | Practice | Active days (180), prompts (3,000, log scale), active time (800 hours, log scale) |
+    | Focus | Follow-through | Sessions that reached a commit or pull request (50%), few prompts per commit (5; Claude Code only) |
+    | Layers | Range | Your best two of: share of time in parallel (30%), subagents (200 runs, log scale), using several agents (three used evenly), using several models (three with 10%+) |
+    | Noise | Detours (fewer means a cleaner shot) | Prompts with corrections or interruptions (zero at 5%, full at 25%), long conversations (15% of sessions), cost of sessions with no commit or pull request (40% of cost), expensive models for light work (20% of cost) |
 
-    年の途中や使い始めの年は、経った日数のぶん（半分まで）満点の目安を下げます。点数は、シャッター数・ピント・多重度の平均から、ノイズの 4 割を引いたものです。等級は 10% ごとに 見習い・入門・駆け出し・一人前・腕利き・熟練・達人・名人・巨匠・伝説 の 10 段階で、伝説は 3 つがどれも 80% 以上・ノイズが 20% 以下のときだけです。記録のある月が 4 か月以上あり、前半より後半で言い直しが 3 ポイント以上減るか、1 コミットあたりのコストが 2 割以上下がると「上達中」として 1 段上がります。点数が 40% 未満なら「露出アンダー」（これから伸びる）、それ以上なら「適正露出」と示します。次のどれかに当てはまると「露出オーバー」（働き方や回り道に気をつけたい）として、等級の代わりにその名前が付きます（上から順に、最初に当てはまったもの）
+    For a year in progress or your first year, full marks are scaled down by the time elapsed (to as little as half). The score is the average of shutter count, focus and layers, minus 40% of noise. There are ten levels, one per 10%: Novice, Beginner, Apprentice, Competent, Skilled, Expert, Master, Virtuoso, Grandmaster and Legendary; Legendary needs all three at 80% or more and noise at 20% or less. With 4 or more months of history, if corrections drop by 3 points or cost per commit falls by 20% from the first half to the second, you are "improving" and go up one level. A score under 40% shows as "Underexposed" (room to grow), otherwise "Well exposed". If one of these matches, it shows as "Overexposed" and its name replaces the level (the first match from the top)
 
-    | 露出オーバー | 基準 |
+    | Overexposed | Rule |
     |---|---|
-    | 白飛びした | 1 日平均 2 時間以上で 30 日以上休みなく続けた |
-    | フィルム切れの | 利用上限に 10 回以上当たった |
-    | ノイズの多い | ノイズが 60% 以上 |
-- 詳細を開くとフォーカスが詳細の中に移り、閉じると開いた帯やカードに戻ります。詳細の中で別の詳細（コミットやセッション）へ移ったときは「前の詳細に戻る」で戻れます
-- キーボード操作：`←` `→` で週・月を移動、`T` で今週・今月、`W` `M` で週・月を切り替え、`/` で検索、`+` `−` でズーム、`Esc` で詳細を閉じる、`?` でショートカットの一覧を表示
-- 画面は英語で開きます。右上の選択欄で日本語に切り替えられ、選んだ言語はブラウザに保存されます。README とこのガイドの画像は英語表示です
-- テーマはダーク（既定）とライトを右上のボタンで切り替えられます。色分け・ズーム・テーマ・週 / 月の表示・日ごとの推移で見るものはブラウザに保存されます
-- スマートフォンの画面幅では、週カレンダーを横にスクロールでき（開いたときは、今日までで最後に作業日とその前の日を表示します）、サマリーは 1 列で表示します
-- 色は Okabe–Ito の配色をもとにした 8 色で、色覚の違いがあっても区別しやすくしています。9 色目以降は灰色で表示します
+    | Blown-Out | 30+ days in a row without a break at 2+ hours a day |
+    | Out-of-Film | Hit a usage limit 10 or more times |
+    | Grainy | Noise at 60% or more |
+- Opening details moves focus into them, and closing them returns focus to the bar or card you opened them from. When you move from one detail to another (a commit or session), "Back" takes you back
+- Keyboard shortcuts: `←` `→` to move by week or month, `T` for this week or month, `W` `M` to switch between week and month, `/` to search, `+` `−` to zoom, `Esc` to close details, `?` to show the shortcut list
+- Switch between dark (the default) and light themes with the button at the top right. Color by, zoom, theme, week / month view and what Daily trend shows are saved in the browser
+- At smartphone widths, the week calendar scrolls horizontally (when opened, it shows the last day you worked up to today and the day before), and the summary is shown in a single column
+- The palette has 8 colors based on Okabe–Ito, chosen to stay distinguishable across types of color vision. From the 9th item on, items are gray
 
-## 週次・月次サマリー
+## Weekly and monthly summary
 
-![週次サマリー（ダミーデータ）](summary.png)
+![Weekly summary (dummy data)](summary.png)
 
-画像は英語表示です。日本語のブラウザでは日本語で表示されます（右上の選択欄で切り替えられます）。
-
-| 指標 | 定義 |
+| Metric | Definition |
 |---|---|
-| 見直す候補 | 次の基準を超えた指標に印を付け、その名前を優先度の高い順に並べます（下の並びは優先度の順ではありません）。利用上限に 1 回以上当たった／長くなった会話がある（後半の入力が前半の 4 倍以上・最大 10 万トークン以上・$0.5 以上）／軽い作業での高いモデルの合計が、目安コスト（$2 以上）の 10% 以上かつ $1 以上／目安コスト $1 以上でコミットも PR もない Claude Code のセッションが、期間の目安コスト（$2 以上）の 40% 以上／目安コストが前の期間（$1 以上）の 1.5 倍以上／1 コミットあたりの目安コストが前の期間の 1.5 倍以上（コミット 3 回以上）／言い直し・中断のあったプロンプトが 20% 以上（プロンプト 10 件以上）、またはこじれたかもしれないセッションがある／キャッシュから読んだ割合が 50% 未満（トークン 1M 以上）／コミットまで行ったセッションが 25% 未満（セッション 5 件以上、コミットか PR が 1 件以上）／1 日の切り替えが平均 5 回以上／作業 4 時間以上で集中ブロックが 0 回／待たせ時間の 90 パーセンタイルが 15 分以上（n≥10） |
-| プロジェクト別 | プロジェクトごとの作業時間と割合、セッション / プロンプトの数、トークン・目安コスト・クレジット、中心のモデル（トークンの割合。トークンを記録しないエージェントは回数）、稼働時間の長いセッション上位 3 件。複数のプロジェクトが同時に稼働していた時間は按分します |
-| 作業時間 | いずれかのセッションが稼働していた時間（重なりは 1 回として計算） |
-| AI の延べ稼働 | 並列で稼働した分も合算した時間 |
-| 集中ブロック | 60 分以上続いた作業と、その中で最も多かったプロジェクト。途切れは、1 つのセッションの中は区切りの分数（`--gap`、既定 15 分）まで、セッションどうしの間は 5 分までつながっているとみなします |
-| 1 日の切り替え | 連続するプロンプトの間でプロジェクトが変わった回数 |
-| 並列で動かした時間 | 2 つ以上のセッションが同時に稼働していた時間と、最大の同時稼働数 |
-| 待たせ時間 | AI の応答から次のプロンプトまでの時間（30 分以内のもの）の中央値と 90 パーセンタイル |
-| 週末 | 土日の作業時間 |
-| 言い直し・中断のあったプロンプト | プロンプトの冒頭の表現（「違う、」「やり直して」「元に戻して」など）と中断から推定した割合。会話の最初のプロンプトと、貼り付けたコード・引用・字下げしたログの中の言葉は数えません。「違う色にして」「undo ボタンを足して」のような、言葉が同じだけのふつうのプロンプトも数えません。プロンプトの数（n）を併記します |
-| 長くなった会話 | 1 回の応答で読んだ入力（新しい入力とキャッシュの読み書き）が、会話の後半 4 分の 1 で前半 4 分の 1 の 4 倍以上になり、最大 10 万トークン以上になったセッション（目安コスト $0.5 以上。応答が 8 回以上あり、トークンを記録するエージェントのみ） |
-| 軽い作業での高いモデル | 主に Opus 系のモデルを使い、プロンプト 3 件以下でファイルを編集しなかった、目安コスト $0.3 以上のセッションの合計 |
-| 利用上限に当たった回数 | Claude Code の履歴に残った、利用上限（使用量の上限・レート制限）のエラーの回数と時刻。1 分以内に続いたものは 1 回と数えます。カレンダーには赤い「上限」の印で表示します |
-| こじれたかもしれないセッション | 期間中に始まったセッションのうち、言い直し・中断が 1 回以上かプロンプトが 15 回以上のものを、多い順に 3 件 |
-| 長すぎるプロンプト | 期間中の 4,000 文字以上のプロンプトの数と、いちばん長いものの文字数 |
-| 繰り返したプロンプト | 期間中の 12 文字以上のプロンプトを、文字の並びの似かたでまとめ、3 つ以上のセッションで書いたものを多い順に 3 件 |
+| Worth a look | Marks the metrics that crossed these thresholds and lists their names in priority order (the list below is not in priority order): hit a usage limit 1 or more times / there are Long conversations (later input 4× or more the first part, peak 100K tokens or more, $0.5 or more) / Expensive models for light work total 10% or more of estimated cost ($2 or more) and $1 or more / Claude Code sessions of $1 or more estimated cost with no commit or pull request make up 40% or more of the period's estimated cost ($2 or more) / estimated cost is 1.5× the previous period ($1 or more) or more / estimated cost per commit is 1.5× the previous period or more (3 or more commits) / Prompts with corrections or interruptions are 20% or more (10 or more prompts), or there are Sessions with possible friction / Share of input read from cache is under 50% (1M tokens or more) / Sessions that reached a commit are under 25% (5 or more sessions, with at least one commit or pull request) / Project switches per day average 5 or more / no Focus blocks with 4 hours or more of work / the 90th percentile of Wait time is 15 minutes or more (n≥10) |
+| By project | Per project: active time and its share, number of sessions / prompts, tokens, estimated cost and credits, main models (share of tokens; counts for agents that don't record tokens), and the top 3 sessions by run time. Time when several projects ran at once is split between them |
+| Active time | Time when any session was running (overlaps count once) |
+| Total AI run time | Time added up, including sessions running in parallel |
+| Focus blocks | Work that continued for 60 minutes or more, and the project that took most of it. Gaps within a session up to the session gap (`--gap`, 15 minutes by default) and gaps of up to 5 minutes between sessions are treated as continuous |
+| Project switches per day | How often the project changed between consecutive prompts |
+| Parallel time | Time when 2 or more sessions ran at once, and the most at once |
+| Wait time | Median and 90th percentile of the time from an AI reply to your next prompt (up to 30 minutes) |
+| Weekend | Work time on Saturdays and Sundays |
+| Prompts with corrections or interruptions | Share estimated from the opening words of each prompt (such as "No, that's wrong" or "undo that") and interruptions. The first prompt of a conversation and words inside pasted code, quotes or indented logs are not counted, nor are ordinary requests that merely share the words, such as "add an undo button". The number of prompts (n) is shown alongside |
+| Long conversations | Sessions where the input read per response (new input plus cache reads and writes) in the last quarter of the conversation was at least 4 times that of the first quarter, peaking at 100K tokens or more (estimated cost $0.5 or more; only sessions with 8 or more responses, from agents that record tokens) |
+| Expensive models for light work | Total for sessions that mainly used Opus-class models, had 3 or fewer prompts, edited no files and cost $0.3 or more |
+| Usage limit hits | Count and times of usage limit errors (usage caps and rate limits) left in Claude Code history. Hits within 1 minute count once. The calendar shows them with a red "Limit" mark |
+| Sessions with possible friction | Up to 3 sessions started in the period with at least one correction or interruption, or 15 or more prompts, most first |
+| Oversized prompts | Number of prompts of 4,000+ characters in the period, and the length of the longest |
+| Repeated prompts | Prompts of 12+ characters in the period, grouped by how similar their text is; up to 3 written in 3 or more sessions, most first |
 
-### AI の使い方
+### How you used AI
 
-| 指標 | 定義 |
+| Metric | Definition |
 |---|---|
-| 目安コスト（API 換算） | API の公開料金で換算した使用料。Claude Code が自身の使用料（`cost-state`）を記録しているセッションはその値を使います（料金の改定・新しいモデル・自動要約など履歴に残らない呼び出しも含む）。ないときは履歴のトークン数に kiroku の料金表を掛けます。応答に fast モード（`speed: "fast"`）の記録があれば 2 倍、US 内だけの推論（`inference_geo: "us"`）の記録があれば 1.1 倍にします。サブスクリプションの請求額とは異なります |
-| 月末の見込み（推定） | 月表示で今月の途中のときだけ、月の初めから今日までの目安コスト（とクレジット）を今日までの日数（今日を含む）で割り、月の日数を掛けた値です。今日までのペースが続いた場合の目安で、月の初めの 7 日と最後の日は出しません。途中の期間の「先月より」「先週より」は、前の期間の同じ日まで（例: 「先月の 9/1〜9/20 より」）と比べます。日ごとの値がない AI のコミットと PR は、途中の期間では比べません |
-| トークン | 入力・出力・キャッシュ読み取り・キャッシュ書き込みの合計。1 つの応答が複数行に分けて記録されるため、メッセージ ID ごとにまとめてから数えます |
-| キャッシュから読んだ割合 | 入力のうちキャッシュから読み取った割合 |
-| モデル別 | モデルごとの目安コストとトークン |
-| サブエージェント | `Task` / `Agent` での呼び出し回数、種類、延べ時間。セッションの詳細では、いつ・どの種類に・何を頼み・どれだけ時間がかかったかを表示します |
-| Kiro クレジット | Kiro の履歴に記録された実際のクレジット |
-| 日ごとの推移 | 日ごとのトークン・クレジット・目安コスト・作業時間・セッション・プロンプトを切り替えて見る棒グラフ。トークンなどは記録された時刻の日に計上します |
-| 1 プロンプトあたりの目安コスト | 目安コスト ÷ プロンプトの数 |
-| 重かったセッション | 目安コストの大きいセッション上位 3 件 |
+| Estimated cost (API pricing) | Usage priced at public API rates. For sessions where Claude Code records its own cost (`cost-state`), that value is used (this also covers price changes, new models and calls not left in the history, such as auto-compaction). Otherwise, tokens in the history are multiplied by the kiroku price table, doubled for responses recorded in fast mode (`speed: "fast"`) and multiplied by 1.1 for US-only inference (`inference_geo: "us"`). It differs from what a subscription bills |
+| Month-end projection (estimate) | Shown only in the month view while the month is in progress: the estimated cost (and credits) from the 1st through today, divided by the days so far (including today) and multiplied by the days in the month. It assumes the pace so far continues, and is not shown for the first 7 days or on the last day. For a period in progress, comparisons with the previous period use the same days of it (for example "vs 9/1–9/20"). AI commits and pull requests have no daily figures, so they are not compared while a period is in progress |
+| Tokens | Input, output, cache reads and cache writes combined. Because one response is recorded across several lines, they are grouped by message ID before counting |
+| Share of input read from cache | The share of input read from cache |
+| By model | Estimated cost and tokens per model |
+| Subagents | Number of `Task` / `Agent` calls, their types and total run time. Session details show when, to which type, what was asked, and how long it took |
+| Kiro credits | Actual credits recorded in Kiro history |
+| Daily trend | A bar chart per day that switches between tokens, credits, estimated cost, active time, sessions and prompts; tokens and the like are counted on the day they were recorded |
+| Estimated cost per prompt | Estimated cost ÷ number of prompts |
+| Heaviest sessions | The top 3 sessions by estimated cost |
 
-料金表は、Claude Code が使用料を記録していないセッション（古い版の Claude Code など）に使います。料金表には 2026 年 10 月時点の[公開料金](https://platform.claude.com/docs/en/about-claude/pricing)を収録しています。料金の改定や未収録のモデルには、JSON で上書きして対応できます（モデル ID の前方一致、単位は USD / 100 万トークン）。省略した項目は 0 として扱います。配列 `[input, output, cache_write, cache_write_1h, cache_read]` でも書けます。
+The price table is used for sessions where Claude Code does not record its cost (such as older versions of Claude Code). It contains the [public prices](https://platform.claude.com/docs/en/about-claude/pricing) as of October 2026. For price changes or models it does not include, override it with JSON (model IDs match by prefix; units are USD per million tokens). Fields you leave out are treated as 0. An array `[input, output, cache_write, cache_write_1h, cache_read]` also works.
 
 ```json
 {"claude-opus-5-5": {"input": 4, "output": 20, "cache_write": 5, "cache_write_1h": 8, "cache_read": 0.2}}
@@ -159,121 +154,121 @@ go install github.com/MichinaoShimizu/kiroku@latest
 kiroku serve --prices my-prices.json
 ```
 
-### アウトプット
+### Outputs
 
-時間やトークンなどのコストと並べて、使い方が形に残る作業につながったかを確かめるための数値です。数えるのは出したもの（アウトプット）の量で、価値や生産性ではありません。
+Numbers shown next to costs such as time and tokens, to check whether your usage led to work that left a trace. They count how much was produced (outputs), not its value or productivity.
 
-- **Git のコミット**は、エージェントが作業したリポジトリ（セッションの作業場所）を手元の `git` で読み、自分（`git config user.email`）のコミットを数えます（`user.email` が未設定のリポジトリでは、全員のコミットを数えます）。手で行ったコミットも含みます。エージェントがツールで実行したコミットと時刻（前後 2 分。実行の結果が返った時刻）が一致したものは「AI が実行」として数えます。1 回の実行は、いちばん近い 1 つのコミットにだけ結びつけます。git worktree は本体と同じリポジトリとしてまとめます。カレンダーにはコミットの印と短いハッシュのバッジで表示します（塗りつぶしは AI が実行したもの）。`git` コマンドがない環境では読みません
-- それ以外は、AI がツールで実行し、成功したものだけを数えます（現在は Claude Code のみ）
+- **Git commits** are counted by reading the repositories agents worked in (each session's working directory) with your local `git`, counting your own commits (`git config user.email`; in repositories without `user.email`, everyone's commits are counted). Commits made by hand are included. Commits whose time matches (within 2 minutes of when the tool returned) a commit an agent ran with a tool are counted as "Run by AI". Each run is matched to the one nearest commit only. A git worktree is treated as the same repository as its main checkout. The calendar shows them as commit marks and short-hash badges (filled ones were run by AI). They are not read where the `git` command is unavailable
+- Everything else counts only what AI ran with tools and succeeded (currently Claude Code only)
 
-| 指標 | 定義 |
+| Metric | Definition |
 |---|---|
-| Git のコミット | 手元のリポジトリにある自分のコミット（マージコミットを除く）。そのリポジトリで最初のセッションの前日から読みます |
-| コミット | AI が実行して成功した `git commit` の回数（`--dry-run` を除く）。手で行ったコミットは含みません |
-| PR の作成 | AI が作成した Pull Request の数（`gh pr create` と、名前が `create_pull_request` で終わるツール） |
-| AI が編集した行（推定） | AI が編集・作成したファイルの、編集前後を比べた追加・削除の行数（目安）。`Edit`・`MultiEdit`・`Write` から数えます |
-| コミットまで行ったセッション | 期間中にコミットか PR 作成まで行ったセッションの数と割合。アウトプットを記録できる Claude Code のセッションだけで数えます（サブエージェントが行ったものを含む） |
-| 1 コミットあたりの目安コスト | Claude Code のセッションの目安コスト ÷ コミットの回数。ほかのエージェントのコストは入れません |
+| Git commits | Your own commits in local repositories (excluding merge commits). Read from the day before the first session in that repository |
+| Commits | Number of successful `git commit` runs by AI (excluding `--dry-run`). Commits made by hand are not included |
+| Pull requests | Number of pull requests created by AI (`gh pr create` and tools whose names end in `create_pull_request`) |
+| Lines edited by AI (estimated) | Lines added and removed in files AI edited or created, comparing before and after (rough). Counted from `Edit`, `MultiEdit` and `Write` |
+| Sessions that reached a commit | Number and share of sessions that made a commit or created a pull request in the period (including those made by subagents). Only Claude Code sessions are counted, since only Claude Code outputs are recorded |
+| Estimated cost per commit | Estimated cost of Claude Code sessions ÷ number of commits. Other agents' cost is left out |
 
-### エージェント別の参考指標
+### Agent-specific metrics
 
-各エージェントが履歴に記録している数値を、エージェントごとに表示します（週次・月次サマリーとセッションの詳細）。定義がエージェントごとに異なるため、**エージェント同士で比較しないでください**。いずれも参考値であり、目標値ではありません。記録のない数値は 0 とせず、表示しません。
+The numbers each agent records in its history are shown per agent (in the weekly and monthly summary and in session details). Definitions differ by agent, so **don't compare agents with each other**. All of them are for reference, not targets. Numbers that are not recorded are not shown, rather than shown as 0.
 
-| エージェント | 参考指標 |
+| Agent | Metrics |
 |---|---|
-| Claude Code | 応答数、1 応答あたりの出力トークン、ツール呼び出し |
-| Kiro CLI | クレジット、ターン、1 ターンあたりのクレジット、モデルへのリクエスト、組み込みツールの実行 |
-| Kiro IDE | クレジット、ターン、1 ターンあたりのクレジット、ツール呼び出し |
-| Kiro Crew | Crew から実行した会話（うちサブエージェント）、クレジット、ターン |
-| Kiro CLI（SQLite）・Amazon Q | 最初の応答までの時間（中央値）、応答時間（中央値）、応答の長さ（平均）、ツール呼び出し |
-| Codex | 応答数、推論トークン、出力のうち推論の割合、コンテキストの最大使用率、レート制限の最大使用率、ツール呼び出し |
+| Claude Code | Responses, Output tokens per response, Tool calls |
+| Kiro CLI | Credits, Turns, Credits per turn, Model requests, Built-in tool runs |
+| Kiro IDE | Credits, Turns, Credits per turn, Tool calls |
+| Kiro Crew | Conversations run from Crew (Of which subagents), Credits, Turns |
+| Kiro CLI (SQLite), Amazon Q | Time to first reply (median), Response time (median), Response length (average), Tool calls |
+| Codex | Responses, Reasoning tokens, Share of output spent on reasoning, Peak context usage, Peak rate-limit usage, Tool calls |
 
-時刻は PC のタイムゾーンで計算します。数値はすべて履歴から推定した目安です。データがない場合は 0 ではなく「不明」と表示します。トークン・目安コスト・AI の延べ稼働は使用量の目安であり、生産性や削減できた時間を示すものではありません。
+Times are calculated in your computer's time zone. All numbers are rough estimates from history. When there is no data, "Unknown" is shown instead of 0. Tokens, estimated cost and total AI run time are rough measures of usage; they do not show productivity or time saved.
 
-> 自分の使い方を振り返るための数値です。他人との比較や評価には使わないでください。
+> These numbers are for reflecting on how you work. Don't use them to compare or evaluate people.
 
-### 指標の読み方
+### How to read the metrics
 
-画面の各指標の「?」を押すと、同じ説明を表示します。改善案プロンプトにも前提として含めています。1 つの数値だけで判断せず、自分の過去の期間と比べて読んでください。
+Press "?" on any metric in the view to see the same explanation. It is also included as background in the improvement prompts. Don't judge from a single number; read it against your own past periods.
 
-| 指標 | 言えること | 言えないこと | 打てる手 |
+| Metric | Tells you | Doesn't tell you | What to try |
 |---|---|---|---|
-| 見直す候補 | どの指標から見直すとよさそうか | 良し悪しの判定。基準は一律の目安で、使い方によっては当てはまらない | 1 つ選んで次の期間に試し、同じ指標で変化を確かめる |
-| プロジェクト別 | 時間と AI をどのプロジェクトに配分したか | プロジェクトの重要度や価値 | 想定と配分がずれていれば、使い方や優先順位を見直す |
-| 作業時間 | AI と一緒に作業時間の総量 | 人が集中していたか。放置していた時間も含む | 前の期間との増減で、AI に頼る割合の変化をつかむ |
-| AI の延べ稼働 | AI をどれだけ働かせたか。作業時間との差は並列の度合い | 人が削減できた時間や生産性 | 作業時間とほぼ同じなら、待ち時間に別の作業を並行させる余地がある |
-| 集中ブロック | まとまった作業時間を確保できていたか | その時間の作業の質 | 細切れが多ければ、AI に任せる作業を時間帯でまとめる |
-| 集中ブロック（一覧） | いつ・どのプロジェクトで長く作業していたか | その時間の価値 | 集中しやすい時間帯を把握して、重い作業をそこに寄せる |
-| 1 日の切り替え | プロジェクトをどれだけ行き来したか | 切り替えが悪いかどうか（待ち時間を活用しているだけの場合もある） | 多ければ次の期間、1 日に扱うプロジェクトを 2〜3 つにしぼる |
-| 並列で動かした時間 | 複数のセッションを並行して回せていたか | 並列にした分の価値 | 少なければ、AI の作業中に別のタスクを任せる |
-| 待たせ時間 | AI の応答にどれだけ早く反応していたか | 短いほど良いとは限らない（確認せずに進めている可能性もある） | 長ければ通知を使う、確認をまとめるなど、応答待ちの扱いを決める |
-| 週末 | 週末にどれだけ作業していたか | 働きすぎかどうかの判定 | 意図していなければ、次の期間は作業しない曜日を決める |
-| 言い直し・中断のあったプロンプト | 最初のプロンプトが意図どおりに伝わらなかった割合の目安 | 推定のため誤判定がある。原因も分からない | 高ければ、プロンプトに前提・制約・完了条件を書き足す |
-| 長くなった会話 | 会話を続けたことで、1 回あたりの応答が重くなったセッション | 会話を続けたほうがよかったかどうか（前の文脈が必要な作業もある） | 区切りのいいところで要点をメモに残し、新しいセッションで続ける |
-| 軽い作業での高いモデル | 高いモデルを使った短い作業にかかった量 | そのモデルが必要だったかどうか（難しい調査や設計の相談もある） | 調べものや相談は、まず軽いモデルで試し、足りなければ切り替える |
-| 利用上限に当たった回数 | どの時間帯・どの作業で上限に当たり、作業が止まったか | 上限までの残り。ほかのエージェントや、ブラウザ・アプリでの利用分 | 重い作業を時間帯で分ける、軽いモデルに振り分ける、長い会話は区切って新しく始める |
-| こじれたかもしれないセッション | 手戻りが集中したセッション | こじれた原因 | 次の期間は、大きな作業は 1 つずつの手順に分けて頼む |
-| 長すぎるプロンプト | ログや資料をそのまま貼るなど、1 回に大きな入力を渡していないか | その長さが必要だったか（設計の説明など、長くて良いものもある） | 次の期間は、長いログや資料はファイルにして、パスと見てほしいところだけを書く |
-| 繰り返したプロンプト | 毎回書いている決まったプロンプト | そのプロンプトでうまくいったかどうか | 次の期間は、いちばん多いプロンプトをカスタムコマンドか CLAUDE.md に一度書いておく |
-| 日ごとの推移 | どの日に多く作業し、AI を多く使ったか | その日の使い方が適切だったか | 突出した日のセッションを開いて、重かった理由を確認する |
-| 目安コスト（API 換算） | 使用量の重さを金額で比べた目安 | 実際の請求額（サブスクリプションとは異なる） | 増えた分のセッションを開き、同じ種類の作業は次の期間、会話を短く区切って進める |
-| 月末の見込み（推定） | このペースだと今月どれくらいになりそうか | 実際の請求額や、これからの使い方（ペースが変われば外れる） | 多すぎるなら、重いセッションやモデルを見直す |
-| トークン | 消費した量 | 多い・少ないの良し悪し | プロジェクト別・日別の偏りを見る |
-| キャッシュから読んだ割合 | 同じ文脈を再利用できていたか | 低い原因（短いセッションが多いだけの場合もある） | 低ければ次の期間、長い前提を毎回貼らずに、プロジェクトの説明ファイル（CLAUDE.md など）に一度書いて読ませる |
-| モデル別 | どのモデルに使用量が寄っていたか | そのモデルが必要だったか | 次の期間は、定型的な作業（整形・名前の変更・テストの追加など）を軽いモデルで試す |
-| サブエージェント | 調査などを切り出して任せていたか | 任せた効果 | 本体の文脈を節約する手段として使えているか確認する |
-| Kiro クレジット | 実際に消費したクレジット | アカウントページとの差（集計期間や他の PC での利用分） | 上限に対する消費ペースを管理する |
-| 1 プロンプトあたりの目安コスト | 1 回のプロンプトの平均的な重さ | プロンプトの大きさの違い | 推移を見て、プロンプトの粒度の変化をつかむ |
-| 重かったセッション | 使用量を押し上げたセッション | 重さに見合う価値があったか | 次の期間は、長くなった会話は区切って新しく始め、作業は小さな区切りでコミットまで進める |
-| アウトプット | 使ったコストが、形に残る作業につながったか | 価値・品質・生産性。手で行ったコミットは含まない | コストと並べて、形にならなかった使い方がないか見直す |
-| Git のコミット | AI と作業した時間が、どれだけ記録に残る変更になったか | 変更の価値。リポジトリの外の作業や、ほかの人のコミット | 作業時間やコストが多いのにコミットが少ない日は、何に時間を使ったかを確認する |
-| コミット | 作業が区切りまで進んだ回数の目安 | 変更の価値や大きさ。コミットの粒度は人や作業で異なる | コストに対してコミットが少ない期間は、何に時間を使ったかを確認する |
-| PR の作成 | レビューに出せる単位まで仕上がった回数 | マージされたか、価値があったか | 作成までの手戻りが多ければ、1 つのプロンプトで頼む範囲を小さくする |
-| AI が編集した行（推定） | AI が手を入れた量 | 価値や品質（生成コードや整形で大きく増える） | 量そのものを目標にせず、コストとの釣り合いの確認に使う |
-| コミットまで行ったセッション | 使ったセッションのうち、形に残った割合 | 調査や相談など、コミットを目的としないセッションの価値 | 低ければ次の期間、セッションの最初に完了条件（どこまでできたらコミットするか）を書く |
-| 1 コミットあたりの目安コスト | 区切りまで進めるのにかかった重さの目安 | コミットの大きさの違い。手で行ったコミットは含まない | 次の期間は、1 つのプロンプトを 1 つの変更にしぼり、こまめにコミットさせる |
-| エージェント別の参考指標 | 同じエージェント内での傾向 | エージェント同士の比較（定義が異なる） | 同じエージェントの期間ごとの変化だけを見る |
+| Worth a look | Which metric is worth reviewing first | Whether something is good or bad. Thresholds are generic and may not fit how you work | Pick one, try it next period, and check the change with the same metric |
+| By project | How you divided time and AI across projects | How important or successful a project was | If the split differs from what you intended, revisit how you work or your priorities |
+| Active time | Total time you worked together with AI | Whether you were focused. Includes time you left a session idle | Compare with the previous period to see how much more or less you rely on AI |
+| Total AI run time | How much work you gave to AI. The gap from active time shows how much ran in parallel | Time saved or productivity | If it is close to active time, you could do other work while waiting |
+| Focus blocks | Whether you had long stretches of uninterrupted work | The quality of the work in that time | If your time is fragmented, group the work you hand to AI into blocks of time |
+| Focus blocks (list) | When and in which project you worked for long stretches | Outcomes | Learn when you focus best and schedule heavy work then |
+| Project switches per day | How much you moved between projects | Whether switching is bad (you may just be using wait time well) | If high, next period limit each day to 2–3 projects |
+| Parallel time | Whether you kept several sessions going in parallel | What the parallel work achieved | If low, give AI another task while it works |
+| Wait time | How quickly you responded to AI replies | Shorter is not always better (you may be moving on without checking) | If long, use notifications or batch your reviews |
+| Weekend | How much you worked on weekends | Whether you are overworking | If not intended, pick a day off for next period |
+| Prompts with corrections or interruptions | Roughly how often a first prompt did not get your intent across | Estimates can be wrong, and they don't show the cause | If high, add background, constraints and done criteria to your prompts |
+| Long conversations | Sessions where each response got heavier as the conversation went on | Whether continuing the conversation was the right call (some work needs the earlier context) | At a good stopping point, write down the key points and continue in a new session |
+| Expensive models for light work | How much went to short tasks on an expensive model | Whether that model was needed (some research or design questions are hard) | Try a lighter model first for research and questions, and switch if it falls short |
+| Usage limit hits | When and during which work you hit a limit and had to stop | How much headroom is left. Usage from other agents, the browser or the app | Spread heavy work over time, use lighter models, and start new sessions for long conversations |
+| Sessions with possible friction | Sessions where rework piled up | Why it went wrong | Next period, split big requests into one step per prompt |
+| Oversized prompts | Whether you hand over large inputs at once, such as pasting whole logs or documents | Whether that length was needed (some long prompts, like design explanations, are fine) | Next period, put long logs or documents in a file and write only its path and the part to look at |
+| Repeated prompts | Routine requests you type every time | Whether those requests worked well | Next period, write the most repeated one once as a custom command or in CLAUDE.md |
+| Daily trend | Which days you worked the most and used AI the most | Whether that day's usage was appropriate | Open the sessions on outlier days to see why they were heavy |
+| Estimated cost (API pricing) | A rough way to compare how heavy usage was, in money | What you are actually billed (subscriptions differ) | Open the sessions behind the increase, and next period keep that kind of work in shorter conversations |
+| Month-end projection (estimate) | Roughly where this month is heading at the current pace | Your actual bill, or how you will work from now on (it is off if the pace changes) | If it is too high, look at the heavy sessions and models |
+| Tokens | How much you consumed | Whether more or less is good | Look for skew by project and by day |
+| Share of input read from cache | Whether the same context was reused | Why it is low (it may just be many short sessions) | If low, next period write long background once in a project file (such as CLAUDE.md) instead of pasting it every time |
+| By model | Which models your usage leaned toward | Whether that model was needed | Next period, try lighter models for routine work (formatting, renames, adding tests) |
+| Subagents | Whether you delegated research and similar work | How much delegating helped | Check that you use them to save the main conversation's context |
+| Kiro credits | Credits actually consumed | Differences from your account page (period boundaries or use on other machines) | Track your pace against your limit |
+| Estimated cost per prompt | How heavy a typical prompt was | Differences in prompt size | Watch the trend to see how the size of your prompts changes |
+| Heaviest sessions | Sessions that drove usage up | Whether the result was worth it | Next period, restart long conversations in a new session, and carry work to a commit in small steps |
+| Outputs | Whether the cost turned into work that left a trace | Value, quality or productivity. Commits you made by hand are not included | Put them next to cost and look for usage that produced nothing |
+| Git commits | How much of your time with AI became recorded changes | The value of the changes. Work outside the repositories or commits by others | On days with much time or cost but few commits, check where the time went |
+| Commits | Roughly how often work reached a checkpoint | The value or size of the changes. Commit size varies by person and task | In periods with few commits for the cost, check where the time went |
+| Pull requests | How often work was ready for review | Whether they were merged or valuable | If there is a lot of rework before creating one, make each request smaller |
+| Lines edited by AI (estimated) | How much AI touched | Value or quality (generated code and formatting inflate it) | Don't make volume a goal; use it to check cost against output |
+| Sessions that reached a commit | The share of sessions that left something behind | The value of sessions not meant to commit, such as research or discussion | If low, next period state at the start of each session what done looks like (when to commit) |
+| Estimated cost per commit | Roughly how heavy it was to reach a checkpoint | Differences in commit size. Commits made by hand are not included | Next period, keep each prompt to one change and commit often |
+| Agent-specific metrics | Trends within the same agent | Comparisons between agents (definitions differ) | Only look at changes over time for the same agent |
 
-## 読み取る履歴
+## Histories read
 
-| エージェント | 場所 | 時刻の粒度 |
+| Agent | Location | Time granularity |
 |---|---|---|
-| Claude Code | `~/.claude/projects/*/*.jsonl` | 発言ごと |
-| Kiro IDE（v1.0 以降） | `~/.kiro/sessions/<hash>/sess_*/` | 発言ごと |
-| Kiro CLI | `~/.kiro/sessions/cli/` | プロンプトごと |
-| Kiro IDE（v1.0 より前） | `<globalStorage>/kiro.kiroagent/workspace-sessions/`（`<globalStorage>` は macOS: `~/Library/Application Support/Kiro/User/globalStorage`、Windows: `%APPDATA%\Kiro\User\globalStorage`、Linux: `~/.config/Kiro/User/globalStorage` か `~/.kiro-server/data/User/globalStorage`） | 開始と最終更新のみ |
-| Kiro Crew | `~/.kiro/crew/`（`session_map.json`・`usage/tokens/`） | プロンプト・ターンごと |
-| Kiro CLI（旧バージョン） | `kiro-cli/data.sqlite3`（下表） | プロンプトごと |
-| Amazon Q Developer CLI | `amazon-q/data.sqlite3`（下表） | プロンプトごと |
-| Codex CLI | `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`（`.jsonl.zst` を含む）と `archived_sessions/` | 発言ごと |
-| Git（自分のコミット） | セッションの作業場所にあるリポジトリ（手元の `git log`） | コミットごと |
+| Claude Code | `~/.claude/projects/*/*.jsonl` | Per message |
+| Kiro IDE (v1.0 and later) | `~/.kiro/sessions/<hash>/sess_*/` | Per message |
+| Kiro CLI | `~/.kiro/sessions/cli/` | Per prompt |
+| Kiro IDE (before v1.0) | `<globalStorage>/kiro.kiroagent/workspace-sessions/` (`<globalStorage>` is `~/Library/Application Support/Kiro/User/globalStorage` on macOS, `%APPDATA%\Kiro\User\globalStorage` on Windows, and `~/.config/Kiro/User/globalStorage` or `~/.kiro-server/data/User/globalStorage` on Linux) | Start and last update only |
+| Kiro Crew | `~/.kiro/crew/` (`session_map.json`, `usage/tokens/`) | Per prompt or turn |
+| Kiro CLI (old versions) | `kiro-cli/data.sqlite3` (table below) | Per prompt |
+| Amazon Q Developer CLI | `amazon-q/data.sqlite3` (table below) | Per prompt |
+| Codex CLI | `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` (including `.jsonl.zst`) and `archived_sessions/` | Per message |
+| Git (your own commits) | Repositories in each session's working directory (local `git log`) | Per commit |
 
-`data.sqlite3` の場所:
+Location of `data.sqlite3`:
 
-| OS | 場所 |
+| OS | Location |
 |---|---|
-| macOS | `~/Library/Application Support/<kiro-cli または amazon-q>/` |
-| Linux | `$XDG_DATA_HOME`（未設定なら `~/.local/share`）`/<kiro-cli または amazon-q>/` |
-| Windows | `%LOCALAPPDATA%\<kiro-cli または amazon-q>\`（Kiro CLI は未確認。異なる場合は `--kiro-cli-db` で指定してください） |
+| macOS | `~/Library/Application Support/<kiro-cli or amazon-q>/` |
+| Linux | `$XDG_DATA_HOME` (`~/.local/share` if unset)`/<kiro-cli or amazon-q>/` |
+| Windows | `%LOCALAPPDATA%\<kiro-cli or amazon-q>\` (unverified for Kiro CLI; if it differs, specify it with `--kiro-cli-db`) |
 
-- `KIRO_HOME`・`KIROCREW_HOME`・`CODEX_HOME`・`CLAUDE_CONFIG_DIR` が設定されている場合は、その場所を読み取ります（`CLAUDE_CONFIG_DIR` はその下の `projects/`）
-- 同じ会話が 2 か所に記録されていても、1 回だけ数えます。除外した件数は画面の「計測の状態」（サマリーのいちばん下）に表示します
-- Kiro のクレジットは、履歴に記録された値をそのまま合計します（モデルごとの倍率は掛け直しません）。Kiro IDE（v1.0 より前）と Kiro CLI（SQLite）の履歴にはクレジットが記録されていないため、その分は含まれません。単位は表記の揺れ（`credit`・`Credits` など）を区別しません。アカウントページの数値とは、集計期間（請求期間）、他の PC での利用分、Kiro が削除した古い履歴、チャット以外での利用（エージェントフックなど、履歴に残らないもの）により差が出ることがあります
-- Codex のモデル（OpenAI）は料金表に収録していないため、目安コストに含まれません。含めたい場合は `--prices` で追加できます
+- If `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME` or `CLAUDE_CONFIG_DIR` is set, that location is read (for `CLAUDE_CONFIG_DIR`, its `projects/` folder)
+- Even if the same conversation is recorded in two places, it is counted once. The number excluded is shown under "Data sources" (at the very bottom of the summary)
+- Kiro credits are the values recorded in history, summed as they are (per-model multipliers are not reapplied). Histories from Kiro IDE (before v1.0) and Kiro CLI (SQLite) do not record credits, so that usage is not included. Variations in how the unit is written (`credit`, `Credits` and so on) are treated the same. Numbers may differ from your account page because of the period (billing period), use on other computers, old history Kiro has deleted, and use outside chat (such as agent hooks, which leave no history)
+- Codex models (OpenAI) are not in the price table, so they are not included in the estimated cost. To include them, add them with `--prices`
 
-各履歴の読み取り方と重複の除外方法は [sources.md](sources.md) にまとめています。読み取れない履歴があれば issue で知らせてください。
+How each history is read and how duplicates are excluded is described in [sources.md](sources.md). If some history cannot be read, let us know in an issue.
 
-### 履歴の保存期間
+### History retention
 
-エージェントによっては、古い履歴を自動で消します。消えた履歴は kiroku でも見られなくなり、元に戻せません。過去の分を振り返りたい場合は、早めに設定してください。画面の「計測の状態」には、エージェントごとの最も古い記録の日付を表示し、Claude Code が既定の 30 日のままのときは、サマリーの上でお知らせします（公式ドキュメントへのリンクと設定のコピー付き。「閉じる」を押すと、このブラウザでは再表示しません）。Kiro Crew は期間を読み取れないため、「計測の状態」に消えることだけを表示します。
+Some agents delete old history automatically. Deleted history cannot be shown by kiroku and cannot be recovered, so set this up early if you want to look back further. In the view, "Data sources" shows the oldest record for each agent, and while Claude Code is still on its 30-day default, a notice appears above the summary (with a link to the official docs and a button to copy the setting; once dismissed, it stays hidden in that browser). For Kiro Crew, whose period kiroku cannot read, "Data sources" only notes that it deletes history.
 
-| エージェント | 自動で消すか | 設定 |
+| Agent | Deletes automatically? | Setting |
 |---|---|---|
-| Claude Code | **消す**。既定では 30 日より古い会話の記録を、起動後に通知なしで消します | `~/.claude/settings.json` の [`cleanupPeriodDays`](https://code.claude.com/docs/en/settings-reference#cleanupperioddays)（日数。最小 1。`0` はエラーになるため、長く残すには `3650` のような大きな値にします） |
-| Kiro Crew | **消す**。会話の記録（`sessions/archive/`）を一定期間で消します。期間は Crew の版や設定によります | Crew の [`session.archive_retention_days`](https://kiro.dev/docs/crew/configuration/) |
-| Kiro IDE・Kiro CLI・Amazon Q・Codex | 公式ドキュメントに、期間で自動的に消すという記載はありません（手動で消す機能はあります） | — |
+| Claude Code | **Yes.** By default it silently deletes conversation history older than 30 days at startup | [`cleanupPeriodDays`](https://code.claude.com/docs/en/settings-reference#cleanupperioddays) in `~/.claude/settings.json` (days, minimum 1; `0` fails validation, so use a large value such as `3650` for long retention) |
+| Kiro Crew | **Yes.** It deletes conversation records (`sessions/archive/`) after a period that depends on the Crew version and settings | Crew's [`session.archive_retention_days`](https://kiro.dev/docs/crew/configuration/) |
+| Kiro IDE, Kiro CLI, Amazon Q, Codex | Their official docs do not describe age-based automatic deletion (manual cleanup exists) | — |
 
-Claude Code の設定の例:
+Example for Claude Code:
 
 ```json
 {
@@ -281,48 +276,48 @@ Claude Code の設定の例:
 }
 ```
 
-kiroku が読むのは利用者の設定（`~/.claude/settings.json`、`CLAUDE_CONFIG_DIR` があればその下）だけです。プロジェクトや組織の設定で指定している場合は、お知らせが出ても実際の期間とは異なることがあります。
+kiroku reads only your user settings (`~/.claude/settings.json`, or under `CLAUDE_CONFIG_DIR` if set). If the period is set in project or organization settings, the notice may not match the actual period.
 
-### kiroku に履歴のコピーを残す
+### Keep a copy of history in kiroku
 
-設定を変えない場合は、kiroku に履歴のコピーを残すこともできます。最初はオフで、自分でオンにしたときだけ保存します。
+If you'd rather not change the setting, kiroku can keep a copy of the history instead. It is off until you turn it on.
 
-- `kiroku archive on` を実行するか、`kiroku serve` の画面のお知らせで「kiroku にコピーを残す」を押すとオンになります。オンにした時点の履歴をすぐ保存し、その後は kiroku が履歴を読むたび（`serve` の読み直し・`html`・`json`）に、新しい履歴と追記された履歴を保存します
-- 保存するのは、自動で消すエージェントの履歴だけです（Claude Code の会話の記録と、Kiro Crew の `sessions/archive/`）。元のファイルを zstd で圧縮し、元の場所と同じ並びで置きます
-- 元の会話が消えると、コピーから表示します。「計測の状態」に、コピーから表示した会話の数と、保存したファイルの数・大きさを表示します。コピーから表示した Claude Code の会話は、「続きから再開」のコマンドを表示しません（Claude Code 側に記録がないため）
-- 保存場所は Linux が `~/.local/share/kiroku/archive`（`XDG_DATA_HOME` があればその下）、macOS が `~/Library/Application Support/kiroku/archive`、Windows が `%LocalAppData%\kiroku\archive` です。`--archive-dir` か `KIROKU_ARCHIVE_DIR` で変えられます。コピーはこのパソコンの中だけに置き、どこにも送りません
-- `kiroku archive off` で保存をやめます。すでに保存したコピーを消すかを聞きます（端末で `y` と答えたときだけ消します）。消さなければ、止めたあともコピーから表示します
-- kiroku を開かないあいだに消えた履歴は保存できません。期間が過ぎる前に一度は kiroku を開いてください。会話の中身がもう 1 か所に残るので、わざと消した会話も kiroku 側には残ります
+- Run `kiroku archive on`, or press "Keep a copy in kiroku" in the notice in the `kiroku serve` view. kiroku saves the current history right away, then saves new and appended history each time it reads history (`serve` reloads, `html`, `json`)
+- Only history from agents that delete it automatically is saved (Claude Code conversations, and Kiro Crew's `sessions/archive/`). Each file is compressed with zstd and kept in the same layout as the original
+- When the original conversation is deleted, kiroku shows it from the copy. "Data sources" shows how many conversations came from the copy, and the number and size of the saved files. Claude Code conversations shown from the copy have no "Resume" command (Claude Code no longer has them)
+- The copies live in `~/.local/share/kiroku/archive` on Linux (under `XDG_DATA_HOME` if set), `~/Library/Application Support/kiroku/archive` on macOS and `%LocalAppData%\kiroku\archive` on Windows. Change it with `--archive-dir` or `KIROKU_ARCHIVE_DIR`. Copies stay on this computer and are never sent anywhere
+- `kiroku archive off` stops saving and asks whether to delete the copies already kept (only if you answer `y` in a terminal). If you keep them, kiroku still shows them
+- History deleted while kiroku is not opened cannot be saved, so open kiroku at least once before the period ends. The conversations exist in one more place, so even conversations you deleted on purpose remain in kiroku's copy
 
-## オプション
+## Options
 
-履歴を読み取るコマンド（`serve`・`html`・`json`）に共通:
+Common to the commands that read history (`serve`, `html`, `json`):
 
-| オプション | 既定値 | 説明 |
+| Option | Default | Description |
 |---|---|---|
-| `--sources` | `claude,kiro,amazonq,codex` | 読み取る履歴（カンマ区切り。Kiro Crew は `kiro` に含まれます） |
-| `--root` | `~/.claude/projects`（`CLAUDE_CONFIG_DIR` があれば `$CLAUDE_CONFIG_DIR/projects`） | Claude Code の履歴の場所 |
-| `--kiro-home` | `~/.kiro` | Kiro のデータの場所（`KIRO_HOME` も参照） |
-| `--crew-home` | `<--kiro-home>/crew` | Kiro Crew のデータの場所（`KIROCREW_HOME` が優先） |
-| `--kiro-cli-db` | OS ごと | Kiro CLI（旧バージョン）の `data.sqlite3` |
-| `--amazonq-db` | OS ごと | Amazon Q Developer CLI の `data.sqlite3` |
-| `--codex-home` | `~/.codex` | Codex のデータの場所（`CODEX_HOME` も参照） |
-| `--gap` | `15` | セッションの帯を分ける空き時間（分） |
-| `--prices` | | 料金表を JSON で上書き（「AI の使い方」参照） |
-| `--archive-dir` | OS ごとの場所（「kiroku に履歴のコピーを残す」参照） | `kiroku archive` のコピーの保存場所（`KIROKU_ARCHIVE_DIR` も参照） |
+| `--sources` | `claude,kiro,amazonq,codex` | Histories to read (comma-separated; Kiro Crew is included in `kiro`) |
+| `--root` | `~/.claude/projects` (`$CLAUDE_CONFIG_DIR/projects` if set) | Location of Claude Code history |
+| `--kiro-home` | `~/.kiro` | Location of Kiro data (`KIRO_HOME` is also used) |
+| `--crew-home` | `<--kiro-home>/crew` | Location of Kiro Crew data (`KIROCREW_HOME` takes precedence) |
+| `--kiro-cli-db` | Per OS | `data.sqlite3` of Kiro CLI (old versions) |
+| `--amazonq-db` | Per OS | `data.sqlite3` of Amazon Q Developer CLI |
+| `--codex-home` | `~/.codex` | Location of Codex data (`CODEX_HOME` is also used) |
+| `--gap` | `15` | Idle time (minutes) that splits session bars |
+| `--prices` | | Override the price table with JSON (see "How you used AI") |
+| `--archive-dir` | Per-OS location (see "Keep a copy of history in kiroku") | Where `kiroku archive` keeps copies (`KIROKU_ARCHIVE_DIR` is also used) |
 
-コマンドごと:
+Per command:
 
-| コマンド | オプション | 既定値 | 説明 |
+| Command | Option | Default | Description |
 |---|---|---|---|
-| `serve` | `[待ち受けアドレス]` | `127.0.0.1:8484` | `:8485` のようにポートのみの指定も可（`127.0.0.1` で待ち受けます）。ほかの端末から開けるようにするには `0.0.0.0:8485` のように書きます（同じネットワークの誰からも履歴が見えます） |
-| `serve` | `--interval` | `5s` | 履歴の変化を確認する間隔。変化が間隔の 2 倍止まったら読み直します（長くても 12 倍） |
-| `serve`・`html` | `--no-open` | | ブラウザを開かない |
-| `html` | `-o`, `--out` | `kiroku.html` | 出力する HTML ファイル |
-| `json` | `-o`, `--out` | `kiroku.json` | 出力する JSON ファイル（`-` で標準出力） |
-| `update` | `--check` / `--to <バージョン>` / `--force` | | 確認のみ / バージョンを指定 / dev 版や同じバージョンでも置き換える |
+| `serve` | `[ADDR]` | `127.0.0.1:8484` | A port alone, such as `:8485`, also works (it listens on `127.0.0.1`). To open it from other devices, write an address such as `0.0.0.0:8485` (anyone on your network can then see your history) |
+| `serve` | `--interval` | `5s` | How often to check history for changes. Reloads when changes stop for twice the interval (at most 12 times the interval) |
+| `serve`, `html` | `--no-open` | | Don't open the browser |
+| `html` | `-o`, `--out` | `kiroku.html` | HTML file to write |
+| `json` | `-o`, `--out` | `kiroku.json` | JSON file to write (`-` for stdout) |
+| `update` | `--check` / `--to <version>` / `--force` | | Only check / choose a version / replace even a dev build or the same version |
 
-## 注意
+## Notes
 
-- 出力した HTML と JSON には、プロンプトやファイルパス、コミットメッセージがそのまま含まれます。人に渡すときは内容を確認してください（このリポジトリの `.gitignore` では `*.html` と `kiroku.json` を除外しています）
-- `kiroku serve` は既定で自分の PC からのみアクセスできます（`127.0.0.1` で待ち受け、他のホスト名宛てのリクエストは拒否します）。`kiroku serve 0.0.0.0:8484` のように外部に公開すると、同じネットワーク上の人も履歴を閲覧できます
+- The HTML and JSON output contain your prompts, file paths and commit messages as they are. Check the content before giving them to anyone (this repository's `.gitignore` excludes `*.html` and `kiroku.json`)
+- By default, `kiroku serve` can be reached only from your own computer (it listens on `127.0.0.1` and rejects requests addressed to other host names). If you expose it, as in `kiroku serve 0.0.0.0:8484`, people on the same network can also view your history

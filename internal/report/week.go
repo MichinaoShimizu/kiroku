@@ -542,7 +542,7 @@ func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
 			tot.CR += e.U.CR
 			name := e.Model
 			if name == "" {
-				name = "（不明）"
+				name = "(unknown)"
 			}
 			if models[name] == nil {
 				models[name] = &mm{}

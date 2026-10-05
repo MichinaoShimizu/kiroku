@@ -32,7 +32,7 @@ func TestKiroCrewTagsKiroCLISessions(t *testing.T) {
 	if b := bs[1]; b.Title != "夜間のデプロイ見張り" {
 		t.Errorf("Crew のタイトル = %q", b.Title)
 	}
-	if b := bs[0]; !strings.HasPrefix(b.Title, "サブエージェント reviewer: PR #12") {
+	if b := bs[0]; !strings.HasPrefix(b.Title, "Subagent reviewer: PR #12") {
 		t.Errorf("サブエージェントのタイトル = %q", b.Title)
 	}
 	if b := bs[2]; b.Title != "CLIでデプロイ確認" { // 古い形（文字列だけ）の対応表。タイトルは kiro-cli のまま

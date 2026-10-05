@@ -10,11 +10,10 @@ if (!html) { console.error("使い方: node smoke.mjs <kiroku.html>"); process.e
 const url = "file://" + path.resolve(html);
 
 const envs = [
-  { name: "ja 1440", locale: "ja-JP", viewport: { width: 1440, height: 900 } },
-  { name: "en 1440", locale: "en-US", viewport: { width: 1440, height: 900 } },
-  { name: "ja 1000", locale: "ja-JP", viewport: { width: 1000, height: 800 } },
-  { name: "ja 390 スマホ", locale: "ja-JP", viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
-  { name: "en 320 スマホ", locale: "en-US", viewport: { width: 320, height: 680 }, isMobile: true, hasTouch: true }, // 英語は文言が長く、いちばん狭い画面ではみ出しやすい
+  { name: "1440", viewport: { width: 1440, height: 900 } },
+  { name: "1000", viewport: { width: 1000, height: 800 } },
+  { name: "390 スマホ", viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
+  { name: "320 スマホ", viewport: { width: 320, height: 680 }, isMobile: true, hasTouch: true }, // いちばん狭い画面ではみ出しやすい
 ];
 
 let failed = 0;
@@ -26,14 +25,12 @@ function check(what, ok, detail = "") {
 const b = await chromium.launch();
 for (const env of envs) {
   console.log(`# ${env.name}`);
-  const ctx = await b.newContext({ ...env, timezoneId: "Asia/Tokyo" });
+  const ctx = await b.newContext({ ...env, locale: "en-US", timezoneId: "Asia/Tokyo" });
   ctx.setDefaultTimeout(5000);
   const p = await ctx.newPage();
   const errors = [];
   p.on("pageerror", e => errors.push(e.message));
   p.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
-  const en = env.locale.startsWith("en");
-  await p.addInitScript(l => { try { if (!localStorage.getItem("kiroku:lang")) localStorage.setItem("kiroku:lang", JSON.stringify(l)); } catch (e) {} }, en ? "en" : "ja"); // 既定は英語なので、日本語の環境では選んだことにする
   const pause = () => p.waitForTimeout(300);
   const drawerOpen = async () => await p.locator("#drawer").getAttribute("aria-hidden") === "false";
   // 1 つの流れが途中で止まっても、失敗として数えて次の流れへ進む（開き直して、記録のそろった先週から始める）
@@ -145,7 +142,7 @@ for (const env of envs) {
     check("/ で検索欄に移る", await p.evaluate(() => document.activeElement && document.activeElement.id === "q"));
     await p.locator("#q").fill(word); await pause();
     const heading = await p.locator("#review h2").first().innerText();
-    check("検索結果が出る", heading === (en ? "Search results" : "検索結果"), heading);
+    check("検索結果が出る", heading === "Search results", heading);
     check("一致したセッションがある", await p.locator(".srow[data-s]").count() > 0, word);
     await p.locator(".srow[data-s]").first().click(); await pause();
     check("検索結果から詳細が開く", await drawerOpen());

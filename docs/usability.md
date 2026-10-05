@@ -1,79 +1,76 @@
-# 利用者目線のテスト
+# User testing
 
-画面の変更が、利用者の目的に本当に役立つかを確かめるためのシナリオと観点です。`docs/development.md` の「画面を変えるとき」が作る側のチェックなら、こちらは使う側からの検証です。Claude Code では `user-tester` エージェント（`.claude/agents/user-tester.md`）がこの文書に沿ってテストします。人に試してもらうときも、同じシナリオを使えます。
+Scenarios and criteria for checking whether a change to the view actually helps users reach their goals. If "Changing the view" in `docs/development.md` is the builder's checklist, this is verification from the user's side. In Claude Code, the `user-tester` agent (`.claude/agents/user-tester.md`) tests along this document. The same scenarios work when asking people to try it.
 
-AI によるテストは、実際の利用者の代わりにはなりません。見落としを減らすための事前の確認として使い、実際に使った人の声を優先してください。
+AI testing does not replace real users. Use it as a first check to catch what might be missed, and give priority to feedback from people who actually used it.
 
-## 準備
+## Setup
 
 ```bash
-sh tools/screenshots/run.sh --html /tmp/kiroku-test.html   # ダミーデータの HTML
+sh tools/screenshots/run.sh --html /tmp/kiroku-test.html   # HTML with dummy data
 ```
 
-Playwright で開き、次の 4 つの環境で試します。テーマは既定のダークのまま試し、スクリーンショットもダークでそろえます。
+Open it with Playwright and try it in the following 3 environments. Keep the default dark theme, and take screenshots in dark too.
 
 - 1440x900
 - 1000x800
-- 390x844（スマホ）
-- 1440x900（英語表示。既定のまま）
+- 390x844 (phone)
 
-ほかは、開いたあと右上の選択欄で日本語に切り替えて試します（画面は既定で英語）。
+Judge only by what you can see, without reading the view's code. Read the code only to explain the cause of a problem you ran into.
 
-画面のコードは読まずに、見えるものだけで判断します。読むのは、つまずいた原因を説明するときだけです。
+## Users and scenarios
 
-## 利用者とシナリオ
+Each scenario has the user's goal and a success condition. No steps are given. As the user, proceed using only the look and wording of the view as clues.
 
-各シナリオには、利用者の目的と成功の条件があります。手順は書きません。利用者として、画面の見た目と言葉だけを手がかりに進めます。
-
-| # | 利用者 | 目的 | 成功の条件 |
+| # | User | Goal | Success condition |
 |---|---|---|---|
-| 1 | 初めて開いた人 | この画面が何で、先週自分が何をしていたかを知る | 30 秒以内に「何の画面か」と「先週いちばん時間を使ったプロジェクト」を言える |
-| 2 | 週報を書く人 | 先週の作業を週報に貼る | 週報の下書きの文面を開いて確かめ、コピーし、そのまま貼れる形になっている。セッション名を直す必要があることに気づける |
-| 3 | AI の費用を抑えたい人 | 来週から何を変えるか 1 つ決める | 「見直す候補」から行動を 1 つ選び、何をすればいいかを自分の言葉で言える |
-| 4 | 試した結果を知りたい人 | 先週試したことが効いたか確かめる | 変えたことに関係する指標を、印の付いた指標の推移（8 週）か、「見直す候補」や「?」で開いた指標から見つけ、変化の方向を読み取って効いたかどうかを判断できる（見直す候補から外れた場合や、判断できない理由も含めて） |
-| 5 | バグの原因を探す人 | 特定のファイルを AI が触ったセッションを見つける | 検索から該当セッションとコミットにたどり着き、プロンプトの流れを読める |
-| 6 | 利用上限で止まった人 | いつ・何をしていて上限に当たったかを知る | 上限に当たった時刻とセッションを見つけ、「?」から打てる手を読める |
-| 7 | 1 つのセッションを振り返る人 | うまくいかなかったセッションを AI と振り返る | 詳細を開き、振り返り用のプロンプトをコピーできる |
-| 8 | スマホで見る人 | 移動中に今週の様子をざっと見る | 横にはみ出さず、要点・見直す候補・カレンダーを読める |
-| 9 | キーボードだけで使う人 | 週を移動し、セッションの詳細を開いて閉じる | マウスを使わずにできる。どこにいるかが見える |
-| 10 | 1 年を振り返ってシェアしたい人 | 今年の使い方を 1 枚の画像にして SNS に貼る | 「1 年の露光」を開き、図の読み方と「光の名前」の理由がわかり、画像に何が載って何が載らないかを確かめてから、PNG を保存できる |
+| 1 | Someone opening it for the first time | Learn what this view is and what they did last week | Within 30 seconds, can say "what this view is" and "the project they spent the most time on last week" |
+| 2 | Someone writing a weekly report | Paste last week's work into a weekly report | Opens and checks the weekly report draft text, copies it, and it is ready to paste as is. Notices that session names need editing |
+| 3 | Someone who wants to keep AI costs down | Decide on one thing to change from next week | Picks one action from "Worth a look" and can say in their own words what to do |
+| 4 | Someone who wants to know whether something they tried worked | Check whether what they tried last week worked | Finds the metric related to what they changed, from the 8-week trend of a marked metric or from a metric opened via "Worth a look" or "?", reads the direction of change and can judge whether it worked (including when it dropped off "Worth a look", or why it can't be judged) |
+| 5 | Someone hunting the cause of a bug | Find the session where the AI touched a particular file | Reaches the session and commit from search, and can read the prompt flow |
+| 6 | Someone who was stopped by a usage limit | Learn when and during what work they hit the limit | Finds the time and session of the limit hit, and can read what to do from "?" |
+| 7 | Someone looking back on one session | Review a session that went badly with an AI | Opens the details and can copy the review prompt |
+| 8 | Someone viewing on a phone | Glance at this week while on the move | Nothing overflows sideways, and can read the key figures, "Worth a look" and the calendar |
+| 9 | Someone using only the keyboard | Move between weeks, open session details and close them | Can do it without a mouse, and can see where they are |
+| 10 | Someone who wants to look back on the year and share it | Turn this year's usage into one image to post on social media | Opens "Year in review", understands how to read the chart and why they got their "Your light" name, checks what is and isn't in the image, then saves the PNG |
 
-## 観点
+## Criteria
 
-シナリオを進めながら、次の観点で記録します。
+While going through the scenarios, note the following.
 
-- **情報設計**
-  - 欲しい情報がある場所を予想できるか（見つけやすさ）
-  - 名前やラベルから、中身を正しく想像できるか（ラベル）
-  - 大事なものが先に、細かいものが後に出ているか（順序と階層）
-  - 「何が起きた → なぜ気にする → 次に何をする → どう確かめる」をたどれるか
-- **言葉**
-  - 専門用語や、画面の中での表記の揺れがないか
-  - 推定の数字が、推定だとわかるか
-  - 良し悪しを決めつけていないか
+- **Information architecture**
+  - Can you predict where the information you want is (findability)
+  - Can you correctly guess the content from names and labels (labels)
+  - Do important things come first and details later (order and hierarchy)
+  - Can you follow "what happened → why it matters → what to do next → how to check"
+- **Wording**
+  - No jargon, and no inconsistent terms within the view
+  - Is it clear that estimated numbers are estimates
+  - Does it avoid passing judgment on good or bad
 - **UI**
-  - 重なり・はみ出し・切れた文字がないか
-  - コントラストは足りているか
-  - 押せるものが押せるように見えるか
+  - No overlaps, overflow or cut-off text
+  - Is the contrast sufficient
+  - Do clickable things look clickable
 - **UX**
-  - 押したら何が起きるか予想できるか
-  - 戻れるか
-  - マウスを載せないと読めない情報がないか
-  - 操作の結果がわかるか（コピーしたことなど）
-- **信頼**
-  - 数字の根拠と基準がわかるか
-  - 判断を誤らせる見せ方がないか（例：週の途中の値を、1 週分の値と並べて比べている）
+  - Can you predict what happens when you press something
+  - Can you go back
+  - No information that can only be read by hovering
+  - Is the result of an action clear (such as having copied something)
+- **Trust**
+  - Are the basis and thresholds of numbers clear
+  - No presentation that could mislead (e.g. comparing a mid-week value side by side with a full week's value)
 
-## 報告の形
+## Report format
 
-シナリオごとに、次をまとめます。
+For each scenario, summarize the following.
 
-- **結果**：達成 / つまずいたが達成 / 達成できない
-- **たどった道筋**：見たもの・押したもの・迷ったところ（利用者の独り言として）
-- **見つけた問題**
-  - 重さ：利用を妨げる / 迷う・誤解する / 細かい
-  - 場所（スクリーンショットのパス）
-  - なぜ問題か
-  - 直し方の案
+- **Result**: achieved / achieved with difficulty / not achieved
+- **Path taken**: what you looked at, what you pressed, where you got lost (as the user thinking aloud)
+- **Problems found**
+  - Severity: blocks use / confusing or misleading / minor
+  - Location (screenshot path)
+  - Why it is a problem
+  - Suggested fix
 
-最後に、重さの順に問題を並べ、同じ原因から来ている問題はまとめます。良かった点も短く書きます。
+Finally, list problems by severity, grouping those with the same cause. Briefly note what worked well too.

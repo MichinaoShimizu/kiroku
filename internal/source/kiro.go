@@ -306,11 +306,11 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 // 発言ごとの時刻がないので、開始 = dateCreated、終了 = ファイル更新時刻 のざっくり表示。
 type KiroIDELegacy struct{ Storages []string }
 
-func (k *KiroIDELegacy) Name() string   { return "Kiro IDE (旧)" }
+func (k *KiroIDELegacy) Name() string   { return "Kiro IDE (legacy)" }
 func (k *KiroIDELegacy) Family() string { return "kiro" }
 func (k *KiroIDELegacy) Where() string {
 	if len(k.Storages) == 0 {
-		return "なし"
+		return "none"
 	}
 	return strings.Join(k.Storages, " / ")
 }
@@ -327,7 +327,7 @@ func (k *KiroIDELegacy) Load(emit func(*core.Builder)) error {
 				}
 				f := filepath.Join(filepath.Dir(index), id+".json")
 				data := core.Map(core.ReadJSON(f))
-				s := core.NewBuilder("Kiro IDE (旧)", id)
+				s := core.NewBuilder("Kiro IDE (legacy)", id)
 				s.File = f
 				s.Title = firstNonEmpty(core.Str(em["title"]), core.Str(data["title"]))
 				s.Project = firstNonEmpty(core.Str(data["workspacePath"]), core.Str(data["workspaceDirectory"]), core.Str(em["workspaceDirectory"]))

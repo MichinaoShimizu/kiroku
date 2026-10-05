@@ -34,7 +34,7 @@ broken line
 {"timestamp": "2026-09-29T01:05:00Z", "payload": {"type": "user", "content": "違う、元に戻して"}}
 {"timestamp": "2026-09-29T01:06:00Z", "payload": {"type": "usage_summary", "promptTurnSummaries": [{"usage": 0, "unit": "credit"}]}}
 `,
-		// id がなければディレクトリ名、作業場所がなければ (不明)
+		// id がなければディレクトリ名、作業場所がなければ (unknown)
 		"sessions/abc/sess_2/session.json":   `{"createdAt": "2026-09-30T00:00:00Z"}`,
 		"sessions/abc/sess_2/messages.jsonl": `{"timestamp": "2026-09-30T00:01:00Z", "payload": {"type": "user", "content": "テストを足して"}}` + "\n",
 		// Kiro CLI の置き場所（sessions/cli/<x>/session.json）は Kiro IDE として読まない
@@ -91,7 +91,7 @@ broken line
 	if s2 == nil {
 		t.Fatal("id のない session.json はディレクトリ名で読む")
 	}
-	if f2 := s2.Finish(15); f2.ProjectPath != "(不明)" || f2.Title != "テストを足して" {
+	if f2 := s2.Finish(15); f2.ProjectPath != "(unknown)" || f2.Title != "テストを足して" {
 		t.Errorf("project/title = %q %q", f2.ProjectPath, f2.Title)
 	}
 }
@@ -150,7 +150,7 @@ func TestKiroIDELegacy(t *testing.T) {
 	if k.Where() != gs+" / "+k.Storages[1] {
 		t.Errorf("where = %q", k.Where())
 	}
-	if (&KiroIDELegacy{}).Where() != "なし" {
-		t.Error("置き場所がなければ「なし」")
+	if (&KiroIDELegacy{}).Where() != "none" {
+		t.Error("置き場所がなければ「none」")
 	}
 }

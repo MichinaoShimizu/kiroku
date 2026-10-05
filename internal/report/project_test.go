@@ -14,7 +14,7 @@ import (
 func TestProjectStatsNoNullLists(t *testing.T) {
 	ws := time.Date(2026, 9, 28, 0, 0, 0, 0, time.Local)
 	start := float64(ws.Add(10 * time.Hour).Unix())
-	s := &core.Session{ID: "s1", Source: "Kiro IDE (旧)", Project: "app", Start: start, End: start + 1800,
+	s := &core.Session{ID: "s1", Source: "Kiro IDE (legacy)", Project: "app", Start: start, End: start + 1800,
 		Segs: [][3]float64{{start, start + 1800, 2}}, Prompts: []core.Prompt{}}
 	w := Summarize([]*core.Session{s}, ws, ws.AddDate(0, 0, 7))
 	if w == nil || len(w.ProjectStats) != 1 {

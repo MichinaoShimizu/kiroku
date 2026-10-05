@@ -743,7 +743,7 @@
        "minutes": 16,
        "source": "Kiro Crew",
        "start": 1790726400,
-       "title": "サブエージェント reviewer: PR #12 をレビューして",
+       "title": "Subagent reviewer: PR #12 をレビューして",
        "tokens": 0
       }
      ]
@@ -829,7 +829,7 @@
        "credits": 0,
        "id": "372fbe38-1f0c-4f64-882e-d84f0f02817e",
        "minutes": 2,
-       "source": "Kiro IDE (旧)",
+       "source": "Kiro IDE (legacy)",
        "start": 1790578380,
        "title": "旧Kiroのチャット",
        "tokens": 0
@@ -839,7 +839,7 @@
        "credits": 0,
        "id": "12c47fa1-6df4-4521-83f6-def4d849922d",
        "minutes": 2,
-       "source": "Kiro IDE (旧)",
+       "source": "Kiro IDE (legacy)",
        "start": 1790739600,
        "title": "旧Kiroのチャット",
        "tokens": 0
@@ -849,7 +849,7 @@
        "credits": 0,
        "id": "12971eb2-2ee6-4dd7-9a6e-a50256c0bf1d",
        "minutes": 2,
-       "source": "Kiro IDE (旧)",
+       "source": "Kiro IDE (legacy)",
        "start": 1790746140,
        "title": "旧Kiroのチャット",
        "tokens": 0
@@ -909,7 +909,7 @@
        "minutes": 1,
        "source": "Kiro Crew",
        "start": 1790639997,
-       "title": "Kiro Crew の裏方の処理",
+       "title": "Kiro Crew background work",
        "tokens": 0
       },
       {
@@ -929,7 +929,7 @@
        "minutes": 1,
        "source": "Kiro Crew",
        "start": 1790726397,
-       "title": "Kiro Crew の裏方の処理",
+       "title": "Kiro Crew background work",
        "tokens": 0
       }
      ]
@@ -1294,7 +1294,7 @@
      {
       "cost": 0,
       "credits": 0,
-      "key": "Kiro IDE (旧)",
+      "key": "Kiro IDE (legacy)",
       "minutes": 6,
       "tokens": 0
      },
@@ -4327,7 +4327,7 @@
      1
     ]
    ],
-   "source": "Kiro IDE (旧)",
+   "source": "Kiro IDE (legacy)",
    "start": 1790578380,
    "subagents": [],
    "title": "旧Kiroのチャット",
@@ -4507,7 +4507,7 @@
    "source": "Kiro Crew",
    "start": 1790639997,
    "subagents": [],
-   "title": "Kiro Crew の裏方の処理",
+   "title": "Kiro Crew background work",
    "tools": [],
    "usage": {
     "cost": 0,
@@ -5137,7 +5137,7 @@
    "source": "Kiro Crew",
    "start": 1790726397,
    "subagents": [],
-   "title": "Kiro Crew の裏方の処理",
+   "title": "Kiro Crew background work",
    "tools": [],
    "usage": {
     "cost": 0,
@@ -5242,7 +5242,7 @@
    "source": "Kiro Crew",
    "start": 1790726400,
    "subagents": [],
-   "title": "サブエージェント reviewer: PR #12 をレビューして",
+   "title": "Subagent reviewer: PR #12 をレビューして",
    "tools": [],
    "usage": {
     "cost": 0,
@@ -5302,7 +5302,7 @@
      1
     ]
    ],
-   "source": "Kiro IDE (旧)",
+   "source": "Kiro IDE (legacy)",
    "start": 1790739600,
    "subagents": [],
    "title": "旧Kiroのチャット",
@@ -5463,7 +5463,7 @@
      1
     ]
    ],
-   "source": "Kiro IDE (旧)",
+   "source": "Kiro IDE (legacy)",
    "start": 1790746140,
    "subagents": [],
    "title": "旧Kiroのチャット",
@@ -6239,7 +6239,7 @@
   {
    "error": null,
    "n": 3,
-   "name": "Kiro IDE (旧)",
+   "name": "Kiro IDE (legacy)",
    "oldest": 1790578380,
    "where": "testdata/home/.config/Kiro/User/globalStorage/kiro.kiroagent"
   },
@@ -8117,7 +8117,7 @@
        "minutes": 16,
        "source": "Kiro Crew",
        "start": 1790726400,
-       "title": "サブエージェント reviewer: PR #12 をレビューして",
+       "title": "Subagent reviewer: PR #12 をレビューして",
        "tokens": 0
       }
      ]
@@ -8219,7 +8219,7 @@
        "credits": 0,
        "id": "372fbe38-1f0c-4f64-882e-d84f0f02817e",
        "minutes": 2,
-       "source": "Kiro IDE (旧)",
+       "source": "Kiro IDE (legacy)",
        "start": 1790578380,
        "title": "旧Kiroのチャット",
        "tokens": 0
@@ -8229,7 +8229,7 @@
        "credits": 0,
        "id": "12c47fa1-6df4-4521-83f6-def4d849922d",
        "minutes": 2,
-       "source": "Kiro IDE (旧)",
+       "source": "Kiro IDE (legacy)",
        "start": 1790739600,
        "title": "旧Kiroのチャット",
        "tokens": 0
@@ -8239,7 +8239,7 @@
        "credits": 0,
        "id": "12971eb2-2ee6-4dd7-9a6e-a50256c0bf1d",
        "minutes": 2,
-       "source": "Kiro IDE (旧)",
+       "source": "Kiro IDE (legacy)",
        "start": 1790746140,
        "title": "旧Kiroのチャット",
        "tokens": 0
@@ -8299,7 +8299,7 @@
        "minutes": 1,
        "source": "Kiro Crew",
        "start": 1790639997,
-       "title": "Kiro Crew の裏方の処理",
+       "title": "Kiro Crew background work",
        "tokens": 0
       },
       {
@@ -8319,7 +8319,7 @@
        "minutes": 1,
        "source": "Kiro Crew",
        "start": 1790726397,
-       "title": "Kiro Crew の裏方の処理",
+       "title": "Kiro Crew background work",
        "tokens": 0
       }
      ]
@@ -8605,7 +8605,7 @@
      {
       "cost": 0,
       "credits": 0,
-      "key": "Kiro IDE (旧)",
+      "key": "Kiro IDE (legacy)",
       "minutes": 6,
       "tokens": 0
      },

@@ -21,7 +21,7 @@ sh tools/screenshots/run.sh --html /tmp/kiroku-demo.html   # an HTML with dummy 
 
 Go 1.23 or later is required. The dummy-data HTML needs Python 3 and git; refreshing the screenshots also needs Node.js and Playwright (`npm i playwright && npx playwright install chromium` in `tools/screenshots`).
 
-[docs/development.md](docs/development.md) (Japanese) covers the layout, how to add an agent, tests and golden data, CI, and the release procedure. A release is a PR that renames `## Unreleased` to `## vX.Y.Z - YYYY-MM-DD`; merging it tags and releases automatically (`.github/workflows/tag.yml`).
+[docs/development.md](docs/development.md) covers the layout, how to add an agent, tests and golden data, CI, and the release procedure. A release is a PR that renames `## Unreleased` to `## vX.Y.Z - YYYY-MM-DD`; merging it tags and releases automatically (`.github/workflows/tag.yml`).
 
 ## Changelog
 
@@ -31,10 +31,10 @@ Add user-visible changes to `## Unreleased` in [CHANGELOG.md](CHANGELOG.md), in 
 
 The view lives in `internal/web`: `template.html` (markup), `style.css` and `app.js`, put together into one HTML file by `web.go`. When you change it:
 
-- Write both languages with `tr(Japanese, English)`. Metric explanations live in `HELP` and `HELP_EN`, and tests check them against `docs/guide.md` and `docs/guide.en.md`
+- The view is English only. Metric explanations live in `HELP`, and a test checks them against the "How to read the metrics" table in `docs/guide.md`
 - Check light and dark, and 1440px, 1000px and phone widths
 - Update the README, the guides and the screenshots (`sh tools/screenshots/run.sh`) in the same change
-- Try the user scenarios in [docs/usability.md](docs/usability.md) (Japanese)
+- Try the user scenarios in [docs/usability.md](docs/usability.md)
 
 ## Privacy
 

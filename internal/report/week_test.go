@@ -37,7 +37,7 @@ func TestWeekUsageUnpriced(t *testing.T) {
 		}
 	}
 
-	none := Summarize([]*core.Session{{ID: "s2", Source: "Kiro IDE (旧)", Project: "app", Start: start, End: start + 60,
+	none := Summarize([]*core.Session{{ID: "s2", Source: "Kiro IDE (legacy)", Project: "app", Start: start, End: start + 60,
 		Segs: [][3]float64{{start, start + 60, 1}}, Prompts: []core.Prompt{}}}, ws, ws.AddDate(0, 0, 7))
 	if b, _ := json.Marshal(none.Usage); !strings.Contains(string(b), `"unpricedModels":[]`) {
 		t.Errorf("料金表にないモデルがなければ空の一覧（null にしない）: %s", b)
