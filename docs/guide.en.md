@@ -61,10 +61,10 @@ The old forms `kiroku --serve`, `--json` and `-o` still work for now. `--weekly`
   - A session's "History file": opens the original history of that session. In `kiroku serve` it opens from the view (only history files of loaded sessions are served, and only to the view on your machine); in `kiroku html` it opens via `file://`. SQLite histories cannot be opened, so you can only copy the path
 - Below the calendar, the weekly and monthly summary is shown
   - Worth a look: a metric that crossed a threshold is marked (●) where it appears, with what was observed, why it matters, its 8-week trend (8 months in month view), the related sessions and the threshold. "Worth a look" at the top of the summary lists those metrics in priority order; press one to jump to it and open its explanation. To see whether something you tried worked, check the trend in later periods
-  - ① By project: starts with bars and a table showing what share of active time, tokens, estimated cost and credits went where (top 5 plus Other). The grouping follows the Project / Branch / Agent switch at the top. Comparing the rows shows, for example, a project, branch or agent whose share of estimated cost is larger than its share of time. Below that, the cards show, for each project, which sessions took how many hours, how many tokens, how much estimated cost and credits, which models were mainly used, and which session was the heaviest, along with outputs (beyond 6 projects, press "Show N more projects")
+  - ① By project: starts with bars and a table showing what share of active time, tokens, estimated cost and credits went where (top 5 plus Other). The grouping follows the Project / Branch / Agent switch at the top. Comparing the rows shows, for example, a project, branch or agent whose share of estimated cost is larger than its share of time. Below that, the cards show, for each project, which sessions took how many hours, how many tokens, how much estimated cost and credits, and which models were mainly used, along with outputs (beyond 6 projects, press "Show N more projects")
   - ② Cost and outputs: what you spent (active time, estimated cost, tokens, credits) → what was left behind (commits, pull requests, lines changed and so on), side by side, followed by the metrics that compare the two ("Compared") and the daily trend bar chart
   - ③ How you spent time: metrics that include estimates (corrections and interruptions, switches, parallel, wait time) are collapsed under "More metrics (includes estimates)"
-  - Then come ④ How you used AI, ⑤ Shape of the week / month (ending with "Data sources") and ⑥ Ask AI for suggestions
+  - Then come ④ How you used AI (cache, subagents, models, heaviest sessions and so on; active time, estimated cost, tokens and credits appear only in ②), ⑤ Shape of the week / month (focus blocks, sessions with possible friction and repeated prompts, each shown only when there are any) and ⑥ Ask AI for suggestions, with "Data sources" (history read, retention and the price table for estimated cost) at the very bottom
 - Press "?" on any metric to see its definition and what it tells you, what it doesn't tell you, and what to try
 - "Ask AI for suggestions" shows a prompt, based on the figures for the week or month shown, that asks an AI for suggestions on how you use it. Copy it with "Copy prompt" and paste it into the AI agent you use (kiroku itself never calls an AI). It includes session names (parts of your prompts) and project names, so check it before sending
 - Search (top right, `/`): in addition to prompts, titles, projects, branches and agents, it searches files changed, pull requests and commits made during each session (subject, hash, files). The calendar shows only matching sessions, and all-time results appear in place of the summary in two lists, Sessions and Commits (matched on subject, body, hash and files changed), with excerpts showing where they matched. Items hidden in the legend are left out. Press a result to open its week and show the details
@@ -118,7 +118,7 @@ The image shows the English view. In a Japanese browser it is shown in Japanese 
 | Metric | Definition |
 |---|---|
 | Worth a look | Marks the metrics that crossed these thresholds and lists their names in priority order (the list below is not in priority order): hit a usage limit 1 or more times / there are Long conversations (later input 4× or more the first part, peak 100K tokens or more, $0.5 or more) / Expensive models for light work total 10% or more of estimated cost ($2 or more) and $1 or more / Claude Code sessions of $1 or more estimated cost with no commit or pull request make up 40% or more of the period's estimated cost ($2 or more) / estimated cost is 1.5× the previous period ($1 or more) or more / estimated cost per commit is 1.5× the previous period or more (3 or more commits) / Prompts with corrections or interruptions are 20% or more (10 or more prompts), or there are Sessions with possible friction / Share of input read from cache is under 50% (1M tokens or more) / Sessions that reached a commit are under 25% (5 or more sessions, with at least one commit or pull request) / Project switches per day average 5 or more / no Focus blocks with 4 hours or more of work / the 90th percentile of Wait time is 15 minutes or more (n≥10) |
-| By project | Per project: active time and its share, number of sessions / prompts, tokens, estimated cost and credits, main models (share of tokens; counts for agents that don't record tokens), the top 3 sessions by run time, and the heaviest session (judged by estimated cost, else credits, else tokens). Time when several projects ran at once is split between them |
+| By project | Per project: active time and its share, number of sessions / prompts, tokens, estimated cost and credits, main models (share of tokens; counts for agents that don't record tokens), and the top 3 sessions by run time. Time when several projects ran at once is split between them |
 | Active time | Time when any session was running (overlaps count once) |
 | Total AI run time | Time added up, including sessions running in parallel |
 | Focus blocks | Work that continued for 60 minutes or more, and the project that took most of it. Gaps within a session up to the session gap (`--gap`, 15 minutes by default) and gaps of up to 5 minutes between sessions are treated as continuous |
@@ -181,12 +181,12 @@ The numbers each agent records in its history are shown per agent (in the weekly
 
 | Agent | Metrics |
 |---|---|
-| Claude Code | Responses, Output tokens per response, Share of input read from cache, Tool calls, Subagent runs |
+| Claude Code | Responses, Output tokens per response, Tool calls |
 | Kiro CLI | Credits, Turns, Credits per turn, Model requests, Built-in tool runs |
 | Kiro IDE | Credits, Turns, Credits per turn, Tool calls |
 | Kiro Crew | Conversations run from Crew (Of which subagents), Credits, Turns |
 | Kiro CLI (SQLite), Amazon Q | Time to first reply (median), Response time (median), Response length (average), Tool calls |
-| Codex | Responses, Reasoning tokens, Share of output spent on reasoning, Share of input read from cache, Peak context usage, Peak rate-limit usage, Tool calls |
+| Codex | Responses, Reasoning tokens, Share of output spent on reasoning, Peak context usage, Peak rate-limit usage, Tool calls |
 
 Times are calculated in your computer's time zone. All numbers are rough estimates from history. When there is no data, "Unknown" is shown instead of 0. Tokens, estimated cost and total AI run time are rough measures of usage; they do not show productivity or time saved.
 
@@ -215,7 +215,6 @@ Press "?" on any metric in the view to see the same explanation. It is also incl
 | Sessions with possible friction | Sessions where rework piled up | Why it went wrong | Next period, split big requests into one step per prompt |
 | Oversized prompts | Whether you hand over large inputs at once, such as pasting whole logs or documents | Whether that length was needed (some long prompts, like design explanations, are fine) | Next period, put long logs or documents in a file and write only its path and the part to look at |
 | Repeated prompts | Routine requests you type every time | Whether those requests worked well | Next period, write the most repeated one once as a custom command or in CLAUDE.md |
-| Time by project | How you split your time | Whether the split was right | If it differs from what you intended, revisit your priorities |
 | Daily trend | Which days you worked the most and used AI the most | Whether that day's usage was appropriate | Open the sessions on outlier days to see why they were heavy |
 | Estimated cost (API pricing) | A rough way to compare how heavy usage was, in money | What you are actually billed (subscriptions differ) | Open the sessions behind the increase, and next period keep that kind of work in shorter conversations |
 | Month-end projection (estimate) | Roughly where this month is heading at the current pace | Your actual bill, or how you will work from now on (it is off if the pace changes) | If it is too high, look at the heavy sessions and models |
@@ -258,7 +257,7 @@ Location of `data.sqlite3`:
 | Windows | `%LOCALAPPDATA%\<kiro-cli or amazon-q>\` (unverified for Kiro CLI; if it differs, specify it with `--kiro-cli-db`) |
 
 - If `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME` or `CLAUDE_CONFIG_DIR` is set, that location is read (for `CLAUDE_CONFIG_DIR`, its `projects/` folder)
-- Even if the same conversation is recorded in two places, it is counted once. The number excluded is shown under "Data sources" (at the end of ⑥ in the summary)
+- Even if the same conversation is recorded in two places, it is counted once. The number excluded is shown under "Data sources" (at the very bottom of the summary)
 - Kiro credits are the values recorded in history, summed as they are (per-model multipliers are not reapplied). Histories from Kiro IDE (before v1.0) and Kiro CLI (SQLite) do not record credits, so that usage is not included. Variations in how the unit is written (`credit`, `Credits` and so on) are treated the same. Numbers may differ from your account page because of the period (billing period), use on other computers, old history Kiro has deleted, and use outside chat (such as agent hooks, which leave no history)
 - Codex models (OpenAI) are not in the price table, so they are not included in the estimated cost. To include them, add them with `--prices`
 

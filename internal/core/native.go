@@ -25,9 +25,7 @@ var NativeDefs = map[string][]NativeDef{
 	"Claude Code": {
 		{Key: "responses", Label: "応答の数", LabelEn: "Responses", Unit: "回", Agg: "sum"},
 		{Key: "out_per_response", Label: "1応答あたりの出力トークン", LabelEn: "Output tokens per response", Unit: "トークン", Agg: "avg"},
-		{Key: "cache_ratio", Label: "入力のうちキャッシュから読んだ割合", LabelEn: "Share of input read from cache", Unit: "%", Agg: "ratio", Num: "cache_read", Den: "input_all", Scale: 100},
 		{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},
-		{Key: "subagents", Label: "サブエージェントの実行", LabelEn: "Subagent runs", Unit: "回", Agg: "sum"},
 	},
 	"Kiro CLI": {
 		{Key: "credits", Label: "クレジット", LabelEn: "Credits", Unit: "クレジット", Agg: "sum"},
@@ -54,7 +52,6 @@ var NativeDefs = map[string][]NativeDef{
 		{Key: "responses", Label: "応答の数", LabelEn: "Responses", Unit: "回", Agg: "sum"},
 		{Key: "reasoning", Label: "推論トークン", LabelEn: "Reasoning tokens", Unit: "トークン", Agg: "sum"},
 		{Key: "reasoning_ratio", Label: "出力のうち推論の割合", LabelEn: "Share of output spent on reasoning", Unit: "%", Agg: "ratio", Num: "reasoning", Den: "output", Scale: 100},
-		{Key: "cache_ratio", Label: "入力のうちキャッシュから読んだ割合", LabelEn: "Share of input read from cache", Unit: "%", Agg: "ratio", Num: "cache_read", Den: "input_all", Scale: 100},
 		{Key: "context_used", Label: "コンテキストの最大使用率", LabelEn: "Peak context usage", Unit: "%", Agg: "max", Scale: 100},
 		{Key: "rate_limit", Label: "レート制限の最大使用率", LabelEn: "Peak rate-limit usage", Unit: "%", Agg: "max"},
 		{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},

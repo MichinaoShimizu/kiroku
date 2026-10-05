@@ -251,10 +251,6 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .pses .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pses .m{color:var(--ink-3);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .pses:hover .t{color:var(--acc-ink);text-decoration:underline}
-.pheavy{display:flex;gap:8px;align-items:baseline;font-size:12px;padding:7px 9px;border-radius:8px;background:color-mix(in oklab,var(--warn) 7%,var(--surface));text-align:left;width:100%}
-.pheavy em{font-style:normal;font-size:10.5px;font-weight:700;color:var(--warn);white-space:nowrap}
-.pheavy .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
-.pheavy .m{color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .pmore{margin-top:10px}
 .xl{color:var(--acc-ink);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--acc) 40%,transparent);text-underline-offset:2px}.xl:hover{text-decoration-color:currentColor}
 a.pill{display:inline-flex;align-items:center;text-decoration:none}
@@ -271,7 +267,8 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .drawer .gc-row{display:flex;gap:10px;width:100%;text-align:left;padding:8px 0;border-bottom:1px dashed var(--rule);font-size:13px}.drawer .gc-row time{color:var(--ink-3);font-variant-numeric:tabular-nums}.drawer .gc-row span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.drawer .gc-row b{font-weight:500;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .head .gch{display:block;font-size:10.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .pout{font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink)}.pout span{color:var(--ink-3)}
-.panel.ask{grid-column:1/-1}
+.panel.ask,.panel.metap{grid-column:1/-1}
+.panel.metap .foot{margin-top:12px} /* 計測の状態と生成時刻：ページのいちばん下 */
 .askbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px}
 .askpre{margin:0;max-height:320px;overflow:auto;padding:14px 16px;border:1px solid var(--rule);border-radius:10px;background:var(--bg);font:12px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-2);white-space:pre-wrap;word-break:break-word}
 /* ── month（月カレンダー：日ごとの作業量） ───────────────── */
@@ -342,11 +339,6 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 h2{font:700 19px/1.4 var(--sans);margin:6px 0 4px;letter-spacing:-.01em;overflow-wrap:anywhere}
 h3{font:600 12px/1.2 var(--sans);color:var(--ink-2);margin:24px 0 10px;display:flex;align-items:center;gap:10px}
 h3::after{content:"";flex:1;height:1px;background:var(--rule)}
-.hero{margin:10px 0 4px}
-.hero .big{display:flex;align-items:baseline;gap:2px}
-.hero .big .num{font:700 40px/1 var(--sans);letter-spacing:-.04em}
-.hero .big .u{font:500 14px var(--sans);color:var(--ink-2);margin:0 6px 0 3px}
-.hero .cap{color:var(--ink-2);margin-top:8px;font-size:12.5px}
 .delta{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-2);background:var(--surface-2);border-radius:6px;padding:1px 8px;margin-left:8px;font-variant-numeric:tabular-nums}
 .nw{white-space:nowrap}
 .hb{opacity:.6;display:inline-grid;place-items:center;width:16px;height:16px;margin-left:6px;border:1px solid var(--rule-2);border-radius:50%;font:600 10px/1 var(--sans);color:var(--ink-3);vertical-align:1px;flex:none}

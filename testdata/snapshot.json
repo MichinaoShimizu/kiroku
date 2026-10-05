@@ -347,25 +347,11 @@
        "v": 736.59
       },
       {
-       "label": "入力のうちキャッシュから読んだ割合",
-       "labelEn": "Share of input read from cache",
-       "n": 202,
-       "unit": "%",
-       "v": 94.57
-      },
-      {
        "label": "ツール呼び出し",
        "labelEn": "Tool calls",
        "n": 202,
        "unit": "回",
        "v": 202
-      },
-      {
-       "label": "サブエージェントの実行",
-       "labelEn": "Subagent runs",
-       "n": 23,
-       "unit": "回",
-       "v": 23
       }
      ]
     },
@@ -494,13 +480,6 @@
        "n": 5,
        "unit": "%",
        "v": 0
-      },
-      {
-       "label": "入力のうちキャッシュから読んだ割合",
-       "labelEn": "Share of input read from cache",
-       "n": 5,
-       "unit": "%",
-       "v": 54.69
       },
       {
        "label": "コンテキストの最大使用率",
@@ -1804,25 +1783,11 @@
        "v": 1008.4
       },
       {
-       "label": "入力のうちキャッシュから読んだ割合",
-       "labelEn": "Share of input read from cache",
-       "n": 10,
-       "unit": "%",
-       "v": 94.46
-      },
-      {
        "label": "ツール呼び出し",
        "labelEn": "Tool calls",
        "n": 10,
        "unit": "回",
        "v": 10
-      },
-      {
-       "label": "サブエージェントの実行",
-       "labelEn": "Subagent runs",
-       "n": 1,
-       "unit": "回",
-       "v": 1
       }
      ]
     }
@@ -2107,25 +2072,11 @@
      "v": 936.88
     },
     {
-     "label": "入力のうちキャッシュから読んだ割合",
-     "labelEn": "Share of input read from cache",
-     "n": 8,
-     "unit": "%",
-     "v": 94.01
-    },
-    {
      "label": "ツール呼び出し",
      "labelEn": "Tool calls",
      "n": 8,
      "unit": "回",
      "v": 8
-    },
-    {
-     "label": "サブエージェントの実行",
-     "labelEn": "Subagent runs",
-     "n": 1,
-     "unit": "回",
-     "v": 1
     }
    ],
    "outputs": {
@@ -2262,25 +2213,11 @@
      "v": 698.27
     },
     {
-     "label": "入力のうちキャッシュから読んだ割合",
-     "labelEn": "Share of input read from cache",
-     "n": 33,
-     "unit": "%",
-     "v": 94.58
-    },
-    {
      "label": "ツール呼び出し",
      "labelEn": "Tool calls",
      "n": 33,
      "unit": "回",
      "v": 33
-    },
-    {
-     "label": "サブエージェントの実行",
-     "labelEn": "Subagent runs",
-     "n": 4,
-     "unit": "回",
-     "v": 4
     }
    ],
    "outputs": {
@@ -2568,25 +2505,11 @@
      "v": 1008.4
     },
     {
-     "label": "入力のうちキャッシュから読んだ割合",
-     "labelEn": "Share of input read from cache",
-     "n": 10,
-     "unit": "%",
-     "v": 94.46
-    },
-    {
      "label": "ツール呼び出し",
      "labelEn": "Tool calls",
      "n": 10,
      "unit": "回",
      "v": 10
-    },
-    {
-     "label": "サブエージェントの実行",
-     "labelEn": "Subagent runs",
-     "n": 1,
-     "unit": "回",
-     "v": 1
     }
    ],
    "outputs": {
@@ -2729,25 +2652,11 @@
      "v": 555.58
     },
     {
-     "label": "入力のうちキャッシュから読んだ割合",
-     "labelEn": "Share of input read from cache",
-     "n": 12,
-     "unit": "%",
-     "v": 95.87
-    },
-    {
      "label": "ツール呼び出し",
      "labelEn": "Tool calls",
      "n": 12,
      "unit": "回",
      "v": 12
-    },
-    {
-     "label": "サブエージェントの実行",
-     "labelEn": "Subagent runs",
-     "n": 1,
-     "unit": "回",
-     "v": 1
     }
    ],
    "outputs": {
@@ -2910,25 +2819,11 @@
      "v": 715.81
     },
     {
-     "label": "入力のうちキャッシュから読んだ割合",
-     "labelEn": "Share of input read from cache",
-     "n": 36,
-     "unit": "%",
-     "v": 94.59
-    },
-    {
      "label": "ツール呼び出し",
      "labelEn": "Tool calls",
      "n": 36,
      "unit": "回",
      "v": 36
-    },
-    {
-     "label": "サブエージェントの実行",
-     "labelEn": "Subagent runs",
-     "n": 4,
-     "unit": "回",
-     "v": 4
     }
    ],
    "outputs": {
@@ -3344,25 +3239,11 @@
      "v": 698.27
     },
     {
-     "label": "入力のうちキャッシュから読んだ割合",
-     "labelEn": "Share of input read from cache",
-     "n": 33,
-     "unit": "%",
-     "v": 94.58
-    },
-    {
      "label": "ツール呼び出し",
      "labelEn": "Tool calls",
      "n": 33,
      "unit": "回",
      "v": 33
-    },
-    {
-     "label": "サブエージェントの実行",
-     "labelEn": "Subagent runs",
-     "n": 4,
-     "unit": "回",
-     "v": 4
     }
    ],
    "outputs": {
@@ -3651,25 +3532,11 @@
      "v": 728.3
     },
     {
-     "label": "入力のうちキャッシュから読んだ割合",
-     "labelEn": "Share of input read from cache",
-     "n": 10,
-     "unit": "%",
-     "v": 93
-    },
-    {
      "label": "ツール呼び出し",
      "labelEn": "Tool calls",
      "n": 10,
      "unit": "回",
      "v": 10
-    },
-    {
-     "label": "サブエージェントの実行",
-     "labelEn": "Subagent runs",
-     "n": 1,
-     "unit": "回",
-     "v": 1
     }
    ],
    "outputs": {
@@ -3830,25 +3697,11 @@
      "v": 818.29
     },
     {
-     "label": "入力のうちキャッシュから読んだ割合",
-     "labelEn": "Share of input read from cache",
-     "n": 24,
-     "unit": "%",
-     "v": 94.73
-    },
-    {
      "label": "ツール呼び出し",
      "labelEn": "Tool calls",
      "n": 24,
      "unit": "回",
      "v": 24
-    },
-    {
-     "label": "サブエージェントの実行",
-     "labelEn": "Subagent runs",
-     "n": 3,
-     "unit": "回",
-     "v": 3
     }
    ],
    "outputs": {
@@ -4062,25 +3915,11 @@
      "v": 715.81
     },
     {
-     "label": "入力のうちキャッシュから読んだ割合",
-     "labelEn": "Share of input read from cache",
-     "n": 36,
-     "unit": "%",
-     "v": 94.59
-    },
-    {
      "label": "ツール呼び出し",
      "labelEn": "Tool calls",
      "n": 36,
      "unit": "回",
      "v": 36
-    },
-    {
-     "label": "サブエージェントの実行",
-     "labelEn": "Subagent runs",
-     "n": 4,
-     "unit": "回",
-     "v": 4
     }
    ],
    "outputs": {
@@ -4823,13 +4662,6 @@
      "v": 0
     },
     {
-     "label": "入力のうちキャッシュから読んだ割合",
-     "labelEn": "Share of input read from cache",
-     "n": 3,
-     "unit": "%",
-     "v": 72.41
-    },
-    {
      "label": "コンテキストの最大使用率",
      "labelEn": "Peak context usage",
      "n": 3,
@@ -5529,13 +5361,6 @@
      "n": 2,
      "unit": "%",
      "v": 0
-    },
-    {
-     "label": "入力のうちキャッシュから読んだ割合",
-     "labelEn": "Share of input read from cache",
-     "n": 2,
-     "unit": "%",
-     "v": 40
     },
     {
      "label": "コンテキストの最大使用率",
@@ -6266,25 +6091,11 @@
      "v": 1008.4
     },
     {
-     "label": "入力のうちキャッシュから読んだ割合",
-     "labelEn": "Share of input read from cache",
-     "n": 10,
-     "unit": "%",
-     "v": 94.46
-    },
-    {
      "label": "ツール呼び出し",
      "labelEn": "Tool calls",
      "n": 10,
      "unit": "回",
      "v": 10
-    },
-    {
-     "label": "サブエージェントの実行",
-     "labelEn": "Subagent runs",
-     "n": 1,
-     "unit": "回",
-     "v": 1
     }
    ],
    "outputs": {
@@ -6548,25 +6359,11 @@
        "v": 936.88
       },
       {
-       "label": "入力のうちキャッシュから読んだ割合",
-       "labelEn": "Share of input read from cache",
-       "n": 8,
-       "unit": "%",
-       "v": 94.01
-      },
-      {
        "label": "ツール呼び出し",
        "labelEn": "Tool calls",
        "n": 8,
        "unit": "回",
        "v": 8
-      },
-      {
-       "label": "サブエージェントの実行",
-       "labelEn": "Subagent runs",
-       "n": 1,
-       "unit": "回",
-       "v": 1
       }
      ]
     }
@@ -6823,25 +6620,11 @@
        "v": 770.4
       },
       {
-       "label": "入力のうちキャッシュから読んだ割合",
-       "labelEn": "Share of input read from cache",
-       "n": 43,
-       "unit": "%",
-       "v": 94.55
-      },
-      {
        "label": "ツール呼び出し",
        "labelEn": "Tool calls",
        "n": 43,
        "unit": "回",
        "v": 43
-      },
-      {
-       "label": "サブエージェントの実行",
-       "labelEn": "Subagent runs",
-       "n": 5,
-       "unit": "回",
-       "v": 5
       }
      ]
     }
@@ -7146,25 +6929,11 @@
        "v": 675.75
       },
       {
-       "label": "入力のうちキャッシュから読んだ割合",
-       "labelEn": "Share of input read from cache",
-       "n": 48,
-       "unit": "%",
-       "v": 94.89
-      },
-      {
        "label": "ツール呼び出し",
        "labelEn": "Tool calls",
        "n": 48,
        "unit": "回",
        "v": 48
-      },
-      {
-       "label": "サブエージェントの実行",
-       "labelEn": "Subagent runs",
-       "n": 5,
-       "unit": "回",
-       "v": 5
       }
      ]
     }
@@ -7540,25 +7309,11 @@
        "v": 735.28
       },
       {
-       "label": "入力のうちキャッシュから読んだ割合",
-       "labelEn": "Share of input read from cache",
-       "n": 103,
-       "unit": "%",
-       "v": 94.48
-      },
-      {
        "label": "ツール呼び出し",
        "labelEn": "Tool calls",
        "n": 103,
        "unit": "回",
        "v": 103
-      },
-      {
-       "label": "サブエージェントの実行",
-       "labelEn": "Subagent runs",
-       "n": 12,
-       "unit": "回",
-       "v": 12
       }
      ]
     }
@@ -8170,13 +7925,6 @@
        "v": 0
       },
       {
-       "label": "入力のうちキャッシュから読んだ割合",
-       "labelEn": "Share of input read from cache",
-       "n": 5,
-       "unit": "%",
-       "v": 54.69
-      },
-      {
        "label": "コンテキストの最大使用率",
        "labelEn": "Peak context usage",
        "n": 4,
@@ -8211,25 +7959,11 @@
        "v": 1008.4
       },
       {
-       "label": "入力のうちキャッシュから読んだ割合",
-       "labelEn": "Share of input read from cache",
-       "n": 10,
-       "unit": "%",
-       "v": 94.46
-      },
-      {
        "label": "ツール呼び出し",
        "labelEn": "Tool calls",
        "n": 10,
        "unit": "回",
        "v": 10
-      },
-      {
-       "label": "サブエージェントの実行",
-       "labelEn": "Subagent runs",
-       "n": 1,
-       "unit": "回",
-       "v": 1
       }
      ]
     }
