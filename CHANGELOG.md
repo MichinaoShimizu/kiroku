@@ -6,6 +6,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Added
 
+- The live demo has link-card information (OGP / Twitter card) with a preview image, so sharing its URL on X and other sites shows a large card. Only the demo page gets it; the HTML you make yourself does not
 - Pushes and pull requests appear next to commits on the right edge of the week calendar and in a session's prompt flow. Pushes come from your local `git reflog` ("update by push" on remote-tracking branches), so they cover pushes made from this computer; pull requests appear when an agent created one and it was recorded. kiroku still never contacts GitHub. The JSON output has `meta.push`
 
 ## v0.7.1 - 2026-10-05
