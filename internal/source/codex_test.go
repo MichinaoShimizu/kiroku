@@ -101,7 +101,6 @@ func TestCodexNativeMetrics(t *testing.T) {
 	}
 }
 
-
 func TestCodexPaginatedUserMessage(t *testing.T) {
 	home := t.TempDir()
 	dir := filepath.Join(home, "sessions", "2026", "10", "06")
