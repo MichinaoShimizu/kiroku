@@ -203,35 +203,35 @@ Press "?" on any metric in the view to see the same explanation. It is also incl
 | Total AI run time | How much work you gave to AI. The gap from active time shows how much ran in parallel | Time saved or productivity | If it is close to active time, you could do other work while waiting |
 | Focus blocks | Whether you had long stretches of uninterrupted work | The quality of the work in that time | If your time is fragmented, group the work you hand to AI into blocks of time |
 | Focus blocks (list) | When and in which project you worked for long stretches | Outcomes | Learn when you focus best and schedule heavy work then |
-| Project switches per day | How much you moved between projects | Whether switching is bad (you may just be using wait time well) | On heavy days, check whether context switching caused rework |
+| Project switches per day | How much you moved between projects | Whether switching is bad (you may just be using wait time well) | If high, next period limit each day to 2–3 projects |
 | Parallel time | Whether you kept several sessions going in parallel | What the parallel work achieved | If low, give AI another task while it works |
 | Wait time | How quickly you responded to AI replies | Shorter is not always better (you may be moving on without checking) | If long, use notifications or batch your reviews |
-| Late night | How much you worked outside normal hours | Whether you are overworking | Use it to reflect on your own pace |
-| Weekend | How much you worked on weekends | Whether you are overworking | Use it to reflect on your own pace |
+| Late night | How much you worked outside normal hours | Whether you are overworking | If not intended, set a time to stop working next period |
+| Weekend | How much you worked on weekends | Whether you are overworking | If not intended, pick a day off for next period |
 | Prompts with corrections or interruptions | Roughly how often a first prompt did not get your intent across | Estimates can be wrong, and they don't show the cause | If high, add background, constraints and done criteria to your prompts |
 | Long conversations | Sessions where each response got heavier as the conversation went on | Whether continuing the conversation was the right call (some work needs the earlier context) | At a good stopping point, write down the key points and continue in a new session |
 | Expensive models for light work | How much went to short tasks on an expensive model | Whether that model was needed (some research or design questions are hard) | Try a lighter model first for research and questions, and switch if it falls short |
 | Usage limit hits | When and during which work you hit a limit and had to stop | How much headroom is left. Usage from other agents, the browser or the app | Spread heavy work over time, use lighter models, and start new sessions for long conversations |
-| Sessions with possible friction | Sessions where rework piled up | Why it went wrong | Open them and rethink how you prompted and split the work |
+| Sessions with possible friction | Sessions where rework piled up | Why it went wrong | Next period, split big requests into one step per prompt |
 | Time by project | How you split your time | Whether the split was right | If it differs from what you intended, revisit your priorities |
 | Daily and weekly rhythm | Ups and downs in your workload | What caused them | If work piles up on certain days, rethink how you distribute it |
 | Daily usage | Which days you used AI the most | Whether that day's usage was appropriate | Open the sessions on outlier days to see why they were heavy |
-| Estimated cost (API pricing) | A rough way to compare how heavy usage was, in money | What you are actually billed (subscriptions differ) | Find the heavy sessions and models and rethink how you use them |
+| Estimated cost (API pricing) | A rough way to compare how heavy usage was, in money | What you are actually billed (subscriptions differ) | Open the sessions behind the increase, and next period keep that kind of work in shorter conversations |
 | Month-end projection (estimate) | Roughly where this month is heading at the current pace | Your actual bill, or how you will work from now on (it is off if the pace changes) | If it is too high, look at the heavy sessions and models |
 | Tokens | How much you consumed | Whether more or less is good | Look for skew by project and by day |
-| Share of input read from cache | Whether the same context was reused | Why it is low (it may just be many short sessions) | If low, check whether you paste long background every time |
-| By model | Which models your usage leaned toward | Whether that model was needed | Consider moving routine work to lighter models |
+| Share of input read from cache | Whether the same context was reused | Why it is low (it may just be many short sessions) | If low, next period write long background once in a project file (such as CLAUDE.md) instead of pasting it every time |
+| By model | Which models your usage leaned toward | Whether that model was needed | Next period, try lighter models for routine work (formatting, renames, adding tests) |
 | Subagents | Whether you delegated research and similar work | How much delegating helped | Check that you use them to save the main conversation's context |
 | Kiro credits | Credits actually consumed | Differences from your account page (period boundaries or use on other machines) | Track your pace against your limit |
 | Estimated cost per prompt | How heavy a typical prompt was | Differences in prompt size | Watch the trend to see how the size of your prompts changes |
-| Heaviest sessions | Sessions that drove usage up | Whether the result was worth it | Open them and check for growing context or rework |
+| Heaviest sessions | Sessions that drove usage up | Whether the result was worth it | Next period, restart long conversations in a new session, and carry work to a commit in small steps |
 | Outputs | Whether the cost turned into work that left a trace | Value, quality or productivity. Commits you made by hand are not included | Put them next to cost and look for usage that produced nothing |
 | Git commits | How much of your time with AI became recorded changes | The value of the changes. Work outside the repositories or commits by others | On days with much time or cost but few commits, check where the time went |
 | Commits | Roughly how often work reached a checkpoint | The value or size of the changes. Commit size varies by person and task | In periods with few commits for the cost, check where the time went |
 | Pull requests | How often work was ready for review | Whether they were merged or valuable | If there is a lot of rework before creating one, make each request smaller |
 | Lines edited by AI (estimated) | How much AI touched | Value or quality (generated code and formatting inflate it) | Don't make volume a goal; use it to check cost against output |
-| Sessions that reached a commit | The share of sessions that left something behind | The value of sessions not meant to commit, such as research or discussion | If the share is low, find out why sessions stopped partway |
-| Estimated cost per commit | Roughly how heavy it was to reach a checkpoint | Differences in commit size. Commits made by hand are not included | Watch the trend to see whether similar work is getting lighter |
+| Sessions that reached a commit | The share of sessions that left something behind | The value of sessions not meant to commit, such as research or discussion | If low, next period state at the start of each session what done looks like (when to commit) |
+| Estimated cost per commit | Roughly how heavy it was to reach a checkpoint | Differences in commit size. Commits made by hand are not included | Next period, keep each prompt to one change and commit often |
 | Agent-specific metrics | Trends within the same agent | Comparisons between agents (definitions differ) | Only look at changes over time for the same agent |
 
 ## Histories read
