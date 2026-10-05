@@ -6,7 +6,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 
 const [html, docs] = process.argv.slice(2);
-const b = await chromium.launch();
+const b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, timezoneId: "Asia/Tokyo", locale: "en-US", colorScheme: "dark" });
 const p = await ctx.newPage();
 await p.goto("file://" + path.resolve(html));
@@ -16,7 +16,7 @@ await p.waitForTimeout(500);
 await p.evaluate(() => { const sc = document.querySelector("#tl .calscroll"); if (sc) sc.scrollTop = 8 * 44; });
 await p.waitForTimeout(200);
 await p.screenshot({ path: path.join(docs, "screenshot.png") });
-await p.evaluate(() => { const e = document.querySelector("#review"); window.scrollTo(0, e.getBoundingClientRect().top + window.scrollY - 20); });
+await p.evaluate(() => { const e = document.querySelector("#review"); window.scrollTo(0, e.getBoundingClientRect().top + window.scrollY - document.querySelector("header").offsetHeight - 16); }); // 固定の見出しの下から
 await p.waitForTimeout(400);
 await p.screenshot({ path: path.join(docs, "summary.png") });
 if (await p.evaluate(() => YEAR_ON)) { // 1 年の露光（一旦隠している間は、year.png を撮り直さない）。シェア用の画像（1600x900）をそのまま保存する

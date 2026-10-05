@@ -22,9 +22,10 @@ kiroku connects to the network only when `install.sh` or `kiroku update` (includ
 
 ![kiroku (dummy data)](docs/screenshot.png)
 
-- **Calendar**: when, in which project, and what you asked, by week or month. Your local git commits appear alongside, so you can see what changed where.
+- **Calendar**: when, in which project, and what you asked, by week or month. Each day (and each week in the month view) shows its active time, tokens or credits, sessions and Git commits, and your local commits appear alongside the sessions, so you can see what changed where.
 - **Worth a look**: metrics that crossed a threshold are marked where they appear, with what was observed, why it matters, the related sessions and an 8-week (or 8-month) trend, and listed in priority order at the top of the summary.
-- **Summary**: cost (time, tokens, estimated cost, credits) next to outputs (commits, cost per commit, sessions that reached a commit), by project and by day. Share bars compare each project's, branch's or agent's share of active time with its share of tokens, estimated cost and credits. It also picks up prompts you keep typing, which you could save as a command or in CLAUDE.md. Every metric explains what it can and cannot tell you.
+- **Summary**: cost (time, tokens, estimated cost, credits) next to outputs (commits, cost per commit, sessions that reached a commit), by project, plus a daily trend chart. Share bars compare each project's, branch's or agent's share of active time with its share of tokens, estimated cost and credits. It also picks up prompts you keep typing, which you could save as a command or in CLAUDE.md. Every metric explains what it can and cannot tell you.
+- **Session details**: the prompt flow with times, separating what you typed (including slash commands and `!` shell commands) from what entered the conversation on its own, with commits, subagents, interruptions and usage limits in between. Copy just your prompts, or a prompt that asks an AI to review the session.
 - **Search and weekly report**: search prompts, edited files and commits across all time, and preview and copy a weekly or monthly report draft of what you did, your commits and pull requests.
 - **Ask AI for suggestions**: build a prompt from the shown week, month or a single session that asks an AI for suggestions on how you use it. Copy it into the agent you already use.
 
@@ -54,7 +55,7 @@ kiroku can only show history that your agents still keep, and **Claude Code dele
 
 If you'd rather not change it, run `kiroku archive on` and kiroku keeps compressed copies of that history on your computer and shows deleted conversations from them ([details](docs/guide.md#keep-a-copy-of-history-in-kiroku)).
 
-kiroku shows a notice above the summary while Claude Code is still on its 30-day default. Kiro Crew also deletes old conversation records (`session.archive_retention_days`); kiroku notes this under "Data sources". See [History retention](docs/guide.en.md#history-retention) for each agent.
+kiroku shows a notice above the summary while Claude Code is still on its 30-day default. Kiro Crew also deletes old conversation records (`session.archive_retention_days`); kiroku notes this under "Data sources". See [History retention](docs/guide.md#history-retention) for each agent.
 
 ## Update
 
