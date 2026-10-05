@@ -168,6 +168,30 @@ func (c *Codex) Load(emit func(*core.Builder)) error {
 					lastInfo, lastTotal, prevTotal = string(raw), total, cur
 					fromCounts = append(fromCounts, core.Event{T: t, U: u, Model: cf.model})
 					countMeas = append(countMeas, codexMeasures(t, core.Map(info["last_token_usage"]), core.NumOr0(info["model_context_window"]))...)
+				case "item_completed":
+					// Paginated rollouts persist user turns as ItemCompleted(UserMessage)
+					// instead of the legacy UserMessage event.
+					item := core.Map(p["item"])
+					if core.Str(item["type"]) == "user_message" {
+						s.Tick(t)
+						text := firstNonEmpty(core.Str(item["message"]), core.Str(item["text"]))
+						if text == "" {
+							var parts []string
+							for _, b := range core.List(item["content"]) {
+								m := core.Map(b)
+								parts = append(parts, firstNonEmpty(core.Str(m["text"]), core.Str(m["message"])))
+							}
+							text = strings.Join(parts, "\n")
+						}
+						if text != "" {
+							userMsgs = append(userMsgs, struct {
+								t    *float64
+								text string
+							}{t, text})
+						}
+					} else {
+						s.Agent(t)
+					}
 				default:
 					s.Agent(t)
 				}

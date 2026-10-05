@@ -100,3 +100,27 @@ func TestCodexNativeMetrics(t *testing.T) {
 		t.Error("記録がなければ出さない")
 	}
 }
+
+
+func TestCodexPaginatedUserMessage(t *testing.T) {
+	home := t.TempDir()
+	dir := filepath.Join(home, "sessions", "2026", "10", "06")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "rollout-2026-10-06T00-00-00-thr-paginated.jsonl")
+	data := "" +
+		"{\"timestamp\":\"2026-10-06T00:00:00Z\",\"ordinal\":0,\"type\":\"session_meta\",\"payload\":{\"id\":\"thr-paginated\",\"timestamp\":\"2026-10-06T00:00:00Z\",\"cwd\":\"/tmp/project\",\"history_mode\":\"paginated\"}}\n" +
+		"{\"timestamp\":\"2026-10-06T00:00:01Z\",\"ordinal\":1,\"type\":\"event_msg\",\"payload\":{\"type\":\"item_completed\",\"item\":{\"type\":\"user_message\",\"content\":[{\"type\":\"input_text\",\"text\":\"Fix the parser\"}]}}}\n" +
+		"{\"timestamp\":\"2026-10-06T00:00:02Z\",\"ordinal\":2,\"type\":\"turn_context\",\"payload\":{\"model\":\"gpt-6-sol\"}}\n"
+	if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	bs := load(t, &Codex{Home: home})
+	if len(bs) != 1 {
+		t.Fatalf("sessions = %d, want 1", len(bs))
+	}
+	if len(bs[0].Prompts) != 1 || bs[0].Prompts[0].Text != "Fix the parser" {
+		t.Fatalf("paginated user prompt = %+v", bs[0].Prompts)
+	}
+}
