@@ -1,4 +1,4 @@
-// docs/screenshot.png・docs/summary.png・docs/year.png を撮る。gen.py と mkgit.py で作ったダミーデータの HTML を使う。
+// docs/screenshot.png・docs/summary.png・docs/og.png・docs/year.png を撮る。gen.py と mkgit.py で作ったダミーデータの HTML を使う。
 //   node capture.mjs <kiroku.html> <docs のディレクトリ>
 // Playwright が必要（このディレクトリで npm i playwright と npx playwright install chromium）。英語表示（en-US）・ダークテーマ（既定）・時刻は Asia/Tokyo・1440x900。
 import { chromium } from "playwright";
@@ -25,4 +25,14 @@ if (await p.evaluate(() => YEAR_ON)) { // 1 年の露光（一旦隠している
   const png = await p.evaluate(() => document.querySelector("#yrcard").toDataURL("image/png").split(",")[1]);
   await fs.writeFile(path.join(docs, "year.png"), Buffer.from(png, "base64"));
 }
+// SNS のリンクカード用（og.png、1200x630 の画面を 2 倍の 2400x1260 で）。デモページの og:image に使う
+const og = await b.newContext({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 2, timezoneId: "Asia/Tokyo", locale: "en-US", colorScheme: "dark" });
+const q = await og.newPage();
+await q.goto("file://" + path.resolve(html));
+await q.waitForTimeout(600);
+await q.keyboard.press("ArrowLeft");
+await q.waitForTimeout(500);
+await q.evaluate(() => { const sc = document.querySelector("#tl .calscroll"); if (sc) sc.scrollTop = 9 * 44; });
+await q.waitForTimeout(200);
+await q.screenshot({ path: path.join(docs, "og.png") });
 await b.close();
