@@ -255,10 +255,10 @@ function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
   const head = `<div class="rvhead"><h2>${M ? "Monthly summary" : "Weekly summary"}</h2><p>Rough figures for reflecting on how you work. They are not for comparing people or for evaluations.</p>${w ? `<button class="pill rpt" id="rpttog" aria-expanded="${!!st.rpt}" aria-controls="rptbox">${`${M ? "Monthly" : "Weekly"} report draft`}</button><button class="pill rpt" id="pxtog" aria-expanded="${!!st.px}" aria-controls="pxbox">Export prompts</button>` : ""}</div>${w ? `<section class="panel rptbox" id="pxbox"${st.px ? "" : " hidden"} aria-label="Export prompts">
     <div class="askbar"><button class="pill" id="pxcopy">Copy</button><button class="pill" id="pxclose">Close</button>
-      <span class="muted" style="font-size:11.5px">${`Markdown with only the user prompts ${uThis(unit)} (commands included), by session in time order. Automatic notifications and summaries are left out.`}</span></div>
+      <span class="muted" style="font-size:var(--fs-xs)">${`Markdown with only the user prompts ${uThis(unit)} (commands included), by session in time order. Automatic notifications and summaries are left out.`}</span></div>
     <pre class="askpre" id="pxpre">${esc(periodPrompts())}</pre></section>` : ""}${w ? `<section class="panel rptbox" id="rptbox"${st.rpt ? "" : " hidden"} aria-label="${`${M ? "Monthly" : "Weekly"} report draft`}">
     <div class="askbar"><button class="pill" id="rptcopy">Copy</button><button class="pill" id="rptclose">Close</button>
-      <span class="muted" style="font-size:11.5px">Markdown with what you did, commits and pull requests for each project. Session names are the start of your prompts, so edit them before pasting.</span></div>
+      <span class="muted" style="font-size:var(--fs-xs)">Markdown with what you did, commits and pull requests for each project. Session names are the start of your prompts, so edit them before pasting.</span></div>
     <pre class="askpre" id="rptpre">${esc(reportText(w, M))}</pre></section>` : ""}`;
   if (!w){ R.innerHTML = `${head}<div class="rvgrid"><div class="panel"><p class="none">${`No records ${uThis(unit)}.`}</p>${foot()}</div></div>`; bindCopy(R); return; }
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
@@ -299,7 +299,7 @@ function summary(){
     ${w.focus.length || w.friction.length || repeatsOf(period().ws, period().we).length ? "" : `<p class="none">No work of 60+ minutes, no sessions with possible friction and no repeated prompts.</p>`}</section>
   <section class="panel ask">${ph(6, "Ask AI for suggestions", "A prompt that asks for suggestions based on this data")}
     <div class="askbar"><button class="pill" id="askcopy">Copy prompt</button>
-      <span class="muted" style="font-size:11.5px">Paste it into the AI agent you use. kiroku never calls an AI. It includes session names (parts of your prompts) and project names, so review it before sending.</span></div>
+      <span class="muted" style="font-size:var(--fs-xs)">Paste it into the AI agent you use. kiroku never calls an AI. It includes session names (parts of your prompts) and project names, so review it before sending.</span></div>
     <pre class="askpre" id="askpre">${esc(askPrompt(w, pw, M))}</pre></section>
   <section class="panel metap">${measure(w)}${foot()}</section></div>`;
   placeFlags(R, F);
@@ -751,7 +751,7 @@ function usageChart(w, M){ // 日ごとの推移：トークン・クレジッ�
       <span class="l">${M ? (dd.getDate() === 1 || dd.getDate() % 5 === 0 ? dd.getDate() : "") : dow(dd.getDay())}</span></div>`; }).join("");
   return `<h3>Daily trend${hb("daily")}</h3>${hint("daily")}
     <div class="useg"><div class="segc" role="group" aria-label="Show" id="useBy">${opts.map(([k,l]) => `<button data-v="${k}" aria-pressed="${k===m}">${l}</button>`).join("")}</div>
-      <span class="muted" style="font-size:11.5px">${`Total ${fmt(total)} · max ${fmt(max)}/day`}</span></div>
+      <span class="muted" style="font-size:var(--fs-xs)">${`Total ${fmt(total)} · max ${fmt(max)}/day`}</span></div>
     <div class="ubar" style="grid-template-columns:repeat(${days.length},minmax(0,1fr))${M ? ";gap:2px" : ""}">${cols}</div>`;
 }
 /* 計測の状態 */
@@ -1086,8 +1086,8 @@ function select(id){ // 詳細の中で別の詳細へ移ったときは、戻�
    シェア用の 1 枚もこのブラウザの中で描くだけで、どこにも送らない。画像に載せるのは集計した数字と光の筋だけで、
    プロンプト・プロジェクト名・ブランチ・ファイル・目安コストは載せない */
 const PLATE = ["#3a9be0","#f07a2b","#1fbf8f","#e08fbd","#f2b53a","#7cc6f0","#9c84e6","#c9b51c"], PLATE_OTHER = "#6b7180";
-const FONT = { mincho: '"Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP","Noto Serif CJK JP",serif',
-  sans: '"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP","Yu Gothic UI",system-ui,sans-serif',
+const FONT = { mincho: '"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Hiragino Mincho ProN","Noto Serif JP",serif',
+  sans: '"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Hiragino Sans","Noto Sans JP",system-ui,sans-serif',
   mono: 'ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,monospace' };
 const yr = { y: null, x: null, L: null, G: null, opt: Object.assign({out: true, type: true, grade: true, agents: true}, store.get("yrOpt", {})) };
 function yearsOf(){ return [...new Set(Object.keys(MONTHS).map(k => +k.slice(0, 4)))].sort((a, b) => a - b); }
