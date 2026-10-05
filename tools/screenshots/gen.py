@@ -39,6 +39,8 @@ for d in range(35, -1, -1):
             txt = random.choice(projects[p]) if i == 0 else (random.choice(retry) if random.random()<0.08 else random.choice(follow))
             if i > 0 and extra.random() < 0.12:  # スラッシュコマンドも、人が打ったプロンプトとして混ぜる
                 c = extra.choice(["review", "test", "commit"]); txt = f"<command-message>{c} is running…</command-message>\n<command-name>/{c}</command-name>\n<command-args></command-args>"
+            if i > 0 and extra.random() < 0.03:  # ログをそのまま貼った、長すぎるプロンプトも混ぜる
+                txt = "This test fails, can you fix it?\n" + "\n".join(f"  at handler (src/app.ts:{100+j}:7) Error: expected 200 but got 500" for j in range(extra.randint(70, 140)))
             if i > 0 and extra.random() < 0.08:  # 自動で入るもの（通知・注記）も混ぜる
                 note = extra.choice(["<task-notification><summary>Background tests finished: 42 passed</summary></task-notification>", "<system-reminder>The user opened src/app.ts in the IDE.</system-reminder>"])
                 lines.append({"type":"user","timestamp":(t-dt.timedelta(seconds=20)).isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"isMeta":True,"message":{"role":"user","content":note}})

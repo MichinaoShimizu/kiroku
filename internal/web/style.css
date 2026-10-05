@@ -428,6 +428,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 /* プロンプトの種類：あなたが打ったコマンド（/ や !）と、自動で入ったもの（通知・要約・hook など）を色で分ける */
 .tl li.pr.command,.tl li.pr.shell{--c:var(--c4)}
 .tl .pkind{display:inline-block;margin-right:6px;padding:0 6px;border-radius:5px;font-size:10.5px;font-weight:650;line-height:1.6;vertical-align:1px;color:var(--c4);background:color-mix(in oklab,var(--c4) 16%,transparent)}
+.tl .pkind.big{color:var(--warn);background:color-mix(in oklab,var(--warn) 14%,transparent)}
 .tl li.ev.note{color:var(--ink-3)}.tl li.ev.note .evl{color:var(--c6)}
 .tl li.ev.note::before,.tlkey .ke.note{background:var(--c6)}
 .tlkey .kp.cmd{box-shadow:inset 0 0 0 1.5px var(--c4)}
