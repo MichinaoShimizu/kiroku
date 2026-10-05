@@ -54,6 +54,7 @@ type Prompt struct {
 	Len  int      `json:"len,omitempty"`  // Text を切ったとき、元の文字数
 	Work float64  `json:"work,omitempty"` // 依頼から、次の依頼までに AI が最後に動いた時刻までの秒数（推定）
 	Wait float64  `json:"wait,omitempty"` // AI が最後に動いてから、次の依頼までの秒数（待たせ）
+	Kind string   `json:"kind,omitempty"` // "" は書いたもの、command はスラッシュコマンド、shell は ! で打ったコマンド（kind.go）
 	full string   // 切る前の依頼文（kiroku serve で全文を見せるため。HTML・JSON には入れない）
 }
 
@@ -96,6 +97,7 @@ type Builder struct {
 	Key                            string // 同じ会話が 2 つの場所に残るとき、先に読んだほうだけを使うための鍵
 	Project, Branch, Title, Resume string
 	Prompts                        []Prompt
+	Notes                          []Note // エージェントや仕組みが会話に入れたもの（kind.go）
 	Times                          []float64
 	AgentTimes                     []float64
 	Interrupts                     int
@@ -143,15 +145,19 @@ func (s *Builder) Prompt(ts *float64, text string) {
 			s.InterruptTS = append(s.InterruptTS, *ts)
 		}
 	}
-	if text != "" && !IsNoise(text) {
+	pt, notes := splitUser(text)
+	for _, n := range notes {
+		s.Inject(ts, n.kind, n.text)
+	}
+	if pt != nil {
 		first := len(s.Prompts) == 0
-		t := strings.TrimSpace(text)
-		p := Prompt{T: ts, Text: Runes(t, PromptRunes)}
+		t := pt.text
+		p := Prompt{T: ts, Text: Runes(t, PromptRunes), Kind: pt.kind}
 		if n := utf8.RuneCountInString(t); n > PromptRunes {
 			p.Len, p.full = n, Runes(t, fullRunes)
 		}
 		s.Prompts = append(s.Prompts, p)
-		if IsCorrection(text, first) && ts != nil {
+		if pt.kind == "" && IsCorrection(text, first) && ts != nil {
 			s.FixTS = append(s.FixTS, *ts)
 		}
 	}
@@ -306,6 +312,7 @@ type Session struct {
 	Events       int           `json:"events"`
 	Segs         [][3]float64  `json:"segs"`
 	Prompts      []Prompt      `json:"prompts"`
+	Notes        []Note        `json:"notes,omitempty"` // エージェントや仕組みが会話に入れたもの（プロンプトには数えない）
 	NPrompts     int           `json:"nPrompts"`
 	Tools        [][2]any      `json:"tools"`
 	Files        []string      `json:"files"`
@@ -466,7 +473,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 	return &Session{
 		ID: s.ID, Source: s.Source, Project: name, ProjectPath: project, Branch: strOrNil(s.Branch), Title: title,
 		Start: times[0], End: times[len(times)-1], Events: len(times), Segs: Segments(times, float64(gapMin*60)),
-		Prompts: prompts, NPrompts: len(s.Prompts), Tools: tools, Files: files, NFiles: nFiles, Resume: strOrNil(s.Resume),
+		Prompts: prompts, Notes: s.Notes, NPrompts: len(s.Prompts), Tools: tools, Files: files, NFiles: nFiles, Resume: strOrNil(s.Resume),
 		Waits: s.Waits(), Interrupts: s.Interrupts, InterruptsAt: interrupts, Limits: limits(s.Limits), Ctx: ctx, Corrections: s.Corrections(), Models: models,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
 		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: len(s.Reported) > 0, File: s.File, PRs: prs, PRAt: prAt,

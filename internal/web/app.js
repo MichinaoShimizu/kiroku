@@ -31,7 +31,7 @@ const sn = x => EN() && SRC_EN[x] || x;
 const mn = x => EN() && /^[（(]不明[）)]$/.test(x) ? "(unknown)" : x; // 名前のわからないモデル
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many || one + "s"}`;
 const st = { z: store.get("zh", 2), colorBy: store.get("colorBy", "project"), theme: store.get("theme", "dark") === "light" ? "light" : "dark", // 既定はダーク（以前の「自動」もダークにする）
-             week: mondayOf(today0()), month: monthOf(today0()), mode: store.get("mode", "week"), use: store.get("use", "tokens"),
+             week: mondayOf(today0()), month: monthOf(today0()), mode: store.get("mode", "week"), use: store.get("use", "tokens"), flowUser: !!store.get("flowUser", false),
              hidden: new Set(), sel: null, back: [], q: "", animate: true };
 
 /* ── helpers ── */
@@ -50,6 +50,7 @@ function dur(m, html){ m = Math.round(m); const h = Math.floor(m/60), r = m%60;
 function tok(n){ n = n || 0; return n >= 1e9 ? (n/1e9).toFixed(1)+"B" : n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? Math.round(n/1e3)+"K" : String(n); }
 function usd(v){ return v == null ? "—" : v > 0 && v < 0.01 ? "<$0.01" : "$" + (v >= 100 ? Math.round(v).toLocaleString() : v.toFixed(2)); }
 function cr(v){ return `${Number(v.toFixed(2)).toLocaleString(LOC())} cr`; }
+const tokS = v => v >= 1e7 ? Math.round(v/1e6)+"M" : v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e4 ? Math.round(v/1e3)+"K" : tok(v); // 狭いマス用に、桁を減らしたトークン
 function useShort(d){ if (!d) return ""; const p = []; if (d.tokens) p.push(tok(d.tokens)); if (d.cost >= 0.005) p.push(usd(d.cost)); if (d.credits) p.push(cr(d.credits)); return p.join(" · "); }
 function shade(i){ return [1,.72,.5,.34,.22,.14][Math.min(i,5)]; }
 function secs(v){ return v == null ? "—" : EN() ? (v < 60 ? `${v}s` : `${Math.floor(v/60)}m ${v%60}s`) : v < 60 ? `${v}秒` : `${Math.floor(v/60)}分${String(v%60).padStart(2,"0")}秒`; }
@@ -188,13 +189,15 @@ function monthGrid(shown, ms, me, todayKey){
       if (!inM){ h += `<div class="cell out"><span class="dn">${d.getDate()}</span></div>`; continue; }
       const x = S ? S.days[d.getDate()-1] : null, act = x ? x.active : 0;
       const by = {}; shown.forEach(s => s.segs.forEach(([a,b]) => { const o = Math.min(b,de) - Math.max(a,ds); if (o > 0) by[keyOf(s)] = (by[keyOf(s)]||0) + o; }));
-      const pj = Object.entries(by).sort((a,b)=>b[1]-a[1]);
-      h += `<button class="cell${d.getDay()%6===0?" we":""}${key(d)===todayKey?" today":""}" data-w="${key(mondayOf(d))}" style="--heat:${(act/max).toFixed(3)}" data-tip="${tr(`${md(ds)} 作業 ${dur(act)}${x ? `・プロンプト ${x.prompts}・深夜 ${dur(x.night)}${useLines(x).length ? `・${useLines(x).join("・")}` : ""}` : ""}`, `${md(ds)} active ${dur(act)}${x ? ` · ${plural(x.prompts, "prompt")} · late night ${dur(x.night)}${useLines(x).length ? ` · ${useLines(x).join(" · ")}` : ""}` : ""}`)}">
-        <span class="dn">${d.getDate()}</span>${act ? `<span class="ac">${dur(act, true)}</span><span class="acs">${act >= 60 ? (act/60).toFixed(1)+tr("時間", "h") : act+tr("分", "m")}</span><span class="sub2">${tr(`プロンプト ${x.prompts}`, plural(x.prompts, "prompt"))}</span>` : ""}${x && useShort(x) ? `<span class="use">${useShort(x)}</span>` : ""}${x && x.commits ? `<span class="gcm" title="${tr("git のコミット", "Git commits")}">${GIT_ICON}${x.commits}</span>` : ""}
+      const pj = Object.entries(by).sort((a,b)=>b[1]-a[1]), nS = shown.filter(s => inP(s, ds, de)).length;
+      const use = !x ? null : x.tokens ? [tr("トークン", "Tokens"), tok(x.tokens)] : x.credits ? [tr("クレジット", "Credits"), cr(x.credits)] : null; // トークンがなければ（Kiro など）クレジット
+      const rows = act ? [[tr("作業", "Active"), dur(act)], use, [tr("セッション", "Sessions"), nS], [tr("プロンプト", "Prompts"), x.prompts]].filter(Boolean) : [];
+      h += `<button class="cell${d.getDay()%6===0?" we":""}${key(d)===todayKey?" today":""}" data-w="${key(mondayOf(d))}" style="--heat:${(act/max).toFixed(3)}"${tipAttr(md(ds), act ? [tr(`作業 ${dur(act)}`, `Active ${dur(act)}`), tr(`セッション ${nS}`, `Sessions ${nS}`), tr(`プロンプト ${x.prompts}`, `Prompts ${x.prompts}`), tr(`深夜 ${dur(x.night)}`, `Late night ${dur(x.night)}`), ...useLines(x), x.commits ? tr(`Git のコミット ${x.commits}`, `Git commits ${x.commits}`) : ""] : tr("記録なし", "No records"))}>
+        <span class="dn">${d.getDate()}</span>${rows.length ? `<dl class="cm">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl><span class="acs">${act >= 60 ? (act/60).toFixed(1)+"h" : act+"m"}</span>${use ? `<span class="uss">${x.tokens ? tokS(x.tokens) : use[1]}</span>` : ""}` : ""}
         ${pj.length ? `<span class="pj">${pj.map(([k,v])=>`<span style="flex:${v};--c:${colorOf(k)}"></span>`).join("")}</span>` : ""}</button>`;
     }
   }
-  h += `</div><div class="mlegend"><span style="white-space:nowrap">${tr("少ない", "Less")}</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${tr("多い（作業していた時間）・日付を押すとその週を開きます", "More (active time) · Click a date to open that week")}</div>`;
+  h += `</div><div class="mlegend"><span style="white-space:nowrap">${tr("少ない", "Less")}</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${matchMedia("(max-width:820px)").matches ? tr("多い（作業していた時間）・各日は、作業していた時間とトークン（なければクレジット）・日付を押すとその週を開きます", "More (active time) · Each day shows active time and tokens (or credits) · Tap a date to open that week") : tr("多い（作業していた時間）・各日は、作業していた時間・トークン（なければクレジット）・セッション・プロンプトの数・日付を押すとその週を開きます", "More (active time) · Each day shows active time, tokens (or credits), sessions and prompts · Click a date to open that week")}</div>`;
   T.innerHTML = h;
   T.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { const [y,m,dd] = b.dataset.w.split("-").map(Number); st.week = new Date(y, m-1, dd); setMode("week"); });
 }
@@ -275,7 +278,10 @@ addEventListener("scroll", () => { if (!st.sel) tipOff(); }, {passive: true, cap
 /* ── 週次・月次サマリー：① プロジェクト別 ② コストとアウトプット ③ 時間 ④ AI ⑤ かたち ⑥ 改善案を聞く。基準を超えた指標には、その場に印と推移を付ける ── */
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
-  const head = `<div class="rvhead"><h2>${M ? tr("月次サマリー", "Monthly summary") : tr("週次サマリー", "Weekly summary")}</h2><p>${tr("自分の使い方を振り返るための目安です。人と比べたり、評価に使ったりするための数字ではありません。", "Rough figures for reflecting on how you work. They are not for comparing people or for evaluations.")}</p>${w ? `<button class="pill rpt" id="rpttog" aria-expanded="${!!st.rpt}" aria-controls="rptbox">${tr(`${M ? "月報" : "週報"}の下書き`, `${M ? "Monthly" : "Weekly"} report draft`)}</button>` : ""}</div>${w ? `<section class="panel rptbox" id="rptbox"${st.rpt ? "" : " hidden"} aria-label="${tr(`${M ? "月報" : "週報"}の下書き`, `${M ? "Monthly" : "Weekly"} report draft`)}">
+  const head = `<div class="rvhead"><h2>${M ? tr("月次サマリー", "Monthly summary") : tr("週次サマリー", "Weekly summary")}</h2><p>${tr("自分の使い方を振り返るための目安です。人と比べたり、評価に使ったりするための数字ではありません。", "Rough figures for reflecting on how you work. They are not for comparing people or for evaluations.")}</p>${w ? `<button class="pill rpt" id="rpttog" aria-expanded="${!!st.rpt}" aria-controls="rptbox">${tr(`${M ? "月報" : "週報"}の下書き`, `${M ? "Monthly" : "Weekly"} report draft`)}</button><button class="pill rpt" id="pxtog" aria-expanded="${!!st.px}" aria-controls="pxbox">${tr("プロンプトを書き出す", "Export prompts")}</button>` : ""}</div>${w ? `<section class="panel rptbox" id="pxbox"${st.px ? "" : " hidden"} aria-label="${tr("プロンプトを書き出す", "Export prompts")}">
+    <div class="askbar"><button class="pill" id="pxcopy">${tr("コピー", "Copy")}</button><button class="pill" id="pxclose">${tr("閉じる", "Close")}</button>
+      <span class="muted" style="font-size:11.5px">${tr(`この${unit}にあなたが打ったプロンプト（コマンドを含む）だけを、セッションごとに時刻の順で並べた Markdown です。自動で入った通知や要約は入りません。`, `Markdown with only the prompts you wrote ${uThis(unit)} (commands included), by session in time order. Automatic notifications and summaries are left out.`)}</span></div>
+    <pre class="askpre" id="pxpre">${esc(periodPrompts())}</pre></section>` : ""}${w ? `<section class="panel rptbox" id="rptbox"${st.rpt ? "" : " hidden"} aria-label="${tr(`${M ? "月報" : "週報"}の下書き`, `${M ? "Monthly" : "Weekly"} report draft`)}">
     <div class="askbar"><button class="pill" id="rptcopy">${tr("コピー", "Copy")}</button><button class="pill" id="rptclose">${tr("閉じる", "Close")}</button>
       <span class="muted" style="font-size:11.5px">${tr("プロジェクトごとに、やったこと・コミット・PR をまとめた Markdown です。セッション名はプロンプトの冒頭なので、直してから貼ってください。", "Markdown with what you did, commits and pull requests for each project. Session names are the start of your prompts, so edit them before pasting.")}</span></div>
     <pre class="askpre" id="rptpre">${esc(reportText(w, M))}</pre></section>` : ""}`;
@@ -340,6 +346,8 @@ function summary(){
   const ms = R.querySelector("#moreS"); if (ms) ms.ontoggle = () => { if (ms.dataset.auto){ delete ms.dataset.auto; return; } st.moreS = ms.open; }; // 印のために自動で開いたときは、次の期間に持ち越さない
   const rt = R.querySelector("#rpttog"), rb = R.querySelector("#rptbox"), rpt = open => { st.rpt = open; rb.hidden = !open; rt.setAttribute("aria-expanded", open); if (open) rb.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest"}); else rt.focus(); };
   if (rt && rb){ rt.onclick = () => rpt(!st.rpt); R.querySelector("#rptclose").onclick = () => rpt(false); }
+  const xt = R.querySelector("#pxtog"), xb = R.querySelector("#pxbox"), px = open => { st.px = open; xb.hidden = !open; xt.setAttribute("aria-expanded", open); if (open) xb.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest"}); else xt.focus(); };
+  if (xt && xb){ xt.onclick = () => px(!st.px); R.querySelector("#pxclose").onclick = () => px(false); R.querySelector("#pxcopy").onclick = () => copy($("#pxpre").textContent); }
   const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy($("#rptpre").textContent, tr("コピーしました。セッション名はプロンプトの冒頭なので、直してから貼ってください", "Copied. Session names are the start of your prompts, so edit them before pasting"), 4500);
 
   const ac = R.querySelector("#askcopy"); if (ac) ac.onclick = () => copy($("#askpre").textContent);
@@ -1059,6 +1067,8 @@ function detail(s){
     try { const r = await fetch(`prompt?id=${encodeURIComponent(s.id)}&i=${b.dataset.i}`, {cache: "no-store"}); if (!r.ok) throw 0;
       const li = b.closest("li"); li.querySelector(".pfull").textContent = await r.text(); li.dataset.full = "1"; li.querySelector(".pexp").focus(); // 「閉じる」は残して、また畳めるように
     } catch { b.disabled = false; b.textContent = tr("読み込めませんでした。もう一度", "Couldn't load. Try again"); } });
+  P.querySelectorAll("#flowBy button").forEach(b => b.onclick = () => { st.flowUser = b.dataset.v === "user"; store.set("flowUser", st.flowUser); P.querySelector(".tl").classList.toggle("only-user", st.flowUser); P.querySelectorAll("#flowBy button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); });
+  const pc = P.querySelector("#pcopy"); if (pc) pc.onclick = () => copy(userPrompts(s), tr(`あなたのプロンプト ${s.prompts.length} 件をコピーしました`, `Copied ${plural(s.prompts.length, "prompt")} you wrote`));
   const pall = P.querySelector(".pall"); if (pall) pall.onclick = () => { const shown = [...P.querySelectorAll(".tl li[hidden]")]; shown.forEach(li => li.hidden = false); pall.remove();
     const first = shown.find(li => li.classList.contains("pr")); if (first) first.focus(); }; // 出した最初のプロンプトへ（フォーカスを失わないように）
   bindCopy(P);
@@ -1070,12 +1080,25 @@ function prName(url){ // GitHub の PR は「リポジトリ#番号」と短く�
   const m = /github\.com\/[^/]+\/([^/]+)\/pull\/(\d+)/.exec(url || "");
   return m ? `${m[1]}#${m[2]}` : String(url || "").replace(/^https?:\/\//, "");
 }
+const NOTE_LABEL = () => ({reminder: tr("システムの注記", "System note"), notice: tr("通知", "Notification"), hook: tr("hook の出力", "Hook output"), output: tr("コマンドの出力", "Command output"),
+  compact: tr("会話の要約", "Conversation summary"), agent: tr("ほかのエージェント・予定から", "From another agent or schedule"), meta: tr("エージェントが足した文", "Added by the agent"), other: tr("自動で入った文", "Added automatically")});
+const PKIND = () => ({command: tr("コマンド", "Command"), shell: tr("シェル", "Shell")}); // 人が打ったプロンプトのうち、ふつうの文でないもの
+function periodPrompts(){ // 表示中の週・月に、人が打ったプロンプトだけを、セッションごとに書き出す
+  const {ws, we} = period(), L = [];
+  DATA.filter(s => s.prompts.some(p => p.t >= ws && p.t < we)).sort((a, b) => a.start - b.start).forEach(s => {
+    const ps = s.prompts.filter(p => p.t >= ws && p.t < we);
+    L.push(`## ${md(ps[0].t)} ${hm(ps[0].t)} ${s.project}${s.branch ? ` (${s.branch})` : ""} · ${String(s.title).replace(/\s+/g, " ")}`, userPrompts({prompts: ps}), "");
+  });
+  return L.length ? L.join("\n").trim() : tr("この期間のプロンプトはありません。", "No prompts in this period."); }
+function userPrompts(s){ // 人が打ったプロンプトだけを、時刻つきの Markdown の箇条書きにする（書き出し用）
+  return s.prompts.map(p => `- ${p.t ? `${md(p.t)} ${hm(p.t)}` : "--:--"}${p.kind ? ` [${PKIND()[p.kind] || p.kind}]` : ""} ${String(p.text || "").replace(/\s+/g, " ").trim()}${p.len > 0 ? tr(`（先頭 ${PROMPT_RUNES} 文字）`, ` (first ${PROMPT_RUNES} characters)`) : ""}`).join("\n"); }
 function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面では d だけを省略する）
   const ev = [];
   commitsOf(s).forEach(c => ev.push({t: c.t, k: c.ai ? "commit ai" : "commit", l: c.ai ? tr("AI がコミット", "AI committed") : tr("手でコミット", "Committed by hand"), d: `<button class="evd" data-git="${esc(c.hash)}"><i class="gtag${c.ai ? " ai" : ""}">${GIT_ICON}${esc(c.hash.slice(0,7))}</i> ${esc(c.subject)}</button>`}));
   (s.prAt || []).forEach(p => ev.push({t: p.t, k: "pr", l: tr("PR を作成", "Created a pull request"), d: p.url ? `<span class="evd">${ext(p.url, esc(prName(p.url)))}</span>` : ""}));
   (s.limits || []).forEach(t => ev.push({t, k: "warn", l: tr("利用上限に当たった", "Hit a usage limit")}));
   (s.interruptsAt || []).forEach(t => ev.push({t, k: "int", l: tr("中断した", "Interrupted")}));
+  (s.notes || []).forEach(x => { if (x.t) ev.push({t: x.t, k: `note ${x.kind}`, l: NOTE_LABEL()[x.kind] || NOTE_LABEL().other, d: `<span class="evd">${esc(x.text)}</span>`}); }); // 人が打っていないもの（通知・要約など）
   s.subagents.forEach(a => { if (a.start) ev.push({t: a.start, k: "agent", l: tr("サブエージェント", "Subagent"), d: `<span class="evd"><span class="mono">${esc(a.type)}</span>${a.desc ? ` · ${esc(a.desc)}` : ""}</span>`}); });
   return ev.sort((a, b) => a.t - b.t);
 }
@@ -1090,21 +1113,24 @@ function promptFlow(s){
     if (p.t){ flush(p.t); // あいた間に起きたこと（手でのコミットなど）は、区切りの上に出す
       if (gap){ rows.push(`<li class="gap"${hide()}><p>${tr(`${hm(gap.from)}〜${hm(p.t)}、${span(gap.v)}あいた`, `${hm(gap.from)}–${hm(p.t)}: ${span(gap.v)} gap`)}</p></li>`); gap = null; } }
     n++;
-    const t = String(p.text || ""), long = t.length > 220, fix = FIXRE.test(t), cut = p.len > 0;
+    const t = String(p.text || ""), long = t.length > 220, fix = !p.kind && FIXRE.test(t), cut = p.len > 0;
     const more = cut ? `<span class="pcut"> ${tr(`（ここまで ${PROMPT_RUNES} 文字。元は ${p.len.toLocaleString()} 文字）`, `(first ${PROMPT_RUNES} of ${p.len.toLocaleString()} characters)`)}${LIVE ? ` <button class="pload" data-i="${i}">${tr("全文を読み込む", "Load the full prompt")}</button>` : ` ${tr("kiroku serve で開くと全文を読めます。", "Open with kiroku serve to read it in full.")}`}</span>` : "";
     const meta = [p.work ? tr(`AI が動いた ${span(p.work)}`, `AI worked ${span(p.work)}`) : "", p.wait && p.wait <= FLOW_GAP ? tr(`待たせ ${secs(p.wait)}`, `wait ${secs(p.wait)}`) : ""].filter(Boolean).join(" · ");
-    rows.push(`<li class="pr${fix ? " fix" : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><p>${fix ? `<span class="sr">${tr("言い直しらしいプロンプト：", "Looks like a correction: ")}</span>` : ""}<span class="ptext">${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${pexpLabel(p)}</button>` : esc(t)}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
+    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + p.kind : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><p>${fix ? `<span class="sr">${tr("言い直しらしいプロンプト：", "Looks like a correction: ")}</span>` : ""}${p.kind ? `<span class="pkind">${PKIND()[p.kind] || esc(p.kind)}</span>` : ""}<span class="ptext">${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${pexpLabel(p)}</button>` : esc(t)}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
     if (p.t && p.wait > FLOW_GAP) gap = {from: p.t + p.work, v: p.wait};
   });
   flush(Infinity);
-  const fixes = s.prompts.some(p => FIXRE.test(String(p.text || ""))), kinds = new Set(ev.map(x => x.k.split(" ")[0]));
+  const fixes = s.prompts.some(p => !p.kind && FIXRE.test(String(p.text || ""))), kinds = new Set(ev.map(x => x.k.split(" ")[0])), cmds = s.prompts.some(p => p.kind);
   const names = list => { const t = list.filter(([k]) => kinds.has(k)).map(([, j, x]) => tr(j, x)).join(tr("・", ", ")); return t.charAt(0).toUpperCase() + t.slice(1); }; // そのセッションにあるものの名前だけ
   const warn = names([["int", "中断", "interruption"], ["warn", "利用上限", "usage limit"]]), other = names([["commit", "コミット", "commit"], ["pr", "PR", "pull request"], ["agent", "サブエージェント", "subagent"]]);
-  const key = [`<span><i class="kp"></i>${tr("プロンプト", "Prompt")}</span>`,
+  const key = [`<span><i class="kp"></i>${tr("あなたのプロンプト", "Your prompt")}</span>`,
+    cmds ? `<span><i class="kp cmd"></i>${tr("あなたが打ったコマンド（/ や !）", "Commands you typed (/ or !)")}</span>` : "",
+    kinds.has("note") ? `<span><i class="ke note"></i>${tr("自動で入ったもの（通知・要約・hook など。プロンプトには数えません）", "Added automatically (notifications, summaries, hooks; not counted as prompts)")}</span>` : "",
     fixes ? `<span><i class="kp fix"></i>${tr("言い直しらしいプロンプト（言葉から自動で判定した目安）", "Looks like a correction (guessed from the wording)")}</span>` : "",
     warn ? `<span><i class="ke int"></i>${warn}</span>` : "", other ? `<span><i class="ke"></i>${other}</span>` : ""].filter(Boolean).join("");
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? tr(`（ほかの出来事 ${hiddenEv} 件も）`, ` (and ${plural(hiddenEv, "other event")})`) : "";
-  return `<div class="tlkey">${key}</div><ol class="tl">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${tr(`残り ${rest} 件のプロンプトを表示${also}`, `Show ${plural(rest, "more prompt")}${also}`)}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${tr("「AI が動いた」はプロンプトを送ってから AI が最後に動くまで、「待たせ」はそこから次のプロンプトまでの時間。履歴の時刻から推定した目安です。", "\"AI worked\" is the time from a prompt to the AI's last activity; \"wait\" is the time from there to your next prompt. Both are estimates from the history's timestamps.")}</p>` : ""}`;
+  const bar = `<div class="flowbar"><div class="segc" role="group" aria-label="${tr("出すもの", "Show")}" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">${tr("すべて", "Everything")}</button><button data-v="user" aria-pressed="${!!st.flowUser}">${tr("あなたのプロンプトだけ", "Only your prompts")}</button></div><button class="pill" id="pcopy">${tr("プロンプトをコピー", "Copy prompts")}</button></div>`;
+  return `${bar}<div class="tlkey">${key}</div><ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${tr(`残り ${rest} 件のプロンプトを表示${also}`, `Show ${plural(rest, "more prompt")}${also}`)}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${tr("「AI が動いた」はプロンプトを送ってから AI が最後に動くまで、「待たせ」はそこから次のプロンプトまでの時間。履歴の時刻から推定した目安です。", "\"AI worked\" is the time from a prompt to the AI's last activity; \"wait\" is the time from there to your next prompt. Both are estimates from the history's timestamps.")}</p>` : ""}`;
 }
 /* 1 つのセッションを AI と振り返るためのプロンプト（kiroku 自身は AI を呼ばない） */
 function sessionPrompt(s, active, med){

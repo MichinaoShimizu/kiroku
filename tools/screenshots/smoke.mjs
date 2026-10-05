@@ -85,6 +85,9 @@ for (const env of envs) {
     check("押すと詳細が開く", await drawerOpen());
     const box = await p.locator("#drawer").boundingBox();
     check("詳細が画面に収まる", box && box.x >= -1 && box.x + box.width <= env.viewport.width + 1, JSON.stringify(box));
+    await p.locator('#flowBy button[data-v="user"]').click(); await pause();
+    check("「あなたのプロンプトだけ」で、出来事が隠れる", await p.evaluate(() => [...document.querySelectorAll("#drawer .tl li.ev")].every(li => !li.offsetParent)));
+    await p.locator('#flowBy button[data-v="all"]').click(); await pause();
     await p.keyboard.press("Escape"); await pause();
     check("Esc で詳細が閉じる", !await drawerOpen());
     await run.focus(); await p.keyboard.press("ArrowLeft"); await pause();
@@ -126,6 +129,9 @@ for (const env of envs) {
     check("週報の下書きが開く", await p.locator("#rptbox").isVisible());
     const text = await p.locator("#rptpre").innerText();
     check("週報の下書きに文面がある", text.trim().length > 20, JSON.stringify(text.slice(0, 40)));
+    await p.locator("#pxtog").click(); await pause();
+    const px = await p.locator("#pxpre").innerText();
+    check("プロンプトを書き出せる", await p.locator("#pxbox").isVisible() && /^## /.test(px) && /\n- /.test(px), JSON.stringify(px.slice(0, 40)));
   });
 
   await step("検索", async () => {

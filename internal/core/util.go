@@ -138,11 +138,6 @@ func TextOf(content any) string {
 	return ""
 }
 
-func IsNoise(text string) bool {
-	t := strings.TrimLeft(text, " \t\r\n")
-	return t == "" || strings.HasPrefix(t, "<") || strings.HasPrefix(t, "Caveat:") || strings.HasPrefix(t, "[Request interrupted")
-}
-
 // ReadJSONL は 1 行ずつ JSON を読む。壊れた行は飛ばす。名前が .zst で終わるファイルは zstd で圧縮されたものとして読む。
 func ReadJSONL(path string, fn func(Obj)) error {
 	f, err := os.Open(path)

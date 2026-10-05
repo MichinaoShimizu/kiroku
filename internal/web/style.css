@@ -140,7 +140,7 @@ kbd{font:11px/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid v
 .empty svg{width:56px;height:56px;color:var(--rule-2);stroke-width:1.2}
 .empty p{margin:10px 0 0}
 
-.head .use,.cell .use{display:block;font-size:12px;font-weight:650;letter-spacing:-.01em;color:var(--acc-ink);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.head .use{display:block;font-size:12px;font-weight:650;letter-spacing:-.01em;color:var(--acc-ink);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ubar{display:grid;gap:3px;align-items:end;height:170px;padding-top:6px}
 .ubar .c{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;height:100%;min-width:0}
 .ubar .b{width:100%;max-width:26px;border-radius:4px 4px 2px 2px;background:var(--acc);opacity:.85;min-height:0}
@@ -263,7 +263,7 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .drawer .gfiles{font-size:12.5px;line-height:1.8;list-style:none;padding:0;margin:0}.drawer .gfiles li{display:flex;gap:10px;justify-content:space-between;border-bottom:1px dashed var(--rule)}.drawer .gfiles span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.drawer .gfiles b{font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink-3)}.drawer .gfiles b i{font-style:normal;color:var(--acc-ink)}
 .drawer .gbody{white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--ink-2);margin:0}
 .drawer .gc-row{display:flex;gap:10px;width:100%;text-align:left;padding:8px 0;border-bottom:1px dashed var(--rule);font-size:13px}.drawer .gc-row time{color:var(--ink-3);font-variant-numeric:tabular-nums}.drawer .gc-row span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.drawer .gc-row b{font-weight:500;color:var(--ink-3);font-variant-numeric:tabular-nums}
-.head .gch,.cell .gcm{display:block;font-size:10.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.head .gch{display:block;font-size:10.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .pout{font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink)}.pout span{color:var(--ink-3)}
 .panel.ask{grid-column:1/-1}
 .askbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px}
@@ -281,10 +281,14 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .cell.we{background-image:linear-gradient(var(--weekend),var(--weekend))}
 .cell .dn{font:700 14px/1 var(--sans);font-variant-numeric:tabular-nums}
 .cell.today .dn{color:var(--on-acc);background:var(--acc);border-radius:6px;padding:3px 5px;margin:-3px 0 0 -5px;align-self:flex-start}
-.cell .ac{font:700 15px/1.2 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin-top:auto}
-.cell .ac small{font-size:10.5px;font-weight:500;color:var(--ink-2)}
 .cell .acs{display:none}
-.cell .sub2{font-size:10.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.cell .cm{margin:auto 0 2px;display:grid;gap:1px}
+.cell .cm div{display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-width:0}
+.cell .cm dt{font-size:10.5px;color:var(--ink-3);white-space:nowrap}
+.cell .cm dd{margin:0;font-size:12px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell .cm div:first-child dd{font-size:13.5px;font-weight:700}
+.cell .cm div:nth-child(2) dd{color:var(--acc-ink)}
+.cell .uss{display:none}
 .cell .pj{display:flex;gap:2px;height:5px;border-radius:3px;overflow:hidden}
 .cell .pj span{background:var(--c);min-width:2px}
 .mlegend{display:flex;align-items:center;gap:8px;justify-content:flex-end;padding:10px 14px;font-size:11px;color:var(--ink-3);border-top:1px solid var(--rule)}
@@ -421,6 +425,15 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl p{margin:0;overflow-wrap:anywhere}
 .more{font-size:12px;color:var(--ink-3);margin:6px 0 0 56px}
 .tl li[hidden]{display:none}
+/* プロンプトの種類：あなたが打ったコマンド（/ や !）と、自動で入ったもの（通知・要約・hook など）を色で分ける */
+.tl li.pr.command,.tl li.pr.shell{--c:var(--c4)}
+.tl .pkind{display:inline-block;margin-right:6px;padding:0 6px;border-radius:5px;font-size:10.5px;font-weight:650;line-height:1.6;vertical-align:1px;color:var(--c4);background:color-mix(in oklab,var(--c4) 16%,transparent)}
+.tl li.ev.note{color:var(--ink-3)}.tl li.ev.note .evl{color:var(--c6)}
+.tl li.ev.note::before,.tlkey .ke.note{background:var(--c6)}
+.tlkey .kp.cmd{box-shadow:inset 0 0 0 1.5px var(--c4)}
+.tl.only-user li.ev,.tl.only-user li.gap{display:none}
+.flowbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px}
+.flowbar .segc button{height:26px;font-size:11.5px}
 .tl .pfull{white-space:pre-wrap}
 .pexp,.pall{color:var(--acc-ink);font-weight:600}
 .pexp{font-size:11.5px;white-space:nowrap}
@@ -595,7 +608,7 @@ dialog.yr h3{font:700 15px/1.4 var(--sans);margin:30px 0 10px}
   .rvgrid.srgrid{grid-template-columns:1fr}
   .rvhead .pill{margin-left:0}
   .mgrid{grid-template-columns:28px repeat(7,minmax(0,1fr))}
-  .cell{min-height:64px;padding:6px 6px 7px}.cell .sub2,.cell .ac{display:none}.cell .acs{display:block;font:700 12px/1.2 var(--sans);font-variant-numeric:tabular-nums;margin-top:auto}
+  .cell{min-height:64px;padding:6px 6px 7px}.cell .cm{display:none}.cell .acs{display:block;font:700 12px/1.2 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap;margin-top:auto}.cell .uss{display:block;font-size:10.5px;font-weight:650;color:var(--acc-ink);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} /* スマホでは作業時間とトークン（なければクレジット）だけ */
   .ph{flex-wrap:wrap;row-gap:2px}.ph span:not(.no){flex-basis:100%;padding-left:32px}
   .mgrid .mh{padding:8px 6px}
   .wrap{padding:0 16px}
@@ -626,3 +639,4 @@ dialog.yr h3{font:700 15px/1.4 var(--sans);margin:30px 0 10px}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media (forced-colors:active){.run{border:1px solid CanvasText}}
+@media (max-width:400px){.cell{padding:5px 3px 6px}.cell .acs{font-size:10.5px}.cell .uss{font-size:9.5px}} /* いちばん狭い画面でも、月のマスの時間とトークンが切れないように */

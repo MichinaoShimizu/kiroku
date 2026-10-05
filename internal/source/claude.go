@@ -268,11 +268,20 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			human, _ := a["humanTurn"].(bool)
 			if k := core.Str(core.Map(a["origin"])["kind"]); (k == "human" || k == "" && human) && core.Str(a["commandMode"]) != "task-notification" {
 				s.Prompt(t, core.TextOf(a["prompt"]))
+			} else if core.Str(a["commandMode"]) == "task-notification" {
+				s.InjectAll(t, "notice", core.TextOf(a["prompt"]))
+			} else {
+				s.InjectAll(t, "agent", core.TextOf(a["prompt"])) // ほかのエージェントや予定から送られたもの
 			}
 			return
 		}
 		// 会話が長くなって自動で要約したときの「This session is being continued…」は、依頼ではない
 		compact, _ := e["isCompactSummary"].(bool)
+		if typ == "user" && !sidechain && compact {
+			s.Inject(t, "compact", core.TextOf(msg["content"]))
+		} else if typ == "user" && !sidechain && meta {
+			s.InjectAll(t, "meta", core.TextOf(msg["content"])) // スラッシュコマンドが展開した中身や、Claude Code が足した説明
+		}
 		if typ == "user" && !meta && !sidechain && !compact {
 			s.Prompt(t, core.TextOf(msg["content"]))
 			for _, b := range core.List(msg["content"]) {

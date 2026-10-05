@@ -7,6 +7,7 @@ import json, random, uuid, os, sys, datetime as dt
 OUT = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else "out")
 REPOS = os.path.join(OUT, "repos")
 random.seed(7)
+extra = random.Random(11)  # 後から足したもの（コマンド・通知）は別の乱数で、ほかのダミーデータを変えない
 JST = dt.timezone(dt.timedelta(hours=9))
 projects = {
  "web-app": ["Fix validation on the login form","Add E2E tests for the checkout flow","Find out why the dashboard loads slowly","Clean up API error handling","Update dependencies"],
@@ -36,6 +37,11 @@ for d in range(35, -1, -1):
         grow = random.choice([0, 0, 1, 4]); step = 0  # 会話が長くなるほど文脈が増えるセッションを混ぜる
         for i in range(nprompt):
             txt = random.choice(projects[p]) if i == 0 else (random.choice(retry) if random.random()<0.08 else random.choice(follow))
+            if i > 0 and extra.random() < 0.12:  # スラッシュコマンドも、人が打ったプロンプトとして混ぜる
+                c = extra.choice(["review", "test", "commit"]); txt = f"<command-message>{c} is running…</command-message>\n<command-name>/{c}</command-name>\n<command-args></command-args>"
+            if i > 0 and extra.random() < 0.08:  # 自動で入るもの（通知・注記）も混ぜる
+                note = extra.choice(["<task-notification><summary>Background tests finished: 42 passed</summary></task-notification>", "<system-reminder>The user opened src/app.ts in the IDE.</system-reminder>"])
+                lines.append({"type":"user","timestamp":(t-dt.timedelta(seconds=20)).isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"isMeta":True,"message":{"role":"user","content":note}})
             lines.append({"type":"user","timestamp":t.isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"message":{"role":"user","content":txt}})
             for k in range(random.randint(1,5)):
                 t += dt.timedelta(seconds=random.randint(20,240))
