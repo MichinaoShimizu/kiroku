@@ -107,6 +107,7 @@ for (const env of envs) {
 
   await step("見直す候補", async () => {
     const n = await p.locator(".flagsum .flink").count();
+    check("繰り返した依頼の欄がある", await p.locator('#review .hb[data-help="repeats"]').count() > 0);
     check("見直す候補の数だけ、指標に印が付く", n > 0 && await p.locator(".fl").count() >= n, `候補 ${n}`);
     const id = await p.locator(".flagsum .flink").first().getAttribute("data-goto");
     await p.locator(".flagsum .flink").first().click(); await pause();
