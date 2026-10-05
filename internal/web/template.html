@@ -385,6 +385,26 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl li{display:grid;grid-template-columns:38px 1fr;gap:18px;padding:5px 0;position:relative;font-size:12.5px;line-height:1.6}
 .tl li::before{content:"";position:absolute;left:41px;top:12px;width:7px;height:7px;border-radius:50%;background:var(--surface);box-shadow:inset 0 0 0 1.5px var(--c)}
 .tl li.fix::before{background:var(--warn);box-shadow:none}
+.tl li.ev{font-size:12px;color:var(--ink-2);padding:2px 0}
+.tl li.ev::before,.tlkey .ke{border-radius:1px;transform:rotate(45deg);background:var(--ink-3);box-shadow:none}
+.tl li.ev::before{top:10px;width:6px;height:6px;left:41.5px}
+.tl li.ev.ai::before,.tlkey .ke.ai{background:var(--acc)}
+.tl li.ev.int::before,.tl li.ev.warn::before,.tlkey .ke.int{background:var(--warn);transform:none}
+.tl li.ev.int .evl,.tl li.ev.warn .evl{color:var(--warn);font-weight:600}
+.tl li.pr:focus{outline:none}.tl li.pr:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:6px}
+.tl li.ev p{display:flex;gap:6px;min-width:0;white-space:nowrap}
+.tl li.ev .evl{flex:none}
+.tl li.ev .evd{min-width:0;overflow:hidden;text-overflow:ellipsis;color:inherit;text-align:left;font:inherit}
+.tl li.ev button.evd:hover{color:var(--ink)}
+.tl li.gap{display:block;padding:6px 0 6px 56px;font-size:11.5px;color:var(--ink-3)}
+.tl li.gap::before{left:39px;top:50%;width:11px;height:1px;border-radius:0;background:var(--ink-3);box-shadow:none}
+.tl .pmeta{display:block;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.tl .pcut{color:var(--ink-3);white-space:normal;font-size:11.5px}
+.tlkey{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0 0 8px;font-size:11px;color:var(--ink-3)}
+.tlkey span{display:inline-flex;align-items:center;gap:6px}
+.tlkey i{flex:none;width:7px;height:7px}
+.tlkey .kp{border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--c)}.tlkey .kp.fix{background:var(--warn);box-shadow:none}
+.pload{font-size:11.5px;color:var(--acc-ink);font-weight:600;padding:1px 8px;border:1px solid var(--acc);border-radius:99px;margin-left:2px}.pload:hover{text-decoration:underline}
 .tl time{color:var(--ink-3);font-variant-numeric:tabular-nums;font-size:11.5px;padding-top:1px}
 .tl p{margin:0;overflow-wrap:anywhere}
 .more{font-size:12px;color:var(--ink-3);margin:6px 0 0 56px}
@@ -472,6 +492,11 @@ body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:tra
 .drawer .tl li{font-size:14px;grid-template-columns:42px 1fr;padding:6px 0}
 .drawer .tl::before{left:48px}
 .drawer .tl li::before{left:45px;top:14px}
+.drawer .tl li.ev{font-size:13px;padding:3px 0}
+.drawer .tl li.ev::before{left:45.5px;top:12px}
+.drawer .tl li.gap{padding:8px 0 8px 60px;font-size:12px}
+.drawer .tl li.gap::before{left:43px;top:50%}
+.drawer .tl .pmeta,.drawer .tl .pcut,.drawer .tlkey{font-size:12px}
 .drawer .tl time{font-size:12.5px;color:var(--ink-2)}
 .drawer .more{margin-left:60px;font-size:13px}
 .drawer .none{font-size:13.5px}
@@ -663,6 +688,7 @@ function shiftTimes(x){ if (!SHIFT) return x;
   return walk(x); }
 [DATA, WEEKS, MONTHS, META, GENERATED] = [shiftTimes(DATA), shiftTimes(WEEKS), shiftTimes(MONTHS), shiftTimes(META), shiftTimes(GENERATED)];
 const LIVE = __LIVE__; // kiroku serve で開いたとき true
+const PROMPT_RUNES = __PROMPT_RUNES__; // HTML に入れる依頼文の長さ（core.PromptRunes）
 const YEAR_ON = false; // 1 年の露光は一旦隠す（ボタンと Y キーを出さない）。戻すときは true にする
 const SLOTS = 8;
 const $ = s => document.querySelector(s);
@@ -1635,8 +1661,7 @@ function detail(s){
     <div class="sact"><button class="pill" id="sreview">${tr("このセッションを AI と振り返る（プロンプトをコピー）", "Review this session with AI (copy prompt)")}</button>
       <span>${tr("依頼の流れと数値から、依頼の仕方や作業の分け方の改善点を聞きます。依頼文を含むので、送る前に確認してください。", "Asks for ways to improve how you prompted and split the work, based on the prompt flow and numbers. It includes your prompts, so review it before sending.")}</span></div>
     <h3>${tr("依頼の流れ", "Prompt flow")}</h3>
-    ${s.prompts.length ? `<ol class="tl">${s.prompts.map((p,i)=>{ const t = String(p.text || ""), long = t.length > 220; // 長い依頼は「全文」で開く。31 件目からは「残りを表示」で出す
-      return `<li class="${FIXRE.test(t)?"fix":""}"${i >= 30 ? " hidden" : ""}><time>${p.t?hm(p.t):""}</time><p>${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}</span> <button class="pexp" aria-expanded="false">${tr("全文", "Show all")}</button>` : esc(t)}</p></li>`; }).join("")}</ol>${s.prompts.length>30?`<button class="more pall">${tr(`残り ${s.prompts.length-30} 件を表示`, `Show ${s.prompts.length-30} more`)}</button>`:""}${s.nPrompts>s.prompts.length?`<p class="more pcap"${s.prompts.length>30?" hidden":""}>${tr(`ほか ${s.nPrompts-s.prompts.length} 件（依頼の流れに残すのは先頭 ${s.prompts.length} 件まで）`, `${s.nPrompts-s.prompts.length} more (the prompt flow keeps the first ${s.prompts.length})`)}</p>`:""}` : `<p class="none">${tr("依頼の記録はありません。", "No prompts recorded.")}${s.source === "Kiro Crew" ? tr("Kiro Crew は会話の記録を一定期間で消すため、使用量の記録だけが残っている会話です。", " Kiro Crew deletes conversation records after a while, so only the usage record remains for this conversation.") : ""}</p>`}
+    ${s.prompts.length ? promptFlow(s) : `<p class="none">${tr("依頼の記録はありません。", "No prompts recorded.")}${s.source === "Kiro Crew" ? tr("Kiro Crew は会話の記録を一定期間で消すため、使用量の記録だけが残っている会話です。", " Kiro Crew deletes conversation records after a while, so only the usage record remains for this conversation.") : ""}</p>`}
     ${s.subagents.length ? `<h3>${tr("サブエージェント", "Subagents")} · ${s.subagents.length}</h3>${s.subagents.map(a=>{
         const span = Math.max(1, s.end - s.start), l = a.start ? Math.max(0,(a.start - s.start)/span*100) : 0, w = a.start && a.end ? Math.max(.8,(a.end - a.start)/span*100) : .8;
         const t = a.usage, tt = t.in + t.out + t.cw + t.cw1h + t.cr;
@@ -1660,9 +1685,58 @@ function detail(s){
   P.querySelectorAll("[data-git]").forEach(b => b.onclick = () => select("git:" + b.dataset.git));
   P.querySelector("#sreview").onclick = () => copy(sessionPrompt(s, active, med));
   P.querySelectorAll(".pexp").forEach(b => b.onclick = () => { const li = b.closest("li"), open = b.getAttribute("aria-expanded") !== "true";
-    li.querySelector(".pshort").hidden = open; li.querySelector(".pfull").hidden = !open; b.setAttribute("aria-expanded", open); b.textContent = open ? tr("閉じる", "Show less") : tr("全文", "Show all"); });
-  const pall = P.querySelector(".pall"); if (pall) pall.onclick = () => { P.querySelectorAll(".tl li[hidden]").forEach(li => li.hidden = false); const cap = P.querySelector(".pcap"); if (cap) cap.hidden = false; pall.remove(); };
+    li.querySelector(".pshort").hidden = open; li.querySelector(".pfull").hidden = !open; b.setAttribute("aria-expanded", open); b.textContent = open ? tr("閉じる", "Show less") : pexpLabel(li.dataset.full ? {} : s.prompts[b.dataset.i]); });
+  P.querySelectorAll(".pload").forEach(b => b.onclick = async () => { // kiroku serve のときだけ、切った依頼文の全文をサーバーから読む
+    b.disabled = true;
+    try { const r = await fetch(`prompt?id=${encodeURIComponent(s.id)}&i=${b.dataset.i}`, {cache: "no-store"}); if (!r.ok) throw 0;
+      const li = b.closest("li"); li.querySelector(".pfull").textContent = await r.text(); li.dataset.full = "1"; li.querySelector(".pexp").focus(); // 「閉じる」は残して、また畳めるように
+    } catch { b.disabled = false; b.textContent = tr("読み込めませんでした。もう一度", "Couldn't load. Try again"); } });
+  const pall = P.querySelector(".pall"); if (pall) pall.onclick = () => { const shown = [...P.querySelectorAll(".tl li[hidden]")]; shown.forEach(li => li.hidden = false); pall.remove();
+    const first = shown.find(li => li.classList.contains("pr")); if (first) first.focus(); }; // 出した最初の依頼へ（フォーカスを失わないように）
   bindCopy(P);
+}
+/* 依頼の流れ: 依頼と、その間に起きたこと（コミット・PR・利用上限・中断・サブエージェント）を時刻の順に 1 本に並べる */
+const FLOW_SHOW = 30, FLOW_GAP = 1800; // はじめに出す依頼の数 / これより長い待たせは「あいた」の区切りにする（待たせの中央値と同じ 30 分）
+function span(v){ return v < 3600 ? secs(v) : dur(v / 60); } // 秒数を、1 時間からは時間と分で
+function prName(url){ // GitHub の PR は「リポジトリ#番号」と短く（狭い画面でも番号が見えるように）
+  const m = /github\.com\/[^/]+\/([^/]+)\/pull\/(\d+)/.exec(url || "");
+  return m ? `${m[1]}#${m[2]}` : String(url || "").replace(/^https?:\/\//, "");
+}
+function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面では d だけを省略する）
+  const ev = [];
+  commitsOf(s).forEach(c => ev.push({t: c.t, k: c.ai ? "commit ai" : "commit", l: c.ai ? tr("AI がコミット", "AI committed") : tr("手でコミット", "Committed by hand"), d: `<button class="evd" data-git="${esc(c.hash)}"><i class="gtag${c.ai ? " ai" : ""}">${GIT_ICON}${esc(c.hash.slice(0,7))}</i> ${esc(c.subject)}</button>`}));
+  (s.prAt || []).forEach(p => ev.push({t: p.t, k: "pr", l: tr("PR を作成", "Created a pull request"), d: p.url ? `<span class="evd">${ext(p.url, esc(prName(p.url)))}</span>` : ""}));
+  (s.limits || []).forEach(t => ev.push({t, k: "warn", l: tr("利用上限に当たった", "Hit a usage limit")}));
+  (s.interruptsAt || []).forEach(t => ev.push({t, k: "int", l: tr("中断した", "Interrupted")}));
+  s.subagents.forEach(a => { if (a.start) ev.push({t: a.start, k: "agent", l: tr("サブエージェント", "Subagent"), d: `<span class="evd"><span class="mono">${esc(a.type)}</span>${a.desc ? ` · ${esc(a.desc)}` : ""}</span>`}); });
+  return ev.sort((a, b) => a.t - b.t);
+}
+const pexpLabel = p => p.len > 0 ? tr(`続きを読む（元は ${p.len.toLocaleString()} 文字）`, `Read more (${p.len.toLocaleString()} characters)`) : tr("全文", "Show all");
+function promptFlow(s){
+  const ev = flowEvents(s), rows = [];
+  let e = 0, n = 0, hiddenEv = 0, gap = null; // gap: 前の依頼のあと、長くあいたところ {from: AI が最後に動いた時刻, v: 秒}
+  const hide = () => n > FLOW_SHOW ? " hidden" : "";
+  const flush = until => { for (; e < ev.length && ev[e].t < until; e++){ if (hide()) hiddenEv++;
+    rows.push(`<li class="ev ${ev[e].k}"${hide()}><time>${hm(ev[e].t)}</time><p><span class="evl">${ev[e].l}</span>${ev[e].d || ""}</p></li>`); } };
+  s.prompts.forEach((p, i) => {
+    if (p.t){ flush(p.t); // あいた間に起きたこと（手でのコミットなど）は、区切りの上に出す
+      if (gap){ rows.push(`<li class="gap"${hide()}><p>${tr(`${hm(gap.from)}〜${hm(p.t)}、${span(gap.v)}あいた`, `${hm(gap.from)}–${hm(p.t)}: ${span(gap.v)} gap`)}</p></li>`); gap = null; } }
+    n++;
+    const t = String(p.text || ""), long = t.length > 220, fix = FIXRE.test(t), cut = p.len > 0;
+    const more = cut ? `<span class="pcut"> ${tr(`（ここまで ${PROMPT_RUNES} 文字。元は ${p.len.toLocaleString()} 文字）`, `(first ${PROMPT_RUNES} of ${p.len.toLocaleString()} characters)`)}${LIVE ? ` <button class="pload" data-i="${i}">${tr("全文を読み込む", "Load the full prompt")}</button>` : ` ${tr("kiroku serve で開くと全文を読めます。", "Open with kiroku serve to read it in full.")}`}</span>` : "";
+    const meta = [p.work ? tr(`AI が動いた ${span(p.work)}`, `AI worked ${span(p.work)}`) : "", p.wait && p.wait <= FLOW_GAP ? tr(`待たせ ${secs(p.wait)}`, `wait ${secs(p.wait)}`) : ""].filter(Boolean).join(" · ");
+    rows.push(`<li class="pr${fix ? " fix" : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><p>${fix ? `<span class="sr">${tr("言い直しらしい依頼：", "Looks like a correction: ")}</span>` : ""}<span class="ptext">${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${pexpLabel(p)}</button>` : esc(t)}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
+    if (p.t && p.wait > FLOW_GAP) gap = {from: p.t + p.work, v: p.wait};
+  });
+  flush(Infinity);
+  const fixes = s.prompts.some(p => FIXRE.test(String(p.text || ""))), kinds = new Set(ev.map(x => x.k.split(" ")[0]));
+  const names = list => { const t = list.filter(([k]) => kinds.has(k)).map(([, j, x]) => tr(j, x)).join(tr("・", ", ")); return t.charAt(0).toUpperCase() + t.slice(1); }; // そのセッションにあるものの名前だけ
+  const warn = names([["int", "中断", "interruption"], ["warn", "利用上限", "usage limit"]]), other = names([["commit", "コミット", "commit"], ["pr", "PR", "pull request"], ["agent", "サブエージェント", "subagent"]]);
+  const key = [`<span><i class="kp"></i>${tr("依頼", "Prompt")}</span>`,
+    fixes ? `<span><i class="kp fix"></i>${tr("言い直しらしい依頼（言葉から自動で判定した目安）", "Looks like a correction (guessed from the wording)")}</span>` : "",
+    warn ? `<span><i class="ke int"></i>${warn}</span>` : "", other ? `<span><i class="ke"></i>${other}</span>` : ""].filter(Boolean).join("");
+  const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? tr(`（ほかの出来事 ${hiddenEv} 件も）`, ` (and ${plural(hiddenEv, "other event")})`) : "";
+  return `<div class="tlkey">${key}</div><ol class="tl">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${tr(`残り ${rest} 件の依頼を表示${also}`, `Show ${plural(rest, "more prompt")}${also}`)}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${tr("「AI が動いた」は依頼してから AI が最後に動くまで、「待たせ」はそこから次の依頼までの時間。履歴の時刻から推定した目安です。", "\"AI worked\" is the time from a prompt to the AI's last activity; \"wait\" is the time from there to your next prompt. Both are estimates from the history's timestamps.")}</p>` : ""}`;
 }
 /* 1 つのセッションを AI と振り返るためのプロンプト（kiroku 自身は AI を呼ばない） */
 function sessionPrompt(s, active, med){
@@ -1699,7 +1773,7 @@ function focusOpener(sel){ // 閉じたら、詳細を開いた要素（帯・�
     : document.querySelector(`.run[data-sid="${v}"],[data-id="${v}"],[data-s="${v}"]`);
   if (el) el.focus({preventScroll: false}); }
 function select(id){ // 詳細の中で別の詳細へ移ったときは、戻れるように前のものを積む
-  if (id && st.sel && id !== st.sel) st.back.push(st.sel); else if (!id) st.back = [];
+  if (id && st.sel && id !== st.sel){ st.back.push(st.sel); (st.backTop ||= []).push($("#panel").scrollTop); } else if (!id){ st.back = []; st.backTop = []; } // 戻ったとき、読んでいた位置に戻す
   st.sel = id; tipOff(); render(); if (id) $("#panel").scrollTop = 0; }
 
 /* ── 1 年の露光（ふりかえり） ──
@@ -1989,7 +2063,7 @@ function openYear(){ const d = $("#yr"); if (!d.open) d.showModal(); renderYear(
 function go(n){
   if (st.mode === "month") st.month = n == null ? monthOf(today0()) : new Date(st.month.getFullYear(), st.month.getMonth()+n, 1);
   else st.week = n == null ? mondayOf(today0()) : addDays(st.week, 7*n);
-  st.sel = null; st.back = []; st.animate = true; $("#toast").classList.remove("on"); render(); scrollToWork(); }
+  st.sel = null; st.back = []; st.backTop = []; st.animate = true; $("#toast").classList.remove("on"); render(); scrollToWork(); }
 function setMode(m){ if (m === "month" && st.mode !== "month") st.month = monthOf(addDays(st.week, 3));
   if (m === "week" && st.mode === "month" && monthOf(st.week).getTime() !== st.month.getTime()) st.week = mondayOf(st.month);
   st.mode = m; store.set("mode", m); st.sel = null; st.animate = true; render(); scrollToWork(); }
@@ -2004,7 +2078,7 @@ $("#help").onclick = () => $("#keys").showModal();
 $("#yrbtn").onclick = openYear;
 addEventListener("resize", () => { if ($("#yr").open) drawPlate(); });
 $("#lang").onchange = e => { LANG = e.target.value === "en" ? "en" : "ja"; store.set("lang", LANG); applyLang(); applyTheme(); ph(); render(); };
-$("#scrim").onclick = () => select(null); $("#close").onclick = () => select(null); $("#back").onclick = () => { const prev = st.back.pop(); st.sel = prev || null; render(); $("#panel").scrollTop = 0; };
+$("#scrim").onclick = () => select(null); $("#close").onclick = () => select(null); $("#back").onclick = () => { const prev = st.back.pop(), top = (st.backTop || []).pop(); st.sel = prev || null; render(); $("#panel").scrollTop = top || 0; };
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT"){ if (e.key === "Escape") e.target.blur(); return; }
   if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open || $("#yr").open) return;
