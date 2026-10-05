@@ -6,9 +6,9 @@ kiroku が各エージェントの履歴をどこから、どう読んでいる�
 
 `~/.claude/projects/*/*.jsonl`（`CLAUDE_CONFIG_DIR` があればその下の `projects`）。`internal/source/claude.go`
 
-- 時刻は発言ごと。依頼は `type: "user"` の行、AI の動きは `assistant` の行
-- AI が作業している間に送った依頼は、`user` の行ではなく `type: "attachment"` の `queued_command`（`origin.kind: "human"`）にだけ残るので、そこからも拾う。ほかのエージェントからの連絡（`peer`）やタスクの通知（`task-notification`）は依頼に数えない
-- 会話が長くなって自動で要約したときの `isCompactSummary` の行（「This session is being continued…」）は依頼に数えない
+- 時刻は発言ごと。プロンプトは `type: "user"` の行、AI の動きは `assistant` の行
+- AI が作業している間に送ったプロンプトは、`user` の行ではなく `type: "attachment"` の `queued_command`（`origin.kind: "human"`）にだけ残るので、そこからも拾う。ほかのエージェントからの連絡（`peer`）やタスクの通知（`task-notification`）はプロンプトに数えない
+- 会話が長くなって自動で要約したときの `isCompactSummary` の行（「This session is being continued…」）はプロンプトに数えない
 - トークンは、1 つの応答が複数行に分かれて記録されるので、メッセージ ID ごとにまとめてから数える（項目ごとに最大の値を使う）
 - サブエージェントは `Task` / `Agent` の呼び出しと、`<セッション>/subagents/agent-*.jsonl`（古い版は `isSidechain` の行を時間で割り当て）から読む
 - 目安コストは、Claude Code が書く `type: "cost-state"` の行（プロセスの起動 `startTime` からのモデル別の累計 `modelUsage[].costUSD`）があればそれに合わせる。プロセスごとに最新の累計を使い、起動から直前の行の時刻までの応答に、kiroku の料金表での見積もりの比で配る（見積もれないモデルはトークンの比）。履歴に応答がないモデル（タイトル付けなど）の分は、その時刻の 1 件として足す。記録のない期間（古い版、最後の記録より後）は kiroku の料金表で見積もる
@@ -33,13 +33,13 @@ kiroku が各エージェントの履歴をどこから、どう読んでいる�
 
 `~/.kiro/crew`（`KIROCREW_HOME` があればそちら）。`internal/source/crew.go`
 
-- Crew は kiro-cli を ACP で動かすので、会話そのものは Kiro CLI の履歴に残る。kiroku はそちらを数え、`session_map.json` と `subagents/*/state.json` に載っている会話に「Kiro Crew」の目印と、Crew のタイトル（サブエージェントならエージェント名と依頼内容）をつける
+- Crew は kiro-cli を ACP で動かすので、会話そのものは Kiro CLI の履歴に残る。kiroku はそちらを数え、`session_map.json` と `subagents/*/state.json` に載っている会話に「Kiro Crew」の目印と、Crew のタイトル（サブエージェントならエージェント名とプロンプトの内容）をつける
 - Crew のダッシュボードから動かした会話は、クレジットが kiro-cli の履歴に残らないことがある。Crew が 1 ターンごとに書く使用量の記録（`usage/tokens/<日付>.jsonl` の `_type: "tokens"` の行）も読む
 - 使用量の記録の `slot` は、ダッシュボードの会話だと `chat-<連番>-<UNIX 秒>` の形で残る。会話のキー（`session_map.json` や会話の記録のファイル名）は `dashboard:chat-…` なので、Crew の `spend_key_for_slot` と同じ規則でそろえてから結びつける
 - 同じ会話は二重に数えないよう、会話ごとに kiro-cli の記録と Crew の記録の多いほうを使う
 - kiro-cli の会話に結びつかない記録は「Kiro Crew」のセッションにする。Crew の裏方の処理（`slot: "_bg"`）は 1 日ごと、ダッシュボードのチャットは会話ごと
-- Crew の会話の記録（`sessions/<会話キー>.jsonl`。1 行目がメタデータ、2 行目から `role`・`content`・`ts`・`tools`）も読む。kiro-cli の履歴に依頼が残っていない会話（ダッシュボードから動かしたものなど）と、kiro-cli の会話に結びつかない会話は、ここから依頼の流れ・時刻・使ったツールを補う。使用量の記録も kiro-cli の会話もなく、会話の記録だけがあるものも「Kiro Crew」のセッションにする
-- 会話の記録は、溢れた古い行が `sessions/archive/<名前>__<日時>.jsonl` に退避される（残す期間は Crew の `session.archive_retention_days` で決まり、版や設定で変わる）ので、残っていればそれも古い順に読む。会話を閉じたり期限が過ぎたりして記録が消えた会話は、使用量の記録だけのセッションになり、依頼の流れは出せない
+- Crew の会話の記録（`sessions/<会話キー>.jsonl`。1 行目がメタデータ、2 行目から `role`・`content`・`ts`・`tools`）も読む。kiro-cli の履歴にプロンプトが残っていない会話（ダッシュボードから動かしたものなど）と、kiro-cli の会話に結びつかない会話は、ここからプロンプトの流れ・時刻・使ったツールを補う。使用量の記録も kiro-cli の会話もなく、会話の記録だけがあるものも「Kiro Crew」のセッションにする
+- 会話の記録は、溢れた古い行が `sessions/archive/<名前>__<日時>.jsonl` に退避される（残す期間は Crew の `session.archive_retention_days` で決まり、版や設定で変わる）ので、残っていればそれも古い順に読む。会話を閉じたり期限が過ぎたりして記録が消えた会話は、使用量の記録だけのセッションになり、プロンプトの流れは出せない
 - Crew の使用量の記録は、Crew が残している期間（およそ 2 週間）だけ
 
 ## Amazon Q Developer CLI

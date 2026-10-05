@@ -107,7 +107,7 @@ for (const env of envs) {
 
   await step("見直す候補", async () => {
     const n = await p.locator(".flagsum .flink").count();
-    check("繰り返した依頼の欄がある", await p.locator('#review .hb[data-help="repeats"]').count() > 0);
+    check("繰り返したプロンプトの欄がある", await p.locator('#review .hb[data-help="repeats"]').count() > 0);
     check("見直す候補の数だけ、指標に印が付く", n > 0 && await p.locator(".fl").count() >= n, `候補 ${n}`);
     const id = await p.locator(".flagsum .flink").first().getAttribute("data-goto");
     await p.locator(".flagsum .flink").first().click(); await pause();
@@ -129,7 +129,7 @@ for (const env of envs) {
       const t = DATA.flatMap(s => s.prompts.map(x => x.text)).find(x => x.trim().length >= 4);
       return t ? t.trim().slice(0, 4) : "";
     });
-    check("検索に使う依頼文がある", word !== "");
+    check("検索に使うプロンプトがある", word !== "");
     await p.keyboard.press("/");
     check("/ で検索欄に移る", await p.evaluate(() => document.activeElement && document.activeElement.id === "q"));
     await p.locator("#q").fill(word); await pause();
