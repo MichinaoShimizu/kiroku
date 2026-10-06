@@ -21,7 +21,7 @@ const autostartLabel = "io.github.michinaoshimizu.kiroku"
 
 // autostartEnv は、ログイン時に起動したときにも同じ履歴を読むよう、登録するときの値を書き残す環境変数。
 // launchd や systemd から起動すると、シェルで設定した値（と PATH）は引き継がれないため（PATH は git を探すのに使う）。
-var autostartEnv = []string{"PATH", "CLAUDE_CONFIG_DIR", "KIRO_HOME", "KIROCREW_HOME", "CODEX_HOME", "KIROKU_ARCHIVE_DIR"}
+var autostartEnv = []string{"PATH", "CLAUDE_CONFIG_DIR", "KIRO_HOME", "KIROCREW_HOME", "CODEX_HOME", "KIROKU_ARCHIVE_DIR", "KIROKU_CONFIG_DIR", "XDG_CONFIG_HOME"}
 
 // runCmd は launchctl・systemctl を実行する（テストで差しかえる）。
 var runCmd = func(name string, args ...string) error {
@@ -214,7 +214,14 @@ const (
 // probe は、待ち受け先で kiroku serve が答えるか（手元への問い合わせだけ）。テストで差しかえる。
 var probe = func(addr string) int {
 	c := http.Client{Timeout: 700 * time.Millisecond}
-	r, err := c.Get("http://" + addr + "/stamp")
+	req, err := http.NewRequest(http.MethodGet, "http://"+addr+"/stamp", nil)
+	if err != nil {
+		return noAnswer
+	}
+	if key, err := serveKey(false); err == nil { // 鍵がないと、鍵を確かめる画面（403）しか返らない
+		req.AddCookie(&http.Cookie{Name: keyCookie(addr), Value: key})
+	}
+	r, err := c.Do(req)
 	if err != nil {
 		return noAnswer
 	}
@@ -236,13 +243,9 @@ func autostartStatus() autostartState {
 	if err != nil {
 		return autostartState{mark: "·", text: "not available on this system"}
 	}
-	b, err := os.ReadFile(p.path)
-	if err != nil {
+	addr, ok := autostartAddr(p)
+	if !ok {
 		return autostartState{mark: "·", text: "off (run \"kiroku autostart on\" to start kiroku serve when you log in)"}
-	}
-	addr := defaultAddr
-	if m := autostartPort.FindString(string(b)); m != "" {
-		addr = listenAddr(m)
 	}
 	_, port, _ := net.SplitHostPort(addr)
 	url := "http://localhost:" + port + "/"
@@ -254,6 +257,18 @@ func autostartStatus() autostartState {
 	s.addr = addr
 	s.describe(probe(addr), p.log)
 	return s
+}
+
+// autostartAddr は、autostart で動かす kiroku serve の待ち受け先（autostart がオフなら false）。
+func autostartAddr(p autostartPlan) (string, bool) {
+	b, err := os.ReadFile(p.path)
+	if err != nil {
+		return "", false
+	}
+	if m := autostartPort.FindString(string(b)); m != "" {
+		return listenAddr(m), true
+	}
+	return listenAddr(defaultAddr), true
 }
 
 // describe は、probe の答えから状態の一言を決める。
@@ -269,7 +284,7 @@ func (s *autostartState) describe(answer int, log string) {
 }
 
 func cmdAutostart(args []string) error {
-	fs := newFS("autostart", "autostart [on [ADDR] | off]\n\nStarts \"kiroku serve\" in the background each time you log in, so the view is always at\nhttp://localhost:8484/ (macOS: launchd, Linux: systemd --user).\n\n  kiroku autostart          show the status\n  kiroku autostart on       start now and at every login (ADDR such as :8485 changes the port)\n  kiroku autostart off      stop it and remove it from login")
+	fs := newFS("autostart", "autostart [on [ADDR] | off]\n\nStarts \"kiroku serve\" in the background each time you log in, so the view is always at\nhttp://localhost:8484/ (macOS: launchd, Linux: systemd --user). Run \"kiroku open\" once to give your\nbrowser the key of kiroku serve.\n\n  kiroku autostart          show the status\n  kiroku autostart on       start now and at every login (ADDR such as :8485 changes the port)\n  kiroku autostart off      stop it and remove it from login")
 	pos, err := parse(fs, args, 2)
 	if err != nil {
 		return quiet(err)
@@ -334,6 +349,7 @@ func cmdAutostart(args []string) error {
 		if !s.running {
 			return fmt.Errorf("kiroku serve did not answer within %s; check the output above, or run \"kiroku doctor\"", autostartWait)
 		}
+		fmt.Println("open it with \"kiroku open\" (needed once per browser; after that, the address above works)")
 		return nil
 	case "off":
 		p, err := currentAutostart(nil)

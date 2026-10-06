@@ -459,6 +459,15 @@ func listenAddr(addr string) string {
 	return addr
 }
 
+// viewURL は、待ち受け先 addr の画面の URL（手元やすべてのネットワークで待ち受けるときは localhost）。
+func viewURL(addr string) string {
+	host, port, _ := net.SplitHostPort(addr)
+	if host == "127.0.0.1" || host == "::" || host == "0.0.0.0" || host == "" {
+		return "http://localhost:" + port + "/"
+	}
+	return "http://" + addr + "/"
+}
+
 // serveHTTP は待ち受けたポートで srv を動かし、startLive は最初の読み込みと履歴の見張りを別の goroutine で始める
 // （どちらもテストで、止められるものに差しかえる）。
 var (
@@ -493,18 +502,23 @@ func serveLive(addr string, allow []string, every time.Duration, picked []source
 	for _, s := range picked {
 		paths = append(paths, source.WatchPaths(s)...)
 	}
+	key, err := serveKey(true)
+	if err != nil {
+		ln.Close()
+		return fmt.Errorf("could not create the key for kiroku serve: %w", err)
+	}
 	l := &live{load: load, paths: paths, roots: historyRoots(picked), print: logw, keep: keep}
 	addr = ln.Addr().String()
-	url := "http://" + addr + "/"
-	if host, port, _ := net.SplitHostPort(addr); host == "127.0.0.1" || host == "::" || host == "0.0.0.0" || host == "" {
-		url = "http://localhost:" + port + "/"
-	}
+	url := viewURL(addr)
 	fmt.Fprintf(l.print, "serving %s (reading history...; press Ctrl+C to stop)\n", url)
 	startLive(l, every)
+	fmt.Fprintln(l.print, "only browsers with its key can open it (to protect it from other users of this computer); \"kiroku open\" opens it with the key")
 	if open {
-		openBrowser(url)
+		if err := openWithKey(url, key); err != nil {
+			fmt.Fprintf(l.print, "could not open a browser: %v\n", err)
+		}
 	}
-	err = serveHTTP(newServer(secureHeaders(sameOrigin(addr, allow, l.handler()))), ln)
+	err = serveHTTP(newServer(secureHeaders(sameOrigin(addr, allow, requireKey(addr, key, l.handler())))), ln)
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}
