@@ -145,6 +145,17 @@ for (const env of envs) {
     check("切り替えのボタンにいるときは → で週が変わらない", await label() === before, await label());
   });
 
+  await step("コストと残ったもの", async () => {
+    const oc = p.locator("#review .panel.oc"); await oc.scrollIntoViewIfNeeded(); await pause();
+    check("使ったものと残ったものが左右に並ぶ", await oc.locator(".ocside.spent").count() === 1 && await oc.locator(".ocside.left").count() === 1);
+    // git から数える指標（ダミーデータにはコミットも push もある）
+    for (const [name, id] of [["コミット", "gitCommits"], ["行", "lines"], ["ファイル", "files"], ["push", "pushes"]])
+      check(`残ったものに${name}が出る`, await oc.locator(`.ocside.left .hb[data-help="${id}"]`).count() === 1);
+    check("割った指標は残ったものではなく Compared の行にある", await oc.locator('.ocside.left .hb[data-help="costPerCommit"]').count() === 0
+      && await oc.locator('.occmp .hb[data-help="costPerCommit"]').count() === 1 && await oc.locator('.occmp .hb[data-help="outSessions"]').count() === 1);
+    check("カードが箱からはみ出さない", await oc.evaluate(e => [...e.querySelectorAll(".stat")].every(s => s.getBoundingClientRect().right <= e.getBoundingClientRect().right + 1)));
+  });
+
   await step("説明（?）を Esc で閉じる", async () => {
     const hb = p.locator("#review .hb").first();
     await hb.scrollIntoViewIfNeeded(); await hb.click(); await pause();
