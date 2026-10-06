@@ -84,7 +84,11 @@ For how to read the view, metric definitions, which histories are read and all o
 
 ## Uninstall
 
-Run `kiroku autostart off` if you turned it on, then delete the binary: `rm "$(command -v kiroku)"` (with `sudo` if it is in `/usr/local/bin`). kiroku keeps no data of its own; view settings are stored in your browser.
+1. If you turned on autostart, run `kiroku autostart off`. It stops `kiroku serve` and removes the launchd agent (macOS) or systemd user service (Linux) it wrote
+2. If you turned on `kiroku archive`, run `kiroku archive off` and answer `y` to delete the copies of history it kept. Or delete the folder yourself: `kiroku archive` shows where it is (by default `~/.local/share/kiroku` on Linux, `~/Library/Application Support/kiroku` on macOS, `%LocalAppData%\kiroku` on Windows)
+3. Delete the binary: `rm "$(command -v kiroku)"` (with `sudo` if it is in `/usr/local/bin`)
+
+Apart from these, kiroku keeps nothing of its own (HTML files you wrote with `kiroku html` stay where you put them); view settings are stored in your browser.
 
 ## Contributing
 

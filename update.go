@@ -11,6 +11,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -41,7 +42,7 @@ func runUpdate(args []string) error {
 		}
 		return err
 	}
-	client := &http.Client{Timeout: 60 * time.Second}
+	client := newUpdateClient()
 	target := *to
 	if target == "" {
 		v, err := latestVersion(client)
@@ -88,9 +89,26 @@ func runUpdate(args []string) error {
 	return nil
 }
 
+// newUpdateClient は kiroku update の HTTP クライアント。
+// つながるまで・返事（ヘッダー）が来るまでは短く待ち、本体のダウンロードには全体で長めの上限だけをかける。
+// 全体を 60 秒で切ると、遅い回線（おおよそ 170KB/s より遅い）ではダウンロードが終わらずに失敗するため。
+func newUpdateClient() *http.Client {
+	t := http.DefaultTransport.(*http.Transport).Clone() // プロキシの環境変数などはそのまま使う
+	t.DialContext = (&net.Dialer{Timeout: 15 * time.Second, KeepAlive: 30 * time.Second}).DialContext
+	t.TLSHandshakeTimeout = 15 * time.Second
+	t.ResponseHeaderTimeout = 30 * time.Second
+	return &http.Client{Transport: t, Timeout: 30 * time.Minute}
+}
+
+// latestCheckTimeout は最新の版を確かめるときの上限（リダイレクトのヘッダーを読むだけなので、すぐ終わるはず）。
+const latestCheckTimeout = 30 * time.Second
+
 // latestVersion は releases/latest のリダイレクト先から最新の版を読む（API の回数制限にかからない）。
 func latestVersion(client *http.Client) (string, error) {
 	c := *client
+	if c.Timeout == 0 || c.Timeout > latestCheckTimeout {
+		c.Timeout = latestCheckTimeout
+	}
 	c.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	resp, err := c.Get(releaseBase + "/releases/latest")
 	if err != nil {
