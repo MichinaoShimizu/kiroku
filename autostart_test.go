@@ -17,12 +17,12 @@ import (
 func fakeAutostart(t *testing.T, goos string, running bool) (home string, ran *[]string) {
 	t.Helper()
 	home = t.TempDir()
-	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", "")
-	oldOS, oldExe, oldRun, oldProbe, oldRetry := autostartGOOS, autostartExe, runCmd, probe, autostartRetry
+	oldOS, oldExe, oldHome, oldRun, oldProbe, oldRetry := autostartGOOS, autostartExe, autostartHome, runCmd, probe, autostartRetry
 	t.Cleanup(func() {
-		autostartGOOS, autostartExe, runCmd, probe, autostartRetry = oldOS, oldExe, oldRun, oldProbe, oldRetry
+		autostartGOOS, autostartExe, autostartHome, runCmd, probe, autostartRetry = oldOS, oldExe, oldHome, oldRun, oldProbe, oldRetry
 	})
+	autostartHome = func() (string, error) { return home, nil }
 	autostartRetry = 0
 	autostartGOOS = goos
 	autostartExe = func() (string, error) { return filepath.Join(home, "bin", "kiroku"), nil }
@@ -43,12 +43,12 @@ func TestPlanAutostart(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, want := range []string{"<string>/Users/me/bin/kiroku &amp; co</string>", "<string>serve</string>", "<string>--no-open</string>", "<string>:8485</string>",
-		"<key>CLAUDE_CONFIG_DIR</key><string>/Users/me/my claude</string>", "<key>RunAtLoad</key><true/>", "/Users/me/Library/Logs/kiroku.log"} {
+		"<key>CLAUDE_CONFIG_DIR</key><string>/Users/me/my claude</string>", "<key>RunAtLoad</key><true/>", xmlText(filepath.Join("/Users/me", "Library", "Logs", "kiroku.log"))} {
 		if !strings.Contains(p.content, want) {
 			t.Errorf("plist に %q がない:\n%s", want, p.content)
 		}
 	}
-	if p.path != "/Users/me/Library/LaunchAgents/"+autostartLabel+".plist" {
+	if p.path != filepath.Join("/Users/me", "Library", "LaunchAgents", autostartLabel+".plist") {
 		t.Errorf("plist の場所: %s", p.path)
 	}
 
@@ -62,7 +62,7 @@ func TestPlanAutostart(t *testing.T) {
 			t.Errorf("ユニットに %q がない:\n%s", want, p.content)
 		}
 	}
-	if p.path != "/home/me/.config/systemd/user/kiroku.service" {
+	if p.path != filepath.Join("/home/me", ".config", "systemd", "user", "kiroku.service") {
 		t.Errorf("ユニットの場所: %s", p.path)
 	}
 

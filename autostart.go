@@ -46,10 +46,11 @@ func runRetry(c []string) error {
 	return err
 }
 
-// autostartGOOS は OS、autostartExe は kiroku の実行ファイル（テストで差しかえる）。
+// autostartGOOS は OS、autostartExe は kiroku の実行ファイル、autostartHome はホーム（テストで差しかえる）。
 var (
 	autostartGOOS = runtime.GOOS
 	autostartExe  = os.Executable
+	autostartHome = os.UserHomeDir
 )
 
 // autostartPlan は、ログイン時に kiroku serve を起動するための設定ファイルと、登録・解除のコマンド。
@@ -143,7 +144,7 @@ func systemdQuote(s string) string {
 
 // currentAutostart は、この OS での設定（kiroku の場所と環境変数は、いま動いているものを使う）。
 func currentAutostart(args []string) (autostartPlan, error) {
-	home, err := os.UserHomeDir()
+	home, err := autostartHome()
 	if err != nil {
 		return autostartPlan{}, err
 	}
