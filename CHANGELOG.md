@@ -2,6 +2,17 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Added
+
+- Each release archive now comes with an SPDX SBOM (`<archive>.sbom.json`) listing the Go version and every Go module, with its version, built into kiroku. The SBOMs are in `checksums.txt` and carry build provenance like the archives
+- Release binaries can be rebuilt bit for bit from their tag: `sh tools/reproduce.sh v0.13.3 linux amd64` builds the tag and compares the result with the released binary. See "Verifying a release" in SECURITY.md
+
+### Security
+
+- CodeQL now analyzes the Go code and the view's JavaScript on every pull request and weekly, and OpenSSF Scorecard checks the repository's security practices and publishes the result (badge in the README)
+
 ## v0.13.3 - 2026-10-06
 
 ### Changed

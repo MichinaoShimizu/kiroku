@@ -1,6 +1,6 @@
 # kiroku
 
-[![CI](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml/badge.svg)](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/MichinaoShimizu/kiroku)](https://github.com/MichinaoShimizu/kiroku/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![CI](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml/badge.svg)](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/MichinaoShimizu/kiroku)](https://github.com/MichinaoShimizu/kiroku/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/MichinaoShimizu/kiroku/badge)](https://scorecard.dev/viewer/?uri=github.com/MichinaoShimizu/kiroku)
 
 **Your AI work history, visualized.**
 
@@ -16,7 +16,14 @@ Getting real value from limited credits and tokens depends on how you use your a
 
 kiroku reads those histories, puts them on one screen, and shows them only to you, so that anyone can understand their own usage and find something concrete to improve.
 
-`kiroku serve` only shows the same HTML on your machine (`127.0.0.1`). kiroku connects to the network only to check for and download kiroku itself from GitHub Releases: in `install.sh`, `kiroku update` (including `--check`) and `kiroku doctor` (`--no-update-check` to skip).
+## Privacy
+
+- Your history never leaves your computer. There is no telemetry, no account and no AI service involved.
+- kiroku connects to the network only to check for and download its own releases from GitHub: `install.sh`, `kiroku update` (including `--check`) and the update check in `kiroku doctor` (`--no-update-check` to skip).
+- The files it writes from your history (HTML, JSON, archive copies) are readable only by you.
+- `kiroku serve` listens on `127.0.0.1` only, unless you give it another address.
+
+See [SECURITY.md](SECURITY.md) for details, and for how to check that a release was built from this repository.
 
 ## What you get
 

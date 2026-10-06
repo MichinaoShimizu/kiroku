@@ -58,6 +58,10 @@ jobs:
         env:
           TAG: ${{ inputs.tag || github.ref_name }}
         run: sh tools/release-notes.sh "$TAG" > "$RUNNER_TEMP/notes.md"
+      # GoReleaser が SBOM を作るのに使う syft を入れる（版を固定する。上げるときはここを書き換える）
+      - uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          syft-version: v1.54.0
       - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
           version: v2.18.2 # 版を固定する（Dependabot は追わないので、上げるときはここを書き換える）
@@ -72,4 +76,5 @@ jobs:
           subject-path: |
             dist/*.tar.gz
             dist/*.zip
+            dist/*.sbom.json
             dist/checksums.txt

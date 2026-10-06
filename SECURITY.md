@@ -19,6 +19,40 @@ Especially relevant areas:
 - `kiroku autostart` refuses values with control characters (such as newlines) when writing the systemd unit
 - The generated HTML: user data must be escaped, and nothing should be sent off the machine. The page carries a Content-Security-Policy that allows only its own inline script and stylesheet (by hash), no external resources, and network requests only back to `kiroku serve` (none for a saved HTML file). Text it copies for pasting elsewhere (report drafts, prompt exports, prompts for an AI) escapes Markdown, and the AI prompts mark history as data, not instructions
 - `install.sh` and `kiroku update`: releases are verified against `checksums.txt` from the same release before replacing the binary. `kiroku update` accepts only version names of the form `v1.2.3` (or `v1.2.3-rc.1`), follows only `https` redirects, extracts only a regular file of at most 200 MiB, and installs an older version only with `--force`. `kiroku update` does not check attestations itself. When the GitHub CLI (`gh`) is installed, `install.sh` also checks the artifact attestation with `gh attestation verify` (signer workflow `release.yml`, source ref `main` or the release tag, GitHub-hosted runners only) and stops if it does not match. It only warns when `gh` is not logged in or cannot reach GitHub; `KIROKU_REQUIRE_ATTESTATION=1` makes any failure to check fatal (including a missing `gh`), and `KIROKU_SKIP_ATTESTATION=1` skips the check. The script body runs from its last line only, so a truncated `curl | sh` download does nothing
-- Releases are built by GitHub Actions and carry artifact attestations; `gh attestation verify <file> --repo MichinaoShimizu/kiroku` checks that a file came from this repository. Workflows pin third-party actions to commit SHAs, give each job only the permissions it needs, and the release build does not use the Actions cache
+- Releases are built by GitHub Actions and carry artifact attestations (see "Verifying a release" below). Workflows pin third-party actions to commit SHAs, give each job only the permissions it needs, and the release build does not use the Actions cache
 
 Only the latest release is supported.
+
+## Automated checks
+
+- [CodeQL](https://github.com/MichinaoShimizu/kiroku/actions/workflows/codeql.yml) analyzes the Go code and the view's JavaScript on every pull request, every push to main and weekly; findings go to the repository's code scanning alerts
+- [OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/MichinaoShimizu/kiroku) checks the repository's security practices (pinned dependencies, token permissions, branch protection and so on) weekly and on every push to main, and publishes the result
+- CI runs `govulncheck` (known vulnerabilities in code kiroku calls) and `staticcheck`, and checks that no script runs in a view built from history full of HTML and script payloads
+- Dependabot proposes updates to Go modules, GitHub Actions and the npm packages used in tests every week, and security fixes right away
+
+## Verifying a release
+
+Each release archive comes with an SPDX SBOM (`<archive>.sbom.json`) that lists the Go version and every Go module, with its version, built into the binary. The archives, the SBOMs and `checksums.txt` all carry build provenance. (SBOMs start with the first release after v0.13.3.)
+
+Check that a file was built by this repository's release workflow (needs the [GitHub CLI](https://cli.github.com/)):
+
+```bash
+gh attestation verify kiroku_0.13.3_linux_amd64.tar.gz --repo MichinaoShimizu/kiroku
+```
+
+Check that a release binary is exactly what its tag's source produces. The build is reproducible: `tools/reproduce.sh` clones the tag, builds it the way `.goreleaser.yaml` does (with the Go toolchain named in the tag's `go.mod`, `CGO_ENABLED=0`, `-trimpath`, `-ldflags "-s -w -X main.version=<version>"`), downloads the release archive, checks it against `checksums.txt` and compares the two binaries byte for byte. It needs git, Go, curl and tar (and unzip for Windows targets), and can check any target from any OS.
+
+```bash
+sh tools/reproduce.sh v0.13.3 linux amd64     # os: darwin, linux, windows; arch: amd64, arm64
+```
+
+By hand, that is:
+
+```bash
+git clone --branch v0.13.3 https://github.com/MichinaoShimizu/kiroku.git && cd kiroku
+GOTOOLCHAIN=go1.26.8 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+  go build -trimpath -ldflags "-s -w -X main.version=0.13.3" -o kiroku .
+sha256sum kiroku     # compare with the kiroku in kiroku_0.13.3_linux_amd64.tar.gz
+```
+
+Build from a clean clone of the tag, not from a source tarball or a modified tree: Go records the module version and commit in the binary, so a different commit or uncommitted changes give a different binary. Only the binaries are compared, not the archives around them.
