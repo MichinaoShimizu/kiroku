@@ -156,14 +156,14 @@ This only checks that things work. Clarity and wording are checked with the scen
 
 ## Screenshots
 
-The images in the README and the guide (`docs/screenshot.png`, `docs/summary.png`, `docs/year.png`) and the demo's link-card image (`docs/og.png`) can be retaken from dummy data. When you change the view, update them as well.
+The images in the README and the guide (`docs/screenshot.png`, `docs/session.png`, `docs/worth.png`, `docs/summary.png`, `docs/report.png`, `docs/year.png`) and the demo's link-card image (`docs/og.png`) can be retaken from dummy data. When you change the view, update them as well.
 
 ```bash
 (cd tools/screenshots && npm ci --ignore-scripts && npx playwright install chromium)
 sh tools/screenshots/run.sh
 ```
 
-`gen.py` creates about 5 weeks of Claude Code history for 4 made-up projects, and `mkgit.py` creates matching git repositories, in a temporary directory. `capture.mjs` takes the week calendar and weekly summary for last week at 1440x900 (dark theme, Asia/Tokyo), the week calendar again at 1440x754 at 2x for `og.png` (2880x1508), and the Year in review share image (1600x900) for `year.png`. While Year in review is hidden (`YEAR_ON` in `js/state.js`), `year.png` is left as it is. The `Demo` workflow adds the link-card tags that point at `og.png` with `ogp.py`; HTML you write yourself never gets them.
+`gen.py` creates about 5 weeks of Claude Code history for 4 made-up projects, and `mkgit.py` creates matching git repositories, in a temporary directory. `capture.mjs` takes the week calendar, the weekly summary, the flagged metrics (`worth.png`) and the weekly report draft (`report.png`) for last week at 1440x900 (dark theme, Asia/Tokyo); the left column of the session whose prompt flow has the most kinds of events at 2x (`session.png`; the right column shows the dummy data's temporary paths, so it is left out); the week calendar again at 1440x754 at 2x for `og.png` (2880x1508), and the Year in review share image (1600x900) for `year.png`. While Year in review is hidden (`YEAR_ON` in `js/state.js`), `year.png` is left as it is. The `Demo` workflow adds the link-card tags that point at `og.png` with `ogp.py`; HTML you write yourself never gets them.
 
 `sh tools/screenshots/run.sh --html <output.html>` builds only the dummy-data HTML (no Node needed). It sets `KIROKU_DEMO=1` and shows a Japan-time clock from any time zone. The git repositories in the temporary directory are deleted, so commit links don't open.
 
