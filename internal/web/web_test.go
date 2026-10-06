@@ -34,6 +34,9 @@ func TestCSP(t *testing.T) {
 
 func checkCSP(t *testing.T, page string, live bool) {
 	t.Helper()
+	// Windows のチェックアウトでは埋めこむファイルが CRLF になる。ブラウザは HTML を読むときに CRLF を LF にしてから
+	// ハッシュを比べるので、ここでも同じようにしてから確かめる
+	page = strings.ReplaceAll(strings.ReplaceAll(page, "\r\n", "\n"), "\r", "\n")
 	m := regexp.MustCompile(`<meta http-equiv="Content-Security-Policy" content="([^"]*)">`).FindAllStringSubmatch(page, -1)
 	if len(m) != 1 {
 		t.Fatalf("CSP の meta が %d 個", len(m))
