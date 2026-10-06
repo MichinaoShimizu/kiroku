@@ -27,14 +27,17 @@ Usage:
 Commands:
   serve [ADDR]          Open the view in your browser and keep it updated as new history arrives (default 127.0.0.1:8484)
   html                  Write the view as a single static HTML file (default kiroku.html) and open it
+                        (--week or --month writes only that period, for sharing)
   json                  Write the aggregated data as JSON (default kiroku.json, "-" for stdout)
   archive [on|off]      Keep compressed copies of history that agents delete (Claude Code, Kiro Crew); no argument shows the status
+  autostart [on|off]    Start "kiroku serve" in the background each time you log in; no argument shows the status
+  doctor                Check what kiroku can read and whether your history will be deleted, and what to run next
   version               Print the version
   update                Update kiroku to the latest release
   help                  Show this help
 
 Run "kiroku <command> --help" for a command's flags.
-Get started: kiroku serve
+Get started: kiroku doctor, then kiroku serve
 `
 
 func main() {
@@ -62,6 +65,10 @@ func dispatch(args []string) error {
 		return cmdJSON(args[1:])
 	case "archive":
 		return cmdArchive(args[1:])
+	case "autostart":
+		return cmdAutostart(args[1:])
+	case "doctor":
+		return cmdDoctor(args[1:])
 	case "version", "--version", "-version", "-v":
 		return runVersion()
 	case "update":
@@ -223,14 +230,35 @@ func cmdHTML(args []string) error {
 	out := fs.String("o", "kiroku.html", "output `file`")
 	fs.StringVar(out, "out", "kiroku.html", "same as -o")
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
+	week := fs.String("week", "", "write only this `week` (this, last, or any date in it such as 2026-10-05); default file kiroku-<monday>.html")
+	month := fs.String("month", "", "write only this `month` (this, last, or 2026-09); default file kiroku-<month>.html")
 	if _, err := parse(fs, args, 0); err != nil {
 		return quiet(err)
+	}
+	p, err := parsePeriod(*week, *month, time.Now())
+	if err != nil {
+		return err
 	}
 	_, load, err := c.loader()
 	if err != nil {
 		return err
 	}
-	return writeHTML(load(), *out, !*noOpen)
+	snap := load()
+	if p == nil {
+		return writeHTML(snap, *out, !*noOpen)
+	}
+	explicit := false
+	fs.Visit(func(f *flag.Flag) { explicit = explicit || f.Name == "o" || f.Name == "out" })
+	if !explicit {
+		*out = p.file()
+	}
+	if len(snap.data) > 0 {
+		snap = scoped(snap, p)
+		if len(snap.data) == 0 {
+			return fmt.Errorf("no history in %s", p.label())
+		}
+	}
+	return writeHTML(snap, *out, !*noOpen)
 }
 
 func cmdJSON(args []string) error {

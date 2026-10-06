@@ -37,6 +37,7 @@ type Report struct {
 	Error    *string    `json:"error"`
 	Oldest   float64    `json:"oldest,omitempty"`    // いちばん古い記録の時刻（UNIX 秒）。これより前は見られない
 	Keep     *Retention `json:"retention,omitempty"` // エージェントが履歴を自動で消す設定
+	IDs      []string   `json:"-"`                   // 読んだセッションの ID（kiroku html --week などで、期間の分だけ数え直すため）
 }
 
 // Retention は、エージェントが古い履歴を自動で消す設定。画面で、過去の分が見られなくなることを知らせ、公式ドキュメントへ案内する。
@@ -45,6 +46,7 @@ type Retention struct {
 	Set     bool   `json:"set"`     // 利用者が設定しているか（false なら既定値のまま）
 	Setting string `json:"setting"` // 設定の名前
 	Docs    string `json:"docs"`    // 公式ドキュメント
+	File    string `json:"-"`       // 設定を書くファイル（kiroku doctor で案内する。わからなければ空）
 }
 
 // Retainer は、履歴を自動で消すエージェントの Source が実装する。

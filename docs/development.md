@@ -19,9 +19,12 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 
 | Location | Role |
 |---|---|
-| `cli.go` | Subcommands (`serve`, `html`, `json`, `version`, `update`, `help`), option parsing, and the old syntax (`kiroku --serve` and so on) |
+| `cli.go` | Subcommands (`serve`, `html`, `json`, `archive`, `autostart`, `doctor`, `version`, `update`, `help`), option parsing, and the old syntax (`kiroku --serve` and so on) |
 | `main.go` | Loading history (removing duplicates), overriding the price table |
 | `update.go` | `kiroku update` (downloads from Releases, verifies, and replaces itself) |
+| `doctor.go` | `kiroku doctor` (lists what was found and what to run next; only reads) |
+| `autostart.go` | `kiroku autostart` (a launchd agent on macOS, a systemd user service on Linux) |
+| `scope.go` | `kiroku html --week` / `--month` (keeps only one period's sessions, commits and pushes) |
 | `serve.go` | `kiroku serve` (watches history for changes, reloads, and pushes to the view) |
 | `cache.go` | On reload, skips history unchanged since last time (using a per-agent fingerprint and the per-conversation marks of `source.Splitter`) |
 | `internal/source` | Adapters that read each agent's history. Details on how they read are in [sources.md](sources.md) |
