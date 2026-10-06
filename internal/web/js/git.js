@@ -19,7 +19,7 @@ const ico = (k, cls = "") => `<svg class="ic${cls ? " " + cls : ""}" viewBox="0 
 const AG_MARK = {"Claude Code": "CC", "Kiro IDE": "KI", "Kiro IDE (legacy)": "KI", "Kiro CLI": "KC", "Kiro CLI (SQLite)": "KC", "Kiro Crew": "KW", "Amazon Q": "Q", "Codex": "CX"};
 const agMark = name => `<i class="agm" aria-hidden="true">${esc(AG_MARK[name] || String(name).slice(0, 2).toUpperCase())}</i>`;
 /* リンク：外のページ（GitHub など）は新しいタブで開く */
-function ext(url, label, cls){ return url ? `<a class="xl${cls ? " "+cls : ""}" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label}</a>` : label; }
+function ext(url, label, cls){ return url && /^https?:\/\//i.test(url) ? `<a class="xl${cls ? " "+cls : ""}" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label}</a>` : label; }
 function fileHref(path){ // HTML で見るときの履歴ファイルの file:// の URL（Windows のパスにも対応）
   const p = path.replace(/\\/g, "/");
   return "file://" + (/^[A-Za-z]:/.test(p) ? "/" : "") + p.split("/").map(encodeURIComponent).join("/").replace(/%3A/g, ":");
