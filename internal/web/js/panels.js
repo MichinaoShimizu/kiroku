@@ -92,7 +92,7 @@ function outcomePanel(w, pw, unit, ph, stat){
   const out = hasOut ? [
     gc ? stat("Git commits", times(gc.commits), `${gc.ai} by AI (${Math.round(gc.ai*100/gc.commits)}%)${pw && pw.git ? ` · ${V.diff(gc.commits, V.of("commits", pw.git.commits))}` : ""}`, "gitCommits") : "",
     gc ? "" : stat("AI commits", times(o.commits), d(o.commits, po && po.commits), "commits"), // Git のコミットがあれば「うち AI」に出ている
-    gc ? stat("Lines changed", n(lines), `+${n(gc.added)} −${n(gc.removed)} · ${n(Math.round(lines/gc.commits))} per commit`, "lines") : "",
+    gc ? stat("Lines changed", n(lines), `+${n(gc.added)} −${n(gc.removed)} · ${n(Math.round(lines/gc.commits))} per git commit`, "lines") : "",
     gc && G.files ? stat("Files changed", n(G.files), `In ${plural(G.projects, "project")}${G.trunc ? " · at least" : ""}`, "files") : "",
     G.pushes ? stat("Pushes", times(G.pushes), `To ${plural(G.refs, "branch", "branches")} · from this computer`, "pushes") : "",
     o.prs ? stat("Pull requests", times(o.prs), "Created by AI", "prs") : "",
@@ -100,7 +100,7 @@ function outcomePanel(w, pw, unit, ph, stat){
   // 使ったものと比べた指標。残ったものではないので別の行にして、何と何を割ったかを添える
   const cmp = hasCommit ? [
     w.costPerCommit != null ? stat("Estimated cost per commit", usdH(w.costPerCommit), `Claude Code's estimated cost ÷ ${plural(o.commits, "AI commit")}`, "costPerCommit") : "",
-    stat("Sessions that reached a commit", base ? `${Math.round(w.outSessions*100/base)}<small>%</small>` : "—", `${w.outSessions} of ${plural(base, "session")}`, "outSessions"),
+    stat("Sessions that reached a commit or PR", base ? `${Math.round(w.outSessions*100/base)}<small>%</small>` : "—", `${w.outSessions} of ${plural(base, "session")}`, "outSessions"),
   ].join("") : "";
   // 「残ったもの」に添える一言は、実際に出したカードから作る（git を読めなかった週に、行やファイルがあるように書かないため）
   const names = [o.commits || gc ? "commits" : "", gc ? "lines" : "", gc && G.files ? "files" : "", G.pushes ? "pushes" : "", o.prs ? "pull requests" : ""].filter(Boolean);
@@ -110,7 +110,7 @@ function outcomePanel(w, pw, unit, ph, stat){
     <div class="ocgrid">
       ${side("spent", "Cost", "Time and usage", `<div class="stats">${cost}</div>`)}
       <div class="ocarrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-      ${side("left", "Left behind", outSub, out ? `<div class="stats">${out}</div>` : `<p class="none">No commits recorded.</p>`)}
+      ${side("left", "Left behind", outSub, out ? `<div class="stats">${out}</div>${gc ? "" : `<p class="none">Lines, files and pushes are counted from git commits, which were not read here.</p>`}` : `<p class="none">No commits recorded.</p>`)}
     </div>
     ${cmp ? side("occmp", "Compared", "Cost ÷ what it left behind", `<div class="stats">${cmp}</div>`) : ""}
     <div class="ocdaily">${usageChart(w, unit === "月")}</div></section>`;
@@ -200,7 +200,7 @@ function vsPrev(pw, unit){
   const a = n == null ? null : new Date(periodBack(1).ws * 1000), range = n == null ? "" : n === 1 ? dMD(a) : dSpan(a, addDays(a, n - 1));
   const label = n == null ? `vs ${uLast(unit)}` : `vs ${range}`;
   const of = (f, whole) => !pw || whole == null ? null : n == null ? whole : f ? pw.days.slice(0, n).reduce((t, d) => t + (d[f] || 0), 0) : null;
-  const diff = (a, b, fmt = x => x) => b == null ? "" : `${label} <span class="nw">${a-b>=0?"+":"−"}${fmt(Math.abs(a-b))}</span>`;
+  const diff = (a, b, fmt = x => x) => b == null ? "" : a === b ? `${label} <span class="nw">no change</span>` : `${label} <span class="nw">${a-b>0?"+":"−"}${fmt(Math.abs(a-b))}</span>`;
   return {n, range, label, of, diff};
 }
 // projection は、今月の途中なら、今日までのペースが月末まで続いたときの目安コストとクレジット（推定）。

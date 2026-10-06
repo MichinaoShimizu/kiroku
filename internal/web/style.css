@@ -196,7 +196,8 @@ kbd{font:var(--fs-xs)/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px
 .ocside .stats{margin-top:10px} /* 同じ行のカードは高さがそろう。印の付いたカードは 1 行を使うので、ほかの行を引き伸ばさない */
 .oc .stat{min-height:84px;display:flex;flex-direction:column}
 .ocside .stats{grid-auto-flow:row dense} /* 印の付いたカードが 1 行を使っても、空いたところをほかのカードで埋める */
-.ocside .stats:has(.flagged) .stat:last-child:nth-child(odd):not(.flagged){grid-column:auto}
+/* 奇数個でも最後のカードを横いっぱいに伸ばさない（伸びると、いちばん下のカードがいちばん大きく見えてしまう） */
+.ocside .stats .stat:last-child:nth-child(odd):not(.flagged){grid-column:auto}
 .oc .stat .s{margin-top:auto;padding-top:2px}
 .ocarrow{display:flex;align-items:center;justify-content:center;align-self:stretch;color:var(--ink-3)}
 .ocarrow svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}

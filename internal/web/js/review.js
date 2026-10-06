@@ -53,7 +53,7 @@ function askPrompt(w, pw, M){
   if (o && o.commits){
     L.push("", "# Outputs (run by AI and succeeded; Claude Code only)",
       `- Commits: ${o.commits}`,
-      `- Sessions that reached a commit: ${w.outSessions} / ${w.outBase ?? w.sessions}`);
+      `- Sessions that reached a commit or pull request: ${w.outSessions} / ${w.outBase ?? w.sessions}`);
     if (w.costPerCommit != null) L.push(`- Estimated cost per commit: ${usd(w.costPerCommit)}`);
   }
   const start0 = M ? st.month : st.week, days = w.days.map((d, i) => [addDays(start0, i), d]).filter(([, d]) => d.active || d.tokens || d.credits || d.commits);
@@ -196,7 +196,7 @@ function findList(w, pw, unit){
   if (u.cacheHit != null && u.tokens >= 1e6 && u.cacheHit < 0.5)
     add("cache", 20, `Only ${Math.round(u.cacheHit*100)}% of input was read from cache`, "You may be re-sending the same context every time", "Under 50%, with 1M+ tokens", null, `${Math.round(u.cacheHit*100)}% of input ${P} was read from cache`);
   if ((w.outBase ?? w.sessions) >= 5 && (o.commits || o.prs || (w.git && w.git.commits)) && w.outSessions / (w.outBase ?? w.sessions) < 0.25)
-    add("outSessions", 16, `${w.outSessions} of ${w.outBase ?? w.sessions} sessions reached a commit`, "Many sessions may have stopped partway", "Under 25%, with 5+ sessions", null, `${pctOf(w.outSessions, w.outBase ?? w.sessions)}% of sessions ${P} reached a commit`);
+    add("outSessions", 16, `${w.outSessions} of ${w.outBase ?? w.sessions} sessions reached a commit or pull request`, "Many sessions may have stopped partway", "Under 25%, with 5+ sessions", null, `${pctOf(w.outSessions, w.outBase ?? w.sessions)}% of sessions ${P} reached a commit or pull request`);
   const BG = bigOf(ws, we);
   if (BG.n >= 3)
     add("bigPrompts", 11, `${plural(BG.n, "prompt")} of ${BIG_PROMPT.toLocaleString(LOC())}+ characters (longest ${BG.max.toLocaleString(LOC())})`, "Pasting long logs or documents makes every later response re-read a heavier input, and buries the instructions that matter", `3+ prompts of ${BIG_PROMPT.toLocaleString(LOC())}+ characters`, BG.ids.slice(0, 6), `${plural(BG.n, "prompt")} ${P} crossed the threshold`);
