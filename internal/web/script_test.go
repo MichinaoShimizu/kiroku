@@ -55,3 +55,31 @@ func TestMarkdownEscape(t *testing.T) {
 		t.Errorf("Markdown の打ち消しが違う:\n%s", out)
 	}
 }
+
+// 目安コストを出せないとき（料金表にないモデルのトークンだけ）に $0.00 と出さないこと。
+// format.js は画面の DOM を触るので、costOf の 1 行だけを取り出して Node で動かす。
+func TestCostOf(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/format.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	line := regexp.MustCompile(`(?m)^const costOf = .*$`).FindString(string(src))
+	if line == "" {
+		t.Fatal("format.js に costOf が見つからない")
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "costof_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "cost.js")
+	if err := os.WriteFile(f, append([]byte(line+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("costOf が違う:\n%s", out)
+	}
+}

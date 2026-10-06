@@ -8,6 +8,15 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - The prompt flow now shows what the AI wrote back. Under each prompt, "AI's reply" opens the last thing the AI said to you in that turn (its own words, not its thinking, tool calls or tool output). It is folded away until you open it, the HTML keeps the first 160 characters, and `kiroku serve` adds "Load the full reply" to read the rest. It is read from Claude Code, Kiro IDE, Kiro CLI, Kiro Crew, Amazon Q Developer CLI and Codex CLI; "Only user prompts" hides the replies, and "Copy prompts" still copies only your prompts
 
+### Changed
+
+- Tokens and Kiro credits now have their own box everywhere the view used to share one. "Month-end projection (estimate)" in "④ How you used AI" is now two boxes, "Month-end cost (estimate)" and "Month-end credits (estimate)", instead of one box reading "≈ $12 · 34 credits"; on phones, a month calendar cell with both shows tokens and credits on their own lines instead of only tokens. They are separate allowances, so for anyone using both Claude Code and Kiro each is now something you can read on its own
+
+### Fixed
+
+- Estimated cost showed `$0.00` even after hours of work on a Claude subscription. Claude Code records its own cost in the history (`cost-state`), and on a subscription there is no per-token bill, so it writes `0` for every model. kiroku followed that figure and reported nothing spent. It now keeps its own price-table estimate for any model whose recorded cost is 0 although it was used, and session details say "(from Claude Code)" only when that record was really used
+- When none of the models used are in the price table (Codex, for example), the estimated cost is now shown as `—`, with the reason when you point at it, instead of `$0.00`, which read as if nothing had been used. "Month-end cost (estimate)" is left out in that case, and the prompt for an AI review says the cost is unknown. Tokens that could not be priced were already listed under "Data sources"
+
 ## v0.17.0 - 2026-10-06
 
 ### Added

@@ -7,6 +7,8 @@ function detail(s){
   const med = waits.length ? waits[Math.floor(waits.length/2)] : null, maxT = Math.max(1, ...s.tools.map(t=>t[1]));
   const sameDay = new Date(s.start*1000).toDateString() === new Date(s.end*1000).toDateString();
   const allTok = [s.usage, ...s.subagents.map(a=>a.usage)].reduce((t,u)=>t + (u ? u.in+u.out+u.cw+u.cw1h+u.cr : 0), 0);
+  // 目安コスト。料金表にないモデルだけなら "—"（$0.00 と出すと、使っていないと読めてしまう）
+  const sCost = costOf({cost: s.cost, unpriced: [s.usage, ...s.subagents.map(a=>a.usage)].reduce((t,u)=>t + (u ? u.unpriced||0 : 0), 0)});
   const P = $("#panel");
   P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
     <div class="eyebrow"><span class="dot"></span>${agMark(s.source)}${esc((s.source))}</div>
@@ -20,7 +22,7 @@ function detail(s){
       <div><div class="k">Wait time (median)</div><div class="v">${med==null?"—":secsH(med)}</div></div>
       <div><div class="k">Corrections / interruptions</div><div class="v">${s.corrections + s.interrupts}</div></div>
       ${s.limits && s.limits.length ? `<div><div class="k">Usage limit hits</div><div class="v" style="color:var(--warn)">${s.limits.length}</div><div class="k" style="margin-top:2px">${s.limits.map(hm).join(", ")}</div></div>` : ""}
-      ${s.source === "Claude Code" ? `<div><div class="k">Estimated cost${s.costReported ? " (from Claude Code)" : ""}</div><div class="v">${usdH(s.cost)}</div></div>
+      ${s.source === "Claude Code" ? `<div><div class="k">Estimated cost${s.costReported ? " (from Claude Code)" : ""}</div><div class="v"${sCost == null ? ` title="${esc(NOPRICE)}"` : ""}>${usdH(sCost)}</div></div>
       <div><div class="k">Tokens</div><div class="v">${tok(allTok)}</div></div>
       ${(() => { const cs = commitsOf(s), ai = cs.filter(c => c.ai).length, o = s.outputs || {}; // 右の「このセッションの間のコミット」と同じ数え方（手でのコミットも入れ、うち AI を添える）
         if (!cs.length) return o.commits ? `<div><div class="k">AI commits</div><div class="v">${o.commits}</div></div>` : ""; // git を読めないときは、AI が実行した回数
