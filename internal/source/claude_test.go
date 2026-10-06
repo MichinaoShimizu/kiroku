@@ -45,6 +45,29 @@ func TestClaudeOutputs(t *testing.T) {
 	}
 }
 
+// ありえない時刻の行（"timestamp": 100 や 0001 年）は時刻として使わない。セッションが 1970 年から始まらないように。
+func TestClaudeIgnoresBogusTimestamps(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	os.MkdirAll(dir, 0o755)
+	lines := []string{
+		`{"type":"user","timestamp":100,"cwd":"/Users/me/app","message":{"role":"user","content":"x"}}`,
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"直して"}}`,
+		`{"type":"assistant","timestamp":"0001-01-01T00:00:00Z","message":{"id":"m0","model":"claude-sonnet-5-5","content":[{"type":"text","text":"?"}]}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:05:00Z","message":{"id":"m1","model":"claude-sonnet-5-5","content":[{"type":"text","text":"ok"}]}}`,
+	}
+	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644)
+	bs := load(t, &Claude{Root: root})
+	if len(bs) != 1 {
+		t.Fatalf("セッション数 = %d, want 1", len(bs))
+	}
+	start, _ := core.ParseTS("2026-09-30T01:00:00Z")
+	end, _ := core.ParseTS("2026-09-30T01:05:00Z")
+	if s := bs[0].Finish(15); s == nil || s.Start != start || s.End != end {
+		t.Errorf("開始・終了 = %+v, want 2026-09-30 01:00〜01:05", s)
+	}
+}
+
 // Claude Code 自身の使用料（cost-state）: プロセスごとの最新の累計を、目安コストに使う。
 func TestClaudeCostState(t *testing.T) {
 	root := t.TempDir()

@@ -3,10 +3,12 @@ package source
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/MichinaoShimizu/kiroku/internal/archive"
+	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
 
 // Claude Code が消した会話は、kiroku archive のコピーから読む。元があればそちらを読む。
@@ -55,6 +57,52 @@ func TestClaudeReadsArchivedCopy(t *testing.T) {
 	}
 	if (&Claude{Root: root}).Keep() != nil {
 		t.Error("保存場所がないのに残そうとする")
+	}
+}
+
+// 壊れたコピー（途中で切れた .zst）は、黙って短い会話にせず、エラーとして返す（「読めなかったファイル」に出す）。
+// ほかの会話はふつうに読む。
+func TestClaudeReportsUnreadableFiles(t *testing.T) {
+	root, arch := t.TempDir(), t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	os.MkdirAll(dir, 0o755)
+	var lines []string
+	for i := 0; i < 200; i++ { // 圧縮しても途中で切れるくらいの長さ
+		lines = append(lines, `{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"依頼 `+strings.Repeat("x", i)+`"}}`)
+	}
+	for _, id := range []string{"gone1", "gone2"} {
+		os.WriteFile(filepath.Join(dir, id+".jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644)
+	}
+	os.WriteFile(filepath.Join(dir, "kept.jsonl"), []byte(lines[0]+"\n"), 0o644)
+	c := &Claude{Root: root, Archive: arch}
+	for _, k := range c.Keep() {
+		if _, err := archive.Sync(k.Src, k.Dst); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, id := range []string{"gone1", "gone2"} { // 元が消えて、コピーは途中で切れている
+		os.Remove(filepath.Join(dir, id+".jsonl"))
+		cp := filepath.Join(arch, "-Users-me-app", id+".jsonl.zst")
+		b, err := os.ReadFile(cp)
+		if err != nil {
+			t.Fatal(err)
+		}
+		os.WriteFile(cp, b[:len(b)/2], 0o644)
+	}
+
+	var ids []string
+	err := c.Load(func(b *core.Builder) { ids = append(ids, b.ID) })
+	if err == nil || !strings.Contains(err.Error(), "gone1.jsonl.zst") || !strings.Contains(err.Error(), "and 1 more") {
+		t.Errorf("Load のエラー = %v, want 切れたコピーの名前と、ほかに 1 つ", err)
+	}
+	if !slices.Contains(ids, "kept") {
+		t.Errorf("読めた会話 = %v, want kept も読む", ids)
+	}
+	for _, u := range c.Units() {
+		err := c.LoadUnit(u, func(*core.Builder) {})
+		if bad := strings.HasSuffix(u.Key, ".zst"); bad != (err != nil) {
+			t.Errorf("LoadUnit(%s) のエラー = %v", filepath.Base(u.Key), err)
+		}
 	}
 }
 
