@@ -72,7 +72,10 @@ func TestWebURL(t *testing.T) {
 		"https://github.com/owner/repo.git":            "https://github.com/owner/repo",
 		"https://user:token@gitlab.com/g/sub/repo.git": "https://gitlab.com/g/sub/repo",
 		"ssh://git@git.example.com:2222/team/repo.git": "https://git.example.com/team/repo",
+		"https://user@corp:token@github.com/o/r.git":   "https://github.com/o/r",
+		"ssh://user@corp:pw@git.example.com/team/repo": "https://git.example.com/team/repo",
 		"/srv/git/repo.git":                            "",
+		"http://":                                      "",
 		"":                                             "",
 	} {
 		if got := WebURL(in); got != want {

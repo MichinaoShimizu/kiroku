@@ -2,6 +2,17 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Added
+
+- Each release now includes its build provenance as a signed Sigstore bundle (`kiroku_<version>.sigstore.json`), so the archives can be checked with `gh attestation verify <file> --repo MichinaoShimizu/kiroku --bundle kiroku_<version>.sigstore.json` without looking the attestation up on GitHub. See "Verifying a release" in SECURITY.md
+- Fuzz tests for the code that reads history files (Claude Code, Codex, Kiro CLI, Kiro IDE), reads lines and timestamps, turns git remotes into links and builds the HTML view. Their seeds run with `go test ./...`, and a weekly workflow (and every push to main) fuzzes each one for a short while
+
+### Security
+
+- The view no longer shows a git remote's credentials in commit links when the user name contains `@` (`https://user@corp:token@host/...`): everything up to the last `@` before the host is dropped. Remotes with no host (`http://`) no longer become links. Found by the new fuzz tests
+
 ## v0.14.0 - 2026-10-06
 
 ### Added

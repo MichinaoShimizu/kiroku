@@ -476,11 +476,7 @@ func WebURL(remote string) string {
 		}
 		r = "https://" + host + "/" + path
 	case strings.HasPrefix(r, "ssh://"): // ssh://git@host:22/owner/repo.git
-		rest := strings.TrimPrefix(r, "ssh://")
-		if i := strings.Index(rest, "@"); i >= 0 {
-			rest = rest[i+1:]
-		}
-		host, path, ok := strings.Cut(rest, "/")
+		host, path, ok := strings.Cut(dropUserinfo(strings.TrimPrefix(r, "ssh://")), "/")
 		if !ok {
 			return ""
 		}
@@ -490,14 +486,26 @@ func WebURL(remote string) string {
 		r = "https://" + host + "/" + path
 	case strings.HasPrefix(r, "https://"), strings.HasPrefix(r, "http://"):
 		scheme, rest, _ := strings.Cut(r, "://")
-		if i := strings.Index(rest, "@"); i >= 0 && i < strings.Index(rest+"/", "/") { // https://user:token@host/... の資格情報は落とす
-			rest = rest[i+1:]
-		}
-		r = scheme + "://" + rest
+		r = scheme + "://" + dropUserinfo(rest) // https://user:token@host/... の資格情報は落とす
 	default:
 		return ""
 	}
-	return strings.TrimSuffix(strings.TrimSuffix(r, "/"), ".git")
+	r = strings.TrimSuffix(strings.TrimSuffix(r, "/"), ".git")
+	_, rest, _ := strings.Cut(r, "://")
+	if host, _, _ := strings.Cut(rest, "/"); host == "" || strings.Contains(host, "@") { // ホストがない・読みとれない
+		return ""
+	}
+	return r
+}
+
+// dropUserinfo は host/path の前の user:password@ を落とす。ユーザー名に @ が入っていても
+// （user@corp:token@host）資格情報が残らないよう、ホストの直前の @ までを落とす。
+func dropUserinfo(rest string) string {
+	host, _, _ := strings.Cut(rest, "/")
+	if i := strings.LastIndex(host, "@"); i >= 0 {
+		return rest[i+1:]
+	}
+	return rest
 }
 
 func isBitbucket(web string) bool { return strings.Contains(web, "://bitbucket.org/") }
