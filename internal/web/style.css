@@ -84,6 +84,7 @@ kbd{font:var(--fs-xs)/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px
 
 /* ── legend ─────────────────────────────────────────────── */
 .legend{position:relative;display:flex;align-items:center;gap:6px;padding:0 0 12px;overflow-x:auto;scrollbar-width:none} /* 読み上げ用の .sr（absolute）が横スクロールの外へはみ出してページを広げないように */
+.fnote{margin:-4px 0 10px;font-size:var(--fs-xs);color:var(--ink-3);line-height:1.5} /* 絞り込みの最中の断り書き */
 .legend::-webkit-scrollbar{display:none}
 .legend .lab{font-size:var(--fs-xs);letter-spacing:.08em;color:var(--ink-3);margin-right:4px;white-space:nowrap}
 .legend .lab small{letter-spacing:0;font-size:var(--fs-2xs);margin-left:2px}
@@ -125,14 +126,16 @@ kbd{font:var(--fs-xs)/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px
   font-size:var(--fs-xs);line-height:1.3;color:var(--ink);text-align:left;
   transition:transform .18s var(--ease),box-shadow .18s var(--ease),opacity .25s var(--ease),filter .25s;
   animation:rise .5s var(--ease) both;animation-delay:var(--delay,0ms)}
-.run.thin{padding:0;border-radius:4px}
+.run.thin{padding:0 6px;border-radius:4px;justify-content:center}.run.thin .t{font-size:var(--fs-2xs);line-height:1;white-space:nowrap}.run.thin .t::before{width:5px;height:5px} /* 短い帯は小さい字で 1 行だけ */
+.rlab{position:absolute;z-index:1;font-size:var(--fs-2xs);line-height:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none} /* 名前の入らない短い帯の、すぐ下の名前 */
+.tlbox.focus .rlab{opacity:.25}
 .run .t{display:flex;align-items:center;gap:5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .run .t::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c);flex:none}
 .run .t span{overflow:hidden;text-overflow:ellipsis}
 .run .m{color:var(--ink-2);font-size:var(--fs-xs);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
-/* 重なって細くなった帯（スマホや 1000px）では、名前が 1 文字で切れないよう、印と時刻を外して名前を折り返す */
+/* 重なって細くなった帯（スマホや 1000px）では、印と時刻を外して名前を語の切れ目で折り返す。語の途中では切らず、入らない語と行は … で省く */
 .run{container-type:inline-size}
-@container (max-width:64px){.run .t{white-space:normal;align-items:flex-start}.run .t::before{display:none}.run .t span{overflow-wrap:anywhere}.run .m{display:none}}
+@container (max-width:64px){.run .t{white-space:normal;align-items:flex-start}.run .t::before{display:none}.run .t span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--ln,1);overflow-wrap:normal;word-break:normal}.run .m{display:none}}
 .run:hover{box-shadow:inset 0 0 0 1.5px var(--c),var(--shadow);z-index:4}
 .tlbox.focus .run{opacity:.25;filter:saturate(.5)}
 .tlbox.focus .run.sel{opacity:1;filter:none;box-shadow:inset 0 0 0 2px var(--c),var(--shadow);z-index:2}
@@ -186,7 +189,9 @@ kbd{font:var(--fs-xs)/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px
 .spark circle{fill:var(--acc)}.spark .pt{opacity:.55}
 .spark .hit{fill:transparent;pointer-events:all}.spark .hit:hover{fill:color-mix(in oklab,var(--acc) 14%,transparent)}
 .spark small{font-size:var(--fs-xs);line-height:1.5;flex:1 1 12em;min-width:0}
-.spark small b{color:var(--ink-2);font-size:var(--fs-xs);font-variant-numeric:tabular-nums;margin-right:2px}
+.spk{display:inline-flex;flex-direction:column;gap:2px;flex:none}
+.spk .ends{display:flex;justify-content:space-between;gap:10px;font-size:var(--fs-2xs);line-height:1.2;font-variant-numeric:tabular-nums;color:var(--ink-3);white-space:nowrap} /* 推移の両端の期間と値（触れなくても読めるように） */
+.spk .ends b{color:var(--ink-2)}
 .flagsum{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 14px;font-size:var(--fs-sm)}
 .flagsum .lbl{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--ink-2)}
 .flagsum .hint{flex-basis:100%}
@@ -294,6 +299,7 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .cm dt{font-size:var(--fs-xs);color:var(--ink-2);white-space:nowrap} /* 濃さで色の付くマスの上でも読めるよう、ラベルも ink-3 より濃く */
 .cm dd{margin:0;font-size:var(--fs-sm);font-weight:600;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cm .k dd{font-size:var(--fs-md);font-weight:700;color:var(--ink)} /* 作業時間とトークン（クレジット）を強く、セッションとコミットは控えめに。色は使わず濃さと太さで分ける */
+.cm .u dt,.cm .u dd,.cm .k.u dd,.cell .acs.u,.cell .uss.u,.kpis.unf .v{color:var(--ink-3)} /* 絞り込みの最中の、絞り込まれていない合計 */
 .cell .uss{display:none}
 .cell .pj{display:flex;gap:2px;height:5px;border-radius:3px;overflow:hidden}
 .cell .pj span{background:var(--c);min-width:2px}
