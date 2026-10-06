@@ -2,6 +2,23 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- Dates in the view and in copied text are now written one way, in English regardless of the browser's language: the period as "Sep 28 – Oct 4" or "October 2026" (instead of "9.28—10.4" and "2026.10"), days as "Sep 28" or "Mon, Sep 28" (instead of "9/28" and "Mon 9/28"), the oldest record as "Sep 1, 2026" (instead of "2026/9/1"), and "Generated Oct 6, 2026, 17:14" (instead of the browser's own format, such as "10/6/2026, 5:14:16 PM"). The weekly report draft and the "Ask AI" prompt say "Sep 28 – Oct 4, 2026" or "October 2026" instead of "2026/9/28–2026/10/4". Times stay in 24-hour form as on the calendar
+- The weekly and monthly report draft now ends with a plain "_Drafted with kiroku_" line instead of an HTML comment, which showed up as is when pasted into Slack and other places that don't read Markdown as HTML
+- Session names on the week calendar now wrap onto up to three lines when the bar is tall enough, instead of being cut to a few characters on one line (such as "Add E2…" at 1440px). Bars too narrow for a word still show the start time or only the color, as before
+- On phones, the week calendar's right edge fades while there are more days to scroll to, and the session count ("20 / 20 sessions") is shown above the legend instead of at the end of its scrolling row, where it was off screen
+- The details panel no longer has a top bar holding only the close button: Back and close now sit at the right of the first line, next to the kind of details
+
+### Fixed
+
+- "Active days" in a week or month still in progress counted out of the whole period ("6/31" on October 6). It now counts out of the days so far, including today, and says so: "6 of 6 so far"
+- The ‹ › buttons keep their place with the new, longer date ("May 25 – May 31" is the widest)
+- On the most zoomed-out week calendar, short bars showed their name below the bar, outside it. Names now stay inside bars down to 10px tall and are cut with "…"
+- The Data sources panel had extra space above its heading
+
 ## v0.13.0 - 2026-10-06
 
 ### Added

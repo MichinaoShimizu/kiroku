@@ -70,11 +70,11 @@ kbd{font:var(--fs-xs)/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px
 .week{display:flex;align-items:flex-end;gap:28px;padding:26px 0 18px;flex-wrap:wrap}
 .wk{display:flex;align-items:center;gap:6px}
 .wk .lbl{min-width:0}
-.wk .d{min-width:6.6em} /* 「9.28—10.4」と「11.24—11.30」で幅が変わって ‹ › が動き、続けて押すと外れないように、いちばん長い日付の幅をとっておく */
+.wk .d{min-width:7.9em} /* 「Sep 28 – Oct 4」と「May 25 – May 31」（いちばん長い。手元のフォントで 7.5em）で幅が変わって ‹ › が動き、続けて押すと外れないように、いちばん長い日付の幅をとっておく */
 .wk .nav .iconbtn:disabled{opacity:.3;cursor:default;background:none} /* 今週より先・ファイルの外へは行けない */
 .wk .y{font:600 var(--fs-xs)/1 var(--sans);letter-spacing:.08em;color:var(--acc-ink);text-transform:uppercase}
 .wk .d{font:700 var(--fs-4xl)/1.1 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap;margin-top:6px}
-.wk .d span{color:var(--ink-3);font-weight:500;margin:0 .18em}
+.wk .d span{color:var(--ink-3);font-weight:500}
 .wk .nav{display:flex;gap:4px;align-self:flex-end;margin-left:10px}
 .kpis{display:flex;gap:0;margin-left:auto;border:1px solid var(--rule);border-radius:14px;background:var(--surface);overflow:hidden}
 .kpi{padding:10px 18px 9px;min-width:118px;border-left:1px solid var(--rule)}
@@ -85,9 +85,10 @@ kbd{font:var(--fs-xs)/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px
 .kpi.alert .v{color:var(--warn)}
 
 /* ── legend ─────────────────────────────────────────────── */
-.legend{position:relative;display:flex;align-items:center;gap:6px;padding:0 0 12px;overflow-x:auto;scrollbar-width:none} /* 読み上げ用の .sr（absolute）が横スクロールの外へはみ出してページを広げないように */
+.legend{display:flex;align-items:center;gap:6px;padding:0 0 12px}
+.legend .lrow{position:relative;flex:1;min-width:0;display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none} /* 読み上げ用の .sr（absolute）が横スクロールの外へはみ出してページを広げないように */
 .fnote{margin:-4px 0 10px;font-size:var(--fs-xs);color:var(--ink-3);line-height:1.5} /* 絞り込みの最中の断り書き */
-.legend::-webkit-scrollbar{display:none}
+.legend .lrow::-webkit-scrollbar{display:none}
 .legend .lab{font-size:var(--fs-xs);letter-spacing:.08em;color:var(--ink-3);margin-right:4px;white-space:nowrap}
 .legend .lab small{letter-spacing:0;font-size:var(--fs-2xs);margin-left:2px}
 .cbsel{display:none;flex:none;font-size:var(--fs-xs);color:var(--ink-3);white-space:nowrap}
@@ -107,12 +108,15 @@ kbd{font:var(--fs-xs)/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px
 .chip .dot{width:8px;height:8px;border-radius:50%;background:var(--c)}
 .chip .n{font-size:var(--fs-xs);color:var(--ink-3);font-variant-numeric:tabular-nums}
 .chip[aria-pressed="false"]{opacity:.45}.chip[aria-pressed="false"] .dot{background:transparent;box-shadow:inset 0 0 0 1.5px var(--c)}
-.legend .count{margin-left:auto;font-size:var(--fs-sm);color:var(--ink-3);white-space:nowrap;padding-left:12px}
+.legend .count{flex:none;font-size:var(--fs-sm);color:var(--ink-3);white-space:nowrap;padding-left:12px}
 
 /* ── week calendar（曜日が列、時刻が縦） ───────────────── */
 .tlbox{background:var(--surface);border:1px solid var(--rule);border-radius:16px;overflow:hidden;position:relative}
 .calscroll{overflow:auto;max-height:min(74vh,880px);scrollbar-width:thin;overscroll-behavior:contain}
 .calin{min-width:720px;position:relative}
+/* 横にスクロールできる（右にまだ日がある）あいだだけ、右端を薄くぼかして続きがあると見せる。指の操作は下のカレンダーへ通す */
+.tlbox::after{content:"";position:absolute;top:0;right:0;bottom:0;width:28px;z-index:10;pointer-events:none;background:linear-gradient(to right,transparent,var(--surface));opacity:0;transition:opacity .2s var(--ease)}
+.tlbox.morer::after{opacity:1}
 .heads,.cgrid{display:grid;grid-template-columns:56px repeat(7,minmax(0,1fr))}
 .heads{position:sticky;top:0;z-index:8;background:color-mix(in oklab,var(--surface) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
 .head{padding:10px 12px 9px;border-left:1px solid var(--rule);min-width:0}
@@ -138,20 +142,21 @@ kbd{font:var(--fs-xs)/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px
   font-size:var(--fs-xs);line-height:1.3;color:var(--ink);text-align:left;
   transition:transform .18s var(--ease),box-shadow .18s var(--ease),opacity .25s var(--ease),filter .25s;
   animation:rise .5s var(--ease) both;animation-delay:var(--delay,0ms)}
-.run.thin{padding:0 6px;border-radius:4px;justify-content:center}.run.thin .t{font-size:var(--fs-2xs);line-height:1;white-space:nowrap}.run.thin .t::before{width:5px;height:5px} /* 短い帯は小さい字で 1 行だけ */
+.run.thin{padding:0 6px;border-radius:4px;justify-content:center}.run.thin .t{font-size:var(--fs-2xs);line-height:1;white-space:nowrap;align-items:center}.run.thin .t::before{width:5px;height:5px;margin-top:0}.run.thin .t span{display:block} /* 短い帯は小さい字で 1 行だけ */
 .rlab{position:absolute;z-index:1;font-size:var(--fs-2xs);line-height:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none} /* 名前の入らない短い帯の、すぐ下の名前 */
 .tlbox.focus .rlab{opacity:.25}
-.run .t{display:flex;align-items:center;gap:5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.run .t::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c);flex:none}
-.run .t span{overflow:hidden;text-overflow:ellipsis}
+/* 名前は帯の高さに入る行数（--tl、calendar.js が決める）まで折り返し、入らない分は … で省く。1 行に詰めると 1440px でも「Add E2…」になるため */
+.run .t{display:flex;align-items:flex-start;gap:5px;font-weight:600;overflow:hidden;min-width:0;flex:none}
+.run .t::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c);flex:none;margin-top:4px}
+.run .t span{overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--tl,1);overflow-wrap:break-word;min-width:0}
 .run .m{color:var(--ink-2);font-size:var(--fs-xs);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 /* 重なって細くなった帯（スマホや 1000px）では、印と時刻を外して名前を語の切れ目で折り返す。語の途中では切らず、入らない語と行は … で省く */
 .run{container-type:inline-size}
-@container (max-width:64px){.run .t{white-space:normal;align-items:flex-start}.run .t::before{display:none}.run .t span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--ln,1);overflow-wrap:normal;word-break:normal}.run .m{display:none}}
+@container (max-width:64px){.run .t{white-space:normal}.run .t::before{display:none}.run .t span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--ln,1);overflow-wrap:normal;word-break:normal}.run .m{display:none}}
 /* もっと細くて最初の語も 4 文字も入らない帯（fitRuns が .nt を付ける）は、「S… u… t…」のような切れ端になるので、名前の代わりに始まりの時刻だけ。
    時刻も入らない帯（.nn）は色だけ。名前は aria-label とツールチップ、押せば詳細で見られる */
 .run .st{display:none;margin:0 -6px;font-size:var(--fs-2xs);font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-align:center}
-.run.nt .t,.run.nt .m,.run.nn .t,.run.nn .m{display:none}.run.nt .st{display:block}
+.run.nt .t,.run.nt .m,.run.nn .t,.run.nn .m{display:none}.run.nt .st{display:block}.run.thin .st{line-height:1}
 .run:hover{box-shadow:inset 0 0 0 1.5px var(--c),var(--shadow);z-index:4}
 .tlbox.focus .run{opacity:.25;filter:saturate(.5)}
 .tlbox.focus .run.sel{opacity:1;filter:none;box-shadow:inset 0 0 0 2px var(--c),var(--shadow);z-index:2}
@@ -366,6 +371,7 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 h2{font:700 var(--fs-2xl)/1.5 var(--sans);margin:6px 0 4px;letter-spacing:-.01em;overflow-wrap:anywhere}
 h3{font:600 var(--fs-sm)/1.2 var(--sans);color:var(--ink-2);margin:24px 0 10px;display:flex;align-items:center;gap:10px}
 h3::after{content:"";flex:1;height:1px;background:var(--rule)}
+.panel>h3:first-child{margin-top:0} /* 計測の状態などパネルの最初の見出しは、パネルの余白の上にさらに空けない */
 .delta{display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-xs);color:var(--ink-2);background:var(--surface-2);border-radius:6px;padding:1px 8px;margin-left:8px;font-variant-numeric:tabular-nums}
 .nw{white-space:nowrap}
 .hb{opacity:.6;display:inline-grid;place-items:center;width:16px;height:16px;margin-left:6px;border:1px solid var(--rule-2);border-radius:50%;font:600 var(--fs-2xs)/1 var(--sans);color:var(--ink-3);vertical-align:1px;flex:none}
@@ -516,14 +522,14 @@ body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:tra
   .drawer .dcol>:first-child{margin-top:0}
   .drawer .dcol+.dcol{border-left:1px solid var(--rule);padding-left:40px}
 }
-.drawer .dh{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px 28px;border-bottom:1px solid var(--rule)}
+/* 戻る・閉じるは、中身の 1 行目（種類の小見出し）の右に重ねる。ボタンだけの空いた帯を作らない。中身をスクロールしても押せるよう、パネルの上に固定する */
+.drawer .dh{position:absolute;top:10px;right:14px;z-index:2;display:flex;align-items:center;gap:4px;padding:2px;border-radius:11px;background:color-mix(in oklab,var(--surface) 88%,transparent);backdrop-filter:blur(6px)}
 .drawer .db{overflow:auto;padding:22px 28px 48px;flex:1;scrollbar-width:thin;font-size:var(--fs-lg)}
 /* パネルの中は読み物なので、一覧より一回り大きく・濃く */
 .drawer .back{font-size:var(--fs-md);color:var(--ink-2)}
-.drawer #close{margin-left:auto}
 .drawer .back[hidden]{display:none}
 .drawer .eyebrow{font-size:var(--fs-xs)}
-.drawer h2{font-size:var(--fs-2xl);margin:8px 0 6px}
+.drawer h2{font-size:var(--fs-2xl);margin:14px 0 6px} /* 上の行の右に戻る・閉じるが重なるので、題名はその下から */
 .drawer h3{font-size:var(--fs-lg);font-weight:700;color:var(--ink);margin:30px 0 12px}
 .drawer h3::after{background:var(--rule-2)}
 .drawer .meta span,.drawer .chips span{font-size:var(--fs-sm);padding:2px 10px}
@@ -635,6 +641,7 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
   .search{flex:1 1 auto;min-width:0;max-width:120px}.search input,.search input:focus{width:100%}
   .week{padding:18px 0 14px;gap:14px}
   .wk .d{font-size:var(--fs-3xl)}
+  .legend{flex-wrap:wrap;row-gap:6px}.legend .count{order:-1;flex-basis:100%;padding-left:0} /* スマホでは件数を色分けの並びの上に（横にスクロールする並びの右端だと、画面の外に隠れる） */
   .wk{flex-wrap:wrap;row-gap:10px} /* 英語のように長い文言でも、移動のボタンが画面の外に出ないように */
   .wk .nav{flex-wrap:wrap;row-gap:8px;margin-left:0;min-width:0} /* ボタンが増えても、狭い画面では折り返す */
   .kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -648,7 +655,7 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
   .rvgrid{grid-template-columns:minmax(0,1fr)}
   .panel{padding:18px 16px}
   .drawer .db{padding:18px 16px 40px}
-  .drawer .dh{padding-left:16px}
+  .drawer .dh{top:8px;right:8px}
   /* スマホでは画面いっぱいに出す */
   .drawer{width:100vw;height:100dvh;max-height:none;border:0;border-radius:0;transform:translate(-50%,-50%) translateY(16px)}
   .drawer .mini{grid-template-columns:1fr 1fr}

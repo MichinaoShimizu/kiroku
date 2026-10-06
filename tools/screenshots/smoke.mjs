@@ -48,6 +48,7 @@ for (const env of envs) {
     check("セッションが読み込まれている", await p.evaluate("DATA.length") > 0);
     const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
     check("横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
+    check("凡例の件数（20 / 20 sessions）が画面の中に見える", await p.evaluate(() => { const r = document.querySelector("#legend .count").getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= innerWidth + 1; }));
     check("ロゴが検索欄に隠れない", await p.evaluate(() => document.querySelector(".brand .word").getBoundingClientRect().right <= document.querySelector(".search").getBoundingClientRect().left));
   });
 
@@ -66,6 +67,7 @@ for (const env of envs) {
     const before = await label();
     await p.keyboard.press("ArrowLeft"); await pause();
     check("← で前の週へ移る", await label() !== before, `${before} のまま`);
+    check("期間の日付は「Sep 28 – Oct 4」の形", /^[A-Z][a-z]{2} \d{1,2} – [A-Z][a-z]{2} \d{1,2}$/.test(await label()), await label());
     await p.keyboard.press("t"); await pause();
     check("t で今週へ戻る", await label() === before, await label());
     check("今週では「次の週」を押せない", await p.locator("#next").isDisabled());
@@ -81,6 +83,12 @@ for (const env of envs) {
       return [...document.querySelectorAll("#tl .run")].filter(r => { const b = r.getBoundingClientRect(); return b.top < hd - 1 && b.bottom > hd + 1; }).length; });
     check("開いた位置で、日付の見出しに半分隠れたブロックがない", cut === 0, `${cut} 件`);
     check("過ぎた週は月曜から見える", await p.evaluate(() => document.querySelector("#tl .calscroll").scrollLeft) === 0);
+    if (env.isMobile){ // スマホでは、右にまだ日があるあいだだけ右端をぼかす
+      check("右にまだ日があると、右端がぼける", await p.evaluate(() => document.querySelector("#tl").classList.contains("morer")));
+      await p.evaluate(() => { const sc = document.querySelector("#tl .calscroll"); sc.scrollLeft = sc.scrollWidth; }); await pause();
+      check("右端までスクロールすると、ぼかしが消える", await p.evaluate(() => !document.querySelector("#tl").classList.contains("morer")));
+      await p.evaluate(() => { document.querySelector("#tl .calscroll").scrollLeft = 0; }); await pause();
+    }
   });
 
   await step("セッションの詳細", async () => {
@@ -91,6 +99,8 @@ for (const env of envs) {
     check("押すと詳細が開く", await drawerOpen());
     const box = await p.locator("#drawer").boundingBox();
     check("詳細が画面に収まる", box && box.x >= -1 && box.x + box.width <= env.viewport.width + 1, JSON.stringify(box));
+    check("閉じるボタンが種類の行に並び、ボタンだけの空いた帯がない", await p.evaluate(() => { const c = document.querySelector("#close").getBoundingClientRect(), e = document.querySelector("#panel .eyebrow").getBoundingClientRect();
+      return Math.abs((c.top + c.bottom) / 2 - (e.top + e.bottom) / 2) < 12 && c.left > e.left; }));
     await p.locator('#flowBy button[data-v="user"]').click(); await pause();
     check("「ユーザープロンプトだけ」で、出来事が隠れる", await p.evaluate(() => [...document.querySelectorAll("#drawer .tl li.ev")].every(li => !li.offsetParent)));
     await p.locator('#flowBy button[data-v="all"]').click(); await pause();
@@ -159,6 +169,8 @@ for (const env of envs) {
     check("週報の下書きが開く", await p.locator("#rptbox").isVisible());
     const text = await p.locator("#rptpre").innerText();
     check("週報の下書きに文面がある", text.trim().length > 20, JSON.stringify(text.slice(0, 40)));
+    check("週報の下書きの期間は「Sep 28 – Oct 4, 2026」の形", /^## Work for [A-Z][a-z]{2} \d{1,2} – ([A-Z][a-z]{2} \d{1,2}, )?\d{4}|^## Work for [A-Z][a-z]{2} \d{1,2}, \d{4} – /.test(text), JSON.stringify(text.split("\n")[0]));
+    check("週報の下書きに HTML のコメントがない（貼るとそのまま見える）", !text.includes("<!--") && text.trim().endsWith("_Drafted with kiroku_"), JSON.stringify(text.trim().split("\n").pop()));
     await p.locator("#pxtog").click(); await pause();
     const px = await p.locator("#pxpre").innerText();
     check("プロンプトを書き出せる", await p.locator("#pxbox").isVisible() && /^## /.test(px) && /\n- /.test(px), JSON.stringify(px.slice(0, 40)));

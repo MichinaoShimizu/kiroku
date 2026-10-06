@@ -14,7 +14,7 @@ if (LIVE){
         const d = DATA.length - before;
         toast(d > 0 ? `Added ${plural(d, "new session")}` : "Updated to the latest history");
       }
-      badge.classList.remove("off"); badge.title = `Updates automatically as your history grows (last checked ${new Date().toLocaleTimeString("en-US")})`;
+      badge.classList.remove("off"); badge.title = `Updates automatically as your history grows (last checked ${hm(Date.now()/1000)})`;
     } catch(e){ badge.classList.add("off"); badge.title = "Not connected to kiroku serve. If you stopped it, start it again to resume"; }
 
     busy = false;
