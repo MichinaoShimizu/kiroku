@@ -386,6 +386,15 @@ Per command:
 | `json` | `-o`, `--out` | `kiroku.json` | JSON file to write (`-` for stdout) |
 | `update` | `--check` / `--to <version>` / `--force` | | Only check / choose a version / replace even a dev build, the same version or an older version given with `--to` |
 
+## Uninstall
+
+1. If you turned on autostart, run `kiroku autostart off`. It stops `kiroku serve` and removes it from login (if kiroku is already deleted, see [how to remove it by hand](#turn-it-off))
+2. If you turned on `kiroku archive`, run `kiroku archive off` and answer `y` to delete the copies of history it kept. Or delete the folder yourself: `kiroku archive` shows where it is (by default `~/.local/share/kiroku` on Linux, `~/Library/Application Support/kiroku` on macOS, `%LocalAppData%\kiroku` on Windows)
+3. Delete kiroku's settings folder, which holds the key of `kiroku serve` (`~/.config/kiroku` on Linux, `~/Library/Application Support/kiroku` on macOS, `%AppData%\kiroku` on Windows, or `$KIROKU_CONFIG_DIR`)
+4. Delete the binary: `rm "$(command -v kiroku)"` (with `sudo` if it is in `/usr/local/bin`)
+
+Apart from these, kiroku keeps nothing of its own (HTML files you wrote with `kiroku html` stay where you put them); view settings are stored in your browser.
+
 ## Notes
 
 - The HTML and JSON output contain your prompts, file paths and commit messages as they are. Check the content before giving them to anyone (this repository's `.gitignore` excludes `*.html` and `kiroku.json`). kiroku writes them readable only by you (`0600`), through a temporary file that replaces the old one, so a symbolic link at the output path is replaced rather than followed
