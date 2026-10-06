@@ -246,7 +246,12 @@ func captureOutput(t *testing.T, fn func()) string {
 // fakeExe は、kiroku update が置きかえる実行ファイルを一時フォルダの偽物にする（テストの実行ファイルは置きかえない）。
 func fakeExe(t *testing.T) string {
 	t.Helper()
-	exe := filepath.Join(t.TempDir(), "kiroku")
+	// macOS の一時フォルダ（/var/folders/…）は /private/var へのリンクで、kiroku update はリンクをたどった先を出すので、先にたどっておく
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	exe := filepath.Join(dir, "kiroku")
 	if runtime.GOOS == "windows" {
 		exe += ".exe"
 	}
