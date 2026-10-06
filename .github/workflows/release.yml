@@ -37,6 +37,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write # 出どころの証明（attestation）に署名するため
+      attestations: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -57,3 +59,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_CURRENT_TAG: ${{ inputs.tag || github.ref_name }}
+      # 各ファイルが、このリポジトリのこのワークフローで作られたことの証明を残す
+      # （gh attestation verify <file> --repo MichinaoShimizu/kiroku で確かめられる）
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/checksums.txt
