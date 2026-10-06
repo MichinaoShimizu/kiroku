@@ -33,7 +33,7 @@ function render(){
   const fn = $("#fnote"); fn.hidden = !filtering();
   fn.textContent = `${st.q ? "The calendar shows only sessions that match the search, and their commits." : "Hidden items are left out of the calendar."} Grey figures, at the top and ${M ? "in each day and week" : "under each date"}, are totals for all sessions.`;
   const cb2 = $("#cb2"); if (cb2) cb2.onchange = () => { st.colorBy = cb2.value; st.hidden.clear(); store.set("colorBy", st.colorBy); render(); };
-  const tosr = $("#tosr"); if (tosr) tosr.onclick = () => $("#review").scrollIntoView({behavior:"smooth"});
+  const tosr = $("#tosr"); if (tosr) tosr.onclick = () => { $("#review").scrollIntoView({behavior:"smooth"}); const h = $("#srh"); if (h) h.focus({preventScroll: true}); }; // 見た目だけでなく、フォーカスも結果へ
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
 
   M ? monthGrid(shown, ws, we, todayKey) : timeline(shown, inRange, ws, we, todayKey);
@@ -45,13 +45,16 @@ function render(){
   const s = !gc && !pu && !pr && st.sel && DATA.find(x => x.id === st.sel), open = !!(s || gc || pu || pr);
   if (st.sel && !open) st.sel = null;
   if (s) detail(s); else if (gc) commitDetail(gc); else if (pu) pushDetail(pu); else if (pr) prDetail(pr.s, pr.r);
+  if (open){ $("#dkind").textContent = s ? "Session details" : gc ? "Commit details" : pu ? "Push details" : "Pull request details"; // 読み上げで、何の詳細かと題名がわかるように
+    const h2 = $("#panel h2"); if (h2) h2.id = "dtitle"; }
   document.body.classList.toggle("open", open); document.body.classList.toggle("lock", open);
   $("#drawer").setAttribute("aria-hidden", String(!open));
   document.querySelector("header").inert = document.querySelector("main").inert = open; // 背後に Tab で入らない
   $("#back").hidden = !st.back.length;
   if (open && (!focusDrawer.was || focusDrawer.sel !== st.sel)) $(st.back.length ? "#back" : "#close").focus();
   if (!open && focusDrawer.was) focusOpener(focusDrawer.first, focusDrawer.from);
-  if (open && !focusDrawer.was){ focusDrawer.first = st.sel; focusDrawer.from = focusDrawer.next; }
+  if (open && !focusDrawer.was){ focusDrawer.first = st.sel; focusDrawer.from = focusDrawer.next; histOpen(); }
+  if (!open && focusDrawer.was) histClose();
   focusDrawer.next = null;
   focusDrawer.was = open; focusDrawer.sel = st.sel;
   $("#tl").classList.toggle("focus", open);
@@ -189,7 +192,8 @@ function timeline(shown, inWeek, ws, we, todayKey){
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });
   T.querySelectorAll(".run").forEach(el => { const bk = runs[+el.dataset.r];
     el.onclick = e => { e.stopPropagation(); select(bk.s.id); };
-    el.onmouseenter = e => tipOn(e, bk); el.onmousemove = tipMove; el.onmouseleave = tipOff; });
+    el.onmouseenter = e => tipOn(e, bk); el.onmousemove = tipMove; el.onmouseleave = tipOff;
+    el.onfocus = () => { if (el.matches(":focus-visible")) tipOn(tipAt(el), bk); }; el.onblur = tipOff; }); // キーボードで移ったときも出す
 }
 
 // markKey は、週のカレンダーの右端の印（コミット・push・PR）の見方。カレンダーと同じ形の印で、その週にある種類だけ出す（月表示では出さない）
@@ -224,6 +228,7 @@ function tipMove(e){ const t = $("#tip"), w = t.offsetWidth, h = t.offsetHeight;
   let x = e.clientX + 14, y = e.clientY + 16; if (x + w > innerWidth - 12) x = e.clientX - w - 14; if (y + h > innerHeight - 12) y = e.clientY - h - 14;
   t.style.left = x+"px"; t.style.top = y+"px"; }
 function tipOff(){ $("#tip").classList.remove("on"); }
+function tipAt(el){ const r = el.getBoundingClientRect(); return {clientX: r.left + Math.min(r.width/2, 24), clientY: r.top + Math.min(r.height, 28)}; } // フォーカスしたブロックの左上あたりを、マウスの位置の代わりに
 // グラフの棒・帯・点は data-tip に書いた文を、マウスを載せる（タッチでは触れる）とすぐ出す。1 行目は見出し、続く行は「名前 値」
 const useLines = d => d ? [d.tokens ? `Tokens ${tok(d.tokens)}` : "", d.cost >= 0.005 ? `Estimated cost ${usd(d.cost)}` : "", d.credits ? `Credits ${cr(d.credits)}` : ""].filter(Boolean) : [];
 const tipAttr = (...lines) => ` data-tip="${esc(lines.flat().filter(Boolean).join("\n"))}"`;
@@ -233,5 +238,7 @@ document.addEventListener("pointerover", e => { const el = e.target.closest && e
 document.addEventListener("pointermove", e => { const el = e.target.closest && e.target.closest("[data-tip]"); if (!el) return; // スクロールで消えたあとも、動かせばまた出す
   if ($("#tip").classList.contains("on")) tipMove(e); else tipText(e, el.dataset.tip); });
 document.addEventListener("pointerout", e => { const el = e.target.closest && e.target.closest("[data-tip]"); if (el && !(e.relatedTarget && el.contains(e.relatedTarget))) tipOff(); });
-addEventListener("scroll", () => { if (!st.sel) tipOff(); }, {passive: true, capture: true});
+addEventListener("scroll", () => { if (st.sel) return;
+  const a = document.activeElement, r = a && a.classList && a.classList.contains("run") && a.matches(":focus-visible") && $("#tip").classList.contains("on") && a.getBoundingClientRect();
+  if (r && r.bottom > 0 && r.top < innerHeight) tipMove(tipAt(a)); else tipOff(); }, {passive: true, capture: true}); // キーボードで選んだブロックは、Tab で移ったときのスクロールで消さずに付いていく
 

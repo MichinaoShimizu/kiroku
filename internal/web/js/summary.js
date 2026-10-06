@@ -13,7 +13,7 @@ function summary(){
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
   const total = w.projects.reduce((t,[,v])=>t+v,0) || 1;
   const stat = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}${hint(h)}</div>`;
-  const ph = (n, t, s, h) => `<div class="ph"><span class="no">${n}</span><b>${t}${hb(h)}</b><span>${s}</span></div>${hint(h)}`;
+  const ph = (n, t, s, h) => `<div class="ph"><span class="no">${n}</span><h3>${t}${hb(h)}</h3><span>${s}</span></div>${hint(h)}`;
   const pct = v => v == null ? "Unknown" : `${v}<small>%</small>`;
   const times = n => `${n}`;
   const F = findList(w, pw, unit);
@@ -57,7 +57,8 @@ function summary(){
     const t = R.querySelector(`.panel .hb[data-help="${b.dataset.goto}"]`) || R.querySelector(`.panel.${b.dataset.goto}`); if (!t) return;
     const dt = t.closest("details"); if (dt && !dt.open){ dt.open = true; st.moreS = true; }
     t.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center"});
-    if (t.classList.contains("hb") && t.getAttribute("aria-expanded") !== "true") t.click(); });
+    if (t.classList.contains("hb") && t.getAttribute("aria-expanded") !== "true") t.click();
+    if (!t.matches("button")) t.tabIndex = -1; t.focus({preventScroll: true}); }); // フォーカスも移す（画面の外に残さない）
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
   const ko = R.querySelector("#keepoff"); if (ko) ko.onclick = () => { store.set("keepNoticeOff", true); summary(); };
   const ka = R.querySelector("#keeparch"); if (ka) ka.onclick = () => { ka.disabled = true; keepArchive(); };
@@ -164,7 +165,17 @@ function hb(id){ return H()[id] ? `<button class="hb" data-help="${id}" aria-lab
 function hint(id){ const h = H()[id]; if (!h) return "";
   return `<div class="hint" data-hint="${id}"${openHelp.has(id) ? "" : " hidden"}><p>${esc(h.d)}</p><dl><dt>Tells you</dt><dd>${esc(h.c)}</dd><dt>Doesn't tell you</dt><dd>${esc(h.x)}</dd><dt>What to try</dt><dd>${esc(h.a)}</dd></dl></div>`; }
 
+const helpOrder = []; // 説明を開いた順（Esc で新しいものから閉じる）。{id, b}
 function bindHelp(root){ root.querySelectorAll(".hb").forEach(b => b.onclick = e => { e.stopPropagation();
   let t = null; // 同じ指標の説明が画面に 2 か所あるので、押したボタンにいちばん近いものを開く
   for (let a = b.parentElement; a && !t; a = a === root ? null : a.parentElement) t = a.querySelector(`[data-hint="${b.dataset.help}"]`);
-  if (!t) return; t.hidden = !t.hidden; t.hidden ? openHelp.delete(b.dataset.help) : openHelp.add(b.dataset.help); b.setAttribute("aria-expanded", String(!t.hidden)); }); }
+  if (!t) return; t.hidden = !t.hidden; t.hidden ? openHelp.delete(b.dataset.help) : openHelp.add(b.dataset.help); b.setAttribute("aria-expanded", String(!t.hidden));
+  const i = helpOrder.findIndex(x => x.id === b.dataset.help); if (i >= 0) helpOrder.splice(i, 1);
+  if (!t.hidden) helpOrder.push({id: b.dataset.help, b}); }); }
+function closeHint(){ // Esc：いちばん新しく開いた説明を閉じて、その ? へフォーカスを戻す。閉じたら true
+  if (st.sel) return false; // 詳細を開いているときは、詳細を閉じるほう
+  while (helpOrder.length){ const {id, b} = helpOrder[helpOrder.length-1];
+    const btn = b.isConnected && b.getAttribute("aria-expanded") === "true" ? b : $(`#review .hb[data-help="${id}"][aria-expanded="true"]`); // 描き直していたら、同じ指標の ? を探す
+    if (!btn || !openHelp.has(id)){ helpOrder.pop(); continue; }
+    btn.click(); btn.focus(); return true; }
+  return false; }

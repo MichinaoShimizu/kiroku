@@ -114,6 +114,30 @@ for (const env of envs) {
     check("閉じるとカードにフォーカスが戻る", await p.evaluate(id => { const a = document.activeElement; return a.dataset.id === id && !!a.closest("#review"); }, id));
   });
 
+  await step("詳細と矢印キー・ブラウザの戻る", async () => {
+    const label = () => p.locator("#rd").innerText(), before = await label();
+    const run = p.locator(".run[data-sid]").first();
+    await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
+    check("詳細が開く", await drawerOpen());
+    await p.keyboard.press("ArrowLeft"); await pause();
+    check("詳細を開いているあいだは ← で週が変わらない", await drawerOpen() && await label() === before, await label());
+    await p.goBack(); await pause();
+    check("ブラウザの戻るで詳細が閉じ、ページに残る", !await drawerOpen() && await p.evaluate(() => typeof DATA === "object"), p.url());
+    await run.click(); await pause();
+    await p.keyboard.press("Escape"); await pause();
+    check("Esc で閉じると、積んだ履歴も消える", !await drawerOpen() && await p.evaluate(() => history.state === null));
+    await p.locator("#mode button").first().focus(); await p.keyboard.press("ArrowRight"); await pause();
+    check("切り替えのボタンにいるときは → で週が変わらない", await label() === before, await label());
+  });
+
+  await step("説明（?）を Esc で閉じる", async () => {
+    const hb = p.locator("#review .hb").first();
+    await hb.scrollIntoViewIfNeeded(); await hb.click(); await pause();
+    check("? で説明が開く", await hb.getAttribute("aria-expanded") === "true");
+    await p.keyboard.press("Escape"); await pause();
+    check("Esc で説明が閉じ、? にフォーカスが戻る", await hb.getAttribute("aria-expanded") === "false" && await hb.evaluate(b => b === document.activeElement));
+  });
+
   await step("見直す候補", async () => {
     const n = await p.locator(".flagsum .flink").count();
     const bar = p.locator("#review .ubar .c[data-tip]").first(); await bar.scrollIntoViewIfNeeded(); await pause();
@@ -152,6 +176,8 @@ for (const env of envs) {
     const heading = await p.locator("#review h2").first().innerText();
     check("検索結果が出る", heading === "Search results", heading);
     check("一致したセッションがある", await p.locator(".srow[data-s]").count() > 0, word);
+    await p.keyboard.press("Enter"); await pause();
+    check("検索欄で Enter を押すと、最初の結果へ移る", await p.evaluate(() => !!document.activeElement.closest("#review .srow")));
     await p.locator(".srow[data-s]").first().click(); await pause();
     check("検索結果から詳細が開く", await drawerOpen());
     await p.keyboard.press("Escape"); await pause();

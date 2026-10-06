@@ -22,6 +22,16 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - The "?" of Outputs said that commits made by hand are not included, while the card counts Git commits including them (with how many AI ran). It now explains both counts. The "?" of Estimated cost per commit now says it divides Claude Code's estimated cost by the commits AI ran, which is what the card uses, and the card no longer shows the estimated cost of all agents as if it were the number divided
 - ‹ › and → could move into future weeks and months without end, where the key figures said "This week · No records". You can no longer move past the current week or month (in the demo, by its clock), and a period with no records is named by its week or month, such as "Week of 8/3"
 - ‹ › moved sideways as the width of the date changed ("9.28—10.4" vs "11.24—11.30"), so clicking repeatedly could miss. The date now keeps the width of the longest one
+- `kiroku update` now stops with "too many arguments" when given a version without `--to` (`kiroku update v0.11.0`). Before, it ignored the version and everything after it, so it installed the latest release instead, and `kiroku update v0.11.0 --check` replaced kiroku instead of only checking. Use `kiroku update --to v0.11.0` to install a given version
+- In the view, ← and → no longer change the week while details (a session, commit, push or pull request) are open, or while the focus is on a control that uses the arrow keys itself (the Color by, View and Daily trend toggles, the search box and selects). Before, ← with details open closed them and jumped to the previous week, and the keyboard focus was lost. When moving weeks with the focus in the summary, it now moves to the period heading instead of being lost
+- The browser's Back button now closes open details (or goes back one step when you moved from one detail to another inside them) instead of leaving the page. Closing details with Esc or the close button leaves the browser history as it was. This works for files opened directly and under `kiroku serve`
+- Screen readers no longer read the whole weekly or monthly summary aloud each time you change the period; only the period heading is announced
+- "Worth a look" links and "All-time search results ↓" now move the keyboard focus to where they scroll, so Tab continues from there instead of from the top of the page
+- The details panel is announced by what it shows ("Commit details", "Push details", "Pull request details" or "Session details") followed by its title, instead of always "Session details"
+- The page now has a top-level heading (kiroku), and the numbered summary sections are headings, so screen reader users can jump between them. They look the same as before
+- The tooltip for a session block in the calendar now also appears when you reach the block with Tab, not only on mouse hover
+- Esc now closes the most recently opened "?" explanation and returns the focus to its "?" button. Before, Esc did nothing to it
+- Enter in the search box now moves the focus to the first search result (results are shown below the calendar), so you can open one with the keyboard right away
 
 ## v0.12.0 - 2026-10-06
 
