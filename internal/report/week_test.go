@@ -88,3 +88,52 @@ func TestOutputsOnlyFromTrackedSessions(t *testing.T) {
 		t.Errorf("1 コミットあたり = %v, want 2（Codex のコストは入れない）", w.CostPerCommit)
 	}
 }
+
+// 0 時に夏時間が始まる地域（America/Santiago は 2026-09-06 の 0 時が 1 時になる）でも、日の境目は日付どおり。
+// 以前は前の日の境目に 1 日足していたので、そのあとの境目が 23 時にずれ、9 月が 31 日になっていた。
+func TestDaysWhenMidnightIsSkipped(t *testing.T) {
+	loc, err := time.LoadLocation("America/Santiago")
+	if err != nil {
+		t.Skip("タイムゾーンのデータがない:", err)
+	}
+	saved := time.Local
+	time.Local = loc
+	t.Cleanup(func() { time.Local = saved })
+
+	if d := Midnight(2026, 9, 6, loc); d.Day() != 6 || d.Hour() != 1 {
+		t.Errorf("0 時のない日の始まり = %v, want 9/6 1:00", d)
+	}
+	if d := AddDays(Midnight(2026, 9, 5, loc), 2); d.Day() != 7 || d.Hour() != 0 {
+		t.Errorf("0 時のない日をまたいだ 2 日後 = %v, want 9/7 0:00", d)
+	}
+	at := func(m time.Month, d, h, min int) float64 {
+		return float64(time.Date(2026, m, d, h, min, 0, 0, loc).Unix())
+	}
+	session := func(id string, start float64) *core.Session {
+		return &core.Session{ID: id, Source: "Claude Code", Project: "app", Start: start, End: start + 1800,
+			Segs: [][3]float64{{start, start + 1800, 1}}, Prompts: []core.Prompt{}}
+	}
+	data := []*core.Session{session("late", at(9, 15, 23, 30)), session("sun", at(9, 6, 10, 0))}
+
+	m := AllMonths(data)["2026-09"]
+	if m == nil {
+		t.Fatal("9 月の集計がない")
+	}
+	if len(m.Days) != 30 {
+		t.Fatalf("9 月の日数 = %d, want 30", len(m.Days))
+	}
+	if m.Days[14].Active != 30 || m.Days[15].Active != 0 {
+		t.Errorf("9/15 23:30 の作業 = 15 日 %d 分、16 日 %d 分, want 30 と 0", m.Days[14].Active, m.Days[15].Active)
+	}
+	w := AllWeeks(data)["2026-08-31"]
+	if w == nil || len(w.Days) != 7 || w.Days[6].Active != 30 {
+		t.Errorf("8/31 の週 = %+v, want 7 日で日曜（9/6）に 30 分", w)
+	}
+	// America/Asuncion は 2023-10-01 の 0 時が 1 時になる。月の始まりが前の月の 23 時になると、キーが 9 月になってしまう
+	if asu, err := time.LoadLocation("America/Asuncion"); err == nil {
+		time.Local = asu
+		if k := MonthOf(float64(time.Date(2023, 10, 10, 12, 0, 0, 0, asu).Unix())).Format("2006-01"); k != "2023-10" {
+			t.Errorf("1 日に 0 時がない月の MonthOf = %s, want 2023-10", k)
+		}
+	}
+}

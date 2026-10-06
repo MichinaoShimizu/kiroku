@@ -28,10 +28,10 @@ const st = { z: store.get("zh", 2), colorBy: store.get("colorBy", "project"), th
              hidden: new Set(), sel: null, back: [], q: "", animate: true };
 
 /* ── helpers ── */
-function mondayOf(d){ d = new Date(d); d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d; }
+function mondayOf(d){ d = new Date(d); return new Date(d.getFullYear(), d.getMonth(), d.getDate()-((d.getDay()+6)%7)); } // 日付から作る（0 時のない日をまたいでも 0 時にそろう）
 function monthOf(d){ d = new Date(d); return new Date(d.getFullYear(), d.getMonth(), 1); }
 function mkey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; }
-function addDays(d,n){ d = new Date(d); d.setDate(d.getDate()+n); return d; }
+function addDays(d,n){ d = new Date(d); return new Date(d.getFullYear(), d.getMonth(), d.getDate()+n); }
 function key(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function hm(t){ return new Date(t*1000).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hourCycle:"h23"}); }

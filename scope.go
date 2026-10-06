@@ -18,6 +18,16 @@ type period struct {
 	from, to time.Time
 }
 
+// localDay は日付（YYYY-MM-DD か YYYY-MM）を、ローカル時刻のその日の始まりにする。
+// time.ParseInLocation だと、0 時のない日（夏時間が 0 時に始まる地域）は前の日の 23 時になる。
+func localDay(layout, s string) (time.Time, error) {
+	d, err := time.Parse(layout, s)
+	if err != nil {
+		return d, err
+	}
+	return report.Midnight(d.Year(), d.Month(), d.Day(), time.Local), nil
+}
+
 // parsePeriod は --week（this・last・その週のどれかの日 YYYY-MM-DD）と --month（this・last・YYYY-MM）を読む。
 // どちらもなければ nil。now はテストで差しかえる。
 func parsePeriod(week, month string, now time.Time) (*period, error) {
@@ -32,30 +42,30 @@ func parsePeriod(week, month string, now time.Time) (*period, error) {
 		case "this":
 			w = report.MondayOf(t)
 		case "last":
-			w = report.MondayOf(t).AddDate(0, 0, -7)
+			w = report.AddDays(report.MondayOf(t), -7)
 		default:
-			d, err := time.ParseInLocation("2006-01-02", week, time.Local)
+			d, err := localDay("2006-01-02", week)
 			if err != nil {
 				return nil, fmt.Errorf("--week takes this, last or a date such as 2026-10-05: %s", week)
 			}
 			w = report.MondayOf(float64(d.Unix()))
 		}
-		return &period{mode: "week", key: w.Format("2006-01-02"), from: w, to: w.AddDate(0, 0, 7)}, nil
+		return &period{mode: "week", key: w.Format("2006-01-02"), from: w, to: report.AddDays(w, 7)}, nil
 	case month != "":
 		var m time.Time
 		switch month {
 		case "this":
 			m = report.MonthOf(t)
 		case "last":
-			m = report.MonthOf(t).AddDate(0, -1, 0)
+			m = report.AddMonths(report.MonthOf(t), -1)
 		default:
-			d, err := time.ParseInLocation("2006-01", month, time.Local)
+			d, err := localDay("2006-01", month)
 			if err != nil {
 				return nil, fmt.Errorf("--month takes this, last or a month such as 2026-09: %s", month)
 			}
 			m = d
 		}
-		return &period{mode: "month", key: m.Format("2006-01"), from: m, to: m.AddDate(0, 1, 0)}, nil
+		return &period{mode: "month", key: m.Format("2006-01"), from: m, to: report.AddMonths(m, 1)}, nil
 	}
 	return nil, nil
 }
@@ -100,15 +110,15 @@ func scoped(snap snapshot, p *period) snapshot {
 	// 週・月の集計は、残したものだけで作り直し、期間に重なる週・月だけを残す
 	weeks := report.AllWeeks(data, commits...)
 	for k := range weeks {
-		w, _ := time.ParseInLocation("2006-01-02", k, time.Local)
-		if !w.Before(p.to) || !w.AddDate(0, 0, 7).After(p.from) {
+		w, _ := localDay("2006-01-02", k)
+		if !w.Before(p.to) || !report.AddDays(w, 7).After(p.from) {
 			delete(weeks, k)
 		}
 	}
 	months := report.AllMonths(data, commits...)
 	for k := range months {
-		m, _ := time.ParseInLocation("2006-01", k, time.Local)
-		if !m.Before(p.to) || !m.AddDate(0, 1, 0).After(p.from) {
+		m, _ := localDay("2006-01", k)
+		if !m.Before(p.to) || !report.AddMonths(m, 1).After(p.from) {
 			delete(months, k)
 		}
 	}
