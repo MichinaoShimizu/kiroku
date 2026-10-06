@@ -4,6 +4,9 @@ package gitlog
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"math"
 	"os"
 	"os/exec"
@@ -76,6 +79,7 @@ type aiCommit struct {
 
 type repo struct {
 	top, project string
+	email        string // user.email（空なら全員のコミット）
 	web          string // リモートの Web の URL（https://github.com/owner/repo など）。わからなければ ""
 	since        float64
 	ai           []aiCommit
@@ -114,11 +118,34 @@ func Collect(data []*core.Session) []Commit {
 
 // CollectAll はコミットに加えて、この PC から行った push も読む（どちらも手元の git だけで、外には問い合わせない）。
 func CollectAll(data []*core.Session) ([]Commit, []Push) {
+	cs, ps, _ := NewCache().Collect(data)
+	return cs, ps
+}
+
+// RepoTimeout は 1 つのリポジトリを読む時間の上限。リポジトリごとに数える（大きなリポジトリが 1 つあっても、ほかは読める）。
+var RepoTimeout = 30 * time.Second
+
+// Cache は、前回読んだリポジトリの結果を覚えておき、変わっていないリポジトリを読み直さない（kiroku serve 用）。
+// ref の位置・user.email・origin・セッションから決まる範囲が同じなら、コミットも push も同じ。
+type Cache struct {
+	repos  map[string]repoCache // 共通の git ディレクトリごと
+	counts map[string]int       // push で送ったコミットの数（prev..hash ごと。あとから変わらない）
+}
+
+type repoCache struct {
+	key     string
+	commits []Commit
+	pushes  []Push
+}
+
+func NewCache() *Cache { return &Cache{repos: map[string]repoCache{}, counts: map[string]int{}} }
+
+// Collect は CollectAll と同じ。前回から変わっていないリポジトリは読み直さない。
+// 時間切れになったリポジトリは前回の結果を使い（なければ何も出さない）、そのルートを stale で返す。
+func (c *Cache) Collect(data []*core.Session) (commits []Commit, pushes []Push, stale []string) {
 	if _, err := exec.LookPath("git"); err != nil {
-		return nil, nil
+		return nil, nil, nil
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 	tops := map[string][2]string{} // 作業場所 → [作業ツリーのルート, 共通の git ディレクトリ]（リポジトリでなければ空）
 	repos := map[string]*repo{}    // 共通の git ディレクトリごと。本体と git worktree は同じリポジトリとしてまとめる
 	var order []string
@@ -129,7 +156,9 @@ func CollectAll(data []*core.Session) ([]Commit, []Push) {
 		}
 		tc, ok := tops[p]
 		if !ok {
+			ctx, cancel := context.WithTimeout(context.Background(), RepoTimeout)
 			tc = repoOf(ctx, p)
+			cancel()
 			tops[p] = tc
 		}
 		top, common := tc[0], tc[1]
@@ -156,27 +185,72 @@ func CollectAll(data []*core.Session) ([]Commit, []Push) {
 		}
 	}
 	seen := map[string]bool{}
-	var out []Commit
-	var pushes []Push
-	for _, top := range order {
-		r := repos[top]
-		cs := readRepo(ctx, r)
-		pushes = append(pushes, readPushes(ctx, r)...)
-		for _, c := range cs {
-			if seen[c.Hash] {
+	next := map[string]repoCache{}
+	for _, common := range order {
+		r := repos[common]
+		rc, ok := c.read(common, r)
+		if !ok {
+			stale = append(stale, r.top)
+		}
+		if rc.key != "" {
+			next[common] = rc
+		}
+		pushes = append(pushes, rc.pushes...)
+		for _, cm := range rc.commits {
+			if seen[cm.Hash] {
 				continue
 			}
-			seen[c.Hash] = true
-			out = append(out, c)
+			seen[cm.Hash] = true
+			commits = append(commits, cm)
 		}
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].T < out[j].T })
+	c.repos = next
+	sort.Slice(commits, func(i, j int) bool { return commits[i].T < commits[j].T })
 	sort.SliceStable(pushes, func(i, j int) bool { return pushes[i].T < pushes[j].T })
-	return out, pushes
+	return commits, pushes, stale
 }
 
-// readPushes はリモート追跡ブランチの reflog から「update by push」の行を読む。readRepo のあと（r.web が決まってから）に呼ぶ。
-func readPushes(ctx context.Context, r *repo) []Push {
+// read は 1 つのリポジトリを読む。印（key）が前回と同じなら、前回の結果をそのまま使う。
+// 時間切れなら、途中までの結果は使わずに前回の結果を返す（ok は false）。
+func (c *Cache) read(common string, r *repo) (rc repoCache, ok bool) {
+	ctx, cancel := context.WithTimeout(context.Background(), RepoTimeout)
+	defer cancel()
+	prev := c.repos[common]
+	key := repoKey(ctx, r)
+	if ctx.Err() != nil {
+		return prev, false
+	}
+	if prev.key == key {
+		return prev, true
+	}
+	rc = repoCache{key: key, commits: readRepo(ctx, r)}
+	rc.pushes = readPushes(ctx, r, c.counts)
+	if ctx.Err() != nil {
+		return prev, false
+	}
+	return rc, true
+}
+
+// repoKey は、読む結果を決めるものの印: セッションから決まる範囲、user.email、origin、
+// ref と HEAD の位置（git worktree の HEAD も）。commit・push・fetch で ref が動けば変わる。
+// ついでに r.email と r.web を決める。
+func repoKey(ctx context.Context, r *repo) string {
+	email, _ := git(ctx, r.top, "config", "user.email")
+	r.email = strings.TrimSpace(email)
+	if remote, err := git(ctx, r.top, "remote", "get-url", "origin"); err == nil {
+		r.web = WebURL(remote)
+	}
+	refs, _ := git(ctx, r.top, "show-ref", "--head") // コミットがまだないと失敗するが、空のまま使う
+	wts, _ := git(ctx, r.top, "worktree", "list", "--porcelain")
+	sort.Slice(r.ai, func(i, j int) bool { return r.ai[i].t < r.ai[j].t })
+	h := sha256.New()
+	fmt.Fprintf(h, "%s\x00%s\x00%v\x00%v\x00%s\x00%s\x00%s\x00%s", r.top, r.project, r.since, r.ai, r.email, r.web, refs, wts)
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// readPushes はリモート追跡ブランチの reflog から「update by push」の行を読む。repoKey のあと（r.web が決まってから）に呼ぶ。
+// 送ったコミットの数は counts に覚えておき、同じ push のために git rev-list を何度も呼ばない。
+func readPushes(ctx context.Context, r *repo, counts map[string]int) []Push {
 	refs, err := git(ctx, r.top, "for-each-ref", "--format=%(refname)", "refs/remotes")
 	if err != nil {
 		return nil
@@ -211,8 +285,12 @@ func readPushes(ctx context.Context, r *repo) []Push {
 			p := Push{T: t, Project: r.project, Repo: r.top, Ref: branchOf(ref), Hash: f[0], URL: commitURL(r.web, f[0])}
 			if j+1 < len(lines) { // ひとつ前の位置から、送ったコミットの数を数える
 				if prev := strings.SplitN(lines[j+1], "\x1f", 2)[0]; prev != "" && prev != f[0] {
-					if n, err := git(ctx, r.top, "rev-list", "--count", prev+".."+f[0]); err == nil {
+					rng := prev + ".." + f[0]
+					if n, ok := counts[rng]; ok {
+						p.Commits = n
+					} else if n, err := git(ctx, r.top, "rev-list", "--count", rng); err == nil {
 						p.Commits, _ = strconv.Atoi(strings.TrimSpace(n))
+						counts[rng] = p.Commits
 					}
 				}
 			}
@@ -222,21 +300,17 @@ func readPushes(ctx context.Context, r *repo) []Push {
 	return out
 }
 
+// readRepo は repoKey のあと（r.email と r.web が決まってから）に呼ぶ。
 func readRepo(ctx context.Context, r *repo) []Commit {
-	email, _ := git(ctx, r.top, "config", "user.email")
-	if remote, err := git(ctx, r.top, "remote", "get-url", "origin"); err == nil {
-		r.web = WebURL(remote)
-	}
 	args := []string{"log", "--all", "--source", "--no-merges", "--no-color", "-n", strconv.Itoa(MaxPerRepo),
 		"--since=@" + strconv.FormatInt(int64(r.since)-86400, 10), "--format=%x1e%H%x1f%at%x1f%S%x1f%s%x1f%b%x1d", "--numstat"}
-	if e := strings.TrimSpace(email); e != "" {
-		args = append(args, "--author="+e)
+	if r.email != "" {
+		args = append(args, "--author="+r.email)
 	}
 	raw, err := git(ctx, r.top, args...)
 	if err != nil {
 		return nil
 	}
-	sort.Slice(r.ai, func(i, j int) bool { return r.ai[i].t < r.ai[j].t })
 	var out []Commit
 	for _, rec := range strings.Split(raw, "\x1e") {
 		head, stat, ok := strings.Cut(rec, "\x1d")
