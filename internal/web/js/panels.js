@@ -23,12 +23,12 @@ function searchPanel(){
   const crow = c => `<button class="srow" data-c="${esc(c.hash)}" style="--c:${colorOf(c.project)}"><time>${md(c.t)}<small>${hm(c.t)}</small></time>
       <span class="b"><span class="ti"><i></i>${snip(c.subject, q) || esc(c.subject)}</span><span class="me">${esc(c.project)}${c.branch ? ` · ${esc(c.branch)}` : ""} · <span class="mono">${esc(c.hash.slice(0,7))}</span> · ${plural(c.nFiles, "file")} +${c.added} −${c.removed}</span>
       ${(() => { const f = (c.files || []).find(f => f.path.toLowerCase().includes(q)); return f ? `<span class="hit"><em>File</em>${snip(f.path, q)}</span>` : ""; })()}</span></button>`;
-  R.innerHTML = `<div class="rvhead"><h2>Search results</h2><p>${`Matches for "${esc(q)}" (all time). Sessions are matched on prompts, project, branch, agent, files changed by AI, pull requests and commits made during the session; commits on subject, body, hash and changed files. Click one to see its details; the calendar moves to its week.`}</p>
+  R.innerHTML = `<div class="rvhead"><h2 id="srh" tabindex="-1">Search results</h2><p>${`Matches for "${esc(q)}" (all time). Sessions are matched on prompts, project, branch, agent, files changed by AI, pull requests and commits made during the session; commits on subject, body, hash and changed files. Click one to see its details; the calendar moves to its week.`}</p>
       <button class="pill" id="sclear">Clear search</button></div>
     <div class="rvgrid srgrid">
-      <section class="panel"><div class="ph"><b>Sessions · ${ss.length}</b></div>
+      <section class="panel"><div class="ph"><h3>Sessions · ${ss.length}</h3></div>
         ${ss.length ? ss.slice(0, LIMIT).map(row).join("") + (ss.length > LIMIT ? `<p class="more">${`${ss.length - LIMIT} more. Add words to narrow down.`}</p>` : "") : `<p class="none">No matching sessions.</p>`}</section>
-      <section class="panel"><div class="ph"><b>Commits · ${cs.length}</b></div>
+      <section class="panel"><div class="ph"><h3>Commits · ${cs.length}</h3></div>
         ${cs.length ? cs.slice(0, LIMIT).map(crow).join("") + (cs.length > LIMIT ? `<p class="more">${`${cs.length - LIMIT} more`}</p>` : "") : `<p class="none">${(META.git || []).length ? "No matching commits." : "No git commits were loaded."}</p>`}</section>
     </div>`;
   const open = (t, id) => { st.mode = "week"; store.set("mode", "week"); st.week = mondayOf(new Date(t*1000)); select(id); };

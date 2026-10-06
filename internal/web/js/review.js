@@ -224,7 +224,7 @@ function placeFlags(R, F){ // 基準を超えた指標の、その場に印・�
     if (dt){ const sm = dt.querySelector("summary"); if (!sm.querySelector(".fdot")) sm.insertAdjacentHTML("beforeend", `<span title="A metric crossed a threshold">${ico("flag", "fdot")}</span>`); if (st.moreS !== false && !dt.open){ dt.dataset.auto = "1"; dt.open = true; } }
     const stat = t.closest(".stat");
     if (stat){ stat.classList.add("flagged"); stat.insertAdjacentHTML("beforeend", html); return; }
-    const a = t.closest("h3, .ph, .cap, div"), next = a.nextElementSibling;
+    const a = t.closest(".ph") || t.closest("h3, .cap, div"), next = a.nextElementSibling; // 番号つきの見出しも h3 なので、.ph を先に探す
     (next && next.classList.contains("hint") ? next : a).insertAdjacentHTML("afterend", html);
   });
 }
