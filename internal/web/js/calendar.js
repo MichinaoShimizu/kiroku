@@ -77,7 +77,7 @@ function kpis(){
   const n0 = soFar(), nd = n0 == null ? w.days.length : Math.min(n0, w.days.length); // 途中の週・月は、まだ来ていない日を分母に入れない（今日までの日数）
   K.innerHTML = kpi("Active time", dur(w.active, true)) + kpi("Active days", `${days}<small> of ${nd}${n0 == null ? "" : " so far"}</small>`, n0 == null ? "" : `${days} of the ${plural(nd, "day")} so far (${M ? "this month" : "this week"} is still in progress)`) +
     kpi("Sessions / prompts", `${w.sessions}<small>/</small>${w.prompts}`) +
-    (u.tokens ? kpi("Tokens", tok(u.tokens)) + kpi("Estimated cost", usdH(u.cost)) : "") +
+    (u.tokens ? kpi("Tokens", tok(u.tokens)) + kpi("Estimated cost", usdH(costOf(u)), costOf(u) == null ? NOPRICE : "") : "") +
     (u.credits ? kpi("Kiro credits", `${crN(u.credits)}<small>cr</small>`) : "") +
     (() => { const {ws, we} = period(), n = limitHits(ws, we).length; return n ? kpi("Usage limit hits", `<span style="color:var(--warn)">${n}</span>`) : ""; })() +
     (w.git && w.git.commits ? kpi("Git commits", `${w.git.commits}<small> · ${w.git.ai} by AI</small>`) :

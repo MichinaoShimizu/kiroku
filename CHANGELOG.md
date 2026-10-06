@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Estimated cost showed `$0.00` even after hours of work on a Claude subscription. Claude Code records its own cost in the history (`cost-state`), and on a subscription there is no per-token bill, so it writes `0` for every model. kiroku followed that figure and reported nothing spent. It now keeps its own price-table estimate for any model whose recorded cost is 0 although it was used, and session details say "(from Claude Code)" only when that record was really used
+- When none of the models used are in the price table (Codex, for example), the estimated cost is now shown as `—`, with the reason when you point at it, instead of `$0.00`, which read as if nothing had been used. The month-end projection is left out in that case, and the prompt for an AI review says the cost is unknown. Tokens that could not be priced were already listed under "Data sources"
+
 ## v0.17.0 - 2026-10-06
 
 ### Added
