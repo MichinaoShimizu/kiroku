@@ -23,10 +23,10 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.ref }}
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - run: go vet ./...
@@ -40,11 +40,11 @@ jobs:
       id-token: write # 出どころの証明（attestation）に署名するため
       attestations: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       # リリースノートは CHANGELOG.md のその版の節（英語）を使う。節がなければここで止まる
@@ -52,7 +52,7 @@ jobs:
         env:
           TAG: ${{ inputs.tag || github.ref_name }}
         run: sh tools/release-notes.sh "$TAG" > "$RUNNER_TEMP/notes.md"
-      - uses: goreleaser/goreleaser-action@v6
+      - uses: goreleaser/goreleaser-action@v7
         with:
           version: "~> v2"
           args: release --clean --release-notes ${{ runner.temp }}/notes.md
@@ -61,7 +61,7 @@ jobs:
           GORELEASER_CURRENT_TAG: ${{ inputs.tag || github.ref_name }}
       # 各ファイルが、このリポジトリのこのワークフローで作られたことの証明を残す
       # （gh attestation verify <file> --repo MichinaoShimizu/kiroku で確かめられる）
-      - uses: actions/attest-build-provenance@v2
+      - uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
             dist/*.tar.gz
