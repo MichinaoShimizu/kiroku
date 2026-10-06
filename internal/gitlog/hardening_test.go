@@ -76,7 +76,7 @@ func TestCollectDoesNotRunRepoPrograms(t *testing.T) {
 	os.Remove(marker)
 
 	s := &core.Session{ID: "s1", Project: filepath.Base(dir), ProjectPath: dir, Start: float64(base), End: float64(base + 1200)}
-	cs, _ := CollectAll([]*core.Session{s})
+	cs, _, _ := NewCache().Collect([]*core.Session{s})
 	if len(cs) != 2 {
 		t.Fatalf("コミット数 = %d, want 2: %+v", len(cs), cs)
 	}
@@ -132,7 +132,7 @@ func TestRemotePath(t *testing.T) {
 		t.Error("Windows でなければ // も手元のパス")
 	}
 	if runtime.GOOS == "windows" {
-		if cs := Collect([]*core.Session{{ID: "s", ProjectPath: `\\kiroku-test-nonexistent.invalid\share\repo`, Start: 1}}); len(cs) != 0 {
+		if cs, _, _ := NewCache().Collect([]*core.Session{{ID: "s", ProjectPath: `\\kiroku-test-nonexistent.invalid\share\repo`, Start: 1}}); len(cs) != 0 {
 			t.Errorf("UNC パスを読んだ: %+v", cs)
 		}
 	}
