@@ -253,6 +253,51 @@ func TestCacheSkipsUnchangedRepo(t *testing.T) {
 	}
 }
 
+// ref の位置が変わらなくても、reflog だけが変われば（期限切れで push の記録が消えた）読み直す。git の呼び出しは増やさない。
+func TestCacheNoticesReflogOnlyChange(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git がない")
+	}
+	remote := t.TempDir()
+	run(t, remote, nil, "init", "-q", "--bare")
+	dir, commit := newRepo(t, "app")
+	run(t, dir, nil, "remote", "add", "origin", remote)
+	run(t, dir, nil, "push", "-q", "-u", "origin", "main")
+	commit("b.txt")
+	run(t, dir, nil, "push", "-q")
+	calls := spyGit(t, nil)
+	s := &core.Session{ID: "s1", Project: "app", ProjectPath: dir, Start: float64(time.Now().Add(-time.Hour).Unix())}
+	c := NewCache()
+	if _, ps, _ := c.Collect([]*core.Session{s}); len(ps) != 2 {
+		t.Fatalf("1 回目の push = %d, want 2", len(ps))
+	}
+	clear(calls)
+	c.Collect([]*core.Session{s})
+	unchanged := 0
+	for _, n := range calls {
+		unchanged += n
+	}
+	if calls["reflog"] != 0 {
+		t.Fatalf("変化なしでも読んだ: %v", calls)
+	}
+
+	run(t, dir, nil, "reflog", "expire", "--expire=now", "refs/remotes/origin/main") // ref はそのまま、記録だけ消える
+	clear(calls)
+	_, ps, _ := c.Collect([]*core.Session{s})
+	if len(ps) != 0 || calls["reflog"] == 0 {
+		t.Errorf("reflog だけ変わったあと: push %d、呼び出し %v, want 読み直して 0", len(ps), calls)
+	}
+	clear(calls)
+	c.Collect([]*core.Session{s})
+	n := 0
+	for _, v := range calls {
+		n += v
+	}
+	if n != unchanged {
+		t.Errorf("変化なしの読み直しの git の呼び出し = %d, want %d（増やさない）", n, unchanged)
+	}
+}
+
 // 時間切れはリポジトリごと。ほかのリポジトリは読み、時間切れのリポジトリは前回の結果を使って stale で知らせる。
 func TestCacheRepoTimeout(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
