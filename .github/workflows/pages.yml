@@ -24,8 +24,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Build the demo HTML
@@ -34,7 +34,7 @@ jobs:
           sh tools/screenshots/run.sh --html "$PWD/_site/index.html"
           python3 tools/screenshots/ogp.py _site/index.html "https://michinaoshimizu.github.io/kiroku/" # SNS のリンクカード（デモページだけ）
           cp docs/og.png _site/og.png
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
@@ -46,4 +46,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
