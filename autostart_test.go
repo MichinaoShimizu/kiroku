@@ -140,7 +140,7 @@ func TestDoctorReport(t *testing.T) {
 	out := b.String()
 	for _, want := range []string{"✓ Claude Code", "12 sessions, since", "· Codex", "none",
 		`! Claude Code deletes history older than 30 days`, `add "cleanupPeriodDays": 3650 to /x/settings.json`, `Run "kiroku archive on"`,
-		"git: not found", `autostart: off`, "kiroku serve"} {
+		"git: not found", `autostart: off`, "kiroku archive on    keep copies", "kiroku serve"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("%q がない:\n%s", want, out)
 		}
@@ -245,5 +245,19 @@ func TestScoped(t *testing.T) {
 	sc := got.meta["scope"].(map[string]any)
 	if sc["mode"] != "week" || sc["key"] != "2026-10-05" {
 		t.Errorf("scope: %v", sc)
+	}
+}
+
+// 期間に履歴がなければ、履歴のある範囲を添えてエラーにする（ファイルは書かない）。
+func TestHTMLEmptyPeriod(t *testing.T) {
+	setup(t)
+	h := filepath.Join("testdata", "home")
+	out := filepath.Join(t.TempDir(), "w.html")
+	err := dispatch([]string{"html", "--no-open", "--root", filepath.Join(h, ".claude", "projects"), "--kiro-home", filepath.Join(h, ".kiro"), "--sources", "claude,kiro", "--week", "2026-08-03", "-o", out})
+	if err == nil || !strings.Contains(err.Error(), "no history in the week of 2026-08-03 (your history covers ") {
+		t.Errorf("エラー: %v", err)
+	}
+	if _, err := os.Stat(out); !os.IsNotExist(err) {
+		t.Error("履歴がないのにファイルを書いた")
 	}
 }

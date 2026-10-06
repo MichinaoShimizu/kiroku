@@ -104,13 +104,17 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 	fmt.Fprintf(w, "  %s autostart: %s\n", a.mark, a.text)
 
 	fmt.Fprintln(w, "\nNext")
-	switch {
-	case total == 0:
+	if total == 0 {
 		fmt.Fprintln(w, "  use an agent for a while, or point kiroku to your history, then run \"kiroku doctor\" again")
-	case a.running:
+		return
+	}
+	if risky { // 消えた履歴は戻らないので、見るより先に
+		fmt.Fprintln(w, "  kiroku archive on    keep copies of history before it is deleted (or change the setting above)")
+	}
+	if a.running {
 		fmt.Fprintf(w, "  open %s\n", a.url)
-	default:
-		fmt.Fprintln(w, "  kiroku serve      open the view in your browser")
+	} else {
+		fmt.Fprintln(w, "  kiroku serve         open the view in your browser")
 	}
 }
 
