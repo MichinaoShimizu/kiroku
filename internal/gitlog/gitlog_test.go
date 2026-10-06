@@ -172,6 +172,10 @@ func TestCollectPushes(t *testing.T) {
 	if p := ps[1]; p.Ref != "origin/main" || p.Commits != 2 || p.Project != "app" || len(p.Hash) != 40 || p.T == 0 {
 		t.Errorf("2 回目の push = %+v, want origin/main・2 コミット", p)
 	}
+	// 送ったコミット（新しい順）と、push する前の位置も残す（画面の push の詳細に出す）
+	if p := ps[1]; len(p.Hashes) != 2 || p.Hashes[0] != p.Hash || p.Prev != ps[0].Hash {
+		t.Errorf("送ったコミット = %v, prev = %s, want [%s …], prev %s", p.Hashes, p.Prev, p.Hash, ps[0].Hash)
+	}
 }
 
 // newRepo は、自分のコミットが 1 つあるリポジトリを name の名前で作る。commit で同じ形のコミットを足せる。

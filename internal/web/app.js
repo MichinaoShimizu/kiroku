@@ -118,9 +118,10 @@ function render(){
   try { st.q ? searchPanel() : summary(); } catch(e){ // サマリーで失敗しても、カレンダーと詳細は使えるようにする
     console.error(e); $("#review").innerHTML = `<div class="panel"><p class="none">${`Couldn't show the summary for this period (${esc(e.message)}). Please let us know in an issue.`}</p></div>`; }
   const gc = st.sel && st.sel.startsWith("git:") && (META.git || []).find(x => "git:" + x.hash === st.sel);
-  const s = !gc && st.sel && DATA.find(x => x.id === st.sel), open = !!(s || gc);
+  const pu = st.sel && st.sel.startsWith("push:") && findPush(st.sel.slice(5)), pr = st.sel && st.sel.startsWith("pr:") && findPR(st.sel.slice(3));
+  const s = !gc && !pu && !pr && st.sel && DATA.find(x => x.id === st.sel), open = !!(s || gc || pu || pr);
   if (st.sel && !open) st.sel = null;
-  if (s) detail(s); else if (gc) commitDetail(gc);
+  if (s) detail(s); else if (gc) commitDetail(gc); else if (pu) pushDetail(pu); else if (pr) prDetail(pr.s, pr.r);
   document.body.classList.toggle("open", open); document.body.classList.toggle("lock", open);
   $("#drawer").setAttribute("aria-hidden", String(!open));
   document.querySelector("header").inert = document.querySelector("main").inert = open; // 背後に Tab で入らない
@@ -244,8 +245,8 @@ function timeline(shown, inWeek, ws, we, todayKey){
     let gy = -99;
     marks.forEach(({t, c, p, r, s}) => {
       const y = Math.max((t-ds)/3600*hh, gy + 17); gy = y;
-      if (p){ html += `<span class="gm push" style="top:${y}px" title="${esc(`${hm(t)} Pushed to ${p.ref}${p.commits ? ` (${plural(p.commits, "commit")})` : ""} · ${p.project}\nFrom this computer (git reflog)`)}">${ico("push")}</span>`; return; }
-      if (r){ html += `<button class="gm prm" data-id="${esc(s.id)}" style="top:${y}px" title="${esc(`${hm(t)} Created a pull request · ${s.project}${r.url ? "\n" + r.url : ""}\nRecorded when an agent created it`)}" aria-label="${esc(`Pull request ${hm(t)}`)}">${ico("pr")}</button>`; return; }
+      if (p){ html += `<button class="gm push${st.sel === "push:" + pushKey(p) ? " sel" : ""}" data-push="${esc(pushKey(p))}" style="top:${y}px" title="${esc(`${hm(t)} Pushed to ${p.ref}${p.commits ? ` (${plural(p.commits, "commit")})` : ""} · ${p.project}\nFrom this computer (git reflog)`)}" aria-label="${esc(`Push ${hm(t)} to ${p.ref}`)}">${ico("push")}</button>`; return; }
+      if (r){ html += `<button class="gm prm${st.sel === "pr:" + prKey(s, r) ? " sel" : ""}" data-pr="${esc(prKey(s, r))}" style="top:${y}px" title="${esc(`${hm(t)} Created a pull request · ${s.project}${r.url ? "\n" + r.url : ""}\nRecorded when an agent created it`)}" aria-label="${esc(`Pull request ${hm(t)}`)}">${ico("pr")}</button>`; return; }
       html += `<button class="gc${c.ai ? " ai" : ""}${st.sel === "git:"+c.hash ? " sel" : ""}" data-c="${esc(c.hash)}" style="top:${y}px" title="${esc(`${hm(c.t)} ${c.project}${c.branch ? " · "+c.branch : ""} · ${c.hash}\n${c.subject}\n${plural(c.nFiles, "file")} +${c.added} −${c.removed}${c.ai ? " · run by AI" : ""}`)}" aria-label="${esc(`Commit ${hm(c.t)} ${c.subject}`)}">${GIT_ICON}<span>${esc(c.hash.slice(0,7))}</span></button>`; });
     limitHits(ds, de).filter(h => matches(h.s)).forEach(h => { html += `<button class="lim" data-id="${esc(h.s.id)}" style="top:${(h.t-ds)/3600*hh}px" title="${esc(`${hm(h.t)} Hit the usage limit (${h.s.title})`)}" aria-label="${esc(`${hm(h.t)} usage limit`)}">${ico("limit")}Limit</button>`; });
     if (isToday && nowS >= ds && nowS < de) html += `<div class="nowline" style="top:${(nowS-ds)/3600*hh}px"></div>`;
@@ -255,7 +256,8 @@ function timeline(shown, inWeek, ws, we, todayKey){
   const sc = T.querySelector(".calscroll");
   sc.style.scrollPaddingTop = T.querySelector(".heads").offsetHeight + "px"; sc.style.scrollPaddingLeft = "56px"; // Tab で移ったブロックが、固定の日付・時刻の下に隠れないように
   if (top != null) sc.scrollTop = top;
-  T.querySelectorAll(".lim,.gm.prm").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); });
+  T.querySelectorAll(".lim").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); });
+  bindGitEvents(T);
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });
   T.querySelectorAll(".run").forEach(el => { const bk = runs[+el.dataset.r];
     el.onclick = e => { e.stopPropagation(); select(bk.s.id); };
@@ -960,6 +962,7 @@ function commitDetail(c){
     </div>
     ${c.body ? `<h3>Message body</h3><p class="gbody">${esc(c.body)}</p>` : ""}
     ${ses ? `<h3>${c.session ? "Session that made this commit" : "Session running at this time"}</h3><button class="card" data-id="${esc(ses.id)}"><span class="ti">${esc(ses.title)}</span><span class="me">${md(ses.start)} ${hm(ses.start)}–${hm(ses.end)} · ${esc((ses.source))}</span></button>` : ""}
+    ${pushedIn(c).map(p => `<h3>Pushed</h3><button class="gc-row" data-push="${esc(pushKey(p))}"><time>${md(p.t)} ${hm(p.t)}</time><span><i class="gtag">${ico("push")}${esc(p.ref)}</i>${p.commits ? ` ${plural(p.commits, "commit")}` : ""}</span><b></b></button>`).join("")}
     ${c.url ? `<p style="margin-top:14px">${ext(c.url, "Open this commit on the remote ↗", "pill")}</p>` : ""}
     </div><div class="dcol">
     <h3>Files changed · ${c.nFiles}</h3>
@@ -967,7 +970,70 @@ function commitDetail(c){
     <h3>Repository</h3><div class="code"><code>${esc(`git -C ${c.repo} show ${c.hash}`)}</code><button class="copy" data-copy="${esc(`git -C ${c.repo} show ${c.hash}`)}">Copy</button></div>
   </div></div></div>`;
   P.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.id));
-  bindCopy(P);
+  bindGitEvents(P); bindCopy(P);
+}
+// pushedIn は、そのコミットを送った push（いちばん早いもの）。リモートのブランチごとに 1 つ
+function pushedIn(c){ const by = new Map(); (META.push || []).filter(p => p.repo === c.repo && (p.hashes || []).includes(c.hash)).sort((a, b) => a.t - b.t).forEach(p => { if (!by.has(p.ref)) by.set(p.ref, p); }); return [...by.values()]; }
+/* push と PR の詳細。カレンダーの右端の印と、プロンプトの流れから開く */
+const pushKey = p => `${p.ref}@${p.hash}@${p.t}`; // 同じコミットを別のブランチや別の時刻に push することもあるので、3 つで見分ける
+const prKey = (s, r) => `${s.id}#${(s.prAt || []).indexOf(r)}`;
+function findPush(k){ return (META.push || []).find(p => pushKey(p) === k); }
+function findPR(k){ const i = k.lastIndexOf("#"), s = DATA.find(x => x.id === k.slice(0, i)), r = s && (s.prAt || [])[+k.slice(i + 1)]; return r ? {s, r} : null; }
+function bindGitEvents(root){ // コミット・push・PR を開くボタン（カレンダーの印、プロンプトの流れ、詳細の中の一覧）
+  root.querySelectorAll("[data-git]").forEach(b => b.onclick = e => { e.stopPropagation(); select("git:" + b.dataset.git); });
+  root.querySelectorAll("[data-push]").forEach(b => b.onclick = e => { e.stopPropagation(); select("push:" + b.dataset.push); });
+  root.querySelectorAll("[data-pr]").forEach(b => b.onclick = e => { e.stopPropagation(); select("pr:" + b.dataset.pr); }); }
+const sesCard = (s, label) => `${label ? `<h3>${label}</h3>` : ""}<button class="card" data-id="${esc(s.id)}"><span class="ti">${esc(s.title)}</span><span class="me">${md(s.start)} ${hm(s.start)}–${hm(s.end)} · ${esc(s.source)}</span></button>`;
+const gitRow = c => `<button class="gc-row" data-git="${esc(c.hash)}"><time>${md(c.t)} ${hm(c.t)}</time><span><i class="gtag${c.ai ? " ai" : ""}">${GIT_ICON}${esc(c.hash.slice(0,7))}</i> ${esc(c.subject)}</span><b>+${c.added} −${c.removed}</b></button>`;
+function pushDetail(p){
+  const P = $("#panel"), byHash = new Map((META.git || []).map(c => [c.hash, c]));
+  const hs = p.hashes || [], known = hs.map(h => byHash.get(h)).filter(Boolean), unknown = hs.filter(h => !byHash.has(h));
+  const ses = DATA.filter(x => x.project === p.project && p.t >= x.start - 60 && p.t <= x.end + 600);
+  const cmd = p.prev ? `git -C ${p.repo} log --oneline ${p.prev.slice(0,12)}..${p.hash.slice(0,12)}` : `git -C ${p.repo} show ${p.hash.slice(0,12)}`;
+  P.innerHTML = `<div style="--c:${st.colorBy === "project" ? colorOf(p.project) : "var(--ink-3)"}">
+    <div class="eyebrow"><span class="dot"></span>GIT · Push</div>
+    <h2>${esc(`Pushed to ${p.ref}`)}</h2>
+    <div class="muted" style="font-variant-numeric:tabular-nums">${md(p.t)} ${hm(p.t)}</div>
+    <div class="meta"><span>${esc(p.project)}</span><span class="mono">${esc(p.ref)}</span>${ext(p.url, `<span class="mono">${esc(p.hash.slice(0,7))}</span>`)}</div>
+    <div class="dcols"><div class="dcol">
+    <div class="mini">
+      <div><div class="k">Commits sent</div><div class="v">${p.prev ? p.commits : "—"}</div></div>
+      <div><div class="k">Latest commit</div><div class="v mono" style="font-size:var(--fs-md)">${esc(p.hash.slice(0,7))}</div></div>
+    </div>
+    <p class="muted" style="font-size:var(--fs-xs)">${p.prev ? "Read from this computer's git reflog: what moved this remote-tracking branch with a push." : "The first push kiroku can see for this branch, so how many commits it sent is unknown."}</p>
+    ${ses.length ? ses.map((s, i) => sesCard(s, i ? "" : (ses.length > 1 ? "Sessions running at this time" : "Session running at this time"))).join("") : ""}
+    ${p.url ? `<p style="margin-top:14px">${ext(p.url, "Open the latest commit on the remote ↗", "pill")}</p>` : ""}
+    </div><div class="dcol">
+    <h3>${`Commits sent · ${p.prev ? p.commits : "?"}`}</h3>
+    ${known.length ? known.map(gitRow).join("") : ""}
+    ${unknown.length ? `<p class="muted" style="font-size:var(--fs-xs)">${plural(unknown.length, "commit")} not in kiroku's view (made before the history kiroku read, or not by you): ${unknown.slice(0, 8).map(h => `<span class="mono">${esc(h.slice(0,7))}</span>`).join(", ")}${unknown.length > 8 ? " …" : ""}</p>` : ""}
+    ${p.commits > hs.length ? `<p class="muted" style="font-size:var(--fs-xs)">${`Showing the latest ${hs.length} of ${p.commits}.`}</p>` : ""}
+    ${!hs.length ? `<p class="none">${p.prev ? "None recorded" : "Unknown"}</p>` : ""}
+    <h3>Repository</h3><div class="code"><code>${esc(cmd)}</code><button class="copy" data-copy="${esc(cmd)}">Copy</button></div>
+  </div></div></div>`;
+  P.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.id));
+  bindGitEvents(P); bindCopy(P);
+}
+function prDetail(s, r){
+  const P = $("#panel"), m = /github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/.exec(r.url || "");
+  const cs = commitsOf(s).filter(c => c.t <= r.t + 60); // PR を作るまでにそのセッションでしたコミット
+  const ps = (META.push || []).filter(p => p.project === s.project && p.t >= s.start - 60 && p.t <= r.t + 60);
+  P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
+    <div class="eyebrow"><span class="dot"></span>${ico("pr")}Pull request</div>
+    <h2>${esc(m ? `${m[1]} #${m[2]}` : r.url ? prName(r.url) : "Pull request")}</h2>
+    <div class="muted" style="font-variant-numeric:tabular-nums">${`Created ${md(r.t)} ${hm(r.t)}`}</div>
+    <div class="meta"><span>${esc(s.project)}</span>${s.branch ? `<span>${esc(s.branch)}</span>` : ""}</div>
+    <div class="dcols"><div class="dcol">
+    ${r.url ? `<p style="margin-top:4px">${ext(r.url, "Open this pull request ↗", "pill")}</p>` : ""}
+    <p class="muted" style="font-size:var(--fs-xs)">Recorded when an agent created it in this session (gh pr create or GitHub tools). kiroku never asks GitHub, so its title, status and reviews are not shown here.</p>
+    ${sesCard(s, "Session that created it")}
+    </div><div class="dcol">
+    ${ps.length ? `<h3>${`Pushes before it · ${ps.length}`}</h3>${ps.map(p => `<button class="gc-row" data-push="${esc(pushKey(p))}"><time>${md(p.t)} ${hm(p.t)}</time><span><i class="gtag">${ico("push")}${esc(p.ref)}</i>${p.commits ? ` ${plural(p.commits, "commit")}` : ""}</span><b></b></button>`).join("")}` : ""}
+    <h3>${`Commits in the session before it · ${cs.length}`}</h3>
+    ${cs.length ? cs.map(gitRow).join("") : `<p class="none">None</p>`}
+  </div></div></div>`;
+  P.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.id));
+  bindGitEvents(P);
 }
 /* ── drawer: session detail ── */
 const FIXRE = /違う|ちがう|そうじゃな|やり直|戻して|元に戻|取り消|じゃなくて|\b(?:wrong|incorrect|nope|revert|undo|roll ?back|start over|not what|that's not|try again|(?:doesn't|does not|didn't|did not|still not|isn't|is not) work(?:ing)?|still (?:broken|failing|fails)|you broke)\b/i; // 言い直し・中断らしいプロンプト（プロンプトの流れで点の色を変える）
@@ -1021,7 +1087,7 @@ function detail(s){
     ${s.resume ? `<h3>Resume</h3><div class="code"><code>${esc(s.resume)}</code><button class="copy" data-copy="${esc(s.resume)}">Copy</button></div>` : ""}
 
   </div></div></div>`;
-  P.querySelectorAll("[data-git]").forEach(b => b.onclick = () => select("git:" + b.dataset.git));
+  bindGitEvents(P);
   P.querySelector("#sreview").onclick = () => copy(sessionPrompt(s, active, med));
   P.querySelectorAll(".pexp").forEach(b => b.onclick = () => { const li = b.closest("li"), open = b.getAttribute("aria-expanded") !== "true";
     li.querySelector(".pshort").hidden = open; li.querySelector(".pfull").hidden = !open; b.setAttribute("aria-expanded", open); b.textContent = open ? "Show less" : pexpLabel(li.dataset.full ? {} : s.prompts[b.dataset.i]); });
@@ -1058,8 +1124,8 @@ function userPrompts(s){ // 人が打ったプロンプトだけを、時刻つ�
 function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面では d だけを省略する）
   const ev = [];
   commitsOf(s).forEach(c => ev.push({t: c.t, k: c.ai ? "commit ai" : "commit", l: c.ai ? "AI committed" : "Committed by hand", d: `<button class="evd" data-git="${esc(c.hash)}"><i class="gtag${c.ai ? " ai" : ""}">${GIT_ICON}${esc(c.hash.slice(0,7))}</i> ${esc(c.subject)}</button>`}));
-  (META.push || []).filter(p => p.project === s.project && p.t >= s.start && p.t <= s.end + 600).forEach(p => ev.push({t: p.t, k: "push", l: "Pushed", d: `<span class="evd">${p.url ? ext(p.url, esc(p.ref)) : esc(p.ref)}${p.commits ? ` · ${plural(p.commits, "commit")}` : ""}</span>`})); // この PC からの push（git reflog）
-  (s.prAt || []).forEach(p => ev.push({t: p.t, k: "pr", l: "Created a pull request", d: p.url ? `<span class="evd">${ext(p.url, esc(prName(p.url)))}</span>` : ""}));
+  (META.push || []).filter(p => p.project === s.project && p.t >= s.start && p.t <= s.end + 600).forEach(p => ev.push({t: p.t, k: "push", l: "Pushed", d: `<button class="evd" data-push="${esc(pushKey(p))}"><span class="mono">${esc(p.ref)}</span>${p.commits ? ` · ${plural(p.commits, "commit")}` : ""}</button>`})); // この PC からの push（git reflog）
+  (s.prAt || []).forEach(p => ev.push({t: p.t, k: "pr", l: "Created a pull request", d: `<button class="evd" data-pr="${esc(prKey(s, p))}">${esc(p.url ? prName(p.url) : "Pull request")}</button>`}));
   (s.limits || []).forEach(t => ev.push({t, k: "warn", l: "Hit a usage limit"}));
   (s.interruptsAt || []).forEach(t => ev.push({t, k: "int", l: "Interrupted"}));
   (s.notes || []).forEach(x => { if (x.t) ev.push({t: x.t, k: `note ${x.kind}`, l: NOTE_LABEL()[x.kind] || NOTE_LABEL().other, d: `<span class="evd">${esc(x.text)}</span>`}); }); // 人が打っていないもの（通知・要約など）
@@ -1124,7 +1190,7 @@ function sessionPrompt(s, active, med){
   return L.join("\n");
 }
 const focusDrawer = {was: false, sel: null, first: null, from: null, next: null};
-const OPENER_ATTRS = ["data-sid", "data-id", "data-s", "data-c", "data-git"];
+const OPENER_ATTRS = ["data-sid", "data-id", "data-s", "data-c", "data-git", "data-push", "data-pr"];
 let lastClick = null; addEventListener("click", e => { lastClick = e.target; }, true); // Safari はボタンを押してもフォーカスが移らないので、押した要素も覚える
 function openerOf(el){ // 詳細を開いた要素を、描き直したあとも同じものを探せる形で覚える（どの枠の、どの属性の、何番目か）
   el = el && el.closest && el.closest(OPENER_ATTRS.map(a => `[${a}]`).join(","));
@@ -1135,8 +1201,9 @@ function openerOf(el){ // 詳細を開いた要素を、描き直したあとも
 function focusOpener(sel, from){ // 閉じたら、詳細を開いた要素（帯・バッジ・カード・検索結果）へフォーカスと読んでいた位置を戻す
   if (from){ const r = document.getElementById(from.root), el = r && r.querySelectorAll(from.q)[from.n];
     if (el){ scrollTo(0, from.y); el.focus({preventScroll: true}); return; } }
-  if (!sel) return; const v = CSS.escape(sel.replace(/^git:/, ""));
+  if (!sel) return; const v = CSS.escape(sel.replace(/^(git|push|pr):/, ""));
   const el = sel.startsWith("git:") ? document.querySelector(`.gc[data-c="${v}"],[data-git="${v}"],[data-c="${v}"]`)
+    : sel.startsWith("push:") ? document.querySelector(`[data-push="${v}"]`) : sel.startsWith("pr:") ? document.querySelector(`[data-pr="${v}"]`)
     : document.querySelector(`.run[data-sid="${v}"],[data-id="${v}"],[data-s="${v}"]`);
   if (el) el.focus({preventScroll: false}); }
 function select(id){ // 詳細の中で別の詳細へ移ったときは、戻れるように前のものを積む

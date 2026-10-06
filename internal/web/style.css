@@ -268,7 +268,8 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .gc:hover span,.gc:focus-visible span,.gc.sel span{display:inline} /* 触れたときだけ、左へ広げてハッシュを見せる */
 .gm{position:absolute;right:1px;display:grid;place-items:center;width:16px;height:16px;margin-top:-8px;border-radius:8px;background:var(--surface);border:1px solid var(--rule-2);color:var(--ink-2);z-index:4} /* push と PR の印（コミットと同じ溝） */
 .gm .ic{width:10px;height:10px;stroke-width:1.8}
-.gm.prm{color:var(--acc-ink);border-color:var(--acc)}.gm.prm:hover,.gm.prm:focus-visible{box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 35%,transparent);z-index:5}
+.gm.prm{color:var(--acc-ink);border-color:var(--acc)}
+.gm{padding:0;cursor:pointer;font:inherit}.gm:hover,.gm:focus-visible,.gm.sel{box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 35%,transparent);z-index:5}
 .gi{width:13px;height:13px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;vertical-align:-2px;margin-right:2px}
 .gtag{display:inline-flex;align-items:center;gap:2px;padding:0 5px 0 3px;border-radius:8px;border:1px solid var(--ink-3);font:600 var(--fs-xs)/16px var(--mono);font-style:normal;color:var(--ink-2)}.gtag.ai{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
 .drawer .gfiles{font-size:var(--fs-sm);line-height:1.7;list-style:none;padding:0;margin:0}.drawer .gfiles li{display:flex;gap:10px;justify-content:space-between;border-bottom:1px dashed var(--rule)}.drawer .gfiles span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.drawer .gfiles b{font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink-3)}.drawer .gfiles b i{font-style:normal;color:var(--acc-ink)}
