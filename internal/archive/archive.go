@@ -19,6 +19,9 @@ import (
 // marker があれば保存する。
 const marker = "enabled"
 
+// stamp は、kiroku archive の保存場所だという印。オフにしても消さない（kiroku archive off でコピーを消す前に確かめる）。
+const stamp = ".kiroku-archive"
+
 // DefaultDir は保存場所。KIROKU_ARCHIVE_DIR があればそこ。
 // Linux は $XDG_DATA_HOME か ~/.local/share、macOS は ~/Library/Application Support、Windows は %LocalAppData% の下の kiroku/archive。
 func DefaultDir() string {
@@ -55,7 +58,61 @@ func Enable(dir string) error {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
+	if err := os.WriteFile(filepath.Join(dir, stamp), []byte("this folder holds kiroku archive copies of agent history\n"), 0o600); err != nil {
+		return err
+	}
 	return os.WriteFile(filepath.Join(dir, marker), []byte("kiroku keeps compressed copies of agent history here (kiroku archive off to stop)\n"), 0o600)
+}
+
+// Marked は、dir が kiroku archive の保存場所らしいか（オンになっているか、前にオンにした印があるか）。
+// まちがった --archive-dir で、ほかのフォルダのファイルを消さないために確かめる。
+func Marked(dir string) bool {
+	if Enabled(dir) {
+		return true
+	}
+	st, err := os.Lstat(filepath.Join(dir, stamp))
+	return err == nil && st.Mode().IsRegular()
+}
+
+// Clear は、dir の下の subs のフォルダにある、保存したコピー（.zst）だけを消す。ほかのファイルは消さず、
+// 空になったフォルダだけを消す。シンボリックリンクはたどらない。消した数を返す。
+func Clear(dir string, subs []string) (int, error) {
+	n := 0
+	var first error
+	for _, sub := range subs {
+		root := filepath.Join(dir, sub)
+		var dirs []string
+		err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+			if err != nil {
+				if !os.IsNotExist(err) && first == nil {
+					first = err
+				}
+				return nil
+			}
+			if d.IsDir() {
+				dirs = append(dirs, p)
+				return nil
+			}
+			if !d.Type().IsRegular() || !strings.HasSuffix(p, ".zst") {
+				return nil // リンクやほかのファイルは残す
+			}
+			if err := os.Remove(p); err != nil {
+				if first == nil {
+					first = err
+				}
+				return nil
+			}
+			n++
+			return nil
+		})
+		if first == nil {
+			first = err
+		}
+		for i := len(dirs) - 1; i >= 0; i-- { // 深いところから。空でなければ消えない
+			_ = os.Remove(dirs[i])
+		}
+	}
+	return n, first
 }
 
 // Disable は保存をやめる。すでに保存したコピーは残す。

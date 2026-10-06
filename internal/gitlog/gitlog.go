@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -74,8 +75,47 @@ const MaxPerRepo = 5000
 
 // git は外から差しかえられる（テスト用）。
 var git = func(ctx context.Context, dir string, args ...string) (string, error) {
-	out, err := exec.CommandContext(ctx, "git", append([]string{"-C", dir}, args...)...).Output()
+	out, err := gitCmd(ctx, dir, args...).Output()
 	return string(out), err
+}
+
+// gitCmd は、履歴に書かれた場所（だれかが作ったリポジトリかもしれない）で、git を読むだけのために動かすコマンド。
+// リポジトリの .git/config は信用しない: そこに書かれたプログラム（fsmonitor・フック・textconv・外部 diff・ページャー）を
+// 動かさないよう、コマンドラインの -c で上書きする（-c はリポジトリの設定より強い）。
+//   - GIT_CONFIG_NOSYSTEM=1: システムの設定（/etc/gitconfig など）は読まない
+//   - 利用者のグローバルな設定（~/.gitconfig）は読む。user.email（自分のコミットだけを読む）と safe.directory
+//     （ほかのユーザーのリポジトリを読んでよいか）はそこにあり、本人が書いたものなので信用してよい
+//   - GIT_TERMINAL_PROMPT=0: 何も聞いてこない。GIT_OPTIONAL_LOCKS=0: 読むだけで index などを書きかえない
+func gitCmd(ctx context.Context, dir string, args ...string) *exec.Cmd {
+	pre := []string{"-C", dir,
+		"-c", "core.fsmonitor=false",
+		"-c", "core.hooksPath=" + os.DevNull,
+		"-c", "log.showSignature=false",
+		"-c", "core.pager=cat",
+	}
+	if len(args) > 0 && args[0] == "log" { // 変更行数（--numstat）を数えるときに、リポジトリが決めたプログラムを通さない
+		args = append([]string{"log", "--no-ext-diff", "--no-textconv"}, args[1:]...)
+	}
+	cmd := exec.CommandContext(ctx, "git", append(pre, args...)...)
+	cmd.Env = append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1", "GIT_TERMINAL_PROMPT=0", "GIT_OPTIONAL_LOCKS=0")
+	return cmd
+}
+
+// remotePath は、Windows でネットワーク上の場所（UNC パス: \\server\share や //server/share）を指すか。
+// そこへは os.Stat も git もしない（履歴に書かれた名前で、ほかのコンピューターにつなぎに行かないため）。
+// \\?\C:\… は手元のドライブなので読む。
+func remotePath(goos, p string) bool {
+	if goos != "windows" || len(p) < 2 {
+		return false
+	}
+	slash := func(c byte) bool { return c == '\\' || c == '/' }
+	if !slash(p[0]) || !slash(p[1]) {
+		return false
+	}
+	if len(p) >= 7 && (p[2] == '?' || p[2] == '.') && slash(p[3]) && p[5] == ':' && slash(p[6]) {
+		return false
+	}
+	return true
 }
 
 type aiCommit struct {
@@ -157,7 +197,7 @@ func (c *Cache) Collect(data []*core.Session) (commits []Commit, pushes []Push, 
 	var order []string
 	for _, d := range data {
 		p := d.ProjectPath
-		if p == "" || !filepath.IsAbs(p) {
+		if p == "" || !filepath.IsAbs(p) || remotePath(runtime.GOOS, p) {
 			continue
 		}
 		tc, ok := tops[p]

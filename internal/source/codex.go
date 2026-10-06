@@ -11,7 +11,6 @@ import (
 	"sync"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
-	"github.com/klauspost/compress/zstd"
 )
 
 // Codex は OpenAI Codex CLI の履歴: <CODEX_HOME か ~/.codex>/sessions/YYYY/MM/DD/rollout-*.jsonl（新しい版は .jsonl.zst）
@@ -200,7 +199,7 @@ func readCodexHead(path string) (id, parent string, ok bool, err error) {
 	defer f.Close()
 	var src io.Reader = f
 	if strings.HasSuffix(path, ".zst") {
-		d, err := zstd.NewReader(f)
+		d, err := core.NewZstdReader(f)
 		if err != nil {
 			return "", "", false, fileErr(path, err)
 		}
@@ -209,9 +208,9 @@ func readCodexHead(path string) (id, parent string, ok bool, err error) {
 	}
 	r := bufio.NewReaderSize(src, 1<<16)
 	for {
-		line, err := r.ReadBytes('\n')
+		line, long, err := core.ReadLine(r, core.MaxLine) // 長すぎる行は飛ばす（LoadUnit が読めない行として知らせる）
 		var e core.Obj
-		if json.Unmarshal(line, &e) == nil && core.Str(e["type"]) == "session_meta" {
+		if !long && json.Unmarshal(line, &e) == nil && core.Str(e["type"]) == "session_meta" {
 			p := core.Map(e["payload"])
 			return core.Str(p["id"]), codexParent(p), true, nil
 		}

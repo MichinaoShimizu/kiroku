@@ -336,6 +336,10 @@ func (k *KiroIDELegacy) Load(emit func(*core.Builder)) error {
 				if em == nil || hidden || id == "" {
 					continue
 				}
+				if !safeName(id) { // sessions.json の中身でほかの場所のファイルを読ませない（../../x など）
+					errs.file(index, fmt.Errorf("unsafe sessionId %q", id))
+					continue
+				}
 				f := filepath.Join(filepath.Dir(index), id+".json")
 				raw, err := core.ReadJSONFile(f)
 				errs.file(f, err)

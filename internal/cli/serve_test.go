@@ -171,7 +171,7 @@ func TestServeHistory(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "s1.jsonl")
 	os.WriteFile(p, []byte(`{"type":"user"}`+"\n"), 0o644)
-	l := &live{snap: snapshot{data: []*core.Session{{ID: "s1", File: p}, {ID: "db", File: filepath.Join(dir, "data.sqlite3")}}}, ready: true}
+	l := &live{snap: snapshot{data: []*core.Session{{ID: "s1", File: p}, {ID: "db", File: filepath.Join(dir, "data.sqlite3")}}}, ready: true, roots: []string{dir}}
 	srv := httptest.NewServer(l.handler())
 	defer srv.Close()
 	get := func(q string) (int, string) {
@@ -437,8 +437,7 @@ func TestServeLive(t *testing.T) {
 	oldServe, oldStart := serveHTTP, startLive
 	defer func() { serveHTTP, startLive = oldServe, oldStart }()
 	srvc := make(chan *http.Server, 1)
-	serveHTTP = func(ln net.Listener, h http.Handler) error {
-		s := &http.Server{Handler: h}
+	serveHTTP = func(s *http.Server, ln net.Listener) error {
 		srvc <- s
 		return s.Serve(ln)
 	}
@@ -474,6 +473,10 @@ func TestServeLive(t *testing.T) {
 		t.Fatalf("serve が止まった: %v", err)
 	case <-time.After(5 * time.Second):
 		t.Fatal("待ち受けない")
+	}
+	// ヘッダーを送らずにつなぎっぱなしにする相手で詰まらないよう、時間を区切る（大きな /history を返せるよう、書き出しは区切らない）
+	if srv.ReadHeaderTimeout != 10*time.Second || srv.IdleTimeout != 120*time.Second || srv.MaxHeaderBytes != 64<<10 || srv.WriteTimeout != 0 || srv.ReadTimeout != 0 {
+		t.Errorf("http.Server の時間の区切り = %+v", srv)
 	}
 	m := regexp.MustCompile(`^serving http://localhost:(\d+)/ \(reading history`).FindStringSubmatch(out.String())
 	if m == nil {
@@ -599,14 +602,20 @@ func TestServeArchiveErrors(t *testing.T) {
 		body string
 	}{
 		{"できない", &live{load: ok, ready: true}, 404, ""},
-		{"オンにできない", &live{load: ok, ready: true, keep: func() error { return errors.New("disk full") }}, 500, "disk full"},
+		{"オンにできない", &live{load: ok, ready: true, keep: func() error { return errors.New("disk full: /home/me/secret") }}, 500, "disk full: /home/me/secret"},
 		{"読み直せない", &live{load: func() snapshot { return snapshot{meta: map[string]any{"x": math.NaN()}} }, ready: true, keep: func() error { return nil }}, 500, "NaN"},
 	} {
+		out := &syncBuf{}
+		c.l.print = out
 		srv := httptest.NewServer(c.l.handler())
 		code, body, _ := fetchHost(t, "POST", srv.URL+"/archive", "")
 		srv.Close()
-		if code != c.code || !strings.Contains(body, c.body) {
-			t.Errorf("%s: %d %q, want %d %q", c.name, code, body, c.code, c.body)
+		if code != c.code {
+			t.Errorf("%s: %d, want %d", c.name, code, c.code)
+		}
+		// くわしいわけ（ファイルの場所など）は端末にだけ出し、画面には返さない
+		if c.body != "" && (strings.Contains(body, c.body) || !strings.Contains(body, "see the terminal") || !strings.Contains(out.String(), c.body)) {
+			t.Errorf("%s: 返した文 %q、端末 %q", c.name, body, out.String())
 		}
 	}
 }

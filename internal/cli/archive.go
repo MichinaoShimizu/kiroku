@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/MichinaoShimizu/kiroku/internal/archive"
@@ -67,6 +66,7 @@ func cmdArchive(args []string) error {
 		fmt.Printf("archive is on: kiroku keeps copies of history that agents delete in %s\nkept %s now (%s, %s in total); new history is kept each time kiroku reads it\n", dir, nFiles(n), nFiles(files), humanBytes(size))
 		return nil
 	case "off":
+		marked := archive.Marked(dir) // オフにすると印の 1 つ（enabled）が消えるので、先に確かめる
 		if err := archive.Disable(dir); err != nil {
 			return err
 		}
@@ -75,13 +75,17 @@ func cmdArchive(args []string) error {
 		if files == 0 {
 			return nil
 		}
+		if !marked { // まちがった --archive-dir や KIROKU_ARCHIVE_DIR で、ほかのフォルダのファイルを消さない
+			fmt.Printf("%s does not look like a kiroku archive folder (kiroku archive on was not run there), so kiroku did not offer to delete anything in it\n", dir)
+			return nil
+		}
 		if askYes(fmt.Sprintf("delete the %s (%s) already kept in %s? deleted history cannot be shown again [y/N] ", nFiles(files), humanBytes(size), dir)) {
-			for _, d := range keptDirs {
-				if err := os.RemoveAll(filepath.Join(dir, d)); err != nil {
-					return err
-				}
+			// 消すのは kiroku が書いたコピー（.zst）だけ。ほかのファイルは残し、空になったフォルダだけを消す
+			n, err := archive.Clear(dir, keptDirs)
+			if err != nil {
+				return fmt.Errorf("deleted %s, but could not delete the rest: %w", nFiles(n), err)
 			}
-			fmt.Println("deleted the kept copies")
+			fmt.Printf("deleted the kept copies (%s)\n", nFiles(n))
 			return nil
 		}
 		fmt.Printf("the kept copies stay in %s, and kiroku still shows them\n", dir)
@@ -90,8 +94,8 @@ func cmdArchive(args []string) error {
 	return fmt.Errorf("unknown argument: %s (use \"kiroku archive\", \"kiroku archive on\" or \"kiroku archive off\")", cmd)
 }
 
-// askYes は端末で y と答えたときだけ true（端末でなければ聞かずに false）。
-func askYes(q string) bool {
+// askYes は端末で y と答えたときだけ true（端末でなければ聞かずに false）。テストで差しかえる。
+var askYes = func(q string) bool {
 	if st, err := os.Stdin.Stat(); err != nil || st.Mode()&os.ModeCharDevice == 0 {
 		return false
 	}
