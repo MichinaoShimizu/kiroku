@@ -19,23 +19,50 @@ var lookGit = func() bool {
 	return err == nil
 }
 
-// cmdDoctor は kiroku doctor。どの履歴が読めたか、消える設定のままか、kiroku archive・git・自動起動はどうかを一覧にして、
+// doctorLatest は kiroku doctor で最新の版を確かめる（テストで差しかえる）。doctor を待たせないよう、短めに切る。
+var doctorLatest = func() (string, error) {
+	c := newUpdateClient()
+	c.Timeout = 5 * time.Second
+	return latestVersion(c)
+}
+
+// release は kiroku doctor が確かめた最新の版（checked が false なら確かめていない）。
+type release struct {
+	checked bool
+	latest  string
+	err     error
+}
+
+// cmdDoctor は kiroku doctor。どの履歴が読めたか、消える設定のままか、kiroku archive・git・自動起動・新しい版はどうかを一覧にして、
 // 次に打つコマンドを案内する。読むだけで、設定もファイルも変えない。
 func cmdDoctor(args []string) error {
-	fs := newFS("doctor", "doctor [flags]\n\nChecks what kiroku can read and whether your history is at risk of being deleted,\nand suggests what to run next. It only reads; nothing is changed.")
+	fs := newFS("doctor", "doctor [flags]\n\nChecks what kiroku can read, whether your history is at risk of being deleted\nand whether a newer kiroku is out, and suggests what to run next.\nIt only reads; nothing is changed.")
+	noCheck := fs.Bool("no-update-check", false, "do not ask GitHub whether a newer release exists")
 	c := addCommon(fs)
 	if _, err := parse(fs, args, 0); err != nil {
 		return quiet(err)
 	}
+	var rel release
+	done := make(chan struct{})
+	if *noCheck || version == "dev" { // 手元でビルドしたものは kiroku update で入れかえないので、確かめない
+		close(done)
+	} else {
+		go func() { // 履歴を読むあいだに確かめる
+			defer close(done)
+			rel.latest, rel.err = doctorLatest()
+			rel.checked = true
+		}()
+	}
 	picked, want := c.picked()
 	logw = io.Discard // エージェントごとの読み込みの行は、下の一覧にまとめて出す
 	data, rep := collect(picked, want, *c.gap)
-	doctorReport(os.Stdout, rep, len(data), *c.archiveDir)
+	<-done
+	doctorReport(os.Stdout, rep, len(data), *c.archiveDir, rel)
 	return nil
 }
 
 // doctorReport は kiroku doctor の一覧を書く。
-func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string) {
+func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string, rel release) {
 	fmt.Fprintf(w, "kiroku %s\n\nHistory found\n", version)
 	for _, r := range rep {
 		mark, what := "✓", plural(r.N, "session")
@@ -102,6 +129,21 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 	}
 	a := autostartStatus()
 	fmt.Fprintf(w, "  %s autostart: %s\n", a.mark, a.text)
+	cur := "v" + strings.TrimPrefix(version, "v")
+	newer := false
+	switch {
+	case version == "dev":
+		fmt.Fprintln(w, "  · version: dev build from source (update it with \"go install github.com/MichinaoShimizu/kiroku@latest\")")
+	case !rel.checked:
+		fmt.Fprintf(w, "  · version: %s (not checked for a newer release)\n", cur)
+	case rel.err != nil:
+		fmt.Fprintf(w, "  · version: %s (could not check for a newer release; \"kiroku update --check\" shows why)\n", cur)
+	case compareVersions(rel.latest, cur) > 0:
+		newer = true
+		fmt.Fprintf(w, "  ! version: %s, and %s is available\n", cur, rel.latest)
+	default:
+		fmt.Fprintf(w, "  ✓ version: %s, the latest\n", cur)
+	}
 
 	fmt.Fprintln(w, "\nNext")
 	if total == 0 {
@@ -110,6 +152,9 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 	}
 	if risky { // 消えた履歴は戻らないので、見るより先に
 		fmt.Fprintln(w, "  kiroku archive on    keep copies of history before it is deleted (or change the setting above)")
+	}
+	if newer {
+		fmt.Fprintf(w, "  kiroku update        install %s\n", rel.latest)
 	}
 	if a.running {
 		fmt.Fprintf(w, "  open %s\n", a.url)
