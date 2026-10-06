@@ -16,7 +16,7 @@ Getting real value from limited credits and tokens depends on how you use your a
 
 kiroku reads those histories, puts them on one screen, and shows them only to you, so that anyone can understand their own usage and find something concrete to improve.
 
-`kiroku serve` only shows the same HTML on your machine (`127.0.0.1`). kiroku connects to the network only when `install.sh` or `kiroku update` (including `--check`) contacts GitHub Releases to get kiroku itself.
+`kiroku serve` only shows the same HTML on your machine (`127.0.0.1`). kiroku connects to the network only to check for and download kiroku itself from GitHub Releases: in `install.sh`, `kiroku update` (including `--check`) and `kiroku doctor` (`--no-update-check` to skip).
 
 ## What you get
 
@@ -39,11 +39,11 @@ macOS and Linux:
 curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install.sh | sh
 ```
 
-It installs to `/usr/local/bin`, or `~/.local/bin` if that is not writable (set `KIROKU_INSTALL_DIR` to choose another place).
+It verifies the download with `checksums.txt` (and its build provenance when the [GitHub CLI](https://cli.github.com/) is installed), and installs to `/usr/local/bin`, or `~/.local/bin` if that is not writable (set `KIROKU_INSTALL_DIR` to choose another place).
 
 Then run `kiroku doctor`. It shows which agents' history kiroku found, whether any of it is about to be deleted, and what to run next. It only reads and changes nothing.
 
-On Windows, download the zip from [Releases](https://github.com/MichinaoShimizu/kiroku/releases), extract it, and put `kiroku.exe` in a folder on your `PATH`. With Go installed, `go install github.com/MichinaoShimizu/kiroku@latest` also works.
+On Windows, download the zip from [Releases](https://github.com/MichinaoShimizu/kiroku/releases), extract it, and put `kiroku.exe` in a folder on your `PATH`. With Go 1.25 or later, `go install github.com/MichinaoShimizu/kiroku@latest` also works.
 
 ## Keep your history
 

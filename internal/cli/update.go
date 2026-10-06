@@ -37,7 +37,7 @@ func runVersion() error {
 func runUpdate(args []string) error {
 	fs := newFS("update", "update [flags]\n\nDownloads the release for this OS/arch, verifies it against checksums.txt\nand replaces the running binary.")
 	check := fs.Bool("check", false, "only check whether a newer release exists")
-	to := fs.String("to", "", "install this `version` (e.g. v0.1.1) instead of the latest")
+	to := fs.String("to", "", "install this `version` (e.g. v0.12.0) instead of the latest; an older version than this one also needs --force")
 	force := fs.Bool("force", false, "replace even when already up to date, when running a dev build, or when --to names an older version")
 	// 位置引数は受け付けない（fs.Parse だけだと、kiroku update v0.1.1 の v0.1.1 とその後ろのオプションを黙って捨て、最新を入れてしまう）
 	if _, err := parse(fs, args, 0); err != nil {
