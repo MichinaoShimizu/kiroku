@@ -16,7 +16,13 @@ This downloads the file for your OS and CPU (Intel / Apple Silicon and ARM) from
 curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install.sh | KIROKU_VERSION=v0.1.7 KIROKU_INSTALL_DIR=~/bin sh
 ```
 
-Each release file also carries a signed record that it was built from this repository by its release workflow (a GitHub artifact attestation). With the [GitHub CLI](https://cli.github.com/), you can check a file you downloaded:
+| Variable | Meaning |
+| --- | --- |
+| `KIROKU_VERSION` | The version to install (e.g. `v0.1.7`). The latest if not set |
+| `KIROKU_INSTALL_DIR` | Where to place `kiroku`. `/usr/local/bin` if not set (`~/.local/bin` if that is not writable) |
+| `KIROKU_SKIP_ATTESTATION=1` | Do not check the build provenance with `gh`, even if it is installed |
+
+Each release file from v0.12.0 on also carries a signed record that it was built from this repository by its release workflow (a GitHub artifact attestation). If the [GitHub CLI](https://cli.github.com/) (`gh`) is installed, `install.sh` also checks this record with `gh attestation verify` after `checksums.txt`, and stops if it does not match. If `gh` is not logged in or cannot reach GitHub, it shows a warning and installs anyway (the file already matched `checksums.txt`). Without `gh`, and for versions before v0.12.0, it installs as before. You can also check a file you downloaded yourself:
 
 ```bash
 gh attestation verify kiroku_<version>_darwin_arm64.tar.gz --repo MichinaoShimizu/kiroku

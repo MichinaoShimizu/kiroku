@@ -199,7 +199,7 @@ kbd{font:var(--fs-xs)/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px
 .flagsum{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 14px;font-size:var(--fs-sm)}
 .flagsum .lbl{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--ink-2)}
 .flagsum .hint{flex-basis:100%}
-.ic{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-2px} /* 形で見分ける印（app.js の ICON_PATH） */
+.ic{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-2px} /* 形で見分ける印（js/git.js の ICON_PATH） */
 .fdot{color:var(--acc)} /* 見直す候補の印 */
 .stat.flagged{box-shadow:inset 3px 0 0 var(--acc);grid-column:1/-1}
 .fl .more{margin:0;font-size:var(--fs-xs)}

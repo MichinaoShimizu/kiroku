@@ -31,7 +31,7 @@ Add user-visible changes to `## Unreleased` in [CHANGELOG.md](CHANGELOG.md), in 
 
 ## Changing the view
 
-The view lives in `internal/web`: `template.html` (markup), `style.css` and `app.js`, put together into one HTML file by `web.go`. When you change it:
+The view lives in `internal/web`: `template.html` (markup), `style.css` and the script split by role into `js/*.js`, put together into one HTML file by `web.go`. The script files are joined in the order listed in `scripts` in `web.go` and share one `<script>` scope; add a new file to that list. When you change it:
 
 - The view is English only. Metric explanations live in `HELP`, and a test checks them against the "How to read the metrics" table in `docs/guide.md`
 - Check light and dark, and 1440px, 1000px and phone widths
