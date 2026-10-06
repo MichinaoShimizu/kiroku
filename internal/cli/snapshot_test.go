@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"encoding/json"
@@ -23,7 +23,7 @@ import (
 // golden.json（Python 版との比較）が見ない履歴と項目も含めて、集計の数字が意図せず変わっていないかを確かめる。
 // 集計を変えて数字が変わるときは、なぜ変わるのかを PR に書いてから、次で作り直す。
 //
-//	go test -run TestSnapshot -update .
+//	go test -run TestSnapshot -update ./internal/cli
 var update = flag.Bool("update", false, "testdata/snapshot.json を作り直す")
 
 const snapshotPath = "testdata/snapshot.json"
@@ -43,7 +43,7 @@ func TestSnapshot(t *testing.T) {
 	}
 	b, err := os.ReadFile(snapshotPath)
 	if err != nil {
-		t.Fatalf("%v（go test -run TestSnapshot -update . で作る）", err)
+		t.Fatalf("%v（go test -run TestSnapshot -update ./internal/cli で作る）", err)
 	}
 	var want any
 	if err := json.Unmarshal(b, &want); err != nil {
@@ -59,7 +59,7 @@ func TestSnapshot(t *testing.T) {
 		t.Error(d)
 	}
 	if len(diffs) > 0 {
-		t.Log("意図した変更なら go test -run TestSnapshot -update . で作り直す")
+		t.Log("意図した変更なら go test -run TestSnapshot -update ./internal/cli で作り直す")
 	}
 }
 

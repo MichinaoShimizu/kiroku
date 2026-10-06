@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"encoding/json"
@@ -40,7 +40,9 @@ Run "kiroku <command> --help" for a command's flags.
 Get started: kiroku doctor, then kiroku serve
 `
 
-func main() {
+// Main は kiroku のコマンドを動かす。v はリリース時に入る版（ルートの main.go から渡す）。
+func Main(v string) {
+	version = v
 	cleanupOldExe()
 	if err := dispatch(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, err)
