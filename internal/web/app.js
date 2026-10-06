@@ -105,6 +105,9 @@ function render(){
   $("#legend").innerHTML = `<label class="cbsel"><span class="sr">Color by</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${l}</option>`).join("")}</select></label><span class="lab"><span class="ln">${CB()[st.colorBy]}</span><small> (sessions)</small></span>` +
     Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}" title="${esc(`${(k)}: ${plural(cnt[k], "session")} (click to show or hide)`)}"><span class="dot"></span>${st.colorBy === "source" ? agMark(k) : ""}${esc((k))}<span class="n">${cnt[k]}<span class="sr"> sessions</span></span></button>`).join("") +
     `<span class="count">${shown.length} / ${inRange.length} sessions${st.q ? ` · <button class="flink" id="tosr">All-time search results ↓</button>` : ""}</span>`;
+  // 検索・凡例で絞り込んでいるあいだ、絞り込めない合計（作業時間・トークンなど）は薄くして、そう断る
+  const fn = $("#fnote"); fn.hidden = !filtering();
+  fn.textContent = `${st.q ? "The calendar shows only sessions that match the search, and their commits." : "Hidden items are left out of the calendar."} Grey figures, at the top and ${M ? "in each day and week" : "under each date"}, are totals for all sessions.`;
   const cb2 = $("#cb2"); if (cb2) cb2.onchange = () => { st.colorBy = cb2.value; st.hidden.clear(); store.set("colorBy", st.colorBy); render(); };
   const tosr = $("#tosr"); if (tosr) tosr.onclick = () => $("#review").scrollIntoView({behavior:"smooth"});
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
@@ -132,6 +135,7 @@ function render(){
 /* 期間の要点（上の帯） */
 function kpis(){
   const {S:w} = period(), K = $("#kpis"), M = st.mode === "month";
+  K.classList.toggle("unf", filtering()); // 絞り込みの最中も、ここは全セッションの合計（薄くして、カレンダーの上に断り書き）
   if (!w){ K.innerHTML = `<div class="kpi"><div class="k">${M ? "This month" : "This week"}</div><div class="v">No records</div></div>`; return; }
   const kpi = (k, v) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div></div>`;
   const u = w.usage || {}, days = w.days.filter(d => d.active).length;
@@ -144,35 +148,48 @@ function kpis(){
      w.outputs && w.outputs.commits ? kpi("AI commits", `${w.outputs.commits}`) : "");
 }
 
-/* カレンダーの各日（月表示では各週も）に並べる 4 つ：作業時間・トークン（なければクレジット）・セッション・Git のコミット */
-function calRows(act, u, nS, nC){
-  const use = !u ? null : u.tokens ? ["Tokens", tok(u.tokens)] : u.credits ? ["Credits", cr(u.credits)] : null; // トークンがなければ（Kiro など）クレジット
-  return [["Active", act ? dur(act) : "—", "k"], use && [...use, "k"], ["Sessions", nS], ["Commits", nC]].filter(Boolean);
+/* カレンダーの各日（月表示では各週も）に並べる：作業時間・トークン・クレジット・セッション・Git のコミット。
+   トークンとクレジットは、その期間にあるほう（両方あれば両方）を、どの日にも同じ見出しで出す（日によって見出しが変わると、横に並べて比べられない）。
+   un は絞り込み（検索・凡例で隠す）の最中に、絞り込まれていない合計を薄くする（1: 作業時間・トークン・クレジット、2: 全部） */
+const useKinds = xs => ({tokens: xs.some(d => d && d.tokens), credits: xs.some(d => d && d.credits)});
+function calRows(act, u, nS, nC, kinds, un){
+  const k = un ? "k u" : "k", o = un > 1 ? "u" : "";
+  return [["Active", act ? dur(act) : "—", k], kinds.tokens && ["Tokens", u && u.tokens ? tok(u.tokens) : "—", k], kinds.credits && ["Credits", u && u.credits ? cr(u.credits) : "—", k],
+    ["Sessions", nS, o], ["Commits", nC, o]].filter(Boolean);
 }
 const calDl = rows => `<dl class="cm">${rows.map(([k, v, c]) => `<div${c ? ` class="${c}"` : ""}><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>`; // k は強く出す値
-const calShort = (act, u) => `<span class="acs">${act >= 60 ? (act/60).toFixed(1)+"h" : act+"m"}</span>${u && (u.tokens || u.credits) ? `<span class="uss">${u.tokens ? tokS(u.tokens) : cr(u.credits)}</span>` : ""}`; // スマホでは作業時間とトークン（なければクレジット）だけ
+const calShort = (act, u, un) => `<span class="acs${un ? " u" : ""}">${act >= 60 ? (act/60).toFixed(1)+"h" : act+"m"}</span>${u && (u.tokens || u.credits) ? `<span class="uss${un ? " u" : ""}">${u.tokens ? tokS(u.tokens) : cr(u.credits)}</span>` : ""}`; // スマホでは作業時間とトークン（なければクレジット。単位で見分けられる）だけ
+const filtering = () => !!st.q || st.hidden.size > 0;
+/* カレンダーに出すコミット：凡例で隠したプロジェクトのものは出さない。検索中は、一致したセッションの間のコミットと、それ自体が一致したコミットだけ */
+const gitHit = c => [c.hash, c.subject, c.body || "", ...(c.files || []).map(f => f.path)].join("\n").toLowerCase().includes(st.q);
+function gitShown(shown){
+  const linked = st.q ? new Set(shown.flatMap(s => commitsOf(s).map(c => c.hash))) : null;
+  return (META.git || []).filter(c => (!st.hidden.size || st.colorBy !== "project" || !st.hidden.has(c.project)) && (!linked || linked.has(c.hash) || gitHit(c)));
+}
 /* 月のカレンダー：日ごとの作業時間を濃さで、プロジェクトの配分を細い帯で */
 function monthGrid(shown, ms, me, todayKey){
   const T = $("#tl"), S = MONTHS[mkey(st.month)], first = mondayOf(st.month);
-  const max = S ? Math.max(1, ...S.days.map(d => d.active)) : 1;
+  const max = S ? Math.max(1, ...S.days.map(d => d.active)) : 1, un = filtering() ? 1 : 0, G = un ? gitShown(shown) : null;
+  const wks = []; for (let r = 0; r < 6 && addDays(first, 7*r).getTime()/1000 < me; r++) wks.push(addDays(first, 7*r));
+  const kinds = useKinds([...(S ? S.days : []), ...wks.map(wk => (WEEKS[key(wk)] || {}).usage)]);
   let h = `<div class="mgrid"><div class="mh"></div>${[1,2,3,4,5,6,0].map(i=>`<div class="mh${wkc(i)}">${dow(i)}</div>`).join("")}`;
   for (let r = 0; r < 6; r++){
     const wk = addDays(first, 7*r); if (wk.getTime()/1000 >= me) break;
     const W = WEEKS[key(wk)], wa = W ? W.active : 0, wc = W && W.git ? W.git.commits : 0; // 週の合計（月の外の日も含む、その週まるごと）
-    h += `<button class="cell wkc" data-w="${key(wk)}"${tipAttr(`Week ${isoWeek(wk)}`, W ? [`Active ${dur(wa)}`, `Sessions ${W.sessions}`, ...useLines(W.usage), `Git commits ${wc}`] : "No records")}><span class="dn">W${isoWeek(wk)}</span>${W && wa ? calDl(calRows(wa, W.usage, W.sessions, wc)) + calShort(wa, W.usage) : ""}</button>`;
+    h += `<button class="cell wkc" data-w="${key(wk)}"${tipAttr(`Week ${isoWeek(wk)}`, W ? [`Active ${dur(wa)}`, `Sessions ${W.sessions}`, ...useLines(W.usage), `Git commits ${wc}`] : "No records")}><span class="dn">W${isoWeek(wk)}</span>${W && wa ? calDl(calRows(wa, W.usage, W.sessions, wc, kinds, un && 2)) + calShort(wa, W.usage, un) : ""}</button>`;
     for (let c = 0; c < 7; c++){
       const d = addDays(wk, c), ds = d.getTime()/1000, de = addDays(d,1).getTime()/1000, inM = d.getMonth() === st.month.getMonth();
       if (!inM){ h += `<div class="cell out"><span class="dn">${d.getDate()}</span></div>`; continue; }
       const x = S ? S.days[d.getDate()-1] : null, act = x ? x.active : 0;
       const by = {}; shown.forEach(s => s.segs.forEach(([a,b]) => { const o = Math.min(b,de) - Math.max(a,ds); if (o > 0) by[keyOf(s)] = (by[keyOf(s)]||0) + o; }));
       const pj = Object.entries(by).sort((a,b)=>b[1]-a[1]), nS = shown.filter(s => inP(s, ds, de)).length;
-      const nC = x && x.commits || 0;
+      const nC = G ? G.filter(c => c.t >= ds && c.t < de).length : x && x.commits || 0;
       h += `<button class="cell${d.getDay()%6===0?" we":""}${wkc(d.getDay())}${key(d)===todayKey?" today":""}" data-w="${key(mondayOf(d))}" style="--heat:${(act/max).toFixed(3)}"${tipAttr(md(ds), act ? [`Active ${dur(act)}`, `Sessions ${nS}`, ...useLines(x), `Git commits ${nC}`] : "No records")}>
-        <span class="dn">${d.getDate()}</span>${act ? calDl(calRows(act, x, nS, nC)) + calShort(act, x) : ""}
+        <span class="dn">${d.getDate()}</span>${act ? calDl(calRows(act, x, nS, nC, kinds, un)) + calShort(act, x, un) : ""}
         ${pj.length ? `<span class="pj">${pj.map(([k,v])=>`<span style="flex:${v};--c:${colorOf(k)}"></span>`).join("")}</span>` : ""}</button>`;
     }
   }
-  h += `</div><div class="mlegend"><span style="white-space:nowrap">Less</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${matchMedia("(max-width:820px)").matches ? "More (active time) · Each day and week shows active time and tokens (or credits) · Tap a date or week to open it" : "More (active time) · Each day, and each week on the left, shows active time, tokens (or credits), sessions and Git commits · Click a date or week to open it"}</div>`;
+  h += `</div><div class="mlegend"><span style="white-space:nowrap">Less</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${matchMedia("(max-width:820px)").matches ? "More (active time) · Each day and week shows active time and tokens (or credits) · Tap a date or week to open it" : "More (active time) · Each day, and each week on the left, shows active time, tokens or credits (both when the month has both), sessions and Git commits · Click a date or week to open it"}</div>`;
   T.innerHTML = h;
   T.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { const [y,m,dd] = b.dataset.w.split("-").map(Number); st.week = new Date(y, m-1, dd); setMode("week"); });
 }
@@ -190,13 +207,13 @@ function timeline(shown, inWeek, ws, we, todayKey){
   const nowH = nowS >= ws && nowS < we ? (() => { const d0 = new Date(nowS*1000); d0.setHours(0,0,0,0); return (nowS - d0.getTime()/1000)/3600; })() : -9;
   for (let h=1; h<24; h++) if (Math.abs(h - nowH) * hh >= 20) hours += `<span style="top:${h*hh}px">${String(h).padStart(2,"0")}:00</span>`;
   if (nowS >= ws && nowS < we){ const d0 = new Date(nowS*1000); d0.setHours(0,0,0,0); hours += `<span class="now" style="top:${(nowS - d0.getTime()/1000)/3600*hh}px">${hm(nowS)}</span>`; }
-  const runs = [];
+  const runs = [], un = filtering() ? 1 : 0, G = gitShown(shown), kinds = useKinds(w ? w.days : []);
   for (let d=0; d<7; d++){
     const day = addDays(st.week,d), ds = day.getTime()/1000, de = addDays(st.week,d+1).getTime()/1000, isToday = key(day) === todayKey;
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
-    const dayGit = (META.git || []).filter(c => c.t >= ds && c.t < de && (!st.hidden.size || st.colorBy !== "project" || !st.hidden.has(c.project))).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${day.getMonth()+1}/${day.getDate()}</b><i>${dow(day.getDay())}</i></div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`Active ${dur(act)}`, `Sessions ${nS}`, ...useLines(dW), `Git commits ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length))}</div>` : `<small>—</small>`}</div>`;
+    const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${day.getMonth()+1}/${day.getDate()}</b><i>${dow(day.getDay())}</i></div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`Active ${dur(act)}`, `Sessions ${nS}`, ...useLines(dW), `Git commits ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`;
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
@@ -205,16 +222,22 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const flush = () => { const lanes = []; cluster.forEach(bk => { let i = lanes.findIndex(e => e <= bk.a); if (i<0){ i = lanes.length; lanes.push(0); } lanes[i] = bk.b; bk.lane = i; }); cluster.forEach(bk => bk.L = lanes.length); cluster = []; };
     blocks.forEach(bk => { if (bk.a >= cEnd){ flush(); cEnd = bk.b; } else cEnd = Math.max(cEnd, bk.b); cluster.push(bk); }); flush();
     let html = "";
+    blocks.forEach(bk => { bk.y = (bk.a-ds)/3600*hh; bk.h = Math.max(4, (bk.b-bk.a)/3600*hh - 2); });
+    // 名前の入らない短い帯は、すぐ下があいていれば、そこに名前を出す（ほかの帯と重なるなら出さない。押せば詳細は開ける）
+    const free = bk => !blocks.some(o => o !== bk && o.y < bk.y + bk.h + 14 && o.y + o.h > bk.y + bk.h && o.lane / o.L < (bk.lane + 1) / bk.L && (o.lane + 1) / o.L > bk.lane / bk.L);
     blocks.forEach((bk, j) => {
-      const y = (bk.a-ds)/3600*hh, h = Math.max(4, (bk.b-bk.a)/3600*hh - 2), mins = (bk.b-bk.a)/60;
+      const {y, h} = bk, mins = (bk.b-bk.a)/60;
       const dens = Math.min(1, bk.n / Math.max(1, mins) / 2.5), id = runs.length;
+      const pos = `left:calc((100% - var(--g)) * ${(bk.lane/bk.L).toFixed(4)} + 3px);width:calc((100% - var(--g)) / ${bk.L} - 6px)`;
       runs.push(bk);
-      html += `<button class="run${h < 16 ? " thin" : ""}${st.sel === bk.s.id ? " sel" : ""}" data-r="${id}" data-sid="${esc(bk.s.id)}" style="top:${y}px;height:${h}px;left:calc((100% - var(--g)) * ${(bk.lane/bk.L).toFixed(4)} + 3px);width:calc((100% - var(--g)) / ${bk.L} - 6px);--c:${colorOf(keyOf(bk.s))};--fill:${Math.round(16+30*dens)}%;${st.animate?`--delay:${d*30+Math.min(j,14)*10}ms`:"animation:none"}" aria-label="${esc(`${bk.s.title}, ${bk.s.project}, ${md(bk.a)} ${hm(bk.a)} to ${hm(bk.b)}`)}">${h >= 20 ? `<span class="t"><span>${esc(bk.s.title)}</span></span>` + (h >= 38 ? `<span class="m">${hm(bk.a)}–${hm(bk.b)} · ${esc(bk.s.project)}</span>` : "") : ""}</button>`;
+      // 20px 以上は名前（38px からは時刻も）、12px からは小さい字で名前を 1 行、それより短いものは帯の下に名前
+      html += `<button class="run${h < 20 ? " thin" : ""}${st.sel === bk.s.id ? " sel" : ""}" data-r="${id}" data-sid="${esc(bk.s.id)}" style="top:${y}px;height:${h}px;${pos};--c:${colorOf(keyOf(bk.s))};--fill:${Math.round(16+30*dens)}%;--ln:${Math.max(1, Math.floor((h - 8) / 14))};${st.animate?`--delay:${d*30+Math.min(j,14)*10}ms`:"animation:none"}" aria-label="${esc(`${bk.s.title}, ${bk.s.project}, ${md(bk.a)} ${hm(bk.a)} to ${hm(bk.b)}`)}">${h >= 12 ? `<span class="t"><span>${esc(bk.s.title)}</span></span>` + (h >= 38 ? `<span class="m">${hm(bk.a)}–${hm(bk.b)} · ${esc(bk.s.project)}</span>` : "") : ""}</button>`;
+      if (h < 12 && free(bk)) html += `<span class="rlab" aria-hidden="true" style="top:${y + h + 1}px;${pos}">${esc(bk.s.title)}</span>`;
     });
     // 右端の溝に、コミット・push・PR を時刻の順に置く（近すぎるものは少し下へずらす）
-    const showP = p => !st.hidden.size || st.colorBy !== "project" || !st.hidden.has(p);
+    const showP = p => (!st.hidden.size || st.colorBy !== "project" || !st.hidden.has(p.project)) && (!st.q || shown.some(s => s.project === p.project && p.t >= s.start && p.t <= s.end + 600)); // 検索中は、一致したセッションの間の push だけ（詳細のプロンプトの流れと同じ範囲）
     const marks = [...dayGit.map(c => ({t: c.t, c})),
-      ...(META.push || []).filter(p => p.t >= ds && p.t < de && showP(p.project)).map(p => ({t: p.t, p})),
+      ...(META.push || []).filter(p => p.t >= ds && p.t < de && showP(p)).map(p => ({t: p.t, p})),
       ...shown.flatMap(s => (s.prAt || []).filter(x => x.t >= ds && x.t < de).map(x => ({t: x.t, r: x, s})))].sort((a, b) => a.t - b.t);
     let gy = -99;
     marks.forEach(({t, c, p, r, s}) => {
@@ -381,7 +404,7 @@ function projectPanel(w, ph, unit){
 }
 /* 指標の読み方：定義・言えること・言えないこと・打てる手。画面の「?」と、改善案プロンプトの前提に使う */
 const HELP = {
-  findings: {n: "Worth a look", d: "Metrics that crossed a fixed threshold. Each is marked (●) where it appears, with what was observed, an 8-period trend, the related sessions and the threshold; their names are listed here in priority order", c: "Which metric is worth reviewing first", x: "Whether something is good or bad. Thresholds are generic and may not fit how you work", a: "Pick one, try it next period, and check the change with the same metric"},
+  findings: {n: "Worth a look", d: "Metrics that crossed a fixed threshold. Each is marked with a warning triangle where it appears, with what was observed, an 8-period trend, the related sessions and the threshold; their names are listed here in priority order", c: "Which metric is worth reviewing first", x: "Whether something is good or bad. Thresholds are generic and may not fit how you work", a: "Pick one, try it next period, and check the change with the same metric"},
   projects: {n: "By project", d: "Time, usage, main models and top sessions per project. Time when several projects ran at once is split between them", c: "How you divided time and AI across projects", x: "How important or successful a project was", a: "If the split differs from what you intended, revisit how you work or your priorities"},
   active: {n: "Active time", d: "Time when any session was running (overlaps count once)", c: "Total time you worked together with AI", x: "Whether you were focused. Includes time you left a session idle", a: "Compare with the previous period to see how much more or less you rely on AI"},
   ai: {n: "Total AI run time", d: "Session run time added up, including sessions running in parallel", c: "How much work you gave to AI. The gap from active time shows how much ran in parallel", x: "Time saved or productivity", a: "If it is close to active time, you could do other work while waiting"},
@@ -580,7 +603,9 @@ function spark(k){ // 8 期間の推移（記録のない期間は飛ばす）
   const line = pts.map((p, i) => p.v == null ? null : `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).filter(Boolean).join(" ");
   const txt = `${st.mode === "month" ? "8-month" : "8-week"} trend: ${pts.map(p => `${p.l} ${fmtM(k, p.v)}`).join(", ")}`;
   const hits = pts.map((p, i) => `<rect class="hit" x="${(x(i) - (W - 8) / 14).toFixed(1)}" y="0" width="${((W - 8) / 7).toFixed(1)}" height="${H}"${tipAttr(p.l, fmtM(k, p.v) === "—" ? "No records" : fmtM(k, p.v))}/>`).join(""); // 点ごとに、その期間の値を出す
-  return `<span class="spark"><span class="sr">${esc(txt)}</span><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true"><polyline points="${line}"/>${pts.map((p, i) => p.v == null ? "" : `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="1.6"/>`).join("")}${pts[7].v != null ? `<circle cx="${x(7)}" cy="${y(pts[7].v)}" r="2.6"/>` : ""}${hits}</svg><small aria-hidden="true"><b>${fmtM(k, pts[7].v)}</b>${` (${rng} over ${st.mode === "month" ? "8 months" : "8 weeks"} · flagged when ${MET[k].low ? "high" : "low"})`}</small></span>`;
+  // 両端（記録のある最初の期間と、表示中の期間）には、触れなくても読めるよう期間と値を添える（最初の点の真下から）
+  const f0 = pts.findIndex(p => p.v != null), sl = i => { const p = periodBack(7 - i), [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? new Date(yy, mm - 1, 1).toLocaleString(LOC(), {month: "short"}) : `${mm}/${dd}`; };
+  return `<span class="spark"><span class="sr">${esc(txt)}</span><span class="spk" aria-hidden="true"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><polyline points="${line}"/>${pts.map((p, i) => p.v == null ? "" : `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="1.6"/>`).join("")}${pts[7].v != null ? `<circle cx="${x(7)}" cy="${y(pts[7].v)}" r="2.6"/>` : ""}${hits}</svg><span class="ends"><span style="margin-left:${Math.max(0, x(f0) - 4).toFixed(1)}px">${sl(f0)} ${fmtM(k, pts[f0].v)}</span><span>${sl(7)} <b>${fmtM(k, pts[7].v)}</b></span></span></span><small aria-hidden="true">${`${st.mode === "month" ? "8-month" : "8-week"} range ${rng} · flagged when ${MET[k].low ? "high" : "low"}`}</small></span>`;
 }
 /* 見直す候補：指標が決まった基準を超えたものを拾う（AI は使わない。判定ではなく、確かめる候補） */
 function findList(w, pw, unit){
@@ -638,8 +663,10 @@ function placeFlags(R, F){ // 基準を超えた指標の、その場に印・�
     const t = R.querySelector(`.panel .hb[data-help="${GOTO[f.k] || f.k}"]`); if (!t) return;
     const panel = t.closest(".panel"), shown = new Set([...panel.querySelectorAll(".card[data-id]")].map(c => c.dataset.id)); // すぐ下にカードで並ぶセッションは繰り返さない
     const ids = f.k === "friction" ? [] : f.ids.filter(id => !shown.has(id)), more = ids.length - 3;
+    // 下のカードと重なって省いたセッションも数に入れて断る（見出しの「N sessions」と、並ぶ数が合わなく見えないように）
+    const dup = f.k === "friction" ? 0 : f.ids.length - ids.length, rest = [more > 0 ? `${more} more` : "", dup ? `${dup} in the list below` : ""].filter(Boolean).join(" · ");
     const own = !GOTO[f.k] && t.closest(".stat"); // 自分の数字の上に出す印は、数字の言い直し（見えたこと）を省く
-    const html = `<div class="fl">${own ? "" : `<p class="see">${ico("flag", "fdot")}${f.see}</p>`}<p class="why">${esc(f.why)}</p>${spark(f.k)}${ids.length ? `<div class="fss">${ses(ids.slice(0, 3))}${more > 0 ? `<p class="more">${`${more} more`}</p>` : ""}</div>` : ""}<p class="rule">Threshold: ${esc(f.rule)}</p></div>`;
+    const html = `<div class="fl">${own ? "" : `<p class="see">${ico("flag", "fdot")}${f.see}</p>`}<p class="why">${esc(f.why)}</p>${spark(f.k)}${ids.length || rest ? `<div class="fss">${ses(ids.slice(0, 3))}${rest ? `<p class="more">${rest}</p>` : ""}</div>` : ""}<p class="rule">Threshold: ${esc(f.rule)}</p></div>`;
     const dt = t.closest("details"); // 閉じた折りたたみの中の印は、見出しにも出し、自分で閉じていなければ開いておく
     if (dt){ const sm = dt.querySelector("summary"); if (!sm.querySelector(".fdot")) sm.insertAdjacentHTML("beforeend", `<span title="A metric crossed a threshold">${ico("flag", "fdot")}</span>`); if (st.moreS !== false && !dt.open){ dt.dataset.auto = "1"; dt.open = true; } }
     const stat = t.closest(".stat");
@@ -648,7 +675,7 @@ function placeFlags(R, F){ // 基準を超えた指標の、その場に印・�
     (next && next.classList.contains("hint") ? next : a).insertAdjacentHTML("afterend", html);
   });
 }
-/* 全期間の検索結果：どこに一致したかを抜き出して並べる。押すとその週を開いて詳細を出す */
+/* 全期間の検索結果：どこに一致したかを抜き出して並べる。押すと詳細を出し、カレンダーはその週へ移る */
 function snip(t, q){
   t = String(t || "").replace(/\s+/g, " "); const i = t.toLowerCase().indexOf(q); if (i < 0) return null;
   const a = Math.max(0, i - 36), b = Math.min(t.length, i + q.length + 64);
@@ -664,7 +691,7 @@ function hitOf(s, q){
 function searchPanel(){
   const R = $("#review"), q = st.q, LIMIT = 100;
   const ss = DATA.filter(s => !st.hidden.has(keyOf(s)) && searchText(s).includes(q)).sort((a,b) => b.start - a.start);
-  const cs = (META.git || []).filter(c => [c.hash, c.subject, c.body || "", ...(c.files || []).map(f => f.path)].join("\n").toLowerCase().includes(q)).sort((a,b) => b.t - a.t);
+  const cs = (META.git || []).filter(gitHit).sort((a,b) => b.t - a.t);
   const row = s => { const h = hitOf(s, q);
     return `<button class="srow" data-s="${esc(s.id)}" style="--c:${colorOf(keyOf(s))}"><time>${md(s.start)}<small>${hm(s.start)}</small></time>
       <span class="b"><span class="ti"><i></i>${esc(s.title)}</span><span class="me">${esc(s.project)}${s.branch ? ` · ${esc(s.branch)}` : ""} · ${esc((s.source))}</span>
@@ -672,7 +699,7 @@ function searchPanel(){
   const crow = c => `<button class="srow" data-c="${esc(c.hash)}" style="--c:${colorOf(c.project)}"><time>${md(c.t)}<small>${hm(c.t)}</small></time>
       <span class="b"><span class="ti"><i></i>${snip(c.subject, q) || esc(c.subject)}</span><span class="me">${esc(c.project)}${c.branch ? ` · ${esc(c.branch)}` : ""} · <span class="mono">${esc(c.hash.slice(0,7))}</span> · ${plural(c.nFiles, "file")} +${c.added} −${c.removed}</span>
       ${(() => { const f = (c.files || []).find(f => f.path.toLowerCase().includes(q)); return f ? `<span class="hit"><em>File</em>${snip(f.path, q)}</span>` : ""; })()}</span></button>`;
-  R.innerHTML = `<div class="rvhead"><h2>Search results</h2><p>${`Matches for "${esc(q)}" (all time). Sessions are matched on prompts, project, branch, agent, files changed by AI, pull requests and commits made during the session; commits on subject, body, hash and changed files. Click one to open its week.`}</p>
+  R.innerHTML = `<div class="rvhead"><h2>Search results</h2><p>${`Matches for "${esc(q)}" (all time). Sessions are matched on prompts, project, branch, agent, files changed by AI, pull requests and commits made during the session; commits on subject, body, hash and changed files. Click one to see its details; the calendar moves to its week.`}</p>
       <button class="pill" id="sclear">Clear search</button></div>
     <div class="rvgrid srgrid">
       <section class="panel"><div class="ph"><b>Sessions · ${ss.length}</b></div>
@@ -981,8 +1008,8 @@ function detail(s){
     ${sessionCommits(s)}
     ${s.prs && s.prs.length ? `<h3>Pull requests created · ${s.prs.length}</h3><ul class="files">${s.prs.map(u => `<li title="${esc(u)}"><span>${ext(u, esc(u.replace(/^https?:\/\//, "")))}</span></li>`).join("")}</ul>` : ""}
     <h3>Files changed · ${s.nFiles}</h3>
-    ${s.files.length ? `<ul class="files">${s.files.map(f=>{ const u = fileLink(s, f); return `<li title="${esc(f)}"><span>${u ? ext(u, esc(f)) : esc(f)}</span></li>`; }).join("")}</ul>` : `<p class="none">None</p>`}
-    ${s.files.length && commitsOf(s).some(c => c.url) ? `<p class="note">Links open each file as of the commits made during this session.</p>` : ""}
+    ${(() => { if (!s.files.length) return `<p class="none">None</p>`; const us = s.files.map(f => fileLink(s, f)); // 断り書きは、リンクになったファイルがあるときだけ
+      return `<ul class="files">${s.files.map((f, i) => `<li title="${esc(f)}"><span>${us[i] ? ext(us[i], esc(f)) : esc(f)}</span></li>`).join("")}</ul>${us.some(Boolean) ? `<p class="note">Links open each file as of the commits made during this session.</p>` : ""}`; })()}
     ${s.models.length ? `<h3>Models used</h3><div class="chips">${s.models.map(([m,n])=>`<span class="mono">${esc((m))}<b>${n}</b></span>`).join("")}</div>` : ""}
     <h3>Tools used</h3>
     ${s.tools.length ? s.tools.map(([k,v])=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track2"><span style="width:${v/maxT*100}%"></span></span><span class="n">${v}</span></div>`).join("") : `<p class="none">None recorded</p>`}
