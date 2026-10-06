@@ -34,6 +34,10 @@ function mondayOf(d){ d = new Date(d); return new Date(d.getFullYear(), d.getMon
 function monthOf(d){ d = new Date(d); return new Date(d.getFullYear(), d.getMonth(), 1); }
 function mkey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; }
 function addDays(d,n){ d = new Date(d); return new Date(d.getFullYear(), d.getMonth(), d.getDate()+n); }
+// 日付 d から時刻 t（秒）の日まで、暦で何日目か。夏時間で 23 時間や 25 時間の日があっても、日付で数えるのでずれない
+function dayNo(d, t){ const x = new Date(t*1000); return Math.round((Date.UTC(x.getFullYear(), x.getMonth(), x.getDate()) - Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))/864e5); }
+// 時刻 t（秒）が、日 d の 0 時から時計で何時間目か（0〜24）。経った秒数でなく時計の針で数えるので、夏時間の日も時刻の線とそろう
+function clockH(d, t){ const x = new Date(t*1000); return Math.min(24, Math.max(0, (x.getTime() - x.getTimezoneOffset()*6e4 - Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))/36e5)); }
 function key(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function hm(t){ return new Date(t*1000).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hourCycle:"h23"}); }
@@ -207,9 +211,9 @@ function timeline(shown, inWeek, ws, we, todayKey){
   const keep = T.querySelector(".calscroll"), top = keep ? keep.scrollTop : null;
   const nowS = nowMs()/1000, w = WEEKS[key(st.week)];
   let heads = '<div></div>', hours = "", cols = "";
-  const nowH = nowS >= ws && nowS < we ? (() => { const d0 = new Date(nowS*1000); d0.setHours(0,0,0,0); return (nowS - d0.getTime()/1000)/3600; })() : -9;
+  const nowH = nowS >= ws && nowS < we ? clockH(new Date(nowS*1000), nowS) : -9;
   for (let h=1; h<24; h++) if (Math.abs(h - nowH) * hh >= 20) hours += `<span style="top:${h*hh}px">${String(h).padStart(2,"0")}:00</span>`;
-  if (nowS >= ws && nowS < we){ const d0 = new Date(nowS*1000); d0.setHours(0,0,0,0); hours += `<span class="now" style="top:${(nowS - d0.getTime()/1000)/3600*hh}px">${hm(nowS)}</span>`; }
+  if (nowS >= ws && nowS < we) hours += `<span class="now" style="top:${nowH*hh}px">${hm(nowS)}</span>`;
   const runs = [], un = filtering() ? 1 : 0, G = gitShown(shown), kinds = useKinds(w ? w.days : []);
   for (let d=0; d<7; d++){
     const day = addDays(st.week,d), ds = day.getTime()/1000, de = addDays(st.week,d+1).getTime()/1000, isToday = key(day) === todayKey;
@@ -225,7 +229,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const flush = () => { const lanes = []; cluster.forEach(bk => { let i = lanes.findIndex(e => e <= bk.a); if (i<0){ i = lanes.length; lanes.push(0); } lanes[i] = bk.b; bk.lane = i; }); cluster.forEach(bk => bk.L = lanes.length); cluster = []; };
     blocks.forEach(bk => { if (bk.a >= cEnd){ flush(); cEnd = bk.b; } else cEnd = Math.max(cEnd, bk.b); cluster.push(bk); }); flush();
     let html = "";
-    blocks.forEach(bk => { bk.y = (bk.a-ds)/3600*hh; bk.h = Math.max(4, (bk.b-bk.a)/3600*hh - 2); });
+    blocks.forEach(bk => { bk.y = clockH(day, bk.a)*hh; bk.h = Math.max(4, (clockH(day, bk.b) - clockH(day, bk.a))*hh - 2); });
     // 名前の入らない短い帯は、すぐ下があいていれば、そこに名前を出す（ほかの帯と重なるなら出さない。押せば詳細は開ける）
     const free = bk => !blocks.some(o => o !== bk && o.y < bk.y + bk.h + 14 && o.y + o.h > bk.y + bk.h && o.lane / o.L < (bk.lane + 1) / bk.L && (o.lane + 1) / o.L > bk.lane / bk.L);
     blocks.forEach((bk, j) => {
@@ -244,12 +248,12 @@ function timeline(shown, inWeek, ws, we, todayKey){
       ...shown.flatMap(s => (s.prAt || []).filter(x => x.t >= ds && x.t < de).map(x => ({t: x.t, r: x, s})))].sort((a, b) => a.t - b.t);
     let gy = -99;
     marks.forEach(({t, c, p, r, s}) => {
-      const y = Math.max((t-ds)/3600*hh, gy + 17); gy = y;
+      const y = Math.max(clockH(day, t)*hh, gy + 17); gy = y;
       if (p){ html += `<button class="gm push${st.sel === "push:" + pushKey(p) ? " sel" : ""}" data-push="${esc(pushKey(p))}" style="top:${y}px" title="${esc(`${hm(t)} Pushed to ${p.ref}${p.commits ? ` (${plural(p.commits, "commit")})` : ""} · ${p.project}\nFrom this computer (git reflog)`)}" aria-label="${esc(`Push ${hm(t)} to ${p.ref}`)}">${ico("push")}</button>`; return; }
       if (r){ html += `<button class="gm prm${st.sel === "pr:" + prKey(s, r) ? " sel" : ""}" data-pr="${esc(prKey(s, r))}" style="top:${y}px" title="${esc(`${hm(t)} Created a pull request · ${s.project}${r.url ? "\n" + r.url : ""}\nRecorded when an agent created it`)}" aria-label="${esc(`Pull request ${hm(t)}`)}">${ico("pr")}</button>`; return; }
       html += `<button class="gc${c.ai ? " ai" : ""}${st.sel === "git:"+c.hash ? " sel" : ""}" data-c="${esc(c.hash)}" style="top:${y}px" title="${esc(`${hm(c.t)} ${c.project}${c.branch ? " · "+c.branch : ""} · ${c.hash}\n${c.subject}\n${plural(c.nFiles, "file")} +${c.added} −${c.removed}${c.ai ? " · run by AI" : ""}`)}" aria-label="${esc(`Commit ${hm(c.t)} ${c.subject}`)}">${GIT_ICON}<span>${esc(c.hash.slice(0,7))}</span></button>`; });
-    limitHits(ds, de).filter(h => matches(h.s)).forEach(h => { html += `<button class="lim" data-id="${esc(h.s.id)}" style="top:${(h.t-ds)/3600*hh}px" title="${esc(`${hm(h.t)} Hit the usage limit (${h.s.title})`)}" aria-label="${esc(`${hm(h.t)} usage limit`)}">${ico("limit")}Limit</button>`; });
-    if (isToday && nowS >= ds && nowS < de) html += `<div class="nowline" style="top:${(nowS-ds)/3600*hh}px"></div>`;
+    limitHits(ds, de).filter(h => matches(h.s)).forEach(h => { html += `<button class="lim" data-id="${esc(h.s.id)}" style="top:${clockH(day, h.t)*hh}px" title="${esc(`${hm(h.t)} Hit the usage limit (${h.s.title})`)}" aria-label="${esc(`${hm(h.t)} usage limit`)}">${ico("limit")}Limit</button>`; });
+    if (isToday && nowS >= ds && nowS < de) html += `<div class="nowline" style="top:${clockH(day, nowS)*hh}px"></div>`;
     cols += `<div class="day${day.getDay()%6===0?" we":""}${wkc(day.getDay())}${isToday?" today":""}" style="height:${H}px;--g:${marks.length ? 18 : 0}px">${html}</div>`;
   }
   T.innerHTML = `<div class="calscroll" style="--hh:${hh}px"><div class="calin"><div class="heads">${heads}</div><div class="cgrid"><div class="hours" style="height:${H}px">${hours}</div>${cols}</div></div></div>`;
@@ -774,7 +778,7 @@ function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）�
 function usageChart(w, M){ // 日ごとの推移：トークン・クレジット・目安コスト・作業時間・セッション・プロンプトを切り替えて 1 本の棒グラフで見る
   const start = M ? st.month : st.week, today = key(today0());
   const days = w.days.map((d, i) => { const dd = addDays(start, i), ds = dd.getTime()/1000;
-    return {...d, dd, sessions: DATA.filter(s => inP(s, ds, ds + 86400)).length}; });
+    return {...d, dd, sessions: DATA.filter(s => inP(s, ds, addDays(dd, 1).getTime()/1000)).length}; });
   const hrs = a => a >= 60 ? (a/60).toFixed(1)+"h" : a+"m", n = v => String(v);
   const all = [["tokens", "Tokens", tok], ["credits", "Credits", cr], ["cost", "Estimated cost", usd],
     ["active", "Active time", hrs], ["sessions", "Sessions", n], ["prompts", "Prompts", n]];
@@ -844,8 +848,8 @@ function measure(w){
   return `<h3>Data sources</h3><ul class="mlist">${rows.join("")}</ul>`;
 }
 // soFar は、今見ている期間が途中なら、始まりから今日までの日数（今日を含む）。終わった期間や先の期間は null。
-function soFar(){ const {ws, we} = period(), now = nowMs()/1000;
-  return ws <= now && now < we ? Math.min(Math.ceil((now - ws) / 86400), Math.round((we - ws) / 86400)) : null; }
+function soFar(){ const {ws, we} = period(), now = nowMs()/1000, a = new Date(ws*1000);
+  return ws <= now && now < we ? Math.min(dayNo(a, now) + 1, dayNo(a, we)) : null; }
 // vsPrev は、前の期間との比べ方。途中の期間は、前の期間の同じ日まで（先頭から今日と同じ日数）と比べる。
 // 途中の値を前の期間まるごとと比べると、いつも少なく見えるため。
 //   label: 差に添える言葉、range: 比べた前の期間の日付（途中のときだけ）
@@ -863,8 +867,9 @@ function vsPrev(pw, unit){
 // 今日までの日数（今日を含む）で割り、月の日数を掛ける。月の初めは日数が少なく当てにならないので 7 日たつまで、
 // 最後の日は実績とほとんど変わらないので出さない。
 function projection(w){ const {ws, we} = period(), now = nowMs()/1000, u = w.usage;
-  if (st.mode !== "month" || !u || !(ws <= now && now < we) || now - ws < 7 * 86400 || we - now < 86400) return null;
-  const days = Math.ceil((now - ws) / 86400), k = Math.round((we - ws) / 86400) / days;
+  const a = new Date(ws*1000), nd = dayNo(a, we), days = dayNo(a, now) + 1; // 今日を含めた日数（日付で数える）
+  if (st.mode !== "month" || !u || !(ws <= now && now < we) || days <= 7 || days >= nd) return null;
+  const k = nd / days;
   return {cost: u.tokens ? u.cost * k : null, credits: u.credits ? u.credits * k : null, days}; }
 function aiUsage(w, pw, unit){
   const u = w.usage; if (!u || (!u.tokens && !u.credits)) return "";
@@ -1242,7 +1247,7 @@ function yearData(y){
       a = Math.max(a, y0); b = Math.min(b, y1); if (b <= a) return;
       for (let t = a; t < b; t += 300) hist[new Date(t*1000).getHours()] += Math.min(300, b - t)/60;
       while (a < b){
-        const d = new Date((a - 6*3600)*1000), c0 = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 6)/1000, c1 = new Date(d.getFullYear(), d.getMonth(), d.getDate()+1, 6)/1000, e = Math.min(b, c1);
+        const t = new Date(a*1000), d = new Date(t.getFullYear(), t.getMonth(), t.getDate() - (t.getHours() < 6 ? 1 : 0)), c0 = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 6)/1000, c1 = new Date(d.getFullYear(), d.getMonth(), d.getDate()+1, 6)/1000, e = Math.min(b, c1);
         const col = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - day0)/864e5);
         if (col >= 0 && col < nd) lines.push([col, (a - c0)/(c1 - c0), (e - c0)/(c1 - c0), color[s.source] || PLATE_OTHER]);
         a = e;
@@ -1518,7 +1523,7 @@ document.addEventListener("keydown", e => {
 });
 function scrollToWork(){ // その週の作業が始まるころの少し前へ
   const sc = $("#tl .calscroll"); if (!sc) return;
-  const ws = st.week.getTime()/1000, we = ws + 7*86400, hs = [];
+  const ws = st.week.getTime()/1000, we = addDays(st.week, 7).getTime()/1000, hs = [];
   DATA.forEach(s => s.segs.forEach(([a,b]) => { if (b > ws && a < we) hs.push(new Date(Math.max(a,ws)*1000).getHours()); }));
   hs.sort((a,b) => a-b);
   // 朝 6 時より前の開始が 2 割に満たなければ、早い時刻の数本に引っぱられないよう、6 時以降でいちばん早い開始時刻へ。
@@ -1527,7 +1532,7 @@ function scrollToWork(){ // その週の作業が始まるころの少し前へ
   sc.scrollTop = Math.max(0, first * (HOURS[st.z] || 44) - 14); // その時刻の線がちょうど日付の下に見えるように
   if (sc.scrollWidth > sc.clientWidth + 4){ // 横にスクロールする狭い画面では、今週は今日までで最後に作業日を、過ぎた週は月曜から見せる
     const w = WEEKS[key(st.week)], now = nowMs()/1000, heads = sc.querySelectorAll(".head");
-    let i = -1; if (w && now < we) w.days.forEach((d, j) => { if (d.active && ws + j*86400 <= now) i = j; });
+    let i = -1; if (w && now < we) w.days.forEach((d, j) => { if (d.active && addDays(st.week, j).getTime()/1000 <= now) i = j; });
     const h = heads[i]; sc.scrollLeft = h ? Math.max(0, h.offsetLeft - 56 - h.offsetWidth) : 0; } // その日と前の日が収まるように
 }
 // 今週に記録がなければ、いちばん新しい記録の週から開く
