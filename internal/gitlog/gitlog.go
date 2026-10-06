@@ -40,14 +40,19 @@ type Commit struct {
 // Push は、この PC から行った push の 1 回（リモート追跡ブランチの reflog の「update by push」）。
 // ほかの PC からの push や、reflog の期限（既定 90 日）より古いものは残っていない。
 type Push struct {
-	T       float64 `json:"t"`             // push した時刻（UNIX 秒）
-	Project string  `json:"project"`       // セッションと同じプロジェクト名
-	Repo    string  `json:"repo"`          // リポジトリのルート
-	Ref     string  `json:"ref"`           // 送った先（origin/main など）
-	Hash    string  `json:"hash"`          // push したあとの先頭のコミット
-	Commits int     `json:"commits"`       // 送ったコミットの数（前の位置がわからなければ 0）
-	URL     string  `json:"url,omitempty"` // リモートでの先頭のコミットのページ
+	T       float64  `json:"t"`                // push した時刻（UNIX 秒）
+	Project string   `json:"project"`          // セッションと同じプロジェクト名
+	Repo    string   `json:"repo"`             // リポジトリのルート
+	Ref     string   `json:"ref"`              // 送った先（origin/main など）
+	Hash    string   `json:"hash"`             // push したあとの先頭のコミット
+	Commits int      `json:"commits"`          // 送ったコミットの数（前の位置がわからなければ 0）
+	Prev    string   `json:"prev,omitempty"`   // push する前の位置（わからなければ空）
+	Hashes  []string `json:"hashes,omitempty"` // 送ったコミット（新しい順、先頭 MaxPushHashes 件）
+	URL     string   `json:"url,omitempty"`    // リモートでの先頭のコミットのページ
 }
+
+// MaxPushHashes は、1 回の push について残す送ったコミットの数（画面の push の詳細に出す）。
+const MaxPushHashes = 50
 
 // MaxPushRefs は 1 つのリポジトリから reflog を読むリモート追跡ブランチの上限。
 const MaxPushRefs = 200
@@ -129,7 +134,7 @@ var RepoTimeout = 30 * time.Second
 // ref の位置・user.email・origin・セッションから決まる範囲が同じなら、コミットも push も同じ。
 type Cache struct {
 	repos  map[string]repoCache // 共通の git ディレクトリごと
-	counts map[string]int       // push で送ったコミットの数（prev..hash ごと。あとから変わらない）
+	counts map[string]pushed    // push で送ったコミット（prev..hash ごと。あとから変わらない）
 }
 
 type repoCache struct {
@@ -138,7 +143,7 @@ type repoCache struct {
 	pushes  []Push
 }
 
-func NewCache() *Cache { return &Cache{repos: map[string]repoCache{}, counts: map[string]int{}} }
+func NewCache() *Cache { return &Cache{repos: map[string]repoCache{}, counts: map[string]pushed{}} }
 
 // Collect は CollectAll と同じ。前回から変わっていないリポジトリは読み直さない。
 // 時間切れになったリポジトリは前回の結果を使い（なければ何も出さない）、そのルートを stale で返す。
@@ -249,8 +254,14 @@ func repoKey(ctx context.Context, r *repo) string {
 }
 
 // readPushes はリモート追跡ブランチの reflog から「update by push」の行を読む。repoKey のあと（r.web が決まってから）に呼ぶ。
-// 送ったコミットの数は counts に覚えておき、同じ push のために git rev-list を何度も呼ばない。
-func readPushes(ctx context.Context, r *repo, counts map[string]int) []Push {
+// pushed は、1 回の push で送ったコミットの数と、そのうち先頭 MaxPushHashes 件。
+type pushed struct {
+	n      int
+	hashes []string
+}
+
+// 送ったコミットは counts に覚えておき、同じ push のために git rev-list を何度も呼ばない。
+func readPushes(ctx context.Context, r *repo, counts map[string]pushed) []Push {
 	refs, err := git(ctx, r.top, "for-each-ref", "--format=%(refname)", "refs/remotes")
 	if err != nil {
 		return nil
@@ -286,11 +297,14 @@ func readPushes(ctx context.Context, r *repo, counts map[string]int) []Push {
 			if j+1 < len(lines) { // ひとつ前の位置から、送ったコミットの数を数える
 				if prev := strings.SplitN(lines[j+1], "\x1f", 2)[0]; prev != "" && prev != f[0] {
 					rng := prev + ".." + f[0]
-					if n, ok := counts[rng]; ok {
-						p.Commits = n
-					} else if n, err := git(ctx, r.top, "rev-list", "--count", rng); err == nil {
-						p.Commits, _ = strconv.Atoi(strings.TrimSpace(n))
-						counts[rng] = p.Commits
+					p.Prev = prev
+					if c, ok := counts[rng]; ok {
+						p.Commits, p.Hashes = c.n, c.hashes
+					} else if out, err := git(ctx, r.top, "rev-list", rng); err == nil {
+						hs := strings.Fields(out)
+						c := pushed{n: len(hs), hashes: hs[:min(len(hs), MaxPushHashes)]}
+						counts[rng] = c
+						p.Commits, p.Hashes = c.n, c.hashes
 					}
 				}
 			}
