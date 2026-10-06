@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Added
+
+- `kiroku doctor` now tells you when a newer kiroku is out ("! version: v0.11.0, and v0.12.0 is available") and lists `kiroku update` under "Next". It asks GitHub Releases while it reads history, waits at most 5 seconds, and says so when it could not check. `--no-update-check` skips it; builds from source are not checked
+
 ## v0.11.0 - 2026-10-06
 
 ### Added
