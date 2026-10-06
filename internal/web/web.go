@@ -52,3 +52,8 @@ func Render(data, weeks, months, meta any, generated float64, live bool) (string
 	}
 	return strings.NewReplacer(repl...).Replace(template), nil
 }
+
+// Loading は、kiroku serve が最初の読み込みを終えるまで出す画面（stamp を見て、読み終わったら本物の画面に切りかわる）。
+//
+//go:embed loading.html
+var Loading []byte

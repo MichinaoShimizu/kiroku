@@ -82,7 +82,7 @@ func TestArchiveCommand(t *testing.T) {
 func TestServeArchive(t *testing.T) {
 	enabled := 0
 	l := &live{load: func() snapshot { return snapshot{meta: map[string]any{"archive": map[string]any{"on": enabled > 0}}} },
-		keep: func() error { enabled++; return nil }}
+		keep: func() error { enabled++; return nil }, ready: true}
 	srv := httptest.NewServer(l.handler())
 	defer srv.Close()
 	post := func(method string, h map[string]string) int {
@@ -128,7 +128,7 @@ func TestServeHistoryArchived(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := filepath.Join(dir, "-Users-me-app", "s1.jsonl.zst")
-	l := &live{snap: snapshot{data: []*core.Session{{ID: "s1", File: p}}}}
+	l := &live{snap: snapshot{data: []*core.Session{{ID: "s1", File: p}}}, ready: true}
 	srv := httptest.NewServer(l.handler())
 	defer srv.Close()
 	r, err := http.Get(srv.URL + "/history?id=s1")
