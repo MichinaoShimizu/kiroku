@@ -41,7 +41,7 @@ func TestKiroCrewTagsKiroCLISessions(t *testing.T) {
 	if n := nativeOf(bs[0].Finish(15)); n["Crew から動かした会話"].V != 1 || n["うちサブエージェント"].V != 1 || n["ターン"].V == 0 {
 		t.Errorf("Crew の参考指標 = %+v", n)
 	}
-	if bs[0].Credits == nil || len(bs[0].Credits) == 0 {
+	if len(bs[0].Credits) == 0 {
 		t.Error("クレジットは kiro-cli の履歴のものを使う")
 	}
 }

@@ -56,17 +56,49 @@ func Get(v any, keys ...string) any {
 	return v
 }
 
-// ParseTS は ISO 文字列 / UNIX 秒 / UNIX ミリ秒 をすべて UNIX 秒にする。読めなければ ok=false。
+// 履歴の時刻としてありえる範囲。外れた時刻（"timestamp": 100 や "0001-01-01T00:00:00Z" など）は読めなかったものとする。
+// 1 つでも混ざると、セッションが 1970 年から始まったり（何十年分の週を回して重くなる）、
+// 「いちばん古い記録」がおかしくなったりするため。
+//   - 下限: 2000-01-01 UTC（AI エージェントの履歴がそれより前にあることはない）
+//   - 上限: いまから 1 日先まで（時計のずれやタイムゾーンの書き間違いくらいは許す）
+var (
+	minTS      = float64(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC).Unix())
+	maxTSAhead = 24 * time.Hour
+	nowForTS   = time.Now // テストで差し替える
+)
+
+func plausibleTS(sec float64) bool {
+	if math.IsNaN(sec) || math.IsInf(sec, 0) {
+		return false
+	}
+	return sec >= minTS && sec <= float64(nowForTS().Add(maxTSAhead).Unix())
+}
+
+// unixSec は time.Time を UNIX 秒にする（UnixNano は 1678 年より前や 2262 年より後であふれるので使わない）。
+func unixSec(t time.Time) float64 {
+	return float64(t.Unix()) + float64(t.Nanosecond())/1e9
+}
+
+// ParseTS は ISO 文字列 / UNIX 秒 / UNIX ミリ秒 をすべて UNIX 秒にする。
+// 読めないときと、ありえない時刻（plausibleTS）のときは ok=false。
 func ParseTS(v any) (float64, bool) {
+	t, ok := parseTS(v)
+	if !ok || !plausibleTS(t) {
+		return 0, false
+	}
+	return t, true
+}
+
+func parseTS(v any) (float64, bool) {
 	switch x := v.(type) {
 	case nil:
 		return 0, false
 	case int64: // SQLite の INTEGER 列
-		return ParseTS(float64(x))
+		return parseTS(float64(x))
 	case int:
-		return ParseTS(float64(x))
+		return parseTS(float64(x))
 	case []byte:
-		return ParseTS(string(x))
+		return parseTS(string(x))
 	case float64:
 		if x > 1e12 {
 			return x / 1000, true
@@ -82,16 +114,16 @@ func ParseTS(v any) (float64, bool) {
 			if err != nil {
 				return 0, false
 			}
-			return ParseTS(float64(n))
+			return parseTS(float64(n))
 		}
 		for _, layout := range []string{time.RFC3339Nano, "2006-01-02T15:04:05.999999999Z07:00"} {
 			if t, err := time.Parse(layout, strings.Replace(s, " ", "T", 1)); err == nil {
-				return float64(t.UnixNano()) / 1e9, true
+				return unixSec(t), true
 			}
 		}
 		for _, layout := range []string{"2006-01-02T15:04:05.999999999", "2006-01-02T15:04", "2006-01-02"} {
 			if t, err := time.ParseInLocation(layout, strings.Replace(s, " ", "T", 1), time.Local); err == nil {
-				return float64(t.UnixNano()) / 1e9, true
+				return unixSec(t), true
 			}
 		}
 	}
@@ -139,6 +171,7 @@ func TextOf(content any) string {
 }
 
 // ReadJSONL は 1 行ずつ JSON を読む。壊れた行は飛ばす。名前が .zst で終わるファイルは zstd で圧縮されたものとして読む。
+// 開けない・途中で読めなくなったときはエラーを返す（それまでに読めた行は fn に渡してある）。
 func ReadJSONL(path string, fn func(Obj)) error {
 	f, err := os.Open(path)
 	if err != nil {
@@ -169,8 +202,11 @@ func ReadJSONLFrom(src io.Reader, fn func(Obj)) error {
 				}
 			}
 		}
-		if err != nil {
+		if err == io.EOF {
 			return nil
+		}
+		if err != nil { // 読めた行までは fn に渡したうえで、途中で読めなくなったこと（壊れた .zst など）を返す
+			return err
 		}
 	}
 }

@@ -48,7 +48,14 @@ file="kiroku_${version#v}_${os}_${arch}.tar.gz"
 base="https://github.com/$REPO/releases/download/$version"
 
 tmp=$(mktemp -d 2>/dev/null || mktemp -d -t kiroku)
-trap 'rm -rf "$tmp"' EXIT INT TERM
+new=""
+cleanup() {
+  rm -rf "$tmp"
+  if [ -n "$new" ]; then rm -f "$new"; fi
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 say "downloading kiroku ${version} ($os/${arch})…"
 curl -fsSL -o "$tmp/$file" "$base/$file" || die "could not download $file (${base})"
@@ -76,13 +83,39 @@ if [ -z "$dir" ]; then
   fi
 fi
 mkdir -p "$dir" || die "could not create $dir"
-mv -f "$tmp/kiroku" "$dir/kiroku" || die "could not install into $dir (set KIROKU_INSTALL_DIR to choose another place)"
-chmod +x "$dir/kiroku"
-if [ "$os" = darwin ] && command -v xattr >/dev/null 2>&1; then
-  xattr -d com.apple.quarantine "$dir/kiroku" 2>/dev/null || true
+# いったん同じ場所の .kiroku.new に写してから名前を変える（同じファイルシステムの中なので、入れ替えは一瞬）。
+# 別のファイルシステムへの mv は、古いのを消してから写すので、途中で止まると壊れた kiroku が残るため
+new="$dir/.kiroku.new"
+if ! cp "$tmp/kiroku" "$new" 2>/dev/null || ! chmod +x "$new"; then
+  die "could not install into $dir (set KIROKU_INSTALL_DIR to choose another place)"
 fi
+if [ "$os" = darwin ] && command -v xattr >/dev/null 2>&1; then
+  xattr -d com.apple.quarantine "$new" 2>/dev/null || true
+fi
+mv -f "$new" "$dir/kiroku" || die "could not install into $dir (set KIROKU_INSTALL_DIR to choose another place)"
+new=""
 
 say "installed $("$dir/kiroku" --version) to $dir/kiroku"
+
+# PATH の前のほうに別の kiroku があると、そちらが動く（/usr/local/bin の古い版など）
+real_dir=$(cd "$dir" && pwd -P)
+first=""
+old_ifs=$IFS
+IFS=:
+set -f
+for p in $PATH; do
+  [ -n "$p" ] || continue
+  if [ -f "$p/kiroku" ] && [ -x "$p/kiroku" ]; then
+    first=$p
+    break
+  fi
+done
+IFS=$old_ifs
+set +f
+if [ -n "$first" ] && [ "$(cd "$first" 2>/dev/null && pwd -P)" != "$real_dir" ]; then
+  say "warning: another kiroku comes first in your PATH, so \"kiroku\" runs $first/kiroku, not the one just installed."
+  say "         Remove it, or put $dir before $first in your PATH"
+fi
 case ":$PATH:" in
   *":$dir:"*) say "run \"kiroku serve\" to start (\"kiroku help\" for usage)" ;;
   *) say "$dir is not in your PATH. Add this line to your shell config (e.g. ~/.zshrc or ~/.bashrc):"

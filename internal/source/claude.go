@@ -2,6 +2,9 @@ package source
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -42,12 +45,12 @@ type subFile struct {
 	outputs    []core.Output // サブエージェントが成功させたコミット・PR・編集した行
 }
 
-func loadSubagentFile(path string) subFile {
+func loadSubagentFile(path string) (subFile, error) {
 	u := core.NewUsage()
 	f := subFile{models: map[string]int{}}
 	pending := outputs{}
 	var times []float64
-	core.ReadJSONL(path, func(e core.Obj) {
+	err := core.ReadJSONL(path, func(e core.Obj) {
 		t := ts(e["timestamp"])
 		if t != nil {
 			times = append(times, *t)
@@ -82,7 +85,7 @@ func loadSubagentFile(path string) subFile {
 		f.start, f.end = &times[0], &times[len(times)-1]
 	}
 	f.events = u.Events()
-	return f
+	return f, err
 }
 
 // outputs は、ツールの呼び出しからアウトプット（コミット・PR・編集した行）を拾い、結果が成功だったときだけ返す。
@@ -138,11 +141,22 @@ func firstNonEmpty(s ...string) string {
 	return ""
 }
 
+// Load は全部の会話を読む。読めないファイルがあっても残りは読み、最初のエラー（と残りの数）を返す（「読めなかったファイル」として出す）。
 func (c *Claude) Load(emit func(*core.Builder)) error {
+	var first error
+	n := 0
 	for _, u := range c.Units() {
-		c.LoadUnit(u, emit)
+		if err := c.LoadUnit(u, emit); err != nil {
+			if first == nil {
+				first = err
+			}
+			n++
+		}
 	}
-	return nil
+	if n > 1 {
+		return fmt.Errorf("%w (and %d more)", first, n-1)
+	}
+	return first
 }
 
 // Keep は、kiroku archive で残す場所（Claude Code は古い会話を消すため）。
@@ -210,7 +224,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	procs := map[float64]*core.ReportedCost{} // Claude Code 自身の使用料（cost-state）。プロセスの起動時刻ごとに最新の累計
 	var procOrder []float64
 	branches := map[string]int{}
-	core.ReadJSONL(path, func(e core.Obj) {
+	readErr := fileErr(path, core.ReadJSONL(path, func(e core.Obj) {
 		typ := core.Str(e["type"])
 		if typ == "summary" && core.Str(e["summary"]) != "" {
 			summaries = append(summaries, core.Str(e["summary"]))
@@ -328,11 +342,14 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 				}
 			}
 		}
-	})
+	}))
 	// サブエージェントの別ファイル（新しい版）を、agentId か時刻でつなぐ
 	var files []subFile
 	for _, f := range u.Files[1:] {
-		sf := loadSubagentFile(f)
+		sf, err := loadSubagentFile(f)
+		if err := fileErr(f, err); err != nil && readErr == nil {
+			readErr = err
+		}
 		files = append(files, sf)
 		s.Outputs = append(s.Outputs, sf.outputs...) // サブエージェントに任せた編集・コミット・PR も、そのセッションのアウトプット
 	}
@@ -470,8 +487,20 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	if !strings.HasSuffix(path, ".zst") { // 消えた会話（kiroku archive のコピー）は Claude Code で再開できない
 		s.Resume = "cd " + s.Project + " && claude --resume " + s.ID
 	}
-	emit(s)
-	return nil
+	emit(s) // 途中までしか読めなくても、読めた分は出す
+	return readErr
+}
+
+// fileErr は、読めなかった履歴ファイルのエラーにファイル名をつける。
+// 一覧を作ってから読むまでの間に消えたファイル（Claude Code が古い会話を消した）は、エラーにしない。
+func fileErr(path string, err error) error {
+	if err == nil || errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if pe := (*fs.PathError)(nil); errors.As(err, &pe) {
+		return err // 開けなかったときなどは、もうファイル名が入っている
+	}
+	return fmt.Errorf("%s: %w", path, err)
 }
 
 func val(p *float64) float64 {
