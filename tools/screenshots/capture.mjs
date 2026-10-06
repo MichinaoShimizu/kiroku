@@ -53,8 +53,6 @@ for (let i = 0, n = await s.locator(".run").count(); i < n; i++) {
 }
 await s.locator(".run").nth(best).click({ force: true });
 await s.waitForTimeout(600);
-const rep = s.locator("#panel .tl .repx").first(); // AI の応答は畳んであるので、1 つだけ開いた姿を撮る
-if (await rep.count()) { await rep.click({ force: true }); await s.waitForTimeout(200); }
 const box = await s.evaluate(() => {
   const pn = document.querySelector("#panel"), d = document.querySelector("#drawer").getBoundingClientRect();
   const top = pn.querySelector(".eyebrow").getBoundingClientRect(), col = pn.querySelector(".dcols > *").getBoundingClientRect();

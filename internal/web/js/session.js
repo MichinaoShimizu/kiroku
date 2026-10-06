@@ -62,12 +62,10 @@ function detail(s){
     try { const r = await fetch(`prompt?id=${encodeURIComponent(s.id)}&i=${b.dataset.i}`, {cache: "no-store"}); if (!r.ok) throw 0;
       const li = b.closest("li"); li.querySelector(".pfull").textContent = await r.text(); li.dataset.full = "1"; li.querySelector(".pexp").focus(); // 「閉じる」は残して、また畳めるように
     } catch { b.disabled = false; b.textContent = "Couldn't load. Try again"; } });
-  P.querySelectorAll(".repx").forEach(b => b.onclick = () => { const w = b.nextElementSibling, open = b.getAttribute("aria-expanded") !== "true";
-    w.hidden = !open; b.setAttribute("aria-expanded", open); });
   P.querySelectorAll(".rload").forEach(b => b.onclick = async () => { // kiroku serve のときだけ、切った応答の全文をサーバーから読む
     b.disabled = true;
     try { const r = await fetch(`reply?id=${encodeURIComponent(s.id)}&i=${b.dataset.i}`, {cache: "no-store"}); if (!r.ok) throw 0;
-      const w = b.closest(".reptext"); w.textContent = await r.text(); w.previousElementSibling.focus(); // 「閉じる」は残して、また畳めるように
+      const li = b.closest("li.rp"); li.querySelector(".reptext").textContent = await r.text(); li.tabIndex = -1; li.focus(); // 読んでいた場所から離れないように
     } catch { b.disabled = false; b.textContent = "Couldn't load. Try again"; } });
   P.querySelectorAll("#flowBy button").forEach(b => b.onclick = () => { st.flowUser = b.dataset.v === "user"; store.set("flowUser", st.flowUser); P.querySelector(".tl").classList.toggle("only-user", st.flowUser); P.querySelector(".tlkey").classList.toggle("only-user", st.flowUser); P.querySelectorAll("#flowBy button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); });
   const pc = P.querySelector("#pcopy"); if (pc) pc.onclick = () => copy(userPrompts(s), `Copied ${plural(s.prompts.length, "user prompt")}`);
@@ -107,12 +105,11 @@ function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面で�
 }
 const EV_ICON = {commit: "commit", push: "push", pr: "pr", warn: "limit", int: "int", agent: "agent", note: "note"}; // 流れの出来事の種類 → 印
 const pexpLabel = p => p.len > 0 ? `Read more (${p.len.toLocaleString(LOC())} characters)` : "Show all";
-/* 依頼に対する応答（エージェントが人に返した最後の文）。長くなりがちなので、既定では畳んでボタンだけを出す */
-function replyRow(r, i){
-  if (!r) return "";
+/* 依頼に対する応答（エージェントが人に返した最後の文）。依頼の次の発言として、同じ流れの中に出す */
+function replyRow(r, i, hidden){
   const cut = r.len > 0;
   const more = cut ? `<span class="pcut"> ${`(first ${REPLY_RUNES} of ${r.len.toLocaleString(LOC())} characters)`}${LIVE ? ` <button class="rload" data-i="${i}">Load the full reply</button>` : ` Open with kiroku serve to read it in full.`}</span>` : "";
-  return `<span class="prep"><button class="repx" aria-expanded="false" data-i="${i}">${ico("caret")}AI's reply</button><span class="reptext" hidden>${esc(r.text)}${cut ? "…" : ""}${more}</span></span>`;
+  return `<li class="rp"${hidden}><time>${r.t ? hm(r.t) : ""}</time>${ico("reply")}<p><span class="rpw">AI</span><span class="reptext">${esc(r.text)}${cut ? "…" : ""}${more}</span></p></li>`;
 }
 function promptFlow(s){
   const ev = flowEvents(s), rows = [];
@@ -127,7 +124,11 @@ function promptFlow(s){
     const t = String(p.text || ""), long = t.length > 220, fix = !p.kind && FIXRE.test(t), cut = p.len > 0;
     const more = cut ? `<span class="pcut"> ${`(first ${PROMPT_RUNES} of ${p.len.toLocaleString(LOC())} characters)`}${LIVE ? ` <button class="pload" data-i="${i}">Load the full prompt</button>` : ` Open with kiroku serve to read it in full.`}</span>` : "";
     const meta = [p.work ? `AI worked ${span(p.work)}` : "", p.wait && p.wait <= FLOW_GAP ? `wait ${secs(p.wait)}` : ""].filter(Boolean).join(" · ");
-    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><p>${fix ? `<span class="sr">Looks like a correction: </span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${PKIND()[p.kind] || esc(p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${`Long · ${plen(p).toLocaleString(LOC())} chars`}</span>` : ""}<span class="ptext">${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${pexpLabel(p)}</button>` : esc(t)}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}${replyRow(p.reply, i)}</p></li>`);
+    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><p>${fix ? `<span class="sr">Looks like a correction: </span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${PKIND()[p.kind] || esc(p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${`Long · ${plen(p).toLocaleString(LOC())} chars`}</span>` : ""}<span class="ptext">${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${pexpLabel(p)}</button>` : esc(t)}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
+    if (p.reply){ // 依頼と応答の間に起きたこと（コミットなど）は、応答より上に出す
+      if (p.reply.t) flush(p.reply.t);
+      rows.push(replyRow(p.reply, i, hide()));
+    }
     if (p.t && p.wait > FLOW_GAP) gap = {from: p.t + p.work, v: p.wait};
   });
   flush(Infinity);
@@ -136,11 +137,11 @@ function promptFlow(s){
     cmds ? `<span><i class="kp cmd"></i>Commands the user typed (/ or !)</span>` : "",
     kinds.has("note") ? `<span class="kev note">${ico("note")}Added automatically (notifications, summaries, hooks; not counted as prompts)</span>` : "",
     fixes ? `<span><i class="kp fix"></i>Looks like a correction (guessed from the wording)</span>` : "",
-    s.prompts.some(p => p.reply) ? `<span class="kev rep">${ico("reply")}${"AI's reply (open it to read what the AI wrote back)"}</span>` : "",
+    s.prompts.some(p => p.reply) ? `<span class="kev rep">${ico("reply")}${"What the AI wrote back"}</span>` : "",
     ...[["commit", "Commit"], ["push", "Push"], ["pr", "Pull request"], ["agent", "Subagent"], ["int", "Interruption"], ["warn", "Usage limit"]].filter(([k]) => kinds.has(k)).map(([k, l]) => `<span class="kev ${k}">${ico(EV_ICON[k])}${l}</span>`)].filter(Boolean).join("");
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";
   const bar = `<div class="flowbar"><div class="segc" role="group" aria-label="Show" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">Everything</button><button data-v="user" aria-pressed="${!!st.flowUser}">Only user prompts</button></div><button class="pill" id="pcopy">Copy prompts</button></div>`;
-  return `${bar}<div class="tlkey${st.flowUser ? " only-user" : ""}">${key}</div><ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${`Show ${plural(rest, "more prompt")}${also}`}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${"\"AI worked\" is the time from a prompt to the AI's last activity; \"wait\" is the time from there to your next prompt. Both are estimates from the history's timestamps."}</p>` : ""}${s.prompts.some(p => p.reply) ? `<p class="note">${`"AI's reply" is the last thing the AI wrote to you in that turn, in its own words — not its thinking, its tool calls or their output. A turn where it only ran tools, or whose words the agent does not record, has no reply. A long one shows its first ${REPLY_RUNES} characters.`}</p>` : ""}`;
+  return `${bar}<div class="tlkey${st.flowUser ? " only-user" : ""}">${key}</div><ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${`Show ${plural(rest, "more prompt")}${also}`}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${"\"AI worked\" is the time from a prompt to the AI's last activity; \"wait\" is the time from there to your next prompt. Both are estimates from the history's timestamps."}</p>` : ""}${s.prompts.some(p => p.reply) ? `<p class="note">${`The reply after a prompt is the last thing the AI wrote to you in that turn, in its own words — not its thinking, its tool calls or their output. A turn where it only ran tools, or whose words the agent does not record, has no reply. A long one shows its first ${REPLY_RUNES} characters.`}</p>` : ""}`;
 }
 /* 1 つのセッションを AI と振り返るためのプロンプト（kiroku 自身は AI を呼ばない） */
 function sessionPrompt(s, active, med){

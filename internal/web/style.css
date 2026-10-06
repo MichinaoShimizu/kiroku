@@ -456,16 +456,16 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl li.ev.note>.ic,.tlkey .kev.note .ic{color:var(--c6)}
 .tlkey .kp.cmd{box-shadow:inset 0 0 0 1.5px var(--c4)}
 .tl.only-user li.ev,.tl.only-user li.gap{display:none}
-/* 依頼に対する応答（既定は畳んである）。あなたが打ったものだけを見るときは、ボタンも出さない */
-.tl .prep{display:block;margin-top:2px}
-.tl .repx{font-size:var(--fs-xs);color:var(--ink-3);font-weight:600;display:inline-flex;align-items:center;gap:4px;padding:4px 0} /* padding は、指で押せる高さ（24px）にするため */
-.tl .repx:hover{color:var(--ink-2)}
-.tl .repx:hover .ic{color:var(--ink-2)}
-.tl .repx .ic{width:12px;height:12px;color:var(--ink-3);transition:transform .15s var(--ease)}
-.tl .repx[aria-expanded="true"] .ic{transform:rotate(90deg)}
-.tl .reptext[hidden]{display:none} /* display を指定するので、hidden の効き目（display:none）を上書きしないように */
-.tl .reptext{display:block;margin:3px 0 2px;padding:4px 0 4px 8px;border-left:2px solid var(--rule-2);white-space:pre-wrap;font-size:var(--fs-sm);color:var(--ink-2)}
-.tl.only-user .prep{display:none}
+/* 応答は、依頼の次の発言として同じ線の上に出す（会話として読めるように）。
+   あなたが打ったものだけを見るときは出さない */
+.tl li.rp{color:var(--ink-2);padding:1px 0 5px}
+.tl li.rp::before{display:none}
+.tl li.rp>.ic{position:absolute;left:38px;top:4px;width:13px;height:13px;padding:1px;box-sizing:content-box;background:var(--surface);color:var(--ink-3)}
+.drawer .tl li.rp>.ic{left:42px;top:6px}
+.tl li.rp p{background:color-mix(in oklab,var(--ink-3) 9%,transparent);border-radius:10px;padding:6px 11px}
+.tl .rpw{color:var(--ink-3);font-size:var(--fs-xs);font-weight:600;margin-right:7px} /* だれの発言か（AI） */
+.tl .reptext{white-space:pre-wrap}
+.tl.only-user li.rp{display:none}
 .tlkey .kev.rep .ic{color:var(--ink-3)}
 .tlkey.only-user .kev{display:none} /* 出ていないものの説明は出さない（出来事も応答も隠れている） */
 .flowbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px}
