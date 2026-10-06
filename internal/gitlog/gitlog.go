@@ -155,19 +155,6 @@ func repoOf(ctx context.Context, p string) [2]string {
 	return [2]string{top, filepath.Clean(common)}
 }
 
-// Collect はセッションの作業場所にあるリポジトリから、利用者自身（user.email）のコミットを読む。
-// 期間は、そのリポジトリでの最初のセッションの 1 日前から。
-func Collect(data []*core.Session) []Commit {
-	cs, _ := CollectAll(data)
-	return cs
-}
-
-// CollectAll はコミットに加えて、この PC から行った push も読む（どちらも手元の git だけで、外には問い合わせない）。
-func CollectAll(data []*core.Session) ([]Commit, []Push) {
-	cs, ps, _ := NewCache().Collect(data)
-	return cs, ps
-}
-
 // RepoTimeout は 1 つのリポジトリを読む時間の上限。リポジトリごとに数える（大きなリポジトリが 1 つあっても、ほかは読める）。
 var RepoTimeout = 30 * time.Second
 

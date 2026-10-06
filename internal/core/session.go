@@ -448,8 +448,6 @@ type PRAt struct {
 	URL string  `json:"url,omitempty"`
 }
 
-func ptr[T any](v T) *T { return &v }
-
 func strOrNil(s string) *string {
 	if s == "" {
 		return nil
@@ -595,8 +593,6 @@ func sortedCounts(order []string, counts map[string]int, limit int) [][2]any {
 	}
 	return out
 }
-
-var _ = ptr[int]
 
 func limits(xs []float64) []float64 {
 	if xs == nil {

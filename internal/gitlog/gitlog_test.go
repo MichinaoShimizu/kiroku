@@ -45,7 +45,7 @@ func TestCollect(t *testing.T) {
 	aiAt := float64(base + 590)
 	s := &core.Session{ID: "s1", Project: filepath.Base(dir), ProjectPath: dir, Start: float64(base), End: float64(base + 4000),
 		OEv: []core.Output{{T: &aiAt, Kind: "commit", V: 1}}}
-	cs := Collect([]*core.Session{s, {ID: "s2", ProjectPath: filepath.Join(dir, "missing"), Start: float64(base)}})
+	cs, _, _ := NewCache().Collect([]*core.Session{s, {ID: "s2", ProjectPath: filepath.Join(dir, "missing"), Start: float64(base)}})
 	if len(cs) != 2 {
 		t.Fatalf("コミット数 = %d, want 2（ほかの人のコミットは読まない）: %+v", len(cs), cs)
 	}
@@ -118,7 +118,7 @@ func TestCollectWorktree(t *testing.T) {
 	mainSes := &core.Session{ID: "main", Project: "app", ProjectPath: dir, Start: float64(base), End: float64(base + 100)}
 	wtSes := &core.Session{ID: "wt", Project: "app-wt", ProjectPath: wt, Start: float64(base + 500), End: float64(base + 700),
 		OEv: []core.Output{{T: &aiAt, Kind: "commit", V: 1}}}
-	cs := Collect([]*core.Session{mainSes, wtSes})
+	cs, _, _ := NewCache().Collect([]*core.Session{mainSes, wtSes})
 	if len(cs) != 3 {
 		t.Fatalf("コミット数 = %d, want 3（本体と worktree で重ねない）", len(cs))
 	}
@@ -168,7 +168,7 @@ func TestCollectPushes(t *testing.T) {
 	run(t, dir, nil, "push", "-q")
 	run(t, dir, nil, "fetch", "-q")
 	s := &core.Session{ID: "s1", Project: "app", ProjectPath: dir, Start: float64(time.Now().Add(-time.Hour).Unix())}
-	_, ps := CollectAll([]*core.Session{s})
+	_, ps, _ := NewCache().Collect([]*core.Session{s})
 	if len(ps) != 2 {
 		t.Fatalf("push の数 = %d, want 2: %+v", len(ps), ps)
 	}
