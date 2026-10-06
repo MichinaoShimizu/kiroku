@@ -304,8 +304,9 @@ If you'd rather not change the setting, kiroku can keep a copy of the history in
 `kiroku html --week last` (or `this`, or any date in the week such as `2026-10-05`) and `kiroku html --month last` (or `this`, or `2026-09`) write an HTML file with only that period, named like `kiroku-2026-09-28.html` or `kiroku-2026-09.html` unless you give `-o`. Use it to show a week to a teammate without handing over all of your history.
 
 - The file has only the sessions that overlap the period, and only the commits and pushes made within it. A session that crosses the edge of the period is included whole, prompts and all
-- It opens on that week or month, says at the top of the summary that it holds only that period, and "Included week" / "Included month" brings you back to it. Other periods are empty, so 8-period trends have only that period
-- "Data sources" counts only the sessions in the file, and leaves out the oldest record and the notice about deleted history
+- It opens on that week or month and says at the very top that it holds only that period; "Included week" / "Included month" brings you back to it. Other periods are empty, so 8-period trends have only that period. A week-only file has no month view
+- Times, days and weeks follow the time zone it was written in, wherever it is opened, so the figures match; the note at the top names that time zone when it differs from the viewer's
+- "Data sources" counts only the sessions in the file and lists only the agents that have some, and leaves out the oldest record, the notice about deleted history and kiroku archive's folder
 - It still contains the prompts, file paths and commit messages of that period as they are. Check it before giving it to anyone
 
 ## Options
@@ -330,6 +331,7 @@ Per command:
 | Command | Option | Default | Description |
 |---|---|---|---|
 | `serve` | `[ADDR]` | `127.0.0.1:8484` | A port alone, such as `:8485`, also works (it listens on `127.0.0.1`). To open it from other devices, write an address such as `0.0.0.0:8485` (anyone on your network can then see your history) |
+| `serve` | `--allow-host` | | Extra host names the view may be opened by, comma-separated (for example a name in your hosts file). `localhost`, this computer's IPs and host name always work; requests addressed to any other name are refused |
 | `serve` | `--interval` | `5s` | How often to check history for changes. Reloads when changes stop for twice the interval (at most 12 times the interval) |
 | `serve`, `html` | `--no-open` | | Don't open the browser |
 | `html` | `-o`, `--out` | `kiroku.html` | HTML file to write |
@@ -341,4 +343,4 @@ Per command:
 ## Notes
 
 - The HTML and JSON output contain your prompts, file paths and commit messages as they are. Check the content before giving them to anyone (this repository's `.gitignore` excludes `*.html` and `kiroku.json`)
-- By default, `kiroku serve` can be reached only from your own computer (it listens on `127.0.0.1` and rejects requests addressed to other host names). If you expose it, as in `kiroku serve 0.0.0.0:8484`, people on the same network can also view your history
+- By default, `kiroku serve` can be reached only from your own computer (it listens on `127.0.0.1` and rejects requests addressed to other host names). If you expose it, as in `kiroku serve 0.0.0.0:8484`, people on the same network can also view your history. Even then, it only answers requests addressed to this computer's own names and IPs (plus `--allow-host`), so a web page cannot point its own domain at your computer and read your history (DNS rebinding)
