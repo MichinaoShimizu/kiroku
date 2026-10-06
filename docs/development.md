@@ -9,7 +9,7 @@ Go 1.23 or later is required. If Node is available, `internal/web/script_test.go
 ```bash
 go test ./...      # checks that the aggregates match the expected values, using synthetic data in testdata/
 go vet ./...
-go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...   # static analysis (OK if nothing is printed)
+GOTOOLCHAIN=$(go env GOVERSION) go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...   # static analysis (OK if nothing is printed)
 gofmt -l .         # OK if nothing is printed
 go build .         # builds ./kiroku (open the view with ./kiroku serve)
 ```

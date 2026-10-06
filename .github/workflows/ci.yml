@@ -24,10 +24,12 @@ jobs:
         if: runner.os != 'Windows'
         run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - run: go vet ./...
-      # 静的解析は結果が OS でほぼ変わらないので、速さのため Ubuntu だけ（版は固定）
+      # 静的解析は結果が OS でほぼ変わらないので、速さのため Ubuntu だけ（版は固定）。
+      # go run pkg@version はモジュールの外として動き、setup-go の Go（go.mod の go 行）でビルドされる。
+      # 依存（x/sys など）は go.mod の toolchain の版を求めるので、同じ版で動かす
       - name: staticcheck
         if: runner.os == 'Linux'
-        run: go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...
+        run: GOTOOLCHAIN=$(go env GOVERSION) go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...
       - run: go test ./...
       - run: go build -o kiroku-ci .
 
