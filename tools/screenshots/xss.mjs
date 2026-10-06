@@ -55,10 +55,10 @@ await clickAll(".run", "session", async () => {
 await clickAll(".gc", "commit");
 await clickAll(".gm", "pull request");
 await clickAll("#review .card, #review .fses", "summary card");
-for (const v of ["branch", "source", "project"]) { await p.click(`#colorBy button[data-v=${v}]`); await check(`color by ${v}`); }
+for (const v of ["branch", "source", "project"]) { await p.selectOption("#cb2", v); await check(`color by ${v}`); }
 for (const q of ["<img", "alert", "__META__", "javascript", '"><svg']) {
   await p.fill("#q", q); await p.waitForTimeout(200); await check(`search ${q}`);
-  await clickAll("#review .srow", `search result ${q}`);
+  await clickAll("#sres .srow", `search result ${q}`);
 }
 await p.fill("#q", "");
 try { await p.click("#mode button[data-v=month]"); await check("month"); } catch (e) { console.log("  skip month (not in this file)"); }

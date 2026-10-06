@@ -83,7 +83,8 @@ for (const env of envs) {
     await p.keyboard.press("ArrowLeft"); await pause(); // 以降は、記録のそろった先週で試す
     check("前の週へ移っても ‹ の位置が変わらない", await prevX() === x0, `${x0} → ${await prevX()}`);
     check("前の週では「次の週」を押せる", await p.locator("#next").isEnabled());
-    check("カレンダーの印の見方が出る", await p.locator("#mkey").isVisible() && await p.locator("#mkey .gc.ai").count() > 0);
+    check("先週なら、期間の見出しにそう書いてある", /last week$/i.test(await p.locator("#ry").innerText()), await p.locator("#ry").innerText());
+    check("凡例の数は作業時間", /\d+(h|m)/.test(await p.locator("#legend .chip .n").first().innerText()), await p.locator("#legend .chip .n").first().innerText());
     const cut = await p.evaluate(() => { const hd = document.querySelector("#tl .heads").getBoundingClientRect().bottom;
       return [...document.querySelectorAll("#tl .run")].filter(r => { const b = r.getBoundingClientRect(); return b.top < hd - 1 && b.bottom > hd + 1; }).length; });
     check("開いた位置で、日付の見出しに半分隠れたブロックがない", cut === 0, `${cut} 件`);
@@ -140,6 +141,16 @@ for (const env of envs) {
     check("閉じるとカードにフォーカスが戻る", await p.evaluate(id => { const a = document.activeElement; return a.dataset.id === id && !!a.closest("#review"); }, id));
   });
 
+  await step("セッションを AI と振り返る", async () => {
+    const run = p.locator(".run[data-sid]").first();
+    await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
+    const btn = p.locator("#panel .flowbar #sreview");
+    check("振り返りのプロンプトのボタンが、プロンプトの流れの見出しに並ぶ", await btn.count() === 1);
+    await btn.click(); await pause();
+    check("押すと、プロンプトが入っていると知らせる", /Copied a prompt.*your prompts|Couldn't copy/.test(await p.locator("#toast").innerText()), await p.locator("#toast").innerText());
+    await p.keyboard.press("Escape"); await pause();
+  });
+
   await step("詳細と矢印キー・ブラウザの戻る", async () => {
     const label = () => p.locator("#rd").innerText(), before = await label();
     const run = p.locator(".run[data-sid]").first();
@@ -177,10 +188,7 @@ for (const env of envs) {
 
   await step("見直す候補", async () => {
     const n = await p.locator(".flagsum .flink").count();
-    const bar = p.locator("#review .ubar .c[data-tip]").first(); await bar.scrollIntoViewIfNeeded(); await pause();
-    const bb = await bar.boundingBox(); await p.mouse.move(bb.x + bb.width / 2, bb.y + bb.height - 20); await p.waitForTimeout(100);
-    check("日ごとの推移の棒にマウスを載せると値が出る", await p.evaluate(() => document.querySelector("#tip").classList.contains("on") && /\d/.test(document.querySelector("#tip").innerText)));
-    await p.mouse.move(0, 0);
+    check("見直す候補はカレンダーより上にある", await p.evaluate(() => document.querySelector("#worth").getBoundingClientRect().bottom <= document.querySelector("#tl").getBoundingClientRect().top));
     check("繰り返したプロンプトの欄がある", await p.locator('#review .hb[data-help="repeats"]').count() > 0);
     check("見直す候補の数だけ、指標に印が付く", n > 0 && await p.locator(".fl").count() >= n, `候補 ${n}`);
     const id = await p.locator(".flagsum .flink").first().getAttribute("data-goto");
@@ -198,10 +206,7 @@ for (const env of envs) {
     check("週報の下書きに文面がある", text.trim().length > 20, JSON.stringify(text.slice(0, 40)));
     check("週報の下書きの期間は「Sep 28 – Oct 4, 2026」の形", /^## Work for [A-Z][a-z]{2} \d{1,2} – ([A-Z][a-z]{2} \d{1,2}, )?\d{4}|^## Work for [A-Z][a-z]{2} \d{1,2}, \d{4} – /.test(text), JSON.stringify(text.split("\n")[0]));
     check("週報の下書きに HTML のコメントがない（貼るとそのまま見える）", !text.includes("<!--") && text.trim().endsWith("_Drafted with kiroku_"), JSON.stringify(text.trim().split("\n").pop()));
-    await p.locator("#pxtog").click(); await pause();
-    const px = await p.locator("#pxpre").innerText();
-    check("プロンプトを書き出せる", await p.locator("#pxbox").isVisible() && /^## /.test(px) && /\n- /.test(px), JSON.stringify(px.slice(0, 40)));
-    await p.locator("#pxcopy").click(); await pause();
+    await p.locator("#rptcopy").click(); await pause();
     check("コピーのボタンを押すと知らせが出る", /Copied|Couldn't copy/.test(await p.locator("#toast").innerText()));
   });
 
@@ -214,23 +219,28 @@ for (const env of envs) {
     await p.keyboard.press("/");
     check("/ で検索欄に移る", await p.evaluate(() => document.activeElement && document.activeElement.id === "q"));
     await p.locator("#q").fill(word); await pause();
-    const heading = await p.locator("#review h2").first().innerText();
+    const heading = await p.locator("#sres h2").first().innerText();
     check("検索結果が出る", heading === "Search results", heading);
+    check("検索結果はカレンダーより上にある", await p.evaluate(() => document.querySelector("#sres").getBoundingClientRect().bottom <= document.querySelector("#tl").getBoundingClientRect().top));
     check("一致したセッションがある", await p.locator(".srow[data-s]").count() > 0, word);
-    await p.keyboard.press("Enter"); await pause();
-    check("検索欄で Enter を押すと、最初の結果へ移る", await p.evaluate(() => !!document.activeElement.closest("#review .srow")));
+    const more = p.locator("#srmS");
+    if (await more.count()){ const before = await p.locator(".srow[data-s]").count();
+      await more.click(); await pause();
+      check("「もっと見る」で結果が増え、足した最初の結果へ移る", await p.locator(".srow[data-s]").count() > before && await p.evaluate(n => document.activeElement === document.querySelectorAll("#sres .srow[data-s]")[n], before)); }
+    await p.locator("#q").focus(); await p.keyboard.press("Enter"); await pause();
+    check("検索欄で Enter を押すと、最初の結果へ移る", await p.evaluate(() => !!document.activeElement.closest("#sres .srow")));
     await p.locator(".srow[data-s]").first().click(); await pause();
     check("検索結果から詳細が開く", await drawerOpen());
     await p.keyboard.press("Escape"); await pause();
-    check("閉じると検索結果に戻る", await p.evaluate(() => !!document.activeElement.closest("#review .srow[data-s]")));
+    check("閉じると検索結果に戻る", await p.evaluate(() => !!document.activeElement.closest("#sres .srow[data-s]")));
     await p.locator("#sclear").click(); await pause();
-    check("検索をやめるとサマリーに戻る", await p.locator("#q").inputValue() === "" && await p.locator("#rpttog").count() > 0);
+    check("検索をやめるとサマリーに戻る", await p.locator("#q").inputValue() === "" && await p.locator("#rpttog").count() > 0 && await p.locator("#sres").isHidden());
   });
 
   await step("表示の切り替え", async () => {
     await p.keyboard.press("m"); await pause();
     check("m で月表示になる", await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
-    check("月表示では、印の見方を出さない", await p.locator("#mkey").isHidden());
+    check("月表示では、ズームを出さない", await p.locator("#zin").count() === 0);
     await p.keyboard.press("w"); await pause();
     await p.keyboard.press("?"); await pause();
     check("? でショートカットの一覧が開く", await p.locator("#keys").evaluate(d => d.open));

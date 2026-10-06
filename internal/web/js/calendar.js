@@ -9,8 +9,9 @@ function render(){
   assignColors();
   const {ws, we} = period(), M = st.mode === "month";
   const todayKey = key(today0()), end = addDays(st.week,6);
-  if (M){ $("#ry").textContent = `${st.month.getFullYear()} · Month`; $("#rd").innerHTML = `${MONTH[st.month.getMonth()]} <span>${st.month.getFullYear()}</span>`; }
-  else { $("#ry").textContent = `${st.week.getFullYear()} · Week ${isoWeek(st.week)}`; $("#rd").innerHTML = `${dMD(st.week)}<span> – </span>${dMD(end)}`; }
+  const rel = relName(); // 今週・先週（今月・先月）なら、日付の上にそう書く（開いたときに、どの期間を見ているかわかるように）
+  if (M){ $("#ry").textContent = `${st.month.getFullYear()} · ${rel || "Month"}`; $("#rd").innerHTML = `${MONTH[st.month.getMonth()]} <span>${st.month.getFullYear()}</span>`; }
+  else { $("#ry").textContent = `${st.week.getFullYear()} · Week ${isoWeek(st.week)}${rel ? ` · ${rel}` : ""}`; $("#rd").innerHTML = `${dMD(st.week)}<span> – </span>${dMD(end)}`; }
   $("#today").textContent = META.scope ? `Back to included ${META.scope.mode === "month" ? "month" : "week"}` : M ? "This month" : "This week";
   [["#prev", -1], ["#next", 1]].forEach(([id, n]) => { const b = $(id), off = !canGo(n); // 先の週・ファイルの外へは押せない
     if (off && document.activeElement === b) $(n > 0 ? "#prev" : "#next").focus(); // 押せなくなるボタンにいたフォーカスは、隣のボタンへ
@@ -18,30 +19,29 @@ function render(){
   $("#yrbtn").textContent = "Year in review"; $("#yrbtn").hidden = !YEAR_ON || !DATA.length;
   $("#prev").setAttribute("aria-label", M ? "Previous month" : "Previous week"); $("#next").setAttribute("aria-label", M ? "Next month" : "Next week");
   document.querySelectorAll("#mode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.mode));
-  document.querySelectorAll("#colorBy button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.colorBy));
-  document.querySelector(".zoom").style.visibility = M ? "hidden" : "";
 
   const inRange = DATA.filter(s => s.end >= ws && s.start < we);
   const shown = inRange.filter(matches);
   kpis();
-  // legend（この期間にあるものを多い順に）
+  // legend（この期間にあるものを、作業時間の多い順に。数はサマリーの「① By project」の配分と同じ作業時間）
   const cnt = {}; inRange.forEach(s => cnt[keyOf(s)] = (cnt[keyOf(s)]||0)+1);
+  const mins = legendMinutes();
   // 件数は横にスクロールする並び（.lrow）の外に置く。スマホでは並びの上に出し、チップが多くても画面の外へ押し出されないように
-  $("#legend").innerHTML = `<div class="lrow"><label class="cbsel"><span class="cbt">Color by</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${l}</option>`).join("")}</select></label><span class="lab"><span class="ln">${CB()[st.colorBy]}</span><small> (sessions)</small></span>` +
-    Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}" title="${esc(`${(k)}: ${plural(cnt[k], "session")} (click to show or hide)`)}"><span class="dot"></span>${st.colorBy === "source" ? agMark(k) : ""}${esc((k))}<span class="n">${cnt[k]}<span class="sr"> sessions</span></span></button>`).join("") +
-    `</div><span class="count">${shown.length} / ${inRange.length} sessions${st.q ? ` · <button class="flink" id="tosr">${META.scope ? "Search results in this file" : "All-time search results"} ↓</button>` : ""}</span>`;
+  $("#legend").innerHTML = `<label class="cbsel"><span class="cbt">Color by</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${l}</option>`).join("")}</select></label><div class="lrow"><span class="lab">Active time<small> · click to hide</small></span>` +
+    Object.keys(cnt).sort((a,b)=>(mins[b]||0)-(mins[a]||0) || cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}" title="${esc(`${(k)}: ${mins[k] ? dur(mins[k]) + " · " : ""}${plural(cnt[k], "session")} (click to show or hide)`)}"><span class="dot"></span>${st.colorBy === "source" ? agMark(k) : ""}${esc((k))}<span class="n">${mins[k] ? dur(mins[k]) : "—"}<span class="sr"> active</span></span></button>`).join("") +
+    `</div>${M ? "" : `<span class="zlab" aria-hidden="true">Zoom</span><div class="segc zoom" role="group" aria-label="Zoom"><button id="zout" aria-label="Zoom out">−</button><button id="zin" aria-label="Zoom in">+</button></div>`}<span class="count">${shown.length} / ${inRange.length} sessions</span>`;
+  if (!M){ $("#zin").onclick = () => zoom(1); $("#zout").onclick = () => zoom(-1); }
   // 検索・凡例で絞り込んでいるあいだ、絞り込めない合計（作業時間・トークンなど）は薄くして、そう断る
   const fn = $("#fnote"); fn.hidden = !filtering();
   fn.textContent = `${st.q ? "The calendar shows only sessions that match the search, and their commits." : "Hidden items are left out of the calendar."} Grey figures, at the top and ${M ? "in each day and week" : "under each date"}, are totals for all sessions.`;
   const cb2 = $("#cb2"); if (cb2) cb2.onchange = () => { st.colorBy = cb2.value; st.hidden.clear(); store.set("colorBy", st.colorBy); render(); };
-  const tosr = $("#tosr"); if (tosr) tosr.onclick = () => { $("#review").scrollIntoView({behavior:"smooth"}); const h = $("#srh"); if (h) h.focus({preventScroll: true}); }; // 見た目だけでなく、フォーカスも結果へ
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
 
   M ? monthGrid(shown, ws, we, todayKey) : timeline(shown, inRange, ws, we, todayKey);
   edgeFade($("#tl")); // 月表示や空の週では消す
-  markKey();
+  $("#skipcal").hidden = !!st.q; // 検索の最中は、結果がカレンダーの上にあり、下のサマリーは空
   try { st.q ? searchPanel() : summary(); } catch(e){ // サマリーで失敗しても、カレンダーと詳細は使えるようにする
-    console.error(e); $("#review").innerHTML = `<div class="panel"><p class="none">${`Couldn't show the summary for this period (${esc(e.message)}). Please let us know in an issue.`}</p></div>`; }
+    console.error(e); $("#worth").hidden = true; $("#review").innerHTML = `<div class="panel"><p class="none">${`Couldn't show the summary for this period (${esc(e.message)}). Please let us know in an issue.`}</p></div>`; }
   const gc = st.sel && st.sel.startsWith("git:") && (META.git || []).find(x => "git:" + x.hash === st.sel);
   const pu = st.sel && st.sel.startsWith("push:") && findPush(st.sel.slice(5)), pr = st.sel && st.sel.startsWith("pr:") && findPR(st.sel.slice(3));
   const s = !gc && !pu && !pr && st.sel && DATA.find(x => x.id === st.sel), open = !!(s || gc || pu || pr);
@@ -63,6 +63,17 @@ function render(){
   st.animate = false;
 }
 
+// relName は、表示中の期間が今週・先週（今月・先月）ならその呼び名、ほかは ""
+function relName(){ const t = today0();
+  if (st.mode === "month"){ const m = monthOf(t), d = (m.getFullYear() - st.month.getFullYear()) * 12 + m.getMonth() - st.month.getMonth();
+    return d === 0 ? "This month" : d === 1 ? "Last month" : ""; }
+  const d = Math.round((mondayOf(t) - st.week) / 864e5);
+  return d === 0 ? "This week" : d >= 6 && d <= 8 ? "Last week" : ""; } // 夏時間をまたぐ週は 7 日ちょうどにならないので、日数を丸めて
+// legendMinutes は、凡例の各くくりの作業時間（分）。同時に動いたセッションの時間は分けて数える（サマリーの配分と同じ）
+function legendMinutes(){ const {S: w} = period(), m = {}; if (!w) return m;
+  if (st.colorBy === "project") (w.projects || []).forEach(([k, v]) => m[k] = v);
+  else ((w.shares || {})[st.colorBy] || []).forEach(x => m[x.key] = x.minutes);
+  return m; }
 // shownName は、表示中の期間の呼び名。今週・今月なら "This week" / "This month"、ほかは "Week of Sep 28" / "September 2026"
 function shownName(){ const M = st.mode === "month", t = today0();
   if (M) return st.month.getTime() === monthOf(t).getTime() ? "This month" : dMY(st.month);
@@ -131,7 +142,7 @@ function monthGrid(shown, ms, me, todayKey){
         ${pj.length ? `<span class="pj">${pj.map(([k,v])=>`<span style="flex:${v};--c:${colorOf(k)}"></span>`).join("")}</span>` : ""}</button>`;
     }
   }
-  h += `</div><div class="mlegend"><span style="white-space:nowrap">Less</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${matchMedia("(max-width:820px)").matches ? "More (active time) · Each day and week shows active time, and tokens or credits (both when the month has both) · Tap a date or week to open it" : "More (active time) · Each day, and each week on the left, shows active time, tokens or credits (both when the month has both), sessions and Git commits · Click a date or week to open it"}</div>`;
+  h += `</div><div class="mlegend"><span style="white-space:nowrap">Less</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${matchMedia("(max-width:820px)").matches ? "More (active time) · Each day and week shows active time, and tokens or credits (both when the month has both). A week counts all 7 days, including those in the next or previous month · Tap a date or week to open it" : "More (active time) · Each day, and each week on the left, shows active time, tokens or credits (both when the month has both), sessions and Git commits. A week counts all 7 days, including those in the next or previous month · Click a date or week to open it"}</div>`;
   T.innerHTML = h;
   T.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { const [y,m,dd] = b.dataset.w.split("-").map(Number); st.week = new Date(y, m-1, dd); setMode("week"); });
 }
@@ -206,15 +217,6 @@ function timeline(shown, inWeek, ws, we, todayKey){
     el.onfocus = () => { if (el.matches(":focus-visible")) tipOn(tipAt(el), bk); }; el.onblur = tipOff; }); // キーボードで移ったときも出す
 }
 
-// markKey は、週のカレンダーの右端の印（コミット・push・PR）の見方。カレンダーと同じ形の印で、その週にある種類だけ出す（月表示では出さない）
-function markKey(){
-  const T = $("#tl"), K = $("#mkey"), has = s => !!T.querySelector(s);
-  const items = [has(".gc") && `<span class="mk"><span class="gc">${GIT_ICON}</span> Commit</span><span class="mk"><span class="gc ai">${GIT_ICON}</span> Commit run by AI</span>`,
-    has(".gm.push") && `<span class="mk"><span class="gm push">${ico("push")}</span> Push</span>`,
-    has(".gm.prm") && `<span class="mk"><span class="gm prm">${ico("pr")}</span> Pull request</span>`].filter(Boolean);
-  K.hidden = st.mode === "month" || !items.length;
-  K.innerHTML = items.length ? `<span class="lab">Marks</span>${items.join("")}<span class="mkn">at the right edge of each day</span>` : "";
-}
 // 細い帯で、名前の最初の語がまるごと入らず 4 文字（と …）も入らなければ、名前の代わりに始まりの時刻（.nt）、それも入らなければ色だけ（.nn）。
 // 幅は描いたあとでないとわからないので、描くたびと、カレンダーの幅が変わるたびに測る
 const fitCv = document.createElement("canvas").getContext("2d");

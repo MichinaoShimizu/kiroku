@@ -31,7 +31,6 @@ function askPrompt(w, pw, M){
     `- Project switches per day: average ${w.switchesAvg}, max ${w.switchesMax}`,
     `- Parallel time: ${dur(w.parallel)} (up to ${w.maxConc} at once)`,
     `- Wait time (from an AI reply to my next prompt): median ${secs(w.waitMedian)}, 90th percentile ${secs(w.waitP90)} (n=${w.waitCount})`,
-    `- Weekend: ${dur(w.weekend)}`,
     `- Prompts with corrections or interruptions: ${w.fixRate == null ? "unknown" : w.fixRate + "%"} (n=${w.prompts})`,
     (() => { const {ws, we} = period(), H = limitHits(ws, we); return `- Usage limit hits (Claude Code): ${H.length ? `${H.length} (${H.map(h => `${md(h.t)} ${hm(h.t)}`).join(", ")})` : "0"}`; })());
   if (u.tokens || u.credits){
@@ -157,7 +156,7 @@ function spark(k){ // 8 期間の推移（記録のない期間は飛ばす。�
   const pts = []; for (let i = 7; i >= 0; i--){ const p = periodBack(i); pts.push({v: metricAt(k, p), l: p.label}); }
   const vs = pts.filter(p => p.v != null).map(p => p.v); if (vs.length < 2) return "";
   // 使い始めて間もないなど、はじめの期間に記録がないときは、その期間を描かずに記録のある最初の期間を左端にする（線が箱の途中から始まって短く見えないように）
-  const W = 112, H = 26, f0 = pts.findIndex(p => p.v != null), step = (W - 8) / (7 - f0); // 値が 2 つ以上あるので f0 は 6 以下
+  const W = 168, H = 34, f0 = pts.findIndex(p => p.v != null), step = (W - 8) / (7 - f0); // 値が 2 つ以上あるので f0 は 6 以下
   const lo = Math.min(...vs), hi = Math.max(...vs), rng = lo === hi ? fmtM(k, lo) : `${fmtM(k, lo)}–${fmtM(k, hi)}`, x = i => 4 + (i - f0) * step, y = v => hi === lo ? H / 2 : H - 4 - (v - lo) / (hi - lo) * (H - 8);
   const line = pts.map((p, i) => p.v == null ? null : `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).filter(Boolean).join(" ");
   const txt = `${st.mode === "month" ? "8-month" : "8-week"} trend: ${pts.map(p => `${p.l} ${fmtM(k, p.v)}`).join(", ")}`;
@@ -202,7 +201,7 @@ function findList(w, pw, unit){
     add("bigPrompts", 11, `${plural(BG.n, "prompt")} of ${BIG_PROMPT.toLocaleString(LOC())}+ characters (longest ${BG.max.toLocaleString(LOC())})`, "Pasting long logs or documents makes every later response re-read a heavier input, and buries the instructions that matter", `3+ prompts of ${BIG_PROMPT.toLocaleString(LOC())}+ characters`, BG.ids.slice(0, 6), `${plural(BG.n, "prompt")} ${P} crossed the threshold`);
   const RP = repeatsOf(ws, we);
   if (RP.length)
-    add("repeats", 9, `You wrote a similar prompt ${RP[0].n} times across ${RP[0].ids.size} sessions ("${snipOf(RP[0].text, 40)}")`, "A prompt you type every time can be written once as a command or in CLAUDE.md", `${REPEAT_MIN}+ characters, in ${REPEAT_SES}+ sessions`, [...new Set([RP[0].id, ...RP[0].ids])].slice(0, 6), `${plural(RP.length, "prompt")} ${P} ${RP.length === 1 ? "was" : "were"} written in ${REPEAT_SES} or more sessions`);
+    add("repeats", 9, `You wrote a similar prompt ${RP[0].n} times across ${RP[0].ids.size} sessions ${P} ("${snipOf(RP[0].text, 40)}")`, "A prompt you type every time can be written once as a command or in CLAUDE.md", `${REPEAT_MIN}+ characters, in ${REPEAT_SES}+ sessions`, [...new Set([RP[0].id, ...RP[0].ids])].slice(0, 6), RP.length === 1 ? `1 prompt ${P} was written in ${REPEAT_SES} or more sessions` : `${RP.length} different prompts ${P} were each written in ${REPEAT_SES} or more sessions`);
   if (w.switchesAvg >= 5)
     add("switches", 14, `You switched projects ${w.switchesAvg} times a day on average`, "Each context switch tends to add ramp-up time and rework", "5+ per day on average", null, `you averaged ${w.switchesAvg} switches a day ${P}`);
   if (!w.focus.length && w.active >= 240)
@@ -212,11 +211,11 @@ function findList(w, pw, unit){
   return F.sort((a,b) => b.score - a.score);
 }
 const GOTO = {longctx: "heavy", modelfit: "models"}; // 専用の指標がない候補は、関係する指標に印を付ける
-function flagSum(F){ // サマリーの先頭に、基準を超えた指標の名前だけを優先度の高い順に並べる（押すとその指標へ）
+function flagSum(F){ // 期間の要点の下（#worth）に、基準を超えた指標の名前だけを優先度の高い順に並べる（押すとサマリーのその指標へ）
   const ids = [...new Set(F.map(f => GOTO[f.k] || f.k))];
-  return `<div class="flagsum"><span class="lbl">${ico("flag", "fdot")}Worth a look${hb("findings")}</span>${ids.length
+  return `<span class="lbl">${ico("flag", "fdot")}Worth a look${hb("findings")}</span>${ids.length
     ? ids.map(id => `<button class="flink" data-goto="${id}">${esc(H()[id].n)}</button>`).join("")
-    : `<span class="muted">No metric crossed a threshold</span>`}${hint("findings")}</div>`;
+    : `<span class="muted">No metric crossed a threshold</span>`}${hint("findings")}`;
 }
 function placeFlags(R, F){ // 基準を超えた指標の、その場に印・見えたこと・推移・該当するセッション・基準を添える
   const ses = ids => ids.map(id => { const s = DATA.find(x => x.id === id); return s ? `<button class="fses" data-id="${esc(id)}" style="--c:${colorOf(keyOf(s))}"><i></i><span>${esc(s.title)}</span><small>${md(s.start)}</small></button>` : ""; }).join("");
@@ -225,7 +224,7 @@ function placeFlags(R, F){ // 基準を超えた指標の、その場に印・�
     const panel = t.closest(".panel"), shown = new Set([...panel.querySelectorAll(".card[data-id]")].map(c => c.dataset.id)); // すぐ下にカードで並ぶセッションは繰り返さない
     const ids = f.k === "friction" ? [] : f.ids.filter(id => !shown.has(id)), more = ids.length - 3;
     // 下のカードと重なって省いたセッションも数に入れて断る（見出しの「N sessions」と、並ぶ数が合わなく見えないように）
-    const dup = f.k === "friction" ? 0 : f.ids.length - ids.length, rest = [more > 0 ? `${more} more` : "", dup ? `${dup} in the list below` : ""].filter(Boolean).join(" · ");
+    const dup = f.k === "friction" ? 0 : f.ids.length - ids.length, rest = [more > 0 ? `${plural(more, "more session")}` : "", dup ? `${dup} also in the list below` : ""].filter(Boolean).join(" · ");
     const own = !GOTO[f.k] && t.closest(".stat"); // 自分の数字の上に出す印は、数字の言い直し（見えたこと）を省く
     const html = `<div class="fl">${own ? "" : `<p class="see">${ico("flag", "fdot")}${esc(f.see)}</p>`}<p class="why">${esc(f.why)}</p>${spark(f.k)}${f.because ? `<p class="because">Flagged because ${esc(f.because)}</p>` : ""}${ids.length || rest ? `<div class="fss">${ses(ids.slice(0, 3))}${rest ? `<p class="more">${rest}</p>` : ""}</div>` : ""}<p class="rule">Threshold: ${esc(f.rule)}</p></div>`;
     const dt = t.closest("details"); // 閉じた折りたたみの中の印は、見出しにも出し、自分で閉じていなければ開いておく

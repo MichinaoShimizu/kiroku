@@ -31,13 +31,11 @@ function setMode(m){ if (m === "month" && META.scope && META.scope.mode === "wee
   st.mode = m; store.set("mode", m); st.sel = null; st.animate = true; render(); scrollToWork(); }
 document.querySelectorAll("#mode button").forEach(b => b.onclick = () => setMode(b.dataset.v));
 $("#prev").onclick = () => go(-1); $("#next").onclick = () => go(1); $("#today").onclick = () => go(null);
-$("#zin").onclick = () => zoom(1); $("#zout").onclick = () => zoom(-1);
 function zoom(dv){ st.z = Math.max(0, Math.min(HOURS.length-1, st.z+dv)); store.set("zh", st.z); render(); scrollToWork(); }
-document.querySelectorAll("#colorBy button").forEach(b => b.onclick = () => { st.colorBy = b.dataset.v; st.hidden.clear(); store.set("colorBy", st.colorBy); render(); });
-$("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); render(); };
-// 検索欄で Enter：結果は カレンダーの下にあるので、最初の結果へフォーカスを移す
+$("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); st.srN = st.scN = 0; render(); }; // 言葉が変わったら、結果はまた先頭の数件から
+// 検索欄で Enter：最初の結果へフォーカスを移す（結果はカレンダーの上）
 $("#q").addEventListener("keydown", e => { if (e.key !== "Enter" || e.isComposing || !st.q) return;
-  const f = $("#review .srow") || $("#srh"); if (f){ e.preventDefault(); f.focus(); } });
+  const f = $("#sres .srow") || $("#srh"); if (f){ e.preventDefault(); f.focus(); } });
 $("#theme").onclick = () => { st.theme = st.theme === "dark" ? "light" : "dark"; store.set("theme", st.theme); applyTheme(); };
 $("#help").onclick = () => $("#keys").showModal();
 $("#yrbtn").onclick = openYear;
