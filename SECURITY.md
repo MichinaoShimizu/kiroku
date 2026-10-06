@@ -27,6 +27,7 @@ Only the latest release is supported.
 
 - [CodeQL](https://github.com/MichinaoShimizu/kiroku/actions/workflows/codeql.yml) analyzes the Go code and the view's JavaScript on every pull request, every push to main and weekly; findings go to the repository's code scanning alerts
 - [OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/MichinaoShimizu/kiroku) checks the repository's security practices (pinned dependencies, token permissions, branch protection and so on) weekly and on every push to main, and publishes the result
+- Go fuzz tests feed broken and crafted input to the history readers, the git remote parser and the HTML view (which must keep all history out of its one script). CI runs their seeds on every pull request, and the [Fuzz](https://github.com/MichinaoShimizu/kiroku/actions/workflows/fuzz.yml) workflow fuzzes each one weekly and on every push to main
 - CI runs `govulncheck` (known vulnerabilities in code kiroku calls) and `staticcheck`, and checks that no script runs in a view built from history full of HTML and script payloads
 - Dependabot proposes updates to Go modules, GitHub Actions and the npm packages used in tests every week, and security fixes right away
 
@@ -38,6 +39,12 @@ Check that a file was built by this repository's release workflow (needs the [Gi
 
 ```bash
 gh attestation verify kiroku_0.13.3_linux_amd64.tar.gz --repo MichinaoShimizu/kiroku
+```
+
+From the first release after v0.14.0, each release also includes the same provenance as a signed Sigstore bundle, `kiroku_<version>.sigstore.json`. With it, `gh` checks the files without looking the attestation up on GitHub (it still fetches Sigstore's public keys):
+
+```bash
+gh attestation verify kiroku_0.15.0_linux_amd64.tar.gz --repo MichinaoShimizu/kiroku --bundle kiroku_0.15.0.sigstore.json
 ```
 
 Check that a release binary is exactly what its tag's source produces. The build is reproducible: `tools/reproduce.sh` clones the tag, builds it the way `.goreleaser.yaml` does (with the Go toolchain named in the tag's `go.mod`, `CGO_ENABLED=0`, `-trimpath`, `-ldflags "-s -w -X main.version=<version>"`), downloads the release archive, checks it against `checksums.txt` and compares the two binaries byte for byte. It needs git, Go, curl and tar (and unzip for Windows targets), and can check any target from any OS.

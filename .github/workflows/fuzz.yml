@@ -1,0 +1,48 @@
+name: Fuzz
+
+# 履歴のファイル・git のリモート URL・画面に入れる文字列を読むところを、Go の fuzzing で壊れた・細工した入力に当てる。
+# 種（seed）だけは CI の go test ./... で毎回通る。ここでは新しい入力を作って、それぞれ少しの間だけ探す。
+# PR の CI を運しだいで赤くしないよう、main への push と週 1 回だけ動かす。見つかった入力は artifact に残す
+# （testdata/fuzz/<名前>/ に置くと、次からは go test ./... の種になる）。
+on:
+  push:
+    branches: [main]
+    paths: ["**.go", "go.mod", "go.sum", "testdata/**", ".github/workflows/fuzz.yml"]
+  schedule:
+    - cron: "41 4 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Fuzz each target
+        env:
+          FUZZTIME: 45s
+        run: |
+          status=0
+          for pkg in $(go list ./...); do
+            for f in $(go test -list '^Fuzz' "$pkg" | grep '^Fuzz' || true); do
+              echo "::group::$f ($pkg)"
+              go test "$pkg" -run '^$' -fuzz "^$f\$" -fuzztime "$FUZZTIME" || status=1
+              echo "::endgroup::"
+            done
+          done
+          exit $status
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fuzz-failures
+          path: "**/testdata/fuzz/"
