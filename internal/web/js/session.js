@@ -80,11 +80,11 @@ function periodPrompts(){ // 表示中の週・月に、人が打ったプロン
   const {ws, we} = period(), L = [];
   DATA.filter(s => s.prompts.some(p => p.t >= ws && p.t < we)).sort((a, b) => a.start - b.start).forEach(s => {
     const ps = s.prompts.filter(p => p.t >= ws && p.t < we);
-    L.push(`## ${md(ps[0].t)} ${hm(ps[0].t)} ${s.project}${s.branch ? ` (${s.branch})` : ""} · ${String(s.title).replace(/\s+/g, " ")}`, userPrompts({prompts: ps}), "");
+    L.push(`## ${md(ps[0].t)} ${hm(ps[0].t)} ${mdCode(s.project)}${s.branch ? ` (${mdCode(s.branch)})` : ""} · ${mdText(s.title)}`, userPrompts({prompts: ps}), "");
   });
   return L.length ? L.join("\n").trim() : "No prompts in this period."; }
 function userPrompts(s){ // 人が打ったプロンプトだけを、時刻つきの Markdown の箇条書きにする（書き出し用）
-  return s.prompts.map(p => `- ${p.t ? `${md(p.t)} ${hm(p.t)}` : "--:--"}${p.kind ? ` [${PKIND()[p.kind] || p.kind}]` : ""} ${String(p.text || "").replace(/\s+/g, " ").trim()}${p.len > 0 ? ` (first ${PROMPT_RUNES} characters)` : ""}`).join("\n"); }
+  return s.prompts.map(p => `- ${p.t ? `${md(p.t)} ${hm(p.t)}` : "--:--"}${p.kind ? ` (${mdText(PKIND()[p.kind] || p.kind)})` : ""} ${mdText(p.text)}${p.len > 0 ? ` (first ${PROMPT_RUNES} characters)` : ""}`).join("\n"); }
 function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面では d だけを省略する）
   const ev = [];
   commitsOf(s).forEach(c => ev.push({t: c.t, k: c.ai ? "commit ai" : "commit", l: c.ai ? "AI committed" : "Committed by hand", d: `<button class="evd" data-git="${esc(c.hash)}"><i class="gtag${c.ai ? " ai" : ""}">${GIT_ICON}${esc(c.hash.slice(0,7))}</i> ${esc(c.subject)}</button>`}));
@@ -103,7 +103,7 @@ function promptFlow(s){
   let e = 0, n = 0, hiddenEv = 0, gap = null; // gap: 前のプロンプトのあと、長くあいたところ {from: AI が最後に動いた時刻, v: 秒}
   const hide = () => n > FLOW_SHOW ? " hidden" : "";
   const flush = until => { for (; e < ev.length && ev[e].t < until; e++){ if (hide()) hiddenEv++;
-    rows.push(`<li class="ev ${ev[e].k}"${hide()}><time>${hm(ev[e].t)}</time>${ico(EV_ICON[ev[e].k.split(" ")[0]])}<p><span class="evl">${ev[e].l}</span>${ev[e].d || ""}</p></li>`); } };
+    rows.push(`<li class="ev ${esc(ev[e].k)}"${hide()}><time>${hm(ev[e].t)}</time>${ico(EV_ICON[ev[e].k.split(" ")[0]])}<p><span class="evl">${ev[e].l}</span>${ev[e].d || ""}</p></li>`); } };
   s.prompts.forEach((p, i) => {
     if (p.t){ flush(p.t); // あいた間に起きたこと（手でのコミットなど）は、区切りの上に出す
       if (gap){ rows.push(`<li class="gap"${hide()}><p>${`${hm(gap.from)}–${hm(p.t)}: ${span(gap.v)} gap`}</p></li>`); gap = null; } }
@@ -111,7 +111,7 @@ function promptFlow(s){
     const t = String(p.text || ""), long = t.length > 220, fix = !p.kind && FIXRE.test(t), cut = p.len > 0;
     const more = cut ? `<span class="pcut"> ${`(first ${PROMPT_RUNES} of ${p.len.toLocaleString(LOC())} characters)`}${LIVE ? ` <button class="pload" data-i="${i}">Load the full prompt</button>` : ` Open with kiroku serve to read it in full.`}</span>` : "";
     const meta = [p.work ? `AI worked ${span(p.work)}` : "", p.wait && p.wait <= FLOW_GAP ? `wait ${secs(p.wait)}` : ""].filter(Boolean).join(" · ");
-    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + p.kind : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><p>${fix ? `<span class="sr">Looks like a correction: </span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${PKIND()[p.kind] || esc(p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${`Long · ${plen(p).toLocaleString(LOC())} chars`}</span>` : ""}<span class="ptext">${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${pexpLabel(p)}</button>` : esc(t)}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
+    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><p>${fix ? `<span class="sr">Looks like a correction: </span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${PKIND()[p.kind] || esc(p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${`Long · ${plen(p).toLocaleString(LOC())} chars`}</span>` : ""}<span class="ptext">${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${pexpLabel(p)}</button>` : esc(t)}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
     if (p.t && p.wait > FLOW_GAP) gap = {from: p.t + p.work, v: p.wait};
   });
   flush(Infinity);
@@ -137,20 +137,21 @@ function sessionPrompt(s, active, med){
     "", "# Assumptions",
     "- Figures are rough estimates from history. Clearly mark anything the data can't support as a guess",
     "- Estimated cost is priced at public API rates, not what I am actually billed",
-    "", "# Session",
+    AI_DATA_NOTE], D = ["# Session",
     `- Agent: ${(s.source)}`, `- Project: ${s.project}${s.branch ? ` (branch ${s.branch})` : ""}`,
     `- Time: ${md(s.start)} ${hm(s.start)}–${hm(s.end)}, active time ${dur(active)}`,
     `- Prompts: ${s.nPrompts}, corrections: ${s.corrections}, interruptions: ${s.interrupts}${med == null ? "" : `, median wait time ${secs(med)}`}`];
-  if (s.limits && s.limits.length) L.push(`- Usage limit hits: ${s.limits.length} (${s.limits.map(hm).join(", ")})`);
-  if (s.cost) L.push(`- Estimated cost: ${usd(s.cost)}`);
-  if (s.credits) L.push(`- Kiro credits: ${crN(s.credits)}`);
-  L.push(o.commits ? `- Commits: ${o.commits}${o.prs ? `, pull requests: ${o.prs}` : ""}` : "- No commits recorded");
-  if (s.tools.length) L.push(`- Most used tools: ${s.tools.slice(0,6).map(([k,v]) => `${k} ${v}`).join(", ")}`);
-  if (s.subagents.length) L.push(`- Subagents: ${s.subagents.length}`);
-  L.push("", "# Prompt flow (time and prompt; long ones are truncated)");
-  if (s.prompts.length) s.prompts.slice(0, 40).forEach(p => { const t = String(p.text || "").replace(/\s+/g, " ").trim(); L.push(`- ${p.t ? hm(p.t) : "--:--"} ${t.length > 300 ? t.slice(0, 300) + "…" : t}`); });
-  else L.push("- No prompts recorded");
-  if (s.prompts.length > 40) L.push(`- ${s.nPrompts - 40} more`);
+  if (s.limits && s.limits.length) D.push(`- Usage limit hits: ${s.limits.length} (${s.limits.map(hm).join(", ")})`);
+  if (s.cost) D.push(`- Estimated cost: ${usd(s.cost)}`);
+  if (s.credits) D.push(`- Kiro credits: ${crN(s.credits)}`);
+  D.push(o.commits ? `- Commits: ${o.commits}${o.prs ? `, pull requests: ${o.prs}` : ""}` : "- No commits recorded");
+  if (s.tools.length) D.push(`- Most used tools: ${s.tools.slice(0,6).map(([k,v]) => `${k} ${v}`).join(", ")}`);
+  if (s.subagents.length) D.push(`- Subagents: ${s.subagents.length}`);
+  D.push("", "# Prompt flow (time and prompt; long ones are truncated)");
+  if (s.prompts.length) s.prompts.slice(0, 40).forEach(p => { const t = String(p.text || "").replace(/\s+/g, " ").trim(); D.push(`- ${p.t ? hm(p.t) : "--:--"} ${t.length > 300 ? t.slice(0, 300) + "…" : t}`); });
+  else D.push("- No prompts recorded");
+  if (s.prompts.length > 40) D.push(`- ${s.nPrompts - 40} more`);
+  L.push("", "# History data", mdFence(D.join("\n")));
   return L.join("\n");
 }
 const focusDrawer = {was: false, sel: null, first: null, from: null, next: null};

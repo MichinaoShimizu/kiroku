@@ -2,7 +2,7 @@
 # ダミーデータを作り、kiroku の HTML を出力して、docs のスクリーンショットを撮り直す。
 #   sh tools/screenshots/run.sh
 #   sh tools/screenshots/run.sh --html <出力先.html>   # ダミーデータの HTML だけを作る（git のリポジトリは一時ディレクトリごと消えるので、コミットのリンクは開けない）
-# 必要なもの: Go、Python 3、git、Node.js と Playwright（このディレクトリで npm i playwright）
+# 必要なもの: Go、Python 3、git、Node.js と Playwright（このディレクトリで npm ci --ignore-scripts。版は package.json で固定）
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)

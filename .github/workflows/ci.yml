@@ -15,9 +15,13 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false # トークンを .git に残さない（後のステップから読めないように）
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
       - name: gofmt
@@ -39,20 +43,27 @@ jobs:
       - run: go build -o kiroku-ci .
 
   # 画面の大事な流れ（週の移動・詳細・週報の下書き・検索・スマホのはみ出し）が、ブラウザで動くか
+  # npm のパッケージを動かすので、Go のビルドキャッシュは使わない（ほかのジョブやリリースのキャッシュを汚させない）
   e2e:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false # トークンを .git に残さない（後のステップから読めないように）
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-      - uses: actions/setup-node@v7
+          cache: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
+      # Playwright の版は tools/screenshots/package-lock.json で固定し、インストール時のスクリプトは動かさない
       - name: Install Playwright
         working-directory: tools/screenshots
         run: |
-          npm i --no-save --no-package-lock playwright
+          npm ci --ignore-scripts
           npx playwright install --with-deps chromium
       - run: sh tools/screenshots/run.sh --html "$RUNNER_TEMP/kiroku.html"
       - run: node tools/screenshots/smoke.mjs "$RUNNER_TEMP/kiroku.html"
@@ -65,16 +76,20 @@ jobs:
   # リリースの設定が壊れていないかを、タグを打つ前に確かめる（公開はしない）
   release-dry-run:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v7
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-      - uses: goreleaser/goreleaser-action@v7
+          cache: false # リリースと同じく、キャッシュを使わずにビルドする
+      - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
-          version: "~> v2"
+          version: v2.18.2 # 版を固定する（Dependabot は追わないので、上げるときはここを書き換える）
           args: release --snapshot --clean
       # リリースノートを抜き出す仕組みが壊れていないか（いちばん上の節で試す。Unreleased か、タグを打つ直前の版）
       - run: sh tools/release-notes.sh "$(grep -m1 '^## ' CHANGELOG.md | cut -d' ' -f2)"
@@ -97,8 +112,13 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      attestations: read # gh attestation verify で、リリースの出どころの証明を読む
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false # トークンを .git に残さない（後のステップから読めないように）
       - name: shellcheck
         if: runner.os == 'Linux'
         run: shellcheck install.sh
@@ -106,3 +126,11 @@ jobs:
         run: |
           KIROKU_INSTALL_DIR="$RUNNER_TEMP/bin" sh install.sh
           "$RUNNER_TEMP/bin/kiroku" --version
+      # 出どころの証明（gh attestation verify）を必ず確かめる道。gh はランナーに入っている
+      - name: install (attestation required)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KIROKU_REQUIRE_ATTESTATION: "1"
+        run: |
+          KIROKU_INSTALL_DIR="$RUNNER_TEMP/bin-attested" sh install.sh
+          "$RUNNER_TEMP/bin-attested/kiroku" --version

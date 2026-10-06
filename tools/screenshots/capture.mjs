@@ -1,6 +1,6 @@
 // docs/screenshot.png・docs/summary.png・docs/og.png・docs/year.png を撮る。gen.py と mkgit.py で作ったダミーデータの HTML を使う。
 //   node capture.mjs <kiroku.html> <docs のディレクトリ>
-// Playwright が必要（このディレクトリで npm i playwright と npx playwright install chromium）。英語表示（en-US）・ダークテーマ（既定）・時刻は Asia/Tokyo・1440x900。
+// Playwright が必要（このディレクトリで npm ci --ignore-scripts と npx playwright install chromium。版は package.json で固定）。英語表示（en-US）・ダークテーマ（既定）・時刻は Asia/Tokyo・1440x900。
 import { chromium } from "playwright";
 import path from "node:path";
 import fs from "node:fs/promises";
