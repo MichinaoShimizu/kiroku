@@ -30,6 +30,11 @@ jobs:
       - name: staticcheck
         if: runner.os == 'Linux'
         run: GOTOOLCHAIN=$(go env GOVERSION) go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...
+      # 既知の脆弱性（標準ライブラリと依存）を、kiroku のコードから呼ばれるものに絞って調べる。
+      # 標準ライブラリは go.mod の toolchain の版で見る（リリースもこの版でビルドする）
+      - name: govulncheck
+        if: runner.os == 'Linux'
+        run: GOTOOLCHAIN=$(go env GOVERSION) go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
       - run: go test ./...
       - run: go build -o kiroku-ci .
 
