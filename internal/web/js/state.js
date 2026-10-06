@@ -4,6 +4,8 @@ let WEEKS = __WEEKS__;
 let MONTHS = __MONTHS__;
 let META = __META__;
 let GENERATED = __GEN__;
+// applyData は kiroku serve から届いた新しいデータに入れかえる（上の名前を書きかえるので、ここに置く）
+function applyData(j){ DATA = j.sessions || []; WEEKS = j.weeks || {}; MONTHS = j.months || {}; META = j.meta; GENERATED = j.generated; if (st.sel && !DATA.some(s => s.id === st.sel)) st.sel = null; }
 /* デモ（GitHub Pages）と、kiroku html --week / --month で書き出した期間だけのファイルは、作った人の時間帯の時計で見せる。
    どこから開いても「朝から夜に作業した」ように見え、日ごとの集計（作った時間帯で区切っている）とも食い違わない。
    時刻らしい数（UNIX 秒）と「今」を同じだけずらす */

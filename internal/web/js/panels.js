@@ -38,7 +38,7 @@ function searchPanel(){
 }
 /* 週報・月報の下書き：プロジェクトごとに、やったこと（セッション）・コミット・PR を Markdown で並べる（AI は使わない） */
 function reportText(w, M){
-  const {ws, we} = period(), unit = M ? "月" : "週", L = [];
+  const {ws, we} = period(), L = [];
   const start = M ? st.month : st.week, last = M ? new Date(st.month.getFullYear(), st.month.getMonth()+1, 0) : addDays(st.week, 6);
   const ses = DATA.filter(s => s.segs.some(([a,b]) => b > ws && a < we) && !st.hidden.has(keyOf(s))).sort((a,b) => a.start - b.start);
   const gits = (META.git || []).filter(c => c.t >= ws && c.t < we).sort((a,b) => a.t - b.t);
@@ -69,7 +69,7 @@ function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）�
   const n = v => v.toLocaleString(LOC()), times = v => `${v}`, base = w.outBase ?? w.sessions;
   const cost = [
     stat("Active time", dur(w.active,true), V.diff(w.active, V.of("active", pw && pw.active), dur), "active"),
-    u.tokens ? stat("Estimated cost", usd(u.cost).replace("$","<small>$</small>"), V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost") : "",
+    u.tokens ? stat("Estimated cost", usdH(u.cost), V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost") : "",
     u.tokens ? stat("Tokens", tok(u.tokens), `Output ${tok(u.out)}`, "tokens") : "",
     u.credits ? stat("Kiro credits", crN(u.credits), "As recorded in history", "credits") : "",
   ].join("");
@@ -77,7 +77,7 @@ function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）�
     g && g.commits ? stat("Git commits", times(g.commits), `${g.ai} by AI · +${n(g.added)} −${n(g.removed)} lines${pw && pw.git ? ` · ${V.diff(g.commits, V.of("commits", pw.git.commits))}` : ""}`, "gitCommits") : "",
     g && g.commits ? "" : stat("AI commits", times(o.commits), d(o.commits, po && po.commits), "commits"), // Git のコミットがあれば「うち AI」に出ている
     // 使ったものと比べた指標。何と何を割ったかを添える
-    w.costPerCommit != null ? stat("Estimated cost per commit", usd(w.costPerCommit).replace("$","<small>$</small>"), `Claude Code's estimated cost ÷ ${plural(o.commits, "AI commit")}`, "costPerCommit") : "",
+    w.costPerCommit != null ? stat("Estimated cost per commit", usdH(w.costPerCommit), `Claude Code's estimated cost ÷ ${plural(o.commits, "AI commit")}`, "costPerCommit") : "",
     stat("Sessions that reached a commit", base ? `${Math.round(w.outSessions*100/base)}<small>%</small>` : "—", `${w.outSessions} of ${plural(base, "session")}`, "outSessions"),
   ].join("") : "";
   const side = (cls, label, sub, body) => `<div class="ocside ${cls}"><div class="ocl"><b>${label}</b><span>${sub}</span></div>${body}</div>`;
@@ -141,7 +141,6 @@ async function keepArchive(){
     toast("Kept a copy. kiroku will save one each time you open it", 4500);
   } catch(e){ toast("Couldn't keep a copy. Run kiroku archive on instead", 4500); }
 }
-function applyData(j){ DATA = j.sessions || []; WEEKS = j.weeks || {}; MONTHS = j.months || {}; META = j.meta; GENERATED = j.generated; if (st.sel && !DATA.some(s => s.id === st.sel)) st.sel = null; }
 function keepRow(r){ // 計測の状態に添える：どこまでさかのぼれるか、いつ消えるか
   const o = r.oldest ? dMDY(new Date(r.oldest*1000)) : "";
   const k = r.retention, link = k && k.docs ? ` ${ext(k.docs, "official docs ↗")}` : "";
@@ -192,10 +191,10 @@ function aiUsage(w, pw, unit){
   const pj = projection(w);
   const totalC = u.models.reduce((t,r)=>t+r[1],0) || 1, totalT = u.models.reduce((t,r)=>t+r[2],0) || 1, byCost = totalC > 0.0001;
   return `<div class="stats" style="margin-top:4px">
-      ${pj ? stat("Month-end projection (estimate)", [pj.cost != null ? "≈ " + usd(pj.cost).replace("$","<small>$</small>") : "", pj.credits != null ? (pj.cost != null ? `<small> · </small>` : "≈ ") + `${Math.round(pj.credits)}<small> credits</small>` : ""].join(""), `If the pace of the first ${pj.days} days continues`, "projection") : ""}
+      ${pj ? stat("Month-end projection (estimate)", [pj.cost != null ? "≈ " + usdH(pj.cost) : "", pj.credits != null ? (pj.cost != null ? `<small> · </small>` : "≈ ") + `${Math.round(pj.credits)}<small> credits</small>` : ""].join(""), `If the pace of the first ${pj.days} days continues`, "projection") : ""}
       ${u.tokens ? stat("Read from cache", u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, "Share of input", "cache") : ""}
       ${stat("Subagents", `${u.subagents}`, u.subagents ? `Total ${dur(u.subMin)}` : "Not used", "subagents")}
-      ${w.costPerAsk != null ? stat("Estimated cost per prompt", usd(w.costPerAsk).replace("$","<small>$</small>"), `n=${w.prompts}`, "costPerAsk") : ""}
+      ${w.costPerAsk != null ? stat("Estimated cost per prompt", usdH(w.costPerAsk), `n=${w.prompts}`, "costPerAsk") : ""}
     </div>
     ${u.models.length ? `<div style="margin-top:16px" class="k muted">By model${byCost ? " (estimated cost)" : " (tokens)"}${hb("models")}</div>${hint("models")}
       <div class="mstack" style="margin-top:8px">${u.models.map((r,i)=>`<span style="flex:${byCost?r[1]:r[2]};--o:${shade(i)}"${tipAttr((r[0]), `Estimated cost ${usd(r[1])}`, `Tokens ${tok(r[2])}`, `${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%`)}></span>`).join("")}</div>

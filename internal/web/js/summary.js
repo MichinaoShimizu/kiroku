@@ -11,7 +11,6 @@ function summary(){
     <pre class="askpre" id="rptpre">${esc(reportText(w, M))}</pre></section>` : ""}`;
   if (!w){ R.innerHTML = `${head}<div class="rvgrid"><div class="panel"><p class="none">${`No records ${uThis(unit)}.`}</p>${foot()}</div></div>`; bindCopy(R); return; }
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
-  const total = w.projects.reduce((t,[,v])=>t+v,0) || 1;
   const stat = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}${hint(h)}</div>`;
   const ph = (n, t, s, h) => `<div class="ph"><span class="no">${n}</span><h3>${t}${hb(h)}</h3><span>${s}</span></div>${hint(h)}`;
   const pct = v => v == null ? "Unknown" : `${v}<small>%</small>`;

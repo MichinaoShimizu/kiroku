@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- The prompt that asks an AI to review a week or month listed flagged metrics with HTML escapes such as `&lt;` and `&amp;` instead of the characters. It now takes the text of the flagged metric from the HTML properly, where it used to remove anything that looked like a tag with a regular expression (a CodeQL finding)
+- Code quality findings from CodeQL in the view's script: the dollar sign of estimated costs is now formatted in one place (which also escapes the `<` of `<$0.01`), the function that swaps in new data from `kiroku serve` sits next to the variables it sets, and unused variables are gone
+
 ## v0.15.0 - 2026-10-06
 
 ### Added
