@@ -22,7 +22,7 @@ function askPrompt(w, pw, M){
     AI_DATA_NOTE);
   const di = L.length; // ここから下は履歴から作ったデータ（プロジェクト名や題が入る）。最後にコードブロックで囲む
   L.push("# Metrics kiroku flagged by threshold (candidates, not verdicts)",
-    ...(() => { const F = findList(w, pw, unit); return F.length ? F.map(f => `- ${f.see.replace(/<[^>]+>/g, "")} (threshold: ${f.rule.charAt(0).toLowerCase() + f.rule.slice(1)})`) : ["- No metric crossed a threshold"]; })(),
+    ...(() => { const F = findList(w, pw, unit); return F.length ? F.map(f => `- ${plainText(f.see)} (threshold: ${f.rule.charAt(0).toLowerCase() + f.rule.slice(1)})`) : ["- No metric crossed a threshold"]; })(),
     "", "# Overall",
     `- Active time: ${dur(w.active)}${prev(w.active, pw && pw.active, dur, "active")}`,
     `- Total AI run time (including parallel runs): ${dur(w.ai)}`,

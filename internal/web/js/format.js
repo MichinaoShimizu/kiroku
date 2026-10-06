@@ -9,6 +9,8 @@ function dayNo(d, t){ const x = new Date(t*1000); return Math.round((Date.UTC(x.
 // 時刻 t（秒）が、日 d の 0 時から時計で何時間目か（0〜24）。経った秒数でなく時計の針で数えるので、夏時間の日も時刻の線とそろう
 function clockH(d, t){ const x = new Date(t*1000); return Math.min(24, Math.max(0, (x.getTime() - x.getTimezoneOffset()*6e4 - Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))/36e5)); }
 function key(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+// plainText は、画面用の HTML（中の文字はエスケープ済み）から文字だけを取り出す（コピーする Markdown 用。どこにも挿入しない）
+function plainText(html){ return new DOMParser().parseFromString(String(html ?? ""), "text/html").body.textContent; }
 function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function hm(t){ return new Date(t*1000).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hourCycle:"h23"}); }
 /* 日付の書き方はここの小物にそろえる。見る人の言語の設定によらず英語の月名で（"Sep 28"・"Sep 28, 2026"・"October 2026"）。
@@ -28,6 +30,8 @@ function dur(m, html){ m = Math.round(m); const h = Math.floor(m/60), r = m%60;
   const u = x => html ? `<small>${x}</small>` : x; return h ? `${h}${u("h")}${r ? ` ${r}${u("m")}` : ""}` : `${r}${u("m")}`; }
 function tok(n){ n = n || 0; return n >= 1e9 ? (n/1e9).toFixed(1)+"B" : n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? Math.round(n/1e3)+"K" : String(n); }
 function usd(v){ return v == null ? "—" : v > 0 && v < 0.01 ? "<$0.01" : "$" + (v >= 100 ? Math.round(v).toLocaleString(LOC()) : v.toFixed(2)); }
+// usdH は usd を HTML に入れる形にする（$ を小さく出す。"<$0.01" の < もエスケープする）
+function usdH(v){ const s = esc(usd(v)), i = s.indexOf("$"); return i < 0 ? s : s.slice(0, i) + "<small>$</small>" + s.slice(i + 1); }
 const crN = v => v >= 1 || v <= 0 ? Math.round(v).toLocaleString(LOC()) : v.toFixed(2); // クレジットは整数で（1 未満だけ小数 2 桁）
 function cr(v){ return `${crN(v)} cr`; }
 const tokS = v => v >= 1e7 ? Math.round(v/1e6)+"M" : v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e4 ? Math.round(v/1e3)+"K" : tok(v); // 狭いマス用に、桁を減らしたトークン

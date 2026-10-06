@@ -20,7 +20,7 @@ function detail(s){
       <div><div class="k">Wait time (median)</div><div class="v">${med==null?"—":secsH(med)}</div></div>
       <div><div class="k">Corrections / interruptions</div><div class="v">${s.corrections + s.interrupts}</div></div>
       ${s.limits && s.limits.length ? `<div><div class="k">Usage limit hits</div><div class="v" style="color:var(--warn)">${s.limits.length}</div><div class="k" style="margin-top:2px">${s.limits.map(hm).join(", ")}</div></div>` : ""}
-      ${s.source === "Claude Code" ? `<div><div class="k">Estimated cost${s.costReported ? " (from Claude Code)" : ""}</div><div class="v">${usd(s.cost).replace("$","<small>$</small>")}</div></div>
+      ${s.source === "Claude Code" ? `<div><div class="k">Estimated cost${s.costReported ? " (from Claude Code)" : ""}</div><div class="v">${usdH(s.cost)}</div></div>
       <div><div class="k">Tokens</div><div class="v">${tok(allTok)}</div></div>
       ${(() => { const cs = commitsOf(s), ai = cs.filter(c => c.ai).length, o = s.outputs || {}; // 右の「このセッションの間のコミット」と同じ数え方（手でのコミットも入れ、うち AI を添える）
         if (!cs.length) return o.commits ? `<div><div class="k">AI commits</div><div class="v">${o.commits}</div></div>` : ""; // git を読めないときは、AI が実行した回数
@@ -116,7 +116,6 @@ function promptFlow(s){
   });
   flush(Infinity);
   const fixes = s.prompts.some(p => !p.kind && FIXRE.test(String(p.text || ""))), kinds = new Set(ev.map(x => x.k.split(" ")[0])), cmds = s.prompts.some(p => p.kind);
-  const names = list => { const t = list.filter(([k]) => kinds.has(k)).map(([, x]) => x).join(", "); return t.charAt(0).toUpperCase() + t.slice(1); }; // そのセッションにあるものの名前だけ
   const key = [`<span><i class="kp"></i>User prompt</span>`,
     cmds ? `<span><i class="kp cmd"></i>Commands the user typed (/ or !)</span>` : "",
     kinds.has("note") ? `<span class="kev note">${ico("note")}Added automatically (notifications, summaries, hooks; not counted as prompts)</span>` : "",

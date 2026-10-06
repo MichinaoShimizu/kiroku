@@ -8,6 +8,11 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - `kiroku open` opens the view of a running `kiroku serve` with its key, and `kiroku open --print` prints the address with the key for another device
 
+### Fixed
+
+- The prompt that asks an AI to review a week or month listed flagged metrics with HTML escapes such as `&lt;` and `&amp;` instead of the characters. It now takes the text of the flagged metric from the HTML properly, where it used to remove anything that looked like a tag with a regular expression (a CodeQL finding)
+- Code quality findings from CodeQL in the view's script: the dollar sign of estimated costs is now formatted in one place (which also escapes the `<` of `<$0.01`), the function that swaps in new data from `kiroku serve` sits next to the variables it sets, and unused variables are gone
+
 ### Security
 
 - `kiroku serve` now shows your history only to browsers that have its key, so other users of the same computer can no longer read it at `http://localhost:8484/`. The key is kept in a file only you can read (`serve-key` in kiroku's settings folder), and `kiroku serve` and `kiroku open` give it to your browser, which then keeps it in a cookie: the plain address and bookmarks keep working in that browser. In another browser, run `kiroku open` once. See "The key of kiroku serve" in docs/guide.md
