@@ -38,7 +38,7 @@ function askPrompt(w, pw, M){
     L.push("", "# AI usage");
     if (u.tokens) L.push(`- Tokens: ${tok(u.tokens)} (output ${tok(u.out)})`,
       `- Share of input read from cache: ${u.cacheHit == null ? "unknown" : Math.round(u.cacheHit*100) + "%"}`,
-      `- Estimated cost: ${usd(u.cost)}${prev(u.cost, pw && pw.usage && pw.usage.cost, usd, "cost")}${w.costPerAsk != null ? `, ${usd(w.costPerAsk)} per prompt` : ""}`);
+      `- Estimated cost: ${costOf(u) == null ? "unknown (the models used are not in the price table)" : `${usd(u.cost)}${prev(u.cost, pw && pw.usage && pw.usage.cost, usd, "cost")}${w.costPerAsk != null ? `, ${usd(w.costPerAsk)} per prompt` : ""}`}`);
     if (u.credits) L.push(`- Kiro credits: ${cr(u.credits)}`);
     L.push(`- Subagents: ${u.subagents}${u.subagents ? ` (total ${dur(u.subMin)})` : ""}`);
     if (u.models.length) L.push("- By model: " + u.models.slice(0, 6).map(r => `${(r[0])} (estimated cost ${usd(r[1])}, tokens ${tok(r[2])})`).join(sep));

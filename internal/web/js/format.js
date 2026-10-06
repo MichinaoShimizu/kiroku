@@ -32,6 +32,10 @@ function tok(n){ n = n || 0; return n >= 1e9 ? (n/1e9).toFixed(1)+"B" : n >= 1e6
 function usd(v){ return v == null ? "—" : v > 0 && v < 0.01 ? "<$0.01" : "$" + (v >= 100 ? Math.round(v).toLocaleString(LOC()) : v.toFixed(2)); }
 // usdH は usd を HTML に入れる形にする（$ を小さく出す。"<$0.01" の < もエスケープする）
 function usdH(v){ const s = esc(usd(v)), i = s.indexOf("$"); return i < 0 ? s : s.slice(0, i) + "<small>$</small>" + s.slice(i + 1); }
+// costOf は使用量の目安コスト。見積もれた分がなく、料金表にないモデルのトークンだけなら null（usd・usdH が "—" にする）。
+// 値がないところに $0.00 と出すと「使っていない」と読めてしまうため（Codex のように料金表にないモデルだけを使ったとき）
+const costOf = u => !u ? null : !u.cost && u.unpriced ? null : (u.cost || 0);
+const NOPRICE = "The models used are not in the price table, so the estimated cost cannot be shown. Add their prices with --prices";
 const crN = v => v >= 1 || v <= 0 ? Math.round(v).toLocaleString(LOC()) : v.toFixed(2); // クレジットは整数で（1 未満だけ小数 2 桁）
 function cr(v){ return `${crN(v)} cr`; }
 const tokS = v => v >= 1e7 ? Math.round(v/1e6)+"M" : v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e4 ? Math.round(v/1e3)+"K" : tok(v); // 狭いマス用に、桁を減らしたトークン

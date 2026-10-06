@@ -84,7 +84,7 @@ function outcomePanel(w, pw, unit, ph, stat){
   const cost = [
     stat("Active time", dur(w.active,true), V.diff(w.active, V.of("active", pw && pw.active), dur), "active"),
     stat("Prompts", n(w.prompts), V.diff(w.prompts, V.of("prompts", pw && pw.prompts)), "prompts"),
-    u.tokens ? stat("Estimated cost", usdH(u.cost), V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost") : "",
+    u.tokens ? stat("Estimated cost", usdH(costOf(u)), costOf(u) == null ? "Models not in the price table" : V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost") : "",
     u.tokens ? stat("Tokens", tok(u.tokens), `Output ${tok(u.out)}`, "tokens") : "",
     u.credits ? stat("Kiro credits", crN(u.credits), "As recorded in history", "credits") : "",
   ].join("");
@@ -210,8 +210,8 @@ function vsPrev(pw, unit){
 function projection(w){ const {ws, we} = period(), now = nowMs()/1000, u = w.usage;
   const a = new Date(ws*1000), nd = dayNo(a, we), days = dayNo(a, now) + 1; // 今日を含めた日数（日付で数える）
   if (st.mode !== "month" || !u || !(ws <= now && now < we) || days <= 7 || days >= nd) return null;
-  const k = nd / days;
-  return {cost: u.tokens ? u.cost * k : null, credits: u.credits ? u.credits * k : null, days}; }
+  const k = nd / days, c = u.tokens ? costOf(u) : null; // 料金表にないモデルだけなら、月末の目安コストも出さない
+  return {cost: c == null ? null : c * k, credits: u.credits ? u.credits * k : null, days}; }
 function aiUsage(w, pw, unit){
   const u = w.usage; if (!u || (!u.tokens && !u.credits)) return "";
   const stat = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}${hint(h)}</div>`;

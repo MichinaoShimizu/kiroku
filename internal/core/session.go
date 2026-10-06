@@ -422,12 +422,14 @@ func (s *Builder) Finish(gapMin int) *Session {
 	prompts := s.promptTimes(s.Prompts)
 	main := s.Usage.Events()
 	ctx := ContextGrowth(main)
+	reported := false // エージェント自身の記録した使用料を目安コストに使ったか
 	if len(s.Reported) > 0 {
 		groups := [][]Event{main}
 		for _, a := range s.Subagents {
 			groups = append(groups, a.Events)
 		}
-		main = append(main, applyReported(s.Reported, groups...)...)
+		ex, used := applyReported(s.Reported, groups...)
+		main, reported = append(main, ex...), used
 		for i := range s.Subagents {
 			if len(s.Subagents[i].Events) > 0 {
 				rt := s.Subagents[i].Usage.ReportedTokens
@@ -476,7 +478,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 		Prompts: prompts, Notes: s.Notes, NPrompts: len(s.Prompts), Tools: tools, Files: files, NFiles: nFiles, Resume: strOrNil(s.Resume),
 		Waits: s.Waits(), Interrupts: s.Interrupts, InterruptsAt: interrupts, Limits: limits(s.Limits), Ctx: ctx, Corrections: s.Corrections(), Models: models,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
-		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: len(s.Reported) > 0, File: s.File, PRs: prs, PRAt: prAt,
+		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: reported, File: s.File, PRs: prs, PRAt: prAt,
 		Native: AggregateNative(s.Source, s.Measures), Meas: s.Measures, OutTracked: s.TracksOutputs,
 	}
 }

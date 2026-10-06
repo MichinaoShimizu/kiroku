@@ -92,6 +92,33 @@ func TestClaudeCostState(t *testing.T) {
 	}
 }
 
+// サブスクリプションで使っていると、Claude Code は cost-state の costUSD に 0 を書く（API の請求がないため）。
+// それに合わせてしまうと、トークンを何十万使っても目安コストが $0.00 になるので、kiroku の料金表の見積もりを使う。
+func TestClaudeCostStateZeroOnSubscription(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	os.MkdirAll(dir, 0o755)
+	start := `"startTime": 1790730000000` // 2026-09-30T00:20:00Z
+	lines := []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"直して"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:01:00Z","message":{"id":"m1","model":"claude-opus-5-5","usage":{"input_tokens":100000,"output_tokens":5000},"content":[{"type":"text","text":"ok"}]}}`,
+		`{"type":"cost-state",` + start + `,"totalCostUSD":0,"modelUsage":{"claude-opus-5-5":{"costUSD":0,"inputTokens":100000,"outputTokens":5000},"claude-haiku-4-5-20251001":{"costUSD":0,"inputTokens":1000}}}`,
+	}
+	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644)
+	bs := load(t, &Claude{Root: root})
+	if len(bs) != 1 {
+		t.Fatalf("セッション数 = %d, want 1", len(bs))
+	}
+	s := bs[0].Finish(15)
+	// opus-5-5: 入力 100,000 × $4 + 出力 5,000 × $20 = $0.5、履歴に応答のない haiku-4-5 の 1,000 入力 = $0.001
+	if math.Abs(s.Cost-0.501) > 1e-9 {
+		t.Errorf("目安コスト = %v, want 料金表の見積もり 0.501", s.Cost)
+	}
+	if s.CostReported {
+		t.Error("Claude Code の記録は使っていないのに costReported = true")
+	}
+}
+
 // 利用上限のエラー（Claude Code が作る発言）を時刻つきで拾う。続けて出たものは 1 回、ふつうの発言は数えない。
 func TestClaudeLimits(t *testing.T) {
 	root := t.TempDir()
