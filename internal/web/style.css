@@ -322,7 +322,7 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .cm div{display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-width:0}
 .cm dt{font-size:var(--fs-xs);color:var(--ink-2);white-space:nowrap} /* 濃さで色の付くマスの上でも読めるよう、ラベルも ink-3 より濃く */
 .cm dd{margin:0;font-size:var(--fs-sm);font-weight:600;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cm .k dd{font-size:var(--fs-md);font-weight:700;color:var(--ink)} /* 作業時間とトークン（クレジット）を強く、セッションとコミットは控えめに。色は使わず濃さと太さで分ける */
+.cm .k dd{font-size:var(--fs-md);font-weight:700;color:var(--ink)} /* 作業時間とトークン・クレジットを強く、セッションとコミットは控えめに。色は使わず濃さと太さで分ける */
 .cm .u dt,.cm .u dd,.cm .k.u dd,.cell .acs.u,.cell .uss.u,.kpis.unf .v{color:var(--ink-3)} /* 絞り込みの最中の、絞り込まれていない合計 */
 .cell .uss{display:none}
 .cell .pj{display:flex;gap:2px;height:5px;border-radius:3px;overflow:hidden}
@@ -630,7 +630,7 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
   .rvhead .pill{margin-left:0}
   .mgrid{grid-template-columns:42px repeat(7,minmax(0,1fr))}
   .head{padding:8px 8px 7px}.head .cm .k dd{font-size:var(--fs-sm)} /* 狭い列でも週の各日の 4 つが切れないように */
-  .cell{min-height:64px;padding:6px 6px 7px}.cell .cm{display:none}.cell .acs{display:block;font:700 var(--fs-sm)/1.2 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap;margin-top:auto}.cell .uss{display:block;font-size:var(--fs-xs);font-weight:600;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} /* スマホでは作業時間とトークン（なければクレジット）だけ */
+  .cell{min-height:64px;padding:6px 6px 7px}.cell .cm{display:none}.cell .acs{display:block;font:700 var(--fs-sm)/1.2 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap;margin-top:auto}.cell .uss{display:block;font-size:var(--fs-xs);line-height:1.25;font-weight:600;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} /* スマホでは作業時間と使用量だけ。トークンとクレジットは別の行 */
   .ph{flex-wrap:wrap;row-gap:2px}.ph span:not(.no){flex-basis:100%;padding-left:32px}
   .mgrid .mh{padding:8px 6px}
   .wrap{padding:0 16px}
