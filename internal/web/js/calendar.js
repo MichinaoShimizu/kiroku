@@ -94,7 +94,13 @@ function calRows(act, u, nS, nC, kinds, un){
     ["Sessions", nS, o], ["Commits", nC, o]].filter(Boolean);
 }
 const calDl = rows => `<dl class="cm">${rows.map(([k, v, c]) => `<div${c ? ` class="${c}"` : ""}><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>`; // k は強く出す値
-const calShort = (act, u, un) => `<span class="acs${un ? " u" : ""}">${act >= 60 ? (act/60).toFixed(1)+"h" : act+"m"}</span>${u && (u.tokens || u.credits) ? `<span class="uss${un ? " u" : ""}">${u.tokens ? tokS(u.tokens) : cr(u.credits)}</span>` : ""}`; // スマホでは作業時間とトークン（なければクレジット。単位で見分けられる）だけ
+// スマホでは作業時間と使用量だけ。トークンとクレジットは別の行に出す（両方あれば 2 行）。
+// ひとつの枠にまとめると、Claude Code と Kiro を両方使う人には、片方しか見えないため。
+function calShort(act, u, un){
+  const q = un ? " u" : "";
+  const use = [u && u.tokens ? tokS(u.tokens) : "", u && u.credits ? cr(u.credits) : ""].filter(Boolean);
+  return `<span class="acs${q}">${act >= 60 ? (act/60).toFixed(1)+"h" : act+"m"}</span>${use.map(v => `<span class="uss${q}">${v}</span>`).join("")}`;
+}
 const filtering = () => !!st.q || st.hidden.size > 0;
 /* カレンダーに出すコミット：凡例で隠したプロジェクトのものは出さない。検索中は、一致したセッションの間のコミットと、それ自体が一致したコミットだけ */
 const gitHit = c => [c.hash, c.subject, c.body || "", ...(c.files || []).map(f => f.path)].join("\n").toLowerCase().includes(st.q);
@@ -125,7 +131,7 @@ function monthGrid(shown, ms, me, todayKey){
         ${pj.length ? `<span class="pj">${pj.map(([k,v])=>`<span style="flex:${v};--c:${colorOf(k)}"></span>`).join("")}</span>` : ""}</button>`;
     }
   }
-  h += `</div><div class="mlegend"><span style="white-space:nowrap">Less</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${matchMedia("(max-width:820px)").matches ? "More (active time) · Each day and week shows active time and tokens (or credits) · Tap a date or week to open it" : "More (active time) · Each day, and each week on the left, shows active time, tokens or credits (both when the month has both), sessions and Git commits · Click a date or week to open it"}</div>`;
+  h += `</div><div class="mlegend"><span style="white-space:nowrap">Less</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${matchMedia("(max-width:820px)").matches ? "More (active time) · Each day and week shows active time, and tokens or credits (both when the month has both) · Tap a date or week to open it" : "More (active time) · Each day, and each week on the left, shows active time, tokens or credits (both when the month has both), sessions and Git commits · Click a date or week to open it"}</div>`;
   T.innerHTML = h;
   T.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { const [y,m,dd] = b.dataset.w.split("-").map(Number); st.week = new Date(y, m-1, dd); setMode("week"); });
 }
