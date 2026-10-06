@@ -140,7 +140,7 @@ func TestDoctorReport(t *testing.T) {
 	out := b.String()
 	for _, want := range []string{"✓ Claude Code", "12 sessions, since", "· Codex", "none",
 		`! Claude Code deletes history older than 30 days`, `add "cleanupPeriodDays": 3650 to /x/settings.json`, `Run "kiroku archive on"`,
-		"git: not found", `autostart: off`, "kiroku serve"} {
+		"git: not found", `autostart: off`, "kiroku archive on    keep copies", "kiroku serve"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("%q がない:\n%s", want, out)
 		}
@@ -209,7 +209,7 @@ func TestScoped(t *testing.T) {
 	pushes := []gitlog.Push{{T: at(10, 7, 11), Project: "app"}, {T: at(10, 13, 11), Project: "app"}}
 	rep := []source.Report{{Name: "Claude Code", N: 4, Oldest: at(9, 21, 10), IDs: []string{"before", "cross", "in", "after"},
 		Keep: &source.Retention{Days: 30, Setting: "cleanupPeriodDays"}}}
-	snap := snapshot{data: data, rep: rep, meta: map[string]any{"git": commits, "push": pushes, "report": rep}}
+	snap := snapshot{data: data, rep: rep, meta: map[string]any{"git": commits, "push": pushes, "report": rep, "archive": map[string]any{"dir": "/Users/me/kept"}}}
 	p, _ := parsePeriod("2026-10-07", "", time.Now())
 	got := scoped(snap, p)
 	var ids []string
@@ -236,11 +236,28 @@ func TestScoped(t *testing.T) {
 	if r := got.meta["report"].([]source.Report)[0]; r.N != 2 || r.Oldest != 0 || r.Keep != nil {
 		t.Errorf("Data sources: %+v", r)
 	}
+	if _, ok := got.meta["archive"]; ok {
+		t.Error("kiroku archive の保存場所が残っている")
+	}
 	if snap.rep[0].N != 4 || len(snap.data) != 4 {
 		t.Error("元の集計を書きかえている")
 	}
 	sc := got.meta["scope"].(map[string]any)
 	if sc["mode"] != "week" || sc["key"] != "2026-10-05" {
 		t.Errorf("scope: %v", sc)
+	}
+}
+
+// 期間に履歴がなければ、履歴のある範囲を添えてエラーにする（ファイルは書かない）。
+func TestHTMLEmptyPeriod(t *testing.T) {
+	setup(t)
+	h := filepath.Join("testdata", "home")
+	out := filepath.Join(t.TempDir(), "w.html")
+	err := dispatch([]string{"html", "--no-open", "--root", filepath.Join(h, ".claude", "projects"), "--kiro-home", filepath.Join(h, ".kiro"), "--sources", "claude,kiro", "--week", "2026-08-03", "-o", out})
+	if err == nil || !strings.Contains(err.Error(), "no history in the week of 2026-08-03 (your history covers ") {
+		t.Errorf("エラー: %v", err)
+	}
+	if _, err := os.Stat(out); !os.IsNotExist(err) {
+		t.Error("履歴がないのにファイルを書いた")
 	}
 }

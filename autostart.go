@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -26,7 +27,11 @@ var autostartEnv = []string{"PATH", "CLAUDE_CONFIG_DIR", "KIRO_HOME", "KIROCREW_
 var runCmd = func(name string, args ...string) error {
 	out, err := exec.Command(name, args...).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("%s %s: %v %s", name, strings.Join(args, " "), err, strings.TrimSpace(string(out)))
+		msg := fmt.Sprintf("%s %s: %v", name, strings.Join(args, " "), err)
+		if o := strings.TrimSpace(string(out)); o != "" {
+			msg += ": " + o
+		}
+		return errors.New(msg)
 	}
 	return nil
 }
@@ -258,7 +263,11 @@ func cmdAutostart(args []string) error {
 					_ = runCmd(c[0], c[1:]...)
 				}
 				os.Remove(p.path) // 登録できなければ、途中まで登録したものも、書いた設定も残さない
-				return fmt.Errorf("could not register kiroku serve to start at login: %w", err)
+				hint := ""
+				if autostartGOOS == "linux" {
+					hint = "\nsystemd user services may not be available here (WSL or a container, for example); run \"kiroku serve\" yourself instead"
+				}
+				return fmt.Errorf("could not register kiroku serve to start at login: %w%s", err, hint)
 			}
 		}
 		port := "8484"

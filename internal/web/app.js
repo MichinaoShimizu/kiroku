@@ -90,7 +90,7 @@ function render(){
   const todayKey = key(today0()), end = addDays(st.week,6);
   if (M){ $("#ry").textContent = `${st.month.getFullYear()} · Month`; $("#rd").innerHTML = `${st.month.getFullYear()}<span>.</span>${st.month.getMonth()+1}`; }
   else { $("#ry").textContent = `${st.week.getFullYear()} · Week ${isoWeek(st.week)}`; $("#rd").innerHTML = `${st.week.getMonth()+1}.${st.week.getDate()}<span>—</span>${end.getMonth()+1}.${end.getDate()}`; }
-  $("#today").textContent = META.scope ? `Included ${META.scope.mode}` : M ? "This month" : "This week";
+  $("#today").textContent = META.scope ? `Included ${M ? "month" : "week"}` : M ? "This month" : "This week";
   $("#yrbtn").textContent = "Year in review"; $("#yrbtn").hidden = !YEAR_ON || !DATA.length;
   $("#prev").setAttribute("aria-label", M ? "Previous month" : "Previous week"); $("#next").setAttribute("aria-label", M ? "Next month" : "Next week");
   document.querySelectorAll("#mode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.mode));
@@ -776,6 +776,9 @@ function keepNotice(){
 function scopeNote(){
   const sc = META.scope; if (!sc) return "";
   return `<p class="scope" role="note">${`This file only includes ${sc.mode === "week" ? "the " : ""}${periodLabel(sc.mode, sc.key)}. Sessions that cross its edges are included whole; other ${sc.mode}s have no records here.`}</p>`; }
+// scopeStart は、期間だけのファイルの期間の初日。時刻（from）ではなく名前（2026-09-28 / 2026-09）から作る。
+// 週・月の集計は書き出した人の時間帯で区切っていて、ほかの時間帯で開くと from が前の日になり、前の週を開いてしまうため
+function scopeStart(){ const [y, m, d] = META.scope.key.split("-").map(Number); return new Date(y, m-1, d || 1); }
 function archOn(){ return !!(META.archive && META.archive.on); }
 function bytes(n){ return n >= 1<<30 ? (n/(1<<30)).toFixed(1)+" GB" : n >= 1<<20 ? (n/(1<<20)).toFixed(1)+" MB" : n >= 1<<10 ? (n/(1<<10)).toFixed(1)+" KB" : n+" B"; }
 // keepArchive は「kiroku にコピーを残す」（kiroku serve のときだけ）。kiroku archive on と同じことをして、集計を取り込み直す。
@@ -1377,7 +1380,7 @@ function openYear(){ const d = $("#yr"); if (!d.open) d.showModal(); renderYear(
 
 /* ── events ── */
 function go(n){
-  const home = META.scope ? new Date(META.scope.from*1000) : today0(); // 期間だけのファイルでは、その期間へ戻る
+  const home = META.scope ? scopeStart() : today0(); // 期間だけのファイルでは、その期間へ戻る
   if (st.mode === "month") st.month = n == null ? monthOf(home) : new Date(st.month.getFullYear(), st.month.getMonth()+n, 1);
   else st.week = n == null ? mondayOf(home) : addDays(st.week, 7*n);
   const inCal = !!document.activeElement?.closest?.("#tl");
@@ -1435,7 +1438,7 @@ if (META && META.demo){ const full = Object.keys(WEEKS).filter(k => WEEKS[k].day
   if (full){ const [y,m,dd] = full.split("-").map(Number); st.week = new Date(y, m-1, dd); } }
 if (DATA.length && !MONTHS[mkey(st.month)]) st.month = monthOf(new Date(DATA[DATA.length-1].end*1000));
 // 期間だけのファイルは、その期間から開く（週か月かも、書き出したときのもの）
-if (META && META.scope){ const f = new Date(META.scope.from*1000); st.week = mondayOf(f); st.month = monthOf(f); st.mode = META.scope.mode; }
+if (META && META.scope){ const f = scopeStart(); st.week = mondayOf(f); st.month = monthOf(f); st.mode = META.scope.mode; }
 const mq = matchMedia("(max-width:1000px)"),
  ph = () => $("#q").placeholder = mq.matches ? "Search" : "Prompts, files, commits"; // 狭い画面では入力欄も狭いので短く
 mq.addEventListener("change", () => { ph(); render(); }); ph();

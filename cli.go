@@ -252,13 +252,23 @@ func cmdHTML(args []string) error {
 	if !explicit {
 		*out = p.file()
 	}
-	if len(snap.data) > 0 {
-		snap = scoped(snap, p)
-		if len(snap.data) == 0 {
-			return fmt.Errorf("no history in %s", p.label())
-		}
+	if len(snap.data) == 0 {
+		return writeHTML(snap, *out, !*noOpen) // 履歴がまったくないときの案内は writeHTML が出す
 	}
-	return writeHTML(snap, *out, !*noOpen)
+	first, last := snap.data[0].Start, snap.data[0].End
+	for _, d := range snap.data {
+		last = max(last, d.End)
+	}
+	snap = scoped(snap, p)
+	if len(snap.data) == 0 {
+		day := func(t float64) string { return time.Unix(int64(t), 0).Format("2006-01-02") }
+		return fmt.Errorf("no history in %s (your history covers %s to %s)", p.label(), day(first), day(last))
+	}
+	if err := writeHTML(snap, *out, !*noOpen); err != nil {
+		return err
+	}
+	fmt.Fprintf(logw, "it has only %s, but includes its prompts, file paths and commit messages as they are; check it before sharing\n", p.label())
+	return nil
 }
 
 func cmdJSON(args []string) error {
@@ -302,7 +312,7 @@ func writeHTML(snap snapshot, out string, open bool) error {
 	if err := os.WriteFile(out, []byte(html), 0o644); err != nil {
 		return err
 	}
-	fmt.Printf("%d sessions → %s\n", len(snap.data), out)
+	fmt.Printf("%s → %s\n", plural(len(snap.data), "session"), out)
 	if open {
 		if abs, err := filepath.Abs(out); err == nil {
 			openBrowser(abs)
