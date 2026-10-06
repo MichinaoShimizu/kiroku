@@ -16,7 +16,17 @@ archives:
       - goos: windows
         formats: [zip]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    files: [README.md, LICENSE, CHANGELOG.md]
+    # 同じコミットからは同じアーカイブができるよう、入れるファイルの時刻もコミットの時刻にそろえる
+    files:
+      - src: README.md
+        info:
+          mtime: "{{ .CommitDate }}"
+      - src: LICENSE
+        info:
+          mtime: "{{ .CommitDate }}"
+      - src: CHANGELOG.md
+        info:
+          mtime: "{{ .CommitDate }}"
 checksum:
   name_template: checksums.txt
 release:

@@ -22,13 +22,17 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.tag || github.ref }}
-      - uses: actions/setup-go@v7
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+          cache: false # ほかのワークフロー（e2e の npm など）が書いたキャッシュでビルドしない
       - run: go vet ./...
       - run: go test ./...
 
@@ -40,28 +44,30 @@ jobs:
       id-token: write # 出どころの証明（attestation）に署名するため
       attestations: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
-      - uses: actions/setup-go@v7
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+          cache: false
       # リリースノートは CHANGELOG.md のその版の節（英語）を使う。節がなければここで止まる
       - name: Release notes
         env:
           TAG: ${{ inputs.tag || github.ref_name }}
         run: sh tools/release-notes.sh "$TAG" > "$RUNNER_TEMP/notes.md"
-      - uses: goreleaser/goreleaser-action@v7
+      - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
-          version: "~> v2"
+          version: v2.18.2 # 版を固定する（Dependabot は追わないので、上げるときはここを書き換える）
           args: release --clean --release-notes ${{ runner.temp }}/notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_CURRENT_TAG: ${{ inputs.tag || github.ref_name }}
       # 各ファイルが、このリポジトリのこのワークフローで作られたことの証明を残す
       # （gh attestation verify <file> --repo MichinaoShimizu/kiroku で確かめられる）
-      - uses: actions/attest-build-provenance@v4
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: |
             dist/*.tar.gz

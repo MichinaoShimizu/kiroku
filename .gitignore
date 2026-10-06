@@ -8,7 +8,6 @@ kiroku.json
 /kiroku
 /kiroku.exe
 /dist/
-tools/screenshots/node_modules/
-tools/screenshots/package*.json
+tools/screenshots/node_modules
 # 誤って入れないように（以前、shellcheck の wheel がコミットされていた）
 *.whl

@@ -11,6 +11,10 @@
 #   KIROKU_VERSION      入れる版（例: v0.1.1）。なければ最新
 #   KIROKU_INSTALL_DIR  置き場所。なければ /usr/local/bin（書き込めなければ ~/.local/bin）
 #   KIROKU_SKIP_ATTESTATION=1  gh があっても、出どころの証明（gh attestation verify）を確かめない
+#   KIROKU_REQUIRE_ATTESTATION=1  出どころの証明を必ず確かめる（gh がない・ログインしていない・GitHub に届かないときも止める）
+#
+# 中身はすべて main の中にあり、いちばん最後の行で呼ぶ。curl | sh で途中までしか落とせなかったときに、
+# 途中までの行だけが動いてしまわないように。
 set -eu
 
 REPO="MichinaoShimizu/kiroku"
@@ -18,6 +22,7 @@ REPO="MichinaoShimizu/kiroku"
 say() { printf '%s\n' "$*"; }
 die() { printf 'kiroku: %s\n' "$*" >&2; exit 1; }
 
+main() {
 command -v curl >/dev/null 2>&1 || die "curl is required"
 command -v tar >/dev/null 2>&1 || die "tar is required"
 
@@ -76,10 +81,23 @@ fi
 
 # gh があれば、このリポジトリの release.yml で作られたファイルか（artifact attestation）も確かめる。
 # 出どころの証明は v0.12.0 から。gh にログインしていない・GitHub に届かないときは、checksums.txt は
-# 合っているので警告だけにする。証明が見つからない・合わないときは止める
+# 合っているので警告だけにする（KIROKU_REQUIRE_ATTESTATION=1 なら止める）。証明が見つからない・合わないときは止める
+require=${KIROKU_REQUIRE_ATTESTATION:-}
+skipped="checksums.txt matched, so installing anyway (set KIROKU_SKIP_ATTESTATION=1 to skip this check, or KIROKU_REQUIRE_ATTESTATION=1 to make it required)"
+# 確かめられなかったとき：ふだんは警告だけ、KIROKU_REQUIRE_ATTESTATION=1 なら止める
+unchecked() {
+  if [ "$require" = 1 ]; then
+    die "$1, and KIROKU_REQUIRE_ATTESTATION=1 is set"
+  fi
+  say "warning: $1; $skipped"
+}
 attest=yes
-if [ "${KIROKU_SKIP_ATTESTATION:-}" = 1 ] || ! command -v gh >/dev/null 2>&1; then
+if [ "${KIROKU_SKIP_ATTESTATION:-}" = 1 ]; then
+  [ "$require" != 1 ] || die "KIROKU_SKIP_ATTESTATION=1 and KIROKU_REQUIRE_ATTESTATION=1 cannot be used together"
   attest=no
+elif ! command -v gh >/dev/null 2>&1; then
+  attest=no
+  [ "$require" != 1 ] || die "the GitHub CLI (gh) is needed to check the build provenance, and KIROKU_REQUIRE_ATTESTATION=1 is set (https://cli.github.com/)"
 else
   v=${version#v}
   major=${v%%.*}
@@ -89,25 +107,32 @@ else
     *[!0-9]* | "") ;;
     *) if [ "$major" -eq 0 ] && [ "$minor" -lt 12 ]; then attest=no; fi ;;
   esac
+  [ "$attest" = yes ] || [ "$require" != 1 ] || die "$version has no build provenance (it starts at v0.12.0), and KIROKU_REQUIRE_ATTESTATION=1 is set"
 fi
 if [ "$attest" = yes ]; then
-  # 作ったのは tag.yml から呼ばれる release.yml（署名した証明書に載るのは呼ばれた側の release.yml）
-  status=0
-  gh attestation verify "$tmp/$file" --repo "$REPO" \
-    --signer-workflow "$REPO/.github/workflows/release.yml" >/dev/null 2>"$tmp/attest.log" || status=$?
-  skipped="checksums.txt matched, so installing anyway (set KIROKU_SKIP_ATTESTATION=1 to skip this check)"
+  # 作ったのは release.yml（tag.yml から呼ばれても、証明書に載るのは呼ばれた側の release.yml）。GitHub のランナーで
+  # 動いたものだけを認める。もとにしたのは、tag.yml が main で動いたときは main、タグを手で push したときはそのタグ
+  status=1
+  for ref in refs/heads/main "refs/tags/$version"; do
+    status=0
+    gh attestation verify "$tmp/$file" --repo "$REPO" \
+      --signer-workflow "$REPO/.github/workflows/release.yml" \
+      --source-ref "$ref" --deny-self-hosted-runners >/dev/null 2>"$tmp/attest.log" || status=$?
+    # 合わなかったのが「もとにした ref」だけなら、もう一方で試す
+    if [ "$status" -eq 0 ] || ! grep -q 'SourceRepositoryRef' "$tmp/attest.log"; then break; fi
+  done
   if [ "$status" -eq 0 ]; then
     say "verified the build provenance with gh"
   elif [ "$status" -eq 4 ]; then
     # 4 は gh にログインしていないとき
-    say "warning: gh is not logged in (\"gh auth login\"), so the build provenance was not checked; $skipped"
+    unchecked "gh is not logged in (\"gh auth login\"), so the build provenance was not checked"
   elif grep -Eqi 'unknown (command|flag)' "$tmp/attest.log"; then
-    # gh attestation がない古い gh
-    say "warning: this gh cannot check the build provenance (update gh); $skipped"
+    # gh attestation（や --source-ref などの旗）がない古い gh
+    unchecked "this gh cannot check the build provenance (update gh)"
   elif grep -Eqi 'HTTP (401|403|429|5[0-9][0-9])|Sigstore verifier|dial tcp|no such host|connection (refused|reset)|timeout|TLS handshake|network is unreachable' "$tmp/attest.log"; then
     # GitHub に届かない・回数制限など。証明が合わないのとは別
-    say "warning: gh could not reach GitHub, so the build provenance was not checked; $skipped:"
-    grep . "$tmp/attest.log" | head -n 3 | sed 's/^/         /'
+    grep . "$tmp/attest.log" | head -n 3 | sed 's/^/         /' >&2
+    unchecked "gh could not reach GitHub, so the build provenance was not checked"
   else
     # 証明が見つからない（HTTP 404）・合わない
     grep . "$tmp/attest.log" >&2 || true
@@ -167,3 +192,6 @@ case ":$PATH:" in
 esac
 say "tip: Claude Code deletes conversations older than 30 days by default. To keep more history for kiroku, set \"cleanupPeriodDays\": 3650 in ~/.claude/settings.json"
 say "     https://code.claude.com/docs/en/settings-reference#cleanupperioddays"
+}
+
+main "$@"

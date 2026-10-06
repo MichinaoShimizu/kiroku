@@ -2,8 +2,11 @@
 package web
 
 import (
+	"crypto/sha256"
 	"embed"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"path"
 	"strings"
@@ -30,6 +33,7 @@ var (
 var scripts = []string{
 	"state.js",    // 埋め込んだデータ・画面の状態
 	"format.js",   // 書き方の小物・色・テーマ
+	"markdown.js", // 書き出す Markdown に履歴の文字を入れる小物
 	"calendar.js", // render・週と月のカレンダー・ツールチップ
 	"summary.js",  // サマリー・指標の説明 HELP
 	"review.js",   // 改善案のプロンプト・見直す候補と推移
@@ -95,10 +99,75 @@ func Render(data, weeks, months, meta any, generated float64, live bool) (string
 		}
 		repl = append(repl, k, string(b))
 	}
-	return strings.NewReplacer(repl...).Replace(template), nil
+	return withCSP(strings.NewReplacer(repl...).Replace(template), live)
 }
 
 // Loading は、kiroku serve が最初の読み込みを終えるまで出す画面（stamp を見て、読み終わったら本物の画面に切りかわる）。
-//
+// 中のスクリプトは変わらないので、CSP は起動時に 1 回だけ入れる。
+var Loading = func() []byte {
+	page, err := withCSP(loading, true)
+	if err != nil {
+		panic("web: loading.html: " + err.Error())
+	}
+	return []byte(page)
+}()
+
 //go:embed loading.html
-var Loading []byte
+var loading string
+
+// cspMark は <head> の CSP の meta の置き場。データより前にあるので、最初の 1 つだけを入れかえる。
+const cspMark = "__" + "CSP" + "__"
+
+// withCSP は、ページに入っているスクリプトと <style> のハッシュから CSP を作って meta に入れる。
+// 履歴の中身にスクリプトや style がまぎれこんでも（エスケープし忘れなど）、ハッシュが合わないので動かない。
+// 外へは何も読みにいかず、通信できるのは kiroku serve の自分のところ（live のとき）だけ。
+func withCSP(page string, live bool) (string, error) {
+	js, err := inline(page, "script")
+	if err != nil {
+		return "", err
+	}
+	css, err := inline(page, "style")
+	if err != nil {
+		return "", err
+	}
+	if !strings.Contains(page, cspMark) {
+		return "", errors.New("CSP の置き場がない")
+	}
+	return strings.Replace(page, cspMark, policy(js, css, live), 1), nil
+}
+
+// policy は CSP の中身。style の要素はハッシュで縛り、style 属性（色の --c など）は許す。
+// style-src-elem を知らない古いブラウザは style-src の 'unsafe-inline' で動く。
+func policy(script, style string, live bool) string {
+	connect := "'none'"
+	if live {
+		connect = "'self'" // /stamp・/data.json・/prompt・/archive
+	}
+	return "default-src 'none'; script-src " + hash(script) +
+		"; style-src 'unsafe-inline'; style-src-elem " + hash(style) + "; style-src-attr 'unsafe-inline'" +
+		"; img-src data: blob:; connect-src " + connect +
+		"; base-uri 'none'; form-action 'none'; object-src 'none'"
+}
+
+// inline は、ページにちょうど 1 つある <tag>…</tag> の中身を返す。2 つ以上あったり、
+// 閉じていなかったりすれば、ハッシュがずれて画面が動かなくなるので誤りにする。
+func inline(page, tag string) (string, error) {
+	open, end := "<"+tag+">", "</"+tag+">"
+	if strings.Count(page, "<"+tag) != 1 || strings.Count(page, open) != 1 || strings.Count(page, end) != 1 {
+		return "", errors.New("<" + tag + "> がちょうど 1 つではない")
+	}
+	i := strings.Index(page, open) + len(open)
+	j := strings.Index(page, end)
+	if j < i {
+		return "", errors.New("<" + tag + "> が閉じていない")
+	}
+	return page[i:j], nil
+}
+
+// hash は CSP に書くハッシュ。ブラウザは HTML を読むときに改行を LF にそろえてからハッシュを取るので、
+// Windows で CRLF になっていても同じ値になるよう、先にそろえる。
+func hash(s string) string {
+	s = strings.ReplaceAll(strings.ReplaceAll(s, "\r\n", "\n"), "\r", "\n")
+	sum := sha256.Sum256([]byte(s))
+	return "'sha256-" + base64.StdEncoding.EncodeToString(sum[:]) + "'"
+}

@@ -1,4 +1,4 @@
-# Go のモジュールと GitHub Actions の更新を、週に 1 回まとめて PR にする（脆弱性の修正は待たずにすぐ出る）
+# Go のモジュール・GitHub Actions（SHA で固定したものも）・Playwright（npm）の更新を、週に 1 回まとめて PR にする（脆弱性の修正は待たずにすぐ出る）
 version: 2
 updates:
   - package-ecosystem: gomod
@@ -14,4 +14,12 @@ updates:
       interval: weekly
     groups:
       actions:
+        patterns: ["*"]
+  # e2e とスクリーンショットに使う Playwright（tools/screenshots/package-lock.json で固定）
+  - package-ecosystem: npm
+    directory: /tools/screenshots
+    schedule:
+      interval: weekly
+    groups:
+      npm:
         patterns: ["*"]

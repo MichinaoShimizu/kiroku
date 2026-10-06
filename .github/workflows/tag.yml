@@ -24,9 +24,10 @@ jobs:
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          # persist-credentials は既定（true）のまま：下でタグを push する
       - id: tag
         run: |
           v=$(grep -m1 '^## ' CHANGELOG.md | cut -d' ' -f2)
