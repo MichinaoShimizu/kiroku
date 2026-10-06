@@ -3,9 +3,11 @@ let WEEKS = __WEEKS__;
 let MONTHS = __MONTHS__;
 let META = __META__;
 let GENERATED = __GEN__;
-/* デモ（GitHub Pages）では、ダミーデータを作った時間帯の時計で見せる。どこから開いても「朝から夜に作業した」ように見え、
-   日ごとの集計（作った時間帯で区切っている）とも食い違わない。時刻らしい数（UNIX 秒）と「今」を同じだけずらす */
-const SHIFT = META && META.demo ? META.demo.offset + new Date().getTimezoneOffset() * 60 : 0;
+/* デモ（GitHub Pages）と、kiroku html --week / --month で書き出した期間だけのファイルは、作った人の時間帯の時計で見せる。
+   どこから開いても「朝から夜に作業した」ように見え、日ごとの集計（作った時間帯で区切っている）とも食い違わない。
+   時刻らしい数（UNIX 秒）と「今」を同じだけずらす */
+const CLOCK = META && (META.demo || META.scope);
+const SHIFT = CLOCK ? CLOCK.offset + new Date(META.scope ? META.scope.from*1000 : Date.now()).getTimezoneOffset() * 60 : 0;
 const nowMs = () => Date.now() + SHIFT * 1000, today0 = () => new Date(nowMs());
 function shiftTimes(x){ if (!SHIFT) return x;
   const walk = v => Array.isArray(v) ? v.map(walk) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, y]) => [k, walk(y)])) : typeof v === "number" && v > 1e9 && v < 4e9 ? v + SHIFT : v;
@@ -132,7 +134,7 @@ function render(){
 /* 期間の要点（上の帯） */
 function kpis(){
   const {S:w} = period(), K = $("#kpis"), M = st.mode === "month";
-  if (!w){ K.innerHTML = `<div class="kpi"><div class="k">${M ? "This month" : "This week"}</div><div class="v">No records</div></div>`; return; }
+  if (!w){ K.innerHTML = `<div class="kpi"><div class="k">${META.scope ? "Not in this file" : M ? "This month" : "This week"}</div><div class="v">No records</div></div>`; return; }
   const kpi = (k, v) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div></div>`;
   const u = w.usage || {}, days = w.days.filter(d => d.active).length;
   K.innerHTML = kpi("Active time", dur(w.active, true)) + kpi("Active days", `${days}<small>/ ${w.days.length}</small>`) +
@@ -181,7 +183,7 @@ function monthGrid(shown, ms, me, todayKey){
 function timeline(shown, inWeek, ws, we, todayKey){
   const T = $("#tl"), hh = HOURS[st.z] || 44, H = 24*hh;
   if (!inWeek.length || !shown.length){
-    T.innerHTML = `<div class="empty"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><p>${inWeek.length ? "No sessions match the current filters" : "No records this week. Use ← → to move between weeks."}</p></div>`;
+    T.innerHTML = `<div class="empty"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><p>${inWeek.length ? "No sessions match the current filters" : META.scope ? "This file has no records for this week." : "No records this week. Use ← → to move between weeks."}</p></div>`;
     return;
   }
   const keep = T.querySelector(".calscroll"), top = keep ? keep.scrollTop : null;
@@ -267,7 +269,7 @@ function summary(){
     <div class="askbar"><button class="pill" id="rptcopy">Copy</button><button class="pill" id="rptclose">Close</button>
       <span class="muted" style="font-size:var(--fs-xs)">Markdown with what you did, commits and pull requests for each project. Session names are the start of your prompts, so edit them before pasting.</span></div>
     <pre class="askpre" id="rptpre">${esc(reportText(w, M))}</pre></section>` : ""}`;
-  if (!w){ R.innerHTML = `${head}${scopeNote()}<div class="rvgrid"><div class="panel"><p class="none">${`No records ${uThis(unit)}.`}</p>${foot()}</div></div>`; bindCopy(R); return; }
+  if (!w){ R.innerHTML = `${head}<div class="rvgrid"><div class="panel"><p class="none">${`No records ${uThis(unit)}.`}</p>${foot()}</div></div>`; bindCopy(R); return; }
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
   const total = w.projects.reduce((t,[,v])=>t+v,0) || 1;
   const stat = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}${hint(h)}</div>`;
@@ -275,7 +277,7 @@ function summary(){
   const pct = v => v == null ? "Unknown" : `${v}<small>%</small>`;
   const times = n => `${n}`;
   const F = findList(w, pw, unit);
-  R.innerHTML = `${head}${scopeNote()}${keepNotice()}${flagSum(F)}<div class="rvgrid">
+  R.innerHTML = `${head}${keepNotice()}${flagSum(F)}<div class="rvgrid">
   ${projectPanel(w, ph, unit)}
   ${outcomePanel(w, pw, unit, ph, stat)}
   <section class="panel">${ph(3, "How you spent time", "When and how long sessions ran")}
@@ -772,10 +774,12 @@ function keepNotice(){
     <p>${`If you'd rather not change the setting, kiroku can keep a copy of the history instead. It saves a compressed copy each time you open kiroku and shows deleted conversations from it (copies stay on this computer only).${LIVE ? "" : ` To turn it on, run <code>${cmd}</code>.`}`}</p>
     <div class="ka">${ext(k.docs, "See how to set it in the official docs ↗", "pill")}<button class="pill" data-copy="${esc(snippet)}">Copy setting</button>${LIVE ? `<button class="pill" id="keeparch">Keep a copy in kiroku</button>` : `<button class="pill" data-copy="${cmd}">Copy command</button>`}<button class="pill" id="keepoff">Dismiss</button></div></div>`;
 }
-/* kiroku html --week / --month で書き出した、1 つの期間だけのファイル。渡された人にも、ほかの期間が空の理由がわかるように */
+/* kiroku html --week / --month で書き出した、1 つの期間だけのファイル。渡された人がいちばん上で、何のファイルか・ほかの期間が空の理由・
+   どの時計で見ているかがわかるように */
 function scopeNote(){
   const sc = META.scope; if (!sc) return "";
-  return `<p class="scope" role="note">${`This file only includes ${sc.mode === "week" ? "the " : ""}${periodLabel(sc.mode, sc.key)}. Sessions that cross its edges are included whole; other ${sc.mode}s have no records here.`}</p>`; }
+  const h = sc.offset === 0 ? "" : `${sc.offset < 0 ? "−" : "+"}${Math.floor(Math.abs(sc.offset)/3600)}${Math.abs(sc.offset)%3600 ? ":" + String(Math.abs(sc.offset)%3600/60).padStart(2, "0") : ""}`;
+  return `This file only includes ${sc.mode === "week" ? "the " : ""}${periodLabel(sc.mode, sc.key)}. Sessions that cross its edges are included whole; other ${sc.mode}s have no records here.${SHIFT ? ` Times are shown in ${esc(sc.zone || "")} (UTC${h}), where the file was written.` : ""}`; }
 // scopeStart は、期間だけのファイルの期間の初日。時刻（from）ではなく名前（2026-09-28 / 2026-09）から作る。
 // 週・月の集計は書き出した人の時間帯で区切っていて、ほかの時間帯で開くと from が前の日になり、前の週を開いてしまうため
 function scopeStart(){ const [y, m, d] = META.scope.key.split("-").map(Number); return new Date(y, m-1, d || 1); }
@@ -1393,7 +1397,8 @@ function keepCalFocus(n){ // カレンダーの中にいたまま期間を移っ
   const el = seen || cands[0] || $(n == null ? "#today" : n < 0 ? "#prev" : "#next");
   if (el) el.focus({preventScroll: true});
   if (sc) sc.scrollTop = top; }
-function setMode(m){ if (m === "month" && st.mode !== "month") st.month = monthOf(addDays(st.week, 3));
+function setMode(m){ if (m === "month" && META.scope && META.scope.mode === "week") return; // 週だけのファイルの月表示は、1 か月ぶんに見えて紛らわしい
+  if (m === "month" && st.mode !== "month") st.month = monthOf(addDays(st.week, 3));
   if (m === "week" && st.mode === "month" && monthOf(st.week).getTime() !== st.month.getTime()) st.week = mondayOf(st.month);
   st.mode = m; store.set("mode", m); st.sel = null; st.animate = true; render(); scrollToWork(); }
 document.querySelectorAll("#mode button").forEach(b => b.onclick = () => setMode(b.dataset.v));
@@ -1438,7 +1443,9 @@ if (META && META.demo){ const full = Object.keys(WEEKS).filter(k => WEEKS[k].day
   if (full){ const [y,m,dd] = full.split("-").map(Number); st.week = new Date(y, m-1, dd); } }
 if (DATA.length && !MONTHS[mkey(st.month)]) st.month = monthOf(new Date(DATA[DATA.length-1].end*1000));
 // 期間だけのファイルは、その期間から開く（週か月かも、書き出したときのもの）
-if (META && META.scope){ const f = scopeStart(); st.week = mondayOf(f); st.month = monthOf(f); st.mode = META.scope.mode; }
+if (META && META.scope){ const f = scopeStart(); st.week = mondayOf(f); st.month = monthOf(f); st.mode = META.scope.mode;
+  const bar = $("#scopebar"); bar.textContent = ""; bar.insertAdjacentHTML("beforeend", scopeNote()); bar.hidden = false;
+  if (META.scope.mode === "week") $("#mode").hidden = true; }
 const mq = matchMedia("(max-width:1000px)"),
  ph = () => $("#q").placeholder = mq.matches ? "Search" : "Prompts, files, commits"; // 狭い画面では入力欄も狭いので短く
 mq.addEventListener("change", () => { ph(); render(); }); ph();

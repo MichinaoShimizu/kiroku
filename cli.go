@@ -172,6 +172,17 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 	return picked, load, nil
 }
 
+// splitList は「a, b」を [a b] にする（空のものは除く）。
+func splitList(s string) []string {
+	var out []string
+	for _, x := range strings.Split(s, ",") {
+		if x = strings.TrimSpace(x); x != "" {
+			out = append(out, x)
+		}
+	}
+	return out
+}
+
 // parse はオプションと、オプションの前後に置いた位置引数（最大 maxPos 個）を読む。
 func parse(fs *flag.FlagSet, args []string, maxPos int) ([]string, error) {
 	var pos []string
@@ -213,6 +224,7 @@ func cmdServe(args []string) error {
 	c := addCommon(fs)
 	interval := fs.Duration("interval", 5*time.Second, "how often to check the history for changes (reloads after writes settle)")
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
+	allow := fs.String("allow-host", "", "comma-separated extra host `names` the view may be opened by (e.g. a name in your hosts file); localhost and this computer's own names and IPs always work")
 	pos, err := parse(fs, args, 1)
 	if err != nil {
 		return quiet(err)
@@ -228,7 +240,7 @@ func cmdServe(args []string) error {
 	if err != nil {
 		return err
 	}
-	return serveLive(addr, *interval, picked, load, c.keepFn(), !*noOpen)
+	return serveLive(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen)
 }
 
 func cmdHTML(args []string) error {
@@ -382,7 +394,7 @@ func runLegacy(args []string) error {
 		if err != nil {
 			return err
 		}
-		return serveLive(*serve, *interval, picked, load, c.keepFn(), !*noOpen)
+		return serveLive(*serve, nil, *interval, picked, load, c.keepFn(), !*noOpen)
 	case *jsonOut != "":
 		note("kiroku json -o " + *jsonOut)
 		snap, err := loadNonEmpty(c)

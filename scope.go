@@ -142,6 +142,13 @@ func scoped(snap snapshot, p *period) snapshot {
 		}
 		rep[i] = r
 	}
+	kept := rep[:0]
+	for _, r := range rep {
+		if r.N > 0 || r.Error != nil { // 使っていないエージェントは、渡す相手には関係がない
+			kept = append(kept, r)
+		}
+	}
+	rep = kept
 	meta := map[string]any{}
 	for k, v := range snap.meta {
 		meta[k] = v
@@ -149,7 +156,9 @@ func scoped(snap snapshot, p *period) snapshot {
 	meta["report"] = rep
 	delete(meta, "archive") // kiroku archive の保存場所と量も、渡す相手には関係がない
 	meta["git"], meta["push"] = commits, pushes
-	meta["scope"] = map[string]any{"mode": p.mode, "key": p.key, "from": from, "to": to}
+	// 週・月・日の区切りは書き出した人の時間帯なので、ほかの時間帯で開いても、画面はこの時計で見せる（デモと同じしくみ）
+	zone, off := p.from.Zone()
+	meta["scope"] = map[string]any{"mode": p.mode, "key": p.key, "from": from, "to": to, "offset": off, "zone": zone}
 	snap.data, snap.weeks, snap.months, snap.meta, snap.rep = data, weeks, months, meta, rep
 	return snap
 }

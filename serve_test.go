@@ -91,26 +91,36 @@ func TestLiveRefresh(t *testing.T) {
 	}
 }
 
-// 手元だけで待ち受けているときは、よそのホスト名で来たリクエストを断る（DNS リバインディング対策）。
+// よそのホスト名で来たリクエストは断る（DNS リバインディング対策）。0.0.0.0 で外に開いても、
+// このコンピューターの IP・ホスト名と --allow-host で足した名前だけを通す。
 func TestSameOrigin(t *testing.T) {
+	old := localNames
+	t.Cleanup(func() { localNames = old })
+	localNames = func() []string { return []string{"192.168.0.5", "fe80::1", "mymac", "mymac.local"} }
 	ok := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-	h := sameOrigin("127.0.0.1:8484", ok)
-	for host, want := range map[string]int{"localhost:8484": 200, "127.0.0.1:8484": 200, "[::1]:8484": 200, "evil.example:8484": 403, "localhost:9999": 403} {
-		r := httptest.NewRequest("GET", "/", nil)
-		r.Host = host
-		w := httptest.NewRecorder()
-		h.ServeHTTP(w, r)
-		if w.Code != want {
-			t.Errorf("Host %s → %d, want %d", host, w.Code, want)
+	for _, c := range []struct {
+		addr  string
+		allow []string
+		codes map[string]int
+	}{
+		{"127.0.0.1:8484", nil, map[string]int{"localhost:8484": 200, "127.0.0.1:8484": 200, "[::1]:8484": 200, "LocalHost:8484": 200,
+			"evil.example:8484": 403, "localhost:9999": 403, "192.168.0.5:8484": 403}},
+		{"0.0.0.0:8484", nil, map[string]int{"localhost:8484": 200, "192.168.0.5:8484": 200, "[fe80::1]:8484": 200, "mymac.local:8484": 200,
+			"evil.example:8484": 403, "192.168.0.6:8484": 403, "192.168.0.5:9999": 403}},
+		{"192.168.0.5:8484", nil, map[string]int{"192.168.0.5:8484": 200, "localhost:8484": 200, "mymac:8484": 403, "evil.example:8484": 403}},
+		{"0.0.0.0:8484", []string{"kiroku.home"}, map[string]int{"kiroku.home:8484": 200, "evil.example:8484": 403}},
+		{"0.0.0.0:80", nil, map[string]int{"mymac": 200, "mymac:80": 200, "evil.example": 403}},
+	} {
+		h := sameOrigin(c.addr, c.allow, ok)
+		for host, want := range c.codes {
+			r := httptest.NewRequest("GET", "/", nil)
+			r.Host = host
+			w := httptest.NewRecorder()
+			h.ServeHTTP(w, r)
+			if w.Code != want {
+				t.Errorf("%s %v: Host %s → %d, want %d", c.addr, c.allow, host, w.Code, want)
+			}
 		}
-	}
-	// 0.0.0.0 で開いたときは本人の選択なので通す
-	r := httptest.NewRequest("GET", "/", nil)
-	r.Host = "192.168.0.5:8484"
-	w := httptest.NewRecorder()
-	sameOrigin("0.0.0.0:8484", ok).ServeHTTP(w, r)
-	if w.Code != 200 {
-		t.Errorf("0.0.0.0 → %d", w.Code)
 	}
 }
 
