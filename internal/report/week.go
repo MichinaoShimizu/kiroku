@@ -109,7 +109,32 @@ type Week = Summary
 func MondayOf(ts float64) time.Time {
 	d := time.Unix(0, int64(ts*1e9)).In(time.Local)
 	wd := (int(d.Weekday()) + 6) % 7
-	return time.Date(d.Year(), d.Month(), d.Day()-wd, 0, 0, 0, 0, time.Local)
+	return Midnight(d.Year(), d.Month(), d.Day()-wd, time.Local)
+}
+
+// Midnight は loc での y 年 m 月 d 日の始まり（ふつうは 0 時。d があふれたら次の月に回る）。
+// 0 時に夏時間が始まる地域（America/Santiago など）では 0 時がなく、time.Date は前の日の 23 時を返すので、
+// 時計が進んだあと（その日の最初の時刻）にそろえる。
+func Midnight(y int, m time.Month, d int, loc *time.Location) time.Time {
+	t := time.Date(y, m, d, 0, 0, 0, 0, loc)
+	wy, wm, wd := time.Date(y, m, d, 0, 0, 0, 0, time.UTC).Date()
+	if ty, tm, td := t.Date(); ty != wy || tm != wm || td != wd {
+		_, end := t.ZoneBounds() // 前の日になった: 時計が進む時刻がその日の始まり
+		t = end
+	}
+	return t
+}
+
+// AddDays は、日の始まり t から n 日後の日の始まり。t.AddDate と違い、0 時のない日をまたいでも時刻がずれない。
+func AddDays(t time.Time, n int) time.Time {
+	y, m, d := t.Date()
+	return Midnight(y, m, d+n, t.Location())
+}
+
+// AddMonths は、月の始まり t から n か月後の月の始まり。
+func AddMonths(t time.Time, n int) time.Time {
+	y, m, _ := t.Date()
+	return Midnight(y, m+time.Month(n), 1, t.Location())
 }
 
 func unix(t time.Time) float64 { return float64(t.UnixNano()) / 1e9 }
@@ -141,12 +166,12 @@ func fptr(v float64) *float64 { return &v }
 // MonthOf はその時刻を含む月の 1 日 0 時（ローカル時刻）。
 func MonthOf(ts float64) time.Time {
 	d := time.Unix(0, int64(ts*1e9)).In(time.Local)
-	return time.Date(d.Year(), d.Month(), 1, 0, 0, 0, 0, time.Local)
+	return Midnight(d.Year(), d.Month(), 1, time.Local)
 }
 
 // Stats は 1 週ぶんの集計。動いていた時間がなければ nil。
 func Stats(data []*core.Session, wsT time.Time, commits ...gitlog.Commit) *Week {
-	return Summarize(data, wsT, wsT.AddDate(0, 0, 7), commits...)
+	return Summarize(data, wsT, AddDays(wsT, 7), commits...)
 }
 
 // GitTotal は期間の git のコミットのまとめ。
@@ -171,10 +196,15 @@ func (g *GitTotal) add(c gitlog.Commit) {
 func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commit) *Summary {
 	ws, we := unix(wsT), unix(weT)
 	n := int(math.Floor((we - ws) / 60))
-	// 日の境目（夏時間でも日付どおりに分ける）
+	// 日の境目（夏時間でも日付どおりに分ける）。境目は前の境目からではなく日付から決める
+	// （0 時のない日のあとで、境目が 23 時にずれたままにならないように）
 	var dayStart []float64
 	var dayWeekend []bool
-	for d := wsT; d.Before(weT); d = d.AddDate(0, 0, 1) {
+	y, mo, d0 := wsT.Date()
+	ey, em, ed := weT.Date()
+	nDays := int(time.Date(ey, em, ed, 0, 0, 0, 0, time.UTC).Sub(time.Date(y, mo, d0, 0, 0, 0, 0, time.UTC)).Hours() / 24)
+	for i := 0; i < nDays; i++ {
+		d := Midnight(y, mo, d0+i, wsT.Location())
 		dayStart = append(dayStart, unix(d))
 		dayWeekend = append(dayWeekend, d.Weekday() == time.Saturday || d.Weekday() == time.Sunday)
 	}
@@ -660,11 +690,11 @@ func AllWeeks(data []*core.Session, commits ...gitlog.Commit) map[string]*Week {
 			k := w.Format("2006-01-02")
 			if !seen[k] {
 				seen[k] = true
-				if st := Stats(ps.within(unix(w), unix(w.AddDate(0, 0, 7))), w, commits...); st != nil {
+				if st := Stats(ps.within(unix(w), unix(AddDays(w, 7))), w, commits...); st != nil {
 					out[k] = st
 				}
 			}
-			w = w.AddDate(0, 0, 7)
+			w = AddDays(w, 7)
 		}
 	}
 	return out
@@ -681,11 +711,11 @@ func AllMonths(data []*core.Session, commits ...gitlog.Commit) map[string]*Summa
 			k := m.Format("2006-01")
 			if !seen[k] {
 				seen[k] = true
-				if st := Summarize(ps.within(unix(m), unix(m.AddDate(0, 1, 0))), m, m.AddDate(0, 1, 0), commits...); st != nil {
+				if st := Summarize(ps.within(unix(m), unix(AddMonths(m, 1))), m, AddMonths(m, 1), commits...); st != nil {
 					out[k] = st
 				}
 			}
-			m = m.AddDate(0, 1, 0)
+			m = AddMonths(m, 1)
 		}
 	}
 	return out

@@ -136,7 +136,8 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 	picked, want := c.picked()
 	dir := *c.archiveDir
 	gap := *c.gap
-	cache := newLoadCache() // kiroku serve の読み直しで、変わっていない履歴を読み直さない
+	cache := newLoadCache()     // kiroku serve の読み直しで、変わっていない履歴を読み直さない
+	gcache := gitlog.NewCache() // git も、変わっていないリポジトリは読み直さない
 	load := func() snapshot {
 		on := archive.Enabled(dir)
 		if on {
@@ -146,16 +147,22 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 		if data == nil {
 			data = []*core.Session{} // 画面では null ではなく空の一覧として扱う
 		}
-		commits, pushes := gitlog.CollectAll(data) // git がなければ空
+		commits, pushes, stale := gcache.Collect(data) // git がなければ空
 		if commits == nil {
 			commits = []gitlog.Commit{}
 		}
 		if pushes == nil {
 			pushes = []gitlog.Push{}
 		}
+		for _, r := range stale {
+			fmt.Fprintf(logw, "  git: timed out reading %s (kept the previous result)\n", r)
+		}
 		files, size := archive.Usage(dir)
 		meta := map[string]any{"report": rep, "git": commits, "push": pushes, "prices": map[string]any{"asOf": core.PricesAsOf, "custom": *c.prices != ""},
 			"archive": map[string]any{"on": on, "dir": dir, "files": files, "bytes": size}}
+		if len(stale) > 0 { // 時間切れで読み終わらなかったリポジトリ（前回の結果を使った）
+			meta["gitTimeout"] = stale
+		}
 		if os.Getenv("KIROKU_DEMO") != "" { // デモ（ダミーデータ）：画面は、この時間帯の時計で見せる
 			_, off := time.Now().Zone()
 			meta["demo"] = map[string]any{"offset": off}

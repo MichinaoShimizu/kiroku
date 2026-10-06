@@ -188,6 +188,15 @@ func TestParsePeriod(t *testing.T) {
 			t.Errorf("%v がエラーにならない", c)
 		}
 	}
+	// 0 時に夏時間が始まる日から始まる月でも、日付どおりの月になる（America/Asuncion は 2023-10-01 の 0 時が 1 時になる）
+	if loc, err := time.LoadLocation("America/Asuncion"); err == nil {
+		saved := time.Local
+		time.Local = loc
+		defer func() { time.Local = saved }()
+		if p, _ := parsePeriod("", "2023-10", now); p.key != "2023-10" || p.from.Day() != 1 || !p.to.Equal(time.Date(2023, 11, 1, 0, 0, 0, 0, loc)) {
+			t.Errorf("0 時のない日から始まる月 = %s %v〜%v", p.key, p.from, p.to)
+		}
+	}
 }
 
 // 期間だけの集計には、期間に重なるセッションと、期間のうちのコミット・push しか入らない。件数も期間の分になる。

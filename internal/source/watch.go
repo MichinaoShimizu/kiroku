@@ -59,6 +59,7 @@ func Fingerprint(paths []string) string {
 type Unit struct {
 	Key   string   // ひとまとまりを見分ける名前（ふつうはおもなファイルのパス）
 	Files []string // 読むファイル。どれかが変わったら読み直す
+	Tag   string   // Files のほかに読み直すきっかけになるもの（例: Codex のスレッド名）。変わったら読み直す
 }
 
 // Splitter は、Unit ごとに読める Source が実装する。kiroku serve は、変わっていない Unit を読み直さない。

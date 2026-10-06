@@ -1,6 +1,7 @@
 package gitlog
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -170,5 +171,123 @@ func TestCollectPushes(t *testing.T) {
 	}
 	if p := ps[1]; p.Ref != "origin/main" || p.Commits != 2 || p.Project != "app" || len(p.Hash) != 40 || p.T == 0 {
 		t.Errorf("2 回目の push = %+v, want origin/main・2 コミット", p)
+	}
+}
+
+// newRepo は、自分のコミットが 1 つあるリポジトリを name の名前で作る。commit で同じ形のコミットを足せる。
+func newRepo(t *testing.T, name string) (dir string, commit func(file string)) {
+	t.Helper()
+	dir = filepath.Join(t.TempDir(), name)
+	os.MkdirAll(dir, 0o755)
+	run(t, dir, nil, "init", "-q", "-b", "main")
+	run(t, dir, nil, "config", "user.email", "me@example.com")
+	run(t, dir, nil, "config", "user.name", "me")
+	commit = func(file string) {
+		os.WriteFile(filepath.Join(dir, file), []byte("a\n"), 0o644)
+		run(t, dir, nil, "add", file)
+		run(t, dir, nil, "commit", "-q", "-m", file)
+	}
+	commit(name + ".txt") // 名前ごとに変える（同じ秒の同じコミットは、ハッシュも同じになる）
+	return dir, commit
+}
+
+// spyGit は git の呼び出しを数える。hang が true を返す呼び出しは、時間切れまで返らない。
+func spyGit(t *testing.T, hang func(dir string, args []string) bool) map[string]int {
+	t.Helper()
+	orig, timeout := git, RepoTimeout
+	t.Cleanup(func() { git, RepoTimeout = orig, timeout })
+	calls := map[string]int{}
+	git = func(ctx context.Context, dir string, args ...string) (string, error) {
+		calls[args[0]]++
+		if hang != nil && hang(dir, args) {
+			<-ctx.Done()
+			return "", ctx.Err()
+		}
+		return orig(ctx, dir, args...)
+	}
+	return calls
+}
+
+// 変わっていないリポジトリは読み直さない。コミットや push で ref が動けば読み直し、push のコミット数は覚えたものを使う。
+func TestCacheSkipsUnchangedRepo(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git がない")
+	}
+	remote := t.TempDir()
+	run(t, remote, nil, "init", "-q", "--bare")
+	dir, commit := newRepo(t, "app")
+	run(t, dir, nil, "remote", "add", "origin", remote)
+	run(t, dir, nil, "push", "-q", "-u", "origin", "main")
+	commit("b.txt")
+	run(t, dir, nil, "push", "-q")
+	calls := spyGit(t, nil)
+	s := &core.Session{ID: "s1", Project: "app", ProjectPath: dir, Start: float64(time.Now().Add(-time.Hour).Unix())}
+	c := NewCache()
+	cs, ps, stale := c.Collect([]*core.Session{s})
+	if len(cs) != 2 || len(ps) != 2 || stale != nil || calls["log"] != 1 || calls["rev-list"] != 1 {
+		t.Fatalf("1 回目: コミット %d、push %d、stale %v、呼び出し %v", len(cs), len(ps), stale, calls)
+	}
+
+	clear(calls)
+	cs2, ps2, _ := c.Collect([]*core.Session{s})
+	if calls["log"] != 0 || calls["reflog"] != 0 || calls["rev-list"] != 0 {
+		t.Errorf("変化なしでも読んだ: %v", calls)
+	}
+	if len(cs2) != len(cs) || len(ps2) != len(ps) || cs2[1].Hash != cs[1].Hash || ps2[1].Commits != 1 {
+		t.Errorf("変化なしの結果が違う: %+v %+v", cs2, ps2)
+	}
+
+	commit("c.txt")
+	run(t, dir, nil, "push", "-q")
+	clear(calls)
+	cs, ps, _ = c.Collect([]*core.Session{s})
+	if len(cs) != 3 || len(ps) != 3 || calls["log"] != 1 || calls["rev-list"] != 1 { // 前の push の数は数え直さない
+		t.Errorf("push のあと: コミット %d、push %d、呼び出し %v", len(cs), len(ps), calls)
+	}
+	if len(ps) == 3 && (ps[1].Commits != 1 || ps[2].Commits != 1) {
+		t.Errorf("push のコミット数 = %d %d", ps[1].Commits, ps[2].Commits)
+	}
+}
+
+// 時間切れはリポジトリごと。ほかのリポジトリは読み、時間切れのリポジトリは前回の結果を使って stale で知らせる。
+func TestCacheRepoTimeout(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git がない")
+	}
+	slow, commitSlow := newRepo(t, "slow")
+	fast, commitFast := newRepo(t, "fast")
+	hanging := false
+	spyGit(t, func(dir string, args []string) bool {
+		return hanging && filepath.Base(dir) == "slow" && args[0] == "log"
+	})
+	start := float64(time.Now().Add(-time.Hour).Unix())
+	data := []*core.Session{ // 遅いほうを先に読む
+		{ID: "s1", Project: "slow", ProjectPath: slow, Start: start},
+		{ID: "s2", Project: "fast", ProjectPath: fast, Start: start},
+	}
+	c := NewCache()
+	if cs, _, _ := c.Collect(data); len(cs) != 2 {
+		t.Fatalf("1 回目のコミット = %d, want 2", len(cs))
+	}
+
+	hanging, RepoTimeout = true, 300*time.Millisecond
+	commitSlow("b.txt")
+	commitFast("b.txt")
+	cs, _, stale := c.Collect(data)
+	got := map[string]int{}
+	for _, cm := range cs {
+		got[cm.Project]++
+	}
+	if got["slow"] != 1 || got["fast"] != 2 {
+		t.Errorf("コミット = %v, want slow は前回の 1、fast は新しい 2", got)
+	}
+	if len(stale) != 1 || filepath.Base(stale[0]) != "slow" {
+		t.Errorf("stale = %v, want slow だけ", stale)
+	}
+
+	// 前回の結果がなければ、そのリポジトリは出さない（ほかは読む）
+	cs, _, stale = NewCache().Collect(data)
+	if len(cs) != 2 || cs[0].Project != "fast" || len(stale) != 1 {
+		t.Errorf("前回なし: コミット %+v、stale %v", cs, stale)
 	}
 }
