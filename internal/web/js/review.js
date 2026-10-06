@@ -3,13 +3,12 @@
 function askPrompt(w, pw, M){
   const unit = M ? "月" : "週", u = w.usage || {}, L = [];
   const start = M ? st.month : st.week, last = M ? new Date(st.month.getFullYear(), st.month.getMonth()+1, 0) : addDays(st.week, 6);
-  const ymd = d => `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
   const cut = t => { t = String(t || "").replace(/\s+/g, " ").trim(); return t.length > 60 ? t.slice(0, 60) + "…" : t; };
   const use = x => [x.tokens ? `tokens ${tok(x.tokens)}` : "", x.cost >= 0.005 ? `estimated cost ${usd(x.cost)}` : "", x.credits ? `credits ${cr(x.credits)}` : ""].filter(Boolean).join(", ");
   const V = vsPrev(pw, unit); // 途中の期間は、前の期間の同じ日までと比べる
   const prev = (v, p, f, k) => (p = V.of(k, p)) == null ? "" : V.n == null ? ` (previous ${M ? "month" : "week"}: ${f(p)})` : ` (${V.range} of the previous ${M ? "month" : "week"}: ${f(p)})`;
   const sep = ", ", wk = M ? "month" : "week";
-  L.push(`You are an advisor on using AI agents effectively. Below are figures from my AI agent history for ${ymd(start)}–${ymd(last)} (one ${wk}), aggregated with kiroku. Suggest improvements that help me use AI agents more effectively within limited credits and tokens.`,
+  L.push(`You are an advisor on using AI agents effectively. Below are figures from my AI agent history for ${dPeriod(M, start, last)} (one ${wk}), aggregated with kiroku. Suggest improvements that help me use AI agents more effectively within limited credits and tokens.`,
     "", "# What I'd like from you",
     "1. What the data says about how I work (strengths and concerns)",
     `2. Up to 3 high-priority improvements. For each, cite the figures behind it and a concrete action I can try ${uNext(unit)}`,
@@ -18,7 +17,7 @@ function askPrompt(w, pw, M){
     "- Estimated cost is token counts priced at public API rates. It is not what I am actually billed",
     "- Metric definitions differ by agent. Don't compare agents directly",
     "- All figures are rough estimates from history. Clearly mark anything the data can't support as a guess",
-    ...(V.n == null ? [] : [`- This ${wk} is still in progress (${V.n} days, ${ymd(start)}–${ymd(today0())}). Figures for the previous ${wk} cover the same days (${V.range})`]),
+    ...(V.n == null ? [] : [`- This ${wk} is still in progress (${V.n} days, ${dSpan(start, today0(), true)}). Figures for the previous ${wk} cover the same days (${V.range})`]),
     "- See \"How to read the metrics\" at the end for each metric's definition and what it can and cannot tell you",
     "", "# Metrics kiroku flagged by threshold (candidates, not verdicts)",
     ...(() => { const F = findList(w, pw, unit); return F.length ? F.map(f => `- ${f.see.replace(/<[^>]+>/g, "")} (threshold: ${f.rule.charAt(0).toLowerCase() + f.rule.slice(1)})`) : ["- No metric crossed a threshold"]; })(),
@@ -144,7 +143,7 @@ function periodBack(i){ // 表示中の期間から i 個前の期間
   return {S: WEEKS[key(a)], ws: a.getTime()/1000, we: addDays(a, 7).getTime()/1000, label: periodLabel("week", key(a)), key: key(a)};
 }
 function periodLabel(mode, k){ const [y, m, d] = k.split("-").map(Number); // 期間の名前（"2026-05" か "2026-05-04"）
-  return mode === "month" ? `${y}/${m}` : `week of ${m}/${d}`; }
+  return mode === "month" ? dMY(new Date(y, m-1, 1)) : `week of ${dMD(new Date(y, m-1, d))}`; }
 function metricAt(k, p){ if (!MET[k] || !p.S) return null; const v = MET[k].f(p.S, p.ws, p.we); return v == null || Number.isNaN(v) ? null : v; }
 function spark(k){ // 8 期間の推移（記録のない期間は飛ばす。記録のある最初の期間から、幅いっぱいに描く）
   if (!MET[k]) return "";
@@ -157,7 +156,7 @@ function spark(k){ // 8 期間の推移（記録のない期間は飛ばす。�
   const txt = `${st.mode === "month" ? "8-month" : "8-week"} trend: ${pts.map(p => `${p.l} ${fmtM(k, p.v)}`).join(", ")}`;
   const hits = pts.map((p, i) => i < f0 ? "" : `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H}"${tipAttr(p.l, fmtM(k, p.v) === "—" ? "No records" : fmtM(k, p.v))}/>`).join(""); // 点ごとに、その期間の値を出す
   // 両端（記録のある最初の期間と、表示中の期間）には、触れなくても読めるよう期間と値を添える
-  const sl = i => { const p = periodBack(7 - i), [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? new Date(yy, mm - 1, 1).toLocaleString(LOC(), {month: "short"}) : `${mm}/${dd}`; };
+  const sl = i => { const p = periodBack(7 - i), [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? MON[mm - 1] : dMD(new Date(yy, mm - 1, dd)); };
   return `<span class="spark"><span class="sr">${esc(txt)}</span><span class="spk" aria-hidden="true"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><polyline points="${line}"/>${pts.map((p, i) => p.v == null ? "" : `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="1.6"/>`).join("")}${pts[7].v != null ? `<circle cx="${x(7)}" cy="${y(pts[7].v)}" r="2.6"/>` : ""}${hits}</svg><span class="ends"><span>${sl(f0)} ${fmtM(k, pts[f0].v)}</span><span>${sl(7)} <b>${fmtM(k, pts[7].v)}</b></span></span></span><small aria-hidden="true">${`${GOTO[k] ? `${HELP[k].n} · ` : ""}${st.mode === "month" ? "8-month" : "8-week"} range ${rng} · ${MET[k].low ? "higher" : "lower"} is worth a look`}</small></span>`;
 } // 向き（高いほど・低いほど見直す）だけを書く。印が付いた理由は、推移の下に「Flagged because …」で別に出す（基準は推移の高低ではなく、決まった値なので）
 /* 見直す候補：指標が決まった基準を超えたものを拾う（AI は使わない。判定ではなく、確かめる候補） */
@@ -193,7 +192,7 @@ function findList(w, pw, unit){
     add("outSessions", 16, `${w.outSessions} of ${w.outBase ?? w.sessions} sessions reached a commit`, "Many sessions may have stopped partway", "Under 25%, with 5+ sessions", null, `${pctOf(w.outSessions, w.outBase ?? w.sessions)}% of sessions ${P} reached a commit`);
   const BG = bigOf(ws, we);
   if (BG.n >= 3)
-    add("bigPrompts", 11, `${plural(BG.n, "prompt")} of ${BIG_PROMPT.toLocaleString()}+ characters (longest ${BG.max.toLocaleString()})`, "Pasting long logs or documents makes every later response re-read a heavier input, and buries the instructions that matter", `3+ prompts of ${BIG_PROMPT.toLocaleString()}+ characters`, BG.ids.slice(0, 6), `${plural(BG.n, "prompt")} ${P} crossed the threshold`);
+    add("bigPrompts", 11, `${plural(BG.n, "prompt")} of ${BIG_PROMPT.toLocaleString(LOC())}+ characters (longest ${BG.max.toLocaleString(LOC())})`, "Pasting long logs or documents makes every later response re-read a heavier input, and buries the instructions that matter", `3+ prompts of ${BIG_PROMPT.toLocaleString(LOC())}+ characters`, BG.ids.slice(0, 6), `${plural(BG.n, "prompt")} ${P} crossed the threshold`);
   const RP = repeatsOf(ws, we);
   if (RP.length)
     add("repeats", 9, `You wrote a similar prompt ${RP[0].n} times across ${RP[0].ids.size} sessions ("${snipOf(RP[0].text, 40)}")`, "A prompt you type every time can be written once as a command or in CLAUDE.md", `${REPEAT_MIN}+ characters, in ${REPEAT_SES}+ sessions`, [...new Set([RP[0].id, ...RP[0].ids])].slice(0, 6), `${plural(RP.length, "prompt")} ${P} ${RP.length === 1 ? "was" : "were"} written in ${REPEAT_SES} or more sessions`);

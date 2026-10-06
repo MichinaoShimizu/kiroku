@@ -11,11 +11,23 @@ function clockH(d, t){ const x = new Date(t*1000); return Math.min(24, Math.max(
 function key(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function hm(t){ return new Date(t*1000).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hourCycle:"h23"}); }
-function md(t){ const d = new Date(t*1000); return `${DOW[d.getDay()]} ${d.getMonth()+1}/${d.getDate()}`; }
+/* 日付の書き方はここの小物にそろえる。見る人の言語の設定によらず英語の月名で（"Sep 28"・"Sep 28, 2026"・"October 2026"）。
+   どれも Date の日付をそのまま読むだけなので、デモや期間だけのファイルの時計（SHIFT）はそのまま効く */
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTH = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const dMD = d => `${MON[d.getMonth()]} ${d.getDate()}`; // Sep 28
+const dMDY = d => `${dMD(d)}, ${d.getFullYear()}`; // Sep 28, 2026
+const dMY = d => `${MONTH[d.getMonth()]} ${d.getFullYear()}`; // October 2026
+// dSpan は a から b まで（"Sep 28 – Oct 4"）。y なら年も付ける（"Sep 28 – Oct 4, 2026"、年をまたぐときは両方に）
+function dSpan(a, b, y){ return !y ? `${dMD(a)} – ${dMD(b)}` : a.getFullYear() === b.getFullYear() ? `${dMD(a)} – ${dMDY(b)}` : `${dMDY(a)} – ${dMDY(b)}`; }
+// dPeriod は、文面（週報の下書き・AI へのプロンプト）に書く期間の名前。月は "October 2026"、週は "Sep 28 – Oct 4, 2026"
+const dPeriod = (M, a, b) => M ? dMY(a) : dSpan(a, b, true);
+function dStamp(t){ return `${dMDY(new Date(t*1000))}, ${hm(t)}`; } // Oct 6, 2026, 17:14（時刻はカレンダーと同じ 24 時間で）
+function md(t){ const d = new Date(t*1000); return `${DOW[d.getDay()]}, ${dMD(d)}`; } // Mon, Sep 28
 function dur(m, html){ m = Math.round(m); const h = Math.floor(m/60), r = m%60;
   const u = x => html ? `<small>${x}</small>` : x; return h ? `${h}${u("h")}${r ? ` ${r}${u("m")}` : ""}` : `${r}${u("m")}`; }
 function tok(n){ n = n || 0; return n >= 1e9 ? (n/1e9).toFixed(1)+"B" : n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? Math.round(n/1e3)+"K" : String(n); }
-function usd(v){ return v == null ? "—" : v > 0 && v < 0.01 ? "<$0.01" : "$" + (v >= 100 ? Math.round(v).toLocaleString() : v.toFixed(2)); }
+function usd(v){ return v == null ? "—" : v > 0 && v < 0.01 ? "<$0.01" : "$" + (v >= 100 ? Math.round(v).toLocaleString(LOC()) : v.toFixed(2)); }
 const crN = v => v >= 1 || v <= 0 ? Math.round(v).toLocaleString(LOC()) : v.toFixed(2); // クレジットは整数で（1 未満だけ小数 2 桁）
 function cr(v){ return `${crN(v)} cr`; }
 const tokS = v => v >= 1e7 ? Math.round(v/1e6)+"M" : v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e4 ? Math.round(v/1e3)+"K" : tok(v); // 狭いマス用に、桁を減らしたトークン

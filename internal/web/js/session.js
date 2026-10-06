@@ -97,7 +97,7 @@ function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面で�
   return ev.sort((a, b) => a.t - b.t);
 }
 const EV_ICON = {commit: "commit", push: "push", pr: "pr", warn: "limit", int: "int", agent: "agent", note: "note"}; // 流れの出来事の種類 → 印
-const pexpLabel = p => p.len > 0 ? `Read more (${p.len.toLocaleString()} characters)` : "Show all";
+const pexpLabel = p => p.len > 0 ? `Read more (${p.len.toLocaleString(LOC())} characters)` : "Show all";
 function promptFlow(s){
   const ev = flowEvents(s), rows = [];
   let e = 0, n = 0, hiddenEv = 0, gap = null; // gap: 前のプロンプトのあと、長くあいたところ {from: AI が最後に動いた時刻, v: 秒}
@@ -109,9 +109,9 @@ function promptFlow(s){
       if (gap){ rows.push(`<li class="gap"${hide()}><p>${`${hm(gap.from)}–${hm(p.t)}: ${span(gap.v)} gap`}</p></li>`); gap = null; } }
     n++;
     const t = String(p.text || ""), long = t.length > 220, fix = !p.kind && FIXRE.test(t), cut = p.len > 0;
-    const more = cut ? `<span class="pcut"> ${`(first ${PROMPT_RUNES} of ${p.len.toLocaleString()} characters)`}${LIVE ? ` <button class="pload" data-i="${i}">Load the full prompt</button>` : ` Open with kiroku serve to read it in full.`}</span>` : "";
+    const more = cut ? `<span class="pcut"> ${`(first ${PROMPT_RUNES} of ${p.len.toLocaleString(LOC())} characters)`}${LIVE ? ` <button class="pload" data-i="${i}">Load the full prompt</button>` : ` Open with kiroku serve to read it in full.`}</span>` : "";
     const meta = [p.work ? `AI worked ${span(p.work)}` : "", p.wait && p.wait <= FLOW_GAP ? `wait ${secs(p.wait)}` : ""].filter(Boolean).join(" · ");
-    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + p.kind : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><p>${fix ? `<span class="sr">Looks like a correction: </span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${PKIND()[p.kind] || esc(p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${`Long · ${plen(p).toLocaleString()} chars`}</span>` : ""}<span class="ptext">${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${pexpLabel(p)}</button>` : esc(t)}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
+    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + p.kind : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><p>${fix ? `<span class="sr">Looks like a correction: </span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${PKIND()[p.kind] || esc(p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${`Long · ${plen(p).toLocaleString(LOC())} chars`}</span>` : ""}<span class="ptext">${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${pexpLabel(p)}</button>` : esc(t)}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
     if (p.t && p.wait > FLOW_GAP) gap = {from: p.t + p.work, v: p.wait};
   });
   flush(Infinity);

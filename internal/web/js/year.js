@@ -169,10 +169,10 @@ function drawCard(){
   fade.addColorStop(0, "rgba(6,7,10,1)"); fade.addColorStop(.3, "rgba(6,7,10,0)"); fade.addColorStop(.72, "rgba(6,7,10,0)"); fade.addColorStop(1, "rgba(6,7,10,.92)");
   g.fillStyle = fade; g.fillRect(0, top, W, H - top);
   g.textAlign = "left"; g.textBaseline = "alphabetic";
-  const p2 = n => String(n).padStart(2, "0"), pt = x.partial;
+  const pt = x.partial;
   g.fillStyle = ink2; g.font = `500 22px ${FONT.mono}`; ls("4px");
   const d0 = new Date(x.y, 0, 1 + c0), d1 = new Date(x.y, 0, last);
-  g.fillText(c0 || pt ? `KIROKU — ${x.y}.${p2(d0.getMonth()+1)}.${p2(d0.getDate())} → ${p2(d1.getMonth()+1)}.${p2(d1.getDate())}` : `KIROKU — ${x.y} EXPOSURE`, 80, 110); ls("0px");
+  g.fillText(c0 || pt ? `KIROKU — ${dSpan(d0, d1, true).toUpperCase()}` : `KIROKU — ${x.y} EXPOSURE`, 80, 110); ls("0px");
   const hrs = x.active/60, hs = (hrs >= 10 ? Math.round(hrs) : Math.round(hrs*10)/10).toLocaleString(LOC());
   g.fillStyle = ink; g.font = `800 184px ${FONT.mincho}`; g.fillText(hs, 72, 300);
   const hw = g.measureText(hs).width;
@@ -207,7 +207,7 @@ function renderYear(){
   if (!ys.includes(yr.y)) yr.y = ys.includes(today0().getFullYear()) ? today0().getFullYear() : ys[ys.length-1];
   const x = yr.x = yearData(yr.y), L = yr.L = LIGHTS.find(l => l.t(x)), G = yr.G = gradeOf(x), pt = x.partial;
   const pos = d => (Math.round((d - new Date(x.y, 0, 1))/864e5)/x.nd*100).toFixed(2);
-  const months = Array.from({length: 12}, (_, i) => `<span style="left:${pos(new Date(x.y, i, 1))}%">${(new Date(x.y, i, 1).toLocaleString("en-US", {month: "short"}))}</span>`).join("");
+  const months = Array.from({length: 12}, (_, i) => `<span style="left:${pos(new Date(x.y, i, 1))}%">${MON[i]}</span>`).join("");
   const hours = [["6", 0], ["12", 25], ["18", 50], ["0", 75], ["6", 100]].map(([h, t]) => `<span style="top:${t}%">${`${h}:00`}</span>`).join("");
   const ev = [L.m, ...["morning", "avg", "per"].filter(k => k !== L.m)].slice(0, 3).map(k => lightMetric(k, x));
   const vt = t => esc(t);
@@ -215,7 +215,7 @@ function renderYear(){
   dlg.innerHTML = `<div class="yrhd"><div><div class="eyebrow">Year in review</div><h2 id="yrh">${`${x.y} exposure`}</h2></div>
     <label><span class="sr">Year</span><select id="yrsel">${ys.map(v => `<option value="${v}"${v === x.y ? " selected" : ""}>${v}</option>`).join("")}</select></label>
     <form method="dialog"><button class="iconbtn" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form></div>
-  <p class="yrlead">Your active time with AI, drawn like a year-long exposure. Across is the date, down is the time of day (6:00 to 6:00 the next morning). Each stretch of active time is a streak of light, brighter where sessions overlapped.${pt ? ` Recorded up to ${pt.toLocaleDateString("en-US", {month: "short", day: "numeric"})}.` : ""}</p>
+  <p class="yrlead">Your active time with AI, drawn like a year-long exposure. Across is the date, down is the time of day (6:00 to 6:00 the next morning). Each stretch of active time is a streak of light, brighter where sessions overlapped.${pt ? ` Recorded up to ${dMD(pt)}.` : ""}</p>
   <div class="yrscroll"><div class="yrchart"><div class="yrax" aria-hidden="true">${hours}</div><canvas class="yrplate" id="yrplate" role="img" aria-label="${esc(`Active time in ${x.y} by date and time of day. Active time ${dur(x.active)}`)}"></canvas><div class="yrx" aria-hidden="true">${months}</div></div></div>
   <div class="yrleg">${x.agents.map(a => `<span><i style="background:${a.c}"></i>${esc((a.k))} ${Math.round(a.pct)}%</span>`).join("")}</div>
   <div class="yrhow"><div><b>Length = how long you worked</b>Each streak is one stretch of active time in a session.</div>

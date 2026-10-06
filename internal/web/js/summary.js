@@ -29,7 +29,7 @@ function summary(){
     </div>
     <details class="moreS" id="moreS"${st.moreS ? " open" : ""}><summary>More metrics (includes estimates)</summary><div class="stats">
       ${stat("Prompts with corrections or interruptions", pct(w.fixRate), `n=${w.prompts}`, "fix")}
-      ${(() => { const {ws, we} = period(), B = bigOf(ws, we); return stat("Oversized prompts", `${B.n}`, `${BIG_PROMPT.toLocaleString()}+ characters${B.n ? ` · longest ${B.max.toLocaleString()}` : ""}`, "bigPrompts"); })()}
+      ${(() => { const {ws, we} = period(), B = bigOf(ws, we); return stat("Oversized prompts", `${B.n}`, `${BIG_PROMPT.toLocaleString(LOC())}+ characters${B.n ? ` · longest ${B.max.toLocaleString(LOC())}` : ""}`, "bigPrompts"); })()}
       ${stat("Project switches per day", times(w.switchesAvg), `Max ${w.switchesMax}`, "switches")}
       ${stat("Parallel time", dur(w.parallel,true), `Up to ${w.maxConc} at once`, "parallel")}
       ${stat("Wait time (median)", secsH(w.waitMedian), `n=${w.waitCount} · 90th percentile ${secs(w.waitP90)}`, "wait")}

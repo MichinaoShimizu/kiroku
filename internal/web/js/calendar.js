@@ -9,8 +9,8 @@ function render(){
   assignColors();
   const {ws, we} = period(), M = st.mode === "month";
   const todayKey = key(today0()), end = addDays(st.week,6);
-  if (M){ $("#ry").textContent = `${st.month.getFullYear()} · Month`; $("#rd").innerHTML = `${st.month.getFullYear()}<span>.</span>${st.month.getMonth()+1}`; }
-  else { $("#ry").textContent = `${st.week.getFullYear()} · Week ${isoWeek(st.week)}`; $("#rd").innerHTML = `${st.week.getMonth()+1}.${st.week.getDate()}<span>—</span>${end.getMonth()+1}.${end.getDate()}`; }
+  if (M){ $("#ry").textContent = `${st.month.getFullYear()} · Month`; $("#rd").innerHTML = `${MONTH[st.month.getMonth()]} <span>${st.month.getFullYear()}</span>`; }
+  else { $("#ry").textContent = `${st.week.getFullYear()} · Week ${isoWeek(st.week)}`; $("#rd").innerHTML = `${dMD(st.week)}<span> – </span>${dMD(end)}`; }
   $("#today").textContent = META.scope ? `Back to included ${META.scope.mode === "month" ? "month" : "week"}` : M ? "This month" : "This week";
   [["#prev", -1], ["#next", 1]].forEach(([id, n]) => { const b = $(id), off = !canGo(n); // 先の週・ファイルの外へは押せない
     if (off && document.activeElement === b) $(n > 0 ? "#prev" : "#next").focus(); // 押せなくなるボタンにいたフォーカスは、隣のボタンへ
@@ -26,9 +26,10 @@ function render(){
   kpis();
   // legend（この期間にあるものを多い順に）
   const cnt = {}; inRange.forEach(s => cnt[keyOf(s)] = (cnt[keyOf(s)]||0)+1);
-  $("#legend").innerHTML = `<label class="cbsel"><span class="cbt">Color by</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${l}</option>`).join("")}</select></label><span class="lab"><span class="ln">${CB()[st.colorBy]}</span><small> (sessions)</small></span>` +
+  // 件数は横にスクロールする並び（.lrow）の外に置く。スマホでは並びの上に出し、チップが多くても画面の外へ押し出されないように
+  $("#legend").innerHTML = `<div class="lrow"><label class="cbsel"><span class="cbt">Color by</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${l}</option>`).join("")}</select></label><span class="lab"><span class="ln">${CB()[st.colorBy]}</span><small> (sessions)</small></span>` +
     Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}" title="${esc(`${(k)}: ${plural(cnt[k], "session")} (click to show or hide)`)}"><span class="dot"></span>${st.colorBy === "source" ? agMark(k) : ""}${esc((k))}<span class="n">${cnt[k]}<span class="sr"> sessions</span></span></button>`).join("") +
-    `<span class="count">${shown.length} / ${inRange.length} sessions${st.q ? ` · <button class="flink" id="tosr">${META.scope ? "Search results in this file" : "All-time search results"} ↓</button>` : ""}</span>`;
+    `</div><span class="count">${shown.length} / ${inRange.length} sessions${st.q ? ` · <button class="flink" id="tosr">${META.scope ? "Search results in this file" : "All-time search results"} ↓</button>` : ""}</span>`;
   // 検索・凡例で絞り込んでいるあいだ、絞り込めない合計（作業時間・トークンなど）は薄くして、そう断る
   const fn = $("#fnote"); fn.hidden = !filtering();
   fn.textContent = `${st.q ? "The calendar shows only sessions that match the search, and their commits." : "Hidden items are left out of the calendar."} Grey figures, at the top and ${M ? "in each day and week" : "under each date"}, are totals for all sessions.`;
@@ -37,6 +38,7 @@ function render(){
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
 
   M ? monthGrid(shown, ws, we, todayKey) : timeline(shown, inRange, ws, we, todayKey);
+  edgeFade($("#tl")); // 月表示や空の週では消す
   markKey();
   try { st.q ? searchPanel() : summary(); } catch(e){ // サマリーで失敗しても、カレンダーと詳細は使えるようにする
     console.error(e); $("#review").innerHTML = `<div class="panel"><p class="none">${`Couldn't show the summary for this period (${esc(e.message)}). Please let us know in an issue.`}</p></div>`; }
@@ -61,18 +63,19 @@ function render(){
   st.animate = false;
 }
 
-// shownName は、表示中の期間の呼び名。今週・今月なら "This week" / "This month"、ほかは "Week of 9/28" / "September 2026"
+// shownName は、表示中の期間の呼び名。今週・今月なら "This week" / "This month"、ほかは "Week of Sep 28" / "September 2026"
 function shownName(){ const M = st.mode === "month", t = today0();
-  if (M) return st.month.getTime() === monthOf(t).getTime() ? "This month" : st.month.toLocaleString(LOC(), {month: "long", year: "numeric"});
-  return st.week.getTime() === mondayOf(t).getTime() ? "This week" : `Week of ${st.week.getMonth()+1}/${st.week.getDate()}`; }
+  if (M) return st.month.getTime() === monthOf(t).getTime() ? "This month" : dMY(st.month);
+  return st.week.getTime() === mondayOf(t).getTime() ? "This week" : `Week of ${dMD(st.week)}`; }
 /* 期間の要点（上の帯） */
 function kpis(){
   const {S:w} = period(), K = $("#kpis"), M = st.mode === "month";
   K.classList.toggle("unf", filtering()); // 絞り込みの最中も、ここは全セッションの合計（薄くして、カレンダーの上に断り書き）
   if (!w){ K.innerHTML = `<div class="kpi"><div class="k">${META.scope ? "Not in this file" : shownName()}</div><div class="v">No records</div></div>`; return; }
-  const kpi = (k, v) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  const kpi = (k, v, t) => `<div class="kpi"${t ? ` title="${esc(t)}"` : ""}><div class="k">${k}</div><div class="v">${v}</div></div>`;
   const u = w.usage || {}, days = w.days.filter(d => d.active).length;
-  K.innerHTML = kpi("Active time", dur(w.active, true)) + kpi("Active days", `${days}<small>/ ${w.days.length}</small>`) +
+  const n0 = soFar(), nd = n0 == null ? w.days.length : Math.min(n0, w.days.length); // 途中の週・月は、まだ来ていない日を分母に入れない（今日までの日数）
+  K.innerHTML = kpi("Active time", dur(w.active, true)) + kpi("Active days", `${days}<small> of ${nd}${n0 == null ? "" : " so far"}</small>`, n0 == null ? "" : `${days} of the ${plural(nd, "day")} so far (${M ? "this month" : "this week"} is still in progress)`) +
     kpi("Sessions / prompts", `${w.sessions}<small>/</small>${w.prompts}`) +
     (u.tokens ? kpi("Tokens", tok(u.tokens)) + kpi("Estimated cost", usd(u.cost).replace("$","<small>$</small>")) : "") +
     (u.credits ? kpi("Kiro credits", `${crN(u.credits)}<small>cr</small>`) : "") +
@@ -146,7 +149,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
     const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${day.getMonth()+1}/${day.getDate()}</b><i>${dow(day.getDay())}</i></div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`Active ${dur(act)}`, `Sessions ${nS}`, ...useLines(dW), `Git commits ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`;
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i></div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`Active ${dur(act)}`, `Sessions ${nS}`, ...useLines(dW), `Git commits ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`;
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
@@ -163,9 +166,9 @@ function timeline(shown, inWeek, ws, we, todayKey){
       const dens = Math.min(1, bk.n / Math.max(1, mins) / 2.5), id = runs.length;
       const pos = `left:calc((100% - var(--g)) * ${(bk.lane/bk.L).toFixed(4)} + 3px);width:calc((100% - var(--g)) / ${bk.L} - 6px)`;
       runs.push(bk);
-      // 20px 以上は名前（38px からは時刻も）、12px からは小さい字で名前を 1 行、それより短いものは帯の下に名前。名前の入らない細い帯は始まりの時刻（style.css の .st）
-      html += `<button class="run${h < 20 ? " thin" : ""}${st.sel === bk.s.id ? " sel" : ""}" data-r="${id}" data-sid="${esc(bk.s.id)}" style="top:${y}px;height:${h}px;${pos};--c:${colorOf(keyOf(bk.s))};--fill:${Math.round(16+30*dens)}%;--ln:${Math.max(1, Math.floor((h - 8) / 14))};${st.animate?`--delay:${d*30+Math.min(j,14)*10}ms`:"animation:none"}" aria-label="${esc(`${bk.s.title}, ${bk.s.project}, ${md(bk.a)} ${hm(bk.a)} to ${hm(bk.b)}`)}">${h >= 12 ? `<span class="t"><span>${esc(bk.s.title)}</span></span><span class="st">${hm(bk.a)}</span>` + (h >= 38 ? `<span class="m">${hm(bk.a)}–${hm(bk.b)} · ${esc(bk.s.project)}</span>` : "") : ""}</button>`;
-      if (h < 12 && free(bk)) html += `<span class="rlab" aria-hidden="true" style="top:${y + h + 1}px;${pos}">${esc(bk.s.title)}</span>`;
+      // 20px 以上は名前（高さに入るだけ 3 行まで折り返す。38px からは下に時刻も）、10px からは小さい字で名前を帯の中に 1 行（帯の外へはみ出して見えないように）、それより短いものは帯の下に名前。名前の入らない細い帯は始まりの時刻（style.css の .st）
+      html += `<button class="run${h < 20 ? " thin" : ""}${st.sel === bk.s.id ? " sel" : ""}" data-r="${id}" data-sid="${esc(bk.s.id)}" style="top:${y}px;height:${h}px;${pos};--c:${colorOf(keyOf(bk.s))};--fill:${Math.round(16+30*dens)}%;--ln:${Math.max(1, Math.floor((h - 8) / 14))};--tl:${Math.max(1, Math.min(3, Math.floor((h - (h >= 38 ? 24 : 8)) / 14.3)))};${st.animate?`--delay:${d*30+Math.min(j,14)*10}ms`:"animation:none"}" aria-label="${esc(`${bk.s.title}, ${bk.s.project}, ${md(bk.a)} ${hm(bk.a)} to ${hm(bk.b)}`)}">${h >= 10 ? `<span class="t"><span>${esc(bk.s.title)}</span></span><span class="st">${hm(bk.a)}</span>` + (h >= 38 ? `<span class="m">${hm(bk.a)}–${hm(bk.b)} · ${esc(bk.s.project)}</span>` : "") : ""}</button>`;
+      if (h < 10 && free(bk)) html += `<span class="rlab" aria-hidden="true" style="top:${y + h + 1}px;${pos}">${esc(bk.s.title)}</span>`;
     });
     // 右端の溝に、コミット・push・PR を時刻の順に置く（近すぎるものは少し下へずらす）
     const showP = p => (!st.hidden.size || st.colorBy !== "project" || !st.hidden.has(p.project)) && (!st.q || shown.some(s => s.project === p.project && p.t >= s.start && p.t <= s.end + 600)); // 検索中は、一致したセッションの間の push だけ（詳細のプロンプトの流れと同じ範囲）
@@ -187,6 +190,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
   sc.style.scrollPaddingTop = T.querySelector(".heads").offsetHeight + "px"; sc.style.scrollPaddingLeft = "56px"; // Tab で移ったブロックが、固定の日付・時刻の下に隠れないように
   if (top != null) sc.scrollTop = top;
   fitRuns(T);
+  sc.addEventListener("scroll", () => edgeFade(T), {passive: true}); edgeFade(T);
   T.querySelectorAll(".lim").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); });
   bindGitEvents(T);
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });
@@ -217,7 +221,9 @@ function fitRuns(T){
     if (tw(t, first) <= w && (first.length >= 3 || tw(t, name.slice(0, 4)) <= w) || tw(t, name.slice(0, 4) + "…") <= w) return;
     el.classList.add(tw(s, "00:00") <= w + 12 ? "nt" : "nn"); }); // 時刻は数字の幅がそろう（tabular-nums）ので 0 で測る。.st は左右の余白に 6px ずつはみ出せる
 }
-if (window.ResizeObserver) new ResizeObserver(() => { const T = $("#tl"); if (T.querySelector(".run")) fitRuns(T); }).observe($("#tl"));
+if (window.ResizeObserver) new ResizeObserver(() => { const T = $("#tl"); if (T.querySelector(".run")) fitRuns(T); edgeFade(T); }).observe($("#tl"));
+// edgeFade は、週のカレンダーが右へまだスクロールできるあいだだけ、右端をぼかす（.morer）。スクロールのたびと、描くたびに見直す
+function edgeFade(T){ const sc = T.querySelector(".calscroll"); T.classList.toggle("morer", !!sc && sc.scrollLeft + sc.clientWidth < sc.scrollWidth - 2); }
 
 /* ── tooltip ── */
 function tipOn(e, bk){ const t = $("#tip"), s = bk.s;
