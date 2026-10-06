@@ -2,11 +2,14 @@ package main
 
 import (
 	"io"
+	"math"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -52,6 +55,7 @@ func TestLiveRefresh(t *testing.T) {
 	if err := l.refresh(); err != nil {
 		t.Fatal(err)
 	}
+	l.markReady()
 	srv := httptest.NewServer(l.handler())
 	defer srv.Close()
 	get := func(path string) string {
@@ -163,7 +167,7 @@ func TestServeHistory(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "s1.jsonl")
 	os.WriteFile(p, []byte(`{"type":"user"}`+"\n"), 0o644)
-	l := &live{snap: snapshot{data: []*core.Session{{ID: "s1", File: p}, {ID: "db", File: filepath.Join(dir, "data.sqlite3")}}}}
+	l := &live{snap: snapshot{data: []*core.Session{{ID: "s1", File: p}, {ID: "db", File: filepath.Join(dir, "data.sqlite3")}}}, ready: true}
 	srv := httptest.NewServer(l.handler())
 	defer srv.Close()
 	get := func(q string) (int, string) {
@@ -192,7 +196,7 @@ func TestServePrompt(t *testing.T) {
 	b.Tick(&ts)
 	b.Prompt(&ts, "短い依頼")
 	b.Prompt(&ts, strings.Repeat("長", core.PromptRunes)+"最後")
-	l := &live{snap: snapshot{data: []*core.Session{b.Finish(15)}}}
+	l := &live{snap: snapshot{data: []*core.Session{b.Finish(15)}}, ready: true}
 	srv := httptest.NewServer(l.handler())
 	defer srv.Close()
 	get := func(q string) (int, string) {
@@ -223,5 +227,149 @@ func TestListenAddr(t *testing.T) {
 		if got := listenAddr(in); got != want {
 			t.Errorf("listenAddr(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+// serve は先に待ち受け、最初の読み込みが終わるまでは読み込み中の画面と 503 を返す（落ちない）。
+// 読み終わったら本物の画面と JSON になる。Host の確認は読み込み中もかかる。
+func TestServeBeforeLoad(t *testing.T) {
+	logw = io.Discard
+	defer func() { logw = os.Stderr }()
+	gate := make(chan struct{})
+	load := func() snapshot {
+		<-gate // 読み込みが長引いている間を作る
+		ts := 1000.0
+		b := core.NewBuilder("Claude Code", "s1")
+		b.Tick(&ts)
+		b.Prompt(&ts, "はじめの依頼")
+		return snapshot{data: []*core.Session{b.Finish(15)}, weeks: map[string]*report.Week{}, meta: map[string]any{}, gen: 1234.5}
+	}
+	l := &live{load: load, print: io.Discard, keep: func() error { return nil }}
+	srv := httptest.NewServer(sameOrigin("127.0.0.1:8484", nil, l.handler()))
+	defer srv.Close()
+	do := func(method, path, host string) (int, string) {
+		r, _ := http.NewRequest(method, srv.URL+path, nil)
+		r.Host = host
+		r.Header.Set("X-Kiroku", "1")
+		res, err := http.DefaultClient.Do(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		b, _ := io.ReadAll(res.Body)
+		return res.StatusCode, string(b)
+	}
+	const host = "localhost:8484"
+
+	stop, done := make(chan struct{}), make(chan struct{})
+	go func() { l.start(time.Hour, stop); close(done) }()
+	defer func() { close(stop); <-done }()
+
+	if code, body := do("GET", "/", host); code != 503 || !strings.Contains(body, "Reading your history") || strings.Contains(body, "const LIVE") {
+		t.Errorf("読み込み中の / = %d %.80q", code, body)
+	}
+	for _, c := range []struct{ method, path string }{{"GET", "/stamp"}, {"GET", "/data.json"}, {"GET", "/history?id=s1"}, {"GET", "/prompt?id=s1&i=0"}, {"POST", "/archive"}} {
+		if code, _ := do(c.method, c.path, host); code != 503 {
+			t.Errorf("読み込み中の %s %s = %d, want 503", c.method, c.path, code)
+		}
+	}
+	if code, _ := do("GET", "/nope", host); code != 404 {
+		t.Errorf("読み込み中の /nope = %d, want 404", code)
+	}
+	for _, p := range []string{"/", "/stamp", "/data.json"} {
+		if code, body := do("GET", p, "evil.example:8484"); code != 403 || strings.Contains(body, "Reading") {
+			t.Errorf("読み込み中によそのホストから %s = %d", p, code)
+		}
+	}
+
+	close(gate)
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		if code, body := do("GET", "/stamp", host); code == 200 {
+			if body != "1234.5" {
+				t.Fatalf("/stamp = %q", body)
+			}
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("読み終わらない")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if code, body := do("GET", "/", host); code != 200 || !strings.Contains(body, "const LIVE = true") {
+		t.Errorf("読み終わったあとの / = %d", code)
+	}
+	if code, body := do("GET", "/data.json", host); code != 200 || !strings.Contains(body, `"s1"`) {
+		t.Errorf("読み終わったあとの /data.json = %d %.80q", code, body)
+	}
+	if code, body := do("GET", "/prompt?id=s1&i=0", host); code != 200 || body != "はじめの依頼" {
+		t.Errorf("読み終わったあとの /prompt = %d %q", code, body)
+	}
+	if code, _ := do("GET", "/", "evil.example:8484"); code != 403 {
+		t.Errorf("よそのホストから / = %d, want 403", code)
+	}
+}
+
+// 最初の読み込みに失敗しても止まらず、/stamp の 503 の本文でエラーを知らせる（読み込み中の画面がそれを出す）。
+func TestServeLoadFails(t *testing.T) {
+	logw = io.Discard
+	defer func() { logw = os.Stderr }()
+	// 画面に入れられない値（NaN）で JSON にできず、refresh が失敗する
+	l := &live{load: func() snapshot { return snapshot{meta: map[string]any{"x": math.NaN()}} }, print: io.Discard}
+	stop, done := make(chan struct{}), make(chan struct{})
+	go func() { l.start(time.Hour, stop); close(done) }()
+	defer func() { close(stop); <-done }()
+	srv := httptest.NewServer(l.handler())
+	defer srv.Close()
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		r, err := http.Get(srv.URL + "/stamp")
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, _ := io.ReadAll(r.Body)
+		r.Body.Close()
+		if r.StatusCode != 503 {
+			t.Fatalf("/stamp = %d, want 503", r.StatusCode)
+		}
+		if len(b) > 0 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("失敗が /stamp に出ない")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	r, err := http.Get(srv.URL + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Body.Close()
+	if r.StatusCode != 503 {
+		t.Errorf("/ = %d, want 503（読み込み中の画面）", r.StatusCode)
+	}
+}
+
+// ポートがふさがっていたら、履歴を読む前にすぐ止まる。
+func TestServeBusyPort(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ln.Close()
+	var loaded atomic.Bool
+	load := func() snapshot { loaded.Store(true); return snapshot{} }
+	errc := make(chan error, 1)
+	go func() { errc <- serveLive(ln.Addr().String(), nil, time.Second, nil, load, nil, false) }()
+	select {
+	case err := <-errc:
+		if err == nil || !strings.Contains(err.Error(), "could not listen on") || !strings.Contains(err.Error(), "kiroku serve :8485") {
+			t.Fatalf("err = %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("ふさがったポートで止まらない")
+	}
+	if loaded.Load() {
+		t.Fatal("待ち受けられないのに履歴を読んだ")
 	}
 }

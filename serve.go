@@ -41,6 +41,8 @@ type live struct {
 	paths []string // 履歴の場所
 	print io.Writer
 	keep  func() error // 画面から kiroku archive をオンにする（nil ならできない）
+	ready bool         // 最初の読み込みが終わったか（mu で守る）。終わるまでは読み込み中の画面と 503 を返す
+	fail  error        // 最初の読み込みの失敗（mu で守る）。読み込み中の画面に出す
 
 	reload sync.Mutex // 読み直しは 1 本ずつ（load の中の loadCache は同時に使えない）
 }
@@ -61,6 +63,61 @@ func (l *live) refresh() error {
 	l.snap, l.html, l.json = snap, []byte(html), js
 	l.mu.Unlock()
 	return nil
+}
+
+// start は最初の読み込みをして、そのあと履歴を見張る（watch）。serveLive が待ち受けを始めてから別の goroutine で呼ぶ。
+// 失敗しても止めず、読み込み中の画面にエラーを出して見張りを続ける（履歴が変われば読み直しを試す）。
+func (l *live) start(every time.Duration, stop <-chan struct{}) {
+	t0 := time.Now()
+	err := l.refresh()
+	// ここから先の読み直しでは、エージェントごとの行は出さない。
+	// ready にする前に書きかえるので、/archive からの読み直しとはぶつからない
+	logw = io.Discard
+	if err != nil {
+		l.mu.Lock()
+		l.fail = err
+		l.mu.Unlock()
+		fmt.Fprintf(l.print, "could not read history: %v (still serving; will try again when history changes)\n", err)
+	} else {
+		l.markReady()
+		fmt.Fprintf(l.print, "%d sessions loaded in %s (checking for new history every %s)\n", l.count(), took(time.Since(t0)), every)
+	}
+	l.watch(every, stop)
+}
+
+func (l *live) markReady() {
+	l.mu.Lock()
+	l.ready, l.fail = true, nil
+	l.mu.Unlock()
+}
+
+// loaded は最初の読み込みが終わったか。まだなら 503 を返して false（fail があればその中身を本文にする）。
+func (l *live) loaded(w http.ResponseWriter) bool {
+	l.mu.RLock()
+	ready, fail := l.ready, l.fail
+	l.mu.RUnlock()
+	if ready {
+		return true
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Retry-After", "1")
+	msg := ""
+	if fail != nil {
+		msg = fail.Error()
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusServiceUnavailable)
+	_, _ = io.WriteString(w, msg)
+	return false
+}
+
+// took は読み込みにかかった時間を短く書く（1 秒未満はミリ秒、それより長いと 0.1 秒まで）。
+func took(d time.Duration) time.Duration {
+	if d < time.Second {
+		return d.Round(time.Millisecond)
+	}
+	return d.Round(100 * time.Millisecond)
 }
 
 func (l *live) fingerprint() string {
@@ -115,6 +172,7 @@ func (l *live) watch(every time.Duration, stop <-chan struct{}) {
 			fmt.Fprintf(l.print, "reload failed: %v\n", err)
 			continue
 		}
+		l.markReady() // 最初の読み込みに失敗していたときは、ここで画面が開けるようになる
 		after := l.count()
 		fmt.Fprintf(l.print, "%s history changed → %d sessions (%+d)\n", time.Now().Format("15:04:05"), after, after-before)
 	}
@@ -139,10 +197,23 @@ func (l *live) handler() http.Handler {
 			return
 		}
 		l.mu.RLock()
+		ready := l.ready
+		l.mu.RUnlock()
+		if !ready { // 読み終わるまでは、stamp を見て読み直す小さな画面
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.Header().Set("Cache-Control", "no-store")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write(web.Loading)
+			return
+		}
+		l.mu.RLock()
 		defer l.mu.RUnlock()
 		send(w, "text/html; charset=utf-8", l.html)
 	})
 	mux.HandleFunc("/data.json", func(w http.ResponseWriter, r *http.Request) {
+		if !l.loaded(w) {
+			return
+		}
 		l.mu.RLock()
 		defer l.mu.RUnlock()
 		send(w, "application/json", l.json)
@@ -150,6 +221,9 @@ func (l *live) handler() http.Handler {
 	// /history?id=<セッション ID> は、そのセッションの履歴ファイルをそのまま見せる（テキストの履歴だけ）。
 	// 読めるのは読み込んだセッションの履歴ファイルだけで、任意のパスは受け付けない。
 	mux.HandleFunc("/history", func(w http.ResponseWriter, r *http.Request) {
+		if !l.loaded(w) {
+			return
+		}
 		id := r.URL.Query().Get("id")
 		l.mu.RLock()
 		path := ""
@@ -187,6 +261,9 @@ func (l *live) handler() http.Handler {
 	})
 	// /prompt?id=<セッション ID>&i=<何件目> は、HTML には先頭だけを入れた依頼文の全文を返す（依頼の流れの「全文を読み込む」）。
 	mux.HandleFunc("/prompt", func(w http.ResponseWriter, r *http.Request) {
+		if !l.loaded(w) {
+			return
+		}
 		id, i := r.URL.Query().Get("id"), -1
 		if n, err := strconv.Atoi(r.URL.Query().Get("i")); err == nil {
 			i = n
@@ -223,6 +300,9 @@ func (l *live) handler() http.Handler {
 			http.NotFound(w, r)
 			return
 		}
+		if !l.loaded(w) { // 最初の読み込みと重ねて読まない
+			return
+		}
 		if err := l.keep(); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -236,6 +316,9 @@ func (l *live) handler() http.Handler {
 		send(w, "application/json", l.json)
 	})
 	mux.HandleFunc("/stamp", func(w http.ResponseWriter, r *http.Request) {
+		if !l.loaded(w) { // 読み込み中の画面は、これが 200 になったら読み直す
+			return
+		}
 		l.mu.RLock()
 		defer l.mu.RUnlock()
 		send(w, "text/plain", []byte(strconv.FormatFloat(l.snap.gen, 'f', -1, 64)))
@@ -307,31 +390,29 @@ func listenAddr(addr string) string {
 }
 
 // serveLive は kiroku serve。allow は Host として受け付ける名前を足すもの、keep は画面から kiroku archive をオンにする関数。
+// 先に待ち受けてから読む（履歴が多いと最初の読み込みに時間がかかり、その間ポートが開いていないとブラウザが「つながらない」になるため）。
+// 読み終わるまでは、読み込み中の画面を出す。
 func serveLive(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool) error {
 	if every < time.Second {
 		every = time.Second
+	}
+	addr = listenAddr(addr)
+	ln, err := net.Listen("tcp", addr) // ポートがふさがっていたら、読む前にすぐ止める
+	if err != nil {
+		return fmt.Errorf("could not listen on %s (try another port, e.g. \"kiroku serve :8485\"): %w", addr, err)
 	}
 	var paths []string
 	for _, s := range picked {
 		paths = append(paths, source.WatchPaths(s)...)
 	}
 	l := &live{load: load, paths: paths, print: logw, keep: keep}
-	if err := l.refresh(); err != nil {
-		return err
-	}
-	logw = io.Discard // ここから先の読み直しでは、エージェントごとの行は出さない
-	addr = listenAddr(addr)
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		return fmt.Errorf("could not listen on %s (try another port, e.g. \"kiroku serve :8485\"): %w", addr, err)
-	}
 	addr = ln.Addr().String()
 	url := "http://" + addr + "/"
 	if host, port, _ := net.SplitHostPort(addr); host == "127.0.0.1" || host == "::" || host == "0.0.0.0" || host == "" {
 		url = "http://localhost:" + port + "/"
 	}
-	fmt.Fprintf(l.print, "%d sessions → %s (checking for new history every %s; press Ctrl+C to stop)\n", l.count(), url, every)
-	go l.watch(every, nil)
+	fmt.Fprintf(l.print, "serving %s (reading history...; press Ctrl+C to stop)\n", url)
+	go l.start(every, nil)
 	if open {
 		openBrowser(url)
 	}
