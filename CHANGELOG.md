@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- `kiroku update` now stops with "too many arguments" when given a version without `--to` (`kiroku update v0.11.0`). Before, it ignored the version and everything after it, so it installed the latest release instead, and `kiroku update v0.11.0 --check` replaced kiroku instead of only checking. Use `kiroku update --to v0.11.0` to install a given version
+
 ## v0.12.0 - 2026-10-06
 
 ### Added
