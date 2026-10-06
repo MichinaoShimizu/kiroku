@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- When `install.sh` installs into a folder that is not in your `PATH`, it now names the file to add the line to for your shell (`~/.zshrc`, or `~/.bash_profile` on macOS and `~/.bashrc` on Linux), uses `fish_add_path` for fish, says that a new terminal is needed, and shows how to start kiroku right away without one
+- When `gh` is too old to check the build provenance, the warning now shows which version of `gh` was used and where to update it
+
 ## v0.16.0 - 2026-10-06
 
 ### Added

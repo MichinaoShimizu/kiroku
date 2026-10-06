@@ -127,8 +127,10 @@ if [ "$attest" = yes ]; then
     # 4 は gh にログインしていないとき
     unchecked "gh is not logged in (\"gh auth login\"), so the build provenance was not checked"
   elif grep -Eqi 'unknown (command|flag)' "$tmp/attest.log"; then
-    # gh attestation（や --source-ref などの旗）がない古い gh
-    unchecked "this gh cannot check the build provenance (update gh)"
+    # gh attestation（や --source-ref などの旗）がない古い gh。どの gh が使われたのか分かるように版も見せる
+    # （PATH の前のほうに古い gh があることもある）
+    ghver=$(gh --version 2>/dev/null | awk 'NR == 1 { print $3 }')
+    unchecked "this gh ${ghver:+($ghver) }is too old to check the build provenance (update it from your package manager or https://cli.github.com/)"
   elif grep -Eqi 'HTTP (401|403|429|5[0-9][0-9])|Sigstore verifier|dial tcp|no such host|connection (refused|reset)|timeout|TLS handshake|network is unreachable' "$tmp/attest.log"; then
     # GitHub に届かない・回数制限など。証明が合わないのとは別
     grep . "$tmp/attest.log" | head -n 3 | sed 's/^/         /' >&2
@@ -186,9 +188,23 @@ if [ -n "$first" ] && [ "$(cd "$first" 2>/dev/null && pwd -P)" != "$real_dir" ];
 fi
 case ":$PATH:" in
   *":$dir:"*) say "run \"kiroku serve\" to start (\"kiroku help\" for usage)" ;;
-  *) say "$dir is not in your PATH. Add this line to your shell config (e.g. ~/.zshrc or ~/.bashrc):"
-     say "  export PATH=\"$dir:\$PATH\""
-     say "then run \"kiroku serve\" to start" ;;
+  *)
+     # 書き足す先と書き方はシェルごとに違う（fish に export PATH はない）。分からないときは今までどおりの言い方
+     line="export PATH=\"$dir:\$PATH\""
+     # ~ は見せるためのもので、展開はしない（shellcheck の SC2088 はそのため）
+     # shellcheck disable=SC2088
+     case "${SHELL:-}" in
+       */fish) rc="~/.config/fish/config.fish"; line="fish_add_path \"$dir\"" ;;
+       */zsh) rc="~/.zshrc" ;;
+       # bash がログイン時に読むのは、macOS では ~/.bash_profile、Linux では ~/.bashrc
+       */bash) if [ "$os" = darwin ]; then rc="~/.bash_profile"; else rc="~/.bashrc"; fi ;;
+       *) rc="your shell config (e.g. ~/.zshrc or ~/.bashrc)" ;;
+     esac
+     say "$dir is not in your PATH. Add this line to $rc:"
+     say "  $line"
+     say "then open a new terminal and run \"kiroku serve\" to start (\"kiroku help\" for usage)"
+     say "or start it now without opening one: \"$dir/kiroku\" serve"
+     ;;
 esac
 say "tip: Claude Code deletes conversations older than 30 days by default. To keep more history for kiroku, set \"cleanupPeriodDays\": 3650 in ~/.claude/settings.json"
 say "     https://code.claude.com/docs/en/settings-reference#cleanupperioddays"
