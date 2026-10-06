@@ -11,7 +11,10 @@ function render(){
   const todayKey = key(today0()), end = addDays(st.week,6);
   if (M){ $("#ry").textContent = `${st.month.getFullYear()} · Month`; $("#rd").innerHTML = `${st.month.getFullYear()}<span>.</span>${st.month.getMonth()+1}`; }
   else { $("#ry").textContent = `${st.week.getFullYear()} · Week ${isoWeek(st.week)}`; $("#rd").innerHTML = `${st.week.getMonth()+1}.${st.week.getDate()}<span>—</span>${end.getMonth()+1}.${end.getDate()}`; }
-  $("#today").textContent = META.scope ? `Included ${M ? "month" : "week"}` : M ? "This month" : "This week";
+  $("#today").textContent = META.scope ? `Back to included ${META.scope.mode === "month" ? "month" : "week"}` : M ? "This month" : "This week";
+  [["#prev", -1], ["#next", 1]].forEach(([id, n]) => { const b = $(id), off = !canGo(n); // 先の週・ファイルの外へは押せない
+    if (off && document.activeElement === b) $(n > 0 ? "#prev" : "#next").focus(); // 押せなくなるボタンにいたフォーカスは、隣のボタンへ
+    b.disabled = off; });
   $("#yrbtn").textContent = "Year in review"; $("#yrbtn").hidden = !YEAR_ON || !DATA.length;
   $("#prev").setAttribute("aria-label", M ? "Previous month" : "Previous week"); $("#next").setAttribute("aria-label", M ? "Next month" : "Next week");
   document.querySelectorAll("#mode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.mode));
@@ -23,9 +26,9 @@ function render(){
   kpis();
   // legend（この期間にあるものを多い順に）
   const cnt = {}; inRange.forEach(s => cnt[keyOf(s)] = (cnt[keyOf(s)]||0)+1);
-  $("#legend").innerHTML = `<label class="cbsel"><span class="sr">Color by</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${l}</option>`).join("")}</select></label><span class="lab"><span class="ln">${CB()[st.colorBy]}</span><small> (sessions)</small></span>` +
+  $("#legend").innerHTML = `<label class="cbsel"><span class="cbt">Color by</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${l}</option>`).join("")}</select></label><span class="lab"><span class="ln">${CB()[st.colorBy]}</span><small> (sessions)</small></span>` +
     Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}" title="${esc(`${(k)}: ${plural(cnt[k], "session")} (click to show or hide)`)}"><span class="dot"></span>${st.colorBy === "source" ? agMark(k) : ""}${esc((k))}<span class="n">${cnt[k]}<span class="sr"> sessions</span></span></button>`).join("") +
-    `<span class="count">${shown.length} / ${inRange.length} sessions${st.q ? ` · <button class="flink" id="tosr">All-time search results ↓</button>` : ""}</span>`;
+    `<span class="count">${shown.length} / ${inRange.length} sessions${st.q ? ` · <button class="flink" id="tosr">${META.scope ? "Search results in this file" : "All-time search results"} ↓</button>` : ""}</span>`;
   // 検索・凡例で絞り込んでいるあいだ、絞り込めない合計（作業時間・トークンなど）は薄くして、そう断る
   const fn = $("#fnote"); fn.hidden = !filtering();
   fn.textContent = `${st.q ? "The calendar shows only sessions that match the search, and their commits." : "Hidden items are left out of the calendar."} Grey figures, at the top and ${M ? "in each day and week" : "under each date"}, are totals for all sessions.`;
@@ -34,6 +37,7 @@ function render(){
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
 
   M ? monthGrid(shown, ws, we, todayKey) : timeline(shown, inRange, ws, we, todayKey);
+  markKey();
   try { st.q ? searchPanel() : summary(); } catch(e){ // サマリーで失敗しても、カレンダーと詳細は使えるようにする
     console.error(e); $("#review").innerHTML = `<div class="panel"><p class="none">${`Couldn't show the summary for this period (${esc(e.message)}). Please let us know in an issue.`}</p></div>`; }
   const gc = st.sel && st.sel.startsWith("git:") && (META.git || []).find(x => "git:" + x.hash === st.sel);
@@ -54,11 +58,15 @@ function render(){
   st.animate = false;
 }
 
+// shownName は、表示中の期間の呼び名。今週・今月なら "This week" / "This month"、ほかは "Week of 9/28" / "September 2026"
+function shownName(){ const M = st.mode === "month", t = today0();
+  if (M) return st.month.getTime() === monthOf(t).getTime() ? "This month" : st.month.toLocaleString(LOC(), {month: "long", year: "numeric"});
+  return st.week.getTime() === mondayOf(t).getTime() ? "This week" : `Week of ${st.week.getMonth()+1}/${st.week.getDate()}`; }
 /* 期間の要点（上の帯） */
 function kpis(){
   const {S:w} = period(), K = $("#kpis"), M = st.mode === "month";
   K.classList.toggle("unf", filtering()); // 絞り込みの最中も、ここは全セッションの合計（薄くして、カレンダーの上に断り書き）
-  if (!w){ K.innerHTML = `<div class="kpi"><div class="k">${META.scope ? "Not in this file" : M ? "This month" : "This week"}</div><div class="v">No records</div></div>`; return; }
+  if (!w){ K.innerHTML = `<div class="kpi"><div class="k">${META.scope ? "Not in this file" : shownName()}</div><div class="v">No records</div></div>`; return; }
   const kpi = (k, v) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div></div>`;
   const u = w.usage || {}, days = w.days.filter(d => d.active).length;
   K.innerHTML = kpi("Active time", dur(w.active, true)) + kpi("Active days", `${days}<small>/ ${w.days.length}</small>`) +
@@ -66,7 +74,7 @@ function kpis(){
     (u.tokens ? kpi("Tokens", tok(u.tokens)) + kpi("Estimated cost", usd(u.cost).replace("$","<small>$</small>")) : "") +
     (u.credits ? kpi("Kiro credits", `${crN(u.credits)}<small>cr</small>`) : "") +
     (() => { const {ws, we} = period(), n = limitHits(ws, we).length; return n ? kpi("Usage limit hits", `<span style="color:var(--warn)">${n}</span>`) : ""; })() +
-    (w.git && w.git.commits ? kpi("Commits (by AI)", `${w.git.commits}<small>${` (${w.git.ai})`}</small>`) :
+    (w.git && w.git.commits ? kpi("Git commits", `${w.git.commits}<small> · ${w.git.ai} by AI</small>`) :
      w.outputs && w.outputs.commits ? kpi("AI commits", `${w.outputs.commits}`) : "");
 }
 
@@ -120,7 +128,7 @@ function monthGrid(shown, ms, me, todayKey){
 function timeline(shown, inWeek, ws, we, todayKey){
   const T = $("#tl"), hh = HOURS[st.z] || 44, H = 24*hh;
   if (!inWeek.length || !shown.length){
-    T.innerHTML = `<div class="empty"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><p>${inWeek.length ? "No sessions match the current filters" : META.scope ? "This file has no records for this week." : "No records this week. Use ← → to move between weeks."}</p></div>`;
+    T.innerHTML = `<div class="empty"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><p>${inWeek.length ? "No sessions match the current filters" : META.scope ? "This file has no records for this week." : `No records ${shownName() === "This week" ? "this week" : `in the ${shownName().toLowerCase()}`}. Use ← → to move between weeks.`}</p></div>`;
     return;
   }
   const keep = T.querySelector(".calscroll"), top = keep ? keep.scrollTop : null;
@@ -184,6 +192,15 @@ function timeline(shown, inWeek, ws, we, todayKey){
     el.onmouseenter = e => tipOn(e, bk); el.onmousemove = tipMove; el.onmouseleave = tipOff; });
 }
 
+// markKey は、週のカレンダーの右端の印（コミット・push・PR）の見方。カレンダーと同じ形の印で、その週にある種類だけ出す（月表示では出さない）
+function markKey(){
+  const T = $("#tl"), K = $("#mkey"), has = s => !!T.querySelector(s);
+  const items = [has(".gc") && `<span class="mk"><span class="gc">${GIT_ICON}</span> Commit</span><span class="mk"><span class="gc ai">${GIT_ICON}</span> Commit run by AI</span>`,
+    has(".gm.push") && `<span class="mk"><span class="gm push">${ico("push")}</span> Push</span>`,
+    has(".gm.prm") && `<span class="mk"><span class="gm prm">${ico("pr")}</span> Pull request</span>`].filter(Boolean);
+  K.hidden = st.mode === "month" || !items.length;
+  K.innerHTML = items.length ? `<span class="lab">Marks</span>${items.join("")}<span class="mkn">at the right edge of each day</span>` : "";
+}
 // 細い帯で、名前の最初の語がまるごと入らず 4 文字（と …）も入らなければ、名前の代わりに始まりの時刻（.nt）、それも入らなければ色だけ（.nn）。
 // 幅は描いたあとでないとわからないので、描くたびと、カレンダーの幅が変わるたびに測る
 const fitCv = document.createElement("canvas").getContext("2d");

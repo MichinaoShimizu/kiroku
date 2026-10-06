@@ -1,6 +1,15 @@
 // ボタンとキーの操作、期間の移動、ズーム
 /* ── events ── */
+// navEnds は、‹ › で行ける端（表示中の週か月の初日）。先は今週・今月まで（デモはずらした時計で）。
+// 期間だけのファイルは、入っている期間の中だけ（月だけのファイルの週表示は、その月にかかる週）
+function navEnds(){ const M = st.mode === "month";
+  if (META.scope){ const a = scopeStart(), z = META.scope.mode === "week" ? addDays(a, 6) : new Date(a.getFullYear(), a.getMonth()+1, 0);
+    return M ? {lo: monthOf(a), hi: monthOf(z)} : {lo: mondayOf(a), hi: mondayOf(z)}; }
+  return {lo: null, hi: M ? monthOf(today0()) : mondayOf(today0())}; }
+function canGo(n){ const {lo, hi} = navEnds(), cur = st.mode === "month" ? st.month : st.week;
+  return n > 0 ? cur < hi : !lo || cur > lo; }
 function go(n){
+  if (n != null && !canGo(n)) return; // 先の週や、ファイルに入っていない期間へは行かない
   const home = META.scope ? scopeStart() : today0(); // 期間だけのファイルでは、その期間へ戻る
   if (st.mode === "month") st.month = n == null ? monthOf(home) : new Date(st.month.getFullYear(), st.month.getMonth()+n, 1);
   else st.week = n == null ? mondayOf(home) : addDays(st.week, 7*n);

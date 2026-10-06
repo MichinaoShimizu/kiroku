@@ -158,49 +158,51 @@ function spark(k){ // 8 期間の推移（記録のない期間は飛ばす。�
   const hits = pts.map((p, i) => i < f0 ? "" : `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H}"${tipAttr(p.l, fmtM(k, p.v) === "—" ? "No records" : fmtM(k, p.v))}/>`).join(""); // 点ごとに、その期間の値を出す
   // 両端（記録のある最初の期間と、表示中の期間）には、触れなくても読めるよう期間と値を添える
   const sl = i => { const p = periodBack(7 - i), [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? new Date(yy, mm - 1, 1).toLocaleString(LOC(), {month: "short"}) : `${mm}/${dd}`; };
-  return `<span class="spark"><span class="sr">${esc(txt)}</span><span class="spk" aria-hidden="true"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><polyline points="${line}"/>${pts.map((p, i) => p.v == null ? "" : `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="1.6"/>`).join("")}${pts[7].v != null ? `<circle cx="${x(7)}" cy="${y(pts[7].v)}" r="2.6"/>` : ""}${hits}</svg><span class="ends"><span>${sl(f0)} ${fmtM(k, pts[f0].v)}</span><span>${sl(7)} <b>${fmtM(k, pts[7].v)}</b></span></span></span><small aria-hidden="true">${`${st.mode === "month" ? "8-month" : "8-week"} range ${rng} · flagged when ${MET[k].low ? "high" : "low"}`}</small></span>`;
-}
+  return `<span class="spark"><span class="sr">${esc(txt)}</span><span class="spk" aria-hidden="true"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><polyline points="${line}"/>${pts.map((p, i) => p.v == null ? "" : `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="1.6"/>`).join("")}${pts[7].v != null ? `<circle cx="${x(7)}" cy="${y(pts[7].v)}" r="2.6"/>` : ""}${hits}</svg><span class="ends"><span>${sl(f0)} ${fmtM(k, pts[f0].v)}</span><span>${sl(7)} <b>${fmtM(k, pts[7].v)}</b></span></span></span><small aria-hidden="true">${`${GOTO[k] ? `${HELP[k].n} · ` : ""}${st.mode === "month" ? "8-month" : "8-week"} range ${rng} · ${MET[k].low ? "higher" : "lower"} is worth a look`}</small></span>`;
+} // 向き（高いほど・低いほど見直す）だけを書く。印が付いた理由は、推移の下に「Flagged because …」で別に出す（基準は推移の高低ではなく、決まった値なので）
 /* 見直す候補：指標が決まった基準を超えたものを拾う（AI は使わない。判定ではなく、確かめる候補） */
 function findList(w, pw, unit){
   const F = [], u = w.usage || {}, o = w.outputs || {}, {ws, we} = period();
-  const add = (k, score, see, why, rule, ids) => F.push({k, score, see, why, rule, ids: ids || []});
+  // because は、印が付いた理由（この期間の実際の数と基準）。推移の高低で付くのではないので、推移とは別に書く
+  const add = (k, score, see, why, rule, ids, because) => F.push({k, score, see, why, rule, ids: ids || [], because});
+  const P = uThis(unit);
   const LH = limitHits(ws, we);
   if (LH.length)
-    add("limits", 40, `Hit the usage limit ${LH.length === 1 ? "once" : LH.length + " times"} (${LH.slice(-3).map(h => `${md(h.t)} ${hm(h.t)}`).join(", ")}${LH.length > 3 ? ", …" : ""})`, "Hitting a limit stops your work until it resets. The cause is often in how you worked just before", "1 or more", [...new Set(LH.map(h => h.s.id))].reverse());
+    add("limits", 40, `Hit the usage limit ${LH.length === 1 ? "once" : LH.length + " times"} (${LH.slice(-3).map(h => `${md(h.t)} ${hm(h.t)}`).join(", ")}${LH.length > 3 ? ", …" : ""})`, "Hitting a limit stops your work until it resets. The cause is often in how you worked just before", "1 or more", [...new Set(LH.map(h => h.s.id))].reverse(), `you hit the usage limit ${LH.length === 1 ? "once" : LH.length + " times"} ${P}`);
   if (w.fixRate != null && w.prompts >= 10 && w.fixRate >= 20)
-    add("fix", w.fixRate, `${w.fixRate}% of prompts had corrections or interruptions`, "When a first prompt misses, redoing it costs time and tokens", "20% or more, with 10+ prompts", w.friction.map(f => f.id));
+    add("fix", w.fixRate, `${w.fixRate}% of prompts had corrections or interruptions`, "When a first prompt misses, redoing it costs time and tokens", "20% or more, with 10+ prompts", w.friction.map(f => f.id), `${w.fixRate}% of ${w.prompts} prompts ${P} had corrections or interruptions`);
   else if (w.friction.length)
-    add("friction", 18, `${plural(w.friction.length, "session")} with possible friction`, "Rework is concentrated in a few sessions. Opening them usually hints at the cause", "Many corrections, interruptions or 15+ prompts", w.friction.map(f => f.id));
+    add("friction", 18, `${plural(w.friction.length, "session")} with possible friction`, "Rework is concentrated in a few sessions. Opening them usually hints at the cause", "Many corrections, interruptions or 15+ prompts", w.friction.map(f => f.id), `${plural(w.friction.length, "session")} ${P} crossed the threshold`);
   const LC = longCtxOf(ws, we);
   if (LC.length)
-    add("longctx", 34, `${plural(LC.length, "session")} where the conversation grew long and the input read per response rose to ${Math.round(Math.max(...LC.map(s => s.ctx[1] / s.ctx[0])))}× the first part (peak ${tok(Math.max(...LC.map(s => s.ctx[2])))} tokens)`, "The longer a conversation, the more earlier context each response rereads, so similar prompts get heavier", "Later input 4×+ the first part, peak 100K+ tokens, $0.5+", LC.map(s => s.id));
+    add("longctx", 34, `${plural(LC.length, "session")} where the conversation grew long and the input read per response rose to ${Math.round(Math.max(...LC.map(s => s.ctx[1] / s.ctx[0])))}× the first part (peak ${tok(Math.max(...LC.map(s => s.ctx[2])))} tokens)`, "The longer a conversation, the more earlier context each response rereads, so similar prompts get heavier", "Later input 4×+ the first part, peak 100K+ tokens, $0.5+", LC.map(s => s.id), `${plural(LC.length, "session")} ${P} crossed the threshold`);
   const LT = lightOf(ws, we);
   if (u.cost >= 2 && LT.c >= Math.max(1, u.cost * 0.1))
-    add("modelfit", 24, `Short sessions with no edits spent ${usd(LT.c)} (${Math.round(LT.c*100/u.cost)}% of estimated cost) on Opus-class models`, "For research and questions, a lighter model is often enough", "Sessions with ≤3 prompts, no edits and $0.3+ total 10%+ of all cost ($2+) and $1+", LT.xs.map(s => s.id));
+    add("modelfit", 24, `Short sessions with no edits spent ${usd(LT.c)} (${Math.round(LT.c*100/u.cost)}% of estimated cost) on Opus-class models`, "For research and questions, a lighter model is often enough", "Sessions with ≤3 prompts, no edits and $0.3+ total 10%+ of all cost ($2+) and $1+", LT.xs.map(s => s.id), `such sessions took ${Math.round(LT.c*100/u.cost)}% of estimated cost ${P}`);
   const {xs: idle, c: idleC} = idleOf(ws, we);
   if (u.cost >= 2 && idleC >= u.cost * 0.4)
-    add("heavy", 30 + Math.round(idleC*50/u.cost), `${Math.round(idleC*100/u.cost)}% of estimated cost (${usd(idleC)}) went to sessions with no commit or pull request`, "Fine for research or discussion. If they stopped partway, it's worth finding out why", "Sessions of $1+ total 40%+ of all cost ($2+)", idle.map(s => s.id));
+    add("heavy", 30 + Math.round(idleC*50/u.cost), `${Math.round(idleC*100/u.cost)}% of estimated cost (${usd(idleC)}) went to sessions with no commit or pull request`, "Fine for research or discussion. If they stopped partway, it's worth finding out why", "Sessions of $1+ total 40%+ of all cost ($2+)", idle.map(s => s.id), `such sessions took ${Math.round(idleC*100/u.cost)}% of estimated cost ${P}`);
   const V = vsPrev(pw, unit), pc = V.of("cost", pw && pw.usage && pw.usage.cost), pl = V.n == null ? uLast(unit) : V.range; // 途中の期間は、前の期間の同じ日までと比べる
   if (pc != null && pc >= 1 && u.cost >= pc * 1.5)
-    add("cost", 25, `Estimated cost was ${(u.cost/pc).toFixed(1)}× ${pl} (${usd(pc)} → ${usd(u.cost)})`, "What it means depends on which projects and sessions the increase came from", `1.5× ${uLast(unit)} or more`);
+    add("cost", 25, `Estimated cost was ${(u.cost/pc).toFixed(1)}× ${pl} (${usd(pc)} → ${usd(u.cost)})`, "What it means depends on which projects and sessions the increase came from", `1.5× ${uLast(unit)} or more`, null, `estimated cost was ${(u.cost/pc).toFixed(1)}× ${pl}`);
   if (pw && pw.costPerCommit != null && w.costPerCommit != null && o.commits >= 3 && w.costPerCommit >= pw.costPerCommit * 1.5)
-    add("costPerCommit", 22, `Estimated cost per commit rose from ${usd(pw.costPerCommit)} to ${usd(w.costPerCommit)}`, "Reaching a checkpoint is getting heavier than before", `1.5× ${uLast(unit)} or more, with 3+ commits`);
+    add("costPerCommit", 22, `Estimated cost per commit rose from ${usd(pw.costPerCommit)} to ${usd(w.costPerCommit)}`, "Reaching a checkpoint is getting heavier than before", `1.5× ${uLast(unit)} or more, with 3+ commits`, null, `it was ${(w.costPerCommit/pw.costPerCommit).toFixed(1)}× ${uLast(unit)}`);
   if (u.cacheHit != null && u.tokens >= 1e6 && u.cacheHit < 0.5)
-    add("cache", 20, `Only ${Math.round(u.cacheHit*100)}% of input was read from cache`, "You may be re-sending the same context every time", "Under 50%, with 1M+ tokens");
+    add("cache", 20, `Only ${Math.round(u.cacheHit*100)}% of input was read from cache`, "You may be re-sending the same context every time", "Under 50%, with 1M+ tokens", null, `${Math.round(u.cacheHit*100)}% of input ${P} was read from cache`);
   if ((w.outBase ?? w.sessions) >= 5 && (o.commits || o.prs || (w.git && w.git.commits)) && w.outSessions / (w.outBase ?? w.sessions) < 0.25)
-    add("outSessions", 16, `${w.outSessions} of ${w.outBase ?? w.sessions} sessions reached a commit`, "Many sessions may have stopped partway", "Under 25%, with 5+ sessions");
+    add("outSessions", 16, `${w.outSessions} of ${w.outBase ?? w.sessions} sessions reached a commit`, "Many sessions may have stopped partway", "Under 25%, with 5+ sessions", null, `${pctOf(w.outSessions, w.outBase ?? w.sessions)}% of sessions ${P} reached a commit`);
   const BG = bigOf(ws, we);
   if (BG.n >= 3)
-    add("bigPrompts", 11, `${plural(BG.n, "prompt")} of ${BIG_PROMPT.toLocaleString()}+ characters (longest ${BG.max.toLocaleString()})`, "Pasting long logs or documents makes every later response re-read a heavier input, and buries the instructions that matter", `3+ prompts of ${BIG_PROMPT.toLocaleString()}+ characters`, BG.ids.slice(0, 6));
+    add("bigPrompts", 11, `${plural(BG.n, "prompt")} of ${BIG_PROMPT.toLocaleString()}+ characters (longest ${BG.max.toLocaleString()})`, "Pasting long logs or documents makes every later response re-read a heavier input, and buries the instructions that matter", `3+ prompts of ${BIG_PROMPT.toLocaleString()}+ characters`, BG.ids.slice(0, 6), `${plural(BG.n, "prompt")} ${P} crossed the threshold`);
   const RP = repeatsOf(ws, we);
   if (RP.length)
-    add("repeats", 9, `You wrote a similar prompt ${RP[0].n} times across ${RP[0].ids.size} sessions ("${snipOf(RP[0].text, 40)}")`, "A prompt you type every time can be written once as a command or in CLAUDE.md", `${REPEAT_MIN}+ characters, in ${REPEAT_SES}+ sessions`, [...new Set([RP[0].id, ...RP[0].ids])].slice(0, 6));
+    add("repeats", 9, `You wrote a similar prompt ${RP[0].n} times across ${RP[0].ids.size} sessions ("${snipOf(RP[0].text, 40)}")`, "A prompt you type every time can be written once as a command or in CLAUDE.md", `${REPEAT_MIN}+ characters, in ${REPEAT_SES}+ sessions`, [...new Set([RP[0].id, ...RP[0].ids])].slice(0, 6), `${plural(RP.length, "prompt")} ${P} ${RP.length === 1 ? "was" : "were"} written in ${REPEAT_SES} or more sessions`);
   if (w.switchesAvg >= 5)
-    add("switches", 14, `You switched projects ${w.switchesAvg} times a day on average`, "Each context switch tends to add ramp-up time and rework", "5+ per day on average");
+    add("switches", 14, `You switched projects ${w.switchesAvg} times a day on average`, "Each context switch tends to add ramp-up time and rework", "5+ per day on average", null, `you averaged ${w.switchesAvg} switches a day ${P}`);
   if (!w.focus.length && w.active >= 240)
-    add("focus", 12, `You worked ${dur(w.active)}, but never for 60 minutes straight`, "Fragmented time makes it harder to hand large tasks to AI", "No focus blocks, with 4+ hours of work");
+    add("focus", 12, `You worked ${dur(w.active)}, but never for 60 minutes straight`, "Fragmented time makes it harder to hand large tasks to AI", "No focus blocks, with 4+ hours of work", null, `there were no focus blocks in ${dur(w.active)} of work ${P}`);
   if (w.waitP90 != null && w.waitCount >= 10 && w.waitP90 >= 900)
-    add("wait", 10, `At the long end, ${secs(w.waitP90)} passed between an AI reply and your next prompt`, "AI may have sat idle until you noticed its reply", "90th percentile of 15+ min");
+    add("wait", 10, `At the long end, ${secs(w.waitP90)} passed between an AI reply and your next prompt`, "AI may have sat idle until you noticed its reply", "90th percentile of 15+ min", null, `the 90th percentile ${P} was ${secs(w.waitP90)}`);
   return F.sort((a,b) => b.score - a.score);
 }
 const GOTO = {longctx: "heavy", modelfit: "models"}; // 専用の指標がない候補は、関係する指標に印を付ける
@@ -219,7 +221,7 @@ function placeFlags(R, F){ // 基準を超えた指標の、その場に印・�
     // 下のカードと重なって省いたセッションも数に入れて断る（見出しの「N sessions」と、並ぶ数が合わなく見えないように）
     const dup = f.k === "friction" ? 0 : f.ids.length - ids.length, rest = [more > 0 ? `${more} more` : "", dup ? `${dup} in the list below` : ""].filter(Boolean).join(" · ");
     const own = !GOTO[f.k] && t.closest(".stat"); // 自分の数字の上に出す印は、数字の言い直し（見えたこと）を省く
-    const html = `<div class="fl">${own ? "" : `<p class="see">${ico("flag", "fdot")}${f.see}</p>`}<p class="why">${esc(f.why)}</p>${spark(f.k)}${ids.length || rest ? `<div class="fss">${ses(ids.slice(0, 3))}${rest ? `<p class="more">${rest}</p>` : ""}</div>` : ""}<p class="rule">Threshold: ${esc(f.rule)}</p></div>`;
+    const html = `<div class="fl">${own ? "" : `<p class="see">${ico("flag", "fdot")}${f.see}</p>`}<p class="why">${esc(f.why)}</p>${spark(f.k)}${f.because ? `<p class="because">Flagged because ${esc(f.because)}</p>` : ""}${ids.length || rest ? `<div class="fss">${ses(ids.slice(0, 3))}${rest ? `<p class="more">${rest}</p>` : ""}</div>` : ""}<p class="rule">Threshold: ${esc(f.rule)}</p></div>`;
     const dt = t.closest("details"); // 閉じた折りたたみの中の印は、見出しにも出し、自分で閉じていなければ開いておく
     if (dt){ const sm = dt.querySelector("summary"); if (!sm.querySelector(".fdot")) sm.insertAdjacentHTML("beforeend", `<span title="A metric crossed a threshold">${ico("flag", "fdot")}</span>`); if (st.moreS !== false && !dt.open){ dt.dataset.auto = "1"; dt.open = true; } }
     const stat = t.closest(".stat");

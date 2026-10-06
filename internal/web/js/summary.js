@@ -101,6 +101,7 @@ function projectPanel(w, ph, unit){
   const ps = w.projectStats || []; if (!ps.length) return "";
   const total = w.projects.reduce((t,[,v])=>t+v,0) || 1, LIMIT = 6, shown = st.allProj ? ps : ps.slice(0, LIMIT);
   const use = x => [x.cost >= 0.005 ? usd(x.cost) : "", x.credits ? cr(x.credits) : "", !x.cost && x.tokens ? tok(x.tokens)+" tok" : ""].filter(Boolean).join(" · ");
+  const anyCr = ps.some(p => p.credits); // この期間にクレジットの記録がまったくなければ、「—」だけの欄は出さない
   const cards = shown.map(p => {
     const c = st.colorBy === "project" ? colorOf(p.project) : "var(--ink-3)", share = Math.round(p.minutes*100/total);
     const mt = p.models.reduce((t,m)=>t+m.tokens,0) || 1; // トークンのないモデル（Kiro など）は回数で出す
@@ -110,8 +111,8 @@ function projectPanel(w, ph, unit){
       <div class="kv"><div><div class="k">Sessions / prompts</div><div class="v">${p.sessions}/${p.prompts}</div></div>
         <div><div class="k">Tokens</div><div class="v">${p.tokens ? tok(p.tokens) : "—"}</div></div>
         <div><div class="k">Est. cost</div><div class="v">${p.cost >= 0.005 ? usd(p.cost) : "—"}</div></div>
-        <div><div class="k">Credits</div><div class="v">${p.credits ? cr(p.credits) : "—"}</div></div></div>
-      ${p.git && p.git.commits ? `<div><div class="lab">Outputs</div><div class="pout">Commits ${p.git.commits} (AI ${p.git.ai}) · <span>+${p.git.added} −${p.git.removed} lines</span></div></div>` : p.outputs && p.outputs.commits ? `<div><div class="lab">Outputs</div><div class="pout">AI commits ${p.outputs.commits}</div></div>` : ""}
+        ${anyCr ? `<div><div class="k">Credits</div><div class="v">${p.credits ? cr(p.credits) : "—"}</div></div>` : ""}</div>
+      ${p.git && p.git.commits ? `<div><div class="lab">Outputs</div><div class="pout">Git commits ${p.git.commits} · ${p.git.ai} by AI · <span>+${p.git.added} −${p.git.removed} lines</span></div></div>` : p.outputs && p.outputs.commits ? `<div><div class="lab">Outputs</div><div class="pout">AI commits ${p.outputs.commits}</div></div>` : ""}
       ${p.models.length ? `<div><div class="lab">Main models</div><div class="mods">${p.models.map(m=>`<span title="${esc((m.model))}">${esc((m.model))}<b>${m.tokens ? Math.round(m.tokens*100/mt)+"%" : plural(m.turns, "turn")}</b></span>`).join("")}</div></div>` : ""}
       <div><div class="lab">Top sessions</div>${p.top.map(t=>`<button class="pses" data-id="${esc(t.id)}"><span class="t">${esc(t.title)}</span><span class="m">${dur(t.minutes)}${use(t) ? " · "+use(t) : ""}</span></button>`).join("")}</div>
     </article>`; }).join("");
@@ -150,11 +151,11 @@ const HELP = {
   credits: {n: "Kiro credits", d: "Total credits recorded in Kiro history", c: "Credits actually consumed", x: "Differences from your account page (period boundaries or use on other machines)", a: "Track your pace against your limit"},
   costPerAsk: {n: "Estimated cost per prompt", d: "Estimated cost ÷ number of prompts", c: "How heavy a typical prompt was", x: "Differences in prompt size", a: "Watch the trend to see how the size of your prompts changes"},
   heavy: {n: "Heaviest sessions", d: "The 3 sessions with the highest estimated cost", c: "Sessions that drove usage up", x: "Whether the result was worth it", a: "Next period, restart long conversations in a new session, and carry work to a commit in small steps"},
-  outputs: {n: "Outputs", d: "Commits, pull requests and file edits that AI ran with tools and that succeeded (Claude Code only for now)", c: "Whether the cost turned into work that left a trace", x: "Value, quality or productivity. Commits you made by hand are not included", a: "Put them next to cost and look for usage that produced nothing"},
+  outputs: {n: "Outputs", d: "Git commits in the repositories agents worked in, including ones you made by hand, with how many AI ran (without git, the commits AI ran instead). Estimated cost per commit and sessions that reached a commit count only commits and pull requests that AI ran with tools and that succeeded (Claude Code only for now)", c: "Whether the cost turned into work that left a trace", x: "Value, quality or productivity", a: "Put them next to cost and look for usage that produced nothing"},
   gitCommits: {n: "Git commits", d: "Your own commits (user.email) in the repositories agents worked in, including ones made by hand. Each mark on the right edge of a day in the calendar is one commit (filled = run by AI; touch it to see the short hash)", c: "How much of your time with AI became recorded changes", x: "The value of the changes. Work outside the repositories or commits by others", a: "On days with much time or cost but few commits, check where the time went"},
   commits: {n: "Commits", d: "Number of git commits that AI ran successfully", c: "Roughly how often work reached a checkpoint", x: "The value or size of the changes. Commit size varies by person and task", a: "In periods with few commits for the cost, check where the time went"},
   outSessions: {n: "Sessions that reached a commit", d: "Number and share of sessions that made a commit or pull request in the period, counting only Claude Code sessions, the only agent whose outputs are recorded", c: "The share of sessions that left something behind", x: "The value of sessions not meant to commit, such as research or discussion", a: "If low, next period state at the start of each session what done looks like (when to commit)"},
-  costPerCommit: {n: "Estimated cost per commit", d: "Estimated cost of Claude Code sessions ÷ number of commits (only Claude Code records outputs, so other agents' cost is left out)", c: "Roughly how heavy it was to reach a checkpoint", x: "Differences in commit size. Commits made by hand are not included", a: "Next period, keep each prompt to one change and commit often"},
+  costPerCommit: {n: "Estimated cost per commit", d: "Estimated cost of Claude Code sessions ÷ number of commits AI ran in them (only Claude Code records outputs, so other agents' cost is left out). Commits you made by hand are not counted", c: "Roughly how heavy it was to reach a checkpoint", x: "Differences in commit size, or work that went into commits you made by hand", a: "Next period, keep each prompt to one change and commit often"},
   native: {n: "Agent-specific metrics", d: "Numbers each agent records in its history", c: "Trends within the same agent", x: "Comparisons between agents (definitions differ)", a: "Only look at changes over time for the same agent"},
 };
 const H = () => HELP;
