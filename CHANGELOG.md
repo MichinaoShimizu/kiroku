@@ -4,6 +4,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Changed
+
+- `kiroku serve --help` now says which host names `--allow-host` adds to: `localhost`, `127.0.0.1` and `::1` always work, and this computer's own IPs and host name only when serve listens on all interfaces (such as `0.0.0.0:8485`). Before, it said this computer's names and IPs always worked. `kiroku autostart --help` no longer ends with an empty "Flags:" heading
+
 ### Security
 
 - `kiroku html` and `kiroku json` now write files only you can read (`0600`; before, `0644`, readable by other users of the computer). They write a temporary file in the same folder and rename it into place, so a symbolic link left at the output path is replaced instead of followed, and a failed write leaves the old file as it was

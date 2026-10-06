@@ -1,6 +1,6 @@
 # How histories are read
 
-This page summarizes where kiroku reads each agent's history from and how. The list of locations is in [the guide's "Histories read"](guide.md#histories-read). Every adapter converts what it reads into the common session shape (`Builder` in `internal/core`).
+This page summarizes where kiroku reads each agent's history from and how. The list of locations is in [the guide's "Histories read"](guide.md#histories-read). Every adapter converts what it reads into the common session shape (`Builder` in `internal/core`). History lines longer than 64 MiB are skipped and the file is listed as unreadable in "Data sources", and compressed history (`.zst`) is read with a memory limit.
 
 ## Claude Code
 
@@ -17,7 +17,7 @@ This page summarizes where kiroku reads each agent's history from and how. The l
 ## Kiro IDE
 
 - v1.0 and later: `<hash>/sess_*/session.json` + `messages.jsonl` under `~/.kiro/sessions/` (`~/.kiro` means `KIRO_HOME` when it is set; the same applies below). Per-message timestamps, and credits from `promptTurnSummaries` in `usage_summary`
-- Before v1.0: `<globalStorage>/kiro.kiroagent/workspace-sessions/`. There are no per-message timestamps, so it is shown roughly with start = creation time and end = file modification time. No credits are recorded
+- Before v1.0: `<globalStorage>/kiro.kiroagent/workspace-sessions/`. There are no per-message timestamps, so it is shown roughly with start = creation time and end = file modification time. No credits are recorded. Session IDs in `sessions.json` that contain path separators, `..` or drive names are skipped and reported as unreadable, so nothing outside the history folder is read
 
 `internal/source/kiro.go`
 
@@ -59,7 +59,7 @@ This page summarizes where kiroku reads each agent's history from and how. The l
 
 ## Git
 
-Commits by you (`user.email`) are read with the local `git log` from the git repository in the session's working directory (cwd). Environments without git, and locations that are not repositories, are skipped. `internal/gitlog/gitlog.go`
+Commits by you (`user.email`) are read with the local `git log` from the git repository in the session's working directory (cwd), and pushes from the reflog of remote-tracking branches ("update by push"). Environments without git, and locations that are not repositories, are skipped, as are network (UNC) paths on Windows. Since these folders may hold repositories someone else made, git runs without the system config and with the repository's settings that run programs (fsmonitor, hooks, pager, textconv and external diff) turned off, and never asks for credentials. `internal/gitlog/gitlog.go`
 
 ## History retention
 

@@ -33,7 +33,7 @@ Each scenario has the user's goal and a success condition. No steps are given. A
 | 7 | Someone looking back on one session | Review a session that went badly with an AI | Opens the details and can copy the review prompt |
 | 8 | Someone viewing on a phone | Glance at this week while on the move | Nothing overflows sideways, and can read the key figures, "Worth a look" and the calendar |
 | 9 | Someone using only the keyboard | Move between weeks, open session details and close them | Can do it without a mouse, and can see where they are |
-| 10 | Someone who wants to look back on the year and share it | Turn this year's usage into one image to post on social media | Opens "Year in review", understands how to read the chart and why they got their "Your light" name, checks what is and isn't in the image, then saves the PNG |
+| 10 | Someone who wants to look back on the year and share it (skip while Year in review is hidden) | Turn this year's usage into one image to post on social media | Opens "Year in review", understands how to read the chart and why they got their "Your light" name, checks what is and isn't in the image, then saves the PNG |
 
 ## Criteria
 

@@ -6,7 +6,7 @@ Thanks for your interest in kiroku. Issues and pull requests are welcome in Engl
 
 Changes must keep kiroku's promises:
 
-- No external API calls, and no history leaves the machine
+- No external API calls, and no history leaves the machine. The only network access is checking for and downloading kiroku's own releases from GitHub (`install.sh`, `kiroku update`, `kiroku doctor`)
 - kiroku itself never calls an AI
 - The output is a single static HTML file
 

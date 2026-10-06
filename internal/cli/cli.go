@@ -207,8 +207,13 @@ func parse(fs *flag.FlagSet, args []string, maxPos int) ([]string, error) {
 func newFS(name, usage string) *flag.FlagSet {
 	fs := flag.NewFlagSet(name, flag.ContinueOnError)
 	fs.Usage = func() {
-		fmt.Fprintf(fs.Output(), "Usage:\n  kiroku %s\n\nFlags:\n", usage)
-		fs.PrintDefaults()
+		fmt.Fprintf(fs.Output(), "Usage:\n  kiroku %s\n", usage)
+		n := 0
+		fs.VisitAll(func(*flag.Flag) { n++ })
+		if n > 0 { // kiroku autostart のようにオプションがないコマンドでは、空の「Flags:」を出さない
+			fmt.Fprint(fs.Output(), "\nFlags:\n")
+			fs.PrintDefaults()
+		}
 	}
 	return fs
 }
@@ -226,7 +231,7 @@ func cmdServe(args []string) error {
 	c := addCommon(fs)
 	interval := fs.Duration("interval", 5*time.Second, "how often to check the history for changes (reloads after writes settle)")
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
-	allow := fs.String("allow-host", "", "comma-separated extra host `names` the view may be opened by (e.g. a name in your hosts file); localhost and this computer's own names and IPs always work")
+	allow := fs.String("allow-host", "", "comma-separated extra host `names` the view may be opened by (e.g. a name in your hosts file); localhost, 127.0.0.1 and ::1 always work, and this computer's own IPs and host name too when ADDR is 0.0.0.0 or another all-interfaces address")
 	pos, err := parse(fs, args, 1)
 	if err != nil {
 		return quiet(err)

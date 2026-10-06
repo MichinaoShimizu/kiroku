@@ -24,19 +24,21 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | `main.go` | The entry point only (kept at the root so `go install github.com/MichinaoShimizu/kiroku@latest` works); the commands are in `internal/cli` |
 | `internal/cli/cli.go` | Subcommands (`serve`, `html`, `json`, `archive`, `autostart`, `doctor`, `version`, `update`, `help`), option parsing, and the old syntax (`kiroku --serve` and so on) |
 | `internal/cli/load.go` | Loading history (removing duplicates), overriding the price table |
+| `internal/cli/archive.go` | `kiroku archive` (status, `on`, and `off`, which offers to delete the copies only in a folder marked by `on`) |
 | `internal/cli/update.go` | `kiroku update` (downloads from Releases, verifies, and replaces itself) |
 | `internal/cli/doctor.go` | `kiroku doctor` (lists what was found and what to run next; only reads) |
 | `internal/cli/autostart.go` | `kiroku autostart` (a launchd agent on macOS, a systemd user service on Linux) |
 | `internal/cli/scope.go` | `kiroku html --week` / `--month` (keeps only one period's sessions, commits and pushes) |
 | `internal/cli/serve.go` | `kiroku serve` (watches history for changes, reloads, and pushes to the view) |
 | `internal/cli/cache.go` | On reload, skips history unchanged since last time (using a per-agent fingerprint and the per-conversation marks of `source.Splitter`) |
+| `internal/archive` | The copies `kiroku archive` keeps: the on/off marks, compressing history to `.zst` (`Sync`), usage, and deleting only the `.zst` copies (`Clear`) |
 | `internal/source` | Adapters that read each agent's history. Details on how they read are in [sources.md](sources.md) |
 | `internal/core` | The common session shape (`Builder` → `Session`), tokens and pricing, agent-specific metrics |
 | `internal/report` | Weekly and monthly aggregates (`Summarize`), per-project summaries (`project.go`), shares by branch and agent (`share.go`) |
-| `internal/gitlog` | Reads commits from the git repository in each session's working directory (skipped without git) |
-| `internal/web` | The view. Written as `template.html` (markup), `style.css` and the script in `js/*.js`, split by role (`state.js` data and view state, `format.js` helpers, `calendar.js` week and month calendars, `summary.js` / `review.js` / `panels.js` the summary, `git.js` / `session.js` the details panel, `year.js`, `events.js`, `boot.js`, `live.js`); `web.go` joins the script files in the fixed order of its `scripts` list into one `<script>` and combines everything with the aggregate JSON into one HTML file. `help_test.go` and `script_test.go` check the view's explanations and script |
+| `internal/gitlog` | Reads commits, and pushes from the reflog, from the git repository in each session's working directory (skipped without git), with the repository's own settings that run programs turned off |
+| `internal/web` | The view. Written as `template.html` (markup), `style.css` and the script in `js/*.js`, split by role (`state.js` data and view state, `format.js` helpers, `calendar.js` week and month calendars, `summary.js` / `review.js` / `panels.js` the summary, `git.js` / `session.js` the details panel, `year.js`, `events.js` input and keyboard, `boot.js` start-up, `live.js` updates under `kiroku serve`; `loading.html` is the page `kiroku serve` shows while it first reads history); `web.go` joins the script files in the fixed order of its `scripts` list into one `<script>` and combines everything with the aggregate JSON into one HTML file. `help_test.go` and `script_test.go` check the view's explanations and script |
 | `testdata/` | Synthetic history (`home/`, `codex/`, `crew/`, `sqlite/`), `golden.json`, `snapshot.json`, `mtimes.json` |
-| `tools/` | `release-notes.sh` and `next-version.sh` (releases), `screenshots/` (dummy data, demo, screenshots and the view's e2e) |
+| `tools/` | `release-notes.sh` and `next-version.sh` (releases), `screenshots/` (dummy data with `gen.py` and `mkgit.py`, the demo's link card with `ogp.py`, screenshots with `capture.mjs`, and the view's e2e: `smoke.mjs`, plus `hostile.py` and `xss.mjs` for XSS) |
 | `install.sh`, `.goreleaser.yaml` | The installer, and how release files are built |
 
 The price table is `Prices` in `internal/core/usage.go`. When you update it, also change `PricesAsOf` (the date shown in the view).
@@ -112,7 +114,7 @@ git push origin v0.1.8
 
 In PRs with changes, add user-visible changes to `## Unreleased` in English (right after a release, when the heading is missing, create `## Unreleased` at the top). If the CHANGELOG has no section for the tagged version, the release stops without being created (you can check locally with `sh tools/release-notes.sh v0.1.8`). If the number doesn't match the contents, CI (release-dry-run) and Tag also stop.
 
-Release (`.github/workflows/release.yml`) tests on 3 OSes, then uses GoReleaser to build files and checksums for macOS, Linux and Windows (amd64 / arm64) and publishes them to Releases. Versions with a `-`, such as `v0.2.0-rc.1`, become prereleases (`prerelease: auto` in `.goreleaser.yaml`). The number check compares the part before the `-` (`v0.2.0`) with the result of `next-version.sh`.
+Release (`.github/workflows/release.yml`) tests on 3 OSes, then uses GoReleaser to build files and checksums for macOS, Linux and Windows (amd64 / arm64) and publishes them to Releases. It then attests the archives and `checksums.txt` with `actions/attest-build-provenance` (the job has `id-token: write` and `attestations: write`), so `gh attestation verify <file> --repo MichinaoShimizu/kiroku` and `install.sh` can check where they were built. Versions with a `-`, such as `v0.2.0-rc.1`, become prereleases (`prerelease: auto` in `.goreleaser.yaml`). The number check compares the part before the `-` (`v0.2.0`) with the result of `next-version.sh`.
 
 ## Changing the view
 
@@ -133,21 +135,21 @@ To run the same thing as CI's `e2e` locally, you need Node.js and Playwright.
 ```bash
 (cd tools/screenshots && npm i --no-save playwright && npx playwright install chromium)
 sh tools/screenshots/run.sh --html /tmp/kiroku.html
-node tools/screenshots/smoke.mjs /tmp/kiroku.html   # prints FAIL only for failed items and exits with code 1
+node tools/screenshots/smoke.mjs /tmp/kiroku.html   # prints ok or FAIL for each check, and exits with code 1 if any failed
 ```
 
 This only checks that things work. Clarity and wording are checked with the scenarios in [usability.md](usability.md).
 
 ## Screenshots
 
-The images in the README and the guide (`docs/screenshot.png`, `docs/summary.png`, `docs/year.png`) can be retaken from dummy data. When you change the view, update them as well.
+The images in the README and the guide (`docs/screenshot.png`, `docs/summary.png`, `docs/year.png`) and the demo's link-card image (`docs/og.png`) can be retaken from dummy data. When you change the view, update them as well.
 
 ```bash
 cd tools/screenshots && npm i playwright && npx playwright install chromium && cd ../..
 sh tools/screenshots/run.sh
 ```
 
-`gen.py` creates about 5 weeks of Claude Code history for 4 made-up projects, and `mkgit.py` creates matching git repositories, in a temporary directory. `capture.mjs` takes the week calendar and weekly summary for last week at 1440x900 (dark theme, Asia/Tokyo), and saves the Year in review share image (1600x900).
+`gen.py` creates about 5 weeks of Claude Code history for 4 made-up projects, and `mkgit.py` creates matching git repositories, in a temporary directory. `capture.mjs` takes the week calendar and weekly summary for last week at 1440x900 (dark theme, Asia/Tokyo), the week calendar again at 1440x754 at 2x for `og.png` (2880x1508), and the Year in review share image (1600x900) for `year.png`. While Year in review is hidden (`YEAR_ON` in `js/state.js`), `year.png` is left as it is. The `Demo` workflow adds the link-card tags that point at `og.png` with `ogp.py`; HTML you write yourself never gets them.
 
 `sh tools/screenshots/run.sh --html <output.html>` builds only the dummy-data HTML (no Node needed). It sets `KIROKU_DEMO=1` and shows a Japan-time clock from any time zone. The git repositories in the temporary directory are deleted, so commit links don't open.
 
