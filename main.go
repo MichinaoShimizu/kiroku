@@ -85,6 +85,7 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 			continue
 		}
 		n, dup, archived, oldest := 0, 0, 0, 0.0
+		var ids []string
 		_, keeps := s.(source.Keeper)
 		outs, err := cache.load(s, gap)
 		for _, o := range outs {
@@ -98,6 +99,7 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 			n++
 			if sess := o.sess; sess != nil {
 				data = append(data, sess)
+				ids = append(ids, sess.ID)
 				if keeps && strings.HasSuffix(sess.File, ".zst") { // 元が消えて、kiroku archive のコピーから読んだ
 					archived++
 				}
@@ -106,7 +108,7 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 				}
 			}
 		}
-		r := source.Report{Name: s.Name(), N: n, Dup: dup, Archived: archived, Where: s.Where(), Oldest: oldest}
+		r := source.Report{Name: s.Name(), N: n, Dup: dup, Archived: archived, Where: s.Where(), Oldest: oldest, IDs: ids}
 		if k, ok := s.(source.Retainer); ok {
 			r.Keep = k.Retention()
 		}

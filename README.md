@@ -41,6 +41,8 @@ curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install
 
 It installs to `/usr/local/bin`, or `~/.local/bin` if that is not writable (set `KIROKU_INSTALL_DIR` to choose another place).
 
+Then run `kiroku doctor`. It shows which agents' history kiroku found, whether any of it is about to be deleted, and what to run next. It only reads and changes nothing.
+
 On Windows, download the zip from [Releases](https://github.com/MichinaoShimizu/kiroku/releases), extract it, and put `kiroku.exe` in a folder on your `PATH`. With Go installed, `go install github.com/MichinaoShimizu/kiroku@latest` also works.
 
 ## Keep your history
@@ -68,9 +70,12 @@ See [Commands](docs/guide.md#commands) for `sudo`, `go install` and specific ver
 ## Usage
 
 ```bash
-kiroku serve    # open the view at http://localhost:8484/ (new history appears automatically)
-kiroku html     # write a static HTML file (kiroku.html) and open it
-kiroku help     # list commands ("kiroku <command> --help" for options)
+kiroku serve              # open the view at http://localhost:8484/ (new history appears automatically)
+kiroku autostart on       # start kiroku serve each time you log in (macOS and Linux)
+kiroku html               # write a static HTML file (kiroku.html) and open it
+kiroku html --week last   # write only last week, to show someone without handing over everything
+kiroku doctor             # check what kiroku found and whether history will be deleted
+kiroku help               # list commands ("kiroku <command> --help" for options)
 ```
 
 The HTML contains your prompts, file paths and commit messages as they are. Check its content before sharing it with anyone.
@@ -79,7 +84,7 @@ For how to read the view, metric definitions, which histories are read and all o
 
 ## Uninstall
 
-Delete the binary: `rm "$(command -v kiroku)"` (with `sudo` if it is in `/usr/local/bin`). kiroku keeps no data of its own; view settings are stored in your browser.
+Run `kiroku autostart off` if you turned it on, then delete the binary: `rm "$(command -v kiroku)"` (with `sudo` if it is in `/usr/local/bin`). kiroku keeps no data of its own; view settings are stored in your browser.
 
 ## Contributing
 
