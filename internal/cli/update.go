@@ -60,14 +60,15 @@ func runUpdate(args []string) error {
 	}
 	cur := "v" + strings.TrimPrefix(version, "v")
 	newer := compareVersions(target, cur) > 0
+	st := styleFor(os.Stdout)
 	if *check {
 		switch {
 		case version == "dev":
-			fmt.Printf("latest is %s (this kiroku is a dev build from source)\n", target)
+			fmt.Printf("latest is %s %s\n", target, st.dim("(this kiroku is a dev build from source)"))
 		case newer:
-			fmt.Printf("a new version is available: %s → %s (run \"kiroku update\")\n", cur, target)
+			fmt.Printf("%s %s → %s (run %s)\n", st.warn("a new version is available:"), cur, target, st.bold("\"kiroku update\""))
 		default:
-			fmt.Printf("already up to date (%s)\n", cur)
+			fmt.Println(st.ok("already up to date") + " (" + cur + ")")
 		}
 		return nil
 	}
@@ -75,7 +76,7 @@ func runUpdate(args []string) error {
 		return fmt.Errorf("this kiroku is a dev build from source, so it will not replace itself; run \"go install github.com/MichinaoShimizu/kiroku@latest\" or pass --force")
 	}
 	if !newer && *to == "" && !*force {
-		fmt.Printf("already up to date (%s)\n", cur)
+		fmt.Println(st.ok("already up to date") + " (" + cur + ")")
 		return nil
 	}
 	if *to != "" && version != "dev" && compareVersions(target, cur) < 0 && !*force { // 古い版に戻すのは、はっきり頼まれたときだけ
@@ -89,11 +90,50 @@ func runUpdate(args []string) error {
 		exe = p
 	}
 	fmt.Printf("downloading kiroku %s…\n", target)
+	if st.on { // 端末のときだけ、落ちてきた分を見せる（遅い回線で止まったように見えないように）
+		updateProgress = os.Stdout
+		defer func() { updateProgress = nil }()
+	}
 	if err := selfUpdate(client, target, runtime.GOOS, runtime.GOARCH, exe); err != nil {
 		return err
 	}
-	fmt.Printf("updated %s → %s (%s)\n", cur, target, exe)
+	fmt.Printf("%s %s → %s %s\n", st.ok("updated"), cur, target, st.dim("("+exe+")"))
 	return nil
+}
+
+// updateProgress は、ダウンロードの進み具合を書く先。端末のときだけ設定する（テストやパイプのときは nil）。
+var updateProgress io.Writer
+
+// progress は、落ちてきた分を同じ行に書きかえながら見せる。
+type progress struct {
+	w     io.Writer
+	total int64 // Content-Length（分からなければ 0）
+	n     int64
+	last  time.Time
+}
+
+func (p *progress) Write(b []byte) (int, error) {
+	p.n += int64(len(b))
+	if time.Since(p.last) >= 200*time.Millisecond { // 書きすぎると、それだけで遅くなる
+		p.last = time.Now()
+		p.line()
+	}
+	return len(b), nil
+}
+
+func (p *progress) line() {
+	got := humanBytes(p.n)
+	if p.total > 0 {
+		got += " / " + humanBytes(p.total)
+	}
+	// いつも同じ幅で書く。短くなったときに、前に書いた分の残り（1023.9 KB → 1.0 MB の "KB"）が見えないように
+	fmt.Fprintf(p.w, "\r  %-24s", got)
+}
+
+// done は最後の行を書いて改行する（途中で終わっても、次の行が混ざらないように）。
+func (p *progress) done() {
+	p.line()
+	fmt.Fprintln(p.w)
 }
 
 // newUpdateClient は kiroku update の HTTP クライアント。
@@ -198,8 +238,12 @@ func selfUpdate(client *http.Client, tag, goos, goarch, exe string) error {
 	}
 	name := fmt.Sprintf("kiroku_%s_%s_%s%s", strings.TrimPrefix(tag, "v"), goos, goarch, ext)
 	base := releaseBase + "/releases/download/" + tag + "/"
-	archive, err := fetch(client, base+name)
+	archive, err := fetchShow(client, base+name, updateProgress)
 	if err != nil {
+		var he *httpError
+		if errors.As(err, &he) && he.code == http.StatusNotFound { // 版がない・その OS/CPU 向けがない
+			return fmt.Errorf("%s has no %s (that version may not exist; see %s/releases)", tag, name, releaseBase)
+		}
 		return fmt.Errorf("could not download %s: %w", name, err)
 	}
 	sums, err := fetch(client, base+"checksums.txt")
@@ -230,15 +274,34 @@ func selfUpdate(client *http.Client, tag, goos, goarch, exe string) error {
 }
 
 func fetch(client *http.Client, url string) ([]byte, error) {
+	return fetchShow(client, url, nil)
+}
+
+// httpError は、GitHub が 200 以外を返したときのエラー。404 だけ言い方を変えるため、状態の番号を持つ。
+type httpError struct {
+	code   int
+	status string
+}
+
+func (e *httpError) Error() string { return e.status }
+
+// fetchShow は url の中身を読む。show があれば、落ちてきた分をそこに見せる。
+func fetchShow(client *http.Client, url string, show io.Writer) ([]byte, error) {
 	resp, err := client.Get(url)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(resp.Status)
+		return nil, &httpError{code: resp.StatusCode, status: resp.Status}
 	}
-	return io.ReadAll(io.LimitReader(resp.Body, 200<<20))
+	var r io.Reader = io.LimitReader(resp.Body, 200<<20)
+	if show != nil {
+		p := &progress{w: show, total: resp.ContentLength}
+		defer p.done()
+		r = io.TeeReader(r, p)
+	}
+	return io.ReadAll(r)
 }
 
 // maxBinary は、アーカイブから取り出す kiroku の大きさの上限（壊れた・わざと作ったアーカイブでメモリを使い切らないため）。

@@ -286,7 +286,7 @@ func TestRunUpdate(t *testing.T) {
 		{"--to の版の形がおかしい（数字だけでない）", "0.1.0", []string{"--to", "latest"}, "", "not a release version", "old"},
 		{"--force なら手元のビルドも置きかえる", "dev", []string{"--force"}, "updated vdev → v9.9.9", "", "kiroku v9.9.9"},
 		{"--force なら最新でも入れ直す", "9.9.9", []string{"--force"}, "updated v9.9.9 → v9.9.9", "", "kiroku v9.9.9"},
-		{"ない版はエラーで、元のまま", "0.1.0", []string{"--to", "v1.2.3"}, "downloading kiroku v1.2.3", "could not download kiroku_1.2.3_", "old"},
+		{"ない版はエラーで、元のまま", "0.1.0", []string{"--to", "v1.2.3"}, "downloading kiroku v1.2.3", "v1.2.3 has no kiroku_1.2.3_", "old"},
 		{"版を位置引数で書いたらエラー（黙って最新を入れない）", "0.1.0", []string{"v9.9.8"}, "", "too many arguments: v9.9.8", "old"},
 		{"位置引数の後ろの --check も読む（確かめるだけのつもりで置きかえない）", "0.1.0", []string{"now", "--check"}, "", "too many arguments: now", "old"},
 		{"知らないオプション", "0.1.0", []string{"--nope"}, "", "flag provided but not defined", "old"},
@@ -418,8 +418,9 @@ func TestSelfUpdateFailures(t *testing.T) {
 		t.Errorf("入れかわっていない: %q", got)
 	}
 
-	// その版がない・つながらない
-	if err := selfUpdate(srv.Client(), "v1.0.0", "linux", "amd64", exe); err == nil || !strings.Contains(err.Error(), "could not download kiroku_1.0.0_linux_amd64.tar.gz: 404 Not Found") {
+	// その版がない（404）ときは、つながらないときと言い方を分ける（版を打ちまちがえただけ、ということが多い）
+	err := selfUpdate(srv.Client(), "v1.0.0", "linux", "amd64", exe)
+	if err == nil || !strings.Contains(err.Error(), "v1.0.0 has no kiroku_1.0.0_linux_amd64.tar.gz") || !strings.Contains(err.Error(), "/releases") {
 		t.Errorf("ない版: %v", err)
 	}
 	srv.Close()
@@ -525,5 +526,46 @@ func TestRunVersion(t *testing.T) {
 	})
 	if want := "kiroku 1.2.3 (" + runtime.GOOS + "/" + runtime.GOARCH + ")\n"; out != want {
 		t.Errorf("= %q, want %q", out, want)
+	}
+}
+
+// ダウンロード中は、落ちてきた分を同じ行に書きかえながら見せる（遅い回線で、止まったように見えないように）。
+func TestFetchShowProgress(t *testing.T) {
+	body := bytes.Repeat([]byte("x"), 3<<20)
+	length := true
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if length {
+			w.Header().Set("Content-Length", fmt.Sprint(len(body)))
+		}
+		w.Write(body)
+	}))
+	defer srv.Close()
+	var b bytes.Buffer
+	got, err := fetchShow(srv.Client(), srv.URL, &b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != len(body) {
+		t.Fatalf("%d バイトしか読めていない", len(got))
+	}
+	if out := b.String(); !strings.Contains(out, "\r  3.0 MB / 3.0 MB") || !strings.HasSuffix(out, "\n") {
+		t.Errorf("進み具合が出ていない: %q", out)
+	}
+	// 大きさが分からないとき（Content-Length がない）は、落ちてきた分だけを見せる
+	length = false
+	b.Reset()
+	if _, err := fetchShow(srv.Client(), srv.URL, &b); err != nil {
+		t.Fatal(err)
+	}
+	if out := b.String(); !strings.Contains(out, "\r  3.0 MB") || strings.Contains(out, "/") {
+		t.Errorf("大きさが分からないときの進み具合がおかしい: %q", out)
+	}
+	// 見せる先がなければ、何も書かない（テストやパイプのとき）
+	b.Reset()
+	if _, err := fetchShow(srv.Client(), srv.URL, nil); err != nil {
+		t.Fatal(err)
+	}
+	if b.Len() != 0 {
+		t.Errorf("見せる先がないのに書いている: %q", b.String())
 	}
 }

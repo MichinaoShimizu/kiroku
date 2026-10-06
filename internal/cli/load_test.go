@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -255,4 +256,39 @@ func lenOf(v any) any {
 		return len(l)
 	}
 	return v
+}
+
+// serve・html の読み込みの行は、履歴があったエージェントだけを並べ、残りは1行にまとめる
+// （どれも 0 件のときは、どこを探したのか分かるように全部出す）。
+func TestLogSources(t *testing.T) {
+	old := logw
+	t.Cleanup(func() { logw = old })
+	var b bytes.Buffer
+	logw = &b
+	rep := []source.Report{
+		{Name: "Claude Code", N: 12, Where: "/x/projects"},
+		{Name: "Codex", Where: "/x/.codex"},
+		{Name: "Kiro IDE (legacy)", Where: "none"},
+	}
+	logSources(rep, true)
+	out := b.String()
+	if !strings.Contains(out, "Claude Code: 12 sessions (/x/projects)") {
+		t.Errorf("見つかったものが出ていない:\n%s", out)
+	}
+	if !strings.Contains(out, "no history yet: Codex, Kiro IDE (legacy)") {
+		t.Errorf("0 件のまとめがない:\n%s", out)
+	}
+	if strings.Contains(out, "/x/.codex") {
+		t.Errorf("0 件の場所まで出ている:\n%s", out)
+	}
+	// どれも 0 件なら、探した場所を全部出す。場所が分からないものはそう書く
+	b.Reset()
+	logSources(rep[1:], false)
+	out = b.String()
+	if !strings.Contains(out, "Codex: 0 sessions (/x/.codex)") || !strings.Contains(out, "(not installed)") {
+		t.Errorf("どれも 0 件のときに場所が出ていない:\n%s", out)
+	}
+	if strings.Contains(out, "no history yet") {
+		t.Errorf("どれも 0 件なのにまとめている:\n%s", out)
+	}
 }

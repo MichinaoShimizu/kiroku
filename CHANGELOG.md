@@ -4,8 +4,18 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Added
+
+- `kiroku doctor --all` lists every agent kiroku looks at, with the place it looks, including the ones with no history yet
+- `kiroku doctor` now shows which kiroku is running, and warns when another kiroku comes first in your `PATH` so `kiroku` runs that one instead (`install.sh` already warned about this)
+- `kiroku update` shows how much of the download has arrived, so a slow connection no longer looks stuck
+
 ### Changed
 
+- kiroku now uses colour and emphasis to separate what is fine (green `✓`), what needs attention (yellow `!`), what failed (red) and what is only a note (dim), and puts the commands and addresses you are meant to use in bold. Only when writing to a terminal: piped or redirected output, `NO_COLOR` and `TERM=dumb` stay plain
+- `kiroku doctor`, `kiroku serve` and `kiroku html` no longer list every agent with no history. They name the ones your history was found in, and sum the rest up in one line, so the lines that ask you to do something are not pushed down the screen. Agents whose files could not be read are still listed, and when no history is found at all, every place kiroku looked is shown
+- `kiroku doctor` writes `not installed` instead of `none` for the place an agent that isn't installed keeps its history, and `kiroku serve` says `1 session loaded`, not `1 sessions loaded`
+- `kiroku update --to` for a version that does not exist now says so and points at Releases, instead of reporting a bare `404 Not Found`
 - When `install.sh` installs into a folder that is not in your `PATH`, it now names the file to add the line to for your shell (`~/.zshrc`, or `~/.bash_profile` on macOS and `~/.bashrc` on Linux), uses `fish_add_path` for fish, says that a new terminal is needed, and shows how to start kiroku right away without one
 - When `gh` is too old to check the build provenance, the warning now shows which version of `gh` was used and where to update it
 

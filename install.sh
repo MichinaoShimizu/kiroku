@@ -19,8 +19,26 @@ set -eu
 
 REPO="MichinaoShimizu/kiroku"
 
+# 色は端末に出すときだけ（NO_COLOR は https://no-color.org/）。意味は3つに絞る:
+# うまくいった（緑）、気をつけてほしい（黄）、止まった（赤）。打ってほしい行は bold、補足は dim。
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-}" != dumb ]; then
+  c_ok=$(printf '\033[32m')
+  c_warn=$(printf '\033[33m')
+  c_bad=$(printf '\033[31m')
+  c_bold=$(printf '\033[1m')
+  c_dim=$(printf '\033[2m')
+  c_off=$(printf '\033[0m')
+else
+  c_ok=''
+  c_warn=''
+  c_bad=''
+  c_bold=''
+  c_dim=''
+  c_off=''
+fi
+
 say() { printf '%s\n' "$*"; }
-die() { printf 'kiroku: %s\n' "$*" >&2; exit 1; }
+die() { printf '%skiroku: %s%s\n' "${c_bad:-}" "$*" "${c_off:-}" >&2; exit 1; }
 
 main() {
 command -v curl >/dev/null 2>&1 || die "curl is required"
@@ -89,7 +107,7 @@ unchecked() {
   if [ "$require" = 1 ]; then
     die "$1, and KIROKU_REQUIRE_ATTESTATION=1 is set"
   fi
-  say "warning: $1; $skipped"
+  say "${c_warn}warning:${c_off} $1; ${c_dim}${skipped}${c_off}"
 }
 attest=yes
 if [ "${KIROKU_SKIP_ATTESTATION:-}" = 1 ]; then
@@ -122,7 +140,7 @@ if [ "$attest" = yes ]; then
     if [ "$status" -eq 0 ] || ! grep -q 'SourceRepositoryRef' "$tmp/attest.log"; then break; fi
   done
   if [ "$status" -eq 0 ]; then
-    say "verified the build provenance with gh"
+    say "${c_ok}verified the build provenance with gh${c_off}"
   elif [ "$status" -eq 4 ]; then
     # 4 は gh にログインしていないとき
     unchecked "gh is not logged in (\"gh auth login\"), so the build provenance was not checked"
@@ -165,7 +183,7 @@ fi
 mv -f "$new" "$dir/kiroku" || die "could not install into $dir (set KIROKU_INSTALL_DIR to choose another place)"
 new=""
 
-say "installed $("$dir/kiroku" --version) to $dir/kiroku"
+say "${c_ok}installed $("$dir/kiroku" --version)${c_off} to $dir/kiroku"
 
 # PATH の前のほうに別の kiroku があると、そちらが動く（/usr/local/bin の古い版など）
 real_dir=$(cd "$dir" && pwd -P)
@@ -183,11 +201,11 @@ done
 IFS=$old_ifs
 set +f
 if [ -n "$first" ] && [ "$(cd "$first" 2>/dev/null && pwd -P)" != "$real_dir" ]; then
-  say "warning: another kiroku comes first in your PATH, so \"kiroku\" runs $first/kiroku, not the one just installed."
-  say "         Remove it, or put $dir before $first in your PATH"
+  say "${c_warn}warning:${c_off} another kiroku comes first in your PATH, so \"kiroku\" runs $first/kiroku, not the one just installed."
+  say "         ${c_dim}Remove it, or put $dir before $first in your PATH${c_off}"
 fi
 case ":$PATH:" in
-  *":$dir:"*) say "run \"kiroku serve\" to start (\"kiroku help\" for usage)" ;;
+  *":$dir:"*) say "run ${c_bold}\"kiroku serve\"${c_off} to start ${c_dim}(\"kiroku help\" for usage)${c_off}" ;;
   *)
      # 書き足す先と書き方はシェルごとに違う（fish に export PATH はない）。分からないときは今までどおりの言い方
      line="export PATH=\"$dir:\$PATH\""
@@ -200,14 +218,14 @@ case ":$PATH:" in
        */bash) if [ "$os" = darwin ]; then rc="~/.bash_profile"; else rc="~/.bashrc"; fi ;;
        *) rc="your shell config (e.g. ~/.zshrc or ~/.bashrc)" ;;
      esac
-     say "$dir is not in your PATH. Add this line to $rc:"
-     say "  $line"
-     say "then open a new terminal and run \"kiroku serve\" to start (\"kiroku help\" for usage)"
-     say "or start it now without opening one: \"$dir/kiroku\" serve"
+     say "${c_warn}$dir is not in your PATH.${c_off} Add this line to $rc:"
+     say "  ${c_bold}${line}${c_off}"
+     say "then open a new terminal and run ${c_bold}\"kiroku serve\"${c_off} to start ${c_dim}(\"kiroku help\" for usage)${c_off}"
+     say "${c_dim}or start it now without opening one: \"$dir/kiroku\" serve${c_off}"
      ;;
 esac
-say "tip: Claude Code deletes conversations older than 30 days by default. To keep more history for kiroku, set \"cleanupPeriodDays\": 3650 in ~/.claude/settings.json"
-say "     https://code.claude.com/docs/en/settings-reference#cleanupperioddays"
+say "${c_dim}tip: Claude Code deletes conversations older than 30 days by default. To keep more history for kiroku, set \"cleanupPeriodDays\": 3650 in ~/.claude/settings.json${c_off}"
+say "${c_dim}     https://code.claude.com/docs/en/settings-reference#cleanupperioddays${c_off}"
 }
 
 main "$@"
