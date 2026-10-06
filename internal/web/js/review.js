@@ -19,7 +19,9 @@ function askPrompt(w, pw, M){
     "- All figures are rough estimates from history. Clearly mark anything the data can't support as a guess",
     ...(V.n == null ? [] : [`- This ${wk} is still in progress (${V.n} days, ${dSpan(start, today0(), true)}). Figures for the previous ${wk} cover the same days (${V.range})`]),
     "- See \"How to read the metrics\" at the end for each metric's definition and what it can and cannot tell you",
-    "", "# Metrics kiroku flagged by threshold (candidates, not verdicts)",
+    AI_DATA_NOTE);
+  const di = L.length; // ここから下は履歴から作ったデータ（プロジェクト名や題が入る）。最後にコードブロックで囲む
+  L.push("# Metrics kiroku flagged by threshold (candidates, not verdicts)",
     ...(() => { const F = findList(w, pw, unit); return F.length ? F.map(f => `- ${f.see.replace(/<[^>]+>/g, "")} (threshold: ${f.rule.charAt(0).toLowerCase() + f.rule.slice(1)})`) : ["- No metric crossed a threshold"]; })(),
     "", "# Overall",
     `- Active time: ${dur(w.active)}${prev(w.active, pw && pw.active, dur, "active")}`,
@@ -77,6 +79,7 @@ function askPrompt(w, pw, M){
     L.push("", "# Agent-specific metrics");
     w.native.forEach(g => L.push(`- ${(g.source)} (${plural(g.sessions, "session")}): ` + g.values.map(v => `${nlabel(v)} ${nativeText(v)}`).join(sep)));
   }
+  L.push("", "# History data", mdFence(L.splice(di).join("\n")));
   L.push("", "# How to read the metrics");
   Object.values(H()).forEach(h => L.push(`- ${h.n}: ${h.d}. Tells you: ${h.c}. Doesn't tell you: ${h.x}`));
   return L.join("\n");

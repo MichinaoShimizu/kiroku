@@ -80,15 +80,24 @@ go test -run TestSnapshot -update ./internal/cli
 On PRs and pushes to main, `.github/workflows/ci.yml` runs the following.
 
 - `test` (Ubuntu, macOS, Windows): gofmt (except Windows), vet, staticcheck and govulncheck (Ubuntu only, pinned to 2025.1.1 and v1.8.0), tests, build
-- `release-dry-run`: `goreleaser release --snapshot` (does not publish; `go mod tidy -diff` also catches an untidy go.mod), extracting release notes from the top section of the CHANGELOG, and, if that section is a version not yet tagged, checking that its number matches `tools/next-version.sh`
-- `e2e`: opens the dummy-data HTML in Chromium and uses `tools/screenshots/smoke.mjs` to check that the key flows work (switching themes, moving between weeks, opening and closing session details and where focus returns after closing, the weekly report draft, search, month view and shortcuts), that nothing overflows sideways, and that there are no script errors, at 1440px, 1000px, 390px and 320px It also builds the view from synthetic history full of HTML and script payloads (`tools/screenshots/hostile.py`) and drives it with `tools/screenshots/xss.mjs` to check that no script runs, no element is injected and nothing is loaded from the network
-- `install-script` (Ubuntu, macOS): runs shellcheck on `install.sh` (Ubuntu only), actually installs the latest release, and checks `kiroku --version`
+- `release-dry-run`: `goreleaser release --snapshot` with the same pinned GoReleaser as the release and no Go cache (does not publish; `go mod tidy -diff` also catches an untidy go.mod), extracting release notes from the top section of the CHANGELOG, and, if that section is a version not yet tagged, checking that its number matches `tools/next-version.sh`
+- `e2e`: opens the dummy-data HTML in Chromium and uses `tools/screenshots/smoke.mjs` to check that the key flows work (switching themes, moving between weeks, opening and closing session details and where focus returns after closing, the weekly report draft, search, month view and shortcuts), that nothing overflows sideways, and that there are no script errors and no Content-Security-Policy violations, at 1440px, 1000px, 390px and 320px. Playwright is pinned in `tools/screenshots/package.json` and `package-lock.json` and installed with `npm ci --ignore-scripts`; this job runs npm packages, so it does not use the Go cache. It also builds the view from synthetic history full of HTML and script payloads (`tools/screenshots/hostile.py`) and drives it with `tools/screenshots/xss.mjs` to check that no script runs, no element is injected and nothing is loaded from the network
+- `install-script` (Ubuntu, macOS): runs shellcheck on `install.sh` (Ubuntu only), actually installs the latest release, and checks `kiroku --version`; it installs once more with `KIROKU_REQUIRE_ATTESTATION=1` so the build provenance check must pass
+
+How the workflows are locked down:
+
+- Every third-party action is pinned to a full commit SHA with the version in a trailing comment (`uses: actions/checkout@<sha> # v7.0.1`). Dependabot updates the SHA and the comment together. To bump one by hand, resolve the tag with `git ls-remote https://github.com/<owner>/<repo> 'refs/tags/<tag>*'` (for an annotated tag, use the `^{}` line)
+- GoReleaser itself is pinned (`version:` in `release.yml` and `ci.yml`); Dependabot does not track it, so bump both by hand
+- Each job declares the least `permissions` it needs. Only `release` (in `release.yml`) and `tag` write to the repository, and only `deploy` in `pages.yml` gets `pages: write` and `id-token: write`
+- `actions/checkout` runs with `persist-credentials: false` everywhere except `tag.yml`, which pushes the tag
+- The release build (`release.yml`), `release-dry-run`, `e2e` and the demo build run `setup-go` with `cache: false`, so a cache written by a job that runs npm packages can't leak into the release build
+- Check the workflows with `go run github.com/rhysd/actionlint/cmd/actionlint@latest` after changing them
 
 Other workflows:
 
 - `Tag` (`tag.yml`): when CHANGELOG.md changes on main (and manually). See "Making a release" below
 - `Release` (`release.yml`): on a push of a `v*` tag, or when called from Tag
-- Dependabot (`.github/dependabot.yml`): each week, one pull request for Go modules and one for GitHub Actions (security fixes come right away)
+- Dependabot (`.github/dependabot.yml`): each week, one pull request each for Go modules, GitHub Actions and Playwright (npm in `tools/screenshots`) (security fixes come right away)
 - `Demo` (`pages.yml`): on pushes to main, every Monday (3:17 UTC) and manually, builds the dummy-data HTML and publishes it to GitHub Pages (the Live demo in the README). To use it, set Settings → Pages → Source to "GitHub Actions". The dummy data is made in Japan time, so aggregation is also split in Japan time (`TZ=Asia/Tokyo`), and when the `KIROKU_DEMO` marker is present the view shows a Japan-time clock regardless of the viewer's time zone (so it doesn't look like late-night work when opened from abroad). The demo also opens on the latest week whose weekdays (Mon–Fri) all have records, since the current week is usually thin right after the Monday rebuild
 
 ## Making a release
@@ -131,7 +140,7 @@ When you change the view (`template.html`, `style.css` and `js/*.js` in `interna
 To run the same thing as CI's `e2e` locally, you need Node.js and Playwright.
 
 ```bash
-(cd tools/screenshots && npm i --no-save playwright && npx playwright install chromium)
+(cd tools/screenshots && npm ci --ignore-scripts && npx playwright install chromium)
 sh tools/screenshots/run.sh --html /tmp/kiroku.html
 node tools/screenshots/smoke.mjs /tmp/kiroku.html   # prints FAIL only for failed items and exits with code 1
 ```
@@ -143,7 +152,7 @@ This only checks that things work. Clarity and wording are checked with the scen
 The images in the README and the guide (`docs/screenshot.png`, `docs/summary.png`, `docs/year.png`) can be retaken from dummy data. When you change the view, update them as well.
 
 ```bash
-cd tools/screenshots && npm i playwright && npx playwright install chromium && cd ../..
+(cd tools/screenshots && npm ci --ignore-scripts && npx playwright install chromium)
 sh tools/screenshots/run.sh
 ```
 

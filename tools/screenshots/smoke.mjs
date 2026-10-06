@@ -1,9 +1,10 @@
 // 画面の大事な流れが動くかを、ダミーデータの HTML をブラウザで操作して確かめる（CI の e2e）。
 //   sh tools/screenshots/run.sh --html /tmp/kiroku.html && node tools/screenshots/smoke.mjs /tmp/kiroku.html
-// Playwright が必要（このディレクトリで npm i playwright と npx playwright install chromium）。
+// Playwright が必要（このディレクトリで npm ci --ignore-scripts と npx playwright install chromium。版は package.json で固定）。
 // 見るのは「動くか」だけで、見た目や言葉の良し悪しは docs/usability.md のテストで確かめる。
 import { chromium } from "playwright";
 import path from "node:path";
+import { stat } from "node:fs/promises";
 
 const html = process.argv[2];
 if (!html) { console.error("使い方: node smoke.mjs <kiroku.html>"); process.exit(2); }
@@ -17,6 +18,7 @@ const envs = [
 ];
 
 let failed = 0;
+const csp = []; // 流れ全体を通して、CSP に止められたもの（1 件でもあれば失敗）
 function check(what, ok, detail = "") {
   if (ok) console.log(`  ok   ${what}`);
   else { failed++; console.log(`  FAIL ${what}${detail ? `: ${detail}` : ""}`); }
@@ -25,8 +27,11 @@ function check(what, ok, detail = "") {
 const b = await chromium.launch();
 for (const env of envs) {
   console.log(`# ${env.name}`);
-  const ctx = await b.newContext({ ...env, locale: "en-US", timezoneId: "Asia/Tokyo" });
+  const ctx = await b.newContext({ ...env, locale: "en-US", timezoneId: "Asia/Tokyo", acceptDownloads: true });
   ctx.setDefaultTimeout(5000);
+  // CSP の違反はページの中で拾って知らせる（関数を渡す仕組みは CSP の外なので止められない）
+  await ctx.exposeFunction("kirokuCSPViolation", v => csp.push(`${env.name}: ${v}`));
+  await ctx.addInitScript(() => addEventListener("securitypolicyviolation", e => window.kirokuCSPViolation(`${e.effectiveDirective} ${e.blockedURI || "inline"} ${e.sourceFile || ""}:${e.lineNumber || ""}`)));
   const p = await ctx.newPage();
   const errors = [];
   p.on("pageerror", e => errors.push(e.message));
@@ -174,6 +179,8 @@ for (const env of envs) {
     await p.locator("#pxtog").click(); await pause();
     const px = await p.locator("#pxpre").innerText();
     check("プロンプトを書き出せる", await p.locator("#pxbox").isVisible() && /^## /.test(px) && /\n- /.test(px), JSON.stringify(px.slice(0, 40)));
+    await p.locator("#pxcopy").click(); await pause();
+    check("コピーのボタンを押すと知らせが出る", /Copied|Couldn't copy/.test(await p.locator("#toast").innerText()));
   });
 
   await step("検索", async () => {
@@ -205,7 +212,8 @@ for (const env of envs) {
     await p.keyboard.press("w"); await pause();
     await p.keyboard.press("?"); await pause();
     check("? でショートカットの一覧が開く", await p.locator("#keys").evaluate(d => d.open));
-    await p.keyboard.press("Escape");
+    await p.locator("#keys form button").click(); await pause();
+    check("一覧の Close（form method=dialog）で閉じる", !(await p.locator("#keys").evaluate(d => d.open)));
   });
 
   await step("1 年の露光", async () => {
@@ -226,11 +234,23 @@ for (const env of envs) {
     check("腕前のメーターが 4 つ出る", await p.locator(".yrmeter > div").count() === 4);
     const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
     check("1 年の露光が横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
+    const [dl] = await Promise.all([p.waitForEvent("download"), p.locator("#yrsave").click()]);
+    check("シェア用の画像を PNG で保存できる", /^kiroku-\d{4}\.png$/.test(dl.suggestedFilename()) && (await stat(await dl.path())).size > 1000, dl.suggestedFilename());
     await p.keyboard.press("Escape"); await pause();
     check("Esc で 1 年の露光を閉じる", !(await p.locator("#yr").evaluate(d => d.open)));
   });
 
   check("スクリプトのエラーがない", errors.length === 0, errors.join(" / "));
+  check("CSP に止められたものがない", csp.length === 0, csp.join(" / "));
+  if (env === envs[0]) await step("CSP が効いている", async () => { // 履歴から HTML がまぎれこんでも、スクリプトは動かない
+    check("CSP の meta がある", /script-src 'sha256-/.test(await p.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute("content")));
+    await p.evaluate(() => { const s = document.createElement("script"); s.textContent = "window.kirokuInjected = 1"; document.body.append(s);
+      document.body.insertAdjacentHTML("beforeend", '<img src="data:," onerror="window.kirokuInjected = 2">'); });
+    await pause();
+    check("あとから入れたスクリプトは動かない", await p.evaluate(() => window.kirokuInjected === undefined));
+    check("止めたことが securitypolicyviolation で分かる", csp.length > 0, "違反が届かない");
+    csp.length = 0; // ここでわざと起こした違反は数えない
+  });
   await ctx.close();
 }
 await b.close();

@@ -31,3 +31,27 @@ func TestScriptParses(t *testing.T) {
 		t.Errorf("画面のスクリプトに構文の誤り:\n%s", out)
 	}
 }
+
+// 書き出す Markdown に入れた履歴の文字が、リンク・強調・HTML・メンションとして働かないこと。
+// markdown.js はほかのファイルに頼らないので、それだけを Node で動かして確かめる。
+func TestMarkdownEscape(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/markdown.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "markdown_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "md.js")
+	if err := os.WriteFile(f, append(append(src, '\n'), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("Markdown の打ち消しが違う:\n%s", out)
+	}
+}

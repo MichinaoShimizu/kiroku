@@ -50,12 +50,12 @@ function reportText(w, M){
     const ps = ses.filter(s => s.project === pj), pc = gits.filter(c => c.project === pj), prs = [...new Set(ps.flatMap(s => s.prs || []))];
     if (!ps.length && !pc.length) return;
     const min = ((w.projects || []).find(([k]) => k === pj) || [0, 0])[1];
-    L.push("", `### ${pj}${min ? ` (${dur(min)})` : ""}`);
+    L.push("", `### ${mdCode(pj)}${min ? ` (${dur(min)})` : ""}`);
     if (ps.length){ L.push("", "What I did:");
       const seen = new Map(); ps.forEach(s => { const t = s.title.replace(/\s+/g, " ").trim(); const x = seen.get(t); x ? x.n++ : seen.set(t, {s, n: 1}); });
-      [...seen.values()].forEach(({s, n}) => L.push(`- ${s.title.replace(/\s+/g, " ").trim()} (${md(s.start)}${n > 1 ? ` and ${n-1} more` : ""}, ${(s.source)})`)); }
-    if (pc.length){ L.push("", "Commits:"); pc.slice(-15).forEach(c => L.push(`- ${c.url ? `[${c.hash.slice(0,7)}](${c.url})` : c.hash.slice(0,7)} ${c.subject}`)); if (pc.length > 15) L.push(`- ${pc.length - 15} more`); }
-    if (prs.length){ L.push("", "Pull requests:"); prs.forEach(u => L.push(`- ${u}`)); }
+      [...seen.values()].forEach(({s, n}) => L.push(`- ${mdText(s.title)} (${md(s.start)}${n > 1 ? ` and ${n-1} more` : ""}, ${mdText(s.source)})`)); }
+    if (pc.length){ L.push("", "Commits:"); pc.slice(-15).forEach(c => { const h = mdText(String(c.hash).slice(0,7)); L.push(`- ${/^https?:\/\//i.test(c.url || "") ? `[${h}](${mdURL(c.url)})` : h} ${mdText(c.subject)}`); }); if (pc.length > 15) L.push(`- ${pc.length - 15} more`); }
+    if (prs.length){ L.push("", "Pull requests:"); prs.forEach(u => L.push(`- ${mdURL(u)}`)); }
   });
   L.push("", "_Drafted with kiroku_"); // HTML のコメントは Slack などに貼るとそのまま見えるので、ふつうの 1 行に（見直してから使う旨は、下書きの上の説明に書いてある）
 
@@ -210,7 +210,7 @@ function nativeText(v){
 }
 const nlabel = v => v.labelEn || v.label; // 参考指標の名前（Go の英語の名前）
 function nativeRows(values){
-  return values.map(v=>`<div class="nrow"><span>${esc(nlabel(v))}</span><span class="v">${nativeText(v)}</span><span class="n">n=${v.n}</span></div>`).join("");
+  return values.map(v=>`<div class="nrow"><span>${esc(nlabel(v))}</span><span class="v">${esc(nativeText(v))}</span><span class="n">n=${v.n}</span></div>`).join("");
 }
 function nativeSection(w){
   if (!w.native || !w.native.length) return "";
