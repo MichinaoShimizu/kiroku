@@ -34,7 +34,7 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | `internal/core` | The common session shape (`Builder` → `Session`), tokens and pricing, agent-specific metrics |
 | `internal/report` | Weekly and monthly aggregates (`Summarize`), per-project summaries (`project.go`), shares by branch and agent (`share.go`) |
 | `internal/gitlog` | Reads commits from the git repository in each session's working directory (skipped without git) |
-| `internal/web` | The view. Written as `template.html` (markup), `style.css` and `app.js`; `web.go` combines them with the aggregate JSON into one HTML file. `help_test.go` and `script_test.go` check the view's explanations and script |
+| `internal/web` | The view. Written as `template.html` (markup), `style.css` and the script in `js/*.js`, split by role (`state.js` data and view state, `format.js` helpers, `calendar.js` week and month calendars, `summary.js` / `review.js` / `panels.js` the summary, `git.js` / `session.js` the details panel, `year.js`, `events.js`, `boot.js`, `live.js`); `web.go` joins the script files in the fixed order of its `scripts` list into one `<script>` and combines everything with the aggregate JSON into one HTML file. `help_test.go` and `script_test.go` check the view's explanations and script |
 | `testdata/` | Synthetic history (`home/`, `codex/`, `crew/`, `sqlite/`), `golden.json`, `snapshot.json`, `mtimes.json` |
 | `tools/` | `release-notes.sh` and `next-version.sh` (releases), `screenshots/` (dummy data, demo, screenshots and the view's e2e) |
 | `install.sh`, `.goreleaser.yaml` | The installer, and how release files are built |
@@ -116,7 +116,7 @@ Release (`.github/workflows/release.yml`) tests on 3 OSes, then uses GoReleaser 
 
 ## Changing the view
 
-When you change the view (`template.html`, `style.css` and `app.js` in `internal/web`), review not just the feature but also the information architecture, UI and UX every time.
+When you change the view (`template.html`, `style.css` and `js/*.js` in `internal/web`), review not just the feature but also the information architecture, UI and UX every time.
 
 - **Information architecture**: can users follow "what happened → why it matters → what to do next → how to check" in that order? Put the conclusion first, and tuck low-confidence numbers further in
 - **Wording**: call the same thing by the same term (e.g. "Active time"). Label estimated values as estimates with their basis, and don't turn them into verdicts of good or bad

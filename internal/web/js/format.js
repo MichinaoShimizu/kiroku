@@ -1,0 +1,56 @@
+// 日付・数の書き方などの小物、色の割り当て、検索の文字、トースト、テーマ
+/* ── helpers ── */
+function mondayOf(d){ d = new Date(d); return new Date(d.getFullYear(), d.getMonth(), d.getDate()-((d.getDay()+6)%7)); } // 日付から作る（0 時のない日をまたいでも 0 時にそろう）
+function monthOf(d){ d = new Date(d); return new Date(d.getFullYear(), d.getMonth(), 1); }
+function mkey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; }
+function addDays(d,n){ d = new Date(d); return new Date(d.getFullYear(), d.getMonth(), d.getDate()+n); }
+// 日付 d から時刻 t（秒）の日まで、暦で何日目か。夏時間で 23 時間や 25 時間の日があっても、日付で数えるのでずれない
+function dayNo(d, t){ const x = new Date(t*1000); return Math.round((Date.UTC(x.getFullYear(), x.getMonth(), x.getDate()) - Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))/864e5); }
+// 時刻 t（秒）が、日 d の 0 時から時計で何時間目か（0〜24）。経った秒数でなく時計の針で数えるので、夏時間の日も時刻の線とそろう
+function clockH(d, t){ const x = new Date(t*1000); return Math.min(24, Math.max(0, (x.getTime() - x.getTimezoneOffset()*6e4 - Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))/36e5)); }
+function key(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function hm(t){ return new Date(t*1000).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hourCycle:"h23"}); }
+function md(t){ const d = new Date(t*1000); return `${DOW[d.getDay()]} ${d.getMonth()+1}/${d.getDate()}`; }
+function dur(m, html){ m = Math.round(m); const h = Math.floor(m/60), r = m%60;
+  const u = x => html ? `<small>${x}</small>` : x; return h ? `${h}${u("h")}${r ? ` ${r}${u("m")}` : ""}` : `${r}${u("m")}`; }
+function tok(n){ n = n || 0; return n >= 1e9 ? (n/1e9).toFixed(1)+"B" : n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? Math.round(n/1e3)+"K" : String(n); }
+function usd(v){ return v == null ? "—" : v > 0 && v < 0.01 ? "<$0.01" : "$" + (v >= 100 ? Math.round(v).toLocaleString() : v.toFixed(2)); }
+const crN = v => v >= 1 || v <= 0 ? Math.round(v).toLocaleString(LOC()) : v.toFixed(2); // クレジットは整数で（1 未満だけ小数 2 桁）
+function cr(v){ return `${crN(v)} cr`; }
+const tokS = v => v >= 1e7 ? Math.round(v/1e6)+"M" : v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e4 ? Math.round(v/1e3)+"K" : tok(v); // 狭いマス用に、桁を減らしたトークン
+function shade(i){ return [1,.72,.5,.34,.22,.14][Math.min(i,5)]; }
+function secs(v){ return v == null ? "—" : (v < 60 ? `${v}s` : `${Math.floor(v/60)}m ${v%60}s`); }
+function secsH(v){ return secs(v).replace(/(?<=\d)([ms])\b/g, "<small>$1</small>"); } // 単位を小さく
+function isoWeek(d){ d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const n = d.getUTCDay() || 7; d.setUTCDate(d.getUTCDate()+4-n);
+  const y0 = new Date(Date.UTC(d.getUTCFullYear(),0,1)); return Math.ceil(((d-y0)/864e5+1)/7); }
+const keyOf = s => st.colorBy === "project" ? s.project : st.colorBy === "source" ? s.source : `${s.project} · ${s.branch || "—"}`;
+let slot = {};
+function assignColors(){ // 全期間の多い順に固定。週を変えても、非表示にしても色は変わらない
+  const n = {}; DATA.forEach(s => n[keyOf(s)] = (n[keyOf(s)]||0) + 1);
+  slot = {}; Object.keys(n).sort((a,b)=>n[b]-n[a]).forEach((k,i) => slot[k] = i < SLOTS ? `var(--c${i})` : "var(--other)");
+}
+const colorOf = k => slot[k] || "var(--other)";
+function matches(s){
+  if (st.hidden.has(keyOf(s))) return false;
+  return !st.q || searchText(s).includes(st.q);
+}
+/* 検索の対象：タイトル・プロンプト・プロジェクト・ブランチ・ツール・変更したファイル・PR・そのセッションの間のコミット（件名・ハッシュ・ファイル） */
+const SQ = new WeakMap(); // DATA が入れ替わる（自動更新）と作り直される
+function searchText(s){
+  let t = SQ.get(s);
+  if (t == null){ t = [s.title, s.project, s.branch || "", s.source, ...s.prompts.map(p => p.text), ...s.files, ...(s.prs || []),
+      ...commitsOf(s).flatMap(c => [c.hash, c.subject, ...(c.files || []).map(f => f.path)])].join("\n").toLowerCase(); SQ.set(s, t); }
+  return t;
+}
+function toast(msg, ms){ const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(()=>t.classList.remove("on"), ms || 1600); }
+async function copy(text, msg, ms){ try { await navigator.clipboard.writeText(text); toast(msg || "Copied", ms); } catch(e){ toast("Couldn't copy"); } }
+const ICON = { light:'<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6L6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></svg>',
+  dark:'<svg class="i" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>' };
+function applyTheme(){ document.documentElement.setAttribute("data-theme", st.theme); // ボタンには、押すと切り替わる先のテーマを出す
+  const next = st.theme === "dark" ? "light" : "dark";
+  $("#theme").innerHTML = ICON[next]; $("#theme").setAttribute("aria-label", `Switch to ${next} theme`); }
+const CB = () => ({project: "Project", branch: "Branch", source: "Agent"});
+if (YEAR_ON) $("#keys .keys kbd:nth-of-type(8)").insertAdjacentHTML("beforebegin", `<kbd>Y</kbd><span>Year in review</span>`); // Esc の前に足す
+
+
