@@ -15,6 +15,7 @@ Changes must keep kiroku's promises:
 ```bash
 go test ./...                      # tests
 test -z "$(gofmt -l .)" && go vet ./...   # format and vet (CI runs both)
+GOTOOLCHAIN=$(go env GOVERSION) go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...   # static analysis (CI runs it on Ubuntu)
 go run . serve                     # try it with your own history
 sh tools/screenshots/run.sh --html /tmp/kiroku-demo.html   # an HTML with dummy data
 ```

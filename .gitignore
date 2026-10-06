@@ -2,6 +2,7 @@
 kiroku.html
 *.html
 !internal/web/template.html
+!internal/web/loading.html
 kiroku.json
 # ビルドしたもの
 /kiroku

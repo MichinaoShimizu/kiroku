@@ -153,11 +153,11 @@ func TestCrewReadsArchivedCopy(t *testing.T) {
 		}
 	}
 	os.Remove(seg)
-	_, rows := readCrewKey(ch, arch, "slack_C1_1")
+	_, rows := readCrewKey(ch, arch, "slack_C1_1", nil)
 	if len(rows) != 2 || rows[0].text != "最初の依頼" || rows[1].text != "続き" {
 		t.Errorf("rows = %+v", rows)
 	}
-	if _, rows := readCrewKey(ch, "", "slack_C1_1"); len(rows) != 1 {
+	if _, rows := readCrewKey(ch, "", "slack_C1_1", nil); len(rows) != 1 {
 		t.Errorf("コピーを読まないとき rows = %d", len(rows))
 	}
 }

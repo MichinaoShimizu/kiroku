@@ -32,17 +32,21 @@ func creditsOf(list any, unitKey, valueKey string) float64 {
 	return used
 }
 
+// Load は全部の会話を読む。読めないファイルがあっても読めた分は出し、最初のエラー（と残りの数）を返す。
 func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 	base := filepath.Join(k.Home, "sessions")
 	if !isDir(base) {
 		return nil
 	}
+	var errs fileErrs
 	for _, metaPath := range glob(filepath.Join(base, "*", "*", "session.json")) {
 		dir := filepath.Dir(metaPath)
 		if filepath.Base(filepath.Dir(dir)) == "cli" {
 			continue
 		}
-		meta := core.Map(core.ReadJSON(metaPath))
+		raw, err := core.ReadJSONFile(metaPath)
+		errs.file(metaPath, err)
+		meta := core.Map(raw)
 		s := core.NewBuilder("Kiro IDE", firstNonEmpty(core.Str(meta["id"]), filepath.Base(dir)))
 		s.File = filepath.Join(dir, "messages.jsonl")
 		s.Title = core.Str(meta["title"])
@@ -54,7 +58,7 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		}
 		model := core.Str(meta["modelId"])
 		s.Tick(ts(meta["createdAt"]))
-		core.ReadJSONL(filepath.Join(dir, "messages.jsonl"), func(e core.Obj) {
+		errs.file(s.File, core.ReadJSONL(s.File, func(e core.Obj) {
 			t := ts(e["timestamp"])
 			p := core.Map(e["payload"])
 			typ := core.Str(p["type"])
@@ -77,10 +81,10 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 				s.Measure("turns", t, 1)
 				s.Model(model)
 			}
-		})
+		}))
 		emit(s)
 	}
-	return nil
+	return errs.err()
 }
 
 // KiroCLI は Kiro CLI: <KIRO_HOME>/sessions/cli/<id>.json（メタ）+ <id>.jsonl（Prompt/AssistantMessage）。
@@ -154,13 +158,15 @@ func (k *KiroCLI) Retention() *Retention {
 func (k *KiroCLI) Family() string { return "kiro" }
 func (k *KiroCLI) Where() string  { return filepath.Join(k.Home, "sessions", "cli") }
 
+// Load は全部の会話を読む（Crew の記録も）。読めないファイルがあっても読めた分は出し、最初のエラー（と残りの数）を返す。
 func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 	base := k.Where()
 	if !isDir(base) {
 		return nil
 	}
-	crew := LoadCrew(k.CrewHome)
-	usage := loadCrewUsage(k.CrewHome)
+	var errs fileErrs
+	crew := loadCrew(k.CrewHome, &errs)
+	usage := loadCrewUsage(k.CrewHome, &errs)
 	k.crew, k.crewFixed, k.crewOnly, k.crewCr, k.crewText = 0, 0, 0, 0, 0
 	slotInfo := map[string]*CrewInfo{}
 	for _, info := range crew {
@@ -172,7 +178,9 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 	used := map[string]bool{}     // 使用量の記録を kiro-cli の会話に結びつけた会話キー
 	seenRows := map[string]bool{} // 会話の記録を使った（kiro-cli の会話に結びついた）会話キー
 	for _, metaPath := range glob(filepath.Join(base, "*.json")) {
-		meta := core.Map(core.ReadJSON(metaPath))
+		raw, err := core.ReadJSONFile(metaPath)
+		errs.file(metaPath, err)
+		meta := core.Map(raw)
 		stem := strings.TrimSuffix(filepath.Base(metaPath), ".json")
 		sid := firstNonEmpty(core.Str(meta["session_id"]), core.Str(meta["id"]), stem)
 		s := core.NewBuilder("Kiro CLI", sid)
@@ -200,7 +208,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			}
 			s.Model(firstNonEmpty(core.Str(tm["model"]), defaultModel))
 		}
-		core.ReadJSONL(strings.TrimSuffix(metaPath, ".json")+".jsonl", func(e core.Obj) {
+		errs.file(s.File, core.ReadJSONL(s.File, func(e core.Obj) {
 			data := core.Map(e["data"])
 			raw := e["timestamp"]
 			if raw == nil || raw == "" {
@@ -223,7 +231,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			default:
 				s.Agent(t)
 			}
-		})
+		}))
 		if s.Project != "" {
 			s.Resume = "cd " + s.Project + " && kiro-cli chat --resume-id " + sid
 		}
@@ -232,7 +240,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			if info := crew[s.ID]; !info.Subagent {
 				seenRows[info.Key] = true
 				if len(s.Prompts) == 0 { // Crew から動かした会話は、kiro-cli の履歴に依頼が残らないことがある
-					_, rows := readCrewKey(k.CrewHome, k.CrewArchive, info.Key)
+					_, rows := readCrewKey(k.CrewHome, k.CrewArchive, info.Key, &errs)
 					addCrewRows(s, rows)
 				}
 				if len(usage[info.Key]) > 0 {
@@ -255,7 +263,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 	sort.Strings(slots)
 	for _, slot := range slots {
 		seenRows[slot] = true
-		for _, s := range crewOnly(k.CrewHome, k.CrewArchive, slot, usage[slot], slotInfo[slot]) {
+		for _, s := range crewOnly(k.CrewHome, k.CrewArchive, slot, usage[slot], slotInfo[slot], &errs) {
 			k.crewOnly++
 			k.crewCr += sumCredits(s.Credits)
 			emit(s)
@@ -275,7 +283,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			if seenFile[p] {
 				continue
 			}
-			title, rows := readCrewTranscript(p)
+			title, rows := readCrewTranscript(p, &errs)
 			if len(rows) == 0 {
 				continue
 			}
@@ -299,7 +307,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			emit(s)
 		}
 	}
-	return nil
+	return errs.err()
 }
 
 // KiroIDELegacy は Kiro IDE v1.0 より前: workspace-sessions/<ws>/sessions.json + <sessionId>.json。
@@ -316,9 +324,12 @@ func (k *KiroIDELegacy) Where() string {
 }
 
 func (k *KiroIDELegacy) Load(emit func(*core.Builder)) error {
+	var errs fileErrs
 	for _, gs := range k.Storages {
 		for _, index := range glob(filepath.Join(gs, "workspace-sessions", "*", "sessions.json")) {
-			for _, ent := range core.List(core.ReadJSON(index)) {
+			list, err := core.ReadJSONFile(index)
+			errs.file(index, err)
+			for _, ent := range core.List(list) {
 				em := core.Map(ent)
 				hidden, _ := em["hidden"].(bool)
 				id := core.Str(em["sessionId"])
@@ -326,7 +337,9 @@ func (k *KiroIDELegacy) Load(emit func(*core.Builder)) error {
 					continue
 				}
 				f := filepath.Join(filepath.Dir(index), id+".json")
-				data := core.Map(core.ReadJSON(f))
+				raw, err := core.ReadJSONFile(f)
+				errs.file(f, err)
+				data := core.Map(raw)
 				s := core.NewBuilder("Kiro IDE (legacy)", id)
 				s.File = f
 				s.Title = firstNonEmpty(core.Str(em["title"]), core.Str(data["title"]))
@@ -347,5 +360,5 @@ func (k *KiroIDELegacy) Load(emit func(*core.Builder)) error {
 			}
 		}
 	}
-	return nil
+	return errs.err()
 }

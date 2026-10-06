@@ -58,13 +58,17 @@ func spendKey(slot string) string {
 	return slot
 }
 
-// LoadCrew は kiro-cli の会話 ID → Crew の情報。Crew がなければ空。
-func LoadCrew(home string) map[string]CrewInfo {
+// loadCrew は kiro-cli の会話 ID → Crew の情報。Crew がなければ空。
+// 読めなかったファイルは errs に足す（nil なら黙って飛ばす）。
+func loadCrew(home string, errs *fileErrs) map[string]CrewInfo {
 	out := map[string]CrewInfo{}
 	if home == "" || !isDir(home) {
 		return out
 	}
-	for key, v := range core.Map(core.ReadJSON(filepath.Join(home, "session_map.json"))) {
+	mapPath := filepath.Join(home, "session_map.json")
+	sm, err := core.ReadJSONFile(mapPath)
+	errs.file(mapPath, err)
+	for key, v := range core.Map(sm) {
 		sid, cwd := core.Str(v), "" // 古い形は文字列だけ
 		if m := core.Map(v); m != nil {
 			sid, cwd = core.Str(m["sid"]), core.Str(m["cwd"])
@@ -75,16 +79,18 @@ func LoadCrew(home string) map[string]CrewInfo {
 		info := CrewInfo{Key: key, Cwd: cwd}
 		// 会話キーをファイル名にしたもの（Crew の history._safe_key と同じ）
 		path := filepath.Join(home, "sessions", unsafeKey.ReplaceAllString(key, "_")+".jsonl")
-		core.ReadJSONL(path, func(e core.Obj) {
+		errs.file(path, core.ReadJSONL(path, func(e core.Obj) {
 			if info.Title == "" && core.Str(e["_type"]) == "metadata" {
 				info.Title = core.Str(e["title"])
 				info.Agent = core.Str(e["agent"])
 			}
-		})
+		}))
 		out[sid] = info
 	}
 	for _, p := range glob(filepath.Join(home, "subagents", "*", "state.json")) {
-		st := core.Map(core.ReadJSON(p))
+		v, err := core.ReadJSONFile(p)
+		errs.file(p, err)
+		st := core.Map(v)
 		sid := core.Str(st["session_id"])
 		if sid == "" {
 			continue
@@ -111,7 +117,7 @@ func crewTranscriptPath(home, key string) string {
 // readCrewKey は会話キーの記録を読む。Crew は古い行を sessions/archive/<名前>__<日時>.jsonl に退避する
 // （残す期間は session.archive_retention_days で決まり、Crew の版や設定で変わる）ので、残っていればそちらも古い順に読む。
 // 退避した記録が消えていても、kiroku archive のコピー（arch の下の同じ並び。.jsonl.zst）があればそれを読む。
-func readCrewKey(home, arch, key string) (title string, rows []crewRow) {
+func readCrewKey(home, arch, key string, errs *fileErrs) (title string, rows []crewRow) {
 	stem := unsafeKey.ReplaceAllString(key, "_")
 	segs := glob(filepath.Join(home, "sessions", "archive", stem+"__*.jsonl"))
 	if arch != "" {
@@ -123,7 +129,7 @@ func readCrewKey(home, arch, key string) (title string, rows []crewRow) {
 	}
 	sort.Slice(segs, func(i, j int) bool { return filepath.Base(segs[i]) < filepath.Base(segs[j]) }) // 名前の日時の順
 	for _, p := range append(segs, crewTranscriptPath(home, key)) {
-		t, rs := readCrewTranscript(p)
+		t, rs := readCrewTranscript(p, errs)
 		title = firstNonEmpty(title, t)
 		rows = append(rows, rs...)
 	}
@@ -131,8 +137,9 @@ func readCrewKey(home, arch, key string) (title string, rows []crewRow) {
 }
 
 // readCrewTranscript は Crew の会話の記録を読む。title は 1 行目のメタデータのタイトル。
-func readCrewTranscript(path string) (title string, rows []crewRow) {
-	core.ReadJSONL(path, func(e core.Obj) {
+// 途中で読めなくなっても、読めた行までは返す。
+func readCrewTranscript(path string, errs *fileErrs) (title string, rows []crewRow) {
+	errs.file(path, core.ReadJSONL(path, func(e core.Obj) {
 		if core.Str(e["_type"]) == "metadata" {
 			title = firstNonEmpty(title, core.Str(e["title"]))
 			return
@@ -146,7 +153,7 @@ func readCrewTranscript(path string) (title string, rows []crewRow) {
 		if r.role != "" {
 			rows = append(rows, r)
 		}
-	})
+	}))
 	return title, rows
 }
 
@@ -208,13 +215,13 @@ type crewTurn struct {
 }
 
 // loadCrewUsage は usage/tokens/*.jsonl を会話キー（slot）ごとにまとめる。時刻の古い順。
-func loadCrewUsage(home string) map[string][]crewTurn {
+func loadCrewUsage(home string, errs *fileErrs) map[string][]crewTurn {
 	out := map[string][]crewTurn{}
 	if home == "" {
 		return out
 	}
 	for _, p := range glob(filepath.Join(home, "usage", "tokens", "*.jsonl")) {
-		core.ReadJSONL(p, func(e core.Obj) {
+		errs.file(p, core.ReadJSONL(p, func(e core.Obj) {
 			if core.Str(e["_type"]) != "tokens" {
 				return
 			}
@@ -229,7 +236,7 @@ func loadCrewUsage(home string) map[string][]crewTurn {
 			}
 			slot := spendKey(core.Str(e["slot"]))
 			out[slot] = append(out[slot], crewTurn{t: *t, start: start, credits: c, model: core.Str(e["model"])})
-		})
+		}))
 	}
 	for k := range out {
 		sort.SliceStable(out[k], func(i, j int) bool { return out[k][i].t < out[k][j].t })
@@ -284,11 +291,11 @@ func addCrewTurns(s *core.Builder, turns []crewTurn) {
 
 // crewOnly は kiro-cli の会話に結びつかない Crew の記録を、Crew のセッションにする。
 // 裏方の処理（_bg）は 1 日ごとにまとめる。
-func crewOnly(home, arch, slot string, turns []crewTurn, info *CrewInfo) []*core.Builder {
+func crewOnly(home, arch, slot string, turns []crewTurn, info *CrewInfo, errs *fileErrs) []*core.Builder {
 	var title string
 	var rows []crewRow
 	if slot != "_bg" && home != "" {
-		title, rows = readCrewKey(home, arch, slot)
+		title, rows = readCrewKey(home, arch, slot, errs)
 	}
 	groups := map[string][]crewTurn{}
 	var order []string

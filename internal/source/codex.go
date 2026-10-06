@@ -37,6 +37,7 @@ type codexHead struct {
 	stamp      string
 	ok         bool // session_meta がある
 	id, parent string
+	err        error // 先頭を読めなかった（壊れた .zst など）
 }
 
 func (c *Codex) Name() string   { return "Codex" }
@@ -105,11 +106,13 @@ func codexTokens(u any) core.Tokens {
 	return core.Tokens{In: max(0, in-cached), Out: core.NumOr0(m["output_tokens"]), CW: core.NumOr0(m["cache_write_input_tokens"]), CR: cached}
 }
 
+// Load は全部の会話を読む。読めないファイルがあっても残りは読み、最初のエラー（と残りの数）を返す。
 func (c *Codex) Load(emit func(*core.Builder)) error {
+	var errs fileErrs
 	for _, u := range c.Units() {
-		c.LoadUnit(u, emit)
+		errs.add(c.LoadUnit(u, emit))
 	}
-	return nil
+	return errs.err()
 }
 
 // Units は、親のスレッドのファイルと、そのサブエージェント（孫も）のファイルのまとまり。
@@ -149,6 +152,9 @@ func (c *Codex) Units() []Unit {
 	for i, path := range files {
 		h := heads[i]
 		if !h.ok {
+			if h.err != nil { // 先頭すら読めなかったファイルは、それだけで 1 つにして LoadUnit でエラーを返す
+				out = append(out, Unit{Key: path, Files: []string{path}})
+			}
 			continue // session_meta のないファイルは読まない（Load と同じ）
 		}
 		key := path
@@ -176,7 +182,7 @@ func (c *Codex) readHeads(files []string) []codexHead {
 		h, ok := c.heads[p]
 		if !ok || h.stamp != stamp {
 			h = codexHead{stamp: stamp}
-			h.id, h.parent, h.ok = readCodexHead(p)
+			h.id, h.parent, h.ok, h.err = readCodexHead(p)
 		}
 		next[p], out[i] = h, h
 	}
@@ -185,17 +191,18 @@ func (c *Codex) readHeads(files []string) []codexHead {
 }
 
 // readCodexHead は、最初の session_meta までだけ読む（ふつうは 1 行目）。
-func readCodexHead(path string) (id, parent string, ok bool) {
+// err は、session_meta にたどり着く前に読めなくなったとき（消えていたときは nil）。
+func readCodexHead(path string) (id, parent string, ok bool, err error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return "", "", false
+		return "", "", false, fileErr(path, err)
 	}
 	defer f.Close()
 	var src io.Reader = f
 	if strings.HasSuffix(path, ".zst") {
 		d, err := zstd.NewReader(f)
 		if err != nil {
-			return "", "", false
+			return "", "", false, fileErr(path, err)
 		}
 		defer d.Close()
 		src = d
@@ -206,10 +213,13 @@ func readCodexHead(path string) (id, parent string, ok bool) {
 		var e core.Obj
 		if json.Unmarshal(line, &e) == nil && core.Str(e["type"]) == "session_meta" {
 			p := core.Map(e["payload"])
-			return core.Str(p["id"]), codexParent(p), true
+			return core.Str(p["id"]), codexParent(p), true, nil
+		}
+		if err == io.EOF {
+			return "", "", false, nil
 		}
 		if err != nil {
-			return "", "", false
+			return "", "", false, fileErr(path, err)
 		}
 	}
 }
@@ -221,7 +231,9 @@ func codexParent(p core.Obj) string {
 }
 
 // LoadUnit は 1 つのまとまり（Units の 1 つ）を読む。
+// 読めないファイルがあっても、読めた分は出す。
 func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
+	var errs fileErrs
 	var all []*codexFile
 	for _, path := range u.Files {
 		cf := &codexFile{path: path}
@@ -235,7 +247,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		records := map[string]bool{}
 		var fromCounts, fromRecords []core.Event
 		var countMeas, recordMeas []core.Measure
-		core.ReadJSONL(path, func(e core.Obj) {
+		errs.file(path, core.ReadJSONL(path, func(e core.Obj) {
 			t := ts(e["timestamp"])
 			p := core.Map(e["payload"])
 			typ := core.Str(e["type"])
@@ -370,7 +382,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			default:
 				s.Agent(t)
 			}
-		})
+		}))
 		if cf.b == nil {
 			continue
 		}
@@ -444,7 +456,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		}
 		emit(s)
 	}
-	return nil
+	return errs.err()
 }
 
 // codexMeasures は 1 回の応答の使用量から参考指標を作る。
