@@ -143,20 +143,11 @@ func firstNonEmpty(s ...string) string {
 
 // Load は全部の会話を読む。読めないファイルがあっても残りは読み、最初のエラー（と残りの数）を返す（「読めなかったファイル」として出す）。
 func (c *Claude) Load(emit func(*core.Builder)) error {
-	var first error
-	n := 0
+	var errs fileErrs
 	for _, u := range c.Units() {
-		if err := c.LoadUnit(u, emit); err != nil {
-			if first == nil {
-				first = err
-			}
-			n++
-		}
+		errs.add(c.LoadUnit(u, emit))
 	}
-	if n > 1 {
-		return fmt.Errorf("%w (and %d more)", first, n-1)
-	}
-	return first
+	return errs.err()
 }
 
 // Keep は、kiroku archive で残す場所（Claude Code は古い会話を消すため）。
@@ -501,6 +492,44 @@ func fileErr(path string, err error) error {
 		return err // 開けなかったときなどは、もうファイル名が入っている
 	}
 	return fmt.Errorf("%s: %w", path, err)
+}
+
+// fileErrs は、読めなかったファイルのエラーを集める（同じエラーは 1 回だけ数える）。
+// 読めないファイルがあっても残りは読み、最後に最初のエラー（と残りの数）を返す。nil なら何もしない。
+type fileErrs struct {
+	first error
+	seen  map[string]bool
+}
+
+// file は path を読んだときのエラーを足す（消えていたファイルは数えない）。
+func (e *fileErrs) file(path string, err error) { e.add(fileErr(path, err)) }
+
+// add は、もうファイル名のついたエラー（LoadUnit が返したものなど）を足す。
+func (e *fileErrs) add(err error) {
+	if e == nil || err == nil {
+		return
+	}
+	msg := err.Error()
+	if e.seen[msg] {
+		return
+	}
+	if e.seen == nil {
+		e.seen = map[string]bool{}
+	}
+	e.seen[msg] = true
+	if e.first == nil {
+		e.first = err
+	}
+}
+
+func (e *fileErrs) err() error {
+	if e == nil || e.first == nil {
+		return nil
+	}
+	if n := len(e.seen); n > 1 {
+		return fmt.Errorf("%w (and %d more)", e.first, n-1)
+	}
+	return e.first
 }
 
 func val(p *float64) float64 {
