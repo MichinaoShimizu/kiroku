@@ -171,6 +171,7 @@ func TextOf(content any) string {
 }
 
 // ReadJSONL は 1 行ずつ JSON を読む。壊れた行は飛ばす。名前が .zst で終わるファイルは zstd で圧縮されたものとして読む。
+// 開けない・途中で読めなくなったときはエラーを返す（それまでに読めた行は fn に渡してある）。
 func ReadJSONL(path string, fn func(Obj)) error {
 	f, err := os.Open(path)
 	if err != nil {
@@ -201,8 +202,11 @@ func ReadJSONLFrom(src io.Reader, fn func(Obj)) error {
 				}
 			}
 		}
-		if err != nil {
+		if err == io.EOF {
 			return nil
+		}
+		if err != nil { // 読めた行までは fn に渡したうえで、途中で読めなくなったこと（壊れた .zst など）を返す
+			return err
 		}
 	}
 }
