@@ -35,7 +35,8 @@ go install github.com/MichinaoShimizu/kiroku@latest
 | `kiroku serve [ADDR]` | Serves the view at `http://localhost:8484/` and keeps it up to date. It answers right away: while it reads your history for the first time (which can take a while with a lot of history or many git repositories), the page shows "Reading your history…" and switches to the view when it is done, and the terminal shows how many sessions were loaded and how long it took. If the port is already in use, it stops at once without reading history. Every few seconds it checks the history folders for changes (file names, sizes and modification times only) and reloads once writing settles (when changes stop for 10 seconds; even if an agent keeps writing, it reloads within 60 seconds at most). New history appears while the week or month you are viewing and the selected session stay as they are, and `LIVE` is shown at the top left. Change the port with, for example, `kiroku serve :8485` (a bare port still listens on `127.0.0.1` only). Press Ctrl+C to quit |
 | `kiroku html [-o FILE]` | Reads all history up to now and writes it to a single HTML file, then opens it in your browser (`--no-open` to skip). Use it to carry the view around or to look at it without starting a server. Run it again to include later history. `--week` or `--month` writes only one period (see "[Share one week or month](#share-one-week-or-month)") |
 | `kiroku json [-o FILE]` | Writes the aggregated data as JSON (`-o -` for stdout) |
-| `kiroku doctor` | Checks your setup in one go and only reads: which histories were found (sessions and the oldest date for each agent, and where it looked), whether an agent will delete old history (Claude Code on its 30-day default) and which settings file to change, whether `kiroku archive` is on and whether git is found. It ends with what to run next. Run it right after installing, or when something you expect is missing from the view |
+| `kiroku doctor` | Checks your setup in one go and only reads: which histories were found (sessions and the oldest date for each agent, and where it looked), whether an agent will delete old history (Claude Code on its 30-day default) and which settings file to change, whether `kiroku archive` is on, whether git is found and whether autostart is on. It ends with what to run next. Run it right after installing, or when something you expect is missing from the view |
+| `kiroku autostart [on\|off]` | Starts `kiroku serve` in the background each time you log in, so the view is always at `http://localhost:8484/` (see "[Start kiroku when you log in](#start-kiroku-when-you-log-in)"). With no argument, shows the status |
 | `kiroku archive [on\|off]` | Keeps compressed copies of history that agents delete automatically (Claude Code, Kiro Crew) in kiroku's own folder (see "[Keep a copy of history in kiroku](#keep-a-copy-of-history-in-kiroku)"). With no argument, shows the status (on or off, location, number and size of files) |
 | `kiroku version` | Prints the version |
 | `kiroku update` | Downloads the latest release for the same OS and CPU from GitHub Releases, verifies it with `checksums.txt`, and replaces itself. In a location you cannot write to (such as `/usr/local/bin`), run `sudo kiroku update`. kiroku installed with `go install` or built from source (version `dev`) is not replaced, so update it with `go install …@latest`. v0.1.1 and earlier have no `update`, so reinstall once with `install.sh` or from Releases |
@@ -287,6 +288,34 @@ If you'd rather not change the setting, kiroku can keep a copy of the history in
 - `kiroku archive off` stops saving and asks whether to delete the copies already kept (only if you answer `y` in a terminal). If you keep them, kiroku still shows them
 - History deleted while kiroku is not opened cannot be saved, so open kiroku at least once before the period ends. The conversations exist in one more place, so even conversations you deleted on purpose remain in kiroku's copy
 
+### Start kiroku when you log in
+
+`kiroku autostart on` registers `kiroku serve --no-open` to start each time you log in, starts it right away and waits a few seconds until it answers. The view is then always at `http://localhost:8484/`; while the first read of your history is running, the page says so and switches to the view by itself. With `kiroku archive on`, history is kept as soon as it is written.
+
+- macOS: a launchd agent, `~/Library/LaunchAgents/io.github.michinaoshimizu.kiroku.plist`. Output goes to `~/Library/Logs/kiroku.log`
+- Linux: a systemd user service, `~/.config/systemd/user/kiroku.service` (under `XDG_CONFIG_HOME` if set). See its output with `journalctl --user -u kiroku`
+- Windows is not supported yet. Put a shortcut to `kiroku serve --no-open` in your Startup folder (Win+R, `shell:startup`) instead
+- To use another port, run `kiroku autostart on :8485`. A login session does not see the variables set in your shell, so `PATH` (to find git), `CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME` and `KIROKU_ARCHIVE_DIR` are written into the settings as they are when you run it. Run `kiroku autostart on` again after changing them
+- It uses the `kiroku` you ran, at its path. `kiroku update` replaces it in place; after reinstalling it somewhere else, run `kiroku autostart on` again
+- `kiroku autostart` (and `kiroku doctor`) shows whether it is on, reading your history, or answering. If `autostart on` reports that nothing answered, the output above (log) says why; a common cause is another `kiroku serve` you started yourself already using the port
+
+#### Turn it off
+
+`kiroku autostart off` stops it and removes it from login. Run it before deleting kiroku.
+
+If kiroku is already gone (or you used `kiroku autostart on` with v0.9.0, whose newer versions had no `autostart` command), remove it by hand:
+
+```bash
+# macOS
+launchctl bootout gui/$(id -u)/io.github.michinaoshimizu.kiroku
+rm ~/Library/LaunchAgents/io.github.michinaoshimizu.kiroku.plist ~/Library/Logs/kiroku.log
+
+# Linux
+systemctl --user disable --now kiroku.service
+rm ~/.config/systemd/user/kiroku.service
+systemctl --user daemon-reload
+```
+
 ## Share one week or month
 
 `kiroku html --week last` (or `this`, or any date in the week such as `2026-10-05`) and `kiroku html --month last` (or `this`, or `2026-09`) write an HTML file with only that period, named like `kiroku-2026-09-28.html` or `kiroku-2026-09.html` unless you give `-o`. Use it to show a week to a teammate without handing over all of your history.
@@ -323,6 +352,7 @@ Per command:
 | `serve` | `--interval` | `5s` | How often to check history for changes. Reloads when changes stop for twice the interval (at most 12 times the interval) |
 | `serve`, `html` | `--no-open` | | Don't open the browser |
 | `html` | `-o`, `--out` | `kiroku.html` | HTML file to write |
+| `autostart on` | `[ADDR]` | `127.0.0.1:8484` | Where the started `kiroku serve` listens, as for `serve` |
 | `html` | `--week` / `--month` | | Write only one week (`this`, `last` or a date in it) or month (`this`, `last` or `YYYY-MM`); see "[Share one week or month](#share-one-week-or-month)" |
 | `json` | `-o`, `--out` | `kiroku.json` | JSON file to write (`-` for stdout) |
 | `update` | `--check` / `--to <version>` / `--force` | | Only check / choose a version / replace even a dev build or the same version |

@@ -30,6 +30,7 @@ Commands:
                         (--week or --month writes only that period, for sharing)
   json                  Write the aggregated data as JSON (default kiroku.json, "-" for stdout)
   archive [on|off]      Keep compressed copies of history that agents delete (Claude Code, Kiro Crew); no argument shows the status
+  autostart [on|off]    Start "kiroku serve" in the background each time you log in; no argument shows the status
   doctor                Check what kiroku can read and whether your history will be deleted, and what to run next
   version               Print the version
   update                Update kiroku to the latest release
@@ -64,6 +65,8 @@ func dispatch(args []string) error {
 		return cmdJSON(args[1:])
 	case "archive":
 		return cmdArchive(args[1:])
+	case "autostart":
+		return cmdAutostart(args[1:])
 	case "doctor":
 		return cmdDoctor(args[1:])
 	case "version", "--version", "-version", "-v":
