@@ -17,6 +17,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 ### Fixed
 
 - README's Uninstall section no longer says kiroku keeps no data of its own: it now covers `kiroku autostart off` and removing the copies kept by `kiroku archive`
+- A history line with an impossible time (such as `"timestamp": 100` or year 1) is ignored instead of making its session start in 1970, which added empty weeks and months, showed a wrong oldest record and slowed loading. Times before 2000 or more than a day in the future are not used
 
 ## v0.8.1 - 2026-10-06
 

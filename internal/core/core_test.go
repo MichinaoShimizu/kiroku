@@ -23,11 +23,44 @@ func TestParseTS(t *testing.T) {
 		{"", 0, false},
 		{nil, 0, false},
 		{"きのう", 0, false},
+		// ありえない時刻は読めなかったものとする
+		{100.0, 0, false},
+		{"100", 0, false},
+		{0.0, 0, false},
+		{-1.0, 0, false},
+		{"0001-01-01T00:00:00Z", 0, false},
+		{"1970-01-01T00:00:00Z", 0, false},
+		{"1999-12-31T23:59:59Z", 0, false},
+		{"2000-01-01T00:00:00Z", 946684800, true},
+		{"9999-12-31T23:59:59Z", 0, false},
+		{1e15, 0, false}, // ミリ秒として読んでも 3 万年後
 	}
 	for _, c := range cases {
 		got, ok := ParseTS(c.in)
 		if ok != c.ok || (ok && got != c.want) {
 			t.Errorf("ParseTS(%v) = %v,%v want %v,%v", c.in, got, ok, c.want, c.ok)
+		}
+	}
+}
+
+func TestParseTSFutureBound(t *testing.T) {
+	now := time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC)
+	defer func(f func() time.Time) { nowForTS = f }(nowForTS)
+	nowForTS = func() time.Time { return now }
+	for _, c := range []struct {
+		in time.Time
+		ok bool
+	}{
+		{now, true},
+		{now.Add(23 * time.Hour), true}, // 時計のずれくらいは許す
+		{now.Add(25 * time.Hour), false},
+		{now.AddDate(5, 0, 0), false},
+	} {
+		if _, ok := ParseTS(c.in.Format(time.RFC3339)); ok != c.ok {
+			t.Errorf("ParseTS(%v) ok=%v want %v", c.in, ok, c.ok)
+		}
+		if _, ok := ParseTS(float64(c.in.UnixMilli())); ok != c.ok {
+			t.Errorf("ParseTS(%v ms) ok=%v want %v", c.in, ok, c.ok)
 		}
 	}
 }
