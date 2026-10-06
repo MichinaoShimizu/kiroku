@@ -2,7 +2,11 @@
 
 [![CI](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml/badge.svg)](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/MichinaoShimizu/kiroku)](https://github.com/MichinaoShimizu/kiroku/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**Your AI work history, visualized.** kiroku reads the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), Amazon Q Developer CLI and Codex CLI, and shows it as a Google Calendar–style view.
+**Your AI work history, visualized.**
+
+No AI. No external APIs. No uploads.
+
+kiroku reads the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), Amazon Q Developer CLI and Codex CLI, and turns it into a single HTML file with a Google Calendar–style view. Your history never leaves your machine.
 
 **[Try the live demo](https://michinaoshimizu.github.io/kiroku/)** (dummy data, runs in your browser).
 
@@ -12,11 +16,7 @@ Getting real value from limited credits and tokens depends on how you use your a
 
 kiroku reads those histories, puts them on one screen, and shows them only to you, so that anyone can understand their own usage and find something concrete to improve.
 
-- **No external API calls.** Your history never leaves your machine.
-- **kiroku never calls an AI.**
-- **The output is a single static HTML file.** `kiroku serve` only shows the same HTML on your machine (`127.0.0.1`).
-
-kiroku connects to the network only when `install.sh` or `kiroku update` (including `--check`) contacts GitHub Releases to get kiroku itself.
+`kiroku serve` only shows the same HTML on your machine (`127.0.0.1`). kiroku connects to the network only when `install.sh` or `kiroku update` (including `--check`) contacts GitHub Releases to get kiroku itself.
 
 ## What you get
 
