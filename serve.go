@@ -244,21 +244,56 @@ func (l *live) handler() http.Handler {
 }
 
 // sameOrigin は、ほかのサイトのページから手元の履歴を読まれないようにする（DNS リバインディング対策）。
-// 手元だけで待ち受けているときは、Host が localhost / 127.0.0.1 / ::1 のときだけ通す。
-// 0.0.0.0 などで外に開いたときは、本人が選んだことなので Host は問わない。
-func sameOrigin(addr string, next http.Handler) http.Handler {
+// Host が、このコンピューターを指す名前（localhost・ループバック・待ち受けている IP・このコンピューターの IP とホスト名）か、
+// allow で足した名前のときだけ通す。0.0.0.0 などで外に開いても、よそのサイトが自分のドメインをこのコンピューターに向けて
+// 読みに来られないよう、Host は必ず確かめる（同じネットワークのほかの機器から開くのは、本人が選んだことなので通す）。
+func sameOrigin(addr string, allow []string, next http.Handler) http.Handler {
 	host, port, _ := net.SplitHostPort(addr)
-	if ip := net.ParseIP(host); ip == nil || !ip.IsLoopback() {
-		return next
+	fixed := []string{"localhost", "127.0.0.1", "::1"}
+	if ip := net.ParseIP(host); ip == nil || !ip.IsUnspecified() {
+		fixed = append(fixed, host) // 待ち受けている名前・IP
 	}
-	ok := map[string]bool{addr: true, "localhost:" + port: true, "127.0.0.1:" + port: true, "[::1]:" + port: true}
+	fixed = append(fixed, allow...)
+	ok := func(h string, names []string) bool {
+		for _, n := range names {
+			if n = strings.ToLower(strings.Trim(n, "[]")); n == "" {
+				continue
+			}
+			if h == strings.ToLower(net.JoinHostPort(n, port)) || (port == "80" && h == n) {
+				return true
+			}
+		}
+		return false
+	}
+	wide := host == "" || net.ParseIP(host) != nil && net.ParseIP(host).IsUnspecified()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !ok[r.Host] {
+		h := strings.ToLower(r.Host)
+		if !ok(h, fixed) && !(wide && ok(h, localNames())) {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// localNames は、このコンピューターの IP とホスト名（0.0.0.0 などで待ち受けているときに、ほかの機器から開ける名前）。
+// IP は DHCP などで変わるので、そのつど調べる。テストで差しかえる。
+var localNames = func() []string {
+	var out []string
+	if addrs, err := net.InterfaceAddrs(); err == nil {
+		for _, a := range addrs {
+			if n, ok := a.(*net.IPNet); ok {
+				out = append(out, n.IP.String())
+			}
+		}
+	}
+	if h, err := os.Hostname(); err == nil && h != "" {
+		out = append(out, h)
+		if !strings.Contains(h, ".") {
+			out = append(out, h+".local")
+		}
+	}
+	return out
 }
 
 // listenAddr は、ポートだけ（:8485）のときに手元（127.0.0.1）だけで待ち受けるようにする。
@@ -271,8 +306,8 @@ func listenAddr(addr string) string {
 	return addr
 }
 
-// serveLive は kiroku serve。keep は画面から kiroku archive をオンにする関数。
-func serveLive(addr string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool) error {
+// serveLive は kiroku serve。allow は Host として受け付ける名前を足すもの、keep は画面から kiroku archive をオンにする関数。
+func serveLive(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool) error {
 	if every < time.Second {
 		every = time.Second
 	}
@@ -300,7 +335,7 @@ func serveLive(addr string, every time.Duration, picked []source.Source, load fu
 	if open {
 		openBrowser(url)
 	}
-	err = http.Serve(ln, sameOrigin(addr, l.handler()))
+	err = http.Serve(ln, sameOrigin(addr, allow, l.handler()))
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}
