@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- Tokens and Kiro credits now have their own box everywhere the view used to share one. "Month-end projection (estimate)" in "④ How you used AI" is now two boxes, "Month-end cost (estimate)" and "Month-end credits (estimate)", instead of one box reading "≈ $12 · 34 credits"; on phones, a month calendar cell with both shows tokens and credits on their own lines instead of only tokens. They are separate allowances, so for anyone using both Claude Code and Kiro each is now something you can read on its own
+
 ## v0.17.0 - 2026-10-06
 
 ### Added

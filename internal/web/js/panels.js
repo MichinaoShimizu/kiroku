@@ -180,6 +180,7 @@ function vsPrev(pw, unit){
 // projection は、今月の途中なら、今日までのペースが月末まで続いたときの目安コストとクレジット（推定）。
 // 今日までの日数（今日を含む）で割り、月の日数を掛ける。月の初めは日数が少なく当てにならないので 7 日たつまで、
 // 最後の日は実績とほとんど変わらないので出さない。
+// 目安コスト（トークン）とクレジットは別の枠に出す。Claude Code と Kiro を両方使う人には、追うべき枠が 2 つあるため。
 function projection(w){ const {ws, we} = period(), now = nowMs()/1000, u = w.usage;
   const a = new Date(ws*1000), nd = dayNo(a, we), days = dayNo(a, now) + 1; // 今日を含めた日数（日付で数える）
   if (st.mode !== "month" || !u || !(ws <= now && now < we) || days <= 7 || days >= nd) return null;
@@ -191,7 +192,8 @@ function aiUsage(w, pw, unit){
   const pj = projection(w);
   const totalC = u.models.reduce((t,r)=>t+r[1],0) || 1, totalT = u.models.reduce((t,r)=>t+r[2],0) || 1, byCost = totalC > 0.0001;
   return `<div class="stats" style="margin-top:4px">
-      ${pj ? stat("Month-end projection (estimate)", [pj.cost != null ? "≈ " + usdH(pj.cost) : "", pj.credits != null ? (pj.cost != null ? `<small> · </small>` : "≈ ") + `${Math.round(pj.credits)}<small> credits</small>` : ""].join(""), `If the pace of the first ${pj.days} days continues`, "projection") : ""}
+      ${pj && pj.cost != null ? stat("Month-end cost (estimate)", "≈ " + usdH(pj.cost), `If the pace of the first ${pj.days} days continues`, "projection") : ""}
+      ${pj && pj.credits != null ? stat("Month-end credits (estimate)", `≈ ${crN(pj.credits)}<small> credits</small>`, `If the pace of the first ${pj.days} days continues`, "projectionCr") : ""}
       ${u.tokens ? stat("Read from cache", u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, "Share of input", "cache") : ""}
       ${stat("Subagents", `${u.subagents}`, u.subagents ? `Total ${dur(u.subMin)}` : "Not used", "subagents")}
       ${w.costPerAsk != null ? stat("Estimated cost per prompt", usdH(w.costPerAsk), `n=${w.prompts}`, "costPerAsk") : ""}
