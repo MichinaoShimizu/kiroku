@@ -54,6 +54,7 @@ This page summarizes where kiroku reads each agent's history from and how. The l
 - The same token values are written repeatedly, so each is counted once. Newer versions' `token_usage_record` is used when present
 - Subagent and fork files copy the parent's history at the top, so lines before the file was created are not counted. Subagents are grouped under "Subagents" in the parent session
 - Titles come from `session_index.jsonl`
+- `kiroku serve` watches only `sessions/`, `archived_sessions/` and `session_index.jsonl` (not logs or other state under `~/.codex`), and rereads only the threads whose files changed (a parent thread together with its subagents)
 - Models (OpenAI) are not in the price table, so they are not included in estimated cost (they appear in "Data sources" as tokens not in the price table). They can be added with `--prices`
 
 ## Git

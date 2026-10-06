@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
@@ -121,5 +122,32 @@ func TestCodexPaginatedUserMessage(t *testing.T) {
 	}
 	if len(bs[0].Prompts) != 1 || bs[0].Prompts[0].Text != "Fix the parser" {
 		t.Fatalf("paginated user prompt = %+v", bs[0].Prompts)
+	}
+}
+
+// Units は、サブエージェントのファイルを親と同じまとまりにし、スレッド名を Tag に入れる。
+// 見張るのは会話が入っている場所だけ（ログなどは見ない）。
+func TestCodexUnits(t *testing.T) {
+	c := &Codex{Home: codexHome(t)}
+	us := c.Units()
+	if len(us) != 2 {
+		t.Fatalf("まとまり = %d, want 2（thr-main と thr-sub は一緒）", len(us))
+	}
+	if len(us[0].Files) != 2 || us[0].Tag != "ヘッダーのボタンの色" {
+		t.Errorf("thr-main のまとまり = %+v", us[0])
+	}
+	if len(us[1].Files) != 1 || !strings.HasSuffix(us[1].Key, ".zst") {
+		t.Errorf("thr-new のまとまり = %+v", us[1])
+	}
+	for _, p := range WatchPaths(c) {
+		if p == c.Home || strings.HasPrefix(filepath.Base(p), "log") {
+			t.Errorf("見張る場所に %s が入っている", p)
+		}
+	}
+	// 親のファイルがなければ、子が自分のまとまりになる
+	os.Remove(us[0].Files[0])
+	us = c.Units()
+	if len(us) != 2 || len(us[0].Files) != 1 || !strings.Contains(us[0].Key, "thr-sub") {
+		t.Errorf("親がないとき = %+v", us)
 	}
 }
