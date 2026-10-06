@@ -46,7 +46,7 @@ func Main(v string) {
 	version = v
 	cleanupOldExe()
 	if err := dispatch(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, styleFor(os.Stderr).bad(err.Error()))
 		os.Exit(1)
 	}
 }

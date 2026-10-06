@@ -32,6 +32,7 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | `internal/cli/scope.go` | `kiroku html --week` / `--month` (keeps only one period's sessions, commits and pushes) |
 | `internal/cli/serve.go` | `kiroku serve` (watches history for changes, reloads, and pushes to the view) |
 | `internal/cli/cache.go` | On reload, skips history unchanged since last time (using a per-agent fingerprint and the per-conversation marks of `source.Splitter`) |
+| `internal/cli/color.go` | Colour and emphasis for what is written to the terminal (`styleFor` turns it off for pipes, files, `NO_COLOR` and `TERM=dumb`) |
 | `internal/archive` | The copies `kiroku archive` keeps: the on/off marks, compressing history to `.zst` (`Sync`), usage, and deleting only the `.zst` copies (`Clear`) |
 | `internal/source` | Adapters that read each agent's history. Details on how they read are in [sources.md](sources.md) |
 | `internal/core` | The common session shape (`Builder` → `Session`), tokens and pricing, agent-specific metrics |

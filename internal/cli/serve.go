@@ -77,10 +77,10 @@ func (l *live) start(every time.Duration, stop <-chan struct{}) {
 		l.mu.Lock()
 		l.fail = err
 		l.mu.Unlock()
-		fmt.Fprintf(l.print, "could not read history: %v (still serving; will try again when history changes)\n", err)
+		fmt.Fprintf(l.print, "%s could not read history: %v %s\n", styleFor(l.print).warn("!"), err, styleFor(l.print).dim("(still serving; will try again when history changes)"))
 	} else {
 		l.markReady()
-		fmt.Fprintf(l.print, "%d sessions loaded in %s (checking for new history every %s)\n", l.count(), took(time.Since(t0)), every)
+		fmt.Fprintf(l.print, "%s loaded in %s %s\n", plural(l.count(), "session"), took(time.Since(t0)), styleFor(l.print).dim("(checking for new history every "+every.String()+")"))
 	}
 	l.watch(every, stop)
 }
@@ -168,7 +168,7 @@ func (l *live) watch(every time.Duration, stop <-chan struct{}) {
 		}
 		before := l.count()
 		if err := l.refresh(); err != nil {
-			fmt.Fprintf(l.print, "reload failed: %v\n", err)
+			fmt.Fprintf(l.print, "%s reload failed: %v\n", styleFor(l.print).warn("!"), err)
 			continue
 		}
 		l.markReady() // 最初の読み込みに失敗していたときは、ここで画面が開けるようになる
@@ -510,9 +510,10 @@ func serveLive(addr string, allow []string, every time.Duration, picked []source
 	l := &live{load: load, paths: paths, roots: historyRoots(picked), print: logw, keep: keep}
 	addr = ln.Addr().String()
 	url := viewURL(addr)
-	fmt.Fprintf(l.print, "serving %s (reading history...; press Ctrl+C to stop)\n", url)
+	st := styleFor(l.print)
+	fmt.Fprintf(l.print, "serving %s %s\n", st.bold(url), st.dim("(reading history...; press Ctrl+C to stop)"))
 	startLive(l, every)
-	fmt.Fprintln(l.print, "only browsers with its key can open it (to protect it from other users of this computer); \"kiroku open\" opens it with the key")
+	fmt.Fprintln(l.print, st.dim("only browsers with its key can open it (to protect it from other users of this computer); \"kiroku open\" opens it with the key"))
 	if open {
 		if err := openWithKey(url, key); err != nil {
 			fmt.Fprintf(l.print, "could not open a browser: %v\n", err)

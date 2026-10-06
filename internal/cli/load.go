@@ -117,13 +117,31 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 		if err != nil {
 			msg := err.Error()
 			r.Error = &msg
-			fmt.Fprintf(logw, "  %s: skipped unreadable files (%s)\n", s.Name(), msg)
+			fmt.Fprintf(logw, "  %s %s: skipped unreadable files (%s)\n", styleFor(logw).warn("!"), s.Name(), msg)
 		}
-		fmt.Fprintf(logw, "  %s: %d sessions (%s)\n", s.Name(), n, s.Where())
 		rep = append(rep, r)
 	}
+	logSources(rep, len(data) > 0)
 	sort.SliceStable(data, func(i, j int) bool { return data[i].Start < data[j].Start })
 	return data, rep
+}
+
+// logSources は、読んだエージェントの一覧を logw に書く。履歴があったものだけを並べ、残りは1行にまとめる
+// （0 件が並ぶと、serve の address や key の行がその上に押し出されてしまうため）。
+// どれも 0 件のときは、どこを探したのか分かるように全部書く。
+func logSources(rep []source.Report, found bool) {
+	st := styleFor(logw)
+	var none []string
+	for _, r := range rep {
+		if found && r.N == 0 {
+			none = append(none, r.Name)
+			continue
+		}
+		fmt.Fprintf(logw, "  %s: %s %s\n", r.Name, plural(r.N, "session"), st.dim("("+where(r.Where)+")"))
+	}
+	if len(none) > 0 {
+		fmt.Fprintf(logw, "  %s\n", st.dim("no history yet: "+strings.Join(none, ", ")))
+	}
 }
 
 func loadPrices(path string) error {

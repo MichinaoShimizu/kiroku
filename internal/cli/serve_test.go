@@ -516,7 +516,7 @@ func TestServeLive(t *testing.T) {
 		t.Errorf("よそのホストから / = %d, want 403", code)
 	}
 	openGate.Do(func() { close(gate) })
-	waitFor(t, "読み終わった表示", func() bool { return strings.Contains(out.String(), "1 sessions loaded in") })
+	waitFor(t, "読み終わった表示", func() bool { return strings.Contains(out.String(), "1 session loaded in") })
 	if !strings.Contains(out.String(), "checking for new history every 1s") {
 		t.Errorf("1 秒より短い間隔は 1 秒にするはず: %q", out.String())
 	}
