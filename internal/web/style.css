@@ -459,7 +459,8 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 /* 「Prompt flow」の見出しと、出し方の切り替え・コピーを 1 行に並べる（見出しの線のあとに右寄せ） */
 .flowhead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:26px 0 10px}
 .flowhead h3{flex:1 1 140px;margin:0}
-.flowbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+/* 表示の切り替えと「Copy prompts」は、押したときの重さが違うので離す（コピーはプロンプトの本文を持ち出す） */
+.flowbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px}
 .flowbar .segc button{height:26px;font-size:var(--fs-xs)}
 .tl .pfull{white-space:pre-wrap}
 .pexp,.pall{color:var(--acc-ink);font-weight:600}
@@ -546,6 +547,7 @@ body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:tra
 .drawer .mini.tight>div{padding:8px 10px;display:flex;flex-direction:column;justify-content:space-between} /* 見出しが 2 行になっても、数字の高さをそろえる */
 .drawer .mini.tight .k{font-size:var(--fs-xs);color:var(--ink-3);line-height:1.4}
 .drawer .mini.tight .v{font-size:var(--fs-xl)}
+.drawer .flowhead h3{margin:0} /* .drawer h3 の上下の余白を打ち消す（見出しとボタンを同じ行の高さにそろえる） */
 .drawer .tl li{font-size:var(--fs-lg);grid-template-columns:42px 1fr;padding:6px 0}
 .drawer .tl::before{left:48px}
 .drawer .tl li::before{left:45px;top:14px}
@@ -666,7 +668,8 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
   .drawer .dh{top:8px;right:8px}
   /* スマホでは画面いっぱいに出す */
   .drawer{width:100vw;height:100dvh;max-height:none;border:0;border-radius:0;transform:translate(-50%,-50%) translateY(16px)}
-  .drawer .mini,.drawer .mini.tight{grid-template-columns:1fr 1fr}
+  .drawer .mini{grid-template-columns:1fr 1fr}
+  .drawer .mini.tight{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media (forced-colors:active){.run{border:1px solid CanvasText}}
