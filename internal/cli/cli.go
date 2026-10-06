@@ -330,7 +330,7 @@ func writeHTML(snap snapshot, out string, open bool) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(out, []byte(html), 0o644); err != nil {
+	if err := writePrivate(out, []byte(html)); err != nil {
 		return err
 	}
 	fmt.Printf("%s → %s\n", plural(len(snap.data), "session"), out)
@@ -351,7 +351,30 @@ func writeJSON(snap snapshot, out string) error {
 		_, err = os.Stdout.Write(append(b, '\n'))
 		return err
 	}
-	return os.WriteFile(out, b, 0o644)
+	return writePrivate(out, b)
+}
+
+// writePrivate は、履歴を含むファイルをほかのユーザーが読めないように（0600）書く。
+// 同じフォルダの一時ファイルに書いてから名前を変えるので、途中で失敗しても前のファイルは残り、
+// out にシンボリックリンクがあっても、その先は書きかえない（リンクを置きかえる）。
+func writePrivate(out string, b []byte) error {
+	tmp, err := os.CreateTemp(filepath.Dir(out), ".kiroku-tmp-*") // CreateTemp は 0600 で作る
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name()) // 置きかえたあとは何もしない
+	if _, err := tmp.Write(b); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Chmod(0o600); err != nil { // umask にかかわらず 0600
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), out)
 }
 
 // runLegacy は前の書き方（kiroku --serve、--json、-o など）。何も選ばなければヘルプを出す。

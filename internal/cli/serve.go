@@ -8,12 +8,11 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/klauspost/compress/zstd"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/MichinaoShimizu/kiroku/internal/report"
@@ -39,6 +38,7 @@ type live struct {
 	json  []byte
 	load  func() snapshot
 	paths []string // 履歴の場所
+	roots []string // /history で見せてよいファイルの場所（履歴の場所と kiroku archive のコピーの場所）
 	print io.Writer
 	keep  func() error // 画面から kiroku archive をオンにする（nil ならできない）
 	ready bool         // 最初の読み込みが終わったか（mu で守る）。終わるまでは読み込み中の画面と 503 を返す
@@ -102,11 +102,10 @@ func (l *live) loaded(w http.ResponseWriter) bool {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Retry-After", "1")
 	msg := ""
-	if fail != nil {
-		msg = fail.Error()
+	if fail != nil { // くわしいわけ（ファイルの場所など）は端末に出してあるので、画面には出さない
+		msg = "could not read history; see the terminal where kiroku serve runs for details"
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusServiceUnavailable)
 	_, _ = io.WriteString(w, msg)
 	return false
@@ -238,7 +237,12 @@ func (l *live) handler() http.Handler {
 			http.NotFound(w, r)
 			return
 		}
-		f, err := os.Open(path)
+		real, ok := l.allowed(path)
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		f, err := os.Open(real)
 		if err != nil {
 			http.NotFound(w, r)
 			return
@@ -246,7 +250,7 @@ func (l *live) handler() http.Handler {
 		defer f.Close()
 		var body io.Reader = f
 		if strings.HasSuffix(path, ".zst") { // kiroku archive や Codex の圧縮した履歴は、ほどいて見せる
-			d, err := zstd.NewReader(f)
+			d, err := core.NewZstdReader(f)
 			if err != nil {
 				http.NotFound(w, r)
 				return
@@ -256,7 +260,6 @@ func (l *live) handler() http.Handler {
 		}
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
-		w.Header().Set("X-Content-Type-Options", "nosniff")
 		_, _ = io.Copy(w, body)
 	})
 	// /prompt?id=<セッション ID>&i=<何件目> は、HTML には先頭だけを入れた依頼文の全文を返す（依頼の流れの「全文を読み込む」）。
@@ -285,7 +288,6 @@ func (l *live) handler() http.Handler {
 		}
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
-		w.Header().Set("X-Content-Type-Options", "nosniff")
 		_, _ = io.WriteString(w, text)
 	})
 	// POST /archive は、画面の「kiroku にコピーを残す」（kiroku archive on と同じ）。新しい集計を返す。
@@ -303,12 +305,15 @@ func (l *live) handler() http.Handler {
 		if !l.loaded(w) { // 最初の読み込みと重ねて読まない
 			return
 		}
+		// くわしいわけ（ファイルの場所など）は端末に出し、画面には短い文だけを返す
 		if err := l.keep(); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			l.logf("could not turn on kiroku archive: %v\n", err)
+			http.Error(w, "could not turn on kiroku archive; see the terminal where kiroku serve runs for details", http.StatusInternalServerError)
 			return
 		}
 		if err := l.refresh(); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			l.logf("reload failed: %v\n", err)
+			http.Error(w, "could not read history; see the terminal where kiroku serve runs for details", http.StatusInternalServerError)
 			return
 		}
 		l.mu.RLock()
@@ -323,7 +328,72 @@ func (l *live) handler() http.Handler {
 		defer l.mu.RUnlock()
 		send(w, "text/plain", []byte(strconv.FormatFloat(l.snap.gen, 'f', -1, 64)))
 	})
-	return mux
+	return secureHeaders(mux)
+}
+
+// secureHeaders は、すべての答えに、ほかのサイトに埋め込ませない・中身の種類を推測させない・
+// どこから来たかを送らない、といったヘッダーをつける（kiroku serve の画面は自分のサイトの中だけで動く）。
+// Content-Security-Policy は frame-ancestors だけ（ほかの決まりは HTML の中の meta に書く）。
+func secureHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("X-Frame-Options", "DENY")
+		h.Set("Content-Security-Policy", "frame-ancestors 'none'")
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("Referrer-Policy", "no-referrer")
+		h.Set("Cross-Origin-Opener-Policy", "same-origin")
+		h.Set("Cross-Origin-Resource-Policy", "same-origin")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// logf は端末に出す（print がなければ何もしない）。
+func (l *live) logf(format string, args ...any) {
+	if l.print != nil {
+		fmt.Fprintf(l.print, format, args...)
+	}
+}
+
+// allowed は、/history で path を見せてよいか。シンボリックリンクをたどった本当の場所が、
+// 読んでいる履歴の場所（roots）の下にあるときだけ見せる（履歴の中身で、ほかのファイルを読ませないため）。
+// 見せてよければ、たどった先の場所を返す。
+func (l *live) allowed(path string) (string, bool) {
+	real, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return "", false
+	}
+	for _, root := range l.roots {
+		if root == "" {
+			continue
+		}
+		if r, err := filepath.EvalSymlinks(root); err == nil {
+			root = r
+		}
+		if within(root, real) {
+			return real, true
+		}
+	}
+	return "", false
+}
+
+// within は p が root か、その下にあるか。
+func within(root, p string) bool {
+	rel, err := filepath.Rel(root, p)
+	return err == nil && (rel == "." || filepath.IsLocal(rel))
+}
+
+// historyRoots は、/history で見せてよい場所: Source が読む場所と、kiroku archive のコピーの場所。
+func historyRoots(picked []source.Source) []string {
+	var out []string
+	for _, s := range picked {
+		out = append(out, source.WatchPaths(s)...)
+		if k, ok := s.(source.Keeper); ok {
+			for _, x := range k.Keep() {
+				out = append(out, x.Dst)
+			}
+		}
+	}
+	return out
 }
 
 // sameOrigin は、ほかのサイトのページから手元の履歴を読まれないようにする（DNS リバインディング対策）。
@@ -389,12 +459,23 @@ func listenAddr(addr string) string {
 	return addr
 }
 
-// serveHTTP は待ち受けたポートで答え、startLive は最初の読み込みと履歴の見張りを別の goroutine で始める
+// serveHTTP は待ち受けたポートで srv を動かし、startLive は最初の読み込みと履歴の見張りを別の goroutine で始める
 // （どちらもテストで、止められるものに差しかえる）。
 var (
-	serveHTTP = http.Serve
+	serveHTTP = func(srv *http.Server, ln net.Listener) error { return srv.Serve(ln) }
 	startLive = func(l *live, every time.Duration) { go l.start(every, nil) }
 )
+
+// newServer は kiroku serve の http.Server。ヘッダーを送らないまま、つなぎっぱなしにする相手で詰まらないよう時間を区切る。
+// 履歴ファイル（/history）は大きいことがあるので、書き出しの時間（WriteTimeout）は区切らない。
+func newServer(h http.Handler) *http.Server {
+	return &http.Server{
+		Handler:           h,
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    64 << 10,
+	}
+}
 
 // serveLive は kiroku serve。allow は Host として受け付ける名前を足すもの、keep は画面から kiroku archive をオンにする関数。
 // 先に待ち受けてから読む（履歴が多いと最初の読み込みに時間がかかり、その間ポートが開いていないとブラウザが「つながらない」になるため）。
@@ -412,7 +493,7 @@ func serveLive(addr string, allow []string, every time.Duration, picked []source
 	for _, s := range picked {
 		paths = append(paths, source.WatchPaths(s)...)
 	}
-	l := &live{load: load, paths: paths, print: logw, keep: keep}
+	l := &live{load: load, paths: paths, roots: historyRoots(picked), print: logw, keep: keep}
 	addr = ln.Addr().String()
 	url := "http://" + addr + "/"
 	if host, port, _ := net.SplitHostPort(addr); host == "127.0.0.1" || host == "::" || host == "0.0.0.0" || host == "" {
@@ -423,7 +504,7 @@ func serveLive(addr string, allow []string, every time.Duration, picked []source
 	if open {
 		openBrowser(url)
 	}
-	err = serveHTTP(ln, sameOrigin(addr, allow, l.handler()))
+	err = serveHTTP(newServer(secureHeaders(sameOrigin(addr, allow, l.handler()))), ln)
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}

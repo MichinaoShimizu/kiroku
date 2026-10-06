@@ -52,13 +52,38 @@ func TestPlanAutostart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{`ExecStart="/home/me/my bin/kiroku" "serve" "--no-open"` + "\n", `Environment="CODEX_HOME=/home/me/100%%$$x"`, "WantedBy=default.target"} {
+	for _, want := range []string{`ExecStart="/home/me/my bin/kiroku" "serve" "--no-open"` + "\n", `Environment="CODEX_HOME=/home/me/100%%$x"`, "WantedBy=default.target"} {
 		if !strings.Contains(p.content, want) {
 			t.Errorf("ユニットに %q がない:\n%s", want, p.content)
 		}
 	}
 	if p.path != filepath.Join("/home/me", ".config", "systemd", "user", "kiroku.service") {
 		t.Errorf("ユニットの場所: %s", p.path)
+	}
+
+	// Environment= の値は $ をそのまま、\ と " はエスケープする。ExecStart= は $ を $$ にする
+	p, err = planAutostart("linux", "/home/me", "/home/me/$bin/kiroku", nil, map[string]string{"CLAUDE_CONFIG_DIR": `/home/me/a "b" \c $d`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`ExecStart="/home/me/$$bin/kiroku"`, `Environment="CLAUDE_CONFIG_DIR=/home/me/a \"b\" \\c $d"` + "\n"} {
+		if !strings.Contains(p.content, want) {
+			t.Errorf("ユニットに %q がない:\n%s", want, p.content)
+		}
+	}
+	// 改行などの制御文字は、ユニットの別の行として読まれてしまうので断る
+	for _, c := range []struct {
+		exe string
+		env map[string]string
+	}{
+		{"/home/me/kiroku", map[string]string{"CODEX_HOME": "/x\nExecStartPre=/bin/false"}},
+		{"/home/me/kiroku", map[string]string{"PATH": "/usr/bin\r"}},
+		{"/home/me/kiroku", map[string]string{"KIRO_HOME": "/x\ty"}},
+		{"/home/me/kiro\nku", nil},
+	} {
+		if _, err := planAutostart("linux", "/home/me", c.exe, nil, c.env); err == nil || !strings.Contains(err.Error(), "control character") {
+			t.Errorf("%q %v: err = %v", c.exe, c.env, err)
+		}
 	}
 
 	if _, err := planAutostart("windows", `C:\Users\me`, `C:\bin\kiroku.exe`, nil, nil); err == nil || !strings.Contains(err.Error(), "shell:startup") {

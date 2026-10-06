@@ -2,6 +2,21 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Security
+
+- `kiroku html` and `kiroku json` now write files only you can read (`0600`; before, `0644`, readable by other users of the computer). They write a temporary file in the same folder and rename it into place, so a symbolic link left at the output path is replaced instead of followed, and a failed write leaves the old file as it was
+- `kiroku serve` no longer serves a Kiro IDE (before v1.0) history file outside its history folder when `sessions.json` lists a session ID such as `../../outside/creds`: such IDs are skipped and reported as unreadable. `/history` also only serves files (after following symbolic links) inside a folder kiroku reads history from or the `kiroku archive` folder
+- kiroku no longer runs programs that a repository's own git settings name (fsmonitor, hooks, textconv and external diff drivers, pager) when it reads commits in folders from your history. It also ignores the system git config, never asks for credentials, and on Windows skips network (UNC) paths. Your global git config (`user.email`, `safe.directory`) is still used
+- `kiroku serve` now times out clients that don't finish sending request headers within 10 seconds, limits headers to 64 KB and closes idle connections after 2 minutes
+- Every `kiroku serve` response now tells the browser not to show it inside another site's frame and not to send it to or share it with other sites (`X-Frame-Options`, `Content-Security-Policy: frame-ancestors 'none'`, `X-Content-Type-Options`, `Referrer-Policy`, `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`)
+- `kiroku update` accepts only version names such as `v1.2.3` from GitHub and `--to`, follows only `https` redirects, and only extracts a regular file of at most 200 MiB. Going back to an older version with `--to` now needs `--force`
+- `kiroku archive off` now deletes only the compressed copies (`.zst`) kiroku saved and folders left empty, instead of the whole `claude` and `crew` folders, and only offers to delete in a folder where `kiroku archive on` was run
+- History lines longer than 64 MiB are skipped and reported as unreadable instead of being read into memory, and compressed history is read with a memory limit
+- `kiroku autostart on` on Linux now writes environment variables containing `$` correctly (it wrote `$$`) and refuses values with newlines or other control characters, which could add lines to the systemd unit
+- When `kiroku serve` cannot read history or turn on `kiroku archive`, the page now says to look at the terminal instead of showing the error with local paths
+
 ## v0.13.1 - 2026-10-06
 
 ### Changed

@@ -116,12 +116,18 @@ func planAutostart(goos, home string, exe string, args []string, env map[string]
 		b.WriteString("[Unit]\nDescription=kiroku serve (your AI work history in the browser)\n\n[Service]\n")
 		quoted := make([]string, len(cmd))
 		for i, a := range cmd {
+			if err := systemdValue(a); err != nil {
+				return autostartPlan{}, fmt.Errorf("cannot write %q to the systemd unit: %w", a, err)
+			}
 			quoted[i] = systemdQuote(a)
 		}
 		b.WriteString("ExecStart=" + strings.Join(quoted, " ") + "\n")
 		for _, k := range autostartEnv {
 			if v, ok := env[k]; ok {
-				b.WriteString("Environment=" + systemdQuote(k+"="+v) + "\n")
+				if err := systemdValue(v); err != nil {
+					return autostartPlan{}, fmt.Errorf("cannot write $%s to the systemd unit: %w", k, err)
+				}
+				b.WriteString("Environment=" + systemdEnvQuote(k+"="+v) + "\n")
 			}
 		}
 		b.WriteString("\n[Install]\nWantedBy=default.target\n")
@@ -141,10 +147,29 @@ func xmlText(s string) string {
 	return b.String()
 }
 
-// systemdQuote は systemd の設定の 1 語にする（空白などを含んでも 1 語のまま、% や $ は文字のまま）。
+// systemdQuote は ExecStart= の 1 語にする（空白などを含んでも 1 語のまま、% や $ は文字のまま）。
+// ExecStart= は $NAME を環境変数に置きかえるので、$ は $$ にする。
 func systemdQuote(s string) string {
 	s = strings.NewReplacer(`\`, `\\`, `"`, `\"`, "%", "%%", "$", "$$").Replace(s)
 	return `"` + s + `"`
+}
+
+// systemdEnvQuote は Environment= の値にする。Environment= は $ を置きかえないので、$ はそのまま
+// （$$ にすると、そのまま $$ が入ってしまう）。\ と " と、指定子の % だけを書きかえる。
+func systemdEnvQuote(s string) string {
+	s = strings.NewReplacer(`\`, `\\`, `"`, `\"`, "%", "%%").Replace(s)
+	return `"` + s + `"`
+}
+
+// systemdValue は、ユニットファイルに書けない値（改行などの制御文字）を断る。改行があると、
+// 値の続きが別の設定の行として読まれてしまう。
+func systemdValue(s string) error {
+	for _, r := range s {
+		if r < 0x20 || r == 0x7f {
+			return fmt.Errorf("it contains a control character (%U)", r)
+		}
+	}
+	return nil
 }
 
 // currentAutostart は、この OS での設定（kiroku の場所と環境変数は、いま動いているものを使う）。
