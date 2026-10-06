@@ -1,0 +1,17 @@
+# Go のモジュールと GitHub Actions の更新を、週に 1 回まとめて PR にする（脆弱性の修正は待たずにすぐ出る）
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      go:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

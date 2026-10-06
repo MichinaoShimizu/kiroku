@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Security
+
+- Release builds now use Go 1.26.8 instead of Go 1.24.7, whose standard library had known vulnerabilities in code kiroku uses (`net/http`, `crypto/tls`, `crypto/x509` and others; found with `govulncheck`). The zstd library (klauspost/compress) is updated to v1.18.7 and golang.org/x/sys to v0.44.0, which also had fixes for known vulnerabilities in code kiroku does not call. Building from source (`go install`) now needs Go 1.25 or later
+- CI now runs `govulncheck` on every pull request, and Dependabot proposes updates to Go modules and GitHub Actions each week
+
 ## v0.11.0 - 2026-10-06
 
 ### Added

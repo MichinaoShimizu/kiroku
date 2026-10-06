@@ -16,11 +16,12 @@ Changes must keep kiroku's promises:
 go test ./...                      # tests
 test -z "$(gofmt -l .)" && go vet ./...   # format and vet (CI runs both)
 GOTOOLCHAIN=$(go env GOVERSION) go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...   # static analysis (CI runs it on Ubuntu)
+GOTOOLCHAIN=$(go env GOVERSION) go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...   # known vulnerabilities (CI runs it on Ubuntu)
 go run . serve                     # try it with your own history
 sh tools/screenshots/run.sh --html /tmp/kiroku-demo.html   # an HTML with dummy data
 ```
 
-Go 1.23 or later is required. The dummy-data HTML needs Python 3 and git; refreshing the screenshots also needs Node.js and Playwright (`npm i playwright && npx playwright install chromium` in `tools/screenshots`).
+Go 1.25 or later is required. The dummy-data HTML needs Python 3 and git; refreshing the screenshots also needs Node.js and Playwright (`npm i playwright && npx playwright install chromium` in `tools/screenshots`).
 
 [docs/development.md](docs/development.md) covers the layout, how to add an agent, tests and golden data, CI, and the release procedure. A release is a PR that renames `## Unreleased` to `## vX.Y.Z - YYYY-MM-DD`; merging it tags and releases automatically (`.github/workflows/tag.yml`).
 
