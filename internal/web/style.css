@@ -136,6 +136,10 @@ kbd{font:var(--fs-xs)/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px
 /* 重なって細くなった帯（スマホや 1000px）では、印と時刻を外して名前を語の切れ目で折り返す。語の途中では切らず、入らない語と行は … で省く */
 .run{container-type:inline-size}
 @container (max-width:64px){.run .t{white-space:normal;align-items:flex-start}.run .t::before{display:none}.run .t span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--ln,1);overflow-wrap:normal;word-break:normal}.run .m{display:none}}
+/* もっと細くて最初の語も 4 文字も入らない帯（fitRuns が .nt を付ける）は、「S… u… t…」のような切れ端になるので、名前の代わりに始まりの時刻だけ。
+   時刻も入らない帯（.nn）は色だけ。名前は aria-label とツールチップ、押せば詳細で見られる */
+.run .st{display:none;margin:0 -6px;font-size:var(--fs-2xs);font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-align:center}
+.run.nt .t,.run.nt .m,.run.nn .t,.run.nn .m{display:none}.run.nt .st{display:block}
 .run:hover{box-shadow:inset 0 0 0 1.5px var(--c),var(--shadow);z-index:4}
 .tlbox.focus .run{opacity:.25;filter:saturate(.5)}
 .tlbox.focus .run.sel{opacity:1;filter:none;box-shadow:inset 0 0 0 2px var(--c),var(--shadow);z-index:2}
