@@ -16,6 +16,12 @@ This downloads the file for your OS and CPU (Intel / Apple Silicon and ARM) from
 curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install.sh | KIROKU_VERSION=v0.1.7 KIROKU_INSTALL_DIR=~/bin sh
 ```
 
+Each release file also carries a signed record that it was built from this repository by its release workflow (a GitHub artifact attestation). With the [GitHub CLI](https://cli.github.com/), you can check a file you downloaded:
+
+```bash
+gh attestation verify kiroku_<version>_darwin_arm64.tar.gz --repo MichinaoShimizu/kiroku
+```
+
 ### Windows
 
 Download `kiroku_<version>_windows_<amd64 or arm64>.zip` from [Releases](https://github.com/MichinaoShimizu/kiroku/releases) and extract it.
