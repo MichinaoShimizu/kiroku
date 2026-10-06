@@ -100,6 +100,8 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 	} else {
 		fmt.Fprintln(w, "  · git: not found, so commits and pushes are not shown")
 	}
+	a := autostartStatus()
+	fmt.Fprintf(w, "  %s autostart: %s\n", a.mark, a.text)
 
 	fmt.Fprintln(w, "\nNext")
 	if total == 0 {
@@ -109,7 +111,11 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 	if risky { // 消えた履歴は戻らないので、見るより先に
 		fmt.Fprintln(w, "  kiroku archive on    keep copies of history before it is deleted (or change the setting above)")
 	}
-	fmt.Fprintln(w, "  kiroku serve         open the view in your browser")
+	if a.running {
+		fmt.Fprintf(w, "  open %s\n", a.url)
+	} else {
+		fmt.Fprintln(w, "  kiroku serve         open the view in your browser")
+	}
 }
 
 // plural は「1 session」「2 sessions」。
