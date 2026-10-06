@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Security
+
+- Fixed a stored cross-site scripting (XSS) hole in the view. When a prompt of 12 or more characters was repeated in 3 or more sessions, the "Worth a look" finding about it inserted the first 40 characters of the prompt as HTML instead of text. A prompt containing HTML (typed, pasted, or sent by a script or an agent running `claude -p`) could therefore run script in the page. That script could read the history in the page, and under `kiroku serve` also the original history files. The text is now escaped like everywhere else. Links in the view now also open only `http(s)` addresses. CI now builds the view from history full of HTML and script payloads and checks that nothing runs
+- Please update, and delete or regenerate HTML files written by earlier versions if you share them
+
 ## v0.13.1 - 2026-10-06
 
 ### Changed

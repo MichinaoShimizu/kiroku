@@ -220,7 +220,7 @@ function placeFlags(R, F){ // 基準を超えた指標の、その場に印・�
     // 下のカードと重なって省いたセッションも数に入れて断る（見出しの「N sessions」と、並ぶ数が合わなく見えないように）
     const dup = f.k === "friction" ? 0 : f.ids.length - ids.length, rest = [more > 0 ? `${more} more` : "", dup ? `${dup} in the list below` : ""].filter(Boolean).join(" · ");
     const own = !GOTO[f.k] && t.closest(".stat"); // 自分の数字の上に出す印は、数字の言い直し（見えたこと）を省く
-    const html = `<div class="fl">${own ? "" : `<p class="see">${ico("flag", "fdot")}${f.see}</p>`}<p class="why">${esc(f.why)}</p>${spark(f.k)}${f.because ? `<p class="because">Flagged because ${esc(f.because)}</p>` : ""}${ids.length || rest ? `<div class="fss">${ses(ids.slice(0, 3))}${rest ? `<p class="more">${rest}</p>` : ""}</div>` : ""}<p class="rule">Threshold: ${esc(f.rule)}</p></div>`;
+    const html = `<div class="fl">${own ? "" : `<p class="see">${ico("flag", "fdot")}${esc(f.see)}</p>`}<p class="why">${esc(f.why)}</p>${spark(f.k)}${f.because ? `<p class="because">Flagged because ${esc(f.because)}</p>` : ""}${ids.length || rest ? `<div class="fss">${ses(ids.slice(0, 3))}${rest ? `<p class="more">${rest}</p>` : ""}</div>` : ""}<p class="rule">Threshold: ${esc(f.rule)}</p></div>`;
     const dt = t.closest("details"); // 閉じた折りたたみの中の印は、見出しにも出し、自分で閉じていなければ開いておく
     if (dt){ const sm = dt.querySelector("summary"); if (!sm.querySelector(".fdot")) sm.insertAdjacentHTML("beforeend", `<span title="A metric crossed a threshold">${ico("flag", "fdot")}</span>`); if (st.moreS !== false && !dt.open){ dt.dataset.auto = "1"; dt.open = true; } }
     const stat = t.closest(".stat");

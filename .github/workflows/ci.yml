@@ -56,6 +56,11 @@ jobs:
           npx playwright install --with-deps chromium
       - run: sh tools/screenshots/run.sh --html "$RUNNER_TEMP/kiroku.html"
       - run: node tools/screenshots/smoke.mjs "$RUNNER_TEMP/kiroku.html"
+      # 悪意のある文字列を仕込んだ履歴で、画面のどこからもスクリプトが動かないこと（XSS）
+      - run: |
+          python3 -I tools/screenshots/hostile.py "$RUNNER_TEMP/hostile"
+          TZ=UTC go run . html --no-open --sources claude --root "$RUNNER_TEMP/hostile/fx/projects" --week 2026-10-05 -o "$RUNNER_TEMP/xss.html"
+          node tools/screenshots/xss.mjs "$RUNNER_TEMP/xss.html"
 
   # リリースの設定が壊れていないかを、タグを打つ前に確かめる（公開はしない）
   release-dry-run:
