@@ -408,6 +408,9 @@ func waitFor(t *testing.T, what string, cond func() bool) {
 	}
 }
 
+// testCookie は fetchHost が付ける Cookie（kiroku serve の鍵）。
+var testCookie *http.Cookie
+
 // fetchHost は Host を指定して srv に送り、状態・本文・ヘッダーを返す。
 func fetchHost(t *testing.T, method, url, host string) (int, string, http.Header) {
 	t.Helper()
@@ -419,6 +422,9 @@ func fetchHost(t *testing.T, method, url, host string) (int, string, http.Header
 		r.Host = host
 	}
 	r.Header.Set("X-Kiroku", "1")
+	if testCookie != nil {
+		r.AddCookie(testCookie)
+	}
 	res, err := http.DefaultClient.Do(r)
 	if err != nil {
 		t.Fatal(err)
@@ -484,6 +490,21 @@ func TestServeLive(t *testing.T) {
 	}
 	port := m[1]
 	base := "http://127.0.0.1:" + port
+	if !strings.Contains(out.String(), `"kiroku open" opens it with the key`) {
+		t.Errorf("kiroku open を案内するはず: %q", out.String())
+	}
+	// 鍵のないブラウザ（同じコンピューターのほかのユーザーなど）には、履歴を見せない
+	for _, path := range []string{"/", "/stamp", "/data.json"} {
+		if code, body, _ := fetchHost(t, "GET", base+path, "localhost:"+port); code != 403 || !strings.Contains(body, "kiroku open") {
+			t.Errorf("鍵なしの %s = %d %.80q, want 403", path, code, body)
+		}
+	}
+	key, err := serveKey(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testCookie = &http.Cookie{Name: "kiroku_key_" + port, Value: key}
+	defer func() { testCookie = nil }()
 
 	if code, body, _ := fetchHost(t, "GET", base+"/", "localhost:"+port); code != 503 || !strings.Contains(body, "Reading your history") {
 		t.Errorf("読み込み中の / = %d %.80q", code, body)

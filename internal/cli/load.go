@@ -153,7 +153,7 @@ func loadPrices(path string) error {
 }
 
 // openBrowser は、ファイルの絶対パスか URL を既定のブラウザで開く。
-func openBrowser(target string) {
+var openBrowser = func(target string) {
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "darwin":

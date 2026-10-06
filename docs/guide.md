@@ -47,7 +47,8 @@ go install github.com/MichinaoShimizu/kiroku@latest
 
 | Command | Description |
 |---|---|
-| `kiroku serve [ADDR]` | Serves the view at `http://localhost:8484/` and keeps it up to date. It answers right away: while it reads your history for the first time (which can take a while with a lot of history or many git repositories), the page shows "Reading your history…" and switches to the view when it is done, and the terminal shows how many sessions were loaded and how long it took. If the port is already in use, it stops at once without reading history. Every few seconds it checks the history folders for changes (file names, sizes and modification times only) and reloads once writing settles (when changes stop for 10 seconds; even if an agent keeps writing, it reloads within 60 seconds at most). New history appears while the week or month you are viewing and the selected session stay as they are, and `LIVE` is shown at the top left. Change the port with, for example, `kiroku serve :8485` (a bare port still listens on `127.0.0.1` only). Press Ctrl+C to quit |
+| `kiroku serve [ADDR]` | Serves the view at `http://localhost:8484/` and keeps it up to date. It answers right away: while it reads your history for the first time (which can take a while with a lot of history or many git repositories), the page shows "Reading your history…" and switches to the view when it is done, and the terminal shows how many sessions were loaded and how long it took. If the port is already in use, it stops at once without reading history. Every few seconds it checks the history folders for changes (file names, sizes and modification times only) and reloads once writing settles (when changes stop for 10 seconds; even if an agent keeps writing, it reloads within 60 seconds at most). New history appears while the week or month you are viewing and the selected session stay as they are, and `LIVE` is shown at the top left. Change the port with, for example, `kiroku serve :8485` (a bare port still listens on `127.0.0.1` only). Only browsers that have its key can open the view (see "[The key of kiroku serve](#the-key-of-kiroku-serve)"); the browser it opens gets the key. Press Ctrl+C to quit |
+| `kiroku open [ADDR]` | Opens the view of a running `kiroku serve` in your browser with its key. A browser needs this once; after that, `http://localhost:8484/` (or your bookmark) opens it. `--print` prints the address with the key instead, to open the view on another device. ADDR defaults to the address `kiroku autostart` uses, or `127.0.0.1:8484` |
 | `kiroku html [-o FILE]` | Reads all history up to now and writes it to a single HTML file, then opens it in your browser (`--no-open` to skip). Use it to carry the view around or to look at it without starting a server. Run it again to include later history. The file is readable only by you (`0600`). `--week` or `--month` writes only one period (see "[Share one week or month](#share-one-week-or-month)") |
 | `kiroku json [-o FILE]` | Writes the aggregated data as JSON (`-o -` for stdout). Like `kiroku html`, it writes a file only you can read (`0600`) |
 | `kiroku doctor` | Checks your setup in one go and only reads: which histories were found (sessions and the oldest date for each agent, and where it looked), whether an agent will delete old history (Claude Code on its 30-day default) and which settings file to change, whether `kiroku archive` is on, whether git is found, whether autostart is on, and whether a newer kiroku is out (it asks GitHub Releases while it reads history; `--no-update-check` skips this, and builds from source are not checked). It ends with what to run next, including `kiroku update` when a newer release exists. Run it right after installing, or when something you expect is missing from the view |
@@ -306,12 +307,12 @@ If you'd rather not change the setting, kiroku can keep a copy of the history in
 
 ### Start kiroku when you log in
 
-`kiroku autostart on` registers `kiroku serve --no-open` to start each time you log in, starts it right away and waits a few seconds until it answers. The view is then always at `http://localhost:8484/`; while the first read of your history is running, the page says so and switches to the view by itself. With `kiroku archive on`, history is kept as soon as it is written.
+`kiroku autostart on` registers `kiroku serve --no-open` to start each time you log in, starts it right away and waits a few seconds until it answers. The view is then always at `http://localhost:8484/` (run `kiroku open` once to give your browser the key); while the first read of your history is running, the page says so and switches to the view by itself. With `kiroku archive on`, history is kept as soon as it is written.
 
 - macOS: a launchd agent, `~/Library/LaunchAgents/io.github.michinaoshimizu.kiroku.plist`. Output goes to `~/Library/Logs/kiroku.log`
 - Linux: a systemd user service, `~/.config/systemd/user/kiroku.service` (under `XDG_CONFIG_HOME` if set). See its output with `journalctl --user -u kiroku`
 - Windows is not supported yet. Put a shortcut to `kiroku serve --no-open` in your Startup folder (Win+R, `shell:startup`) instead
-- To use another port, run `kiroku autostart on :8485`. A login session does not see the variables set in your shell, so `PATH` (to find git), `CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME` and `KIROKU_ARCHIVE_DIR` are written into the settings as they are when you run it (on Linux, a value with a newline or another control character is refused). Run `kiroku autostart on` again after changing them
+- To use another port, run `kiroku autostart on :8485`. A login session does not see the variables set in your shell, so `PATH` (to find git), `CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME`, `KIROKU_ARCHIVE_DIR`, `KIROKU_CONFIG_DIR` and `XDG_CONFIG_HOME` (where the key of kiroku serve is kept) are written into the settings as they are when you run it (on Linux, a value with a newline or another control character is refused). Run `kiroku autostart on` again after changing them
 - It uses the `kiroku` you ran, at its path. `kiroku update` replaces it in place; after reinstalling it somewhere else, run `kiroku autostart on` again
 - `kiroku autostart` (and `kiroku doctor`) shows whether it is on, reading your history, or answering. If `autostart on` reports that nothing answered, the output above (log) says why; a common cause is another `kiroku serve` you started yourself already using the port
 
@@ -331,6 +332,16 @@ systemctl --user disable --now kiroku.service
 rm ~/.config/systemd/user/kiroku.service
 systemctl --user daemon-reload
 ```
+
+## The key of kiroku serve
+
+`127.0.0.1` keeps other computers out, but not other users of the same computer (a shared server you log in to with SSH, for example): any of them could open `http://localhost:8484/`. So `kiroku serve` shows your history only to a browser that has its key.
+
+- The key is made the first time `kiroku serve` runs and kept in `serve-key` in kiroku's settings folder (`~/.config/kiroku` on Linux, `~/Library/Application Support/kiroku` on macOS, `%AppData%\kiroku` on Windows, or `$KIROKU_CONFIG_DIR`), readable only by you. Every `kiroku serve` of yours uses the same key
+- `kiroku serve` (unless `--no-open`) and `kiroku open` open the view with the key. They don't pass the key to the browser on its command line (other users can see that); they open `open.html` in the same folder, readable only by you, which forwards to the view with the key
+- The browser then keeps the key in a cookie for that port (for 400 days), and the address without the key works, including bookmarks. Another browser, or a browser whose cookies were cleared, shows "Open kiroku with its key"; run `kiroku open` again. The cookie is not sent when you arrive from a link on another site, so that page also appears then; its "open it again from here" link opens the view
+- To open the view on another device (with `kiroku serve 0.0.0.0:8484`), run `kiroku open --print` and open the printed address there, with `localhost` replaced by this computer's address. Anyone with that address can read your history, and the connection is not encrypted, so do this only on a network you trust
+- To change the key, stop `kiroku serve`, delete `serve-key` and start it again. Browsers then need `kiroku open` again
 
 ## Share one week or month
 
@@ -369,6 +380,7 @@ Per command:
 | `serve`, `html` | `--no-open` | | Don't open the browser |
 | `html` | `-o`, `--out` | `kiroku.html` | HTML file to write |
 | `doctor` | `--no-update-check` | | Don't ask GitHub whether a newer release exists |
+| `open` | `[ADDR]` | the autostart address, or `127.0.0.1:8484` | `--print`: print the address with the key instead of opening a browser |
 | `autostart on` | `[ADDR]` | `127.0.0.1:8484` | Where the started `kiroku serve` listens, as for `serve` |
 | `html` | `--week` / `--month` | | Write only one week (`this`, `last` or a date in it) or month (`this`, `last` or `YYYY-MM`); see "[Share one week or month](#share-one-week-or-month)" |
 | `json` | `-o`, `--out` | `kiroku.json` | JSON file to write (`-` for stdout) |
@@ -377,4 +389,4 @@ Per command:
 ## Notes
 
 - The HTML and JSON output contain your prompts, file paths and commit messages as they are. Check the content before giving them to anyone (this repository's `.gitignore` excludes `*.html` and `kiroku.json`). kiroku writes them readable only by you (`0600`), through a temporary file that replaces the old one, so a symbolic link at the output path is replaced rather than followed
-- By default, `kiroku serve` can be reached only from your own computer (it listens on `127.0.0.1` and rejects requests addressed to other host names). If you expose it, as in `kiroku serve 0.0.0.0:8484`, people on the same network can also view your history. Even then, it only answers requests addressed to this computer's own names and IPs (plus `--allow-host`), so a web page cannot point its own domain at your computer and read your history (DNS rebinding). Its responses also tell the browser not to show the view inside other sites or share it with them. See [SECURITY.md](../SECURITY.md) for details
+- By default, `kiroku serve` can be reached only from your own computer (it listens on `127.0.0.1` and rejects requests addressed to other host names), and only by browsers that have its key, so other users of the computer can't view your history. If you expose it, as in `kiroku serve 0.0.0.0:8484`, devices on the same network can reach it too, and anyone who gets the address with the key can view your history. Even then, it only answers requests addressed to this computer's own names and IPs (plus `--allow-host`), so a web page cannot point its own domain at your computer and read your history (DNS rebinding). Its responses also tell the browser not to show the view inside other sites or share it with them. See [SECURITY.md](../SECURITY.md) for details
