@@ -61,32 +61,58 @@ function reportText(w, M){
 
   return L.join("\n");
 }
-/* アウトプット：AI が実行したコミット・PR 作成・変更した行（出したものの量。価値や生産性ではない） */
-function outcomePanel(w, pw, unit, ph, stat){ // 使ったもの（コスト）→ 残ったもの（コミットと、使ったものと比べた指標）を左右に並べる
-  const o = w.outputs || {commits:0}, g = w.git, u = w.usage || {};
-  const hasOut = o.commits || (g && g.commits);
+/* 期間に git へ残ったもの：コミットから数えたファイルと、この PC からの push。
+   w.git と同じ範囲（凡例で隠した分は、ほかの数字と同じで差し引かない）で数える */
+function periodGit(){
+  const {ws, we} = period(), cs = (META.git || []).filter(c => c.t >= ws && c.t < we);
+  const files = new Set(), projects = new Set(); let trunc = false;
+  cs.forEach(c => { const fs = c.files || [];
+    fs.forEach(f => files.add(`${c.repo}\u0000${f.path}`));
+    if (fs.length < c.nFiles) trunc = true; // 1 コミットにつき残すファイルは先頭 40 件なので、それを超えたら「少なくとも」
+    projects.add(c.project); });
+  const ps = (META.push || []).filter(p => p.t >= ws && p.t < we);
+  return {files: files.size, trunc, projects: projects.size, pushes: ps.length, refs: new Set(ps.map(p => `${p.repo}\u0000${p.ref}`)).size};
+}
+/* アウトプット：使ったもの（コスト）→ git に残ったもの → その 2 つを割った指標（Compared）の順に並べる。
+   残ったものは、出したものの量であって、価値や生産性ではない */
+function outcomePanel(w, pw, unit, ph, stat){
+  const o = w.outputs || {commits:0}, g = w.git, u = w.usage || {}, G = periodGit();
+  const gc = g && g.commits ? g : null; // git のコミット（行・ファイル・push は git から数えるので、これがないときは出さない）
+  const hasOut = o.commits || gc || G.pushes || o.prs, hasCommit = o.commits || gc;
   const po = pw && pw.outputs, V = vsPrev(pw, unit), d = (a, b) => V.diff(a, V.of(null, b)); // AI のコミットと PR は日ごとの値がないので、途中の期間は比べない
   const n = v => v.toLocaleString(LOC()), times = v => `${v}`, base = w.outBase ?? w.sessions;
   const cost = [
     stat("Active time", dur(w.active,true), V.diff(w.active, V.of("active", pw && pw.active), dur), "active"),
+    stat("Prompts", n(w.prompts), V.diff(w.prompts, V.of("prompts", pw && pw.prompts)), "prompts"),
     u.tokens ? stat("Estimated cost", usdH(costOf(u)), costOf(u) == null ? "Models not in the price table" : V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost") : "",
     u.tokens ? stat("Tokens", tok(u.tokens), `Output ${tok(u.out)}`, "tokens") : "",
     u.credits ? stat("Kiro credits", crN(u.credits), "As recorded in history", "credits") : "",
   ].join("");
+  const lines = gc ? gc.added + gc.removed : 0;
   const out = hasOut ? [
-    g && g.commits ? stat("Git commits", times(g.commits), `${g.ai} by AI · +${n(g.added)} −${n(g.removed)} lines${pw && pw.git ? ` · ${V.diff(g.commits, V.of("commits", pw.git.commits))}` : ""}`, "gitCommits") : "",
-    g && g.commits ? "" : stat("AI commits", times(o.commits), d(o.commits, po && po.commits), "commits"), // Git のコミットがあれば「うち AI」に出ている
-    // 使ったものと比べた指標。何と何を割ったかを添える
-    w.costPerCommit != null ? stat("Estimated cost per commit", usdH(w.costPerCommit), `Claude Code's estimated cost ÷ ${plural(o.commits, "AI commit")}`, "costPerCommit") : "",
-    stat("Sessions that reached a commit", base ? `${Math.round(w.outSessions*100/base)}<small>%</small>` : "—", `${w.outSessions} of ${plural(base, "session")}`, "outSessions"),
+    gc ? stat("Git commits", times(gc.commits), `${gc.ai} by AI (${Math.round(gc.ai*100/gc.commits)}%)${pw && pw.git ? ` · ${V.diff(gc.commits, V.of("commits", pw.git.commits))}` : ""}`, "gitCommits") : "",
+    gc ? "" : stat("AI commits", times(o.commits), d(o.commits, po && po.commits), "commits"), // Git のコミットがあれば「うち AI」に出ている
+    gc ? stat("Lines changed", n(lines), `+${n(gc.added)} −${n(gc.removed)} · ${n(Math.round(lines/gc.commits))} per git commit`, "lines") : "",
+    gc && G.files ? stat("Files changed", n(G.files), `In ${plural(G.projects, "project")}${G.trunc ? " · at least" : ""}`, "files") : "",
+    G.pushes ? stat("Pushes", times(G.pushes), `To ${plural(G.refs, "branch", "branches")} · from this computer`, "pushes") : "",
+    o.prs ? stat("Pull requests", times(o.prs), "Created by AI", "prs") : "",
   ].join("") : "";
+  // 使ったものと比べた指標。残ったものではないので別の行にして、何と何を割ったかを添える
+  const cmp = hasCommit ? [
+    w.costPerCommit != null ? stat("Estimated cost per commit", usdH(w.costPerCommit), `Claude Code's estimated cost ÷ ${plural(o.commits, "AI commit")}`, "costPerCommit") : "",
+    stat("Sessions that reached a commit or PR", base ? `${Math.round(w.outSessions*100/base)}<small>%</small>` : "—", `${w.outSessions} of ${plural(base, "session")}`, "outSessions"),
+  ].join("") : "";
+  // 「残ったもの」に添える一言は、実際に出したカードから作る（git を読めなかった週に、行やファイルがあるように書かないため）
+  const names = [o.commits || gc ? "commits" : "", gc ? "lines" : "", gc && G.files ? "files" : "", G.pushes ? "pushes" : "", o.prs ? "pull requests" : ""].filter(Boolean);
+  const outSub = names.length ? names.join(", ").replace(/, ([^,]+)$/, " and $1").replace(/^./, c => c.toUpperCase()) : "From git and from history";
   const side = (cls, label, sub, body) => `<div class="ocside ${cls}"><div class="ocl"><b>${label}</b><span>${sub}</span></div>${body}</div>`;
-  return `<section class="panel oc">${ph(2, "Cost and outputs", `What you spent ${uThis(unit)} and what came out of it`, "outputs")}
+  return `<section class="panel oc">${ph(2, "Cost and outputs", `What you spent ${uThis(unit)} and what it left behind`, "outputs")}
     <div class="ocgrid">
       ${side("spent", "Cost", "Time and usage", `<div class="stats">${cost}</div>`)}
       <div class="ocarrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-      ${side("left", "Outputs", "Commits and cost per commit", out ? `<div class="stats">${out}</div>` : `<p class="none">No commits recorded.</p>`)}
+      ${side("left", "Left behind", outSub, out ? `<div class="stats">${out}</div>${gc ? "" : `<p class="none">Lines, files and pushes are counted from git commits, which were not read here.</p>`}` : `<p class="none">No commits recorded.</p>`)}
     </div>
+    ${cmp ? side("occmp", "Compared", "Cost ÷ what it left behind", `<div class="stats">${cmp}</div>`) : ""}
     <div class="ocdaily">${usageChart(w, unit === "月")}</div></section>`;
 }
 /* 日ごとの推移（トークン・クレジット・目安コスト・作業時間・セッション・プロンプトを切り替え。今までのリズムもここにまとめた） */
@@ -174,7 +200,7 @@ function vsPrev(pw, unit){
   const a = n == null ? null : new Date(periodBack(1).ws * 1000), range = n == null ? "" : n === 1 ? dMD(a) : dSpan(a, addDays(a, n - 1));
   const label = n == null ? `vs ${uLast(unit)}` : `vs ${range}`;
   const of = (f, whole) => !pw || whole == null ? null : n == null ? whole : f ? pw.days.slice(0, n).reduce((t, d) => t + (d[f] || 0), 0) : null;
-  const diff = (a, b, fmt = x => x) => b == null ? "" : `${label} <span class="nw">${a-b>=0?"+":"−"}${fmt(Math.abs(a-b))}</span>`;
+  const diff = (a, b, fmt = x => x) => b == null ? "" : a === b ? `${label} <span class="nw">no change</span>` : `${label} <span class="nw">${a-b>0?"+":"−"}${fmt(Math.abs(a-b))}</span>`;
   return {n, range, label, of, diff};
 }
 // projection は、今月の途中なら、今日までのペースが月末まで続いたときの目安コストとクレジット（推定）。

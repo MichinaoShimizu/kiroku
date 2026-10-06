@@ -16,7 +16,7 @@ function detail(s){
     <div class="muted" style="font-variant-numeric:tabular-nums">${md(s.start)} ${hm(s.start)} – ${sameDay ? "" : md(s.end)+" "}${hm(s.end)}</div>
     <div class="meta"><span>${esc(s.project)}</span>${s.branch?`<span>${esc(s.branch)}</span>`:""}</div>
     <div class="dcols"><div class="dcol">
-    <div class="mini">
+    <div class="mini tight">
       <div><div class="k">Active time</div><div class="v">${dur(active,true)}</div></div>
       <div><div class="k">Prompts</div><div class="v">${s.nPrompts}</div></div>
       <div><div class="k">Wait time (median)</div><div class="v">${med==null?"—":secsH(med)}</div></div>
@@ -29,10 +29,9 @@ function detail(s){
         return `<div><div class="k">Git commits</div><div class="v">${cs.length}<small> · ${ai} by AI</small></div></div>${o.prs ? `<div><div class="k">Pull requests created</div><div class="v">${o.prs}</div></div>` : ""}`; })()}
 ` : s.credits ? `<div><div class="k">Kiro credits</div><div class="v">${crN(s.credits)}</div></div><div><div class="k">Per prompt</div><div class="v">${s.nPrompts ? crN(s.credits/s.nPrompts) : "—"}<small> credits</small></div></div>` : ""}
     </div>
+    ${s.prompts.length ? promptFlow(s) : `<h3>Prompt flow</h3><p class="none">No prompts recorded.${s.source === "Kiro Crew" ? " Kiro Crew deletes conversation records after a while, so only the usage record remains for this conversation." : ""}</p>`}
     <div class="sact"><button class="pill" id="sreview">Review this session with AI (copy prompt)</button>
       <span>Asks for ways to improve how you prompted and split the work, based on the prompt flow and numbers. It includes your prompts but not the AI's replies, so review it before sending.</span></div>
-    <h3>Prompt flow</h3>
-    ${s.prompts.length ? promptFlow(s) : `<p class="none">No prompts recorded.${s.source === "Kiro Crew" ? " Kiro Crew deletes conversation records after a while, so only the usage record remains for this conversation." : ""}</p>`}
     ${s.subagents.length ? `<h3>Subagents · ${s.subagents.length}</h3>${s.subagents.map(a=>{
         const span = Math.max(1, s.end - s.start), l = a.start ? Math.max(0,(a.start - s.start)/span*100) : 0, w = a.start && a.end ? Math.max(.8,(a.end - a.start)/span*100) : .8;
         const t = a.usage, tt = t.in + t.out + t.cw + t.cw1h + t.cr;
@@ -140,7 +139,8 @@ function promptFlow(s){
     s.prompts.some(p => p.reply) ? `<span class="kev rep">${ico("reply")}${"What the AI wrote back"}</span>` : "",
     ...[["commit", "Commit"], ["push", "Push"], ["pr", "Pull request"], ["agent", "Subagent"], ["int", "Interruption"], ["warn", "Usage limit"]].filter(([k]) => kinds.has(k)).map(([k, l]) => `<span class="kev ${k}">${ico(EV_ICON[k])}${l}</span>`)].filter(Boolean).join("");
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";
-  const bar = `<div class="flowbar"><div class="segc" role="group" aria-label="Show" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">Everything</button><button data-v="user" aria-pressed="${!!st.flowUser}">Only user prompts</button></div><button class="pill" id="pcopy">Copy prompts</button></div>`;
+  // 見出しと出し方の切り替えは 1 行に（最初の画面に入るプロンプトを 1 つでも多くする）
+  const bar = `<div class="flowhead"><h3>Prompt flow</h3><div class="flowbar"><div class="segc" role="group" aria-label="Show" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">Everything</button><button data-v="user" aria-pressed="${!!st.flowUser}">Only user prompts</button></div><button class="pill" id="pcopy">Copy prompts</button></div></div>`;
   return `${bar}<div class="tlkey${st.flowUser ? " only-user" : ""}">${key}</div><ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${`Show ${plural(rest, "more prompt")}${also}`}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${"\"AI worked\" is the time from a prompt to the AI's last activity; \"wait\" is the time from there to your next prompt. Both are estimates from the history's timestamps."}</p>` : ""}${s.prompts.some(p => p.reply) ? `<p class="note">${`The reply after a prompt is the last thing the AI wrote to you in that turn, in its own words — not its thinking, its tool calls or their output. A turn where it only ran tools, or whose words the agent does not record, has no reply. A long one shows its first ${REPLY_RUNES} characters.`}</p>` : ""}`;
 }
 /* 1 つのセッションを AI と振り返るためのプロンプト（kiroku 自身は AI を呼ばない） */
