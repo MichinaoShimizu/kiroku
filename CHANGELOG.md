@@ -6,6 +6,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Changed
 
+- Session details put the prompt flow in the first view. The numbers at the top are now a smaller four-column strip, "Prompt flow" shares its line with "Everything / Only user prompts" and "Copy prompts", and "Review this session with AI (copy prompt)" has moved below the flow, where you reach it after reading. On a 1440x900 screen the flow starts about 180px higher and shows about eight entries instead of three, without scrolling
 - Tokens and Kiro credits now have their own box everywhere the view used to share one. "Month-end projection (estimate)" in "④ How you used AI" is now two boxes, "Month-end cost (estimate)" and "Month-end credits (estimate)", instead of one box reading "≈ $12 · 34 credits"; on phones, a month calendar cell with both shows tokens and credits on their own lines instead of only tokens. They are separate allowances, so for anyone using both Claude Code and Kiro each is now something you can read on its own
 
 ### Fixed
