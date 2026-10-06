@@ -27,6 +27,10 @@ archives:
       - src: CHANGELOG.md
         info:
           mtime: "{{ .CommitDate }}"
+# アーカイブごとに、中の kiroku が何でできているか（Go の版と依存モジュールとその版）を SPDX の SBOM にする。
+# syft が要る（リリースのワークフローで入れる）。SBOM も checksums.txt と出どころの証明に入る
+sboms:
+  - artifacts: archive
 checksum:
   name_template: checksums.txt
 release:
