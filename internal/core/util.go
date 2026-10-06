@@ -4,6 +4,7 @@ package core
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io"
 	"math"
 	"os"
@@ -172,6 +173,7 @@ func TextOf(content any) string {
 
 // ReadJSONL は 1 行ずつ JSON を読む。壊れた行は飛ばす。名前が .zst で終わるファイルは zstd で圧縮されたものとして読む。
 // 開けない・途中で読めなくなったときはエラーを返す（それまでに読めた行は fn に渡してある）。
+// MaxLine より長い行は飛ばして続きを読み、最後にそのことをエラーで返す（読めないファイルとして知らせる）。
 func ReadJSONL(path string, fn func(Obj)) error {
 	f, err := os.Open(path)
 	if err != nil {
@@ -179,7 +181,7 @@ func ReadJSONL(path string, fn func(Obj)) error {
 	}
 	defer f.Close()
 	if strings.HasSuffix(path, ".zst") {
-		d, err := zstd.NewReader(f)
+		d, err := NewZstdReader(f)
 		if err != nil {
 			return err
 		}
@@ -189,12 +191,56 @@ func ReadJSONL(path string, fn func(Obj)) error {
 	return ReadJSONLFrom(f, fn)
 }
 
+// MaxLine は 1 行の上限（バイト）。壊れたファイルやわざと作ったファイルで、メモリを使い切らないため。
+// これより長い行は、全部をメモリに読まずに飛ばす。テストで小さくする。
+var MaxLine = 64 << 20
+
+// zstd をほどくときのメモリの上限と、窓の大きさの上限（ライブラリの既定は 64 GiB と 512 MiB）。
+const (
+	zstdMaxMemory = 1 << 30
+	zstdMaxWindow = 1 << 28
+)
+
+// NewZstdReader は、使うメモリに上限をつけた zstd の読み手（履歴のコピーや Codex の圧縮した履歴を読む）。
+func NewZstdReader(r io.Reader) (*zstd.Decoder, error) {
+	return zstd.NewReader(r, zstd.WithDecoderMaxMemory(zstdMaxMemory), zstd.WithDecoderMaxWindow(zstdMaxWindow))
+}
+
+// ReadLine は改行までの 1 行を読む（改行もふくむ）。max より長い行は long を true にして、中身は持たずに読み飛ばす。
+// err は bufio.Reader.ReadBytes と同じ（最後の行に改行がなければ io.EOF といっしょに返す）。
+func ReadLine(r *bufio.Reader, max int) (line []byte, long bool, err error) {
+	for {
+		frag, err := r.ReadSlice('\n')
+		if !long {
+			if len(line)+len(frag) > max {
+				long, line = true, nil // ここから先は捨てる
+			} else {
+				line = append(line, frag...) // frag は次に読むと書きかわるので写す
+			}
+		}
+		if err == bufio.ErrBufferFull {
+			continue
+		}
+		return line, long, err
+	}
+}
+
+func lineLimit() string {
+	if MaxLine >= 1<<20 && MaxLine%(1<<20) == 0 {
+		return fmt.Sprintf("%d MiB", MaxLine>>20)
+	}
+	return fmt.Sprintf("%d bytes", MaxLine)
+}
+
 // ReadJSONLFrom は ReadJSONL の io.Reader 版（圧縮されたファイルなど）。
 func ReadJSONLFrom(src io.Reader, fn func(Obj)) error {
 	r := bufio.NewReaderSize(src, 1<<20)
+	skipped := 0
 	for {
-		line, err := r.ReadBytes('\n')
-		if len(line) > 0 {
+		line, long, err := ReadLine(r, MaxLine)
+		if long {
+			skipped++
+		} else if len(line) > 0 {
 			var v any
 			if json.Unmarshal(line, &v) == nil {
 				if m := Map(v); m != nil {
@@ -203,6 +249,9 @@ func ReadJSONLFrom(src io.Reader, fn func(Obj)) error {
 			}
 		}
 		if err == io.EOF {
+			if skipped > 0 {
+				return fmt.Errorf("skipped %d line(s) longer than %s", skipped, lineLimit())
+			}
 			return nil
 		}
 		if err != nil { // 読めた行までは fn に渡したうえで、途中で読めなくなったこと（壊れた .zst など）を返す

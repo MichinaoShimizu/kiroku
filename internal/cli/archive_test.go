@@ -11,6 +11,7 @@ import (
 
 	"github.com/MichinaoShimizu/kiroku/internal/archive"
 	"github.com/MichinaoShimizu/kiroku/internal/core"
+	"github.com/MichinaoShimizu/kiroku/internal/source"
 )
 
 // テストで、使っている人の kiroku archive の保存場所を読み書きしない。
@@ -133,7 +134,8 @@ func TestServeHistoryArchived(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := filepath.Join(dir, "-Users-me-app", "s1.jsonl.zst")
-	l := &live{snap: snapshot{data: []*core.Session{{ID: "s1", File: p}}}, ready: true}
+	// 見せてよい場所には、kiroku archive のコピーの場所も入る
+	l := &live{snap: snapshot{data: []*core.Session{{ID: "s1", File: p}}}, ready: true, roots: historyRoots([]source.Source{&source.Claude{Root: root, Archive: dir}})}
 	srv := httptest.NewServer(l.handler())
 	defer srv.Close()
 	r, err := http.Get(srv.URL + "/history?id=s1")

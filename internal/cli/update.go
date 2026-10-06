@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -37,7 +38,7 @@ func runUpdate(args []string) error {
 	fs := newFS("update", "update [flags]\n\nDownloads the release for this OS/arch, verifies it against checksums.txt\nand replaces the running binary.")
 	check := fs.Bool("check", false, "only check whether a newer release exists")
 	to := fs.String("to", "", "install this `version` (e.g. v0.1.1) instead of the latest")
-	force := fs.Bool("force", false, "replace even when already up to date or running a dev build (--to alone can also install an older version)")
+	force := fs.Bool("force", false, "replace even when already up to date, when running a dev build, or when --to names an older version")
 	// 位置引数は受け付けない（fs.Parse だけだと、kiroku update v0.1.1 の v0.1.1 とその後ろのオプションを黙って捨て、最新を入れてしまう）
 	if _, err := parse(fs, args, 0); err != nil {
 		return quiet(err)
@@ -53,6 +54,9 @@ func runUpdate(args []string) error {
 	}
 	if !strings.HasPrefix(target, "v") {
 		target = "v" + target
+	}
+	if !validTag(target) { // URL に入れる前に、版の形だけを受け付ける
+		return fmt.Errorf("not a release version: %q (use the form v1.2.3)", target)
 	}
 	cur := "v" + strings.TrimPrefix(version, "v")
 	newer := compareVersions(target, cur) > 0
@@ -73,6 +77,9 @@ func runUpdate(args []string) error {
 	if !newer && *to == "" && !*force {
 		fmt.Printf("already up to date (%s)\n", cur)
 		return nil
+	}
+	if *to != "" && version != "dev" && compareVersions(target, cur) < 0 && !*force { // 古い版に戻すのは、はっきり頼まれたときだけ
+		return fmt.Errorf("%s is older than this kiroku (%s); pass --force to install it anyway", target, cur)
 	}
 	exe, err := updateExe()
 	if err != nil {
@@ -97,8 +104,29 @@ func newUpdateClient() *http.Client {
 	t.DialContext = (&net.Dialer{Timeout: 15 * time.Second, KeepAlive: 30 * time.Second}).DialContext
 	t.TLSHandshakeTimeout = 15 * time.Second
 	t.ResponseHeaderTimeout = 30 * time.Second
-	return &http.Client{Transport: t, Timeout: 30 * time.Minute}
+	return &http.Client{Transport: t, Timeout: 30 * time.Minute, CheckRedirect: checkRedirect}
 }
+
+// checkRedirect は、https でない場所へのリダイレクトをたどらない（GitHub のダウンロードは https のリダイレクトだけ）。
+// テストの releaseBase（httptest の http://）だけは、同じホストへの http を許す。
+func checkRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
+	}
+	if req.URL.Scheme == "https" {
+		return nil
+	}
+	if strings.HasPrefix(releaseBase, "http://") && req.URL.Scheme == "http" && "http://"+req.URL.Host == strings.TrimSuffix(releaseBase, "/") {
+		return nil
+	}
+	return fmt.Errorf("refusing to follow a redirect to %s (not https)", req.URL.Redacted())
+}
+
+// tagPattern はリリースの版の形（v1.2.3 か v1.2.3-rc.1）。
+var tagPattern = regexp.MustCompile(`^v\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$`)
+
+// validTag は、URL に入れてよい版の名前か（リダイレクト先や --to から来るので、そのままは使わない）。
+func validTag(tag string) bool { return tagPattern.MatchString(tag) }
 
 // latestCheckTimeout は最新の版を確かめるときの上限（リダイレクトのヘッダーを読むだけなので、すぐ終わるはず）。
 const latestCheckTimeout = 30 * time.Second
@@ -120,7 +148,11 @@ func latestVersion(client *http.Client) (string, error) {
 	if i < 0 {
 		return "", fmt.Errorf("release not found (%s)", resp.Status)
 	}
-	return loc[i+len("/tag/"):], nil
+	tag := loc[i+len("/tag/"):]
+	if !validTag(tag) {
+		return "", fmt.Errorf("unexpected release version %q", tag)
+	}
+	return tag, nil
 }
 
 // compareVersions は v1.2.3 の形を比べる（-rc などは数字の部分だけで比べ、同じならついていないほうを新しいとみなす）。
@@ -209,7 +241,22 @@ func fetch(client *http.Client, url string) ([]byte, error) {
 	return io.ReadAll(io.LimitReader(resp.Body, 200<<20))
 }
 
-// extract はアーカイブから bin を取り出す。
+// maxBinary は、アーカイブから取り出す kiroku の大きさの上限（壊れた・わざと作ったアーカイブでメモリを使い切らないため）。
+var maxBinary int64 = 200 << 20
+
+// readBinary は r から maxBinary まで読む。それより大きければエラー。
+func readBinary(r io.Reader) ([]byte, error) {
+	b, err := io.ReadAll(io.LimitReader(r, maxBinary+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(b)) > maxBinary {
+		return nil, fmt.Errorf("the file in the archive is larger than %d MiB", maxBinary>>20)
+	}
+	return b, nil
+}
+
+// extract はアーカイブから bin を取り出す。ふつうのファイル（リンクやフォルダでないもの）だけを取り出す。
 func extract(archive []byte, ext, bin string) ([]byte, error) {
 	if ext == ".zip" {
 		zr, err := zip.NewReader(bytes.NewReader(archive), int64(len(archive)))
@@ -217,13 +264,13 @@ func extract(archive []byte, ext, bin string) ([]byte, error) {
 			return nil, err
 		}
 		for _, f := range zr.File {
-			if filepath.Base(f.Name) == bin {
+			if filepath.Base(f.Name) == bin && f.Mode().IsRegular() {
 				rc, err := f.Open()
 				if err != nil {
 					return nil, err
 				}
 				defer rc.Close()
-				return io.ReadAll(rc)
+				return readBinary(rc)
 			}
 		}
 		return nil, fmt.Errorf("%s not found in the archive", bin)
@@ -242,7 +289,7 @@ func extract(archive []byte, ext, bin string) ([]byte, error) {
 			return nil, err
 		}
 		if filepath.Base(h.Name) == bin && h.Typeflag == tar.TypeReg {
-			return io.ReadAll(tr)
+			return readBinary(tr)
 		}
 	}
 }

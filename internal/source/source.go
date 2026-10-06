@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strings"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
@@ -154,6 +155,20 @@ func KiroGlobalStorage() []string {
 		}
 	}
 	return out
+}
+
+// safeName は、履歴の中身から読んだ名前（セッション ID など）を、ファイル名の 1 つの部分として使ってよいか。
+// パスの区切り（/ と \）、..、ドライブ名などの :、制御文字、Windows の予約名（NUL など）を含むものは使わない。
+func safeName(name string) bool {
+	if name == "" || name == "." || name == ".." || strings.ContainsAny(name, `/\:`) {
+		return false
+	}
+	for _, r := range name {
+		if r < 0x20 || r == 0x7f {
+			return false
+		}
+	}
+	return filepath.IsLocal(name) && filepath.IsLocal(name+".json")
 }
 
 func isDir(p string) bool {
