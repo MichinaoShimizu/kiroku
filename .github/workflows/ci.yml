@@ -24,6 +24,10 @@ jobs:
         if: runner.os != 'Windows'
         run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - run: go vet ./...
+      # 静的解析は結果が OS でほぼ変わらないので、速さのため Ubuntu だけ（版は固定）
+      - name: staticcheck
+        if: runner.os == 'Linux'
+        run: go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...
       - run: go test ./...
       - run: go build -o kiroku-ci .
 

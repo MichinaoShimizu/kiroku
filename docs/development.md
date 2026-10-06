@@ -9,6 +9,7 @@ Go 1.23 or later is required. If Node is available, `internal/web/script_test.go
 ```bash
 go test ./...      # checks that the aggregates match the expected values, using synthetic data in testdata/
 go vet ./...
+go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...   # static analysis (OK if nothing is printed)
 gofmt -l .         # OK if nothing is printed
 go build .         # builds ./kiroku (open the view with ./kiroku serve)
 ```
@@ -75,7 +76,7 @@ go test -run TestSnapshot -update .
 
 On PRs and pushes to main, `.github/workflows/ci.yml` runs the following.
 
-- `test` (Ubuntu, macOS, Windows): gofmt (except Windows), vet, tests, build
+- `test` (Ubuntu, macOS, Windows): gofmt (except Windows), vet, staticcheck (Ubuntu only, pinned to 2025.1.1), tests, build
 - `release-dry-run`: `goreleaser release --snapshot` (does not publish; `go mod tidy -diff` also catches an untidy go.mod), extracting release notes from the top section of the CHANGELOG, and, if that section is a version not yet tagged, checking that its number matches `tools/next-version.sh`
 - `e2e`: opens the dummy-data HTML in Chromium and uses `tools/screenshots/smoke.mjs` to check that the key flows work (switching themes, moving between weeks, opening and closing session details and where focus returns after closing, the weekly report draft, search, month view and shortcuts), that nothing overflows sideways, and that there are no script errors, at 1440px, 1000px, 390px and 320px
 - `install-script` (Ubuntu, macOS): runs shellcheck on `install.sh` (Ubuntu only), actually installs the latest release, and checks `kiroku --version`
