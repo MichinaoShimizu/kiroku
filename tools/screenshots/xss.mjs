@@ -47,6 +47,10 @@ const runs = p.locator(".run");
 for (let i = 0; i < await runs.count(); i++) await runs.nth(i).hover({ force: true });
 await check("hover sessions");
 await clickAll(".run", "session", async () => {
+  const rep = "#panel .tl .repx"; // 畳んである AI の応答（履歴の文がそのまま入る）
+  for (let j = 0; j < await p.locator(rep).count(); j++) {
+    try { await p.locator(rep).nth(j).click({ force: true }); await p.waitForTimeout(50); await check("session → reply"); } catch (e) {}
+  }
   const g = "#panel [data-git], #panel [data-pr], #panel [data-push]";
   for (let j = 0; j < await p.locator(g).count(); j++) {
     try { await p.locator(g).nth(j).click({ force: true }); await p.waitForTimeout(100); await check("session → git"); await p.locator("#back").click().catch(() => {}); } catch (e) {}

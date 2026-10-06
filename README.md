@@ -27,7 +27,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 **Every session on a calendar.** When, in which project and what you asked, by week or month, with each day's active time, tokens, cost and Git commits.
 
-**The whole story of a session.** The prompt flow with times, separating what you typed from what entered on its own, with commands, commits, pull requests, subagents and interruptions in between. Copy your prompts, or a prompt that asks an AI to review the session.
+**The whole story of a session.** The prompt flow with times, separating what you typed from what entered on its own, with commands, commits, pull requests, subagents and interruptions in between, and the AI's reply to each prompt folded under it. Copy your prompts, or a prompt that asks an AI to review the session.
 
 <img src="docs/session.png" alt="Session details (dummy data)" width="560">
 

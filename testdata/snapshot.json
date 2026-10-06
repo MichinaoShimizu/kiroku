@@ -3105,6 +3105,10 @@
    "projectPath": "/Users/me/aws",
    "prompts": [
     {
+     "reply": {
+      "t": 1789970422,
+      "text": "ok"
+     },
      "t": 1789970400,
      "text": "S3のバケット一覧を出すスクリプト",
      "work": 22
@@ -3164,6 +3168,10 @@
    "projectPath": "/Users/me/old",
    "prompts": [
     {
+     "reply": {
+      "t": 1790035200,
+      "text": "ok"
+     },
      "t": 1790035200,
      "text": "古い形の会話"
     }
@@ -4571,12 +4579,20 @@
    "projectPath": "/Users/me/app",
    "prompts": [
     {
+     "reply": {
+      "t": 1790643625,
+      "text": "ok"
+     },
      "t": 1790643600,
      "text": "ログイン画面のテストを書いて",
      "wait": 218,
      "work": 82
     },
     {
+     "reply": {
+      "t": 1790643923,
+      "text": "ok"
+     },
      "t": 1790643900,
      "text": "違う、E2Eじゃなくて単体テストで",
      "work": 23
@@ -4687,6 +4703,10 @@
    "projectPath": "/Users/me/web",
    "prompts": [
     {
+     "reply": {
+      "t": 1790643631,
+      "text": "直しました"
+     },
      "t": 1790643602,
      "text": "ボタンの色を直して",
      "wait": 60,
@@ -5770,6 +5790,10 @@
    "projectPath": "/Users/me/ci",
    "prompts": [
     {
+     "reply": {
+      "t": 1790769624,
+      "text": "ok"
+     },
      "t": 1790769600,
      "text": "CIが落ちてる原因を調べて",
      "work": 201

@@ -456,6 +456,15 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl li.ev.note>.ic,.tlkey .kev.note .ic{color:var(--c6)}
 .tlkey .kp.cmd{box-shadow:inset 0 0 0 1.5px var(--c4)}
 .tl.only-user li.ev,.tl.only-user li.gap{display:none}
+/* 依頼に対する応答（既定は畳んである）。あなたが打ったものだけを見るときは、ボタンも出さない */
+.tl .prep{display:block;margin-top:2px}
+.tl .repx{font-size:var(--fs-xs);color:var(--ink-3);font-weight:600;display:inline-flex;align-items:center;gap:4px}
+.tl .repx:hover{color:var(--ink-2)}
+.tl .repx .ic{width:12px;height:12px;color:var(--ink-3)}
+.tl .reptext[hidden]{display:none} /* display を指定するので、hidden の効き目（display:none）を上書きしないように */
+.tl .reptext{display:block;margin:3px 0 2px;padding:4px 0 4px 8px;border-left:2px solid var(--rule-2);white-space:pre-wrap;font-size:var(--fs-sm);color:var(--ink-2)}
+.tl.only-user .prep{display:none}
+.tlkey .kev.rep .ic{color:var(--ink-3)}
 .flowbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px}
 .flowbar .segc button{height:26px;font-size:var(--fs-xs)}
 .tl .pfull{white-space:pre-wrap}

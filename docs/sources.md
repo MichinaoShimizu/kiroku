@@ -11,11 +11,13 @@ This page summarizes where kiroku reads each agent's history from and how. The l
 - `isCompactSummary` lines written when a long conversation is summarized automatically ("This session is being continued…") are not counted as prompts
 - The text of `user` lines is classified in `internal/core/kind.go`. Slash commands (`<command-name>` and `<command-args>`) become "/name args" and `<bash-input>` becomes "! command", and both count as prompts the person typed (`kind` is `command` or `shell`). `<system-reminder>` is stripped even when it appears inside the text. Text starting with tags such as `<task-notification>`, `<user-prompt-submit-hook>` or `<local-command-stdout>`, `Caveat:`, `isMeta` lines (such as the expanded text of a slash command), summaries, and `queued_command` entries not sent by a person are not counted as prompts; they are kept in `notes` (kind and first 160 characters, up to 300 per session) and shown in the prompt flow in a different color
 - A single response is recorded across several lines, so tokens are grouped by message ID before counting (taking the largest value for each field)
+- The text the AI wrote back (`text` blocks of `assistant` lines) is kept as that prompt's reply: the last one in the turn, with lines of the same message ID joined. Thinking, tool calls, subagent (`isSidechain`) lines and the messages Claude Code itself writes (`isApiErrorMessage`, model `<synthetic>`) are not replies. The HTML keeps the first 160 characters; `kiroku serve` can show the rest
 - Subagents are read from `Task` / `Agent` calls and from `<session>/subagents/agent-*.jsonl` (older versions assign `isSidechain` lines by time)
 - Estimated cost follows the `type: "cost-state"` lines Claude Code writes (per-model running totals `modelUsage[].costUSD` since the process started at `startTime`) when they exist. The latest total for each process is used and spread over the responses from process start up to the time of the preceding line, in proportion to kiroku's price-table estimates (by token ratio for models it cannot price). Cost for models with no responses in the history (such as title generation) is added as one entry at that time. Periods with no such record (older versions, or after the last record) are estimated from kiroku's price table
 
 ## Kiro IDE
 
+- Replies in the prompt flow come from `assistant` payloads (v1.0 and later); versions that do not record them simply show no reply
 - v1.0 and later: `<hash>/sess_*/session.json` + `messages.jsonl` under `~/.kiro/sessions/` (`~/.kiro` means `KIRO_HOME` when it is set; the same applies below). Per-message timestamps, and credits from `promptTurnSummaries` in `usage_summary`
 - Before v1.0: `<globalStorage>/kiro.kiroagent/workspace-sessions/`. There are no per-message timestamps, so it is shown roughly with start = creation time and end = file modification time. No credits are recorded. Session IDs in `sessions.json` that contain path separators, `..` or drive names are skipped and reported as unreadable, so nothing outside the history folder is read
 
@@ -26,6 +28,7 @@ This page summarizes where kiroku reads each agent's history from and how. The l
 `~/.kiro/sessions/cli/<id>.json` (metadata) + `<id>.jsonl` (conversation). `internal/source/kiro.go`
 
 - Credits come from `session_state.conversation_metadata.user_turn_metadatas[].metering_usage` (the `value` where `unit` is `credit`)
+- Replies in the prompt flow come from the `text` content of `AssistantMessage` lines (new format) and from `assistant.Response` / `assistant.ToolUse` `content` (SQLite; timed by `stream_end_timestamp_ms`)
 - Older versions use SQLite (`conversations` / `conversations_v2` in `data.sqlite3`). `internal/source/qstore.go`
 - The same conversation can appear in both the new format and SQLite. For a given conversation ID, only the new format is counted (because it has credits). The number left out appears in "Data sources"
 - The SQLite history has no tokens or credits, so it is not included in estimated cost or credits
@@ -39,7 +42,7 @@ This page summarizes where kiroku reads each agent's history from and how. The l
 - In usage records, the `slot` of a dashboard conversation is recorded as `chat-<sequence>-<UNIX seconds>`. Conversation keys (in `session_map.json` and the conversation log file names) are `dashboard:chat-…`, so they are normalized with the same rule as Crew's `spend_key_for_slot` before matching
 - To avoid counting a conversation twice, whichever of the kiro-cli record and the Crew record is larger is used for each conversation
 - Records that do not match a kiro-cli conversation become "Kiro Crew" sessions: Crew's background work (`slot: "_bg"`) per day, and dashboard chats per conversation
-- Crew's conversation logs (`sessions/<conversation key>.jsonl`; the first line is metadata, then `role`, `content`, `ts` and `tools` from the second line) are read too. For conversations whose prompts are not in the kiro-cli history (such as those run from the dashboard) and conversations that do not match a kiro-cli conversation, the prompt flow, times and tools used are filled in from here. A conversation that has only a conversation log, with neither usage records nor a kiro-cli conversation, also becomes a "Kiro Crew" session
+- Crew's conversation logs (`sessions/<conversation key>.jsonl`; the first line is metadata, then `role`, `content`, `ts` and `tools` from the second line) are read too. For conversations whose prompts are not in the kiro-cli history (such as those run from the dashboard) and conversations that do not match a kiro-cli conversation, the prompt flow (including the `assistant` lines as replies), times and tools used are filled in from here. A conversation that has only a conversation log, with neither usage records nor a kiro-cli conversation, also becomes a "Kiro Crew" session
 - Older lines that overflow a conversation log are moved to `sessions/archive/<name>__<datetime>.jsonl` (how long they are kept is set by Crew's `session.archive_retention_days` and varies by version and settings), so those are also read, oldest first, while they exist. For a conversation whose log is gone because it was closed or expired, the session comes from usage records only and has no prompt flow
 - Crew's usage records cover only the period Crew keeps them (about two weeks)
 
@@ -51,6 +54,7 @@ This page summarizes where kiroku reads each agent's history from and how. The l
 
 `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` (and `.jsonl.zst`) and `archived_sessions/` (under `CODEX_HOME` when it is set). `internal/source/codex.go`
 
+- Replies in the prompt flow come from `agent_message` events (new and old shapes) and from `message` items whose role is not `user`
 - The same token values are written repeatedly, so each is counted once. Newer versions' `token_usage_record` is used when present
 - Subagent and fork files copy the parent's history at the top, so lines before the file was created are not counted. Subagents are grouped under "Subagents" in the parent session
 - Titles come from `session_index.jsonl`

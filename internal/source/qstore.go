@@ -170,6 +170,13 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 			s.Agent(ts(meta["stream_end_timestamp_ms"]))
 			if asst != nil {
 				s.Model(firstNonEmpty(core.Str(meta["model_id"]), model))
+				// 人に返した文（Response は答え、ToolUse はツールを使う前に書いた文）。
+				// 応答の時刻は記録にないので、わかれば返し終わった時刻、なければ依頼の時刻にする
+				rt := ts(meta["stream_end_timestamp_ms"])
+				if rt == nil {
+					rt = t
+				}
+				s.Reply(rt, "", firstNonEmpty(core.Str(core.Get(asst, "Response", "content")), core.Str(core.Get(asst, "ToolUse", "content"))))
 			}
 		}
 		if q.Command != "" && s.Project != "" {

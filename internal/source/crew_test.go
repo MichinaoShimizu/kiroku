@@ -152,6 +152,8 @@ func TestKiroCrewTranscript(t *testing.T) {
 	}
 	if b := by["crew:slack_C1_123"]; b == nil || b.Title != "Slack の相談" || len(b.Prompts) != 1 || b.Source != "Kiro Crew" {
 		t.Errorf("会話の記録だけの会話 = %+v", b)
+	} else if r := b.Finish(15).Prompts[0].Reply; r == nil || r.Text != "書きました" {
+		t.Errorf("Crew の会話の記録からの応答 = %+v, want 書きました", r)
 	}
 	if !strings.Contains(k.Detail(), "Crew の会話の記録だけにある 1 件") {
 		t.Errorf("detail = %q", k.Detail())

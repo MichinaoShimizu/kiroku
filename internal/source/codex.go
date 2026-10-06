@@ -99,6 +99,19 @@ func (c *Codex) titles() map[string]string {
 }
 
 // codexTokens は Codex の使用量 → Tokens。cached_input_tokens は input_tokens に含まれている。
+// itemText は item_completed の発言の文（新しい形は message、古い形は content の text）。
+func itemText(item core.Obj) string {
+	if text := firstNonEmpty(core.Str(item["message"]), core.Str(item["text"])); text != "" {
+		return text
+	}
+	var parts []string
+	for _, b := range core.List(item["content"]) {
+		m := core.Map(b)
+		parts = append(parts, firstNonEmpty(core.Str(m["text"]), core.Str(m["message"])))
+	}
+	return strings.Join(parts, "\n")
+}
+
 func codexTokens(u any) core.Tokens {
 	m := core.Map(u)
 	in, cached := core.NumOr0(m["input_tokens"]), core.NumOr0(m["cached_input_tokens"])
@@ -284,10 +297,14 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 				switch core.Str(p["type"]) {
 				case "user_message":
 					s.Tick(t)
+					s.Turn() // 依頼はあとでまとめて足すので、ここで応答の区切りを入れる
 					userMsgs = append(userMsgs, struct {
 						t    *float64
 						text string
 					}{t, core.Str(p["message"])})
+				case "agent_message": // 人に返した文（依頼の流れに出す）
+					s.Agent(t)
+					s.Reply(t, "", core.Str(p["message"]))
 				case "token_count":
 					s.Agent(t)
 					if v, ok := core.Num(core.Get(p, "rate_limits", "primary", "used_percent")); ok {
@@ -317,24 +334,20 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					// Paginated rollouts persist user turns as ItemCompleted(UserMessage)
 					// instead of the legacy UserMessage event.
 					item := core.Map(p["item"])
-					if core.Str(item["type"]) == "user_message" {
+					switch core.Str(item["type"]) {
+					case "user_message":
 						s.Tick(t)
-						text := firstNonEmpty(core.Str(item["message"]), core.Str(item["text"]))
-						if text == "" {
-							var parts []string
-							for _, b := range core.List(item["content"]) {
-								m := core.Map(b)
-								parts = append(parts, firstNonEmpty(core.Str(m["text"]), core.Str(m["message"])))
-							}
-							text = strings.Join(parts, "\n")
-						}
-						if text != "" {
+						s.Turn() // 依頼はあとでまとめて足すので、ここで応答の区切りを入れる
+						if text := itemText(item); text != "" {
 							userMsgs = append(userMsgs, struct {
 								t    *float64
 								text string
 							}{t, text})
 						}
-					} else {
+					case "agent_message": // 人に返した文（依頼の流れに出す）
+						s.Agent(t)
+						s.Reply(t, "", itemText(item))
+					default:
 						s.Agent(t)
 					}
 				default:
@@ -362,18 +375,20 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					s.Measure("tool_calls", t, 1)
 					s.Agent(t)
 				case "message":
+					var parts []string
+					for _, b := range core.List(p["content"]) {
+						parts = append(parts, core.Str(core.Map(b)["text"]))
+					}
 					if core.Str(p["role"]) == "user" {
 						s.Tick(t)
-						var parts []string
-						for _, b := range core.List(p["content"]) {
-							parts = append(parts, core.Str(core.Map(b)["text"]))
-						}
+						s.Turn() // 依頼はあとでまとめて足すので、ここで応答の区切りを入れる
 						fallback = append(fallback, struct {
 							t    *float64
 							text string
 						}{t, strings.Join(parts, "\n")})
 					} else {
 						s.Agent(t)
+						s.Reply(t, "", strings.Join(parts, "\n")) // 人に返した文
 					}
 				default:
 					s.Agent(t)

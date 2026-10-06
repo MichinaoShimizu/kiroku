@@ -225,6 +225,36 @@ func TestServePrompt(t *testing.T) {
 	}
 }
 
+// /reply は、HTML では切った応答の全文を返す。応答のない依頼は 404。
+func TestServeReply(t *testing.T) {
+	ts, rt, next := 1000.0, 1100.0, 1200.0
+	b := core.NewBuilder("Claude Code", "s1")
+	b.Tick(&ts)
+	b.Prompt(&ts, "長い応答がつく依頼")
+	b.Reply(&rt, "m1", strings.Repeat("応", core.ReplyRunes)+"おわり")
+	b.Prompt(&next, "応答のない依頼")
+	l := &live{snap: snapshot{data: []*core.Session{b.Finish(15)}}, ready: true}
+	srv := httptest.NewServer(l.handler())
+	defer srv.Close()
+	get := func(q string) (int, string) {
+		r, err := http.Get(srv.URL + "/reply?" + q)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer r.Body.Close()
+		body, _ := io.ReadAll(r.Body)
+		return r.StatusCode, string(body)
+	}
+	if code, body := get("id=s1&i=0"); code != 200 || !strings.HasSuffix(body, "おわり") {
+		t.Errorf("i=0 = %d %q", code, body)
+	}
+	for _, q := range []string{"id=s1&i=1", "id=s1&i=2", "id=s1", "id=nope&i=0"} {
+		if code, _ := get(q); code != 404 {
+			t.Errorf("%s = %d, want 404", q, code)
+		}
+	}
+}
+
 // ポートだけを指定しても、手元だけで待ち受ける（同じネットワークのほかの人に履歴を見せない）。
 func TestListenAddr(t *testing.T) {
 	for in, want := range map[string]string{":8485": "127.0.0.1:8485", "127.0.0.1:9000": "127.0.0.1:9000", "0.0.0.0:8484": "0.0.0.0:8484", "[::1]:8484": "[::1]:8484"} {
@@ -272,7 +302,7 @@ func TestServeBeforeLoad(t *testing.T) {
 	if code, body := do("GET", "/", host); code != 503 || !strings.Contains(body, "Reading your history") || strings.Contains(body, "const LIVE") {
 		t.Errorf("読み込み中の / = %d %.80q", code, body)
 	}
-	for _, c := range []struct{ method, path string }{{"GET", "/stamp"}, {"GET", "/data.json"}, {"GET", "/history?id=s1"}, {"GET", "/prompt?id=s1&i=0"}, {"POST", "/archive"}} {
+	for _, c := range []struct{ method, path string }{{"GET", "/stamp"}, {"GET", "/data.json"}, {"GET", "/history?id=s1"}, {"GET", "/prompt?id=s1&i=0"}, {"GET", "/reply?id=s1&i=0"}, {"POST", "/archive"}} {
 		if code, _ := do(c.method, c.path, host); code != 503 {
 			t.Errorf("読み込み中の %s %s = %d, want 503", c.method, c.path, code)
 		}

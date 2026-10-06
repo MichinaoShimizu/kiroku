@@ -154,3 +154,36 @@ func TestKiroIDELegacy(t *testing.T) {
 		t.Error("置き場所がなければ「none」")
 	}
 }
+
+// Kiro の応答: Kiro IDE は payload の assistant、Kiro CLI は AssistantMessage の text から、
+// 1 つの依頼につき最後の文を拾う。
+func TestKiroReplies(t *testing.T) {
+	home := t.TempDir()
+	writeFiles(t, home, map[string]string{
+		"sessions/abc/sess_1/session.json": `{"id": "sess_1", "rootPaths": ["/Users/me/app"], "createdAt": "2026-09-29T01:00:00Z"}`,
+		"sessions/abc/sess_1/messages.jsonl": `{"timestamp": "2026-09-29T01:01:00Z", "payload": {"type": "user", "content": "ログインを直して"}}
+{"timestamp": "2026-09-29T01:02:00Z", "payload": {"type": "assistant", "content": [{"type": "text", "text": "見てみます"}]}}
+{"timestamp": "2026-09-29T01:03:00Z", "payload": {"type": "tool_call", "toolName": "strReplace", "args": {"path": "src/login.ts"}}}
+{"timestamp": "2026-09-29T01:04:00Z", "payload": {"type": "assistant", "content": "直しました"}}
+`,
+		"sessions/cli/c1.json": `{"id": "c1", "cwd": "/Users/me/app", "created_at": "2026-09-29T02:00:00Z"}`,
+		"sessions/cli/c1.jsonl": `{"kind": "Prompt", "timestamp": "2026-09-29T02:01:00Z", "data": {"content": [{"kind": "text", "data": "テストを足して"}]}}
+{"kind": "AssistantMessage", "timestamp": "2026-09-29T02:02:00Z", "data": {"content": [{"kind": "text", "data": "足します"}, {"kind": "toolUse", "data": {"name": "fs_write", "input": {"path": "t_test.go"}}}]}}
+{"kind": "AssistantMessage", "timestamp": "2026-09-29T02:03:00Z", "data": {"content": [{"kind": "text", "data": "足して通しました"}]}}
+`,
+	})
+	ide := find(load(t, &KiroIDE{Home: home}), "sess_1")
+	if ide == nil {
+		t.Fatal("sess_1 がない")
+	}
+	if r := ide.Finish(15).Prompts[0].Reply; r == nil || r.Text != "直しました" {
+		t.Errorf("Kiro IDE の応答 = %+v, want 直しました", r)
+	}
+	cli := find(load(t, &KiroCLI{Home: home}), "c1")
+	if cli == nil {
+		t.Fatal("c1 がない")
+	}
+	if r := cli.Finish(15).Prompts[0].Reply; r == nil || r.Text != "足して通しました" {
+		t.Errorf("Kiro CLI の応答 = %+v, want 足して通しました（ツール呼び出しは入れない）", r)
+	}
+}

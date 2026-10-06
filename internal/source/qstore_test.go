@@ -51,6 +51,10 @@ func TestKiroCLISQLite(t *testing.T) {
 		t.Errorf("言い直し = %d, want 1", len(a.FixTS))
 	}
 	f := a.Finish(15)
+	// 応答（assistant の Response・ToolUse の content）は、返し終わった時刻で依頼に付く
+	if r := f.Prompts[0].Reply; r == nil || r.Text != "ok" || r.T == nil || *r.T != 1790643625 {
+		t.Errorf("応答 = %+v, want ok（stream_end_timestamp_ms の時刻）", r)
+	}
 	if f.NFiles != 1 || f.Files[0] != "/Users/me/app/test/login.spec.ts" {
 		t.Errorf("変更したファイル = %v", f.Files)
 	}
