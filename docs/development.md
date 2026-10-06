@@ -81,7 +81,7 @@ On PRs and pushes to main, `.github/workflows/ci.yml` runs the following.
 
 - `test` (Ubuntu, macOS, Windows): gofmt (except Windows), vet, staticcheck and govulncheck (Ubuntu only, pinned to 2025.1.1 and v1.8.0), tests, build
 - `release-dry-run`: `goreleaser release --snapshot` (does not publish; `go mod tidy -diff` also catches an untidy go.mod), extracting release notes from the top section of the CHANGELOG, and, if that section is a version not yet tagged, checking that its number matches `tools/next-version.sh`
-- `e2e`: opens the dummy-data HTML in Chromium and uses `tools/screenshots/smoke.mjs` to check that the key flows work (switching themes, moving between weeks, opening and closing session details and where focus returns after closing, the weekly report draft, search, month view and shortcuts), that nothing overflows sideways, and that there are no script errors, at 1440px, 1000px, 390px and 320px
+- `e2e`: opens the dummy-data HTML in Chromium and uses `tools/screenshots/smoke.mjs` to check that the key flows work (switching themes, moving between weeks, opening and closing session details and where focus returns after closing, the weekly report draft, search, month view and shortcuts), that nothing overflows sideways, and that there are no script errors, at 1440px, 1000px, 390px and 320px It also builds the view from synthetic history full of HTML and script payloads (`tools/screenshots/hostile.py`) and drives it with `tools/screenshots/xss.mjs` to check that no script runs, no element is injected and nothing is loaded from the network
 - `install-script` (Ubuntu, macOS): runs shellcheck on `install.sh` (Ubuntu only), actually installs the latest release, and checks `kiroku --version`
 
 Other workflows:

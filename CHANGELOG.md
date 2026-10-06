@@ -17,6 +17,13 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - `kiroku autostart on` on Linux now writes environment variables containing `$` correctly (it wrote `$$`) and refuses values with newlines or other control characters, which could add lines to the systemd unit
 - When `kiroku serve` cannot read history or turn on `kiroku archive`, the page now says to look at the terminal instead of showing the error with local paths
 
+## v0.13.2 - 2026-10-06
+
+### Security
+
+- Fixed a stored cross-site scripting (XSS) hole in the view. When a prompt of 12 or more characters was repeated in 3 or more sessions, the "Worth a look" finding about it inserted the first 40 characters of the prompt as HTML instead of text. A prompt containing HTML (typed, pasted, or sent by a script or an agent running `claude -p`) could therefore run script in the page. That script could read the history in the page, and under `kiroku serve` also the original history files. The text is now escaped like everywhere else. Links in the view now also open only `http(s)` addresses. CI now builds the view from history full of HTML and script payloads and checks that nothing runs
+- Please update, and delete or regenerate HTML files written by earlier versions if you share them
+
 ## v0.13.1 - 2026-10-06
 
 ### Changed
