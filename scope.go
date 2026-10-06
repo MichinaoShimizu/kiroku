@@ -137,6 +137,7 @@ func scoped(snap snapshot, p *period) snapshot {
 		meta[k] = v
 	}
 	meta["report"] = rep
+	delete(meta, "archive") // kiroku archive の保存場所と量も、渡す相手には関係がない
 	meta["git"], meta["push"] = commits, pushes
 	meta["scope"] = map[string]any{"mode": p.mode, "key": p.key, "from": from, "to": to}
 	snap.data, snap.weeks, snap.months, snap.meta, snap.rep = data, weeks, months, meta, rep

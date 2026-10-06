@@ -209,7 +209,7 @@ func TestScoped(t *testing.T) {
 	pushes := []gitlog.Push{{T: at(10, 7, 11), Project: "app"}, {T: at(10, 13, 11), Project: "app"}}
 	rep := []source.Report{{Name: "Claude Code", N: 4, Oldest: at(9, 21, 10), IDs: []string{"before", "cross", "in", "after"},
 		Keep: &source.Retention{Days: 30, Setting: "cleanupPeriodDays"}}}
-	snap := snapshot{data: data, rep: rep, meta: map[string]any{"git": commits, "push": pushes, "report": rep}}
+	snap := snapshot{data: data, rep: rep, meta: map[string]any{"git": commits, "push": pushes, "report": rep, "archive": map[string]any{"dir": "/Users/me/kept"}}}
 	p, _ := parsePeriod("2026-10-07", "", time.Now())
 	got := scoped(snap, p)
 	var ids []string
@@ -235,6 +235,9 @@ func TestScoped(t *testing.T) {
 	}
 	if r := got.meta["report"].([]source.Report)[0]; r.N != 2 || r.Oldest != 0 || r.Keep != nil {
 		t.Errorf("Data sources: %+v", r)
+	}
+	if _, ok := got.meta["archive"]; ok {
+		t.Error("kiroku archive の保存場所が残っている")
 	}
 	if snap.rep[0].N != 4 || len(snap.data) != 4 {
 		t.Error("元の集計を書きかえている")
