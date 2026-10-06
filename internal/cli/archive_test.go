@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"io"
@@ -14,7 +14,12 @@ import (
 )
 
 // テストで、使っている人の kiroku archive の保存場所を読み書きしない。
+// 合成データ（testdata/）は internal/source のテストと分け合うのでリポジトリの直下に置いてあり、テストはそこから動かす
+// （snapshot.json に入るファイルのパスも、直下から見たものになる）。
 func TestMain(m *testing.M) {
+	if err := os.Chdir(filepath.Join("..", "..")); err != nil {
+		panic(err)
+	}
 	dir, err := os.MkdirTemp("", "kiroku-archive-")
 	if err != nil {
 		panic(err)

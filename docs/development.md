@@ -20,14 +20,15 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 
 | Location | Role |
 |---|---|
-| `cli.go` | Subcommands (`serve`, `html`, `json`, `archive`, `autostart`, `doctor`, `version`, `update`, `help`), option parsing, and the old syntax (`kiroku --serve` and so on) |
-| `main.go` | Loading history (removing duplicates), overriding the price table |
-| `update.go` | `kiroku update` (downloads from Releases, verifies, and replaces itself) |
-| `doctor.go` | `kiroku doctor` (lists what was found and what to run next; only reads) |
-| `autostart.go` | `kiroku autostart` (a launchd agent on macOS, a systemd user service on Linux) |
-| `scope.go` | `kiroku html --week` / `--month` (keeps only one period's sessions, commits and pushes) |
-| `serve.go` | `kiroku serve` (watches history for changes, reloads, and pushes to the view) |
-| `cache.go` | On reload, skips history unchanged since last time (using a per-agent fingerprint and the per-conversation marks of `source.Splitter`) |
+| `main.go` | The entry point only (kept at the root so `go install github.com/MichinaoShimizu/kiroku@latest` works); the commands are in `internal/cli` |
+| `internal/cli/cli.go` | Subcommands (`serve`, `html`, `json`, `archive`, `autostart`, `doctor`, `version`, `update`, `help`), option parsing, and the old syntax (`kiroku --serve` and so on) |
+| `internal/cli/load.go` | Loading history (removing duplicates), overriding the price table |
+| `internal/cli/update.go` | `kiroku update` (downloads from Releases, verifies, and replaces itself) |
+| `internal/cli/doctor.go` | `kiroku doctor` (lists what was found and what to run next; only reads) |
+| `internal/cli/autostart.go` | `kiroku autostart` (a launchd agent on macOS, a systemd user service on Linux) |
+| `internal/cli/scope.go` | `kiroku html --week` / `--month` (keeps only one period's sessions, commits and pushes) |
+| `internal/cli/serve.go` | `kiroku serve` (watches history for changes, reloads, and pushes to the view) |
+| `internal/cli/cache.go` | On reload, skips history unchanged since last time (using a per-agent fingerprint and the per-conversation marks of `source.Splitter`) |
 | `internal/source` | Adapters that read each agent's history. Details on how they read are in [sources.md](sources.md) |
 | `internal/core` | The common session shape (`Builder` → `Session`), tokens and pricing, agent-specific metrics |
 | `internal/report` | Weekly and monthly aggregates (`Summarize`), per-project summaries (`project.go`), shares by branch and agent (`share.go`) |
@@ -48,29 +49,29 @@ The price table is `Prices` in `internal/core/usage.go`. When you update it, als
 5. If `Where()` alone is not enough for what `kiroku serve` watches, implement `Watch()` (`internal/source/watch.go`)
 6. If each conversation is in its own file and can be read without cross-checking other files, also implement `Splitter` (`Units` / `LoadUnit`). `kiroku serve` then reloads only the conversations that changed (without it, the whole agent is reloaded when a watched location changes)
 7. For an agent that deletes history automatically, implement `Retainer` (`Retention()`) and `Keeper` (`Keep()`, which keeps a copy with `kiroku archive` and reads the copy once the original is gone); implement `Detailer` to add a note to the data sources status
-8. For a new `Family`, add it to the default of `--sources` in `cli.go`. To make its location configurable, add `source.Options`, an option in `addCommon`, and an environment variable (`Default…`)
-9. Put synthetic data in `testdata/` and write tests (golden covers only the Python version's 4 histories, so check new adapters in `internal/source/<name>_test.go`). Also add it to the loading in `snapshot_test.go` and regenerate the snapshot
-10. Update "Histories read" and "History retention" in the guide, `docs/sources.md`, the supported agents in the README, and the help in `cli.go`
+8. For a new `Family`, add it to the default of `--sources` in `internal/cli/cli.go`. To make its location configurable, add `source.Options`, an option in `addCommon`, and an environment variable (`Default…`)
+9. Put synthetic data in `testdata/` and write tests (golden covers only the Python version's 4 histories, so check new adapters in `internal/source/<name>_test.go`). Also add it to the loading in `internal/cli/snapshot_test.go` and regenerate the snapshot
+10. Update "Histories read" and "History retention" in the guide, `docs/sources.md`, the supported agents in the README, and the help in `internal/cli/cli.go`
 
 Aggregation (`internal/report`) and the view only see the common session shape, so you usually don't need to touch them.
 
 ## Golden data
 
-`testdata/golden.json` is the aggregate JSON. It holds the numbers the Python version (before the port to Go) produced from the same synthetic data (`testdata/home`), and `TestMatchesPythonVersion` (`main_test.go`) compares the Go version's numbers against them.
+`testdata/golden.json` is the aggregate JSON. It holds the numbers the Python version (before the port to Go) produced from the same synthetic data (`testdata/home`), and `TestMatchesPythonVersion` (`internal/cli/load_test.go`) compares the Go version's numbers against them.
 
 - Only the 4 histories the Python version had are compared (Claude Code, Kiro IDE, Kiro CLI, Kiro IDE (legacy)), with time split in Asia/Tokyo. The legacy Kiro IDE uses file modification times, so the test restores them from `testdata/mtimes.json`
-- When you add a field to the JSON, add it to the exclusion list in `compare` in `main_test.go` (otherwise it fails as a field missing from golden)
+- When you add a field to the JSON, add it to the exclusion list in `compare` in `internal/cli/load_test.go` (otherwise it fails as a field missing from golden)
 - When a change to aggregation changes the numbers, explain why in the PR before updating golden
 
 ## Snapshot
 
-`testdata/snapshot.json` is the Go version's output (sessions, weeks, months and data sources status) from reading all synthetic data in `testdata/` (Claude Code, Kiro IDE, Kiro CLI, Kiro Crew, Kiro CLI and Amazon Q in SQLite, Kiro IDE (legacy), Codex). `TestSnapshot` (`snapshot_test.go`) checks that numbers haven't changed unintentionally, including histories and fields golden doesn't cover.
+`testdata/snapshot.json` is the Go version's output (sessions, weeks, months and data sources status) from reading all synthetic data in `testdata/` (Claude Code, Kiro IDE, Kiro CLI, Kiro Crew, Kiro CLI and Amazon Q in SQLite, Kiro IDE (legacy), Codex). `TestSnapshot` (`internal/cli/snapshot_test.go`) checks that numbers haven't changed unintentionally, including histories and fields golden doesn't cover.
 
 - The comparison allows only rounding differences in numbers (which vary by OS and CPU), and reports added or removed fields as differences. Path separators are normalized to `/`, and Codex's temporary directory to `$CODEX`
 - When you change aggregation or JSON fields, check that the difference is intended and explain why in the PR before regenerating
 
 ```bash
-go test -run TestSnapshot -update .
+go test -run TestSnapshot -update ./internal/cli
 ```
 
 ## CI
