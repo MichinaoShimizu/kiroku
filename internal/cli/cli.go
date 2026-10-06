@@ -26,6 +26,7 @@ Usage:
 
 Commands:
   serve [ADDR]          Open the view in your browser and keep it updated as new history arrives (default 127.0.0.1:8484)
+  open                  Open the view of a running "kiroku serve" with its key (--print shows the address for another device)
   html                  Write the view as a single static HTML file (default kiroku.html) and open it
                         (--week or --month writes only that period, for sharing)
   json                  Write the aggregated data as JSON (default kiroku.json, "-" for stdout)
@@ -67,6 +68,8 @@ func dispatch(args []string) error {
 		return cmdJSON(args[1:])
 	case "archive":
 		return cmdArchive(args[1:])
+	case "open":
+		return cmdOpen(args[1:])
 	case "autostart":
 		return cmdAutostart(args[1:])
 	case "doctor":

@@ -26,6 +26,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	os.Setenv("KIROKU_ARCHIVE_DIR", dir)
+	os.Setenv("KIROKU_CONFIG_DIR", filepath.Join(dir, "config")) // kiroku serve の鍵を、本当の設定の場所に作らない
 	code := m.Run()
 	os.RemoveAll(dir)
 	os.Exit(code)

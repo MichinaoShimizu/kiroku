@@ -21,7 +21,7 @@ kiroku reads those histories, puts them on one screen, and shows them only to yo
 - Your history never leaves your computer. There is no telemetry, no account and no AI service involved.
 - kiroku connects to the network only to check for and download its own releases from GitHub: `install.sh`, `kiroku update` (including `--check`) and the update check in `kiroku doctor` (`--no-update-check` to skip).
 - The files it writes from your history (HTML, JSON, archive copies) are readable only by you.
-- `kiroku serve` listens on `127.0.0.1` only, unless you give it another address.
+- `kiroku serve` listens on `127.0.0.1` only, unless you give it another address, and shows your history only to browsers that have its key (kept in a file only you can read), so other users of the computer can't read it.
 
 See [SECURITY.md](SECURITY.md) for details, and for how to check that a release was built from this repository.
 
@@ -78,6 +78,7 @@ See [Commands](docs/guide.md#commands) for `sudo`, `go install` and specific ver
 
 ```bash
 kiroku serve              # open the view at http://localhost:8484/ (new history appears automatically)
+kiroku open               # open the view of a running kiroku serve in another browser (it needs the key once)
 kiroku autostart on       # start kiroku serve each time you log in (macOS and Linux; "kiroku autostart off" to stop)
 kiroku html               # write a static HTML file (kiroku.html) and open it
 kiroku html --week last   # write only last week, to show someone without handing over everything

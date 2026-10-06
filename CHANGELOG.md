@@ -2,6 +2,16 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Added
+
+- `kiroku open` opens the view of a running `kiroku serve` with its key, and `kiroku open --print` prints the address with the key for another device
+
+### Security
+
+- `kiroku serve` now shows your history only to browsers that have its key, so other users of the same computer can no longer read it at `http://localhost:8484/`. The key is kept in a file only you can read (`serve-key` in kiroku's settings folder), and `kiroku serve` and `kiroku open` give it to your browser, which then keeps it in a cookie: the plain address and bookmarks keep working in that browser. In another browser, run `kiroku open` once. See "The key of kiroku serve" in docs/guide.md
+
 ## v0.15.0 - 2026-10-06
 
 ### Added
