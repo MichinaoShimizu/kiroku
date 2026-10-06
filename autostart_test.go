@@ -208,7 +208,7 @@ func TestScoped(t *testing.T) {
 	commits := []gitlog.Commit{{Hash: "a", T: at(9, 21, 10), Project: "app"}, {Hash: "b", T: at(10, 7, 11), Project: "app"}}
 	pushes := []gitlog.Push{{T: at(10, 7, 11), Project: "app"}, {T: at(10, 13, 11), Project: "app"}}
 	rep := []source.Report{{Name: "Claude Code", N: 4, Oldest: at(9, 21, 10), IDs: []string{"before", "cross", "in", "after"},
-		Keep: &source.Retention{Days: 30, Setting: "cleanupPeriodDays"}}}
+		Keep: &source.Retention{Days: 30, Setting: "cleanupPeriodDays"}}, {Name: "Codex", Where: "/x/.codex"}}
 	snap := snapshot{data: data, rep: rep, meta: map[string]any{"git": commits, "push": pushes, "report": rep, "archive": map[string]any{"dir": "/Users/me/kept"}}}
 	p, _ := parsePeriod("2026-10-07", "", time.Now())
 	got := scoped(snap, p)
@@ -233,8 +233,8 @@ func TestScoped(t *testing.T) {
 	if got.weeks["2026-10-05"] == nil {
 		t.Error("期間の週の集計がない")
 	}
-	if r := got.meta["report"].([]source.Report)[0]; r.N != 2 || r.Oldest != 0 || r.Keep != nil {
-		t.Errorf("Data sources: %+v", r)
+	if rs := got.meta["report"].([]source.Report); len(rs) != 1 || rs[0].N != 2 || rs[0].Oldest != 0 || rs[0].Keep != nil {
+		t.Errorf("Data sources（使っていないエージェントは出さない）: %+v", rs)
 	}
 	if _, ok := got.meta["archive"]; ok {
 		t.Error("kiroku archive の保存場所が残っている")
@@ -243,7 +243,7 @@ func TestScoped(t *testing.T) {
 		t.Error("元の集計を書きかえている")
 	}
 	sc := got.meta["scope"].(map[string]any)
-	if sc["mode"] != "week" || sc["key"] != "2026-10-05" {
+	if sc["mode"] != "week" || sc["key"] != "2026-10-05" || sc["offset"] != 9*3600 || sc["zone"] != "JST" {
 		t.Errorf("scope: %v", sc)
 	}
 }
