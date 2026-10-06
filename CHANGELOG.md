@@ -14,6 +14,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - The live demo opens on the latest week with every weekday filled in, instead of the current week (which is often nearly empty because the demo data is rebuilt every Monday). "This week" still jumps to the current week
 
+### Fixed
+
+- README's Uninstall section no longer says kiroku keeps no data of its own: it now covers `kiroku autostart off` and removing the copies kept by `kiroku archive`
+
 ## v0.8.1 - 2026-10-06
 
 ### Fixed
