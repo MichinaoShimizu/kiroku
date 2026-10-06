@@ -8,6 +8,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - `install.sh` now also checks the build provenance (GitHub artifact attestation) of the downloaded file with `gh attestation verify` when the GitHub CLI is installed, and stops if it does not match. When `gh` is not logged in or cannot reach GitHub, it warns and installs anyway, since the file already matched `checksums.txt`. Without `gh`, or for versions before v0.12.0 (which have no attestations), it works as before. Set `KIROKU_SKIP_ATTESTATION=1` to skip the check
 
+### Fixed
+
+- `kiroku update` now stops with "too many arguments" when given a version without `--to` (`kiroku update v0.11.0`). Before, it ignored the version and everything after it, so it installed the latest release instead, and `kiroku update v0.11.0 --check` replaced kiroku instead of only checking. Use `kiroku update --to v0.11.0` to install a given version
+
 ## v0.12.0 - 2026-10-06
 
 ### Added
