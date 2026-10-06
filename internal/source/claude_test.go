@@ -239,3 +239,41 @@ func TestClaudeSubagentOutputsAndResultTime(t *testing.T) {
 		t.Errorf("サブエージェントの PR の URL = %v", s.PRs)
 	}
 }
+
+// 依頼の流れに出す応答: 人に返した文の最後のものを拾い、思考・ツール呼び出し・サブエージェントの発言と、
+// Claude Code が作ったエラーの発言は入れない。
+func TestClaudeReplies(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	os.MkdirAll(dir, 0o755)
+	lines := []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"直して"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:01:00Z","message":{"id":"m1","model":"claude-sonnet-5-5","content":[{"type":"thinking","thinking":"考え中"}]}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:01:30Z","message":{"id":"m2","model":"claude-sonnet-5-5","content":[{"type":"text","text":"見てみます"}]}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:02:00Z","isSidechain":true,"message":{"id":"m3","model":"claude-sonnet-5-5","content":[{"type":"text","text":"サブエージェントの文"}]}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:03:00Z","message":{"id":"m4","model":"claude-sonnet-5-5","content":[{"type":"text","text":"直しました。"},{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"go test ./..."}}]}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:03:10Z","message":{"id":"m4","model":"claude-sonnet-5-5","content":[{"type":"text","text":"テストも通っています"}]}}`,
+		`{"type":"user","timestamp":"2026-09-30T02:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"ありがとう"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T02:00:10Z","isApiErrorMessage":true,"message":{"id":"e1","model":"<synthetic>","content":[{"type":"text","text":"Claude AI usage limit reached|1790000000"}]}}`,
+	}
+	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644)
+	bs := load(t, &Claude{Root: root})
+	if len(bs) != 1 {
+		t.Fatalf("セッション数 = %d, want 1", len(bs))
+	}
+	s := bs[0].Finish(15)
+	if len(s.Prompts) != 2 {
+		t.Fatalf("prompts %d", len(s.Prompts))
+	}
+	// 同じメッセージ ID で分かれて書かれた文はつなぎ、前の「見てみます」は残さない
+	if r := s.Prompts[0].Reply; r == nil || r.Text != "直しました。\nテストも通っています" {
+		t.Errorf("1 件目の応答 = %+v", r)
+	}
+	// Claude Code が作ったエラーの発言は、エージェントの応答ではない
+	if r := s.Prompts[1].Reply; r != nil {
+		t.Errorf("2 件目の応答 = %+v, want なし", r)
+	}
+	if len(s.Limits) != 1 {
+		t.Errorf("利用上限 = %v, want 1 件", s.Limits)
+	}
+}

@@ -27,7 +27,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 **Every session on a calendar.** When, in which project and what you asked, by week or month, with each day's active time, tokens, cost and Git commits.
 
-**The whole story of a session.** The prompt flow with times, separating what you typed from what entered on its own, with commands, commits, pull requests, subagents and interruptions in between. Copy your prompts, or a prompt that asks an AI to review the session.
+**The whole story of a session.** The prompt flow with times, separating what you typed from what entered on its own, with commands, commits, pull requests, subagents and interruptions in between, and the AI's reply after each prompt, so a session reads as the conversation it was. Copy your prompts, or a prompt that asks an AI to review the session.
 
 <img src="docs/session.png" alt="Session details (dummy data)" width="560">
 
@@ -47,7 +47,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 - Your history never leaves your computer: no telemetry, no account, no AI service. The only network access is checking for and downloading kiroku's own releases from GitHub.
 - Files kiroku writes from your history are readable only by you, and `kiroku serve` listens on `127.0.0.1` and opens only for browsers that have its key.
-- The HTML contains your prompts, file paths and commit messages as they are. Check it before sharing.
+- The HTML contains your prompts, the AI's replies, file paths and commit messages as they are. Check it before sharing.
 
 See [SECURITY.md](SECURITY.md) for details and for verifying a release.
 

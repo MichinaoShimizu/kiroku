@@ -69,6 +69,8 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 			}
 			s.Agent(t)
 			switch typ {
+			case "assistant": // 人に返した文（依頼の流れに出す）
+				s.Reply(t, "", core.TextOf(p["content"]))
 			case "tool_call":
 				s.Tool(core.Str(p["toolName"]), p["args"])
 				s.Measure("tool_calls", t, 1)
@@ -221,6 +223,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 				s.Prompt(t, core.TextOf(data["content"]))
 			case "AssistantMessage":
 				s.Agent(t)
+				s.Reply(t, "", core.TextOf(data["content"])) // 人に返した文（content の kind: text）
 				for _, c := range core.List(data["content"]) {
 					cm := core.Map(c)
 					if core.Str(cm["kind"]) == "toolUse" {

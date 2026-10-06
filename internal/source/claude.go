@@ -265,8 +265,15 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 				s.Model(m)
 			}
 			// 利用上限のエラーは、Claude Code が作った発言（isApiErrorMessage・モデル <synthetic>）として残る
-			if apiErr, _ := e["isApiErrorMessage"].(bool); (apiErr || core.Str(msg["model"]) == "<synthetic>") && core.IsLimitError(core.TextOf(msg["content"])) {
+			apiErr, _ := e["isApiErrorMessage"].(bool)
+			made := apiErr || core.Str(msg["model"]) == "<synthetic>"
+			if made && core.IsLimitError(core.TextOf(msg["content"])) {
 				s.Limit(t)
+			}
+			// 人に返した文（思考やツール呼び出しは入らない）。1 つの応答が何行かに分かれるので、メッセージ ID でつなぐ。
+			// Claude Code が作ったエラーの発言は、エージェントの応答ではないので入れない
+			if !sidechain && !made {
+				s.Reply(t, firstNonEmpty(core.Str(msg["id"]), core.Str(e["requestId"])), core.TextOf(msg["content"]))
 			}
 		}
 		// 作業中に送った依頼は、user の行ではなく queued_command の添付だけに残る（absorbed_mid_turn）。

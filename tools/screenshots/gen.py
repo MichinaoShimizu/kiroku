@@ -20,6 +20,14 @@ models = ["claude-opus-5-5"]*3 + ["claude-sonnet-5-5"]*4 + ["claude-haiku-4-5-20
 retry = ["No, that's not what I meant","Revert that and try again","Check it once more"]
 follow = ["Continue","Make the tests pass too","Show me the diff","Looks good, next","There is a type error","Make it simpler"]
 tools = ["Read","Edit","Bash","Grep","Write"]
+# 1 ターンの最後に人へ返す文（依頼の流れに畳んで出る）。最後のものは長く、切られた応答の見え方も撮れるようにする
+replies = [
+ "Done. Validation now runs on submit, and the test covers the empty-email case.",
+ "Fixed. The query had no index, so it scanned the whole table; the nightly batch now finishes in about 40 seconds.",
+ "I changed three files and ran the tests: 42 passed, 0 failed. The diff is small, so I kept it as one commit.",
+ "I could not reproduce it. The log shows a 500 from the payment stub, so the test environment looks like it is missing PAYMENT_URL. Shall I add it to .env.example?",
+ "Added dark mode behind a setting, reusing the theme tokens that were already there. The screen follows the system setting on first launch and remembers the choice after that. I left the chart colours alone: they need their own palette to stay readable on a dark background, which looks like a change of its own.",
+]
 now = dt.datetime.now(JST)
 today = now.replace(hour=0,minute=0,second=0,microsecond=0)
 for d in range(35, -1, -1):
@@ -70,6 +78,9 @@ for d in range(35, -1, -1):
                 tr = {"type":"tool_result","tool_use_id":content[0]["id"],"content":out}
                 if random.random() < 0.04: tr["is_error"] = True
                 lines.append({"type":"user","timestamp":(t+dt.timedelta(seconds=5)).isoformat(),"cwd":cwd,"sessionId":sid,"message":{"role":"user","content":[tr]}})
+            if extra.random() < 0.85:  # 人に返した文（ツール呼び出しのあと、次の依頼の前）
+                rid = "msg_"+uuid.uuid4().hex[:10]
+                lines.append({"type":"assistant","timestamp":(t+dt.timedelta(seconds=6)).isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"requestId":"req_"+rid,"message":{"id":rid,"model":model,"role":"assistant","content":[{"type":"text","text":extra.choice(replies)}]}})
             t += dt.timedelta(seconds=random.randint(30, 600))
         if t > now: continue
         dirn = os.path.join(OUT, "home", ".claude", "projects", f"-Users-me-{p}"); os.makedirs(dirn, exist_ok=True)

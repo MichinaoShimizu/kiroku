@@ -167,6 +167,7 @@ func addCrewRows(s *core.Builder, rows []crewRow) {
 			s.Prompt(r.t, r.text)
 		case "assistant":
 			s.Agent(r.t)
+			s.Reply(r.t, "", r.text)
 		default: // tool / tool_call / tool_result など
 			s.Agent(r.t)
 		}

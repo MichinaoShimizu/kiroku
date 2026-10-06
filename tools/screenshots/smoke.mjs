@@ -106,8 +106,19 @@ for (const env of envs) {
     check("詳細が画面に収まる", box && box.x >= -1 && box.x + box.width <= env.viewport.width + 1, JSON.stringify(box));
     check("閉じるボタンが種類の行に並び、ボタンだけの空いた帯がない", await p.evaluate(() => { const c = document.querySelector("#close").getBoundingClientRect(), e = document.querySelector("#panel .eyebrow").getBoundingClientRect();
       return Math.abs((c.top + c.bottom) / 2 - (e.top + e.bottom) / 2) < 12 && c.left > e.left; }));
+    const rep = p.locator("#panel .tl li.rp").first();
+    check("依頼のあとに AI の応答が出ている", await rep.count() > 0);
+    if (await rep.count() > 0){
+      await rep.scrollIntoViewIfNeeded();
+      check("応答の中身が読める", (await rep.locator(".reptext").innerText()).trim().length > 0);
+      check("だれの発言か分かる", (await rep.locator(".rpw").innerText()).trim().length > 0);
+      check("応答は依頼のすぐ後に並ぶ", await p.evaluate(() => { const li = [...document.querySelectorAll("#panel .tl li")], i = li.findIndex(x => x.classList.contains("rp"));
+        return i > 0 && li[i - 1].classList.contains("pr"); }));
+    }
     await p.locator('#flowBy button[data-v="user"]').click(); await pause();
     check("「ユーザープロンプトだけ」で、出来事が隠れる", await p.evaluate(() => [...document.querySelectorAll("#drawer .tl li.ev")].every(li => !li.offsetParent)));
+    check("「ユーザープロンプトだけ」では、応答も隠れる", await p.evaluate(() => [...document.querySelectorAll("#drawer .tl li.rp")].every(x => !x.offsetParent)));
+    check("「ユーザープロンプトだけ」では、出ていないものの説明を凡例に残さない", await p.evaluate(() => [...document.querySelectorAll("#drawer .tlkey .kev")].every(x => !x.offsetParent)));
     await p.locator('#flowBy button[data-v="all"]').click(); await pause();
     await p.keyboard.press("Escape"); await pause();
     check("Esc で詳細が閉じる", !await drawerOpen());

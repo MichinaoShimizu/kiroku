@@ -4,6 +4,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Added
+
+- The prompt flow now shows what the AI wrote back. Each prompt is followed by the AI's reply with its own time, so a session reads as the conversation it was: the last thing the AI said to you in that turn (its own words, not its thinking, tool calls or tool output). The HTML keeps the first 160 characters, and `kiroku serve` adds "Load the full reply" to read the rest. It is read from Claude Code, Kiro IDE, Kiro CLI, Kiro Crew, Amazon Q Developer CLI and Codex CLI; "Only user prompts" hides the replies, and "Copy prompts" still copies only your prompts
+
 ### Changed
 
 - "② Cost and outputs" now shows what the work left behind, not only how many commits it reached: beside Git commits (with the share AI ran) are lines changed with the average per commit, files changed, pushes made from this computer, and pull requests when an agent created one and it was recorded. "Prompts" joins the cost side, so what you put in reads as time, prompts and usage. Lines, files and pushes are counted from git, so they appear only when git commits were read; files changed counts up to 40 files per commit and says "at least" when a commit had more. The improvement prompt ("⑥ Ask AI for suggestions") gets files changed and pushes too

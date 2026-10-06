@@ -448,7 +448,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tlkey span{display:inline-flex;align-items:center;gap:6px}
 .tlkey i{flex:none;width:7px;height:7px}.tlkey .ic{width:12px;height:12px}
 .tlkey .kp{border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--c)}.tlkey .kp.fix{background:var(--warn);box-shadow:none}
-.pload{font-size:var(--fs-xs);color:var(--acc-ink);font-weight:600;padding:1px 8px;border:1px solid var(--acc);border-radius:99px;margin-left:2px}.pload:hover{text-decoration:underline}
+.pload,.rload{font-size:var(--fs-xs);color:var(--acc-ink);font-weight:600;padding:1px 8px;border:1px solid var(--acc);border-radius:99px;margin-left:2px}.pload:hover,.rload:hover{text-decoration:underline}
 .tl time{color:var(--ink-3);font-variant-numeric:tabular-nums;font-size:var(--fs-xs);padding-top:1px}
 .tl p{margin:0;overflow-wrap:anywhere}
 .more{font-size:var(--fs-sm);color:var(--ink-3);margin:6px 0 0 56px}
@@ -461,6 +461,18 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl li.ev.note>.ic,.tlkey .kev.note .ic{color:var(--c6)}
 .tlkey .kp.cmd{box-shadow:inset 0 0 0 1.5px var(--c4)}
 .tl.only-user li.ev,.tl.only-user li.gap{display:none}
+/* 応答は、依頼の次の発言として同じ線の上に出す（会話として読めるように）。
+   あなたが打ったものだけを見るときは出さない */
+.tl li.rp{color:var(--ink-2);padding:1px 0 5px}
+.tl li.rp::before{display:none}
+.tl li.rp>.ic{position:absolute;left:38px;top:4px;width:13px;height:13px;padding:1px;box-sizing:content-box;background:var(--surface);color:var(--ink-3)}
+.drawer .tl li.rp>.ic{left:42px;top:6px}
+.tl li.rp p{background:color-mix(in oklab,var(--ink-3) 9%,transparent);border-radius:10px;padding:6px 11px}
+.tl .rpw{color:var(--ink-3);font-size:var(--fs-xs);font-weight:600;margin-right:7px} /* だれの発言か（AI） */
+.tl .reptext{white-space:pre-wrap}
+.tl.only-user li.rp{display:none}
+.tlkey .kev.rep .ic{color:var(--ink-3)}
+.tlkey.only-user .kev{display:none} /* 出ていないものの説明は出さない（出来事も応答も隠れている） */
 /* 「Prompt flow」の見出しと、出し方の切り替え・コピーを 1 行に並べる（見出しの線のあとに右寄せ） */
 .flowhead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:26px 0 10px}
 .flowhead h3{flex:1 1 140px;margin:0}

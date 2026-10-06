@@ -49,13 +49,14 @@ var editTools = map[string]bool{
 
 // Prompt は人が出した依頼。Text は先頭 PromptRunes 文字まで（HTML に入れるので）。
 type Prompt struct {
-	T    *float64 `json:"t"`
-	Text string   `json:"text"`
-	Len  int      `json:"len,omitempty"`  // Text を切ったとき、元の文字数
-	Work float64  `json:"work,omitempty"` // 依頼から、次の依頼までに AI が最後に動いた時刻までの秒数（推定）
-	Wait float64  `json:"wait,omitempty"` // AI が最後に動いてから、次の依頼までの秒数（待たせ）
-	Kind string   `json:"kind,omitempty"` // "" は書いたもの、command はスラッシュコマンド、shell は ! で打ったコマンド（kind.go）
-	full string   // 切る前の依頼文（kiroku serve で全文を見せるため。HTML・JSON には入れない）
+	T     *float64 `json:"t"`
+	Text  string   `json:"text"`
+	Len   int      `json:"len,omitempty"`   // Text を切ったとき、元の文字数
+	Work  float64  `json:"work,omitempty"`  // 依頼から、次の依頼までに AI が最後に動いた時刻までの秒数（推定）
+	Wait  float64  `json:"wait,omitempty"`  // AI が最後に動いてから、次の依頼までの秒数（待たせ）
+	Kind  string   `json:"kind,omitempty"`  // "" は書いたもの、command はスラッシュコマンド、shell は ! で打ったコマンド（kind.go）
+	Reply *Reply   `json:"reply,omitempty"` // この依頼に対してエージェントが最後に返した文（なければ nil）
+	full  string   // 切る前の依頼文（kiroku serve で全文を見せるため。HTML・JSON には入れない）
 }
 
 // PromptRunes は、HTML に入れる依頼文の長さ（文字数）。
@@ -70,6 +71,36 @@ func (p Prompt) Full() string {
 		return p.full
 	}
 	return p.Text
+}
+
+// Reply は、1 つの依頼に対してエージェントが人に返した文（ツール呼び出しや思考ではなく、会話に出た文）のうち、
+// 最後のもの。Text は先頭 ReplyRunes 文字まで（HTML に入れるので）。
+type Reply struct {
+	T    *float64 `json:"t"`
+	Text string   `json:"text"`
+	Len  int      `json:"len,omitempty"` // Text を切ったとき、元の文字数
+	full string   // 切る前の応答（kiroku serve で全文を見せるため。HTML・JSON には入れない）
+}
+
+// ReplyRunes は、HTML に入れる応答の長さ（文字数）。依頼（PromptRunes）より短いのは、
+// 応答のほうが長くなりがちで、HTML は 1 ファイルに全部入るため。
+const ReplyRunes = 160
+
+// Full は切る前の応答。切っていなければ Text と同じ。
+func (r Reply) Full() string {
+	if r.full != "" {
+		return r.full
+	}
+	return r.Text
+}
+
+// pendingReply は、まだどの依頼のものか決めていない応答（Finish で時刻から割り当てる）。
+// text は切る前の文（fullRunes まで）。turn は読んだときのターンの番号で、同じターンの応答は後のもので置き換える。
+type pendingReply struct {
+	t    *float64
+	turn int
+	key  string
+	text string
 }
 
 // Subagent はサブエージェント（子のエージェント）の 1 回の実行。
@@ -112,6 +143,8 @@ type Builder struct {
 	Reported                       []ReportedCost // エージェント自身が記録した使用料（reported.go）
 	File                           string         // 履歴のファイル（画面から開けるように）
 	TracksOutputs                  bool           // アウトプット（コミット・PR・編集した行）を記録できるエージェントか（Outputs が空でも、アウトプットがなかったとわかる）
+	replies                        []pendingReply // 応答（Reply で入れ、Finish で依頼に割り当てる）
+	turn                           int            // 人の発言を読んだ回数（1 ターンの最後の応答だけを残すための区切り）
 	toolOrder                      []string
 	tools                          map[string]int
 	files                          map[string]bool
@@ -150,6 +183,7 @@ func (s *Builder) Prompt(ts *float64, text string) {
 		s.Inject(ts, n.kind, n.text)
 	}
 	if pt != nil {
+		s.turn++
 		first := len(s.Prompts) == 0
 		t := pt.text
 		p := Prompt{T: ts, Text: Runes(t, PromptRunes), Kind: pt.kind}
@@ -161,6 +195,71 @@ func (s *Builder) Prompt(ts *float64, text string) {
 			s.FixTS = append(s.FixTS, *ts)
 		}
 	}
+}
+
+// Turn は、人の発言をここで読んだという合図。依頼を Prompt であとからまとめて足すアダプター（Codex）が、
+// 応答を 1 ターンにつき 1 つに絞れるように呼ぶ。Prompt を呼ぶアダプターは呼ばなくてよい。
+func (s *Builder) Turn() { s.turn++ }
+
+// Reply は、エージェントが人に返した文を残す（ツール呼び出しや思考ではなく、会話に出た文）。
+// 1 つの依頼につき最後の文だけを見せるので、同じターンの文は後から来たもので置き換える。
+// key は 1 つの応答を何行かに分けて書き出すエージェント（Claude Code のメッセージ ID）のためのもので、
+// 同じ key が続いたときはつなぐ。key が空なら置き換える。
+func (s *Builder) Reply(ts *float64, key, text string) {
+	if ts == nil || *ts == 0 {
+		return
+	}
+	if text = strings.TrimSpace(text); text == "" {
+		return
+	}
+	if n := len(s.replies); n > 0 && s.replies[n-1].turn == s.turn {
+		if key != "" && s.replies[n-1].key == key {
+			s.replies[n-1].text = Runes(s.replies[n-1].text+"\n"+text, fullRunes)
+			return
+		}
+		s.replies[n-1] = pendingReply{t: ts, turn: s.turn, key: key, text: Runes(text, fullRunes)}
+		return
+	}
+	s.replies = append(s.replies, pendingReply{t: ts, turn: s.turn, key: key, text: Runes(text, fullRunes)})
+}
+
+// withReplies は、依頼ごとに最後の応答を割り当てる（その依頼より後、次の依頼より前のもの）。
+// 読んだ順ではなく時刻で決めるので、依頼をあとからまとめて足すアダプター（Codex）でも合う。
+// 最初の依頼より前の応答（続きのセッションの頭など）は、どの依頼のものかわからないので捨てる。
+func (s *Builder) withReplies(ps []Prompt) []Prompt {
+	if len(s.replies) == 0 || len(ps) == 0 {
+		return ps
+	}
+	type slot struct {
+		t float64
+		i int
+	}
+	var slots []slot
+	for i := range ps {
+		if ps[i].T != nil && *ps[i].T != 0 {
+			slots = append(slots, slot{*ps[i].T, i})
+		}
+	}
+	if len(slots) == 0 {
+		return ps
+	}
+	sort.SliceStable(slots, func(i, j int) bool { return slots[i].t < slots[j].t })
+	rs := append([]pendingReply(nil), s.replies...)
+	sort.SliceStable(rs, func(i, j int) bool { return *rs[i].t < *rs[j].t })
+	out := make([]Prompt, len(ps))
+	copy(out, ps)
+	for _, r := range rs {
+		j := sort.Search(len(slots), func(k int) bool { return slots[k].t > *r.t }) - 1
+		if j < 0 {
+			continue
+		}
+		rep := Reply{T: r.t, Text: Runes(r.text, ReplyRunes)}
+		if n := utf8.RuneCountInString(r.text); n > ReplyRunes {
+			rep.Len, rep.full = n, r.text
+		}
+		out[slots[j].i].Reply = &rep // 時刻の順に見るので、同じ依頼では後の応答が残る
+	}
+	return out
 }
 
 // Limit は利用上限のエラーを記録する。同じ上限で続けて出たもの（1 分以内）は 1 回と数える。
@@ -419,7 +518,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 	if len(files) > 30 {
 		files = files[:30]
 	}
-	prompts := s.promptTimes(s.Prompts)
+	prompts := s.withReplies(s.promptTimes(s.Prompts))
 	main := s.Usage.Events()
 	ctx := ContextGrowth(main)
 	reported := false // エージェント自身の記録した使用料を目安コストに使ったか

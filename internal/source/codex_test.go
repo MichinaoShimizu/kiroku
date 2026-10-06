@@ -151,3 +151,34 @@ func TestCodexUnits(t *testing.T) {
 		t.Errorf("親がないとき = %+v", us)
 	}
 }
+
+// Codex の応答: event_msg の agent_message と、新しい形（item_completed）・古い形（response_item）の
+// どれからも、1 つの依頼につき最後の文を拾う。
+func TestCodexReplies(t *testing.T) {
+	home := t.TempDir()
+	dir := filepath.Join(home, "sessions", "2026", "09", "30")
+	os.MkdirAll(dir, 0o755)
+	lines := []string{
+		`{"timestamp":"2026-09-30T01:00:00.000Z","type":"session_meta","payload":{"id":"thr-r","timestamp":"2026-09-30T01:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-09-30T01:00:10.000Z","type":"event_msg","payload":{"type":"user_message","message":"ボタンの色を直して"}}`,
+		`{"timestamp":"2026-09-30T01:00:20.000Z","type":"event_msg","payload":{"type":"agent_message","message":"見てみます"}}`,
+		`{"timestamp":"2026-09-30T01:00:40.000Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"直しました"}]}}`,
+		`{"timestamp":"2026-09-30T01:01:00.000Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"user_message","message":"テストも足して"}}}`,
+		`{"timestamp":"2026-09-30T01:01:30.000Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"agent_message","content":[{"type":"output_text","text":"足して通しました"}]}}}`,
+	}
+	os.WriteFile(filepath.Join(dir, "rollout-2026-09-30T10-00-00-thr-r.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644)
+	bs := load(t, &Codex{Home: home})
+	if len(bs) != 1 {
+		t.Fatalf("セッション数 = %d, want 1", len(bs))
+	}
+	s := bs[0].Finish(15)
+	if len(s.Prompts) != 2 {
+		t.Fatalf("依頼 = %d, want 2", len(s.Prompts))
+	}
+	if r := s.Prompts[0].Reply; r == nil || r.Text != "直しました" {
+		t.Errorf("1 件目の応答 = %+v, want 直しました（同じターンの前の文は残さない）", r)
+	}
+	if r := s.Prompts[1].Reply; r == nil || r.Text != "足して通しました" {
+		t.Errorf("2 件目の応答 = %+v", r)
+	}
+}

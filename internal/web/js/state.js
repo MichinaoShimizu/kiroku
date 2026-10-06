@@ -18,6 +18,7 @@ function shiftTimes(x){ if (!SHIFT) return x;
 [DATA, WEEKS, MONTHS, META, GENERATED] = [shiftTimes(DATA), shiftTimes(WEEKS), shiftTimes(MONTHS), shiftTimes(META), shiftTimes(GENERATED)];
 const LIVE = __LIVE__; // kiroku serve で開いたとき true
 const PROMPT_RUNES = __PROMPT_RUNES__; // HTML に入れるプロンプトの長さ（core.PromptRunes）
+const REPLY_RUNES = __REPLY_RUNES__; // HTML に入れる応答の長さ（core.ReplyRunes）
 const YEAR_ON = false; // 1 年の露光は一旦隠す（ボタンと Y キーを出さない）。戻すときは true にする
 const SLOTS = 8;
 const $ = s => document.querySelector(s);

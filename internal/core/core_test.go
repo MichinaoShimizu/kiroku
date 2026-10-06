@@ -205,3 +205,67 @@ func TestPromptFlowKeepsAllPrompts(t *testing.T) {
 		t.Errorf("prompts %d / %d", len(s.Prompts), s.NPrompts)
 	}
 }
+
+// 応答（エージェントが人に返した文）は、1 つの依頼につき最後の 1 つだけが付き、長ければ切られる。
+func TestPromptReplies(t *testing.T) {
+	f := func(v float64) *float64 { return &v }
+	b := NewBuilder("Claude Code", "s")
+	b.Reply(f(900), "m0", "依頼の前の応答（続きのセッションの頭）")
+	b.Prompt(f(1000), "直して")
+	b.Reply(f(1010), "m1", "見てみます") // 同じターンの前の文は残らない
+	b.Reply(f(1100), "m2", "直しました")
+	b.Agent(f(1100))
+	b.Prompt(f(1200), "次")
+	b.Reply(f(1210), "m3", strings.Repeat("長", ReplyRunes+7))
+	b.Reply(f(1220), "m3", "つづき") // 同じメッセージの続きはつなぐ
+	b.Prompt(f(1300), "応答のない依頼")
+	s := b.Finish(15)
+	if len(s.Prompts) != 3 {
+		t.Fatalf("prompts %d", len(s.Prompts))
+	}
+	if r := s.Prompts[0].Reply; r == nil || r.Text != "直しました" || r.T == nil || *r.T != 1100 || r.Len != 0 {
+		t.Errorf("1 件目の応答 %+v", r)
+	}
+	if r := s.Prompts[1].Reply; r == nil || len([]rune(r.Text)) != ReplyRunes || r.Len != ReplyRunes+7+1+len([]rune("つづき")) ||
+		!strings.HasSuffix(r.Full(), "つづき") {
+		t.Errorf("2 件目の応答 %+v", r)
+	}
+	if r := s.Prompts[2].Reply; r != nil {
+		t.Errorf("3 件目に応答が付いた %+v", r)
+	}
+}
+
+// 依頼をあとからまとめて足すアダプター（Codex）でも、時刻から応答が割り当てられる。
+func TestPromptRepliesByTime(t *testing.T) {
+	f := func(v float64) *float64 { return &v }
+	b := NewBuilder("Codex", "s")
+	b.Turn()
+	b.Agent(f(1100))
+	b.Reply(f(1100), "", "1 つめの答え")
+	b.Turn()
+	b.Agent(f(1300))
+	b.Reply(f(1300), "", "2 つめの答え")
+	b.Prompt(f(1000), "はじめ")
+	b.Prompt(f(1200), "つぎ")
+	s := b.Finish(15)
+	if r := s.Prompts[0].Reply; r == nil || r.Text != "1 つめの答え" {
+		t.Errorf("1 件目の応答 %+v", r)
+	}
+	if r := s.Prompts[1].Reply; r == nil || r.Text != "2 つめの答え" {
+		t.Errorf("2 件目の応答 %+v", r)
+	}
+}
+
+// 時刻のない応答と空の応答は残さない（HTML に空の行を出さないため）。
+func TestReplyNeedsTimeAndText(t *testing.T) {
+	f := func(v float64) *float64 { return &v }
+	b := NewBuilder("Claude Code", "s")
+	b.Tick(f(1000))
+	b.Prompt(f(1000), "直して")
+	b.Reply(nil, "m1", "時刻がない")
+	b.Reply(f(0), "m2", "時刻が 0")
+	b.Reply(f(1010), "m3", "   \n ")
+	if r := b.Finish(15).Prompts[0].Reply; r != nil {
+		t.Errorf("応答が付いた %+v", r)
+	}
+}
