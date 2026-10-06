@@ -4,9 +4,11 @@ function go(n){
   const home = META.scope ? scopeStart() : today0(); // 期間だけのファイルでは、その期間へ戻る
   if (st.mode === "month") st.month = n == null ? monthOf(home) : new Date(st.month.getFullYear(), st.month.getMonth()+n, 1);
   else st.week = n == null ? mondayOf(home) : addDays(st.week, 7*n);
-  const inCal = !!document.activeElement?.closest?.("#tl");
+  const was = document.activeElement, inCal = !!was?.closest?.("#tl");
   st.sel = null; st.back = []; st.backTop = []; st.animate = true; $("#toast").classList.remove("on"); render(); scrollToWork();
-  if (inCal) keepCalFocus(n); }
+  if (inCal) keepCalFocus(n);
+  else if (was && was !== document.body && (!was.isConnected || document.activeElement === document.body)) focusPeriod(); } // 描き直しで消えたら、期間の見出しへ
+function focusPeriod(){ const l = $(".wk .lbl"); if (!l) return; l.tabIndex = -1; l.focus({preventScroll: true}); }
 function keepCalFocus(n){ // カレンダーの中にいたまま期間を移ったら、描き直しで消えたフォーカスを、新しい期間の最初のブロック（なければ押したボタン）へ
   const sc = $("#tl .calscroll"), top = sc ? sc.scrollTop : 0;
   const box = sc && sc.getBoundingClientRect(), head = sc && sc.querySelector(".head"), y0 = box ? box.top + (head ? head.offsetHeight : 0) : -Infinity;
@@ -24,16 +26,38 @@ $("#zin").onclick = () => zoom(1); $("#zout").onclick = () => zoom(-1);
 function zoom(dv){ st.z = Math.max(0, Math.min(HOURS.length-1, st.z+dv)); store.set("zh", st.z); render(); scrollToWork(); }
 document.querySelectorAll("#colorBy button").forEach(b => b.onclick = () => { st.colorBy = b.dataset.v; st.hidden.clear(); store.set("colorBy", st.colorBy); render(); });
 $("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); render(); };
+// 検索欄で Enter：結果は カレンダーの下にあるので、最初の結果へフォーカスを移す
+$("#q").addEventListener("keydown", e => { if (e.key !== "Enter" || e.isComposing || !st.q) return;
+  const f = $("#review .srow") || $("#srh"); if (f){ e.preventDefault(); f.focus(); } });
 $("#theme").onclick = () => { st.theme = st.theme === "dark" ? "light" : "dark"; store.set("theme", st.theme); applyTheme(); };
 $("#help").onclick = () => $("#keys").showModal();
 $("#yrbtn").onclick = openYear;
 addEventListener("resize", () => { if ($("#yr").open) drawPlate(); });
-$("#scrim").onclick = () => select(null); $("#close").onclick = () => select(null); $("#back").onclick = () => { const prev = st.back.pop(), top = (st.backTop || []).pop(); st.sel = prev || null; render(); $("#panel").scrollTop = top || 0; };
+$("#scrim").onclick = () => select(null); $("#close").onclick = () => select(null); $("#back").onclick = () => backStep();
+function backStep(){ const prev = st.back.pop(), top = (st.backTop || []).pop(); st.sel = prev || null; render(); $("#panel").scrollTop = top || 0; }
+/* ブラウザの「戻る」：詳細を開いたら履歴を 1 つ積み、戻るで閉じる（詳細の中で移っていたら、1 つ前の詳細へ）。
+   Esc や × で閉じたときは、積んだ分を history.back() で消して、履歴をそろえる。URL（#… も）は変えない */
+const hist = {pushed: false, skip: false};
+try { if (history.state && history.state.kiroku === "drawer") history.replaceState(null, ""); } catch(e){} // 開いたまま再読み込みしたときの残り
+function histOpen(){ if (hist.pushed) return; try { history.pushState({kiroku: "drawer"}, ""); hist.pushed = true; } catch(e){} }
+function histClose(){ if (!hist.pushed) return; hist.pushed = false; hist.skip = true; history.back(); }
+addEventListener("popstate", () => {
+  if (hist.skip){ hist.skip = false; return; } // 自分で消した分
+  if (!hist.pushed) return;
+  hist.pushed = false;
+  if (!st.sel) return;
+  if (st.back.length){ backStep(); histOpen(); } else select(null); });
+// ←→ を自分で使う部品（入力欄・選択・切り替えのボタン群など）にいるときは、週を動かさない
+const ARROW_OWN = "input, select, textarea, [contenteditable], .segc, [role=group], [role=radiogroup], [role=tablist], [role=listbox], [role=slider], [role=menu]";
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT"){ if (e.key === "Escape") e.target.blur(); return; }
   if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open || $("#yr").open) return;
   const k = e.key;
-  if (k === "ArrowLeft") go(-1); else if (k === "ArrowRight") go(1); else if (k === "t" || k === "T") go(null);
+  if (k === "Escape" && closeHint()) return; // 開いた説明（?）があれば、それだけ閉じる
+  if (k === "ArrowLeft" || k === "ArrowRight"){ // 詳細を開いているあいだも動かさない（閉じて別の週へ飛ぶと、どこにいるかわからなくなる）
+    if (st.sel || e.target.closest?.(ARROW_OWN)) return;
+    go(k === "ArrowLeft" ? -1 : 1); }
+  else if (k === "t" || k === "T") go(null);
   else if (k === "/"){ e.preventDefault(); $("#q").focus(); } else if (k === "+" || k === "=") zoom(1); else if (k === "-") zoom(-1);
   else if (k === "Escape" && st.sel) select(null); else if (k === "?") $("#keys").showModal();
   else if (k === "w" || k === "W") setMode("week"); else if (k === "m" || k === "M") setMode("month");
