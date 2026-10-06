@@ -2,6 +2,23 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- What you need is easier to find. "Worth a look" now sits right under the key figures, above the calendar, instead of below it (on a phone it used to take about a screen and a half of scrolling). Search results appear between the legend and the calendar instead of below it, newest first, 10 at a time with "Show N more of M" instead of up to 100 at once. The line above the dates says "Last week" or "Last month" when that is what you are looking at, since kiroku often opens on last week. "Copy review prompt" (renamed from "Review this session with AI (copy prompt)") sits next to "Copy prompts" above a session's prompt flow instead of after the whole flow, and the message after copying says the prompt includes your prompts
+- The legend shows each project's (or branch's or agent's) active time, in the same split as "① By project", instead of its session count, which read like time, and says that an item can be clicked to hide it. "Color by" is the selector at the start of the legend at every screen width, and the zoom buttons, now labeled "Zoom", sit at the right end of the legend in the week calendar instead of in the header
+- Less to read past. In "① By project" the cards no longer repeat each project's main models and top sessions (models and the heaviest sessions are in "④ How you used AI"). Total AI run time moves under "More metrics" in "③ How you spent time", agent-specific metrics fold into one line at the end of "④", and a session's models, tools and agent metrics fold into one line on the right. The prompt in "⑥ Ask AI for suggestions" is folded under "Show the prompt"; "Copy prompt" copies it as before
+- Smaller wording fixes: Repeated prompts say that the counts are for the week or month shown, and that the threshold counts different prompts; flagged metrics say "N more sessions" and "N also in the list below"; Subagents say "Total run time"; the subagent types under "By model" have their own heading; the 8-week trend is drawn larger; and the month calendar says that each week on the left counts all 7 days, including days in the next or previous month
+- The header's "?" button, which only ever opened the keyboard shortcuts, shows a keyboard instead, and keyboard users can jump past the calendar's bars and marks to the summary with "Skip the calendar"
+
+### Removed
+
+- "Daily trend" in "② Cost and outputs". Each day's active time, tokens or credits, sessions and commits are in the calendar's day headings and month cells, and the tooltip on each day adds estimated cost
+- "Export prompts" in the summary heading. Copy a session's prompts with "Copy prompts" in its details, and share a week's work with the weekly report draft
+- "Focus blocks" in "⑤ Shape of the week" (the count and the longest stay in "③"), and "Weekend" in "③", which the calendar already shows
+- The "Marks" row under the legend (each mark has its own label, and the "?" of Git commits explains them), and the "Keyboard shortcuts" link at the bottom of the page (the button at the top right and `?` open the same list)
+
 ## v0.18.0 - 2026-10-06
 
 ### Added

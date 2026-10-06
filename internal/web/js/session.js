@@ -30,30 +30,29 @@ function detail(s){
 ` : s.credits ? `<div><div class="k">Kiro credits</div><div class="v">${crN(s.credits)}</div></div><div><div class="k">Per prompt</div><div class="v">${s.nPrompts ? crN(s.credits/s.nPrompts) : "—"}<small> credits</small></div></div>` : ""}
     </div>
     ${s.prompts.length ? promptFlow(s) : `<h3>Prompt flow</h3><p class="none">No prompts recorded.${s.source === "Kiro Crew" ? " Kiro Crew deletes conversation records after a while, so only the usage record remains for this conversation." : ""}</p>`}
-    <div class="sact"><button class="pill" id="sreview">Review this session with AI (copy prompt)</button>
-      <span>Asks for ways to improve how you prompted and split the work, based on the prompt flow and numbers. It includes your prompts but not the AI's replies, so review it before sending.</span></div>
     ${s.subagents.length ? `<h3>Subagents · ${s.subagents.length}</h3>${s.subagents.map(a=>{
         const span = Math.max(1, s.end - s.start), l = a.start ? Math.max(0,(a.start - s.start)/span*100) : 0, w = a.start && a.end ? Math.max(.8,(a.end - a.start)/span*100) : .8;
         const t = a.usage, tt = t.in + t.out + t.cw + t.cw1h + t.cr;
         return `<div class="sub"><div class="hd"><span class="ty">${esc(a.type)}</span><span class="ds">${esc(a.desc || "(no description)")}</span>${a.bg?`<span class="bg">Background</span>`:""}</div>
           <div class="lane"><span style="left:${l}%;width:${Math.min(w,100-l)}%"></span></div>
           <div class="ft">${a.start?`<span>${hm(a.start)}${a.end?"–"+hm(a.end):""}</span>`:""}${a.start&&a.end?`<span>${dur((a.end-a.start)/60)}</span>`:""}${tt?`<span>${tok(tt)} tokens</span>`:t.reportedTokens?`<span>${tok(t.reportedTokens)} tokens (reported)</span>`:""}${t.cost?`<span>${usd(t.cost)}</span>`:""}${a.model?`<span>${esc(a.model)}</span>`:""}${a.tools?`<span>${plural(a.tools, "tool call")}</span>`:""}</div></div>`; }).join("")}` : ""}
-    ${s.native && s.native.length ? `<h3>${`${esc((s.source))} metrics`}</h3>${nativeRows(s.native)}<p class="note">Numbers this agent records itself. Definitions differ from other agents.</p>` : ""}
     </div><div class="dcol">
     ${sessionCommits(s)}
     ${s.prs && s.prs.length ? `<h3>Pull requests created · ${s.prs.length}</h3><ul class="files">${s.prs.map(u => `<li title="${esc(u)}"><span>${ext(u, esc(u.replace(/^https?:\/\//, "")))}</span></li>`).join("")}</ul>` : ""}
     <h3>Files changed · ${s.nFiles}</h3>
     ${(() => { if (!s.files.length) return `<p class="none">None</p>`; const us = s.files.map(f => fileLink(s, f)); // 断り書きは、リンクになったファイルがあるときだけ
       return `<ul class="files">${s.files.map((f, i) => `<li title="${esc(f)}"><span>${us[i] ? ext(us[i], esc(f)) : esc(f)}</span></li>`).join("")}</ul>${us.some(Boolean) ? `<p class="note">Links open each file as of the commits made during this session.</p>` : ""}`; })()}
+    <details class="moreS dmore"><summary>${[s.models.length ? "Models" : "", "tools", s.native && s.native.length ? `${esc(s.source)} metrics` : ""].filter(Boolean).join(", ").replace(/, ([^,]+)$/, " and $1").replace(/^./, c => c.toUpperCase())}</summary>
     ${s.models.length ? `<h3>Models used</h3><div class="chips">${s.models.map(([m,n])=>`<span class="mono">${esc((m))}<b>${n}</b></span>`).join("")}</div>` : ""}
     <h3>Tools used</h3>
     ${s.tools.length ? s.tools.map(([k,v])=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track2"><span style="width:${v/maxT*100}%"></span></span><span class="n">${v}</span></div>`).join("") : `<p class="none">None recorded</p>`}
+    ${s.native && s.native.length ? `<h3>${`${esc((s.source))} metrics`}</h3>${nativeRows(s.native)}<p class="note">Numbers this agent records itself. Definitions differ from other agents.</p>` : ""}</details>
     ${s.file ? `<h3>History file</h3><div class="code"><code>${esc(s.file)}</code><a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" target="_blank" rel="noopener">Open</a><button class="copy" data-copy="${esc(s.file)}">Copy</button></div>` : ""}
     ${s.resume ? `<h3>Resume</h3><div class="code"><code>${esc(s.resume)}</code><button class="copy" data-copy="${esc(s.resume)}">Copy</button></div>` : ""}
 
   </div></div></div>`;
   bindGitEvents(P);
-  P.querySelector("#sreview").onclick = () => copy(sessionPrompt(s, active, med));
+  const sr = P.querySelector("#sreview"); if (sr) sr.onclick = () => copy(sessionPrompt(s, active, med), "Copied a prompt that asks an AI to review this session. It includes your prompts, so check it before sending", 5000);
   P.querySelectorAll(".pexp").forEach(b => b.onclick = () => { const li = b.closest("li"), open = b.getAttribute("aria-expanded") !== "true";
     li.querySelector(".pshort").hidden = open; li.querySelector(".pfull").hidden = !open; b.setAttribute("aria-expanded", open); b.textContent = open ? "Show less" : pexpLabel(li.dataset.full ? {} : s.prompts[b.dataset.i]); });
   P.querySelectorAll(".pload").forEach(b => b.onclick = async () => { // kiroku serve のときだけ、切ったプロンプトの全文をサーバーから読む
@@ -82,13 +81,6 @@ function prName(url){ // GitHub の PR は「リポジトリ#番号」と短く�
 const NOTE_LABEL = () => ({reminder: "System note", notice: "Notification", hook: "Hook output", output: "Command output",
   compact: "Conversation summary", agent: "From another agent or schedule", meta: "Added by the agent", other: "Added automatically"});
 const PKIND = () => ({command: "Command", shell: "Shell"}); // 人が打ったプロンプトのうち、ふつうの文でないもの
-function periodPrompts(){ // 表示中の週・月に、人が打ったプロンプトだけを、セッションごとに書き出す
-  const {ws, we} = period(), L = [];
-  DATA.filter(s => s.prompts.some(p => p.t >= ws && p.t < we)).sort((a, b) => a.start - b.start).forEach(s => {
-    const ps = s.prompts.filter(p => p.t >= ws && p.t < we);
-    L.push(`## ${md(ps[0].t)} ${hm(ps[0].t)} ${mdCode(s.project)}${s.branch ? ` (${mdCode(s.branch)})` : ""} · ${mdText(s.title)}`, userPrompts({prompts: ps}), "");
-  });
-  return L.length ? L.join("\n").trim() : "No prompts in this period."; }
 function userPrompts(s){ // 人が打ったプロンプトだけを、時刻つきの Markdown の箇条書きにする（書き出し用）
   return s.prompts.map(p => `- ${p.t ? `${md(p.t)} ${hm(p.t)}` : "--:--"}${p.kind ? ` (${mdText(PKIND()[p.kind] || p.kind)})` : ""} ${mdText(p.text)}${p.len > 0 ? ` (first ${PROMPT_RUNES} characters)` : ""}`).join("\n"); }
 function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面では d だけを省略する）
@@ -140,7 +132,7 @@ function promptFlow(s){
     ...[["commit", "Commit"], ["push", "Push"], ["pr", "Pull request"], ["agent", "Subagent"], ["int", "Interruption"], ["warn", "Usage limit"]].filter(([k]) => kinds.has(k)).map(([k, l]) => `<span class="kev ${k}">${ico(EV_ICON[k])}${l}</span>`)].filter(Boolean).join("");
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";
   // 見出しと出し方の切り替えは 1 行に（最初の画面に入るプロンプトを 1 つでも多くする）
-  const bar = `<div class="flowhead"><h3>Prompt flow</h3><div class="flowbar"><div class="segc" role="group" aria-label="Show" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">Everything</button><button data-v="user" aria-pressed="${!!st.flowUser}">Only user prompts</button></div><button class="pill" id="pcopy">Copy prompts</button></div></div>`;
+  const bar = `<div class="flowhead"><h3>Prompt flow</h3><div class="flowbar"><div class="segc" role="group" aria-label="Show" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">Everything</button><button data-v="user" aria-pressed="${!!st.flowUser}">Only user prompts</button></div><button class="pill" id="pcopy">Copy prompts</button><button class="pill" id="sreview" title="A prompt that asks an AI how you could have prompted and split the work better">Copy review prompt</button></div></div>`;
   return `${bar}<div class="tlkey${st.flowUser ? " only-user" : ""}">${key}</div><ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${`Show ${plural(rest, "more prompt")}${also}`}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${"\"AI worked\" is the time from a prompt to the AI's last activity; \"wait\" is the time from there to your next prompt. Both are estimates from the history's timestamps."}</p>` : ""}${s.prompts.some(p => p.reply) ? `<p class="note">${`The reply after a prompt is the last thing the AI wrote to you in that turn, in its own words — not its thinking, its tool calls or their output. A turn where it only ran tools, or whose words the agent does not record, has no reply. A long one shows its first ${REPLY_RUNES} characters.`}</p>` : ""}`;
 }
 /* 1 つのセッションを AI と振り返るためのプロンプト（kiroku 自身は AI を呼ばない） */

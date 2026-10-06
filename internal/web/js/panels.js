@@ -12,8 +12,10 @@ function hitOf(s, q){
   for (const [label, xs] of tries) for (const x of xs){ const h = snip(x, q); if (h) return {label, h}; }
   return {label: "", h: ""};
 }
+const SR_FIRST = 10, SR_STEP = 50; // 検索結果は、はじめに 10 件、「もっと見る」で 50 件ずつ
 function searchPanel(){
-  const R = $("#review"), q = st.q, LIMIT = 100;
+  const R = $("#sres"), q = st.q, nS = st.srN || SR_FIRST, nC = st.scN || SR_FIRST;
+  $("#review").innerHTML = ""; $("#worth").hidden = true; R.hidden = false;
   const ss = DATA.filter(s => !st.hidden.has(keyOf(s)) && searchText(s).includes(q)).sort((a,b) => b.start - a.start);
   const cs = (META.git || []).filter(gitHit).sort((a,b) => b.t - a.t);
   const row = s => { const h = hitOf(s, q);
@@ -23,18 +25,23 @@ function searchPanel(){
   const crow = c => `<button class="srow" data-c="${esc(c.hash)}" style="--c:${colorOf(c.project)}"><time>${md(c.t)}<small>${hm(c.t)}</small></time>
       <span class="b"><span class="ti"><i></i>${snip(c.subject, q) || esc(c.subject)}</span><span class="me">${esc(c.project)}${c.branch ? ` · ${esc(c.branch)}` : ""} · <span class="mono">${esc(c.hash.slice(0,7))}</span> · ${plural(c.nFiles, "file")} +${c.added} −${c.removed}</span>
       ${(() => { const f = (c.files || []).find(f => f.path.toLowerCase().includes(q)); return f ? `<span class="hit"><em>File</em>${snip(f.path, q)}</span>` : ""; })()}</span></button>`;
-  R.innerHTML = `<div class="rvhead"><h2 id="srh" tabindex="-1">Search results</h2><p>${`Matches for "${esc(q)}" ${META.scope ? "in this file" : "(all time)"}. Sessions are matched on prompts, project, branch, agent, files changed by AI, pull requests and commits made during the session; commits on subject, body, hash and changed files. Click one to see its details; the calendar moves to its week.`}</p>
+  const more = (id, rest) => rest > 0 ? `<button class="pill srmore" id="${id}">${`Show ${Math.min(rest, SR_STEP)} more of ${rest}`}</button>` : "";
+  R.innerHTML = `<div class="rvhead"><h2 id="srh" tabindex="-1">Search results</h2><p>${`Matches for "${esc(q)}" ${META.scope ? "in this file" : "(all time)"}, newest first. Sessions are matched on prompts, project, branch, agent, files changed by AI, pull requests and commits made during the session; commits on subject, body, hash and changed files. Click one to see its details; the calendar below moves to its week.`}</p>
       <button class="pill" id="sclear">Clear search</button></div>
     <div class="rvgrid srgrid">
       <section class="panel"><div class="ph"><h3>Sessions · ${ss.length}</h3></div>
-        ${ss.length ? ss.slice(0, LIMIT).map(row).join("") + (ss.length > LIMIT ? `<p class="more">${`${ss.length - LIMIT} more. Add words to narrow down.`}</p>` : "") : `<p class="none">No matching sessions.</p>`}</section>
+        ${ss.length ? ss.slice(0, nS).map(row).join("") + more("srmS", ss.length - nS) : `<p class="none">No matching sessions.</p>`}</section>
       <section class="panel"><div class="ph"><h3>Commits · ${cs.length}</h3></div>
-        ${cs.length ? cs.slice(0, LIMIT).map(crow).join("") + (cs.length > LIMIT ? `<p class="more">${`${cs.length - LIMIT} more`}</p>` : "") : `<p class="none">${(META.git || []).length ? "No matching commits." : "No git commits were loaded."}</p>`}</section>
+        ${cs.length ? cs.slice(0, nC).map(crow).join("") + more("srmC", cs.length - nC) : `<p class="none">${(META.git || []).length ? "No matching commits." : "No git commits were loaded."}</p>`}</section>
     </div>`;
+  // もっと見る：足した最初の結果へフォーカスを移す（押したボタンは消えるので）
+  const grow = (k, n, sel) => { const b = R.querySelector(sel === "s" ? "#srmS" : "#srmC"); if (!b) return;
+    b.onclick = () => { st[k] = n + SR_STEP; searchPanel(); const f = R.querySelectorAll(`.srow[data-${sel}]`)[n]; if (f) f.focus(); }; };
+  grow("srN", nS, "s"); grow("scN", nC, "c");
   const open = (t, id) => { st.mode = "week"; store.set("mode", "week"); st.week = mondayOf(new Date(t*1000)); select(id); };
   R.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { const s = DATA.find(x => x.id === b.dataset.s); if (s) open(s.start, s.id); });
   R.querySelectorAll("[data-c]").forEach(b => b.onclick = () => { const c = META.git.find(x => x.hash === b.dataset.c); if (c) open(c.t, "git:" + c.hash); });
-  $("#sclear").onclick = () => { $("#q").value = ""; st.q = ""; render(); };
+  $("#sclear").onclick = () => { $("#q").value = ""; st.q = ""; st.srN = st.scN = 0; render(); };
 }
 /* 週報・月報の下書き：プロジェクトごとに、やったこと（セッション）・コミット・PR を Markdown で並べる（AI は使わない） */
 function reportText(w, M){
@@ -112,30 +119,7 @@ function outcomePanel(w, pw, unit, ph, stat){
       <div class="ocarrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
       ${side("left", "Left behind", outSub, out ? `<div class="stats">${out}</div>${gc ? "" : `<p class="none">Lines, files and pushes are counted from git commits, which were not read here.</p>`}` : `<p class="none">No commits recorded.</p>`)}
     </div>
-    ${cmp ? side("occmp", "Compared", "Cost ÷ what it left behind", `<div class="stats">${cmp}</div>`) : ""}
-    <div class="ocdaily">${usageChart(w, unit === "月")}</div></section>`;
-}
-/* 日ごとの推移（トークン・クレジット・目安コスト・作業時間・セッション・プロンプトを切り替え。今までのリズムもここにまとめた） */
-function usageChart(w, M){ // 日ごとの推移：トークン・クレジット・目安コスト・作業時間・セッション・プロンプトを切り替えて 1 本の棒グラフで見る
-  const start = M ? st.month : st.week, today = key(today0());
-  const days = w.days.map((d, i) => { const dd = addDays(start, i), ds = dd.getTime()/1000;
-    return {...d, dd, sessions: DATA.filter(s => inP(s, ds, addDays(dd, 1).getTime()/1000)).length}; });
-  const hrs = a => a >= 60 ? (a/60).toFixed(1)+"h" : a+"m", n = v => String(v);
-  const all = [["tokens", "Tokens", tok], ["credits", "Credits", cr], ["cost", "Estimated cost", usd],
-    ["active", "Active time", hrs], ["sessions", "Sessions", n], ["prompts", "Prompts", n]];
-  const opts = all.filter(([k]) => days.some(d => k === "cost" ? d.cost >= 0.005 : d[k]));
-  if (!opts.length) return "";
-  const [m, , fmt] = opts.find(([k]) => k === st.use) || opts[0];
-  const max = Math.max(...days.map(d => d[m] || 0)) || 1, total = days.reduce((t,d) => t + (d[m]||0), 0);
-  const cols = days.map(d => { const v = d[m] || 0, dd = d.dd;
-    const tip = [`Active ${dur(d.active)}`, `Sessions ${d.sessions}`, `Prompts ${d.prompts}`, ...useLines(d)];
-    return `<div class="c${key(dd)===today?" today":""}${wkc(dd.getDay())}"${tipAttr(md(dd.getTime()/1000), d.active || d.tokens || d.credits ? tip : "No records")}>
-      ${M ? "" : `<span class="v">${v ? fmt(v) : ""}</span>`}<div class="b" style="height:${v ? Math.max(2, v/max*112) : 0}px"></div>
-      <span class="l">${M ? (dd.getDate() === 1 || dd.getDate() % 5 === 0 ? dd.getDate() : "") : dow(dd.getDay())}</span></div>`; }).join("");
-  return `<h3>Daily trend${hb("daily")}</h3>${hint("daily")}
-    <div class="useg"><div class="segc" role="group" aria-label="Show" id="useBy">${opts.map(([k,l]) => `<button data-v="${k}" aria-pressed="${k===m}">${l}</button>`).join("")}</div>
-      <span class="muted" style="font-size:var(--fs-xs)">${`Total ${fmt(total)} · max ${fmt(max)}/day`}</span></div>
-    <div class="ubar" style="grid-template-columns:repeat(${days.length},minmax(0,1fr))${M ? ";gap:2px" : ""}">${cols}</div>`;
+    ${cmp ? side("occmp", "Compared", "Cost ÷ what it left behind", `<div class="stats">${cmp}</div>`) : ""}</section>`;
 }
 /* 計測の状態 */
 /* 履歴を自動で消すエージェント（既定のままの Claude Code など）を知らせ、公式ドキュメントへ案内する。閉じたら出さない */
@@ -221,13 +205,13 @@ function aiUsage(w, pw, unit){
       ${pj && pj.cost != null ? stat("Month-end cost (estimate)", "≈ " + usdH(pj.cost), `If the pace of the first ${pj.days} days continues`, "projection") : ""}
       ${pj && pj.credits != null ? stat("Month-end credits (estimate)", `≈ ${crN(pj.credits)}<small> credits</small>`, `If the pace of the first ${pj.days} days continues`, "projectionCr") : ""}
       ${u.tokens ? stat("Read from cache", u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, "Share of input", "cache") : ""}
-      ${stat("Subagents", `${u.subagents}`, u.subagents ? `Total ${dur(u.subMin)}` : "Not used", "subagents")}
+      ${stat("Subagents", `${u.subagents}`, u.subagents ? `Total run time ${dur(u.subMin)}` : "Not used", "subagents")}
       ${w.costPerAsk != null ? stat("Estimated cost per prompt", usdH(w.costPerAsk), `n=${w.prompts}`, "costPerAsk") : ""}
     </div>
     ${u.models.length ? `<div style="margin-top:16px" class="k muted">By model${byCost ? " (estimated cost)" : " (tokens)"}${hb("models")}</div>${hint("models")}
       <div class="mstack" style="margin-top:8px">${u.models.map((r,i)=>`<span style="flex:${byCost?r[1]:r[2]};--o:${shade(i)}"${tipAttr((r[0]), `Estimated cost ${usd(r[1])}`, `Tokens ${tok(r[2])}`, `${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%`)}></span>`).join("")}</div>
       ${u.models.slice(0,6).map((r,i)=>`<div class="mrow"><span class="nm"><i style="--o:${shade(i)}"></i>${esc((r[0]))}</span><span class="tm">${!r[1] && (u.unpricedModels || []).includes(r[0]) ? `<span title="Not in the price table">—</span>` : usd(r[1])}<small>${tok(r[2])}</small></span><span class="pc">${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%</span></div>`).join("")}` : ""}
-    ${u.subTypes.length ? `<div style="margin-top:14px" class="chips">${u.subTypes.map(([k,v])=>`<span class="mono">${esc(k)}<b>${v}</b></span>`).join("")}</div>` : ""}
+    ${u.subTypes.length ? `<div style="margin-top:16px" class="k muted">Subagent types (calls)</div><div style="margin-top:8px" class="chips">${u.subTypes.map(([k,v])=>`<span class="mono">${esc(k)}<b>${v}</b></span>`).join("")}</div>` : ""}
     ${u.heavy.length ? `<div style="margin-top:16px" class="k muted">Heaviest sessions${hb("heavy")}</div>${hint("heavy")}<div style="margin-top:8px">${u.heavy.map(h=>`<button class="card" data-id="${esc(h.id)}"><span class="ti">${esc(h.title)}</span><span class="me">${md(h.start)} · ${esc(h.project)} · ${usd(h.cost)}${h.subagents?` · ${plural(h.subagents, "subagent")}`:""}</span></button>`).join("")}</div>` : ""}`;
 }
 function nativeText(v){
@@ -241,12 +225,13 @@ function nativeRows(values){
 }
 function nativeSection(w){
   if (!w.native || !w.native.length) return "";
-  return `<h3>Agent-specific metrics${hb("native")}</h3>${hint("native")}
-    ${w.native.map(g=>`<div class="ngroup"><div class="hd"><b>${esc((g.source))}</b><span>${plural(g.sessions, "session")}</span></div>${nativeRows(g.values)}</div>`).join("")}`;
+  // 各エージェントが自分で記録する数。エージェントどうしでは比べられないので、たたんでおく
+  return `<details class="moreS"><summary>Agent-specific metrics</summary><p class="k muted">Numbers each agent records itself${hb("native")}</p>${hint("native")}
+    ${w.native.map(g=>`<div class="ngroup"><div class="hd"><b>${esc((g.source))}</b><span>${plural(g.sessions, "session")}</span></div>${nativeRows(g.values)}</div>`).join("")}</details>`;
 }
 function foot(){
-  return `<div class="foot"><div>Generated ${dStamp(GENERATED)} · <button class="muted" id="openhelp" style="text-decoration:underline dotted">Keyboard shortcuts</button></div></div>`;
+  return `<div class="foot"><div>Generated ${dStamp(GENERATED)}</div></div>`;
 }
 
-function bindCopy(root){ root.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy)); const h = root.querySelector("#openhelp"); if (h) h.onclick = () => $("#keys").showModal(); }
+function bindCopy(root){ root.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy)); }
 
