@@ -30,8 +30,6 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - The note "Links open each file as of the commits made during this session" appeared even when no file was a link
 - The search results note said clicking a result opens its week; it opens the details (and moves the calendar to that week)
 
-### Fixed
-
 - README's Uninstall section no longer says kiroku keeps no data of its own: it now covers `kiroku autostart off` and removing the copies kept by `kiroku archive`
 - A history line with an impossible time (such as `"timestamp": 100` or year 1) is ignored instead of making its session start in 1970, which added empty weeks and months, showed a wrong oldest record and slowed loading. Times before 2000 or more than a day in the future are not used
 - A Claude Code history file that cannot be read to the end (such as a damaged `kiroku archive` copy) is now listed as an unreadable file in "Data sources" instead of silently showing a shorter conversation. What could be read is still shown, and other conversations load as before
