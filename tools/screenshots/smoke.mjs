@@ -68,7 +68,15 @@ for (const env of envs) {
     check("← で前の週へ移る", await label() !== before, `${before} のまま`);
     await p.keyboard.press("t"); await pause();
     check("t で今週へ戻る", await label() === before, await label());
+    check("今週では「次の週」を押せない", await p.locator("#next").isDisabled());
+    await p.keyboard.press("ArrowRight"); await pause();
+    check("今週から → を押しても先の週へ行かない", await label() === before, await label());
+    const prevX = () => p.evaluate(() => Math.round(document.querySelector("#prev").getBoundingClientRect().x));
+    const x0 = await prevX();
     await p.keyboard.press("ArrowLeft"); await pause(); // 以降は、記録のそろった先週で試す
+    check("前の週へ移っても ‹ の位置が変わらない", await prevX() === x0, `${x0} → ${await prevX()}`);
+    check("前の週では「次の週」を押せる", await p.locator("#next").isEnabled());
+    check("カレンダーの印の見方が出る", await p.locator("#mkey").isVisible() && await p.locator("#mkey .gc.ai").count() > 0);
     const cut = await p.evaluate(() => { const hd = document.querySelector("#tl .heads").getBoundingClientRect().bottom;
       return [...document.querySelectorAll("#tl .run")].filter(r => { const b = r.getBoundingClientRect(); return b.top < hd - 1 && b.bottom > hd + 1; }).length; });
     check("開いた位置で、日付の見出しに半分隠れたブロックがない", cut === 0, `${cut} 件`);
@@ -181,6 +189,7 @@ for (const env of envs) {
   await step("表示の切り替え", async () => {
     await p.keyboard.press("m"); await pause();
     check("m で月表示になる", await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
+    check("月表示では、印の見方を出さない", await p.locator("#mkey").isHidden());
     await p.keyboard.press("w"); await pause();
     await p.keyboard.press("?"); await pause();
     check("? でショートカットの一覧が開く", await p.locator("#keys").evaluate(d => d.open));

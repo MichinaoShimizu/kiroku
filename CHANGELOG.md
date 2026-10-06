@@ -4,12 +4,24 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Added
+
+- The week calendar now has a "Marks" key under the legend that shows what its marks at the right edge of each day mean: a commit (filled when run by AI), a push and a pull request, drawn the same way as on the calendar. Before, only the "?" of Git commits explained them, and pushes and pull requests were not explained at all
+
 ### Changed
 
 - `install.sh` now also checks the build provenance (GitHub artifact attestation) of the downloaded file with `gh attestation verify` when the GitHub CLI is installed, and stops if it does not match. When `gh` is not logged in or cannot reach GitHub, it warns and installs anyway, since the file already matched `checksums.txt`. Without `gh`, or for versions before v0.12.0 (which have no attestations), it works as before. Set `KIROKU_SKIP_ATTESTATION=1` to skip the check
+- The Project / Branch / Agent switch at the top now has a visible "Color by" label (on narrow screens, next to the selector left of the legend)
+- Commit counts with how many AI ran are now written "22 · 14 by AI" in the key figures, project cards and session details, as in the Outputs card, instead of "22 (14)" or "Commits 22 (AI 14)"; the key figure is now called "Git commits"
+- Project cards no longer show a Credits row that is all "—" when the period has no credit records
+- In a file written with `kiroku html --week` / `--month`, the button that returns to the period now reads "Back to included week" / "Back to included month", ‹ › only move within the included period, and search says it looks "in this file" instead of "all time"
 
 ### Fixed
 
+- In "Worth a look", the trend under a flagged metric said "flagged when high", so a metric flagged in a week where its value was the lowest of the 8 weeks looked wrong. The trend now only says which direction is worth a look ("higher is worth a look"), and a separate line gives the actual reason with this period's numbers, such as "Flagged because 2 sessions this week crossed the threshold". A trend shown under a related metric (Long conversations under Heaviest sessions, for example) now names the metric it tracks
+- The "?" of Outputs said that commits made by hand are not included, while the card counts Git commits including them (with how many AI ran). It now explains both counts. The "?" of Estimated cost per commit now says it divides Claude Code's estimated cost by the commits AI ran, which is what the card uses, and the card no longer shows the estimated cost of all agents as if it were the number divided
+- ‹ › and → could move into future weeks and months without end, where the key figures said "This week · No records". You can no longer move past the current week or month (in the demo, by its clock), and a period with no records is named by its week or month, such as "Week of 8/3"
+- ‹ › moved sideways as the width of the date changed ("9.28—10.4" vs "11.24—11.30"), so clicking repeatedly could miss. The date now keeps the width of the longest one
 - `kiroku update` now stops with "too many arguments" when given a version without `--to` (`kiroku update v0.11.0`). Before, it ignored the version and everything after it, so it installed the latest release instead, and `kiroku update v0.11.0 --check` replaced kiroku instead of only checking. Use `kiroku update --to v0.11.0` to install a given version
 - In the view, ← and → no longer change the week while details (a session, commit, push or pull request) are open, or while the focus is on a control that uses the arrow keys itself (the Color by, View and Daily trend toggles, the search box and selects). Before, ← with details open closed them and jumped to the previous week, and the keyboard focus was lost. When moving weeks with the focus in the summary, it now moves to the period heading instead of being lost
 - The browser's Back button now closes open details (or goes back one step when you moved from one detail to another inside them) instead of leaving the page. Closing details with Esc or the close button leaves the browser history as it was. This works for files opened directly and under `kiroku serve`

@@ -15,7 +15,7 @@
       <h1 class="word">kiroku</h1><span class="tag">A record of your time with AI</span>
       <span class="live" id="live" hidden title="Updates automatically as your history grows">LIVE</span>
     </div>
-    <div class="segc" role="group" aria-label="Color by" id="colorBy">
+    <span class="cbh" id="cbh">Color by</span><div class="segc" role="group" aria-labelledby="cbh" id="colorBy">
       <button data-v="project">Project</button><button data-v="branch">Branch</button><button data-v="source">Agent</button>
     </div>
     <div class="segc zoom" role="group" aria-label="Zoom">
@@ -44,6 +44,7 @@
     <div class="kpis" id="kpis"></div>
   </section>
   <div class="legend" id="legend" aria-label="Legend"></div>
+  <p class="mkey" id="mkey" hidden></p>
   <p class="fnote" id="fnote" role="note" hidden></p>
   <section class="tlbox" id="tl" aria-label="Calendar"></section>
   <section id="review"></section>
