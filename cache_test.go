@@ -158,6 +158,75 @@ func TestLoadCacheRereadsOnlyChangedFiles(t *testing.T) {
 	}
 }
 
+// countingCodex は、読んだまとまりの数を数える Codex の Source。
+type countingCodex struct {
+	*source.Codex
+	units int
+}
+
+func (c *countingCodex) LoadUnit(u source.Unit, emit func(*core.Builder)) error {
+	c.units++
+	return c.Codex.LoadUnit(u, emit)
+}
+
+// Codex: ログなど会話でないファイルが変わっても読み直さず、追記されたスレッド（とその親子）だけを読み直す。
+func TestLoadCacheCodexUnits(t *testing.T) {
+	setup(t)
+	home := codexHome(t)
+	cx := &countingCodex{Codex: &source.Codex{Home: home}}
+	all := []source.Source{cx}
+	want := map[string]bool{"codex": true}
+	cache := newLoadCache()
+	fresh := func() string {
+		d, r := collect([]source.Source{&source.Codex{Home: home}}, want, 15)
+		return jsonOf(t, d, r)
+	}
+	check := func(what string, wantUnits int) {
+		t.Helper()
+		cx.units = 0
+		data, rep := collectCached(all, want, 15, cache)
+		if cx.units != wantUnits {
+			t.Errorf("%s: まとまり %d を読んだ, want %d", what, cx.units, wantUnits)
+		}
+		if got := jsonOf(t, data, rep); got != fresh() {
+			t.Errorf("%s: 結果が、キャッシュなしと違う", what)
+		}
+	}
+	appendLine := func(p, line string, d time.Duration) {
+		t.Helper()
+		f, err := os.OpenFile(p, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.WriteString(line + "\n")
+		f.Close()
+		touch(t, p, d)
+	}
+
+	check("1 回目", len(cx.Units()))
+
+	// ログや history.jsonl が書かれても、何も読まない
+	os.MkdirAll(filepath.Join(home, "log"), 0o755)
+	appendLine(filepath.Join(home, "log", "codex-tui.log"), "INFO something", time.Minute)
+	appendLine(filepath.Join(home, "history.jsonl"), `{"session_id":"thr-main","text":"x"}`, time.Minute)
+	check("ログが変わった", 0)
+
+	// サブエージェントのファイルに追記すると、親と一緒の 1 まとまりだけを読み直す（圧縮ファイルは読まない）
+	sub := filepath.Join(home, "sessions", "2026", "09", "29", "rollout-2026-09-29T10-01-00-thr-sub.jsonl")
+	appendLine(sub, `{"timestamp": "2026-09-29T01:03:00.000Z", "type": "event_msg", "payload": {"type": "user_message", "message": "追記した依頼"}}`, 2*time.Minute)
+	check("サブエージェントに追記", 1)
+
+	// スレッド名が変わると、そのスレッドだけを読み直す
+	appendLine(filepath.Join(home, "session_index.jsonl"), `{"id": "thr-main", "thread_name": "新しいタイトル"}`, 3*time.Minute)
+	check("スレッド名が変わった", 1)
+	data, _ := collectCached(all, want, 15, cache)
+	for _, s := range data {
+		if s.ID == "thr-main" && s.Title != "新しいタイトル" {
+			t.Errorf("タイトル = %q", s.Title)
+		}
+	}
+}
+
 // collectAll は、キャッシュを使わずに全部を読む（数を数える Source の数は戻す）。
 func collectAll(all []source.Source, want map[string]bool) ([]*core.Session, []source.Report) {
 	saved := []int{}

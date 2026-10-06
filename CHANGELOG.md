@@ -14,6 +14,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - The live demo opens on the latest week with every weekday filled in, instead of the current week (which is often nearly empty because the demo data is rebuilt every Monday). "This week" still jumps to the current week
 
+### Fixed
+
+- `kiroku serve` no longer rereads all Codex history whenever anything under `~/.codex` changes (such as `log/codex-tui.log`). It watches only the session files and `session_index.jsonl`, and rereads only the threads that changed
+
 ## v0.8.1 - 2026-10-06
 
 ### Fixed

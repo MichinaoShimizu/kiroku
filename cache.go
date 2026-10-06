@@ -55,7 +55,7 @@ func (c *loadCache) load(s source.Source, gap int) ([]loaded, error) {
 	if sp, ok := s.(source.Splitter); ok {
 		next.units = map[string]unitCache{}
 		for _, u := range sp.Units() {
-			stamp := source.Stamp(u.Files)
+			stamp := source.Stamp(u.Files) + "\x00" + u.Tag
 			uc, ok := unitCache{}, false
 			if prev != nil {
 				uc, ok = prev.units[u.Key]

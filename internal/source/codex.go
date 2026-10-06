@@ -1,13 +1,17 @@
 package source
 
 import (
+	"bufio"
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
+	"github.com/klauspost/compress/zstd"
 )
 
 // Codex は OpenAI Codex CLI の履歴: <CODEX_HOME か ~/.codex>/sessions/YYYY/MM/DD/rollout-*.jsonl（新しい版は .jsonl.zst）
@@ -21,11 +25,29 @@ import (
 //
 // サブエージェントやフォークのファイルは、親の履歴を先頭にそのまま写している。
 // そのため、ファイル自身の session_meta の時刻より前の行は数えない。
-type Codex struct{ Home string }
+type Codex struct {
+	Home string
+
+	mu    sync.Mutex
+	heads map[string]codexHead // ファイルごとの session_meta（Units で親子をまとめるため。印が同じなら読み直さない）
+}
+
+// codexHead は、ファイルの先頭の session_meta から読んだスレッド ID と親のスレッド ID。
+type codexHead struct {
+	stamp      string
+	ok         bool // session_meta がある
+	id, parent string
+}
 
 func (c *Codex) Name() string   { return "Codex" }
 func (c *Codex) Family() string { return "codex" }
 func (c *Codex) Where() string  { return c.Home }
+
+// Watch は会話が入っている場所だけ。~/.codex の下にはログ（log/codex-tui.log）や history.jsonl などもあり、
+// ずっと書き換わるので、Home ごと見張ると何か書かれるたびに全部を読み直してしまう。
+func (c *Codex) Watch() []string {
+	return []string{filepath.Join(c.Home, "sessions"), filepath.Join(c.Home, "archived_sessions"), filepath.Join(c.Home, "session_index.jsonl")}
+}
 
 // DefaultCodexHome は CODEX_HOME か ~/.codex。
 func DefaultCodexHome() string {
@@ -84,12 +106,124 @@ func codexTokens(u any) core.Tokens {
 }
 
 func (c *Codex) Load(emit func(*core.Builder)) error {
+	for _, u := range c.Units() {
+		c.LoadUnit(u, emit)
+	}
+	return nil
+}
+
+// Units は、親のスレッドのファイルと、そのサブエージェント（孫も）のファイルのまとまり。
+// サブエージェントは親のセッションにまとめるので、親子は一緒に読み直す。
+// スレッド名（session_index.jsonl）は Tag に入れる。名前が変わったまとまりだけ読み直す。
+func (c *Codex) Units() []Unit {
 	if !isDir(c.Home) {
 		return nil
 	}
+	files := c.files()
+	heads := c.readHeads(files)
+	parentOf := map[string]string{}
+	for _, h := range heads {
+		if h.ok && h.id != "" {
+			parentOf[h.id] = h.parent
+		}
+	}
+	// root はいちばん上の親のスレッド ID（親のファイルがなければ自分）
+	root := func(id string) string {
+		seen := map[string]bool{}
+		for !seen[id] {
+			seen[id] = true
+			p, ok := parentOf[id]
+			if !ok || p == "" {
+				break
+			}
+			if _, ok := parentOf[p]; !ok {
+				break
+			}
+			id = p
+		}
+		return id
+	}
 	titles := c.titles()
+	var out []Unit
+	at := map[string]int{}
+	for i, path := range files {
+		h := heads[i]
+		if !h.ok {
+			continue // session_meta のないファイルは読まない（Load と同じ）
+		}
+		key := path
+		if h.id != "" {
+			key = root(h.id)
+		}
+		if j, ok := at[key]; ok {
+			out[j].Files = append(out[j].Files, path)
+			continue
+		}
+		at[key] = len(out)
+		out = append(out, Unit{Key: path, Files: []string{path}, Tag: titles[key]})
+	}
+	return out
+}
+
+// readHeads は files それぞれの session_meta。前回と印が同じファイルは読み直さない。
+func (c *Codex) readHeads(files []string) []codexHead {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	next := map[string]codexHead{}
+	out := make([]codexHead, len(files))
+	for i, p := range files {
+		stamp := Stamp([]string{p})
+		h, ok := c.heads[p]
+		if !ok || h.stamp != stamp {
+			h = codexHead{stamp: stamp}
+			h.id, h.parent, h.ok = readCodexHead(p)
+		}
+		next[p], out[i] = h, h
+	}
+	c.heads = next
+	return out
+}
+
+// readCodexHead は、最初の session_meta までだけ読む（ふつうは 1 行目）。
+func readCodexHead(path string) (id, parent string, ok bool) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", "", false
+	}
+	defer f.Close()
+	var src io.Reader = f
+	if strings.HasSuffix(path, ".zst") {
+		d, err := zstd.NewReader(f)
+		if err != nil {
+			return "", "", false
+		}
+		defer d.Close()
+		src = d
+	}
+	r := bufio.NewReaderSize(src, 1<<16)
+	for {
+		line, err := r.ReadBytes('\n')
+		var e core.Obj
+		if json.Unmarshal(line, &e) == nil && core.Str(e["type"]) == "session_meta" {
+			p := core.Map(e["payload"])
+			return core.Str(p["id"]), codexParent(p), true
+		}
+		if err != nil {
+			return "", "", false
+		}
+	}
+}
+
+// codexParent は、サブエージェントのスレッドの親のスレッド ID（サブエージェントでなければ空）。
+func codexParent(p core.Obj) string {
+	spawn := core.Map(core.Get(p, "source", "subagent", "thread_spawn"))
+	return firstNonEmpty(core.Str(spawn["parent_thread_id"]), core.Str(p["parent_thread_id"]))
+}
+
+// LoadUnit は 1 つのまとまり（Units の 1 つ）を読む。
+func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	var all []*codexFile
-	for _, path := range c.files() {
+	for _, path := range u.Files {
 		cf := &codexFile{path: path}
 		var userMsgs, fallback []struct {
 			t    *float64
@@ -115,7 +249,7 @@ func (c *Codex) Load(emit func(*core.Builder)) error {
 						cf.start = t
 					}
 					spawn := core.Map(core.Get(p, "source", "subagent", "thread_spawn"))
-					cf.parent = firstNonEmpty(core.Str(spawn["parent_thread_id"]), core.Str(p["parent_thread_id"]))
+					cf.parent = codexParent(p)
 					cf.role = firstNonEmpty(core.Str(spawn["agent_role"]), core.Str(p["agent_role"]), core.Str(spawn["agent_nickname"]), core.Str(p["agent_nickname"]))
 					cf.b = core.NewBuilder("Codex", cf.id)
 					cf.b.File = cf.path
@@ -264,7 +398,7 @@ func (c *Codex) Load(emit func(*core.Builder)) error {
 			}
 		}
 		cf.events = pending
-		cf.title = titles[cf.id]
+		cf.title = u.Tag
 		all = append(all, cf)
 	}
 	// サブエージェントのファイルは親のセッションにまとめる
