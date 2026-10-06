@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io/fs"
 	"math"
 	"os"
 	"os/exec"
@@ -131,7 +132,7 @@ func CollectAll(data []*core.Session) ([]Commit, []Push) {
 var RepoTimeout = 30 * time.Second
 
 // Cache は、前回読んだリポジトリの結果を覚えておき、変わっていないリポジトリを読み直さない（kiroku serve 用）。
-// ref の位置・user.email・origin・セッションから決まる範囲が同じなら、コミットも push も同じ。
+// ref の位置・reflog・user.email・origin・セッションから決まる範囲が同じなら、コミットも push も同じ。
 type Cache struct {
 	repos  map[string]repoCache // 共通の git ディレクトリごと
 	counts map[string]pushed    // push で送ったコミット（prev..hash ごと。あとから変わらない）
@@ -221,7 +222,7 @@ func (c *Cache) read(common string, r *repo) (rc repoCache, ok bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), RepoTimeout)
 	defer cancel()
 	prev := c.repos[common]
-	key := repoKey(ctx, r)
+	key := repoKey(ctx, common, r)
 	if ctx.Err() != nil {
 		return prev, false
 	}
@@ -237,9 +238,9 @@ func (c *Cache) read(common string, r *repo) (rc repoCache, ok bool) {
 }
 
 // repoKey は、読む結果を決めるものの印: セッションから決まる範囲、user.email、origin、
-// ref と HEAD の位置（git worktree の HEAD も）。commit・push・fetch で ref が動けば変わる。
+// ref と HEAD の位置（git worktree の HEAD も）、reflog の印（reflogStamp）。commit・push・fetch で ref が動けば変わる。
 // ついでに r.email と r.web を決める。
-func repoKey(ctx context.Context, r *repo) string {
+func repoKey(ctx context.Context, common string, r *repo) string {
 	email, _ := git(ctx, r.top, "config", "user.email")
 	r.email = strings.TrimSpace(email)
 	if remote, err := git(ctx, r.top, "remote", "get-url", "origin"); err == nil {
@@ -249,8 +250,42 @@ func repoKey(ctx context.Context, r *repo) string {
 	wts, _ := git(ctx, r.top, "worktree", "list", "--porcelain")
 	sort.Slice(r.ai, func(i, j int) bool { return r.ai[i].t < r.ai[j].t })
 	h := sha256.New()
-	fmt.Fprintf(h, "%s\x00%s\x00%v\x00%v\x00%s\x00%s\x00%s\x00%s", r.top, r.project, r.since, r.ai, r.email, r.web, refs, wts)
+	fmt.Fprintf(h, "%s\x00%s\x00%v\x00%v\x00%s\x00%s\x00%s\x00%s\x00%s", r.top, r.project, r.since, r.ai, r.email, r.web, refs, wts, reflogStamp(common))
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+// reflogStamp は reflog のファイルの大きさと更新時刻の印。git は呼ばない（読み直しのたびに呼び出しを増やさないため）。
+// ref の位置だけでは気づけない変化に気づくため:
+//   - リモート追跡ブランチの reflog（logs/refs/remotes）: push の記録が増えたのに位置は前に見たのと同じ、
+//     期限切れの行が消えた（git gc・git reflog expire）
+//   - HEAD の reflog（本体と git worktree の logs/HEAD）: どの ref にもない detached HEAD でのコミット
+//
+// reftable 形式のリポジトリは reflog も reftable/ にあるので、その一覧（tables.list）を見る。
+func reflogStamp(common string) string {
+	if common == "" {
+		return ""
+	}
+	var sb strings.Builder
+	add := func(p string, fi fs.FileInfo) {
+		fmt.Fprintf(&sb, "%s\x00%d\x00%d\n", p, fi.Size(), fi.ModTime().UnixNano())
+	}
+	filepath.WalkDir(filepath.Join(common, "logs", "refs", "remotes"), func(p string, d fs.DirEntry, err error) error {
+		if err == nil && !d.IsDir() {
+			if fi, err := d.Info(); err == nil {
+				add(p, fi)
+			}
+		}
+		return nil // 読めないところは飛ばす
+	})
+	files := []string{filepath.Join(common, "logs", "HEAD"), filepath.Join(common, "reftable", "tables.list")}
+	wts, _ := filepath.Glob(filepath.Join(common, "worktrees", "*", "logs", "HEAD"))
+	sort.Strings(wts)
+	for _, p := range append(files, wts...) {
+		if fi, err := os.Stat(p); err == nil {
+			add(p, fi)
+		}
+	}
+	return sb.String()
 }
 
 // readPushes はリモート追跡ブランチの reflog から「update by push」の行を読む。repoKey のあと（r.web が決まってから）に呼ぶ。

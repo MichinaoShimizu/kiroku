@@ -213,15 +213,21 @@ func ReadJSONLFrom(src io.Reader, fn func(Obj)) error {
 
 // ReadJSON は JSON ファイルを読む。読めなければ nil。
 func ReadJSON(path string) any {
+	v, _ := ReadJSONFile(path)
+	return v
+}
+
+// ReadJSONFile は ReadJSON と同じだけど、読めなかったわけ（開けない・JSON として壊れている）も返す。
+func ReadJSONFile(path string) (any, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	var v any
-	if json.Unmarshal(b, &v) != nil {
-		return nil
+	if err := json.Unmarshal(b, &v); err != nil {
+		return nil, err
 	}
-	return v
+	return v, nil
 }
 
 // Round は Python の round(x, n) と同じく、偶数への丸めを使う。
