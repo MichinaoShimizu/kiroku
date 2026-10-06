@@ -43,9 +43,13 @@ function askPrompt(w, pw, M){
     L.push(`- Subagents: ${u.subagents}${u.subagents ? ` (total ${dur(u.subMin)})` : ""}`);
     if (u.models.length) L.push("- By model: " + u.models.slice(0, 6).map(r => `${(r[0])} (estimated cost ${usd(r[1])}, tokens ${tok(r[2])})`).join(sep));
   }
-  const o = w.outputs;
-  if (w.git && w.git.commits) L.push("", "# Git commits (my own commits in the repositories agents worked in)",
-    `- ${w.git.commits} (${w.git.ai} run by AI), +${w.git.added} −${w.git.removed} lines per git`);
+  const o = w.outputs, G = periodGit();
+  if (w.git && w.git.commits){
+    L.push("", "# Left behind in git (my own commits in the repositories agents worked in)",
+      `- Commits: ${w.git.commits} (${w.git.ai} run by AI), +${w.git.added} −${w.git.removed} lines`,
+      `- Files changed: ${G.files}${G.trunc ? " or more" : ""} in ${plural(G.projects, "project")}`);
+    if (G.pushes) L.push(`- Pushes from this computer: ${G.pushes} to ${plural(G.refs, "branch", "branches")}`);
+  }
   if (o && o.commits){
     L.push("", "# Outputs (run by AI and succeeded; Claude Code only)",
       `- Commits: ${o.commits}`,
