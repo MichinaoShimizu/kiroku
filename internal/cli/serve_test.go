@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"math"
 	"net"
@@ -8,7 +10,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -371,5 +375,282 @@ func TestServeBusyPort(t *testing.T) {
 	}
 	if loaded.Load() {
 		t.Fatal("待ち受けられないのに履歴を読んだ")
+	}
+}
+
+// syncBuf は、ほかの goroutine から書かれても読める出力先（serve の端末への表示を見る）。
+type syncBuf struct {
+	mu sync.Mutex
+	b  strings.Builder
+}
+
+func (s *syncBuf) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.Write(p)
+}
+
+func (s *syncBuf) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.String()
+}
+
+// waitFor は cond が true になるまで待つ（5 秒たったら失敗）。
+func waitFor(t *testing.T, what string, cond func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for !cond() {
+		if time.Now().After(deadline) {
+			t.Fatalf("%s にならない", what)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// fetchHost は Host を指定して srv に送り、状態・本文・ヘッダーを返す。
+func fetchHost(t *testing.T, method, url, host string) (int, string, http.Header) {
+	t.Helper()
+	r, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if host != "" {
+		r.Host = host
+	}
+	r.Header.Set("X-Kiroku", "1")
+	res, err := http.DefaultClient.Do(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	b, _ := io.ReadAll(res.Body)
+	return res.StatusCode, string(b), res.Header
+}
+
+// kiroku serve をとおしで動かす: ポートだけなら手元で待ち受けて localhost の URL を出し、読み込み中の画面から本物の画面になる。
+// Host の確認と --allow-host もかかり、止めたらエラーなしで終わる。
+func TestServeLive(t *testing.T) {
+	out := &syncBuf{}
+	logw = out
+	defer func() { logw = os.Stderr }()
+	oldServe, oldStart := serveHTTP, startLive
+	defer func() { serveHTTP, startLive = oldServe, oldStart }()
+	srvc := make(chan *http.Server, 1)
+	serveHTTP = func(ln net.Listener, h http.Handler) error {
+		s := &http.Server{Handler: h}
+		srvc <- s
+		return s.Serve(ln)
+	}
+	gate := make(chan struct{})
+	var openGate sync.Once
+	stop, done := make(chan struct{}), make(chan struct{})
+	var started atomic.Bool
+	startLive = func(l *live, every time.Duration) {
+		started.Store(true)
+		go func() { l.start(every, stop); close(done) }()
+	}
+	// 見張りを止めてから次のテストへ進む（time.Local を書きかえるテストと競合する）
+	defer func() {
+		openGate.Do(func() { close(gate) })
+		close(stop)
+		if started.Load() {
+			<-done
+		}
+	}()
+	load := func() snapshot {
+		<-gate
+		ts := 1000.0
+		b := core.NewBuilder("Claude Code", "s1")
+		b.Tick(&ts)
+		return snapshot{data: []*core.Session{b.Finish(15)}, weeks: map[string]*report.Week{}, meta: map[string]any{}, gen: 42}
+	}
+	errc := make(chan error, 1)
+	go func() { errc <- serveLive(":0", []string{"kiroku.home"}, 0, nil, load, nil, false) }()
+	var srv *http.Server
+	select {
+	case srv = <-srvc:
+	case err := <-errc:
+		t.Fatalf("serve が止まった: %v", err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("待ち受けない")
+	}
+	m := regexp.MustCompile(`^serving http://localhost:(\d+)/ \(reading history`).FindStringSubmatch(out.String())
+	if m == nil {
+		t.Fatalf("URL が出ていない: %q", out.String())
+	}
+	port := m[1]
+	base := "http://127.0.0.1:" + port
+
+	if code, body, _ := fetchHost(t, "GET", base+"/", "localhost:"+port); code != 503 || !strings.Contains(body, "Reading your history") {
+		t.Errorf("読み込み中の / = %d %.80q", code, body)
+	}
+	if code, _, _ := fetchHost(t, "GET", base+"/stamp", "kiroku.home:"+port); code != 503 {
+		t.Errorf("--allow-host の名前で /stamp = %d, want 503", code)
+	}
+	if code, _, _ := fetchHost(t, "GET", base+"/", "evil.example:"+port); code != 403 {
+		t.Errorf("よそのホストから / = %d, want 403", code)
+	}
+	openGate.Do(func() { close(gate) })
+	waitFor(t, "読み終わった表示", func() bool { return strings.Contains(out.String(), "1 sessions loaded in") })
+	if !strings.Contains(out.String(), "checking for new history every 1s") {
+		t.Errorf("1 秒より短い間隔は 1 秒にするはず: %q", out.String())
+	}
+	if code, body, _ := fetchHost(t, "GET", base+"/", "localhost:"+port); code != 200 || !strings.Contains(body, "const LIVE = true") {
+		t.Errorf("読み終わったあとの / = %d", code)
+	}
+	if code, body, _ := fetchHost(t, "GET", base+"/stamp", "127.0.0.1:"+port); code != 200 || body != "42" {
+		t.Errorf("/stamp = %d %q", code, body)
+	}
+	srv.Close()
+	select {
+	case err := <-errc:
+		if err != nil {
+			t.Errorf("止めたら %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("止まらない")
+	}
+}
+
+// 最初の読み込みに失敗したら読み込み中の画面にエラーを出し、履歴が変わったら読み直して画面を開けるようにする。
+// そのあとの読み直しに失敗しても、前の集計のまま答え続ける。
+func TestServeRetryAfterFailure(t *testing.T) {
+	logw = io.Discard
+	defer func() { logw = os.Stderr }()
+	dir := t.TempDir()
+	var failing atomic.Bool
+	failing.Store(true)
+	var n atomic.Int32
+	load := func() snapshot {
+		if failing.Load() {
+			return snapshot{meta: map[string]any{"x": math.NaN()}} // 画面にできず refresh が失敗する
+		}
+		var data []*core.Session
+		for i := int32(0); i <= n.Load(); i++ {
+			ts := 1000.0
+			b := core.NewBuilder("Claude Code", fmt.Sprintf("s%d", i))
+			b.Tick(&ts)
+			data = append(data, b.Finish(15))
+		}
+		return snapshot{data: data, weeks: map[string]*report.Week{}, meta: map[string]any{}, gen: float64(n.Load() + 1)}
+	}
+	out := &syncBuf{}
+	l := &live{load: load, paths: []string{dir}, print: out}
+	srv := httptest.NewServer(l.handler())
+	defer srv.Close()
+	stop, done := make(chan struct{}), make(chan struct{})
+	go func() { l.start(20*time.Millisecond, stop); close(done) }()
+	defer func() { close(stop); <-done }()
+	touch := func(name string) {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	waitFor(t, "失敗の表示", func() bool { return strings.Contains(out.String(), "could not read history:") })
+	if !strings.Contains(out.String(), "still serving; will try again when history changes") {
+		t.Errorf("続けると言っていない: %q", out.String())
+	}
+	code, body, h := fetchHost(t, "GET", srv.URL+"/stamp", "")
+	if code != 503 || body == "" || h.Get("Retry-After") != "1" || h.Get("Cache-Control") != "no-store" {
+		t.Errorf("失敗したときの /stamp = %d %q %v", code, body, h)
+	}
+	if code, body, _ := fetchHost(t, "GET", srv.URL+"/", ""); code != 503 || !strings.Contains(body, "Reading your history") {
+		t.Errorf("失敗したときの / = %d", code)
+	}
+
+	failing.Store(false)
+	touch("a.jsonl")
+	waitFor(t, "読み直して開ける", func() bool { code, _, _ := fetchHost(t, "GET", srv.URL+"/stamp", ""); return code == 200 })
+	if code, body, _ := fetchHost(t, "GET", srv.URL+"/data.json", ""); code != 200 || !strings.Contains(body, `"s0"`) {
+		t.Errorf("読み直したあとの /data.json = %d %.80q", code, body)
+	}
+	waitFor(t, "読み直した表示", func() bool { return strings.Contains(out.String(), "history changed → 1 sessions (+1)") })
+
+	failing.Store(true)
+	n.Store(1)
+	touch("b.jsonl")
+	waitFor(t, "読み直しの失敗の表示", func() bool { return strings.Contains(out.String(), "reload failed:") })
+	if code, body, _ := fetchHost(t, "GET", srv.URL+"/stamp", ""); code != 200 || body != "1" {
+		t.Errorf("読み直しに失敗したあとの /stamp = %d %q（前の集計のままのはず）", code, body)
+	}
+	if l.count() != 1 {
+		t.Errorf("読み直しに失敗したのに集計が変わった: %d", l.count())
+	}
+
+	failing.Store(false)
+	touch("c.jsonl")
+	waitFor(t, "もう一度読み直す", func() bool { return l.count() == 2 })
+	if code, body, _ := fetchHost(t, "GET", srv.URL+"/stamp", ""); code != 200 || body != "2" {
+		t.Errorf("/stamp = %d %q", code, body)
+	}
+}
+
+// 画面の「kiroku にコピーを残す」が失敗したら 500 でわけを返し、できない serve では 404。
+func TestServeArchiveErrors(t *testing.T) {
+	logw = io.Discard
+	defer func() { logw = os.Stderr }()
+	ok := func() snapshot { return snapshot{meta: map[string]any{}} }
+	for _, c := range []struct {
+		name string
+		l    *live
+		code int
+		body string
+	}{
+		{"できない", &live{load: ok, ready: true}, 404, ""},
+		{"オンにできない", &live{load: ok, ready: true, keep: func() error { return errors.New("disk full") }}, 500, "disk full"},
+		{"読み直せない", &live{load: func() snapshot { return snapshot{meta: map[string]any{"x": math.NaN()}} }, ready: true, keep: func() error { return nil }}, 500, "NaN"},
+	} {
+		srv := httptest.NewServer(c.l.handler())
+		code, body, _ := fetchHost(t, "POST", srv.URL+"/archive", "")
+		srv.Close()
+		if code != c.code || !strings.Contains(body, c.body) {
+			t.Errorf("%s: %d %q, want %d %q", c.name, code, body, c.code, c.body)
+		}
+	}
+}
+
+// 読み込んだあとで履歴ファイルが消えたら、/history は 404（落ちない）。
+func TestServeHistoryGone(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "s1.jsonl")
+	l := &live{snap: snapshot{data: []*core.Session{{ID: "s1", File: p}}}, ready: true}
+	srv := httptest.NewServer(l.handler())
+	defer srv.Close()
+	if code, _, _ := fetchHost(t, "GET", srv.URL+"/history?id=s1", ""); code != 404 {
+		t.Errorf("消えた履歴 = %d, want 404", code)
+	}
+}
+
+// autostart と doctor が見る probe は、読み込み中（503）・開ける（200）・kiroku でない・止まっているを見分ける。
+func TestProbeStamp(t *testing.T) {
+	l := &live{snap: snapshot{gen: 1}}
+	srv := httptest.NewServer(l.handler())
+	defer srv.Close()
+	addr := strings.TrimPrefix(srv.URL, "http://")
+	if got := probe(addr); got != loading {
+		t.Errorf("読み込み中 = %d, want %d", got, loading)
+	}
+	l.markReady()
+	if got := probe(addr); got != ready {
+		t.Errorf("読み終わった = %d, want %d", got, ready)
+	}
+	other := httptest.NewServer(http.NotFoundHandler())
+	defer other.Close()
+	if got := probe(strings.TrimPrefix(other.URL, "http://")); got != noAnswer {
+		t.Errorf("kiroku でないサーバー = %d, want %d", got, noAnswer)
+	}
+	srv.Close()
+	if got := probe(addr); got != noAnswer {
+		t.Errorf("止まっている = %d, want %d", got, noAnswer)
+	}
+}
+
+// 読み込みにかかった時間は、1 秒未満はミリ秒、それより長いと 0.1 秒まで。
+func TestTook(t *testing.T) {
+	for in, want := range map[time.Duration]string{1234567 * time.Microsecond: "1.2s", 345678 * time.Microsecond: "346ms"} {
+		if got := took(in).String(); got != want {
+			t.Errorf("took(%v) = %s, want %s", in, got, want)
+		}
 	}
 }

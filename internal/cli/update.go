@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"net"
@@ -21,8 +20,11 @@ import (
 	"time"
 )
 
-// releaseBase は Releases の置き場所（テストで差しかえる）。
-var releaseBase = "https://github.com/MichinaoShimizu/kiroku"
+// releaseBase は Releases の置き場所、updateExe は置きかえる kiroku の実行ファイル（テストで差しかえる）。
+var (
+	releaseBase = "https://github.com/MichinaoShimizu/kiroku"
+	updateExe   = os.Executable
+)
 
 // runVersion は kiroku version。
 func runVersion() error {
@@ -36,11 +38,9 @@ func runUpdate(args []string) error {
 	check := fs.Bool("check", false, "only check whether a newer release exists")
 	to := fs.String("to", "", "install this `version` (e.g. v0.1.1) instead of the latest")
 	force := fs.Bool("force", false, "replace even when already up to date or running a dev build (--to alone can also install an older version)")
-	if err := fs.Parse(args); err != nil {
-		if err == flag.ErrHelp {
-			return nil
-		}
-		return err
+	// 位置引数は受け付けない（fs.Parse だけだと、kiroku update v0.1.1 の v0.1.1 とその後ろのオプションを黙って捨て、最新を入れてしまう）
+	if _, err := parse(fs, args, 0); err != nil {
+		return quiet(err)
 	}
 	client := newUpdateClient()
 	target := *to
@@ -74,7 +74,7 @@ func runUpdate(args []string) error {
 		fmt.Printf("already up to date (%s)\n", cur)
 		return nil
 	}
-	exe, err := os.Executable()
+	exe, err := updateExe()
 	if err != nil {
 		return err
 	}
