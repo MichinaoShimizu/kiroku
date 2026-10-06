@@ -4,12 +4,13 @@ kiroku is a CLI written entirely in Go with few external libraries (SQLite via `
 
 ## Building and testing
 
-Go 1.23 or later is required. If Node is available, `internal/web/script_test.go` also checks the view's script syntax with `node --check` (skipped otherwise). Screenshots and the demo need Python 3 and git; taking screenshots also needs Node.js and Playwright.
+Go 1.25 or later is required. If Node is available, `internal/web/script_test.go` also checks the view's script syntax with `node --check` (skipped otherwise). Screenshots and the demo need Python 3 and git; taking screenshots also needs Node.js and Playwright.
 
 ```bash
 go test ./...      # checks that the aggregates match the expected values, using synthetic data in testdata/
 go vet ./...
 GOTOOLCHAIN=$(go env GOVERSION) go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...   # static analysis (OK if nothing is printed)
+GOTOOLCHAIN=$(go env GOVERSION) go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...   # known vulnerabilities in the standard library and modules that kiroku calls
 gofmt -l .         # OK if nothing is printed
 go build .         # builds ./kiroku (open the view with ./kiroku serve)
 ```
@@ -78,7 +79,7 @@ go test -run TestSnapshot -update ./internal/cli
 
 On PRs and pushes to main, `.github/workflows/ci.yml` runs the following.
 
-- `test` (Ubuntu, macOS, Windows): gofmt (except Windows), vet, staticcheck (Ubuntu only, pinned to 2025.1.1), tests, build
+- `test` (Ubuntu, macOS, Windows): gofmt (except Windows), vet, staticcheck and govulncheck (Ubuntu only, pinned to 2025.1.1 and v1.8.0), tests, build
 - `release-dry-run`: `goreleaser release --snapshot` (does not publish; `go mod tidy -diff` also catches an untidy go.mod), extracting release notes from the top section of the CHANGELOG, and, if that section is a version not yet tagged, checking that its number matches `tools/next-version.sh`
 - `e2e`: opens the dummy-data HTML in Chromium and uses `tools/screenshots/smoke.mjs` to check that the key flows work (switching themes, moving between weeks, opening and closing session details and where focus returns after closing, the weekly report draft, search, month view and shortcuts), that nothing overflows sideways, and that there are no script errors, at 1440px, 1000px, 390px and 320px
 - `install-script` (Ubuntu, macOS): runs shellcheck on `install.sh` (Ubuntu only), actually installs the latest release, and checks `kiroku --version`
@@ -87,6 +88,7 @@ Other workflows:
 
 - `Tag` (`tag.yml`): when CHANGELOG.md changes on main (and manually). See "Making a release" below
 - `Release` (`release.yml`): on a push of a `v*` tag, or when called from Tag
+- Dependabot (`.github/dependabot.yml`): each week, one pull request for Go modules and one for GitHub Actions (security fixes come right away)
 - `Demo` (`pages.yml`): on pushes to main, every Monday (3:17 UTC) and manually, builds the dummy-data HTML and publishes it to GitHub Pages (the Live demo in the README). To use it, set Settings → Pages → Source to "GitHub Actions". The dummy data is made in Japan time, so aggregation is also split in Japan time (`TZ=Asia/Tokyo`), and when the `KIROKU_DEMO` marker is present the view shows a Japan-time clock regardless of the viewer's time zone (so it doesn't look like late-night work when opened from abroad). The demo also opens on the latest week whose weekdays (Mon–Fri) all have records, since the current week is usually thin right after the Monday rebuild
 
 ## Making a release
