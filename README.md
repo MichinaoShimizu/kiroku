@@ -47,7 +47,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 - Your history never leaves your computer: no telemetry, no account, no AI service. The only network access is checking for and downloading kiroku's own releases from GitHub.
 - Files kiroku writes from your history are readable only by you, and `kiroku serve` listens on `127.0.0.1` and opens only for browsers that have its key.
-- The HTML contains your prompts, file paths and commit messages as they are. Check it before sharing.
+- The HTML contains your prompts, the AI's replies, file paths and commit messages as they are. Check it before sharing.
 
 See [SECURITY.md](SECURITY.md) for details and for verifying a release.
 

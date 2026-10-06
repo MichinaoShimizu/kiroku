@@ -110,13 +110,15 @@ for (const env of envs) {
     check("依頼に AI の応答が付いている", await rep.count() > 0);
     if (await rep.count() > 0){
       await rep.scrollIntoViewIfNeeded(); await rep.click(); await pause();
-      check("押すと応答が開く", await p.locator("#panel .tl .reptext").first().isVisible() && (await p.locator("#panel .tl .reptext").first().innerText()).trim().length > 0);
+      check("応答のボタンが指で押せる大きさ（24px 以上）", await rep.evaluate(b => Math.round(b.getBoundingClientRect().height) >= 24));
+    check("押すと応答が開く", await p.locator("#panel .tl .reptext").first().isVisible() && (await p.locator("#panel .tl .reptext").first().innerText()).trim().length > 0);
       await rep.click(); await pause();
       check("もう一度押すと応答が畳まれる", await p.locator("#panel .tl .reptext").first().isHidden());
     }
     await p.locator('#flowBy button[data-v="user"]').click(); await pause();
     check("「ユーザープロンプトだけ」で、出来事が隠れる", await p.evaluate(() => [...document.querySelectorAll("#drawer .tl li.ev")].every(li => !li.offsetParent)));
     check("「ユーザープロンプトだけ」では、応答のボタンも出ない", await p.evaluate(() => [...document.querySelectorAll("#drawer .tl .prep")].every(x => !x.offsetParent)));
+    check("「ユーザープロンプトだけ」では、出ていないものの説明を凡例に残さない", await p.evaluate(() => [...document.querySelectorAll("#drawer .tlkey .kev")].every(x => !x.offsetParent)));
     await p.locator('#flowBy button[data-v="all"]').click(); await pause();
     await p.keyboard.press("Escape"); await pause();
     check("Esc で詳細が閉じる", !await drawerOpen());

@@ -14,6 +14,7 @@ const ICON_PATH = {
   shell: '<path d="M3 4.5 6.5 8 3 11.5M8 12h5"/>',
   flag: '<path d="M8 1.8 14.6 13.4H1.4z"/><path d="M8 6.2v3.4M8 11.4v.1"/>',
   reply: '<path d="M6.2 3.5 2.5 7.2l3.7 3.7M3 7.2h6.2A3.8 3.8 0 0 1 13 11v1.5"/>',
+  caret: '<path d="M6.5 3.5 11 8l-4.5 4.5"/>', /* 開け閉めの印（開くと 90 度回る） */
 };
 const ico = (k, cls = "") => `<svg class="ic${cls ? " " + cls : ""}" viewBox="0 0 16 16" aria-hidden="true">${ICON_PATH[k] || ""}</svg>`;
 /* エージェントの目印：ロゴは使わず、頭文字のバッジにする */

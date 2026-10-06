@@ -296,7 +296,7 @@ func cmdHTML(args []string) error {
 	if err := writeHTML(snap, *out, !*noOpen); err != nil {
 		return err
 	}
-	fmt.Fprintf(logw, "it has only %s, but includes its prompts, file paths and commit messages as they are; check it before sharing\n", p.label())
+	fmt.Fprintf(logw, "it has only %s, but includes its prompts, the AI's replies, file paths and commit messages as they are; check it before sharing\n", p.label())
 	return nil
 }
 

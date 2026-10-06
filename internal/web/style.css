@@ -443,7 +443,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tlkey span{display:inline-flex;align-items:center;gap:6px}
 .tlkey i{flex:none;width:7px;height:7px}.tlkey .ic{width:12px;height:12px}
 .tlkey .kp{border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--c)}.tlkey .kp.fix{background:var(--warn);box-shadow:none}
-.pload{font-size:var(--fs-xs);color:var(--acc-ink);font-weight:600;padding:1px 8px;border:1px solid var(--acc);border-radius:99px;margin-left:2px}.pload:hover{text-decoration:underline}
+.pload,.rload{font-size:var(--fs-xs);color:var(--acc-ink);font-weight:600;padding:1px 8px;border:1px solid var(--acc);border-radius:99px;margin-left:2px}.pload:hover,.rload:hover{text-decoration:underline}
 .tl time{color:var(--ink-3);font-variant-numeric:tabular-nums;font-size:var(--fs-xs);padding-top:1px}
 .tl p{margin:0;overflow-wrap:anywhere}
 .more{font-size:var(--fs-sm);color:var(--ink-3);margin:6px 0 0 56px}
@@ -458,13 +458,16 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl.only-user li.ev,.tl.only-user li.gap{display:none}
 /* 依頼に対する応答（既定は畳んである）。あなたが打ったものだけを見るときは、ボタンも出さない */
 .tl .prep{display:block;margin-top:2px}
-.tl .repx{font-size:var(--fs-xs);color:var(--ink-3);font-weight:600;display:inline-flex;align-items:center;gap:4px}
+.tl .repx{font-size:var(--fs-xs);color:var(--ink-3);font-weight:600;display:inline-flex;align-items:center;gap:4px;padding:4px 0} /* padding は、指で押せる高さ（24px）にするため */
 .tl .repx:hover{color:var(--ink-2)}
-.tl .repx .ic{width:12px;height:12px;color:var(--ink-3)}
+.tl .repx:hover .ic{color:var(--ink-2)}
+.tl .repx .ic{width:12px;height:12px;color:var(--ink-3);transition:transform .15s var(--ease)}
+.tl .repx[aria-expanded="true"] .ic{transform:rotate(90deg)}
 .tl .reptext[hidden]{display:none} /* display を指定するので、hidden の効き目（display:none）を上書きしないように */
 .tl .reptext{display:block;margin:3px 0 2px;padding:4px 0 4px 8px;border-left:2px solid var(--rule-2);white-space:pre-wrap;font-size:var(--fs-sm);color:var(--ink-2)}
 .tl.only-user .prep{display:none}
 .tlkey .kev.rep .ic{color:var(--ink-3)}
+.tlkey.only-user .kev{display:none} /* 出ていないものの説明は出さない（出来事も応答も隠れている） */
 .flowbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px}
 .flowbar .segc button{height:26px;font-size:var(--fs-xs)}
 .tl .pfull{white-space:pre-wrap}

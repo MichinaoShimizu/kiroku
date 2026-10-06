@@ -30,7 +30,7 @@ function detail(s){
 ` : s.credits ? `<div><div class="k">Kiro credits</div><div class="v">${crN(s.credits)}</div></div><div><div class="k">Per prompt</div><div class="v">${s.nPrompts ? crN(s.credits/s.nPrompts) : "—"}<small> credits</small></div></div>` : ""}
     </div>
     <div class="sact"><button class="pill" id="sreview">Review this session with AI (copy prompt)</button>
-      <span>Asks for ways to improve how you prompted and split the work, based on the prompt flow and numbers. It includes your prompts, so review it before sending.</span></div>
+      <span>Asks for ways to improve how you prompted and split the work, based on the prompt flow and numbers. It includes your prompts but not the AI's replies, so review it before sending.</span></div>
     <h3>Prompt flow</h3>
     ${s.prompts.length ? promptFlow(s) : `<p class="none">No prompts recorded.${s.source === "Kiro Crew" ? " Kiro Crew deletes conversation records after a while, so only the usage record remains for this conversation." : ""}</p>`}
     ${s.subagents.length ? `<h3>Subagents · ${s.subagents.length}</h3>${s.subagents.map(a=>{
@@ -63,13 +63,13 @@ function detail(s){
       const li = b.closest("li"); li.querySelector(".pfull").textContent = await r.text(); li.dataset.full = "1"; li.querySelector(".pexp").focus(); // 「閉じる」は残して、また畳めるように
     } catch { b.disabled = false; b.textContent = "Couldn't load. Try again"; } });
   P.querySelectorAll(".repx").forEach(b => b.onclick = () => { const w = b.nextElementSibling, open = b.getAttribute("aria-expanded") !== "true";
-    w.hidden = !open; b.setAttribute("aria-expanded", open); b.lastChild.textContent = open ? "Hide the reply" : "AI's reply"; });
+    w.hidden = !open; b.setAttribute("aria-expanded", open); });
   P.querySelectorAll(".rload").forEach(b => b.onclick = async () => { // kiroku serve のときだけ、切った応答の全文をサーバーから読む
     b.disabled = true;
     try { const r = await fetch(`reply?id=${encodeURIComponent(s.id)}&i=${b.dataset.i}`, {cache: "no-store"}); if (!r.ok) throw 0;
       const w = b.closest(".reptext"); w.textContent = await r.text(); w.previousElementSibling.focus(); // 「閉じる」は残して、また畳めるように
     } catch { b.disabled = false; b.textContent = "Couldn't load. Try again"; } });
-  P.querySelectorAll("#flowBy button").forEach(b => b.onclick = () => { st.flowUser = b.dataset.v === "user"; store.set("flowUser", st.flowUser); P.querySelector(".tl").classList.toggle("only-user", st.flowUser); P.querySelectorAll("#flowBy button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); });
+  P.querySelectorAll("#flowBy button").forEach(b => b.onclick = () => { st.flowUser = b.dataset.v === "user"; store.set("flowUser", st.flowUser); P.querySelector(".tl").classList.toggle("only-user", st.flowUser); P.querySelector(".tlkey").classList.toggle("only-user", st.flowUser); P.querySelectorAll("#flowBy button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); });
   const pc = P.querySelector("#pcopy"); if (pc) pc.onclick = () => copy(userPrompts(s), `Copied ${plural(s.prompts.length, "user prompt")}`);
   const pall = P.querySelector(".pall"); if (pall) pall.onclick = () => { const shown = [...P.querySelectorAll(".tl li[hidden]")]; shown.forEach(li => li.hidden = false); pall.remove();
     const first = shown.find(li => li.classList.contains("pr")); if (first) first.focus(); }; // 出した最初のプロンプトへ（フォーカスを失わないように）
@@ -112,7 +112,7 @@ function replyRow(r, i){
   if (!r) return "";
   const cut = r.len > 0;
   const more = cut ? `<span class="pcut"> ${`(first ${REPLY_RUNES} of ${r.len.toLocaleString(LOC())} characters)`}${LIVE ? ` <button class="rload" data-i="${i}">Load the full reply</button>` : ` Open with kiroku serve to read it in full.`}</span>` : "";
-  return `<span class="prep"><button class="repx" aria-expanded="false" data-i="${i}">${ico("reply")}AI's reply</button><span class="reptext" hidden>${esc(r.text)}${cut ? "…" : ""}${more}</span></span>`;
+  return `<span class="prep"><button class="repx" aria-expanded="false" data-i="${i}">${ico("caret")}AI's reply</button><span class="reptext" hidden>${esc(r.text)}${cut ? "…" : ""}${more}</span></span>`;
 }
 function promptFlow(s){
   const ev = flowEvents(s), rows = [];
@@ -136,11 +136,11 @@ function promptFlow(s){
     cmds ? `<span><i class="kp cmd"></i>Commands the user typed (/ or !)</span>` : "",
     kinds.has("note") ? `<span class="kev note">${ico("note")}Added automatically (notifications, summaries, hooks; not counted as prompts)</span>` : "",
     fixes ? `<span><i class="kp fix"></i>Looks like a correction (guessed from the wording)</span>` : "",
-    s.prompts.some(p => p.reply) ? `<span class="kev rep">${ico("reply")}${`AI's reply (the last thing the AI wrote back; first ${REPLY_RUNES} characters)`}</span>` : "",
+    s.prompts.some(p => p.reply) ? `<span class="kev rep">${ico("reply")}${"AI's reply (open it to read what the AI wrote back)"}</span>` : "",
     ...[["commit", "Commit"], ["push", "Push"], ["pr", "Pull request"], ["agent", "Subagent"], ["int", "Interruption"], ["warn", "Usage limit"]].filter(([k]) => kinds.has(k)).map(([k, l]) => `<span class="kev ${k}">${ico(EV_ICON[k])}${l}</span>`)].filter(Boolean).join("");
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";
   const bar = `<div class="flowbar"><div class="segc" role="group" aria-label="Show" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">Everything</button><button data-v="user" aria-pressed="${!!st.flowUser}">Only user prompts</button></div><button class="pill" id="pcopy">Copy prompts</button></div>`;
-  return `${bar}<div class="tlkey">${key}</div><ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${`Show ${plural(rest, "more prompt")}${also}`}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${"\"AI worked\" is the time from a prompt to the AI's last activity; \"wait\" is the time from there to your next prompt. Both are estimates from the history's timestamps."}</p>` : ""}`;
+  return `${bar}<div class="tlkey${st.flowUser ? " only-user" : ""}">${key}</div><ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${`Show ${plural(rest, "more prompt")}${also}`}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${"\"AI worked\" is the time from a prompt to the AI's last activity; \"wait\" is the time from there to your next prompt. Both are estimates from the history's timestamps."}</p>` : ""}${s.prompts.some(p => p.reply) ? `<p class="note">${`"AI's reply" is the last thing the AI wrote to you in that turn, in its own words — not its thinking, its tool calls or their output. A turn where it only ran tools, or whose words the agent does not record, has no reply. A long one shows its first ${REPLY_RUNES} characters.`}</p>` : ""}`;
 }
 /* 1 つのセッションを AI と振り返るためのプロンプト（kiroku 自身は AI を呼ばない） */
 function sessionPrompt(s, active, med){
