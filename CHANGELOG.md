@@ -4,7 +4,16 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Added
+
+- The "?" explanation of a metric with a history (active time, prompts, tokens, Git commits, estimated cost, the cache share and the metrics "Worth a look" can flag) now shows its 8-week trend (8 months in month view) even when the metric is not flagged, so you can check whether something you tried changed it
+
 ### Changed
+
+- Until you zoom, the week calendar picks the height of an hour that fits the week's working hours, so evening sessions are not cut off at the bottom on a laptop screen (44px as before, or 36px when the day runs long). Once you zoom, your choice is kept
+- Search results scroll in their own boxes, so the calendar stays close below them instead of being pushed several screens down, and the note about filtered figures sits right above the calendar it describes. "Show 50 more (10 of 77 shown)" and "Show the last 17" replace "Show 50 more of 67", which read like a different total
+- The legend wraps onto more lines instead of cutting off chips at 1000px and on phones, and keeps its "click to hide" hint and the zoom buttons at every width. The note shown while filtering says that sessions and commits under each date count only what is shown
+- In the month view between 821px and 1180px, each week on the left shows its active time and tokens in the short form ("23.3h", "22M") instead of cutting them off. Session names in narrow calendar bars break between syllables with a hyphen rather than anywhere inside a word, and "Skip the calendar" appears over the page instead of pushing it down
 
 - What you need is easier to find. "Worth a look" now sits right under the key figures, above the calendar, instead of below it (on a phone it used to take about a screen and a half of scrolling). Search results appear between the legend and the calendar instead of below it, newest first, 10 at a time with "Show N more of M" instead of up to 100 at once. The line above the dates says "Last week" or "Last month" when that is what you are looking at, since kiroku often opens on last week. "Copy review prompt" (renamed from "Review this session with AI (copy prompt)") sits next to "Copy prompts" above a session's prompt flow instead of after the whole flow, and the message after copying says the prompt includes your prompts
 - The legend shows each project's (or branch's or agent's) active time, in the same split as "① By project", instead of its session count, which read like time, and says that an item can be clicked to hide it. "Color by" is the selector at the start of the legend at every screen width, and the zoom buttons, now labeled "Zoom", sit at the right end of the legend in the week calendar instead of in the header

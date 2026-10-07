@@ -31,7 +31,7 @@ function setMode(m){ if (m === "month" && META.scope && META.scope.mode === "wee
   st.mode = m; store.set("mode", m); st.sel = null; st.animate = true; render(); scrollToWork(); }
 document.querySelectorAll("#mode button").forEach(b => b.onclick = () => setMode(b.dataset.v));
 $("#prev").onclick = () => go(-1); $("#next").onclick = () => go(1); $("#today").onclick = () => go(null);
-function zoom(dv){ st.z = Math.max(0, Math.min(HOURS.length-1, st.z+dv)); store.set("zh", st.z); render(); scrollToWork(); }
+function zoom(dv){ st.z = Math.max(0, Math.min(HOURS.length-1, st.z+dv)); st.zAuto = false; store.set("zh", st.z); render(); scrollToWork(); }
 $("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); st.srN = st.scN = 0; render(); }; // 言葉が変わったら、結果はまた先頭の数件から
 // 検索欄で Enter：最初の結果へフォーカスを移す（結果はカレンダーの上）
 $("#q").addEventListener("keydown", e => { if (e.key !== "Enter" || e.isComposing || !st.q) return;
@@ -70,14 +70,25 @@ document.addEventListener("keydown", e => {
   else if (k === "w" || k === "W") setMode("week"); else if (k === "m" || k === "M") setMode("month");
   else if ((k === "y" || k === "Y") && YEAR_ON && DATA.length) openYear();
 });
+// workHours は、表示中の週の作業の時間帯 {first, last}（時。記録がなければ null）。
+// 朝 6 時より前の開始が 2 割に満たなければ、早い時刻の数本に引っぱられないよう、6 時以降でいちばん早い開始時刻から。
+// 夜型で 2 割を超えるなら、早いほうから 2 割の開始時刻から。終わりは、いちばん遅い終わり（その日のうち）
+function workHours(){
+  const ws = st.week.getTime()/1000, we = addDays(st.week, 7).getTime()/1000, hs = []; let last = 0;
+  DATA.forEach(s => s.segs.forEach(([a,b]) => { if (b > ws && a < we){ const d = new Date(Math.max(a,ws)*1000); hs.push(d.getHours());
+    last = Math.max(last, Math.min(24, clockH(new Date(d.getFullYear(), d.getMonth(), d.getDate()), Math.min(b, we)))); } }));
+  if (!hs.length) return null;
+  hs.sort((a,b) => a-b);
+  const day = hs.filter(h => h >= 6), first = day.length >= hs.length*0.8 ? day[0] : hs[Math.floor(hs.length*0.2)];
+  return {first, last: Math.max(first + 1, Math.ceil(last))}; }
+// fitZoom は、作業の時間帯がカレンダーの枠（.calscroll の高さから日付の見出しを引いたもの）に収まる、いちばん大きな 1 時間の高さ。
+// 既定（44px）より大きくはせず、小さくしすぎると名前が読めないので 36px より小さくもしない
+function fitZoom(){ const w = workHours(); if (!w) return 2;
+  const box = Math.min(innerHeight * (matchMedia("(max-width:820px)").matches ? .70 : .74), 880) - 140, span = w.last - w.first + 0.5;
+  return HOURS[2] * span <= box ? 2 : 1; }
 function scrollToWork(){ // その週の作業が始まるころの少し前へ
   const sc = $("#tl .calscroll"); if (!sc) return;
-  const ws = st.week.getTime()/1000, we = addDays(st.week, 7).getTime()/1000, hs = [];
-  DATA.forEach(s => s.segs.forEach(([a,b]) => { if (b > ws && a < we) hs.push(new Date(Math.max(a,ws)*1000).getHours()); }));
-  hs.sort((a,b) => a-b);
-  // 朝 6 時より前の開始が 2 割に満たなければ、早い時刻の数本に引っぱられないよう、6 時以降でいちばん早い開始時刻へ。
-  // 夜型で 2 割を超えるなら、今までどおり早いほうから 2 割の開始時刻へ
-  const day = hs.filter(h => h >= 6), first = !hs.length ? 8 : day.length >= hs.length*0.8 ? day[0] : hs[Math.floor(hs.length*0.2)];
+  const ws = st.week.getTime()/1000, we = addDays(st.week, 7).getTime()/1000, w = workHours(), first = w ? w.first : 8;
   sc.scrollTop = Math.max(0, first * (HOURS[st.z] || 44) - 14); // その時刻の線がちょうど日付の下に見えるように
   if (sc.scrollWidth > sc.clientWidth + 4){ // 横にスクロールする狭い画面では、今週は今日までで最後に作業日を、過ぎた週は月曜から見せる
     const w = WEEKS[key(st.week)], now = nowMs()/1000, heads = sc.querySelectorAll(".head");

@@ -154,7 +154,8 @@ const H = () => HELP;
 const openHelp = new Set(); // 再描画（週の移動・自動更新）しても開いた説明は開いたまま
 function hb(id){ return H()[id] ? `<button class="hb" data-help="${id}" aria-label="${`How to read ${H()[id].n}`}" aria-expanded="${openHelp.has(id)}">?</button>` : ""; }
 function hint(id){ const h = H()[id]; if (!h) return "";
-  return `<div class="hint" data-hint="${id}"${openHelp.has(id) ? "" : " hidden"}><p>${esc(h.d)}</p><dl><dt>Tells you</dt><dd>${esc(h.c)}</dd><dt>Doesn't tell you</dt><dd>${esc(h.x)}</dd><dt>What to try</dt><dd>${esc(h.a)}</dd></dl></div>`; }
+  const tr = MET[id] ? spark(id, true) : ""; // 推移を出せる指標は、印が付いていなくても説明の中で推移を見られる
+  return `<div class="hint" data-hint="${id}"${openHelp.has(id) ? "" : " hidden"}><p>${esc(h.d)}</p><dl><dt>Tells you</dt><dd>${esc(h.c)}</dd><dt>Doesn't tell you</dt><dd>${esc(h.x)}</dd><dt>What to try</dt><dd>${esc(h.a)}</dd></dl>${tr ? `<div class="htrend">${tr}</div>` : ""}</div>`; }
 
 const helpOrder = []; // 説明を開いた順（Esc で新しいものから閉じる）。{id, b}
 function bindHelp(root){ root.querySelectorAll(".hb").forEach(b => b.onclick = e => { e.stopPropagation();
