@@ -87,6 +87,28 @@ Copies with `kiroku archive`: adapters that implement `Keeper` (Claude Code, and
 
 Kiro credits are added up exactly as recorded in the history. Per-model multipliers are the ones Kiro applied when recording, and kiroku does not apply them again.
 
+## What history records
+
+Which facts each agent's local history records, and which only official docs give. It was checked against the agents' public sources ([openai/codex](https://github.com/openai/codex), [amazon-q-developer-cli](https://github.com/aws/amazon-q-developer-cli), [kirodotdev/kirocrew](https://github.com/kirodotdev/kirocrew)), official docs, and the reference implementations in [References](#references) (for Kiro IDE and Kiro CLI, whose formats are not documented). Update it when an adapter or an agent's format changes.
+
+- **Read**: in the history, and kiroku reads it
+- **Not read**: in the history, but kiroku does not read it yet
+- **Docs only**: not in the history; only official docs give it, so kiroku carries it in code (for example the price table)
+- **None**: neither the history nor official docs give it
+- **?**: not verified
+
+| | Claude Code | Codex CLI | Kiro IDE (1.0+) | Kiro CLI (JSON) | Kiro Crew | Amazon Q / Kiro CLI (SQLite) |
+|---|---|---|---|---|---|---|
+| Model | Read | Read (the requested model; the model that actually answered is not recorded) | Read (one per session, may be `auto`) | Read (often `auto`) | Read | Read |
+| Tokens | Read | Read | None | None | Not read (filled only for non-Kiro backends) | None (the CLI only estimates characters ÷ 4 at run time) |
+| Credits | None | Not read (balance only) | Read | Read | Read | None |
+| Cost in USD | Read when `cost-state` lines exist | None | None | None | Not read (non-Kiro backends only) | None |
+| Prices | Docs only (price table) | Docs only (not in the price table) | Docs only (per-credit price, model multipliers) | Docs only | Docs only | Docs only |
+| Context window | Docs only (the 1M variants of Opus 4.6 / Sonnet 4.6 can't be told apart: None) | Read (`model_context_window`, the usable 95%) | Docs only, for some models | ? | Not read (`context_window`) | Not read (`context_window_tokens`) |
+| Context used | None (shown only while running; can be computed from tokens and the window) | Read (computed differently from Codex's own display) | Not read (`contextUsage`, seen only in reference test data) | ? | Not read (`context_used`) | None |
+| Usage limits | Read (error messages); the reset time is only in the message text | Read (5-hour window use); limit hits, the weekly window and reset times: Not read | ? | ? | Not read (`stop_reason`) | Not read (a message without a time in `transcript`) |
+| Retention | Read (`cleanupPeriodDays` in the user `settings.json`); the default of 30 days: Docs only | Not deleted automatically | ? | ? (no automatic deletion documented) | Read (`session.archive_retention_days`, default 30) | Not deleted automatically, but a new chat in the same folder overwrites the row, and `/clear` and `/compact` drop turns |
+
 ## References
 
 Kiro's formats have no official documentation, so kiroku follows the implementations of [kiro-history](https://github.com/pajaydev/kiro-history) and [codeburn](https://github.com/getagentseal/codeburn). The SQLite layout follows the source of [amazon-q-developer-cli](https://github.com/aws/amazon-q-developer-cli) (`conversations_v2` exists only in Kiro CLI and is based on the reference implementations). Kiro Crew follows the usage records read by Crew's bundled `credit_spend.py` and the conversation logs written by Crew's `history.py`.

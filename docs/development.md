@@ -56,7 +56,7 @@ The price table is `Prices` in `internal/core/usage.go`. When you update it, als
 7. For an agent that deletes history automatically, implement `Retainer` (`Retention()`) and `Keeper` (`Keep()`, which keeps a copy with `kiroku archive` and reads the copy once the original is gone); implement `Detailer` to add a note to the data sources status
 8. For a new `Family`, add it to the default of `--sources` in `internal/cli/cli.go`. To make its location configurable, add `source.Options`, an option in `addCommon`, and an environment variable (`Default…`)
 9. Put synthetic data in `testdata/` and write tests (golden covers only the Python version's 4 histories, so check new adapters in `internal/source/<name>_test.go`). Also add it to the loading in `internal/cli/snapshot_test.go` and regenerate the snapshot
-10. Update "Histories read" and "History retention" in the guide, `docs/sources.md`, the supported agents in the README, and the help in `internal/cli/cli.go`
+10. Update "Histories read" and "History retention" in the guide, `docs/sources.md` (including the "What history records" table), the supported agents in the README, and the help in `internal/cli/cli.go`
 
 Aggregation (`internal/report`) and the view only see the common session shape, so you usually don't need to touch them.
 
