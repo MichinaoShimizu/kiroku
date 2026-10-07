@@ -53,8 +53,10 @@
   <div class="db" id="panel"></div>
 </aside>
 <div class="tip" id="tip" role="tooltip"></div>
+<div class="hint" id="hpop" role="dialog" hidden></div>
 <div class="toast" id="toast" role="status"></div>
 <dialog id="keys">
+  <form method="dialog" class="dclose"><button class="iconbtn" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form>
   <div class="eyebrow">Shortcuts</div><h2>Keyboard shortcuts</h2>
   <div class="keys">
     <kbd>←</kbd><span>Previous week / month</span><kbd>→</kbd><span>Next week / month</span><kbd>T</kbd><span>Back to this week / month</span>
@@ -62,7 +64,6 @@
     <kbd>W</kbd><span>Week view</span><kbd>M</kbd><span>Month view</span>
     <kbd>Esc</kbd><span>Close details</span><kbd>?</kbd><span>This list</span>
   </div>
-  <form method="dialog" style="margin-top:22px;text-align:right"><button class="pill">Close</button></form>
 </dialog>
 <dialog id="yr" class="yr" aria-labelledby="yrh"></dialog>
 <dialog id="wk" class="wkdlg" aria-labelledby="wkh"></dialog>

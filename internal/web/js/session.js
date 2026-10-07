@@ -47,13 +47,13 @@ function detail(s){
     <h3>Files changed${s.files.length || records(s.source, "files") ? ` · ${s.nFiles}` : ""}</h3>
     ${(() => { if (!s.files.length) return `<p class="none">${records(s.source, "files") ? "None" : esc(notRec([s.source]))}</p>`; const us = s.files.map(f => fileLink(s, f)); // 断り書きは、リンクになったファイルがあるときだけ
       return `<ul class="files">${s.files.map((f, i) => `<li title="${esc(f)}"><span>${us[i] ? ext(us[i], esc(f)) : esc(f)}</span></li>`).join("")}</ul>${us.some(Boolean) ? `<p class="note">Links open each file as of the commits made during this session.</p>` : ""}`; })()}
-    <details class="moreS dmore"><summary>${[s.models.length ? "Models" : "", "tools", s.native && s.native.length ? `${esc(s.source)} metrics` : ""].filter(Boolean).join(", ").replace(/, ([^,]+)$/, " and $1").replace(/^./, c => c.toUpperCase())}</summary>
+    <details class="moreS dmore" open><summary>${[s.models.length ? "Models" : "", "tools", s.native && s.native.length ? `${esc(s.source)} metrics` : ""].filter(Boolean).join(", ").replace(/, ([^,]+)$/, " and $1").replace(/^./, c => c.toUpperCase())}</summary>
     ${s.models.length ? `<h3>Models used</h3><div class="chips">${s.models.map(([m,n])=>`<span class="mono">${esc((m))}<b>${n}</b></span>`).join("")}</div>` : ""}
     <h3>Tools used</h3>
-    ${s.tools.length ? s.tools.map(([k,v])=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track2"><span style="width:${v/maxT*100}%"></span></span><span class="n">${v}</span></div>`).join("") : `<p class="none">None recorded</p>`}
+    ${s.tools.length ? s.tools.map(([k,v],i)=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track2"><span style="width:${v/maxT*100}%;background:var(--c${i % 8})"></span></span><span class="n">${v}</span></div>`).join("") : `<p class="none">None recorded</p>`}
     ${s.native && s.native.length ? `<h3>${`${esc((s.source))} metrics`}</h3>${nativeRows(s.native)}<p class="note">Numbers this agent records itself. Definitions differ from other agents.</p>` : ""}</details>
     ${s.file ? `<h3>History file</h3><div class="code"><code>${esc(s.file)}</code><a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" target="_blank" rel="noopener">Open</a><button class="copy" data-copy="${esc(s.file)}">Copy</button></div>` : ""}
-    ${s.resume ? `<h3>Resume</h3><div class="code"><code>${esc(s.resume)}</code><button class="copy" data-copy="${esc(s.resume)}">Copy</button></div>` : ""}
+    ${s.resume ? `<h3>Resume</h3><div class="code resume"><code>${esc(s.resume)}</code><button class="copy" data-copy="${esc(s.resume)}">Copy</button></div>` : ""}
 
   </div></div></div>`;
   bindGitEvents(P);

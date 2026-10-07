@@ -40,6 +40,12 @@ $("#theme").onclick = () => { st.theme = st.theme === "dark" ? "light" : "dark";
 $("#help").onclick = () => $("#keys").showModal();
 $("#yrbtn").onclick = openYear;
 addEventListener("resize", () => { if ($("#yr").open) drawPlate(); });
+// ダイアログ（ショートカット・Worth a look・1 年の露光）は、枠の外を押すと閉じる（詳細のパネルの #scrim と同じ）。
+// 押し始めも外だったときだけ（枠の中で文字を選んで、外で離したときには閉じない）
+document.querySelectorAll("dialog").forEach(d => { let down = false;
+  const out = e => { const r = d.getBoundingClientRect(); return e.target === d && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom); };
+  d.addEventListener("pointerdown", e => { down = out(e); });
+  d.addEventListener("click", e => { if (down && out(e)) d.close(); down = false; }); });
 $("#scrim").onclick = () => select(null); $("#close").onclick = () => select(null); $("#back").onclick = () => backStep();
 function backStep(){ const prev = st.back.pop(), top = (st.backTop || []).pop(); st.sel = prev || null; render(); $("#panel").scrollTop = top || 0; dtopSync(); }
 /* ブラウザの「戻る」：詳細を開いたら履歴を 1 つ積み、戻るで閉じる（詳細の中で移っていたら、1 つ前の詳細へ）。

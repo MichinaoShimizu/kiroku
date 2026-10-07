@@ -181,7 +181,7 @@ kbd{font:var(--fs-xs)/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px
 .oc .stat{min-height:84px;display:flex;flex-direction:column}
 .ocside .stats{grid-auto-flow:row dense} /* 印の付いたカードが 1 行を使っても、空いたところをほかのカードで埋める */
 /* 奇数個でも最後のカードを横いっぱいに伸ばさない（伸びると、いちばん下のカードがいちばん大きく見えてしまう） */
-.ocside .stats .stat:last-child:nth-child(odd):not(.flagged){grid-column:auto}
+.ocside .stats .stat:last-child:nth-child(odd){grid-column:auto}
 .oc .stat .s{margin-top:auto;padding-top:2px}
 .ocarrow{display:flex;align-items:center;justify-content:center;align-self:stretch;color:var(--ink-3)}
 .ocarrow svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -212,14 +212,12 @@ kbd{font:var(--fs-xs)/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px
 .skip{position:absolute;left:-9999px;top:auto}
 .skip:focus{position:fixed;left:16px;top:72px;z-index:30;padding:8px 12px;border:1px solid var(--rule-2);border-radius:8px;background:var(--surface);font-size:var(--fs-sm);color:var(--acc-ink)}
 .flagsum .lbl{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--ink-2)}
-.flagsum .hint{flex-basis:100%}
 .ic{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-2px} /* 形で見分ける印（js/git.js の ICON_PATH） */
 .fdot{color:var(--acc)} /* 見直す候補の印 */
-.stat.flagged{box-shadow:inset 3px 0 0 var(--acc);grid-column:1/-1}
-/* カードのない指標（⑤ の Possible friction・Repeated prompts など）の印も、印の付いたカードと同じ箱に入れる（左の線・地・余白）。どの「Worth a look」も同じ見た目で見つけられるように */
-.flagbox{margin:8px 0 10px;padding:11px 12px 10px;border-radius:10px;background:var(--surface-2);box-shadow:inset 3px 0 0 var(--acc)}
-.flagbox>.fl{margin-top:0;padding-top:0;border-top:0}
 .fl .more{margin:0;font-size:var(--fs-xs)}
+/* サマリーの、基準を超えた指標の名前の横の印（placeFlags）。押すと「Worth a look」のダイアログを開く */
+.fmark{display:inline-flex;align-items:center;padding:0 2px;margin-left:4px;border-radius:4px;vertical-align:-1px;color:var(--acc-ink)}
+.fmark:hover{background:var(--acc-soft)}
 .moreS summary .fdot{margin-left:8px}
 .fl{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding:8px 0 2px;border-top:1px dashed var(--rule-2);min-width:0;overflow-wrap:anywhere}
 .fl p{margin:0}
@@ -372,9 +370,9 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .nw{white-space:nowrap}
 .hb{opacity:.6;display:inline-grid;place-items:center;width:16px;height:16px;margin-left:6px;border:1px solid var(--rule-2);border-radius:50%;font:600 var(--fs-2xs)/1 var(--sans);color:var(--ink-3);vertical-align:1px;flex:none}
 .hb:hover,.hb[aria-expanded="true"]{color:var(--acc-ink);border-color:var(--acc)}
-.hint{margin:8px 0 4px;padding:10px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--rule);font-size:var(--fs-sm);line-height:1.6;color:var(--ink-2);font-weight:400;letter-spacing:0}
-.stat:has(> .hint:not([hidden])){grid-column:1/-1} /* 説明を開いたカードは 1 行使う */
-.hint p{margin:0 0 6px}.hint dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 10px}.hint dt{color:var(--ink-3);white-space:nowrap}.hint dd{margin:0}
+/* 「?」の説明の吹き出し（#hpop、summary.js の showHint）。押した ? の下（入らなければ上）に重ねる */
+.hint{position:absolute;z-index:30;width:min(380px,calc(100vw - 24px));max-height:min(70vh,560px);overflow:auto;padding:12px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--rule-2);box-shadow:var(--shadow);font-size:var(--fs-sm);line-height:1.6;color:var(--ink-2);font-weight:400;letter-spacing:0}
+.hint[hidden]{display:none}.hint p{margin:0 0 6px}.hint .hpt{font-weight:700;color:var(--ink)}.hint dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 10px}.hint dt{color:var(--ink-3);white-space:nowrap}.hint dd{margin:0}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
 .stat{padding:11px 12px 10px;border-radius:10px;background:var(--surface-2)}
 .stat:last-child:nth-child(odd){grid-column:1/-1}
@@ -385,7 +383,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 /* 記録されていない指標（norecStat）：数字のカードより軽く。塗らずに点線の枠（枠のぶん padding を 1px 減らす）、数字の代わりに控えめな文、1 行を使わない */
 .stat.norec{background:none;border:1px dashed var(--rule-2);padding:10px 11px 9px;min-height:0}
 .stat.norec .v{font:500 var(--fs-md)/1.4 var(--sans);color:var(--ink-2);letter-spacing:0;margin-top:4px}
-.stat.norec:last-child:nth-child(odd):not(:has(> .hint:not([hidden]))){grid-column:auto}
+.stat.norec:last-child:nth-child(odd){grid-column:auto}
 .stack{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;margin-bottom:10px}
 .stack span{background:var(--c);min-width:2px}
 .prow{display:grid;grid-template-columns:12px 1fr auto 40px;align-items:center;gap:8px;padding:4px 0;font-size:var(--fs-sm)}
@@ -404,6 +402,10 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .code code{flex:1;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere} /* パスやコマンドは途中で切らず、折り返して全部見せる */
 .copy{font:var(--fs-xs) var(--sans);color:var(--ink-2);border:1px solid var(--rule-2);border-radius:6px;padding:3px 8px;background:var(--surface);flex:none}
 .copy:hover{color:var(--ink);border-color:var(--ink-3)}
+/* 再開コマンドはよく使うので、ほかのコード（履歴ファイルのパス）よりはっきりさせる：アクセントの地と枠、Copy は塗りのボタン */
+.code.resume{background:var(--acc-soft);box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--acc) 45%,transparent);color:var(--ink)}
+.code.resume .copy{background:var(--acc);border-color:var(--acc);color:var(--on-acc);font-weight:600}
+.code.resume .copy:hover{background:var(--acc-ink);border-color:var(--acc-ink);color:var(--on-acc)}
 .back{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--ink-3)}
 .back:hover{color:var(--ink)}
 .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
@@ -592,13 +594,15 @@ body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:tra
 dialog{border:0;border-radius:16px;padding:26px 28px;background:var(--surface);color:var(--ink);box-shadow:0 30px 80px -20px rgba(0,0,0,.45);width:min(420px,calc(100vw - 32px))}
 dialog::backdrop{background:rgba(10,12,16,.35);backdrop-filter:blur(3px)}
 dialog h2{margin-top:0}
+/* 閉じる（×）は、詳細のパネルや 1 年の露光と同じく右上に。ダイアログが長くても、下まで見なくても閉じられる */
+.dclose{position:absolute;top:12px;right:12px;margin:0}
+dialog:has(> .dclose) .eyebrow{padding-right:40px}
 dialog.wkdlg{width:min(640px,calc(100vw - 32px));max-height:calc(100dvh - 48px);overflow:auto} /* 見直す候補（Worth a look）の 1 つ */
 dialog.wkdlg h2{margin:4px 0 12px;font-size:var(--fs-xl)}
 dialog.wkdlg .eyebrow{display:flex;align-items:center;gap:6px}
 dialog.wkdlg .fl{margin:0 0 14px}
 .wkhelp{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:6px 0 0;padding-top:12px;border-top:1px dashed var(--rule-2);font-size:var(--fs-sm);line-height:1.6}
 .wkhelp dt{color:var(--ink-3);white-space:nowrap}.wkhelp dd{margin:0;color:var(--ink-2)}
-.wkbar{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:20px}
 @media (max-width:480px){.wkhelp{grid-template-columns:1fr}.wkhelp dt{margin-top:4px}}
 /* ── 1 年の露光（ふりかえり）。露光の面とシェア画像は写真に見立てるので、テーマにかかわらず暗い ── */
 dialog.yr{width:min(1120px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:26px 28px 30px}
@@ -652,13 +656,12 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
 
 /* ── responsive ─────────────────────────────────────────── */
 @media (max-width:1320px){.rvgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel.shape{grid-column:1/-1}}
-/* 広い画面：③ はカードがいちばん多く縦に長いので、横いっぱいにしてカードを 4 列に。④ と ⑤ は次の行に 1:2 で並べる
+/* 広い画面：③ はカードがいちばん多いので、横いっぱいにしてカードを 4 列に。④ と ⑤ は次の行に 1:2 で並べる
    （3 つを横に並べると、③ だけが倍ほど長く、④ の下に大きな空きができていた） */
 @media (min-width:1321px){
   .panel.time{grid-column:1/-1}
-  .panel.time .stats{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-flow:row dense;align-items:start} /* 印の付いた高いカードの隣のカードを、空のまま引き伸ばさない */
-  .panel.time .stat.flagged{grid-column:span 2}
-  .panel.time .stat:last-child:nth-child(odd):not(.flagged){grid-column:auto}
+  .panel.time .stats{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-flow:row dense;align-items:start} /* カードは中身の高さのまま */
+  .panel.time .stat:last-child:nth-child(odd){grid-column:auto}
   .panel.shape{grid-column:span 2}
 }
 @media (max-width:1180px){.tag{display:none}.kpis{margin-left:0;width:100%}.kpi{flex:1;min-width:0}}
