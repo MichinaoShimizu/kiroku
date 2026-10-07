@@ -34,6 +34,7 @@ function render(){
   // 検索・凡例で絞り込んでいるあいだ、絞り込めない合計（作業時間・トークンなど）は薄くして、そう断る
   const fn = $("#fnote"); fn.hidden = !filtering();
   fn.textContent = `${st.q ? "The calendar shows only sessions that match the search, and their commits." : "Hidden items are left out of the calendar."} Grey figures, at the top and ${M ? "in each day and week" : "under each date"}, are totals for all sessions; sessions and commits there count only what is shown.`;
+  $("#legend").hidden = !inRange.length; // 記録のない期間は、色分け・ズーム・件数を出さない（押しても何も変わらない）
   const cb2 = $("#cb2"); if (cb2) cb2.onchange = () => { st.colorBy = cb2.value; st.hidden.clear(); store.set("colorBy", st.colorBy); render(); };
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
 
@@ -153,7 +154,10 @@ function monthGrid(shown, ms, me, todayKey){
 function timeline(shown, inWeek, ws, we, todayKey){
   const T = $("#tl"), hh = HOURS[st.z] || 44, H = 24*hh;
   if (!inWeek.length || !shown.length){
-    T.innerHTML = `<div class="empty"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><p>${inWeek.length ? "No sessions match the current filters" : META.scope ? "This file has no records for this week." : `No records ${shownName() === "This week" ? "this week" : `in the ${shownName().toLowerCase()}`}. Use ← → to move between weeks.`}</p></div>`;
+    // 記録のない週は、ここで 1 度だけ「ない」と言い、記録のある最後の週へ行けるようにする（月は大文字のまま。toLowerCase で "jul 6" にしない）
+    const last = !inWeek.length && !META.scope && DATA.length ? mondayOf(new Date(Math.max(...DATA.map(s => s.end))*1000)) : null, jump = last && last.getTime() !== st.week.getTime();
+    T.innerHTML = `<div class="empty"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><p>${inWeek.length ? "No sessions match the current filters" : META.scope ? "This file has no records for this week." : `No records ${shownName() === "This week" ? "this week" : `in the week of ${dMD(st.week)}`}.`}</p>${jump ? `<p><button class="pill" id="tolast">Go to the latest week with records (${dMD(last)})</button></p>` : ""}</div>`;
+    if (jump) $("#tolast").onclick = () => { st.week = last; st.sel = null; st.animate = true; render(); scrollToWork(); };
     return;
   }
   const keep = T.querySelector(".calscroll"), top = keep ? keep.scrollTop : null;
