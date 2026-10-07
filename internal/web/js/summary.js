@@ -7,7 +7,7 @@ function summary(){
       <span class="muted" style="font-size:var(--fs-xs)">Markdown with what you did, commits and pull requests for each project. Session names are the start of your prompts, so edit them before pasting.</span></div>
     <pre class="askpre" id="rptpre">${esc(reportText(w, M))}</pre></section>` : ""}`;
   const WK = $("#worth"); $("#sres").hidden = true; $("#sres").innerHTML = "";
-  if (!w){ WK.hidden = true; R.innerHTML = `${head}<div class="rvgrid"><div class="panel"><p class="none">${`No records ${uThis(unit)}.`}</p>${foot()}</div></div>`; bindCopy(R); return; }
+  if (!w){ WK.hidden = true; R.innerHTML = foot(); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
   const stat = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}${hint(h)}</div>`;
   const ph = (n, t, s, h) => `<div class="ph"><span class="no">${n}</span><h3>${t}${hb(h)}</h3><span>${s}</span></div>${hint(h)}`;
@@ -18,7 +18,7 @@ function summary(){
   R.innerHTML = `${head}${keepNotice()}<div class="rvgrid">
   ${projectPanel(w, ph, unit)}
   ${outcomePanel(w, pw, unit, ph, stat)}
-  <section class="panel">${ph(3, "How you spent time", "When and how long sessions ran")}
+  <section class="panel time">${ph(3, "How you spent time", "When and how long sessions ran")}
     <div class="stats">
       ${stat("Focus blocks (60+ min)", times(w.focus.length), longest ? `Longest ${dur(longest)}` : "", "focus")}
       ${(() => { const {ws, we} = period(), H = limitHits(ws, we), N = unrecorded(ws, we, "limits"); return N ? norecStat("Usage limit hits", N, "limits") : stat("Usage limit hits", times(H.length), H.length ? H.slice(-4).map(h => `${md(h.t)} ${hm(h.t)}${h.r ? ` (resets ${esc(h.r)})` : ""}`).join(", ") + (H.length > 4 ? ", …" : "") : "From Claude Code and Codex history", "limits"); })()}
