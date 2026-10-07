@@ -3,6 +3,7 @@ package core
 import (
 	"regexp"
 	"strings"
+	"sync"
 )
 
 // Prices は Anthropic のモデルの料金。USD / 100 万トークン: 入力, 出力, キャッシュ書き込み(5分), キャッシュ書き込み(1時間), キャッシュ読み込み。
@@ -104,10 +105,20 @@ func (t Tokens) Input() float64 { return t.In + t.CW + t.CW1h + t.CR }
 
 func (t Tokens) vals() [5]float64 { return [5]float64{t.In, t.Out, t.CW, t.CW1h, t.CR} }
 
-var dateSuffix = regexp.MustCompile(`-\d{8}$`)
-
 // ModelName は claude-haiku-4-5-20251001 → claude-haiku-4-5（日付の版を落としてまとめる）。
-func ModelName(m string) string { return dateSuffix.ReplaceAllString(m, "") }
+// 末尾の "-" と 8 桁の数字を落とす（イベントごとに呼ぶので、正規表現は使わない）。
+func ModelName(m string) string {
+	n := len(m)
+	if n < 9 || m[n-9] != '-' {
+		return m
+	}
+	for i := n - 8; i < n; i++ {
+		if m[i] < '0' || m[i] > '9' {
+			return m
+		}
+	}
+	return m[:n-9]
+}
 
 // Price は料金表で引いた結果。
 type Price struct {
@@ -125,7 +136,32 @@ var (
 )
 
 // priceID は料金表を引くためのモデル ID（小文字、Bedrock の地域と anthropic. を除き、Claude の 4.5 の形は 4-5 にする）。
+// 履歴ではイベントごとに同じモデル ID を何度も引くので、正規表現にかけた結果を覚えておく（覚えるのは maxPriceIDs 個まで。
+// 履歴に変わったモデル ID がたくさん書かれていても、メモリを使い続けないため）。
+var priceIDs = struct {
+	sync.RWMutex
+	m map[string]string
+}{m: map[string]string{}}
+
+const maxPriceIDs = 1024
+
 func priceID(model string) string {
+	priceIDs.RLock()
+	id, ok := priceIDs.m[model]
+	priceIDs.RUnlock()
+	if ok {
+		return id
+	}
+	id = priceIDOf(model)
+	priceIDs.Lock()
+	if len(priceIDs.m) < maxPriceIDs {
+		priceIDs.m[model] = id
+	}
+	priceIDs.Unlock()
+	return id
+}
+
+func priceIDOf(model string) string {
 	m := bedrockPrefix.ReplaceAllString(strings.ToLower(strings.TrimSpace(model)), "")
 	if strings.HasPrefix(m, "claude-") {
 		m = strings.ReplaceAll(m, ".", "-")

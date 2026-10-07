@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
@@ -28,17 +29,18 @@ type Detailer interface {
 
 // Report は計測の状態に出す、読み込みの結果。
 type Report struct {
-	Name     string     `json:"name"`
-	N        int        `json:"n"`
-	Dup      int        `json:"dup,omitempty"`      // ほかの場所と同じ会話だったので数えなかった数
-	Archived int        `json:"archived,omitempty"` // 元の履歴が消えていて、kiroku archive のコピーから読んだ数
-	Detail   string     `json:"detail,omitempty"`
-	DetailEn string     `json:"detailEn,omitempty"` // 英語表示のときの Detail
-	Where    string     `json:"where"`
-	Error    *string    `json:"error"`
-	Oldest   float64    `json:"oldest,omitempty"`    // いちばん古い記録の時刻（UNIX 秒）。これより前は見られない
-	Keep     *Retention `json:"retention,omitempty"` // エージェントが履歴を自動で消す設定
-	IDs      []string   `json:"-"`                   // 読んだセッションの ID（kiroku html --week などで、期間の分だけ数え直すため）
+	Name     string        `json:"name"`
+	N        int           `json:"n"`
+	Dup      int           `json:"dup,omitempty"`      // ほかの場所と同じ会話だったので数えなかった数
+	Archived int           `json:"archived,omitempty"` // 元の履歴が消えていて、kiroku archive のコピーから読んだ数
+	Detail   string        `json:"detail,omitempty"`
+	DetailEn string        `json:"detailEn,omitempty"` // 英語表示のときの Detail
+	Where    string        `json:"where"`
+	Error    *string       `json:"error"`
+	Oldest   float64       `json:"oldest,omitempty"`    // いちばん古い記録の時刻（UNIX 秒）。これより前は見られない
+	Keep     *Retention    `json:"retention,omitempty"` // エージェントが履歴を自動で消す設定
+	IDs      []string      `json:"-"`                   // 読んだセッションの ID（kiroku html --week などで、期間の分だけ数え直すため）
+	Took     time.Duration `json:"-"`                   // 読むのにかかった時間（serve などの端末の行に出す）
 }
 
 // Retention は、エージェントが古い履歴を自動で消す設定。画面で、過去の分が見られなくなることを知らせ、公式ドキュメントへ案内する。

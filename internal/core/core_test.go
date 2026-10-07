@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -103,8 +104,37 @@ func TestPriceLongestPrefix(t *testing.T) {
 	if _, ok := PriceOf("gpt-x"); ok {
 		t.Error("知らないモデルは料金なし")
 	}
-	if ModelName("claude-haiku-4-5-20251001") != "claude-haiku-4-5" {
-		t.Error("日付の版はまとめる")
+	for in, want := range map[string]string{
+		"claude-haiku-4-5-20251001": "claude-haiku-4-5",
+		"claude-sonnet-4-5":         "claude-sonnet-4-5",
+		"gpt-5-2025-08-07":          "gpt-5-2025-08-07", // 日付の形が違うものはそのまま（料金は PriceOf が引く）
+		"x-2025100":                 "x-2025100",
+		"x20251001":                 "x20251001",
+		"-20251001":                 "",
+		"m-2025100a":                "m-2025100a",
+		"":                          "",
+	} {
+		if got := ModelName(in); got != want {
+			t.Errorf("ModelName(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+// priceID は結果を覚えておくが、覚える数には上限がある（履歴に変わったモデル ID がたくさんあっても、メモリを使い続けない）。
+func TestPriceIDCacheIsBounded(t *testing.T) {
+	for i := range maxPriceIDs + 100 {
+		if got := priceID(fmt.Sprintf("Claude-Model-%d-20251001", i)); got != fmt.Sprintf("claude-model-%d", i) {
+			t.Fatalf("priceID = %q", got)
+		}
+	}
+	priceIDs.RLock()
+	n := len(priceIDs.m)
+	priceIDs.RUnlock()
+	if n > maxPriceIDs {
+		t.Errorf("覚えている数 = %d, want <= %d", n, maxPriceIDs)
+	}
+	if priceID("us.anthropic.claude-opus-4-1-20250805-v1:0") != "claude-opus-4-1" {
+		t.Error("上限に達したあとも、正しく引ける")
 	}
 }
 

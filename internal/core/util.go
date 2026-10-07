@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/klauspost/compress/zstd"
@@ -209,6 +210,12 @@ func NewZstdReader(r io.Reader) (*zstd.Decoder, error) {
 // ReadLine は改行までの 1 行を読む（改行もふくむ）。max より長い行は long を true にして、中身は持たずに読み飛ばす。
 // err は bufio.Reader.ReadBytes と同じ（最後の行に改行がなければ io.EOF といっしょに返す）。
 func ReadLine(r *bufio.Reader, max int) (line []byte, long bool, err error) {
+	return readLine(r, max, nil)
+}
+
+// readLine は ReadLine と同じ。line の後ろに足していく（使い回す入れ物を渡せる）。
+func readLine(r *bufio.Reader, max int, line []byte) ([]byte, bool, error) {
+	long := false
 	for {
 		frag, err := r.ReadSlice('\n')
 		if !long {
@@ -232,12 +239,26 @@ func lineLimit() string {
 	return fmt.Sprintf("%d bytes", MaxLine)
 }
 
+// lineReaders は ReadJSONLFrom の読み手（1 MiB の入れ物）を使い回す。
+// 履歴は小さなファイル（サブエージェントなど）がとても多いので、ファイルごとに作ると、
+// 入れ物を 0 で埋めるのとゴミ集めに読み込みの時間の多くを取られてしまう。
+var lineReaders = sync.Pool{New: func() any { return bufio.NewReaderSize(nil, 1<<20) }}
+
 // ReadJSONLFrom は ReadJSONL の io.Reader 版（圧縮されたファイルなど）。
 func ReadJSONLFrom(src io.Reader, fn func(Obj)) error {
-	r := bufio.NewReaderSize(src, 1<<20)
+	r := lineReaders.Get().(*bufio.Reader)
+	r.Reset(src)
+	defer func() {
+		r.Reset(nil) // src をつかんだままにしない
+		lineReaders.Put(r)
+	}()
 	skipped := 0
+	var buf []byte // 1 行の入れ物。json.Unmarshal は中身を写すので、次の行で使い回せる
 	for {
-		line, long, err := ReadLine(r, MaxLine)
+		line, long, err := readLine(r, MaxLine, buf[:0])
+		if !long && cap(line) <= 1<<20 { // 大きすぎる行の入れ物は持ち続けない
+			buf = line
+		}
 		if long {
 			skipped++
 		} else if len(line) > 0 {

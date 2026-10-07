@@ -230,13 +230,13 @@ func TestLogSources(t *testing.T) {
 	var b bytes.Buffer
 	logw = &b
 	rep := []source.Report{
-		{Name: "Claude Code", N: 12, Where: "/x/projects"},
+		{Name: "Claude Code", N: 12, Where: "/x/projects", Took: 1520 * time.Millisecond},
 		{Name: "Codex", Where: "/x/.codex"},
 		{Name: "Kiro IDE (legacy)", Where: "none"},
 	}
 	logSources(rep, true)
 	out := b.String()
-	if !strings.Contains(out, "Claude Code: 12 sessions (/x/projects)") {
+	if !strings.Contains(out, "Claude Code: 12 sessions (/x/projects) in 1.5s") {
 		t.Errorf("見つかったものが出ていない:\n%s", out)
 	}
 	if !strings.Contains(out, "no history yet: Codex, Kiro IDE (legacy)") {

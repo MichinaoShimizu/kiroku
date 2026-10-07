@@ -40,9 +40,10 @@ type live struct {
 	paths []string // 履歴の場所
 	roots []string // /history で見せてよいファイルの場所（履歴の場所と kiroku archive のコピーの場所）
 	print io.Writer
-	keep  func() error // 画面から kiroku archive をオンにする（nil ならできない）
-	ready bool         // 最初の読み込みが終わったか（mu で守る）。終わるまでは読み込み中の画面と 503 を返す
-	fail  error        // 最初の読み込みの失敗（mu で守る）。読み込み中の画面に出す
+	keep  func() error  // 画面から kiroku archive をオンにする（nil ならできない）
+	ready bool          // 最初の読み込みが終わったか（mu で守る）。終わるまでは読み込み中の画面と 503 を返す
+	fail  error         // 最初の読み込みの失敗（mu で守る）。読み込み中の画面に出す
+	prog  *loadProgress // 最初の読み込みの進み具合（読み込み中の画面が /progress で見る）
 
 	reload sync.Mutex // 読み直しは 1 本ずつ（load の中の loadCache は同時に使えない）
 }
@@ -69,10 +70,11 @@ func (l *live) refresh() error {
 // 失敗しても止めず、読み込み中の画面にエラーを出して見張りを続ける（履歴が変われば読み直しを試す）。
 func (l *live) start(every time.Duration, stop <-chan struct{}) {
 	t0 := time.Now()
+	tracker = l.prog
 	err := l.refresh()
-	// ここから先の読み直しでは、エージェントごとの行は出さない。
+	// ここから先の読み直しでは、エージェントごとの行も進み具合も出さない。
 	// ready にする前に書きかえるので、/archive からの読み直しとはぶつからない
-	logw = io.Discard
+	logw, tracker = io.Discard, nil
 	if err != nil {
 		l.mu.Lock()
 		l.fail = err
@@ -330,6 +332,13 @@ func (l *live) handler() http.Handler {
 		defer l.mu.RUnlock()
 		send(w, "application/json", l.json)
 	})
+	// /progress は、読み込み中の画面が見る進み具合（エージェントごとの数とかかった時間、いまの段階）。
+	mux.HandleFunc("/progress", func(w http.ResponseWriter, r *http.Request) {
+		l.mu.RLock()
+		ready, failed := l.ready, l.fail != nil
+		l.mu.RUnlock()
+		send(w, "application/json", l.prog.json(ready, failed))
+	})
 	mux.HandleFunc("/stamp", func(w http.ResponseWriter, r *http.Request) {
 		if !l.loaded(w) { // 読み込み中の画面は、これが 200 になったら読み直す
 			return
@@ -517,7 +526,11 @@ func serveLive(addr string, allow []string, every time.Duration, picked []source
 		ln.Close()
 		return fmt.Errorf("could not create the key for kiroku serve: %w", err)
 	}
-	l := &live{load: load, paths: paths, roots: historyRoots(picked), print: logw, keep: keep}
+	var names []string
+	for _, s := range picked {
+		names = append(names, s.Name())
+	}
+	l := &live{load: load, paths: paths, roots: historyRoots(picked), print: logw, keep: keep, prog: newProgress(names)}
 	addr = ln.Addr().String()
 	url := viewURL(addr)
 	st := styleFor(l.print)

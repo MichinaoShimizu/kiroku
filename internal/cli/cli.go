@@ -152,7 +152,12 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 		if data == nil {
 			data = []*core.Session{} // 画面では null ではなく空の一覧として扱う
 		}
+		tracker.setStage("git")
+		t0 := time.Now()
 		commits, pushes, stale := gcache.Collect(data) // git がなければ空
+		if len(commits) > 0 || len(stale) > 0 {
+			fmt.Fprintf(logw, "  git: %s %s\n", plural(len(commits), "commit"), styleFor(logw).dim("in "+took(time.Since(t0)).String()))
+		}
 		if commits == nil {
 			commits = []gitlog.Commit{}
 		}
@@ -162,6 +167,7 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 		for _, r := range stale {
 			fmt.Fprintf(logw, "  git: timed out reading %s (kept the previous result)\n", r)
 		}
+		tracker.setStage("view")
 		files, size := archive.Usage(dir)
 		meta := map[string]any{"report": rep, "git": commits, "push": pushes, "prices": map[string]any{"asOf": core.PricesAsOf, "custom": *c.prices != ""},
 			"archive": map[string]any{"on": on, "dir": dir, "files": files, "bytes": size}, "version": version}

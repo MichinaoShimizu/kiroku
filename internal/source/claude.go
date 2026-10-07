@@ -598,6 +598,15 @@ func (e *fileErrs) add(err error) {
 	}
 }
 
+// UnitErrs は、Unit ごとに LoadUnit したときのエラーを、Load が返すのと同じ形にまとめる（並べて読むとき用）。
+func UnitErrs(errs []error) error {
+	var e fileErrs
+	for _, err := range errs {
+		e.add(err)
+	}
+	return e.err()
+}
+
 func (e *fileErrs) err() error {
 	if e == nil || e.first == nil {
 		return nil

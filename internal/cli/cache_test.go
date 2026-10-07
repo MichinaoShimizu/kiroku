@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -12,13 +13,17 @@ import (
 )
 
 // countingClaude は、読んだ会話の数を数える Claude Code の Source。
+// 会話は並べて読むので、数えるところは mu で守る。
 type countingClaude struct {
 	*source.Claude
+	mu    sync.Mutex
 	units int
 }
 
 func (c *countingClaude) LoadUnit(u source.Unit, emit func(*core.Builder)) error {
+	c.mu.Lock()
 	c.units++
+	c.mu.Unlock()
 	return c.Claude.LoadUnit(u, emit)
 }
 
@@ -161,11 +166,14 @@ func TestLoadCacheRereadsOnlyChangedFiles(t *testing.T) {
 // countingCodex は、読んだまとまりの数を数える Codex の Source。
 type countingCodex struct {
 	*source.Codex
+	mu    sync.Mutex
 	units int
 }
 
 func (c *countingCodex) LoadUnit(u source.Unit, emit func(*core.Builder)) error {
+	c.mu.Lock()
 	c.units++
+	c.mu.Unlock()
 	return c.Codex.LoadUnit(u, emit)
 }
 

@@ -4,7 +4,14 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Added
+
+- `kiroku serve`, `html` and `json` print how long each agent's history took to read (for example `Claude Code: 2100 sessions (~/.claude/projects) in 640ms`), and how long reading git took
+- The page `kiroku serve` shows while it reads your history for the first time lists each agent as it is read, with its number of sessions and how long it took, the elapsed time, and the current step (history, git, building the view). It reads them from the new `/progress` address, which has only agent names, counts and times (no history), and is protected by the key like every other page
+
 ### Changed
+
+- Reading history is several times faster. Agents are read side by side, and so are the conversation files of Claude Code and Codex (on as many CPU cores as you have); kiroku also reuses its read buffer instead of allocating 1 MiB for every file, and no longer runs a regular expression on every model ID. With 2,100 Claude Code sessions, `kiroku json` went from about 3.9 s to 0.9 s on 4 cores. The results are the same
 
 - "More metrics (includes estimates)" under "How you spent time" is always shown instead of folded away
 - Every card that starts with a session name looks the same: the agent's badge before the name and a soft gradient in the agent's color. This covers Possible friction, Heaviest sessions, the sessions in Worth a look and in the breakdown dialogs, sessions linked to a commit or push, and search results
