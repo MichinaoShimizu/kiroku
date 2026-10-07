@@ -2,7 +2,7 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
-## v0.19.2 - 2026-10-07
+## Unreleased
 
 ### Added
 
@@ -13,6 +13,12 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 ### Changed
 
 - Codex: limit usage now shows both windows Codex records, named by their length ("Peak 5-hour limit usage", "Peak weekly limit usage" and so on) instead of a single "Peak rate-limit usage" that only read the first window. A window whose length is not recorded keeps a generic name. Snapshots of other, per-model limits (a `limit_id` other than `codex`) are no longer mixed in
+
+### Fixed
+
+- Codex: "Peak context usage" now matches what Codex itself shows. It is worked out from the whole last response (`total_tokens`, not only input) and leaves out the 12,000 tokens Codex treats as always in the context, so it reads lower early in a conversation and reaches 100% when the context is full. When the conversation outgrew the window, it now shows 100% instead of 0%, and the "full" record Codex writes then is no longer counted as a response
+
+## v0.19.2 - 2026-10-07
 
 ### Security
 
@@ -35,7 +41,6 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Codex: newer rollouts (`history_mode: "paginated"`) now read prompts and replies from the `item_completed` events Codex writes for them. kiroku looked for `user_message` and `agent_message` items, but Codex writes `UserMessage` and `AgentMessage`, so prompts fell back to raw model input, which also holds the context Codex adds
 - Codex: subagents and forks no longer count the parent's history again. Codex copies it into the child's file with the time of copying, so kiroku's time check let it through (the parent's prompts, tokens and tool calls were added to the subagent or fork). The end of the copy is now found from what Codex records (`subagent_history_start_ordinal`, or the child's own `thread_settings_applied`); older files still use the time check
 - Codex: instructions Codex adds as `developer` messages are no longer shown as the AI's reply to a prompt
-- Codex: "Peak context usage" now matches what Codex itself shows. It is worked out from the whole last response (`total_tokens`, not only input) and leaves out the 12,000 tokens Codex treats as always in the context, so it reads lower early in a conversation and reaches 100% when the context is full. When the conversation outgrew the window, it now shows 100% instead of 0%, and the "full" record Codex writes then is no longer counted as a response
 
 ## v0.19.1 - 2026-10-07
 
