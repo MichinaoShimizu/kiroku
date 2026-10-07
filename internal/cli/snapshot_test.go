@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"io"
 	"math"
 	"os"
@@ -238,4 +239,28 @@ func mustJSON(t *testing.T, v any) string {
 		t.Fatal(err)
 	}
 	return string(b)
+}
+
+// どのアダプターのセッションも core.Records に載っていること。載っていないと、画面は何もかも「記録されていない」と出す。
+func TestRecordsCoverEverySource(t *testing.T) {
+	got := loadAllSources(t).(map[string]any)
+	seen := map[string]bool{}
+	for _, s := range got["sessions"].([]any) {
+		seen[s.(map[string]any)["source"].(string)] = true
+	}
+	// Crew の場所を渡さずに読むと、kiro-cli の会話は Kiro Crew ではなく Kiro CLI になる
+	data, _, _ := setup(t)
+	for _, s := range data.([]*core.Session) {
+		seen[s.Source] = true
+	}
+	for src := range seen {
+		if _, ok := core.Records[src]; !ok {
+			t.Errorf("core.Records に %q がない", src)
+		}
+	}
+	for src := range core.Records {
+		if !seen[src] {
+			t.Errorf("core.Records の %q のセッションが合成データにない（名前の書き間違い？）", src)
+		}
+	}
 }

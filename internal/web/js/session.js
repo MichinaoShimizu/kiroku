@@ -44,8 +44,8 @@ function detail(s){
     </div><div class="dcol">
     ${sessionCommits(s)}
     ${s.prs && s.prs.length ? `<h3>Pull requests created · ${s.prs.length}</h3><ul class="files">${s.prs.map(u => `<li title="${esc(u)}"><span>${ext(u, esc(u.replace(/^https?:\/\//, "")))}</span></li>`).join("")}</ul>` : ""}
-    <h3>Files changed · ${s.nFiles}</h3>
-    ${(() => { if (!s.files.length) return `<p class="none">None</p>`; const us = s.files.map(f => fileLink(s, f)); // 断り書きは、リンクになったファイルがあるときだけ
+    <h3>Files changed${s.files.length || records(s.source, "files") ? ` · ${s.nFiles}` : ""}</h3>
+    ${(() => { if (!s.files.length) return `<p class="none">${records(s.source, "files") ? "None" : esc(notRec([s.source]))}</p>`; const us = s.files.map(f => fileLink(s, f)); // 断り書きは、リンクになったファイルがあるときだけ
       return `<ul class="files">${s.files.map((f, i) => `<li title="${esc(f)}"><span>${us[i] ? ext(us[i], esc(f)) : esc(f)}</span></li>`).join("")}</ul>${us.some(Boolean) ? `<p class="note">Links open each file as of the commits made during this session.</p>` : ""}`; })()}
     <details class="moreS dmore"><summary>${[s.models.length ? "Models" : "", "tools", s.native && s.native.length ? `${esc(s.source)} metrics` : ""].filter(Boolean).join(", ").replace(/, ([^,]+)$/, " and $1").replace(/^./, c => c.toUpperCase())}</summary>
     ${s.models.length ? `<h3>Models used</h3><div class="chips">${s.models.map(([m,n])=>`<span class="mono">${esc((m))}<b>${n}</b></span>`).join("")}</div>` : ""}

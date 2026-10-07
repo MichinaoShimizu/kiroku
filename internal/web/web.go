@@ -92,7 +92,7 @@ func assemble(s string, pairs ...string) string {
 // live が true なら、画面は /stamp を見張って新しい履歴を取り込む（--serve 用）。
 func Render(data, weeks, months, meta any, generated float64, live bool) (string, error) {
 	repl := []string{}
-	for k, v := range map[string]any{"__DATA__": data, "__WEEKS__": weeks, "__MONTHS__": months, "__META__": meta, "__GEN__": generated, "__LIVE__": live, "__PROMPT_RUNES__": core.PromptRunes, "__REPLY_RUNES__": core.ReplyRunes} {
+	for k, v := range map[string]any{"__DATA__": data, "__WEEKS__": weeks, "__MONTHS__": months, "__META__": meta, "__GEN__": generated, "__LIVE__": live, "__PROMPT_RUNES__": core.PromptRunes, "__REPLY_RUNES__": core.ReplyRunes, "__RECORDS__": core.Records} {
 		b, err := json.Marshal(v)
 		if err != nil {
 			return "", err

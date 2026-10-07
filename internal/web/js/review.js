@@ -32,8 +32,8 @@ function askPrompt(w, pw, M){
     `- Parallel time: ${dur(w.parallel)} (up to ${w.maxConc} at once)`,
     `- Wait time (from an AI reply to my next prompt): median ${secs(w.waitMedian)}, 90th percentile ${secs(w.waitP90)} (n=${w.waitCount})`,
     `- Prompts with corrections or interruptions: ${w.fixRate == null ? "unknown" : w.fixRate + "%"} (n=${w.prompts})`,
-    (() => { const {ws, we} = period(), H = limitHits(ws, we); return `- Usage limit hits (Claude Code and Codex): ${H.length ? `${H.length} (${H.map(h => `${md(h.t)} ${hm(h.t)}`).join(", ")})` : "0"}`; })(),
-    (() => { const {ws, we} = period(), C = compactionsOf(ws, we); return `- Compactions (conversations summarized to free context; Claude Code, Codex and the SQLite history of Amazon Q / Kiro CLI): ${C.length}${C.length ? ` in ${plural(new Set(C.map(c => c.s.id)).size, "session")}` : ""}`; })());
+    (() => { const {ws, we} = period(), H = limitHits(ws, we), N = unrecorded(ws, we, "limits"); return `- Usage limit hits (Claude Code and Codex): ${N ? notRec(N).toLowerCase() : H.length ? `${H.length} (${H.map(h => `${md(h.t)} ${hm(h.t)}`).join(", ")})` : "0"}`; })(),
+    (() => { const {ws, we} = period(), C = compactionsOf(ws, we), N = unrecorded(ws, we, "compactions"); return `- Compactions (conversations summarized to free context; Claude Code, Codex and the SQLite history of Amazon Q / Kiro CLI): ${N ? notRec(N).toLowerCase() : C.length}${C.length ? ` in ${plural(new Set(C.map(c => c.s.id)).size, "session")}` : ""}`; })());
   if (u.tokens || u.credits){
     L.push("", "# AI usage");
     if (u.tokens) L.push(`- Tokens: ${tok(u.tokens)} (output ${tok(u.out)})`,

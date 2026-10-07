@@ -263,7 +263,6 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	path := u.Key
 	stem := stemOf(path)
 	s := core.NewBuilder("Claude Code", stem)
-	s.TracksOutputs = true
 	s.File = path
 	var summaries []string
 	calls := map[string]*call{}
