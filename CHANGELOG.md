@@ -2,7 +2,7 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
-## v0.22.2 - 2026-10-07
+## Unreleased
 
 ### Added
 
@@ -12,6 +12,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 ### Changed
 
 - Reading history is several times faster. Agents are read side by side, and so are the conversation files of Claude Code and Codex (on as many CPU cores as you have); kiroku also reuses its read buffer instead of allocating 1 MiB for every file, and no longer runs a regular expression on every model ID. With 2,100 Claude Code sessions, `kiroku json` went from about 3.9 s to 0.9 s on 4 cores. The results are the same
+
+## v0.22.2 - 2026-10-07
+
+### Changed
 
 - "More metrics (includes estimates)" under "How you spent time" is always shown instead of folded away
 - Every card that starts with a session name looks the same: the agent's badge before the name and a soft gradient in the agent's color. This covers Possible friction, Heaviest sessions, the sessions in Worth a look and in the breakdown dialogs, sessions linked to a commit or push, and search results
