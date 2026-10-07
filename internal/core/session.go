@@ -329,6 +329,13 @@ func (s *Builder) Tool(name string, args any) {
 	}
 }
 
+// Edited は、ツールの引数に file_path の形で書かれない編集（Codex の apply_patch など）で変えたファイルを足す。
+func (s *Builder) Edited(path string) {
+	if path != "" {
+		s.files[path] = true
+	}
+}
+
 // Measure はそのエージェントだけが記録している数字を 1 つ足す。
 func (s *Builder) Measure(key string, t *float64, v float64) {
 	s.Measures = append(s.Measures, Measure{Key: key, T: t, V: v})

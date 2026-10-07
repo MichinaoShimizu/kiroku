@@ -78,9 +78,11 @@ type Summary struct {
 	Start         string             `json:"start"`         // 期間の最初の日（YYYY-MM-DD）
 	FixRate       *float64           `json:"fixRate"`       // 言い直し・中断のあった依頼の割合（%）。依頼がなければ nil
 	CostPerAsk    *float64           `json:"costPerAsk"`    // 1 依頼あたりの目安コスト。トークンの記録がなければ nil
+	CostPrompts   int                `json:"costPrompts"`   // トークンを記録するセッションの依頼の数（CostPerAsk の分母）
 	Outputs       core.OutputTotal   `json:"outputs"`       // AI が実行したコミット・PR 作成・変更した行（アウトプットの量）
 	OutSessions   int                `json:"outSessions"`   // コミットか PR 作成まで行ったセッションの数
 	OutBase       int                `json:"outBase"`       // そのうち、アウトプットを記録できるエージェント（いまは Claude Code）のセッションの数。OutSessions の割合の分母
+	OutPrompts    int                `json:"outPrompts"`    // アウトプットを記録できるエージェントのセッションの依頼の数（1 コミットあたりの依頼の分子）
 	CostPerCommit *float64           `json:"costPerCommit"` // 1 コミットあたりの目安コスト。コミットかトークンの記録がなければ nil
 	Git           GitTotal           `json:"git"`           // 手元の git リポジトリのコミット（gitlog）
 	Sessions      int                `json:"sessions"`
@@ -444,13 +446,30 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 			}
 		}
 	}
+	// 1 依頼あたりのコストは、トークンを記録するセッションの依頼だけで割る（Kiro のようにクレジットだけのエージェントの依頼が
+	// 分母に混ざると、低く出る）。1 コミットあたりの依頼も同じく、アウトプットを記録できるセッションの依頼だけで出す
+	costPrompts, outPrompts := 0, 0
+	for _, d := range data {
+		n := 0
+		for _, p := range d.Prompts {
+			if p.T != nil && *p.T != 0 && ws <= *p.T && *p.T < we {
+				n++
+			}
+		}
+		if len(d.UEv) > 0 {
+			costPrompts += n
+		}
+		if d.OutTracked {
+			outPrompts += n
+		}
+	}
 	np := len(prompts)
 	var fixRate, costPer *float64
 	if np > 0 {
 		fixRate = fptr(core.Round(float64(fixes)*100/float64(np), 1))
-		if usage.Tokens > 0 {
-			costPer = fptr(core.Round(usage.Cost/float64(np), 3))
-		}
+	}
+	if costPrompts > 0 && usage.Tokens > 0 {
+		costPer = fptr(core.Round(usage.Cost/float64(costPrompts), 3))
 	}
 	// アウトプットは Claude Code だけが記録するので、割合と 1 コミットあたりのコストは、Claude Code のセッションとコストだけで出す
 	// （ほかのエージェントのセッションやコストが分母に混ざると、割合は低く、1 コミットあたりのコストは高く出る）
@@ -491,11 +510,11 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 		costPerCommit = fptr(core.Round(outCost/outs.Commits, 2))
 	}
 	return &Summary{
-		Outputs: outs, OutSessions: outSes, OutBase: outBase, CostPerCommit: costPerCommit, Git: gitTot,
+		Outputs: outs, OutSessions: outSes, OutBase: outBase, OutPrompts: outPrompts, CostPerCommit: costPerCommit, Git: gitTot,
 		Native:       nativeGroups(data, ws, we),
 		ProjectStats: projectStats(data, ws, we, projects, projOrder, commits),
 		Shares:       map[string][]Share{"branch": shares(data, ws, we, mins, ShareKeys["branch"]), "source": shares(data, ws, we, mins, ShareKeys["source"])},
-		FixRate:      fixRate, CostPerAsk: costPer, Usage: usage, Start: wsT.Format("2006-01-02"), Sessions: sessions, Prompts: np,
+		FixRate:      fixRate, CostPerAsk: costPer, CostPrompts: costPrompts, Usage: usage, Start: wsT.Format("2006-01-02"), Sessions: sessions, Prompts: np,
 		Active: len(active), AI: ai, Parallel: parallel, MaxConc: maxConc, Weekend: weekend,
 		Focus: blocks, SwitchesAvg: core.Round(float64(swSum)/float64(activeDays), 1), SwitchesMax: swMax,
 		WaitMedian: pick(0.5), WaitP90: pick(0.9), WaitCount: len(waits), Projects: projList, Days: days,

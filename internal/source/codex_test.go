@@ -530,6 +530,9 @@ func TestCodexContextUsage(t *testing.T) {
 	if v := n["Peak context usage"]; v.V != 50 { // (142000 - 12000) / (272000 - 12000)
 		t.Errorf("context = %+v, want 50%%", v)
 	}
+	if w := load(t, &Codex{Home: home})[0].Finish(15).CtxWindow; w != 272000 {
+		t.Errorf("ctxWindow = %v, want 272000（model_context_window。「長い会話」の目安に使う）", w)
+	}
 
 	full := t.TempDir()
 	writeCodex(t, full, "thr-full",
@@ -553,5 +556,27 @@ func TestCodexContextUsage(t *testing.T) {
 	}
 	if len(f.Limits) != 0 {
 		t.Errorf("limits = %v（会話が長すぎるのは利用上限ではない）", f.Limits)
+	}
+}
+
+// Codex はファイルを apply_patch で変える。引数はパッチの文なので、その中のファイル名を編集したファイルにする。
+// 自由形式のツール（custom_tool_call の input）、関数（arguments の input）、シェルから（argv とヒアドキュメント）の形がある。
+func TestCodexApplyPatchFiles(t *testing.T) {
+	home := t.TempDir()
+	writeCodex(t, home, "thr-patch",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-patch","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:10.000Z","type":"event_msg","payload":{"type":"user_message","message":"直して"}}`,
+		`{"timestamp":"2026-10-06T00:00:11.000Z","type":"response_item","payload":{"type":"custom_tool_call","call_id":"c1","name":"apply_patch","input":"*** Begin Patch\n*** Update File: src/a.go\n@@\n-x\n+y\n*** Move to: src/b.go\n*** Add File: docs/new.md\n+hi\n*** End Patch"}}`,
+		`{"timestamp":"2026-10-06T00:00:12.000Z","type":"response_item","payload":{"type":"function_call","call_id":"c2","name":"apply_patch","arguments":"{\"input\":\"*** Begin Patch\\n*** Delete File: old.txt\\n*** End Patch\"}"}}`,
+		`{"timestamp":"2026-10-06T00:00:13.000Z","type":"response_item","payload":{"type":"function_call","call_id":"c3","name":"shell","arguments":"{\"command\":[\"bash\",\"-lc\",\"apply_patch <<'EOF'\\n*** Begin Patch\\n*** Update File: README.md\\n@@\\n-a\\n+b\\n*** End Patch\\nEOF\"]}"}}`,
+		`{"timestamp":"2026-10-06T00:00:14.000Z","type":"response_item","payload":{"type":"function_call","call_id":"c4","name":"shell","arguments":"{\"command\":[\"apply_patch\",\"*** Begin Patch\\n*** Add File: x.txt\\n+1\\n*** End Patch\"]}"}}`,
+		// パッチでないもの（apply_patch の名前を探すだけのコマンド、Begin Patch のない文）は数えない
+		`{"timestamp":"2026-10-06T00:00:15.000Z","type":"response_item","payload":{"type":"function_call","call_id":"c5","name":"shell","arguments":"{\"command\":[\"bash\",\"-lc\",\"rg 'Update File: nope.go' apply_patch\"]}"}}`,
+		`{"timestamp":"2026-10-06T00:00:16.000Z","type":"response_item","payload":{"type":"custom_tool_call","call_id":"c6","name":"other","input":"*** Begin Patch\n*** Add File: nope2.go\n*** End Patch"}}`,
+	)
+	f := load(t, &Codex{Home: home})[0].Finish(15)
+	want := []string{"README.md", "docs/new.md", "old.txt", "src/a.go", "src/b.go", "x.txt"}
+	if strings.Join(f.Files, ",") != strings.Join(want, ",") || f.NFiles != len(want) {
+		t.Errorf("files = %v (%d), want %v", f.Files, f.NFiles, want)
 	}
 }

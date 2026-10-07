@@ -166,6 +166,7 @@ func compare(want, got any, path string, diffs *[]string) {
 			if (k == "unpriced" || k == "unpricedModels" || k == "prefixPriced") && strings.HasSuffix(path, ".usage") || k == "native" ||
 				inDay && (k == "tokens" || k == "cost" || k == "credits") || // Go 版で足した日ごとの使用量
 				k == "projectStats" || k == "shares" || k == "limits" || k == "limitResets" || k == "ctx" || k == "ctxWindow" || k == "outputs" || k == "file" || k == "prs" || k == "outSessions" || k == "outBase" || k == "costPerCommit" || k == "git" || inDay && k == "commits" || // Go 版で足したプロジェクト別のまとめ・アウトプット
+				k == "costPerAsk" || k == "costPrompts" || k == "outPrompts" || // Go 版で、トークンやアウトプットを記録するセッションの依頼だけで割るようにした
 				k == "whyEn" || k == "labelEn" || k == "detailEn" || // Go 版で足した英語表示の文言
 				k == "interruptsAt" || k == "prAt" || strings.Contains(path, ".prompts[") && (k == "work" || k == "wait" || k == "len") { // Go 版で足した依頼の流れの出来事と時間
 				continue

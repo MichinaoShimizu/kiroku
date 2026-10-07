@@ -2,6 +2,16 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Codex: session details now list the files Codex edited. Codex changes files with `apply_patch`, whose argument is a patch rather than a file path, so the list always read "None"; kiroku now takes the file names from the patch
+- Codex: "Long conversations" now uses the context window Codex records (`model_context_window`) instead of the 100K-token fallback, like Claude Code's
+- Kiro Crew: session details now show the estimated cost and tokens of turns run on backends other than kiro-cli. They were counted in the weekly and monthly summary but missing from the session itself. Sessions with both tokens and credits show both
+- "Estimated cost per prompt" now divides only by the prompts of sessions that record tokens. Prompts to agents that record only credits (Kiro) made it read low when you used both
+- Your year: "prompts per commit" in Focus now counts only Claude Code prompts, as the guide says. Since only Claude Code records the commits AI ran, other agents' prompts made it read high
+
 ## v0.20.0 - 2026-10-07
 
 ### Added
