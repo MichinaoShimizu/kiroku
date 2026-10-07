@@ -192,10 +192,34 @@ for (const env of envs) {
     check("見直す候補はカレンダーより上にある", await p.evaluate(() => document.querySelector("#worth").getBoundingClientRect().bottom <= document.querySelector("#tl").getBoundingClientRect().top));
     check("繰り返したプロンプトの欄がある", await p.locator('#review .hb[data-help="repeats"]').count() > 0);
     check("見直す候補の数だけ、指標に印が付く", n > 0 && await p.locator(".fl").count() >= n, `候補 ${n}`);
-    const id = await p.locator(".flagsum .flink").first().getAttribute("data-goto");
-    await p.locator(".flagsum .flink").first().click(); await pause();
-    check("候補を押すと、その指標の説明が開く", await p.locator(`.panel .hb[data-help="${id}"]`).first().getAttribute("aria-expanded") === "true", id);
+    const link = p.locator(".flagsum .flink").first(), id = await link.getAttribute("data-goto");
+    await link.scrollIntoViewIfNeeded(); await pause(); const y0 = await p.evaluate("scrollY");
+    await link.click(); await pause();
+    check("候補を押すと、真ん中のダイアログで開く", await p.locator("#wk").evaluate(d => d.open) && (await p.locator("#wkh").innerText()).trim().length > 0, id);
+    check("ダイアログには、見えたこと・基準・次にやってみることがある", await p.locator("#wk .fl .see").count() > 0 && await p.locator("#wk .fl .rule").count() > 0 && /What to try/.test(await p.locator("#wk .wkhelp").innerText()));
+    const box = await p.locator("#wk").boundingBox();
+    check("ダイアログが画面に収まる", box && box.x >= 0 && box.x + box.width <= env.viewport.width + 1, JSON.stringify(box));
+    check("開いてもページは動かない", await p.evaluate("scrollY") === y0);
+    await p.keyboard.press("Escape"); await pause();
+    check("Esc で閉じ、押した候補にフォーカスが戻る", !(await p.locator("#wk").evaluate(d => d.open)) && await link.evaluate(b => b === document.activeElement));
+    await link.click(); await pause();
+    await p.locator("#wkgo").click(); await pause();
+    check("「Show in the summary」で、サマリーのその指標の説明が開く", !(await p.locator("#wk").evaluate(d => d.open)) && await p.locator(`#review .panel .hb[data-help="${id}"]`).first().getAttribute("aria-expanded") === "true", id);
+    const ses = p.locator(".flagsum .flink").first(); await ses.scrollIntoViewIfNeeded(); await ses.click(); await pause();
+    const fs = p.locator("#wk .fses").first();
+    if (await fs.count()){ await fs.click(); await pause();
+      check("ダイアログのセッションを押すと、ダイアログを閉じて詳細が開く", !(await p.locator("#wk").evaluate(d => d.open)) && await drawerOpen());
+      await p.keyboard.press("Escape"); await pause(); }
     await open();
+  });
+
+  await step("ページの下", async () => {
+    const gh = p.locator('#review .foot a[href="https://github.com/MichinaoShimizu/kiroku"]');
+    check("フッターにリポジトリへのリンクがある（参照元を渡さない）", await gh.count() === 1 && /noreferrer/.test(await gh.getAttribute("rel") || "") && await gh.getAttribute("target") === "_blank");
+    const ds = p.locator("#review details.dsrc");
+    check("Data sources は、気をつけることがなければたたんである", await ds.count() === 1 && !(await ds.evaluate(d => d.open)));
+    await ds.locator("summary").click(); await pause();
+    check("開くと、読んだ履歴が見える", await ds.locator(".mlist li").first().isVisible());
   });
 
   await step("週報の下書き", async () => {

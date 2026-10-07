@@ -58,7 +58,7 @@ addEventListener("popstate", () => {
 const ARROW_OWN = "input, select, textarea, [contenteditable], .segc, [role=group], [role=radiogroup], [role=tablist], [role=listbox], [role=slider], [role=menu]";
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT"){ if (e.key === "Escape") e.target.blur(); return; }
-  if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open || $("#yr").open) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open || $("#yr").open || $("#wk").open) return;
   const k = e.key;
   if (k === "Escape" && closeHint()) return; // 開いた説明（?）があれば、それだけ閉じる
   if (k === "ArrowLeft" || k === "ArrowRight"){ // 詳細を開いているあいだも動かさない（閉じて別の週へ飛ぶと、どこにいるかわからなくなる）

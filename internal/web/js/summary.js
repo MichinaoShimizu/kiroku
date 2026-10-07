@@ -14,7 +14,7 @@ function summary(){
   const pct = v => v == null ? "Unknown" : `${v}<small>%</small>`;
   const times = n => `${n}`;
   const F = findList(w, pw, unit);
-  WK.innerHTML = flagSum(F); WK.hidden = false; // 見直す候補は、カレンダーの上（期間の要点のすぐ下）に出す
+  WK.innerHTML = flagSum(F); WK.hidden = false; lastFlags = F; // 見直す候補は、カレンダーの上（期間の要点のすぐ下）に出す。押すと真ん中のダイアログで開く
   R.innerHTML = `${head}${keepNotice()}<div class="rvgrid">
   ${projectPanel(w, ph, unit)}
   ${outcomePanel(w, pw, unit, ph, stat)}
@@ -48,12 +48,7 @@ function summary(){
   <section class="panel metap">${measure(w)}${foot()}</section></div>`;
   placeFlags(R, F);
   R.querySelectorAll(".card,.fses").forEach(c => c.onclick = () => select(c.dataset.id));
-  WK.querySelectorAll("[data-goto]").forEach(b => b.onclick = () => { // 見直す候補から、印の付いた指標へ移動して説明を開く
-    const t = R.querySelector(`.panel .hb[data-help="${b.dataset.goto}"]`) || R.querySelector(`.panel.${b.dataset.goto}`); if (!t) return;
-    const dt = t.closest("details"); if (dt && !dt.open){ dt.open = true; st.moreS = true; }
-    t.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center"});
-    if (t.classList.contains("hb") && t.getAttribute("aria-expanded") !== "true") t.click();
-    if (!t.matches("button")) t.tabIndex = -1; t.focus({preventScroll: true}); }); // フォーカスも移す（画面の外に残さない）
+  WK.querySelectorAll("[data-goto]").forEach(b => { b.setAttribute("aria-haspopup", "dialog"); b.onclick = () => openWorth(b.dataset.goto, b); });
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
   const ko = R.querySelector("#keepoff"); if (ko) ko.onclick = () => { store.set("keepNoticeOff", true); summary(); };
   const ka = R.querySelector("#keeparch"); if (ka) ka.onclick = () => { ka.disabled = true; keepArchive(); };
