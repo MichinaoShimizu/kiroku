@@ -397,7 +397,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .none{color:var(--ink-3);font-size:var(--fs-sm)}
 .foot{margin-top:24px;padding-top:14px;border-top:1px solid var(--rule);font-size:var(--fs-xs);color:var(--ink-3);line-height:1.7}
 .code{display:flex;align-items:center;gap:8px;margin-top:10px;background:var(--surface-2);border-radius:8px;padding:7px 8px 7px 11px;font:var(--fs-xs)/1.5 var(--mono);color:var(--ink-2)}
-.code code{flex:1;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
+.code code{flex:1;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere} /* パスやコマンドは途中で切らず、折り返して全部見せる */
 .copy{font:var(--fs-xs) var(--sans);color:var(--ink-2);border:1px solid var(--rule-2);border-radius:6px;padding:3px 8px;background:var(--surface);flex:none}
 .copy:hover{color:var(--ink);border-color:var(--ink-3)}
 .back{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--ink-3)}
@@ -530,13 +530,16 @@ body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:tra
   .drawer .dcol+.dcol{border-left:1px solid var(--rule);padding-left:40px}
 }
 /* 戻る・閉じるは、中身の 1 行目（種類の小見出し）の右に重ねる。ボタンだけの空いた帯を作らない。中身をスクロールしても押せるよう、パネルの上に固定する */
-.drawer .dh{position:absolute;top:10px;right:14px;z-index:2;display:flex;align-items:center;gap:4px;padding:2px;border-radius:11px;background:color-mix(in oklab,var(--surface) 88%,transparent);backdrop-filter:blur(6px)}
-.drawer .db{overflow:auto;padding:22px 28px 48px;flex:1;scrollbar-width:thin;font-size:var(--fs-lg)}
+/* 上の帯：戻る・閉じるを、本文に重ねず 1 行に置く。題名が流れて見えなくなったら、ここに小さく出す（.scrolled、session.js の dtopSync） */
+.drawer .dh{flex:none;display:flex;align-items:center;gap:4px;padding:8px 14px 8px 28px;min-height:48px;background:var(--surface);border-bottom:1px solid transparent;transition:border-color .2s var(--ease)}
+.drawer .dh .dt{flex:1;min-width:0;font-weight:700;font-size:var(--fs-lg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity .2s var(--ease)}
+.drawer.scrolled .dh{border-bottom-color:var(--rule)}.drawer.scrolled .dh .dt{opacity:1}
+.drawer .db{overflow:auto;padding:0 28px 48px;flex:1;scrollbar-width:thin;font-size:var(--fs-lg)}
 /* パネルの中は読み物なので、一覧より一回り大きく・濃く */
 .drawer .back{font-size:var(--fs-md);color:var(--ink-2)}
 .drawer .back[hidden]{display:none}
 .drawer .eyebrow{font-size:var(--fs-xs)}
-.drawer h2{font-size:var(--fs-2xl);margin:14px 0 6px} /* 上の行の右に戻る・閉じるが重なるので、題名はその下から */
+.drawer h2{font-size:var(--fs-2xl);margin:10px 0 6px}
 .drawer h3{font-size:var(--fs-lg);font-weight:700;color:var(--ink);margin:30px 0 12px}
 .drawer h3::after{background:var(--rule-2)}
 .drawer .meta span,.drawer .chips span{font-size:var(--fs-sm);padding:2px 10px}
@@ -677,8 +680,8 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
   .calscroll{max-height:70vh}
   .rvgrid{grid-template-columns:minmax(0,1fr)}
   .panel{padding:18px 16px}
-  .drawer .db{padding:18px 16px 40px}
-  .drawer .dh{top:8px;right:8px}
+  .drawer .db{padding:0 16px 40px}
+  .drawer .dh{padding:6px 8px 6px 16px}
   /* スマホでは画面いっぱいに出す */
   .drawer{width:100vw;height:100dvh;max-height:none;border:0;border-radius:0;transform:translate(-50%,-50%) translateY(16px)}
   .drawer .mini{grid-template-columns:1fr 1fr}

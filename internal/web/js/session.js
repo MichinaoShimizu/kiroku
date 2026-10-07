@@ -190,5 +190,10 @@ function focusOpener(sel, from){ // 閉じたら、詳細を開いた要素（�
 function select(id){ // 詳細の中で別の詳細へ移ったときは、戻れるように前のものを積む
   if (id && !st.sel) focusDrawer.next = openerOf(lastClick) || openerOf(document.activeElement);
   if (id && st.sel && id !== st.sel){ st.back.push(st.sel); (st.backTop ||= []).push($("#panel").scrollTop); } else if (!id){ st.back = []; st.backTop = []; } // 戻ったとき、読んでいた位置に戻す
-  st.sel = id; tipOff(); render(); if (id) $("#panel").scrollTop = 0; }
+  st.sel = id; tipOff(); render(); if (id) $("#panel").scrollTop = 0; dtopSync(); }
+// 詳細の題名が上へ流れて見えなくなったら、上の帯（#dtop）に小さく出す（どの詳細を読んでいるかわからなくならないように）
+function dtopSync(){ const P = $("#panel"), h = P.querySelector("h2"), D = $("#drawer");
+  $("#dtop").textContent = h ? h.textContent : "";
+  D.classList.toggle("scrolled", !!h && h.getBoundingClientRect().bottom < P.getBoundingClientRect().top + 4); }
+$("#panel").addEventListener("scroll", dtopSync, {passive: true});
 

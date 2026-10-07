@@ -41,7 +41,7 @@ $("#help").onclick = () => $("#keys").showModal();
 $("#yrbtn").onclick = openYear;
 addEventListener("resize", () => { if ($("#yr").open) drawPlate(); });
 $("#scrim").onclick = () => select(null); $("#close").onclick = () => select(null); $("#back").onclick = () => backStep();
-function backStep(){ const prev = st.back.pop(), top = (st.backTop || []).pop(); st.sel = prev || null; render(); $("#panel").scrollTop = top || 0; }
+function backStep(){ const prev = st.back.pop(), top = (st.backTop || []).pop(); st.sel = prev || null; render(); $("#panel").scrollTop = top || 0; dtopSync(); }
 /* ブラウザの「戻る」：詳細を開いたら履歴を 1 つ積み、戻るで閉じる（詳細の中で移っていたら、1 つ前の詳細へ）。
    Esc や × で閉じたときは、積んだ分を history.back() で消して、履歴をそろえる。URL（#… も）は変えない */
 const hist = {pushed: false, skip: false};

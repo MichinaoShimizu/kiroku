@@ -50,6 +50,7 @@ function render(){
   if (s) detail(s); else if (gc) commitDetail(gc); else if (pu) pushDetail(pu); else if (pr) prDetail(pr.s, pr.r);
   if (open){ $("#dkind").textContent = s ? "Session details" : gc ? "Commit details" : pu ? "Push details" : "Pull request details"; // 読み上げで、何の詳細かと題名がわかるように
     const h2 = $("#panel h2"); if (h2) h2.id = "dtitle"; }
+  dtopSync();
   document.body.classList.toggle("open", open); document.body.classList.toggle("lock", open);
   $("#drawer").setAttribute("aria-hidden", String(!open));
   document.querySelector("header").inert = document.querySelector("main").inert = open; // 背後に Tab で入らない
