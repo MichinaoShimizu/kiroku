@@ -213,7 +213,7 @@ function aiUsage(w, pw, unit){
       ${pj && pj.cost != null ? stat("Month-end cost (estimate)", "≈ " + usdH(pj.cost), `If the pace of the first ${pj.days} days continues`, "projection") : ""}
       ${pj && pj.credits != null ? stat("Month-end credits (estimate)", `≈ ${crN(pj.credits)}<small> credits</small>`, `If the pace of the first ${pj.days} days continues`, "projectionCr") : ""}
       ${u.tokens ? stat("Read from cache", u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, "Share of input", "cache") : ""}
-      ${(() => { const {ws, we} = period(), N = !u.subagents && unrecorded(ws, we, "subagents"); return stat("Subagents", N ? "—" : `${u.subagents}`, N ? esc(notRec(N)) : u.subagents ? `Total run time ${dur(u.subMin)}` : "Not used", "subagents"); })()}
+      ${(() => { const {ws, we} = period(), N = !u.subagents && unrecorded(ws, we, "subagents"); return N ? norecStat("Subagents", N, "subagents") : stat("Subagents", `${u.subagents}`, u.subagents ? `Total run time ${dur(u.subMin)}` : "Not used", "subagents"); })()}
       ${w.costPerAsk != null ? stat("Estimated cost per prompt", usdH(w.costPerAsk), `n=${w.costPrompts}`, "costPerAsk") : ""}
     </div>
     ${u.models.length ? `<div style="margin-top:16px" class="k muted">By model${byCost ? " (estimated cost)" : " (tokens)"}${hb("models")}</div>${hint("models")}
