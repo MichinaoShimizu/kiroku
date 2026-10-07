@@ -18,12 +18,19 @@ import (
 //
 //	session_meta  … id（スレッド ID）、cwd、git.branch、source（サブエージェントなら source.subagent.thread_spawn）
 //	turn_context  … model
-//	event_msg     … user_message（依頼）、agent_message、token_count（info.total_token_usage / last_token_usage）
-//	response_item … function_call / custom_tool_call（ツール）、message
+//	event_msg     … user_message（依頼）、agent_message、token_count（info.total_token_usage / last_token_usage）、
+//	                item_completed（history_mode が paginated の版の発言。item.type は UserMessage / AgentMessage）
+//	response_item … function_call / custom_tool_call（ツール）、message（role が assistant なら応答）
 //	token_usage_record … 新しい版の使用量（あればこちらを使い、token_count は使わない）
 //
-// サブエージェントやフォークのファイルは、親の履歴を先頭にそのまま写している。
-// そのため、ファイル自身の session_meta の時刻より前の行は数えない。
+// サブエージェントやフォークのファイルは、親の履歴を自分の session_meta のあとにそのまま写している。
+// 写した行の時刻は写したときのものなので、時刻では分けられない。写しの終わりは次の印で見分ける（codexFile.skip）。
+//
+//   - session_meta.subagent_history_start_ordinal があれば（paginated のサブエージェント）、行の ordinal がそれより前の行
+//   - フォークかサブエージェントなら、自分のスレッド ID の thread_settings_applied より前の行
+//     （写しと一緒に書く。写した親の thread_settings_applied は親のスレッド ID のまま。
+//     印のない古い版で作ったファイルも再開すると書くので、写しと一緒に書いたものだけを印とみなす: codexSameWrite）
+//   - どちらの印もない古い版は、これまでどおり session_meta の時刻より前の行
 type Codex struct {
 	Home string
 
@@ -64,6 +71,40 @@ type codexFile struct {
 	start                 *float64
 	b                     *core.Builder
 	events                []core.Event
+	skip                  codexSkip
+	startOrdinal          float64 // skip が codexSkipOrdinal のとき、自分の最初の行の ordinal
+}
+
+// codexSkip は、親から写した行をどう見分けるか。
+type codexSkip int
+
+const (
+	codexSkipTime    codexSkip = iota // session_meta の時刻より前の行（印のない古い版）
+	codexSkipOrdinal                  // ordinal が subagent_history_start_ordinal より前の行
+	codexSkipMarker                   // 自分のスレッド ID の thread_settings_applied より前の行（見つからなければ時刻で分ける）
+)
+
+// codexOwnSettings は、ファイル自身のスレッドの thread_settings_applied か（フォークやサブエージェントの写しの終わりの印）。
+func codexOwnSettings(e core.Obj, id string) bool {
+	p := core.Map(e["payload"])
+	return core.Str(e["type"]) == "event_msg" && core.Str(p["type"]) == "thread_settings_applied" &&
+		id != "" && core.Str(p["thread_id"]) == id
+}
+
+// codexCopyWindow は、写しと印を 1 回でまとめて書いたとみなす幅（秒）。
+const codexCopyWindow = 5 * 60
+
+// codexSameWrite は、印より前の行（copied）が印と一緒に書かれた写しか。Codex は写しと印を 1 回でまとめて書き、
+// 写した行の時刻も書いたときのものなので、先頭の行と印の時刻はほとんど同じになる。
+// 先頭の行がずっと前なら、印は古い版で作ったファイルを新しい版で再開したときのもので、その前には自分の行がある。
+func codexSameWrite(copied []core.Obj, marker core.Obj) bool {
+	t := ts(marker["timestamp"])
+	for _, e := range copied {
+		if first := ts(e["timestamp"]); first != nil {
+			return t != nil && *t-*first <= codexCopyWindow
+		}
+	}
+	return true // 時刻のある行がない（時刻のない行はどのみち数えない）
 }
 
 func (c *Codex) files() []string {
@@ -98,24 +139,25 @@ func (c *Codex) titles() map[string]string {
 	return out
 }
 
-// codexTokens は Codex の使用量 → Tokens。cached_input_tokens は input_tokens に含まれている。
-// itemText は item_completed の発言の文（新しい形は message、古い形は content の text）。
+// itemText は item_completed の発言（TurnItem）の文。UserMessage の content は {"type":"text","text":…} のほか画像なども並ぶので、
+// 文のあるものだけをつなぐ。AgentMessage の content は {"type":"Text","text":…}。
 func itemText(item core.Obj) string {
-	if text := firstNonEmpty(core.Str(item["message"]), core.Str(item["text"])); text != "" {
-		return text
-	}
 	var parts []string
 	for _, b := range core.List(item["content"]) {
-		m := core.Map(b)
-		parts = append(parts, firstNonEmpty(core.Str(m["text"]), core.Str(m["message"])))
+		if text := core.Str(core.Map(b)["text"]); text != "" {
+			parts = append(parts, text)
+		}
 	}
 	return strings.Join(parts, "\n")
 }
 
+// codexTokens は Codex の使用量 → Tokens。cached_input_tokens と cache_write_input_tokens は
+// どちらも input_tokens の内訳（Responses API の input_tokens_details.cached_tokens / cache_write_tokens）なので、
+// 入力からは両方を引く。
 func codexTokens(u any) core.Tokens {
 	m := core.Map(u)
-	in, cached := core.NumOr0(m["input_tokens"]), core.NumOr0(m["cached_input_tokens"])
-	return core.Tokens{In: max(0, in-cached), Out: core.NumOr0(m["output_tokens"]), CW: core.NumOr0(m["cache_write_input_tokens"]), CR: cached}
+	in, cached, written := core.NumOr0(m["input_tokens"]), core.NumOr0(m["cached_input_tokens"]), core.NumOr0(m["cache_write_input_tokens"])
+	return core.Tokens{In: max(0, in-cached-written), Out: core.NumOr0(m["output_tokens"]), CW: written, CR: cached}
 }
 
 // Load は全部の会話を読む。読めないファイルがあっても残りは読み、最初のエラー（と残りの数）を返す。
@@ -259,29 +301,13 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		records := map[string]bool{}
 		var fromCounts, fromRecords []core.Event
 		var countMeas, recordMeas []core.Measure
-		errs.file(path, core.ReadJSONL(path, func(e core.Obj) {
+		var copied []core.Obj // codexSkipMarker で、印を待っているあいだの行（印があれば捨てる）
+		handle := func(e core.Obj) {
 			t := ts(e["timestamp"])
 			p := core.Map(e["payload"])
 			typ := core.Str(e["type"])
-			if typ == "session_meta" {
-				if cf.id == "" {
-					cf.id = core.Str(p["id"])
-					cf.cwd = core.Str(p["cwd"])
-					cf.branch = core.Str(core.Get(p, "git", "branch"))
-					cf.start = ts(p["timestamp"])
-					if cf.start == nil {
-						cf.start = t
-					}
-					spawn := core.Map(core.Get(p, "source", "subagent", "thread_spawn"))
-					cf.parent = codexParent(p)
-					cf.role = firstNonEmpty(core.Str(spawn["agent_role"]), core.Str(p["agent_role"]), core.Str(spawn["agent_nickname"]), core.Str(p["agent_nickname"]))
-					cf.b = core.NewBuilder("Codex", cf.id)
-					cf.b.File = cf.path
-				}
+			if t == nil {
 				return
-			}
-			if cf.b == nil || t == nil || (cf.start != nil && *t < *cf.start) {
-				return // 親から写した履歴は数えない
 			}
 			s := cf.b
 			switch typ {
@@ -334,8 +360,9 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					// Paginated rollouts persist user turns as ItemCompleted(UserMessage)
 					// instead of the legacy UserMessage event.
 					item := core.Map(p["item"])
+					// TurnItem は #[serde(tag = "type")] だけで名前を変えていないので、型の名前がそのまま入る
 					switch core.Str(item["type"]) {
-					case "user_message":
+					case "UserMessage":
 						s.Tick(t)
 						s.Turn() // 依頼はあとでまとめて足すので、ここで応答の区切りを入れる
 						if text := itemText(item); text != "" {
@@ -344,7 +371,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 								text string
 							}{t, text})
 						}
-					case "agent_message": // 人に返した文（依頼の流れに出す）
+					case "AgentMessage": // 人に返した文（依頼の流れに出す）
 						s.Agent(t)
 						s.Reply(t, "", itemText(item))
 					default:
@@ -379,16 +406,19 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					for _, b := range core.List(p["content"]) {
 						parts = append(parts, core.Str(core.Map(b)["text"]))
 					}
-					if core.Str(p["role"]) == "user" {
+					switch core.Str(p["role"]) {
+					case "user":
 						s.Tick(t)
 						s.Turn() // 依頼はあとでまとめて足すので、ここで応答の区切りを入れる
 						fallback = append(fallback, struct {
 							t    *float64
 							text string
 						}{t, strings.Join(parts, "\n")})
-					} else {
+					case "assistant":
 						s.Agent(t)
 						s.Reply(t, "", strings.Join(parts, "\n")) // 人に返した文
+					default: // developer（Codex が足す指示）などは応答ではない
+						s.Agent(t)
 					}
 				default:
 					s.Agent(t)
@@ -396,9 +426,81 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			default:
 				s.Agent(t)
 			}
+		}
+		// before は、session_meta の時刻より前の行か（印のない古い版で、親から写した行）。
+		before := func(e core.Obj) bool {
+			t := ts(e["timestamp"])
+			return t != nil && cf.start != nil && *t < *cf.start
+		}
+		errs.file(path, core.ReadJSONL(path, func(e core.Obj) {
+			if core.Str(e["type"]) == "session_meta" {
+				if cf.id == "" { // 2 つめからは写した親のもの
+					p := core.Map(e["payload"])
+					cf.id = core.Str(p["id"])
+					cf.cwd = core.Str(p["cwd"])
+					cf.branch = core.Str(core.Get(p, "git", "branch"))
+					cf.start = ts(p["timestamp"])
+					if cf.start == nil {
+						cf.start = ts(e["timestamp"])
+					}
+					spawn := core.Map(core.Get(p, "source", "subagent", "thread_spawn"))
+					cf.parent = codexParent(p)
+					cf.role = firstNonEmpty(core.Str(spawn["agent_role"]), core.Str(p["agent_role"]), core.Str(spawn["agent_nickname"]), core.Str(p["agent_nickname"]))
+					if n, ok := core.Num(p["subagent_history_start_ordinal"]); ok {
+						cf.skip, cf.startOrdinal = codexSkipOrdinal, n
+					} else if cf.parent != "" || core.Str(p["forked_from_id"]) != "" {
+						cf.skip = codexSkipMarker
+					}
+					cf.b = core.NewBuilder("Codex", cf.id)
+					cf.b.File = cf.path
+				}
+				return
+			}
+			if cf.b == nil {
+				return
+			}
+			// 親から写した履歴は数えない
+			switch cf.skip {
+			case codexSkipOrdinal:
+				if n, ok := core.Num(e["ordinal"]); ok {
+					if n < cf.startOrdinal {
+						return
+					}
+				} else if before(e) {
+					return
+				}
+			case codexSkipMarker:
+				if !codexOwnSettings(e, cf.id) {
+					copied = append(copied, e)
+					return
+				}
+				if codexSameWrite(copied, e) {
+					// 印より前はすべて写しで、印から後は自分の行（時刻では分けない）
+					cf.skip, cf.start, copied = codexSkipTime, nil, nil
+					break
+				}
+				// 印のない古い版で作り、新しい版で再開したファイル（再開でも書く）。印より前には自分の行もあるので時刻で分ける
+				cf.skip = codexSkipTime
+				for _, c := range copied {
+					if !before(c) {
+						handle(c)
+					}
+				}
+				copied = nil
+			default:
+				if before(e) {
+					return
+				}
+			}
+			handle(e)
 		}))
 		if cf.b == nil {
 			continue
+		}
+		for _, e := range copied { // 印のない古い版のフォークやサブエージェントは、時刻で分ける
+			if !before(e) {
+				handle(e)
+			}
 		}
 		pending, meas := fromCounts, countMeas
 		if len(fromRecords) > 0 { // 新しい版は token_usage_record だけを使う（token_count と同じものを重ねて書いている）

@@ -7,6 +7,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 ### Fixed
 
 - On a phone, the legend chips above the week calendar no longer overlap the "Zoom" label. The chips now get a row of their own below "Color by" and the zoom buttons
+- Codex: tokens written to the prompt cache are no longer counted twice. `cache_write_input_tokens` is part of `input_tokens`, like cached tokens, so it is now taken out of input instead of being added on top
+- Codex: newer rollouts (`history_mode: "paginated"`) now read prompts and replies from the `item_completed` events Codex writes for them. kiroku looked for `user_message` and `agent_message` items, but Codex writes `UserMessage` and `AgentMessage`, so prompts fell back to raw model input, which also holds the context Codex adds
+- Codex: subagents and forks no longer count the parent's history again. Codex copies it into the child's file with the time of copying, so kiroku's time check let it through (the parent's prompts, tokens and tool calls were added to the subagent or fork). The end of the copy is now found from what Codex records (`subagent_history_start_ordinal`, or the child's own `thread_settings_applied`); older files still use the time check
+- Codex: instructions Codex adds as `developer` messages are no longer shown as the AI's reply to a prompt
 
 ## v0.19.1 - 2026-10-07
 

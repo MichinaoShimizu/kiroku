@@ -55,9 +55,10 @@ This page summarizes where kiroku reads each agent's history from and how. The l
 
 `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` (and `.jsonl.zst`) and `archived_sessions/` (under `CODEX_HOME` when it is set). `internal/source/codex.go`
 
-- Replies in the prompt flow come from `agent_message` events (new and old shapes) and from `message` items whose role is not `user`
-- The same token values are written repeatedly, so each is counted once. Newer versions' `token_usage_record` is used when present
-- Subagent and fork files copy the parent's history at the top, so lines before the file was created are not counted. Subagents are grouped under "Subagents" in the parent session
+- Prompts come from `user_message` events. Rollouts with `history_mode: "paginated"` write them as `item_completed` events instead, whose item is a `TurnItem` tagged with its Rust name (`"type": "UserMessage"` with `content: [{"type": "text", "text": …}, …]`); only the text parts are kept
+- Replies in the prompt flow come from `agent_message` events, `item_completed` items of type `AgentMessage` (`content: [{"type": "Text", "text": …}]`) and `message` items whose role is `assistant`. `developer` messages (instructions Codex adds) are not replies
+- The same token values are written repeatedly, so each is counted once. Newer versions' `token_usage_record` is used when present. `cached_input_tokens` and `cache_write_input_tokens` are both part of `input_tokens` (the Responses API's `input_tokens_details`), so both are taken out of input
+- Subagent and fork files copy the parent's history right after their own `session_meta`, with the time of copying, so the copy can't be told apart by time. It is skipped by what marks its end: in paginated subagent files, lines whose `ordinal` is below `session_meta.subagent_history_start_ordinal`; in other subagent and fork files (`source.subagent` or `forked_from_id`), the lines before the first `thread_settings_applied` event carrying the file's own thread ID, which Codex writes together with the copy (copied ones keep the parent's ID). Older versions write neither, so for them, and when that event was only written later on resume, lines dated before the file's `session_meta` are not counted, as before. Subagents are grouped under "Subagents" in the parent session
 - Titles come from `session_index.jsonl`
 - `kiroku serve` watches only `sessions/`, `archived_sessions/` and `session_index.jsonl` (not logs or other state under `~/.codex`), and rereads only the threads whose files changed (a parent thread together with its subagents)
 - Models (OpenAI) are not in the price table, so they are not included in estimated cost (they appear in "Data sources" as tokens not in the price table). They can be added with `--prices`
