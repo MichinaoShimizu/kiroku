@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- "Worth a look" details now appear only in its dialog. The summary no longer repeats them in a box under each flagged metric; a small warning triangle next to the metric's name opens the same dialog. The dialog's "Show in the summary" button is gone, leaving Close
+- Dialogs (Worth a look, keyboard shortcuts, Year in review) close when you click outside them, like the details panel
+
 ## v0.21.1 - 2026-10-07
 
 ### Changed

@@ -192,7 +192,8 @@ async function run(env) {
     const n = await p.locator(".flagsum .flink").count();
     check("見直す候補はカレンダーより上にある", await p.evaluate(() => document.querySelector("#worth").getBoundingClientRect().bottom <= document.querySelector("#tl").getBoundingClientRect().top));
     check("繰り返したプロンプトの欄がある", await p.locator('#review .hb[data-help="repeats"]').count() > 0);
-    check("見直す候補の数だけ、指標に印が付く", n > 0 && await p.locator(".fl").count() >= n, `候補 ${n}`);
+    check("見直す候補の数だけ、サマリーの指標名の横に印が付く", n > 0 && await p.locator("#review .fmark").count() >= n, `候補 ${n}`);
+    check("サマリーには理由や推移を繰り返さない（ダイアログにだけ出す）", await p.locator("#review .fl").count() === 0);
     const link = p.locator(".flagsum .flink").first(), id = await link.getAttribute("data-goto");
     await link.scrollIntoViewIfNeeded(); await pause(); const y0 = await p.evaluate("scrollY");
     await link.click(); await pause();
@@ -203,9 +204,15 @@ async function run(env) {
     check("開いてもページは動かない", await p.evaluate("scrollY") === y0);
     await p.keyboard.press("Escape"); await pause();
     check("Esc で閉じ、押した候補にフォーカスが戻る", !(await p.locator("#wk").evaluate(d => d.open)) && await link.evaluate(b => b === document.activeElement));
+    check("ダイアログのボタンは Close だけ", await p.locator("#wk button.pill").count() === 1);
     await link.click(); await pause();
-    await p.locator("#wkgo").click(); await pause();
-    check("「Show in the summary」で、サマリーのその指標の説明が開く", !(await p.locator("#wk").evaluate(d => d.open)) && await p.locator(`#review .panel .hb[data-help="${id}"]`).first().getAttribute("aria-expanded") === "true", id);
+    await p.mouse.click(4, env.viewport.height - 4); await pause();
+    check("枠の外を押すと閉じる", !(await p.locator("#wk").evaluate(d => d.open)));
+    const mk = p.locator(`#review .fmark[data-goto="${id}"]`).first();
+    await mk.scrollIntoViewIfNeeded(); await mk.click(); await pause();
+    check("サマリーの印を押すと、同じダイアログが開く", await p.locator("#wk").evaluate(d => d.open) && await p.locator("#wk .fl .see").count() > 0, id);
+    await p.locator("#wkclose").click(); await pause();
+    check("Close で閉じる", !(await p.locator("#wk").evaluate(d => d.open)));
     const ses = p.locator(".flagsum .flink").first(); await ses.scrollIntoViewIfNeeded(); await ses.click(); await pause();
     const fs = p.locator("#wk .fses").first();
     if (await fs.count()){ await fs.click(); await pause();
@@ -273,6 +280,9 @@ async function run(env) {
     check("? でショートカットの一覧が開く", await p.locator("#keys").evaluate(d => d.open));
     await p.locator("#keys form button").click(); await pause();
     check("一覧の Close（form method=dialog）で閉じる", !(await p.locator("#keys").evaluate(d => d.open)));
+    await p.keyboard.press("?"); await pause();
+    await p.mouse.click(4, env.viewport.height - 4); await pause();
+    check("一覧は枠の外を押しても閉じる", !(await p.locator("#keys").evaluate(d => d.open)));
   });
 
   await step("1 年の露光", async () => {

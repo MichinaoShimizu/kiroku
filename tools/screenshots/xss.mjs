@@ -41,8 +41,9 @@ const clickAll = async (sel, step, after) => {
 };
 
 await check("load");
-const findings = await p.locator("#review .fl .see").count();
-if (!findings) { failed++; console.log("  FAIL the repeated-prompt finding is not shown (the test would not cover it)"); }
+// 見直す候補の中身（繰り返したプロンプトの文など）は、ダイアログにだけ出る。どれも開いて確かめる
+if (!(await p.locator('.flagsum .flink[data-goto="repeats"]').count())) { failed++; console.log("  FAIL the repeated-prompt finding is not shown (the test would not cover it)"); }
+await clickAll(".flagsum .flink", "worth a look", async () => { await p.keyboard.press("Escape"); await p.waitForTimeout(50); });
 const runs = p.locator(".run");
 for (let i = 0; i < await runs.count(); i++) await runs.nth(i).hover({ force: true });
 await check("hover sessions");
