@@ -19,11 +19,6 @@ import (
 
 var version = "dev" // Main で、ルートの main.go の version を入れる
 
-var (
-	dateRe  = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
-	monthRe = regexp.MustCompile(`^\d{4}-\d{2}$`)
-)
-
 // addrRe は kiroku serve のあとに書ける待ち受け先（:8484、127.0.0.1:8484、localhost:8484 など）。
 var addrRe = regexp.MustCompile(`^[\w.\-\[\]:]*:\d+$`)
 
@@ -32,43 +27,6 @@ const defaultAddr = "127.0.0.1:8484"
 
 // logw は読み込みの経過を書く先。serve の読み直しや json -o - では黙らせる。
 var logw io.Writer = os.Stderr
-
-// normalizeArgs は前の書き方（runLegacy）用。「--weekly」「--monthly」「--serve」だけ（値なし）を --weekly=latest、--monthly=latest、--serve=127.0.0.1:8484 に直す。flag パッケージは値の省略ができないため。
-func normalizeArgs(args []string) []string {
-	var out []string
-	for i := 0; i < len(args); i++ {
-		a := args[i]
-		if a == "--weekly" || a == "-weekly" {
-			if i+1 < len(args) && dateRe.MatchString(args[i+1]) {
-				out = append(out, "--weekly="+args[i+1])
-				i++
-			} else {
-				out = append(out, "--weekly=latest")
-			}
-			continue
-		}
-		if a == "--monthly" || a == "-monthly" {
-			if i+1 < len(args) && monthRe.MatchString(args[i+1]) {
-				out = append(out, "--monthly="+args[i+1])
-				i++
-			} else {
-				out = append(out, "--monthly=latest")
-			}
-			continue
-		}
-		if a == "--serve" || a == "-serve" {
-			if i+1 < len(args) && addrRe.MatchString(args[i+1]) {
-				out = append(out, "--serve="+args[i+1])
-				i++
-			} else {
-				out = append(out, "--serve="+defaultAddr)
-			}
-			continue
-		}
-		out = append(out, a)
-	}
-	return out
-}
 
 func collect(all []source.Source, want map[string]bool, gap int) ([]*core.Session, []source.Report) {
 	return collectCached(all, want, gap, nil)

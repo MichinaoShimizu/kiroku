@@ -1,5 +1,5 @@
 // 悪意のある文字列を仕込んだ履歴（hostile.py）の HTML を開いて操作し、スクリプトが動かないこと・要素が差しこまれないことを確かめる（CI の e2e）。
-//   python3 tools/screenshots/hostile.py /tmp/h && TZ=UTC go run . html --no-open --sources claude --root /tmp/h/fx/projects --week 2026-10-05 -o /tmp/xss.html
+//   python3 tools/screenshots/hostile.py /tmp/h && TZ=UTC go run . html --no-open --sources claude --claude-root /tmp/h/fx/projects --week 2026-10-05 -o /tmp/xss.html
 //   node tools/screenshots/xss.mjs /tmp/xss.html
 import { chromium } from "playwright";
 import path from "node:path";

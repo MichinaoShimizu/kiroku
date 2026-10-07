@@ -12,7 +12,7 @@ python3 "$here/gen.py" "$work"
 python3 "$here/mkgit.py" "$work"
 # gen.py は日本時間で作るので、日ごとの集計も日本時間で区切る。--html（デモ）では、どこから開いてもこの時計で見せる
 if [ "${1:-}" = "--html" ]; then demo=1; else demo=; fi
-(cd "$root" && TZ=Asia/Tokyo KIROKU_DEMO=$demo go run . html --no-open --sources claude --root "$work/home/.claude/projects" -o "$work/kiroku.html")
+(cd "$root" && TZ=Asia/Tokyo KIROKU_DEMO=$demo go run . html --no-open --sources claude --claude-root "$work/home/.claude/projects" -o "$work/kiroku.html")
 if [ "${1:-}" = "--html" ]; then # ダミーデータの HTML だけを作る（利用者目線のテストなどに使う）
   cp "$work/kiroku.html" "${2:?出力先の HTML を指定してください}"
   echo "${2} を作りました"

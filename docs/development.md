@@ -23,7 +23,7 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | Location | Role |
 |---|---|
 | `main.go` | The entry point only (kept at the root so `go install github.com/MichinaoShimizu/kiroku@latest` works); the commands are in `internal/cli` |
-| `internal/cli/cli.go` | Subcommands (`serve`, `html`, `json`, `archive`, `autostart`, `doctor`, `version`, `update`, `help`), option parsing, and the old syntax (`kiroku --serve` and so on) |
+| `internal/cli/cli.go` | Subcommands (`serve`, `html`, `json`, `archive`, `autostart`, `doctor`, `version`, `update`, `help`), option parsing, and the message that points the removed old syntax (`kiroku --serve` and so on) to the new one |
 | `internal/cli/load.go` | Loading history (removing duplicates), overriding the price table |
 | `internal/cli/archive.go` | `kiroku archive` (status, `on`, and `off`, which offers to delete the copies only in a folder marked by `on`) |
 | `internal/cli/update.go` | `kiroku update` (downloads from Releases, verifies, and replaces itself) |
@@ -123,11 +123,11 @@ Other workflows:
 
 ## Making a release
 
-The version number is decided from the contents of `## Unreleased` by semantic versioning. `sh tools/next-version.sh` prints the next number.
+The version number is decided from the contents of `## Unreleased` by semantic versioning. `sh tools/next-version.sh` prints the next number. What counts as breaking (and what doesn't) is in [compatibility.md](compatibility.md).
 
 | Contents of Unreleased | Part to bump |
 |---|---|
-| A change marked `BREAKING` (one that breaks compatibility in usage, such as commands, options or output files; changes only to the view's appearance don't count) | major from 1.0, minor while in 0.x |
+| A change marked `BREAKING` (one that breaks something [compatibility.md](compatibility.md) keeps compatible, such as commands, options or `kiroku archive` copies; changes to the view or the metrics don't count) | major from 1.0, minor while in 0.x |
 | Has `### Added` | minor |
 | Anything else (`### Changed`, `### Fixed`, `### Removed` and so on) | patch |
 

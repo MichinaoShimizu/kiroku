@@ -62,7 +62,7 @@ kiroku update             # update to the latest release
 kiroku help               # all commands ("kiroku <command> --help" for options)
 ```
 
-The [guide](docs/guide.md) explains the view, every metric, which histories are read, all options, and [how to uninstall](docs/guide.md#uninstall).
+The [guide](docs/guide.md) explains the view, every metric, which histories are read, all options, and [how to uninstall](docs/guide.md#uninstall). [Compatibility](docs/compatibility.md) says what a version number promises.
 
 ## Contributing
 

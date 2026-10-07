@@ -15,7 +15,7 @@ func TestHTMLAndJSONArePrivate(t *testing.T) {
 	setup(t)
 	h := filepath.Join("testdata", "home")
 	dir := t.TempDir()
-	common := []string{"--root", filepath.Join(h, ".claude", "projects"), "--kiro-home", filepath.Join(h, ".kiro"), "--sources", "claude,kiro"}
+	common := []string{"--claude-root", filepath.Join(h, ".claude", "projects"), "--kiro-home", filepath.Join(h, ".kiro"), "--sources", "claude,kiro"}
 	for _, c := range []struct{ cmd, name string }{{"html", "k.html"}, {"json", "k.json"}} {
 		out := filepath.Join(dir, c.name)
 		if err := os.WriteFile(out, []byte("old"), 0o644); err != nil {
@@ -77,7 +77,7 @@ func TestJSONStdout(t *testing.T) {
 	h := filepath.Join("testdata", "home")
 	dir := t.TempDir()
 	wd, _ := os.Getwd()
-	args := []string{"json", "-o", "-", "--root", filepath.Join(wd, h, ".claude", "projects"), "--kiro-home", filepath.Join(wd, h, ".kiro"), "--sources", "claude,kiro"}
+	args := []string{"json", "-o", "-", "--claude-root", filepath.Join(wd, h, ".claude", "projects"), "--kiro-home", filepath.Join(wd, h, ".kiro"), "--sources", "claude,kiro"}
 	if err := os.Chdir(dir); err != nil {
 		t.Fatal(err)
 	}

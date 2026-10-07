@@ -83,20 +83,20 @@ func dispatch(args []string) error {
 		return nil
 	}
 	if strings.HasPrefix(args[0], "-") {
-		return runLegacy(args) // 前の書き方（kiroku --serve など）
+		return legacyForm(args[0])
 	}
 	return fmt.Errorf("unknown command: %s (run \"kiroku help\" for the list)", args[0])
 }
 
 // common は、履歴を読むコマンドに共通のオプション。
 type common struct {
-	root, kiroHome, crewHome, kiroCLIDB, amazonQDB, codexHome, sources, prices, archiveDir *string
-	gap                                                                                    *int
+	claudeRoot, kiroHome, crewHome, kiroCLIDB, amazonQDB, codexHome, sources, prices, archiveDir *string
+	gap                                                                                          *int
 }
 
 func addCommon(fs *flag.FlagSet) *common {
 	return &common{
-		root:       fs.String("root", source.DefaultClaudeRoot(), "Claude Code history directory ($CLAUDE_CONFIG_DIR/projects or ~/.claude/projects)"),
+		claudeRoot: fs.String("claude-root", source.DefaultClaudeRoot(), "Claude Code history directory ($CLAUDE_CONFIG_DIR/projects or ~/.claude/projects)"),
 		kiroHome:   fs.String("kiro-home", source.DefaultKiroHome(), "Kiro data directory ($KIRO_HOME)"),
 		crewHome:   fs.String("crew-home", "", "Kiro Crew data directory (default $KIROCREW_HOME or <kiro-home>/crew)"),
 		kiroCLIDB:  fs.String("kiro-cli-db", "", "path to the legacy Kiro CLI data.sqlite3 (default: OS-specific)"),
@@ -116,7 +116,7 @@ func (c *common) picked() ([]source.Source, map[string]bool) {
 		want[strings.ToLower(strings.TrimSpace(s))] = true
 	}
 	var picked []source.Source
-	for _, s := range source.All(source.Options{ClaudeRoot: *c.root, KiroHome: *c.kiroHome, KiroCLIDB: *c.kiroCLIDB,
+	for _, s := range source.All(source.Options{ClaudeRoot: *c.claudeRoot, KiroHome: *c.kiroHome, KiroCLIDB: *c.kiroCLIDB,
 		AmazonQDB: *c.amazonQDB, CrewHome: *c.crewHome, CodexHome: *c.codexHome, Archive: *c.archiveDir}) {
 		if want[s.Family()] {
 			picked = append(picked, s)
@@ -190,6 +190,14 @@ func splitList(s string) []string {
 
 // parse はオプションと、オプションの前後に置いた位置引数（最大 maxPos 個）を読む。
 func parse(fs *flag.FlagSet, args []string, maxPos int) ([]string, error) {
+	for _, a := range args { // v0.20 で名前を変えた（flag のエラーと使い方の一覧より先に、新しい名前を教える）
+		if a == "--" {
+			break
+		}
+		if name, _, _ := strings.Cut(a, "="); name == "-root" || name == "--root" {
+			return nil, fmt.Errorf("--root has been renamed to --claude-root")
+		}
+	}
 	var pos []string
 	for {
 		if err := fs.Parse(args); err != nil {
@@ -325,14 +333,14 @@ func loadNonEmpty(c *common) (snapshot, error) {
 	}
 	snap := load()
 	if len(snap.data) == 0 {
-		return snap, fmt.Errorf("no history found; check where your agents keep it (--root, --kiro-home, --codex-home, --amazonq-db; see \"kiroku html --help\")")
+		return snap, fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --codex-home, --amazonq-db; see \"kiroku html --help\")")
 	}
 	return snap, nil
 }
 
 func writeHTML(snap snapshot, out string, open bool) error {
 	if len(snap.data) == 0 {
-		return fmt.Errorf("no history found; check where your agents keep it (--root, --kiro-home, --codex-home, --amazonq-db; see \"kiroku html --help\")")
+		return fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --codex-home, --amazonq-db; see \"kiroku html --help\")")
 	}
 	html, err := web.Render(snap.data, snap.weeks, snap.months, snap.meta, snap.gen, false)
 	if err != nil {
@@ -350,8 +358,11 @@ func writeHTML(snap snapshot, out string, open bool) error {
 	return nil
 }
 
+// jsonSchema は kiroku json の形の版。docs/compatibility.md の項目を消したり、名前や意味を変えたりしたら上げる（BREAKING）。
+const jsonSchema = 1
+
 func writeJSON(snap snapshot, out string) error {
-	b, err := json.MarshalIndent(map[string]any{"sessions": snap.data, "weeks": snap.weeks, "months": snap.months, "meta": snap.meta}, "", " ")
+	b, err := json.MarshalIndent(map[string]any{"schemaVersion": jsonSchema, "sessions": snap.data, "weeks": snap.weeks, "months": snap.months, "meta": snap.meta}, "", " ")
 	if err != nil {
 		return err
 	}
@@ -385,64 +396,13 @@ func writePrivate(out string, b []byte) error {
 	return os.Rename(tmp.Name(), out)
 }
 
-// runLegacy は前の書き方（kiroku --serve、--json、-o など）。何も選ばなければヘルプを出す。
-func runLegacy(args []string) error {
-	args = normalizeArgs(args)
-	fs := flag.NewFlagSet("kiroku", flag.ContinueOnError)
-	fs.Usage = func() { printHelp(fs.Output()) }
-	c := addCommon(fs)
-	out := fs.String("out", "kiroku.html", "")
-	fs.StringVar(out, "o", "kiroku.html", "")
-	noOpen := fs.Bool("no-open", false, "")
-	fs.String("md-dir", ".", "")
-	weekly := fs.String("weekly", "", "")
-	monthly := fs.String("monthly", "", "")
-	jsonOut := fs.String("json", "", "")
-	serve := fs.String("serve", "", "")
-	interval := fs.Duration("interval", 5*time.Second, "")
-	showVersion := fs.Bool("version", false, "")
-	if err := fs.Parse(args); err != nil {
-		return quiet(err)
+// legacyForm は、v1.0 の前に消した前の書き方（kiroku --serve、--json、-o など）に、いまの書き方を教える。
+func legacyForm(arg string) error {
+	name, _, _ := strings.Cut(strings.TrimLeft(arg, "-"), "=")
+	now := map[string]string{"serve": "kiroku serve", "json": "kiroku json -o FILE", "o": "kiroku html -o FILE", "out": "kiroku html -o FILE",
+		"weekly": "kiroku serve", "monthly": "kiroku serve"}[name]
+	if now == "" {
+		return fmt.Errorf("unknown command: %s (run \"kiroku help\" for the list)", arg)
 	}
-	if fs.NArg() > 0 {
-		return fmt.Errorf("unknown command: %s (run \"kiroku help\" for the list)", fs.Arg(0))
-	}
-	explicitOut := false
-	fs.Visit(func(f *flag.Flag) {
-		if f.Name == "o" || f.Name == "out" {
-			explicitOut = true
-		}
-	})
-	note := func(newForm string) {
-		fmt.Fprintf(os.Stderr, "(this form is deprecated; use %s instead)\n", newForm)
-	}
-	switch {
-	case *showVersion:
-		return runVersion()
-	case *weekly != "" || *monthly != "":
-		return fmt.Errorf("the Markdown weekly/monthly summary has been removed; use \"kiroku serve\" instead")
-	case *serve != "":
-		note("kiroku serve")
-		picked, load, err := c.loader()
-		if err != nil {
-			return err
-		}
-		return serveLive(*serve, nil, *interval, picked, load, c.keepFn(), !*noOpen)
-	case *jsonOut != "":
-		note("kiroku json -o " + *jsonOut)
-		snap, err := loadNonEmpty(c)
-		if err != nil {
-			return err
-		}
-		return writeJSON(snap, *jsonOut)
-	case explicitOut:
-		note("kiroku html -o " + *out)
-		_, load, err := c.loader()
-		if err != nil {
-			return err
-		}
-		return writeHTML(load(), *out, !*noOpen)
-	}
-	printHelp(os.Stdout)
-	return nil
+	return fmt.Errorf("\"kiroku %s\" has been removed; use \"%s\" instead", arg, now)
 }

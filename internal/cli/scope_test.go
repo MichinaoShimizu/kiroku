@@ -114,7 +114,7 @@ func TestHTMLEmptyPeriod(t *testing.T) {
 	setup(t)
 	h := filepath.Join("testdata", "home")
 	out := filepath.Join(t.TempDir(), "w.html")
-	err := dispatch([]string{"html", "--no-open", "--root", filepath.Join(h, ".claude", "projects"), "--kiro-home", filepath.Join(h, ".kiro"), "--sources", "claude,kiro", "--week", "2026-08-03", "-o", out})
+	err := dispatch([]string{"html", "--no-open", "--claude-root", filepath.Join(h, ".claude", "projects"), "--kiro-home", filepath.Join(h, ".kiro"), "--sources", "claude,kiro", "--week", "2026-08-03", "-o", out})
 	if err == nil || !strings.Contains(err.Error(), "no history in the week of 2026-08-03 (your history covers ") {
 		t.Errorf("エラー: %v", err)
 	}
