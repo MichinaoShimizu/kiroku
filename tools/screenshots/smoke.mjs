@@ -182,10 +182,16 @@ async function run(env) {
   await step("説明（?）を Esc で閉じる", async () => {
     const hb = p.locator('#review .hb[data-help="active"]').first();
     await hb.scrollIntoViewIfNeeded(); await hb.click(); await pause();
-    check("? で説明が開く", await hb.getAttribute("aria-expanded") === "true");
-    check("印のない指標でも、説明に 8 週の推移が出る", await p.locator('#review .hint[data-hint="active"] .htrend svg').first().isVisible());
+    const card = await hb.evaluate(b => b.closest(".stat").getBoundingClientRect().height);
+    check("? で説明が吹き出しで開く", await hb.getAttribute("aria-expanded") === "true" && await p.locator("#hpop").isVisible());
+    check("説明を開いてもカードは広がらない", await hb.evaluate(b => b.closest(".stat").getBoundingClientRect().height) === card);
+    const pop = await p.locator("#hpop").boundingBox();
+    check("吹き出しが画面の横に収まる", pop && pop.x >= 0 && pop.x + pop.width <= env.viewport.width + 1, JSON.stringify(pop));
+    check("印のない指標でも、説明に 8 週の推移が出る", await p.locator("#hpop .htrend svg").first().isVisible());
     await p.keyboard.press("Escape"); await pause();
-    check("Esc で説明が閉じ、? にフォーカスが戻る", await hb.getAttribute("aria-expanded") === "false" && await hb.evaluate(b => b === document.activeElement));
+    check("Esc で説明が閉じ、? にフォーカスが戻る", await hb.getAttribute("aria-expanded") === "false" && !(await p.locator("#hpop").isVisible()) && await hb.evaluate(b => b === document.activeElement));
+    await hb.click(); await pause(); await p.mouse.click(4, env.viewport.height - 4); await pause();
+    check("吹き出しの外を押すと閉じる", !(await p.locator("#hpop").isVisible()));
   });
 
   await step("見直す候補", async () => {

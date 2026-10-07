@@ -9,8 +9,8 @@ function summary(){
   const WK = $("#worth"); $("#sres").hidden = true; $("#sres").innerHTML = "";
   if (!w){ WK.hidden = true; R.innerHTML = foot(); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
-  const stat = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}${hint(h)}</div>`;
-  const ph = (n, t, s, h) => `<div class="ph"><span class="no">${n}</span><h3>${t}${hb(h)}</h3><span>${s}</span></div>${hint(h)}`;
+  const stat = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
+  const ph = (n, t, s, h) => `<div class="ph"><span class="no">${n}</span><h3>${t}${hb(h)}</h3><span>${s}</span></div>`;
   const pct = v => v == null ? "Unknown" : `${v}<small>%</small>`;
   const times = n => `${n}`;
   const F = findList(w, pw, unit);
@@ -37,9 +37,9 @@ function summary(){
     ${aiUsage(w, pw, unit) || `<p class="none">No token or credit records.</p>`}
     ${nativeSection(w)}</section>
   <section class="panel shape">${ph(5, M ? "Shape of the month" : "Shape of the week", "Friction and repeated prompts")}
-    ${w.friction.length ? `<h3>Possible friction${hb("friction")}</h3>${hint("friction")}` : ""}
+    ${w.friction.length ? `<h3>Possible friction${hb("friction")}</h3>` : ""}
     ${w.friction.length ? w.friction.map(f=>`<button class="card" data-id="${esc(f.id)}"><span class="ti">${esc(f.title)}</span><span class="me">${md(f.start)} · ${esc(f.project)} ${whyOf(f).map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}</span></button>`).join("") : ""}
-    ${repeatsOf(period().ws, period().we).length ? `<h3>Repeated prompts${hb("repeats")}</h3>${hint("repeats")}` : ""}
+    ${repeatsOf(period().ws, period().we).length ? `<h3>Repeated prompts${hb("repeats")}</h3>` : ""}
     ${(() => { const {ws, we} = period(), RP = repeatsOf(ws, we); return RP.length ? RP.slice(0, 3).map(c => `<button class="card" data-id="${esc(c.id)}"><span class="ti">${esc(snipOf(c.text, 90))}</span><span class="me">${`${c.n} times in ${c.ids.size} sessions ${uThis(unit)} · last on ${md(c.last)}`}</span></button>`).join("") : ""; })()}
     ${w.friction.length || repeatsOf(period().ws, period().we).length ? "" : `<p class="none">No sessions with possible friction and no repeated prompts.</p>`}</section>
   <section class="panel ask">${ph(6, "Ask AI for suggestions", "A prompt that asks for suggestions based on this data")}
@@ -61,6 +61,7 @@ function summary(){
 
   const ac = R.querySelector("#askcopy"); if (ac) ac.onclick = () => copy($("#askpre").textContent);
   bindCopy(R); bindHelp(R); bindHelp(WK);
+  if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }
 /* 期間の言い方（unit は "週" か "月"） */
 const uThis = unit => unit === "月" ? "this month" : "this week";
@@ -149,26 +150,29 @@ const HELP = {
   native: {n: "Agent-specific metrics", d: "Numbers each agent records in its history", c: "Trends within the same agent", x: "Comparisons between agents (definitions differ)", a: "Only look at changes over time for the same agent"},
 };
 const H = () => HELP;
-const openHelp = new Set(); // 再描画（週の移動・自動更新）しても開いた説明は開いたまま
 // 期間のエージェントのどれも記録しない指標のカード（unrecorded）。数字の欄に「—」を太字で出すと 0 や読み込み中に見えるので、
 // 数字の代わりに控えめな文で「記録されていない」と言い、点線の枠で数字のカードと見分けがつくようにする
-function norecStat(k, srcs, h){ return `<div class="stat norec"><div class="k">${k}${hb(h)}</div><div class="v">Not recorded</div><div class="s">${esc(`${srcs.join(", ")} ${srcs.length > 1 ? "don't" : "doesn't"} record this`)}</div>${hint(h)}</div>`; }
-function hb(id){ return H()[id] ? `<button class="hb" data-help="${id}" aria-label="${`How to read ${H()[id].n}`}" aria-expanded="${openHelp.has(id)}">?</button>` : ""; }
-function hint(id){ const h = H()[id]; if (!h) return "";
+function norecStat(k, srcs, h){ return `<div class="stat norec"><div class="k">${k}${hb(h)}</div><div class="v">Not recorded</div><div class="s">${esc(`${srcs.join(", ")} ${srcs.length > 1 ? "don't" : "doesn't"} record this`)}</div></div>`; }
+function hb(id){ return H()[id] ? `<button class="hb" data-help="${id}" aria-label="${`How to read ${H()[id].n}`}" aria-expanded="false" aria-controls="hpop">?</button>` : ""; }
+// hintBody は「?」の説明の中身（定義・わかること・わからないこと・次にやること・推移）。押した ? の近くの吹き出し（#hpop）に出す
+function hintBody(id){ const h = H()[id]; if (!h) return "";
   const tr = MET[id] ? spark(id, true) : ""; // 推移を出せる指標は、印が付いていなくても説明の中で推移を見られる
-  return `<div class="hint" data-hint="${id}"${openHelp.has(id) ? "" : " hidden"}><p>${esc(h.d)}</p><dl><dt>Tells you</dt><dd>${esc(h.c)}</dd><dt>Doesn't tell you</dt><dd>${esc(h.x)}</dd><dt>What to try</dt><dd>${esc(h.a)}</dd></dl>${tr ? `<div class="htrend">${tr}</div>` : ""}</div>`; }
+  return `<p class="hpt">${esc(h.n)}</p><p>${esc(h.d)}</p><dl><dt>Tells you</dt><dd>${esc(h.c)}</dd><dt>Doesn't tell you</dt><dd>${esc(h.x)}</dd><dt>What to try</dt><dd>${esc(h.a)}</dd></dl>${tr ? `<div class="htrend">${tr}</div>` : ""}`; }
 
-const helpOrder = []; // 説明を開いた順（Esc で新しいものから閉じる）。{id, b}
-function bindHelp(root){ root.querySelectorAll(".hb").forEach(b => b.onclick = e => { e.stopPropagation();
-  let t = null; // 同じ指標の説明が画面に 2 か所あるので、押したボタンにいちばん近いものを開く
-  for (let a = b.parentElement; a && !t; a = a === root ? null : a.parentElement) t = a.querySelector(`[data-hint="${b.dataset.help}"]`);
-  if (!t) return; t.hidden = !t.hidden; t.hidden ? openHelp.delete(b.dataset.help) : openHelp.add(b.dataset.help); b.setAttribute("aria-expanded", String(!t.hidden));
-  const i = helpOrder.findIndex(x => x.id === b.dataset.help); if (i >= 0) helpOrder.splice(i, 1);
-  if (!t.hidden) helpOrder.push({id: b.dataset.help, b}); }); }
-function closeHint(){ // Esc：いちばん新しく開いた説明を閉じて、その ? へフォーカスを戻す。閉じたら true
-  if (st.sel) return false; // 詳細を開いているときは、詳細を閉じるほう
-  while (helpOrder.length){ const {id, b} = helpOrder[helpOrder.length-1];
-    const btn = b.isConnected && b.getAttribute("aria-expanded") === "true" ? b : $(`:is(#review, #worth) .hb[data-help="${id}"][aria-expanded="true"]`); // 描き直していたら、同じ指標の ? を探す
-    if (!btn || !openHelp.has(id)){ helpOrder.pop(); continue; }
-    btn.click(); btn.focus(); return true; }
-  return false; }
+// 「?」の説明は、カードを広げずに、押した ? の近くの吹き出し（#hpop）に出す。開くのは 1 つだけ。
+// 同じ ? をもう一度・Esc・吹き出しの外を押すと閉じる（Esc では ? にフォーカスを戻す）。描き直しで ? が消えたら閉じる
+let hpopFor = null;
+function bindHelp(root){ root.querySelectorAll(".hb").forEach(b => b.onclick = e => { e.stopPropagation(); hpopFor === b ? hideHint() : showHint(b); }); }
+function showHint(b){ const P = $("#hpop"), body = hintBody(b.dataset.help); if (!body) return;
+  hideHint(); P.innerHTML = body; P.setAttribute("aria-label", b.getAttribute("aria-label")); P.hidden = false; hpopFor = b; b.setAttribute("aria-expanded", "true");
+  const r = b.getBoundingClientRect(), w = P.offsetWidth, h = P.offsetHeight, m = 12;
+  const left = Math.min(Math.max(m, r.left + r.width/2 - w/2), innerWidth - w - m); // 画面の端からはみ出さない
+  const below = r.bottom + 8 + h <= innerHeight - m || r.top - 8 - h < m; // 下に入らなければ上に
+  P.style.left = `${left + scrollX}px`; P.style.top = `${(below ? r.bottom + 8 : r.top - 8 - h) + scrollY}px`; }
+function hideHint(){ const P = $("#hpop"); if (P.hidden) return; P.hidden = true; P.innerHTML = "";
+  if (hpopFor) hpopFor.setAttribute("aria-expanded", "false"); hpopFor = null; }
+function closeHint(){ // Esc：開いている説明を閉じて、その ? へフォーカスを戻す。閉じたら true
+  if (st.sel || !hpopFor) return false; // 詳細を開いているときは、詳細を閉じるほう
+  const b = hpopFor; hideHint(); if (b.isConnected) b.focus(); return true; }
+document.addEventListener("click", e => { if (hpopFor && !e.target.closest("#hpop")) hideHint(); });
+addEventListener("resize", () => hideHint());

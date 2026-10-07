@@ -229,7 +229,7 @@ function flagSum(F){ // 期間の要点の下（#worth）に、基準を超え�
   const ids = [...new Set(F.map(f => GOTO[f.k] || f.k))];
   return `<span class="lbl">${ico("flag", "fdot")}Worth a look${hb("findings")}</span>${ids.length
     ? ids.map(id => `<button class="flink" data-goto="${id}">${esc(H()[id].n)}</button>`).join("")
-    : `<span class="muted">No metric crossed a threshold</span>`}${hint("findings")}`;
+    : `<span class="muted">No metric crossed a threshold</span>`}`;
 }
 const flagSes = ids => ids.map(id => { const s = DATA.find(x => x.id === id); return s ? `<button class="fses" data-id="${esc(id)}" style="--c:${colorOf(keyOf(s))}"><i></i><span>${esc(s.title)}</span><small>${md(s.start)}</small></button>` : ""; }).join("");
 /* 見直す候補の 1 つを、画面の真ん中のダイアログで開く（サマリーへ移らずに、何が見えて、なぜ大事で、次に何をするかを読める）。
