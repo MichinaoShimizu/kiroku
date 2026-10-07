@@ -348,9 +348,16 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			}
 			return
 		}
+		// コンパクション（会話を要約して文脈を空けた）は、system の compact_boundary の行（compactMetadata.trigger が
+		// auto か manual、preTokens）と、そのすぐあとの要約の行（isCompactSummary）に残る。同じ 1 回を両方から数えないよう、
+		// Builder.Compact が 1 分以内のものをまとめる（compact_boundary のない古い版は要約の行だけで数える）
+		if typ == "system" && !sidechain && core.Str(e["subtype"]) == "compact_boundary" {
+			s.Compact(t, core.Str(core.Map(e["compactMetadata"])["trigger"]))
+		}
 		// 会話が長くなって自動で要約したときの「This session is being continued…」は、依頼ではない
 		compact, _ := e["isCompactSummary"].(bool)
 		if typ == "user" && !sidechain && compact {
+			s.Compact(t, "")
 			s.Inject(t, "compact", core.TextOf(msg["content"]))
 		} else if typ == "user" && !sidechain && meta {
 			s.InjectAll(t, "meta", core.TextOf(msg["content"])) // スラッシュコマンドが展開した中身や、Claude Code が足した説明

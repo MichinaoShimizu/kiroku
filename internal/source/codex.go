@@ -22,6 +22,7 @@ import (
 //	                item_completed（history_mode が paginated の版の発言。item.type は UserMessage / AgentMessage）
 //	response_item … function_call / custom_tool_call（ツール）、message（role が assistant なら応答）
 //	token_usage_record … 新しい版の使用量（あればこちらを使い、token_count は使わない）
+//	compacted     … コンパクション（会話を要約して文脈を空けた）1 回につき 1 行
 //
 // サブエージェントやフォークのファイルは、親の履歴を自分の session_meta のあとにそのまま写している。
 // 写した行の時刻は写したときのものなので、時刻では分けられない。写しの終わりは次の印で見分ける（codexFile.skip）。
@@ -423,6 +424,13 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 				default:
 					s.Agent(t)
 				}
+			case "compacted":
+				// コンパクション（会話を要約して文脈を空けた）。ローカル・リモート（v2 も）・トークン予算のどれも
+				// replace_compacted_history で 1 回につき 1 行書き、履歴の形（legacy・paginated）によらず残る
+				// （rollout の policy.rs）。同じ 1 回の context_compacted（legacy だけ）や item_completed の
+				// ContextCompaction（paginated）は数えない。フォークやサブエージェントが写した親の行は、上で飛ばしている
+				s.Agent(t)
+				s.Compact(t, "")
 			case "token_usage_record":
 				s.Agent(t)
 				id := core.Str(p["response_id"])

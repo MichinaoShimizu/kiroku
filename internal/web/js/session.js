@@ -21,6 +21,7 @@ function detail(s){
       <div><div class="k">Prompts</div><div class="v">${s.nPrompts}</div></div>
       <div><div class="k">Wait time (median)</div><div class="v">${med==null?"—":secsH(med)}</div></div>
       <div><div class="k">Corrections / interruptions</div><div class="v">${s.corrections + s.interrupts}</div></div>
+      ${s.compactions && s.compactions.length ? `<div><div class="k">Compactions</div><div class="v">${s.compactions.length}</div><div class="k" style="margin-top:2px">${s.compactions.map(hm).join(", ")}</div></div>` : ""}
       ${s.limits && s.limits.length ? `<div><div class="k">Usage limit hits</div><div class="v" style="color:var(--warn)">${s.limits.length}</div><div class="k" style="margin-top:2px">${s.limits.map(hm).join(", ")}</div></div>` : ""}
       ${s.source === "Claude Code" ? `<div><div class="k">Estimated cost${s.costReported ? " (from Claude Code)" : ""}</div><div class="v"${sCost == null ? ` title="${esc(NOPRICE)}"` : ""}>${usdH(sCost)}</div></div>
       <div><div class="k">Tokens</div><div class="v">${tok(allTok)}</div></div>
@@ -92,11 +93,12 @@ function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面で�
   (s.prAt || []).forEach(p => ev.push({t: p.t, k: "pr", l: "Created a pull request", d: `<button class="evd" data-pr="${esc(prKey(s, p))}">${esc(p.url ? prName(p.url) : "Pull request")}</button>`}));
   (s.limits || []).forEach((t, i) => { const r = limitReset(s, i); ev.push({t, k: "warn", l: "Hit a usage limit", d: r ? `<span class="evd">${esc(`resets ${r}`)}</span>` : ""}); }); // 解除の時刻はエラー文のまま（日付や時間帯がないこともある）
   (s.interruptsAt || []).forEach(t => ev.push({t, k: "int", l: "Interrupted"}));
+  (s.compactions || []).forEach((t, i) => { const k = compactKind(s, i); ev.push({t, k: "cmp", l: "Conversation compacted", d: k ? `<span class="evd">${esc(k)}</span>` : ""}); });
   (s.notes || []).forEach(x => { if (x.t) ev.push({t: x.t, k: `note ${x.kind}`, l: NOTE_LABEL()[x.kind] || NOTE_LABEL().other, d: `<span class="evd">${esc(x.text)}</span>`}); }); // 人が打っていないもの（通知・要約など）
   s.subagents.forEach(a => { if (a.start) ev.push({t: a.start, k: "agent", l: "Subagent", d: `<span class="evd"><span class="mono">${esc(a.type)}</span>${a.desc ? ` · ${esc(a.desc)}` : ""}</span>`}); });
   return ev.sort((a, b) => a.t - b.t);
 }
-const EV_ICON = {commit: "commit", push: "push", pr: "pr", warn: "limit", int: "int", agent: "agent", note: "note"}; // 流れの出来事の種類 → 印
+const EV_ICON = {commit: "commit", push: "push", pr: "pr", warn: "limit", int: "int", cmp: "compact", agent: "agent", note: "note"}; // 流れの出来事の種類 → 印
 const pexpLabel = p => p.len > 0 ? `Read more (${p.len.toLocaleString(LOC())} characters)` : "Show all";
 /* 依頼に対する応答（エージェントが人に返した最後の文）。依頼の次の発言として、同じ流れの中に出す */
 function replyRow(r, i, hidden){
@@ -131,7 +133,7 @@ function promptFlow(s){
     kinds.has("note") ? `<span class="kev note">${ico("note")}Added automatically (notifications, summaries, hooks; not counted as prompts)</span>` : "",
     fixes ? `<span><i class="kp fix"></i>Looks like a correction (guessed from the wording)</span>` : "",
     s.prompts.some(p => p.reply) ? `<span class="kev rep">${ico("reply")}${"What the AI wrote back"}</span>` : "",
-    ...[["commit", "Commit"], ["push", "Push"], ["pr", "Pull request"], ["agent", "Subagent"], ["int", "Interruption"], ["warn", "Usage limit"]].filter(([k]) => kinds.has(k)).map(([k, l]) => `<span class="kev ${k}">${ico(EV_ICON[k])}${l}</span>`)].filter(Boolean).join("");
+    ...[["commit", "Commit"], ["push", "Push"], ["pr", "Pull request"], ["agent", "Subagent"], ["int", "Interruption"], ["cmp", "Compaction"], ["warn", "Usage limit"]].filter(([k]) => kinds.has(k)).map(([k, l]) => `<span class="kev ${k}">${ico(EV_ICON[k])}${l}</span>`)].filter(Boolean).join("");
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";
   // 見出しと出し方の切り替えは 1 行に（最初の画面に入るプロンプトを 1 つでも多くする）
   const bar = `<div class="flowhead"><h3>Prompt flow</h3><div class="flowbar"><div class="segc" role="group" aria-label="Show" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">Everything</button><button data-v="user" aria-pressed="${!!st.flowUser}">Only user prompts</button></div><button class="pill" id="pcopy">Copy prompts</button><button class="pill" id="sreview" title="A prompt that asks an AI how you could have prompted and split the work better">Copy review prompt</button></div></div>`;
@@ -152,6 +154,7 @@ function sessionPrompt(s, active, med){
     `- Agent: ${(s.source)}`, `- Project: ${s.project}${s.branch ? ` (branch ${s.branch})` : ""}`,
     `- Time: ${md(s.start)} ${hm(s.start)}–${hm(s.end)}, active time ${dur(active)}`,
     `- Prompts: ${s.nPrompts}, corrections: ${s.corrections}, interruptions: ${s.interrupts}${med == null ? "" : `, median wait time ${secs(med)}`}`];
+  if (s.compactions && s.compactions.length) D.push(`- Compactions (the conversation was summarized to free context): ${s.compactions.length} (${s.compactions.map((t, i) => `${hm(t)}${compactKind(s, i) ? ` ${compactKind(s, i)}` : ""}`).join(", ")})`);
   if (s.limits && s.limits.length) D.push(`- Usage limit hits: ${s.limits.length} (${s.limits.map(hm).join(", ")})`);
   if (s.cost) D.push(`- Estimated cost: ${usd(s.cost)}`);
   if (s.credits) D.push(`- Kiro credits: ${crN(s.credits)}`);
