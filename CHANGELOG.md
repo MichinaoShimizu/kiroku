@@ -6,6 +6,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Changed
 
+- Summary on wide screens: "How you spent time" spans the full width with its cards in four columns, and "How you used AI" and "Shape of the week" share the row below. The three sections used to sit side by side with very different heights, leaving a large empty area under "How you used AI"
 - Cards for metrics that the agents used in the period don't record (usage limit hits, compactions, subagents) now say "Not recorded" in plain text, with which agents don't record it, in a lighter dashed card. Before, a bold "—" stood where the number goes and read like 0 or a loading placeholder, and the card looked as heavy as a real figure
 - Week calendar: sessions that overlap are laid out like other calendars. Sessions that start at about the same time sit side by side; a session that starts later is drawn on top of the earlier one, shifted right, so the earlier one keeps its full width. Before, any overlap halved both blocks for their whole length, so with parallel sessions titles shrank to a few letters ("Find out…")
 
