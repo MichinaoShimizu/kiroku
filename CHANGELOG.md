@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- Cards for metrics that the agents used in the period don't record (usage limit hits, compactions, subagents) now say "Not recorded" in plain text, with which agents don't record it, in a lighter dashed card. Before, a bold "—" stood where the number goes and read like 0 or a loading placeholder, and the card looked as heavy as a real figure
+
 ## v0.21.0 - 2026-10-07
 
 ### Added
