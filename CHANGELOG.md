@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- Each agent has one fixed color everywhere: Claude Code orange, Kiro IDE purple, Kiro CLI pink, Kiro Crew olive, Amazon Q light blue and Codex green (other agents get the colors left over). It no longer depends on how many sessions each agent has, so "Color by: Agent", the agent badge, session cards and the Year in review all use the same color for the same agent
+- Agent-specific metrics are shown directly under "How you used AI" instead of folded away, one card per agent with its badge and its color on the left. Session cards (Heaviest sessions, sessions linked to a commit or push) carry the agent's color on the left too
+
 ## v0.21.2 - 2026-10-07
 
 ### Changed
