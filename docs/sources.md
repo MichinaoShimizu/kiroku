@@ -113,7 +113,7 @@ Kiro credits are added up exactly as recorded in the history. Per-model multipli
 
 ## What history records
 
-Which facts each agent's local history records, and which only official docs give. It was checked against the agents' public sources ([openai/codex](https://github.com/openai/codex), [amazon-q-developer-cli](https://github.com/aws/amazon-q-developer-cli), [kirodotdev/kirocrew](https://github.com/kirodotdev/kirocrew)), official docs, and the reference implementations in [References](#references) (for Kiro IDE and Kiro CLI, whose formats are not documented). Update it when an adapter or an agent's format changes.
+Which facts each agent's local history records, and which only official docs give. It was checked against the agents' public sources ([openai/codex](https://github.com/openai/codex), [amazon-q-developer-cli](https://github.com/aws/amazon-q-developer-cli), [kirodotdev/kirocrew](https://github.com/kirodotdev/kirocrew)), official docs, and the reference implementations in [References](#references) (for Kiro IDE and Kiro CLI, whose formats are not documented). Update it when an adapter or an agent's format changes. Which metrics this leaves each agent with is in [the guide's "What each agent records"](guide.md#what-each-agent-records).
 
 - **Read**: in the history, and kiroku reads it
 - **Not read**: in the history, but kiroku does not read it yet

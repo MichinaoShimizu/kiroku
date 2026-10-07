@@ -208,6 +208,26 @@ Times are calculated in your computer's time zone. All numbers are rough estimat
 
 > These numbers are for reflecting on how you work. Don't use them to compare or evaluate people.
 
+### What each agent records
+
+Not every agent's history records everything kiroku shows. Active time, Total AI run time, Focus blocks, Parallel time, Project switches, Wait time, corrections, Oversized and Repeated prompts, the prompt flow with replies, and Git commits read from your repositories work for every agent. The rest depends on the agent:
+
+| Metric | Claude Code | Codex | Kiro IDE | Kiro IDE (legacy) | Kiro CLI | Kiro Crew | Kiro CLI (SQLite) | Amazon Q |
+|---|---|---|---|---|---|---|---|---|
+| Interruptions (in Prompts with corrections or interruptions) | ✓ | ✓ | — | — | — | — | ✓ | ✓ |
+| Usage limit hits | ✓ | ✓ | — | — | — | — | — | — |
+| Compactions | ✓ | ✓ | — | — | — | — | ✓ (latest only) | ✓ (latest only) |
+| Files changed (session details) | ✓ | ✓ | ✓ | — | ✓ | — (listed for conversations kept in the kiro-cli history) | ✓ | ✓ |
+| Subagents | ✓ | ✓ | — | — | — | — | — | — |
+| Outputs (AI commits, pull requests, sessions that reached a commit or PR, cost per commit) | ✓ | — | — | — | — | — | — | — |
+| Tokens and estimated cost | ✓ | ✓ | — | — | — | Partly (backends other than kiro-cli) | — | — |
+| Kiro credits | — | — | ✓ | ✓ | ✓ | ✓ | — | — |
+| Long conversations | ✓ | ✓ | — | — | — | Partly (backends other than kiro-cli) | — | — |
+| Resume command | ✓ | ✓ | — | — | ✓ | — (shown for conversations kept in the kiro-cli history) | ✓ | ✓ |
+| History retention and `kiroku archive` | ✓ | — | — | — | — | ✓ | — | — |
+
+Where none of the agents used in the period records a metric, the view shows "—" and "Not recorded in … history" instead of 0. Why each one is missing is in [What history records](sources.md#what-history-records).
+
 ### How to read the metrics
 
 Press "?" on any metric in the view to see the same explanation. It is also included as background in the improvement prompts. Don't judge from a single number; read it against your own past periods.
