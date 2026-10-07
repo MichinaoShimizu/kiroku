@@ -14,6 +14,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Tokens, estimated cost, the month-end cost estimate, Kiro credits and the month-end credits estimate now lead the figures at the top, grouped and highlighted as the most important numbers. The month-end estimates used to appear only further down, under "How you used AI". When the figures don't fit next to the heading, they move to their own row instead of being cut off
 - Agent-specific metrics are shown directly under "How you used AI" instead of folded away, one card per agent with its badge and a soft gradient in its color, like the By project cards. Session cards (Heaviest sessions, sessions linked to a commit or push) get the same gradient in their agent's color
 
+### Fixed
+
+- Kiro IDE before 1.0: reading history is fast again. Since v0.20.0, kiroku read every execution file in full, including the whole conversation it carries, which made `kiroku serve`, `html` and `json` several seconds slower with a lot of Kiro IDE history (about 3 s to 7 s for 1,600 sessions with 3,000 execution files). kiroku now picks out only the fields it uses and skips the rest, so reading the execution files takes about a tenth of the time; the results are the same
+
 ## v0.21.2 - 2026-10-07
 
 ### Changed
