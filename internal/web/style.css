@@ -216,6 +216,9 @@ kbd{font:var(--fs-xs)/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px
 .ic{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-2px} /* 形で見分ける印（js/git.js の ICON_PATH） */
 .fdot{color:var(--acc)} /* 見直す候補の印 */
 .stat.flagged{box-shadow:inset 3px 0 0 var(--acc);grid-column:1/-1}
+/* カードのない指標（⑤ の Possible friction・Repeated prompts など）の印も、印の付いたカードと同じ箱に入れる（左の線・地・余白）。どの「Worth a look」も同じ見た目で見つけられるように */
+.flagbox{margin:8px 0 10px;padding:11px 12px 10px;border-radius:10px;background:var(--surface-2);box-shadow:inset 3px 0 0 var(--acc)}
+.flagbox>.fl{margin-top:0;padding-top:0;border-top:0}
 .fl .more{margin:0;font-size:var(--fs-xs)}
 .moreS summary .fdot{margin-left:8px}
 .fl{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding:8px 0 2px;border-top:1px dashed var(--rule-2);min-width:0;overflow-wrap:anywhere}
