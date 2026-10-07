@@ -53,7 +53,8 @@ func TestCompatArchive(t *testing.T) {
 				t.Errorf("コピーの数 %d, want 1", files)
 			}
 			out := filepath.Join(t.TempDir(), "k.json")
-			args := []string{"json", "--root", t.TempDir(), "--sources", "claude", "--archive-dir", dir, "-o", out}
+			t.Setenv("CLAUDE_CONFIG_DIR", t.TempDir()) // 元の履歴はない（コピーだけ）
+			args := []string{"json", "--sources", "claude", "--archive-dir", dir, "-o", out}
 			captureOutput(t, func() {
 				if err := dispatch(args); err != nil {
 					t.Fatal(err)
