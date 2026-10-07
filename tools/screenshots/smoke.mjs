@@ -220,7 +220,7 @@ async function run(env) {
     await p.locator("#wkclose").click(); await pause();
     check("Close で閉じる", !(await p.locator("#wk").evaluate(d => d.open)));
     const ses = p.locator(".flagsum .flink").first(); await ses.scrollIntoViewIfNeeded(); await ses.click(); await pause();
-    const fs = p.locator("#wk .fses").first();
+    const fs = p.locator("#wk .fss .card").first();
     if (await fs.count()){ await fs.click(); await pause();
       check("ダイアログのセッションを押すと、ダイアログを閉じて詳細が開く", !(await p.locator("#wk").evaluate(d => d.open)) && await drawerOpen());
       await p.keyboard.press("Escape"); await pause(); }

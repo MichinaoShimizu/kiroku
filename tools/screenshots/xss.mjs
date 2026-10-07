@@ -55,7 +55,7 @@ await clickAll(".run", "session", async () => {
 });
 await clickAll(".gc", "commit");
 await clickAll(".gm", "pull request");
-await clickAll("#review .card, #review .fses", "summary card");
+await clickAll("#review .card", "summary card");
 for (const v of ["branch", "source", "project"]) { await p.selectOption("#cb2", v); await check(`color by ${v}`); }
 for (const q of ["<img", "alert", "__META__", "javascript", '"><svg']) {
   await p.fill("#q", q); await p.waitForTimeout(200); await check(`search ${q}`);

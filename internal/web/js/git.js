@@ -21,6 +21,10 @@ const ico = (k, cls = "") => `<svg class="ic${cls ? " " + cls : ""}" viewBox="0 
 /* エージェントの目印：ロゴは使わず、頭文字のバッジにする */
 const AG_MARK = {"Claude Code": "CC", "Kiro IDE": "KI", "Kiro IDE (legacy)": "KI", "Kiro CLI": "KC", "Kiro CLI (SQLite)": "KC", "Kiro Crew": "KW", "Amazon Q": "Q", "Codex": "CX"};
 const agMark = name => `<i class="agm" style="--ag:${agColor(name)}" aria-hidden="true">${esc(AG_MARK[name] || String(name).slice(0, 2).toUpperCase())}</i>`;
+/* セッションのカード：セッション名で始まるカードは、どこでもこの形（エージェントの色のグラデーションとエージェントの頭文字）。
+   me はタイトルの下の行（HTML。呼ぶ側でエスケープする）、v は右に出す値（文字。ここでエスケープする） */
+const sesCardH = (s, me, v) => `<button class="card ag" data-id="${esc(s.id)}" style="--ag:${agColor(s.source)}"><span class="ti">${agMark(s.source)}<span>${esc(s.title)}</span></span><span class="me">${me}${v != null ? `<b>${esc(v)}</b>` : ""}</span></button>`;
+const sesById = (id, title) => ({id, title, source: (DATA.find(x => x.id === id) || {}).source}); // 集計（Go）が id と名前だけを持つセッション
 /* リンク：外のページ（GitHub など）は新しいタブで開く */
 function ext(url, label, cls){ return url && /^https?:\/\//i.test(url) ? `<a class="xl${cls ? " "+cls : ""}" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label}</a>` : label; }
 function fileHref(path){ // HTML で見るときの履歴ファイルの file:// の URL（Windows のパスにも対応）
@@ -60,7 +64,7 @@ function commitDetail(c){
       <div><div class="k">Removed</div><div class="v"><small>−</small>${c.removed}<small> lines</small></div></div>
     </div>
     ${c.body ? `<h3>Message body</h3><p class="gbody">${esc(c.body)}</p>` : ""}
-    ${ses ? `<h3>${c.session ? "Session that made this commit" : "Session running at this time"}</h3><button class="card ag" data-id="${esc(ses.id)}" style="--ag:${agColor(ses.source)}"><span class="ti">${esc(ses.title)}</span><span class="me">${md(ses.start)} ${hm(ses.start)}–${hm(ses.end)} · ${esc((ses.source))}</span></button>` : ""}
+    ${ses ? `<h3>${c.session ? "Session that made this commit" : "Session running at this time"}</h3>${sesCardH(ses, `${md(ses.start)} ${hm(ses.start)}–${hm(ses.end)} · ${esc(ses.source)}`)}` : ""}
     ${pushedIn(c).map(p => `<h3>Pushed</h3><button class="gc-row" data-push="${esc(pushKey(p))}"><time>${md(p.t)} ${hm(p.t)}</time><span><i class="gtag">${ico("push")}${esc(p.ref)}</i>${p.commits ? ` ${plural(p.commits, "commit")}` : ""}</span><b></b></button>`).join("")}
     ${c.url ? `<p style="margin-top:14px">${ext(c.url, "Open this commit on the remote ↗", "pill")}</p>` : ""}
     </div><div class="dcol">
@@ -82,7 +86,7 @@ function bindGitEvents(root){ // コミット・push・PR を開くボタン（�
   root.querySelectorAll("[data-git]").forEach(b => b.onclick = e => { e.stopPropagation(); select("git:" + b.dataset.git); });
   root.querySelectorAll("[data-push]").forEach(b => b.onclick = e => { e.stopPropagation(); select("push:" + b.dataset.push); });
   root.querySelectorAll("[data-pr]").forEach(b => b.onclick = e => { e.stopPropagation(); select("pr:" + b.dataset.pr); }); }
-const sesCard = (s, label) => `${label ? `<h3>${label}</h3>` : ""}<button class="card ag" data-id="${esc(s.id)}" style="--ag:${agColor(s.source)}"><span class="ti">${esc(s.title)}</span><span class="me">${md(s.start)} ${hm(s.start)}–${hm(s.end)} · ${esc(s.source)}</span></button>`;
+const sesCard = (s, label) => `${label ? `<h3>${label}</h3>` : ""}${sesCardH(s, `${md(s.start)} ${hm(s.start)}–${hm(s.end)} · ${esc(s.source)}`)}`;
 const gitRow = c => `<button class="gc-row" data-git="${esc(c.hash)}"><time>${md(c.t)} ${hm(c.t)}</time><span><i class="gtag${c.ai ? " ai" : ""}">${GIT_ICON}${esc(c.hash.slice(0,7))}</i> ${esc(c.subject)}</span><b>+${c.added} −${c.removed}</b></button>`;
 function pushDetail(p){
   const P = $("#panel"), byHash = new Map((META.git || []).map(c => [c.hash, c]));
