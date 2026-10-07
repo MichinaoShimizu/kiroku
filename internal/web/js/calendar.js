@@ -171,21 +171,30 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
-    // 重なるものだけ横に並べる（かたまりごとに列の数を決める）
-    let cluster = [], cEnd = -1;
-    const flush = () => { const lanes = []; cluster.forEach(bk => { let i = lanes.findIndex(e => e <= bk.a); if (i<0){ i = lanes.length; lanes.push(0); } lanes[i] = bk.b; bk.lane = i; }); cluster.forEach(bk => bk.L = lanes.length); cluster = []; };
-    blocks.forEach(bk => { if (bk.a >= cEnd){ flush(); cEnd = bk.b; } else cEnd = Math.max(cEnd, bk.b); cluster.push(bk); }); flush();
     let html = "";
     blocks.forEach(bk => { bk.y = clockH(day, bk.a)*hh; bk.h = Math.max(4, (clockH(day, bk.b) - clockH(day, bk.a))*hh - 2); });
+    // 重なる帯の置き方（l・w は溝を除いた幅に対する左端と幅の割合）。ほぼ同時に始まった帯（CASCADE px 以内。名前の 1 行目が見える高さ）はかたまりにして横に並べ、
+    // それより後に始まった帯は、前の帯の上に右へずらして重ねる。前の帯は名前のある上の部分が隠れないので、幅いっぱいのまま読める
+    // （重なれば最後まで 1/L の幅にすると、並行して動かすことの多い人ほど名前が数文字しか読めない）。見た目で重なるか（短い帯の下の名前も入れる）で決める
+    const CASCADE = 20, bot = o => o.y + o.h + (o.h < 10 ? 14 : 0), over = (o, bk) => o.y < bot(bk) && bot(o) > bk.y;
+    const placed = [];
+    for (let i = 0; i < blocks.length;){
+      const grp = [blocks[i]]; let j = i + 1; // かたまり：最初の帯から CASCADE px 以内に始まり、かたまりのどれかと重なる帯
+      while (j < blocks.length && blocks[j].y - blocks[i].y < CASCADE && grp.some(o => over(o, blocks[j]))) grp.push(blocks[j++]);
+      const lanes = []; grp.forEach(bk => { let k = lanes.findIndex(e => e <= bk.y); if (k < 0){ k = lanes.length; lanes.push(0); } lanes[k] = bot(bk); bk.lane = k; });
+      const base = Math.min(.6, Math.max(0, ...placed.filter(o => grp.some(bk => over(o, bk))).map(o => o.l + o.w * .35))); // 重なる前の帯の 35% 右から（何段も重なっても 4 割の幅は残す）
+      grp.forEach(bk => { bk.w = (1 - base) / lanes.length; bk.l = base + bk.lane * bk.w; bk.cas = base > 0; placed.push(bk); });
+      i = j;
+    }
     // 名前の入らない短い帯は、すぐ下があいていれば、そこに名前を出す（ほかの帯と重なるなら出さない。押せば詳細は開ける）
-    const free = bk => !blocks.some(o => o !== bk && o.y < bk.y + bk.h + 14 && o.y + o.h > bk.y + bk.h && o.lane / o.L < (bk.lane + 1) / bk.L && (o.lane + 1) / o.L > bk.lane / bk.L);
+    const free = bk => !blocks.some(o => o !== bk && o.y < bk.y + bk.h + 14 && o.y + o.h > bk.y + bk.h && o.l < bk.l + bk.w && o.l + o.w > bk.l);
     blocks.forEach((bk, j) => {
       const {y, h} = bk, mins = (bk.b-bk.a)/60;
       const dens = Math.min(1, bk.n / Math.max(1, mins) / 2.5), id = runs.length;
-      const pos = `left:calc((100% - var(--g)) * ${(bk.lane/bk.L).toFixed(4)} + 3px);width:calc((100% - var(--g)) / ${bk.L} - 6px)`;
+      const pos = `left:calc((100% - var(--g)) * ${bk.l.toFixed(4)} + 3px);width:calc((100% - var(--g)) * ${bk.w.toFixed(4)} - 6px)`;
       runs.push(bk);
       // 20px 以上は名前（高さに入るだけ 3 行まで折り返す。38px からは下に時刻も）、10px からは小さい字で名前を帯の中に 1 行（帯の外へはみ出して見えないように）、それより短いものは帯の下に名前。名前の入らない細い帯は始まりの時刻（style.css の .st）
-      html += `<button class="run${h < 20 ? " thin" : ""}${st.sel === bk.s.id ? " sel" : ""}" data-r="${id}" data-sid="${esc(bk.s.id)}" style="top:${y}px;height:${h}px;${pos};--c:${colorOf(keyOf(bk.s))};--fill:${Math.round(16+30*dens)}%;--ln:${Math.max(1, Math.floor((h - 8) / 14))};--tl:${Math.max(1, Math.min(3, Math.floor((h - (h >= 38 ? 24 : 8)) / 14.3)))};${st.animate?`--delay:${d*30+Math.min(j,14)*10}ms`:"animation:none"}" aria-label="${esc(`${bk.s.title}, ${bk.s.project}, ${md(bk.a)} ${hm(bk.a)} to ${hm(bk.b)}`)}">${h >= 10 ? `<span class="t"><span>${esc(bk.s.title)}</span></span><span class="st">${hm(bk.a)}</span>` + (h >= 38 ? `<span class="m">${hm(bk.a)}–${hm(bk.b)} · ${esc(bk.s.project)}</span>` : "") : ""}</button>`;
+      html += `<button class="run${h < 20 ? " thin" : ""}${bk.cas ? " cas" : ""}${st.sel === bk.s.id ? " sel" : ""}" data-r="${id}" data-sid="${esc(bk.s.id)}" style="top:${y}px;height:${h}px;${pos};--c:${colorOf(keyOf(bk.s))};--fill:${Math.round(16+30*dens)}%;--ln:${Math.max(1, Math.floor((h - 8) / 14))};--tl:${Math.max(1, Math.min(3, Math.floor((h - (h >= 38 ? 24 : 8)) / 14.3)))};${st.animate?`--delay:${d*30+Math.min(j,14)*10}ms`:"animation:none"}" aria-label="${esc(`${bk.s.title}, ${bk.s.project}, ${md(bk.a)} ${hm(bk.a)} to ${hm(bk.b)}`)}">${h >= 10 ? `<span class="t"><span>${esc(bk.s.title)}</span></span><span class="st">${hm(bk.a)}</span>` + (h >= 38 ? `<span class="m">${hm(bk.a)}–${hm(bk.b)} · ${esc(bk.s.project)}</span>` : "") : ""}</button>`;
       if (h < 10 && free(bk)) html += `<span class="rlab" aria-hidden="true" style="top:${y + h + 1}px;${pos}">${esc(bk.s.title)}</span>`;
     });
     // 右端の溝に、コミット・push・PR を時刻の順に置く（近すぎるものは少し下へずらす）

@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- Week calendar: sessions that overlap are laid out like other calendars. Sessions that start at about the same time sit side by side; a session that starts later is drawn on top of the earlier one, shifted right, so the earlier one keeps its full width. Before, any overlap halved both blocks for their whole length, so with parallel sessions titles shrank to a few letters ("Find out…")
+
 ## v0.21.0 - 2026-10-07
 
 ### Added
