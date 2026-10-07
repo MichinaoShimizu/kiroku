@@ -62,7 +62,16 @@ var NativeDefs = map[string][]NativeDef{
 		{Key: "reasoning", Label: "推論トークン", LabelEn: "Reasoning tokens", Unit: "トークン", Agg: "sum"},
 		{Key: "reasoning_ratio", Label: "出力のうち推論の割合", LabelEn: "Share of output spent on reasoning", Unit: "%", Agg: "ratio", Num: "reasoning", Den: "output", Scale: 100},
 		{Key: "context_used", Label: "コンテキストの最大使用率", LabelEn: "Peak context usage", Unit: "%", Agg: "max", Scale: 100},
+		// 利用上限の枠の使用率（%）。枠の長さ（window_minutes）ごとに分け、わからないものは primary / secondary で出す
+		{Key: "rate_limit_5h", Label: "5時間枠の最大使用率", LabelEn: "Peak 5-hour limit usage", Unit: "%", Agg: "max"},
+		{Key: "rate_limit_daily", Label: "1日枠の最大使用率", LabelEn: "Peak daily limit usage", Unit: "%", Agg: "max"},
+		{Key: "rate_limit_weekly", Label: "週の枠の最大使用率", LabelEn: "Peak weekly limit usage", Unit: "%", Agg: "max"},
+		{Key: "rate_limit_monthly", Label: "月の枠の最大使用率", LabelEn: "Peak monthly limit usage", Unit: "%", Agg: "max"},
+		{Key: "rate_limit_annual", Label: "年の枠の最大使用率", LabelEn: "Peak annual limit usage", Unit: "%", Agg: "max"},
 		{Key: "rate_limit", Label: "レート制限の最大使用率", LabelEn: "Peak rate-limit usage", Unit: "%", Agg: "max"},
+		{Key: "rate_limit_secondary", Label: "2つめのレート制限の最大使用率", LabelEn: "Peak secondary rate-limit usage", Unit: "%", Agg: "max"},
+		{Key: "ttft", Label: "最初のトークンまでの時間（中央値）", LabelEn: "Time to first token (median)", Unit: "秒", Agg: "median"},
+		{Key: "turn_duration", Label: "ターンにかかった時間（中央値）", LabelEn: "Turn duration (median)", Unit: "秒", Agg: "median"},
 		{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},
 	},
 }
