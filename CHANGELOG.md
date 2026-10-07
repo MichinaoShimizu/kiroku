@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- On a phone, the legend chips above the week calendar no longer overlap the "Zoom" label. The chips now get a row of their own below "Color by" and the zoom buttons
+
 ## v0.19.1 - 2026-10-07
 
 ### Changed

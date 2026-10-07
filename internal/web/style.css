@@ -658,6 +658,7 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
   .week{padding:18px 0 14px;gap:14px}
   .wk .d{font-size:var(--fs-3xl)}
   .legend{flex-wrap:wrap;row-gap:6px}.legend .count{order:-1;flex-basis:100%;padding-left:0} /* スマホでは件数を色分けの並びの上に（横にスクロールする並びの右端だと、画面の外に隠れる） */
+  .legend .lrow{order:1;flex-basis:100%}.zlab{margin-left:auto} /* スマホでは色分けのチップを自分の行に（「Color by」とズームの間に挟むと幅が足りず、長い名前のチップがズームの見出しに重なる） */
   .wk{flex-wrap:wrap;row-gap:10px} /* 英語のように長い文言でも、移動のボタンが画面の外に出ないように */
   .wk .nav{flex-wrap:wrap;row-gap:8px;margin-left:0;min-width:0} /* ボタンが増えても、狭い画面では折り返す */
   .kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
