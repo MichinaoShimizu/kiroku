@@ -50,7 +50,7 @@ const (
 //   - https://platform.claude.com/docs/en/about-claude/models/overview （Fable 5.1・Opus 5.5・Sonnet 5.5 は 1M、Haiku 4.5 は 200K）
 //   - https://platform.claude.com/docs/en/build-with-claude/context-windows （Fable・Mythos 5 / 5.1、Opus 4.6 以降、Sonnet 4.6 以降は 1M、
 //     ほかのモデルは Sonnet 4.5 も含めて 200K）
-//   - https://code.claude.com/docs/en/model-config （Claude Code では Fable 5.1・Fable 5・Sonnet 5 以降・Opus 4.7 以降が 1M。
+//   - https://code.claude.com/docs/en/model-config （Claude Code では Fable 5.1・Fable 5・Sonnet 5 以降・Opus 4.7 以降・Haiku 5.5 が 1M。
 //     Opus 4.6・Sonnet 4.6 は [1m] の版を選んだときだけ 1M で、ふつうは 200K）
 //
 // Opus 4.6・Sonnet 4.6 の [1m] の版は履歴のモデル ID からは見分けられないので 200K とし、200K を超える文脈を読んだ応答があれば
@@ -74,6 +74,7 @@ var ContextWindows = map[string]float64{
 	"claude-sonnet-4-6": window200K,
 	"claude-sonnet-4-5": window200K,
 	"claude-sonnet-4":   window200K,
+	"claude-haiku-5-5":  window1M,
 	"claude-haiku-4-5":  window200K,
 	"claude-3-5-haiku":  window200K,
 }

@@ -2,6 +2,16 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Added
+
+- Claude Haiku 5.5 (`claude-haiku-5-5`) is in the price table: $0.10 input, $0.125 / $0.20 cache writes (5 minutes / 1 hour), $0.01 cache reads and $0.50 output per million tokens, and $0.50 / $0.625 / $1 / $0.05 / $2.50 for the whole response when its prompt is over 100,000 tokens. The pricing page doesn't say whether cached tokens count toward the prompt, so kiroku counts new input plus cache writes and reads. Its context window (1M) is in the table for Peak context usage. `docs/upstream/anthropic-pricing.md` now has columns for prices by prompt length, and an entry for the model in `--prices` is used for every length
+
+### Fixed
+
+- Claude Sonnet 5.5: cache reads are priced at $0.10 per million tokens (0.05× input), as on the official pricing page, instead of $0.20. Estimates from the price table were too high for Sonnet 5.5 sessions that read from the cache
+
 ## v0.23.0 - 2026-10-08
 
 ### Added
