@@ -338,7 +338,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 						// Codex は最後のスナップショットを次の token_count にもそのまま書くので、同じものの書き直しは数えない
 						raw, _ := json.Marshal(rl)
 						if core.Str(rl["rate_limit_reached_type"]) != "" && string(raw) != lastLimits {
-							s.Limit(t)
+							s.Limit(t, "")
 						}
 						lastLimits = string(raw)
 						codexRateLimits(s, t, rl)
@@ -373,7 +373,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					s.Agent(t)
 					if e := core.Map(p["error"]); e != nil { // うまく終わらなかったターン（時間は数えない）
 						if codexLimitError(e["codex_error_info"]) {
-							s.Limit(t)
+							s.Limit(t, "")
 						}
 						return
 					}
@@ -573,6 +573,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		parent := byID[cf.parent].b
 		parent.Measures = append(parent.Measures, cf.b.Measures...) // サブエージェントの分も親のセッションの数字に入れる
 		parent.Limits = append(parent.Limits, cf.b.Limits...)       // サブエージェントが上限に当たっても、止まったのは親のセッションの作業
+		parent.LimitResets = append(parent.LimitResets, cf.b.LimitResets...)
 		var start, end *float64
 		if len(cf.b.Times) > 0 {
 			ts := append([]float64(nil), cf.b.Times...)
@@ -600,9 +601,9 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		// サブエージェントの分を足したので、時刻の順に並べ直して 1 分以内のものをまとめ直す
 		hits := append([]float64(nil), s.Limits...)
 		sort.Float64s(hits)
-		s.Limits = nil
+		s.Limits, s.LimitResets = nil, nil // Codex の上限には解除の時刻の文がない
 		for i := range hits {
-			s.Limit(&hits[i])
+			s.Limit(&hits[i], "")
 		}
 		for _, ev := range cf.events {
 			s.AddEvent(ev)

@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 
@@ -22,14 +24,57 @@ func (c *Claude) Family() string { return "claude" }
 func (c *Claude) Where() string  { return c.Root }
 
 // Retention は Claude Code の cleanupPeriodDays（既定 30 日。起動後に、それより古い会話の記録を黙って消す）。
-// 利用者の設定（projects の隣の settings.json）だけを見る。プロジェクトの設定や組織の設定にある場合は読まない。
+// 組織の設定（managed settings）のファイルにあればそれを、なければ利用者の設定（projects の隣の settings.json）を見る。
+// 組織の設定は利用者の設定より強い。claude.ai から届く組織の設定や MDM（macOS の構成プロファイル・Windows のレジストリ）、
+// プロジェクトの設定にある場合は読まない。
+// 出典: https://code.claude.com/docs/en/settings-reference#cleanupperioddays 、https://code.claude.com/docs/en/managed-settings
 func (c *Claude) Retention() *Retention {
 	file := filepath.Join(filepath.Dir(c.Root), "settings.json")
 	r := &Retention{Days: 30, Setting: "cleanupPeriodDays", Snippet: `"cleanupPeriodDays": 3650`, Docs: "https://code.claude.com/docs/en/settings-reference#cleanupperioddays", File: file}
-	if v, ok := core.Num(core.Map(core.ReadJSON(file))["cleanupPeriodDays"]); ok && v >= 1 {
-		r.Days, r.Set = int(v), true
+	if days, from := managedCleanupDays(claudeManagedDir); days > 0 {
+		r.Days, r.Set, r.File = days, true, from
+	} else if days, ok := cleanupDays(configObject(file)); ok {
+		r.Days, r.Set = days, true
 	}
 	return r
+}
+
+// claudeManagedDir は、Claude Code の組織の設定のファイル（managed-settings.json と managed-settings.d/）を置く場所。
+// 出典: https://code.claude.com/docs/en/managed-settings （File-based）
+var claudeManagedDir = map[string]string{
+	"darwin":  "/Library/Application Support/ClaudeCode",
+	"linux":   "/etc/claude-code",
+	"windows": `C:\Program Files\ClaudeCode`,
+}[runtime.GOOS]
+
+// managedCleanupDays は、組織の設定のファイルにある cleanupPeriodDays と、それを書いたファイル。なければ 0。
+// Claude Code と同じく managed-settings.json を先に、managed-settings.d/ の *.json（隠しファイルを除く）を名前の順に重ね、
+// 後のファイルの値が勝つ。
+func managedCleanupDays(dir string) (days int, file string) {
+	if dir == "" {
+		return 0, ""
+	}
+	files := []string{filepath.Join(dir, "managed-settings.json")}
+	for _, f := range glob(filepath.Join(dir, "managed-settings.d", "*.json")) { // glob は名前の順に並べて返す
+		if !strings.HasPrefix(filepath.Base(f), ".") {
+			files = append(files, f)
+		}
+	}
+	for _, f := range files {
+		if d, ok := cleanupDays(configObject(f)); ok {
+			days, file = d, f
+		}
+	}
+	return days, file
+}
+
+// cleanupDays は設定の cleanupPeriodDays。Claude Code が受け付ける形（1 以上の整数の数値）のときだけ ok。
+func cleanupDays(settings map[string]any) (int, bool) {
+	v, ok := settings["cleanupPeriodDays"].(float64)
+	if !ok || v < 1 || v != math.Trunc(v) || v > 1e9 {
+		return 0, false
+	}
+	return int(v), true
 }
 
 // サブエージェントのツール名。v2.1.63 で Task から Agent に変わった。
@@ -281,8 +326,8 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			// 利用上限のエラーは、Claude Code が作った発言（isApiErrorMessage・モデル <synthetic>）として残る
 			apiErr, _ := e["isApiErrorMessage"].(bool)
 			made := apiErr || core.Str(msg["model"]) == "<synthetic>"
-			if made && core.IsLimitError(core.TextOf(msg["content"])) {
-				s.Limit(t)
+			if text := core.TextOf(msg["content"]); made && core.IsLimitError(text) {
+				s.Limit(t, core.LimitReset(text)) // 解除の時刻（"resets 3:45pm"）があれば、書いてあるとおりに残す
 			}
 			// 人に返した文（思考やツール呼び出しは入らない）。1 つの応答が何行かに分かれるので、メッセージ ID でつなぐ。
 			// Claude Code が作ったエラーの発言は、エージェントの応答ではないので入れない
@@ -478,10 +523,14 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		}
 		s.Subagents = append(s.Subagents, core.Subagent{Type: "sidechain", Start: lo, End: hi, Usage: core.SumUsage(sideEvs), Events: sideEvs})
 	}
-	for _, ev := range s.Usage.Events() { // 1 つの応答は 1 回だけ（メッセージ ID でまとめたあと）
+	mainEvs := s.Usage.Events()
+	for _, ev := range mainEvs { // 1 つの応答は 1 回だけ（メッセージ ID でまとめたあと）
 		s.Measure("responses", ev.T, 1)
 		s.Measure("out_per_response", ev.T, ev.U.Out)
 	}
+	// コンテキストの使用率は、親の会話の応答だけで見る（サブエージェントは別の文脈で動く）
+	s.Measures = append(s.Measures, core.ContextUsed(mainEvs)...)
+	s.CtxWindow = core.PeakContextWindow(mainEvs)
 	for _, k := range procOrder {
 		s.Reported = append(s.Reported, *procs[k])
 	}

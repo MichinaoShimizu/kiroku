@@ -88,7 +88,7 @@ function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面で�
   commitsOf(s).forEach(c => ev.push({t: c.t, k: c.ai ? "commit ai" : "commit", l: c.ai ? "AI committed" : "Committed by hand", d: `<button class="evd" data-git="${esc(c.hash)}"><i class="gtag${c.ai ? " ai" : ""}">${GIT_ICON}${esc(c.hash.slice(0,7))}</i> ${esc(c.subject)}</button>`}));
   (META.push || []).filter(p => p.project === s.project && p.t >= s.start && p.t <= s.end + 600).forEach(p => ev.push({t: p.t, k: "push", l: "Pushed", d: `<button class="evd" data-push="${esc(pushKey(p))}"><span class="mono">${esc(p.ref)}</span>${p.commits ? ` · ${plural(p.commits, "commit")}` : ""}</button>`})); // この PC からの push（git reflog）
   (s.prAt || []).forEach(p => ev.push({t: p.t, k: "pr", l: "Created a pull request", d: `<button class="evd" data-pr="${esc(prKey(s, p))}">${esc(p.url ? prName(p.url) : "Pull request")}</button>`}));
-  (s.limits || []).forEach(t => ev.push({t, k: "warn", l: "Hit a usage limit"}));
+  (s.limits || []).forEach((t, i) => { const r = limitReset(s, i); ev.push({t, k: "warn", l: "Hit a usage limit", d: r ? `<span class="evd">${esc(`resets ${r}`)}</span>` : ""}); }); // 解除の時刻はエラー文のまま（日付や時間帯がないこともある）
   (s.interruptsAt || []).forEach(t => ev.push({t, k: "int", l: "Interrupted"}));
   (s.notes || []).forEach(x => { if (x.t) ev.push({t: x.t, k: `note ${x.kind}`, l: NOTE_LABEL()[x.kind] || NOTE_LABEL().other, d: `<span class="evd">${esc(x.text)}</span>`}); }); // 人が打っていないもの（通知・要約など）
   s.subagents.forEach(a => { if (a.start) ev.push({t: a.start, k: "agent", l: "Subagent", d: `<span class="evd"><span class="mono">${esc(a.type)}</span>${a.desc ? ` · ${esc(a.desc)}` : ""}</span>`}); });

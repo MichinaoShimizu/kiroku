@@ -443,8 +443,9 @@ const crewRetentionDefault = 30
 // crewRetentionNever は、これより長い日数を「消さない」と同じに扱う境目（約 2700 年。int にしても溢れない）。
 const crewRetentionNever = 1_000_000
 
-// crewConfigMax は Crew の設定ファイルとして読む大きさの上限。これより大きいファイルは読まない。
-const crewConfigMax = 8 << 20
+// configMax は設定ファイル（Crew の config.json、Claude Code の managed-settings.json など）として読む大きさの上限。
+// これより大きいファイルは読まない。
+const configMax = 8 << 20
 
 // crewRetentionDays は Crew が使う session.archive_retention_days（日数）を読む。never は、Crew が古い記録を消さない設定のとき。
 // Crew と同じく <Crew の場所>/config.json に config.local.json を重ねて読む（config.local.json が勝つ。
@@ -484,8 +485,8 @@ func crewRetentionDays(home string) (days int, never bool) {
 
 // crewSessionSetting は config.json に config.local.json を重ねたときの "session" の key の値。ないなら ok が false。
 func crewSessionSetting(home, key string) (v any, ok bool) {
-	base := crewConfig(filepath.Join(home, "config.json"))
-	local := crewConfig(filepath.Join(home, "config.local.json"))
+	base := configObject(filepath.Join(home, "config.json"))
+	local := configObject(filepath.Join(home, "config.local.json"))
 	sec := base["session"]
 	if l, has := local["session"]; has {
 		lm, lok := l.(map[string]any)
@@ -506,11 +507,11 @@ func crewSessionSetting(home, key string) (v any, ok bool) {
 	return v, ok
 }
 
-// crewConfig は Crew の設定ファイル（JSON の object）を読む。ない・ふつうのファイルでない・大きすぎる・読めない・壊れている・
-// object でないなら nil（Crew もそのファイルを無視して既定値で動く）。手で編集したファイルの先頭の BOM は、Crew と同じく読み飛ばす。
-func crewConfig(path string) map[string]any {
+// configObject は設定ファイル（JSON の object。Crew の設定や Claude Code の設定）を読む。ない・ふつうのファイルでない・大きすぎる・
+// 読めない・壊れている・object でないなら nil（Crew もそのファイルを無視して既定値で動く）。手で編集したファイルの先頭の BOM は、Crew と同じく読み飛ばす。
+func configObject(path string) map[string]any {
 	st, err := os.Stat(path)
-	if err != nil || !st.Mode().IsRegular() || st.Size() > crewConfigMax {
+	if err != nil || !st.Mode().IsRegular() || st.Size() > configMax {
 		return nil
 	}
 	f, err := os.Open(path)
@@ -518,8 +519,8 @@ func crewConfig(path string) map[string]any {
 		return nil
 	}
 	defer f.Close()
-	b, err := io.ReadAll(io.LimitReader(f, crewConfigMax+1))
-	if err != nil || len(b) > crewConfigMax {
+	b, err := io.ReadAll(io.LimitReader(f, configMax+1))
+	if err != nil || len(b) > configMax {
 		return nil
 	}
 	var v any
