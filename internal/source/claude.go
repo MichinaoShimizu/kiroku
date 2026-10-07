@@ -497,7 +497,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		s.Project = filepath.Base(filepath.Dir(path))
 	}
 	if !strings.HasSuffix(path, ".zst") { // 消えた会話（kiroku archive のコピー）は Claude Code で再開できない
-		s.Resume = "cd " + s.Project + " && claude --resume " + s.ID
+		s.Resume = core.ResumeCmd(s.Project, "claude --resume", s.ID)
 	}
 	emit(s) // 途中までしか読めなくても、読めた分は出す
 	return readErr
