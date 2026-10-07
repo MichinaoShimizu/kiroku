@@ -9,6 +9,7 @@ REPOS = os.path.join(OUT, "repos")
 random.seed(7)
 extra = random.Random(11)  # 後から足したもの（コマンド・通知）は別の乱数で、ほかのダミーデータを変えない
 more = random.Random(13)  # さらに後から足したもの（利用上限・サブエージェントの時間）も別の乱数で
+cmpr = random.Random(17)  # コンパクションも別の乱数で
 JST = dt.timezone(dt.timedelta(hours=9))
 projects = {
  "web-app": ["Fix validation on the login form","Add E2E tests for the checkout flow","Find out why the dashboard loads slowly","Clean up API error handling","Update dependencies"],
@@ -58,6 +59,10 @@ for d in range(35, -1, -1):
             if i > 0 and extra.random() < 0.08:  # 自動で入るもの（通知・注記）も混ぜる
                 note = extra.choice(["<task-notification><summary>Background tests finished: 42 passed</summary></task-notification>", "<system-reminder>The user opened src/app.ts in the IDE.</system-reminder>"])
                 lines.append({"type":"user","timestamp":(t-dt.timedelta(seconds=20)).isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"isMeta":True,"message":{"role":"user","content":note}})
+            if i >= 5 and cmpr.random() < (0.12 if grow else 0.02):  # 長くなった会話は、ときどき要約して文脈を空ける（コンパクション）
+                ct = t - dt.timedelta(seconds=15); trig = cmpr.choice(["auto", "auto", "manual"])
+                lines.append({"type":"system","subtype":"compact_boundary","timestamp":ct.isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"content":"Conversation compacted","compactMetadata":{"trigger":trig,"preTokens":cmpr.randint(120000, 190000)}})
+                lines.append({"type":"user","timestamp":(ct+dt.timedelta(seconds=1)).isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"isCompactSummary":True,"message":{"role":"user","content":"This session is being continued from a previous conversation that ran out of context. The conversation is summarized below."}})
             lines.append({"type":"user","timestamp":t.isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"message":{"role":"user","content":txt}})
             for k in range(random.randint(1,5)):
                 t += dt.timedelta(seconds=random.randint(20,240))

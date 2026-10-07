@@ -32,7 +32,8 @@ function askPrompt(w, pw, M){
     `- Parallel time: ${dur(w.parallel)} (up to ${w.maxConc} at once)`,
     `- Wait time (from an AI reply to my next prompt): median ${secs(w.waitMedian)}, 90th percentile ${secs(w.waitP90)} (n=${w.waitCount})`,
     `- Prompts with corrections or interruptions: ${w.fixRate == null ? "unknown" : w.fixRate + "%"} (n=${w.prompts})`,
-    (() => { const {ws, we} = period(), H = limitHits(ws, we); return `- Usage limit hits (Claude Code and Codex): ${H.length ? `${H.length} (${H.map(h => `${md(h.t)} ${hm(h.t)}`).join(", ")})` : "0"}`; })());
+    (() => { const {ws, we} = period(), H = limitHits(ws, we); return `- Usage limit hits (Claude Code and Codex): ${H.length ? `${H.length} (${H.map(h => `${md(h.t)} ${hm(h.t)}`).join(", ")})` : "0"}`; })(),
+    (() => { const {ws, we} = period(), C = compactionsOf(ws, we); return `- Compactions (conversations summarized to free context; Claude Code, Codex and the SQLite history of Amazon Q / Kiro CLI): ${C.length}${C.length ? ` in ${plural(new Set(C.map(c => c.s.id)).size, "session")}` : ""}`; })());
   if (u.tokens || u.credits){
     L.push("", "# AI usage");
     if (u.tokens) L.push(`- Tokens: ${tok(u.tokens)} (output ${tok(u.out)})`,
@@ -89,6 +90,10 @@ function askPrompt(w, pw, M){
 }
 /* 期間 [ws, we) に利用上限に当たった時刻と、そのセッション */
 function limitHits(ws, we){ const H = []; DATA.forEach(s => (s.limits || []).forEach((t, i) => { if (t >= ws && t < we) H.push({t, s, r: limitReset(s, i)}); })); return H.sort((a,b) => a.t - b.t); }
+/* 期間 [ws, we) のコンパクション（会話を要約して文脈を空けた）の時刻と、そのセッション */
+function compactionsOf(ws, we){ const C = []; DATA.forEach(s => (s.compactions || []).forEach(t => { if (t >= ws && t < we) C.push({t, s}); })); return C.sort((a,b) => a.t - b.t); }
+/* i 番目のコンパクションが自動か手動か（わからなければ ""）。履歴の値はそのまま出さず、決まった言葉にする */
+function compactKind(s, i){ return ({auto: "automatic", manual: "manual"})[(s.compactKinds || [])[i]] || ""; }
 /* i 番目の利用上限のエラー文にあった解除の時刻（"3:45pm" など、書いてあるとおりの文。日付や時間帯がないこともある）。なければ "" */
 function limitReset(s, i){ return String((s.limitResets || [])[i] || ""); }
 /* 見直す候補の判定に使う部品（期間 [ws, we) を渡す。推移の計算でも使う） */

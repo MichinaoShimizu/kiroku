@@ -135,6 +135,8 @@ type Builder struct {
 	InterruptTS                    []float64 // 中断した時刻
 	Limits                         []float64 // 利用上限（使用量の上限・レート制限）に当たった時刻
 	LimitResets                    []string  // Limits と同じ並びで、エラー文にあった解除の時刻の文（"3:45pm" など。なければ空）
+	Compactions                    []float64 // 会話を要約して文脈を空けた（コンパクション）時刻
+	CompactKinds                   []string  // Compactions と同じ並びで、自動か手動か（"auto"・"manual"。わからなければ空）
 	CtxWindow                      float64   // 文脈がいちばん大きかった応答のモデルのコンテキストウィンドウ（わからなければ 0。PeakContextWindow）
 	FixTS                          []float64
 	Usage                          *Usage
@@ -286,6 +288,26 @@ func (s *Builder) Limit(ts *float64, reset string) {
 	s.LimitResets = append(s.LimitResets, reset)
 }
 
+// Compact は会話のコンパクション（要約して文脈を空けたこと）を記録する。
+// 1 回のコンパクションを何行かで書くエージェント（Claude Code の compact_boundary と要約の行）のために、
+// 続けて出たもの（1 分以内）は 1 回と数える。kind は "auto" か "manual"（ほかの値やわからないときは空）。
+func (s *Builder) Compact(ts *float64, kind string) {
+	if ts == nil || *ts == 0 {
+		return
+	}
+	if kind != "auto" && kind != "manual" {
+		kind = ""
+	}
+	if n := len(s.Compactions); n > 0 && math.Abs(*ts-s.Compactions[n-1]) < 60 {
+		if s.CompactKinds[n-1] == "" {
+			s.CompactKinds[n-1] = kind
+		}
+		return
+	}
+	s.Compactions = append(s.Compactions, *ts)
+	s.CompactKinds = append(s.CompactKinds, kind)
+}
+
 func (s *Builder) Tool(name string, args any) {
 	if name == "" {
 		name = "?"
@@ -433,11 +455,13 @@ type Session struct {
 	Resume       *string       `json:"resume"`
 	Waits        [][2]float64  `json:"waits"`
 	Interrupts   int           `json:"interrupts"`
-	InterruptsAt []float64     `json:"interruptsAt"`          // 中断した時刻
-	Limits       []float64     `json:"limits"`                // 利用上限に当たった時刻
-	LimitResets  []string      `json:"limitResets,omitempty"` // limits と同じ並びで、解除の時刻の文（"3:45pm" など。日付や時間帯のないこともある。なければ空）
-	Ctx          []float64     `json:"ctx"`                   // 1 回の応答で読んだ入力（文脈）の大きさ [前半, 後半, 最大]（context.go）
-	CtxWindow    float64       `json:"ctxWindow,omitempty"`   // ctx の最大の応答のモデルのコンテキストウィンドウ（わからなければ 0）
+	InterruptsAt []float64     `json:"interruptsAt"`           // 中断した時刻
+	Limits       []float64     `json:"limits"`                 // 利用上限に当たった時刻
+	LimitResets  []string      `json:"limitResets,omitempty"`  // limits と同じ並びで、解除の時刻の文（"3:45pm" など。日付や時間帯のないこともある。なければ空）
+	Compactions  []float64     `json:"compactions,omitempty"`  // 会話を要約して文脈を空けた（コンパクション）時刻
+	CompactKinds []string      `json:"compactKinds,omitempty"` // compactions と同じ並びで "auto"・"manual"（わからなければ空。どれもわからなければ出さない）
+	Ctx          []float64     `json:"ctx"`                    // 1 回の応答で読んだ入力（文脈）の大きさ [前半, 後半, 最大]（context.go）
+	CtxWindow    float64       `json:"ctxWindow,omitempty"`    // ctx の最大の応答のモデルのコンテキストウィンドウ（わからなければ 0）
 	Corrections  int           `json:"corrections"`
 	Models       [][2]any      `json:"models"`
 	Usage        UsageTotal    `json:"usage"`
@@ -573,6 +597,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 			prAt = append(prAt, PRAt{T: *o.T, URL: o.URL})
 		}
 	}
+	compactions, compactKinds := s.compactions()
 	interrupts := append([]float64{}, s.InterruptTS...)
 	sort.Float64s(interrupts)
 	if files == nil {
@@ -589,7 +614,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 		ID: s.ID, Source: s.Source, Project: name, ProjectPath: project, Branch: strOrNil(s.Branch), Title: title,
 		Start: times[0], End: times[len(times)-1], Events: len(times), Segs: Segments(times, float64(gapMin*60)),
 		Prompts: prompts, Notes: s.Notes, NPrompts: len(s.Prompts), Tools: tools, Files: files, NFiles: nFiles, Resume: strOrNil(s.Resume),
-		Waits: s.Waits(), Interrupts: s.Interrupts, InterruptsAt: interrupts, Limits: limits(s.Limits), LimitResets: limitResets(s.LimitResets), Ctx: ctx, CtxWindow: s.CtxWindow, Corrections: s.Corrections(), Models: models,
+		Waits: s.Waits(), Interrupts: s.Interrupts, InterruptsAt: interrupts, Limits: limits(s.Limits), LimitResets: limitResets(s.LimitResets), Compactions: compactions, CompactKinds: compactKinds, Ctx: ctx, CtxWindow: s.CtxWindow, Corrections: s.Corrections(), Models: models,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
 		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: reported, File: s.File, PRs: prs, PRAt: prAt,
 		Native: AggregateNative(s.Source, s.Measures), Meas: s.Measures, OutTracked: s.TracksOutputs,
@@ -615,6 +640,27 @@ func limits(xs []float64) []float64 {
 		return []float64{}
 	}
 	return xs
+}
+
+// compactions は、コンパクションの時刻を古い順に並べ、種類（auto・manual）も同じ順にそろえる。
+// 種類がどれもわからなければ、種類は返さない（JSON に出さない）。
+func (s *Builder) compactions() ([]float64, []string) {
+	if len(s.Compactions) == 0 {
+		return nil, nil
+	}
+	idx := make([]int, len(s.Compactions))
+	for i := range idx {
+		idx[i] = i
+	}
+	sort.SliceStable(idx, func(a, b int) bool { return s.Compactions[idx[a]] < s.Compactions[idx[b]] })
+	ts, kinds := make([]float64, len(idx)), make([]string, len(idx))
+	for i, j := range idx {
+		ts[i] = s.Compactions[j]
+		if j < len(s.CompactKinds) {
+			kinds[i] = s.CompactKinds[j]
+		}
+	}
+	return ts, limitResets(kinds)
 }
 
 // limitResets は、解除の時刻がどれか 1 つでもわかっていれば返す（なければ JSON に出さない）。
