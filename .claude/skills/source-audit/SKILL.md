@@ -1,6 +1,6 @@
 ---
 name: source-audit
-description: 各エージェントの履歴の読み取り（internal/source）を、公開ソース・公式ドキュメント・参考実装と照らし合わせて調べ、docs/sources.md の「What history records」の表を最新にし、見つかった実装ミスをエージェントごとの PR で直す。エージェントの新しい版が出たとき、料金やモデルが変わったとき、定期的な点検に使う。引数でエージェントを絞れる（例: codex、claude、kiro、amazonq）。
+description: "各エージェントの履歴の読み取り（internal/source）を、公開ソース・公式ドキュメント・参考実装と照らし合わせて調べ、docs/sources.md の「What history records」の表を最新にし、見つかった実装ミスをエージェントごとの PR で直す。エージェントの新しい版が出たとき、料金やモデルが変わったとき、定期的な点検に使う。引数でエージェントを絞れる（例：codex、claude、kiro、amazonq）。"
 ---
 
 # 履歴の読み取りの点検（source-audit）
