@@ -161,7 +161,7 @@ function keepRow(r){ // 計測の状態に添える：どこまでさかのぼ�
       : k.days ? `<br>${by}${`Kept for ${k.days} days (<code>${esc(k.setting)}</code>)`}`
       : `<br>${by}${`Older records are deleted after a period (<code>${esc(k.setting)}</code>)`}${link}`); }
 // measure は、計測の状態（読んだ履歴・消える設定・kiroku のコピー・料金表）。ふだんはたたみ、
-// 気をつけること（読めないファイル・既定のままで消える履歴・料金表にないモデル）があるときは、見出しに印を付けて開いておく
+// 気をつけること（読めないファイル・既定のままで消える履歴・料金表にないモデル・似た ID の料金を当てたモデル）があるときは、見出しに印を付けて開いておく
 function measure(w){
   const rows = META.report.map(r => { const dt = r.detailEn || r.detail;
     return `<li class="${r.error?"warn":""}">${esc((r.name))}: ${plural(r.n, "session")}${dt?` (${esc(dt)})`:""}${r.dup?` (${plural(r.dup, "duplicate conversation")} found elsewhere not counted)`:""}${r.error?` (some files couldn't be read)`:""}${keepRow(r)}</li>`; });
@@ -170,8 +170,10 @@ function measure(w){
       : `kiroku's copy: off. Copies kept so far (${plural(a.files, "file")}, ${bytes(a.bytes)}) are still shown`}<br><code>${esc(a.dir)}</code></li>`);
   if (w.usage && w.usage.unpriced) { const ms = (w.usage.unpricedModels || []).map(m => `<code>${esc((m))}</code>`).join(", ");
     rows.push(`<li class="warn">${`${tok(w.usage.unpriced)} tokens from models not in the price table are not included in the estimated cost${ms ? ` (${ms})` : ""}. Add their prices with <code>--prices</code>`}</li>`); }
-  if (w.usage && w.usage.tokens) rows.push(`<li>${`Price table for estimated cost: ${META.prices && META.prices.custom ? "from <code>--prices</code>" : (META.prices ? `public rates as of ${esc(META.prices.asOf)}` : "public rates") + " (change it with <code>--prices</code>)"}`}</li>`);
-  const alert = (META.report || []).some(r => r.error || r.retention && r.retention.days && !r.retention.set && !archOn()) || !!(w.usage && w.usage.unpriced);
+  const pp = (w.usage && w.usage.prefixPriced) || []; // 料金表に同じ ID がなく、似た ID（先頭一致）の料金を当てたモデル
+  if (pp.length) rows.push(`<li class="warn">${`Not in the price table under their own ID, so priced as a similar model: ${pp.map(([m, k]) => `<code>${esc(m)}</code> priced as <code>${esc(k)}</code>`).join(", ")}. If a new model has different rates, set them with <code>--prices</code>`}</li>`);
+  if (w.usage && w.usage.tokens) rows.push(`<li>${`Price table for estimated cost: ${META.prices && META.prices.custom ? "from <code>--prices</code>" : (META.prices ? `Anthropic and OpenAI public rates as of ${esc(META.prices.asOf)}` : "public rates") + " (change it with <code>--prices</code>)"}`}</li>`);
+  const alert = (META.report || []).some(r => r.error || r.retention && r.retention.days && !r.retention.set && !archOn()) || !!(w.usage && w.usage.unpriced) || pp.length > 0;
   const n = (META.report || []).filter(r => r.n).length;
   return `<details class="dsrc"${alert ? " open" : ""}><summary>${ico("caret", "dsc")}<h3>Data sources</h3><span class="muted">${plural(n, "history", "histories")} read</span>${alert ? `<span title="Something here needs your attention">${ico("flag", "fdot")}</span>` : ""}</summary><ul class="mlist">${rows.join("")}</ul></details>`;
 }

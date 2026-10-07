@@ -54,8 +54,9 @@ func TestCodex(t *testing.T) {
 	if f.Usage.In != 200+300 || f.Usage.CR != 800+1200 || f.Usage.Out != 200+150 {
 		t.Errorf("トークン = %+v（同じ値の書き直しは 1 回、cached は入力から分ける）", f.Usage.Tokens)
 	}
-	if f.Usage.Unpriced == 0 || f.Usage.Cost != 0 {
-		t.Errorf("料金表にないモデルは目安コストに入れない: %+v", f.Usage)
+	// gpt-5-codex は料金表にないので、先頭一致の gpt-5 の料金（入力 1.25、キャッシュ済み 0.125、出力 10）
+	if f.Usage.Unpriced != 0 || f.Usage.Cost != core.Round((500*1.25+2000*0.125+350*10)/1e6, 4) {
+		t.Errorf("gpt-5-codex は gpt-5 の料金で見積もる: %+v", f.Usage)
 	}
 	if f.Models[0][0] != "gpt-5-codex" || f.Resume == nil || *f.Resume != "cd /Users/me/web && codex resume thr-main" {
 		t.Errorf("model/resume = %v %v", f.Models, f.Resume)
@@ -158,6 +159,43 @@ func TestCodexCacheWriteTokens(t *testing.T) {
 	// 2 回目は cached + cache_write が input を超える（壊れた値）ので、入力は 0 に止める
 	if u.In != 100 || u.CR != 600+80 || u.CW != 300+40 || u.Out != 60 {
 		t.Errorf("トークン = %+v, want in 100 cr 680 cw 340 out 60", u)
+	}
+}
+
+// OpenAI の料金: In はキャッシュなしの入力、CR はキャッシュ済み入力、CW はキャッシュ書き込み。
+// 1 回の応答（token_usage_record・last_token_usage）の入力が 272K を超えたら、その応答は長いコンテキストの料金。
+// 古い形（前回の合計との差）は何回分かの合計なので、短いコンテキストの料金のまま。
+func TestCodexOpenAIPrices(t *testing.T) {
+	home := t.TempDir()
+	writeCodex(t, home, "thr-price",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-price","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:01.000Z","type":"turn_context","payload":{"model":"gpt-6-sol"}}`,
+		`{"timestamp":"2026-10-06T00:00:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"直して"}}`,
+		`{"timestamp":"2026-10-06T00:00:20.000Z","type":"token_usage_record","payload":{"thread_id":"thr-price","response_id":"r1","usage":{"input_tokens":1000000,"cached_input_tokens":600000,"cache_write_input_tokens":300000,"output_tokens":100000,"total_tokens":1100000}}}`,
+		`{"timestamp":"2026-10-06T00:00:40.000Z","type":"token_usage_record","payload":{"thread_id":"thr-price","response_id":"r2","usage":{"input_tokens":200000,"cached_input_tokens":100000,"output_tokens":10000,"total_tokens":210000}}}`,
+	)
+	writeCodex(t, home, "thr-old",
+		`{"timestamp":"2026-10-06T01:00:00.000Z","type":"session_meta","payload":{"id":"thr-old","timestamp":"2026-10-06T01:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T01:00:01.000Z","type":"turn_context","payload":{"model":"gpt-5.5"}}`,
+		`{"timestamp":"2026-10-06T01:00:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"直して"}}`,
+		`{"timestamp":"2026-10-06T01:00:10.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":100000,"output_tokens":1000,"total_tokens":101000}}}}`,
+		`{"timestamp":"2026-10-06T01:00:20.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":500000,"output_tokens":2000,"total_tokens":502000}}}}`,
+		`{"timestamp":"2026-10-06T01:00:30.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":800000,"output_tokens":3000,"total_tokens":803000},"last_token_usage":{"input_tokens":300000,"output_tokens":1000,"total_tokens":301000}}}}`,
+	)
+	bs := load(t, &Codex{Home: home})
+	cost := map[string]float64{}
+	for _, b := range bs {
+		cost[b.ID] = b.Finish(15).Usage.Cost
+	}
+	// r1: 入力 1M（> 272K）なので長いコンテキスト: 0.1M*4 + 0.3M*5 + 0.6M*0.4 + 0.1M*15
+	// r2: 入力 200K: 0.1M*2 + 0.1M*0.2 + 0.01M*10
+	if want := core.Round(0.4+1.5+0.24+1.5+0.2+0.02+0.1, 4); cost["thr-price"] != want {
+		t.Errorf("thr-price cost = %v, want %v", cost["thr-price"], want)
+	}
+	// 1 回目 100K（合計のまま）・2 回目 400K（差。何回分か分からないので短い料金）・3 回目 300K（last_token_usage なので長い料金）
+	want := (100000*5+1000*30)/1e6 + (400000*5+1000*30)/1e6 + (300000*10+1000*45)/1e6
+	if cost["thr-old"] != core.Round(want, 4) {
+		t.Errorf("thr-old cost = %v, want %v", cost["thr-old"], core.Round(want, 4))
 	}
 }
 

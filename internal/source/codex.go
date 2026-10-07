@@ -160,6 +160,16 @@ func codexTokens(u any) core.Tokens {
 	return core.Tokens{In: max(0, in-cached-written), Out: core.NumOr0(m["output_tokens"]), CW: written, CR: cached}
 }
 
+// codexEvent は 1 つの使用量の記録。perRequest は u が応答 1 回分（last_token_usage・token_usage_record）のとき true で、
+// そのときだけ入力の量で長いコンテキストの料金を選ぶ（古い形の差分は何回分かの合計なので、短いコンテキストの料金にする）。
+func codexEvent(t *float64, model string, u core.Tokens, perRequest bool) core.Event {
+	e := core.Event{T: t, U: u, Model: model, Req: perRequest}
+	if c, ok := core.EventCost(e); ok {
+		e.Cost = &c
+	}
+	return e
+}
+
 // Load は全部の会話を読む。読めないファイルがあっても残りは読み、最初のエラー（と残りの数）を返す。
 func (c *Codex) Load(emit func(*core.Builder)) error {
 	var errs fileErrs
@@ -347,14 +357,15 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					}
 					cur := codexTokens(info["total_token_usage"])
 					u := cur // 1 回目は合計がそのまま 1 回分
+					perRequest := false
 					if last := core.Map(info["last_token_usage"]); last != nil {
-						u = codexTokens(last)
+						u, perRequest = codexTokens(last), true
 					} else if lastTotal >= 0 { // 古い形: 前回の合計との差
 						u = core.Tokens{In: max(0, cur.In-prevTotal.In), Out: max(0, cur.Out-prevTotal.Out),
 							CW: max(0, cur.CW-prevTotal.CW), CR: max(0, cur.CR-prevTotal.CR)}
 					}
 					lastInfo, lastTotal, prevTotal = string(raw), total, cur
-					fromCounts = append(fromCounts, core.Event{T: t, U: u, Model: cf.model})
+					fromCounts = append(fromCounts, codexEvent(t, cf.model, u, perRequest))
 					countMeas = append(countMeas, codexMeasures(t, core.Map(info["last_token_usage"]), core.NumOr0(info["model_context_window"]))...)
 				case "item_completed":
 					// Paginated rollouts persist user turns as ItemCompleted(UserMessage)
@@ -387,7 +398,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					return
 				}
 				records[id] = true
-				fromRecords = append(fromRecords, core.Event{T: t, U: codexTokens(p["usage"]), Model: cf.model})
+				fromRecords = append(fromRecords, codexEvent(t, cf.model, codexTokens(p["usage"]), true))
 				recordMeas = append(recordMeas, codexMeasures(t, core.Map(p["usage"]), 0)...)
 			case "response_item":
 				switch core.Str(p["type"]) {
@@ -519,11 +530,6 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		}
 		for _, m := range msgs {
 			cf.b.Prompt(m.t, m.text)
-		}
-		for i := range pending {
-			if c, ok := core.CostOf(pending[i].Model, pending[i].U); ok {
-				pending[i].Cost = &c
-			}
 		}
 		cf.events = pending
 		cf.title = u.Tag

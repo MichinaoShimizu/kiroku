@@ -77,10 +77,10 @@ func TestUsageDedupesStreamedLines(t *testing.T) {
 }
 
 func TestPriceLongestPrefix(t *testing.T) {
-	if p, _ := PriceOf("claude-opus-5-5"); p[0] != 4 {
+	if p, _ := PriceOf("claude-opus-5-5"); p.Rates[0] != 4 {
 		t.Error("claude-opus-5-5 は claude-opus-5 より長いキーを使う", p)
 	}
-	if p, _ := PriceOf("claude-opus-4-1-20250805"); p[0] != 15 {
+	if p, _ := PriceOf("claude-opus-4-1-20250805"); p.Rates[0] != 15 {
 		t.Error(p)
 	}
 	if _, ok := PriceOf("gpt-x"); ok {
