@@ -55,6 +55,13 @@ This page summarizes where kiroku reads each agent's history from and how. The l
 
 `amazon-q/data.sqlite3` (location in the table in [guide.md](guide.md#histories-read)). Same format as older Kiro CLI versions. `internal/source/qstore.go`
 
+These points apply to both Amazon Q and Kiro CLI (SQLite):
+
+- Lines the CLI writes on your behalf are not counted as prompts: `CancelledToolUses` with "The user interrupted the tool execution." (Ctrl+C during a tool run) counts as an interruption, and the text sent when you deny a tool with "n", the summary request of `--resume` without input, and the messages after a response timeout or history overflow are shown as "Added by the agent". Any other text you type when declining a tool is a prompt
+- Turns that return tool results have no `user.timestamp`, so `request_metadata.request_start_timestamp_ms` is used
+- The model is counted only for history entries with `request_metadata` (an actual request). Interruptions, MCP `/prompts` lines and other lines the CLI adds have none. The oldest `[user, assistant]` format has no `request_metadata` at all, so its entries count except interruptions
+- `response_size` is in bytes (the reply plus the tool input JSON)
+
 ## Codex CLI
 
 `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` (and `.jsonl.zst`) and `archived_sessions/` (under `CODEX_HOME` when it is set). `internal/source/codex.go`

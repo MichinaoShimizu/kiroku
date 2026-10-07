@@ -134,15 +134,38 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 		model := firstNonEmpty(core.Str(core.Get(conv, "model_info", "model_id")), core.Str(conv["model"]))
 		for _, h := range core.List(conv["history"]) {
 			user, asst, meta := historyEntry(h)
+			// ツールの結果を返したターン（ToolUseResults）には user の時刻がない（new_tool_use_results）。
+			// そのときは依頼を送った時刻を使う（ないと週の画面でセッションの頭に寄ってしまう）
 			t := ts(user["timestamp"])
+			if t == nil {
+				t = ts(meta["request_start_timestamp_ms"])
+			}
 			content := core.Map(user["content"])
+			reply := true
 			switch {
 			case content["Prompt"] != nil:
+				text := core.Str(core.Get(content, "Prompt", "prompt"))
 				s.Tick(t)
-				s.Prompt(t, core.Str(core.Get(content, "Prompt", "prompt")))
+				if k := qInjected[strings.TrimSpace(text)]; k != "" {
+					s.Inject(t, k, text)
+					// --resume の要約は、前の依頼への応答ではないので付けない
+					reply = strings.TrimSpace(text) != qResumeSummary
+				} else {
+					s.Prompt(t, text)
+				}
 			case content["CancelledToolUses"] != nil:
+				// ツールを断った・止めたときの発言。prompt は人が打った文か、CLI が入れた決まった文
+				text := core.Str(core.Get(content, "CancelledToolUses", "prompt"))
 				s.Tick(t)
-				s.Prompt(t, core.Str(core.Get(content, "CancelledToolUses", "prompt")))
+				switch strings.TrimSpace(text) {
+				case qInterrupted: // Ctrl+C でツールを止めた。応答も CLI が入れた決まった文なので残さない
+					s.Interrupt(t)
+					reply = false
+				case qDenied: // 「n」でツールを断った
+					s.Inject(t, "meta", text)
+				default:
+					s.Prompt(t, text)
+				}
 			default: // ToolUseResults は自動で返したもの
 				s.Agent(t)
 			}
@@ -163,13 +186,18 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 					s.Measure("ttfc", t, v)
 				}
 				if v, ok := core.Num(meta["response_size"]); ok {
-					s.Measure("response_size", t, v)
+					s.Measure("response_size", t, v) // バイト数（content の len とツール入力の JSON）
 				}
 			}
 			s.Agent(ts(meta["request_start_timestamp_ms"]))
 			s.Agent(ts(meta["stream_end_timestamp_ms"]))
-			if asst != nil {
+			// モデルは、実際にモデルへ依頼したもの（request_metadata がある）だけ数える。
+			// 中断・MCP の /prompts・タイムアウトのときに CLI が足した行は request_metadata がない。
+			// 古い [user, assistant] の形には request_metadata 自体がないので、中断以外は数える
+			if asst != nil && (meta != nil || (isLegacyEntry(h) && reply)) {
 				s.Model(firstNonEmpty(core.Str(meta["model_id"]), model))
+			}
+			if asst != nil && reply {
 				// 人に返した文（Response は答え、ToolUse はツールを使う前に書いた文）。
 				// 応答の時刻は記録にないので、わかれば返し終わった時刻、なければ依頼の時刻にする
 				rt := ts(meta["stream_end_timestamp_ms"])
@@ -186,6 +214,24 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 	}
 	return nil
 }
+
+// amazon-q-developer-cli が人の代わりに入れる決まった文（crates/chat-cli/src/cli/chat の mod.rs・conversation.rs）。
+// どれも人が打ったプロンプトではない。
+const (
+	qInterrupted   = "The user interrupted the tool execution."                                          // ツールの実行中に Ctrl+C（CancelledToolUses）
+	qDenied        = "I deny this tool request. Ask a follow up question clarifying the expected action" // ツールの確認に「n」（CancelledToolUses）
+	qResumeSummary = "In a few words, summarize our conversation so far."                                // 入力なしの --resume（Prompt）
+)
+
+// qInjected は Prompt として入る決まった文と、その Note の種類。
+var qInjected = map[string]string{
+	qResumeSummary: "meta",
+	"You took too long to respond - try to split up the work into smaller steps.": "meta", // 応答のタイムアウト
+	"The conversation history has overflowed, clearing state":                     "meta", // 履歴があふれて消したとき
+}
+
+// isLegacyEntry は、古い版の [user, assistant] の形か（request_metadata を記録しない）。
+func isLegacyEntry(h any) bool { return len(core.List(h)) >= 2 }
 
 // duration は Rust の Duration（{secs, nanos}）か秒の数値を秒にする。
 func duration(v any) (float64, bool) {

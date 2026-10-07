@@ -15,6 +15,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Usage limit hits no longer count errors that are not about your usage: the server's temporary throttling ("API Error: Server is temporarily limiting requests (not your usage limit)") and "Context limit reached" (the conversation is too long). An API key's rate limit ("API Error: Request rejected (429)") still counts
 - Claude Code transcripts that Claude Code set aside (`<session>.orphaned-<timestamp>-<suffix>.jsonl`, also in `kiroku archive` copies) are no longer read as separate sessions, so a conversation is not counted twice
 - Claude Code cache writes are no longer lost for older transcripts that recorded `cache_creation_input_tokens` as 0 with only the `cache_creation` 5-minute / 1-hour breakdown filled in; the breakdown is now used, which corrects tokens and estimated cost
+- Kiro CLI (SQLite) and Amazon Q no longer count lines the CLI writes on your behalf as prompts. Pressing Ctrl+C during a tool run now counts as an interruption, and the text sent when you deny a tool with "n", the summary request of `--resume` without input, and the messages after a response timeout or history overflow are shown as "Added by the agent" in the prompt flow. The fixed reply after an interruption and the `--resume` summary are no longer shown as the reply to your previous prompt
+- Kiro CLI (SQLite) and Amazon Q: turns that return tool results (which carry no time of their own) now use the time the request was sent, so their tool calls, response times and response sizes land on the right day in the weekly view instead of at the start of the session
+- Kiro CLI (SQLite) and Amazon Q: the model is counted only for turns that actually sent a request to it, not for interruptions, MCP `/prompts` lines or other lines the CLI adds without a request
+- The "Response length (average)" metric of Kiro CLI (SQLite) and Amazon Q is now "Response size (average)" in bytes. The CLI records the size in bytes (the reply plus the tool input JSON), not in characters as the label said
 
 ## v0.19.1 - 2026-10-07
 

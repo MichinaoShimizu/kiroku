@@ -172,11 +172,7 @@ func (s *Builder) Agent(ts *float64) {
 
 func (s *Builder) Prompt(ts *float64, text string) {
 	if text != "" && strings.HasPrefix(strings.TrimLeft(text, " \t\r\n"), "[Request interrupted") {
-		s.Interrupts++
-		if ts != nil {
-			s.FixTS = append(s.FixTS, *ts)
-			s.InterruptTS = append(s.InterruptTS, *ts)
-		}
+		s.Interrupt(ts)
 	}
 	pt, notes := splitUser(text)
 	for _, n := range notes {
@@ -194,6 +190,16 @@ func (s *Builder) Prompt(ts *float64, text string) {
 		if pt.kind == "" && IsCorrection(text, first) && ts != nil {
 			s.FixTS = append(s.FixTS, *ts)
 		}
+	}
+}
+
+// Interrupt は、人が AI を途中で止めたことを記録する（プロンプトには数えない）。
+// 中断の文を Prompt に渡さないアダプター（Amazon Q の CancelledToolUses など）が直接呼ぶ。
+func (s *Builder) Interrupt(ts *float64) {
+	s.Interrupts++
+	if ts != nil {
+		s.FixTS = append(s.FixTS, *ts)
+		s.InterruptTS = append(s.InterruptTS, *ts)
 	}
 }
 
