@@ -4,6 +4,16 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Added
+
+- Click any figure at the top (tokens, estimated cost, month-end estimates, credits, active time, active days, sessions, usage limit hits, Git commits) to open its breakdown in a dialog: by day, by agent, by project, by model (tokens and cost), the top sessions, and the definition. The month-end estimates show how they are worked out (so far ÷ days so far × days in the month), with the remaining days drawn at the current pace. Usage limit hits list each hit with its session and reset time. Sessions in the dialog open their details
+
+### Changed
+
+- Each agent has one fixed color everywhere: Claude Code blue, Codex green, Kiro IDE purple, Kiro CLI and Amazon Q (its predecessor) light blue, and Kiro Crew pink. Orange and yellow are left out so an agent never reads as a warning (other agents get a leftover color). It no longer depends on how many sessions each agent has, so "Color by: Agent", the agent badge, session cards and the Year in review all use the same color for the same agent
+- Tokens, estimated cost, the month-end cost estimate, Kiro credits and the month-end credits estimate now lead the figures at the top, grouped and highlighted as the most important numbers. The month-end estimates used to appear only further down, under "How you used AI". When the figures don't fit next to the heading, they move to their own row instead of being cut off
+- Agent-specific metrics are shown directly under "How you used AI" instead of folded away, one card per agent with its badge and a soft gradient in its color, like the By project cards. Session cards (Heaviest sessions, sessions linked to a commit or push) get the same gradient in their agent's color
+
 ### Fixed
 
 - Kiro IDE before 1.0: reading history is fast again. Since v0.20.0, kiroku read every execution file in full, including the whole conversation it carries, which made `kiroku serve`, `html` and `json` several seconds slower with a lot of Kiro IDE history (about 3 s to 7 s for 1,600 sessions with 3,000 execution files). kiroku now picks out only the fields it uses and skips the rest, so reading the execution files takes about a tenth of the time; the results are the same

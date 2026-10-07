@@ -220,7 +220,7 @@ function aiUsage(w, pw, unit){
       <div class="mstack" style="margin-top:8px">${u.models.map((r,i)=>`<span style="flex:${byCost?r[1]:r[2]};--o:${shade(i)}"${tipAttr((r[0]), `Estimated cost ${usd(r[1])}`, `Tokens ${tok(r[2])}`, `${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%`)}></span>`).join("")}</div>
       ${u.models.slice(0,6).map((r,i)=>`<div class="mrow"><span class="nm"><i style="--o:${shade(i)}"></i>${esc((r[0]))}</span><span class="tm">${!r[1] && (u.unpricedModels || []).includes(r[0]) ? `<span title="Not in the price table">—</span>` : usd(r[1])}<small>${tok(r[2])}</small></span><span class="pc">${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%</span></div>`).join("")}` : ""}
     ${u.subTypes.length ? `<div style="margin-top:16px" class="k muted">Subagent types (calls)</div><div style="margin-top:8px" class="chips">${u.subTypes.map(([k,v])=>`<span class="mono">${esc(k)}<b>${v}</b></span>`).join("")}</div>` : ""}
-    ${u.heavy.length ? `<div style="margin-top:16px" class="k muted">Heaviest sessions${hb("heavy")}</div><div style="margin-top:8px">${u.heavy.map(h=>`<button class="card" data-id="${esc(h.id)}"><span class="ti">${esc(h.title)}</span><span class="me">${md(h.start)} · ${esc(h.project)} · ${usd(h.cost)}${h.subagents?` · ${plural(h.subagents, "subagent")}`:""}</span></button>`).join("")}</div>` : ""}`;
+    ${u.heavy.length ? `<div style="margin-top:16px" class="k muted">Heaviest sessions${hb("heavy")}</div><div style="margin-top:8px">${u.heavy.map(h=>`<button class="card ag" data-id="${esc(h.id)}" style="--ag:${agColor((DATA.find(x => x.id === h.id) || {}).source)}"><span class="ti">${esc(h.title)}</span><span class="me">${md(h.start)} · ${esc(h.project)} · ${usd(h.cost)}${h.subagents?` · ${plural(h.subagents, "subagent")}`:""}</span></button>`).join("")}</div>` : ""}`;
 }
 function nativeText(v){
   const num = (x, d) => Number(x.toFixed(d)).toLocaleString(LOC());
@@ -233,9 +233,9 @@ function nativeRows(values){
 }
 function nativeSection(w){
   if (!w.native || !w.native.length) return "";
-  // 各エージェントが自分で記録する数。エージェントどうしでは比べられないので、たたんでおく
-  return `<details class="moreS"><summary>Agent-specific metrics</summary><p class="k muted">Numbers each agent records itself${hb("native")}</p>
-    ${w.native.map(g=>`<div class="ngroup"><div class="hd"><b>${esc((g.source))}</b><span>${plural(g.sessions, "session")}</span></div>${nativeRows(g.values)}</div>`).join("")}</details>`;
+  // 各エージェントが自分で記録する数。エージェントどうしでは比べられないので、エージェントごとのカードに分ける
+  return `<div style="margin-top:16px" class="k muted">Agent-specific metrics (numbers each agent records itself)${hb("native")}</div><div class="ngroups">
+    ${w.native.map(g=>`<div class="ngroup" style="--ag:${agColor(g.source)}"><div class="hd"><b>${agMark(g.source)}${esc((g.source))}</b><span>${plural(g.sessions, "session")}</span></div>${nativeRows(g.values)}</div>`).join("")}</div>`;
 }
 // foot は、ページのいちばん下：作った時刻・kiroku の版（リリースのページへ）・リポジトリへのリンク。
 // リンクは押したときに開くだけで、kiroku からは何も送らない（noopener noreferrer）

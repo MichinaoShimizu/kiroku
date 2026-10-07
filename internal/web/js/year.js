@@ -14,7 +14,7 @@ function yearData(y){
   const sum = f => ms.reduce((a, m) => a + (f(m) || 0), 0);
   const active = sum(m => m.active), fixP = sum(m => m.fixRate == null ? 0 : m.prompts);
   const by = {}; ms.forEach(m => ((m.shares || {}).source || []).forEach(s => by[s.key] = (by[s.key] || 0) + s.minutes));
-  const agents = Object.keys(by).filter(k => by[k] > 0).sort((a, b) => by[b] - by[a]).map((k, i) => ({k, min: by[k], c: PLATE[i] || PLATE_OTHER}));
+  const agents = Object.keys(by).filter(k => by[k] > 0).sort((a, b) => by[b] - by[a]).map(k => ({k, min: by[k], c: PLATE[agIdx(k)] || PLATE_OTHER})); // 画面と同じエージェントの色
   const aMin = agents.reduce((a, g) => a + g.min, 0); agents.forEach(g => g.pct = aMin ? g.min / aMin * 100 : 0);
   const color = Object.fromEntries(agents.map(g => [g.k, g.c]));
   // いちばん長く続けて作業日数

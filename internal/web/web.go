@@ -38,6 +38,7 @@ var scripts = []string{
 	"summary.js",  // サマリー・指標の説明 HELP
 	"review.js",   // 改善案のプロンプト・見直す候補と推移
 	"panels.js",   // 検索結果・週報の下書き・アウトプット・計測の状態など
+	"metric.js",   // 上の帯の数字の内訳（ダイアログ）
 	"git.js",      // 詳細：コミット・push・PR
 	"session.js",  // 詳細：セッション・プロンプトの流れ
 	"year.js",     // 1 年の露光

@@ -86,16 +86,23 @@ function kpis(){
   const {S:w} = period(), K = $("#kpis"), M = st.mode === "month";
   K.classList.toggle("unf", filtering()); // 絞り込みの最中も、ここは全セッションの合計（薄くして、カレンダーの上に断り書き）
   if (!w){ K.innerHTML = `<div class="kpi"><div class="k">${META.scope ? "Not in this file" : shownName()}</div><div class="v">No records</div></div>`; return; }
-  const kpi = (k, v, t) => `<div class="kpi"${t ? ` title="${esc(t)}"` : ""}><div class="k">${k}</div><div class="v">${v}</div></div>`;
-  const u = w.usage || {}, days = w.days.filter(d => d.active).length;
+  // 押すと内訳のダイアログ（metric.js）。id のない数は押せない
+  const kpi = (k, v, t, cls, id) => { const tg = id ? "button" : "div";
+    return `<${tg} class="kpi${cls ? " " + cls : ""}"${id ? ` type="button" data-metric="${id}" aria-haspopup="dialog"` : ""}${t || id ? ` title="${esc(t ? t + (id ? ". Click for the breakdown" : "") : "Click for the breakdown")}"` : ""}><div class="k">${k}</div><div class="v">${v}</div></${tg}>`; };
+  const u = w.usage || {}, days = w.days.filter(d => d.active).length, pj = projection(w);
   const n0 = soFar(), nd = n0 == null ? w.days.length : Math.min(n0, w.days.length); // 途中の週・月は、まだ来ていない日を分母に入れない（今日までの日数）
-  K.innerHTML = kpi("Active time", dur(w.active, true)) + kpi("Active days", `${days}<small> of ${nd}${n0 == null ? "" : " so far"}</small>`, n0 == null ? "" : `${days} of the ${plural(nd, "day")} so far (${M ? "this month" : "this week"} is still in progress)`) +
-    kpi("Sessions / prompts", `${w.sessions}<small>/</small>${w.prompts}`) +
-    (u.tokens ? kpi("Tokens", tok(u.tokens)) + kpi("Estimated cost", usdH(costOf(u)), costOf(u) == null ? NOPRICE : "") : "") +
-    (u.credits ? kpi("Kiro credits", `${crN(u.credits)}<small>cr</small>`) : "") +
-    (() => { const {ws, we} = period(), n = limitHits(ws, we).length; return n ? kpi("Usage limit hits", `<span style="color:var(--warn)">${n}</span>`) : ""; })() +
-    (w.git && w.git.commits ? kpi("Git commits", `${w.git.commits}<small> · ${w.git.ai} by AI</small>`) :
+  const pace = pj ? `Estimate: if the pace of the first ${pj.days} days continues` : "";
+  // トークン・目安コスト・月末の見込み・クレジットは、いちばん大事な数なので先頭にまとめて目立たせる
+  K.innerHTML = (u.tokens ? kpi("Tokens", tok(u.tokens), "", "key", "tokens") + kpi("Estimated cost", usdH(costOf(u)), costOf(u) == null ? NOPRICE : "", "key", "cost") : "") +
+    (pj && pj.cost != null ? kpi("Month-end cost", `<small>≈</small>${usdH(pj.cost)}`, pace, "key", "projection") : "") +
+    (u.credits ? kpi("Kiro credits", `${crN(u.credits)}<small>cr</small>`, "", "key", "credits") : "") +
+    (pj && pj.credits != null ? kpi("Month-end credits", `<small>≈</small>${crN(pj.credits)}<small>cr</small>`, pace, "key", "projectionCr") : "") +
+    kpi("Active time", dur(w.active, true), "", "", "active") + kpi("Active days", `${days}<small> of ${nd}${n0 == null ? "" : " so far"}</small>`, n0 == null ? "" : `${days} of the ${plural(nd, "day")} so far (${M ? "this month" : "this week"} is still in progress)`, "", "days") +
+    kpi("Sessions / prompts", `${w.sessions}<small>/</small>${w.prompts}`, "", "", "sessions") +
+    (() => { const {ws, we} = period(), n = limitHits(ws, we).length; return n ? kpi("Usage limit hits", `<span style="color:var(--warn)">${n}</span>`, "", "", "limits") : ""; })() +
+    (w.git && w.git.commits ? kpi("Git commits", `${w.git.commits}<small> · ${w.git.ai} by AI</small>`, "", "", "commits") :
      w.outputs && w.outputs.commits ? kpi("AI commits", `${w.outputs.commits}`) : "");
+  K.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b));
 }
 
 /* カレンダーの各日（月表示では各週も）に並べる：作業時間・トークン・クレジット・セッション・Git のコミット。
