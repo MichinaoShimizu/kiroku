@@ -397,7 +397,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .none{color:var(--ink-3);font-size:var(--fs-sm)}
 .foot{margin-top:24px;padding-top:14px;border-top:1px solid var(--rule);font-size:var(--fs-xs);color:var(--ink-3);line-height:1.7}
 .code{display:flex;align-items:center;gap:8px;margin-top:10px;background:var(--surface-2);border-radius:8px;padding:7px 8px 7px 11px;font:var(--fs-xs)/1.5 var(--mono);color:var(--ink-2)}
-.code code{flex:1;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
+.code code{flex:1;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere} /* パスやコマンドは途中で切らず、折り返して全部見せる */
 .copy{font:var(--fs-xs) var(--sans);color:var(--ink-2);border:1px solid var(--rule-2);border-radius:6px;padding:3px 8px;background:var(--surface);flex:none}
 .copy:hover{color:var(--ink);border-color:var(--ink-3)}
 .back{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--ink-3)}
@@ -531,6 +531,11 @@ body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:tra
 }
 /* 戻る・閉じるは、中身の 1 行目（種類の小見出し）の右に重ねる。ボタンだけの空いた帯を作らない。中身をスクロールしても押せるよう、パネルの上に固定する */
 .drawer .dh{position:absolute;top:10px;right:14px;z-index:2;display:flex;align-items:center;gap:4px;padding:2px;border-radius:11px;background:color-mix(in oklab,var(--surface) 88%,transparent);backdrop-filter:blur(6px)}
+/* 題名が上へ流れたら（.scrolled、session.js の dtopSync）、戻る・閉じるを幅いっぱいの地の帯にして、題名を小さく出す。本文の上にボタンだけが浮いて重ならないように。
+   上にいるあいだは今までどおり、種類の行の右に並べる（ボタンだけの空いた帯を作らない） */
+.drawer .dh .dt{display:none;flex:1;min-width:0;font-weight:700;font-size:var(--fs-lg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drawer.scrolled .dh{top:0;left:0;right:0;padding:8px 14px 8px 28px;border-radius:0;background:var(--surface);backdrop-filter:none;border-bottom:1px solid var(--rule)}
+.drawer.scrolled .dh .dt{display:block}
 .drawer .db{overflow:auto;padding:22px 28px 48px;flex:1;scrollbar-width:thin;font-size:var(--fs-lg)}
 /* パネルの中は読み物なので、一覧より一回り大きく・濃く */
 .drawer .back{font-size:var(--fs-md);color:var(--ink-2)}
@@ -679,6 +684,7 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
   .panel{padding:18px 16px}
   .drawer .db{padding:18px 16px 40px}
   .drawer .dh{top:8px;right:8px}
+  .drawer.scrolled .dh{padding:6px 8px 6px 16px}
   /* スマホでは画面いっぱいに出す */
   .drawer{width:100vw;height:100dvh;max-height:none;border:0;border-radius:0;transform:translate(-50%,-50%) translateY(16px)}
   .drawer .mini{grid-template-columns:1fr 1fr}
