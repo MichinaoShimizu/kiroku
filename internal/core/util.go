@@ -295,8 +295,18 @@ func Runes(s string, n int) string {
 }
 
 // limitText は、エージェントが返した利用上限（使用量の上限・レート制限）のエラー文。
-// 例: "Claude AI usage limit reached|1750000000"、"5-hour limit reached ∙ resets 3pm"、"API Error: 429 …rate_limit_error…"
-var limitText = regexp.MustCompile(`(?i)usage limit|limit reached|limit will reset|hit your (usage )?limit|reached your .{0,20}limit|rate[_ ]limit|\b429\b`)
+// 例: "Claude AI usage limit reached|1750000000"、"5-hour limit reached ∙ resets 3pm"、"API Error: 429 …rate_limit_error…"、
+// "You've hit your session limit · resets 3:45pm"（weekly・Opus・Sonnet も同じ形）、"You've hit your org's monthly spend limit"、
+// "You've hit your team's shared budget"、"API Error: Request rejected (429)"（API キーのレート制限）。
+// 出典: https://code.claude.com/docs/en/errors （Usage limits）
+var limitText = regexp.MustCompile(`(?i)usage limit|limit reached|limit will reset|hit your [^.\n]{0,40}?(limit|budget)|reached your .{0,20}limit|rate[_ ]limit|\b429\b`)
+
+// notLimitText は、limitText に当たるが利用上限ではないエラー文。
+// "API Error: Server is temporarily limiting requests (not your usage limit)" はサーバー側の一時的な絞り込み、
+// "Context limit reached · /compact or /clear to continue" は会話が長すぎるだけで、どちらも使用量の上限ではない。
+var notLimitText = regexp.MustCompile(`(?i)not your usage limit|temporarily limiting requests|context limit reached`)
 
 // IsLimitError は、文が利用上限のエラーかどうか。
-func IsLimitError(text string) bool { return limitText.MatchString(text) }
+func IsLimitError(text string) bool {
+	return limitText.MatchString(text) && !notLimitText.MatchString(text)
+}
