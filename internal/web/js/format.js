@@ -46,12 +46,13 @@ function isoWeek(d){ d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getD
   const y0 = new Date(Date.UTC(d.getUTCFullYear(),0,1)); return Math.ceil(((d-y0)/864e5+1)/7); }
 const keyOf = s => st.colorBy === "project" ? s.project : st.colorBy === "source" ? s.source : `${s.project} · ${s.branch || "—"}`;
 // エージェントの色は、どの画面でも同じにする（色分けの切り替えや件数の順では変わらない）。
-// 表にないエージェントは、表で使っていない色を、多い順にあてる
-const AG_SLOT = {"Claude Code": 1, "Kiro IDE": 6, "Kiro IDE (legacy)": 6, "Kiro CLI": 3, "Kiro CLI (SQLite)": 3, "Kiro Crew": 7, "Amazon Q": 5, "Codex": 2};
+// 警告に見えないよう、オレンジ（--c1）と黄色（--c4）は使わない。Amazon Q は Kiro CLI の前身なので同じ色。
+// 表にないエージェントは、表でも警告でも使っていない色を、多い順にあてる
+const AG_SLOT = {"Claude Code": 0, "Codex": 2, "Kiro IDE": 6, "Kiro IDE (legacy)": 6, "Kiro CLI": 5, "Kiro CLI (SQLite)": 5, "Amazon Q": 5, "Kiro Crew": 3}, AG_WARN = [1, 4];
 let slot = {}, agSlot = {};
 function assignColors(){ // 全期間の多い順に固定。週を変えても、非表示にしても色は変わらない
   const count = f => { const n = {}; DATA.forEach(s => n[f(s)] = (n[f(s)]||0) + 1); return Object.keys(n).sort((a,b)=>n[b]-n[a]); };
-  const free = [...Array(SLOTS).keys()].filter(i => !Object.values(AG_SLOT).includes(i));
+  const free = [...Array(SLOTS).keys()].filter(i => !Object.values(AG_SLOT).includes(i) && !AG_WARN.includes(i));
   agSlot = {}; count(s => s.source).filter(k => !(k in AG_SLOT)).forEach((k,i) => { if (i < free.length) agSlot[k] = free[i]; });
   slot = {}; if (st.colorBy === "source") return;
   count(keyOf).forEach((k,i) => slot[k] = i < SLOTS ? `var(--c${i})` : "var(--other)");
