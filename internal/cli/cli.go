@@ -90,13 +90,13 @@ func dispatch(args []string) error {
 
 // common は、履歴を読むコマンドに共通のオプション。
 type common struct {
-	root, kiroHome, crewHome, kiroCLIDB, amazonQDB, codexHome, sources, prices, archiveDir *string
-	gap                                                                                    *int
+	claudeRoot, kiroHome, crewHome, kiroCLIDB, amazonQDB, codexHome, sources, prices, archiveDir *string
+	gap                                                                                          *int
 }
 
 func addCommon(fs *flag.FlagSet) *common {
 	return &common{
-		root:       fs.String("root", source.DefaultClaudeRoot(), "Claude Code history directory ($CLAUDE_CONFIG_DIR/projects or ~/.claude/projects)"),
+		claudeRoot: fs.String("claude-root", source.DefaultClaudeRoot(), "Claude Code history directory ($CLAUDE_CONFIG_DIR/projects or ~/.claude/projects)"),
 		kiroHome:   fs.String("kiro-home", source.DefaultKiroHome(), "Kiro data directory ($KIRO_HOME)"),
 		crewHome:   fs.String("crew-home", "", "Kiro Crew data directory (default $KIROCREW_HOME or <kiro-home>/crew)"),
 		kiroCLIDB:  fs.String("kiro-cli-db", "", "path to the legacy Kiro CLI data.sqlite3 (default: OS-specific)"),
@@ -116,7 +116,7 @@ func (c *common) picked() ([]source.Source, map[string]bool) {
 		want[strings.ToLower(strings.TrimSpace(s))] = true
 	}
 	var picked []source.Source
-	for _, s := range source.All(source.Options{ClaudeRoot: *c.root, KiroHome: *c.kiroHome, KiroCLIDB: *c.kiroCLIDB,
+	for _, s := range source.All(source.Options{ClaudeRoot: *c.claudeRoot, KiroHome: *c.kiroHome, KiroCLIDB: *c.kiroCLIDB,
 		AmazonQDB: *c.amazonQDB, CrewHome: *c.crewHome, CodexHome: *c.codexHome, Archive: *c.archiveDir}) {
 		if want[s.Family()] {
 			picked = append(picked, s)
@@ -190,6 +190,14 @@ func splitList(s string) []string {
 
 // parse はオプションと、オプションの前後に置いた位置引数（最大 maxPos 個）を読む。
 func parse(fs *flag.FlagSet, args []string, maxPos int) ([]string, error) {
+	for _, a := range args { // v0.20 で名前を変えた（flag のエラーと使い方の一覧より先に、新しい名前を教える）
+		if a == "--" {
+			break
+		}
+		if name, _, _ := strings.Cut(a, "="); name == "-root" || name == "--root" {
+			return nil, fmt.Errorf("--root has been renamed to --claude-root")
+		}
+	}
 	var pos []string
 	for {
 		if err := fs.Parse(args); err != nil {
@@ -325,14 +333,14 @@ func loadNonEmpty(c *common) (snapshot, error) {
 	}
 	snap := load()
 	if len(snap.data) == 0 {
-		return snap, fmt.Errorf("no history found; check where your agents keep it (--root, --kiro-home, --codex-home, --amazonq-db; see \"kiroku html --help\")")
+		return snap, fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --codex-home, --amazonq-db; see \"kiroku html --help\")")
 	}
 	return snap, nil
 }
 
 func writeHTML(snap snapshot, out string, open bool) error {
 	if len(snap.data) == 0 {
-		return fmt.Errorf("no history found; check where your agents keep it (--root, --kiro-home, --codex-home, --amazonq-db; see \"kiroku html --help\")")
+		return fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --codex-home, --amazonq-db; see \"kiroku html --help\")")
 	}
 	html, err := web.Render(snap.data, snap.weeks, snap.months, snap.meta, snap.gen, false)
 	if err != nil {

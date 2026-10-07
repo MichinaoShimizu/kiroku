@@ -46,7 +46,7 @@ func writeClaude(t *testing.T, root, id string) string {
 func TestArchiveCommand(t *testing.T) {
 	root, dir := t.TempDir(), filepath.Join(t.TempDir(), "archive")
 	p := writeClaude(t, root, "s1")
-	flags := []string{"--root", root, "--sources", "claude", "--archive-dir", dir}
+	flags := []string{"--claude-root", root, "--sources", "claude", "--archive-dir", dir}
 	if err := dispatch(append([]string{"archive"}, flags...)); err != nil || archive.Enabled(dir) {
 		t.Fatalf("状態を見るだけでオンにした: %v", err)
 	}

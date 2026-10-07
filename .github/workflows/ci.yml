@@ -70,7 +70,7 @@ jobs:
       # 悪意のある文字列を仕込んだ履歴で、画面のどこからもスクリプトが動かないこと（XSS）
       - run: |
           python3 -I tools/screenshots/hostile.py "$RUNNER_TEMP/hostile"
-          TZ=UTC go run . html --no-open --sources claude --root "$RUNNER_TEMP/hostile/fx/projects" --week 2026-10-05 -o "$RUNNER_TEMP/xss.html"
+          TZ=UTC go run . html --no-open --sources claude --claude-root "$RUNNER_TEMP/hostile/fx/projects" --week 2026-10-05 -o "$RUNNER_TEMP/xss.html"
           node tools/screenshots/xss.mjs "$RUNNER_TEMP/xss.html"
 
   # リリースの設定が壊れていないかを、タグを打つ前に確かめる（公開はしない）

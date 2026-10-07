@@ -381,7 +381,7 @@ Common to the commands that read history (`serve`, `html`, `json`, `doctor`, `ar
 | Option | Default | Description |
 |---|---|---|
 | `--sources` | `claude,kiro,amazonq,codex` | Histories to read (comma-separated; Kiro Crew is included in `kiro`) |
-| `--root` | `~/.claude/projects` (`$CLAUDE_CONFIG_DIR/projects` if set) | Location of Claude Code history |
+| `--claude-root` | `~/.claude/projects` (`$CLAUDE_CONFIG_DIR/projects` if set) | Location of Claude Code history |
 | `--kiro-home` | `~/.kiro` | Location of Kiro data (`KIRO_HOME` is also used) |
 | `--crew-home` | `<--kiro-home>/crew` | Location of Kiro Crew data (`KIROCREW_HOME` takes precedence) |
 | `--kiro-cli-db` | Per OS | `data.sqlite3` of Kiro CLI (old versions) |

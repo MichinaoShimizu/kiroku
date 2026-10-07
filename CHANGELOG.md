@@ -33,6 +33,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Removed
 
+- BREAKING: `--root` (where Claude Code keeps its history) is now `--claude-root`, next to `--kiro-home` and `--codex-home`. The old name stops with a message that names the new one
 - BREAKING: the old forms `kiroku --serve`, `kiroku --json FILE` and `kiroku -o FILE` are gone, ahead of v1.0.0. Use `kiroku serve`, `kiroku json -o FILE` and `kiroku html -o FILE`; kiroku now says which one to use instead of running the old form. Options given without a command (such as `kiroku --sources kiro`) are an unknown command instead of showing the help
 
 ### Fixed

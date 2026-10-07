@@ -52,7 +52,7 @@ func TestJSONSubcommand(t *testing.T) {
 	setup(t) // タイムゾーンと古い Kiro IDE の更新時刻をそろえる
 	h := filepath.Join("testdata", "home")
 	out := filepath.Join(t.TempDir(), "k.json")
-	args := []string{"json", "--root", filepath.Join(h, ".claude", "projects"), "--kiro-home", filepath.Join(h, ".kiro"), "--sources", "claude,kiro", "-o", out}
+	args := []string{"json", "--claude-root", filepath.Join(h, ".claude", "projects"), "--kiro-home", filepath.Join(h, ".kiro"), "--sources", "claude,kiro", "-o", out}
 	if err := dispatch(args); err != nil {
 		t.Fatal(err)
 	}
@@ -88,12 +88,23 @@ func TestLegacyFormsRemoved(t *testing.T) {
 	}
 }
 
+// --root は --claude-root になった。前の名前では、新しい名前を教える。
+func TestRootRenamed(t *testing.T) {
+	for _, args := range [][]string{{"json", "--root", "x"}, {"doctor", "--root=x"}, {"serve", "-root", "x"}} {
+		var err error
+		captureOutput(t, func() { err = dispatch(args) })
+		if err == nil || err.Error() != "--root has been renamed to --claude-root" {
+			t.Errorf("%v: %v", args, err)
+		}
+	}
+}
+
 // kiroku json の形は schemaVersion 1 のあいだ、docs/compatibility.md に書いた項目の名前と型を変えない。
 func TestJSONSchema(t *testing.T) {
 	setup(t)
 	h := filepath.Join("testdata", "home")
 	out := filepath.Join(t.TempDir(), "k.json")
-	args := []string{"json", "--root", filepath.Join(h, ".claude", "projects"), "--kiro-home", filepath.Join(h, ".kiro"), "--sources", "claude,kiro", "-o", out}
+	args := []string{"json", "--claude-root", filepath.Join(h, ".claude", "projects"), "--kiro-home", filepath.Join(h, ".kiro"), "--sources", "claude,kiro", "-o", out}
 	if err := dispatch(args); err != nil {
 		t.Fatal(err)
 	}
