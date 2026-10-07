@@ -18,7 +18,7 @@ function summary(){
   R.innerHTML = `${head}${keepNotice()}<div class="rvgrid">
   ${projectPanel(w, ph, unit)}
   ${outcomePanel(w, pw, unit, ph, stat)}
-  <section class="panel">${ph(3, "How you spent time", "When and how long sessions ran")}
+  <section class="panel time">${ph(3, "How you spent time", "When and how long sessions ran")}
     <div class="stats">
       ${stat("Focus blocks (60+ min)", times(w.focus.length), longest ? `Longest ${dur(longest)}` : "", "focus")}
       ${(() => { const {ws, we} = period(), H = limitHits(ws, we), N = unrecorded(ws, we, "limits"); return N ? norecStat("Usage limit hits", N, "limits") : stat("Usage limit hits", times(H.length), H.length ? H.slice(-4).map(h => `${md(h.t)} ${hm(h.t)}${h.r ? ` (resets ${esc(h.r)})` : ""}`).join(", ") + (H.length > 4 ? ", …" : "") : "From Claude Code and Codex history", "limits"); })()}
