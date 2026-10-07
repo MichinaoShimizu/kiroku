@@ -36,7 +36,7 @@ function mBars(title, rows, m, total){
 }
 function mSessions(title, list, f){
   if (!list.length) return "";
-  return `<h3>${title}</h3><div class="msess">${list.map(([s, v]) => `<button class="card ag" data-id="${esc(s.id)}" style="--ag:${agColor(s.source)}"><span class="ti">${esc(s.title)}</span><span class="me">${md(s.start)} · ${esc(s.project)} · ${esc(s.source)}<b>${esc(f(v))}</b></span></button>`).join("")}</div>`;
+  return `<h3>${title}</h3><div class="msess">${list.map(([s, v]) => sesCardH(s, `${md(s.start)} · ${esc(s.project)}`, f(v))).join("")}</div>`;
 }
 const projColor = p => st.colorBy === "project" ? colorOf(p) : "var(--acc)";
 function openMetric(id, from){
@@ -56,7 +56,7 @@ function openMetric(id, from){
     const by = {}; H2.forEach(x => by[x.s.source] = (by[x.s.source] || 0) + 1);
     const cm = {f: v => `${v}`};
     body = mBars("By agent", Object.entries(by).map(([k, v]) => ({name: k, c: agColor(k), mark: agMark(k), v})), cm) +
-      `<h3>When</h3><div class="msess">${H2.map(x => `<button class="card ag" data-id="${esc(x.s.id)}" style="--ag:${agColor(x.s.source)}"><span class="ti">${esc(x.s.title)}</span><span class="me">${md(x.t)} ${hm(x.t)} · ${esc(x.s.project)}${x.r ? ` · resets ${esc(x.r)}` : ""}</span></button>`).join("")}</div>`;
+      `<h3>When</h3><div class="msess">${H2.map(x => sesCardH(x.s, `${md(x.t)} ${hm(x.t)} · ${esc(x.s.project)}${x.r ? ` · resets ${esc(x.r)}` : ""}`)).join("")}</div>`;
   } else {
     const tot = id === "tokens" ? u.tokens : id === "cost" ? costOf(u) : id === "credits" ? u.credits : id === "active" || id === "days" ? w.active : id === "sessions" ? w.prompts : (w.git || {}).commits || 0;
     big = id === "days" ? `${w.days.filter(d => d.active).length}<small> of ${w.days.length}</small>` : id === "sessions" ? `${w.sessions}<small>/</small>${w.prompts}` : id === "cost" ? usdH(tot) : esc(m.f(tot || 0));

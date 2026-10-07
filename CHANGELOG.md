@@ -2,6 +2,14 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- "More metrics (includes estimates)" under "How you spent time" is always shown instead of folded away
+- Every card that starts with a session name looks the same: the agent's badge before the name and a soft gradient in the agent's color. This covers Possible friction, Heaviest sessions, the sessions in Worth a look and in the breakdown dialogs, sessions linked to a commit or push, and search results
+- The "What it is / Tells you / Doesn't tell you / What to try" part of a metric's help is a table with a border, set apart from the description above it: the labels sit in a shaded column with a line between the columns and between rows. The same table is used in the "?" popover, Worth a look and the breakdown dialogs
+
 ## v0.22.0 - 2026-10-07
 
 ### Added

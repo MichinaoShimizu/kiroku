@@ -19,8 +19,8 @@ function searchPanel(){
   const ss = DATA.filter(s => !st.hidden.has(keyOf(s)) && searchText(s).includes(q)).sort((a,b) => b.start - a.start);
   const cs = (META.git || []).filter(gitHit).sort((a,b) => b.t - a.t);
   const row = s => { const h = hitOf(s, q);
-    return `<button class="srow" data-s="${esc(s.id)}" style="--c:${colorOf(keyOf(s))}"><time>${md(s.start)}<small>${hm(s.start)}</small></time>
-      <span class="b"><span class="ti"><i></i>${esc(s.title)}</span><span class="me">${esc(s.project)}${s.branch ? ` · ${esc(s.branch)}` : ""} · ${esc((s.source))}</span>
+    return `<button class="srow ag" data-s="${esc(s.id)}" style="--c:${colorOf(keyOf(s))};--ag:${agColor(s.source)}"><time>${md(s.start)}<small>${hm(s.start)}</small></time>
+      <span class="b"><span class="ti">${agMark(s.source)}${esc(s.title)}</span><span class="me">${esc(s.project)}${s.branch ? ` · ${esc(s.branch)}` : ""} · ${esc((s.source))}</span>
       ${h.h ? `<span class="hit"><em>${h.label}</em>${h.h}</span>` : ""}</span></button>`; };
   const crow = c => `<button class="srow" data-c="${esc(c.hash)}" style="--c:${colorOf(c.project)}"><time>${md(c.t)}<small>${hm(c.t)}</small></time>
       <span class="b"><span class="ti"><i></i>${snip(c.subject, q) || esc(c.subject)}</span><span class="me">${esc(c.project)}${c.branch ? ` · ${esc(c.branch)}` : ""} · <span class="mono">${esc(c.hash.slice(0,7))}</span> · ${plural(c.nFiles, "file")} +${c.added} −${c.removed}</span>
@@ -220,7 +220,7 @@ function aiUsage(w, pw, unit){
       <div class="mstack" style="margin-top:8px">${u.models.map((r,i)=>`<span style="flex:${byCost?r[1]:r[2]};--o:${shade(i)}"${tipAttr((r[0]), `Estimated cost ${usd(r[1])}`, `Tokens ${tok(r[2])}`, `${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%`)}></span>`).join("")}</div>
       ${u.models.slice(0,6).map((r,i)=>`<div class="mrow"><span class="nm"><i style="--o:${shade(i)}"></i>${esc((r[0]))}</span><span class="tm">${!r[1] && (u.unpricedModels || []).includes(r[0]) ? `<span title="Not in the price table">—</span>` : usd(r[1])}<small>${tok(r[2])}</small></span><span class="pc">${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%</span></div>`).join("")}` : ""}
     ${u.subTypes.length ? `<div style="margin-top:16px" class="k muted">Subagent types (calls)</div><div style="margin-top:8px" class="chips">${u.subTypes.map(([k,v])=>`<span class="mono">${esc(k)}<b>${v}</b></span>`).join("")}</div>` : ""}
-    ${u.heavy.length ? `<div style="margin-top:16px" class="k muted">Heaviest sessions${hb("heavy")}</div><div style="margin-top:8px">${u.heavy.map(h=>`<button class="card ag" data-id="${esc(h.id)}" style="--ag:${agColor((DATA.find(x => x.id === h.id) || {}).source)}"><span class="ti">${esc(h.title)}</span><span class="me">${md(h.start)} · ${esc(h.project)} · ${usd(h.cost)}${h.subagents?` · ${plural(h.subagents, "subagent")}`:""}</span></button>`).join("")}</div>` : ""}`;
+    ${u.heavy.length ? `<div style="margin-top:16px" class="k muted">Heaviest sessions${hb("heavy")}</div><div style="margin-top:8px">${u.heavy.map(h => sesCardH(sesById(h.id, h.title), `${md(h.start)} · ${esc(h.project)}${h.subagents?` · ${plural(h.subagents, "subagent")}`:""}`, usd(h.cost))).join("")}</div>` : ""}`;
 }
 function nativeText(v){
   const num = (x, d) => Number(x.toFixed(d)).toLocaleString(LOC());
