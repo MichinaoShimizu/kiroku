@@ -121,11 +121,11 @@ Other workflows:
 
 ## Making a release
 
-The version number is decided from the contents of `## Unreleased` by semantic versioning. `sh tools/next-version.sh` prints the next number.
+The version number is decided from the contents of `## Unreleased` by semantic versioning. `sh tools/next-version.sh` prints the next number. What counts as breaking (and what doesn't) is in [compatibility.md](compatibility.md).
 
 | Contents of Unreleased | Part to bump |
 |---|---|
-| A change marked `BREAKING` (one that breaks compatibility in usage, such as commands, options or output files; changes only to the view's appearance don't count) | major from 1.0, minor while in 0.x |
+| A change marked `BREAKING` (one that breaks something [compatibility.md](compatibility.md) keeps compatible, such as commands, options or `kiroku archive` copies; changes to the view or the metrics don't count) | major from 1.0, minor while in 0.x |
 | Has `### Added` | minor |
 | Anything else (`### Changed`, `### Fixed`, `### Removed` and so on) | patch |
 
