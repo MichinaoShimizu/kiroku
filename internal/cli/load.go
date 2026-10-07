@@ -12,6 +12,8 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
@@ -36,15 +38,38 @@ func collect(all []source.Source, want map[string]bool, gap int) ([]*core.Sessio
 func collectCached(all []source.Source, want map[string]bool, gap int, cache *loadCache) ([]*core.Session, []source.Report) {
 	var data []*core.Session
 	var rep []source.Report
-	seen := map[string]bool{} // 同じ会話が 2 か所に残っていたら、先に読んだほうを使う
+	var picked []source.Source
 	for _, s := range all {
-		if !want[s.Family()] {
-			continue
+		if want[s.Family()] {
+			picked = append(picked, s)
 		}
+	}
+	// エージェントどうしは互いに関係なく読めるので、並べて読む（いちばん遅いエージェントの時間で済む）。
+	// 同じ会話を 2 度数えないための突き合わせは、読み終えてから all の順に行う
+	type result struct {
+		outs []loaded
+		err  error
+		took time.Duration
+	}
+	res := make([]result, len(picked))
+	var wg sync.WaitGroup
+	for i, s := range picked {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			t0 := time.Now()
+			outs, err := cache.load(s, gap)
+			res[i] = result{outs, err, time.Since(t0)}
+			tracker.agentDone(s.Name(), sessions(outs), res[i].took)
+		}()
+	}
+	wg.Wait()
+	seen := map[string]bool{} // 同じ会話が 2 か所に残っていたら、先に読んだほうを使う
+	for i, s := range picked {
 		n, dup, archived, oldest := 0, 0, 0, 0.0
 		var ids []string
 		_, keeps := s.(source.Keeper)
-		outs, err := cache.load(s, gap)
+		outs, err := res[i].outs, res[i].err
 		for _, o := range outs {
 			if o.key != "" {
 				if seen[o.key] {
@@ -65,7 +90,7 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 				}
 			}
 		}
-		r := source.Report{Name: s.Name(), N: n, Dup: dup, Archived: archived, Where: s.Where(), Oldest: oldest, IDs: ids}
+		r := source.Report{Name: s.Name(), N: n, Dup: dup, Archived: archived, Where: s.Where(), Oldest: oldest, IDs: ids, Took: res[i].took}
 		if k, ok := s.(source.Retainer); ok {
 			r.Keep = k.Retention()
 		}
@@ -84,6 +109,17 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 	return data, rep
 }
 
+// sessions は outs のうち、セッションになったもの（時刻のあるもの）の数。
+func sessions(outs []loaded) int {
+	n := 0
+	for _, o := range outs {
+		if o.sess != nil {
+			n++
+		}
+	}
+	return n
+}
+
 // logSources は、読んだエージェントの一覧を logw に書く。履歴があったものだけを並べ、残りは1行にまとめる
 // （0 件が並ぶと、serve の address や key の行がその上に押し出されてしまうため）。
 // どれも 0 件のときは、どこを探したのか分かるように全部書く。
@@ -95,7 +131,7 @@ func logSources(rep []source.Report, found bool) {
 			none = append(none, r.Name)
 			continue
 		}
-		fmt.Fprintf(logw, "  %s: %s %s\n", r.Name, plural(r.N, "session"), st.dim("("+where(r.Where)+")"))
+		fmt.Fprintf(logw, "  %s: %s %s %s\n", r.Name, plural(r.N, "session"), st.dim("("+where(r.Where)+")"), st.dim("in "+took(r.Took).String()))
 	}
 	if len(none) > 0 {
 		fmt.Fprintf(logw, "  %s\n", st.dim("no history yet: "+strings.Join(none, ", ")))

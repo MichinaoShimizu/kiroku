@@ -2,6 +2,17 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Added
+
+- `kiroku serve`, `html` and `json` print how long each agent's history took to read (for example `Claude Code: 2100 sessions (~/.claude/projects) in 640ms`), and how long reading git took
+- The page `kiroku serve` shows while it reads your history for the first time lists each agent as it is read, with its number of sessions and how long it took, the elapsed time, and the current step (history, git, building the view). It reads them from the new `/progress` address, which has only agent names, counts and times (no history), and is protected by the key like every other page
+
+### Changed
+
+- Reading history is several times faster. Agents are read side by side, and so are the conversation files of Claude Code and Codex (on as many CPU cores as you have); kiroku also reuses its read buffer instead of allocating 1 MiB for every file, and no longer runs a regular expression on every model ID. With 2,100 Claude Code sessions, `kiroku json` went from about 3.9 s to 0.9 s on 4 cores. The results are the same
+
 ## v0.22.2 - 2026-10-07
 
 ### Changed
