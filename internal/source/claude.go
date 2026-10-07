@@ -162,6 +162,9 @@ func (c *Claude) Keep() []Kept {
 func (c *Claude) Units() []Unit {
 	var out []Unit
 	for _, path := range glob(filepath.Join(c.Root, "*", "*.jsonl")) {
+		if setAside(path) {
+			continue
+		}
 		u := claudeUnit(path, ".jsonl")
 		if c.Archive != "" { // 再開した会話では、古いサブエージェントのファイルだけが消えていることがある。消えたものはコピーから読む
 			stem, proj := stemOf(path), filepath.Base(filepath.Dir(path))
@@ -175,6 +178,9 @@ func (c *Claude) Units() []Unit {
 	}
 	if c.Archive != "" {
 		for _, path := range glob(filepath.Join(c.Archive, "*", "*.jsonl.zst")) {
+			if setAside(path) {
+				continue
+			}
 			if isFile(filepath.Join(c.Root, filepath.Base(filepath.Dir(path)), stemOf(path)+".jsonl")) {
 				continue // 元の会話があれば、そちらを読む
 			}
@@ -187,6 +193,14 @@ func (c *Claude) Units() []Unit {
 func claudeUnit(path, ext string) Unit {
 	files := append([]string{path}, glob(filepath.Join(filepath.Dir(path), stemOf(path), "subagents", "*"+ext))...)
 	return Unit{Key: path, Files: files}
+}
+
+// setAside は、Claude Code が上書きや削除の代わりに脇へ置いた古い会話ファイル
+// （<session>.orphaned-<timestamp>-<suffix>.jsonl）かどうか。セッションの一覧には出ず、
+// 同じ会話を二重に数えないよう読まない。<session>.jsonl.superseded-<timestamp> は *.jsonl に当たらない。
+// 出典: https://code.claude.com/docs/en/claude-directory （Application data）
+func setAside(path string) bool {
+	return strings.Contains(stemOf(path), ".orphaned-")
 }
 
 // stemOf は履歴ファイルの名前から .jsonl（kiroku archive のコピーなら .jsonl.zst）を除いたもの。

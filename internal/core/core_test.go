@@ -269,3 +269,63 @@ func TestReplyNeedsTimeAndText(t *testing.T) {
 		t.Errorf("応答が付いた %+v", r)
 	}
 }
+
+// 利用上限のエラー文。Claude Code の今の文言（https://code.claude.com/docs/en/errors）と古い文言を拾い、
+// サーバー側の一時的な絞り込みや会話の長さの上限は数えない。
+func TestIsLimitError(t *testing.T) {
+	yes := []string{
+		"Claude AI usage limit reached|1790000000",
+		"5-hour limit reached ∙ resets 3pm",
+		`API Error: 429 {"type":"error","error":{"type":"rate_limit_error"}}`,
+		"You've hit your individual usage limit",
+		"You've hit your session limit · resets 3:45pm",
+		"You've hit your weekly limit · resets Mon 12:00am",
+		"You've hit your Opus limit · resets 3:45pm",
+		"You've hit your Sonnet limit · resets 3:45pm",
+		"You've hit your monthly spend limit · raise it at claude.ai/settings/usage",
+		"You've hit your individual spend limit · ask your admin for a higher limit",
+		"You've hit your org's monthly spend limit · visit claude.ai/admin-settings/usage to raise it",
+		"You've hit your team's shared budget · ask your admin to raise it at claude.ai/admin-settings/usage",
+		"You've hit your channel's monthly spend limit · an org owner or channel manager can raise it in the channel's Claude settings",
+		"API Error: Request rejected (429) · this may be a temporary capacity issue. If it persists, check https://status.claude.com.",
+		"spend limit reached (daily; resets 2026-08-09 00:00 UTC)",
+	}
+	for _, s := range yes {
+		if !IsLimitError(s) {
+			t.Errorf("IsLimitError(%q) = false, want true", s)
+		}
+	}
+	no := []string{
+		"API Error: Server is temporarily limiting requests (not your usage limit)",
+		"Context limit reached · /compact or /clear to continue",
+		"Context limit reached · /clear to continue",
+		"Prompt is too long",
+		"API Error: Connection error.",
+		"API Error: Usage credits required for 1M context · run /usage-credits to turn them on, or /model to switch to standard context",
+	}
+	for _, s := range no {
+		if IsLimitError(s) {
+			t.Errorf("IsLimitError(%q) = true, want false", s)
+		}
+	}
+}
+
+// キャッシュ書き込みの内訳。古い Claude Code は cache_creation_input_tokens を 0 にして内訳だけを書く。
+func TestReadUsageCacheCreation(t *testing.T) {
+	cases := []struct {
+		name string
+		in   map[string]any
+		want Tokens
+	}{
+		{"合計だけ", map[string]any{"cache_creation_input_tokens": 100.0}, Tokens{CW: 100}},
+		{"合計と内訳", map[string]any{"cache_creation_input_tokens": 100.0, "cache_creation": map[string]any{"ephemeral_5m_input_tokens": 40.0, "ephemeral_1h_input_tokens": 60.0}}, Tokens{CW: 40, CW1h: 60}},
+		{"合計が 0 で内訳だけ", map[string]any{"cache_creation_input_tokens": 0.0, "cache_creation": map[string]any{"ephemeral_5m_input_tokens": 300.0, "ephemeral_1h_input_tokens": 0.0}}, Tokens{CW: 300}},
+		{"合計がなく内訳だけ", map[string]any{"cache_creation": map[string]any{"ephemeral_5m_input_tokens": 30.0, "ephemeral_1h_input_tokens": 70.0}}, Tokens{CW: 30, CW1h: 70}},
+		{"1 時間の内訳だけ", map[string]any{"cache_creation": map[string]any{"ephemeral_1h_input_tokens": 70.0}}, Tokens{CW1h: 70}},
+	}
+	for _, c := range cases {
+		if got := ReadUsage(c.in); got != c.want {
+			t.Errorf("%s: ReadUsage = %+v, want %+v", c.name, got, c.want)
+		}
+	}
+}

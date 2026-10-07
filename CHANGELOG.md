@@ -7,6 +7,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 ### Fixed
 
 - On a phone, the legend chips above the week calendar no longer overlap the "Zoom" label. The chips now get a row of their own below "Color by" and the zoom buttons
+- Usage limit hits now count Claude Code's current limit messages: "You've hit your session limit", the weekly, Opus and Sonnet limits, and the monthly spend limits and shared budget ("You've hit your monthly spend limit", "…org's monthly spend limit", "…team's shared budget")
+- Usage limit hits no longer count errors that are not about your usage: the server's temporary throttling ("API Error: Server is temporarily limiting requests (not your usage limit)") and "Context limit reached" (the conversation is too long). An API key's rate limit ("API Error: Request rejected (429)") still counts
+- Claude Code transcripts that Claude Code set aside (`<session>.orphaned-<timestamp>-<suffix>.jsonl`, also in `kiroku archive` copies) are no longer read as separate sessions, so a conversation is not counted twice
+- Claude Code cache writes are no longer lost for older transcripts that recorded `cache_creation_input_tokens` as 0 with only the `cache_creation` 5-minute / 1-hour breakdown filled in; the breakdown is now used, which corrects tokens and estimated cost
 
 ## v0.19.1 - 2026-10-07
 
