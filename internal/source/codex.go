@@ -296,7 +296,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			text string
 		}
 		var lastTotal float64 = -1
-		var lastInfo string
+		var lastInfo, lastLimits string
 		var prevTotal core.Tokens
 		records := map[string]bool{}
 		var fromCounts, fromRecords []core.Event
@@ -333,8 +333,15 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					s.Reply(t, "", core.Str(p["message"]))
 				case "token_count":
 					s.Agent(t)
-					if v, ok := core.Num(core.Get(p, "rate_limits", "primary", "used_percent")); ok {
-						s.Measure("rate_limit", t, v)
+					if rl := core.Map(p["rate_limits"]); rl != nil {
+						// rate_limit_reached_type は使用量の上限の 429（usage_limit_reached）のときだけ入る。
+						// Codex は最後のスナップショットを次の token_count にもそのまま書くので、同じものの書き直しは数えない
+						raw, _ := json.Marshal(rl)
+						if core.Str(rl["rate_limit_reached_type"]) != "" && string(raw) != lastLimits {
+							s.Limit(t)
+						}
+						lastLimits = string(raw)
+						codexRateLimits(s, t, rl)
 					}
 					info := core.Map(p["info"])
 					if info == nil {
@@ -344,6 +351,12 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					total := core.NumOr0(core.Get(info, "total_token_usage", "total_tokens"))
 					if string(raw) == lastInfo || total == lastTotal {
 						return // 同じ値の書き直し
+					}
+					if codexFull(info) {
+						// コンテキストがあふれた（ContextWindowExceeded）ときに Codex が書く「満杯」の印。応答ではない
+						lastInfo, lastTotal, prevTotal = string(raw), total, codexTokens(info["total_token_usage"])
+						countMeas = append(countMeas, core.Measure{Key: "context_used", T: t, V: 1})
+						return
 					}
 					cur := codexTokens(info["total_token_usage"])
 					u := cur // 1 回目は合計がそのまま 1 回分
@@ -356,6 +369,25 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					lastInfo, lastTotal, prevTotal = string(raw), total, cur
 					fromCounts = append(fromCounts, core.Event{T: t, U: u, Model: cf.model})
 					countMeas = append(countMeas, codexMeasures(t, core.Map(info["last_token_usage"]), core.NumOr0(info["model_context_window"]))...)
+				case "task_complete", "turn_complete": // 名前は task_complete（turn_complete も同じものとして読む）
+					s.Agent(t)
+					if e := core.Map(p["error"]); e != nil { // うまく終わらなかったターン（時間は数えない）
+						if codexLimitError(e["codex_error_info"]) {
+							s.Limit(t)
+						}
+						return
+					}
+					if v, ok := core.Num(p["time_to_first_token_ms"]); ok && v >= 0 {
+						s.Measure("ttft", t, v/1000)
+					}
+					if v, ok := core.Num(p["duration_ms"]); ok && v >= 0 {
+						s.Measure("turn_duration", t, v/1000)
+					}
+				case "turn_aborted":
+					s.Agent(t)
+					if core.Str(p["reason"]) == "interrupted" { // 人が止めた（replaced・review_ended・budget_limited は数えない）
+						s.Interrupt(t)
+					}
 				case "item_completed":
 					// Paginated rollouts persist user turns as ItemCompleted(UserMessage)
 					// instead of the legacy UserMessage event.
@@ -540,6 +572,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		}
 		parent := byID[cf.parent].b
 		parent.Measures = append(parent.Measures, cf.b.Measures...) // サブエージェントの分も親のセッションの数字に入れる
+		parent.Limits = append(parent.Limits, cf.b.Limits...)       // サブエージェントが上限に当たっても、止まったのは親のセッションの作業
 		var start, end *float64
 		if len(cf.b.Times) > 0 {
 			ts := append([]float64(nil), cf.b.Times...)
@@ -564,6 +597,13 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		s := cf.b
 		s.Project, s.Branch = cf.cwd, cf.branch
 		s.Title = cf.title
+		// サブエージェントの分を足したので、時刻の順に並べ直して 1 分以内のものをまとめ直す
+		hits := append([]float64(nil), s.Limits...)
+		sort.Float64s(hits)
+		s.Limits = nil
+		for i := range hits {
+			s.Limit(&hits[i])
+		}
 		for _, ev := range cf.events {
 			s.AddEvent(ev)
 		}
@@ -575,21 +615,103 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	return errs.err()
 }
 
+// codexBaseline は、Codex がコンテキストの使用率から除くトークン（システムプロンプトやツールの説明など、いつも入っている分）。
+// protocol の BASELINE_TOKENS と同じ値。
+const codexBaseline = 12000
+
 // codexMeasures は 1 回の応答の使用量から参考指標を作る。
+// コンテキストの使用率は Codex の表示（percent_of_context_window_remaining）と同じく、
+// last_token_usage.total_tokens と上限の両方から codexBaseline を引いて割る（0〜100% に収める）。
 func codexMeasures(t *float64, u core.Obj, window float64) []core.Measure {
 	if u == nil {
 		return nil
 	}
-	in := core.NumOr0(u["input_tokens"])
 	ms := []core.Measure{
 		{Key: "responses", T: t, V: 1},
 		{Key: "reasoning", T: t, V: core.NumOr0(u["reasoning_output_tokens"])},
 		{Key: "output", T: t, V: core.NumOr0(u["output_tokens"])},
 	}
-	if window > 0 {
-		ms = append(ms, core.Measure{Key: "context_used", T: t, V: in / window})
+	if window > codexBaseline {
+		used, ok := core.Num(u["total_tokens"])
+		if !ok {
+			used = core.NumOr0(u["input_tokens"]) + core.NumOr0(u["output_tokens"])
+		}
+		v := min(1, max(0, (used-codexBaseline)/(window-codexBaseline)))
+		ms = append(ms, core.Measure{Key: "context_used", T: t, V: v})
 	}
 	return ms
+}
+
+// codexFull は、コンテキストがあふれたあとに Codex が書く token_count か（set_total_tokens_full → fill_to_context_window）。
+// total_token_usage は total_tokens だけが上限と同じ値で、ほかは 0。last_token_usage も total_tokens（上限までの残り）のほかは 0。
+func codexFull(info core.Obj) bool {
+	window := core.NumOr0(info["model_context_window"])
+	total, last := core.Map(info["total_token_usage"]), core.Map(info["last_token_usage"])
+	if window <= 0 || total == nil || core.NumOr0(total["total_tokens"]) != window {
+		return false
+	}
+	for _, u := range []core.Obj{total, last} {
+		for _, k := range []string{"input_tokens", "cached_input_tokens", "output_tokens", "reasoning_output_tokens"} {
+			if core.NumOr0(u[k]) != 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// codexLimitError は、ターンを止めたエラー（codex_error_info）が利用上限か。
+// usage_limit_exceeded は使用量の上限（ChatGPT のプランの 429 usage_limit_reached、クォータ切れなど）、
+// rate_limit_exceeded は API のレート制限。context_window_exceeded（会話が長すぎる）や
+// session_budget_exceeded（Codex 自身の予算）は利用上限ではない。
+// CodexErrorInfo は snake_case の文字列（フィールドのある種類は {"名前": {...}} なので、ここでは当たらない）。
+func codexLimitError(v any) bool {
+	switch core.Str(v) {
+	case "usage_limit_exceeded", "rate_limit_exceeded":
+		return true
+	}
+	return false
+}
+
+// codexRateLimits は token_count.rate_limits の primary と secondary の使用率（%）を、枠の長さごとの指標にする。
+// limit_id が codex（古い版は無し）のものだけを使う。ほかの id はモデルごとの別の枠。
+func codexRateLimits(s *core.Builder, t *float64, rl core.Obj) {
+	if id := core.Str(rl["limit_id"]); id != "" && !strings.EqualFold(id, "codex") {
+		return
+	}
+	for _, slot := range []string{"primary", "secondary"} {
+		w := core.Map(rl[slot])
+		if v, ok := core.Num(w["used_percent"]); ok {
+			s.Measure(codexWindowKey(w["window_minutes"], slot == "secondary"), t, v)
+		}
+	}
+}
+
+// codexWindows は枠の長さ（分）と指標の名前。Codex の画面（get_limits_duration）と同じく、前後 5% までを同じ長さとみなす。
+var codexWindows = []struct {
+	minutes float64
+	key     string
+}{
+	{5 * 60, "rate_limit_5h"},
+	{24 * 60, "rate_limit_daily"},
+	{7 * 24 * 60, "rate_limit_weekly"},
+	{30 * 24 * 60, "rate_limit_monthly"},
+	{365 * 24 * 60, "rate_limit_annual"},
+}
+
+// codexWindowKey は枠の指標の名前。window_minutes がないか、どの長さにも近くなければ primary / secondary の名前にする。
+func codexWindowKey(minutes any, secondary bool) string {
+	if m, ok := core.Num(minutes); ok {
+		for _, w := range codexWindows {
+			if m >= w.minutes*0.95 && m <= w.minutes*1.05 {
+				return w.key
+			}
+		}
+	}
+	if secondary {
+		return "rate_limit_secondary"
+	}
+	return "rate_limit"
 }
 
 func firstPrompt(b *core.Builder) string {
