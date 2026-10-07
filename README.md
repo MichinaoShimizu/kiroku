@@ -31,9 +31,9 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 <img src="docs/session.png" alt="Session details (dummy data)" width="560">
 
-**What's worth a look.** Metrics that crossed a threshold are flagged where they appear, with what was observed, why it matters, the sessions behind it and an 8-week trend.
+**What's worth a look.** Metrics that crossed a threshold are listed under the key figures. Press one to see what was observed, why it matters, the sessions behind it, an 8-week trend and what to try, without leaving the calendar.
 
-![Flagged metrics in the weekly summary (dummy data)](docs/worth.png)
+<img src="docs/worth.png" alt="A flagged metric opened from Worth a look (dummy data)" width="560">
 
 **Cost next to output.** Time, tokens, estimated cost and credits by project, next to commits and cost per commit.
 

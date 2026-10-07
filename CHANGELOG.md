@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- Pressing a metric in "Worth a look" opens it in a dialog in the middle of the screen instead of jumping down to the summary, so you stay where you were, with the calendar still behind it. The dialog has what was observed, why it matters, the 8-week trend, why it was flagged, the related sessions (each opens its details), the threshold, and what the metric is, what it doesn't tell you and what to try. "Show in the summary" still takes you to the metric in place, and `Esc` or "Close" returns to the link you pressed
+
 ## v0.19.0 - 2026-10-07
 
 ### Added

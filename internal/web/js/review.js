@@ -222,8 +222,30 @@ function flagSum(F){ // 期間の要点の下（#worth）に、基準を超え�
     ? ids.map(id => `<button class="flink" data-goto="${id}">${esc(H()[id].n)}</button>`).join("")
     : `<span class="muted">No metric crossed a threshold</span>`}${hint("findings")}`;
 }
+const flagSes = ids => ids.map(id => { const s = DATA.find(x => x.id === id); return s ? `<button class="fses" data-id="${esc(id)}" style="--c:${colorOf(keyOf(s))}"><i></i><span>${esc(s.title)}</span><small>${md(s.start)}</small></button>` : ""; }).join("");
+/* 見直す候補の 1 つを、画面の真ん中のダイアログで開く（サマリーへ移らずに、何が見えて、なぜ大事で、次に何をするかを読める）。
+   同じ指標に印の付く候補（GOTO）はまとめて出す。セッションを押すと、ダイアログを閉じて詳細を開く */
+let lastFlags = []; // 表示中の期間の候補（summary が入れる）
+function openWorth(id, from){
+  const D = $("#wk"), fs = lastFlags.filter(f => (GOTO[f.k] || f.k) === id), h = H()[id]; if (!fs.length || !h) return;
+  const body = fs.map(f => `<div class="fl"><p class="see">${ico("flag", "fdot")}${esc(f.see)}</p><p class="why">${esc(f.why)}</p>${spark(f.k)}${f.because ? `<p class="because">Flagged because ${esc(f.because)}</p>` : ""}${f.ids.length ? `<div class="fss">${flagSes(f.ids.slice(0, 6))}${f.ids.length > 6 ? `<p class="more">${plural(f.ids.length - 6, "more session")}</p>` : ""}</div>` : ""}<p class="rule">Threshold: ${esc(f.rule)}</p></div>`).join("");
+  D.innerHTML = `<div class="eyebrow">${ico("flag", "fdot")}Worth a look</div><h2 id="wkh">${esc(h.n)}</h2>${body}
+    <dl class="wkhelp"><dt>What it is</dt><dd>${esc(h.d)}</dd><dt>Doesn't tell you</dt><dd>${esc(h.x)}</dd><dt>What to try</dt><dd>${esc(h.a)}</dd></dl>
+    <div class="wkbar"><button class="pill" id="wkgo">Show in the summary</button><button class="pill" id="wkclose">Close</button></div>`;
+  D.querySelectorAll(".fses").forEach(b => b.onclick = () => { D.close(); select(b.dataset.id); });
+  $("#wkclose").onclick = () => D.close();
+  $("#wkgo").onclick = () => { D.close(); gotoMetric(id); };
+  D.onclose = () => { if (from && from.isConnected && !st.sel && !document.activeElement?.closest?.("#review")) from.focus(); }; // 閉じたら押したリンクへ（サマリーやセッションへ移ったときは除く）
+  D.showModal(); D.scrollTop = 0;
+  const hd = $("#wkh"); hd.tabIndex = -1; hd.focus(); } // 最初のボタンではなく見出しへ（読み上げで何のダイアログかわかり、セッションを押した表示にもならない）
+// gotoMetric は、サマリーの中のその指標へ移って説明を開く（ダイアログの「Show in the summary」）
+function gotoMetric(id){ const R = $("#review"), t = R.querySelector(`.panel .hb[data-help="${id}"]`) || R.querySelector(`.panel.${id}`); if (!t) return;
+  const dt = t.closest("details"); if (dt && !dt.open){ dt.open = true; st.moreS = true; }
+  t.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center"});
+  if (t.classList.contains("hb") && t.getAttribute("aria-expanded") !== "true") t.click();
+  if (!t.matches("button")) t.tabIndex = -1; t.focus({preventScroll: true}); }
 function placeFlags(R, F){ // 基準を超えた指標の、その場に印・見えたこと・推移・該当するセッション・基準を添える
-  const ses = ids => ids.map(id => { const s = DATA.find(x => x.id === id); return s ? `<button class="fses" data-id="${esc(id)}" style="--c:${colorOf(keyOf(s))}"><i></i><span>${esc(s.title)}</span><small>${md(s.start)}</small></button>` : ""; }).join("");
+  const ses = flagSes;
   F.forEach(f => {
     const t = R.querySelector(`.panel .hb[data-help="${GOTO[f.k] || f.k}"]`); if (!t) return;
     const panel = t.closest(".panel"), shown = new Set([...panel.querySelectorAll(".card[data-id]")].map(c => c.dataset.id)); // すぐ下にカードで並ぶセッションは繰り返さない

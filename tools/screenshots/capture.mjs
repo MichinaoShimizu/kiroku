@@ -19,11 +19,14 @@ await p.screenshot({ path: path.join(docs, "screenshot.png") });
 await p.evaluate(() => { const e = document.querySelector("#review"); window.scrollTo(0, e.getBoundingClientRect().top + window.scrollY - document.querySelector("header").offsetHeight - 16); }); // 固定の見出しの下から
 await p.waitForTimeout(400);
 await p.screenshot({ path: path.join(docs, "summary.png") });
-// 見直す候補（Worth a look）：サマリーの「Sessions with possible friction」から、印のついた指標が並ぶところへ。固定の見出しは入れない
-await p.getByText("Sessions with possible friction", { exact: true }).first().click();
-await p.waitForTimeout(800);
-const head = await p.evaluate(() => document.querySelector("header").offsetHeight);
-await p.screenshot({ path: path.join(docs, "worth.png"), clip: { x: 0, y: head + 46, width: 1440, height: 900 - head - 46 } });
+// 見直す候補（Worth a look）：期間の要点の下の「Sessions with possible friction」を押して開くダイアログ
+await p.evaluate(() => window.scrollTo(0, 0));
+await p.locator("#worth .flink", { hasText: "Sessions with possible friction" }).first().click();
+await p.waitForTimeout(600);
+await p.evaluate(() => { const d = document.querySelector("#wk"); d.style.maxHeight = "none"; }); // 中身がまるごと写るように
+await p.locator("#wk").screenshot({ path: path.join(docs, "worth.png") });
+await p.keyboard.press("Escape");
+await p.waitForTimeout(300);
 // 週報の下書き
 await p.getByText("Weekly report draft", { exact: true }).first().click();
 await p.waitForTimeout(500);
