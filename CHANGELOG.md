@@ -4,6 +4,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Security
+
+- The "Resume" command in session details now quotes the project folder and session ID read from history. Before, a folder whose name contained shell characters (such as `;`, `|` or `$(…)`) could run another command when you pasted the command into a terminal, and a folder with a space made it fail. On Windows, a folder whose name has characters that cmd or PowerShell expand even inside quotes (`%`, `!`, `$`, a backtick) shows no resume command, and neither does a value with control characters
+
 ### Fixed
 
 - On a phone, the legend chips above the week calendar no longer overlap the "Zoom" label. The chips now get a row of their own below "Color by" and the zoom buttons

