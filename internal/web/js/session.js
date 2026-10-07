@@ -53,7 +53,7 @@ function detail(s){
     ${s.tools.length ? s.tools.map(([k,v],i)=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track2"><span style="width:${v/maxT*100}%;background:var(--c${i % 8})"></span></span><span class="n">${v}</span></div>`).join("") : `<p class="none">None recorded</p>`}
     ${s.native && s.native.length ? `<h3>${`${esc((s.source))} metrics`}</h3>${nativeRows(s.native)}<p class="note">Numbers this agent records itself. Definitions differ from other agents.</p>` : ""}</details>
     ${s.file ? `<h3>History file</h3><div class="code"><code>${esc(s.file)}</code><a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" target="_blank" rel="noopener">Open</a><button class="copy" data-copy="${esc(s.file)}">Copy</button></div>` : ""}
-    ${s.resume ? `<h3>Resume</h3><div class="code"><code>${esc(s.resume)}</code><button class="copy" data-copy="${esc(s.resume)}">Copy</button></div>` : ""}
+    ${s.resume ? `<h3>Resume</h3><div class="code resume"><code>${esc(s.resume)}</code><button class="copy" data-copy="${esc(s.resume)}">Copy</button></div>` : ""}
 
   </div></div></div>`;
   bindGitEvents(P);

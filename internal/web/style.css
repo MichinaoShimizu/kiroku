@@ -402,6 +402,10 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .code code{flex:1;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere} /* パスやコマンドは途中で切らず、折り返して全部見せる */
 .copy{font:var(--fs-xs) var(--sans);color:var(--ink-2);border:1px solid var(--rule-2);border-radius:6px;padding:3px 8px;background:var(--surface);flex:none}
 .copy:hover{color:var(--ink);border-color:var(--ink-3)}
+/* 再開コマンドはよく使うので、ほかのコード（履歴ファイルのパス）よりはっきりさせる：アクセントの地と枠、Copy は塗りのボタン */
+.code.resume{background:var(--acc-soft);box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--acc) 45%,transparent);color:var(--ink)}
+.code.resume .copy{background:var(--acc);border-color:var(--acc);color:var(--on-acc);font-weight:600}
+.code.resume .copy:hover{background:var(--acc-ink);border-color:var(--acc-ink);color:var(--on-acc)}
 .back{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--ink-3)}
 .back:hover{color:var(--ink)}
 .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
