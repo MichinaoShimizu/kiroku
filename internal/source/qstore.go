@@ -180,7 +180,7 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 			}
 		}
 		if q.Command != "" && s.Project != "" {
-			s.Resume = "cd " + s.Project + " && " + q.Command
+			s.Resume = core.ResumeCmd(s.Project, q.Command, "")
 		}
 		emit(s)
 	}
