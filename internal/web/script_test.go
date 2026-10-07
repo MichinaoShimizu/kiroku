@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -67,7 +68,9 @@ func TestKeepRow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fn := regexp.MustCompile(`(?ms)^function keepRow\(r\)\{.*?\); \}$`).FindString(string(src))
+	// Windows のチェックアウトでは CRLF になり、$ が行末に当たらないので LF にそろえる
+	text := strings.ReplaceAll(string(src), "\r\n", "\n")
+	fn := regexp.MustCompile(`(?ms)^function keepRow\(r\)\{.*?\); \}$`).FindString(text)
 	if fn == "" {
 		t.Fatal("panels.js に keepRow が見つからない")
 	}
