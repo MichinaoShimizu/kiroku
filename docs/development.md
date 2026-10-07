@@ -43,7 +43,7 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | `tools/` | `release-notes.sh` and `next-version.sh` (releases), `reproduce.sh` (rebuilds a released binary from its tag and compares it), `screenshots/` (dummy data with `gen.py` and `mkgit.py`, the demo's link card with `ogp.py`, screenshots with `capture.mjs`, and the view's e2e: `smoke.mjs`, plus `hostile.py` and `xss.mjs` for XSS) |
 | `install.sh`, `.goreleaser.yaml` | The installer, and how release files are built |
 
-The price table is `Prices` in `internal/core/usage.go`. When you update it, also change `PricesAsOf` (the date shown in the view).
+The price table is `Prices` in `internal/core/usage.go`. When you update it, also change `PricesAsOf` (the date shown in the view). The context windows of Claude models (for Claude Code's Peak context usage and the "Long conversations" threshold) are `ContextWindows` in `internal/core/context.go`; when you update them, also change `ContextWindowAsOf`.
 
 ### Adding an agent
 

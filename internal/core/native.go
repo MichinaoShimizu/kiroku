@@ -25,6 +25,7 @@ var NativeDefs = map[string][]NativeDef{
 	"Claude Code": {
 		{Key: "responses", Label: "応答の数", LabelEn: "Responses", Unit: "回", Agg: "sum"},
 		{Key: "out_per_response", Label: "1応答あたりの出力トークン", LabelEn: "Output tokens per response", Unit: "トークン", Agg: "avg"},
+		{Key: "context_used", Label: "コンテキストの最大使用率", LabelEn: "Peak context usage", Unit: "%", Agg: "max", Scale: 100}, // ContextUsed（context.go）
 		{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},
 	},
 	"Kiro CLI": {

@@ -8,8 +8,20 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - The "Resume" command in session details now quotes the project folder and session ID read from history. Before, a folder whose name contained shell characters (such as `;`, `|` or `$(…)`) could run another command when you pasted the command into a terminal, and a folder with a space made it fail. On Windows, a folder whose name has characters that cmd or PowerShell expand even inside quotes (`%`, `!`, `$`, a backtick) shows no resume command, and neither does a value with control characters
 
+### Added
+
+- Claude Code: "Peak context usage" among the agent-specific metrics. Claude Code doesn't record how full the context window was, so kiroku divides each response's input (new input plus cache reads and writes) by the model's context window from a table taken from the official docs (1M for Fable 5 / 5.1, Sonnet 5 and later and Opus 4.7 and later, 200K for Haiku 4.5, Opus 4.6 and Sonnet 4.6 among others). Opus 4.6 and Sonnet 4.6 count as 1M once a response read more than 200K (their `[1m]` variant doesn't show in the history). Models not in the table get no value
+- Claude Code: when a usage-limit message says when the limit resets (such as "resets 3:45pm"), the prompt flow, the "Usage limit hits" card and "Worth a look" show that text with the hit. It is shown as written, since it often has no date or time zone
+
+### Changed
+
+- "Long conversations" in "Worth a look" now needs the peak input to reach half of the model's context window where kiroku knows the window, instead of a fixed 100K tokens, which is small for models with a 1M window. Where the window is unknown, 100K tokens still applies
+
 ### Fixed
 
+- Claude Code: estimated cost from kiroku's price table now includes web searches (`server_tool_use.web_search_requests`) at $10 per 1,000 searches, counted once per response. Fast mode and US-only multipliers are not applied to them, and nothing is added where Claude Code's own cost record is used, since it already covers them
+- Claude Code: history retention now follows `cleanupPeriodDays` in your organization's managed settings file (`managed-settings.json` and `managed-settings.d/*.json` in the system directory), which wins over your own `settings.json`. A value Claude Code would reject (not a whole number of 1 or more) no longer counts as set. The guide also notes that Claude Code (v2.1.248 and later) keeps sessions started or continued in Claude Desktop or Cowork unless `desktopSessionCleanupPeriodDays` is set
+- The docs no longer state that Claude Code writes a cost of 0 on a subscription; the `cost-state` record is not documented, so they now describe only what kiroku does when a used model's recorded cost is 0
 - On a phone, the legend chips above the week calendar no longer overlap the "Zoom" label. The chips now get a row of their own below "Color by" and the zoom buttons
 - Usage limit hits now count Claude Code's current limit messages: "You've hit your session limit", the weekly, Opus and Sonnet limits, and the monthly spend limits and shared budget ("You've hit your monthly spend limit", "…org's monthly spend limit", "…team's shared budget")
 - Usage limit hits no longer count errors that are not about your usage: the server's temporary throttling ("API Error: Server is temporarily limiting requests (not your usage limit)") and "Context limit reached" (the conversation is too long). An API key's rate limit ("API Error: Request rejected (429)") still counts
