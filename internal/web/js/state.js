@@ -29,7 +29,8 @@ const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const dow = i => DOW[i];
 const wkc = i => i === 6 ? " sat" : i === 0 ? " sun" : ""; // 曜日（getDay）から、土日の色のクラス
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many || one + "s"}`;
-const st = { z: store.get("zh", 2), colorBy: store.get("colorBy", "project"), theme: store.get("theme", "dark") === "light" ? "light" : "dark", // 既定はダーク（以前の「自動」もダークにする）
+// zAuto: ズームを選んでいなければ、週ごとに作業の時間帯が収まる高さにする
+const st = { z: store.get("zh", 2), zAuto: store.get("zh", null) == null, colorBy: store.get("colorBy", "project"), theme: store.get("theme", "dark") === "light" ? "light" : "dark", // 既定はダーク（以前の「自動」もダークにする）
              week: mondayOf(today0()), month: monthOf(today0()), mode: store.get("mode", "week"), flowUser: !!store.get("flowUser", false),
              hidden: new Set(), sel: null, back: [], q: "", animate: true };
 

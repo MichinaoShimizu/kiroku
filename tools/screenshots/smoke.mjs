@@ -179,9 +179,10 @@ for (const env of envs) {
   });
 
   await step("説明（?）を Esc で閉じる", async () => {
-    const hb = p.locator("#review .hb").first();
+    const hb = p.locator('#review .hb[data-help="active"]').first();
     await hb.scrollIntoViewIfNeeded(); await hb.click(); await pause();
     check("? で説明が開く", await hb.getAttribute("aria-expanded") === "true");
+    check("印のない指標でも、説明に 8 週の推移が出る", await p.locator('#review .hint[data-hint="active"] .htrend svg').first().isVisible());
     await p.keyboard.press("Escape"); await pause();
     check("Esc で説明が閉じ、? にフォーカスが戻る", await hb.getAttribute("aria-expanded") === "false" && await hb.evaluate(b => b === document.activeElement));
   });
@@ -223,6 +224,7 @@ for (const env of envs) {
     check("検索結果が出る", heading === "Search results", heading);
     check("検索結果はカレンダーより上にある", await p.evaluate(() => document.querySelector("#sres").getBoundingClientRect().bottom <= document.querySelector("#tl").getBoundingClientRect().top));
     check("一致したセッションがある", await p.locator(".srow[data-s]").count() > 0, word);
+    check("検索結果は枠の中でスクロールし、カレンダーを押し出さない", await p.evaluate(() => [...document.querySelectorAll("#sres .panel")].every(e => e.getBoundingClientRect().height <= Math.min(innerHeight * .52, 520) + 1)));
     const more = p.locator("#srmS");
     if (await more.count()){ const before = await p.locator(".srow[data-s]").count();
       await more.click(); await pause();

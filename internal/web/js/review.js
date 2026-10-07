@@ -140,6 +140,11 @@ const MET = {
   switches: {f: w => w.switchesAvg, low: true, u: ""},
   focus: {f: w => w.focus.length, low: false, u: ""},
   wait: {f: w => w.waitP90 != null ? Math.round(w.waitP90 / 60) : null, low: true, u: " min"},
+  // 見直す候補にはならないが、「?」の説明に推移を出す指標（試したことが効いたかを、印が付いていなくても確かめられるように）
+  active: {f: w => w.active, fmt: v => dur(v)},
+  prompts: {f: w => w.prompts, u: ""},
+  tokens: {f: w => w.usage && w.usage.tokens ? w.usage.tokens : null, fmt: v => tok(v)},
+  gitCommits: {f: w => w.git ? w.git.commits : null, u: ""},
 };
 const fmtM = (k, v) => v == null ? "—" : MET[k].fmt ? MET[k].fmt(v) : `${Math.round(v * 10) / 10}${MET[k].u ?? ""}`; // 本文と同じく「8 件」「5.2 回」
 function periodBack(i){ // 表示中の期間から i 個前の期間
@@ -151,7 +156,7 @@ function periodBack(i){ // 表示中の期間から i 個前の期間
 function periodLabel(mode, k){ const [y, m, d] = k.split("-").map(Number); // 期間の名前（"2026-05" か "2026-05-04"）
   return mode === "month" ? dMY(new Date(y, m-1, 1)) : `week of ${dMD(new Date(y, m-1, d))}`; }
 function metricAt(k, p){ if (!MET[k] || !p.S) return null; const v = MET[k].f(p.S, p.ws, p.we); return v == null || Number.isNaN(v) ? null : v; }
-function spark(k){ // 8 期間の推移（記録のない期間は飛ばす。記録のある最初の期間から、幅いっぱいに描く）
+function spark(k, plain){ // 8 期間の推移（記録のない期間は飛ばす。記録のある最初の期間から、幅いっぱいに描く）。plain は「?」の説明に添えるもの（見直す向きは書かない）
   if (!MET[k]) return "";
   const pts = []; for (let i = 7; i >= 0; i--){ const p = periodBack(i); pts.push({v: metricAt(k, p), l: p.label}); }
   const vs = pts.filter(p => p.v != null).map(p => p.v); if (vs.length < 2) return "";
@@ -163,7 +168,7 @@ function spark(k){ // 8 期間の推移（記録のない期間は飛ばす。�
   const hits = pts.map((p, i) => i < f0 ? "" : `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H}"${tipAttr(p.l, fmtM(k, p.v) === "—" ? "No records" : fmtM(k, p.v))}/>`).join(""); // 点ごとに、その期間の値を出す
   // 両端（記録のある最初の期間と、表示中の期間）には、触れなくても読めるよう期間と値を添える
   const sl = i => { const p = periodBack(7 - i), [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? MON[mm - 1] : dMD(new Date(yy, mm - 1, dd)); };
-  return `<span class="spark"><span class="sr">${esc(txt)}</span><span class="spk" aria-hidden="true"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><polyline points="${line}"/>${pts.map((p, i) => p.v == null ? "" : `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="1.6"/>`).join("")}${pts[7].v != null ? `<circle cx="${x(7)}" cy="${y(pts[7].v)}" r="2.6"/>` : ""}${hits}</svg><span class="ends"><span>${sl(f0)} ${fmtM(k, pts[f0].v)}</span><span>${sl(7)} <b>${fmtM(k, pts[7].v)}</b></span></span></span><small aria-hidden="true">${`${GOTO[k] ? `${HELP[k].n} · ` : ""}${st.mode === "month" ? "8-month" : "8-week"} range ${rng} · ${MET[k].low ? "higher" : "lower"} is worth a look`}</small></span>`;
+  return `<span class="spark"><span class="sr">${esc(txt)}</span><span class="spk" aria-hidden="true"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><polyline points="${line}"/>${pts.map((p, i) => p.v == null ? "" : `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="1.6"/>`).join("")}${pts[7].v != null ? `<circle cx="${x(7)}" cy="${y(pts[7].v)}" r="2.6"/>` : ""}${hits}</svg><span class="ends"><span>${sl(f0)} ${fmtM(k, pts[f0].v)}</span><span>${sl(7)} <b>${fmtM(k, pts[7].v)}</b></span></span></span><small aria-hidden="true">${plain ? `${st.mode === "month" ? "8-month" : "8-week"} trend · range ${rng}` : `${GOTO[k] ? `${HELP[k].n} · ` : ""}${st.mode === "month" ? "8-month" : "8-week"} range ${rng} · ${MET[k].low ? "higher" : "lower"} is worth a look`}</small></span>`;
 } // 向き（高いほど・低いほど見直す）だけを書く。印が付いた理由は、推移の下に「Flagged because …」で別に出す（基準は推移の高低ではなく、決まった値なので）
 /* 見直す候補：指標が決まった基準を超えたものを拾う（AI は使わない。判定ではなく、確かめる候補） */
 function findList(w, pw, unit){

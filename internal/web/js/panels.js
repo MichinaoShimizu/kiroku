@@ -25,14 +25,14 @@ function searchPanel(){
   const crow = c => `<button class="srow" data-c="${esc(c.hash)}" style="--c:${colorOf(c.project)}"><time>${md(c.t)}<small>${hm(c.t)}</small></time>
       <span class="b"><span class="ti"><i></i>${snip(c.subject, q) || esc(c.subject)}</span><span class="me">${esc(c.project)}${c.branch ? ` · ${esc(c.branch)}` : ""} · <span class="mono">${esc(c.hash.slice(0,7))}</span> · ${plural(c.nFiles, "file")} +${c.added} −${c.removed}</span>
       ${(() => { const f = (c.files || []).find(f => f.path.toLowerCase().includes(q)); return f ? `<span class="hit"><em>File</em>${snip(f.path, q)}</span>` : ""; })()}</span></button>`;
-  const more = (id, rest) => rest > 0 ? `<button class="pill srmore" id="${id}">${`Show ${Math.min(rest, SR_STEP)} more of ${rest}`}</button>` : "";
+  const more = (id, shown, all) => all > shown ? `<button class="pill srmore" id="${id}">${all - shown <= SR_STEP ? `Show the last ${all - shown}` : `Show ${SR_STEP} more`} <span class="muted">(${shown} of ${all} shown)</span></button>` : "";
   R.innerHTML = `<div class="rvhead"><h2 id="srh" tabindex="-1">Search results</h2><p>${`Matches for "${esc(q)}" ${META.scope ? "in this file" : "(all time)"}, newest first. Sessions are matched on prompts, project, branch, agent, files changed by AI, pull requests and commits made during the session; commits on subject, body, hash and changed files. Click one to see its details; the calendar below moves to its week.`}</p>
       <button class="pill" id="sclear">Clear search</button></div>
     <div class="rvgrid srgrid">
       <section class="panel"><div class="ph"><h3>Sessions · ${ss.length}</h3></div>
-        ${ss.length ? ss.slice(0, nS).map(row).join("") + more("srmS", ss.length - nS) : `<p class="none">No matching sessions.</p>`}</section>
+        ${ss.length ? ss.slice(0, nS).map(row).join("") + more("srmS", nS, ss.length) : `<p class="none">No matching sessions.</p>`}</section>
       <section class="panel"><div class="ph"><h3>Commits · ${cs.length}</h3></div>
-        ${cs.length ? cs.slice(0, nC).map(crow).join("") + more("srmC", cs.length - nC) : `<p class="none">${(META.git || []).length ? "No matching commits." : "No git commits were loaded."}</p>`}</section>
+        ${cs.length ? cs.slice(0, nC).map(crow).join("") + more("srmC", nC, cs.length) : `<p class="none">${(META.git || []).length ? "No matching commits." : "No git commits were loaded."}</p>`}</section>
     </div>`;
   // もっと見る：足した最初の結果へフォーカスを移す（押したボタンは消えるので）
   const grow = (k, n, sel) => { const b = R.querySelector(sel === "s" ? "#srmS" : "#srmC"); if (!b) return;
