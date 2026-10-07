@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Codex sessions started on an older Codex and resumed after upgrading it keep the tokens, cost and responses from before the upgrade. They were dropped once the newer version wrote its first usage record to the same file
+- In older Codex histories without `user_message` events, the context Codex adds to the conversation (`<environment_context>`, `<user_instructions>`, `<turn_aborted>` and other such blocks, and AGENTS.md instructions) is no longer counted as a prompt. It appears in the prompt flow as a note instead
+
 ## v0.23.0 - 2026-10-08
 
 ### Added

@@ -30,8 +30,8 @@ var (
 	cmdNameRe  = regexp.MustCompile(`(?s)<command-name>\s*(.*?)\s*</command-name>`)
 	cmdArgsRe  = regexp.MustCompile(`(?s)<command-args>(.*?)</command-args>`)
 	bashInRe   = regexp.MustCompile(`(?s)<bash-input>(.*?)</bash-input>`)
-	leadTagRe  = regexp.MustCompile(`^<([a-z][a-z0-9-]*)[\s>]`)
-	anyTagRe   = regexp.MustCompile(`</?[a-z][a-z0-9-]*[^>]*>`)
+	leadTagRe  = regexp.MustCompile(`^<([a-z][a-z0-9_-]*)[\s>]`)
+	anyTagRe   = regexp.MustCompile(`</?[a-z][a-z0-9_-]*[^>]*>`)
 	tagKinds   = map[string]string{
 		"task-notification": "notice", "user-prompt-submit-hook": "hook",
 		"local-command-stdout": "output", "local-command-stderr": "output", "bash-stdout": "output", "bash-stderr": "output",

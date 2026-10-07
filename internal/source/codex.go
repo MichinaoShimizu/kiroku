@@ -313,6 +313,9 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		records := map[string]bool{}
 		var fromCounts, fromRecords []core.Event
 		var countMeas, recordMeas []core.Measure
+		// cutEvents・cutMeas は、最初の token_usage_record を読んだときの fromCounts・countMeas の長さ（-1 はまだ無い）。
+		// 古い版で始めて新しい版で再開したファイルは、そこまでを token_count から、そこからを token_usage_record から数える
+		cutEvents, cutMeas := -1, -1
 		var copied []core.Obj // codexSkipMarker で、印を待っているあいだの行（印があれば捨てる）
 		handle := func(e core.Obj) {
 			t := ts(e["timestamp"])
@@ -442,6 +445,9 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					return
 				}
 				records[id] = true
+				if cutEvents < 0 {
+					cutEvents, cutMeas = len(fromCounts), len(countMeas)
+				}
 				fromRecords = append(fromRecords, codexEvent(t, cf.model, codexTokens(p["usage"]), true))
 				recordMeas = append(recordMeas, codexMeasures(t, core.Map(p["usage"]), 0)...)
 			case "response_item":
@@ -560,9 +566,12 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			}
 		}
 		pending, meas := fromCounts, countMeas
-		if len(fromRecords) > 0 { // 新しい版は token_usage_record だけを使う（token_count と同じものを重ねて書いている）
-			pending, meas = fromRecords, recordMeas
-			for _, m := range countMeas { // コンテキストの使用率は token_count にしかない
+		if cutEvents >= 0 {
+			// 新しい版は応答ごとに token_usage_record を書いてから token_count を書く（同じ応答を重ねて書いている）。
+			// 最初の token_usage_record より前の token_count は、古い版で書いた分（再開すると同じファイルに足していく）
+			pending = append(append([]core.Event(nil), fromCounts[:cutEvents]...), fromRecords...)
+			meas = append(append([]core.Measure(nil), countMeas[:cutMeas]...), recordMeas...)
+			for _, m := range countMeas[cutMeas:] { // コンテキストの使用率は token_count にしかない
 				if m.Key == "context_used" {
 					meas = append(meas, m)
 				}
@@ -575,6 +584,10 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			msgs = fallback
 		}
 		for _, m := range msgs {
+			if len(userMsgs) == 0 && codexAgentsMD(m.text) { // Codex が足した AGENTS.md の指示（<environment_context> などのタグは Prompt が分ける）
+				cf.b.Inject(m.t, "other", m.text)
+				continue
+			}
 			cf.b.Prompt(m.t, m.text)
 		}
 		cf.events = pending
@@ -635,6 +648,15 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		emit(s)
 	}
 	return errs.err()
+}
+
+// codexAgentsMD は、response_item の user の文が、Codex が会話に入れた AGENTS.md の指示か。
+// core の UserInstructions は「# AGENTS.md instructions（ for ディレクトリ）」で始まり </INSTRUCTIONS> で終わる。
+// Codex と同じく、始まりは大文字と小文字を区別しない。
+func codexAgentsMD(text string) bool {
+	const prefix = "# AGENTS.md instructions"
+	t := strings.TrimSpace(text)
+	return len(t) >= len(prefix) && strings.EqualFold(t[:len(prefix)], prefix)
 }
 
 // codexBaseline は、Codex がコンテキストの使用率から除くトークン（システムプロンプトやツールの説明など、いつも入っている分）。
