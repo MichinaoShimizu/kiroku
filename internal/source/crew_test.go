@@ -295,7 +295,7 @@ func TestKiroCrewNonKiroBackends(t *testing.T) {
 			// Codex（session_map の provider で見分ける）
 			row("chat-3-300", "acp", "gpt-5", 10, 10, 0, 0, 0, `, "context_used": 1, "context_window": 0`),
 			// session_map にない会話: cost がなければ料金表で見積もる（料金表にないモデルは見積もらない）
-			row("chat-4-400", "acp", "gpt-5", 300, 30, 0, 0, 0, ""),
+			row("chat-4-400", "acp", "glm-5", 300, 30, 0, 0, 0, ""),
 			row("chat-5-500", "acp", "claude-haiku-4-5", 1000, 100, 0, 0, 0, `, "context_used": -5, "context_window": 1000`),
 			// 壊れた値は 0 と読む
 			row("chat-6-600", "acp", "claude-haiku-4-5", -1, 0, 0, 0, -3, `, "output": "x"`),

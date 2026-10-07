@@ -261,7 +261,7 @@
     {
      "active": 65,
      "commits": 0,
-     "cost": 0,
+     "cost": 0.0053,
      "credits": 11.81,
      "prompts": 15,
      "switches": 5,
@@ -270,7 +270,7 @@
     {
      "active": 82,
      "commits": 0,
-     "cost": 0,
+     "cost": 0.0123,
      "credits": 9.67,
      "prompts": 14,
      "switches": 5,
@@ -1006,7 +1006,7 @@
      ]
     },
     {
-     "cost": 0,
+     "cost": 0.0053,
      "credits": 0,
      "git": {
       "added": 0,
@@ -1015,7 +1015,7 @@
       "removed": 0
      },
      "heavy": {
-      "cost": 0,
+      "cost": 0.0053,
       "credits": 0,
       "id": "thr-main",
       "minutes": 3,
@@ -1027,13 +1027,13 @@
      "minutes": 2,
      "models": [
       {
-       "cost": 0,
+       "cost": 0.0044,
        "model": "gpt-5-codex",
        "tokens": 2850,
        "turns": 2
       },
       {
-       "cost": 0,
+       "cost": 0.0009,
        "model": "gpt-5-codex-mini",
        "tokens": 450,
        "turns": 1
@@ -1052,7 +1052,7 @@
      "tokens": 3300,
      "top": [
       {
-       "cost": 0,
+       "cost": 0.0053,
        "credits": 0,
        "id": "thr-main",
        "minutes": 3,
@@ -1064,7 +1064,7 @@
      ]
     },
     {
-     "cost": 0,
+     "cost": 0.0123,
      "credits": 0,
      "git": {
       "added": 0,
@@ -1073,7 +1073,7 @@
       "removed": 0
      },
      "heavy": {
-      "cost": 0,
+      "cost": 0.0123,
       "credits": 0,
       "id": "thr-new",
       "minutes": 1,
@@ -1085,7 +1085,7 @@
      "minutes": 2,
      "models": [
       {
-       "cost": 0,
+       "cost": 0.0123,
        "model": "gpt-5.2-codex",
        "tokens": 4100,
        "turns": 2
@@ -1104,7 +1104,7 @@
      "tokens": 4100,
      "top": [
       {
-       "cost": 0,
+       "cost": 0.0123,
        "credits": 0,
        "id": "thr-new",
        "minutes": 1,
@@ -1276,14 +1276,14 @@
       "tokens": 0
      },
      {
-      "cost": 0,
+      "cost": 0.0123,
       "credits": 0,
       "key": "api · —",
       "minutes": 2,
       "tokens": 4100
      },
      {
-      "cost": 0,
+      "cost": 0.0053,
       "credits": 0,
       "key": "web · feat/button",
       "minutes": 2,
@@ -1334,7 +1334,7 @@
       "tokens": 0
      },
      {
-      "cost": 0,
+      "cost": 0.0176,
       "credits": 0,
       "key": "Codex",
       "minutes": 4,
@@ -1354,7 +1354,7 @@
    "switchesMax": 5,
    "usage": {
     "cacheHit": 0.944,
-    "cost": 6.17,
+    "cost": 6.19,
     "credits": 26.4,
     "heavy": [
      {
@@ -1403,7 +1403,7 @@
      ],
      [
       "gpt-5.2-codex",
-      0,
+      0.01,
       4100,
       2
      ],
@@ -1421,6 +1421,20 @@
      ]
     ],
     "out": 215095,
+    "prefixPriced": [
+     [
+      "gpt-5.2-codex",
+      "gpt-5.2"
+     ],
+     [
+      "gpt-5-codex",
+      "gpt-5"
+     ],
+     [
+      "gpt-5-codex-mini",
+      "gpt-5"
+     ]
+    ],
     "projects": [
      [
       "app",
@@ -1433,6 +1447,14 @@
      [
       "blog",
       0.25
+     ],
+     [
+      "api",
+      0.01
+     ],
+     [
+      "web",
+      0.01
      ]
     ],
     "subMin": 97,
@@ -1456,12 +1478,8 @@
     ],
     "subagents": 24,
     "tokens": 9779923,
-    "unpriced": 7400,
-    "unpricedModels": [
-     "gpt-5.2-codex",
-     "gpt-5-codex",
-     "gpt-5-codex-mini"
-    ]
+    "unpriced": 0,
+    "unpricedModels": []
    },
    "waitCount": 50,
    "waitMedian": 180,
@@ -4793,7 +4811,7 @@
   {
    "branch": "feat/button",
    "corrections": 1,
-   "cost": 0,
+   "cost": 0.0053,
    "credits": 0,
    "ctx": [],
    "end": 1790643810,
@@ -4896,13 +4914,13 @@
      "tools": 1,
      "type": "explorer",
      "usage": {
-      "cost": 0,
+      "cost": 0.0009,
       "cr": 100,
       "cw": 0,
       "cw1h": 0,
       "in": 300,
       "out": 50,
-      "unpriced": 450
+      "unpriced": 0
      }
     }
    ],
@@ -4918,13 +4936,13 @@
     ]
    ],
    "usage": {
-    "cost": 0,
+    "cost": 0.0044,
     "cr": 2000,
     "cw": 0,
     "cw1h": 0,
     "in": 500,
     "out": 350,
-    "unpriced": 2850
+    "unpriced": 0
    },
    "waits": [
     [
@@ -5498,7 +5516,7 @@
   {
    "branch": null,
    "corrections": 0,
-   "cost": 0,
+   "cost": 0.0123,
    "credits": 0,
    "ctx": [],
    "end": 1790744460,
@@ -5578,13 +5596,13 @@
    "title": "APIのテストを足して",
    "tools": [],
    "usage": {
-    "cost": 0,
+    "cost": 0.0123,
     "cr": 1400,
     "cw": 0,
     "cw1h": 0,
     "in": 2100,
     "out": 600,
-    "unpriced": 4100
+    "unpriced": 0
    },
    "waits": [
     [
@@ -7971,7 +7989,7 @@
     {
      "active": 65,
      "commits": 0,
-     "cost": 0,
+     "cost": 0.0053,
      "credits": 11.81,
      "prompts": 15,
      "switches": 5,
@@ -7980,7 +7998,7 @@
     {
      "active": 82,
      "commits": 0,
-     "cost": 0,
+     "cost": 0.0123,
      "credits": 9.67,
      "prompts": 14,
      "switches": 5,
@@ -8632,7 +8650,7 @@
      ]
     },
     {
-     "cost": 0,
+     "cost": 0.0053,
      "credits": 0,
      "git": {
       "added": 0,
@@ -8641,7 +8659,7 @@
       "removed": 0
      },
      "heavy": {
-      "cost": 0,
+      "cost": 0.0053,
       "credits": 0,
       "id": "thr-main",
       "minutes": 3,
@@ -8653,13 +8671,13 @@
      "minutes": 2,
      "models": [
       {
-       "cost": 0,
+       "cost": 0.0044,
        "model": "gpt-5-codex",
        "tokens": 2850,
        "turns": 2
       },
       {
-       "cost": 0,
+       "cost": 0.0009,
        "model": "gpt-5-codex-mini",
        "tokens": 450,
        "turns": 1
@@ -8678,7 +8696,7 @@
      "tokens": 3300,
      "top": [
       {
-       "cost": 0,
+       "cost": 0.0053,
        "credits": 0,
        "id": "thr-main",
        "minutes": 3,
@@ -8690,7 +8708,7 @@
      ]
     },
     {
-     "cost": 0,
+     "cost": 0.0123,
      "credits": 0,
      "git": {
       "added": 0,
@@ -8699,7 +8717,7 @@
       "removed": 0
      },
      "heavy": {
-      "cost": 0,
+      "cost": 0.0123,
       "credits": 0,
       "id": "thr-new",
       "minutes": 1,
@@ -8711,7 +8729,7 @@
      "minutes": 2,
      "models": [
       {
-       "cost": 0,
+       "cost": 0.0123,
        "model": "gpt-5.2-codex",
        "tokens": 4100,
        "turns": 2
@@ -8730,7 +8748,7 @@
      "tokens": 4100,
      "top": [
       {
-       "cost": 0,
+       "cost": 0.0123,
        "credits": 0,
        "id": "thr-new",
        "minutes": 1,
@@ -8830,14 +8848,14 @@
       "tokens": 0
      },
      {
-      "cost": 0,
+      "cost": 0.0123,
       "credits": 0,
       "key": "api · —",
       "minutes": 2,
       "tokens": 4100
      },
      {
-      "cost": 0,
+      "cost": 0.0053,
       "credits": 0,
       "key": "web · feat/button",
       "minutes": 2,
@@ -8881,7 +8899,7 @@
       "tokens": 0
      },
      {
-      "cost": 0,
+      "cost": 0.0176,
       "credits": 0,
       "key": "Codex",
       "minutes": 4,
@@ -8894,7 +8912,7 @@
    "switchesMax": 5,
    "usage": {
     "cacheHit": 0.944,
-    "cost": 0.19,
+    "cost": 0.21,
     "credits": 33.52,
     "heavy": [
      {
@@ -8904,6 +8922,22 @@
       "start": 1791027960,
       "subagents": 1,
       "title": "評価シナリオを追加したい"
+     },
+     {
+      "cost": 0.01,
+      "id": "thr-new",
+      "project": "api",
+      "start": 1790744401,
+      "subagents": 0,
+      "title": "APIのテストを足して"
+     },
+     {
+      "cost": 0.01,
+      "id": "thr-main",
+      "project": "web",
+      "start": 1790643601,
+      "subagents": 1,
+      "title": "ヘッダーのボタンの色"
      }
     ],
     "models": [
@@ -8921,7 +8955,7 @@
      ],
      [
       "gpt-5.2-codex",
-      0,
+      0.01,
       4100,
       2
      ],
@@ -8939,10 +8973,32 @@
      ]
     ],
     "out": 13981,
+    "prefixPriced": [
+     [
+      "gpt-5.2-codex",
+      "gpt-5.2"
+     ],
+     [
+      "gpt-5-codex",
+      "gpt-5"
+     ],
+     [
+      "gpt-5-codex-mini",
+      "gpt-5"
+     ]
+    ],
     "projects": [
      [
       "app",
       0.19
+     ],
+     [
+      "api",
+      0.01
+     ],
+     [
+      "web",
+      0.01
      ]
     ],
     "subMin": 4,
@@ -8958,12 +9014,8 @@
     ],
     "subagents": 2,
     "tokens": 547598,
-    "unpriced": 7400,
-    "unpricedModels": [
-     "gpt-5.2-codex",
-     "gpt-5-codex",
-     "gpt-5-codex-mini"
-    ]
+    "unpriced": 0,
+    "unpricedModels": []
    },
    "waitCount": 19,
    "waitMedian": 120,

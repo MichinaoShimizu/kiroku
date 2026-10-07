@@ -182,7 +182,7 @@ func roundTrip(t *testing.T, v any) any {
 	return out
 }
 
-// compare は数値を誤差つきで比べる。Go 版で増やした項目（週の usage.unpriced・unpricedModels、native）は Python 版になかったので比べない。
+// compare は数値を誤差つきで比べる。Go 版で増やした項目（週の usage.unpriced・unpricedModels・prefixPriced、native）は Python 版になかったので比べない。
 func compare(want, got any, path string, diffs *[]string) {
 	switch w := want.(type) {
 	case map[string]any:
@@ -200,7 +200,7 @@ func compare(want, got any, path string, diffs *[]string) {
 		}
 		for k := range keys {
 			inDay := strings.Contains(path, ".days[") && !strings.Contains(path[strings.LastIndex(path, ".days[")+1:], ".")
-			if (k == "unpriced" || k == "unpricedModels") && strings.HasSuffix(path, ".usage") || k == "native" ||
+			if (k == "unpriced" || k == "unpricedModels" || k == "prefixPriced") && strings.HasSuffix(path, ".usage") || k == "native" ||
 				inDay && (k == "tokens" || k == "cost" || k == "credits") || // Go 版で足した日ごとの使用量
 				k == "projectStats" || k == "shares" || k == "limits" || k == "limitResets" || k == "ctx" || k == "ctxWindow" || k == "outputs" || k == "file" || k == "prs" || k == "outSessions" || k == "outBase" || k == "costPerCommit" || k == "git" || inDay && k == "commits" || // Go 版で足したプロジェクト別のまとめ・アウトプット
 				k == "whyEn" || k == "labelEn" || k == "detailEn" || // Go 版で足した英語表示の文言

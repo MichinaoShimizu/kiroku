@@ -137,3 +137,26 @@ func TestDaysWhenMidnightIsSkipped(t *testing.T) {
 		}
 	}
 }
+
+// 料金表に同じ ID がなく、先頭一致だけで料金を当てたモデルは、当てたキーと一緒に JSON に入れる（画面の「Data sources」で知らせる）。
+func TestWeekUsagePrefixPriced(t *testing.T) {
+	ws := time.Date(2026, 9, 28, 0, 0, 0, 0, time.Local)
+	start := float64(ws.Add(10 * time.Hour).Unix())
+	cost := 0.5
+	s := &core.Session{ID: "s1", Source: "Claude Code", Project: "app", Start: start, End: start + 600,
+		Segs: [][3]float64{{start, start + 600, 3}}, Prompts: []core.Prompt{},
+		UEv: []core.Event{
+			{T: &start, Model: "claude-opus-5-5", U: core.Tokens{In: 100}, Cost: &cost},
+			{T: &start, Model: "claude-opus-5-6", U: core.Tokens{In: 100}, Cost: &cost},
+			{T: &start, Model: "us.anthropic.claude-sonnet-4-5-20250929-v1:0", U: core.Tokens{In: 100}, Cost: &cost},
+			{T: &start, Model: "gpt-x", U: core.Tokens{In: 50}},
+		}}
+	w := Summarize([]*core.Session{s}, ws, ws.AddDate(0, 0, 7))
+	if len(w.Usage.PrefixPriced) != 1 || w.Usage.PrefixPriced[0] != [2]string{"claude-opus-5-6", "claude-opus-5"} {
+		t.Errorf("prefixPriced = %v, want [[claude-opus-5-6 claude-opus-5]]", w.Usage.PrefixPriced)
+	}
+	b, _ := json.Marshal(w.Usage)
+	if !strings.Contains(string(b), `"prefixPriced":[["claude-opus-5-6","claude-opus-5"]]`) {
+		t.Errorf("JSON に prefixPriced がない: %s", b)
+	}
+}

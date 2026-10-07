@@ -1,0 +1,79 @@
+name: Prices
+
+# 公式の料金ページ（Anthropic・OpenAI）を週 1 回取ってきて、docs/upstream の控えと比べる。
+# 変わっていたら、差分を 1 つの issue（ラベル prices）に書く。コードは push しない（料金表は人が直して PR にする）。
+# 取ってきたページは tools/prices（このリポジトリのコード）が読むだけで、実行しない。
+# ページを取って読むジョブ（check）は書き込みのトークンを持たず、issue を書くジョブ（issue）はコードを checkout しない。
+# kiroku 本体は料金を取りに行かない（ネットワークを使うのは CI のこのワークフローだけ）。
+on:
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+      diff: ${{ steps.diff.outputs.diff }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false # トークンを .git に残さない（後のステップから読めないように）
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      # 形が変わって読めなければ、何も書かずに失敗する（ワークフローの失敗として知らせる）
+      - name: Fetch the official prices
+        run: go run ./tools/prices
+      # 差分は base64 の 1 行で次のジョブに渡す（issue の本文の上限に収まるよう 60 KB で切る）
+      - id: diff
+        name: Compare with docs/upstream
+        run: |
+          if git diff --quiet -- docs/upstream; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "docs/upstream is up to date"
+          else
+            git diff -- docs/upstream
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "diff=$(git diff -- docs/upstream | head -c 60000 | base64 -w0)" >> "$GITHUB_OUTPUT"
+          fi
+
+  issue:
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the prices issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          DIFF: ${{ needs.check.outputs.diff }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          body="$RUNNER_TEMP/body.md"
+          {
+            echo "The official price pages no longer match \`docs/upstream\` (found by [this run]($RUN_URL))."
+            echo
+            echo "To update: run \`go run ./tools/prices\`, update \`Prices\` / \`OpenAIPrices\` / \`OpenAILongPrices\` and \`PricesAsOf\` in \`internal/core/usage.go\` to match (\`go test ./internal/core\` checks it), add a CHANGELOG entry and open a pull request."
+            echo
+            echo '~~~diff'
+            printf '%s' "$DIFF" | base64 -d
+            echo '~~~'
+          } > "$body"
+          gh label create prices --color FBCA04 --description "The official price pages changed" --force
+          number=$(gh issue list --label prices --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --body-file "$body"
+            gh issue comment "$number" --body "Updated with the latest difference ($RUN_URL)."
+          else
+            gh issue create --title "Official API prices changed" --label prices --body-file "$body"
+          fi

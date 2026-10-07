@@ -67,6 +67,9 @@ type WeekUsage struct {
 	Heavy     []Heavy  `json:"heavy"`
 	Unpriced  float64  `json:"unpriced"`       // 料金表にないモデルのトークン（目安コストに入らない）
 	UnpricedM []string `json:"unpricedModels"` // そのモデル（トークンの多い順）
+	// PrefixPriced は、料金表のキーと版の印を除いても一致せず、先頭一致だけで料金を当てたモデル [モデル, 当てたキー]
+	// （例: claude-opus-5-6 に claude-opus-5 の料金）。新しいモデルに古い料金を当てているかもしれないので画面で知らせる。
+	PrefixPriced [][2]string `json:"prefixPriced,omitempty"`
 }
 
 // Summary は 1 期間（週か月）の集計。
@@ -542,7 +545,7 @@ func nativeGroups(data []*core.Session, ws, we float64) []NativeGroup {
 
 // weekUsage は AI の使い方: トークン・目安コスト・クレジット・モデル・サブエージェント。
 func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
-	type mm struct{ tokens, cost, msgs, unpriced float64 }
+	type mm struct{ tokens, cost, msgs, unpriced, priced float64 }
 	models := map[string]*mm{}
 	var modelOrder []string
 	byProj := map[string]float64{}
@@ -581,6 +584,7 @@ func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
 			c := 0.0
 			if e.Cost != nil {
 				c = *e.Cost
+				models[name].priced++
 			} else {
 				unpriced += e.U.Total()
 				models[name].unpriced += e.U.Total()
@@ -648,6 +652,12 @@ func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
 		}
 	}
 	sort.SliceStable(unpricedM, func(i, j int) bool { return models[unpricedM[i]].unpriced > models[unpricedM[j]].unpriced })
+	var prefixPriced [][2]string
+	for _, m := range modelOrder {
+		if p, ok := core.PriceOf(m); ok && !p.Exact && models[m].priced > 0 {
+			prefixPriced = append(prefixPriced, [2]string{m, p.Key})
+		}
+	}
 	prows := [][2]any{}
 	sort.SliceStable(projOrder, func(i, j int) bool { return byProj[projOrder[i]] > byProj[projOrder[j]] })
 	for _, p := range projOrder {
@@ -676,7 +686,7 @@ func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
 	}
 	return WeekUsage{Tokens: tot.Total(), Out: tot.Out, Cost: core.Round(cost, 2), Credits: core.Round(credits, 2),
 		CacheHit: cacheHit, Models: mrows, Projects: prows, Subagents: nSubs, SubMin: core.Round(subSec/60, 0),
-		SubTypes: trows, Heavy: heavyRows, Unpriced: unpriced, UnpricedM: unpricedM}
+		SubTypes: trows, Heavy: heavyRows, Unpriced: unpriced, UnpricedM: unpricedM, PrefixPriced: prefixPriced}
 }
 
 // AllWeeks は記録のあるすべての週を集計する。キーは月曜の日付。
