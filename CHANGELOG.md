@@ -4,6 +4,14 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Added
+
+- Kiro Crew: turns run on backends other than kiro-cli now get tokens and cost from Crew's usage records (`input`, `output`, `cache_create`, `cache_read` and the USD `cost` in `usage/tokens/`). When a conversation records no cost, it is estimated from the price table. Turns on Crew's Claude Code backend, and on its Codex backend when `session_map.json` says so, are left to the Claude Code and Codex histories, because Crew's session ids can't be matched to those histories and adding them would count the same tokens twice; "Data sources" says how many turns were left out
+- Kiro Crew: new agent-specific metrics "Peak context usage" (`context_used` ÷ `context_window`) and "Turns that did not end normally" (`stop_reason` other than `end_turn`, such as cancelled, refused or a tool stall)
+- Kiro IDE: new agent-specific metrics "Peak context usage" (from `session_metadata` lines with `contextUsage`) and "Model requests" (the number of `requestIds` in `usage_summary`). Both shapes come only from the reference implementations, so sessions without them show neither
+- Kiro IDE before 1.0: credits, models and turn times are now read from the execution files Kiro keeps next to `workspace-sessions` (`<32-hex workspace>/<session>/<execution>` under `kiro.kiroagent`: `usageSummary[].usage`, `modelId`, `startTime` and `endTime`), linked to conversations by `executionId` or `chatSessionId`. Prompts take the start time of the execution that answered them, and sessions without execution files count the model selected in the conversation (`selectedModel`). Only real files and folders (no symbolic links) in that layout are read. The view gains Credits, Turns and Credits per turn for these sessions
+- Amazon Q and Kiro CLI (SQLite): new agent-specific metrics "Context window" (`model_info.context_window_tokens`, 200,000 when missing as in the CLI) and "Peak context usage (estimate)", computed with the CLI's own estimate (characters ÷ 4, rounded to tens) over the stored history and the last context message length. It leaves out tool definitions and history dropped by `/compact` or `/clear`
+
 ### Security
 
 - The "Resume" command in session details now quotes the project folder and session ID read from history. Before, a folder whose name contained shell characters (such as `;`, `|` or `$(…)`) could run another command when you pasted the command into a terminal, and a folder with a space made it fail. On Windows, a folder whose name has characters that cmd or PowerShell expand even inside quotes (`%`, `!`, `$`, a backtick) shows no resume command, and neither does a value with control characters
@@ -25,6 +33,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Codex: newer rollouts (`history_mode: "paginated"`) now read prompts and replies from the `item_completed` events Codex writes for them. kiroku looked for `user_message` and `agent_message` items, but Codex writes `UserMessage` and `AgentMessage`, so prompts fell back to raw model input, which also holds the context Codex adds
 - Codex: subagents and forks no longer count the parent's history again. Codex copies it into the child's file with the time of copying, so kiroku's time check let it through (the parent's prompts, tokens and tool calls were added to the subagent or fork). The end of the copy is now found from what Codex records (`subagent_history_start_ordinal`, or the child's own `thread_settings_applied`); older files still use the time check
 - Codex: instructions Codex adds as `developer` messages are no longer shown as the AI's reply to a prompt
+- Kiro Crew's `session.archive_retention_days: 0` is now shown correctly. Crew then deletes every archived conversation record at its next hourly cleanup, but "Data sources" said records are "deleted after a period" and `kiroku doctor` said Crew "keeps history for 0 days". Both now say the records are deleted at the next cleanup, within an hour, and `kiroku doctor` suggests a longer period or `kiroku archive on`
 
 ## v0.19.1 - 2026-10-07
 

@@ -1,6 +1,7 @@
 package source
 
 import (
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -247,7 +248,8 @@ func TestCrewRetention(t *testing.T) {
 				}
 				return
 			}
-			if r == nil || r.Days != c.days || r.Set != (c.days != 30) || r.Who != "Kiro Crew" ||
+			// 0 日は Now で表す（Days の 0 は「わからない」）
+			if r == nil || r.Days != c.days || r.Now != (c.days == 0) || r.Set != (c.days != 30) || r.Who != "Kiro Crew" ||
 				r.Setting != "session.archive_retention_days" || r.Docs == "" || r.Snippet == "" ||
 				r.File != filepath.Join(home, "config.local.json") {
 				t.Fatalf("Retention = %+v, want %d 日", r, c.days)
@@ -265,5 +267,107 @@ func TestCrewRetentionNoCrew(t *testing.T) {
 	os.Mkdir(filepath.Join(home, "config.json"), 0o700)
 	if days, never := crewRetentionDays(home); days != 30 || never {
 		t.Errorf("config.json がディレクトリ = %d, %v, want 既定の 30 日", days, never)
+	}
+}
+
+// Crew の使用量の記録のうち、kiro-cli 以外の backend の行（トークン・USD の cost）を読む。
+// Claude Code の seam（行の provider か session_map の provider が claude_code）と Codex（session_map の provider が codex）は、
+// それぞれの履歴が同じトークンを記録しているので、トークンとドル額を足さない。コンテキストの使用率と stop_reason はどの行からも読む。
+func TestKiroCrewNonKiroBackends(t *testing.T) {
+	kiro, crew := t.TempDir(), t.TempDir()
+	n := 0
+	row := func(slot, provider, model string, in, out, cw, cr, cost float64, extra string) string {
+		n++
+		return fmt.Sprintf(`{"_type": "tokens", "ts": "2026-09-29T10:%02d:00+00:00", "slot": %q, "app": "", "provider": %q, "model": %q, "input": %v, "output": %v, "cache_create": %v, "cache_read": %v, "cost": %v, "credits": 0.0, "turns": 1, "duration_ms": 1000, "surface": "dashboard", "agent": ""%s}`,
+			n, slot, provider, model, in, out, cw, cr, cost, extra)
+	}
+	writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
+	writeFiles(t, crew, map[string]string{
+		"session_map.json": `{"dashboard:chat-1-100": {"sid": "cc-sid", "provider": "claude_code", "cwd": "/Users/me/app"},
+ "dashboard:chat-2-200": {"sid": "gs-sid", "provider": "goose", "cwd": "/Users/me/lib"},
+ "dashboard:chat-3-300": {"sid": "cx-sid", "provider": "codex"}}`,
+		"usage/tokens/2026-09-29.jsonl": strings.Join([]string{
+			// Claude Code の seam: Claude Code の履歴が同じ分を記録している
+			row("chat-1-100", "claude_code", "claude-sonnet-4-5", 100, 50, 10, 1000, 0.5, `, "context_used": 50000, "context_window": 200000, "stop_reason": "end_turn"`),
+			// goose（行の provider は acp）: トークンと、会話の累計の差分の cost（最初のターンは 0）
+			row("chat-2-200", "acp", "claude-sonnet-4-5", 1000, 200, 0, 0, 0, `, "context_used": 20000, "context_window": 100000, "stop_reason": "end_turn"`),
+			row("chat-2-200", "acp", "claude-sonnet-4-5", 500, 100, 0, 0, 0.75, `, "context_used": 150000, "context_window": 100000, "stop_reason": "cancelled"`),
+			// Codex（session_map の provider で見分ける）
+			row("chat-3-300", "acp", "gpt-5", 10, 10, 0, 0, 0, `, "context_used": 1, "context_window": 0`),
+			// session_map にない会話: cost がなければ料金表で見積もる（料金表にないモデルは見積もらない）
+			row("chat-4-400", "acp", "gpt-5", 300, 30, 0, 0, 0, ""),
+			row("chat-5-500", "acp", "claude-haiku-4-5", 1000, 100, 0, 0, 0, `, "context_used": -5, "context_window": 1000`),
+			// 壊れた値は 0 と読む
+			row("chat-6-600", "acp", "claude-haiku-4-5", -1, 0, 0, 0, -3, `, "output": "x"`),
+		}, "\n") + "\n",
+	})
+	k := &KiroCLI{Home: kiro, CrewHome: crew}
+	by := map[string]*core.Session{}
+	for _, b := range load(t, k) {
+		by[b.ID] = b.Finish(15)
+	}
+	get := func(slot string) *core.Session {
+		t.Helper()
+		f := by["crew:dashboard:"+slot]
+		if f == nil {
+			t.Fatalf("%s がない: %v", slot, by)
+		}
+		return f
+	}
+	cc := get("chat-1-100")
+	if cc.Usage.Total() != 0 || cc.Cost != 0 || len(cc.Models) != 1 || cc.Models[0][0] != "claude-sonnet-4-5" {
+		t.Errorf("Claude Code の seam: usage = %+v, cost = %v, models = %v（トークンとコストは Claude Code の履歴で数える）", cc.Usage, cc.Cost, cc.Models)
+	}
+	if n := nativeOf(cc); n["コンテキストの最大使用率"].V != 25 || n["正常に終わらなかったターン"].V != 0 || n["正常に終わらなかったターン"].N != 1 {
+		t.Errorf("Claude Code の seam の参考指標 = %+v", cc.Native)
+	}
+	gs := get("chat-2-200")
+	if gs.Usage.In != 1500 || gs.Usage.Out != 300 || gs.Usage.CW != 0 || gs.Usage.CR != 0 || math.Abs(gs.Cost-0.75) > 1e-9 || gs.Usage.Unpriced != 0 {
+		t.Errorf("goose: usage = %+v, cost = %v, want 1500/300 と $0.75（cost のある会話は 0 の行を見積もらない）", gs.Usage, gs.Cost)
+	}
+	if gs.ProjectPath != "/Users/me/lib" || len(gs.Models) != 1 || gs.Models[0][1] != 2 {
+		t.Errorf("goose: project = %q, models = %v", gs.ProjectPath, gs.Models)
+	}
+	if n := nativeOf(gs); n["コンテキストの最大使用率"].V != 100 || n["正常に終わらなかったターン"].V != 1 || n["ターン"].V != 2 {
+		t.Errorf("goose の参考指標 = %+v（上限を超えた使用率は 100%%、cancelled は正常に終わらなかったターン）", gs.Native)
+	}
+	if cx := get("chat-3-300"); cx.Usage.Total() != 0 || nativeOf(cx)["コンテキストの最大使用率"].N != 0 {
+		t.Errorf("Codex: usage = %+v, native = %+v（窓が 0 の使用率は使わない）", cx.Usage, cx.Native)
+	}
+	if f := get("chat-4-400"); f.Usage.Unpriced != 330 || f.Cost != 0 {
+		t.Errorf("料金表にないモデル: usage = %+v, cost = %v", f.Usage, f.Cost)
+	}
+	if f := get("chat-5-500"); math.Abs(f.Cost-0.0015) > 1e-12 || nativeOf(f)["コンテキストの最大使用率"].N != 0 {
+		t.Errorf("料金表で見積もる: cost = %v, native = %+v（負の使用量は使わない）", f.Cost, f.Native)
+	}
+	if f := get("chat-6-600"); f.Usage.Total() != 0 || f.Cost != 0 {
+		t.Errorf("壊れた値: usage = %+v, cost = %v", f.Usage, f.Cost)
+	}
+	if d := k.DetailEn(); !strings.Contains(d, "tokens and cost of 2 turns run on Claude Code or Codex are counted from their own history") {
+		t.Errorf("detail = %q", d)
+	}
+}
+
+// kiro-cli の会話に結びついた Crew の記録からも、コンテキストの使用率と stop_reason を読む（クレジットの置きかえとは別）。
+func TestKiroCrewNativeOnKiroCLISession(t *testing.T) {
+	kiro, crew := t.TempDir(), t.TempDir()
+	writeFiles(t, kiro, map[string]string{
+		"sessions/cli/k1.json":  `{"session_id": "k1", "cwd": "/Users/me/app", "created_at": "2026-09-29T10:00:00Z", "session_state": {"conversation_metadata": {"user_turn_metadatas": [{"end_timestamp": "2026-09-29T10:01:00Z", "metering_usage": [{"value": 5, "unit": "credit"}]}]}}}`,
+		"sessions/cli/k1.jsonl": "",
+	})
+	writeFiles(t, crew, map[string]string{
+		"session_map.json":              `{"dashboard:chat-1-100": {"sid": "k1"}}`,
+		"usage/tokens/2026-09-29.jsonl": `{"_type": "tokens", "ts": "2026-09-29T10:01:00+00:00", "slot": "chat-1-100", "provider": "acp", "model": "auto", "input": 0, "output": 0, "cost": 0.0, "credits": 1.0, "context_used": 40000, "context_window": 200000, "stop_reason": "refusal"}` + "\n",
+	})
+	bs := load(t, &KiroCLI{Home: kiro, CrewHome: crew})
+	if len(bs) != 1 {
+		t.Fatalf("会話の数 = %d", len(bs))
+	}
+	f := bs[0].Finish(15)
+	if f.Credits != 5 {
+		t.Errorf("クレジット = %v, want 5（kiro-cli の記録のほうが多い）", f.Credits)
+	}
+	if n := nativeOf(f); n["コンテキストの最大使用率"].V != 20 || n["正常に終わらなかったターン"].V != 1 {
+		t.Errorf("参考指標 = %+v", f.Native)
 	}
 }

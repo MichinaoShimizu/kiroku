@@ -38,7 +38,14 @@ var NativeDefs = map[string][]NativeDef{
 		{Key: "credits", Label: "クレジット", LabelEn: "Credits", Unit: "クレジット", Agg: "sum"},
 		{Key: "turns", Label: "ターン", LabelEn: "Turns", Unit: "回", Agg: "sum"},
 		{Key: "credits_per_turn", Label: "1ターンあたりのクレジット", LabelEn: "Credits per turn", Unit: "クレジット", Agg: "ratio", Num: "credits", Den: "turns", Scale: 1},
+		{Key: "requests", Label: "モデルへのリクエスト", LabelEn: "Model requests", Unit: "回", Agg: "sum"},                       // usage_summary.requestIds の数
+		{Key: "context_used", Label: "コンテキストの最大使用率", LabelEn: "Peak context usage", Unit: "%", Agg: "max", Scale: 100}, // session_metadata の contextUsage
 		{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},
+	},
+	"Kiro IDE (legacy)": { // 実行ファイルの usageSummary（source/kiro.go の kiroExec）
+		{Key: "credits", Label: "クレジット", LabelEn: "Credits", Unit: "クレジット", Agg: "sum"},
+		{Key: "turns", Label: "ターン", LabelEn: "Turns", Unit: "回", Agg: "sum"},
+		{Key: "credits_per_turn", Label: "1ターンあたりのクレジット", LabelEn: "Credits per turn", Unit: "クレジット", Agg: "ratio", Num: "credits", Den: "turns", Scale: 1},
 	},
 	"Kiro CLI (SQLite)": qstoreDefs,
 	"Amazon Q":          qstoreDefs,
@@ -47,6 +54,8 @@ var NativeDefs = map[string][]NativeDef{
 		{Key: "crew_subagents", Label: "うちサブエージェント", LabelEn: "Of which subagents", Unit: "件", Agg: "sum"},
 		{Key: "credits", Label: "クレジット", LabelEn: "Credits", Unit: "クレジット", Agg: "sum"},
 		{Key: "turns", Label: "ターン", LabelEn: "Turns", Unit: "回", Agg: "sum"},
+		{Key: "context_used", Label: "コンテキストの最大使用率", LabelEn: "Peak context usage", Unit: "%", Agg: "max", Scale: 100},    // context_used ÷ context_window
+		{Key: "stopped_early", Label: "正常に終わらなかったターン", LabelEn: "Turns that did not end normally", Unit: "回", Agg: "sum"}, // stop_reason が end_turn 以外
 	},
 	"Codex": {
 		{Key: "responses", Label: "応答の数", LabelEn: "Responses", Unit: "回", Agg: "sum"},
@@ -63,6 +72,9 @@ var qstoreDefs = []NativeDef{
 	{Key: "latency", Label: "応答にかかった時間（中央値）", LabelEn: "Response time (median)", Unit: "秒", Agg: "median"},
 	{Key: "response_size", Label: "応答の大きさ（平均）", LabelEn: "Response size (average)", Unit: "バイト", Agg: "avg"}, // 応答の文とツール入力の JSON のバイト数（文字数ではない）,
 	{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},
+	// CLI と同じ見積もり（文字数 ÷ 4）で数えた、保存された履歴の大きさ ÷ コンテキストの上限（qstore.go の qContextChars）
+	{Key: "context_used", Label: "コンテキストの最大使用率（見積もり）", LabelEn: "Peak context usage (estimate)", Unit: "%", Agg: "max", Scale: 100},
+	{Key: "context_window", Label: "コンテキストの上限", LabelEn: "Context window", Unit: "トークン", Agg: "max"}, // model_info.context_window_tokens
 }
 
 // NativeValue は 1 つの参考指標の値。
