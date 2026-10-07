@@ -8,6 +8,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - "Worth a look" details now appear only in its dialog. The summary no longer repeats them in a box under each flagged metric; a small warning triangle next to the metric's name opens the same dialog. The dialog's "Show in the summary" button is gone, leaving Close
 - Dialogs (Worth a look, keyboard shortcuts, Year in review) close when you click outside them, like the details panel
+- Session details: "Models, tools and … metrics" is open by default, and each tool's bar has its own color (by rank within the session, so the bars next to each other differ)
 
 ## v0.21.1 - 2026-10-07
 
