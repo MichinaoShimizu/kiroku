@@ -43,7 +43,8 @@ type Report struct {
 
 // Retention は、エージェントが古い履歴を自動で消す設定。画面で、過去の分が見られなくなることを知らせ、公式ドキュメントへ案内する。
 type Retention struct {
-	Days    int    `json:"days"`           // 何日より古いものを消すか（0 はわからない）
+	Days    int    `json:"days"`           // 何日より古いものを消すか（0 はわからない。Now のときは 0 日）
+	Now     bool   `json:"now,omitempty"`  // 0 日の設定で、消せるものを次の片付けですぐ消す（Days は 0）。Days の 0（わからない）と分けるため
 	Set     bool   `json:"set"`            // 利用者が設定しているか（false なら既定値のまま）
 	Who     string `json:"who,omitempty"`  // 履歴を消すもの（Report の Name と違うとき。Kiro CLI の履歴の中の Kiro Crew など）
 	Setting string `json:"setting"`        // 設定の名前

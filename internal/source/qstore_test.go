@@ -225,3 +225,80 @@ func TestQStoreSyntheticEntries(t *testing.T) {
 		t.Errorf("2 つ目の依頼の応答 = %+v（--resume の要約は付けない）", r)
 	}
 }
+
+// qConvDB は conv を 1 つの会話として入れた data.sqlite3（conversations_v2）を作る。
+func qConvDB(t *testing.T, conv map[string]any) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "data.sqlite3")
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	v, err := json.Marshal(conv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`CREATE TABLE conversations_v2 (key TEXT, conversation_id TEXT, value TEXT, created_at INTEGER, updated_at INTEGER)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO conversations_v2 VALUES (?, ?, ?, ?, ?)`, "/Users/me/app", "conv-x", string(v), nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+// コンテキストの使用率は CLI と同じ見積もり（token_counter.rs: 文字数 ÷ 4 を 10 単位に丸める）で、
+// 保存された履歴（user・assistant）と文脈の長さ（context_message_length）を、model_info.context_window_tokens で割る。
+func TestQStoreContextUsage(t *testing.T) {
+	t0 := time.Date(2026, 9, 29, 1, 0, 0, 0, time.UTC)
+	history := []any{
+		map[string]any{ // 200 + 400 + 400 = 1000 文字
+			"user":      map[string]any{"additional_context": strings.Repeat("b", 200), "timestamp": t0.Format(time.RFC3339), "content": map[string]any{"Prompt": map[string]any{"prompt": strings.Repeat("a", 400)}}},
+			"assistant": map[string]any{"Response": map[string]any{"message_id": "m1", "content": strings.Repeat("c", 400)}},
+		},
+		map[string]any{ // 結果 800 + JSON の値 100 + 1 + 1 + 1、応答 96 + ツール入力 100 = 1099 文字（user の時刻はないので依頼を送った時刻）
+			"user": map[string]any{"content": map[string]any{"ToolUseResults": map[string]any{"tool_use_results": []any{
+				map[string]any{"tool_use_id": "t1", "status": "Success", "content": []any{
+					map[string]any{"Text": strings.Repeat("d", 800)},
+					map[string]any{"Json": map[string]any{"k": strings.Repeat("e", 100), "n": 1, "arr": []any{true, nil}}},
+				}},
+			}}}},
+			"assistant":        map[string]any{"ToolUse": map[string]any{"content": strings.Repeat("f", 96), "tool_uses": []any{map[string]any{"id": "t2", "name": "fs_read", "args": map[string]any{"path": strings.Repeat("g", 100)}}}}},
+			"request_metadata": map[string]any{"request_start_timestamp_ms": t0.Add(time.Minute).UnixMilli()},
+		},
+	}
+	conv := map[string]any{"conversation_id": "conv-x", "model_info": map[string]any{"model_id": "m", "context_window_tokens": 1000}, "context_message_length": 360, "history": history}
+	b := load(t, &QStore{Label: "Amazon Q", DB: qConvDB(t, conv)})[0]
+	var used []float64
+	for _, m := range b.Measures {
+		if m.Key == "context_used" {
+			if m.T == nil {
+				t.Errorf("時刻のない観測: %+v", m)
+			}
+			used = append(used, m.V)
+		}
+	}
+	// 文脈 360 + 決まった応答 154 = 514。1 つ目まで 1514 文字 → 380 トークン、2 つ目まで 2613 文字 → 650 トークン
+	if len(used) != 2 || used[0] != 0.38 || used[1] != 0.65 {
+		t.Errorf("使用率 = %v, want [0.38 0.65]", used)
+	}
+	n := nativeOf(b.Finish(15))
+	if v := n["コンテキストの最大使用率（見積もり）"]; v.V != 65 {
+		t.Errorf("コンテキストの最大使用率 = %+v, want 65%%", v)
+	}
+	if v := n["コンテキストの上限"]; v.V != 1000 || v.N != 1 {
+		t.Errorf("コンテキストの上限 = %+v, want 1000", v)
+	}
+
+	// model_info がなければ CLI と同じく 200,000 トークン。上限を超えた見積もりは 100%
+	conv = map[string]any{"conversation_id": "conv-x", "history": history[:1]}
+	n = nativeOf(load(t, &QStore{Label: "Amazon Q", DB: qConvDB(t, conv)})[0].Finish(15))
+	if n["コンテキストの上限"].V != 200000 || (n["コンテキストの最大使用率（見積もり）"].V < 0.12 || n["コンテキストの最大使用率（見積もり）"].V > 0.13) {
+		t.Errorf("model_info なし = %+v", n)
+	}
+	conv = map[string]any{"conversation_id": "conv-x", "model_info": map[string]any{"model_id": "m", "context_window_tokens": 10}, "history": history[:1]}
+	if n = nativeOf(load(t, &QStore{Label: "Amazon Q", DB: qConvDB(t, conv)})[0].Finish(15)); n["コンテキストの最大使用率（見積もり）"].V != 100 {
+		t.Errorf("上限を超えた見積もり = %+v", n)
+	}
+}

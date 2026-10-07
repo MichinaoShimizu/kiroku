@@ -232,3 +232,136 @@ func TestKiroRepliesWithoutTimes(t *testing.T) {
 		t.Errorf("2 回目の応答 = %+v, want コミットしました（時刻は依頼の時刻）", r)
 	}
 }
+
+// Kiro IDE v1.0 以降: session_metadata の contextUsage（参考実装 codeburn のテストデータの形）からコンテキストの最大使用率、
+// usage_summary の requestIds（参考実装 kiro-history の形）からモデルへのリクエストの数。どちらもなければ出さない。
+func TestKiroIDEContextAndRequests(t *testing.T) {
+	home := t.TempDir()
+	writeFiles(t, home, map[string]string{
+		"sessions/abc/sess_1/session.json": `{"id": "sess_1", "createdAt": "2026-09-29T01:00:00Z", "modelId": "auto"}`,
+		"sessions/abc/sess_1/messages.jsonl": `{"timestamp": "2026-09-29T01:01:00Z", "payload": {"type": "user", "content": "直して"}}
+{"timestamp": "2026-09-29T01:02:00Z", "payload": {"type": "session_metadata", "key": "contextUsage", "value": {"usagePercentage": 12.5}, "executionId": "e1"}}
+{"timestamp": "2026-09-29T01:02:00Z", "payload": {"type": "usage_summary", "promptTurnSummaries": [{"unit": "credit", "usage": 1}], "requestIds": ["r1", "r2", "r3"], "executionId": "e1"}}
+{"timestamp": "2026-09-29T01:03:00Z", "payload": {"type": "session_metadata", "key": "contextUsage", "value": {"usagePercentage": 40}}}
+{"timestamp": "2026-09-29T01:03:00Z", "payload": {"type": "session_metadata", "key": "contextUsage", "value": {"usagePercentage": 250}}}
+{"timestamp": "2026-09-29T01:03:00Z", "payload": {"type": "session_metadata", "key": "contextUsage", "value": {"usagePercentage": "90"}}}
+{"timestamp": "2026-09-29T01:03:00Z", "payload": {"type": "session_metadata", "key": "otherKey", "value": {"usagePercentage": 80}}}
+{"timestamp": "2026-09-29T01:04:00Z", "payload": {"type": "usage_summary", "promptTurnSummaries": [{"unit": "credit", "usage": 1}], "requestIds": []}}
+{"timestamp": "2026-09-29T01:05:00Z", "payload": {"type": "usage_summary", "promptTurnSummaries": [{"unit": "credit", "usage": 1}], "requestIds": "r9"}}
+`,
+		// どちらの項目もない会話
+		"sessions/abc/sess_2/session.json":   `{"id": "sess_2", "createdAt": "2026-09-29T01:00:00Z"}`,
+		"sessions/abc/sess_2/messages.jsonl": `{"timestamp": "2026-09-29T01:04:00Z", "payload": {"type": "usage_summary", "promptTurnSummaries": [{"unit": "credit", "usage": 1}]}}` + "\n",
+	})
+	bs := load(t, &KiroIDE{Home: home})
+	n := nativeOf(find(bs, "sess_1").Finish(15))
+	if v := n["コンテキストの最大使用率"]; v.V != 40 || v.N != 2 {
+		t.Errorf("コンテキストの最大使用率 = %+v, want 40%%（0〜100 の数だけ。ほかの key は読まない）", v)
+	}
+	if v := n["モデルへのリクエスト"]; v.V != 3 || v.N != 2 {
+		t.Errorf("モデルへのリクエスト = %+v, want 3（並びでない requestIds は数えない）", v)
+	}
+	n2 := nativeOf(find(bs, "sess_2").Finish(15))
+	if _, ok := n2["コンテキストの最大使用率"]; ok {
+		t.Errorf("contextUsage がないのに出ている: %+v", n2)
+	}
+	if _, ok := n2["モデルへのリクエスト"]; ok {
+		t.Errorf("requestIds がないのに出ている: %+v", n2)
+	}
+}
+
+// Kiro IDE v1.0 より前の実行ファイル（<globalStorage>/kiro.kiroagent/<32 桁の 16 進>/<セッション>/<実行 ID>。参考実装 codeburn の形）から、
+// クレジット・モデル・実行の時刻を足す。会話とは history の executionId か、実行ファイルの chatSessionId で結ぶ。
+func TestKiroIDELegacyExecutions(t *testing.T) {
+	gs := t.TempDir()
+	ws := "0123456789abcdef0123456789abcdef"
+	writeFiles(t, gs, map[string]string{
+		"workspace-sessions/d3M=/sessions.json": `[{"sessionId": "a", "dateCreated": 1790643600000}, {"sessionId": "b", "dateCreated": 1790643600000}]`,
+		"workspace-sessions/d3M=/a.json": `{"selectedModel": "claude-sonnet-4.5", "history": [
+  {"message": {"role": "user", "content": "画面を作って"}},
+  {"message": {"role": "assistant", "content": "On it."}, "executionId": "exec-1"},
+  {"message": {"role": "user", "content": "色を変えて"}},
+  {"message": {"role": "user", "content": "やっぱり青で"}},
+  {"message": {"role": "assistant", "content": "On it."}, "executionId": "exec-2"},
+  {"message": {"role": "user", "content": "ありがとう"}}
+]}`,
+		"workspace-sessions/d3M=/b.json": `{"selectedModel": "auto", "history": [{"message": {"role": "user", "content": "テストを足して"}}]}`,
+		// history の executionId で結ぶ実行（ミリ秒の時刻、metadata の modelId）
+		ws + "/s1/exec-1": `{"executionId": "exec-1", "chatSessionId": "other", "startTime": 1790643660000, "endTime": 1790643720000, "metadata": {"modelId": "claude-opus-4.5"},
+  "usageSummary": [{"usage": 0.5, "unit": "credit", "usedTools": ["readFile"]}, {"usage": 1.0}, {"usage": 9, "unit": "token"}], "context": {"messages": []}}`,
+		// モデルのない実行は会話で選んでいたモデル。時刻は metadata の秒
+		ws + "/s1/exec-2": `{"executionId": "exec-2", "metadata": {"startTime": 1790644000, "endTime": 1790644100}, "usageSummary": [{"usage": 2, "unit": "credit"}]}`,
+		// chatSessionId で結ぶ実行（history に executionId がない会話 b）
+		ws + "/s2/exec-3": `{"executionId": "exec-3", "chatSessionId": "b", "startTime": 1790650000000, "endTime": 1790650060000, "modelId": "claude-haiku-4.5", "usageSummary": [{"usage": 0.25, "unit": "credit"}]}`,
+		// 実行の一覧・JSON でないもの・拡張子のあるもの・32 桁の 16 進でないフォルダは読まない
+		ws + "/s2/index":                               `{"executions": [{"executionId": "exec-3"}], "chatSessionId": "b", "usageSummary": [{"usage": 50}]}`,
+		ws + "/s2/blob":                                "not json",
+		ws + "/s2/exec-4.json":                         `{"executionId": "exec-4", "chatSessionId": "b", "usageSummary": [{"usage": 50}]}`,
+		"not-a-workspace/s3/exec-5":                    `{"executionId": "exec-5", "chatSessionId": "b", "usageSummary": [{"usage": 50}]}`,
+		"0123456789abcdef0123456789abcdeg/s3/exec-6":   `{"executionId": "exec-6", "chatSessionId": "b", "usageSummary": [{"usage": 50}]}`,
+		"workspace-sessions/d3M=/sub/exec-7":           `{"executionId": "exec-7", "chatSessionId": "b", "usageSummary": [{"usage": 50}]}`,
+		ws + "/exec-8":                                 `{"executionId": "exec-8", "chatSessionId": "b", "usageSummary": [{"usage": 50}]}`,
+		"outside/exec-9":                               `{"executionId": "exec-9", "chatSessionId": "b", "usageSummary": [{"usage": 50}]}`,
+		"fedcba9876543210fedcba9876543210/.hidden/x":   `{"executionId": "exec-10", "chatSessionId": "b", "usageSummary": [{"usage": 50}]}`,
+		"fedcba9876543210fedcba9876543210/s4/.exec-11": `{"executionId": "exec-11", "chatSessionId": "b", "usageSummary": [{"usage": 50}]}`,
+	})
+	// シンボリックリンクの実行ファイルとフォルダは読まない（ほかの場所のファイルを読ませない）
+	if err := os.Symlink(filepath.Join(gs, "outside", "exec-9"), filepath.Join(gs, ws, "s2", "link")); err != nil {
+		t.Skip(err)
+	}
+	if err := os.Symlink(filepath.Join(gs, "outside"), filepath.Join(gs, ws, "linkdir")); err != nil {
+		t.Skip(err)
+	}
+	bs := load(t, &KiroIDELegacy{Storages: []string{gs}})
+	a := find(bs, "a")
+	if a == nil {
+		t.Fatal("a がない")
+	}
+	f := a.Finish(15)
+	if f.Credits != 3.5 {
+		t.Errorf("a のクレジット = %v, want 3.5（usageSummary の credit だけ）", f.Credits)
+	}
+	models := map[any]any{}
+	for _, m := range f.Models {
+		models[m[0]] = m[1]
+	}
+	if len(models) != 2 || models["claude-opus-4.5"] != 1 || models["claude-sonnet-4.5"] != 1 {
+		t.Errorf("a のモデル = %v（実行ファイルのモデル、なければ selectedModel）", f.Models)
+	}
+	want := []float64{1790643660, 1790644000, 1790644000, 1790643600}
+	for i, p := range f.Prompts {
+		if p.T == nil || *p.T != want[i] {
+			t.Errorf("依頼 %d の時刻 = %v, want %v（あとに続く実行の開始。なければ dateCreated）", i, p.T, want[i])
+		}
+	}
+	if f.Start != 1790643600 {
+		t.Errorf("a の開始 = %v", f.Start)
+	}
+	if n := nativeOf(f); n["クレジット"].V != 3.5 || n["ターン"].V != 2 {
+		t.Errorf("a の参考指標 = %+v", f.Native)
+	}
+	b := find(bs, "b")
+	if b == nil {
+		t.Fatal("b がない")
+	}
+	fb := b.Finish(15)
+	if fb.Credits != 0.25 || len(fb.Models) != 1 || fb.Models[0][0] != "claude-haiku-4.5" {
+		t.Errorf("b のクレジット = %v, モデル = %v（chatSessionId で結ぶ。ほかのファイルは読まない）", fb.Credits, fb.Models)
+	}
+	if fb.End < 1790650060 {
+		t.Errorf("b の終わり = %v, want 実行の終わり以降", fb.End)
+	}
+}
+
+// 実行ファイルがない会話は、会話で選んでいたモデル（selectedModel）を 1 回数える。
+func TestKiroIDELegacySelectedModel(t *testing.T) {
+	gs := t.TempDir()
+	writeFiles(t, gs, map[string]string{
+		"workspace-sessions/d3M=/sessions.json": `[{"sessionId": "a", "dateCreated": 1790643600000}]`,
+		"workspace-sessions/d3M=/a.json":        `{"selectedModel": "claude-sonnet-4.5", "history": [{"message": {"role": "user", "content": "画面を作って"}}]}`,
+	})
+	f := load(t, &KiroIDELegacy{Storages: []string{gs}})[0].Finish(15)
+	if len(f.Models) != 1 || f.Models[0][0] != "claude-sonnet-4.5" || f.Credits != 0 {
+		t.Errorf("モデル = %v, クレジット = %v", f.Models, f.Credits)
+	}
+}

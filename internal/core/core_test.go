@@ -76,6 +76,23 @@ func TestUsageDedupesStreamedLines(t *testing.T) {
 	}
 }
 
+// AddEvent でコストを決めて入れた使用量（エージェントが記録したドル額）は、料金表で見積もり直さない。nil なら見積もる。
+func TestAddEventKeepsRecordedCost(t *testing.T) {
+	s := NewBuilder("Kiro Crew", "x")
+	t1, zero, rec := 1.0, 0.0, 0.42
+	s.AddEvent(Event{T: &t1, Model: "claude-haiku-4-5", U: Tokens{In: 1000}, Cost: &rec})
+	s.AddEvent(Event{T: &t1, Model: "claude-haiku-4-5", U: Tokens{In: 1000}, Cost: &zero})
+	s.AddEvent(Event{T: &t1, Model: "claude-haiku-4-5", U: Tokens{In: 1000}})
+	evs := s.Usage.Events()
+	if len(evs) != 3 || *evs[0].Cost != 0.42 || *evs[1].Cost != 0 || *evs[2].Cost != 0.001 {
+		t.Fatalf("コスト = %v %v %v", *evs[0].Cost, *evs[1].Cost, *evs[2].Cost)
+	}
+	*evs[0].Cost = 9 // 返したものを書きかえても、元の記録は変わらない
+	if c := *s.Usage.Events()[0].Cost; c != 0.42 {
+		t.Errorf("元の記録が変わった: %v", c)
+	}
+}
+
 func TestPriceLongestPrefix(t *testing.T) {
 	if p, _ := PriceOf("claude-opus-5-5"); p.Rates[0] != 4 {
 		t.Error("claude-opus-5-5 は claude-opus-5 より長いキーを使う", p)
