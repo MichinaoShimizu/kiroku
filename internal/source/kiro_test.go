@@ -187,3 +187,48 @@ func TestKiroReplies(t *testing.T) {
 		t.Errorf("Kiro CLI の応答 = %+v, want 足して通しました（ツール呼び出しは入れない）", r)
 	}
 }
+
+// 実際の Kiro CLI の会話は、依頼（Prompt）の時刻が data.meta.timestamp にあり、応答（AssistantMessage）の行には時刻がない。
+// 応答は、その回の終わり（user_turn_metadatas の end_timestamp）、なければ直前の依頼の時刻で、その依頼に結びつける。
+// Kiro IDE は、考えている途中の文（operationType: Reasoning）を応答にせず、入れ子の content の文も拾う。
+func TestKiroRepliesWithoutTimes(t *testing.T) {
+	home := t.TempDir()
+	writeFiles(t, home, map[string]string{
+		"sessions/abc/sess_2/session.json": `{"id": "sess_2", "rootPaths": ["/Users/me/app"], "createdAt": "2026-09-29T01:00:00Z"}`,
+		"sessions/abc/sess_2/messages.jsonl": `{"timestamp": "2026-09-29T01:01:00Z", "payload": {"type": "user", "content": "ログインを直して"}}
+{"timestamp": "2026-09-29T01:02:00Z", "payload": {"type": "assistant", "content": [{"content": [{"text": "直しました"}]}]}}
+{"timestamp": "2026-09-29T01:03:00Z", "payload": {"type": "assistant", "operationType": "Reasoning", "content": "次はテストを見るべきか考える"}}
+`,
+		// 2 回目の依頼は、その回の終わりの時刻がない（直前の依頼の時刻を使う）
+		"sessions/cli/c2.json": `{"session_id": "c2", "cwd": "/Users/me/app", "created_at": "2026-09-29T02:00:00Z",
+  "session_state": {"conversation_metadata": {"user_turn_metadatas": [{"end_timestamp": "2026-09-29T02:05:00Z"}, {}]}}}`,
+		"sessions/cli/c2.jsonl": `{"version": "v1", "kind": "Prompt", "data": {"message_id": "m1", "content": [{"kind": "text", "data": "テストを足して"}], "meta": {"timestamp": 1790647260}}}
+{"version": "v1", "kind": "AssistantMessage", "data": {"message_id": "m2", "content": [{"kind": "text", "data": "足します"}, {"kind": "toolUse", "data": {"name": "fs_write", "input": {"path": "t_test.go"}}}]}}
+{"version": "v1", "kind": "ToolResults", "data": {"message_id": "m3", "content": [], "results": {}}}
+{"version": "v1", "kind": "AssistantMessage", "data": {"message_id": "m4", "content": [{"kind": "text", "data": "足して通しました"}]}}
+{"version": "v1", "kind": "Prompt", "data": {"message_id": "m5", "content": [{"kind": "text", "data": "コミットして"}], "meta": {"timestamp": 1790647560}}}
+{"version": "v1", "kind": "AssistantMessage", "data": {"message_id": "m6", "content": [{"kind": "text", "data": "コミットしました"}]}}
+`,
+	})
+	ide := find(load(t, &KiroIDE{Home: home}), "sess_2")
+	if ide == nil {
+		t.Fatal("sess_2 がない")
+	}
+	if r := ide.Finish(15).Prompts[0].Reply; r == nil || r.Text != "直しました" {
+		t.Errorf("Kiro IDE の応答 = %+v, want 直しました（考えている途中の文は入れない）", r)
+	}
+	cli := find(load(t, &KiroCLI{Home: home}), "c2")
+	if cli == nil {
+		t.Fatal("c2 がない")
+	}
+	ps := cli.Finish(15).Prompts
+	if len(ps) != 2 {
+		t.Fatalf("依頼の数 = %d, want 2", len(ps))
+	}
+	if r := ps[0].Reply; r == nil || r.Text != "足して通しました" || r.T == nil || *r.T != 1790647500 {
+		t.Errorf("1 回目の応答 = %+v, want 足して通しました（時刻はその回の終わり 02:05）", r)
+	}
+	if r := ps[1].Reply; r == nil || r.Text != "コミットしました" {
+		t.Errorf("2 回目の応答 = %+v, want コミットしました（時刻は依頼の時刻）", r)
+	}
+}

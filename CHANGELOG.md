@@ -10,6 +10,11 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - "Data sources" at the bottom of the summary is folded into one line ("Data sources · 1 history read"). It opens by itself, marked with a warning triangle, when something needs your attention: a file that couldn't be read, history that will be deleted at its default setting, or models missing from the price table
 - The footer shows the kiroku version, linked to its release page, and a link to the GitHub repository; the "Keyboard shortcuts" link it used to have was removed in v0.19.0. The links only open when pressed and send no referrer
 
+### Fixed
+
+- Kiro CLI conversations now show the AI's replies in the prompt flow. kiro-cli records no time on the lines with its replies, and kiroku dropped every reply it could not place, so none appeared; each reply is now placed at the end of its turn, or at its prompt's time when the turn has no end recorded
+- Kiro IDE no longer shows the model's thinking (`operationType: "Reasoning"`) as the reply to a prompt, and finds replies whose text is nested inside `content` or `text` instead of showing none
+
 ## v0.19.0 - 2026-10-07
 
 ### Added
