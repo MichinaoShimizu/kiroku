@@ -310,3 +310,20 @@ var notLimitText = regexp.MustCompile(`(?i)not your usage limit|temporarily limi
 func IsLimitError(text string) bool {
 	return limitText.MatchString(text) && !notLimitText.MatchString(text)
 }
+
+// resetText は、利用上限のエラー文にある解除の時刻（"resets " のあと）。
+// 例: "You've hit your session limit · resets 3:45pm"、"You've hit your weekly limit · resets Mon 12:00am"、
+// "5-hour limit reached ∙ resets 3pm"、"spend limit reached (daily; resets 2026-08-09 00:00 UTC)"。
+// 時間帯の名前が括弧で付くこと（"resets 3pm (Asia/Tokyo)"）も考えて読む。曜日・月日・日付・時刻・時間帯の形の文字だけを拾う。
+// 出典: https://code.claude.com/docs/en/errors （Usage limits・Spend limit reached）
+var resetText = regexp.MustCompile(`(?i)\bresets\s+(?:at\s+)?((?:[a-z]{3,9},?\s+)?(?:\d{1,2},?\s+(?:at\s+)?)?(?:\d{4}-\d{2}-\d{2}\s+)?\d{1,2}(?::\d{2})?(?:\s?[ap]m)?(?:\s+UTC)?(?:\s+\([a-z_]+(?:/[a-z_+-]+){0,2}\))?)`)
+
+// LimitReset は、利用上限のエラー文にある解除の時刻の文（"3:45pm"、"Mon 12:00am" など）。なければ空。
+// 日付や時間帯がないことが多いので、時刻には直さず、書いてあるとおりの文を返す。
+func LimitReset(text string) string {
+	m := resetText.FindStringSubmatch(text)
+	if m == nil {
+		return ""
+	}
+	return strings.Join(strings.Fields(m[1]), " ")
+}

@@ -38,7 +38,7 @@ func TestApplyReported(t *testing.T) {
 	}
 }
 
-// サブスクリプションでは API の請求がないので、Claude Code は costUSD に 0 を書く。
+// 使ったのに costUSD が 0 のモデル（cost-state は公式の文書がなく、なぜ 0 かは決めつけない）。
 // それに合わせて 0 にしてしまうと、何十万トークン使っても目安コストが $0.00 になる。
 func TestApplyReportedZeroKeepsEstimate(t *testing.T) {
 	f := func(v float64) *float64 { return &v }

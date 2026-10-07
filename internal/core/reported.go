@@ -19,8 +19,8 @@ type ReportedModel struct {
 // 履歴に応答が 1 つもないモデルの分は、期間の終わりの 1 件として足して返す。
 //
 // 使った分があるのに記録が 0 のモデルは、合わせずに kiroku の見積もりをそのまま残す。
-// サブスクリプションで使っているとき、Claude Code はトークンを使っても costUSD に 0 を書く（API の請求がないため）。
-// そのまま合わせると、何十万トークン使っても目安コストが $0.00 になってしまう。
+// そのまま合わせると、何十万トークン使っても目安コストが $0.00 になってしまう。cost-state は公式の文書がないので、
+// なぜ 0 になるのか（サブスクリプションのときなど）は決めつけない。
 //
 // used は、記録した使用料を実際に使ったかどうか（画面でコストの出どころを言い分けるために返す）。
 func applyReported(rs []ReportedCost, groups ...[]Event) (extra []Event, used bool) {
@@ -48,7 +48,7 @@ func applyReported(rs []ReportedCost, groups ...[]Event) (extra []Event, used bo
 				}
 				continue
 			}
-			if rm.Cost <= 0 { // 記録が 0 のモデル（サブスクリプションなど）は見積もりのまま
+			if rm.Cost <= 0 { // 使ったのに記録が 0 のモデルは見積もりのまま
 				continue
 			}
 			used = true
@@ -68,7 +68,7 @@ func applyReported(rs []ReportedCost, groups ...[]Event) (extra []Event, used bo
 }
 
 // reportedEvent は、履歴に応答が 1 つもないモデルの分を 1 件の応答にする。
-// 記録が 0（サブスクリプション）なら、料金表で見積もる。どちらもなければ足さない。
+// 記録が 0 なら、料金表で見積もる。どちらもなければ足さない。
 func reportedEvent(t float64, model string, rm ReportedModel) (Event, bool) {
 	if rm.Cost <= 0 && rm.U.Total() <= 0 {
 		return Event{}, false

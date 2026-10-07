@@ -33,15 +33,22 @@ var Prices = map[string][5]float64{
 	"claude-3-5-haiku":  {0.8, 4, 1, 1.6, 0.08},
 }
 
-// Tokens は 1 つの応答のトークン。
+// WebSearchPrice は、ウェブ検索 1 回の料金（USD）。トークンの料金とは別に、1,000 回あたり $10 かかる。
+// fast モードや US 内だけの推論の倍率は、トークンの料金にだけ掛かる。
+// 出典: https://platform.claude.com/docs/en/about-claude/pricing （Web search tool。2026-10 時点）
+const WebSearchPrice = 10.0 / 1000
+
+// Tokens は 1 つの応答のトークン。WebSearches はトークンではなく、ウェブ検索の回数（usage.server_tool_use.web_search_requests）。
 type Tokens struct {
-	In   float64 `json:"in"`
-	Out  float64 `json:"out"`
-	CW   float64 `json:"cw"`
-	CW1h float64 `json:"cw1h"`
-	CR   float64 `json:"cr"`
+	In          float64 `json:"in"`
+	Out         float64 `json:"out"`
+	CW          float64 `json:"cw"`
+	CW1h        float64 `json:"cw1h"`
+	CR          float64 `json:"cr"`
+	WebSearches float64 `json:"webSearches,omitempty"`
 }
 
+// Total はトークンの合計（ウェブ検索の回数は入れない）。
 func (t Tokens) Total() float64 { return t.In + t.Out + t.CW + t.CW1h + t.CR }
 
 func (t Tokens) vals() [5]float64 { return [5]float64{t.In, t.Out, t.CW, t.CW1h, t.CR} }
@@ -51,22 +58,35 @@ var dateSuffix = regexp.MustCompile(`-\d{8}$`)
 // ModelName は claude-haiku-4-5-20251001 → claude-haiku-4-5（日付の版を落としてまとめる）。
 func ModelName(m string) string { return dateSuffix.ReplaceAllString(m, "") }
 
-func PriceOf(model string) ([5]float64, bool) {
+func PriceOf(model string) ([5]float64, bool) { return byModel(Prices, model) }
+
+// byModel は、モデル ID の先頭一致（長いキーが優先）で表を引く。大文字・小文字と Bedrock の "anthropic." は区別しない。
+func byModel[V any](table map[string]V, model string) (V, bool) {
 	m := strings.ReplaceAll(strings.ToLower(model), "anthropic.", "")
 	best := ""
-	for k := range Prices {
+	for k := range table {
 		if strings.HasPrefix(m, k) && len(k) > len(best) {
 			best = k
 		}
 	}
 	if best == "" {
-		return [5]float64{}, false
+		var zero V
+		return zero, false
 	}
-	return Prices[best], true
+	return table[best], true
 }
 
-// CostOf は API 換算の目安コスト。料金表にないモデルは ok=false。
+// CostOf は API 換算の目安コスト（トークンの料金とウェブ検索の料金の和）。料金表にないモデルは ok=false。
 func CostOf(model string, u Tokens) (float64, bool) {
+	c, ok := tokenCost(model, u)
+	if !ok {
+		return 0, false
+	}
+	return c + u.WebSearches*WebSearchPrice, true
+}
+
+// tokenCost は、トークンだけの料金（fast モードなどの倍率を掛ける部分）。
+func tokenCost(model string, u Tokens) (float64, bool) {
 	p, ok := PriceOf(model)
 	if !ok {
 		return 0, false
@@ -79,7 +99,7 @@ func CostOf(model string, u Tokens) (float64, bool) {
 	return c / 1e6, true
 }
 
-// ReadUsage は message.usage → Tokens。キャッシュ書き込みの内訳（cache_creation の 5 分・1 時間）があれば分ける。
+// ReadUsage は message.usage → Tokens。ウェブ検索の回数（server_tool_use.web_search_requests）も読む。キャッシュ書き込みの内訳（cache_creation の 5 分・1 時間）があれば分ける。
 // 古い Claude Code は cache_creation_input_tokens を 0 にしたまま内訳だけを書くことがあるので、
 // 書き込みの合計は cache_creation_input_tokens と内訳の和の大きいほうにする。
 func ReadUsage(raw any) Tokens {
@@ -91,7 +111,8 @@ func ReadUsage(raw any) Tokens {
 		cw = max(cw, NumOr0(v)+cw1h)
 	}
 	cw = max(cw, cw1h)
-	return Tokens{In: NumOr0(m["input_tokens"]), Out: NumOr0(m["output_tokens"]), CW: cw - cw1h, CW1h: cw1h, CR: NumOr0(m["cache_read_input_tokens"])}
+	return Tokens{In: NumOr0(m["input_tokens"]), Out: NumOr0(m["output_tokens"]), CW: cw - cw1h, CW1h: cw1h, CR: NumOr0(m["cache_read_input_tokens"]),
+		WebSearches: max(0, NumOr0(Map(m["server_tool_use"])["web_search_requests"]))}
 }
 
 // Event は 1 つの応答の使用量。Cost が nil なら料金表にないモデル。
@@ -143,7 +164,7 @@ func (u *Usage) Add(mid string, t *float64, model string, raw any) {
 	if cur.Model == "" {
 		cur.Model = model
 	}
-	cur.U = Tokens{max(cur.U.In, tok.In), max(cur.U.Out, tok.Out), max(cur.U.CW, tok.CW), max(cur.U.CW1h, tok.CW1h), max(cur.U.CR, tok.CR)}
+	cur.U = Tokens{max(cur.U.In, tok.In), max(cur.U.Out, tok.Out), max(cur.U.CW, tok.CW), max(cur.U.CW1h, tok.CW1h), max(cur.U.CR, tok.CR), max(cur.U.WebSearches, tok.WebSearches)}
 }
 
 func (u *Usage) Len() int { return len(u.byMsg) }
@@ -156,10 +177,11 @@ func (u *Usage) Events() []Event {
 		if e.Model == "<synthetic>" {
 			continue
 		}
-		if c, ok := CostOf(e.Model, e.U); ok {
+		if c, ok := tokenCost(e.Model, e.U); ok {
 			if e.Mult > 0 {
-				c *= e.Mult
+				c *= e.Mult // 倍率はトークンの料金にだけ掛かり、ウェブ検索の料金には掛からない
 			}
+			c += e.U.WebSearches * WebSearchPrice
 			e.Cost = &c
 		}
 		out = append(out, e)
@@ -184,6 +206,7 @@ func SumUsage(evs []Event) UsageTotal {
 		t.CW += e.U.CW
 		t.CW1h += e.U.CW1h
 		t.CR += e.U.CR
+		t.WebSearches += e.U.WebSearches
 		if e.Cost == nil {
 			t.Unpriced += e.U.Total()
 		} else {
