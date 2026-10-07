@@ -83,6 +83,35 @@ func TestDoctorKeepsErrors(t *testing.T) {
 	}
 }
 
+// Kiro Crew の 0 日（Now）は「0 日残す」ではなく、次の片付けで消えると「!」で出す。archive がオンなら安心と出す。
+func TestDoctorZeroDayRetention(t *testing.T) {
+	fakeAutostart(t, "darwin", noAnswer)
+	fakeKirokuPath(t, "/x/bin/kiroku", "/x/bin/kiroku")
+	dir := t.TempDir()
+	rep := []source.Report{{Name: "Kiro CLI", N: 3, Where: "/x/.kiro/sessions/cli", Keep: &source.Retention{Days: 0, Now: true, Set: true, Who: "Kiro Crew",
+		Setting: "session.archive_retention_days", Snippet: `"session": {"archive_retention_days": 3650}`, Docs: "https://docs", File: "/x/crew/config.local.json"}}}
+	var b bytes.Buffer
+	doctorReport(&b, rep, 3, dir, release{}, false)
+	out := b.String()
+	for _, want := range []string{"! Kiro Crew deletes old history at its next cleanup, within an hour (session.archive_retention_days is 0)",
+		`add "session": {"archive_retention_days": 3650} to /x/crew/config.local.json`, `Run "kiroku archive on"`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("%q がない:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "keeps history for 0 days") {
+		t.Errorf("0 日を「0 日残す」と出している:\n%s", out)
+	}
+	if err := dispatch([]string{"archive", "on", "--archive-dir", dir, "--root", t.TempDir(), "--sources", "claude"}); err != nil {
+		t.Fatal(err)
+	}
+	b.Reset()
+	doctorReport(&b, rep, 3, dir, release{}, false)
+	if out := b.String(); !strings.Contains(out, "✓ Kiro Crew deletes old history at its next cleanup (session.archive_retention_days is 0), but kiroku archive keeps a copy") {
+		t.Errorf("archive がオンなのに安心と出ていない:\n%s", out)
+	}
+}
+
 // fakeKirokuPath は、動いている kiroku と PATH で先に見つかる kiroku を差しかえる。
 func fakeKirokuPath(t *testing.T, exe, first string) {
 	t.Helper()

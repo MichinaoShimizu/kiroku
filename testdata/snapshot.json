@@ -363,7 +363,7 @@
      ]
     },
     {
-     "sessions": 1,
+     "sessions": 2,
      "source": "Amazon Q",
      "values": [
       {
@@ -372,6 +372,20 @@
        "n": 1,
        "unit": "秒",
        "v": 20
+      },
+      {
+       "label": "コンテキストの最大使用率（見積もり）",
+       "labelEn": "Peak context usage (estimate)",
+       "n": 2,
+       "unit": "%",
+       "v": 0
+      },
+      {
+       "label": "コンテキストの上限",
+       "labelEn": "Context window",
+       "n": 2,
+       "unit": "トークン",
+       "v": 200000
       }
      ]
     },
@@ -460,6 +474,20 @@
        "n": 2,
        "unit": "回",
        "v": 2
+      },
+      {
+       "label": "コンテキストの最大使用率（見積もり）",
+       "labelEn": "Peak context usage (estimate)",
+       "n": 5,
+       "unit": "%",
+       "v": 0.02
+      },
+      {
+       "label": "コンテキストの上限",
+       "labelEn": "Context window",
+       "n": 2,
+       "unit": "トークン",
+       "v": 200000
       }
      ]
     },
@@ -3164,6 +3192,20 @@
      "n": 1,
      "unit": "秒",
      "v": 20
+    },
+    {
+     "label": "コンテキストの最大使用率（見積もり）",
+     "labelEn": "Peak context usage (estimate)",
+     "n": 1,
+     "unit": "%",
+     "v": 0
+    },
+    {
+     "label": "コンテキストの上限",
+     "labelEn": "Context window",
+     "n": 1,
+     "unit": "トークン",
+     "v": 200000
     }
    ],
    "outputs": {
@@ -3228,7 +3270,22 @@
    "models": [],
    "nFiles": 0,
    "nPrompts": 1,
-   "native": [],
+   "native": [
+    {
+     "label": "コンテキストの最大使用率（見積もり）",
+     "labelEn": "Peak context usage (estimate)",
+     "n": 1,
+     "unit": "%",
+     "v": 0
+    },
+    {
+     "label": "コンテキストの上限",
+     "labelEn": "Context window",
+     "n": 1,
+     "unit": "トークン",
+     "v": 200000
+    }
+   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -4670,6 +4727,20 @@
      "n": 1,
      "unit": "回",
      "v": 1
+    },
+    {
+     "label": "コンテキストの最大使用率（見積もり）",
+     "labelEn": "Peak context usage (estimate)",
+     "n": 3,
+     "unit": "%",
+     "v": 0.02
+    },
+    {
+     "label": "コンテキストの上限",
+     "labelEn": "Context window",
+     "n": 1,
+     "unit": "トークン",
+     "v": 200000
     }
    ],
    "outputs": {
@@ -5881,6 +5952,20 @@
      "n": 1,
      "unit": "回",
      "v": 1
+    },
+    {
+     "label": "コンテキストの最大使用率（見積もり）",
+     "labelEn": "Peak context usage (estimate)",
+     "n": 2,
+     "unit": "%",
+     "v": 0
+    },
+    {
+     "label": "コンテキストの上限",
+     "labelEn": "Context window",
+     "n": 1,
+     "unit": "トークン",
+     "v": 200000
     }
    ],
    "outputs": {
@@ -7440,7 +7525,7 @@
    "maxConc": 2,
    "native": [
     {
-     "sessions": 1,
+     "sessions": 2,
      "source": "Amazon Q",
      "values": [
       {
@@ -7449,6 +7534,20 @@
        "n": 1,
        "unit": "秒",
        "v": 20
+      },
+      {
+       "label": "コンテキストの最大使用率（見積もり）",
+       "labelEn": "Peak context usage (estimate)",
+       "n": 2,
+       "unit": "%",
+       "v": 0
+      },
+      {
+       "label": "コンテキストの上限",
+       "labelEn": "Context window",
+       "n": 2,
+       "unit": "トークン",
+       "v": 200000
       }
      ]
     },
@@ -8065,6 +8164,20 @@
        "n": 2,
        "unit": "回",
        "v": 2
+      },
+      {
+       "label": "コンテキストの最大使用率（見積もり）",
+       "labelEn": "Peak context usage (estimate)",
+       "n": 5,
+       "unit": "%",
+       "v": 0.02
+      },
+      {
+       "label": "コンテキストの上限",
+       "labelEn": "Context window",
+       "n": 2,
+       "unit": "トークン",
+       "v": 200000
       }
      ]
     },

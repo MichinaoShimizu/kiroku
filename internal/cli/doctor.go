@@ -109,6 +109,15 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 			who = k.Who
 		}
 		switch {
+		case k.Now && on: // 0 日の設定（Kiro Crew）。Days の 0 は「わからない」なので Now で見分ける
+			fmt.Fprintf(w, "  %s %s deletes old history at its next cleanup (%s is 0), but kiroku archive keeps a copy\n", s.ok("✓"), who, k.Setting)
+		case k.Now:
+			risky = true
+			fmt.Fprintf(w, "  %s %s deletes old history at its next cleanup, within an hour (%s is 0)\n", s.warn("!"), who, k.Setting)
+			if k.File != "" && k.Snippet != "" {
+				fmt.Fprintf(w, "      to keep it, add %s to %s\n", s.bold(k.Snippet), tilde(k.File))
+			}
+			fmt.Fprintf(w, "      %s\n", s.dim("how to set it: "+k.Docs))
 		case k.Set:
 			fmt.Fprintf(w, "  %s %s keeps history for %d days (%s)\n", s.ok("✓"), who, k.Days, k.Setting)
 		case on && k.Days > 0:

@@ -320,7 +320,8 @@ func (u *Usage) Add(mid string, t *float64, model string, raw any) {
 
 func (u *Usage) Len() int { return len(u.byMsg) }
 
-// Events は [(t, model, usage, cost)]。
+// Events は [(t, model, usage, cost)]。コストは料金表で見積もる。
+// AddEvent で入れたときにコストが決まっているもの（エージェント自身が記録したドル額。Kiro Crew）はそのまま使う。
 func (u *Usage) Events() []Event {
 	var out []Event
 	for _, id := range u.order {
@@ -328,7 +329,10 @@ func (u *Usage) Events() []Event {
 		if e.Model == "<synthetic>" {
 			continue
 		}
-		if c, ok := EventCost(e); ok {
+		if e.Cost != nil {
+			c := *e.Cost
+			e.Cost = &c
+		} else if c, ok := EventCost(e); ok {
 			if e.Mult > 0 {
 				c *= e.Mult // 倍率はトークンの料金にだけ掛かり、ウェブ検索の料金には掛からない
 			}

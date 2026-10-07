@@ -316,6 +316,7 @@ func (s *Builder) Measure(key string, t *float64, v float64) {
 func (s *Builder) ToolCounts() map[string]int { return s.tools }
 
 // AddEvent は、メッセージ ID で重ねる必要のない使用量（Codex など）をそのまま足す。モデルも数える。
+// e.Cost を入れておくと、そのコストを使う（nil なら料金表で見積もる。Usage.Events）。
 func (s *Builder) AddEvent(e Event) {
 	s.Usage.order = append(s.Usage.order, "_e"+itoa(len(s.Usage.order)))
 	ev := e

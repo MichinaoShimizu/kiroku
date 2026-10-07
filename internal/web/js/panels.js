@@ -156,7 +156,9 @@ function keepRow(r){ // 計測の状態に添える：どこまでさかのぼ�
   const k = r.retention, link = k && k.docs ? ` ${ext(k.docs, "official docs ↗")}` : "", by = k && k.who ? `${esc(k.who)}: ` : ""; // by は、履歴を消すものが Report と違うとき（Kiro CLI の行の Kiro Crew）
   return (o ? ` · oldest record ${o}` : "") +
     (r.archived ? ` · ${plural(r.archived, "deleted conversation")} shown from kiroku's copy` : "") +
-    (!k ? "" : k.days && !k.set && archOn() ? `<br>${by}${`Records older than ${k.days} days are deleted automatically, but kiroku keeps a copy`}`
+    (!k ? "" : k.now && archOn() ? `<br>${by}${`Older records are deleted at the next cleanup, within an hour (<code>${esc(k.setting)}</code> is 0), but kiroku keeps a copy`}`
+      : k.now ? `<br><span class="kw">${by}${`Older records are deleted at the next cleanup, within an hour (<code>${esc(k.setting)}</code> is 0)`}${link}</span>` // 0 日（days の 0 は「わからない」なので now で見分ける）
+      : k.days && !k.set && archOn() ? `<br>${by}${`Records older than ${k.days} days are deleted automatically, but kiroku keeps a copy`}`
       : k.days && !k.set ? `<br><span class="kw">${by}${`Records older than ${k.days} days are deleted automatically (<code>${esc(k.setting)}</code> is at its default)`}${link}</span>`
       : k.days ? `<br>${by}${`Kept for ${k.days} days (<code>${esc(k.setting)}</code>)`}`
       : `<br>${by}${`Older records are deleted after a period (<code>${esc(k.setting)}</code>)`}${link}`); }
@@ -173,7 +175,7 @@ function measure(w){
   const pp = (w.usage && w.usage.prefixPriced) || []; // 料金表に同じ ID がなく、似た ID（先頭一致）の料金を当てたモデル
   if (pp.length) rows.push(`<li class="warn">${`Not in the price table under their own ID, so priced as a similar model: ${pp.map(([m, k]) => `<code>${esc(m)}</code> priced as <code>${esc(k)}</code>`).join(", ")}. If a new model has different rates, set them with <code>--prices</code>`}</li>`);
   if (w.usage && w.usage.tokens) rows.push(`<li>${`Price table for estimated cost: ${META.prices && META.prices.custom ? "from <code>--prices</code>" : (META.prices ? `Anthropic and OpenAI public rates as of ${esc(META.prices.asOf)}` : "public rates") + " (change it with <code>--prices</code>)"}`}</li>`);
-  const alert = (META.report || []).some(r => r.error || r.retention && r.retention.days && !r.retention.set && !archOn()) || !!(w.usage && w.usage.unpriced) || pp.length > 0;
+  const alert = (META.report || []).some(r => r.error || r.retention && (r.retention.days && !r.retention.set || r.retention.now) && !archOn()) || !!(w.usage && w.usage.unpriced) || pp.length > 0;
   const n = (META.report || []).filter(r => r.n).length;
   return `<details class="dsrc"${alert ? " open" : ""}><summary>${ico("caret", "dsc")}<h3>Data sources</h3><span class="muted">${plural(n, "history", "histories")} read</span>${alert ? `<span title="Something here needs your attention">${ico("flag", "fdot")}</span>` : ""}</summary><ul class="mlist">${rows.join("")}</ul></details>`;
 }

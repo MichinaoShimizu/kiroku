@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -53,6 +54,36 @@ func TestMarkdownEscape(t *testing.T) {
 	}
 	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
 		t.Errorf("Markdown の打ち消しが違う:\n%s", out)
+	}
+}
+
+// 計測の状態の保存期間の一言（keepRow）。0 日（now）を「わからない期間のあとで消える」や「0 日残す」と出さないこと。
+// panels.js はほかのファイルに頼るので、keepRow の関数だけを取り出して Node で動かす。
+func TestKeepRow(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/panels.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Windows のチェックアウトでは CRLF になり、$ が行末に当たらないので LF にそろえる
+	text := strings.ReplaceAll(string(src), "\r\n", "\n")
+	fn := regexp.MustCompile(`(?ms)^function keepRow\(r\)\{.*?\); \}$`).FindString(text)
+	if fn == "" {
+		t.Fatal("panels.js に keepRow が見つからない")
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "keeprow_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "keep.js")
+	if err := os.WriteFile(f, append([]byte(fn+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("keepRow が違う:\n%s", out)
 	}
 }
 

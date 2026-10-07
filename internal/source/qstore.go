@@ -3,6 +3,7 @@ package source
 import (
 	"database/sql"
 	"encoding/json"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -19,6 +20,7 @@ import (
 //	conversations_v2(key, conversation_id, value, created_at, updated_at) … Kiro CLI だけ
 //
 // value.history[i] = {user: {content, timestamp(RFC3339)}, assistant: {Response|ToolUse}, request_metadata: {...}}。
+// value.model_info = {model_id, context_window_tokens}、value.context_message_length（文脈の文字数）。
 // トークンやクレジットは入っていない。
 type QStore struct {
 	Label   string // 画面の名前
@@ -132,6 +134,9 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 		s.Tick(ts(x.created))
 		s.Tick(ts(x.updated))
 		model := firstNonEmpty(core.Str(core.Get(conv, "model_info", "model_id")), core.Str(conv["model"]))
+		window := qContextWindow(conv)
+		chars := qContextChars(conv) // 文脈（要約・コンテキストファイル）の分から数え始める
+		var lastT *float64           // 時刻のない行の観測に使う、直前の時刻
 		for _, h := range core.List(conv["history"]) {
 			user, asst, meta := historyEntry(h)
 			// ツールの結果を返したターン（ToolUseResults）には user の時刻がない（new_tool_use_results）。
@@ -139,6 +144,14 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 			t := ts(user["timestamp"])
 			if t == nil {
 				t = ts(meta["request_start_timestamp_ms"])
+			}
+			// コンテキストの使用率の見積もり（CLI と同じく文字数 ÷ 4。ここまでの履歴の大きさ ÷ 上限）
+			chars += qUserChars(user) + qAssistantChars(asst)
+			if t != nil {
+				lastT = t
+			}
+			if lastT != nil {
+				s.Measure("context_used", lastT, min(float64(qTokens(chars))/window, 1))
 			}
 			content := core.Map(user["content"])
 			reply := true
@@ -207,6 +220,9 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 				s.Reply(rt, "", firstNonEmpty(core.Str(core.Get(asst, "Response", "content")), core.Str(core.Get(asst, "ToolUse", "content"))))
 			}
 		}
+		if lastT != nil {
+			s.Measure("context_window", lastT, window)
+		}
 		if q.Command != "" && s.Project != "" {
 			s.Resume = core.ResumeCmd(s.Project, q.Command, "")
 		}
@@ -259,4 +275,101 @@ func has(db *sql.DB, table string) bool {
 	var n int
 	err := db.QueryRow(`SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?`, table).Scan(&n)
 	return err == nil && n > 0
+}
+
+// qDefaultWindow は model_info がないときのコンテキストの上限（cli/chat/cli/model.rs の default_context_window）。
+const qDefaultWindow = 200_000
+
+// qContextWindow は会話のコンテキストの上限（トークン）。CLI と同じく model_info.context_window_tokens、なければ 200,000。
+func qContextWindow(conv core.Obj) float64 {
+	if v, ok := core.Num(core.Get(conv, "model_info", "context_window_tokens")); ok && v > 0 && !math.IsInf(v, 0) {
+		return v
+	}
+	return qDefaultWindow
+}
+
+// qContextAck は、CLI が文脈（/compact の要約・コンテキストファイル）を送るときに添える決まった応答（conversation.rs の context_messages）。
+const qContextAck = "I will fully incorporate this information when generating my responses, and explicitly acknowledge relevant parts of the summary when answering questions."
+
+// qContextChars は文脈のメッセージの文字数。CLI が最後に送った文脈の長さ（context_message_length）と、決まった応答の長さ。
+// 文脈は依頼ごとに作り直すので、最後の長さしか残らない（どの依頼にも同じ長さを足す）。
+func qContextChars(conv core.Obj) int {
+	n, ok := core.Num(conv["context_message_length"])
+	if !ok || n <= 0 || n > math.MaxInt32 {
+		return 0
+	}
+	return int(n) + len(qContextAck)
+}
+
+// qTokens は CLI の文字数からトークン数への見積もり（cli/chat/token_counter.rs の count_tokens_char_count: 文字数 ÷ 4 を 10 単位に丸める）。
+func qTokens(chars int) int { return (chars/4 + 5) / 10 * 10 }
+
+// qUserChars は user の文字数（token_counter.rs の UserMessage の char_count。Rust の len と同じくバイト数）。
+func qUserChars(user core.Obj) int {
+	n := len(core.Str(user["additional_context"]))
+	content := core.Map(user["content"])
+	if p := core.Map(content["Prompt"]); p != nil {
+		n += len(core.Str(p["prompt"]))
+	}
+	if c := core.Map(content["CancelledToolUses"]); c != nil {
+		n += len(core.Str(c["prompt"])) + qResultChars(c["tool_use_results"])
+	}
+	if r := core.Map(content["ToolUseResults"]); r != nil {
+		n += qResultChars(r["tool_use_results"])
+	}
+	return n
+}
+
+// qResultChars はツールの結果の文字数（[ToolUseResult] の char_count）。
+func qResultChars(v any) int {
+	n := 0
+	for _, r := range core.List(v) {
+		for _, b := range core.List(core.Map(r)["content"]) {
+			bm := core.Map(b)
+			if j, ok := bm["Json"]; ok {
+				n += qValueChars(j, 0)
+			}
+			n += len(core.Str(bm["Text"]))
+		}
+	}
+	return n
+}
+
+// qAssistantChars は assistant の文字数（AssistantMessage の char_count: 文とツール入力の値）。
+func qAssistantChars(asst core.Obj) int {
+	if r := core.Map(asst["Response"]); r != nil {
+		return len(core.Str(r["content"]))
+	}
+	tu := core.Map(asst["ToolUse"])
+	n := len(core.Str(tu["content"]))
+	for _, u := range core.List(tu["tool_uses"]) {
+		n += qValueChars(core.Map(u)["args"], 0)
+	}
+	return n
+}
+
+// qValueChars は JSON の値の文字数（token_counter.rs の calculate_value_char_count: 文字列はバイト数、数・真偽値・null は 1、
+// 配列とオブジェクトは中身の和でキーは数えない）。深すぎる入れ子はそこで打ち切る。
+func qValueChars(v any, depth int) int {
+	if depth > 64 {
+		return 0
+	}
+	switch x := v.(type) {
+	case string:
+		return len(x)
+	case []any:
+		n := 0
+		for _, y := range x {
+			n += qValueChars(y, depth+1)
+		}
+		return n
+	case map[string]any:
+		n := 0
+		for _, y := range x {
+			n += qValueChars(y, depth+1)
+		}
+		return n
+	default: // 数・真偽値・null
+		return 1
+	}
 }

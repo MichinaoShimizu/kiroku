@@ -29,7 +29,14 @@ import (
 //	<…>/sessions/<キー>.jsonl                               1 行目 {"_type": "metadata", "title", "agent", "model", …}
 //	                                                         2 行目から {"role": "user"|"assistant"|…, "content", "ts", "tools"?: [ツール名]}
 //	<…>/subagents/<id>/state.json                          {"task", "agent", "parent_session", "session_id"?, …}
-//	<…>/usage/tokens/<YYYY-MM-DD>.jsonl                     {"_type": "tokens", "ts", "slot": 会話キー, "model", "credits", "duration_ms", …}
+//	<…>/usage/tokens/<YYYY-MM-DD>.jsonl                     {"_type": "tokens", "ts", "slot": 会話キー, "provider", "model", "input", "output",
+//	                                                         "cache_create", "cache_read", "cost", "credits", "duration_ms", "context_used",
+//	                                                         "context_window", "stop_reason", …}
+//
+// usage/tokens の行は Crew の dashboard/handlers/usage.py の _build_token_record が書く。backend ごとに埋まる項目が違う
+// （acp/types.py の TurnUsage）: kiro-cli はクレジットだけ、Claude Code（claude-agent-acp）などはトークンと USD の cost。
+// トークンの 4 つは重ならない（Crew 自身も合計を input + output + cache_create + cache_read で出す。usage.py の context_usage の total）。
+// cost は backend が会話の累計で返す額の差分で、届いたターンにまとめて載る（acp/types.py の apply_cost_cumulative）。
 
 // CrewInfo は 1 つの kiro-cli の会話についての Crew の情報。
 type CrewInfo struct {
@@ -39,6 +46,7 @@ type CrewInfo struct {
 	Agent    string
 	Task     string
 	Cwd      string
+	Provider string // session_map の "provider"（Crew の backend。空か "acp" は kiro-cli、"claude_code"・"codex"・"kas" など）
 }
 
 // DefaultCrewHome は KIROCREW_HOME か <KIRO_HOME か ~/.kiro>/crew。
@@ -74,14 +82,14 @@ func loadCrew(home string, errs *fileErrs) map[string]CrewInfo {
 	sm, err := core.ReadJSONFile(mapPath)
 	errs.file(mapPath, err)
 	for key, v := range core.Map(sm) {
-		sid, cwd := core.Str(v), "" // 古い形は文字列だけ
+		sid, cwd, provider := core.Str(v), "", "" // 古い形は文字列だけ
 		if m := core.Map(v); m != nil {
-			sid, cwd = core.Str(m["sid"]), core.Str(m["cwd"])
+			sid, cwd, provider = core.Str(m["sid"]), core.Str(m["cwd"]), core.Str(m["provider"])
 		}
 		if sid == "" {
 			continue
 		}
-		info := CrewInfo{Key: key, Cwd: cwd}
+		info := CrewInfo{Key: key, Cwd: cwd, Provider: provider}
 		// 会話キーをファイル名にしたもの（Crew の history._safe_key と同じ）
 		path := filepath.Join(home, "sessions", unsafeKey.ReplaceAllString(key, "_")+".jsonl")
 		errs.file(path, core.ReadJSONL(path, func(e core.Obj) {
@@ -217,7 +225,20 @@ func tagCrew(s *core.Builder, crew map[string]CrewInfo) bool {
 // crewTurn は usage/tokens の 1 行（Crew が記録した 1 ターン）。
 type crewTurn struct {
 	t, start, credits float64
-	model             string
+	model, provider   string      // provider は行の "provider"（Crew の seam。"acp" か "claude_code"）
+	u                 core.Tokens // input → In、output → Out、cache_create → CW、cache_read → CR（重ならない）
+	cost              float64     // backend が返した USD（kiro-cli の行は 0）
+	ctx               float64     // context_used ÷ context_window（わからなければ -1）
+	stop              string      // stop_reason（"" は記録なし）
+}
+
+// crewCount は行のトークン数やドル額。数でない・負の数・有限でない値は 0。
+func crewCount(v any) float64 {
+	f, ok := core.Num(v)
+	if !ok || f < 0 || math.IsNaN(f) || math.IsInf(f, 0) {
+		return 0
+	}
+	return f
 }
 
 // loadCrewUsage は usage/tokens/*.jsonl を会話キー（slot）ごとにまとめる。時刻の古い順。
@@ -240,14 +261,34 @@ func loadCrewUsage(home string, errs *fileErrs) map[string][]crewTurn {
 			if d, ok := core.Num(e["duration_ms"]); ok && d > 0 {
 				start -= d / 1000
 			}
+			x := crewTurn{t: *t, start: start, credits: c, model: core.Str(e["model"]), provider: core.Str(e["provider"]),
+				u:    core.Tokens{In: crewCount(e["input"]), Out: crewCount(e["output"]), CW: crewCount(e["cache_create"]), CR: crewCount(e["cache_read"])},
+				cost: crewCount(e["cost"]), ctx: -1, stop: core.Str(e["stop_reason"])}
+			// コンテキストの使用率。窓がない・0 の行は使わない（Crew の context_occupancy と同じ）
+			if used, ok := core.Num(e["context_used"]); ok && used >= 0 && !math.IsInf(used, 0) {
+				if w, ok := core.Num(e["context_window"]); ok && w > 0 && !math.IsInf(w, 0) {
+					x.ctx = min(used/w, 1)
+				}
+			}
 			slot := spendKey(core.Str(e["slot"]))
-			out[slot] = append(out[slot], crewTurn{t: *t, start: start, credits: c, model: core.Str(e["model"])})
+			out[slot] = append(out[slot], x)
 		}))
 	}
 	for k := range out {
 		sort.SliceStable(out[k], func(i, j int) bool { return out[k][i].t < out[k][j].t })
 	}
 	return out
+}
+
+// crewElsewhere は、その行のトークンとドル額を、kiroku が別に読む履歴が記録しているか。
+// Crew の Claude Code の seam（行の provider か session_map の provider が "claude_code"）は claude-agent-acp で Claude Code を動かし、
+// Claude Code が ~/.claude/projects に自分の記録を書く（Crew の providers/acp.py の cleanup_session の注記）。
+// Codex の backend（session_map の provider が "codex"）も Codex 自身が ~/.codex に記録を書くものとみなす。
+// Crew の会話 ID（session_map の sid）とそれらの履歴の会話 ID が同じかは、手元の根拠（Crew と claude-agent-acp の公開ソース）では確かめられない。
+// 結びつけられないまま足すと同じトークンとコストを 2 度数えるので、これらの行ではトークンとドル額を足さない（ターン・時刻・モデルは数える）。
+// label は session_map の provider（わからなければ空）。session_map から消えた Codex の会話は見分けられない（行の provider は "acp"）。
+func crewElsewhere(x crewTurn, label string) bool {
+	return x.provider == "claude_code" || label == "claude_code" || label == "codex"
 }
 
 func sumCredits(cs []core.Credit) float64 {
@@ -275,11 +316,22 @@ func useCrewCredits(s *core.Builder, turns []crewTurn) bool {
 		}
 	}
 	s.Measures = ms
-	addCrewTurns(s, turns)
+	addCrewTurns(s, turns, "")
 	return true
 }
 
-func addCrewTurns(s *core.Builder, turns []crewTurn) {
+// addCrewTurns は Crew の行をターンとして足す。label は会話の session_map の provider（わからなければ空）。
+// トークンかドル額のある行（kiro-cli 以外の backend）は使用量としても足す（crewElsewhere の行は除く）。
+// ドル額は会話の累計の差分なので、会話のどこかに cost があれば、cost が 0 の行も 0 ドルとして扱う（料金表で見積もると 2 度数えるため）。
+// どの行にも cost がなければ、料金表で見積もる（料金表にないモデルは見積もらない）。
+// 戻り値は、crewElsewhere でトークンとドル額を足さなかった行の数。
+func addCrewTurns(s *core.Builder, turns []crewTurn, label string) (skipped int) {
+	hasCost := false
+	for _, x := range turns {
+		if x.cost > 0 && !crewElsewhere(x, label) {
+			hasCost = true
+		}
+	}
 	for _, x := range turns {
 		t, st := x.t, x.start
 		s.Tick(&st)
@@ -289,15 +341,47 @@ func addCrewTurns(s *core.Builder, turns []crewTurn) {
 		}
 		s.Measure("credits", &t, x.credits)
 		s.Measure("turns", &t, 1)
-		if x.model != "" {
+		billed := x.u.Total() > 0 || x.cost > 0
+		switch {
+		case billed && crewElsewhere(x, label):
+			skipped++
 			s.Model(x.model)
+		case billed:
+			e := core.Event{T: &t, Model: x.model, U: x.u}
+			if hasCost {
+				c := x.cost
+				e.Cost = &c
+			}
+			s.AddEvent(e) // モデルも数える
+		default:
+			s.Model(x.model)
+		}
+	}
+	return skipped
+}
+
+// addCrewNative は Crew の行から、Crew だけが記録している数字（コンテキストの使用率・正常に終わらなかったターン）を足す。
+// stop_reason が end_turn 以外（cancelled・refusal・max_tokens・"error: …" など）のターンを数える。stop_reason のない行は数えない。
+// Crew は何も使わなかったターンの行を書かない（usage_has_billing）ので、そうしたターンは入らない。
+func addCrewNative(s *core.Builder, turns []crewTurn) {
+	for _, x := range turns {
+		t := x.t
+		if x.ctx >= 0 {
+			s.Measure("context_used", &t, x.ctx)
+		}
+		if x.stop != "" {
+			v := 0.0
+			if x.stop != "end_turn" {
+				v = 1
+			}
+			s.Measure("stopped_early", &t, v)
 		}
 	}
 }
 
 // crewOnly は kiro-cli の会話に結びつかない Crew の記録を、Crew のセッションにする。
-// 裏方の処理（_bg）は 1 日ごとにまとめる。
-func crewOnly(home, arch, slot string, turns []crewTurn, info *CrewInfo, errs *fileErrs) []*core.Builder {
+// 裏方の処理（_bg）は 1 日ごとにまとめる。skipped は、crewElsewhere でトークンとドル額を足さなかった行の数。
+func crewOnly(home, arch, slot string, turns []crewTurn, info *CrewInfo, errs *fileErrs) (out []*core.Builder, skipped int) {
 	var title string
 	var rows []crewRow
 	if slot != "_bg" && home != "" {
@@ -315,7 +399,10 @@ func crewOnly(home, arch, slot string, turns []crewTurn, info *CrewInfo, errs *f
 		}
 		groups[g] = append(groups[g], x)
 	}
-	var out []*core.Builder
+	label := ""
+	if info != nil {
+		label = info.Provider
+	}
 	for _, g := range order {
 		id := "crew:" + slot
 		if g != "" {
@@ -340,13 +427,14 @@ func crewOnly(home, arch, slot string, turns []crewTurn, info *CrewInfo, errs *f
 		if info != nil && info.Cwd != "" {
 			s.Project = info.Cwd
 		}
-		addCrewTurns(s, groups[g])
+		skipped += addCrewTurns(s, groups[g], label)
+		addCrewNative(s, groups[g])
 		addCrewRows(s, rows)
 		first := groups[g][0].start
 		s.Measure("crew_sessions", &first, 1)
 		out = append(out, s)
 	}
-	return out
+	return out, skipped
 }
 
 // crewRetentionDefault は Crew の session.archive_retention_days の既定値（kiro_crew/config/sections.py の SessionConfig）。
