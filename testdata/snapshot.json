@@ -493,7 +493,7 @@
        "labelEn": "Peak context usage",
        "n": 4,
        "unit": "%",
-       "v": 1.1
+       "v": 0
       },
       {
        "label": "ツール呼び出し",
@@ -4768,7 +4768,7 @@
      "labelEn": "Peak context usage",
      "n": 3,
      "unit": "%",
-     "v": 0.55
+     "v": 0
     },
     {
      "label": "ツール呼び出し",
@@ -5473,7 +5473,7 @@
      "labelEn": "Peak context usage",
      "n": 1,
      "unit": "%",
-     "v": 1.1
+     "v": 0
     }
    ],
    "outputs": {
@@ -8080,7 +8080,7 @@
        "labelEn": "Peak context usage",
        "n": 4,
        "unit": "%",
-       "v": 1.1
+       "v": 0
       },
       {
        "label": "ツール呼び出し",

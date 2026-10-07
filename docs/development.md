@@ -60,6 +60,8 @@ The price table is `Prices` in `internal/core/usage.go`. When you update it, als
 
 Aggregation (`internal/report`) and the view only see the common session shape, so you usually don't need to touch them.
 
+To check the adapters against the agents' public sources and official docs again (after an agent changes its format or prices, or from time to time), run the `/source-audit` skill in Claude Code (`.claude/skills/source-audit/SKILL.md`). It updates the "What history records" table in `docs/sources.md` and fixes what it finds in one PR per agent.
+
 ## Golden data
 
 `testdata/golden.json` is the aggregate JSON. It holds the numbers the Python version (before the port to Go) produced from the same synthetic data (`testdata/home`), and `TestMatchesPythonVersion` (`internal/cli/load_test.go`) compares the Go version's numbers against them.
