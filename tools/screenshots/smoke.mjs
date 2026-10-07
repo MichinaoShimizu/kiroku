@@ -204,7 +204,7 @@ async function run(env) {
     check("開いてもページは動かない", await p.evaluate("scrollY") === y0);
     await p.keyboard.press("Escape"); await pause();
     check("Esc で閉じ、押した候補にフォーカスが戻る", !(await p.locator("#wk").evaluate(d => d.open)) && await link.evaluate(b => b === document.activeElement));
-    check("ダイアログのボタンは Close だけ", await p.locator("#wk button.pill").count() === 1);
+    check("閉じるボタンは右上の × だけ（ほかのダイアログや詳細のパネルとそろえる）", await p.locator("#wk button.pill").count() === 0 && await p.locator("#wkclose").getAttribute("aria-label") === "Close");
     await link.click(); await pause();
     await p.mouse.click(4, env.viewport.height - 4); await pause();
     check("枠の外を押すと閉じる", !(await p.locator("#wk").evaluate(d => d.open)));
