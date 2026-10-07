@@ -112,8 +112,11 @@ func ContextUsed(evs []Event) []Measure {
 }
 
 // PeakContextWindow は、文脈がいちばん大きかった応答（ContextGrowth の最大）のモデルのウィンドウ。わからなければ 0。
-func PeakContextWindow(evs []Event) float64 {
-	w := contextWindows(evs)
+func PeakContextWindow(evs []Event) float64 { return PeakContextWindowFrom(evs, contextWindows(evs)) }
+
+// PeakContextWindowFrom は PeakContextWindow と同じだが、モデルごとのウィンドウを w から取る
+// （ウィンドウを履歴に書くエージェント（Codex の model_context_window）のため）。
+func PeakContextWindowFrom(evs []Event, w map[string]float64) float64 {
 	peak, win := 0.0, 0.0
 	for _, e := range evs {
 		if in := contextOf(e); in > peak {

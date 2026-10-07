@@ -55,7 +55,7 @@ function yearData(y){
     commits: sum(m => m.git && m.git.commits), prs: sum(m => m.outputs && m.outputs.prs),
     days: on.size, prompts: nprompts, span, fixP, outBase, grow,
     reach: outBase >= 5 ? sum(m => m.outSessions)/outBase*100 : null,
-    perCommit: outBase >= 5 && sum(m => m.outputs && m.outputs.commits) ? sum(m => m.prompts)/sum(m => m.outputs.commits) : null,
+    perCommit: outBase >= 5 && sum(m => m.outputs && m.outputs.commits) ? sum(m => m.outPrompts)/sum(m => m.outputs.commits) : null, // コミットを記録できる Claude Code の依頼だけ（ほかのエージェントの依頼を混ぜると多く出る）
     parPct: active ? sum(m => m.parallel)/active*100 : 0, subagents: sum(m => m.usage && m.usage.subagents),
     models: mT ? Object.values(mods).filter(v => v/mT >= .1).length : 0,
     longPct: longCtxOf(y0, y1).length/nY*100, idlePct: cost >= 1 ? idleOf(y0, y1).c/cost*100 : null, lightPct: cost >= 1 ? lightOf(y0, y1).c/cost*100 : null,

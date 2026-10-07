@@ -9,6 +9,8 @@ function detail(s){
   const allTok = [s.usage, ...s.subagents.map(a=>a.usage)].reduce((t,u)=>t + (u ? u.in+u.out+u.cw+u.cw1h+u.cr : 0), 0);
   // 目安コスト。料金表にないモデルだけなら "—"（$0.00 と出すと、使っていないと読めてしまう）
   const sCost = costOf({cost: s.cost, unpriced: [s.usage, ...s.subagents.map(a=>a.usage)].reduce((t,u)=>t + (u ? u.unpriced||0 : 0), 0)});
+  // Kiro のクレジット。Kiro Crew は Kiro 以外のバックエンドのトークンと、kiro-cli のクレジットの両方を持つことがある
+  const credH = s.credits ? `<div><div class="k">Kiro credits</div><div class="v">${crN(s.credits)}</div></div><div><div class="k">Per prompt</div><div class="v">${s.nPrompts ? crN(s.credits/s.nPrompts) : "—"}<small> credits</small></div></div>` : "";
   const P = $("#panel");
   P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
     <div class="eyebrow"><span class="dot"></span>${agMark(s.source)}${esc((s.source))}</div>
@@ -28,9 +30,9 @@ function detail(s){
       ${(() => { const cs = commitsOf(s), ai = cs.filter(c => c.ai).length, o = s.outputs || {}; // 右の「このセッションの間のコミット」と同じ数え方（手でのコミットも入れ、うち AI を添える）
         if (!cs.length) return o.commits ? `<div><div class="k">AI commits</div><div class="v">${o.commits}</div></div>` : ""; // git を読めないときは、AI が実行した回数
         return `<div><div class="k">Git commits</div><div class="v">${cs.length}<small> · ${ai} by AI</small></div></div>${o.prs ? `<div><div class="k">Pull requests created</div><div class="v">${o.prs}</div></div>` : ""}`; })()}
-` : s.source === "Codex" && allTok ? `<div><div class="k">Estimated cost</div><div class="v"${sCost == null ? ` title="${esc(NOPRICE)}"` : ""}>${usdH(sCost)}</div></div>
-      <div><div class="k">Tokens</div><div class="v">${tok(allTok)}</div></div>
-` : s.credits ? `<div><div class="k">Kiro credits</div><div class="v">${crN(s.credits)}</div></div><div><div class="k">Per prompt</div><div class="v">${s.nPrompts ? crN(s.credits/s.nPrompts) : "—"}<small> credits</small></div></div>` : ""}
+` : allTok ? `<div><div class="k">Estimated cost</div><div class="v"${sCost == null ? ` title="${esc(NOPRICE)}"` : ""}>${usdH(sCost)}</div></div>
+      <div><div class="k">Tokens</div><div class="v">${tok(allTok)}</div></div>${credH}
+` : credH}
     </div>
     ${s.prompts.length ? promptFlow(s) : `<h3>Prompt flow</h3><p class="none">No prompts recorded.${s.source === "Kiro Crew" ? " Kiro Crew deletes conversation records after a while, so only the usage record remains for this conversation." : ""}</p>`}
     ${s.subagents.length ? `<h3>Subagents · ${s.subagents.length}</h3>${s.subagents.map(a=>{

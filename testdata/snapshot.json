@@ -3,8 +3,9 @@
   "2026-09": {
    "active": 850,
    "ai": 860,
-   "costPerAsk": 0.077,
+   "costPerAsk": 0.129,
    "costPerCommit": null,
+   "costPrompts": 48,
    "days": [
     {
      "active": 0,
@@ -534,6 +535,7 @@
     }
    ],
    "outBase": 9,
+   "outPrompts": 45,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -1489,8 +1491,9 @@
   "2026-10": {
    "active": 75,
    "ai": 75,
-   "costPerAsk": 0.024,
+   "costPerAsk": 0.095,
    "costPerCommit": null,
+   "costPrompts": 2,
    "days": [
     {
      "active": 20,
@@ -1853,6 +1856,7 @@
     }
    ],
    "outBase": 1,
+   "outPrompts": 2,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -4814,6 +4818,7 @@
    "cost": 0.0053,
    "credits": 0,
    "ctx": [],
+   "ctxWindow": 272000,
    "end": 1790643810,
    "events": 11,
    "file": "$CODEX/sessions/2026/09/29/rollout-2026-09-29T10-00-00-thr-main.jsonl",
@@ -5519,6 +5524,7 @@
    "cost": 0.0123,
    "credits": 0,
    "ctx": [],
+   "ctxWindow": 272000,
    "end": 1790744460,
    "events": 6,
    "file": "$CODEX/sessions/2026/09/30/rollout-2026-09-30T14-00-00-thr-new.jsonl.zst",
@@ -6490,6 +6496,7 @@
    "ai": 17,
    "costPerAsk": 0.075,
    "costPerCommit": null,
+   "costPrompts": 2,
    "days": [
     {
      "active": 0,
@@ -6602,6 +6609,7 @@
     }
    ],
    "outBase": 1,
+   "outPrompts": 2,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -6758,6 +6766,7 @@
    "ai": 145,
    "costPerAsk": 0.139,
    "costPerCommit": null,
+   "costPrompts": 9,
    "days": [
     {
      "active": 0,
@@ -6870,6 +6879,7 @@
     }
    ],
    "outBase": 2,
+   "outPrompts": 9,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -7060,6 +7070,7 @@
    "ai": 167,
    "costPerAsk": 0.152,
    "costPerCommit": null,
+   "costPrompts": 11,
    "days": [
     {
      "active": 0,
@@ -7186,6 +7197,7 @@
     }
    ],
    "outBase": 2,
+   "outPrompts": 11,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -7419,8 +7431,9 @@
   "2026-09-21": {
    "active": 348,
    "ai": 353,
-   "costPerAsk": 0.124,
+   "costPerAsk": 0.135,
    "costPerCommit": null,
+   "costPrompts": 23,
    "days": [
     {
      "active": 1,
@@ -7587,6 +7600,7 @@
     }
    ],
    "outBase": 4,
+   "outPrompts": 23,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -7974,8 +7988,9 @@
   "2026-09-28": {
    "active": 248,
    "ai": 253,
-   "costPerAsk": 0.005,
+   "costPerAsk": 0.042,
    "costPerCommit": null,
+   "costPrompts": 5,
    "days": [
     {
      "active": 26,
@@ -8258,6 +8273,7 @@
     }
    ],
    "outBase": 1,
+   "outPrompts": 2,
    "outSessions": 0,
    "outputs": {
     "added": 0,

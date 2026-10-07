@@ -72,6 +72,7 @@ type codexFile struct {
 	start                 *float64
 	b                     *core.Builder
 	events                []core.Event
+	windows               map[string]float64 // モデルごとの model_context_window（いちばん大きい値）
 	skip                  codexSkip
 	startOrdinal          float64 // skip が codexSkipOrdinal のとき、自分の最初の行の ordinal
 }
@@ -301,7 +302,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	var errs fileErrs
 	var all []*codexFile
 	for _, path := range u.Files {
-		cf := &codexFile{path: path}
+		cf := &codexFile{path: path, windows: map[string]float64{}}
 		var userMsgs, fallback []struct {
 			t    *float64
 			text string
@@ -357,6 +358,9 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					info := core.Map(p["info"])
 					if info == nil {
 						return
+					}
+					if w := core.NumOr0(info["model_context_window"]); w > 0 {
+						cf.windows[cf.model] = max(cf.windows[cf.model], w)
 					}
 					raw, _ := json.Marshal(info)
 					total := core.NumOr0(core.Get(info, "total_token_usage", "total_tokens"))
@@ -446,10 +450,12 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					var args any
 					json.Unmarshal([]byte(core.Str(p["arguments"])), &args)
 					s.Tool(core.Str(p["name"]), args)
+					codexEdited(s, core.Str(p["name"]), args)
 					s.Measure("tool_calls", t, 1)
 					s.Agent(t)
 				case "custom_tool_call":
 					s.Tool(core.Str(p["name"]), nil)
+					codexEdited(s, core.Str(p["name"]), core.Str(p["input"]))
 					s.Measure("tool_calls", t, 1)
 					s.Agent(t)
 				case "message":
@@ -622,6 +628,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		for _, ev := range cf.events {
 			s.AddEvent(ev)
 		}
+		s.CtxWindow = core.PeakContextWindowFrom(cf.events, cf.windows) // 「長い会話」の最大の目安（ウィンドウの半分）
 		if s.Project != "" {
 			s.Resume = core.ResumeCmd(s.Project, "codex resume", s.ID)
 		}
@@ -734,4 +741,67 @@ func firstPrompt(b *core.Builder) string {
 		return ""
 	}
 	return core.Runes(strings.SplitN(b.Prompts[0].Text, "\n", 2)[0], 120)
+}
+
+// codexPatchMarkers は apply_patch のパッチで、変えるファイルの名前が続く行の頭（apply-patch の parser.rs）。
+var codexPatchMarkers = []string{"*** Add File: ", "*** Delete File: ", "*** Update File: ", "*** Move to: "}
+
+// codexEdited は、apply_patch で変えたファイルを編集したファイルに足す。Codex はファイルを apply_patch で変え、
+// その引数はパッチの文なので（file_path の形ではない）、Builder.Tool では数えられない。
+// apply_patch は自由形式のツール（custom_tool_call の input）、関数（arguments の input）、
+// シェルから（["apply_patch", パッチ] や bash -lc "apply_patch <<'EOF' …"）の形で呼ばれる。
+func codexEdited(s *core.Builder, name string, args any) {
+	for _, f := range codexPatchFiles(codexPatchText(name, args)) {
+		s.Edited(f)
+	}
+}
+
+// codexPatchText は、ツール呼び出しの引数から apply_patch のパッチの文を取り出す（なければ空）。
+func codexPatchText(name string, args any) string {
+	if text, ok := args.(string); ok { // custom_tool_call
+		if name == "apply_patch" {
+			return text
+		}
+		return ""
+	}
+	m := core.Map(args)
+	if name == "apply_patch" {
+		return core.Str(m["input"])
+	}
+	var argv []string // シェルのコマンド（shell の command は配列、exec_command の cmd は文）
+	for _, a := range core.List(m["command"]) {
+		argv = append(argv, core.Str(a))
+	}
+	if cmd := core.Str(m["cmd"]); cmd != "" {
+		argv = []string{cmd}
+	}
+	if len(argv) == 2 && (argv[0] == "apply_patch" || argv[0] == "applypatch") {
+		return argv[1]
+	}
+	if len(argv) > 0 {
+		script := argv[len(argv)-1]
+		if strings.Contains(script, "apply_patch") || strings.Contains(script, "applypatch") {
+			return script
+		}
+	}
+	return ""
+}
+
+// codexPatchFiles は、パッチの文から変えるファイルの名前を取り出す（Begin Patch のないものは空）。
+func codexPatchFiles(patch string) []string {
+	if !strings.Contains(patch, "*** Begin Patch") {
+		return nil
+	}
+	var files []string
+	for _, line := range strings.Split(patch, "\n") {
+		line = strings.TrimSpace(line)
+		for _, mk := range codexPatchMarkers {
+			if f, ok := strings.CutPrefix(line, mk); ok {
+				if f = strings.TrimSpace(f); f != "" {
+					files = append(files, f)
+				}
+			}
+		}
+	}
+	return files
 }
