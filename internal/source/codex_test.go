@@ -102,26 +102,182 @@ func TestCodexNativeMetrics(t *testing.T) {
 	}
 }
 
-func TestCodexPaginatedUserMessage(t *testing.T) {
-	home := t.TempDir()
+// writeCodex は sessions/2026/10/06 に rollout ファイルを 1 つ書く（1 行に 1 つの JSON）。
+func writeCodex(t *testing.T, home, id string, lines ...string) {
+	t.Helper()
 	dir := filepath.Join(home, "sessions", "2026", "10", "06")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(dir, "rollout-2026-10-06T00-00-00-thr-paginated.jsonl")
-	data := "" +
-		"{\"timestamp\":\"2026-10-06T00:00:00Z\",\"ordinal\":0,\"type\":\"session_meta\",\"payload\":{\"id\":\"thr-paginated\",\"timestamp\":\"2026-10-06T00:00:00Z\",\"cwd\":\"/tmp/project\",\"history_mode\":\"paginated\"}}\n" +
-		"{\"timestamp\":\"2026-10-06T00:00:01Z\",\"ordinal\":1,\"type\":\"event_msg\",\"payload\":{\"type\":\"item_completed\",\"item\":{\"type\":\"user_message\",\"content\":[{\"type\":\"input_text\",\"text\":\"Fix the parser\"}]}}}\n" +
-		"{\"timestamp\":\"2026-10-06T00:00:02Z\",\"ordinal\":2,\"type\":\"turn_context\",\"payload\":{\"model\":\"gpt-6-sol\"}}\n"
-	if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
+	path := filepath.Join(dir, "rollout-2026-10-06T00-00-00-"+id+".jsonl")
+	if err := os.WriteFile(path, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// paginated の版は、発言を item_completed の TurnItem で書く。TurnItem は #[serde(tag = "type")] で
+// 名前を変えていないので type は UserMessage / AgentMessage。UserMessage の content は UserInput
+// （{"type":"text","text":…} のほか画像など）、AgentMessage の content は {"type":"Text","text":…}。
+func TestCodexPaginatedUserMessage(t *testing.T) {
+	home := t.TempDir()
+	writeCodex(t, home, "thr-paginated",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","ordinal":0,"type":"session_meta","payload":{"id":"thr-paginated","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/project","history_mode":"paginated"}}`,
+		`{"timestamp":"2026-10-06T00:00:01.000Z","ordinal":1,"type":"event_msg","payload":{"type":"task_started","turn_id":"turn-1","model_context_window":null}}`,
+		`{"timestamp":"2026-10-06T00:00:01.000Z","ordinal":2,"type":"event_msg","payload":{"type":"item_completed","thread_id":"thr-paginated","turn_id":"turn-1","item":{"type":"UserMessage","id":"u1","content":[{"type":"text","text":"Fix the parser","text_elements":[]},{"type":"local_image","path":"/Users/me/shot.png"}]},"completed_at_ms":0}}`,
+		`{"timestamp":"2026-10-06T00:00:02.000Z","ordinal":3,"type":"turn_context","payload":{"model":"gpt-6-sol"}}`,
+		`{"timestamp":"2026-10-06T00:00:09.000Z","ordinal":4,"type":"event_msg","payload":{"type":"item_completed","thread_id":"thr-paginated","turn_id":"turn-1","item":{"type":"AgentMessage","id":"a1","phase":"final_answer","content":[{"type":"Text","text":"Fixed it"}]},"completed_at_ms":0}}`,
+	)
 	bs := load(t, &Codex{Home: home})
 	if len(bs) != 1 {
 		t.Fatalf("sessions = %d, want 1", len(bs))
 	}
-	if len(bs[0].Prompts) != 1 || bs[0].Prompts[0].Text != "Fix the parser" {
-		t.Fatalf("paginated user prompt = %+v", bs[0].Prompts)
+	s := bs[0].Finish(15)
+	if len(s.Prompts) != 1 || s.Prompts[0].Text != "Fix the parser" {
+		t.Fatalf("paginated user prompt = %+v（画像は文に入れない）", s.Prompts)
+	}
+	if r := s.Prompts[0].Reply; r == nil || r.Text != "Fixed it" {
+		t.Errorf("paginated reply = %+v", r)
+	}
+}
+
+// cache_write_input_tokens は cached_input_tokens と同じく input_tokens の内訳なので、入力から引く。
+func TestCodexCacheWriteTokens(t *testing.T) {
+	home := t.TempDir()
+	writeCodex(t, home, "thr-cw",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-cw","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:01.000Z","type":"turn_context","payload":{"model":"gpt-5.2-codex"}}`,
+		`{"timestamp":"2026-10-06T00:00:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"テストを足して"}}`,
+		`{"timestamp":"2026-10-06T00:00:20.000Z","type":"token_usage_record","payload":{"thread_id":"thr-cw","response_id":"r1","usage":{"input_tokens":1000,"cached_input_tokens":600,"cache_write_input_tokens":300,"output_tokens":50,"reasoning_output_tokens":0,"total_tokens":1050}}}`,
+		`{"timestamp":"2026-10-06T00:00:40.000Z","type":"token_usage_record","payload":{"thread_id":"thr-cw","response_id":"r2","usage":{"input_tokens":100,"cached_input_tokens":80,"cache_write_input_tokens":40,"output_tokens":10,"reasoning_output_tokens":0,"total_tokens":110}}}`,
+	)
+	bs := load(t, &Codex{Home: home})
+	if len(bs) != 1 {
+		t.Fatalf("sessions = %d, want 1", len(bs))
+	}
+	u := bs[0].Finish(15).Usage.Tokens
+	// 2 回目は cached + cache_write が input を超える（壊れた値）ので、入力は 0 に止める
+	if u.In != 100 || u.CR != 600+80 || u.CW != 300+40 || u.Out != 60 {
+		t.Errorf("トークン = %+v, want in 100 cr 680 cw 340 out 60", u)
+	}
+}
+
+// paginated のサブエージェントは、親の履歴を自分の session_meta のあとに写す（時刻は写したとき）。
+// subagent_history_start_ordinal より前の ordinal の行は写しなので数えない。
+func TestCodexSubagentHistoryStartOrdinal(t *testing.T) {
+	home := t.TempDir()
+	writeCodex(t, home, "thr-p",
+		`{"timestamp":"2026-10-06T01:00:00.000Z","ordinal":0,"type":"session_meta","payload":{"id":"thr-p","timestamp":"2026-10-06T01:00:00.000Z","cwd":"/Users/me/web","history_mode":"paginated"}}`,
+		`{"timestamp":"2026-10-06T01:00:01.000Z","ordinal":1,"type":"turn_context","payload":{"model":"gpt-5.2-codex"}}`,
+		`{"timestamp":"2026-10-06T01:00:02.000Z","ordinal":2,"type":"event_msg","payload":{"type":"item_completed","thread_id":"thr-p","turn_id":"t1","item":{"type":"UserMessage","id":"u1","content":[{"type":"text","text":"親の依頼"}]}}}`,
+		`{"timestamp":"2026-10-06T01:00:20.000Z","ordinal":3,"type":"token_usage_record","payload":{"thread_id":"thr-p","response_id":"p1","usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100}}}`,
+	)
+	writeCodex(t, home, "thr-c",
+		`{"timestamp":"2026-10-06T01:01:00.000Z","ordinal":0,"type":"session_meta","payload":{"id":"thr-c","timestamp":"2026-10-06T01:01:00.000Z","cwd":"/Users/me/web","history_mode":"paginated","subagent_history_start_ordinal":5,"source":{"subagent":{"thread_spawn":{"parent_thread_id":"thr-p","depth":1,"agent_role":"explorer"}}}}}`,
+		// 1〜4 は親から写した行（時刻は子の session_meta より後）
+		`{"timestamp":"2026-10-06T01:01:00.100Z","ordinal":1,"type":"session_meta","payload":{"id":"thr-p","timestamp":"2026-10-06T01:00:00.000Z","cwd":"/Users/me/web","history_mode":"paginated"}}`,
+		`{"timestamp":"2026-10-06T01:01:00.100Z","ordinal":2,"type":"turn_context","payload":{"model":"gpt-5.2-codex"}}`,
+		`{"timestamp":"2026-10-06T01:01:00.100Z","ordinal":3,"type":"event_msg","payload":{"type":"item_completed","thread_id":"thr-p","turn_id":"t1","item":{"type":"UserMessage","id":"u1","content":[{"type":"text","text":"親の依頼"}]}}}`,
+		`{"timestamp":"2026-10-06T01:01:00.100Z","ordinal":4,"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100},"model_context_window":272000}}}`,
+		// 5 からが子の行
+		`{"timestamp":"2026-10-06T01:01:00.200Z","ordinal":5,"type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"thr-c","thread_settings":{"model":"gpt-5.2-codex-mini"}}}`,
+		`{"timestamp":"2026-10-06T01:01:01.000Z","ordinal":6,"type":"turn_context","payload":{"model":"gpt-5.2-codex-mini"}}`,
+		`{"timestamp":"2026-10-06T01:01:02.000Z","ordinal":7,"type":"event_msg","payload":{"type":"item_completed","thread_id":"thr-c","turn_id":"t2","item":{"type":"UserMessage","id":"u2","content":[{"type":"text","text":"子の依頼"}]}}}`,
+		`{"timestamp":"2026-10-06T01:01:30.000Z","ordinal":8,"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1300,"cached_input_tokens":0,"output_tokens":120,"total_tokens":1420},"last_token_usage":{"input_tokens":300,"cached_input_tokens":0,"output_tokens":20,"total_tokens":320},"model_context_window":272000}}}`,
+	)
+	checkCodexChild(t, home, "thr-p", "子の依頼", 300, 20)
+}
+
+// フォークや古い形（legacy）のサブエージェントは、写しの直後に自分のスレッド ID の thread_settings_applied を書く。
+// それより前の行は写しなので数えない（写した親の thread_settings_applied は親のスレッド ID のまま）。
+func TestCodexForkSettingsMarker(t *testing.T) {
+	home := t.TempDir()
+	writeCodex(t, home, "thr-p",
+		`{"timestamp":"2026-10-06T01:00:00.000Z","type":"session_meta","payload":{"id":"thr-p","timestamp":"2026-10-06T01:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T01:00:00.100Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"thr-p","thread_settings":{"model":"gpt-5.2-codex"}}}`,
+		`{"timestamp":"2026-10-06T01:00:01.000Z","type":"turn_context","payload":{"model":"gpt-5.2-codex"}}`,
+		`{"timestamp":"2026-10-06T01:00:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"親の依頼"}}`,
+		`{"timestamp":"2026-10-06T01:00:20.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100},"model_context_window":272000}}}`,
+	)
+	writeCodex(t, home, "thr-c",
+		`{"timestamp":"2026-10-06T01:01:00.000Z","type":"session_meta","payload":{"id":"thr-c","timestamp":"2026-10-06T01:01:00.000Z","cwd":"/Users/me/web","source":{"subagent":{"thread_spawn":{"parent_thread_id":"thr-p","depth":1,"agent_role":"explorer"}}}}}`,
+		// 親から写した行（時刻は子の session_meta より後）
+		`{"timestamp":"2026-10-06T01:01:00.100Z","type":"session_meta","payload":{"id":"thr-p","timestamp":"2026-10-06T01:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T01:01:00.100Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"thr-p","thread_settings":{"model":"gpt-5.2-codex"}}}`,
+		`{"timestamp":"2026-10-06T01:01:00.100Z","type":"turn_context","payload":{"model":"gpt-5.2-codex"}}`,
+		`{"timestamp":"2026-10-06T01:01:00.100Z","type":"event_msg","payload":{"type":"user_message","message":"親の依頼"}}`,
+		`{"timestamp":"2026-10-06T01:01:00.100Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100},"model_context_window":272000}}}`,
+		// 子の行
+		`{"timestamp":"2026-10-06T01:01:00.100Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"thr-c","thread_settings":{"model":"gpt-5.2-codex-mini"}}}`,
+		`{"timestamp":"2026-10-06T01:01:01.000Z","type":"turn_context","payload":{"model":"gpt-5.2-codex-mini"}}`,
+		`{"timestamp":"2026-10-06T01:01:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"子の依頼"}}`,
+		`{"timestamp":"2026-10-06T01:01:30.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1300,"cached_input_tokens":0,"output_tokens":120,"total_tokens":1420},"last_token_usage":{"input_tokens":300,"cached_input_tokens":0,"output_tokens":20,"total_tokens":320},"model_context_window":272000}}}`,
+	)
+	// /fork したスレッド（親ではなく forked_from_id）は別のセッションで、写した依頼とトークンは数えない
+	writeCodex(t, home, "thr-f",
+		`{"timestamp":"2026-10-06T02:00:00.000Z","type":"session_meta","payload":{"id":"thr-f","forked_from_id":"thr-p","timestamp":"2026-10-06T02:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T02:00:00.100Z","type":"event_msg","payload":{"type":"user_message","message":"親の依頼"}}`,
+		`{"timestamp":"2026-10-06T02:00:00.100Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100},"model_context_window":272000}}}`,
+		`{"timestamp":"2026-10-06T02:00:00.100Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"thr-f","thread_settings":{"model":"gpt-5.2-codex"}}}`,
+		`{"timestamp":"2026-10-06T02:00:05.000Z","type":"event_msg","payload":{"type":"user_message","message":"別の案を試す"}}`,
+		`{"timestamp":"2026-10-06T02:00:30.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1500,"cached_input_tokens":0,"output_tokens":130,"total_tokens":1630},"last_token_usage":{"input_tokens":500,"cached_input_tokens":0,"output_tokens":30,"total_tokens":530},"model_context_window":272000}}}`,
+	)
+	checkCodexChild(t, home, "thr-p", "子の依頼", 300, 20)
+	f := find(load(t, &Codex{Home: home}), "thr-f")
+	if f == nil {
+		t.Fatal("thr-f がない")
+	}
+	fs := f.Finish(15)
+	if len(fs.Prompts) != 1 || fs.Prompts[0].Text != "別の案を試す" || fs.Usage.In != 500 || fs.Usage.Out != 30 {
+		t.Errorf("フォーク: 依頼 = %+v, トークン = %+v（写した分は数えない）", fs.Prompts, fs.Usage.Tokens)
+	}
+}
+
+// 印のない古い版で作ったサブエージェントのファイルを新しい版で再開すると、自分の行のあとに
+// 自分のスレッド ID の thread_settings_applied を書く。これは写しの終わりではないので、それより前の自分の行も数える
+// （写しは古い版の作りどおり、session_meta の時刻で分ける）。
+func TestCodexResumedLegacySubagent(t *testing.T) {
+	home := t.TempDir()
+	writeCodex(t, home, "thr-p",
+		`{"timestamp":"2026-10-06T01:00:00.000Z","type":"session_meta","payload":{"id":"thr-p","timestamp":"2026-10-06T01:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T01:00:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"親の依頼"}}`,
+		`{"timestamp":"2026-10-06T01:00:20.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100},"model_context_window":272000}}}`,
+	)
+	writeCodex(t, home, "thr-c",
+		`{"timestamp":"2026-10-06T01:01:00.000Z","type":"session_meta","payload":{"id":"thr-c","timestamp":"2026-10-06T01:01:00.000Z","cwd":"/Users/me/web","source":{"subagent":{"thread_spawn":{"parent_thread_id":"thr-p","depth":1,"agent_role":"explorer"}}}}}`,
+		`{"timestamp":"2026-10-06T01:00:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"親の依頼"}}`,
+		`{"timestamp":"2026-10-06T01:00:20.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100},"model_context_window":272000}}}`,
+		`{"timestamp":"2026-10-06T01:01:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"子の依頼"}}`,
+		`{"timestamp":"2026-10-06T01:01:30.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1300,"cached_input_tokens":0,"output_tokens":120,"total_tokens":1420},"last_token_usage":{"input_tokens":300,"cached_input_tokens":0,"output_tokens":20,"total_tokens":320},"model_context_window":272000}}}`,
+		// 翌日、新しい版で再開した
+		`{"timestamp":"2026-10-07T09:00:00.000Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"thr-c","thread_settings":{"model":"gpt-5.2-codex-mini"}}}`,
+		`{"timestamp":"2026-10-07T09:00:10.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1400,"cached_input_tokens":0,"output_tokens":125,"total_tokens":1525},"last_token_usage":{"input_tokens":100,"cached_input_tokens":0,"output_tokens":5,"total_tokens":105},"model_context_window":272000}}}`,
+	)
+	checkCodexChild(t, home, "thr-p", "子の依頼", 300+100, 20+5)
+}
+
+// checkCodexChild は、親のセッションの依頼とトークンが親の分だけで、サブエージェントには子の分だけが入っていることを確かめる。
+func checkCodexChild(t *testing.T, home, parent, desc string, in, out float64) {
+	t.Helper()
+	p := find(load(t, &Codex{Home: home}), parent)
+	if p == nil {
+		t.Fatalf("%s がない", parent)
+	}
+	s := p.Finish(15)
+	if len(s.Prompts) != 1 || s.Prompts[0].Text != "親の依頼" {
+		t.Errorf("親の依頼 = %+v", s.Prompts)
+	}
+	if len(s.Subagents) != 1 {
+		t.Fatalf("サブエージェント = %d", len(s.Subagents))
+	}
+	sa := s.Subagents[0]
+	if sa.Desc != desc || sa.Usage.In != in || sa.Usage.Out != out {
+		t.Errorf("サブエージェント = %q %+v, want %q in %v out %v（親から写した分は数えない）", sa.Desc, sa.Usage.Tokens, desc, in, out)
+	}
+	if s.Usage.In != 1000 || s.Usage.Out != 100 {
+		t.Errorf("親のトークン = %+v（親の分だけ。サブエージェントの分は Subagents に入る）", s.Usage.Tokens)
+	}
+	if sa.Start == nil || *sa.Start < 1e9 {
+		t.Errorf("サブエージェントの開始 = %v", sa.Start)
 	}
 }
 
@@ -163,8 +319,11 @@ func TestCodexReplies(t *testing.T) {
 		`{"timestamp":"2026-09-30T01:00:10.000Z","type":"event_msg","payload":{"type":"user_message","message":"ボタンの色を直して"}}`,
 		`{"timestamp":"2026-09-30T01:00:20.000Z","type":"event_msg","payload":{"type":"agent_message","message":"見てみます"}}`,
 		`{"timestamp":"2026-09-30T01:00:40.000Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"直しました"}]}}`,
-		`{"timestamp":"2026-09-30T01:01:00.000Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"user_message","message":"テストも足して"}}}`,
-		`{"timestamp":"2026-09-30T01:01:30.000Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"agent_message","content":[{"type":"output_text","text":"足して通しました"}]}}}`,
+		// developer は Codex が足す指示で、応答ではない
+		`{"timestamp":"2026-09-30T01:00:50.000Z","type":"response_item","payload":{"type":"message","role":"developer","content":[{"type":"input_text","text":"<permissions instructions>sandbox</permissions instructions>"}]}}`,
+		`{"timestamp":"2026-09-30T01:01:00.000Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"UserMessage","id":"u2","content":[{"type":"text","text":"テストも足して","text_elements":[]}]}}}`,
+		`{"timestamp":"2026-09-30T01:01:30.000Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"AgentMessage","id":"a2","content":[{"type":"Text","text":"足して通しました"}]}}}`,
+		`{"timestamp":"2026-09-30T01:01:40.000Z","type":"response_item","payload":{"type":"message","role":"developer","content":[{"type":"input_text","text":"<collaboration_mode>default</collaboration_mode>"}]}}`,
 	}
 	os.WriteFile(filepath.Join(dir, "rollout-2026-09-30T10-00-00-thr-r.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644)
 	bs := load(t, &Codex{Home: home})
