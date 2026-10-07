@@ -7,6 +7,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 ### Changed
 
 - Each agent has one fixed color everywhere: Claude Code blue, Codex green, Kiro IDE purple, Kiro CLI and Amazon Q (its predecessor) light blue, and Kiro Crew pink. Orange and yellow are left out so an agent never reads as a warning (other agents get a leftover color). It no longer depends on how many sessions each agent has, so "Color by: Agent", the agent badge, session cards and the Year in review all use the same color for the same agent
+- Tokens, estimated cost, the month-end cost estimate, Kiro credits and the month-end credits estimate now lead the figures at the top, grouped and highlighted as the most important numbers. The month-end estimates used to appear only further down, under "How you used AI". When the figures don't fit next to the heading, they move to their own row instead of being cut off
 - Agent-specific metrics are shown directly under "How you used AI" instead of folded away, one card per agent with its badge and a soft gradient in its color, like the By project cards. Session cards (Heaviest sessions, sessions linked to a commit or push) get the same gradient in their agent's color
 
 ## v0.21.2 - 2026-10-07
