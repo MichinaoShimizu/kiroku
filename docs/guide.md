@@ -278,12 +278,12 @@ How each history is read and how duplicates are excluded is described in [source
 
 ### History retention
 
-Some agents delete old history automatically. Deleted history cannot be shown by kiroku and cannot be recovered, so set this up early if you want to look back further. In the view, "Data sources" shows the oldest record for each agent, and while Claude Code is still on its 30-day default, a notice appears above the summary (with a link to the official docs and a button to copy the setting; once dismissed, it stays hidden in that browser). For Kiro Crew, whose period kiroku cannot read, "Data sources" only notes that it deletes history.
+Some agents delete old history automatically. Deleted history cannot be shown by kiroku and cannot be recovered, so set this up early if you want to look back further. In the view, "Data sources" shows the oldest record for each agent, and while Claude Code or Kiro Crew is still on its 30-day default, a notice appears above the summary (with a link to the docs, the file to put the setting in and a button to copy it; once dismissed, it stays hidden in that browser). `kiroku doctor` shows the same under "Keeping history".
 
 | Agent | Deletes automatically? | Setting |
 |---|---|---|
 | Claude Code | **Yes.** By default it silently deletes conversation history older than 30 days at startup | [`cleanupPeriodDays`](https://code.claude.com/docs/en/settings-reference#cleanupperioddays) in `~/.claude/settings.json` (days, minimum 1; `0` fails validation, so use a large value such as `3650` for long retention) |
-| Kiro Crew | **Yes.** It deletes conversation records (`sessions/archive/`) after a period that depends on the Crew version and settings | Crew's [`session.archive_retention_days`](https://kiro.dev/docs/crew/configuration/) |
+| Kiro Crew | **Yes.** By default, about once an hour, it deletes conversation records moved to `sessions/archive/` (and the logs of closed sessions) that are older than 30 days | Crew's [`session.archive_retention_days`](https://github.com/kirodotdev/kirocrew/blob/main/src/kiro_crew/docs/configuration.md) in `~/.kiro/crew/config.local.json` (or `config.json`; under `KIROCREW_HOME` if set). Days; `-1` or `null` turns the cleanup off |
 | Kiro IDE, Kiro CLI, Amazon Q, Codex | Their official docs do not describe age-based automatic deletion (manual cleanup exists) | — |
 
 Example for Claude Code:
@@ -295,6 +295,20 @@ Example for Claude Code:
 ```
 
 kiroku reads only your user settings (`~/.claude/settings.json`, or under `CLAUDE_CONFIG_DIR` if set). If the period is set in project or organization settings, the notice may not match the actual period.
+
+Example for Kiro Crew (`~/.kiro/crew/config.local.json`; its values win over `config.json`. If the file already has a `"session"` object, add the key inside it):
+
+```json
+{
+  "session": {
+    "archive_retention_days": 3650
+  }
+}
+```
+
+`-1` instead of `3650` turns Crew's cleanup off, and kiroku then shows no retention for it.
+
+kiroku reads `config.json` and `config.local.json` the same way Crew does. Crew writes every setting to `config.json`, including this one at 30, so kiroku treats the period as set only when it is not 30.
 
 ### Keep a copy of history in kiroku
 

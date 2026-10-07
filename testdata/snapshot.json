@@ -6225,8 +6225,10 @@
    "retention": {
     "days": 30,
     "docs": "https://code.claude.com/docs/en/settings-reference#cleanupperioddays",
+    "file": "testdata/home/.claude/settings.json",
     "set": false,
-    "setting": "cleanupPeriodDays"
+    "setting": "cleanupPeriodDays",
+    "snippet": "\"cleanupPeriodDays\": 3650"
    },
    "where": "testdata/home/.claude/projects"
   },
@@ -6245,10 +6247,13 @@
    "name": "Kiro CLI",
    "oldest": 1790632800,
    "retention": {
-    "days": 0,
-    "docs": "https://kiro.dev/docs/crew/configuration/",
+    "days": 30,
+    "docs": "https://github.com/kirodotdev/kirocrew/blob/main/src/kiro_crew/docs/configuration.md",
+    "file": "testdata/crew/config.local.json",
     "set": false,
-    "setting": "session.archive_retention_days"
+    "setting": "session.archive_retention_days",
+    "snippet": "\"session\": {\"archive_retention_days\": 3650}",
+    "who": "Kiro Crew"
    },
    "where": "testdata/home/.kiro/sessions/cli"
   },

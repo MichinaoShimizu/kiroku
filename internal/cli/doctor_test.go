@@ -17,7 +17,8 @@ func TestDoctorReport(t *testing.T) {
 	lookGit = func() bool { return false }
 	dir := t.TempDir()
 	rep := []source.Report{
-		{Name: "Claude Code", N: 12, Oldest: 1.78e9, Where: "/x/projects", Keep: &source.Retention{Days: 30, Setting: "cleanupPeriodDays", Docs: "https://docs", File: "/x/settings.json"}},
+		{Name: "Claude Code", N: 12, Oldest: 1.78e9, Where: "/x/projects", Keep: &source.Retention{Days: 30, Setting: "cleanupPeriodDays", Snippet: `"cleanupPeriodDays": 3650`, Docs: "https://docs", File: "/x/settings.json"}},
+		{Name: "Kiro CLI", N: 3, Where: "/x/.kiro/sessions/cli", Keep: &source.Retention{Days: 30, Who: "Kiro Crew", Setting: "session.archive_retention_days", Snippet: `"session": {"archive_retention_days": 3650}`, Docs: "https://docs", File: "/x/crew/config.local.json"}},
 		{Name: "Codex", Where: "/x/.codex"},
 	}
 	fakeKirokuPath(t, "/x/bin/kiroku", "/x/bin/kiroku")
@@ -25,7 +26,8 @@ func TestDoctorReport(t *testing.T) {
 	doctorReport(&b, rep, 12, dir, release{}, false)
 	out := b.String()
 	for _, want := range []string{"✓ Claude Code", "12 sessions, since", "/x/projects",
-		`! Claude Code deletes history older than 30 days`, `add "cleanupPeriodDays": 3650 to /x/settings.json`, `Run "kiroku archive on"`,
+		`! Claude Code deletes history older than 30 days`, `add "cleanupPeriodDays": 3650 to /x/settings.json`,
+		`! Kiro Crew deletes history older than 30 days (session.archive_retention_days is at its default)`, `add "session": {"archive_retention_days": 3650} to /x/crew/config.local.json`, `Run "kiroku archive on"`,
 		"git: not found", "autostart: off", "kiroku archive on    keep copies", "kiroku serve"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("%q がない:\n%s", want, out)

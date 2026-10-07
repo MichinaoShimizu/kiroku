@@ -7,6 +7,8 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 ### Fixed
 
 - On a phone, the legend chips above the week calendar no longer overlap the "Zoom" label. The chips now get a row of their own below "Color by" and the zoom buttons
+- kiroku now reads how long Kiro Crew keeps its conversation records instead of saying it cannot. It reads `session.archive_retention_days` from Crew's `config.json` and `config.local.json` (the overlay wins) the way Crew does: 30 days by default, and `null` or a negative number means Crew never deletes them. While it is at 30, "Data sources", the notice above the summary and `kiroku doctor` warn about it like Claude Code's default, name Kiro Crew rather than Kiro CLI, and suggest the setting in `config.local.json` in Crew's nested form; the notice no longer points every agent at `~/.claude/settings.json`. The docs link goes to Crew's configuration reference, which documents the setting
+- The docs no longer say that Crew keeps its usage records (`usage/tokens/`) for about two weeks; Crew does not delete them
 
 ## v0.19.1 - 2026-10-07
 
