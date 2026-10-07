@@ -35,7 +35,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 <img src="docs/worth.png" alt="A flagged metric opened from Worth a look (dummy data)" width="560">
 
-**Cost next to output.** Time, tokens, estimated cost (Claude Code and Codex, at public API rates) and credits by project, next to commits and cost per commit.
+**Cost next to output.** Time, tokens, estimated cost (Claude Code, Codex and Kiro Crew's non-Kiro backends, at public API rates) and credits by project, next to commits and cost per commit. Not every agent records everything; the guide lists [what each agent records](docs/guide.md#what-each-agent-records).
 
 ![Weekly summary by project (dummy data)](docs/summary.png)
 
