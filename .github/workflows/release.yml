@@ -90,3 +90,34 @@ jobs:
           out="$RUNNER_TEMP/kiroku_${TAG#v}.sigstore.json"
           cp "$BUNDLE" "$out"
           gh release upload "$TAG" "$out" --repo "$GITHUB_REPOSITORY"
+
+  # X に投稿する下書き。CHANGELOG のその版の節から文面を作り、X の投稿画面をその文面で開くリンクと一緒に、
+  # このジョブのまとめ（Summary）に出す。投稿は人がリンクを開いて行う（X の鍵をここに置かない）。プレリリースは出さない
+  announce:
+    needs: release
+    if: ${{ !contains(inputs.tag || github.ref_name, '-') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          persist-credentials: false
+      - name: Draft a post for X
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          post=$(sh tools/x-post.sh "$TAG")
+          link="https://x.com/intent/post?text=$(printf '%s' "$post" | jq -sRr @uri)"
+          {
+            echo "## Post $TAG on X"
+            echo
+            echo "Check the draft, then open the link to post it (nothing is posted automatically):"
+            echo
+            echo "[Open the X post box with this text]($link)"
+            echo
+            echo '````text'
+            printf '%s\n' "$post"
+            echo '````'
+          } >> "$GITHUB_STEP_SUMMARY"

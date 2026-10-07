@@ -40,7 +40,7 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | `internal/gitlog` | Reads commits, and pushes from the reflog, from the git repository in each session's working directory (skipped without git), with the repository's own settings that run programs turned off |
 | `internal/web` | The view. Written as `template.html` (markup), `style.css` and the script in `js/*.js`, split by role (`state.js` data and view state, `format.js` helpers, `calendar.js` week and month calendars, `summary.js` / `review.js` / `panels.js` the summary, `git.js` / `session.js` the details panel, `year.js`, `events.js` input and keyboard, `boot.js` start-up, `live.js` updates under `kiroku serve`; `loading.html` is the page `kiroku serve` shows while it first reads history); `web.go` joins the script files in the fixed order of its `scripts` list into one `<script>` and combines everything with the aggregate JSON into one HTML file. `help_test.go` and `script_test.go` check the view's explanations and script |
 | `testdata/` | Synthetic history (`home/`, `codex/`, `crew/`, `sqlite/`), `golden.json`, `snapshot.json`, `mtimes.json` |
-| `tools/` | `release-notes.sh` and `next-version.sh` (releases), `reproduce.sh` (rebuilds a released binary from its tag and compares it), `screenshots/` (dummy data with `gen.py` and `mkgit.py`, the demo's link card with `ogp.py`, screenshots with `capture.mjs`, and the view's e2e: `smoke.mjs`, plus `hostile.py` and `xss.mjs` for XSS) |
+| `tools/` | `release-notes.sh`, `next-version.sh` and `x-post.sh` (releases), `reproduce.sh` (rebuilds a released binary from its tag and compares it), `screenshots/` (dummy data with `gen.py` and `mkgit.py`, the demo's link card with `ogp.py`, screenshots with `capture.mjs`, and the view's e2e: `smoke.mjs`, plus `hostile.py` and `xss.mjs` for XSS) |
 | `install.sh`, `.goreleaser.yaml` | The installer, and how release files are built |
 
 The price table is `Prices` in `internal/core/usage.go`. When you update it, also change `PricesAsOf` (the date shown in the view).
@@ -119,7 +119,9 @@ The version number is decided from the contents of `## Unreleased` by semantic v
 
 Make a PR that renames `## Unreleased` in `CHANGELOG.md` to that number, like `## v0.1.8 - 2026-10-05`, and merge it into main (write it in English; its contents become the release notes as is). On merge, `.github/workflows/tag.yml` tags the version of the top section and runs Release directly. There is no need to tag by hand.
 
-If it didn't work, you can rerun it from Actions → Tag → Run workflow. Tagging and pushing by hand also still releases as before.
+If it didn't work, you can rerun it from Actions → Tag → Run workflow.
+
+After a release (not a prerelease), the `announce` job of Release writes a draft post for X to its run's Summary: "kiroku vX.Y.Z is out:", the first sentence of the changes that fit (Security, Added, Changed and Fixed first; Removed and Security say so in front) and the release URL, within X's 280 characters. Check it, then press "Open the X post box with this text" to post it from your own account; nothing is posted automatically, and no X credentials are kept in the repository. Edit the text in X's post box if it reads awkwardly. `sh tools/x-post.sh v0.1.8` prints the same draft locally, and CI (`release-dry-run`) checks that it can be made from the top section of the CHANGELOG. Tagging and pushing by hand also still releases as before.
 
 ```bash
 git tag v0.1.8
