@@ -83,7 +83,7 @@ func dispatch(args []string) error {
 		return nil
 	}
 	if strings.HasPrefix(args[0], "-") {
-		return runLegacy(args) // 前の書き方（kiroku --serve など）
+		return legacyForm(args[0])
 	}
 	return fmt.Errorf("unknown command: %s (run \"kiroku help\" for the list)", args[0])
 }
@@ -350,8 +350,11 @@ func writeHTML(snap snapshot, out string, open bool) error {
 	return nil
 }
 
+// jsonSchema は kiroku json の形の版。docs/compatibility.md の項目を消したり、名前や意味を変えたりしたら上げる（BREAKING）。
+const jsonSchema = 1
+
 func writeJSON(snap snapshot, out string) error {
-	b, err := json.MarshalIndent(map[string]any{"sessions": snap.data, "weeks": snap.weeks, "months": snap.months, "meta": snap.meta}, "", " ")
+	b, err := json.MarshalIndent(map[string]any{"schemaVersion": jsonSchema, "sessions": snap.data, "weeks": snap.weeks, "months": snap.months, "meta": snap.meta}, "", " ")
 	if err != nil {
 		return err
 	}
@@ -385,64 +388,13 @@ func writePrivate(out string, b []byte) error {
 	return os.Rename(tmp.Name(), out)
 }
 
-// runLegacy は前の書き方（kiroku --serve、--json、-o など）。何も選ばなければヘルプを出す。
-func runLegacy(args []string) error {
-	args = normalizeArgs(args)
-	fs := flag.NewFlagSet("kiroku", flag.ContinueOnError)
-	fs.Usage = func() { printHelp(fs.Output()) }
-	c := addCommon(fs)
-	out := fs.String("out", "kiroku.html", "")
-	fs.StringVar(out, "o", "kiroku.html", "")
-	noOpen := fs.Bool("no-open", false, "")
-	fs.String("md-dir", ".", "")
-	weekly := fs.String("weekly", "", "")
-	monthly := fs.String("monthly", "", "")
-	jsonOut := fs.String("json", "", "")
-	serve := fs.String("serve", "", "")
-	interval := fs.Duration("interval", 5*time.Second, "")
-	showVersion := fs.Bool("version", false, "")
-	if err := fs.Parse(args); err != nil {
-		return quiet(err)
+// legacyForm は、v1.0 の前に消した前の書き方（kiroku --serve、--json、-o など）に、いまの書き方を教える。
+func legacyForm(arg string) error {
+	name, _, _ := strings.Cut(strings.TrimLeft(arg, "-"), "=")
+	now := map[string]string{"serve": "kiroku serve", "json": "kiroku json -o FILE", "o": "kiroku html -o FILE", "out": "kiroku html -o FILE",
+		"weekly": "kiroku serve", "monthly": "kiroku serve"}[name]
+	if now == "" {
+		return fmt.Errorf("unknown command: %s (run \"kiroku help\" for the list)", arg)
 	}
-	if fs.NArg() > 0 {
-		return fmt.Errorf("unknown command: %s (run \"kiroku help\" for the list)", fs.Arg(0))
-	}
-	explicitOut := false
-	fs.Visit(func(f *flag.Flag) {
-		if f.Name == "o" || f.Name == "out" {
-			explicitOut = true
-		}
-	})
-	note := func(newForm string) {
-		fmt.Fprintf(os.Stderr, "(this form is deprecated; use %s instead)\n", newForm)
-	}
-	switch {
-	case *showVersion:
-		return runVersion()
-	case *weekly != "" || *monthly != "":
-		return fmt.Errorf("the Markdown weekly/monthly summary has been removed; use \"kiroku serve\" instead")
-	case *serve != "":
-		note("kiroku serve")
-		picked, load, err := c.loader()
-		if err != nil {
-			return err
-		}
-		return serveLive(*serve, nil, *interval, picked, load, c.keepFn(), !*noOpen)
-	case *jsonOut != "":
-		note("kiroku json -o " + *jsonOut)
-		snap, err := loadNonEmpty(c)
-		if err != nil {
-			return err
-		}
-		return writeJSON(snap, *jsonOut)
-	case explicitOut:
-		note("kiroku html -o " + *out)
-		_, load, err := c.loader()
-		if err != nil {
-			return err
-		}
-		return writeHTML(load(), *out, !*noOpen)
-	}
-	printHelp(os.Stdout)
-	return nil
+	return fmt.Errorf("\"kiroku %s\" has been removed; use \"%s\" instead", arg, now)
 }

@@ -12,6 +12,7 @@ A change that breaks one of these is marked `BREAKING` in the changelog and, fro
 - **Options**: the names, meanings and defaults listed under [Options](guide.md#options)
 - **Environment variables** kiroku reads: `KIROKU_ARCHIVE_DIR`, `KIROKU_CONFIG_DIR`, and the agents' own (`CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME`)
 - **Exit status**: 0 on success, and not 0 when a command fails
+- **The fields of `kiroku json` listed under [The JSON of kiroku json](#the-json-of-kiroku-json)**, as long as `schemaVersion` stays the same
 - **The `--prices` file**: the JSON format described in [How you used AI](guide.md#how-you-used-ai), both the object and the array form
 - **`kiroku archive` copies**: a later version still reads the copies an earlier one kept, and `kiroku archive off` still recognizes the folder. The layout inside the folder may change if kiroku moves the old copies itself
 - **The `kiroku serve` key** kept in kiroku's config folder: a new version still accepts it, so bookmarks and `kiroku open` keep working
@@ -27,11 +28,32 @@ These change as kiroku and the agents it reads change. Changes are listed in the
 - **Estimated cost**: the price table follows the providers' public prices, so estimates for past weeks can change
 - **Which histories are read**: kiroku follows the formats the agents write. When an agent changes its format, kiroku reads the new one; a history format an agent no longer writes may stop being read in a minor release, with a note in the changelog
 - **Text output** of `doctor`, `version`, `update`, `archive` and errors: it is for people, not for scripts
-- **The JSON written by `kiroku json`** and the `/data.json` and other URLs of `kiroku serve`: the JSON is the data behind the view, and its fields change with the view. *Open question for v1.0.0: keep it like this, or add a versioned, documented subset that scripts can rely on*
+- **The rest of the JSON written by `kiroku json`** (`weeks`, `months`, `meta` and the session fields not listed below), and the `/data.json` and other URLs of `kiroku serve`: they are the data behind the view and change with it
 - **The HTML written by `kiroku html`**: it is a page to open, not a format to parse
-- **The legacy forms** `kiroku --serve`, `--json` and `-o` (see [Commands](guide.md#commands)): *open question for v1.0.0: remove them before 1.0, or keep them until 2.0*
 - **Supported platforms and the Go version** needed to build: they follow the Go releases that are supported upstream
 - **Security fixes**: when keeping something compatible would leave a security problem, the fix wins, even in a patch release. It is noted under `### Security` in the changelog
+
+## The JSON of kiroku json
+
+`kiroku json` writes an object with `schemaVersion` (a number, now `1`) and `sessions` (an array, one entry per session). While `schemaVersion` stays the same, each session keeps these fields with the same name, type and meaning:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `id` | string | The session ID the agent recorded |
+| `source` | string | The agent, as shown in the view (such as `Claude Code`, `Codex`, `Kiro IDE`) |
+| `project` | string | The project name shown in the view |
+| `projectPath` | string | The project folder the agent recorded (can be empty) |
+| `branch` | string or `null` | The git branch the agent recorded |
+| `title` | string | The title the agent recorded, or else the start of the first prompt |
+| `start`, `end` | number | The first and last recorded time, in Unix seconds |
+| `nPrompts` | number | Prompts you sent |
+| `nFiles` | number | Files the agent changed |
+| `interrupts` | number | Times you stopped the agent |
+| `corrections` | number | Prompts that read like a correction of the agent (kiroku's guess from the wording) |
+| `cost` | number | Estimated cost in USD, subagents included (an estimate; see [How you used AI](guide.md#how-you-used-ai)) |
+| `credits` | number | Kiro credits recorded in the history (0 for other agents) |
+
+New fields can appear at any time, so ignore the ones you don't know. Removing one of these fields or changing its name, type or meaning raises `schemaVersion` and is `BREAKING`. The numbers themselves can change when kiroku reads a history better (see "May change in any release"). The file contains your prompts and file paths, so treat it like your history.
 
 ## Go packages
 

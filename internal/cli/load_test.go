@@ -135,43 +135,6 @@ func TestSameConversationCountedOnce(t *testing.T) {
 	}
 }
 
-func TestNormalizeArgs(t *testing.T) {
-	cases := map[string][]string{
-		"--weekly":                        {"--weekly=latest"},
-		"--weekly 2026-09-30":             {"--weekly=2026-09-30"},
-		"--weekly --no-open":              {"--weekly=latest", "--no-open"},
-		"--monthly":                       {"--monthly=latest"},
-		"--monthly 2026-09":               {"--monthly=2026-09"},
-		"--monthly --no-open":             {"--monthly=latest", "--no-open"},
-		"--serve":                         {"--serve=127.0.0.1:8484"},
-		"--serve :9000":                   {"--serve=:9000"},
-		"--serve --no-open":               {"--serve=127.0.0.1:8484", "--no-open"},
-		"--serve localhost:8485 --gap 20": {"--serve=localhost:8485", "--gap", "20"},
-	}
-	for in, want := range cases {
-		got := normalizeArgs(splitArgs(in))
-		if fmt.Sprint(got) != fmt.Sprint(want) {
-			t.Errorf("%q → %v, want %v", in, got, want)
-		}
-	}
-}
-
-func splitArgs(s string) []string {
-	var out []string
-	cur := ""
-	for _, r := range s + " " {
-		if r == ' ' {
-			if cur != "" {
-				out = append(out, cur)
-			}
-			cur = ""
-			continue
-		}
-		cur += string(r)
-	}
-	return out
-}
-
 func roundTrip(t *testing.T, v any) any {
 	b, err := json.Marshal(v)
 	if err != nil {
