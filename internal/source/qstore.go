@@ -20,6 +20,7 @@ import (
 //	conversations_v2(key, conversation_id, value, created_at, updated_at) … Kiro CLI だけ
 //
 // value.history[i] = {user: {content, timestamp(RFC3339)}, assistant: {Response|ToolUse}, request_metadata: {...}}。
+// value.latest_summary = [要約, request_metadata]（最後のコンパクション。qCompaction）。
 // value.model_info = {model_id, context_window_tokens}、value.context_message_length（文脈の文字数）。
 // トークンやクレジットは入っていない。
 type QStore struct {
@@ -223,6 +224,7 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 		if lastT != nil {
 			s.Measure("context_window", lastT, window)
 		}
+		qCompaction(s, conv)
 		if q.Command != "" && s.Project != "" {
 			s.Resume = core.ResumeCmd(s.Project, q.Command, "")
 		}
@@ -244,6 +246,34 @@ var qInjected = map[string]string{
 	qResumeSummary: "meta",
 	"You took too long to respond - try to split up the work into smaller steps.": "meta", // 応答のタイムアウト
 	"The conversation history has overflowed, clearing state":                     "meta", // 履歴があふれて消したとき
+}
+
+// qCompaction は、最後のコンパクション（/compact と、文脈があふれたときの自動の要約）を記録する。
+// CLI は要約を latest_summary に [要約, request_metadata] で残し（conversation.rs の replace_history_with_summary）、
+// その request_metadata の message_meta_tags に Compact が入る（mod.rs の compact_history）。
+// 前の要約は次のコンパクションで上書きされ、要約より前の履歴も消える（history.drain）ので、残るのは最後の 1 回だけ。
+// 要約だけの古い形（文字列）には時刻がないので数えない。
+func qCompaction(s *core.Builder, conv core.Obj) {
+	pair := core.List(conv["latest_summary"])
+	if len(pair) < 2 {
+		return
+	}
+	meta := core.Map(pair[1])
+	if tags, ok := meta["message_meta_tags"]; ok {
+		compact := false
+		for _, tag := range core.List(tags) {
+			compact = compact || core.Str(tag) == "Compact"
+		}
+		if !compact {
+			return
+		}
+	}
+	t := ts(meta["stream_end_timestamp_ms"])
+	if t == nil {
+		t = ts(meta["request_start_timestamp_ms"])
+	}
+	s.Tick(t)
+	s.Compact(t, "")
 }
 
 // isLegacyEntry は、古い版の [user, assistant] の形か（request_metadata を記録しない）。
