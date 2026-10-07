@@ -1,10 +1,15 @@
 package source
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -115,7 +120,7 @@ func crewTranscriptPath(home, key string) string {
 }
 
 // readCrewKey は会話キーの記録を読む。Crew は古い行を sessions/archive/<名前>__<日時>.jsonl に退避する
-// （残す期間は session.archive_retention_days で決まり、Crew の版や設定で変わる）ので、残っていればそちらも古い順に読む。
+// （残す期間は session.archive_retention_days で決まる。既定 30 日。crewRetentionDays）ので、残っていればそちらも古い順に読む。
 // 退避した記録が消えていても、kiroku archive のコピー（arch の下の同じ並び。.jsonl.zst）があればそれを読む。
 func readCrewKey(home, arch, key string, errs *fileErrs) (title string, rows []crewRow) {
 	stem := unsafeKey.ReplaceAllString(key, "_")
@@ -342,4 +347,97 @@ func crewOnly(home, arch, slot string, turns []crewTurn, info *CrewInfo, errs *f
 		out = append(out, s)
 	}
 	return out
+}
+
+// crewRetentionDefault は Crew の session.archive_retention_days の既定値（kiro_crew/config/sections.py の SessionConfig）。
+const crewRetentionDefault = 30
+
+// crewRetentionNever は、これより長い日数を「消さない」と同じに扱う境目（約 2700 年。int にしても溢れない）。
+const crewRetentionNever = 1_000_000
+
+// crewConfigMax は Crew の設定ファイルとして読む大きさの上限。これより大きいファイルは読まない。
+const crewConfigMax = 8 << 20
+
+// crewRetentionDays は Crew が使う session.archive_retention_days（日数）を読む。never は、Crew が古い記録を消さない設定のとき。
+// Crew と同じく <Crew の場所>/config.json に config.local.json を重ねて読む（config.local.json が勝つ。
+// "session" がどちらも object ならキーごとに重ね、そうでなければ上書き）。書き方は {"session": {"archive_retention_days": 30}}。
+// Crew の読み方（config/sections.py の _archive_retention_days と config/validation.py）に合わせて:
+//   - null か負の数は消さない（Crew は -1 にそろえて、片付けをしない）
+//   - 0 以上の整数（30.0 のような小数点つきの整数や、"45" のような整数の文字列も）はその日数
+//   - キーがない・整数でない数・数でない値・"session" が object でない・ファイルがないか壊れているときは既定の 30 日
+func crewRetentionDays(home string) (days int, never bool) {
+	v, ok := crewSessionSetting(home, "archive_retention_days")
+	if !ok {
+		return crewRetentionDefault, false
+	}
+	var f float64
+	switch x := v.(type) {
+	case nil:
+		return 0, true
+	case float64:
+		f = x
+	case string:
+		n, err := strconv.Atoi(strings.TrimSpace(x))
+		if err != nil {
+			return crewRetentionDefault, false
+		}
+		f = float64(n)
+	default: // true / false や object など。Crew は型が違う値を捨てて既定値にする
+		return crewRetentionDefault, false
+	}
+	switch {
+	case math.IsNaN(f) || math.IsInf(f, 0) || f != math.Trunc(f):
+		return crewRetentionDefault, false
+	case f < 0 || f > crewRetentionNever:
+		return 0, true
+	}
+	return int(f), false
+}
+
+// crewSessionSetting は config.json に config.local.json を重ねたときの "session" の key の値。ないなら ok が false。
+func crewSessionSetting(home, key string) (v any, ok bool) {
+	base := crewConfig(filepath.Join(home, "config.json"))
+	local := crewConfig(filepath.Join(home, "config.local.json"))
+	sec := base["session"]
+	if l, has := local["session"]; has {
+		lm, lok := l.(map[string]any)
+		if bm, bok := sec.(map[string]any); lok && bok {
+			if v, ok := lm[key]; ok {
+				return v, true
+			}
+			v, ok := bm[key]
+			return v, ok
+		}
+		sec = l
+	}
+	m, isMap := sec.(map[string]any)
+	if !isMap {
+		return nil, false
+	}
+	v, ok = m[key]
+	return v, ok
+}
+
+// crewConfig は Crew の設定ファイル（JSON の object）を読む。ない・ふつうのファイルでない・大きすぎる・読めない・壊れている・
+// object でないなら nil（Crew もそのファイルを無視して既定値で動く）。手で編集したファイルの先頭の BOM は、Crew と同じく読み飛ばす。
+func crewConfig(path string) map[string]any {
+	st, err := os.Stat(path)
+	if err != nil || !st.Mode().IsRegular() || st.Size() > crewConfigMax {
+		return nil
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+	b, err := io.ReadAll(io.LimitReader(f, crewConfigMax+1))
+	if err != nil || len(b) > crewConfigMax {
+		return nil
+	}
+	var v any
+	if json.Unmarshal(bytes.TrimPrefix(b, []byte("\xef\xbb\xbf")), &v) != nil {
+		return nil
+	}
+	m, _ := v.(map[string]any)
+	return m
 }

@@ -192,3 +192,78 @@ func TestCreditsOfUnit(t *testing.T) {
 		t.Errorf("creditsOf = %v, want 3.75", got)
 	}
 }
+
+// 保存期間：Crew の config.json に config.local.json を重ねた session.archive_retention_days を読む。
+// 既定は 30 日（未設定扱い）、null か負の数は消さない（nil）、型が違う値や壊れたファイルは既定値。
+func TestCrewRetention(t *testing.T) {
+	cases := []struct {
+		name, base, local string
+		days              int
+		never             bool
+	}{
+		{"設定ファイルなし", "", "", 30, false},
+		{"キーなし", `{"session": {"pool_size": 0}}`, "", 30, false},
+		{"既定値を書き出したまま", `{"session": {"archive_retention_days": 30}}`, "", 30, false},
+		{"config.json で設定", `{"session": {"archive_retention_days": 90}}`, "", 90, false},
+		{"小数点つきの整数", `{"session": {"archive_retention_days": 45.0}}`, "", 45, false},
+		{"整数の文字列", `{"session": {"archive_retention_days": " 60 "}}`, "", 60, false},
+		{"-1 は消さない", `{"session": {"archive_retention_days": -1}}`, "", 0, true},
+		{"null は消さない", `{"session": {"archive_retention_days": null}}`, "", 0, true},
+		{"とても長い日数は消さないのと同じ", `{"session": {"archive_retention_days": 1e12}}`, "", 0, true},
+		{"0 日", `{"session": {"archive_retention_days": 0}}`, "", 0, false},
+		{"整数でない数は既定値", `{"session": {"archive_retention_days": 7.5}}`, "", 30, false},
+		{"数でない文字列は既定値", `{"session": {"archive_retention_days": "forever"}}`, "", 30, false},
+		{"真偽値は既定値", `{"session": {"archive_retention_days": true}}`, "", 30, false},
+		{"入れ子でない書き方は読まない", `{"session.archive_retention_days": 90}`, "", 30, false},
+		{"session が object でない", `{"session": [90]}`, "", 30, false},
+		{"壊れた config.json", `{"session": {"archive_retention_days": 90`, "", 30, false},
+		{"object でない config.json", `[{"session": {"archive_retention_days": 90}}]`, "", 30, false},
+		{"BOM つき", "\xef\xbb\xbf" + `{"session": {"archive_retention_days": 14}}`, "", 14, false},
+		{"config.local.json が勝つ", `{"session": {"archive_retention_days": 90}}`, `{"session": {"archive_retention_days": 365}}`, 365, false},
+		{"config.local.json で消さない", `{"session": {"archive_retention_days": 90}}`, `{"session": {"archive_retention_days": -1}}`, 0, true},
+		{"config.local.json にキーがなければ config.json", `{"session": {"archive_retention_days": 90}}`, `{"session": {"pool_size": 2}}`, 90, false},
+		{"config.local.json だけ", "", `{"session": {"archive_retention_days": 120}}`, 120, false},
+		{"壊れた config.local.json は無視", `{"session": {"archive_retention_days": 90}}`, `{`, 90, false},
+		{"config.local.json の session が object でなければ上書き", `{"session": {"archive_retention_days": 90}}`, `{"session": null}`, 30, false},
+		{"壊れた config.json に config.local.json", `oops`, `{"session": {"archive_retention_days": 21}}`, 21, false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			home := t.TempDir()
+			if c.base != "" {
+				os.WriteFile(filepath.Join(home, "config.json"), []byte(c.base), 0o600)
+			}
+			if c.local != "" {
+				os.WriteFile(filepath.Join(home, "config.local.json"), []byte(c.local), 0o600)
+			}
+			days, never := crewRetentionDays(home)
+			if days != c.days || never != c.never {
+				t.Fatalf("crewRetentionDays = %d, %v, want %d, %v", days, never, c.days, c.never)
+			}
+			r := (&KiroCLI{Home: t.TempDir(), CrewHome: home}).Retention()
+			if c.never {
+				if r != nil {
+					t.Fatalf("消さない設定なのに Retention = %+v", r)
+				}
+				return
+			}
+			if r == nil || r.Days != c.days || r.Set != (c.days != 30) || r.Who != "Kiro Crew" ||
+				r.Setting != "session.archive_retention_days" || r.Docs == "" || r.Snippet == "" ||
+				r.File != filepath.Join(home, "config.local.json") {
+				t.Fatalf("Retention = %+v, want %d 日", r, c.days)
+			}
+		})
+	}
+}
+
+// Crew を使っていなければ（Crew の場所がなければ）保存期間は出さない。設定ファイルがディレクトリでも読まない。
+func TestCrewRetentionNoCrew(t *testing.T) {
+	if r := (&KiroCLI{Home: t.TempDir(), CrewHome: filepath.Join(t.TempDir(), "none")}).Retention(); r != nil {
+		t.Errorf("Crew がないのに Retention = %+v", r)
+	}
+	home := t.TempDir()
+	os.Mkdir(filepath.Join(home, "config.json"), 0o700)
+	if days, never := crewRetentionDays(home); days != 30 || never {
+		t.Errorf("config.json がディレクトリ = %d, %v, want 既定の 30 日", days, never)
+	}
+}

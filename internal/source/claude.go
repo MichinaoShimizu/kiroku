@@ -25,7 +25,7 @@ func (c *Claude) Where() string  { return c.Root }
 // 利用者の設定（projects の隣の settings.json）だけを見る。プロジェクトの設定や組織の設定にある場合は読まない。
 func (c *Claude) Retention() *Retention {
 	file := filepath.Join(filepath.Dir(c.Root), "settings.json")
-	r := &Retention{Days: 30, Setting: "cleanupPeriodDays", Docs: "https://code.claude.com/docs/en/settings-reference#cleanupperioddays", File: file}
+	r := &Retention{Days: 30, Setting: "cleanupPeriodDays", Snippet: `"cleanupPeriodDays": 3650`, Docs: "https://code.claude.com/docs/en/settings-reference#cleanupperioddays", File: file}
 	if v, ok := core.Num(core.Map(core.ReadJSON(file))["cleanupPeriodDays"]); ok && v >= 1 {
 		r.Days, r.Set = int(v), true
 	}

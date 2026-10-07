@@ -197,13 +197,22 @@ func (k *KiroCLI) DetailEn() string {
 
 func (k *KiroCLI) Name() string { return "Kiro CLI" }
 
-// Retention は Kiro Crew の会話の記録の保存期間（session.archive_retention_days）。Crew を使っているときだけ。
-// 日数は Crew の版や設定で変わり、kiroku からは読めないので 0（わからない）にする。
+// Retention は Kiro Crew の会話の記録の保存期間（session.archive_retention_days。既定 30 日）。Crew を使っているときだけ。
+// Crew は 1 時間に 1 回、退避した会話の記録（sessions/archive/）のうち更新時刻がそれより古いものを消す（閉じた会話の crew log も同じ設定で消す）。
+// 消さない設定（null か負の数）なら nil。Crew は config.json に全部のキーを書き出すので、キーがあっても利用者が決めたとは限らない。
+// そこで、既定の 30 日と違う値のときだけ設定済み（Set）にする。設定を足す先は、config.json より勝つ config.local.json を案内する。
 func (k *KiroCLI) Retention() *Retention {
 	if k.CrewHome == "" || !isDir(k.CrewHome) {
 		return nil
 	}
-	return &Retention{Setting: "session.archive_retention_days", Docs: "https://kiro.dev/docs/crew/configuration/"}
+	days, never := crewRetentionDays(k.CrewHome)
+	if never {
+		return nil
+	}
+	return &Retention{Days: days, Set: days != crewRetentionDefault, Who: "Kiro Crew", Setting: "session.archive_retention_days",
+		Snippet: `"session": {"archive_retention_days": 3650}`,
+		Docs:    "https://github.com/kirodotdev/kirocrew/blob/main/src/kiro_crew/docs/configuration.md",
+		File:    filepath.Join(k.CrewHome, "config.local.json")}
 }
 func (k *KiroCLI) Family() string { return "kiro" }
 func (k *KiroCLI) Where() string  { return filepath.Join(k.Home, "sessions", "cli") }
