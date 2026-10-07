@@ -2,6 +2,15 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Kiro Crew: messages Crew sends on its own (scheduled runs, Issue Radar wakes, the task runner, auto-go) no longer count as your prompts. Newer Crew marks the messages a person wrote, and kiroku now counts only those, showing the others as messages sent by an agent or a schedule. Conversations written before Crew had the marker are read as before
+- Kiro Crew: a forked conversation no longer counts the prompts it copied from the conversation it was forked from, so forking a chat with 20 prompts no longer adds 20 more
+- Kiro Crew: its data is read from `~/.kiro/crew` even when `KIRO_HOME` (or `--kiro-home`) points elsewhere, since Crew itself does not follow `KIRO_HOME`. `KIROCREW_HOME` still wins, and a leading `~` in it now means your home folder, as in Crew
+- Kiro Crew: memory consolidation runs are grouped into one session per memory store and day, like Crew's other background work, instead of one session per run
+
 ## v0.23.0 - 2026-10-08
 
 ### Added

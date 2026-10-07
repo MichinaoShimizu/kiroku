@@ -378,7 +378,8 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			if seenFile[p] {
 				continue
 			}
-			title, rows := readCrewTranscript(p, &errs)
+			meta, rows := readCrewTranscript(p, &errs)
+			title, rows := meta.title, ownRows(meta, rows) // fork なら、元の会話から写した行は除く
 			if len(rows) == 0 {
 				continue
 			}

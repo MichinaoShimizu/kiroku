@@ -6,6 +6,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"os/user"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -49,12 +50,57 @@ type CrewInfo struct {
 	Provider string // session_map の "provider"（Crew の backend。空か "acp" は kiro-cli、"claude_code"・"codex"・"kas" など）
 }
 
-// DefaultCrewHome は KIROCREW_HOME か <KIRO_HOME か ~/.kiro>/crew。
-func DefaultCrewHome(kiroHome string) string {
-	if d := os.Getenv("KIROCREW_HOME"); d != "" {
+// DefaultCrewHome は KIROCREW_HOME か ~/.kiro/crew。
+// Crew は KIRO_HOME を見ない（config/paths.py の _default_home は Path.home()/.kiro/crew。KIRO_HOME が動かすのは kiro-cli の履歴だけ）。
+func DefaultCrewHome() string {
+	if d := crewHomeOverride(os.Getenv("KIROCREW_HOME")); d != "" {
 		return d
 	}
-	return filepath.Join(kiroHome, "crew")
+	return filepath.Join(home(), ".kiro", "crew")
+}
+
+// crewHomeOverride は KIROCREW_HOME の値を Crew と同じく読む（config/paths.py の _valid_override_home）。
+// 先頭の ~ と ~<ユーザー名> はホームにし（Python の expanduser）、絶対パスにする。
+// ルートや /usr・/System・/etc・/private/etc の下は、Crew が無視して既定の場所を使うので、空を返す。
+func crewHomeOverride(v string) string {
+	if v == "" {
+		return ""
+	}
+	if strings.HasPrefix(v, "~") {
+		name, rest, _ := strings.Cut(filepath.ToSlash(v[1:]), "/") // Windows では \ も区切り
+		dir := ""
+		if name == "" {
+			dir = home()
+		} else if u, err := user.Lookup(name); err == nil {
+			dir = u.HomeDir
+		}
+		if dir != "" {
+			v = filepath.Join(dir, filepath.FromSlash(rest))
+		}
+	}
+	if a, err := filepath.Abs(v); err == nil {
+		v = a
+	}
+	if unsafeCrewHome(v) {
+		return ""
+	}
+	return v
+}
+
+// unsafeCrewHome は、Crew が KIROCREW_HOME として使わない場所か（config/paths.py の _is_unsafe_home）。
+func unsafeCrewHome(p string) bool {
+	if filepath.Dir(p) == p {
+		return true
+	}
+	if !strings.HasPrefix(p, "/") {
+		return false
+	}
+	parts := strings.Split(strings.TrimPrefix(p, "/"), "/")
+	switch parts[0] {
+	case "usr", "System", "etc":
+		return true
+	}
+	return len(parts) > 1 && parts[0] == "private" && parts[1] == "etc"
 }
 
 var unsafeKey = regexp.MustCompile(`[^\w\-.]`)
@@ -69,6 +115,25 @@ func spendKey(slot string) string {
 		return "dashboard:" + slot
 	}
 	return slot
+}
+
+// memoryRun は記憶の整理（memory consolidation）の 1 回ごとの slot（memory-consolidation:<記憶の場所>:<uuid4 の 32 桁>。
+// Crew の llm_helpers.py が回ごとに作る）。
+var memoryRun = regexp.MustCompile(`^(memory-consolidation:.*):[0-9a-f]{32}$`)
+
+// crewSlot は使用量の記録の slot を、kiroku がまとめる単位にする。記憶の整理は回ごとに slot が変わるので、
+// 記憶の場所ごとにまとめる（crewOnly で、裏方の処理 _bg と同じく 1 日ごとのセッションにする）。
+func crewSlot(slot string) string {
+	slot = spendKey(slot)
+	if m := memoryRun.FindStringSubmatch(slot); m != nil {
+		return m[1]
+	}
+	return slot
+}
+
+// crewBackground は、会話ではなく裏方の処理の slot か（1 日ごとにまとめ、会話の記録は読まない）。
+func crewBackground(slot string) bool {
+	return slot == "_bg" || strings.HasPrefix(slot, "memory-consolidation:")
 }
 
 // loadCrew は kiro-cli の会話 ID → Crew の情報。Crew がなければ空。
@@ -120,6 +185,43 @@ type crewRow struct {
 	role  string
 	text  string
 	tools []string
+	human bool // meta.human が true（人が書いた行。Crew の history.HUMAN_TURN_META_KEY）
+}
+
+// crewMeta は Crew の会話の記録のメタデータ（1 行目）。
+type crewMeta struct {
+	title      string
+	forkedFrom string   // 会話を分けて（fork して）作ったなら、元の会話キー（"forked_from"）
+	created    *float64 // "created_at"（その記録を作った時刻。fork なら分けた時刻）
+}
+
+// add は、まだ決まっていない項目を m2 で埋める。
+func (m *crewMeta) add(m2 crewMeta) {
+	m.title = firstNonEmpty(m.title, m2.title)
+	m.forkedFrom = firstNonEmpty(m.forkedFrom, m2.forkedFrom)
+	if m.created == nil {
+		m.created = m2.created
+	}
+}
+
+// ownRows は、fork した会話から、元の会話から写した行を除く。
+// Crew は fork するとき、新しい会話（created_at はそのときの時刻）に元の会話の行を元の ts と meta のまま写す
+// （dashboard/chat_fork.py。tail fork も同じ）。そのあとの行の ts は、写した行より後で created_at より後になる
+// （state.py の _ChatSlot.append と history.py の monotonic_transcript_ts）。なので created_at より前の行は写した行。
+// 元の会話は kiroku が別に読むので、写した行も数えると同じ依頼を 2 度数える。
+// created_at がない・読めない fork は見分けられないので、全部の行を使う。ts のない行も残す。
+func ownRows(m crewMeta, rows []crewRow) []crewRow {
+	if m.forkedFrom == "" || m.created == nil {
+		return rows
+	}
+	out := rows[:0:0]
+	for _, r := range rows {
+		if r.t != nil && *r.t < *m.created {
+			continue
+		}
+		out = append(out, r)
+	}
+	return out
 }
 
 // crewTranscriptPath は会話キーの記録ファイル（Crew の history._safe_key と同じ名前）。
@@ -130,6 +232,7 @@ func crewTranscriptPath(home, key string) string {
 // readCrewKey は会話キーの記録を読む。Crew は古い行を sessions/archive/<名前>__<日時>.jsonl に退避する
 // （残す期間は session.archive_retention_days で決まる。既定 30 日。crewRetentionDays）ので、残っていればそちらも古い順に読む。
 // 退避した記録が消えていても、kiroku archive のコピー（arch の下の同じ並び。.jsonl.zst）があればそれを読む。
+// fork した会話なら、元の会話から写した行は除く（ownRows）。
 func readCrewKey(home, arch, key string, errs *fileErrs) (title string, rows []crewRow) {
 	stem := unsafeKey.ReplaceAllString(key, "_")
 	segs := glob(filepath.Join(home, "sessions", "archive", stem+"__*.jsonl"))
@@ -141,23 +244,25 @@ func readCrewKey(home, arch, key string, errs *fileErrs) (title string, rows []c
 		}
 	}
 	sort.Slice(segs, func(i, j int) bool { return filepath.Base(segs[i]) < filepath.Base(segs[j]) }) // 名前の日時の順
+	var meta crewMeta
 	for _, p := range append(segs, crewTranscriptPath(home, key)) {
-		t, rs := readCrewTranscript(p, errs)
-		title = firstNonEmpty(title, t)
+		m, rs := readCrewTranscript(p, errs)
+		meta.add(m)
 		rows = append(rows, rs...)
 	}
-	return title, rows
+	return meta.title, ownRows(meta, rows)
 }
 
-// readCrewTranscript は Crew の会話の記録を読む。title は 1 行目のメタデータのタイトル。
-// 途中で読めなくなっても、読めた行までは返す。
-func readCrewTranscript(path string, errs *fileErrs) (title string, rows []crewRow) {
+// readCrewTranscript は Crew の会話の記録を読む。meta は 1 行目のメタデータ。
+// 途中で読めなくなっても、読めた行までは返す。fork の写した行は除かない（ownRows）。
+func readCrewTranscript(path string, errs *fileErrs) (meta crewMeta, rows []crewRow) {
 	errs.file(path, core.ReadJSONL(path, func(e core.Obj) {
 		if core.Str(e["_type"]) == "metadata" {
-			title = firstNonEmpty(title, core.Str(e["title"]))
+			meta.add(crewMeta{title: core.Str(e["title"]), forkedFrom: core.Str(e["forked_from"]), created: ts(e["created_at"])})
 			return
 		}
 		r := crewRow{t: ts(e["ts"]), role: core.Str(e["role"]), text: core.TextOf(e["content"])}
+		r.human, _ = core.Map(e["meta"])["human"].(bool) // Crew と同じく true だけ（"true" や 1 は数えない）
 		for _, x := range core.List(e["tools"]) {
 			if n := core.Str(x); n != "" {
 				r.tools = append(r.tools, n)
@@ -167,17 +272,30 @@ func readCrewTranscript(path string, errs *fileErrs) (title string, rows []crewR
 			rows = append(rows, r)
 		}
 	}))
-	return title, rows
+	return meta, rows
 }
 
 // addCrewRows は Crew の会話の記録から、依頼の流れ・時刻・使ったツールを足す。
 // kiro-cli の履歴に依頼が残っていない会話（Crew のダッシュボードから動かしたものなど）のため。
+//
+// role が user の行は、人が書いたとは限らない。Crew は予定の実行（"# Cron Run: …"）・Issue Radar の呼び出し・
+// タスクの実行・auto-go なども user の行として書き、人が書いた行にだけ meta.human: true をつける
+// （history.py の HUMAN_TURN_META_KEY。目印のない行は人のものと数えない、という allowlist）。
+// 目印は新しい Crew だけが書くので、最初に目印のある行からあとは、目印のある行だけを依頼に数え、
+// ほかの user の行は仕組みが入れたもの（kind "agent"。Claude Code のほかのエージェントや予定から送られたものと同じ）として残す。
+// それより前の行（目印ができる前の記録）は、見分けられないので今までどおり全部を依頼に数える。
 func addCrewRows(s *core.Builder, rows []crewRow) {
+	marked := false // 目印を書く Crew の記録に入ったか
 	for _, r := range rows {
+		marked = marked || r.human
 		switch r.role {
 		case "user":
 			s.Tick(r.t)
-			s.Prompt(r.t, r.text)
+			if marked && !r.human {
+				s.InjectAll(r.t, "agent", r.text)
+			} else {
+				s.Prompt(r.t, r.text)
+			}
 		case "assistant":
 			s.Agent(r.t)
 			s.Reply(r.t, "", r.text)
@@ -270,7 +388,7 @@ func loadCrewUsage(home string, errs *fileErrs) map[string][]crewTurn {
 					x.ctx = min(used/w, 1)
 				}
 			}
-			slot := spendKey(core.Str(e["slot"]))
+			slot := crewSlot(core.Str(e["slot"]))
 			out[slot] = append(out[slot], x)
 		}))
 	}
@@ -380,18 +498,19 @@ func addCrewNative(s *core.Builder, turns []crewTurn) {
 }
 
 // crewOnly は kiro-cli の会話に結びつかない Crew の記録を、Crew のセッションにする。
-// 裏方の処理（_bg）は 1 日ごとにまとめる。skipped は、crewElsewhere でトークンとドル額を足さなかった行の数。
+// 裏方の処理（_bg と、記憶の場所ごとの記憶の整理。crewBackground）は 1 日ごとにまとめる。skipped は、crewElsewhere でトークンとドル額を足さなかった行の数。
 func crewOnly(home, arch, slot string, turns []crewTurn, info *CrewInfo, errs *fileErrs) (out []*core.Builder, skipped int) {
 	var title string
 	var rows []crewRow
-	if slot != "_bg" && home != "" {
+	bg := crewBackground(slot)
+	if !bg && home != "" {
 		title, rows = readCrewKey(home, arch, slot, errs)
 	}
 	groups := map[string][]crewTurn{}
 	var order []string
 	for _, x := range turns {
 		g := ""
-		if slot == "_bg" {
+		if bg {
 			g = time.Unix(int64(x.t), 0).In(time.Local).Format("2006-01-02")
 		}
 		if _, ok := groups[g]; !ok {
@@ -409,13 +528,15 @@ func crewOnly(home, arch, slot string, turns []crewTurn, info *CrewInfo, errs *f
 			id += ":" + g
 		}
 		s := core.NewBuilder("Kiro Crew", id)
-		if slot != "_bg" && home != "" && len(rows) > 0 {
+		if !bg && home != "" && len(rows) > 0 {
 			s.File = crewTranscriptPath(home, slot)
 		}
 		s.Key = "kiro-crew:" + id[len("crew:"):]
 		switch {
 		case slot == "_bg":
 			s.Title = "Kiro Crew background work"
+		case bg:
+			s.Title = "Kiro Crew memory consolidation (" + strings.TrimPrefix(slot, "memory-consolidation:") + ")"
 		case info != nil && info.Title != "":
 			s.Title = info.Title
 		case title != "":

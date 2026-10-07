@@ -297,7 +297,7 @@ Location of `data.sqlite3`:
 | Linux | `$XDG_DATA_HOME` (`~/.local/share` if unset)`/<kiro-cli or amazon-q>/` |
 | Windows | `%LOCALAPPDATA%\<kiro-cli or amazon-q>\` (unverified for Kiro CLI; if it differs, specify it with `--kiro-cli-db`) |
 
-- If `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME` or `CLAUDE_CONFIG_DIR` is set, that location is read (for `CLAUDE_CONFIG_DIR`, its `projects/` folder)
+- If `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME` or `CLAUDE_CONFIG_DIR` is set, that location is read (for `CLAUDE_CONFIG_DIR`, its `projects/` folder). `KIRO_HOME` does not move Kiro Crew, which always uses `~/.kiro/crew` unless `KIROCREW_HOME` is set
 - Even if the same conversation is recorded in two places, it is counted once. The number excluded is shown under "Data sources" (at the very bottom of the summary)
 - Kiro credits are the values recorded in history, summed as they are (per-model multipliers are not reapplied). Kiro IDE before v1.0 records credits only in its execution files, so conversations without them have none, and Kiro CLI (SQLite) does not record credits, so that usage is not included. Variations in how the unit is written (`credit`, `Credits` and so on) are treated the same. Numbers may differ from your account page because of the period (billing period), use on other computers, old history Kiro has deleted, and use outside chat (such as agent hooks, which leave no history)
 - Codex models (OpenAI) are priced at OpenAI's standard rates. Fast mode (priority processing), Flex, Batch and the regional-processing uplift are not reflected, and models older than gpt-5 are not in the price table (add them with `--prices`)
@@ -406,7 +406,7 @@ Common to the commands that read history (`serve`, `html`, `json`, `doctor`, `ar
 | `--sources` | `claude,kiro,amazonq,codex` | Histories to read (comma-separated; Kiro Crew is included in `kiro`) |
 | `--claude-root` | `~/.claude/projects` (`$CLAUDE_CONFIG_DIR/projects` if set) | Location of Claude Code history |
 | `--kiro-home` | `~/.kiro` | Location of Kiro data (`KIRO_HOME` is also used) |
-| `--crew-home` | `<--kiro-home>/crew` | Location of Kiro Crew data (`KIROCREW_HOME` takes precedence) |
+| `--crew-home` | `~/.kiro/crew` (`$KIROCREW_HOME` if set) | Location of Kiro Crew data. Like Crew itself, it does not move with `--kiro-home` or `KIRO_HOME`; a leading `~` in `KIROCREW_HOME` means your home folder |
 | `--kiro-cli-db` | Per OS | `data.sqlite3` of Kiro CLI (old versions) |
 | `--amazonq-db` | Per OS | `data.sqlite3` of Amazon Q Developer CLI |
 | `--codex-home` | `~/.codex` | Location of Codex data (`CODEX_HOME` is also used) |
