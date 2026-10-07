@@ -31,6 +31,8 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 <img src="docs/session.png" alt="Session details (dummy data)" width="560">
 
+**Every number opens up.** Click a figure at the top, such as tokens, estimated cost or the month-end estimate, to see it by day, agent, project and model, with the sessions behind it.
+
 **What's worth a look.** Metrics that crossed a threshold are listed under the key figures. Press one to see what was observed, why it matters, the sessions behind it, an 8-week trend and what to try, without leaving the calendar.
 
 <img src="docs/worth.png" alt="A flagged metric opened from Worth a look (dummy data)" width="560">
