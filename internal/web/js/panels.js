@@ -126,9 +126,9 @@ function outcomePanel(w, pw, unit, ph, stat){
 function keepNotice(){
   if (store.get("keepNoticeOff", false) || archOn() || META.scope) return ""; // kiroku がコピーを残していれば、消えても見られる
   const r = (META.report || []).find(r => r.n && r.retention && r.retention.days && !r.retention.set); if (!r) return "";
-  const k = r.retention, snippet = `"${k.setting}": 3650`, cmd = "kiroku archive on";
+  const k = r.retention, snippet = k.snippet || `"${k.setting}": 3650`, cmd = "kiroku archive on";
   return `<div class="keep" role="note"><b>Your older history will be deleted</b>
-    <p>${`${esc((r.name))} automatically deletes conversation history older than ${k.days} days (<code>${esc(k.setting)}</code> is at its default). Deleted history cannot be shown by kiroku and cannot be recovered. To keep it, set a long period such as <code>${esc(snippet)}</code> in your settings file (<code>~/.claude/settings.json</code>).`}</p>
+    <p>${`${esc(k.who || r.name)} automatically deletes conversation history older than ${k.days} days (<code>${esc(k.setting)}</code> is at its default). Deleted history cannot be shown by kiroku and cannot be recovered. To keep it, set a long period such as <code>${esc(snippet)}</code> in your settings file${k.file ? ` (<code>${esc(k.file)}</code>)` : ""}.`}</p>
     <p>${`If you'd rather not change the setting, kiroku can keep a copy of the history instead. It saves a compressed copy each time you open kiroku and shows deleted conversations from it (copies stay on this computer only).${LIVE ? "" : ` To turn it on, run <code>${cmd}</code>.`}`}</p>
     <div class="ka">${ext(k.docs, "See how to set it in the official docs ↗", "pill")}<button class="pill" data-copy="${esc(snippet)}">Copy setting</button>${LIVE ? `<button class="pill" id="keeparch">Keep a copy in kiroku</button>` : `<button class="pill" data-copy="${cmd}">Copy command</button>`}<button class="pill" id="keepoff">Dismiss</button></div></div>`;
 }
@@ -153,13 +153,13 @@ async function keepArchive(){
 }
 function keepRow(r){ // 計測の状態に添える：どこまでさかのぼれるか、いつ消えるか
   const o = r.oldest ? dMDY(new Date(r.oldest*1000)) : "";
-  const k = r.retention, link = k && k.docs ? ` ${ext(k.docs, "official docs ↗")}` : "";
+  const k = r.retention, link = k && k.docs ? ` ${ext(k.docs, "official docs ↗")}` : "", by = k && k.who ? `${esc(k.who)}: ` : ""; // by は、履歴を消すものが Report と違うとき（Kiro CLI の行の Kiro Crew）
   return (o ? ` · oldest record ${o}` : "") +
     (r.archived ? ` · ${plural(r.archived, "deleted conversation")} shown from kiroku's copy` : "") +
-    (!k ? "" : k.days && !k.set && archOn() ? `<br>${`Records older than ${k.days} days are deleted automatically, but kiroku keeps a copy`}`
-      : k.days && !k.set ? `<br><span class="kw">${`Records older than ${k.days} days are deleted automatically (<code>${esc(k.setting)}</code> is at its default)`}${link}</span>`
-      : k.days ? `<br>${`Kept for ${k.days} days (<code>${esc(k.setting)}</code>)`}`
-      : `<br>${`Older records are deleted after a period (<code>${esc(k.setting)}</code>)`}${link}`); }
+    (!k ? "" : k.days && !k.set && archOn() ? `<br>${by}${`Records older than ${k.days} days are deleted automatically, but kiroku keeps a copy`}`
+      : k.days && !k.set ? `<br><span class="kw">${by}${`Records older than ${k.days} days are deleted automatically (<code>${esc(k.setting)}</code> is at its default)`}${link}</span>`
+      : k.days ? `<br>${by}${`Kept for ${k.days} days (<code>${esc(k.setting)}</code>)`}`
+      : `<br>${by}${`Older records are deleted after a period (<code>${esc(k.setting)}</code>)`}${link}`); }
 // measure は、計測の状態（読んだ履歴・消える設定・kiroku のコピー・料金表）。ふだんはたたみ、
 // 気をつけること（読めないファイル・既定のままで消える履歴・料金表にないモデル）があるときは、見出しに印を付けて開いておく
 function measure(w){
@@ -220,7 +220,7 @@ function aiUsage(w, pw, unit){
 }
 function nativeText(v){
   const num = (x, d) => Number(x.toFixed(d)).toLocaleString(LOC());
-  const u = {"回": "", "件": "", "トークン": " tokens", "文字": " chars"}[v.unit]; // 単位は Go の定義（日本語）を英語に読みかえる
+  const u = {"回": "", "件": "", "トークン": " tokens", "バイト": " bytes"}[v.unit]; // 単位は Go の定義（日本語）を英語に読みかえる
   return v.unit === "%" ? `${num(v.v,1)}%` : v.unit === "秒" ? `${num(v.v,1)}s` : v.unit === "クレジット" ? `${crN(v.v)} credits` : `${num(v.v,0)}${u ?? " " + v.unit}`;
 }
 const nlabel = v => v.labelEn || v.label; // 参考指標の名前（Go の英語の名前）

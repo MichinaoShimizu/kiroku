@@ -568,7 +568,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			s.AddEvent(ev)
 		}
 		if s.Project != "" {
-			s.Resume = "cd " + s.Project + " && codex resume " + s.ID
+			s.Resume = core.ResumeCmd(s.Project, "codex resume", s.ID)
 		}
 		emit(s)
 	}

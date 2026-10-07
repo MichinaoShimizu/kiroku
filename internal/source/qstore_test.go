@@ -1,6 +1,8 @@
 package source
 
 import (
+	"database/sql"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -123,5 +125,103 @@ func TestMissingDatabaseIsNotAnError(t *testing.T) {
 	bs := load(t, &QStore{Label: "Amazon Q", DB: filepath.Join(t.TempDir(), "none.sqlite3")})
 	if len(bs) != 0 {
 		t.Fatal("ないファイルは 0 件")
+	}
+}
+
+// qHistoryDB は history を 1 つの会話として入れた data.sqlite3（conversations_v2）を作る。
+func qHistoryDB(t *testing.T, history []any) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "data.sqlite3")
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	v, err := json.Marshal(map[string]any{"conversation_id": "conv-x", "model_info": map[string]any{"model_id": "m-conv"}, "history": history})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`CREATE TABLE conversations_v2 (key TEXT, conversation_id TEXT, value TEXT, created_at INTEGER, updated_at INTEGER)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO conversations_v2 VALUES (?, ?, ?, ?, ?)`, "/Users/me/app", "conv-x", string(v), nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+// CLI が人の代わりに入れた発言（Ctrl+C の中断・「n」で断ったとき・入力なしの --resume）は、プロンプトに数えない。
+// ツールの結果のターンは user の時刻がないので、依頼を送った時刻で数える。モデルは request_metadata があるものだけ数える。
+func TestQStoreSyntheticEntries(t *testing.T) {
+	t0 := time.Date(2026, 9, 29, 1, 0, 0, 0, time.UTC)
+	at := func(sec int) string { return t0.Add(time.Duration(sec) * time.Second).Format(time.RFC3339) }
+	ms := func(sec int) int64 { return t0.Add(time.Duration(sec) * time.Second).UnixMilli() }
+	meta := func(start, end int) map[string]any {
+		return map[string]any{"model_id": "m-real", "request_start_timestamp_ms": ms(start), "stream_end_timestamp_ms": ms(end), "response_size": 120}
+	}
+	toolUse := func(text, name string) map[string]any {
+		return map[string]any{"ToolUse": map[string]any{"content": text, "tool_uses": []any{map[string]any{"id": "t", "name": name, "args": map[string]any{}}}}}
+	}
+	response := func(text string) map[string]any { return map[string]any{"Response": map[string]any{"content": text}} }
+	prompt := func(text string, sec int) map[string]any {
+		u := map[string]any{"content": map[string]any{"Prompt": map[string]any{"prompt": text}}}
+		if sec >= 0 {
+			u["timestamp"] = at(sec)
+		}
+		return u
+	}
+	cancelled := func(text string, sec int) map[string]any {
+		return map[string]any{"timestamp": at(sec), "content": map[string]any{"CancelledToolUses": map[string]any{"prompt": text, "tool_use_results": []any{}}}}
+	}
+	results := map[string]any{"content": map[string]any{"ToolUseResults": map[string]any{"tool_use_results": []any{}}}} // timestamp なし
+	history := []any{
+		map[string]any{"user": prompt("テストを直して", 0), "assistant": toolUse("見ます", "fs_read"), "request_metadata": meta(1, 3)},
+		map[string]any{"user": results, "assistant": toolUse("", "execute_bash"), "request_metadata": meta(60, 62)},
+		map[string]any{"user": cancelled("The user interrupted the tool execution.", 120), "assistant": response("Tool uses were interrupted, waiting for the next user prompt")},
+		map[string]any{"user": prompt("続けて", 200), "assistant": toolUse("", "execute_bash"), "request_metadata": meta(201, 203)},
+		map[string]any{"user": cancelled("I deny this tool request. Ask a follow up question clarifying the expected action", 300), "assistant": response("どうしますか"), "request_metadata": meta(301, 305)},
+		map[string]any{"user": prompt("In a few words, summarize our conversation so far.", 3600), "assistant": response("要約です"), "request_metadata": meta(3601, 3603)},
+		map[string]any{"user": prompt("MCP のプロンプト", -1), "assistant": response("MCP の応答")}, // /prompts が入れた行（request_metadata なし）
+	}
+	bs := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})
+	if len(bs) != 1 {
+		t.Fatalf("会話の数 = %d, want 1", len(bs))
+	}
+	b := bs[0]
+	var texts []string
+	for _, p := range b.Prompts {
+		texts = append(texts, p.Text)
+	}
+	if strings.Join(texts, "|") != "テストを直して|続けて|MCP のプロンプト" {
+		t.Errorf("プロンプト = %q（CLI が入れた文は数えない）", texts)
+	}
+	if b.Interrupts != 1 || len(b.InterruptTS) != 1 || b.InterruptTS[0] != float64(t0.Unix()+120) {
+		t.Errorf("中断 = %d %v, want 1 回（Ctrl+C の時刻）", b.Interrupts, b.InterruptTS)
+	}
+	if len(b.Notes) != 2 || b.Notes[0].Kind != "meta" || !strings.HasPrefix(b.Notes[0].Text, "I deny") || !strings.HasPrefix(b.Notes[1].Text, "In a few words") {
+		t.Errorf("Notes = %+v（断ったときと --resume の文）", b.Notes)
+	}
+	var toolTimes []float64
+	for _, m := range b.Measures {
+		if m.T == nil {
+			t.Errorf("時刻のない観測: %+v", m)
+			continue
+		}
+		if m.Key == "tool_calls" {
+			toolTimes = append(toolTimes, *m.T)
+		}
+	}
+	if len(toolTimes) != 3 || toolTimes[1] != float64(t0.Unix()+60) {
+		t.Errorf("ツール呼び出しの時刻 = %v（結果のターンは request_start_timestamp_ms）", toolTimes)
+	}
+	f := b.Finish(15)
+	if len(f.Models) != 1 || f.Models[0][0] != "m-real" {
+		t.Errorf("モデル = %v（request_metadata のない行は数えない）", f.Models)
+	}
+	if r := f.Prompts[0].Reply; r == nil || r.Text != "見ます" {
+		t.Errorf("最初の依頼の応答 = %+v（中断の決まった文は応答にしない）", r)
+	}
+	if r := f.Prompts[1].Reply; r == nil || r.Text != "どうしますか" {
+		t.Errorf("2 つ目の依頼の応答 = %+v（--resume の要約は付けない）", r)
 	}
 }

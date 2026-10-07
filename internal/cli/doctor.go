@@ -104,22 +104,26 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 		if k == nil || r.N == 0 {
 			continue
 		}
+		who := r.Name // 履歴を消すもの（Kiro CLI の履歴なら Kiro Crew）
+		if k.Who != "" {
+			who = k.Who
+		}
 		switch {
 		case k.Set:
-			fmt.Fprintf(w, "  %s %s keeps history for %d days (%s)\n", s.ok("✓"), r.Name, k.Days, k.Setting)
+			fmt.Fprintf(w, "  %s %s keeps history for %d days (%s)\n", s.ok("✓"), who, k.Days, k.Setting)
 		case on && k.Days > 0:
-			fmt.Fprintf(w, "  %s %s deletes history older than %d days, but kiroku archive keeps a copy\n", s.ok("✓"), r.Name, k.Days)
+			fmt.Fprintf(w, "  %s %s deletes history older than %d days, but kiroku archive keeps a copy\n", s.ok("✓"), who, k.Days)
 		case on:
-			fmt.Fprintf(w, "  %s %s deletes old history after a period (%s), but kiroku archive keeps a copy\n", s.ok("✓"), r.Name, k.Setting)
+			fmt.Fprintf(w, "  %s %s deletes old history after a period (%s), but kiroku archive keeps a copy\n", s.ok("✓"), who, k.Setting)
 		default:
 			risky = true
 			if k.Days > 0 {
-				fmt.Fprintf(w, "  %s %s deletes history older than %d days (%s is at its default)\n", s.warn("!"), r.Name, k.Days, k.Setting)
+				fmt.Fprintf(w, "  %s %s deletes history older than %d days (%s is at its default)\n", s.warn("!"), who, k.Days, k.Setting)
 			} else {
-				fmt.Fprintf(w, "  %s %s deletes old history after a period (%s)\n", s.warn("!"), r.Name, k.Setting)
+				fmt.Fprintf(w, "  %s %s deletes old history after a period (%s)\n", s.warn("!"), who, k.Setting)
 			}
-			if k.File != "" {
-				fmt.Fprintf(w, "      to keep it, add %s to %s\n", s.bold(fmt.Sprintf("%q: 3650", k.Setting)), tilde(k.File))
+			if k.File != "" && k.Snippet != "" {
+				fmt.Fprintf(w, "      to keep it, add %s to %s\n", s.bold(k.Snippet), tilde(k.File))
 			}
 			fmt.Fprintf(w, "      %s\n", s.dim("how to set it: "+k.Docs))
 		}

@@ -61,7 +61,7 @@ var NativeDefs = map[string][]NativeDef{
 var qstoreDefs = []NativeDef{
 	{Key: "ttfc", Label: "最初の返事までの時間（中央値）", LabelEn: "Time to first reply (median)", Unit: "秒", Agg: "median"},
 	{Key: "latency", Label: "応答にかかった時間（中央値）", LabelEn: "Response time (median)", Unit: "秒", Agg: "median"},
-	{Key: "response_size", Label: "応答の長さ（平均）", LabelEn: "Response length (average)", Unit: "文字", Agg: "avg"},
+	{Key: "response_size", Label: "応答の大きさ（平均）", LabelEn: "Response size (average)", Unit: "バイト", Agg: "avg"}, // 応答の文とツール入力の JSON のバイト数（文字数ではない）,
 	{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},
 }
 
