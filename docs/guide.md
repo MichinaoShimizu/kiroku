@@ -197,7 +197,7 @@ The numbers each agent records in its history are shown per agent (in the weekly
 | Kiro CLI | Credits, Turns, Credits per turn, Model requests, Built-in tool runs |
 | Kiro IDE | Credits, Turns, Credits per turn, Tool calls |
 | Kiro Crew | Conversations run from Crew (Of which subagents), Credits, Turns |
-| Kiro CLI (SQLite), Amazon Q | Time to first reply (median), Response time (median), Response length (average), Tool calls |
+| Kiro CLI (SQLite), Amazon Q | Time to first reply (median), Response time (median), Response size (average, in bytes), Tool calls |
 | Codex | Responses, Reasoning tokens, Share of output spent on reasoning, Peak context usage, Peak rate-limit usage, Tool calls |
 
 Times are calculated in your computer's time zone. All numbers are rough estimates from history. When there is no data, "Unknown" is shown instead of 0. Tokens, estimated cost and total AI run time are rough measures of usage; they do not show productivity or time saved.
