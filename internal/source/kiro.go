@@ -293,7 +293,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			}
 		}))
 		if s.Project != "" {
-			s.Resume = "cd " + s.Project + " && kiro-cli chat --resume-id " + sid
+			s.Resume = core.ResumeCmd(s.Project, "kiro-cli chat --resume-id", sid)
 		}
 		if tagCrew(s, crew) {
 			k.crew++

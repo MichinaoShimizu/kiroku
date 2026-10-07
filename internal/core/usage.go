@@ -79,16 +79,19 @@ func CostOf(model string, u Tokens) (float64, bool) {
 	return c / 1e6, true
 }
 
-// ReadUsage は message.usage → Tokens。1時間キャッシュの内訳があれば分ける。
+// ReadUsage は message.usage → Tokens。キャッシュ書き込みの内訳（cache_creation の 5 分・1 時間）があれば分ける。
+// 古い Claude Code は cache_creation_input_tokens を 0 にしたまま内訳だけを書くことがあるので、
+// 書き込みの合計は cache_creation_input_tokens と内訳の和の大きいほうにする。
 func ReadUsage(raw any) Tokens {
 	m := Map(raw)
 	cw := NumOr0(m["cache_creation_input_tokens"])
-	cw1h := NumOr0(Get(m["cache_creation"], "ephemeral_1h_input_tokens"))
-	rest := cw - cw1h
-	if rest < 0 {
-		rest = 0
+	cc := Map(m["cache_creation"])
+	cw1h := NumOr0(cc["ephemeral_1h_input_tokens"])
+	if v, ok := cc["ephemeral_5m_input_tokens"]; ok && v != nil {
+		cw = max(cw, NumOr0(v)+cw1h)
 	}
-	return Tokens{In: NumOr0(m["input_tokens"]), Out: NumOr0(m["output_tokens"]), CW: rest, CW1h: cw1h, CR: NumOr0(m["cache_read_input_tokens"])}
+	cw = max(cw, cw1h)
+	return Tokens{In: NumOr0(m["input_tokens"]), Out: NumOr0(m["output_tokens"]), CW: cw - cw1h, CW1h: cw1h, CR: NumOr0(m["cache_read_input_tokens"])}
 }
 
 // Event は 1 つの応答の使用量。Cost が nil なら料金表にないモデル。

