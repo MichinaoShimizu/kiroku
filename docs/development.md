@@ -52,6 +52,8 @@ go test ./internal/core   # TestPricesMatchUpstream: the tables in usage.go must
 
 Then change the tables in `usage.go` to match, and `PricesAsOf` (the month shown in the view; the test fails if it is older than a snapshot's fetch date). The tool reads only the expected tables of the pages' Markdown versions and fails without writing anything when their shape changes; then fix its parser (`tools/prices/main.go`) rather than editing the snapshots by hand. The `Prices` workflow runs the same tool weekly (see CI).
 
+The context windows of Claude models (for Claude Code's Peak context usage and the "Long conversations" threshold) are `ContextWindows` in `internal/core/context.go`; when you update them, also change `ContextWindowAsOf`.
+
 ### Adding an agent
 
 1. Implement `Source` (`Name` / `Family` / `Where` / `Load`) in `internal/source` and add it to `source.All`
@@ -66,6 +68,8 @@ Then change the tables in `usage.go` to match, and `PricesAsOf` (the month shown
 10. Update "Histories read" and "History retention" in the guide, `docs/sources.md` (including the "What history records" table), the supported agents in the README, and the help in `internal/cli/cli.go`
 
 Aggregation (`internal/report`) and the view only see the common session shape, so you usually don't need to touch them.
+
+To check the adapters against the agents' public sources and official docs again (after an agent changes its format or prices, or from time to time), run the `/source-audit` skill in Claude Code (`.claude/skills/source-audit/SKILL.md`). It updates the "What history records" table in `docs/sources.md` and fixes what it finds in one PR per agent.
 
 ## Golden data
 

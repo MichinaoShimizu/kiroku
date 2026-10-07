@@ -310,6 +310,27 @@ func TestIsLimitError(t *testing.T) {
 	}
 }
 
+// 利用上限のエラー文から、解除の時刻の文を書いてあるとおりに取り出す（日付や時間帯がなくても時刻に直さない）。
+// 曜日・日付・時刻・時間帯の形の文字だけを拾い、それ以外（HTML など）は拾わない。
+func TestLimitReset(t *testing.T) {
+	cases := map[string]string{
+		"You've hit your session limit · resets 3:45pm":                              "3:45pm",
+		"You've hit your weekly limit · resets Mon 12:00am":                          "Mon 12:00am",
+		"5-hour limit reached ∙ resets 3pm":                                          "3pm",
+		"spend limit reached (daily; resets 2026-08-09 00:00 UTC)":                   "2026-08-09 00:00 UTC",
+		"You've hit your session limit · resets 3pm (Asia/Tokyo)":                    "3pm (Asia/Tokyo)",
+		"You've hit your Opus limit · resets 3:45pm. Run /usage":                     "3:45pm",
+		"Claude AI usage limit reached|1790000000":                                   "",
+		"You've hit your monthly spend limit · raise it at claude.ai/settings/usage": "",
+		"resets <img src=x onerror=alert(1)>":                                        "",
+	}
+	for in, want := range cases {
+		if got := LimitReset(in); got != want {
+			t.Errorf("LimitReset(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
 // キャッシュ書き込みの内訳。古い Claude Code は cache_creation_input_tokens を 0 にして内訳だけを書く。
 func TestReadUsageCacheCreation(t *testing.T) {
 	cases := []struct {

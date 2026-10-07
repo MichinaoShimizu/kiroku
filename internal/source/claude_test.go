@@ -92,7 +92,7 @@ func TestClaudeCostState(t *testing.T) {
 	}
 }
 
-// サブスクリプションで使っていると、Claude Code は cost-state の costUSD に 0 を書く（API の請求がないため）。
+// cost-state の costUSD が、使ったのに 0 のことがある（サブスクリプションのときなど。公式の文書はない）。
 // それに合わせてしまうと、トークンを何十万使っても目安コストが $0.00 になるので、kiroku の料金表の見積もりを使う。
 func TestClaudeCostStateZeroOnSubscription(t *testing.T) {
 	root := t.TempDir()
@@ -144,8 +144,95 @@ func TestClaudeLimits(t *testing.T) {
 	if len(bs) != 1 {
 		t.Fatalf("セッション数 = %d, want 1", len(bs))
 	}
-	if got := bs[0].Finish(15).Limits; len(got) != 4 {
+	s := bs[0].Finish(15)
+	if got := s.Limits; len(got) != 4 {
 		t.Errorf("利用上限 = %v, want 4 回（01:02・06:01・09:00・10:00）", got)
+	}
+	// 解除の時刻は書いてあるとおりに残す。1 分以内に続けて出たもの（01:02 と 01:02:20）は、あとの文の時刻で埋める
+	if got := strings.Join(s.LimitResets, "|"); got != "3pm||3:45pm|" {
+		t.Errorf("解除の時刻 = %q, want %q", got, "3pm||3:45pm|")
+	}
+}
+
+// 解除の時刻が 1 つもわからなければ、limitResets は JSON に出さない。
+func TestClaudeLimitsWithoutReset(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	os.MkdirAll(dir, 0o755)
+	lines := []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"直して"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:02:00Z","isApiErrorMessage":true,"message":{"id":"e1","model":"<synthetic>","content":[{"type":"text","text":"Claude AI usage limit reached|1790000000"}]}}`,
+	}
+	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644)
+	s := load(t, &Claude{Root: root})[0].Finish(15)
+	if len(s.Limits) != 1 || s.LimitResets != nil {
+		t.Errorf("利用上限 = %v・解除 = %q, want 1 回・なし", s.Limits, s.LimitResets)
+	}
+}
+
+// コンテキストの使用率：応答ごとに (入力 + キャッシュの書き込み・読み込み) ÷ モデルのウィンドウの最大。
+// 200K のはずのモデル（Opus 4.6）が 200K を超えて読んでいれば [1m] の版とみなし、100% を超えて見せない。
+// サブエージェントは別の文脈なので入れない。いちばん大きかった応答のモデルのウィンドウをセッションに残す。
+func TestClaudeContextUsage(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	os.MkdirAll(dir, 0o755)
+	lines := []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"直して"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:01:00Z","message":{"id":"m1","model":"claude-opus-5-5","usage":{"input_tokens":1000,"cache_creation_input_tokens":9000,"cache_read_input_tokens":240000,"output_tokens":500}}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:01:00Z","message":{"id":"m1","model":"claude-opus-5-5","usage":{"input_tokens":1000,"cache_creation_input_tokens":9000,"cache_read_input_tokens":240000,"output_tokens":800}}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:02:00Z","message":{"id":"m2","model":"claude-new-9","usage":{"input_tokens":900000}}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:03:00Z","isSidechain":true,"message":{"id":"s1","model":"claude-haiku-4-5-20251001","usage":{"input_tokens":190000}}}`,
+	}
+	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644)
+	s := load(t, &Claude{Root: root})[0].Finish(15)
+	var got []core.NativeValue
+	for _, n := range s.Native {
+		if n.LabelEn == "Peak context usage" {
+			got = append(got, n)
+		}
+	}
+	if len(got) != 1 || got[0].V != 25 || got[0].N != 1 || got[0].Unit != "%" {
+		t.Errorf("Peak context usage = %+v, want 25%%（250K ÷ 1M、表にないモデルとサブエージェントは数えない）", got)
+	}
+	if s.CtxWindow != 0 {
+		t.Errorf("ctxWindow = %v, want 0（いちばん大きい応答は表にないモデル）", s.CtxWindow)
+	}
+
+	lines = []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"直して"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:01:00Z","message":{"id":"m1","model":"claude-opus-4-6","usage":{"input_tokens":150000}}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:02:00Z","message":{"id":"m2","model":"claude-opus-4-6","usage":{"input_tokens":10,"cache_read_input_tokens":299990}}}`,
+	}
+	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644)
+	s = load(t, &Claude{Root: root})[0].Finish(15)
+	for _, n := range s.Native {
+		if n.LabelEn == "Peak context usage" && n.V != 30 {
+			t.Errorf("Peak context usage = %v, want 30（300K ÷ 1M。[1m] の版とみなす）", n.V)
+		}
+	}
+	if s.CtxWindow != 1e6 {
+		t.Errorf("ctxWindow = %v, want 1e6", s.CtxWindow)
+	}
+}
+
+// ウェブ検索（usage.server_tool_use.web_search_requests）は 1,000 回あたり $10 を料金表の見積もりに足す。
+// 1 つの応答の何行にも同じ数が書かれるので、メッセージ ID でまとめてから数える。
+func TestClaudeWebSearchCost(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	os.MkdirAll(dir, 0o755)
+	usage := `"usage":{"input_tokens":100000,"server_tool_use":{"web_search_requests":5}}`
+	lines := []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"調べて"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:01:00Z","message":{"id":"m1","model":"claude-opus-5-5",` + usage + `}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:01:00Z","message":{"id":"m1","model":"claude-opus-5-5",` + usage + `}}`,
+	}
+	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644)
+	s := load(t, &Claude{Root: root})[0].Finish(15)
+	// 入力 100,000 × $4 / 100 万 = $0.4、検索 5 回 × $0.01 = $0.05
+	if math.Abs(s.Cost-0.45) > 1e-9 || s.Usage.WebSearches != 5 {
+		t.Errorf("目安コスト = %v・検索 %v 回, want 0.45・5 回", s.Cost, s.Usage.WebSearches)
 	}
 }
 
@@ -154,6 +241,9 @@ func TestClaudeRetention(t *testing.T) {
 	home := t.TempDir()
 	root := filepath.Join(home, "projects")
 	os.MkdirAll(root, 0o755)
+	old := claudeManagedDir
+	claudeManagedDir = filepath.Join(home, "managed") // 組織の設定はない
+	t.Cleanup(func() { claudeManagedDir = old })
 	c := &Claude{Root: root}
 	if r := c.Retention(); r.Days != 30 || r.Set || r.Setting != "cleanupPeriodDays" || r.Docs == "" {
 		t.Errorf("未設定 = %+v, want 30 日・未設定", r)
@@ -161,6 +251,49 @@ func TestClaudeRetention(t *testing.T) {
 	os.WriteFile(filepath.Join(home, "settings.json"), []byte(`{"cleanupPeriodDays": 3650}`), 0o644)
 	if r := c.Retention(); r.Days != 3650 || !r.Set {
 		t.Errorf("設定あり = %+v, want 3650 日・設定済み", r)
+	}
+	// Claude Code が受け付けない値（整数でない・文字列・0）は、設定がないのと同じ
+	for _, bad := range []string{`2.5`, `"90"`, `0`, `true`} {
+		os.WriteFile(filepath.Join(home, "settings.json"), []byte(`{"cleanupPeriodDays": `+bad+`}`), 0o644)
+		if r := c.Retention(); r.Days != 30 || r.Set {
+			t.Errorf("%s = %+v, want 30 日・未設定", bad, r)
+		}
+	}
+}
+
+// 組織の設定（managed-settings.json と managed-settings.d/*.json）は利用者の設定より強い。
+// managed-settings.d/ は名前の順に重ね、後のファイルが勝つ。隠しファイル・壊れたファイル・ふつうのファイルでないものは読まない。
+func TestClaudeRetentionManaged(t *testing.T) {
+	home := t.TempDir()
+	root := filepath.Join(home, "projects")
+	managed := filepath.Join(home, "managed")
+	os.MkdirAll(root, 0o755)
+	os.MkdirAll(filepath.Join(managed, "managed-settings.d"), 0o755)
+	old := claudeManagedDir
+	claudeManagedDir = managed
+	t.Cleanup(func() { claudeManagedDir = old })
+	c := &Claude{Root: root}
+	os.WriteFile(filepath.Join(home, "settings.json"), []byte(`{"cleanupPeriodDays": 3650}`), 0o644)
+	file := filepath.Join(managed, "managed-settings.json")
+	os.WriteFile(file, []byte(`{"cleanupPeriodDays": 14}`), 0o644)
+	if r := c.Retention(); r.Days != 14 || !r.Set || r.File != file {
+		t.Errorf("組織の設定 = %+v, want 14 日（%s）", r, file)
+	}
+	drop := filepath.Join(managed, "managed-settings.d")
+	os.WriteFile(filepath.Join(drop, "10-retention.json"), []byte(`{"cleanupPeriodDays": 7}`), 0o644)
+	os.WriteFile(filepath.Join(drop, "20-other.json"), []byte(`{"model": "opus"}`), 0o644)
+	os.WriteFile(filepath.Join(drop, "30-broken.json"), []byte(`{"cleanupPeriodDays": `), 0o644)
+	os.WriteFile(filepath.Join(drop, ".40-hidden.json"), []byte(`{"cleanupPeriodDays": 1}`), 0o644)
+	os.WriteFile(filepath.Join(drop, "50-note.txt"), []byte(`{"cleanupPeriodDays": 2}`), 0o644)
+	os.Mkdir(filepath.Join(drop, "60-dir.json"), 0o755)
+	if r := c.Retention(); r.Days != 7 || r.File != filepath.Join(drop, "10-retention.json") {
+		t.Errorf("後のファイルが勝つ = %+v, want 7 日（10-retention.json）", r)
+	}
+	// 組織の設定に値がなければ、利用者の設定を使う
+	os.RemoveAll(drop)
+	os.WriteFile(file, []byte(`{"cleanupPeriodDays": "14"}`), 0o644)
+	if r := c.Retention(); r.Days != 3650 || r.File != filepath.Join(home, "settings.json") {
+		t.Errorf("組織の設定が使えない = %+v, want 利用者の 3650 日", r)
 	}
 }
 

@@ -95,7 +95,8 @@ func TestCodexNativeMetrics(t *testing.T) {
 	if n["応答の数"].V != 3 || n["ツール呼び出し"].V != 3 {
 		t.Errorf("応答/ツール = %+v %+v", n["応答の数"], n["ツール呼び出し"])
 	}
-	if v := n["コンテキストの最大使用率"]; v.N == 0 || v.V < 0.5 || v.V > 0.6 { // 1500 / 272000
+	// Codex の表示と同じく、いつも入っている 12000 トークンを除いて数える。1650 トークンでは 0%
+	if v := n["コンテキストの最大使用率"]; v.N == 0 || v.V != 0 {
 		t.Errorf("コンテキストの使用率 = %+v", v)
 	}
 	if _, ok := n["レート制限の最大使用率"]; ok {
@@ -377,5 +378,180 @@ func TestCodexReplies(t *testing.T) {
 	}
 	if r := s.Prompts[1].Reply; r == nil || r.Text != "足して通しました" {
 		t.Errorf("2 件目の応答 = %+v", r)
+	}
+}
+
+// nativeEn は参考指標を英語のラベルで引けるようにする。
+func nativeEn(f *core.Session) map[string]core.NativeValue {
+	out := map[string]core.NativeValue{}
+	for _, v := range f.Native {
+		out[v.LabelEn] = v
+	}
+	return out
+}
+
+// 利用上限に当たったことは 2 か所に残る。token_count.rate_limits.rate_limit_reached_type（429 の usage_limit_reached）と、
+// 止まったターンの task_complete.error.codex_error_info（usage_limit_exceeded・rate_limit_exceeded）。
+// 会話が長すぎる（context_window_exceeded）や Codex 自身の予算（session_budget_exceeded）は数えない。
+// サブエージェントが当たったものは親のセッションに入れる。
+func TestCodexLimitHits(t *testing.T) {
+	home := t.TempDir()
+	reached := `"rate_limits":{"limit_id":"codex","primary":{"used_percent":100,"window_minutes":300,"resets_at":1791262800},"secondary":null,"credits":null,"plan_type":"plus","rate_limit_reached_type":"rate_limit_reached"}`
+	writeCodex(t, home, "thr-lim",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-lim","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:10.000Z","type":"event_msg","payload":{"type":"user_message","message":"直して"}}`,
+		`{"timestamp":"2026-10-06T00:01:00.000Z","type":"event_msg","payload":{"type":"token_count","info":null,`+reached+`}}`,
+		`{"timestamp":"2026-10-06T00:01:01.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t1","last_agent_message":null,"error":{"message":"You've hit your usage limit.","codex_error_info":"usage_limit_exceeded"}}}`,
+		// 同じスナップショットの書き直し（1 分より後でも数えない）
+		`{"timestamp":"2026-10-06T00:03:00.000Z","type":"event_msg","payload":{"type":"token_count","info":null,`+reached+`}}`,
+		`{"timestamp":"2026-10-06T00:10:00.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t2","error":{"message":"too long","codex_error_info":"context_window_exceeded"}}}`,
+		`{"timestamp":"2026-10-06T00:12:00.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t3","error":{"message":"budget","codex_error_info":"session_budget_exceeded"}}}`,
+		`{"timestamp":"2026-10-06T00:14:00.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t4","error":{"message":"retry","codex_error_info":{"response_too_many_failed_attempts":{"http_status_code":503}}}}}`,
+		`{"timestamp":"2026-10-06T00:20:00.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t5","error":{"message":"Rate limit reached","codex_error_info":"rate_limit_exceeded"}}}`,
+	)
+	writeCodex(t, home, "thr-lim-sub",
+		`{"timestamp":"2026-10-06T00:04:00.000Z","type":"session_meta","payload":{"id":"thr-lim-sub","timestamp":"2026-10-06T00:04:00.000Z","cwd":"/Users/me/web","source":{"subagent":{"thread_spawn":{"parent_thread_id":"thr-lim","agent_role":"explorer"}}}}}`,
+		`{"timestamp":"2026-10-06T00:05:00.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"s1","error":{"message":"limit","codex_error_info":"usage_limit_exceeded"}}}`,
+	)
+	bs := load(t, &Codex{Home: home})
+	if len(bs) != 1 {
+		t.Fatalf("sessions = %d, want 1", len(bs))
+	}
+	got := bs[0].Finish(15).Limits
+	base := float64(1791244800) // 2026-10-06T00:00:00Z
+	want := []float64{base + 60, base + 300, base + 1200}
+	if len(got) != len(want) {
+		t.Fatalf("limits = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("limits = %v, want %v", got, want)
+			break
+		}
+	}
+}
+
+// turn_aborted の reason が interrupted のときだけ、人が止めたとして数える。
+func TestCodexInterrupted(t *testing.T) {
+	home := t.TempDir()
+	writeCodex(t, home, "thr-int",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-int","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:10.000Z","type":"event_msg","payload":{"type":"user_message","message":"直して"}}`,
+		`{"timestamp":"2026-10-06T00:00:30.000Z","type":"event_msg","payload":{"type":"turn_aborted","turn_id":"t1","reason":"interrupted","duration_ms":20000}}`,
+		`{"timestamp":"2026-10-06T00:01:00.000Z","type":"event_msg","payload":{"type":"turn_aborted","turn_id":"t2","reason":"replaced"}}`,
+		`{"timestamp":"2026-10-06T00:02:00.000Z","type":"event_msg","payload":{"type":"turn_aborted","turn_id":"t3","reason":"review_ended"}}`,
+		`{"timestamp":"2026-10-06T00:03:00.000Z","type":"event_msg","payload":{"type":"turn_aborted","reason":"budget_limited"}}`,
+	)
+	bs := load(t, &Codex{Home: home})
+	if len(bs) != 1 {
+		t.Fatalf("sessions = %d, want 1", len(bs))
+	}
+	s := bs[0].Finish(15)
+	if s.Interrupts != 1 || len(s.InterruptsAt) != 1 || s.InterruptsAt[0] != 1791244800+30 {
+		t.Errorf("interrupts = %d %v, want 1 at +30s", s.Interrupts, s.InterruptsAt)
+	}
+	if len(s.Prompts) != 1 {
+		t.Errorf("prompts = %d, want 1（中断は依頼に数えない）", len(s.Prompts))
+	}
+}
+
+// rate_limits の primary と secondary を、枠の長さ（window_minutes）ごとの指標にする。
+// limit_id が codex 以外のもの（モデルごとの別の枠）は使わない。window_minutes がなければ primary / secondary の名前で出す。
+func TestCodexRateLimitWindows(t *testing.T) {
+	home := t.TempDir()
+	writeCodex(t, home, "thr-rl",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-rl","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:10.000Z","type":"event_msg","payload":{"type":"user_message","message":"直して"}}`,
+		`{"timestamp":"2026-10-06T00:00:20.000Z","type":"event_msg","payload":{"type":"token_count","info":null,"rate_limits":{"limit_id":"codex","primary":{"used_percent":40,"window_minutes":300},"secondary":{"used_percent":12,"window_minutes":10080}}}}`,
+		`{"timestamp":"2026-10-06T00:00:30.000Z","type":"event_msg","payload":{"type":"token_count","info":null,"rate_limits":{"limit_id":"codex_other","primary":{"used_percent":95,"window_minutes":300},"secondary":{"used_percent":90,"window_minutes":10080}}}}`,
+		// 古い版は limit_id を書かない
+		`{"timestamp":"2026-10-06T00:00:40.000Z","type":"event_msg","payload":{"type":"token_count","info":null,"rate_limits":{"primary":{"used_percent":55,"window_minutes":299},"secondary":{"used_percent":20}}}}`,
+		`{"timestamp":"2026-10-06T00:00:50.000Z","type":"event_msg","payload":{"type":"token_count","info":null,"rate_limits":{"primary":{"used_percent":7}}}}`,
+	)
+	bs := load(t, &Codex{Home: home})
+	n := nativeEn(bs[0].Finish(15))
+	for label, want := range map[string]float64{
+		"Peak 5-hour limit usage":         55,
+		"Peak weekly limit usage":         12,
+		"Peak rate-limit usage":           7,
+		"Peak secondary rate-limit usage": 20,
+	} {
+		if v, ok := n[label]; !ok || v.V != want {
+			t.Errorf("%s = %+v, want %v", label, v, want)
+		}
+	}
+	if _, ok := n["Peak daily limit usage"]; ok {
+		t.Error("記録のない枠は出さない")
+	}
+}
+
+// task_complete（turn_complete とも書く）の time_to_first_token_ms と duration_ms から、ターンの時間の中央値を出す。
+// エラーで止まったターンは数えない。古い版は値がないので出さない。
+func TestCodexTurnTiming(t *testing.T) {
+	home := t.TempDir()
+	writeCodex(t, home, "thr-time",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-time","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:10.000Z","type":"event_msg","payload":{"type":"user_message","message":"直して"}}`,
+		`{"timestamp":"2026-10-06T00:00:20.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t1","last_agent_message":"ok","started_at":1791244810,"completed_at":1791244820,"duration_ms":10000,"time_to_first_token_ms":1500}}`,
+		`{"timestamp":"2026-10-06T00:01:00.000Z","type":"event_msg","payload":{"type":"turn_complete","turn_id":"t2","duration_ms":20000,"time_to_first_token_ms":2500}}`,
+		`{"timestamp":"2026-10-06T00:02:00.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t3","duration_ms":30000,"time_to_first_token_ms":3500}}`,
+		`{"timestamp":"2026-10-06T00:03:00.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t4","duration_ms":100,"error":{"message":"bad","codex_error_info":"bad_request"}}}`,
+		`{"timestamp":"2026-10-06T00:04:00.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t5","last_agent_message":"old"}}`,
+	)
+	bs := load(t, &Codex{Home: home})
+	n := nativeEn(bs[0].Finish(15))
+	if v := n["Time to first token (median)"]; v.V != 2.5 || v.N != 3 {
+		t.Errorf("ttft = %+v, want 2.5s from 3", v)
+	}
+	if v := n["Turn duration (median)"]; v.V != 20 || v.N != 3 {
+		t.Errorf("duration = %+v, want 20s from 3", v)
+	}
+
+	old := t.TempDir()
+	writeCodex(t, old, "thr-old",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-old","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:20.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t1","last_agent_message":"ok"}}`,
+	)
+	if n := nativeEn(load(t, &Codex{Home: old})[0].Finish(15)); len(n) != 0 {
+		t.Errorf("値のない版では出さない: %+v", n)
+	}
+}
+
+// コンテキストの使用率は Codex の表示と同じく (last.total_tokens - 12000) / (上限 - 12000)。
+// あふれたあとに Codex が書く token_count（total が上限と同じで、ほかは 0）は 100% とし、応答には数えない。
+func TestCodexContextUsage(t *testing.T) {
+	home := t.TempDir()
+	writeCodex(t, home, "thr-ctx",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-ctx","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:10.000Z","type":"event_msg","payload":{"type":"user_message","message":"直して"}}`,
+		`{"timestamp":"2026-10-06T00:00:20.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":140000,"cached_input_tokens":0,"output_tokens":2000,"reasoning_output_tokens":0,"total_tokens":142000},"last_token_usage":{"input_tokens":140000,"cached_input_tokens":0,"output_tokens":2000,"reasoning_output_tokens":0,"total_tokens":142000},"model_context_window":272000},"rate_limits":null}}`,
+	)
+	n := nativeEn(load(t, &Codex{Home: home})[0].Finish(15))
+	if v := n["Peak context usage"]; v.V != 50 { // (142000 - 12000) / (272000 - 12000)
+		t.Errorf("context = %+v, want 50%%", v)
+	}
+
+	full := t.TempDir()
+	writeCodex(t, full, "thr-full",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-full","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:10.000Z","type":"event_msg","payload":{"type":"user_message","message":"直して"}}`,
+		`{"timestamp":"2026-10-06T00:00:20.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":140000,"cached_input_tokens":0,"output_tokens":2000,"reasoning_output_tokens":0,"total_tokens":142000},"last_token_usage":{"input_tokens":140000,"cached_input_tokens":0,"output_tokens":2000,"reasoning_output_tokens":0,"total_tokens":142000},"model_context_window":272000},"rate_limits":null}}`,
+		// fill_to_context_window: total は上限だけ、last は上限までの残りだけ
+		`{"timestamp":"2026-10-06T00:00:30.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":0,"cached_input_tokens":0,"output_tokens":0,"reasoning_output_tokens":0,"total_tokens":272000},"last_token_usage":{"input_tokens":0,"cached_input_tokens":0,"output_tokens":0,"reasoning_output_tokens":0,"total_tokens":130000},"model_context_window":272000},"rate_limits":null}}`,
+		`{"timestamp":"2026-10-06T00:00:31.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t1","error":{"message":"too long","codex_error_info":"context_window_exceeded"}}}`,
+	)
+	f := load(t, &Codex{Home: full})[0].Finish(15)
+	n = nativeEn(f)
+	if v := n["Peak context usage"]; v.V != 100 {
+		t.Errorf("context after overflow = %+v, want 100%%", v)
+	}
+	if v := n["Responses"]; v.V != 1 {
+		t.Errorf("responses = %+v, want 1（満杯の印は応答ではない）", v)
+	}
+	if f.Usage.In != 140000 || f.Usage.Out != 2000 {
+		t.Errorf("tokens = %+v", f.Usage.Tokens)
+	}
+	if len(f.Limits) != 0 {
+		t.Errorf("limits = %v（会話が長すぎるのは利用上限ではない）", f.Limits)
 	}
 }

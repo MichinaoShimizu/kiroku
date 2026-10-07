@@ -6,15 +6,31 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Added
 
+- Codex: usage limit hits are now counted. A turn that stopped on a usage limit or a rate limit (`task_complete` with `codex_error_info` `usage_limit_exceeded` or `rate_limit_exceeded`) and the usage limit response Codex records with its limit usage (`rate_limit_reached_type`) show up in "Usage limit hits" and as "Limit" marks on the calendar, like Claude Code's. A conversation that outgrew the context window does not count. The view no longer says the count is from Claude Code only
+- Codex: turns you stopped (`turn_aborted` with reason `interrupted`) now count as interruptions in "Prompts with corrections or interruptions" and appear in the prompt flow
+- Codex: new agent-specific metrics "Time to first token (median)" and "Turn duration (median)", from the timings Codex records when a turn finishes (`time_to_first_token_ms` and `duration_ms`; turns that ended in an error are left out)
+- Claude Code: "Peak context usage" among the agent-specific metrics. Claude Code doesn't record how full the context window was, so kiroku divides each response's input (new input plus cache reads and writes) by the model's context window from a table taken from the official docs (1M for Fable 5 / 5.1, Sonnet 5 and later and Opus 4.7 and later, 200K for Haiku 4.5, Opus 4.6 and Sonnet 4.6 among others). Opus 4.6 and Sonnet 4.6 count as 1M once a response read more than 200K (their `[1m]` variant doesn't show in the history). Models not in the table get no value
+- Claude Code: when a usage-limit message says when the limit resets (such as "resets 3:45pm"), the prompt flow, the "Usage limit hits" card and "Worth a look" show that text with the hit. It is shown as written, since it often has no date or time zone
 - Codex sessions now have an estimated cost. The price table includes OpenAI's standard rates for gpt-5 and later models and `gpt-5.3-codex` (uncached input, cached input, cache writes and output), and a response whose input is over 272K tokens is priced at the long-context rates. Codex session details show the estimated cost and tokens. Fast mode, Flex, Batch and regional-processing rates are not applied, since the history does not record them
 - "Data sources" now lists models that are not in the price table under their own ID and were priced as a similar one (for example, `claude-opus-5-6` priced as `claude-opus-5`, or `gpt-5-codex` as `gpt-5`), and opens with a mark, since a new model may cost something else
 - `docs/upstream/` keeps the numbers kiroku uses from Anthropic's and OpenAI's official pricing pages, written by `go run ./tools/prices`. A test checks that the price table matches them, and a weekly workflow opens an issue when the official pages change (kiroku itself still never fetches anything but its own releases)
 
 ### Changed
 
+- Codex: limit usage now shows both windows Codex records, named by their length ("Peak 5-hour limit usage", "Peak weekly limit usage" and so on) instead of a single "Peak rate-limit usage" that only read the first window. A window whose length is not recorded keeps a generic name. Snapshots of other, per-model limits (a `limit_id` other than `codex`) are no longer mixed in
+- "Long conversations" in "Worth a look" now needs the peak input to reach half of the model's context window where kiroku knows the window, instead of a fixed 100K tokens, which is small for models with a 1M window. Where the window is unknown, 100K tokens still applies
 - Bedrock model IDs with a cross-region prefix (`us.anthropic.`, `eu.anthropic.`, `apac.anthropic.`, `global.anthropic.` and so on) are now priced; before, only `anthropic.` was removed, so they were left out of the estimated cost. Model IDs written with a dot, such as `claude-sonnet-4.5`, are read as `claude-sonnet-4-5`
 - A model ID now matches a shorter price-table ID only at a separator: `gpt-5` prices `gpt-5-codex`, but not a different version such as `gpt-5.7-sol`, which is left out of the estimated cost and listed as not in the price table
 - "Data sources" says the price table holds Anthropic and OpenAI public rates
+
+### Fixed
+
+- Codex: "Peak context usage" now matches what Codex itself shows. It is worked out from the whole last response (`total_tokens`, not only input) and leaves out the 12,000 tokens Codex treats as always in the context, so it reads lower early in a conversation and reaches 100% when the context is full. When the conversation outgrew the window, it now shows 100% instead of 0%, and the "full" record Codex writes then is no longer counted as a response
+- Claude Code: estimated cost from kiroku's price table now includes web searches (`server_tool_use.web_search_requests`) at $10 per 1,000 searches, counted once per response. Fast mode and US-only multipliers are not applied to them, and nothing is added where Claude Code's own cost record is used, since it already covers them
+- Claude Code: history retention now follows `cleanupPeriodDays` in your organization's managed settings file (`managed-settings.json` and `managed-settings.d/*.json` in the system directory), which wins over your own `settings.json`. A value Claude Code would reject (not a whole number of 1 or more) no longer counts as set. The guide also notes that Claude Code (v2.1.248 and later) keeps sessions started or continued in Claude Desktop or Cowork unless `desktopSessionCleanupPeriodDays` is set
+- The docs no longer state that Claude Code writes a cost of 0 on a subscription; the `cost-state` record is not documented, so they now describe only what kiroku does when a used model's recorded cost is 0
+
+## v0.19.2 - 2026-10-07
 
 ### Security
 

@@ -32,7 +32,7 @@ function askPrompt(w, pw, M){
     `- Parallel time: ${dur(w.parallel)} (up to ${w.maxConc} at once)`,
     `- Wait time (from an AI reply to my next prompt): median ${secs(w.waitMedian)}, 90th percentile ${secs(w.waitP90)} (n=${w.waitCount})`,
     `- Prompts with corrections or interruptions: ${w.fixRate == null ? "unknown" : w.fixRate + "%"} (n=${w.prompts})`,
-    (() => { const {ws, we} = period(), H = limitHits(ws, we); return `- Usage limit hits (Claude Code): ${H.length ? `${H.length} (${H.map(h => `${md(h.t)} ${hm(h.t)}`).join(", ")})` : "0"}`; })());
+    (() => { const {ws, we} = period(), H = limitHits(ws, we); return `- Usage limit hits (Claude Code and Codex): ${H.length ? `${H.length} (${H.map(h => `${md(h.t)} ${hm(h.t)}`).join(", ")})` : "0"}`; })());
   if (u.tokens || u.credits){
     L.push("", "# AI usage");
     if (u.tokens) L.push(`- Tokens: ${tok(u.tokens)} (output ${tok(u.out)})`,
@@ -88,14 +88,18 @@ function askPrompt(w, pw, M){
   return L.join("\n");
 }
 /* 期間 [ws, we) に利用上限に当たった時刻と、そのセッション */
-function limitHits(ws, we){ const H = []; DATA.forEach(s => (s.limits || []).forEach(t => { if (t >= ws && t < we) H.push({t, s}); })); return H.sort((a,b) => a.t - b.t); }
+function limitHits(ws, we){ const H = []; DATA.forEach(s => (s.limits || []).forEach((t, i) => { if (t >= ws && t < we) H.push({t, s, r: limitReset(s, i)}); })); return H.sort((a,b) => a.t - b.t); }
+/* i 番目の利用上限のエラー文にあった解除の時刻（"3:45pm" など、書いてあるとおりの文。日付や時間帯がないこともある）。なければ "" */
+function limitReset(s, i){ return String((s.limitResets || [])[i] || ""); }
 /* 見直す候補の判定に使う部品（期間 [ws, we) を渡す。推移の計算でも使う） */
 const inP = (s, ws, we) => s.segs.some(([a,b]) => b > ws && a < we);
 function idleOf(ws, we){ // 目安コストが大きいのにコミットも PR もないセッション（アウトプットを記録できる Claude Code のみ）
   const xs = DATA.filter(s => s.cost >= 1 && /claude/i.test(s.source) && !(s.outputs && (s.outputs.commits || s.outputs.prs)) && inP(s, ws, we)).sort((a,b) => b.cost - a.cost);
   return {xs, c: xs.reduce((t,s) => t + s.cost, 0)}; }
 function longCtxOf(ws, we){ // 会話が長くなり、1 回の応答で読む入力が大きく増えたセッション
-  return DATA.filter(s => inP(s, ws, we) && s.ctx && s.ctx.length === 3 && s.ctx[0] > 0 && s.ctx[1] >= s.ctx[0] * 4 && s.ctx[2] >= 1e5 && s.cost >= 0.5).sort((a,b) => b.cost - a.cost); }
+  return DATA.filter(s => inP(s, ws, we) && s.ctx && s.ctx.length === 3 && s.ctx[0] > 0 && s.ctx[1] >= s.ctx[0] * 4 && s.ctx[2] >= ctxPeakMin(s) && s.cost >= 0.5).sort((a,b) => b.cost - a.cost); }
+// 長い会話とみなす最大の文脈：モデルのコンテキストウィンドウがわかれば、その半分（1M のモデルで 100K は長くないため）。わからなければ 100K
+const ctxPeakMin = s => s.ctxWindow > 0 ? s.ctxWindow * 0.5 : 1e5;
 const mainModel = s => ((s.models || []).slice().sort((a,b) => b[1] - a[1])[0] || [""])[0];
 function lightOf(ws, we){ // 編集のない短いセッションで、高いモデル（Opus 系）を使ったもの
   const xs = DATA.filter(s => inP(s, ws, we) && /opus/i.test(mainModel(s)) && s.nPrompts <= 3 && !s.nFiles && s.cost >= 0.3).sort((a,b) => b.cost - a.cost);
@@ -178,14 +182,14 @@ function findList(w, pw, unit){
   const P = uThis(unit);
   const LH = limitHits(ws, we);
   if (LH.length)
-    add("limits", 40, `Hit the usage limit ${LH.length === 1 ? "once" : LH.length + " times"} (${LH.slice(-3).map(h => `${md(h.t)} ${hm(h.t)}`).join(", ")}${LH.length > 3 ? ", …" : ""})`, "Hitting a limit stops your work until it resets. The cause is often in how you worked just before", "1 or more", [...new Set(LH.map(h => h.s.id))].reverse(), `you hit the usage limit ${LH.length === 1 ? "once" : LH.length + " times"} ${P}`);
+    add("limits", 40, `Hit the usage limit ${LH.length === 1 ? "once" : LH.length + " times"} (${LH.slice(-3).map(h => `${md(h.t)} ${hm(h.t)}${h.r ? ` (resets ${h.r})` : ""}`).join(", ")}${LH.length > 3 ? ", …" : ""})`, "Hitting a limit stops your work until it resets. The cause is often in how you worked just before", "1 or more", [...new Set(LH.map(h => h.s.id))].reverse(), `you hit the usage limit ${LH.length === 1 ? "once" : LH.length + " times"} ${P}`);
   if (w.fixRate != null && w.prompts >= 10 && w.fixRate >= 20)
     add("fix", w.fixRate, `${w.fixRate}% of prompts had corrections or interruptions`, "When a first prompt misses, redoing it costs time and tokens", "20% or more, with 10+ prompts", w.friction.map(f => f.id), `${w.fixRate}% of ${w.prompts} prompts ${P} had corrections or interruptions`);
   else if (w.friction.length)
     add("friction", 18, `${plural(w.friction.length, "session")} with possible friction`, "Rework is concentrated in a few sessions. Opening them usually hints at the cause", "Many corrections, interruptions or 15+ prompts", w.friction.map(f => f.id), `${plural(w.friction.length, "session")} ${P} crossed the threshold`);
   const LC = longCtxOf(ws, we);
   if (LC.length)
-    add("longctx", 34, `${plural(LC.length, "session")} where the conversation grew long and the input read per response rose to ${Math.round(Math.max(...LC.map(s => s.ctx[1] / s.ctx[0])))}× the first part (peak ${tok(Math.max(...LC.map(s => s.ctx[2])))} tokens)`, "The longer a conversation, the more earlier context each response rereads, so similar prompts get heavier", "Later input 4×+ the first part, peak 100K+ tokens, $0.5+", LC.map(s => s.id), `${plural(LC.length, "session")} ${P} crossed the threshold`);
+    add("longctx", 34, `${plural(LC.length, "session")} where the conversation grew long and the input read per response rose to ${Math.round(Math.max(...LC.map(s => s.ctx[1] / s.ctx[0])))}× the first part (peak ${tok(Math.max(...LC.map(s => s.ctx[2])))} tokens)`, "The longer a conversation, the more earlier context each response rereads, so similar prompts get heavier", "Later input 4×+ the first part, peak at half the model's context window or more (100K+ tokens when the window is unknown), $0.5+", LC.map(s => s.id), `${plural(LC.length, "session")} ${P} crossed the threshold`);
   const LT = lightOf(ws, we);
   if (u.cost >= 2 && LT.c >= Math.max(1, u.cost * 0.1))
     add("modelfit", 24, `Short sessions with no edits spent ${usd(LT.c)} (${Math.round(LT.c*100/u.cost)}% of estimated cost) on Opus-class models`, "For research and questions, a lighter model is often enough", "Sessions with ≤3 prompts, no edits and $0.3+ total 10%+ of all cost ($2+) and $1+", LT.xs.map(s => s.id), `such sessions took ${Math.round(LT.c*100/u.cost)}% of estimated cost ${P}`);

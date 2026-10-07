@@ -347,6 +347,13 @@
        "v": 736.59
       },
       {
+       "label": "コンテキストの最大使用率",
+       "labelEn": "Peak context usage",
+       "n": 202,
+       "unit": "%",
+       "v": 30.43
+      },
+      {
        "label": "ツール呼び出し",
        "labelEn": "Tool calls",
        "n": 202,
@@ -486,7 +493,7 @@
        "labelEn": "Peak context usage",
        "n": 4,
        "unit": "%",
-       "v": 1.1
+       "v": 0
       },
       {
        "label": "ツール呼び出し",
@@ -1801,6 +1808,13 @@
        "v": 1008.4
       },
       {
+       "label": "コンテキストの最大使用率",
+       "labelEn": "Peak context usage",
+       "n": 10,
+       "unit": "%",
+       "v": 24.58
+      },
+      {
        "label": "ツール呼び出し",
        "labelEn": "Tool calls",
        "n": 10,
@@ -2054,6 +2068,7 @@
     35322.5,
     60856
    ],
+   "ctxWindow": 200000,
    "end": 1788369000,
    "events": 19,
    "file": "testdata/home/.claude/projects/-Users-me-vp/45502558-80a6-4028-a0ef-6476e9599703.jsonl",
@@ -2088,6 +2103,13 @@
      "n": 8,
      "unit": "トークン",
      "v": 936.88
+    },
+    {
+     "label": "コンテキストの最大使用率",
+     "labelEn": "Peak context usage",
+     "n": 8,
+     "unit": "%",
+     "v": 30.43
     },
     {
      "label": "ツール呼び出し",
@@ -2195,6 +2217,7 @@
     43134,
     61468
    ],
+   "ctxWindow": 1000000,
    "end": 1788948240,
    "events": 89,
    "file": "testdata/home/.claude/projects/-Users-me-app/68cb7e8c-a8e9-4b72-9b9f-95c791d04e02.jsonl",
@@ -2229,6 +2252,13 @@
      "n": 33,
      "unit": "トークン",
      "v": 698.27
+    },
+    {
+     "label": "コンテキストの最大使用率",
+     "labelEn": "Peak context usage",
+     "n": 33,
+     "unit": "%",
+     "v": 6.15
     },
     {
      "label": "ツール呼び出し",
@@ -2489,6 +2519,7 @@
     44436,
     49169
    ],
+   "ctxWindow": 200000,
    "end": 1789217220,
    "events": 23,
    "file": "testdata/home/.claude/projects/-Users-me-app/5c2c46e3-3212-4c02-83c7-f6e31dc33803.jsonl",
@@ -2521,6 +2552,13 @@
      "n": 10,
      "unit": "トークン",
      "v": 1008.4
+    },
+    {
+     "label": "コンテキストの最大使用率",
+     "labelEn": "Peak context usage",
+     "n": 10,
+     "unit": "%",
+     "v": 24.58
     },
     {
      "label": "ツール呼び出し",
@@ -2633,6 +2671,7 @@
     39687,
     57070
    ],
+   "ctxWindow": 1000000,
    "end": 1789441800,
    "events": 28,
    "file": "testdata/home/.claude/projects/-Users-me-blog/fa1e3455-e4a8-485a-ace2-9a6ccbaea201.jsonl",
@@ -2668,6 +2707,13 @@
      "n": 12,
      "unit": "トークン",
      "v": 555.58
+    },
+    {
+     "label": "コンテキストの最大使用率",
+     "labelEn": "Peak context usage",
+     "n": 12,
+     "unit": "%",
+     "v": 5.71
     },
     {
      "label": "ツール呼び出し",
@@ -2800,6 +2846,7 @@
     29970,
     59635
    ],
+   "ctxWindow": 1000000,
    "end": 1789824240,
    "events": 84,
    "file": "testdata/home/.claude/projects/-Users-me-app/6f8a980c-3b83-43eb-b07d-758a36bc2401.jsonl",
@@ -2835,6 +2882,13 @@
      "n": 36,
      "unit": "トークン",
      "v": 715.81
+    },
+    {
+     "label": "コンテキストの最大使用率",
+     "labelEn": "Peak context usage",
+     "n": 36,
+     "unit": "%",
+     "v": 5.96
     },
     {
      "label": "ツール呼び出し",
@@ -3229,6 +3283,7 @@
     43134,
     61468
    ],
+   "ctxWindow": 1000000,
    "end": 1790157840,
    "events": 89,
    "file": "testdata/home/.claude/projects/-Users-me-app/68cb7e8c-a8e9-4b72-9b9f-95c791d04e00.jsonl",
@@ -3263,6 +3318,13 @@
      "n": 33,
      "unit": "トークン",
      "v": 698.27
+    },
+    {
+     "label": "コンテキストの最大使用率",
+     "labelEn": "Peak context usage",
+     "n": 33,
+     "unit": "%",
+     "v": 6.15
     },
     {
      "label": "ツール呼び出し",
@@ -3523,6 +3585,7 @@
     22315.5,
     57594
    ],
+   "ctxWindow": 200000,
    "end": 1790322960,
    "events": 24,
    "file": "testdata/home/.claude/projects/-Users-me-app/d8bda5e8-265b-4f26-8a8a-54c9c8651701.jsonl",
@@ -3556,6 +3619,13 @@
      "n": 10,
      "unit": "トークン",
      "v": 728.3
+    },
+    {
+     "label": "コンテキストの最大使用率",
+     "labelEn": "Peak context usage",
+     "n": 10,
+     "unit": "%",
+     "v": 28.8
     },
     {
      "label": "ツール呼び出し",
@@ -3687,6 +3757,7 @@
     51605.5,
     60266
    ],
+   "ctxWindow": 200000,
    "end": 1790412180,
    "events": 56,
    "file": "testdata/home/.claude/projects/-Users-me-vp/57c94728-2884-42b4-8c7d-b3e65e11e800.jsonl",
@@ -3721,6 +3792,13 @@
      "n": 24,
      "unit": "トークン",
      "v": 818.29
+    },
+    {
+     "label": "コンテキストの最大使用率",
+     "labelEn": "Peak context usage",
+     "n": 24,
+     "unit": "%",
+     "v": 30.13
     },
     {
      "label": "ツール呼び出し",
@@ -3904,6 +3982,7 @@
     29970,
     59635
    ],
+   "ctxWindow": 1000000,
    "end": 1790429040,
    "events": 84,
    "file": "testdata/home/.claude/projects/-Users-me-app/6f8a980c-3b83-43eb-b07d-758a36bc2400.jsonl",
@@ -3939,6 +4018,13 @@
      "n": 36,
      "unit": "トークン",
      "v": 715.81
+    },
+    {
+     "label": "コンテキストの最大使用率",
+     "labelEn": "Peak context usage",
+     "n": 36,
+     "unit": "%",
+     "v": 5.96
     },
     {
      "label": "ツール呼び出し",
@@ -4700,7 +4786,7 @@
      "labelEn": "Peak context usage",
      "n": 3,
      "unit": "%",
-     "v": 0.55
+     "v": 0
     },
     {
      "label": "ツール呼び出し",
@@ -5405,7 +5491,7 @@
      "labelEn": "Peak context usage",
      "n": 1,
      "unit": "%",
-     "v": 1.1
+     "v": 0
     }
    ],
    "outputs": {
@@ -6099,6 +6185,7 @@
     44436,
     49169
    ],
+   "ctxWindow": 200000,
    "end": 1791031620,
    "events": 23,
    "file": "testdata/home/.claude/projects/-Users-me-app/5c2c46e3-3212-4c02-83c7-f6e31dc33800.jsonl",
@@ -6131,6 +6218,13 @@
      "n": 10,
      "unit": "トークン",
      "v": 1008.4
+    },
+    {
+     "label": "コンテキストの最大使用率",
+     "labelEn": "Peak context usage",
+     "n": 10,
+     "unit": "%",
+     "v": 24.58
     },
     {
      "label": "ツール呼び出し",
@@ -6406,6 +6500,13 @@
        "v": 936.88
       },
       {
+       "label": "コンテキストの最大使用率",
+       "labelEn": "Peak context usage",
+       "n": 8,
+       "unit": "%",
+       "v": 30.43
+      },
+      {
        "label": "ツール呼び出し",
        "labelEn": "Tool calls",
        "n": 8,
@@ -6665,6 +6766,13 @@
        "n": 43,
        "unit": "トークン",
        "v": 770.4
+      },
+      {
+       "label": "コンテキストの最大使用率",
+       "labelEn": "Peak context usage",
+       "n": 43,
+       "unit": "%",
+       "v": 24.58
       },
       {
        "label": "ツール呼び出し",
@@ -6974,6 +7082,13 @@
        "n": 48,
        "unit": "トークン",
        "v": 675.75
+      },
+      {
+       "label": "コンテキストの最大使用率",
+       "labelEn": "Peak context usage",
+       "n": 48,
+       "unit": "%",
+       "v": 5.96
       },
       {
        "label": "ツール呼び出し",
@@ -7354,6 +7469,13 @@
        "n": 103,
        "unit": "トークン",
        "v": 735.28
+      },
+      {
+       "label": "コンテキストの最大使用率",
+       "labelEn": "Peak context usage",
+       "n": 103,
+       "unit": "%",
+       "v": 30.13
       },
       {
        "label": "ツール呼び出し",
@@ -7976,7 +8098,7 @@
        "labelEn": "Peak context usage",
        "n": 4,
        "unit": "%",
-       "v": 1.1
+       "v": 0
       },
       {
        "label": "ツール呼び出し",
@@ -8004,6 +8126,13 @@
        "n": 10,
        "unit": "トークン",
        "v": 1008.4
+      },
+      {
+       "label": "コンテキストの最大使用率",
+       "labelEn": "Peak context usage",
+       "n": 10,
+       "unit": "%",
+       "v": 24.58
       },
       {
        "label": "ツール呼び出し",
