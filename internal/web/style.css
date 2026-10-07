@@ -264,8 +264,9 @@ kbd{font:var(--fs-xs)/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px
 .pcard .bar2 span{display:block;height:100%;background:var(--c);border-radius:3px}
 .pcard .kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .pcard .kv>div{background:var(--surface-2);border-radius:8px;padding:6px 10px;min-width:0} /* 値はいつもラベルの下に（値の長さでカードごとに並びが変わらないように） */
-.pcard .kv>div:last-child:nth-child(odd){grid-column:1/-1} /* クレジットの欄がなく 3 つのときは、最後を横いっぱいに */
-.pcard .kv .k{font-size:var(--fs-xs);color:var(--ink-3);white-space:nowrap}
+.pcard .kv:has(>:nth-child(3):last-child){grid-template-columns:repeat(3,minmax(0,1fr))} /* クレジットの欄がなく 3 つのときは 1 行に（2 列だと最後が 1 つだけ次の行に残り、カードが高くなる） */
+.pcard .kv>div{display:flex;flex-direction:column;justify-content:space-between} /* 見出しが 2 行になっても、数字の高さをそろえる */
+.pcard .kv .k{font-size:var(--fs-xs);color:var(--ink-3);line-height:1.3;overflow-wrap:anywhere} /* 3 つ並べると狭いので、見出しは切らずに折り返す */
 .pcard .kv .v{font:700 var(--fs-lg)/1.3 var(--sans);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pcard .lab{font-size:var(--fs-xs);color:var(--ink-3);margin-bottom:4px}
 .pmore{margin-top:10px}
@@ -672,6 +673,7 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
   .wk{flex-wrap:wrap;row-gap:10px} /* 英語のように長い文言でも、移動のボタンが画面の外に出ないように */
   .wk .nav{flex-wrap:wrap;row-gap:8px;margin-left:0;min-width:0} /* ボタンが増えても、狭い画面では折り返す */
   .kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .kpi:last-child:nth-child(3n+1){grid-column:1/-1}.kpi:last-child:nth-child(3n+2){grid-column:span 2} /* 最後の行に 1 つ・2 つだけ残ったら、空いたマスまで広げる */
   .kpi{border-left:1px solid var(--rule);border-top:1px solid var(--rule);padding:8px 10px 7px}
   .kpi:nth-child(-n+3){border-top:0}.kpi:nth-child(3n+1){border-left:0}
   .kpi .k{font-size:var(--fs-2xs);white-space:normal;line-height:1.3}.kpi .v{font-size:var(--fs-xl)}
