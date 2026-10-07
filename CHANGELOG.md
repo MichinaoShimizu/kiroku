@@ -4,6 +4,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Added
+
+- The guide has a new table, "What each agent records": which metrics each agent's history supports (interruptions, usage limit hits, compactions, files changed, subagents, outputs, tokens and cost, Kiro credits, Long conversations, the resume command, and history retention), so you can tell a metric the agent doesn't record from one that was 0. A test keeps the rows that come from `core.Records` in step with the code
+
 ### Changed
 
 - Metrics an agent's history doesn't record now say so instead of showing 0. When none of the agents used in the period records usage limit hits, compactions or subagents (for example, only Kiro), those cards show "—" and "Not recorded in … history", and the improvement prompt says the same. Session details show "Not recorded in … history" for files changed when that agent doesn't record edited files (Kiro IDE before 1.0 and Kiro Crew's own records), instead of "None". What each agent records is kept in one table in the code (`core.Records`), which also decides which sessions count for the outputs share
