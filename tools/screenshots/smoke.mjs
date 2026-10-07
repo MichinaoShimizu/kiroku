@@ -17,20 +17,21 @@ const envs = [
   { name: "320 スマホ", viewport: { width: 320, height: 680 }, isMobile: true, hasTouch: true }, // いちばん狭い画面ではみ出しやすい
 ];
 
-let failed = 0;
-const csp = []; // 流れ全体を通して、CSP に止められたもの（1 件でもあれば失敗）
-function check(what, ok, detail = "") {
-  if (ok) console.log(`  ok   ${what}`);
-  else { failed++; console.log(`  FAIL ${what}${detail ? `: ${detail}` : ""}`); }
-}
-
 const b = await chromium.launch();
-for (const env of envs) {
-  console.log(`# ${env.name}`);
+// 画面の幅ごとの流れは互いに関係がないので、並べて動かす（待ち時間がほとんどなので、CI が速くなる）。
+// 出力は幅ごとにためておき、終わってから順に出す
+async function run(env) {
+  const out = [`# ${env.name}`];
+  let failed = 0;
+  const csp = []; // 流れ全体を通して、CSP に止められたもの（1 件でもあれば失敗）
+  function check(what, ok, detail = "") {
+    if (ok) out.push(`  ok   ${what}`);
+    else { failed++; out.push(`  FAIL ${what}${detail ? `: ${detail}` : ""}`); }
+  }
   const ctx = await b.newContext({ ...env, locale: "en-US", timezoneId: "Asia/Tokyo", acceptDownloads: true });
   ctx.setDefaultTimeout(5000);
   // CSP の違反はページの中で拾って知らせる（関数を渡す仕組みは CSP の外なので止められない）
-  await ctx.exposeFunction("kirokuCSPViolation", v => csp.push(`${env.name}: ${v}`));
+  await ctx.exposeFunction("kirokuCSPViolation", v => csp.push(v));
   await ctx.addInitScript(() => addEventListener("securitypolicyviolation", e => window.kirokuCSPViolation(`${e.effectiveDirective} ${e.blockedURI || "inline"} ${e.sourceFile || ""}:${e.lineNumber || ""}`)));
   const p = await ctx.newPage();
   const errors = [];
@@ -310,7 +311,11 @@ for (const env of envs) {
     csp.length = 0; // ここでわざと起こした違反は数えない
   });
   await ctx.close();
+  return { out, failed };
 }
+const results = await Promise.all(envs.map(run));
 await b.close();
+for (const r of results) console.log(r.out.join("\n"));
+const failed = results.reduce((n, r) => n + r.failed, 0);
 if (failed) { console.log(`\n${failed} 件失敗`); process.exit(1); }
 console.log("\nすべて OK");
