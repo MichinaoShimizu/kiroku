@@ -7,7 +7,7 @@ function summary(){
       <span class="muted" style="font-size:var(--fs-xs)">Markdown with what you did, commits and pull requests for each project. Session names are the start of your prompts, so edit them before pasting.</span></div>
     <pre class="askpre" id="rptpre">${esc(reportText(w, M))}</pre></section>` : ""}`;
   const WK = $("#worth"); $("#sres").hidden = true; $("#sres").innerHTML = "";
-  if (!w){ WK.hidden = true; R.innerHTML = `${head}<div class="rvgrid"><div class="panel"><p class="none">${`No records ${uThis(unit)}.`}</p>${foot()}</div></div>`; bindCopy(R); return; }
+  if (!w){ WK.hidden = true; R.innerHTML = foot(); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
   const stat = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}${hint(h)}</div>`;
   const ph = (n, t, s, h) => `<div class="ph"><span class="no">${n}</span><h3>${t}${hb(h)}</h3><span>${s}</span></div>${hint(h)}`;
