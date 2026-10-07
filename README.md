@@ -35,7 +35,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 <img src="docs/worth.png" alt="A flagged metric opened from Worth a look (dummy data)" width="560">
 
-**Cost next to output.** Time, tokens, estimated cost and credits by project, next to commits and cost per commit.
+**Cost next to output.** Time, tokens, estimated cost (Claude Code and Codex, at public API rates) and credits by project, next to commits and cost per commit.
 
 ![Weekly summary by project (dummy data)](docs/summary.png)
 
