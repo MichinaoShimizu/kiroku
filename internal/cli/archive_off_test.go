@@ -19,7 +19,7 @@ func TestArchiveOffDeletesOnlyCopies(t *testing.T) {
 
 	root, dir := t.TempDir(), filepath.Join(t.TempDir(), "archive")
 	writeClaude(t, root, "s1")
-	flags := []string{"--root", root, "--sources", "claude", "--archive-dir", dir}
+	flags := []string{"--claude-root", root, "--sources", "claude", "--archive-dir", dir}
 	captureOutput(t, func() {
 		if err := dispatch(append([]string{"archive", "on"}, flags...)); err != nil {
 			t.Fatal(err)

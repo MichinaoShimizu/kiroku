@@ -14,6 +14,8 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Claude Code: when a usage-limit message says when the limit resets (such as "resets 3:45pm"), the prompt flow, the "Usage limit hits" card and "Worth a look" show that text with the hit. It is shown as written, since it often has no date or time zone
 - Codex sessions now have an estimated cost. The price table includes OpenAI's standard rates for gpt-5 and later models and `gpt-5.3-codex` (uncached input, cached input, cache writes and output), and a response whose input is over 272K tokens is priced at the long-context rates. Codex session details show the estimated cost and tokens. Fast mode, Flex, Batch and regional-processing rates are not applied, since the history does not record them
 - "Data sources" now lists models that are not in the price table under their own ID and were priced as a similar one (for example, `claude-opus-5-6` priced as `claude-opus-5`, or `gpt-5-codex` as `gpt-5`), and opens with a mark, since a new model may cost something else
+- `kiroku json` writes `schemaVersion` (now `1`). The session fields listed in the new [docs/compatibility.md](docs/compatibility.md) (`id`, `source`, `project`, `start`, `end`, `nPrompts`, `cost` and so on) keep their name, type and meaning while `schemaVersion` stays the same, so scripts can rely on them; the other fields still change with the view
+- [docs/compatibility.md](docs/compatibility.md) says what a version number promises from v1.0.0 on: what stays compatible within a major version and what may change in any release
 - `docs/upstream/` keeps the numbers kiroku uses from Anthropic's and OpenAI's official pricing pages, written by `go run ./tools/prices`. A test checks that the price table matches them, and a weekly workflow opens an issue when the official pages change (kiroku itself still never fetches anything but its own releases)
 - Kiro Crew: turns run on backends other than kiro-cli now get tokens and cost from Crew's usage records (`input`, `output`, `cache_create`, `cache_read` and the USD `cost` in `usage/tokens/`). When a conversation records no cost, it is estimated from the price table. Turns on Crew's Claude Code backend, and on its Codex backend when `session_map.json` says so, are left to the Claude Code and Codex histories, because Crew's session ids can't be matched to those histories and adding them would count the same tokens twice; "Data sources" says how many turns were left out
 - Kiro Crew: new agent-specific metrics "Peak context usage" (`context_used` ÷ `context_window`) and "Turns that did not end normally" (`stop_reason` other than `end_turn`, such as cancelled, refused or a tool stall)
@@ -28,6 +30,11 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Bedrock model IDs with a cross-region prefix (`us.anthropic.`, `eu.anthropic.`, `apac.anthropic.`, `global.anthropic.` and so on) are now priced; before, only `anthropic.` was removed, so they were left out of the estimated cost. Model IDs written with a dot, such as `claude-sonnet-4.5`, are read as `claude-sonnet-4-5`
 - A model ID now matches a shorter price-table ID only at a separator: `gpt-5` prices `gpt-5-codex`, but not a different version such as `gpt-5.7-sol`, which is left out of the estimated cost and listed as not in the price table
 - "Data sources" says the price table holds Anthropic and OpenAI public rates
+
+### Removed
+
+- BREAKING: `--root` (where Claude Code keeps its history) is now `--claude-root`, next to `--kiro-home` and `--codex-home`. The old name stops with a message that names the new one
+- BREAKING: the old forms `kiroku --serve`, `kiroku --json FILE` and `kiroku -o FILE` are gone, ahead of v1.0.0. Use `kiroku serve`, `kiroku json -o FILE` and `kiroku html -o FILE`; kiroku now says which one to use instead of running the old form. Options given without a command (such as `kiroku --sources kiro`) are an unknown command instead of showing the help
 
 ### Fixed
 
