@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Security
+
+- The "Resume" command in session details is no longer shown when the session ID or project folder read from history starts with `-`. Quoting does not stop a command from reading such a value as an option, so a crafted history file could make the command you paste run, for example, `claude --resume --dangerously-skip-permissions` or `cd -`. It is also not shown when the value contains invisible Unicode formatting characters (such as right-to-left overrides or zero-width spaces), which could make the command on screen look different from what you paste
+
 ## v0.23.0 - 2026-10-08
 
 ### Added

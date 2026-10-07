@@ -3,11 +3,13 @@ package core
 import (
 	"regexp"
 	"strings"
+	"unicode"
 )
 
 // ResumeCmd は、会話を再開するためにコピーして端末に貼るコマンド（cd <dir> && <cmd> <id>）を作る。
 // dir と id は履歴から来た値なので、シェルが解釈しないように囲む。cmd は kiroku が決めた固定の文字列。
-// 安全に囲めない値（制御文字、Windows で両方のシェルが特別に扱う文字）があれば "" を返し、コマンドは出さない。
+// 安全に囲めない値（制御文字、Unicode の書式文字、- で始まる値、Windows で両方のシェルが特別に扱う文字）が
+// あれば "" を返し、コマンドは出さない。
 func ResumeCmd(dir, cmd, id string) string {
 	win := isWinPath(dir)
 	d, ok := shellArg(dir, win)
@@ -38,8 +40,12 @@ func isWinPath(p string) bool { return winPath.MatchString(p) }
 // POSIX のシェルでは単一引用符で囲む（中の単一引用符は、引用を閉じて \' を置き、また開く）。
 // Windows では cmd と PowerShell のどちらに貼られても同じ意味になるよう二重引用符で囲み、
 // 二重引用符の中でも展開される文字（cmd の % !、PowerShell の $ `）と " を含むものは扱わない。
+// - で始まる値は、囲んでもコマンド（cd、claude、codex など）がオプションとして読むので扱わない
+// （たとえば ID が --dangerously-skip-permissions、フォルダが - の履歴）。
+// Unicode の書式文字（U+202E などの双方向の制御、U+200B などの幅ゼロの文字、U+FEFF）を含むものも、
+// 画面に見えるコマンドと貼られる中身が違って見えるので扱わない。
 func shellArg(s string, win bool) (string, bool) {
-	if s == "" || strings.ContainsFunc(s, func(r rune) bool { return r < 0x20 || (r >= 0x7f && r <= 0x9f) || r == '\u2028' || r == '\u2029' }) {
+	if s == "" || s[0] == '-' || strings.ContainsFunc(s, unsafeRune) {
 		return "", false
 	}
 	if win {
@@ -55,4 +61,10 @@ func shellArg(s string, win bool) (string, bool) {
 		return s, true
 	}
 	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'", true
+}
+
+// unsafeRune は、貼るコマンドに入れない文字か：制御文字（C0、DEL、C1）、行と段落の区切り（U+2028、U+2029）、
+// Unicode の書式文字（Cf：双方向の制御、幅ゼロの文字、U+FEFF など）。
+func unsafeRune(r rune) bool {
+	return r < 0x20 || (r >= 0x7f && r <= 0x9f) || r == '\u2028' || r == '\u2029' || unicode.Is(unicode.Cf, r)
 }
