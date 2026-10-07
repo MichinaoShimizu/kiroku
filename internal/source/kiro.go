@@ -69,8 +69,10 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 			}
 			s.Agent(t)
 			switch typ {
-			case "assistant": // 人に返した文（依頼の流れに出す）
-				s.Reply(t, "", core.TextOf(p["content"]))
+			case "assistant": // 人に返した文（依頼の流れに出す）。考えている途中の文（operationType: Reasoning）は入れない
+				if core.Str(p["operationType"]) != "Reasoning" {
+					s.Reply(t, "", replyText(p["content"]))
+				}
 			case "tool_call":
 				s.Tool(core.Str(p["toolName"]), p["args"])
 				s.Measure("tool_calls", t, 1)
@@ -87,6 +89,52 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		emit(s)
 	}
 	return errs.err()
+}
+
+// replyText は Kiro IDE の応答の文。ふつうは文字列か text の塊の並び（core.TextOf）だが、
+// それで拾えない形（{"content": …} や {"text": …} の入れ子）も、中の文字をたどって拾う。
+func replyText(v any) string {
+	if t := core.TextOf(v); t != "" {
+		return t
+	}
+	var walk func(any, int) string
+	walk = func(v any, depth int) string {
+		if depth > 4 {
+			return ""
+		}
+		switch x := v.(type) {
+		case string:
+			return x
+		case []any:
+			var parts []string
+			for _, y := range x {
+				if t := walk(y, depth+1); t != "" {
+					parts = append(parts, t)
+				}
+			}
+			return strings.Join(parts, "\n")
+		case map[string]any:
+			for _, k := range []string{"text", "content", "message", "value", "parts"} {
+				if t := walk(x[k], depth+1); t != "" {
+					return t
+				}
+			}
+		}
+		return ""
+	}
+	return walk(v, 0)
+}
+
+// replyAt は Kiro CLI の応答の時刻。行に時刻があればそれ、なければその回（n 番目の依頼）の終わり、
+// それもなければ直前の依頼の時刻。依頼より前になる時刻は使わない（ほかの依頼の応答になってしまうため）。
+func replyAt(t *float64, turnEnds []*float64, n int, asked *float64) *float64 {
+	if t != nil {
+		return t
+	}
+	if n >= 1 && n <= len(turnEnds) && turnEnds[n-1] != nil && (asked == nil || *turnEnds[n-1] >= *asked) {
+		return turnEnds[n-1]
+	}
+	return asked
 }
 
 // KiroCLI は Kiro CLI: <KIRO_HOME>/sessions/cli/<id>.json（メタ）+ <id>.jsonl（Prompt/AssistantMessage）。
@@ -192,9 +240,11 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		s.Tick(ts(meta["created_at"]))
 		s.Tick(ts(meta["updated_at"]))
 		defaultModel := core.Str(core.Get(meta, "session_state", "rts_model_state", "model_info", "model_id"))
+		var turnEnds []*float64 // 依頼ごとの、その回の終わりの時刻（応答の行には時刻がないので、応答の時刻に使う）
 		for _, t := range core.List(core.Get(meta, "session_state", "conversation_metadata", "user_turn_metadatas")) {
 			tm := core.Map(t)
 			te := ts(tm["end_timestamp"])
+			turnEnds = append(turnEnds, te)
 			s.Agent(te)
 			used := creditsOf(tm["metering_usage"], "unit", "value")
 			if used != 0 {
@@ -210,6 +260,8 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			}
 			s.Model(firstNonEmpty(core.Str(tm["model"]), defaultModel))
 		}
+		var asked *float64 // 直前の依頼の時刻
+		nPrompt := 0
 		errs.file(s.File, core.ReadJSONL(s.File, func(e core.Obj) {
 			data := core.Map(e["data"])
 			raw := e["timestamp"]
@@ -221,9 +273,14 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			case "Prompt":
 				s.Tick(t)
 				s.Prompt(t, core.TextOf(data["content"]))
+				asked = t
+				nPrompt++
 			case "AssistantMessage":
 				s.Agent(t)
-				s.Reply(t, "", core.TextOf(data["content"])) // 人に返した文（content の kind: text）
+				// 人に返した文（content の kind: text）。kiro-cli は応答の行に時刻を残さないので、
+				// その回の終わりの時刻（user_turn_metadatas の end_timestamp）、なければ直前の依頼の時刻を使う。
+				// 時刻がないと、どの依頼への応答か決められず、応答が出ない
+				s.Reply(replyAt(t, turnEnds, nPrompt, asked), "", core.TextOf(data["content"]))
 				for _, c := range core.List(data["content"]) {
 					cm := core.Map(c)
 					if core.Str(cm["kind"]) == "toolUse" {
