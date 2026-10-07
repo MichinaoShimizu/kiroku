@@ -1,7 +1,6 @@
 package source
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -442,6 +441,9 @@ var kiroWorkspaceDir = regexp.MustCompile(`^[0-9a-fA-F]{32}$`)
 // kiroExecMax は実行ファイルとして読む大きさの上限。会話の全文が入るので大きめにする。これより大きいファイルは読まない。
 const kiroExecMax = 64 << 20
 
+// kiroExecKeys は実行ファイルのうち kiroku が読む項目（topFields で取り出す）。
+var kiroExecKeys = []string{"executions", "executionId", "chatSessionId", "sessionId", "modelId", "startTime", "endTime", "metadata", "usageSummary"}
+
 // realDir は、シンボリックリンクでないふつうのフォルダか。
 func realDir(p string) bool {
 	st, err := os.Lstat(p)
@@ -471,12 +473,10 @@ func loadKiroExecs(gs string, errs *fileErrs) (byID map[string]*kiroExec, bySess
 			errs.file(p, err)
 			continue
 		}
-		var v any
-		if json.Unmarshal(b, &v) != nil {
-			continue
-		}
-		data := core.Map(v)
-		if data == nil || data["executions"] != nil {
+		// 実行ファイルには会話の全文（context）が入っていて大きい。全体を組み立てると読み込みがとても遅くなるので、
+		// 使う項目だけを取り出す
+		data, ok := topFields(b, kiroExecKeys)
+		if !ok || data["executions"] != nil {
 			continue
 		}
 		meta := core.Map(data["metadata"])

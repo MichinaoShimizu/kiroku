@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Kiro IDE before 1.0: reading history is fast again. Since v0.20.0, kiroku read every execution file in full, including the whole conversation it carries, which made `kiroku serve`, `html` and `json` several seconds slower with a lot of Kiro IDE history (about 3 s to 7 s for 1,600 sessions with 3,000 execution files). kiroku now picks out only the fields it uses and skips the rest, so reading the execution files takes about a tenth of the time; the results are the same
+
 ## v0.21.2 - 2026-10-07
 
 ### Changed
