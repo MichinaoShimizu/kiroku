@@ -1,12 +1,15 @@
 package web
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
 
 // 画面のスクリプトに構文の誤りがないこと（文字列の中に ${} を書いてしまうなど）。
@@ -112,5 +115,39 @@ func TestCostOf(t *testing.T) {
 	}
 	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
 		t.Errorf("costOf が違う:\n%s", out)
+	}
+}
+
+// 履歴が記録しないもの（core.Records）を「0」ではなく「記録されていない」と出すための records・unrecorded。
+// state.js はほかの値に頼るので、その行だけを取り出し、RECORDS には core.Records を入れて Node で動かす。
+func TestUnrecorded(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/state.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := strings.ReplaceAll(string(src), "\r\n", "\n")
+	code := regexp.MustCompile(`(?ms)^const RECORDS = .*?^const notRec = .*?$`).FindString(text)
+	if code == "" {
+		t.Fatal("state.js に RECORDS から notRec までが見つからない")
+	}
+	recs, err := json.Marshal(core.Records)
+	if err != nil {
+		t.Fatal(err)
+	}
+	code = "let DATA = [];\n" + strings.Replace(code, "__RECORDS__", string(recs), 1)
+	cases, err := os.ReadFile(filepath.Join("testdata", "records_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "records.js")
+	if err := os.WriteFile(f, append([]byte(code+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("records・unrecorded が違う:\n%s", out)
 	}
 }

@@ -19,6 +19,12 @@ function shiftTimes(x){ if (!SHIFT) return x;
 const LIVE = __LIVE__; // kiroku serve で開いたとき true
 const PROMPT_RUNES = __PROMPT_RUNES__; // HTML に入れるプロンプトの長さ（core.PromptRunes）
 const REPLY_RUNES = __REPLY_RUNES__; // HTML に入れる応答の長さ（core.ReplyRunes）
+const RECORDS = __RECORDS__; // エージェントごとに、履歴から読めるもの（core.Records）。ないものは「0」ではなく「記録されていない」と出す
+const records = (src, what) => (RECORDS[src] || []).includes(what);
+// 期間 [ws, we) のセッションのエージェントのどれも what を記録しないなら、それらのエージェントの名前。どれかが記録するか、セッションがなければ null
+function unrecorded(ws, we, what){ const srcs = [...new Set(DATA.filter(s => s.end >= ws && s.start < we).map(s => s.source))];
+  return srcs.length && !srcs.some(x => records(x, what)) ? srcs : null; }
+const notRec = srcs => `Not recorded in ${srcs.join(", ")} history`;
 const YEAR_ON = false; // 1 年の露光は一旦隠す（ボタンと Y キーを出さない）。戻すときは true にする
 const SLOTS = 8;
 const $ = s => document.querySelector(s);

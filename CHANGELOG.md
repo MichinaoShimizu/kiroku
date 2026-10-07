@@ -4,6 +4,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Changed
+
+- Metrics an agent's history doesn't record now say so instead of showing 0. When none of the agents used in the period records usage limit hits, compactions or subagents (for example, only Kiro), those cards show "—" and "Not recorded in … history", and the improvement prompt says the same. Session details show "Not recorded in … history" for files changed when that agent doesn't record edited files (Kiro IDE before 1.0 and Kiro Crew's own records), instead of "None". What each agent records is kept in one table in the code (`core.Records`), which also decides which sessions count for the outputs share
+
 ### Fixed
 
 - Codex: session details now list the files Codex edited. Codex changes files with `apply_patch`, whose argument is a patch rather than a file path, so the list always read "None"; kiroku now takes the file names from the patch
