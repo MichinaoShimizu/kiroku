@@ -289,6 +289,10 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .pout{font-size:var(--fs-sm);font-variant-numeric:tabular-nums;color:var(--ink)}.pout span{color:var(--ink-3)}
 .panel.ask,.panel.metap{grid-column:1/-1}
 .panel.metap .foot{margin-top:12px} /* 計測の状態と生成時刻：ページのいちばん下 */
+.dsrc summary{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none}.dsrc summary::-webkit-details-marker{display:none}
+.dsrc .dsc{width:12px;height:12px;stroke:var(--ink-3);fill:none;stroke-width:1.8;transition:transform .2s var(--ease)}.dsrc[open] .dsc{transform:rotate(90deg)}
+.dsrc summary h3{margin:0}.dsrc summary .muted{font-size:var(--fs-xs)}
+.foot .xl{color:var(--ink-2)}
 .askbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px}
 .askpre{margin:0;max-height:320px;overflow:auto;padding:14px 16px;border:1px solid var(--rule);border-radius:10px;background:var(--bg);font:var(--fs-sm)/1.7 var(--mono);color:var(--ink-2);white-space:pre-wrap;word-break:break-word}
 /* ── month（月カレンダー：日ごとの作業量） ───────────────── */

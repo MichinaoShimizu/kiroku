@@ -160,6 +160,8 @@ function keepRow(r){ // 計測の状態に添える：どこまでさかのぼ�
       : k.days && !k.set ? `<br><span class="kw">${`Records older than ${k.days} days are deleted automatically (<code>${esc(k.setting)}</code> is at its default)`}${link}</span>`
       : k.days ? `<br>${`Kept for ${k.days} days (<code>${esc(k.setting)}</code>)`}`
       : `<br>${`Older records are deleted after a period (<code>${esc(k.setting)}</code>)`}${link}`); }
+// measure は、計測の状態（読んだ履歴・消える設定・kiroku のコピー・料金表）。ふだんはたたみ、
+// 気をつけること（読めないファイル・既定のままで消える履歴・料金表にないモデル）があるときは、見出しに印を付けて開いておく
 function measure(w){
   const rows = META.report.map(r => { const dt = r.detailEn || r.detail;
     return `<li class="${r.error?"warn":""}">${esc((r.name))}: ${plural(r.n, "session")}${dt?` (${esc(dt)})`:""}${r.dup?` (${plural(r.dup, "duplicate conversation")} found elsewhere not counted)`:""}${r.error?` (some files couldn't be read)`:""}${keepRow(r)}</li>`; });
@@ -169,7 +171,9 @@ function measure(w){
   if (w.usage && w.usage.unpriced) { const ms = (w.usage.unpricedModels || []).map(m => `<code>${esc((m))}</code>`).join(", ");
     rows.push(`<li class="warn">${`${tok(w.usage.unpriced)} tokens from models not in the price table are not included in the estimated cost${ms ? ` (${ms})` : ""}. Add their prices with <code>--prices</code>`}</li>`); }
   if (w.usage && w.usage.tokens) rows.push(`<li>${`Price table for estimated cost: ${META.prices && META.prices.custom ? "from <code>--prices</code>" : (META.prices ? `public rates as of ${esc(META.prices.asOf)}` : "public rates") + " (change it with <code>--prices</code>)"}`}</li>`);
-  return `<h3>Data sources</h3><ul class="mlist">${rows.join("")}</ul>`;
+  const alert = (META.report || []).some(r => r.error || r.retention && r.retention.days && !r.retention.set && !archOn()) || !!(w.usage && w.usage.unpriced);
+  const n = (META.report || []).filter(r => r.n).length;
+  return `<details class="dsrc"${alert ? " open" : ""}><summary>${ico("caret", "dsc")}<h3>Data sources</h3><span class="muted">${plural(n, "history", "histories")} read</span>${alert ? `<span title="Something here needs your attention">${ico("flag", "fdot")}</span>` : ""}</summary><ul class="mlist">${rows.join("")}</ul></details>`;
 }
 // soFar は、今見ている期間が途中なら、始まりから今日までの日数（今日を含む）。終わった期間や先の期間は null。
 function soFar(){ const {ws, we} = period(), now = nowMs()/1000, a = new Date(ws*1000);
@@ -229,8 +233,12 @@ function nativeSection(w){
   return `<details class="moreS"><summary>Agent-specific metrics</summary><p class="k muted">Numbers each agent records itself${hb("native")}</p>${hint("native")}
     ${w.native.map(g=>`<div class="ngroup"><div class="hd"><b>${esc((g.source))}</b><span>${plural(g.sessions, "session")}</span></div>${nativeRows(g.values)}</div>`).join("")}</details>`;
 }
+// foot は、ページのいちばん下：作った時刻・kiroku の版（リリースのページへ）・リポジトリへのリンク。
+// リンクは押したときに開くだけで、kiroku からは何も送らない（noopener noreferrer）
+const REPO = "https://github.com/MichinaoShimizu/kiroku";
 function foot(){
-  return `<div class="foot"><div>Generated ${dStamp(GENERATED)}</div></div>`;
+  const v = String((META && META.version) || ""), rel = /^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/.test(v);
+  return `<div class="foot"><div>Generated ${dStamp(GENERATED)} · ${rel ? ext(`${REPO}/releases/tag/v${v}`, esc(`kiroku v${v}`)) : `kiroku${v ? " " + esc(v) : ""}`} · ${ext(REPO, "GitHub")}</div></div>`;
 }
 
 function bindCopy(root){ root.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy)); }

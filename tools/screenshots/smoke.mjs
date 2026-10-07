@@ -213,6 +213,15 @@ for (const env of envs) {
     await open();
   });
 
+  await step("ページの下", async () => {
+    const gh = p.locator('#review .foot a[href="https://github.com/MichinaoShimizu/kiroku"]');
+    check("フッターにリポジトリへのリンクがある（参照元を渡さない）", await gh.count() === 1 && /noreferrer/.test(await gh.getAttribute("rel") || "") && await gh.getAttribute("target") === "_blank");
+    const ds = p.locator("#review details.dsrc");
+    check("Data sources は、気をつけることがなければたたんである", await ds.count() === 1 && !(await ds.evaluate(d => d.open)));
+    await ds.locator("summary").click(); await pause();
+    check("開くと、読んだ履歴が見える", await ds.locator(".mlist li").first().isVisible());
+  });
+
   await step("週報の下書き", async () => {
     const tog = p.locator("#rpttog");
     await tog.scrollIntoViewIfNeeded();
