@@ -18,7 +18,7 @@ This page summarizes where kiroku reads each agent's history from and how. The l
 
 ## Kiro IDE
 
-- Replies in the prompt flow come from `assistant` payloads (v1.0 and later); versions that do not record them simply show no reply
+- Replies in the prompt flow come from `assistant` payloads (v1.0 and later), whether their `content` is a string, `text` blocks or nested `content` / `text`; ones with `operationType: "Reasoning"` are the model's thinking and are not replies. Versions that do not record them simply show no reply
 - v1.0 and later: `<hash>/sess_*/session.json` + `messages.jsonl` under `~/.kiro/sessions/` (`~/.kiro` means `KIRO_HOME` when it is set; the same applies below). Per-message timestamps, and credits from `promptTurnSummaries` in `usage_summary`
 - Before v1.0: `<globalStorage>/kiro.kiroagent/workspace-sessions/`. There are no per-message timestamps, so it is shown roughly with start = creation time and end = file modification time. No credits are recorded. Session IDs in `sessions.json` that contain path separators, `..` or drive names are skipped and reported as unreadable, so nothing outside the history folder is read
 
@@ -29,7 +29,7 @@ This page summarizes where kiroku reads each agent's history from and how. The l
 `~/.kiro/sessions/cli/<id>.json` (metadata) + `<id>.jsonl` (conversation). `internal/source/kiro.go`
 
 - Credits come from `session_state.conversation_metadata.user_turn_metadatas[].metering_usage` (the `value` where `unit` is `credit`)
-- Replies in the prompt flow come from the `text` content of `AssistantMessage` lines (new format) and from `assistant.Response` / `assistant.ToolUse` `content` (SQLite; timed by `stream_end_timestamp_ms`)
+- Replies in the prompt flow come from the `text` content of `AssistantMessage` lines (new format; these lines carry no timestamp, so a reply is placed at the end of its turn, `user_turn_metadatas[].end_timestamp`, or at its prompt's time when that is missing) and from `assistant.Response` / `assistant.ToolUse` `content` (SQLite; timed by `stream_end_timestamp_ms`)
 - Older versions use SQLite (`conversations` / `conversations_v2` in `data.sqlite3`). `internal/source/qstore.go`
 - The same conversation can appear in both the new format and SQLite. For a given conversation ID, only the new format is counted (because it has credits). The number left out appears in "Data sources"
 - The SQLite history has no tokens or credits, so it is not included in estimated cost or credits

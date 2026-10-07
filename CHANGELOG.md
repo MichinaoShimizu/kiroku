@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Kiro CLI conversations now show the AI's replies in the prompt flow. kiro-cli records no time on the lines with its replies, and kiroku dropped every reply it could not place, so none appeared; each reply is now placed at the end of its turn, or at its prompt's time when the turn has no end recorded
+- Kiro IDE no longer shows the model's thinking (`operationType: "Reasoning"`) as the reply to a prompt, and finds replies whose text is nested inside `content` or `text` instead of showing none
+
 ## v0.19.0 - 2026-10-07
 
 ### Added
