@@ -21,8 +21,8 @@ function summary(){
   <section class="panel">${ph(3, "How you spent time", "When and how long sessions ran")}
     <div class="stats">
       ${stat("Focus blocks (60+ min)", times(w.focus.length), longest ? `Longest ${dur(longest)}` : "", "focus")}
-      ${(() => { const {ws, we} = period(), H = limitHits(ws, we), N = unrecorded(ws, we, "limits"); return stat("Usage limit hits", N ? "—" : times(H.length), N ? esc(notRec(N)) : H.length ? H.slice(-4).map(h => `${md(h.t)} ${hm(h.t)}${h.r ? ` (resets ${esc(h.r)})` : ""}`).join(", ") + (H.length > 4 ? ", …" : "") : "From Claude Code and Codex history", "limits"); })()}
-      ${(() => { const {ws, we} = period(), C = compactionsOf(ws, we), n = new Set(C.map(c => c.s.id)).size, N = unrecorded(ws, we, "compactions"); return stat("Compactions", N ? "—" : times(C.length), N ? esc(notRec(N)) : C.length ? `In ${plural(n, "session")} · ${C.slice(-4).map(c => `${md(c.t)} ${hm(c.t)}`).join(", ")}${C.length > 4 ? ", …" : ""}` : "From Claude Code, Codex and Amazon Q / Kiro CLI (SQLite) history", "compactions"); })()}
+      ${(() => { const {ws, we} = period(), H = limitHits(ws, we), N = unrecorded(ws, we, "limits"); return N ? norecStat("Usage limit hits", N, "limits") : stat("Usage limit hits", times(H.length), H.length ? H.slice(-4).map(h => `${md(h.t)} ${hm(h.t)}${h.r ? ` (resets ${esc(h.r)})` : ""}`).join(", ") + (H.length > 4 ? ", …" : "") : "From Claude Code and Codex history", "limits"); })()}
+      ${(() => { const {ws, we} = period(), C = compactionsOf(ws, we), n = new Set(C.map(c => c.s.id)).size, N = unrecorded(ws, we, "compactions"); return N ? norecStat("Compactions", N, "compactions") : stat("Compactions", times(C.length), C.length ? `In ${plural(n, "session")} · ${C.slice(-4).map(c => `${md(c.t)} ${hm(c.t)}`).join(", ")}${C.length > 4 ? ", …" : ""}` : "From Claude Code, Codex and Amazon Q / Kiro CLI (SQLite) history", "compactions"); })()}
     </div>
     <details class="moreS" id="moreS"${st.moreS ? " open" : ""}><summary>More metrics (includes estimates)</summary><div class="stats">
       ${stat("Prompts with corrections or interruptions", pct(w.fixRate), `n=${w.prompts}`, "fix")}
@@ -149,6 +149,9 @@ const HELP = {
 };
 const H = () => HELP;
 const openHelp = new Set(); // 再描画（週の移動・自動更新）しても開いた説明は開いたまま
+// 期間のエージェントのどれも記録しない指標のカード（unrecorded）。数字の欄に「—」を太字で出すと 0 や読み込み中に見えるので、
+// 数字の代わりに控えめな文で「記録されていない」と言い、点線の枠で数字のカードと見分けがつくようにする
+function norecStat(k, srcs, h){ return `<div class="stat norec"><div class="k">${k}${hb(h)}</div><div class="v">Not recorded</div><div class="s">${esc(`${srcs.join(", ")} ${srcs.length > 1 ? "don't" : "doesn't"} record this`)}</div>${hint(h)}</div>`; }
 function hb(id){ return H()[id] ? `<button class="hb" data-help="${id}" aria-label="${`How to read ${H()[id].n}`}" aria-expanded="${openHelp.has(id)}">?</button>` : ""; }
 function hint(id){ const h = H()[id]; if (!h) return "";
   const tr = MET[id] ? spark(id, true) : ""; // 推移を出せる指標は、印が付いていなくても説明の中で推移を見られる
