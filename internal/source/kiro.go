@@ -267,6 +267,12 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			slotInfo[slot] = &i
 		}
 	}
+	// state.json が消えた（Crew が片付けた）サブエージェントは、親の会話の crew-log に残る起動の記録で親を見つける
+	for slot, info := range loadCrewSpawns(k.CrewHome, &errs) {
+		if slotInfo[slot] == nil {
+			slotInfo[slot] = &info
+		}
+	}
 	// Crew の会話は、サブエージェントを親の会話にまとめてから出す
 	held := &crewHeld{parents: map[string]*core.Builder{}, byPath: map[string]*core.Builder{}}
 	owners := map[string][]*crewOwner{} // 使用量の記録の slot → Crew から動かした kiro-cli の会話

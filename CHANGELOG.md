@@ -8,6 +8,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - The live demo and the screenshots now show several agents, as kiroku does: Codex CLI, Kiro CLI and Kiro IDE sessions (with Codex subagents and Kiro credits) alongside Claude Code, instead of Claude Code alone
 
+### Fixed
+
+- Kiro Crew subagents are no longer shown as sessions of their own (on the calendar and in the list) once Crew has cleaned up their folder, which it does an hour after a subagent's result is delivered. kiroku now also finds the parent conversation from the `subagent/spawned` records in the parent's crew log (`crew-log/sessions/`), so these subagents stay inside their parent's session with their agent name and prompt. Totals don't change
+
 ## v0.27.2 - 2026-10-08
 
 ### Fixed
