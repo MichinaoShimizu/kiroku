@@ -88,12 +88,12 @@ func q(v, def string) string {
 	return def
 }
 
-// All は対応しているすべての履歴。並びは画面の「計測の状態」の順。
+// All は対応しているすべての履歴。並びは画面の「計測の状態」の順。名前・--sources の名前・コピーのフォルダは core.Agents に合わせる。
 func All(o Options) []Source {
 	return []Source{
-		&Claude{Root: o.ClaudeRoot, Archive: sub(o.Archive, "claude")},
+		&Claude{Root: o.ClaudeRoot, Archive: sub(o.Archive, core.ArchiveDirOf("Claude Code"))},
 		&KiroIDE{Home: o.KiroHome},
-		&KiroCLI{Home: o.KiroHome, CrewHome: q(o.CrewHome, DefaultCrewHome()), CrewArchive: sub(o.Archive, "crew")},
+		&KiroCLI{Home: o.KiroHome, CrewHome: q(o.CrewHome, DefaultCrewHome()), CrewArchive: sub(o.Archive, core.ArchiveDirOf("Kiro Crew"))},
 		&QStore{Label: "Kiro CLI (SQLite)", Fam: "kiro", DB: q(o.KiroCLIDB, filepath.Join(DataDir("kiro-cli"), "data.sqlite3")), Command: "kiro-cli chat --resume"},
 		&KiroIDELegacy{Storages: storages(o.KiroStorages)},
 		&QStore{Label: "Amazon Q", Fam: "amazonq", DB: q(o.AmazonQDB, filepath.Join(DataDir("amazon-q"), "data.sqlite3")), Command: "q chat --resume"},

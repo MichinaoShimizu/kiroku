@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/MichinaoShimizu/kiroku/internal/archive"
+	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
 )
 
@@ -29,8 +30,8 @@ func keepCopies(picked []source.Source, dir string) int {
 	return n
 }
 
-// keptDirs は保存場所の下で kiroku archive が使うフォルダ（source.All の Archive の下の名前）。
-var keptDirs = []string{"claude", "crew"}
+// keptDirs は保存場所の下で kiroku archive が使うフォルダ（core.Agents の Archive）。
+var keptDirs = core.ArchiveDirs()
 
 func cmdArchive(args []string) error {
 	fs := newFS("archive", "archive [flags] [on|off]\n\nAgents such as Claude Code delete old history (Claude Code: after 30 days unless cleanupPeriodDays is set).\n\"kiroku archive on\" makes kiroku keep compressed copies of that history every time it reads it,\nand show deleted conversations from the copies. Copies stay on this computer only.\n\n  kiroku archive        show the status\n  kiroku archive on     start keeping copies (and keep a copy of the current history now)\n  kiroku archive off    stop keeping copies (asks whether to delete the copies already kept)")

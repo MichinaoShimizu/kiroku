@@ -46,9 +46,9 @@ function isoWeek(d){ d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getD
   const y0 = new Date(Date.UTC(d.getUTCFullYear(),0,1)); return Math.ceil(((d-y0)/864e5+1)/7); }
 const keyOf = s => st.colorBy === "project" ? s.project : st.colorBy === "source" ? s.source : `${s.project} · ${s.branch || "—"}`;
 // エージェントの色は、どの画面でも同じにする（色分けの切り替えや件数の順では変わらない）。
-// 警告に見えないよう、オレンジ（--c1）と黄色（--c4）は使わない。Amazon Q は Kiro CLI の前身なので同じ色。
+// 色は core.Agents の Slot（警告に見えないよう、AG_WARN のオレンジと黄色は使わない）。
 // 表にないエージェントは、表でも警告でも使っていない色を、多い順にあてる
-const AG_SLOT = {"Claude Code": 0, "Codex": 2, "Kiro IDE": 6, "Kiro IDE (legacy)": 6, "Kiro CLI": 5, "Kiro CLI (SQLite)": 5, "Amazon Q": 5, "Kiro Crew": 3}, AG_WARN = [1, 4];
+const AG_SLOT = Object.fromEntries(AGENTS.map(a => [a.name, a.slot]));
 let slot = {}, agSlot = {};
 function assignColors(){ // 全期間の多い順に固定。週を変えても、非表示にしても色は変わらない
   const count = f => { const n = {}; DATA.forEach(s => n[f(s)] = (n[f(s)]||0) + 1); return Object.keys(n).sort((a,b)=>n[b]-n[a]); };

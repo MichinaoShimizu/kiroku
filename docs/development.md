@@ -35,7 +35,7 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | `internal/cli/color.go` | Colour and emphasis for what is written to the terminal (`styleFor` turns it off for pipes, files, `NO_COLOR` and `TERM=dumb`) |
 | `internal/archive` | The copies `kiroku archive` keeps: the on/off marks, compressing history to `.zst` (`Sync`), usage, and deleting only the `.zst` copies (`Clear`) |
 | `internal/source` | Adapters that read each agent's history. Details on how they read are in [sources.md](sources.md) |
-| `internal/core` | The common session shape (`Builder` → `Session`), tokens and pricing, agent-specific metrics |
+| `internal/core` | The common session shape (`Builder` → `Session`), tokens and pricing, agent-specific metrics, and `Agents` (`agents.go`: each agent's name, `--sources` name, color, initials, environment variables and `kiroku archive` folder) |
 | `internal/report` | Weekly and monthly aggregates (`Summarize`), per-project summaries (`project.go`), shares by branch and agent (`share.go`) |
 | `internal/gitlog` | Reads commits, and pushes from the reflog, from the git repository in each session's working directory (skipped without git), with the repository's own settings that run programs turned off |
 | `internal/web` | The view. Written as `template.html` (markup), `style.css` and the script in `js/*.js`, split by role (`state.js` data and view state, `format.js` helpers, `calendar.js` week and month calendars, `summary.js` / `review.js` / `panels.js` the summary, `git.js` / `session.js` the details panel, `year.js`, `events.js` input and keyboard, `boot.js` start-up, `live.js` updates under `kiroku serve`; `loading.html` is the page `kiroku serve` shows while it first reads history); `web.go` joins the script files in the fixed order of its `scripts` list into one `<script>` and combines everything with the aggregate JSON into one HTML file. `help_test.go` and `script_test.go` check the view's explanations and script |
@@ -58,17 +58,18 @@ The context windows of Claude models (for Claude Code's Peak context usage and t
 
 ### Adding an agent
 
-1. Implement `Source` (`Name` / `Family` / `Where` / `Load`) in `internal/source` and add it to `source.All`
-2. In `Load`, build a `core.Builder` for each conversation and `emit` it (times, prompts, tools, models, tokens, credits)
-3. If the same conversation is also stored elsewhere, make `Builder.Key` match (only the one read first is used)
-4. Record numbers only that agent tracks with `Builder.Measure`, and add their definitions to `core.NativeDefs`
-5. Add the agent's `Name` to `core.Records` (`internal/core/records.go`) with what its history records (interruptions, usage limits, compactions, edited files, subagents, outputs). The view shows "—" and "Not recorded in … history" instead of 0 for anything not listed, and `TestRecordsCoverEverySource` fails if the name is missing. Add a column for it to "What each agent records" in the guide; `TestGuideRecordsTable` checks the rows that come from `core.Records`
-6. If `Where()` alone is not enough for what `kiroku serve` watches, implement `Watch()` (`internal/source/watch.go`)
-7. If each conversation is in its own file and can be read without cross-checking other files, also implement `Splitter` (`Units` / `LoadUnit`). `kiroku serve` then reloads only the conversations that changed (without it, the whole agent is reloaded when a watched location changes)
-8. For an agent that deletes history automatically, implement `Retainer` (`Retention()`) and `Keeper` (`Keep()`, which keeps a copy with `kiroku archive` and reads the copy once the original is gone); implement `Detailer` to add a note to the data sources status
-9. For a new `Family`, add it to the default of `--sources` in `internal/cli/cli.go`. To make its location configurable, add `source.Options`, an option in `addCommon`, and an environment variable (`Default…`)
-10. Put synthetic data in `testdata/` and write tests (golden covers only the Python version's 4 histories, so check new adapters in `internal/source/<name>_test.go`). Also add it to the loading in `internal/cli/snapshot_test.go` and regenerate the snapshot
-11. Update "Histories read" and "History retention" in the guide, `docs/sources.md` (including the "What history records" table), the supported agents in the README, and the help in `internal/cli/cli.go`
+1. Add the agent to `core.Agents` (`internal/core/agents.go`): the name shown in the view (its `Source.Name()`), its `--sources` name (`Family`), its color and initials in the view, the environment variables that move its history, and the `kiroku archive` folder if it deletes history. The default and help of `--sources`, the environment variables `kiroku autostart` writes down, the folders `kiroku archive off` clears, and the view's colors and badges all come from this table; `TestAgentsCoverEverySource`, `TestNoAgentTablesInScripts` and `TestGuideNamesEveryAgent` check that nothing disagrees with it
+2. Implement `Source` (`Name` / `Family` / `Where` / `Load`) in `internal/source` and add it to `source.All`
+3. In `Load`, build a `core.Builder` for each conversation and `emit` it (times, prompts, tools, models, tokens, credits)
+4. If the same conversation is also stored elsewhere, make `Builder.Key` match (only the one read first is used)
+5. Record numbers only that agent tracks with `Builder.Measure`, and add their definitions to `core.NativeDefs`
+6. Add the agent's `Name` to `core.Records` (`internal/core/records.go`) with what its history records (interruptions, usage limits, compactions, edited files, subagents, outputs). The view shows "—" and "Not recorded in … history" instead of 0 for anything not listed, and `TestRecordsCoverEverySource` fails if the name is missing. Add a column for it to "What each agent records" in the guide; `TestGuideRecordsTable` checks the rows that come from `core.Records`
+7. If `Where()` alone is not enough for what `kiroku serve` watches, implement `Watch()` (`internal/source/watch.go`)
+8. If each conversation is in its own file and can be read without cross-checking other files, also implement `Splitter` (`Units` / `LoadUnit`). `kiroku serve` then reloads only the conversations that changed (without it, the whole agent is reloaded when a watched location changes)
+9. For an agent that deletes history automatically, implement `Retainer` (`Retention()`) and `Keeper` (`Keep()`, which keeps a copy with `kiroku archive` and reads the copy once the original is gone); implement `Detailer` to add a note to the data sources status
+10. To make its location configurable, add `source.Options`, an option in `addCommon`, and an environment variable (`Default…`)
+11. Put synthetic data in `testdata/` and write tests (golden covers only the Python version's 4 histories, so check new adapters in `internal/source/<name>_test.go`). Also add it to the loading in `internal/cli/snapshot_test.go` and regenerate the snapshot
+12. Update "Histories read" and "History retention" in the guide, `docs/sources.md` (including the "What history records" table), the supported agents in the README, and the help in `internal/cli/cli.go`
 
 Aggregation (`internal/report`) and the view only see the common session shape, so you usually don't need to touch them.
 
