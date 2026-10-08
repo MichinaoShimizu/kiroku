@@ -4,13 +4,29 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Added
+
+- Claude Haiku 5.5 (`claude-haiku-5-5`) is in the price table: $0.10 input, $0.125 / $0.20 cache writes (5 minutes / 1 hour), $0.01 cache reads and $0.50 output per million tokens, and $0.50 / $0.625 / $1 / $0.05 / $2.50 for the whole response when its prompt is over 100,000 tokens. The pricing page doesn't say whether cached tokens count toward the prompt, so kiroku counts new input plus cache writes and reads. Its context window (1M) is in the table for Peak context usage. `docs/upstream/anthropic-pricing.md` now has columns for prices by prompt length, and an entry for the model in `--prices` is used for every length
+
 ### Fixed
 
+- Claude Sonnet 5.5: cache reads are priced at $0.10 per million tokens (0.05× input), as on the official pricing page, instead of $0.20. Estimates from the price table were too high for Sonnet 5.5 sessions that read from the cache
+- Codex sessions started on an older Codex and resumed after upgrading it keep the tokens, cost and responses from before the upgrade. They were dropped once the newer version wrote its first usage record to the same file
+- In older Codex histories without `user_message` events, the context Codex adds to the conversation (`<environment_context>`, `<user_instructions>`, `<turn_aborted>` and other such blocks, and AGENTS.md instructions) is no longer counted as a prompt. It appears in the prompt flow as a note instead
+- Amazon Q and Kiro CLI (SQLite): text the CLI sends on your behalf is no longer counted as your prompt. The reason it sends when it rejects a tool whose arguments your settings forbid, the request `/todos resume` sends, and the lines an MCP prompt adds with `/prompts get` are shown as "Added by the agent" instead
+- Amazon Q and Kiro CLI (SQLite): a conversation stored under several folders (for example after `/load`) is read from its most recently saved copy, instead of whichever copy happened to come first, which could be an older, shorter one
+- Amazon Q and Kiro CLI (SQLite): rows of `data.sqlite3` that can't be read are reported in "Data sources" instead of being skipped silently
+- Kiro IDE before 1.0: a prompt that starts with the steering rules Kiro adds (`<steering-reminder>`) is counted as a prompt again, with the rules shown as a system note; before, the whole message, your request included, became a note and the prompt was not counted. Messages that hold only the environment context Kiro adds (`<EnvironmentContext>`) or its `## Included Rules` block are no longer counted as prompts, and these blocks are left out of the prompt text
+- Kiro IDE 1.0 and later: a reply placeholder (`...`) Kiro writes while a reply is streaming is no longer shown as the AI's reply
 - Kiro Crew: messages Crew sends on its own (scheduled runs, Issue Radar wakes, the task runner, auto-go) no longer count as your prompts. Newer Crew marks the messages a person wrote, and kiroku now counts only those, showing the others as messages sent by an agent or a schedule. Conversations written before Crew had the marker are read as before
 - Kiro Crew: a forked conversation no longer counts the prompts it copied from the conversation it was forked from, so forking a chat with 20 prompts no longer adds 20 more
 - Kiro Crew: its data is read from `~/.kiro/crew` even when `KIRO_HOME` (or `--kiro-home`) points elsewhere, since Crew itself does not follow `KIRO_HOME`. `KIROCREW_HOME` still wins, and a leading `~` in it now means your home folder, as in Crew
 - Kiro Crew: memory consolidation runs are grouped into one session per memory store and day, like Crew's other background work, instead of one session per run
 - Kiro Crew: a subagent's turns and credits are no longer counted twice, once in its kiro-cli conversation and again as a separate "Kiro Crew" session. Crew's usage records for a subagent are now matched to its conversation, and the records of subagents whose conversation Crew has deleted are shown as that subagent's session
+
+### Security
+
+- The "Resume" command in session details is no longer shown when the session ID or project folder read from history starts with `-`. Quoting does not stop a command from reading such a value as an option, so a crafted history file could make the command you paste run, for example, `claude --resume --dangerously-skip-permissions` or `cd -`. It is also not shown when the value contains invisible Unicode formatting characters (such as right-to-left overrides or zero-width spaces), which could make the command on screen look different from what you paste
 
 ## v0.23.0 - 2026-10-08
 

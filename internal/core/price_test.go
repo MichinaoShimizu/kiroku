@@ -20,6 +20,9 @@ func TestPriceOfExactAndPrefix(t *testing.T) {
 		{"Claude-Sonnet-4.5", "claude-sonnet-4-5", true},
 		{"claude-3-5-haiku-latest", "claude-3-5-haiku", true},
 		{"claude-opus-4-6[1m]", "claude-opus-4-6", true},
+		{"claude-haiku-5-5", "claude-haiku-5-5", true},
+		{"claude-haiku-5-5-20261001", "claude-haiku-5-5", true},
+		{"us.anthropic.claude-haiku-5-5-v1:0", "claude-haiku-5-5", true},
 		// 新しいモデルに近い名前の料金を当てたもの
 		{"claude-opus-5-6", "claude-opus-5", false},
 		{"claude-sonnet-4-9-20270101", "claude-sonnet-4", false},
@@ -37,7 +40,7 @@ func TestPriceOfExactAndPrefix(t *testing.T) {
 		}
 	}
 	// 区切りのない先頭一致や、別の版の番号には当てない
-	for _, m := range []string{"gpt-5.7-sol", "gpt-50", "gpt-6.2-sol", "claude-opus-45", "gpt-x", "", "anthropic."} {
+	for _, m := range []string{"gpt-5.7-sol", "gpt-50", "gpt-6.2-sol", "claude-opus-45", "claude-haiku-5-55", "claude-haiku-5", "gpt-x", "", "anthropic."} {
 		if p, ok := PriceOf(m); ok {
 			t.Errorf("PriceOf(%q) = %q, want none", m, p.Key)
 		}
@@ -88,6 +91,63 @@ func TestCostOfRequestLongContext(t *testing.T) {
 	c, _ = CostOfRequest("gpt-6-sol", Tokens{In: 1_000_000, CW: 1_000_000, CR: 1_000_000, Out: 1_000_000})
 	if want := 4.0 + 5 + 0.4 + 15; !near(c, want) {
 		t.Errorf("gpt-6-sol long = %v, want %v", c, want)
+	}
+}
+
+// Sonnet 5.5 のキャッシュ読み込みは入力の 0.05 倍（$0.10）。
+func TestSonnet55CacheRead(t *testing.T) {
+	c, ok := CostOf("claude-sonnet-5-5", Tokens{CR: 1_000_000})
+	if !ok || !near(c, 0.10) {
+		t.Errorf("Sonnet 5.5 cache read = %v, want 0.10", c)
+	}
+}
+
+// Haiku 5.5 は、1 回の応答のプロンプト（入力 + キャッシュの書き込み + 読み込み）が 100K を超えると、その応答の全部が高い料金になる。
+// Haiku 4.5 は境目がなく、いつも同じ料金。
+func TestHaiku55PromptTiers(t *testing.T) {
+	// 40K + 30K + 20K + 10K = 100K ちょうどは安い料金
+	at := Tokens{In: 40_000, CW: 30_000, CW1h: 20_000, CR: 10_000, Out: 10_000}
+	c, ok := CostOfRequest("claude-haiku-5-5", at)
+	if want := (40_000*0.10 + 30_000*0.125 + 20_000*0.20 + 10_000*0.01 + 10_000*0.50) / 1e6; !ok || !near(c, want) {
+		t.Errorf("100K = %v, want %v", c, want)
+	}
+	// 入力は 1K でも、キャッシュの読み込みを足して 100K を超えれば高い料金
+	over := Tokens{In: 1_000, CR: 100_000, Out: 10_000}
+	c, _ = CostOfRequest("claude-haiku-5-5-20261001", over)
+	if want := (1_000*0.50 + 100_000*0.05 + 10_000*2.50) / 1e6; !near(c, want) {
+		t.Errorf("over 100K = %v, want %v", c, want)
+	}
+	all := Tokens{In: 1e6, CW: 1e6, CW1h: 1e6, CR: 1e6, Out: 1e6}
+	c, _ = CostOfRequest("claude-haiku-5-5", all)
+	if want := 0.50 + 0.625 + 1 + 0.05 + 2.50; !near(c, want) {
+		t.Errorf("long = %v, want %v", c, want)
+	}
+	// 何回分かの合計かもしれないもの（CostOf）は安い料金のまま
+	c, _ = CostOf("claude-haiku-5-5", all)
+	if want := 0.10 + 0.125 + 0.20 + 0.01 + 0.50; !near(c, want) {
+		t.Errorf("CostOf = %v, want %v", c, want)
+	}
+	c, _ = CostOfRequest("claude-haiku-4-5", all)
+	if want := 1 + 1.25 + 2 + 0.10 + 5.0; !near(c, want) {
+		t.Errorf("Haiku 4.5 = %v, want %v", c, want)
+	}
+}
+
+// Claude Code の応答（メッセージ ID ごとにまとめたもの）は 1 回分なので、Haiku 5.5 の 100K 超えの料金が当たる。
+func TestUsageHaiku55LongPrompt(t *testing.T) {
+	u := NewUsage()
+	u.Add("m1", nil, "claude-haiku-5-5-20261001", map[string]any{"input_tokens": 10.0, "cache_read_input_tokens": 50_000.0, "output_tokens": 100.0})
+	u.Add("m1", nil, "claude-haiku-5-5-20261001", map[string]any{"input_tokens": 10.0, "cache_read_input_tokens": 150_000.0, "output_tokens": 1000.0})
+	u.Add("m2", nil, "claude-haiku-5-5-20261001", map[string]any{"input_tokens": 1000.0, "output_tokens": 1000.0})
+	evs := u.Events()
+	if len(evs) != 2 || evs[0].Cost == nil || evs[1].Cost == nil {
+		t.Fatalf("events = %+v", evs)
+	}
+	if want := (10*0.50 + 150_000*0.05 + 1000*2.50) / 1e6; !near(*evs[0].Cost, want) {
+		t.Errorf("m1 = %v, want %v", *evs[0].Cost, want)
+	}
+	if want := (1000*0.10 + 1000*0.50) / 1e6; !near(*evs[1].Cost, want) {
+		t.Errorf("m2 = %v, want %v", *evs[1].Cost, want)
 	}
 }
 

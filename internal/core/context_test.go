@@ -28,6 +28,8 @@ func TestContextWindowOf(t *testing.T) {
 		"claude-sonnet-4-6":          2e5,
 		"claude-sonnet-4-5-20250929": 2e5,
 		"claude-haiku-4-5-20251001":  2e5,
+		"claude-haiku-5-5":           1e6,
+		"claude-haiku-5-5-20261001":  1e6,
 		"anthropic.claude-opus-5-5":  1e6,
 	}
 	for m, want := range cases {

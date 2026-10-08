@@ -96,6 +96,87 @@ broken line
 	}
 }
 
+// messages.jsonl・<id>.jsonl がない会話（作りかけ・消えたもの）は、読めないファイルとして数えない。
+func TestKiroMissingMessages(t *testing.T) {
+	home := t.TempDir()
+	writeFiles(t, home, map[string]string{
+		"sessions/abc/sess_1/session.json": `{"id": "sess_1", "createdAt": "2026-09-29T01:00:00Z"}`,
+		"sessions/cli/c1.json": `{"session_id": "c1", "created_at": "2026-09-29T02:00:00Z",
+  "session_state": {"conversation_metadata": {"user_turn_metadatas": [{"end_timestamp": "2026-09-29T02:05:00Z", "metering_usage": [{"value": 0.5, "unit": "credit"}]}]}}}`,
+	})
+	if bs := load(t, &KiroIDE{Home: home}); len(bs) != 1 || len(bs[0].Prompts) != 0 {
+		t.Errorf("Kiro IDE: %d 件（会話は残し、依頼はなし）", len(bs))
+	}
+	bs := load(t, &KiroCLI{Home: home})
+	if len(bs) != 1 || bs[0].Finish(15).Credits != 0.5 {
+		t.Errorf("Kiro CLI: %d 件（会話は残し、メタのクレジットは数える）", len(bs))
+	}
+}
+
+// Kiro IDE v1.0 以降: 中身が「...」だけの応答の行は書いている途中の仮の文なので、応答にしない。
+func TestKiroIDEPlaceholderReply(t *testing.T) {
+	home := t.TempDir()
+	writeFiles(t, home, map[string]string{
+		"sessions/abc/sess_1/session.json": `{"id": "sess_1", "createdAt": "2026-09-29T01:00:00Z"}`,
+		"sessions/abc/sess_1/messages.jsonl": `{"timestamp": "2026-09-29T01:01:00Z", "payload": {"type": "user", "content": "ログインを直して"}}
+{"timestamp": "2026-09-29T01:02:00Z", "payload": {"type": "assistant", "content": "直しました"}}
+{"timestamp": "2026-09-29T01:03:00Z", "payload": {"type": "assistant", "content": "..."}}
+`,
+	})
+	s := find(load(t, &KiroIDE{Home: home}), "sess_1")
+	if s == nil {
+		t.Fatal("sess_1 がない")
+	}
+	if r := s.Finish(15).Prompts[0].Reply; r == nil || r.Text != "直しました" {
+		t.Errorf("応答 = %+v, want 直しました（「...」は入れない）", r)
+	}
+}
+
+// Kiro IDE v1.0 より前: Kiro が依頼に足す <steering-reminder>・<EnvironmentContext>・「## Included Rules」の塊は、
+// 依頼から外して notes に回す。残りが空なら依頼に数えない。
+func TestKiroIDELegacyInjected(t *testing.T) {
+	gs := t.TempDir()
+	writeFiles(t, gs, map[string]string{
+		"workspace-sessions/d3M=/sessions.json": `[{"sessionId": "a", "dateCreated": 1759100000000}]`,
+		"workspace-sessions/d3M=/a.json": `{"history": [
+  {"message": {"role": "user", "content": "<steering-reminder>Always use pnpm</steering-reminder>\nログインを直して"}},
+  {"message": {"role": "user", "content": "<EnvironmentContext>\nOS: macOS\n</EnvironmentContext>"}},
+  {"message": {"role": "user", "content": [{"type": "text", "text": "## Included Rules (style.md)\n\n# Style\nuse tabs\n\nテストを足して"}]}},
+  {"message": {"role": "user", "content": "## Included Rules\nrule a\n\n"}}
+]}`,
+	})
+	a := find(load(t, &KiroIDELegacy{Storages: []string{gs}}), "a")
+	if a == nil {
+		t.Fatal("a がない")
+	}
+	f := a.Finish(15)
+	if f.NPrompts != 2 || f.Prompts[0].Text != "ログインを直して" || f.Prompts[1].Text != "テストを足して" {
+		t.Errorf("依頼 = %d %+v, want ログインを直して・テストを足して", f.NPrompts, f.Prompts)
+	}
+	want := []string{"Always use pnpm", "OS: macOS", "## Included Rules (style.md) # Style use tabs", "## Included Rules rule a"}
+	if len(a.Notes) != len(want) {
+		t.Fatalf("notes = %+v, want %d 件", a.Notes, len(want))
+	}
+	for i, w := range want {
+		if a.Notes[i].Kind != "reminder" || a.Notes[i].Text != w {
+			t.Errorf("note[%d] = %+v, want reminder %q", i, a.Notes[i], w)
+		}
+	}
+}
+
+func TestKiroUserText(t *testing.T) {
+	for _, c := range []struct{ in, prompt string }{
+		{"直して", "直して"},
+		{"## Included Rules\na\n\n\n直して", "直して"},                 // 空行が続いても、最初の「空白でない文字」の前で終わる
+		{"前\n## Included Rules\na\n\n## b\n\n直して", "前\n\n\n直して"}, // 「#」で始まる段落は規則の続き
+		{"## Included Rules\na\n\n  インデント", ""},                  // 空白で始まる段落も規則の続き
+	} {
+		if p, _ := kiroUserText(c.in); p != c.prompt {
+			t.Errorf("kiroUserText(%q) = %q, want %q", c.in, p, c.prompt)
+		}
+	}
+}
+
 func TestKiroIDENoHistory(t *testing.T) {
 	if bs := load(t, &KiroIDE{Home: filepath.Join(t.TempDir(), "none")}); len(bs) != 0 {
 		t.Errorf("履歴がなければ何も出さない: %d 件", len(bs))

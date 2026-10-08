@@ -45,3 +45,17 @@ func TestPromptKinds(t *testing.T) {
 		t.Errorf("中断 %d", b.Interrupts)
 	}
 }
+
+// Codex が会話に入れるタグは名前に _ を使う（<environment_context> など）。プロンプトにせず、タグを外して Note にする。
+func TestPromptUnderscoreTag(t *testing.T) {
+	b := NewBuilder("codex", "s")
+	ts := 1.0
+	b.Prompt(&ts, "<environment_context>\n  <cwd>/Users/me/web</cwd>\n</environment_context>")
+	b.Prompt(&ts, "<user_shell_command>ls</user_shell_command>")
+	if len(b.Prompts) != 0 {
+		t.Errorf("プロンプト %+v, want 0", b.Prompts)
+	}
+	if len(b.Notes) != 2 || b.Notes[0].Kind != "other" || b.Notes[0].Text != "/Users/me/web" || b.Notes[1].Text != "ls" {
+		t.Errorf("notes %+v", b.Notes)
+	}
+}

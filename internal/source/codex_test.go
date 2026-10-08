@@ -580,3 +580,57 @@ func TestCodexApplyPatchFiles(t *testing.T) {
 		t.Errorf("files = %v (%d), want %v", f.Files, f.NFiles, want)
 	}
 }
+
+// 古い版（token_count だけ）で始めて新しい版で再開すると、同じファイルに token_usage_record が足される
+// （rollout の recorder.rs の Resume は追記）。最初の token_usage_record より前は token_count から数え、
+// そこからは token_usage_record から数える。新しい版は同じ応答を token_usage_record と token_count の両方に書く（記録が先）ので、
+// 境目より後の token_count は数えない。
+func TestCodexResumedAfterUpgrade(t *testing.T) {
+	home := t.TempDir()
+	writeCodex(t, home, "thr-up",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-up","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:01.000Z","type":"turn_context","payload":{"model":"gpt-5.2-codex"}}`,
+		`{"timestamp":"2026-10-06T00:00:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"直して"}}`,
+		`{"timestamp":"2026-10-06T00:00:10.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"reasoning_output_tokens":0,"total_tokens":1100},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"reasoning_output_tokens":0,"total_tokens":1100},"model_context_window":272000},"rate_limits":null}}`,
+		`{"timestamp":"2026-10-06T00:00:20.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":3000,"cached_input_tokens":0,"output_tokens":300,"reasoning_output_tokens":0,"total_tokens":3300},"last_token_usage":{"input_tokens":2000,"cached_input_tokens":0,"output_tokens":200,"reasoning_output_tokens":0,"total_tokens":2200},"model_context_window":272000},"rate_limits":null}}`,
+		// ここから新しい版で再開
+		`{"timestamp":"2026-10-07T00:00:00.000Z","type":"event_msg","payload":{"type":"user_message","message":"続けて"}}`,
+		`{"timestamp":"2026-10-07T00:00:10.000Z","type":"token_usage_record","payload":{"thread_id":"thr-up","response_id":"r3","usage":{"input_tokens":4000,"cached_input_tokens":0,"output_tokens":400,"reasoning_output_tokens":0,"total_tokens":4400}}}`,
+		`{"timestamp":"2026-10-07T00:00:10.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":7000,"cached_input_tokens":0,"output_tokens":700,"reasoning_output_tokens":0,"total_tokens":7700},"last_token_usage":{"input_tokens":4000,"cached_input_tokens":0,"output_tokens":400,"reasoning_output_tokens":0,"total_tokens":4400},"model_context_window":272000},"rate_limits":null}}`,
+		`{"timestamp":"2026-10-07T00:00:20.000Z","type":"token_usage_record","payload":{"thread_id":"thr-up","response_id":"r4","usage":{"input_tokens":8000,"cached_input_tokens":0,"output_tokens":800,"reasoning_output_tokens":0,"total_tokens":8800}}}`,
+		`{"timestamp":"2026-10-07T00:00:20.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":15000,"cached_input_tokens":0,"output_tokens":1500,"reasoning_output_tokens":0,"total_tokens":16500},"last_token_usage":{"input_tokens":8000,"cached_input_tokens":0,"output_tokens":800,"reasoning_output_tokens":0,"total_tokens":8800},"model_context_window":272000},"rate_limits":null}}`,
+	)
+	f := load(t, &Codex{Home: home})[0].Finish(15)
+	if f.Usage.In != 1000+2000+4000+8000 || f.Usage.Out != 100+200+400+800 {
+		t.Errorf("tokens = %+v, want in 15000 out 1500（再開の前も数え、境目で重ねない）", f.Usage.Tokens)
+	}
+	n := nativeEn(f)
+	if v := n["Responses"]; v.V != 4 {
+		t.Errorf("responses = %+v, want 4", v)
+	}
+	if v := n["Peak context usage"]; v.N == 0 {
+		t.Errorf("context = %+v（token_count から読む）", v)
+	}
+}
+
+// user_message のない古い版は response_item の user を依頼にする。Codex が足した <environment_context>・
+// <user_instructions> などのタグや「# AGENTS.md instructions」の指示は依頼に数えない。
+func TestCodexFallbackInjected(t *testing.T) {
+	home := t.TempDir()
+	writeCodex(t, home, "thr-old",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-old","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:01.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"# AGENTS.md instructions for /Users/me/web\n\n<INSTRUCTIONS>\nUse tabs.\n</INSTRUCTIONS>"}]}}`,
+		`{"timestamp":"2026-10-06T00:00:01.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"<user_instructions>\nBe brief.\n</user_instructions>"}]}}`,
+		`{"timestamp":"2026-10-06T00:00:01.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"<environment_context>\n  <cwd>/Users/me/web</cwd>\n</environment_context>"}]}}`,
+		`{"timestamp":"2026-10-06T00:00:02.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Fix the header color"}]}}`,
+		`{"timestamp":"2026-10-06T00:00:30.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"<turn_aborted>\nThe user interrupted.\n</turn_aborted>"}]}}`,
+	)
+	b := load(t, &Codex{Home: home})[0]
+	if len(b.Notes) != 4 {
+		t.Errorf("notes = %+v, want 4（Codex が足したもの）", b.Notes)
+	}
+	f := b.Finish(15)
+	if len(f.Prompts) != 1 || f.Prompts[0].Text != "Fix the header color" {
+		t.Errorf("prompts = %+v, want only the typed one", f.Prompts)
+	}
+}
