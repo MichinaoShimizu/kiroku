@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Kiro Crew subagents are no longer shown as sessions of their own (on the calendar and in the list) once Crew has cleaned up their folder, which it does an hour after a subagent's result is delivered. kiroku now also finds the parent conversation from the `subagent/spawned` records in the parent's crew log (`crew-log/sessions/`), so these subagents stay inside their parent's session with their agent name and prompt. Totals don't change
+
 ## v0.27.2 - 2026-10-08
 
 ### Fixed
