@@ -38,6 +38,11 @@ async function run(env) {
   p.on("pageerror", e => errors.push(e.message));
   p.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
   const pause = () => p.waitForTimeout(300);
+  // カレンダーで最初の、押せるセッション。時間の重なったセッションは後のものが上に描かれ、真ん中が隠れることがある（ダミーデータは日によって変わる）
+  const firstRun = async () => p.locator(".run[data-sid]").nth(Math.max(0, await p.evaluate(() => [...document.querySelectorAll(".run[data-sid]")].findIndex(e => {
+    e.scrollIntoView({ block: "center" }); const r = e.getBoundingClientRect();
+    return e.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+  }))));
   const drawerOpen = async () => await p.locator("#drawer").getAttribute("aria-hidden") === "false";
   // 1 つの流れが途中で止まっても、失敗として数えて次の流れへ進む（開き直して、記録のそろった先週から始める）
   const open = async () => { await p.goto(url); await p.waitForTimeout(500); await p.keyboard.press("ArrowLeft"); await pause(); };
@@ -99,8 +104,8 @@ async function run(env) {
   });
 
   await step("セッションの詳細", async () => {
-    const run = p.locator(".run[data-sid]").first();
-    check("カレンダーにセッションがある", await run.count() > 0);
+    check("カレンダーにセッションがある", await p.locator(".run[data-sid]").count() > 0);
+    const run = await firstRun();
     await run.scrollIntoViewIfNeeded();
     await run.click(); await pause();
     check("押すと詳細が開く", await drawerOpen());
@@ -174,7 +179,7 @@ async function run(env) {
   });
 
   await step("セッションを AI と振り返る", async () => {
-    const run = p.locator(".run[data-sid]").first();
+    const run = await firstRun();
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
     const btn = p.locator("#panel .flowbar #sreview");
     check("振り返りのプロンプトのボタンが、プロンプトの流れの見出しに並ぶ", await btn.count() === 1);
@@ -185,14 +190,14 @@ async function run(env) {
 
   await step("詳細と矢印キー・ブラウザの戻る", async () => {
     const label = () => p.locator("#rd").innerText(), before = await label();
-    const run = p.locator(".run[data-sid]").first();
+    const run = await firstRun();
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
     check("詳細が開く", await drawerOpen());
     await p.keyboard.press("ArrowLeft"); await pause();
     check("詳細を開いているあいだは ← で週が変わらない", await drawerOpen() && await label() === before, await label());
     await p.goBack(); await pause();
     check("ブラウザの戻るで詳細が閉じ、ページに残る", !await drawerOpen() && await p.evaluate(() => typeof DATA === "object"), p.url());
-    await run.click(); await pause();
+    await (await firstRun()).click(); await pause();
     await p.keyboard.press("Escape"); await pause();
     check("Esc で閉じると、積んだ履歴も消える", !await drawerOpen() && await p.evaluate(() => history.state === null));
     await p.locator("#mode button").first().focus(); await p.keyboard.press("ArrowRight"); await pause();
