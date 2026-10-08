@@ -102,7 +102,7 @@ func addCommon(fs *flag.FlagSet) *common {
 		kiroCLIDB:  fs.String("kiro-cli-db", "", "path to the legacy Kiro CLI data.sqlite3 (default: OS-specific)"),
 		amazonQDB:  fs.String("amazonq-db", "", "path to the Amazon Q Developer CLI data.sqlite3 (default: OS-specific)"),
 		codexHome:  fs.String("codex-home", "", "Codex data directory (default $CODEX_HOME or ~/.codex)"),
-		sources:    fs.String("sources", "claude,kiro,amazonq,codex", "comma-separated sources to read: claude, kiro (includes Kiro Crew), amazonq, codex"),
+		sources:    fs.String("sources", strings.Join(core.Families(), ","), "comma-separated sources to read: "+core.FamiliesHelp()),
 		prices:     fs.String("prices", "", "JSON file overriding the model price table"),
 		gap:        fs.Int("gap", 15, "idle `minutes` that split a session into separate blocks"),
 		archiveDir: fs.String("archive-dir", archive.DefaultDir(), "where \"kiroku archive\" keeps copies of deleted history ($KIROKU_ARCHIVE_DIR)"),

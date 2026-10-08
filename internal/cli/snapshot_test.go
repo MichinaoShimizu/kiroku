@@ -263,4 +263,14 @@ func TestRecordsCoverEverySource(t *testing.T) {
 			t.Errorf("core.Records の %q のセッションが合成データにない（名前の書き間違い？）", src)
 		}
 	}
+	for src := range seen { // 画面の色と頭文字・--sources も、セッションに出るすべてのエージェントの分がある
+		if _, ok := core.AgentOf(src); !ok {
+			t.Errorf("core.Agents に %q がない", src)
+		}
+	}
+	for _, a := range core.Agents {
+		if !seen[a.Name] {
+			t.Errorf("core.Agents の %q のセッションが合成データにない（名前の書き間違い？）", a.Name)
+		}
+	}
 }

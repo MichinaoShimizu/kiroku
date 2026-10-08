@@ -89,8 +89,8 @@ pre:empty{display:none}
   const $ = id => document.getElementById(id);
   const card = $("card"), title = $("title"), note = $("note"), detail = $("detail"), list = $("agents"), clock = $("clock"),
     wait = [title.textContent, note.textContent];
-  // エージェントの色は本物の画面と同じ（format.js の AG_SLOT）
-  const SLOT = {"Claude Code": 0, "Codex": 2, "Kiro IDE": 6, "Kiro IDE (legacy)": 6, "Kiro CLI": 5, "Kiro CLI (SQLite)": 5, "Amazon Q": 5, "Kiro Crew": 3};
+  // エージェントの色は本物の画面と同じ（core.Agents の Slot。web.go が埋めこむ）
+  const SLOT = Object.fromEntries(__AGENTS__.map(a => [a.name, a.slot]));
   const color = n => n in SLOT ? `var(--c${SLOT[n]})` : "var(--other)";
   const ms = v => v < 1000 ? `${v}ms` : `${(v/1000).toFixed(1)}s`;
   const show = (err, t, n, d) => { document.body.classList.toggle("err", err); title.textContent = t; note.textContent = n; detail.textContent = d || ""; };

@@ -6,6 +6,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Changed
 
+- Each agent's name, `--sources` name, color, initials, environment variables and `kiroku archive` folder are kept in one table (`core.Agents`). The `--sources` default and help, the environment variables `kiroku autostart` writes down, the folders `kiroku archive off` clears, and the colors and badges in the view and in the page `kiroku serve` shows while it first reads history are made from it, instead of each keeping its own copy. Nothing you see changes
 - Cards in "Repeated prompts" look like the other session cards: the badge and color of the agent of the session they open (where you last wrote the prompt) before the prompt, and a soft gradient in that color
 
 ### Fixed
