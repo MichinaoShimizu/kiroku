@@ -53,7 +53,7 @@ var LongPrices = map[string]LongPrice{
 
 // OpenAIPrices は OpenAI のモデル（Codex が使う gpt-5 以降）の料金。並びは Prices と同じで、
 // 入力（キャッシュなし）, 出力, キャッシュ書き込み, キャッシュ書き込み（同じ値。OpenAI に 1 時間の区別はない）, キャッシュ済み入力。
-// 出典: https://developers.openai.com/api/docs/pricing の Standard（短いコンテキスト）と Specialized models の Codex（2026-10 時点）。
+// 出典: https://developers.openai.com/api/docs/pricing の Standard（短いコンテキスト）、Cyber models、Specialized models の Codex（2026-10 時点）。
 // 公式にキャッシュ書き込み・キャッシュ済み入力の料金がない（"-"）モデルは、その分も入力の料金にする。
 // 公式の数字の控えは docs/upstream/openai-pricing.md。Fast・Batch・Flex・データ所在地の上乗せは入れていない。
 var OpenAIPrices = map[string][5]float64{
@@ -66,6 +66,8 @@ var OpenAIPrices = map[string][5]float64{
 	"gpt-5.6-luna":  {0.2, 1.2, 0.25, 0.25, 0.02},
 	"gpt-5.5":       {5, 30, 5, 5, 0.5},
 	"gpt-5.5-pro":   {30, 180, 30, 30, 30},
+	"gpt-5.6-cyber": {12.5, 75, 15.625, 15.625, 1.25}, // Cyber models の表（長いコンテキストの料金はない）
+	"gpt-5.5-cyber": {12.5, 75, 12.5, 12.5, 1.25},
 	"gpt-5.4":       {2.5, 15, 2.5, 2.5, 0.25},
 	"gpt-5.4-mini":  {0.75, 4.5, 0.75, 0.75, 0.075},
 	"gpt-5.4-nano":  {0.2, 1.25, 0.2, 0.2, 0.02},

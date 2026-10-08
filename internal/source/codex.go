@@ -20,7 +20,8 @@ import (
 //	turn_context  … model
 //	event_msg     … user_message（依頼）、agent_message、token_count（info.total_token_usage / last_token_usage）、
 //	                item_completed（history_mode が paginated の版の発言。item.type は UserMessage / AgentMessage）
-//	response_item … function_call / custom_tool_call（ツール）、message（role が assistant なら応答）
+//	response_item … function_call / custom_tool_call / local_shell_call / web_search_call / tool_search_call /
+//	                image_generation_call（ツール）、message（role が assistant なら応答。user に heartbeat の印）
 //	token_usage_record … 新しい版の使用量（あればこちらを使い、token_count は使わない）
 //	compacted     … コンパクション（会話を要約して文脈を空けた）1 回につき 1 行
 //
@@ -32,6 +33,9 @@ import (
 //     （写しと一緒に書く。写した親の thread_settings_applied は親のスレッド ID のまま。
 //     印のない古い版で作ったファイルも再開すると書くので、写しと一緒に書いたものだけを印とみなす: codexSameWrite）
 //   - どちらの印もない古い版は、これまでどおり session_meta の時刻より前の行
+//
+// thread/revert（巻き戻し）は同じスレッド ID の新しいファイルを作り、残す前半は session_meta.history_base で古いファイルを指す
+// （写さない）。そういうファイルは codexChains で 1 つのスレッドにつなぐ。
 type Codex struct {
 	Home string
 
@@ -39,12 +43,15 @@ type Codex struct {
 	heads map[string]codexHead // ファイルごとの session_meta（Units で親子をまとめるため。印が同じなら読み直さない）
 }
 
-// codexHead は、ファイルの先頭の session_meta から読んだスレッド ID と親のスレッド ID。
+// codexHead は、ファイルの先頭の session_meta から読んだスレッド ID と親のスレッド ID など。
 type codexHead struct {
 	stamp      string
 	ok         bool // session_meta がある
 	id, parent string
-	err        error // 先頭を読めなかった（壊れた .zst など）
+	start      *float64 // session_meta.timestamp（巻き戻しで作ったファイルは、作ったときの時刻）
+	base       string   // history_base.thread_id（名前は thread_id だが、前半を持つファイルの rollout ID）
+	baseEnd    float64  // history_base.end_ordinal_exclusive（前半として読む ordinal の上限。含まない）
+	err        error    // 先頭を読めなかった（壊れた .zst など）
 }
 
 func (c *Codex) Name() string   { return "Codex" }
@@ -247,8 +254,8 @@ func (c *Codex) readHeads(files []string) []codexHead {
 		stamp := Stamp([]string{p})
 		h, ok := c.heads[p]
 		if !ok || h.stamp != stamp {
-			h = codexHead{stamp: stamp}
-			h.id, h.parent, h.ok, h.err = readCodexHead(p)
+			h = readCodexHead(p)
+			h.stamp = stamp
 		}
 		next[p], out[i] = h, h
 	}
@@ -256,19 +263,36 @@ func (c *Codex) readHeads(files []string) []codexHead {
 	return out
 }
 
+// head は、1 つのファイルの session_meta（印が同じなら前に読んだものを使う）。
+func (c *Codex) head(p string) codexHead {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	stamp := Stamp([]string{p})
+	if h, ok := c.heads[p]; ok && h.stamp == stamp {
+		return h
+	}
+	h := readCodexHead(p)
+	h.stamp = stamp
+	if c.heads == nil {
+		c.heads = map[string]codexHead{}
+	}
+	c.heads[p] = h
+	return h
+}
+
 // readCodexHead は、最初の session_meta までだけ読む（ふつうは 1 行目）。
 // err は、session_meta にたどり着く前に読めなくなったとき（消えていたときは nil）。
-func readCodexHead(path string) (id, parent string, ok bool, err error) {
+func readCodexHead(path string) codexHead {
 	f, err := os.Open(path)
 	if err != nil {
-		return "", "", false, fileErr(path, err)
+		return codexHead{err: fileErr(path, err)}
 	}
 	defer f.Close()
 	var src io.Reader = f
 	if strings.HasSuffix(path, ".zst") {
 		d, err := core.NewZstdReader(f)
 		if err != nil {
-			return "", "", false, fileErr(path, err)
+			return codexHead{err: fileErr(path, err)}
 		}
 		defer d.Close()
 		src = d
@@ -279,15 +303,125 @@ func readCodexHead(path string) (id, parent string, ok bool, err error) {
 		var e core.Obj
 		if !long && json.Unmarshal(line, &e) == nil && core.Str(e["type"]) == "session_meta" {
 			p := core.Map(e["payload"])
-			return core.Str(p["id"]), codexParent(p), true, nil
+			h := codexHead{ok: true, id: core.Str(p["id"]), parent: codexParent(p), start: ts(p["timestamp"])}
+			if h.start == nil {
+				h.start = ts(e["timestamp"])
+			}
+			base := core.Map(p["history_base"])
+			if end, ok := core.Num(base["end_ordinal_exclusive"]); ok {
+				h.base, h.baseEnd = core.Str(base["thread_id"]), end
+			}
+			return h
 		}
 		if err == io.EOF {
-			return "", "", false, nil
+			return codexHead{}
 		}
 		if err != nil {
-			return "", "", false, fileErr(path, err)
+			return codexHead{err: fileErr(path, err)}
 		}
 	}
+}
+
+// codexRolloutID は、ファイル名の rollout ID。ふつうは rollout-<時刻>-<スレッド ID>.jsonl でスレッド ID と同じ。
+// thread/revert（巻き戻し）で作ったファイルは rollout-<時刻>-<スレッド ID>_<rollout ID>.jsonl（rollout_file_name.rs）。
+func codexRolloutID(path string) string {
+	base := strings.TrimSuffix(strings.TrimSuffix(filepath.Base(path), ".zst"), ".jsonl")
+	rest, ok := strings.CutPrefix(base, "rollout-")
+	if !ok || len(rest) <= 20 || rest[19] != '-' {
+		return ""
+	}
+	ids := rest[20:]
+	if _, r, ok := strings.Cut(ids, "_"); ok {
+		return r
+	}
+	return ids
+}
+
+// codexSegment は、1 つのスレッドとして続けて読むファイルの 1 つ。limit が 0 以上なら、ordinal がそれより前の行だけを読む。
+type codexSegment struct {
+	path  string
+	limit float64
+}
+
+// codexChains は、まとまりのファイルを、1 つのスレッドとして読むファイルの並び（古いほうから）に分ける。
+// thread/revert（巻き戻し、paginated だけ）は、残す前半を写さずに新しいファイルを作り、session_meta.history_base で
+// 古いファイルの前半（ordinal が end_ordinal_exclusive より前の行）を指す。古いファイルはそのまま残り、どちらも同じスレッド ID。
+// 同じスレッド ID のファイルが history_base でつながっていれば、いまのファイル（ほかのどれからも指されていない、
+// いちばん新しいもの）だけを、指している前半とつないで 1 つにする。巻き戻して消したターン（前半より後の行）と、
+// いまのファイルからたどれない古いファイルは読まない。ほかのスレッドを指す history_base（paginated のフォーク）はたどらない。
+func (c *Codex) codexChains(files []string) [][]codexSegment {
+	if len(files) < 2 {
+		var out [][]codexSegment
+		for _, p := range files {
+			out = append(out, []codexSegment{{path: p, limit: -1}})
+		}
+		return out
+	}
+	heads := make([]codexHead, len(files))
+	at := map[[2]string]int{} // スレッド ID と rollout ID → files の位置
+	for i, p := range files {
+		heads[i] = c.head(p)
+		if h := heads[i]; h.ok && h.id != "" {
+			at[[2]string{h.id, codexRolloutID(p)}] = i
+		}
+	}
+	referenced := map[int]bool{}
+	reverted := map[string]bool{} // 巻き戻したことのあるスレッド ID
+	for i, h := range heads {
+		if h.base == "" {
+			continue
+		}
+		if j, ok := at[[2]string{h.id, h.base}]; ok && j != i {
+			referenced[j], reverted[h.id] = true, true
+		}
+	}
+	// 巻き戻したスレッドごとに、いまのファイル（指されていないもののうち、いちばん新しいもの）
+	current := map[string]int{}
+	for i, h := range heads {
+		if !h.ok || !reverted[h.id] || referenced[i] {
+			continue
+		}
+		j, ok := current[h.id]
+		if !ok || codexNewer(heads[i], files[i], heads[j], files[j]) {
+			current[h.id] = i
+		}
+	}
+	var out [][]codexSegment
+	for i, p := range files {
+		h := heads[i]
+		if !h.ok || !reverted[h.id] {
+			out = append(out, []codexSegment{{path: p, limit: -1}})
+			continue
+		}
+		if current[h.id] != i {
+			continue // 前半として読むか、巻き戻しで使われなくなったファイル
+		}
+		chain := []codexSegment{{path: p, limit: -1}}
+		seen := map[int]bool{i: true}
+		limit := -1.0
+		for h.base != "" {
+			j, ok := at[[2]string{h.id, h.base}]
+			if !ok || seen[j] {
+				break
+			}
+			seen[j] = true
+			if limit < 0 || h.baseEnd < limit {
+				limit = h.baseEnd
+			}
+			chain = append([]codexSegment{{path: files[j], limit: limit}}, chain...)
+			h = heads[j]
+		}
+		out = append(out, chain)
+	}
+	return out
+}
+
+// codexNewer は、a のファイルが b より新しいか（session_meta の時刻。同じならファイルの名前の後ろのほう）。
+func codexNewer(a codexHead, pa string, b codexHead, pb string) bool {
+	if a.start != nil && b.start != nil && *a.start != *b.start {
+		return *a.start > *b.start
+	}
+	return pa > pb
 }
 
 // codexParent は、サブエージェントのスレッドの親のスレッド ID（サブエージェントでなければ空）。
@@ -301,11 +435,42 @@ func codexParent(p core.Obj) string {
 func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	var errs fileErrs
 	var all []*codexFile
-	for _, path := range u.Files {
-		cf := &codexFile{path: path, windows: map[string]float64{}}
-		var userMsgs, fallback []struct {
-			t    *float64
-			text string
+	for _, chain := range c.codexChains(u.Files) {
+		cf := &codexFile{path: chain[len(chain)-1].path, windows: map[string]float64{}}
+		var userMsgs, fallback []codexMsg
+		sawEvents := false // user_message か item_completed の UserMessage がある（なければ response_item の user を使う）
+		// heartbeats は、response_item に印（content_item_kinds が user.heartbeat だけ）のあった、予定（heartbeat）が入れた文。
+		// Codex はその response_item を書いてから、同じ文の user_message（paginated は item_completed）を書く。
+		// beat は、いまのターンが heartbeat のものか（そのあいだの応答は、人の依頼への応答として割り当てない）
+		var heartbeats []string
+		beat := false
+		// input は、user_message・UserMessage の文。heartbeat の印のあった文なら人の依頼にしない
+		input := func(t *float64, text string) {
+			sawEvents = true
+			m := codexMsg{t: t, text: text}
+			for i, h := range heartbeats {
+				if h == strings.TrimSpace(text) {
+					m.beat = true
+					heartbeats = append(heartbeats[:i:i], heartbeats[i+1:]...)
+					break
+				}
+			}
+			beat = m.beat
+			if m.beat {
+				cf.b.Agent(t) // 人が打ったものではない
+			} else {
+				cf.b.Tick(t)
+			}
+			cf.b.Turn() // 依頼はあとでまとめて足すので、ここで応答の区切りを入れる
+			if text != "" {
+				userMsgs = append(userMsgs, m)
+			}
+		}
+		reply := func(t *float64, text string) {
+			cf.b.Agent(t)
+			if !beat { // heartbeat のターンの応答は、前の人の依頼への応答ではない
+				cf.b.Reply(t, "", text)
+			}
 		}
 		var lastTotal float64 = -1
 		var lastInfo, lastLimits string
@@ -337,15 +502,9 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			case "event_msg":
 				switch core.Str(p["type"]) {
 				case "user_message":
-					s.Tick(t)
-					s.Turn() // 依頼はあとでまとめて足すので、ここで応答の区切りを入れる
-					userMsgs = append(userMsgs, struct {
-						t    *float64
-						text string
-					}{t, core.Str(p["message"])})
+					input(t, core.Str(p["message"]))
 				case "agent_message": // 人に返した文（依頼の流れに出す）
-					s.Agent(t)
-					s.Reply(t, "", core.Str(p["message"]))
+					reply(t, core.Str(p["message"]))
 				case "token_count":
 					s.Agent(t)
 					if rl := core.Map(p["rate_limits"]); rl != nil {
@@ -385,6 +544,10 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 						u = core.Tokens{In: max(0, cur.In-prevTotal.In), Out: max(0, cur.Out-prevTotal.Out),
 							CW: max(0, cur.CW-prevTotal.CW), CR: max(0, cur.CR-prevTotal.CR)}
 					}
+					if !perRequest && total > lastTotal {
+						// last_token_usage のないとても古い版: 合計が増えたら応答 1 回（中身の内訳はない）
+						countMeas = append(countMeas, core.Measure{Key: "responses", T: t, V: 1})
+					}
 					lastInfo, lastTotal, prevTotal = string(raw), total, cur
 					fromCounts = append(fromCounts, codexEvent(t, cf.model, u, perRequest))
 					countMeas = append(countMeas, codexMeasures(t, core.Map(info["last_token_usage"]), core.NumOr0(info["model_context_window"]))...)
@@ -414,17 +577,9 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					// TurnItem は #[serde(tag = "type")] だけで名前を変えていないので、型の名前がそのまま入る
 					switch core.Str(item["type"]) {
 					case "UserMessage":
-						s.Tick(t)
-						s.Turn() // 依頼はあとでまとめて足すので、ここで応答の区切りを入れる
-						if text := itemText(item); text != "" {
-							userMsgs = append(userMsgs, struct {
-								t    *float64
-								text string
-							}{t, text})
-						}
+						input(t, itemText(item))
 					case "AgentMessage": // 人に返した文（依頼の流れに出す）
-						s.Agent(t)
-						s.Reply(t, "", itemText(item))
+						reply(t, itemText(item))
 					default:
 						s.Agent(t)
 					}
@@ -464,6 +619,18 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					codexEdited(s, core.Str(p["name"]), core.Str(p["input"]))
 					s.Measure("tool_calls", t, 1)
 					s.Agent(t)
+				case "local_shell_call":
+					// モデルが直接呼ぶシェル（Responses API の local_shell）。action は {"type":"exec","command":[…]}
+					action := core.Map(p["action"])
+					s.Tool("local_shell", nil)
+					codexEdited(s, "local_shell", action)
+					s.Measure("tool_calls", t, 1)
+					s.Agent(t)
+				case "web_search_call", "tool_search_call", "image_generation_call":
+					// サーバーやクライアントで動くツール（ウェブ検索・ツールの検索・画像の生成）。function_call とは別の項目で残る
+					s.Tool(strings.TrimSuffix(core.Str(p["type"]), "_call"), nil)
+					s.Measure("tool_calls", t, 1)
+					s.Agent(t)
 				case "message":
 					var parts []string
 					for _, b := range core.List(p["content"]) {
@@ -471,15 +638,22 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					}
 					switch core.Str(p["role"]) {
 					case "user":
-						s.Tick(t)
+						text := strings.Join(parts, "\n")
+						m := codexMsg{t: t, text: text, beat: codexHeartbeat(p)}
+						if m.beat {
+							heartbeats = append(heartbeats, strings.TrimSpace(text))
+							beat = true
+							s.Agent(t)
+						} else {
+							if codexHuman(text) {
+								beat = false
+							}
+							s.Tick(t)
+						}
 						s.Turn() // 依頼はあとでまとめて足すので、ここで応答の区切りを入れる
-						fallback = append(fallback, struct {
-							t    *float64
-							text string
-						}{t, strings.Join(parts, "\n")})
+						fallback = append(fallback, m)
 					case "assistant":
-						s.Agent(t)
-						s.Reply(t, "", strings.Join(parts, "\n")) // 人に返した文
+						reply(t, strings.Join(parts, "\n")) // 人に返した文
 					default: // developer（Codex が足す指示）などは応答ではない
 						s.Agent(t)
 					}
@@ -495,7 +669,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			t := ts(e["timestamp"])
 			return t != nil && cf.start != nil && *t < *cf.start
 		}
-		errs.file(path, core.ReadJSONL(path, func(e core.Obj) {
+		line := func(e core.Obj) {
 			if core.Str(e["type"]) == "session_meta" {
 				if cf.id == "" { // 2 つめからは写した親のもの
 					p := core.Map(e["payload"])
@@ -556,10 +730,22 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 				}
 			}
 			handle(e)
-		}))
+		}
+		for _, seg := range chain {
+			errs.file(seg.path, core.ReadJSONL(seg.path, func(e core.Obj) {
+				if seg.limit >= 0 && core.Str(e["type"]) != "session_meta" {
+					// 巻き戻したスレッドの前半: ordinal が history_base の上限より前の行だけ（後ろは巻き戻して消したターン）
+					if n, ok := core.Num(e["ordinal"]); !ok || n >= seg.limit {
+						return
+					}
+				}
+				line(e)
+			}))
+		}
 		if cf.b == nil {
 			continue
 		}
+		cf.b.File = cf.path
 		for _, e := range copied { // 印のない古い版のフォークやサブエージェントは、時刻で分ける
 			if !before(e) {
 				handle(e)
@@ -578,13 +764,17 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			}
 		}
 		cf.b.Measures = append(cf.b.Measures, meas...)
-		// 依頼の文は event_msg.user_message を使う。ない古い版だけ response_item の user を使う
+		// 依頼の文は event_msg.user_message（paginated は item_completed の UserMessage）を使う。ない古い版だけ response_item の user を使う
 		msgs := userMsgs
-		if len(msgs) == 0 {
+		if !sawEvents {
 			msgs = fallback
 		}
 		for _, m := range msgs {
-			if len(userMsgs) == 0 && codexAgentsMD(m.text) { // Codex が足した AGENTS.md の指示（<environment_context> などのタグは Prompt が分ける）
+			if m.beat { // 予定（heartbeat）が入れた文。人の依頼ではない
+				cf.b.Inject(m.t, "agent", m.text)
+				continue
+			}
+			if !sawEvents && codexInjected(m.text) { // Codex が足した文（<environment_context> などのタグは Prompt が分ける）
 				cf.b.Inject(m.t, "other", m.text)
 				continue
 			}
@@ -650,13 +840,56 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	return errs.err()
 }
 
-// codexAgentsMD は、response_item の user の文が、Codex が会話に入れた AGENTS.md の指示か。
+// codexMsg は人の発言の候補（user_message・UserMessage、古い版は response_item の user）。
+// beat は、予定（heartbeat）が入れた文か。
+type codexMsg struct {
+	t    *float64
+	text string
+	beat bool
+}
+
+// codexHeartbeatKind は、予定（heartbeat）が入れた文の印（history の heartbeat.rs の HEARTBEAT_CONTENT_KIND）。
+const codexHeartbeatKind = "user.heartbeat"
+
+// codexHeartbeat は、response_item の user の message が、予定（heartbeat）が入れた文か。
+// Codex（UserInputOrigin::from_message）と同じく、internal_chat_message_metadata_passthrough.content_item_kinds が
+// user.heartbeat 1 つだけのものに限る。ターンの turn_trigger では決めない（heartbeat のターンの途中で人が足した文は人のもの）。
+func codexHeartbeat(p core.Obj) bool {
+	kinds := core.List(core.Get(p, "internal_chat_message_metadata_passthrough", "content_item_kinds"))
+	return len(kinds) == 1 && core.Str(kinds[0]) == codexHeartbeatKind
+}
+
+// codexInjectedPrefixes は、タグで始まらないのに Codex が user の発言として会話に入れる文の始まり
+// （core の contextual_user_message.rs の CONTEXTUAL_USER_FRAGMENT_MATCHERS のうちタグのないもの）。
+var codexInjectedPrefixes = []string{
+	"Here is a list of plugins that are available but not installed.",            // RecommendedPluginsInstructions（古い rollout の user の発言）
+	"Warning: The maximum number of unified exec processes you can keep open is", // LegacyUnifiedExecProcessLimitWarning
+	"Warning: Your account was flagged for potentially high-risk cyber activity", // LegacyModelMismatchWarning
+}
+
+// codexInjected は、response_item の user の文が、Codex が会話に入れたものか（user_message のない古い版で使う）。
 // core の UserInstructions は「# AGENTS.md instructions（ for ディレクトリ）」で始まり </INSTRUCTIONS> で終わる。
-// Codex と同じく、始まりは大文字と小文字を区別しない。
-func codexAgentsMD(text string) bool {
-	const prefix = "# AGENTS.md instructions"
+// Codex と同じく、その始まりは大文字と小文字を区別しない。<environment_context> などのタグで始まるものは Prompt が分ける。
+func codexInjected(text string) bool {
+	const agentsMD = "# AGENTS.md instructions"
 	t := strings.TrimSpace(text)
-	return len(t) >= len(prefix) && strings.EqualFold(t[:len(prefix)], prefix)
+	if len(t) >= len(agentsMD) && strings.EqualFold(t[:len(agentsMD)], agentsMD) {
+		return true
+	}
+	for _, p := range codexInjectedPrefixes {
+		if strings.HasPrefix(t, p) {
+			return true
+		}
+	}
+	// LegacyApplyPatchExecCommandWarning
+	return strings.HasPrefix(t, "Warning: apply_patch was requested via ") &&
+		strings.HasSuffix(t, "Use the apply_patch tool instead of exec_command.")
+}
+
+// codexHuman は、response_item の user の文が人の打ったものに見えるか（タグで始まるものや Codex が足した文ではない）。
+func codexHuman(text string) bool {
+	t := strings.TrimSpace(text)
+	return t != "" && !strings.HasPrefix(t, "<") && !codexInjected(t)
 }
 
 // codexBaseline は、Codex がコンテキストの使用率から除くトークン（システムプロンプトやツールの説明など、いつも入っている分）。

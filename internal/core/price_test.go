@@ -29,6 +29,8 @@ func TestPriceOfExactAndPrefix(t *testing.T) {
 		// OpenAI
 		{"gpt-5.5", "gpt-5.5", true},
 		{"gpt-5.3-codex", "gpt-5.3-codex", true},
+		{"gpt-5.5-cyber", "gpt-5.5-cyber", true}, // gpt-5.5 の料金にしない（Cyber models の表）
+		{"gpt-5.6-cyber", "gpt-5.6-cyber", true},
 		{"gpt-5.4-mini-2026-03-17", "gpt-5.4-mini", true},
 		{"gpt-5-codex", "gpt-5", false},
 		{"gpt-5.2-codex", "gpt-5.2", false},
