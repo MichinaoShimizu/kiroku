@@ -50,7 +50,7 @@ function commitDetail(c){
   const ses = DATA.find(x => x.id === c.session) || DATA.find(x => x.project === c.project && c.t >= x.start - 60 && c.t <= x.end + 600);
   const P = $("#panel");
   P.innerHTML = `<div style="--c:${st.colorBy === "project" ? colorOf(c.project) : "var(--ink-3)"}">
-    ${dHead(`GIT · ${c.ai ? "Run by AI" : "By hand (or another tool)"}`, c.subject, `${md(c.t)} ${hm(c.t)}`, [projTag(c.project), branchTag(c.branch), ext(c.url, `<span class="mono">${esc(c.hash.slice(0,7))}</span>`)])}
+    ${dHead(`GIT · ${c.ai ? "Run by AI" : "By hand (or another tool)"}`, c.subject, `${md(c.t)} ${hm(c.t)}`, [projTag(c.project), branchTag(c.branch), ext(c.url, `<span class="tg mono" title="Commit">${ico("commit")}<span class="sr">Commit: </span>${esc(c.hash.slice(0,7))}</span>`)])}
     <div class="dcols"><div class="dcol">
     <div class="mini">
       <div><div class="k">Files changed</div><div class="v">${c.nFiles}</div></div>
@@ -87,7 +87,7 @@ function pushDetail(p){
   const ses = DATA.filter(x => x.project === p.project && p.t >= x.start - 60 && p.t <= x.end + 600);
   const cmd = p.prev ? `git -C ${p.repo} log --oneline ${p.prev.slice(0,12)}..${p.hash.slice(0,12)}` : `git -C ${p.repo} show ${p.hash.slice(0,12)}`;
   P.innerHTML = `<div style="--c:${st.colorBy === "project" ? colorOf(p.project) : "var(--ink-3)"}">
-    ${dHead("GIT · Push", `Pushed to ${p.ref}`, `${md(p.t)} ${hm(p.t)}`, [projTag(p.project), branchTag(p.ref), ext(p.url, `<span class="mono">${esc(p.hash.slice(0,7))}</span>`)])}
+    ${dHead("GIT · Push", `Pushed to ${p.ref}`, `${md(p.t)} ${hm(p.t)}`, [projTag(p.project), branchTag(p.ref), ext(p.url, `<span class="tg mono" title="Commit">${ico("commit")}<span class="sr">Commit: </span>${esc(p.hash.slice(0,7))}</span>`)])}
     <div class="dcols"><div class="dcol">
     <div class="mini">
       <div><div class="k">Commits sent</div><div class="v">${p.prev ? p.commits : "—"}</div></div>

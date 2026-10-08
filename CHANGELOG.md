@@ -6,9 +6,9 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Changed
 
-- Session, commit, push and pull request details: the project and branch tags now start with a folder icon and a branch icon (and say "Project" and "Branch" in a tooltip and to screen readers), so the two look different at a glance
 - Copy buttons (Copy, Copy prompts, Copy review prompt, Copy prompt, Copy setting, Copy command, Copy image) now start with a copy icon, which turns into a check mark for a moment after copying
-- Prompt flow: the legend for "Commands the user typed" now shows the `/` and `>_` icons used on those prompts, instead of only a different color
+- Session, commit, push and pull request details: the project and branch tags now start with a folder icon and a branch icon, and a commit's hash with the commit icon (each also says what it is in a tooltip and to screen readers), so the tags look different at a glance
+- Prompt flow: the legend for "Commands the user typed" now shows the `/` and `>_` icons used on those prompts, instead of only a different color. In the light theme, those icons and the "Command" and "Shell" labels are a darker amber, so they are easier to read on white
 
 ## v0.27.3 - 2026-10-09
 
