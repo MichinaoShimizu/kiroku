@@ -233,7 +233,7 @@ function flagSum(F){ // 期間の要点の下（#worth）に、基準を超え�
 }
 function sesFlags(s){ // 詳細の頭に、このセッションが関係する見直す候補（表示中の期間のもの）の名前だけを出す。押すとサマリーと同じダイアログ
   const ids = [...new Set(lastFlags.filter(f => f.ids.includes(s.id)).map(f => GOTO[f.k] || f.k))];
-  return ids.length ? `<div class="flagsum sflags"><span class="lbl" title="This session is one of the sessions behind these flags">${ico("flag", "fdot")}Worth a look</span>${ids.map(id => `<button class="flink" data-goto="${id}" aria-haspopup="dialog">${esc(H()[id].n)}</button>`).join("")}</div>` : "";
+  return ids.length ? `<div class="sflags"><span class="lbl" title="This session is one of the sessions behind these flags">${ico("flag", "fdot")}Worth a look</span>${ids.map(id => `<button class="flink" data-goto="${id}" aria-haspopup="dialog">${esc(H()[id].n)}</button>`).join("")}</div>` : "";
 }
 const flagSes = ids => ids.map(id => { const s = DATA.find(x => x.id === id); return s ? sesCardH(s, sesMeta(s)) : ""; }).join("");
 /* 見直す候補の 1 つを、画面の真ん中のダイアログで開く（サマリーへ移らずに、何が見えて、なぜ大事で、次に何をするかを読める）。

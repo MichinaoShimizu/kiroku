@@ -204,7 +204,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .spk{display:inline-flex;flex-direction:column;gap:2px;flex:none}
 .spk .ends{display:flex;justify-content:space-between;gap:10px;font-size:var(--fs-2xs);line-height:1.2;font-variant-numeric:tabular-nums;color:var(--ink-3);white-space:nowrap} /* 推移の両端の期間と値（触れなくても読めるように） */
 .spk .ends b{color:var(--ink-2)}
-.flagsum{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 14px;font-size:var(--fs-sm)}
+.flagsum,.sflags{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 14px;font-size:var(--fs-sm)}
 .flagsum[hidden],.srbox[hidden],.skip[hidden]{display:none}
 .hint .htrend{margin-top:10px;padding-top:10px;border-top:1px dashed var(--rule-2)}
 #worth{padding:10px 14px;border:1px solid var(--rule);border-radius:12px;background:var(--surface)}
@@ -214,7 +214,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .srmore{margin-top:10px}
 .skip{position:absolute;left:-9999px;top:auto}
 .skip:focus{position:fixed;left:16px;top:72px;z-index:30;padding:8px 12px;border:1px solid var(--rule-2);border-radius:8px;background:var(--surface);font-size:var(--fs-sm);color:var(--acc-ink)}
-.flagsum .lbl{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--ink-2)}
+.flagsum .lbl,.sflags .lbl{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--ink-2)}
 .ic{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-2px} /* 形で見分ける印（js/git.js の ICON_PATH） */
 .fdot{color:var(--acc)} /* 見直す候補の印 */
 .fl .more{margin:0;font-size:var(--fs-xs)}

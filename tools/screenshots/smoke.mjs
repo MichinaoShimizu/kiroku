@@ -260,6 +260,7 @@ async function run(env) {
       check("ダイアログのカードのエージェントの頭文字は 1 行に収まる", marks.length > 0 && !bad.length, JSON.stringify(bad[0] || {}));
       await fs.click(); await pause();
       check("ダイアログのセッションを押すと、ダイアログを閉じて詳細が開く", !(await p.locator("#wk").evaluate(d => d.open)) && await drawerOpen());
+      check("詳細の頭に、このセッションが関係する見直す候補が出る", await p.locator("#panel .sflags .flink").count() > 0);
       await p.keyboard.press("Escape"); await pause(); }
     await open();
   });
