@@ -10,12 +10,21 @@ function fileHref(path){ // HTML で見るときの履歴ファイルの file://
 // localHref は、この PC のファイルを開く file:// の URL。kiroku serve（http）からは、ブラウザーが file:// を開かないので出さない。
 // 絶対パスでなければ、base（プロジェクトやリポジトリの場所）につなぐ。どちらも絶対パスでなければ出さない。
 // //host・\\host（UNC）は出さない（履歴に書かれた名前で、ほかのコンピューターにつながせない。gitlog の remotePath と同じ）。
-// git が "…" で囲んで書いたパス（core.quotePath。日本語などの名前）は、本当の名前ではないので出さない
+// そのため、つないだパスの . と .. を解き、続いた区切りを 1 つにしてから URL にする（/a/..//host や base が / のときに // が残らないように）。
+// .. で根より上に出るパスは出さない。git が "…" で囲んで書いたパス（core.quotePath。日本語などの名前）は、本当の名前ではないので出さない
 function localHref(path, base){
   const abs = p => /^(?:\/(?![\\/])|[A-Za-z]:[\\/])/.test(p);
   if (LIVE || !path || path.startsWith('"')) return "";
-  const p = abs(path) ? path : base && abs(base) ? `${base.replace(/[\\/]+$/, "")}/${path}` : "";
-  return p ? fileHref(p) : "";
+  const p = abs(path) ? path : base && abs(base) ? `${base}/${path}` : "";
+  if (!p) return "";
+  const q = p.replace(/\\/g, "/"), drive = /^[A-Za-z]:/.test(q) ? q.slice(0, 2) : "", segs = [];
+  for (const x of q.slice(drive.length).split("/")) {
+    if (x === "" || x === ".") continue;
+    if (x !== "..") segs.push(x);
+    else if (!segs.length) return "";
+    else segs.pop();
+  }
+  return fileHref(`${drive}/${segs.join("/")}`);
 }
 /* リンク：この PC のファイル（file://）。外のページと同じく新しいタブで開く。リモートのファイルには ↗ を添えて、この PC のファイルと見分ける */
 function fileA(url, label){ return url && url.startsWith("file://") ? `<a class="xl" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label}</a>` : ext(url, url ? `${label} ↗` : label); }

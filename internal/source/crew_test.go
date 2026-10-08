@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -1019,5 +1020,40 @@ func TestReadCrewLogSegments(t *testing.T) {
 	}
 	if err := errs.err(); err == nil || !strings.Contains(err.Error(), "skipped 1 line(s) longer than") {
 		t.Errorf("長すぎる行を知らせない: %v", err)
+	}
+}
+
+// crew-log の会話のフォルダの名前は、パターンとして読まない。* という名前のフォルダから、
+// 隣のシンボリックリンクのフォルダ（Crew のフォルダの外）のファイルを読んだり、ほかの会話のサブエージェントをその会話に結びつけたりしない。
+func TestCrewLogFolderNameIsNotPattern(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows ではファイル名に * を使えない")
+	}
+	crew, outside := t.TempDir(), t.TempDir()
+	spawned := func(id, task string) string {
+		return fmt.Sprintf(`{"type": "subagent/spawned", "data": {"agent_id": %q, "agent": "a", "task": %q}}`, id, task) + "\n"
+	}
+	head := func(slot string) string {
+		return fmt.Sprintf(`{"type": "session", "id": "p", "owner": "o", "agent": "a", "slot": %q}`, slot) + "\n"
+	}
+	writeFiles(t, crew, map[string]string{
+		"crew-log/sessions/*/log.jsonl":      head("dashboard:star"),
+		"crew-log/sessions/[/log.jsonl":      head("dashboard:bracket") + spawned("b1", "bracket"),
+		"crew-log/sessions/p1-abc/log.jsonl": head("dashboard:p1") + spawned("s1", "mine"),
+	})
+	writeFiles(t, outside, map[string]string{"log.jsonl": spawned("out", "OUTSIDE")})
+	if err := os.Symlink(outside, filepath.Join(crew, "crew-log", "sessions", "zlink")); err != nil {
+		t.Skip("シンボリックリンクを作れない:", err)
+	}
+	var errs fileErrs
+	got := loadCrewSpawns(crew, &errs)
+	if _, ok := got["subagent:out"]; ok {
+		t.Error("* のフォルダから、Crew のフォルダの外のファイルを読んだ")
+	}
+	if i := got["subagent:s1"]; i.Key != "dashboard:p1" || i.Task != "mine" {
+		t.Errorf("s1 = %+v, want 親は dashboard:p1（* のフォルダの会話にしない）", i)
+	}
+	if i := got["subagent:b1"]; i.Key != "dashboard:bracket" {
+		t.Errorf("b1 = %+v, want [ のフォルダも読む", i)
 	}
 }

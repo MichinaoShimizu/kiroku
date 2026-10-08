@@ -4,6 +4,11 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Security
+
+- Links to files on this computer in session and commit details no longer resolve to another computer's shared folder (a UNC path, which Windows may connect to with your credentials) when a path recorded in history uses `.`, `..` or doubled separators (such as `/a/..//host/share/x`) or the session ran in `/`. kiroku now resolves the path before making the link, and gives no link to a path that climbs above the root
+- Kiro Crew: a conversation folder in `crew-log/sessions` whose name contains `*`, `?` or `[` no longer makes kiroku read logs from other folders there (including folders linked from outside the Crew folder), or attach other conversations' subagents to it
+
 ### Changed
 
 - The live demo and the screenshots now show several agents, as kiroku does: Codex CLI, Kiro CLI and Kiro IDE sessions (with Codex subagents and Kiro credits) alongside Claude Code, instead of Claude Code alone

@@ -294,13 +294,15 @@ func crewLogSegments(dir string) []string {
 		n uint64
 	}
 	var segs []seg
-	for _, p := range glob(filepath.Join(dir, "log*.jsonl")) {
-		m := crewLogSegment.FindStringSubmatch(filepath.Base(p))
+	// glob ではなくフォルダの中を並べる。dir の名前（* や [ など）がパターンとして読まれ、ほかのフォルダのファイルを拾わないように
+	ents, _ := os.ReadDir(dir)
+	for _, e := range ents {
+		m := crewLogSegment.FindStringSubmatch(e.Name())
 		if m == nil {
 			continue
 		}
 		n, _ := strconv.ParseUint(m[1], 10, 64) // log.jsonl は 0
-		segs = append(segs, seg{p, n})
+		segs = append(segs, seg{filepath.Join(dir, e.Name()), n})
 	}
 	sort.Slice(segs, func(i, j int) bool { return segs[i].n < segs[j].n })
 	out := make([]string, len(segs))
