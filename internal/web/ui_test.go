@@ -13,21 +13,25 @@ import (
 var uiRules = []struct {
 	re   *regexp.Regexp
 	want string
+	skip string // この決まりの対象から外すファイル（その部品を定義しているファイル）
 }{
-	{regexp.MustCompile(`class="card[ "]`), "セッションのカードは sesCardH か sesCard で作る"},
-	{regexp.MustCompile(`class="stat[ "]`), "数の枠は statH か norecStat で作る"},
-	{regexp.MustCompile(`class="ph"`), "パネルの見出しは panelH で作る"},
-	{regexp.MustCompile(`class="eyebrow"><span class="dot">`), "詳細パネルの頭は dHead で作る"},
-	{regexp.MustCompile(`class="k muted"`), "見出しは本物の見出し（secH か h3）にする。小さな灰色の div で代わりにしない"},
+	{regexp.MustCompile(`class="card[ "]`), "セッションのカードは sesCardH か sesCard で作る", ""},
+	{regexp.MustCompile(`class="stat[ "]`), "数の枠は statH か norecStat で作る", ""},
+	{regexp.MustCompile(`class="ph"`), "パネルの見出しは panelH で作る", ""},
+	{regexp.MustCompile(`class="eyebrow"><span class="dot">`), "詳細パネルの頭は dHead で作る", ""},
+	{regexp.MustCompile(`class="none"`), "空のときの一言は noneH で作る", ""},
+	{regexp.MustCompile(`class="code[ "]`), "コードの枠（とコピー）は codeH で作る", ""},
+	{regexp.MustCompile(`\.toLocaleString\(`), "数のカンマ区切りは commas（format.js）で書く", "js/format.js"},
+	{regexp.MustCompile(`class="k muted"`), "見出しは本物の見出し（secH か h3）にする。小さな灰色の div で代わりにしない", ""},
 	// 余白・文字の大きさ・色は style.css に書く。style="" に書いてよいのは、データから決まる位置・大きさとカスタムプロパティ（--c など）だけ
-	{regexp.MustCompile(`style="(?:margin|padding|font|color|white-space|line-height|letter-spacing|text-)`), "余白や文字の見た目は style.css のクラスにする"},
+	{regexp.MustCompile(`style="(?:margin|padding|font|color|white-space|line-height|letter-spacing|text-)`), "余白や文字の見た目は style.css のクラスにする", ""},
 }
 
 func uiViolations(name, src string) []string {
 	var out []string
 	for i, line := range strings.Split(src, "\n") {
 		for _, r := range uiRules {
-			if r.re.MatchString(line) {
+			if r.skip != name && r.re.MatchString(line) {
 				out = append(out, name+":"+strconv.Itoa(i+1)+": "+r.want)
 			}
 		}
@@ -69,6 +73,9 @@ func TestUIRulesCatch(t *testing.T) {
 		"`<div style=\"margin-top:16px\" class=\"k muted\">By model</div>`",
 		"`<p class=\"muted\" style=\"font-size:var(--fs-xs)\">`",
 		"`<span style=\"color:var(--warn)\">`",
+		"`<p class=\"none\">None</p>`",
+		"`<div class=\"code\"><code>${esc(cmd)}</code></div>`",
+		"`${n.toLocaleString(LOC())} characters`",
 	}
 	for _, s := range bad {
 		if len(uiViolations("x.js", s)) == 0 {
@@ -81,6 +88,7 @@ func TestUIRulesCatch(t *testing.T) {
 		"`<span style=\"--c:${colorOf(k)}\">`",
 		"`<span style=\"left:${l}%;width:${w}%\">`",
 		"`<div class=\"eyebrow\">Breakdown</div>`",
+		"`<div class=\"codes\">`",
 	}
 	for _, s := range ok {
 		if v := uiViolations("x.js", s); len(v) != 0 {

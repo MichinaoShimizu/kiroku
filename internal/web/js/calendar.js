@@ -43,7 +43,7 @@ function render(){
   edgeFade($("#tl")); // 月表示や空の週では消す
   $("#skipcal").hidden = !!st.q; // 検索の最中は、結果がカレンダーの上にあり、下のサマリーは空
   try { st.q ? searchPanel() : summary(); } catch(e){ // サマリーで失敗しても、カレンダーと詳細は使えるようにする
-    console.error(e); $("#worth").hidden = true; $("#review").innerHTML = `<div class="panel"><p class="none">${`Couldn't show the summary for this period (${esc(e.message)}). Please let us know in an issue.`}</p></div>`; }
+    console.error(e); $("#worth").hidden = true; $("#review").innerHTML = `<div class="panel">${noneH(`Couldn't show the summary for this period (${esc(e.message)}). Please let us know in an issue.`)}</div>`; }
   const gc = st.sel && st.sel.startsWith("git:") && (META.git || []).find(x => "git:" + x.hash === st.sel);
   const pu = st.sel && st.sel.startsWith("push:") && findPush(st.sel.slice(5)), pr = st.sel && st.sel.startsWith("pr:") && findPR(st.sel.slice(3));
   const s = !gc && !pu && !pr && st.sel && DATA.find(x => x.id === st.sel), open = !!(s || gc || pu || pr);

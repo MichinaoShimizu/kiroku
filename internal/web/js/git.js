@@ -42,8 +42,8 @@ function commitDetail(c){
     ${c.url ? `<p class="dact">${ext(c.url, "Open this commit on the remote ↗", "pill")}</p>` : ""}
     </div><div class="dcol">
     <h3>Files changed · ${c.nFiles}</h3>
-    ${c.files.length ? fileRows(c.files, c.nFiles) : `<p class="none">None</p>`}
-    <h3>Repository</h3><div class="code"><code>${esc(`git -C ${c.repo} show ${c.hash}`)}</code><button class="copy" data-copy="${esc(`git -C ${c.repo} show ${c.hash}`)}">Copy</button></div>
+    ${c.files.length ? fileRows(c.files, c.nFiles) : noneH("None")}
+    <h3>Repository</h3>${codeH(`git -C ${c.repo} show ${c.hash}`)}
   </div></div></div>`;
   P.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.id));
   bindGitEvents(P); bindCopy(P);
@@ -80,8 +80,8 @@ function pushDetail(p){
     ${known.length ? known.map(gitRow).join("") : ""}
     ${unknown.length ? `<p class="note">${plural(unknown.length, "commit")} not in kiroku's view (made before the history kiroku read, or not by you): ${unknown.slice(0, 8).map(h => `<span class="mono">${esc(h.slice(0,7))}</span>`).join(", ")}${unknown.length > 8 ? " …" : ""}</p>` : ""}
     ${p.commits > hs.length ? `<p class="note">${`Showing the latest ${hs.length} of ${p.commits}.`}</p>` : ""}
-    ${!hs.length ? `<p class="none">${p.prev ? "None recorded" : "Unknown"}</p>` : ""}
-    <h3>Repository</h3><div class="code"><code>${esc(cmd)}</code><button class="copy" data-copy="${esc(cmd)}">Copy</button></div>
+    ${!hs.length ? noneH(p.prev ? "None recorded" : "Unknown") : ""}
+    <h3>Repository</h3>${codeH(cmd)}
   </div></div></div>`;
   P.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.id));
   bindGitEvents(P); bindCopy(P);
@@ -99,7 +99,7 @@ function prDetail(s, r){
     </div><div class="dcol">
     ${ps.length ? `<h3>${`Pushes before it · ${ps.length}`}</h3>${ps.map(p => `<button class="gc-row" data-push="${esc(pushKey(p))}"><time>${md(p.t)} ${hm(p.t)}</time><span><i class="gtag">${ico("push")}${esc(p.ref)}</i>${p.commits ? ` ${plural(p.commits, "commit")}` : ""}</span><b></b></button>`).join("")}` : ""}
     <h3>${`Commits in the session before it · ${cs.length}`}</h3>
-    ${cs.length ? cs.map(gitRow).join("") : `<p class="none">None</p>`}
+    ${cs.length ? cs.map(gitRow).join("") : noneH("None")}
   </div></div></div>`;
   P.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.id));
   bindGitEvents(P);

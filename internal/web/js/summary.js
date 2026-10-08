@@ -24,7 +24,7 @@ function summary(){
     </div>
     ${secH("More metrics (includes estimates)")}<div class="stats">
       ${statH("Prompts with corrections or interruptions", pct(w.fixRate), `n=${w.prompts}`, "fix")}
-      ${(() => { const {ws, we} = period(), B = bigOf(ws, we); return statH("Oversized prompts", `${B.n}`, `${BIG_PROMPT.toLocaleString(LOC())}+ characters${B.n ? ` · longest ${B.max.toLocaleString(LOC())}` : ""}`, "bigPrompts"); })()}
+      ${(() => { const {ws, we} = period(), B = bigOf(ws, we); return statH("Oversized prompts", `${B.n}`, `${commas(BIG_PROMPT)}+ characters${B.n ? ` · longest ${commas(B.max)}` : ""}`, "bigPrompts"); })()}
       ${statH("Project switches per day", times(w.switchesAvg), `Max ${w.switchesMax}`, "switches")}
       ${statH("Parallel time", dur(w.parallel,true), `Up to ${w.maxConc} at once`, "parallel")}
       ${statH("Wait time (median)", secsH(w.waitMedian), `n=${w.waitCount} · 90th percentile ${secs(w.waitP90)}`, "wait")}
@@ -32,14 +32,14 @@ function summary(){
     </div>
     </section>
   <section class="panel">${panelH(4, "How you used AI", "Cache, models and heavy sessions")}
-    ${aiUsage(w, pw, unit) || `<p class="none">No token or credit records.</p>`}
+    ${aiUsage(w, pw, unit) || noneH("No token or credit records.")}
     ${nativeSection(w)}</section>
   <section class="panel shape">${panelH(5, M ? "Shape of the month" : "Shape of the week", "Friction and repeated prompts")}
     ${w.friction.length ? secH("Possible friction", "friction") : ""}
     ${w.friction.length ? w.friction.map(f => sesCardH(sesById(f.id, f.title), `${sesMeta(f)} ${whyOf(f).map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}`)).join("") : ""}
     ${repeatsOf(period().ws, period().we).length ? secH("Repeated prompts", "repeats") : ""}
     ${(() => { const {ws, we} = period(), RP = repeatsOf(ws, we); return RP.length ? RP.slice(0, 3).map(c => sesCardH(sesById(c.id, snipOf(c.text, 90)), `${c.n} times in ${c.ids.size} sessions ${uThis(unit)} · last on ${md(c.last)}`)).join("") : ""; })()}
-    ${w.friction.length || repeatsOf(period().ws, period().we).length ? "" : `<p class="none">No sessions with possible friction and no repeated prompts.</p>`}</section>
+    ${w.friction.length || repeatsOf(period().ws, period().we).length ? "" : noneH("No sessions with possible friction and no repeated prompts.")}</section>
   <section class="panel ask">${panelH(6, "Ask AI for suggestions", "A prompt that asks for suggestions based on this data")}
     <div class="askbar"><button class="pill" id="askcopy">Copy prompt</button>
       <span class="muted">Paste it into the AI agent you use. kiroku never calls an AI. It includes session names (parts of your prompts) and project names, so review it before sending.</span></div>
@@ -71,7 +71,7 @@ function shareBlock(w, ps){
   const all = st.colorBy === "project" ? ps.map(p => ({key: p.project, minutes: p.minutes, tokens: p.tokens, cost: p.cost, credits: p.credits})) : ((w.shares || {})[st.colorBy] || []);
   const head = `<h3 class="shh">${`Share by ${CB()[st.colorBy].toLowerCase()}`}</h3><p class="shn">Follows the Project / Branch / Agent switch at the top</p>`;
   if (!all.length) return "";
-  if (all.length < 2) return head + `<p class="none">${`Only "${esc(all[0].key)}" this period.`}</p>`;
+  if (all.length < 2) return head + noneH(`Only "${esc(all[0].key)}" this period.`);
   const N = 5, top = all.slice(0, N), rest = all.slice(N);
   const rows = top.map(p => ({name: p.key, c: colorOf(p.key), v: p}));
   if (rest.length) rows.push({name: `Other (${rest.length})`, c: "var(--other)", other: true,

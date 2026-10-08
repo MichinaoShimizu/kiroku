@@ -31,7 +31,7 @@ function detail(s){
       <div><div class="k">Tokens</div><div class="v">${tok(allTok)}</div></div>${credH}
 ` : credH}
     </div>
-    ${s.prompts.length ? promptFlow(s) : `<h3>Prompt flow</h3><p class="none">No prompts recorded.${s.source === "Kiro Crew" ? " Kiro Crew deletes conversation records after a while, so only the usage record remains for this conversation." : ""}</p>`}
+    ${s.prompts.length ? promptFlow(s) : `<h3>Prompt flow</h3>${noneH(`No prompts recorded.${s.source === "Kiro Crew" ? " Kiro Crew deletes conversation records after a while, so only the usage record remains for this conversation." : ""}`)}`}
     ${s.subagents.length ? `<h3>Subagents · ${s.subagents.length}</h3>${s.subagents.map(a=>{
         const span = Math.max(1, s.end - s.start), l = a.start ? Math.max(0,(a.start - s.start)/span*100) : 0, w = a.start && a.end ? Math.max(.8,(a.end - a.start)/span*100) : .8;
         const t = a.usage, tt = t.in + t.out + t.cw + t.cw1h + t.cr;
@@ -42,15 +42,15 @@ function detail(s){
     ${sessionCommits(s)}
     ${s.prs && s.prs.length ? `<h3>Pull requests created · ${s.prs.length}</h3><ul class="files">${s.prs.map(u => `<li title="${esc(u)}"><span>${ext(u, esc(u.replace(/^https?:\/\//, "")))}</span></li>`).join("")}</ul>` : ""}
     <h3>Files changed${s.files.length || records(s.source, "files") ? ` · ${s.nFiles}` : ""}</h3>
-    ${(() => { if (!s.files.length) return `<p class="none">${records(s.source, "files") ? "None" : esc(notRec([s.source]))}</p>`; const us = s.files.map(f => fileLink(s, f)); // 断り書きは、リンクになったファイルがあるときだけ
+    ${(() => { if (!s.files.length) return noneH(records(s.source, "files") ? "None" : esc(notRec([s.source]))); const us = s.files.map(f => fileLink(s, f)); // 断り書きは、リンクになったファイルがあるときだけ
       return `<ul class="files">${s.files.map((f, i) => `<li title="${esc(f)}"><span>${us[i] ? ext(us[i], esc(f)) : esc(f)}</span></li>`).join("")}</ul>${us.some(Boolean) ? `<p class="note">Links open each file as of the commits made during this session.</p>` : ""}`; })()}
     <details class="moreS dmore" open><summary>${[s.models.length ? "Models" : "", "tools", s.native && s.native.length ? `${esc(s.source)} metrics` : ""].filter(Boolean).join(", ").replace(/, ([^,]+)$/, " and $1").replace(/^./, c => c.toUpperCase())}</summary>
     ${s.models.length ? `<h3>Models used</h3><div class="chips">${s.models.map(([m,n])=>`<span class="mono">${esc((m))}<b>${n}</b></span>`).join("")}</div>` : ""}
     <h3>Tools used</h3>
-    ${s.tools.length ? s.tools.map(([k,v],i)=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track2"><span style="width:${v/maxT*100}%;background:var(--c${i % 8})"></span></span><span class="n">${v}</span></div>`).join("") : `<p class="none">None recorded</p>`}
+    ${s.tools.length ? s.tools.map(([k,v],i)=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track2"><span style="width:${v/maxT*100}%;background:var(--c${i % 8})"></span></span><span class="n">${v}</span></div>`).join("") : noneH("None recorded")}
     ${s.native && s.native.length ? `<h3>${`${esc((s.source))} metrics`}</h3>${nativeRows(s.native)}<p class="note">Numbers this agent records itself. Definitions differ from other agents.</p>` : ""}</details>
-    ${s.file ? `<h3>History file</h3><div class="code"><code>${esc(s.file)}</code><a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" target="_blank" rel="noopener">Open</a><button class="copy" data-copy="${esc(s.file)}">Copy</button></div>` : ""}
-    ${s.resume ? `<h3>Resume</h3><div class="code resume"><code>${esc(s.resume)}</code><button class="copy" data-copy="${esc(s.resume)}">Copy</button></div>` : ""}
+    ${s.file ? `<h3>History file</h3>${codeH(s.file, "", `<a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" target="_blank" rel="noopener">Open</a>`)}` : ""}
+    ${s.resume ? `<h3>Resume</h3>${codeH(s.resume, "resume")}` : ""}
 
   </div></div></div>`;
   bindGitEvents(P);
@@ -98,11 +98,11 @@ function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面で�
   return ev.sort((a, b) => a.t - b.t);
 }
 const EV_ICON = {commit: "commit", push: "push", pr: "pr", warn: "limit", int: "int", cmp: "compact", agent: "agent", note: "note"}; // 流れの出来事の種類 → 印
-const pexpLabel = p => p.len > 0 ? `Read more (${p.len.toLocaleString(LOC())} characters)` : "Show all";
+const pexpLabel = p => p.len > 0 ? `Read more (${commas(p.len)} characters)` : "Show all";
 /* 依頼に対する応答（エージェントが人に返した最後の文）。依頼の次の発言として、同じ流れの中に出す */
 function replyRow(r, i, hidden){
   const cut = r.len > 0;
-  const more = cut ? `<span class="pcut"> ${`(first ${REPLY_RUNES} of ${r.len.toLocaleString(LOC())} characters)`}${LIVE ? ` <button class="rload" data-i="${i}">Load the full reply</button>` : ` Open with kiroku serve to read it in full.`}</span>` : "";
+  const more = cut ? `<span class="pcut"> ${`(first ${REPLY_RUNES} of ${commas(r.len)} characters)`}${LIVE ? ` <button class="rload" data-i="${i}">Load the full reply</button>` : ` Open with kiroku serve to read it in full.`}</span>` : "";
   return `<li class="rp"${hidden}><time>${r.t ? hm(r.t) : ""}</time>${ico("reply")}<p><span class="rpw">AI</span><span class="reptext">${esc(r.text)}${cut ? "…" : ""}${more}</span></p></li>`;
 }
 function promptFlow(s){
@@ -116,9 +116,9 @@ function promptFlow(s){
       if (gap){ rows.push(`<li class="gap"${hide()}><p>${`${hm(gap.from)}–${hm(p.t)}: ${span(gap.v)} gap`}</p></li>`); gap = null; } }
     n++;
     const t = String(p.text || ""), long = t.length > 220, fix = !p.kind && FIXRE.test(t), cut = p.len > 0;
-    const more = cut ? `<span class="pcut"> ${`(first ${PROMPT_RUNES} of ${p.len.toLocaleString(LOC())} characters)`}${LIVE ? ` <button class="pload" data-i="${i}">Load the full prompt</button>` : ` Open with kiroku serve to read it in full.`}</span>` : "";
+    const more = cut ? `<span class="pcut"> ${`(first ${PROMPT_RUNES} of ${commas(p.len)} characters)`}${LIVE ? ` <button class="pload" data-i="${i}">Load the full prompt</button>` : ` Open with kiroku serve to read it in full.`}</span>` : "";
     const meta = [p.work ? `AI worked ${span(p.work)}` : "", p.wait && p.wait <= FLOW_GAP ? `wait ${secs(p.wait)}` : ""].filter(Boolean).join(" · ");
-    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><p>${fix ? `<span class="sr">Looks like a correction: </span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${PKIND()[p.kind] || esc(p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${`Long · ${plen(p).toLocaleString(LOC())} chars`}</span>` : ""}<span class="ptext">${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${pexpLabel(p)}</button>` : esc(t)}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
+    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><p>${fix ? `<span class="sr">Looks like a correction: </span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${PKIND()[p.kind] || esc(p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${`Long · ${commas(plen(p))} chars`}</span>` : ""}<span class="ptext">${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${pexpLabel(p)}</button>` : esc(t)}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
     if (p.reply){ // 依頼と応答の間に起きたこと（コミットなど）は、応答より上に出す
       if (p.reply.t) flush(p.reply.t);
       rows.push(replyRow(p.reply, i, hide()));
