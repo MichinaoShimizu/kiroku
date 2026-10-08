@@ -18,7 +18,7 @@ const ICON_PATH = {
 };
 const ico = (k, cls = "") => `<svg class="ic${cls ? " " + cls : ""}" viewBox="0 0 16 16" aria-hidden="true">${ICON_PATH[k] || ""}</svg>`;
 /* エージェントの目印：ロゴは使わず、頭文字のバッジにする */
-const AG_MARK = {"Claude Code": "CC", "Kiro IDE": "KI", "Kiro IDE (legacy)": "KI", "Kiro CLI": "KC", "Kiro CLI (SQLite)": "KC", "Kiro Crew": "KW", "Amazon Q": "Q", "Codex": "CX"};
+const AG_MARK = Object.fromEntries(AGENTS.map(a => [a.name, a.mark])); // core.Agents の Mark
 const agMark = name => `<i class="agm" style="--ag:${agColor(name)}" aria-hidden="true">${esc(AG_MARK[name] || String(name).slice(0, 2).toUpperCase())}</i>`;
 /* セッションのカード：セッション名で始まるカードは、どこでもこの形（エージェントの色のグラデーションとエージェントの頭文字）。
    me はタイトルの下の行（HTML。呼ぶ側でエスケープする）、v は右に出す値（文字。ここでエスケープする） */

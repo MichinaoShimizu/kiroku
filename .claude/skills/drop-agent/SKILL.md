@@ -30,17 +30,15 @@ grep -rniE '<Name>|<family>|<option>|<ENV>|<adapter file>' --exclude-dir=.git . 
 
 | 場所 | 何があるか | どうする |
 |---|---|---|
+| `internal/core/agents.go` の `Agents` | 名前、`--sources` の名前、画面の色と頭文字、環境変数、`kiroku archive` のフォルダ。`--sources` の既定値と説明、`autostartEnv`、`keptDirs`、画面の色と頭文字（`__AGENTS__`）はここから作る | 行を消す。ただし 2・3 で残す環境変数とフォルダは、`autostartEnv`・`keptDirs` に名前を書き足して残す（表から消すとそこからも消えるため）。`TestAgentsDerived` の期待値も直す |
 | `internal/source/source.go` の `All`・`Options`・`Default…` | 登録、保存場所の設定 | 登録を消す。`Options` のフィールドはオプションを残すなら残してよい |
 | `internal/source/<agent>.go`・`watch.go` | 読み取り、監視の場所 | やめるものだけのコードを消す（0 の「共有しているコード」） |
 | `internal/core/records.go` の `Records` | 履歴が何を記録するか | 消す（`TestRecordsCoverEverySource`） |
 | `internal/core/native.go` | エージェント固有の指標 | 消す |
 | `internal/core/usage.go` など | そのエージェントだけが使う料金・ルール（例: Codex → `OpenAIPrices`・`OpenAILongPrices`、Kiro → クレジット） | ほかに使うエージェントがなければ消す。料金なら `docs/upstream/*.md`・`tools/prices`・`.github/workflows/prices.yml`・`TestPricesMatchUpstream` もそろえる。消すかどうかはユーザーに確かめる |
-| `internal/cli/cli.go` | `--sources` の既定値と説明、オプション、help の文、「no history found」のエラー文 | 既定値と help から外す。オプションは 2 のとおり残す |
-| `internal/cli/autostart.go` の `autostartEnv` | 自動起動に渡す環境変数 | 環境変数を残すなら残す |
-| `internal/cli/archive.go` の `keptDirs` | `kiroku archive` の保存先 | 残す（3） |
+| `internal/cli/cli.go` | オプション、help の文、「no history found」のエラー文（`--sources` の既定値と説明は `core.Agents` から作る） | help の文から外す。オプションは 2 のとおり残す |
 | `internal/cli/doctor.go` | 見つかったものの説明 | エージェント固有の文を消す |
 | `internal/report/` | エージェント固有の集計（例: Crew の裏方の処理） | やめるものだけのものを消す |
-| `internal/web/js/format.js` の `AG_SLOT`、`git.js` の `AG_MARK`、`loading.html` の `SLOT` | 色と略号（`loading.html` は別に持っている） | 3 か所とも消す。ほかのエージェントの色は変えない |
 | `internal/web/js/*.js`・`template.html` | 説明文の中のエージェント名（例: 「Claude Code and Codex」） | 文を直す。`help_test.go` などが説明を確かめている |
 | `testdata/` | 合成の履歴 | 消す。ほかのエージェントのテストが使っていないか確かめる |
 | `internal/source/<agent>_test.go`・`fuzz_test.go` | テスト、fuzz | やめるものだけのテストと `Fuzz…` を消す（`fuzz.yml` は `go test -list` で拾うので変えなくてよい） |
@@ -55,7 +53,7 @@ grep -rniE '<Name>|<family>|<option>|<ENV>|<adapter file>' --exclude-dir=.git . 
 `docs/compatibility.md` で、オプションと環境変数は v1 以降、メジャーバージョンの中で残すと約束している。v1 より前でも、急に消して利用者のスクリプトや自動起動の設定を壊さないよう、次のようにする。
 
 - **オプション**（例: `--codex-home`）: 受け付けたまま何もしない。使われたら「<agent> のサポートはやめた（vX.Y.Z）。このオプションは何もしない」と標準エラーに 1 回だけ出す。help の説明もそう書く
-- **環境変数**（例: `CODEX_HOME`）: 読まなくなるだけで、エラーにはしない。`autostartEnv` から外すかどうかは、既存の自動起動の設定を作り直しても困らないかで決める
+- **環境変数**（例: `CODEX_HOME`）: 読まなくなるだけで、エラーにはしない。`core.Agents` の行を消すと `autostartEnv` からも消える。既存の自動起動の設定を作り直しても困らないかで決め、残すなら `autostartEnv` に名前を書き足す
 - **`--sources` の名前**（例: `--sources codex`）: 今のコードは知らない名前を黙って無視するので、やめた名前には同じ警告を出す。ほかに読むものがなければ、今の「no history found」のエラーの前にその警告が出るようにする
 - これらにテストを足す（警告が出ること、終了コードが 0 のままであること）
 
@@ -65,7 +63,7 @@ grep -rniE '<Name>|<family>|<option>|<ENV>|<adapter file>' --exclude-dir=.git . 
 
 `docs/compatibility.md` で、前の版が残した写しを後の版も扱えると約束している。
 
-- 写しは消さない。`keptDirs` のフォルダ名は残し、`kiroku archive off` がその写しを今までどおり消せるようにする
+- 写しは消さない。`core.Agents` の行を消すと `keptDirs` からフォルダ名も消えるので、`keptDirs`（`internal/cli/archive.go`）に名前を書き足して残し、`kiroku archive off` がその写しを今までどおり消せるようにする
 - やめたエージェントの写しがあるときは、`kiroku archive`（引数なし）と `kiroku doctor` で「<agent> の写しが N 件ある。kiroku はもう読まない。要らなければ `kiroku archive off` で消せる」と知らせる
 - `testdata/compat/` の古い版の写しは消さず、`TestCompatArchive` が通ることを確かめる（読まないエージェントの写しを、エラーにせず飛ばすこと）
 

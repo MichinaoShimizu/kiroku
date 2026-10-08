@@ -94,7 +94,7 @@ func assemble(s string, pairs ...string) string {
 // live が true なら、画面は /stamp を見張って新しい履歴を取り込む（--serve 用）。
 func Render(data, weeks, months, meta any, generated float64, live bool) (string, error) {
 	repl := []string{}
-	for k, v := range map[string]any{"__DATA__": data, "__WEEKS__": weeks, "__MONTHS__": months, "__META__": meta, "__GEN__": generated, "__LIVE__": live, "__PROMPT_RUNES__": core.PromptRunes, "__REPLY_RUNES__": core.ReplyRunes, "__RECORDS__": core.Records} {
+	for k, v := range map[string]any{"__DATA__": data, "__WEEKS__": weeks, "__MONTHS__": months, "__META__": meta, "__GEN__": generated, "__LIVE__": live, "__PROMPT_RUNES__": core.PromptRunes, "__REPLY_RUNES__": core.ReplyRunes, "__RECORDS__": core.Records, "__AGENTS__": core.Agents, "__AGENT_WARN__": core.AgentWarnSlots} {
 		b, err := json.Marshal(v)
 		if err != nil {
 			return "", err
@@ -107,7 +107,11 @@ func Render(data, weeks, months, meta any, generated float64, live bool) (string
 // Loading は、kiroku serve が最初の読み込みを終えるまで出す画面（stamp を見て、読み終わったら本物の画面に切りかわる）。
 // 中のスクリプトは変わらないので、CSP は起動時に 1 回だけ入れる。
 var Loading = func() []byte {
-	page, err := withCSP(loading, true)
+	agents, err := json.Marshal(core.Agents)
+	if err != nil {
+		panic("web: agents: " + err.Error())
+	}
+	page, err := withCSP(strings.Replace(loading, "__AGENTS__", string(agents), 1), true)
 	if err != nil {
 		panic("web: loading.html: " + err.Error())
 	}

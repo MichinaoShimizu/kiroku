@@ -12,8 +12,11 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
+
+	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
 
 // autostartLabel は launchd に登録する名前。
@@ -21,7 +24,8 @@ const autostartLabel = "io.github.michinaoshimizu.kiroku"
 
 // autostartEnv は、ログイン時に起動したときにも同じ履歴を読むよう、登録するときの値を書き残す環境変数。
 // launchd や systemd から起動すると、シェルで設定した値（と PATH）は引き継がれないため（PATH は git を探すのに使う）。
-var autostartEnv = []string{"PATH", "CLAUDE_CONFIG_DIR", "KIRO_HOME", "KIROCREW_HOME", "CODEX_HOME", "KIROKU_ARCHIVE_DIR", "KIROKU_CONFIG_DIR", "XDG_CONFIG_HOME"}
+// エージェント自身の環境変数は core.Agents から取る。
+var autostartEnv = slices.Concat([]string{"PATH"}, core.AgentEnv(), []string{"KIROKU_ARCHIVE_DIR", "KIROKU_CONFIG_DIR", "XDG_CONFIG_HOME"})
 
 // runCmd は launchctl・systemctl を実行する（テストで差しかえる）。
 var runCmd = func(name string, args ...string) error {
