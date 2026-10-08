@@ -3,7 +3,7 @@
 # OpenAI API prices
 
 - Source: https://developers.openai.com/api/docs/pricing.md
-- Fetched: 2026-10-07 (the last time these numbers changed)
+- Fetched: 2026-10-08 (the last time these numbers changed)
 
 USD per million tokens, standard rates. Only the numbers kiroku uses.
 
@@ -31,4 +31,6 @@ Long context: more than 272K input tokens in one request (the whole request is b
 | gpt-5-mini | 0.25 | 0.025 | - | 2 | - | - | - | - |
 | gpt-5-nano | 0.05 | 0.005 | - | 0.4 | - | - | - | - |
 | gpt-5-pro | 15 | - | - | 120 | - | - | - | - |
+| gpt-5.6-cyber | 12.5 | 1.25 | 15.625 | 75 | - | - | - | - |
+| gpt-5.5-cyber | 12.5 | 1.25 | - | 75 | - | - | - | - |
 | gpt-5.3-codex | 1.75 | 0.175 | - | 14 | - | - | - | - |

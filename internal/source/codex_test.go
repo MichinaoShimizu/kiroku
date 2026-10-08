@@ -1,6 +1,7 @@
 package source
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -632,5 +633,190 @@ func TestCodexFallbackInjected(t *testing.T) {
 	f := b.Finish(15)
 	if len(f.Prompts) != 1 || f.Prompts[0].Text != "Fix the header color" {
 		t.Errorf("prompts = %+v, want only the typed one", f.Prompts)
+	}
+}
+
+// 予定（heartbeat）が入れた文は、ふつうの user_message（paginated は item_completed の UserMessage）として残る。
+// 見分けられるのは、直前の response_item の user の message の content_item_kinds が user.heartbeat だけのとき
+// （history の heartbeat.rs）。人の依頼に数えず、そのターンの応答を前の依頼に付けない。
+// heartbeat のターンの途中で人が足した文（印のないもの）は人の依頼（turn_trigger では決めない）。
+func TestCodexHeartbeat(t *testing.T) {
+	beat := `"<heartbeat>\n  <automation_id>daily-check</automation_id>\n  <current_time_iso>2026-10-06T01:00:00Z</current_time_iso>\n  <instructions>\nCheck CI\n  </instructions>\n</heartbeat>\n"`
+	meta := `"internal_chat_message_metadata_passthrough":{"turn_id":"t2","content_item_kinds":["user.heartbeat"]}`
+	home := t.TempDir()
+	writeCodex(t, home, "thr-beat",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-beat","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:01.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Fix the header"}]}}`,
+		`{"timestamp":"2026-10-06T00:00:01.000Z","type":"event_msg","payload":{"type":"user_message","message":"Fix the header"}}`,
+		`{"timestamp":"2026-10-06T00:00:30.000Z","type":"event_msg","payload":{"type":"agent_message","message":"Header fixed"}}`,
+		`{"timestamp":"2026-10-06T01:00:00.000Z","type":"event_msg","payload":{"type":"turn_started","turn_id":"t2","turn_attribution":{"turn_trigger":"automation_heartbeat_scheduled"}}}`,
+		`{"timestamp":"2026-10-06T01:00:00.100Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":`+beat+`}],`+meta+`}}`,
+		`{"timestamp":"2026-10-06T01:00:00.100Z","type":"event_msg","payload":{"type":"user_message","message":`+beat+`}}`,
+		`{"timestamp":"2026-10-06T01:00:20.000Z","type":"event_msg","payload":{"type":"agent_message","message":"CI is green"}}`,
+		// heartbeat のターンの途中で人が足した文
+		`{"timestamp":"2026-10-06T01:00:30.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Also fix lint"}],"internal_chat_message_metadata_passthrough":{"turn_id":"t2"}}}`,
+		`{"timestamp":"2026-10-06T01:00:30.000Z","type":"event_msg","payload":{"type":"user_message","message":"Also fix lint"}}`,
+		`{"timestamp":"2026-10-06T01:00:50.000Z","type":"event_msg","payload":{"type":"agent_message","message":"Lint fixed"}}`,
+	)
+	// paginated。文がタグで始まらなくても、印があれば人の依頼にしない
+	writeCodex(t, home, "thr-beat-p",
+		`{"timestamp":"2026-10-06T02:00:00.000Z","ordinal":0,"type":"session_meta","payload":{"id":"thr-beat-p","timestamp":"2026-10-06T02:00:00.000Z","cwd":"/Users/me/web","history_mode":"paginated"}}`,
+		`{"timestamp":"2026-10-06T02:00:01.000Z","ordinal":1,"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Review open pull requests"}],`+meta+`}}`,
+		`{"timestamp":"2026-10-06T02:00:01.000Z","ordinal":2,"type":"event_msg","payload":{"type":"item_completed","thread_id":"thr-beat-p","turn_id":"t2","item":{"type":"UserMessage","id":"u1","content":[{"type":"text","text":"Review open pull requests","text_elements":[]}]}}}`,
+		`{"timestamp":"2026-10-06T02:00:09.000Z","ordinal":3,"type":"event_msg","payload":{"type":"item_completed","thread_id":"thr-beat-p","turn_id":"t2","item":{"type":"AgentMessage","id":"a1","content":[{"type":"Text","text":"No open pull requests"}]}}}`,
+		`{"timestamp":"2026-10-06T02:01:00.000Z","ordinal":4,"type":"event_msg","payload":{"type":"item_completed","thread_id":"thr-beat-p","turn_id":"t3","item":{"type":"UserMessage","id":"u2","content":[{"type":"text","text":"Thanks, now update the docs","text_elements":[]}]}}}`,
+	)
+	bs := load(t, &Codex{Home: home})
+	b := find(bs, "thr-beat")
+	if b == nil {
+		t.Fatal("thr-beat がない")
+	}
+	if len(b.Notes) != 1 || b.Notes[0].Kind != "agent" {
+		t.Errorf("notes = %+v, want the heartbeat as one agent note", b.Notes)
+	}
+	f := b.Finish(15)
+	if len(f.Prompts) != 2 || f.Prompts[0].Text != "Fix the header" || f.Prompts[1].Text != "Also fix lint" {
+		t.Fatalf("prompts = %+v, want the two typed ones", f.Prompts)
+	}
+	if r := f.Prompts[0].Reply; r == nil || r.Text != "Header fixed" {
+		t.Errorf("reply = %+v, want Header fixed（heartbeat のターンの応答は付けない）", r)
+	}
+	if r := f.Prompts[1].Reply; r == nil || r.Text != "Lint fixed" {
+		t.Errorf("reply = %+v, want Lint fixed", r)
+	}
+	p := find(bs, "thr-beat-p")
+	if p == nil {
+		t.Fatal("thr-beat-p がない")
+	}
+	if len(p.Notes) != 1 || p.Notes[0].Kind != "agent" {
+		t.Errorf("paginated notes = %+v", p.Notes)
+	}
+	if fp := p.Finish(15); len(fp.Prompts) != 1 || fp.Prompts[0].Text != "Thanks, now update the docs" || fp.Prompts[0].Reply != nil {
+		t.Errorf("paginated prompts = %+v, want only the typed one, without the heartbeat's reply", fp.Prompts)
+	}
+}
+
+// writeCodexFile は sessions/2026/10/06 に name の rollout ファイルを書く。
+func writeCodexFile(t *testing.T, home, name string, lines ...string) {
+	t.Helper()
+	dir := filepath.Join(home, "sessions", "2026", "10", "06")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, name), []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// thread/revert（巻き戻し）は、同じスレッド ID の新しいファイル（rollout-<時刻>-<スレッド ID>_<rollout ID>.jsonl）を作り、
+// 残す前半を写さずに session_meta.history_base で古いファイルを指す（revert_thread.rs）。古いファイルは残る。
+// 1 つのセッションにして、前半（ordinal が end_ordinal_exclusive より前）といまのファイルの行を数え、巻き戻して消したターンは数えない。
+func TestCodexRevertedThread(t *testing.T) {
+	home := t.TempDir()
+	rec := func(ts string, ord int, id string, in int) string {
+		return fmt.Sprintf(`{"timestamp":"%s","ordinal":%d,"type":"token_usage_record","payload":{"thread_id":"thr-rv","response_id":"%s","usage":{"input_tokens":%d,"cached_input_tokens":0,"output_tokens":10,"total_tokens":%d}}}`, ts, ord, id, in, in+10)
+	}
+	user := func(ts string, ord int, text string) string {
+		return fmt.Sprintf(`{"timestamp":"%s","ordinal":%d,"type":"event_msg","payload":{"type":"item_completed","thread_id":"thr-rv","turn_id":"t","item":{"type":"UserMessage","id":"u","content":[{"type":"text","text":"%s"}]}}}`, ts, ord, text)
+	}
+	writeCodexFile(t, home, "rollout-2026-10-06T00-00-00-thr-rv.jsonl",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","ordinal":0,"type":"session_meta","payload":{"id":"thr-rv","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web","history_mode":"paginated"}}`,
+		`{"timestamp":"2026-10-06T00:00:01.000Z","ordinal":1,"type":"turn_context","payload":{"model":"gpt-6-sol"}}`,
+		user("2026-10-06T00:00:02.000Z", 2, "First task"),
+		rec("2026-10-06T00:00:10.000Z", 3, "r1", 1000),
+		// ここから巻き戻して消したターン
+		user("2026-10-06T00:01:00.000Z", 4, "Reverted task"),
+		rec("2026-10-06T00:01:10.000Z", 5, "r2", 500),
+		`{"timestamp":"2026-10-06T00:01:20.000Z","ordinal":6,"type":"compacted","payload":{"message":""}}`,
+	)
+	writeCodexFile(t, home, "rollout-2026-10-06T00-10-00-thr-rv_rollout-b.jsonl",
+		`{"timestamp":"2026-10-06T00:10:00.000Z","ordinal":4,"type":"session_meta","payload":{"id":"thr-rv","timestamp":"2026-10-06T00:10:00.000Z","cwd":"/Users/me/web","history_mode":"paginated","history_base":{"thread_id":"thr-rv","end_ordinal_exclusive":4,"end_byte_offset":900}}}`,
+		`{"timestamp":"2026-10-06T00:10:01.000Z","ordinal":5,"type":"turn_context","payload":{"model":"gpt-6-sol"}}`,
+		user("2026-10-06T00:10:02.000Z", 6, "Second try"),
+		rec("2026-10-06T00:10:10.000Z", 7, "r3", 200),
+	)
+	bs := load(t, &Codex{Home: home})
+	if len(bs) != 1 {
+		t.Fatalf("sessions = %d, want 1（巻き戻したスレッドは 1 つ）", len(bs))
+	}
+	b := bs[0]
+	if b.ID != "thr-rv" || !strings.Contains(b.File, "_rollout-b") {
+		t.Errorf("id/file = %q %q, want the current file", b.ID, b.File)
+	}
+	if len(b.Compactions) != 0 {
+		t.Errorf("compactions = %v, want none（消したターンのもの）", b.Compactions)
+	}
+	f := b.Finish(15)
+	if len(f.Prompts) != 2 || f.Prompts[0].Text != "First task" || f.Prompts[1].Text != "Second try" {
+		t.Errorf("prompts = %+v, want First task and Second try", f.Prompts)
+	}
+	if f.Usage.In != 1000+200 || f.Usage.Out != 20 {
+		t.Errorf("tokens = %+v, want in 1200 out 20（前半を 1 回、消したターンは数えない）", f.Usage.Tokens)
+	}
+}
+
+// local_shell_call・web_search_call・tool_search_call・image_generation_call も残る項目なので（rollout の policy.rs）、
+// ツール呼び出しに数える。local_shell_call で apply_patch を呼んだら、変えたファイルも拾う。
+func TestCodexOtherToolCalls(t *testing.T) {
+	home := t.TempDir()
+	writeCodex(t, home, "thr-tools",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-tools","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:01.000Z","type":"event_msg","payload":{"type":"user_message","message":"Update the readme"}}`,
+		`{"timestamp":"2026-10-06T00:00:02.000Z","type":"response_item","payload":{"type":"local_shell_call","call_id":"c1","status":"completed","action":{"type":"exec","command":["apply_patch","*** Begin Patch\n*** Update File: docs/readme.md\n@@\n-a\n+b\n*** End Patch"]}}}`,
+		`{"timestamp":"2026-10-06T00:00:03.000Z","type":"response_item","payload":{"type":"web_search_call","status":"completed","action":{"type":"search","query":"placeholder"}}}`,
+		`{"timestamp":"2026-10-06T00:00:04.000Z","type":"response_item","payload":{"type":"tool_search_call","call_id":"c2","status":"completed","execution":"client","arguments":{"query":"placeholder"}}}`,
+		`{"timestamp":"2026-10-06T00:00:05.000Z","type":"response_item","payload":{"type":"image_generation_call","id":"ig1","status":"completed","result":""}}`,
+	)
+	b := load(t, &Codex{Home: home})[0]
+	tools := b.ToolCounts()
+	for _, name := range []string{"local_shell", "web_search", "tool_search", "image_generation"} {
+		if tools[name] != 1 {
+			t.Errorf("tools = %v, want %s once", tools, name)
+		}
+	}
+	if files := b.EditedFiles(); len(files) != 1 || files[0] != "docs/readme.md" {
+		t.Errorf("edited = %v", files)
+	}
+	if v := nativeEn(b.Finish(15))["Tool calls"]; v.V != 4 {
+		t.Errorf("tool calls = %+v, want 4", v)
+	}
+}
+
+// user_message のない古い版で、タグで始まらないのに Codex が入れる文（contextual_user_message.rs）は依頼に数えない。
+func TestCodexFallbackInjectedWarnings(t *testing.T) {
+	home := t.TempDir()
+	user := func(sec, text string) string {
+		return `{"timestamp":"2026-10-06T00:00:` + sec + `.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"` + text + `"}]}}`
+	}
+	writeCodex(t, home, "thr-warn",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-warn","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		user("01", "Fix the footer"),
+		user("02", `Here is a list of plugins that are available but not installed.\n\n- example (example@placeholder)`),
+		user("03", "Warning: The maximum number of unified exec processes you can keep open is 64."),
+		user("04", "Warning: apply_patch was requested via exec_command. Use the apply_patch tool instead of exec_command."),
+		user("05", "Warning: Your account was flagged for potentially high-risk cyber activity and this request was routed."),
+	)
+	b := load(t, &Codex{Home: home})[0]
+	if len(b.Notes) != 4 {
+		t.Errorf("notes = %+v, want 4", b.Notes)
+	}
+	if f := b.Finish(15); len(f.Prompts) != 1 || f.Prompts[0].Text != "Fix the footer" {
+		t.Errorf("prompts = %+v, want only the typed one", f.Prompts)
+	}
+}
+
+// last_token_usage のないとても古い版は、合計が増えた token_count ごとに応答 1 回。
+func TestCodexOldTokenCountResponses(t *testing.T) {
+	home := t.TempDir()
+	writeCodex(t, home, "thr-oldest",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-oldest","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:01.000Z","type":"event_msg","payload":{"type":"user_message","message":"Fix it"}}`,
+		`{"timestamp":"2026-10-06T00:00:10.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":100,"output_tokens":10,"total_tokens":110}}}}`,
+		`{"timestamp":"2026-10-06T00:00:11.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":100,"output_tokens":10,"total_tokens":110}}}}`,
+		`{"timestamp":"2026-10-06T00:00:20.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":300,"output_tokens":30,"total_tokens":330}}}}`,
+	)
+	f := load(t, &Codex{Home: home})[0].Finish(15)
+	if v := nativeEn(f)["Responses"]; v.V != 2 {
+		t.Errorf("responses = %+v, want 2（同じ合計の書き直しは数えない）", v)
 	}
 }

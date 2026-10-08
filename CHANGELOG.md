@@ -2,6 +2,17 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Codex: input sent by a scheduled heartbeat is no longer counted as a prompt you typed. It appears in the prompt flow as added by a schedule, and the reply to it is no longer shown as the reply to your previous prompt. A prompt you type while a heartbeat turn runs still counts as yours
+- Codex: a thread you reverted (`thread/revert`) is shown as one session instead of two with the same ID. It includes the kept part of the conversation once, and the turns that were reverted away are no longer counted in its prompts, tokens and cost
+- Codex: `gpt-5.5-cyber` and `gpt-5.6-cyber` are priced at their own official rates instead of `gpt-5.5`'s (or not at all)
+- Codex: local shell calls, web searches, tool searches and image generations now count as tool calls and appear in the session's tool list, and files changed with `apply_patch` through a local shell call appear among the edited files
+- Codex: in old sessions without `user_message` events, notices Codex added as user messages without a tag (the list of plugins not installed, and warnings about the exec process limit, `apply_patch` through `exec_command` and a flagged account) are no longer counted as prompts
+- Codex: in the oldest sessions, whose token counts have no per-response usage, "Responses" now counts each response instead of staying empty
+
 ## v0.27.1 - 2026-10-08
 
 ### Fixed
