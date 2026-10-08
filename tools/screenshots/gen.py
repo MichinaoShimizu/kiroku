@@ -1,7 +1,7 @@
-"""スクリーンショット用のダミーの Claude Code の履歴を作る（架空の 4 プロジェクト、今日までの約 5 週間）。
+"""スクリーンショット用のダミーの履歴を作る（Claude Code・Codex CLI・Kiro CLI・Kiro IDE、架空の 4 プロジェクト、今日までの約 5 週間）。
 スクリーンショットは英語表示で撮るので、プロンプトも英語にする。
 
-  python3 gen.py <出力先>   → <出力先>/home/.claude/projects と <出力先>/repos/<プロジェクト>
+  python3 gen.py <出力先>   → <出力先>/home/.claude/projects・<出力先>/home/.codex・<出力先>/home/.kiro と <出力先>/repos/<プロジェクト>
 """
 import json, random, uuid, os, sys, datetime as dt
 OUT = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else "out")
@@ -112,3 +112,106 @@ for d in range(35, -1, -1):
 # 履歴を長く残す設定にしておく（既定の 30 日のままだと、画面に「過去の履歴が消えます」のお知らせが出る）
 os.makedirs(os.path.join(OUT, "home", ".claude"), exist_ok=True)
 json.dump({"cleanupPeriodDays": 3650}, open(os.path.join(OUT, "home", ".claude", "settings.json"), "w"))
+
+# ほかのエージェント（Codex CLI・Kiro CLI・Kiro IDE）の履歴も作る。kiroku は複数のエージェントを 1 つの画面に並べるので、デモもそう見せる。
+# Claude Code の分のあとに別の乱数で作るので、Claude Code のダミーデータは変わらない
+oth = random.Random(19)
+def iso(t): return t.astimezone(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+others = {
+ "codex": {"web-app": ["Refactor the session middleware","Add rate limiting to the login API"], "data-pipeline": ["Add retries to the S3 upload step","Profile the nightly job"]},
+ "kiro-cli": {"web-app": ["Write unit tests for the cart total","Explain the auth flow"], "mobile": ["Fix the layout on small screens","Add a loading state to the feed"], "docs": ["Check the docs for broken links"]},
+ "kiro-ide": {"mobile": ["Implement the profile edit screen from the spec","Add offline caching to the feed"], "data-pipeline": ["Create a spec for the export API"]},
+}
+odone = ["Done. I updated the handler and added a test for it; all tests pass.", "I looked through the code: the logic lives in src/api.ts, and the tests are under test/. Want me to change it?", "Fixed and verified locally. The change is small, so I kept it in one file."]
+CODEX = os.path.join(OUT, "home", ".codex")
+KIRO = os.path.join(OUT, "home", ".kiro")
+index = []
+for d in range(35, -1, -1):
+    day = today - dt.timedelta(days=d)
+    if day.weekday() >= 5 and oth.random() < 0.7: continue
+    for agent, rate in (("codex", 0.7), ("kiro-cli", 0.5), ("kiro-ide", 0.4)):
+        if oth.random() >= rate: continue
+        p = oth.choice(list(others[agent])); cwd = os.path.join(REPOS, p)
+        start = day + dt.timedelta(hours=oth.choice([9,10,11,13,14,15,16,17,19]), minutes=oth.randint(0,50))
+        if start > now - dt.timedelta(hours=2): continue
+        sid = str(uuid.uuid4()); title = oth.choice(others[agent][p]); t = start
+        asks = [title] + [oth.choice(follow) for _ in range(oth.randint(1, 6))]
+        if agent == "codex":
+            model = oth.choice(["gpt-6-sol", "gpt-6-sol", "gpt-5.5"]); tot = {"input_tokens":0,"cached_input_tokens":0,"output_tokens":0,"reasoning_output_tokens":0,"total_tokens":0}
+            lines = [{"timestamp":iso(t),"type":"session_meta","payload":{"id":sid,"timestamp":iso(t),"cwd":cwd,"originator":"codex_cli_rs","cli_version":"0.80.0","source":"cli","git":{"branch":oth.choice(branches[p])}}},
+                     {"timestamp":iso(t),"type":"turn_context","payload":{"cwd":cwd,"model":model}}]
+            sub = None
+            for i, ask in enumerate(asks):
+                t += dt.timedelta(seconds=oth.randint(5, 30))
+                lines.append({"timestamp":iso(t),"type":"event_msg","payload":{"type":"user_message","message":ask,"images":[]}})
+                for _ in range(oth.randint(1, 4)):
+                    t += dt.timedelta(seconds=oth.randint(15, 180))
+                    if oth.random() < 0.5:
+                        f = f"src/{oth.choice(['app','api','util','view'])}.ts"
+                        lines.append({"timestamp":iso(t),"type":"response_item","payload":{"type":"custom_tool_call","name":"apply_patch","input":f"*** Begin Patch\n*** Update File: {f}\n@@\n-old\n+new\n*** End Patch","call_id":"c"+uuid.uuid4().hex[:8]}})
+                    else:
+                        lines.append({"timestamp":iso(t),"type":"response_item","payload":{"type":"function_call","name":"shell","arguments":json.dumps({"command":["bash","-lc",oth.choice(["rg TODO","npm test","ls src"])]}),"call_id":"c"+uuid.uuid4().hex[:8]}})
+                    last = {"input_tokens":oth.randint(8000,40000),"output_tokens":oth.randint(200,3000),"reasoning_output_tokens":oth.randint(0,1500)}
+                    last["cached_input_tokens"] = int(last["input_tokens"] * oth.uniform(0.5, 0.9)); last["total_tokens"] = last["input_tokens"] + last["output_tokens"]
+                    for k in tot: tot[k] += last[k]
+                    lines.append({"timestamp":iso(t),"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":dict(tot),"last_token_usage":last,"model_context_window":272000},"rate_limits":{"primary":{"used_percent":round(oth.uniform(5, 60), 1),"window_minutes":300},"secondary":{"used_percent":round(oth.uniform(10, 40), 1),"window_minutes":10080}}}})
+                if i == 0 and sub is None and oth.random() < 0.3:  # ときどきサブエージェントに調べさせる（親の詳細に入る）
+                    sub = (str(uuid.uuid4()), t)
+                    t += dt.timedelta(seconds=oth.randint(60, 300))
+                t += dt.timedelta(seconds=4)
+                lines.append({"timestamp":iso(t),"type":"event_msg","payload":{"type":"agent_message","message":oth.choice(odone)}})
+                t += dt.timedelta(seconds=oth.randint(30, 400))
+            if t > now: continue
+            dirn = os.path.join(CODEX, "sessions", start.strftime("%Y/%m/%d")); os.makedirs(dirn, exist_ok=True)
+            with open(os.path.join(dirn, f"rollout-{start.strftime('%Y-%m-%dT%H-%M-%S')}-{sid}.jsonl"), "w") as f:
+                for l in lines: f.write(json.dumps(l, ensure_ascii=False)+"\n")
+            index.append({"id":sid,"thread_name":title,"updated_at":iso(t)})
+            if sub:
+                cid, ct = sub; st = ct + dt.timedelta(seconds=2)
+                last = {"input_tokens":oth.randint(5000,20000),"cached_input_tokens":2000,"output_tokens":oth.randint(200,1200),"reasoning_output_tokens":0}; last["total_tokens"] = last["input_tokens"] + last["output_tokens"]
+                sl = [{"timestamp":iso(ct),"type":"session_meta","payload":{"id":cid,"timestamp":iso(ct),"cwd":cwd,"source":{"subagent":{"thread_spawn":{"parent_thread_id":sid,"depth":1,"agent_role":"explorer"}}}}},
+                      {"timestamp":iso(ct),"type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":cid,"thread_settings":{"model":"gpt-6-luna"}}},
+                      {"timestamp":iso(st),"type":"turn_context","payload":{"cwd":cwd,"model":"gpt-6-luna"}},
+                      {"timestamp":iso(st),"type":"event_msg","payload":{"type":"user_message","message":"Find where this is implemented and list the related tests"}},
+                      {"timestamp":iso(st+dt.timedelta(seconds=30)),"type":"response_item","payload":{"type":"function_call","name":"shell","arguments":json.dumps({"command":["rg","-l","session"]}),"call_id":"s"+cid[:8]}},
+                      {"timestamp":iso(st+dt.timedelta(seconds=60)),"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":last,"last_token_usage":last,"model_context_window":272000},"rate_limits":None}}]
+                with open(os.path.join(dirn, f"rollout-{ct.strftime('%Y-%m-%dT%H-%M-%S')}-{cid}.jsonl"), "w") as f:
+                    for l in sl: f.write(json.dumps(l, ensure_ascii=False)+"\n")
+        elif agent == "kiro-cli":
+            model = oth.choice(["claude-sonnet-4.5", "claude-sonnet-4.5", "auto"]); lines = []; turns = []
+            for ask in asks:
+                t += dt.timedelta(seconds=oth.randint(5, 30))
+                lines.append({"kind":"Prompt","data":{"content":[{"kind":"text","data":ask}],"meta":{"timestamp":iso(t)}}})
+                content = []
+                for _ in range(oth.randint(1, 3)):
+                    content.append({"kind":"toolUse","data":{"name":oth.choice(["fs_read","fs_write","execute_bash"]),"input":{"path":f"{cwd}/src/{oth.choice(['app','api','view'])}.ts"}}})
+                    t += dt.timedelta(seconds=oth.randint(15, 150))
+                content.insert(0, {"kind":"text","data":oth.choice(odone)})
+                lines.append({"kind":"AssistantMessage","data":{"content":content}})
+                turns.append({"end_timestamp":iso(t),"metering_usage":[{"value":round(oth.uniform(0.2, 2.5), 2),"unit":"credit"}],"total_request_count":len(content),"model":model})
+                t += dt.timedelta(seconds=oth.randint(30, 400))
+            if t > now: continue
+            dirn = os.path.join(KIRO, "sessions", "cli"); os.makedirs(dirn, exist_ok=True)
+            json.dump({"session_id":sid,"cwd":cwd,"title":title,"created_at":iso(start),"updated_at":iso(t),"session_state":{"rts_model_state":{"model_info":{"model_id":model}},"conversation_metadata":{"user_turn_metadatas":turns}}}, open(os.path.join(dirn, sid+".json"), "w"))
+            with open(os.path.join(dirn, sid+".jsonl"), "w") as f:
+                for l in lines: f.write(json.dumps(l, ensure_ascii=False)+"\n")
+        else:
+            lines = []
+            for ask in asks:
+                t += dt.timedelta(seconds=oth.randint(5, 30))
+                lines.append({"timestamp":iso(t),"payload":{"type":"user","content":[{"type":"text","text":ask}]}})
+                for _ in range(oth.randint(1, 4)):
+                    t += dt.timedelta(seconds=oth.randint(15, 150))
+                    lines.append({"timestamp":iso(t),"payload":{"type":"tool_call","toolName":oth.choice(["readFile","strReplace","fsWrite"]),"args":{"path":f"src/{oth.choice(['screens','api','store'])}/{oth.choice(['profile','feed','cache'])}.ts"}}})
+                t += dt.timedelta(seconds=4)
+                lines.append({"timestamp":iso(t),"payload":{"type":"assistant","content":[{"type":"text","text":oth.choice(odone)}]}})
+                lines.append({"timestamp":iso(t),"payload":{"type":"usage_summary","promptTurnSummaries":[{"usage":round(oth.uniform(0.3, 3), 2),"unit":"credit"}]}})
+                t += dt.timedelta(seconds=oth.randint(30, 400))
+            if t > now: continue
+            dirn = os.path.join(KIRO, "sessions", uuid.uuid5(uuid.NAMESPACE_URL, cwd).hex[:16], "sess_"+sid); os.makedirs(dirn, exist_ok=True)
+            json.dump({"id":"sess_"+sid,"title":title,"rootPaths":[cwd],"createdAt":iso(start),"modelId":"claude-sonnet-4.5"}, open(os.path.join(dirn, "session.json"), "w"))
+            with open(os.path.join(dirn, "messages.jsonl"), "w") as f:
+                for l in lines: f.write(json.dumps(l, ensure_ascii=False)+"\n")
+os.makedirs(CODEX, exist_ok=True)
+with open(os.path.join(CODEX, "session_index.jsonl"), "w") as f:
+    for l in index: f.write(json.dumps(l)+"\n")

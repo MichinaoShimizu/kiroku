@@ -57,7 +57,8 @@ for (let i = 0, n = await s.locator(".run").count(); i < n; i++) {
 await s.locator(".run").nth(best).click({ force: true });
 await s.waitForTimeout(600);
 // 再開のコマンド（いちばん上）にも一時フォルダのパスが出るので、写さない
-await s.addStyleTag({ content: "#panel .dresume{display:none}" });
+// 画面の CSP が <style> の追加を止めるので、要素の style で隠す
+await s.evaluate(() => document.querySelectorAll("#panel .dresume").forEach(e => { e.style.display = "none"; }));
 const box = await s.evaluate(() => {
   const pn = document.querySelector("#panel"), d = document.querySelector("#drawer").getBoundingClientRect();
   const top = pn.querySelector(".eyebrow").getBoundingClientRect(), col = pn.querySelector(".dcols > *").getBoundingClientRect();
