@@ -56,6 +56,8 @@ await clickAll(".run", "session", async () => {
 await clickAll(".gc", "commit");
 await clickAll(".gm", "pull request");
 await clickAll("#review .card", "summary card");
+// 内訳のダイアログ（上の帯とサマリーの数字）。プロジェクト名やセッション名が棒やカードに入るので、どれも開いて確かめる
+await clickAll("[data-metric]", "breakdown");
 for (const v of ["branch", "source", "project"]) { await p.selectOption("#cb2", v); await check(`color by ${v}`); }
 for (const q of ["<img", "alert", "__META__", "javascript", '"><svg']) {
   await p.fill("#q", q); await p.waitForTimeout(200); await check(`search ${q}`);

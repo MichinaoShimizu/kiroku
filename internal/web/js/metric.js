@@ -18,6 +18,8 @@ const BRK = {
 };
 const sesTok = s => [s.usage, ...(s.subagents || []).map(a => a.usage)].reduce((t,u) => t + (u ? u.in+u.out+u.cw+u.cw1h+u.cr : 0), 0);
 function sesMin(s){ const {ws, we} = period(); return s.segs.reduce((t, [a, b]) => t + Math.max(0, Math.min(b, we) - Math.max(a, ws))/60, 0); } // 期間の中で作業していた分
+// 名前ごとの件数。履歴の名前（プロジェクト）を {} のキーにすると、"__proto__" や "constructor" が数えられないので Map で数える
+const countBy = (list, f) => [...list.reduce((m, x) => m.set(f(x), (m.get(f(x)) || 0) + 1), new Map())];
 const pcOf = (v, t) => t > 0 ? Math.round(v*100/t) : 0;
 // 日ごとの柱。見込み（proj）があれば、まだ来ていない日に 1 日あたりの平均を薄く積む
 function mDays(w, m, proj){
@@ -33,7 +35,7 @@ function mDays(w, m, proj){
 function mBars(title, rows, m, total){
   rows = rows.filter(r => r.v > 0).sort((a,b) => b.v - a.v); if (!rows.length) return "";
   total = total || rows.reduce((t,r) => t + r.v, 0); const max = rows[0].v;
-  return `<h3>${title}</h3><div class="mbars">${rows.slice(0, 8).map(r => `<div class="mbar" style="--c:${r.c}"><span class="nm" title="${esc(r.name)}">${r.mark || ""}${esc(r.name)}</span><span class="tr"><span style="width:${r.v/max*100}%"></span></span><span class="vv">${esc(m.f(r.v))}</span><span class="pc">${pcOf(r.v, total)}%</span></div>`).join("")}${rows.length > 8 ? `<p class="note">${plural(rows.length - 8, "more")} not shown</p>` : ""}</div>`;
+  return `<h3>${title}</h3><div class="mbars">${rows.slice(0, 8).map(r => `<div class="mbar" style="--c:${r.c}"><span class="nm" title="${esc(r.name)}">${r.mark || ""}${esc(r.name)}</span><span class="tr"><span style="width:${r.v/max*100}%"></span></span><span class="vv">${esc(m.f(r.v))}</span><span class="pc">${pcOf(r.v, total)}%</span></div>`).join("")}${rows.length > 8 ? `<p class="note">${rows.length - 8} more not shown</p>` : ""}</div>`;
 }
 function mSessions(title, list, f){
   if (!list.length) return "";
@@ -54,7 +56,7 @@ function openMetric(id, from){
       <p class="note">About ${esc(m.f(avg))} a day. The faded bars are the days still to come at that pace.</p>` + mDays(w, m, {avg}) + mBars("So far, by agent", agents, m) + mBars("So far, by project", projs, m);
   } else if (id === "limits" || id === "compactions"){ // 起きた時刻の一覧：エージェントごと・プロジェクトごとと、いつどのセッションで
     const L = id === "limits", H2 = L ? limitHits(ws, we) : compactionsOf(ws, we); big = `${H2.length}`;
-    const by = (key, mk) => { const o = {}; H2.forEach(x => o[x.s[key]] = (o[x.s[key]] || 0) + 1); return Object.entries(o).map(([k, v]) => mk(k, v)); };
+    const by = (key, mk) => countBy(H2, x => x.s[key]).map(([k, v]) => mk(k, v));
     const cm = {f: v => `${v}`};
     body = mBars("By agent", by("source", (k, v) => ({name: k, c: agColor(k), mark: agMark(k), v})), cm) +
       mBars("By project", by("project", (k, v) => ({name: k, c: projColor(k), v})), cm) +
@@ -64,8 +66,8 @@ function openMetric(id, from){
     big = id === "days" ? `${w.days.filter(d => d.active).length}<small> of ${w.days.length}</small>` : id === "sessions" ? `${w.sessions}<small>/</small>${w.prompts}` : id === "cost" ? usdH(tot) : esc(m.f(tot || 0));
     body = mDays(w, m);
     if (id === "sessions"){ // セッション数はエージェント別の集計にないので、期間にかかったセッションから数える
-      const by = {}; inRange.forEach(s => { const b = by[s.source] = by[s.source] || {s: 0, p: 0}; b.s++; b.p += s.nPrompts || 0; });
-      body += mBars("Prompts by agent", Object.entries(by).map(([k, b]) => ({name: k, c: agColor(k), mark: agMark(k), v: b.p})), m) + mBars("Prompts by project", projs, m);
+      const by = new Map(); inRange.forEach(s => by.set(s.source, (by.get(s.source) || 0) + (s.nPrompts || 0)));
+      body += mBars("Prompts by agent", [...by].map(([k, v]) => ({name: k, c: agColor(k), mark: agMark(k), v})), m) + mBars("Prompts by project", projs, m);
     } else if (id === "commits"){
       const cm = {f: v => `${v}`};
       body += mBars("By project", (w.projectStats || []).map(p => ({name: p.project, c: projColor(p.project), v: (p.git || {}).commits || 0})), cm);
