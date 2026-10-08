@@ -242,12 +242,14 @@ func PriceOf(model string) (Price, bool) {
 	return p, true
 }
 
-// byModel は、モデル ID の先頭一致（料金ではなく、コンテキストの上限などを引く）（長いキーが優先）で表を引く。大文字・小文字と Bedrock の "anthropic." は区別しない。
+// byModel は、料金ではない表（コンテキストの上限など）をモデル ID で引く。料金表と同じく、ID を priceID でそろえ
+// （大文字・小文字、Bedrock の地域と anthropic.、版の印、4.8 の形）、先頭に区切りよく一致する最も長いキーを使う
+// （claude-opus-4-10 に claude-opus-4-1 は当てない）。
 func byModel[V any](table map[string]V, model string) (V, bool) {
-	m := strings.ReplaceAll(strings.ToLower(model), "anthropic.", "")
+	m := priceID(model)
 	best := ""
 	for k := range table {
-		if strings.HasPrefix(m, k) && len(k) > len(best) {
+		if prefixOf(m, k) && len(k) > len(best) {
 			best = k
 		}
 	}
@@ -279,12 +281,15 @@ func tokenCost(model string, u Tokens) (float64, bool) {
 
 // CostOfRequest は、u が応答 1 回分と分かっているときの目安コスト。入力（キャッシュの読み書きを含む）が境目を超えたら
 // （OpenAI は OpenAILongContext、Anthropic は LongPrices の Over）、その応答の全部を長いコンテキストの料金にする。
-func CostOfRequest(model string, u Tokens) (float64, bool) {
+func CostOfRequest(model string, u Tokens) (float64, bool) { return costOfRequest(model, u, u.Input()) }
+
+// costOfRequest は CostOfRequest と同じだが、境目と比べるプロンプトの大きさを prompt で渡す（Event.Prompt を参照）。
+func costOfRequest(model string, u Tokens, prompt float64) (float64, bool) {
 	p, ok := PriceOf(model)
 	if !ok {
 		return 0, false
 	}
-	if p.Long != nil && u.Input() > p.Over {
+	if p.Long != nil && prompt > p.Over {
 		return costAt(*p.Long, u), true
 	}
 	return costAt(p.Rates, u), true
@@ -317,20 +322,64 @@ func ReadUsage(raw any) Tokens {
 
 // Event は 1 つの応答の使用量。Cost が nil なら料金表にないモデル。
 type Event struct {
-	T     *float64
-	Model string
-	U     Tokens
-	Cost  *float64
-	Mult  float64 // 料金表の値に掛ける倍率（fast モード・US 内だけの推論）。0 は 1 と同じ
-	Req   bool    // U が応答 1 回分（入力の量で長いコンテキストの料金を選べる）。false は何回分かの合計かもしれない
+	T       *float64
+	Model   string
+	U       Tokens
+	Cost    *float64
+	Mult    float64 // 料金表の値に掛ける倍率（fast モード・US 内だけの推論）。0 は 1 と同じ
+	Req     bool    // U が応答 1 回分（入力の量で長いコンテキストの料金を選べる）。false は何回分かの合計かもしれない
+	Prompt  float64 // 1 回の呼び出しでモデルが読んだいちばん大きいプロンプト（usage.iterations に呼び出しが 2 回以上あるとき）。0 なら U.Input()
+	Advisor bool    // advisor ツールの呼び出し（Model は advisor のモデル）。応答の数やコンテキストの使用率には入れない
+}
+
+// prompt は、e の 1 回の呼び出しのプロンプトの大きさ（入力 + キャッシュの読み書き）。
+// advisor ツールを使うと、usage の各項目は executor の何回かの呼び出しの和になるので、いちばん大きい 1 回を使う。
+func (e Event) prompt() float64 {
+	if e.Prompt > 0 {
+		return e.Prompt
+	}
+	return e.U.Input()
 }
 
 // EventCost は e のトークンの目安コスト（料金表にないモデルは ok=false）。倍率は掛けず、ウェブ検索の料金も入れない。
 func EventCost(e Event) (float64, bool) {
 	if e.Req {
-		return CostOfRequest(e.Model, e.U)
+		return costOfRequest(e.Model, e.U, e.prompt())
 	}
 	return tokenCost(e.Model, e.U)
+}
+
+// iteration は usage.iterations の 1 つ（advisor ツールを使った応答だけにある）。
+type iteration struct {
+	model string // advisor の呼び出しのモデル（executor の呼び出しにはない）
+	u     Tokens
+	mult  float64
+}
+
+// readIterations は usage.iterations を読む。prompt は executor の呼び出し（type が message）が 2 回以上あるときの、
+// いちばん大きい 1 回のプロンプト（なければ 0）。advisors は advisor の呼び出し（type が advisor_message）。
+// usage の各項目は executor の呼び出しの和で、advisor の分は入らない。advisor の分は advisor のモデルの料金でかかる。
+// 出典: https://platform.claude.com/docs/en/agents-and-tools/tool-use/advisor-tool （Usage and billing）
+func readIterations(raw any) (prompt float64, advisors []iteration) {
+	its := List(Map(raw)["iterations"])
+	if len(its) == 0 {
+		return 0, nil
+	}
+	n := 0
+	for _, it := range its {
+		m := Map(it)
+		switch Str(m["type"]) {
+		case "message":
+			n++
+			prompt = max(prompt, ReadUsage(m).Input())
+		case "advisor_message":
+			advisors = append(advisors, iteration{model: Str(m["model"]), u: ReadUsage(m), mult: rateMult(m)})
+		}
+	}
+	if n < 2 {
+		prompt = 0
+	}
+	return prompt, advisors
 }
 
 // rateMult は、応答の usage に記録された料金の倍率。
@@ -356,24 +405,49 @@ type Usage struct {
 func NewUsage() *Usage { return &Usage{byMsg: map[string]*Event{}} }
 
 func (u *Usage) Add(mid string, t *float64, model string, raw any) {
-	tok, model := ReadUsage(raw), ModelName(model)
+	u.AddAdvised(mid, t, model, "", raw)
+}
+
+// AddAdvised は Add と同じだが、advisor ツールの呼び出し（usage.iterations の advisor_message）も、advisor のモデルの
+// 応答として足す。advisor のモデルは呼び出しの model、なければ advisor（Claude Code の行の advisorModel）。
+func (u *Usage) AddAdvised(mid string, t *float64, model, advisor string, raw any) {
 	if mid == "" {
 		mid = "_" + itoa(len(u.byMsg))
 	}
+	prompt, advs := readIterations(raw)
+	u.add(mid, Event{T: t, Model: ModelName(model), U: ReadUsage(raw), Mult: rateMult(raw), Req: true, Prompt: prompt})
+	for i, a := range advs { // 同じ応答の何行にも同じ iterations が書かれるので、何番目の呼び出しかで重ねる
+		u.add(mid+"\x00advisor"+itoa(i), Event{T: t, Model: ModelName(firstNonEmpty(a.model, advisor)), U: a.u, Mult: a.mult, Req: true, Advisor: true})
+	}
+}
+
+// add は、メッセージ ID（mid）ごとに項目別の最大値をとって e を重ねる。メッセージ ID ごとにまとめるので応答 1 回分。
+func (u *Usage) add(mid string, e Event) {
 	cur, ok := u.byMsg[mid]
 	if !ok {
-		u.byMsg[mid] = &Event{T: t, Model: model, U: tok, Mult: rateMult(raw), Req: true} // メッセージ ID ごとにまとめるので応答 1 回分
+		u.byMsg[mid] = &e
 		u.order = append(u.order, mid)
 		return
 	}
-	cur.Mult = max(cur.Mult, rateMult(raw))
+	cur.Mult = max(cur.Mult, e.Mult)
 	if cur.T == nil || *cur.T == 0 {
-		cur.T = t
+		cur.T = e.T
 	}
 	if cur.Model == "" {
-		cur.Model = model
+		cur.Model = e.Model
 	}
+	cur.Prompt = max(cur.Prompt, e.Prompt)
+	tok := e.U
 	cur.U = Tokens{max(cur.U.In, tok.In), max(cur.U.Out, tok.Out), max(cur.U.CW, tok.CW), max(cur.U.CW1h, tok.CW1h), max(cur.U.CR, tok.CR), max(cur.U.WebSearches, tok.WebSearches)}
+}
+
+func firstNonEmpty(s ...string) string {
+	for _, x := range s {
+		if x != "" {
+			return x
+		}
+	}
+	return ""
 }
 
 func (u *Usage) Len() int { return len(u.byMsg) }
