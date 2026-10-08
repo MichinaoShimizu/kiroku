@@ -125,7 +125,8 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 	seen := map[string]bool{} // 読んだ会話 ID（同じ会話は最初に読んだ、いちばん新しい行だけ使う）
 	for _, x := range rows {
 		var v any
-		if json.Unmarshal([]byte(x.value), &v) != nil {
+		if err := json.Unmarshal([]byte(x.value), &v); err != nil {
+			errs.file(q.DB, err) // 壊れた行は飛ばして残りを読み、最後に「計測の状態」に出す
 			continue
 		}
 		conv := core.Map(v)
@@ -182,6 +183,13 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 					// 時刻も request_metadata もない。応答も MCP サーバーの文で、モデルの応答ではないので付けない
 					s.Inject(t, "other", text)
 					reply = false
+				case user["timestamp"] == nil && meta != nil && !isLegacyEntry(h):
+					// コンパクションで残したターンの先頭や、応答のあとに返したツールの結果（ToolUseResults）を、
+					// CLI が出力をつないだ Prompt に書き換えたもの（conversation.rs の enforce_conversation_invariants・
+					// message.rs の replace_content_with_tool_use_results）。時刻はツールの結果のまま（なし）。
+					// 人が打った依頼には必ず時刻がある（set_next_user_message）。ツールの出力として残し、自動で返したターンにする
+					s.Inject(t, "output", text)
+					s.Agent(t)
 				default:
 					s.Prompt(t, text)
 				}
@@ -201,6 +209,9 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 				}
 			default: // ToolUseResults は自動で返したもの
 				s.Agent(t)
+			}
+			if meta == nil && core.Str(core.Get(asst, "Response", "content")) == qTimedOut {
+				reply = false // 応答のタイムアウトで CLI が入れた決まった文（モデルの応答ではない）
 			}
 			if tu := core.Map(asst["ToolUse"]); tu != nil {
 				for _, u := range core.List(tu["tool_uses"]) {
@@ -259,6 +270,7 @@ const (
 	qDenied        = "I deny this tool request. Ask a follow up question clarifying the expected action" // ツールの確認に「n」（CancelledToolUses）
 	qResumeSummary = "In a few words, summarize our conversation so far."                                // 入力なしの --resume（Prompt）
 	qSystemNote    = "[SYSTEM NOTE: This is an automated request, not from the user]"                    // /todos resume の依頼の頭（Prompt）
+	qTimedOut      = "Response timed out - message took too long to generate"                            // 応答のタイムアウト（mod.rs の RESPONSE_TIMEOUT_CONTENT。Response）
 )
 
 // qForbidden は、設定で禁じた引数のツールを CLI が自動で断ったときの文か（mod.rs:
