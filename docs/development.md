@@ -43,7 +43,7 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | `tools/` | `release-notes.sh` and `next-version.sh` (releases), `reproduce.sh` (rebuilds a released binary from its tag and compares it), `prices/` (fetches the official price pages and writes the numbers kiroku uses to `docs/upstream/`), `screenshots/` (dummy data with `gen.py` and `mkgit.py`, the demo's link card with `ogp.py`, screenshots with `capture.mjs`, and the view's e2e: `smoke.mjs`, plus `hostile.py` and `xss.mjs` for XSS) |
 | `install.sh`, `.goreleaser.yaml` | The installer, and how release files are built |
 
-The price tables are `Prices` (Anthropic), `OpenAIPrices` and `OpenAILongPrices` (OpenAI, for Codex) in `internal/core/usage.go`. Their source of truth is the official pricing pages, of which `docs/upstream/anthropic-pricing.md` and `docs/upstream/openai-pricing.md` keep only the numbers kiroku uses. To update them:
+The price tables are `Prices` and `LongPrices` (Anthropic; `LongPrices` holds models priced by prompt length, such as Claude Haiku 5.5 over 100K tokens), `OpenAIPrices` and `OpenAILongPrices` (OpenAI, for Codex) in `internal/core/usage.go`. Their source of truth is the official pricing pages, of which `docs/upstream/anthropic-pricing.md` and `docs/upstream/openai-pricing.md` keep only the numbers kiroku uses. To update them:
 
 ```bash
 go run ./tools/prices     # fetches the official pages and rewrites docs/upstream/*.md (only the files whose numbers changed)

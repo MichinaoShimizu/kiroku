@@ -205,7 +205,17 @@ var (
 	anthropicNote  = regexp.MustCompile(`\s*\(\[[^\]]*\]\([^)]*\)\)\s*$`)
 	anthropicName  = regexp.MustCompile(`^Claude ([A-Z][a-z]+) (\d+)(?:\.(\d+))?$`)
 	anthropicPrice = regexp.MustCompile(`^\$(\d+(?:\.\d+)?) / MTok(?:<sup>\d+</sup>)?$`)
+	// プロンプトの長さで料金が変わるモデルの名前の後ろ（"Claude Haiku 5.5 (for prompts up to 100,000 tokens)" と "… over 100,000 tokens)"）
+	anthropicTier = regexp.MustCompile(`^(.*\S) \(for prompts (up to|over) (\d{1,3}(?:,\d{3})+|\d+) tokens\)$`)
 )
+
+// anthropicRow は Model pricing の表の 1 行を読んだもの。
+type anthropicRow struct {
+	id   string
+	v    [5]string // 入力, 5 分, 1 時間, 読み込み, 出力
+	long *anthropicRow
+	over string // long の境目（トークン）
+}
 
 // anthropicID は "Claude Opus 4.1" → claude-opus-4-1、"Claude Haiku 3.5" → claude-3-5-haiku（3 までの名前の付け方）。
 func anthropicID(name string) (string, error) {
@@ -241,32 +251,71 @@ func parseAnthropic(page string) (string, error) {
 	if len(t.rows) < 5 {
 		return "", fmt.Errorf("only %d models in the price table", len(t.rows))
 	}
-	var b strings.Builder
-	b.WriteString("| Model ID | Input | Cache write 5m | Cache write 1h | Cache read | Output |\n|---|---|---|---|---|---|\n")
-	seen := map[string]bool{}
+	// プロンプトの長さで料金が変わるモデルは "up to N" と "over N" の 2 行になっている。1 行にまとめ、over の料金を Long の列に入れる
+	var rows []*anthropicRow
+	byID := map[string]*anthropicRow{}
+	tiers := map[string]string{} // id → "up to" / "over" の片方だけが出てきたもの
 	for _, r := range t.rows {
 		if len(r) != len(anthropicHeader) {
 			return "", fmt.Errorf("row %q has %d cells", r, len(r))
 		}
-		id, err := anthropicID(r[0])
+		name, tier, over := r[0], "", ""
+		if m := anthropicTier.FindStringSubmatch(name); m != nil {
+			name, tier, over = m[1], m[2], strings.ReplaceAll(m[3], ",", "")
+			if n, err := strconv.Atoi(over); err != nil || n < 1000 || n > 10_000_000 {
+				return "", fmt.Errorf("unexpected prompt length %q", m[3])
+			}
+		}
+		id, err := anthropicID(name)
 		if err != nil {
 			return "", err
 		}
-		if seen[id] {
-			return "", fmt.Errorf("model %s appears twice", id)
-		}
-		seen[id] = true
-		var v [5]string // 入力, 5 分, 1 時間, 読み込み, 出力
-		for i := range v {
+		row := &anthropicRow{id: id}
+		for i := range row.v {
 			m := anthropicPrice.FindStringSubmatch(r[i+1])
 			if m == nil {
 				return "", fmt.Errorf("%s: unexpected price %q", id, r[i+1])
 			}
-			if v[i], err = number(m[1]); err != nil {
+			if row.v[i], err = number(m[1]); err != nil {
 				return "", fmt.Errorf("%s: %w", id, err)
 			}
 		}
-		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s | %s |\n", id, v[0], v[1], v[2], v[3], v[4])
+		prev := byID[id]
+		switch {
+		case prev == nil:
+			row.over = over
+			if tier != "" {
+				tiers[id] = tier
+			}
+			byID[id] = row
+			rows = append(rows, row)
+			continue
+		case tier == "" || tiers[id] == "" || tiers[id] == tier || prev.over != over:
+			return "", fmt.Errorf("model %s appears twice", id)
+		}
+		delete(tiers, id)
+		if tier == "over" {
+			prev.long = row
+		} else { // over の行が先にあった。並びは最初に出てきた位置のまま
+			long := *prev
+			*prev = *row
+			prev.long, prev.over = &long, over
+		}
+	}
+	for id, tier := range tiers {
+		return "", fmt.Errorf("%s: prices for prompts %s %s tokens, but not for the other lengths", id, tier, byID[id].over)
+	}
+
+	var b strings.Builder
+	b.WriteString("Long over: a request whose prompt is more than this many tokens is billed at the Long rates as a whole (\"-\": one price for every length).\n\n")
+	b.WriteString("| Model ID | Input | Cache write 5m | Cache write 1h | Cache read | Output | Long over | Long input | Long cache write 5m | Long cache write 1h | Long cache read | Long output |\n" +
+		"|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+	for _, r := range rows {
+		long := []string{"-", "-", "-", "-", "-", "-"}
+		if r.long != nil {
+			long = append([]string{r.over}, r.long.v[:]...)
+		}
+		fmt.Fprintf(&b, "| %s | %s | %s |\n", r.id, strings.Join(r.v[:], " | "), strings.Join(long, " | "))
 	}
 	return b.String(), nil
 }
