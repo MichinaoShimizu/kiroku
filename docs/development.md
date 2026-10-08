@@ -74,6 +74,8 @@ Aggregation (`internal/report`) and the view only see the common session shape, 
 
 To check the adapters against the agents' public sources and official docs again (after an agent changes its format or prices, or from time to time), run the `/source-audit` skill in Claude Code (`.claude/skills/source-audit/SKILL.md`). It updates the "What history records" table in `docs/sources.md` and fixes what it finds in one PR per agent.
 
+To stop supporting an agent, run the `/drop-agent` skill (`.claude/skills/drop-agent/SKILL.md`). It removes the adapter and everything that only that agent uses (the view's colors and marks, records, metrics, test data, docs) in one PR, while keeping its options, environment variables and `--sources` name working with a warning and leaving `kiroku archive` copies in place, as [compatibility.md](compatibility.md) promises.
+
 ## Golden data
 
 `testdata/golden.json` is the aggregate JSON. It holds the numbers the Python version (before the port to Go) produced from the same synthetic data (`testdata/home`), and `TestMatchesPythonVersion` (`internal/cli/load_test.go`) compares the Go version's numbers against them.
