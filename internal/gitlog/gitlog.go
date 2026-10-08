@@ -31,6 +31,7 @@ type Commit struct {
 	Body    string     `json:"body,omitempty"`   // 件名のあとの本文（先頭 600 文字）
 	Branch  string     `json:"branch,omitempty"` // たどり着いた ref（git log --source）。ブランチの目安
 	Repo    string     `json:"repo"`             // リポジトリのルート
+	Cmd     string     `json:"cmd,omitempty"`    // 手元で見るために貼るコマンド（git -C <repo> show <hash>。安全に囲めなければ空）
 	Added   int        `json:"added"`
 	Removed int        `json:"removed"`
 	Files   []FileStat `json:"files"`             // 変更したファイル（先頭 MaxFiles 件）
@@ -51,6 +52,7 @@ type Push struct {
 	Prev    string   `json:"prev,omitempty"`   // push する前の位置（わからなければ空）
 	Hashes  []string `json:"hashes,omitempty"` // 送ったコミット（新しい順、先頭 MaxPushHashes 件）
 	URL     string   `json:"url,omitempty"`    // リモートでの先頭のコミットのページ
+	Cmd     string   `json:"cmd,omitempty"`    // 手元で見るために貼るコマンド（git -C <repo> log/show。安全に囲めなければ空）
 }
 
 // MaxPushHashes は、1 回の push について残す送ったコミットの数（画面の push の詳細に出す）。
@@ -370,6 +372,11 @@ func readPushes(ctx context.Context, r *repo, counts map[string]pushed) []Push {
 					}
 				}
 			}
+			if p.Prev != "" {
+				p.Cmd = core.GitCmd(r.top, "log --oneline", abbrev(p.Prev)+".."+abbrev(p.Hash))
+			} else {
+				p.Cmd = core.GitCmd(r.top, "show", abbrev(p.Hash))
+			}
 			out = append(out, p)
 		}
 	}
@@ -402,7 +409,7 @@ func readRepo(ctx context.Context, r *repo) []Commit {
 			continue
 		}
 		c := Commit{Hash: f[0], URL: commitURL(r.web, f[0]), T: t, Project: r.project, Repo: r.top, Branch: branchOf(f[2]), Subject: core.Runes(f[3], 160),
-			Body: core.Runes(strings.TrimSpace(f[4]), 600), Files: []FileStat{}}
+			Body: core.Runes(strings.TrimSpace(f[4]), 600), Files: []FileStat{}, Cmd: core.GitCmd(r.top, "show", f[0])}
 		for _, line := range strings.Split(stat, "\n") {
 			cols := strings.SplitN(line, "\t", 3)
 			if len(cols) != 3 {
@@ -516,3 +523,6 @@ func fileURL(web, hash, path string) string {
 	}
 	return web + "/blob/" + hash + "/" + path
 }
+
+// abbrev は、貼るコマンドに入れるハッシュの先頭 12 文字。
+func abbrev(h string) string { return h[:min(len(h), 12)] }
