@@ -181,7 +181,10 @@ func TestQStoreSyntheticEntries(t *testing.T) {
 		map[string]any{"user": prompt("続けて", 200), "assistant": toolUse("", "execute_bash"), "request_metadata": meta(201, 203)},
 		map[string]any{"user": cancelled("I deny this tool request. Ask a follow up question clarifying the expected action", 300), "assistant": response("どうしますか"), "request_metadata": meta(301, 305)},
 		map[string]any{"user": prompt("In a few words, summarize our conversation so far.", 3600), "assistant": response("要約です"), "request_metadata": meta(3601, 3603)},
-		map[string]any{"user": prompt("MCP のプロンプト", -1), "assistant": response("MCP の応答")}, // /prompts が入れた行（request_metadata なし）
+		map[string]any{"user": prompt("MCP のプロンプト", -1), "assistant": response("MCP の応答")}, // /prompts が入れた行（時刻も request_metadata もない）
+		map[string]any{"user": cancelled("Tool use with execute_bash was rejected because the arguments supplied were forbidden", 4000), "assistant": response("別の方法にします"), "request_metadata": meta(4001, 4003)},
+		map[string]any{"user": prompt("[SYSTEM NOTE: This is an automated request, not from the user]\n\n Read the TODO list contents below", 4100), "assistant": toolUse("", "todo_list"), "request_metadata": meta(4101, 4103)},
+		map[string]any{"user": prompt("ありがとう", 4200), "assistant": response("どういたしまして"), "request_metadata": meta(4201, 4203)},
 	}
 	bs := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})
 	if len(bs) != 1 {
@@ -192,14 +195,18 @@ func TestQStoreSyntheticEntries(t *testing.T) {
 	for _, p := range b.Prompts {
 		texts = append(texts, p.Text)
 	}
-	if strings.Join(texts, "|") != "テストを直して|続けて|MCP のプロンプト" {
+	if strings.Join(texts, "|") != "テストを直して|続けて|ありがとう" {
 		t.Errorf("プロンプト = %q（CLI が入れた文は数えない）", texts)
 	}
 	if b.Interrupts != 1 || len(b.InterruptTS) != 1 || b.InterruptTS[0] != float64(t0.Unix()+120) {
 		t.Errorf("中断 = %d %v, want 1 回（Ctrl+C の時刻）", b.Interrupts, b.InterruptTS)
 	}
-	if len(b.Notes) != 2 || b.Notes[0].Kind != "meta" || !strings.HasPrefix(b.Notes[0].Text, "I deny") || !strings.HasPrefix(b.Notes[1].Text, "In a few words") {
-		t.Errorf("Notes = %+v（断ったときと --resume の文）", b.Notes)
+	var notes []string
+	for _, n := range b.Notes {
+		notes = append(notes, n.Kind+":"+strings.SplitN(n.Text, " ", 2)[0])
+	}
+	if got := strings.Join(notes, "|"); got != "meta:I|meta:In|other:MCP|meta:Tool|meta:[SYSTEM" {
+		t.Errorf("Notes = %q（断ったとき・--resume・MCP の /prompts・禁じた引数で CLI が断ったとき・/todos resume の文）", got)
 	}
 	var toolTimes []float64
 	for _, m := range b.Measures {
@@ -211,7 +218,7 @@ func TestQStoreSyntheticEntries(t *testing.T) {
 			toolTimes = append(toolTimes, *m.T)
 		}
 	}
-	if len(toolTimes) != 3 || toolTimes[1] != float64(t0.Unix()+60) {
+	if len(toolTimes) != 4 || toolTimes[1] != float64(t0.Unix()+60) {
 		t.Errorf("ツール呼び出しの時刻 = %v（結果のターンは request_start_timestamp_ms）", toolTimes)
 	}
 	f := b.Finish(15)
@@ -221,8 +228,116 @@ func TestQStoreSyntheticEntries(t *testing.T) {
 	if r := f.Prompts[0].Reply; r == nil || r.Text != "見ます" {
 		t.Errorf("最初の依頼の応答 = %+v（中断の決まった文は応答にしない）", r)
 	}
-	if r := f.Prompts[1].Reply; r == nil || r.Text != "どうしますか" {
-		t.Errorf("2 つ目の依頼の応答 = %+v（--resume の要約は付けない）", r)
+	if r := f.Prompts[1].Reply; r == nil || r.Text != "別の方法にします" {
+		t.Errorf("2 つ目の依頼の応答 = %+v（--resume の要約は付けない。禁じた引数で断ったあとの応答は付く）", r)
+	}
+	if r := f.Prompts[2].Reply; r == nil || r.Text != "どういたしまして" {
+		t.Errorf("3 つ目の依頼の応答 = %+v", r)
+	}
+}
+
+// 古い [user, assistant] の形には時刻も request_metadata もないことがあるが、人が打ったプロンプトとして数える。
+func TestQStoreLegacyEntryWithoutTimestamp(t *testing.T) {
+	history := []any{
+		[]any{map[string]any{"content": map[string]any{"Prompt": map[string]any{"prompt": "古い形"}}}, map[string]any{"Response": map[string]any{"content": "ok"}}},
+	}
+	b := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})[0]
+	if len(b.Prompts) != 1 || b.Prompts[0].Text != "古い形" || len(b.Notes) != 0 {
+		t.Errorf("プロンプト = %+v, Notes = %+v", b.Prompts, b.Notes)
+	}
+}
+
+// qPromptConv は、依頼 texts を 1 つずつ入れた会話の JSON。
+func qPromptConv(t *testing.T, id string, texts ...string) string {
+	t.Helper()
+	var history []any
+	for i, text := range texts {
+		history = append(history, map[string]any{
+			"user":             map[string]any{"timestamp": time.Date(2026, 9, 29, 1, i, 0, 0, time.UTC).Format(time.RFC3339), "content": map[string]any{"Prompt": map[string]any{"prompt": text}}},
+			"assistant":        map[string]any{"Response": map[string]any{"content": "ok"}},
+			"request_metadata": map[string]any{"model_id": "m"},
+		})
+	}
+	v, err := json.Marshal(map[string]any{"conversation_id": id, "history": history})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(v)
+}
+
+// /load で同じ会話が別のフォルダの行にも入る。どちらの表でも、いちばん新しく保存した行だけを読む。
+func TestQStoreSameConversationUnderSeveralKeys(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "data.sqlite3")
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	for _, q := range []string{
+		`CREATE TABLE conversations_v2 (key TEXT, conversation_id TEXT, value TEXT, created_at INTEGER, updated_at INTEGER, PRIMARY KEY (key, conversation_id))`,
+		`CREATE TABLE conversations (key TEXT PRIMARY KEY, value TEXT)`,
+	} {
+		if _, err := db.Exec(q); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// v2: 新しいほう（/new）を先に入れ、古いほう（/old）を後に入れる（rowid の順と updated_at の順を逆にする）
+	ins2 := `INSERT INTO conversations_v2 VALUES (?, ?, ?, ?, ?)`
+	if _, err := db.Exec(ins2, "/new", "v2", qPromptConv(t, "v2", "一", "二", "三"), 1000, 3000); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(ins2, "/old", "v2", qPromptConv(t, "v2", "一"), 1000, 2000); err != nil {
+		t.Fatal(err)
+	}
+	// v1: CLI と同じく INSERT OR REPLACE。/a に保存し、/load して /b に保存し、最後に /a の行をもう一度保存する
+	ins1 := `INSERT OR REPLACE INTO conversations (key, value) VALUES (?, ?)`
+	for _, kv := range [][2]string{
+		{"/a", qPromptConv(t, "v1", "一")},
+		{"/b", qPromptConv(t, "v1", "一", "二")},
+		{"/a", qPromptConv(t, "v1", "一", "二", "三")},
+	} {
+		if _, err := db.Exec(ins1, kv[0], kv[1]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	bs := load(t, &QStore{Label: "Kiro CLI (SQLite)", DB: path})
+	if len(bs) != 2 {
+		t.Fatalf("会話の数 = %d, want 2（同じ会話 ID は 1 つ）", len(bs))
+	}
+	for _, id := range []string{"v1", "v2"} {
+		if b := find(bs, id); b == nil || len(b.Prompts) != 3 {
+			t.Errorf("%s = %+v（いちばん新しく保存した行を読む）", id, b)
+		}
+	}
+	if b := find(bs, "v2"); b != nil && b.Project != "/new" {
+		t.Errorf("v2 のフォルダ = %q, want /new", b.Project)
+	}
+	if b := find(bs, "v1"); b != nil && b.Project != "/a" {
+		t.Errorf("v1 のフォルダ = %q, want /a", b.Project)
+	}
+}
+
+// 読めない行があっても残りは読み、エラーを返す（「計測の状態」に出す）。
+func TestQStoreRowErrorIsReported(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "data.sqlite3")
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if _, err := db.Exec(`CREATE TABLE conversations (key TEXT, value TEXT)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO conversations VALUES (?, ?), (?, NULL)`, "/ok", qPromptConv(t, "ok", "一"), "/broken"); err != nil {
+		t.Fatal(err)
+	}
+	var out []*core.Builder
+	err = (&QStore{Label: "Amazon Q", DB: path}).Load(func(b *core.Builder) { out = append(out, b) })
+	if err == nil || !strings.Contains(err.Error(), path) {
+		t.Errorf("エラー = %v（読めなかった行を知らせる）", err)
+	}
+	if len(out) != 1 || out[0].ID != "ok" {
+		t.Errorf("会話 = %d 件（読めた行は読む）", len(out))
 	}
 }
 

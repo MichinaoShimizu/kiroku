@@ -60,6 +60,10 @@ func setup(t *testing.T) (data any, weeks map[string]*report.Week, rep []source.
 }
 
 func TestMatchesPythonVersion(t *testing.T) {
+	// golden.json は、Sonnet 5.5 のキャッシュ読み込みを $0.20 としていたころの料金表で作った。比べるのは計算の仕方なので、そのときの料金に戻す
+	old := core.Prices["claude-sonnet-5-5"]
+	core.Prices["claude-sonnet-5-5"] = [5]float64{2, 10, 2.5, 4, 0.20}
+	t.Cleanup(func() { core.Prices["claude-sonnet-5-5"] = old })
 	sessions, weeks, _ := setup(t)
 	got := roundTrip(t, map[string]any{"sessions": sessions, "weeks": weeks})
 	var want any
@@ -254,5 +258,25 @@ func TestLogSources(t *testing.T) {
 	}
 	if strings.Contains(out, "no history yet") {
 		t.Errorf("どれも 0 件なのにまとめている:\n%s", out)
+	}
+}
+
+// --prices で Haiku 5.5 を上書きすると、足した料金をプロンプトの長さによらず使う（100K 超えの料金は使わない）。
+func TestLoadPricesOverridesLongPrices(t *testing.T) {
+	oldP, oldL := core.Prices["claude-haiku-5-5"], core.LongPrices["claude-haiku-5-5"]
+	t.Cleanup(func() {
+		core.Prices["claude-haiku-5-5"] = oldP
+		core.LongPrices["claude-haiku-5-5"] = oldL
+	})
+	path := filepath.Join(t.TempDir(), "prices.json")
+	if err := os.WriteFile(path, []byte(`{"Claude-Haiku-5-5": {"input": 1, "output": 2}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := loadPrices(path); err != nil {
+		t.Fatal(err)
+	}
+	c, ok := core.CostOfRequest("claude-haiku-5-5", core.Tokens{In: 200_000, Out: 1_000_000})
+	if want := 0.2 + 2.0; !ok || math.Abs(c-want) > 1e-9 {
+		t.Errorf("cost = %v, want %v", c, want)
 	}
 }

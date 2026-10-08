@@ -26,13 +26,29 @@ var Prices = map[string][5]float64{
 	"claude-opus-4-5":   {5, 25, 6.25, 10, 0.50},
 	"claude-opus-4-1":   {15, 75, 18.75, 30, 1.50},
 	"claude-opus-4":     {15, 75, 18.75, 30, 1.50},
-	"claude-sonnet-5-5": {2, 10, 2.5, 4, 0.20},
+	"claude-sonnet-5-5": {2, 10, 2.5, 4, 0.10},
 	"claude-sonnet-5":   {2, 10, 2.5, 4, 0.20},
 	"claude-sonnet-4-6": {3, 15, 3.75, 6, 0.30},
 	"claude-sonnet-4-5": {3, 15, 3.75, 6, 0.30},
 	"claude-sonnet-4":   {3, 15, 3.75, 6, 0.30},
+	"claude-haiku-5-5":  {0.10, 0.50, 0.125, 0.20, 0.01}, // プロンプトが 100K 以下。超えたら LongPrices
 	"claude-haiku-4-5":  {1, 5, 1.25, 2, 0.10},
 	"claude-3-5-haiku":  {0.8, 4, 1, 1.6, 0.08},
+}
+
+// LongPrice は、1 回の応答のプロンプトが Over トークンを超えたときの料金（その応答の全部にかかる。出力も含む）。並びは Prices と同じ。
+type LongPrice struct {
+	Over  float64
+	Rates [5]float64
+}
+
+// LongPrices は、プロンプトの長さで料金が変わる Anthropic のモデル（Prices の同じキーに足す）。出典は Prices と同じページ
+// （Model pricing の "for prompts over 100,000 tokens" の行と Long context pricing）。
+// ページは「プロンプト」にキャッシュの読み書きが入るかを書いていないが、kiroku は入力 + キャッシュの書き込み + 読み込み
+// （Tokens.Input。モデルが読むプロンプト全体で、OpenAI の境目と同じ数え方）で比べる。
+// --prices で同じキーを上書きすると、ここからは消す（足した料金をどの長さにも使う）。
+var LongPrices = map[string]LongPrice{
+	"claude-haiku-5-5": {Over: 100_000, Rates: [5]float64{0.50, 2.50, 0.625, 1, 0.05}},
 }
 
 // OpenAIPrices は OpenAI のモデル（Codex が使う gpt-5 以降）の料金。並びは Prices と同じで、
@@ -123,7 +139,8 @@ func ModelName(m string) string {
 // Price は料金表で引いた結果。
 type Price struct {
 	Rates [5]float64  // 並びは Prices と同じ
-	Long  *[5]float64 // 長いコンテキストの料金（OpenAI。なければ nil）
+	Long  *[5]float64 // 長いコンテキストの料金（OpenAI と LongPrices。なければ nil）
+	Over  float64     // 1 回の応答の入力（Tokens.Input）がこれを超えたら Long
 	Key   string      // 当たった料金表のキー
 	Exact bool        // 版の印（日付・-v1:0 など）を除くとキーと同じ。false は先頭一致だけで当てたもの（新しいモデルに古い料金を当てているかもしれない）
 }
@@ -212,10 +229,13 @@ func PriceOf(model string) (Price, bool) {
 	if fromOpenAI {
 		p.Rates = OpenAIPrices[best]
 		if l, ok := OpenAILongPrices[best]; ok {
-			p.Long = &l
+			p.Long, p.Over = &l, OpenAILongContext
 		}
 	} else {
 		p.Rates = Prices[best]
+		if l, ok := LongPrices[best]; ok {
+			p.Long, p.Over = &l.Rates, l.Over
+		}
 	}
 	return p, true
 }
@@ -255,14 +275,14 @@ func tokenCost(model string, u Tokens) (float64, bool) {
 	return costAt(p.Rates, u), true
 }
 
-// CostOfRequest は、u が応答 1 回分と分かっているときの目安コスト。OpenAI のモデルで入力が OpenAILongContext を超えたら、
-// その応答の全部を長いコンテキストの料金にする。
+// CostOfRequest は、u が応答 1 回分と分かっているときの目安コスト。入力（キャッシュの読み書きを含む）が境目を超えたら
+// （OpenAI は OpenAILongContext、Anthropic は LongPrices の Over）、その応答の全部を長いコンテキストの料金にする。
 func CostOfRequest(model string, u Tokens) (float64, bool) {
 	p, ok := PriceOf(model)
 	if !ok {
 		return 0, false
 	}
-	if p.Long != nil && u.Input() > OpenAILongContext {
+	if p.Long != nil && u.Input() > p.Over {
 		return costAt(*p.Long, u), true
 	}
 	return costAt(p.Rates, u), true
@@ -340,7 +360,7 @@ func (u *Usage) Add(mid string, t *float64, model string, raw any) {
 	}
 	cur, ok := u.byMsg[mid]
 	if !ok {
-		u.byMsg[mid] = &Event{T: t, Model: model, U: tok, Mult: rateMult(raw)}
+		u.byMsg[mid] = &Event{T: t, Model: model, U: tok, Mult: rateMult(raw), Req: true} // メッセージ ID ごとにまとめるので応答 1 回分
 		u.order = append(u.order, mid)
 		return
 	}

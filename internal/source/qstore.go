@@ -86,35 +86,43 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 		return err // 開けなかったことを「計測の状態」に出す
 	}
 	var rows []qRow
-	seen := map[string]bool{}
-	// 新しいほう（v2）を先に読み、同じ会話 ID は古いほうから読まない
+	var errs fileErrs // 読めなかった行は飛ばして残りを読み、最後に「計測の状態」に出す
+	// 新しいほう（v2）を先に読み、同じ会話 ID は古いほうから読まない。
+	// /load で同じ会話（同じ conversation_id）が別のフォルダの行にも入るので、どちらの表も新しく保存した行から読む
+	// （v2 は updated_at、v1 は INSERT OR REPLACE で新しく保存した行ほど rowid が大きい）
 	if has(db, "conversations_v2") {
-		r, err := db.Query(`SELECT key, conversation_id, value, created_at, updated_at FROM conversations_v2`)
+		r, err := db.Query(`SELECT key, conversation_id, value, created_at, updated_at FROM conversations_v2 ORDER BY updated_at DESC`)
 		if err != nil {
 			return err
 		}
 		for r.Next() {
 			var x qRow
-			if r.Scan(&x.key, &x.id, &x.value, &x.created, &x.updated) == nil {
-				rows = append(rows, x)
-				seen[x.id] = true
+			if err := r.Scan(&x.key, &x.id, &x.value, &x.created, &x.updated); err != nil {
+				errs.file(q.DB, err)
+				continue
 			}
+			rows = append(rows, x)
 		}
+		errs.file(q.DB, r.Err())
 		r.Close()
 	}
 	if has(db, "conversations") {
-		r, err := db.Query(`SELECT key, value FROM conversations`)
+		r, err := db.Query(`SELECT key, value FROM conversations ORDER BY rowid DESC`)
 		if err != nil {
 			return err
 		}
 		for r.Next() {
 			var x qRow
-			if r.Scan(&x.key, &x.value) == nil {
-				rows = append(rows, x)
+			if err := r.Scan(&x.key, &x.value); err != nil {
+				errs.file(q.DB, err)
+				continue
 			}
+			rows = append(rows, x)
 		}
+		errs.file(q.DB, r.Err())
 		r.Close()
 	}
+	seen := map[string]bool{} // 読んだ会話 ID（同じ会話は最初に読んだ、いちばん新しい行だけ使う）
 	for _, x := range rows {
 		var v any
 		if json.Unmarshal([]byte(x.value), &v) != nil {
@@ -122,12 +130,13 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 		}
 		conv := core.Map(v)
 		id := firstNonEmpty(x.id, core.Str(conv["conversation_id"]))
-		if x.id == "" && seen[id] {
-			continue
-		}
 		if id == "" {
 			id = x.key
 		}
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
 		s := core.NewBuilder(q.Label, id)
 		s.File = q.DB
 		s.Key = "kiro-cli:" + id // 新しい形式（~/.kiro/sessions/cli）と同じ会話なら、そちらを使う
@@ -159,23 +168,33 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 			switch {
 			case content["Prompt"] != nil:
 				text := core.Str(core.Get(content, "Prompt", "prompt"))
+				trimmed := strings.TrimSpace(text)
 				s.Tick(t)
-				if k := qInjected[strings.TrimSpace(text)]; k != "" {
+				switch k := qInjected[trimmed]; {
+				case k != "":
 					s.Inject(t, k, text)
 					// --resume の要約は、前の依頼への応答ではないので付けない
-					reply = strings.TrimSpace(text) != qResumeSummary
-				} else {
+					reply = trimmed != qResumeSummary
+				case strings.HasPrefix(trimmed, qSystemNote): // /todos resume が入れた依頼
+					s.Inject(t, "meta", text)
+				case user["timestamp"] == nil && meta == nil && !isLegacyEntry(h):
+					// MCP の /prompts get が入れた user と assistant の組（conversation.rs の append_prompts）。
+					// 時刻も request_metadata もない。応答も MCP サーバーの文で、モデルの応答ではないので付けない
+					s.Inject(t, "other", text)
+					reply = false
+				default:
 					s.Prompt(t, text)
 				}
 			case content["CancelledToolUses"] != nil:
 				// ツールを断った・止めたときの発言。prompt は人が打った文か、CLI が入れた決まった文
 				text := core.Str(core.Get(content, "CancelledToolUses", "prompt"))
+				trimmed := strings.TrimSpace(text)
 				s.Tick(t)
-				switch strings.TrimSpace(text) {
-				case qInterrupted: // Ctrl+C でツールを止めた。応答も CLI が入れた決まった文なので残さない
+				switch {
+				case trimmed == qInterrupted: // Ctrl+C でツールを止めた。応答も CLI が入れた決まった文なので残さない
 					s.Interrupt(t)
 					reply = false
-				case qDenied: // 「n」でツールを断った
+				case trimmed == qDenied, qForbidden(trimmed): // 「n」で断った・設定で禁じた引数のツールを CLI が断った
 					s.Inject(t, "meta", text)
 				default:
 					s.Prompt(t, text)
@@ -230,7 +249,7 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 		}
 		emit(s)
 	}
-	return nil
+	return errs.err()
 }
 
 // amazon-q-developer-cli が人の代わりに入れる決まった文（crates/chat-cli/src/cli/chat の mod.rs・conversation.rs）。
@@ -239,7 +258,15 @@ const (
 	qInterrupted   = "The user interrupted the tool execution."                                          // ツールの実行中に Ctrl+C（CancelledToolUses）
 	qDenied        = "I deny this tool request. Ask a follow up question clarifying the expected action" // ツールの確認に「n」（CancelledToolUses）
 	qResumeSummary = "In a few words, summarize our conversation so far."                                // 入力なしの --resume（Prompt）
+	qSystemNote    = "[SYSTEM NOTE: This is an automated request, not from the user]"                    // /todos resume の依頼の頭（Prompt）
 )
+
+// qForbidden は、設定で禁じた引数のツールを CLI が自動で断ったときの文か（mod.rs:
+// "Tool use with {name} was rejected because the arguments supplied were forbidden"。CancelledToolUses）。
+func qForbidden(text string) bool {
+	const prefix, suffix = "Tool use with ", " was rejected because the arguments supplied were forbidden"
+	return len(text) > len(prefix)+len(suffix) && strings.HasPrefix(text, prefix) && strings.HasSuffix(text, suffix)
+}
 
 // qInjected は Prompt として入る決まった文と、その Note の種類。
 var qInjected = map[string]string{

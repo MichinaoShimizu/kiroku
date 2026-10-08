@@ -160,6 +160,7 @@ func loadPrices(path string) error {
 			}
 		}
 		core.Prices[strings.ToLower(k)] = p
+		delete(core.LongPrices, strings.ToLower(k)) // 足した料金はプロンプトの長さによらず使う
 	}
 	return nil
 }

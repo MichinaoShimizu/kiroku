@@ -54,25 +54,44 @@ func num(t *testing.T, s string, or float64) float64 {
 	return v
 }
 
-// 料金表（Prices・OpenAIPrices・OpenAILongPrices）が、公式のページから tools/prices が作った控え（docs/upstream）と同じか。
+// 料金表（Prices・LongPrices・OpenAIPrices・OpenAILongPrices）が、公式のページから tools/prices が作った控え（docs/upstream）と同じか。
 // 控えだけ新しくしてコードを直し忘れると、ここで落ちる。
 func TestPricesMatchUpstream(t *testing.T) {
 	var fetched []string
 
-	anth, d := upstreamTable(t, "anthropic-pricing.md", 5)
+	anth, d := upstreamTable(t, "anthropic-pricing.md", 11)
 	fetched = append(fetched, d)
 	for id, c := range anth {
-		// 控えの並び: 入力, 5 分, 1 時間, 読み込み, 出力 → Prices の並び: 入力, 出力, 5 分, 1 時間, 読み込み
+		// 控えの並び: 入力, 5 分, 1 時間, 読み込み, 出力, 長いときの境目, 長いときの 入力, 5 分, 1 時間, 読み込み, 出力
+		// → Prices の並び: 入力, 出力, 5 分, 1 時間, 読み込み
 		want := [5]float64{num(t, c[0], -1), num(t, c[4], -1), num(t, c[1], -1), num(t, c[2], -1), num(t, c[3], -1)}
 		if got, ok := Prices[id]; !ok {
 			t.Errorf("Prices に %s がない（公式の料金 %v）", id, want)
 		} else if got != want {
 			t.Errorf("Prices[%q] = %v, 公式は %v", id, got, want)
 		}
+		got, ok := LongPrices[id]
+		if c[5] == "-" {
+			if ok {
+				t.Errorf("LongPrices の %s は公式にプロンプトの長さによる料金がない", id)
+			}
+			continue
+		}
+		l := LongPrice{Over: num(t, c[5], -1), Rates: [5]float64{num(t, c[6], -1), num(t, c[10], -1), num(t, c[7], -1), num(t, c[8], -1), num(t, c[9], -1)}}
+		if !ok {
+			t.Errorf("LongPrices に %s がない（公式の料金 %v）", id, l)
+		} else if got != l {
+			t.Errorf("LongPrices[%q] = %v, 公式は %v", id, got, l)
+		}
 	}
 	for id := range Prices {
 		if _, ok := anth[id]; !ok {
 			t.Errorf("Prices の %s は公式の表にない（消えたモデルなら料金表からも消す）", id)
+		}
+	}
+	for id := range LongPrices {
+		if _, ok := anth[id]; !ok {
+			t.Errorf("LongPrices の %s は公式の表にない", id)
 		}
 	}
 
