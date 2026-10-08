@@ -10,6 +10,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Changed
 
+- Kiro Crew subagents are shown inside their parent's session, like Claude Code and Codex subagents, instead of as sessions of their own: the parent's details list each one with its agent, prompt, time span, model, tool calls, tokens and cost, and the parent's credits include theirs. Credits, cost, "Conversations run from Crew" and "Of which subagents" add up to the same totals; the time a subagent worked counts toward its parent's active time, and session counts and prompts no longer count a subagent's conversation as separate work (the prompt Crew sends a subagent is not one you typed). A subagent whose parent's records are gone still appears on its own
 - The resume command moved to the top of the right column in session details, so you no longer scroll past files, models and tools to reach it
 
 ### Fixed

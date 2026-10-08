@@ -266,6 +266,8 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			slotInfo[slot] = &i
 		}
 	}
+	// Crew の会話は、サブエージェントを親の会話にまとめてから出す
+	held := &crewHeld{parents: map[string]*core.Builder{}, byPath: map[string]*core.Builder{}}
 	used := map[string]bool{}     // 使用量の記録を kiro-cli の会話に結びつけた会話キー
 	seenRows := map[string]bool{} // 会話の記録を使った（kiro-cli の会話に結びついた）会話キー
 	for _, metaPath := range glob(filepath.Join(base, "*.json")) {
@@ -355,6 +357,8 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 				}
 				addCrewNative(s, usage[slot])
 			}
+			held.add(s, &info, info.Key)
+			continue
 		}
 		emit(s)
 	}
@@ -373,7 +377,11 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		for _, s := range ss {
 			k.crewOnly++
 			k.crewCr += sumCredits(s.Credits)
-			emit(s)
+			if crewBackground(slot) {
+				emit(s)
+				continue
+			}
+			held.add(s, slotInfo[slot], slot)
 		}
 	}
 	// 会話の記録だけがある Crew の会話（使用量の記録も kiro-cli の会話もないもの）
@@ -412,9 +420,11 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			}
 			s.Measure("crew_sessions", first, 1)
 			k.crewText++
-			emit(s)
+			held.byPath[p] = s
+			held.list = append(held.list, heldCrew{b: s})
 		}
 	}
+	held.flush(k.CrewHome, emit)
 	return errs.err()
 }
 

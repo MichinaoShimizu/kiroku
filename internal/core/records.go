@@ -22,7 +22,7 @@ var Records = map[string][]string{
 	"Kiro IDE":          {"files"},
 	"Kiro IDE (legacy)": {},
 	"Kiro CLI":          {"files"},
-	"Kiro Crew":         {},
+	"Kiro Crew":         {"subagents"},
 	"Kiro CLI (SQLite)": {"interrupts", "compactions", "files"},
 	"Amazon Q":          {"interrupts", "compactions", "files"},
 }

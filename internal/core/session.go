@@ -365,6 +365,27 @@ func (s *Builder) Measure(key string, t *float64, v float64) {
 // ToolCounts はツールごとの回数。
 func (s *Builder) ToolCounts() map[string]int { return s.tools }
 
+// EditedFiles は編集したファイル（名前の順）。
+func (s *Builder) EditedFiles() []string {
+	out := make([]string, 0, len(s.files))
+	for f := range s.files {
+		out = append(out, f)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// TopModel はいちばん多く使ったモデル（同じ回数なら先に出てきたもの。なければ空）。
+func (s *Builder) TopModel() string {
+	top := ""
+	for _, m := range s.modelOrder {
+		if top == "" || s.models[m] > s.models[top] {
+			top = m
+		}
+	}
+	return top
+}
+
 // AddEvent は、メッセージ ID で重ねる必要のない使用量（Codex など）をそのまま足す。モデルも数える。
 // e.Cost を入れておくと、そのコストを使う（nil なら料金表で見積もる。Usage.Events）。
 func (s *Builder) AddEvent(e Event) {

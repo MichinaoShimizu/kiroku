@@ -1,8 +1,8 @@
 {
  "months": {
   "2026-09": {
-   "active": 850,
-   "ai": 860,
+   "active": 851,
+   "ai": 861,
    "costPerAsk": 0.124,
    "costPerCommit": null,
    "costPrompts": 48,
@@ -251,12 +251,12 @@
      "tokens": 0
     },
     {
-     "active": 26,
+     "active": 27,
      "commits": 0,
      "cost": 0,
      "credits": 4.92,
-     "prompts": 4,
-     "switches": 1,
+     "prompts": 5,
+     "switches": 2,
      "tokens": 0
     },
     {
@@ -273,12 +273,12 @@
      "commits": 0,
      "cost": 0.0123,
      "credits": 9.67,
-     "prompts": 14,
-     "switches": 5,
+     "prompts": 10,
+     "switches": 4,
      "tokens": 4100
     }
    ],
-   "fixRate": 8.8,
+   "fixRate": 9.1,
    "focus": [],
    "friction": [
     {
@@ -425,7 +425,41 @@
      ]
     },
     {
-     "sessions": 6,
+     "sessions": 3,
+     "source": "Kiro CLI (SQLite)",
+     "values": [
+      {
+       "label": "応答にかかった時間（中央値）",
+       "labelEn": "Response time (median)",
+       "n": 6,
+       "unit": "秒",
+       "v": 20
+      },
+      {
+       "label": "ツール呼び出し",
+       "labelEn": "Tool calls",
+       "n": 2,
+       "unit": "回",
+       "v": 2
+      },
+      {
+       "label": "コンテキストの最大使用率（見積もり）",
+       "labelEn": "Peak context usage (estimate)",
+       "n": 6,
+       "unit": "%",
+       "v": 0.02
+      },
+      {
+       "label": "コンテキストの上限",
+       "labelEn": "Context window",
+       "n": 3,
+       "unit": "トークン",
+       "v": 200000
+      }
+     ]
+    },
+    {
+     "sessions": 5,
      "source": "Kiro Crew",
      "values": [
       {
@@ -455,40 +489,6 @@
        "n": 13,
        "unit": "回",
        "v": 13
-      }
-     ]
-    },
-    {
-     "sessions": 2,
-     "source": "Kiro CLI (SQLite)",
-     "values": [
-      {
-       "label": "応答にかかった時間（中央値）",
-       "labelEn": "Response time (median)",
-       "n": 5,
-       "unit": "秒",
-       "v": 20
-      },
-      {
-       "label": "ツール呼び出し",
-       "labelEn": "Tool calls",
-       "n": 2,
-       "unit": "回",
-       "v": 2
-      },
-      {
-       "label": "コンテキストの最大使用率（見積もり）",
-       "labelEn": "Peak context usage (estimate)",
-       "n": 5,
-       "unit": "%",
-       "v": 0.02
-      },
-      {
-       "label": "コンテキストの上限",
-       "labelEn": "Context window",
-       "n": 2,
-       "unit": "トークン",
-       "v": 200000
       }
      ]
     },
@@ -724,9 +724,9 @@
      },
      "heavy": {
       "cost": 0,
-      "credits": 4.5,
+      "credits": 6.78,
       "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
-      "minutes": 16,
+      "minutes": 32,
       "source": "Kiro Crew",
       "start": 1790668800,
       "title": "夜間のデプロイ見張り",
@@ -738,7 +738,7 @@
        "cost": 0,
        "model": "auto",
        "tokens": 0,
-       "turns": 14
+       "turns": 10
       }
      ],
      "outputs": {
@@ -748,11 +748,21 @@
       "removed": 0
      },
      "project": "infra",
-     "prompts": 12,
+     "prompts": 9,
      "sessions": 3,
-     "subagents": 0,
+     "subagents": 1,
      "tokens": 0,
      "top": [
+      {
+       "cost": 0,
+       "credits": 6.78,
+       "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
+       "minutes": 32,
+       "source": "Kiro Crew",
+       "start": 1790668800,
+       "title": "夜間のデプロイ見張り",
+       "tokens": 0
+      },
       {
        "cost": 0,
        "credits": 3.73,
@@ -765,22 +775,12 @@
       },
       {
        "cost": 0,
-       "credits": 4.5,
-       "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
-       "minutes": 16,
-       "source": "Kiro Crew",
-       "start": 1790668800,
-       "title": "夜間のデプロイ見張り",
-       "tokens": 0
-      },
-      {
-       "cost": 0,
-       "credits": 2.28,
+       "credits": 0,
        "id": "0d612aac-99c4-4a54-bda2-76ad60b6ddf3",
-       "minutes": 16,
-       "source": "Kiro Crew",
-       "start": 1790726400,
-       "title": "Subagent reviewer: PR #12 をレビューして",
+       "minutes": 1,
+       "source": "Kiro CLI (SQLite)",
+       "start": 1790553600,
+       "title": "重複の会話",
        "tokens": 0
       }
      ]
@@ -1196,7 +1196,7 @@
      1
     ]
    ],
-   "prompts": 80,
+   "prompts": 77,
    "sessions": 28,
    "shares": {
     "branch": [
@@ -1325,7 +1325,7 @@
       "cost": 0,
       "credits": 0,
       "key": "Kiro CLI (SQLite)",
-      "minutes": 9,
+      "minutes": 10,
       "tokens": 0
      },
      {
@@ -1459,7 +1459,7 @@
       0.01
      ]
     ],
-    "subMin": 97,
+    "subMin": 113,
     "subTypes": [
      [
       "Plan",
@@ -1476,9 +1476,13 @@
      [
       "explorer",
       1
+     ],
+     [
+      "reviewer",
+      1
      ]
     ],
-    "subagents": 24,
+    "subagents": 25,
     "tokens": 9779923,
     "unpriced": 0,
     "unpricedModels": []
@@ -4459,6 +4463,96 @@
    "cost": 0,
    "credits": 0,
    "ctx": [],
+   "end": 1790553660,
+   "events": 5,
+   "file": "testdata/sqlite/kiro-cli.sqlite3",
+   "files": [],
+   "id": "0d612aac-99c4-4a54-bda2-76ad60b6ddf3",
+   "interrupts": 0,
+   "interruptsAt": [],
+   "limits": [],
+   "models": [
+    [
+     "claude-sonnet-4.5",
+     1
+    ]
+   ],
+   "nFiles": 0,
+   "nPrompts": 1,
+   "native": [
+    {
+     "label": "応答にかかった時間（中央値）",
+     "labelEn": "Response time (median)",
+     "n": 1,
+     "unit": "秒",
+     "v": 20
+    },
+    {
+     "label": "コンテキストの最大使用率（見積もり）",
+     "labelEn": "Peak context usage (estimate)",
+     "n": 1,
+     "unit": "%",
+     "v": 0
+    },
+    {
+     "label": "コンテキストの上限",
+     "labelEn": "Context window",
+     "n": 1,
+     "unit": "トークン",
+     "v": 200000
+    }
+   ],
+   "outputs": {
+    "added": 0,
+    "commits": 0,
+    "prs": 0,
+    "removed": 0
+   },
+   "prAt": [],
+   "project": "infra",
+   "projectPath": "/Users/me/infra",
+   "prompts": [
+    {
+     "reply": {
+      "t": 1790553623,
+      "text": "ok"
+     },
+     "t": 1790553600,
+     "text": "重複の会話",
+     "work": 23
+    }
+   ],
+   "prs": [],
+   "resume": "cd /Users/me/infra \u0026\u0026 kiro-cli chat --resume",
+   "segs": [
+    [
+     1790553600,
+     1790553660,
+     5
+    ]
+   ],
+   "source": "Kiro CLI (SQLite)",
+   "start": 1790553600,
+   "subagents": [],
+   "title": "重複の会話",
+   "tools": [],
+   "usage": {
+    "cost": 0,
+    "cr": 0,
+    "cw": 0,
+    "cw1h": 0,
+    "in": 0,
+    "out": 0,
+    "unpriced": 0
+   },
+   "waits": []
+  },
+  {
+   "branch": null,
+   "corrections": 0,
+   "cost": 0,
+   "credits": 0,
+   "ctx": [],
    "end": 1790597280,
    "events": 2,
    "file": "testdata/home/.config/Kiro/User/globalStorage/kiro.kiroagent/workspace-sessions/d3M=/372fbe38-1f0c-4f64-882e-d84f0f02817e.json",
@@ -5085,10 +5179,10 @@
    "branch": null,
    "corrections": 0,
    "cost": 0,
-   "credits": 4.5,
+   "credits": 6.78,
    "ctx": [],
-   "end": 1790669760,
-   "events": 14,
+   "end": 1790727360,
+   "events": 24,
    "file": "testdata/home/.kiro/sessions/cli/1cb4ad2f-90ba-4c5f-970b-5767003804b9.jsonl",
    "files": [],
    "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
@@ -5107,6 +5201,13 @@
     {
      "label": "Crew から動かした会話",
      "labelEn": "Conversations run from Crew",
+     "n": 2,
+     "unit": "件",
+     "v": 2
+    },
+    {
+     "label": "うちサブエージェント",
+     "labelEn": "Of which subagents",
      "n": 1,
      "unit": "件",
      "v": 1
@@ -5114,16 +5215,16 @@
     {
      "label": "クレジット",
      "labelEn": "Credits",
-     "n": 2,
+     "n": 6,
      "unit": "クレジット",
-     "v": 4.5
+     "v": 6.78
     },
     {
      "label": "ターン",
      "labelEn": "Turns",
-     "n": 2,
+     "n": 6,
      "unit": "回",
-     "v": 2
+     "v": 6
     }
    ],
    "outputs": {
@@ -5155,7 +5256,7 @@
     {
      "t": 1790669520,
      "text": "デプロイみて",
-     "work": 240
+     "work": 57840
     }
    ],
    "prs": [],
@@ -5165,11 +5266,35 @@
      1790668800,
      1790669760,
      14
+    ],
+    [
+     1790726400,
+     1790727360,
+     10
     ]
    ],
    "source": "Kiro Crew",
    "start": 1790668800,
-   "subagents": [],
+   "subagents": [
+    {
+     "bg": false,
+     "desc": "PR #12 をレビューして",
+     "end": 1790727360,
+     "model": "auto",
+     "start": 1790726400,
+     "tools": 0,
+     "type": "reviewer",
+     "usage": {
+      "cost": 0,
+      "cr": 0,
+      "cw": 0,
+      "cw1h": 0,
+      "in": 0,
+      "out": 0,
+      "unpriced": 0
+     }
+    }
+   ],
    "title": "夜間のデプロイ見張り",
    "tools": [],
    "usage": {
@@ -5338,111 +5463,6 @@
    "start": 1790726397,
    "subagents": [],
    "title": "Kiro Crew background work",
-   "tools": [],
-   "usage": {
-    "cost": 0,
-    "cr": 0,
-    "cw": 0,
-    "cw1h": 0,
-    "in": 0,
-    "out": 0,
-    "unpriced": 0
-   },
-   "waits": []
-  },
-  {
-   "branch": null,
-   "corrections": 0,
-   "cost": 0,
-   "credits": 2.28,
-   "ctx": [],
-   "end": 1790727360,
-   "events": 10,
-   "file": "testdata/home/.kiro/sessions/cli/0d612aac-99c4-4a54-bda2-76ad60b6ddf3.jsonl",
-   "files": [],
-   "id": "0d612aac-99c4-4a54-bda2-76ad60b6ddf3",
-   "interrupts": 0,
-   "interruptsAt": [],
-   "limits": [],
-   "models": [
-    [
-     "auto",
-     4
-    ]
-   ],
-   "nFiles": 0,
-   "nPrompts": 4,
-   "native": [
-    {
-     "label": "Crew から動かした会話",
-     "labelEn": "Conversations run from Crew",
-     "n": 1,
-     "unit": "件",
-     "v": 1
-    },
-    {
-     "label": "うちサブエージェント",
-     "labelEn": "Of which subagents",
-     "n": 1,
-     "unit": "件",
-     "v": 1
-    },
-    {
-     "label": "クレジット",
-     "labelEn": "Credits",
-     "n": 4,
-     "unit": "クレジット",
-     "v": 2.28
-    },
-    {
-     "label": "ターン",
-     "labelEn": "Turns",
-     "n": 4,
-     "unit": "回",
-     "v": 4
-    }
-   ],
-   "outputs": {
-    "added": 0,
-    "commits": 0,
-    "prs": 0,
-    "removed": 0
-   },
-   "prAt": [],
-   "project": "infra",
-   "projectPath": "/Users/me/infra",
-   "prompts": [
-    {
-     "t": 1790726400,
-     "text": "デプロイみて"
-    },
-    {
-     "t": 1790726640,
-     "text": "デプロイみて"
-    },
-    {
-     "t": 1790726880,
-     "text": "デプロイみて"
-    },
-    {
-     "t": 1790727120,
-     "text": "デプロイみて",
-     "work": 240
-    }
-   ],
-   "prs": [],
-   "resume": "cd /Users/me/infra \u0026\u0026 kiro-cli chat --resume-id 0d612aac-99c4-4a54-bda2-76ad60b6ddf3",
-   "segs": [
-    [
-     1790726400,
-     1790727360,
-     10
-    ]
-   ],
-   "source": "Kiro Crew",
-   "start": 1790726400,
-   "subagents": [],
-   "title": "Subagent reviewer: PR #12 をレビューして",
    "tools": [],
    "usage": {
     "cost": 0,
@@ -6446,7 +6466,7 @@
    "detail": "うち Kiro Crew から 3 件・Crew の使用量の記録でクレジットを補った会話 1 件・Crew の使用量の記録だけにある 3 件（2.00 クレジット）",
    "detailEn": "3 from Kiro Crew; 1 with credits filled in from Crew usage records; 3 found only in Crew usage records (2.00 credits)",
    "error": null,
-   "n": 6,
+   "n": 5,
    "name": "Kiro CLI",
    "oldest": 1790632800,
    "retention": {
@@ -6461,11 +6481,10 @@
    "where": "testdata/home/.kiro/sessions/cli"
   },
   {
-   "dup": 1,
    "error": null,
-   "n": 2,
+   "n": 3,
    "name": "Kiro CLI (SQLite)",
-   "oldest": 1790643540,
+   "oldest": 1790553600,
    "where": "testdata/sqlite/kiro-cli.sqlite3"
   },
   {
@@ -7986,19 +8005,19 @@
    "weekend": 207
   },
   "2026-09-28": {
-   "active": 248,
-   "ai": 253,
+   "active": 249,
+   "ai": 254,
    "costPerAsk": 0.038,
    "costPerCommit": null,
    "costPrompts": 5,
    "days": [
     {
-     "active": 26,
+     "active": 27,
      "commits": 0,
      "cost": 0,
      "credits": 4.92,
-     "prompts": 4,
-     "switches": 1,
+     "prompts": 5,
+     "switches": 2,
      "tokens": 0
     },
     {
@@ -8015,8 +8034,8 @@
      "commits": 0,
      "cost": 0.0123,
      "credits": 9.67,
-     "prompts": 14,
-     "switches": 5,
+     "prompts": 10,
+     "switches": 4,
      "tokens": 4100
     },
     {
@@ -8056,7 +8075,7 @@
      "tokens": 0
     }
    ],
-   "fixRate": 4.9,
+   "fixRate": 5.3,
    "focus": [],
    "friction": [
     {
@@ -8129,7 +8148,41 @@
      ]
     },
     {
-     "sessions": 6,
+     "sessions": 3,
+     "source": "Kiro CLI (SQLite)",
+     "values": [
+      {
+       "label": "応答にかかった時間（中央値）",
+       "labelEn": "Response time (median)",
+       "n": 6,
+       "unit": "秒",
+       "v": 20
+      },
+      {
+       "label": "ツール呼び出し",
+       "labelEn": "Tool calls",
+       "n": 2,
+       "unit": "回",
+       "v": 2
+      },
+      {
+       "label": "コンテキストの最大使用率（見積もり）",
+       "labelEn": "Peak context usage (estimate)",
+       "n": 6,
+       "unit": "%",
+       "v": 0.02
+      },
+      {
+       "label": "コンテキストの上限",
+       "labelEn": "Context window",
+       "n": 3,
+       "unit": "トークン",
+       "v": 200000
+      }
+     ]
+    },
+    {
+     "sessions": 5,
      "source": "Kiro Crew",
      "values": [
       {
@@ -8159,40 +8212,6 @@
        "n": 13,
        "unit": "回",
        "v": 13
-      }
-     ]
-    },
-    {
-     "sessions": 2,
-     "source": "Kiro CLI (SQLite)",
-     "values": [
-      {
-       "label": "応答にかかった時間（中央値）",
-       "labelEn": "Response time (median)",
-       "n": 5,
-       "unit": "秒",
-       "v": 20
-      },
-      {
-       "label": "ツール呼び出し",
-       "labelEn": "Tool calls",
-       "n": 2,
-       "unit": "回",
-       "v": 2
-      },
-      {
-       "label": "コンテキストの最大使用率（見積もり）",
-       "labelEn": "Peak context usage (estimate)",
-       "n": 5,
-       "unit": "%",
-       "v": 0.02
-      },
-      {
-       "label": "コンテキストの上限",
-       "labelEn": "Context window",
-       "n": 2,
-       "unit": "トークン",
-       "v": 200000
       }
      ]
     },
@@ -8366,9 +8385,9 @@
      },
      "heavy": {
       "cost": 0,
-      "credits": 4.5,
+      "credits": 6.78,
       "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
-      "minutes": 16,
+      "minutes": 32,
       "source": "Kiro Crew",
       "start": 1790668800,
       "title": "夜間のデプロイ見張り",
@@ -8380,7 +8399,7 @@
        "cost": 0,
        "model": "auto",
        "tokens": 0,
-       "turns": 14
+       "turns": 10
       }
      ],
      "outputs": {
@@ -8390,11 +8409,21 @@
       "removed": 0
      },
      "project": "infra",
-     "prompts": 12,
+     "prompts": 9,
      "sessions": 3,
-     "subagents": 0,
+     "subagents": 1,
      "tokens": 0,
      "top": [
+      {
+       "cost": 0,
+       "credits": 6.78,
+       "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
+       "minutes": 32,
+       "source": "Kiro Crew",
+       "start": 1790668800,
+       "title": "夜間のデプロイ見張り",
+       "tokens": 0
+      },
       {
        "cost": 0,
        "credits": 3.73,
@@ -8407,22 +8436,12 @@
       },
       {
        "cost": 0,
-       "credits": 4.5,
-       "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
-       "minutes": 16,
-       "source": "Kiro Crew",
-       "start": 1790668800,
-       "title": "夜間のデプロイ見張り",
-       "tokens": 0
-      },
-      {
-       "cost": 0,
-       "credits": 2.28,
+       "credits": 0,
        "id": "0d612aac-99c4-4a54-bda2-76ad60b6ddf3",
-       "minutes": 16,
-       "source": "Kiro Crew",
-       "start": 1790726400,
-       "title": "Subagent reviewer: PR #12 をレビューして",
+       "minutes": 1,
+       "source": "Kiro CLI (SQLite)",
+       "start": 1790553600,
+       "title": "重複の会話",
        "tokens": 0
       }
      ]
@@ -8810,7 +8829,7 @@
      2
     ]
    ],
-   "prompts": 41,
+   "prompts": 38,
    "sessions": 20,
    "shares": {
     "branch": [
@@ -8904,7 +8923,7 @@
       "cost": 0,
       "credits": 0,
       "key": "Kiro CLI (SQLite)",
-      "minutes": 9,
+      "minutes": 10,
       "tokens": 0
      },
      {
@@ -9017,10 +9036,14 @@
       0.01
      ]
     ],
-    "subMin": 4,
+    "subMin": 20,
     "subTypes": [
      [
       "explorer",
+      1
+     ],
+     [
+      "reviewer",
       1
      ],
      [
@@ -9028,7 +9051,7 @@
       1
      ]
     ],
-    "subagents": 2,
+    "subagents": 3,
     "tokens": 547598,
     "unpriced": 0,
     "unpricedModels": []
