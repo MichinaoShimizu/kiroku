@@ -287,7 +287,8 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .gtag{display:inline-flex;align-items:center;gap:2px;padding:0 5px 0 3px;border-radius:8px;border:1px solid var(--ink-3);font:600 var(--fs-xs)/16px var(--mono);font-style:normal;color:var(--ink-2)}.gtag.ai{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
 .drawer .gfiles{font-size:var(--fs-sm);line-height:1.7;list-style:none;padding:0;margin:0}.drawer .gfiles li{display:flex;gap:10px;justify-content:space-between;border-bottom:1px dashed var(--rule)}.drawer .gfiles span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.drawer .gfiles b{font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink-3)}.drawer .gfiles b i{font-style:normal;color:var(--acc-ink)}
 .drawer .gbody{white-space:pre-wrap;font-size:var(--fs-md);line-height:1.7;color:var(--ink-2);margin:0}
-.drawer .gc-row{display:flex;gap:10px;width:100%;text-align:left;padding:8px 0;border-bottom:1px dashed var(--rule);font-size:var(--fs-md)}.drawer .gc-row time{color:var(--ink-3);font-variant-numeric:tabular-nums}.drawer .gc-row span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.drawer .gc-row b{font-weight:500;color:var(--ink-3);font-variant-numeric:tabular-nums}
+/* コミット・push・PR の行：詳細パネルと、内訳のダイアログ（.mdlg）の一覧 */
+:is(.drawer,.mdlg) .gc-row{display:flex;gap:10px;width:100%;text-align:left;padding:8px 0;border-bottom:1px dashed var(--rule);font-size:var(--fs-md)}:is(.drawer,.mdlg) .gc-row time{color:var(--ink-3);font-variant-numeric:tabular-nums}:is(.drawer,.mdlg) .gc-row span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}:is(.drawer,.mdlg) .gc-row b{font-weight:500;color:var(--ink-3);font-variant-numeric:tabular-nums}
 
 .pout{font-size:var(--fs-sm);font-variant-numeric:tabular-nums;color:var(--ink)}.pout span{color:var(--ink-3)}
 .panel.ask,.panel.metap{grid-column:1/-1}
@@ -645,6 +646,7 @@ dialog.mdlg h3{margin:20px 0 8px}
 .mcalc div{display:flex;flex-direction:column}.mcalc small{font-size:var(--fs-xs);color:var(--ink-3)}
 .mcalc b{font:700 var(--fs-lg)/1.3 var(--sans);font-variant-numeric:tabular-nums}.mcalc span{color:var(--ink-3);padding-bottom:3px}
 @media (max-width:480px){.mbar{grid-template-columns:minmax(0,8em) 1fr auto}.mbar .pc{display:none}}
+@media (max-width:480px){.mdlg .gc-row{flex-wrap:wrap;row-gap:2px}.mdlg .gc-row time{flex-basis:100%}} /* 内訳の一覧は、狭いと時刻で件名が隠れるので、時刻を上の行に */
 /* 指標の説明の表（? の吹き出し・Worth a look・内訳のダイアログ）。上の説明と分かれるように枠で囲み、見出しの列と行を線で分ける */
 .hint dl,.wkhelp{display:grid;grid-template-columns:max-content 1fr;margin:12px 0 0;border:1px solid var(--rule-2);border-radius:8px;overflow:hidden;font-size:var(--fs-sm);line-height:1.6}
 .hint dt,.wkhelp dt{padding:6px 10px;background:var(--surface-2);border-right:1px solid var(--rule-2);color:var(--ink-3);font-weight:600;white-space:nowrap}
