@@ -17,7 +17,7 @@ const envs = [
   { name: "320 スマホ", viewport: { width: 320, height: 680 }, isMobile: true, hasTouch: true }, // いちばん狭い画面ではみ出しやすい
 ];
 
-const b = await chromium.launch();
+const b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {}); // CHROMIUM: Playwright の Chromium を取ってこられない環境向け
 // 画面の幅ごとの流れは互いに関係がないので、並べて動かす（待ち時間がほとんどなので、CI が速くなる）。
 // 出力は幅ごとにためておき、終わってから順に出す
 async function run(env) {

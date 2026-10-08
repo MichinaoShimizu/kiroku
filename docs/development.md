@@ -7,6 +7,7 @@ kiroku is a CLI written entirely in Go with few external libraries (SQLite via `
 Go 1.25 or later is required. If Node is available, `internal/web/script_test.go` also checks the view's script syntax with `node --check` (skipped otherwise). Screenshots and the demo need Python 3 and git; taking screenshots also needs Node.js and Playwright.
 
 ```bash
+sh tools/check.sh  # runs gofmt, go vet, staticcheck, govulncheck, go test, go build and shellcheck as CI does, and lists what failed (--e2e adds the view's e2e)
 go test ./...      # checks that the aggregates match the expected values, using synthetic data in testdata/
 go vet ./...
 GOTOOLCHAIN=$(go env GOVERSION) go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...   # static analysis (OK if nothing is printed)
@@ -16,6 +17,10 @@ go test ./internal/cli -run '^$' -bench Large -benchtime 3x -benchmem   # a year
 gofmt -l .         # OK if nothing is printed
 go build .         # builds ./kiroku (open the view with ./kiroku serve)
 ```
+
+`tools/check.sh` reads the staticcheck and govulncheck versions from `.github/workflows/ci.yml`, so bump them there only. It skips shellcheck when it isn't installed.
+
+In Claude Code, the `/pre-pr` skill (`.claude/skills/pre-pr/SKILL.md`) is the check before every pull request: it runs `tools/check.sh`, reads the diff against the Security rules in `CLAUDE.md`, starts `hostile-tester` and `user-tester` when the change touches what they cover, and checks the changelog, docs, screenshots and benchmark. In Claude Code cloud sessions, the SessionStart hook (`.claude/hooks/session-start.sh`) installs what those checks need beforehand: the Go modules, staticcheck and govulncheck at CI's versions, shellcheck, and Playwright from `tools/screenshots/package-lock.json` (with `--ignore-scripts`), and sets `CHROMIUM` to the container's Chromium. It does nothing on your own machine.
 
 Run the benchmark before and after a change to reading, aggregating or rendering, and put both results in the PR. `KIROKU_BENCH_DAYS` and `KIROKU_BENCH_PER_DAY` change its size (365 days of 8 sessions by default).
 
@@ -43,7 +48,7 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | `internal/gitlog` | Reads commits, and pushes from the reflog, from the git repository in each session's working directory (skipped without git), with the repository's own settings that run programs turned off |
 | `internal/web` | The view. Written as `template.html` (markup), `style.css` and the script in `js/*.js`, split by role (`state.js` data and view state, `format.js` helpers, `ui.js` shared components, `calendar.js` week and month calendars, `summary.js` / `review.js` / `panels.js` the summary, `git.js` / `session.js` the details panel, `year.js`, `events.js` input and keyboard, `boot.js` start-up, `live.js` updates under `kiroku serve`; `loading.html` is the page `kiroku serve` shows while it first reads history); `web.go` joins the script files in the fixed order of its `scripts` list into one `<script>` and combines everything with the aggregate JSON into one HTML file. `help_test.go`, `script_test.go` and `ui_test.go` check the view's explanations, script and use of the shared components |
 | `testdata/` | Synthetic history (`home/`, `codex/`, `crew/`, `sqlite/`), `golden.json`, `snapshot.json`, `mtimes.json`, and `compat/` (files an earlier kiroku wrote) |
-| `tools/` | `release-notes.sh` and `next-version.sh` (releases), `reproduce.sh` (rebuilds a released binary from its tag and compares it), `prices/` (fetches the official price pages and writes the numbers kiroku uses to `docs/upstream/`), `screenshots/` (dummy data with `gen.py` and `mkgit.py`, the demo's link card with `ogp.py`, screenshots with `capture.mjs`, and the view's e2e: `smoke.mjs`, plus `hostile.py` and `xss.mjs` for XSS) |
+| `tools/` | `check.sh` (runs CI's checks locally), `release-notes.sh` and `next-version.sh` (releases), `reproduce.sh` (rebuilds a released binary from its tag and compares it), `prices/` (fetches the official price pages and writes the numbers kiroku uses to `docs/upstream/`), `screenshots/` (dummy data with `gen.py` and `mkgit.py`, the demo's link card with `ogp.py`, screenshots with `capture.mjs`, and the view's e2e: `smoke.mjs`, plus `hostile.py` and `xss.mjs` for XSS) |
 | `install.sh`, `.goreleaser.yaml` | The installer, and how release files are built |
 
 The price tables are `Prices` and `LongPrices` (Anthropic; `LongPrices` holds models priced by prompt length, such as Claude Haiku 5.5 over 100K tokens), `OpenAIPrices` and `OpenAILongPrices` (OpenAI, for Codex) in `internal/core/usage.go`. Their source of truth is the official pricing pages, of which `docs/upstream/anthropic-pricing.md` and `docs/upstream/openai-pricing.md` keep only the numbers kiroku uses. To update them:
@@ -108,7 +113,7 @@ On PRs and pushes to main, `.github/workflows/ci.yml` runs the following.
 - `test` (Ubuntu, macOS, Windows): gofmt (except Windows), vet, staticcheck and govulncheck (Ubuntu only, pinned to 2025.1.1 and v1.8.0), tests, build
 - `release-dry-run`: `goreleaser release --snapshot` with the same pinned GoReleaser and syft as the release and no Go cache (does not publish; `go mod tidy -diff` also catches an untidy go.mod, and the SBOMs are generated too), extracting release notes from the top section of the CHANGELOG, and, if that section is a version not yet tagged, checking that its number matches `tools/next-version.sh`
 - `e2e`: opens the dummy-data HTML in Chromium and uses `tools/screenshots/smoke.mjs` to check that the key flows work (switching themes, moving between weeks, opening and closing session details and where focus returns after closing, the weekly report draft, search, month view and shortcuts), that nothing overflows sideways, and that there are no script errors and no Content-Security-Policy violations, at 1440px, 1000px, 390px and 320px. Playwright is pinned in `tools/screenshots/package.json` and `package-lock.json` and installed with `npm ci --ignore-scripts`; this job runs npm packages, so it does not use the Go cache. It also builds the view from synthetic history full of HTML and script payloads (`tools/screenshots/hostile.py`) and drives it with `tools/screenshots/xss.mjs` to check that no script runs, no element is injected and nothing is loaded from the network
-- `install-script` (Ubuntu, macOS): runs shellcheck on `install.sh` and `tools/*.sh` (Ubuntu only), actually installs the latest release, and checks `kiroku --version`; it installs once more with `KIROKU_REQUIRE_ATTESTATION=1` so the build provenance check must pass
+- `install-script` (Ubuntu, macOS): runs shellcheck on `install.sh`, `tools/*.sh` and `.claude/hooks/*.sh` (Ubuntu only), actually installs the latest release, and checks `kiroku --version`; it installs once more with `KIROKU_REQUIRE_ATTESTATION=1` so the build provenance check must pass
 
 How the workflows are locked down:
 
@@ -179,6 +184,8 @@ To run the same thing as CI's `e2e` locally, you need Node.js and Playwright.
 sh tools/screenshots/run.sh --html /tmp/kiroku.html
 node tools/screenshots/smoke.mjs /tmp/kiroku.html   # prints ok or FAIL for each check, and exits with code 1 if any failed
 ```
+
+`sh tools/check.sh --e2e` runs this and the XSS check as the `e2e` job does. `smoke.mjs` and `xss.mjs` honor `CHROMIUM` like `capture.mjs`.
 
 This only checks that things work. Clarity and wording are checked with the scenarios in [usability.md](usability.md).
 
