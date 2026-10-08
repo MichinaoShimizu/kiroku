@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"math"
 	"os"
@@ -236,7 +237,7 @@ func subagentSlot(st core.Obj, dir string) string {
 }
 
 // crewLogSegment は crew-log の 1 つのファイルの名前（log.jsonl か、後ろの分かれ log.<最初の seq>.jsonl。Crew の crew_log/store.py の segment_paths）。
-var crewLogSegment = regexp.MustCompile(`^log(?:\.[0-9]{1,18})?\.jsonl$`)
+var crewLogSegment = regexp.MustCompile(`^log(?:\.([0-9]{1,18}))?\.jsonl$`)
 
 // crewSpawnedMark は subagent/spawned の行にだけある文字。ほかの行（ターン・ツールなど、ずっと多い）は JSON として読まない。
 var crewSpawnedMark = []byte(`"subagent/spawned"`)
@@ -262,52 +263,73 @@ func loadCrewSpawns(home string, errs *fileErrs) map[string]CrewInfo {
 			continue
 		}
 		var slot, cwd string
-		var spawns []core.Obj
-		for _, p := range glob(filepath.Join(dir, "log*.jsonl")) {
-			if !crewLogSegment.MatchString(filepath.Base(p)) {
-				continue
-			}
-			s, c, sp, err := readCrewLog(p)
+		var spawns []crewSpawn
+		seen := map[string]bool{} // 同じ会話の中で読んだ id（中身は最初のものだけ持つ）
+		for _, p := range crewLogSegments(dir) {
+			s, c, err := readCrewLog(p, seen, &spawns)
 			errs.file(p, err)
 			slot, cwd = firstNonEmpty(slot, s), firstNonEmpty(cwd, c)
-			spawns = append(spawns, sp...)
 		}
 		if slot == "" {
 			continue
 		}
-		for _, d := range spawns {
-			id := core.Str(d["agent_id"])
-			if id == "" {
-				continue
-			}
-			key := crewSlot("subagent:" + id)
+		for _, x := range spawns {
+			key := crewSlot("subagent:" + x.id)
 			if _, dup := out[key]; dup {
 				continue
 			}
-			out[key] = CrewInfo{Subagent: true, Key: slot, Agent: core.Str(d["agent"]),
-				Task: core.Runes(strings.TrimSpace(core.Str(d["task"])), 120), Cwd: cwd, UsageSlot: key}
+			out[key] = CrewInfo{Subagent: true, Key: slot, Agent: x.agent, Task: x.task, Cwd: cwd, UsageSlot: key}
 		}
 	}
 	return out
 }
 
-// readCrewLog は crew-log のファイル 1 つから、会話キー（1 行目の slot か、session/opened の data.slot）・作業場所と、
-// subagent/spawned の data を読む。シンボリックリンクでないふつうのファイルだけ。
-func readCrewLog(p string) (slot, cwd string, spawns []core.Obj, err error) {
+// crewSpawn は subagent/spawned の 1 行のうち kiroku が使うもの（読んだときに切りつめ、ほかの項目は持たない）。
+type crewSpawn struct{ id, agent, task string }
+
+// crewLogSegments は crew-log の 1 つの会話のファイルを、書いた順（seq の順。log.jsonl が先）に並べる。
+func crewLogSegments(dir string) []string {
+	type seg struct {
+		p string
+		n uint64
+	}
+	var segs []seg
+	for _, p := range glob(filepath.Join(dir, "log*.jsonl")) {
+		m := crewLogSegment.FindStringSubmatch(filepath.Base(p))
+		if m == nil {
+			continue
+		}
+		n, _ := strconv.ParseUint(m[1], 10, 64) // log.jsonl は 0
+		segs = append(segs, seg{p, n})
+	}
+	sort.Slice(segs, func(i, j int) bool { return segs[i].n < segs[j].n })
+	out := make([]string, len(segs))
+	for i, x := range segs {
+		out[i] = x.p
+	}
+	return out
+}
+
+// readCrewLog は crew-log のファイル 1 つから、会話キー（1 行目の slot か、session/opened の data.slot）と作業場所を読み、
+// subagent/spawned の行を spawns に足す（seen にある id は飛ばす）。シンボリックリンクでないふつうのファイルだけ。
+// 長すぎる行は飛ばし、その数をエラーで返す（ほかの履歴と同じく「Data sources」に出る）。
+func readCrewLog(p string, seen map[string]bool, spawns *[]crewSpawn) (slot, cwd string, err error) {
 	if st, err := os.Lstat(p); err != nil || !st.Mode().IsRegular() {
-		return "", "", nil, nil
+		return "", "", nil
 	}
 	f, err := os.Open(p)
 	if err != nil {
-		return "", "", nil, err
+		return "", "", err
 	}
 	defer f.Close()
 	r := bufio.NewReaderSize(f, 1<<16)
+	long := 0
 	for first := true; ; first = false {
-		line, long, err := core.ReadLine(r, core.MaxLine)
+		line, tooLong, err := core.ReadLine(r, core.MaxLine)
 		var e core.Obj
 		switch {
-		case long:
+		case tooLong:
+			long++
 		case first && json.Unmarshal(line, &e) == nil && core.Str(e["type"]) == "session":
 			slot, cwd = core.Str(e["slot"]), core.Str(e["cwd"])
 		case slot == "" && bytes.Contains(line, []byte(`"session/opened"`)):
@@ -316,16 +338,22 @@ func readCrewLog(p string) (slot, cwd string, spawns []core.Obj, err error) {
 			}
 		case bytes.Contains(line, crewSpawnedMark):
 			if json.Unmarshal(line, &e) == nil && core.Str(e["type"]) == "subagent/spawned" {
-				if d := core.Map(e["data"]); d != nil {
-					spawns = append(spawns, d)
+				d := core.Map(e["data"])
+				if id := core.Str(d["agent_id"]); id != "" && !seen[id] {
+					seen[id] = true
+					*spawns = append(*spawns, crewSpawn{id: id, agent: core.Runes(core.Str(d["agent"]), 120),
+						task: core.Runes(strings.TrimSpace(core.Str(d["task"])), 120)})
 				}
 			}
 		}
 		if err == io.EOF {
-			return slot, cwd, spawns, nil
+			if long > 0 {
+				return slot, cwd, fmt.Errorf("skipped %d line(s) longer than %d bytes", long, core.MaxLine)
+			}
+			return slot, cwd, nil
 		}
 		if err != nil {
-			return slot, cwd, spawns, err
+			return slot, cwd, err
 		}
 	}
 }

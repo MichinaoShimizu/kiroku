@@ -982,3 +982,42 @@ func TestKiroCrewArchiveOrder(t *testing.T) {
 		t.Errorf("読んだ順 = %v, want 1,2,3,4,5,6", got)
 	}
 }
+
+// crew-log の読み取り: 分かれたファイルは seq の順（log.jsonl → log.9 → log.10）に読み、同じ id は最初のものを使う。
+// 長すぎる行は飛ばして知らせ、シンボリックリンクのファイルは読まない。
+func TestReadCrewLogSegments(t *testing.T) {
+	old := core.MaxLine
+	core.MaxLine = 4096
+	defer func() { core.MaxLine = old }()
+	crew := t.TempDir()
+	spawned := func(id, task string) string {
+		return fmt.Sprintf(`{"type": "subagent/spawned", "data": {"agent_id": %q, "agent": "a", "task": %q, "pad": "x"}}`, id, task) + "\n"
+	}
+	dir := "crew-log/sessions/p-1/"
+	writeFiles(t, crew, map[string]string{
+		dir + "log.jsonl":    `{"type": "session", "id": "p", "owner": "o", "agent": "a", "slot": "dashboard:p", "cwd": "/Users/me/app"}` + "\n" + spawned("s1", "first"),
+		dir + "log.9.jsonl":  spawned("s1", "nine") + spawned("s2", "nine"),
+		dir + "log.10.jsonl": spawned("s2", "ten") + spawned("s3", strings.Repeat("y", 5000)) + spawned("s4", "ten"),
+		"outside.jsonl":      spawned("s5", "outside"),
+	})
+	if err := os.Symlink(filepath.Join(crew, "outside.jsonl"), filepath.Join(crew, dir, "log.11.jsonl")); err != nil {
+		t.Log("シンボリックリンクを作れない:", err)
+	}
+	var errs fileErrs
+	got := loadCrewSpawns(crew, &errs)
+	if got["subagent:s1"].Task != "first" || got["subagent:s2"].Task != "nine" || got["subagent:s4"].Task != "ten" {
+		t.Errorf("seq の順に読んでいない: %+v", got)
+	}
+	if i := got["subagent:s1"]; i.Key != "dashboard:p" || i.Cwd != "/Users/me/app" || !i.Subagent {
+		t.Errorf("s1 = %+v", i)
+	}
+	if _, ok := got["subagent:s3"]; ok {
+		t.Error("長すぎる行を読んだ")
+	}
+	if _, ok := got["subagent:s5"]; ok {
+		t.Error("シンボリックリンクのファイルを読んだ")
+	}
+	if err := errs.err(); err == nil || !strings.Contains(err.Error(), "skipped 1 line(s) longer than") {
+		t.Errorf("長すぎる行を知らせない: %v", err)
+	}
+}
