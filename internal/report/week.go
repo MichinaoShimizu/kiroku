@@ -4,6 +4,7 @@ package report
 
 import (
 	"fmt"
+	"maps"
 	"math"
 	"sort"
 	"time"
@@ -710,41 +711,68 @@ func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
 
 // AllWeeks は記録のあるすべての週を集計する。キーは月曜の日付。
 func AllWeeks(data []*core.Session, commits ...gitlog.Commit) map[string]*Week {
-	out := map[string]*Week{}
-	seen := map[string]bool{}
-	ps := newPeriods(data)
-	for _, d := range data {
-		w := MondayOf(d.Start)
-		for unix(w) <= d.End {
-			k := w.Format("2006-01-02")
-			if !seen[k] {
-				seen[k] = true
-				if st := Stats(ps.within(unix(w), unix(AddDays(w, 7))), w, commits...); st != nil {
-					out[k] = st
-				}
-			}
-			w = AddDays(w, 7)
-		}
-	}
-	return out
+	return allPeriods(data, commits, weekly, nil)
 }
 
 // AllMonths は記録のあるすべての月を集計する。キーは YYYY-MM。
 func AllMonths(data []*core.Session, commits ...gitlog.Commit) map[string]*Summary {
+	return allPeriods(data, commits, monthly, nil)
+}
+
+// period は期間の区切り方（週か月）。
+type period struct {
+	first  func(ts float64) time.Time // ts を含む期間の始まり
+	next   func(time.Time) time.Time  // 次の期間の始まり
+	layout string                     // キーの書き方
+}
+
+var (
+	weekly  = period{MondayOf, func(t time.Time) time.Time { return AddDays(t, 7) }, "2006-01-02"}
+	monthly = period{MonthOf, func(t time.Time) time.Time { return AddMonths(t, 1) }, "2006-01"}
+)
+
+// allPeriods は、記録のあるすべての期間を集計する。memo があれば、前回とセッションもコミットも
+// 同じ期間は集計し直さずに前回の結果を使い、memo を今回の結果に入れかえる（Cache）。
+func allPeriods(data []*core.Session, commits []gitlog.Commit, p period, memo map[string]*memoEntry) map[string]*Summary {
 	out := map[string]*Summary{}
 	seen := map[string]bool{}
 	ps := newPeriods(data)
+	next := map[string]*memoEntry{}
 	for _, d := range data {
-		m := MonthOf(d.Start)
-		for unix(m) <= d.End {
-			k := m.Format("2006-01")
+		t := p.first(d.Start)
+		for unix(t) <= d.End {
+			k := t.Format(p.layout)
 			if !seen[k] {
 				seen[k] = true
-				if st := Summarize(ps.within(unix(m), unix(AddMonths(m, 1))), m, AddMonths(m, 1), commits...); st != nil {
-					out[k] = st
+				end := p.next(t)
+				ws, we := unix(t), unix(end)
+				in := ps.within(ws, we)
+				cs := commitsWithin(commits, ws, we)
+				e := memo[k]
+				if e == nil || !e.same(in, cs) {
+					e = &memoEntry{sessions: in, commits: cs, sum: Summarize(in, t, end, cs...)}
+				}
+				next[k] = e
+				if e.sum != nil {
+					out[k] = e.sum
 				}
 			}
-			m = AddMonths(m, 1)
+			t = p.next(t)
+		}
+	}
+	if memo != nil {
+		clear(memo)
+		maps.Copy(memo, next)
+	}
+	return out
+}
+
+// commitsWithin は [ws, we) のコミット（並びは元のまま）。Summarize はこの期間のコミットしか見ない。
+func commitsWithin(commits []gitlog.Commit, ws, we float64) []gitlog.Commit {
+	var out []gitlog.Commit
+	for _, c := range commits {
+		if ws <= c.T && c.T < we {
+			out = append(out, c)
 		}
 	}
 	return out

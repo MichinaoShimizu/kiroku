@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- `kiroku serve` recalculates only the weeks and months whose sessions or Git commits changed when it reads history again, instead of every week and month. With a year of history, a refresh after one session changes spends about 11 ms on this instead of 250 ms. The figures don't change
+
 ## v0.25.0 - 2026-10-08
 
 ### Added
