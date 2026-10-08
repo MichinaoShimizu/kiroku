@@ -674,3 +674,254 @@ func TestKiroCrewSubagentsFoldIntoParent(t *testing.T) {
 		t.Fatalf("Crew の記録だけにある親 = %+v", doc)
 	}
 }
+
+// kiroCLISession は kiro-cli の会話のメタデータ（sessions/cli/<id>.json）。turns は {終わりの時刻, クレジット（空なら記録なし）} の並び。
+func kiroCLISession(id, cwd, created, updated string, turns ...[2]string) string {
+	ts := make([]string, 0, len(turns))
+	for _, x := range turns {
+		m := ""
+		if x[1] != "" {
+			m = fmt.Sprintf(`, "metering_usage": [{"value": %s, "unit": "credit"}]`, x[1])
+		}
+		ts = append(ts, fmt.Sprintf(`{"end_timestamp": %q%s}`, x[0], m))
+	}
+	return fmt.Sprintf(`{"session_id": %q, "cwd": %q, "created_at": %q, "updated_at": %q, "session_state": {"conversation_metadata": {"user_turn_metadatas": [%s]}}}`,
+		id, cwd, created, updated, strings.Join(ts, ", "))
+}
+
+// Crew は会話キーの sid を差しかえる（容量がいっぱいになった会話の作り直し・backend の切りかえ・seed）。使用量の記録は会話キーで残り、
+// どの kiro-cli の会話のものかは書かれない。差しかえる前の行を今の会話に足すと、前の会話（session_map から消えて、自分のクレジットを持つ）と 2 度数える。
+// 行は時刻で、その行のころに動いていた会話に結びつける。
+func TestKiroCrewRebind(t *testing.T) {
+	kiro, crew := t.TempDir(), t.TempDir()
+	writeFiles(t, kiro, map[string]string{
+		// (a) 作り直し: k-old（自分のクレジット 3）のあとを k-new（kiro-cli にクレジットが残っていない）が継いだ
+		"sessions/cli/k-old.json":  kiroCLISession("k-old", "/Users/me/app", "2026-09-29T10:00:00Z", "2026-09-29T10:30:00Z", [2]string{"2026-09-29T10:10:00Z", "1.5"}, [2]string{"2026-09-29T10:30:00Z", "1.5"}),
+		"sessions/cli/k-old.jsonl": "",
+		"sessions/cli/k-new.json":  kiroCLISession("k-new", "/Users/me/app", "2026-09-29T11:00:00Z", "2026-09-29T11:10:00Z", [2]string{"2026-09-29T11:10:00Z", ""}),
+		"sessions/cli/k-new.jsonl": "",
+		// 同じころに別の場所で直接動かした kiro-cli の会話は、Crew の会話にしない
+		"sessions/cli/k-user.json":  kiroCLISession("k-user", "/Users/me/other", "2026-09-29T10:00:00Z", "2026-09-29T10:40:00Z", [2]string{"2026-09-29T10:20:00Z", "7"}),
+		"sessions/cli/k-user.jsonl": "",
+		// (b) backend の切りかえ: kiro-cli の k2 から Claude Code に。Crew は k2 を discarded_sid に残す
+		"sessions/cli/k2.json":  kiroCLISession("k2", "/Users/me/lib", "2026-09-29T12:00:00Z", "2026-09-29T12:10:00Z", [2]string{"2026-09-29T12:10:00Z", "1"}),
+		"sessions/cli/k2.jsonl": "",
+		// (c) 前の会話の kiro-cli の記録が消えている: その行は Crew のセッションにする（クレジットはなくさない）
+		"sessions/cli/k3.json":  kiroCLISession("k3", "/Users/me/c3", "2026-09-29T15:00:00Z", "2026-09-29T15:10:00Z", [2]string{"2026-09-29T15:10:00Z", ""}),
+		"sessions/cli/k3.jsonl": "",
+	})
+	row := func(ts, slot, provider string, credits float64, in, out int) string {
+		return fmt.Sprintf(`{"_type": "tokens", "ts": %q, "slot": %q, "provider": %q, "model": "auto", "input": %d, "output": %d, "credits": %v}`, ts, slot, provider, in, out, credits)
+	}
+	writeFiles(t, crew, map[string]string{
+		"session_map.json": `{"dashboard:chat-1-100": {"sid": "k-new", "cwd": "/Users/me/app"},
+ "dashboard:chat-2-200": {"sid": "cc-sid", "provider": "claude_code", "discarded_sid": "k2", "cwd": "/Users/me/lib"},
+ "dashboard:chat-3-300": {"sid": "k3", "cwd": "/Users/me/c3"}}`,
+		"sessions/dashboard_chat-1-100.jsonl": `{"_type": "metadata", "title": "作り直した会話"}
+{"role": "user", "content": "前の会話での依頼", "ts": "2026-09-29T10:05:00+00:00", "meta": {"human": true}}
+{"role": "user", "content": "今の会話での依頼", "ts": "2026-09-29T11:05:00+00:00", "meta": {"human": true}}
+`,
+		"usage/tokens/2026-09-29.jsonl": strings.Join([]string{
+			row("2026-09-29T10:10:01+00:00", "chat-1-100", "acp", 1.5, 0, 0),
+			row("2026-09-29T10:30:01+00:00", "chat-1-100", "acp", 1.5, 0, 0),
+			row("2026-09-29T11:10:01+00:00", "chat-1-100", "acp", 2, 0, 0),
+			row("2026-09-29T12:10:01+00:00", "chat-2-200", "acp", 1, 0, 0),
+			row("2026-09-29T13:00:00+00:00", "chat-2-200", "claude_code", 0, 100, 50),
+			row("2026-09-29T14:00:00+00:00", "chat-3-300", "acp", 0.5, 0, 0),
+			row("2026-09-29T15:10:01+00:00", "chat-3-300", "acp", 0.25, 0, 0),
+		}, "\n") + "\n",
+	})
+	k := &KiroCLI{Home: kiro, CrewHome: crew}
+	bs := load(t, k)
+	by := map[string]*core.Session{}
+	total := 0.0
+	for _, b := range bs {
+		f := b.Finish(15)
+		by[b.ID] = f
+		total += f.Credits
+	}
+	get := func(id string) *core.Session {
+		t.Helper()
+		f := by[id]
+		if f == nil {
+			t.Fatalf("%s がない: %v", id, by)
+		}
+		return f
+	}
+	// (a)
+	if f := get("k-new"); f.Credits != 2 {
+		t.Errorf("k-new のクレジット = %v, want 2（作り直す前の行は前の会話のもの）", f.Credits)
+	}
+	if f := get("k-old"); f.Credits != 3 || f.Source != "Kiro Crew" || f.Title != "作り直した会話" {
+		t.Errorf("k-old: credits = %v, source = %q, title = %q, want 3・Kiro Crew・作り直した会話", f.Credits, f.Source, f.Title)
+	}
+	if got := strings.Join(promptTexts(find(bs, "k-old")), "|"); got != "前の会話での依頼" {
+		t.Errorf("k-old の依頼 = %q", got)
+	}
+	if got := strings.Join(promptTexts(find(bs, "k-new")), "|"); got != "今の会話での依頼" {
+		t.Errorf("k-new の依頼 = %q", got)
+	}
+	if f := get("k-user"); f.Credits != 7 || f.Source != "Kiro CLI" {
+		t.Errorf("別の場所の kiro-cli の会話: credits = %v, source = %q", f.Credits, f.Source)
+	}
+	if by["crew:dashboard:chat-1-100"] != nil {
+		t.Error("前の会話に結びついた行を、別の Crew のセッションにしない")
+	}
+	// (b)
+	if f := get("k2"); f.Credits != 1 || f.Source != "Kiro Crew" {
+		t.Errorf("切りかえ前の kiro-cli の会話: credits = %v, source = %q", f.Credits, f.Source)
+	}
+	if f := get("crew:dashboard:chat-2-200"); f.Credits != 0 || nativeOf(f)["ターン"].V != 1 {
+		t.Errorf("切りかえ後の Crew のセッション: credits = %v, native = %+v（kiro-cli のころのクレジットは k2 で数える）", f.Credits, f.Native)
+	}
+	// (c)
+	if f := get("k3"); f.Credits != 0.25 {
+		t.Errorf("k3 のクレジット = %v, want 0.25", f.Credits)
+	}
+	if f := get("crew:dashboard:chat-3-300"); f.Credits != 0.5 {
+		t.Errorf("前の会話が消えた行のクレジット = %v, want 0.5", f.Credits)
+	}
+	if math.Abs(total-13.75) > 1e-9 {
+		t.Errorf("クレジットの合計 = %v, want 13.75（3 + 2 + 7 + 1 + 0.25 + 0.5）", total)
+	}
+}
+
+// サブエージェントと裏方の処理の行の provider は、Claude Code 以外の backend でも "acp" か provider_label の値（"codex" など）。
+// サブエージェントの本当の backend は state.json の "provider" にある。Codex で動いた行のトークンは Codex の履歴で数える。
+func TestKiroCrewCodexRows(t *testing.T) {
+	kiro, crew := t.TempDir(), t.TempDir()
+	writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
+	row := func(ts, slot, provider string) string {
+		return fmt.Sprintf(`{"_type": "tokens", "ts": %q, "slot": %q, "provider": %q, "model": "gpt-5", "input": 1000, "output": 100, "cost": 0.5, "credits": 0}`, ts, slot, provider)
+	}
+	writeFiles(t, crew, map[string]string{
+		"subagents/cx1/state.json": `{"id": "cx1", "agent": "coder", "task": "直す", "parent_session": "dashboard:chat-9-900", "session_id": "codex-thread", "provider": "codex"}`,
+		"subagents/gs1/state.json": `{"id": "gs1", "agent": "helper", "task": "調べる", "parent_session": "dashboard:chat-9-900", "session_id": "goose-sid", "provider": "goose"}`,
+		"usage/tokens/2026-09-29.jsonl": strings.Join([]string{
+			row("2026-09-29T10:00:00+00:00", "subagent:cx1", "acp"), // サブエージェントの行は claude_code か acp
+			row("2026-09-29T10:05:00+00:00", "subagent:gs1", "acp"), // goose は kiroku が別に読まないので数える
+			row("2026-09-29T11:00:00+00:00", "_bg", "codex"),        // 裏方の処理は provider_label（codex）
+			row("2026-09-29T11:05:00+00:00", "_bg", "kas"),          // kas は kiroku が別に読まないので数える
+		}, "\n") + "\n",
+	})
+	k := &KiroCLI{Home: kiro, CrewHome: crew}
+	by := map[string]*core.Session{}
+	for _, b := range load(t, k) {
+		by[b.ID] = b.Finish(15)
+	}
+	if f := by["crew:subagent:cx1"]; f == nil || f.Usage.Total() != 0 || f.Cost != 0 {
+		t.Errorf("Codex のサブエージェント = %+v（トークンとコストは Codex の履歴で数える）", f)
+	}
+	if f := by["crew:subagent:gs1"]; f == nil || f.Usage.In != 1000 || math.Abs(f.Cost-0.5) > 1e-9 {
+		t.Errorf("goose のサブエージェント = %+v", f)
+	}
+	var bg *core.Session
+	for id, f := range by {
+		if strings.HasPrefix(id, "crew:_bg:") {
+			bg = f
+		}
+	}
+	if bg == nil || bg.Usage.In != 1000 || math.Abs(bg.Cost-0.5) > 1e-9 {
+		t.Errorf("裏方の処理 = %+v, want kas の 1 行だけ（codex の行は Codex の履歴で数える）", bg)
+	}
+	if d := k.DetailEn(); !strings.Contains(d, "tokens and cost of 2 turns") {
+		t.Errorf("detail = %q", d)
+	}
+}
+
+// 会話の記録だけがある会話も、退避した古い行（sessions/archive/）を読む。
+func TestKiroCrewLogOnlyArchive(t *testing.T) {
+	kiro, crew := t.TempDir(), t.TempDir()
+	writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
+	writeFiles(t, crew, map[string]string{
+		"sessions/slack_C1_123.jsonl": `{"_type": "metadata", "title": "Slack の相談"}
+{"role": "user", "content": "続きの依頼", "ts": "2026-09-30T13:00:00+00:00", "meta": {"human": true}}
+`,
+		"sessions/archive/slack_C1_123__20260930-120000.jsonl": `{"_type": "archive", "reason": "rotate"}
+{"role": "user", "content": "最初の依頼", "ts": "2026-09-30T11:00:00+00:00", "meta": {"human": true}}
+{"role": "assistant", "content": "はい", "ts": "2026-09-30T11:01:00+00:00"}
+`,
+	})
+	bs := load(t, &KiroCLI{Home: kiro, CrewHome: crew})
+	if got := strings.Join(promptTexts(find(bs, "crew:slack_C1_123")), "|"); got != "最初の依頼|続きの依頼" {
+		t.Errorf("依頼 = %q, want 最初の依頼|続きの依頼（退避した行も読む）", got)
+	}
+}
+
+// タスクの実行（taskrunner.py の _log_task）は "[Task: <spec>] Task N: <題>" を目印のない user の行として書く。人の依頼に数えない。
+// 人が "[" で始めた文は、目印のない記録では依頼のまま。
+func TestKiroCrewTaskRunnerRows(t *testing.T) {
+	kiro, crew := t.TempDir(), t.TempDir()
+	writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
+	writeFiles(t, crew, map[string]string{
+		"sessions/taskrunner_run_t1.jsonl": `{"_type": "metadata", "title": "タスク"}
+{"role": "user", "content": "[Task: tasks.md] Task 1: API を足す", "ts": "2026-09-29T09:00:00+00:00"}
+{"role": "assistant", "content": "Task completed.", "ts": "2026-09-29T09:10:00+00:00"}
+{"role": "user", "content": "[WIP] この関数を見て", "ts": "2026-09-29T09:20:00+00:00"}
+`,
+	})
+	b := find(load(t, &KiroCLI{Home: kiro, CrewHome: crew}), "crew:taskrunner_run_t1")
+	if got := strings.Join(promptTexts(b), "|"); got != "[WIP] この関数を見て" {
+		t.Errorf("依頼 = %q, want [WIP] この関数を見て（タスクの実行の行は数えない）", got)
+	}
+	if b == nil || len(b.Notes) != 1 || b.Notes[0].Kind != "agent" || !strings.HasPrefix(b.Notes[0].Text, "[Task: tasks.md]") {
+		t.Errorf("仕組みが入れた行 = %+v", b)
+	}
+}
+
+// 会話キーのファイル名は Crew の _safe_key（Python の re.sub(r"[^\w\-.]", "_", key)。\w は Unicode の文字・数字と _）と同じにする。
+// どんなキーでも sessions/ の外を指さず、glob の特別な文字も残さない。
+func TestCrewSafeKey(t *testing.T) {
+	for key, want := range map[string]string{
+		"slack:123.456":        "slack_123.456",
+		"dashboard:chat-1-100": "dashboard_chat-1-100",
+		"telegram:日本語の会話":      "telegram_日本語の会話",
+		"x:Ünïcödé_١٢٣":        "x_Ünïcödé_١٢٣",
+		"a b\tc":               "a_b_c",
+		"../../etc/passwd":     ".._.._etc_passwd",
+		`a\b`:                  "a_b",
+		"a／b":                  "a_b", // 全角の斜線も文字ではない
+		"*?[]{}":               "______",
+		"é":                   "e_", // 結合文字は Python の \w に入らない
+	} {
+		if got := safeKey(key); got != want {
+			t.Errorf("safeKey(%q) = %q, want %q", key, got, want)
+		}
+	}
+	home := t.TempDir()
+	for _, key := range []string{"..", "../x", "a/../../b", "/abs", `..\..\x`, "*", "[a-z]", "", ".", "a\x00b"} {
+		p := crewTranscriptPath(home, key)
+		if filepath.Dir(p) != filepath.Join(home, "sessions") {
+			t.Errorf("%q → %q は sessions/ の外", key, p)
+		}
+		if strings.ContainsAny(filepath.Base(p), `*?[\/`) {
+			t.Errorf("%q → %q に glob の特別な文字が残る", key, p)
+		}
+	}
+}
+
+// 退避した行のファイル名が同じ秒に重なると、Crew は <名前>__<日時>-1.jsonl のように番号をつける。書いた順（番号なし・-1・-2…・-10）に読む。
+// 名前が <キー>__ で始まる別の会話の退避ファイルは読まない。
+func TestKiroCrewArchiveOrder(t *testing.T) {
+	crew := t.TempDir()
+	seg := func(text string) string {
+		return `{"_type": "archive"}` + "\n" + `{"role": "user", "content": "` + text + `"}` + "\n"
+	}
+	writeFiles(t, crew, map[string]string{
+		"sessions/archive/slack_C1__20260930-100000.jsonl":    seg("1"),
+		"sessions/archive/slack_C1__20260930-100000-1.jsonl":  seg("2"),
+		"sessions/archive/slack_C1__20260930-100000-2.jsonl":  seg("3"),
+		"sessions/archive/slack_C1__20260930-100000-10.jsonl": seg("4"),
+		"sessions/archive/slack_C1__20260930-100001.jsonl":    seg("5"),
+		"sessions/archive/slack_C1__x__20260930-090000.jsonl": seg("別の会話"),
+		"sessions/slack_C1.jsonl":                             `{"_type": "metadata"}` + "\n" + `{"role": "user", "content": "6"}` + "\n",
+	})
+	_, rows := readCrewKey(crew, "", "slack:C1", nil)
+	var got []string
+	for _, r := range rows {
+		got = append(got, r.text)
+	}
+	if strings.Join(got, ",") != "1,2,3,4,5,6" {
+		t.Errorf("読んだ順 = %v, want 1,2,3,4,5,6", got)
+	}
+}
