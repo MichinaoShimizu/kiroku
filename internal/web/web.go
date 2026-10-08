@@ -93,8 +93,39 @@ func assemble(s string, pairs ...string) string {
 // encoding/json は < > & を < などに変えるので、</script> で閉じられる心配はない。
 // live が true なら、画面は /stamp を見張って新しい履歴を取り込む（--serve 用）。
 func Render(data, weeks, months, meta any, generated float64, live bool) (string, error) {
-	repl := []string{}
-	for k, v := range map[string]any{"__DATA__": data, "__WEEKS__": weeks, "__MONTHS__": months, "__META__": meta, "__GEN__": generated, "__LIVE__": live, "__PROMPT_RUNES__": core.PromptRunes, "__REPLY_RUNES__": core.ReplyRunes, "__RECORDS__": core.Records, "__AGENTS__": core.Agents, "__AGENT_WARN__": core.AgentWarnSlots} {
+	p, err := Marshal(data, weeks, months, meta, generated)
+	if err != nil {
+		return "", err
+	}
+	return p.HTML(live)
+}
+
+// Parts は、画面に入れるデータを JSON にしたもの。kiroku serve は同じデータを HTML と /data.json の
+// 両方で配るので、1 回だけ JSON にして使い回す（1 年分の履歴で、セッションだけで 20 MB ほどになる）。
+type Parts struct {
+	data, weeks, months, meta, gen []byte
+}
+
+// Marshal は画面に入れるデータを JSON にする。
+func Marshal(data, weeks, months, meta any, generated float64) (*Parts, error) {
+	p := &Parts{}
+	for _, x := range []struct {
+		dst *[]byte
+		v   any
+	}{{&p.data, data}, {&p.weeks, weeks}, {&p.months, months}, {&p.meta, meta}, {&p.gen, generated}} {
+		b, err := json.Marshal(x.v)
+		if err != nil {
+			return nil, err
+		}
+		*x.dst = b
+	}
+	return p, nil
+}
+
+// HTML は、置き場にデータを入れた画面。
+func (p *Parts) HTML(live bool) (string, error) {
+	repl := []string{"__DATA__", string(p.data), "__WEEKS__", string(p.weeks), "__MONTHS__", string(p.months), "__META__", string(p.meta), "__GEN__", string(p.gen)}
+	for k, v := range map[string]any{"__LIVE__": live, "__PROMPT_RUNES__": core.PromptRunes, "__REPLY_RUNES__": core.ReplyRunes, "__RECORDS__": core.Records, "__AGENTS__": core.Agents, "__AGENT_WARN__": core.AgentWarnSlots} {
 		b, err := json.Marshal(v)
 		if err != nil {
 			return "", err
@@ -102,6 +133,22 @@ func Render(data, weeks, months, meta any, generated float64, live bool) (string
 		repl = append(repl, k, string(b))
 	}
 	return withCSP(strings.NewReplacer(repl...).Replace(template), live)
+}
+
+// JSON は kiroku serve の /data.json。json.Marshal に map を渡したときと同じく、キーは名前の順。
+func (p *Parts) JSON() []byte {
+	var b []byte
+	b = append(b, `{"generated":`...)
+	b = append(b, p.gen...)
+	b = append(b, `,"meta":`...)
+	b = append(b, p.meta...)
+	b = append(b, `,"months":`...)
+	b = append(b, p.months...)
+	b = append(b, `,"sessions":`...)
+	b = append(b, p.data...)
+	b = append(b, `,"weeks":`...)
+	b = append(b, p.weeks...)
+	return append(b, '}')
 }
 
 // Loading は、kiroku serve が最初の読み込みを終えるまで出す画面（stamp を見て、読み終わったら本物の画面に切りかわる）。

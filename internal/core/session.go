@@ -39,7 +39,29 @@ func IsCorrection(text string, first bool) bool {
 		return false
 	}
 	h := humanHead(text)
-	return correctionStart.MatchString(h) || correctionAny.MatchString(h)
+	return correctionStart.MatchString(h) || (mayCorrect(h) && correctionAny.MatchString(h))
+}
+
+// correctionHints は、correctionAny のどの言い回しにも必ず入っている語句（小文字）。correctionAny は大きく、
+// 依頼ごとに試すと履歴の読み込みの半分ほどを使っていたので、どれも入っていない依頼では試さない。
+// correctionAny を変えたらここも見直す（TestCorrectionHints と FuzzCorrectionHints が確かめる）。
+var correctionHints = []string{
+	"それは違", "そうじゃな", "そうではな", "じゃなくて", "ではなくて", "やり直して", "やりなおして", "元に戻", "戻して", "取り消して", "直って",
+	"s not ", "s wrong", "s incorrect", // (that|this|it)('s| is) ...
+	"not what i ", "revert ", "undo ", "roll back ", "rollback ", "start over", "you broke", "still ",
+	"n't work", "not work", "try again",
+}
+
+// mayCorrect は、h が correctionAny に合うかもしれないか（false なら合わない）。
+// (?i) は ASCII の文字では k を K（U+212A）に、s を ſ（U+017F）にも合わせる。K は ToLower で k になるので、ſ だけを s にしてから比べる。
+func mayCorrect(h string) bool {
+	l := strings.ToLower(strings.ReplaceAll(h, "ſ", "s"))
+	for _, w := range correctionHints {
+		if strings.Contains(l, w) {
+			return true
+		}
+	}
+	return false
 }
 
 var editTools = map[string]bool{

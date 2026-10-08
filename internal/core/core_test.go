@@ -397,3 +397,31 @@ func TestReadUsageCacheCreation(t *testing.T) {
 		}
 	}
 }
+
+// mayCorrect が false のとき、correctionAny は必ず合わない（速くするための前ふるいで、判定は変えない）。
+// correctionAny の言い回しを 1 つずつと、(?i) が合わせる K（U+212A）・ſ（U+017F）を含めて確かめる。
+func TestCorrectionHints(t *testing.T) {
+	texts := []string{
+		"それは違う", "そうじゃない", "そうではない", "AじゃなくてB", "AではなくてB", "やり直して", "やりなおして", "元に戻す", "戻して", "取り消して",
+		"まだ直ってない", "直ってない", "直っていない",
+		"that's not what I asked", "This is not right", "it is not it", "That's wrong", "it's incorrect",
+		"not what i wanted", "NOT WHAT I MEANT", "revert it", "Undo that", "roll back these", "rollback the last", "undo what you did",
+		"revert everything", "start over", "ſtart over", "You broke it", "still not working", "it's ſtill broken", "is still failing",
+		"doesn't work", "does not working", "didn't worK", "isn't work", "still does not work", "try again", "ok. Try again", "TRY AGAIN",
+		"Fix the failing test", "Continue", "テストを足して", "",
+		"THAT'S NOT IT", "it\u017fs wrong", "it'ſ not right", "this iſ incorrect", "\u212aeep going, \u017ftill broken", "doesn't wor\u212a", "ſtill doesn't work",
+		"revert\tit", "undo\u00a0it", "try\u3000again", "no.try again", "直っていない。もう一度",
+	}
+	for _, c := range correctionCases {
+		texts = append(texts, c.text)
+	}
+	for _, s := range texts {
+		h := humanHead(s)
+		if correctionAny.MatchString(h) && !mayCorrect(h) {
+			t.Errorf("%q は correctionAny に合うのに mayCorrect が false（correctionHints に語が足りない）", s)
+		}
+	}
+	if mayCorrect("Fix the failing test in pkg12 and explain why it broke; the worktree has notes") {
+		t.Error("ふつうの依頼でも正規表現を試している（前ふるいが効いていない）")
+	}
+}
