@@ -23,6 +23,8 @@ Intro text.
 | Claude Opus 9.5                                              | $4 / MTok             | $5 / MTok       | $8 / MTok       | $0.20 / MTok<sup>2</sup> | $20 / MTok             |
 | Claude Opus 9 ([retired, except on X](https://example.com/)) | $15 / MTok            | $18.75 / MTok   | $30 / MTok      | $1.50 / MTok             | $75 / MTok             |
 | Claude Sonnet 9                                              | $2 / MTok<sup>3</sup> | $2.50 / MTok    | $4 / MTok       | $0.20 / MTok             | $10 / MTok<sup>3</sup> |
+| Claude Haiku 9.7 (for prompts up to 100,000 tokens)          | $0.10 / MTok          | $0.125 / MTok   | $0.20 / MTok    | $0.01 / MTok             | $0.50 / MTok           |
+| Claude Haiku 9.7 (for prompts over 100,000 tokens)           | $0.50 / MTok          | $0.625 / MTok   | $1 / MTok       | $0.05 / MTok             | $2.50 / MTok           |
 | Claude Haiku 9.5                                             | $1 / MTok             | $1.25 / MTok    | $2 / MTok       | $0.10 / MTok             | $5 / MTok              |
 | Claude Haiku 3.5 ([limited availability](https://x/))        | $0.80 / MTok          | $1 / MTok       | $1.60 / MTok    | $0.08 / MTok             | $4 / MTok              |
 
@@ -81,14 +83,23 @@ func TestParseAnthropic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "| Model ID | Input | Cache write 5m | Cache write 1h | Cache read | Output |\n|---|---|---|---|---|---|\n" +
-		"| claude-opus-9-5 | 4 | 5 | 8 | 0.2 | 20 |\n" +
-		"| claude-opus-9 | 15 | 18.75 | 30 | 1.5 | 75 |\n" +
-		"| claude-sonnet-9 | 2 | 2.5 | 4 | 0.2 | 10 |\n" +
-		"| claude-haiku-9-5 | 1 | 1.25 | 2 | 0.1 | 5 |\n" +
-		"| claude-3-5-haiku | 0.8 | 1 | 1.6 | 0.08 | 4 |\n"
+	want := "Long over: a request whose prompt is more than this many tokens is billed at the Long rates as a whole (\"-\": one price for every length).\n\n" +
+		"| Model ID | Input | Cache write 5m | Cache write 1h | Cache read | Output | Long over | Long input | Long cache write 5m | Long cache write 1h | Long cache read | Long output |\n" +
+		"|---|---|---|---|---|---|---|---|---|---|---|---|\n" +
+		"| claude-opus-9-5 | 4 | 5 | 8 | 0.2 | 20 | - | - | - | - | - | - |\n" +
+		"| claude-opus-9 | 15 | 18.75 | 30 | 1.5 | 75 | - | - | - | - | - | - |\n" +
+		"| claude-sonnet-9 | 2 | 2.5 | 4 | 0.2 | 10 | - | - | - | - | - | - |\n" +
+		"| claude-haiku-9-7 | 0.1 | 0.125 | 0.2 | 0.01 | 0.5 | 100000 | 0.5 | 0.625 | 1 | 0.05 | 2.5 |\n" +
+		"| claude-haiku-9-5 | 1 | 1.25 | 2 | 0.1 | 5 | - | - | - | - | - | - |\n" +
+		"| claude-3-5-haiku | 0.8 | 1 | 1.6 | 0.08 | 4 | - | - | - | - | - | - |\n"
 	if got != want {
 		t.Errorf("got\n%s\nwant\n%s", got, want)
+	}
+	// "over" の行が先でも同じ
+	up := "| Claude Haiku 9.7 (for prompts up to 100,000 tokens)          | $0.10 / MTok          | $0.125 / MTok   | $0.20 / MTok    | $0.01 / MTok             | $0.50 / MTok           |\n"
+	swapped := strings.Replace(strings.Replace(anthropicPage, up, "", 1), "| Claude Haiku 9.5 ", strings.TrimSuffix(up, "\n")+"\n| Claude Haiku 9.5 ", 1)
+	if got, err := parseAnthropic(swapped); err != nil || got != want {
+		t.Errorf("swapped: err=%v got\n%s", err, got)
 	}
 }
 
@@ -121,6 +132,11 @@ func TestParseRejectsUnexpectedShape(t *testing.T) {
 		"anthropic odd name":        {parseAnthropic, strings.Replace(anthropicPage, "Claude Sonnet 9 ", "Sonnet Nine     ", 1)},
 		"anthropic script in name":  {parseAnthropic, strings.Replace(anthropicPage, "Claude Sonnet 9 ", "<script>x</script>", 1)},
 		"anthropic too few rows":    {parseAnthropic, strings.Join(strings.Split(anthropicPage, "\n")[:12], "\n")},
+		"anthropic one tier only":   {parseAnthropic, strings.Replace(anthropicPage, "Claude Haiku 9.7 (for prompts over 100,000 tokens) ", "Claude Haiku 9.8 (for prompts over 100,000 tokens) ", 1)},
+		"anthropic tiers differ":    {parseAnthropic, strings.Replace(anthropicPage, "(for prompts over 100,000 tokens) ", "(for prompts over 200,000 tokens) ", 1)},
+		"anthropic same tier twice": {parseAnthropic, strings.Replace(anthropicPage, "(for prompts over 100,000 tokens) ", "(for prompts up to 100,000 tokens)", 1)},
+		"anthropic odd tier":        {parseAnthropic, strings.Replace(anthropicPage, "(for prompts over 100,000 tokens) ", "(for prompts over 100K tokens)      ", 1)},
+		"anthropic tier and plain":  {parseAnthropic, strings.Replace(anthropicPage, "Claude Haiku 9.7 (for prompts over 100,000 tokens) ", "Claude Haiku 9.7                                    ", 1)},
 		"openai column renamed":     {parseOpenAI, strings.Replace(openaiPage, "Short context output |", "Output |", 1)},
 		"openai odd price":          {parseOpenAI, strings.Replace(openaiPage, "| gpt-9-sol | $2.00 |", "| gpt-9-sol | 2 USD |", 1)},
 		"openai odd model":          {parseOpenAI, strings.Replace(openaiPage, "| gpt-9-sol |", "| gpt-9 sol |", 1)},
