@@ -98,16 +98,16 @@ function outcomePanel(w, pw, unit){
   const lines = gc ? gc.added + gc.removed : 0;
   const out = hasOut ? [
     gc ? statH("Git commits", times(gc.commits), `${gc.ai} by AI (${Math.round(gc.ai*100/gc.commits)}%)${pw && pw.git ? ` · ${V.diff(gc.commits, V.of("commits", pw.git.commits))}` : ""}`, "gitCommits", "commits") : "",
-    gc ? "" : statH("AI commits", times(o.commits), d(o.commits, po && po.commits), "commits"), // Git のコミットがあれば「うち AI」に出ている
-    gc ? statH("Lines changed", n(lines), `+${n(gc.added)} −${n(gc.removed)} · ${n(Math.round(lines/gc.commits))} per git commit`, "lines") : "",
-    gc && G.files ? statH("Files changed", n(G.files), `In ${plural(G.projects, "project")}${G.trunc ? " · at least" : ""}`, "files") : "",
-    G.pushes ? statH("Pushes", times(G.pushes), `To ${plural(G.refs, "branch", "branches")} · from this computer`, "pushes") : "",
-    o.prs ? statH("Pull requests", times(o.prs), "Created by AI", "prs") : "",
+    gc ? "" : statH("AI commits", times(o.commits), d(o.commits, po && po.commits), "commits", o.commits ? "aiCommits" : ""), // Git のコミットがあれば「うち AI」に出ている
+    gc ? statH("Lines changed", n(lines), `+${n(gc.added)} −${n(gc.removed)} · ${n(Math.round(lines/gc.commits))} per git commit`, "lines", "lines") : "",
+    gc && G.files ? statH("Files changed", n(G.files), `In ${plural(G.projects, "project")}${G.trunc ? " · at least" : ""}`, "files", "files") : "",
+    G.pushes ? statH("Pushes", times(G.pushes), `To ${plural(G.refs, "branch", "branches")} · from this computer`, "pushes", "pushes") : "",
+    o.prs ? statH("Pull requests", times(o.prs), "Created by AI", "prs", "prs") : "",
   ].join("") : "";
   // 使ったものと比べた指標。残ったものではないので別の行にして、何と何を割ったかを添える
   const cmp = hasCommit ? [
-    w.costPerCommit != null ? statH("Estimated cost per commit", usdH(w.costPerCommit), `Claude Code's estimated cost ÷ ${plural(o.commits, "AI commit")}`, "costPerCommit") : "",
-    statH("Sessions that reached a commit or PR", base ? `${Math.round(w.outSessions*100/base)}<small>%</small>` : "—", `${w.outSessions} of ${plural(base, "session")}`, "outSessions"),
+    w.costPerCommit != null ? statH("Estimated cost per commit", usdH(w.costPerCommit), `Claude Code's estimated cost ÷ ${plural(o.commits, "AI commit")}`, "costPerCommit", "costPerCommit") : "",
+    statH("Sessions that reached a commit or PR", base ? `${Math.round(w.outSessions*100/base)}<small>%</small>` : "—", `${w.outSessions} of ${plural(base, "session")}`, "outSessions", base ? "outSessions" : ""),
   ].join("") : "";
   // 「残ったもの」に添える一言は、実際に出したカードから作る（git を読めなかった週に、行やファイルがあるように書かないため）
   const names = [o.commits || gc ? "commits" : "", gc ? "lines" : "", gc && G.files ? "files" : "", G.pushes ? "pushes" : "", o.prs ? "pull requests" : ""].filter(Boolean);
@@ -210,9 +210,9 @@ function aiUsage(w, pw, unit){
   return `<div class="stats">
       ${pj && pj.cost != null ? statH("Month-end cost (estimate)", "≈ " + usdH(pj.cost), `If the pace of the first ${pj.days} days continues`, "projection", "projection") : ""}
       ${pj && pj.credits != null ? statH("Month-end credits (estimate)", `≈ ${crN(pj.credits)}<small> credits</small>`, `If the pace of the first ${pj.days} days continues`, "projectionCr", "projectionCr") : ""}
-      ${u.tokens ? statH("Read from cache", u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, "Share of input", "cache") : ""}
-      ${(() => { const {ws, we} = period(), N = !u.subagents && unrecorded(ws, we, "subagents"); return N ? norecStat("Subagents", N, "subagents") : statH("Subagents", `${u.subagents}`, u.subagents ? `Total run time ${dur(u.subMin)}` : "Not used", "subagents"); })()}
-      ${w.costPerAsk != null ? statH("Estimated cost per prompt", usdH(w.costPerAsk), `n=${w.costPrompts}`, "costPerAsk") : ""}
+      ${u.tokens ? statH("Read from cache", u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, "Share of input", "cache", u.cacheHit == null ? "" : "cache") : ""}
+      ${(() => { const {ws, we} = period(), N = !u.subagents && unrecorded(ws, we, "subagents"); return N ? norecStat("Subagents", N, "subagents") : statH("Subagents", `${u.subagents}`, u.subagents ? `Total run time ${dur(u.subMin)}` : "Not used", "subagents", u.subagents ? "subagents" : ""); })()}
+      ${w.costPerAsk != null ? statH("Estimated cost per prompt", usdH(w.costPerAsk), `n=${w.costPrompts}`, "costPerAsk", "costPerAsk") : ""}
     </div>
     ${u.models.length ? `${secH(`By model${byCost ? " (estimated cost)" : " (tokens)"}`, "models")}
       <div class="mstack">${u.models.map((r,i)=>`<span style="flex:${byCost?r[1]:r[2]};--o:${shade(i)}"${tipAttr((r[0]), `Estimated cost ${usd(r[1])}`, `Tokens ${tok(r[2])}`, `${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%`)}></span>`).join("")}</div>

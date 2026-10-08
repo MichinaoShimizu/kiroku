@@ -57,7 +57,10 @@ await clickAll(".gc", "commit");
 await clickAll(".gm", "pull request");
 await clickAll("#review .card", "summary card");
 // 内訳のダイアログ（上の帯とサマリーの数字）。プロジェクト名やセッション名が棒やカードに入るので、どれも開いて確かめる
-await clickAll("[data-metric]", "breakdown");
+await clickAll("[data-metric]", "breakdown", async () => { // 内訳の中のコミット・push・PR の行は、詳細を開く
+  const g = "#md [data-git], #md [data-pr], #md [data-push]";
+  if (await p.locator(g).count()) { await p.locator(g).first().click({ force: true }); await p.waitForTimeout(100); await check("breakdown → git"); }
+});
 for (const v of ["branch", "source", "project"]) { await p.selectOption("#cb2", v); await check(`color by ${v}`); }
 for (const q of ["<img", "alert", "__META__", "javascript", '"><svg']) {
   await p.fill("#q", q); await p.waitForTimeout(200); await check(`search ${q}`);
