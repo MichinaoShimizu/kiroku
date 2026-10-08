@@ -27,6 +27,26 @@ func ResumeCmd(dir, cmd, id string) string {
 	return out
 }
 
+// GitCmd は、コミットや push を手元で見るためにコピーして端末に貼るコマンド（git -C <repo> <cmd> <args>）を作る。
+// cmd は kiroku が決めた固定の文字列（show、log --oneline）。repo と args（ハッシュや範囲）は git から来た値なので、
+// ResumeCmd と同じく 1 つずつ囲み、安全に囲めない値があれば "" を返してコマンドは出さない。
+func GitCmd(repo, cmd string, args ...string) string {
+	win := isWinPath(repo)
+	r, ok := shellArg(repo, win)
+	if !ok {
+		return ""
+	}
+	out := "git -C " + r + " " + cmd
+	for _, a := range args {
+		q, ok := shellArg(a, win)
+		if !ok {
+			return ""
+		}
+		out += " " + q
+	}
+	return out
+}
+
 var (
 	winPath    = regexp.MustCompile(`^(?:[A-Za-z]:[\\/]|\\\\)`)
 	posixPlain = regexp.MustCompile(`^[A-Za-z0-9_@%+=:,./-]+$`)

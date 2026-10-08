@@ -64,7 +64,7 @@ function commitDetail(c){
     </div><div class="dcol">
     <h3>Files changed · ${c.nFiles}</h3>
     ${c.files.length ? fileRows(c.files, c.nFiles, c.repo) : noneH("None")}
-    <h3>Repository</h3>${codeH(`git -C ${c.repo} show ${c.hash}`)}
+    ${c.cmd ? `<h3>Repository</h3>${codeH(c.cmd)}` : ""}
   </div></div></div>`;
   P.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.id));
   bindGitEvents(P); bindCopy(P);
@@ -85,7 +85,6 @@ function pushDetail(p){
   const P = $("#panel"), byHash = new Map((META.git || []).map(c => [c.hash, c]));
   const hs = p.hashes || [], known = hs.map(h => byHash.get(h)).filter(Boolean), unknown = hs.filter(h => !byHash.has(h));
   const ses = DATA.filter(x => x.project === p.project && p.t >= x.start - 60 && p.t <= x.end + 600);
-  const cmd = p.prev ? `git -C ${p.repo} log --oneline ${p.prev.slice(0,12)}..${p.hash.slice(0,12)}` : `git -C ${p.repo} show ${p.hash.slice(0,12)}`;
   P.innerHTML = `<div style="--c:${st.colorBy === "project" ? colorOf(p.project) : "var(--ink-3)"}">
     ${dHead("GIT · Push", `Pushed to ${p.ref}`, `${md(p.t)} ${hm(p.t)}`, [`<span>${esc(p.project)}</span>`, `<span class="mono">${esc(p.ref)}</span>`, ext(p.url, `<span class="mono">${esc(p.hash.slice(0,7))}</span>`)])}
     <div class="dcols"><div class="dcol">
@@ -102,7 +101,7 @@ function pushDetail(p){
     ${unknown.length ? `<p class="note">${plural(unknown.length, "commit")} not in kiroku's view (made before the history kiroku read, or not by you): ${unknown.slice(0, 8).map(h => `<span class="mono">${esc(h.slice(0,7))}</span>`).join(", ")}${unknown.length > 8 ? " …" : ""}</p>` : ""}
     ${p.commits > hs.length ? `<p class="note">${`Showing the latest ${hs.length} of ${p.commits}.`}</p>` : ""}
     ${!hs.length ? noneH(p.prev ? "None recorded" : "Unknown") : ""}
-    <h3>Repository</h3>${codeH(cmd)}
+    ${p.cmd ? `<h3>Repository</h3>${codeH(p.cmd)}` : ""}
   </div></div></div>`;
   P.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.id));
   bindGitEvents(P); bindCopy(P);
