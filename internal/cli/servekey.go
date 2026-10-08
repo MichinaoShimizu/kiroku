@@ -5,8 +5,8 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"html"
+	"io"
 	"io/fs"
 	"net"
 	"net/http"
@@ -124,10 +124,9 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 			if len(q) > 0 {
 				to += "?" + q.Encode()
 			}
-			to = html.EscapeString(to)
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Header().Set("Cache-Control", "no-store")
-			_, _ = fmt.Fprintf(w, "<!doctype html>\n<meta charset=\"utf-8\"><meta http-equiv=\"refresh\" content=\"0;url=%s\">\n<title>kiroku</title>\n<p><a href=\"%s\">Open kiroku</a></p>\n", to, to)
+			_, _ = io.WriteString(w, hopPage(to, ""))
 			return
 		}
 		if c, err := r.Cookie(name); err == nil && match(c.Value) {
@@ -152,6 +151,23 @@ const lockedPage = `<!doctype html>
 </html>
 `
 
+// hopPage は、すぐに to へ移るだけの中継のページ（open.html と、?key= で開かれたときのページ）。
+// 移るまでの一瞬に白い背景と青いリンクが見えないよう、背景はローディング画面と同じ色にし、
+// リンクの文字も背景と同じ色にしておく。移れなかったとき（meta refresh が止められているなど）のために、
+// リンクは 2 秒たってから見えるようにする。head は <meta> などのタグだけ（中身はエスケープしない）。
+func hopPage(to, head string) string {
+	to = html.EscapeString(to)
+	return "<!doctype html>\n<html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"light dark\">" + head +
+		"\n<meta http-equiv=\"refresh\" content=\"0;url=" + to + "\">\n<title>kiroku</title>\n" + hopStyle +
+		"\n<p><a href=\"" + to + "\">Open kiroku</a></p>\n</html>\n"
+}
+
+// hopStyle の色は loading.html の --bg と --acc。
+const hopStyle = `<style>html{--bg:#f3f4f6;--acc:#4338ca;background:var(--bg);color:var(--bg)}` +
+	`@media (prefers-color-scheme:dark){html{--bg:#0e0f13;--acc:#818cf8}}` +
+	`body{margin:0;min-height:100vh;display:grid;place-items:center;font:13px/1.5 system-ui,sans-serif}` +
+	`a{color:inherit;animation:show .3s 2s forwards}@keyframes show{to{color:var(--acc)}}</style>`
+
 // keyURL は鍵つきの URL（url は http://host:port/ の形）。
 func keyURL(url, key string) string { return url + "?key=" + key }
 
@@ -165,8 +181,7 @@ func openWithKey(url, key string) error {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
-	to := html.EscapeString(keyURL(url, key))
-	page := fmt.Sprintf("<!doctype html>\n<meta charset=\"utf-8\"><meta name=\"referrer\" content=\"no-referrer\">\n<meta http-equiv=\"refresh\" content=\"0;url=%s\">\n<title>kiroku</title>\n<p><a href=\"%s\">Open kiroku</a></p>\n", to, to)
+	page := hopPage(keyURL(url, key), `<meta name="referrer" content="no-referrer">`)
 	path := filepath.Join(dir, "open.html")
 	if err := writePrivate(path, []byte(page)); err != nil {
 		return err

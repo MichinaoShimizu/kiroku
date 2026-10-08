@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Opening the view with `kiroku open` (or when `kiroku serve` starts) no longer flashes a white page with a blue "Open kiroku" link twice before the loading screen. The two pages that pass the key on now use the loading screen's background, light or dark, and their link is the same color as the background. If the browser doesn't move on by itself, the link appears after 2 seconds
+
 ## v0.27.0 - 2026-10-08
 
 ### Added
