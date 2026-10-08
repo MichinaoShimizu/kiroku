@@ -173,7 +173,7 @@ function drawCard(){
   g.fillStyle = ink2; g.font = `500 22px ${FONT.mono}`; ls("4px");
   const d0 = new Date(x.y, 0, 1 + c0), d1 = new Date(x.y, 0, last);
   g.fillText(c0 || pt ? `KIROKU — ${dSpan(d0, d1, true).toUpperCase()}` : `KIROKU — ${x.y} EXPOSURE`, 80, 110); ls("0px");
-  const hrs = x.active/60, hs = (hrs >= 10 ? Math.round(hrs) : Math.round(hrs*10)/10).toLocaleString(LOC());
+  const hrs = x.active/60, hs = commas(hrs >= 10 ? Math.round(hrs) : Math.round(hrs*10)/10);
   g.fillStyle = ink; g.font = `800 184px ${FONT.mincho}`; g.fillText(hs, 72, 300);
   const hw = g.measureText(hs).width;
   g.font = `600 54px ${FONT.mincho}`; g.fillText("hours", 72 + hw + 16, 300);
@@ -182,7 +182,7 @@ function drawCard(){
   const items = [[x.sessions, "sessions"]];
   if (o.out){ if (x.commits) items.push([x.commits, "commits"]); if (x.prs) items.push([x.prs, "PR" + (("s"))]); }
   let cx = 80;
-  items.forEach(([n, l]) => { g.font = `500 26px ${FONT.mono}`; g.fillStyle = ink; const t = n.toLocaleString(LOC()); g.fillText(t, cx, 412); cx += g.measureText(t).width + 10;
+  items.forEach(([n, l]) => { g.font = `500 26px ${FONT.mono}`; g.fillStyle = ink; const t = commas(n); g.fillText(t, cx, 412); cx += g.measureText(t).width + 10;
     g.font = `500 24px ${FONT.sans}`; g.fillStyle = ink2; g.fillText(l, cx, 412); cx += g.measureText(l).width + 40; });
   if (o.type && L){
     const G = yr.G, pre = o.grade ? (G.over ? G.over.en : G.tier.en) : "", hot = "#ff7a5c", pc = o.grade && G.over ? hot : amber;

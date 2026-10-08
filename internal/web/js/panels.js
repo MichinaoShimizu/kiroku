@@ -30,9 +30,9 @@ function searchPanel(){
       <button class="pill" id="sclear">Clear search</button></div>
     <div class="rvgrid srgrid">
       <section class="panel">${panelH(null, `Sessions · ${ss.length}`)}
-        ${ss.length ? ss.slice(0, nS).map(row).join("") + more("srmS", nS, ss.length) : `<p class="none">No matching sessions.</p>`}</section>
+        ${ss.length ? ss.slice(0, nS).map(row).join("") + more("srmS", nS, ss.length) : noneH("No matching sessions.")}</section>
       <section class="panel">${panelH(null, `Commits · ${cs.length}`)}
-        ${cs.length ? cs.slice(0, nC).map(crow).join("") + more("srmC", nC, cs.length) : `<p class="none">${(META.git || []).length ? "No matching commits." : "No git commits were loaded."}</p>`}</section>
+        ${cs.length ? cs.slice(0, nC).map(crow).join("") + more("srmC", nC, cs.length) : noneH((META.git || []).length ? "No matching commits." : "No git commits were loaded.")}</section>
     </div>`;
   // もっと見る：足した最初の結果へフォーカスを移す（押したボタンは消えるので）
   const grow = (k, n, sel) => { const b = R.querySelector(sel === "s" ? "#srmS" : "#srmC"); if (!b) return;
@@ -87,7 +87,7 @@ function outcomePanel(w, pw, unit){
   const gc = g && g.commits ? g : null; // git のコミット（行・ファイル・push は git から数えるので、これがないときは出さない）
   const hasOut = o.commits || gc || G.pushes || o.prs, hasCommit = o.commits || gc;
   const po = pw && pw.outputs, V = vsPrev(pw, unit), d = (a, b) => V.diff(a, V.of(null, b)); // AI のコミットと PR は日ごとの値がないので、途中の期間は比べない
-  const n = v => v.toLocaleString(LOC()), times = v => `${v}`, base = w.outBase ?? w.sessions;
+  const n = commas, times = v => `${v}`, base = w.outBase ?? w.sessions;
   const cost = [
     statH("Active time", dur(w.active,true), V.diff(w.active, V.of("active", pw && pw.active), dur), "active"),
     statH("Prompts", n(w.prompts), V.diff(w.prompts, V.of("prompts", pw && pw.prompts)), "prompts"),
@@ -117,7 +117,7 @@ function outcomePanel(w, pw, unit){
     <div class="ocgrid">
       ${side("spent", "Cost", "Time and usage", `<div class="stats">${cost}</div>`)}
       <div class="ocarrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-      ${side("left", "Left behind", outSub, out ? `<div class="stats">${out}</div>${gc ? "" : `<p class="none">Lines, files and pushes are counted from git commits, which were not read here.</p>`}` : `<p class="none">No commits recorded.</p>`)}
+      ${side("left", "Left behind", outSub, out ? `<div class="stats">${out}</div>${gc ? "" : noneH("Lines, files and pushes are counted from git commits, which were not read here.")}` : noneH("No commits recorded."))}
     </div>
     ${cmp ? side("occmp", "Compared", "Cost ÷ what it left behind", `<div class="stats">${cmp}</div>`) : ""}</section>`;
 }
@@ -142,7 +142,6 @@ function scopeNote(){
 // 週・月の集計は書き出した人の時間帯で区切っていて、ほかの時間帯で開くと from が前の日になり、前の週を開いてしまうため
 function scopeStart(){ const [y, m, d] = META.scope.key.split("-").map(Number); return new Date(y, m-1, d || 1); }
 function archOn(){ return !!(META.archive && META.archive.on); }
-function bytes(n){ return n >= 1<<30 ? (n/(1<<30)).toFixed(1)+" GB" : n >= 1<<20 ? (n/(1<<20)).toFixed(1)+" MB" : n >= 1<<10 ? (n/(1<<10)).toFixed(1)+" KB" : n+" B"; }
 // keepArchive は「kiroku にコピーを残す」（kiroku serve のときだけ）。kiroku archive on と同じことをして、集計を取り込み直す。
 async function keepArchive(){
   try {
@@ -222,7 +221,7 @@ function aiUsage(w, pw, unit){
     ${u.heavy.length ? `${secH("Heaviest sessions", "heavy")}${u.heavy.map(h => sesCardH(sesById(h.id, h.title), sesMeta(h, h.subagents ? plural(h.subagents, "subagent") : ""), usd(h.cost))).join("")}` : ""}`;
 }
 function nativeText(v){
-  const num = (x, d) => Number(x.toFixed(d)).toLocaleString(LOC());
+  const num = (x, d) => commas(Number(x.toFixed(d)));
   const u = {"回": "", "件": "", "トークン": " tokens", "バイト": " bytes"}[v.unit]; // 単位は Go の定義（日本語）を英語に読みかえる
   return v.unit === "%" ? `${num(v.v,1)}%` : v.unit === "秒" ? `${num(v.v,1)}s` : v.unit === "クレジット" ? `${crN(v.v)} credits` : `${num(v.v,0)}${u ?? " " + v.unit}`;
 }

@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- The view builds the line shown when a list is empty, code with a Copy button and numbers with thousands separators through shared helpers (`noneH` and `codeH` in `ui.js`, `commas` in `format.js`), and `TestUIConventions` fails when a script writes them by hand. Nothing you see changes
+
 ## v0.24.1 - 2026-10-08
 
 ### Changed

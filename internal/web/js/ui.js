@@ -1,4 +1,4 @@
-// 画面のあちこちで使う部品（印・エージェントのバッジ・セッションのカード・見出し・数の枠）。
+// 画面のあちこちで使う部品（印・エージェントのバッジ・セッションのカード・見出し・数の枠・空のときの一言・コードの枠）。
 // 同じ役の部品は、ここの関数で作る（手で同じ HTML を書かない）。TestUIConventions が、ここ以外で手書きしていないかを確かめる
 /* 色だけに頼らず、形でも見分けられるようにする小さな印（16×16、線は currentColor）。意味は必ず文字（凡例・ツールチップ）でも出す */
 const ICON_PATH = {
@@ -40,4 +40,8 @@ const panelH = (n, t, s, h) => `<div class="ph">${n == null ? "" : `<span class=
 const secH = (t, h) => `<h3>${t}${hb(h)}</h3>`;
 /* 数の枠：k は名前、v は値（HTML）、s は下の一言（HTML）、h は「?」の説明の id。記録しないエージェントだけなら norecStat */
 const statH = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s ? `<div class="s">${s}</div>` : ""}</div>`;
+/* 空のときの一言：text は HTML（呼ぶ側でエスケープする） */
+const noneH = text => `<p class="none">${text}</p>`;
+/* コードの枠：text は文字（ここでエスケープする）。cls は枠に足すクラス、extra はコピーの前に置くもの（HTML。「Open」のリンクなど） */
+const codeH = (text, cls, extra) => `<div class="code${cls ? " " + cls : ""}"><code>${esc(text)}</code>${extra || ""}<button class="copy" data-copy="${esc(text)}">Copy</button></div>`;
 function norecStat(k, srcs, h){ return `<div class="stat norec"><div class="k">${k}${hb(h)}</div><div class="v">Not recorded</div><div class="s">${esc(`${srcs.join(", ")} ${srcs.length > 1 ? "don't" : "doesn't"} record this`)}</div></div>`; }

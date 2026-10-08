@@ -29,16 +29,18 @@ function md(t){ const d = new Date(t*1000); return `${DOW[d.getDay()]}, ${dMD(d)
 function dur(m, html){ m = Math.round(m); const h = Math.floor(m/60), r = m%60;
   const u = x => html ? `<small>${x}</small>` : x; return h ? `${h}${u("h")}${r ? ` ${r}${u("m")}` : ""}` : `${r}${u("m")}`; }
 function tok(n){ n = n || 0; return n >= 1e9 ? (n/1e9).toFixed(1)+"B" : n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? Math.round(n/1e3)+"K" : String(n); }
-function usd(v){ return v == null ? "—" : v > 0 && v < 0.01 ? "<$0.01" : "$" + (v >= 100 ? Math.round(v).toLocaleString(LOC()) : v.toFixed(2)); }
+const commas = n => n.toLocaleString(LOC()); // 1,234（数のカンマ区切りはこれで）
+function usd(v){ return v == null ? "—" : v > 0 && v < 0.01 ? "<$0.01" : "$" + (v >= 100 ? commas(Math.round(v)) : v.toFixed(2)); }
 // usdH は usd を HTML に入れる形にする（$ を小さく出す。"<$0.01" の < もエスケープする）
 function usdH(v){ const s = esc(usd(v)), i = s.indexOf("$"); return i < 0 ? s : s.slice(0, i) + "<small>$</small>" + s.slice(i + 1); }
 // costOf は使用量の目安コスト。見積もれた分がなく、料金表にないモデルのトークンだけなら null（usd・usdH が "—" にする）。
 // 値がないところに $0.00 と出すと「使っていない」と読めてしまうため（Codex のように料金表にないモデルだけを使ったとき）
 const costOf = u => !u ? null : !u.cost && u.unpriced ? null : (u.cost || 0);
 const NOPRICE = "The models used are not in the price table, so the estimated cost cannot be shown. Add their prices with --prices";
-const crN = v => v >= 1 || v <= 0 ? Math.round(v).toLocaleString(LOC()) : v.toFixed(2); // クレジットは整数で（1 未満だけ小数 2 桁）
+const crN = v => v >= 1 || v <= 0 ? commas(Math.round(v)) : v.toFixed(2); // クレジットは整数で（1 未満だけ小数 2 桁）
 function cr(v){ return `${crN(v)} cr`; }
 const tokS = v => v >= 1e7 ? Math.round(v/1e6)+"M" : v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e4 ? Math.round(v/1e3)+"K" : tok(v); // 狭いマス用に、桁を減らしたトークン
+function bytes(n){ return n >= 1<<30 ? (n/(1<<30)).toFixed(1)+" GB" : n >= 1<<20 ? (n/(1<<20)).toFixed(1)+" MB" : n >= 1<<10 ? (n/(1<<10)).toFixed(1)+" KB" : n+" B"; }
 function shade(i){ return [1,.72,.5,.34,.22,.14][Math.min(i,5)]; }
 function secs(v){ return v == null ? "—" : (v < 60 ? `${v}s` : `${Math.floor(v/60)}m ${v%60}s`); }
 function secsH(v){ return secs(v).replace(/(?<=\d)([ms])\b/g, "<small>$1</small>"); } // 単位を小さく

@@ -212,7 +212,7 @@ function findList(w, pw, unit){
     add("outSessions", 16, `${w.outSessions} of ${w.outBase ?? w.sessions} sessions reached a commit or pull request`, "Many sessions may have stopped partway", "Under 25%, with 5+ sessions", null, `${pctOf(w.outSessions, w.outBase ?? w.sessions)}% of sessions ${P} reached a commit or pull request`);
   const BG = bigOf(ws, we);
   if (BG.n >= 3)
-    add("bigPrompts", 11, `${plural(BG.n, "prompt")} of ${BIG_PROMPT.toLocaleString(LOC())}+ characters (longest ${BG.max.toLocaleString(LOC())})`, "Pasting long logs or documents makes every later response re-read a heavier input, and buries the instructions that matter", `3+ prompts of ${BIG_PROMPT.toLocaleString(LOC())}+ characters`, BG.ids.slice(0, 6), `${plural(BG.n, "prompt")} ${P} crossed the threshold`);
+    add("bigPrompts", 11, `${plural(BG.n, "prompt")} of ${commas(BIG_PROMPT)}+ characters (longest ${commas(BG.max)})`, "Pasting long logs or documents makes every later response re-read a heavier input, and buries the instructions that matter", `3+ prompts of ${commas(BIG_PROMPT)}+ characters`, BG.ids.slice(0, 6), `${plural(BG.n, "prompt")} ${P} crossed the threshold`);
   const RP = repeatsOf(ws, we);
   if (RP.length)
     add("repeats", 9, `You wrote a similar prompt ${RP[0].n} times across ${RP[0].ids.size} sessions ${P} ("${snipOf(RP[0].text, 40)}")`, "A prompt you type every time can be written once as a command or in CLAUDE.md", `${REPEAT_MIN}+ characters, in ${REPEAT_SES}+ sessions`, [...new Set([RP[0].id, ...RP[0].ids])].slice(0, 6), RP.length === 1 ? `1 prompt ${P} was written in ${REPEAT_SES} or more sessions` : `${RP.length} different prompts ${P} were each written in ${REPEAT_SES} or more sessions`);
