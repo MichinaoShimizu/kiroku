@@ -20,6 +20,17 @@ const envs = [
 const b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {}); // CHROMIUM: Playwright の Chromium を取ってこられない環境向け
 // 画面の幅ごとの流れは互いに関係がないので、並べて動かす（待ち時間がほとんどなので、CI が速くなる）。
 // 出力は幅ごとにためておき、終わってから順に出す
+// clickableRun は、カレンダーのセッションのブロックのうち、真ん中がほかのブロックに隠れていない最初のもの（Playwright は真ん中を押す）。
+// ダミーデータは今日を基準に作るので、日によっては最初のブロックに、並行したセッションのブロックが重なる
+async function clickableRun(p) {
+  const i = await p.evaluate(() => [...document.querySelectorAll(".run[data-sid]")].findIndex(e => {
+    e.scrollIntoView({ block: "center" });
+    const b = e.getBoundingClientRect();
+    return e.contains(document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2));
+  }));
+  return p.locator(".run[data-sid]").nth(Math.max(i, 0));
+}
+
 async function run(env) {
   const out = [`# ${env.name}`];
   let failed = 0;
@@ -38,11 +49,6 @@ async function run(env) {
   p.on("pageerror", e => errors.push(e.message));
   p.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
   const pause = () => p.waitForTimeout(300);
-  // カレンダーで最初の、押せるセッション。時間の重なったセッションは後のものが上に描かれ、真ん中が隠れることがある（ダミーデータは日によって変わる）
-  const firstRun = async () => p.locator(".run[data-sid]").nth(Math.max(0, await p.evaluate(() => [...document.querySelectorAll(".run[data-sid]")].findIndex(e => {
-    e.scrollIntoView({ block: "center" }); const r = e.getBoundingClientRect();
-    return e.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
-  }))));
   const drawerOpen = async () => await p.locator("#drawer").getAttribute("aria-hidden") === "false";
   // 1 つの流れが途中で止まっても、失敗として数えて次の流れへ進む（開き直して、記録のそろった先週から始める）
   const open = async () => { await p.goto(url); await p.waitForTimeout(500); await p.keyboard.press("ArrowLeft"); await pause(); };
@@ -104,8 +110,8 @@ async function run(env) {
   });
 
   await step("セッションの詳細", async () => {
-    check("カレンダーにセッションがある", await p.locator(".run[data-sid]").count() > 0);
-    const run = await firstRun();
+    const run = await clickableRun(p);
+    check("カレンダーにセッションがある", await run.count() > 0);
     await run.scrollIntoViewIfNeeded();
     await run.click(); await pause();
     check("押すと詳細が開く", await drawerOpen());
@@ -179,7 +185,7 @@ async function run(env) {
   });
 
   await step("セッションを AI と振り返る", async () => {
-    const run = await firstRun();
+    const run = await clickableRun(p);
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
     const btn = p.locator("#panel .flowbar #sreview");
     check("振り返りのプロンプトのボタンが、プロンプトの流れの見出しに並ぶ", await btn.count() === 1);
@@ -190,14 +196,14 @@ async function run(env) {
 
   await step("詳細と矢印キー・ブラウザの戻る", async () => {
     const label = () => p.locator("#rd").innerText(), before = await label();
-    const run = await firstRun();
+    const run = await clickableRun(p);
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
     check("詳細が開く", await drawerOpen());
     await p.keyboard.press("ArrowLeft"); await pause();
     check("詳細を開いているあいだは ← で週が変わらない", await drawerOpen() && await label() === before, await label());
     await p.goBack(); await pause();
     check("ブラウザの戻るで詳細が閉じ、ページに残る", !await drawerOpen() && await p.evaluate(() => typeof DATA === "object"), p.url());
-    await (await firstRun()).click(); await pause();
+    await (await clickableRun(p)).click(); await pause(); // 戻ると位置が変わり、さっきのブロックが隠れることがある
     await p.keyboard.press("Escape"); await pause();
     check("Esc で閉じると、積んだ履歴も消える", !await drawerOpen() && await p.evaluate(() => history.state === null));
     await p.locator("#mode button").first().focus(); await p.keyboard.press("ArrowRight"); await pause();

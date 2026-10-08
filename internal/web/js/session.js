@@ -15,6 +15,7 @@ function detail(s){
   P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
     ${dHead(agMark(s.source) + esc(s.source), s.title, `${md(s.start)} ${hm(s.start)} – ${sameDay ? "" : md(s.end)+" "}${hm(s.end)}`, [`<span>${esc(s.project)}</span>`, s.branch && `<span>${esc(s.branch)}</span>`])}
     ${sesFlags(s)}
+    ${s.resume ? `<div class="dresume"><h3>Resume</h3>${codeH(s.resume, "resume")}</div>` : ""}
     <div class="dcols"><div class="dcol">
     <div class="mini tight">
       <div><div class="k">Active time</div><div class="v">${dur(active,true)}</div></div>
@@ -40,12 +41,11 @@ function detail(s){
           <div class="lane"><span style="left:${l}%;width:${Math.min(w,100-l)}%"></span></div>
           <div class="ft">${a.start?`<span>${hm(a.start)}${a.end?"–"+hm(a.end):""}</span>`:""}${a.start&&a.end?`<span>${dur((a.end-a.start)/60)}</span>`:""}${tt?`<span>${tok(tt)} tokens</span>`:t.reportedTokens?`<span>${tok(t.reportedTokens)} tokens (reported)</span>`:""}${t.cost?`<span>${usd(t.cost)}</span>`:""}${a.model?`<span>${esc(a.model)}</span>`:""}${a.tools?`<span>${plural(a.tools, "tool call")}</span>`:""}</div></div>`; }).join("")}` : ""}
     </div><div class="dcol">
-    ${s.resume ? `<h3>Resume</h3>${codeH(s.resume, "resume")}` : ""}
     ${sessionCommits(s)}
-    ${s.prs && s.prs.length ? `<h3>Pull requests created · ${s.prs.length}</h3><ul class="files">${s.prs.map(u => `<li title="${esc(u)}"><span>${ext(u, esc(u.replace(/^https?:\/\//, "")))}</span></li>`).join("")}</ul>` : ""}
+    ${s.prs && s.prs.length ? `<h3>Pull requests created · ${s.prs.length}</h3><ul class="files">${s.prs.map(u => pathRow(u, ext(u, esc(u.replace(/^https?:\/\//, ""))), "pr")).join("")}</ul>` : ""}
     <h3>Files changed${s.files.length || records(s.source, "files") ? ` · ${s.nFiles}` : ""}</h3>
-    ${(() => { if (!s.files.length) return noneH(records(s.source, "files") ? "None" : esc(notRec([s.source]))); const us = s.files.map(f => fileLink(s, f)); // 断り書きは、リンクになったファイルがあるときだけ
-      return `<ul class="files">${s.files.map((f, i) => `<li title="${esc(f)}"><span>${us[i] ? ext(us[i], esc(f)) : esc(f)}</span></li>`).join("")}</ul>${us.some(Boolean) ? `<p class="note">Links open each file as of the commits made during this session.</p>` : ""}`; })()}
+    ${(() => { if (!s.files.length) return noneH(records(s.source, "files") ? "None" : esc(notRec([s.source]))); const us = s.files.map(f => fileLink(s, f)), ls = s.files.map((f, i) => us[i] ? "" : localHref(f, s.projectPath)); // コミットのリンクがなければ、この PC のファイル。断り書きは、そのリンクがあるときだけ
+      return `<ul class="files">${s.files.map((f, i) => pathRow(f, fileA(us[i] || ls[i], esc(f)))).join("")}</ul>${us.some(Boolean) || ls.some(Boolean) ? `<p class="note">${[us.some(Boolean) ? "Links marked ↗ open the file on the remote as of the commits made during this session." : "", ls.some(Boolean) ? `${us.some(Boolean) ? "Other links open" : "Links open"} the file on this computer as it is now.` : ""].filter(Boolean).join(" ")}</p>` : ""}`; })()}
     <details class="moreS dmore" open><summary>${[s.models.length ? "Models" : "", "tools", s.native && s.native.length ? `${esc(s.source)} metrics` : ""].filter(Boolean).join(", ").replace(/, ([^,]+)$/, " and $1").replace(/^./, c => c.toUpperCase())}</summary>
     ${s.models.length ? `<h3>Models used</h3><div class="chips">${s.models.map(([m,n])=>`<span class="mono">${esc((m))}<b>${n}</b></span>`).join("")}</div>` : ""}
     <h3>Tools used</h3>

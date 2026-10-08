@@ -38,6 +38,8 @@ for i in range(4):
       "content": "https://github.com/o/r<x/pull/1 javascript:alert(1)//pull/2"}]}})
     L.append({**base, "type": "assistant", "timestamp": t(3), "requestId": f"r{i}b", "message": {"id": f"m{i}b", "model": "claude-opus-4-1", "role": "assistant",
       "content": [{"type": "tool_use", "id": f"tw{i}", "name": "Write<img src=x onerror=alert(24)>", "input": {"file_path": f"{REPO}/w<img src=x onerror=alert(25)>.py", "content": "x"}},
+                  {"type": "tool_use", "id": f"tx{i}", "name": "Write", "input": {"file_path": "//evil.example/share/x.txt", "content": "x"}}, # UNC は file:// のリンクにしない
+                  {"type": "tool_use", "id": f"ty{i}", "name": "Write", "input": {"file_path": "/\\evil.example\\s\\x", "content": "x"}},
                   {"type": "tool_use", "id": f"ta{i}", "name": "Task", "input": {"subagent_type": "t<img src=x onerror=alert(26)>", "description": "d<img src=x onerror=alert(27)>", "prompt": "p"}}],
       "usage": {"input_tokens": 10, "output_tokens": 10}}})
     L.append({**base, "type": "user", "timestamp": t(5), "message": {"role": "user", "content": "<system-reminder>r<img src=x onerror=alert(28)></system-reminder>javascript:alert(29) `__DATA__` {{constructor}}    </script><script>alert(30)</script> " + P}})

@@ -25,7 +25,7 @@ const check = async step => {
     hits: window.__hits.splice(0),
     injected: [...document.querySelectorAll('img[src="x"], svg[onload], [onerror], [onload], [onclick], [onmouseover]')].map(e => e.outerHTML.slice(0, 120)),
     scripts: document.querySelectorAll("script").length,
-    badHref: [...document.querySelectorAll("a[href]")].map(a => a.getAttribute("href")).filter(h => !/^(https?:|file:|history\?|#)/.test(h)),
+    badHref: [...document.querySelectorAll("a[href]")].map(a => a.getAttribute("href")).filter(h => !/^(https?:|file:|history\?|#)/.test(h) || /^file:\/\/\/[\/\\]/.test(h)), // file:////host（UNC）も不可
   }));
   if (r.hits.length || r.injected.length || r.scripts !== 1 || r.badHref.length) { failed++; console.log(`  FAIL ${step}: ${JSON.stringify(r)}`); }
   else console.log(`  ok   ${step}`);

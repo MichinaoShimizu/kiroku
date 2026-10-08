@@ -7,6 +7,8 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 ### Changed
 
 - The live demo and the screenshots now show several agents, as kiroku does: Codex CLI, Kiro CLI and Kiro IDE sessions (with Codex subagents and Kiro credits) alongside Claude Code, instead of Claude Code alone
+- Session details: "Resume" is now at the top, right under the session's title, at any window width. Before, in a narrower window it came after the prompt flow
+- Session and commit details: changed files now start with a file icon, and every path is a link. Links to the remote are marked ↗; paths that have no link to a commit on the remote open the file on this computer as it is now (in the HTML file; `kiroku serve` can't open local files from the browser), and pull requests start with the pull request icon
 
 ### Fixed
 
