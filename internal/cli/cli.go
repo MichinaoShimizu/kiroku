@@ -143,6 +143,7 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 	gap := *c.gap
 	cache := newLoadCache()     // kiroku serve の読み直しで、変わっていない履歴を読み直さない
 	gcache := gitlog.NewCache() // git も、変わっていないリポジトリは読み直さない
+	rcache := report.NewCache() // 週と月も、セッションとコミットが変わっていない期間は集計し直さない
 	load := func() snapshot {
 		on := archive.Enabled(dir)
 		if on {
@@ -178,7 +179,7 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 			_, off := time.Now().Zone()
 			meta["demo"] = map[string]any{"offset": off}
 		}
-		return snapshot{data: data, weeks: report.AllWeeks(data, commits...), months: report.AllMonths(data, commits...), meta: meta, rep: rep, gen: float64(time.Now().UnixNano()) / 1e9}
+		return snapshot{data: data, weeks: rcache.AllWeeks(data, commits...), months: rcache.AllMonths(data, commits...), meta: meta, rep: rep, gen: float64(time.Now().UnixNano()) / 1e9}
 	}
 	return picked, load, nil
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
+	"github.com/MichinaoShimizu/kiroku/internal/report"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
 )
 
@@ -256,4 +257,59 @@ func collectAll(all []source.Source, want map[string]bool) ([]*core.Session, []s
 		}
 	}
 	return data, rep
+}
+
+// kiroku serve の読み直しで、週と月の集計（report.Cache）は全部を集計し直したときと同じになる。
+// report.Cache が頼る「変わっていない会話のセッションは同じポインタのまま」も確かめる。
+func TestReportCacheFollowsLoadCache(t *testing.T) {
+	setup(t)
+	root := t.TempDir()
+	if err := os.CopyFS(root, os.DirFS(filepath.Join("testdata", "home", ".claude", "projects"))); err != nil {
+		t.Fatal(err)
+	}
+	cl := &countingClaude{Claude: &source.Claude{Root: root}}
+	all := []source.Source{cl}
+	want := map[string]bool{"claude": true}
+	cache, rcache := newLoadCache(), report.NewCache()
+	aggregate := func(data []*core.Session) string {
+		b, _ := json.Marshal([]any{rcache.AllWeeks(data), rcache.AllMonths(data)})
+		return string(b)
+	}
+	fresh := func() string {
+		d, _ := collectAll(all, want)
+		b, _ := json.Marshal([]any{report.AllWeeks(d), report.AllMonths(d)})
+		return string(b)
+	}
+
+	first, _ := collectCached(all, want, 15, cache)
+	if got := aggregate(first); got != fresh() {
+		t.Fatal("1 回目の集計が、キャッシュなしと違う")
+	}
+	u := cl.Units()[0]
+	f, err := os.OpenFile(u.Files[0], os.O_APPEND|os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.WriteString(`{"type":"user","timestamp":"2026-09-30T09:59:00Z","message":{"role":"user","content":"いや、そうじゃない"}}` + "\n")
+	f.Close()
+	touch(t, u.Files[0], time.Minute)
+	second, _ := collectCached(all, want, 15, cache)
+	if got := aggregate(second); got != fresh() {
+		t.Error("追記したあとの集計が、キャッシュなしと違う")
+	}
+	prev := map[string]*core.Session{}
+	for _, s := range first {
+		prev[s.ID] = s
+	}
+	reused := 0
+	for _, s := range second {
+		if prev[s.ID] == s {
+			reused++
+		} else if s.File != u.Files[0] {
+			t.Errorf("読み直していない会話 %s のセッションが新しくなった", s.ID)
+		}
+	}
+	if reused == 0 || reused == len(second) {
+		t.Errorf("使い回したセッション %d / %d", reused, len(second))
+	}
 }
