@@ -371,3 +371,228 @@ func TestKiroCrewNativeOnKiroCLISession(t *testing.T) {
 		t.Errorf("参考指標 = %+v", f.Native)
 	}
 }
+
+// promptTexts は Builder の依頼の文。
+func promptTexts(b *core.Builder) []string {
+	var out []string
+	if b != nil {
+		for _, p := range b.Prompts {
+			out = append(out, p.Text)
+		}
+	}
+	return out
+}
+
+// role が user でも、meta.human: true のない行は人が書いたとは限らない（予定の実行・Issue Radar など）。
+// 目印を書く Crew の記録では、目印のある行だけを依頼に数え、ほかは仕組みが入れたものとして残す。
+func TestKiroCrewHumanMarker(t *testing.T) {
+	kiro, crew := t.TempDir(), t.TempDir()
+	writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
+	writeFiles(t, crew, map[string]string{
+		// 目印ができる前の行（見分けられないので依頼に数える）のあとに、目印のある Crew の行が続く
+		"sessions/dashboard_chat-1-100.jsonl": `{"_type": "metadata", "title": "混在"}
+{"role": "user", "content": "古い依頼", "ts": "2026-09-29T09:00:00+00:00"}
+{"role": "user", "content": "人が打った依頼", "ts": "2026-09-29T10:00:00+00:00", "meta": {"mid": "m1", "human": true}}
+{"role": "assistant", "content": "はい", "ts": "2026-09-29T10:01:00+00:00"}
+{"role": "user", "content": "# Cron Run: nightly\n\n夜の見張り", "ts": "2026-09-29T11:00:00+00:00", "meta": {"mid": "m2"}}
+{"role": "user", "content": "Issue Radar wake", "ts": "2026-09-29T12:00:00+00:00", "meta": {"human": "true"}}
+`,
+		// 目印のない古い記録は、今までどおり user の行を全部依頼に数える
+		"sessions/dashboard_chat-2-200.jsonl": `{"_type": "metadata", "title": "古い記録"}
+{"role": "user", "content": "一つ目", "ts": "2026-09-29T09:00:00+00:00"}
+{"role": "user", "content": "二つ目", "ts": "2026-09-29T09:10:00+00:00"}
+`,
+	})
+	by := map[string]*core.Builder{}
+	for _, b := range load(t, &KiroCLI{Home: kiro, CrewHome: crew}) {
+		by[b.ID] = b
+	}
+	b := by["crew:dashboard_chat-1-100"]
+	if got := strings.Join(promptTexts(b), "|"); got != "古い依頼|人が打った依頼" {
+		t.Errorf("依頼 = %q, want 古い依頼|人が打った依頼（目印のない cron・Issue Radar の行は数えない）", got)
+	}
+	if b == nil || len(b.Notes) != 2 || b.Notes[0].Kind != "agent" || !strings.HasPrefix(b.Notes[0].Text, "# Cron Run: nightly") {
+		t.Errorf("仕組みが入れた行 = %+v", b.Notes)
+	}
+	if got := strings.Join(promptTexts(by["crew:dashboard_chat-2-200"]), "|"); got != "一つ目|二つ目" {
+		t.Errorf("目印のない記録の依頼 = %q", got)
+	}
+}
+
+// fork した会話は、元の会話の行を元の ts のまま写している。写した行（created_at より前）は数えない。
+func TestKiroCrewFork(t *testing.T) {
+	kiro, crew := t.TempDir(), t.TempDir()
+	writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
+	parent := `{"role": "user", "content": "親の依頼 1", "ts": "2026-09-29T09:00:00+00:00", "meta": {"mid": "a1"}}
+{"role": "assistant", "content": "親の応答", "ts": "2026-09-29T09:01:00+00:00", "meta": {"mid": "a2"}}
+{"role": "user", "content": "親の依頼 2", "ts": "2026-09-29T09:30:00+00:00"}
+`
+	writeFiles(t, crew, map[string]string{
+		"sessions/dashboard_chat-1-100.jsonl": `{"_type": "metadata", "title": "親", "created_at": "2026-09-29T08:59:00+00:00"}
+` + parent,
+		// 使用量の記録のある fork（crewOnly → readCrewKey）
+		"sessions/dashboard_chat-2-200.jsonl": `{"_type": "metadata", "title": "[fork] Fork of 親", "created_at": "2026-09-29T10:00:00.123456+00:00", "forked_from": "dashboard:chat-1-100"}
+` + parent + `{"role": "user", "content": "fork での依頼", "ts": "2026-09-29T10:05:00+00:00", "meta": {"mid": "b1", "human": true}}
+{"role": "assistant", "content": "fork での応答", "ts": "2026-09-29T10:06:00+00:00"}
+`,
+		"usage/tokens/2026-09-29.jsonl": `{"_type": "tokens", "ts": "2026-09-29T10:06:00+00:00", "slot": "chat-2-200", "provider": "acp", "model": "auto", "credits": 0.5}` + "\n",
+		// 会話の記録だけの fork（写した行しかない）: 何もしていないので会話にしない
+		"sessions/dashboard_chat-3-300.jsonl": `{"_type": "metadata", "created_at": "2026-09-29T11:00:00+00:00", "forked_from": "dashboard:chat-1-100"}
+` + parent,
+		// created_at のない fork は見分けられないので全部の行を使う
+		"sessions/dashboard_chat-4-400.jsonl": `{"_type": "metadata", "forked_from": "dashboard:chat-1-100"}
+` + parent,
+	})
+	by := map[string]*core.Builder{}
+	for _, b := range load(t, &KiroCLI{Home: kiro, CrewHome: crew}) {
+		by[b.ID] = b
+	}
+	if got := strings.Join(promptTexts(by["crew:dashboard_chat-1-100"]), "|"); got != "親の依頼 1|親の依頼 2" {
+		t.Errorf("親の依頼 = %q", got)
+	}
+	f := by["crew:dashboard:chat-2-200"]
+	if got := strings.Join(promptTexts(f), "|"); got != "fork での依頼" {
+		t.Errorf("fork の依頼 = %q, want fork での依頼（親から写した行は数えない）", got)
+	}
+	if b := by["crew:dashboard_chat-3-300"]; b != nil {
+		t.Errorf("写した行しかない fork は会話にしない: %v", promptTexts(b))
+	}
+	if got := strings.Join(promptTexts(by["crew:dashboard_chat-4-400"]), "|"); got != "親の依頼 1|親の依頼 2" {
+		t.Errorf("created_at のない fork の依頼 = %q", got)
+	}
+}
+
+// Crew は KIRO_HOME を見ず、いつも ~/.kiro/crew を使う。KIROCREW_HOME の先頭の ~ はホームにする。
+func TestDefaultCrewHome(t *testing.T) {
+	h := t.TempDir()
+	t.Setenv("HOME", h)
+	t.Setenv("USERPROFILE", h)
+	t.Setenv("KIRO_HOME", filepath.Join(h, "elsewhere"))
+	def := filepath.Join(h, ".kiro", "crew")
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cases := map[string]string{
+		"":                      def,
+		"~":                     h,
+		"~/crew":                filepath.Join(h, "crew"),
+		"rel/crew":              filepath.Join(wd, "rel", "crew"),
+		filepath.Join(h, "own"): filepath.Join(h, "own"),
+	}
+	if filepath.Separator == '/' {
+		// Crew はルートやシステムの場所を無視して既定の場所を使う
+		for _, p := range []string{"/", "/etc/crew", "/usr/local", "/private/etc/x"} {
+			cases[p] = def
+		}
+	}
+	for env, want := range cases {
+		t.Setenv("KIROCREW_HOME", env)
+		if got := DefaultCrewHome(); got != want {
+			t.Errorf("KIROCREW_HOME=%q: %q, want %q", env, got, want)
+		}
+	}
+}
+
+// 記憶の整理は回ごとに slot（memory-consolidation:<場所>:<uuid>）が変わる。_bg と同じく、場所ごとに 1 日ごとにまとめる。
+func TestKiroCrewMemoryConsolidation(t *testing.T) {
+	defer func(l *time.Location) { time.Local = l }(time.Local)
+	time.Local = time.UTC
+	kiro, crew := t.TempDir(), t.TempDir()
+	writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
+	row := func(ts, slot string) string {
+		return fmt.Sprintf(`{"_type": "tokens", "ts": %q, "slot": %q, "provider": "acp", "model": "auto", "credits": 0.25}`, ts, slot)
+	}
+	writeFiles(t, crew, map[string]string{
+		"usage/tokens/2026-09-29.jsonl": strings.Join([]string{
+			row("2026-09-29T01:00:00+00:00", "memory-consolidation:alice:0123456789abcdef0123456789abcdef"),
+			row("2026-09-29T02:00:00+00:00", "memory-consolidation:alice:fedcba9876543210fedcba9876543210"),
+			row("2026-09-29T03:00:00+00:00", "memory-consolidation:bob:00000000000000000000000000000000"),
+		}, "\n") + "\n",
+		"usage/tokens/2026-09-30.jsonl": row("2026-09-30T01:00:00+00:00", "memory-consolidation:alice:11111111111111111111111111111111") + "\n",
+	})
+	bs := load(t, &KiroCLI{Home: kiro, CrewHome: crew})
+	by := map[string]*core.Builder{}
+	for _, b := range bs {
+		by[b.ID] = b
+	}
+	if len(bs) != 3 {
+		t.Fatalf("会話の数 = %d, want 3: %v", len(bs), by)
+	}
+	for id, want := range map[string]float64{
+		"crew:memory-consolidation:alice:2026-09-29": 0.5,
+		"crew:memory-consolidation:alice:2026-09-30": 0.25,
+		"crew:memory-consolidation:bob:2026-09-29":   0.25,
+	} {
+		b := by[id]
+		if b == nil {
+			t.Errorf("%s がない", id)
+			continue
+		}
+		if v := sumCredits(b.Credits); math.Abs(v-want) > 1e-9 {
+			t.Errorf("%s のクレジット = %v, want %v", id, v, want)
+		}
+	}
+	if b := by["crew:memory-consolidation:bob:2026-09-29"]; b != nil && b.Title != "Kiro Crew memory consolidation (bob)" {
+		t.Errorf("タイトル = %q", b.Title)
+	}
+}
+
+// サブエージェントの使用量の記録（slot は state.json の conversation_key か "subagent:<id>"）は、
+// そのサブエージェントの kiro-cli の会話に結びつける。別の Crew のセッションにはしない。
+func TestKiroCrewSubagentUsage(t *testing.T) {
+	kiro, crew := t.TempDir(), t.TempDir()
+	writeFiles(t, kiro, map[string]string{
+		"sessions/cli/sa1.json":  `{"session_id": "sa1", "cwd": "/Users/me/app", "created_at": "2026-09-29T10:00:00Z", "session_state": {"conversation_metadata": {"user_turn_metadatas": [{"end_timestamp": "2026-09-29T10:01:00Z", "metering_usage": [{"value": 1, "unit": "credit"}]}]}}}`,
+		"sessions/cli/sa1.jsonl": "",
+	})
+	row := func(ts, slot string) string {
+		return fmt.Sprintf(`{"_type": "tokens", "ts": %q, "slot": %q, "provider": "acp", "model": "auto", "credits": 2.0, "surface": "subagent"}`, ts, slot)
+	}
+	writeFiles(t, crew, map[string]string{
+		// 残す（keep）サブエージェント: kiro-cli の会話があり、使用量は conversation_key で記録される
+		"subagents/keep1/state.json": `{"id": "keep1", "agent": "reviewer", "task": "PR を見る", "parent_session": "dashboard:chat-1-100", "session_id": "sa1", "keep": true, "conversation_key": "subagent:keep1"}`,
+		// 残さないサブエージェント: Crew が kiro-cli の会話を消している。使用量は "subagent:<id>" で記録される
+		"subagents/tmp2/state.json": `{"id": "tmp2", "agent": "tester", "task": "テストを流す", "parent_session": "dashboard:chat-1-100", "session_id": "gone", "keep": false, "conversation_key": "", "cwd": "/Users/me/lib"}`,
+		"usage/tokens/2026-09-29.jsonl": strings.Join([]string{
+			row("2026-09-29T10:00:30+00:00", "subagent:keep1"),
+			row("2026-09-29T10:01:00+00:00", "subagent:keep1"),
+			row("2026-09-29T11:00:00+00:00", "subagent:tmp2"),
+		}, "\n") + "\n",
+	})
+	k := &KiroCLI{Home: kiro, CrewHome: crew}
+	bs := load(t, k)
+	by := map[string]*core.Builder{}
+	for _, b := range bs {
+		by[b.ID] = b
+	}
+	if len(bs) != 2 {
+		t.Errorf("会話の数 = %d, want 2: %v", len(bs), by)
+	}
+	// (a) kiro-cli の会話に結びつける: Crew の記録 4 のほうが多いので置きかえる（1 回だけ）
+	sa := by["sa1"]
+	if sa == nil {
+		t.Fatal("sa1 がない")
+	}
+	f := sa.Finish(15)
+	if f.Credits != 4 || nativeOf(f)["ターン"].V != 2 || nativeOf(f)["うちサブエージェント"].V != 1 {
+		t.Errorf("残すサブエージェント: credits = %v, native = %+v", f.Credits, f.Native)
+	}
+	if by["crew:subagent:keep1"] != nil {
+		t.Error("kiro-cli の会話に結びついた使用量を、別の Crew のセッションにしない")
+	}
+	// (b) kiro-cli の会話がない: Crew のセッションにし、サブエージェントとして見せる
+	tmp := by["crew:subagent:tmp2"]
+	if tmp == nil {
+		t.Fatal("crew:subagent:tmp2 がない")
+	}
+	if tmp.Title != "Subagent tester: テストを流す" || tmp.Project != "/Users/me/lib" {
+		t.Errorf("残さないサブエージェント: title = %q, project = %q", tmp.Title, tmp.Project)
+	}
+	if n := nativeOf(tmp.Finish(15)); n["うちサブエージェント"].V != 1 || n["Crew から動かした会話"].V != 1 {
+		t.Errorf("残さないサブエージェントの参考指標 = %+v", n)
+	}
+	if d := k.Detail(); !strings.Contains(d, "クレジットを補った会話 1 件") {
+		t.Errorf("detail = %q", d)
+	}
+}

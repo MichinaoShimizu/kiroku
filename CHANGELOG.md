@@ -18,6 +18,11 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Amazon Q and Kiro CLI (SQLite): rows of `data.sqlite3` that can't be read are reported in "Data sources" instead of being skipped silently
 - Kiro IDE before 1.0: a prompt that starts with the steering rules Kiro adds (`<steering-reminder>`) is counted as a prompt again, with the rules shown as a system note; before, the whole message, your request included, became a note and the prompt was not counted. Messages that hold only the environment context Kiro adds (`<EnvironmentContext>`) or its `## Included Rules` block are no longer counted as prompts, and these blocks are left out of the prompt text
 - Kiro IDE 1.0 and later: a reply placeholder (`...`) Kiro writes while a reply is streaming is no longer shown as the AI's reply
+- Kiro Crew: messages Crew sends on its own (scheduled runs, Issue Radar wakes, the task runner, auto-go) no longer count as your prompts. Newer Crew marks the messages a person wrote, and kiroku now counts only those, showing the others as messages sent by an agent or a schedule. Conversations written before Crew had the marker are read as before
+- Kiro Crew: a forked conversation no longer counts the prompts it copied from the conversation it was forked from, so forking a chat with 20 prompts no longer adds 20 more
+- Kiro Crew: its data is read from `~/.kiro/crew` even when `KIRO_HOME` (or `--kiro-home`) points elsewhere, since Crew itself does not follow `KIRO_HOME`. `KIROCREW_HOME` still wins, and a leading `~` in it now means your home folder, as in Crew
+- Kiro Crew: memory consolidation runs are grouped into one session per memory store and day, like Crew's other background work, instead of one session per run
+- Kiro Crew: a subagent's turns and credits are no longer counted twice, once in its kiro-cli conversation and again as a separate "Kiro Crew" session. Crew's usage records for a subagent are now matched to its conversation, and the records of subagents whose conversation Crew has deleted are shown as that subagent's session
 
 ### Security
 

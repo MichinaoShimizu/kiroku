@@ -74,7 +74,7 @@ type Options struct {
 	ClaudeRoot   string
 	KiroHome     string
 	KiroStorages []string // nil なら OS ごとの場所を探す
-	CrewHome     string   // 空なら KIROCREW_HOME か <KiroHome>/crew
+	CrewHome     string   // 空なら KIROCREW_HOME か ~/.kiro/crew（Crew は KIRO_HOME を見ない）
 	KiroCLIDB    string   // 空なら OS ごとの場所
 	AmazonQDB    string
 	CodexHome    string // 空なら CODEX_HOME か ~/.codex
@@ -93,7 +93,7 @@ func All(o Options) []Source {
 	return []Source{
 		&Claude{Root: o.ClaudeRoot, Archive: sub(o.Archive, "claude")},
 		&KiroIDE{Home: o.KiroHome},
-		&KiroCLI{Home: o.KiroHome, CrewHome: q(o.CrewHome, DefaultCrewHome(o.KiroHome)), CrewArchive: sub(o.Archive, "crew")},
+		&KiroCLI{Home: o.KiroHome, CrewHome: q(o.CrewHome, DefaultCrewHome()), CrewArchive: sub(o.Archive, "crew")},
 		&QStore{Label: "Kiro CLI (SQLite)", Fam: "kiro", DB: q(o.KiroCLIDB, filepath.Join(DataDir("kiro-cli"), "data.sqlite3")), Command: "kiro-cli chat --resume"},
 		&KiroIDELegacy{Storages: storages(o.KiroStorages)},
 		&QStore{Label: "Amazon Q", Fam: "amazonq", DB: q(o.AmazonQDB, filepath.Join(DataDir("amazon-q"), "data.sqlite3")), Command: "q chat --resume"},
