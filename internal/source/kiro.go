@@ -262,14 +262,16 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 	for _, sid := range sids {
 		i := crew[sid]
 		slot := i.usageSlot()
-		if prev := slotInfo[slot]; slot != "" && (prev == nil || prev.Subagent && !i.Subagent) {
+		// 会話キーの今の会話を、サブエージェントや前の会話（discarded_sid）より先に使う
+		if prev := slotInfo[slot]; slot != "" && (prev == nil || prev.Subagent && !i.Subagent || prev.Former && !i.Former && !i.Subagent) {
 			slotInfo[slot] = &i
 		}
 	}
 	// Crew の会話は、サブエージェントを親の会話にまとめてから出す
 	held := &crewHeld{parents: map[string]*core.Builder{}, byPath: map[string]*core.Builder{}}
-	used := map[string]bool{}     // 使用量の記録を kiro-cli の会話に結びつけた会話キー
-	seenRows := map[string]bool{} // 会話の記録を使った（kiro-cli の会話に結びついた）会話キー
+	owners := map[string][]*crewOwner{} // 使用量の記録の slot → Crew から動かした kiro-cli の会話
+	var plain []*core.Builder           // Crew の目印のない kiro-cli の会話（前の会話を見つけてから出す）
+	seenRows := map[string]bool{}       // 会話の記録を使った（kiro-cli の会話に結びついた）会話キー
 	for _, metaPath := range glob(filepath.Join(base, "*.json")) {
 		raw, err := core.ReadJSONFile(metaPath)
 		errs.file(metaPath, err)
@@ -341,38 +343,120 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		if tagCrew(s, crew) {
 			k.crew++
 			info := crew[s.ID]
-			if !info.Subagent {
-				seenRows[info.Key] = true
-				if len(s.Prompts) == 0 { // Crew から動かした会話は、kiro-cli の履歴に依頼が残らないことがある
-					_, rows := readCrewKey(k.CrewHome, k.CrewArchive, info.Key, &errs)
-					addCrewRows(s, rows)
-				}
-			}
 			// 使用量の記録。サブエージェントは自分の slot（conversation_key か subagent:<id>）で記録される（親の会話キーではない）。
-			// 同じ slot は 1 つの会話にだけ結びつける（続きから動かしたサブエージェントは、元の slot を使い続ける）
-			if slot := info.usageSlot(); slot != "" && !used[slot] && len(usage[slot]) > 0 {
-				used[slot] = true
-				if useCrewCredits(s, usage[slot]) {
-					k.crewFixed++
-				}
-				addCrewNative(s, usage[slot])
+			// 続きから動かしたサブエージェントは元の slot を使い続け、作り直した会話は同じ会話キーを使うので、1 つの slot に会話が何件か結びつく
+			if slot := info.usageSlot(); slot != "" {
+				owners[slot] = append(owners[slot], newCrewOwner(s, info))
+			} else {
+				held.add(s, &info, info.Key)
 			}
-			held.add(s, &info, info.Key)
 			continue
 		}
-		emit(s)
+		plain = append(plain, s)
 	}
-	// kiro-cli の会話に結びつかない Crew の記録
-	slots := make([]string, 0, len(usage))
+	slots := make([]string, 0, len(usage)+len(owners))
 	for slot := range usage {
-		if !used[slot] {
+		slots = append(slots, slot)
+	}
+	for slot := range owners {
+		if usage[slot] == nil {
 			slots = append(slots, slot)
 		}
 	}
 	sort.Strings(slots)
+	// session_map から消えた前の会話（作り直す前の会話・backend を切りかえる前の会話）を、使用量の記録の時刻と作業場所で見つける
+	taken := map[*core.Builder]bool{}
 	for _, slot := range slots {
+		if info := slotInfo[slot]; info != nil && len(usage[slot]) > 0 {
+			sortCrewOwners(owners[slot])
+			owners[slot] = claimCrewFormer(owners[slot], usage[slot], plain, *info, taken)
+		}
+	}
+	for _, s := range plain {
+		if taken[s] {
+			k.crew++
+			continue
+		}
+		emit(s)
+	}
+	for _, slot := range slots {
+		ow := owners[slot]
+		sortCrewOwners(ow)
+		// 使用量の記録を、そのころに動いていた会話に分ける。どれにも入らない行は Crew のセッションにする
+		var rest []crewTurn
+		for _, x := range usage[slot] {
+			if i := crewOwnerAt(ow, x.t); i >= 0 {
+				ow[i].turns = append(ow[i].turns, x)
+			} else {
+				rest = append(rest, x)
+			}
+		}
+		// 会話の記録。Crew から動かした会話は、kiro-cli の履歴に依頼が残らないことがある。
+		// 行は使用量の記録と同じく時刻で分ける（時刻のない行は前の行と同じ会話に）。Crew のセッションがなければ、どの会話にも入らない行は今の会話に入れる
+		var title string
+		var rows, restRows []crewRow
+		live := -1 // 今の会話（Former でない）
+		need := len(rest) > 0
+		for i, o := range ow {
+			if o.info.Subagent {
+				continue
+			}
+			if !o.info.Former {
+				live = i
+			}
+			need = need || len(o.s.Prompts) == 0
+		}
+		if len(ow) > 0 && ow[0].info.Subagent { // サブエージェントの会話の記録は読まない
+			need = len(rest) > 0
+		}
+		if need && !crewBackground(slot) && k.CrewHome != "" {
+			title, rows = readCrewKey(k.CrewHome, k.CrewArchive, slot, &errs)
+		}
+		if live < 0 {
+			live = len(ow) - 1
+		}
+		at := live // 時刻のない最初の行
+		if len(rest) > 0 {
+			at = -1
+		}
+		for _, r := range rows {
+			if r.t != nil {
+				if at = crewOwnerAt(ow, *r.t); at < 0 && len(rest) == 0 {
+					at = live
+				}
+			}
+			if at >= 0 && !ow[at].info.Subagent {
+				ow[at].rows = append(ow[at].rows, r)
+			} else {
+				restRows = append(restRows, r)
+			}
+		}
+		for _, o := range ow {
+			if !o.info.Subagent {
+				seenRows[o.info.Key] = true
+				if len(o.s.Prompts) == 0 {
+					addCrewRows(o.s, o.rows)
+				}
+			}
+			if len(o.turns) > 0 {
+				if useCrewCredits(o.s, o.turns) {
+					k.crewFixed++
+				}
+				addCrewNative(o.s, o.turns)
+			}
+		}
+		// 会話キーの今の会話を、前の会話より先に預ける（サブエージェントの親にする）
+		sort.SliceStable(ow, func(i, j int) bool { return !ow[i].info.Former && ow[j].info.Former })
+		for _, o := range ow {
+			info := o.info
+			held.add(o.s, &info, info.Key)
+		}
+		if len(rest) == 0 {
+			continue
+		}
+		// kiro-cli の会話に結びつかない Crew の記録
 		seenRows[slot] = true
-		ss, skipped := crewOnly(k.CrewHome, k.CrewArchive, slot, usage[slot], slotInfo[slot], &errs)
+		ss, skipped := crewOnly(k.CrewHome, slot, rest, slotInfo[slot], title, restRows)
 		k.crewElse += skipped
 		for _, s := range ss {
 			k.crewOnly++
@@ -398,12 +482,12 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			if seenFile[p] {
 				continue
 			}
-			meta, rows := readCrewTranscript(p, &errs)
-			title, rows := meta.title, ownRows(meta, rows) // fork なら、元の会話から写した行は除く
+			// 退避した古い行も読む。fork なら、元の会話から写した行は除く
+			stem := strings.TrimSuffix(filepath.Base(p), ".jsonl")
+			title, rows := readCrewStem(k.CrewHome, k.CrewArchive, stem, &errs)
 			if len(rows) == 0 {
 				continue
 			}
-			stem := strings.TrimSuffix(filepath.Base(p), ".jsonl")
 			s := core.NewBuilder("Kiro Crew", "crew:"+stem)
 			s.File = p
 			s.Key = "kiro-crew:" + stem

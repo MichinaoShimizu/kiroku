@@ -22,6 +22,12 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Codex: local shell calls, web searches, tool searches and image generations now count as tool calls and appear in the session's tool list, and files changed with `apply_patch` through a local shell call appear among the edited files
 - Codex: in old sessions without `user_message` events, notices Codex added as user messages without a tag (the list of plugins not installed, and warnings about the exec process limit, `apply_patch` through `exec_command` and a flagged account) are no longer counted as prompts
 - Codex: in the oldest sessions, whose token counts have no per-response usage, "Responses" now counts each response instead of staying empty
+- Kiro Crew credits are no longer counted twice when Crew starts a conversation over in a new kiro-cli conversation (after its context fills up, a backend switch or seeding). Crew's usage records for the conversation key now go to the kiro-cli conversation that was running at their time instead of all going to the newest one, and the earlier kiro-cli conversation (the `discarded_sid` Crew keeps, or the one in the same folder whose time span covers the records) is marked "Kiro Crew" too. Records that match no kiro-cli conversation still count as a Kiro Crew session of their own, so no credits are lost. Prompts from Crew's conversation log are split the same way
+- Tokens and cost of Kiro Crew subagents and background work run on Codex are no longer counted twice (they are counted from Codex's own history): kiroku now reads the backend from a subagent's `state.json` and from the `codex` label on background and memory-consolidation records, not only from `session_map.json`
+- Kiro Crew conversations that have only a conversation log now include the older lines Crew moved to `sessions/archive/`, as other Crew conversations already did
+- Kiro Crew's task runner lines (`[Task: <spec>] Task <n>: <title>`) are no longer counted as prompts you typed; they are shown as sent by another agent
+- Kiro Crew conversation keys with non-ASCII letters or digits (such as Japanese channel or thread names) now find their conversation log: kiroku turns keys into file names the way Crew does
+- Kiro Crew archived conversation lines that landed in the same second are read in the order Crew wrote them (`-1` after the unsuffixed file, `-10` after `-9`), and another conversation's archive whose key starts with the same name is no longer mixed in
 
 ## v0.27.1 - 2026-10-08
 
