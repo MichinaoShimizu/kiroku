@@ -1,6 +1,9 @@
 package core
 
-import "sort"
+import (
+	"sort"
+	"strings"
+)
 
 // ContextGrowth は、会話が長くなるにつれて 1 回の応答で読む入力（文脈）がどれだけ大きくなったかを返す。
 // 入力 = 新しい入力 + キャッシュへの書き込み + キャッシュからの読み取り。
@@ -35,7 +38,14 @@ func median(xs []float64) float64 {
 
 // contextOf は 1 回の応答で読んだ入力（文脈）の大きさ = 新しい入力 + キャッシュへの書き込み + キャッシュからの読み取り。
 // 3 つともコンテキストウィンドウに入る。出典: https://platform.claude.com/docs/en/build-with-claude/context-windows
-func contextOf(e Event) float64 { return e.U.In + e.U.CW + e.U.CW1h + e.U.CR }
+// advisor ツールを使った応答は、usage が executor の何回かの呼び出しの和なので、いちばん大きい 1 回にする（Event.prompt）。
+// advisor の呼び出しは会話の文脈ではないので 0（数えない）。
+func contextOf(e Event) float64 {
+	if e.Advisor {
+		return 0
+	}
+	return e.prompt()
+}
 
 // ContextWindowAsOf は、収録したコンテキストウィンドウの時点。表を更新したら合わせて変える。
 const ContextWindowAsOf = "2026-10"
@@ -80,13 +90,23 @@ var ContextWindows = map[string]float64{
 }
 
 // ContextWindowOf はモデルのコンテキストウィンドウ。表にないモデルは ok=false。
-func ContextWindowOf(model string) (float64, bool) { return byModel(ContextWindows, model) }
+// モデル ID は料金表と同じようにそろえて引く（byModel）。ID に [1m] が付いていれば 1M。
+func ContextWindowOf(model string) (float64, bool) {
+	w, ok := byModel(ContextWindows, model)
+	if ok && strings.HasSuffix(strings.ToLower(strings.TrimSpace(model)), "[1m]") {
+		w = max(w, window1M)
+	}
+	return w, ok
+}
 
 // contextWindows は、応答に出てくるモデルごとのウィンドウ。表の値を超える文脈を読んだモデルは 1M とみなす
 // （Opus 4.6・Sonnet 4.6 の [1m] の版。使用率が 100% を超えて見えないように）。表にないモデルは入れない。
 func contextWindows(evs []Event) map[string]float64 {
 	w := map[string]float64{}
 	for _, e := range evs {
+		if e.Advisor {
+			continue
+		}
 		win, ok := ContextWindowOf(e.Model)
 		if !ok {
 			continue

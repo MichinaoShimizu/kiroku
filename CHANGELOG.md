@@ -2,6 +2,16 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Claude Code sessions that used the advisor tool now count the advisor's tokens and cost, priced at the advisor model's rates. Before, only the main model's tokens were counted. When Claude Code records its own cost, the advisor's share follows that record, so it is not counted twice. In these responses, Peak context usage and Claude Haiku 5.5's price for prompts over 100K tokens now use the largest single call instead of the sum of all calls in the response
+- Claude Code sessions now show the name Claude Code generated for them when you haven't named them yourself. Before, the generated name was never read, so the start of a summary or prompt was shown instead. A name you gave a session is not replaced by a generated one written later
+- Peak context usage now finds the context window for Claude model IDs written with a Bedrock region (`us.anthropic.claude-opus-4-8`, `global.anthropic.claude-opus-4-8[1m]`) or with a dot (`claude-opus-4.8`), as the price table already did, and counts a model ID ending in `[1m]` as 1M. Before, these had no value or used an older model's window
+- Usage limit hits no longer count Claude Code messages that only contain the number 429 (such as "~1,429 tokens"), or the "Usage limit reset · continuing automatically" notice. When Claude Code waits for a limit to reset ("Usage limit reached · continuing automatically at 3:45pm"), the time is now shown as the reset time
+- When `cleanupPeriodDays` in Claude Code's settings is invalid (such as `0`, a string or a fraction), the view and `kiroku doctor` no longer warn that history older than 30 days is deleted. Claude Code pauses its cleanup in that case and deletes nothing
+
 ## v0.27.1 - 2026-10-08
 
 ### Fixed

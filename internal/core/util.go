@@ -319,13 +319,18 @@ func Runes(s string, n int) string {
 // 例: "Claude AI usage limit reached|1750000000"、"5-hour limit reached ∙ resets 3pm"、"API Error: 429 …rate_limit_error…"、
 // "You've hit your session limit · resets 3:45pm"（weekly・Opus・Sonnet も同じ形）、"You've hit your org's monthly spend limit"、
 // "You've hit your team's shared budget"、"API Error: Request rejected (429)"（API キーのレート制限）。
+// 429 は HTTP の状態コードとして書かれたとき（"API Error: 429"・"(429)"・"status 429"・文の先頭の "429 "）だけ数え、
+// "~1,429 tokens" のような数の一部は数えない。
 // 出典: https://code.claude.com/docs/en/errors （Usage limits）
-var limitText = regexp.MustCompile(`(?i)usage limit|limit reached|limit will reset|hit your [^.\n]{0,40}?(limit|budget)|reached your .{0,20}limit|rate[_ ]limit|\b429\b`)
+var limitText = regexp.MustCompile(`(?i)usage limit|limit reached|limit will reset|hit your [^.\n]{0,40}?(limit|budget)|reached your .{0,20}limit|rate[_ ]limit|` +
+	`api error:?\s*429\b|\(429\)|\bstatus(?:\s+code)?:?\s*429\b|^\s*429\b|\b429 too many requests`)
 
 // notLimitText は、limitText に当たるが利用上限ではないエラー文。
 // "API Error: Server is temporarily limiting requests (not your usage limit)" はサーバー側の一時的な絞り込み、
 // "Context limit reached · /compact or /clear to continue" は会話が長すぎるだけで、どちらも使用量の上限ではない。
-var notLimitText = regexp.MustCompile(`(?i)not your usage limit|temporarily limiting requests|context limit reached`)
+// "Usage limit reset · continuing automatically"・"Your usage limit has reset" は、上限が解除されて続きを始めた知らせ。
+// 出典: https://code.claude.com/docs/en/interactive-mode （Wait for a usage limit to reset）
+var notLimitText = regexp.MustCompile(`(?i)not your usage limit|temporarily limiting requests|context limit reached|usage limit (?:has )?reset\b`)
 
 // IsLimitError は、文が利用上限のエラーかどうか。
 func IsLimitError(text string) bool {
@@ -335,9 +340,11 @@ func IsLimitError(text string) bool {
 // resetText は、利用上限のエラー文にある解除の時刻（"resets " のあと）。
 // 例: "You've hit your session limit · resets 3:45pm"、"You've hit your weekly limit · resets Mon 12:00am"、
 // "5-hour limit reached ∙ resets 3pm"、"spend limit reached (daily; resets 2026-08-09 00:00 UTC)"。
+// 解除を待って自動で続けるときの "Usage limit reached · continuing automatically at 3:45pm" は、続ける時刻（= 解除の時刻）を拾う。
 // 時間帯の名前が括弧で付くこと（"resets 3pm (Asia/Tokyo)"）も考えて読む。曜日・月日・日付・時刻・時間帯の形の文字だけを拾う。
-// 出典: https://code.claude.com/docs/en/errors （Usage limits・Spend limit reached）
-var resetText = regexp.MustCompile(`(?i)\bresets\s+(?:at\s+)?((?:[a-z]{3,9},?\s+)?(?:\d{1,2},?\s+(?:at\s+)?)?(?:\d{4}-\d{2}-\d{2}\s+)?\d{1,2}(?::\d{2})?(?:\s?[ap]m)?(?:\s+UTC)?(?:\s+\([a-z_]+(?:/[a-z_+-]+){0,2}\))?)`)
+// 出典: https://code.claude.com/docs/en/errors （Usage limits・Spend limit reached）、
+// https://code.claude.com/docs/en/interactive-mode （Wait for a usage limit to reset）
+var resetText = regexp.MustCompile(`(?i)\b(?:resets|continuing automatically)\s+(?:at\s+)?((?:[a-z]{3,9},?\s+)?(?:\d{1,2},?\s+(?:at\s+)?)?(?:\d{4}-\d{2}-\d{2}\s+)?\d{1,2}(?::\d{2})?(?:\s?[ap]m)?(?:\s+UTC)?(?:\s+\([a-z_]+(?:/[a-z_+-]+){0,2}\))?)`)
 
 // LimitReset は、利用上限のエラー文にある解除の時刻の文（"3:45pm"、"Mon 12:00am" など）。なければ空。
 // 日付や時間帯がないことが多いので、時刻には直さず、書いてあるとおりの文を返す。
