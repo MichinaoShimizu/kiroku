@@ -8,10 +8,12 @@ function fileHref(path){ // HTML で見るときの履歴ファイルの file://
   return "file://" + (/^[A-Za-z]:/.test(p) ? "/" : "") + p.split("/").map(encodeURIComponent).join("/").replace(/%3A/g, ":");
 }
 // localHref は、この PC のファイルを開く file:// の URL。kiroku serve（http）からは、ブラウザーが file:// を開かないので出さない。
-// 絶対パスでなければ、base（プロジェクトやリポジトリの場所）につなぐ。どちらも絶対パスでなければ出さない
+// 絶対パスでなければ、base（プロジェクトやリポジトリの場所）につなぐ。どちらも絶対パスでなければ出さない。
+// //host・\\host（UNC）は出さない（履歴に書かれた名前で、ほかのコンピューターにつながせない。gitlog の remotePath と同じ）。
+// git が "…" で囲んで書いたパス（core.quotePath。日本語などの名前）は、本当の名前ではないので出さない
 function localHref(path, base){
-  const abs = p => /^(?:\/|[A-Za-z]:[\\/])/.test(p);
-  if (LIVE || !path) return "";
+  const abs = p => /^(?:\/(?![\\/])|[A-Za-z]:[\\/])/.test(p);
+  if (LIVE || !path || path.startsWith('"')) return "";
   const p = abs(path) ? path : base && abs(base) ? `${base.replace(/[\\/]+$/, "")}/${path}` : "";
   return p ? fileHref(p) : "";
 }
