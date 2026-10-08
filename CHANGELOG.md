@@ -2,6 +2,16 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- Cards in "Repeated prompts" look like the other session cards: the badge and color of the agent of the session they open (where you last wrote the prompt) before the prompt, and a soft gradient in that color
+
+### Fixed
+
+- A long prompt in "Repeated prompts" is cut to one line like the other cards, instead of wrapping onto several lines; one with a long word such as a URL no longer runs past the card and makes the page scroll sideways at phone widths
+
 ## v0.24.0 - 2026-10-08
 
 ### Added

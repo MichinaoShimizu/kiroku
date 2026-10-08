@@ -23,7 +23,7 @@ if not os.path.exists(os.path.join(REPO, ".git")):
     g("remote", "add", "origin", 'https://example.com/o/r"><img src=x onerror=alert(18)>')
 root = os.path.join(S, "fx", "projects", "-p")
 os.makedirs(root, exist_ok=True)
-REP = "fix: <img src=x onerror=alert(20)> please fix the build again"
+REP = "fix: <img src=x onerror=alert(20)> https://example.com/" + "a" * 120 + " please fix the build again"  # 空白のない長い語も（画面を横にはみ出させないか）
 for i in range(4):
     sid = str(uuid.UUID(int=i+1))
     t = lambda m: f"2026-10-05T{10+i:02d}:{m:02d}:00Z"

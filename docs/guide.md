@@ -127,7 +127,7 @@ The old forms `kiroku --serve`, `--json`, `-o` and `--weekly` / `--monthly` have
 - At smartphone widths, the week calendar scrolls horizontally (when opened, it shows the last day you worked up to today and the day before; the right edge fades while there are more days to the right), the session count ("20 / 20 sessions") is shown above the legend, and the summary is shown in a single column
 - The palette has 8 colors based on Okabe–Ito, chosen to stay distinguishable across types of color vision. Projects and branches get them in order of how many sessions they have; from the 9th item on, items are gray
 - Each agent has one fixed color everywhere (Color by Agent, the agent's badge, the cards and the Year in review): Claude Code blue, Codex green, Kiro IDE purple, Kiro CLI and Amazon Q light blue, and Kiro Crew pink. Orange and yellow are never used for agents, so an agent never reads as a warning; other agents get a color left over
-- Every card that starts with a session name (Possible friction, Heaviest sessions, the sessions in Worth a look and in the breakdowns, the session behind a commit or push, and search results) shows the agent's initials as a badge before the name and a soft gradient in the agent's color
+- Every card that starts with a session name (Possible friction, Heaviest sessions, the sessions in Worth a look and in the breakdowns, the session behind a commit or push, and search results) shows the agent's initials as a badge before the name and a soft gradient in the agent's color. Cards in Repeated prompts look the same, with the prompt in place of the name and the agent of the session they open (the one where you last wrote it). Long names and prompts are cut to one line
 
 ## Weekly and monthly summary
 

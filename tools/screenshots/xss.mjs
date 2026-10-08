@@ -64,6 +64,11 @@ for (const q of ["<img", "alert", "__META__", "javascript", '"><svg']) {
 await p.fill("#q", "");
 try { await p.click("#mode button[data-v=month]"); await check("month"); } catch (e) { console.log("  skip month (not in this file)"); }
 
+// 空白のない長い語（繰り返したプロンプトの URL など）で、スマートフォンの幅でも横にはみ出さない
+await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(200);
+const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
+if (sw > iw) { failed++; console.log(`  FAIL overflows sideways at 390px: ${sw} > ${iw}`); } else console.log("  ok   no sideways overflow at 390px");
+
 if (dialogs.length) { failed++; console.log(`  FAIL dialogs: ${JSON.stringify(dialogs)}`); }
 if (errors.length) { failed++; console.log(`  FAIL page errors: ${JSON.stringify(errors)}`); }
 if (external.length) { failed++; console.log(`  FAIL external requests: ${JSON.stringify(external)}`); }

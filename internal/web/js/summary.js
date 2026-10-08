@@ -40,7 +40,7 @@ function summary(){
     ${w.friction.length ? `<h3>Possible friction${hb("friction")}</h3>` : ""}
     ${w.friction.length ? w.friction.map(f => sesCardH(sesById(f.id, f.title), `${md(f.start)} · ${esc(f.project)} ${whyOf(f).map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}`)).join("") : ""}
     ${repeatsOf(period().ws, period().we).length ? `<h3>Repeated prompts${hb("repeats")}</h3>` : ""}
-    ${(() => { const {ws, we} = period(), RP = repeatsOf(ws, we); return RP.length ? RP.slice(0, 3).map(c => `<button class="card" data-id="${esc(c.id)}"><span class="ti">${esc(snipOf(c.text, 90))}</span><span class="me">${`${c.n} times in ${c.ids.size} sessions ${uThis(unit)} · last on ${md(c.last)}`}</span></button>`).join("") : ""; })()}
+    ${(() => { const {ws, we} = period(), RP = repeatsOf(ws, we); return RP.length ? RP.slice(0, 3).map(c => sesCardH(sesById(c.id, snipOf(c.text, 90)), `${c.n} times in ${c.ids.size} sessions ${uThis(unit)} · last on ${md(c.last)}`)).join("") : ""; })()}
     ${w.friction.length || repeatsOf(period().ws, period().we).length ? "" : `<p class="none">No sessions with possible friction and no repeated prompts.</p>`}</section>
   <section class="panel ask">${ph(6, "Ask AI for suggestions", "A prompt that asks for suggestions based on this data")}
     <div class="askbar"><button class="pill" id="askcopy">Copy prompt</button>
