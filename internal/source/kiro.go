@@ -451,11 +451,20 @@ func (k *KiroIDELegacy) Where() string {
 //
 // 同じ場所にある {"executions": […]} だけのファイルは実行の一覧なので読まない。workspace-sessions の会話とは、
 // 会話の history[].executionId か、実行ファイルの chatSessionId・sessionId（会話の sessionId と同じもの）で結ぶ。
+//
+// ワークスペースのフォルダの直下の <名前>.chat（参考実装 kiro-history の server/ide.ts と codeburn の parseChatFile の形）も読む:
+//
+//	{"executionId", "actionId", "chat": [{"role", "content"}], "metadata": {"modelId", "workflowId", "startTime", "endTime"}}
+//
+// クレジットはないので、同じ実行 ID の実行ファイルにないモデル・時刻を埋めるのと、実行ファイルのない実行を 1 つとして数えるのに使う。
+// 会話とは、kiro-history と同じく実行 ID（会話の history[].executionId）でだけ結ぶ（metadata.workflowId が会話の ID と同じものかはわからない）。
 type kiroExec struct {
 	id, session string
+	dir         string // ファイルのあるフォルダの名前（どの会話のものかわからない実行をまとめる鍵）
 	start, end  *float64
 	credits     float64
 	model       string
+	mtime       float64 // ファイルの更新時刻（会話に結べず、時刻もない実行の時刻に使う）
 }
 
 // kiroWorkspaceDir は実行ファイルを置くワークスペースのフォルダ名（32 桁の 16 進）。
@@ -467,15 +476,36 @@ const kiroExecMax = 64 << 20
 // kiroExecKeys は実行ファイルのうち kiroku が読む項目（topFields で取り出す）。
 var kiroExecKeys = []string{"executions", "executionId", "chatSessionId", "sessionId", "modelId", "startTime", "endTime", "metadata", "usageSummary"}
 
+// kiroChatKeys は .chat のうち kiroku が読む項目（会話の全文の chat は組み立てない）。
+var kiroChatKeys = []string{"executionId", "metadata"}
+
 // realDir は、シンボリックリンクでないふつうのフォルダか。
 func realDir(p string) bool {
 	st, err := os.Lstat(p)
 	return err == nil && st.IsDir()
 }
 
+// readKiroExecFile は実行ファイルか .chat を 1 つ読み、keys の項目を取り出す。シンボリックリンクでないふつうのファイルで、
+// kiroExecMax 以下のものだけ。mtime はファイルの更新時刻。読めないファイルは errs に入れる。JSON のオブジェクトでなければ ok = false。
+func readKiroExecFile(p string, keys []string, errs *fileErrs) (data map[string]any, mtime float64, ok bool) {
+	st, err := os.Lstat(p)
+	if err != nil || !st.Mode().IsRegular() || st.Size() > kiroExecMax {
+		return nil, 0, false
+	}
+	b, err := os.ReadFile(p)
+	if err != nil {
+		errs.file(p, err)
+		return nil, 0, false
+	}
+	// 実行ファイルには会話の全文（context）が入っていて大きい。全体を組み立てると読み込みがとても遅くなるので、
+	// 使う項目だけを取り出す
+	data, ok = topFields(b, keys)
+	return data, float64(st.ModTime().UnixNano()) / 1e9, ok
+}
+
 // loadKiroExecs は globalStorage の下の実行ファイルを読む。実行 ID ごとと、会話の ID ごと。
-// 読むのは <32 桁の 16 進>/<フォルダ>/<拡張子のない名前> だけ。フォルダとファイルは、シンボリックリンクでない（ほかの場所を読まない）
-// ふつうのものに限る。パスは履歴の中身からは作らない（中身の ID は結びつけるための鍵にしか使わない）。
+// 読むのは <32 桁の 16 進>/<フォルダ>/<拡張子のない名前> と <32 桁の 16 進>/<名前>.chat だけ。フォルダとファイルは、
+// シンボリックリンクでない（ほかの場所を読まない）ふつうのものに限る。パスは履歴の中身からは作らない（中身の ID は結びつけるための鍵にしか使わない）。
 // JSON でないファイルや、実行ファイルの形でないものは黙って飛ばす（同じ場所に別のファイルがあることがあるため）。
 func loadKiroExecs(gs string, errs *fileErrs) (byID map[string]*kiroExec, bySession map[string][]*kiroExec) {
 	byID, bySession = map[string]*kiroExec{}, map[string][]*kiroExec{}
@@ -487,18 +517,7 @@ func loadKiroExecs(gs string, errs *fileErrs) (byID map[string]*kiroExec, bySess
 			strings.HasPrefix(filepath.Base(sess), ".") || !realDir(ws) || !realDir(sess) {
 			continue
 		}
-		st, err := os.Lstat(p)
-		if err != nil || !st.Mode().IsRegular() || st.Size() > kiroExecMax {
-			continue
-		}
-		b, err := os.ReadFile(p)
-		if err != nil {
-			errs.file(p, err)
-			continue
-		}
-		// 実行ファイルには会話の全文（context）が入っていて大きい。全体を組み立てると読み込みがとても遅くなるので、
-		// 使う項目だけを取り出す
-		data, ok := topFields(b, kiroExecKeys)
+		data, mtime, ok := readKiroExecFile(p, kiroExecKeys, errs)
 		if !ok || data["executions"] != nil {
 			continue
 		}
@@ -506,10 +525,12 @@ func loadKiroExecs(gs string, errs *fileErrs) (byID map[string]*kiroExec, bySess
 		x := &kiroExec{
 			id:      firstNonEmpty(core.Str(data["executionId"]), name),
 			session: firstNonEmpty(core.Str(data["chatSessionId"]), core.Str(data["sessionId"])),
+			dir:     filepath.Base(sess),
 			model:   firstNonEmpty(core.Str(data["modelId"]), core.Str(meta["modelId"])),
 			start:   firstTS(data["startTime"], meta["startTime"]),
 			end:     firstTS(data["endTime"], meta["endTime"]),
 			credits: creditsOf(data["usageSummary"], "unit", "usage"),
+			mtime:   mtime,
 		}
 		if x.end != nil && x.start != nil && *x.end < *x.start {
 			x.end = nil // 終わりが始まりより前の記録は使わない
@@ -524,6 +545,38 @@ func loadKiroExecs(gs string, errs *fileErrs) (byID map[string]*kiroExec, bySess
 		if x.session != "" {
 			bySession[x.session] = append(bySession[x.session], x)
 		}
+	}
+	// .chat は実行ファイルのあとに読む（同じ実行なら実行ファイルの値を使い、ないものだけ埋める）
+	for _, p := range glob(filepath.Join(gs, "*", "*.chat")) {
+		ws := filepath.Dir(p)
+		name := filepath.Base(p)
+		if !kiroWorkspaceDir.MatchString(filepath.Base(ws)) || !safeName(name) || strings.HasPrefix(name, ".") || !realDir(ws) {
+			continue
+		}
+		data, mtime, ok := readKiroExecFile(p, kiroChatKeys, errs)
+		meta := core.Map(data["metadata"])
+		id := core.Str(data["executionId"])
+		if !ok || meta == nil || id == "" { // 実行 ID がなければ会話と結べない
+			continue
+		}
+		model, start, end := core.Str(meta["modelId"]), ts(meta["startTime"]), ts(meta["endTime"])
+		if end != nil && start != nil && *end < *start {
+			end = nil
+		}
+		if x := byID[id]; x != nil {
+			x.model = firstNonEmpty(x.model, model)
+			if x.start == nil && start != nil && (x.end == nil || *start <= *x.end) {
+				x.start = start
+			}
+			if x.end == nil && end != nil && (x.start == nil || *end >= *x.start) {
+				x.end = end
+			}
+			continue
+		}
+		if start == nil && end == nil && model == "" {
+			continue
+		}
+		byID[id] = &kiroExec{id: id, dir: filepath.Base(ws), model: model, start: start, end: end, mtime: mtime}
 	}
 	return byID, bySession
 }
@@ -546,6 +599,8 @@ func (k *KiroIDELegacy) Load(emit func(*core.Builder)) error {
 			continue
 		}
 		execByID, execBySession := loadKiroExecs(gs, &errs)
+		claimed := map[*kiroExec]bool{} // 見える会話に結んだ実行
+		hiddenWS := map[string]string{} // 一覧で隠した会話の ID → 作業場所
 		for _, index := range indexes {
 			list, err := core.ReadJSONFile(index)
 			errs.file(index, err)
@@ -553,7 +608,11 @@ func (k *KiroIDELegacy) Load(emit func(*core.Builder)) error {
 				em := core.Map(ent)
 				hidden, _ := em["hidden"].(bool)
 				id := core.Str(em["sessionId"])
-				if em == nil || hidden || id == "" {
+				if em == nil || id == "" {
+					continue
+				}
+				if hidden { // 隠した会話は一覧に出さない（kiro-history と同じ）。実行のクレジットはあとで数える
+					hiddenWS[id] = firstNonEmpty(hiddenWS[id], core.Str(em["workspaceDirectory"]))
 					continue
 				}
 				if !safeName(id) { // sessions.json の中身でほかの場所のファイルを読ませない（../../x など）
@@ -570,12 +629,11 @@ func (k *KiroIDELegacy) Load(emit func(*core.Builder)) error {
 				s.Project = firstNonEmpty(core.Str(data["workspacePath"]), core.Str(data["workspaceDirectory"]), core.Str(em["workspaceDirectory"]))
 				start := ts(em["dateCreated"])
 				s.Tick(start)
-				// この会話の実行（history の executionId と、実行ファイルの会話 ID で結ぶ）
+				// この会話の実行（history の executionId と、実行ファイルの会話 ID で結ぶ）。ほかの会話に結んだ実行は二度数えない
 				var execs []*kiroExec
-				linked := map[*kiroExec]bool{}
 				link := func(x *kiroExec) {
-					if x != nil && !linked[x] {
-						linked[x] = true
+					if x != nil && !claimed[x] {
+						claimed[x] = true
 						execs = append(execs, x)
 					}
 				}
@@ -622,22 +680,8 @@ func (k *KiroIDELegacy) Load(emit func(*core.Builder)) error {
 				for _, x := range execBySession[id] {
 					link(x)
 				}
-				sort.SliceStable(execs, func(i, j int) bool {
-					a, b := firstNonNil(execs[i].start, execs[i].end), firstNonNil(execs[j].start, execs[j].end)
-					return a != nil && (b == nil || *a < *b)
-				})
 				selected := core.Str(data["selectedModel"]) // 会話で選んでいたモデル（実行ファイルにモデルがなければこれ）
-				for _, x := range execs {
-					s.Tick(x.start)
-					t := firstNonNil(x.end, x.start, start)
-					s.Agent(firstNonNil(x.end, x.start))
-					if x.credits != 0 {
-						s.Credits = append(s.Credits, core.Credit{T: t, V: x.credits})
-					}
-					s.Measure("credits", t, x.credits)
-					s.Measure("turns", t, 1)
-					s.Model(firstNonEmpty(x.model, selected))
-				}
+				addKiroExecs(s, execs, selected, start)
 				if len(execs) == 0 && len(asks) > 0 {
 					s.Model(selected) // 実行ファイルがなければ、会話で選んでいたモデルを 1 回数える
 				}
@@ -648,8 +692,70 @@ func (k *KiroIDELegacy) Load(emit func(*core.Builder)) error {
 				emit(s)
 			}
 		}
+		emitKiroLeftovers(execByID, claimed, hiddenWS, emit)
 	}
 	return errs.err()
+}
+
+// addKiroExecs は会話の実行を足す。1 つの実行が 1 ターンで、クレジットは終わりの時刻に数える。
+// モデルは実行のもの、なければ selected。時刻のない実行は start に数える。
+func addKiroExecs(s *core.Builder, execs []*kiroExec, selected string, start *float64) {
+	sort.SliceStable(execs, func(i, j int) bool {
+		a, b := firstNonNil(execs[i].start, execs[i].end), firstNonNil(execs[j].start, execs[j].end)
+		return a != nil && (b == nil || *a < *b)
+	})
+	for _, x := range execs {
+		s.Tick(x.start)
+		t := firstNonNil(x.end, x.start, start)
+		s.Agent(firstNonNil(x.end, x.start))
+		if x.credits != 0 {
+			s.Credits = append(s.Credits, core.Credit{T: t, V: x.credits})
+		}
+		s.Measure("credits", t, x.credits)
+		s.Measure("turns", t, 1)
+		s.Model(firstNonEmpty(x.model, selected))
+	}
+}
+
+// emitKiroLeftovers は、見える会話に結べなかった実行（一覧で隠した会話・一覧にない会話・会話の ID のないもの）を、
+// 依頼のないセッションとして出す。codeburn はすべての実行ファイルを数えるので、クレジットの合計をそろえるため。
+// 隠した会話の依頼は出さない。まとめる鍵は実行ファイルの会話の ID、なければファイルのあるフォルダの名前（codeburn と同じ）。
+func emitKiroLeftovers(byID map[string]*kiroExec, claimed map[*kiroExec]bool, hiddenWS map[string]string, emit func(*core.Builder)) {
+	ids := make([]string, 0, len(byID))
+	for id := range byID {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	groups := map[string][]*kiroExec{}
+	var keys []string
+	for _, id := range ids {
+		x := byID[id]
+		if claimed[x] {
+			continue
+		}
+		if x.start == nil && x.end == nil && x.mtime > 0 { // 時刻がなければファイルの更新時刻（ないとセッションごと出ない）
+			m := x.mtime
+			x.end = &m
+		}
+		key := firstNonEmpty(x.session, x.dir)
+		if groups[key] == nil {
+			keys = append(keys, key)
+		}
+		groups[key] = append(groups[key], x)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		s := core.NewBuilder("Kiro IDE (legacy)", "exec:"+key)
+		s.Project = "(Kiro IDE)"
+		if ws, hidden := hiddenWS[key]; hidden {
+			s.Title = "Kiro IDE hidden chat"
+			s.Project = firstNonEmpty(ws, s.Project)
+		} else {
+			s.Title = "Kiro IDE executions without a chat"
+		}
+		addKiroExecs(s, groups[key], "", nil)
+		emit(s)
+	}
 }
 
 // firstNonNil は nil でない最初の時刻。
