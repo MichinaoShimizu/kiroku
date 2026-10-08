@@ -167,7 +167,7 @@ The old forms `kiroku --serve`, `--json`, `-o` and `--weekly` / `--monthly` have
 | Tokens | Input, output, cache reads and cache writes combined. Because one response is recorded across several lines, they are grouped by message ID before counting |
 | Share of input read from cache | The share of input read from cache |
 | By model | Estimated cost and tokens per model |
-| Subagents | Number of `Task` / `Agent` calls, their types and total run time. Session details show when, to which type, what was asked, and how long it took |
+| Subagents | Number of `Task` / `Agent` calls (Claude Code), subagent threads (Codex) and Kiro Crew subagents, their types and total run time. Session details show when, to which type, what was asked, and how long it took |
 | Kiro credits | Actual credits recorded in Kiro history |
 | Estimated cost per prompt | Estimated cost ÷ number of prompts in sessions that record tokens (Claude Code, Codex, and Kiro Crew on backends other than kiro-cli); prompts to agents that record only credits are left out |
 | Heaviest sessions | The top 3 sessions by estimated cost |
@@ -226,7 +226,7 @@ Not every agent's history records everything kiroku shows. Active time, Total AI
 | Usage limit hits | ✓ | ✓ | — | — | — | — | — | — |
 | Compactions | ✓ | ✓ | — | — | — | — | ✓ (latest only) | ✓ (latest only) |
 | Files changed (session details) | ✓ | ✓ | ✓ | — | ✓ | — (listed for conversations kept in the kiro-cli history) | ✓ | ✓ |
-| Subagents | ✓ | ✓ | — | — | — | — | — | — |
+| Subagents | ✓ | ✓ | — | — | — | ✓ | — | — |
 | Outputs (AI commits, pull requests, sessions that reached a commit or PR, cost per commit) | ✓ | — | — | — | — | — | — | — |
 | Tokens and estimated cost | ✓ | ✓ | — | — | — | Partly (backends other than kiro-cli) | — | — |
 | Kiro credits | — | — | ✓ | ✓ | ✓ | ✓ | — | — |

@@ -18,8 +18,8 @@ func TestKiroCrewTagsKiroCLISessions(t *testing.T) {
 	td := filepath.Join("..", "..", "testdata")
 	k := &KiroCLI{Home: filepath.Join(td, "home", ".kiro"), CrewHome: filepath.Join(td, "crew")}
 	bs := load(t, k)
-	if len(bs) != 6 {
-		t.Fatalf("会話の数 = %d, want 6（kiro-cli の 3 件 + Crew の記録だけにある 3 件）", len(bs))
+	if len(bs) != 5 {
+		t.Fatalf("会話の数 = %d, want 5（kiro-cli の 3 件のうちサブエージェントは親にまとめて 2 件 + Crew の記録だけにある 3 件）", len(bs))
 	}
 	crew := 0
 	for _, b := range bs {
@@ -27,23 +27,26 @@ func TestKiroCrewTagsKiroCLISessions(t *testing.T) {
 			crew++
 		}
 	}
-	if crew != 6 || k.Detail() != "うち Kiro Crew から 3 件・Crew の使用量の記録でクレジットを補った会話 1 件・Crew の使用量の記録だけにある 3 件（2.00 クレジット）" {
+	if crew != 5 || k.Detail() != "うち Kiro Crew から 3 件・Crew の使用量の記録でクレジットを補った会話 1 件・Crew の使用量の記録だけにある 3 件（2.00 クレジット）" {
 		t.Fatalf("Crew の目印 = %d, detail = %q", crew, k.Detail())
 	}
-	if b := bs[1]; b.Title != "夜間のデプロイ見張り" {
-		t.Errorf("Crew のタイトル = %q", b.Title)
+	parent := find(bs, "1cb4ad2f-90ba-4c5f-970b-5767003804b9")
+	if parent == nil || parent.Title != "夜間のデプロイ見張り" {
+		t.Fatalf("Crew のタイトル = %+v", parent)
 	}
-	if b := bs[0]; !strings.HasPrefix(b.Title, "Subagent reviewer: PR #12") {
-		t.Errorf("サブエージェントのタイトル = %q", b.Title)
+	if find(bs, "0d612aac-99c4-4a54-bda2-76ad60b6ddf3") != nil {
+		t.Error("サブエージェントの会話は、別のセッションにしない")
 	}
-	if b := bs[2]; b.Title != "CLIでデプロイ確認" { // 古い形（文字列だけ）の対応表。タイトルは kiro-cli のまま
-		t.Errorf("古い対応表のタイトル = %q", b.Title)
+	// サブエージェントは親のセッションの中に出す（Claude Code・Codex と同じ）
+	if len(parent.Subagents) != 1 || parent.Subagents[0].Type != "reviewer" || !strings.HasPrefix(parent.Subagents[0].Desc, "PR #12") || parent.Subagents[0].Start == nil {
+		t.Errorf("親のサブエージェント = %+v", parent.Subagents)
 	}
-	if n := nativeOf(bs[0].Finish(15)); n["Crew から動かした会話"].V != 1 || n["うちサブエージェント"].V != 1 || n["ターン"].V == 0 {
+	if b := find(bs, "1e13c3c1-d7ae-41c2-a324-e6a440665d9a"); b == nil || b.Title != "CLIでデプロイ確認" { // 古い形（文字列だけ）の対応表。タイトルは kiro-cli のまま
+		t.Errorf("古い対応表のタイトル = %+v", b)
+	}
+	// まとめても数字は同じ: Crew から動かした会話・うちサブエージェントは親の会話の参考指標に入る
+	if n := nativeOf(parent.Finish(15)); n["Crew から動かした会話"].V != 2 || n["うちサブエージェント"].V != 1 || n["ターン"].V == 0 {
 		t.Errorf("Crew の参考指標 = %+v", n)
-	}
-	if len(bs[0].Credits) == 0 {
-		t.Error("クレジットは kiro-cli の履歴のものを使う")
 	}
 }
 
@@ -62,9 +65,10 @@ func TestKiroCrewUsage(t *testing.T) {
 		by[b.ID] = b
 	}
 	credits := func(id string) float64 { return math.Round(sumCredits(by[id].Credits)*100) / 100 }
-	// dashboard の会話: kiro-cli の記録 3.69 より Crew の記録 4.5 が多いので、Crew のほうを使う
-	if v := credits("1cb4ad2f-90ba-4c5f-970b-5767003804b9"); v != 4.5 {
-		t.Errorf("Crew の記録で補った会話のクレジット = %v, want 4.5", v)
+	// dashboard の会話: kiro-cli の記録 3.69 より Crew の記録 4.5 が多いので、Crew のほうを使う。
+	// サブエージェント（kiro-cli の記録 2.28）は親の会話にまとめるので、そのクレジットも足される
+	if v := credits("1cb4ad2f-90ba-4c5f-970b-5767003804b9"); v != 6.78 {
+		t.Errorf("Crew の記録で補った会話のクレジット = %v, want 6.78（4.5 + サブエージェントの 2.28）", v)
 	}
 	// legacy-key の会話: Crew の記録 0.01 のほうが少ないので、kiro-cli の記録のまま
 	if v := credits("1e13c3c1-d7ae-41c2-a324-e6a440665d9a"); v <= 0.01 {
@@ -594,5 +598,79 @@ func TestKiroCrewSubagentUsage(t *testing.T) {
 	}
 	if d := k.Detail(); !strings.Contains(d, "クレジットを補った会話 1 件") {
 		t.Errorf("detail = %q", d)
+	}
+}
+
+// サブエージェントは、親の会話（parent_session）が見つかれば、親のセッションのサブエージェントにまとめる。
+// 親が kiro-cli の会話でも、Crew の記録だけにある会話でも同じ。クレジットと参考指標の合計は、まとめる前と変わらない。
+func TestKiroCrewSubagentsFoldIntoParent(t *testing.T) {
+	kiro, crew := t.TempDir(), t.TempDir()
+	turn := func(end string, credits int) string {
+		return fmt.Sprintf(`{"end_timestamp": %q, "metering_usage": [{"value": %d, "unit": "credit"}]}`, end, credits)
+	}
+	writeFiles(t, kiro, map[string]string{
+		"sessions/cli/p1.json":  `{"session_id": "p1", "cwd": "/Users/me/app", "created_at": "2026-09-29T10:00:00Z", "session_state": {"conversation_metadata": {"user_turn_metadatas": [` + turn("2026-09-29T10:05:00Z", 1) + `]}}}`,
+		"sessions/cli/p1.jsonl": "",
+		"sessions/cli/sa1.json": `{"session_id": "sa1", "cwd": "/Users/me/app", "created_at": "2026-09-29T10:01:00Z", "session_state": {"conversation_metadata": {"user_turn_metadatas": [` + turn("2026-09-29T10:03:00Z", 2) + `]}}}`,
+		"sessions/cli/sa1.jsonl": `{"version": "v1", "kind": "Prompt", "data": {"content": [{"kind": "text", "data": "PR を見て"}], "meta": {"timestamp": 1790676060}}}` + "\n" +
+			`{"version": "v1", "kind": "AssistantMessage", "data": {"content": [{"kind": "toolUse", "data": {"name": "fs_write", "input": {"path": "/Users/me/app/a.go"}}}]}}` + "\n",
+	})
+	usage := func(ts, slot string, credits float64) string {
+		return fmt.Sprintf(`{"_type": "tokens", "ts": %q, "slot": %q, "provider": "acp", "model": "auto", "credits": %v}`, ts, slot, credits)
+	}
+	writeFiles(t, crew, map[string]string{
+		"session_map.json": `{"dashboard:chat-1-100": {"sid": "p1", "cwd": "/Users/me/app"}}`,
+		// 親が kiro-cli の会話のサブエージェント（残すもの）と、kiro-cli の会話を Crew が消したもの
+		"subagents/keep1/state.json": `{"id": "keep1", "agent": "reviewer", "task": "PR を見る", "parent_session": "dashboard:chat-1-100", "session_id": "sa1", "conversation_key": "subagent:keep1"}`,
+		"subagents/tmp2/state.json":  `{"id": "tmp2", "agent": "tester", "task": "テストを流す", "parent_session": "dashboard:chat-1-100", "session_id": "gone"}`,
+		// 親が Crew の記録だけにある会話（kiro-cli の会話がない）のサブエージェント
+		"subagents/tmp3/state.json": `{"id": "tmp3", "agent": "writer", "task": "文を書く", "parent_session": "dashboard:chat-2-200", "session_id": "gone3"}`,
+		"sessions/dashboard_chat-2-200.jsonl": `{"_type": "metadata", "title": "ドキュメント"}` + "\n" +
+			`{"role": "user", "content": "書いて", "ts": "2026-09-29T12:00:00+00:00", "meta": {"human": true}}` + "\n",
+		"usage/tokens/2026-09-29.jsonl": strings.Join([]string{
+			usage("2026-09-29T11:00:00+00:00", "subagent:tmp2", 0.5),
+			usage("2026-09-29T12:01:00+00:00", "subagent:tmp3", 0.25),
+			usage("2026-09-29T12:00:30+00:00", "dashboard:chat-2-200", 1),
+		}, "\n") + "\n",
+	})
+	k := &KiroCLI{Home: kiro, CrewHome: crew}
+	bs := load(t, k)
+	ids := []string{}
+	total, subs := 0.0, 0.0
+	for _, b := range bs {
+		ids = append(ids, b.ID)
+		f := b.Finish(15)
+		total += f.Credits
+		subs += nativeOf(f)["うちサブエージェント"].V
+	}
+	if len(bs) != 2 {
+		t.Fatalf("会話 = %v, want 親の 2 件だけ", ids)
+	}
+	if math.Abs(total-4.75) > 1e-9 || subs != 3 {
+		t.Errorf("クレジットの合計 = %v（want 4.75: p1 の 3.5 + Crew の記録だけの親の 1.25）, うちサブエージェント = %v（want 3）", total, subs)
+	}
+	p1 := find(bs, "p1")
+	if p1 == nil || len(p1.Subagents) != 2 {
+		t.Fatalf("p1 のサブエージェント = %+v", p1)
+	}
+	f := p1.Finish(15)
+	if a := f.Subagents[0]; a.Type != "reviewer" || a.Desc != "PR を見る" || a.Start == nil || a.End == nil {
+		t.Errorf("1 つ目（時刻の順）= %+v", a)
+	}
+	if a := f.Subagents[1]; a.Type != "tester" || a.Desc != "テストを流す" {
+		t.Errorf("2 つ目 = %+v", a)
+	}
+	if f.NPrompts != 0 {
+		t.Errorf("サブエージェントへの依頼は、人の依頼として数えない: %d", f.NPrompts)
+	}
+	if want := float64(time.Date(2026, 9, 29, 11, 0, 0, 0, time.UTC).Unix()); f.End != want { // tester は親の最後の記録より後に動いた
+		t.Errorf("親の終わり = %v, want %v（サブエージェントが動いた時刻も親の作業に入れる）", f.End, want)
+	}
+	if f.Credits != 3.5 {
+		t.Errorf("p1 のクレジット = %v, want 3.5（自分の 1 + reviewer の 2 + tester の 0.5）", f.Credits)
+	}
+	doc := find(bs, "crew:dashboard:chat-2-200")
+	if doc == nil || len(doc.Subagents) != 1 || doc.Subagents[0].Type != "writer" {
+		t.Fatalf("Crew の記録だけにある親 = %+v", doc)
 	}
 }

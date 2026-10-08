@@ -212,6 +212,95 @@ func subagentTitle(info CrewInfo) string {
 	return title
 }
 
+// crewHeld は、出す前の Crew の会話。サブエージェントの会話は、親の会話（parent_session の会話キー）が見つかれば
+// その会話のサブエージェントにまとめる（Claude Code・Codex と同じく、親のセッションの中に出す）。親が見つからなければ、そのまま出す。
+type crewHeld struct {
+	list    []heldCrew
+	parents map[string]*core.Builder // 会話キー（crewSlot でそろえたもの）→ 親になれる会話
+	byPath  map[string]*core.Builder // 会話の記録だけがある会話（記録のファイル → 会話）
+}
+
+type heldCrew struct {
+	b    *core.Builder
+	info *CrewInfo // わからなければ nil
+}
+
+// add は Crew の会話を 1 つ預かる。key はその会話の会話キー（サブエージェントなら親の会話キー）。
+func (h *crewHeld) add(b *core.Builder, info *CrewInfo, key string) {
+	h.list = append(h.list, heldCrew{b: b, info: info})
+	if (info == nil || !info.Subagent) && key != "" {
+		if k := crewSlot(key); h.parents[k] == nil {
+			h.parents[k] = b
+		}
+	}
+}
+
+// flush はサブエージェントを親の会話にまとめてから、全部の会話を出す。
+func (h *crewHeld) flush(home string, emit func(*core.Builder)) {
+	folded := map[*core.Builder]bool{}
+	for _, x := range h.list {
+		if x.info == nil || !x.info.Subagent || x.info.Key == "" {
+			continue
+		}
+		parent := h.parents[crewSlot(x.info.Key)]
+		if parent == nil && home != "" {
+			parent = h.byPath[crewTranscriptPath(home, x.info.Key)]
+		}
+		if parent == nil || parent == x.b {
+			continue
+		}
+		foldCrewSubagent(parent, x.b, *x.info)
+		folded[x.b] = true
+	}
+	for _, x := range h.list {
+		if folded[x.b] {
+			continue
+		}
+		sort.SliceStable(x.b.Subagents, func(i, j int) bool { return lessTime(x.b.Subagents[i].Start, x.b.Subagents[j].Start) })
+		emit(x.b)
+	}
+}
+
+// lessTime は、時刻のあるものを先に、早い順に並べる。
+func lessTime(a, b *float64) bool {
+	if a == nil || b == nil {
+		return a != nil && b == nil
+	}
+	return *a < *b
+}
+
+// foldCrewSubagent はサブエージェントの会話を、親の会話のサブエージェントとして入れる。
+// クレジット・Crew の参考指標（Crew から動かした会話・うちサブエージェントも）・編集したファイルは親の会話の数字に入れる
+// （まとめる前と、合計は変わらない）。トークンとドル額はサブエージェントの使用量として入り、親のセッションの合計に足される。
+// サブエージェントが動いた時刻は、親の会話で AI が動いていた時刻にする（Claude Code と同じく、作業時間に入り、待たせ時間にならない）。
+func foldCrewSubagent(parent, sub *core.Builder, info CrewInfo) {
+	for i := range sub.Times {
+		parent.Agent(&sub.Times[i])
+	}
+	parent.Measures = append(parent.Measures, sub.Measures...)
+	parent.Credits = append(parent.Credits, sub.Credits...)
+	for _, f := range sub.EditedFiles() {
+		parent.Edited(f)
+	}
+	var start, end *float64
+	if len(sub.Times) > 0 {
+		ts := append([]float64(nil), sub.Times...)
+		sort.Float64s(ts)
+		start, end = &ts[0], &ts[len(ts)-1]
+	}
+	var model *string
+	if m := sub.TopModel(); m != "" {
+		model = &m
+	}
+	tools := 0.0
+	for _, n := range sub.ToolCounts() {
+		tools += float64(n)
+	}
+	evs := sub.Usage.Events()
+	parent.Subagents = append(parent.Subagents, core.Subagent{Type: firstNonEmpty(info.Agent, "subagent"), Desc: info.Task,
+		Start: start, End: end, Model: model, Tools: tools, Usage: core.SumUsage(evs), Events: evs})
+}
+
 // crewRow は Crew の会話の 1 行。
 type crewRow struct {
 	t     *float64
