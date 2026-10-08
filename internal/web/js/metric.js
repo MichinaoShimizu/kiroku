@@ -1,6 +1,6 @@
-// 上の帯の数字を押したときの内訳（日ごと・エージェントごと・プロジェクトごと・モデルごと・セッション）
+// 上の帯とサマリーの数字を押したときの内訳（日ごと・エージェントごと・プロジェクトごと・モデルごと・セッション）
 /* ── 数字の内訳 ──
-   上の帯の数字（トークン・目安コスト・月末の見込み・クレジット・作業時間など）を押すと、画面の真ん中のダイアログで内訳を出す。
+   上の帯とサマリーの数字（トークン・目安コスト・月末の見込み・クレジット・作業時間など）を押すと、画面の真ん中のダイアログで内訳を出す。
    日ごと・エージェントごと・プロジェクトごと・モデルごとは期間の集計（Go）をそのまま使うので、合計と一致する。
    セッションの一覧だけは、期間にかかったセッションの、セッション全体の値（期間の外の分も入る） */
 const BRK = {
@@ -13,6 +13,7 @@ const BRK = {
   days: {n: "Active days", h: "active", v: x => x.active, f: v => v ? dur(v) : "—"},
   sessions: {n: "Sessions / prompts", h: "prompts", v: x => x.prompts, f: v => `${Math.round(v)}`, ses: s => s.nPrompts},
   limits: {n: "Usage limit hits", h: "limits"},
+  compactions: {n: "Compactions", h: "compactions"},
   commits: {n: "Git commits", h: "gitCommits", v: x => x.commits, f: v => `${Math.round(v)}`},
 };
 const sesTok = s => [s.usage, ...(s.subagents || []).map(a => a.usage)].reduce((t,u) => t + (u ? u.in+u.out+u.cw+u.cw1h+u.cr : 0), 0);
@@ -51,11 +52,12 @@ function openMetric(id, from){
     big = `≈ ${m.f(val)}`;
     body = `<div class="mcalc"><div><small>So far</small><b>${esc(m.f(so))}</b></div><span>÷</span><div><small>Days so far</small><b>${pj.days}</b></div><span>×</span><div><small>Days in the month</small><b>${nd}</b></div><span>=</span><div><small>Month-end</small><b>≈ ${esc(m.f(val))}</b></div></div>
       <p class="note">About ${esc(m.f(avg))} a day. The faded bars are the days still to come at that pace.</p>` + mDays(w, m, {avg}) + mBars("So far, by agent", agents, m) + mBars("So far, by project", projs, m);
-  } else if (id === "limits"){
-    const H2 = limitHits(ws, we); big = `${H2.length}`;
-    const by = {}; H2.forEach(x => by[x.s.source] = (by[x.s.source] || 0) + 1);
+  } else if (id === "limits" || id === "compactions"){ // 起きた時刻の一覧：エージェントごと・プロジェクトごとと、いつどのセッションで
+    const L = id === "limits", H2 = L ? limitHits(ws, we) : compactionsOf(ws, we); big = `${H2.length}`;
+    const by = (key, mk) => { const o = {}; H2.forEach(x => o[x.s[key]] = (o[x.s[key]] || 0) + 1); return Object.entries(o).map(([k, v]) => mk(k, v)); };
     const cm = {f: v => `${v}`};
-    body = mBars("By agent", Object.entries(by).map(([k, v]) => ({name: k, c: agColor(k), mark: agMark(k), v})), cm) +
+    body = mBars("By agent", by("source", (k, v) => ({name: k, c: agColor(k), mark: agMark(k), v})), cm) +
+      mBars("By project", by("project", (k, v) => ({name: k, c: projColor(k), v})), cm) +
       `<h3>When</h3><div class="msess">${H2.map(x => sesCardH(x.s, `${md(x.t)} ${hm(x.t)} · ${esc(x.s.project)}${x.r ? ` · resets ${esc(x.r)}` : ""}`)).join("")}</div>`;
   } else {
     const tot = id === "tokens" ? u.tokens : id === "cost" ? costOf(u) : id === "credits" ? u.credits : id === "active" || id === "days" ? w.active : id === "sessions" ? w.prompts : (w.git || {}).commits || 0;

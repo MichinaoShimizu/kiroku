@@ -384,6 +384,13 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .stat .v small{font-size:var(--fs-xs);font-weight:500;color:var(--ink-2);margin-left:2px}
 .stat .s{font-size:var(--fs-xs);color:var(--ink-3);font-variant-numeric:tabular-nums;line-height:1.5;margin-top:2px}
 /* 記録されていない指標（norecStat）：数字のカードより軽く。塗らずに点線の枠（枠のぶん padding を 1px 減らす）、数字の代わりに控えめな文、1 行を使わない */
+/* 押すと内訳を開く数（statH の m）：値のボタンの ::after で枠全体を押せるようにし、「?」と印はその上に重ねる */
+.stat.mstat{position:relative;transition:background .15s var(--ease)}
+.stat.mstat:hover{background:color-mix(in oklab,var(--acc) 8%,var(--surface-2))}
+.stat.mstat .v{display:block;width:100%;text-align:left}
+.stat.mstat .v::after{content:"";position:absolute;inset:0;border-radius:inherit}
+.stat.mstat .v:focus-visible{outline:none}.stat.mstat .v:focus-visible::after{outline:2px solid var(--acc);outline-offset:-2px}
+.stat.mstat .hb,.stat.mstat .fmark{position:relative;z-index:1}
 .stat.norec{background:none;border:1px dashed var(--rule-2);padding:10px 11px 9px;min-height:0}
 .stat.norec .v{font:500 var(--fs-md)/1.4 var(--sans);color:var(--ink-2);letter-spacing:0;margin-top:4px}
 .stat.norec:last-child:nth-child(odd){grid-column:auto}

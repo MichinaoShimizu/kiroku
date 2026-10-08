@@ -142,6 +142,21 @@ async function run(env) {
     check("閉じるとカードにフォーカスが戻る", await p.evaluate(id => { const a = document.activeElement; return a.dataset.id === id && !!a.closest("#review"); }, id));
   });
 
+  await step("サマリーの数字から内訳が開く", async () => {
+    const v = p.locator('#review .stat [data-metric="cost"]');
+    check("サマリーの目安コストを押せる", await v.count() === 1);
+    await v.scrollIntoViewIfNeeded();
+    const s = await p.locator("#review .stat.mstat:has([data-metric=cost]) .s").boundingBox(); // 値の下の一言を押しても開く（枠全体が押せる）
+    await p.mouse.click(s.x + 3, s.y + 3); await pause();
+    check("押すと内訳のダイアログが開く", await p.evaluate(() => document.querySelector("#md").open && document.querySelector("#mdh").textContent === "Estimated cost"));
+    await p.keyboard.press("Escape"); await pause();
+    check("閉じると押した数字にフォーカスが戻る", await p.evaluate(() => document.activeElement.dataset.metric === "cost" && !!document.activeElement.closest("#review")));
+    const hb = p.locator("#review .stat.mstat:has([data-metric=cost]) .hb");
+    await hb.click(); await pause();
+    check("枠の中の ? は説明を開き、内訳は開かない", await p.evaluate(() => !document.querySelector("#hpop").hidden && !document.querySelector("#md").open));
+    await p.keyboard.press("Escape"); await pause();
+  });
+
   await step("セッションを AI と振り返る", async () => {
     const run = p.locator(".run[data-sid]").first();
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();

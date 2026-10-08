@@ -38,8 +38,9 @@ const dHead = (eyebrow, title, when, meta) => `<div class="eyebrow"><span class=
    secH:   パネルや詳細の中の見出し（h3）。h があれば「?」を付ける */
 const panelH = (n, t, s, h) => `<div class="ph">${n == null ? "" : `<span class="no">${n}</span>`}<h3>${t}${hb(h)}</h3>${s ? `<span>${s}</span>` : ""}</div>`;
 const secH = (t, h) => `<h3>${t}${hb(h)}</h3>`;
-/* 数の枠：k は名前、v は値（HTML）、s は下の一言（HTML）、h は「?」の説明の id。記録しないエージェントだけなら norecStat */
-const statH = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s ? `<div class="s">${s}</div>` : ""}</div>`;
+/* 数の枠：k は名前、v は値（HTML）、s は下の一言（HTML）、h は「?」の説明の id、m は押すと開く内訳（metric.js の BRK の id）。
+   m があれば値をボタンにし、枠全体を押せるようにする（「?」と印は枠の上に重ねて、別に押せる）。記録しないエージェントだけなら norecStat */
+const statH = (k, v, s, h, m) => `<div class="stat${m ? " mstat" : ""}"><div class="k">${k}${hb(h)}</div>${m ? `<button type="button" class="v" data-metric="${m}" aria-haspopup="dialog" title="Click for the breakdown">${v}</button>` : `<div class="v">${v}</div>`}${s ? `<div class="s">${s}</div>` : ""}</div>`;
 /* 空のときの一言：text は HTML（呼ぶ側でエスケープする） */
 const noneH = text => `<p class="none">${text}</p>`;
 /* コードの枠：text は文字（ここでエスケープする）。cls は枠に足すクラス、extra はコピーの前に置くもの（HTML。「Open」のリンクなど） */
