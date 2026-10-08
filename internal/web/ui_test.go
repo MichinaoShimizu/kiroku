@@ -96,3 +96,15 @@ func TestUIRulesCatch(t *testing.T) {
 		}
 	}
 }
+
+// 詳細の中にも出る部品（ボタン・チップ・カード）は transition:all を使わない。
+// all だと、詳細を開いたときに引き継いだ visibility まで遅れて、開いた直後のボタンが空の枠に見える。
+func TestNoTransitionAllInDrawerParts(t *testing.T) {
+	for _, line := range strings.Split(style, "\n") {
+		for _, sel := range []string{".pill{", ".segc button{", ".chip{", ".card{"} {
+			if strings.HasPrefix(line, sel) && strings.Contains(line, "transition:all") {
+				t.Errorf("%s uses transition:all", sel)
+			}
+		}
+	}
+}

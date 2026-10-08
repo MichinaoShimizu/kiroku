@@ -53,10 +53,11 @@ header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px s
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 .iconbtn{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;color:var(--ink-2);transition:background .2s var(--ease),color .2s}
 .iconbtn:hover{background:var(--surface-2);color:var(--ink)}
-.pill{height:30px;padding:0 12px;border:1px solid var(--rule-2);border-radius:8px;font-size:var(--fs-sm);color:var(--ink-2);background:var(--surface);transition:all .2s var(--ease);white-space:nowrap}
+.pill{height:30px;padding:0 12px;border:1px solid var(--rule-2);border-radius:8px;font-size:var(--fs-sm);color:var(--ink-2);background:var(--surface);transition:color .2s var(--ease),background-color .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease);white-space:nowrap}
+/* transition は変わるものだけにする（all だと、詳細を開いたときに引き継いだ visibility まで 0.2 秒遅れ、ボタンが空の枠に見える） */
 .pill:hover{border-color:var(--ink-3);color:var(--ink)}
 .segc{display:inline-flex;padding:3px;border-radius:10px;background:var(--surface-2);gap:2px}
-.segc button{height:26px;padding:0 10px;border-radius:7px;font-size:var(--fs-sm);color:var(--ink-2);transition:all .2s var(--ease);white-space:nowrap}
+.segc button{height:26px;padding:0 10px;border-radius:7px;font-size:var(--fs-sm);color:var(--ink-2);transition:color .2s var(--ease),background-color .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease);white-space:nowrap}
 .segc button:hover{color:var(--ink)}
 .segc button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
 .search{position:relative}
@@ -104,7 +105,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .legend .zoom button{height:24px;min-width:26px;padding:0 8px}
 /* 週のカレンダーの右端の印の見方（カレンダーと同じ形の印を、流れに置き直す） */
 .cbsel select{height:28px;border:1px solid var(--rule-2);border-radius:8px;background:var(--surface);color:var(--ink-2);font:inherit;font-size:var(--fs-sm);padding:0 6px}
-.chip{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 10px 0 9px;border-radius:7px;font-size:var(--fs-sm);color:var(--ink-2);border:1px solid var(--rule);background:var(--surface);transition:all .2s var(--ease);white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 10px 0 9px;border-radius:7px;font-size:var(--fs-sm);color:var(--ink-2);border:1px solid var(--rule);background:var(--surface);transition:color .2s var(--ease),background-color .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease),opacity .2s var(--ease);white-space:nowrap}
 .chip:hover{border-color:var(--rule-2)}
 .chip .dot{width:8px;height:8px;border-radius:50%;background:var(--c)}
 .chip .n{font-size:var(--fs-xs);color:var(--ink-3);font-variant-numeric:tabular-nums}
@@ -403,7 +404,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .prow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .prow .tm{color:var(--ink-2);font-variant-numeric:tabular-nums}
 .prow .pc{text-align:right;color:var(--ink-3);font-variant-numeric:tabular-nums}
-.card{display:block;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--rule);border-radius:10px;margin-bottom:8px;transition:all .2s var(--ease);background:var(--surface)}
+.card{display:block;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--rule);border-radius:10px;margin-bottom:8px;transition:color .2s var(--ease),background-color .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease),transform .2s var(--ease);background:var(--surface)}
 .card.ag,.srow.ag{background:linear-gradient(180deg,color-mix(in oklab,var(--ag) 7%,var(--surface)),var(--surface) 70px)} /* セッション名で始まるカードは、どこでもエージェントの色のグラデーション */
 .card:hover{border-color:var(--rule-2);box-shadow:var(--shadow);transform:translateY(-1px)}
 .card .ti{font-weight:600;display:flex;align-items:center;min-width:0}

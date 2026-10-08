@@ -12,6 +12,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - The resume command moved to the top of the right column in session details, so you no longer scroll past files, models and tools to reach it
 
+### Fixed
+
+- Opening details no longer shows the buttons in them ("Everything / Only user prompts", "Copy prompts", "Copy review prompt") and session cards as empty boxes for a moment: they now appear together with the panel instead of 0.2 seconds later
+
 ## v0.26.0 - 2026-10-08
 
 ### Added
