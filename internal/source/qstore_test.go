@@ -417,3 +417,92 @@ func TestQStoreContextUsage(t *testing.T) {
 		t.Errorf("上限を超えた見積もり = %+v", n)
 	}
 }
+
+// コンパクションで最近のターンを残すと、先頭に残ったツールの結果（ToolUseResults）を CLI が Prompt に書き換える
+// （conversation.rs の enforce_conversation_invariants と message.rs の replace_content_with_tool_use_results）。
+// user の時刻はツールの結果のまま（なし）で、request_metadata はある。人のプロンプトではないので数えない。
+func TestQStoreToolResultsRewrittenAsPrompt(t *testing.T) {
+	t0 := time.Date(2026, 9, 29, 1, 0, 0, 0, time.UTC)
+	ms := func(sec int) int64 { return t0.Add(time.Duration(sec) * time.Second).UnixMilli() }
+	meta := func(start, end int) map[string]any {
+		return map[string]any{"model_id": "m-real", "request_start_timestamp_ms": ms(start), "stream_end_timestamp_ms": ms(end)}
+	}
+	history := []any{
+		map[string]any{ // 書き換えられたツールの結果（時刻なし・request_metadata あり）
+			"user":             map[string]any{"content": map[string]any{"Prompt": map[string]any{"prompt": "total 8\ndrwxr-xr-x  2 me  staff"}}},
+			"assistant":        map[string]any{"Response": map[string]any{"content": "ファイルは 2 つです"}},
+			"request_metadata": meta(10, 12),
+		},
+		map[string]any{
+			"user":             map[string]any{"timestamp": t0.Add(60 * time.Second).Format(time.RFC3339), "content": map[string]any{"Prompt": map[string]any{"prompt": "次へ"}}},
+			"assistant":        map[string]any{"Response": map[string]any{"content": "はい"}},
+			"request_metadata": meta(61, 63),
+		},
+	}
+	b := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})[0]
+	if len(b.Prompts) != 1 || b.Prompts[0].Text != "次へ" {
+		t.Errorf("プロンプト = %+v（書き換えられたツールの結果は数えない）", b.Prompts)
+	}
+	if len(b.Notes) != 1 || b.Notes[0].Kind != "output" || b.Notes[0].T == nil || *b.Notes[0].T != float64(t0.Unix()+10) {
+		t.Errorf("Notes = %+v, want ツールの出力 1 つ（依頼を送った時刻）", b.Notes)
+	}
+	if f := b.Finish(15); len(f.Models) != 1 || f.Models[0][0] != "m-real" {
+		t.Errorf("モデル = %v（モデルへの依頼なので数える）", f.Models)
+	}
+}
+
+// 応答がタイムアウトしたとき CLI が入れる決まった文（mod.rs の RESPONSE_TIMEOUT_CONTENT）は、モデルの応答ではない。
+func TestQStoreResponseTimeoutIsNotReply(t *testing.T) {
+	t0 := time.Date(2026, 9, 29, 1, 0, 0, 0, time.UTC)
+	at := func(sec int) string { return t0.Add(time.Duration(sec) * time.Second).Format(time.RFC3339) }
+	prompt := func(text string, sec int) map[string]any {
+		return map[string]any{"timestamp": at(sec), "content": map[string]any{"Prompt": map[string]any{"prompt": text}}}
+	}
+	timeout := map[string]any{"Response": map[string]any{"content": "Response timed out - message took too long to generate"}}
+	history := []any{
+		map[string]any{"user": prompt("大きな表を作って", 0), "assistant": timeout},
+		map[string]any{"user": prompt("You took too long to respond - try to split up the work into smaller steps.", 300), "assistant": map[string]any{"Response": map[string]any{"content": "分けて作ります"}}, "request_metadata": map[string]any{"model_id": "m-real"}},
+		[]any{prompt("もう一度", 600), timeout},                                // 古い [user, assistant] の形でも同じ
+		map[string]any{"user": prompt("小さくして", 900), "assistant": timeout}, // 再試行の前に終わった
+	}
+	f := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})[0].Finish(15)
+	if len(f.Prompts) != 3 {
+		t.Fatalf("プロンプト = %+v", f.Prompts)
+	}
+	if r := f.Prompts[0].Reply; r == nil || r.Text != "分けて作ります" {
+		t.Errorf("応答 = %+v（タイムアウトの決まった文は応答にしない）", r)
+	}
+	if r := f.Prompts[1].Reply; r != nil {
+		t.Errorf("古い形の応答 = %+v（タイムアウトの決まった文は応答にしない）", r)
+	}
+	if r := f.Prompts[2].Reply; r != nil {
+		t.Errorf("最後の応答 = %+v（タイムアウトの決まった文は応答にしない）", r)
+	}
+	if len(f.Models) != 1 || f.Models[0][0] != "m-real" {
+		t.Errorf("モデル = %v（タイムアウトの行は数えない）", f.Models)
+	}
+}
+
+// JSON の壊れた行は飛ばして残りを読み、エラーを返す（「計測の状態」に出す）。
+func TestQStoreBrokenJSONIsReported(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "data.sqlite3")
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if _, err := db.Exec(`CREATE TABLE conversations (key TEXT, value TEXT)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO conversations VALUES (?, ?), (?, ?)`, "/ok", qPromptConv(t, "ok", "一"), "/broken", `{"history": [`); err != nil {
+		t.Fatal(err)
+	}
+	var out []*core.Builder
+	err = (&QStore{Label: "Amazon Q", DB: path}).Load(func(b *core.Builder) { out = append(out, b) })
+	if err == nil || !strings.Contains(err.Error(), path) {
+		t.Errorf("エラー = %v（壊れた行を知らせる）", err)
+	}
+	if len(out) != 1 || out[0].ID != "ok" {
+		t.Errorf("会話 = %d 件（読めた行は読む）", len(out))
+	}
+}

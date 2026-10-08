@@ -2,6 +2,14 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Amazon Q / Kiro CLI (SQLite): tool output is no longer counted as a prompt you typed. After `/compact` keeps recent turns (or the automatic compaction retries keeping the last one), and when tool results follow a plain reply, the CLI stores the tool output as a prompt; kiroku now shows it as "Command output" and counts that turn as one the agent ran on its own
+- Amazon Q / Kiro CLI (SQLite): "Response timed out - message took too long to generate", which the CLI writes itself when a response times out, is no longer shown as the model's reply, and in the oldest history format no longer counts as a model use
+- Amazon Q / Kiro CLI (SQLite): conversations whose stored JSON is broken are now reported in "Data sources" instead of being skipped without a word
+
 ## v0.27.1 - 2026-10-08
 
 ### Fixed
