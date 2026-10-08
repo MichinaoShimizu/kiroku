@@ -2,6 +2,14 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- Session, commit, push and pull request details: the project and branch tags now start with a folder icon and a branch icon (and say "Project" and "Branch" in a tooltip and to screen readers), so the two look different at a glance
+- Copy buttons (Copy, Copy prompts, Copy review prompt, Copy prompt, Copy setting, Copy command, Copy image) now start with a copy icon, which turns into a check mark for a moment after copying
+- Prompt flow: the legend for "Commands the user typed" now shows the `/` and `>_` icons used on those prompts, instead of only a different color
+
 ## v0.27.3 - 2026-10-09
 
 ### Security

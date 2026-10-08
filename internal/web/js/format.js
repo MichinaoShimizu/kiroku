@@ -75,7 +75,8 @@ function searchText(s){
   return t;
 }
 function toast(msg, ms){ const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(()=>t.classList.remove("on"), ms || 1600); }
-async function copy(text, msg, ms){ try { await navigator.clipboard.writeText(text); toast(msg || "Copied", ms); } catch(e){ toast("Couldn't copy"); } }
+async function copy(text, msg, ms, btn){ try { await navigator.clipboard.writeText(text); toast(msg || "Copied", ms); copied(btn); } catch(e){ toast("Couldn't copy"); } }
+function copied(btn){ if (!btn) return; btn.classList.add("ok"); clearTimeout(btn._ok); btn._ok = setTimeout(() => btn.classList.remove("ok"), 1600); } // copyBtn の印を ✓ に
 const ICON = { light:'<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6L6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></svg>',
   dark:'<svg class="i" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>' };
 function applyTheme(){ document.documentElement.setAttribute("data-theme", st.theme); // ボタンには、押すと切り替わる先のテーマを出す

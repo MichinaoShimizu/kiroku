@@ -225,7 +225,7 @@ function renderYear(){
   <h3>An image to share</h3>
   <canvas class="yrcard" id="yrcard" width="1600" height="900" role="img" aria-label="${esc(`Image to share: ${dur(x.active)} with AI in ${x.y}`)}"></canvas>
   <div class="yropts">${opt("out", "Commits and PRs")}${opt("type", "Your light")}${opt("grade", "Skill")}${opt("agents", "Agent breakdown")}</div>
-  <div class="yract"><button class="pill" id="yrsave">Save as PNG</button><button class="pill" id="yrcopy">Copy image</button></div>
+  <div class="yract"><button class="pill" id="yrsave">Save as PNG</button>${copyBtn("Copy image", `id="yrcopy"`)}</div>
   <p class="note">The image shows only totals such as active time and sessions, and the streaks of light. Prompts, project names, branches, files and estimated cost are never included. It is made in this browser and sent nowhere.</p>
 
   <h3>Your light</h3>
@@ -247,7 +247,7 @@ function renderYear(){
   $("#yrsave").onclick = async () => { const b = await blob(); if (!b) return toast("Couldn't make the image");
     const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `kiroku-${x.y}.png`; document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000); toast("Saved the PNG"); };
-  $("#yrcopy").onclick = async () => { try { await navigator.clipboard.write([new ClipboardItem({"image/png": blob()})]); toast("Copied the image"); }
+  $("#yrcopy").onclick = async () => { try { await navigator.clipboard.write([new ClipboardItem({"image/png": blob()})]); toast("Copied the image"); copied($("#yrcopy")); }
     catch(e){ toast("Couldn't copy the image. Save it as a PNG instead", 2600); } };
   drawPlate(); drawCard();
   const sc = dlg.querySelector(".yrscroll"); sc.scrollLeft = sc.scrollWidth; // 狭い画面では、新しい記録の側を見せる

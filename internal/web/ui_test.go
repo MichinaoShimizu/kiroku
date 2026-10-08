@@ -21,6 +21,8 @@ var uiRules = []struct {
 	{regexp.MustCompile(`class="eyebrow"><span class="dot">`), "詳細パネルの頭は dHead で作る", ""},
 	{regexp.MustCompile(`class="none"`), "空のときの一言は noneH で作る", ""},
 	{regexp.MustCompile(`class="code[ "]`), "コードの枠（とコピー）は codeH で作る", ""},
+	{regexp.MustCompile(`<button[^>]*>Copy`), "コピーのボタンは copyBtn で作る（印と、できたときの ✓）", ""},
+	{regexp.MustCompile("`<span>\\$\\{esc\\(\\w+\\.(?:project|branch)\\)\\}</span>`"), "詳細の頭のプロジェクト・ブランチの札は projTag・branchTag で作る", ""},
 	{regexp.MustCompile(`\.toLocaleString\(`), "数のカンマ区切りは commas（format.js）で書く", "js/format.js"},
 	{regexp.MustCompile(`class="k muted"`), "見出しは本物の見出し（secH か h3）にする。小さな灰色の div で代わりにしない", ""},
 	// 余白・文字の大きさ・色は style.css に書く。style="" に書いてよいのは、データから決まる位置・大きさとカスタムプロパティ（--c など）だけ
@@ -76,6 +78,8 @@ func TestUIRulesCatch(t *testing.T) {
 		"`<p class=\"none\">None</p>`",
 		"`<div class=\"code\"><code>${esc(cmd)}</code></div>`",
 		"`${n.toLocaleString(LOC())} characters`",
+		"`<button class=\"pill\" id=\"pcopy\">Copy prompts</button>`",
+		"[`<span>${esc(s.project)}</span>`, s.branch && `<span>${esc(s.branch)}</span>`]",
 	}
 	for _, s := range bad {
 		if len(uiViolations("x.js", s)) == 0 {
@@ -89,6 +93,8 @@ func TestUIRulesCatch(t *testing.T) {
 		"`<span style=\"left:${l}%;width:${w}%\">`",
 		"`<div class=\"eyebrow\">Breakdown</div>`",
 		"`<div class=\"codes\">`",
+		"`${copyBtn(\"Copy prompts\", `id=\"pcopy\"`)}`",
+		"`<i class=\"gtag\">${esc(p.ref)}</i> ${esc(p.project)}</span>`",
 	}
 	for _, s := range ok {
 		if v := uiViolations("x.js", s); len(v) != 0 {

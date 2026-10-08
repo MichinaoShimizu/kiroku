@@ -3,7 +3,7 @@
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
   const head = `<div class="rvhead"><h2>${M ? "Monthly summary" : "Weekly summary"}</h2><p>Rough figures for reflecting on how you work. They are not for comparing people or for evaluations.</p>${w ? `<button class="pill rpt" id="rpttog" aria-expanded="${!!st.rpt}" aria-controls="rptbox">${`${M ? "Monthly" : "Weekly"} report draft`}</button>` : ""}</div>${w ? `<section class="panel rptbox" id="rptbox"${st.rpt ? "" : " hidden"} aria-label="${`${M ? "Monthly" : "Weekly"} report draft`}">
-    <div class="askbar"><button class="pill" id="rptcopy">Copy</button><button class="pill" id="rptclose">Close</button>
+    <div class="askbar">${copyBtn("Copy", `id="rptcopy"`)}<button class="pill" id="rptclose">Close</button>
       <span class="muted">Markdown with what you did, commits and pull requests for each project. Session names are the start of your prompts, so edit them before pasting.</span></div>
     <pre class="askpre" id="rptpre">${esc(reportText(w, M))}</pre></section>` : ""}`;
   const WK = $("#worth"); $("#sres").hidden = true; $("#sres").innerHTML = "";
@@ -41,7 +41,7 @@ function summary(){
     ${(() => { const {ws, we} = period(), RP = repeatsOf(ws, we); return RP.length ? RP.slice(0, 3).map(c => sesCardH(sesById(c.id, snipOf(c.text, 90)), `${c.n} times in ${c.ids.size} sessions ${uThis(unit)} · last on ${md(c.last)}`)).join("") : ""; })()}
     ${w.friction.length || repeatsOf(period().ws, period().we).length ? "" : noneH("No sessions with possible friction and no repeated prompts.")}</section>
   <section class="panel ask">${panelH(6, "Ask AI for suggestions", "A prompt that asks for suggestions based on this data")}
-    <div class="askbar"><button class="pill" id="askcopy">Copy prompt</button>
+    <div class="askbar">${copyBtn("Copy prompt", `id="askcopy"`)}
       <span class="muted">Paste it into the AI agent you use. kiroku never calls an AI. It includes session names (parts of your prompts) and project names, so review it before sending.</span></div>
     <details class="askd"><summary>Show the prompt</summary><pre class="askpre" id="askpre">${esc(askPrompt(w, pw, M))}</pre></details></section>
   <section class="panel metap">${measure(w)}${foot()}</section></div>`;
@@ -55,9 +55,9 @@ function summary(){
   const ka = R.querySelector("#keeparch"); if (ka) ka.onclick = () => { ka.disabled = true; keepArchive(); };
   const rt = R.querySelector("#rpttog"), rb = R.querySelector("#rptbox"), rpt = open => { st.rpt = open; rb.hidden = !open; rt.setAttribute("aria-expanded", open); if (open) rb.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest"}); else rt.focus(); };
   if (rt && rb){ rt.onclick = () => rpt(!st.rpt); R.querySelector("#rptclose").onclick = () => rpt(false); }
-  const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy($("#rptpre").textContent, "Copied. Session names are the start of your prompts, so edit them before pasting", 4500);
+  const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy($("#rptpre").textContent, "Copied. Session names are the start of your prompts, so edit them before pasting", 4500, rc);
 
-  const ac = R.querySelector("#askcopy"); if (ac) ac.onclick = () => copy($("#askpre").textContent);
+  const ac = R.querySelector("#askcopy"); if (ac) ac.onclick = () => copy($("#askpre").textContent, "", 0, ac);
   bindCopy(R); bindHelp(R); bindHelp(WK);
   if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }
