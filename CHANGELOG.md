@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Kiro IDE (before v1.0): credits and turns from chats you hid from Kiro's chat list, and from executions not linked to any chat, are now counted instead of dropped, so the totals match what Kiro recorded. They appear as sessions without prompts ("Kiro IDE hidden chat" or "Kiro IDE executions without a chat"); hidden chats' prompts are still not shown. An execution linked to more than one chat is counted once
+- Kiro IDE (before v1.0): the model and times of each execution now also come from the `.chat` files Kiro keeps per workspace, so sessions show the model that actually ran instead of the one selected in the chat, and prompts get the time they ran instead of the chat's creation time
+
 ## v0.27.1 - 2026-10-08
 
 ### Fixed

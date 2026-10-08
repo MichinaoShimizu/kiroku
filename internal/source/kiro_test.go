@@ -3,8 +3,11 @@ package source
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
 
 // writeFiles は path（dir からの相対）→ 中身 のファイルを作る。
@@ -431,6 +434,130 @@ func TestKiroIDELegacyExecutions(t *testing.T) {
 	}
 	if fb.End < 1790650060 {
 		t.Errorf("b の終わり = %v, want 実行の終わり以降", fb.End)
+	}
+}
+
+// 一覧で隠した会話（hidden: true）と、どの会話にも結べない実行のクレジットも数える（codeburn はすべての実行ファイルを数える）。
+// 隠した会話の依頼は出さず、実行だけを依頼のないセッションにまとめる。見える会話に結んだ実行は二度数えない。
+func TestKiroIDELegacyHiddenAndUnlinkedExecutions(t *testing.T) {
+	gs := t.TempDir()
+	ws := "0123456789abcdef0123456789abcdef"
+	writeFiles(t, gs, map[string]string{
+		"workspace-sessions/d3M=/sessions.json": `[
+  {"sessionId": "a", "dateCreated": 1790643600000},
+  {"sessionId": "h", "hidden": true, "dateCreated": 1790643600000, "workspaceDirectory": "/Users/me/hidden-ws"}
+]`,
+		"workspace-sessions/d3M=/a.json": `{"history": [
+  {"message": {"role": "user", "content": "画面を作って"}},
+  {"message": {"role": "assistant", "content": "On it."}, "executionId": "exec-1"}
+]}`,
+		"workspace-sessions/d3M=/h.json": `{"history": [{"message": {"role": "user", "content": "見せない"}}]}`,
+		// 見える会話 a の実行（history と chatSessionId の両方で結ぶが、1 回だけ数える）
+		ws + "/s1/exec-1": `{"executionId": "exec-1", "chatSessionId": "a", "startTime": 1790643660000, "usageSummary": [{"usage": 1, "unit": "credit"}]}`,
+		// 隠した会話 h の実行
+		ws + "/s2/exec-2": `{"executionId": "exec-2", "chatSessionId": "h", "startTime": 1790644000000, "modelId": "claude-opus-4.5", "usageSummary": [{"usage": 2, "unit": "credit"}]}`,
+		ws + "/s2/exec-3": `{"executionId": "exec-3", "sessionId": "h", "startTime": 1790644100000, "usageSummary": [{"usage": 4, "unit": "credit"}]}`,
+		// 一覧にない会話の実行と、会話の ID のない実行
+		ws + "/s3/exec-4": `{"executionId": "exec-4", "chatSessionId": "gone", "startTime": 1790645000000, "usageSummary": [{"usage": 8, "unit": "credit"}]}`,
+		ws + "/s4/exec-5": `{"executionId": "exec-5", "startTime": 1790646000000, "usageSummary": [{"usage": 16, "unit": "credit"}]}`,
+		// 時刻のない実行はファイルの更新時刻に数える
+		ws + "/s5/exec-6": `{"executionId": "exec-6", "usageSummary": [{"usage": 32, "unit": "credit"}]}`,
+	})
+	bs := load(t, &KiroIDELegacy{Storages: []string{gs}})
+	total, turns := 0.0, 0.0
+	for _, b := range bs {
+		f := b.Finish(15)
+		if f == nil {
+			t.Fatalf("%s に時刻がない（画面に出ない）", b.ID)
+		}
+		total += f.Credits
+		turns += nativeOf(f)["ターン"].V
+		if b.ID != "a" && f.NPrompts != 0 {
+			t.Errorf("%s の依頼 = %+v, want なし（隠した会話の依頼は出さない）", b.ID, f.Prompts)
+		}
+	}
+	if total != 63 || turns != 6 {
+		t.Errorf("クレジットの合計 = %v, ターン = %v, want 63・6（どの実行も 1 回だけ）", total, turns)
+	}
+	if a := find(bs, "a"); a == nil || a.Finish(15).Credits != 1 {
+		t.Fatalf("a = %+v, want クレジット 1", a)
+	}
+	if len(bs) != 5 {
+		t.Errorf("セッション数 = %d, want 5（a・隠した h・一覧にない gone・会話の ID のない s4・s5）", len(bs))
+	}
+	var h *core.Builder
+	for _, b := range bs {
+		if strings.HasSuffix(b.ID, ":h") {
+			h = b
+		}
+	}
+	if h == nil {
+		t.Fatal("隠した会話の実行がない")
+	}
+	if f := h.Finish(15); f.Credits != 6 || h.Project != "/Users/me/hidden-ws" || len(f.Models) != 1 || f.Models[0][0] != "claude-opus-4.5" {
+		t.Errorf("隠した会話 = クレジット %v, 作業場所 %q, モデル %v", f.Credits, h.Project, f.Models)
+	}
+}
+
+// .chat（<32 桁の 16 進>/<名前>.chat。kiro-history・codeburn の形）の metadata から、実行のモデルと時刻を埋める。
+// 会話とは実行 ID で結ぶ。実行ファイルにある値はそのまま使い、同じ実行は二度数えない。
+func TestKiroIDELegacyChatFiles(t *testing.T) {
+	gs := t.TempDir()
+	ws := "0123456789abcdef0123456789abcdef"
+	writeFiles(t, gs, map[string]string{
+		"workspace-sessions/d3M=/sessions.json": `[{"sessionId": "a", "dateCreated": 1790643600000}]`,
+		"workspace-sessions/d3M=/a.json": `{"selectedModel": "claude-sonnet-4.5", "history": [
+  {"message": {"role": "user", "content": "画面を作って"}},
+  {"message": {"role": "assistant", "content": "On it."}, "executionId": "exec-1"},
+  {"message": {"role": "user", "content": "色を変えて"}},
+  {"message": {"role": "assistant", "content": "On it."}, "executionId": "exec-2"},
+  {"message": {"role": "user", "content": "テストを足して"}},
+  {"message": {"role": "assistant", "content": "On it."}, "executionId": "exec-3"}
+]}`,
+		// 実行ファイルにモデルも時刻もない実行は、.chat の値で埋める
+		ws + "/s1/exec-1": `{"executionId": "exec-1", "chatSessionId": "a", "usageSummary": [{"usage": 1, "unit": "credit"}]}`,
+		ws + "/c1.chat":   `{"executionId": "exec-1", "actionId": "act", "chat": [{"role": "human", "content": "画面を作って"}], "metadata": {"modelId": "claude-opus-4.5", "startTime": 1790643660000, "endTime": 1790643720000}}`,
+		// 同じ実行のもう 1 つの .chat は使わない
+		ws + "/c1b.chat": `{"executionId": "exec-1", "chat": [], "metadata": {"modelId": "claude-haiku-4.5", "startTime": 1790643000000}}`,
+		// 実行ファイルのない実行は .chat だけから
+		ws + "/c2.chat": `{"executionId": "exec-2", "chat": [], "metadata": {"modelId": "claude-haiku-4.5", "startTime": 1790644000000, "endTime": 1790644100000}}`,
+		// 実行ファイルの値は .chat より先
+		ws + "/s1/exec-3": `{"executionId": "exec-3", "modelId": "claude-opus-4.5", "startTime": 1790645000000, "usageSummary": [{"usage": 2, "unit": "credit"}]}`,
+		ws + "/c3.chat":   `{"executionId": "exec-3", "chat": [], "metadata": {"modelId": "claude-haiku-4.5", "startTime": 1790649000000}}`,
+		// ワークスペースの直下でない .chat・32 桁の 16 進でないフォルダ・実行 ID のない .chat は読まない
+		ws + "/s1/x.chat":     `{"executionId": "exec-2", "metadata": {"modelId": "other-1"}}`,
+		"not-a-ws/y.chat":     `{"executionId": "exec-2", "metadata": {"modelId": "other-2"}}`,
+		ws + "/noid.chat":     `{"chat": [], "metadata": {"modelId": "other-3", "startTime": 1790643000000}}`,
+		"outside/exec-2.chat": `{"executionId": "exec-2", "metadata": {"modelId": "other-4"}}`,
+		ws + "/.dot.chat":     `{"executionId": "exec-2", "metadata": {"modelId": "other-5"}}`,
+	})
+	// シンボリックリンクの .chat は読まない
+	if err := os.Symlink(filepath.Join(gs, "outside", "exec-2.chat"), filepath.Join(gs, ws, "a-link.chat")); err != nil {
+		t.Skip(err)
+	}
+	bs := load(t, &KiroIDELegacy{Storages: []string{gs}})
+	if len(bs) != 1 {
+		t.Fatalf("セッション数 = %d, want 1（.chat の実行はどれも a のもの）", len(bs))
+	}
+	f := bs[0].Finish(15)
+	models := map[any]any{}
+	for _, m := range f.Models {
+		models[m[0]] = m[1]
+	}
+	if len(models) != 2 || models["claude-opus-4.5"] != 2 || models["claude-haiku-4.5"] != 1 {
+		t.Errorf("モデル = %v, want opus 2・haiku 1（selectedModel ではなく .chat のモデル）", f.Models)
+	}
+	want := []float64{1790643660, 1790644000, 1790645000}
+	if len(f.Prompts) != len(want) {
+		t.Fatalf("依頼 = %+v", f.Prompts)
+	}
+	for i, p := range f.Prompts {
+		if p.T == nil || *p.T != want[i] {
+			t.Errorf("依頼 %d の時刻 = %v, want %v（.chat の startTime。実行ファイルの値が先）", i, p.T, want[i])
+		}
+	}
+	if n := nativeOf(f); f.Credits != 3 || n["ターン"].V != 3 {
+		t.Errorf("クレジット = %v, ターン = %v, want 3・3", f.Credits, n["ターン"].V)
 	}
 }
 
