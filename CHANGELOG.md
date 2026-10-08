@@ -2,12 +2,14 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
-## v0.27.2 - 2026-10-08
+## Unreleased
 
 ### Changed
 
 - Session details: "Resume" is now at the top, right under the session's title, at any window width. Before, in a narrower window it came after the prompt flow
 - Session and commit details: changed files now start with a file icon, and every path is a link. Paths that have no link to a commit on the remote open the file on this computer (in the HTML file; `kiroku serve` can't open local files from the browser), and pull requests start with the pull request icon
+
+## v0.27.2 - 2026-10-08
 
 ### Fixed
 
