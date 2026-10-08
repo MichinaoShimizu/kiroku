@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- The live demo and the screenshots now show several agents, as kiroku does: Codex CLI, Kiro CLI and Kiro IDE sessions (with Codex subagents and Kiro credits) alongside Claude Code, instead of Claude Code alone
+
 ## v0.27.2 - 2026-10-08
 
 ### Fixed
