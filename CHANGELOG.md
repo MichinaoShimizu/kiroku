@@ -4,6 +4,11 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Changed
+
+- Session details: "Resume" is now at the top, right under the session's title, at any window width. Before, in a narrower window it came after the prompt flow
+- Session and commit details: changed files now start with a file icon, and every path is a link. Links to the remote are marked ↗; paths that have no link to a commit on the remote open the file on this computer as it is now (in the HTML file; `kiroku serve` can't open local files from the browser), and pull requests start with the pull request icon
+
 ### Fixed
 
 - Kiro Crew subagents are no longer shown as sessions of their own (on the calendar and in the list) once Crew has cleaned up their folder, which it does an hour after a subagent's result is delivered. kiroku now also finds the parent conversation from the `subagent/spawned` records in the parent's crew log (`crew-log/sessions/`), so these subagents stay inside their parent's session with their agent name and prompt. Totals don't change

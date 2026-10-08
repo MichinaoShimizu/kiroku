@@ -20,6 +20,17 @@ const envs = [
 const b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {}); // CHROMIUM: Playwright の Chromium を取ってこられない環境向け
 // 画面の幅ごとの流れは互いに関係がないので、並べて動かす（待ち時間がほとんどなので、CI が速くなる）。
 // 出力は幅ごとにためておき、終わってから順に出す
+// clickableRun は、カレンダーのセッションのブロックのうち、真ん中がほかのブロックに隠れていない最初のもの（Playwright は真ん中を押す）。
+// ダミーデータは今日を基準に作るので、日によっては最初のブロックに、並行したセッションのブロックが重なる
+async function clickableRun(p) {
+  const i = await p.evaluate(() => [...document.querySelectorAll(".run[data-sid]")].findIndex(e => {
+    e.scrollIntoView({ block: "center" });
+    const b = e.getBoundingClientRect();
+    return e.contains(document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2));
+  }));
+  return p.locator(".run[data-sid]").nth(Math.max(i, 0));
+}
+
 async function run(env) {
   const out = [`# ${env.name}`];
   let failed = 0;
@@ -99,7 +110,7 @@ async function run(env) {
   });
 
   await step("セッションの詳細", async () => {
-    const run = p.locator(".run[data-sid]").first();
+    const run = await clickableRun(p);
     check("カレンダーにセッションがある", await run.count() > 0);
     await run.scrollIntoViewIfNeeded();
     await run.click(); await pause();
@@ -174,7 +185,7 @@ async function run(env) {
   });
 
   await step("セッションを AI と振り返る", async () => {
-    const run = p.locator(".run[data-sid]").first();
+    const run = await clickableRun(p);
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
     const btn = p.locator("#panel .flowbar #sreview");
     check("振り返りのプロンプトのボタンが、プロンプトの流れの見出しに並ぶ", await btn.count() === 1);
@@ -185,14 +196,14 @@ async function run(env) {
 
   await step("詳細と矢印キー・ブラウザの戻る", async () => {
     const label = () => p.locator("#rd").innerText(), before = await label();
-    const run = p.locator(".run[data-sid]").first();
+    const run = await clickableRun(p);
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
     check("詳細が開く", await drawerOpen());
     await p.keyboard.press("ArrowLeft"); await pause();
     check("詳細を開いているあいだは ← で週が変わらない", await drawerOpen() && await label() === before, await label());
     await p.goBack(); await pause();
     check("ブラウザの戻るで詳細が閉じ、ページに残る", !await drawerOpen() && await p.evaluate(() => typeof DATA === "object"), p.url());
-    await run.click(); await pause();
+    await (await clickableRun(p)).click(); await pause(); // 戻ると位置が変わり、さっきのブロックが隠れることがある
     await p.keyboard.press("Escape"); await pause();
     check("Esc で閉じると、積んだ履歴も消える", !await drawerOpen() && await p.evaluate(() => history.state === null));
     await p.locator("#mode button").first().focus(); await p.keyboard.press("ArrowRight"); await pause();
