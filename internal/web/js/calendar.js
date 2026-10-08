@@ -42,6 +42,7 @@ function render(){
   M ? monthGrid(shown, ws, we, todayKey) : timeline(shown, inRange, ws, we, todayKey);
   edgeFade($("#tl")); // 月表示や空の週では消す
   $("#skipcal").hidden = !!st.q; // 検索の最中は、結果がカレンダーの上にあり、下のサマリーは空
+  lastFlags = []; // 見直す候補は表示中の期間のものだけ（検索中や記録のない期間に、前の期間の候補を詳細に出さない）
   try { st.q ? searchPanel() : summary(); } catch(e){ // サマリーで失敗しても、カレンダーと詳細は使えるようにする
     console.error(e); $("#worth").hidden = true; $("#review").innerHTML = `<div class="panel">${noneH(`Couldn't show the summary for this period (${esc(e.message)}). Please let us know in an issue.`)}</div>`; }
   const gc = st.sel && st.sel.startsWith("git:") && (META.git || []).find(x => "git:" + x.hash === st.sel);

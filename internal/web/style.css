@@ -207,6 +207,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .flagsum[hidden],.srbox[hidden],.skip[hidden]{display:none}
 .hint .htrend{margin-top:10px;padding-top:10px;border-top:1px dashed var(--rule-2)}
 #worth{padding:10px 14px;border:1px solid var(--rule);border-radius:12px;background:var(--surface)}
+.sflags{margin:14px 0 0} /* 詳細の頭の、このセッションが関係する見直す候補 */
 .srbox{margin:0 0 18px}
 .srbox .srgrid .panel{max-height:min(52vh,520px);overflow:auto;overscroll-behavior:contain} /* 結果が多くても、カレンダーを画面の外へ押し出さない（結果は枠の中でスクロール） */
 .srmore{margin-top:10px}

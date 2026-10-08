@@ -2,6 +2,16 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Added
+
+- Session details show "Worth a look" under the title when the session is one of the sessions behind a flagged metric in the period shown. Press a name to open the same dialog as in the summary. "Oversized prompts" and "Repeated prompts" now keep every related session (the dialog still shows 6 and counts the rest), so every session behind them gets the mark
+
+### Changed
+
+- The resume command moved to the top of the right column in session details, so you no longer scroll past files, models and tools to reach it
+
 ## v0.26.0 - 2026-10-08
 
 ### Added

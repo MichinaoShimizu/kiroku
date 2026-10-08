@@ -212,10 +212,10 @@ function findList(w, pw, unit){
     add("outSessions", 16, `${w.outSessions} of ${w.outBase ?? w.sessions} sessions reached a commit or pull request`, "Many sessions may have stopped partway", "Under 25%, with 5+ sessions", null, `${pctOf(w.outSessions, w.outBase ?? w.sessions)}% of sessions ${P} reached a commit or pull request`);
   const BG = bigOf(ws, we);
   if (BG.n >= 3)
-    add("bigPrompts", 11, `${plural(BG.n, "prompt")} of ${commas(BIG_PROMPT)}+ characters (longest ${commas(BG.max)})`, "Pasting long logs or documents makes every later response re-read a heavier input, and buries the instructions that matter", `3+ prompts of ${commas(BIG_PROMPT)}+ characters`, BG.ids.slice(0, 6), `${plural(BG.n, "prompt")} ${P} crossed the threshold`);
+    add("bigPrompts", 11, `${plural(BG.n, "prompt")} of ${commas(BIG_PROMPT)}+ characters (longest ${commas(BG.max)})`, "Pasting long logs or documents makes every later response re-read a heavier input, and buries the instructions that matter", `3+ prompts of ${commas(BIG_PROMPT)}+ characters`, BG.ids, `${plural(BG.n, "prompt")} ${P} crossed the threshold`);
   const RP = repeatsOf(ws, we);
   if (RP.length)
-    add("repeats", 9, `You wrote a similar prompt ${RP[0].n} times across ${RP[0].ids.size} sessions ${P} ("${snipOf(RP[0].text, 40)}")`, "A prompt you type every time can be written once as a command or in CLAUDE.md", `${REPEAT_MIN}+ characters, in ${REPEAT_SES}+ sessions`, [...new Set([RP[0].id, ...RP[0].ids])].slice(0, 6), RP.length === 1 ? `1 prompt ${P} was written in ${REPEAT_SES} or more sessions` : `${RP.length} different prompts ${P} were each written in ${REPEAT_SES} or more sessions`);
+    add("repeats", 9, `You wrote a similar prompt ${RP[0].n} times across ${RP[0].ids.size} sessions ${P} ("${snipOf(RP[0].text, 40)}")`, "A prompt you type every time can be written once as a command or in CLAUDE.md", `${REPEAT_MIN}+ characters, in ${REPEAT_SES}+ sessions`, [...new Set([RP[0].id, ...RP[0].ids])], RP.length === 1 ? `1 prompt ${P} was written in ${REPEAT_SES} or more sessions` : `${RP.length} different prompts ${P} were each written in ${REPEAT_SES} or more sessions`);
   if (w.switchesAvg >= 5)
     add("switches", 14, `You switched projects ${w.switchesAvg} times a day on average`, "Each context switch tends to add ramp-up time and rework", "5+ per day on average", null, `you averaged ${w.switchesAvg} switches a day ${P}`);
   if (!w.focus.length && w.active >= 240)
@@ -231,6 +231,10 @@ function flagSum(F){ // 期間の要点の下（#worth）に、基準を超え�
     ? ids.map(id => `<button class="flink" data-goto="${id}">${esc(H()[id].n)}</button>`).join("")
     : `<span class="muted">No metric crossed a threshold</span>`}`;
 }
+function sesFlags(s){ // 詳細の頭に、このセッションが関係する見直す候補（表示中の期間のもの）の名前だけを出す。押すとサマリーと同じダイアログ
+  const ids = [...new Set(lastFlags.filter(f => f.ids.includes(s.id)).map(f => GOTO[f.k] || f.k))];
+  return ids.length ? `<div class="flagsum sflags"><span class="lbl" title="This session is one of the sessions behind these flags">${ico("flag", "fdot")}Worth a look</span>${ids.map(id => `<button class="flink" data-goto="${id}" aria-haspopup="dialog">${esc(H()[id].n)}</button>`).join("")}</div>` : "";
+}
 const flagSes = ids => ids.map(id => { const s = DATA.find(x => x.id === id); return s ? sesCardH(s, sesMeta(s)) : ""; }).join("");
 /* 見直す候補の 1 つを、画面の真ん中のダイアログで開く（サマリーへ移らずに、何が見えて、なぜ大事で、次に何をするかを読める）。
    同じ指標に印の付く候補（GOTO）はまとめて出す。セッションを押すと、ダイアログを閉じて詳細を開く */
@@ -241,7 +245,7 @@ function openWorth(id, from){
   D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" id="wkclose" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form><div class="eyebrow">${ico("flag", "fdot")}Worth a look</div><h2 id="wkh">${esc(h.n)}</h2>${body}
     <dl class="wkhelp"><dt>What it is</dt><dd>${esc(h.d)}</dd><dt>Doesn't tell you</dt><dd>${esc(h.x)}</dd><dt>What to try</dt><dd>${esc(h.a)}</dd></dl>`;
   D.querySelectorAll(".fss [data-id]").forEach(b => b.onclick = () => { D.close(); select(b.dataset.id); });
-  D.onclose = () => { if (from && from.isConnected && !st.sel && !document.activeElement?.closest?.("#review")) from.focus(); }; // 閉じたら押したリンクへ（サマリーやセッションへ移ったときは除く）
+  D.onclose = () => { if (from && from.isConnected && (!st.sel || from.closest("#panel")) && !document.activeElement?.closest?.("#review")) from.focus(); }; // 閉じたら押したリンクへ（サマリーや別のセッションへ移ったときは除く）
   D.showModal(); D.scrollTop = 0;
   const hd = $("#wkh"); hd.tabIndex = -1; hd.focus(); } // 最初のボタンではなく見出しへ（読み上げで何のダイアログかわかり、セッションを押した表示にもならない）
 function placeFlags(R, F){ // 基準を超えた指標の名前の横に、小さな印だけを付ける（押すと「Worth a look」と同じダイアログ。中身はダイアログにだけ出し、サマリーで繰り返さない）

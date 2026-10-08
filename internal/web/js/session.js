@@ -14,6 +14,7 @@ function detail(s){
   const P = $("#panel");
   P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
     ${dHead(agMark(s.source) + esc(s.source), s.title, `${md(s.start)} ${hm(s.start)} – ${sameDay ? "" : md(s.end)+" "}${hm(s.end)}`, [`<span>${esc(s.project)}</span>`, s.branch && `<span>${esc(s.branch)}</span>`])}
+    ${sesFlags(s)}
     <div class="dcols"><div class="dcol">
     <div class="mini tight">
       <div><div class="k">Active time</div><div class="v">${dur(active,true)}</div></div>
@@ -39,6 +40,7 @@ function detail(s){
           <div class="lane"><span style="left:${l}%;width:${Math.min(w,100-l)}%"></span></div>
           <div class="ft">${a.start?`<span>${hm(a.start)}${a.end?"–"+hm(a.end):""}</span>`:""}${a.start&&a.end?`<span>${dur((a.end-a.start)/60)}</span>`:""}${tt?`<span>${tok(tt)} tokens</span>`:t.reportedTokens?`<span>${tok(t.reportedTokens)} tokens (reported)</span>`:""}${t.cost?`<span>${usd(t.cost)}</span>`:""}${a.model?`<span>${esc(a.model)}</span>`:""}${a.tools?`<span>${plural(a.tools, "tool call")}</span>`:""}</div></div>`; }).join("")}` : ""}
     </div><div class="dcol">
+    ${s.resume ? `<h3>Resume</h3>${codeH(s.resume, "resume")}` : ""}
     ${sessionCommits(s)}
     ${s.prs && s.prs.length ? `<h3>Pull requests created · ${s.prs.length}</h3><ul class="files">${s.prs.map(u => `<li title="${esc(u)}"><span>${ext(u, esc(u.replace(/^https?:\/\//, "")))}</span></li>`).join("")}</ul>` : ""}
     <h3>Files changed${s.files.length || records(s.source, "files") ? ` · ${s.nFiles}` : ""}</h3>
@@ -50,10 +52,9 @@ function detail(s){
     ${s.tools.length ? s.tools.map(([k,v],i)=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track2"><span style="width:${v/maxT*100}%;background:var(--c${i % 8})"></span></span><span class="n">${v}</span></div>`).join("") : noneH("None recorded")}
     ${s.native && s.native.length ? `<h3>${`${esc((s.source))} metrics`}</h3>${nativeRows(s.native)}<p class="note">Numbers this agent records itself. Definitions differ from other agents.</p>` : ""}</details>
     ${s.file ? `<h3>History file</h3>${codeH(s.file, "", `<a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" target="_blank" rel="noopener">Open</a>`)}` : ""}
-    ${s.resume ? `<h3>Resume</h3>${codeH(s.resume, "resume")}` : ""}
-
   </div></div></div>`;
   bindGitEvents(P);
+  P.querySelectorAll(".sflags [data-goto]").forEach(b => b.onclick = () => openWorth(b.dataset.goto, b));
   const sr = P.querySelector("#sreview"); if (sr) sr.onclick = () => copy(sessionPrompt(s, active, med), "Copied a prompt that asks an AI to review this session. It includes your prompts, so check it before sending", 5000);
   P.querySelectorAll(".pexp").forEach(b => b.onclick = () => { const li = b.closest("li"), open = b.getAttribute("aria-expanded") !== "true";
     li.querySelector(".pshort").hidden = open; li.querySelector(".pfull").hidden = !open; b.setAttribute("aria-expanded", open); b.textContent = open ? "Show less" : pexpLabel(li.dataset.full ? {} : s.prompts[b.dataset.i]); });
