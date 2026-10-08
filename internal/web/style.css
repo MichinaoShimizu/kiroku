@@ -501,6 +501,7 @@ button.more{display:block;text-align:left}
 .files li{display:flex;align-items:center;gap:6px}.files li>.ic{flex:none;color:var(--ink-3)}
 .files .fp{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:rtl;text-align:left} /* 長いパスは頭を省いて、ファイル名を見せる */
 .files .fp>span{direction:ltr;unicode-bidi:plaintext}
+.files .fp a:focus-visible,.drawer .gfiles span>a:focus-visible{outline-offset:-2px} /* 行は overflow:hidden なので、枠を内側に描いて切れないように */
 .drawer .gfiles span>.ic{color:var(--ink-3);margin-right:6px;vertical-align:-2px}
 .drawer .dresume{margin-top:14px}.drawer .dresume>h3:first-child{margin-top:0} /* 再開のコマンドは、画面の幅によらず、詳細のいちばん上に */
 

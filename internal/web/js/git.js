@@ -17,8 +17,8 @@ function localHref(path, base){
   const p = abs(path) ? path : base && abs(base) ? `${base.replace(/[\\/]+$/, "")}/${path}` : "";
   return p ? fileHref(p) : "";
 }
-/* リンク：この PC のファイル（file://）。外のページと同じく新しいタブで開く */
-function fileA(url, label){ return url && url.startsWith("file://") ? `<a class="xl" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label}</a>` : ext(url, label); }
+/* リンク：この PC のファイル（file://）。外のページと同じく新しいタブで開く。リモートのファイルには ↗ を添えて、この PC のファイルと見分ける */
+function fileA(url, label){ return url && url.startsWith("file://") ? `<a class="xl" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label}</a>` : ext(url, url ? `${label} ↗` : label); }
 /* ── drawer: git のコミット ── */
 function commitsOf(s){ // セッションが作ったコミットと、同じプロジェクトでセッションの間（終わってから 10 分まで）のコミット
   return (META.git || []).filter(c => c.session === s.id || (!c.session && c.project === s.project && c.t >= s.start - 60 && c.t <= s.end + 600));
