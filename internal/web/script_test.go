@@ -90,6 +90,34 @@ func TestKeepRow(t *testing.T) {
 	}
 }
 
+// 内訳の件数（countBy）が、"__proto__" や "constructor" のような名前のプロジェクトも数えること。
+// metric.js は画面の DOM を触るので、countBy の 1 行だけを取り出して Node で動かす。
+func TestCountBy(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/metric.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	line := regexp.MustCompile(`(?m)^const countBy = .*$`).FindString(string(src))
+	if line == "" {
+		t.Fatal("metric.js に countBy が見つからない")
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "countby_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "countby.js")
+	if err := os.WriteFile(f, append([]byte(line+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("countBy が違う:\n%s", out)
+	}
+}
+
 // 目安コストを出せないとき（料金表にないモデルのトークンだけ）に $0.00 と出さないこと。
 // format.js は画面の DOM を触るので、costOf の 1 行だけを取り出して Node で動かす。
 func TestCostOf(t *testing.T) {
