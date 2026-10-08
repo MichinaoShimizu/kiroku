@@ -52,6 +52,8 @@ go test ./internal/core   # TestPricesMatchUpstream: the tables in usage.go must
 
 Then change the tables in `usage.go` to match, and `PricesAsOf` (the month shown in the view; the test fails if it is older than a snapshot's fetch date). The tool reads only the expected tables of the pages' Markdown versions and fails without writing anything when their shape changes; then fix its parser (`tools/prices/main.go`) rather than editing the snapshots by hand. The `Prices` workflow runs the same tool weekly (see CI).
 
+In Claude Code, the `/price-update` skill (`.claude/skills/price-update/SKILL.md`) goes through these steps, including new models' context windows, the docs, the CHANGELOG and the test data, and opens one PR.
+
 The context windows of Claude models (for Claude Code's Peak context usage and the "Long conversations" threshold) are `ContextWindows` in `internal/core/context.go`; when you update them, also change `ContextWindowAsOf`.
 
 ### Adding an agent
@@ -108,6 +110,8 @@ How the workflows are locked down:
 - GoReleaser itself is pinned (`version:` in `release.yml` and `ci.yml`), and so is syft, which GoReleaser runs to write the SBOMs (`syft-version:` of `anchore/sbom-action/download-syft` in the same two files); Dependabot tracks neither, so bump them by hand
 - Each job declares the least `permissions` it needs. Only `release` (in `release.yml`) and `tag` write to the repository, only `deploy` in `pages.yml` gets `pages: write` and `id-token: write`, only `issue` in `prices.yml` gets `issues: write` (to open the price-change issue), and `codeql.yml` and `scorecard.yml` get only `security-events: write` to upload results (plus `id-token: write` in Scorecard, to prove where a published result came from)
 - `actions/checkout` runs with `persist-credentials: false` everywhere except `tag.yml`, which pushes the tag
+
+Beyond what CI checks, the `hostile-tester` agent (`.claude/agents/hostile-tester.md`) attacks a local build with crafted history for every agent, git repositories with settings that run programs, requests to `kiroku serve` without its key or with another Host, and broken or huge input, and reports what held and what broke without changing the code. Run it after changing how history is read or shown, `kiroku serve`, git or the files kiroku writes, and before a release.
 - The release build (`release.yml`), `release-dry-run`, `e2e` and the demo build run `setup-go` with `cache: false`, so a cache written by a job that runs npm packages can't leak into the release build
 - Check the workflows with `go run github.com/rhysd/actionlint/cmd/actionlint@latest` after changing them
 
