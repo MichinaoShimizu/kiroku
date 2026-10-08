@@ -4,6 +4,11 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Changed
+
+- Session details: "Resume" is now at the top, right under the session's title, at any window width. Before, in a narrower window it came after the prompt flow
+- Session and commit details: changed files now start with a file icon, and every path is a link. Paths that have no link to a commit on the remote open the file on this computer (in the HTML file; `kiroku serve` can't open local files from the browser), and pull requests start with the pull request icon
+
 ### Fixed
 
 - Amazon Q / Kiro CLI (SQLite): tool output is no longer counted as a prompt you typed. After `/compact` keeps recent turns (or the automatic compaction retries keeping the last one), and when tool results follow a plain reply, the CLI stores the tool output as a prompt; kiroku now shows it as "Command output" and counts that turn as one the agent ran on its own

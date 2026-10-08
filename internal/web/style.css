@@ -498,8 +498,11 @@ button.more{display:block;text-align:left}
 .trow .track2 span{display:block;height:100%;border-radius:3px;background:var(--ink-3)}
 .trow .n{text-align:right;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .files{list-style:none;padding:0;margin:0;font:var(--fs-xs)/1.7 var(--mono);color:var(--ink-2)}
-.files li{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:rtl;text-align:left}
-.files li span{direction:ltr;unicode-bidi:plaintext}
+.files li{display:flex;align-items:center;gap:6px}.files li>.ic{flex:none;color:var(--ink-3)}
+.files .fp{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:rtl;text-align:left} /* 長いパスは頭を省いて、ファイル名を見せる */
+.files .fp>span{direction:ltr;unicode-bidi:plaintext}
+.drawer .gfiles span>.ic{color:var(--ink-3);margin-right:6px;vertical-align:-2px}
+.drawer .dresume{margin-top:14px}.drawer .dresume>h3:first-child{margin-top:0} /* 再開のコマンドは、画面の幅によらず、詳細のいちばん上に */
 
 /* エージェント別 */
 .ngroups{margin-top:8px}

@@ -7,13 +7,23 @@ function fileHref(path){ // HTML で見るときの履歴ファイルの file://
   const p = path.replace(/\\/g, "/");
   return "file://" + (/^[A-Za-z]:/.test(p) ? "/" : "") + p.split("/").map(encodeURIComponent).join("/").replace(/%3A/g, ":");
 }
+// localHref は、この PC のファイルを開く file:// の URL。kiroku serve（http）からは、ブラウザーが file:// を開かないので出さない。
+// 絶対パスでなければ、base（プロジェクトやリポジトリの場所）につなぐ。どちらも絶対パスでなければ出さない
+function localHref(path, base){
+  const abs = p => /^(?:\/|[A-Za-z]:[\\/])/.test(p);
+  if (LIVE || !path) return "";
+  const p = abs(path) ? path : base && abs(base) ? `${base.replace(/[\\/]+$/, "")}/${path}` : "";
+  return p ? fileHref(p) : "";
+}
+/* リンク：この PC のファイル（file://）。外のページと同じく新しいタブで開く */
+function fileA(url, label){ return url && url.startsWith("file://") ? `<a class="xl" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label}</a>` : ext(url, label); }
 /* ── drawer: git のコミット ── */
 function commitsOf(s){ // セッションが作ったコミットと、同じプロジェクトでセッションの間（終わってから 10 分まで）のコミット
   return (META.git || []).filter(c => c.session === s.id || (!c.session && c.project === s.project && c.t >= s.start - 60 && c.t <= s.end + 600));
 }
-function fileRows(files, n){
+function fileRows(files, n, repo){
   const num = v => v < 0 ? "bin" : v;
-  return `<ul class="gfiles">${files.map(f => `<li title="${esc(f.path)}"><span>${ext(f.url, esc(f.path))}</span><b><i>+${num(f.added)}</i> −${num(f.removed)}</b></li>`).join("")}</ul>${n > files.length ? `<p class="more">${`${plural(n - files.length, "more file")}`}</p>` : ""}`;
+  return `<ul class="gfiles">${files.map(f => `<li title="${esc(f.path)}"><span>${ico("file")}${fileA(f.url || localHref(f.path, repo), esc(f.path))}</span><b><i>+${num(f.added)}</i> −${num(f.removed)}</b></li>`).join("")}</ul>${n > files.length ? `<p class="more">${`${plural(n - files.length, "more file")}`}</p>` : ""}`;
 }
 function fileLink(s, abs){ // セッションの間のコミットのうち、最後にそのファイルを変えたコミットでのリンク
   const p = abs.replace(/\\/g, "/");
@@ -42,7 +52,7 @@ function commitDetail(c){
     ${c.url ? `<p class="dact">${ext(c.url, "Open this commit on the remote ↗", "pill")}</p>` : ""}
     </div><div class="dcol">
     <h3>Files changed · ${c.nFiles}</h3>
-    ${c.files.length ? fileRows(c.files, c.nFiles) : noneH("None")}
+    ${c.files.length ? fileRows(c.files, c.nFiles, c.repo) : noneH("None")}
     <h3>Repository</h3>${codeH(`git -C ${c.repo} show ${c.hash}`)}
   </div></div></div>`;
   P.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.id));
