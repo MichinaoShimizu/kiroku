@@ -58,6 +58,17 @@ Flagship models
 
 Short context: ≤272K input tokens. Long context: >272K input tokens.
 
+Cyber models
+
+### Grouped Pricing Table data
+
+| Model | Short context input | Short context cached input | Short context cache writes | Short context output | Long context input | Long context cached input | Long context cache writes | Long context output |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| gpt-9-sol | $2.00 | $0.20 | $2.50 | $10.00 | $4.00 | $0.40 | $5.00 | $15.00 |
+| gpt-8.5-cyber | $12.50 | $1.25 | - | $75.00 | - | - | - | - |
+
+Multimodal models
+
 Specialized models
 
 Standard
@@ -114,6 +125,7 @@ func TestParseOpenAI(t *testing.T) {
 		"| gpt-8.5 | 5 | 0.5 | - | 30 | 10 | 1 | - | 45 |\n" +
 		"| gpt-8.5-pro | 30 | - | - | 180 | 60 | - | - | 270 |\n" +
 		"| gpt-8-mini | 0.25 | 0.025 | - | 2 | - | - | - | - |\n" +
+		"| gpt-8.5-cyber | 12.5 | 1.25 | - | 75 | - | - | - | - |\n" +
 		"| gpt-8.3-codex | 1.75 | 0.175 | - | 14 | - | - | - | - |\n"
 	if got != want {
 		t.Errorf("got\n%s\nwant\n%s", got, want)
@@ -144,6 +156,7 @@ func TestParseRejectsUnexpectedShape(t *testing.T) {
 		"openai no codex":           {parseOpenAI, strings.Replace(openaiPage, "| Codex | gpt-8.3-codex | $1.75", "| Other | gpt-8.3-codex | $1.75", 1)},
 		"openai no specialized":     {parseOpenAI, strings.Replace(openaiPage, "Specialized models", "Other models", 1)},
 		"openai missing output":     {parseOpenAI, strings.Replace(openaiPage, "| gpt-8-mini | $0.25 | $0.025 | - | $2.00 |", "| gpt-8-mini | $0.25 | $0.025 | - | - |", 1)},
+		"openai cyber no table":     {parseOpenAI, strings.Replace(openaiPage, "Cyber models\n\n### Grouped Pricing Table data\n\n| Model |", "Cyber models\n\n### Grouped Pricing Table data\n\n| Name |", 1)},
 		"openai duplicate standard": {parseOpenAI, openaiPage + "\n### Standard pricing data\n"},
 	}
 	for name, c := range bad {

@@ -342,7 +342,8 @@ var (
 	openaiLong  = regexp.MustCompile(`Short context: ≤(\d+)K input tokens\. Long context: >(\d+)K input tokens\.`)
 )
 
-// parseOpenAI は「### Standard pricing data」の表（gpt-5 以降）と、Specialized models の Standard の表の Codex の行を読む。
+// parseOpenAI は「### Standard pricing data」の表（gpt-5 以降）と、Cyber models の表（あれば）と、
+// Specialized models の Standard の表の Codex の行を読む。
 func parseOpenAI(page string) (string, error) {
 	lines := strings.Split(strings.ReplaceAll(page, "\r\n", "\n"), "\n")
 	at := lineIndex(lines, 0, "### Standard pricing data")
@@ -365,42 +366,32 @@ func parseOpenAI(page string) (string, error) {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Long context: more than %sK input tokens in one request (the whole request is billed at the long-context rates).\n\n", threshold)
 	b.WriteString("| Model ID | Input | Cached input | Cache write | Output | Long input | Long cached input | Long cache write | Long output |\n|---|---|---|---|---|---|---|---|---|\n")
-	seen := map[string]bool{}
-	n := 0
-	for _, r := range ts[0].rows {
-		if len(r) != len(openaiHeader) {
-			return "", fmt.Errorf("row %q has %d cells", r, len(r))
-		}
-		if !strings.HasPrefix(r[0], "gpt-") {
-			continue
-		}
-		mm := openaiModel.FindStringSubmatch(r[0])
-		if mm == nil {
-			if strings.HasPrefix(r[0], "gpt-4") || strings.HasPrefix(r[0], "gpt-3") {
-				continue // Codex が使わない古いモデル
-			}
-			return "", fmt.Errorf("unexpected model name %q", r[0])
-		}
-		id := mm[1]
-		v, err := openaiPrices(id, r[1:])
-		if err != nil {
-			return "", err
-		}
-		if v[0] == "-" || v[3] == "-" {
-			return "", fmt.Errorf("%s: no input or output price", id)
-		}
-		if (v[4] == "-") != (v[7] == "-") {
-			return "", fmt.Errorf("%s: long-context input and output prices must both be given or both missing", id)
-		}
-		if seen[id] {
-			return "", fmt.Errorf("model %s appears twice", id)
-		}
-		seen[id] = true
-		n++
-		fmt.Fprintf(&b, "| %s | %s |\n", id, strings.Join(v, " | "))
+	seen := map[string][]string{} // 読んだモデルと料金（Cyber models の表に同じ行が重ねて載る）
+	n, err := openaiRows(&b, ts[0].rows, seen, false)
+	if err != nil {
+		return "", err
 	}
 	if n < 3 {
 		return "", fmt.Errorf("only %d gpt-5 or later models in the standard price table", n)
+	}
+
+	// Cyber models（Flagship の Standard と同じ列の表。gpt-5.5-cyber など）。Standard にもある行は読み飛ばす
+	if cy := lineIndex(lines, at, "Cyber models"); cy >= 0 {
+		end := lineIndex(lines, cy, "Specialized models")
+		if mm := lineIndex(lines, cy, "Multimodal models"); mm >= 0 && (end < 0 || mm < end) {
+			end = mm
+		}
+		tl := tableLine(lines, cy, openaiHeader)
+		if end < 0 || tl >= end {
+			return "", errors.New("no price table under Cyber models")
+		}
+		cyber := tablesAfter(lines, tl, openaiHeader)
+		if len(cyber) == 0 {
+			return "", errors.New("the table under Cyber models has no separator row")
+		}
+		if _, err := openaiRows(&b, cyber[0].rows, seen, true); err != nil {
+			return "", err
+		}
 	}
 
 	// Specialized models の Standard（Fast の前）の表の Codex の行
@@ -437,10 +428,10 @@ func parseOpenAI(page string) (string, error) {
 		if v[0] == "-" || v[3] == "-" {
 			return "", fmt.Errorf("%s: no input or output price", id)
 		}
-		if seen[id] {
+		if seen[id] != nil {
 			return "", fmt.Errorf("model %s appears twice", id)
 		}
-		seen[id] = true
+		seen[id] = v
 		codex++
 		fmt.Fprintf(&b, "| %s | %s | - | - | - | - |\n", id, strings.Join(v, " | "))
 	}
@@ -448,6 +439,48 @@ func parseOpenAI(page string) (string, error) {
 		return "", errors.New("no Codex models under Specialized models")
 	}
 	return b.String(), nil
+}
+
+// openaiRows は、Standard と同じ列の表の行（gpt-5 以降）を b に書き、書いた数を返す。
+// again が true なら、すでに読んだモデルの行は読み飛ばす（Standard の表の料金を使う）。
+func openaiRows(b *strings.Builder, rows [][]string, seen map[string][]string, again bool) (int, error) {
+	n := 0
+	for _, r := range rows {
+		if len(r) != len(openaiHeader) {
+			return 0, fmt.Errorf("row %q has %d cells", r, len(r))
+		}
+		if !strings.HasPrefix(r[0], "gpt-") {
+			continue
+		}
+		mm := openaiModel.FindStringSubmatch(r[0])
+		if mm == nil {
+			if strings.HasPrefix(r[0], "gpt-4") || strings.HasPrefix(r[0], "gpt-3") {
+				continue // Codex が使わない古いモデル
+			}
+			return 0, fmt.Errorf("unexpected model name %q", r[0])
+		}
+		id := mm[1]
+		v, err := openaiPrices(id, r[1:])
+		if err != nil {
+			return 0, err
+		}
+		if v[0] == "-" || v[3] == "-" {
+			return 0, fmt.Errorf("%s: no input or output price", id)
+		}
+		if (v[4] == "-") != (v[7] == "-") {
+			return 0, fmt.Errorf("%s: long-context input and output prices must both be given or both missing", id)
+		}
+		if seen[id] != nil {
+			if again {
+				continue
+			}
+			return 0, fmt.Errorf("model %s appears twice", id)
+		}
+		seen[id] = v
+		n++
+		fmt.Fprintf(b, "| %s | %s |\n", id, strings.Join(v, " | "))
+	}
+	return n, nil
 }
 
 // openaiPrices は "$1.25" や "-" の並び → 数字か "-" の並び。
