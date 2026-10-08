@@ -139,6 +139,8 @@ The version number is decided from the contents of `## Unreleased` by semantic v
 | Has `### Added` | minor |
 | Anything else (`### Changed`, `### Fixed`, `### Removed` and so on) | patch |
 
+Before that PR, run the `/docs-refresh` skill in Claude Code (`.claude/skills/docs-refresh/SKILL.md`). It checks whether the screenshots and the docs still match the view since the last release, retakes and rewrites what is out of date, trims what has grown too long, and opens one PR (or says nothing needs changing). Merge it before the release PR.
+
 Make a PR that renames `## Unreleased` in `CHANGELOG.md` to that number, like `## v0.1.8 - 2026-10-05`, and merge it into main (write it in English; its contents become the release notes as is). On merge, `.github/workflows/tag.yml` tags the version of the top section and runs Release directly. There is no need to tag by hand.
 
 If it didn't work, you can rerun it from Actions → Tag → Run workflow. Tagging and pushing by hand also still releases as before.
@@ -163,7 +165,7 @@ When you change the view (`template.html`, `style.css` and `js/*.js` in `interna
 - **Components**: build what appears in more than one place with the shared components in `js/ui.js`, not by writing the same HTML again: session cards (`sesCardH`, `sesCard`, with `sesMeta` for the line under the title), the head of the details panel (`dHead`), headings (`panelH` for a summary panel, `secH` or a plain `<h3>` inside one; never a small grey `<div>` standing in for a heading, which screen readers can't jump to), number tiles (`statH`, `norecStat`), the line shown when a list is empty (`noneH`), code with a Copy button (`codeH`), icons (`ico`) and agent badges (`agMark`). Write numbers with thousands separators through `commas` in `format.js`. Spacing, font sizes and colours go in `style.css`; a `style=""` in the script holds only positions and sizes computed from the data, and custom properties such as `--c`. `TestUIConventions` (`ui_test.go`) fails when a script outside `ui.js` builds these by hand. When you add a component, put it in `ui.js` and add its hand-written form to `uiRules`
 - **Metric explanations**: they live in `HELP` (`TestHelpMatchesGuide` checks them against the "How to read the metrics" table in `docs/guide.md`)
 - **Behavior**: check that the key flows work with `smoke.mjs` (see "The view's e2e" below). If you change element ids or key bindings, update `smoke.mjs` to match
-- **Docs**: update the README, `docs/guide.md` and the screenshots in the same change
+- **Docs**: update the README, `docs/guide.md` and the screenshots in the same change (`/docs-refresh` catches what slips through before each release)
 
 ## The view's e2e
 
@@ -185,6 +187,8 @@ The images in the README and the guide (`docs/screenshot.png`, `docs/session.png
 (cd tools/screenshots && npm ci --ignore-scripts && npx playwright install chromium)
 sh tools/screenshots/run.sh
 ```
+
+Where Playwright can't download its Chromium, point it at an installed one with `CHROMIUM=/path/to/chromium sh tools/screenshots/run.sh`.
 
 `gen.py` creates about 5 weeks of Claude Code history for 4 made-up projects, and `mkgit.py` creates matching git repositories, in a temporary directory. `capture.mjs` takes the week calendar, the weekly summary, the flagged metrics (`worth.png`) and the weekly report draft (`report.png`) for last week at 1440x900 (dark theme, Asia/Tokyo); the left column of the session whose prompt flow has the most kinds of events at 2x (`session.png`; the right column shows the dummy data's temporary paths, so it is left out); the week calendar again at 1440x754 at 2x for `og.png` (2880x1508), and the Year in review share image (1600x900) for `year.png`. While Year in review is hidden (`YEAR_ON` in `js/state.js`), `year.png` is left as it is. The `Demo` workflow adds the link-card tags that point at `og.png` with `ogp.py`; HTML you write yourself never gets them.
 
