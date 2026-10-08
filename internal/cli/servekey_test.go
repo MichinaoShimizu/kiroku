@@ -178,3 +178,29 @@ func TestProbeSendsKey(t *testing.T) {
 		t.Errorf("probe = %d, want ready", got)
 	}
 }
+
+// 中継のページは、移るまでの一瞬に白い背景や青いリンクを見せない（背景と文字はローディング画面の背景の色）。
+// 移る先はエスケープし、open.html は Referer に鍵つきの URL を出さない。
+func TestHopPage(t *testing.T) {
+	p := hopPage(`/x?a="><script>`, "")
+	for _, want := range []string{`name="color-scheme" content="light dark"`, "background:var(--bg);color:var(--bg)", "a{color:inherit;animation:show .3s 2s forwards}", "prefers-color-scheme:dark"} {
+		if !strings.Contains(p, want) {
+			t.Errorf("中継のページに %q がない: %s", want, p)
+		}
+	}
+	if strings.Contains(p, "<script>") || !strings.Contains(p, `url=/x?a=&#34;&gt;&lt;script&gt;"`) {
+		t.Errorf("移る先をエスケープしていない: %s", p)
+	}
+	dir := filepath.Join(t.TempDir(), "kiroku")
+	t.Setenv("KIROKU_CONFIG_DIR", dir)
+	old := openBrowser
+	openBrowser = func(string) {}
+	defer func() { openBrowser = old }()
+	if err := openWithKey("http://localhost:8484/", strings.Repeat("ab", 32)); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(filepath.Join(dir, "open.html"))
+	if !strings.Contains(string(b), `<meta name="referrer" content="no-referrer">`) || !strings.Contains(string(b), "color:var(--bg)") {
+		t.Errorf("open.html = %s", b)
+	}
+}
