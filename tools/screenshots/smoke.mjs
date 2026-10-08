@@ -221,7 +221,13 @@ async function run(env) {
     check("Close で閉じる", !(await p.locator("#wk").evaluate(d => d.open)));
     const ses = p.locator(".flagsum .flink").first(); await ses.scrollIntoViewIfNeeded(); await ses.click(); await pause();
     const fs = p.locator("#wk .fss .card").first();
-    if (await fs.count()){ await fs.click(); await pause();
+    if (await fs.count()){
+      // エージェントの頭文字は、題名が長くても縮まず 1 行（.fl の overflow-wrap:anywhere で「KC」が K と C の 2 行に折れていた）
+      const marks = await p.locator("#wk .fss .card .agm").evaluateAll(es => es.map(e => { const r = document.createRange(); r.selectNodeContents(e);
+        return {t: e.textContent, lines: new Set([...r.getClientRects()].map(x => Math.round(x.top))).size, fits: e.clientWidth >= r.getBoundingClientRect().width}; }));
+      const bad = marks.filter(m => m.lines !== 1 || !m.fits);
+      check("ダイアログのカードのエージェントの頭文字は 1 行に収まる", marks.length > 0 && !bad.length, JSON.stringify(bad[0] || {}));
+      await fs.click(); await pause();
       check("ダイアログのセッションを押すと、ダイアログを閉じて詳細が開く", !(await p.locator("#wk").evaluate(d => d.open)) && await drawerOpen());
       await p.keyboard.press("Escape"); await pause(); }
     await open();

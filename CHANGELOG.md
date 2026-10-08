@@ -11,6 +11,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Fixed
 
+- The agent badge on session cards in the "Worth a look" dialog no longer breaks onto two lines ("K" over "C") on narrow screens; it keeps its width next to a long session name
 - A long prompt in "Repeated prompts" is cut to one line like the other cards, instead of wrapping onto several lines; one with a long word such as a URL no longer runs past the card and makes the page scroll sideways at phone widths
 
 ## v0.24.0 - 2026-10-08
