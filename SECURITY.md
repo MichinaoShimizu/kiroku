@@ -58,7 +58,7 @@ By hand, that is:
 
 ```bash
 git clone --branch v0.13.3 https://github.com/MichinaoShimizu/kiroku.git && cd kiroku
-GOTOOLCHAIN=go1.26.8 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+GOTOOLCHAIN=go1.26.9 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
   go build -trimpath -ldflags "-s -w -X main.version=0.13.3" -o kiroku .
 sha256sum kiroku     # compare with the kiroku in kiroku_0.13.3_linux_amd64.tar.gz
 ```
