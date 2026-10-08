@@ -6,6 +6,9 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Fixed
 
+- Amazon Q / Kiro CLI (SQLite): tool output is no longer counted as a prompt you typed. After `/compact` keeps recent turns (or the automatic compaction retries keeping the last one), and when tool results follow a plain reply, the CLI stores the tool output as a prompt; kiroku now shows it as "Command output" and counts that turn as one the agent ran on its own
+- Amazon Q / Kiro CLI (SQLite): "Response timed out - message took too long to generate", which the CLI writes itself when a response times out, is no longer shown as the model's reply, and in the oldest history format no longer counts as a model use
+- Amazon Q / Kiro CLI (SQLite): conversations whose stored JSON is broken are now reported in "Data sources" instead of being skipped without a word
 - Kiro IDE (before v1.0): credits and turns from chats you hid from Kiro's chat list, and from executions not linked to any chat, are now counted instead of dropped, so the totals match what Kiro recorded. They appear as sessions without prompts ("Kiro IDE hidden chat" or "Kiro IDE executions without a chat"); hidden chats' prompts are still not shown. An execution linked to more than one chat is counted once
 - Kiro IDE (before v1.0): the model and times of each execution now also come from the `.chat` files Kiro keeps per workspace, so sessions show the model that actually ran instead of the one selected in the chat, and prompts get the time they ran instead of the chat's creation time
 
