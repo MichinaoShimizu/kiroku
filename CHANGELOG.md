@@ -16,6 +16,8 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Amazon Q and Kiro CLI (SQLite): text the CLI sends on your behalf is no longer counted as your prompt. The reason it sends when it rejects a tool whose arguments your settings forbid, the request `/todos resume` sends, and the lines an MCP prompt adds with `/prompts get` are shown as "Added by the agent" instead
 - Amazon Q and Kiro CLI (SQLite): a conversation stored under several folders (for example after `/load`) is read from its most recently saved copy, instead of whichever copy happened to come first, which could be an older, shorter one
 - Amazon Q and Kiro CLI (SQLite): rows of `data.sqlite3` that can't be read are reported in "Data sources" instead of being skipped silently
+- Kiro IDE before 1.0: a prompt that starts with the steering rules Kiro adds (`<steering-reminder>`) is counted as a prompt again, with the rules shown as a system note; before, the whole message, your request included, became a note and the prompt was not counted. Messages that hold only the environment context Kiro adds (`<EnvironmentContext>`) or its `## Included Rules` block are no longer counted as prompts, and these blocks are left out of the prompt text
+- Kiro IDE 1.0 and later: a reply placeholder (`...`) Kiro writes while a reply is streaming is no longer shown as the AI's reply
 
 ### Security
 
