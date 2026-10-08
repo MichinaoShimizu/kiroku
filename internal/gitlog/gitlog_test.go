@@ -58,6 +58,9 @@ func TestCollect(t *testing.T) {
 	if c := cs[0]; len(c.Hash) != 40 || c.URL != "https://github.com/me/app/commit/"+c.Hash || c.Files[0].URL != "https://github.com/me/app/blob/"+c.Hash+"/a.txt" {
 		t.Errorf("リンク = %q %q", c.URL, c.Files[0].URL)
 	}
+	if c := cs[0]; c.Cmd != core.GitCmd(c.Repo, "show", c.Hash) || c.Cmd == "" {
+		t.Errorf("貼るコマンド = %q", c.Cmd)
+	}
 	if cs[1].Body != "body line" {
 		t.Errorf("本文 = %q", cs[1].Body)
 	}
@@ -178,6 +181,10 @@ func TestCollectPushes(t *testing.T) {
 	// 送ったコミット（新しい順）と、push する前の位置も残す（画面の push の詳細に出す）
 	if p := ps[1]; len(p.Hashes) != 2 || p.Hashes[0] != p.Hash || p.Prev != ps[0].Hash {
 		t.Errorf("送ったコミット = %v, prev = %s, want [%s …], prev %s", p.Hashes, p.Prev, p.Hash, ps[0].Hash)
+	}
+	// 手元で見るために貼るコマンド（前の位置があれば範囲の log、なければ show）
+	if p := ps[1]; p.Cmd != core.GitCmd(p.Repo, "log --oneline", abbrev(p.Prev)+".."+abbrev(p.Hash)) || ps[0].Cmd != core.GitCmd(ps[0].Repo, "show", abbrev(ps[0].Hash)) {
+		t.Errorf("貼るコマンド = %q / %q", ps[1].Cmd, ps[0].Cmd)
 	}
 }
 

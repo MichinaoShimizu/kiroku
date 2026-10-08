@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Security
+
+- Commit and push details: the `git -C <repo> show` (or `git log`) command under "Repository" now quotes the repository path for the shell, as the Resume command already does. Before, a repository folder whose name contains shell syntax (such as `$(...)`, backticks or `;`) would run that command when you pasted it into a terminal, and a path with spaces broke the command. When the path can't be quoted safely (such as control characters, or `%` or `$` on Windows), kiroku now leaves the command out
+
 ## v0.27.3 - 2026-10-09
 
 ### Security

@@ -48,3 +48,32 @@ func TestResumeCmd(t *testing.T) {
 		}
 	}
 }
+
+// コミットと push の詳細でコピーする git のコマンドも、リポジトリのパスや ref をシェルが解釈しないこと（セキュリティ）。
+func TestGitCmd(t *testing.T) {
+	cases := []struct {
+		repo string
+		cmd  string
+		args []string
+		want string
+	}{
+		{"/Users/me/web", "show", []string{"4917468abc"}, "git -C /Users/me/web show 4917468abc"},
+		{"/Users/me/My Project", "show", []string{"abc"}, "git -C '/Users/me/My Project' show abc"},
+		{"/tmp/r$(touch pwned-dollar)`touch pwned-tick`;touch pwned-semi", "show", []string{"abc"}, "git -C '/tmp/r$(touch pwned-dollar)`touch pwned-tick`;touch pwned-semi' show abc"},
+		{"/tmp/it's", "log --oneline", []string{"aaa..bbb"}, `git -C '/tmp/it'\''s' log --oneline aaa..bbb`},
+		{"/Users/me/web", "show", []string{"abc; curl evil"}, "git -C /Users/me/web show 'abc; curl evil'"},
+		{`C:\Users\John Smith\a & calc`, "show", []string{"abc"}, `git -C "C:\Users\John Smith\a & calc" show abc`},
+		{`C:\Users\me\$(calc)`, "show", []string{"abc"}, ""},
+		{`C:\Users\me\%PATH%`, "show", []string{"abc"}, ""},
+		{"/tmp/a\nrm -rf ~", "show", []string{"abc"}, ""},
+		{"/Users/me/web\u202e", "show", []string{"abc"}, ""},
+		{"-c", "show", []string{"abc"}, ""},
+		{"/Users/me/web", "show", []string{"--output=/tmp/x"}, ""},
+		{"", "show", []string{"abc"}, ""},
+	}
+	for _, c := range cases {
+		if got := GitCmd(c.repo, c.cmd, c.args...); got != c.want {
+			t.Errorf("GitCmd(%q, %q, %q) = %q, want %q", c.repo, c.cmd, c.args, got, c.want)
+		}
+	}
+}
