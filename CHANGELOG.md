@@ -11,6 +11,8 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Changed
 
+- Reading history is faster: a year of synthetic Claude Code history (about 2,900 sessions) loads in 1.1 seconds instead of 1.8. The check for prompts that look like corrections now skips its large pattern when none of its phrases appear; which prompts count as corrections doesn't change
+- `kiroku serve` turns sessions, weeks and months into JSON once for both the page and `/data.json` each time it reads history again, instead of twice (0.40 seconds instead of 0.55 for the same year). `/data.json` is the same byte for byte
 - `kiroku serve` recalculates only the weeks and months whose sessions or Git commits changed when it reads history again, instead of every week and month. With a year of history, a refresh after one session changes spends about 11 ms on this instead of 250 ms. The figures don't change
 
 ## v0.25.0 - 2026-10-08

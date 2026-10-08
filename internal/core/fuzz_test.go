@@ -75,3 +75,16 @@ func FuzzParseTS(f *testing.F) {
 		}
 	})
 }
+
+// 前ふるい（mayCorrect）は、correctionAny に合う文を落とさない。
+func FuzzCorrectionHints(f *testing.F) {
+	for _, c := range correctionCases {
+		f.Add(c.text)
+	}
+	f.Add("it's ſtill broken")
+	f.Fuzz(func(t *testing.T, s string) {
+		if correctionAny.MatchString(s) && !mayCorrect(s) {
+			t.Errorf("%q は correctionAny に合うのに mayCorrect が false", s)
+		}
+	})
+}

@@ -1,8 +1,10 @@
 package web
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"regexp"
 	"strings"
 	"testing"
@@ -106,5 +108,32 @@ func TestWithCSP(t *testing.T) {
 	// CRLF でも、ブラウザと同じく LF にそろえたハッシュになる
 	if hash("a\r\nb\rc") != hash("a\nb\nc") {
 		t.Error("改行をそろえていない")
+	}
+}
+
+// Parts.JSON（kiroku serve の /data.json）は、map を json.Marshal したときとバイトまで同じ。
+// HTML に入れる JSON も、Render が値をそのまま JSON にしたときと同じ（履歴の < > & はエスケープしたまま）。
+func TestPartsJSON(t *testing.T) {
+	data := []any{map[string]any{"title": "</script><b>&", "start": 1.5}}
+	weeks := map[string]any{"2026-09-28": map[string]any{"active": 3}}
+	months := map[string]any{"2026-09": map[string]any{"active": 3}}
+	meta := map[string]any{"report": []any{}, "git": []any{}, "note": "<!--"}
+	p, err := Marshal(data, weeks, months, meta, 1759999999.25)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, _ := json.Marshal(map[string]any{"sessions": data, "weeks": weeks, "months": months, "meta": meta, "generated": 1759999999.25})
+	if got := p.JSON(); !bytes.Equal(got, want) {
+		t.Errorf("JSON =\n%s\nwant\n%s", got, want)
+	}
+	page, err := p.HTML(true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(page, "</script><b>") || strings.Contains(page, `"<!--"`) {
+		t.Error("履歴の文字をエスケープせずに HTML に入れた")
+	}
+	if old, _ := Render(data, weeks, months, meta, 1759999999.25, true); old != page {
+		t.Error("Render と Parts.HTML の結果が違う")
 	}
 }
