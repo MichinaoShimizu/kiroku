@@ -537,3 +537,62 @@ func TestKiroCrewMemoryConsolidation(t *testing.T) {
 		t.Errorf("タイトル = %q", b.Title)
 	}
 }
+
+// サブエージェントの使用量の記録（slot は state.json の conversation_key か "subagent:<id>"）は、
+// そのサブエージェントの kiro-cli の会話に結びつける。別の Crew のセッションにはしない。
+func TestKiroCrewSubagentUsage(t *testing.T) {
+	kiro, crew := t.TempDir(), t.TempDir()
+	writeFiles(t, kiro, map[string]string{
+		"sessions/cli/sa1.json":  `{"session_id": "sa1", "cwd": "/Users/me/app", "created_at": "2026-09-29T10:00:00Z", "session_state": {"conversation_metadata": {"user_turn_metadatas": [{"end_timestamp": "2026-09-29T10:01:00Z", "metering_usage": [{"value": 1, "unit": "credit"}]}]}}}`,
+		"sessions/cli/sa1.jsonl": "",
+	})
+	row := func(ts, slot string) string {
+		return fmt.Sprintf(`{"_type": "tokens", "ts": %q, "slot": %q, "provider": "acp", "model": "auto", "credits": 2.0, "surface": "subagent"}`, ts, slot)
+	}
+	writeFiles(t, crew, map[string]string{
+		// 残す（keep）サブエージェント: kiro-cli の会話があり、使用量は conversation_key で記録される
+		"subagents/keep1/state.json": `{"id": "keep1", "agent": "reviewer", "task": "PR を見る", "parent_session": "dashboard:chat-1-100", "session_id": "sa1", "keep": true, "conversation_key": "subagent:keep1"}`,
+		// 残さないサブエージェント: Crew が kiro-cli の会話を消している。使用量は "subagent:<id>" で記録される
+		"subagents/tmp2/state.json": `{"id": "tmp2", "agent": "tester", "task": "テストを流す", "parent_session": "dashboard:chat-1-100", "session_id": "gone", "keep": false, "conversation_key": "", "cwd": "/Users/me/lib"}`,
+		"usage/tokens/2026-09-29.jsonl": strings.Join([]string{
+			row("2026-09-29T10:00:30+00:00", "subagent:keep1"),
+			row("2026-09-29T10:01:00+00:00", "subagent:keep1"),
+			row("2026-09-29T11:00:00+00:00", "subagent:tmp2"),
+		}, "\n") + "\n",
+	})
+	k := &KiroCLI{Home: kiro, CrewHome: crew}
+	bs := load(t, k)
+	by := map[string]*core.Builder{}
+	for _, b := range bs {
+		by[b.ID] = b
+	}
+	if len(bs) != 2 {
+		t.Errorf("会話の数 = %d, want 2: %v", len(bs), by)
+	}
+	// (a) kiro-cli の会話に結びつける: Crew の記録 4 のほうが多いので置きかえる（1 回だけ）
+	sa := by["sa1"]
+	if sa == nil {
+		t.Fatal("sa1 がない")
+	}
+	f := sa.Finish(15)
+	if f.Credits != 4 || nativeOf(f)["ターン"].V != 2 || nativeOf(f)["うちサブエージェント"].V != 1 {
+		t.Errorf("残すサブエージェント: credits = %v, native = %+v", f.Credits, f.Native)
+	}
+	if by["crew:subagent:keep1"] != nil {
+		t.Error("kiro-cli の会話に結びついた使用量を、別の Crew のセッションにしない")
+	}
+	// (b) kiro-cli の会話がない: Crew のセッションにし、サブエージェントとして見せる
+	tmp := by["crew:subagent:tmp2"]
+	if tmp == nil {
+		t.Fatal("crew:subagent:tmp2 がない")
+	}
+	if tmp.Title != "Subagent tester: テストを流す" || tmp.Project != "/Users/me/lib" {
+		t.Errorf("残さないサブエージェント: title = %q, project = %q", tmp.Title, tmp.Project)
+	}
+	if n := nativeOf(tmp.Finish(15)); n["うちサブエージェント"].V != 1 || n["Crew から動かした会話"].V != 1 {
+		t.Errorf("残さないサブエージェントの参考指標 = %+v", n)
+	}
+	if d := k.Detail(); !strings.Contains(d, "クレジットを補った会話 1 件") {
+		t.Errorf("detail = %q", d)
+	}
+}

@@ -10,6 +10,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Kiro Crew: a forked conversation no longer counts the prompts it copied from the conversation it was forked from, so forking a chat with 20 prompts no longer adds 20 more
 - Kiro Crew: its data is read from `~/.kiro/crew` even when `KIRO_HOME` (or `--kiro-home`) points elsewhere, since Crew itself does not follow `KIRO_HOME`. `KIROCREW_HOME` still wins, and a leading `~` in it now means your home folder, as in Crew
 - Kiro Crew: memory consolidation runs are grouped into one session per memory store and day, like Crew's other background work, instead of one session per run
+- Kiro Crew: a subagent's turns and credits are no longer counted twice, once in its kiro-cli conversation and again as a separate "Kiro Crew" session. Crew's usage records for a subagent are now matched to its conversation, and the records of subagents whose conversation Crew has deleted are shown as that subagent's session
 
 ## v0.23.0 - 2026-10-08
 

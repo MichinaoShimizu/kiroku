@@ -250,11 +250,17 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 	crew := loadCrew(k.CrewHome, &errs)
 	usage := loadCrewUsage(k.CrewHome, &errs)
 	k.crew, k.crewFixed, k.crewOnly, k.crewCr, k.crewText, k.crewElse = 0, 0, 0, 0, 0, 0
-	slotInfo := map[string]*CrewInfo{}
-	for _, info := range crew {
-		if !info.Subagent {
-			i := info
-			slotInfo[info.Key] = &i
+	slotInfo := map[string]*CrewInfo{} // 使用量の記録の slot → Crew の情報（session_map の会話と、サブエージェント）
+	sids := make([]string, 0, len(crew))
+	for sid := range crew {
+		sids = append(sids, sid)
+	}
+	sort.Strings(sids) // 同じ slot のサブエージェントが何件かあっても（続きから動かしたもの）、毎回同じものを使う
+	for _, sid := range sids {
+		i := crew[sid]
+		slot := i.usageSlot()
+		if prev := slotInfo[slot]; slot != "" && (prev == nil || prev.Subagent && !i.Subagent) {
+			slotInfo[slot] = &i
 		}
 	}
 	used := map[string]bool{}     // 使用量の記録を kiro-cli の会話に結びつけた会話キー
@@ -329,19 +335,22 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		}
 		if tagCrew(s, crew) {
 			k.crew++
-			if info := crew[s.ID]; !info.Subagent {
+			info := crew[s.ID]
+			if !info.Subagent {
 				seenRows[info.Key] = true
 				if len(s.Prompts) == 0 { // Crew から動かした会話は、kiro-cli の履歴に依頼が残らないことがある
 					_, rows := readCrewKey(k.CrewHome, k.CrewArchive, info.Key, &errs)
 					addCrewRows(s, rows)
 				}
-				if len(usage[info.Key]) > 0 {
-					used[info.Key] = true
-					if useCrewCredits(s, usage[info.Key]) {
-						k.crewFixed++
-					}
-					addCrewNative(s, usage[info.Key])
+			}
+			// 使用量の記録。サブエージェントは自分の slot（conversation_key か subagent:<id>）で記録される（親の会話キーではない）。
+			// 同じ slot は 1 つの会話にだけ結びつける（続きから動かしたサブエージェントは、元の slot を使い続ける）
+			if slot := info.usageSlot(); slot != "" && !used[slot] && len(usage[slot]) > 0 {
+				used[slot] = true
+				if useCrewCredits(s, usage[slot]) {
+					k.crewFixed++
 				}
+				addCrewNative(s, usage[slot])
 			}
 		}
 		emit(s)

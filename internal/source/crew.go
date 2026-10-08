@@ -48,6 +48,16 @@ type CrewInfo struct {
 	Task     string
 	Cwd      string
 	Provider string // session_map の "provider"（Crew の backend。空か "acp" は kiro-cli、"claude_code"・"codex"・"kas" など）
+	// UsageSlot はサブエージェントの使用量の記録の slot（subagentSlot）。サブエージェントでなければ空（使用量は Key で記録される）
+	UsageSlot string
+}
+
+// usageSlot は、その会話の使用量の記録の slot。
+func (i CrewInfo) usageSlot() string {
+	if i.Subagent {
+		return i.UsageSlot
+	}
+	return i.Key
 }
 
 // DefaultCrewHome は KIROCREW_HOME か ~/.kiro/crew。
@@ -174,9 +184,32 @@ func loadCrew(home string, errs *fileErrs) map[string]CrewInfo {
 			continue
 		}
 		out[sid] = CrewInfo{Subagent: true, Key: core.Str(st["parent_session"]), Agent: core.Str(st["agent"]),
-			Task: core.Runes(strings.TrimSpace(core.Str(st["task"])), 120)}
+			Task: core.Runes(strings.TrimSpace(core.Str(st["task"])), 120), Cwd: core.Str(st["cwd"]),
+			UsageSlot: subagentSlot(st, filepath.Base(filepath.Dir(p)))}
 	}
 	return out
+}
+
+// subagentSlot は、サブエージェントの使用量の記録の slot（loadCrewUsage のキーと同じ形）。
+// Crew は conversation_key（残す（keep）サブエージェントだけ state.json に書く）か "subagent:<id>" で記録する
+// （subagent_manager/run.py の _run_impl）。id は state.json の "id"、なければフォルダの名前（subagents/<id>/。subagent_persistence.py の _agent_dir）。
+func subagentSlot(st core.Obj, dir string) string {
+	if k := core.Str(st["conversation_key"]); k != "" {
+		return crewSlot(k)
+	}
+	return crewSlot("subagent:" + firstNonEmpty(core.Str(st["id"]), dir))
+}
+
+// subagentTitle はサブエージェントの会話のタイトル（"Subagent <エージェント>: <依頼>"）。
+func subagentTitle(info CrewInfo) string {
+	title := "Subagent"
+	if info.Agent != "" {
+		title += " " + info.Agent
+	}
+	if info.Task != "" {
+		title += ": " + info.Task
+	}
+	return title
 }
 
 // crewRow は Crew の会話の 1 行。
@@ -326,14 +359,7 @@ func tagCrew(s *core.Builder, crew map[string]CrewInfo) bool {
 		s.Measure("crew_subagents", first, 1)
 	}
 	if info.Subagent {
-		title := "Subagent"
-		if info.Agent != "" {
-			title += " " + info.Agent
-		}
-		if info.Task != "" {
-			title += ": " + info.Task
-		}
-		s.Title = title
+		s.Title = subagentTitle(info)
 	} else if info.Title != "" {
 		s.Title = info.Title
 	}
@@ -537,6 +563,8 @@ func crewOnly(home, arch, slot string, turns []crewTurn, info *CrewInfo, errs *f
 			s.Title = "Kiro Crew background work"
 		case bg:
 			s.Title = "Kiro Crew memory consolidation (" + strings.TrimPrefix(slot, "memory-consolidation:") + ")"
+		case info != nil && info.Subagent: // kiro-cli の会話が消えたサブエージェント（残さないものは Crew が消す）
+			s.Title = subagentTitle(*info)
 		case info != nil && info.Title != "":
 			s.Title = info.Title
 		case title != "":
@@ -553,6 +581,9 @@ func crewOnly(home, arch, slot string, turns []crewTurn, info *CrewInfo, errs *f
 		addCrewRows(s, rows)
 		first := groups[g][0].start
 		s.Measure("crew_sessions", &first, 1)
+		if info != nil && info.Subagent {
+			s.Measure("crew_subagents", &first, 1)
+		}
 		out = append(out, s)
 	}
 	return out, skipped
