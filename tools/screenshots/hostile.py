@@ -40,6 +40,9 @@ for i in range(4):
       "content": [{"type": "tool_use", "id": f"tw{i}", "name": "Write<img src=x onerror=alert(24)>", "input": {"file_path": f"{REPO}/w<img src=x onerror=alert(25)>.py", "content": "x"}},
                   {"type": "tool_use", "id": f"tx{i}", "name": "Write", "input": {"file_path": "//evil.example/share/x.txt", "content": "x"}}, # UNC は file:// のリンクにしない
                   {"type": "tool_use", "id": f"ty{i}", "name": "Write", "input": {"file_path": "/\\evil.example\\s\\x", "content": "x"}},
+                  # . と .. や続いた区切りで、解いたあとに //host（UNC）になるパスも file:// のリンクにしない
+                  *[{"type": "tool_use", "id": f"tz{i}{k}", "name": "Write", "input": {"file_path": fp, "content": "x"}} for k, fp in enumerate(
+                      ["/a/..//evil.example/share/a.txt", "/./\\evil.example\\share\\b.txt", "../../../../../../..//evil.example/share/c.txt"])],
                   {"type": "tool_use", "id": f"ta{i}", "name": "Task", "input": {"subagent_type": "t<img src=x onerror=alert(26)>", "description": "d<img src=x onerror=alert(27)>", "prompt": "p"}}],
       "usage": {"input_tokens": 10, "output_tokens": 10}}})
     L.append({**base, "type": "user", "timestamp": t(5), "message": {"role": "user", "content": "<system-reminder>r<img src=x onerror=alert(28)></system-reminder>javascript:alert(29) `__DATA__` {{constructor}}    </script><script>alert(30)</script> " + P}})
@@ -49,4 +52,13 @@ for i in range(4):
     L.append({**base, "type": "assistant", "timestamp": t(9), "requestId": f"r{i}c", "message": {"id": f"m{i}c", "model": "claude-opus-4-1", "role": "assistant", "content": [{"type": "text", "text": "ok <img src=x onerror=alert(33)>"}], "usage": {"input_tokens": 10, "output_tokens": 10}}})
     with open(os.path.join(root, sid + ".jsonl"), "w") as f:
         for x in L: f.write(json.dumps(x) + "\n")
+# 作業場所が / のセッション（base の / と //host をつないでも UNC にならないこと）
+sid = str(uuid.UUID(int=9))
+with open(os.path.join(root, sid + ".jsonl"), "w") as f:
+    for x in [{"cwd": "/", "sessionId": sid, "type": "user", "timestamp": "2026-10-06T10:00:00Z", "message": {"role": "user", "content": "root"}},
+              {"cwd": "/", "sessionId": sid, "type": "assistant", "timestamp": "2026-10-06T10:01:00Z", "requestId": "rz", "message": {"id": "mz", "model": "claude-opus-4-1", "role": "assistant",
+               "content": [{"type": "tool_use", "id": f"tr{k}", "name": "Write", "input": {"file_path": fp, "content": "x"}} for k, fp in enumerate(
+                   ["//evil.example/share/a.txt", "\\\\evil.example\\share\\b.txt", "/\\evil.example\\share\\c.txt", "evil.example/share/d.txt"])],
+               "usage": {"input_tokens": 10, "output_tokens": 10}}}]:
+        f.write(json.dumps(x) + "\n")
 print(REPO)

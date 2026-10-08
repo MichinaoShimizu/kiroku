@@ -25,7 +25,9 @@ const check = async step => {
     hits: window.__hits.splice(0),
     injected: [...document.querySelectorAll('img[src="x"], svg[onload], [onerror], [onload], [onclick], [onmouseover]')].map(e => e.outerHTML.slice(0, 120)),
     scripts: document.querySelectorAll("script").length,
-    badHref: [...document.querySelectorAll("a[href]")].map(a => a.getAttribute("href")).filter(h => !/^(https?:|file:|history\?|#)/.test(h) || /^file:\/\/\/[\/\\]/.test(h)), // file:////host（UNC）も不可
+    badHref: [...document.querySelectorAll("a[href]")].map(a => a.getAttribute("href")).filter(h => !/^(https?:|file:|history\?|#)/.test(h) || /^file:\/\/\/[\/\\]/.test(h)) // file:////host（UNC）も不可
+      // ブラウザーが解いたあとの URL でも確かめる（/a/..//host のような . と .. で、開くときに //host になるもの）
+      .concat([...document.querySelectorAll('a[href^="file:"]')].map(a => a.href).filter(h => !/^file:\/\/\/(?![\/\\])/.test(h))), // new URL の pathname は先頭の // を 1 つにまとめるので、href の文字列で見る
   }));
   if (r.hits.length || r.injected.length || r.scripts !== 1 || r.badHref.length) { failed++; console.log(`  FAIL ${step}: ${JSON.stringify(r)}`); }
   else console.log(`  ok   ${step}`);
