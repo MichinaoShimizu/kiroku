@@ -50,7 +50,7 @@ function commitDetail(c){
   const ses = DATA.find(x => x.id === c.session) || DATA.find(x => x.project === c.project && c.t >= x.start - 60 && c.t <= x.end + 600);
   const P = $("#panel");
   P.innerHTML = `<div style="--c:${st.colorBy === "project" ? colorOf(c.project) : "var(--ink-3)"}">
-    ${dHead(`GIT · ${c.ai ? "Run by AI" : "By hand (or another tool)"}`, c.subject, `${md(c.t)} ${hm(c.t)}`, [`<span>${esc(c.project)}</span>`, c.branch && `<span>${esc(c.branch)}</span>`, ext(c.url, `<span class="mono">${esc(c.hash.slice(0,7))}</span>`)])}
+    ${dHead(`GIT · ${c.ai ? "Run by AI" : "By hand (or another tool)"}`, c.subject, `${md(c.t)} ${hm(c.t)}`, [projTag(c.project), branchTag(c.branch), ext(c.url, `<span class="tg mono" title="Commit">${ico("commit")}<span class="sr">Commit: </span>${esc(c.hash.slice(0,7))}</span>`)])}
     <div class="dcols"><div class="dcol">
     <div class="mini">
       <div><div class="k">Files changed</div><div class="v">${c.nFiles}</div></div>
@@ -86,7 +86,7 @@ function pushDetail(p){
   const hs = p.hashes || [], known = hs.map(h => byHash.get(h)).filter(Boolean), unknown = hs.filter(h => !byHash.has(h));
   const ses = DATA.filter(x => x.project === p.project && p.t >= x.start - 60 && p.t <= x.end + 600);
   P.innerHTML = `<div style="--c:${st.colorBy === "project" ? colorOf(p.project) : "var(--ink-3)"}">
-    ${dHead("GIT · Push", `Pushed to ${p.ref}`, `${md(p.t)} ${hm(p.t)}`, [`<span>${esc(p.project)}</span>`, `<span class="mono">${esc(p.ref)}</span>`, ext(p.url, `<span class="mono">${esc(p.hash.slice(0,7))}</span>`)])}
+    ${dHead("GIT · Push", `Pushed to ${p.ref}`, `${md(p.t)} ${hm(p.t)}`, [projTag(p.project), branchTag(p.ref), ext(p.url, `<span class="tg mono" title="Commit">${ico("commit")}<span class="sr">Commit: </span>${esc(p.hash.slice(0,7))}</span>`)])}
     <div class="dcols"><div class="dcol">
     <div class="mini">
       <div><div class="k">Commits sent</div><div class="v">${p.prev ? p.commits : "—"}</div></div>
@@ -111,7 +111,7 @@ function prDetail(s, r){
   const cs = commitsOf(s).filter(c => c.t <= r.t + 60); // PR を作るまでにそのセッションでしたコミット
   const ps = (META.push || []).filter(p => p.project === s.project && p.t >= s.start - 60 && p.t <= r.t + 60);
   P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
-    ${dHead(ico("pr") + "Pull request", m ? `${m[1]} #${m[2]}` : r.url ? prName(r.url) : "Pull request", `Created ${md(r.t)} ${hm(r.t)}`, [`<span>${esc(s.project)}</span>`, s.branch && `<span>${esc(s.branch)}</span>`])}
+    ${dHead(ico("pr") + "Pull request", m ? `${m[1]} #${m[2]}` : r.url ? prName(r.url) : "Pull request", `Created ${md(r.t)} ${hm(r.t)}`, [projTag(s.project), branchTag(s.branch)])}
     <div class="dcols"><div class="dcol">
     ${r.url ? `<p class="dact">${ext(r.url, "Open this pull request ↗", "pill")}</p>` : ""}
     <p class="note">Recorded when an agent created it in this session (gh pr create or GitHub tools). kiroku never asks GitHub, so its title, status and reviews are not shown here.</p>

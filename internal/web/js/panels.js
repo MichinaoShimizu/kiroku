@@ -130,7 +130,7 @@ function keepNotice(){
   return `<div class="keep" role="note"><b>Your older history will be deleted</b>
     <p>${`${esc(k.who || r.name)} automatically deletes conversation history older than ${k.days} days (<code>${esc(k.setting)}</code> is at its default). Deleted history cannot be shown by kiroku and cannot be recovered. To keep it, set a long period such as <code>${esc(snippet)}</code> in your settings file${k.file ? ` (<code>${esc(k.file)}</code>)` : ""}.`}</p>
     <p>${`If you'd rather not change the setting, kiroku can keep a copy of the history instead. It saves a compressed copy each time you open kiroku and shows deleted conversations from it (copies stay on this computer only).${LIVE ? "" : ` To turn it on, run <code>${cmd}</code>.`}`}</p>
-    <div class="ka">${ext(k.docs, "See how to set it in the official docs ↗", "pill")}<button class="pill" data-copy="${esc(snippet)}">Copy setting</button>${LIVE ? `<button class="pill" id="keeparch">Keep a copy in kiroku</button>` : `<button class="pill" data-copy="${cmd}">Copy command</button>`}<button class="pill" id="keepoff">Dismiss</button></div></div>`;
+    <div class="ka">${ext(k.docs, "See how to set it in the official docs ↗", "pill")}${copyBtn("Copy setting", `data-copy="${esc(snippet)}"`)}${LIVE ? `<button class="pill" id="keeparch">Keep a copy in kiroku</button>` : copyBtn("Copy command", `data-copy="${cmd}"`)}<button class="pill" id="keepoff">Dismiss</button></div></div>`;
 }
 /* kiroku html --week / --month で書き出した、1 つの期間だけのファイル。渡された人がいちばん上で、何のファイルか・ほかの期間が空の理由・
    どの時計で見ているかがわかるように */
@@ -243,5 +243,5 @@ function foot(){
   return `<div class="foot"><div>Generated ${dStamp(GENERATED)} · ${rel ? ext(`${REPO}/releases/tag/v${v}`, esc(`kiroku v${v}`)) : `kiroku${v ? " " + esc(v) : ""}`} · ${ext(REPO, "GitHub")}</div></div>`;
 }
 
-function bindCopy(root){ root.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy)); }
+function bindCopy(root){ root.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy, "", 0, b)); }
 

@@ -7,7 +7,7 @@
   --weekend:rgba(18,20,25,.022);
   --sat:#1d4ed8; --sun:#b91c1c; --sat-bg:rgba(37,99,235,.06); --sun-bg:rgba(220,38,38,.06); /* 土曜は青、日曜は赤（日本のカレンダーと同じ） */
   --shadow:0 1px 2px rgba(16,18,24,.06),0 12px 32px -14px rgba(16,18,24,.22);
-  --c0:#0072b2; --c1:#d55e00; --c2:#009e73; --c3:#cc79a7; --c4:#e69f00; --c5:#56b4e9; --c6:#7a5cc4; --c7:#9a8a00; --other:#9aa0ab;
+  --c0:#0072b2; --c1:#d55e00; --c2:#009e73; --c3:#cc79a7; --c4:#e69f00; --c4-ink:#8a5c00; --c5:#56b4e9; --c6:#7a5cc4; --c7:#9a8a00; --other:#9aa0ab;
   --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",system-ui,sans-serif; /* 英語の画面なので欧文の書体を先に。日本語のプロンプトは後ろの和文の書体で出す */
   /* 文字の大きさは 9 段だけ（2xs は狭い画面の月のマスだけ）。太さは 400・500・600・700、行間は 1.2（数字・見出し）・1.5（UI）・1.6〜1.7（長い文） */
   --fs-2xs:10px; --fs-xs:11px; --fs-sm:12px; --fs-md:13px; --fs-lg:14px; --fs-xl:16px; --fs-2xl:20px; --fs-3xl:24px; --fs-4xl:30px;
@@ -22,7 +22,7 @@
   --weekend:rgba(255,255,255,.018);
   --sat:#8fb3ff; --sun:#ff8f8f; --sat-bg:rgba(110,150,255,.075); --sun-bg:rgba(255,110,110,.075);
   --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -16px rgba(0,0,0,.7);
-  --c0:#3a9be0; --c1:#f07a2b; --c2:#1fbf8f; --c3:#e08fbd; --c4:#f2b53a; --c5:#7cc6f0; --c6:#9c84e6; --c7:#c9b51c; --other:#6b7180;
+  --c0:#3a9be0; --c1:#f07a2b; --c2:#1fbf8f; --c3:#e08fbd; --c4:#f2b53a; --c4-ink:#f2b53a; --c5:#7cc6f0; --c6:#9c84e6; --c7:#c9b51c; --other:#6b7180;
 }
 
 /* ── base ───────────────────────────────────────────────── */
@@ -418,14 +418,17 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .code code{flex:1;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere} /* パスやコマンドは途中で切らず、折り返して全部見せる */
 .copy{font:var(--fs-xs) var(--sans);color:var(--ink-2);border:1px solid var(--rule-2);border-radius:6px;padding:3px 8px;background:var(--surface);flex:none}
 .copy:hover{color:var(--ink);border-color:var(--ink-3)}
+.cp{display:inline-flex;align-items:center;gap:6px}.cp .ic{width:13px;height:13px;vertical-align:0}.cp .cpok,.cp.ok .cpi{display:none}.cp.ok .cpok{display:inline;color:var(--acc)} /* コピーのボタン（copyBtn）。できたら印が ✓ に */
 /* 再開コマンドはよく使うので、ほかのコード（履歴ファイルのパス）よりはっきりさせる：アクセントの地と枠、Copy は塗りのボタン */
 .code.resume{background:var(--acc-soft);box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--acc) 45%,transparent);color:var(--ink)}
 .code.resume .copy{background:var(--acc);border-color:var(--acc);color:var(--on-acc);font-weight:600}
 .code.resume .copy:hover{background:var(--acc-ink);border-color:var(--acc-ink);color:var(--on-acc)}
+.code.resume .cp.ok .cpok{color:inherit} /* 塗りのボタンの上では、✓ を文字の色に */
 .back{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--ink-3)}
 .back:hover{color:var(--ink)}
 .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .meta span{font-size:var(--fs-xs);color:var(--ink-2);background:var(--surface-2);border-radius:6px;padding:1px 9px}
+.meta .tg{display:inline-flex;align-items:center;gap:5px}.meta .tg .ic{width:12px;height:12px;color:var(--ink-3)} /* プロジェクト・ブランチの札（projTag・branchTag） */
 .mini{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
 .mini>div{padding:10px 12px;border-radius:10px;background:var(--surface-2)}
 .mini .k{font-size:var(--fs-xs);color:var(--ink-3)}
@@ -463,11 +466,12 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl li[hidden]{display:none}
 /* プロンプトの種類：あなたが打ったコマンド（/ や !）と、自動で入ったもの（通知・要約・hook など）を色で分ける */
 .tl li.pr.command,.tl li.pr.shell{--c:var(--c4)}
-.tl .pkind{display:inline-block;margin-right:6px;padding:0 6px;border-radius:5px;font-size:var(--fs-xs);font-weight:600;line-height:1.6;vertical-align:1px;color:var(--c4);background:color-mix(in oklab,var(--c4) 16%,transparent)}
+.tl .pkind{display:inline-block;margin-right:6px;padding:0 6px;border-radius:5px;font-size:var(--fs-xs);font-weight:600;line-height:1.6;vertical-align:1px;color:var(--c4-ink);background:color-mix(in oklab,var(--c4) 16%,transparent)}
 .tl .pkind.big{color:var(--warn);background:color-mix(in oklab,var(--warn) 14%,transparent)}
 .tl li.ev.note{color:var(--ink-3)}.tl li.ev.note .evl{color:var(--c6)}
 .tl li.ev.note>.ic,.tlkey .kev.note .ic{color:var(--c6)}
 .tlkey .kp.cmd{box-shadow:inset 0 0 0 1.5px var(--c4)}
+.tlkey .kcmd{gap:4px}.tlkey .kcmd .ic{color:var(--c4-ink)}.tlkey .kcmd .ic:last-of-type{margin-right:2px} /* 行の札と同じ / と >_ の印。--c4-ink は、明るい地でも読める濃さの c4 */
 .tl.only-user li.ev,.tl.only-user li.gap{display:none}
 /* 応答は、依頼の次の発言として同じ線の上に出す（会話として読めるように）。
    あなたが打ったものだけを見るときは出さない */

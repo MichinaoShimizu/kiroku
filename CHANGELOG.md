@@ -9,6 +9,12 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Release builds now use Go 1.26.9 instead of Go 1.26.8, whose standard library has known vulnerabilities in code kiroku uses (`net/http`, `net/textproto` and `crypto/tls`: GO-2026-6603, GO-2026-6605, GO-2026-6607, GO-2026-6608, GO-2026-6610, GO-2026-6611, GO-2026-6612, GO-2026-6613 and GO-2026-6617; found with `govulncheck`)
 - Commit and push details: the `git -C <repo> show` (or `git log`) command under "Repository" now quotes the repository path for the shell, as the Resume command already does. Before, a repository folder whose name contains shell syntax (such as `$(...)`, backticks or `;`) would run that command when you pasted it into a terminal, and a path with spaces broke the command. When the path can't be quoted safely (such as control characters, or `%` or `$` on Windows), kiroku now leaves the command out
 
+### Changed
+
+- Copy buttons (Copy, Copy prompts, Copy review prompt, Copy prompt, Copy setting, Copy command, Copy image) now start with a copy icon, which turns into a check mark for a moment after copying
+- Session, commit, push and pull request details: the project and branch tags now start with a folder icon and a branch icon, and a commit's hash with the commit icon (each also says what it is in a tooltip and to screen readers), so the tags look different at a glance
+- Prompt flow: the legend for "Commands the user typed" now shows the `/` and `>_` icons used on those prompts, instead of only a different color. In the light theme, those icons and the "Command" and "Shell" labels are a darker amber, so they are easier to read on white
+
 ## v0.27.3 - 2026-10-09
 
 ### Security

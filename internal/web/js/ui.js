@@ -16,6 +16,10 @@ const ICON_PATH = {
   reply: '<path d="M6.2 3.5 2.5 7.2l3.7 3.7M3 7.2h6.2A3.8 3.8 0 0 1 13 11v1.5"/>',
   caret: '<path d="M6.5 3.5 11 8l-4.5 4.5"/>',
   file: '<path d="M3.5 1.5h6l3 3v10h-9z"/><path d="M9.5 1.5v3h3"/>', /* ファイル（一覧のパスの頭に） */ /* 開け閉めの印（開くと 90 度回る） */
+  folder: '<path d="M1.8 4a1 1 0 0 1 1-1h3.4l1.5 1.6h5.5a1 1 0 0 1 1 1v6.6a1 1 0 0 1-1 1H2.8a1 1 0 0 1-1-1z"/>', /* プロジェクト */
+  branch: '<circle cx="4.5" cy="3.5" r="1.6"/><circle cx="4.5" cy="12.5" r="1.6"/><circle cx="11.5" cy="4.5" r="1.6"/><path d="M4.5 5.1v5.8M11.5 6.1c0 3.4-7 2.6-7 4.8"/>', /* ブランチ */
+  copy: '<rect x="5.5" y="5.5" width="8.5" height="8.5" rx="1.5"/><path d="M10.5 5.5v-2A1.5 1.5 0 0 0 9 2H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5h2"/>',
+  check: '<path d="M3 8.5 6.5 12 13 4.5"/>', /* コピーできた */
 };
 /* パスの一覧の 1 行：頭に印（既定はファイル）、長いパスは頭を省いて名前を見せる。label は HTML（呼ぶ側でエスケープする）、title は文字 */
 const pathRow = (title, label, icon = "file") => `<li title="${esc(title)}">${ico(icon)}<span class="fp"><span>${label}</span></span></li>`;
@@ -47,5 +51,10 @@ const statH = (k, v, s, h, m) => `<div class="stat${m ? " mstat" : ""}"><div cla
 /* 空のときの一言：text は HTML（呼ぶ側でエスケープする） */
 const noneH = text => `<p class="none">${text}</p>`;
 /* コードの枠：text は文字（ここでエスケープする）。cls は枠に足すクラス、extra はコピーの前に置くもの（HTML。「Open」のリンクなど） */
-const codeH = (text, cls, extra) => `<div class="code${cls ? " " + cls : ""}"><code>${esc(text)}</code>${extra || ""}<button class="copy" data-copy="${esc(text)}">Copy</button></div>`;
+const codeH = (text, cls, extra) => `<div class="code${cls ? " " + cls : ""}"><code>${esc(text)}</code>${extra || ""}${copyBtn("Copy", `data-copy="${esc(text)}"`, "copy")}</div>`;
+/* コピーのボタン：label は文字、attrs は属性（HTML。呼ぶ側でエスケープする）。押してコピーできると、印が 1.6 秒だけ ✓ に変わる（copied） */
+const copyBtn = (label, attrs, cls = "pill") => `<button class="${cls} cp" ${attrs}>${ico("copy", "cpi")}${ico("check", "cpok")}${label}</button>`;
+/* 詳細の頭の札：プロジェクトとブランチは、同じ形の札が並ぶので印で見分ける（意味はツールチップと読み上げでも出す） */
+const projTag = p => `<span class="tg" title="Project">${ico("folder")}<span class="sr">Project: </span>${esc(p)}</span>`;
+const branchTag = b => b ? `<span class="tg" title="Branch">${ico("branch")}<span class="sr">Branch: </span>${esc(b)}</span>` : "";
 function norecStat(k, srcs, h){ return `<div class="stat norec"><div class="k">${k}${hb(h)}</div><div class="v">Not recorded</div><div class="s">${esc(`${srcs.join(", ")} ${srcs.length > 1 ? "don't" : "doesn't"} record this`)}</div></div>`; }
