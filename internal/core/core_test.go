@@ -336,6 +336,9 @@ func TestIsLimitError(t *testing.T) {
 		"You've hit your channel's monthly spend limit · an org owner or channel manager can raise it in the channel's Claude settings",
 		"API Error: Request rejected (429) · this may be a temporary capacity issue. If it persists, check https://status.claude.com.",
 		"spend limit reached (daily; resets 2026-08-09 00:00 UTC)",
+		"Usage limit reached · continuing automatically at 3:45pm · esc to cancel",
+		"429 Too Many Requests",
+		"API Error: status 429",
 	}
 	for _, s := range yes {
 		if !IsLimitError(s) {
@@ -349,6 +352,12 @@ func TestIsLimitError(t *testing.T) {
 		"Prompt is too long",
 		"API Error: Connection error.",
 		"API Error: Usage credits required for 1M context · run /usage-credits to turn them on, or /model to switch to standard context",
+		// 429 が状態コードではなく数の一部
+		"API Error: Output blocked by content filtering policy (~1,429 tokens)",
+		"Prompt is too long: 201429 tokens > 200000 maximum",
+		// 上限が解除されて続きを始めた知らせ
+		"Usage limit reset · continuing automatically",
+		"Your usage limit has reset",
 	}
 	for _, s := range no {
 		if IsLimitError(s) {
@@ -370,6 +379,8 @@ func TestLimitReset(t *testing.T) {
 		"Claude AI usage limit reached|1790000000":                                   "",
 		"You've hit your monthly spend limit · raise it at claude.ai/settings/usage": "",
 		"resets <img src=x onerror=alert(1)>":                                        "",
+		"Usage limit reached · continuing automatically at 3:45pm · esc to cancel":   "3:45pm",
+		"Usage limit reached · limit resets 3:45pm":                                  "3:45pm",
 	}
 	for in, want := range cases {
 		if got := LimitReset(in); got != want {

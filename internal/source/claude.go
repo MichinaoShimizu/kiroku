@@ -27,13 +27,20 @@ func (c *Claude) Where() string  { return c.Root }
 // 組織の設定（managed settings）のファイルにあればそれを、なければ利用者の設定（projects の隣の settings.json）を見る。
 // 組織の設定は利用者の設定より強い。claude.ai から届く組織の設定や MDM（macOS の構成プロファイル・Windows のレジストリ）、
 // プロジェクトの設定にある場合は読まない。
-// 出典: https://code.claude.com/docs/en/settings-reference#cleanupperioddays 、https://code.claude.com/docs/en/managed-settings
+// 利用者の設定に Claude Code が受け付けない値（0・文字列・小数・null など）があると、Claude Code は保存期間を決められないので
+// 片付けを止め、何も消さない（組織の設定に正しい値があれば、その値で消す）。そのときは消さないので nil。
+// 出典: https://code.claude.com/docs/en/settings-reference#cleanupperioddays 、https://code.claude.com/docs/en/managed-settings 、
+// https://code.claude.com/docs/en/claude-directory （Paused sweep）
 func (c *Claude) Retention() *Retention {
 	file := filepath.Join(filepath.Dir(c.Root), "settings.json")
 	r := &Retention{Days: 30, Setting: "cleanupPeriodDays", Snippet: `"cleanupPeriodDays": 3650`, Docs: "https://code.claude.com/docs/en/settings-reference#cleanupperioddays", File: file}
 	if days, from := managedCleanupDays(claudeManagedDir); days > 0 {
 		r.Days, r.Set, r.File = days, true, from
-	} else if days, ok := cleanupDays(configObject(file)); ok {
+	} else if settings := configObject(file); hasKey(settings, "cleanupPeriodDays") {
+		days, ok := cleanupDays(settings)
+		if !ok {
+			return nil // 受け付けない値。Claude Code は片付けを止める
+		}
 		r.Days, r.Set = days, true
 	}
 	return r
@@ -66,6 +73,12 @@ func managedCleanupDays(dir string) (days int, file string) {
 		}
 	}
 	return days, file
+}
+
+// hasKey は、設定に key が書いてあるか（値が null でも）。
+func hasKey(settings map[string]any, key string) bool {
+	_, ok := settings[key]
+	return ok
 }
 
 // cleanupDays は設定の cleanupPeriodDays。Claude Code が受け付ける形（1 以上の整数の数値）のときだけ ok。
@@ -109,7 +122,7 @@ func loadSubagentFile(path string) (subFile, error) {
 				}
 				f.models[m]++
 			}
-			u.Add(firstNonEmpty(core.Str(msg["id"]), core.Str(e["requestId"])), t, core.Str(msg["model"]), msg["usage"])
+			u.AddAdvised(firstNonEmpty(core.Str(msg["id"]), core.Str(e["requestId"])), t, core.Str(msg["model"]), core.Str(e["advisorModel"]), msg["usage"])
 			for _, b := range core.List(msg["content"]) {
 				if bm := core.Map(b); core.Str(bm["type"]) == "tool_use" {
 					f.tools++
@@ -265,6 +278,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	s := core.NewBuilder("Claude Code", stem)
 	s.File = path
 	var summaries []string
+	var customTitle, aiTitle string
 	calls := map[string]*call{}
 	var callOrder []*call
 	side := core.NewUsage()
@@ -279,8 +293,16 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			summaries = append(summaries, core.Str(e["summary"]))
 			return
 		}
-		if (typ == "custom-title" || typ == "ai-title") && (core.Str(e["title"]) != "" || core.Str(e["customTitle"]) != "") {
-			s.Title = firstNonEmpty(core.Str(e["customTitle"]), core.Str(e["title"]))
+		// 利用者が付けた名前（custom-title の customTitle）は、Claude Code が付けた名前（ai-title の aiTitle）より強い。
+		// あとから ai-title の行が来ても上書きしない（どちらも新しい行が勝つ）
+		if typ == "custom-title" || typ == "ai-title" {
+			if name := firstNonEmpty(core.Str(e["customTitle"]), core.Str(e["aiTitle"]), core.Str(e["title"])); name != "" {
+				if typ == "custom-title" {
+					customTitle = name
+				} else {
+					aiTitle = name
+				}
+			}
 			return
 		}
 		if typ == "cost-state" {
@@ -318,7 +340,8 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			if sidechain {
 				target = side
 			}
-			target.Add(firstNonEmpty(core.Str(msg["id"]), core.Str(e["requestId"])), t, core.Str(msg["model"]), msg["usage"])
+			// advisor ツールの呼び出し（usage.iterations）は、advisor のモデル（なければ行の advisorModel）の応答として足す
+			target.AddAdvised(firstNonEmpty(core.Str(msg["id"]), core.Str(e["requestId"])), t, core.Str(msg["model"]), core.Str(e["advisorModel"]), msg["usage"])
 			if !sidechain {
 				s.Model(m)
 			}
@@ -530,7 +553,10 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		s.Subagents = append(s.Subagents, core.Subagent{Type: "sidechain", Start: lo, End: hi, Usage: core.SumUsage(sideEvs), Events: sideEvs})
 	}
 	mainEvs := s.Usage.Events()
-	for _, ev := range mainEvs { // 1 つの応答は 1 回だけ（メッセージ ID でまとめたあと）
+	for _, ev := range mainEvs { // 1 つの応答は 1 回だけ（メッセージ ID でまとめたあと）。advisor の呼び出しは応答に数えない
+		if ev.Advisor {
+			continue
+		}
 		s.Measure("responses", ev.T, 1)
 		s.Measure("out_per_response", ev.T, ev.U.Out)
 	}
@@ -545,6 +571,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			s.Branch = b
 		}
 	}
+	s.Title = firstNonEmpty(customTitle, aiTitle)
 	if s.Title == "" && len(summaries) > 0 {
 		s.Title = summaries[len(summaries)-1]
 	}

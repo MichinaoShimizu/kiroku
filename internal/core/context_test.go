@@ -31,13 +31,21 @@ func TestContextWindowOf(t *testing.T) {
 		"claude-haiku-5-5":           1e6,
 		"claude-haiku-5-5-20261001":  1e6,
 		"anthropic.claude-opus-5-5":  1e6,
+		// 料金表と同じ ID のそろえ方と区切り: Bedrock の地域、4.8 の形、[1m]、版の印
+		"us.anthropic.claude-opus-4-8":         1e6,
+		"global.anthropic.claude-opus-4-8[1m]": 1e6,
+		"us.anthropic.claude-opus-4-1-v1:0":    2e5,
+		"claude-opus-4.8":                      1e6,
+		"claude-opus-4-6[1m]":                  1e6,
+		"claude-opus-4-10":                     2e5, // claude-opus-4 に当てる（claude-opus-4-1 には当てない）
+		"CLAUDE-SONNET-5-5":                    1e6,
 	}
 	for m, want := range cases {
 		if got, ok := ContextWindowOf(m); !ok || got != want {
 			t.Errorf("ContextWindowOf(%q) = %v, %v, want %v", m, got, ok, want)
 		}
 	}
-	for _, m := range []string{"gpt-5", "claude-new-9", ""} {
+	for _, m := range []string{"gpt-5", "claude-new-9", "", "claude-opus-40"} {
 		if _, ok := ContextWindowOf(m); ok {
 			t.Errorf("ContextWindowOf(%q): 表にないモデルは ok=false のはず", m)
 		}
