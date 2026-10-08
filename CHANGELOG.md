@@ -13,6 +13,9 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Claude Sonnet 5.5: cache reads are priced at $0.10 per million tokens (0.05× input), as on the official pricing page, instead of $0.20. Estimates from the price table were too high for Sonnet 5.5 sessions that read from the cache
 - Codex sessions started on an older Codex and resumed after upgrading it keep the tokens, cost and responses from before the upgrade. They were dropped once the newer version wrote its first usage record to the same file
 - In older Codex histories without `user_message` events, the context Codex adds to the conversation (`<environment_context>`, `<user_instructions>`, `<turn_aborted>` and other such blocks, and AGENTS.md instructions) is no longer counted as a prompt. It appears in the prompt flow as a note instead
+- Amazon Q and Kiro CLI (SQLite): text the CLI sends on your behalf is no longer counted as your prompt. The reason it sends when it rejects a tool whose arguments your settings forbid, the request `/todos resume` sends, and the lines an MCP prompt adds with `/prompts get` are shown as "Added by the agent" instead
+- Amazon Q and Kiro CLI (SQLite): a conversation stored under several folders (for example after `/load`) is read from its most recently saved copy, instead of whichever copy happened to come first, which could be an older, shorter one
+- Amazon Q and Kiro CLI (SQLite): rows of `data.sqlite3` that can't be read are reported in "Data sources" instead of being skipped silently
 
 ### Security
 
