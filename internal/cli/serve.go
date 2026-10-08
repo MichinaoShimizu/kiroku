@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -52,14 +51,15 @@ func (l *live) refresh() error {
 	l.reload.Lock()
 	defer l.reload.Unlock()
 	snap := l.load()
-	html, err := web.Render(snap.data, snap.weeks, snap.months, snap.meta, snap.gen, true)
+	parts, err := web.Marshal(snap.data, snap.weeks, snap.months, snap.meta, snap.gen) // HTML と /data.json で使い回す
 	if err != nil {
 		return err
 	}
-	js, err := json.Marshal(map[string]any{"sessions": snap.data, "weeks": snap.weeks, "months": snap.months, "meta": snap.meta, "generated": snap.gen})
+	html, err := parts.HTML(true)
 	if err != nil {
 		return err
 	}
+	js := parts.JSON()
 	l.mu.Lock()
 	l.snap, l.html, l.json = snap, []byte(html), js
 	l.mu.Unlock()
