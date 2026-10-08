@@ -31,7 +31,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 <img src="docs/session.png" alt="Session details (dummy data)" width="560">
 
-**Every number opens up.** Click a figure at the top, such as tokens, estimated cost or the month-end estimate, to see it by day, agent, project and model, with the sessions behind it.
+**Every number opens up.** Click any figure, at the top or in the weekly summary, such as tokens, estimated cost or Git commits, to see it by day, agent, project and model, with the sessions, commits or prompts behind it.
 
 **What's worth a look.** Metrics that crossed a threshold are listed under the key figures. Press one to see what was observed, why it matters, the sessions behind it, an 8-week trend and what to try, without leaving the calendar.
 
