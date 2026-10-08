@@ -219,7 +219,14 @@ The numbers each agent records in its history are shown per agent (in the weekly
 | Kiro CLI (SQLite), Amazon Q | Time to first reply (median), Response time (median), Response size (average, in bytes), Tool calls, Peak context usage (estimate, with the CLI's characters ÷ 4 over the stored history), Context window |
 | Codex | Responses, Reasoning tokens, Share of output spent on reasoning, Peak context usage (worked out the way Codex shows it, leaving out the 12,000 tokens that are always in the context, and 100% when the conversation outgrew the window), Peak usage of each usage limit window (such as "Peak 5-hour limit usage" and "Peak weekly limit usage"; "Peak rate-limit usage" and "Peak secondary rate-limit usage" when the history does not say how long the window is; a response can be missing when Codex recorded the snapshot of another, per-model limit in its place), Time to first token (median), Turn duration (median; turns that ended in an error are left out), Tool calls |
 
-Claude Code does not record how full the context window was, so for Claude Code, Peak context usage is computed by kiroku: the input of each response (new input plus cache reads and writes; for a response that made several calls with the advisor tool, its largest single call) divided by the model's context window, from a table in kiroku (`ContextWindows` in `internal/core/context.go`, from the official docs). On the Anthropic API, Fable 5.1, Fable 5, Sonnet 5 and later, Opus 4.7 and later and Haiku 5.5 have 1M tokens; Opus 4.6 and Sonnet 4.6 have 200K unless you picked their `[1m]` variant, which the history doesn't show, so kiroku assumes 200K and switches to 1M for a model once a response read more than 200K. Models not in the table get no value. On Amazon Bedrock, Google Cloud and Microsoft Foundry, or with `CLAUDE_CODE_DISABLE_1M_CONTEXT`, the window may be 200K where kiroku assumes 1M, so the value reads low there. Codex records its own window.
+Claude Code does not record how full the context window was, so for Claude Code, Peak context usage is computed by kiroku:
+
+- The input of each response (new input plus cache reads and writes; for a response that made several calls with the advisor tool, its largest single call) divided by the model's context window, from a table in kiroku (`ContextWindows` in `internal/core/context.go`, from the official docs). Models not in the table get no value
+- On the Anthropic API, Fable 5.1, Fable 5, Sonnet 5 and later, Opus 4.7 and later and Haiku 5.5 have 1M tokens
+- Opus 4.6 and Sonnet 4.6 have 200K unless you picked their `[1m]` variant, which the history doesn't show, so kiroku assumes 200K and switches to 1M for a model once a response read more than 200K
+- On Amazon Bedrock, Google Cloud and Microsoft Foundry, or with `CLAUDE_CODE_DISABLE_1M_CONTEXT`, the window may be 200K where kiroku assumes 1M, so the value reads low there
+
+Codex records its own window.
 
 Times are calculated in your computer's time zone. All numbers are rough estimates from history. When there is no data, "Unknown" is shown instead of 0. When none of the agents used in the period records something (for example, Kiro records no usage limit hits), the metric shows "—" and "Not recorded in … history" instead of 0; session details do the same for files changed. Tokens, estimated cost and total AI run time are rough measures of usage; they do not show productivity or time saved.
 
@@ -336,7 +343,11 @@ Example for Claude Code:
 }
 ```
 
-kiroku reads your user settings (`~/.claude/settings.json`, or under `CLAUDE_CONFIG_DIR` if set) and your organization's managed settings file, which wins over your own: `managed-settings.json` and the `managed-settings.d/*.json` files next to it (later files win) in `/Library/Application Support/ClaudeCode/` on macOS, `/etc/claude-code/` on Linux and WSL and `C:\Program Files\ClaudeCode\` on Windows ([managed settings](https://code.claude.com/docs/en/managed-settings)). If `cleanupPeriodDays` in your settings is not a whole number of 1 or more (such as `0` or `"30"`), Claude Code pauses its cleanup and deletes nothing until you fix it, so kiroku shows no notice. If the period is set in project settings, in server-managed settings from claude.ai or by MDM (a macOS profile or the Windows registry), the notice may not match the actual period. kiroku shows one period for all Claude Code history; it doesn't single out Claude Desktop and Cowork sessions, which Claude Code keeps longer as described above.
+kiroku reads your user settings (`~/.claude/settings.json`, or under `CLAUDE_CONFIG_DIR` if set) and your organization's managed settings file, which wins over your own: `managed-settings.json` and the `managed-settings.d/*.json` files next to it (later files win) in `/Library/Application Support/ClaudeCode/` on macOS, `/etc/claude-code/` on Linux and WSL and `C:\Program Files\ClaudeCode\` on Windows ([managed settings](https://code.claude.com/docs/en/managed-settings)).
+
+- If `cleanupPeriodDays` in your settings is not a whole number of 1 or more (such as `0` or `"30"`), Claude Code pauses its cleanup and deletes nothing until you fix it, so kiroku shows no notice
+- If the period is set in project settings, in server-managed settings from claude.ai or by MDM (a macOS profile or the Windows registry), the notice may not match the actual period
+- kiroku shows one period for all Claude Code history; it doesn't single out Claude Desktop and Cowork sessions, which Claude Code keeps longer as described above
 
 Example for Kiro Crew (`~/.kiro/crew/config.local.json`; its values win over `config.json`. If the file already has a `"session"` object, add the key inside it):
 
