@@ -1,6 +1,7 @@
 package source
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"io"
@@ -232,6 +233,101 @@ func subagentSlot(st core.Obj, dir string) string {
 		return crewSlot(k)
 	}
 	return crewSlot("subagent:" + firstNonEmpty(core.Str(st["id"]), dir))
+}
+
+// crewLogSegment は crew-log の 1 つのファイルの名前（log.jsonl か、後ろの分かれ log.<最初の seq>.jsonl。Crew の crew_log/store.py の segment_paths）。
+var crewLogSegment = regexp.MustCompile(`^log(?:\.[0-9]{1,18})?\.jsonl$`)
+
+// crewSpawnedMark は subagent/spawned の行にだけある文字。ほかの行（ターン・ツールなど、ずっと多い）は JSON として読まない。
+var crewSpawnedMark = []byte(`"subagent/spawned"`)
+
+// loadCrewSpawns は、crew-log に残るサブエージェントの起動の記録（使用量の記録の slot "subagent:<id>" → Crew の情報）。
+// Crew は届け終えたサブエージェントのフォルダ（subagents/<id>/。state.json）を 1 時間で消す（subagent_persistence.py の
+// prune_stale_tombstones。異常終了は 7 日）。一時的な（temporary・incognito の）サブエージェントは state.json をそもそも書かない。
+// そのあとも使用量の記録は "subagent:<id>" の slot で残るので、親がわからないと、ひとりで Crew のセッションになってしまう。
+// 親の会話の crew-log（追記だけで書きかえない）には、親が起動した子が残る:
+//
+//	<Crew の場所>/crew-log/sessions/<名前>/log.jsonl（と log.<seq>.jsonl）
+//	1 行目 {"type": "session", "id": ACP の会話 ID, "slot": 親の会話キー, "cwd", …}（crew_log/schema.py の SessionHeader）
+//	2 行目から {"type": "subagent/spawned", "time", "src", "data": {"agent_id", "agent"?, "task"?, …}}（crew_log/emit.py の on_subagent_spawned）
+//
+// crew-log はダッシュボードの会話にだけある（サブエージェント自身の会話にはない）。同じ id が何度も出たら、最初に読んだものを使う。
+func loadCrewSpawns(home string, errs *fileErrs) map[string]CrewInfo {
+	out := map[string]CrewInfo{}
+	if home == "" {
+		return out
+	}
+	for _, dir := range glob(filepath.Join(home, "crew-log", "sessions", "*")) {
+		if !realDir(dir) {
+			continue
+		}
+		var slot, cwd string
+		var spawns []core.Obj
+		for _, p := range glob(filepath.Join(dir, "log*.jsonl")) {
+			if !crewLogSegment.MatchString(filepath.Base(p)) {
+				continue
+			}
+			s, c, sp, err := readCrewLog(p)
+			errs.file(p, err)
+			slot, cwd = firstNonEmpty(slot, s), firstNonEmpty(cwd, c)
+			spawns = append(spawns, sp...)
+		}
+		if slot == "" {
+			continue
+		}
+		for _, d := range spawns {
+			id := core.Str(d["agent_id"])
+			if id == "" {
+				continue
+			}
+			key := crewSlot("subagent:" + id)
+			if _, dup := out[key]; dup {
+				continue
+			}
+			out[key] = CrewInfo{Subagent: true, Key: slot, Agent: core.Str(d["agent"]),
+				Task: core.Runes(strings.TrimSpace(core.Str(d["task"])), 120), Cwd: cwd, UsageSlot: key}
+		}
+	}
+	return out
+}
+
+// readCrewLog は crew-log のファイル 1 つから、会話キー（1 行目の slot か、session/opened の data.slot）・作業場所と、
+// subagent/spawned の data を読む。シンボリックリンクでないふつうのファイルだけ。
+func readCrewLog(p string) (slot, cwd string, spawns []core.Obj, err error) {
+	if st, err := os.Lstat(p); err != nil || !st.Mode().IsRegular() {
+		return "", "", nil, nil
+	}
+	f, err := os.Open(p)
+	if err != nil {
+		return "", "", nil, err
+	}
+	defer f.Close()
+	r := bufio.NewReaderSize(f, 1<<16)
+	for first := true; ; first = false {
+		line, long, err := core.ReadLine(r, core.MaxLine)
+		var e core.Obj
+		switch {
+		case long:
+		case first && json.Unmarshal(line, &e) == nil && core.Str(e["type"]) == "session":
+			slot, cwd = core.Str(e["slot"]), core.Str(e["cwd"])
+		case slot == "" && bytes.Contains(line, []byte(`"session/opened"`)):
+			if json.Unmarshal(line, &e) == nil && core.Str(e["type"]) == "session/opened" {
+				slot = core.Str(core.Map(e["data"])["slot"])
+			}
+		case bytes.Contains(line, crewSpawnedMark):
+			if json.Unmarshal(line, &e) == nil && core.Str(e["type"]) == "subagent/spawned" {
+				if d := core.Map(e["data"]); d != nil {
+					spawns = append(spawns, d)
+				}
+			}
+		}
+		if err == io.EOF {
+			return slot, cwd, spawns, nil
+		}
+		if err != nil {
+			return slot, cwd, spawns, err
+		}
+	}
 }
 
 // subagentTitle はサブエージェントの会話のタイトル（"Subagent <エージェント>: <依頼>"）。
