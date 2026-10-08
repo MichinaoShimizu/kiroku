@@ -4,6 +4,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Added
+
+- The figures in the summary's panels open the same breakdown dialog as the key figures at the top: active time, prompts, estimated cost, tokens, Kiro credits, Git commits, the month-end estimates and usage limit hits. Click anywhere on the figure's box; its "?" still opens the explanation. Compactions get a breakdown too: by agent, by project, and when each happened in which session
+
 ### Changed
 
 - The view builds the line shown when a list is empty, code with a Copy button and numbers with thousands separators through shared helpers (`noneH` and `codeH` in `ui.js`, `commas` in `format.js`), and `TestUIConventions` fails when a script writes them by hand. Nothing you see changes

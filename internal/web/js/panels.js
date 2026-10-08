@@ -89,15 +89,15 @@ function outcomePanel(w, pw, unit){
   const po = pw && pw.outputs, V = vsPrev(pw, unit), d = (a, b) => V.diff(a, V.of(null, b)); // AI のコミットと PR は日ごとの値がないので、途中の期間は比べない
   const n = commas, times = v => `${v}`, base = w.outBase ?? w.sessions;
   const cost = [
-    statH("Active time", dur(w.active,true), V.diff(w.active, V.of("active", pw && pw.active), dur), "active"),
-    statH("Prompts", n(w.prompts), V.diff(w.prompts, V.of("prompts", pw && pw.prompts)), "prompts"),
-    u.tokens ? statH("Estimated cost", usdH(costOf(u)), costOf(u) == null ? "Models not in the price table" : V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost") : "",
-    u.tokens ? statH("Tokens", tok(u.tokens), `Output ${tok(u.out)}`, "tokens") : "",
-    u.credits ? statH("Kiro credits", crN(u.credits), "As recorded in history", "credits") : "",
+    statH("Active time", dur(w.active,true), V.diff(w.active, V.of("active", pw && pw.active), dur), "active", "active"),
+    statH("Prompts", n(w.prompts), V.diff(w.prompts, V.of("prompts", pw && pw.prompts)), "prompts", "sessions"),
+    u.tokens ? statH("Estimated cost", usdH(costOf(u)), costOf(u) == null ? "Models not in the price table" : V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost", "cost") : "",
+    u.tokens ? statH("Tokens", tok(u.tokens), `Output ${tok(u.out)}`, "tokens", "tokens") : "",
+    u.credits ? statH("Kiro credits", crN(u.credits), "As recorded in history", "credits", "credits") : "",
   ].join("");
   const lines = gc ? gc.added + gc.removed : 0;
   const out = hasOut ? [
-    gc ? statH("Git commits", times(gc.commits), `${gc.ai} by AI (${Math.round(gc.ai*100/gc.commits)}%)${pw && pw.git ? ` · ${V.diff(gc.commits, V.of("commits", pw.git.commits))}` : ""}`, "gitCommits") : "",
+    gc ? statH("Git commits", times(gc.commits), `${gc.ai} by AI (${Math.round(gc.ai*100/gc.commits)}%)${pw && pw.git ? ` · ${V.diff(gc.commits, V.of("commits", pw.git.commits))}` : ""}`, "gitCommits", "commits") : "",
     gc ? "" : statH("AI commits", times(o.commits), d(o.commits, po && po.commits), "commits"), // Git のコミットがあれば「うち AI」に出ている
     gc ? statH("Lines changed", n(lines), `+${n(gc.added)} −${n(gc.removed)} · ${n(Math.round(lines/gc.commits))} per git commit`, "lines") : "",
     gc && G.files ? statH("Files changed", n(G.files), `In ${plural(G.projects, "project")}${G.trunc ? " · at least" : ""}`, "files") : "",
@@ -208,8 +208,8 @@ function aiUsage(w, pw, unit){
   const pj = projection(w);
   const totalC = u.models.reduce((t,r)=>t+r[1],0) || 1, totalT = u.models.reduce((t,r)=>t+r[2],0) || 1, byCost = totalC > 0.0001;
   return `<div class="stats">
-      ${pj && pj.cost != null ? statH("Month-end cost (estimate)", "≈ " + usdH(pj.cost), `If the pace of the first ${pj.days} days continues`, "projection") : ""}
-      ${pj && pj.credits != null ? statH("Month-end credits (estimate)", `≈ ${crN(pj.credits)}<small> credits</small>`, `If the pace of the first ${pj.days} days continues`, "projectionCr") : ""}
+      ${pj && pj.cost != null ? statH("Month-end cost (estimate)", "≈ " + usdH(pj.cost), `If the pace of the first ${pj.days} days continues`, "projection", "projection") : ""}
+      ${pj && pj.credits != null ? statH("Month-end credits (estimate)", `≈ ${crN(pj.credits)}<small> credits</small>`, `If the pace of the first ${pj.days} days continues`, "projectionCr", "projectionCr") : ""}
       ${u.tokens ? statH("Read from cache", u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, "Share of input", "cache") : ""}
       ${(() => { const {ws, we} = period(), N = !u.subagents && unrecorded(ws, we, "subagents"); return N ? norecStat("Subagents", N, "subagents") : statH("Subagents", `${u.subagents}`, u.subagents ? `Total run time ${dur(u.subMin)}` : "Not used", "subagents"); })()}
       ${w.costPerAsk != null ? statH("Estimated cost per prompt", usdH(w.costPerAsk), `n=${w.costPrompts}`, "costPerAsk") : ""}
