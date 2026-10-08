@@ -297,6 +297,7 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .dsrc summary h3{margin:0}.dsrc summary .muted{font-size:var(--fs-xs)}
 .foot .xl{color:var(--ink-2)}
 .askbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px}
+.askbar .muted{font-size:var(--fs-xs)}
 .askpre{margin:0;max-height:320px;overflow:auto;padding:14px 16px;border:1px solid var(--rule);border-radius:10px;background:var(--bg);font:var(--fs-sm)/1.7 var(--mono);color:var(--ink-2);white-space:pre-wrap;word-break:break-word}
 /* ── month（月カレンダー：日ごとの作業量） ───────────────── */
 .mgrid{display:grid;grid-template-columns:minmax(96px,.75fr) repeat(7,minmax(0,1fr))}
@@ -362,6 +363,8 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .ph span{font-size:var(--fs-xs);color:var(--ink-3)}
 .eyebrow{font-size:var(--fs-xs);letter-spacing:.08em;color:var(--ink-3);text-transform:uppercase;display:flex;align-items:center;gap:8px;font-weight:600}
 .eyebrow .dot{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.dwhen{font-variant-numeric:tabular-nums} /* 詳細パネルの頭の時刻 */
+.wv{color:var(--warn)} /* 利用上限の回数など、注意の数 */
 h2{font:700 var(--fs-2xl)/1.5 var(--sans);margin:6px 0 4px;letter-spacing:-.01em;overflow-wrap:anywhere}
 h3{font:600 var(--fs-sm)/1.2 var(--sans);color:var(--ink-2);margin:24px 0 10px;display:flex;align-items:center;gap:10px}
 h3::after{content:"";flex:1;height:1px;background:var(--rule)}
@@ -566,6 +569,9 @@ body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:tra
 .drawer .mini.tight>div{padding:8px 10px;display:flex;flex-direction:column;justify-content:space-between} /* 見出しが 2 行になっても、数字の高さをそろえる */
 .drawer .mini.tight .k{font-size:var(--fs-xs);color:var(--ink-3);line-height:1.4}
 .drawer .mini.tight .v{font-size:var(--fs-xl)}
+.drawer .mini .v.mono{font-size:var(--fs-md)} /* コミットのハッシュなど、数でない値 */
+.drawer .mini .v~.k{margin-top:2px} /* 値の下の添え書き（圧縮や利用上限の時刻） */
+.dact{margin-top:14px}.dcol>.dact:first-child{margin-top:4px} /* 詳細パネルの、外のページを開くボタンの段 */
 .drawer .flowhead h3{margin:0} /* .drawer h3 の上下の余白を打ち消す（見出しとボタンを同じ行の高さにそろえる） */
 .drawer .tl li{font-size:var(--fs-lg);grid-template-columns:42px 1fr;padding:6px 0}
 .drawer .tl::before{left:48px}
@@ -748,4 +754,4 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
 
 .pkind .ic{width:11px;height:11px;margin-right:3px;vertical-align:-1px} /* コマンド（/）・シェル（>_） */
 .lim{display:inline-flex;align-items:center;gap:3px}.lim .ic{width:10px;height:10px;stroke-width:1.8} /* 利用上限 */
-.agm{display:inline-grid;place-items:center;min-width:14px;height:14px;padding:0 3px;margin-right:5px;border-radius:4px;border:1px solid color-mix(in oklab,var(--ag,var(--rule-2)) 55%,var(--rule-2));background:color-mix(in oklab,var(--ag,var(--surface-2)) 16%,var(--surface-2));color:var(--ag,var(--ink-2));font:700 var(--fs-2xs)/1 var(--mono);font-style:normal;letter-spacing:0;text-transform:none;vertical-align:1px} /* エージェントの頭文字（ロゴは使わない） */
+.agm{display:inline-grid;place-items:center;min-width:14px;height:14px;padding:0 3px;margin-right:5px;border-radius:4px;border:1px solid color-mix(in oklab,var(--ag,var(--rule-2)) 55%,var(--rule-2));background:color-mix(in oklab,var(--ag,var(--surface-2)) 16%,var(--surface-2));color:var(--ag,var(--ink-2));font:700 var(--fs-2xs)/1 var(--mono);font-style:normal;letter-spacing:0;text-transform:none;vertical-align:1px;flex:none;white-space:nowrap;overflow-wrap:normal} /* エージェントの頭文字（ロゴは使わない）。並びの中で縮めず、親の overflow-wrap:anywhere（見直す候補のダイアログの .fl など）を受けても「KC」を 1 文字ずつに折らない */

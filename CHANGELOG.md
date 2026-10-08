@@ -8,9 +8,11 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - Each agent's name, `--sources` name, color, initials, environment variables and `kiroku archive` folder are kept in one table (`core.Agents`). The `--sources` default and help, the environment variables `kiroku autostart` writes down, the folders `kiroku archive off` clears, and the colors and badges in the view and in the page `kiroku serve` shows while it first reads history are made from it, instead of each keeping its own copy. Nothing you see changes
 - Cards in "Repeated prompts" look like the other session cards: the badge and color of the agent of the session they open (where you last wrote the prompt) before the prompt, and a soft gradient in that color
+- The subheadings in the summary's panels ("More metrics", "By model", "Subagent types", "Heaviest sessions" and "Agent-specific metrics") are real headings styled like "Possible friction" and "Repeated prompts", so screen readers can jump to them. The notes in the commit, push and pull request details use the same size as the other notes in the details panel
 
 ### Fixed
 
+- The agent badge on session cards in the "Worth a look" dialog no longer breaks onto two lines ("K" over "C") on narrow screens; it keeps its width next to a long session name
 - A long prompt in "Repeated prompts" is cut to one line like the other cards, instead of wrapping onto several lines; one with a long word such as a URL no longer runs past the card and makes the page scroll sideways at phone widths
 
 ## v0.24.0 - 2026-10-08

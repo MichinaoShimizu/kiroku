@@ -13,18 +13,15 @@ function detail(s){
   const credH = s.credits ? `<div><div class="k">Kiro credits</div><div class="v">${crN(s.credits)}</div></div><div><div class="k">Per prompt</div><div class="v">${s.nPrompts ? crN(s.credits/s.nPrompts) : "—"}<small> credits</small></div></div>` : "";
   const P = $("#panel");
   P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
-    <div class="eyebrow"><span class="dot"></span>${agMark(s.source)}${esc((s.source))}</div>
-    <h2>${esc(s.title)}</h2>
-    <div class="muted" style="font-variant-numeric:tabular-nums">${md(s.start)} ${hm(s.start)} – ${sameDay ? "" : md(s.end)+" "}${hm(s.end)}</div>
-    <div class="meta"><span>${esc(s.project)}</span>${s.branch?`<span>${esc(s.branch)}</span>`:""}</div>
+    ${dHead(agMark(s.source) + esc(s.source), s.title, `${md(s.start)} ${hm(s.start)} – ${sameDay ? "" : md(s.end)+" "}${hm(s.end)}`, [`<span>${esc(s.project)}</span>`, s.branch && `<span>${esc(s.branch)}</span>`])}
     <div class="dcols"><div class="dcol">
     <div class="mini tight">
       <div><div class="k">Active time</div><div class="v">${dur(active,true)}</div></div>
       <div><div class="k">Prompts</div><div class="v">${s.nPrompts}</div></div>
       <div><div class="k">Wait time (median)</div><div class="v">${med==null?"—":secsH(med)}</div></div>
       <div><div class="k">Corrections / interruptions</div><div class="v">${s.corrections + s.interrupts}</div></div>
-      ${s.compactions && s.compactions.length ? `<div><div class="k">Compactions</div><div class="v">${s.compactions.length}</div><div class="k" style="margin-top:2px">${s.compactions.map(hm).join(", ")}</div></div>` : ""}
-      ${s.limits && s.limits.length ? `<div><div class="k">Usage limit hits</div><div class="v" style="color:var(--warn)">${s.limits.length}</div><div class="k" style="margin-top:2px">${s.limits.map(hm).join(", ")}</div></div>` : ""}
+      ${s.compactions && s.compactions.length ? `<div><div class="k">Compactions</div><div class="v">${s.compactions.length}</div><div class="k">${s.compactions.map(hm).join(", ")}</div></div>` : ""}
+      ${s.limits && s.limits.length ? `<div><div class="k">Usage limit hits</div><div class="v wv">${s.limits.length}</div><div class="k">${s.limits.map(hm).join(", ")}</div></div>` : ""}
       ${s.source === "Claude Code" ? `<div><div class="k">Estimated cost${s.costReported ? " (from Claude Code)" : ""}</div><div class="v"${sCost == null ? ` title="${esc(NOPRICE)}"` : ""}>${usdH(sCost)}</div></div>
       <div><div class="k">Tokens</div><div class="v">${tok(allTok)}</div></div>
       ${(() => { const cs = commitsOf(s), ai = cs.filter(c => c.ai).length, o = s.outputs || {}; // 右の「このセッションの間のコミット」と同じ数え方（手でのコミットも入れ、うち AI を添える）
