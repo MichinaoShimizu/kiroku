@@ -12,6 +12,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - Claude Sonnet 5.5: cache reads are priced at $0.10 per million tokens (0.05× input), as on the official pricing page, instead of $0.20. Estimates from the price table were too high for Sonnet 5.5 sessions that read from the cache
 
+### Security
+
+- The "Resume" command in session details is no longer shown when the session ID or project folder read from history starts with `-`. Quoting does not stop a command from reading such a value as an option, so a crafted history file could make the command you paste run, for example, `claude --resume --dangerously-skip-permissions` or `cd -`. It is also not shown when the value contains invisible Unicode formatting characters (such as right-to-left overrides or zero-width spaces), which could make the command on screen look different from what you paste
+
 ## v0.23.0 - 2026-10-08
 
 ### Added
