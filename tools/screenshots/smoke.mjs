@@ -157,6 +157,22 @@ async function run(env) {
     await p.keyboard.press("Escape"); await pause();
   });
 
+  await step("サマリーのどの数字も内訳が開く", async () => {
+    const ids = await p.evaluate(() => [...document.querySelectorAll("#review [data-metric]")].map(b => b.dataset.metric));
+    for (const id of ["lines", "files", "pushes", "focus", "parallel", "wait", "ai", "cache", "costPerAsk"]) check(`サマリーの ${id} を押せる`, ids.includes(id));
+    for (const id of ids) {
+      await p.evaluate(id => document.querySelector(`#review [data-metric="${id}"]`).click(), id); await pause();
+      check(`${id} の内訳が開き、中身がある`, await p.evaluate(() => { const d = document.querySelector("#md"); return d.open && d.querySelectorAll("h3").length > 0; }));
+      await p.keyboard.press("Escape"); await pause();
+    }
+    await p.evaluate(() => document.querySelector('#review [data-metric="commits"]').click()); await pause();
+    const row = p.locator("#md [data-git]").first();
+    check("Git commits の内訳にコミットの一覧がある", await row.count() === 1);
+    await row.click(); await pause();
+    check("一覧のコミットを押すと、ダイアログを閉じてコミットの詳細が開く", await p.evaluate(() => !document.querySelector("#md").open && st.sel && st.sel.startsWith("git:")) && await drawerOpen());
+    await p.keyboard.press("Escape"); await pause();
+  });
+
   await step("セッションを AI と振り返る", async () => {
     const run = p.locator(".run[data-sid]").first();
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();

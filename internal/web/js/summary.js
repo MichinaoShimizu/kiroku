@@ -18,17 +18,17 @@ function summary(){
   ${outcomePanel(w, pw, unit)}
   <section class="panel time">${panelH(3, "How you spent time", "When and how long sessions ran")}
     <div class="stats">
-      ${statH("Focus blocks (60+ min)", times(w.focus.length), longest ? `Longest ${dur(longest)}` : "", "focus")}
+      ${statH("Focus blocks (60+ min)", times(w.focus.length), longest ? `Longest ${dur(longest)}` : "", "focus", w.focus.length ? "focus" : "")}
       ${(() => { const {ws, we} = period(), H = limitHits(ws, we), N = unrecorded(ws, we, "limits"); return N ? norecStat("Usage limit hits", N, "limits") : statH("Usage limit hits", times(H.length), H.length ? H.slice(-4).map(h => `${md(h.t)} ${hm(h.t)}${h.r ? ` (resets ${esc(h.r)})` : ""}`).join(", ") + (H.length > 4 ? ", …" : "") : "From Claude Code and Codex history", "limits", H.length ? "limits" : ""); })()}
       ${(() => { const {ws, we} = period(), C = compactionsOf(ws, we), n = new Set(C.map(c => c.s.id)).size, N = unrecorded(ws, we, "compactions"); return N ? norecStat("Compactions", N, "compactions") : statH("Compactions", times(C.length), C.length ? `In ${plural(n, "session")} · ${C.slice(-4).map(c => `${md(c.t)} ${hm(c.t)}`).join(", ")}${C.length > 4 ? ", …" : ""}` : "From Claude Code, Codex and Amazon Q / Kiro CLI (SQLite) history", "compactions", C.length ? "compactions" : ""); })()}
     </div>
     ${secH("More metrics (includes estimates)")}<div class="stats">
-      ${statH("Prompts with corrections or interruptions", pct(w.fixRate), `n=${w.prompts}`, "fix")}
-      ${(() => { const {ws, we} = period(), B = bigOf(ws, we); return statH("Oversized prompts", `${B.n}`, `${commas(BIG_PROMPT)}+ characters${B.n ? ` · longest ${commas(B.max)}` : ""}`, "bigPrompts"); })()}
-      ${statH("Project switches per day", times(w.switchesAvg), `Max ${w.switchesMax}`, "switches")}
-      ${statH("Parallel time", dur(w.parallel,true), `Up to ${w.maxConc} at once`, "parallel")}
-      ${statH("Wait time (median)", secsH(w.waitMedian), `n=${w.waitCount} · 90th percentile ${secs(w.waitP90)}`, "wait")}
-      ${statH("Total AI run time", dur(w.ai,true), "Includes parallel runs", "ai")}
+      ${statH("Prompts with corrections or interruptions", pct(w.fixRate), `n=${w.prompts}`, "fix", w.fixRate ? "fix" : "")}
+      ${(() => { const {ws, we} = period(), B = bigOf(ws, we); return statH("Oversized prompts", `${B.n}`, `${commas(BIG_PROMPT)}+ characters${B.n ? ` · longest ${commas(B.max)}` : ""}`, "bigPrompts", B.n ? "bigPrompts" : ""); })()}
+      ${statH("Project switches per day", times(w.switchesAvg), `Max ${w.switchesMax}`, "switches", "switches")}
+      ${statH("Parallel time", dur(w.parallel,true), `Up to ${w.maxConc} at once`, "parallel", w.parallel ? "parallel" : "")}
+      ${statH("Wait time (median)", secsH(w.waitMedian), `n=${w.waitCount} · 90th percentile ${secs(w.waitP90)}`, "wait", w.waitCount ? "wait" : "")}
+      ${statH("Total AI run time", dur(w.ai,true), "Includes parallel runs", "ai", "ai")}
     </div>
     </section>
   <section class="panel">${panelH(4, "How you used AI", "Cache, models and heavy sessions")}

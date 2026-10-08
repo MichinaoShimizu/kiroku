@@ -4,6 +4,11 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Added
+
+- Every other figure in the summary's panels now opens a breakdown too: lines changed, files changed, pushes, pull requests, AI commits, estimated cost per commit, sessions that reached a commit or PR, focus blocks, prompts with corrections or interruptions, oversized prompts, project switches per day, parallel time, wait time, total AI run time, read from cache, subagents and estimated cost per prompt. Each shows what it is made of: by day, by agent or by project where that applies, how ratios are worked out (such as cost ÷ prompts), and the commits, pushes, pull requests, prompts or sessions behind it (press one to open its details). The by-day bars for parallel time and AI run time are counted minute by minute the same way as the figure, so they add up to it
+- The Git commits breakdown lists the commits themselves (newest first, press one to open it) and which agent ran the ones made by AI, and counts every project with commits, including ones with no session in the period
+
 ### Changed
 
 - Reading history is faster: a year of synthetic Claude Code history (about 2,900 sessions) loads in 1.1 seconds instead of 1.8. The check for prompts that look like corrections now skips its large pattern when none of its phrases appear; which prompts count as corrections doesn't change
