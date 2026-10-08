@@ -36,7 +36,7 @@ function mBars(title, rows, m, total){
 }
 function mSessions(title, list, f){
   if (!list.length) return "";
-  return `<h3>${title}</h3><div class="msess">${list.map(([s, v]) => sesCardH(s, `${md(s.start)} · ${esc(s.project)}`, f(v))).join("")}</div>`;
+  return `<h3>${title}</h3><div class="msess">${list.map(([s, v]) => sesCardH(s, sesMeta(s), f(v))).join("")}</div>`;
 }
 const projColor = p => st.colorBy === "project" ? colorOf(p) : "var(--acc)";
 function openMetric(id, from){

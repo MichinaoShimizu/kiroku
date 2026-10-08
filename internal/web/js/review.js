@@ -231,7 +231,7 @@ function flagSum(F){ // 期間の要点の下（#worth）に、基準を超え�
     ? ids.map(id => `<button class="flink" data-goto="${id}">${esc(H()[id].n)}</button>`).join("")
     : `<span class="muted">No metric crossed a threshold</span>`}`;
 }
-const flagSes = ids => ids.map(id => { const s = DATA.find(x => x.id === id); return s ? sesCardH(s, `${md(s.start)} · ${esc(s.project)}`) : ""; }).join("");
+const flagSes = ids => ids.map(id => { const s = DATA.find(x => x.id === id); return s ? sesCardH(s, sesMeta(s)) : ""; }).join("");
 /* 見直す候補の 1 つを、画面の真ん中のダイアログで開く（サマリーへ移らずに、何が見えて、なぜ大事で、次に何をするかを読める）。
    同じ指標に印の付く候補（GOTO）はまとめて出す。セッションを押すと、ダイアログを閉じて詳細を開く */
 let lastFlags = []; // 表示中の期間の候補（summary が入れる）

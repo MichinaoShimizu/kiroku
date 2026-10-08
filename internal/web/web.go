@@ -34,6 +34,7 @@ var scripts = []string{
 	"state.js",    // 埋め込んだデータ・画面の状態
 	"format.js",   // 書き方の小物・色・テーマ
 	"markdown.js", // 書き出す Markdown に履歴の文字を入れる小物
+	"ui.js",       // 共通の部品（印・セッションのカード・見出し・数の枠）
 	"calendar.js", // render・週と月のカレンダー・ツールチップ
 	"summary.js",  // サマリー・指標の説明 HELP
 	"review.js",   // 改善案のプロンプト・見直す候補と推移

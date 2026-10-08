@@ -7,6 +7,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 ### Changed
 
 - Cards in "Repeated prompts" look like the other session cards: the badge and color of the agent of the session they open (where you last wrote the prompt) before the prompt, and a soft gradient in that color
+- The subheadings in the summary's panels ("More metrics", "By model", "Subagent types", "Heaviest sessions" and "Agent-specific metrics") are real headings styled like "Possible friction" and "Repeated prompts", so screen readers can jump to them. The notes in the commit, push and pull request details use the same size as the other notes in the details panel
 
 ### Fixed
 

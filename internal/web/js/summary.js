@@ -4,47 +4,45 @@ function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
   const head = `<div class="rvhead"><h2>${M ? "Monthly summary" : "Weekly summary"}</h2><p>Rough figures for reflecting on how you work. They are not for comparing people or for evaluations.</p>${w ? `<button class="pill rpt" id="rpttog" aria-expanded="${!!st.rpt}" aria-controls="rptbox">${`${M ? "Monthly" : "Weekly"} report draft`}</button>` : ""}</div>${w ? `<section class="panel rptbox" id="rptbox"${st.rpt ? "" : " hidden"} aria-label="${`${M ? "Monthly" : "Weekly"} report draft`}">
     <div class="askbar"><button class="pill" id="rptcopy">Copy</button><button class="pill" id="rptclose">Close</button>
-      <span class="muted" style="font-size:var(--fs-xs)">Markdown with what you did, commits and pull requests for each project. Session names are the start of your prompts, so edit them before pasting.</span></div>
+      <span class="muted">Markdown with what you did, commits and pull requests for each project. Session names are the start of your prompts, so edit them before pasting.</span></div>
     <pre class="askpre" id="rptpre">${esc(reportText(w, M))}</pre></section>` : ""}`;
   const WK = $("#worth"); $("#sres").hidden = true; $("#sres").innerHTML = "";
   if (!w){ WK.hidden = true; R.innerHTML = foot(); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
-  const stat = (k, v, s, h) => `<div class="stat"><div class="k">${k}${hb(h)}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
-  const ph = (n, t, s, h) => `<div class="ph"><span class="no">${n}</span><h3>${t}${hb(h)}</h3><span>${s}</span></div>`;
   const pct = v => v == null ? "Unknown" : `${v}<small>%</small>`;
   const times = n => `${n}`;
   const F = findList(w, pw, unit);
   WK.innerHTML = flagSum(F); WK.hidden = false; lastFlags = F; // 見直す候補は、カレンダーの上（期間の要点のすぐ下）に出す。押すと真ん中のダイアログで開く
   R.innerHTML = `${head}${keepNotice()}<div class="rvgrid">
-  ${projectPanel(w, ph, unit)}
-  ${outcomePanel(w, pw, unit, ph, stat)}
-  <section class="panel time">${ph(3, "How you spent time", "When and how long sessions ran")}
+  ${projectPanel(w, unit)}
+  ${outcomePanel(w, pw, unit)}
+  <section class="panel time">${panelH(3, "How you spent time", "When and how long sessions ran")}
     <div class="stats">
-      ${stat("Focus blocks (60+ min)", times(w.focus.length), longest ? `Longest ${dur(longest)}` : "", "focus")}
-      ${(() => { const {ws, we} = period(), H = limitHits(ws, we), N = unrecorded(ws, we, "limits"); return N ? norecStat("Usage limit hits", N, "limits") : stat("Usage limit hits", times(H.length), H.length ? H.slice(-4).map(h => `${md(h.t)} ${hm(h.t)}${h.r ? ` (resets ${esc(h.r)})` : ""}`).join(", ") + (H.length > 4 ? ", …" : "") : "From Claude Code and Codex history", "limits"); })()}
-      ${(() => { const {ws, we} = period(), C = compactionsOf(ws, we), n = new Set(C.map(c => c.s.id)).size, N = unrecorded(ws, we, "compactions"); return N ? norecStat("Compactions", N, "compactions") : stat("Compactions", times(C.length), C.length ? `In ${plural(n, "session")} · ${C.slice(-4).map(c => `${md(c.t)} ${hm(c.t)}`).join(", ")}${C.length > 4 ? ", …" : ""}` : "From Claude Code, Codex and Amazon Q / Kiro CLI (SQLite) history", "compactions"); })()}
+      ${statH("Focus blocks (60+ min)", times(w.focus.length), longest ? `Longest ${dur(longest)}` : "", "focus")}
+      ${(() => { const {ws, we} = period(), H = limitHits(ws, we), N = unrecorded(ws, we, "limits"); return N ? norecStat("Usage limit hits", N, "limits") : statH("Usage limit hits", times(H.length), H.length ? H.slice(-4).map(h => `${md(h.t)} ${hm(h.t)}${h.r ? ` (resets ${esc(h.r)})` : ""}`).join(", ") + (H.length > 4 ? ", …" : "") : "From Claude Code and Codex history", "limits"); })()}
+      ${(() => { const {ws, we} = period(), C = compactionsOf(ws, we), n = new Set(C.map(c => c.s.id)).size, N = unrecorded(ws, we, "compactions"); return N ? norecStat("Compactions", N, "compactions") : statH("Compactions", times(C.length), C.length ? `In ${plural(n, "session")} · ${C.slice(-4).map(c => `${md(c.t)} ${hm(c.t)}`).join(", ")}${C.length > 4 ? ", …" : ""}` : "From Claude Code, Codex and Amazon Q / Kiro CLI (SQLite) history", "compactions"); })()}
     </div>
-    <div style="margin-top:16px" class="k muted">More metrics (includes estimates)</div><div class="stats" style="margin-top:8px">
-      ${stat("Prompts with corrections or interruptions", pct(w.fixRate), `n=${w.prompts}`, "fix")}
-      ${(() => { const {ws, we} = period(), B = bigOf(ws, we); return stat("Oversized prompts", `${B.n}`, `${BIG_PROMPT.toLocaleString(LOC())}+ characters${B.n ? ` · longest ${B.max.toLocaleString(LOC())}` : ""}`, "bigPrompts"); })()}
-      ${stat("Project switches per day", times(w.switchesAvg), `Max ${w.switchesMax}`, "switches")}
-      ${stat("Parallel time", dur(w.parallel,true), `Up to ${w.maxConc} at once`, "parallel")}
-      ${stat("Wait time (median)", secsH(w.waitMedian), `n=${w.waitCount} · 90th percentile ${secs(w.waitP90)}`, "wait")}
-      ${stat("Total AI run time", dur(w.ai,true), "Includes parallel runs", "ai")}
+    ${secH("More metrics (includes estimates)")}<div class="stats">
+      ${statH("Prompts with corrections or interruptions", pct(w.fixRate), `n=${w.prompts}`, "fix")}
+      ${(() => { const {ws, we} = period(), B = bigOf(ws, we); return statH("Oversized prompts", `${B.n}`, `${BIG_PROMPT.toLocaleString(LOC())}+ characters${B.n ? ` · longest ${B.max.toLocaleString(LOC())}` : ""}`, "bigPrompts"); })()}
+      ${statH("Project switches per day", times(w.switchesAvg), `Max ${w.switchesMax}`, "switches")}
+      ${statH("Parallel time", dur(w.parallel,true), `Up to ${w.maxConc} at once`, "parallel")}
+      ${statH("Wait time (median)", secsH(w.waitMedian), `n=${w.waitCount} · 90th percentile ${secs(w.waitP90)}`, "wait")}
+      ${statH("Total AI run time", dur(w.ai,true), "Includes parallel runs", "ai")}
     </div>
     </section>
-  <section class="panel">${ph(4, "How you used AI", "Cache, models and heavy sessions")}
+  <section class="panel">${panelH(4, "How you used AI", "Cache, models and heavy sessions")}
     ${aiUsage(w, pw, unit) || `<p class="none">No token or credit records.</p>`}
     ${nativeSection(w)}</section>
-  <section class="panel shape">${ph(5, M ? "Shape of the month" : "Shape of the week", "Friction and repeated prompts")}
-    ${w.friction.length ? `<h3>Possible friction${hb("friction")}</h3>` : ""}
-    ${w.friction.length ? w.friction.map(f => sesCardH(sesById(f.id, f.title), `${md(f.start)} · ${esc(f.project)} ${whyOf(f).map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}`)).join("") : ""}
-    ${repeatsOf(period().ws, period().we).length ? `<h3>Repeated prompts${hb("repeats")}</h3>` : ""}
+  <section class="panel shape">${panelH(5, M ? "Shape of the month" : "Shape of the week", "Friction and repeated prompts")}
+    ${w.friction.length ? secH("Possible friction", "friction") : ""}
+    ${w.friction.length ? w.friction.map(f => sesCardH(sesById(f.id, f.title), `${sesMeta(f)} ${whyOf(f).map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}`)).join("") : ""}
+    ${repeatsOf(period().ws, period().we).length ? secH("Repeated prompts", "repeats") : ""}
     ${(() => { const {ws, we} = period(), RP = repeatsOf(ws, we); return RP.length ? RP.slice(0, 3).map(c => sesCardH(sesById(c.id, snipOf(c.text, 90)), `${c.n} times in ${c.ids.size} sessions ${uThis(unit)} · last on ${md(c.last)}`)).join("") : ""; })()}
     ${w.friction.length || repeatsOf(period().ws, period().we).length ? "" : `<p class="none">No sessions with possible friction and no repeated prompts.</p>`}</section>
-  <section class="panel ask">${ph(6, "Ask AI for suggestions", "A prompt that asks for suggestions based on this data")}
+  <section class="panel ask">${panelH(6, "Ask AI for suggestions", "A prompt that asks for suggestions based on this data")}
     <div class="askbar"><button class="pill" id="askcopy">Copy prompt</button>
-      <span class="muted" style="font-size:var(--fs-xs)">Paste it into the AI agent you use. kiroku never calls an AI. It includes session names (parts of your prompts) and project names, so review it before sending.</span></div>
+      <span class="muted">Paste it into the AI agent you use. kiroku never calls an AI. It includes session names (parts of your prompts) and project names, so review it before sending.</span></div>
     <details class="askd"><summary>Show the prompt</summary><pre class="askpre" id="askpre">${esc(askPrompt(w, pw, M))}</pre></details></section>
   <section class="panel metap">${measure(w)}${foot()}</section></div>`;
   placeFlags(R, F);
@@ -87,7 +85,7 @@ function shareBlock(w, ps){
   return `${head}<div class="sharebox"><div class="share">${bars}</div>${tab}</div>`;
 }
 /* プロジェクト別：何に何時間、どれだけのトークン・コスト・クレジットを使い、何が残ったか（モデルと重いセッションは ④ に） */
-function projectPanel(w, ph, unit){
+function projectPanel(w, unit){
   const ps = w.projectStats || []; if (!ps.length) return "";
   const total = w.projects.reduce((t,[,v])=>t+v,0) || 1, LIMIT = 6, shown = st.allProj ? ps : ps.slice(0, LIMIT);
   const anyCr = ps.some(p => p.credits); // この期間にクレジットの記録がまったくなければ、「—」だけの欄は出さない
@@ -102,7 +100,7 @@ function projectPanel(w, ph, unit){
         ${anyCr ? `<div><div class="k">Credits</div><div class="v">${p.credits ? cr(p.credits) : "—"}</div></div>` : ""}</div>
       ${p.git && p.git.commits ? `<div><div class="lab">Left behind</div><div class="pout">Git commits ${p.git.commits} · ${p.git.ai} by AI · <span>+${p.git.added} −${p.git.removed} lines</span></div></div>` : p.outputs && p.outputs.commits ? `<div><div class="lab">Left behind</div><div class="pout">AI commits ${p.outputs.commits}</div></div>` : ""}
     </article>`; }).join("");
-  return `<section class="panel projs">${ph(1, "By project", `Where your time and AI went ${uThis(unit)}`, "projects")}
+  return `<section class="panel projs">${panelH(1, "By project", `Where your time and AI went ${uThis(unit)}`, "projects")}
     ${shareBlock(w, ps)}
     <div class="pgrid">${cards}</div>
     ${ps.length > LIMIT ? `<button class="pill pmore" id="pmore">${st.allProj ? "Show top projects only" : `Show ${plural(ps.length - LIMIT, "more project")}`}</button>` : ""}</section>`;
@@ -151,7 +149,6 @@ const HELP = {
 const H = () => HELP;
 // 期間のエージェントのどれも記録しない指標のカード（unrecorded）。数字の欄に「—」を太字で出すと 0 や読み込み中に見えるので、
 // 数字の代わりに控えめな文で「記録されていない」と言い、点線の枠で数字のカードと見分けがつくようにする
-function norecStat(k, srcs, h){ return `<div class="stat norec"><div class="k">${k}${hb(h)}</div><div class="v">Not recorded</div><div class="s">${esc(`${srcs.join(", ")} ${srcs.length > 1 ? "don't" : "doesn't"} record this`)}</div></div>`; }
 function hb(id){ return H()[id] ? `<button class="hb" data-help="${id}" aria-label="${`How to read ${H()[id].n}`}" aria-expanded="false" aria-controls="hpop">?</button>` : ""; }
 // hintBody は「?」の説明の中身（定義・わかること・わからないこと・次にやること・推移）。押した ? の近くの吹き出し（#hpop）に出す
 function hintBody(id){ const h = H()[id]; if (!h) return "";

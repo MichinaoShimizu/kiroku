@@ -99,7 +99,7 @@ function kpis(){
     (pj && pj.credits != null ? kpi("Month-end credits", `<small>≈</small>${crN(pj.credits)}<small>cr</small>`, pace, "key", "projectionCr") : "") +
     kpi("Active time", dur(w.active, true), "", "", "active") + kpi("Active days", `${days}<small> of ${nd}${n0 == null ? "" : " so far"}</small>`, n0 == null ? "" : `${days} of the ${plural(nd, "day")} so far (${M ? "this month" : "this week"} is still in progress)`, "", "days") +
     kpi("Sessions / prompts", `${w.sessions}<small>/</small>${w.prompts}`, "", "", "sessions") +
-    (() => { const {ws, we} = period(), n = limitHits(ws, we).length; return n ? kpi("Usage limit hits", `<span style="color:var(--warn)">${n}</span>`, "", "", "limits") : ""; })() +
+    (() => { const {ws, we} = period(), n = limitHits(ws, we).length; return n ? kpi("Usage limit hits", `<span class="wv">${n}</span>`, "", "", "limits") : ""; })() +
     (w.git && w.git.commits ? kpi("Git commits", `${w.git.commits}<small> · ${w.git.ai} by AI</small>`, "", "", "commits") :
      w.outputs && w.outputs.commits ? kpi("AI commits", `${w.outputs.commits}`) : "");
   K.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b));
@@ -152,7 +152,7 @@ function monthGrid(shown, ms, me, todayKey){
         ${pj.length ? `<span class="pj">${pj.map(([k,v])=>`<span style="flex:${v};--c:${colorOf(k)}"></span>`).join("")}</span>` : ""}</button>`;
     }
   }
-  h += `</div><div class="mlegend"><span style="white-space:nowrap">Less</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${matchMedia("(max-width:820px)").matches ? "More (active time) · Each day and week shows active time, and tokens or credits (both when the month has both). A week counts all 7 days, including those in the next or previous month · Tap a date or week to open it" : "More (active time) · Each day, and each week on the left, shows active time, tokens or credits (both when the month has both), sessions and Git commits. A week counts all 7 days, including those in the next or previous month · Click a date or week to open it"}</div>`;
+  h += `</div><div class="mlegend"><span class="nw">Less</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${matchMedia("(max-width:820px)").matches ? "More (active time) · Each day and week shows active time, and tokens or credits (both when the month has both). A week counts all 7 days, including those in the next or previous month · Tap a date or week to open it" : "More (active time) · Each day, and each week on the left, shows active time, tokens or credits (both when the month has both), sessions and Git commits. A week counts all 7 days, including those in the next or previous month · Click a date or week to open it"}</div>`;
   T.innerHTML = h;
   T.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { const [y,m,dd] = b.dataset.w.split("-").map(Number); st.week = new Date(y, m-1, dd); setMode("week"); });
 }
