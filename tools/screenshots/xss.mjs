@@ -7,7 +7,7 @@ import path from "node:path";
 const html = process.argv[2];
 if (!html) { console.error("使い方: node xss.mjs <xss.html>"); process.exit(2); }
 
-const b = await chromium.launch();
+const b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {}); // CHROMIUM: Playwright の Chromium を取ってこられない環境向け
 const ctx = await b.newContext({ viewport: { width: 1500, height: 1000 }, locale: "en-US", timezoneId: "UTC" });
 ctx.setDefaultTimeout(3000);
 const p = await ctx.newPage();

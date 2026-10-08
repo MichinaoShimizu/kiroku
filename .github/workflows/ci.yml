@@ -125,7 +125,7 @@ jobs:
           persist-credentials: false # トークンを .git に残さない（後のステップから読めないように）
       - name: shellcheck
         if: runner.os == 'Linux'
-        run: shellcheck install.sh tools/*.sh
+        run: shellcheck install.sh tools/*.sh .claude/hooks/*.sh
       - name: install
         run: |
           KIROKU_INSTALL_DIR="$RUNNER_TEMP/bin" sh install.sh
