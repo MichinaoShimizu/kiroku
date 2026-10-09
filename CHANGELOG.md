@@ -2,11 +2,11 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
-## Unreleased
+## v0.28.0 - 2026-10-09
 
 ### Added
 
-- Metrics guide: the new map button at the top right (or `G`) shows how the metrics fit together. What you put in becomes what is left behind through four levers of how you work with AI, Compared divides the two, and each lever lists its metrics with what they tell you, followed by how to make a change and what the metrics don't tell you, including where kiroku sits in the SPACE framework (Activity, and Efficiency and flow) and what it leaves to other data (quality and delivery as in DORA, satisfaction, collaboration)
+- Metrics guide: the new map button at the top right (or `G`) shows how the metrics fit together. What you put in becomes what is left behind through four levers of how you work with AI, Compared sets the two side by side, and each lever lists its metrics with what they tell you, followed by how to make a change and what the metrics don't tell you, including where kiroku sits in the SPACE framework (Activity, and Efficiency and flow) and what it leaves to other data (quality and delivery as in DORA, satisfaction, collaboration)
 
 ### Changed
 
