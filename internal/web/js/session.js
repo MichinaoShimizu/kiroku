@@ -49,7 +49,7 @@ function detail(s){
       return `<ul class="files">${s.files.map((f, i) => pathRow(f, fileA(us[i] || ls[i], esc(f)))).join("")}</ul>${us.some(Boolean) || ls.some(Boolean) ? `<p class="note">${[us.some(Boolean) ? "Links marked ↗ open the file on the remote as of the commits made during this session." : "", ls.some(Boolean) ? `${us.some(Boolean) ? "Other links open" : "Links open"} the file on this computer as it is now.` : ""].filter(Boolean).join(" ")}</p>` : ""}`; })()}
     ${s.models.length ? `<h3>Models used</h3><div class="chips">${(mc => s.models.map(([m,n],i)=>`<span class="mono mdl" style="--m:${mc[i]}"><i aria-hidden="true"></i>${esc((m))}<b>${n}</b></span>`).join(""))(modelColors(s.models.map(([m]) => m)))}</div>` : ""}
     <h3>Tools used</h3>
-    ${s.tools.length ? s.tools.map(([k,v],i)=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track2"><span style="width:${v/maxT*100}%;background:var(--c${i % 8})"></span></span><span class="n">${v}</span></div>`).join("") : noneH("None recorded")}
+    ${s.tools.length ? s.tools.map(([k,v],i)=>`<div class="trow"><span class="nm">${toolIcon(k)}<span>${esc(k)}</span></span><span class="track2"><span style="width:${v/maxT*100}%;background:var(--c${i % 8})"></span></span><span class="n">${v}</span></div>`).join("") : noneH("None recorded")}
     ${s.native && s.native.length ? `<h3>${`${esc((s.source))} metrics`}</h3>${nativeRows(s.native)}<p class="note">Numbers this agent records itself. Definitions differ from other agents.</p>` : ""}
     ${s.file ? `<h3>History file</h3>${codeH(s.file, "", `<a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" target="_blank" rel="noopener">Open</a>`)}` : ""}
   </div></div></div>`;
@@ -82,6 +82,7 @@ function prName(url){ // GitHub の PR は「リポジトリ#番号」と短く�
 }
 const NOTE_LABEL = () => ({reminder: "System note", notice: "Notification", hook: "Hook output", output: "Command output",
   compact: "Conversation summary", agent: "From another agent or schedule", meta: "Added by the agent", other: "Added automatically"});
+const NOTE_ICON = {reminder: "info", notice: "note", hook: "hook", output: "shell", compact: "compact", agent: "agent"}; // 人が打っていないものの種類 → 印（ほかは note）
 const PKIND = () => ({command: "Command", shell: "Shell"}); // 人が打ったプロンプトのうち、ふつうの文でないもの
 function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面では d だけを省略する）
   const ev = [];
@@ -91,7 +92,7 @@ function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面で�
   (s.limits || []).forEach((t, i) => { const r = limitReset(s, i); ev.push({t, k: "warn", l: "Hit a usage limit", d: r ? `<span class="evd">${esc(`resets ${r}`)}</span>` : ""}); }); // 解除の時刻はエラー文のまま（日付や時間帯がないこともある）
   (s.interruptsAt || []).forEach(t => ev.push({t, k: "int", l: "Interrupted"}));
   (s.compactions || []).forEach((t, i) => { const k = compactKind(s, i); ev.push({t, k: "cmp", l: "Conversation compacted", d: k ? `<span class="evd">${esc(k)}</span>` : ""}); });
-  (s.notes || []).forEach(x => { if (x.t) ev.push({t: x.t, k: `note ${x.kind}`, l: NOTE_LABEL()[x.kind] || NOTE_LABEL().other, d: `<span class="evd">${esc(x.text)}</span>`}); }); // 人が打っていないもの（通知・要約など）
+  (s.notes || []).forEach(x => { if (x.t) ev.push({t: x.t, k: `note ${x.kind}`, ic: NOTE_ICON[x.kind] || "note", l: NOTE_LABEL()[x.kind] || NOTE_LABEL().other, d: `<span class="evd">${esc(x.text)}</span>`}); }); // 人が打っていないもの（通知・要約など）
   s.subagents.forEach(a => { if (a.start) ev.push({t: a.start, k: "agent", l: "Subagent", d: `<span class="evd"><span class="mono">${esc(a.type)}</span>${a.desc ? ` · ${esc(a.desc)}` : ""}</span>`}); });
   return ev.sort((a, b) => a.t - b.t);
 }
@@ -108,7 +109,7 @@ function promptFlow(s){
   let e = 0, n = 0, hiddenEv = 0, gap = null; // gap: 前のプロンプトのあと、長くあいたところ {from: AI が最後に動いた時刻, v: 秒}
   const hide = () => n > FLOW_SHOW ? " hidden" : "";
   const flush = until => { for (; e < ev.length && ev[e].t < until; e++){ if (hide()) hiddenEv++;
-    rows.push(`<li class="ev ${esc(ev[e].k)}"${hide()}><time>${hm(ev[e].t)}</time>${ico(EV_ICON[ev[e].k.split(" ")[0]])}<p><span class="evl">${ev[e].l}</span>${ev[e].d || ""}</p></li>`); } };
+    rows.push(`<li class="ev ${esc(ev[e].k)}"${hide()}><time>${hm(ev[e].t)}</time>${ico(ev[e].ic || EV_ICON[ev[e].k.split(" ")[0]])}<p><span class="evl">${ev[e].l}</span>${ev[e].d || ""}</p></li>`); } };
   s.prompts.forEach((p, i) => {
     if (p.t){ flush(p.t); // あいた間に起きたこと（手でのコミットなど）は、区切りの上に出す
       if (gap){ rows.push(`<li class="gap"${hide()}><p>${`${hm(gap.from)}–${hm(p.t)}: ${span(gap.v)} gap`}</p></li>`); gap = null; } }
@@ -116,7 +117,7 @@ function promptFlow(s){
     const t = String(p.text || ""), long = t.length > 220, fix = !p.kind && FIXRE.test(t), cut = p.len > 0;
     const more = cut ? `<span class="pcut"> ${`(first ${PROMPT_RUNES} of ${commas(p.len)} characters)`}${LIVE ? ` <button class="pload" data-i="${i}">Load the full prompt</button>` : ` Open with kiroku serve to read it in full.`}</span>` : "";
     const meta = [p.work ? `AI worked ${span(p.work)}` : "", p.wait && p.wait <= FLOW_GAP ? `wait ${secs(p.wait)}` : ""].filter(Boolean).join(" · ");
-    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><p>${fix ? `<span class="sr">Looks like a correction: </span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${PKIND()[p.kind] || esc(p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${`Long · ${commas(plen(p))} chars`}</span>` : ""}<span class="ptext">${p.kind ? "<code>" : ""}${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${pexpLabel(p)}</button>` : esc(t)}${p.kind ? "</code>" : ""}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
+    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time>${ico("user")}<p>${fix ? `<span class="sr">Looks like a correction: </span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${PKIND()[p.kind] || esc(p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${`Long · ${commas(plen(p))} chars`}</span>` : ""}<span class="ptext">${p.kind ? "<code>" : ""}${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${pexpLabel(p)}</button>` : esc(t)}${p.kind ? "</code>" : ""}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
     if (p.reply){ // 依頼と応答の間に起きたこと（コミットなど）は、応答より上に出す
       if (p.reply.t) flush(p.reply.t);
       rows.push(replyRow(p.reply, i, hide()));
@@ -125,10 +126,10 @@ function promptFlow(s){
   });
   flush(Infinity);
   const fixes = s.prompts.some(p => !p.kind && FIXRE.test(String(p.text || ""))), kinds = new Set(ev.map(x => x.k.split(" ")[0])), cmds = s.prompts.some(p => p.kind);
-  const key = [`<span><i class="kp"></i>User prompt</span>`,
-    cmds ? `<span class="kcmd"><i class="kp cmd"></i>${ico("command")}${ico("shell")}Commands the user typed (/ or !)</span>` : "",
-    kinds.has("note") ? `<span class="kev note">${ico("note")}Added automatically (notifications, summaries, hooks; not counted as prompts)</span>` : "",
-    fixes ? `<span><i class="kp fix"></i>Looks like a correction (guessed from the wording)</span>` : "",
+  const key = [`<span class="kus">${ico("user")}User prompt</span>`,
+    cmds ? `<span class="kcmd">${ico("user", "kucmd")}${ico("command")}${ico("shell")}Commands the user typed (/ or !)</span>` : "",
+    kinds.has("note") ? `<span class="kev note">${[...new Set(s.notes.filter(x => x.t).map(x => NOTE_ICON[x.kind] || "note"))].map(k => ico(k)).join("")}Added automatically (notifications, summaries, hooks; not counted as prompts)</span>` : "",
+    fixes ? `<span class="kus fix">${ico("user")}Looks like a correction (guessed from the wording)</span>` : "",
     s.prompts.some(p => p.reply) ? `<span class="kev rep">${ico("reply")}${"What the AI wrote back"}</span>` : "",
     ...[["commit", "Commit"], ["push", "Push"], ["pr", "Pull request"], ["agent", "Subagent"], ["int", "Interruption"], ["cmp", "Compaction"], ["warn", "Usage limit"]].filter(([k]) => kinds.has(k)).map(([k, l]) => `<span class="kev ${k}">${ico(EV_ICON[k])}${l}</span>`)].filter(Boolean).join("");
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";

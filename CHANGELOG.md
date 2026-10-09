@@ -12,6 +12,8 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Session details: when you scroll down, the title pinned at the top has the session's color and agent mark in front of it
 - Prompt flow: your prompts stand out in a tinted box with a bar in the session's color, and things the agent added (system notes, notifications, hook output) in a purple box that shows up to 3 lines instead of one cut-off line. Slash commands and shell commands you typed, and command output, are shown in a monospace code box
 - `kiroku serve` no longer prints "history changed" when a reload leaves the number of sessions the same
+- Prompt flow: your prompts have a person icon instead of a dot, next to the ↩ on the AI's replies, so you can tell who wrote what by shape too. Things the agent added have an icon for their kind (system note, notification, hook output, command output, summary)
+- Session details: each tool under "Tools used" has an icon for what it does (shell, edit, write, read, search, web, subagent, plan, MCP)
 
 ## v0.29.0 - 2026-10-09
 
