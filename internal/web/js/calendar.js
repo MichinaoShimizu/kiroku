@@ -180,7 +180,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
     const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i></div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`Active ${dur(act)}`, `Sessions ${nS}`, ...useLines(dW), `Git commits ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`;
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${act || dayGit.length ? copyBtn(`<span class="dl">Report</span>`, `data-d="${d}" aria-label="${esc(`Copy daily report prompt for ${md(ds)}`)}" title="${esc(`A prompt that asks an AI agent on this computer to write your daily report for ${md(ds)}`)}"`, "pill fill dayrpt") : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`Active ${dur(act)}`, `Sessions ${nS}`, ...useLines(dW), `Git commits ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`;
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
@@ -233,6 +233,8 @@ function timeline(shown, inWeek, ws, we, todayKey){
   sc.addEventListener("scroll", () => edgeFade(T), {passive: true}); edgeFade(T);
   T.querySelectorAll(".lim").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); });
   bindGitEvents(T);
+  T.querySelectorAll(".dayrpt").forEach(b => b.onclick = e => { e.stopPropagation(); // 日報のプロンプト（週報と同じ作り。その日の分だけ）
+    copy(reportPrompt(null, false, addDays(st.week, +b.dataset.d)), "Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending", 8000, b); });
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });
   T.querySelectorAll(".run").forEach(el => { const bk = runs[+el.dataset.r];
     el.onclick = e => { e.stopPropagation(); select(bk.s.id); };
