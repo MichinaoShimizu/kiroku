@@ -107,6 +107,8 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 /* 週のカレンダーの右端の印の見方（カレンダーと同じ形の印を、流れに置き直す） */
 .cbsel select{height:28px;border:1px solid var(--rule-2);border-radius:8px;background:var(--surface);color:var(--ink-2);font:inherit;font-size:var(--fs-sm);padding:0 6px}
 .chip{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 10px 0 9px;border-radius:7px;font-size:var(--fs-sm);color:var(--ink-2);border:1px solid var(--rule);background:var(--surface);transition:color .2s var(--ease),background-color .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease),opacity .2s var(--ease);white-space:nowrap}
+.chip{max-width:100%}.chip>*{flex:none}
+.chip .cn{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} /* 長い名前は … で切る（狭い画面で横にはみ出さない。全部の名前は title に） */
 .chip:hover{border-color:var(--rule-2)}
 .chip .dot{width:8px;height:8px;border-radius:50%;background:var(--c)}
 .chip .n{font-size:var(--fs-xs);color:var(--ink-3);font-variant-numeric:tabular-nums}

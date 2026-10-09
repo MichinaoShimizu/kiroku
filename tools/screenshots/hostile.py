@@ -69,4 +69,13 @@ with open(os.path.join(root, sid + ".jsonl"), "w") as f:
               {"cwd": cwd, "sessionId": sid, "type": "assistant", "timestamp": "2026-10-06T11:01:00Z", "requestId": "rf", "message": {"id": "mf", "model": "m\n- FORGED_MODEL", "role": "assistant",
                "content": [{"type": "tool_use", "id": "tf", "name": "Bash\n- FORGED_TOOL", "input": {"command": "true"}}], "usage": {"input_tokens": 10, "output_tokens": 10}}}]:
         f.write(json.dumps(x) + "\n")
+# 長いプロジェクト名のセッション（凡例の札が、狭い画面で横にはみ出さないこと）
+for n, name in enumerate(["a-very-long-project-name-without-any-spaces-that-keeps-going-and-going-until-it-is-wider-than-a-phone",
+                          "a very long project name with spaces that keeps going and going until it is wider than a phone screen"]):
+    sid = str(uuid.UUID(int=20 + n))
+    with open(os.path.join(root, sid + ".jsonl"), "w") as f:
+        for x in [{"cwd": "/" + name, "sessionId": sid, "type": "user", "timestamp": "2026-10-07T09:00:00Z", "message": {"role": "user", "content": "long"}},
+                  {"cwd": "/" + name, "sessionId": sid, "type": "assistant", "timestamp": "2026-10-07T09:01:00Z", "requestId": f"rl{n}", "message": {"id": f"ml{n}", "model": "claude-opus-4-1", "role": "assistant",
+                   "content": [{"type": "text", "text": "ok"}], "usage": {"input_tokens": 10, "output_tokens": 10}}}]:
+            f.write(json.dumps(x) + "\n")
 print(REPO)
