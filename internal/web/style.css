@@ -340,7 +340,6 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .rvhead h2{font:700 var(--fs-2xl)/1.2 var(--sans);letter-spacing:-.02em;margin:0}
 .rvhead p{margin:0;color:var(--ink-3);font-size:var(--fs-sm)}
 .rvhead .pill{margin-left:auto;align-self:center}
-.rptbox{margin-bottom:16px}
 .rvhead .rpt{color:var(--acc-ink);border-color:color-mix(in oklab,var(--acc) 35%,var(--rule-2));font-weight:600}
 .rvgrid.srgrid{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
 #review{scroll-margin-top:64px}
