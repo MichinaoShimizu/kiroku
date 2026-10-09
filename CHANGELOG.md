@@ -12,6 +12,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - Breakdown dialogs: the first sentence of what the metric is now sits right under the figure, so you know what was counted before reading the numbers. Before, the whole definition was at the very end, below the lists. The rest of the definition and what the metric doesn't tell you stay at the end
 
+### Fixed
+
+- `←` `→` no longer move to another week or month behind an open breakdown dialog, as they already didn't behind the other dialogs
+
 ## v0.27.4 - 2026-10-09
 
 ### Security

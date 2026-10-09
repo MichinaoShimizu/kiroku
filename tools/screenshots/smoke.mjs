@@ -165,6 +165,10 @@ async function run(env) {
     await p.keyboard.press("ArrowRight"); await pause();
     check("開いているあいだは ← → で期間が動かない", await p.evaluate(() => document.querySelector("#mg").open));
     await p.keyboard.press("Escape"); await pause();
+    await p.locator("#review .stat.mstat:has([data-metric=cost]) .hb").click(); await pause();
+    await p.keyboard.press("g"); await pause();
+    check("開いた「?」の説明はガイドを開くと閉じる", await p.evaluate(() => document.querySelector("#mg").open && document.querySelector("#hpop").hidden));
+    await p.keyboard.press("Escape"); await pause();
   });
 
   await step("サマリーの数字から内訳が開く", async () => {
@@ -174,6 +178,9 @@ async function run(env) {
     const s = await p.locator("#review .stat.mstat:has([data-metric=cost]) .s").boundingBox(); // 値の下の一言を押しても開く（枠全体が押せる）
     await p.mouse.click(s.x + 3, s.y + 3); await pause();
     check("押すと内訳のダイアログが開く", await p.evaluate(() => document.querySelector("#md").open && document.querySelector("#mdh").textContent === "Estimated cost"));
+    const wk = await p.evaluate(() => document.querySelector("#rd").textContent);
+    await p.keyboard.press("ArrowLeft"); await p.keyboard.press("g"); await pause();
+    check("内訳を開いているあいだは ← で期間が動かず、G でガイドも重ならない", await p.evaluate(wk => document.querySelector("#rd").textContent === wk && !document.querySelector("#mg").open && document.querySelector("#md").open, wk));
     check("指標の定義は大きな数字のすぐ下にあり、言えないことは最後にある", await p.evaluate(() => { const d = document.querySelector("#md"), def = d.querySelector(".mbig + .mdef"); return !!def && def.textContent.length > 0 && d.getAttribute("aria-describedby") === def.id && d.lastElementChild.matches(".mnot") && /Doesn't tell you/.test(d.lastElementChild.textContent) && def.textContent + ". " + d.querySelector(".mnot p").textContent === HELP.cost.d; })); // 定義の 1 文目が上、残りが最後
     await p.keyboard.press("Escape"); await pause();
     check("閉じると押した数字にフォーカスが戻る", await p.evaluate(() => document.activeElement.dataset.metric === "cost" && !!document.activeElement.closest("#review")));

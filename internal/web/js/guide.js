@@ -8,14 +8,15 @@ const GUIDE = {
     {n: "Hand over more", up: true, m: "When AI keeps working while you wait, more gets done per hour of your time. The more runs in parallel, the further AI run time pulls ahead of active time", ids: ["ai", "parallel", "subagents"]},
     {n: "Keep your attention unbroken", m: "Waiting for a reply, missing that it arrived and getting back up to speed after a project switch all take your time without moving the work", ids: ["focus", "switches", "wait"]},
     {n: "Get it across the first time", m: "When a prompt misses, corrections and redone work pile up. Typing the same instructions every time belongs here too", ids: ["fix", "friction", "bigPrompts", "repeats"]},
-    {n: "Fit the context and the model", m: "A conversation that keeps growing rereads more input on every response, an expensive model on light work pays more for the same result, and a usage limit stops the work", ids: ["cache", "longctx", "compactions", "modelfit", "models", "limits"]},
+    {n: "Fit the context and the model", m: "A conversation that keeps growing rereads more input on every response, an expensive model on light work pays more for the same result, and a usage limit stops the work", ids: ["cache", "longctx", "compactions", "modelfit", "models", "costPerAsk", "limits"]},
   ],
-  out: ["gitCommits", "commits", "lines", "files", "pushes", "prs", "outSessions"],
-  cmp: ["costPerCommit", "costPerAsk", "outputs"],
-  dig: ["findings", "projects", "heavy", "native"],
+  out: ["gitCommits", "commits", "lines", "files", "pushes", "prs"],
+  cmp: ["costPerCommit", "outSessions"], // 画面の「Cost and outputs」の Compared と同じ
+  dig: ["outputs", "projects", "heavy", "native", "findings"],
 };
 const GNUM = ["①", "②", "③", "④"];
 function openGuide(){
+  hideHint(); // 開いた「?」の説明は、ダイアログの後ろに残さない
   const D = $("#mg"), h = id => H()[id];
   const names = ids => ids.filter(h).map(id => `<li>${esc(h(id).n)}</li>`).join("");
   const rows = ids => ids.filter(h).map(id => `<div><dt>${esc(h(id).n)}</dt><dd>${esc(h(id).c)}</dd></div>`).join("");
@@ -30,11 +31,11 @@ function openGuide(){
       <span class="garr" aria-hidden="true"></span>
       <section class="gbox gout"><h3>Left behind</h3><p>What remains in git and on GitHub</p><ul>${names(GUIDE.out)}</ul></section>
     </div>
-    <div class="gbox gcmp"><h3>Compared</h3><p>Cost divided by what was left behind, to compare your own periods (not people or teams)</p><ul>${names(GUIDE.cmp)}</ul></div>
+    <div class="gbox gcmp"><h3>Compared</h3><p>What was left behind for what you put in, to compare your own periods (not people or teams)</p><ul>${names(GUIDE.cmp)}</ul></div>
     <h3 class="gh">The four levers</h3>
     ${GUIDE.levers.map((l, i) => `<section class="glever"><h4><span class="mgnum" aria-hidden="true">${GNUM[i]}</span>${esc(l.n)}${tag(l)}</h4><p>${esc(l.m)}</p><dl class="grows">${rows(l.ids)}</dl></section>`).join("")}
     <h3 class="gh">Making a change</h3>
-    <ol class="gsteps"><li><b>Open Worth a look</b>Metrics that crossed a threshold, in priority order</li><li><b>Open the sessions</b>See where the time and usage went</li><li><b>Try one change</b>The What to try under the metric's "?"</li><li><b>Check the same metric</b>Next week or month, in its 8-period trend</li></ol>
+    <ol class="gsteps"><li><b>Open Worth a look</b>Metrics that crossed a threshold, in priority order</li><li><b>Open the sessions</b>See where the time and usage went</li><li><b>Try one change</b>Follow "What to try" in the metric's "?"</li><li><b>Check the same metric</b>Next week or month, in its 8-week or 8-month trend</li></ol>
     <p class="gnote">To dig in: ${GUIDE.dig.filter(h).map(id => esc(h(id).n)).join(", ")}.</p>
     <h3 class="gh">What this doesn't tell you</h3>
     <dl class="grows gnot">
