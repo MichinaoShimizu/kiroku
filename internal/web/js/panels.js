@@ -52,7 +52,7 @@ function reportText(w, M, R){
   const gits = (META.git || []).filter(c => c.t >= ws && c.t < we).sort((a,b) => a.t - b.t);
   if (w){ const g = w.git || {};
     L.push(`## Work for ${dPeriod(M, start, last)}`, "",
-      `- Active time ${dur(w.active)} · sessions ${w.sessions} · prompts ${w.prompts}${g.commits ? ` · commits ${g.commits} (${g.ai} by AI)` : ""}${w.outputs && w.outputs.prs ? ` · pull requests ${w.outputs.prs}` : ""}`); }
+      `- Active time ${dur(w.active)} · sessions ${w.sessions} · prompts ${w.prompts}${g.commits ? ` · commits ${g.commits} (${g.ai} by AI)` : ""}`); }
   else L.push(`## Work on ${R.label}`); // 日報: 数字は「Numbers」の表に
   const projs = [...new Set([...(w ? (w.projects || []).map(([k]) => k) : ses.map(s => s.project)), ...gits.map(c => c.project)])];
   projs.forEach(pj => {
@@ -72,14 +72,13 @@ function reportText(w, M, R){
   return L.join("\n");
 }
 /* 週報・月報の「Numbers」の表。kiroku が数えた数字だけを入れ、AI にはそのまま写してもらう。
-   期間の途中なら、前の期間は同じ日数まで（vsPrev）。日ごとの数がないもの（セッション数・PR など）は、そのときは "—" */
+   期間の途中なら、前の期間は同じ日数まで（vsPrev）。日ごとの数がないもの（セッション数など）は、そのときは "—" */
 function reportNumbers(w, pw, M){
   const wk = M ? "month" : "week", V = vsPrev(pw, M ? "月" : "週"), g = w.git || {}, pg = (pw && pw.git) || {}, u = w.usage || {}, pu = (pw && pw.usage) || {};
   const pv = (f, whole, fmt) => { const v = pw ? V.of(f, whole) : null; return v == null ? "—" : fmt(v); }, id = x => x;
   const rows = [["Active time", dur(w.active), pv("active", pw && pw.active, dur)],
     ["Sessions / prompts", `${w.sessions} / ${w.prompts}`, pw ? `${pv(null, pw.sessions, id)} / ${pv("prompts", pw.prompts, id)}` : "—"],
     ["Git commits (by AI)", `${g.commits || 0} (${g.ai || 0})`, pv("commits", pg.commits || 0, id)],
-    ["Pull requests created", String((w.outputs || {}).prs || 0), pv(null, ((pw && pw.outputs) || {}).prs || 0, id)],
     ["Lines changed (git)", `+${g.added || 0} −${g.removed || 0}`, pv(null, pg.commits != null ? `+${pg.added || 0} −${pg.removed || 0}` : null, id)]];
   if (u.tokens) rows.push(["Estimated cost", costOf(u) == null ? "unknown" : usd(u.cost), pv("cost", pu.cost, usd)], ["Tokens", tok(u.tokens), pv("tokens", pu.tokens, tok)]);
   if (u.credits) rows.push(["Kiro credits", cr(u.credits), pv("credits", pu.credits, cr)]);
@@ -87,16 +86,15 @@ function reportNumbers(w, pw, M){
     ["Wait time from an AI reply to my next prompt (median)", w.waitMedian == null ? "—" : secs(w.waitMedian), pv(null, pw && pw.waitMedian, secs)]);
   return [`| | This ${wk} | Last ${wk}${V.n == null ? "" : `, ${V.range}`} |`, "|---|---|---|", ...rows.map(r => `| ${r.join(" | ")} |`)].join("\n");
 }
-/* 日報の「Numbers」の表。日ごとの集計（WEEKS の days）と、その日のセッション・コミット・PR から数え、前日と並べる */
+/* 日報の「Numbers」の表。日ごとの集計（WEEKS の days）と、その日のセッション・コミットから数え、前日と並べる */
 function reportDayNumbers(day){
   const one = d => { const ws = d.getTime() / 1000, we = addDays(d, 1).getTime() / 1000, W = WEEKS[key(mondayOf(d))], x = (W && W.days[(d.getDay() + 6) % 7]) || {};
     const ses = DATA.filter(s => inP(s, ws, we)), cs = (META.git || []).filter(c => c.t >= ws && c.t < we);
     return {active: x.active || 0, prompts: x.prompts || 0, tokens: x.tokens || 0, cost: x.cost || 0, credits: x.credits || 0, sessions: ses.length,
-      commits: cs.length, ai: cs.filter(c => c.ai).length, added: cs.reduce((t, c) => t + (c.added || 0), 0), removed: cs.reduce((t, c) => t + (c.removed || 0), 0),
-      prs: ses.reduce((t, s) => t + (s.prAt || []).filter(p => p.t >= ws && p.t < we).length, 0)}; };
+      commits: cs.length, ai: cs.filter(c => c.ai).length, added: cs.reduce((t, c) => t + (c.added || 0), 0), removed: cs.reduce((t, c) => t + (c.removed || 0), 0)}; };
   const a = one(day), b = one(addDays(day, -1));
   const rows = [["Active time", dur(a.active), dur(b.active)], ["Sessions / prompts", `${a.sessions} / ${a.prompts}`, `${b.sessions} / ${b.prompts}`],
-    ["Git commits (by AI)", `${a.commits} (${a.ai})`, `${b.commits} (${b.ai})`], ["Pull requests created", String(a.prs), String(b.prs)],
+    ["Git commits (by AI)", `${a.commits} (${a.ai})`, `${b.commits} (${b.ai})`],
     ["Lines changed (git)", `+${a.added} −${a.removed}`, `+${b.added} −${b.removed}`]];
   if (a.tokens || b.tokens) rows.push(["Estimated cost", usd(a.cost), usd(b.cost)], ["Tokens", tok(a.tokens), tok(b.tokens)]);
   if (a.credits || b.credits) rows.push(["Kiro credits", cr(a.credits), cr(b.credits)]);

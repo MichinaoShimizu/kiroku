@@ -488,6 +488,17 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl.only-user li.rp{display:none}
 .tlkey .kev.rep .ic{color:var(--ink-3)}
 .tlkey.only-user .kev{display:none} /* 出ていないものの説明は出さない（出来事も応答も隠れている） */
+/* あなたのプロンプトは、セッションの色の線と淡い地の吹き出しにして、灰色の地の応答や出来事の行と見分けやすく */
+.tl li.pr p{background:color-mix(in oklab,var(--c) 9%,var(--surface));border-left:3px solid var(--c);border-radius:4px 10px 10px 4px;padding:6px 11px;color:var(--ink);font-weight:500}
+.tl li.pr.fix p{border-left-color:var(--warn)}
+/* / のコマンドと ! のシェルは、打ったとおりに等幅のコードの枠で */
+.tl li.pr .ptext>code{display:block;margin-top:4px;padding:5px 9px;border-radius:6px;background:var(--surface-2);font:500 .92em/1.55 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
+.tl li.pr .ptext>code .pexp,.tl li.pr .ptext>code .pcut{font-family:var(--sans)}
+/* 人が打っていないもの（システムの知らせ・通知・フックなど）は、紫の線と地にして、切らずに 3 行まで見せる */
+.tl li.ev.note p{white-space:normal;align-items:flex-start;flex-wrap:wrap;gap:2px 6px;background:color-mix(in oklab,var(--c6) 8%,transparent);border-left:3px solid color-mix(in oklab,var(--c6) 60%,transparent);border-radius:4px 8px 8px 4px;padding:4px 10px}
+.tl li.ev.note .evl{font-weight:600}
+.tl li.ev.note .evd{flex:1 1 100%;color:var(--ink-2);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;white-space:pre-wrap;overflow-wrap:anywhere}
+.tl li.ev.note.output .evd{font-family:var(--mono);font-size:.92em}
 /* 「Prompt flow」の見出しと、出し方の切り替え・コピーを 1 行に並べる（見出しの線のあとに右寄せ） */
 .flowhead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:26px 0 10px}
 .flowhead h3{flex:1 1 140px;margin:0}
@@ -537,6 +548,9 @@ button.more{display:block;text-align:left}
 .chips span{font-size:var(--fs-xs);color:var(--ink-2);background:var(--surface-2);border-radius:6px;padding:1px 9px;font-variant-numeric:tabular-nums}
 .chips span b{font-weight:600;color:var(--ink);margin-left:4px}
 .chips span.mono{font-family:var(--mono);font-size:var(--fs-xs)}
+/* 使ったモデルは、モデル名ごとの色の点と淡い地で */
+.chips span.mdl{background:color-mix(in oklab,var(--m) 14%,var(--surface-2));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--m) 35%,transparent);color:var(--ink)}
+.chips span.mdl i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--m);margin-right:6px;vertical-align:0}
 .sub{padding:9px 0 10px;border-bottom:1px solid var(--rule)}
 .sub:last-child{border-bottom:0}
 .sub .hd{display:flex;align-items:center;gap:8px;font-size:var(--fs-sm)}
@@ -573,6 +587,8 @@ body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:tra
 .drawer .dh .dt{display:none;flex:1;min-width:0;font-weight:700;font-size:var(--fs-lg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .drawer.scrolled .dh{top:0;left:0;right:0;padding:8px 14px 8px 28px;border-radius:0;background:var(--surface);backdrop-filter:none;border-bottom:1px solid var(--rule)}
 .drawer.scrolled .dh .dt{display:block}
+.drawer .dh .dt .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c);margin-right:7px;vertical-align:2px} /* 頭の小見出しと同じ色の点とエージェントの印（dtopSync が写す） */
+.drawer .dh .dt .agm{margin-right:7px;vertical-align:2px}
 .drawer .db{overflow:auto;padding:22px 28px 48px;flex:1;scrollbar-width:thin;font-size:var(--fs-lg)}
 /* パネルの中は読み物なので、一覧より一回り大きく・濃く */
 .drawer .back{font-size:var(--fs-md);color:var(--ink-2)}

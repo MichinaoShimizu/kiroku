@@ -2,6 +2,17 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- The theme is now light by default. The button still switches between light and dark, and a theme you chose is kept
+- The report prompts (daily, weekly and monthly) and the session review prompt no longer count pull requests in their numbers. The pull requests themselves are still listed with their links
+- Session details: "Models used", "Tools used" and the agent's own metrics are always shown, instead of inside a "Models, tools and …" section you could fold. Each model has its own color
+- Session details: when you scroll down, the title pinned at the top has the session's color and agent mark in front of it
+- Prompt flow: your prompts stand out in a tinted box with a bar in the session's color, and things the agent added (system notes, notifications, hook output) in a purple box that shows up to 3 lines instead of one cut-off line. Slash commands and shell commands you typed, and command output, are shown in a monospace code box
+- `kiroku serve` no longer prints "history changed" when a reload leaves the number of sessions the same
+
 ## v0.29.0 - 2026-10-09
 
 ### Added

@@ -174,8 +174,10 @@ func (l *live) watch(every time.Duration, stop <-chan struct{}) {
 			continue
 		}
 		l.markReady() // 最初の読み込みに失敗していたときは、ここで画面が開けるようになる
-		after := l.count()
-		fmt.Fprintf(l.print, "%s history changed → %d sessions (%+d)\n", time.Now().Format("15:04:05"), after, after-before)
+		// セッションの数が変わらなければ出さない（開いているセッションへの書き足しのたびに、同じ行が並ばないように）
+		if after := l.count(); after != before {
+			fmt.Fprintf(l.print, "%s history changed → %d sessions (%+d)\n", time.Now().Format("15:04:05"), after, after-before)
+		}
 	}
 }
 

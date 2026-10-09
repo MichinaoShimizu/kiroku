@@ -47,11 +47,10 @@ function detail(s){
     <h3>Files changed${s.files.length || records(s.source, "files") ? ` · ${s.nFiles}` : ""}</h3>
     ${(() => { if (!s.files.length) return noneH(records(s.source, "files") ? "None" : esc(notRec([s.source]))); const us = s.files.map(f => fileLink(s, f)), ls = s.files.map((f, i) => us[i] ? "" : localHref(f, s.projectPath)); // コミットのリンクがなければ、この PC のファイル。断り書きは、そのリンクがあるときだけ
       return `<ul class="files">${s.files.map((f, i) => pathRow(f, fileA(us[i] || ls[i], esc(f)))).join("")}</ul>${us.some(Boolean) || ls.some(Boolean) ? `<p class="note">${[us.some(Boolean) ? "Links marked ↗ open the file on the remote as of the commits made during this session." : "", ls.some(Boolean) ? `${us.some(Boolean) ? "Other links open" : "Links open"} the file on this computer as it is now.` : ""].filter(Boolean).join(" ")}</p>` : ""}`; })()}
-    <details class="moreS dmore" open><summary>${[s.models.length ? "Models" : "", "tools", s.native && s.native.length ? `${esc(s.source)} metrics` : ""].filter(Boolean).join(", ").replace(/, ([^,]+)$/, " and $1").replace(/^./, c => c.toUpperCase())}</summary>
-    ${s.models.length ? `<h3>Models used</h3><div class="chips">${s.models.map(([m,n])=>`<span class="mono">${esc((m))}<b>${n}</b></span>`).join("")}</div>` : ""}
+    ${s.models.length ? `<h3>Models used</h3><div class="chips">${(mc => s.models.map(([m,n],i)=>`<span class="mono mdl" style="--m:${mc[i]}"><i aria-hidden="true"></i>${esc((m))}<b>${n}</b></span>`).join(""))(modelColors(s.models.map(([m]) => m)))}</div>` : ""}
     <h3>Tools used</h3>
     ${s.tools.length ? s.tools.map(([k,v],i)=>`<div class="trow"><span class="nm">${esc(k)}</span><span class="track2"><span style="width:${v/maxT*100}%;background:var(--c${i % 8})"></span></span><span class="n">${v}</span></div>`).join("") : noneH("None recorded")}
-    ${s.native && s.native.length ? `<h3>${`${esc((s.source))} metrics`}</h3>${nativeRows(s.native)}<p class="note">Numbers this agent records itself. Definitions differ from other agents.</p>` : ""}</details>
+    ${s.native && s.native.length ? `<h3>${`${esc((s.source))} metrics`}</h3>${nativeRows(s.native)}<p class="note">Numbers this agent records itself. Definitions differ from other agents.</p>` : ""}
     ${s.file ? `<h3>History file</h3>${codeH(s.file, "", `<a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" target="_blank" rel="noopener">Open</a>`)}` : ""}
   </div></div></div>`;
   bindGitEvents(P);
@@ -117,7 +116,7 @@ function promptFlow(s){
     const t = String(p.text || ""), long = t.length > 220, fix = !p.kind && FIXRE.test(t), cut = p.len > 0;
     const more = cut ? `<span class="pcut"> ${`(first ${PROMPT_RUNES} of ${commas(p.len)} characters)`}${LIVE ? ` <button class="pload" data-i="${i}">Load the full prompt</button>` : ` Open with kiroku serve to read it in full.`}</span>` : "";
     const meta = [p.work ? `AI worked ${span(p.work)}` : "", p.wait && p.wait <= FLOW_GAP ? `wait ${secs(p.wait)}` : ""].filter(Boolean).join(" · ");
-    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><p>${fix ? `<span class="sr">Looks like a correction: </span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${PKIND()[p.kind] || esc(p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${`Long · ${commas(plen(p))} chars`}</span>` : ""}<span class="ptext">${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${pexpLabel(p)}</button>` : esc(t)}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
+    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><p>${fix ? `<span class="sr">Looks like a correction: </span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${PKIND()[p.kind] || esc(p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${`Long · ${commas(plen(p))} chars`}</span>` : ""}<span class="ptext">${p.kind ? "<code>" : ""}${long ? `<span class="pshort">${esc(t.slice(0,220))}…</span><span class="pfull" hidden>${esc(t)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${pexpLabel(p)}</button>` : esc(t)}${p.kind ? "</code>" : ""}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
     if (p.reply){ // 依頼と応答の間に起きたこと（コミットなど）は、応答より上に出す
       if (p.reply.t) flush(p.reply.t);
       rows.push(replyRow(p.reply, i, hide()));
@@ -169,7 +168,7 @@ function sessionNumbers(s, active, med){
   const cs = commitsOf(s), o = s.outputs || {}, tk = [s.usage, ...s.subagents.map(a => a.usage)].reduce((t, u) => t + (u ? u.in + u.out + u.cw + (u.cw1h || 0) + u.cr : 0), 0);
   const rows = [["Active time", dur(active)], ["Prompts", String(s.nPrompts)], ["Corrections / interruptions", `${s.corrections} / ${s.interrupts}`],
     ["Wait time from an AI reply to my next prompt (median)", med == null ? "—" : secs(med)],
-    ["Git commits (by AI)", cs.length ? `${cs.length} (${cs.filter(c => c.ai).length})` : String(o.commits || 0)], ["Pull requests created", String(o.prs || 0)]];
+    ["Git commits (by AI)", cs.length ? `${cs.length} (${cs.filter(c => c.ai).length})` : String(o.commits || 0)]];
   if (s.cost) rows.push(["Estimated cost", usd(s.cost)]);
   if (tk) rows.push(["Tokens (with subagents)", tok(tk)]);
   if (s.credits) rows.push(["Kiro credits", crN(s.credits)]);
@@ -239,8 +238,10 @@ function select(id){ // 詳細の中で別の詳細へ移ったときは、戻�
   if (id && st.sel && id !== st.sel){ st.back.push(st.sel); (st.backTop ||= []).push($("#panel").scrollTop); } else if (!id){ st.back = []; st.backTop = []; } // 戻ったとき、読んでいた位置に戻す
   st.sel = id; tipOff(); render(); if (id) $("#panel").scrollTop = 0; dtopSync(); }
 // 詳細の題名が上へ流れて見えなくなったら、上の帯（#dtop）に小さく出す（どの詳細を読んでいるかわからなくならないように）
-function dtopSync(){ const P = $("#panel"), h = P.querySelector("h2"), D = $("#drawer");
-  $("#dtop").textContent = h ? h.textContent : "";
+// 題名の前に、頭の小見出しと同じ色の点とエージェントの印を添える（どのセッションか、色と印でもわかるように）
+function dtopSync(){ const P = $("#panel"), h = P.querySelector("h2"), D = $("#drawer"), T = $("#dtop"), c = P.firstElementChild && P.firstElementChild.style.getPropertyValue("--c");
+  T.textContent = ""; if (c) T.style.setProperty("--c", c); else T.style.removeProperty("--c");
+  if (h){ P.querySelectorAll(".eyebrow > .dot, .eyebrow > .agm").forEach(x => T.append(x.cloneNode(true))); T.append(h.textContent); }
   D.classList.toggle("scrolled", !!h && h.getBoundingClientRect().bottom < P.getBoundingClientRect().top + 4); }
 $("#panel").addEventListener("scroll", dtopSync, {passive: true});
 

@@ -641,6 +641,38 @@ func TestServeRetryAfterFailure(t *testing.T) {
 	}
 }
 
+// 履歴が変わって読み直しても、セッションの数が変わらなければ端末には何も出さない。
+func TestServeQuietWhenUnchanged(t *testing.T) {
+	logw = io.Discard
+	defer func() { logw = os.Stderr }()
+	dir := t.TempDir()
+	var calls atomic.Int32
+	load := func() snapshot {
+		c := calls.Add(1)
+		ts := 1000.0
+		b := core.NewBuilder("Claude Code", "s0")
+		b.Tick(&ts)
+		return snapshot{data: []*core.Session{b.Finish(15)}, weeks: map[string]*report.Week{}, meta: map[string]any{}, gen: float64(c)}
+	}
+	out := &syncBuf{}
+	l := &live{load: load, paths: []string{dir}, print: out}
+	stop, done := make(chan struct{}), make(chan struct{})
+	go func() { l.start(20*time.Millisecond, stop); close(done) }()
+	defer func() { close(stop); <-done }()
+	waitFor(t, "最初の読み込み", func() bool { return strings.Contains(out.String(), "1 session loaded in") })
+	for i, name := range []string{"a.jsonl", "b.jsonl"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		want := int32(i + 2)
+		waitFor(t, "読み直し", func() bool { return calls.Load() >= want })
+	}
+	// 2 回目の読み直しが始まった時点で、1 回目の読み直しのあとの表示は終わっている（読み直しは 1 本ずつ）
+	if strings.Contains(out.String(), "history changed") {
+		t.Errorf("セッションの数が変わらないのに出した: %q", out.String())
+	}
+}
+
 // 画面の「kiroku にコピーを残す」が失敗したら 500 でわけを返し、できない serve では 404。
 func TestServeArchiveErrors(t *testing.T) {
 	logw = io.Discard
