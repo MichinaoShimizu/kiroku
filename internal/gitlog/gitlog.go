@@ -87,7 +87,9 @@ var git = func(ctx context.Context, dir string, args ...string) (string, error) 
 // 署名を確かめるプログラム）を動かさないよう、コマンドラインの -c で上書きする（-c はリポジトリの設定より強い）。
 //   - protocol.allow=never: どこからも取ってこない。部分クローン（--filter）で手元にないファイルを、git は
 //     変更行数を数えるときに取りに行き、そのとき remote.<名前>.uploadpack などリポジトリが決めたプログラムを動かす。
-//     kiroku はネットワークに出ないので、取りに行かせない（GIT_NO_LAZY_FETCH=1 も、それを知っている git のために付ける）
+//     kiroku はネットワークに出ないので、取りに行かせない。リポジトリの設定の protocol.<名前>.allow は -c protocol.allow より
+//     強いので、どの protocol.* の設定より強い GIT_ALLOW_PROTOCOL も付ける（どこにもない名前 none だけを許す。空の値は
+//     Windows で消えることがある）。GIT_NO_LAZY_FETCH=1 は、それを知っている git のため
 //   - GIT_CONFIG_NOSYSTEM=1: システムの設定（/etc/gitconfig など）は読まない
 //   - 利用者のグローバルな設定（~/.gitconfig）は読む。user.email（自分のコミットだけを読む）と safe.directory
 //     （ほかのユーザーのリポジトリを読んでよいか）はそこにあり、本人が書いたものなので信用してよい
@@ -104,7 +106,7 @@ func gitCmd(ctx context.Context, dir string, args ...string) *exec.Cmd {
 		args = append([]string{"log", "--no-ext-diff", "--no-textconv"}, args[1:]...)
 	}
 	cmd := exec.CommandContext(ctx, "git", append(pre, args...)...)
-	cmd.Env = append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1", "GIT_TERMINAL_PROMPT=0", "GIT_OPTIONAL_LOCKS=0", "GIT_NO_LAZY_FETCH=1")
+	cmd.Env = append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1", "GIT_TERMINAL_PROMPT=0", "GIT_OPTIONAL_LOCKS=0", "GIT_NO_LAZY_FETCH=1", "GIT_ALLOW_PROTOCOL=none")
 	return cmd
 }
 

@@ -86,7 +86,9 @@ func TestCollectDoesNotRunRepoPrograms(t *testing.T) {
 	if b, err := os.ReadFile(marker); err == nil {
 		t.Errorf("リポジトリのプログラムが動いた:\n%s", b)
 	}
-	// kiroku がいま使うコマンドでは動かないものもあるので、ふつうなら動かすコマンドも gitCmd で動かして確かめる
+	// kiroku がいま使うコマンドでは動かないものもあるので、ふつうなら動かすコマンドも gitCmd で動かして確かめる。
+	// gitCmd が守るのは kiroku が動かすコマンド（rev-parse・config・for-each-ref・reflog・log）だけ。status はここで
+	// fsmonitor を確かめるために使う（.gitattributes の filter.<名前>.clean などは status なら動くが、kiroku は status を動かさない）
 	// （status → fsmonitor、log -p → textconv と外部 diff、update-ref → reference-transaction のフック）
 	for _, args := range [][]string{{"status"}, {"log", "-p"}, {"update-ref", "refs/heads/x", "HEAD"}} {
 		if out, err := gitCmd(context.Background(), dir, args...).CombinedOutput(); err != nil {
@@ -129,6 +131,7 @@ func TestCollectDoesNotFetchInPartialClone(t *testing.T) {
 	run(t, src, nil, "clone", "-q", "--no-local", "--no-checkout", "--filter=blob:none", "file://"+src, dst)
 	run(t, dst, nil, "config", "user.email", "me@example.com")
 	run(t, dst, nil, "config", "remote.origin.uploadpack", script)
+	run(t, dst, nil, "config", "protocol.file.allow", "always") // リポジトリの設定で、-c protocol.allow=never を上書きしようとする
 	// 確かめ方が正しいこと: ふつうの git では、変更行数を数えるときに取りに行き、プログラムが動く
 	check := exec.Command("git", "-C", dst, "log", "--numstat", "--format=%H")
 	check.Env = append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1")
@@ -146,6 +149,13 @@ func TestCollectDoesNotFetchInPartialClone(t *testing.T) {
 	if len(cs) != 2 {
 		t.Errorf("コミット数 = %d, want 2（変更行数を数えられなくても、コミットは読む）: %+v", len(cs), cs)
 	}
+	// GIT_NO_LAZY_FETCH を知らない古い git でも取りに行かない（GIT_ALLOW_PROTOCOL だけで止まる）
+	cmd := gitCmd(context.Background(), dst, "log", "--numstat", "--format=%H")
+	cmd.Env = slices.DeleteFunc(cmd.Env, func(e string) bool { return strings.HasPrefix(e, "GIT_NO_LAZY_FETCH=") })
+	cmd.CombinedOutput()
+	if b, err := os.ReadFile(marker); err == nil {
+		t.Errorf("GIT_NO_LAZY_FETCH がないと、リポジトリの設定で protocol を許して取りに行き、プログラムが動いた:\n%s", b)
+	}
 }
 
 // git に渡す設定と環境変数。
@@ -157,7 +167,7 @@ func TestGitCmd(t *testing.T) {
 			t.Errorf("引数 %q に %q がない", args, want)
 		}
 	}
-	for _, want := range []string{"GIT_CONFIG_NOSYSTEM=1", "GIT_TERMINAL_PROMPT=0", "GIT_OPTIONAL_LOCKS=0", "GIT_NO_LAZY_FETCH=1"} {
+	for _, want := range []string{"GIT_CONFIG_NOSYSTEM=1", "GIT_TERMINAL_PROMPT=0", "GIT_OPTIONAL_LOCKS=0", "GIT_NO_LAZY_FETCH=1", "GIT_ALLOW_PROTOCOL=none"} {
 		if !slices.Contains(cmd.Env, want) {
 			t.Errorf("環境変数に %s がない", want)
 		}
