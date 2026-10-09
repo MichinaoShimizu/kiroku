@@ -70,6 +70,15 @@ async function run(env) {
     check("ロゴが検索欄に隠れない", await p.evaluate(() => document.querySelector(".brand .word").getBoundingClientRect().right <= document.querySelector(".search").getBoundingClientRect().left));
   });
 
+  await step("既定のままで消える履歴は、Data sources で残し方とバックアップ先を見せる", async () => {
+    const r = await p.evaluate(() => { const save = META.archive; META.archive = {on: false, dir: "/Users/me/kiroku/<b>archive</b>"};
+      const d = document.createElement("div"); d.innerHTML = keepRow({name: "Claude Code", n: 1, retention: {days: 30, setting: "cleanupPeriodDays", file: "~/.claude/settings.json"}}); META.archive = save;
+      return {t: d.textContent, tags: d.querySelectorAll("b").length}; });
+    check("フォルダが文字のまま出る", r.t.includes("/Users/me/kiroku/<b>archive</b>") && r.tags === 0, r.t);
+    check("設定と kiroku archive on の 2 つの残し方があり、元のファイルは変えず外にも送らないと書いてある", /cleanupPeriodDays": 3650/.test(r.t) && /kiroku archive on/.test(r.t) && /own files are not changed/.test(r.t) && /nothing is sent anywhere/.test(r.t), r.t);
+    check("要約の上に知らせの枠を出さない", await p.evaluate(() => !document.querySelector("#review .keep")));
+  });
+
   await step("テーマ", async () => {
     const theme = () => p.evaluate(() => document.documentElement.dataset.theme);
     check("既定はダーク", await theme() === "dark", await theme());
