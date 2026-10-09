@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- On wide screens, the page now grows up to 1920px wide (before, 1560px), so the week calendar's day columns have more room for session titles. Wider than that, the page stays centered
+
 ## v0.29.0 - 2026-10-09
 
 ### Added
