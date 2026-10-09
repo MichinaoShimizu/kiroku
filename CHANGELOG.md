@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- Breakdown dialogs: what the metric is now sits right under the figure, so you know what was counted before reading the numbers. Before, it was at the very end, below the lists. What the metric doesn't tell you stays at the end, as a note
+
 ## v0.27.4 - 2026-10-09
 
 ### Security
