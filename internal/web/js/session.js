@@ -203,7 +203,12 @@ function sessionPrompt(s, active, med){
     `- Title: ${cut(s.title, 80)}`, `- Agent: ${oneLine(s.source)}`, `- Project: ${oneLine(s.project)}${s.branch ? ` (branch ${oneLine(s.branch)})` : ""}`,
     `- Time: ${md(s.start)} ${hm(s.start)}–${hm(s.end)}`];
   if (file) D.push(`- History file: ${oneLine(file)}`);
-  D.push("", "## Signals for advice", ...reportSignals([s], s.start, s.end + 1, cut, [s.start - 30 * 86400, s.end + 1]));
+  // このセッションの最初と最後のプロンプトの間に、ほかのプロジェクトで書いたプロンプト（切り替えの手がかり）
+  const a = s.prompts.length ? s.prompts[0].t : s.start, b = s.prompts.length ? s.prompts[s.prompts.length - 1].t : s.end, other = new Map();
+  DATA.forEach(x => { if (x.project !== s.project) x.prompts.forEach(p => { if (p.t > a && p.t < b) other.set(x.project, (other.get(x.project) || 0) + 1); }); });
+  const sw = `- Prompts I wrote in other projects while this session ran: ${other.size ? [...other].sort((x, y) => y[1] - x[1]).slice(0, 5).map(([k, v]) => `${oneLine(k)} ${v}`).join(", ") : "none"}`;
+  D.push("", "## Signals for advice", ...reportSignals([s], s.start, s.end + 1, cut, [s.start - 30 * 86400, s.end + 1], sw));
+  if (s.models.length > 1) D.push(`- Models in this session (responses): ${s.models.map(([m, n]) => `${oneLine(m)} ${n}`).join(", ")}`);
   // 履歴ファイルにない、kiroku が git などから足した出来事と並べる。ファイルを読めるなら、プロンプトはファイルの中で探す目印になる頭だけ
   D.push("", `## Prompt flow (my prompts and what happened between them, in time order; ${file ? "prompts are cut to their first words, the full text is in the history file" : "long ones are truncated"})`);
   if (s.prompts.length) D.push(...reviewFlow(s.prompts, reviewEvents(s), 40, file ? 80 : 300));

@@ -15,6 +15,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Session details: the resume command is now at the top of the right column on wide screens (on narrow screens it stays at the top, under the title). "Copy review prompt" is now a filled button, so it stands out in session details
 - Session details: "Copy prompts" is gone. "Copy review prompt" names the session's history file for an AI agent, which reads the full prompts there
 - The session review prompt ("Copy review prompt") now sets the same kind of format as the reports: Summary, a Numbers table kiroku filled in, Rework (a table of each place that needed rework, with the quoted prompt and its cause) and the same Advice from an expert, ending with an example first prompt for next time. The advice can point to prompts in the session that you also wrote in 3 or more sessions in the last 30 days
+- The Advice from an expert in the report and review prompts now also covers whether the model fits the work, long conversations and compactions, and switching between projects. The prompts add the main model of each session, short sessions with no edits on an Opus-class model, conversations whose input per response grew 4× or more, and project switches (per day in reports; prompts in other projects while the session ran in a review)
 - The report buttons (daily, weekly and monthly) are filled buttons now, like "Copy review prompt", so they stand out
 
 ## v0.28.1 - 2026-10-09

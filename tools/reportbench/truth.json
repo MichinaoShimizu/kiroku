@@ -81,6 +81,13 @@
         "slash command",
         "custom command",
         "hook"
+      ],
+      [
+        "lighter",
+        "sonnet",
+        "haiku",
+        "smaller model",
+        "cheaper model"
       ]
     ]
   },
