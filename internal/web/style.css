@@ -37,7 +37,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .muted{color:var(--ink-3)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 svg.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.wrap{max-width:1560px;margin:0 auto;padding:0 28px}
+.wrap{max-width:1920px;margin:0 auto;padding:0 28px}
 
 /* ── header ─────────────────────────────────────────────── */
 header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--rule)} /* 透かすと、下を流れる数字が検索欄の後ろに薄く見えて読みにくい */
