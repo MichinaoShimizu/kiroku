@@ -27,7 +27,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 **Every session on a calendar.** When, in which project and what you asked, by week or month, with each day's active time, tokens, cost and Git commits.
 
-**The whole story of a session.** The prompt flow with times, separating what you typed from what entered on its own, with commands, commits, pull requests, subagents and interruptions in between, and the AI's reply after each prompt, so a session reads as the conversation it was. Copy a prompt that asks an AI agent on your computer to review the session from its history file.
+**The whole story of a session.** The prompt flow with times, separating what you typed from what entered on its own, with commands, commits, pull requests, subagents and interruptions in between, and the AI's reply after each prompt, so a session reads as the conversation it was. One click copies a review prompt for it (see below).
 
 <img src="docs/session.png" alt="Session details (dummy data)" width="560">
 
@@ -41,7 +41,31 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 ![Weekly summary by project (dummy data)](docs/summary.png)
 
-**A daily, weekly or monthly report your agent can write.** One click copies a prompt for an AI agent on your computer, such as Claude Code, in a fixed format. It has the week's commits, pull requests and time for each project, and points to the history files of that week's sessions, so the agent can write what you did and why. Search covers prompts, edited files and commits across all time.
+**Search across all time.** Prompts, edited files and commits, with excerpts showing where they matched.
+
+## Reviews and advice, written by your own agent
+
+kiroku never calls an AI. Instead, one click copies a prompt that you paste into the AI agent you already use on this computer, such as Claude Code or Codex. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, ending with advice from an expert on working with AI agents.
+
+| Scope | Where | What you get |
+|---|---|---|
+| A session | "Copy review prompt" in session details | Summary, numbers, each place that needed rework with the prompt behind it and its cause (something missing from your prompt, a hard task, or the AI's own mistake), advice, and an example first prompt for next time |
+| A day | "Report" next to each date in the week calendar | A daily report: summary, numbers next to the previous day, what was done in each project and why, and advice |
+| A week or month | "Copy weekly report prompt" ("monthly" in month view) in the summary | The same report for the week or month, numbers next to the previous period, ready to share with your team |
+
+The advice is grounded in your history, not generic tips. Each point names what it is based on: a figure, a prompt with its time, or a signal kiroku counted. It covers
+
+- **how you write prompts**: context, constraints and done criteria that were missing, and corrections a clearer first prompt would have avoided
+- **how you use agents**: splitting and ordering work, checking results, long sessions, waiting
+- **model and context**: whether the model fits the work (for example a one-line question on an Opus-class model), conversations that grew long, compactions, and switching between projects
+- **what to move out of your prompts**: an instruction you keep typing into a skill or the project's agent instructions, a separate role into a subagent, fixed steps into a script
+
+An excerpt from a weekly report written from dummy history:
+
+> - **Turn the repeated check into a skill or script.** You typed "Run the full test suite and the linter, fix anything that fails, and show me the summary" 3 times in 3 sessions. Make it a skill or a project script the agent runs before each commit.
+> - **Use a lighter model for quick questions.** On Thu, Aug 13 at 10:00 you asked a one-line question in a separate Opus session. A lighter model is enough for questions like this.
+
+The prompts stay light: a report carries a short digest of each session, and the agent opens a history file only when the digest isn't enough. See the [guide](docs/guide.md#reviews-and-reports-with-your-agent) for what each prompt contains.
 
 ## Privacy
 
