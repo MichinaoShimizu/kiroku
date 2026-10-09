@@ -16,7 +16,7 @@ const ev = [
   {t: T + 2400, l: "Hit a usage limit"},
 ];
 // 出来事がプロンプトの間に時刻の順で入り、言い直しらしいプロンプトに印が付く（コマンドには付けない）
-let L = reviewFlow(prompts, ev, 40);
+let L = reviewFlow(prompts, ev, 40, 300);
 eq(L[0], "- 00:00 [Subagent] Explore");
 eq(L[1], "- 00:01 Prompt: Add a login form");
 eq(L[2], "- 00:05 [Interrupted]");
@@ -29,6 +29,8 @@ eq(L[8], "- 00:30 Prompt: " + "x".repeat(300) + "…");
 eq(L[9], "- 00:40 [Hit a usage limit]");
 eq(L.length, 10);
 // 最初の n 個だけ。そのあとのプロンプトより後の出来事は入れない
-L = reviewFlow(prompts, ev, 2);
+L = reviewFlow(prompts, ev, 2, 300);
 eq(L.join("\n"), "- 00:00 [Subagent] Explore\n- 00:01 Prompt: Add a login form\n- 00:05 [Interrupted]\n- 00:10 Prompt (looks like a correction): No, that's wrong. Use the existing component\n- 00:15 [AI committed] Add login form " + "y".repeat(105) + "…");
-eq(reviewFlow([], [], 40).length, 0);
+eq(reviewFlow([], [], 40, 300).length, 0);
+// 履歴ファイルを読んでもらうときは、プロンプトを目印になる頭だけに
+eq(reviewFlow([{t: T, text: "z".repeat(100)}], [], 40, 80)[0], "- 00:00 Prompt: " + "z".repeat(80) + "…");
