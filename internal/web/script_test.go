@@ -179,3 +179,42 @@ func TestUnrecorded(t *testing.T) {
 		t.Errorf("records・unrecorded が違う:\n%s", out)
 	}
 }
+
+// 振り返りのプロンプトの流れ（reviewFlow）。出来事がプロンプトの間に時刻の順で入り、最初の n 個のプロンプトのあとの出来事は入れないこと。
+// session.js はほかのファイルに頼るので、reviewFlow と、それが使う hm・FIXRE だけを取り出して Node で動かす。
+func TestReviewFlow(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	var code []string
+	for _, x := range []struct{ file, re string }{
+		{"js/format.js", `(?m)^function hm\(t\)\{.*$`},
+		{"js/markdown.js", `(?ms)^function oneLine\(s\)\{.*?\}$`},
+		{"js/session.js", `(?m)^const FIXRE = .*$`},
+		{"js/session.js", `(?ms)^function reviewFlow\(.*?^\}$`},
+	} {
+		src, err := jsFiles.ReadFile(x.file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		m := regexp.MustCompile(x.re).FindString(strings.ReplaceAll(string(src), "\r\n", "\n"))
+		if m == "" {
+			t.Fatalf("%s に %s が見つからない", x.file, x.re)
+		}
+		code = append(code, m)
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "reviewflow_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "reviewflow.js")
+	if err := os.WriteFile(f, append([]byte(strings.Join(code, "\n")+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(node, f)
+	cmd.Env = append(os.Environ(), "TZ=UTC")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Errorf("reviewFlow が違う:\n%s", out)
+	}
+}
