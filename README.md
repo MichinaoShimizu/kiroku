@@ -41,7 +41,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 ![Weekly summary by project (dummy data)](docs/summary.png)
 
-**A weekly report your agent can write.** One click copies a prompt for an AI agent on your computer, such as Claude Code. It has the week's commits, pull requests and time for each project, and points to the history files of that week's sessions, so the agent can write what you did and why. Search covers prompts, edited files and commits across all time.
+**A daily, weekly or monthly report your agent can write.** One click copies a prompt for an AI agent on your computer, such as Claude Code, in a fixed format. It has the week's commits, pull requests and time for each project, and points to the history files of that week's sessions, so the agent can write what you did and why. Search covers prompts, edited files and commits across all time.
 
 ## Privacy
 

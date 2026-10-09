@@ -125,7 +125,9 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .heads,.cgrid{display:grid;grid-template-columns:56px repeat(7,minmax(0,1fr))}
 .heads{position:sticky;top:0;z-index:8;background:color-mix(in oklab,var(--surface) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
 .head{padding:10px 12px 9px;border-left:1px solid var(--rule);min-width:0}
-.head .dd{display:flex;align-items:baseline;gap:6px}
+.head .dd{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 6px}
+.head .dayrpt{height:22px;padding:0 7px;gap:4px;font-size:var(--fs-xs);margin-left:auto;align-self:center} /* 日報のプロンプト（記録のある日だけ）。日付の右端に小さく */
+@media (max-width:900px){.head .dayrpt .dl{display:none}.head .dayrpt{padding:0 6px}} /* 狭い画面では印だけ（名前は aria-label と title に） */
 .head b{font:700 var(--fs-xl)/1.1 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .head i{font-style:normal;font-size:var(--fs-xs);color:var(--ink-3)}
 .head small{display:block;font-size:var(--fs-xs);color:var(--ink-3);font-variant-numeric:tabular-nums;margin-top:2px}
@@ -343,9 +345,8 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .rvhead p{margin:0;color:var(--ink-3);font-size:var(--fs-sm)}
 .rvhead .pill{margin-left:auto;align-self:center}
 .rpthint{margin:-8px 0 16px}
-.pill.acc{color:var(--acc-ink);border-color:color-mix(in oklab,var(--acc) 35%,var(--rule-2));font-weight:600} /* AI に渡すプロンプトのボタン（週報・振り返り）は、ほかのボタンより少し目立たせる */
 .pill.fill{background:var(--acc);border-color:var(--acc);color:var(--on-acc);font-weight:600}.pill.fill:hover{background:color-mix(in oklab,var(--acc) 85%,var(--ink));border-color:transparent;color:var(--on-acc)}
-.pill.fill.cp.ok .cpok{color:inherit} /* 詳細でいちばん押してほしい振り返りのボタンは、塗りにする（✓ も文字の色に） */
+.pill.fill.cp.ok .cpok{color:inherit} /* AI に渡すプロンプトのボタン（振り返り・週報・月報・日報）は塗りにして目立たせる（✓ も文字の色に） */
 .rvgrid.srgrid{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
 #review{scroll-margin-top:64px}
 .srow{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;width:100%;text-align:left;padding:10px 8px;border-top:1px solid var(--rule)}

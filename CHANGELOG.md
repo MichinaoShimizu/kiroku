@@ -4,10 +4,17 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Added
+
+- Daily reports: each day with history in the week calendar has a "Report" button next to its date. It copies the report prompt for that day, in the same format as the weekly report, with the day's numbers next to the previous day's
+
 ### Changed
 
+- The weekly and monthly report prompts now set a fixed format (Summary, Numbers, By project with done, why, results and next, and Advice from an expert on prompting, using agents, and what to move into a skill, a subagent or a script, grounded in prompts you repeated across sessions, the tools the AI used most, subagents and compactions) and include a table of numbers kiroku counted, next to the previous week or month: active time, sessions and prompts, Git commits, pull requests, lines changed, estimated cost, tokens, Kiro credits, the correction rate and the median wait time. Each project also gets its share of active time, sessions, prompts, commits and cost
+- The report prompts now carry a digest of each session (your prompts in the period and the start of the AI's reply to each, up to 8 prompts in a week and 3 in a month), so the agent writes from that and opens a history file only when it needs more. Before, the agent was asked to read every session's history file, which could mean hundreds of megabytes for a busy week or month
 - Session details: the resume command is now at the top of the right column on wide screens (on narrow screens it stays at the top, under the title). "Copy review prompt" is now a filled button, so it stands out in session details
 - Session details: "Copy prompts" is gone. "Copy review prompt" names the session's history file for an AI agent, which reads the full prompts there
+- The report buttons (daily, weekly and monthly) are filled buttons now, like "Copy review prompt", so they stand out
 
 ## v0.28.1 - 2026-10-09
 
