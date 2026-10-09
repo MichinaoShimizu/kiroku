@@ -227,6 +227,9 @@ async function run(env) {
     const rs = await p.evaluate(() => { const v = [...document.querySelectorAll("#panel .dresume")].filter(e => e.offsetParent !== null);
       const col = v[0] && v[0].closest(".dcol"); return {n: v.length, wide: innerWidth >= 1100, side: !!col && col === col.parentElement.lastElementChild && col.firstElementChild === v[0], top: !!v[0] && !col}; });
     if (rs.n) check("再開のコマンドは、2 列なら右の列の上、1 列なら詳細の上に 1 つだけ", rs.n === 1 && (rs.wide ? rs.side : rs.top), JSON.stringify(rs));
+    const rv = await p.evaluate(() => { const s = DATA.find(x => x.id === st.sel) || DATA[0]; return sessionPrompt(s, 1, null); });
+    check("振り返りのプロンプトは、報告と同じ作りの形式（Summary・Numbers・Rework・Advice）と、kiroku が埋めた数字の表", /^## Session review: </m.test(rv) && /^- Title: /m.test(rv) && /^### Rework$/m.test(rv) && /^### Advice from an expert$/m.test(rv) && /^\| \| This session \|$/m.test(rv) && /^\| Prompts \| \d+ \|$/m.test(rv), rv.slice(0, 200));
+    check("振り返りの事実と流れは、コードブロックの中にある", /# History data\n`{3,}text\n# Facts/.test(rv) && /## Prompt flow/.test(rv));
     await btn.click(); await pause();
     check("押すと、プロンプトが入っていると知らせる", /Copied a prompt.*your prompts|Copied\. Paste it into an AI agent on this computer.*history file path|Couldn't copy/.test(await p.locator("#toast").innerText()), await p.locator("#toast").innerText());
     await p.keyboard.press("Escape"); await pause();

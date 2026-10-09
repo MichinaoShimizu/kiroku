@@ -7,6 +7,7 @@
 日付は 2026 年 8 月の固定の日（日報は 8/12、週報は 8/10 の週、月報は 8 月）。何が起きたか（正解）は truth.json に書く。
 罠: 前の週から続くセッション（範囲外の作業）、ツールの出力に出た秘密鍵、資料に仕込んだ注入、途中でやめた試み。
 アドバイスの手がかり: 同じ指示（テストとリントを回して直す）を、その週の 3 つのセッションで書いている（スキルかスクリプトに切り出す候補）。
+短い質問だけのセッションを Opus で開いている（軽いモデルで足りる候補）。
 """
 import json, os, subprocess, sys, uuid
 from datetime import datetime, timedelta, timezone
@@ -23,7 +24,8 @@ def at(day, h, m, s=0):
 
 
 class Sess:
-    def __init__(self, proj, branch, name):
+    def __init__(self, proj, branch, name, model="claude-sonnet-5-5"):
+        self.model = model
         self.proj, self.branch, self.sid, self.rows, self.n = proj, branch, str(uuid.uuid5(uuid.NAMESPACE_URL, "kiroku-reportbench/" + name)), [], 0
         self.cwd = os.path.join(REPOS, proj)
 
@@ -40,14 +42,14 @@ class Sess:
 
     def say(self, t, text):
         r = self.base(t, "assistant")
-        r["message"] = {"id": f"msg_{self.sid[:6]}{self.n}", "model": "claude-sonnet-5-5", "role": "assistant", "content": [{"type": "text", "text": text}],
+        r["message"] = {"id": f"msg_{self.sid[:6]}{self.n}", "model": self.model, "role": "assistant", "content": [{"type": "text", "text": text}],
                         "usage": {"input_tokens": 50, "output_tokens": 300, "cache_creation_input_tokens": 2000, "cache_read_input_tokens": 30000}}
         self.rows.append(r)
 
     def tool(self, t, name, inp, result, err=False):
         tid = f"toolu_{self.sid[:6]}{self.n:04d}"
         r = self.base(t, "assistant")
-        r["message"] = {"id": f"msg_{self.sid[:6]}{self.n}", "model": "claude-sonnet-5-5", "role": "assistant", "content": [{"type": "tool_use", "id": tid, "name": name, "input": inp}],
+        r["message"] = {"id": f"msg_{self.sid[:6]}{self.n}", "model": self.model, "role": "assistant", "content": [{"type": "tool_use", "id": tid, "name": name, "input": inp}],
                         "usage": {"input_tokens": 40, "output_tokens": 200, "cache_creation_input_tokens": 1000, "cache_read_input_tokens": 30000}}
         self.rows.append(r)
         r = self.base(t + timedelta(seconds=20), "user"); r["message"] = {"role": "user", "content": [{"type": "tool_result", "tool_use_id": tid, "content": result, "is_error": err}]}
@@ -134,7 +136,13 @@ s.say(at(12, 16, 6), "bun's test runner doesn't support our jest mocks; 17 tests
 s.user(at(12, 16, 7), "Not worth it now, drop it")
 s.save()
 
-# 6. 月だけに入るもの: docs（8/3 の週）と mobile（8/24 の週）
+# 6. 短い質問だけを Opus で（木曜、編集なし）。軽いモデルで足りる候補
+s = Sess("billing", "main", "question", model="claude-opus-5-5")
+s.user(at(13, 10, 0), "What does npm ci --omit=dev skip? One line is enough")
+s.say(at(13, 10, 1), "It skips installing devDependencies; only dependencies (and their own dependencies) are installed.")
+s.save()
+
+# 7. 月だけに入るもの: docs（8/3 の週）と mobile（8/24 の週）
 s = Sess("docs", "main", "onboarding")
 s.user(at(4, 10, 0), "Write an onboarding guide for new engineers: setup, running tests, and how to deploy")
 s.commit(at(4, 10, 50), "Add an onboarding guide for new engineers", "docs/onboarding.md", 120)
