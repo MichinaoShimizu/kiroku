@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- Session details: the resume command is now at the top of the right column on wide screens (on narrow screens it stays at the top, under the title). "Copy review prompt" stands out a little more, like "Copy weekly report prompt"
+- Session details: "Copy prompts" is gone. "Copy review prompt" names the session's history file for an AI agent, which reads the full prompts there
+
 ## v0.28.1 - 2026-10-09
 
 ### Security
