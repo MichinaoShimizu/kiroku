@@ -327,7 +327,7 @@ How each history is read and how duplicates are excluded is described in [source
 
 ### History retention
 
-Some agents delete old history automatically. Deleted history cannot be shown by kiroku and cannot be recovered, so set this up early if you want to look back further. In the view, "Data sources" shows the oldest record for each agent, and while Claude Code or Kiro Crew is still on its 30-day default, a notice appears above the summary (with a link to the docs, the file to put the setting in and a button to copy it; once dismissed, it stays hidden in that browser). `kiroku doctor` shows the same under "Keeping history".
+Some agents delete old history automatically. Deleted history cannot be shown by kiroku and cannot be recovered, so set this up early if you want to look back further. In the view, "Data sources" shows the oldest record for each agent, and while Claude Code or Kiro Crew is still on its 30-day default, it is flagged there (and the section opens) with a link to the docs and the two ways to keep the history: the setting and the file to put it in, or a backup to kiroku's folder, which it names. `kiroku doctor` shows the same under "Keeping history".
 
 | Agent | Deletes automatically? | Setting |
 |---|---|---|
@@ -367,7 +367,7 @@ kiroku reads `config.json` and `config.local.json` the same way Crew does. Crew 
 
 If you'd rather not change the setting, kiroku can keep a copy of the history instead. It is off until you turn it on.
 
-- Run `kiroku archive on`, or press "Back up to this folder" in the notice in the `kiroku serve` view (the notice shows the folder first). kiroku saves the current history right away, then saves new and appended history each time it reads history (`serve` reloads, `html`, `json`)
+- Run `kiroku archive on`, or press "Back up to this folder" under "Data sources" in the `kiroku serve` view (the folder is named next to it). kiroku saves the current history right away, then saves new and appended history each time it reads history (`serve` reloads, `html`, `json`)
 - Only history from agents that delete it automatically is saved (Claude Code conversations, and Kiro Crew's `sessions/archive/`). Each file is compressed with zstd and kept in the same layout as the original
 - When the original conversation is deleted, kiroku shows it from the copy. "Data sources" shows how many conversations came from the copy, and the number and size of the saved files. Claude Code conversations shown from the copy have no "Resume" command (Claude Code no longer has them)
 - The copies live in `~/.local/share/kiroku/archive` on Linux (under `XDG_DATA_HOME` if set), `~/Library/Application Support/kiroku/archive` on macOS and `%LocalAppData%\kiroku\archive` on Windows. Change it with `--archive-dir` or `KIROKU_ARCHIVE_DIR`. Copies stay on this computer and are never sent anywhere
@@ -419,7 +419,7 @@ systemctl --user daemon-reload
 - The file has only the sessions that overlap the period, and only the commits and pushes made within it. A session that crosses the edge of the period is included whole, prompts and all
 - It opens on that week or month and says at the very top that it holds only that period; "Back to included week" / "Back to included month" brings you back to it, and ‹ › (or ← →) only move within that period. Search looks only in this file. Other periods are empty, so 8-period trends have only that period. A week-only file has no month view
 - Times, days and weeks follow the time zone it was written in, wherever it is opened, so the figures match; the note at the top names that time zone when it differs from the viewer's
-- "Data sources" counts only the sessions in the file and lists only the agents that have some, and leaves out the oldest record, the notice about deleted history and kiroku archive's folder
+- "Data sources" counts only the sessions in the file and lists only the agents that have some, and leaves out the oldest record, how to keep history that is about to be deleted and kiroku archive's folder
 - It still contains the prompts, file paths and commit messages of that period as they are. Check it before giving it to anyone
 
 ## Options

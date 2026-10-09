@@ -122,16 +122,6 @@ function outcomePanel(w, pw, unit){
     ${cmp ? side("occmp", "Compared", "Cost ÷ what it left behind", `<div class="stats">${cmp}</div>`) : ""}</section>`;
 }
 /* 計測の状態 */
-/* 履歴を自動で消すエージェント（既定のままの Claude Code など）を知らせ、公式ドキュメントへ案内する。閉じたら出さない */
-function keepNotice(){
-  if (store.get("keepNoticeOff", false) || archOn() || META.scope) return ""; // kiroku がコピーを残していれば、消えても見られる
-  const r = (META.report || []).find(r => r.n && r.retention && r.retention.days && !r.retention.set); if (!r) return "";
-  const k = r.retention, snippet = k.snippet || `"${k.setting}": 3650`, cmd = "kiroku archive on", dir = META.archive && META.archive.dir; // バックアップ先を先に見せる（押す前に、どこに何ができるかわかるように）
-  return `<div class="keep" role="note"><b>Your older history will be deleted</b>
-    <p>${`${esc(k.who || r.name)} automatically deletes conversation history older than ${k.days} days (<code>${esc(k.setting)}</code> is at its default). Deleted history cannot be shown by kiroku and cannot be recovered. To keep it, set a long period such as <code>${esc(snippet)}</code> in your settings file${k.file ? ` (<code>${esc(k.file)}</code>)` : ""}.`}</p>
-    <p>${`If you'd rather not change the setting, kiroku can back up the history instead. Each time you open kiroku, it saves a compressed copy to ${dir ? `<code>${esc(dir)}</code>` : "a folder on this computer"} and shows deleted conversations from there. ${esc(k.who || r.name)}'s own files are not changed, and the backup is never sent anywhere. <code>kiroku archive off</code> stops it.${LIVE ? "" : ` To start, run <code>${cmd}</code>.`}`}</p>
-    <div class="ka">${ext(k.docs, "See how to set it in the official docs ↗", "pill")}${copyBtn("Copy setting", `data-copy="${esc(snippet)}"`)}${LIVE ? `<button class="pill" id="keeparch">Back up to this folder</button>` : copyBtn("Copy command", `data-copy="${cmd}"`)}<button class="pill" id="keepoff">Dismiss</button></div></div>`;
-}
 /* kiroku html --week / --month で書き出した、1 つの期間だけのファイル。渡された人がいちばん上で、何のファイルか・ほかの期間が空の理由・
    どの時計で見ているかがわかるように */
 function scopeNote(){
@@ -153,12 +143,14 @@ async function keepArchive(){
 function keepRow(r){ // 計測の状態に添える：どこまでさかのぼれるか、いつ消えるか
   const o = r.oldest ? dMDY(new Date(r.oldest*1000)) : "";
   const k = r.retention, link = k && k.docs ? ` ${ext(k.docs, "official docs ↗")}` : "", by = k && k.who ? `${esc(k.who)}: ` : ""; // by は、履歴を消すものが Report と違うとき（Kiro CLI の行の Kiro Crew）
+  // how は、既定のままで消える履歴を残す 2 つの方法。バックアップ先のフォルダを先に見せる（押す前に、どこに何ができるかわかるように）
+  const dir = META.archive && META.archive.dir, how = () => `<br>${`To keep them, set <code>${esc(k.snippet || `"${k.setting}": 3650`)}</code>${k.file ? ` in <code>${esc(k.file)}</code>` : ""}, or ${LIVE ? "let kiroku" : "run <code>kiroku archive on</code> to let kiroku"} back them up to ${dir ? `<code>${esc(dir)}</code>` : "a folder on this computer"} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and <code>kiroku archive off</code> stops it)`}${LIVE ? ` <button class="pill keeparch">Back up to this folder</button>` : ""}`;
   return (o ? ` · oldest record ${o}` : "") +
     (r.archived ? ` · ${plural(r.archived, "deleted conversation")} shown from kiroku's copy` : "") +
     (!k ? "" : k.now && archOn() ? `<br>${by}${`Older records are deleted at the next cleanup, within an hour (<code>${esc(k.setting)}</code> is 0), but kiroku keeps a copy`}`
       : k.now ? `<br><span class="kw">${by}${`Older records are deleted at the next cleanup, within an hour (<code>${esc(k.setting)}</code> is 0)`}${link}</span>` // 0 日（days の 0 は「わからない」なので now で見分ける）
       : k.days && !k.set && archOn() ? `<br>${by}${`Records older than ${k.days} days are deleted automatically, but kiroku keeps a copy`}`
-      : k.days && !k.set ? `<br><span class="kw">${by}${`Records older than ${k.days} days are deleted automatically (<code>${esc(k.setting)}</code> is at its default)`}${link}</span>`
+      : k.days && !k.set ? `<br><span class="kw">${by}${`Records older than ${k.days} days are deleted automatically (<code>${esc(k.setting)}</code> is at its default)`}${link}</span>${how()}`
       : k.days ? `<br>${by}${`Kept for ${k.days} days (<code>${esc(k.setting)}</code>)`}`
       : `<br>${by}${`Older records are deleted after a period (<code>${esc(k.setting)}</code>)`}${link}`); }
 // measure は、計測の状態（読んだ履歴・消える設定・kiroku のコピー・料金表）。ふだんはたたみ、

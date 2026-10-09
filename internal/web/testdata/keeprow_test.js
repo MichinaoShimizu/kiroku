@@ -2,6 +2,7 @@
    「わからない期間のあとで消える」（days の 0）や「0 日残す」と出さないこと。
    panels.js はほかのファイルに頼るので、keepRow だけを取り出し、使う関数をここで用意して動かす（script_test.go） */
 let META = {archive: {on: false}};
+const LIVE = false;
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 const ext = (u, t) => `<a href="${esc(u)}">${t}</a>`;
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
@@ -23,3 +24,11 @@ META.archive.on = false;
 has(keepRow({name: "Kiro CLI", retention: {days: 90, set: true, setting: "s"}}), "Kept for 90 days", "設定した日数");
 has(keepRow({name: "X", retention: {days: 0, set: false, setting: "s", docs: "d"}}), "Older records are deleted after a period", "日数がわからないとき");
 has(keepRow({name: "X", retention: {days: 30, set: false, setting: "<s>", docs: "d"}}), "<code>&lt;s&gt;</code>", "設定の名前は打ち消す");
+
+// 既定のままで消える履歴には、2 つの残し方と、バックアップ先のフォルダ（文字のまま）を添える
+META.archive = {on: false, dir: "/Users/me/<b>archive</b>"};
+row = keepRow({name: "Claude Code", retention: {days: 30, setting: "cleanupPeriodDays", file: "~/.claude/settings.json"}});
+has(row, "<code>&quot;cleanupPeriodDays&quot;: 3650</code> in <code>~/.claude/settings.json</code>", "設定とファイルを出す");
+has(row, "back them up to <code>/Users/me/&lt;b&gt;archive&lt;/b&gt;</code>", "バックアップ先を文字のまま出す");
+has(row, "run <code>kiroku archive on</code> to let kiroku back them up", "HTML ではコマンドを出す");
+not(row, "<b>", "フォルダの名前を HTML にしない");
