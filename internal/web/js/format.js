@@ -9,8 +9,6 @@ function dayNo(d, t){ const x = new Date(t*1000); return Math.round((Date.UTC(x.
 // 時刻 t（秒）が、日 d の 0 時から時計で何時間目か（0〜24）。経った秒数でなく時計の針で数えるので、夏時間の日も時刻の線とそろう
 function clockH(d, t){ const x = new Date(t*1000); return Math.min(24, Math.max(0, (x.getTime() - x.getTimezoneOffset()*6e4 - Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))/36e5)); }
 function key(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
-// plainText は、画面用の HTML（中の文字はエスケープ済み）から文字だけを取り出す（コピーする Markdown 用。どこにも挿入しない）
-function plainText(html){ return new DOMParser().parseFromString(String(html ?? ""), "text/html").body.textContent; }
 function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function hm(t){ return new Date(t*1000).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hourCycle:"h23"}); }
 /* 日付の書き方はここの小物にそろえる。見る人の言語の設定によらず英語の月名で（"Sep 28"・"Sep 28, 2026"・"October 2026"）。

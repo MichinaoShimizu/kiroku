@@ -1,5 +1,5 @@
 // 週次・月次サマリー（プロジェクト別・配分）と、指標の説明 HELP
-/* ── 週次・月次サマリー：① プロジェクト別 ② コストとアウトプット ③ 時間 ④ AI ⑤ かたち ⑥ 改善案を聞く。基準を超えた指標には、その場に印と推移を付ける ── */
+/* ── 週次・月次サマリー：① プロジェクト別 ② コストとアウトプット ③ 時間 ④ AI ⑤ かたち。基準を超えた指標には、その場に印と推移を付ける ── */
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
   const head = `<div class="rvhead"><h2>${M ? "Monthly summary" : "Weekly summary"}</h2><p>Rough figures for reflecting on how you work. They are not for comparing people or for evaluations.</p>${w ? copyBtn(`Copy ${M ? "monthly" : "weekly"} report prompt`, `id="rptcopy" title="A prompt that asks an AI agent on this computer to write your ${M ? "monthly" : "weekly"} report from your history"`, "pill fill") : ""}</div>${w ? `<p class="note rpthint">${`The ${M ? "monthly" : "weekly"} report prompt is for an AI agent on this computer, such as Claude Code or Codex. It points the agent to this ${M ? "month" : "week"}'s history files, and the agent reads them. kiroku itself sends nothing.`}</p>` : ""}`;

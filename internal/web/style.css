@@ -469,12 +469,13 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .drawer .tl li.pr>.ic{left:41px;top:10px}
 .tl li.pr.fix>.ic{color:var(--warn)}
 .tl li.pr.command>.ic,.tl li.pr.shell>.ic{color:var(--c4-ink)}
-.tlkey .kus .ic{color:var(--c);stroke-width:1.8}.tlkey .kus.fix .ic{color:var(--warn)}.tlkey .kcmd .ic.kucmd{stroke-width:1.8}
-.tl .pkind{display:inline-block;margin-right:6px;padding:0 6px;border-radius:5px;font-size:var(--fs-xs);font-weight:600;line-height:1.6;vertical-align:1px;color:var(--c4-ink);background:color-mix(in oklab,var(--c4) 16%,transparent)}
+.tlkey .kus .ic{color:var(--c);stroke-width:1.8}
+.tl .pkind,.tlkey .pkind{display:inline-block;margin-right:6px;padding:0 6px;border-radius:5px;font-size:var(--fs-xs);font-weight:600;line-height:1.6;vertical-align:1px;color:var(--c4-ink);background:color-mix(in oklab,var(--c4) 16%,transparent)}
+.tl .pkind.fix,.tlkey .pkind.fix{color:var(--warn);background:color-mix(in oklab,var(--warn) 14%,transparent)}
 .tl .pkind.big{color:var(--warn);background:color-mix(in oklab,var(--warn) 14%,transparent)}
 .tl li.ev.note{color:var(--ink-3)}.tl li.ev.note .evl{color:var(--c6)}
 .tl li.ev.note>.ic,.tlkey .kev.note .ic{color:var(--c6)}
-.tlkey .kcmd{gap:4px}.tlkey .kcmd .ic{color:var(--c4-ink)}.tlkey .kcmd .ic:last-of-type{margin-right:2px} /* 行の札と同じ / と >_ の印。--c4-ink は、明るい地でも読める濃さの c4 */
+.tlkey .pkind{display:inline-flex;gap:0;margin-right:0}.tlkey .kcmd .ic{color:var(--c4-ink)} /* 凡例は、行と同じ「/ Command」「>_ Shell」「Correction?」の札で。--c4-ink は、明るい地でも読める濃さの c4 */
 .tl.only-user li.ev,.tl.only-user li.gap{display:none}
 /* 応答は、依頼の次の発言として同じ線の上に出す（会話として読めるように）。
    あなたが打ったものだけを見るときは出さない */
@@ -490,7 +491,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tlkey.only-user .kev{display:none} /* 出ていないものの説明は出さない（出来事も応答も隠れている） */
 /* あなたのプロンプトは、セッションの色の線と淡い地の吹き出しにして、灰色の地の応答や出来事の行と見分けやすく */
 .tl li.pr p{background:color-mix(in oklab,var(--c) 9%,var(--surface));border-left:3px solid var(--c);border-radius:4px 10px 10px 4px;padding:6px 11px;color:var(--ink);font-weight:500}
-.tl li.pr.fix p{border-left-color:var(--warn)}
+.tl li.pr.fix p{border-left:3px dashed var(--warn)} /* 言い直しらしいものは、色に加えて破線と「Correction?」の札で（色だけに頼らない） */
 /* / のコマンドと ! のシェルは、打ったとおりに等幅のコードの枠で */
 .tl li.pr .ptext>code{display:block;margin-top:4px;padding:5px 9px;border-radius:6px;background:var(--surface-2);font:500 .92em/1.55 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
 .tl li.pr .ptext>code .pexp,.tl li.pr .ptext>code .pcut{font-family:var(--sans)}
