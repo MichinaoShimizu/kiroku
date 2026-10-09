@@ -660,6 +660,36 @@ dialog.mdlg h3{margin:20px 0 8px}
 @media (max-width:480px){.mbar{grid-template-columns:minmax(0,8em) 1fr auto}.mbar .pc{display:none}}
 @media (max-width:480px){.mdlg .gc-row{flex-wrap:wrap;row-gap:2px}.mdlg .gc-row time{flex-basis:100%}} /* 内訳の一覧は、狭いと時刻で件名が隠れるので、時刻を上の行に */
 /* 指標の説明の表（? の吹き出し・Worth a look・内訳のダイアログ）。上の説明と分かれるように枠で囲み、見出しの列と行を線で分ける */
+/* 指標ガイド（guide.js）：かけたもの → 4 つのレバー → 残ったもの を 1 行に。狭いときは縦に積み、矢印も下向きに */
+dialog.mgdlg{width:min(880px,calc(100vw - 32px))}
+.glead{color:var(--ink-2);font-size:var(--fs-md);line-height:1.7;max-width:70ch;margin:0 0 16px}
+.gflow{display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1.35fr) 20px minmax(0,1fr);align-items:stretch;gap:6px}
+.gbox{border:1px solid var(--rule-2);border-radius:10px;padding:12px 14px;background:var(--surface);min-width:0}
+.gbox h3{margin:0;font-size:var(--fs-lg);font-weight:700;color:var(--ink)}.gbox h3::after{content:none}
+.gbox>p{margin:2px 0 8px;font-size:var(--fs-xs);color:var(--ink-3)}
+.gbox ul,.gbox ol{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:var(--fs-sm);color:var(--ink-2)}
+.gin{border-color:var(--c4);background:color-mix(in srgb,var(--c4) 7%,var(--surface))}
+.gout{border-color:var(--c2);background:color-mix(in srgb,var(--c2) 7%,var(--surface))}
+.glev{background:var(--surface-2)}.glev li{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;color:var(--ink)}
+.gcmp{margin-top:10px;border-color:var(--acc);background:var(--acc-soft)}.gcmp ul{display:flex;flex-wrap:wrap;gap:4px 16px}
+.garr{align-self:center;justify-self:center;width:0;height:0;border-block:6px solid transparent;border-left:8px solid var(--ink-3)}
+.mgnum{color:var(--ink-3);font-weight:600}
+.mgtag{font-size:var(--fs-2xs);font-weight:600;line-height:16px;padding:0 6px;border-radius:8px;border:1px solid;color:var(--ink-2);white-space:nowrap}
+.mgtag.up{border-color:var(--c2);background:color-mix(in srgb,var(--c2) 14%,transparent)}
+.mgtag.down{border-color:var(--c4);background:color-mix(in srgb,var(--c4) 16%,transparent)}
+dialog.mgdlg h3.gh{margin:24px 0 10px}
+.glever{margin:0 0 16px}.glever h4{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin:0 0 4px;font-size:var(--fs-lg)}
+.glever>p{margin:0 0 6px;font-size:var(--fs-sm);color:var(--ink-2);line-height:1.6;max-width:70ch}
+.grows{margin:0;display:grid;font-size:var(--fs-sm);line-height:1.6}
+.grows>div{display:grid;grid-template-columns:minmax(0,15em) 1fr;gap:2px 14px;padding:6px 0;border-top:1px solid var(--rule)}
+.grows dt{font-weight:600;color:var(--ink)}.grows dd{margin:0;color:var(--ink-2)}
+.gsteps{list-style:none;counter-reset:g;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;font-size:var(--fs-sm);color:var(--ink-2);line-height:1.5}
+.gsteps li{counter-increment:g;border:1px solid var(--rule);border-radius:10px;padding:10px 12px}
+.gsteps li::before{content:counter(g);display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--acc);color:var(--on-acc);font-size:var(--fs-xs);font-weight:700;margin-bottom:6px}
+.gsteps b{display:block;color:var(--ink);font-weight:600}
+.gnote{margin:10px 0 0;font-size:var(--fs-sm);color:var(--ink-3)}
+@media (max-width:720px){.gflow{grid-template-columns:minmax(0,1fr)}.garr{border-inline:6px solid transparent;border-block:8px solid var(--ink-3);border-bottom:0}.gsteps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.grows>div{grid-template-columns:1fr}.gsteps{grid-template-columns:1fr}}
 .hint dl,.wkhelp{display:grid;grid-template-columns:max-content 1fr;margin:12px 0 0;border:1px solid var(--rule-2);border-radius:8px;overflow:hidden;font-size:var(--fs-sm);line-height:1.6}
 .hint dt,.wkhelp dt{padding:6px 10px;background:var(--surface-2);border-right:1px solid var(--rule-2);color:var(--ink-3);font-weight:600;white-space:nowrap}
 .hint dd,.wkhelp dd{margin:0;padding:6px 10px;color:var(--ink-2)}

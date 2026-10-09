@@ -4,6 +4,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Added
+
+- Metrics guide: the new map button at the top right (or `G`) shows how the metrics fit together. What you put in becomes what is left behind through four levers of how you work with AI, Compared divides the two, and each lever lists its metrics with what they tell you, followed by how to make a change and what the metrics don't tell you
+
 ### Changed
 
 - Breakdown dialogs: the first sentence of what the metric is now sits right under the figure, so you know what was counted before reading the numbers. Before, the whole definition was at the very end, below the lists. The rest of the definition and what the metric doesn't tell you stay at the end

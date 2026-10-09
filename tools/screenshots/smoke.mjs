@@ -153,6 +153,20 @@ async function run(env) {
     check("閉じるとカードにフォーカスが戻る", await p.evaluate(id => { const a = document.activeElement; return a.dataset.id === id && !!a.closest("#review"); }, id));
   });
 
+  await step("ヘッダーから指標ガイドが開く", async () => {
+    await p.click("#guide"); await pause();
+    check("指標ガイドのダイアログが開き、見出しにフォーカスがある", await p.evaluate(() => document.querySelector("#mg").open && document.activeElement.id === "mgh"));
+    check("かけたもの・4 つのレバー・残ったもの・比べ方がある", await p.evaluate(() => { const d = document.querySelector("#mg"); return d.querySelectorAll(".gflow .gbox").length === 3 && d.querySelectorAll(".glev li").length === 4 && d.querySelectorAll(".glever").length === 4 && !!d.querySelector(".gcmp"); }));
+    check("名前は HELP から取る", await p.evaluate(() => [...document.querySelectorAll("#mg .gin li")].map(li => li.textContent).includes(HELP.active.n)));
+    await p.keyboard.press("Escape"); await pause();
+    check("閉じるとボタンにフォーカスが戻る", await p.evaluate(() => !document.querySelector("#mg").open && document.activeElement.id === "guide"));
+    await p.keyboard.press("g"); await pause();
+    check("G でも開く", await p.evaluate(() => document.querySelector("#mg").open));
+    await p.keyboard.press("ArrowRight"); await pause();
+    check("開いているあいだは ← → で期間が動かない", await p.evaluate(() => document.querySelector("#mg").open));
+    await p.keyboard.press("Escape"); await pause();
+  });
+
   await step("サマリーの数字から内訳が開く", async () => {
     const v = p.locator('#review .stat [data-metric="cost"]');
     check("サマリーの目安コストを押せる", await v.count() === 1);

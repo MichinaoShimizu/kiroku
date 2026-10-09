@@ -38,6 +38,7 @@ $("#q").addEventListener("keydown", e => { if (e.key !== "Enter" || e.isComposin
   const f = $("#sres .srow") || $("#srh"); if (f){ e.preventDefault(); f.focus(); } });
 $("#theme").onclick = () => { st.theme = st.theme === "dark" ? "light" : "dark"; store.set("theme", st.theme); applyTheme(); };
 $("#help").onclick = () => $("#keys").showModal();
+$("#guide").onclick = openGuide;
 $("#yrbtn").onclick = openYear;
 addEventListener("resize", () => { if ($("#yr").open) drawPlate(); });
 // ダイアログ（ショートカット・Worth a look・1 年の露光）は、枠の外を押すと閉じる（詳細のパネルの #scrim と同じ）。
@@ -64,7 +65,7 @@ addEventListener("popstate", () => {
 const ARROW_OWN = "input, select, textarea, [contenteditable], .segc, [role=group], [role=radiogroup], [role=tablist], [role=listbox], [role=slider], [role=menu]";
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT"){ if (e.key === "Escape") e.target.blur(); return; }
-  if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open || $("#yr").open || $("#wk").open) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open || $("#yr").open || $("#wk").open || $("#mg").open) return;
   const k = e.key;
   if (k === "Escape" && closeHint()) return; // 開いた説明（?）があれば、それだけ閉じる
   if (k === "ArrowLeft" || k === "ArrowRight"){ // 詳細を開いているあいだも動かさない（閉じて別の週へ飛ぶと、どこにいるかわからなくなる）
@@ -73,6 +74,7 @@ document.addEventListener("keydown", e => {
   else if (k === "t" || k === "T") go(null);
   else if (k === "/"){ e.preventDefault(); $("#q").focus(); } else if (k === "+" || k === "=") zoom(1); else if (k === "-") zoom(-1);
   else if (k === "Escape" && st.sel) select(null); else if (k === "?") $("#keys").showModal();
+  else if (k === "g" || k === "G") openGuide();
   else if (k === "w" || k === "W") setMode("week"); else if (k === "m" || k === "M") setMode("month");
   else if ((k === "y" || k === "Y") && YEAR_ON && DATA.length) openYear();
 });
