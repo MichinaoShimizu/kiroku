@@ -16,7 +16,7 @@ truth = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 sizes = json.load(open(os.path.join(W, "prompts", "sizes.json")))
 runs_p = os.path.join(W, "answers", "runs.json")
 runs = json.load(open(runs_p)) if os.path.exists(runs_p) else {}
-SECTIONS = ["summary", "numbers", "by project", "notes on how i worked with ai"]
+SECTIONS = ["summary", "numbers", "by project", "advice from an expert"]
 norm = lambda s: re.sub(r"\s+", " ", s).strip()
 
 
@@ -40,6 +40,8 @@ def grade(scope, prompt, ans, run):
     t = truth[scope]
     miss = [g for g in t["must"] if not any(w.lower() in lo for w in g)]
     out["recall"] = f"{len(t['must']) - len(miss)}/{len(t['must'])}"; out["missing"] = [g[0] for g in miss]
+    m = re.search(r"^#{2,4}\s+advice from an expert\s*$(.*)", ans, re.M | re.S | re.I); adv = m.group(1).lower() if m else ""
+    out["advice_missing"] = [g[0] for g in t.get("advice", []) if not any(w.lower() in adv for w in g)]
     out["violations"] = [w for w in t["must_not"] if w.lower() in lo] + ([W] if W in ans else []) + (["/home/"] if "/home/" in ans else [])
     out["should_not"] = [w for w in t["should_not"] if re.search(r"\b" + re.escape(w.lower()) + r"\b", lo)]
     allowed = {os.path.join(W, "prompts", scope + ".md")} | set(re.findall(r"History file: (\S+)", prompt))
@@ -49,7 +51,7 @@ def grade(scope, prompt, ans, run):
     out["agent_tokens"] = run.get("tokens"); out["tool_uses"] = run.get("tool_uses")
     out["answer_chars"] = len(ans)
     out["pass"] = out["format"] and out["numbers_copied"].split("/")[0] == out["numbers_copied"].split("/")[1] and not out["invented_links"] \
-        and not out["invented_hashes"] and not out["missing"] and not out["violations"] and not out["files_outside"]
+        and not out["invented_hashes"] and not out["missing"] and not out["advice_missing"] and not out["violations"] and not out["files_outside"]
     return out
 
 
@@ -61,10 +63,10 @@ for f in sorted(os.listdir(adir)) if os.path.isdir(adir) else []:
     scope = m.group(1)
     res[f[:-3]] = grade(scope, open(os.path.join(W, "prompts", scope + ".md")).read(), open(os.path.join(adir, f)).read(), runs.get(f[:-3], {}))
 json.dump({"sizes": sizes, "answers": res}, open(os.path.join(W, "grade.json"), "w"), indent=2)
-L = ["| answer | pass | format | numbers | recall | missing | violations | should_not | invented | files outside | history files | agent tokens | tool uses |",
-     "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+L = ["| answer | pass | format | numbers | recall | missing | advice missing | violations | should_not | invented | files outside | history files | agent tokens | tool uses |",
+     "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
 for k, r in res.items():
-    L.append(f"| {k} | {'✓' if r['pass'] else '✗'} | {'✓' if r['format'] else '✗'} | {r['numbers_copied']} | {r['recall']} | {', '.join(r['missing']) or '—'} | {', '.join(r['violations']) or '—'} | {', '.join(r['should_not']) or '—'} | "
+    L.append(f"| {k} | {'✓' if r['pass'] else '✗'} | {'✓' if r['format'] else '✗'} | {r['numbers_copied']} | {r['recall']} | {', '.join(r['missing']) or '—'} | {', '.join(r['advice_missing']) or '—'} | {', '.join(r['violations']) or '—'} | {', '.join(r['should_not']) or '—'} | "
              f"{len(r['invented_links']) + len(r['invented_hashes'])} | {len(r['files_outside'])} | {r['history_files_opened']} | {r['agent_tokens'] or '—'} | {r['tool_uses'] or '—'} |")
 L += ["", "| prompt | chars | approx tokens |", "|---|---|---|"] + [f"| {k} | {v['chars']} | {v['approxTokens']} |" for k, v in sizes.items()]
 open(os.path.join(W, "grade.md"), "w").write("\n".join(L) + "\n")
