@@ -231,8 +231,8 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .fl .why{font-size:var(--fs-sm);color:var(--ink-2);line-height:1.6} /* 印の理由と説明は、判断に使う文なので小さくしない（基準の行 .rule だけ小さく） */
 .scope{margin:0 0 16px;padding:10px 14px;border-radius:12px;border:1px solid var(--rule);background:var(--surface-2);font-size:var(--fs-sm);line-height:1.7;color:var(--ink-2)}
 #scopebar{margin:16px 0 -8px}
-.keep{margin:0 0 16px;padding:14px 18px;border-radius:12px;border:1px solid color-mix(in oklab,var(--warn) 45%,var(--rule));background:color-mix(in oklab,var(--warn) 7%,var(--surface))}
-.keep b{display:block;font-size:var(--fs-lg);color:var(--warn);margin-bottom:4px}
+.keep{margin:0 0 16px;padding:14px 18px;border-radius:12px;border:1px solid color-mix(in oklab,var(--c0) 45%,var(--rule));background:color-mix(in oklab,var(--c0) 7%,var(--surface))} /* 知らせ（エラーではないので赤にしない） */
+.keep b{display:block;font-size:var(--fs-lg);color:var(--c0);margin-bottom:4px}
 .keep p{margin:0;font-size:var(--fs-sm);line-height:1.7;color:var(--ink-2)}
 .keep code,.mlist code{font-size:var(--fs-xs);padding:0 4px;border-radius:4px;background:var(--surface-2)}
 .keep .ka{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
