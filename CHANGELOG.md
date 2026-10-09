@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- "Copy review prompt" now lists what happened between your prompts (interruptions, commits, pull requests, subagents, compactions and usage limits) in time order and marks prompts that look like corrections, so the AI can tell which prompt led to rework instead of only seeing counts. It also asks the AI to quote the prompt behind each point, to say whether rework came from the prompt, the task itself or the AI's own mistake, and not to invent problems
+
 ## v0.28.0 - 2026-10-09
 
 ### Added

@@ -139,6 +139,27 @@ function promptFlow(s){
   const bar = `<div class="flowhead"><h3>Prompt flow</h3><div class="flowbar"><div class="segc" role="group" aria-label="Show" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">Everything</button><button data-v="user" aria-pressed="${!!st.flowUser}">Only user prompts</button></div>${copyBtn("Copy prompts", `id="pcopy"`)}${copyBtn("Copy review prompt", `id="sreview" title="A prompt that asks an AI how you could have prompted and split the work better"`)}</div></div>`;
   return `${bar}<div class="tlkey${st.flowUser ? " only-user" : ""}">${key}</div><ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${`Show ${plural(rest, "more prompt")}${also}`}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${"\"AI worked\" is the time from a prompt to the AI's last activity; \"wait\" is the time from there to your next prompt. Both are estimates from the history's timestamps."}</p>` : ""}${s.prompts.some(p => p.reply) ? `<p class="note">${`The reply after a prompt is the last thing the AI wrote to you in that turn, in its own words — not its thinking, its tool calls or their output. A turn where it only ran tools, or whose words the agent does not record, has no reply. A long one shows its first ${REPLY_RUNES} characters.`}</p>` : ""}`;
 }
+/* 振り返りのプロンプトに入れる流れ: プロンプトと、そのあとに起きたこと（中断・コミットなど）を時刻の順に 1 本のテキストにする。
+   件数だけでは、どのプロンプトのあとに手戻りが起きたかを AI が結びつけられないので。出すのは最初の n 個のプロンプトと、その間に起きたことまで */
+function reviewFlow(prompts, ev, n){
+  const L = [], one = (x, max) => { const t = String(x || "").replace(/\s+/g, " ").trim(); return t.length > max ? t.slice(0, max) + "…" : t; };
+  let e = 0;
+  const flush = until => { for (; e < ev.length && ev[e].t < until; e++) L.push(`- ${hm(ev[e].t)} [${ev[e].l}]${ev[e].d ? ` ${one(ev[e].d, 120)}` : ""}`); };
+  prompts.slice(0, n).forEach(p => { if (p.t) flush(p.t);
+    L.push(`- ${p.t ? hm(p.t) : "--:--"} Prompt${!p.kind && FIXRE.test(String(p.text || "")) ? " (looks like a correction)" : ""}: ${one(p.text, 300)}`); });
+  flush(prompts.length > n ? (prompts.slice(n).find(p => p.t) || {t: Infinity}).t : Infinity);
+  return L;
+}
+function reviewEvents(s){ // 流れの出来事のうち、振り返りに効くものを文字だけで（画面の flowEvents は HTML を作るので使わない）
+  const ev = [];
+  commitsOf(s).forEach(c => ev.push({t: c.t, l: c.ai ? "AI committed" : "Committed by hand", d: c.subject}));
+  (s.prAt || []).forEach(p => ev.push({t: p.t, l: "Created a pull request"}));
+  (s.interruptsAt || []).forEach(t => ev.push({t, l: "Interrupted"}));
+  (s.compactions || []).forEach(t => ev.push({t, l: "Conversation compacted"}));
+  (s.limits || []).forEach(t => ev.push({t, l: "Hit a usage limit"}));
+  s.subagents.forEach(a => { if (a.start) ev.push({t: a.start, l: "Subagent", d: a.type}); });
+  return ev.filter(x => x.t).sort((a, b) => a.t - b.t);
+}
 /* 1 つのセッションを AI と振り返るためのプロンプト（kiroku 自身は AI を呼ばない） */
 function sessionPrompt(s, active, med){
   const o = s.outputs || {}, L = [
@@ -147,7 +168,13 @@ function sessionPrompt(s, active, med){
     "1. What went well in how this session was run",
     "2. Information that would have reduced rework if it had been in the first prompt (background, constraints, done criteria, etc.)",
     "3. Better ways to split and order the prompts, and an example first prompt for similar work next time",
+    "", "# How to judge",
+    "- Judge each prompt by what happened right after it (my next prompt, corrections, interruptions, commits), not by its length. A short prompt that was enough in context is a good prompt",
+    "- For every point, give the time and quote the prompt it is about. Leave out points you can't tie to a prompt",
+    "- For each place that needed rework, say whether the cause was (A) something missing from my prompt, (B) the task itself being hard or uncertain, or (C) the AI getting it wrong although the prompt was enough",
+    "- If something went fine, say so. Don't make up problems",
     "", "# Assumptions",
+    "- \"Looks like a correction\" is guessed from the prompt's wording",
     "- Figures are rough estimates from history. Clearly mark anything the data can't support as a guess",
     "- Estimated cost is priced at public API rates, not what I am actually billed",
     AI_DATA_NOTE], D = ["# Session",
@@ -161,8 +188,8 @@ function sessionPrompt(s, active, med){
   D.push(o.commits ? `- Commits: ${o.commits}${o.prs ? `, pull requests: ${o.prs}` : ""}` : "- No commits recorded");
   if (s.tools.length) D.push(`- Most used tools: ${s.tools.slice(0,6).map(([k,v]) => `${k} ${v}`).join(", ")}`);
   if (s.subagents.length) D.push(`- Subagents: ${s.subagents.length}`);
-  D.push("", "# Prompt flow (time and prompt; long ones are truncated)");
-  if (s.prompts.length) s.prompts.slice(0, 40).forEach(p => { const t = String(p.text || "").replace(/\s+/g, " ").trim(); D.push(`- ${p.t ? hm(p.t) : "--:--"} ${t.length > 300 ? t.slice(0, 300) + "…" : t}`); });
+  D.push("", "# Prompt flow (my prompts and what happened between them, in time order; long ones are truncated)");
+  if (s.prompts.length) D.push(...reviewFlow(s.prompts, reviewEvents(s), 40));
   else D.push("- No prompts recorded");
   if (s.prompts.length > 40) D.push(`- ${s.nPrompts - 40} more`);
   L.push("", "# History data", mdFence(D.join("\n")));
