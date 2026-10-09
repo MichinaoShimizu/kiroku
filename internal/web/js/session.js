@@ -15,7 +15,7 @@ function detail(s){
   P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
     ${dHead(agMark(s.source) + esc(s.source), s.title, `${md(s.start)} ${hm(s.start)} – ${sameDay ? "" : md(s.end)+" "}${hm(s.end)}`, [projTag(s.project), branchTag(s.branch)])}
     ${sesFlags(s)}
-    ${s.resume ? `<div class="dresume"><h3>Resume</h3>${codeH(s.resume, "resume")}</div>` : ""}
+    ${s.resume ? `<div class="dresume dtop"><h3>Resume</h3>${codeH(s.resume, "resume")}</div>` : ""}
     <div class="dcols"><div class="dcol">
     <div class="mini tight">
       <div><div class="k">Active time</div><div class="v">${dur(active,true)}</div></div>
@@ -41,6 +41,7 @@ function detail(s){
           <div class="lane"><span style="left:${l}%;width:${Math.min(w,100-l)}%"></span></div>
           <div class="ft">${a.start?`<span>${hm(a.start)}${a.end?"–"+hm(a.end):""}</span>`:""}${a.start&&a.end?`<span>${dur((a.end-a.start)/60)}</span>`:""}${tt?`<span>${tok(tt)} tokens</span>`:t.reportedTokens?`<span>${tok(t.reportedTokens)} tokens (reported)</span>`:""}${t.cost?`<span>${usd(t.cost)}</span>`:""}${a.model?`<span>${esc(a.model)}</span>`:""}${a.tools?`<span>${plural(a.tools, "tool call")}</span>`:""}</div></div>`; }).join("")}` : ""}
     </div><div class="dcol">
+    ${s.resume ? `<div class="dresume dside"><h3>Resume</h3>${codeH(s.resume, "resume")}</div>` : ""}
     ${sessionCommits(s)}
     ${s.prs && s.prs.length ? `<h3>Pull requests created · ${s.prs.length}</h3><ul class="files">${s.prs.map(u => pathRow(u, ext(u, esc(u.replace(/^https?:\/\//, ""))), "pr")).join("")}</ul>` : ""}
     <h3>Files changed${s.files.length || records(s.source, "files") ? ` · ${s.nFiles}` : ""}</h3>
@@ -69,7 +70,6 @@ function detail(s){
       const li = b.closest("li.rp"); li.querySelector(".reptext").textContent = await r.text(); li.tabIndex = -1; li.focus(); // 読んでいた場所から離れないように
     } catch { b.disabled = false; b.textContent = "Couldn't load. Try again"; } });
   P.querySelectorAll("#flowBy button").forEach(b => b.onclick = () => { st.flowUser = b.dataset.v === "user"; store.set("flowUser", st.flowUser); P.querySelector(".tl").classList.toggle("only-user", st.flowUser); P.querySelector(".tlkey").classList.toggle("only-user", st.flowUser); P.querySelectorAll("#flowBy button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); });
-  const pc = P.querySelector("#pcopy"); if (pc) pc.onclick = () => copy(userPrompts(s), `Copied ${plural(s.prompts.length, "user prompt")}`, 0, pc);
   const pall = P.querySelector(".pall"); if (pall) pall.onclick = () => { const shown = [...P.querySelectorAll(".tl li[hidden]")]; shown.forEach(li => li.hidden = false); pall.remove();
     const first = shown.find(li => li.classList.contains("pr")); if (first) first.focus(); }; // 出した最初のプロンプトへ（フォーカスを失わないように）
   bindCopy(P);
@@ -84,8 +84,6 @@ function prName(url){ // GitHub の PR は「リポジトリ#番号」と短く�
 const NOTE_LABEL = () => ({reminder: "System note", notice: "Notification", hook: "Hook output", output: "Command output",
   compact: "Conversation summary", agent: "From another agent or schedule", meta: "Added by the agent", other: "Added automatically"});
 const PKIND = () => ({command: "Command", shell: "Shell"}); // 人が打ったプロンプトのうち、ふつうの文でないもの
-function userPrompts(s){ // 人が打ったプロンプトだけを、時刻つきの Markdown の箇条書きにする（書き出し用）
-  return s.prompts.map(p => `- ${p.t ? `${md(p.t)} ${hm(p.t)}` : "--:--"}${p.kind ? ` (${mdText(PKIND()[p.kind] || p.kind)})` : ""} ${mdText(p.text)}${p.len > 0 ? ` (first ${PROMPT_RUNES} characters)` : ""}`).join("\n"); }
 function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面では d だけを省略する）
   const ev = [];
   commitsOf(s).forEach(c => ev.push({t: c.t, k: c.ai ? "commit ai" : "commit", l: c.ai ? "AI committed" : "Committed by hand", d: `<button class="evd" data-git="${esc(c.hash)}"><i class="gtag${c.ai ? " ai" : ""}">${GIT_ICON}${esc(c.hash.slice(0,7))}</i> ${esc(c.subject)}</button>`}));
@@ -136,7 +134,7 @@ function promptFlow(s){
     ...[["commit", "Commit"], ["push", "Push"], ["pr", "Pull request"], ["agent", "Subagent"], ["int", "Interruption"], ["cmp", "Compaction"], ["warn", "Usage limit"]].filter(([k]) => kinds.has(k)).map(([k, l]) => `<span class="kev ${k}">${ico(EV_ICON[k])}${l}</span>`)].filter(Boolean).join("");
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";
   // 見出しと出し方の切り替えは 1 行に（最初の画面に入るプロンプトを 1 つでも多くする）
-  const bar = `<div class="flowhead"><h3>Prompt flow</h3><div class="flowbar"><div class="segc" role="group" aria-label="Show" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">Everything</button><button data-v="user" aria-pressed="${!!st.flowUser}">Only user prompts</button></div>${copyBtn("Copy prompts", `id="pcopy"`)}${copyBtn("Copy review prompt", `id="sreview" title="A prompt that asks an AI agent on this computer how you could have prompted and split the work better"`)}</div></div>`;
+  const bar = `<div class="flowhead"><h3>Prompt flow</h3><div class="flowbar"><div class="segc" role="group" aria-label="Show" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">Everything</button><button data-v="user" aria-pressed="${!!st.flowUser}">Only user prompts</button></div>${copyBtn("Copy review prompt", `id="sreview" title="A prompt that asks an AI agent on this computer how you could have prompted and split the work better"`, "pill fill")}</div></div>`;
   return `${bar}<div class="tlkey${st.flowUser ? " only-user" : ""}">${key}</div><ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${`Show ${plural(rest, "more prompt")}${also}`}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${"\"AI worked\" is the time from a prompt to the AI's last activity; \"wait\" is the time from there to your next prompt. Both are estimates from the history's timestamps."}</p>` : ""}${s.prompts.some(p => p.reply) ? `<p class="note">${`The reply after a prompt is the last thing the AI wrote to you in that turn, in its own words — not its thinking, its tool calls or their output. A turn where it only ran tools, or whose words the agent does not record, has no reply. A long one shows its first ${REPLY_RUNES} characters.`}</p>` : ""}`;
 }
 /* 振り返りのプロンプトに入れる流れ: プロンプトと、そのあとに起きたこと（中断・コミットなど）を時刻の順に 1 本のテキストにする。

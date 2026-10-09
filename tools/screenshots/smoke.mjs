@@ -221,7 +221,12 @@ async function run(env) {
     const run = await clickableRun(p);
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
     const btn = p.locator("#panel .flowbar #sreview");
-    check("振り返りのプロンプトのボタンが、プロンプトの流れの見出しに並ぶ", await btn.count() === 1);
+    check("振り返りのプロンプトのボタンが、プロンプトの流れの見出しに並び、少し目立つ", await btn.count() === 1 && await btn.evaluate(b => b.classList.contains("fill")));
+    check("プロンプトだけをコピーするボタンはない", await p.locator("#panel #pcopy").count() === 0);
+    // 再開のコマンドは 1 つだけ見え、2 列の画面では右の列のいちばん上、1 列の画面では詳細のいちばん上
+    const rs = await p.evaluate(() => { const v = [...document.querySelectorAll("#panel .dresume")].filter(e => e.offsetParent !== null);
+      const col = v[0] && v[0].closest(".dcol"); return {n: v.length, wide: innerWidth >= 1100, side: !!col && col === col.parentElement.lastElementChild && col.firstElementChild === v[0], top: !!v[0] && !col}; });
+    if (rs.n) check("再開のコマンドは、2 列なら右の列の上、1 列なら詳細の上に 1 つだけ", rs.n === 1 && (rs.wide ? rs.side : rs.top), JSON.stringify(rs));
     await btn.click(); await pause();
     check("押すと、プロンプトが入っていると知らせる", /Copied a prompt.*your prompts|Copied\. Paste it into an AI agent on this computer.*history file path|Couldn't copy/.test(await p.locator("#toast").innerText()), await p.locator("#toast").innerText());
     await p.keyboard.press("Escape"); await pause();
