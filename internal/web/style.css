@@ -343,7 +343,9 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .rvhead p{margin:0;color:var(--ink-3);font-size:var(--fs-sm)}
 .rvhead .pill{margin-left:auto;align-self:center}
 .rpthint{margin:-8px 0 16px}
-.rvhead .rpt{color:var(--acc-ink);border-color:color-mix(in oklab,var(--acc) 35%,var(--rule-2));font-weight:600}
+.pill.acc{color:var(--acc-ink);border-color:color-mix(in oklab,var(--acc) 35%,var(--rule-2));font-weight:600} /* AI に渡すプロンプトのボタン（週報・振り返り）は、ほかのボタンより少し目立たせる */
+.pill.fill{background:var(--acc);border-color:var(--acc);color:var(--on-acc);font-weight:600}.pill.fill:hover{background:color-mix(in oklab,var(--acc) 85%,var(--ink));border-color:transparent;color:var(--on-acc)}
+.pill.fill.cp.ok .cpok{color:inherit} /* 詳細でいちばん押してほしい振り返りのボタンは、塗りにする（✓ も文字の色に） */
 .rvgrid.srgrid{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
 #review{scroll-margin-top:64px}
 .srow{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;width:100%;text-align:left;padding:10px 8px;border-top:1px solid var(--rule)}
@@ -488,7 +490,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 /* 「Prompt flow」の見出しと、出し方の切り替え・コピーを 1 行に並べる（見出しの線のあとに右寄せ） */
 .flowhead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:26px 0 10px}
 .flowhead h3{flex:1 1 140px;margin:0}
-/* 表示の切り替えと「Copy prompts」は、押したときの重さが違うので離す（コピーはプロンプトの本文を持ち出す） */
+/* 表示の切り替えと「Copy review prompt」は、押したときの重さが違うので離す（コピーはプロンプトと履歴の場所を持ち出す） */
 .flowbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px}
 .flowbar .segc button{height:26px;font-size:var(--fs-xs)}
 .tl .pfull{white-space:pre-wrap}
@@ -507,7 +509,8 @@ button.more{display:block;text-align:left}
 .files .fp>span{direction:ltr;unicode-bidi:plaintext}
 .files .fp a:focus-visible,.drawer .gfiles span>a:focus-visible{outline-offset:-2px} /* 行は overflow:hidden なので、枠を内側に描いて切れないように */
 .drawer .gfiles span>.ic{color:var(--ink-3);margin-right:6px;vertical-align:-2px}
-.drawer .dresume{margin-top:14px}.drawer .dresume>h3:first-child{margin-top:0} /* 再開のコマンドは、画面の幅によらず、詳細のいちばん上に */
+.drawer .dresume{margin-top:14px}.drawer .dresume>h3:first-child{margin-top:0}
+.drawer .dresume.dside{display:none} /* 再開のコマンドは、1 列の画面では詳細のいちばん上に、2 列の画面では右の列のいちばん上に */
 
 /* エージェント別 */
 .ngroups{margin-top:8px}
@@ -560,6 +563,7 @@ body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:tra
   .drawer .dcols{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:0 40px;margin-top:18px}
   .drawer .dcol>:first-child{margin-top:0}
   .drawer .dcol+.dcol{border-left:1px solid var(--rule);padding-left:40px}
+  .drawer .dresume.dtop{display:none}.drawer .dresume.dside{display:block;margin-top:0}
 }
 /* 戻る・閉じるは、中身の 1 行目（種類の小見出し）の右に重ねる。ボタンだけの空いた帯を作らない。中身をスクロールしても押せるよう、パネルの上に固定する */
 .drawer .dh{position:absolute;top:10px;right:14px;z-index:2;display:flex;align-items:center;gap:4px;padding:2px;border-radius:11px;background:color-mix(in oklab,var(--surface) 88%,transparent);backdrop-filter:blur(6px)}
