@@ -367,7 +367,7 @@ kiroku reads `config.json` and `config.local.json` the same way Crew does. Crew 
 
 If you'd rather not change the setting, kiroku can keep a copy of the history instead. It is off until you turn it on.
 
-- Run `kiroku archive on`, or press "Keep a copy in kiroku" in the notice in the `kiroku serve` view. kiroku saves the current history right away, then saves new and appended history each time it reads history (`serve` reloads, `html`, `json`)
+- Run `kiroku archive on`, or press "Back up to this folder" in the notice in the `kiroku serve` view (the notice shows the folder first). kiroku saves the current history right away, then saves new and appended history each time it reads history (`serve` reloads, `html`, `json`)
 - Only history from agents that delete it automatically is saved (Claude Code conversations, and Kiro Crew's `sessions/archive/`). Each file is compressed with zstd and kept in the same layout as the original
 - When the original conversation is deleted, kiroku shows it from the copy. "Data sources" shows how many conversations came from the copy, and the number and size of the saved files. Claude Code conversations shown from the copy have no "Resume" command (Claude Code no longer has them)
 - The copies live in `~/.local/share/kiroku/archive` on Linux (under `XDG_DATA_HOME` if set), `~/Library/Application Support/kiroku/archive` on macOS and `%LocalAppData%\kiroku\archive` on Windows. Change it with `--archive-dir` or `KIROKU_ARCHIVE_DIR`. Copies stay on this computer and are never sent anywhere

@@ -69,6 +69,15 @@ async function run(env) {
     check("ロゴが検索欄に隠れない", await p.evaluate(() => document.querySelector(".brand .word").getBoundingClientRect().right <= document.querySelector(".search").getBoundingClientRect().left));
   });
 
+  await step("履歴が消える知らせは、押す前にバックアップ先を見せる", async () => {
+    const r = await p.evaluate(() => { const save = [META.report, META.archive];
+      META.report = [{name: "Claude Code", n: 1, retention: {days: 30, setting: "cleanupPeriodDays"}}]; META.archive = {on: false, dir: "/Users/me/kiroku/<b>archive</b>"};
+      const d = document.createElement("div"); d.innerHTML = keepNotice(); [META.report, META.archive] = save;
+      return {t: d.textContent, tags: d.querySelectorAll(".keep p b").length}; });
+    check("フォルダが文字のまま出る", r.t.includes("/Users/me/kiroku/<b>archive</b>") && r.tags === 0, r.t);
+    check("元のファイルは変えず、外にも送らないと書いてある", /own files are not changed/.test(r.t) && /never sent anywhere/.test(r.t));
+  });
+
   await step("テーマ", async () => {
     const theme = () => p.evaluate(() => document.documentElement.dataset.theme);
     check("既定はダーク", await theme() === "dark", await theme());

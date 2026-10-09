@@ -126,11 +126,11 @@ function outcomePanel(w, pw, unit){
 function keepNotice(){
   if (store.get("keepNoticeOff", false) || archOn() || META.scope) return ""; // kiroku がコピーを残していれば、消えても見られる
   const r = (META.report || []).find(r => r.n && r.retention && r.retention.days && !r.retention.set); if (!r) return "";
-  const k = r.retention, snippet = k.snippet || `"${k.setting}": 3650`, cmd = "kiroku archive on";
+  const k = r.retention, snippet = k.snippet || `"${k.setting}": 3650`, cmd = "kiroku archive on", dir = META.archive && META.archive.dir; // バックアップ先を先に見せる（押す前に、どこに何ができるかわかるように）
   return `<div class="keep" role="note"><b>Your older history will be deleted</b>
     <p>${`${esc(k.who || r.name)} automatically deletes conversation history older than ${k.days} days (<code>${esc(k.setting)}</code> is at its default). Deleted history cannot be shown by kiroku and cannot be recovered. To keep it, set a long period such as <code>${esc(snippet)}</code> in your settings file${k.file ? ` (<code>${esc(k.file)}</code>)` : ""}.`}</p>
-    <p>${`If you'd rather not change the setting, kiroku can keep a copy of the history instead. It saves a compressed copy each time you open kiroku and shows deleted conversations from it (copies stay on this computer only).${LIVE ? "" : ` To turn it on, run <code>${cmd}</code>.`}`}</p>
-    <div class="ka">${ext(k.docs, "See how to set it in the official docs ↗", "pill")}${copyBtn("Copy setting", `data-copy="${esc(snippet)}"`)}${LIVE ? `<button class="pill" id="keeparch">Keep a copy in kiroku</button>` : copyBtn("Copy command", `data-copy="${cmd}"`)}<button class="pill" id="keepoff">Dismiss</button></div></div>`;
+    <p>${`If you'd rather not change the setting, kiroku can back up the history instead. Each time you open kiroku, it saves a compressed copy to ${dir ? `<code>${esc(dir)}</code>` : "a folder on this computer"} and shows deleted conversations from there. ${esc(k.who || r.name)}'s own files are not changed, and the backup is never sent anywhere. <code>kiroku archive off</code> stops it.${LIVE ? "" : ` To start, run <code>${cmd}</code>.`}`}</p>
+    <div class="ka">${ext(k.docs, "See how to set it in the official docs ↗", "pill")}${copyBtn("Copy setting", `data-copy="${esc(snippet)}"`)}${LIVE ? `<button class="pill" id="keeparch">Back up to this folder</button>` : copyBtn("Copy command", `data-copy="${cmd}"`)}<button class="pill" id="keepoff">Dismiss</button></div></div>`;
 }
 /* kiroku html --week / --month で書き出した、1 つの期間だけのファイル。渡された人がいちばん上で、何のファイルか・ほかの期間が空の理由・
    どの時計で見ているかがわかるように */
@@ -147,8 +147,8 @@ async function keepArchive(){
   try {
     const r = await fetch("archive", {method:"POST", headers:{"X-Kiroku":"1"}, cache:"no-store"}); if (!r.ok) throw new Error(r.status);
     applyData(await r.json()); render();
-    toast("Kept a copy. kiroku will save one each time you open it", 4500);
-  } catch(e){ toast("Couldn't keep a copy. Run kiroku archive on instead", 4500); }
+    toast(`Backed up to ${(META.archive && META.archive.dir) || "kiroku's folder"}. kiroku adds to it each time you open it`, 6000);
+  } catch(e){ toast("Couldn't start the backup. Run kiroku archive on instead", 4500); }
 }
 function keepRow(r){ // 計測の状態に添える：どこまでさかのぼれるか、いつ消えるか
   const o = r.oldest ? dMDY(new Date(r.oldest*1000)) : "";
