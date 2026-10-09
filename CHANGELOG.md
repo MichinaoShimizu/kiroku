@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- The weekly and monthly report prompts now set a fixed format (Summary, Numbers, By project with done, why, results and next, and Notes on how you worked with AI) and include a table of numbers kiroku counted, next to the previous week or month: active time, sessions and prompts, Git commits, pull requests, lines changed, estimated cost, tokens, Kiro credits, the correction rate and the median wait time. Each project also gets its share of active time, sessions, prompts, commits and cost
+- The report prompts now carry a digest of each session (your prompts in the period and the start of the AI's reply to each, up to 8 prompts in a week and 3 in a month), so the agent writes from that and opens a history file only when it needs more. Before, the agent was asked to read every session's history file, which could mean hundreds of megabytes for a busy week or month
+
 ## v0.28.1 - 2026-10-09
 
 ### Security

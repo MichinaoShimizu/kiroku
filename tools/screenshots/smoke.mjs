@@ -323,7 +323,9 @@ async function run(env) {
     check("週報のプロンプトのボタンが、サマリーの見出しに並ぶ", await btn.count() === 1 && /Copy weekly report prompt/.test(await btn.innerText()));
     const text = await p.evaluate(() => { const {S, P} = period(); return reportPrompt(S, st.mode === "month"); });
     check("事実の期間は「Sep 28 – Oct 4, 2026」の形", /^## Work for [A-Z][a-z]{2} \d{1,2} – ([A-Z][a-z]{2} \d{1,2}, )?\d{4}$|^## Work for [A-Z][a-z]{2} \d{1,2}, \d{4} – /m.test(text), JSON.stringify(text.slice(0, 80)));
-    check("履歴ファイルのパスと、読む範囲の決まりがある", /History file: \//.test(text) && /Read only those files/.test(text));
+    check("履歴ファイルのパスと、読む範囲の決まりがある", /History file: \//.test(text) && /Read only the files listed/.test(text));
+    check("決まった形式と、kiroku が埋めた数字の表がある", /# Format/.test(text) && /### By project/.test(text) && /^\| Active time \| \S/m.test(text) && /^\| Git commits \(by AI\) \| \d+ \(\d+\) \|/m.test(text), JSON.stringify(text.match(/^\| Active time.*$/m)));
+    check("セッションごとに、プロンプトと応答の要約がある", /^  - [A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2} \d\d:\d\d Prompt: /m.test(text));
     check("事実と履歴は、コードブロックの中にある", /# History data\n`{3,}text\n# Facts/.test(text));
     await btn.scrollIntoViewIfNeeded(); await btn.click(); await pause();
     check("押すと、プロンプトとパスが入っていると知らせる", /Copied\. Paste it into an AI agent on this computer.*history file paths|Couldn't copy/.test(await p.locator("#toast").innerText()), await p.locator("#toast").innerText());
