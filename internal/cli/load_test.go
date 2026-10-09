@@ -139,6 +139,47 @@ func TestSameConversationCountedOnce(t *testing.T) {
 	}
 }
 
+// Kiro IDE を v1.0 へ移すと、v1.0 より前の形式の会話も残る（kiro.dev の whats-new-v1）。同じ ID の会話は v1.0 のほうだけを数える。
+func TestKiroIDEMigratedCountedOnce(t *testing.T) {
+	home, gs := t.TempDir(), t.TempDir()
+	files := map[string]string{
+		filepath.Join(home, "sessions", "h", "sess_1", "session.json"):   `{"id": "conv-a", "createdAt": "2026-09-29T01:00:00Z", "modelId": "claude-sonnet-4.5"}`,
+		filepath.Join(home, "sessions", "h", "sess_1", "messages.jsonl"): `{"timestamp": "2026-09-29T01:01:00Z", "payload": {"type": "user", "content": "画面を作って"}}` + "\n",
+		filepath.Join(gs, "workspace-sessions", "d3M=", "sessions.json"): `[{"sessionId": "conv-a", "dateCreated": 1759100000000}, {"sessionId": "conv-b", "dateCreated": 1759100000000}]`,
+		filepath.Join(gs, "workspace-sessions", "d3M=", "conv-a.json"):   `{"history": [{"message": {"role": "user", "content": "画面を作って"}}]}`,
+		filepath.Join(gs, "workspace-sessions", "d3M=", "conv-b.json"):   `{"history": [{"message": {"role": "user", "content": "表を作って"}}]}`,
+	}
+	for p, body := range files {
+		if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	all := source.All(source.Options{KiroHome: home, KiroStorages: []string{gs}, CrewHome: filepath.Join(home, "crew"),
+		KiroCLIDB: filepath.Join(home, "none.sqlite3")})
+	data, rep := collect(all, map[string]bool{"kiro": true}, 15)
+	n := map[string]source.Report{}
+	for _, r := range rep {
+		n[r.Name] = r
+	}
+	if r := n["Kiro IDE"]; r.N != 1 || r.Error != nil {
+		t.Errorf("Kiro IDE: n=%d err=%v, want 1", r.N, r.Error)
+	}
+	if r := n["Kiro IDE (legacy)"]; r.N != 1 || r.Dup != 1 || r.Error != nil {
+		t.Errorf("Kiro IDE (legacy): n=%d dup=%d err=%v, want 1 と 1（v1.0 にもある会話は外す。読めないファイルではない）", r.N, r.Dup, r.Error)
+	}
+	if len(data) != 2 {
+		t.Fatalf("セッション数 = %d, want 2", len(data))
+	}
+	for _, s := range data {
+		if s.ID == "conv-a" && s.Source != "Kiro IDE" {
+			t.Errorf("conv-a は v1.0 のほうを使う: %s", s.Source)
+		}
+	}
+}
+
 func roundTrip(t *testing.T, v any) any {
 	b, err := json.Marshal(v)
 	if err != nil {

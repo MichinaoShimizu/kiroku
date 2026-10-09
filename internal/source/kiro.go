@@ -51,6 +51,8 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		errs.file(metaPath, err)
 		meta := core.Map(raw)
 		s := core.NewBuilder("Kiro IDE", firstNonEmpty(core.Str(meta["id"]), filepath.Base(dir)))
+		// v1.0 へ移した会話は、v1.0 より前の形式（KiroIDELegacy）にも同じ ID で残る。同じ鍵にして、先に読む v1.0 のほうを使う（kiro-history と同じ）
+		s.Key = "kiro-ide:" + s.ID
 		s.File = filepath.Join(dir, "messages.jsonl")
 		s.Title = core.Str(meta["title"])
 		for _, key := range []string{"workspacePaths", "rootPaths"} {
@@ -60,6 +62,7 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 			}
 		}
 		model := core.Str(meta["modelId"])
+		modeled := false // usage_summary でモデルを数えたか
 		s.Tick(ts(meta["createdAt"]))
 		errs.file(s.File, core.ReadJSONL(s.File, func(e core.Obj) {
 			t := ts(e["timestamp"])
@@ -93,6 +96,7 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 					s.Measure("requests", t, float64(len(ids)))
 				}
 				s.Model(model)
+				modeled = true
 			case "session_metadata":
 				// {key: "contextUsage", value: {usagePercentage: 0〜100}}。参考実装 codeburn のテストデータ（tests/providers/kiro.test.ts）だけにある形。
 				// 0〜100 の数でなければ使わない
@@ -103,6 +107,9 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 				}
 			}
 		}))
+		if !modeled && len(s.Prompts) > 0 {
+			s.Model(model) // usage_summary がなければ、会話のモデル（modelId）を 1 回数える（v1.0 より前の selectedModel と同じ）
+		}
 		emit(s)
 	}
 	return errs.err()
@@ -714,6 +721,7 @@ func (k *KiroIDELegacy) Load(emit func(*core.Builder)) error {
 				errs.file(f, err)
 				data := core.Map(raw)
 				s := core.NewBuilder("Kiro IDE (legacy)", id)
+				s.Key = "kiro-ide:" + id // v1.0 へ移した会話なら、v1.0 のほうを使う（KiroIDE の Key）
 				s.File = f
 				s.Title = firstNonEmpty(core.Str(em["title"]), core.Str(data["title"]))
 				s.Project = firstNonEmpty(core.Str(data["workspacePath"]), core.Str(data["workspaceDirectory"]), core.Str(em["workspaceDirectory"]))
