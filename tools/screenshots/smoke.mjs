@@ -160,7 +160,7 @@ async function run(env) {
     const s = await p.locator("#review .stat.mstat:has([data-metric=cost]) .s").boundingBox(); // 値の下の一言を押しても開く（枠全体が押せる）
     await p.mouse.click(s.x + 3, s.y + 3); await pause();
     check("押すと内訳のダイアログが開く", await p.evaluate(() => document.querySelector("#md").open && document.querySelector("#mdh").textContent === "Estimated cost"));
-    check("指標の定義は大きな数字のすぐ下にあり、言えないことは最後にある", await p.evaluate(() => { const d = document.querySelector("#md"), def = d.querySelector(".mbig + .mdef"); return !!def && def.textContent.length > 0 && d.getAttribute("aria-describedby") === def.id && d.lastElementChild.matches(".mnot") && /Doesn't tell you/.test(d.lastElementChild.textContent); }));
+    check("指標の定義は大きな数字のすぐ下にあり、言えないことは最後にある", await p.evaluate(() => { const d = document.querySelector("#md"), def = d.querySelector(".mbig + .mdef"); return !!def && def.textContent.length > 0 && d.getAttribute("aria-describedby") === def.id && d.lastElementChild.matches(".mnot") && /Doesn't tell you/.test(d.lastElementChild.textContent) && def.textContent + ". " + d.querySelector(".mnot p").textContent === HELP.cost.d; })); // 定義の 1 文目が上、残りが最後
     await p.keyboard.press("Escape"); await pause();
     check("閉じると押した数字にフォーカスが戻る", await p.evaluate(() => document.activeElement.dataset.metric === "cost" && !!document.activeElement.closest("#review")));
     const hb = p.locator("#review .stat.mstat:has([data-metric=cost]) .hb");
@@ -175,6 +175,7 @@ async function run(env) {
     for (const id of ids) {
       await p.evaluate(id => document.querySelector(`#review [data-metric="${id}"]`).click(), id); await pause();
       check(`${id} の内訳が開き、中身がある`, await p.evaluate(() => { const d = document.querySelector("#md"); return d.open && d.querySelectorAll("h3").length > 0; }));
+      check(`${id} の内訳の定義は 1 つだけ`, await p.evaluate(() => document.querySelectorAll("#mdd").length <= 1));
       await p.keyboard.press("Escape"); await pause();
     }
     await p.evaluate(() => document.querySelector('#review [data-metric="commits"]').click()); await pause();
