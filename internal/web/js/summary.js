@@ -13,7 +13,7 @@ function summary(){
   const times = n => `${n}`;
   const F = findList(w, pw, unit);
   WK.innerHTML = flagSum(F); WK.hidden = false; lastFlags = F; // 見直す候補は、カレンダーの上（期間の要点のすぐ下）に出す。押すと真ん中のダイアログで開く
-  R.innerHTML = `${head}${keepNotice()}<div class="rvgrid">
+  R.innerHTML = `${head}<div class="rvgrid">
   ${projectPanel(w, unit)}
   ${outcomePanel(w, pw, unit)}
   <section class="panel time">${panelH(3, "How you spent time", "When and how long sessions ran")}
@@ -51,8 +51,7 @@ function summary(){
   R.querySelectorAll(".fmark").forEach(b => b.onclick = () => openWorth(b.dataset.goto, b));
   R.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b)); // 上の帯と同じ内訳
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
-  const ko = R.querySelector("#keepoff"); if (ko) ko.onclick = () => { store.set("keepNoticeOff", true); summary(); };
-  const ka = R.querySelector("#keeparch"); if (ka) ka.onclick = () => { ka.disabled = true; keepArchive(); };
+  R.querySelectorAll(".keeparch").forEach(b => b.onclick = () => { R.querySelectorAll(".keeparch").forEach(x => x.disabled = true); keepArchive(); });
   const rt = R.querySelector("#rpttog"), rb = R.querySelector("#rptbox"), rpt = open => { st.rpt = open; rb.hidden = !open; rt.setAttribute("aria-expanded", open); if (open) rb.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest"}); else rt.focus(); };
   if (rt && rb){ rt.onclick = () => rpt(!st.rpt); R.querySelector("#rptclose").onclick = () => rpt(false); }
   const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy($("#rptpre").textContent, "Copied. Session names are the start of your prompts, so edit them before pasting", 4500, rc);
