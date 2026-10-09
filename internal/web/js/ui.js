@@ -20,7 +20,22 @@ const ICON_PATH = {
   branch: '<circle cx="4.5" cy="3.5" r="1.6"/><circle cx="4.5" cy="12.5" r="1.6"/><circle cx="11.5" cy="4.5" r="1.6"/><path d="M4.5 5.1v5.8M11.5 6.1c0 3.4-7 2.6-7 4.8"/>', /* ブランチ */
   copy: '<rect x="5.5" y="5.5" width="8.5" height="8.5" rx="1.5"/><path d="M10.5 5.5v-2A1.5 1.5 0 0 0 9 2H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5h2"/>',
   check: '<path d="M3 8.5 6.5 12 13 4.5"/>', /* コピーできた */
+  user: '<circle cx="8" cy="5" r="2.8"/><path d="M2.5 14.2a5.5 5.5 0 0 1 11 0"/>', /* 人が打ったプロンプト */
+  info: '<circle cx="8" cy="8" r="6"/><path d="M8 7.3v3.9M8 4.9v.1"/>', /* システムの知らせ */
+  hook: '<path d="M10 1.8v7.7a3.5 3.5 0 0 1-7 0V7.6M3 7.6l2.2 2.2"/>', /* フックの出力 */
+  edit: '<path d="M10.6 2.4 13.6 5.4 5.8 13.2H2.8v-3z"/><path d="M9 4l3 3"/>', /* ファイルを書きかえる */
+  write: '<path d="M3.5 1.5h6l3 3v10h-9z"/><path d="M8 7.2v5M5.5 9.7h5"/>', /* ファイルを作る */
+  read: '<path d="M1.5 8S4 3.6 8 3.6 14.5 8 14.5 8 12 12.4 8 12.4 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/>', /* 読む・見る */
+  search: '<circle cx="7" cy="7" r="4.5"/><path d="M10.4 10.4 14 14"/>', /* 探す */
+  web: '<circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c-2.2 2.3-2.2 9.7 0 12M8 2c2.2 2.3 2.2 9.7 0 12"/>', /* ウェブ */
+  plan: '<path d="M2.5 4.2l1.2 1.2L6 3.1M2.5 10.2l1.2 1.2L6 9.1M8.5 4.3h5M8.5 10.3h5"/>', /* やることの一覧 */
+  plug: '<path d="M5.5 1.5v3M10.5 1.5v3M3.5 4.5h9v3a4.5 4.5 0 0 1-9 0zM8 12v2.5"/>', /* MCP のツール */
 };
+/* ツールの名前 → 印（エージェントごとに名前が違うので、名前の一部で見分ける。上から順に当てる。知らない名前は印なし） */
+const TOOL_ICON = [[/^mcp/i, "plug"], [/web|fetch|url|browser/i, "web"], [/task|agent/i, "agent"], [/todo|plan/i, "plan"],
+  [/bash|shell|exec|command|terminal/i, "shell"], [/edit|patch|replace/i, "edit"], [/write|create/i, "write"],
+  [/read|view|open/i, "read"], [/grep|search|find|glob|^ls$|list/i, "search"]];
+const toolIcon = name => { const m = TOOL_ICON.find(([re]) => re.test(String(name || ""))); return ico(m ? m[1] : ""); }; // 印がなくても同じ幅をあけて、名前の頭をそろえる
 /* パスの一覧の 1 行：頭に印（既定はファイル）、長いパスは頭を省いて名前を見せる。label は HTML（呼ぶ側でエスケープする）、title は文字 */
 const pathRow = (title, label, icon = "file") => `<li title="${esc(title)}">${ico(icon)}<span class="fp"><span>${label}</span></span></li>`;
 const ico = (k, cls = "") => `<svg class="ic${cls ? " " + cls : ""}" viewBox="0 0 16 16" aria-hidden="true">${ICON_PATH[k] || ""}</svg>`;

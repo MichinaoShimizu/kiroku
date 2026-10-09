@@ -81,11 +81,11 @@ async function run(env) {
 
   await step("テーマ", async () => {
     const theme = () => p.evaluate(() => document.documentElement.dataset.theme);
-    check("既定はダーク", await theme() === "dark", await theme());
+    check("既定はライト", await theme() === "light", await theme());
     await p.locator("#theme").click(); await pause();
-    check("押すとライトになる", await theme() === "light", await theme());
+    check("押すとダークになる", await theme() === "dark", await theme());
     await p.locator("#theme").click(); await pause();
-    check("もう一度押すとダークに戻る", await theme() === "dark", await theme());
+    check("もう一度押すとライトに戻る", await theme() === "light", await theme());
   });
 
   await step("週の移動", async () => {

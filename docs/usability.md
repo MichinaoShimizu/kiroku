@@ -10,7 +10,7 @@ AI testing does not replace real users. Use it as a first check to catch what mi
 sh tools/screenshots/run.sh --html /tmp/kiroku-test.html   # HTML with dummy data
 ```
 
-Open it with Playwright and try it in the following 3 environments. Keep the default dark theme, and take screenshots in dark too.
+Open it with Playwright and try it in the following 3 environments. Keep the default light theme, and take screenshots in light too.
 
 - 1440x900
 - 1000x800

@@ -239,8 +239,6 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .mlist code{font-size:var(--fs-xs);padding:0 4px;border-radius:4px;background:var(--surface-2)}
 .mlist .keeparch{height:24px;margin-top:4px}
 .mlist .kw{color:var(--warn)}
-.askd summary{cursor:pointer;font-size:var(--fs-sm);color:var(--ink-2);padding:4px 0;margin-top:8px}
-.askd .askpre{margin-top:8px}
 .moreS{margin-top:10px}
 .moreS summary{cursor:pointer;font-size:var(--fs-sm);color:var(--ink-2);padding:4px 0}
 .ocl{display:flex;align-items:baseline;gap:8px;padding-top:8px;border-top:2px solid var(--side,var(--rule-2));font-size:var(--fs-xs);color:var(--ink-3)}.ocl b{font-size:var(--fs-sm);font-weight:700;color:var(--ink);letter-spacing:.02em}.occmp .ocl{border-top:0;padding-top:0}
@@ -295,15 +293,12 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 :is(.drawer,.mdlg) .gc-row{display:flex;gap:10px;width:100%;text-align:left;padding:8px 0;border-bottom:1px dashed var(--rule);font-size:var(--fs-md)}:is(.drawer,.mdlg) .gc-row time{color:var(--ink-3);font-variant-numeric:tabular-nums}:is(.drawer,.mdlg) .gc-row span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}:is(.drawer,.mdlg) .gc-row b{font-weight:500;color:var(--ink-3);font-variant-numeric:tabular-nums}
 
 .pout{font-size:var(--fs-sm);font-variant-numeric:tabular-nums;color:var(--ink)}.pout span{color:var(--ink-3)}
-.panel.ask,.panel.metap{grid-column:1/-1}
+.panel.metap{grid-column:1/-1}
 .panel.metap .foot{margin-top:12px} /* 計測の状態と生成時刻：ページのいちばん下 */
 .dsrc summary{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none}.dsrc summary::-webkit-details-marker{display:none}
 .dsrc .dsc{width:12px;height:12px;stroke:var(--ink-3);fill:none;stroke-width:1.8;transition:transform .2s var(--ease)}.dsrc[open] .dsc{transform:rotate(90deg)}
 .dsrc summary h3{margin:0}.dsrc summary .muted{font-size:var(--fs-xs)}
 .foot .xl{color:var(--ink-2)}
-.askbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px}
-.askbar .muted{font-size:var(--fs-xs)}
-.askpre{margin:0;max-height:320px;overflow:auto;padding:14px 16px;border:1px solid var(--rule);border-radius:10px;background:var(--bg);font:var(--fs-sm)/1.7 var(--mono);color:var(--ink-2);white-space:pre-wrap;word-break:break-word}
 /* ── month（月カレンダー：日ごとの作業量） ───────────────── */
 .mgrid{display:grid;grid-template-columns:minmax(96px,.75fr) repeat(7,minmax(0,1fr))}
 .mgrid .mh{padding:10px 12px 8px;font-size:var(--fs-xs);color:var(--ink-3);border-left:1px solid var(--rule);border-bottom:1px solid var(--rule)}
@@ -461,7 +456,6 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tlkey{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0 0 8px;font-size:var(--fs-xs);color:var(--ink-3)}
 .tlkey span{display:inline-flex;align-items:center;gap:6px}
 .tlkey i{flex:none;width:7px;height:7px}.tlkey .ic{width:12px;height:12px}
-.tlkey .kp{border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--c)}.tlkey .kp.fix{background:var(--warn);box-shadow:none}
 .pload,.rload{font-size:var(--fs-xs);color:var(--acc-ink);font-weight:600;padding:1px 8px;border:1px solid var(--acc);border-radius:99px;margin-left:2px}.pload:hover,.rload:hover{text-decoration:underline}
 .tl time{color:var(--ink-3);font-variant-numeric:tabular-nums;font-size:var(--fs-xs);padding-top:1px}
 .tl p{margin:0;overflow-wrap:anywhere}
@@ -469,11 +463,17 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl li[hidden]{display:none}
 /* プロンプトの種類：あなたが打ったコマンド（/ や !）と、自動で入ったもの（通知・要約・hook など）を色で分ける */
 .tl li.pr.command,.tl li.pr.shell{--c:var(--c4)}
+/* あなたのプロンプトは、点の代わりに人の印（セッションの色。言い直しらしいものは警告の色）。応答の ↩ と並べて、だれの発言かを形でも見分ける */
+.tl li.pr::before{display:none}
+.tl li.pr>.ic{position:absolute;left:37px;top:7px;width:14px;height:14px;padding:1px;box-sizing:content-box;background:var(--surface);color:var(--c);stroke-width:1.8}
+.drawer .tl li.pr>.ic{left:41px;top:10px}
+.tl li.pr.fix>.ic{color:var(--warn)}
+.tl li.pr.command>.ic,.tl li.pr.shell>.ic{color:var(--c4-ink)}
+.tlkey .kus .ic{color:var(--c);stroke-width:1.8}.tlkey .kus.fix .ic{color:var(--warn)}.tlkey .kcmd .ic.kucmd{stroke-width:1.8}
 .tl .pkind{display:inline-block;margin-right:6px;padding:0 6px;border-radius:5px;font-size:var(--fs-xs);font-weight:600;line-height:1.6;vertical-align:1px;color:var(--c4-ink);background:color-mix(in oklab,var(--c4) 16%,transparent)}
 .tl .pkind.big{color:var(--warn);background:color-mix(in oklab,var(--warn) 14%,transparent)}
 .tl li.ev.note{color:var(--ink-3)}.tl li.ev.note .evl{color:var(--c6)}
 .tl li.ev.note>.ic,.tlkey .kev.note .ic{color:var(--c6)}
-.tlkey .kp.cmd{box-shadow:inset 0 0 0 1.5px var(--c4)}
 .tlkey .kcmd{gap:4px}.tlkey .kcmd .ic{color:var(--c4-ink)}.tlkey .kcmd .ic:last-of-type{margin-right:2px} /* 行の札と同じ / と >_ の印。--c4-ink は、明るい地でも読める濃さの c4 */
 .tl.only-user li.ev,.tl.only-user li.gap{display:none}
 /* 応答は、依頼の次の発言として同じ線の上に出す（会話として読めるように）。
@@ -488,6 +488,17 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl.only-user li.rp{display:none}
 .tlkey .kev.rep .ic{color:var(--ink-3)}
 .tlkey.only-user .kev{display:none} /* 出ていないものの説明は出さない（出来事も応答も隠れている） */
+/* あなたのプロンプトは、セッションの色の線と淡い地の吹き出しにして、灰色の地の応答や出来事の行と見分けやすく */
+.tl li.pr p{background:color-mix(in oklab,var(--c) 9%,var(--surface));border-left:3px solid var(--c);border-radius:4px 10px 10px 4px;padding:6px 11px;color:var(--ink);font-weight:500}
+.tl li.pr.fix p{border-left-color:var(--warn)}
+/* / のコマンドと ! のシェルは、打ったとおりに等幅のコードの枠で */
+.tl li.pr .ptext>code{display:block;margin-top:4px;padding:5px 9px;border-radius:6px;background:var(--surface-2);font:500 .92em/1.55 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
+.tl li.pr .ptext>code .pexp,.tl li.pr .ptext>code .pcut{font-family:var(--sans)}
+/* 人が打っていないもの（システムの知らせ・通知・フックなど）は、紫の線と地にして、切らずに 3 行まで見せる */
+.tl li.ev.note p{white-space:normal;align-items:flex-start;flex-wrap:wrap;gap:2px 6px;background:color-mix(in oklab,var(--c6) 8%,transparent);border-left:3px solid color-mix(in oklab,var(--c6) 60%,transparent);border-radius:4px 8px 8px 4px;padding:4px 10px}
+.tl li.ev.note .evl{font-weight:600}
+.tl li.ev.note .evd{flex:1 1 100%;color:var(--ink-2);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;white-space:pre-wrap;overflow-wrap:anywhere}
+.tl li.ev.note.output .evd{font-family:var(--mono);font-size:.92em}
 /* 「Prompt flow」の見出しと、出し方の切り替え・コピーを 1 行に並べる（見出しの線のあとに右寄せ） */
 .flowhead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:26px 0 10px}
 .flowhead h3{flex:1 1 140px;margin:0}
@@ -500,7 +511,9 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .pexp:hover,.pall:hover{text-decoration:underline}
 button.more{display:block;text-align:left}
 .trow{display:grid;grid-template-columns:110px 1fr 28px;gap:10px;align-items:center;font-size:var(--fs-sm);padding:3px 0}
-.trow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);font-size:var(--fs-xs)}
+.trow .nm{display:flex;align-items:center;gap:6px;min-width:0;font-family:var(--mono);font-size:var(--fs-xs)}
+.trow .nm>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.trow .nm .ic{color:var(--ink-3)} /* ツールの種類の印（ui.js の toolIcon） */
 .trow .track2{height:6px;border-radius:3px;background:var(--surface-2)}
 .trow .track2 span{display:block;height:100%;border-radius:3px;background:var(--ink-3)}
 .trow .n{text-align:right;color:var(--ink-3);font-variant-numeric:tabular-nums}
@@ -537,6 +550,9 @@ button.more{display:block;text-align:left}
 .chips span{font-size:var(--fs-xs);color:var(--ink-2);background:var(--surface-2);border-radius:6px;padding:1px 9px;font-variant-numeric:tabular-nums}
 .chips span b{font-weight:600;color:var(--ink);margin-left:4px}
 .chips span.mono{font-family:var(--mono);font-size:var(--fs-xs)}
+/* 使ったモデルは、モデル名ごとの色の点と淡い地で */
+.chips span.mdl{background:color-mix(in oklab,var(--m) 14%,var(--surface-2));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--m) 35%,transparent);color:var(--ink)}
+.chips span.mdl i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--m);margin-right:6px;vertical-align:0}
 .sub{padding:9px 0 10px;border-bottom:1px solid var(--rule)}
 .sub:last-child{border-bottom:0}
 .sub .hd{display:flex;align-items:center;gap:8px;font-size:var(--fs-sm)}
@@ -573,6 +589,8 @@ body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:tra
 .drawer .dh .dt{display:none;flex:1;min-width:0;font-weight:700;font-size:var(--fs-lg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .drawer.scrolled .dh{top:0;left:0;right:0;padding:8px 14px 8px 28px;border-radius:0;background:var(--surface);backdrop-filter:none;border-bottom:1px solid var(--rule)}
 .drawer.scrolled .dh .dt{display:block}
+.drawer .dh .dt .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c);margin-right:7px;vertical-align:2px} /* 頭の小見出しと同じ色の点とエージェントの印（dtopSync が写す） */
+.drawer .dh .dt .agm{margin-right:7px;vertical-align:2px}
 .drawer .db{overflow:auto;padding:22px 28px 48px;flex:1;scrollbar-width:thin;font-size:var(--fs-lg)}
 /* パネルの中は読み物なので、一覧より一回り大きく・濃く */
 .drawer .back{font-size:var(--fs-md);color:var(--ink-2)}
@@ -613,7 +631,7 @@ body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:tra
 .drawer .sub .ds{color:var(--ink)}
 .drawer .sub .bg{font-size:var(--fs-xs)}
 .drawer .sub .ft{font-size:var(--fs-sm);color:var(--ink-2);gap:4px 14px}
-.drawer .trow{font-size:var(--fs-md);grid-template-columns:130px 1fr 32px;padding:4px 0}
+.drawer .trow{font-size:var(--fs-md);grid-template-columns:150px 1fr 32px;padding:4px 0}
 .drawer .trow .nm{font-size:var(--fs-sm)}
 .drawer .trow .n{color:var(--ink-2)}
 .drawer .files{font-size:var(--fs-sm);line-height:1.7}
