@@ -6,6 +6,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Changed
 
+- The kiroku logo and name at the top left now link back to the start: `/` in `kiroku serve`, and the same file in an HTML file or the live demo (this week or month, with details and search closed)
 - The "Your older history will be deleted" box above the summary is gone; the README and `kiroku doctor` already say it. "Data sources" still flags history that will be deleted (and opens), and now says how to keep it: the setting and the file to put it in, or a backup to the folder it names with `kiroku archive on` ("Back up to this folder" in `kiroku serve`; was "Keep a copy in kiroku"), noting that the agent's own files are not changed, nothing is sent anywhere, and `kiroku archive off` stops it
 - Breakdown dialogs: the first sentence of what the metric is now sits right under the figure, so you know what was counted before reading the numbers. Before, the whole definition was at the very end, below the lists. The rest of the definition and what the metric doesn't tell you stay at the end
 
