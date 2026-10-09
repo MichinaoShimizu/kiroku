@@ -59,7 +59,10 @@ function reportText(w, M){
     if (!ps.length && !pc.length) return;
     const min = ((w.projects || []).find(([k]) => k === pj) || [0, 0])[1];
     L.push("", `### ${mdCode(pj)}${min ? ` (${dur(min)})` : ""}`);
-    if (pc.length){ L.push("", "Commits:"); pc.slice(-15).forEach(c => { const h = mdText(String(c.hash).slice(0,7)); L.push(`- ${/^https?:\/\//i.test(c.url || "") ? `[${h}](${mdURL(c.url)})` : h} ${mdText(c.subject)}`); }); if (pc.length > 15) L.push(`- ${pc.length - 15} more`); }
+    if (pc.length){ const repos = [...new Set(pc.map(c => c.repo).filter(Boolean))]; // AI が git show で中身を見られるように、リポジトリの場所と 12 桁のハッシュ
+      L.push("", repos.length > 1 ? "Commits (repositories: " + repos.map(mdCode).join(", ") + "):" : `Commits${repos.length ? ` (repository: ${mdCode(repos[0])})` : ""}:`);
+      pc.slice(-50).forEach(c => { const h = mdText(String(c.hash).slice(0,12)); L.push(`- ${/^https?:\/\//i.test(c.url || "") ? `[${h}](${mdURL(c.url)})` : h} ${mdText(c.subject)}${repos.length > 1 ? ` (${mdCode(c.repo)})` : ""}`); });
+      if (pc.length > 50) L.push(`- ${pc.length - 50} earlier commits not listed`); }
     if (prs.length){ L.push("", "Pull requests:"); prs.forEach(u => L.push(`- ${mdURL(u)}`)); }
   });
   return L.join("\n");
@@ -78,8 +81,8 @@ function reportPrompt(w, M){
   const from = s => Math.min(...s.segs.filter(([a, b]) => b > ws && a < we).map(([a]) => Math.max(a, ws))); // 期間の中で動き始めた時刻の順に（週をまたぐセッションも）
   const ses = DATA.filter(s => s.segs.some(([a,b]) => b > ws && a < we) && !st.hidden.has(keyOf(s))).sort((a,b) => from(a) - from(b));
   const cut = (t, n) => { t = String(t || "").replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n) + "…" : t; };
-  const anyFile = ses.some(reviewFile), zst = ses.some(s => /\.zst$/.test(reviewFile(s))), claude = ses.some(s => s.source === "Claude Code" && reviewFile(s));
-  const L = [`I need a ${M ? "monthly" : "weekly"} report for ${dPeriod(M, start, last)} (times are ${utcOff(ws)}), to share with my team. kiroku, a tool on this computer that aggregates my AI agent history, gives you the facts below${anyFile ? " and points to the history files of the AI agent sessions in this period" : ""}.`,
+  const now = Date.now() / 1000, open = now < we, anyFile = ses.some(reviewFile), zst = ses.some(s => /\.zst$/.test(reviewFile(s))), claude = ses.some(s => s.source === "Claude Code" && reviewFile(s));
+  const L = [`I need a ${M ? "monthly" : "weekly"} report for ${dPeriod(M, start, last)} (times are ${utcOff(ws)}), to share with my team.${open ? ` The ${wk} is still in progress: the data runs up to ${md(now)} ${hm(now)}.` : ""} kiroku, a tool on this computer that aggregates my AI agent history, gives you the facts below${anyFile ? " and points to the history files of the AI agent sessions in this period" : ""}.`,
     "", "# What I'd like from you",
     `- A short summary of the ${wk} (2–3 lines), then a section per project: what I did and why (outcomes first, a few bullets), the pull requests and notable commits, and what is left, only if the history shows it`,
     "- Markdown I can paste as is, in the language I mostly write my prompts in",
@@ -90,6 +93,7 @@ function reportPrompt(w, M){
       "- The files can be large. Start from my prompts and the AI's final replies, and open tool calls and their results only when you need them. If you can, split the reading by project",
       ...(zst ? ["- Files ending in .zst are compressed with zstd: read them with zstd -dc"] : [])] : []),
     "- Sessions without a history file list my prompts instead",
+    "- When a commit's subject isn't enough, look at that commit in its repository (listed under its project) with read-only git that doesn't run programs from the repository's settings, for example: git -c core.fsmonitor=false -c core.hooksPath=/dev/null -C <repository> show --stat --no-ext-diff --no-textconv <hash>. Look only at the commits listed. Don't search the repository for other commits: it also has other people's work",
     "", "# Rules for the report",
     "- Base every bullet on a commit, pull request or session below. Leave out what the history doesn't support, and short or abandoned explorations that led nowhere",
     "- This report will be shared. Don't include secrets (keys, tokens, passwords), personal data, file contents, command output or paths on my computer. Name files by their path in the repository only when it helps",

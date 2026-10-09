@@ -326,7 +326,7 @@ async function run(env) {
     check("履歴ファイルのパスと、読む範囲の決まりがある", /History file: \//.test(text) && /Read only those files/.test(text));
     check("事実と履歴は、コードブロックの中にある", /# History data\n`{3,}text\n# Facts/.test(text));
     await btn.scrollIntoViewIfNeeded(); await btn.click(); await pause();
-    check("押すと、プロンプトとパスが入っていると知らせる", /Copied a prompt.*history file paths|Couldn't copy/.test(await p.locator("#toast").innerText()), await p.locator("#toast").innerText());
+    check("押すと、プロンプトとパスが入っていると知らせる", /Copied\. Paste it into an AI agent on this computer.*history file paths|Couldn't copy/.test(await p.locator("#toast").innerText()), await p.locator("#toast").innerText());
   });
 
   await step("検索", async () => {

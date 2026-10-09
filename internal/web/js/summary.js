@@ -2,7 +2,7 @@
 /* ── 週次・月次サマリー：① プロジェクト別 ② コストとアウトプット ③ 時間 ④ AI ⑤ かたち ⑥ 改善案を聞く。基準を超えた指標には、その場に印と推移を付ける ── */
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
-  const head = `<div class="rvhead"><h2>${M ? "Monthly summary" : "Weekly summary"}</h2><p>Rough figures for reflecting on how you work. They are not for comparing people or for evaluations.</p>${w ? copyBtn(`Copy ${M ? "monthly" : "weekly"} report prompt`, `id="rptcopy" title="A prompt that asks an AI agent on this computer to write your ${M ? "monthly" : "weekly"} report from your history"`, "pill rpt") : ""}</div>`;
+  const head = `<div class="rvhead"><h2>${M ? "Monthly summary" : "Weekly summary"}</h2><p>Rough figures for reflecting on how you work. They are not for comparing people or for evaluations.</p>${w ? copyBtn(`Copy ${M ? "monthly" : "weekly"} report prompt`, `id="rptcopy" title="A prompt that asks an AI agent on this computer to write your ${M ? "monthly" : "weekly"} report from your history"`, "pill rpt") : ""}</div>${w ? `<p class="note rpthint">${`The ${M ? "monthly" : "weekly"} report prompt is for an AI agent on this computer, such as Claude Code or Codex. It points the agent to this ${M ? "month" : "week"}'s history files, and the agent reads them. kiroku itself sends nothing.`}</p>` : ""}`;
   const WK = $("#worth"); $("#sres").hidden = true; $("#sres").innerHTML = "";
   if (!w){ WK.hidden = true; R.innerHTML = foot(); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
@@ -49,7 +49,7 @@ function summary(){
   R.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b)); // 上の帯と同じ内訳
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
   R.querySelectorAll(".keeparch").forEach(b => b.onclick = () => { R.querySelectorAll(".keeparch").forEach(x => x.disabled = true); keepArchive(); });
-  const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy(reportPrompt(w, M), `Copied a prompt that asks an AI agent to write your ${M ? "monthly" : "weekly"} report. It includes your prompts and history file paths, so check it before sending`, 5000, rc);
+  const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy(reportPrompt(w, M), `Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending`, 8000, rc);
 
   const ac = R.querySelector("#askcopy"); if (ac) ac.onclick = () => copy($("#askpre").textContent, "", 0, ac);
   bindCopy(R); bindHelp(R); bindHelp(WK);
