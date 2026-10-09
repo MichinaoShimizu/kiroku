@@ -6,6 +6,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Security
 
+- kiroku no longer lets `git` fetch anything while it reads commits. In a partial clone (`git clone --filter=...`), counting changed lines made `git` download the missing files from the remote and, in doing so, run the program the repository's settings name in `remote.<name>.uploadpack`. kiroku now turns fetching off in a way the repository's settings can't undo (`GIT_ALLOW_PROTOCOL=none`, `protocol.allow=never`, `GIT_NO_LAZY_FETCH=1`). In a partial clone, commits whose files aren't on your computer are still listed, without changed lines and files
 - Prompts that kiroku copies for an AI ("Copy review prompt", "Ask AI for suggestions") put some history text into the fenced data block without making it a single line: the project name (which comes from the working directory recorded in history), the branch, model and tool names, and the history file path. A crafted working directory or branch with a line break (including NEL and the Unicode line and paragraph separators) could add lines that look like kiroku's own, such as a fake "History file:" line pointing an agent at another file. Every history value in these prompts is now one line, with line breaks and control characters turned into spaces
 
 ### Changed
