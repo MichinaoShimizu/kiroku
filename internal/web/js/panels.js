@@ -110,7 +110,7 @@ function adviceLines(extra){
     "- how I use agents (splitting or ordering work, checking results, long sessions, waiting)",
     "- model and context: whether the main model fits the work (a lighter model for questions and small, clear edits; a stronger one for hard design or debugging), long conversations and compactions (start a fresh session, or hand over with a short summary), and switching between projects",
     "- what to move out of prompts: instructions I repeat into a skill (or the project's agent instructions), a separate role that needs its own context into a subagent, and fixed steps into a script",
-    "Leave out generic tips the history doesn't support. Write \"None\" if nothing stands out.", ...(extra || [])];
+    "Leave out generic tips the history doesn't support, and topics where nothing needs to change. Write \"None\" if nothing stands out.", ...(extra || [])];
 }
 /* プロジェクトの切り替え（続けて書いた 2 つのプロンプトでプロジェクトが変わった回数）。日報はその日、週報・月報は 1 日の平均と最大 */
 function switchLine(w, day){
