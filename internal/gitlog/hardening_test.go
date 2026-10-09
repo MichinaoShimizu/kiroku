@@ -99,16 +99,65 @@ func TestCollectDoesNotRunRepoPrograms(t *testing.T) {
 	}
 }
 
+// 部分クローン（--filter=blob:none）で手元にないファイルを、kiroku は取りに行かない。取りに行くと、
+// リポジトリの設定に書かれた remote.origin.uploadpack のプログラムが動き、ネットワークにも出る。
+// 変更行数は数えられなくても、コミットは読む。
+func TestCollectDoesNotFetchInPartialClone(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("sh のスクリプトを使う")
+	}
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git がない")
+	}
+	src, dst, tools := t.TempDir(), filepath.Join(t.TempDir(), "clone"), t.TempDir()
+	marker := filepath.Join(tools, "ran")
+	script := filepath.Join(tools, "evil.sh")
+	if err := os.WriteFile(script, []byte("#!/bin/sh\necho \"$0 $*\" >> '"+marker+"'\nexit 1\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	run(t, src, nil, "init", "-q")
+	run(t, src, nil, "config", "user.email", "me@example.com")
+	run(t, src, nil, "config", "user.name", "me")
+	run(t, src, nil, "config", "uploadpack.allowFilter", "true")
+	base := time.Now().Add(-2 * time.Hour).Unix()
+	for i, body := range []string{"a\n", "a\nb\nc\n"} {
+		os.WriteFile(filepath.Join(src, "a.txt"), []byte(body), 0o644)
+		run(t, src, nil, "add", "-A")
+		date := time.Unix(base+int64(i)*600, 0).Format(time.RFC3339)
+		run(t, src, []string{"GIT_AUTHOR_DATE=" + date, "GIT_COMMITTER_DATE=" + date}, "commit", "-q", "-m", "c")
+	}
+	run(t, src, nil, "clone", "-q", "--no-local", "--no-checkout", "--filter=blob:none", "file://"+src, dst)
+	run(t, dst, nil, "config", "user.email", "me@example.com")
+	run(t, dst, nil, "config", "remote.origin.uploadpack", script)
+	// 確かめ方が正しいこと: ふつうの git では、変更行数を数えるときに取りに行き、プログラムが動く
+	check := exec.Command("git", "-C", dst, "log", "--numstat", "--format=%H")
+	check.Env = append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1")
+	check.CombinedOutput()
+	if _, err := os.Stat(marker); err != nil {
+		t.Fatalf("ふつうの git log で uploadpack が動かなかった（確かめ方がおかしい）: %v", err)
+	}
+	os.Remove(marker)
+
+	s := &core.Session{ID: "s1", Project: "clone", ProjectPath: dst, Start: float64(base), End: float64(base + 1200)}
+	cs, _, _ := NewCache().Collect([]*core.Session{s})
+	if b, err := os.ReadFile(marker); err == nil {
+		t.Errorf("部分クローンで取りに行き、リポジトリのプログラムが動いた:\n%s", b)
+	}
+	if len(cs) != 2 {
+		t.Errorf("コミット数 = %d, want 2（変更行数を数えられなくても、コミットは読む）: %+v", len(cs), cs)
+	}
+}
+
 // git に渡す設定と環境変数。
 func TestGitCmd(t *testing.T) {
 	cmd := gitCmd(context.Background(), "/repo", "log", "--all")
 	args := strings.Join(cmd.Args[1:], " ")
-	for _, want := range []string{"-C /repo", "-c core.fsmonitor=false", "-c core.hooksPath=" + os.DevNull, "-c log.showSignature=false", "-c core.pager=cat", "log --no-ext-diff --no-textconv --all"} {
+	for _, want := range []string{"-C /repo", "-c core.fsmonitor=false", "-c core.hooksPath=" + os.DevNull, "-c log.showSignature=false", "-c core.pager=cat", "-c protocol.allow=never", "log --no-ext-diff --no-textconv --all"} {
 		if !strings.Contains(args, want) {
 			t.Errorf("引数 %q に %q がない", args, want)
 		}
 	}
-	for _, want := range []string{"GIT_CONFIG_NOSYSTEM=1", "GIT_TERMINAL_PROMPT=0", "GIT_OPTIONAL_LOCKS=0"} {
+	for _, want := range []string{"GIT_CONFIG_NOSYSTEM=1", "GIT_TERMINAL_PROMPT=0", "GIT_OPTIONAL_LOCKS=0", "GIT_NO_LAZY_FETCH=1"} {
 		if !slices.Contains(cmd.Env, want) {
 			t.Errorf("環境変数に %s がない", want)
 		}

@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -82,8 +83,11 @@ var git = func(ctx context.Context, dir string, args ...string) (string, error) 
 }
 
 // gitCmd は、履歴に書かれた場所（だれかが作ったリポジトリかもしれない）で、git を読むだけのために動かすコマンド。
-// リポジトリの .git/config は信用しない: そこに書かれたプログラム（fsmonitor・フック・textconv・外部 diff・ページャー）を
-// 動かさないよう、コマンドラインの -c で上書きする（-c はリポジトリの設定より強い）。
+// リポジトリの .git/config は信用しない: そこに書かれたプログラム（fsmonitor・フック・textconv・外部 diff・ページャー・
+// 署名を確かめるプログラム）を動かさないよう、コマンドラインの -c で上書きする（-c はリポジトリの設定より強い）。
+//   - protocol.allow=never: どこからも取ってこない。部分クローン（--filter）で手元にないファイルを、git は
+//     変更行数を数えるときに取りに行き、そのとき remote.<名前>.uploadpack などリポジトリが決めたプログラムを動かす。
+//     kiroku はネットワークに出ないので、取りに行かせない（GIT_NO_LAZY_FETCH=1 も、それを知っている git のために付ける）
 //   - GIT_CONFIG_NOSYSTEM=1: システムの設定（/etc/gitconfig など）は読まない
 //   - 利用者のグローバルな設定（~/.gitconfig）は読む。user.email（自分のコミットだけを読む）と safe.directory
 //     （ほかのユーザーのリポジトリを読んでよいか）はそこにあり、本人が書いたものなので信用してよい
@@ -94,12 +98,13 @@ func gitCmd(ctx context.Context, dir string, args ...string) *exec.Cmd {
 		"-c", "core.hooksPath=" + os.DevNull,
 		"-c", "log.showSignature=false",
 		"-c", "core.pager=cat",
+		"-c", "protocol.allow=never",
 	}
 	if len(args) > 0 && args[0] == "log" { // 変更行数（--numstat）を数えるときに、リポジトリが決めたプログラムを通さない
 		args = append([]string{"log", "--no-ext-diff", "--no-textconv"}, args[1:]...)
 	}
 	cmd := exec.CommandContext(ctx, "git", append(pre, args...)...)
-	cmd.Env = append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1", "GIT_TERMINAL_PROMPT=0", "GIT_OPTIONAL_LOCKS=0")
+	cmd.Env = append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1", "GIT_TERMINAL_PROMPT=0", "GIT_OPTIONAL_LOCKS=0", "GIT_NO_LAZY_FETCH=1")
 	return cmd
 }
 
@@ -391,6 +396,9 @@ func readRepo(ctx context.Context, r *repo) []Commit {
 		args = append(args, "--author="+r.email)
 	}
 	raw, err := git(ctx, r.top, args...)
+	if err != nil && ctx.Err() == nil { // 部分クローンで手元にないファイルがあると、変更行数は数えられない。コミットだけは読む
+		raw, err = git(ctx, r.top, slices.DeleteFunc(args, func(a string) bool { return a == "--numstat" })...)
+	}
 	if err != nil {
 		return nil
 	}
