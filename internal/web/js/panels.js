@@ -144,7 +144,7 @@ function reportSignals(ses, ws, we, cut, rw, sw){ // rw: 繰り返しを数え�
 function flagSignals(w, pw, M){
   const F = findList(w, pw, M ? "月" : "週"), u = w.usage || {}, L = [];
   L.push(F.length ? "- Metrics kiroku flagged by threshold (candidates, not verdicts):" : "- Metrics kiroku flagged by threshold: none");
-  F.forEach(f => L.push(`  - ${oneLine(plainText(f.see))} (threshold: ${f.rule.charAt(0).toLowerCase() + f.rule.slice(1)})`));
+  F.forEach(f => L.push(`  - ${oneLine(f.see)} (threshold: ${f.rule.charAt(0).toLowerCase() + f.rule.slice(1)})`));
   if (u.tokens && u.cacheHit != null) L.push(`- Share of input read from cache: ${Math.round(u.cacheHit * 100)}%`);
   return L;
 }

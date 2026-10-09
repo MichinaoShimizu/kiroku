@@ -1,13 +1,13 @@
 // docs/screenshot.png・docs/summary.png・docs/worth.png・docs/session.png・docs/og.png・docs/year.png を撮る。gen.py と mkgit.py で作ったダミーデータの HTML を使う。
 //   node capture.mjs <kiroku.html> <docs のディレクトリ>
-// Playwright が必要（このディレクトリで npm ci --ignore-scripts と npx playwright install chromium。版は package.json で固定）。英語表示（en-US）・ダークテーマ（既定）・時刻は Asia/Tokyo・1440x900。
+// Playwright が必要（このディレクトリで npm ci --ignore-scripts と npx playwright install chromium。版は package.json で固定）。英語表示（en-US）・ライトテーマ（既定）・時刻は Asia/Tokyo・1440x900。
 import { chromium } from "playwright";
 import path from "node:path";
 import fs from "node:fs/promises";
 
 const [html, docs] = process.argv.slice(2);
 const b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
-const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, timezoneId: "Asia/Tokyo", locale: "en-US", colorScheme: "dark" });
+const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, timezoneId: "Asia/Tokyo", locale: "en-US" });
 const p = await ctx.newPage();
 await p.goto("file://" + path.resolve(html));
 await p.waitForTimeout(600);
@@ -35,7 +35,7 @@ if (await p.evaluate(() => YEAR_ON)) { // 1 年の露光（一旦隠している
 }
 // セッションの詳細：依頼の流れに出来事（コマンド・コミット・PR など）がいちばん多い種類そろうセッションを開き、左の列（数字と依頼の流れ）だけを 2 倍で撮る。
 // 右の列にはダミーデータの一時フォルダのパスが出るので入れない
-const sc = await b.newContext({ viewport: { width: 1440, height: 1700 }, deviceScaleFactor: 2, timezoneId: "Asia/Tokyo", locale: "en-US", colorScheme: "dark" });
+const sc = await b.newContext({ viewport: { width: 1440, height: 1700 }, deviceScaleFactor: 2, timezoneId: "Asia/Tokyo", locale: "en-US" });
 const s = await sc.newPage();
 await s.goto("file://" + path.resolve(html));
 await s.waitForTimeout(600);
@@ -63,7 +63,7 @@ const box = await s.evaluate(() => {
 });
 await s.screenshot({ path: path.join(docs, "session.png"), clip: box });
 // SNS のリンクカード用（og.png）。ふつうの画面幅（1440）で、カードの比率（1.91:1）に合わせた高さ 754 を 2 倍の 2880x1508 で撮る。デモページの og:image に使う
-const og = await b.newContext({ viewport: { width: 1440, height: 754 }, deviceScaleFactor: 2, timezoneId: "Asia/Tokyo", locale: "en-US", colorScheme: "dark" });
+const og = await b.newContext({ viewport: { width: 1440, height: 754 }, deviceScaleFactor: 2, timezoneId: "Asia/Tokyo", locale: "en-US" });
 const q = await og.newPage();
 await q.goto("file://" + path.resolve(html));
 await q.waitForTimeout(600);
