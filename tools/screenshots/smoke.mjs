@@ -223,7 +223,7 @@ async function run(env) {
     const btn = p.locator("#panel .flowbar #sreview");
     check("振り返りのプロンプトのボタンが、プロンプトの流れの見出しに並ぶ", await btn.count() === 1);
     await btn.click(); await pause();
-    check("押すと、プロンプトが入っていると知らせる", /Copied a prompt.*your prompts|Couldn't copy/.test(await p.locator("#toast").innerText()), await p.locator("#toast").innerText());
+    check("押すと、プロンプトが入っていると知らせる", /Copied a prompt.*your prompts|Copied\. Paste it into an AI agent on this computer.*history file path|Couldn't copy/.test(await p.locator("#toast").innerText()), await p.locator("#toast").innerText());
     await p.keyboard.press("Escape"); await pause();
   });
 
