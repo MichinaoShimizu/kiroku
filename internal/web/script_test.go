@@ -218,3 +218,44 @@ func TestReviewFlow(t *testing.T) {
 		t.Errorf("reviewFlow が違う:\n%s", out)
 	}
 }
+
+// 週報のプロンプトで、セッションが期間の中で動いていた時間（spanIn）。週をまたぐセッションは期間の中だけを、日ごとにまとめて出すこと。
+// panels.js はほかのファイルに頼るので、spanIn と、それが使う日付の小物だけを取り出して Node で動かす。
+func TestSpanIn(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	var code []string
+	for _, x := range []struct{ file, re string }{
+		{"js/state.js", `(?m)^const DOW = .*$`},
+		{"js/format.js", `(?m)^const MON = .*$`},
+		{"js/format.js", `(?m)^const dMD = .*$`},
+		{"js/format.js", `(?m)^function md\(t\)\{.*$`},
+		{"js/format.js", `(?m)^function hm\(t\)\{.*$`},
+		{"js/panels.js", `(?ms)^function spanIn\(.*?^\}$`},
+	} {
+		src, err := jsFiles.ReadFile(x.file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		m := regexp.MustCompile(x.re).FindString(strings.ReplaceAll(string(src), "\r\n", "\n"))
+		if m == "" {
+			t.Fatalf("%s に %s が見つからない", x.file, x.re)
+		}
+		code = append(code, m)
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "spanin_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "spanin.js")
+	if err := os.WriteFile(f, append([]byte(strings.Join(code, "\n")+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(node, f)
+	cmd.Env = append(os.Environ(), "TZ=UTC")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Errorf("spanIn が違う:\n%s", out)
+	}
+}

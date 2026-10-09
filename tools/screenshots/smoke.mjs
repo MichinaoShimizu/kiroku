@@ -318,17 +318,15 @@ async function run(env) {
     check("開くと、読んだ履歴が見える", await ds.locator(".mlist li").first().isVisible());
   });
 
-  await step("週報の下書き", async () => {
-    const tog = p.locator("#rpttog");
-    await tog.scrollIntoViewIfNeeded();
-    await tog.click(); await pause();
-    check("週報の下書きが開く", await p.locator("#rptbox").isVisible());
-    const text = await p.locator("#rptpre").innerText();
-    check("週報の下書きに文面がある", text.trim().length > 20, JSON.stringify(text.slice(0, 40)));
-    check("週報の下書きの期間は「Sep 28 – Oct 4, 2026」の形", /^## Work for [A-Z][a-z]{2} \d{1,2} – ([A-Z][a-z]{2} \d{1,2}, )?\d{4}|^## Work for [A-Z][a-z]{2} \d{1,2}, \d{4} – /.test(text), JSON.stringify(text.split("\n")[0]));
-    check("週報の下書きに HTML のコメントがない（貼るとそのまま見える）", !text.includes("<!--") && text.trim().endsWith("_Drafted with kiroku_"), JSON.stringify(text.trim().split("\n").pop()));
-    await p.locator("#rptcopy").click(); await pause();
-    check("コピーのボタンを押すと知らせが出る", /Copied|Couldn't copy/.test(await p.locator("#toast").innerText()));
+  await step("週報を書いてもらうプロンプト", async () => {
+    const btn = p.locator("#review .rvhead #rptcopy");
+    check("週報のプロンプトのボタンが、サマリーの見出しに並ぶ", await btn.count() === 1 && /Copy weekly report prompt/.test(await btn.innerText()));
+    const text = await p.evaluate(() => { const {S, P} = period(); return reportPrompt(S, st.mode === "month"); });
+    check("事実の期間は「Sep 28 – Oct 4, 2026」の形", /^## Work for [A-Z][a-z]{2} \d{1,2} – ([A-Z][a-z]{2} \d{1,2}, )?\d{4}$|^## Work for [A-Z][a-z]{2} \d{1,2}, \d{4} – /m.test(text), JSON.stringify(text.slice(0, 80)));
+    check("履歴ファイルのパスと、読む範囲の決まりがある", /History file: \//.test(text) && /Read only those files/.test(text));
+    check("事実と履歴は、コードブロックの中にある", /# History data\n`{3,}text\n# Facts/.test(text));
+    await btn.scrollIntoViewIfNeeded(); await btn.click(); await pause();
+    check("押すと、プロンプトとパスが入っていると知らせる", /Copied\. Paste it into an AI agent on this computer.*history file paths|Couldn't copy/.test(await p.locator("#toast").innerText()), await p.locator("#toast").innerText());
   });
 
   await step("検索", async () => {
@@ -356,7 +354,7 @@ async function run(env) {
     await p.keyboard.press("Escape"); await pause();
     check("閉じると検索結果に戻る", await p.evaluate(() => !!document.activeElement.closest("#sres .srow[data-s]")));
     await p.locator("#sclear").click(); await pause();
-    check("検索をやめるとサマリーに戻る", await p.locator("#q").inputValue() === "" && await p.locator("#rpttog").count() > 0 && await p.locator("#sres").isHidden());
+    check("検索をやめるとサマリーに戻る", await p.locator("#q").inputValue() === "" && await p.locator("#rptcopy").count() > 0 && await p.locator("#sres").isHidden());
   });
 
   await step("表示の切り替え", async () => {

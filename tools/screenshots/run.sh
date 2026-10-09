@@ -24,4 +24,4 @@ if [ "${1:-}" = "--html" ]; then # ダミーデータの HTML だけを作る（
   exit 0
 fi
 node "$here/capture.mjs" "$work/kiroku.html" "$root/docs"
-echo "docs/screenshot.png・docs/summary.png・docs/worth.png・docs/report.png・docs/session.png・docs/og.png・docs/year.png を更新しました"
+echo "docs/screenshot.png・docs/summary.png・docs/worth.png・docs/session.png・docs/og.png・docs/year.png を更新しました"

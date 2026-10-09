@@ -1,4 +1,4 @@
-// docs/screenshot.png・docs/summary.png・docs/worth.png・docs/report.png・docs/session.png・docs/og.png・docs/year.png を撮る。gen.py と mkgit.py で作ったダミーデータの HTML を使う。
+// docs/screenshot.png・docs/summary.png・docs/worth.png・docs/session.png・docs/og.png・docs/year.png を撮る。gen.py と mkgit.py で作ったダミーデータの HTML を使う。
 //   node capture.mjs <kiroku.html> <docs のディレクトリ>
 // Playwright が必要（このディレクトリで npm ci --ignore-scripts と npx playwright install chromium。版は package.json で固定）。英語表示（en-US）・ダークテーマ（既定）・時刻は Asia/Tokyo・1440x900。
 import { chromium } from "playwright";
@@ -27,10 +27,6 @@ await p.evaluate(() => { const d = document.querySelector("#wk"); d.style.maxHei
 await p.locator("#wk").screenshot({ path: path.join(docs, "worth.png") });
 await p.keyboard.press("Escape");
 await p.waitForTimeout(300);
-// 週報の下書き
-await p.getByText("Weekly report draft", { exact: true }).first().click();
-await p.waitForTimeout(500);
-await p.locator("#rptbox").screenshot({ path: path.join(docs, "report.png") });
 if (await p.evaluate(() => YEAR_ON)) { // 1 年の露光（一旦隠している間は、year.png を撮り直さない）。シェア用の画像（1600x900）をそのまま保存する
   await p.evaluate(() => openYear());
   await p.waitForTimeout(600);
