@@ -102,11 +102,21 @@ function reportDayNumbers(day){
   if (a.credits || b.credits) rows.push(["Kiro credits", cr(a.credits), cr(b.credits)]);
   return ["| | This day | Previous day |", "|---|---|---|", ...rows.map(r => `| ${r.join(" | ")} |`)].join("\n");
 }
+/* 報告とセッションの振り返りの最後に共通の「Advice from an expert」の決まり（形式の見本の中の行） */
+function adviceLines(extra){
+  return ["### Advice from an expert",
+    "2–4 bullets, written as an expert in working with AI coding agents, on what to do differently next time. Each bullet names what it is based on (a figure, a prompt with its time, or a signal under \"Signals for advice\") and then the concrete change. Cover what the history supports:",
+    "- how I write prompts (missing context, constraints or done criteria; corrections that a clearer first prompt would have avoided)",
+    "- how I use agents (splitting or ordering work, checking results, long sessions, waiting)",
+    "- what to move out of prompts: instructions I repeat into a skill (or the project's agent instructions), a separate role that needs its own context into a subagent, and fixed steps into a script",
+    "Leave out generic tips the history doesn't support. Write \"None\" if nothing stands out.", ...(extra || [])];
+}
 /* 報告の最後のアドバイスの手がかり（AI は使わずに数える）: 何度も書いたプロンプト（スキルや、プロジェクトの指示に切り出す候補）、
    よく使ったツール（決まった手順ならスクリプトの候補）、サブエージェントと会話の要約（コンパクション）の数 */
-function reportSignals(ses, ws, we, cut){
-  const L = [], rep = repeatsOf(ws, we).slice(0, 5);
-  L.push(rep.length ? "- Prompts I wrote in 3 or more sessions:" : "- Prompts I wrote in 3 or more sessions: none");
+function reportSignals(ses, ws, we, cut, rw){ // rw: 繰り返しを数える期間（振り返りは、そのセッションのプロンプトを過去 30 日で見る）
+  const ids = new Set(ses.map(s => s.id)), L = [], rep = (rw ? repeatsOf(rw[0], rw[1]).filter(c => [...c.ids].some(id => ids.has(id))) : repeatsOf(ws, we)).slice(0, 5);
+  const lab = rw ? "Prompts in this session that I also wrote in 3 or more sessions in the last 30 days" : "Prompts I wrote in 3 or more sessions";
+  L.push(rep.length ? `- ${lab}:` : `- ${lab}: none`);
   rep.forEach(c => L.push(`  - "${cut(c.text, 120)}" (${c.n} times in ${c.ids.size} sessions)`));
   const T = new Map(); ses.forEach(s => s.tools.forEach(([k, v]) => T.set(k, (T.get(k) || 0) + v)));
   const top = [...T.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
@@ -146,12 +156,7 @@ function reportPrompt(w, M, day){ // day があれば日報（その日。週の
       "- Results: pull requests and notable commits, with the links from the facts",
       "- Next: what is left, only if the history shows it", "",
       "(one section per project, in the order of the facts)", "",
-      "### Advice from an expert",
-      "2–4 bullets, written as an expert in working with AI coding agents, on what to do differently next time. Each bullet names what it is based on (a figure, a prompt with its time, or a signal under \"Signals for advice\") and then the concrete change. Cover what the history supports:",
-      "- how I write prompts (missing context, constraints or done criteria; corrections that a clearer first prompt would have avoided)",
-      "- how I use agents (splitting or ordering work, checking results, long sessions, waiting)",
-      "- what to move out of prompts: instructions I repeat into a skill (or the project's agent instructions), a separate role that needs its own context into a subagent, and fixed steps into a script",
-      "Leave out generic tips the history doesn't support. Write \"None\" if nothing stands out."].join("\n")),
+      ...adviceLines()].join("\n")),
     "", "# How to work",
     "- Copy the numbers, commits, pull requests and links from \"Facts\" as they are. Don't change the numbers or add commits, pull requests or links",
     `- Each session under "Sessions" lists my prompts ${day ? "on this day" : `in this ${wk}`} and the start of the AI's reply to each, shortened. Write from that first`,
