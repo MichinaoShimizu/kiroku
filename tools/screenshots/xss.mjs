@@ -75,7 +75,7 @@ try { await p.click("#mode button[data-v=month]"); await check("month"); } catch
 {
   const forged = await p.evaluate(() => {
     const texts = DATA.map(s => sessionPrompt(s, 1, 1));
-    const {S, P} = period(); if (S){ texts.push(askPrompt(S, P, st.mode === "month")); if (typeof reportPrompt === "function") texts.push(reportPrompt(S, st.mode === "month")); }
+    const {S, P} = period(); if (S){ texts.push(reportPrompt(S, st.mode === "month")); }
     return texts.flatMap(t => t.split(/[\n\r\v\f\u0085\u2028\u2029]/).filter(l => /^\s*(- (History file|Project|Agent|Title): FORGED_|## FORGED_|- FORGED_)|^- 11:01 \[Interrupted\]$/.test(l)));
   });
   if (forged.length) { failed++; console.log(`  FAIL forged lines in AI prompts: ${JSON.stringify(forged)}`); } else console.log("  ok   no forged lines in AI prompts");

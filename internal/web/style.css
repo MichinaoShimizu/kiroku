@@ -239,8 +239,6 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .mlist code{font-size:var(--fs-xs);padding:0 4px;border-radius:4px;background:var(--surface-2)}
 .mlist .keeparch{height:24px;margin-top:4px}
 .mlist .kw{color:var(--warn)}
-.askd summary{cursor:pointer;font-size:var(--fs-sm);color:var(--ink-2);padding:4px 0;margin-top:8px}
-.askd .askpre{margin-top:8px}
 .moreS{margin-top:10px}
 .moreS summary{cursor:pointer;font-size:var(--fs-sm);color:var(--ink-2);padding:4px 0}
 .ocl{display:flex;align-items:baseline;gap:8px;padding-top:8px;border-top:2px solid var(--side,var(--rule-2));font-size:var(--fs-xs);color:var(--ink-3)}.ocl b{font-size:var(--fs-sm);font-weight:700;color:var(--ink);letter-spacing:.02em}.occmp .ocl{border-top:0;padding-top:0}
@@ -295,15 +293,12 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 :is(.drawer,.mdlg) .gc-row{display:flex;gap:10px;width:100%;text-align:left;padding:8px 0;border-bottom:1px dashed var(--rule);font-size:var(--fs-md)}:is(.drawer,.mdlg) .gc-row time{color:var(--ink-3);font-variant-numeric:tabular-nums}:is(.drawer,.mdlg) .gc-row span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}:is(.drawer,.mdlg) .gc-row b{font-weight:500;color:var(--ink-3);font-variant-numeric:tabular-nums}
 
 .pout{font-size:var(--fs-sm);font-variant-numeric:tabular-nums;color:var(--ink)}.pout span{color:var(--ink-3)}
-.panel.ask,.panel.metap{grid-column:1/-1}
+.panel.metap{grid-column:1/-1}
 .panel.metap .foot{margin-top:12px} /* 計測の状態と生成時刻：ページのいちばん下 */
 .dsrc summary{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none}.dsrc summary::-webkit-details-marker{display:none}
 .dsrc .dsc{width:12px;height:12px;stroke:var(--ink-3);fill:none;stroke-width:1.8;transition:transform .2s var(--ease)}.dsrc[open] .dsc{transform:rotate(90deg)}
 .dsrc summary h3{margin:0}.dsrc summary .muted{font-size:var(--fs-xs)}
 .foot .xl{color:var(--ink-2)}
-.askbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px}
-.askbar .muted{font-size:var(--fs-xs)}
-.askpre{margin:0;max-height:320px;overflow:auto;padding:14px 16px;border:1px solid var(--rule);border-radius:10px;background:var(--bg);font:var(--fs-sm)/1.7 var(--mono);color:var(--ink-2);white-space:pre-wrap;word-break:break-word}
 /* ── month（月カレンダー：日ごとの作業量） ───────────────── */
 .mgrid{display:grid;grid-template-columns:minmax(96px,.75fr) repeat(7,minmax(0,1fr))}
 .mgrid .mh{padding:10px 12px 8px;font-size:var(--fs-xs);color:var(--ink-3);border-left:1px solid var(--rule);border-bottom:1px solid var(--rule)}

@@ -8,6 +8,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - The theme is now light by default. The button still switches between light and dark, and a theme you chose is kept
 - The report prompts (daily, weekly and monthly) and the session review prompt no longer count pull requests in their numbers. The pull requests themselves are still listed with their links
+- **"Ask AI for suggestions" (⑥ in the summary) is gone.** The weekly and monthly report prompts already ask for advice, with more to go on (a digest of each session and signals from your prompts). Their "Signals for advice" now also list the metrics flagged under "Worth a look" and the share of input read from cache, which only ⑥ had
 - Session details: "Models used", "Tools used" and the agent's own metrics are always shown, instead of inside a "Models, tools and …" section you could fold. Each model has its own color
 - Session details: when you scroll down, the title pinned at the top has the session's color and agent mark in front of it
 - Prompt flow: your prompts stand out in a tinted box with a bar in the session's color, and things the agent added (system notes, notifications, hook output) in a purple box that shows up to 3 lines instead of one cut-off line. Slash commands and shell commands you typed, and command output, are shown in a monospace code box
