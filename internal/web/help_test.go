@@ -118,3 +118,28 @@ func TestGuideRecordsTable(t *testing.T) {
 		}
 	}
 }
+
+// 指標ガイド（GUIDE）は HELP のどの指標もどこかに入れ、HELP にない名前を使わない（指標を足したらガイドにも置く）。
+func TestGuideCoversHelp(t *testing.T) {
+	help := regexp.MustCompile(`(?m)^  (\w+): \{n: `).FindAllStringSubmatch(block(t, "HELP"), -1)
+	guide := block(t, "GUIDE")
+	inGuide := map[string]bool{}
+	for _, m := range regexp.MustCompile(`"(\w+)"`).FindAllStringSubmatch(guide, -1) {
+		inGuide[m[1]] = true
+	}
+	inHelp := map[string]bool{}
+	for _, m := range help {
+		inHelp[m[1]] = true
+		if !inGuide[m[1]] {
+			t.Errorf("指標ガイド（GUIDE）に %s がない", m[1])
+		}
+	}
+	if len(inHelp) == 0 {
+		t.Fatal("HELP の指標が見つからない")
+	}
+	for k := range inGuide {
+		if !inHelp[k] {
+			t.Errorf("指標ガイド（GUIDE）の %s は HELP にない", k)
+		}
+	}
+}

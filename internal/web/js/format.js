@@ -83,6 +83,6 @@ function applyTheme(){ document.documentElement.setAttribute("data-theme", st.th
   const next = st.theme === "dark" ? "light" : "dark";
   $("#theme").innerHTML = ICON[next]; $("#theme").setAttribute("aria-label", `Switch to ${next} theme`); }
 const CB = () => ({project: "Project", branch: "Branch", source: "Agent"});
-if (YEAR_ON) $("#keys .keys kbd:nth-of-type(8)").insertAdjacentHTML("beforebegin", `<kbd>Y</kbd><span>Year in review</span>`); // Esc の前に足す
+if (YEAR_ON) $("#keys .keys kbd:nth-of-type(9)").insertAdjacentHTML("beforebegin", `<kbd>Y</kbd><span>Year in review</span>`); // Esc の前に足す
 
 
