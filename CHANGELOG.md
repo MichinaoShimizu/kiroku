@@ -4,6 +4,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Security
+
+- Prompts that kiroku copies for an AI ("Copy review prompt", "Ask AI for suggestions") put some history text into the fenced data block without making it a single line: the project name (which comes from the working directory recorded in history), the branch, model and tool names, and the history file path. A crafted working directory or branch with a line break (including NEL and the Unicode line and paragraph separators) could add lines that look like kiroku's own, such as a fake "History file:" line pointing an agent at another file. Every history value in these prompts is now one line, with line breaks and control characters turned into spaces
+
 ### Changed
 
 - **The weekly and monthly report drafts are replaced by a report prompt.** "Weekly report draft" in the summary heading is now "Copy weekly report prompt" ("Copy monthly report prompt" in month view). Instead of opening a draft whose "what I did" was only the start of your prompts, it copies a prompt for an AI agent on this computer, such as Claude Code or Codex. The prompt carries the facts kiroku collected (time, commits and pull requests for each project, with each commit's repository so the agent can look at a commit with read-only git) and, for each session in the period, its history file and the times it ran in the period. The agent can then write what you did and why. The prompt asks the agent to read only those files and times, to base every bullet on a commit, pull request or session, and to leave out secrets, file contents, command output and paths on your computer. Amazon Q and legacy Kiro CLI sessions list your prompts instead of a file

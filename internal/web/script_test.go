@@ -190,6 +190,7 @@ func TestReviewFlow(t *testing.T) {
 	var code []string
 	for _, x := range []struct{ file, re string }{
 		{"js/format.js", `(?m)^function hm\(t\)\{.*$`},
+		{"js/markdown.js", `(?ms)^function oneLine\(s\)\{.*?\}$`},
 		{"js/session.js", `(?m)^const FIXRE = .*$`},
 		{"js/session.js", `(?ms)^function reviewFlow\(.*?^\}$`},
 	} {
