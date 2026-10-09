@@ -221,9 +221,11 @@ function openMetric(id, from){
       body += mSessions(id === "active" ? "Longest sessions" : id === "sessions" ? "Sessions with the most prompts" : "Top sessions", top, m.f);
       if (top.length && id !== "active") body += `<p class="note">Session figures cover the whole session, including any part outside this ${st.mode === "month" ? "month" : "week"}.</p>`; }
   }
+  const [d1, dr] = h ? (i => i < 0 ? [h.d, ""] : [h.d.slice(0, i), h.d.slice(i + 2)])(h.d.search(/\. (?=[A-Z])/)) : ["", ""];
   D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form>
-    <div class="eyebrow">Breakdown · ${st.mode === "month" ? `${MONTH[st.month.getMonth()]} ${st.month.getFullYear()}` : `${dMD(st.week)} – ${dMD(addDays(st.week, 6))}`}</div><h2 id="mdh">${esc(m.n)}</h2><div class="mbig">${big}</div>${body}
-    ${h ? `<dl class="wkhelp"><dt>What it is</dt><dd>${esc(h.d)}</dd><dt>Doesn't tell you</dt><dd>${esc(h.x)}</dd></dl>` : ""}`;
+    <div class="eyebrow">Breakdown · ${st.mode === "month" ? `${MONTH[st.month.getMonth()]} ${st.month.getFullYear()}` : `${dMD(st.week)} – ${dMD(addDays(st.week, 6))}`}</div><h2 id="mdh">${esc(m.n)}</h2><div class="mbig">${big}</div>${h ? `<p class="mdef" id="mdd">${esc(d1)}</p>` : ""}${body}
+    ${h ? `<div class="mnot">${dr ? `<p>${esc(dr)}</p>` : ""}<p><b>Doesn't tell you:</b> ${esc(h.x)}</p></div>` : ""}`; // 定義の 1 文目は数字のすぐ下に（読む前に何を数えたかがわかる）、細則と言えないことは読み終えたあとに
+  if (h) D.setAttribute("aria-describedby", "mdd"); else D.removeAttribute("aria-describedby");
   D.querySelectorAll("[data-id]").forEach(b => b.onclick = () => { D.close(); select(b.dataset.id); });
   ["git", "push", "pr"].forEach(k => D.querySelectorAll(`[data-${k}]`).forEach(b => b.onclick = () => { D.close(); select(`${k}:${b.dataset[k]}`); })); // コミット・push・PR の一覧
   D.onclose = () => { if (from && from.isConnected && !st.sel) from.focus(); };
