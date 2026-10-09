@@ -36,6 +36,8 @@ $("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); st.srN = st
 // 検索欄で Enter：最初の結果へフォーカスを移す（結果はカレンダーの上）
 $("#q").addEventListener("keydown", e => { if (e.key !== "Enter" || e.isComposing || !st.q) return;
   const f = $("#sres .srow") || $("#srh"); if (f){ e.preventDefault(); f.focus(); } });
+// ロゴは最初の画面へ。kiroku serve では "/"、HTML ファイルやデモでは、同じファイルを開き直す（"/" ではディスクやサイトの一番上へ行ってしまう）
+if (!LIVE) $("#home").href = location.href.split(/[?#]/)[0];
 $("#theme").onclick = () => { st.theme = st.theme === "dark" ? "light" : "dark"; store.set("theme", st.theme); applyTheme(); };
 $("#help").onclick = () => $("#keys").showModal();
 $("#yrbtn").onclick = openYear;
