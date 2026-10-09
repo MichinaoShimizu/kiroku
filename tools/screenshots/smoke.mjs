@@ -221,7 +221,7 @@ async function run(env) {
     const run = await clickableRun(p);
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
     const btn = p.locator("#panel .flowbar #sreview");
-    check("振り返りのプロンプトのボタンが、プロンプトの流れの見出しに並び、少し目立つ", await btn.count() === 1 && await btn.evaluate(b => b.classList.contains("acc")));
+    check("振り返りのプロンプトのボタンが、プロンプトの流れの見出しに並び、少し目立つ", await btn.count() === 1 && await btn.evaluate(b => b.classList.contains("fill")));
     check("プロンプトだけをコピーするボタンはない", await p.locator("#panel #pcopy").count() === 0);
     // 再開のコマンドは 1 つだけ見え、2 列の画面では右の列のいちばん上、1 列の画面では詳細のいちばん上
     const rs = await p.evaluate(() => { const v = [...document.querySelectorAll("#panel .dresume")].filter(e => e.offsetParent !== null);

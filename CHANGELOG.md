@@ -6,7 +6,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Changed
 
-- Session details: the resume command is now at the top of the right column on wide screens (on narrow screens it stays at the top, under the title). "Copy review prompt" stands out a little more, like "Copy weekly report prompt"
+- Session details: the resume command is now at the top of the right column on wide screens (on narrow screens it stays at the top, under the title). "Copy review prompt" is now a filled button, so it stands out in session details
 - Session details: "Copy prompts" is gone. "Copy review prompt" names the session's history file for an AI agent, which reads the full prompts there
 
 ## v0.28.1 - 2026-10-09

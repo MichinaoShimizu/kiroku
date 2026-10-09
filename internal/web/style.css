@@ -344,6 +344,8 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .rvhead .pill{margin-left:auto;align-self:center}
 .rpthint{margin:-8px 0 16px}
 .pill.acc{color:var(--acc-ink);border-color:color-mix(in oklab,var(--acc) 35%,var(--rule-2));font-weight:600} /* AI に渡すプロンプトのボタン（週報・振り返り）は、ほかのボタンより少し目立たせる */
+.pill.fill{background:var(--acc);border-color:var(--acc);color:var(--on-acc);font-weight:600}.pill.fill:hover{background:color-mix(in oklab,var(--acc) 85%,var(--ink));border-color:transparent;color:var(--on-acc)}
+.pill.fill.cp.ok .cpok{color:inherit} /* 詳細でいちばん押してほしい振り返りのボタンは、塗りにする（✓ も文字の色に） */
 .rvgrid.srgrid{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
 #review{scroll-margin-top:64px}
 .srow{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;width:100%;text-align:left;padding:10px 8px;border-top:1px solid var(--rule)}
