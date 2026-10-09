@@ -6,7 +6,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Added
 
-- Metrics guide: the new map button at the top right (or `G`) shows how the metrics fit together. What you put in becomes what is left behind through four levers of how you work with AI, Compared divides the two, and each lever lists its metrics with what they tell you, followed by how to make a change and what the metrics don't tell you
+- Metrics guide: the new map button at the top right (or `G`) shows how the metrics fit together. What you put in becomes what is left behind through four levers of how you work with AI, Compared divides the two, and each lever lists its metrics with what they tell you, followed by how to make a change and what the metrics don't tell you, including where kiroku sits in the SPACE framework (Activity, and Efficiency and flow) and what it leaves to other data (quality and delivery as in DORA, satisfaction, collaboration)
 
 ### Changed
 

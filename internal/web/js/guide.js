@@ -23,7 +23,7 @@ function openGuide(){
   const tag = l => l.up ? `<span class="mgtag up">Left behind ↑</span>` : `<span class="mgtag down">Cost ↓</span>`;
   D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form>
     <div class="eyebrow">Metrics guide</div><h2 id="mgh">How the metrics fit together</h2>
-    <p class="glead" id="mgd">kiroku doesn't measure productivity. It shows what you put in, what was left behind, and how you worked with AI in between. Each metric about how you worked acts through one of four levers: one adds to what is left behind, three take away from the cost.</p>
+    <p class="glead" id="mgd">kiroku doesn't measure productivity. It shows what you put in, what was left behind, and how you worked with AI in between. Each metric about how you worked acts through one of four levers: one adds to what is left behind, three take away from the cost. In the terms of the SPACE framework, this covers Activity and Efficiency and flow.</p>
     <div class="gflow" role="group" aria-label="Cost passes through four levers and becomes what is left behind">
       <section class="gbox gin"><h3>Cost</h3><p>What you put in</p><ul>${names(GUIDE.cost)}</ul></section>
       <span class="garr" aria-hidden="true"></span>
@@ -42,6 +42,7 @@ function openGuide(){
       <div><dt>Value and quality</dt><dd>Commits and lines are amounts, not the value or difficulty of a change. One generated file can make lines changed large</dd></div>
       <div><dt>Work that leaves nothing in git</dt><dd>Research, review, design and discussion don't show up in Left behind</dd></div>
       <div><dt>Time saved</dt><dd>kiroku can't know how long the work would have taken without AI. What you see is the change between your own periods</dd></div>
+      <div><dt>Quality, delivery and satisfaction</dt><dd>Of the five dimensions in ${ext("https://queue.acm.org/detail.cfm?id=3454124", "the SPACE framework ↗")}, kiroku covers Activity (Left behind) and Efficiency and flow (the levers). Quality and delivery, as in ${ext("https://dora.dev/", "the DORA metrics ↗")}, and Satisfaction, Performance and Collaboration need data kiroku doesn't read: deployments, incidents, reviews, and how you and your team feel about the work</dd></div>
       <div><dt>Other agents' outputs</dt><dd>The share of commits by AI, cost per commit and sessions that reached a commit come from Claude Code only, the one agent whose history records its outputs</dd></div>
     </dl>`;
   D.showModal(); D.scrollTop = 0;
