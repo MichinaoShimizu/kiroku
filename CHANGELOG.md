@@ -4,6 +4,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Security
+
+- Prompts that kiroku copies for an AI ("Copy review prompt", "Ask AI for suggestions") put some history text into the fenced data block without making it a single line: the project name (which comes from the working directory recorded in history), the branch, model and tool names, and the history file path. A crafted working directory or branch with a line break (including NEL and the Unicode line and paragraph separators) could add lines that look like kiroku's own, such as a fake "History file:" line pointing an agent at another file. Every history value in these prompts is now one line, with line breaks and control characters turned into spaces
+
 ### Changed
 
 - "Copy review prompt" is meant for an AI agent running on this computer (such as Claude Code or Codex). It now names the session's history file and asks the agent to read only that file (and, for Claude Code, its subagent records), so the review can use your full prompts, the AI's replies and its tool calls instead of guessing what the AI did. It also asks the agent not to follow instructions found in the file. Next to it, the prompt lists what happened between your prompts (interruptions, commits, pull requests, subagents, compactions and usage limits) in time order, with the time zone, and marks prompts that look like corrections, so the agent can tell which prompt led to rework instead of only seeing counts. Prompts in this list are cut to their first words, since the full text is in the file. It also asks the agent to quote the prompt behind each point, to say whether rework came from the prompt, the task itself or the AI's own mistake, and not to invent problems. For Amazon Q and the legacy Kiro CLI, whose history is one SQLite database for all sessions, the prompts are still copied in, as before

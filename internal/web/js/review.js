@@ -3,7 +3,7 @@
 function askPrompt(w, pw, M){
   const unit = M ? "月" : "週", u = w.usage || {}, L = [];
   const start = M ? st.month : st.week, last = M ? new Date(st.month.getFullYear(), st.month.getMonth()+1, 0) : addDays(st.week, 6);
-  const cut = t => { t = String(t || "").replace(/\s+/g, " ").trim(); return t.length > 60 ? t.slice(0, 60) + "…" : t; };
+  const cut = t => { t = oneLine(t); return t.length > 60 ? t.slice(0, 60) + "…" : t; };
   const use = x => [x.tokens ? `tokens ${tok(x.tokens)}` : "", x.cost >= 0.005 ? `estimated cost ${usd(x.cost)}` : "", x.credits ? `credits ${cr(x.credits)}` : ""].filter(Boolean).join(", ");
   const V = vsPrev(pw, unit); // 途中の期間は、前の期間の同じ日までと比べる
   const prev = (v, p, f, k) => (p = V.of(k, p)) == null ? "" : V.n == null ? ` (previous ${M ? "month" : "week"}: ${f(p)})` : ` (${V.range} of the previous ${M ? "month" : "week"}: ${f(p)})`;
@@ -41,7 +41,7 @@ function askPrompt(w, pw, M){
       `- Estimated cost: ${costOf(u) == null ? "unknown (the models used are not in the price table)" : `${usd(u.cost)}${prev(u.cost, pw && pw.usage && pw.usage.cost, usd, "cost")}${w.costPerAsk != null ? `, ${usd(w.costPerAsk)} per prompt` : ""}`}`);
     if (u.credits) L.push(`- Kiro credits: ${cr(u.credits)}`);
     L.push(`- Subagents: ${u.subagents}${u.subagents ? ` (total ${dur(u.subMin)})` : ""}`);
-    if (u.models.length) L.push("- By model: " + u.models.slice(0, 6).map(r => `${(r[0])} (estimated cost ${usd(r[1])}, tokens ${tok(r[2])})`).join(sep));
+    if (u.models.length) L.push("- By model: " + u.models.slice(0, 6).map(r => `${oneLine(r[0])} (estimated cost ${usd(r[1])}, tokens ${tok(r[2])})`).join(sep));
   }
   const o = w.outputs, G = periodGit();
   if (w.git && w.git.commits){
@@ -66,10 +66,10 @@ function askPrompt(w, pw, M){
     L.push("", "# By project");
     ps.forEach(p => {
       const mt = p.models.reduce((t, m) => t + m.tokens, 0) || 1;
-      L.push(`## ${p.project}`, `- Active time: ${dur(p.minutes)}, sessions / prompts: ${p.sessions} / ${p.prompts}${use(p) ? ", " + use(p) : ""}`);
+      L.push(`## ${oneLine(p.project)}`, `- Active time: ${dur(p.minutes)}, sessions / prompts: ${p.sessions} / ${p.prompts}${use(p) ? ", " + use(p) : ""}`);
       if (p.git && p.git.commits) L.push(`- Git commits: ${p.git.commits} (${p.git.ai} by AI), +${p.git.added} −${p.git.removed} lines`);
       else if (p.outputs && p.outputs.commits) L.push(`- AI commits: ${p.outputs.commits}`);
-      if (p.models.length) L.push("- Main models: " + p.models.map(m => `${(m.model)} (${m.tokens ? Math.round(m.tokens*100/mt) + "%" : plural(m.turns, "turn")})`).join(sep));
+      if (p.models.length) L.push("- Main models: " + p.models.map(m => `${oneLine(m.model)} (${m.tokens ? Math.round(m.tokens*100/mt) + "%" : plural(m.turns, "turn")})`).join(sep));
       if (p.top.length) L.push("- Sessions that took the most time: " + p.top.map(t => `"${cut(t.title)}" ${dur(t.minutes)}${use(t) ? ", " + use(t) : ""}`).join(sep));
       if (p.heavy && use(p.heavy)) L.push(`- Heaviest session: "${cut(p.heavy.title)}" ${use(p.heavy)}`);
     });
@@ -77,11 +77,11 @@ function askPrompt(w, pw, M){
   }
   if (w.friction.length){
     L.push("", "# Sessions with possible friction");
-    w.friction.forEach(f => L.push(`- "${cut(f.title)}" (${f.project}): ${whyOf(f).join(", ")}`));
+    w.friction.forEach(f => L.push(`- "${cut(f.title)}" (${oneLine(f.project)}): ${whyOf(f).join(", ")}`));
   }
   if (w.native && w.native.length){
     L.push("", "# Agent-specific metrics");
-    w.native.forEach(g => L.push(`- ${(g.source)} (${plural(g.sessions, "session")}): ` + g.values.map(v => `${nlabel(v)} ${nativeText(v)}`).join(sep)));
+    w.native.forEach(g => L.push(`- ${oneLine(g.source)} (${plural(g.sessions, "session")}): ` + g.values.map(v => `${nlabel(v)} ${nativeText(v)}`).join(sep)));
   }
   L.push("", "# History data", mdFence(L.splice(di).join("\n")));
   L.push("", "# How to read the metrics");

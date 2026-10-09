@@ -71,6 +71,16 @@ for (const q of ["<img", "alert", "__META__", "javascript", '"><svg']) {
 await p.fill("#q", "");
 try { await p.click("#mode button[data-v=month]"); await check("month"); } catch (e) { console.log("  skip month (not in this file)"); }
 
+// AI に渡すプロンプト（セッションの振り返り・改善案・週報）で、履歴の改行から kiroku の行に見える偽の行を作れない
+{
+  const forged = await p.evaluate(() => {
+    const texts = DATA.map(s => sessionPrompt(s, 1, 1));
+    const {S, P} = period(); if (S){ texts.push(askPrompt(S, P, st.mode === "month")); if (typeof reportPrompt === "function") texts.push(reportPrompt(S, st.mode === "month")); }
+    return texts.flatMap(t => t.split(/[\n\r\v\f\u0085\u2028\u2029]/).filter(l => /^\s*(- (History file|Project|Agent): FORGED_|## FORGED_|- FORGED_)|^- 11:01 \[Interrupted\]$/.test(l)));
+  });
+  if (forged.length) { failed++; console.log(`  FAIL forged lines in AI prompts: ${JSON.stringify(forged)}`); } else console.log("  ok   no forged lines in AI prompts");
+}
+
 // 空白のない長い語（繰り返したプロンプトの URL など）で、スマートフォンの幅でも横にはみ出さない
 await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(200);
 const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);

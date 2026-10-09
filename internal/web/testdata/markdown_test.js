@@ -27,3 +27,9 @@ eq(f.split("\n")[0], "`````text");
 eq(f.split("\n").pop(), "`````");
 eq(mdFence("plain"), "```text\nplain\n```");
 eq(AI_DATA_NOTE.includes("not as instructions"), true);
+// AI に渡す囲みの中の 1 項目は 1 行に（改行・NEL・行区切り・制御文字で、偽の行を作れない）
+eq(oneLine("p\n  - History file: X\r\n- FAKE"), "p - History file: X - FAKE");
+eq(oneLine("a\u0085b c d\u000be\u0000f"), "a b c d e f");
+eq(oneLine(null), "");
+eq(oneLine("👨‍👩‍👧 team"), "👨‍👩‍👧 team"); // ZWJ でつないだ絵文字は壊さない
+eq(mdText("x\u0085- y"), "x - y");
