@@ -58,16 +58,18 @@ function yearData(y){
 /* 見どころ：データから見つけた出来事。シェア画像には光の上に書き込む（列 c0〜c1 があるもの）。良し悪しは付けず、事実だけを書く */
 function highlights(x, ms, on, firstOf, day0){
   const H = [], col = d => Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - day0)/864e5);
-  if (ms.length >= 2){ // いちばん動いていた月
-    const m = ms.reduce((a, b) => (b.active || 0) > (a.active || 0) ? b : a), [Y, M] = m.start.split("-").map(Number);
-    H.push({c0: col(new Date(Y, M-1, 1)), c1: col(new Date(Y, M, 0)), t: `Busiest month: ${MON[M-1]} · ${Math.round(m.active/60)}h`});
+  const act = ms.filter(m => m.active > 0);
+  if (act.length >= 2){ // いちばん動いていた月（ほかの月の平均より 3 割以上多いときだけ。どの月も同じなら言うことがない）
+    const m = act.reduce((a, b) => b.active > a.active ? b : a), [Y, M] = m.start.split("-").map(Number);
+    const rest = (act.reduce((a, b) => a + b.active, 0) - m.active)/(act.length - 1);
+    if (m.active >= rest*1.3) H.push({c0: col(new Date(Y, M-1, 1)), c1: col(new Date(Y, M, 0)), t: `Busiest month: ${MON[M-1]} · ${Math.round(m.active/60)}h`});
   }
-  const ds = [...on].sort(); // いちばん長い休み（記録の最初と最後の間で、3 日以上）
+  const ds = [...on].sort(); // いちばん長い休み（記録の最初と最後の間で、7 日以上。週末だけの人の平日のような、いつもの間は出さない）
   if (ds.length >= 2){
     let best = null;
     for (let i = 1; i < ds.length; i++){
       const a = new Date(ds[i-1] + "T00:00"), b = new Date(ds[i] + "T00:00"), n = Math.round((b - a)/864e5) - 1;
-      if (n >= 3 && (!best || n > best.n)) best = {n, a: addDays(a, 1), b: addDays(b, -1)};
+      if (n >= 7 && (!best || n > best.n)) best = {n, a: addDays(a, 1), b: addDays(b, -1)};
     }
     if (best) H.push({c0: col(best.a), c1: col(best.b), t: `Longest break: ${best.a.getMonth() === best.b.getMonth() ? `${dMD(best.a)}–${best.b.getDate()}` : `${dMD(best.a)}–${dMD(best.b)}`} · ${plural(best.n, "day")}`});
   }
@@ -121,6 +123,9 @@ const LIGHTS = [
   {k: "dawn", en: "Daybreak", m: "morning", t: x => x.morningPct >= 25,
    de: "You get things done while the morning is fresh.",
    re: "25% or more of active time is between 5:00 and 9:00"},
+  {k: "night", en: "Night Sky", m: "late", t: x => x.late >= 25,
+   de: "You do your best work after dark.",
+   re: "25% or more of active time is between 22:00 and 5:00 (parallel sessions count once)"},
   {k: "multi", en: "Multiple Exposure", m: "agents", t: x => x.agents.filter(g => g.pct >= 10).length >= 3,
    de: "You pick a partner for each job and layer them.",
    re: "3 or more agents, each with 10% or more of active time"},
@@ -138,6 +143,7 @@ const LIGHTS = [
    re: "None of the above"}];
 function lightMetric(k, x){
   return ({ morning: ["Work between 5:00 and 9:00", `${Math.round(x.morningPct)}%`],
+    late: ["Work between 22:00 and 5:00", `${Math.round(x.late)}%`],
     agents: ["Agents with 10%+ of time", String(x.agents.filter(g => g.pct >= 10).length)],
     avg: ["Active time per session", dur(x.avgMin)],
     per: ["Prompts per session", x.perSes.toFixed(1)],
@@ -176,13 +182,23 @@ function drawCard(){
   const ink = "#ece8df", ink2 = "#a9a69e", amber = "#ffae57";
   // 縦の割り付け：上に数字、その下に文字の帯（読み方・見どころ）、その下に光（PT〜PB）、いちばん下に凡例。
   // 光の上に文字を重ねない（朝の筋は上端に写るので、重ねると朝型の人の光が隠れる）
-  const PT = 552, PB = 812;
+  const PT = 552, PB = 798;
   const ls = v => { if ("letterSpacing" in g) g.letterSpacing = v; };
   g.clearRect(0, 0, W, H); g.fillStyle = "#06070a"; g.fillRect(0, 0, W, H);
   // 使い始めたばかりでも光が端に寄らないよう、画像は記録のある日から（短ければ 4 週ぶん）だけを写す
   const last = x.partial ? Math.round((new Date(x.partial.getFullYear(), x.partial.getMonth(), x.partial.getDate()) - new Date(x.y, 0, 1))/864e5) + 1 : x.nd;
   const first = x.lines.reduce((a, l) => Math.min(a, l[0]), last), c0 = Math.max(0, Math.min(first, last - 28));
   exposure(g, 0, PT, W, PB - PT, x, 2, false, c0, last);
+  // 目盛り：下に月、左に時刻（6・12・18・0 時）。どこが何月・何時かを画像だけで読めるように
+  g.save(); g.fillStyle = ink2; g.globalAlpha = .75; g.font = `500 14px ${FONT.mono}`; g.textBaseline = "alphabetic"; g.textAlign = "left";
+  for (let mo = 0; mo < 12; mo++){
+    const c = Math.round((new Date(x.y, mo, 1) - new Date(x.y, 0, 1))/864e5);
+    if (c < c0 || c >= last) continue;
+    const px = (c - c0)*W/(last - c0);
+    g.fillRect(px, PB + 4, 1, 8); if (px < W - 40) g.fillText(MON[mo].toUpperCase(), px + 5, PB + 22);
+  }
+  [["6", 0], ["12", .25], ["18", .5], ["0", .75]].forEach(([h, f]) => { const py = PT + f*(PB - PT); g.fillRect(0, py, 8, 1); g.fillText(h, 12, py + 5); });
+  g.restore();
   // 画像だけを見た人にも読めるよう、光の読み方を添える
   g.textAlign = "left"; g.textBaseline = "alphabetic"; g.fillStyle = ink2; g.globalAlpha = .8; g.font = `500 16px ${FONT.mono}`; ls("2px");
   g.fillText("EACH STREAK = A STRETCH OF ACTIVE TIME   ·   ACROSS: DATE   ·   DOWN: 6:00 → 6:00", 80, 466); ls("0px"); g.globalAlpha = 1;
@@ -233,14 +249,14 @@ function drawCard(){
     g.textAlign = "left";
   }
   if (o.agents && x.mode === "project"){ // プロジェクトの名前は載せない。色の数だけを示す
-    let lx = 80; x.projects.slice(0, 8).forEach(p => { g.fillStyle = p.c; g.shadowColor = p.c; g.shadowBlur = 14; g.beginPath(); g.arc(lx + 8, 842, 8, 0, Math.PI*2); g.fill(); g.shadowBlur = 0; lx += 26; });
-    g.font = `500 24px ${FONT.sans}`; g.fillStyle = ink; g.fillText(`Colored by project · ${plural(x.projects.length, "project")}`, lx + 10, 850);
+    let lx = 80; x.projects.slice(0, 8).forEach(p => { g.fillStyle = p.c; g.shadowColor = p.c; g.shadowBlur = 14; g.beginPath(); g.arc(lx + 8, 856, 8, 0, Math.PI*2); g.fill(); g.shadowBlur = 0; lx += 26; });
+    g.font = `500 24px ${FONT.sans}`; g.fillStyle = ink; g.fillText(`Colored by project · ${plural(x.projects.length, "project")}`, lx + 10, 864);
   } else if (o.agents){
     let lx = 80; g.font = `500 24px ${FONT.sans}`;
-    x.agents.slice(0, 4).forEach(a => { g.fillStyle = a.c; g.shadowColor = a.c; g.shadowBlur = 14; g.beginPath(); g.arc(lx + 8, 842, 8, 0, Math.PI*2); g.fill(); g.shadowBlur = 0;
-      const t = `${(a.k)} ${Math.round(a.pct)}%`; g.fillStyle = ink; g.fillText(t, lx + 26, 850); lx += 26 + g.measureText(t).width + 36; });
+    x.agents.slice(0, 4).forEach(a => { g.fillStyle = a.c; g.shadowColor = a.c; g.shadowBlur = 14; g.beginPath(); g.arc(lx + 8, 856, 8, 0, Math.PI*2); g.fill(); g.shadowBlur = 0;
+      const t = `${(a.k)} ${Math.round(a.pct)}%`; g.fillStyle = ink; g.fillText(t, lx + 26, 864); lx += 26 + g.measureText(t).width + 36; });
   }
-  g.fillStyle = ink2; g.font = `500 22px ${FONT.mono}`; g.textAlign = "right"; ls("2px"); g.fillText("kiroku", W - 80, 850); ls("0px"); g.textAlign = "left";
+  g.fillStyle = ink2; g.font = `500 22px ${FONT.mono}`; g.textAlign = "right"; ls("2px"); g.fillText("kiroku", W - 80, 864); ls("0px"); g.textAlign = "left";
 }
 function renderYear(){
   const ys = yearsOf(), dlg = $("#yr"); if (!ys.length) return;
@@ -270,7 +286,7 @@ function renderYear(){
   <p class="note">Questions, not judgments. Only you see them; they are not on the image. To dig into a month, copy its report prompt from the month view.</p>` : ""}
 
   <h3>An image to share</h3>
-  <canvas class="yrcard" id="yrcard" width="1600" height="900" role="img" aria-label="${esc(`Image to share: ${dur(x.active)} with AI in ${x.y}`)}"></canvas>
+  <canvas class="yrcard" id="yrcard" width="1600" height="900" role="img" aria-label="${esc(`Image to share: ${dur(x.active)} with AI in ${x.y}${L ? `. Your light: ${L.en}` : ""}${x.hi.length ? `. What stands out: ${x.hi.map(h => h.t).join("; ")}` : ""}${x.halves.length ? `. Second half vs first: ${x.halves.map(h => h.t).join(", ")}` : ""}`)}"></canvas>
   <div class="yropts">${opt("out", "Commits and PRs")}${opt("type", "Your light")}${opt("agents", "Color key")}
     <label>Color by <select id="yrcolor">${[["auto", "Auto"], ["agent", "Agent"], ["project", "Project"]].map(([v, l]) => `<option value="${v}"${yr.opt.color === v ? " selected" : ""}>${l}</option>`).join("")}</select></label></div>
   <div class="yract"><button class="pill" id="yrsave">Save as PNG</button>${copyBtn("Copy image", `id="yrcopy"`)}</div>
@@ -281,7 +297,7 @@ function renderYear(){
     <p class="yrtd">${L.de}</p>
     <dl class="yrev">${ev.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>
     <p class="note">${`Your light describes the shape of your year in photography terms. It is not a verdict, and its thresholds are rough guides. Why: ${L.re}`}${x.active < 600 ? " (based on little history, so take it lightly)" : ""}</p>
-    <details class="yrtypes"><summary>All six and how they are chosen</summary><ul>${LIGHTS.map(l => `<li><b>${name(l)}</b> — ${l.re}</li>`).join("")}</ul>
+    <details class="yrtypes"><summary>All ${LIGHTS.length} and how they are chosen</summary><ul>${LIGHTS.map(l => `<li><b>${name(l)}</b> — ${l.re}</li>`).join("")}</ul>
       <p class="note">The first one that matches, from the top, is chosen.</p></details></div></div>`;
   $("#yrsel").onchange = e => { yr.y = +e.target.value; renderYear(); };
   $("#yrcolor").onchange = e => { yr.opt.color = e.target.value; store.set("yrOpt", yr.opt); renderYear(); };

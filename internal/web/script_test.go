@@ -259,3 +259,36 @@ func TestSpanIn(t *testing.T) {
 		t.Errorf("spanIn が違う:\n%s", out)
 	}
 }
+
+// 1 年の露光の「見どころ」と「前半と後半」が、決めた境界で出る・出ないこと。
+// year.js は画面の DOM を触るので、highlights と halves だけを取り出して Node で動かす。
+func TestYearStory(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/year.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := strings.ReplaceAll(string(src), "\r\n", "\n")
+	var fns []string
+	for _, name := range []string{"highlights", "halves"} {
+		fn := regexp.MustCompile(`(?ms)^function ` + name + `\(.*?\n\}\n`).FindString(text)
+		if fn == "" {
+			t.Fatalf("year.js に %s が見つからない", name)
+		}
+		fns = append(fns, fn)
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "yearstory_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "year.js")
+	if err := os.WriteFile(f, append([]byte(strings.Join(fns, "\n")), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("見どころ・前半と後半が違う:\n%s", out)
+	}
+}
