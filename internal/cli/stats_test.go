@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -166,5 +167,43 @@ func TestStatsSubcommand(t *testing.T) {
 	}
 	if err := dispatch(append(append([]string{}, base...), "--top", "0")); err == nil {
 		t.Error("--top 0 がエラーにならない")
+	}
+}
+
+// 壊れた・悪意のある履歴でも、行が伸びすぎず、見えない文字が残らず、数があふれない。期間の引数のエラーにも制御文字を出さない。
+func TestStatsHostileValues(t *testing.T) {
+	setup(t)
+	long := strings.Repeat("a", 200_000)
+	marks := "x" + strings.Repeat("\u0301", 100_000)
+	hidden := "ab\u200b\u2060\ufeff\u00ad\U000e0041c"
+	sp, _ := parseStatsPeriod("", "last", "", time.Date(2026, 10, 7, 10, 0, 0, 0, time.Local))
+	cur := &report.Summary{
+		Active: 90, Sessions: 1, Prompts: 3, Days: make([]report.Day, 7),
+		ProjectStats: []report.ProjectStat{{Project: marks, Minutes: 90, Cost: math.Inf(1)}, {Project: hidden, Minutes: 1, Cost: math.NaN()}},
+		Friction:     []report.Friction{{Title: "t", Project: long, WhyEn: []string{"2 corrections"}}},
+	}
+	cur.Usage.Tokens, cur.Usage.Cost = 1e300, math.NaN()
+	cur.Usage.Models = [][4]any{{long, math.Inf(1), 1e300, 2.0}}
+	cur.Usage.Unpriced, cur.Usage.UnpricedM = 1e300, []string{long, marks, "m3", "m4"}
+	var b bytes.Buffer
+	writeStats(&b, style{}, sp, cur, nil, 2)
+	for _, line := range strings.Split(b.String(), "\n") {
+		if n := len([]rune(line)); n > 300 {
+			t.Errorf("行が長すぎる（%d 文字）: %.80q…", n, line)
+		}
+	}
+	for _, bad := range []string{"Inf", "NaN", "-9,223", "\u200b", "\u2060", "\ufeff", "\u00ad", "\U000e0041", "m3"} {
+		if strings.Contains(b.String(), bad) {
+			t.Errorf("出力に %q がある:\n%s", bad, b.String())
+		}
+	}
+	if !strings.Contains(b.String(), "abc") {
+		t.Errorf("見えない文字を除いた名前がない:\n%s", b.String())
+	}
+	for _, flag := range []string{"--day", "--week", "--month"} {
+		err := dispatch([]string{"stats", flag, "x\x1b]52;c;eA==\x07"})
+		if err == nil || strings.ContainsAny(err.Error(), "\x1b\x07") {
+			t.Errorf("%s: %q", flag, err)
+		}
 	}
 }

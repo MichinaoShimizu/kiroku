@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -36,7 +37,7 @@ func cmdStats(args []string) error {
 	now := time.Now()
 	sp, err := parseStatsPeriod(*day, *week, *month, now)
 	if err != nil {
-		return err
+		return errors.New(clean(err.Error())) // 引数をそのまま返すので、制御文字を端末に出さない
 	}
 	if *asJSON {
 		logw = io.Discard // 標準出力を JSON だけにする
@@ -192,7 +193,7 @@ func onlyProjects(data []*core.Session, commits []gitlog.Commit, names []string)
 		}
 	}
 	if len(ds) == 0 {
-		return nil, nil, fmt.Errorf("no history for the project %s; recent projects: %s", clean(strings.Join(names, ", ")), clean(strings.Join(recentProjects(data, 8), ", ")))
+		return nil, nil, fmt.Errorf("no history for the project %s; recent projects: %s", nameList(names), nameList(recentProjects(data, 8)))
 	}
 	var cs []gitlog.Commit
 	for _, c := range commits {
@@ -354,7 +355,7 @@ func writeStats(w io.Writer, st style, sp *statsPeriod, cur, prev *report.Summar
 		}
 		more(w, st, len(cur.Usage.Models), top, "model")
 		if cur.Usage.Unpriced > 0 {
-			fmt.Fprintf(w, "  %s\n", st.warn(fmt.Sprintf("! %s tokens of models without a price are not in the cost: %s", tokens(cur.Usage.Unpriced), clean(strings.Join(cur.Usage.UnpricedM, ", ")))))
+			fmt.Fprintf(w, "  %s\n", st.warn(fmt.Sprintf("! %s tokens of models without a price are not in the cost: %s", tokens(cur.Usage.Unpriced), nameList(limit(cur.Usage.UnpricedM, top)))))
 		}
 	}
 
@@ -375,7 +376,7 @@ func writeStats(w io.Writer, st style, sp *statsPeriod, cur, prev *report.Summar
 	if len(cur.Friction) > 0 {
 		fmt.Fprintf(w, "\n%s\n", st.bold("Worth a look"))
 		for _, f := range limit(cur.Friction, top) {
-			fmt.Fprintf(w, "  %s %s  %s\n", st.warn("!"), fit(titleOf(f.Title), 44), st.dim(clean(f.Project)+" · "+strings.Join(f.WhyEn, ", ")))
+			fmt.Fprintf(w, "  %s %s  %s\n", st.warn("!"), fit(titleOf(f.Title), 44), st.dim(strings.TrimSpace(fit(f.Project, 24))+" · "+strings.Join(f.WhyEn, ", ")))
 		}
 	}
 	fmt.Fprintf(w, "\n%s\n", st.dim("Estimated cost is at public API rates. Open the full view with: kiroku serve"))
@@ -423,6 +424,9 @@ func dur(min float64) string {
 
 // count は 1234 を「1,234」にする。
 func count(v float64) string {
+	if odd, ok := oddNum(v); ok {
+		return odd
+	}
 	s := fmt.Sprintf("%d", int64(math.Round(math.Abs(v))))
 	var b strings.Builder
 	if v < 0 && math.Round(v) != 0 {
@@ -446,6 +450,9 @@ func countOr(n int) string {
 
 // tokens は 45200000 を「45.2M」にする。
 func tokens(v float64) string {
+	if odd, ok := oddNum(v); ok {
+		return odd
+	}
 	a := math.Abs(v)
 	switch {
 	case a >= 1e9:
@@ -459,6 +466,9 @@ func tokens(v float64) string {
 }
 
 func money(v float64) string {
+	if odd, ok := oddNum(v); ok {
+		return odd
+	}
 	if math.Abs(v) >= 1000 {
 		return "$" + count(v)
 	}
@@ -472,12 +482,23 @@ func moneyOr(v float64) string {
 	return money(v)
 }
 
+// oddNum は、壊れた履歴から来た数（無限大・NaN・ありえない大きさ）を、桁があふれないように書く。
+func oddNum(v float64) (string, bool) {
+	switch {
+	case math.IsNaN(v) || math.IsInf(v, 0):
+		return "?", true
+	case math.Abs(v) >= 1e15:
+		return fmt.Sprintf("%.1e", v), true
+	}
+	return "", false
+}
+
 // deltaNum は前の期間との差（「+12」「−$3.10」）。比べる値がなければ空。
 func deltaNum(cur, prev float64, has bool, f func(float64) string) string {
-	if !has {
+	d := cur - prev
+	if !has || math.IsNaN(d) || math.IsInf(d, 0) {
 		return ""
 	}
-	d := cur - prev
 	if math.Abs(d) < 1e-9 || f(math.Abs(d)) == f(0) {
 		return "±0"
 	}
@@ -502,6 +523,15 @@ func bar(v, most float64, width int) string {
 	return strings.Repeat("█", eighths/8) + parts[eighths%8]
 }
 
+// nameList は、名前の並びを、1 つずつ幅をそろえて「, 」でつなぐ（1 つが長くても行が伸びすぎないように）。
+func nameList(list []string) string {
+	out := make([]string, len(list))
+	for i, n := range list {
+		out[i] = strings.TrimSpace(fit(n, 40))
+	}
+	return strings.Join(out, ", ")
+}
+
 // clean は、履歴や git から来た文字列を端末に出せる 1 行にする。制御文字（エスケープシーケンスの ESC、改行、C1 の CSI など）と、
 // 表示の向きを変える文字（Trojan Source）は、端末の色やカーソルを動かしたり、表示を偽ったりできるので「?」にする。
 func clean(s string) string {
@@ -509,8 +539,10 @@ func clean(s string) string {
 		switch {
 		case r == '\t' || r == '\n' || r == '\r':
 			return ' '
-		case unicode.IsControl(r), unicode.Is(unicode.Bidi_Control, r), r == ' ' || r == ' ':
+		case unicode.IsControl(r), unicode.Is(unicode.Bidi_Control, r), r == '\u2028' || r == '\u2029':
 			return '?'
+		case unicode.Is(unicode.Cf, r) && r != '\u200d': // ゼロ幅の文字やタグ文字は、名前の中に見えない文字を隠せるので除く（絵文字をつなぐ ZWJ は残す）
+			return -1
 		}
 		return r
 	}, s)
@@ -519,10 +551,10 @@ func clean(s string) string {
 // width は端末での見かけの幅（全角の文字は 2）。
 func width(r rune) int {
 	switch {
-	case unicode.Is(unicode.Mn, r) || unicode.Is(unicode.Me, r) || r == '​' || r == '‍' || (r >= '︀' && r <= '️'):
+	case unicode.Is(unicode.Mn, r) || unicode.Is(unicode.Me, r) || r == '\u200b' || r == '‍' || (r >= '︀' && r <= '️'):
 		return 0
 	case unicode.Is(unicode.Han, r) || unicode.Is(unicode.Hiragana, r) || unicode.Is(unicode.Katakana, r) || unicode.Is(unicode.Hangul, r),
-		r >= 0x3000 && r <= 0x303f, r >= 0xff01 && r <= 0xff60, r >= 0xffe0 && r <= 0xffe6, r >= 0x1f300 && r <= 0x1faff:
+		r >= 0x3000 && r <= 0x303f, r >= 0xff01 && r <= 0xff60, r >= 0xffe0 && r <= 0xffe6, r >= 0x1f000 && r <= 0x1faff, r == 0x26a1:
 		return 2
 	}
 	return 1
@@ -534,6 +566,10 @@ func fit(s string, n int) string {
 	var b strings.Builder
 	w := 0
 	rs := []rune(s)
+	if len(rs) > 4*n { // 幅 0 の文字（結合文字）を大量に並べても、行が伸びすぎないように
+		rs = append(rs[:4*n:4*n], '…')
+		s = string(rs)
+	}
 	total := 0
 	for _, r := range rs {
 		total += width(r)

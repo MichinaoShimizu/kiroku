@@ -6,7 +6,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Added
 
-- `kiroku stats` shows a day, week or month in the terminal, without opening a browser: active time, sessions, prompts, tokens, estimated cost, credits, Git commits, cost per commit and rework rate, each next to the period before (a period still in progress is compared up to the same day), with a bar for each day and the top projects, agents, models, longest sessions and sessions worth a look. `--day`, `--week` and `--month` choose the period, `--project` limits it to some projects, `--top` sets the length of the lists, and `--json` prints both periods for scripts. Project names, titles and models from history are printed with control characters and bidirectional overrides replaced, so a crafted name can't send escape sequences to your terminal
+- `kiroku stats` shows a day, week or month in the terminal, without opening a browser: active time, sessions, prompts, tokens, estimated cost, credits, Git commits, cost per commit and rework rate, each next to the period before (a period still in progress is compared up to the same day), with a bar for each day and the top projects, agents, models, longest sessions and sessions worth a look. `--day`, `--week` and `--month` choose the period, `--project` limits it to some projects, `--top` sets the length of the lists, and `--json` prints both periods for scripts. Project names, titles and models from history are printed with control characters and bidirectional overrides replaced, invisible characters removed and long names cut, so a crafted name can't send escape sequences to your terminal, hide text or flood the screen
 
 ### Changed
 
