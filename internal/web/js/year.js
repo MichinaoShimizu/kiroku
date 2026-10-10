@@ -224,14 +224,16 @@ function drawCard(){
   // 画像だけを見た人にも読めるよう、光の読み方を添える
   g.textAlign = "left"; g.textBaseline = "alphabetic"; g.fillStyle = ink2; g.globalAlpha = .8; g.font = `500 16px ${FONT.mono}`; ls("2px");
   g.fillText("EACH STREAK = A STRETCH OF ACTIVE TIME   ·   ACROSS: DATE   ·   DOWN: 6:00 → 6:00", 80, 466); ls("0px"); g.globalAlpha = 1;
-  // 見どころ：光の上端に括弧（期間）か目印（1 日）を付け、見出しはその上の帯に置く。重なる見出しは上の段に上げる
+  // 見どころ：光の上端に括弧（期間）か目印（1 日）を付け、見出しはその上の帯に置く。重なる見出しは上の段に上げ、2 段とも埋まっていれば書かない
   const cw = W/(last - c0), cx0 = c => (c - c0)*cw;
   let rows = [[], []];
   x.hi.filter(h => h.c0 != null && h.c1 >= c0 && h.c0 < last).slice(0, 3).sort((p, q) => p.c0 - q.c0).forEach(h => {
     const xa = Math.max(0, cx0(h.c0)), xb = Math.min(W, cx0(h.c1 + 1));
     g.font = `600 19px ${FONT.sans}`; const tw = g.measureText(h.t).width;
     const tx = Math.max(80, Math.min(W - 80 - tw, (xa + xb)/2 - tw/2));
-    const r = rows[0].every(([p, q]) => tx > q + 24 || tx + tw < p - 24) ? 0 : 1; rows[r].push([tx, tx + tw]);
+    const r = rows.findIndex(row => row.every(([p, q]) => tx > q + 24 || tx + tw < p - 24));
+    if (r < 0) return; // 2 段とも重なるなら書かない（画面の What stands out には出ている）
+    rows[r].push([tx, tx + tw]);
     const ty = 534 - r*28, ly = PT - 8;
     g.strokeStyle = amber; g.globalAlpha = .9; g.lineWidth = 2;
     g.beginPath();
