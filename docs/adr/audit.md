@@ -65,3 +65,9 @@ All passed. Claim statuses in [evidence.yaml](evidence.yaml): **verified 4** (AD
 - Preserved historical validation limits: #1 did not test real Kiro histories, #7 had not verified the Kiro CLI Windows location, and #9 had not tested real Codex histories at introduction. These are not present-day failure claims.
 - Three additional evidence claims: ADR-0001-C2, ADR-0004-C2 and ADR-0010-C2. Evidence matrix now has 10 claims: 4 previously test-verified, 3 historical-only, 2 untested, 1 proposed. No new tests were executed in this follow-up; previously recorded test results were preserved.
 - Review threads, full historical diffs, and most current adapter code remain unaudited.
+
+## Additional focused source review
+
+Historical decisions re-read: PR #127 (DNS rebinding Host validation), #172 (serve-key authorization), #312 (private Kiro Crew redaction and family-scoped copies), #214 and #215 (not-recorded versus measured zero). Current `internal/core/records.go` declares agent-specific recording capabilities; `internal/cli/load.go` includes family-scoped withholding. `internal/cli/serve.go` and test-file inventories were sampled, not fully traced. Existing `internal/cli/serve_test.go` includes `TestServeHistory`, and `internal/cli/load_test.go` includes `TestSameConversationCountedOnce`; the names alone do not establish that security or private-content properties are tested. No tests were run in this pass.
+
+These findings are evidence candidates, not verified claims. Next: trace key/Host validation and private redaction assertions to actual tests, then run them on a pinned commit. Do not confuse historical vulnerability descriptions with a claim of current exposure.
