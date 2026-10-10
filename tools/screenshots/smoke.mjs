@@ -402,8 +402,15 @@ async function run(env) {
       const d = c.getContext("2d").getImageData(0, 430, c.width, c.height - 430).data; let lit = 0;
       for (let i = 0; i < d.length; i += 4) if (d[i] + d[i+1] + d[i+2] > 240) lit++;
       return lit > 200; }));
-    check("光の名前が出る", (await p.locator(".yrtn").innerText()).trim().length > 0);
+    check("光の名前が出る（8 週に満たない記録では、名前の代わりにそう書く）", await p.evaluate(() => yr.x.short
+      ? !document.querySelector("#yr .yrtn") && /once you have 8 weeks/.test(document.querySelector("#yr").innerText)
+      : document.querySelector("#yr .yrtn").innerText.trim().length > 0));
     check("見どころが出る", (await p.locator("#yr h3", { hasText: "What stands out" }).count()) === 1 && (await p.locator("#yr .yrhi li").count()) > 0);
+    check("深夜・週末と、いちばん長い休みは、選ぶまで画像に載せない", !(await p.locator('#yr [data-o="late"]').isChecked()) && !(await p.locator('#yr [data-o="breaks"]').isChecked()) &&
+      !/Late nights|Weekends|without AI|consecutive/.test(await p.locator("#yrcard").getAttribute("aria-label")));
+    await p.locator('#yr [data-o="late"]').check(); await pause();
+    check("選べば、画像の読み上げに載ったものが加わる（画面の見どころに深夜・週末があるとき）", !/Late nights|Weekends/.test(await p.locator("#yr .yrhi").first().innerText()) || /Late nights|Weekends/.test(await p.locator("#yrcard").getAttribute("aria-label")));
+    await p.locator('#yr [data-o="late"]').uncheck(); await pause();
     await p.locator("#yrcolor").selectOption("project"); await pause();
     check("プロジェクトで色分けできる（画面の凡例にプロジェクトが並ぶ）", /Color = project/.test(await p.locator("#yr .yrhow").innerText()));
     await p.locator("#yrcolor").selectOption("auto"); await pause();

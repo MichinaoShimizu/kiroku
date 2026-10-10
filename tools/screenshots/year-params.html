@@ -1,16 +1,16 @@
 <!doctype html>
-<!-- docs/year-params.png の元（光の部分は year.png の y 552〜812 を 1250/1600 倍で切り出す。drawCard の PT・PB と合わせる）：Year in review のシェア画像（year.png）の光の部分に、読み方と Your light の決まり方を添えた図。
+<!-- docs/year-params.png の元（光の部分は year.png の x 80〜1520・y 492〜792 を 1250/1440 倍で切り出す。drawCard の PX・PW・PT・PB と合わせる）：Year in review のシェア画像（year.png）の光の部分に、読み方と Your light の決まり方を添えた図。
      capture.mjs が ?img=<year.png の場所> を付けて開き、撮る。文言は js/year.js の LIGHTS と docs/guide.md に合わせる -->
 <html lang="en"><head><meta charset="utf-8">
 <style>
 *{margin:0;box-sizing:border-box}
 body{width:1600px;background:#0b0d14;color:#e9e6de;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;padding:52px 64px 48px}
 h1{font-size:32px;font-weight:800}h1 small{font-size:18px;color:#9aa0b4;font-weight:500;margin-left:14px}
-.wrap{position:relative;margin-top:28px;height:320px}
-.plate{position:absolute;left:150px;top:40px;width:1250px;height:203px;border-radius:10px;background:#06070a no-repeat;background-size:1250px 703px;background-position:0 -431px;box-shadow:0 0 0 1px #222736}
+.wrap{position:relative;margin-top:28px;height:380px}
+.plate{position:absolute;left:150px;top:40px;width:1250px;height:260px;border-radius:10px;background:#06070a no-repeat;background-size:1389px 781px;background-position:-69px -427px;box-shadow:0 0 0 1px #222736}
 .ax{position:absolute;font:500 14px ui-monospace,Menlo,Consolas,monospace;color:#9aa0b4}
 .yax{left:70px;width:70px;text-align:right}
-svg.ov{position:absolute;left:0;top:0;width:1472px;height:320px;overflow:visible}
+svg.ov{position:absolute;left:0;top:0;width:1472px;height:380px;overflow:visible}
 .grid{display:grid;grid-template-columns:1.25fr 1fr;gap:40px;margin-top:24px}
 h2{font-size:21px;font-weight:700;margin-bottom:12px}
 table{border-collapse:collapse;width:100%;font-size:16px}
@@ -30,17 +30,17 @@ code{font:500 14px ui-monospace,Menlo,Consolas,monospace;color:#c9cde0}
 <div class="wrap">
   <div class="plate" id="plate"></div>
   <div class="ax yax" style="top:34px">6:00</div>
-  <div class="ax yax" style="top:85px">12:00</div>
-  <div class="ax yax" style="top:136px">18:00</div>
-  <div class="ax yax" style="top:186px">0:00</div>
-  <div class="ax yax" style="top:235px">6:00</div>
-  <div class="ax" style="left:150px;top:254px">first day with history (at least 4 weeks back)</div>
-  <div class="ax" style="left:1250px;top:254px">today / Dec 31</div>
+  <div class="ax yax" style="top:99px">12:00</div>
+  <div class="ax yax" style="top:164px">18:00</div>
+  <div class="ax yax" style="top:229px">0:00</div>
+  <div class="ax yax" style="top:294px">6:00</div>
+  <div class="ax" style="left:150px;top:314px">first day with history (at least 4 weeks back)</div>
+  <div class="ax" style="left:1250px;top:314px">today / Dec 31</div>
   <svg class="ov">
     <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ffae57"/></marker></defs>
-    <line x1="150" y1="280" x2="1400" y2="280" stroke="#ffae57" stroke-width="2" marker-end="url(#a)"/>
-    <text x="775" y="306" fill="#ffae57" font-size="16" text-anchor="middle">Across: date (one column a day)</text>
-    <line x1="40" y1="40" x2="40" y2="243" stroke="#ffae57" stroke-width="2" marker-end="url(#a)"/>
+    <line x1="150" y1="340" x2="1400" y2="340" stroke="#ffae57" stroke-width="2" marker-end="url(#a)"/>
+    <text x="775" y="366" fill="#ffae57" font-size="16" text-anchor="middle">Across: date (one column a day)</text>
+    <line x1="40" y1="40" x2="40" y2="300" stroke="#ffae57" stroke-width="2" marker-end="url(#a)"/>
     <text x="0" y="24" fill="#ffae57" font-size="16">Down: time of day</text>
   </svg>
 </div>
@@ -49,17 +49,17 @@ code{font:500 14px ui-monospace,Menlo,Consolas,monospace;color:#c9cde0}
   <h2>What you see, and what it comes from</h2>
   <table>
    <tr><th>On the image</th><th>From the history</th></tr>
-   <tr><td>Column</td><td>A date. Starts at the first day with history (4 weeks if there is less)</td></tr>
+   <tr><td>Column</td><td>A date. Starts at the first day with history (4 weeks if there is less); with less than 8 weeks of history it ends at the last one</td></tr>
    <tr><td>Height</td><td>The time of day, 6:00 at the top to 6:00 the next morning at the bottom, so late-night work lands under the previous day</td></tr>
    <tr><td>A streak</td><td>One stretch of active time in a session, estimated from the history's timestamps (it includes time the AI ran on its own). A 15-minute gap starts a new streak (<code>--gap</code>)</td></tr>
    <tr><td>Length</td><td>How long that stretch was active</td></tr>
    <tr><td>Color</td><td>The agent, or the project when one agent has 90% of your time (names never on the image)<br><span class="dot" style="background:#3a9be0;margin-left:0"></span>Claude Code<span class="dot" style="background:#1fbf8f"></span>Codex<span class="dot" style="background:#9c84e6"></span>Kiro IDE<span class="dot" style="background:#7cc6f0"></span>Kiro CLI<span class="dot" style="background:#e08fbd"></span>Kiro Crew</td></tr>
    <tr><td>Brightness</td><td>Light adds up where streaks overlap, so sessions run in parallel glow brighter</td></tr>
    <tr><td>Dark bands</td><td>Days and hours when no session was active</td></tr>
-   <tr><td>Amber labels</td><td>What stands out, above the streaks: the busiest month (30%+ above the rest), the longest streak (14+ active days), the longest break (7+ days), the first day of an agent you started later</td></tr>
-   <tr><td>Big number</td><td>Hours of active time in the year (parallel sessions count once), with sessions, commits, pull requests and each agent's share</td></tr>
+   <tr><td>Amber labels</td><td>What stands out, above the streaks: the busiest month (30%+ above the rest), the first day of an agent you started later, and, only if you tick it, the longest stretch without AI (7+ days, no dates)</td></tr>
+   <tr><td>Totals</td><td>Hours with a session active (parallel sessions count once; includes time the AI ran on its own), sessions, commits and pull requests. Small, and can be left off</td></tr>
   </table>
-  <p class="note">Never on the image: prompts, project names, branches, files or cost. It is drawn in your browser and sent nowhere.</p>
+  <p class="note">Never on the image: prompts, project names, branches, files or cost. Late nights, weekends and the longest stretch without AI only if you tick them. It is drawn in your browser and sent nowhere.</p>
  </div>
  <div>
   <h2>Your light: the first match from the top</h2>

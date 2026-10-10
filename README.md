@@ -54,7 +54,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 **Search across all time.** Prompts, edited files and commits, with excerpts showing where they matched.
 
-**Your year in one picture.** "Year", next to Week and Month, draws a year of active time as streaks of light, and makes an image to share with totals only: no prompts, project names or cost. It describes how you worked; it doesn't score or rank you.
+**Your year in one picture.** "Year", next to Week and Month, draws a year of active time as streaks of light, and makes an image to share where you choose what goes on it: no prompts, project names or cost, and nothing about late nights or time off unless you tick it. It describes how you worked; it doesn't score or rank you.
 
 ![Year in review share image (dummy data)](docs/year.png)
 
