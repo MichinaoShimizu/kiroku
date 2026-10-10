@@ -93,6 +93,7 @@ kiroku は AI を呼びません。代わりに、ワンクリックでプロン
 kiroku serve              # http://localhost:8484/ の画面。新しい履歴が入るたびに更新
 kiroku open               # 別のブラウザで開く（最初に一度 serve の鍵が要る）
 kiroku autostart on       # ログインのたびに kiroku serve を起動（macOS と Linux）
+kiroku stats --week last  # 先週の時間・トークン・費用・コミットを、エージェント・モデル・プロジェクト別に端末に 1 画面で
 kiroku html --week last   # 先週だけを 1 つの HTML に書き出して、人に見せる
 kiroku update             # 最新の版に更新
 kiroku help               # すべてのコマンド（オプションは "kiroku <command> --help"）
