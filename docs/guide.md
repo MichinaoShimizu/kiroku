@@ -35,7 +35,7 @@ Download `kiroku_<version>_windows_<amd64 or arm64>.zip` from [Releases](https:/
 
 ### Go
 
-Go 1.25 or later is required.
+Go 1.26 or later is required.
 
 ```bash
 go install github.com/MichinaoShimizu/kiroku@latest

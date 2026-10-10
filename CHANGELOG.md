@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- Building from source (`go install`) now needs Go 1.26 or later, instead of Go 1.25. The SQLite library (modernc.org/sqlite) is updated to v1.60.1 and the zstd library (klauspost/compress) to v1.20.1
+
 ## v0.29.2 - 2026-10-10
 
 ### Fixed

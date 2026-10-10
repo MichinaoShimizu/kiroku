@@ -22,7 +22,7 @@ go run . serve                     # try it with your own history
 sh tools/screenshots/run.sh --html /tmp/kiroku-demo.html   # an HTML with dummy data
 ```
 
-Go 1.25 or later is required. The dummy-data HTML needs Python 3 and git; refreshing the screenshots also needs Node.js and Playwright (`npm ci --ignore-scripts && npx playwright install chromium` in `tools/screenshots`; the version is pinned in its `package.json`).
+Go 1.26 or later is required. The dummy-data HTML needs Python 3 and git; refreshing the screenshots also needs Node.js and Playwright (`npm ci --ignore-scripts && npx playwright install chromium` in `tools/screenshots`; the version is pinned in its `package.json`).
 
 In Claude Code, run the `/pre-pr` skill before opening a pull request: it runs `tools/check.sh`, reviews the diff for security, and checks the changelog, docs and screenshots.
 
