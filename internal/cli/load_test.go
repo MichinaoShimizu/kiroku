@@ -180,6 +180,53 @@ func TestKiroIDEMigratedCountedOnce(t *testing.T) {
 	}
 }
 
+// v1.0 より前の会話を外すのは、同じ ID の v1.0 の会話がセッションになったときだけ。v1.0 の会話どうしは外し合わない。
+func TestKiroIDEMigratedOnlyLegacyYields(t *testing.T) {
+	home, gs := t.TempDir(), t.TempDir()
+	prompt := `{"timestamp": "2026-09-29T01:01:00Z", "payload": {"type": "user", "content": "画面を作って"}}` + "\n"
+	files := map[string]string{
+		// 時刻も依頼もない v1.0 の会話（置かれただけのものや、読めなかったもの）は、v1.0 より前の会話を隠さない
+		filepath.Join(home, "sessions", "zz", "s1", "session.json"): `{"id": "conv-a"}`,
+		// 同じ id の v1.0 の会話が 2 つあっても、両方出す
+		filepath.Join(home, "sessions", "a0", "s9", "session.json"):   `{"id": "dup", "title": "one"}`,
+		filepath.Join(home, "sessions", "a0", "s9", "messages.jsonl"): prompt,
+		filepath.Join(home, "sessions", "h1", "s2", "session.json"):   `{"id": "dup", "title": "two"}`,
+		filepath.Join(home, "sessions", "h1", "s2", "messages.jsonl"): prompt,
+		// id がなく、フォルダ名が同じ会話も両方出す
+		filepath.Join(home, "sessions", "h3", "same", "session.json"):    `{"title": "three"}`,
+		filepath.Join(home, "sessions", "h3", "same", "messages.jsonl"):  prompt,
+		filepath.Join(home, "sessions", "h4", "same", "session.json"):    `{"title": "four"}`,
+		filepath.Join(home, "sessions", "h4", "same", "messages.jsonl"):  prompt,
+		filepath.Join(gs, "workspace-sessions", "d3M=", "sessions.json"): `[{"sessionId": "conv-a", "dateCreated": 1759100000000}, {"sessionId": "same", "dateCreated": 1759100000000}]`,
+		filepath.Join(gs, "workspace-sessions", "d3M=", "conv-a.json"):   `{"history": [{"message": {"role": "user", "content": "画面を作って"}}]}`,
+		filepath.Join(gs, "workspace-sessions", "d3M=", "same.json"):     `{"history": [{"message": {"role": "user", "content": "表を作って"}}]}`,
+	}
+	for p, body := range files {
+		if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	all := source.All(source.Options{KiroHome: home, KiroStorages: []string{gs}, CrewHome: filepath.Join(home, "crew"),
+		KiroCLIDB: filepath.Join(home, "none.sqlite3")})
+	data, rep := collect(all, map[string]bool{"kiro": true}, 15)
+	n := map[string]source.Report{}
+	for _, r := range rep {
+		n[r.Name] = r
+	}
+	if r := n["Kiro IDE"]; r.N != 5 || r.Dup != 0 {
+		t.Errorf("Kiro IDE: n=%d dup=%d, want 5 と 0（v1.0 どうしは外さない）", r.N, r.Dup)
+	}
+	if r := n["Kiro IDE (legacy)"]; r.N != 2 || r.Dup != 0 {
+		t.Errorf("Kiro IDE (legacy): n=%d dup=%d, want 2 と 0（空の v1.0 の会話や id のない会話では外さない）", r.N, r.Dup)
+	}
+	if len(data) != 6 {
+		t.Errorf("セッション数 = %d, want 6", len(data))
+	}
+}
+
 func roundTrip(t *testing.T, v any) any {
 	b, err := json.Marshal(v)
 	if err != nil {

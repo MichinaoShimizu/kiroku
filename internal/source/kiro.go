@@ -51,8 +51,11 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		errs.file(metaPath, err)
 		meta := core.Map(raw)
 		s := core.NewBuilder("Kiro IDE", firstNonEmpty(core.Str(meta["id"]), filepath.Base(dir)))
-		// v1.0 へ移した会話は、v1.0 より前の形式（KiroIDELegacy）にも同じ ID で残る。同じ鍵にして、先に読む v1.0 のほうを使う（kiro-history と同じ）
-		s.Key = "kiro-ide:" + s.ID
+		// v1.0 へ移した会話は、v1.0 より前の形式（KiroIDELegacy）にも同じ ID で残る。v1.0 のほうを使う（kiro-history と同じ）。
+		// id のない会話（フォルダ名の ID）は、v1.0 より前の会話と同じものかわからないので Claim しない
+		if id := core.Str(meta["id"]); id != "" {
+			s.Claim = "kiro-ide:" + id
+		}
 		s.File = filepath.Join(dir, "messages.jsonl")
 		s.Title = core.Str(meta["title"])
 		for _, key := range []string{"workspacePaths", "rootPaths"} {
@@ -721,7 +724,7 @@ func (k *KiroIDELegacy) Load(emit func(*core.Builder)) error {
 				errs.file(f, err)
 				data := core.Map(raw)
 				s := core.NewBuilder("Kiro IDE (legacy)", id)
-				s.Key = "kiro-ide:" + id // v1.0 へ移した会話なら、v1.0 のほうを使う（KiroIDE の Key）
+				s.Yield = "kiro-ide:" + id // v1.0 へ移した会話なら、v1.0 のほうを使う（KiroIDE の Claim）
 				s.File = f
 				s.Title = firstNonEmpty(core.Str(em["title"]), core.Str(data["title"]))
 				s.Project = firstNonEmpty(core.Str(data["workspacePath"]), core.Str(data["workspaceDirectory"]), core.Str(em["workspaceDirectory"]))
