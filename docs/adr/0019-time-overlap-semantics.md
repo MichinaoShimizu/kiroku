@@ -1,8 +1,12 @@
 # ADR 0019: Time overlap and usage allocation
 
-Status: **Retrospective**
+Status: Retrospective
+Date: Unknown
+Related: None
+Supersedes: None
+Superseded by: None
 
-Scope: Phase 1 — local sessions.
+Scope: Phase 1 — local sessions
 
 ## Evidence
 
@@ -15,3 +19,15 @@ These metrics have different denominators and must not be treated as interchange
 ## Verification limits
 
 Inspect current `internal/report/share.go`, `docs/guide.md` and `TestShares`. `TestShares` passed at `ad670cb` (see [evidence.yaml](evidence.yaml)); it does not assert the same-key case, and the Active time vs Total AI run time aggregation has not been audited.
+
+## Decision
+
+The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
+
+## Alternatives
+
+Not documented as a separate set of evaluated options in this record.
+
+## Historical confidence and open questions
+
+Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.
