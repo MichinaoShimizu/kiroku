@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Security
+
+- Commands kiroku shows for pasting into a terminal (resuming a session, `git -C <repo> show`) are no longer offered when a folder, session ID or git value from history contains a curly quote (‘ ’ ‚ ‛ “ ” „ ‟). PowerShell reads these as quotes, so a crafted value could close the quoting and add a command when pasted on Windows (or into PowerShell on macOS and Linux)
+
 ## v0.29.1 - 2026-10-09
 
 ### Changed
