@@ -1,30 +1,34 @@
-# ADR 0005: Session identity and deduplication
+# ADR 0005: Reflection without grading
 
 Status: **Observed (retrospective)**
 
-Scope: Phase 1 — local sessions.
+Scope: Phase 1 — product philosophy and UX.
 
 ## Context
 
-Multiple files and agent components may represent the same user interaction. Summing them naively inflates prompts, time, token use and outputs.
+A history viewer can help users understand their own AI-assisted work, but advice, rankings and invented productivity judgments can be mistaken for objective measurement.
 
-## Documented decisions
+## Decision history and reversals
 
-- **Unify native agent readers through an adapter contract.** The Go rewrite introduced `Source` and a common session model ([#6](https://github.com/MichinaoShimizu/kiroku/pull/6)).
-- **Avoid Crew/Kiro double counts.** Crew's own logs are used for identity/title/provenance while Kiro CLI provides the underlying conversation and usage when they refer to the same work ([#8](https://github.com/MichinaoShimizu/kiroku/pull/8)).
-- **Prefer canonical source copies.** Older Kiro CLI SQLite formats share an adapter with Amazon Q, with precedence for `conversations_v2` on duplicate IDs ([#7](https://github.com/MichinaoShimizu/kiroku/pull/7)).
-- **Handle forks, migration and mirrored events.** Subsequent fixes addressed Crew copied rows ([#242](https://github.com/MichinaoShimizu/kiroku/pull/242)), Kiro IDE migrated histories ([#308](https://github.com/MichinaoShimizu/kiroku/pull/308)), Codex review mirrors ([#310](https://github.com/MichinaoShimizu/kiroku/pull/310)), Claude branch/fork copies ([#311](https://github.com/MichinaoShimizu/kiroku/pull/311)), and Crew duplicate rows ([#312](https://github.com/MichinaoShimizu/kiroku/pull/312)).
+1. Initial weekly reflection and productivity diagnostics were added ([#2](https://github.com/MichinaoShimizu/kiroku/pull/2)).
+2. Reflection was reshaped into a KPI-playbook-inspired decision flow ([#5](https://github.com/MichinaoShimizu/kiroku/pull/5)).
+3. The prescribed flow was removed in favor of descriptive weekly/monthly summaries because it imposed too strong a viewpoint ([#14](https://github.com/MichinaoShimizu/kiroku/pull/14)).
+4. Intervention buttons and trial/comparison prompts were reduced or removed ([#41](https://github.com/MichinaoShimizu/kiroku/pull/41), [#53](https://github.com/MichinaoShimizu/kiroku/pull/53), [#81](https://github.com/MichinaoShimizu/kiroku/pull/81)).
+5. Year in Review was introduced with a shareable image, then skill grades were added, the view was hidden, and it returned without ranking users ([#76](https://github.com/MichinaoShimizu/kiroku/pull/76), [#78](https://github.com/MichinaoShimizu/kiroku/pull/78), [#88](https://github.com/MichinaoShimizu/kiroku/pull/88), [#320](https://github.com/MichinaoShimizu/kiroku/pull/320)).
+6. The current product positioning emphasizes Remember → Understand → Improve ([#322](https://github.com/MichinaoShimizu/kiroku/pull/322)).
 
-## Observed implementation
+## Resulting principle
 
-`internal/cli/load.go` uses `Builder.Key` and `Claim/Yield` in collection; `internal/core/session.go` defines the normalized identity and fields. These are **current-code observations**, not a claim that their exact semantics were established in one historical PR.
+Offer evidence, context, trends and optional prompts; do not label a person as skilled/unskilled, good/bad, or prescribe a single correct way to work. Improvement belongs to the user.
 
-## Rationale and consequences
+## Consequences
 
-One human action must not become multiple metrics merely because an agent stores multiple representations. Identity rules require agent-specific tests, not just generic file-hash deduplication.
+Avoid reintroducing grading through colors, labels, badges, “healthy” thresholds or gamification without a new explicit decision. Any insight should expose its basis and distinguish observations from inferences.
 
-For Phase 2, the same upstream session IDs can appear on different machines; origin-aware identity is a **proposal**, not yet an accepted implementation ([ADR 0002](0002-remote-session-import.md)).
+## Historical confidence
 
-## Alternatives and verification
+The sequence above is supported by linked PR descriptions. It does not claim that each change was adopted as a formal ADR at the time, nor that every UX choice is permanently fixed.
 
-No historical evidence is claimed for unmentioned identity alternatives. Verify against source fixtures and the cited PRs; no new tests were run for this ADR.
+## Verification
+
+Review the PR sequence, current view and reports. No fresh visual regression testing is claimed.
