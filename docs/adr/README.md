@@ -6,6 +6,18 @@ ADRs document **why** kiroku makes architectural choices, not just how code work
 
 The reusable [reverse-adr agent skill](../../.claude/skills/reverse-adr/SKILL.md) defines a repeatable process for discovering decisions, reconstructing rationale, verifying historical/current/test evidence, reconciling reversals, and auditing coverage. Use `audit` for read-only verification or `write` for a branch/PR workflow. This skill can be applied to other repositories; it is not tied to kiroku's specific decisions.
 
+## Continuous design-decision workflow
+
+Reverse ADR is a **bootstrap** step, not the end of ADR adoption:
+
+1. Run [reverse-adr](../../.claude/skills/reverse-adr/SKILL.md) to recover the evidence-backed decision baseline and explicitly track uncertainties.
+2. During design, implementation and review, run [adr-guard](../../.claude/skills/adr-guard/SKILL.md) against the proposed diff to identify preserved, extended and conflicting decisions.
+3. If a conflict is intentional and material, propose a new forward ADR with rationale, alternatives, consequences and verification; link it to the previous decision. Do not rewrite historical rationale.
+4. Add regression tests for changed invariants, review security/privacy and compatibility, and update the ADR index and supersession chain.
+5. Periodically re-run reverse-adr in `audit` mode to detect drift between ADR claims and implementation.
+
+These are **agent workflows, not automatic CI enforcement**. Merely adding a skill does not make every coding agent invoke it. Integrate the workflow into the repository's agent instructions and PR review process; do not block trivial fixes or treat historical ADRs as permanent prohibitions.
+
 ## Layout
 
 - `0001-local-session-foundation.md` — retrospective baseline for local-only session processing (Phase 1).
