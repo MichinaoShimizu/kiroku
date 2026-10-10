@@ -59,10 +59,10 @@ function yearData(y){
 function highlights(x, ms, on, firstOf, day0){
   const H = [], col = d => Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - day0)/864e5);
   const act = ms.filter(m => m.active > 0);
-  if (act.length >= 2){ // いちばん動いていた月（ほかの月の平均より 3 割以上多いときだけ。どの月も同じなら言うことがない）
+  if (act.length >= 2){ // いちばん動いていた月（ほかの月の平均より 3 割以上多く、10 時間以上のときだけ。どの月も同じなら言うことがない）
     const m = act.reduce((a, b) => b.active > a.active ? b : a), [Y, M] = m.start.split("-").map(Number);
     const rest = (act.reduce((a, b) => a + b.active, 0) - m.active)/(act.length - 1);
-    if (m.active >= rest*1.3) H.push({c0: col(new Date(Y, M-1, 1)), c1: col(new Date(Y, M, 0)), t: `Busiest month: ${MON[M-1]} · ${Math.round(m.active/60)}h`});
+    if (m.active >= rest*1.3 && m.active >= 600) H.push({c0: col(new Date(Y, M-1, 1)), c1: col(new Date(Y, M, 0)), t: `Busiest month: ${MON[M-1]} · ${Math.round(m.active/60)}h`});
   }
   const ds = [...on].sort(); // いちばん長い休み（記録の最初と最後の間で、7 日以上。週末だけの人の平日のような、いつもの間は出さない）
   if (ds.length >= 2){
@@ -95,10 +95,11 @@ function halves(ss){
   const t0 = Math.min(...ss.map(s => s.start)), t1 = Math.max(...ss.map(s => s.end));
   if (t1 - t0 < 28*86400) return [];
   const mid = (t0 + t1)/2;
-  const half = xs => { const u = new Set(); let sum = 0, late = 0, pr = 0;
-    xs.forEach(s => { pr += s.nPrompts || 0; s.segs.forEach(([a, b]) => { sum += (b - a)/60; for (let i = Math.floor(a/300), j = Math.ceil(b/300); i < j; i++) u.add(i); }); });
-    u.forEach(i => { const h = new Date(i*300000).getHours(); if (h >= 22 || h < 5) late += 5; });
-    const un = u.size*5 || 1; return {n: xs.length, per: xs.length ? sum/xs.length : 0, par: Math.max(0, (sum - un)/un*100), late: late/un*100, pp: xs.length ? pr/xs.length : 0}; };
+  // 並列の割合は「2 つ以上が同時に動いていた時間 ÷ どれかが動いていた時間」（0〜100%。3 つ同時でも 100% を超えない）
+  const half = xs => { const u = new Map(); let sum = 0, late = 0, pr = 0, par = 0;
+    xs.forEach(s => { pr += s.nPrompts || 0; s.segs.forEach(([a, b]) => { sum += (b - a)/60; for (let i = Math.floor(a/300), j = Math.ceil(b/300); i < j; i++) u.set(i, (u.get(i) || 0) + 1); }); });
+    u.forEach((c, i) => { const h = new Date(i*300000).getHours(); if (h >= 22 || h < 5) late += 5; if (c >= 2) par += 5; });
+    const un = u.size*5 || 1; return {n: xs.length, per: xs.length ? sum/xs.length : 0, par: par/un*100, late: late/un*100, pp: xs.length ? pr/xs.length : 0}; };
   const a = half(ss.filter(s => s.start < mid)), b = half(ss.filter(s => s.start >= mid));
   if (a.n < 5 || b.n < 5) return [];
   const out = [], r = b.per/(a.per || 1);
@@ -115,6 +116,12 @@ function halves(ss){
     ? {t: `prompts per session ${a.pp.toFixed(1)} → ${b.pp.toFixed(1)}`, q: "More prompts per session. Harder tasks, or first prompts that needed more context?"}
     : {t: `prompts per session ${a.pp.toFixed(1)} → ${b.pp.toFixed(1)}`, q: "Fewer prompts per session. Clearer first prompts?"});
   return out;
+}
+/* シェア画像の右の列：前半と比べた後半（1 つ 1 行、2 つまで）と、光の上に書き込めない見どころ（深夜・週末）。合わせて 3 行まで。
+   前半後半で深夜が動いたなら、深夜の割合の行は重ねて出さない */
+function sideLines(x){
+  const lateMoved = x.halves.some(h => h.t.startsWith("late nights"));
+  return [...x.halves.slice(0, 2).map(h => `Second half: ${h.t}`), ...x.hi.filter(h => h.c0 == null && !(lateMoved && h.t.startsWith("Late nights"))).map(h => h.t)].slice(0, 3);
 }
 /* 色分け：auto は、1 つのエージェントが 9 割以上ならプロジェクト（エージェントでは色に差が出ないため）、そうでなければエージェント */
 function yrColorMode(x){
@@ -255,12 +262,13 @@ function drawCard(){
     g.shadowBlur = 0; g.textAlign = "left"; g.textBaseline = "alphabetic";
   }
   // 右の列：前半と比べた後半（大きく動いたものだけ）と、光の上に書き込めない見どころ（深夜・週末）。合わせて 3 行まで
-  const side = [...(x.halves.length ? [`Second half: ${x.halves.slice(0, 2).map(h => h.t).join(", ")}`] : []), ...x.hi.filter(h => h.c0 == null).map(h => h.t)].slice(0, 3);
+  // 行は短く（左の大きな数字にかからない幅 640 に収める）
+  const side = sideLines(x);
   if (side.length){
     const y0 = o.type && L ? 262 : 110;
     g.textAlign = "right"; g.fillStyle = ink2; g.font = `500 20px ${FONT.mono}`; ls("4px"); g.fillText("WHAT STANDS OUT", W - 80, y0); ls("0px");
-    g.fillStyle = ink; g.font = `500 26px ${FONT.sans}`;
-    side.forEach((t, i) => g.fillText(t, W - 80, y0 + 42 + i*38));
+    g.fillStyle = ink;
+    side.forEach((t, i) => { let fs = 26; g.font = `500 ${fs}px ${FONT.sans}`; while (fs > 18 && g.measureText(t).width > 640){ fs--; g.font = `500 ${fs}px ${FONT.sans}`; } g.fillText(t, W - 80, y0 + 42 + i*38); });
     g.textAlign = "left";
   }
   if (o.agents && x.mode === "project"){ // プロジェクトの名前は載せない。色の数だけを示す

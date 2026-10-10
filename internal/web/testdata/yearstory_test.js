@@ -15,6 +15,7 @@ const days = (...ds) => new Set(ds.map(d => key(new Date(2025, 0, d))));
 eq(texts(highlights({late: 0, weekend: 0}, [{start: "2025-01-01", active: 600}, {start: "2025-02-01", active: 780}], new Set(), {}, day0)), ["Busiest month: Feb · 13h"], "3 割多ければ出す");
 eq(texts(highlights({late: 0, weekend: 0}, [{start: "2025-01-01", active: 600}, {start: "2025-02-01", active: 779}], new Set(), {}, day0)), [], "3 割に届かなければ出さない");
 eq(texts(highlights({late: 0, weekend: 0}, [{start: "2025-01-01", active: 600}], new Set(), {}, day0)), [], "1 か月だけなら出さない");
+eq(texts(highlights({late: 0, weekend: 0}, [{start: "2025-01-01", active: 100}, {start: "2025-02-01", active: 590}], new Set(), {}, day0)), [], "10 時間に満たない月は、目立っても出さない");
 
 // いちばん長い休み：7 日以上だけ。同じ月の中なら「Jan 3–9」
 eq(texts(highlights({late: 0, weekend: 0}, [], days(2, 10), {}, day0)), ["Longest break: Jan 3–9 · 7 days"], "7 日の休みは出す");
@@ -52,3 +53,6 @@ const par = [...run(10, 0, 60, 5), ...run(10, 40, 60, 5), ...run(10, 40, 60, 5).
 const pt = halves(par).find(h => h.t.startsWith("time in parallel"));
 eq(pt && pt.t, "time in parallel 0% → 33%", "並列は、重なった時間 ÷ どれかが動いていた時間");
 eq(!!(pt && pt.q), true, "変化には画面だけの問いかけを付ける");
+const three = [...run(10, 0, 60, 5), ...[0, 1, 2].flatMap(k => run(10, 40, 60, 5).map(s => ({...s, start: s.start + k*600, end: s.end + k*600, segs: [[s.segs[0][0] + k*600, s.segs[0][1] + k*600, 10]]})))];
+const p3 = halves(three).find(h => h.t.startsWith("time in parallel"));
+eq(p3 && p3.t, "time in parallel 0% → 75%", "3 つ同時でも 100% を超えない（0・10・20 分に始まる 60 分：2 つ以上が動いていた 60 分 ÷ 80 分）");
