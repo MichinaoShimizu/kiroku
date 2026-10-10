@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Added
+
+- Year in review is back ("Year in review" next to the period controls, or `Y`): a year of active time drawn as streaks of light, your light (the shape of your year in photography terms) and a 1600×900 image to share with totals only. It no longer has skill levels (Novice to Legendary), the four skill meters, or the under- and overexposed labels: it describes how you worked and doesn't score or rank you
+
 ## v0.30.0 - 2026-10-10
 
 ### Added

@@ -744,7 +744,6 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
 .yract{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .yrtype{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;align-items:start}
 .yrtn{display:flex;flex-direction:column;align-items:flex-start;gap:4px;font:700 var(--fs-4xl)/1 var(--mincho);white-space:nowrap}
-.yrtn .pre{font-size:var(--fs-2xl);font-weight:700;color:#d98a3a}:root:not([data-theme="dark"]) .yrtn .pre:not(.over){color:#a85a12} /* 白地でも 3:1 以上 */.yrtn .pre.over{color:var(--warn)}
 .yrtd{margin:0;font-size:var(--fs-lg)}
 .yrev{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0 0}
 .yrev div{border-top:1px solid var(--rule);padding-top:8px;min-width:0}
@@ -753,19 +752,8 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
 .yrtypes summary{cursor:pointer;font-size:var(--fs-sm);color:var(--ink-2);margin-top:14px}
 .yrtypes ul{list-style:none;padding:0;margin:8px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 18px;font-size:var(--fs-sm);color:var(--ink-2)}
 .yrtypes b{color:var(--ink)}
-.yrgrade{margin-top:14px}
-.yrexp{display:inline-block;font-size:var(--fs-sm);font-weight:600;padding:3px 10px;border-radius:999px;border:1px solid var(--rule-2);color:var(--ink-2)}
-.yrexp.ok{color:var(--acc-ink);border-color:var(--acc)}.yrexp.over{color:var(--warn);border-color:var(--warn)}
-.yrmeter{display:grid;gap:10px;margin:12px 0 0}
-.yrmeter div{display:grid;grid-template-columns:9em minmax(0,1fr);gap:12px;align-items:center;border-top:1px solid var(--rule);padding-top:8px}
-.yrmeter dt{font-weight:700;font-size:var(--fs-md)}.yrmeter dt small{display:block;font-weight:400;font-size:var(--fs-xs);color:var(--ink-3)}
-.yrmeter dd{margin:0;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;min-width:0}
-.yrmeter .pp{display:inline-flex;gap:3px}.yrmeter .pp i{width:10px;height:8px;border-radius:3px;background:var(--rule-2)}.yrmeter .pp i.on{background:#ffae57;box-shadow:0 0 8px rgba(255,174,87,.6)}
-.yrmeter .pv{font-size:var(--fs-sm);color:var(--ink-2);font-variant-numeric:tabular-nums}
-.yrmeter .neg .pp i.on{background:#ff7a5c;box-shadow:0 0 8px rgba(255,122,92,.6)}.yrgrade .yrexp + .yrexp{margin-left:6px}
 @media (max-width:820px){dialog.yr{padding:18px 16px 24px;width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}
-  .yrhow,.yrev,.yrtypes ul,.yrtype{grid-template-columns:minmax(0,1fr)}
-  .yrmeter div{grid-template-columns:minmax(0,1fr)}}
+  .yrhow,.yrev,.yrtypes ul,.yrtype{grid-template-columns:minmax(0,1fr)}}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:9px 16px;font-size:var(--fs-sm);margin-top:14px;align-items:center}
 .keys kbd{justify-self:start}
 
