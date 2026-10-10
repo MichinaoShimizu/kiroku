@@ -18,6 +18,24 @@ Reverse ADR is a **bootstrap** step, not the end of ADR adoption:
 
 These are **agent workflows, not automatic CI enforcement**. Merely adding a skill does not make every coding agent invoke it. Integrate the workflow into the repository's agent instructions and PR review process; do not block trivial fixes or treat historical ADRs as permanent prohibitions.
 
+## Quick routing index
+
+Scan this table first; read **only the relevant ADR bodies**. Paths are indicative, not exhaustive: cross-cutting changes (especially privacy, identity, measurement and compatibility) require semantic review even when the changed file is elsewhere. Routine cosmetic edits and localized fixes need no ADR body unless they change a documented invariant.
+
+| Change area / path hints | Keywords and concerns | ADRs |
+|---|---|---|
+| `internal/source/`, `internal/core/session.go`, `internal/cli/load.go` | source adapters, session identity, deduplication, prompt provenance, remote origin | [0001](0001-local-session-foundation.md), [0004](0004-session-identity-and-deduplication.md), [0010](0010-agent-source-coverage.md), [0014](0014-prompt-provenance.md), [0020 (proposed)](0020-remote-session-import.md) |
+| `internal/core/records.go`, `internal/report/`, `internal/web/` | missing vs zero, attribution, overlap, time, metrics, UI interpretation | [0002](0002-measurement-semantics.md), [0005](0005-nonjudgmental-reflection.md), [0009](0009-git-output-attribution.md), [0015](0015-period-comparison.md), [0019](0019-time-overlap-semantics.md) |
+| `internal/cli/serve.go`, `internal/cli/load.go`, `internal/archive/`, `internal/gitlog/`, `SECURITY.md` | private histories, local-first, Host/key, file access, exports, network access | [0003](0003-local-privacy-boundary.md), [0007](0007-local-history-retention.md), [0012](0012-share-export-timezone.md) |
+| `internal/cli/`, `docs/compatibility.md`, JSON output | public CLI/JSON, schema, flags, archives, stable contracts | [0006](0006-compatibility-contract.md), [0012](0012-share-export-timezone.md) |
+| `internal/cli/cache.go`, `internal/source/watch.go` | caching, reload, incremental processing | [0008](0008-incremental-local-processing.md) |
+| `internal/web/`, `docs/guide.md` | one-file HTML, rendering, accessibility, nonjudgmental UX | [0016](0016-single-file-rendering.md), [0005](0005-nonjudgmental-reflection.md), [0017](0017-regression-evidence.md) |
+| `internal/report/`, report prompts | user-mediated AI reports, bounded input, no automatic AI submission | [0013](0013-user-mediated-ai-reports.md), [0003](0003-local-privacy-boundary.md) |
+| `.github/workflows/`, `install.sh`, release/update code | supply-chain, signatures, provenance, compatibility | [0011](0011-release-integrity.md), [0006](0006-compatibility-contract.md) |
+| `README.md`, `README.ja.md`, `internal/web/` | UI language, Japanese documentation | [0018](0018-language-policy.md) |
+
+If multiple rows apply, inspect the union of relevant ADRs. This index is a routing aid, not proof that every architectural decision is documented.
+
 ## Layout
 
 - `0001-local-session-foundation.md` — retrospective baseline for local-only session processing (Phase 1).
