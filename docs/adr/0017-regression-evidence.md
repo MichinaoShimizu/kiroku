@@ -1,8 +1,12 @@
 # ADR 0017: Synthetic fixtures and user-oriented verification
 
-Status: **Retrospective**
+Status: Retrospective
+Date: Unknown
+Related: None
+Supersedes: None
+Superseded by: None
 
-Scope: Phase 1 — local sessions.
+Scope: Phase 1 — local sessions
 
 ## Documented decision and evolution
 
@@ -17,3 +21,19 @@ Use both numerical snapshots and task-oriented usability tests. Snapshot stabili
 Review `internal/cli/snapshot_test.go`, `testdata/snapshot.json`, `docs/usability.md` and current CI. Historical PR checks are not a fresh execution of these tests.
 
 This is an evidence-linked retrospective, not an assertion of historical ADR approval.
+
+## Decision
+
+The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
+
+## Consequences
+
+See the existing rationale and consequences discussion above. No additional outcome is asserted.
+
+## Alternatives
+
+Not documented as a separate set of evaluated options in this record.
+
+## Historical confidence and open questions
+
+Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.
