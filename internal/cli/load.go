@@ -64,6 +64,16 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 		}()
 	}
 	wg.Wait()
+	// 中身を出してはいけない会話（Kiro Crew の incognito・temporary）は、同じエージェントの別の履歴に残る写し
+	// （Kiro CLI の SQLite）も隠す。Amazon Q は同じ形の Key を使うが別のエージェントなので、エージェントの家族（Family）が同じものだけ
+	withheld := map[string]bool{} // Family + "\x00" + Key
+	for _, s := range picked {
+		if w, ok := s.(source.Withholder); ok {
+			for _, key := range w.Withheld() {
+				withheld[s.Family()+"\x00"+key] = true
+			}
+		}
+	}
 	seen := map[string]bool{} // 同じ会話が 2 か所に残っていたら、先に読んだほうを使う
 	// Claim した会話のうち、セッションになったもの（時刻のない空の会話では、ほかの場所の写しを隠さない）
 	claimed := map[string]bool{}
@@ -93,7 +103,12 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 			}
 			n++
 			if sess := o.sess; sess != nil {
-				data = append(data, sess)
+				if o.key != "" && withheld[s.Family()+"\x00"+o.key] {
+					// 写しを隠す。sess は kiroku serve のキャッシュにあり、前の画面のデータとしても読まれているので変えない
+					data = append(data, source.HideWithheld(sess))
+				} else {
+					data = append(data, sess)
+				}
 				ids = append(ids, sess.ID)
 				if keeps && strings.HasSuffix(sess.File, ".zst") { // 元が消えて、kiroku archive のコピーから読んだ
 					archived++

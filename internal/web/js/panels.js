@@ -281,8 +281,8 @@ function keepRow(r){ // 計測の状態に添える：どこまでさかのぼ�
   const dir = META.archive && META.archive.dir, how = () => `<br>${`To keep them, set <code>${esc(k.snippet || `"${k.setting}": 3650`)}</code>${k.file ? ` in <code>${esc(k.file)}</code>` : ""}, or ${LIVE ? "let kiroku" : "run <code>kiroku archive on</code> to let kiroku"} back them up to ${dir ? `<code>${esc(dir)}</code>` : "a folder on this computer"} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and <code>kiroku archive off</code> stops it)`}${LIVE ? ` <button class="pill keeparch">Back up to this folder</button>` : ""}`;
   return (o ? ` · oldest record ${o}` : "") +
     (r.archived ? ` · ${plural(r.archived, "deleted conversation")} shown from kiroku's copy` : "") +
-    (!k ? "" : k.now && archOn() ? `<br>${by}${`Older records are deleted at the next cleanup, within an hour (<code>${esc(k.setting)}</code> is 0), but kiroku keeps a copy`}`
-      : k.now ? `<br><span class="kw">${by}${`Older records are deleted at the next cleanup, within an hour (<code>${esc(k.setting)}</code> is 0)`}${link}</span>` // 0 日（days の 0 は「わからない」なので now で見分ける）
+    (!k ? "" : k.now && archOn() ? `<br>${by}${`Older records are deleted at the next cleanup (<code>${esc(k.setting)}</code> is 0), but kiroku keeps a copy`}`
+      : k.now ? `<br><span class="kw">${by}${`Older records are deleted at the next cleanup (<code>${esc(k.setting)}</code> is 0)`}${link}</span>` // 0 日（days の 0 は「わからない」なので now で見分ける）
       : k.days && !k.set && archOn() ? `<br>${by}${`Records older than ${k.days} days are deleted automatically, but kiroku keeps a copy`}`
       : k.days && !k.set ? `<br><span class="kw">${by}${`Records older than ${k.days} days are deleted automatically (<code>${esc(k.setting)}</code> is at its default)`}${link}</span>${how()}`
       : k.days ? `<br>${by}${`Kept for ${k.days} days (<code>${esc(k.setting)}</code>)`}`

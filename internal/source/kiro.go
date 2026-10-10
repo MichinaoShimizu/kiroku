@@ -169,14 +169,20 @@ func replyAt(t *float64, turnEnds []*float64, n int, asked *float64) *float64 {
 type KiroCLI struct {
 	Home        string
 	CrewHome    string
-	CrewArchive string  // kiroku archive の Crew のコピーの場所（<保存場所>/crew）
-	crew        int     // Crew から動かした kiro-cli の会話
-	crewFixed   int     // Crew の使用量の記録でクレジットを補った会話
-	crewOnly    int     // kiro-cli の会話に結びつかない Crew の記録
-	crewCr      float64 // そのクレジット
-	crewText    int     // Crew の会話の記録だけにある会話
-	crewElse    int     // ほかの履歴（Claude Code・Codex）が記録しているので、トークンとドル額を足さなかった Crew の行
+	CrewArchive string   // kiroku archive の Crew のコピーの場所（<保存場所>/crew）
+	crew        int      // Crew から動かした kiro-cli の会話
+	crewFixed   int      // Crew の使用量の記録でクレジットを補った会話
+	crewOnly    int      // kiro-cli の会話に結びつかない Crew の記録
+	crewCr      float64  // そのクレジット
+	crewText    int      // Crew の会話の記録だけにある会話
+	crewElse    int      // ほかの履歴（Claude Code・Codex）が記録しているので、トークンとドル額を足さなかった Crew の行
+	withheld    []string // 中身を出さない会話の core.Builder.Key（Withheld）
 }
+
+// Withheld は、中身を出さない Crew の会話の core.Builder.Key（kiro-cli の会話 ID の "kiro-cli:<id>" をふくむ）。
+// Kiro CLI の SQLite（QStore）は同じ会話を同じ Key で出し、Crew を見ないので、読み込む側が HideWithheld で隠す。
+// Crew は会話を閉じるときに sessions/cli/<id>.json を消すので、SQLite の写しだけが残ることがある。
+func (k *KiroCLI) Withheld() []string { return k.withheld }
 
 // Keep は、kiroku archive で残す場所（Kiro Crew は退避した古い会話の記録を消すため）。
 func (k *KiroCLI) Keep() []Kept {
@@ -232,10 +238,11 @@ func (k *KiroCLI) DetailEn() string {
 func (k *KiroCLI) Name() string { return "Kiro CLI" }
 
 // Retention は Kiro Crew の会話の記録の保存期間（session.archive_retention_days。既定 30 日）。Crew を使っているときだけ。
-// Crew は 1 時間に 1 回、退避した会話の記録（sessions/archive/）のうち更新時刻がそれより古いものを消す（閉じた会話の crew log も同じ設定で消す）。
+// Crew は退避した会話の記録を新しく書いたとき（1 つのプロセスで 1 時間に 1 回まで）に、sessions/archive/ のうち更新時刻がそれより古いものを消す
+// （history.py の _archive_lines → _cleanup_old_archives。閉じた会話の crew log も同じ設定で消す）。決まった間隔で動くのではない。
 // 消さない設定（null か負の数）なら nil。Crew は config.json に全部のキーを書き出すので、キーがあっても利用者が決めたとは限らない。
 // そこで、既定の 30 日と違う値のときだけ設定済み（Set）にする。設定を足す先は、config.json より勝つ config.local.json を案内する。
-// 0 日なら、Crew は次の片付け（1 時間に 1 回まで）で退避した記録を全部消す（history.py の _cleanup_old_archives は cutoff = 今）。
+// 0 日なら、Crew は次の片付け（次に記録を退避したとき）で退避した記録を全部消す（history.py の _cleanup_old_archives は cutoff = 今）。
 // Days の 0 は「わからない」なので、Now で 0 日を表す。
 func (k *KiroCLI) Retention() *Retention {
 	if k.CrewHome == "" || !isDir(k.CrewHome) {
@@ -257,12 +264,21 @@ func (k *KiroCLI) Where() string  { return filepath.Join(k.Home, "sessions", "cl
 func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 	base := k.Where()
 	if !isDir(base) {
+		// kiro-cli の JSON の履歴がなくても、SQLite の写しを隠せるように、中身を出さない会話は調べる
+		k.withheld = nil
+		for sid, info := range loadCrew(k.CrewHome, nil, newCrewPrivacy(k.CrewHome, k.CrewArchive)) {
+			if info.Private {
+				k.withheld = append(k.withheld, "kiro-cli:"+sid)
+			}
+		}
+		sort.Strings(k.withheld)
 		return nil
 	}
 	var errs fileErrs
-	crew := loadCrew(k.CrewHome, &errs)
+	priv := newCrewPrivacy(k.CrewHome, k.CrewArchive) // 中身を残さない会話（loadCrew・loadCrewSpawns と同じものを使う）
+	crew := loadCrew(k.CrewHome, &errs, priv)
 	usage := loadCrewUsage(k.CrewHome, &errs)
-	k.crew, k.crewFixed, k.crewOnly, k.crewCr, k.crewText, k.crewElse = 0, 0, 0, 0, 0, 0
+	k.crew, k.crewFixed, k.crewOnly, k.crewCr, k.crewText, k.crewElse, k.withheld = 0, 0, 0, 0, 0, 0, nil
 	slotInfo := map[string]*CrewInfo{} // 使用量の記録の slot → Crew の情報（session_map の会話と、サブエージェント）
 	sids := make([]string, 0, len(crew))
 	for sid := range crew {
@@ -278,7 +294,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		}
 	}
 	// state.json が消えた（Crew が片付けた）サブエージェントは、親の会話の crew-log に残る起動の記録で親を見つける
-	for slot, info := range loadCrewSpawns(k.CrewHome, &errs) {
+	for slot, info := range loadCrewSpawns(k.CrewHome, &errs, priv) {
 		if slotInfo[slot] == nil {
 			slotInfo[slot] = &info
 		}
@@ -409,7 +425,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		}
 		// 会話の記録。Crew から動かした会話は、kiro-cli の履歴に依頼が残らないことがある。
 		// 行は使用量の記録と同じく時刻で分ける（時刻のない行は前の行と同じ会話に）。Crew のセッションがなければ、どの会話にも入らない行は今の会話に入れる
-		var title string
+		var cm crewMeta // 会話の記録のメタデータ
 		var rows, restRows []crewRow
 		live := -1 // 今の会話（Former でない）
 		need := len(rest) > 0
@@ -426,7 +442,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			need = len(rest) > 0
 		}
 		if need && !crewBackground(slot) && k.CrewHome != "" {
-			title, rows = readCrewKey(k.CrewHome, k.CrewArchive, slot, &errs)
+			cm, rows = readCrewStemIn(priv.archive(), safeKey(slot), &errs)
 		}
 		if live < 0 {
 			live = len(ow) - 1
@@ -463,8 +479,13 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		}
 		// 会話キーの今の会話を、前の会話より先に預ける（サブエージェントの親にする）
 		sort.SliceStable(ow, func(i, j int) bool { return !ow[i].info.Former && ow[j].info.Former })
+		// 会話の記録（退避した記録も）が中身を残さない会話だと示すか。依頼が kiro-cli に残っていて会話の記録を読まなくても調べる
+		private := cm.private || !crewBackground(slot) && priv.key(slot)
 		for _, o := range ow {
 			info := o.info
+			if private && !info.Subagent {
+				info.Private = true
+			}
 			held.add(o.s, &info, info.Key)
 		}
 		if len(rest) == 0 {
@@ -472,7 +493,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		}
 		// kiro-cli の会話に結びつかない Crew の記録
 		seenRows[slot] = true
-		ss, skipped := crewOnly(k.CrewHome, slot, rest, slotInfo[slot], title, restRows)
+		ss, skipped := crewOnly(k.CrewHome, slot, rest, slotInfo[slot], cm.title, restRows)
 		k.crewElse += skipped
 		for _, s := range ss {
 			k.crewOnly++
@@ -482,6 +503,9 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 				continue
 			}
 			held.add(s, slotInfo[slot], slot)
+			if private {
+				held.hide(s)
+			}
 		}
 	}
 	// 会話の記録だけがある Crew の会話（使用量の記録も kiro-cli の会話もないもの）
@@ -500,14 +524,14 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			}
 			// 退避した古い行も読む。fork なら、元の会話から写した行は除く
 			stem := strings.TrimSuffix(filepath.Base(p), ".jsonl")
-			title, rows := readCrewStem(k.CrewHome, k.CrewArchive, stem, &errs)
+			cm, rows := readCrewStemIn(priv.archive(), stem, &errs)
 			if len(rows) == 0 {
 				continue
 			}
 			s := core.NewBuilder("Kiro Crew", "crew:"+stem)
 			s.File = p
 			s.Key = "kiro-crew:" + stem
-			s.Title, s.Project = firstNonEmpty(title, "Kiro Crew: "+stem), "(Kiro Crew)"
+			s.Title, s.Project = firstNonEmpty(cm.title, "Kiro Crew: "+stem), "(Kiro Crew)"
 			if info := byFile[p]; info != nil && info.Cwd != "" {
 				s.Project = info.Cwd
 			}
@@ -522,9 +546,28 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			k.crewText++
 			held.byPath[p] = s
 			held.list = append(held.list, heldCrew{b: s})
+			if info := byFile[p]; cm.private || priv.stem(stem) || info != nil && info.Private {
+				held.hide(s)
+			}
 		}
 	}
 	held.flush(k.CrewHome, emit)
+	seen := map[string]bool{}
+	withhold := func(key string) {
+		if key != "" && !seen[key] {
+			seen[key] = true
+			k.withheld = append(k.withheld, key)
+		}
+	}
+	for _, sid := range sids {
+		if crew[sid].Private {
+			withhold("kiro-cli:" + sid)
+		}
+	}
+	for b := range held.private {
+		withhold(b.Key)
+	}
+	sort.Strings(k.withheld)
 	return errs.err()
 }
 

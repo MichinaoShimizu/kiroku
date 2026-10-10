@@ -151,13 +151,13 @@ func TestCrewReportsBrokenSessionMap(t *testing.T) {
 	ch := t.TempDir()
 	writeFiles(t, ch, map[string]string{"session_map.json": `{"a": {"sid": `})
 	var errs fileErrs
-	if out := loadCrew(ch, &errs); len(out) != 0 || errs.err() == nil || !strings.Contains(errs.err().Error(), "session_map.json") {
+	if out := loadCrew(ch, &errs, nil); len(out) != 0 || errs.err() == nil || !strings.Contains(errs.err().Error(), "session_map.json") {
 		t.Errorf("loadCrew = %v, err = %v", out, errs.err())
 	}
 	// session_map.json がない（Crew の作りが違う）のはエラーにしない
 	os.Remove(filepath.Join(ch, "session_map.json"))
 	errs = fileErrs{}
-	loadCrew(ch, &errs)
+	loadCrew(ch, &errs, nil)
 	if errs.err() != nil {
 		t.Errorf("session_map.json がないとき err = %v", errs.err())
 	}

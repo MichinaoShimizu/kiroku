@@ -93,7 +93,7 @@ func TestDoctorZeroDayRetention(t *testing.T) {
 	var b bytes.Buffer
 	doctorReport(&b, rep, 3, dir, release{}, false)
 	out := b.String()
-	for _, want := range []string{"! Kiro Crew deletes old history at its next cleanup, within an hour (session.archive_retention_days is 0)",
+	for _, want := range []string{"! Kiro Crew deletes old history at its next cleanup (session.archive_retention_days is 0)",
 		`add "session": {"archive_retention_days": 3650} to /x/crew/config.local.json`, `Run "kiroku archive on"`} {
 		if !strings.Contains(out, want) {
 			t.Errorf("%q がない:\n%s", want, out)
