@@ -277,7 +277,7 @@ func (c *Claude) Units() []Unit {
 	}
 	c.orig.setIndex(out)
 	for i := range out {
-		out[i].Tag = c.orig.goneOrigins(out[i].Key)
+		out[i].Tag = c.orig.tag(out[i].Key)
 	}
 	return out
 }
@@ -328,7 +328,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	if !c.orig.hasIndex() {
 		c.Units() // 元の会話のファイルの一覧を作る（ふつうは Load や kiroku serve が先に Units を呼んでいる）
 	}
-	origins := &originCheck{o: &c.orig, sets: map[string][]map[uint64]struct{}{}, found: map[string]bool{}}
+	origins := &originCheck{o: &c.orig, sets: map[string][]map[uint64]struct{}{}, found: map[string]bool{}, stamps: map[string]string{}}
 	var branchAt *float64 // 数えなかった（元の会話にあった）写した行のいちばん遅い時刻（会話を分けた時刻）
 	var version string    // いちばん新しい行を書いた Claude Code の版（行の version）
 	var versionT float64  // その行の時刻
@@ -637,7 +637,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			s.Branch = b
 		}
 	}
-	c.orig.remember(path, origins.found)
+	c.orig.remember(path, origins)
 	s.Title = firstNonEmpty(customTitle, aiTitle)
 	if s.Title == "" && len(summaries) > 0 {
 		s.Title = summaries[len(summaries)-1]

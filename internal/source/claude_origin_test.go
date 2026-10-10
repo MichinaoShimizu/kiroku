@@ -112,3 +112,61 @@ func TestClaudeBranchOriginBounds(t *testing.T) {
 		t.Errorf("ORIG の依頼 = %d, want 4", got["ORIG"])
 	}
 }
+
+// 元の会話が数えない行（JSON として壊れている・時刻がない）は、元の会話にある行とみなさない。写した先で数える。
+func TestClaudeBranchOriginLinesItDoesNotCount(t *testing.T) {
+	root := t.TempDir()
+	bad := func(uuid, extra string) string {
+		return strings.Replace(userLine("ORIG", uuid, "元"), `{"type"`, `{`+extra+`,"type"`, 1)
+	}
+	writeLines(t, filepath.Join(root, "p", "ORIG.jsonl"), []string{
+		bad("x1", `"bad":NaN`), bad("x2", `"bad":tru`), bad("x3", `"bad":"\x"`),
+		strings.Replace(userLine("ORIG", "x4", "元"), `"timestamp":"2026-09-30T01:00:00Z",`, "", 1),
+		userLine("ORIG", "x5", "元"),
+	})
+	var copies []string
+	for _, u := range []string{"x1", "x2", "x3", "x4", "x5"} {
+		copies = append(copies, userLine("ORIG", u, "写し"))
+	}
+	writeLines(t, filepath.Join(root, "q", "BBBB.jsonl"), copies)
+	if got := promptsBy(t, &Claude{Root: root}); got["BBBB"] != 4 || got["ORIG"] != 1 {
+		t.Errorf("依頼の数 = %v, want BBBB 4（x1〜x4 は元の会話が数えないので写した先で数える）・ORIG 1", got)
+	}
+}
+
+// 元の会話がたくさんあり、それを元とする会話が順番に使っても、元の会話のファイルは 1 回ずつしか読まない。
+// 1 つの元の会話から読むのは maxOriginBytes まで（その先の行の写しは数える）。
+func TestClaudeBranchOriginCacheAndByteBudget(t *testing.T) {
+	root := t.TempDir()
+	for j := range 20 {
+		id := fmt.Sprintf("O%02d", j)
+		writeLines(t, filepath.Join(root, "p", id+".jsonl"), []string{userLine(id, "o1", "元")})
+	}
+	for k := range 40 {
+		var ls []string
+		for i := range 8 {
+			ls = append(ls, userLine(fmt.Sprintf("O%02d", (8*k+i)%20), "o1", "写し"))
+		}
+		ls = append(ls, userLine(fmt.Sprintf("R%02d", k), "r", "自分"))
+		writeLines(t, filepath.Join(root, "q", fmt.Sprintf("R%02d.jsonl", k)), ls)
+	}
+	before := originReads.Load()
+	got := promptsBy(t, &Claude{Root: root})
+	if n := originReads.Load() - before; n > 20 {
+		t.Errorf("元の会話を %d 回読んだ, want 20 回まで（1 つにつき 1 回）", n)
+	}
+	if got["R00"] != 1 || got["R39"] != 1 {
+		t.Errorf("依頼の数 = %v, want R はそれぞれ自分の 1 つ", got)
+	}
+
+	root = t.TempDir()
+	first, second := userLine("ORIG", "a1", "一"), userLine("ORIG", "a2", "二")
+	writeLines(t, filepath.Join(root, "p", "ORIG.jsonl"), []string{first, second})
+	writeLines(t, filepath.Join(root, "q", "BBBB.jsonl"), []string{first, second})
+	old := maxOriginBytes
+	maxOriginBytes = int64(len(first) + 1) // 1 行目だけ読む
+	t.Cleanup(func() { maxOriginBytes = old })
+	if got := promptsBy(t, &Claude{Root: root}); got["BBBB"] != 1 {
+		t.Errorf("BBBB の依頼 = %d, want 1（読まなかった 2 行目の写しは数える）", got["BBBB"])
+	}
+}
