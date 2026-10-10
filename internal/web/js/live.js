@@ -10,7 +10,7 @@ if (LIVE){
       if (parseFloat(await r.text()) !== GENERATED){
         const j = await (await fetch("data.json", {cache:"no-store"})).json(), before = DATA.length;
         applyData(j);
-        render(); if ($("#yr").open) renderYear();
+        render(); if ($("#yr").open) refreshYear();
         const d = DATA.length - before;
         toast(d > 0 ? `Added ${plural(d, "new session")}` : "Updated to the latest history");
       }

@@ -413,7 +413,9 @@ async function run(env) {
     await p.locator('#yr [data-o="late"]').check(); await pause();
     check("選べば、深夜・週末が画像（読み上げ用の説明）に加わる", /late nights|Late nights|Weekends/.test(await p.locator("#yrcard").getAttribute("aria-label")));
     await p.locator('#yr [data-o="late"]').uncheck(); await pause();
+    check("開いたとき、フォーカスがダイアログの中にある", await p.evaluate(() => document.querySelector("#yr").contains(document.activeElement)));
     await p.locator("#yrcolor").selectOption("project"); await pause();
+    check("色分けを変えても、フォーカスは色分けの選択に残る", await p.evaluate(() => document.activeElement && document.activeElement.id === "yrcolor"));
     check("プロジェクトで色分けできる（画面の凡例にプロジェクトが並ぶ）", /Color = project/.test(await p.locator("#yr .yrhow").innerText()));
     await p.locator("#yrcolor").selectOption("auto"); await pause();
     check("腕前の等級やメーターを出さない（人を順位付けしない）", !/Novice|Legendary|Master|Overexposed|Underexposed|Skill/.test(await p.locator("#yr").innerText()));

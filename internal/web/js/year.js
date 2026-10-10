@@ -249,6 +249,10 @@ function drawPlate(){
   const r = cv.getBoundingClientRect(), p = Math.min(2, devicePixelRatio || 1), W = Math.round(r.width*p), H = Math.round(r.height*p), R = yrRange(yr.x);
   if (!W || !H) return; cv.width = W; cv.height = H; exposure(cv.getContext("2d"), 0, 0, W, H, yr.x, p, true, R.c0, R.last);
 }
+/* 期間の書き方。1 日だけなら「Dec 31, 2025」 */
+function yrSpan(a, b){
+  return +a === +b ? dMDY(a) : dSpan(a, b, true);
+}
 /* 画像の見出し：記録の長さに合わせる（短い記録に「1 年」と書かない） */
 function yrTitle(x){
   if (x.short){ // 2 週に満たなければ日で、それ以上は週で数える。光が 1 本もない年は数を言わない
@@ -270,7 +274,10 @@ function drawCard(){
   g.clearRect(0, 0, W, H); g.fillStyle = "#06070a"; g.fillRect(0, 0, W, H);
   // 使い始めたばかりでも光が端に寄らないよう、画像は記録のある日から（短ければ 4 週ぶん）だけを写す
   const {c0, last} = yrRange(x);
-  exposure(g, PX, PT, PW, PB - PT, x, 2, false, c0, last);
+  // 光は描くのに時間がかかる（1 年で数万本）。文字だけが変わる切り替え（チェック）では、描いておいたものを貼る
+  const ck = [x.y, x.mode, c0, last, yrSig(x)].join("|");
+  if (!yr.plate || yr.plate.k !== ck){ const c = document.createElement("canvas"); c.width = PW; c.height = PB - PT; exposure(c.getContext("2d"), 0, 0, PW, PB - PT, x, 2, false, c0, last); yr.plate = {k: ck, c}; }
+  g.drawImage(yr.plate.c, PX, PT);
   // 目盛り：下に月、左の余白に時刻（6・12・18・0・6 時）。どこが何月・何時かを画像だけで読めるように
   g.save(); g.fillStyle = ink2; g.globalAlpha = .75; g.font = `500 14px ${FONT.mono}`; g.textBaseline = "alphabetic"; g.textAlign = "left";
   for (let mo = 0; mo < 12; mo++){
@@ -309,13 +316,14 @@ function drawCard(){
   // 見出し：期間はいつも日付で書く（写した範囲）
   g.textAlign = "left"; g.textBaseline = "alphabetic";
   g.fillStyle = ink2; g.font = `500 22px ${FONT.mono}`; ls("4px");
-  g.fillText(`KIROKU — ${dSpan(new Date(x.y, 0, 1 + c0), new Date(x.y, 0, last), true).toUpperCase()}`, PX, 90); ls("0px");
+  g.fillText(`KIROKU — ${yrSpan(new Date(x.y, 0, 1 + c0), new Date(x.y, 0, last)).toUpperCase()}`, PX, 90); ls("0px");
   const title = yrTitle(x);
   g.fillStyle = ink; fit(title, 760, 64, fs => `700 ${fs}px ${FONT.mincho}`); g.fillText(title, PX, 172);
   // 合計は小さく（主役は光。人と比べる数字にしない）。時間が何を数えたかを、すぐ下に書く
   if (o.totals){
-    const hrs = x.active/60, items = [[commas(hrs >= 10 ? Math.round(hrs) : Math.round(hrs*10)/10), "hours with a session active"], [commas(x.sessions), "sessions"]];
-    if (x.commits) items.push([commas(x.commits), "commits"]); if (x.prs) items.push([commas(x.prs), "PRs"]);
+    const hrs = x.active/60, hv = hrs >= 10 ? Math.round(hrs) : Math.round(hrs*10)/10, w = (n, one, many) => [commas(n), n === 1 ? one : many];
+    const items = [w(hv, "hour with a session active", "hours with a session active"), w(x.sessions, "session", "sessions")];
+    if (x.commits) items.push(w(x.commits, "commit", "commits")); if (x.prs) items.push(w(x.prs, "PR", "PRs"));
     let cx = PX;
     items.forEach(([t, l], i) => { if (cx > 820) return; g.font = `500 26px ${FONT.mono}`; g.fillStyle = ink; g.fillText(t, cx, 232); cx += g.measureText(t).width + 10;
       g.font = `500 22px ${FONT.sans}`; g.fillStyle = ink2; g.fillText(l, cx, 232); cx += g.measureText(l).width + (i < items.length - 1 ? 34 : 0); });
@@ -368,10 +376,13 @@ function cardLabel(x, L, o){
   if (m.length) parts.push(`What stands out: ${m.join("; ")}`);
   return `Image to share. ${parts.join(". ")}`;
 }
-function renderYear(){
+function renderYear(pre){
   const ys = yearsOf(), dlg = $("#yr"); if (!ys.length) return;
   if (!ys.includes(yr.y)) yr.y = ys.includes(today0().getFullYear()) ? today0().getFullYear() : ys[ys.length-1];
-  const x = yr.x = yearData(yr.y), L = yr.L = x.short ? null : LIGHTS.find(l => l.t(x)), pt = x.partial; // 8 週に満たなければ光の名前は付けない
+  // 作り直しても、フォーカスのあった操作と「All 7」の開閉を戻す（年・色分け・チェックを変えたときや、serve の自動更新のとき）
+  const fo = document.activeElement, sel = fo && dlg.contains(fo) ? (fo.id ? `#${fo.id}` : fo.dataset && fo.dataset.o ? `[data-o="${fo.dataset.o}"]` : null) : null;
+  const det = !!(dlg.querySelector(".yrtypes") || {}).open;
+  const x = yr.x = pre && pre.y === yr.y ? pre : yearData(yr.y), L = yr.L = x.short ? null : LIGHTS.find(l => l.t(x)), pt = x.partial; // 8 週に満たなければ光の名前は付けない
   x.mode = yrColorMode(x); x.colorFn = yrColorOf(x, x.mode);
   const keys = x.mode === "project" ? x.projects : x.agents, qs = x.halves.filter(h => h.q);
   const R = yrRange(x), colOf = d => Math.round((d - new Date(x.y, 0, 1))/864e5), pos = c => ((c - R.c0)/(R.last - R.c0)*100).toFixed(2);
@@ -379,7 +390,7 @@ function renderYear(){
   if (!months) months = `<span style="left:0">${dMD(new Date(x.y, 0, 1 + R.c0))}</span>`; // 1 か月の中に収まるなら、最初の日を書く
   const from = new Date(x.y, 0, 1 + R.c0);
   const hours = [["6", 0], ["12", 25], ["18", 50], ["0", 75], ["6", 100]].map(([h, t]) => `<span style="top:${t}%">${`${h}:00`}</span>`).join("");
-  const ev = L ? [L.m, ...["morning", "avg", "per"].filter(k => k !== L.m)].slice(0, 3).map(k => lightMetric(k, x)) : [];
+  const ev = L ? [L.m, ...["avg", "per"].filter(k => k !== L.m)].map(k => lightMetric(k, x)) : []; // 光を決めた数字と、どの光にも関わる 2 つ（朝の割合は Daybreak のときだけ）
   const asks = [...qs.map(h => h.q), ...(L ? [L.ask] : [])];
   const vt = t => esc(t);
   // その年に何も変えない項目は押せなくし、理由を添える
@@ -389,7 +400,7 @@ function renderYear(){
   dlg.innerHTML = `<div class="yrhd"><div><div class="eyebrow">Year in review</div><h2 id="yrh">${`${x.y} exposure`}</h2></div>
     <label><span class="sr">Year</span><select id="yrsel">${ys.map(v => `<option value="${v}"${v === x.y ? " selected" : ""}>${v}</option>`).join("")}</select></label>
     <form method="dialog"><button class="iconbtn" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form></div>
-  <p class="yrlead">Your active time with AI, drawn like a year-long exposure. Across is the date, down is the time of day (6:00 to 6:00 the next morning). Each stretch of active time is a streak of light, brighter where sessions overlapped. Shown: ${esc(dSpan(from, new Date(x.y, 0, R.last), true))}${R.c0 && R.c0 === x.c0 ? " (from the first day with history)" : ""}.</p>
+  <p class="yrlead">Your active time with AI, drawn like a year-long exposure. Across is the date, down is the time of day (6:00 to 6:00 the next morning). Each stretch of active time is a streak of light, brighter where sessions overlapped. Shown: ${esc(yrSpan(from, new Date(x.y, 0, R.last)))}${R.c0 && R.c0 === x.c0 ? " (from the first day with history)" : ""}.</p>
   <div class="yrscroll" tabindex="0" role="group" aria-label="Exposure chart, scrolls sideways on narrow screens"><div class="yrchart"><div class="yrax" aria-hidden="true">${hours}</div><canvas class="yrplate" id="yrplate" role="img" aria-label="${esc(`Active time in ${x.y} by date and time of day. Active time ${dur(x.active)}`)}"></canvas><div class="yrx" aria-hidden="true">${months}</div></div></div>
   <div class="yrleg">${keys.map(a => `<span><i style="background:${a.c}"></i>${esc((a.k))} ${Math.round(a.pct)}%</span>`).join("")}</div>
   <div class="yrhow"><div><b>Length = how long a session was active</b>Each streak is one stretch of active time in a session, estimated from the timestamps in the history. It includes time the AI ran on its own.</div>
@@ -417,7 +428,7 @@ function renderYear(){
     <details class="yrtypes"><summary>All ${LIGHTS.length} and how they are chosen</summary><ul>${LIGHTS.map(l => `<li><b>${name(l)}</b> — ${l.re}</li>`).join("")}</ul>
       <p class="note">The first one that matches, from the top, is chosen.</p></details></div></div>` : `<p class="note">Your light is named once you have 8 weeks of history. Until then there is too little to say.</p>`}`;
   $("#yrsel").onchange = e => { yr.y = +e.target.value; renderYear(); $("#yrsel").focus(); }; // 描き直しても、年の選択にフォーカスを残す
-  $("#yrcolor").onchange = e => { yr.opt.color = e.target.value; store.set("yrOpt", yr.opt); renderYear(); };
+  $("#yrcolor").onchange = e => { yr.opt.color = e.target.value; store.set("yrOpt", yr.opt); renderYear(); $("#yrcolor").focus(); };
   dlg.querySelectorAll("[data-o]").forEach(c => c.onchange = () => { yr.opt[c.dataset.o] = c.checked; store.set("yrOpt", yr.opt); drawCardLabeled(); });
   const blob = () => new Promise(res => $("#yrcard").toBlob(res, "image/png"));
   $("#yrsave").onclick = async () => { const b = await blob(); if (!b) return toast("Couldn't make the image");
@@ -427,6 +438,13 @@ function renderYear(){
     catch(e){ toast("Couldn't copy the image. Save it as a PNG instead", 2600); } };
   drawPlate(); drawCardLabeled();
   const sc = dlg.querySelector(".yrscroll"); sc.scrollLeft = sc.scrollWidth; // 狭い画面では、新しい記録の側を見せる
+  if (det) dlg.querySelector(".yrtypes").open = true;
+  if (sel){ const e = dlg.querySelector(sel); if (e) e.focus(); }
+  yr.sig = yrSig(x);
 }
-function openYear(){ const d = $("#yr"); if (!d.open) d.showModal(); renderYear(); }
+const yrSig = x => [x.y, x.lines.length, x.active, x.sessions, x.commits, x.prs].join("|");
+/* serve の自動更新：選んでいる年の数字が変わったときだけ描き直す（作り直すと、読んでいる途中の画面が動くので） */
+function refreshYear(){ const x = yearData(yr.y); if (yrSig(x) !== yr.sig) renderYear(x); }
+/* 中身を作ってから開く（開いてから作り直すと、開いたときのフォーカスが消える）。図の大きさは開いてからでないと測れない */
+function openYear(){ const d = $("#yr"); if (d.open) return renderYear(); renderYear(); d.showModal(); drawPlate(); }
 

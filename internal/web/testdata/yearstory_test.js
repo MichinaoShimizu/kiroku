@@ -3,6 +3,8 @@
    境界の値で、出る・出ないが決まりどおりかを見る */
 const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const dMD = d => `${MON[d.getMonth()]} ${d.getDate()}`;
+const dMDY = d => `${dMD(d)}, ${d.getFullYear()}`;
+const dSpan = (a, b) => a.getFullYear() === b.getFullYear() ? `${dMD(a)} – ${dMDY(b)}` : `${dMDY(a)} – ${dMDY(b)}`;
 const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const key = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -114,3 +116,6 @@ eq(yrTitle({short: true, span: 21, firstYear: false}), "3 weeks with AI.", "前�
 eq(yrTitle({short: true, span: 0, firstYear: true}), "Your first days with AI.", "光がなければ数を言わない");
 eq(yrTitle({short: false, partial: new Date()}), "This year with AI, so far.", "今年");
 eq(yrTitle({short: false, partial: null}), "A year with AI.", "過ぎた年");
+
+eq(yrSpan(new Date(2025, 11, 31), new Date(2025, 11, 31)), "Dec 31, 2025", "1 日だけなら、その日だけを書く");
+eq(yrSpan(new Date(2025, 10, 14), new Date(2025, 11, 31)), "Nov 14 – Dec 31, 2025", "期間");

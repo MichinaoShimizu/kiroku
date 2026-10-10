@@ -273,7 +273,7 @@ func TestYearStory(t *testing.T) {
 	}
 	text := strings.ReplaceAll(string(src), "\r\n", "\n")
 	var fns []string
-	for _, name := range []string{"highlights", "halves", "mergeSegs", "plateCols", "sideLines", "cardMarks", "yrRange", "yrTitle"} {
+	for _, name := range []string{"highlights", "halves", "mergeSegs", "plateCols", "sideLines", "cardMarks", "yrRange", "yrTitle", "yrSpan"} {
 		fn := regexp.MustCompile(`(?ms)^function ` + name + `\(.*?\n\}\n`).FindString(text)
 		if fn == "" {
 			t.Fatalf("year.js に %s が見つからない", name)

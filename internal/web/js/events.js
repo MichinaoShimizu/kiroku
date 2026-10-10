@@ -42,7 +42,7 @@ $("#theme").onclick = () => { st.theme = st.theme === "dark" ? "light" : "dark";
 $("#help").onclick = () => $("#keys").showModal();
 $("#guide").onclick = openGuide;
 $("#yrbtn").onclick = openYear;
-addEventListener("resize", () => { if ($("#yr").open) drawPlate(); });
+let yrRaf = 0; addEventListener("resize", () => { if ($("#yr").open && !yrRaf) yrRaf = requestAnimationFrame(() => { yrRaf = 0; drawPlate(); }); }); // 1 年の図の描き直しは 1 コマに 1 回まで
 // ダイアログ（ショートカット・Worth a look・1 年の露光）は、枠の外を押すと閉じる（詳細のパネルの #scrim と同じ）。
 // 押し始めも外だったときだけ（枠の中で文字を選んで、外で離したときには閉じない）
 document.querySelectorAll("dialog").forEach(d => { let down = false;
