@@ -25,7 +25,7 @@ Source adapters must identify supported and unsupported fields, and regressions 
 
 ## Alternatives and historical confidence
 
-Earlier coaching-oriented and grading-oriented UI was tried and subsequently reduced or removed; see [ADR 0006](0005-nonjudgmental-reflection.md). No evidence is asserted for alternatives not documented in linked PRs.
+Earlier coaching-oriented and grading-oriented UI was tried and subsequently reduced or removed; see [ADR 0005](0005-nonjudgmental-reflection.md). No evidence is asserted for alternatives not documented in linked PRs.
 
 ## Verification
 
