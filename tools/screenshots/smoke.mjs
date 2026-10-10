@@ -392,6 +392,10 @@ async function run(env) {
       check("y で 1 年の露光が開かない", !(await p.locator("#yr").evaluate(d => d.open)));
       return;
     }
+    check("Year は Week・Month の隣に出る", await p.locator("#mode #yrbtn").isVisible());
+    await p.locator("#yrbtn").click(); await pause();
+    check("Year を押すと 1 年の露光が開き、Week・Month の選択は変わらない", await p.locator("#yr").evaluate(d => d.open) && await p.locator("#mode [aria-pressed=true]").count() === 1);
+    await p.keyboard.press("Escape"); await pause();
     await p.keyboard.press("y"); await pause();
     check("y で 1 年の露光が開く", await p.locator("#yr").evaluate(d => d.open));
     check("シェア用の画像に光が描かれている", await p.locator("#yrcard").evaluate(c => {
