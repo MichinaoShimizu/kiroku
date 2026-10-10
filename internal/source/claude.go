@@ -8,16 +8,24 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
 
 // Claude は Claude Code の履歴: <root>/<project>/<sessionId>.jsonl と <sessionId>/subagents/agent-<id>.jsonl。
 // Archive は kiroku archive のコピーの場所（<保存場所>/claude。同じ並びで .jsonl.zst）。元の会話が消えていれば、コピーを読む。
-type Claude struct{ Root, Archive string }
+type Claude struct {
+	Root, Archive string
+
+	mu      sync.Mutex
+	origins map[string][]string // 会話のファイル（Unit.Key）ごとの、写した行を数えなかった元の会話の ID（LoadUnit が覚え、Units が Tag に使う）
+}
 
 func (c *Claude) Name() string   { return "Claude Code" }
 func (c *Claude) Family() string { return "claude" }
@@ -27,16 +35,28 @@ func (c *Claude) Where() string  { return c.Root }
 // 組織の設定（managed settings）のファイルにあればそれを、なければ利用者の設定（projects の隣の settings.json）を見る。
 // 組織の設定は利用者の設定より強い。claude.ai から届く組織の設定や MDM（macOS の構成プロファイル・Windows のレジストリ）、
 // プロジェクトの設定にある場合は読まない。
-// 利用者の設定に Claude Code が受け付けない値（0・文字列・小数・null など）があると、Claude Code は保存期間を決められないので
-// 片付けを止め、何も消さない（組織の設定に正しい値があれば、その値で消す）。そのときは消さないので nil。
+// Claude Code は保存期間を決められないとき、片付けを止めて何も消さない。そのときは nil:
+//   - 利用者の設定に受け付けない値（0・文字列・小数・null など）がある
+//   - 設定のファイルがあるのに読めない・JSON の object として読めない（skip_reason の settings_unknowable）。
+//     managed-settings.json が読めなくても、managed-settings.d/ に正しい値があれば止めない
+//
+// どちらも、組織の設定に正しい値があれば、その値で消す。ないファイルは読めないファイルではない。
+// ほかの設定の検証エラー（settings_invalid_key_set）は、Claude Code の設定の定義がないと見分けられないので見ない。
 // 出典: https://code.claude.com/docs/en/settings-reference#cleanupperioddays 、https://code.claude.com/docs/en/managed-settings 、
-// https://code.claude.com/docs/en/claude-directory （Paused sweep）
+// https://code.claude.com/docs/en/claude-directory （Paused sweep）、https://code.claude.com/docs/en/monitoring-usage （Retention sweep event）
 func (c *Claude) Retention() *Retention {
 	file := filepath.Join(filepath.Dir(c.Root), "settings.json")
 	r := &Retention{Days: 30, Setting: "cleanupPeriodDays", Snippet: `"cleanupPeriodDays": 3650`, Docs: "https://code.claude.com/docs/en/settings-reference#cleanupperioddays", File: file}
-	if days, from := managedCleanupDays(claudeManagedDir); days > 0 {
+	days, from, broken := managedCleanupDays(claudeManagedDir)
+	if days > 0 {
 		r.Days, r.Set, r.File = days, true, from
-	} else if settings := configObject(file); hasKey(settings, "cleanupPeriodDays") {
+		return r
+	}
+	settings, bad := settingsFile(file)
+	if broken || bad {
+		return nil // 読めない設定のファイルがある。Claude Code は片付けを止める
+	}
+	if hasKey(settings, "cleanupPeriodDays") {
 		days, ok := cleanupDays(settings)
 		if !ok {
 			return nil // 受け付けない値。Claude Code は片付けを止める
@@ -44,6 +64,17 @@ func (c *Claude) Retention() *Retention {
 		r.Days, r.Set = days, true
 	}
 	return r
+}
+
+// settingsFile は Claude Code の設定のファイルを読む。broken は、ファイルがあるのに読めない・JSON の object でないとき
+// （ないファイルと、ふつうのファイルでないもの（ディレクトリなど）は false）。
+func settingsFile(path string) (settings map[string]any, broken bool) {
+	st, err := os.Stat(path)
+	if errors.Is(err, fs.ErrNotExist) || err == nil && !st.Mode().IsRegular() {
+		return nil, false
+	}
+	settings = configObject(path)
+	return settings, settings == nil
 }
 
 // claudeManagedDir は、Claude Code の組織の設定のファイル（managed-settings.json と managed-settings.d/）を置く場所。
@@ -56,10 +87,10 @@ var claudeManagedDir = map[string]string{
 
 // managedCleanupDays は、組織の設定のファイルにある cleanupPeriodDays と、それを書いたファイル。なければ 0。
 // Claude Code と同じく managed-settings.json を先に、managed-settings.d/ の *.json（隠しファイルを除く）を名前の順に重ね、
-// 後のファイルの値が勝つ。
-func managedCleanupDays(dir string) (days int, file string) {
+// 後のファイルの値が勝つ。broken は、読めない（壊れた）ファイルがあったか。
+func managedCleanupDays(dir string) (days int, file string, broken bool) {
 	if dir == "" {
-		return 0, ""
+		return 0, "", false
 	}
 	files := []string{filepath.Join(dir, "managed-settings.json")}
 	for _, f := range glob(filepath.Join(dir, "managed-settings.d", "*.json")) { // glob は名前の順に並べて返す
@@ -68,11 +99,13 @@ func managedCleanupDays(dir string) (days int, file string) {
 		}
 	}
 	for _, f := range files {
-		if d, ok := cleanupDays(configObject(f)); ok {
+		settings, bad := settingsFile(f)
+		broken = broken || bad
+		if d, ok := cleanupDays(settings); ok {
 			days, file = d, f
 		}
 	}
-	return days, file
+	return days, file, broken
 }
 
 // hasKey は、設定に key が書いてあるか（値が null でも）。
@@ -224,6 +257,7 @@ func (c *Claude) Units() []Unit {
 			continue
 		}
 		u := claudeUnit(path, ".jsonl")
+		u.Tag = c.goneOrigins(path)
 		if c.Archive != "" { // 再開した会話では、古いサブエージェントのファイルだけが消えていることがある。消えたものはコピーから読む
 			stem, proj := stemOf(path), filepath.Base(filepath.Dir(path))
 			for _, cp := range glob(filepath.Join(c.Archive, proj, stem, "subagents", "*.jsonl.zst")) {
@@ -242,10 +276,77 @@ func (c *Claude) Units() []Unit {
 			if isFile(filepath.Join(c.Root, filepath.Base(filepath.Dir(path)), stemOf(path)+".jsonl")) {
 				continue // 元の会話があれば、そちらを読む
 			}
-			out = append(out, claudeUnit(path, ".jsonl.zst"))
+			u := claudeUnit(path, ".jsonl.zst")
+			u.Tag = c.goneOrigins(path)
+			out = append(out, u)
 		}
 	}
 	return out
+}
+
+// sessionIDPattern は、行の sessionId として受け付ける形（会話のファイル名に使うので、パスや glob の記号を入れない）。
+var sessionIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,128}$`)
+
+// copiedFrom は、行が別の会話から写したもの（/branch・--fork-session・エージェントの一覧の /fork）なら、元の会話の ID。
+// 写した行は元の会話の行の写しで、行の sessionId は元の会話のまま残る（写すときに sessionId を書き換える版でも、
+// forkedFrom.sessionId に元の会話が残る）と見る。どちらも公式の文書には書かれていないので、呼ぶ側は元の会話のファイルが
+// あるときだけ数えない（hasSession）。ほかの理由で sessionId がファイルの名前（stem）と違う行も、元のファイルがなければ数える。
+// sessionId のない行（summary・タイトルなど）は、この会話の行とみなす。
+func copiedFrom(e core.Obj, stem string) string {
+	id := core.Str(core.Map(e["forkedFrom"])["sessionId"])
+	if id == "" || id == stem {
+		id = core.Str(e["sessionId"])
+	}
+	if id == "" || id == stem || !sessionIDPattern.MatchString(id) {
+		return ""
+	}
+	return id
+}
+
+// hasSession は、会話 id のファイルを kiroku が読むか（Claude Code の履歴か kiroku archive のコピーにあるか）。
+// id は copiedFrom で形を確かめたもの。
+func (c *Claude) hasSession(id string) bool {
+	if len(glob(filepath.Join(c.Root, "*", id+".jsonl"))) > 0 {
+		return true
+	}
+	return c.Archive != "" && len(glob(filepath.Join(c.Archive, "*", id+".jsonl.zst"))) > 0
+}
+
+// goneOrigins は、前に読んだときにあった元の会話（写した行を数えなかったもの）のうち、今はないものの ID（Unit.Tag。
+// kiroku serve で、元の会話が消えたら写した行を数え直すため）。まだ読んでいない会話と、元の会話が全部あるものは空。
+func (c *Claude) goneOrigins(key string) string {
+	c.mu.Lock()
+	ids := c.origins[key]
+	c.mu.Unlock()
+	var gone []string
+	for _, id := range ids {
+		if !c.hasSession(id) {
+			gone = append(gone, id)
+		}
+	}
+	return strings.Join(gone, " ")
+}
+
+// rememberOrigins は、会話のファイル key の写した行の元の会話のうち、あったもの（has が true）の ID を覚える（goneOrigins 用）。
+// 読んだときになかった元の会話は、写した行をもう数えているので覚えない。
+func (c *Claude) rememberOrigins(key string, has map[string]bool) {
+	var ids []string
+	for id, ok := range has {
+		if ok {
+			ids = append(ids, id)
+		}
+	}
+	sort.Strings(ids)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if len(ids) == 0 {
+		delete(c.origins, key)
+		return
+	}
+	if c.origins == nil {
+		c.origins = map[string][]string{}
+	}
+	c.origins[key] = ids
 }
 
 func claudeUnit(path, ext string) Unit {
@@ -287,8 +388,30 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	procs := map[float64]*core.ReportedCost{} // Claude Code 自身の使用料（cost-state）。プロセスの起動時刻ごとに最新の累計
 	var procOrder []float64
 	branches := map[string]int{}
+	// 別の会話から写した行（/branch など）は、元の会話のファイルで数えるので、ここでは数えない（2 度数えないため）。
+	// 元の会話のファイルがもうない（Claude Code が消し、kiroku archive にもない）ときは、写した行もこの会話で数える
+	origins := map[string]bool{} // 写した行の元の会話の ID と、そのファイルがあるか
+	var branchAt *float64        // 数えなかった写した行のいちばん遅い時刻（会話を分けた時刻）
+	var version string           // いちばん新しい行を書いた Claude Code の版（行の version）
+	var versionT float64         // その行の時刻
 	readErr := fileErr(path, core.ReadJSONL(path, func(e core.Obj) {
 		typ := core.Str(e["type"])
+		if from := copiedFrom(e, stem); from != "" {
+			has, ok := origins[from]
+			if !ok {
+				has = c.hasSession(from)
+				origins[from] = has
+			}
+			if has {
+				if t := ts(e["timestamp"]); t != nil && (branchAt == nil || *t > *branchAt) {
+					branchAt = t
+				}
+				if s.Project == "" {
+					s.Project = core.Str(e["cwd"])
+				}
+				return
+			}
+		}
 		if typ == "summary" && core.Str(e["summary"]) != "" {
 			summaries = append(summaries, core.Str(e["summary"]))
 			return
@@ -306,7 +429,16 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			return
 		}
 		if typ == "cost-state" {
-			if r := readCostState(e, lastT); r != nil {
+			v := core.Str(e["version"])
+			if start, ok := core.Num(e["startTime"]); v == "" && ok && versionT >= start/1000 {
+				v = version // 同じプロセス（起動より後の行）が書いた版
+			}
+			if r := readCostState(e, lastT, v); r != nil {
+				// 会話を分けた（/branch）プロセスの累計には、分ける前の分も入っていて、それは元の会話の cost-state にもある。
+				// 2 度数えないよう、分けた時刻より前に起動したプロセスの累計は使わず、料金表で見積もる
+				if branchAt != nil && r.From < *branchAt {
+					return
+				}
 				if procs[r.From] == nil {
 					procOrder = append(procOrder, r.From)
 				}
@@ -319,6 +451,9 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			return
 		}
 		lastT = t
+		if v := core.Str(e["version"]); v != "" {
+			version, versionT = v, *t
+		}
 		if typ == "assistant" {
 			s.Agent(t)
 		} else {
@@ -571,6 +706,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			s.Branch = b
 		}
 	}
+	c.rememberOrigins(path, origins)
 	s.Title = firstNonEmpty(customTitle, aiTitle)
 	if s.Title == "" && len(summaries) > 0 {
 		s.Title = summaries[len(summaries)-1]
@@ -652,8 +788,8 @@ func val(p *float64) float64 {
 }
 
 // readCostState は Claude Code の cost-state（プロセスの起動からの累計）を読む。
-// 行に時刻がないので、直前の行の時刻までを対象の期間とする。
-func readCostState(e core.Obj, lastT *float64) *core.ReportedCost {
+// 行に時刻がないので、直前の行の時刻までを対象の期間とする。version は書いた Claude Code の版（わからなければ空）。
+func readCostState(e core.Obj, lastT *float64, version string) *core.ReportedCost {
 	start, ok := core.Num(e["startTime"])
 	if !ok || lastT == nil {
 		return nil
@@ -667,6 +803,9 @@ func readCostState(e core.Obj, lastT *float64) *core.ReportedCost {
 		}
 		u := core.Tokens{In: core.NumOr0(m["inputTokens"]), Out: core.NumOr0(m["outputTokens"]),
 			CW: core.NumOr0(m["cacheCreationInputTokens"]), CR: core.NumOr0(m["cacheReadInputTokens"])}
+		if overpricedCacheReads(name, version) {
+			cost = 0 // 記録の額は使わず、料金表で見積もる（applyReported は記録が 0 のモデルを見積もりのままにする）
+		}
 		model := core.ModelName(name)
 		prev := r.Models[model] // 日付の版違いは 1 つにまとめる
 		prev.Cost += cost
@@ -677,6 +816,36 @@ func readCostState(e core.Obj, lastT *float64) *core.ReportedCost {
 		return nil
 	}
 	return r
+}
+
+// overpricedCacheReads は、cost-state のモデルの額が、キャッシュの読み込みを高く数えた版のものか。
+// Claude Code は v2.1.284 で Sonnet 5.5 を足したとき、キャッシュの読み込みを $0.20/Mtok で数え、
+// v2.1.296 で公式の料金（$0.10/Mtok）に直した。それより前の版の Sonnet 5.5 の額は高すぎる。
+// 版がわからなければ、記録の額をそのまま使う。
+// 出典: Claude Code の CHANGELOG（2.1.284・2.1.296）、https://platform.claude.com/docs/en/about-claude/pricing
+func overpricedCacheReads(model, version string) bool {
+	if p, ok := core.PriceOf(model); !ok || p.Key != "claude-sonnet-5-5" {
+		return false
+	}
+	v, ok := parseVersion(version)
+	return ok && (v[0] < 2 || v[0] == 2 && (v[1] < 1 || v[1] == 1 && v[2] < 296))
+}
+
+// parseVersion は "2.1.296" の形の版（後ろの -beta などは見ない）。
+func parseVersion(s string) (v [3]int, ok bool) {
+	s, _, _ = strings.Cut(s, "-")
+	parts := strings.Split(s, ".")
+	if len(parts) != 3 {
+		return v, false
+	}
+	for i, p := range parts {
+		n, err := strconv.Atoi(p)
+		if err != nil || n < 0 {
+			return v, false
+		}
+		v[i] = n
+	}
+	return v, true
 }
 
 // resultText はツールの結果（toolUseResult）を文字列にする。PR の URL を探すため。

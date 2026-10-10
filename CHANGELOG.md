@@ -2,6 +2,18 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Claude Code: a conversation copied with `/branch`, `--fork-session` or `/fork` is no longer counted twice. The copy counts only what was added after the branch; the copied part counts once, in the original (or in the copy, if the original is gone)
+- Claude Code: when a settings file exists but can't be read or parsed, kiroku no longer reports the 30-day retention. Claude Code pauses its cleanup then (unless the managed settings set `cleanupPeriodDays`), so nothing is deleted
+- Claude Code: estimated cost for Sonnet 5.5 is no longer too high in sessions recorded by Claude Code 2.1.284 to 2.1.295, which priced its cache reads at twice the official rate. kiroku estimates Sonnet 5.5 from its price table there
+
+### Changed
+
+- docs: the Claude Code column of "What history records" now covers when Claude Code pauses its cleanup, `CLAUDE_CODE_TRANSCRIPT_LOCAL_GC`, `modelPricing` in `cost-state`, and the usage-limit windows that only the status line gets
+
 ## v0.29.1 - 2026-10-09
 
 ### Changed

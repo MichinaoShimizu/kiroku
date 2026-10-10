@@ -44,7 +44,7 @@ type LongPrice struct {
 
 // LongPrices は、プロンプトの長さで料金が変わる Anthropic のモデル（Prices の同じキーに足す）。出典は Prices と同じページ
 // （Model pricing の "for prompts over 100,000 tokens" の行と Long context pricing）。
-// ページは「プロンプト」にキャッシュの読み書きが入るかを書いていないが、kiroku は入力 + キャッシュの書き込み + 読み込み
+// ページのとおり、プロンプトの長さはキャッシュの読み書きも含む入力の全部なので、入力 + キャッシュの書き込み + 読み込み
 // （Tokens.Input。モデルが読むプロンプト全体で、OpenAI の境目と同じ数え方）で比べる。
 // --prices で同じキーを上書きすると、ここからは消す（足した料金をどの長さにも使う）。
 var LongPrices = map[string]LongPrice{
