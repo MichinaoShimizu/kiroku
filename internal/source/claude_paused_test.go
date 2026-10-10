@@ -4,6 +4,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -50,7 +51,7 @@ func TestClaudeRetentionPausedOnUnreadableSettings(t *testing.T) {
 	if r := c.Retention(); r == nil || r.Days != 90 {
 		t.Errorf("ないファイルは読めないファイルではない = %+v, want 利用者の 90 日", r)
 	}
-	if os.Getuid() != 0 { // root は権限がなくても読める
+	if os.Getuid() != 0 && runtime.GOOS != "windows" { // root は権限がなくても読める。Windows は chmod で読めなくできない
 		os.Chmod(user, 0)
 		if r := c.Retention(); r != nil {
 			t.Errorf("読めない利用者の設定 = %+v, want nil（片付けを止める）", r)
