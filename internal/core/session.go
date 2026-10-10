@@ -204,18 +204,29 @@ func (s *Builder) Prompt(ts *float64, text string) {
 		s.Inject(ts, n.kind, n.text)
 	}
 	if pt != nil {
-		s.turn++
 		first := len(s.Prompts) == 0
-		t := pt.text
-		p := Prompt{T: ts, Text: Runes(t, PromptRunes), Kind: pt.kind}
-		if n := utf8.RuneCountInString(t); n > PromptRunes {
-			p.Len, p.full = n, Runes(t, fullRunes)
-		}
-		s.Prompts = append(s.Prompts, p)
+		s.addPrompt(ts, pt.kind, pt.text)
 		if pt.kind == "" && IsCorrection(text, first) && ts != nil {
 			s.FixTS = append(s.FixTS, *ts)
 		}
 	}
+}
+
+// Command は、スラッシュコマンドを人が打ったプロンプト（KindCommand）として残す。
+// コマンドをタグ（<command-name>）の形で残さないエージェント（Codex の /review）が使う。text は「/名前 引数」。
+func (s *Builder) Command(ts *float64, text string) {
+	if text = strings.TrimSpace(text); text != "" {
+		s.addPrompt(ts, KindCommand, text)
+	}
+}
+
+func (s *Builder) addPrompt(ts *float64, kind, t string) {
+	s.turn++
+	p := Prompt{T: ts, Text: Runes(t, PromptRunes), Kind: kind}
+	if n := utf8.RuneCountInString(t); n > PromptRunes {
+		p.Len, p.full = n, Runes(t, fullRunes)
+	}
+	s.Prompts = append(s.Prompts, p)
 }
 
 // Interrupt は、人が AI を途中で止めたことを記録する（プロンプトには数えない）。

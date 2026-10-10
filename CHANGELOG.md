@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Codex: a `/review` no longer counts the review prompt Codex writes for the reviewer as your prompt (twice in older rollouts), and its result no longer replaces the reply to your previous prompt. The review now shows as one slash command, `/review` with what was reviewed (such as `current changes`), and the reviewer appears under "Subagents" as `review` instead of `subagent`. Its usage before a compaction in the reviewer's own history is no longer dropped
+- Codex: a turn that failed because your ChatGPT plan does not include Codex is no longer counted as a usage limit hit
+
 ## v0.29.1 - 2026-10-09
 
 ### Changed
