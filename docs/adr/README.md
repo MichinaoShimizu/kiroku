@@ -24,6 +24,10 @@ The workflow:
 
 These are **agent workflows, not automatic CI enforcement**. Merely adding a skill does not make every coding agent invoke it. Integrate the workflow into the repository's agent instructions and PR review process; do not block trivial fixes or treat historical ADRs as permanent prohibitions.
 
+## Uncertainty Preservation
+
+A confirmed historical implementation change may have no recorded rationale (for example, a merged PR with an empty description). Retain the observed before/after facts, mark the rationale unknown, and route future related changes to that record for proportionate investigation. An observed change is **not** automatically an accepted architectural constraint. See [Decision Continuity](decision-continuity.md#uncertainty-preservation).
+
 ## Quick routing index
 
 Scan this table first; read **only the relevant ADR bodies**. Paths are indicative, not exhaustive: cross-cutting changes (especially privacy, identity, measurement and compatibility) require semantic review even when the changed file is elsewhere. Routine cosmetic edits and localized fixes need no ADR body unless they change a documented invariant.
