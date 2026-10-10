@@ -14,4 +14,4 @@ These metrics have different denominators and must not be treated as interchange
 
 ## Verification limits
 
-Inspect current `internal/report/share.go`, `docs/guide.md` and `TestShares`. No fresh arithmetic audit was performed.
+Inspect current `internal/report/share.go`, `docs/guide.md` and `TestShares`. `TestShares` passed at `ad670cb` (see [evidence.yaml](evidence.yaml)); it does not assert the same-key case, and the Active time vs Total AI run time aggregation has not been audited.

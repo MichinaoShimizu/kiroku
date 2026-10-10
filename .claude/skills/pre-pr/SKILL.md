@@ -51,6 +51,16 @@ sh tools/check.sh --e2e    # internal/web か tools/screenshots を変えたと�
 - 問題があれば直して 1 からやり直す
 - セキュリティの修正なら、それを確かめるテストを足し、CHANGELOG の `### Security` に書く
 
+### ADR への影響
+
+CLAUDE.md の「Architecture decisions」のとおり、`docs/adr/README.md` の索引を、変えたパスと変えた振る舞いの両方で引く。
+
+- 当てはまる ADR がなく、設計に関わらない直しなら、ここは飛ばしてよい
+- 計測の意味・プライバシー・セキュリティ・セッションの識別・保存・互換性・プロダクトの方針に触れるなら、`/adr-guard check` を回し、当てはまる ADR の本文を読む。パスが索引に合わなくても、意味で探す
+- 意図しない食い違いは、コードを直して ADR の決定を守り、テストを足す。意図した変更なら `/forward-adr` で Proposed の ADR を同じ PR に入れ、索引も直す（古い ADR は書き換えない）
+- 索引が当てはまる ADR を見落としていたら、索引の行を同じ PR で直す
+- PR の本文に「ADR impact」の欄を書く: 関係する ADR、守った制約、提案する Supersedes/Amends、テスト。当てはまらないなら「No applicable ADR found after checking <範囲>」
+
 ## 3. テスターに攻めてもらう（当てはまるときだけ）
 
 履歴の読み取り・画面・serve・git・書き出しのどれかを変えたら、2 つのエージェントを 1 つのメッセージで並べて起動する。変えたファイルと、何を変えたかを渡す。
@@ -77,7 +87,7 @@ sh tools/check.sh --e2e    # internal/web か tools/screenshots を変えたと�
 ## 6. PR を作る
 
 - ブランチにコミットし（メッセージは英語）、`git push -u origin <branch>` で push する
-- `.github/pull_request_template.md` があればその見出しに沿って、なければ次の内容で本文を英語で書く: 何をなぜ変えたか、どう確かめたか（`tools/check.sh` の結果、e2e、テスターの結果、ベンチマーク）、セキュリティの観点で確かめたこと、残した「疑い」とその理由
+- `.github/pull_request_template.md` があればその見出しに沿って、なければ次の内容で本文を英語で書く: 何をなぜ変えたか、どう確かめたか（`tools/check.sh` の結果、e2e、テスターの結果、ベンチマーク）、セキュリティの観点で確かめたこと、ADR impact、残した「疑い」とその理由
 - PR を作ったら `subscribe_pr_activity` で見守る
 
 ## やらないこと
