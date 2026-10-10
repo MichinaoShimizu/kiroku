@@ -46,6 +46,12 @@ Periodic drift audit -> refresh evidence, index and gaps
           +-------------------------------------> next change
 ```
 
+## Uncertainty Preservation
+
+A historical change can be certain even when its rationale is unknown. For example, a merged PR with an empty description may establish that implementation A was replaced by B, without establishing **why** it happened, what alternatives were considered, or whether the change reflected an explicit architectural decision. Record these separately: **observed change (confirmed)**, **historical rationale (unknown)**, and **open questions (to investigate)**. Do not invent intent or promote observed behavior to a binding decision.
+
+This is **Uncertainty Preservation**: retain the known facts *and* the unresolved uncertainty as durable, discoverable inputs to later decisions. When ADR Guard encounters such a record, it should flag the unknown rationale, examine current evidence, and recommend proportionate follow-up investigation rather than automatically vetoing the change. Forward ADR can then document a new explicit decision without retroactively claiming certainty about the old one. The index should expose the uncertainty so the record is not silently treated as an accepted policy.
+
 ## Principles
 
 1. **Evidence before authority.** A retrospective ADR is a claim about history, not a retroactive approval. Label documented, observed, inferred and unknown statements. Verify current code and tests separately.
@@ -53,7 +59,7 @@ Periodic drift audit -> refresh evidence, index and gaps
 3. **Decisions can change.** An ADR is not a permanent prohibition. Preserve the original record and explain intentional changes through a new ADR, with alternatives, consequences, migration and verification.
 4. **Proportional process.** Do not require an ADR for every bug fix or cosmetic change. Prioritize durable architectural, privacy, security, data, compatibility and product-policy decisions.
 5. **Traceability, not ceremonial compliance.** Connect claims to historical evidence, current behavior and actual test results. A test file is not a passing test.
-6. **Explicit uncertainty.** Missing evidence is a gap to investigate, not permission to invent rationale or silently declare a decision accepted.
+6. **Uncertainty Preservation.** Preserve confirmed historical changes even when their rationale is unknown; keep facts, inferred motives and unresolved questions separate. Missing evidence is a gap to investigate, not permission to invent rationale or silently declare a decision accepted.
 7. **Human governance.** Agents can surface conflicts and draft ADRs; owners decide whether to accept tradeoffs. Automated checks should not convert uncertain historical interpretations into unquestionable rules.
 
 ## The ADR index as a shared contract
