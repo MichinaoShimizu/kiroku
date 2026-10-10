@@ -1,40 +1,32 @@
-# ADR 0002: Local-first remote session import
+# ADR 0002: Measurement semantics and evidence fidelity
 
-Status: **Proposed — Phase 2 (remote sessions)**. Originally researched under the old remote-import subplan's Phase 0; tracked in [#324](https://github.com/MichinaoShimizu/kiroku/issues/324) under [#323](https://github.com/MichinaoShimizu/kiroku/issues/323).
+Status: **Observed (retrospective)**
+
+Scope: Phase 1 — local sessions.
 
 ## Context
 
-kiroku reads local histories via `internal/source.Source` and `source.All(Options)`. `internal/cli/load.go` reads sources concurrently and deduplicates by `Builder.Key` and `Claim/Yield`; `internal/cli/cache.go` caches units by source and file stamps. `core.Session` stores source, ID, project path and history file, but no remote-origin identity. Git enrichment in `internal/gitlog` uses local repositories identified from session project paths. `internal/archive` stores zstd copies of selected agent histories and has its own deletion lifecycle.
+AI-agent histories are heterogeneous: fields, units and events vary by agent and version. A uniform dashboard must not imply that missing data means zero, that estimated prices are bills, or that two duplicated transcript rows represent two actions.
 
-## Decision proposal
+## Documented decisions
 
-1. **Pull to local storage, then parse natively.** Do not run a kiroku-hosted server or treat `kiroku json` (an output contract) as an import format. Start with manually copied native Claude Code and Codex CLI histories; reuse their readers.
-2. **Separate imported storage from archive.** Use a private, kiroku-managed import root and manifest; import deletion must not be conflated with `kiroku archive off`. Use atomic writes, strict path validation and explicit cleanup commands.
-3. **Version the import manifest.** Suggested v1 fields: `schemaVersion`, `originID`, `displayName`, `agentFamily`, `exportedAt`, `files[{path,sha256,size}]`. The manifest identifies a source bundle, not a parsed session. Source-provided IDs and paths are untrusted. This schema is tentative pending fixtures.
-4. **Namespace session identity.** Separate upstream session ID from kiroku's global identity: conceptual key `(originID, agentFamily, upstreamSessionID)`. Keep the existing within-source `Key` and `Claim/Yield` behavior; do not blindly prefix keys before checking cross-format Kiro suppression. A file digest is for change detection, not a universal session ID.
-5. **Preserve provenance.** Keep local vs imported origin visible in reports, session details and JSON; distinguish original remote project path from a local path. Remote project paths must never be used for local git enrichment unless the user explicitly maps and validates a repository.
-6. **Import is idempotent.** Reimporting an unchanged bundle does not add sessions. Changed files are updated safely, with a defined policy for removed files and truncated/incomplete histories. Report imported/updated/skipped/rejected counts.
-7. **Security first.** Enforce no traversal, symlink escape, unbounded decompression or unsafe executable content; do not log secrets or raw prompts. Reuse existing restrictive permissions, JSONL limits, web escaping and source-file protections. Reject ambiguous manifest versions and unsupported agents.
-8. **SSH is a later transport.** Explicit opt-in, host-key verification and least-privilege transfer into the same local import pipeline. Hosted-provider APIs are independent connectors, not assumed available.
+- **Keep measurements descriptive rather than normative.** Native agent-specific metrics were introduced as reference values with sample counts, not performance grades ([#10](https://github.com/MichinaoShimizu/kiroku/pull/10)). Earlier prescriptive reflection was removed in favor of weekly/monthly descriptive summaries ([#14](https://github.com/MichinaoShimizu/kiroku/pull/14)).
+- **Preserve missingness.** Show “Not recorded” rather than 0 when the source does not record a metric ([#214](https://github.com/MichinaoShimizu/kiroku/pull/214)); document per-agent recording coverage ([#215](https://github.com/MichinaoShimizu/kiroku/pull/215)).
+- **Deduplicate source events before counting.** Aggregate split Claude usage by message/request ID ([#4](https://github.com/MichinaoShimizu/kiroku/pull/4)); correct Codex review mirroring and Claude branch copies ([#310](https://github.com/MichinaoShimizu/kiroku/pull/310), [#311](https://github.com/MichinaoShimizu/kiroku/pull/311)).
+- **Make the basis inspectable.** Provide breakdowns from summary figures ([#253](https://github.com/MichinaoShimizu/kiroku/pull/253), [#259](https://github.com/MichinaoShimizu/kiroku/pull/259)).
 
-## Alternative approaches
+## Rationale
 
-- **One environment variable per remote origin:** useful for a manual proof of concept but not a durable multi-origin UX; process-wide overrides displace local sources.
-- **Parse exported `kiroku json`:** loses raw-source fidelity and couples import to the output schema; not selected as first implementation.
-- **Run kiroku on the remote and expose `serve`:** increases network and authentication attack surface; not selected.
-- **Reuse archive as import storage:** archive lifecycle and deletion semantics differ; not selected.
+Different source formats cannot support identical metrics; making unknown values look precise misleads users. Correctness and traceability take precedence over filling every cell.
 
-## Validation gates before Accepted
+## Consequences
 
-- [ ] Audit reader ID/key construction and Kiro dedup precedence; identify exact source integration points.
-- [ ] Synthetic and representative Claude Code/Codex fixtures copied from remote paths; test path and timezone behavior.
-- [ ] Test same-session reimport, overlapping local/remote copies, changed/partial files, two origins with identical upstream IDs.
-- [ ] Confirm `serve`, `html`, `json`, `stats`, `doctor`, Year in Review and archive behavior with imports.
-- [ ] Threat-model hostile bundles and assess bounded resource use and local git path handling.
-- [ ] Define import retention/deletion and recovery UX, plus stable versioning policy.
+Source adapters must identify supported and unsupported fields, and regressions require representative fixtures. Estimates and derived metrics must be labeled as such. Cross-agent comparisons must respect differing recording coverage.
 
-No implementation or test execution is claimed by this ADR.
+## Alternatives and historical confidence
 
-## Relationship to roadmap
+Earlier coaching-oriented and grading-oriented UI was tried and subsequently reduced or removed; see [ADR 0006](0005-nonjudgmental-reflection.md). No evidence is asserted for alternatives not documented in linked PRs.
 
-[ADR 0001](0001-local-session-foundation.md) records the existing **Phase 1: local sessions** foundation. This ADR proposes **Phase 2: remote sessions**. References in the existing issues to “Phase 0” and “Phase 1 offline import” describe the former remote-import-only work breakdown; see [ADR index](README.md) for the terminology mapping.
+## Verification
+
+Review linked PRs, `internal/core`, `internal/source`, `internal/report`, `docs/sources.md`, and regression fixtures. This retrospective document does not certify fresh test execution.
