@@ -12,7 +12,12 @@ ADRs document **why** kiroku makes architectural choices, not just how code work
 - `0006-compatibility-contract.md` — public JSON/CLI and 1.0 compatibility policy (Phase 1, retrospective).
 - `0007-local-history-retention.md` — preserving histories agents may prune (Phase 1, retrospective).
 - `0008-incremental-local-processing.md` — changed-file reloads and affected-period recalculation (Phase 1, retrospective).
-- `0009-remote-session-import.md` — proposed extension for remote/cloud histories (Phase 2).
+- `0009-git-output-attribution.md` — local Git evidence and attribution limits (Phase 1, retrospective).
+- `0010-agent-source-coverage.md` — native adapters and source recording capabilities (Phase 1, retrospective).
+- `0011-release-integrity.md` — supply-chain checks and release provenance (Phase 1, retrospective).
+- `0012-share-export-timezone.md` — shareable exports and writer-local time (Phase 1, retrospective).
+- `0013-user-mediated-ai-reports.md` — grounded prompts for user-chosen AI agents (Phase 1, retrospective).
+- `0014-remote-session-import.md` — proposed extension for remote/cloud histories (Phase 2).
 - `phase1-decision-ledger.md` — evolving, evidence-linked historical decision inventory.
 
 ## Lifecycle
@@ -26,14 +31,8 @@ Use **Observed (retrospective)** for decisions inferred from existing code when 
 
 Historical issue labels such as “Phase 0” (research) and “Phase 1” (offline import) in [#323](https://github.com/MichinaoShimizu/kiroku/issues/323)–[#328](https://github.com/MichinaoShimizu/kiroku/issues/328) refer to the **old remote-import subplan**, not this top-level roadmap. They should be relabeled separately rather than silently reinterpreted.
 
-## Audit scope and outstanding coverage
+## Audit scope and remaining verification
 
-The retrospective ADRs above are **not** an exhaustive account of all Phase 1 choices. A first-pass evidence inventory lives in [phase1-decision-ledger.md](phase1-decision-ledger.md). The following decision areas have material evidence but have **not yet** been fully reconstructed into dedicated ADRs:
+The 13 retrospective Phase 1 ADRs cover the major themes recovered from merged PR descriptions. [The evidence ledger](phase1-decision-ledger.md) contains finer-grained choices and reversals. This is **not** a claim that all 318 merged PRs, all review comments, and all historical diffs were independently inspected.
 
-- **Git attribution and outcome semantics** — [#27](https://github.com/MichinaoShimizu/kiroku/pull/27), [#28](https://github.com/MichinaoShimizu/kiroku/pull/28), [#112](https://github.com/MichinaoShimizu/kiroku/pull/112), [#293](https://github.com/MichinaoShimizu/kiroku/pull/293).
-- **Agent-specific source fidelity and support boundaries** — [#7](https://github.com/MichinaoShimizu/kiroku/pull/7), [#9](https://github.com/MichinaoShimizu/kiroku/pull/9), [#201](https://github.com/MichinaoShimizu/kiroku/pull/201), [#247](https://github.com/MichinaoShimizu/kiroku/pull/247).
-- **Release integrity and supply-chain verification** — [#56](https://github.com/MichinaoShimizu/kiroku/pull/56), [#144](https://github.com/MichinaoShimizu/kiroku/pull/144), [#167](https://github.com/MichinaoShimizu/kiroku/pull/167), [#170](https://github.com/MichinaoShimizu/kiroku/pull/170).
-- **Share/export data exposure and time-zone semantics** — [#124](https://github.com/MichinaoShimizu/kiroku/pull/124), [#127](https://github.com/MichinaoShimizu/kiroku/pull/127).
-- **User-mediated AI reports and evaluation** — [#292](https://github.com/MichinaoShimizu/kiroku/pull/292), [#298](https://github.com/MichinaoShimizu/kiroku/pull/298), [#299](https://github.com/MichinaoShimizu/kiroku/pull/299).
-
-**Audit limitations:** The history inventory screened the merged-PR listing and selected PR bodies; it did not independently verify every linked diff, review thread, issue or current source behavior. Retrospective `Observed` status does not mean a historically approved decision, and this review does not certify full implementation/test coverage. Before accepting an ADR as normative, verify its assertions against current code and tests and resolve any superseding PRs.
+Evidence verified in this review includes the linked PR descriptions and current `internal/core/agents.go`, `internal/core/records.go`, `internal/gitlog/gitlog.go`, `internal/cli/cache.go`, `internal/report/cache.go`, `docs/compatibility.md`, `docs/sources.md`, and `SECURITY.md`. **Fresh tests, full code-path audit, historical review-thread audit and published release verification remain unperformed.** Historical rationale is distinguished from current implementation. A future change in a documented policy requires a new ADR, not a silent rewrite.
