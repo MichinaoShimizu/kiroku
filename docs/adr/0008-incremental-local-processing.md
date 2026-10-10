@@ -1,8 +1,12 @@
 # ADR 0008: Incremental local history processing
 
-Status: **Retrospective**
+Status: Retrospective
+Date: Unknown
+Related: None
+Supersedes: None
+Superseded by: None
 
-Scope: Phase 1.
+Scope: Phase 1
 
 ## Context
 
@@ -23,3 +27,23 @@ Optimize source-unit reading and affected time ranges without changing observabl
 ## Historical confidence
 
 The incremental direction is evidenced by the PR sequence. This ADR does not claim a particular cache algorithm was formally selected in advance. Inspect `internal/cli/cache.go`, `internal/source/watch.go`, and report tests before changing the implementation.
+
+## Decision
+
+The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
+
+## Consequences
+
+See the existing rationale and consequences discussion above. No additional outcome is asserted.
+
+## Alternatives
+
+Not documented as a separate set of evaluated options in this record.
+
+## Historical confidence and open questions
+
+Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.
+
+## Verification
+
+See existing source and test references where available. No new test execution is claimed.
