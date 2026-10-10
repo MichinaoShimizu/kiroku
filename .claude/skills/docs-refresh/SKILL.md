@@ -39,12 +39,13 @@ sh tools/screenshots/run.sh
   - 1 で見つけた変更が映っている
   - 崩れ・重なり・切れた文字・空の欄がない
   - 本物の履歴、手元のパス、ユーザー名が写っていない（`session.png` は右の列に一時パスが出るので左の列だけを撮る、という前提が保たれているか）
+- `demo.gif`（README の先頭の動き）も同じ run.sh で撮り直される。いくつかのコマを ffmpeg で取り出して Read で確かめる
 - `year.png` は Year in review が隠れているあいだ（`js/state.js` の `YEAR_ON`）は撮られない。変わっていなくて正しい
 - 変わったのに理由を説明できない画像があれば、コミットせずに調べる
 
 ## 3. 文章が古いかを確かめる
 
-対象は README.md、`docs/guide.md`、`docs/compatibility.md`、`docs/usability.md`、`docs/development.md`、SECURITY.md、CONTRIBUTING.md。`docs/sources.md` の「What history records」は `/source-audit` の担当なので、ここでは明らかな食い違いを報告するだけにする。
+対象は README.md、README.ja.md（README.md と同じ内容か）、`docs/guide.md`、`docs/compatibility.md`、`docs/usability.md`、`docs/development.md`、SECURITY.md、CONTRIBUTING.md。`docs/sources.md` の「What history records」は `/source-audit` の担当なので、ここでは明らかな食い違いを報告するだけにする。
 
 - CHANGELOG の `## Unreleased` と前回のタグからの各項目について、ユーザーに見える変更（新しい指標・ボタン・オプション・コマンド・既定値・名前の変更・消えたもの）がドキュメントに書かれているかを確かめる
 - 逆向きにも確かめる: ドキュメントにある名前（ボタン・見出し・指標・オプション・環境変数）を `grep` で `internal/` から探し、今もあるか、同じ綴りかを見る。消えたものの説明が残っていたら消す
