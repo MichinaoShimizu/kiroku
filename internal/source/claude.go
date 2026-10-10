@@ -287,10 +287,10 @@ func (c *Claude) Units() []Unit {
 // sessionIDPattern は、行の sessionId として受け付ける形（会話のファイル名に使うので、パスや glob の記号を入れない）。
 var sessionIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,128}$`)
 
-// copiedFrom は、行が別の会話から写したもの（/branch・--fork-session・エージェントの一覧の /fork）なら、元の会話の ID。
-// 写した行は元の会話の行の写しで、行の sessionId は元の会話のまま残る（写すときに sessionId を書き換える版でも、
-// forkedFrom.sessionId に元の会話が残る）と見る。どちらも公式の文書には書かれていないので、呼ぶ側は元の会話のファイルが
-// あるときだけ数えない（hasSession）。ほかの理由で sessionId がファイルの名前（stem）と違う行も、元のファイルがなければ数える。
+// copiedFrom は、行が別の会話から写したもの（/branch・--fork-session・エージェントの一覧の /fork）かもしれないとき、
+// 元の会話の ID。行の forkedFrom.sessionId か sessionId がこのファイルの会話（stem）と違えば、その会話を元とみなす。
+// どちらも公式の文書には書かれていないので、これは「どの会話のファイルを確かめるか」の手がかりにだけ使う。
+// 写した行かどうかは、同じ行（uuid）が元の会話のファイルにあるかで決める（originLines）。
 // sessionId のない行（summary・タイトルなど）は、この会話の行とみなす。
 func copiedFrom(e core.Obj, stem string) string {
 	id := core.Str(core.Map(e["forkedFrom"])["sessionId"])
@@ -303,13 +303,55 @@ func copiedFrom(e core.Obj, stem string) string {
 	return id
 }
 
-// hasSession は、会話 id のファイルを kiroku が読むか（Claude Code の履歴か kiroku archive のコピーにあるか）。
-// id は copiedFrom で形を確かめたもの。
-func (c *Claude) hasSession(id string) bool {
-	if len(glob(filepath.Join(c.Root, "*", id+".jsonl"))) > 0 {
-		return true
+// lineKey は、写した行を元の会話の行と突き合わせる印: uuid。uuid のない行は、assistant の message.id と requestId の組
+// （replyKey）。どちらもなければ空（突き合わせず、数える）。
+func lineKey(e core.Obj) string {
+	if u := core.Str(e["uuid"]); u != "" {
+		return "u\x00" + u
 	}
-	return c.Archive != "" && len(glob(filepath.Join(c.Archive, "*", id+".jsonl.zst"))) > 0
+	return replyKey(e)
+}
+
+// replyKey は、assistant の行の message.id と requestId の組（どちらもあるとき。なければ空）。
+func replyKey(e core.Obj) string {
+	if core.Str(e["type"]) == "assistant" {
+		if id, req := core.Str(core.Map(e["message"])["id"]), core.Str(e["requestId"]); id != "" && req != "" {
+			return "m\x00" + id + "\x00" + req
+		}
+	}
+	return ""
+}
+
+// originFiles は、会話 id のファイルのうち kiroku が読むもの（Units と同じ: Claude Code の履歴の .jsonl、
+// それがなければ kiroku archive のコピーの .jsonl.zst）。id は copiedFrom で形を確かめたもの。
+func (c *Claude) originFiles(id string) []string {
+	files := glob(filepath.Join(c.Root, "*", id+".jsonl"))
+	if c.Archive != "" {
+		for _, cp := range glob(filepath.Join(c.Archive, "*", id+".jsonl.zst")) {
+			if !isFile(filepath.Join(c.Root, filepath.Base(filepath.Dir(cp)), id+".jsonl")) {
+				files = append(files, cp)
+			}
+		}
+	}
+	return files
+}
+
+// originLines は、会話 id のファイル（originFiles）にある行の印（lineKey と replyKey）。持つのは印の文字列だけ。
+// 読めなかった行の印は入らないので、その行を写した行は数える（元の会話でも読めず、数えられていない）。
+// found は、元の会話のファイルがあったか。
+func (c *Claude) originLines(id string) (keys map[string]bool, found bool) {
+	files := c.originFiles(id)
+	keys = map[string]bool{}
+	for _, f := range files {
+		core.ReadJSONL(f, func(e core.Obj) { // 読めないところは印が入らず、写した先で数えるだけなので、エラーは見ない
+			for _, k := range []string{lineKey(e), replyKey(e)} { // uuid のない写した行とも突き合わせられるよう、組も入れる
+				if k != "" {
+					keys[k] = true
+				}
+			}
+		})
+	}
+	return keys, len(files) > 0
 }
 
 // goneOrigins は、前に読んだときにあった元の会話（写した行を数えなかったもの）のうち、今はないものの ID（Unit.Tag。
@@ -320,7 +362,7 @@ func (c *Claude) goneOrigins(key string) string {
 	c.mu.Unlock()
 	var gone []string
 	for _, id := range ids {
-		if !c.hasSession(id) {
+		if len(c.originFiles(id)) == 0 {
 			gone = append(gone, id)
 		}
 	}
@@ -389,20 +431,23 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	var procOrder []float64
 	branches := map[string]int{}
 	// 別の会話から写した行（/branch など）は、元の会話のファイルで数えるので、ここでは数えない（2 度数えないため）。
-	// 元の会話のファイルがもうない（Claude Code が消し、kiroku archive にもない）ときは、写した行もこの会話で数える
-	origins := map[string]bool{} // 写した行の元の会話の ID と、そのファイルがあるか
-	var branchAt *float64        // 数えなかった写した行のいちばん遅い時刻（会話を分けた時刻）
-	var version string           // いちばん新しい行を書いた Claude Code の版（行の version）
-	var versionT float64         // その行の時刻
+	// 同じ行（uuid）が元の会話のファイルにあるときだけ写した行とみなす。元の会話のファイルがもうない（Claude Code が消し、
+	// kiroku archive にもない）・読めない・その行がないときは、この会話で数える。見るのは会話のファイルだけで、
+	// サブエージェントのファイルは突き合わせない
+	origins := map[string]bool{}               // 写した行の元の会話の ID と、そのファイルがあるか
+	originKeys := map[string]map[string]bool{} // 元の会話ごとの行の印（lineKey）
+	var branchAt *float64                      // 数えなかった（元の会話にあった）写した行のいちばん遅い時刻（会話を分けた時刻）
+	var version string                         // いちばん新しい行を書いた Claude Code の版（行の version）
+	var versionT float64                       // その行の時刻
 	readErr := fileErr(path, core.ReadJSONL(path, func(e core.Obj) {
 		typ := core.Str(e["type"])
 		if from := copiedFrom(e, stem); from != "" {
-			has, ok := origins[from]
+			keys, ok := originKeys[from]
 			if !ok {
-				has = c.hasSession(from)
-				origins[from] = has
+				keys, origins[from] = c.originLines(from)
+				originKeys[from] = keys
 			}
-			if has {
+			if k := lineKey(e); k != "" && keys[k] {
 				if t := ts(e["timestamp"]); t != nil && (branchAt == nil || *t > *branchAt) {
 					branchAt = t
 				}

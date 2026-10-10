@@ -140,6 +140,56 @@ func TestClaudeBranchSkipsInheritedCostState(t *testing.T) {
 	}
 }
 
+// 写した行かどうかは、同じ行（uuid、なければ message.id と requestId の組）が元の会話のファイルにあるかで決める。
+// 分けたあとの行に forkedFrom や元の会話の sessionId がついていても、元の会話にない行は数える。
+func TestClaudeBranchMatchesOriginLines(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	writeLines(t, filepath.Join(dir, "orig.jsonl"), origLines)
+	// (b) 写した行（uuid が元の会話にある）と、uuid のない応答（message.id と requestId が元の会話と同じ）は数えない
+	copied := append(append([]string{}, origLines...),
+		`{"type":"assistant","sessionId":"orig","timestamp":"2026-09-30T01:01:00Z","requestId":"r1","message":{"id":"m1","model":"claude-opus-5-5","usage":{"input_tokens":1000,"output_tokens":100}}}`)
+	// (a) 分けたあとの行が、元の会話の sessionId や forkedFrom をつけたまま書かれても、元の会話にない行なので数える
+	after := []string{
+		`{"type":"user","sessionId":"orig","uuid":"n1","timestamp":"2026-09-30T02:00:00Z","message":{"role":"user","content":"別のやり方で"}}`,
+		`{"type":"assistant","sessionId":"branch","forkedFrom":{"sessionId":"orig","messageUuid":"u5"},"uuid":"n2","timestamp":"2026-09-30T02:01:00Z","requestId":"r2","message":{"id":"m2","model":"claude-opus-5-5","usage":{"input_tokens":2000,"output_tokens":200}}}`,
+		// uuid も message.id と requestId の組もない行は突き合わせず、数える
+		`{"type":"user","sessionId":"orig","timestamp":"2026-09-30T02:02:00Z","message":{"role":"user","content":"もう一度"}}`,
+	}
+	writeLines(t, filepath.Join(dir, "branch.jsonl"), append(copied, after...))
+	var br *core.Session
+	for _, b := range load(t, &Claude{Root: root}) {
+		if b.ID == "branch" {
+			br = b.Finish(15)
+		}
+	}
+	if br == nil || br.Usage.In != 2000 || len(br.Prompts) != 2 || len(br.Limits) != 0 || len(br.Compactions) != 0 {
+		t.Fatalf("分けたあとの行だけ数える: %+v", br)
+	}
+}
+
+// (c) 元の会話のファイルがあっても読めなければ（壊れた kiroku archive のコピー）、写した行も数える。
+func TestClaudeBranchUnreadableOrigin(t *testing.T) {
+	root, arch := t.TempDir(), t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	os.MkdirAll(filepath.Join(arch, "-Users-me-app"), 0o700)
+	os.WriteFile(filepath.Join(arch, "-Users-me-app", "orig.jsonl.zst"), []byte("not zstd"), 0o600)
+	writeLines(t, filepath.Join(dir, "branch.jsonl"), append(append([]string{}, origLines...), branchLines...))
+	in := 0.0
+	for _, b := range load(t, &Claude{Root: root}) { // archive なし: 元の会話は読まないので、全部をこの会話で数える
+		in += b.Finish(15).Usage.In
+	}
+	if in != 3000 {
+		t.Errorf("archive なし: 入力トークン = %v, want 3000", in)
+	}
+	c := &Claude{Root: root, Archive: arch}
+	var br *core.Session
+	c.LoadUnit(Unit{Key: filepath.Join(dir, "branch.jsonl"), Files: []string{filepath.Join(dir, "branch.jsonl")}}, func(b *core.Builder) { br = b.Finish(15) })
+	if br == nil || br.Usage.In != 3000 || len(br.Prompts) != 2 || len(br.Limits) != 1 {
+		t.Errorf("読めない元の会話: 写した行も数える: %+v", br)
+	}
+}
+
 // 行の sessionId がファイルの名前と同じなら、ふつうの行。パスや glob の記号を含む sessionId は、元の会話として探さない。
 func TestCopiedFrom(t *testing.T) {
 	for _, tc := range []struct {
