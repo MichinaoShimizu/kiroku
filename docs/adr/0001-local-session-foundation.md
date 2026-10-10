@@ -10,6 +10,8 @@ kiroku started from local AI-agent history and local-first reporting. This recor
 
 ## Observed decisions and evidence
 
+Historical anchors: [#1](https://github.com/MichinaoShimizu/kiroku/pull/1) introduced the original Python, local-history, standalone-HTML workflow; [#6](https://github.com/MichinaoShimizu/kiroku/pull/6) migrated to Go and source adapters. The detailed current architecture below is **observed from code**, not proof of every original design motivation.
+
 1. **Native histories are the input.** Agent adapters implement `Source` (`Name`, `Family`, `Where`, `Load`) and are registered by `source.All(Options)` in `internal/source/source.go`. Existing readers include Claude Code, Codex, Kiro IDE/CLI/Crew and Amazon Q.
 2. **Normalize into one session model.** Readers emit `core.Builder`, which produces `core.Session` in `internal/core/session.go`. The model includes project, source, ID, prompts, usage, outputs and file information.
 3. **Deduplicate at collection.** `internal/cli/load.go` processes sources concurrently and uses `Builder.Key` and `Claim/Yield` to suppress copies; special withholding logic protects Kiro Crew incognito/temporary histories across matching family sources. The exact identity behavior remains an implementation contract to test.
