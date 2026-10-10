@@ -41,6 +41,8 @@ These are **agent workflows, not automatic CI enforcement**. Merely adding a ski
 - `0019-time-overlap-semantics.md` — overlapping active time and category shares (Phase 1, retrospective).
 - `0020-remote-session-import.md` — proposed extension for remote/cloud histories (Phase 2).
 - `phase1-decision-ledger.md` — evolving, evidence-linked historical decision inventory.
+- `evidence.yaml` — initial claim-level historical/current/test references and conservative statuses.
+- `audit.md` — dated Reverse ADR inspection, findings, limitations and next verification gates.
 
 ## Lifecycle
 
