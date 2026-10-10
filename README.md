@@ -82,6 +82,7 @@ See [SECURITY.md](SECURITY.md) for details and for verifying a release.
 kiroku serve              # the view at http://localhost:8484/, updated as new history arrives
 kiroku open               # open it in another browser (it needs serve's key once)
 kiroku autostart on       # start kiroku serve each time you log in (macOS and Linux)
+kiroku stats              # this week in the terminal, next to last week (--day today, --month last)
 kiroku html --week last   # write only last week as one HTML file, to show someone
 kiroku update             # update to the latest release
 kiroku help               # all commands ("kiroku <command> --help" for options)

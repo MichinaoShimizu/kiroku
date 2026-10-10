@@ -51,6 +51,7 @@ go install github.com/MichinaoShimizu/kiroku@latest
 | `kiroku open [ADDR]` | Opens the view of a running `kiroku serve` in your browser with its key. A browser needs this once; after that, `http://localhost:8484/` (or your bookmark) opens it. `--print` prints the address with the key instead, to open the view on another device. ADDR defaults to the address `kiroku autostart` uses, or `127.0.0.1:8484` |
 | `kiroku html [-o FILE]` | Reads all history up to now and writes it to a single HTML file, then opens it in your browser (`--no-open` to skip). Use it to carry the view around or to look at it without starting a server. Run it again to include later history. The file is readable only by you (`0600`). `--week` or `--month` writes only one period (see "[Share one week or month](#share-one-week-or-month)") |
 | `kiroku json [-o FILE]` | Writes the aggregated data as JSON (`-o -` for stdout). Like `kiroku html`, it writes a file only you can read (`0600`). The fields scripts can rely on are listed in [Compatibility](compatibility.md#the-json-of-kiroku-json) |
+| `kiroku stats` | Shows a day, week or month of your AI work in the terminal, without opening a browser: active time, sessions, prompts, tokens, estimated cost, Kiro credits, Git commits, cost per commit and rework rate, each next to the period before, then a bar for each day, and the top projects, agents, models, longest sessions and sessions worth a look. With no option it shows this week; `--day today`, `--week last` or `--month 2026-09` choose another period. A period still in progress is compared with the period before up to the same day (this week through Wednesday with last week through Wednesday). `--project` limits it to some projects, `--top` sets how many rows each list shows, and `--json` prints both periods as JSON for scripts ([Compatibility](compatibility.md#may-change-in-any-release)). It only reads and writes no file |
 | `kiroku doctor` | Checks your setup in one go and only reads: which histories were found (sessions and the oldest date for each agent, and where it looked), whether an agent will delete old history (Claude Code on its 30-day default) and which settings file to change, whether `kiroku archive` is on, whether git is found, whether autostart is on, which kiroku is running, and whether a newer kiroku is out (it asks GitHub Releases while it reads history; `--no-update-check` skips this, and builds from source are not checked). Agents with no history yet are summed up in one line, so the lines that ask you to do something stay in view; `--all` lists each of them with the place kiroku looks. If another kiroku comes first in your `PATH`, so that `kiroku` runs that one instead, it says so. It ends with what to run next, including `kiroku update` when a newer release exists. Run it right after installing, or when something you expect is missing from the view |
 | `kiroku autostart [on\|off]` | Starts `kiroku serve` in the background each time you log in, so the view is always at `http://localhost:8484/` (see "[Start kiroku when you log in](#start-kiroku-when-you-log-in)"). With no argument, shows the status |
 | `kiroku archive [on\|off]` | Keeps compressed copies of history that agents delete automatically (Claude Code, Kiro Crew) in kiroku's own folder (see "[Keep a copy of history in kiroku](#keep-a-copy-of-history-in-kiroku)"). With no argument, shows the status (on or off, location, number and size of files) |
@@ -463,7 +464,7 @@ systemctl --user daemon-reload
 
 ## Options
 
-Common to the commands that read history (`serve`, `html`, `json`, `doctor`, `archive`):
+Common to the commands that read history (`serve`, `html`, `json`, `stats`, `doctor`, `archive`):
 
 | Option | Default | Description |
 |---|---|---|
@@ -491,6 +492,10 @@ Per command:
 | `open` | `[ADDR]` | the autostart address, or `127.0.0.1:8484` | `--print`: print the address with the key instead of opening a browser |
 | `autostart on` | `[ADDR]` | `127.0.0.1:8484` | Where the started `kiroku serve` listens, as for `serve` |
 | `html` | `--week` / `--month` | | Write only one week (`this`, `last` or a date in it) or month (`this`, `last` or `YYYY-MM`); see "[Share one week or month](#share-one-week-or-month)" |
+| `stats` | `--day` / `--week` / `--month` | this week | The period to show: a day (`today`, `yesterday` or `YYYY-MM-DD`), a week (`this`, `last` or a date in it) or a month (`this`, `last` or `YYYY-MM`) |
+| `stats` | `--project` | | Only these projects, comma-separated, as named in the view (case does not matter) |
+| `stats` | `--top` | `5` | How many rows to list for projects, models, sessions and sessions worth a look |
+| `stats` | `--json` | | Print both periods as JSON instead of text |
 | `json` | `-o`, `--out` | `kiroku.json` | JSON file to write (`-` for stdout) |
 | `update` | `--check` / `--to <version>` / `--force` | | Only check / choose a version / replace even a dev build, the same version or an older version given with `--to` |
 
