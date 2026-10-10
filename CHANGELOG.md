@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Kiro CLI (SQLite): conversations from the `conversations_v2` table now get `kiro-cli chat --resume-id <id>` as their resume command. Before, they got `kiro-cli chat --resume`, which opens the newest conversation in the folder, so an older conversation in the same folder opened a different one
+- Amazon Q and Kiro CLI (SQLite): when a declined or interrupted tool turn was the first turn kept after a compaction, the CLI rewrote it to "Tool use was cancelled by the user", and kiroku counted that as your prompt. It is now shown as command output
+
 ## v0.29.1 - 2026-10-09
 
 ### Changed

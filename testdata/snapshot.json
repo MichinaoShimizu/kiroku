@@ -4523,7 +4523,7 @@
     }
    ],
    "prs": [],
-   "resume": "cd /Users/me/infra \u0026\u0026 kiro-cli chat --resume",
+   "resume": "cd /Users/me/infra \u0026\u0026 kiro-cli chat --resume-id 0d612aac-99c4-4a54-bda2-76ad60b6ddf3",
    "segs": [
     [
      1790553600,
@@ -4872,7 +4872,7 @@
     }
    ],
    "prs": [],
-   "resume": "cd /Users/me/app \u0026\u0026 kiro-cli chat --resume",
+   "resume": "cd /Users/me/app \u0026\u0026 kiro-cli chat --resume-id conv-a",
    "segs": [
     [
      1790643540,
