@@ -1,8 +1,12 @@
 # ADR 0005: Reflection without grading
 
-Status: **Retrospective**
+Status: Retrospective
+Date: Unknown
+Related: None
+Supersedes: None
+Superseded by: None
 
-Scope: Phase 1 — product philosophy and UX.
+Scope: Phase 1 — product philosophy and UX
 
 ## Context
 
@@ -32,3 +36,11 @@ The sequence above is supported by linked PR descriptions. It does not claim tha
 ## Verification
 
 Review the PR sequence, current view and reports. No fresh visual regression testing is claimed.
+
+## Alternatives
+
+Not documented as a separate set of evaluated options in this record.
+
+## Historical confidence and open questions
+
+Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.
