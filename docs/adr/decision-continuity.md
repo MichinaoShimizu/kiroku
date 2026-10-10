@@ -7,7 +7,8 @@
 It connects two complementary activities:
 
 - **Reverse ADR (recover):** reconstruct the historical decision trail from PRs, issues, code, tests and reviews. Separate documented intent from observed implementation and unknown rationale.
-- **ADR Guard (apply):** consult the relevant decisions when proposing changes, identify preserved constraints and potential conflicts, and record intentional departures as new forward-looking ADRs.
+- **ADR Guard (apply):** consult relevant decisions when proposing changes and identify preserved constraints and potential conflicts.
+- **Forward ADR (decide):** formulate and document a prospective choice, its alternatives and consequences, including deliberate supersession of an earlier decision.
 
 Neither activity is sufficient alone. Reverse ADR without ongoing use becomes a static archive; ADR Guard without a reliable historical baseline may enforce accidental or imagined constraints. Together they turn decision history into a **maintained input to future decisions**.
 
