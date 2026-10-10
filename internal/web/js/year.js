@@ -69,7 +69,7 @@ function highlights(x, ms, on, firstOf, day0){
       const a = new Date(ds[i-1] + "T00:00"), b = new Date(ds[i] + "T00:00"), n = Math.round((b - a)/864e5) - 1;
       if (n >= 3 && (!best || n > best.n)) best = {n, a: addDays(a, 1), b: addDays(b, -1)};
     }
-    if (best) H.push({c0: col(best.a), c1: col(best.b), t: `Longest break: ${dMD(best.a)}–${dMD(best.b)} · ${plural(best.n, "day")}`});
+    if (best) H.push({c0: col(best.a), c1: col(best.b), t: `Longest break: ${best.a.getMonth() === best.b.getMonth() ? `${dMD(best.a)}–${best.b.getDate()}` : `${dMD(best.a)}–${dMD(best.b)}`} · ${plural(best.n, "day")}`});
   }
   const t0 = Math.min(...Object.values(firstOf)); // 途中から使い始めたエージェント（最初の記録から 2 週間より後）
   Object.entries(firstOf).filter(([, t]) => t - t0 > 14*86400).sort((a, b) => a[1] - b[1]).slice(0, 1).forEach(([k, t]) => {
@@ -173,20 +173,20 @@ function drawPlate(){
 function drawCard(){
   const cv = $("#yrcard"); if (!cv || !yr.x) return;
   const x = yr.x, L = yr.L, o = yr.opt, W = 1600, H = 900, g = cv.getContext("2d");
-  const ink = "#ece8df", ink2 = "#a9a69e", amber = "#ffae57", top = 430;
+  const ink = "#ece8df", ink2 = "#a9a69e", amber = "#ffae57";
+  // 縦の割り付け：上に数字、その下に文字の帯（読み方・見どころ）、その下に光（PT〜PB）、いちばん下に凡例。
+  // 光の上に文字を重ねない（朝の筋は上端に写るので、重ねると朝型の人の光が隠れる）
+  const PT = 552, PB = 812;
   const ls = v => { if ("letterSpacing" in g) g.letterSpacing = v; };
   g.clearRect(0, 0, W, H); g.fillStyle = "#06070a"; g.fillRect(0, 0, W, H);
   // 使い始めたばかりでも光が端に寄らないよう、画像は記録のある日から（短ければ 4 週ぶん）だけを写す
   const last = x.partial ? Math.round((new Date(x.partial.getFullYear(), x.partial.getMonth(), x.partial.getDate()) - new Date(x.y, 0, 1))/864e5) + 1 : x.nd;
   const first = x.lines.reduce((a, l) => Math.min(a, l[0]), last), c0 = Math.max(0, Math.min(first, last - 28));
-  exposure(g, 0, top, W, H - top, x, 2, false, c0, last);
-  const fade = g.createLinearGradient(0, top, 0, H);
-  fade.addColorStop(0, "rgba(6,7,10,1)"); fade.addColorStop(.3, "rgba(6,7,10,0)"); fade.addColorStop(.72, "rgba(6,7,10,0)"); fade.addColorStop(1, "rgba(6,7,10,.92)");
-  g.fillStyle = fade; g.fillRect(0, top, W, H - top);
+  exposure(g, 0, PT, W, PB - PT, x, 2, false, c0, last);
   // 画像だけを見た人にも読めるよう、光の読み方を添える
   g.textAlign = "left"; g.textBaseline = "alphabetic"; g.fillStyle = ink2; g.globalAlpha = .8; g.font = `500 16px ${FONT.mono}`; ls("2px");
-  g.fillText("EACH STREAK = A STRETCH OF ACTIVE TIME   ·   ACROSS: DATE   ·   DOWN: 6:00 → 6:00", 80, top + 40); ls("0px"); g.globalAlpha = 1;
-  // 見どころを光の上に書き込む：期間なら括弧、1 日なら目印。重なる見出しは 2 段目に下げる
+  g.fillText("EACH STREAK = A STRETCH OF ACTIVE TIME   ·   ACROSS: DATE   ·   DOWN: 6:00 → 6:00", 80, 466); ls("0px"); g.globalAlpha = 1;
+  // 見どころ：光の上端に括弧（期間）か目印（1 日）を付け、見出しはその上の帯に置く。重なる見出しは上の段に上げる
   const cw = W/(last - c0), cx0 = c => (c - c0)*cw;
   let rows = [[], []];
   x.hi.filter(h => h.c0 != null && h.c1 >= c0 && h.c0 < last).slice(0, 3).sort((p, q) => p.c0 - q.c0).forEach(h => {
@@ -194,13 +194,12 @@ function drawCard(){
     g.font = `600 19px ${FONT.sans}`; const tw = g.measureText(h.t).width;
     const tx = Math.max(80, Math.min(W - 80 - tw, (xa + xb)/2 - tw/2));
     const r = rows[0].every(([p, q]) => tx > q + 24 || tx + tw < p - 24) ? 0 : 1; rows[r].push([tx, tx + tw]);
-    const ty = top + 84 + r*58, ly = ty + 14;
+    const ty = 534 - r*28, ly = PT - 8;
     g.strokeStyle = amber; g.globalAlpha = .9; g.lineWidth = 2;
     g.beginPath();
     if (xb - xa > 6){ g.moveTo(xa + 1, ly + 8); g.lineTo(xa + 1, ly); g.lineTo(xb - 1, ly); g.lineTo(xb - 1, ly + 8); }
-    else { g.moveTo((xa + xb)/2, ly); g.lineTo((xa + xb)/2, ly + 26); }
+    else { g.moveTo((xa + xb)/2, ly); g.lineTo((xa + xb)/2, ly + 14); }
     g.stroke(); g.globalAlpha = 1;
-    g.fillStyle = "rgba(6,7,10,.75)"; g.fillRect(tx - 8, ty - 20, tw + 16, 28);
     g.fillStyle = amber; g.textAlign = "left"; g.fillText(h.t, tx, ty);
   });
   g.textAlign = "left"; g.textBaseline = "alphabetic";
