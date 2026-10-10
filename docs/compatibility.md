@@ -8,7 +8,7 @@ While kiroku is in 0.x, anything here may still change in a minor release (marke
 
 A change that breaks one of these is marked `BREAKING` in the changelog and, from v1.0.0 on, only comes with a new major version.
 
-- **Commands**: `serve`, `open`, `html`, `json`, `archive`, `autostart`, `doctor`, `version`, `update` and `help`, and their arguments (such as `archive on|off` and the `ADDR` of `serve`)
+- **Commands**: `serve`, `open`, `html`, `json`, `stats`, `archive`, `autostart`, `doctor`, `version`, `update` and `help`, and their arguments (such as `archive on|off` and the `ADDR` of `serve`)
 - **Options**: the names, meanings and defaults listed under [Options](guide.md#options)
 - **Environment variables** kiroku reads: `KIROKU_ARCHIVE_DIR`, `KIROKU_CONFIG_DIR`, and the agents' own (`CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME`)
 - **Exit status**: 0 on success, and not 0 when a command fails
