@@ -2,6 +2,10 @@
 
 ADRs document **why** kiroku makes architectural choices, not just how code works. Keep them short, immutable in intent, and linked to the relevant code, issue or PR. An ADR may be retrospective; distinguish observed implementation from a historically recorded decision.
 
+## General practice
+
+[Decision Continuity](decision-continuity.md) describes the repository-agnostic combination of Reverse ADR (recover past decisions), ADR Guard (apply relevant decisions to changes), and forward ADRs (record intentional departures). It includes principles, a lifecycle, adoption steps, evaluation criteria and limitations.
+
 ## Reverse ADR skill
 
 The reusable [reverse-adr agent skill](../../.claude/skills/reverse-adr/SKILL.md) defines a repeatable process for discovering decisions, reconstructing rationale, verifying historical/current/test evidence, reconciling reversals, and auditing coverage. Use `audit` for read-only verification or `write` for a branch/PR workflow. This skill can be applied to other repositories; it is not tied to kiroku's specific decisions.
@@ -61,6 +65,7 @@ If multiple rows apply, inspect the union of relevant ADRs. This index is a rout
 - `phase1-decision-ledger.md` — evolving, evidence-linked historical decision inventory.
 - `evidence.yaml` — initial claim-level historical/current/test references and conservative statuses.
 - `audit.md` — dated Reverse ADR inspection, findings, limitations and next verification gates.
+- `decision-continuity.md` — reusable practice combining retrospective recovery with ongoing change governance.
 
 ## Lifecycle
 
