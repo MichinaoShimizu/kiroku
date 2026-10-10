@@ -1,8 +1,12 @@
 # ADR 0014: Prompt provenance and automatic events
 
-Status: **Retrospective**
+Status: Retrospective
+Date: Unknown
+Related: None
+Supersedes: None
+Superseded by: None
 
-Scope: Phase 1 — local sessions.
+Scope: Phase 1 — local sessions
 
 ## Context and documented decision
 
@@ -17,3 +21,23 @@ This classification is part of the measurement contract: automatically inserted 
 Inspect `internal/core/kind.go`, source adapters and the prompt timeline and JSON tests. Historical behavior is documented by #103; exact present-day parsing paths still require a full code audit.
 
 This ADR records documented changes, not an approval meeting or an unverified current behavior.
+
+## Decision
+
+The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
+
+## Consequences
+
+See the existing rationale and consequences discussion above. No additional outcome is asserted.
+
+## Alternatives
+
+Not documented as a separate set of evaluated options in this record.
+
+## Historical confidence and open questions
+
+Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.
+
+## Verification
+
+See existing source and test references where available. No new test execution is claimed.
