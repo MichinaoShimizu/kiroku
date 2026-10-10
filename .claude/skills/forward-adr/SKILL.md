@@ -17,11 +17,11 @@ Use after ADR Guard identifies a material choice that is new, intentionally chan
 
 1. Read repository instructions, ADR index and relevant prior ADRs; use ADR Guard to classify preservation, extension or intentional conflict.
 2. Determine whether a durable decision exists. Avoid ADRs for trivial fixes, routine refactors and stylistic changes.
-3. State the decision question, context, constraints, stakeholders and evidence. Distinguish facts from assumptions and unresolved questions.
+3. State the decision question, context, constraints, stakeholders and evidence. Distinguish facts from assumptions and unresolved questions. Preserve unknown rationale in related retrospective records: a new explicit decision must not retroactively invent a reason for a prior observed change.
 4. Describe a specific **proposed** choice and why it is preferred; compare genuine alternatives, including doing nothing when applicable. Do not fabricate deliberation.
 5. Analyze consequences: benefits, costs, reversibility, migration, compatibility, security/privacy, operations, observability and failure modes as relevant.
 6. Define verification and a review/acceptance owner or process. Tests not executed must be marked unverified.
-7. Link related ADRs. If replacing an earlier decision, set `Supersedes`; if changing only part, set `Amends`. Preserve the old record's rationale; update indexes and reciprocal links only when appropriate.
+7. Link related ADRs. If replacing an earlier decision, set `Supersedes`; if changing only part, set `Amends`. Preserve the old record's rationale; update the routing index in the same change: stable ID/link, scope, path/component hints, semantic keywords, Proposed status and relationships. After authorized acceptance or supersession, update index status and reciprocal links together; do not preemptively mark acceptance.
 8. Output a concise review summary of unresolved tradeoffs, risks and required approvals. A draft is not an accepted decision.
 
 ## Template

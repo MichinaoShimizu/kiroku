@@ -12,7 +12,9 @@ The reusable [reverse-adr agent skill](../../.claude/skills/reverse-adr/SKILL.md
 
 ## Continuous design-decision workflow
 
-Reverse ADR is a **bootstrap** step, not the end of ADR adoption:
+Reverse ADR is a **bootstrap** step, not the end of ADR adoption. The ADR index is a shared, maintained discovery interface: Reverse ADR constructs it, ADR Guard consults and audits its relevance, and Forward ADR updates it when new decisions are proposed or accepted. Index edits belong in the same change as ADR edits. Status and supersession links must stay current.
+
+The workflow:
 
 1. Run [reverse-adr](../../.claude/skills/reverse-adr/SKILL.md) to recover the evidence-backed decision baseline and explicitly track uncertainties.
 2. During design, implementation and review, run [adr-guard](../../.claude/skills/adr-guard/SKILL.md) against the proposed diff to identify preserved, extended and conflicting decisions.
@@ -21,6 +23,10 @@ Reverse ADR is a **bootstrap** step, not the end of ADR adoption:
 5. Periodically re-run reverse-adr in `audit` mode to detect drift between ADR claims and implementation.
 
 These are **agent workflows, not automatic CI enforcement**. Merely adding a skill does not make every coding agent invoke it. Integrate the workflow into the repository's agent instructions and PR review process; do not block trivial fixes or treat historical ADRs as permanent prohibitions.
+
+## Uncertainty Preservation
+
+A confirmed historical implementation change may have no recorded rationale (for example, a merged PR with an empty description). Retain the observed before/after facts, mark the rationale unknown, and route future related changes to that record for proportionate investigation. An observed change is **not** automatically an accepted architectural constraint. See [Decision Continuity](decision-continuity.md#uncertainty-preservation).
 
 ## Quick routing index
 
@@ -38,7 +44,7 @@ Scan this table first; read **only the relevant ADR bodies**. Paths are indicati
 | `.github/workflows/`, `install.sh`, release/update code | supply-chain, signatures, provenance, compatibility | [0011](0011-release-integrity.md), [0006](0006-compatibility-contract.md) |
 | `README.md`, `README.ja.md`, `internal/web/` | UI language, Japanese documentation | [0018](0018-language-policy.md) |
 
-If multiple rows apply, inspect the union of relevant ADRs. This index is a routing aid, not proof that every architectural decision is documented.
+When adding or changing an ADR, update this table and the ADR list with its scope, path/semantic routing hints, status and supersession relationships. Review stale entries during periodic audits. If multiple rows apply, inspect the union of relevant ADRs. This index is a routing aid, not proof that every architectural decision is documented.
 
 ## Layout
 

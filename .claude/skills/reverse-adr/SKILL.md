@@ -51,6 +51,8 @@ Use these labels:
 - **Inferred**: plausible interpretation, explicitly marked as inference.
 - **Unknown**: no reliable evidence.
 
+**Uncertainty Preservation:** an important observed change with unknown rationale is still useful evidence for future decisions. Record the verified before/after change and source references, label the rationale `Unknown`, and retain explicit investigation questions. Do not manufacture an architectural choice or accepted policy from the diff alone.
+
 Never invent approval meetings, alternative options, tradeoffs, motivations, or acceptance dates. A merged PR proves a change merged, **not** that a specific rationale was formally approved. Preserve decisions that were reversed; do not silently rewrite their historical status.
 
 ### 3. Verify every material claim
@@ -84,6 +86,8 @@ For each material decision, create a concise ADR with:
 - supersedes/superseded-by links when applicable;
 - current implementation and test references, pinned to a revision;
 - limitations, uncertainties and outstanding verification.
+
+Build or update the ADR discovery index alongside every recovered ADR: stable ID/link, concise scope, path/component hints, semantic keywords, status, and supersession relationships. Verify links and avoid treating inferred scope as exhaustive. Flag index gaps for future ADR Guard runs.
 
 Maintain a separate ledger for smaller choices and reversals. Number ADRs consistently with the target repository; avoid renumbering published ADRs. For a planned later phase, keep phase distinct from chronology rather than rewriting stable IDs. Do not treat proposed decisions as historical facts.
 
