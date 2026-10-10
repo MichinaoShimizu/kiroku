@@ -12,6 +12,9 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Amazon Q and Kiro CLI (SQLite): when a declined or interrupted tool turn was the first turn kept after a compaction, the CLI rewrote it to "Tool use was cancelled by the user", and kiroku counted that as your prompt. It is now shown as command output
 - Codex: a `/review` no longer counts the review prompt Codex writes for the reviewer as your prompt (twice in older rollouts), and its result no longer replaces the reply to your previous prompt. The review now shows as one slash command, `/review` with what was reviewed (such as `current changes`), and the reviewer appears under "Subagents" as `review` instead of `subagent`. Its usage before a compaction in the reviewer's own history is no longer dropped
 - Codex: a turn that failed because your ChatGPT plan does not include Codex is no longer counted as a usage limit hit
+- Claude Code: a conversation copied with `/branch`, `--fork-session` or `/fork` is no longer counted twice. A line in the copy is recognised as copied when the same line (its `uuid`) is in the original; it then counts once, in the original. Everything else, and the whole copy if the original is gone or can't be read, is counted in the copy
+- Claude Code: when a settings file exists but can't be read or parsed, kiroku no longer reports the 30-day retention. Claude Code pauses its cleanup then (unless the managed settings set `cleanupPeriodDays`), so nothing is deleted
+- Claude Code: estimated cost for Sonnet 5.5 is no longer too high in sessions recorded by Claude Code 2.1.284 to 2.1.295, which priced its cache reads at twice the official rate. kiroku estimates Sonnet 5.5 from its price table there
 
 ### Security
 
