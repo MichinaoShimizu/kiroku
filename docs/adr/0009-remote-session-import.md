@@ -1,4 +1,4 @@
-# ADR 0008: Local-first remote session import
+# ADR 0009: Local-first remote session import
 
 Status: **Proposed — Phase 2 (remote sessions)**. Originally researched under the old remote-import subplan's Phase 0; tracked in [#324](https://github.com/MichinaoShimizu/kiroku/issues/324) under [#323](https://github.com/MichinaoShimizu/kiroku/issues/323).
 
