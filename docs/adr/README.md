@@ -5,14 +5,14 @@ ADRs document **why** kiroku makes architectural choices, not just how code work
 ## Layout
 
 - `0001-local-session-foundation.md` — retrospective baseline for local-only session processing (Phase 1).
-- `0002-remote-session-import.md` — proposed extension for remote/cloud histories (Phase 2).
-- `0003-measurement-semantics.md` — data fidelity, missingness, traceability (Phase 1, retrospective).
-- `0004-local-privacy-boundary.md` — local-first security and privacy boundaries (Phase 1, retrospective).
-- `0005-session-identity-and-deduplication.md` — source-specific session identity and duplicate handling (Phase 1, retrospective).
-- `0006-nonjudgmental-reflection.md` — product philosophy and documented reversals (Phase 1, retrospective).
-- `0007-compatibility-contract.md` — public JSON/CLI and 1.0 compatibility policy (Phase 1, retrospective).
-- `0008-local-history-retention.md` — preserving histories agents may prune (Phase 1, retrospective).
-- `0009-incremental-local-processing.md` — changed-file reloads and affected-period recalculation (Phase 1, retrospective).
+- `0002-measurement-semantics.md` — data fidelity, missingness, traceability (Phase 1, retrospective).
+- `0003-local-privacy-boundary.md` — local-first security and privacy boundaries (Phase 1, retrospective).
+- `0004-session-identity-and-deduplication.md` — source-specific session identity and duplicate handling (Phase 1, retrospective).
+- `0005-nonjudgmental-reflection.md` — product philosophy and documented reversals (Phase 1, retrospective).
+- `0006-compatibility-contract.md` — public JSON/CLI and 1.0 compatibility policy (Phase 1, retrospective).
+- `0007-local-history-retention.md` — preserving histories agents may prune (Phase 1, retrospective).
+- `0008-incremental-local-processing.md` — changed-file reloads and affected-period recalculation (Phase 1, retrospective).
+- `0009-remote-session-import.md` — proposed extension for remote/cloud histories (Phase 2).
 - `phase1-decision-ledger.md` — evolving, evidence-linked historical decision inventory.
 
 ## Lifecycle
