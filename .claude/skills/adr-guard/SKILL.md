@@ -15,7 +15,7 @@ Use this skill **after** reverse-adr has recovered the historical decision basel
 
 ## Procedure
 
-1. Read repository instructions and the ADR index. Identify the proposed behavior, affected files, interfaces, data flows and threat boundaries. Read relevant ADRs, their supersession chain and evidence status.
+1. Read repository instructions and the lightweight ADR routing index. Identify affected paths, interfaces, data flows, metric semantics and threat boundaries. Match index path hints **and** semantic keywords; paths are hints, not exhaustive coverage. Read only matching ADR bodies, their supersession chain and evidence status. For trivial changes with no relevant ADR, skip ADR bodies and continue; for high-impact changes, inspect relevant ADRs even when no path hint matches.
 2. Map each change to applicable ADR **claims**, not just ADR titles. Determine whether it **preserves**, **extends**, **conflicts with**, or is **not covered by** each claim. Cite the exact ADR section and changed code/diff.
 3. Do not treat a retrospective ADR as an unquestionable rule. Check whether it is current, superseded, proposed, inferred or unverified. Inspect current code/tests for disputed claims. Missing ADR coverage is **not** evidence that a change is safe.
 4. If a conflict is unintentional, recommend the smallest code/design adjustment to preserve the decision and add regression tests. If intentional, describe why the old constraints no longer apply, alternatives, consequences, migration and compatibility/security risks; in `record` mode create a new **Proposed** ADR referencing the previous ADR as `Supersedes` (or `Amends` for a narrower change). Never silently rewrite the old decision.
