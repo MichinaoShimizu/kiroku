@@ -4,10 +4,6 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
-### Changed
-
-- docs: the Claude Code column of "What history records" now covers when Claude Code pauses its cleanup, `CLAUDE_CODE_TRANSCRIPT_LOCAL_GC`, `modelPricing` in `cost-state`, and the usage-limit windows that only the status line gets
-
 ### Fixed
 
 - Kiro IDE: a conversation migrated from 0.x to 1.0 is no longer counted twice. Kiro keeps the 0.x copy after migrating, so the 0.x conversation with the same ID is left out and the 1.0 one is used, as kiro-history does; "Data sources" shows how many were left out
