@@ -2,6 +2,17 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Security
+
+- Kiro Crew: conversations held in incognito or temporary mode (`memory_mode` in the conversation log, or the flag in `session_map.json`) are now shown with counts and times only, titled "Kiro Crew private conversation". Before, kiroku showed their prompts, replies, title, edited files and the prompts sent to their subagents in the view, the JSON, search and the prompts it copies for an AI, although Crew itself refuses to learn from, summarize or export them. The time span, number of prompts, turns, model, tools, credits, tokens and cost are still shown. `kiroku archive` still copies Crew's `sessions/archive/` files as they are, so its copy keeps their text
+
+### Fixed
+
+- Kiro Crew: lines Crew moved to `sessions/archive/` only because they duplicate a line still in the conversation (`foreign-dedup`), or as the earlier form of a line that was edited during a rewind, regenerate or fork (`compact`), are no longer counted again as prompts. Turns that were undone are still shown
+- Kiro Crew: tokens and cost of dashboard turns that ran on Codex are no longer counted twice (once from Crew's usage records, priced from the price table, and once from Codex's own history) when the conversation was later switched to kiro-cli. Crew records such turns with the provider `acp`, so kiroku now tells them by their Codex model ID
+
 ## v0.29.1 - 2026-10-09
 
 ### Changed

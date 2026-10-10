@@ -12,7 +12,7 @@ const has = (got, want, msg) => { if (!got.includes(want)){ console.error(`${msg
 const not = (got, bad, msg) => { if (got.includes(bad)){ console.error(`${msg}: ${got} に ${bad} がある`); process.exitCode = 1; } };
 const zero = {days: 0, now: true, set: true, who: "Kiro Crew", setting: "session.archive_retention_days", docs: "https://docs"};
 let row = keepRow({name: "Kiro CLI", retention: zero});
-has(row, "Older records are deleted at the next cleanup, within an hour (<code>session.archive_retention_days</code> is 0)", "0 日は次の片付けで消える");
+has(row, "Older records are deleted at the next cleanup (<code>session.archive_retention_days</code> is 0)", "0 日は次の片付けで消える");
 has(row, `class="kw"`, "0 日は注意として出す");
 not(row, "after a period", "0 日を「わからない期間」と出さない");
 not(row, "Kept for 0 days", "0 日を「0 日残す」と出さない");

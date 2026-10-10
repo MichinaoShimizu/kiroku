@@ -222,10 +222,11 @@ func (k *KiroCLI) DetailEn() string {
 func (k *KiroCLI) Name() string { return "Kiro CLI" }
 
 // Retention は Kiro Crew の会話の記録の保存期間（session.archive_retention_days。既定 30 日）。Crew を使っているときだけ。
-// Crew は 1 時間に 1 回、退避した会話の記録（sessions/archive/）のうち更新時刻がそれより古いものを消す（閉じた会話の crew log も同じ設定で消す）。
+// Crew は退避した会話の記録を新しく書いたとき（1 つのプロセスで 1 時間に 1 回まで）に、sessions/archive/ のうち更新時刻がそれより古いものを消す
+// （history.py の _archive_lines → _cleanup_old_archives。閉じた会話の crew log も同じ設定で消す）。決まった間隔で動くのではない。
 // 消さない設定（null か負の数）なら nil。Crew は config.json に全部のキーを書き出すので、キーがあっても利用者が決めたとは限らない。
 // そこで、既定の 30 日と違う値のときだけ設定済み（Set）にする。設定を足す先は、config.json より勝つ config.local.json を案内する。
-// 0 日なら、Crew は次の片付け（1 時間に 1 回まで）で退避した記録を全部消す（history.py の _cleanup_old_archives は cutoff = 今）。
+// 0 日なら、Crew は次の片付け（次に記録を退避したとき）で退避した記録を全部消す（history.py の _cleanup_old_archives は cutoff = 今）。
 // Days の 0 は「わからない」なので、Now で 0 日を表す。
 func (k *KiroCLI) Retention() *Retention {
 	if k.CrewHome == "" || !isDir(k.CrewHome) {
@@ -399,7 +400,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		}
 		// 会話の記録。Crew から動かした会話は、kiro-cli の履歴に依頼が残らないことがある。
 		// 行は使用量の記録と同じく時刻で分ける（時刻のない行は前の行と同じ会話に）。Crew のセッションがなければ、どの会話にも入らない行は今の会話に入れる
-		var title string
+		var cm crewMeta // 会話の記録のメタデータ
 		var rows, restRows []crewRow
 		live := -1 // 今の会話（Former でない）
 		need := len(rest) > 0
@@ -416,7 +417,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			need = len(rest) > 0
 		}
 		if need && !crewBackground(slot) && k.CrewHome != "" {
-			title, rows = readCrewKey(k.CrewHome, k.CrewArchive, slot, &errs)
+			cm, rows = readCrewKey(k.CrewHome, k.CrewArchive, slot, &errs)
 		}
 		if live < 0 {
 			live = len(ow) - 1
@@ -455,6 +456,9 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		sort.SliceStable(ow, func(i, j int) bool { return !ow[i].info.Former && ow[j].info.Former })
 		for _, o := range ow {
 			info := o.info
+			if cm.private && !info.Subagent { // 会話の記録が中身を残さない会話だと示す（数と時刻だけを出す）
+				info.Private = true
+			}
 			held.add(o.s, &info, info.Key)
 		}
 		if len(rest) == 0 {
@@ -462,7 +466,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		}
 		// kiro-cli の会話に結びつかない Crew の記録
 		seenRows[slot] = true
-		ss, skipped := crewOnly(k.CrewHome, slot, rest, slotInfo[slot], title, restRows)
+		ss, skipped := crewOnly(k.CrewHome, slot, rest, slotInfo[slot], cm.title, restRows)
 		k.crewElse += skipped
 		for _, s := range ss {
 			k.crewOnly++
@@ -472,6 +476,9 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 				continue
 			}
 			held.add(s, slotInfo[slot], slot)
+			if cm.private {
+				held.hide(s)
+			}
 		}
 	}
 	// 会話の記録だけがある Crew の会話（使用量の記録も kiro-cli の会話もないもの）
@@ -490,14 +497,14 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			}
 			// 退避した古い行も読む。fork なら、元の会話から写した行は除く
 			stem := strings.TrimSuffix(filepath.Base(p), ".jsonl")
-			title, rows := readCrewStem(k.CrewHome, k.CrewArchive, stem, &errs)
+			cm, rows := readCrewStem(k.CrewHome, k.CrewArchive, stem, &errs)
 			if len(rows) == 0 {
 				continue
 			}
 			s := core.NewBuilder("Kiro Crew", "crew:"+stem)
 			s.File = p
 			s.Key = "kiro-crew:" + stem
-			s.Title, s.Project = firstNonEmpty(title, "Kiro Crew: "+stem), "(Kiro Crew)"
+			s.Title, s.Project = firstNonEmpty(cm.title, "Kiro Crew: "+stem), "(Kiro Crew)"
 			if info := byFile[p]; info != nil && info.Cwd != "" {
 				s.Project = info.Cwd
 			}
@@ -512,6 +519,9 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			k.crewText++
 			held.byPath[p] = s
 			held.list = append(held.list, heldCrew{b: s})
+			if info := byFile[p]; cm.private || info != nil && info.Private {
+				held.hide(s)
+			}
 		}
 	}
 	held.flush(k.CrewHome, emit)

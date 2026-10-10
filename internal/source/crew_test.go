@@ -1,6 +1,7 @@
 package source
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"os"
@@ -14,6 +15,7 @@ import (
 	_ "time/tzdata"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
+	"github.com/MichinaoShimizu/kiroku/internal/web"
 )
 
 // testdata/crew は Kiro Crew の作り（session_map.json・sessions/*.jsonl・subagents/*/state.json）に合わせた合成データ。
@@ -1055,5 +1057,192 @@ func TestCrewLogFolderNameIsNotPattern(t *testing.T) {
 	}
 	if i := got["subagent:b1"]; i.Key != "dashboard:bracket" {
 		t.Errorf("b1 = %+v, want [ のフォルダも読む", i)
+	}
+}
+
+// Crew の incognito・temporary の会話（会話の記録のメタデータの memory_mode。session_map の flags）は、Crew 自身も何も学ばない。
+// kiroku も数と時刻だけを出し、依頼・応答の文、タイトル、会話に出たファイル、サブエージェントへの依頼、履歴のファイルは
+// Builder にも JSON・HTML にも残さない。
+func TestKiroCrewPrivateConversations(t *testing.T) {
+	kiro, crew := t.TempDir(), t.TempDir()
+	writeFiles(t, kiro, map[string]string{
+		// incognito の会話の kiro-cli の会話（Crew は閉じるときに消すが、動いている間や異常終了のあとは残る）
+		"sessions/cli/k1.json": `{"session_id": "k1", "cwd": "/Users/me/app", "title": "SECRET-KIRO-TITLE", "created_at": "2026-09-29T10:00:00Z", "updated_at": "2026-09-29T10:05:00Z",
+ "session_state": {"conversation_metadata": {"user_turn_metadatas": [{"end_timestamp": "2026-09-29T10:05:00Z", "metering_usage": [{"value": 2, "unit": "credit"}]}]}}}`,
+		"sessions/cli/k1.jsonl": `{"version": "v1", "kind": "Prompt", "data": {"content": [{"kind": "text", "data": "SECRET-KIRO-PROMPT"}], "meta": {"timestamp": 1790676060}}}
+{"version": "v1", "kind": "AssistantMessage", "data": {"content": [{"kind": "text", "data": "SECRET-KIRO-REPLY"}, {"kind": "toolUse", "data": {"name": "fs_write", "input": {"path": "/Users/me/SECRET-FILE.go"}}}]}}
+`,
+	})
+	row := func(ts, slot string, credits float64) string {
+		return fmt.Sprintf(`{"_type": "tokens", "ts": %q, "slot": %q, "provider": "acp", "model": "claude-sonnet-4.5", "credits": %v}`, ts, slot, credits)
+	}
+	writeFiles(t, crew, map[string]string{
+		"session_map.json": `{"dashboard:chat-1-100": {"sid": "k1", "cwd": "/Users/me/app"},
+ "slack:C8_1": {"sid": "gone", "cwd": "/Users/me/slack", "flags": {"incognito": true}},
+ "dashboard:chat-3-300": {"sid": "k3", "cwd": "/Users/me/open"}}`,
+		"sessions/dashboard_chat-1-100.jsonl": `{"_type": "metadata", "title": "SECRET-CREW-TITLE", "memory_mode": "incognito"}
+{"role": "user", "content": "SECRET-CREW-PROMPT", "ts": "2026-09-29T10:01:00+00:00", "meta": {"human": true}}
+{"role": "assistant", "content": "SECRET-CREW-REPLY", "ts": "2026-09-29T10:04:00+00:00", "tools": ["fs_write"]}
+`,
+		// 使用量の記録だけの会話（session_map にない）。値は Crew と同じく前後の空白と大文字小文字を無視する
+		"sessions/dashboard_chat-2-200.jsonl": `{"_type": "metadata", "title": "SECRET-USAGE-TITLE", "memory_mode": " Temporary"}
+{"role": "user", "content": "SECRET-USAGE-PROMPT", "ts": "2026-09-29T11:00:00+00:00"}
+{"role": "assistant", "content": "SECRET-USAGE-REPLY", "ts": "2026-09-29T11:01:00+00:00"}
+`,
+		"sessions/archive/dashboard_chat-2-200__20260929-105000.jsonl": `{"_type": "archive", "reason": "rotate"}
+{"role": "user", "content": "SECRET-ARCHIVED-PROMPT", "ts": "2026-09-29T10:50:00+00:00"}
+`,
+		// 会話の記録だけの会話: メタデータの memory_mode と、session_map の flags（メタデータに書かれる前）
+		"sessions/slack_C9_1.jsonl": `{"_type": "metadata", "title": "SECRET-SLACK-TITLE", "memory_mode": "temporary"}
+{"role": "user", "content": "SECRET-SLACK-PROMPT", "ts": "2026-09-29T13:00:00+00:00"}
+`,
+		"sessions/slack_C8_1.jsonl": `{"_type": "metadata", "title": "SECRET-FLAG-TITLE"}
+{"role": "user", "content": "SECRET-FLAG-PROMPT", "ts": "2026-09-29T14:00:00+00:00"}
+`,
+		// 比べるためのふつうの会話
+		"sessions/dashboard_chat-3-300.jsonl": `{"_type": "metadata", "title": "ふつうの会話", "memory_mode": "persistent"}
+{"role": "user", "content": "見える依頼", "ts": "2026-09-29T15:00:00+00:00"}
+`,
+		// incognito の会話から起動したサブエージェント（state.json と、state.json が消えたあとの crew-log）と、あとから incognito にしたサブエージェント
+		"subagents/sa1/state.json":       `{"id": "sa1", "agent": "coder", "task": "SECRET-TASK", "parent_session": "dashboard:chat-1-100", "session_id": "sa1-sid"}`,
+		"crew-log/sessions/c1/log.jsonl": `{"type": "session", "id": "x", "slot": "dashboard:chat-1-100", "cwd": "/Users/me/app"}` + "\n" + `{"type": "subagent/spawned", "data": {"agent_id": "sa2", "agent": "reviewer", "task": "SECRET-SPAWN-TASK"}}` + "\n",
+		"subagents/sa3/state.json":       `{"id": "sa3", "agent": "helper", "task": "SECRET-TIGHTENED-TASK", "parent_session": "dashboard:chat-3-300", "session_id": "sa3-sid", "memory_mode": "persistent", "execution_context": {"memory_mode": "incognito"}}`,
+		"usage/tokens/2026-09-29.jsonl": strings.Join([]string{
+			row("2026-09-29T10:05:00+00:00", "chat-1-100", 3),
+			row("2026-09-29T10:02:00+00:00", "subagent:sa1", 0.5),
+			row("2026-09-29T10:03:00+00:00", "subagent:sa2", 0.25),
+			row("2026-09-29T11:01:00+00:00", "chat-2-200", 1),
+			row("2026-09-29T15:01:00+00:00", "chat-3-300", 1),
+			row("2026-09-29T15:02:00+00:00", "subagent:sa3", 0.125),
+		}, "\n") + "\n",
+	})
+	bs := load(t, &KiroCLI{Home: kiro, CrewHome: crew})
+	var ss []*core.Session
+	by := map[string]*core.Session{}
+	for _, b := range bs {
+		s := b.Finish(15)
+		if s == nil {
+			t.Fatalf("%s に時刻がない", b.ID)
+		}
+		ss = append(ss, s)
+		by[b.ID] = s
+		for _, p := range s.Prompts {
+			if strings.Contains(p.Full(), "SECRET") || p.Reply != nil && strings.Contains(p.Reply.Full(), "SECRET") {
+				t.Errorf("%s: 依頼か応答の文が残っている: %+v", b.ID, p)
+			}
+		}
+		for _, f := range b.EditedFiles() {
+			if strings.Contains(f, "SECRET") {
+				t.Errorf("%s: 会話に出たファイルが残っている: %q", b.ID, f)
+			}
+		}
+	}
+	data, err := json.Marshal(ss)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if i := strings.Index(string(data), "SECRET"); i >= 0 {
+		t.Errorf("JSON に中身が残っている: …%s…", string(data)[max(0, i-200):min(len(data), i+40)])
+	}
+	if html, err := web.Render(ss, nil, nil, nil, 0, false); err != nil || strings.Contains(html, "SECRET") {
+		t.Errorf("HTML に中身が残っている（err = %v）", err)
+	}
+	const title = "Kiro Crew private conversation"
+	// kiro-cli の会話: 数と時刻は残す（依頼の数・クレジット・ツールの回数・作業場所）
+	k1 := by["k1"]
+	if k1 == nil || k1.Title != title || k1.Source != "Kiro Crew" || k1.NPrompts != 1 || k1.Credits != 3.75 || k1.File != "" ||
+		k1.ProjectPath != "/Users/me/app" || k1.Start == 0 || k1.End <= k1.Start || len(k1.Tools) == 0 {
+		t.Errorf("incognito の kiro-cli の会話 = %+v", k1)
+	}
+	// サブエージェントは親の中に出し、依頼は出さない（クレジットは親に入る）
+	if k1 != nil && (len(k1.Subagents) != 2 || k1.Subagents[0].Desc != "" || k1.Subagents[1].Desc != "") {
+		t.Errorf("incognito の会話のサブエージェント = %+v", k1.Subagents)
+	}
+	for _, id := range []string{"crew:dashboard:chat-2-200", "crew:slack_C9_1", "crew:slack_C8_1"} {
+		s := by[id]
+		if s == nil || s.Title != title || s.File != "" || s.NPrompts == 0 || len(s.Notes) != 0 {
+			t.Errorf("%s = %+v", id, s)
+		}
+	}
+	if s := by["crew:dashboard:chat-2-200"]; s == nil || s.Credits != 1 || s.NPrompts != 2 {
+		t.Errorf("使用量だけの会話 = %+v, want クレジット 1・依頼 2（退避した記録も数える）", s)
+	}
+	// ふつうの会話はそのまま。あとから incognito にしたサブエージェントの依頼だけ出さない
+	if s := by["crew:dashboard:chat-3-300"]; s == nil || s.Title != "ふつうの会話" || len(s.Prompts) != 1 || s.Prompts[0].Text != "見える依頼" ||
+		len(s.Subagents) != 1 || s.Subagents[0].Desc != "" || s.Subagents[0].Type != "helper" {
+		t.Errorf("ふつうの会話 = %+v", s)
+	}
+}
+
+// Crew は記録を退避する理由を 1 行目の reason に書く。"rotate" はあふれた古い行（全部読む）、"foreign-dedup" は今の記録に残る行と
+// 同じ行（読まない）、"compact" は巻き戻し・作り直しで落とした行（巻き戻したターンと、書きかえた行の前の形）。
+// "compact" の行は、残っている行と同じもの（meta.mid が同じか、mid がなければ role・ts・内容が同じ）だけを除く。
+func TestKiroCrewArchiveReasons(t *testing.T) {
+	kiro, crew := t.TempDir(), t.TempDir()
+	writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
+	u := func(text, ts, mid string) string {
+		m := ""
+		if mid != "" {
+			m = fmt.Sprintf(`, "meta": {"mid": %q}`, mid)
+		}
+		return fmt.Sprintf(`{"role": "user", "content": %q, "ts": %q%s}`, text, ts, m) + "\n"
+	}
+	writeFiles(t, crew, map[string]string{
+		"sessions/archive/slack_C1_1__20260930-100000.jsonl": `{"_type": "archive", "reason": "rotate", "count": 1}` + "\n" +
+			u("古い依頼", "2026-09-30T09:00:00+00:00", "m0"),
+		"sessions/archive/slack_C1_1__20260930-110000.jsonl": `{"_type": "archive", "reason": "foreign-dedup", "count": 1}` + "\n" +
+			u("B", "2026-09-30T10:30:01+00:00", "m2"),
+		"sessions/archive/slack_C1_1__20260930-120000.jsonl": `{"_type": "archive", "reason": "compact", "count": 4}` + "\n" +
+			u("A の前の形", "2026-09-30T10:00:00+00:00", "m1") +
+			u("巻き戻した依頼", "2026-09-30T10:10:00+00:00", "m9") +
+			u("C", "2026-09-30T10:40:00+00:00", "") +
+			u("B", "2026-09-30T10:30:00+00:00", "m2"),
+		"sessions/slack_C1_1.jsonl": `{"_type": "metadata", "title": "Slack"}` + "\n" +
+			u("A", "2026-09-30T10:00:00+00:00", "m1") +
+			u("B", "2026-09-30T10:30:00+00:00", "m2") +
+			u("C", "2026-09-30T10:40:00+00:00", ""),
+	})
+	b := find(load(t, &KiroCLI{Home: kiro, CrewHome: crew}), "crew:slack_C1_1")
+	if got := strings.Join(promptTexts(b), "|"); got != "古い依頼|巻き戻した依頼|A|B|C" {
+		t.Errorf("依頼 = %q, want 古い依頼|巻き戻した依頼|A|B|C（同じ行を 2 度数えない）", got)
+	}
+}
+
+// ダッシュボードの行の provider は Codex で動いても "acp"。会話キーの今の backend（session_map の provider）が kiro-cli でも、
+// 前に Codex で動いたターンの行（トークンだけでクレジットがなく、モデルが Codex の ID）は、Codex の履歴で数える。
+func TestKiroCrewCodexRowsAfterSwitch(t *testing.T) {
+	kiro, crew := t.TempDir(), t.TempDir()
+	writeFiles(t, kiro, map[string]string{
+		"sessions/cli/k5.json":  kiroCLISession("k5", "/Users/me/app", "2026-09-29T12:00:00Z", "2026-09-29T12:10:00Z", [2]string{"2026-09-29T12:10:00Z", ""}),
+		"sessions/cli/k5.jsonl": "",
+	})
+	row := func(ts, slot, model string, credits float64) string {
+		return fmt.Sprintf(`{"_type": "tokens", "ts": %q, "slot": %q, "provider": "acp", "model": %q, "input": 1000, "output": 100, "cost": 0, "credits": %v, "surface": "dashboard"}`, ts, slot, model, credits)
+	}
+	writeFiles(t, crew, map[string]string{
+		"session_map.json": `{"dashboard:chat-5-500": {"sid": "k5", "cwd": "/Users/me/app"}}`,
+		"usage/tokens/2026-09-29.jsonl": strings.Join([]string{
+			row("2026-09-29T10:00:00+00:00", "chat-5-500", "gpt-5.4", 0),          // Codex のころ
+			row("2026-09-29T10:05:00+00:00", "chat-5-500", "gpt-6-astra[max]", 0), // 推論の強さつきの Codex の ID
+			row("2026-09-29T12:10:00+00:00", "chat-5-500", "gpt-5.6-sol", 1),      // kiro-cli の GPT（クレジットがある）
+			row("2026-09-29T13:00:00+00:00", "chat-6-600", "openai/gpt-5", 0),     // <provider>/<model> は Codex の ID ではない
+		}, "\n") + "\n",
+	})
+	k := &KiroCLI{Home: kiro, CrewHome: crew}
+	by := map[string]*core.Session{}
+	for _, b := range load(t, k) {
+		by[b.ID] = b.Finish(15)
+	}
+	if s := by["crew:dashboard:chat-5-500"]; s == nil || s.Usage.Total() != 0 || s.Cost != 0 || len(s.Models) != 2 {
+		t.Errorf("Codex のころの行 = %+v（トークンとコストは Codex の履歴で数える）", s)
+	}
+	if s := by["k5"]; s == nil || s.Usage.In != 1000 || s.Credits != 1 {
+		t.Errorf("kiro-cli の会話 = %+v, want トークン 1000・クレジット 1", s)
+	}
+	if s := by["crew:dashboard:chat-6-600"]; s == nil || s.Usage.In != 1000 {
+		t.Errorf("Codex でない backend = %+v", s)
+	}
+	if d := k.DetailEn(); !strings.Contains(d, "tokens and cost of 2 turns") {
+		t.Errorf("detail = %q", d)
 	}
 }

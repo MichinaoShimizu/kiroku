@@ -113,7 +113,7 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 			fmt.Fprintf(w, "  %s %s deletes old history at its next cleanup (%s is 0), but kiroku archive keeps a copy\n", s.ok("✓"), who, k.Setting)
 		case k.Now:
 			risky = true
-			fmt.Fprintf(w, "  %s %s deletes old history at its next cleanup, within an hour (%s is 0)\n", s.warn("!"), who, k.Setting)
+			fmt.Fprintf(w, "  %s %s deletes old history at its next cleanup (%s is 0)\n", s.warn("!"), who, k.Setting)
 			if k.File != "" && k.Snippet != "" {
 				fmt.Fprintf(w, "      to keep it, add %s to %s\n", s.bold(k.Snippet), tilde(k.File))
 			}

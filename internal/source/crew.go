@@ -30,7 +30,7 @@ import (
 // kiro-cli の会話に結びつかない記録（Crew の裏方の処理 _bg など）は、Crew のセッションとして数える。
 //
 //	<KIROCREW_HOME か ~/.kiro/crew>/session_map.json        {会話キー: {"sid": kiro-cli の会話 ID, "cwd": …, "provider"?, "discarded_sid"?} か "sid"}
-//	<…>/sessions/<キー>.jsonl                               1 行目 {"_type": "metadata", "title", "agent", "model", …}
+//	<…>/sessions/<キー>.jsonl                               1 行目 {"_type": "metadata", "title", "agent", "model", "memory_mode"?, …}
 //	                                                         2 行目から {"role": "user"|"assistant"|…, "content", "ts", "tools"?: [ツール名]}
 //	<…>/subagents/<id>/state.json                          {"task", "agent", "parent_session", "session_id"?, "provider"?, …}
 //	<…>/usage/tokens/<YYYY-MM-DD>.jsonl                     {"_type": "tokens", "ts", "slot": 会話キー, "provider", "model", "input", "output",
@@ -57,6 +57,8 @@ type CrewInfo struct {
 	UsageSlot string
 	// Former は、その会話キーの今の会話ではない kiro-cli の会話（session_map の discarded_sid か、時刻で見つけた前の会話。crewOwner）
 	Former bool
+	// Private は、中身を残してはいけない会話（incognito・temporary。crewPrivateMode）。数と時刻だけを出す（hideCrew）
+	Private bool
 }
 
 // usageSlot は、その会話の使用量の記録の slot。
@@ -65,6 +67,98 @@ func (i CrewInfo) usageSlot() string {
 		return i.UsageSlot
 	}
 	return i.Key
+}
+
+// Crew の会話は、メタデータ（会話の記録の 1 行目）の memory_mode が incognito か temporary なら、Crew 自身も
+// そこから何も学ばない（要約・検索・書き出しを断る。history.py の INCOGNITO_MEMORY_MODES・transcript_withholds_derivation）。
+// kiroku もそうした会話は数と時刻だけを出し、依頼・応答の文、それから決めたタイトル、会話に出たファイルは出さない（hideCrew）。
+const (
+	crewPrivateTitle = "Kiro Crew private conversation"
+	crewPrivateText  = "(private)" // 依頼の文の代わり（依頼の数と時刻は残す）
+	crewHeaderMax    = 64 << 10    // 会話の記録の 1 行目として読む長さ（Crew の TRANSCRIPT_HEADER_MAX_BYTES）
+)
+
+// crewPrivateMode は memory_mode の値が、中身を残してはいけない会話を示すか。
+// Crew の history.memory_mode_from_header_line と同じく、ない・null は persistent（古い会話）、文字列は前後の空白を除いて小文字にする。
+// persistent 以外は、incognito・temporary のほか、Crew が読めない値（数・空の文字列など）も中身を残さない側に倒す（Crew の書き出しも断る）。
+func crewPrivateMode(v any) bool {
+	switch x := v.(type) {
+	case nil:
+		return false
+	case string:
+		return strings.ToLower(strings.TrimSpace(x)) != "persistent"
+	}
+	return true
+}
+
+// crewPrivateMeta は、会話の記録のメタデータ（か、サブエージェントの state.json）が中身を残さない会話を示すか。
+// memory_mode と、その中の execution_context.memory_mode を見る（Crew はどちらも厳しくする向きにしか書きかえない）。
+func crewPrivateMeta(e core.Obj) bool {
+	return crewPrivateMode(e["memory_mode"]) || crewPrivateMode(core.Map(e["execution_context"])["memory_mode"])
+}
+
+// crewPrivateFlags は session_map の "flags" に temporary か incognito がついているか（session_map.py の _privacy_flags_on。
+// Slack などのスレッドの印で、会話の記録のメタデータより先にここに書かれる）。
+func crewPrivateFlags(v any) bool {
+	flags := core.Map(v)
+	for _, name := range []string{"temporary", "incognito"} {
+		switch x := flags[name].(type) {
+		case nil:
+		case bool:
+			if x {
+				return true
+			}
+		case float64:
+			if x != 0 {
+				return true
+			}
+		case string:
+			if x != "" {
+				return true
+			}
+		default: // Python で真になる値（空でない list・object）
+			return true
+		}
+	}
+	return false
+}
+
+// crewPrivacy は、会話キー → その会話が中身を残さないものか（読んだ結果を覚えておく）。
+type crewPrivacy map[string]bool
+
+// key は会話キーの会話が中身を残さないものか（会話の記録の 1 行目を読む。crewHeaderPrivate）。
+func (p crewPrivacy) key(home, key string) bool {
+	if home == "" || key == "" {
+		return false
+	}
+	v, ok := p[key]
+	if !ok {
+		v = crewHeaderPrivate(crewTranscriptPath(home, key))
+		p[key] = v
+	}
+	return v
+}
+
+// crewHeaderPrivate は、会話の記録の 1 行目（メタデータ）が中身を残さない会話を示すか。ない・読めない・メタデータでないなら false
+// （kiroku が会話の記録を読むときと同じ。メタデータのない記録は Crew も persistent と読む）。
+func crewHeaderPrivate(path string) bool {
+	f, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	line, tooLong, _ := core.ReadLine(bufio.NewReaderSize(f, 1<<16), crewHeaderMax)
+	var e core.Obj
+	if tooLong || json.Unmarshal(line, &e) != nil || core.Str(e["_type"]) != "metadata" {
+		return false
+	}
+	return crewPrivateMeta(e)
+}
+
+// hideCrew は、中身を残さない会話から、会話の中身から読んだものを消し、決まったタイトルにする（core.Builder.HideText）。
+func hideCrew(s *core.Builder) {
+	s.HideText(crewPrivateText)
+	s.Title = crewPrivateTitle
 }
 
 // DefaultCrewHome は KIROCREW_HOME か ~/.kiro/crew。
@@ -170,6 +264,7 @@ func loadCrew(home string, errs *fileErrs) map[string]CrewInfo {
 	sm, err := core.ReadJSONFile(mapPath)
 	errs.file(mapPath, err)
 	former := map[string]CrewInfo{} // discarded_sid → Crew の情報（今の sid の会話がなければ使う）
+	priv := crewPrivacy{}
 	entries := core.Map(sm)
 	keys := make([]string, 0, len(entries))
 	for key := range entries {
@@ -178,25 +273,31 @@ func loadCrew(home string, errs *fileErrs) map[string]CrewInfo {
 	sort.Strings(keys) // 同じ sid が 2 つのキーにあっても、毎回同じほうを使う
 	for _, key := range keys {
 		v := entries[key]
-		sid, cwd, provider, discarded := core.Str(v), "", "", "" // 古い形は文字列だけ
+		sid, cwd, provider, discarded, private := core.Str(v), "", "", "", false // 古い形は文字列だけ
 		if m := core.Map(v); m != nil {
 			sid, cwd, provider = core.Str(m["sid"]), core.Str(m["cwd"]), core.Str(m["provider"])
 			// 会話を差しかえたとき（backend の切りかえ・会話の破棄・記録が消えた sid の片付け）に sid を空にして残す、前の sid
 			// （session_map.py の _stash_and_clear_sid。SessionMap.set はこれを消さないので、新しい sid と並んで残ることもある）
 			discarded = core.Str(m["discarded_sid"])
+			private = crewPrivateFlags(m["flags"])
 		}
 		if sid == "" && discarded == "" {
 			continue
 		}
-		info := CrewInfo{Key: key, Cwd: cwd, Provider: provider}
+		info := CrewInfo{Key: key, Cwd: cwd, Provider: provider, Private: private}
 		// 会話キーをファイル名にしたもの（Crew の history._safe_key と同じ）
 		path := crewTranscriptPath(home, key)
 		errs.file(path, core.ReadJSONL(path, func(e core.Obj) {
-			if info.Title == "" && core.Str(e["_type"]) == "metadata" {
+			if core.Str(e["_type"]) != "metadata" {
+				return
+			}
+			info.Private = info.Private || crewPrivateMeta(e)
+			if info.Title == "" {
 				info.Title = core.Str(e["title"])
 				info.Agent = core.Str(e["agent"])
 			}
 		}))
+		priv[key] = info.Private
 		if sid != "" {
 			out[sid] = info
 		}
@@ -214,9 +315,15 @@ func loadCrew(home string, errs *fileErrs) map[string]CrewInfo {
 		if sid == "" {
 			continue
 		}
-		out[sid] = CrewInfo{Subagent: true, Key: core.Str(st["parent_session"]), Agent: core.Str(st["agent"]),
+		info := CrewInfo{Subagent: true, Key: core.Str(st["parent_session"]), Agent: core.Str(st["agent"]),
 			Task: core.Runes(strings.TrimSpace(core.Str(st["task"])), 120), Cwd: core.Str(st["cwd"]), Provider: core.Str(st["provider"]),
 			UsageSlot: subagentSlot(st, filepath.Base(filepath.Dir(p)))}
+		// あとから incognito・temporary にしたサブエージェント（subagent_persistence.py は state.json の memory_mode と
+		// execution_context.memory_mode を書きかえる）と、中身を残さない会話から起動したサブエージェントは、依頼も残さない
+		if crewPrivateMeta(st) || priv.key(home, info.Key) {
+			info.Private, info.Task = true, ""
+		}
+		out[sid] = info
 	}
 	for sid, info := range former {
 		if _, ok := out[sid]; !ok {
@@ -258,6 +365,7 @@ func loadCrewSpawns(home string, errs *fileErrs) map[string]CrewInfo {
 	if home == "" {
 		return out
 	}
+	priv := crewPrivacy{}
 	for _, dir := range glob(filepath.Join(home, "crew-log", "sessions", "*")) {
 		if !realDir(dir) {
 			continue
@@ -273,12 +381,18 @@ func loadCrewSpawns(home string, errs *fileErrs) map[string]CrewInfo {
 		if slot == "" {
 			continue
 		}
+		// crew-log は会話の memory_mode を見ずに書かれるので、親の会話が中身を残さないものなら、子への依頼も残さない
+		private := priv.key(home, slot)
 		for _, x := range spawns {
 			key := crewSlot("subagent:" + x.id)
 			if _, dup := out[key]; dup {
 				continue
 			}
-			out[key] = CrewInfo{Subagent: true, Key: slot, Agent: x.agent, Task: x.task, Cwd: cwd, UsageSlot: key}
+			info := CrewInfo{Subagent: true, Key: slot, Agent: x.agent, Task: x.task, Cwd: cwd, UsageSlot: key, Private: private}
+			if private {
+				info.Task = ""
+			}
+			out[key] = info
 		}
 	}
 	return out
@@ -378,6 +492,15 @@ type crewHeld struct {
 	list    []heldCrew
 	parents map[string]*core.Builder // 会話キー（crewSlot でそろえたもの）→ 親になれる会話
 	byPath  map[string]*core.Builder // 会話の記録だけがある会話（記録のファイル → 会話）
+	private map[*core.Builder]bool   // 中身を残さない会話（出す前に hideCrew する）
+}
+
+// hide は、預かった会話 b を中身を残さない会話にする（出す前に hideCrew する）。
+func (h *crewHeld) hide(b *core.Builder) {
+	if h.private == nil {
+		h.private = map[*core.Builder]bool{}
+	}
+	h.private[b] = true
 }
 
 type heldCrew struct {
@@ -388,6 +511,9 @@ type heldCrew struct {
 // add は Crew の会話を 1 つ預かる。key はその会話の会話キー（サブエージェントなら親の会話キー）。
 func (h *crewHeld) add(b *core.Builder, info *CrewInfo, key string) {
 	h.list = append(h.list, heldCrew{b: b, info: info})
+	if info != nil && info.Private {
+		h.hide(b)
+	}
 	if (info == nil || !info.Subagent) && key != "" {
 		if k := crewSlot(key); h.parents[k] == nil {
 			h.parents[k] = b
@@ -396,7 +522,12 @@ func (h *crewHeld) add(b *core.Builder, info *CrewInfo, key string) {
 }
 
 // flush はサブエージェントを親の会話にまとめてから、全部の会話を出す。
+// 中身を残さない会話は、まとめる前（サブエージェントの編集したファイルなどを親に入れないように）と、
+// まとめたあと（親に入ったサブエージェントへの依頼を消すように）に hideCrew する。
 func (h *crewHeld) flush(home string, emit func(*core.Builder)) {
+	for b := range h.private {
+		hideCrew(b)
+	}
 	folded := map[*core.Builder]bool{}
 	for _, x := range h.list {
 		if x.info == nil || !x.info.Subagent || x.info.Key == "" {
@@ -411,6 +542,9 @@ func (h *crewHeld) flush(home string, emit func(*core.Builder)) {
 		}
 		foldCrewSubagent(parent, x.b, *x.info)
 		folded[x.b] = true
+	}
+	for b := range h.private {
+		hideCrew(b)
 	}
 	for _, x := range h.list {
 		if folded[x.b] {
@@ -467,7 +601,9 @@ type crewRow struct {
 	role  string
 	text  string
 	tools []string
-	human bool // meta.human が true（人が書いた行。Crew の history.HUMAN_TURN_META_KEY）
+	human bool   // meta.human が true（人が書いた行。Crew の history.HUMAN_TURN_META_KEY）
+	mid   string // meta.mid（Crew が行ごとにつける ID。dashboard/state.py の row_mid。なければ空）
+	rawTS string // ts の値をそのまま（mid のない行を見分けるため。crewRowSet）
 }
 
 // crewMeta は Crew の会話の記録のメタデータ（1 行目）。
@@ -475,15 +611,18 @@ type crewMeta struct {
 	title      string
 	forkedFrom string   // 会話を分けて（fork して）作ったなら、元の会話キー（"forked_from"）
 	created    *float64 // "created_at"（その記録を作った時刻。fork なら分けた時刻）
+	private    bool     // 中身を残さない会話（memory_mode。crewPrivateMeta）
+	archive    string   // 退避した記録のファイルの 1 行目 {"_type": "archive", "reason"} の reason（そのファイルだけのもの。add では重ねない）
 }
 
-// add は、まだ決まっていない項目を m2 で埋める。
+// add は、まだ決まっていない項目を m2 で埋める。private はどれかのファイルが示せば true（Crew も厳しくする向きにしか書きかえない）。
 func (m *crewMeta) add(m2 crewMeta) {
 	m.title = firstNonEmpty(m.title, m2.title)
 	m.forkedFrom = firstNonEmpty(m.forkedFrom, m2.forkedFrom)
 	if m.created == nil {
 		m.created = m2.created
 	}
+	m.private = m.private || m2.private
 }
 
 // ownRows は、fork した会話から、元の会話から写した行を除く。
@@ -512,7 +651,7 @@ func crewTranscriptPath(home, key string) string {
 }
 
 // readCrewKey は会話キーの記録を読む（readCrewStem）。
-func readCrewKey(home, arch, key string, errs *fileErrs) (title string, rows []crewRow) {
+func readCrewKey(home, arch, key string, errs *fileErrs) (meta crewMeta, rows []crewRow) {
 	return readCrewStem(home, arch, safeKey(key), errs)
 }
 
@@ -530,8 +669,9 @@ type crewSeg struct {
 // （残す期間は session.archive_retention_days で決まる。既定 30 日。crewRetentionDays）ので、残っていればそちらも書いた順に読む。
 // 退避した記録が消えていても、kiroku archive のコピー（arch の下の同じ並び。.jsonl.zst）があればそれを読む。
 // 名前が <stem>__ で始まっても、そのあとが日時でないもの（<stem>__x という別の会話のもの）は読まない。
+// 退避した記録は、あふれた古い行（reason "rotate"）だけではない（crewArchiveRows）。
 // fork した会話なら、元の会話から写した行は除く（ownRows）。
-func readCrewStem(home, arch, stem string, errs *fileErrs) (title string, rows []crewRow) {
+func readCrewStem(home, arch, stem string, errs *fileErrs) (meta crewMeta, rows []crewRow) {
 	var segs []crewSeg
 	add := func(p, name string) {
 		m := archiveSeg.FindStringSubmatch(strings.TrimPrefix(name, stem+"__"))
@@ -563,25 +703,111 @@ func readCrewStem(home, arch, stem string, errs *fileErrs) (title string, rows [
 	for _, s := range segs {
 		paths = append(paths, s.path)
 	}
-	var meta crewMeta
-	for _, p := range append(paths, filepath.Join(home, "sessions", stem+".jsonl")) {
+	segRows := make([][]crewRow, 0, len(paths)+1)
+	reasons := make([]string, 0, len(paths)+1)
+	for i, p := range append(paths, filepath.Join(home, "sessions", stem+".jsonl")) {
 		m, rs := readCrewTranscript(p, errs)
 		meta.add(m)
-		rows = append(rows, rs...)
+		segRows = append(segRows, rs)
+		if i == len(paths) {
+			m.archive = "" // 今の記録（退避した記録ではない）
+		}
+		reasons = append(reasons, m.archive)
 	}
-	return meta.title, ownRows(meta, rows)
+	return meta, ownRows(meta, crewArchiveRows(segRows, reasons))
 }
 
-// readCrewTranscript は Crew の会話の記録を読む。meta は 1 行目のメタデータ。
+// crewArchiveRows は、退避した記録（書いた順）と今の記録（最後）の行をつなぐ。reasons はファイルごとの reason（今の記録は空）。
+// Crew は次のわけで行を退避する（history.py の _archive_lines。ファイルの 1 行目 {"_type": "archive", "reason", …}）:
+//   - "rotate": 記録が大きくなりすぎて、古い行をそのまま移したもの（本当の古い会話）。全部読む
+//   - "foreign-dedup": ほかのプロセスが書いた行のうち、今の記録に残る行と同じとみなして落としたもの
+//     （dashboard/slot_persistence/transcript_merge.py）。同じ行が今の記録にあるので読まない
+//   - "compact": 巻き戻し・作り直し・fork で記録を書きなおしたときに落とした行（同じ）。会話を巻き戻して消えたターン
+//     （本当にあった依頼）と、書きかえた行の前の形（新しい形が残っている）が入るので、残っている行と同じ行だけを除く（crewRowSet）
+//
+// Crew 自身の画面は "rotate" だけを読む（history_projection.py の read_rotated_messages。消したものを画面に戻さないため）が、
+// kiroku はあったことの記録なので、巻き戻したターンの依頼も残す。reason のないファイル（古い Crew）は "rotate" と同じに読む。
+func crewArchiveRows(segs [][]crewRow, reasons []string) []crewRow {
+	kept := newCrewRowSet()
+	for i, rs := range segs {
+		if reasons[i] == "" || reasons[i] == "rotate" {
+			kept.addAll(rs)
+		}
+	}
+	var out []crewRow
+	for i, rs := range segs {
+		switch reasons[i] {
+		case "", "rotate":
+			out = append(out, rs...)
+		case "foreign-dedup":
+		default:
+			for _, r := range rs {
+				if !kept.has(r) {
+					kept.add(r)
+					out = append(out, r)
+				}
+			}
+		}
+	}
+	return out
+}
+
+// crewRowSet は、行が同じかを Crew と同じ規則で調べるための集まり（history_projection.py の drop_persisted_tail_prefix）:
+// どちらの行にも meta.mid があれば mid が同じか、そうでなければ role・ts・内容が全部同じなら同じ行。
+type crewRowSet struct {
+	mids      map[string]bool
+	all, bare map[string]bool // role・ts・内容（bare は mid のない行だけ）
+}
+
+func newCrewRowSet() *crewRowSet {
+	return &crewRowSet{mids: map[string]bool{}, all: map[string]bool{}, bare: map[string]bool{}}
+}
+
+// crewRowKey は、mid で見分けられない行を見分ける role・ts・内容。
+func crewRowKey(r crewRow) string { return r.role + "\x00" + r.rawTS + "\x00" + r.text }
+
+func (s *crewRowSet) add(r crewRow) {
+	k := crewRowKey(r)
+	s.all[k] = true
+	if r.mid != "" {
+		s.mids[r.mid] = true
+	} else {
+		s.bare[k] = true
+	}
+}
+
+func (s *crewRowSet) addAll(rs []crewRow) {
+	for _, r := range rs {
+		s.add(r)
+	}
+}
+
+// has は、r と同じ行が s にあるか。
+func (s *crewRowSet) has(r crewRow) bool {
+	if r.mid != "" {
+		return s.mids[r.mid] || s.bare[crewRowKey(r)]
+	}
+	return s.all[crewRowKey(r)]
+}
+
+// readCrewTranscript は Crew の会話の記録を読む。meta は 1 行目のメタデータ（退避した記録なら reason も）。
 // 途中で読めなくなっても、読めた行までは返す。fork の写した行は除かない（ownRows）。
 func readCrewTranscript(path string, errs *fileErrs) (meta crewMeta, rows []crewRow) {
 	errs.file(path, core.ReadJSONL(path, func(e core.Obj) {
-		if core.Str(e["_type"]) == "metadata" {
-			meta.add(crewMeta{title: core.Str(e["title"]), forkedFrom: core.Str(e["forked_from"]), created: ts(e["created_at"])})
+		switch core.Str(e["_type"]) {
+		case "metadata":
+			meta.add(crewMeta{title: core.Str(e["title"]), forkedFrom: core.Str(e["forked_from"]), created: ts(e["created_at"]), private: crewPrivateMeta(e)})
+			return
+		case "archive":
+			if meta.archive == "" {
+				meta.archive = core.Str(e["reason"])
+			}
 			return
 		}
-		r := crewRow{t: ts(e["ts"]), role: core.Str(e["role"]), text: core.TextOf(e["content"])}
-		r.human, _ = core.Map(e["meta"])["human"].(bool) // Crew と同じく true だけ（"true" や 1 は数えない）
+		r := crewRow{t: ts(e["ts"]), role: core.Str(e["role"]), text: core.TextOf(e["content"]), rawTS: fmt.Sprint(e["ts"])}
+		m := core.Map(e["meta"])
+		r.human, _ = m["human"].(bool) // Crew と同じく true だけ（"true" や 1 は数えない）
+		r.mid, _ = m["mid"].(string)   // Crew と同じく空でない文字列だけ（row_mid）
 		for _, x := range core.List(e["tools"]) {
 			if n := core.Str(x); n != "" {
 				r.tools = append(r.tools, n)
@@ -840,13 +1066,39 @@ func loadCrewUsage(home string, errs *fileErrs) map[string][]crewTurn {
 // Crew の会話 ID（session_map の sid）とそれらの履歴の会話 ID が同じかは、手元の根拠（Crew と claude-agent-acp の公開ソース）では確かめられない。
 // 結びつけられないまま足すと同じトークンとコストを 2 度数えるので、これらの行ではトークンとドル額を足さない（ターン・時刻・モデルは数える）。
 //
-// 行の provider は書いたところで意味が違う: ダッシュボード・裏方の処理・記憶の整理は backend の名前（providers/acp.py の provider_label。
-// "acp"・"claude_code"・"codex"・"kas" など）、サブエージェントは "claude_code" か "acp"（subagent_manager/run.py）、
-// タスクの実行と webhook は設定の agent.provider（いつも "acp"）。なので label（session_map の provider か、サブエージェントの state.json の
-// "provider"。わからなければ空）も見る。タスクの実行と webhook の行は、Claude Code で動いても "acp" で、会話キーが session_map から
+// 行の provider は書いたところで意味が違う: 裏方の処理・記憶の整理は本当の backend の名前（llm_helpers.py の _provider_label →
+// providers/acp.py の provider_label。"acp"（kiro-cli）・"claude_code"・"codex"・"kas"・"goose" など）、ダッシュボードとサブエージェントは
+// "claude_code"（Claude の backend）か "acp"（それ以外の全部。Codex も。agent_sdk/capabilities.py の provider_seam、
+// dashboard/chat_runner.py、subagent_manager/run.py）、ワークフローは "acp" と書いたまま（workflows/agent_exec.py）、
+// タスクの実行・予定の実行・Slack・webhook は設定の agent.provider（"acp" しか選べない）。
+// なので "acp" の行は、label（session_map の provider か、サブエージェントの state.json の "provider"。わからなければ空）も見る。
+// label は会話キーの今の backend で、行の時刻のころの backend とは限らない（Codex で話したあと kiro-cli に切りかえた会話など）。
+// そこで label が kiro-cli（空か "acp"）なら、行そのもので決める（crewCodexRow）。label が kiro-cli・Claude Code・Codex のどれでもない
+// （goose など）なら数える。タスクの実行と webhook の行は、Claude Code で動いても "acp" で、会話キーが session_map から
 // 消えていると見分けられないので、トークンを数える（2 度数えることがある）。
 func crewElsewhere(x crewTurn, label string) bool {
-	return crewOwnHistory(x.provider) || crewOwnHistory(label)
+	switch {
+	case crewOwnHistory(x.provider):
+		return true
+	case x.provider != "" && x.provider != "acp": // 本当の backend の名前（kas・goose など）
+		return false
+	case crewOwnHistory(label):
+		return true
+	case label != "" && label != "acp":
+		return false
+	}
+	return crewCodexRow(x)
+}
+
+// crewCodexModel は Codex（codex-acp）が出すモデル ID（"gpt-5.4"・"gpt-5.4-codex"・"o3"、推論の強さつきの "gpt-6-astra[max]"）。
+// opencode・pi・goose・deepseek は "<provider>/<model>" や JSON の組を使い（agent_sdk/backends.py）、この形にはならない。
+var crewCodexModel = regexp.MustCompile(`^(?:gpt-|o[1-9](?:$|[-\[])|[^/\[{]*codex)[^/]*$`)
+
+// crewCodexRow は、"acp" の行が Codex で動いたターンのものらしいか。Codex の行はトークン（とドル額）で、クレジットはない。
+// kiro-cli も GPT のモデル（gpt-5.6-sol など。model_registry.py）を出すが、kiro-cli の行はクレジットで数える（acp/types.py の TurnUsage）ので、
+// クレジットのある行は kiro-cli のものとみなす。Crew の行に backend の名前はほかに残らない（usage.py の _build_token_record）ので、モデル ID で見分ける。
+func crewCodexRow(x crewTurn) bool {
+	return x.credits == 0 && (x.u.Total() > 0 || x.cost > 0) && crewCodexModel.MatchString(strings.ToLower(strings.TrimSpace(x.model)))
 }
 
 // crewOwnHistory は、Crew の backend の名前が、kiroku が自分の履歴を別に読むエージェント（Claude Code と Codex）か。

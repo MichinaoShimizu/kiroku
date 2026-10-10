@@ -357,6 +357,31 @@ func (s *Builder) Edited(path string) {
 	}
 }
 
+// HideText は、会話の中身から読んだものを消す（中身を残してはいけない会話のため。Kiro Crew の incognito・temporary の会話）。
+// 依頼は時刻だけを残して文を text にする（依頼の数・作業時間・待ち時間は残る）。応答・仕組みが入れたもの・編集したファイル・
+// 言い直しと中断（依頼の文から決めたもの）・利用上限の解除の時刻の文・PR の URL・サブエージェントへの依頼・履歴のファイル
+// （kiroku serve が中身をそのまま見せるので）は消す。時刻・ツールの回数・モデル・使用量・クレジット・参考指標は残す。
+// タイトルは呼ぶ側が決める。何度呼んでも同じ。
+func (s *Builder) HideText(text string) {
+	for i, p := range s.Prompts {
+		s.Prompts[i] = Prompt{T: p.T, Text: text}
+	}
+	s.Notes, s.replies = nil, nil
+	s.files = map[string]bool{}
+	s.FixTS = nil
+	s.Interrupts, s.InterruptTS = 0, nil
+	for i := range s.LimitResets {
+		s.LimitResets[i] = ""
+	}
+	for i := range s.Outputs {
+		s.Outputs[i].URL = ""
+	}
+	for i := range s.Subagents {
+		s.Subagents[i].Desc = ""
+	}
+	s.File = ""
+}
+
 // Measure はそのエージェントだけが記録している数字を 1 つ足す。
 func (s *Builder) Measure(key string, t *float64, v float64) {
 	s.Measures = append(s.Measures, Measure{Key: key, T: t, V: v})
