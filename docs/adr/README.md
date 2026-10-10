@@ -17,7 +17,10 @@ ADRs document **why** kiroku makes architectural choices, not just how code work
 - `0011-release-integrity.md` — supply-chain checks and release provenance (Phase 1, retrospective).
 - `0012-share-export-timezone.md` — shareable exports and writer-local time (Phase 1, retrospective).
 - `0013-user-mediated-ai-reports.md` — grounded prompts for user-chosen AI agents (Phase 1, retrospective).
-- `0014-remote-session-import.md` — proposed extension for remote/cloud histories (Phase 2).
+- `0014-prompt-provenance.md` — human prompts versus agent-injected notes (Phase 1, retrospective).
+- `0015-period-comparison.md` — partial-period comparisons and projections (Phase 1, retrospective).
+- `0016-single-file-rendering.md` — modular web sources with one-file export (Phase 1, retrospective).
+- `0017-remote-session-import.md` — proposed extension for remote/cloud histories (Phase 2).
 - `phase1-decision-ledger.md` — evolving, evidence-linked historical decision inventory.
 
 ## Lifecycle
@@ -33,6 +36,6 @@ Historical issue labels such as “Phase 0” (research) and “Phase 1” (offl
 
 ## Audit scope and remaining verification
 
-The 13 retrospective Phase 1 ADRs cover the major themes recovered from merged PR descriptions. [The evidence ledger](phase1-decision-ledger.md) contains finer-grained choices and reversals. This is **not** a claim that all 318 merged PRs, all review comments, and all historical diffs were independently inspected.
+The 16 retrospective Phase 1 ADRs cover the major themes recovered from merged PR descriptions. [The evidence ledger](phase1-decision-ledger.md) contains finer-grained choices and reversals. This is **not** a claim that all 318 merged PRs, all review comments, and all historical diffs were independently inspected.
 
 Evidence verified in this review includes the linked PR descriptions and current `internal/core/agents.go`, `internal/core/records.go`, `internal/gitlog/gitlog.go`, `internal/cli/cache.go`, `internal/report/cache.go`, `docs/compatibility.md`, `docs/sources.md`, and `SECURITY.md`. **Fresh tests, full code-path audit, historical review-thread audit and published release verification remain unperformed.** Historical rationale is distinguished from current implementation. A future change in a documented policy requires a new ADR, not a silent rewrite.
