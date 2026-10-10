@@ -23,7 +23,7 @@ Multiple files and agent components may represent the same user interaction. Sum
 
 One human action must not become multiple metrics merely because an agent stores multiple representations. Identity rules require agent-specific tests, not just generic file-hash deduplication.
 
-For Phase 2, the same upstream session IDs can appear on different machines; origin-aware identity is a **proposal**, not yet an accepted implementation ([ADR 0002](0009-remote-session-import.md)).
+For Phase 2, the same upstream session IDs can appear on different machines; origin-aware identity is a **proposal**, not yet an accepted implementation ([ADR 0009](0009-remote-session-import.md)).
 
 ## Alternatives and verification
 
