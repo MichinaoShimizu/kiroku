@@ -1,8 +1,12 @@
 # ADR 0001: Local-session foundation
 
-Status: **Retrospective**
+Status: Retrospective
+Date: Unknown
+Related: None
+Supersedes: None
+Superseded by: None
 
-Scope: **Phase 1 — local sessions**
+Scope: Phase 1 — local sessions
 
 ## Context
 
@@ -30,3 +34,15 @@ Historical alternatives were not recorded; this retrospective ADR does **not** c
 ## Verification
 
 Source references: `internal/source/source.go`, `internal/core/session.go`, `internal/cli/load.go`, `internal/cli/cache.go`, `internal/gitlog/gitlog.go`, `internal/archive/archive.go`, `docs/guide.md`, `SECURITY.md`. Existing fixture roots include `testdata/home/.claude` and `testdata/codex`. This ADR records a source review, not a fresh execution of tests.
+
+## Decision
+
+The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
+
+## Consequences
+
+See the existing rationale and consequences discussion above. No additional outcome is asserted.
+
+## Historical confidence and open questions
+
+Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.
