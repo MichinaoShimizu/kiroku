@@ -1,6 +1,7 @@
 # 書き出した HTML や JSON には依頼文やファイル名が入るのでコミットしない
 kiroku.html
 *.html
+!tools/screenshots/year-params.html
 !internal/web/template.html
 !internal/web/loading.html
 kiroku.json

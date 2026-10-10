@@ -24,7 +24,7 @@ if [ "${1:-}" = "--html" ]; then # ダミーデータの HTML だけを作る（
   exit 0
 fi
 node "$here/capture.mjs" "$work/kiroku.html" "$root/docs"
-echo "docs/screenshot.png・docs/summary.png・docs/worth.png・docs/session.png・docs/og.png・docs/year.png を更新しました"
+echo "docs/screenshot.png・docs/summary.png・docs/worth.png・docs/session.png・docs/og.png・docs/year.png・docs/year-params.png を更新しました"
 # README の先頭の動き（docs/demo.gif）。動画を撮り、選ぶ間のちらつきを切り落として GIF にする。ffmpeg がなければ飛ばす
 if ! command -v ffmpeg >/dev/null 2>&1; then
   echo "ffmpeg がないので docs/demo.gif は撮り直しませんでした"

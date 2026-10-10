@@ -109,6 +109,10 @@ The old forms `kiroku --serve`, `--json`, `-o` and `--weekly` / `--monthly` have
 
     ![Year in review share image (dummy data)](year.png)
 
+    How to read it, and how your light is chosen:
+
+    ![How to read the exposure: across is the date, down is the time of day, one streak per stretch of active time, colored by agent and brighter where sessions overlap (dummy data)](year-params.png)
+
   - Your light: the shape of your year, named in photography terms (not a verdict). The first match from the top is chosen, and the thresholds are rough guides rather than measured cut-offs. There are no scores, levels or rankings: the year in review describes how you worked, it does not grade you
 
     | Your light | Rule |
