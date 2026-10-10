@@ -17,3 +17,7 @@ kiroku reads private AI-agent history (prompts, file paths, commit messages). Tr
 - Keep `govulncheck` clean. When it reports a vulnerability in code kiroku calls, fix it (update the Go toolchain or the module) before other work, and release the fix.
 - GitHub Actions: pin third-party actions to a full commit SHA, give each job the least `permissions` it needs, and don't run untrusted code with write tokens.
 - Add a test for every security fix, and note it under `### Security` in CHANGELOG.md.
+
+## Architecture decisions
+
+For material architecture or product-policy changes, read `docs/adr/README.md` and applicable ADRs before implementation. Follow `.claude/skills/adr-guard/SKILL.md` to review compatibility and document intentional supersession with a new ADR. Use `.claude/skills/reverse-adr/SKILL.md` to recover missing decision history. Existing ADRs are evidence to evaluate, not immutable restrictions. Routine fixes need no ADR.
