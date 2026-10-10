@@ -953,3 +953,71 @@ func TestCodexUsageNotIncluded(t *testing.T) {
 		t.Errorf("limits = %v, want [+300s]（UsageNotIncluded は数えない）", got)
 	}
 }
+
+// /review のあいだでも、サブエージェントのものと言えない発言は人の依頼として数える。
+// legacy の user_message には印がないので、target から決まるレビューの依頼の文（custom は instructions）と、それと同じ文だけを
+// サブエージェントのものとする。paginated の UserMessage は thread_id が親のものなら親の発言で、レビューはそこで終わる。
+// 終わりの印（exited_review_mode・turn_context など）のないファイルでも、あとの依頼は消えない。
+func TestCodexReviewUnclosed(t *testing.T) {
+	home := t.TempDir()
+	writeCodex(t, home, "thr-ru",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-ru","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:01.000Z","type":"turn_context","payload":{"model":"gpt-5.2-codex"}}`,
+		`{"timestamp":"2026-10-06T00:00:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"HUMAN_1"}}`,
+		`{"timestamp":"2026-10-06T00:01:00.000Z","type":"event_msg","payload":{"type":"entered_review_mode","target":{"type":"uncommittedChanges"},"user_facing_hint":"current changes","turn_id":"r1"}}`,
+		`{"timestamp":"2026-10-06T00:01:01.000Z","type":"event_msg","payload":{"type":"user_message","message":"HUMAN_2"}}`,
+		`{"timestamp":"2026-10-06T00:01:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"HUMAN_3"}}`,
+		// custom: レビューの依頼の文は instructions の前後の空白を除いたもの（review_request.rs の review_prompt）
+		`{"timestamp":"2026-10-06T00:02:00.000Z","type":"event_msg","payload":{"type":"entered_review_mode","target":{"type":"custom","instructions":"  check auth  "},"user_facing_hint":"check auth","turn_id":"r2"}}`,
+		`{"timestamp":"2026-10-06T00:02:01.000Z","type":"event_msg","payload":{"type":"user_message","message":"check auth"}}`,
+		`{"timestamp":"2026-10-06T00:02:01.000Z","type":"event_msg","payload":{"type":"user_message","message":"check auth"}}`,
+		`{"timestamp":"2026-10-06T00:02:30.000Z","type":"event_msg","payload":{"type":"user_message","message":"HUMAN_4"}}`,
+	)
+	writeCodex(t, home, "thr-rpu",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","ordinal":0,"type":"session_meta","payload":{"id":"thr-rpu","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web","history_mode":"paginated"}}`,
+		`{"timestamp":"2026-10-06T00:01:00.000Z","ordinal":1,"type":"event_msg","payload":{"type":"item_completed","thread_id":"thr-rpu","turn_id":"r1","item":{"type":"EnteredReviewMode","id":"i1","target":{"type":"uncommittedChanges"},"user_facing_hint":"current changes"},"completed_at_ms":0}}`,
+		`{"timestamp":"2026-10-06T00:01:01.000Z","ordinal":2,"type":"event_msg","payload":{"type":"item_completed","thread_id":"thr-rpu-r","turn_id":"rv-t1","item":{"type":"UserMessage","id":"u1","content":[{"type":"text","text":"Review the current code changes (staged, unstaged, and untracked files) and provide prioritized findings.","text_elements":[]}]},"completed_at_ms":0}}`,
+		`{"timestamp":"2026-10-06T00:01:30.000Z","ordinal":3,"type":"event_msg","payload":{"type":"item_completed","thread_id":"thr-rpu","turn_id":"t2","item":{"type":"UserMessage","id":"u2","content":[{"type":"text","text":"HUMAN_P","text_elements":[]}]},"completed_at_ms":0}}`,
+		`{"timestamp":"2026-10-06T00:01:40.000Z","ordinal":4,"type":"event_msg","payload":{"type":"agent_message","message":"ok"}}`,
+	)
+	bs := load(t, &Codex{Home: home})
+	for id, want := range map[string][]string{
+		"thr-ru":  {"HUMAN_1", "/review current changes", "HUMAN_2", "HUMAN_3", "/review check auth", "HUMAN_4"},
+		"thr-rpu": {"/review current changes", "HUMAN_P"},
+	} {
+		b := find(bs, id)
+		if b == nil {
+			t.Fatalf("%s がない", id)
+		}
+		var got []string
+		for _, p := range b.Finish(15).Prompts {
+			got = append(got, p.Text)
+		}
+		if strings.Join(got, "|") != strings.Join(want, "|") {
+			t.Errorf("%s: prompts = %q, want %q", id, got, want)
+		}
+	}
+}
+
+// レビュー用のサブエージェントでも、写した親の session_meta が自分のスレッド ID の thread_settings_applied より前にあれば、
+// それより前は写しとして数えない（いまの Codex のレビューは写さないが、写したファイルを二重に数えない）。
+func TestCodexReviewSubagentCopied(t *testing.T) {
+	home := t.TempDir()
+	writeCodex(t, home, "thr-p",
+		`{"timestamp":"2026-10-06T01:00:00.000Z","type":"session_meta","payload":{"id":"thr-p","timestamp":"2026-10-06T01:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T01:00:01.000Z","type":"turn_context","payload":{"model":"gpt-5.2-codex"}}`,
+		`{"timestamp":"2026-10-06T01:00:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"親の依頼"}}`,
+		`{"timestamp":"2026-10-06T01:00:20.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100},"model_context_window":272000}}}`,
+	)
+	writeCodex(t, home, "thr-c",
+		`{"timestamp":"2026-10-06T01:01:00.000Z","type":"session_meta","payload":{"id":"thr-c","parent_thread_id":"thr-p","timestamp":"2026-10-06T01:01:00.000Z","cwd":"/Users/me/web","source":{"subagent":"review"}}}`,
+		`{"timestamp":"2026-10-06T01:01:00.100Z","type":"session_meta","payload":{"id":"thr-p","timestamp":"2026-10-06T01:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T01:01:00.100Z","type":"turn_context","payload":{"model":"gpt-5.2-codex"}}`,
+		`{"timestamp":"2026-10-06T01:01:00.100Z","type":"event_msg","payload":{"type":"user_message","message":"親の依頼"}}`,
+		`{"timestamp":"2026-10-06T01:01:00.100Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100},"model_context_window":272000}}}`,
+		`{"timestamp":"2026-10-06T01:01:00.100Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"thr-c","thread_settings":{"model":"gpt-5.2-codex"}}}`,
+		`{"timestamp":"2026-10-06T01:01:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"子の依頼"}}`,
+		`{"timestamp":"2026-10-06T01:01:30.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1300,"cached_input_tokens":0,"output_tokens":120,"total_tokens":1420},"last_token_usage":{"input_tokens":300,"cached_input_tokens":0,"output_tokens":20,"total_tokens":320},"model_context_window":272000}}}`,
+	)
+	checkCodexChild(t, home, "thr-p", "子の依頼", 300, 20)
+}

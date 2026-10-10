@@ -85,6 +85,8 @@ type codexFile struct {
 	windows               map[string]float64 // モデルごとの model_context_window（いちばん大きい値）
 	skip                  codexSkip
 	startOrdinal          float64 // skip が codexSkipOrdinal のとき、自分の最初の行の ordinal
+	reviewer              bool    // レビュー用のサブエージェント（session_meta.source.subagent が "review"）
+	copiedMeta            bool    // ほかのスレッドの session_meta（写した親のもの）があった
 }
 
 // codexSkip は、親から写した行をどう見分けるか。
@@ -448,21 +450,27 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		var heartbeats []string
 		beat := false
 		// review は、/review のあいだ（親のファイルの entered_review_mode から exited_review_mode まで）か。
-		// そのあいだの user_message・UserMessage と agent_message は、レビュー用のサブエージェントの行を写したもの（tasks/review.rs の process_review_events）
+		// そのあいだの user_message・UserMessage と agent_message には、レビュー用のサブエージェントの行を写したものがまじる
+		// （tasks/review.rs の process_review_events）。親しか書かない行（codexParentOnly）が来たら終える。
+		// reviewTarget は entered_review_mode の target、reviewPrompt はそのあいだで見たレビューの依頼の文
 		review := false
-		startReview := func(t *float64, hint string) {
-			sawEvents, review, beat = true, true, false
+		var reviewTarget core.Obj
+		reviewPrompt := ""
+		startReview := func(t *float64, hint string, target core.Obj) {
+			sawEvents, review, beat, reviewTarget, reviewPrompt = true, true, false, target, ""
 			cf.b.Tick(t) // 人が始めた
 			cf.b.Turn()
 			userMsgs = append(userMsgs, codexMsg{t: t, text: strings.TrimSpace("/review " + strings.TrimSpace(hint)), review: true})
 		}
-		// input は、user_message・UserMessage の文。heartbeat の印のあった文なら人の依頼にしない
-		input := func(t *float64, text string) {
+		// input は、user_message・UserMessage の文。heartbeat の印のあった文なら人の依頼にしない。
+		// thread は item_completed の thread_id（user_message にはない）
+		input := func(t *float64, text, thread string) {
 			sawEvents = true
-			if review { // Codex が作ったレビューの依頼の文（サブエージェントのもの）。人の依頼ではない
-				cf.b.Agent(t)
+			if review && codexReviewerInput(thread, cf.id, text, reviewTarget, &reviewPrompt) {
+				cf.b.Agent(t) // Codex が作ったレビューの依頼の文（サブエージェントのもの）。人の依頼ではない
 				return
 			}
+			review = false // サブエージェントのものと言えない文は、人の依頼として数える
 			m := codexMsg{t: t, text: text}
 			for i, h := range heartbeats {
 				if h == strings.TrimSpace(text) {
@@ -506,9 +514,11 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 				return
 			}
 			s := cf.b
+			if review && codexParentOnly(e, cf.id) {
+				review = false
+			}
 			switch typ {
 			case "turn_context":
-				review = false // 親の新しいターン（レビューは親のターンを動かさないので、終わりの印のないまま止まったときの区切り）
 				if m := core.Str(p["model"]); m != "" {
 					cf.model = m
 				}
@@ -519,7 +529,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			case "event_msg":
 				switch core.Str(p["type"]) {
 				case "user_message":
-					input(t, core.Str(p["message"]))
+					input(t, core.Str(p["message"]), "")
 				case "agent_message": // 人に返した文（依頼の流れに出す）
 					reply(t, core.Str(p["message"]))
 				case "token_count":
@@ -569,12 +579,8 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					fromCounts = append(fromCounts, codexEvent(t, cf.model, u, perRequest))
 					countMeas = append(countMeas, codexMeasures(t, core.Map(info["last_token_usage"]), core.NumOr0(info["model_context_window"]))...)
 				case "entered_review_mode": // legacy の版の /review の始まり（paginated は item_completed の EnteredReviewMode）
-					startReview(t, core.Str(p["user_facing_hint"]))
-				case "exited_review_mode":
-					review = false
-					s.Agent(t)
+					startReview(t, core.Str(p["user_facing_hint"]), core.Map(p["target"]))
 				case "task_complete", "turn_complete": // 名前は task_complete（turn_complete も同じものとして読む）
-					review = false // サブエージェントの task_complete は写さないので、これは親のもの
 					s.Agent(t)
 					if e := core.Map(p["error"]); e != nil { // うまく終わらなかったターン（時間は数えない）
 						if codexLimitError(e) {
@@ -589,7 +595,6 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 						s.Measure("turn_duration", t, v/1000)
 					}
 				case "turn_aborted":
-					review = false
 					s.Agent(t)
 					if core.Str(p["reason"]) == "interrupted" { // 人が止めた（replaced・review_ended・budget_limited は数えない）
 						s.Interrupt(t)
@@ -601,14 +606,11 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					// TurnItem は #[serde(tag = "type")] だけで名前を変えていないので、型の名前がそのまま入る
 					switch core.Str(item["type"]) {
 					case "UserMessage":
-						input(t, itemText(item))
+						input(t, itemText(item), core.Str(p["thread_id"]))
 					case "AgentMessage": // 人に返した文（依頼の流れに出す）
 						reply(t, itemText(item))
 					case "EnteredReviewMode":
-						startReview(t, core.Str(item["user_facing_hint"]))
-					case "ExitedReviewMode":
-						review = false
-						s.Agent(t)
+						startReview(t, core.Str(item["user_facing_hint"]), core.Map(item["target"]))
 					default:
 						s.Agent(t)
 					}
@@ -704,6 +706,9 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		}
 		line := func(e core.Obj) {
 			if core.Str(e["type"]) == "session_meta" {
+				if cf.id != "" && core.Str(core.Map(e["payload"])["id"]) != cf.id {
+					cf.copiedMeta = true // 写した親の session_meta（agent/control/spawn.rs のフォークは SessionMeta も写す）
+				}
 				if cf.id == "" { // 2 つめからは写した親のもの
 					p := core.Map(e["payload"])
 					cf.id = core.Str(p["id"])
@@ -717,15 +722,14 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					cf.parent = codexParent(p)
 					// レビュー用のサブエージェント（SubAgentSource::Review は {"subagent":"review"}）
 					reviewer := core.Str(core.Get(p, "source", "subagent")) == "review"
+					cf.reviewer = reviewer
 					cf.role = firstNonEmpty(core.Str(spawn["agent_role"]), core.Str(p["agent_role"]), core.Str(spawn["agent_nickname"]), core.Str(p["agent_nickname"]))
 					if reviewer && cf.role == "" {
 						cf.role = "review"
 					}
 					if n, ok := core.Num(p["subagent_history_start_ordinal"]); ok {
 						cf.skip, cf.startOrdinal = codexSkipOrdinal, n
-					} else if (cf.parent != "" && !reviewer) || core.Str(p["forked_from_id"]) != "" {
-						// レビュー用のサブエージェントは親の履歴を写さずに始める（tasks/review.rs の initial_history が None）。
-						// 自分のスレッド ID の thread_settings_applied は、あとでコンパクションしたときに初めて書くので印にしない
+					} else if cf.parent != "" || core.Str(p["forked_from_id"]) != "" {
 						cf.skip = codexSkipMarker
 					}
 					cf.b = core.NewBuilder("Codex", cf.id)
@@ -751,7 +755,10 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					copied = append(copied, e)
 					return
 				}
-				if codexSameWrite(copied, e) {
+				// レビュー用のサブエージェントは親の履歴を写さずに始め（tasks/review.rs の initial_history が None）、
+				// 自分のスレッド ID の thread_settings_applied はあとでコンパクションしたときに初めて書く。
+				// 写した親の session_meta が印より前になければ、印より前も自分の行として時刻で分ける
+				if codexSameWrite(copied, e) && (!cf.reviewer || cf.copiedMeta) {
 					// 印より前はすべて写しで、印から後は自分の行（時刻では分けない）
 					cf.skip, cf.start, copied = codexSkipTime, nil, nil
 					break
@@ -891,6 +898,72 @@ type codexMsg struct {
 	text   string
 	beat   bool
 	review bool // /review を始めた（text は「/review 対象」。スラッシュコマンドとして数える）
+}
+
+// codexParentOnly は、/review のあいだに来ても親のものとわかる行か（レビューの終わりの印になる）。
+// process_review_events（tasks/review.rs）は、サブエージェントの task_complete・turn_aborted と、
+// AgentMessage の item_completed を写さない。token_count は codex_delegate.rs の forward_events が写さない。
+// turn_context・compacted・token_usage_record は出来事（event_msg）ではないので写らない。
+// レビューは親のターンを動かさないので、親の turn_context は、終わりの印のないまま止まったあとの新しいターン。
+func codexParentOnly(e core.Obj, id string) bool {
+	switch core.Str(e["type"]) {
+	case "turn_context", "compacted", "token_usage_record":
+		return true
+	case "event_msg":
+	default:
+		return false
+	}
+	p := core.Map(e["payload"])
+	switch core.Str(p["type"]) {
+	case "token_count", "task_complete", "turn_complete", "turn_aborted", "exited_review_mode":
+		return true
+	case "thread_settings_applied":
+		return codexOwnSettings(e, id)
+	case "item_completed":
+		item := core.Map(p["item"])
+		switch core.Str(item["type"]) {
+		case "AgentMessage", "ExitedReviewMode":
+			return true
+		case "UserMessage":
+			return id != "" && core.Str(p["thread_id"]) == id
+		}
+	}
+	return false
+}
+
+// codexReviewerInput は、/review のあいだの user_message・UserMessage が、写したサブエージェントのもの（レビューの依頼）か。
+// paginated の版は thread_id で決める（サブエージェントのものはサブエージェントのスレッド ID）。
+// legacy の版の user_message にはどちらのものかの印がない。サブエージェントは依頼 1 つで動き（run_codex_thread_one_shot）、
+// 親には同じ文が 2 行（写した ItemCompleted から親が作るものと、写した user_message）来る。その文は target から決まる
+// （prompts の review_request.rs: custom は instructions の前後の空白を除いたもの、ほかは決まった文）。
+// それに合う最初の文（*prompt に入れる）と、それと同じ文だけをサブエージェントのものとし、ほかは人の依頼として数える。
+func codexReviewerInput(thread, id, text string, target core.Obj, prompt *string) bool {
+	if thread != "" {
+		return thread != id
+	}
+	if *prompt != "" {
+		return text == *prompt
+	}
+	ok := false
+	if core.Str(target["type"]) == "custom" {
+		ok = text != "" && text == strings.TrimSpace(core.Str(target["instructions"]))
+	} else {
+		for _, pre := range codexReviewPrompts {
+			ok = ok || strings.HasPrefix(text, pre)
+		}
+	}
+	if ok {
+		*prompt = text
+	}
+	return ok
+}
+
+// codexReviewPrompts は、custom 以外のレビューの依頼の文の始まり（review_request.rs の UNCOMMITTED_PROMPT・
+// BASE_BRANCH_PROMPT（_BACKUP も）・COMMIT_PROMPT（_WITH_TITLE も））。
+var codexReviewPrompts = []string{
+	"Review the current code changes (staged, unstaged, and untracked files)",
+	"Review the code changes against the base branch '",
+	"Review the code changes introduced by commit ",
 }
 
 // codexHeartbeatKind は、予定（heartbeat）が入れた文の印（history の heartbeat.rs の HEARTBEAT_CONTENT_KIND）。
