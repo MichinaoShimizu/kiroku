@@ -12,43 +12,57 @@ It connects three complementary activities, all sharing a maintained **decision 
 
 The **ADR index is an operational interface**, not merely a table of contents. It routes a proposed change to applicable decisions using paths, components, interfaces, semantic concerns, status and supersession links. Reverse ADR builds and repairs this index; ADR Guard queries it; Forward ADR updates it when decisions are proposed or changed. Index coverage is never proof that an unlisted change is safe.
 
+```mermaid
+flowchart LR
+    R["Reverse ADR<br/>recover"] -- "builds and repairs" --> I[("ADR index")]
+    G["ADR Guard<br/>apply"] -- "queries" --> I
+    F["Forward ADR<br/>decide"] -- "updates" --> I
+    R -- "evidence-linked baseline" --> G
+    G -- "intentional change" --> F
+    F -- "periodic drift audit" --> R
+```
+
 No single activity is sufficient alone. Reverse ADR without ongoing use becomes a static archive; ADR Guard without a reliable historical baseline may enforce accidental or imagined constraints. Together they turn decision history into a **maintained input to future decisions**.
 
 ## Lifecycle
 
-```text
-Existing system and history
-          |
-          v
-Reverse ADR: discover -> reconstruct -> verify -> reconcile
-          |
-          v
-Evidence-linked decision baseline + maintained ADR index
-          |
-          v
-New work -> ADR index: paths + semantics + status
-          |
-          +-- No relevant decision -> normal implementation
-          |
-          +-- Relevant decision -> ADR Guard: preserve / extend / conflict
-                                           |
-                                           +-- Preserve or extend -> implement + test
-                                           |
-                                           +-- Intentional material change
-                                                -> new Proposed ADR
-                                                -> review and acceptance
-                                                -> implement + test
-                                                -> link supersession
-          |
-          v
-Periodic drift audit -> refresh evidence, index and gaps
-          |
-          +-------------------------------------> next change
+```mermaid
+flowchart TD
+    H["Existing system and history"] --> R["Reverse ADR:<br/>discover, reconstruct, verify, reconcile"]
+    R --> B["Evidence-linked decision baseline<br/>+ maintained ADR index"]
+    B --> W["New work"]
+    W --> Q{"ADR index:<br/>paths + semantics + status"}
+    Q -- "no relevant decision" --> N["Normal implementation"]
+    Q -- "relevant decision" --> G{"ADR Guard"}
+    G -- "preserve or extend" --> T["Implement + test"]
+    G -- "unintentional conflict" --> X["Adjust the change<br/>to keep the decision"]
+    X --> T
+    G -- "rationale unknown" --> U["Flag the uncertainty,<br/>investigate proportionately"]
+    U --> G
+    G -- "intentional material change" --> P["New Proposed ADR"]
+    P --> A["Human review and acceptance"]
+    A --> T
+    A --> S["Old ADR status: Superseded<br/>update the index"]
+    N --> D["Periodic drift audit:<br/>refresh evidence, index and gaps"]
+    T --> D
+    S --> D
+    D -. "next change" .-> W
 ```
 
 ## Uncertainty Preservation
 
 A historical change can be certain even when its rationale is unknown. For example, a merged PR with an empty description may establish that implementation A was replaced by B, without establishing **why** it happened, what alternatives were considered, or whether the change reflected an explicit architectural decision. Record these separately: **observed change (confirmed)**, **historical rationale (unknown)**, and **open questions (to investigate)**. Do not invent intent or promote observed behavior to a binding decision.
+
+```mermaid
+flowchart LR
+    PR["Merged PR<br/>with an empty description"] --> C["Observed change:<br/>A replaced by B (confirmed)"]
+    PR --> W["Historical rationale<br/>(unknown)"]
+    W --> Q["Open questions<br/>(to investigate)"]
+    C --> I[("ADR index entry<br/>flagged: rationale unknown")]
+    Q --> I
+    I --> G["ADR Guard:<br/>flag and investigate, not veto"]
+    G --> F["Forward ADR:<br/>new explicit decision,<br/>old reason stays unknown"]
+```
 
 This is **Uncertainty Preservation**: retain the known facts *and* the unresolved uncertainty as durable, discoverable inputs to later decisions. When ADR Guard encounters such a record, it should flag the unknown rationale, examine current evidence, and recommend proportionate follow-up investigation rather than automatically vetoing the change. Forward ADR can then document a new explicit decision without retroactively claiming certainty about the old one. The index should expose the uncertainty so the record is not silently treated as an accepted policy.
 
@@ -60,6 +74,20 @@ Two axes stay separate:
 
 - **Status** is the lifecycle of the decision: Retrospective, Proposed, Accepted, Rejected, Superseded or Deprecated.
 - **Evidence labels** (Documented, Observed, Inferred, Unknown) describe each claim inside the record.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Retrospective: recovered by Reverse ADR
+    [*] --> Proposed: drafted by Forward ADR
+    Retrospective --> Accepted: owner review
+    Proposed --> Accepted: owner review
+    Proposed --> Rejected: owner review
+    Retrospective --> Superseded: later ADR accepted
+    Accepted --> Superseded: later ADR accepted
+    Accepted --> Deprecated: no longer applies
+```
+
+Evidence labels do not move a record along this lifecycle; they stay on each claim.
 
 A strong evidence label does not make a decision accepted, and a record with unknown rationale is not promoted to Accepted without human review. When a decision is superseded, only the old record's status line changes; its body stays as recorded.
 
