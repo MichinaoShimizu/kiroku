@@ -30,6 +30,7 @@ Commands:
   html                  Write the view as a single static HTML file (default kiroku.html) and open it
                         (--week or --month writes only that period, for sharing)
   json                  Write the aggregated data as JSON (default kiroku.json, "-" for stdout)
+  stats                 Print a one-screen summary of this week (--week last, --month this, ...) in the terminal
   archive [on|off]      Keep compressed copies of history that agents delete (Claude Code, Kiro Crew); no argument shows the status
   autostart [on|off]    Start "kiroku serve" in the background each time you log in; no argument shows the status
   doctor                Check what kiroku can read and whether your history will be deleted, and what to run next
@@ -66,6 +67,8 @@ func dispatch(args []string) error {
 		return cmdHTML(args[1:])
 	case "json":
 		return cmdJSON(args[1:])
+	case "stats":
+		return cmdStats(args[1:])
 	case "archive":
 		return cmdArchive(args[1:])
 	case "open":

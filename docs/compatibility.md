@@ -27,7 +27,7 @@ These change as kiroku and the agents it reads change. Changes are listed in the
 - **Metrics and their numbers**: how a metric is defined or computed, its name, and thresholds such as those in "Worth a look". Fixing how a history is read can change past numbers
 - **Estimated cost**: the price table follows the providers' public prices, so estimates for past weeks can change
 - **Which histories are read**: kiroku follows the formats the agents write. When an agent changes its format, kiroku reads the new one; a history format an agent no longer writes may stop being read in a minor release, with a note in the changelog
-- **Text output** of `doctor`, `version`, `update`, `archive` and errors: it is for people, not for scripts
+- **Text output** of `stats`, `doctor`, `version`, `update`, `archive` and errors: it is for people, not for scripts
 - **The rest of the JSON written by `kiroku json`** (`weeks`, `months`, `meta` and the session fields not listed below), and the `/data.json` and other URLs of `kiroku serve`: they are the data behind the view and change with it
 - **The HTML written by `kiroku html`**: it is a page to open, not a format to parse
 - **Supported platforms and the Go version** needed to build: they follow the Go releases that are supported upstream
