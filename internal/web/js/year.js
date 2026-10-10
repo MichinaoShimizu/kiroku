@@ -132,7 +132,8 @@ function halves(ss){
     return {n: xs.length, per: xs.length ? sum/60/xs.length : 0, par: any ? two/any*100 : 0, late: u.size ? late/(u.size*5)*100 : 0, pp: xs.length ? pr/xs.length : 0}; };
   const a = half(ss.filter(s => s.start < mid)), b = half(ss.filter(s => s.start >= mid));
   if (a.n < 5 || b.n < 5) return [];
-  const out = [], r = b.per/(a.per || 1);
+  const out = []; out.mid = mid; // 境目の時刻（画像には「Since May 21」と書く。暦の上半期・下半期ではないので）
+  const r = b.per/(a.per || 1);
   if (r >= 1.25) out.push({k: "len", t: `sessions ${Math.round((r - 1)*100)}% longer`, q: "Sessions got longer. Bigger tasks handed over, or more back-and-forth?"});
   else if (r <= .8) out.push({k: "len", t: `sessions ${Math.round((1 - r)*100)}% shorter`, q: "Sessions got shorter. Smaller, clearer asks, or more interruptions?"});
   if (Math.abs(b.par - a.par) >= 5) out.push(b.par > a.par
@@ -158,7 +159,8 @@ function mergeSegs(segs){
 function sideLines(x, o){
   // 深夜・週末を選んだなら、深夜の変化を先に（2 行で切ったときに落ちないように）
   const hs = x.halves.filter(h => h.k !== "late" || o.late).sort((p, q) => (q.k === "late") - (p.k === "late")), lateMoved = hs.some(h => h.k === "late");
-  return [...hs.slice(0, 2).map(h => `2nd half vs 1st: ${h.t}`),
+  const pre = x.halves.mid ? `Since ${dMD(new Date(x.halves.mid*1000))}: ` : "Second half: ";
+  return [...hs.slice(0, 2).map(h => pre + h.t),
     ...x.hi.filter(h => h.c0 == null && h.img && o.late && !(lateMoved && h.k === "late")).map(h => h.img)].slice(0, 3);
 }
 /* 画像の光の上に書き込む見どころ（期間か日のあるもの）。休みは o.breaks のときだけ */
@@ -257,9 +259,10 @@ function yrSpan(a, b){
 function yrTitle(x){
   if (x.short){ // 2 週に満たなければ日で、それ以上は週で数える。光が 1 本もない年は数を言わない
     const n = x.span < 14 ? plural(x.span, "day") : plural(Math.round(x.span/7), "week");
-    if (!x.span) return x.firstYear ? "Your first days with AI." : "A few days with AI.";
-    if (x.span === 1) return x.firstYear ? "Your first day with AI." : "A day with AI.";
-    return x.firstYear ? `Your first ${n} with AI.` : `${n} with AI.`; }
+    // 「初めての」とは言わない。履歴の最初の日は、AI を使い始めた日とは限らない（古い履歴は消えることがある）
+    if (!x.span) return "A few days with AI.";
+    if (x.span === 1) return "A day with AI.";
+    return `${n} with AI.`; }
   return x.partial ? "This year with AI, so far." : "A year with AI.";
 }
 function drawCard(){
@@ -407,8 +410,8 @@ function renderYear(pre){
     ${x.mode === "project" ? `<div><b>Color = project</b>Shifts in color show when your time moved from one project to another. The image to share shows the colors, never the names.</div>` : `<div><b>Color = agent</b>Colors that start to mix show when you began using more than one.</div>`}
     <div><b>Dark bands = days without AI sessions</b>Days off, holidays and days spent on other work all look the same.</div></div>
   ${x.hi.length || x.halves.length ? `<h3>What stands out</h3>
-  <ul class="yrhi">${x.hi.map(h => `<li>${esc(h.t)}</li>`).join("")}${x.halves.map(h => `<li>Second half vs first: ${esc(h.t)}</li>`).join("")}</ul>
-  ${x.halves.length ? `<p class="note">"Second half vs first" splits the dates you have history for in two. "2+ sessions at once" is the share of active time when two or more sessions were running.</p>` : ""}` : ""}
+  <ul class="yrhi">${x.hi.map(h => `<li>${esc(h.t)}</li>`).join("")}${x.halves.map(h => `<li>${esc(x.halves.mid ? `Since ${dMD(new Date(x.halves.mid*1000))}, compared with before: ` : "Second half vs first: ")}${esc(h.t)}</li>`).join("")}</ul>
+  ${x.halves.length ? `<p class="note">The halves split the dates you have history for in two, so they are not calendar halves. "2+ sessions at once" is the share of active time when two or more sessions were running.</p>` : ""}` : ""}
   ${asks.length ? `<h3>To reflect on</h3>
   <ul class="yrhi">${asks.map(q => `<li>${esc(q)}</li>`).join("")}</ul>
   <p class="note">Questions, not judgments. They stay on this screen: they are never saved, sent or put on the image. To dig into a month, copy its report prompt from the month view.</p>` : ""}
@@ -418,13 +421,13 @@ function renderYear(pre){
     <label>Color by <select id="yrcolor">${[["auto", "Auto"], ["agent", "Agent"], ["project", "Project"]].map(([v, l]) => `<option value="${v}"${yr.opt.color === v ? " selected" : ""}>${l}</option>`).join("")}</select></label></div>
   <canvas class="yrcard" id="yrcard" width="1600" height="900" role="img"></canvas>
   <div class="yract"><button class="pill" id="yrsave">Save as PNG</button>${copyBtn("Copy image", `id="yrcopy"`)}</div>
-  <p class="note">The image shows the date range, the streaks of light, what stands out, kiroku's address, and only what is ticked above. The longest stretch without AI has no dates written on it. Prompts, project names, branches, files and estimated cost are never included. It is made in this browser and sent nowhere.</p>
+  <p class="note">The image shows the date range, the streaks of light, kiroku's address, the busiest month, an agent's first day and up to two changes since the middle of the period when they are found, and only what is ticked above. The longest stretch without AI has no dates written on it. Prompts, project names, branches, files and estimated cost are never included. It is made in this browser and sent nowhere.</p>
 
   <h3>Your light</h3>
   ${L ? `<div class="yrtype"><div class="yrtn"><span>${vt(name(L))}</span></div><div>
     <p class="yrtd">${L.de}</p>
     <dl class="yrev">${ev.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>
-    <p class="note">${`Your light describes the shape of your year in photography terms. It is not a verdict, and its thresholds are rough guides. Why: ${L.re}`}${x.active < 600 ? " (based on little history, so take it lightly)" : ""}</p>
+    <p class="note">${`Your light describes the shape of your year in photography terms. It is not a verdict, and its thresholds are rough guides. Why: ${L.re}.`}${x.active < 600 ? " (based on little history, so take it lightly)" : ""}</p>
     <details class="yrtypes"><summary>All ${LIGHTS.length} and how they are chosen</summary><ul>${LIGHTS.map(l => `<li><b>${name(l)}</b> — ${l.re}</li>`).join("")}</ul>
       <p class="note">The first one that matches, from the top, is chosen.</p></details></div></div>` : `<p class="note">Your light is named once you have 8 weeks of history. Until then there is too little to say.</p>`}`;
   $("#yrsel").onchange = e => { yr.y = +e.target.value; renderYear(); $("#yrsel").focus(); }; // 描き直しても、年の選択にフォーカスを残す
@@ -437,14 +440,15 @@ function renderYear(pre){
   $("#yrcopy").onclick = async () => { try { await navigator.clipboard.write([new ClipboardItem({"image/png": blob()})]); toast("Copied the image"); copied($("#yrcopy")); }
     catch(e){ toast("Couldn't copy the image. Save it as a PNG instead", 2600); } };
   drawPlate(); drawCardLabeled();
-  const sc = dlg.querySelector(".yrscroll"); sc.scrollLeft = sc.scrollWidth; // 狭い画面では、新しい記録の側を見せる
+  yrScrollEnd();
   if (det) dlg.querySelector(".yrtypes").open = true;
   if (sel){ const e = dlg.querySelector(sel); if (e) e.focus(); }
   yr.sig = yrSig(x);
 }
+function yrScrollEnd(){ const sc = $("#yr .yrscroll"); if (sc) sc.scrollLeft = sc.scrollWidth; } // 狭い画面では、新しい記録の側を見せる（開いてからでないと幅が測れない）
 const yrSig = x => [x.y, x.lines.length, x.active, x.sessions, x.commits, x.prs].join("|");
 /* serve の自動更新：選んでいる年の数字が変わったときだけ描き直す（作り直すと、読んでいる途中の画面が動くので） */
 function refreshYear(){ const x = yearData(yr.y); if (yrSig(x) !== yr.sig) renderYear(x); }
 /* 中身を作ってから開く（開いてから作り直すと、開いたときのフォーカスが消える）。図の大きさは開いてからでないと測れない */
-function openYear(){ const d = $("#yr"); if (d.open) return renderYear(); renderYear(); d.showModal(); drawPlate(); }
+function openYear(){ const d = $("#yr"); if (d.open) return renderYear(); renderYear(); d.showModal(); drawPlate(); yrScrollEnd(); }
 
