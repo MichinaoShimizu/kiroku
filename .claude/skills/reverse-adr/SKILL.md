@@ -175,3 +175,7 @@ Summarize: scope and revision; decision trajectories discovered; new/updated ADR
 - Published ADR IDs renumbered for aesthetics.
 - Generated evidence links that were not opened or confirmed.
 - Sensitive history copied into public reports.
+
+## Shared ADR metadata and index contract
+
+Use the target repository's ADR index and lifecycle rules as the source of truth. In kiroku, `docs/adr/README.md` contains the routing index, inventory and metadata contract; there is no separate `docs/adr/index.md`. Keep routing rows, inventory entries, ADR headers, evidence and supersession links consistent in the same change. Preserve historical ADR content and unknown rationale; do not silently upgrade Retrospective to Accepted. Path matching is only a hint; use semantic matching for cross-cutting decisions. Before proposing or updating a record, verify stable ID, target links, Status, Date, Scope and reciprocal supersession references. A missing Date in a legacy ADR is a migration gap, not license to invent one.
