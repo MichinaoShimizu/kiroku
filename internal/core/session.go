@@ -382,6 +382,29 @@ func (s *Builder) HideText(text string) {
 	s.File = ""
 }
 
+// HideText は、組み立て終えたセッションから、会話の中身から読んだものを消す（Builder.HideText と同じものを消し、タイトルを title にする）。
+// 別のエージェントの履歴に残る同じ会話（Kiro CLI の SQLite の写しなど）を、あとから隠すため。何度呼んでも同じ。
+func (s *Session) HideText(text, title string) {
+	for i, p := range s.Prompts {
+		s.Prompts[i] = Prompt{T: p.T, Text: text, Work: p.Work, Wait: p.Wait}
+	}
+	s.Title, s.Notes, s.File = title, nil, ""
+	s.Files, s.NFiles = []string{}, 0
+	s.Fix, s.Corrections = nil, 0
+	s.Interrupts, s.InterruptsAt = 0, []float64{}
+	s.LimitResets = nil
+	s.PRs = []string{}
+	for i := range s.PRAt {
+		s.PRAt[i].URL = ""
+	}
+	for i := range s.OEv {
+		s.OEv[i].URL = ""
+	}
+	for i := range s.Subagents {
+		s.Subagents[i].Desc = ""
+	}
+}
+
 // Measure はそのエージェントだけが記録している数字を 1 つ足す。
 func (s *Builder) Measure(key string, t *float64, v float64) {
 	s.Measures = append(s.Measures, Measure{Key: key, T: t, V: v})

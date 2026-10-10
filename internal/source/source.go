@@ -66,6 +66,13 @@ type Keeper interface {
 	Keep() []Kept
 }
 
+// Withholder は、中身を出してはいけない会話を知っている Source が実装する（Kiro Crew の incognito・temporary の会話）。
+// Withheld は、そうした会話の core.Builder.Key。同じ会話がほかの Source（Kiro CLI の SQLite など）にも残っていれば、
+// 読み込む側がそれも HideWithheld で隠す。Load のあとに呼ぶ。
+type Withholder interface {
+	Withheld() []string
+}
+
 // Kept は、残す元の場所と、コピーを置く場所。
 type Kept struct{ Src, Dst string }
 

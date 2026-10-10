@@ -301,6 +301,12 @@ func hideCrew(s *core.Builder) {
 	s.Title = crewPrivateTitle
 }
 
+// HideWithheld は、Withholder が中身を出してはいけないとした会話（ほかの Source に残る同じ会話）を、
+// Crew の中身を残さない会話と同じ形にする（数と時刻だけ）。
+func HideWithheld(s *core.Session) {
+	s.HideText(crewPrivateText, crewPrivateTitle)
+}
+
 // DefaultCrewHome は KIROCREW_HOME か ~/.kiro/crew。
 // Crew は KIRO_HOME を見ない（config/paths.py の _default_home は Path.home()/.kiro/crew。KIRO_HOME が動かすのは kiro-cli の履歴だけ）。
 func DefaultCrewHome() string {

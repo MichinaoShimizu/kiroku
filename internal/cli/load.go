@@ -64,6 +64,15 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 		}()
 	}
 	wg.Wait()
+	// 中身を出してはいけない会話（Kiro Crew の incognito・temporary）は、ほかのエージェントの履歴に残る写しも隠す
+	withheld := map[string]bool{}
+	for _, s := range picked {
+		if w, ok := s.(source.Withholder); ok {
+			for _, key := range w.Withheld() {
+				withheld[key] = true
+			}
+		}
+	}
 	seen := map[string]bool{} // 同じ会話が 2 か所に残っていたら、先に読んだほうを使う
 	for i, s := range picked {
 		n, dup, archived, oldest := 0, 0, 0, 0.0
@@ -80,6 +89,9 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 			}
 			n++
 			if sess := o.sess; sess != nil {
+				if withheld[o.key] {
+					source.HideWithheld(sess) // 読み直さないセッション（kiroku serve のキャッシュ）にも、何度でも同じに効く
+				}
 				data = append(data, sess)
 				ids = append(ids, sess.ID)
 				if keeps && strings.HasSuffix(sess.File, ".zst") { // 元が消えて、kiroku archive のコピーから読んだ
