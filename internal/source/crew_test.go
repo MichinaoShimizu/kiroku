@@ -1410,3 +1410,14 @@ func TestKiroCrewEarlierLineage(t *testing.T) {
 		})
 	}
 }
+
+// Codex のモデル ID は短い。とても長い model の行（壊れた行やわざと作った行）は Codex の ID とみなさず、正規表現にもかけない。
+func TestCrewCodexRowLongModel(t *testing.T) {
+	row := func(model string) crewTurn { return crewTurn{model: model, u: core.Tokens{In: 10}} }
+	if !crewCodexRow(row("gpt-5.4")) || !crewCodexRow(row(" GPT-6-astra[max] ")) {
+		t.Error("Codex の ID を見分けられない")
+	}
+	if crewCodexRow(row("gpt-" + strings.Repeat("x", 1<<20))) {
+		t.Error("とても長い model を Codex の ID とみなした")
+	}
+}

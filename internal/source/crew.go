@@ -1301,9 +1301,14 @@ var crewCodexModel = regexp.MustCompile(`^(?:gpt-|o[1-9](?:$|[-\[])|[^/\[{]*code
 // crewCodexRow は、"acp" の行が Codex で動いたターンのものらしいか。Codex の行はトークン（とドル額）で、クレジットはない。
 // kiro-cli も GPT のモデル（gpt-5.6-sol など。model_registry.py）を出すが、kiro-cli の行はクレジットで数える（acp/types.py の TurnUsage）ので、
 // クレジットのある行は kiro-cli のものとみなす。Crew の行に backend の名前はほかに残らない（usage.py の _build_token_record）ので、モデル ID で見分ける。
+// モデル ID は短いので、crewCodexModelMax バイトより長い値（壊れた行やわざと作った行）は Codex の ID とみなさず、正規表現にもかけない。
 func crewCodexRow(x crewTurn) bool {
-	return x.credits == 0 && (x.u.Total() > 0 || x.cost > 0) && crewCodexModel.MatchString(strings.ToLower(strings.TrimSpace(x.model)))
+	m := strings.TrimSpace(x.model)
+	return x.credits == 0 && (x.u.Total() > 0 || x.cost > 0) && len(m) <= crewCodexModelMax && crewCodexModel.MatchString(strings.ToLower(m))
 }
+
+// crewCodexModelMax は Codex のモデル ID として見る長さの上限（バイト）。
+const crewCodexModelMax = 200
 
 // crewOwnHistory は、Crew の backend の名前が、kiroku が自分の履歴を別に読むエージェント（Claude Code と Codex）か。
 func crewOwnHistory(provider string) bool {

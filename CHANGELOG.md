@@ -6,7 +6,8 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Security
 
-- Kiro Crew: conversations held in incognito or temporary mode (`memory_mode` in the conversation log, or the flag in `session_map.json`) are now shown with counts and times only, titled "Kiro Crew private conversation". Before, kiroku showed their prompts, replies, title, edited files and the prompts sent to their subagents in the view, the JSON, search and the prompts it copies for an AI, although Crew itself refuses to learn from, summarize or export them. The time span, number of prompts, turns, model, tools, credits, tokens and cost are still shown. `kiroku archive` still copies Crew's `sessions/archive/` files as they are, so its copy keeps their text
+- Kiro Crew: conversations held in incognito or temporary mode (`memory_mode` in the conversation log or its archive files, or the flag in `session_map.json`) are now shown with counts and times only, titled "Kiro Crew private conversation". Before, kiroku showed their prompts, replies, title, edited files and the prompts sent to their subagents in the view, the JSON, search and the prompts it copies for an AI, although Crew itself refuses to learn from, summarize or export them. This covers their kiro-cli conversation, its copy in the Kiro CLI SQLite history, their subagents, and archived lines from an earlier conversation under a reused key. The time span, number of prompts, turns, model, tools, credits, tokens and cost are still shown, as are Git commits in that time span. A kiro-cli conversation Crew no longer links to can't be recognized and is still shown in full. `kiroku archive` still copies Crew's `sessions/archive/` files as they are, so its copy keeps their text
+- Kiro Crew: a named pipe in the Crew folder in place of a conversation log no longer makes kiroku hang while reading
 
 ### Fixed
 
