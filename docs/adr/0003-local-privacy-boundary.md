@@ -1,8 +1,12 @@
 # ADR 0003: Local privacy and trust boundary
 
-Status: **Retrospective**
+Status: Retrospective
+Date: Unknown
+Related: None
+Supersedes: None
+Superseded by: None
 
-Scope: Phase 1 — local sessions.
+Scope: Phase 1 — local sessions
 
 ## Context
 
@@ -34,3 +38,15 @@ A kiroku-hosted backend was not established in these PRs; this record does not c
 ## Verification
 
 Inspect `SECURITY.md`, `internal/cli`, `internal/gitlog`, `internal/source` and relevant security tests. No new security testing is claimed here.
+
+## Decision
+
+The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
+
+## Consequences
+
+See the existing rationale and consequences discussion above. No additional outcome is asserted.
+
+## Historical confidence and open questions
+
+Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.

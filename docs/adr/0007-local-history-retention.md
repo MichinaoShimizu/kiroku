@@ -1,8 +1,12 @@
 # ADR 0007: Opt-in preservation of local agent history
 
-Status: **Retrospective**
+Status: Retrospective
+Date: Unknown
+Related: None
+Supersedes: None
+Superseded by: None
 
-Scope: Phase 1.
+Scope: Phase 1
 
 ## Context
 
@@ -22,3 +26,19 @@ Preservation is separate from visualization. Archive behavior must remain explic
 ## Alternatives and confidence
 
 These choices are documented in PRs. This ADR does not claim a comprehensive historical evaluation of backups or a cloud retention service. Review current `internal/archive` and source-specific handling before changing retention behavior.
+
+## Decision
+
+The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
+
+## Consequences
+
+See the existing rationale and consequences discussion above. No additional outcome is asserted.
+
+## Historical confidence and open questions
+
+Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.
+
+## Verification
+
+See existing source and test references where available. No new test execution is claimed.

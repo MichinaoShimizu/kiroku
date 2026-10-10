@@ -1,8 +1,12 @@
 # ADR 0018: English product UI and Japanese entry documentation
 
-Status: **Retrospective**
+Status: Retrospective
+Date: Unknown
+Related: None
+Supersedes: None
+Superseded by: None
 
-Scope: Phase 1 — local sessions.
+Scope: Phase 1 — local sessions
 
 ## Documented decision and evolution
 
@@ -17,3 +21,19 @@ The current intended distinction is English application UI and guide, with a Jap
 Review current README files, web UI and localization tests before treating language coverage as a compatibility guarantee.
 
 This is an evidence-linked retrospective, not an assertion of historical ADR approval.
+
+## Decision
+
+The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
+
+## Consequences
+
+See the existing rationale and consequences discussion above. No additional outcome is asserted.
+
+## Alternatives
+
+Not documented as a separate set of evaluated options in this record.
+
+## Historical confidence and open questions
+
+Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.

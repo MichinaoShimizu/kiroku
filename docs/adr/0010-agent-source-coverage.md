@@ -1,8 +1,12 @@
 # ADR 0010: Native source adapters and recording coverage
 
-Status: **Retrospective**
+Status: Retrospective
+Date: Unknown
+Related: None
+Supersedes: None
+Superseded by: None
 
-Scope: Phase 1 — local sessions.
+Scope: Phase 1 — local sessions
 
 ## Context
 
@@ -23,3 +27,15 @@ Earlier approaches and reversals are listed only where linked PRs document them.
 ## Verification
 
 Current implementation: `internal/core/agents.go`, `internal/core/records.go`, `internal/source/source.go`, and `docs/sources.md`. The per-agent matrix is maintained in those sources, not duplicated as immutable ADR facts.
+
+## Decision
+
+The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
+
+## Consequences
+
+See the existing rationale and consequences discussion above. No additional outcome is asserted.
+
+## Historical confidence and open questions
+
+Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.

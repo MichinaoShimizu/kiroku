@@ -69,6 +69,33 @@ Retrospective records should use sections Context, Decision, Consequences, Alter
 
 **Index update checklist:** (1) keep the stable ID and filename in Layout; (2) add or update routing rows for path *and* semantic relevance; (3) state lifecycle status and supersession links in the ADR header; (4) keep reciprocal supersession references and links consistent; (5) check that every referenced ADR exists. A routing row can reference multiple ADRs; ADR Guard reads their union and verifies their statuses in the linked records. Do not treat the index as an authoritative claim that an ADR is Accepted.
 
+## ADR inventory metadata
+
+| ADR | Scope | Status | Supersession |
+|---|---|---|---|
+| [0001](0001-local-session-foundation.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0002](0002-measurement-semantics.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0003](0003-local-privacy-boundary.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0004](0004-session-identity-and-deduplication.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0005](0005-nonjudgmental-reflection.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0006](0006-compatibility-contract.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0007](0007-local-history-retention.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0008](0008-incremental-local-processing.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0009](0009-git-output-attribution.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0010](0010-agent-source-coverage.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0011](0011-release-integrity.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0012](0012-share-export-timezone.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0013](0013-user-mediated-ai-reports.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0014](0014-prompt-provenance.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0015](0015-period-comparison.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0016](0016-single-file-rendering.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0017](0017-regression-evidence.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0018](0018-language-policy.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0019](0019-time-overlap-semantics.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
+| [0020](0020-remote-session-import.md) | Phase 2 — remote sessions | Proposed | None recorded |
+
+Dates for legacy ADRs are recorded as `Unknown` pending verification against original merge dates; this is not a claim that the historical change lacked a date. The ADR body remains authoritative for detailed scope and evidence.
+
 ## Layout
 
 - `0001-local-session-foundation.md` — retrospective baseline for local-only session processing (Phase 1).

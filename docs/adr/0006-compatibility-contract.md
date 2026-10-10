@@ -1,8 +1,12 @@
 # ADR 0006: Compatibility contract for the 1.0 boundary
 
-Status: **Retrospective**
+Status: Retrospective
+Date: Unknown
+Related: None
+Supersedes: None
+Superseded by: None
 
-Scope: Phase 1.
+Scope: Phase 1
 
 ## Context
 
@@ -32,3 +36,19 @@ The decisions are explicit in issue #209 and related PRs. This ADR documents the
 ## Verification
 
 Current contract: `docs/compatibility.md` ("The JSON of kiroku json"). Tests: `internal/cli/cli_test.go` `TestJSONSchema` asserts `schemaVersion == 1` and the names and types of the enumerated session fields; `internal/cli/compat_test.go` `TestCompatArchive` and `TestCompatServeKey` read files written by earlier versions from `testdata/compat/`. These three tests passed at `ad670cb` (see [evidence.yaml](evidence.yaml)). No test asserts that `/data.json` stays outside the contract; that boundary is documentary.
+
+## Decision
+
+The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
+
+## Consequences
+
+See the existing rationale and consequences discussion above. No additional outcome is asserted.
+
+## Alternatives
+
+Not documented as a separate set of evaluated options in this record.
+
+## Historical confidence and open questions
+
+Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.
