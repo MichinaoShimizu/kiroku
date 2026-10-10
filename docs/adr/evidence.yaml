@@ -6,7 +6,13 @@ baseline:
   repository: MichinaoShimizu/kiroku
   ref: main
   pinned_commit: ad670cb40d8617b5418e103feab18c3df29fc92e
-  tests_executed: false
+  tests_executed:
+    command: >-
+      go test ./internal/web ./internal/report ./internal/cli -count=1
+      -run 'TestAssemble$|TestCSP$|TestShares$|TestJSONSchema$|TestCompatArchive$|TestCompatServeKey$'
+    result: pass
+    platform: linux (local run; Windows/macOS not executed)
+    date: 2026-10-10
 claims:
   - id: ADR-0001-C2
     statement: "The Python implementation was migrated to Go to distribute one executable across macOS, Windows and Linux and isolate agent readers as adapters."
@@ -44,38 +50,51 @@ claims:
       - https://github.com/MichinaoShimizu/kiroku/pull/6
     current: []
     tests: []
-    notes: "PR #1 confirms initial Python stdlib local history + HTML; #6 explicitly records Go single-binary adapter migration and historical fixture comparisons. Current end-to-end behavior and tests not audited."
+    notes: "Initial PR supports history; full present-day end-to-end behavior not audited."
   - id: ADR-0006-C1
     statement: "Public kiroku json uses schemaVersion 1; internal /data.json is outside that contract."
-    status: untested
+    status: verified
     historical:
       - https://github.com/MichinaoShimizu/kiroku/pull/208
     current:
       - docs/compatibility.md
+      - internal/cli/cli.go (json output with schemaVersion)
     tests:
-      - "TestJSONSchema (reported by PR #208; current test and run not inspected)"
-    notes: "Current documentation agrees; no test execution verified."
+      - internal/cli/cli_test.go::TestJSONSchema (pass at pinned_commit)
+    notes: "TestJSONSchema asserts schemaVersion 1 and enumerated field names/types. The /data.json exclusion is documentary only; no test asserts it."
+  - id: ADR-0006-C2
+    statement: "Archive copies and the serve key written by earlier versions stay readable."
+    status: verified
+    historical:
+      - https://github.com/MichinaoShimizu/kiroku/pull/211
+    current:
+      - docs/compatibility.md
+      - testdata/compat/
+    tests:
+      - internal/cli/compat_test.go::TestCompatArchive (pass at pinned_commit)
+      - internal/cli/compat_test.go::TestCompatServeKey (pass at pinned_commit)
+    notes: "Covers only the versions present under testdata/compat/."
   - id: ADR-0016-C1
     statement: "The web source is modular but rendered output is assembled from embedded assets."
-    status: untested
+    status: verified
     historical:
       - https://github.com/MichinaoShimizu/kiroku/pull/93
     current:
       - internal/web/web.go
     tests:
-      - internal/web/web_test.go::TestAssemble
-      - internal/web/web_test.go::TestCSP
-    notes: "Tests inspected but not executed; PR #93 byte identity is historical only."
+      - internal/web/web_test.go::TestAssemble (pass at pinned_commit)
+      - internal/web/web_test.go::TestCSP (pass at pinned_commit)
+    notes: "TestAssemble covers placeholder substitution (LF/CRLF); TestCSP renders the page and checks inline asset hashes. PR #93 byte identity is historical only."
   - id: ADR-0019-C1
     statement: "Active minutes in shares are apportioned across distinct concurrent grouping keys."
-    status: untested
+    status: verified
     historical:
       - https://github.com/MichinaoShimizu/kiroku/pull/54
     current:
       - internal/report/share.go
     tests:
-      - internal/report/share_test.go::TestShares
-    notes: "Test assertion inspected but no passing run evidence."
+      - internal/report/share_test.go::TestShares (pass at pinned_commit)
+    notes: "TestShares asserts branch-key minutes split across distinct keys. It does not assert minutes for two concurrent sessions in the same key (the source-key minutes are not checked); that nuance is C-only."
   - id: ADR-0019-C2
     statement: "Active time counts overlaps once while Total AI run time sums concurrent runs."
     status: historical-only
