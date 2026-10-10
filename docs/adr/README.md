@@ -47,6 +47,28 @@ Scan this table first; read **only the relevant ADR bodies**. Paths are indicati
 
 When adding or changing an ADR, update this table and the ADR list with its scope, path/semantic routing hints, status and supersession relationships. Review stale entries during periodic audits. If multiple rows apply, inspect the union of relevant ADRs. This index is a routing aid, not proof that every architectural decision is documented.
 
+## ADR metadata and index contract
+
+The routing table above is the **shared discovery index**. Its path hints and semantic keywords identify candidate ADRs; they are not exhaustive. The layout list below is the canonical inventory of published ADR IDs and filenames. Both must be updated together whenever an ADR is added, renamed, superseded, or changes scope.
+
+For new and materially revised ADRs, use the following consistent header (keep historical ADR content intact when adding metadata):
+
+```markdown
+# ADR NNNN: Decision title
+
+Status: Retrospective | Proposed | Accepted | Rejected | Deprecated | Superseded by NNNN
+Date: YYYY-MM-DD | Unknown
+Scope: Phase / subsystem
+Related: ADR links or None
+Supersedes: ADR links or None
+Superseded by: ADR links or None
+Decision owner: role or Unknown (required for forward ADRs)
+```
+
+Retrospective records should use sections Context, Decision, Consequences, Alternatives, Historical confidence and open questions, Verification. Forward proposals use Context, Decision, Alternatives, Consequences, Verification, Open questions. Do not manufacture a decision date or owner. Evidence labels apply to individual claims, not to the Status field; test execution is recorded separately in `evidence.yaml`.
+
+**Index update checklist:** (1) keep the stable ID and filename in Layout; (2) add or update routing rows for path *and* semantic relevance; (3) state lifecycle status and supersession links in the ADR header; (4) keep reciprocal supersession references and links consistent; (5) check that every referenced ADR exists. A routing row can reference multiple ADRs; ADR Guard reads their union and verifies their statuses in the linked records. Do not treat the index as an authoritative claim that an ADR is Accepted.
+
 ## Layout
 
 - `0001-local-session-foundation.md` — retrospective baseline for local-only session processing (Phase 1).
