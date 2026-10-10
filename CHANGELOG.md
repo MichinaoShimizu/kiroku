@@ -4,6 +4,11 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Fixed
+
+- Kiro IDE: a conversation migrated from 0.x to 1.0 is no longer counted twice. Kiro keeps the 0.x copy after migrating, so the 0.x conversation with the same ID is left out and the 1.0 one is used, as kiro-history does; "Data sources" shows how many were left out
+- Kiro IDE (1.0 and later): a conversation without usage records now counts its model once, so it appears under "Models used"
+
 ### Security
 
 - Commands kiroku shows for pasting into a terminal (resuming a session, `git -C <repo> show`) are no longer offered when a folder, session ID or git value from history contains a curly quote (‘ ’ ‚ ‛ “ ” „ ‟). PowerShell reads these as quotes, so a crafted value could close the quoting and add a command when pasted on Windows (or into PowerShell on macOS and Linux)
