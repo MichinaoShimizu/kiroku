@@ -14,6 +14,6 @@ Internal modularity and an easily shared, local one-file report are compatible. 
 
 ## Historical confidence and verification
 
-Current `internal/web/web.go` embeds the HTML skeleton, CSS and JavaScript modules and assembles them for rendering. `internal/web/web_test.go` contains `TestAssemble` (LF/CRLF replacement) and `TestCSP` (inline asset hashes). These tests were inspected but **not executed** in this audit. The byte-for-byte claim refers to the #93 migration, not to all later releases.
+Current `internal/web/web.go` embeds the HTML skeleton, CSS and JavaScript modules and assembles them for rendering. `internal/web/web_test.go` contains `TestAssemble` (LF/CRLF replacement) and `TestCSP` (inline asset hashes). These tests were inspected in the initial audit and passed at `ad670cb` in the follow-up (see [evidence.yaml](evidence.yaml)). The byte-for-byte claim refers to the #93 migration, not to all later releases.
 
 This ADR records documented changes, not an approval meeting or an unverified current behavior.

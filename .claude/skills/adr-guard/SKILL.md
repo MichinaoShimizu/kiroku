@@ -10,7 +10,7 @@ Use this skill **after** reverse-adr has recovered the historical decision basel
 ## Modes
 
 - `check` (default): read-only ADR impact analysis; do not change code or documents.
-- `record`: create a **new** forward-looking ADR for an intentional change, following the repository's numbering and review process.
+- `record`: hand an intentional change to the [forward-adr](../forward-adr/SKILL.md) skill, which drafts a **new** Proposed ADR following the repository's numbering and review process.
 - `scope=<paths|feature>`: analyze only the requested change, including relevant indirect dependencies.
 
 ## Procedure
@@ -18,7 +18,7 @@ Use this skill **after** reverse-adr has recovered the historical decision basel
 1. Read repository instructions and the lightweight ADR routing index. Identify affected paths, interfaces, data flows, metric semantics and threat boundaries. Match index path hints **and** semantic keywords; paths are hints, not exhaustive coverage. Read only matching ADR bodies, their supersession chain and evidence status. Check index freshness, lifecycle status and missing coverage; report ambiguous or stale routing entries. For trivial changes with no relevant ADR, skip ADR bodies and continue; for high-impact changes, inspect relevant ADRs even when no path hint matches.
 2. Map each change to applicable ADR **claims**, not just ADR titles. Determine whether it **preserves**, **extends**, **conflicts with**, or is **not covered by** each claim. Cite the exact ADR section and changed code/diff.
 3. Do not treat a retrospective ADR as an unquestionable rule. Check whether it is current, superseded, proposed, inferred or unverified. Inspect current code/tests for disputed claims. When a relevant retrospective record establishes a change but not its rationale, preserve that uncertainty: flag the historical change, investigate proportionately, and do not block or approve a proposal solely on imagined historical intent. Missing ADR coverage is **not** evidence that a change is safe. Propose a routing-index correction when a relevant ADR was missed; do not silently assume the index is complete.
-4. If a conflict is unintentional, recommend the smallest code/design adjustment to preserve the decision and add regression tests. If intentional, describe why the old constraints no longer apply, alternatives, consequences, migration and compatibility/security risks; in `record` mode create a new **Proposed** ADR referencing the previous ADR as `Supersedes` (or `Amends` for a narrower change). Never silently rewrite the old decision.
+4. If a conflict is unintentional, recommend the smallest code/design adjustment to preserve the decision and add regression tests. If intentional, describe why the old constraints no longer apply, alternatives, consequences, migration and compatibility/security risks; in `record` mode use forward-adr to create a new **Proposed** ADR referencing the previous ADR as `Supersedes` (or `Amends` for a narrower change). Never silently rewrite the old decision.
 5. For high-impact changes (privacy, persistence, public API, source interpretation, metric semantics, session identity, remote access, security), explicitly verify policy and tests before recommending implementation. If historical evidence is insufficient, flag it; do not manufacture intent.
 6. Summarize results in a compact table: ADR reference, impact, evidence, action. Distinguish **blocking conflict** from **review-needed intentional change**. An ADR is guidance for informed change, not a permanent veto.
 7. If a PR is being prepared, include a short 'ADR impact' section: related ADRs, preserved constraints, proposed supersessions, and tests. If no ADR is relevant, say 'No applicable ADR found after checking [scope]'; do not claim exhaustive coverage.
@@ -28,32 +28,7 @@ Use this skill **after** reverse-adr has recovered the historical decision basel
 
 Record choices with enduring impact: public contracts, architecture boundaries, storage/data semantics, security/privacy, reliability guarantees, cross-team conventions or meaningful tradeoffs. Do **not** require an ADR for every bug fix, styling change or routine dependency update.
 
-Forward ADR template:
-
-```markdown
-# ADR NNNN: <decision title>
-
-Status: Proposed
-Date: <YYYY-MM-DD>
-Scope: <system / subsystem>
-Related: <existing ADRs>
-Supersedes: <ADR, if applicable>
-
-## Context
-<problem, evidence and constraints>
-
-## Decision
-<what is proposed and why>
-
-## Alternatives
-<real alternatives considered; say unknown if not considered>
-
-## Consequences
-<benefits, costs, compatibility, security, migration>
-
-## Verification
-<tests, acceptance criteria, open questions>
-```
+Use the template and quality gates in [forward-adr](../forward-adr/SKILL.md); this skill does not keep its own copy, so the two cannot drift.
 
 ## Output quality gates
 

@@ -36,3 +36,24 @@ Status: **In progress**. Baseline: PR #331 branch `docs/phase1-decision-recovery
 - Track the count of claims in each status before asserting evidence completeness.
 
 This audit is intentionally conservative: source inspection and historical PR descriptions support a claim but do **not** establish a successful test run.
+
+## Follow-up — 2026-10-10 (pinned to `ad670cb`)
+
+The evidence baseline is now pinned to commit `ad670cb` on `main` (PR #331's branch has merged). The original findings above are kept as recorded.
+
+**Precision improvements:** 1–3 had already been applied to ADR 0019, 0016 and 0001 before this follow-up. Item 4 is now done: ADR 0006 has a Verification section that names `docs/compatibility.md`, `TestJSONSchema`, `TestCompatArchive` and `TestCompatServeKey`.
+
+**Tests executed** (Linux only; Windows and macOS not run):
+
+```
+go test ./internal/web ./internal/report ./internal/cli -count=1 \
+  -run 'TestAssemble$|TestCSP$|TestShares$|TestJSONSchema$|TestCompatArchive$|TestCompatServeKey$'
+```
+
+All passed. Claim statuses in [evidence.yaml](evidence.yaml): **verified 4** (ADR-0006-C1, ADR-0006-C2, ADR-0016-C1, ADR-0019-C1), **historical-only 2** (ADR-0001-C1, ADR-0019-C2), **proposed 1** (ADR-0020-C1). Limits are recorded in each claim's notes: `/data.json` exclusion is documentary only, and `TestShares` does not assert the same-key case.
+
+**Routing index:** ADR 0002 added to the source-adapter row. New rows route `kiroku update` (`internal/cli/update.go`) to 0011/0003, and snapshot/fixture tests (`internal/cli/snapshot_test.go`, `testdata/`) to 0017.
+
+**Workflow integration:** `pre-pr` now runs an ADR Guard check. adr-guard's `record` mode delegates to forward-adr, so only one forward ADR template is maintained.
+
+**Still open:** claim-level audit of the remaining ADRs; ADR 0019-C2 aggregation; how a retrospective (Observed) ADR becomes Accepted, if ever. That last one is a governance question for the owner, not something an agent should decide.
