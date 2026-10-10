@@ -103,13 +103,16 @@ function drawCard(){
   const ink = "#ece8df", ink2 = "#a9a69e", amber = "#ffae57", top = 430;
   const ls = v => { if ("letterSpacing" in g) g.letterSpacing = v; };
   g.clearRect(0, 0, W, H); g.fillStyle = "#06070a"; g.fillRect(0, 0, W, H);
-  // 使い始めたばかりでも光が端に寄らないよう、画像は記録のある日から（短ければ 8 週ぶん）だけを写す
+  // 使い始めたばかりでも光が端に寄らないよう、画像は記録のある日から（短ければ 4 週ぶん）だけを写す
   const last = x.partial ? Math.round((new Date(x.partial.getFullYear(), x.partial.getMonth(), x.partial.getDate()) - new Date(x.y, 0, 1))/864e5) + 1 : x.nd;
-  const first = x.lines.reduce((a, l) => Math.min(a, l[0]), last), c0 = Math.max(0, Math.min(first, last - 56));
+  const first = x.lines.reduce((a, l) => Math.min(a, l[0]), last), c0 = Math.max(0, Math.min(first, last - 28));
   exposure(g, 0, top, W, H - top, x, 2, false, c0, last);
   const fade = g.createLinearGradient(0, top, 0, H);
   fade.addColorStop(0, "rgba(6,7,10,1)"); fade.addColorStop(.3, "rgba(6,7,10,0)"); fade.addColorStop(.72, "rgba(6,7,10,0)"); fade.addColorStop(1, "rgba(6,7,10,.92)");
   g.fillStyle = fade; g.fillRect(0, top, W, H - top);
+  // 画像だけを見た人にも読めるよう、光の読み方を添える
+  g.textAlign = "left"; g.textBaseline = "alphabetic"; g.fillStyle = ink2; g.globalAlpha = .8; g.font = `500 16px ${FONT.mono}`; ls("2px");
+  g.fillText("EACH STREAK = A STRETCH OF WORK   ·   ACROSS: DATE   ·   DOWN: 6:00 → 6:00", 80, top + 40); ls("0px"); g.globalAlpha = 1;
   g.textAlign = "left"; g.textBaseline = "alphabetic";
   const pt = x.partial;
   g.fillStyle = ink2; g.font = `500 22px ${FONT.mono}`; ls("4px");

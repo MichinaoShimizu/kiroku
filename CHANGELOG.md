@@ -6,7 +6,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Added
 
-- Year in review is back ("Year in review" next to the period controls, or `Y`): a year of active time drawn as streaks of light, your light (the shape of your year in photography terms) and a 1600×900 image to share with totals only. It no longer has skill levels (Novice to Legendary), the four skill meters, or the under- and overexposed labels: it describes how you worked and doesn't score or rank you
+- Year in review is back ("Year in review" next to the period controls, or `Y`): a year of active time drawn as streaks of light, your light (the shape of your year in photography terms) and a 1600×900 image to share with totals only, which now says how to read the streaks and fills its width from 4 weeks of history (was 8). It no longer has skill levels (Novice to Legendary), the four skill meters, or the under- and overexposed labels: it describes how you worked and doesn't score or rank you
 
 ## v0.30.0 - 2026-10-10
 
