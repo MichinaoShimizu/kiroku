@@ -10,6 +10,8 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Kiro IDE (1.0 and later): a conversation without usage records now counts its model once, so it appears under "Models used"
 - Kiro CLI (SQLite): conversations from the `conversations_v2` table now get `kiro-cli chat --resume-id <id>` as their resume command. Before, they got `kiro-cli chat --resume`, which opens the newest conversation in the folder, so an older conversation in the same folder opened a different one
 - Amazon Q and Kiro CLI (SQLite): when a declined or interrupted tool turn was the first turn kept after a compaction, the CLI rewrote it to "Tool use was cancelled by the user", and kiroku counted that as your prompt. It is now shown as command output
+- Codex: a `/review` no longer counts the review prompt Codex writes for the reviewer as your prompt (twice in older rollouts), and its result no longer replaces the reply to your previous prompt. The review now shows as one slash command, `/review` with what was reviewed (such as `current changes`), and the reviewer appears under "Subagents" as `review` instead of `subagent`. Its usage before a compaction in the reviewer's own history is no longer dropped
+- Codex: a turn that failed because your ChatGPT plan does not include Codex is no longer counted as a usage limit hit
 
 ### Security
 
