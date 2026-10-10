@@ -1,6 +1,8 @@
 # ADR 0005: Reflection without grading
 
-Status: **Observed (retrospective)**
+Status: **Active**
+Basis: retrospective
+Accepted by: none recorded
 
 Scope: Phase 1 — product philosophy and UX.
 

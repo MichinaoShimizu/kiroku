@@ -1,6 +1,8 @@
 # ADR 0004: Session identity and deduplication
 
-Status: **Observed (retrospective)**
+Status: **Active**
+Basis: retrospective
+Accepted by: none recorded
 
 Scope: Phase 1 — local sessions.
 

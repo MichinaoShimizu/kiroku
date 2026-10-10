@@ -1,6 +1,8 @@
 # ADR 0013: User-mediated AI report generation
 
-Status: **Observed (retrospective)**
+Status: **Active**
+Basis: retrospective
+Accepted by: none recorded
 
 Scope: Phase 1 — local sessions.
 

@@ -1,6 +1,8 @@
 # ADR 0016: Maintainable web source with single-file output
 
-Status: **Observed (retrospective)**
+Status: **Active**
+Basis: retrospective
+Accepted by: none recorded
 
 Scope: Phase 1 — local sessions.
 

@@ -57,7 +57,7 @@ CLAUDE.md の「Architecture decisions」のとおり、`docs/adr/README.md` の
 
 - 当てはまる ADR がなく、設計に関わらない直しなら、ここは飛ばしてよい
 - 計測の意味・プライバシー・セキュリティ・セッションの識別・保存・互換性・プロダクトの方針に触れるなら、`/adr-guard check` を回し、当てはまる ADR の本文を読む。パスが索引に合わなくても、意味で探す
-- 意図しない食い違いは、コードを直して ADR の決定を守り、テストを足す。意図した変更なら `/forward-adr` で Proposed の ADR を同じ PR に入れ、索引も直す（古い ADR は書き換えない）
+- 意図しない食い違いは、コードを直して ADR の決定を守り、テストを足す。意図した変更なら `/forward-adr` で ADR を同じ PR に入れ、索引も直す（古い ADR は書き換えない）。実装もこの PR に入るなら、状態は Active・Basis は merged にする。承認が明示されたときだけ、そのリンクをつけて accepted にする。マージや自分の判断を承認として書かない
 - 索引が当てはまる ADR を見落としていたら、索引の行を同じ PR で直す
 - PR の本文に「ADR impact」の欄を書く: 関係する ADR、守った制約、提案する Supersedes/Amends、テスト。当てはまらないなら「No applicable ADR found after checking <範囲>」
 

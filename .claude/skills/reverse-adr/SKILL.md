@@ -79,7 +79,7 @@ These statuses are **claim-level**, not badges for whole ADRs. A historical-only
 ### 4. Reconcile and write
 
 For each material decision, create a concise ADR with:
-- ID and title; phase/scope; status `Observed (retrospective)` unless genuinely documented as an original accepted decision;
+- ID and title; phase/scope. Use Status `Active` with Basis `retrospective` and `Accepted by: none recorded` for a decision still in effect; use `Superseded` if a later decision replaced it. Use Basis `accepted` only when a historical record explicitly documents acceptance, and link it. A merge alone is not acceptance. The claim-level label `Observed` is separate from the ADR status;
 - context and timeline;
 - decision and supporting evidence;
 - documented alternatives and consequences, or explicitly 'not documented';

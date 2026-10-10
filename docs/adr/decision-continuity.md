@@ -36,7 +36,7 @@ New work -> ADR index: paths + semantics + status
                                            |
                                            +-- Intentional material change
                                                 -> new Proposed ADR
-                                                -> review and acceptance
+                                                -> review (and acceptance, if an approver exists)
                                                 -> implement + test
                                                 -> link supersession
           |
@@ -52,6 +52,10 @@ A historical change can be certain even when its rationale is unknown. For examp
 
 This is **Uncertainty Preservation**: retain the known facts *and* the unresolved uncertainty as durable, discoverable inputs to later decisions. When ADR Guard encounters such a record, it should flag the unknown rationale, examine current evidence, and recommend proportionate follow-up investigation rather than automatically vetoing the change. Forward ADR can then document a new explicit decision without retroactively claiming certainty about the old one. The index should expose the uncertainty so the record is not silently treated as an accepted policy.
 
+## Status and basis
+
+Keep two questions apart: is a decision **in effect** (Status: Proposed, Active, Superseded, Rejected, Withdrawn), and **what does that rest on** (Basis: retrospective, merged, accepted, plus who accepted it and the evidence). Approval adds weight to a decision; it is not a gate. Repositories often have nobody who can approve: solo projects, agent-only work, unmaintained code, auto-merge. A lifecycle that waits for an approver leaves the decisions actually in effect marked as proposals. A merge records that a change shipped, not that anyone endorsed its rationale, so `merged` never becomes `accepted` by itself.
+
 ## Principles
 
 1. **Evidence before authority.** A retrospective ADR is a claim about history, not a retroactive approval. Label documented, observed, inferred and unknown statements. Verify current code and tests separately.
@@ -60,11 +64,11 @@ This is **Uncertainty Preservation**: retain the known facts *and* the unresolve
 4. **Proportional process.** Do not require an ADR for every bug fix or cosmetic change. Prioritize durable architectural, privacy, security, data, compatibility and product-policy decisions.
 5. **Traceability, not ceremonial compliance.** Connect claims to historical evidence, current behavior and actual test results. A test file is not a passing test.
 6. **Uncertainty Preservation.** Preserve confirmed historical changes even when their rationale is unknown; keep facts, inferred motives and unresolved questions separate. Missing evidence is a gap to investigate, not permission to invent rationale or silently declare a decision accepted.
-7. **Human governance.** Agents can surface conflicts and draft ADRs; owners decide whether to accept tradeoffs. Automated checks should not convert uncertain historical interpretations into unquestionable rules.
+7. **Human governance, without depending on a human.** Agents can surface conflicts and draft ADRs. Owners, where they exist, decide whether to accept tradeoffs. Where nobody can approve, a decision still takes effect when its implementation merges, and the record says so: Basis `merged`, Accepted by `none recorded`. Automated checks should not turn uncertain historical interpretations or unendorsed merges into unquestionable rules.
 
 ## The ADR index as a shared contract
 
-An ADR index should identify each decision by stable ID and link, a short statement of scope, applicable path/component hints, semantic keywords and cross-cutting concerns, lifecycle status, and supersession/amendment relationships. A compact Markdown table is sufficient at small scale; structured metadata and automated validation can be added as coverage grows. Do not equate paths with exhaustive relevance, or treat a Proposed/retrospective/uncertain ADR as an Accepted constraint.
+An ADR index should identify each decision by stable ID and link, a short statement of scope, applicable path/component hints, semantic keywords and cross-cutting concerns, lifecycle status, and supersession/amendment relationships. A compact Markdown table is sufficient at small scale; structured metadata and automated validation can be added as coverage grows. Do not equate paths with exhaustive relevance. Weigh an Active ADR by its Basis: only an explicitly accepted decision, or one enforced by repository instructions or tests, is a blocking constraint. A Proposed ADR is not a constraint at all.
 
 **Ownership across the cycle:** Reverse ADR creates or corrects index entries from historical evidence; ADR Guard checks the index before implementation and reports missing or ambiguous coverage; Forward ADR adds entries for new Proposed decisions and updates status/supersession relationships only after the appropriate review. Periodic drift audits check stale paths, broken links, missing entries, conflicting statuses and discrepancies with current code. All index changes should be reviewed alongside ADR changes, not postponed to separate maintenance.
 

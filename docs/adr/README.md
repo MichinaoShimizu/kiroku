@@ -26,7 +26,7 @@ These are **agent workflows, not automatic CI enforcement**. Merely adding a ski
 
 ## Uncertainty Preservation
 
-A confirmed historical implementation change may have no recorded rationale (for example, a merged PR with an empty description). Retain the observed before/after facts, mark the rationale unknown, and route future related changes to that record for proportionate investigation. An observed change is **not** automatically an accepted architectural constraint. See [Decision Continuity](decision-continuity.md#uncertainty-preservation).
+A confirmed historical implementation change may have no recorded rationale (for example, a merged PR with an empty description). Retain the observed before/after facts, mark the rationale unknown, and route future related changes to that record for proportionate investigation. An observed change is **not** automatically an accepted architectural constraint (Basis `accepted`). See [Decision Continuity](decision-continuity.md#uncertainty-preservation).
 
 ## Quick routing index
 
@@ -43,6 +43,7 @@ Scan this table first; read **only the relevant ADR bodies**. Paths are indicati
 | `internal/report/`, report prompts | user-mediated AI reports, bounded input, no automatic AI submission | [0013](0013-user-mediated-ai-reports.md), [0003](0003-local-privacy-boundary.md) |
 | `.github/workflows/`, `install.sh`, `internal/cli/update.go`, `.goreleaser.yaml` | supply-chain, checksums, provenance, self-replacement, network access, compatibility | [0011](0011-release-integrity.md), [0006](0006-compatibility-contract.md), [0003](0003-local-privacy-boundary.md) |
 | `internal/cli/snapshot_test.go`, `testdata/`, `docs/usability.md` | snapshot fixtures, synthetic history, regression and usability evidence | [0017](0017-regression-evidence.md), [0002](0002-measurement-semantics.md) |
+| `docs/adr/`, `.claude/skills/*-adr/`, `.claude/skills/adr-guard/` | ADR lifecycle, status, basis, acceptance, approver | [0021](0021-decision-lifecycle-without-required-approver.md) |
 | `README.md`, `README.ja.md`, `internal/web/` | UI language, Japanese documentation | [0018](0018-language-policy.md) |
 
 When adding or changing an ADR, update this table and the ADR list with its scope, path/semantic routing hints, status and supersession relationships. Review stale entries during periodic audits. If multiple rows apply, inspect the union of relevant ADRs. This index is a routing aid, not proof that every architectural decision is documented.
@@ -69,6 +70,7 @@ When adding or changing an ADR, update this table and the ADR list with its scop
 - `0018-language-policy.md` — English UI and Japanese README (Phase 1, retrospective).
 - `0019-time-overlap-semantics.md` — overlapping active time and category shares (Phase 1, retrospective).
 - `0020-remote-session-import.md` — proposed extension for remote/cloud histories (Phase 2).
+- `0021-decision-lifecycle-without-required-approver.md` — ADR lifecycle with Status and Basis, without a required approver.
 - `phase1-decision-ledger.md` — evolving, evidence-linked historical decision inventory.
 - `evidence.yaml` — initial claim-level historical/current/test references and conservative statuses.
 - `audit.md` — dated Reverse ADR inspection, findings, limitations and next verification gates.
@@ -76,7 +78,20 @@ When adding or changing an ADR, update this table and the ADR list with its scop
 
 ## Lifecycle
 
-Use **Observed (retrospective)** for decisions inferred from existing code when no original decision record is available; do not fabricate a past discussion. For new decisions use **Proposed → Accepted → Superseded** (or **Rejected**). Every ADR should contain context, decision, rationale, consequences, alternatives, and verification references. Changes in direction should create a new ADR with a supersedes link rather than silently rewriting accepted decisions.
+Each ADR header records whether the decision is in effect and what that rests on, separately ([ADR 0021](0021-decision-lifecycle-without-required-approver.md)). An approver is not required for a decision to take effect.
+
+| Field | Values |
+|---|---|
+| Status | **Proposed** (not in effect) · **Active** (in effect) · **Superseded** (replaced, linked) · **Rejected** (declined by someone with authority, linked) · **Withdrawn** (dropped without a decision) |
+| Basis (for Active) | **retrospective** (recovered from history; no original record) · **merged** (implementation merged; nobody recorded acceptance) · **accepted** (a person with authority explicitly accepted it) |
+| Accepted by | name or role with a link to the evidence, or `none recorded` |
+
+- The PR that implements a decision sets its ADR to Active (merged), so the header reaches the default branch only together with the implementation. An ADR merged without its implementation stays Proposed. Only a recorded, linked human acceptance makes it Active (accepted). A merge alone is never an acceptance.
+- Recovered decisions are Active (retrospective). Do not fabricate a past discussion. "Observed" is a claim-level evidence label, not a status.
+- adr-guard treats a conflict as **blocking** only when the ADR is Active and either its Basis is `accepted` or the claim is enforced by `CLAUDE.md` or a test. Other Active ADRs are **review-needed**. Proposed, Superseded, Rejected and Withdrawn ADRs are context only.
+- An owner can accept an Active ADR later by filling in `Accepted by`. Only the header changes.
+
+Every ADR should contain context, decision, rationale, consequences, alternatives, and verification references. Changes in direction should create a new ADR with a supersedes link rather than silently rewriting earlier decisions.
 
 ## Roadmap terminology
 

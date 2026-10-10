@@ -1,6 +1,8 @@
 # ADR 0001: Local-session foundation
 
-Status: **Observed (retrospective)**
+Status: **Active**
+Basis: retrospective
+Accepted by: none recorded
 
 Scope: **Phase 1 — local sessions**
 
