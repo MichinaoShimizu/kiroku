@@ -1,34 +1,24 @@
-# ADR 0006: Reflection without grading
+# ADR 0006: Compatibility contract for the 1.0 boundary
 
 Status: **Observed (retrospective)**
 
-Scope: Phase 1 — product philosophy and UX.
+Scope: Phase 1.
 
 ## Context
 
-A history viewer can help users understand their own AI-assisted work, but advice, rankings and invented productivity judgments can be mistaken for objective measurement.
+During 0.x, CLI commands, output fields and archive files changed frequently. A stable public contract was needed before 1.0.
 
-## Decision history and reversals
+## Documented decisions
 
-1. Initial weekly reflection and productivity diagnostics were added ([#2](https://github.com/MichinaoShimizu/kiroku/pull/2)).
-2. Reflection was reshaped into a KPI-playbook-inspired decision flow ([#5](https://github.com/MichinaoShimizu/kiroku/pull/5)).
-3. The prescribed flow was removed in favor of descriptive weekly/monthly summaries because it imposed too strong a viewpoint ([#14](https://github.com/MichinaoShimizu/kiroku/pull/14)).
-4. Intervention buttons and trial/comparison prompts were reduced or removed ([#41](https://github.com/MichinaoShimizu/kiroku/pull/41), [#53](https://github.com/MichinaoShimizu/kiroku/pull/53), [#81](https://github.com/MichinaoShimizu/kiroku/pull/81)).
-5. Year in Review was introduced with a shareable image, then skill grades were added, the view was hidden, and it returned without ranking users ([#76](https://github.com/MichinaoShimizu/kiroku/pull/76), [#78](https://github.com/MichinaoShimizu/kiroku/pull/78), [#88](https://github.com/MichinaoShimizu/kiroku/pull/88), [#320](https://github.com/MichinaoShimizu/kiroku/pull/320)).
-6. The current product positioning emphasizes Remember → Understand → Improve ([#322](https://github.com/MichinaoShimizu/kiroku/pull/322)).
+- Treat 1.0 as a compatibility boundary, with future breaking changes requiring a new major version ([#209](https://github.com/MichinaoShimizu/kiroku/issues/209)).
+- Version the public `kiroku json` schema using `schemaVersion: 1`; do **not** treat the internal `/data.json` endpoint as the same versioned public API ([#208](https://github.com/MichinaoShimizu/kiroku/pull/208), [#209](https://github.com/MichinaoShimizu/kiroku/issues/209)).
+- Remove legacy `--serve`, `--json`, `-o` forms and rename `--root` to `--claude-root` while still in 0.x ([#208](https://github.com/MichinaoShimizu/kiroku/pull/208)).
+- Protect readability of archive copies and the serve key across later versions with compatibility fixtures ([#211](https://github.com/MichinaoShimizu/kiroku/pull/211)).
 
-## Resulting principle
+## Rationale and consequences
 
-Offer evidence, context, trends and optional prompts; do not label a person as skilled/unskilled, good/bad, or prescribe a single correct way to work. Improvement belongs to the user.
-
-## Consequences
-
-Avoid reintroducing grading through colors, labels, badges, “healthy” thresholds or gamification without a new explicit decision. Any insight should expose its basis and distinguish observations from inferences.
+Users and scripts need stable semantics, but stabilizing too early would preserve accidental CLI shapes. Distinguish public JSON contracts from internal browser transport and from on-disk user data.
 
 ## Historical confidence
 
-The sequence above is supported by linked PR descriptions. It does not claim that each change was adopted as a formal ADR at the time, nor that every UX choice is permanently fixed.
-
-## Verification
-
-Review the PR sequence, current view and reports. No fresh visual regression testing is claimed.
+The decisions are explicit in issue #209 and related PRs. This ADR documents the chosen **policy**; it does not assert that v1.0.0 has already shipped. Consult `docs/compatibility.md` for normative details.
