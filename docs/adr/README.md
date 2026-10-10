@@ -16,7 +16,7 @@ Reverse ADR is a **bootstrap** step, not the end of ADR adoption:
 
 1. Run [reverse-adr](../../.claude/skills/reverse-adr/SKILL.md) to recover the evidence-backed decision baseline and explicitly track uncertainties.
 2. During design, implementation and review, run [adr-guard](../../.claude/skills/adr-guard/SKILL.md) against the proposed diff to identify preserved, extended and conflicting decisions.
-3. If a conflict is intentional and material, propose a new forward ADR with rationale, alternatives, consequences and verification; link it to the previous decision. Do not rewrite historical rationale.
+3. If a conflict is intentional and material, use [forward-adr](../../.claude/skills/forward-adr/SKILL.md) to draft a new Proposed ADR with rationale, alternatives, consequences and verification; link it to the previous decision. Do not rewrite historical rationale.
 4. Add regression tests for changed invariants, review security/privacy and compatibility, and update the ADR index and supersession chain.
 5. Periodically re-run reverse-adr in `audit` mode to detect drift between ADR claims and implementation.
 
