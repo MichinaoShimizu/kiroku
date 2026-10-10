@@ -506,3 +506,91 @@ func TestQStoreBrokenJSONIsReported(t *testing.T) {
 		t.Errorf("会話 = %d 件（読めた行は読む）", len(out))
 	}
 }
+
+// conversations はフォルダに 1 行なので --resume（フォルダの最新の会話）で開ける。
+// conversations_v2 はフォルダに会話が何件もあるので、古い会話も開けるよう --resume-id <会話 ID> にする。
+func TestQStoreResumeCommand(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "data.sqlite3")
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	for _, q := range []string{
+		`CREATE TABLE conversations_v2 (key TEXT, conversation_id TEXT, value TEXT, created_at INTEGER, updated_at INTEGER, PRIMARY KEY (key, conversation_id))`,
+		`CREATE TABLE conversations (key TEXT PRIMARY KEY, value TEXT)`,
+	} {
+		if _, err := db.Exec(q); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ins2 := `INSERT INTO conversations_v2 VALUES (?, ?, ?, ?, ?)`
+	for _, r := range []struct {
+		id      string
+		updated int
+	}{{"v2-old", 2000}, {"v2-new", 3000}} {
+		if _, err := db.Exec(ins2, "/Users/me/app", r.id, qPromptConv(t, r.id, "一"), 1000, r.updated); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := db.Exec(`INSERT INTO conversations VALUES (?, ?)`, "/Users/me/ci", qPromptConv(t, "v1", "一")); err != nil {
+		t.Fatal(err)
+	}
+	kiro := load(t, &QStore{Label: "Kiro CLI (SQLite)", DB: path, Command: "kiro-cli chat --resume", ResumeID: "kiro-cli chat --resume-id"})
+	for id, want := range map[string]string{
+		"v2-old": "cd /Users/me/app && kiro-cli chat --resume-id v2-old",
+		"v2-new": "cd /Users/me/app && kiro-cli chat --resume-id v2-new",
+		"v1":     "cd /Users/me/ci && kiro-cli chat --resume",
+	} {
+		if b := find(kiro, id); b == nil || b.Resume != want {
+			t.Errorf("%s の再開コマンド = %+v, want %q", id, b, want)
+		}
+	}
+	// ID で開くコマンドがなければ、v2 の会話には出さない（--resume では別の会話が開く）
+	q := load(t, &QStore{Label: "Amazon Q", DB: path, Command: "q chat --resume"})
+	for id, want := range map[string]string{"v2-old": "", "v2-new": "", "v1": "cd /Users/me/ci && q chat --resume"} {
+		if b := find(q, id); b == nil || b.Resume != want {
+			t.Errorf("Amazon Q: %s の再開コマンド = %+v, want %q", id, b, want)
+		}
+	}
+}
+
+// ツールを断ったターン（CancelledToolUses。時刻あり）が /compact --messages-to-exclude で履歴の先頭に残ると、
+// CLI は中身をツールの結果の決まった文を " " でつないだ Prompt に書き換える（message.rs の replace_content_with_tool_use_results）。
+// 時刻は残るが、人のプロンプトではないので数えない。
+func TestQStoreCancelledToolUsesRewrittenAsPrompt(t *testing.T) {
+	t0 := time.Date(2026, 9, 29, 1, 0, 0, 0, time.UTC)
+	entry := func(text string, sec int) map[string]any {
+		return map[string]any{
+			"user":             map[string]any{"timestamp": t0.Add(time.Duration(sec) * time.Second).Format(time.RFC3339), "content": map[string]any{"Prompt": map[string]any{"prompt": text}}},
+			"assistant":        map[string]any{"Response": map[string]any{"content": "はい"}},
+			"request_metadata": map[string]any{"model_id": "m"},
+		}
+	}
+	history := []any{
+		entry("Tool use was cancelled by the user Tool use was cancelled by the user", 0),
+		entry("次へ", 60),
+		entry("Tool use was cancelled by the user だけど続けて", 120), // 人が打った文（決まった文だけではない）
+	}
+	b := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})[0]
+	if len(b.Prompts) != 2 || b.Prompts[0].Text != "次へ" {
+		t.Errorf("プロンプト = %+v（書き換えられた、断ったツールの結果は数えない）", b.Prompts)
+	}
+	if len(b.Notes) != 1 || b.Notes[0].Kind != "output" {
+		t.Errorf("Notes = %+v, want ツールの出力 1 つ", b.Notes)
+	}
+}
+
+func TestQCancelledOnly(t *testing.T) {
+	for text, want := range map[string]bool{
+		"Tool use was cancelled by the user":                                     true,
+		"Tool use was cancelled by the user Tool use was cancelled by the user":  true,
+		"Tool use was cancelled by the user  Tool use was cancelled by the user": false,
+		"Tool use was cancelled by the user.":                                    false,
+		"":                                                                       false,
+	} {
+		if got := qCancelledOnly(text); got != want {
+			t.Errorf("qCancelledOnly(%q) = %v, want %v", text, got, want)
+		}
+	}
+}

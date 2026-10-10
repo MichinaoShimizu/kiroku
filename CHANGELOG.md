@@ -4,15 +4,25 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
-### Security
-
-- Kiro Crew: conversations held in incognito or temporary mode (`memory_mode` in the conversation log or its archive files, or the flag in `session_map.json`) are now shown with counts and times only, titled "Kiro Crew private conversation". Before, kiroku showed their prompts, replies, title, edited files and the prompts sent to their subagents in the view, the JSON, search and the prompts it copies for an AI, although Crew itself refuses to learn from, summarize or export them. This covers their kiro-cli conversation, its copy in the Kiro CLI SQLite history, their subagents, and archived lines kiroku can't tie to the current conversation log (from an earlier conversation under a reused key, or whose log is gone), which are shown as counts and times only. The time span, number of prompts, turns, model, tools, credits, tokens and cost are still shown, as are Git commits in that time span. A kiro-cli conversation Crew no longer links to can't be recognized and is still shown in full. `kiroku archive` still copies Crew's `sessions/archive/` files as they are, so its copy keeps their text
-- Kiro Crew: a named pipe in the Crew folder in place of a conversation log no longer makes kiroku hang while reading
-
 ### Fixed
 
+- Kiro IDE: a conversation migrated from 0.x to 1.0 is no longer counted twice. Kiro keeps the 0.x copy after migrating, so the 0.x conversation with the same ID is left out and the 1.0 one is used, as kiro-history does; "Data sources" shows how many were left out
+- Kiro IDE (1.0 and later): a conversation without usage records now counts its model once, so it appears under "Models used"
+- Kiro CLI (SQLite): conversations from the `conversations_v2` table now get `kiro-cli chat --resume-id <id>` as their resume command. Before, they got `kiro-cli chat --resume`, which opens the newest conversation in the folder, so an older conversation in the same folder opened a different one
+- Amazon Q and Kiro CLI (SQLite): when a declined or interrupted tool turn was the first turn kept after a compaction, the CLI rewrote it to "Tool use was cancelled by the user", and kiroku counted that as your prompt. It is now shown as command output
+- Codex: a `/review` no longer counts the review prompt Codex writes for the reviewer as your prompt (twice in older rollouts), and its result no longer replaces the reply to your previous prompt. The review now shows as one slash command, `/review` with what was reviewed (such as `current changes`), and the reviewer appears under "Subagents" as `review` instead of `subagent`. Its usage before a compaction in the reviewer's own history is no longer dropped
+- Codex: a turn that failed because your ChatGPT plan does not include Codex is no longer counted as a usage limit hit
+- Claude Code: a conversation copied with `/branch`, `--fork-session` or `/fork` is no longer counted twice. A line in the copy is recognised as copied when the same line (its `uuid`) is in the original; it then counts once, in the original. Everything else, and the whole copy if the original is gone or can't be read, is counted in the copy
+- Claude Code: when a settings file exists but can't be read or parsed, kiroku no longer reports the 30-day retention. Claude Code pauses its cleanup then (unless the managed settings set `cleanupPeriodDays`), so nothing is deleted
+- Claude Code: estimated cost for Sonnet 5.5 is no longer too high in sessions recorded by Claude Code 2.1.284 to 2.1.295, which priced its cache reads at twice the official rate. kiroku estimates Sonnet 5.5 from its price table there
 - Kiro Crew: lines Crew moved to `sessions/archive/` only because they duplicate a line still in the conversation (`foreign-dedup`), or as the earlier form of a line that was edited during a rewind, regenerate or fork (`compact`), are no longer counted again as prompts. Turns that were undone are still shown
 - Kiro Crew: tokens and cost of dashboard turns that ran on Codex are no longer counted twice (once from Crew's usage records, priced from the price table, and once from Codex's own history) when the conversation was later switched to kiro-cli. Crew records such turns with the provider `acp`, so kiroku now tells them by their Codex model ID
+
+### Security
+
+- Commands kiroku shows for pasting into a terminal (resuming a session, `git -C <repo> show`) are no longer offered when a folder, session ID or git value from history contains a curly quote (‘ ’ ‚ ‛ “ ” „ ‟). PowerShell reads these as quotes, so a crafted value could close the quoting and add a command when pasted on Windows (or into PowerShell on macOS and Linux)
+- Kiro Crew: conversations held in incognito or temporary mode (`memory_mode` in the conversation log or its archive files, or the flag in `session_map.json`) are now shown with counts and times only, titled "Kiro Crew private conversation". Before, kiroku showed their prompts, replies, title, edited files and the prompts sent to their subagents in the view, the JSON, search and the prompts it copies for an AI, although Crew itself refuses to learn from, summarize or export them. This covers their kiro-cli conversation, its copy in the Kiro CLI SQLite history, their subagents, and archived lines kiroku can't tie to the current conversation log (from an earlier conversation under a reused key, or whose log is gone), which are shown as counts and times only. The time span, number of prompts, turns, model, tools, credits, tokens and cost are still shown, as are Git commits in that time span. A kiro-cli conversation Crew no longer links to can't be recognized and is still shown in full. `kiroku archive` still copies Crew's `sessions/archive/` files as they are, so its copy keeps their text
+- Kiro Crew: a named pipe in the Crew folder in place of a conversation log no longer makes kiroku hang while reading
 
 ## v0.29.1 - 2026-10-09
 

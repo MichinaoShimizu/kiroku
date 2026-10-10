@@ -64,8 +64,9 @@ const (
 //     Opus 4.6・Sonnet 4.6 は [1m] の版を選んだときだけ 1M で、ふつうは 200K）
 //
 // Opus 4.6・Sonnet 4.6 の [1m] の版は履歴のモデル ID からは見分けられないので 200K とし、200K を超える文脈を読んだ応答があれば
-// 1M とみなす（contextWindows）。Bedrock・Google Cloud・Foundry で動かした Opus 4.8 以降や、CLAUDE_CODE_DISABLE_1M_CONTEXT を
-// 設定したときは 200K のことがあるが、履歴からは見分けられないので表の値のまま（使用率は低めに出る）。
+// 1M とみなす（contextWindows）。Bedrock・Google Cloud・Foundry でも、Opus 4.7 以降と Fable は 1M が既定（Claude Code v2.1.287 から。
+// それより前の版はそこで 200K）。CLAUDE_CODE_DISABLE_1M_CONTEXT を設定したときや古い版の Bedrock などは 200K だが、
+// 履歴からは見分けられないので表の値のまま（使用率は低めに出る）。
 var ContextWindows = map[string]float64{
 	"claude-fable-5-1":  window1M,
 	"claude-fable-5":    window1M,

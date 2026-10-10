@@ -11,11 +11,28 @@ import (
 // b がオブジェクトでないか、形が崩れていたら（取り出す値が JSON として読めないときも）ok = false。
 // 同じ項目が 2 度あれば、json.Unmarshal と同じく後のものを使う。
 func topFields(b []byte, keys []string) (out map[string]any, ok bool) {
+	raw, ok := topRaw(b, keys)
+	if !ok {
+		return nil, false
+	}
+	out = make(map[string]any, len(raw))
+	for k, r := range raw {
+		var v any
+		if json.Unmarshal(r, &v) != nil {
+			return nil, false
+		}
+		out[k] = v
+	}
+	return out, true
+}
+
+// topRaw は topFields と同じだが、値を組み立てずに JSON のまま（b の一部を指す）返す。値が JSON として正しいかは確かめない。
+func topRaw(b []byte, keys []string) (out map[string][]byte, ok bool) {
 	want := make(map[string]bool, len(keys))
 	for _, k := range keys {
 		want[k] = true
 	}
-	out = map[string]any{}
+	out = map[string][]byte{}
 	i := skipSpace(b, 0)
 	if i >= len(b) || b[i] != '{' {
 		return nil, false
@@ -46,11 +63,7 @@ func topFields(b []byte, keys []string) (out map[string]any, ok bool) {
 			return nil, false
 		}
 		if want[key] {
-			var v any
-			if json.Unmarshal(b[i:end], &v) != nil {
-				return nil, false
-			}
-			out[key] = v
+			out[key] = b[i:end]
 		}
 		i = skipSpace(b, end)
 		if i >= len(b) {
