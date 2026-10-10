@@ -1,0 +1,65 @@
+# Evidence matrix — initial reverse ADR pass
+#
+# A test file's existence is NOT evidence of a passing run.
+# This is a partial, claim-level sample; remaining ADRs are not yet claim-audited.
+baseline:
+  repository: MichinaoShimizu/kiroku
+  ref: docs/phase1-decision-recovery
+  pinned_commit: null
+  tests_executed: false
+claims:
+  - id: ADR-0001-C1
+    statement: "The initial product read local Claude Code and Kiro history and generated standalone HTML."
+    status: historical-only
+    historical:
+      - https://github.com/MichinaoShimizu/kiroku/pull/1
+    current: []
+    tests: []
+    notes: "Initial PR supports history; full present-day end-to-end behavior not audited."
+  - id: ADR-0006-C1
+    statement: "Public kiroku json uses schemaVersion 1; internal /data.json is outside that contract."
+    status: untested
+    historical:
+      - https://github.com/MichinaoShimizu/kiroku/pull/208
+    current:
+      - docs/compatibility.md
+    tests:
+      - "TestJSONSchema (reported by PR #208; current test and run not inspected)"
+    notes: "Current documentation agrees; no test execution verified."
+  - id: ADR-0016-C1
+    statement: "The web source is modular but rendered output is assembled from embedded assets."
+    status: untested
+    historical:
+      - https://github.com/MichinaoShimizu/kiroku/pull/93
+    current:
+      - internal/web/web.go
+    tests:
+      - internal/web/web_test.go::TestAssemble
+      - internal/web/web_test.go::TestCSP
+    notes: "Tests inspected but not executed; PR #93 byte identity is historical only."
+  - id: ADR-0019-C1
+    statement: "Active minutes in shares are apportioned across distinct concurrent grouping keys."
+    status: untested
+    historical:
+      - https://github.com/MichinaoShimizu/kiroku/pull/54
+    current:
+      - internal/report/share.go
+    tests:
+      - internal/report/share_test.go::TestShares
+    notes: "Test assertion inspected but no passing run evidence."
+  - id: ADR-0019-C2
+    statement: "Active time counts overlaps once while Total AI run time sums concurrent runs."
+    status: historical-only
+    historical:
+      - https://github.com/MichinaoShimizu/kiroku/pull/285
+    current: []
+    tests: []
+    notes: "Current aggregation implementation not yet inspected."
+  - id: ADR-0020-C1
+    statement: "Import remote session histories through a private local pipeline."
+    status: proposed
+    historical:
+      - https://github.com/MichinaoShimizu/kiroku/issues/324
+    current: []
+    tests: []
+    notes: "Phase 2 design proposal; not an implementation claim."
