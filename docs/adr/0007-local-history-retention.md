@@ -17,7 +17,7 @@ Agent tools may prune their own histories, so a viewer that only rereads the ori
 
 ## Rationale and consequences
 
-Preservation is separate from visualization. Archive behavior must remain explicit and must not silently convert temporary/private agent history into ordinary exportable content; privacy rules in [ADR 0004](0003-local-privacy-boundary.md) remain applicable.
+Preservation is separate from visualization. Archive behavior must remain explicit and must not silently convert temporary/private agent history into ordinary exportable content; privacy rules in [ADR 0003](0003-local-privacy-boundary.md) remain applicable.
 
 ## Alternatives and confidence
 
