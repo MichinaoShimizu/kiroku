@@ -1,4 +1,4 @@
-// docs/screenshot.png・docs/summary.png・docs/worth.png・docs/session.png・docs/og.png・docs/year.png を撮る。gen.py と mkgit.py で作ったダミーデータの HTML を使う。
+// docs/screenshot.png・docs/summary.png・docs/worth.png・docs/session.png・docs/og.png・docs/year.png・docs/year-params.png を撮る。gen.py と mkgit.py で作ったダミーデータの HTML を使う。
 //   node capture.mjs <kiroku.html> <docs のディレクトリ>
 // Playwright が必要（このディレクトリで npm ci --ignore-scripts と npx playwright install chromium。版は package.json で固定）。英語表示（en-US）・ライトテーマ（既定）・時刻は Asia/Tokyo・1440x900。
 import { chromium } from "playwright";
@@ -28,10 +28,17 @@ await p.locator("#wk").screenshot({ path: path.join(docs, "worth.png") });
 await p.keyboard.press("Escape");
 await p.waitForTimeout(300);
 if (await p.evaluate(() => YEAR_ON)) { // 1 年の露光（一旦隠している間は、year.png を撮り直さない）。シェア用の画像（1600x900）をそのまま保存する
-  await p.evaluate(() => openYear());
+  // 今年の記録がまだ 8 週に満たない（年の初めに撮る）ときは、いちばん記録の多い年を写す
+  await p.evaluate(() => { openYear(); const ys = yearsOf();
+    if (yr.x.short && ys.length > 1){ yr.y = ys.reduce((a, y) => yearData(y).active > yearData(a).active ? y : a); renderYear(); } });
   await p.waitForTimeout(600);
   const png = await p.evaluate(() => document.querySelector("#yrcard").toDataURL("image/png").split(",")[1]);
   await fs.writeFile(path.join(docs, "year.png"), Buffer.from(png, "base64"));
+  // 読み方の図（year-params.png）：year.png の光の部分に、読み方と Your light の決まり方を添える（year-params.html）
+  const yp = await (await b.newContext({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 1 })).newPage();
+  await yp.goto("file://" + path.resolve(path.dirname(new URL(import.meta.url).pathname), "year-params.html") + "?img=" + encodeURIComponent("file://" + path.resolve(docs, "year.png")));
+  await yp.waitForTimeout(300);
+  await yp.screenshot({ path: path.join(docs, "year-params.png"), fullPage: true });
 }
 // セッションの詳細：依頼の流れに出来事（コマンド・コミット・PR など）がいちばん多い種類そろうセッションを開き、左の列（数字と依頼の流れ）だけを 2 倍で撮る。
 // 右の列にはダミーデータの一時フォルダのパスが出るので入れない

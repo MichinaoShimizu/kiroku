@@ -29,7 +29,7 @@ function setMode(m){ if (m === "month" && META.scope && META.scope.mode === "wee
   if (m === "month" && st.mode !== "month") st.month = monthOf(addDays(st.week, 3));
   if (m === "week" && st.mode === "month" && monthOf(st.week).getTime() !== st.month.getTime()) st.week = mondayOf(st.month);
   st.mode = m; store.set("mode", m); st.sel = null; st.animate = true; render(); scrollToWork(); }
-document.querySelectorAll("#mode button").forEach(b => b.onclick = () => setMode(b.dataset.v));
+document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = () => setMode(b.dataset.v)); // Year（#yrbtn）は表示の切り替えではなく、1 年の露光を開く
 $("#prev").onclick = () => go(-1); $("#next").onclick = () => go(1); $("#today").onclick = () => go(null);
 function zoom(dv){ st.z = Math.max(0, Math.min(HOURS.length-1, st.z+dv)); st.zAuto = false; store.set("zh", st.z); render(); scrollToWork(); }
 $("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); st.srN = st.scN = 0; render(); }; // 言葉が変わったら、結果はまた先頭の数件から
@@ -42,7 +42,7 @@ $("#theme").onclick = () => { st.theme = st.theme === "dark" ? "light" : "dark";
 $("#help").onclick = () => $("#keys").showModal();
 $("#guide").onclick = openGuide;
 $("#yrbtn").onclick = openYear;
-addEventListener("resize", () => { if ($("#yr").open) drawPlate(); });
+let yrRaf = 0; addEventListener("resize", () => { if ($("#yr").open && !yrRaf) yrRaf = requestAnimationFrame(() => { yrRaf = 0; drawPlate(); }); }); // 1 年の図の描き直しは 1 コマに 1 回まで
 // ダイアログ（ショートカット・Worth a look・1 年の露光）は、枠の外を押すと閉じる（詳細のパネルの #scrim と同じ）。
 // 押し始めも外だったときだけ（枠の中で文字を選んで、外で離したときには閉じない）
 document.querySelectorAll("dialog").forEach(d => { let down = false;
@@ -78,7 +78,7 @@ document.addEventListener("keydown", e => {
   else if (k === "Escape" && st.sel) select(null); else if (k === "?") $("#keys").showModal();
   else if (k === "g" || k === "G") openGuide();
   else if (k === "w" || k === "W") setMode("week"); else if (k === "m" || k === "M") setMode("month");
-  else if ((k === "y" || k === "Y") && YEAR_ON && DATA.length) openYear();
+  else if ((k === "y" || k === "Y") && !$("#yrbtn").hidden && !$("#mode").hidden) openYear(); // ボタンが見えているときだけ（週だけを書き出したファイルでは開かない）
 });
 // workHours は、表示中の週の作業の時間帯 {first, last}（時。記録がなければ null）。
 // 朝 6 時より前の開始が 2 割に満たなければ、早い時刻の数本に引っぱられないよう、6 時以降でいちばん早い開始時刻から。

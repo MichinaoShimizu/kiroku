@@ -26,7 +26,7 @@ const records = (src, what) => (RECORDS[src] || []).includes(what);
 function unrecorded(ws, we, what){ const srcs = [...new Set(DATA.filter(s => s.end >= ws && s.start < we).map(s => s.source))];
   return srcs.length && !srcs.some(x => records(x, what)) ? srcs : null; }
 const notRec = srcs => `Not recorded in ${srcs.join(", ")} history`;
-const YEAR_ON = false; // 1 年の露光は一旦隠す（ボタンと Y キーを出さない）。戻すときは true にする
+const YEAR_ON = true; // 1 年の露光（ボタンと Y キー）。false にすると隠す
 const SLOTS = 8;
 const $ = s => document.querySelector(s);
 const store = { get(k,d){ try { const v = localStorage.getItem("kiroku:"+k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },

@@ -54,6 +54,10 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 **Search across all time.** Prompts, edited files and commits, with excerpts showing where they matched.
 
+**Your year in one picture.** "Year", next to Week and Month, draws a year of active time as streaks of light, and makes an image to share where you choose what goes on it: no prompts, project names or cost, and nothing about late nights or time off unless you tick it. It describes how you worked; it doesn't score or rank you.
+
+![Year in review share image (dummy data)](docs/year.png)
+
 ## Reviews and advice, written by your own agent
 
 kiroku never calls an AI. Instead, one click copies a prompt that you paste into the AI agent you already use on this computer, such as Claude Code or Codex. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, ending with advice from an expert on working with AI agents.

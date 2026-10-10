@@ -392,14 +392,41 @@ async function run(env) {
       check("y で 1 年の露光が開かない", !(await p.locator("#yr").evaluate(d => d.open)));
       return;
     }
+    check("Year は Week・Month の隣に出る", await p.locator("#mode #yrbtn").isVisible());
+    await p.locator("#yrbtn").click(); await pause();
+    check("Year を押すと 1 年の露光が開き、Week・Month の選択は変わらない", await p.locator("#yr").evaluate(d => d.open) && await p.locator("#mode [aria-pressed=true]").count() === 1);
+    await p.keyboard.press("Escape"); await pause();
     await p.keyboard.press("y"); await pause();
     check("y で 1 年の露光が開く", await p.locator("#yr").evaluate(d => d.open));
     check("シェア用の画像に光が描かれている", await p.locator("#yrcard").evaluate(c => {
       const d = c.getContext("2d").getImageData(0, 430, c.width, c.height - 430).data; let lit = 0;
       for (let i = 0; i < d.length; i += 4) if (d[i] + d[i+1] + d[i+2] > 240) lit++;
       return lit > 200; }));
-    check("光の名前が出る", (await p.locator(".yrtn").innerText()).trim().length > 0);
-    check("腕前のメーターが 4 つ出る", await p.locator(".yrmeter > div").count() === 4);
+    check("光の名前が出る（8 週に満たない記録では、名前の代わりにそう書く）", await p.evaluate(() => yr.x.short
+      ? !document.querySelector("#yr .yrtn") && /once you have 8 weeks/.test(document.querySelector("#yr").innerText)
+      : document.querySelector("#yr .yrtn").innerText.trim().length > 0));
+    check("見どころが出る", (await p.locator("#yr h3", { hasText: "What stands out" }).count()) === 1 && (await p.locator("#yr .yrhi li").count()) > 0);
+    check("深夜・週末と、いちばん長い休みは、選ぶまで画像に載せない", !(await p.locator('#yr [data-o="late"]').isChecked()) && !(await p.locator('#yr [data-o="breaks"]').isChecked()) &&
+      !/Late nights|Weekends|without AI|consecutive/.test(await p.locator("#yrcard").getAttribute("aria-label")));
+    // 深夜・週末：見せるものがある年は、選べば画像に加わる。ない年は押せない（ダミーデータは後半に夜の作業があるので、押せるはず）
+    check("ダミーデータの年には、深夜・週末の項目がある（押せる）", !(await p.locator('#yr [data-o="late"]').isDisabled()));
+    await p.locator('#yr [data-o="late"]').check(); await pause();
+    check("選べば、深夜・週末が画像（読み上げ用の説明）に加わる", /late nights|Late nights|Weekends/.test(await p.locator("#yrcard").getAttribute("aria-label")));
+    await p.locator('#yr [data-o="late"]').uncheck(); await pause();
+    check("開いたとき、フォーカスがダイアログの中にある", await p.evaluate(() => document.querySelector("#yr").contains(document.activeElement)));
+    await p.locator("#yrcolor").selectOption("project"); await pause();
+    check("色分けを変えても、フォーカスは色分けの選択に残る", await p.evaluate(() => document.activeElement && document.activeElement.id === "yrcolor"));
+    check("プロジェクトで色分けできる（画面の凡例にプロジェクトが並ぶ）", /Color = project/.test(await p.locator("#yr .yrhow").innerText()));
+    await p.locator("#yrcolor").selectOption("auto"); await pause();
+    // 「All 7」を開いたまま、光の名前のない短い年（ダミーデータの去年）に切り替えても壊れない
+    const ys = await p.evaluate(() => yearsOf());
+    if (ys.length > 1){
+      await p.evaluate(() => { const d = document.querySelector("#yr .yrtypes"); if (d) d.open = true; });
+      await p.locator("#yrsel").selectOption(String(ys[0])); await pause();
+      check("短い年に切り替えても、フォーカスは年の選択に残る", await p.evaluate(() => document.activeElement && document.activeElement.id === "yrsel"));
+      await p.locator("#yrsel").selectOption(String(ys[ys.length - 1])); await pause();
+    }
+    check("腕前の等級やメーターを出さない（人を順位付けしない）", !/Novice|Legendary|Master|Overexposed|Underexposed|Skill/.test(await p.locator("#yr").innerText()));
     const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
     check("1 年の露光が横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
     const [dl] = await Promise.all([p.waitForEvent("download"), p.locator("#yrsave").click()]);

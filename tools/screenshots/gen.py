@@ -1,4 +1,4 @@
-"""スクリーンショット用のダミーの履歴を作る（Claude Code・Codex CLI・Kiro CLI・Kiro IDE、架空の 4 プロジェクト、今日までの約 5 週間）。
+"""スクリーンショット用のダミーの履歴を作る（Claude Code・Codex CLI・Kiro CLI・Kiro IDE、架空の 4 プロジェクト、今日までの約 5 週間。それより前の約 11 か月は、Year in review の見本用に短い Claude Code の履歴だけ）。
 スクリーンショットは英語表示で撮るので、プロンプトも英語にする。
 
   python3 gen.py <出力先>   → <出力先>/home/.claude/projects・<出力先>/home/.codex・<出力先>/home/.kiro と <出力先>/repos/<プロジェクト>
@@ -215,3 +215,32 @@ for d in range(35, -1, -1):
 os.makedirs(CODEX, exist_ok=True)
 with open(os.path.join(CODEX, "session_index.jsonl"), "w") as f:
     for l in index: f.write(json.dumps(l)+"\n")
+
+# それより前（今日の 36 日前まで、約 11 か月）の Claude Code の履歴：Year in review の見本（docs/year.png）を 1 年ぶんにするため。
+# 中身は短い依頼と返事だけ。別の乱数で最後に作るので、ここまでのダミーデータ（直近 5 週間）は変わらない。
+# 春は data-pipeline、初夏から mobile、秋から web-app が中心。8 月に 2 週間の休み。後半ほど夜と並列が増える
+old = random.Random(23)
+for d in range(330, 35, -1):
+    day = today - dt.timedelta(days=d)
+    if day.month == 8 and 4 <= day.day <= 17: continue
+    late = d < 150  # 後半
+    if day.weekday() >= 5 and old.random() < .85: continue
+    if old.random() < .12: continue
+    main = "data-pipeline" if day.month <= 4 else "mobile" if day.month <= 7 else "web-app"
+    for _ in range(old.choice([1, 2, 2, 3])):
+        p = main if old.random() < .75 else old.choice(list(projects))
+        h = old.choice([9, 10, 11, 13, 14, 15, 16] + ([19, 21, 22] if late else [17]))
+        start = day + dt.timedelta(hours=h, minutes=old.randint(0, 50))
+        for par in range(2 if late and old.random() < .35 else 1):  # 後半は、ときどき 2 つを並べて走らせる
+            sid = str(uuid.uuid4()); cwd = os.path.join(REPOS, p); br = old.choice(branches[p]); model = old.choice(models)
+            t = start + dt.timedelta(minutes=par * old.randint(5, 25)); lines = []
+            for i in range(old.randint(2, 9)):
+                txt = old.choice(projects[p]) if i == 0 else old.choice(follow)
+                lines.append({"type":"user","timestamp":t.isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"message":{"role":"user","content":txt}})
+                t += dt.timedelta(seconds=old.randint(60, 420)); mid = "msg_"+uuid.uuid4().hex[:10]
+                usage = {"input_tokens":old.randint(5,200),"output_tokens":old.randint(100,3000),"cache_creation_input_tokens":old.randint(500,8000),"cache_read_input_tokens":old.randint(15000,40000)}
+                lines.append({"type":"assistant","timestamp":t.isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"requestId":"req_"+mid,"message":{"id":mid,"model":model,"role":"assistant","content":[{"type":"text","text":old.choice(replies[:3])}],"usage":usage}})
+                t += dt.timedelta(seconds=old.randint(30, 400))
+            dirn = os.path.join(OUT, "home", ".claude", "projects", f"-Users-me-{p}"); os.makedirs(dirn, exist_ok=True)
+            with open(f"{dirn}/{sid}.jsonl","w") as f:
+                for l in lines: f.write(json.dumps(l, ensure_ascii=False)+"\n")
