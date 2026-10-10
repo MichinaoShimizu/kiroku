@@ -4,6 +4,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Added
+
+- `kiroku stats` prints a one-screen summary of this week in the terminal: active time, sessions, tokens, estimated cost, Kiro credits and Git commits, with tables by agent, model and project. `--week` and `--month` pick another period, as in `kiroku html`. Names from history are printed with control characters removed, so they can't send escape sequences to your terminal
+
 ### Changed
 
 - Building from source (`go install`) now needs Go 1.26 or later, instead of Go 1.25. The SQLite library (modernc.org/sqlite) is updated to v1.60.1 and the zstd library (klauspost/compress) to v1.20.1
