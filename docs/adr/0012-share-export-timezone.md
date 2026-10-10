@@ -1,8 +1,12 @@
 # ADR 0012: Scoped exports and time-zone fidelity
 
-Status: **Retrospective**
+Status: Retrospective
+Date: Unknown
+Related: None
+Supersedes: None
+Superseded by: None
 
-Scope: Phase 1 — local sessions.
+Scope: Phase 1 — local sessions
 
 ## Context
 
@@ -23,3 +27,15 @@ Earlier approaches and reversals are listed only where linked PRs document them.
 ## Verification
 
 Review `internal/web`, export/period tests, `docs/guide.md`, and `SECURITY.md`. This ADR records the observed approach rather than asserting every export field has been privacy-audited.
+
+## Decision
+
+The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
+
+## Consequences
+
+See the existing rationale and consequences discussion above. No additional outcome is asserted.
+
+## Historical confidence and open questions
+
+Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.
