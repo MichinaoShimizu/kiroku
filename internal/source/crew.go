@@ -204,9 +204,6 @@ func (p *crewPrivacy) stem(stem string) bool {
 		return v
 	}
 	files := []string{filepath.Join(p.home, "sessions", stem+".jsonl")}
-	if p.arch != "" { // 会話の記録の kiroku archive のコピー（Crew の場所のものが消えたとき読む）
-		files = append(files, filepath.Join(p.arch, "sessions", stem+".jsonl.zst"))
-	}
 	for _, s := range p.archive().segments(stem) {
 		files = append(files, s.path)
 	}
@@ -846,7 +843,7 @@ func readCrewStemIn(idx *crewArchiveIndex, stem string, errs *fileErrs) (meta cr
 	segRows := make([][]crewRow, 0, len(paths)+1)
 	reasons := make([]string, 0, len(paths)+1)
 	var live crewMeta // 今の記録のメタデータ
-	for i, p := range append(paths, idx.log(stem)) {
+	for i, p := range append(paths, filepath.Join(idx.home, "sessions", stem+".jsonl")) {
 		m, rs := readCrewTranscript(p, errs)
 		meta.add(m)
 		segRows = append(segRows, rs)
@@ -907,25 +904,13 @@ var crewArchiveName = regexp.MustCompile(`^(.+)__(\d{8}-\d{6})(?:-(\d{1,9}))?\.j
 // crewArchiveIndex は、退避した記録（sessions/archive/ と、元が消えたものは kiroku archive のコピー）を、名前ごとに書いた順に並べたもの。
 // フォルダは 1 回の読み込みで 1 度だけ並べる（会話キーごとに探すと、会話の数の 2 乗に比例して遅くなる）。
 type crewArchiveIndex struct {
-	home, arch string
-	byStem     map[string][]crewSeg
-}
-
-// log は名前が stem の会話の記録。Crew の場所になければ kiroku archive のコピー（<arch>/sessions/<stem>.jsonl.zst）、
-// それもなければ Crew の場所のもの（ないファイル）。
-func (idx *crewArchiveIndex) log(stem string) string {
-	p := filepath.Join(idx.home, "sessions", stem+".jsonl")
-	if idx.arch != "" && !isFile(p) {
-		if c := filepath.Join(idx.arch, "sessions", stem+".jsonl.zst"); isFile(c) {
-			return c
-		}
-	}
-	return p
+	home   string
+	byStem map[string][]crewSeg
 }
 
 // newCrewArchiveIndex は home（と arch）の退避した記録を並べる。
 func newCrewArchiveIndex(home, arch string) *crewArchiveIndex {
-	idx := &crewArchiveIndex{home: home, arch: arch, byStem: map[string][]crewSeg{}}
+	idx := &crewArchiveIndex{home: home, byStem: map[string][]crewSeg{}}
 	if home == "" {
 		return idx
 	}

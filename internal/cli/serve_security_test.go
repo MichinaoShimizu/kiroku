@@ -175,7 +175,7 @@ func TestServeKiroLegacyTraversal(t *testing.T) {
 func TestHistoryRoots(t *testing.T) {
 	picked := source.All(source.Options{ClaudeRoot: "/c/projects", KiroHome: "/k", KiroStorages: []string{"/legacy"}, CodexHome: "/x", Archive: "/arch"})
 	got := strings.Join(historyRoots(picked), "|")
-	for _, want := range []string{"/c/projects", filepath.Join("/arch", "claude"), filepath.Join("/k", "sessions"), "/legacy", filepath.Join("/x", "sessions"), filepath.Join("/arch", "crew", "sessions")} {
+	for _, want := range []string{"/c/projects", filepath.Join("/arch", "claude"), filepath.Join("/k", "sessions"), "/legacy", filepath.Join("/x", "sessions"), filepath.Join("/arch", "crew", "sessions", "archive")} {
 		if !strings.Contains(got, want) {
 			t.Errorf("%q がない: %s", want, got)
 		}

@@ -174,25 +174,13 @@ type KiroCLI struct {
 // Crew は会話を閉じるときに sessions/cli/<id>.json を消すので、SQLite の写しだけが残ることがある。
 func (k *KiroCLI) Withheld() []string { return k.withheld }
 
-// Keep は、kiroku archive で残す場所（Kiro Crew は退避した古い会話の記録を保存期間で消し、会話を消すと会話の記録も消すため）。
-// sessions/ の会話の記録と sessions/archive/ の退避した記録を残す（コピーは <保存場所>/crew/sessions/ の同じ並び）。
-// incognito・temporary の会話の記録（crewFilePrivate）は残さず、前に残したコピーも消す。sessions/ のほかのフォルダは残さない。
+// Keep は、kiroku archive で残す場所（Kiro Crew は退避した古い会話の記録を消すため）。
 func (k *KiroCLI) Keep() []Kept {
 	if k.CrewArchive == "" || k.CrewHome == "" {
 		return nil
 	}
-	return []Kept{{Src: filepath.Join(k.CrewHome, "sessions"), Dst: filepath.Join(k.CrewArchive, "sessions"), Skip: crewKeepSkip}}
-}
-
-// crewKeepSkip は、kiroku archive で残さない Crew のファイルか（Keep）。
-func crewKeepSkip(path, rel string) bool {
-	switch filepath.Dir(rel) {
-	case "archive": // 退避した記録
-		return false
-	case ".": // 会話の記録
-		return crewFilePrivate(path)
-	}
-	return true
+	rel := filepath.Join("sessions", "archive")
+	return []Kept{{Src: filepath.Join(k.CrewHome, rel), Dst: filepath.Join(k.CrewArchive, rel)}}
 }
 
 // Detail は計測の状態に添える一言。
@@ -520,15 +508,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		for key, info := range slotInfo {
 			byFile[crewTranscriptPath(k.CrewHome, key)] = info
 		}
-		logs := glob(filepath.Join(k.CrewHome, "sessions", "*.jsonl"))
-		if k.CrewArchive != "" { // Crew が消した会話の記録は、kiroku archive のコピーから読む（readCrewStemIn）
-			for _, c := range glob(filepath.Join(k.CrewArchive, "sessions", "*.jsonl.zst")) {
-				if p := filepath.Join(k.CrewHome, "sessions", strings.TrimSuffix(filepath.Base(c), ".zst")); !isFile(p) {
-					logs = append(logs, p)
-				}
-			}
-		}
-		for _, p := range logs { // p は Crew の場所の会話の記録（消えていてもその名前）
+		for _, p := range glob(filepath.Join(k.CrewHome, "sessions", "*.jsonl")) {
 			if seenFile[p] {
 				continue
 			}
@@ -539,7 +519,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 				continue
 			}
 			s := core.NewBuilder("Kiro Crew", "crew:"+stem)
-			s.File = priv.archive().log(stem)
+			s.File = p
 			s.Key = "kiro-crew:" + stem
 			s.Title, s.Project = firstNonEmpty(cm.title, "Kiro Crew: "+stem), "(Kiro Crew)"
 			if info := byFile[p]; info != nil && info.Cwd != "" {

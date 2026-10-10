@@ -6,7 +6,6 @@
 package archive
 
 import (
-	"errors"
 	"io"
 	"io/fs"
 	"os"
@@ -151,12 +150,7 @@ func Path(src, dst, file string) (string, bool) {
 
 // Sync は src の下の .jsonl を dst の下に圧縮して残す。前回から変わっていないファイルは圧縮し直さない。
 // 元のファイルが消えても、コピーは消さない。保存した（圧縮し直した）数を返す。
-func Sync(src, dst string) (int, error) { return SyncSkip(src, dst, nil) }
-
-// SyncSkip は Sync と同じ。skip（nil でなければ）が true を返すファイルは残さず、前に残したそのコピーがあれば消す。
-// skip には、ファイルの場所と、src からの相対パスを渡す
-// （Kiro Crew の incognito・temporary の会話の記録。あとからそうなった会話の前のコピーも残さない）。
-func SyncSkip(src, dst string, skip func(path, rel string) bool) (int, error) {
+func Sync(src, dst string) (int, error) {
 	if src == "" {
 		return 0, nil
 	}
@@ -173,18 +167,12 @@ func SyncSkip(src, dst string, skip func(path, rel string) bool) (int, error) {
 		if d.IsDir() || !strings.HasSuffix(p, ".jsonl") {
 			return nil
 		}
-		out, ok := Path(src, dst, p)
-		if !ok {
-			return nil
-		}
-		if rel, err := filepath.Rel(src, p); skip != nil && err == nil && skip(p, rel) {
-			if err := os.Remove(out); err != nil && !errors.Is(err, fs.ErrNotExist) && first == nil {
-				first = err
-			}
-			return nil
-		}
 		info, err := d.Info()
 		if err != nil || info.Size() == 0 {
+			return nil
+		}
+		out, ok := Path(src, dst, p)
+		if !ok {
 			return nil
 		}
 		if prev, err := os.Stat(out); err == nil && prev.ModTime().Equal(info.ModTime()) {

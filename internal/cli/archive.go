@@ -20,7 +20,7 @@ func keepCopies(picked []source.Source, dir string) int {
 			continue
 		}
 		for _, x := range k.Keep() {
-			m, err := archive.SyncSkip(x.Src, x.Dst, x.Skip)
+			m, err := archive.Sync(x.Src, x.Dst)
 			n += m
 			if err != nil {
 				fmt.Fprintf(logw, "  %s: could not keep a copy of some files in %s (%v)\n", s.Name(), dir, err)
