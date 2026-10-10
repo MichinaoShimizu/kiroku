@@ -71,6 +71,14 @@ function highlights(x, ms, on, firstOf, day0){
       const a = new Date(ds[i-1] + "T00:00"), b = new Date(ds[i] + "T00:00"), n = Math.round((b - a)/864e5) - 1;
       if (n >= 7 && (!best || n > best.n)) best = {n, a: addDays(a, 1), b: addDays(b, -1)};
     }
+    // いちばん長い連続（動いた日が 14 日以上）。土日の空きは途切れにしない（平日だけ働く人も続いていれば数える）
+    const weekendOnly = (p, q) => { for (let d = addDays(p, 1); d < q; d = addDays(d, 1)) if (d.getDay() !== 0 && d.getDay() !== 6) return false; return true; };
+    let run = null, from = 0;
+    for (let i = 1; i <= ds.length; i++){
+      const cont = i < ds.length && weekendOnly(new Date(ds[i-1] + "T00:00"), new Date(ds[i] + "T00:00"));
+      if (!cont){ const n = i - from; if (n >= 14 && (!run || n > run.n)) run = {n, a: new Date(ds[from] + "T00:00"), b: new Date(ds[i-1] + "T00:00")}; from = i; }
+    }
+    if (run) H.push({c0: col(run.a), c1: col(run.b), t: `Longest streak: ${run.n} active days`});
     if (best) H.push({c0: col(best.a), c1: col(best.b), t: `Longest break: ${best.a.getMonth() === best.b.getMonth() ? `${dMD(best.a)}–${best.b.getDate()}` : `${dMD(best.a)}–${dMD(best.b)}`} · ${plural(best.n, "day")}`});
   }
   const t0 = Math.min(...Object.values(firstOf)); // 途中から使い始めたエージェント（最初の記録から 2 週間より後）
@@ -97,8 +105,8 @@ function halves(ss){
   if (r >= 1.25) out.push({t: `sessions ${Math.round((r - 1)*100)}% longer`, q: "Sessions got longer. Bigger tasks handed over, or more back-and-forth?"});
   else if (r <= .8) out.push({t: `sessions ${Math.round((1 - r)*100)}% shorter`, q: "Sessions got shorter. Smaller, clearer asks, or more interruptions?"});
   if (Math.abs(b.par - a.par) >= 5) out.push(b.par > a.par
-    ? {t: `parallel ${Math.round(a.par)}% → ${Math.round(b.par)}%`, q: "More running in parallel. Did it save you time, or add rework?"}
-    : {t: `parallel ${Math.round(a.par)}% → ${Math.round(b.par)}%`, q: "Less running in parallel. Was that on purpose?"});
+    ? {t: `time in parallel ${Math.round(a.par)}% → ${Math.round(b.par)}%`, q: "More running in parallel. Did it save you time, or add rework?"}
+    : {t: `time in parallel ${Math.round(a.par)}% → ${Math.round(b.par)}%`, q: "Less running in parallel. Was that on purpose?"});
   if (Math.abs(b.late - a.late) >= 5) out.push(b.late > a.late
     ? {t: `late nights ${Math.round(a.late)}% → ${Math.round(b.late)}%`, q: "More late nights than before. By choice?"}
     : {t: `late nights ${Math.round(a.late)}% → ${Math.round(b.late)}%`});
@@ -122,24 +130,31 @@ function yrColorOf(x, mode){
 const LIGHTS = [
   {k: "dawn", en: "Daybreak", m: "morning", t: x => x.morningPct >= 25,
    de: "You get things done while the morning is fresh.",
+   ask: "Most of your AI time was early. Is that when your prompts come out clearest?",
    re: "25% or more of active time is between 5:00 and 9:00"},
   {k: "night", en: "Night Sky", m: "late", t: x => x.late >= 25,
    de: "You do your best work after dark.",
+   ask: "Most of your AI time was after dark. Is that when you focus best, or when you catch up?",
    re: "25% or more of active time is between 22:00 and 5:00 (parallel sessions count once)"},
   {k: "multi", en: "Multiple Exposure", m: "agents", t: x => x.agents.filter(g => g.pct >= 10).length >= 3,
    de: "You pick a partner for each job and layer them.",
+   ask: "You used several agents. Which job did each one do best, and would one have been enough?",
    re: "3 or more agents, each with 10% or more of active time"},
   {k: "long", en: "Long Exposure", m: "avg", t: x => x.avgMin >= 45 && x.perSes <= 10,
    de: "You hand over big tasks and let them run.",
+   ask: "You handed over big tasks. How often did the first result need a second round?",
    re: "45 minutes or more of active time per session, with 10 prompts or fewer on average"},
   {k: "burst", en: "Burst", m: "per", t: x => x.perSes >= 15,
    de: "You ask small and often, and move fast.",
+   ask: "You asked small and often. Would some of those prompts have worked better as one clear request?",
    re: "15 or more prompts per session on average"},
   {k: "focus", en: "Bracketing", m: "fix", t: x => x.fix != null && x.fix >= 15,
    de: "You try a few takes and keep the best one.",
+   ask: "You often tried a few takes. What was missing from the first prompt?",
    re: "15% or more of prompts look like a follow-up correction or came after an interruption (guessed from the wording)"},
   {k: "day", en: "Daylight", m: "peak", t: () => true,
    de: "You work with AI steadily through the day.",
+   ask: "Your year was steady. What would you hand to AI next year that you did by hand this year?",
    re: "None of the above"}];
 function lightMetric(k, x){
   return ({ morning: ["Work between 5:00 and 9:00", `${Math.round(x.morningPct)}%`],
@@ -281,9 +296,9 @@ function renderYear(){
     <div><b>Dark bands = time off</b>Holidays and days off show up dark.</div></div>
   ${x.hi.length || x.halves.length ? `<h3>What stands out</h3>
   <ul class="yrhi">${x.hi.map(h => `<li>${esc(h.t)}</li>`).join("")}${x.halves.length ? `<li>Second half vs first: ${esc(x.halves.map(h => h.t).join(" · "))}</li>` : ""}</ul>` : ""}
-  ${qs.length ? `<h3>To reflect on</h3>
-  <ul class="yrhi">${qs.map(h => `<li>${esc(h.q)}</li>`).join("")}</ul>
-  <p class="note">Questions, not judgments. Only you see them; they are not on the image. To dig into a month, copy its report prompt from the month view.</p>` : ""}
+  <h3>To reflect on</h3>
+  <ul class="yrhi">${[...qs.map(h => h.q), L.ask].map(q => `<li>${esc(q)}</li>`).join("")}</ul>
+  <p class="note">Questions, not judgments. Only you see them; they are not on the image. To dig into a month, copy its report prompt from the month view.</p>
 
   <h3>An image to share</h3>
   <canvas class="yrcard" id="yrcard" width="1600" height="900" role="img" aria-label="${esc(`Image to share: ${dur(x.active)} with AI in ${x.y}${L ? `. Your light: ${L.en}` : ""}${x.hi.length ? `. What stands out: ${x.hi.map(h => h.t).join("; ")}` : ""}${x.halves.length ? `. Second half vs first: ${x.halves.map(h => h.t).join(", ")}` : ""}`)}"></canvas>

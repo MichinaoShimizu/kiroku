@@ -22,6 +22,15 @@ eq(texts(highlights({late: 0, weekend: 0}, [], days(2, 9), {}, day0)), [], "6 �
 eq(texts(highlights({late: 0, weekend: 0}, [], days(2, 10, 30), {}, day0)), ["Longest break: Jan 11–29 · 19 days"], "長いほうの休みを選ぶ");
 eq(highlights({late: 0, weekend: 0}, [], days(2, 10, 30), {}, day0)[0].c0, 10, "休みの始まりの列（Jan 11 は 10 列目）");
 
+// いちばん長い連続：動いた日が 14 日以上。土日の空きは途切れにしない（2025-01-04・05、11・12、18・19 は土日）
+const span = (a, b) => days(...Array.from({length: b - a + 1}, (_, i) => a + i));
+const weekdays = (a, b) => days(...Array.from({length: b - a + 1}, (_, i) => a + i).filter(d => ![0, 6].includes(new Date(2025, 0, d).getDay())));
+eq(texts(highlights({late: 0, weekend: 0}, [], span(1, 14), {}, day0)), ["Longest streak: 14 active days"], "14 日続けば出す");
+eq(texts(highlights({late: 0, weekend: 0}, [], span(1, 13), {}, day0)), [], "13 日なら出さない");
+eq(texts(highlights({late: 0, weekend: 0}, [], weekdays(1, 20), {}, day0)), ["Longest streak: 14 active days"], "平日だけ 14 日続けば出す（土日の空きで途切れない）");
+eq(texts(highlights({late: 0, weekend: 0}, [], new Set([...weekdays(1, 20)].filter(k => k !== key(new Date(2025, 0, 8)))), {}, day0)), [], "平日を 1 日休めば途切れる");
+eq(texts(highlights({late: 0, weekend: 0}, [], new Set([...span(1, 14), ...span(22, 23)]), {}, day0)), ["Longest streak: 14 active days", "Longest break: Jan 15–21 · 7 days"], "連続と休みは両方出す");
+
 // 途中から使い始めたエージェント：最初の記録から 2 週間より後
 const t0 = new Date(2025, 0, 1, 10)/1000;
 eq(texts(highlights({late: 0, weekend: 0}, [], new Set(), {"Claude Code": t0, "Codex": t0 + 15*86400}, day0)), ["First Codex: Jan 16"], "15 日後に始めたエージェントは出す");
@@ -40,6 +49,6 @@ eq(texts(halves([...run(10, 0, 40, 5), ...run(10, 40, 47, 5)])), [], "18% なら
 eq(texts(halves([...run(10, 0, 40, 5), ...run(10, 40, 40, 7)])), ["prompts per session 5.0 → 7.0"], "依頼の数が 4 割増えれば出す");
 eq(texts(halves([...run(10, 0, 40, 5), ...run(10, 40, 40, 5, 23)])), ["late nights 0% → 100%"], "深夜の割合が 5 ポイント以上動けば出す");
 const par = [...run(10, 0, 60, 5), ...run(10, 40, 60, 5), ...run(10, 40, 60, 5).map(s => ({...s, start: s.start + 1800, end: s.end + 1800, segs: [[s.segs[0][0] + 1800, s.segs[0][1] + 1800, 10]]}))];
-const pt = halves(par).find(h => h.t.startsWith("parallel"));
-eq(pt && pt.t, "parallel 0% → 33%", "並列は、重なった時間 ÷ どれかが動いていた時間");
+const pt = halves(par).find(h => h.t.startsWith("time in parallel"));
+eq(pt && pt.t, "time in parallel 0% → 33%", "並列は、重なった時間 ÷ どれかが動いていた時間");
 eq(!!(pt && pt.q), true, "変化には画面だけの問いかけを付ける");
