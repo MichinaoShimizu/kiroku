@@ -37,7 +37,7 @@ function yearData(y){
     s.segs.forEach(([a, b]) => {
       if (own) segMin += (b - a)/60;
       plateCols(a, b, y).forEach(c => lines.push([...c, s.source, s.project]));
-      a = Math.max(a, y0); b = Math.min(b, y1); if (b <= a) return;
+      a = Math.max(a, y0 + 21600); b = Math.min(b, y1 + 21600); if (b <= a) return; // 集計も光と同じく、1/1 の 6 時から翌年 1/1 の 6 時まで
       for (let i = Math.floor(a/300), j = Math.ceil(b/300); i < j; i++) slots.add(i);
     });
   });
@@ -235,13 +235,14 @@ function exposure(g, X, Y, W, H, x, p, grid, c0 = 0, c1 = x.nd){ // 列 [c0, c1)
   });
   g.restore();
 }
-/* 写す列の範囲 [c0, last)：記録のある日から今日（その年の終わり）まで。4 週に満たなければ 4 週ぶん。
+/* 写す列の範囲 [c0, last)：最初の記録の日から今日（その年の終わり）まで。
    記録が 8 週に満たなければ、最後の記録まで（空いた右側や、記録の始まる前が「使わなかった日」に見えないように）。画面の図とシェア画像で同じ範囲 */
 function yrRange(x){
-  let last = x.partial ? Math.round((new Date(x.partial.getFullYear(), x.partial.getMonth(), x.partial.getDate()) - new Date(x.y, 0, 1))/864e5) + 1 : x.nd;
-  const first = Math.min(x.c0, last);
-  if (x.short) last = Math.min(last, Math.max(x.c1 + 1, first + 28));
-  return {c0: Math.max(0, Math.min(first, last - 28)), last};
+  const end = x.partial ? Math.round((new Date(x.partial.getFullYear(), x.partial.getMonth(), x.partial.getDate()) - new Date(x.y, 0, 1))/864e5) + 1 : x.nd;
+  if (!x.lines.length) return {c0: Math.max(0, end - 28), last: end};
+  // 4 週に広げるのは右（記録の後）へだけ。今日や年の終わりで広げられなければ、4 週に満たなくてもそのまま（記録の前の日を写さない）
+  const c0 = Math.min(x.c0, end - 1);
+  return {c0, last: x.short ? Math.min(end, Math.max(x.c1 + 1, c0 + 28)) : end};
 }
 function drawPlate(){
   const cv = $("#yrplate"); if (!cv || !yr.x) return;
@@ -253,6 +254,7 @@ function yrTitle(x){
   if (x.short){ // 2 週に満たなければ日で、それ以上は週で数える。光が 1 本もない年は数を言わない
     const n = x.span < 14 ? plural(x.span, "day") : plural(Math.round(x.span/7), "week");
     if (!x.span) return x.firstYear ? "Your first days with AI." : "A few days with AI.";
+    if (x.span === 1) return x.firstYear ? "Your first day with AI." : "A day with AI.";
     return x.firstYear ? `Your first ${n} with AI.` : `${n} with AI.`; }
   return x.partial ? "This year with AI, so far." : "A year with AI.";
 }
@@ -277,6 +279,9 @@ function drawCard(){
     const px = PX + (c - c0)*PW/(last - c0);
     g.fillRect(px, PB + 4, 1, 8); if (px < PX + PW - 40) g.fillText(MON[mo].toUpperCase(), px + 5, PB + 22);
   }
+  // 範囲に月の初めがなければ（1 か月の中に収まる）、最初の日を書く
+  if (!Array.from({length: 12}, (_, mo) => Math.round((new Date(x.y, mo, 1) - new Date(x.y, 0, 1))/864e5)).some(c => c >= c0 && c < last))
+    g.fillText(dMD(new Date(x.y, 0, 1 + c0)).toUpperCase(), PX + 5, PB + 22);
   g.textAlign = "right";
   [["6", 0], ["12", .25], ["18", .5], ["0", .75], ["6", 1]].forEach(([h, f]) => { const py = PT + f*(PB - PT); g.fillRect(PX - 8, py, 6, 1); g.fillText(h, PX - 12, py + 5); });
   g.restore();
@@ -342,13 +347,14 @@ function drawCard(){
   } else if (o.agents){
     let lx = PX; g.font = `500 22px ${FONT.sans}`;
     // 入りきらないエージェントは「Other」にまとめる（色の見えている線に、凡例がないことがないように）
-    const shown = [], rest = [...x.agents];
-    while (rest.length){ const a = rest[0], t = `${a.k} ${Math.round(a.pct)}% of time`, w = 26 + g.measureText(t).width + 32;
-      const left = rest.length > 1 ? 26 + g.measureText("Other 100%").width : 0;
-      if (shown.length >= 4 || lx + w + left > room) break; shown.push([a.c, t]); lx += w; rest.shift(); }
-    if (rest.length) shown.push([PLATE_OTHER, `Other ${Math.round(rest.reduce((v, a) => v + a.pct, 0))}%`]);
-    lx = PX; shown.forEach(([c, t]) => { g.fillStyle = c; g.shadowColor = c; g.shadowBlur = 14; g.beginPath(); g.arc(lx + 8, 856, 8, 0, Math.PI*2); g.fill(); g.shadowBlur = 0;
-      g.fillStyle = ink; g.fillText(t, lx + 26, 864); lx += 26 + g.measureText(t).width + 32; });
+    // 「of time」は最初の 1 つにだけ付ける。入りきらないものは「Other」にまとめ、まとめたエージェントの色の丸を並べる
+    const shown = [], rest = [...x.agents], dots = n => 26 + (n - 1)*14;
+    while (rest.length){ const a = rest[0], t = `${a.k} ${Math.round(a.pct)}%${shown.length ? "" : " of time"}`, w = dots(1) + g.measureText(t).width + 32;
+      const left = rest.length > 1 ? dots(Math.min(3, rest.length - 1)) + g.measureText("Other 100%").width : 0;
+      if (shown.length >= 4 || lx + w + left > room) break; shown.push([[a.c], t]); lx += w; rest.shift(); }
+    if (rest.length) shown.push([rest.slice(0, 3).map(a => a.c), `Other ${Math.round(rest.reduce((v, a) => v + a.pct, 0))}%`]);
+    lx = PX; shown.forEach(([cs, t]) => { cs.forEach((c, i) => { g.fillStyle = c; g.shadowColor = c; g.shadowBlur = 14; g.beginPath(); g.arc(lx + 8 + i*14, 856, 8, 0, Math.PI*2); g.fill(); g.shadowBlur = 0; });
+      g.fillStyle = ink; g.fillText(t, lx + dots(cs.length), 864); lx += dots(cs.length) + g.measureText(t).width + 32; });
   }
 }
 /* 画像を描き、描いたものを読み上げ用の説明にする */
@@ -369,7 +375,8 @@ function renderYear(){
   x.mode = yrColorMode(x); x.colorFn = yrColorOf(x, x.mode);
   const keys = x.mode === "project" ? x.projects : x.agents, qs = x.halves.filter(h => h.q);
   const R = yrRange(x), colOf = d => Math.round((d - new Date(x.y, 0, 1))/864e5), pos = c => ((c - R.c0)/(R.last - R.c0)*100).toFixed(2);
-  const months = Array.from({length: 12}, (_, i) => colOf(new Date(x.y, i, 1))).map((c, i) => c >= R.c0 && c < R.last ? `<span style="left:${pos(c)}%">${MON[i]}</span>` : "").join("");
+  let months = Array.from({length: 12}, (_, i) => colOf(new Date(x.y, i, 1))).map((c, i) => c >= R.c0 && c < R.last ? `<span style="left:${pos(c)}%">${MON[i]}</span>` : "").join("");
+  if (!months) months = `<span style="left:0">${dMD(new Date(x.y, 0, 1 + R.c0))}</span>`; // 1 か月の中に収まるなら、最初の日を書く
   const from = new Date(x.y, 0, 1 + R.c0);
   const hours = [["6", 0], ["12", 25], ["18", 50], ["0", 75], ["6", 100]].map(([h, t]) => `<span style="top:${t}%">${`${h}:00`}</span>`).join("");
   const ev = L ? [L.m, ...["morning", "avg", "per"].filter(k => k !== L.m)].slice(0, 3).map(k => lightMetric(k, x)) : [];
@@ -382,7 +389,7 @@ function renderYear(){
   dlg.innerHTML = `<div class="yrhd"><div><div class="eyebrow">Year in review</div><h2 id="yrh">${`${x.y} exposure`}</h2></div>
     <label><span class="sr">Year</span><select id="yrsel">${ys.map(v => `<option value="${v}"${v === x.y ? " selected" : ""}>${v}</option>`).join("")}</select></label>
     <form method="dialog"><button class="iconbtn" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form></div>
-  <p class="yrlead">Your active time with AI, drawn like a year-long exposure. Across is the date, down is the time of day (6:00 to 6:00 the next morning). Each stretch of active time is a streak of light, brighter where sessions overlapped. Shown: ${esc(dSpan(from, new Date(x.y, 0, R.last), true))}${R.c0 ? " (from the first day with history)" : ""}.</p>
+  <p class="yrlead">Your active time with AI, drawn like a year-long exposure. Across is the date, down is the time of day (6:00 to 6:00 the next morning). Each stretch of active time is a streak of light, brighter where sessions overlapped. Shown: ${esc(dSpan(from, new Date(x.y, 0, R.last), true))}${R.c0 && R.c0 === x.c0 ? " (from the first day with history)" : ""}.</p>
   <div class="yrscroll" tabindex="0" role="group" aria-label="Exposure chart, scrolls sideways on narrow screens"><div class="yrchart"><div class="yrax" aria-hidden="true">${hours}</div><canvas class="yrplate" id="yrplate" role="img" aria-label="${esc(`Active time in ${x.y} by date and time of day. Active time ${dur(x.active)}`)}"></canvas><div class="yrx" aria-hidden="true">${months}</div></div></div>
   <div class="yrleg">${keys.map(a => `<span><i style="background:${a.c}"></i>${esc((a.k))} ${Math.round(a.pct)}%</span>`).join("")}</div>
   <div class="yrhow"><div><b>Length = how long a session was active</b>Each streak is one stretch of active time in a session, estimated from the timestamps in the history. It includes time the AI ran on its own.</div>

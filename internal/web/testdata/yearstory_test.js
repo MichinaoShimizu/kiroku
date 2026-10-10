@@ -98,3 +98,19 @@ eq(halves([...run(10, 0, 40, 0), ...run(10, 60, 40, 0)]), [], "0.0 → 0.0 は�
 const three3 = [{k: "len", t: "sessions 30% longer"}, {k: "par", t: "2+ sessions at once 0% → 33%"}, {k: "late", t: "late nights (22:00–5:00) 2% → 11%"}];
 eq(sideLines({hi: [], halves: three3}, {late: true}), ["2nd half vs 1st: late nights (22:00–5:00) 2% → 11%", "2nd half vs 1st: sessions 30% longer"], "選んだ深夜の変化は落ちない");
 eq(sideLines({hi: [], halves: three3}, {late: false}), ["2nd half vs 1st: sessions 30% longer", "2nd half vs 1st: 2+ sessions at once 0% → 33%"], "選ばなければ深夜の変化は出さない");
+
+// 写す範囲：最初の記録の日から。4 週に広げるのは記録の後ろへだけで、今日や年の終わりを越えない（記録の前の日を「使わなかった日」に見せない）
+const xr = (o) => ({y: 2026, nd: 365, partial: null, lines: [1], short: true, ...o});
+eq(yrRange(xr({partial: new Date(2026, 9, 10), c0: 277, c1: 281})), {c0: 277, last: 283}, "使い始めたばかり（10/5〜）なら、10/5 から今日まで（4 週に満たなくてよい）");
+eq(yrRange(xr({c0: 350, c1: 360})), {c0: 350, last: 365}, "過去の年の終わりに始めたなら、年の終わりまで");
+eq(yrRange(xr({c0: 10, c1: 20})), {c0: 10, last: 38}, "後ろに余裕があれば 4 週に広げる");
+eq(yrRange(xr({c0: 10, c1: 200, short: false})), {c0: 10, last: 365}, "8 週以上なら、最初の記録から年の終わりまで");
+eq(yrRange(xr({lines: [], c0: 365, c1: -1})), {c0: 337, last: 365}, "光のない年でも範囲は壊れない");
+
+// 見出し：記録の長さに合わせる
+eq(yrTitle({short: true, span: 1, firstYear: true}), "Your first day with AI.", "1 日");
+eq(yrTitle({short: true, span: 5, firstYear: true}), "Your first 5 days with AI.", "2 週に満たなければ日で");
+eq(yrTitle({short: true, span: 21, firstYear: false}), "3 weeks with AI.", "前の年に記録があれば「first」を付けない");
+eq(yrTitle({short: true, span: 0, firstYear: true}), "Your first days with AI.", "光がなければ数を言わない");
+eq(yrTitle({short: false, partial: new Date()}), "This year with AI, so far.", "今年");
+eq(yrTitle({short: false, partial: null}), "A year with AI.", "過ぎた年");

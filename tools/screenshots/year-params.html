@@ -34,7 +34,7 @@ code{font:500 14px ui-monospace,Menlo,Consolas,monospace;color:#c9cde0}
   <div class="ax yax" style="top:164px">18:00</div>
   <div class="ax yax" style="top:229px">0:00</div>
   <div class="ax yax" style="top:294px">6:00</div>
-  <div class="ax" style="left:150px;top:314px">first day with history (at least 4 weeks back)</div>
+  <div class="ax" style="left:150px;top:314px">first day with history</div>
   <div class="ax" style="left:1250px;top:314px">today / Dec 31</div>
   <svg class="ov">
     <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ffae57"/></marker></defs>
@@ -49,7 +49,7 @@ code{font:500 14px ui-monospace,Menlo,Consolas,monospace;color:#c9cde0}
   <h2>What you see, and what it comes from</h2>
   <table>
    <tr><th>On the image</th><th>From the history</th></tr>
-   <tr><td>Column</td><td>A date. Starts at the first day with history (4 weeks if there is less); with less than 8 weeks of history it ends at the last one</td></tr>
+   <tr><td>Column</td><td>A date. Starts at the first day with history; with less than 8 weeks of history it ends at the last one (4 weeks when there is room)</td></tr>
    <tr><td>Height</td><td>The time of day, 6:00 at the top to 6:00 the next morning at the bottom, so late-night work lands under the previous day</td></tr>
    <tr><td>A streak</td><td>One stretch of active time in a session, estimated from the history's timestamps (it includes time the AI ran on its own). A 15-minute gap starts a new streak (<code>--gap</code>)</td></tr>
    <tr><td>Length</td><td>How long that stretch was active</td></tr>

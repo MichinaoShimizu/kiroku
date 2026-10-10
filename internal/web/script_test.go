@@ -261,7 +261,7 @@ func TestSpanIn(t *testing.T) {
 }
 
 // 1 年の露光の「見どころ」と「前半と後半」が、決めた境界で出る・出ないこと。シェア画像には、選んだものだけが載ること。
-// year.js は画面の DOM を触るので、highlights・halves・mergeSegs・plateCols・sideLines・cardMarks だけを取り出して Node で動かす。
+// year.js は画面の DOM を触るので、highlights・halves・mergeSegs・plateCols・sideLines・cardMarks・yrRange・yrTitle だけを取り出して Node で動かす。
 func TestYearStory(t *testing.T) {
 	node, err := exec.LookPath("node")
 	if err != nil {
@@ -273,7 +273,7 @@ func TestYearStory(t *testing.T) {
 	}
 	text := strings.ReplaceAll(string(src), "\r\n", "\n")
 	var fns []string
-	for _, name := range []string{"highlights", "halves", "mergeSegs", "plateCols", "sideLines", "cardMarks"} {
+	for _, name := range []string{"highlights", "halves", "mergeSegs", "plateCols", "sideLines", "cardMarks", "yrRange", "yrTitle"} {
 		fn := regexp.MustCompile(`(?ms)^function ` + name + `\(.*?\n\}\n`).FindString(text)
 		if fn == "" {
 			t.Fatalf("year.js に %s が見つからない", name)
