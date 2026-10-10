@@ -124,7 +124,7 @@ func TestKiroCrewTranscript(t *testing.T) {
 	// Crew のダッシュボードから動かした会話: kiro-cli の履歴に依頼が残っていない
 	os.WriteFile(filepath.Join(kh, "sessions", "cli", "1cb4ad2f-90ba-4c5f-970b-5767003804b9.jsonl"), nil, 0o644)
 	// kiro-cli の会話に結びつかない記録（使用量だけ）と、会話の記録だけの会話
-	os.WriteFile(filepath.Join(ch, "sessions", "dashboard_chat-9-1790000000.jsonl"), []byte(`{"_type": "metadata", "title": "API の調査"}
+	os.WriteFile(filepath.Join(ch, "sessions", "dashboard_chat-9-1790000000.jsonl"), []byte(`{"_type": "metadata", "created_at": "2026-09-01T00:00:00+00:00", "title": "API の調査"}
 {"role": "user", "content": "API の遅さを調べて", "ts": "2026-09-30T11:00:00+09:00"}
 {"role": "assistant", "content": "調べます", "ts": "2026-09-30T11:02:00+09:00", "tools": ["fs_read", "execute_bash"]}
 `), 0o644)
@@ -894,7 +894,7 @@ func TestKiroCrewLogOnlyArchive(t *testing.T) {
 	kiro, crew := t.TempDir(), t.TempDir()
 	writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
 	writeFiles(t, crew, map[string]string{
-		"sessions/slack_C1_123.jsonl": `{"_type": "metadata", "title": "Slack の相談"}
+		"sessions/slack_C1_123.jsonl": `{"_type": "metadata", "created_at": "2026-09-01T00:00:00+00:00", "title": "Slack の相談"}
 {"role": "user", "content": "続きの依頼", "ts": "2026-09-30T13:00:00+00:00", "meta": {"human": true}}
 `,
 		"sessions/archive/slack_C1_123__20260930-120000.jsonl": `{"_type": "archive", "reason": "rotate"}
@@ -1197,7 +1197,7 @@ func TestKiroCrewArchiveReasons(t *testing.T) {
 			u("巻き戻した依頼", "2026-09-30T10:10:00+00:00", "m9") +
 			u("C", "2026-09-30T10:40:00+00:00", "") +
 			u("B", "2026-09-30T10:30:00+00:00", "m2"),
-		"sessions/slack_C1_1.jsonl": `{"_type": "metadata", "title": "Slack"}` + "\n" +
+		"sessions/slack_C1_1.jsonl": `{"_type": "metadata", "created_at": "2026-09-01T00:00:00+00:00", "title": "Slack"}` + "\n" +
 			u("A", "2026-09-30T10:00:00+00:00", "m1") +
 			u("B", "2026-09-30T10:30:00+00:00", "m2") +
 			u("C", "2026-09-30T10:40:00+00:00", ""),
@@ -1368,4 +1368,45 @@ func mergeFiles(ms ...map[string]string) map[string]string {
 		}
 	}
 	return out
+}
+
+// 会話の記録が消えたあと、同じ会話キーで新しい会話が始まることがある。前の会話が incognito だったかは、退避した記録
+// （1 行目は {"_type": "archive", "reason": "rotate"} だけ）からはわからないので、今の会話より前に退避された記録の行
+// （kiroku archive のコピーも）は中身を出さない。今の会話から退避した記録はそのまま読む。
+func TestKiroCrewEarlierLineage(t *testing.T) {
+	stamp := func(iso string) string {
+		tm, err := time.Parse(time.RFC3339, iso)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return tm.In(time.Local).Format("20060102-150405")
+	}
+	for _, created := range []string{`"created_at": "2026-10-06T00:00:00+00:00", `, ""} {
+		t.Run("created_at="+fmt.Sprint(created != ""), func(t *testing.T) {
+			kiro, crew, arch := t.TempDir(), t.TempDir(), t.TempDir()
+			writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
+			// 前の会話（incognito だった）の退避した記録は、元が消えて kiroku archive のコピーだけが残る
+			zstFile(t, filepath.Join(arch, "sessions", "archive", "slack_C1_1__"+stamp("2026-10-05T09:50:00Z")+".jsonl.zst"), []string{
+				`{"_type": "archive", "reason": "rotate"}`,
+				`{"role": "user", "content": "SECRET-ROTATED", "ts": "2026-10-05T09:40:00+00:00"}`,
+				`{"role": "assistant", "content": "SECRET-ROTATED-REPLY", "ts": "2026-10-05T09:41:00+00:00"}`,
+			}, false)
+			writeFiles(t, crew, map[string]string{
+				// 今の会話から退避した記録（今の記録に残る最初の行より後に退避した）
+				"sessions/archive/slack_C1_1__" + stamp("2026-10-06T09:00:00Z") + ".jsonl": `{"_type": "archive", "reason": "rotate"}` + "\n" +
+					`{"role": "user", "content": "kept older prompt", "ts": "2026-10-06T08:00:00+00:00"}` + "\n",
+				"sessions/slack_C1_1.jsonl": `{"_type": "metadata", ` + created + `"title": "new thread", "memory_mode": "persistent"}` + "\n" +
+					`{"role": "assistant", "content": "kept tail", "ts": "2026-10-06T08:30:00+00:00"}` + "\n" +
+					`{"role": "user", "content": "visible new prompt", "ts": "2026-10-06T10:01:00+00:00"}` + "\n",
+			})
+			bs := load(t, &KiroCLI{Home: kiro, CrewHome: crew, CrewArchive: arch})
+			b := find(bs, "crew:slack_C1_1")
+			if got := strings.Join(promptTexts(b), "|"); got != "(private)|kept older prompt|visible new prompt" {
+				t.Errorf("依頼 = %q", got)
+			}
+			for _, l := range leakedCrew(t, bs) {
+				t.Errorf("中身が残っている: %s", l)
+			}
+		})
+	}
 }

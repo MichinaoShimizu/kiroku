@@ -755,6 +755,8 @@ type crewRow struct {
 	human bool   // meta.human が true（人が書いた行。Crew の history.HUMAN_TURN_META_KEY）
 	mid   string // meta.mid（Crew が行ごとにつける ID。dashboard/state.py の row_mid。なければ空）
 	rawTS string // ts の値をそのまま（mid のない行を見分けるため。crewRowSet）
+	// hidden は、中身を出さない行（今の会話より前に同じ名前で退避された記録の行。crewEarlierSegment）。数と時刻だけを使う
+	hidden bool
 }
 
 // crewMeta は Crew の会話の記録のメタデータ（1 行目）。
@@ -830,16 +832,53 @@ func readCrewStem(home, arch, stem string, errs *fileErrs) (meta crewMeta, rows 
 	}
 	segRows := make([][]crewRow, 0, len(paths)+1)
 	reasons := make([]string, 0, len(paths)+1)
+	var live crewMeta // 今の記録のメタデータ
 	for i, p := range append(paths, filepath.Join(home, "sessions", stem+".jsonl")) {
 		m, rs := readCrewTranscript(p, errs)
 		meta.add(m)
 		segRows = append(segRows, rs)
 		if i == len(paths) {
 			m.archive = "" // 今の記録（退避した記録ではない）
+			live = m
 		}
 		reasons = append(reasons, m.archive)
 	}
+	// 今の会話より前に同じ名前で退避された記録の行は、中身を出さない（crewEarlierSegment）
+	if start := crewLineageStart(live, segRows[len(paths)]); start != nil {
+		for i, sg := range segs {
+			if crewEarlierSegment(sg.stamp, *start) {
+				for j := range segRows[i] {
+					segRows[i][j].hidden = true
+				}
+			}
+		}
+	}
 	return meta, ownRows(meta, crewArchiveRows(segRows, reasons))
+}
+
+// crewLineageStart は、今の記録の会話が始まった時刻: メタデータの created_at（記録を作った時刻。Crew は書きなおしても残す）、
+// なければ今の記録の最初の行の時刻。今の記録がない・時刻がわからなければ nil。
+func crewLineageStart(live crewMeta, rows []crewRow) *float64 {
+	if live.created != nil {
+		return live.created
+	}
+	var first *float64
+	for _, r := range rows {
+		if r.t != nil && (first == nil || *r.t < *first) {
+			first = r.t
+		}
+	}
+	return first
+}
+
+// crewEarlierSegment は、退避した記録（ファイル名の日時 stamp。Crew の history._archive_lines がこのマシンの時刻で書く）が、
+// start に始まった今の会話より前に退避されたものか。同じ会話から退避した記録は、記録を作ったあと（created_at より後）で、
+// 退避したときに今の記録に残した行（最初の行）より後に書かれる。それより前のものは、同じ会話キーで前にあった別の会話
+// （記録が消えたあとに同じキーで始めた会話）のもので、その会話が incognito・temporary だったかは、退避した記録
+// （reason "rotate" などの 1 行目しかない）からはわからない。中身を出さない側に倒す（1 秒は日時の切り捨ての分）。
+func crewEarlierSegment(stamp string, start float64) bool {
+	t, err := time.ParseInLocation("20060102-150405", stamp, time.Local)
+	return err == nil && float64(t.Unix())+1 < start
 }
 
 // crewSegments は、名前が stem の会話の退避した記録（sessions/archive/<stem>__<日時>.jsonl と、元が消えたものは kiroku archive のコピー）を
@@ -997,15 +1036,22 @@ func addCrewRows(s *core.Builder, rows []crewRow) {
 	marked := false // 目印を書く Crew の記録に入ったか
 	for _, r := range rows {
 		marked = marked || r.human
-		switch r.role {
-		case "user":
+		switch {
+		case r.hidden && r.role == "user": // 中身を出さない行: 依頼の数と時刻だけ
+			s.Tick(r.t)
+			if !marked || r.human {
+				s.Prompt(r.t, crewPrivateText)
+			}
+		case r.hidden:
+			s.Agent(r.t)
+		case r.role == "user":
 			s.Tick(r.t)
 			if marked && !r.human || !marked && taskRunnerRow.MatchString(r.text) {
 				s.InjectAll(r.t, "agent", r.text)
 			} else {
 				s.Prompt(r.t, r.text)
 			}
-		case "assistant":
+		case r.role == "assistant":
 			s.Agent(r.t)
 			s.Reply(r.t, "", r.text)
 		default: // tool / tool_call / tool_result など
