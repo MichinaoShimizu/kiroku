@@ -67,7 +67,7 @@ function yearData(y){
 function highlights(x, ms, on, firstOf, day0){
   const H = [], col = d => Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - day0)/864e5);
   const act = ms.filter(m => m.active > 0);
-  if (act.length >= 2){ // いちばん動いていた月（ほかの月の平均より 3 割以上多く、10 時間以上のときだけ。どの月も同じなら言うことがない）
+  if (act.length >= 3 && !x.short){ // いちばん動いていた月（記録が 8 週以上・3 か月以上あり、ほかの月の平均より 3 割以上多く、10 時間以上のときだけ。比べる月が少なければ、どの月も同じなら言うことがない）
     const m = act.reduce((a, b) => b.active > a.active ? b : a), [Y, M] = m.start.split("-").map(Number);
     const rest = (act.reduce((a, b) => a + b.active, 0) - m.active)/(act.length - 1);
     if (m.active >= rest*1.3 && m.active >= 600){ const t = `Busiest month: ${MON[M-1]} · ${Math.round(m.active/60)}h`; H.push({k: "month", c0: col(new Date(Y, M-1, 1)), c1: col(new Date(Y, M, 0)), t, img: t}); }
@@ -355,7 +355,7 @@ function renderYear(){
     <label>Color by <select id="yrcolor">${[["auto", "Auto"], ["agent", "Agent"], ["project", "Project"]].map(([v, l]) => `<option value="${v}"${yr.opt.color === v ? " selected" : ""}>${l}</option>`).join("")}</select></label></div>
   <canvas class="yrcard" id="yrcard" width="1600" height="900" role="img" aria-label="${esc(cardLabel(x, L, yr.opt))}"></canvas>
   <div class="yract"><button class="pill" id="yrsave">Save as PNG</button>${copyBtn("Copy image", `id="yrcopy"`)}</div>
-  <p class="note">The image shows the date range, the streaks of light, what stands out without exact dates, kiroku's address, and only what is ticked above. Prompts, project names, branches, files and estimated cost are never included. It is made in this browser and sent nowhere.</p>
+  <p class="note">The image shows the date range, the streaks of light, what stands out, kiroku's address, and only what is ticked above. The longest stretch without AI never shows its dates. Prompts, project names, branches, files and estimated cost are never included. It is made in this browser and sent nowhere.</p>
 
   <h3>Your light</h3>
   ${L ? `<div class="yrtype"><div class="yrtn"><span>${vt(name(L))}</span></div><div>

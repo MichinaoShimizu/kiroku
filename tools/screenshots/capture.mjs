@@ -28,7 +28,9 @@ await p.locator("#wk").screenshot({ path: path.join(docs, "worth.png") });
 await p.keyboard.press("Escape");
 await p.waitForTimeout(300);
 if (await p.evaluate(() => YEAR_ON)) { // 1 年の露光（一旦隠している間は、year.png を撮り直さない）。シェア用の画像（1600x900）をそのまま保存する
-  await p.evaluate(() => openYear());
+  // 今年の記録がまだ 8 週に満たない（年の初めに撮る）ときは、いちばん記録の多い年を写す
+  await p.evaluate(() => { openYear(); const ys = yearsOf();
+    if (yr.x.short && ys.length > 1){ yr.y = ys.reduce((a, y) => yearData(y).active > yearData(a).active ? y : a); renderYear(); } });
   await p.waitForTimeout(600);
   const png = await p.evaluate(() => document.querySelector("#yrcard").toDataURL("image/png").split(",")[1]);
   await fs.writeFile(path.join(docs, "year.png"), Buffer.from(png, "base64"));

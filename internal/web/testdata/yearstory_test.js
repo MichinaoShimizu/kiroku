@@ -11,11 +11,13 @@ const day0 = new Date(2025, 0, 1);
 const texts = H => H.map(h => h.t);
 const days = (...ds) => new Set(ds.map(d => key(new Date(2025, 0, d))));
 
-// いちばん動いていた月：ほかの月の平均より 3 割以上多いときだけ
-eq(texts(highlights({late: 0, weekend: 0}, [{start: "2025-01-01", active: 600}, {start: "2025-02-01", active: 780}], new Set(), {}, day0)), ["Busiest month: Feb · 13h"], "3 割多ければ出す");
-eq(texts(highlights({late: 0, weekend: 0}, [{start: "2025-01-01", active: 600}, {start: "2025-02-01", active: 779}], new Set(), {}, day0)), [], "3 割に届かなければ出さない");
-eq(texts(highlights({late: 0, weekend: 0}, [{start: "2025-01-01", active: 600}], new Set(), {}, day0)), [], "1 か月だけなら出さない");
-eq(texts(highlights({late: 0, weekend: 0}, [{start: "2025-01-01", active: 100}, {start: "2025-02-01", active: 590}], new Set(), {}, day0)), [], "10 時間に満たない月は、目立っても出さない");
+// いちばん動いていた月：記録が 8 週以上・3 か月以上あり、ほかの月の平均より 3 割以上多いときだけ
+const m3 = (a, b, c) => [{start: "2025-01-01", active: a}, {start: "2025-02-01", active: b}, {start: "2025-03-01", active: c}];
+eq(texts(highlights({late: 0, weekend: 0}, m3(600, 780, 600), new Set(), {}, day0)), ["Busiest month: Feb · 13h"], "3 割多ければ出す");
+eq(texts(highlights({late: 0, weekend: 0}, m3(600, 779, 600), new Set(), {}, day0)), [], "3 割に届かなければ出さない");
+eq(texts(highlights({late: 0, weekend: 0}, m3(600, 780, 600).slice(0, 2), new Set(), {}, day0)), [], "2 か月だけなら出さない");
+eq(texts(highlights({late: 0, weekend: 0, short: true}, m3(600, 780, 600), new Set(), {}, day0)), [], "記録が 8 週に満たなければ出さない");
+eq(texts(highlights({late: 0, weekend: 0}, m3(100, 590, 100), new Set(), {}, day0)), [], "10 時間に満たない月は、目立っても出さない");
 
 // いちばん長い休み：7 日以上だけ。同じ月の中なら「Jan 3–9」。画像の文には日付を書かない
 eq(texts(highlights({late: 0, weekend: 0}, [], days(2, 10), {}, day0)), ["Longest stretch without AI: 7 days (Jan 3–9)"], "7 日の休みは出す");
