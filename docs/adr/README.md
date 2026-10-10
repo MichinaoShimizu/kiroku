@@ -6,6 +6,11 @@ ADRs document **why** kiroku makes architectural choices, not just how code work
 
 - `0001-local-session-foundation.md` — retrospective baseline for local-only session processing (Phase 1).
 - `0002-remote-session-import.md` — proposed extension for remote/cloud histories (Phase 2).
+- `0003-measurement-semantics.md` — data fidelity, missingness, traceability (Phase 1, retrospective).
+- `0004-local-privacy-boundary.md` — local-first security and privacy boundaries (Phase 1, retrospective).
+- `0005-session-identity-and-deduplication.md` — source-specific session identity and duplicate handling (Phase 1, retrospective).
+- `0006-nonjudgmental-reflection.md` — product philosophy and documented reversals (Phase 1, retrospective).
+- `phase1-decision-ledger.md` — evolving, evidence-linked historical decision inventory.
 
 ## Lifecycle
 
