@@ -1,6 +1,6 @@
 # Reverse ADR audit — 2026-10-10
 
-Status: **In progress**. Latest focused evidence pass uses main commit `ad670cb40d8617b5418e103feab18c3df29fc92e` as the current-code baseline. Historical claims are still partial; no fresh tests were executed.
+Status: **In progress**. Baseline: PR #331 branch `docs/phase1-decision-recovery` (moving head; pin to a commit for reproducible future runs).
 
 ## Scope and coverage
 
@@ -9,15 +9,6 @@ Status: **In progress**. Latest focused evidence pass uses main commit `ad670cb4
 - Historical PR #1, #54, #93, #208 and #285 descriptions were re-read, along with current `internal/report/share.go`, `internal/report/share_test.go`, `internal/web/web.go`, `internal/web/web_test.go` and `docs/compatibility.md`.
 - The earlier scan of 318 merged PR titles/bodies was **candidate discovery**, not a full diff/review audit. Only five PRs were re-read in this pass; all historical diffs, reviews and current code paths were **not** exhaustively inspected.
 - No test suite was executed in this pass. A test definition is not a passing test result. **No claim is marked verified.**
-
-## Focused follow-up: initial architecture and source identity
-
-- Re-read merged PRs [#1](https://github.com/MichinaoShimizu/kiroku/pull/1), [#6](https://github.com/MichinaoShimizu/kiroku/pull/6), [#7](https://github.com/MichinaoShimizu/kiroku/pull/7), and [#9](https://github.com/MichinaoShimizu/kiroku/pull/9), including their descriptions and available unified diffs (diffs were sampled, not exhaustively reviewed).
-- Inspected current `internal/cli/load.go` and `internal/core/session.go` on the pinned main baseline; no test execution or complete review-thread inspection.
-- **Confirmed documented rationale:** #6 explicitly chose Go to ship a single cross-platform executable and separate agent-specific readers. This is stronger than an inferred motivation from current code.
-- **Observed implementation:** `collectCached` uses `seen` keys, `Claim`/`Yield` precedence and family-scoped withholding for private Kiro Crew copies. The current code does not by itself prove every historical reason behind these mechanisms.
-- **Historical limitations worth preserving:** #1 explicitly says real Kiro histories were not tested at introduction; #7 says Kiro CLI Windows path was not verified then; #9 says real Codex histories were not tested then. These are historical validation gaps, not claims that current behavior is broken.
-- Added three claim-level evidence entries (ADR-0001-C2, ADR-0004-C2, ADR-0010-C2). The matrix now contains 9 sampled claims, **0 newly test-verified**. It remains far from complete coverage of 20 ADRs.
 
 ## Findings
 
@@ -45,3 +36,32 @@ Status: **In progress**. Latest focused evidence pass uses main commit `ad670cb4
 - Track the count of claims in each status before asserting evidence completeness.
 
 This audit is intentionally conservative: source inspection and historical PR descriptions support a claim but do **not** establish a successful test run.
+
+## Follow-up — 2026-10-10 (pinned to `ad670cb`)
+
+The evidence baseline is now pinned to commit `ad670cb` on `main` (PR #331's branch has merged). The original findings above are kept as recorded.
+
+**Precision improvements:** 1–3 had already been applied to ADR 0019, 0016 and 0001 before this follow-up. Item 4 is now done: ADR 0006 has a Verification section that names `docs/compatibility.md`, `TestJSONSchema`, `TestCompatArchive` and `TestCompatServeKey`.
+
+**Tests executed** (Linux only; Windows and macOS not run):
+
+```
+go test ./internal/web ./internal/report ./internal/cli -count=1 \
+  -run 'TestAssemble$|TestCSP$|TestShares$|TestJSONSchema$|TestCompatArchive$|TestCompatServeKey$'
+```
+
+All passed. Claim statuses in [evidence.yaml](evidence.yaml): **verified 4** (ADR-0006-C1, ADR-0006-C2, ADR-0016-C1, ADR-0019-C1), **historical-only 2** (ADR-0001-C1, ADR-0019-C2), **proposed 1** (ADR-0020-C1). Limits are recorded in each claim's notes: `/data.json` exclusion is documentary only, and `TestShares` does not assert the same-key case.
+
+**Routing index:** ADR 0002 added to the source-adapter row. New rows route `kiroku update` (`internal/cli/update.go`) to 0011/0003, and snapshot/fixture tests (`internal/cli/snapshot_test.go`, `testdata/`) to 0017.
+
+**Workflow integration:** `pre-pr` now runs an ADR Guard check. adr-guard's `record` mode delegates to forward-adr, so only one forward ADR template is maintained.
+
+**Still open:** claim-level audit of the remaining ADRs; ADR 0019-C2 aggregation; how a retrospective (Observed) ADR becomes Accepted, if ever. That last one is a governance question for the owner, not something an agent should decide.
+
+## Reverse ADR follow-up: early architecture and identity
+
+- Reviewed PR descriptions and sampled diffs for #1, #6, #7 and #9; inspected current `internal/cli/load.go` and `internal/core/session.go` at baseline `ad670cb`.
+- PR #6 explicitly documents the Go single-binary distribution rationale and adapter structure. The current collection code shows `seen` keys, `Claim`/`Yield` precedence and family-scoped withholding, without proving every historical motivation.
+- Preserved historical validation limits: #1 did not test real Kiro histories, #7 had not verified the Kiro CLI Windows location, and #9 had not tested real Codex histories at introduction. These are not present-day failure claims.
+- Three additional evidence claims: ADR-0001-C2, ADR-0004-C2 and ADR-0010-C2. Evidence matrix now has 10 claims: 4 previously test-verified, 3 historical-only, 2 untested, 1 proposed. No new tests were executed in this follow-up; previously recorded test results were preserved.
+- Review threads, full historical diffs, and most current adapter code remain unaudited.
