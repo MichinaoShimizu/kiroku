@@ -403,6 +403,10 @@ async function run(env) {
       for (let i = 0; i < d.length; i += 4) if (d[i] + d[i+1] + d[i+2] > 240) lit++;
       return lit > 200; }));
     check("光の名前が出る", (await p.locator(".yrtn").innerText()).trim().length > 0);
+    check("見どころが出る", (await p.locator("#yr h3", { hasText: "What stands out" }).count()) === 1 && (await p.locator("#yr .yrhi li").count()) > 0);
+    await p.locator("#yrcolor").selectOption("project"); await pause();
+    check("プロジェクトで色分けできる（画面の凡例にプロジェクトが並ぶ）", /Color = project/.test(await p.locator("#yr .yrhow").innerText()));
+    await p.locator("#yrcolor").selectOption("auto"); await pause();
     check("腕前の等級やメーターを出さない（人を順位付けしない）", !/Novice|Legendary|Master|Overexposed|Underexposed|Skill/.test(await p.locator("#yr").innerText()));
     const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
     check("1 年の露光が横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
