@@ -85,6 +85,8 @@ For each material decision, create a concise ADR with:
 - current implementation and test references, pinned to a revision;
 - limitations, uncertainties and outstanding verification.
 
+Build or update the ADR discovery index alongside every recovered ADR: stable ID/link, concise scope, path/component hints, semantic keywords, status, and supersession relationships. Verify links and avoid treating inferred scope as exhaustive. Flag index gaps for future ADR Guard runs.
+
 Maintain a separate ledger for smaller choices and reversals. Number ADRs consistently with the target repository; avoid renumbering published ADRs. For a planned later phase, keep phase distinct from chronology rather than rewriting stable IDs. Do not treat proposed decisions as historical facts.
 
 ### 5. Audit and quality gates
