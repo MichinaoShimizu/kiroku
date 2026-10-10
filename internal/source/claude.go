@@ -8,12 +8,10 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
@@ -23,8 +21,7 @@ import (
 type Claude struct {
 	Root, Archive string
 
-	mu      sync.Mutex
-	origins map[string][]string // 会話のファイル（Unit.Key）ごとの、写した行を数えなかった元の会話の ID（LoadUnit が覚え、Units が Tag に使う）
+	orig claudeOrigins // 写した行の元の会話を確かめるための一覧と、読んだ行の印（claude_origin.go）
 }
 
 func (c *Claude) Name() string   { return "Claude Code" }
@@ -257,7 +254,6 @@ func (c *Claude) Units() []Unit {
 			continue
 		}
 		u := claudeUnit(path, ".jsonl")
-		u.Tag = c.goneOrigins(path)
 		if c.Archive != "" { // 再開した会話では、古いサブエージェントのファイルだけが消えていることがある。消えたものはコピーから読む
 			stem, proj := stemOf(path), filepath.Base(filepath.Dir(path))
 			for _, cp := range glob(filepath.Join(c.Archive, proj, stem, "subagents", "*.jsonl.zst")) {
@@ -276,119 +272,14 @@ func (c *Claude) Units() []Unit {
 			if isFile(filepath.Join(c.Root, filepath.Base(filepath.Dir(path)), stemOf(path)+".jsonl")) {
 				continue // 元の会話があれば、そちらを読む
 			}
-			u := claudeUnit(path, ".jsonl.zst")
-			u.Tag = c.goneOrigins(path)
-			out = append(out, u)
+			out = append(out, claudeUnit(path, ".jsonl.zst"))
 		}
+	}
+	c.orig.setIndex(out)
+	for i := range out {
+		out[i].Tag = c.orig.goneOrigins(out[i].Key)
 	}
 	return out
-}
-
-// sessionIDPattern は、行の sessionId として受け付ける形（会話のファイル名に使うので、パスや glob の記号を入れない）。
-var sessionIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,128}$`)
-
-// copiedFrom は、行が別の会話から写したもの（/branch・--fork-session・エージェントの一覧の /fork）かもしれないとき、
-// 元の会話の ID。行の forkedFrom.sessionId か sessionId がこのファイルの会話（stem）と違えば、その会話を元とみなす。
-// どちらも公式の文書には書かれていないので、これは「どの会話のファイルを確かめるか」の手がかりにだけ使う。
-// 写した行かどうかは、同じ行（uuid）が元の会話のファイルにあるかで決める（originLines）。
-// sessionId のない行（summary・タイトルなど）は、この会話の行とみなす。
-func copiedFrom(e core.Obj, stem string) string {
-	id := core.Str(core.Map(e["forkedFrom"])["sessionId"])
-	if id == "" || id == stem {
-		id = core.Str(e["sessionId"])
-	}
-	if id == "" || id == stem || !sessionIDPattern.MatchString(id) {
-		return ""
-	}
-	return id
-}
-
-// lineKey は、写した行を元の会話の行と突き合わせる印: uuid。uuid のない行は、assistant の message.id と requestId の組
-// （replyKey）。どちらもなければ空（突き合わせず、数える）。
-func lineKey(e core.Obj) string {
-	if u := core.Str(e["uuid"]); u != "" {
-		return "u\x00" + u
-	}
-	return replyKey(e)
-}
-
-// replyKey は、assistant の行の message.id と requestId の組（どちらもあるとき。なければ空）。
-func replyKey(e core.Obj) string {
-	if core.Str(e["type"]) == "assistant" {
-		if id, req := core.Str(core.Map(e["message"])["id"]), core.Str(e["requestId"]); id != "" && req != "" {
-			return "m\x00" + id + "\x00" + req
-		}
-	}
-	return ""
-}
-
-// originFiles は、会話 id のファイルのうち kiroku が読むもの（Units と同じ: Claude Code の履歴の .jsonl、
-// それがなければ kiroku archive のコピーの .jsonl.zst）。id は copiedFrom で形を確かめたもの。
-func (c *Claude) originFiles(id string) []string {
-	files := glob(filepath.Join(c.Root, "*", id+".jsonl"))
-	if c.Archive != "" {
-		for _, cp := range glob(filepath.Join(c.Archive, "*", id+".jsonl.zst")) {
-			if !isFile(filepath.Join(c.Root, filepath.Base(filepath.Dir(cp)), id+".jsonl")) {
-				files = append(files, cp)
-			}
-		}
-	}
-	return files
-}
-
-// originLines は、会話 id のファイル（originFiles）にある行の印（lineKey と replyKey）。持つのは印の文字列だけ。
-// 読めなかった行の印は入らないので、その行を写した行は数える（元の会話でも読めず、数えられていない）。
-// found は、元の会話のファイルがあったか。
-func (c *Claude) originLines(id string) (keys map[string]bool, found bool) {
-	files := c.originFiles(id)
-	keys = map[string]bool{}
-	for _, f := range files {
-		core.ReadJSONL(f, func(e core.Obj) { // 読めないところは印が入らず、写した先で数えるだけなので、エラーは見ない
-			for _, k := range []string{lineKey(e), replyKey(e)} { // uuid のない写した行とも突き合わせられるよう、組も入れる
-				if k != "" {
-					keys[k] = true
-				}
-			}
-		})
-	}
-	return keys, len(files) > 0
-}
-
-// goneOrigins は、前に読んだときにあった元の会話（写した行を数えなかったもの）のうち、今はないものの ID（Unit.Tag。
-// kiroku serve で、元の会話が消えたら写した行を数え直すため）。まだ読んでいない会話と、元の会話が全部あるものは空。
-func (c *Claude) goneOrigins(key string) string {
-	c.mu.Lock()
-	ids := c.origins[key]
-	c.mu.Unlock()
-	var gone []string
-	for _, id := range ids {
-		if len(c.originFiles(id)) == 0 {
-			gone = append(gone, id)
-		}
-	}
-	return strings.Join(gone, " ")
-}
-
-// rememberOrigins は、会話のファイル key の写した行の元の会話のうち、あったもの（has が true）の ID を覚える（goneOrigins 用）。
-// 読んだときになかった元の会話は、写した行をもう数えているので覚えない。
-func (c *Claude) rememberOrigins(key string, has map[string]bool) {
-	var ids []string
-	for id, ok := range has {
-		if ok {
-			ids = append(ids, id)
-		}
-	}
-	sort.Strings(ids)
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if len(ids) == 0 {
-		delete(c.origins, key)
-		return
-	}
-	if c.origins == nil {
-		c.origins = map[string][]string{}
-	}
-	c.origins[key] = ids
 }
 
 func claudeUnit(path, ext string) Unit {
@@ -434,28 +325,23 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	// 同じ行（uuid）が元の会話のファイルにあるときだけ写した行とみなす。元の会話のファイルがもうない（Claude Code が消し、
 	// kiroku archive にもない）・読めない・その行がないときは、この会話で数える。見るのは会話のファイルだけで、
 	// サブエージェントのファイルは突き合わせない
-	origins := map[string]bool{}               // 写した行の元の会話の ID と、そのファイルがあるか
-	originKeys := map[string]map[string]bool{} // 元の会話ごとの行の印（lineKey）
-	var branchAt *float64                      // 数えなかった（元の会話にあった）写した行のいちばん遅い時刻（会話を分けた時刻）
-	var version string                         // いちばん新しい行を書いた Claude Code の版（行の version）
-	var versionT float64                       // その行の時刻
+	if !c.orig.hasIndex() {
+		c.Units() // 元の会話のファイルの一覧を作る（ふつうは Load や kiroku serve が先に Units を呼んでいる）
+	}
+	origins := &originCheck{o: &c.orig, sets: map[string][]map[uint64]struct{}{}, found: map[string]bool{}}
+	var branchAt *float64 // 数えなかった（元の会話にあった）写した行のいちばん遅い時刻（会話を分けた時刻）
+	var version string    // いちばん新しい行を書いた Claude Code の版（行の version）
+	var versionT float64  // その行の時刻
 	readErr := fileErr(path, core.ReadJSONL(path, func(e core.Obj) {
 		typ := core.Str(e["type"])
-		if from := copiedFrom(e, stem); from != "" {
-			keys, ok := originKeys[from]
-			if !ok {
-				keys, origins[from] = c.originLines(from)
-				originKeys[from] = keys
+		if origins.copied(e, stem) {
+			if t := ts(e["timestamp"]); t != nil && (branchAt == nil || *t > *branchAt) {
+				branchAt = t
 			}
-			if k := lineKey(e); k != "" && keys[k] {
-				if t := ts(e["timestamp"]); t != nil && (branchAt == nil || *t > *branchAt) {
-					branchAt = t
-				}
-				if s.Project == "" {
-					s.Project = core.Str(e["cwd"])
-				}
-				return
+			if s.Project == "" {
+				s.Project = core.Str(e["cwd"])
 			}
+			return
 		}
 		if typ == "summary" && core.Str(e["summary"]) != "" {
 			summaries = append(summaries, core.Str(e["summary"]))
@@ -751,7 +637,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			s.Branch = b
 		}
 	}
-	c.rememberOrigins(path, origins)
+	c.orig.remember(path, origins.found)
 	s.Title = firstNonEmpty(customTitle, aiTitle)
 	if s.Title == "" && len(summaries) > 0 {
 		s.Title = summaries[len(summaries)-1]
