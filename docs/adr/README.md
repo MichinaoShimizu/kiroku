@@ -74,9 +74,22 @@ When adding or changing an ADR, update this table and the ADR list with its scop
 - `audit.md` — dated Reverse ADR inspection, findings, limitations and next verification gates.
 - `decision-continuity.md` — reusable practice combining retrospective recovery with ongoing change governance.
 
-## Lifecycle
+## Lifecycle and record format
 
-Use **Observed (retrospective)** for decisions inferred from existing code when no original decision record is available; do not fabricate a past discussion. For new decisions use **Proposed → Accepted → Superseded** (or **Rejected**). Every ADR should contain context, decision, rationale, consequences, alternatives, and verification references. Changes in direction should create a new ADR with a supersedes link rather than silently rewriting accepted decisions.
+**Status is the lifecycle of the decision; evidence labels describe how well each claim is supported.** Keep them on separate axes. Never write `Status: Documented` or `Status: Unknown`.
+
+| Status | Meaning |
+|---|---|
+| **Observed (retrospective)** | Recovered from history. Records what happened and any documented rationale; not an accepted constraint until owners review it. Use it when no original decision record exists, and keep it when the rationale is unknown. |
+| **Proposed** | A new decision awaiting human review. |
+| **Accepted** / **Rejected** | Set only by the decision owner. |
+| **Superseded by NNNN** / **Deprecated** | Replaced by a later accepted ADR, or no longer applies. |
+
+Evidence labels (**Documented / Observed / Inferred / Unknown**) apply per claim, in the ADR body and in [evidence.yaml](evidence.yaml), together with the separate historical/current/tested (H/C/T) checks. A retrospective ADR may contain documented claims and claims with unknown rationale at the same time.
+
+Every ADR contains the common ADR elements: title, status, date, context, decision, consequences (costs as well as benefits), alternatives (or "not documented"), and verification. Retrospective ADRs date the source change (PR merge date) or say the date is unknown; they also state historical confidence and open questions. Forward ADRs add a decision owner and `Supersedes`/`Amends` links. The Phase 1 retrospective ADRs predate the explicit `Date` field and are dated through their linked PRs; add the field when an ADR is next updated. Templates: [reverse-adr](../../.claude/skills/reverse-adr/SKILL.md#retrospective-adr-template) and [forward-adr](../../.claude/skills/forward-adr/SKILL.md#template).
+
+Changes in direction create a new ADR rather than rewriting an old one. When the new ADR is accepted, the only edit to the old ADR is its status line (`Superseded by NNNN`, with a link); its body and rationale stay as recorded.
 
 ## Roadmap terminology
 

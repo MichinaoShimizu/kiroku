@@ -52,6 +52,17 @@ A historical change can be certain even when its rationale is unknown. For examp
 
 This is **Uncertainty Preservation**: retain the known facts *and* the unresolved uncertainty as durable, discoverable inputs to later decisions. When ADR Guard encounters such a record, it should flag the unknown rationale, examine current evidence, and recommend proportionate follow-up investigation rather than automatically vetoing the change. Forward ADR can then document a new explicit decision without retroactively claiming certainty about the old one. The index should expose the uncertainty so the record is not silently treated as an accepted policy.
 
+## Record format
+
+Decision Continuity keeps the common ADR elements (title, status, date, context, decision, consequences, alternatives) and adds what recovery and reuse need: per-claim evidence labels, separate historical/current/tested checks, open questions, and supersession links.
+
+Two axes stay separate:
+
+- **Status** is the lifecycle of the decision: Observed (retrospective), Proposed, Accepted, Rejected, Superseded or Deprecated.
+- **Evidence labels** (Documented, Observed, Inferred, Unknown) describe each claim inside the record.
+
+A strong evidence label does not make a decision accepted, and a record with unknown rationale is not promoted to Accepted without human review. When a decision is superseded, only the old record's status line changes; its body stays as recorded.
+
 ## Principles
 
 1. **Evidence before authority.** A retrospective ADR is a claim about history, not a retroactive approval. Label documented, observed, inferred and unknown statements. Verify current code and tests separately.

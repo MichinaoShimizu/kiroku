@@ -87,6 +87,38 @@ For each material decision, create a concise ADR with:
 - current implementation and test references, pinned to a revision;
 - limitations, uncertainties and outstanding verification.
 
+Status is the lifecycle of the record, not an evidence label: never write `Status: Documented` or `Status: Unknown`. Put Documented/Observed/Inferred/Unknown on the claims inside the body. Keep `Observed (retrospective)` when the rationale is unknown; do not promote a record to Accepted without the owners' review.
+
+#### Retrospective ADR template
+
+```markdown
+# ADR NNNN: <decision title>
+
+Status: Observed (retrospective)
+Date: <merge date of the source change, or Unknown>
+Scope: <phase / subsystem>
+Related: <ADR links>
+Superseded by: <ADR link, if any>
+
+## Context
+<the problem at the time, if recorded; otherwise "Not documented">
+
+## Decision
+<what changed or was chosen; label each statement Documented / Observed / Inferred>
+
+## Consequences
+<benefits and costs, as recorded or as observed in the current implementation>
+
+## Alternatives
+<documented alternatives, or "Not documented">
+
+## Historical confidence and open questions
+<rationale Unknown when not recorded; inferred motives marked as unsupported; questions to investigate>
+
+## Verification
+<current code and test references at a pinned revision; tests not run are unverified>
+```
+
 Build or update the ADR discovery index alongside every recovered ADR: stable ID/link, concise scope, path/component hints, semantic keywords, status, and supersession relationships. Verify links and avoid treating inferred scope as exhaustive. Flag index gaps for future ADR Guard runs.
 
 Maintain a separate ledger for smaller choices and reversals. Number ADRs consistently with the target repository; avoid renumbering published ADRs. For a planned later phase, keep phase distinct from chronology rather than rewriting stable IDs. Do not treat proposed decisions as historical facts.
