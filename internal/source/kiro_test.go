@@ -573,3 +573,16 @@ func TestKiroIDELegacySelectedModel(t *testing.T) {
 		t.Errorf("モデル = %v, クレジット = %v", f.Models, f.Credits)
 	}
 }
+
+// usage_summary の行がない会話も、会話のモデル（modelId）を 1 回数える。
+func TestKiroIDEModelWithoutUsage(t *testing.T) {
+	home := t.TempDir()
+	writeFiles(t, home, map[string]string{
+		"sessions/abc/sess_1/session.json":   `{"id": "sess_1", "createdAt": "2026-09-29T01:00:00Z", "modelId": "claude-sonnet-4.5"}`,
+		"sessions/abc/sess_1/messages.jsonl": `{"timestamp": "2026-09-29T01:01:00Z", "payload": {"type": "user", "content": "画面を作って"}}` + "\n",
+	})
+	f := load(t, &KiroIDE{Home: home})[0].Finish(15)
+	if len(f.Models) != 1 || f.Models[0][0] != "claude-sonnet-4.5" {
+		t.Errorf("モデル = %v", f.Models)
+	}
+}

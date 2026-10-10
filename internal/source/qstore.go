@@ -17,7 +17,7 @@ import (
 // どちらも同じ作り（amazon-q-developer-cli が元）:
 //
 //	conversations(key = 作業フォルダ, value = 会話の JSON)          … フォルダごとに 1 行を上書き
-//	conversations_v2(key, conversation_id, value, created_at, updated_at) … Kiro CLI だけ
+//	conversations_v2(key, conversation_id, value, created_at, updated_at) … Kiro CLI だけ。フォルダに会話が何件も入る
 //
 // value.history[i] = {user: {content, timestamp(RFC3339)}, assistant: {Response|ToolUse}, request_metadata: {...}}。
 // value.latest_summary = [要約, request_metadata]（最後のコンパクション。qCompaction）。
@@ -27,7 +27,10 @@ type QStore struct {
 	Label   string // 画面の名前
 	Fam     string // --sources の名前
 	DB      string // data.sqlite3 の場所
-	Command string // 再開コマンド（例: kiro-cli chat --resume）
+	Command string // conversations の会話の再開コマンド（例: kiro-cli chat --resume。フォルダの最新の会話を開く）
+	// conversations_v2 の会話を ID で開くコマンド（例: kiro-cli chat --resume-id）。
+	// v2 はフォルダに会話が何件もあり、--resume では最新のものしか開けない。空なら v2 の会話には出さない
+	ResumeID string
 }
 
 func (q *QStore) Name() string   { return q.Label }
@@ -71,6 +74,7 @@ func sqliteDSN(path string) string {
 type qRow struct {
 	key, id, value   string
 	created, updated any
+	v2               bool // conversations_v2 の行
 }
 
 func (q *QStore) Load(emit func(*core.Builder)) error {
@@ -96,7 +100,7 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 			return err
 		}
 		for r.Next() {
-			var x qRow
+			x := qRow{v2: true}
 			if err := r.Scan(&x.key, &x.id, &x.value, &x.created, &x.updated); err != nil {
 				errs.file(q.DB, err)
 				continue
@@ -178,6 +182,12 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 					reply = trimmed != qResumeSummary
 				case strings.HasPrefix(trimmed, qSystemNote): // /todos resume が入れた依頼
 					s.Inject(t, "meta", text)
+				case qCancelledOnly(trimmed):
+					// ツールを断った・止めたターン（CancelledToolUses）が履歴の先頭に残ったとき
+					// （/compact --messages-to-exclude など）、CLI がツールの結果の決まった文をつないだ Prompt に書き換えたもの
+					// （message.rs の replace_content_with_tool_use_results）。人が打った文は消え、時刻だけ残る。下と同じく数えない
+					s.Inject(t, "output", text)
+					s.Agent(t)
 				case user["timestamp"] == nil && meta == nil && !isLegacyEntry(h):
 					// MCP の /prompts get が入れた user と assistant の組（conversation.rs の append_prompts）。
 					// 時刻も request_metadata もない。応答も MCP サーバーの文で、モデルの応答ではないので付けない
@@ -255,7 +265,13 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 			s.Measure("context_window", lastT, window)
 		}
 		qCompaction(s, conv)
-		if q.Command != "" && s.Project != "" {
+		switch {
+		case s.Project == "":
+		case x.v2:
+			if q.ResumeID != "" && x.id != "" {
+				s.Resume = core.ResumeCmd(s.Project, q.ResumeID, x.id)
+			}
+		case q.Command != "":
 			s.Resume = core.ResumeCmd(s.Project, q.Command, "")
 		}
 		emit(s)
@@ -278,6 +294,26 @@ const (
 func qForbidden(text string) bool {
 	const prefix, suffix = "Tool use with ", " was rejected because the arguments supplied were forbidden"
 	return len(text) > len(prefix)+len(suffix) && strings.HasPrefix(text, prefix) && strings.HasSuffix(text, suffix)
+}
+
+// qCancelled は、断った・止めたツールの結果として CLI が入れる決まった文（message.rs の new_cancelled_tool_uses）。
+const qCancelled = "Tool use was cancelled by the user"
+
+// qCancelledOnly は、text が qCancelled を空白 1 つでつないだだけの文か
+// （replace_content_with_tool_use_results はツールの結果を " " でつなぐ）。
+func qCancelledOnly(text string) bool {
+	for {
+		rest, ok := strings.CutPrefix(text, qCancelled)
+		if !ok {
+			return false
+		}
+		if rest == "" {
+			return true
+		}
+		if text, ok = strings.CutPrefix(rest, " "); !ok {
+			return false
+		}
+	}
 }
 
 // qInjected は Prompt として入る決まった文と、その Note の種類。
