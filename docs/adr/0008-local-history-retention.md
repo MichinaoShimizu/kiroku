@@ -1,4 +1,4 @@
-# ADR 0008: Opt-in preservation of local agent history
+# ADR 0008: Incremental local history processing
 
 Status: **Observed (retrospective)**
 
@@ -6,19 +6,20 @@ Scope: Phase 1.
 
 ## Context
 
-Agent tools may prune their own histories, so a viewer that only rereads the original source cannot promise indefinite recall.
+Reparsing all agent histories on every live refresh becomes expensive as histories grow, particularly when agents append frequently.
 
 ## Documented decisions
 
-- Introduce `kiroku archive` to retain local copies of agent history that agents may delete ([#75](https://github.com/MichinaoShimizu/kiroku/pull/75)).
-- Preserve linked history directories and support reading previously copied subagent history after agent-side cleanup ([#86](https://github.com/MichinaoShimizu/kiroku/pull/86)).
-- Inform users about upstream history retention and how to preserve it, rather than implying kiroku controls the agent's cleanup ([#51](https://github.com/MichinaoShimizu/kiroku/pull/51), [#287](https://github.com/MichinaoShimizu/kiroku/pull/287)).
-- Test archive failure cases, file modes and compatibility of archived data ([#256](https://github.com/MichinaoShimizu/kiroku/pull/256), [#211](https://github.com/MichinaoShimizu/kiroku/pull/211)).
+- Start with a lightweight file-name/size/mtime fingerprint to detect changes while serving a local view ([#11](https://github.com/MichinaoShimizu/kiroku/pull/11)).
+- Debounce reloads during active writes while enforcing a maximum delay to avoid indefinitely stale views ([#23](https://github.com/MichinaoShimizu/kiroku/pull/23)).
+- Load only changed histories and summarize sessions relevant to a period rather than rebuilding everything ([#69](https://github.com/MichinaoShimizu/kiroku/pull/69)).
+- Improve Codex/Git incremental behavior ([#129](https://github.com/MichinaoShimizu/kiroku/pull/129)), and later recalculate only affected weeks/months ([#258](https://github.com/MichinaoShimizu/kiroku/pull/258)).
+- Benchmark year-scale history and avoid unnecessary processing/marshaling ([#257](https://github.com/MichinaoShimizu/kiroku/pull/257)).
 
 ## Rationale and consequences
 
-Preservation is separate from visualization. Archive behavior must remain explicit and must not silently convert temporary/private agent history into ordinary exportable content; privacy rules in [ADR 0004](0004-local-privacy-boundary.md) remain applicable.
+Optimize source-unit reading and affected time ranges without changing observable counts. Caches must invalidate when source identity, parsing rules or attribution changes; correctness fixtures take precedence over cache hits.
 
-## Alternatives and confidence
+## Historical confidence
 
-These choices are documented in PRs. This ADR does not claim a comprehensive historical evaluation of backups or a cloud retention service. Review current `internal/archive` and source-specific handling before changing retention behavior.
+The incremental direction is evidenced by the PR sequence. This ADR does not claim a particular cache algorithm was formally selected in advance. Inspect `internal/cli/cache.go`, `internal/source/watch.go`, and report tests before changing the implementation.
