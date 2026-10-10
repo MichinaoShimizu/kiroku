@@ -94,7 +94,7 @@ func All(o Options) []Source {
 		&Claude{Root: o.ClaudeRoot, Archive: sub(o.Archive, core.ArchiveDirOf("Claude Code"))},
 		&KiroIDE{Home: o.KiroHome},
 		&KiroCLI{Home: o.KiroHome, CrewHome: q(o.CrewHome, DefaultCrewHome()), CrewArchive: sub(o.Archive, core.ArchiveDirOf("Kiro Crew"))},
-		&QStore{Label: "Kiro CLI (SQLite)", Fam: "kiro", DB: q(o.KiroCLIDB, filepath.Join(DataDir("kiro-cli"), "data.sqlite3")), Command: "kiro-cli chat --resume"},
+		&QStore{Label: "Kiro CLI (SQLite)", Fam: "kiro", DB: q(o.KiroCLIDB, filepath.Join(DataDir("kiro-cli"), "data.sqlite3")), Command: "kiro-cli chat --resume", ResumeID: "kiro-cli chat --resume-id"},
 		&KiroIDELegacy{Storages: storages(o.KiroStorages)},
 		&QStore{Label: "Amazon Q", Fam: "amazonq", DB: q(o.AmazonQDB, filepath.Join(DataDir("amazon-q"), "data.sqlite3")), Command: "q chat --resume"},
 		&Codex{Home: q(o.CodexHome, DefaultCodexHome())},

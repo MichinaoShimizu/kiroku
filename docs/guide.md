@@ -341,7 +341,7 @@ Press "?" on any metric in the view to see the same explanation, and open the me
 |---|---|---|
 | Claude Code | `~/.claude/projects/*/*.jsonl` | Per message |
 | Kiro IDE (v1.0 and later) | `~/.kiro/sessions/<hash>/sess_*/` | Per message |
-| Kiro CLI | `~/.kiro/sessions/cli/` | Per prompt |
+| Kiro CLI | `~/.kiro/sessions/cli/` (the opt-in V3 storage, `kiro-cli --v3`, is not read yet) | Per prompt |
 | Kiro IDE (before v1.0) | `<globalStorage>/kiro.kiroagent/workspace-sessions/`, the execution files in `<globalStorage>/kiro.kiroagent/<32-hex workspace>/<session>/` and the `.chat` files in `<globalStorage>/kiro.kiroagent/<32-hex workspace>/` (`<globalStorage>` is `~/Library/Application Support/Kiro/User/globalStorage` on macOS, `%APPDATA%\Kiro\User\globalStorage` on Windows, and `~/.config/Kiro/User/globalStorage` or `~/.kiro-server/data/User/globalStorage` on Linux) | Start and last update, plus the start and end of each execution when its file exists |
 | Kiro Crew | `~/.kiro/crew/` (`session_map.json`, `usage/tokens/`) | Per prompt or turn |
 | Kiro CLI (old versions) | `kiro-cli/data.sqlite3` (table below) | Per prompt |
@@ -358,7 +358,7 @@ Location of `data.sqlite3`:
 | Windows | `%LOCALAPPDATA%\<kiro-cli or amazon-q>\` (unverified for Kiro CLI; if it differs, specify it with `--kiro-cli-db`) |
 
 - If `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME` or `CLAUDE_CONFIG_DIR` is set, that location is read (for `CLAUDE_CONFIG_DIR`, its `projects/` folder). `KIRO_HOME` does not move Kiro Crew, which always uses `~/.kiro/crew` unless `KIROCREW_HOME` is set
-- Even if the same conversation is recorded in two places, it is counted once. The number excluded is shown under "Data sources" (at the very bottom of the summary)
+- Even if the same conversation is recorded in two places, it is counted once (Kiro CLI in both JSON and SQLite counts the JSON one; a Kiro IDE conversation migrated to v1.0, whose pre-1.0 copy Kiro keeps, counts the v1.0 one). The number excluded is shown under "Data sources" (at the very bottom of the summary)
 - Kiro credits are the values recorded in history, summed as they are (per-model multipliers are not reapplied). Kiro IDE before v1.0 records credits only in its execution files, so conversations without them have none, and Kiro CLI (SQLite) does not record credits, so that usage is not included. Variations in how the unit is written (`credit`, `Credits` and so on) are treated the same. Numbers may differ from your account page because of the period (billing period), use on other computers, old history Kiro has deleted, and use outside chat (such as agent hooks, which leave no history)
 - Codex models (OpenAI) are priced at OpenAI's standard rates, including the Cyber models such as `gpt-5.5-cyber`. Fast mode (priority processing), Flex, Batch and the regional-processing uplift are not reflected, and models older than gpt-5 are not in the price table (add them with `--prices`)
 

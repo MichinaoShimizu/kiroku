@@ -146,8 +146,11 @@ type Credit struct {
 
 // Builder は 1 つのセッションを読みながら組み立てる。アダプターはこれだけを触る。
 type Builder struct {
-	Source, ID                     string
-	Key                            string // 同じ会話が 2 つの場所に残るとき、先に読んだほうだけを使うための鍵
+	Source, ID string
+	Key        string // 同じ会話が 2 つの場所に残るとき、先に読んだほうだけを使うための鍵
+	// Claim と Yield は、片方の場所だけを使う組（Kiro IDE の v1.0 と v1.0 より前の写し）。
+	// Yield の会話は、同じ鍵を Claim した会話がセッションになっていれば数えない。Claim の会話どうしは落とし合わない
+	Claim, Yield                   string
 	Project, Branch, Title, Resume string
 	Prompts                        []Prompt
 	Notes                          []Note // エージェントや仕組みが会話に入れたもの（kind.go）
