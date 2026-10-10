@@ -51,6 +51,8 @@ Use these labels:
 - **Inferred**: plausible interpretation, explicitly marked as inference.
 - **Unknown**: no reliable evidence.
 
+**Uncertainty Preservation:** an important observed change with unknown rationale is still useful evidence for future decisions. Record the verified before/after change and source references, label the rationale `Unknown`, and retain explicit investigation questions. Do not manufacture an architectural choice or accepted policy from the diff alone.
+
 Never invent approval meetings, alternative options, tradeoffs, motivations, or acceptance dates. A merged PR proves a change merged, **not** that a specific rationale was formally approved. Preserve decisions that were reversed; do not silently rewrite their historical status.
 
 ### 3. Verify every material claim
