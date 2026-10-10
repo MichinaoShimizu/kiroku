@@ -1,8 +1,12 @@
 # ADR 0015: Comparable periods and explicitly estimated forecasts
 
-Status: **Retrospective**
+Status: Retrospective
+Date: Unknown
+Related: None
+Supersedes: None
+Superseded by: None
 
-Scope: Phase 1 — local sessions.
+Scope: Phase 1 — local sessions
 
 ## Context and documented decision
 
@@ -17,3 +21,23 @@ A comparison must disclose its denominator and time range; a projection is not a
 Inspect current comparison and forecast UI before treating the original #70 display as still present. The decision principle is supported; the present visibility of each tile is not independently established.
 
 This ADR records documented changes, not an approval meeting or an unverified current behavior.
+
+## Decision
+
+The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
+
+## Consequences
+
+See the existing rationale and consequences discussion above. No additional outcome is asserted.
+
+## Alternatives
+
+Not documented as a separate set of evaluated options in this record.
+
+## Historical confidence and open questions
+
+Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.
+
+## Verification
+
+See existing source and test references where available. No new test execution is claimed.
