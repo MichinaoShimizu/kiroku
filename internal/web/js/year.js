@@ -21,13 +21,13 @@ function yearData(y){
   const on = new Set(); ms.forEach(m => (m.days || []).forEach((d, i) => { if (d.active > 0){ const [Y, M, D] = m.start.split("-").map(Number); on.add(key(new Date(Y, M-1, D+i))); } }));
   // 光の筋：[列（日）, 上端, 下端（列の中の 0〜1）, 色]。列は朝 6 時で区切るので、深夜の作業は前の日の列の下のほうに写る
   const y0 = new Date(y, 0, 1)/1000, y1 = new Date(y+1, 0, 1)/1000, nd = Math.round((y1 - y0)/86400), day0 = new Date(y, 0, 1);
-  const lines = [], hist = new Array(24).fill(0); let segMin = 0, nses = 0, nprompts = 0;
+  const lines = [], hist = new Array(24).fill(0), slots = new Set(); let segMin = 0, nses = 0, nprompts = 0; // slots: 動いていた 5 分枠（並列を二重に数えない）
   DATA.forEach(s => {
     const mine = s.start >= y0 && s.start < y1; if (mine){ nses++; nprompts += s.nPrompts || 0; }
     s.segs.forEach(([a, b]) => {
       if (mine) segMin += (b - a)/60;
       a = Math.max(a, y0); b = Math.min(b, y1); if (b <= a) return;
-      for (let t = a; t < b; t += 300) hist[new Date(t*1000).getHours()] += Math.min(300, b - t)/60;
+      for (let i = Math.floor(a/300), j = Math.ceil(b/300); i < j; i++) slots.add(i);
       while (a < b){
         const t = new Date(a*1000), d = new Date(t.getFullYear(), t.getMonth(), t.getDate() - (t.getHours() < 6 ? 1 : 0)), c0 = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 6)/1000, c1 = new Date(d.getFullYear(), d.getMonth(), d.getDate()+1, 6)/1000, e = Math.min(b, c1);
         const col = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - day0)/864e5);
@@ -36,6 +36,7 @@ function yearData(y){
       }
     });
   });
+  slots.forEach(i => hist[new Date(i*300000).getHours()] += 5);
   const ht = hist.reduce((a, v) => a + v, 0) || 1, now = today0();
   return { y, nd, active, lines, agents, sessions: nses,
     morningPct: (hist[5] + hist[6] + hist[7] + hist[8])/ht*100, peak: hist.indexOf(Math.max(...hist)),
@@ -59,9 +60,9 @@ const LIGHTS = [
   {k: "burst", en: "Burst", m: "per", t: x => x.perSes >= 15,
    de: "You ask small and often, and move fast.",
    re: "15 or more prompts per session on average"},
-  {k: "focus", en: "Refocus", m: "fix", t: x => x.fix != null && x.fix >= 15,
-   de: "You keep adjusting until it is just right.",
-   re: "15% or more of prompts had a correction or interruption"},
+  {k: "focus", en: "Bracketing", m: "fix", t: x => x.fix != null && x.fix >= 15,
+   de: "You try a few takes and keep the best one.",
+   re: "15% or more of prompts look like a follow-up correction or came after an interruption (guessed from the wording)"},
   {k: "day", en: "Daylight", m: "peak", t: () => true,
    de: "You work with AI steadily through the day.",
    re: "None of the above"}];
@@ -112,7 +113,7 @@ function drawCard(){
   g.fillStyle = fade; g.fillRect(0, top, W, H - top);
   // 画像だけを見た人にも読めるよう、光の読み方を添える
   g.textAlign = "left"; g.textBaseline = "alphabetic"; g.fillStyle = ink2; g.globalAlpha = .8; g.font = `500 16px ${FONT.mono}`; ls("2px");
-  g.fillText("EACH STREAK = A STRETCH OF WORK   ·   ACROSS: DATE   ·   DOWN: 6:00 → 6:00", 80, top + 40); ls("0px"); g.globalAlpha = 1;
+  g.fillText("EACH STREAK = A STRETCH OF ACTIVE TIME   ·   ACROSS: DATE   ·   DOWN: 6:00 → 6:00", 80, top + 40); ls("0px"); g.globalAlpha = 1;
   g.textAlign = "left"; g.textBaseline = "alphabetic";
   const pt = x.partial;
   g.fillStyle = ink2; g.font = `500 22px ${FONT.mono}`; ls("4px");
@@ -157,7 +158,7 @@ function renderYear(){
   <p class="yrlead">Your active time with AI, drawn like a year-long exposure. Across is the date, down is the time of day (6:00 to 6:00 the next morning). Each stretch of active time is a streak of light, brighter where sessions overlapped.${pt ? ` Recorded up to ${dMD(pt)}.` : ""}</p>
   <div class="yrscroll"><div class="yrchart"><div class="yrax" aria-hidden="true">${hours}</div><canvas class="yrplate" id="yrplate" role="img" aria-label="${esc(`Active time in ${x.y} by date and time of day. Active time ${dur(x.active)}`)}"></canvas><div class="yrx" aria-hidden="true">${months}</div></div></div>
   <div class="yrleg">${x.agents.map(a => `<span><i style="background:${a.c}"></i>${esc((a.k))} ${Math.round(a.pct)}%</span>`).join("")}</div>
-  <div class="yrhow"><div><b>Length = how long you worked</b>Each streak is one stretch of active time in a session.</div>
+  <div class="yrhow"><div><b>Length = how long a session was active</b>Each streak is one stretch of active time in a session, estimated from the timestamps in the history. It includes time the AI ran on its own.</div>
     <div><b>Color = agent</b>Colors that start to mix show when you began using more than one.</div>
     <div><b>Dark bands = time off</b>Holidays and days off show up dark.</div></div>
 
@@ -171,7 +172,7 @@ function renderYear(){
   <div class="yrtype"><div class="yrtn"><span>${vt(name(L))}</span></div><div>
     <p class="yrtd">${L.de}</p>
     <dl class="yrev">${ev.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>
-    <p class="note">${`Your light describes the shape of your year in photography terms. It is not a verdict. Why: ${L.re}`}${x.active < 600 ? " (based on little history, so take it lightly)" : ""}</p>
+    <p class="note">${`Your light describes the shape of your year in photography terms. It is not a verdict, and its thresholds are rough guides. Why: ${L.re}`}${x.active < 600 ? " (based on little history, so take it lightly)" : ""}</p>
     <details class="yrtypes"><summary>All six and how they are chosen</summary><ul>${LIGHTS.map(l => `<li><b>${name(l)}</b> — ${l.re}</li>`).join("")}</ul>
       <p class="note">The first one that matches, from the top, is chosen.</p></details></div></div>`;
   $("#yrsel").onchange = e => { yr.y = +e.target.value; renderYear(); };

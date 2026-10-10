@@ -109,15 +109,15 @@ The old forms `kiroku --serve`, `--json`, `-o` and `--weekly` / `--monthly` have
 
     ![Year in review share image (dummy data)](year.png)
 
-  - Your light: the shape of your year, named in photography terms (not a verdict). The first match from the top is chosen. There are no scores, levels or rankings: the year in review describes how you worked, it does not grade you
+  - Your light: the shape of your year, named in photography terms (not a verdict). The first match from the top is chosen, and the thresholds are rough guides rather than measured cut-offs. There are no scores, levels or rankings: the year in review describes how you worked, it does not grade you
 
     | Your light | Rule |
     |---|---|
-    | Daybreak | 25% or more of active time is between 5:00 and 9:00 (compared using the total active stretches of sessions) |
+    | Daybreak | 25% or more of active time is between 5:00 and 9:00 (time when any session was active counts once, so sessions run in parallel are not counted twice) |
     | Multiple Exposure | 3 or more agents, each with 10% or more of active time |
     | Long Exposure | 45 minutes or more of active time per session, with 10 prompts or fewer on average |
     | Burst | 15 or more prompts per session on average |
-    | Refocus | 15% or more of prompts had a correction or interruption |
+    | Bracketing | 15% or more of prompts look like a follow-up correction or came after an interruption (guessed from the wording) |
     | Daylight | None of the above |
 - Opening details moves focus into them, and closing them returns focus to the bar or card you opened them from. When you move from one detail to another (a commit or session), "Back" takes you back. The browser's Back button closes the details (or goes back one step after moving between details) instead of leaving the page
 - Keyboard shortcuts: `←` `→` to move by week or month, `T` for this week or month, `W` `M` to switch between week and month, `/` to search, `+` `−` to zoom, `Y` to open the Year in review, `Esc` to close details, `G` (or the map button at the top right) to open the metrics guide, `?` (or the keyboard button at the top right) to show the shortcut list. `←` `→` don't change the period while details are open or while the focus is on a control that uses the arrow keys itself (such as the View toggle and the search box). With the keyboard, "Skip the calendar" (the first stop after the legend) jumps past the calendar's bars and marks to the summary. `Esc` closes an open "?" explanation first
