@@ -23,6 +23,10 @@ Local-first is a data-flow and security boundary, not a guarantee that any gener
 
 For Phase 2 remote import, downloaded transcripts are untrusted input, and remote project paths must never be treated as locally trusted Git roots by default.
 
+## Review-thread evidence and limits
+
+The review discussion on [#172](https://github.com/MichinaoShimizu/kiroku/pull/172) raised a CodeQL finding about the cookie `Secure` attribute. A localhost cookie and a LAN-accessible HTTP server have different transport properties: the serve key is an access control, **not encryption**. The current [SECURITY.md](../../SECURITY.md) explicitly warns that printed access URLs on a network travel unencrypted. Do not infer HTTPS or secure cross-device transport from the existence of a key.
+
 ## Alternatives and historical confidence
 
 A kiroku-hosted backend was not established in these PRs; this record does not claim a formal historical rejection of all cloud designs.
