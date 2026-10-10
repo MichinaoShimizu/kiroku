@@ -1,6 +1,6 @@
 # ADR 0012: Scoped exports and time-zone fidelity
 
-Status: **Observed (retrospective)**
+Status: **Retrospective**
 
 Scope: Phase 1 — local sessions.
 

@@ -1,6 +1,6 @@
 # ADR 0008: Incremental local history processing
 
-Status: **Observed (retrospective)**
+Status: **Retrospective**
 
 Scope: Phase 1.
 

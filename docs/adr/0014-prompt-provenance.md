@@ -1,6 +1,6 @@
 # ADR 0014: Prompt provenance and automatic events
 
-Status: **Observed (retrospective)**
+Status: **Retrospective**
 
 Scope: Phase 1 — local sessions.
 

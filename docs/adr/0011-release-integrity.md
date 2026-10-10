@@ -1,6 +1,6 @@
 # ADR 0011: Release integrity and provenance
 
-Status: **Observed (retrospective)**
+Status: **Retrospective**
 
 Scope: Phase 1 — local sessions.
 

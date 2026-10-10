@@ -1,6 +1,6 @@
 # ADR 0009: Git output is evidence, not business outcome
 
-Status: **Observed (retrospective)**
+Status: **Retrospective**
 
 Scope: Phase 1 — local sessions.
 

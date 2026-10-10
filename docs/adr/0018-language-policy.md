@@ -1,6 +1,6 @@
 # ADR 0018: English product UI and Japanese entry documentation
 
-Status: **Observed (retrospective)**
+Status: **Retrospective**
 
 Scope: Phase 1 — local sessions.
 

@@ -1,6 +1,6 @@
 # ADR 0019: Time overlap and usage allocation
 
-Status: **Observed (retrospective)**
+Status: **Retrospective**
 
 Scope: Phase 1 — local sessions.
 

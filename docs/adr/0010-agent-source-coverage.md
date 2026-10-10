@@ -1,6 +1,6 @@
 # ADR 0010: Native source adapters and recording coverage
 
-Status: **Observed (retrospective)**
+Status: **Retrospective**
 
 Scope: Phase 1 — local sessions.
 

@@ -59,7 +59,9 @@ Decision owner: <role or unknown>
 
 - Do not invent consensus, approvals, rejected alternatives or historical rationale.
 - Do not mark Accepted, Superseded or implemented solely because a draft or PR exists.
-- Do not silently alter old ADRs to fit a new choice.
+- Do not silently alter old ADRs to fit a new choice. After the new ADR is accepted, the only edit to a superseded ADR is its status line (`Superseded by NNNN`, with a link); keep its body and rationale.
+- Keep Status (lifecycle) separate from evidence labels (Documented/Observed/Inferred/Unknown); a well-evidenced draft is still Proposed.
+- Consequences include costs and conditions for revisiting the decision, not only benefits.
 - Avoid duplicated decisions: prefer referencing a still-current ADR when no actual decision changes.
 - Require explicit human review for high-impact security, privacy, data meaning or compatibility choices.
 

@@ -1,6 +1,6 @@
 # ADR 0006: Compatibility contract for the 1.0 boundary
 
-Status: **Observed (retrospective)**
+Status: **Retrospective**
 
 Scope: Phase 1.
 
