@@ -1,6 +1,6 @@
 # ADR 0002: Measurement semantics and evidence fidelity
 
-Status: **Observed (retrospective)**
+Status: **Retrospective**
 
 Scope: Phase 1 — local sessions.
 

@@ -1,6 +1,6 @@
 # ADR 0015: Comparable periods and explicitly estimated forecasts
 
-Status: **Observed (retrospective)**
+Status: **Retrospective**
 
 Scope: Phase 1 — local sessions.
 

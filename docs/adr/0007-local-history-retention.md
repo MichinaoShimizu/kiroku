@@ -1,6 +1,6 @@
 # ADR 0007: Opt-in preservation of local agent history
 
-Status: **Observed (retrospective)**
+Status: **Retrospective**
 
 Scope: Phase 1.
 

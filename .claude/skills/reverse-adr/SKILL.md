@@ -79,7 +79,7 @@ These statuses are **claim-level**, not badges for whole ADRs. A historical-only
 ### 4. Reconcile and write
 
 For each material decision, create a concise ADR with:
-- ID and title; phase/scope; status `Observed (retrospective)` unless genuinely documented as an original accepted decision;
+- ID and title; phase/scope; status `Retrospective` unless genuinely documented as an original accepted decision;
 - context and timeline;
 - decision and supporting evidence;
 - documented alternatives and consequences, or explicitly 'not documented';
@@ -87,14 +87,14 @@ For each material decision, create a concise ADR with:
 - current implementation and test references, pinned to a revision;
 - limitations, uncertainties and outstanding verification.
 
-Status is the lifecycle of the record, not an evidence label: never write `Status: Documented` or `Status: Unknown`. Put Documented/Observed/Inferred/Unknown on the claims inside the body. Keep `Observed (retrospective)` when the rationale is unknown; do not promote a record to Accepted without the owners' review.
+Status is the lifecycle of the record, not an evidence label: never write `Status: Documented` or `Status: Unknown`. Put Documented/Observed/Inferred/Unknown on the claims inside the body. Keep `Retrospective` when the rationale is unknown; do not promote a record to Accepted without the owners' review.
 
 #### Retrospective ADR template
 
 ```markdown
 # ADR NNNN: <decision title>
 
-Status: Observed (retrospective)
+Status: Retrospective
 Date: <merge date of the source change, or Unknown>
 Scope: <phase / subsystem>
 Related: <ADR links>

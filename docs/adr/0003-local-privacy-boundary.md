@@ -1,6 +1,6 @@
 # ADR 0003: Local privacy and trust boundary
 
-Status: **Observed (retrospective)**
+Status: **Retrospective**
 
 Scope: Phase 1 — local sessions.
 

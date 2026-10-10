@@ -1,6 +1,6 @@
 # ADR 0017: Synthetic fixtures and user-oriented verification
 
-Status: **Observed (retrospective)**
+Status: **Retrospective**
 
 Scope: Phase 1 — local sessions.
 

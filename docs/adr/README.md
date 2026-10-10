@@ -80,7 +80,7 @@ When adding or changing an ADR, update this table and the ADR list with its scop
 
 | Status | Meaning |
 |---|---|
-| **Observed (retrospective)** | Recovered from history. Records what happened and any documented rationale; not an accepted constraint until owners review it. Use it when no original decision record exists, and keep it when the rationale is unknown. |
+| **Retrospective** | Recovered from history. Records what happened and any documented rationale; not an accepted constraint until owners review it. Use it when no original decision record exists, and keep it when the rationale is unknown. Formerly named `Observed (retrospective)`; renamed so the status is not confused with the Observed evidence label. |
 | **Proposed** | A new decision awaiting human review. |
 | **Accepted** / **Rejected** | Set only by the decision owner. |
 | **Superseded by NNNN** / **Deprecated** | Replaced by a later accepted ADR, or no longer applies. |

@@ -58,7 +58,7 @@ Decision Continuity keeps the common ADR elements (title, status, date, context,
 
 Two axes stay separate:
 
-- **Status** is the lifecycle of the decision: Observed (retrospective), Proposed, Accepted, Rejected, Superseded or Deprecated.
+- **Status** is the lifecycle of the decision: Retrospective, Proposed, Accepted, Rejected, Superseded or Deprecated.
 - **Evidence labels** (Documented, Observed, Inferred, Unknown) describe each claim inside the record.
 
 A strong evidence label does not make a decision accepted, and a record with unknown rationale is not promoted to Accepted without human review. When a decision is superseded, only the old record's status line changes; its body stays as recorded.
