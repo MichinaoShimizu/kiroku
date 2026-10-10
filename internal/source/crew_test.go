@@ -14,6 +14,7 @@ import (
 	"time"
 	_ "time/tzdata"
 
+	"github.com/MichinaoShimizu/kiroku/internal/archive"
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/MichinaoShimizu/kiroku/internal/web"
 )
@@ -1496,5 +1497,69 @@ func TestKiroCrewEarlierLineageRules(t *testing.T) {
 				t.Errorf("中身が残っている: %s", l)
 			}
 		})
+	}
+}
+
+// syncKept は kiroku archive と同じく、Keep の場所のコピーを残す（Skip のファイルは残さず、前のコピーも消す）。
+func syncKept(t *testing.T, k *KiroCLI) {
+	t.Helper()
+	for _, x := range k.Keep() {
+		if _, err := archive.SyncSkip(x.Src, x.Dst, x.Skip); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// kiroku archive は Crew が消す会話を残すためのもの。Crew の場所から会話の記録・退避した記録・session_map の行が全部消えても、
+// persistent の会話は kiroku archive のコピー（会話の記録そのものと、退避した記録）から全文を出す。
+// incognito・temporary の会話の記録はコピーしない（あとから incognito にしたら、前のコピーも消す）ので、その会話は数と時刻だけになる。
+func TestKiroCrewKeptLogCopy(t *testing.T) {
+	kiro, crew, arch := t.TempDir(), t.TempDir(), t.TempDir()
+	writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
+	writeFiles(t, crew, map[string]string{
+		"session_map.json": `{"slack:C1_1": {"sid": "", "cwd": "/w"}, "slack:C3_1": {"sid": "", "cwd": "/w"}}`,
+		"sessions/slack_C1_1.jsonl": `{"_type": "metadata", "title": "相談", "memory_mode": "persistent", "created_at": "2026-10-05T12:00:00+00:00"}` + "\n" +
+			`{"role": "user", "content": "log prompt", "ts": "2026-10-05T14:00:00+00:00"}` + "\n",
+		"sessions/archive/slack_C1_1__20261005-230000.jsonl": `{"_type": "archive", "reason": "rotate"}` + "\n" +
+			`{"role": "user", "content": "segment prompt", "ts": "2026-10-05T13:00:00+00:00"}` + "\n",
+		"sessions/slack_C2_1.jsonl": `{"_type": "metadata", "title": "SECRET-T", "memory_mode": "incognito", "created_at": "2026-10-05T12:00:00+00:00"}` + "\n" +
+			`{"role": "user", "content": "SECRET-LOG", "ts": "2026-10-05T14:00:00+00:00"}` + "\n",
+		"sessions/archive/slack_C2_1__20261005-230000.jsonl": `{"_type": "archive", "reason": "rotate"}` + "\n" +
+			`{"role": "user", "content": "SECRET-SEGMENT", "ts": "2026-10-05T13:00:00+00:00"}` + "\n",
+		// 先に persistent でコピーされ、あとから incognito にした会話
+		"sessions/slack_C3_1.jsonl": `{"_type": "metadata", "title": "t3", "memory_mode": "persistent", "created_at": "2026-10-05T12:00:00+00:00"}` + "\n" +
+			`{"role": "user", "content": "SECRET-TIGHTENED", "ts": "2026-10-05T14:00:00+00:00"}` + "\n",
+	})
+	k := &KiroCLI{Home: kiro, CrewHome: crew, CrewArchive: arch}
+	syncKept(t, k)
+	writeFiles(t, crew, map[string]string{
+		"sessions/slack_C3_1.jsonl": `{"_type": "metadata", "title": "t3", "memory_mode": "incognito", "created_at": "2026-10-05T12:00:00+00:00"}` + "\n" +
+			`{"role": "user", "content": "SECRET-TIGHTENED", "ts": "2026-10-05T14:00:00+00:00"}` + "\n" +
+			`{"role": "user", "content": "SECRET-TIGHTENED-2", "ts": "2026-10-05T15:00:00+00:00"}` + "\n",
+	})
+	syncKept(t, k)
+	// Crew の場所から全部消える（会話の削除と保存期間の片付け）
+	if err := os.RemoveAll(crew); err != nil {
+		t.Fatal(err)
+	}
+	os.MkdirAll(crew, 0o700)
+	bs := load(t, k)
+	b := find(bs, "crew:slack_C1_1")
+	if got := strings.Join(promptTexts(b), "|"); got != "segment prompt|log prompt" {
+		t.Errorf("persistent の会話 = %q, want segment prompt|log prompt（コピーから全文）", got)
+	}
+	if b != nil && b.Title != "相談" {
+		t.Errorf("タイトル = %q", b.Title)
+	}
+	if b != nil && !strings.HasPrefix(b.File, arch) {
+		t.Errorf("履歴のファイル = %q, want kiroku archive のコピー", b.File)
+	}
+	for _, l := range leakedCrew(t, bs) {
+		t.Errorf("中身が残っている: %s", l)
+	}
+	for _, name := range []string{"slack_C2_1.jsonl.zst", "slack_C3_1.jsonl.zst"} {
+		if isFile(filepath.Join(arch, "sessions", name)) {
+			t.Errorf("中身を残さない会話の記録をコピーした: %s", name)
+		}
 	}
 }

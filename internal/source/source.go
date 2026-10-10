@@ -73,8 +73,12 @@ type Withholder interface {
 	Withheld() []string
 }
 
-// Kept は、残す元の場所と、コピーを置く場所。
-type Kept struct{ Src, Dst string }
+// Kept は、残す元の場所と、コピーを置く場所。Skip（nil でなければ）が true を返すファイルは残さず、前のコピーも消す
+// （archive.SyncSkip）。
+type Kept struct {
+	Src, Dst string
+	Skip     func(path, rel string) bool // rel は Src からの相対パス
+}
 
 // Options は読み込みの設定。
 type Options struct {

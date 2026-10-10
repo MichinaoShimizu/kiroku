@@ -9,6 +9,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Kiro Crew: conversations held in incognito or temporary mode (`memory_mode` in the conversation log or its archive files, or the flag in `session_map.json`) are now shown with counts and times only, titled "Kiro Crew private conversation". Before, kiroku showed their prompts, replies, title, edited files and the prompts sent to their subagents in the view, the JSON, search and the prompts it copies for an AI, although Crew itself refuses to learn from, summarize or export them. This covers their kiro-cli conversation, its copy in the Kiro CLI SQLite history, their subagents, and archived lines kiroku can't tie to the current conversation log (from an earlier conversation under a reused key, or whose log is gone), which are shown as counts and times only. The time span, number of prompts, turns, model, tools, credits, tokens and cost are still shown, as are Git commits in that time span. A kiro-cli conversation Crew no longer links to can't be recognized and is still shown in full. `kiroku archive` still copies Crew's `sessions/archive/` files as they are, so its copy keeps their text
 - Kiro Crew: a named pipe in the Crew folder in place of a conversation log no longer makes kiroku hang while reading
 
+### Changed
+
+- `kiroku archive` now also keeps Kiro Crew's conversation logs (`sessions/*.jsonl`), so a conversation you delete in Crew is still shown in full from the copy. Logs of incognito and temporary conversations are not kept, and an earlier copy is deleted when a conversation becomes one
+
 ### Fixed
 
 - Kiro Crew: lines Crew moved to `sessions/archive/` only because they duplicate a line still in the conversation (`foreign-dedup`), or as the earlier form of a line that was edited during a rewind, regenerate or fork (`compact`), are no longer counted again as prompts. Turns that were undone are still shown
