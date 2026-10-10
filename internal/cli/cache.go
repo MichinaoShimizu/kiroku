@@ -10,8 +10,9 @@ import (
 
 // loaded は、Source が出した 1 つの会話（Finish したもの。時刻がなければ sess は nil）。
 type loaded struct {
-	key  string // core.Builder.Key（同じ会話を 2 度数えないため）
-	sess *core.Session
+	key          string // core.Builder.Key（同じ会話を 2 度数えないため）
+	claim, yield string // core.Builder.Claim と Yield
+	sess         *core.Session
 }
 
 // loadCache は、前回読んだ履歴を覚えておき、変わっていないものを読み直さない（kiroku serve 用）。
@@ -146,4 +147,6 @@ func parallel(n int, f func(i int)) {
 	wg.Wait()
 }
 
-func finish(b *core.Builder, gap int) loaded { return loaded{key: b.Key, sess: b.Finish(gap)} }
+func finish(b *core.Builder, gap int) loaded {
+	return loaded{key: b.Key, claim: b.Claim, yield: b.Yield, sess: b.Finish(gap)}
+}

@@ -65,12 +65,25 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 	}
 	wg.Wait()
 	seen := map[string]bool{} // 同じ会話が 2 か所に残っていたら、先に読んだほうを使う
+	// Claim した会話のうち、セッションになったもの（時刻のない空の会話では、ほかの場所の写しを隠さない）
+	claimed := map[string]bool{}
+	for i := range picked {
+		for _, o := range res[i].outs {
+			if o.claim != "" && o.sess != nil {
+				claimed[o.claim] = true
+			}
+		}
+	}
 	for i, s := range picked {
 		n, dup, archived, oldest := 0, 0, 0, 0.0
 		var ids []string
 		_, keeps := s.(source.Keeper)
 		outs, err := res[i].outs, res[i].err
 		for _, o := range outs {
+			if o.yield != "" && claimed[o.yield] {
+				dup++
+				continue
+			}
 			if o.key != "" {
 				if seen[o.key] {
 					dup++

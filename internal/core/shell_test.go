@@ -41,6 +41,14 @@ func TestResumeCmd(t *testing.T) {
 		{"/Users/me/web", "claude --resume", "abc\u200b", ""},
 		{"/Users/me/\ufeffweb", "claude --resume", "abc", ""},
 		{"C:\\Users\\me\\web\u200b", "codex resume", "thr", ""},
+		// PowerShell は曲がった引用符（‘ ’ ‚ ‛ “ ” „ ‟）も引用符として読むので、囲みを閉じてコマンドを足せる。どちらの形でも出さない。
+		{`C:\w\app`, "kiro-cli chat --resume-id", "a\u201d; New-Item pwned; \u201db", ""},
+		{`C:\w\app`, "kiro-cli chat --resume-id", "a\u201c b", ""},
+		{`C:\w\app`, "kiro-cli chat --resume-id", "a\u201e b", ""},
+		{"C:\\w\\my \u201capp\u201d", "codex resume", "thr", ""},
+		{"/Users/me/web", "claude --resume", "a\u2019; touch pwned; \u2018b", ""},
+		{"/Users/me/it\u2019s here", "claude --resume", "abc", ""},
+		{"/Users/me/web", "codex resume", "x\u201a y\u201b z\u201f", ""},
 	}
 	for _, c := range cases {
 		if got := ResumeCmd(c.dir, c.cmd, c.id); got != c.want {

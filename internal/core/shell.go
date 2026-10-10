@@ -64,6 +64,8 @@ func isWinPath(p string) bool { return winPath.MatchString(p) }
 // （たとえば ID が --dangerously-skip-permissions、フォルダが - の履歴）。
 // Unicode の書式文字（U+202E などの双方向の制御、U+200B などの幅ゼロの文字、U+FEFF）を含むものも、
 // 画面に見えるコマンドと貼られる中身が違って見えるので扱わない。
+// 曲がった引用符（U+2018〜U+201F）を含むものも扱わない。PowerShell は ‘ ’ ‚ ‛ を ' と、“ ” „ を " と同じに読むので、
+// 囲みを閉じてコマンドを足せる（Windows の二重引用符でも、macOS・Linux の PowerShell に貼った単一引用符でも）。
 func shellArg(s string, win bool) (string, bool) {
 	if s == "" || s[0] == '-' || strings.ContainsFunc(s, unsafeRune) {
 		return "", false
@@ -84,7 +86,8 @@ func shellArg(s string, win bool) (string, bool) {
 }
 
 // unsafeRune は、貼るコマンドに入れない文字か：制御文字（C0、DEL、C1）、行と段落の区切り（U+2028、U+2029）、
-// Unicode の書式文字（Cf：双方向の制御、幅ゼロの文字、U+FEFF など）。
+// Unicode の書式文字（Cf：双方向の制御、幅ゼロの文字、U+FEFF など）、曲がった引用符（U+2018〜U+201F。PowerShell が引用符として読む）。
 func unsafeRune(r rune) bool {
-	return r < 0x20 || (r >= 0x7f && r <= 0x9f) || r == '\u2028' || r == '\u2029' || unicode.Is(unicode.Cf, r)
+	return r < 0x20 || (r >= 0x7f && r <= 0x9f) || (r >= '\u2018' && r <= '\u201f') || r == '\u2028' || r == '\u2029' ||
+		unicode.Is(unicode.Cf, r)
 }
