@@ -150,10 +150,19 @@ func crewPrivateFlags(v any) bool {
 type crewPrivacy struct {
 	home, arch string
 	stems      map[string]bool
+	idx        *crewArchiveIndex // 退避した記録（archive で作る）
 }
 
 func newCrewPrivacy(home, arch string) *crewPrivacy {
 	return &crewPrivacy{home: home, arch: arch, stems: map[string]bool{}}
+}
+
+// archive は退避した記録を並べたもの（はじめて使うときに 1 度だけ並べる）。
+func (p *crewPrivacy) archive() *crewArchiveIndex {
+	if p.idx == nil {
+		p.idx = newCrewArchiveIndex(p.home, p.arch)
+	}
+	return p.idx
 }
 
 // crewStems は会話キーの記録の名前（そのままと、crewSlot でそろえたもの）。
@@ -195,7 +204,7 @@ func (p *crewPrivacy) stem(stem string) bool {
 		return v
 	}
 	files := []string{filepath.Join(p.home, "sessions", stem+".jsonl")}
-	for _, s := range crewSegments(p.home, p.arch, stem) {
+	for _, s := range p.archive().segments(stem) {
 		files = append(files, s.path)
 	}
 	for _, f := range files {
@@ -755,7 +764,7 @@ type crewRow struct {
 	human bool   // meta.human が true（人が書いた行。Crew の history.HUMAN_TURN_META_KEY）
 	mid   string // meta.mid（Crew が行ごとにつける ID。dashboard/state.py の row_mid。なければ空）
 	rawTS string // ts の値をそのまま（mid のない行を見分けるため。crewRowSet）
-	// hidden は、中身を出さない行（今の会話より前に同じ名前で退避された記録の行。crewEarlierSegment）。数と時刻だけを使う
+	// hidden は、中身を出さない行（今の会話より前に同じ名前で退避された記録の行。crewEarlierRow）。数と時刻だけを使う
 	hidden bool
 }
 
@@ -808,11 +817,7 @@ func readCrewKey(home, arch, key string, errs *fileErrs) (meta crewMeta, rows []
 	return readCrewStem(home, arch, safeKey(key), errs)
 }
 
-// archiveSeg は退避した記録のファイル名の <名前>__ より後（<YYYYMMDD-HHMMSS>.jsonl。同じ秒に重なれば <日時>-<番号>.jsonl）。
-// Crew の history._archive_lines が書く（番号は 1 から。番号なしが先）。
-var archiveSeg = regexp.MustCompile(`^(\d{8}-\d{6})(?:-(\d{1,9}))?\.jsonl$`)
-
-// crewSeg は退避した記録のファイル 1 つ。
+// crewSeg は退避した記録のファイル 1 つ（Crew の history._archive_lines が書く。同じ秒に重なれば <日時>-<番号>。番号は 1 から。番号なしが先）。
 type crewSeg struct {
 	path, stamp string
 	n           int
@@ -825,7 +830,12 @@ type crewSeg struct {
 // 退避した記録は、あふれた古い行（reason "rotate"）だけではない（crewArchiveRows）。
 // fork した会話なら、元の会話から写した行は除く（ownRows）。
 func readCrewStem(home, arch, stem string, errs *fileErrs) (meta crewMeta, rows []crewRow) {
-	segs := crewSegments(home, arch, stem)
+	return readCrewStemIn(newCrewArchiveIndex(home, arch), stem, errs)
+}
+
+// readCrewStemIn は readCrewStem と同じ。退避した記録は idx（1 回の読み込みで 1 度だけ並べたもの）から探す。
+func readCrewStemIn(idx *crewArchiveIndex, stem string, errs *fileErrs) (meta crewMeta, rows []crewRow) {
+	segs := idx.segments(stem)
 	paths := make([]string, 0, len(segs)+1)
 	for _, s := range segs {
 		paths = append(paths, s.path)
@@ -833,7 +843,7 @@ func readCrewStem(home, arch, stem string, errs *fileErrs) (meta crewMeta, rows 
 	segRows := make([][]crewRow, 0, len(paths)+1)
 	reasons := make([]string, 0, len(paths)+1)
 	var live crewMeta // 今の記録のメタデータ
-	for i, p := range append(paths, filepath.Join(home, "sessions", stem+".jsonl")) {
+	for i, p := range append(paths, filepath.Join(idx.home, "sessions", stem+".jsonl")) {
 		m, rs := readCrewTranscript(p, errs)
 		meta.add(m)
 		segRows = append(segRows, rs)
@@ -843,75 +853,112 @@ func readCrewStem(home, arch, stem string, errs *fileErrs) (meta crewMeta, rows 
 		}
 		reasons = append(reasons, m.archive)
 	}
-	// 今の会話より前に同じ名前で退避された記録の行は、中身を出さない（crewEarlierSegment）
-	if start := crewLineageStart(live, segRows[len(paths)]); start != nil {
-		for i, sg := range segs {
-			if crewEarlierSegment(sg.stamp, *start) {
-				for j := range segRows[i] {
-					segRows[i][j].hidden = true
-				}
-			}
+	// 今の会話より前に同じ名前で退避された記録の行は、中身を出さない（crewEarlierRow）
+	start := live.created
+	if start != nil && *start < crewEpoch {
+		start = nil // Crew より前の時刻は、壊れた created_at
+	}
+	for i, sg := range segs {
+		stampAfter := start != nil && crewStampAfter(sg.stamp, *start)
+		for j := range segRows[i] {
+			segRows[i][j].hidden = crewEarlierRow(segRows[i][j], start, stampAfter)
 		}
 	}
 	return meta, ownRows(meta, crewArchiveRows(segRows, reasons))
 }
 
-// crewLineageStart は、今の記録の会話が始まった時刻: メタデータの created_at（記録を作った時刻。Crew は書きなおしても残す）、
-// なければ今の記録の最初の行の時刻。今の記録がない・時刻がわからなければ nil。
-func crewLineageStart(live crewMeta, rows []crewRow) *float64 {
-	if live.created != nil {
-		return live.created
+// crewEpoch は、これより前の created_at を壊れた値とみなす時刻（2020-01-01T00:00:00Z。Kiro Crew はそれより新しい）。
+const crewEpoch = 1577836800
+
+// crewEarlierRow は、退避した記録の行 r が、start（今の記録の created_at）に始まった今の会話より前のもので、中身を出さないか。
+//
+// 会話の記録が消えたあと、同じ会話キーで新しい会話が始まることがある。前の会話が incognito・temporary だったかは、退避した記録
+// （1 行目は {"_type": "archive", "reason"} だけ）からはわからないので、前の会話の行は中身を出さない（数と時刻だけ）。見分け方:
+//   - 今の記録の created_at（Crew は時差つきの ISO 8601 で書き、書きなおしても残す）がわからない（記録がない・created_at がない・
+//     文字列でない・読めない・2020 年より前）なら、どの行が今の会話のものか決められないので、全部の行の中身を出さない
+//   - 行に時刻（ts。時差つき）があれば、それが start より前なら前の会話の行（今の会話の行は記録を作ったあとに書かれる）
+//   - 時刻のない行は、ファイル名の日時（Crew がそのマシンの時刻で書く。時差はわからない）が、どの時差（-12〜+14 時間）でも start より
+//     後のとき（stampAfter）だけ今の会話のものとみなす
+//
+// fork した会話の、元の会話から写した行（start より前の時刻）も中身を出さないことになるが、ownRows がもともと除く。
+func crewEarlierRow(r crewRow, start *float64, stampAfter bool) bool {
+	switch {
+	case start == nil:
+		return true
+	case r.t != nil:
+		return *r.t < *start
 	}
-	var first *float64
-	for _, r := range rows {
-		if r.t != nil && (first == nil || *r.t < *first) {
-			first = r.t
-		}
-	}
-	return first
+	return !stampAfter
 }
 
-// crewEarlierSegment は、退避した記録（ファイル名の日時 stamp。Crew の history._archive_lines がこのマシンの時刻で書く）が、
-// start に始まった今の会話より前に退避されたものか。同じ会話から退避した記録は、記録を作ったあと（created_at より後）で、
-// 退避したときに今の記録に残した行（最初の行）より後に書かれる。それより前のものは、同じ会話キーで前にあった別の会話
-// （記録が消えたあとに同じキーで始めた会話）のもので、その会話が incognito・temporary だったかは、退避した記録
-// （reason "rotate" などの 1 行目しかない）からはわからない。中身を出さない側に倒す（1 秒は日時の切り捨ての分）。
-func crewEarlierSegment(stamp string, start float64) bool {
-	t, err := time.ParseInLocation("20060102-150405", stamp, time.Local)
-	return err == nil && float64(t.Unix())+1 < start
+// crewStampAfter は、退避した記録のファイル名の日時 stamp（YYYYMMDD-HHMMSS。Crew のマシンの時刻）が、どの時差でも start より後か。
+// stamp を UTC として読んだ時刻から 14 時間（いちばん東の時差）引いても start 以降なら後。読めなければ false。
+func crewStampAfter(stamp string, start float64) bool {
+	t, err := time.ParseInLocation("20060102-150405", stamp, time.UTC)
+	return err == nil && float64(t.Unix())-14*3600 >= start
 }
 
-// crewSegments は、名前が stem の会話の退避した記録（sessions/archive/<stem>__<日時>.jsonl と、元が消えたものは kiroku archive のコピー）を
-// 書いた順に並べる。
-func crewSegments(home, arch, stem string) []crewSeg {
-	var segs []crewSeg
+// crewArchiveName は退避した記録のファイル名（<名前>__<YYYYMMDD-HHMMSS>[-<番号>].jsonl）。<名前> は、日時の前の最後の __ まで。
+var crewArchiveName = regexp.MustCompile(`^(.+)__(\d{8}-\d{6})(?:-(\d{1,9}))?\.jsonl$`)
+
+// crewArchiveIndex は、退避した記録（sessions/archive/ と、元が消えたものは kiroku archive のコピー）を、名前ごとに書いた順に並べたもの。
+// フォルダは 1 回の読み込みで 1 度だけ並べる（会話キーごとに探すと、会話の数の 2 乗に比例して遅くなる）。
+type crewArchiveIndex struct {
+	home   string
+	byStem map[string][]crewSeg
+}
+
+// newCrewArchiveIndex は home（と arch）の退避した記録を並べる。
+func newCrewArchiveIndex(home, arch string) *crewArchiveIndex {
+	idx := &crewArchiveIndex{home: home, byStem: map[string][]crewSeg{}}
+	if home == "" {
+		return idx
+	}
 	add := func(p, name string) {
-		m := archiveSeg.FindStringSubmatch(strings.TrimPrefix(name, stem+"__"))
-		if m == nil || !strings.HasPrefix(name, stem+"__") {
+		m := crewArchiveName.FindStringSubmatch(name)
+		if m == nil {
 			return
 		}
-		n, _ := strconv.Atoi(m[2]) // 番号なしは 0
-		segs = append(segs, crewSeg{path: p, stamp: m[1], n: n})
+		n, _ := strconv.Atoi(m[3]) // 番号なしは 0
+		idx.byStem[m[1]] = append(idx.byStem[m[1]], crewSeg{path: p, stamp: m[2], n: n})
 	}
-	for _, p := range glob(filepath.Join(home, "sessions", "archive", stem+"__*.jsonl")) {
-		add(p, filepath.Base(p))
+	dir := filepath.Join(home, "sessions", "archive")
+	ents, _ := os.ReadDir(dir)
+	orig := map[string]bool{}
+	for _, e := range ents {
+		if !e.IsDir() {
+			orig[e.Name()] = true
+			add(filepath.Join(dir, e.Name()), e.Name())
+		}
 	}
 	if arch != "" {
-		for _, p := range glob(filepath.Join(arch, "sessions", "archive", stem+"__*.jsonl.zst")) {
-			name := strings.TrimSuffix(filepath.Base(p), ".zst")
-			if !isFile(filepath.Join(home, "sessions", "archive", name)) {
-				add(p, name)
+		adir := filepath.Join(arch, "sessions", "archive")
+		ents, _ := os.ReadDir(adir)
+		for _, e := range ents {
+			name, ok := strings.CutSuffix(e.Name(), ".zst")
+			if ok && !e.IsDir() && !orig[name] {
+				add(filepath.Join(adir, e.Name()), name)
 			}
 		}
 	}
 	// 書いた順: 日時の順、同じ日時なら番号の順（名前の順だと "-1" が番号なしより先、"-10" が "-2" より先になる）
-	sort.Slice(segs, func(i, j int) bool {
-		if segs[i].stamp != segs[j].stamp {
-			return segs[i].stamp < segs[j].stamp
-		}
-		return segs[i].n < segs[j].n
-	})
-	return segs
+	for _, segs := range idx.byStem {
+		sort.Slice(segs, func(i, j int) bool {
+			if segs[i].stamp != segs[j].stamp {
+				return segs[i].stamp < segs[j].stamp
+			}
+			return segs[i].n < segs[j].n
+		})
+	}
+	return idx
+}
+
+// segments は名前が stem の会話の退避した記録（書いた順）。
+func (idx *crewArchiveIndex) segments(stem string) []crewSeg {
+	if idx == nil {
+		return nil
+	}
+	return idx.byStem[stem]
 }
 
 // crewArchiveRows は、退避した記録（書いた順）と今の記録（最後）の行をつなぐ。reasons はファイルごとの reason（今の記録は空）。
@@ -993,7 +1040,11 @@ func readCrewTranscript(path string, errs *fileErrs) (meta crewMeta, rows []crew
 	errs.file(path, crewJSONL(path, func(e core.Obj) {
 		switch core.Str(e["_type"]) {
 		case "metadata":
-			meta.add(crewMeta{title: core.Str(e["title"]), forkedFrom: core.Str(e["forked_from"]), created: ts(e["created_at"]), private: crewPrivateMeta(e)})
+			var created *float64 // Crew は時差つきの ISO 8601 の文字列で書く。ほかの形（数など）は読まない
+			if c, ok := e["created_at"].(string); ok {
+				created = ts(c)
+			}
+			meta.add(crewMeta{title: core.Str(e["title"]), forkedFrom: core.Str(e["forked_from"]), created: created, private: crewPrivateMeta(e)})
 			return
 		case "archive":
 			if meta.archive == "" {

@@ -432,7 +432,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			need = len(rest) > 0
 		}
 		if need && !crewBackground(slot) && k.CrewHome != "" {
-			cm, rows = readCrewKey(k.CrewHome, k.CrewArchive, slot, &errs)
+			cm, rows = readCrewStemIn(priv.archive(), safeKey(slot), &errs)
 		}
 		if live < 0 {
 			live = len(ow) - 1
@@ -514,7 +514,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			}
 			// 退避した古い行も読む。fork なら、元の会話から写した行は除く
 			stem := strings.TrimSuffix(filepath.Base(p), ".jsonl")
-			cm, rows := readCrewStem(k.CrewHome, k.CrewArchive, stem, &errs)
+			cm, rows := readCrewStemIn(priv.archive(), stem, &errs)
 			if len(rows) == 0 {
 				continue
 			}

@@ -1401,8 +1401,12 @@ func TestKiroCrewEarlierLineage(t *testing.T) {
 			})
 			bs := load(t, &KiroCLI{Home: kiro, CrewHome: crew, CrewArchive: arch})
 			b := find(bs, "crew:slack_C1_1")
-			if got := strings.Join(promptTexts(b), "|"); got != "(private)|kept older prompt|visible new prompt" {
-				t.Errorf("依頼 = %q", got)
+			want := "(private)|kept older prompt|visible new prompt"
+			if created == "" { // created_at がなければ、どの退避した記録が今の会話のものか決められないので、全部の中身を出さない
+				want = "(private)|(private)|visible new prompt"
+			}
+			if got := strings.Join(promptTexts(b), "|"); got != want {
+				t.Errorf("依頼 = %q, want %q", got, want)
 			}
 			for _, l := range leakedCrew(t, bs) {
 				t.Errorf("中身が残っている: %s", l)
@@ -1419,5 +1423,78 @@ func TestCrewCodexRowLongModel(t *testing.T) {
 	}
 	if crewCodexRow(row("gpt-" + strings.Repeat("x", 1<<20))) {
 		t.Error("とても長い model を Codex の ID とみなした")
+	}
+}
+
+// 退避した記録のファイル名の日時は、Crew のマシンの時刻（時差はわからない）。今の会話より前のものかは、行の時差つきの時刻と
+// 今の記録の created_at で決め、時刻のない行はどの時差でも後だとわかるときだけ今の会話のものとする。created_at がわからない・
+// 今の記録がないときは、全部の行の中身を出さない。kiroku のマシンの時差では結果が変わらない。
+func TestKiroCrewEarlierLineageRules(t *testing.T) {
+	seg := func(ts string) string {
+		r := `{"role": "user", "content": "SEG"`
+		if ts != "" {
+			r += `, "ts": "` + ts + `"`
+		}
+		return `{"_type": "archive", "reason": "rotate"}` + "\n" + r + "}\n"
+	}
+	live := func(created string) string {
+		return `{"_type": "metadata", "title": "new", "memory_mode": "persistent"` + created + "}\n" +
+			`{"role": "user", "content": "visible", "ts": "2026-10-05T12:01:00+00:00"}` + "\n"
+	}
+	const created = `, "created_at": "2026-10-05T12:00:00+00:00"`
+	cases := []struct {
+		name, stamp, segTS, live, want string
+	}{
+		// Crew が Asia/Tokyo で 09:00Z に退避（ファイル名は 18:00）。前の会話の行
+		{"前の会話（東の時差）", "20261005-180000", "2026-10-05T08:59:00+00:00", live(created), "(private)|visible"},
+		{"前の会話・行の時刻なし（東の時差）", "20261005-180000", "", live(created), "(private)|visible"},
+		// Crew が America/Los_Angeles で 20:00Z に退避（ファイル名は 13:00）。今の会話の行
+		{"今の会話（西の時差）", "20261005-130000", "2026-10-05T19:30:00+00:00", live(created), "SEG|visible"},
+		{"今の会話・行の時刻なし・どの時差でも後", "20261007-000000", "", live(created), "SEG|visible"},
+		{"今の会話・行の時刻なし・時差しだいで前", "20261005-130000", "", live(created), "(private)|visible"},
+		{"created_at なし", "20261005-130000", "2026-10-05T19:30:00+00:00", live(""), "(private)|visible"},
+		{"読めない created_at", "20261005-130000", "2026-10-05T19:30:00+00:00", live(`, "created_at": "soon"`), "(private)|visible"},
+		{"数の created_at", "20261005-130000", "2026-10-05T19:30:00+00:00", live(`, "created_at": 0`), "(private)|visible"},
+		{"とても古い created_at", "20261005-130000", "2026-10-05T19:30:00+00:00", live(`, "created_at": "1970-01-01T00:00:01Z"`), "(private)|visible"},
+	}
+	defer func(l *time.Location) { time.Local = l }(time.Local)
+	for _, zone := range []string{"UTC", "Asia/Tokyo", "America/Los_Angeles"} {
+		loc, err := time.LoadLocation(zone)
+		if err != nil {
+			t.Skip(err)
+		}
+		time.Local = loc
+		for _, c := range cases {
+			t.Run(zone+"/"+c.name, func(t *testing.T) {
+				kiro, crew := t.TempDir(), t.TempDir()
+				writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
+				writeFiles(t, crew, map[string]string{
+					"sessions/archive/slack_C1_1__" + c.stamp + ".jsonl": seg(c.segTS),
+					"sessions/slack_C1_1.jsonl":                          c.live,
+				})
+				b := find(load(t, &KiroCLI{Home: kiro, CrewHome: crew}), "crew:slack_C1_1")
+				if got := strings.Join(promptTexts(b), "|"); got != c.want {
+					t.Errorf("依頼 = %q, want %q", got, c.want)
+				}
+			})
+		}
+		// 今の記録がない（session_map には前の会話の discarded_sid と使用量の記録だけ）
+		t.Run(zone+"/今の記録がない", func(t *testing.T) {
+			kiro, crew := t.TempDir(), t.TempDir()
+			writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
+			writeFiles(t, crew, map[string]string{
+				"session_map.json": `{"slack:C1_1": {"sid": "", "discarded_sid": "old", "cwd": "/w"}}`,
+				"sessions/archive/slack_C1_1__20261005-180000.jsonl": `{"_type": "archive", "reason": "rotate"}` + "\n" +
+					`{"role": "user", "content": "SECRET-EARLIER", "ts": "2026-10-05T08:59:00+00:00"}` + "\n",
+				"usage/tokens/2026-10-05.jsonl": `{"_type": "tokens", "ts": "2026-10-05T12:05:00+00:00", "slot": "slack:C1_1", "provider": "acp", "model": "auto", "credits": 1}` + "\n",
+			})
+			bs := load(t, &KiroCLI{Home: kiro, CrewHome: crew})
+			if got := strings.Join(promptTexts(find(bs, "crew:slack:C1_1")), "|"); got != "(private)" {
+				t.Errorf("依頼 = %q, want (private)", got)
+			}
+			for _, l := range leakedCrew(t, bs) {
+				t.Errorf("中身が残っている: %s", l)
+			}
+		})
 	}
 }
