@@ -1,4 +1,4 @@
-# ADR 0004: Local privacy and trust boundary
+# ADR 0004: Session identity and deduplication
 
 Status: **Observed (retrospective)**
 
@@ -6,27 +6,25 @@ Scope: Phase 1 — local sessions.
 
 ## Context
 
-Agent transcripts can contain prompts, source code, project paths and other sensitive information. The local history viewer needs deliberate controls at storage, rendering, server access and subprocess boundaries.
+Multiple files and agent components may represent the same user interaction. Summing them naively inflates prompts, time, token use and outputs.
 
 ## Documented decisions
 
-- **Local processing and export.** The initial tool reads local histories and exports standalone HTML ([#1](https://github.com/MichinaoShimizu/kiroku/pull/1)); Go single-binary distribution retains the local execution model ([#6](https://github.com/MichinaoShimizu/kiroku/pull/6)).
-- **No automatic AI submission.** Early AI-advice UX copied a prompt for users to paste themselves; kiroku did not invoke an AI API ([#22](https://github.com/MichinaoShimizu/kiroku/pull/22)). That particular suggestion panel was later removed ([#304](https://github.com/MichinaoShimizu/kiroku/pull/304)); report prompts follow the same user-mediated boundary ([#292](https://github.com/MichinaoShimizu/kiroku/pull/292)).
-- **Limit server access.** Serve originally defaulted to loopback ([#11](https://github.com/MichinaoShimizu/kiroku/pull/11)); DNS rebinding protection and a history-access key were added ([#127](https://github.com/MichinaoShimizu/kiroku/pull/127), [#172](https://github.com/MichinaoShimizu/kiroku/pull/172)).
-- **Treat history as untrusted.** Harden file writes, parsers, Git execution and rendering, including stored-XSS fixes and CSP ([#159](https://github.com/MichinaoShimizu/kiroku/pull/159), [#161](https://github.com/MichinaoShimizu/kiroku/pull/161), [#162](https://github.com/MichinaoShimizu/kiroku/pull/162)); reject unsafe quote characters in copyable commands ([#307](https://github.com/MichinaoShimizu/kiroku/pull/307)).
-- **Respect private agent sessions.** Kiro Crew incognito/temporary histories are represented without exposing their content ([#312](https://github.com/MichinaoShimizu/kiroku/pull/312)).
-- **Avoid incidental network reads.** Git enrichment must not fetch remote repositories ([#293](https://github.com/MichinaoShimizu/kiroku/pull/293)).
+- **Unify native agent readers through an adapter contract.** The Go rewrite introduced `Source` and a common session model ([#6](https://github.com/MichinaoShimizu/kiroku/pull/6)).
+- **Avoid Crew/Kiro double counts.** Crew's own logs are used for identity/title/provenance while Kiro CLI provides the underlying conversation and usage when they refer to the same work ([#8](https://github.com/MichinaoShimizu/kiroku/pull/8)).
+- **Prefer canonical source copies.** Older Kiro CLI SQLite formats share an adapter with Amazon Q, with precedence for `conversations_v2` on duplicate IDs ([#7](https://github.com/MichinaoShimizu/kiroku/pull/7)).
+- **Handle forks, migration and mirrored events.** Subsequent fixes addressed Crew copied rows ([#242](https://github.com/MichinaoShimizu/kiroku/pull/242)), Kiro IDE migrated histories ([#308](https://github.com/MichinaoShimizu/kiroku/pull/308)), Codex review mirrors ([#310](https://github.com/MichinaoShimizu/kiroku/pull/310)), Claude branch/fork copies ([#311](https://github.com/MichinaoShimizu/kiroku/pull/311)), and Crew duplicate rows ([#312](https://github.com/MichinaoShimizu/kiroku/pull/312)).
+
+## Observed implementation
+
+`internal/cli/load.go` uses `Builder.Key` and `Claim/Yield` in collection; `internal/core/session.go` defines the normalized identity and fields. These are **current-code observations**, not a claim that their exact semantics were established in one historical PR.
 
 ## Rationale and consequences
 
-Local-first is a data-flow and security boundary, not a guarantee that any generated report is safe to publish. HTML/JSON exports and user-copied prompts can contain sensitive material. Install/update are separate explicitly networked workflows; no absolute offline claim is made.
+One human action must not become multiple metrics merely because an agent stores multiple representations. Identity rules require agent-specific tests, not just generic file-hash deduplication.
 
-For Phase 2 remote import, downloaded transcripts are untrusted input, and remote project paths must never be treated as locally trusted Git roots by default.
+For Phase 2, the same upstream session IDs can appear on different machines; origin-aware identity is a **proposal**, not yet an accepted implementation ([ADR 0002](0009-remote-session-import.md)).
 
-## Alternatives and historical confidence
+## Alternatives and verification
 
-A kiroku-hosted backend was not established in these PRs; this record does not claim a formal historical rejection of all cloud designs.
-
-## Verification
-
-Inspect `SECURITY.md`, `internal/cli`, `internal/gitlog`, `internal/source` and relevant security tests. No new security testing is claimed here.
+No historical evidence is claimed for unmentioned identity alternatives. Verify against source fixtures and the cited PRs; no new tests were run for this ADR.
