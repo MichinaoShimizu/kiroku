@@ -728,7 +728,7 @@ dialog.yr{width:min(1120px,calc(100vw - 32px));max-height:calc(100dvh - 32px);ov
 .yrlead{color:var(--ink-2);margin:4px 0 16px;max-width:72ch;line-height:1.7}
 .yrscroll{overflow-x:auto;padding:7px 0 4px}
 .yrchart{min-width:620px;display:grid;grid-template-columns:34px minmax(0,1fr);column-gap:8px;row-gap:6px}
-.yrax{position:relative;font:var(--fs-xs)/1 var(--mono);color:var(--ink-3)}
+.yrax{position:sticky;left:0;z-index:1;background:var(--surface);font:var(--fs-xs)/1 var(--mono);color:var(--ink-3)} /* 狭い画面で図を横に動かしても、時刻の目盛りは見えたまま */
 .yrax span{position:absolute;right:0;transform:translateY(-50%)}
 .yrplate{display:block;width:100%;aspect-ratio:366/110;border-radius:10px;background:#06070a}
 .yrx{grid-column:2;position:relative;height:14px;font:var(--fs-xs)/1 var(--mono);color:var(--ink-3)}
@@ -741,7 +741,7 @@ dialog.yr{width:min(1120px,calc(100vw - 32px));max-height:calc(100dvh - 32px);ov
 dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
 .yrcard{display:block;width:100%;height:auto;aspect-ratio:16/9;border-radius:12px;background:#06070a}
 .yropts{display:flex;flex-wrap:wrap;gap:8px 18px;margin:12px 0;font-size:var(--fs-sm);color:var(--ink-2)}
-.yropts label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.yropts label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}.yropts label.off{opacity:.6;cursor:default}.yropts label small{font-size:var(--fs-xs);color:var(--ink-3)}
 .yract{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .yrtype{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;align-items:start}
 .yrtn{display:flex;flex-direction:column;align-items:flex-start;gap:4px;font:700 var(--fs-4xl)/1 var(--mincho);white-space:nowrap}

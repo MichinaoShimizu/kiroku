@@ -69,3 +69,32 @@ eq(cardMarks({hi: hb}, {breaks: true}).map(h => h.k), ["break"], "選べば載�
 eq(sideLines({hi: hb, halves: []}, {late: false}), [], "深夜・週末は選ばなければ画像に載せない");
 eq(sideLines({hi: hb, halves: []}, {late: true}), ["Late nights (22:00–5:00): 30% of active time", "Weekends: 20% of active time"], "選べば載せる");
 eq(sideLines({hi: [], halves: [{k: "late", t: "late nights (22:00–5:00) 0% → 100%"}, {k: "par", t: "2+ sessions at once 0% → 33%"}]}, {late: false}), ["2nd half vs 1st: 2+ sessions at once 0% → 33%"], "深夜の変化も、選ばなければ載せない");
+
+// 光の列：朝 6 時から翌朝 6 時。大晦日の夜（1/1 の 0〜6 時）は前の年の最後の列に写り、どの年からも消えない
+const sec = (...a) => new Date(...a)/1000;
+const nye = plateCols(sec(2024, 11, 31, 23), sec(2025, 0, 1, 2), 2024);
+eq(nye.map(c => [c[0], +c[1].toFixed(4), +c[2].toFixed(4)]), [[365, +(17/24).toFixed(4), +(20/24).toFixed(4)]], "大晦日 23 時〜元日 2 時は、2024 年の最後の列（366 日目）に 1 本で写る");
+eq(plateCols(sec(2024, 11, 31, 23), sec(2025, 0, 1, 2), 2025), [], "同じ区間は 2025 年には写らない（二重に描かない）");
+eq(plateCols(sec(2025, 0, 1, 3), sec(2025, 0, 1, 4), 2024).map(c => c[0]), [365], "元日 3 時の作業も、前の年の大晦日の列に写る");
+eq(plateCols(sec(2025, 2, 1, 5), sec(2025, 2, 1, 7), 2025).map(c => c[0]), [58, 59], "朝 6 時をまたぐ作業は、前の日と当日の 2 列に分かれる");
+eq(plateCols(sec(2025, 11, 31, 23), sec(2026, 0, 1, 7), 2025).map(c => c[0]), [364], "年の最後の列は、翌年の元日 6 時まで");
+
+// 途中から使い始めたエージェント：すべての記録の最初（t0）と比べる。印の列は光と同じく朝 6 時で区切る
+eq(texts(highlights({late: 0, weekend: 0}, [], new Set(), {"Codex": new Date(2025, 2, 1, 10)/1000}, day0, new Date(2024, 5, 1)/1000)), ["First Codex: Mar 1"], "前の年から記録があっても、この年に初めて使ったエージェントは出す");
+eq(highlights({late: 0, weekend: 0}, [], new Set(), {"Codex": new Date(2025, 2, 1, 2)/1000}, day0, new Date(2024, 5, 1)/1000)[0].c0, 58, "深夜 2 時に始めたなら、印は前の日の列（光と同じ）");
+eq(texts(highlights({late: 0, weekend: 0}, [], new Set(), {}, day0, new Date(2024, 5, 1)/1000)), [], "前の年から使っていたエージェント（firstOf に入らない）は出さない");
+
+// 並列：続けて動かしただけ（重ならない）のセッションは数えない。同じセッションの区間の重なりも数えない
+const chain = (from, n) => Array.from({length: n}, (_, d) => Array.from({length: 6}, (_, k) => { const a = new Date(2025, 0, 1 + from + d, 10)/1000 + k*602; return {start: a, end: a + 600, nPrompts: 5, segs: [[a, a + 600, 10]]}; })).flat();
+eq(halves([...chain(0, 10), ...chain(60, 10)]).filter(h => h.k === "par"), [], "2 秒あけて続けたセッションは、並列にならない");
+const touch = (from, n) => Array.from({length: n}, (_, d) => [0, 1].map(k => { const a = new Date(2025, 0, 1 + from + d, 10)/1000 + k*600; return {start: a, end: a + 600, nPrompts: 5, segs: [[a, a + 600, 10]]}; })).flat();
+eq(halves([...touch(0, 10), ...touch(60, 10)]).filter(h => h.k === "par"), [], "ぴったりつながるだけのセッションも、並列にならない");
+eq(mergeSegs([[0, 600, 1], [300, 900, 1], [1000, 1100, 1]]), [[0, 900], [1000, 1100]], "同じセッションの区間は重なりなくつなげる");
+
+// 依頼の記録がほとんどない履歴では、依頼の数を比べない
+eq(halves([...run(10, 0, 40, 0), ...run(10, 60, 40, 0)]), [], "0.0 → 0.0 は出さない");
+
+// 深夜・週末を選んだなら、前半と後半の深夜の変化を先に（2 行で切られて落ちないように）
+const three3 = [{k: "len", t: "sessions 30% longer"}, {k: "par", t: "2+ sessions at once 0% → 33%"}, {k: "late", t: "late nights (22:00–5:00) 2% → 11%"}];
+eq(sideLines({hi: [], halves: three3}, {late: true}), ["2nd half vs 1st: late nights (22:00–5:00) 2% → 11%", "2nd half vs 1st: sessions 30% longer"], "選んだ深夜の変化は落ちない");
+eq(sideLines({hi: [], halves: three3}, {late: false}), ["2nd half vs 1st: sessions 30% longer", "2nd half vs 1st: 2+ sessions at once 0% → 33%"], "選ばなければ深夜の変化は出さない");

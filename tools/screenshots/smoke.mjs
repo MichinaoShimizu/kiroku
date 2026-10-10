@@ -408,8 +408,10 @@ async function run(env) {
     check("見どころが出る", (await p.locator("#yr h3", { hasText: "What stands out" }).count()) === 1 && (await p.locator("#yr .yrhi li").count()) > 0);
     check("深夜・週末と、いちばん長い休みは、選ぶまで画像に載せない", !(await p.locator('#yr [data-o="late"]').isChecked()) && !(await p.locator('#yr [data-o="breaks"]').isChecked()) &&
       !/Late nights|Weekends|without AI|consecutive/.test(await p.locator("#yrcard").getAttribute("aria-label")));
+    // 深夜・週末：見せるものがある年は、選べば画像に加わる。ない年は押せない（ダミーデータは後半に夜の作業があるので、押せるはず）
+    check("ダミーデータの年には、深夜・週末の項目がある（押せる）", !(await p.locator('#yr [data-o="late"]').isDisabled()));
     await p.locator('#yr [data-o="late"]').check(); await pause();
-    check("選べば、画像の読み上げに載ったものが加わる（画面の見どころに深夜・週末があるとき）", !/Late nights|Weekends/.test(await p.locator("#yr .yrhi").first().innerText()) || /Late nights|Weekends/.test(await p.locator("#yrcard").getAttribute("aria-label")));
+    check("選べば、深夜・週末が画像（読み上げ用の説明）に加わる", /late nights|Late nights|Weekends/.test(await p.locator("#yrcard").getAttribute("aria-label")));
     await p.locator('#yr [data-o="late"]').uncheck(); await pause();
     await p.locator("#yrcolor").selectOption("project"); await pause();
     check("プロジェクトで色分けできる（画面の凡例にプロジェクトが並ぶ）", /Color = project/.test(await p.locator("#yr .yrhow").innerText()));

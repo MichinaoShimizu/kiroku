@@ -78,7 +78,7 @@ document.addEventListener("keydown", e => {
   else if (k === "Escape" && st.sel) select(null); else if (k === "?") $("#keys").showModal();
   else if (k === "g" || k === "G") openGuide();
   else if (k === "w" || k === "W") setMode("week"); else if (k === "m" || k === "M") setMode("month");
-  else if ((k === "y" || k === "Y") && YEAR_ON && DATA.length) openYear();
+  else if ((k === "y" || k === "Y") && !$("#yrbtn").hidden && !$("#mode").hidden) openYear(); // ボタンが見えているときだけ（週だけを書き出したファイルでは開かない）
 });
 // workHours は、表示中の週の作業の時間帯 {first, last}（時。記録がなければ null）。
 // 朝 6 時より前の開始が 2 割に満たなければ、早い時刻の数本に引っぱられないよう、6 時以降でいちばん早い開始時刻から。
