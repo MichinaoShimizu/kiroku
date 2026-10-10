@@ -1007,7 +1007,7 @@ func TestReadCrewLogSegments(t *testing.T) {
 		t.Log("シンボリックリンクを作れない:", err)
 	}
 	var errs fileErrs
-	got := loadCrewSpawns(crew, &errs)
+	got := loadCrewSpawns(crew, &errs, nil)
 	if got["subagent:s1"].Task != "first" || got["subagent:s2"].Task != "nine" || got["subagent:s4"].Task != "ten" {
 		t.Errorf("seq の順に読んでいない: %+v", got)
 	}
@@ -1048,7 +1048,7 @@ func TestCrewLogFolderNameIsNotPattern(t *testing.T) {
 		t.Skip("シンボリックリンクを作れない:", err)
 	}
 	var errs fileErrs
-	got := loadCrewSpawns(crew, &errs)
+	got := loadCrewSpawns(crew, &errs, nil)
 	if _, ok := got["subagent:out"]; ok {
 		t.Error("* のフォルダから、Crew のフォルダの外のファイルを読んだ")
 	}
@@ -1245,4 +1245,127 @@ func TestKiroCrewCodexRowsAfterSwitch(t *testing.T) {
 	if d := k.DetailEn(); !strings.Contains(d, "tokens and cost of 2 turns") {
 		t.Errorf("detail = %q", d)
 	}
+}
+
+// kiroCLIWithText は依頼と応答の文のある kiro-cli の会話（sessions/cli/<id>.json と .jsonl）。依頼は 2026-09-29T10:01:00Z。
+func kiroCLIWithText(id, cwd, prompt, reply string) map[string]string {
+	return map[string]string{
+		"sessions/cli/" + id + ".json": fmt.Sprintf(`{"session_id": %q, "cwd": %q, "title": "SECRET-KIRO-TITLE", "created_at": "2026-09-29T10:00:00Z", "updated_at": "2026-09-29T10:05:00Z",
+ "session_state": {"conversation_metadata": {"user_turn_metadatas": [{"end_timestamp": "2026-09-29T10:05:00Z", "metering_usage": [{"value": 2, "unit": "credit"}]}]}}}`, id, cwd),
+		"sessions/cli/" + id + ".jsonl": fmt.Sprintf(`{"version": "v1", "kind": "Prompt", "data": {"content": [{"kind": "text", "data": %q}], "meta": {"timestamp": 1790676060}}}
+{"version": "v1", "kind": "AssistantMessage", "data": {"content": [{"kind": "text", "data": %q}, {"kind": "toolUse", "data": {"name": "fs_write", "input": {"path": "/w/SECRET-FILE.go"}}}]}}
+`, prompt, reply),
+	}
+}
+
+// leakedCrew は、読んだ会話のどこか（依頼・応答の全文・タイトル・ファイル・サブエージェントへの依頼・履歴のファイルなど）に
+// "SECRET" が残っていれば、その会話の ID と JSON の一部を返す。
+func leakedCrew(t *testing.T, bs []*core.Builder) []string {
+	t.Helper()
+	var out []string
+	for _, b := range bs {
+		s := b.Finish(15)
+		if s == nil {
+			continue
+		}
+		data, err := json.Marshal(s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		leak := strings.Contains(string(data), "SECRET")
+		for _, p := range s.Prompts {
+			leak = leak || strings.Contains(p.Full(), "SECRET") || p.Reply != nil && strings.Contains(p.Reply.Full(), "SECRET")
+		}
+		for _, f := range b.EditedFiles() {
+			leak = leak || strings.Contains(f, "SECRET")
+		}
+		if leak {
+			out = append(out, b.ID+": "+string(data)[:min(len(data), 300)])
+		}
+	}
+	return out
+}
+
+// 中身を残さない会話の印は、会話の記録の 1 行目だけにあるとは限らない。session_map の flags（sid のない行も）、
+// 会話キーの書き方の違い（使用量の記録の chat-… と dashboard:chat-…）、BOM・長い 1 行目・2 行目のメタデータ、退避した記録の中の印、
+// Crew が読めない大文字小文字（トルコ語の İ）でも、会話とそのサブエージェントの中身を出さない。
+func TestKiroCrewPrivacyRoutes(t *testing.T) {
+	spawn := func(slot string) map[string]string {
+		return map[string]string{
+			"crew-log/sessions/c1/log.jsonl": `{"type": "session", "id": "x", "slot": "` + slot + `", "cwd": "/w"}` + "\n" + `{"type": "subagent/spawned", "data": {"agent_id": "sa9", "agent": "reviewer", "task": "SECRET-SPAWN-TASK"}}` + "\n",
+			"subagents/sa8/state.json":       `{"id": "sa8", "agent": "coder", "task": "SECRET-STATE-TASK", "parent_session": "` + slot + `", "session_id": "sa8-sid"}`,
+			"usage/tokens/2026-09-29.jsonl": `{"_type": "tokens", "ts": "2026-09-29T10:03:00+00:00", "slot": "subagent:sa9", "provider": "acp", "model": "auto", "credits": 0.5}` + "\n" +
+				`{"_type": "tokens", "ts": "2026-09-29T10:06:00+00:00", "slot": "subagent:sa8", "provider": "acp", "model": "auto", "credits": 0.5}` + "\n",
+		}
+	}
+	meta := `{"_type": "metadata", "title": "SECRET-TITLE", "memory_mode": "incognito"}` + "\n"
+	cases := []struct {
+		name       string
+		crew, kiro map[string]string
+		want       []string // 出るはずの会話（中身を出さずに）
+	}{
+		{"sid のない flags の行", map[string]string{
+			"session_map.json":              `{"slack:C1_1": {"sid": "", "cwd": "/w", "flags": {"incognito": true}}, "slack:C2_1": {"cwd": "/w", "flags": {"temporary": true}}}`,
+			"sessions/slack_C1_1.jsonl":     `{"_type": "metadata", "title": "SECRET-T1"}` + "\n" + `{"role": "user", "content": "SECRET-P1", "ts": "2026-09-29T10:01:00+00:00"}` + "\n",
+			"sessions/slack_C2_1.jsonl":     `{"_type": "metadata", "title": "SECRET-T2"}` + "\n" + `{"role": "user", "content": "SECRET-P2", "ts": "2026-09-29T11:01:00+00:00"}` + "\n",
+			"usage/tokens/2026-09-29.jsonl": `{"_type": "tokens", "ts": "2026-09-29T11:02:00+00:00", "slot": "slack:C2_1", "provider": "acp", "model": "auto", "credits": 1}` + "\n",
+		}, nil, []string{"crew:slack_C1_1", "crew:slack:C2_1"}},
+		{"flags だけの親", mergeFiles(spawn("dashboard:chat-1-100"), map[string]string{
+			"session_map.json": `{"dashboard:chat-1-100": {"sid": "", "cwd": "/w", "flags": {"incognito": true}}}`,
+		}), kiroCLIWithText("sa8-sid", "/w", "SECRET-SUB-PROMPT", "SECRET-SUB-REPLY"), []string{"sa8-sid", "crew:subagent:sa9"}},
+		{"使用量の記録の書き方の親", mergeFiles(spawn("chat-1-100"), map[string]string{"sessions/dashboard_chat-1-100.jsonl": meta}),
+			kiroCLIWithText("sa8-sid", "/w", "SECRET-SUB-PROMPT", "SECRET-SUB-REPLY"), []string{"sa8-sid", "crew:subagent:sa9"}},
+		{"BOM つきの親", mergeFiles(spawn("dashboard:chat-1-100"), map[string]string{"sessions/dashboard_chat-1-100.jsonl": "\ufeff" + meta}),
+			kiroCLIWithText("sa8-sid", "/w", "SECRET-SUB-PROMPT", "SECRET-SUB-REPLY"), []string{"sa8-sid", "crew:subagent:sa9"}},
+		{"長い 1 行目の親", mergeFiles(spawn("dashboard:chat-1-100"), map[string]string{
+			"sessions/dashboard_chat-1-100.jsonl": `{"_type": "metadata", "title": "` + strings.Repeat("x", 70000) + `", "memory_mode": "incognito"}` + "\n",
+		}), kiroCLIWithText("sa8-sid", "/w", "SECRET-SUB-PROMPT", "SECRET-SUB-REPLY"), []string{"sa8-sid", "crew:subagent:sa9"}},
+		{"2 行目のメタデータの親", mergeFiles(spawn("dashboard:chat-1-100"), map[string]string{"sessions/dashboard_chat-1-100.jsonl": `{"_type": "note"}` + "\n" + meta}),
+			kiroCLIWithText("sa8-sid", "/w", "SECRET-SUB-PROMPT", "SECRET-SUB-REPLY"), []string{"sa8-sid", "crew:subagent:sa9"}},
+		{"退避した記録だけにある印", map[string]string{
+			"session_map.json": `{"dashboard:chat-1-100": {"sid": "k1", "cwd": "/w"}}`,
+			"sessions/archive/dashboard_chat-1-100__20260929-095000.jsonl": `{"_type": "archive", "reason": "rotate"}` + "\n" + meta +
+				`{"role": "user", "content": "SECRET-ARCH", "ts": "2026-09-29T09:50:00+00:00"}` + "\n",
+			"usage/tokens/2026-09-29.jsonl": `{"_type": "tokens", "ts": "2026-09-29T10:05:00+00:00", "slot": "chat-1-100", "provider": "acp", "model": "auto", "credits": 3}` + "\n",
+		}, kiroCLIWithText("k1", "/w", "SECRET-KIRO-PROMPT", "SECRET-KIRO-REPLY"), []string{"k1"}},
+		{"トルコ語の İ", map[string]string{
+			"session_map.json":                    `{"dashboard:chat-1-100": {"sid": "k1", "cwd": "/w"}}`,
+			"sessions/dashboard_chat-1-100.jsonl": `{"_type": "metadata", "title": "SECRET-T", "memory_mode": "PERSİSTENT"}` + "\n",
+		}, kiroCLIWithText("k1", "/w", "SECRET-KIRO-PROMPT", "SECRET-KIRO-REPLY"), []string{"k1"}},
+		{"読めない execution_context", map[string]string{
+			"session_map.json":                    `{"dashboard:chat-1-100": {"sid": "k1", "cwd": "/w"}}`,
+			"sessions/dashboard_chat-1-100.jsonl": `{"_type": "metadata", "title": "SECRET-T", "memory_mode": "persistent", "execution_context": "incognito"}` + "\n",
+		}, kiroCLIWithText("k1", "/w", "SECRET-KIRO-PROMPT", "SECRET-KIRO-REPLY"), []string{"k1"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			kiro, crew := t.TempDir(), t.TempDir()
+			writeFiles(t, kiro, mergeFiles(map[string]string{"sessions/cli/.keep": ""}, c.kiro))
+			writeFiles(t, crew, c.crew)
+			bs := load(t, &KiroCLI{Home: kiro, CrewHome: crew})
+			for _, id := range c.want {
+				if b := find(bs, id); b == nil || b.Title != "Kiro Crew private conversation" {
+					var ids []string
+					for _, b := range bs {
+						ids = append(ids, b.ID+"="+b.Title)
+					}
+					t.Errorf("%s が中身を出さない会話になっていない: %v", id, ids)
+				}
+			}
+			for _, l := range leakedCrew(t, bs) {
+				t.Errorf("中身が残っている: %s", l)
+			}
+		})
+	}
+}
+
+// mergeFiles は writeFiles に渡すファイルの一覧をつなぐ（後のものが勝つ）。
+func mergeFiles(ms ...map[string]string) map[string]string {
+	out := map[string]string{}
+	for _, m := range ms {
+		for k, v := range m {
+			out[k] = v
+		}
+	}
+	return out
 }

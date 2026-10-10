@@ -75,26 +75,43 @@ func (i CrewInfo) usageSlot() string {
 const (
 	crewPrivateTitle = "Kiro Crew private conversation"
 	crewPrivateText  = "(private)" // 依頼の文の代わり（依頼の数と時刻は残す）
-	crewHeaderMax    = 64 << 10    // 会話の記録の 1 行目として読む長さ（Crew の TRANSCRIPT_HEADER_MAX_BYTES）
 )
 
 // crewPrivateMode は memory_mode の値が、中身を残してはいけない会話を示すか。
-// Crew の history.memory_mode_from_header_line と同じく、ない・null は persistent（古い会話）、文字列は前後の空白を除いて小文字にする。
-// persistent 以外は、incognito・temporary のほか、Crew が読めない値（数・空の文字列など）も中身を残さない側に倒す（Crew の書き出しも断る）。
+// Crew の history.memory_mode_from_header_line と同じく、ない・null は persistent（古い会話）。文字列は前後の ASCII の空白を除き、
+// ASCII の文字だけを小文字にして "persistent" と比べる。それ以外は、incognito・temporary のほか、Crew が読めない値
+// （数・空の文字列・Python の lower() と Go の小文字が食い違う "PERSİSTENT" など）も中身を残さない側に倒す（Crew の書き出しも断る）。
 func crewPrivateMode(v any) bool {
 	switch x := v.(type) {
 	case nil:
 		return false
 	case string:
-		return strings.ToLower(strings.TrimSpace(x)) != "persistent"
+		return asciiLower(strings.Trim(x, " \t\r\n\v\f")) != "persistent"
 	}
 	return true
 }
 
+// asciiLower は ASCII の大文字だけを小文字にする（ほかの文字はそのまま）。
+func asciiLower(s string) string {
+	b := []byte(s)
+	for i, c := range b {
+		if 'A' <= c && c <= 'Z' {
+			b[i] = c + 'a' - 'A'
+		}
+	}
+	return string(b)
+}
+
 // crewPrivateMeta は、会話の記録のメタデータ（か、サブエージェントの state.json）が中身を残さない会話を示すか。
 // memory_mode と、その中の execution_context.memory_mode を見る（Crew はどちらも厳しくする向きにしか書きかえない）。
+// execution_context が object でない（null を除く）ときは、Crew が読めない記録なので中身を残さない側に倒す。
 func crewPrivateMeta(e core.Obj) bool {
-	return crewPrivateMode(e["memory_mode"]) || crewPrivateMode(core.Map(e["execution_context"])["memory_mode"])
+	ec, bad := e["execution_context"], false
+	if ec != nil {
+		_, ok := ec.(map[string]any)
+		bad = !ok
+	}
+	return bad || crewPrivateMode(e["memory_mode"]) || crewPrivateMode(core.Map(ec)["memory_mode"])
 }
 
 // crewPrivateFlags は session_map の "flags" に temporary か incognito がついているか（session_map.py の _privacy_flags_on。
@@ -123,36 +140,159 @@ func crewPrivateFlags(v any) bool {
 	return false
 }
 
-// crewPrivacy は、会話キー → その会話が中身を残さないものか（読んだ結果を覚えておく）。
-type crewPrivacy map[string]bool
+// crewPrivacy は、会話が中身を残さないものかを、会話の記録の名前（safeKey）ごとに覚えておく。1 回の読み込みで 1 つを使い回す
+// （loadCrew・loadCrewSpawns・KiroCLI.Load）。印は次のどれか:
+//   - session_map の flags（sid のない行も。mark）
+//   - 会話の記録（sessions/<名前>.jsonl）、退避した記録（sessions/archive/<名前>__<日時>.jsonl）、
+//     その kiroku archive のコピーの、どれかの行のメタデータ（crewFilePrivate）
+//
+// 会話キーは、そのままの名前と、使用量の記録の書き方をそろえた名前（chat-… → dashboard:chat-…。crewSlot）の両方で調べる。
+type crewPrivacy struct {
+	home, arch string
+	stems      map[string]bool
+}
 
-// key は会話キーの会話が中身を残さないものか（会話の記録の 1 行目を読む。crewHeaderPrivate）。
-func (p crewPrivacy) key(home, key string) bool {
-	if home == "" || key == "" {
+func newCrewPrivacy(home, arch string) *crewPrivacy {
+	return &crewPrivacy{home: home, arch: arch, stems: map[string]bool{}}
+}
+
+// crewStems は会話キーの記録の名前（そのままと、crewSlot でそろえたもの）。
+func crewStems(key string) []string {
+	a, b := safeKey(key), safeKey(crewSlot(key))
+	if a == b {
+		return []string{a}
+	}
+	return []string{a, b}
+}
+
+// mark は会話キーを中身を残さない会話にする。
+func (p *crewPrivacy) mark(key string) {
+	for _, s := range crewStems(key) {
+		p.stems[s] = true
+	}
+}
+
+// key は会話キーの会話が中身を残さないものか。
+func (p *crewPrivacy) key(key string) bool {
+	if p == nil || key == "" {
 		return false
 	}
-	v, ok := p[key]
-	if !ok {
-		v = crewHeaderPrivate(crewTranscriptPath(home, key))
-		p[key] = v
+	for _, s := range crewStems(key) {
+		if p.stem(s) {
+			return true
+		}
 	}
+	return false
+}
+
+// stem は、名前が stem の会話の記録（退避した記録とそのコピーも）が中身を残さない会話を示すか。
+func (p *crewPrivacy) stem(stem string) bool {
+	if p == nil || p.home == "" {
+		return false
+	}
+	v, ok := p.stems[stem]
+	if ok {
+		return v
+	}
+	files := []string{filepath.Join(p.home, "sessions", stem+".jsonl")}
+	for _, s := range crewSegments(p.home, p.arch, stem) {
+		files = append(files, s.path)
+	}
+	for _, f := range files {
+		if crewFilePrivate(f) {
+			v = true
+			break
+		}
+	}
+	p.stems[stem] = v
 	return v
 }
 
-// crewHeaderPrivate は、会話の記録の 1 行目（メタデータ）が中身を残さない会話を示すか。ない・読めない・メタデータでないなら false
-// （kiroku が会話の記録を読むときと同じ。メタデータのない記録は Crew も persistent と読む）。
-func crewHeaderPrivate(path string) bool {
-	f, err := os.Open(path)
+// crewMetaMark は、メタデータの行にだけある文字。ほかの行（ずっと多い）は JSON として読まない。
+var crewMetaMark = []byte(`"metadata"`)
+
+// crewFilePrivate は、Crew の会話の記録のファイル（.zst のコピーも）のどれかの行が、中身を残さない会話のメタデータか。
+// 1 行目の BOM は読み飛ばす（Crew の json.loads は BOM のある行を読めず、中身を残さない側に倒す）。
+// 1 行目が長すぎて読めない（core.MaxLine を超える）か、memory_mode を含むのに読めないときも、中身を残さない会話とみなす
+// （Crew もメタデータの行を読めなければ断る。history.py の memory_mode_from_header_line）。ない・開けないファイルは false。
+// 1 行は core.MaxLine までしか持たないので、使うメモリは決まっている。
+func crewFilePrivate(path string) bool {
+	f, err := openRegular(path)
 	if err != nil {
 		return false
 	}
 	defer f.Close()
-	line, tooLong, _ := core.ReadLine(bufio.NewReaderSize(f, 1<<16), crewHeaderMax)
-	var e core.Obj
-	if tooLong || json.Unmarshal(line, &e) != nil || core.Str(e["_type"]) != "metadata" {
-		return false
+	var src io.Reader = f
+	if strings.HasSuffix(path, ".zst") {
+		d, err := core.NewZstdReader(f)
+		if err != nil {
+			return false
+		}
+		defer d.Close()
+		src = d
 	}
-	return crewPrivateMeta(e)
+	r := bufio.NewReaderSize(src, 1<<16)
+	for first := true; ; first = false {
+		line, tooLong, err := core.ReadLine(r, core.MaxLine)
+		if first {
+			if tooLong {
+				return true
+			}
+			line = bytes.TrimPrefix(line, crewBOM)
+		}
+		if !tooLong && bytes.Contains(line, crewMetaMark) {
+			var e core.Obj
+			if json.Unmarshal(line, &e) == nil {
+				if core.Str(e["_type"]) == "metadata" && crewPrivateMeta(e) {
+					return true
+				}
+			} else if first && bytes.Contains(line, []byte(`memory_mode`)) {
+				return true
+			}
+		}
+		if err != nil {
+			return false
+		}
+	}
+}
+
+// openRegular はふつうのファイル（シンボリックリンクの先も）だけを開く。名前つきパイプなどは、開くだけで止まってしまうので開かない
+// （ないものと同じに扱い、エラーは返さない）。
+func openRegular(path string) (*os.File, error) {
+	st, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if !st.Mode().IsRegular() {
+		return nil, os.ErrNotExist
+	}
+	return os.Open(path)
+}
+
+// crewBOM は UTF-8 の BOM（手で編集したファイルの先頭につくことがある）。
+var crewBOM = []byte("\xef\xbb\xbf")
+
+// crewJSONL は Crew の JSONL を 1 行ずつ読む（core.ReadJSONL と同じ。.zst もほどく）。先頭の BOM は読み飛ばす。
+func crewJSONL(path string, fn func(core.Obj)) error {
+	f, err := openRegular(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	var src io.Reader = f
+	if strings.HasSuffix(path, ".zst") {
+		d, err := core.NewZstdReader(f)
+		if err != nil {
+			return err
+		}
+		defer d.Close()
+		src = d
+	}
+	r := bufio.NewReader(src)
+	if b, _ := r.Peek(len(crewBOM)); bytes.Equal(b, crewBOM) {
+		_, _ = r.Discard(len(crewBOM))
+	}
+	return core.ReadJSONLFrom(r, fn)
 }
 
 // hideCrew は、中身を残さない会話から、会話の中身から読んだものを消し、決まったタイトルにする（core.Builder.HideText）。
@@ -254,8 +394,8 @@ func crewBackground(slot string) bool {
 }
 
 // loadCrew は kiro-cli の会話 ID → Crew の情報。Crew がなければ空。
-// 読めなかったファイルは errs に足す（nil なら黙って飛ばす）。
-func loadCrew(home string, errs *fileErrs) map[string]CrewInfo {
+// 読めなかったファイルは errs に足す（nil なら黙って飛ばす）。priv は中身を残さない会話（session_map の flags をここで足す。nil なら作る）。
+func loadCrew(home string, errs *fileErrs, priv *crewPrivacy) map[string]CrewInfo {
 	out := map[string]CrewInfo{}
 	if home == "" || !isDir(home) {
 		return out
@@ -264,40 +404,42 @@ func loadCrew(home string, errs *fileErrs) map[string]CrewInfo {
 	sm, err := core.ReadJSONFile(mapPath)
 	errs.file(mapPath, err)
 	former := map[string]CrewInfo{} // discarded_sid → Crew の情報（今の sid の会話がなければ使う）
-	priv := crewPrivacy{}
+	if priv == nil {
+		priv = newCrewPrivacy(home, "")
+	}
 	entries := core.Map(sm)
 	keys := make([]string, 0, len(entries))
 	for key := range entries {
 		keys = append(keys, key)
 	}
 	sort.Strings(keys) // 同じ sid が 2 つのキーにあっても、毎回同じほうを使う
+	// 印（flags）は、sid のない行（会話の記録や使用量の記録だけが残る会話）のものも先に覚える
+	for _, key := range keys {
+		if crewPrivateFlags(core.Map(entries[key])["flags"]) {
+			priv.mark(key)
+		}
+	}
 	for _, key := range keys {
 		v := entries[key]
-		sid, cwd, provider, discarded, private := core.Str(v), "", "", "", false // 古い形は文字列だけ
+		sid, cwd, provider, discarded := core.Str(v), "", "", "" // 古い形は文字列だけ
 		if m := core.Map(v); m != nil {
 			sid, cwd, provider = core.Str(m["sid"]), core.Str(m["cwd"]), core.Str(m["provider"])
 			// 会話を差しかえたとき（backend の切りかえ・会話の破棄・記録が消えた sid の片付け）に sid を空にして残す、前の sid
 			// （session_map.py の _stash_and_clear_sid。SessionMap.set はこれを消さないので、新しい sid と並んで残ることもある）
 			discarded = core.Str(m["discarded_sid"])
-			private = crewPrivateFlags(m["flags"])
 		}
 		if sid == "" && discarded == "" {
 			continue
 		}
-		info := CrewInfo{Key: key, Cwd: cwd, Provider: provider, Private: private}
+		info := CrewInfo{Key: key, Cwd: cwd, Provider: provider, Private: priv.key(key)}
 		// 会話キーをファイル名にしたもの（Crew の history._safe_key と同じ）
 		path := crewTranscriptPath(home, key)
-		errs.file(path, core.ReadJSONL(path, func(e core.Obj) {
-			if core.Str(e["_type"]) != "metadata" {
-				return
-			}
-			info.Private = info.Private || crewPrivateMeta(e)
-			if info.Title == "" {
+		errs.file(path, crewJSONL(path, func(e core.Obj) {
+			if info.Title == "" && core.Str(e["_type"]) == "metadata" {
 				info.Title = core.Str(e["title"])
 				info.Agent = core.Str(e["agent"])
 			}
 		}))
-		priv[key] = info.Private
 		if sid != "" {
 			out[sid] = info
 		}
@@ -320,7 +462,7 @@ func loadCrew(home string, errs *fileErrs) map[string]CrewInfo {
 			UsageSlot: subagentSlot(st, filepath.Base(filepath.Dir(p)))}
 		// あとから incognito・temporary にしたサブエージェント（subagent_persistence.py は state.json の memory_mode と
 		// execution_context.memory_mode を書きかえる）と、中身を残さない会話から起動したサブエージェントは、依頼も残さない
-		if crewPrivateMeta(st) || priv.key(home, info.Key) {
+		if crewPrivateMeta(st) || priv.key(info.Key) {
 			info.Private, info.Task = true, ""
 		}
 		out[sid] = info
@@ -360,12 +502,15 @@ var crewSpawnedMark = []byte(`"subagent/spawned"`)
 //	2 行目から {"type": "subagent/spawned", "time", "src", "data": {"agent_id", "agent"?, "task"?, …}}（crew_log/emit.py の on_subagent_spawned）
 //
 // crew-log はダッシュボードの会話にだけある（サブエージェント自身の会話にはない）。同じ id が何度も出たら、最初に読んだものを使う。
-func loadCrewSpawns(home string, errs *fileErrs) map[string]CrewInfo {
+// priv は中身を残さない会話（loadCrew と同じものを渡す。nil なら作る）。
+func loadCrewSpawns(home string, errs *fileErrs, priv *crewPrivacy) map[string]CrewInfo {
 	out := map[string]CrewInfo{}
 	if home == "" {
 		return out
 	}
-	priv := crewPrivacy{}
+	if priv == nil {
+		priv = newCrewPrivacy(home, "")
+	}
 	for _, dir := range glob(filepath.Join(home, "crew-log", "sessions", "*")) {
 		if !realDir(dir) {
 			continue
@@ -382,7 +527,7 @@ func loadCrewSpawns(home string, errs *fileErrs) map[string]CrewInfo {
 			continue
 		}
 		// crew-log は会話の memory_mode を見ずに書かれるので、親の会話が中身を残さないものなら、子への依頼も残さない
-		private := priv.key(home, slot)
+		private := priv.key(slot)
 		for _, x := range spawns {
 			key := crewSlot("subagent:" + x.id)
 			if _, dup := out[key]; dup {
@@ -672,6 +817,28 @@ type crewSeg struct {
 // 退避した記録は、あふれた古い行（reason "rotate"）だけではない（crewArchiveRows）。
 // fork した会話なら、元の会話から写した行は除く（ownRows）。
 func readCrewStem(home, arch, stem string, errs *fileErrs) (meta crewMeta, rows []crewRow) {
+	segs := crewSegments(home, arch, stem)
+	paths := make([]string, 0, len(segs)+1)
+	for _, s := range segs {
+		paths = append(paths, s.path)
+	}
+	segRows := make([][]crewRow, 0, len(paths)+1)
+	reasons := make([]string, 0, len(paths)+1)
+	for i, p := range append(paths, filepath.Join(home, "sessions", stem+".jsonl")) {
+		m, rs := readCrewTranscript(p, errs)
+		meta.add(m)
+		segRows = append(segRows, rs)
+		if i == len(paths) {
+			m.archive = "" // 今の記録（退避した記録ではない）
+		}
+		reasons = append(reasons, m.archive)
+	}
+	return meta, ownRows(meta, crewArchiveRows(segRows, reasons))
+}
+
+// crewSegments は、名前が stem の会話の退避した記録（sessions/archive/<stem>__<日時>.jsonl と、元が消えたものは kiroku archive のコピー）を
+// 書いた順に並べる。
+func crewSegments(home, arch, stem string) []crewSeg {
 	var segs []crewSeg
 	add := func(p, name string) {
 		m := archiveSeg.FindStringSubmatch(strings.TrimPrefix(name, stem+"__"))
@@ -699,22 +866,7 @@ func readCrewStem(home, arch, stem string, errs *fileErrs) (meta crewMeta, rows 
 		}
 		return segs[i].n < segs[j].n
 	})
-	paths := make([]string, 0, len(segs)+1)
-	for _, s := range segs {
-		paths = append(paths, s.path)
-	}
-	segRows := make([][]crewRow, 0, len(paths)+1)
-	reasons := make([]string, 0, len(paths)+1)
-	for i, p := range append(paths, filepath.Join(home, "sessions", stem+".jsonl")) {
-		m, rs := readCrewTranscript(p, errs)
-		meta.add(m)
-		segRows = append(segRows, rs)
-		if i == len(paths) {
-			m.archive = "" // 今の記録（退避した記録ではない）
-		}
-		reasons = append(reasons, m.archive)
-	}
-	return meta, ownRows(meta, crewArchiveRows(segRows, reasons))
+	return segs
 }
 
 // crewArchiveRows は、退避した記録（書いた順）と今の記録（最後）の行をつなぐ。reasons はファイルごとの reason（今の記録は空）。
@@ -793,7 +945,7 @@ func (s *crewRowSet) has(r crewRow) bool {
 // readCrewTranscript は Crew の会話の記録を読む。meta は 1 行目のメタデータ（退避した記録なら reason も）。
 // 途中で読めなくなっても、読めた行までは返す。fork の写した行は除かない（ownRows）。
 func readCrewTranscript(path string, errs *fileErrs) (meta crewMeta, rows []crewRow) {
-	errs.file(path, core.ReadJSONL(path, func(e core.Obj) {
+	errs.file(path, crewJSONL(path, func(e core.Obj) {
 		switch core.Str(e["_type"]) {
 		case "metadata":
 			meta.add(crewMeta{title: core.Str(e["title"]), forkedFrom: core.Str(e["forked_from"]), created: ts(e["created_at"]), private: crewPrivateMeta(e)})

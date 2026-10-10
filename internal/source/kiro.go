@@ -251,7 +251,8 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		return nil
 	}
 	var errs fileErrs
-	crew := loadCrew(k.CrewHome, &errs)
+	priv := newCrewPrivacy(k.CrewHome, k.CrewArchive) // 中身を残さない会話（loadCrew・loadCrewSpawns と同じものを使う）
+	crew := loadCrew(k.CrewHome, &errs, priv)
 	usage := loadCrewUsage(k.CrewHome, &errs)
 	k.crew, k.crewFixed, k.crewOnly, k.crewCr, k.crewText, k.crewElse = 0, 0, 0, 0, 0, 0
 	slotInfo := map[string]*CrewInfo{} // 使用量の記録の slot → Crew の情報（session_map の会話と、サブエージェント）
@@ -269,7 +270,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		}
 	}
 	// state.json が消えた（Crew が片付けた）サブエージェントは、親の会話の crew-log に残る起動の記録で親を見つける
-	for slot, info := range loadCrewSpawns(k.CrewHome, &errs) {
+	for slot, info := range loadCrewSpawns(k.CrewHome, &errs, priv) {
 		if slotInfo[slot] == nil {
 			slotInfo[slot] = &info
 		}
@@ -454,9 +455,11 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		}
 		// 会話キーの今の会話を、前の会話より先に預ける（サブエージェントの親にする）
 		sort.SliceStable(ow, func(i, j int) bool { return !ow[i].info.Former && ow[j].info.Former })
+		// 会話の記録（退避した記録も）が中身を残さない会話だと示すか。依頼が kiro-cli に残っていて会話の記録を読まなくても調べる
+		private := cm.private || !crewBackground(slot) && priv.key(slot)
 		for _, o := range ow {
 			info := o.info
-			if cm.private && !info.Subagent { // 会話の記録が中身を残さない会話だと示す（数と時刻だけを出す）
+			if private && !info.Subagent {
 				info.Private = true
 			}
 			held.add(o.s, &info, info.Key)
@@ -476,7 +479,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 				continue
 			}
 			held.add(s, slotInfo[slot], slot)
-			if cm.private {
+			if private {
 				held.hide(s)
 			}
 		}
@@ -519,7 +522,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			k.crewText++
 			held.byPath[p] = s
 			held.list = append(held.list, heldCrew{b: s})
-			if info := byFile[p]; cm.private || info != nil && info.Private {
+			if info := byFile[p]; cm.private || priv.stem(stem) || info != nil && info.Private {
 				held.hide(s)
 			}
 		}
