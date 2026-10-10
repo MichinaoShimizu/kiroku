@@ -1,6 +1,6 @@
 # Reverse ADR audit — 2026-10-10
 
-Status: **In progress**. Baseline: PR #331 branch `docs/phase1-decision-recovery` (moving head; pin to a commit for reproducible future runs).
+Status: **In progress**. Latest focused evidence pass uses main commit `ad670cb40d8617b5418e103feab18c3df29fc92e` as the current-code baseline. Historical claims are still partial; no fresh tests were executed.
 
 ## Scope and coverage
 
@@ -9,6 +9,15 @@ Status: **In progress**. Baseline: PR #331 branch `docs/phase1-decision-recovery
 - Historical PR #1, #54, #93, #208 and #285 descriptions were re-read, along with current `internal/report/share.go`, `internal/report/share_test.go`, `internal/web/web.go`, `internal/web/web_test.go` and `docs/compatibility.md`.
 - The earlier scan of 318 merged PR titles/bodies was **candidate discovery**, not a full diff/review audit. Only five PRs were re-read in this pass; all historical diffs, reviews and current code paths were **not** exhaustively inspected.
 - No test suite was executed in this pass. A test definition is not a passing test result. **No claim is marked verified.**
+
+## Focused follow-up: initial architecture and source identity
+
+- Re-read merged PRs [#1](https://github.com/MichinaoShimizu/kiroku/pull/1), [#6](https://github.com/MichinaoShimizu/kiroku/pull/6), [#7](https://github.com/MichinaoShimizu/kiroku/pull/7), and [#9](https://github.com/MichinaoShimizu/kiroku/pull/9), including their descriptions and available unified diffs (diffs were sampled, not exhaustively reviewed).
+- Inspected current `internal/cli/load.go` and `internal/core/session.go` on the pinned main baseline; no test execution or complete review-thread inspection.
+- **Confirmed documented rationale:** #6 explicitly chose Go to ship a single cross-platform executable and separate agent-specific readers. This is stronger than an inferred motivation from current code.
+- **Observed implementation:** `collectCached` uses `seen` keys, `Claim`/`Yield` precedence and family-scoped withholding for private Kiro Crew copies. The current code does not by itself prove every historical reason behind these mechanisms.
+- **Historical limitations worth preserving:** #1 explicitly says real Kiro histories were not tested at introduction; #7 says Kiro CLI Windows path was not verified then; #9 says real Codex histories were not tested then. These are historical validation gaps, not claims that current behavior is broken.
+- Added three claim-level evidence entries (ADR-0001-C2, ADR-0004-C2, ADR-0010-C2). The matrix now contains 9 sampled claims, **0 newly test-verified**. It remains far from complete coverage of 20 ADRs.
 
 ## Findings
 
