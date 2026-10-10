@@ -12,7 +12,9 @@ The reusable [reverse-adr agent skill](../../.claude/skills/reverse-adr/SKILL.md
 
 ## Continuous design-decision workflow
 
-Reverse ADR is a **bootstrap** step, not the end of ADR adoption:
+Reverse ADR is a **bootstrap** step, not the end of ADR adoption. The ADR index is a shared, maintained discovery interface: Reverse ADR constructs it, ADR Guard consults and audits its relevance, and Forward ADR updates it when new decisions are proposed or accepted. Index edits belong in the same change as ADR edits. Status and supersession links must stay current.
+
+The workflow:
 
 1. Run [reverse-adr](../../.claude/skills/reverse-adr/SKILL.md) to recover the evidence-backed decision baseline and explicitly track uncertainties.
 2. During design, implementation and review, run [adr-guard](../../.claude/skills/adr-guard/SKILL.md) against the proposed diff to identify preserved, extended and conflicting decisions.
@@ -38,7 +40,7 @@ Scan this table first; read **only the relevant ADR bodies**. Paths are indicati
 | `.github/workflows/`, `install.sh`, release/update code | supply-chain, signatures, provenance, compatibility | [0011](0011-release-integrity.md), [0006](0006-compatibility-contract.md) |
 | `README.md`, `README.ja.md`, `internal/web/` | UI language, Japanese documentation | [0018](0018-language-policy.md) |
 
-If multiple rows apply, inspect the union of relevant ADRs. This index is a routing aid, not proof that every architectural decision is documented.
+When adding or changing an ADR, update this table and the ADR list with its scope, path/semantic routing hints, status and supersession relationships. Review stale entries during periodic audits. If multiple rows apply, inspect the union of relevant ADRs. This index is a routing aid, not proof that every architectural decision is documented.
 
 ## Layout
 
