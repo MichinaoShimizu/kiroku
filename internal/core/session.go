@@ -382,27 +382,36 @@ func (s *Builder) HideText(text string) {
 	s.File = ""
 }
 
-// HideText は、組み立て終えたセッションから、会話の中身から読んだものを消す（Builder.HideText と同じものを消し、タイトルを title にする）。
-// 別のエージェントの履歴に残る同じ会話（Kiro CLI の SQLite の写しなど）を、あとから隠すため。何度呼んでも同じ。
-func (s *Session) HideText(text, title string) {
+// Hidden は、組み立て終えたセッションから会話の中身から読んだものを消した写し（Builder.HideText と同じものを消し、タイトルを title にする）。
+// 別のエージェントの履歴に残る同じ会話（Kiro CLI の SQLite の写しなど）を、あとから隠すため。s は変えない
+// （kiroku serve は読み直さないセッションを使い回し、前の画面のデータとして同時に読んでいるので）。変える項目は、どれも新しいスライスにする。
+func (s *Session) Hidden(text, title string) *Session {
+	c := *s
+	c.Prompts = make([]Prompt, len(s.Prompts))
 	for i, p := range s.Prompts {
-		s.Prompts[i] = Prompt{T: p.T, Text: text, Work: p.Work, Wait: p.Wait}
+		c.Prompts[i] = Prompt{T: p.T, Text: text, Work: p.Work, Wait: p.Wait}
 	}
-	s.Title, s.Notes, s.File = title, nil, ""
-	s.Files, s.NFiles = []string{}, 0
-	s.Fix, s.Corrections = nil, 0
-	s.Interrupts, s.InterruptsAt = 0, []float64{}
-	s.LimitResets = nil
-	s.PRs = []string{}
-	for i := range s.PRAt {
-		s.PRAt[i].URL = ""
+	c.Title, c.Notes, c.File = title, nil, ""
+	c.Files, c.NFiles = []string{}, 0
+	c.Fix, c.Corrections = nil, 0
+	c.Interrupts, c.InterruptsAt = 0, []float64{}
+	c.LimitResets = nil
+	c.PRs = []string{}
+	c.PRAt = make([]PRAt, len(s.PRAt))
+	for i, p := range s.PRAt {
+		c.PRAt[i] = PRAt{T: p.T}
 	}
-	for i := range s.OEv {
-		s.OEv[i].URL = ""
+	c.OEv = make([]Output, len(s.OEv))
+	for i, o := range s.OEv {
+		o.URL = ""
+		c.OEv[i] = o
 	}
-	for i := range s.Subagents {
-		s.Subagents[i].Desc = ""
+	c.Subagents = make([]Subagent, len(s.Subagents))
+	for i, a := range s.Subagents {
+		a.Desc = ""
+		c.Subagents[i] = a
 	}
+	return &c
 }
 
 // Measure はそのエージェントだけが記録している数字を 1 つ足す。

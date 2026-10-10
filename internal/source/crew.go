@@ -302,9 +302,9 @@ func hideCrew(s *core.Builder) {
 }
 
 // HideWithheld は、Withholder が中身を出してはいけないとした会話（ほかの Source に残る同じ会話）を、
-// Crew の中身を残さない会話と同じ形にする（数と時刻だけ）。
-func HideWithheld(s *core.Session) {
-	s.HideText(crewPrivateText, crewPrivateTitle)
+// Crew の中身を残さない会話と同じ形にした写しを返す（数と時刻だけ。s は変えない）。
+func HideWithheld(s *core.Session) *core.Session {
+	return s.Hidden(crewPrivateText, crewPrivateTitle)
 }
 
 // DefaultCrewHome は KIROCREW_HOME か ~/.kiro/crew。
