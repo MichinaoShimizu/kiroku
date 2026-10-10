@@ -25,3 +25,15 @@ if [ "${1:-}" = "--html" ]; then # ダミーデータの HTML だけを作る（
 fi
 node "$here/capture.mjs" "$work/kiroku.html" "$root/docs"
 echo "docs/screenshot.png・docs/summary.png・docs/worth.png・docs/session.png・docs/og.png・docs/year.png を更新しました"
+# README の先頭の動き（docs/demo.gif）。動画を撮り、選ぶ間のちらつきを切り落として GIF にする。ffmpeg がなければ飛ばす
+if ! command -v ffmpeg >/dev/null 2>&1; then
+  echo "ffmpeg がないので docs/demo.gif は撮り直しませんでした"
+  exit 0
+fi
+mkdir "$work/video"
+set -- $(node "$here/demo.mjs" "$work/kiroku.html" "$work/video")
+# 幅 880・10 fps・96 色で 5MB ほどに収める（README で読める大きさと、リポジトリの重さの釣り合い）
+ffmpeg -v error -y -ss "$2" -i "$1" -filter_complex \
+  "fps=10,scale=880:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=96:stats_mode=diff[p];[b][p]paletteuse=dither=none:diff_mode=rectangle" \
+  "$root/docs/demo.gif"
+echo "docs/demo.gif を更新しました"

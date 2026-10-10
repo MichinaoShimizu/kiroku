@@ -38,7 +38,7 @@ The view lives in `internal/web`: `template.html` (markup), `style.css` and the 
 
 - The view is English only. Metric explanations live in `HELP`, and a test checks them against the "How to read the metrics" table in `docs/guide.md`
 - Check light and dark, and 1440px, 1000px and phone widths
-- Update the README, the guides and the screenshots (`sh tools/screenshots/run.sh`) in the same change
+- Update the README (both `README.md` and `README.ja.md`), the guides and the screenshots (`sh tools/screenshots/run.sh`) in the same change
 - Try the user scenarios in [docs/usability.md](docs/usability.md)
 
 ## Privacy

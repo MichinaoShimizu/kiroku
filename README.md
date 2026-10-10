@@ -2,13 +2,22 @@
 
 [![CI](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml/badge.svg)](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/MichinaoShimizu/kiroku)](https://github.com/MichinaoShimizu/kiroku/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![CodeQL](https://github.com/MichinaoShimizu/kiroku/actions/workflows/codeql.yml/badge.svg)](https://github.com/MichinaoShimizu/kiroku/actions/workflows/codeql.yml) [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/MichinaoShimizu/kiroku/badge)](https://scorecard.dev/viewer/?uri=github.com/MichinaoShimizu/kiroku) [![Go](https://img.shields.io/github/go-mod/go-version/MichinaoShimizu/kiroku)](go.mod) [![Downloads](https://img.shields.io/github/downloads/MichinaoShimizu/kiroku/total)](https://github.com/MichinaoShimizu/kiroku/releases)
 
+English | [日本語](README.ja.md)
+
 **Your AI work history, visualized.** No AI. No external APIs. No uploads.
 
 kiroku reads the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), Amazon Q Developer CLI and Codex CLI, and shows it on one calendar, only to you.
 
 **[Try the live demo →](https://michinaoshimizu.github.io/kiroku/)** (dummy data, runs in your browser)
 
-![The week calendar (dummy data)](docs/screenshot.png)
+[![The week calendar, a session, the token breakdown, search and the month view (dummy data)](docs/demo.gif)](https://michinaoshimizu.github.io/kiroku/)
+
+## Why kiroku
+
+- **Every agent on one calendar.** Claude Code, Codex, Kiro and Amazon Q side by side, instead of one dashboard per agent.
+- **Sessions you can read, not just count.** What you asked, what the AI replied, and the commands, commits and pull requests in between, next to time, tokens and cost.
+- **Reviews written by your own agent.** kiroku never calls an AI. One click copies a prompt grounded in your history for the agent you already use.
+- **Your history never leaves your computer.** A single binary, no account, no telemetry.
 
 ## Install
 
@@ -26,6 +35,8 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 ## What you get
 
 **Every session on a calendar.** When, in which project and what you asked, by week or month, with each day's active time, tokens, cost and Git commits.
+
+![The week calendar (dummy data)](docs/screenshot.png)
 
 **The whole story of a session.** The prompt flow with times, separating what you typed from what entered on its own, with commands, commits, pull requests, subagents and interruptions in between, and the AI's reply after each prompt, so a session reads as the conversation it was. One click copies a review prompt for it (see below).
 
@@ -91,7 +102,7 @@ The [guide](docs/guide.md) explains the view, every metric, which histories are 
 
 ## Contributing
 
-Issues and pull requests are welcome in English or Japanese. See [CONTRIBUTING.md](CONTRIBUTING.md), and report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+If kiroku is useful to you, a ⭐ helps others find it. Issues and pull requests are welcome in English or Japanese. See [CONTRIBUTING.md](CONTRIBUTING.md), and report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
 ## License
 
