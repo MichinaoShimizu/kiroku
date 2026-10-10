@@ -71,3 +71,12 @@ All passed. Claim statuses in [evidence.yaml](evidence.yaml): **verified 4** (AD
 Historical decisions re-read: PR #127 (DNS rebinding Host validation), #172 (serve-key authorization), #312 (private Kiro Crew redaction and family-scoped copies), #214 and #215 (not-recorded versus measured zero). Current `internal/core/records.go` declares agent-specific recording capabilities; `internal/cli/load.go` includes family-scoped withholding. `internal/cli/serve.go` and test-file inventories were sampled, not fully traced. Existing `internal/cli/serve_test.go` includes `TestServeHistory`, and `internal/cli/load_test.go` includes `TestSameConversationCountedOnce`; the names alone do not establish that security or private-content properties are tested. No tests were run in this pass.
 
 These findings are evidence candidates, not verified claims. Next: trace key/Host validation and private redaction assertions to actual tests, then run them on a pinned commit. Do not confuse historical vulnerability descriptions with a claim of current exposure.
+
+## Targeted test-assertion inspection (not execution)
+
+- `internal/cli/serve_test.go` lines 103–130: `TestSameOrigin` checks accepted local/bound Hosts and rejects `evil.example:8484` and wrong-port Hosts (HTTP 403). This is concrete assertion evidence for the Host policy in PR #127, but no new passing test run was observed.
+- `internal/cli/serve.go` lines 421–464 and 510–547: current Host allowlist construction and `requireKey` middleware wiring are present. This is source evidence only, not an exhaustive authorization or threat-model review.
+- `internal/core/records.go` lines 5–31: current source-specific `Records` capability table explicitly distinguishes unsupported recording from a measured zero. The table references `TestGuideRecordsTable`, but that test's assertion and current UI presentation remain to be checked.
+- `internal/cli/load_test.go` has `TestSameConversationCountedOnce`, but its full assertions have not been mapped to Kiro Crew private redaction. Do not treat a deduplication test as privacy verification.
+
+Next evidence gate: inspect `requireKey` tests and `TestGuideRecordsTable` assertions, inspect private Crew redaction tests, and execute the relevant tests at a pinned revision before marking claims verified.
