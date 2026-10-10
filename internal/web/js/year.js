@@ -383,8 +383,9 @@ function renderYear(pre){
   const ys = yearsOf(), dlg = $("#yr"); if (!ys.length) return;
   if (!ys.includes(yr.y)) yr.y = ys.includes(today0().getFullYear()) ? today0().getFullYear() : ys[ys.length-1];
   // 作り直しても、フォーカスのあった操作と「All 7」の開閉を戻す（年・色分け・チェックを変えたときや、serve の自動更新のとき）
-  const fo = document.activeElement, sel = fo && dlg.contains(fo) ? (fo.id ? `#${fo.id}` : fo.dataset && fo.dataset.o ? `[data-o="${fo.dataset.o}"]` : null) : null;
-  const det = !!(dlg.querySelector(".yrtypes") || {}).open;
+  const fo = document.activeElement, sel = !fo || !dlg.contains(fo) ? null : fo.id ? `#${fo.id}` : fo.dataset && fo.dataset.o ? `[data-o="${fo.dataset.o}"]`
+    : [".yrtypes summary", ".yrscroll", ".yrhd form button", "#yrsave", "#yrcopy"].find(q => fo.matches(q)) || null;
+  const det = !!(dlg.querySelector(".yrtypes") || {}).open, sl = (dlg.querySelector(".yrscroll") || {}).scrollLeft;
   const x = yr.x = pre && pre.y === yr.y ? pre : yearData(yr.y), L = yr.L = x.short ? null : LIGHTS.find(l => l.t(x)), pt = x.partial; // 8 週に満たなければ光の名前は付けない
   x.mode = yrColorMode(x); x.colorFn = yrColorOf(x, x.mode);
   const keys = x.mode === "project" ? x.projects : x.agents, qs = x.halves.filter(h => h.q);
@@ -411,7 +412,7 @@ function renderYear(pre){
     <div><b>Dark bands = days without AI sessions</b>Days off, holidays and days spent on other work all look the same.</div></div>
   ${x.hi.length || x.halves.length ? `<h3>What stands out</h3>
   <ul class="yrhi">${x.hi.map(h => `<li>${esc(h.t)}</li>`).join("")}${x.halves.map(h => `<li>${esc(x.halves.mid ? `Since ${dMD(new Date(x.halves.mid*1000))}, compared with before: ` : "Second half vs first: ")}${esc(h.t)}</li>`).join("")}</ul>
-  ${x.halves.length ? `<p class="note">The halves split the dates you have history for in two, so they are not calendar halves. "2+ sessions at once" is the share of active time when two or more sessions were running.</p>` : ""}` : ""}
+  ${x.halves.length ? `<p class="note">"Since …" compares the two halves of the dates you have history for, not calendar halves. "2+ sessions at once" is the share of active time when two or more sessions were running.</p>` : ""}` : ""}
   ${asks.length ? `<h3>To reflect on</h3>
   <ul class="yrhi">${asks.map(q => `<li>${esc(q)}</li>`).join("")}</ul>
   <p class="note">Questions, not judgments. They stay on this screen: they are never saved, sent or put on the image. To dig into a month, copy its report prompt from the month view.</p>` : ""}
@@ -440,8 +441,9 @@ function renderYear(pre){
   $("#yrcopy").onclick = async () => { try { await navigator.clipboard.write([new ClipboardItem({"image/png": blob()})]); toast("Copied the image"); copied($("#yrcopy")); }
     catch(e){ toast("Couldn't copy the image. Save it as a PNG instead", 2600); } };
   drawPlate(); drawCardLabeled();
-  yrScrollEnd();
-  if (det) dlg.querySelector(".yrtypes").open = true;
+  // 自動更新（pre）では、読んでいる位置を動かさない
+  if (pre && sl != null) dlg.querySelector(".yrscroll").scrollLeft = sl; else yrScrollEnd();
+  const t = dlg.querySelector(".yrtypes"); if (det && t) t.open = true; // 8 週に満たない年には「All 7」がない
   if (sel){ const e = dlg.querySelector(sel); if (e) e.focus(); }
   yr.sig = yrSig(x);
 }

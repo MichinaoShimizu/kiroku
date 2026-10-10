@@ -418,6 +418,14 @@ async function run(env) {
     check("色分けを変えても、フォーカスは色分けの選択に残る", await p.evaluate(() => document.activeElement && document.activeElement.id === "yrcolor"));
     check("プロジェクトで色分けできる（画面の凡例にプロジェクトが並ぶ）", /Color = project/.test(await p.locator("#yr .yrhow").innerText()));
     await p.locator("#yrcolor").selectOption("auto"); await pause();
+    // 「All 7」を開いたまま、光の名前のない短い年（ダミーデータの去年）に切り替えても壊れない
+    const ys = await p.evaluate(() => yearsOf());
+    if (ys.length > 1){
+      await p.evaluate(() => { const d = document.querySelector("#yr .yrtypes"); if (d) d.open = true; });
+      await p.locator("#yrsel").selectOption(String(ys[0])); await pause();
+      check("短い年に切り替えても、フォーカスは年の選択に残る", await p.evaluate(() => document.activeElement && document.activeElement.id === "yrsel"));
+      await p.locator("#yrsel").selectOption(String(ys[ys.length - 1])); await pause();
+    }
     check("腕前の等級やメーターを出さない（人を順位付けしない）", !/Novice|Legendary|Master|Overexposed|Underexposed|Skill/.test(await p.locator("#yr").innerText()));
     const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
     check("1 年の露光が横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
