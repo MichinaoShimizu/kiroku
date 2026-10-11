@@ -1,0 +1,22 @@
+name: Decision Continuity Runner Smoke
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/decision_continuity_agent_eval.py'
+      - 'tests/test_decision_continuity_agent_eval.py'
+      - '.github/workflows/decision-continuity-runner.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mock-agent-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test runner with a fake agent (not a live model)
+        run: python3 -m unittest discover -s tests -p 'test_decision_continuity_agent_eval.py' -v
