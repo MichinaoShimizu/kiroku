@@ -56,7 +56,8 @@ This page summarizes where kiroku reads each agent's history from and how. The l
 - The same conversation can appear in both the new format and SQLite. For a given conversation ID, only the new format is counted (because it has credits). The number left out appears in "Data sources"
 - The SQLite history has no tokens or credits, so it is not included in estimated cost or credits
 - The new format has no compaction marker kiroku can rely on (the format is not documented and the reference implementations don't read one), so Kiro CLI compactions are counted only from SQLite (see Amazon Q Developer CLI)
-- Kiro CLI now has three storages: V1 (SQLite), V2 (the JSON format under `sessions/cli`) and an opt-in V3 (`kiro-cli --v3`) that stores sessions in `~/.kiro/sessions/` in a new format without public documentation ([V3](https://kiro.dev/docs/cli/v3/)). kiroku does not read V3 yet
+- Kiro CLI now has three storages: V1 (SQLite), V2 (the JSON format under `sessions/cli`) and V3 (`kiro-cli --v3`; [V3](https://kiro.dev/docs/cli/v3/)). V3 runs on the same agent engine as Kiro IDE 1.x and writes to the same store, `sessions/<bucket>/sess_<uuid>/` (`session.json` + `messages.jsonl`; checked in the kiro-cli 2.29.0 release, which says "KAS uses the `sess_<uuid>` form"). Nothing in that store records whether the IDE or the CLI created a session, so kiroku reads Kiro CLI V3 sessions and shows them as "Kiro IDE". Classic (V2) sessions show a deprecation notice since CLI 2.26
+- kiro-cli can convert a Classic session to V3, and the V3 engine treats a V2 ID `X` as `sess_X`; such a converted session may be counted in both "Kiro CLI" and "Kiro IDE" (not yet confirmed on a real session). How V3 should be labeled and deduplicated is proposed in [ADR 0021](adr/0021-kiro-cli-v3-separate-source.md)
 
 ## Kiro Crew
 
