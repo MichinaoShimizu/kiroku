@@ -12,7 +12,7 @@ Scope: Phase 1 — product philosophy and UX
 
 A history viewer can help users understand their own AI-assisted work, but advice, rankings and invented productivity judgments can be mistaken for objective measurement.
 
-## Decision history and reversals
+## Decision
 
 1. Initial weekly reflection and productivity diagnostics were added ([#2](https://github.com/MichinaoShimizu/kiroku/pull/2)).
 2. Reflection was reshaped into a KPI-playbook-inspired decision flow ([#5](https://github.com/MichinaoShimizu/kiroku/pull/5)).
