@@ -361,10 +361,15 @@ function projectGrid(sessions, ws, we){
         const rest = ordered.length > limit ? '<details class="project-more"><summary>Show '+(ordered.length-limit)+' more '+esc(label.toLowerCase())+'</summary>'+ordered.slice(limit).map(makeButton).join("")+'</details>' : "";
         return '<strong>'+esc(label)+'</strong>'+visible+rest;
       };
+      const byAgent = new Map();
+      items.forEach(s=>byAgent.set(s.source || "Unknown agent",(byAgent.get(s.source || "Unknown agent") || 0)+1));
+      const agents = [...byAgent].sort((a,b)=>b[1]-a[1] || a[0].localeCompare(b[0]));
+      const agentSummary = '<div class="project-agents" aria-label="Sessions by agent">'+agents.map(([source,count])=>
+        '<span class="project-agent">'+esc(source)+' <strong>'+count+'</strong></span>').join("")+'</div>';
       const sessionsList = items.slice().sort((a,b)=>b.start-a.start);
       const commitsList = commits.slice().sort((a,b)=>b.t-a.t);
       const prsList = prs.slice().sort((a,b)=>b.pr.t-a.pr.t);
-      return '<section class="project-card"><h3>'+esc(name)+'</h3><p class="project-meta">'+plural(items.length,"session")+' · '+plural(commits.length,"Git commit")+' · '+plural(prs.length,"recorded PR")+' · '+esc(dMD(new Date(first*1000)))+' → '+esc(dMD(new Date(last*1000)))+'</p>'+
+      return '<section class="project-card"><h3>'+esc(name)+'</h3><p class="project-meta">'+plural(items.length,"session")+' · '+plural(commits.length,"Git commit")+' · '+plural(prs.length,"recorded PR")+' · '+esc(dMD(new Date(first*1000)))+' → '+esc(dMD(new Date(last*1000)))+'</p>'+agentSummary+
         '<div class="project-events">'+
         eventList("Sessions",sessionsList,5,s=>'<button data-session="'+esc(s.id)+'">'+esc(s.title||s.project||"Session")+' · '+esc(s.source)+'</button>')+
         eventList("Git commits",commitsList,3,c=>'<button data-git="'+esc(c.hash)+'">'+esc(c.subject||c.hash)+'</button>')+
