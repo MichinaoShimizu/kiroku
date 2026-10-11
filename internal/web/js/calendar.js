@@ -305,7 +305,7 @@ function journeyGrid(sessions, ws, we){
       const orderedItems = [...items].sort((a,b)=>a.start-b.start);
       const first = orderedItems[0], last = orderedItems[orderedItems.length-1];
       const activity = plural(uniqueDays, "active day") + " · " + plural(items.length, "session");
-      const span = first && last ? dMD(new Date(first.start*1000)) + " → " + dMD(new Date(last.end*1000)) : "";
+      const span = first && last ? dMD(new Date(Math.max(ws, first.start)*1000)) + " → " + dMD(new Date(Math.min(we, Math.max(...items.map(x=>x.end)))*1000)) : "";
       return '<div class="journey-row"><div class="journey-name" title="'+esc(name)+'">'+esc(name)+'<small title="Observed sessions only; not a measure of progress">'+esc(activity)+'</small><small>'+esc(span)+'</small></div><div class="journey-days">' +
         byDay.map(day => '<div class="journey-cell">'+day.slice(0,4).map(s =>
           '<button class="journey-dot" style="--c:'+colorOf(keyOf(s))+'" data-session="'+esc(s.id)+'" title="'+esc((s.title||s.project||"Session")+' · '+s.source)+'" aria-label="'+esc((s.title||"Session")+' · '+s.source)+'"></button>'
