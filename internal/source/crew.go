@@ -711,9 +711,8 @@ func (h *crewHeld) flush(home string, emit func(*core.Builder)) {
 		if parent == nil && home != "" {
 			parent = h.byPath[crewTranscriptPath(home, x.info.Key)]
 		}
-		// 親が Codex の記録のセッションに譲る（Yield）ときは、まとめると一緒に消えるので、サブエージェントはそのまま出す。
-		// kiro-cli の会話がみな持つ 3.0 の写しへの Yield（kiroClassicYield）では、ふつうにまとめる
-		if parent == nil || parent == x.b || parent.Yield != "" && parent.Yield != kiroClassicYield(parent.ID) {
+		// 親がほかのセッション（Codex の記録、3.0 へ移した写し）に譲る（Yield）ときは、まとめると一緒に消えるので、サブエージェントはそのまま出す
+		if parent == nil || parent == x.b || parent.Yield != "" {
 			continue
 		}
 		foldCrewSubagent(parent, x.b, *x.info)
