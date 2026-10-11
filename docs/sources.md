@@ -59,6 +59,7 @@ Kiro CLI V2 sessions, which Kiro calls "Classic" sessions. Older kiroku versions
 - The SQLite history has no tokens or credits, so it is not included in estimated cost or credits
 - The new format has no compaction marker kiroku can rely on (the format is not documented and the reference implementations don't read one), so Kiro CLI compactions are counted only from SQLite (see Amazon Q Developer CLI)
 - Kiro CLI has three storages: V1 (SQLite, "Kiro CLI (SQLite)"), V2 (the JSON format under `sessions/cli`, "Kiro CLI (Classic)") and V3 ([V3](https://kiro.dev/docs/cli/v3/)), which stores sessions in `~/.kiro/sessions/<hash>/sess_<id>/` in the same format as Kiro IDE and is read as part of "Kiro IDE / CLI" (see above and [ADR 0021](adr/0021-kiro-cli-v3-separate-source.md))
+- kiro-cli can convert a Classic session to V3, and the V3 engine treats a V2 ID `X` as `sess_X`; such a converted session may be counted in both "Kiro CLI (Classic)" and "Kiro IDE / CLI" (not yet confirmed on a real session; [ADR 0021](adr/0021-kiro-cli-v3-separate-source.md))
 
 ## Kiro Crew
 
