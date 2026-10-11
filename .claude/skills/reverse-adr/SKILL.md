@@ -162,6 +162,6 @@ Summarize: scope and revision; decision trajectories discovered; new/updated Des
 - Generated evidence links that were not opened or confirmed.
 - Sensitive history copied into public reports.
 
-## Shared Design Log and ADR contract
+## Shared lifecycle rules
 
-Follow the target repository's separate Design Log and ADR indexes. In kiroku, `docs/design-log/README.md` indexes historical evidence; `docs/adr/README.md` indexes explicit decisions. Historical records 0001–0019 were migrated to Design Logs; legacy ADR paths are redirects only. Do not interpret their historical claims as Accepted decisions. Preserve evidence IDs, confidence labels and verified source dates; do not invent a decision date from a PR merge timestamp. Cross-cutting applicability requires semantic review, not just path matching.
+Follow the [Decision Continuity shared contract](../decision-continuity-contract.md). This includes the Design Log / ADR separation, human acceptance boundary, legacy redirects and evidence discipline. Consult supporting audit/test material only when needed.
