@@ -194,3 +194,83 @@ func TestCollectWithheldDoesNotMutateCache(t *testing.T) {
 		t.Errorf("persistent に戻したあとの写し = %+v", s)
 	}
 }
+
+// Kiro Crew の Codex の backend の会話は、Codex 自身の記録（CODEX_HOME。ACP の会話 ID がスレッド ID）にも残る。
+// 1 回だけ数える: Codex のセッションがあれば Crew の記録から作るセッションは出さない（依頼・時刻を 2 度数えない）。
+// Codex の読み取りを選ばないとき（--sources kiro）や、Codex のスレッドがないときは、Crew のセッションを出す。
+// 中身を残さない（incognito の）会話なら、Codex のセッションも数と時刻だけにする。
+func TestCollectCrewCodexBackendCountedOnce(t *testing.T) {
+	old := logw
+	logw = io.Discard
+	defer func() { logw = old }()
+	dir := t.TempDir()
+	kiro, crew, codex := filepath.Join(dir, "kiro"), filepath.Join(dir, "crew"), filepath.Join(dir, "codex")
+	rollout := func(id, prompt string) string {
+		return `{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"` + id + `","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/w"}}` + "\n" +
+			`{"timestamp":"2026-10-06T00:00:01.000Z","type":"event_msg","payload":{"type":"user_message","message":"` + prompt + `"}}` + "\n" +
+			`{"timestamp":"2026-10-06T00:00:09.000Z","type":"event_msg","payload":{"type":"agent_message","message":"done"}}` + "\n"
+	}
+	transcript := func(title, mode, prompt string) string {
+		return `{"_type": "metadata", "title": "` + title + `", "memory_mode": "` + mode + `"}` + "\n" +
+			`{"role": "user", "content": "` + prompt + `", "ts": "2026-10-06T00:00:01+00:00", "meta": {"human": true}}` + "\n"
+	}
+	usage := func(slot string) string {
+		return `{"_type": "tokens", "ts": "2026-10-06T00:00:09+00:00", "slot": "` + slot + `", "provider": "acp", "model": "gpt-6-sol", "input": 10, "output": 5, "credits": 0.0, "turns": 0, "duration_ms": 8000}` + "\n"
+	}
+	for p, c := range map[string]string{
+		filepath.Join(kiro, "sessions", "cli", ".keep"): "",
+		filepath.Join(crew, "session_map.json"): `{"dashboard:chat-1-100": {"sid": "thr-a", "provider": "codex", "cwd": "/w"},
+ "dashboard:chat-2-200": {"sid": "thr-b", "provider": "codex", "cwd": "/w"},
+ "dashboard:chat-3-300": {"sid": "thr-gone", "provider": "codex", "cwd": "/w"}}`,
+		filepath.Join(crew, "usage", "tokens", "2026-10-06.jsonl"):                                      usage("chat-1-100") + usage("chat-2-200") + usage("chat-3-300"),
+		filepath.Join(crew, "sessions", "dashboard_chat-1-100.jsonl"):                                   transcript("a", "persistent", "prompt a"),
+		filepath.Join(crew, "sessions", "dashboard_chat-2-200.jsonl"):                                   transcript("SECRET-TITLE", "incognito", "SECRET-CREW-PROMPT"),
+		filepath.Join(crew, "sessions", "dashboard_chat-3-300.jsonl"):                                   transcript("gone", "persistent", "prompt gone"),
+		filepath.Join(codex, "sessions", "2026", "10", "06", "rollout-2026-10-06T00-00-00-thr-a.jsonl"): rollout("thr-a", "prompt a"),
+		filepath.Join(codex, "sessions", "2026", "10", "06", "rollout-2026-10-06T00-00-00-thr-b.jsonl"): rollout("thr-b", "SECRET-CODEX-PROMPT"),
+	} {
+		if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(c), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	all := []source.Source{&source.KiroCLI{Home: kiro, CrewHome: crew}, &source.Codex{Home: codex}}
+	for _, cache := range []*loadCache{nil, newLoadCache()} {
+		for range 2 { // キャッシュから出しても同じ
+			data, rep := collectCached(all, map[string]bool{"kiro": true, "codex": true}, 15, cache)
+			prompts := 0
+			for _, s := range data {
+				prompts += len(s.Prompts)
+			}
+			if len(data) != 3 || prompts != 3 {
+				t.Fatalf("セッション = %d、依頼 = %d, want 3 と 3（Codex の 2 件と、Codex のスレッドがない Crew の 1 件）", len(data), prompts)
+			}
+			if sessionBy(data, "Codex", "thr-a") == nil || sessionBy(data, "Kiro Crew", "crew:dashboard:chat-3-300") == nil {
+				t.Errorf("Codex のセッションと、スレッドのない Crew のセッションを出す: %+v", data)
+			}
+			if sessionBy(data, "Kiro Crew", "crew:dashboard:chat-1-100") != nil {
+				t.Error("Codex のセッションがある会話を、Crew のセッションとしても出している")
+			}
+			if r := rep[0]; r.Name != "Kiro CLI" || r.Dup != 2 {
+				t.Errorf("Kiro CLI の report = %+v, want dup 2", r)
+			}
+			b, err := json.Marshal(data)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(string(b), "SECRET") {
+				t.Fatalf("incognito の会話の中身が Codex のセッションに残っている: %s", b)
+			}
+			if s := sessionBy(data, "Codex", "thr-b"); s == nil || len(s.Prompts) != 1 || s.Prompts[0].Text != "(private)" {
+				t.Errorf("incognito の会話の Codex のセッション = %+v（数と時刻は残す）", s)
+			}
+		}
+	}
+	// Codex を読まないときは、Crew のセッションを出す
+	data, _ := collect(all, map[string]bool{"kiro": true}, 15)
+	if len(data) != 3 || sessionBy(data, "Kiro Crew", "crew:dashboard:chat-1-100") == nil {
+		t.Errorf("Codex を読まないときの Crew のセッション = %d 件", len(data))
+	}
+}

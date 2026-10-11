@@ -184,6 +184,10 @@ func codexEvent(t *float64, model string, u core.Tokens, perRequest bool) core.E
 	return e
 }
 
+// codexClaim は Codex のスレッドの Claim の鍵（core.Builder.Claim）。Kiro Crew の Codex の backend の会話（ACP の会話 ID がスレッド ID）は、
+// Crew の記録から作るセッションに同じ鍵の Yield をつけ、Codex の記録のセッションがあればそちらだけを数える。
+func codexClaim(id string) string { return "codex:" + id }
+
 // Load は全部の会話を読む。読めないファイルがあっても残りは読み、最初のエラー（と残りの数）を返す。
 func (c *Codex) Load(emit func(*core.Builder)) error {
 	var errs fileErrs
@@ -885,6 +889,9 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		s.CtxWindow = core.PeakContextWindowFrom(cf.events, cf.windows) // 「長い会話」の最大の目安（ウィンドウの半分）
 		if s.Project != "" {
 			s.Resume = core.ResumeCmd(s.Project, "codex resume", s.ID)
+		}
+		if s.ID != "" {
+			s.Claim = codexClaim(s.ID) // Kiro Crew の Codex の backend の会話（CrewInfo.codexClaim）は、こちらだけを数える
 		}
 		emit(s)
 	}

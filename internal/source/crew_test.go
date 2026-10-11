@@ -1498,3 +1498,122 @@ func TestKiroCrewEarlierLineageRules(t *testing.T) {
 		})
 	}
 }
+
+// 使える量を使い切ってターンが止まると、Crew のダッシュボードは会話の記録に meta.kind "usage_limit" の error の行を書く
+// （dashboard/chat_utils.py の USAGE_LIMIT_KIND、chat_turn/recovery.py の _terminal_error_meta）。これを上限に当たった時刻として数える。
+// 文からは決めない（Crew も文を見ない）。ほかの種類（auth_required など）や、印のない error の行は上限ではない。
+// kiro-cli の履歴に依頼が残る会話でも、上限の行は Crew の会話の記録にしかないので読む。中身を残さない会話でも数と時刻は出す。
+func TestKiroCrewUsageLimitRows(t *testing.T) {
+	kiro, crew := t.TempDir(), t.TempDir()
+	errRow := func(ts, content, meta string) string {
+		return fmt.Sprintf(`{"role": "error", "content": %q, "ts": %q, "source_thread": "dashboard", "source_user": "dashboard"%s}`, content, ts, meta)
+	}
+	writeFiles(t, kiro, kiroCLIWithText("k-linked", "/w", "依頼は kiro-cli にある", "はい"))
+	writeFiles(t, crew, map[string]string{
+		"session_map.json":              `{"dashboard:chat-1-100": {"sid": "k-linked", "cwd": "/w"}}`,
+		"usage/tokens/2026-09-29.jsonl": `{"_type": "tokens", "ts": "2026-09-29T10:01:00+00:00", "slot": "chat-2-200", "provider": "acp", "model": "auto", "credits": 0.5}` + "\n",
+		// kiro-cli の会話に結びつく会話（依頼は kiro-cli の履歴にある）
+		"sessions/dashboard_chat-1-100.jsonl": `{"_type": "metadata", "title": "t1"}` + "\n" +
+			errRow("2026-09-29T10:04:00+00:00", "The monthly usage limit has been reached", `, "meta": {"kind": "usage_limit", "mid": "m1"}`) + "\n",
+		// 使用量の記録だけの会話
+		"sessions/dashboard_chat-2-200.jsonl": `{"_type": "metadata", "title": "t2"}` + "\n" +
+			`{"role": "user", "content": "調べて", "ts": "2026-09-29T10:00:00+00:00", "meta": {"human": true}}` + "\n" +
+			errRow("2026-09-29T10:02:00+00:00", "limit", `, "meta": {"kind": "usage_limit"}`) + "\n" +
+			errRow("2026-09-29T10:02:30+00:00", "limit again", `, "meta": {"kind": "usage_limit"}`) + "\n" + // 1 分以内は 1 回
+			errRow("2026-09-29T10:30:00+00:00", "limit later", `, "meta": {"kind": "usage_limit"}`) + "\n" +
+			errRow("2026-09-29T10:40:00+00:00", "sign in", `, "meta": {"kind": "auth_required"}`) + "\n" +
+			errRow("2026-09-29T10:41:00+00:00", "model", `, "meta": {"kind": "model_unentitled"}`) + "\n" +
+			errRow("2026-09-29T10:42:00+00:00", "start", `, "meta": {"kind": "session_start_failed"}`) + "\n" +
+			errRow("2026-09-29T10:50:00+00:00", "The monthly usage limit has been reached", "") + "\n" + // 文だけでは数えない
+			errRow("2026-09-29T11:00:00+00:00", "x", `, "meta": {"kind": "USAGE_LIMIT"}`) + "\n" + // Crew と同じく、決まった文字列だけ
+			errRow("2026-09-29T11:10:00+00:00", "x", `, "meta": {"kind": 1}`) + "\n" +
+			`{"role": "user", "content": "x", "ts": "2026-09-29T11:20:00+00:00", "meta": {"kind": "usage_limit", "human": true}}` + "\n", // error の行だけ
+		// 中身を残さない会話（会話の記録だけ）
+		"sessions/dashboard_chat-3-300.jsonl": `{"_type": "metadata", "title": "SECRET-TITLE", "memory_mode": "incognito"}` + "\n" +
+			`{"role": "user", "content": "SECRET-PROMPT", "ts": "2026-09-29T12:00:00+00:00", "meta": {"human": true}}` + "\n" +
+			errRow("2026-09-29T12:01:00+00:00", "SECRET-ERROR", `, "meta": {"kind": "usage_limit"}`) + "\n",
+	})
+	bs := load(t, &KiroCLI{Home: kiro, CrewHome: crew})
+	at := func(id string) []string {
+		t.Helper()
+		b := find(bs, id)
+		if b == nil {
+			t.Fatalf("%s がない", id)
+		}
+		var out []string
+		for _, x := range b.Limits {
+			out = append(out, time.Unix(int64(x), 0).UTC().Format("15:04:05"))
+		}
+		return out
+	}
+	if got := at("crew:dashboard:chat-2-200"); !reflect.DeepEqual(got, []string{"10:02:00", "10:30:00"}) {
+		t.Errorf("使用量の記録だけの会話の上限 = %v, want 10:02 と 10:30 だけ", got)
+	}
+	if got := at("k-linked"); !reflect.DeepEqual(got, []string{"10:04:00"}) {
+		t.Errorf("kiro-cli に依頼がある会話の上限 = %v, want 10:04", got)
+	}
+	if b := find(bs, "k-linked"); len(b.Prompts) != 1 || b.Prompts[0].Text != "依頼は kiro-cli にある" {
+		t.Errorf("kiro-cli の依頼はそのまま: %+v", b.Prompts)
+	}
+	if got := at("crew:dashboard_chat-3-300"); !reflect.DeepEqual(got, []string{"12:01:00"}) {
+		t.Errorf("中身を残さない会話の上限 = %v, want 12:01（数と時刻は出す）", got)
+	}
+	if leaks := leakedCrew(t, []*core.Builder{find(bs, "crew:dashboard_chat-3-300")}); len(leaks) > 0 {
+		t.Errorf("中身を残さない会話の中身が出ている: %v", leaks)
+	}
+	if f := find(bs, "crew:dashboard:chat-2-200").Finish(15); len(f.Limits) != 2 {
+		t.Errorf("セッションの上限 = %v", f.Limits)
+	}
+}
+
+// Crew の Codex の backend の会話は、ACP の会話 ID が Codex のスレッド ID（acp/harness/codex.py）で、Codex 自身の記録（CODEX_HOME）にも残る。
+// Crew の記録から作る Crew のセッションは、同じスレッドの Codex のセッションに譲る（Yield と Claim が同じ鍵）。
+// ほかの backend や前の会話（discarded_sid）は譲らない。会話の記録だけの会話も譲る。
+func TestKiroCrewCodexBackendYieldsToCodex(t *testing.T) {
+	kiro, crew, cx := t.TempDir(), t.TempDir(), t.TempDir()
+	writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
+	writeFiles(t, crew, map[string]string{
+		"session_map.json": `{"dashboard:chat-1-100": {"sid": "019a0000-0000-7000-8000-00000000c0de", "provider": "codex", "cwd": "/w"},
+ "dashboard:chat-2-200": {"sid": "gs-sid", "provider": "goose", "cwd": "/w"},
+ "dashboard:chat-4-400": {"sid": "019a0000-0000-7000-8000-0000000010ff", "provider": "codex", "cwd": "/w"},
+ "dashboard:chat-5-500": {"sid": "", "discarded_sid": "019a0000-0000-7000-8000-00000000d15c", "provider": "codex", "cwd": "/w"}}`,
+		"usage/tokens/2026-10-06.jsonl": strings.Join([]string{
+			`{"_type": "tokens", "ts": "2026-10-06T00:00:09+00:00", "slot": "chat-1-100", "provider": "acp", "model": "gpt-6-sol", "input": 10, "output": 5, "credits": 0.0, "turns": 0, "duration_ms": 8000}`,
+			`{"_type": "tokens", "ts": "2026-10-06T00:00:09+00:00", "slot": "chat-2-200", "provider": "acp", "model": "glm-5", "input": 10, "output": 5, "credits": 0.0, "turns": 0}`,
+			`{"_type": "tokens", "ts": "2026-10-06T00:00:09+00:00", "slot": "chat-5-500", "provider": "acp", "model": "gpt-6-sol", "input": 10, "output": 5, "credits": 0.0, "turns": 0}`,
+		}, "\n") + "\n",
+		"sessions/dashboard_chat-1-100.jsonl": `{"_type": "metadata", "title": "Codex で直す"}` + "\n" +
+			`{"role": "user", "content": "Fix the parser", "ts": "2026-10-06T00:00:01+00:00", "meta": {"human": true}}` + "\n" +
+			`{"role": "assistant", "content": "Fixed it", "ts": "2026-10-06T00:00:09+00:00"}` + "\n",
+		"sessions/dashboard_chat-4-400.jsonl": `{"_type": "metadata", "title": "記録だけ"}` + "\n" +
+			`{"role": "user", "content": "hello", "ts": "2026-10-06T01:00:00+00:00", "meta": {"human": true}}` + "\n",
+	})
+	writeCodex(t, cx, "019a0000-0000-7000-8000-00000000c0de",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"019a0000-0000-7000-8000-00000000c0de","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/w"}}`,
+		`{"timestamp":"2026-10-06T00:00:01.000Z","type":"event_msg","payload":{"type":"user_message","message":"Fix the parser"}}`,
+		`{"timestamp":"2026-10-06T00:00:09.000Z","type":"event_msg","payload":{"type":"agent_message","message":"Fixed it"}}`,
+	)
+	cb := load(t, &Codex{Home: cx})
+	if len(cb) != 1 || cb[0].Claim != "codex:019a0000-0000-7000-8000-00000000c0de" {
+		t.Fatalf("Codex のセッションの Claim = %+v", cb)
+	}
+	by := map[string]*core.Builder{}
+	for _, b := range load(t, &KiroCLI{Home: kiro, CrewHome: crew}) {
+		by[b.ID] = b
+	}
+	for id, want := range map[string]string{
+		"crew:dashboard:chat-1-100": cb[0].Claim,                                  // Codex の backend の会話
+		"crew:dashboard_chat-4-400": "codex:019a0000-0000-7000-8000-0000000010ff", // 会話の記録だけの会話
+		"crew:dashboard:chat-2-200": "",                                           // goose
+		"crew:dashboard:chat-5-500": "",                                           // 前の会話の backend はわからない
+	} {
+		b := by[id]
+		if b == nil {
+			t.Errorf("%s がない", id)
+			continue
+		}
+		if b.Yield != want {
+			t.Errorf("%s の Yield = %q, want %q", id, b.Yield, want)
+		}
+	}
+}

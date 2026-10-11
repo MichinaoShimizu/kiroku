@@ -30,9 +30,9 @@ import (
 // キーの会話を差しかえたときは、時刻でそのころの kiro-cli の会話に分ける（crewOwner）。
 // kiro-cli の会話に結びつかない記録（Crew の裏方の処理 _bg など）は、Crew のセッションとして数える。
 //
-//	<KIROCREW_HOME か ~/.kiro/crew>/session_map.json        {会話キー: {"sid": kiro-cli の会話 ID, "cwd": …, "provider"?, "discarded_sid"?} か "sid"}
+//	<KIROCREW_HOME か ~/.kiro/crew>/session_map.json        {会話キー: {"sid": backend の会話 ID（kiro-cli の会話 ID、Codex ならスレッド ID）, "cwd": …, "provider"?, "discarded_sid"?} か "sid"}
 //	<…>/sessions/<キー>.jsonl                               1 行目 {"_type": "metadata", "title", "agent", "model", "memory_mode"?, …}
-//	                                                         2 行目から {"role": "user"|"assistant"|…, "content", "ts", "tools"?: [ツール名]}
+//	                                                         2 行目から {"role": "user"|"assistant"|"error"|…, "content", "ts", "tools"?: [ツール名], "meta"?: {"human"?, "mid"?, "kind"?}}
 //	<…>/subagents/<id>/state.json                          {"task", "agent", "parent_session", "session_id"?, "provider"?, …}
 //	<…>/usage/tokens/<YYYY-MM-DD>.jsonl                     {"_type": "tokens", "ts", "slot": 会話キー, "provider", "model", "input", "output",
 //	                                                         "cache_create", "cache_read", "cost", "credits", "duration_ms", "context_used",
@@ -60,6 +60,22 @@ type CrewInfo struct {
 	Former bool
 	// Private は、中身を残してはいけない会話（incognito・temporary。crewPrivateMode）。数と時刻だけを出す（hideCrew）
 	Private bool
+	// Sid は backend の会話 ID（session_map の sid か discarded_sid、サブエージェントなら state.json の session_id）
+	Sid string
+}
+
+// codexClaim は、Codex の backend で動いている会話キーの会話なら、その Codex のスレッドの Claim の鍵（codexClaim）。ほかは空。
+// Crew の Codex の backend（codex-acp）では ACP の会話 ID が Codex のスレッド ID そのもので（acp/harness/codex.py の冒頭の説明）、
+// Crew はそれを session_map の sid に provider "codex" で書く（session_allocation.py。providers/acp.py の provider_label）。
+// スレッドは CODEX_HOME に Codex 自身の記録（rollout）として残り（acp/harness/codex.py の SpawnPlan の注記）、kiroku の Codex の読み取りが
+// 依頼・時刻・トークン・コストを読むので、Crew の記録から作る Crew のセッションは、そのスレッドのセッションがあれば数えない（core.Builder.Yield）。
+// session_map の provider は会話キーの今の backend なので、今の sid だけを使う（discarded_sid の backend はわからない）。
+// サブエージェントは親の会話にまとめるので使わない。
+func (i CrewInfo) codexClaim() string {
+	if i.Subagent || i.Former || i.Provider != "codex" || i.Sid == "" {
+		return ""
+	}
+	return codexClaim(i.Sid)
 }
 
 // usageSlot は、その会話の使用量の記録の slot。
@@ -444,7 +460,7 @@ func loadCrew(home string, errs *fileErrs, priv *crewPrivacy) map[string]CrewInf
 		if sid == "" && discarded == "" {
 			continue
 		}
-		info := CrewInfo{Key: key, Cwd: cwd, Provider: provider, Private: priv.key(key)}
+		info := CrewInfo{Key: key, Cwd: cwd, Provider: provider, Private: priv.key(key), Sid: sid}
 		// 会話キーをファイル名にしたもの（Crew の history._safe_key と同じ）
 		path := crewTranscriptPath(home, key)
 		errs.file(path, crewJSONL(path, func(e core.Obj) {
@@ -458,7 +474,7 @@ func loadCrew(home string, errs *fileErrs, priv *crewPrivacy) map[string]CrewInf
 		}
 		if _, dup := former[discarded]; discarded != "" && discarded != sid && !dup {
 			f := info
-			f.Former = true
+			f.Former, f.Sid = true, discarded
 			former[discarded] = f
 		}
 	}
@@ -472,7 +488,7 @@ func loadCrew(home string, errs *fileErrs, priv *crewPrivacy) map[string]CrewInf
 		}
 		info := CrewInfo{Subagent: true, Key: core.Str(st["parent_session"]), Agent: core.Str(st["agent"]),
 			Task: core.Runes(strings.TrimSpace(core.Str(st["task"])), 120), Cwd: core.Str(st["cwd"]), Provider: core.Str(st["provider"]),
-			UsageSlot: subagentSlot(st, filepath.Base(filepath.Dir(p)))}
+			UsageSlot: subagentSlot(st, filepath.Base(filepath.Dir(p))), Sid: sid}
 		// あとから incognito・temporary にしたサブエージェント（subagent_persistence.py は state.json の memory_mode と
 		// execution_context.memory_mode を書きかえる）と、中身を残さない会話から起動したサブエージェントは、依頼も残さない
 		if crewPrivateMeta(st) || priv.key(info.Key) {
@@ -695,7 +711,8 @@ func (h *crewHeld) flush(home string, emit func(*core.Builder)) {
 		if parent == nil && home != "" {
 			parent = h.byPath[crewTranscriptPath(home, x.info.Key)]
 		}
-		if parent == nil || parent == x.b {
+		// 親が Codex の記録のセッションに譲る（Yield）ときは、まとめると一緒に消えるので、サブエージェントはそのまま出す
+		if parent == nil || parent == x.b || parent.Yield != "" {
 			continue
 		}
 		foldCrewSubagent(parent, x.b, *x.info)
@@ -761,6 +778,7 @@ type crewRow struct {
 	tools []string
 	human bool   // meta.human が true（人が書いた行。Crew の history.HUMAN_TURN_META_KEY）
 	mid   string // meta.mid（Crew が行ごとにつける ID。dashboard/state.py の row_mid。なければ空）
+	kind  string // meta.kind（error の行の種類。crewLimitKind など。なければ空）
 	rawTS string // ts の値をそのまま（mid のない行を見分けるため。crewRowSet）
 	// hidden は、中身を出さない行（今の会話より前に同じ名前で退避された記録の行。crewEarlierRow）。数と時刻だけを使う
 	hidden bool
@@ -1054,6 +1072,7 @@ func readCrewTranscript(path string, errs *fileErrs) (meta crewMeta, rows []crew
 		m := core.Map(e["meta"])
 		r.human, _ = m["human"].(bool) // Crew と同じく true だけ（"true" や 1 は数えない）
 		r.mid, _ = m["mid"].(string)   // Crew と同じく空でない文字列だけ（row_mid）
+		r.kind, _ = m["kind"].(string)
 		for _, x := range core.List(e["tools"]) {
 			if n := core.Str(x); n != "" {
 				r.tools = append(r.tools, n)
@@ -1085,6 +1104,7 @@ func addCrewRows(s *core.Builder, rows []crewRow) {
 	marked := false // 目印を書く Crew の記録に入ったか
 	for _, r := range rows {
 		marked = marked || r.human
+		crewLimit(s, r)
 		switch {
 		case r.hidden && r.role == "user": // 中身を出さない行: 依頼の数と時刻だけ
 			s.Tick(r.t)
@@ -1109,6 +1129,28 @@ func addCrewRows(s *core.Builder, rows []crewRow) {
 		for _, n := range r.tools {
 			s.Tool(n, nil)
 		}
+	}
+}
+
+// crewLimitKind は、使える量（プランの月の上限など）を使い切ってターンが止まったときに、ダッシュボードが会話の記録に書く
+// error の行の meta.kind（dashboard/chat_utils.py の USAGE_LIMIT_KIND。chat_turn/recovery.py の _terminal_error_meta がつける）。
+// Crew は backend の返した生のエラーから決め、文からは決めない（文は書きかえや翻訳で変わる）ので、kiroku も文は見ずにこの印だけを見る。
+// ほかの種類（auth_required・model_unentitled・session_start_failed）は上限ではない。
+const crewLimitKind = "usage_limit"
+
+// crewLimit は、行が使用量の上限に当たった error の行なら、上限に当たった時刻として足す（Crew の行に解除の時刻はない）。
+// 中身を出さない行（hidden）も、時刻だけなので数える。
+func crewLimit(s *core.Builder, r crewRow) {
+	if r.role == "error" && r.kind == crewLimitKind {
+		s.Limit(r.t, "")
+	}
+}
+
+// addCrewLimits は、依頼の流れを kiro-cli の履歴から読んだ会話に、Crew の会話の記録の上限の行だけを足す
+// （上限の行はダッシュボードだけが書き、kiro-cli の履歴にはない）。
+func addCrewLimits(s *core.Builder, rows []crewRow) {
+	for _, r := range rows {
+		crewLimit(s, r)
 	}
 }
 
@@ -1316,8 +1358,9 @@ func loadCrewUsage(home string, errs *fileErrs) map[string][]crewTurn {
 // crewElsewhere は、その行のトークンとドル額を、kiroku が別に読む履歴が記録しているか（crewOwnHistory）。
 // Crew の Claude Code の seam は claude-agent-acp で Claude Code を動かし、Claude Code が ~/.claude/projects に自分の記録を書く
 // （Crew の providers/acp.py の cleanup_session の注記）。Codex の backend も Codex 自身が ~/.codex に記録を書くものとみなす。
-// Crew の会話 ID（session_map の sid）とそれらの履歴の会話 ID が同じかは、手元の根拠（Crew と claude-agent-acp の公開ソース）では確かめられない。
+// Claude Code では、Crew の会話 ID（session_map の sid）と Claude Code の履歴の会話 ID が同じかは、手元の根拠（Crew と claude-agent-acp の公開ソース）では確かめられない。
 // 結びつけられないまま足すと同じトークンとコストを 2 度数えるので、これらの行ではトークンとドル額を足さない（ターン・時刻・モデルは数える）。
+// Codex では sid がスレッド ID そのものなので、会話キーの今の backend が Codex なら、Crew のセッションごと Codex のセッションに譲る（CrewInfo.codexClaim）。
 //
 // 行の provider は書いたところで意味が違う: 裏方の処理・記憶の整理は本当の backend の名前（llm_helpers.py の _provider_label →
 // providers/acp.py の provider_label。"acp"（kiro-cli）・"claude_code"・"codex"・"kas"・"goose" など）、ダッシュボードとサブエージェントは
@@ -1486,6 +1529,9 @@ func crewOnly(home, slot string, turns []crewTurn, info *CrewInfo, title string,
 			s.File = crewTranscriptPath(home, slot)
 		}
 		s.Key = "kiro-crew:" + id[len("crew:"):]
+		if !bg && info != nil {
+			s.Yield = info.codexClaim() // Codex の backend の会話は、Codex の記録のセッションがあればそちらだけを数える
+		}
 		switch {
 		case slot == "_bg":
 			s.Title = "Kiro Crew background work"
