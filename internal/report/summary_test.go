@@ -52,7 +52,7 @@ func TestFriction(t *testing.T) {
 	one.Corrections = 1
 	mixed := sess("mixed", "Claude Code", "app", ws, 3, 10)
 	mixed.Corrections, mixed.Interrupts = 2, 1
-	long := sess("long", "Kiro CLI", "web", ws, 4, 10)
+	long := sess("long", "Kiro CLI (Classic)", "web", ws, 4, 10)
 	long.NPrompts = 25 // 15 回から数え、5 回ごとに 1 点足す: (25-15)/5+1 = 3
 	worst := sess("worst", "Claude Code", "web", ws, 5, 10)
 	worst.Interrupts = 4
@@ -97,7 +97,7 @@ func TestNativeGroups(t *testing.T) {
 	a.Meas = []core.Measure{{Key: "responses", V: 3}, {Key: "responses", T: &in, V: 2}, {Key: "responses", T: &out, V: 100}}
 	b := sess("b", "Claude Code", "app", ws, 2, 30)
 	b.Meas = []core.Measure{{Key: "responses", V: 5}, {Key: "context_used", V: 0.42}}
-	c := sess("c", "Kiro CLI", "web", ws, 3, 30) // 観測なし
+	c := sess("c", "Kiro CLI (Classic)", "web", ws, 3, 30) // 観測なし
 	got := nativeGroups([]*core.Session{a, b, c}, float64(ws.Unix()), float64(we.Unix()))
 	if len(got) != 1 || got[0].Source != "Claude Code" || got[0].Sessions != 2 {
 		t.Fatalf("nativeGroups = %+v", got)

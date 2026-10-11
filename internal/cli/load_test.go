@@ -47,7 +47,7 @@ func setup(t *testing.T) (data any, weeks map[string]*report.Week, rep []source.
 		KiroStorages: []string{filepath.Join(h, ".config", "Kiro", "User", "globalStorage", "kiro.kiroagent")},
 	})
 	// Python 版にあった 4 つの履歴だけで比べる（あとから足したアダプターは internal/source のテストで確かめる）
-	python := map[string]bool{"Claude Code": true, "Kiro IDE": true, "Kiro CLI": true, "Kiro IDE (legacy)": true}
+	python := map[string]bool{"Claude Code": true, "Kiro IDE / CLI": true, "Kiro CLI (Classic)": true, "Kiro IDE (legacy)": true}
 	var picked []source.Source
 	for _, s := range all {
 		if python[s.Name()] {
@@ -164,7 +164,7 @@ func TestKiroIDEMigratedCountedOnce(t *testing.T) {
 	for _, r := range rep {
 		n[r.Name] = r
 	}
-	if r := n["Kiro IDE"]; r.N != 1 || r.Error != nil {
+	if r := n["Kiro IDE / CLI"]; r.N != 1 || r.Error != nil {
 		t.Errorf("Kiro IDE: n=%d err=%v, want 1", r.N, r.Error)
 	}
 	if r := n["Kiro IDE (legacy)"]; r.N != 1 || r.Dup != 1 || r.Error != nil {
@@ -174,7 +174,7 @@ func TestKiroIDEMigratedCountedOnce(t *testing.T) {
 		t.Fatalf("セッション数 = %d, want 2", len(data))
 	}
 	for _, s := range data {
-		if s.ID == "conv-a" && s.Source != "Kiro IDE" {
+		if s.ID == "conv-a" && s.Source != "Kiro IDE / CLI" {
 			t.Errorf("conv-a は v1.0 のほうを使う: %s", s.Source)
 		}
 	}
@@ -216,7 +216,7 @@ func TestKiroIDEMigratedOnlyLegacyYields(t *testing.T) {
 	for _, r := range rep {
 		n[r.Name] = r
 	}
-	if r := n["Kiro IDE"]; r.N != 5 || r.Dup != 0 {
+	if r := n["Kiro IDE / CLI"]; r.N != 5 || r.Dup != 0 {
 		t.Errorf("Kiro IDE: n=%d dup=%d, want 5 と 0（v1.0 どうしは外さない）", r.N, r.Dup)
 	}
 	if r := n["Kiro IDE (legacy)"]; r.N != 2 || r.Dup != 0 {

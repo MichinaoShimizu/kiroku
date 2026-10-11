@@ -150,7 +150,7 @@ func TestAggregateNative(t *testing.T) {
 		{Key: "requests", V: 3},
 	}
 	got := map[string]NativeValue{}
-	for _, v := range AggregateNative("Kiro CLI", ms) {
+	for _, v := range AggregateNative("Kiro CLI (Classic)", ms) {
 		got[v.Label] = v
 	}
 	if got["クレジット"].V != 2 || got["1ターンあたりのクレジット"].V != 1 || got["モデルへのリクエスト"].N != 1 {

@@ -4,6 +4,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Changed
+
+- BREAKING: Kiro sessions stored in `~/.kiro/sessions/<workspace>/sess_*` are now shown as "Kiro IDE / CLI" instead of "Kiro IDE", and Kiro CLI V2 sessions (`~/.kiro/sessions/cli/`) as "Kiro CLI (Classic)" instead of "Kiro CLI". Kiro IDE 1.x and Kiro CLI 3.0 (`kiro-cli --v3`) write the same store in the same format, and nothing in it records which of them created a session, so kiroku can't tell them apart; "Classic" is Kiro's own name for V2 sessions ([ADR 0021](docs/adr/0021-kiro-cli-v3-separate-source.md)). The `source` value in `kiroku json` changes the same way, so scripts that match `"Kiro IDE"` or `"Kiro CLI"` need updating (`schemaVersion` stays 1). `--sources kiro`, the options, the environment variables and the `kiroku archive` layout are unchanged, and each source keeps its color
+
 ### Fixed
 
 - Amazon Q / Kiro CLI (SQLite): prompts you type that start with a tag (`<template>…`, `<html lang=en> fix it`) or "Caveat:" are counted as prompts with their text, instead of being shown as notes with their reply attached to the previous prompt. These histories store exactly what you typed, so kiroku no longer applies the Claude Code transcript rules to them

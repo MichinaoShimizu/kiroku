@@ -16,9 +16,9 @@ func TestShares(t *testing.T) {
 	a := &core.Session{ID: "a", Source: "Claude Code", Project: "app", Branch: &main, Start: t0, End: t0 + 3600,
 		Segs: [][3]float64{{t0, t0 + 3600, 1}},
 		UEv:  []core.Event{{T: &t0, U: core.Tokens{In: 100}, Cost: &cost}, {T: &before, U: core.Tokens{In: 999}}}}
-	b := &core.Session{ID: "b", Source: "Kiro CLI", Project: "app", Branch: &feat, Start: t0 + 1800, End: t0 + 5400,
+	b := &core.Session{ID: "b", Source: "Kiro CLI (Classic)", Project: "app", Branch: &feat, Start: t0 + 1800, End: t0 + 5400,
 		Segs: [][3]float64{{t0 + 1800, t0 + 5400, 1}}, CEv: []core.Credit{{T: &t0, V: 2}}}
-	c := &core.Session{ID: "c", Source: "Kiro CLI", Project: "web", Start: t0, End: t0 + 600, Segs: [][3]float64{{t0, t0 + 600, 1}}}
+	c := &core.Session{ID: "c", Source: "Kiro CLI (Classic)", Project: "web", Start: t0, End: t0 + 600, Segs: [][3]float64{{t0, t0 + 600, 1}}}
 	w := Summarize([]*core.Session{a, b, c}, ws, ws.AddDate(0, 0, 7))
 	if w == nil {
 		t.Fatal("summary is nil")
@@ -38,7 +38,7 @@ func TestShares(t *testing.T) {
 		t.Errorf("web · — = %+v", s)
 	}
 	src := w.Shares["source"]
-	if len(src) != 2 || src[0].Key != "Kiro CLI" || src[1].Key != "Claude Code" {
+	if len(src) != 2 || src[0].Key != "Kiro CLI (Classic)" || src[1].Key != "Claude Code" {
 		t.Errorf("source = %+v", src)
 	}
 }

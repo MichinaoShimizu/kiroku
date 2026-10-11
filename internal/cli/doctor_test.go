@@ -18,7 +18,7 @@ func TestDoctorReport(t *testing.T) {
 	dir := t.TempDir()
 	rep := []source.Report{
 		{Name: "Claude Code", N: 12, Oldest: 1.78e9, Where: "/x/projects", Keep: &source.Retention{Days: 30, Setting: "cleanupPeriodDays", Snippet: `"cleanupPeriodDays": 3650`, Docs: "https://docs", File: "/x/settings.json"}},
-		{Name: "Kiro CLI", N: 3, Where: "/x/.kiro/sessions/cli", Keep: &source.Retention{Days: 30, Who: "Kiro Crew", Setting: "session.archive_retention_days", Snippet: `"session": {"archive_retention_days": 3650}`, Docs: "https://docs", File: "/x/crew/config.local.json"}},
+		{Name: "Kiro CLI (Classic)", N: 3, Where: "/x/.kiro/sessions/cli", Keep: &source.Retention{Days: 30, Who: "Kiro Crew", Setting: "session.archive_retention_days", Snippet: `"session": {"archive_retention_days": 3650}`, Docs: "https://docs", File: "/x/crew/config.local.json"}},
 		{Name: "Codex", Where: "/x/.codex"},
 	}
 	fakeKirokuPath(t, "/x/bin/kiroku", "/x/bin/kiroku")
@@ -88,7 +88,7 @@ func TestDoctorZeroDayRetention(t *testing.T) {
 	fakeAutostart(t, "darwin", noAnswer)
 	fakeKirokuPath(t, "/x/bin/kiroku", "/x/bin/kiroku")
 	dir := t.TempDir()
-	rep := []source.Report{{Name: "Kiro CLI", N: 3, Where: "/x/.kiro/sessions/cli", Keep: &source.Retention{Days: 0, Now: true, Set: true, Who: "Kiro Crew",
+	rep := []source.Report{{Name: "Kiro CLI (Classic)", N: 3, Where: "/x/.kiro/sessions/cli", Keep: &source.Retention{Days: 0, Now: true, Set: true, Who: "Kiro Crew",
 		Setting: "session.archive_retention_days", Snippet: `"session": {"archive_retention_days": 3650}`, Docs: "https://docs", File: "/x/crew/config.local.json"}}}
 	var b bytes.Buffer
 	doctorReport(&b, rep, 3, dir, release{}, false)

@@ -1,4 +1,4 @@
-"""スクリーンショット用のダミーの履歴を作る（Claude Code・Codex CLI・Kiro CLI・Kiro IDE、架空の 4 プロジェクト、今日までの約 5 週間。それより前の約 11 か月は、Year in review の見本用に短い Claude Code の履歴だけ）。
+"""スクリーンショット用のダミーの履歴を作る（Claude Code・Codex CLI・Kiro CLI (Classic)・Kiro IDE / CLI、架空の 4 プロジェクト、今日までの約 5 週間。それより前の約 11 か月は、Year in review の見本用に短い Claude Code の履歴だけ）。
 スクリーンショットは英語表示で撮るので、プロンプトも英語にする。
 
   python3 gen.py <出力先>   → <出力先>/home/.claude/projects・<出力先>/home/.codex・<出力先>/home/.kiro と <出力先>/repos/<プロジェクト>
@@ -113,7 +113,7 @@ for d in range(35, -1, -1):
 os.makedirs(os.path.join(OUT, "home", ".claude"), exist_ok=True)
 json.dump({"cleanupPeriodDays": 3650}, open(os.path.join(OUT, "home", ".claude", "settings.json"), "w"))
 
-# ほかのエージェント（Codex CLI・Kiro CLI・Kiro IDE）の履歴も作る。kiroku は複数のエージェントを 1 つの画面に並べるので、デモもそう見せる。
+# ほかのエージェント（Codex CLI・Kiro CLI (Classic)・Kiro IDE / CLI）の履歴も作る。kiroku は複数のエージェントを 1 つの画面に並べるので、デモもそう見せる。
 # Claude Code の分のあとに別の乱数で作るので、Claude Code のダミーデータは変わらない
 oth = random.Random(19)
 def iso(t): return t.astimezone(dt.timezone.utc).isoformat().replace("+00:00", "Z")

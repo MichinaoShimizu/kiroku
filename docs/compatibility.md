@@ -40,7 +40,7 @@ These change as kiroku and the agents it reads change. Changes are listed in the
 | Field | Type | Meaning |
 |---|---|---|
 | `id` | string | The session ID the agent recorded |
-| `source` | string | The agent, as shown in the view (such as `Claude Code`, `Codex`, `Kiro IDE`) |
+| `source` | string | The agent, as shown in the view (such as `Claude Code`, `Codex`, `Kiro IDE / CLI`) |
 | `project` | string | The project name shown in the view |
 | `projectPath` | string | The project folder the agent recorded (can be empty) |
 | `branch` | string or `null` | The git branch the agent recorded |

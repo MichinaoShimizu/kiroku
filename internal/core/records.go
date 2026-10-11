@@ -17,14 +17,14 @@ import "slices"
 // Kiro Crew の会話は kiro-cli の履歴にあるものとないもの（Crew の使用量の記録と会話ログだけのもの）があり、
 // ないものは編集したファイルを記録しないので、files に入れない（あるものは、編集があればそのまま見せる）。
 var Records = map[string][]string{
-	"Claude Code":       {"interrupts", "limits", "compactions", "files", "subagents", "outputs"},
-	"Codex":             {"interrupts", "limits", "compactions", "files", "subagents"},
-	"Kiro IDE":          {"files"},
-	"Kiro IDE (legacy)": {},
-	"Kiro CLI":          {"files"},
-	"Kiro Crew":         {"limits", "subagents"},
-	"Kiro CLI (SQLite)": {"interrupts", "compactions", "files"},
-	"Amazon Q":          {"interrupts", "compactions", "files"},
+	"Claude Code":        {"interrupts", "limits", "compactions", "files", "subagents", "outputs"},
+	"Codex":              {"interrupts", "limits", "compactions", "files", "subagents"},
+	"Kiro IDE / CLI":     {"files"},
+	"Kiro IDE (legacy)":  {},
+	"Kiro CLI (Classic)": {"files"},
+	"Kiro Crew":          {"limits", "subagents"},
+	"Kiro CLI (SQLite)":  {"interrupts", "compactions", "files"},
+	"Amazon Q":           {"interrupts", "compactions", "files"},
 }
 
 // RecordsOf は、source の履歴が what（Records の説明の名前）を記録するか。

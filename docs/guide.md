@@ -146,7 +146,7 @@ The old forms `kiroku --serve`, `--json`, `-o` and `--weekly` / `--monthly` have
 - Switch between light (the default) and dark themes with the button at the top right. Color by, zoom, theme and week / month view are saved in the browser
 - At smartphone widths, the week calendar scrolls horizontally (when opened, it shows the last day you worked up to today and the day before; the right edge fades while there are more days to the right), the session count ("20 / 20 sessions") is shown above the legend, and the summary is shown in a single column
 - The palette has 8 colors based on Okabe–Ito, chosen to stay distinguishable across types of color vision. Projects and branches get them in order of how many sessions they have; from the 9th item on, items are gray
-- Each agent has one fixed color everywhere (Color by Agent, the agent's badge, the cards and the Year in review): Claude Code blue, Codex green, Kiro IDE purple, Kiro CLI and Amazon Q light blue, and Kiro Crew pink. Orange and yellow are never used for agents, so an agent never reads as a warning; other agents get a color left over
+- Each agent has one fixed color everywhere (Color by Agent, the agent's badge, the cards and the Year in review): Claude Code blue, Codex green, Kiro IDE / CLI purple, Kiro CLI (Classic) and Amazon Q light blue, and Kiro Crew pink. Orange and yellow are never used for agents, so an agent never reads as a warning; other agents get a color left over
 - Every card that starts with a session name (Possible friction, Heaviest sessions, the sessions in Worth a look and in the breakdowns, the session behind a commit or push, and search results) shows the agent's initials as a badge before the name and a soft gradient in the agent's color. Cards in Repeated prompts look the same, with the prompt in place of the name and the agent of the session they open (the one where you last wrote it). Long names and prompts are cut to one line
 
 ## Reviews and reports with your agent
@@ -252,8 +252,8 @@ The numbers each agent records in its history are shown per agent (in the weekly
 | Agent | Metrics |
 |---|---|
 | Claude Code | Responses, Output tokens per response, Peak context usage, Tool calls |
-| Kiro CLI | Credits, Turns, Credits per turn, Model requests, Built-in tool runs |
-| Kiro IDE | Credits, Turns, Credits per turn, Model requests, Peak context usage, Tool calls |
+| Kiro CLI (Classic) | Credits, Turns, Credits per turn, Model requests, Built-in tool runs |
+| Kiro IDE / CLI | Credits, Turns, Credits per turn, Model requests, Peak context usage, Tool calls |
 | Kiro IDE (legacy) | Credits, Turns, Credits per turn (from execution files) |
 | Kiro Crew | Conversations run from Crew (Of which subagents), Credits, Turns, Peak context usage, Turns that did not end normally |
 | Kiro CLI (SQLite), Amazon Q | Time to first reply (median), Response time (median), Response size (average, in bytes), Tool calls, Peak context usage (estimate, with the CLI's characters ÷ 4 over the stored history), Context window |
@@ -268,7 +268,7 @@ Claude Code does not record how full the context window was, so for Claude Code,
 
 Codex records its own window.
 
-Times are calculated in your computer's time zone. All numbers are rough estimates from history. When there is no data, "Unknown" is shown instead of 0. When none of the agents used in the period records something (for example, Kiro IDE records no usage limit hits), the metric shows "—" and "Not recorded in … history" instead of 0; session details do the same for files changed. Tokens, estimated cost and total AI run time are rough measures of usage; they do not show productivity or time saved.
+Times are calculated in your computer's time zone. All numbers are rough estimates from history. When there is no data, "Unknown" is shown instead of 0. When none of the agents used in the period records something (for example, Kiro IDE / CLI records no usage limit hits), the metric shows "—" and "Not recorded in … history" instead of 0; session details do the same for files changed. Tokens, estimated cost and total AI run time are rough measures of usage; they do not show productivity or time saved.
 
 > These numbers are for reflecting on how you work. Don't use them to compare or evaluate people.
 
@@ -276,7 +276,7 @@ Times are calculated in your computer's time zone. All numbers are rough estimat
 
 Not every agent's history records everything kiroku shows. Active time, Total AI run time, Focus blocks, Parallel time, Project switches, Wait time, corrections, Oversized and Repeated prompts, the prompt flow with replies, and Git commits read from your repositories work for every agent. The rest depends on the agent:
 
-| Metric | Claude Code | Codex | Kiro IDE | Kiro IDE (legacy) | Kiro CLI | Kiro Crew | Kiro CLI (SQLite) | Amazon Q |
+| Metric | Claude Code | Codex | Kiro IDE / CLI | Kiro IDE (legacy) | Kiro CLI (Classic) | Kiro Crew | Kiro CLI (SQLite) | Amazon Q |
 |---|---|---|---|---|---|---|---|---|
 | Interruptions (in Prompts with corrections or interruptions) | ✓ | ✓ | — | — | — | — | ✓ | ✓ |
 | Usage limit hits | ✓ | ✓ | — | — | — | ✓ | — | — |
@@ -341,8 +341,8 @@ Press "?" on any metric in the view to see the same explanation, and open the me
 | Agent | Location | Time granularity |
 |---|---|---|
 | Claude Code | `~/.claude/projects/*/*.jsonl` | Per message |
-| Kiro IDE (v1.0 and later) | `~/.kiro/sessions/<hash>/sess_*/` | Per message |
-| Kiro CLI | `~/.kiro/sessions/cli/` (the opt-in V3 storage, `kiro-cli --v3`, is not read yet) | Per prompt |
+| Kiro IDE / CLI (Kiro IDE v1.0 and later, Kiro CLI V3) | `~/.kiro/sessions/<hash>/sess_*/` | Per message |
+| Kiro CLI (Classic) (Kiro CLI V2) | `~/.kiro/sessions/cli/` | Per prompt |
 | Kiro IDE (before v1.0) | `<globalStorage>/kiro.kiroagent/workspace-sessions/`, the execution files in `<globalStorage>/kiro.kiroagent/<32-hex workspace>/<session>/` and the `.chat` files in `<globalStorage>/kiro.kiroagent/<32-hex workspace>/` (`<globalStorage>` is `~/Library/Application Support/Kiro/User/globalStorage` on macOS, `%APPDATA%\Kiro\User\globalStorage` on Windows, and `~/.config/Kiro/User/globalStorage` or `~/.kiro-server/data/User/globalStorage` on Linux) | Start and last update, plus the start and end of each execution when its file exists |
 | Kiro Crew | `~/.kiro/crew/` (`session_map.json`, `usage/tokens/`) | Per prompt or turn |
 | Kiro CLI (old versions) | `kiro-cli/data.sqlite3` (table below) | Per prompt |
@@ -373,7 +373,7 @@ Some agents delete old history automatically. Deleted history cannot be shown by
 |---|---|---|
 | Claude Code | **Yes.** By default it silently deletes conversation history older than 30 days at startup. Since v2.1.248, sessions you started or last continued in Claude Desktop or Cowork are kept at any age unless `desktopSessionCleanupPeriodDays` is set (or your organization's managed settings set `cleanupPeriodDays`) | [`cleanupPeriodDays`](https://code.claude.com/docs/en/settings-reference#cleanupperioddays) in `~/.claude/settings.json` (days, a whole number, minimum 1; `0` fails validation, so use a large value such as `3650` for long retention) |
 | Kiro Crew | **Yes.** By default it deletes conversation records moved to `sessions/archive/` (and the logs of closed sessions) that are older than 30 days. It checks whenever it moves records there, at most once an hour | Crew's [`session.archive_retention_days`](https://github.com/kirodotdev/kirocrew/blob/main/src/kiro_crew/docs/configuration.md) in `~/.kiro/crew/config.local.json` (or `config.json`; under `KIROCREW_HOME` if set). Days; `-1` or `null` turns the cleanup off, and `0` deletes all archived records at the next cleanup |
-| Kiro IDE, Kiro CLI, Amazon Q, Codex | Their official docs do not describe age-based automatic deletion (manual cleanup exists) | — |
+| Kiro IDE / CLI, Kiro CLI (Classic), Amazon Q, Codex | Their official docs do not describe age-based automatic deletion (manual cleanup exists) | — |
 
 Example for Claude Code:
 

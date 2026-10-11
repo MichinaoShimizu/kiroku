@@ -14,10 +14,11 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
 
-// KiroIDE は Kiro IDE v1.0 以降: <KIRO_HOME>/sessions/<hash>/sess_<id>/{session.json,messages.jsonl}（行ごとに timestamp あり）。
+// KiroIDE は Kiro IDE v1.0 以降と Kiro CLI V3 が共有する保存場所: <KIRO_HOME>/sessions/<hash>/sess_<id>/{session.json,messages.jsonl}（行ごとに timestamp あり）。
+// どちらが作った会話かは記録されないので、"Kiro IDE / CLI" として出す（docs/adr/0021-kiro-cli-v3-separate-source.md）。
 type KiroIDE struct{ Home string }
 
-func (k *KiroIDE) Name() string   { return "Kiro IDE" }
+func (k *KiroIDE) Name() string   { return "Kiro IDE / CLI" }
 func (k *KiroIDE) Family() string { return "kiro" }
 func (k *KiroIDE) Where() string  { return filepath.Join(k.Home, "sessions") }
 
@@ -51,7 +52,7 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		raw, err := core.ReadJSONFile(metaPath)
 		errs.file(metaPath, err)
 		meta := core.Map(raw)
-		s := core.NewBuilder("Kiro IDE", firstNonEmpty(core.Str(meta["id"]), filepath.Base(dir)))
+		s := core.NewBuilder("Kiro IDE / CLI", firstNonEmpty(core.Str(meta["id"]), filepath.Base(dir)))
 		// v1.0 へ移した会話は、v1.0 より前の形式（KiroIDELegacy）にも同じ ID で残る。v1.0 のほうを使う（kiro-history と同じ）。
 		// id のない会話（フォルダ名の ID）は、v1.0 より前の会話と同じものかわからないので Claim しない
 		if id := core.Str(meta["id"]); id != "" {
@@ -165,7 +166,7 @@ func replyAt(t *float64, turnEnds []*float64, n int, asked *float64) *float64 {
 	return asked
 }
 
-// KiroCLI は Kiro CLI: <KIRO_HOME>/sessions/cli/<id>.json（メタ）+ <id>.jsonl（Prompt/AssistantMessage）。
+// KiroCLI は Kiro CLI V2（Kiro の言う Classic）: <KIRO_HOME>/sessions/cli/<id>.json（メタ）+ <id>.jsonl（Prompt/AssistantMessage）。
 // Kiro Crew から動かした会話には、Crew の目印とタイトルをつける（crew.go）。
 type KiroCLI struct {
 	Home        string
@@ -241,7 +242,7 @@ func (k *KiroCLI) DetailEn() string {
 	return strings.Join(parts, "; ")
 }
 
-func (k *KiroCLI) Name() string { return "Kiro CLI" }
+func (k *KiroCLI) Name() string { return "Kiro CLI (Classic)" }
 
 // Retention は Kiro Crew の会話の記録の保存期間（session.archive_retention_days。既定 30 日）。Crew を使っているときだけ。
 // Crew は退避した会話の記録を新しく書いたとき（1 つのプロセスで 1 時間に 1 回まで）に、sessions/archive/ のうち更新時刻がそれより古いものを消す
@@ -320,7 +321,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		meta := core.Map(raw)
 		stem := strings.TrimSuffix(filepath.Base(metaPath), ".json")
 		sid := firstNonEmpty(core.Str(meta["session_id"]), core.Str(meta["id"]), stem)
-		s := core.NewBuilder("Kiro CLI", sid)
+		s := core.NewBuilder("Kiro CLI (Classic)", sid)
 		s.File = strings.TrimSuffix(metaPath, ".json") + ".jsonl"
 		s.Key = "kiro-cli:" + sid
 		s.Title, s.Project = core.Str(meta["title"]), core.Str(meta["cwd"])

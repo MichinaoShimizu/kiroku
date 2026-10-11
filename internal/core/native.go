@@ -28,14 +28,14 @@ var NativeDefs = map[string][]NativeDef{
 		{Key: "context_used", Label: "コンテキストの最大使用率", LabelEn: "Peak context usage", Unit: "%", Agg: "max", Scale: 100}, // ContextUsed（context.go）
 		{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},
 	},
-	"Kiro CLI": {
+	"Kiro CLI (Classic)": {
 		{Key: "credits", Label: "クレジット", LabelEn: "Credits", Unit: "クレジット", Agg: "sum"},
 		{Key: "turns", Label: "ターン", LabelEn: "Turns", Unit: "回", Agg: "sum"},
 		{Key: "credits_per_turn", Label: "1ターンあたりのクレジット", LabelEn: "Credits per turn", Unit: "クレジット", Agg: "ratio", Num: "credits", Den: "turns", Scale: 1},
 		{Key: "requests", Label: "モデルへのリクエスト", LabelEn: "Model requests", Unit: "回", Agg: "sum"},
 		{Key: "builtin_tools", Label: "組み込みツールの実行", LabelEn: "Built-in tool runs", Unit: "回", Agg: "sum"},
 	},
-	"Kiro IDE": {
+	"Kiro IDE / CLI": {
 		{Key: "credits", Label: "クレジット", LabelEn: "Credits", Unit: "クレジット", Agg: "sum"},
 		{Key: "turns", Label: "ターン", LabelEn: "Turns", Unit: "回", Agg: "sum"},
 		{Key: "credits_per_turn", Label: "1ターンあたりのクレジット", LabelEn: "Credits per turn", Unit: "クレジット", Agg: "ratio", Num: "credits", Den: "turns", Scale: 1},

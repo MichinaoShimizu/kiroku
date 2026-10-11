@@ -35,8 +35,8 @@ body:
       label: Agents involved
       options:
         - label: Claude Code
-        - label: Kiro IDE
-        - label: Kiro CLI
+        - label: Kiro IDE / CLI
+        - label: Kiro CLI (Classic)
         - label: Kiro Crew
         - label: Amazon Q
         - label: Codex

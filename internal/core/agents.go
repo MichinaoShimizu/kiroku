@@ -26,9 +26,9 @@ var AgentWarnSlots = []int{1, 4}
 // Amazon Q は Kiro CLI の前身なので同じ色にする。
 var Agents = []Agent{
 	{Name: "Claude Code", Family: "claude", Slot: 0, Mark: "CC", Env: []string{"CLAUDE_CONFIG_DIR"}, Archive: "claude"},
-	{Name: "Kiro IDE", Family: "kiro", Slot: 6, Mark: "KI", Env: []string{"KIRO_HOME"}},
+	{Name: "Kiro IDE / CLI", Family: "kiro", Slot: 6, Mark: "KI", Env: []string{"KIRO_HOME"}},
 	{Name: "Kiro IDE (legacy)", Family: "kiro", Slot: 6, Mark: "KI"},
-	{Name: "Kiro CLI", Family: "kiro", Slot: 5, Mark: "KC", Env: []string{"KIRO_HOME"}},
+	{Name: "Kiro CLI (Classic)", Family: "kiro", Slot: 5, Mark: "KC", Env: []string{"KIRO_HOME"}},
 	{Name: "Kiro CLI (SQLite)", Family: "kiro", Slot: 5, Mark: "KC"},
 	{Name: "Kiro Crew", Family: "kiro", Slot: 3, Mark: "KW", Env: []string{"KIROCREW_HOME"}, Archive: "crew", Note: "includes Kiro Crew"},
 	{Name: "Amazon Q", Family: "amazonq", Slot: 5, Mark: "Q"},

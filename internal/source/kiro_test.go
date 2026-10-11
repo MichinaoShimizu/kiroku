@@ -116,6 +116,39 @@ func TestKiroMissingMessages(t *testing.T) {
 	}
 }
 
+// 共有の保存場所（sessions/<bucket>/sess_*。Kiro IDE v1.0 以降と Kiro CLI V3）の会話は "Kiro IDE / CLI"、
+// V2 の sessions/cli/ の会話は "Kiro CLI (Classic)" として出す（docs/adr/0021-kiro-cli-v3-separate-source.md）。
+func TestKiroSourceLabels(t *testing.T) {
+	home := t.TempDir()
+	writeFiles(t, home, map[string]string{
+		"sessions/0123456789abcdef/sess_3f2a/session.json":   `{"schemaVersion": 1, "id": "sess_3f2a", "workspacePaths": ["/Users/me/app"], "createdAt": "2026-10-01T01:00:00Z"}`,
+		"sessions/0123456789abcdef/sess_3f2a/messages.jsonl": `{"timestamp": "2026-10-01T01:01:00Z", "payload": {"type": "user", "content": "ビルドを直して"}}` + "\n",
+		"sessions/cli/c1.json": `{"session_id": "c1", "cwd": "/Users/me/app", "created_at": "2026-10-01T02:00:00Z",
+  "session_state": {"conversation_metadata": {"user_turn_metadatas": [{"end_timestamp": "2026-10-01T02:05:00Z"}]}}}`,
+	})
+	for _, c := range []struct {
+		src  Source
+		want string
+	}{
+		{&KiroIDE{Home: home}, "Kiro IDE / CLI"},
+		{&KiroCLI{Home: home}, "Kiro CLI (Classic)"},
+	} {
+		if c.src.Name() != c.want {
+			t.Errorf("Name() = %q, want %q", c.src.Name(), c.want)
+		}
+		if _, ok := core.AgentOf(c.want); !ok {
+			t.Errorf("core.Agents に %q がない", c.want)
+		}
+		bs := load(t, c.src)
+		if len(bs) != 1 {
+			t.Fatalf("%s: %d 件, want 1", c.want, len(bs))
+		}
+		if bs[0].Source != c.want || bs[0].Finish(15).Source != c.want {
+			t.Errorf("source = %q, want %q", bs[0].Source, c.want)
+		}
+	}
+}
+
 // Kiro IDE v1.0 以降: 中身が「...」だけの応答の行は書いている途中の仮の文なので、応答にしない。
 func TestKiroIDEPlaceholderReply(t *testing.T) {
 	home := t.TempDir()
