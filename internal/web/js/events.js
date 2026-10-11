@@ -29,9 +29,10 @@ function setMode(m){ if (m === "month" && META.scope && META.scope.mode === "wee
   if (m === "month" && st.mode !== "month") st.month = monthOf(addDays(st.week, 3));
   if (m === "week" && st.mode === "month" && monthOf(st.week).getTime() !== st.month.getTime()) st.week = mondayOf(st.month);
   st.mode = m; store.set("mode", m); st.sel = null; st.animate = true; render(); scrollToWork(); }
-function setView(view){ st.journey = view === "journey"; store.set("view", view); st.sel = null; st.animate = true; render(); scrollToWork(); }
+function setView(view){ st.journey = view === "journey"; st.projectView = view === "project"; store.set("view", view); st.sel = null; st.animate = true; render(); scrollToWork(); }
 $("#journeybtn").onclick = () => setView("journey");
 $("#calendarbtn").onclick = () => setView("calendar");
+$("#projectbtn").onclick = () => setView("project");
 document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = () => setMode(b.dataset.v)); // Year（#yrbtn）は表示の切り替えではなく、1 年の露光を開く
 $("#prev").onclick = () => go(-1); $("#next").onclick = () => go(1); $("#today").onclick = () => go(null);
 function zoom(dv){ st.z = Math.max(0, Math.min(HOURS.length-1, st.z+dv)); st.zAuto = false; store.set("zh", st.z); render(); scrollToWork(); }
