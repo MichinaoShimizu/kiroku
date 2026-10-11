@@ -71,6 +71,9 @@ type WeekUsage struct {
 	// PrefixPriced は、料金表のキーと版の印を除いても一致せず、先頭一致だけで料金を当てたモデル [モデル, 当てたキー]
 	// （例: claude-opus-5-6 に claude-opus-5 の料金）。新しいモデルに古い料金を当てているかもしれないので画面で知らせる。
 	PrefixPriced [][2]string `json:"prefixPriced,omitempty"`
+	// TierStd は、OpenAI のサービスティア（Fast など）の料金が公式になく、標準の料金で見積もったモデル [モデル, ティアの名前]
+	// （例: Fast の gpt-5.5-pro）。低く見積もっているかもしれないので画面で知らせる。
+	TierStd [][2]string `json:"tierStandard,omitempty"`
 }
 
 // Summary は 1 期間（週か月）の集計。
@@ -571,6 +574,8 @@ func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
 	byProj := map[string]float64{}
 	var projOrder []string
 	heavy := map[string]float64{}
+	var tierStd [][2]string
+	seenTier := map[[2]string]bool{}
 	var tot core.Tokens
 	cost, credits, unpriced := 0.0, 0.0, 0.0
 	addProj := func(p string, v float64) {
@@ -605,6 +610,10 @@ func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
 			if e.Cost != nil {
 				c = *e.Cost
 				models[name].priced++
+				if k := [2]string{name, core.TierName(e.Tier)}; e.TierStd && !seenTier[k] {
+					seenTier[k] = true
+					tierStd = append(tierStd, k)
+				}
 			} else {
 				unpriced += e.U.Total()
 				models[name].unpriced += e.U.Total()
@@ -706,7 +715,7 @@ func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
 	}
 	return WeekUsage{Tokens: tot.Total(), Out: tot.Out, Cost: core.Round(cost, 2), Credits: core.Round(credits, 2),
 		CacheHit: cacheHit, Models: mrows, Projects: prows, Subagents: nSubs, SubMin: core.Round(subSec/60, 0),
-		SubTypes: trows, Heavy: heavyRows, Unpriced: unpriced, UnpricedM: unpricedM, PrefixPriced: prefixPriced}
+		SubTypes: trows, Heavy: heavyRows, Unpriced: unpriced, UnpricedM: unpricedM, PrefixPriced: prefixPriced, TierStd: tierStd}
 }
 
 // AllWeeks は記録のあるすべての週を集計する。キーは月曜の日付。

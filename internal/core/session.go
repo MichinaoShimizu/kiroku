@@ -599,6 +599,7 @@ type Session struct {
 	CtxWindow    float64       `json:"ctxWindow,omitempty"`    // ctx の最大の応答のモデルのコンテキストウィンドウ（わからなければ 0）
 	Corrections  int           `json:"corrections"`
 	Models       [][2]any      `json:"models"`
+	Tiers        [][2]any      `json:"tiers,omitempty"` // OpenAI のサービスティアごとの応答の数 [名前, 数]（Standard 以外のティアの応答があるときだけ）
 	Usage        UsageTotal    `json:"usage"`
 	Subagents    []Subagent    `json:"subagents"`
 	Credits      float64       `json:"credits"`
@@ -717,6 +718,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 		cost += a.Usage.Cost
 		uev = append(uev, a.Events...)
 	}
+	tiers := eventTiers(uev)
 	credits := 0.0
 	for _, c := range s.Credits {
 		credits += c.V
@@ -749,11 +751,33 @@ func (s *Builder) Finish(gapMin int) *Session {
 		ID: s.ID, Source: s.Source, Project: name, ProjectPath: project, Branch: strOrNil(s.Branch), Title: title,
 		Start: times[0], End: times[len(times)-1], Events: len(times), Segs: Segments(times, float64(gapMin*60)),
 		Prompts: prompts, Notes: s.Notes, NPrompts: len(s.Prompts), Tools: tools, Files: files, NFiles: nFiles, Resume: strOrNil(s.Resume),
-		Waits: s.Waits(), Interrupts: s.Interrupts, InterruptsAt: interrupts, Limits: limits(s.Limits), LimitResets: limitResets(s.LimitResets), Compactions: compactions, CompactKinds: compactKinds, Ctx: ctx, CtxWindow: s.CtxWindow, Corrections: s.Corrections(), Models: models,
+		Waits: s.Waits(), Interrupts: s.Interrupts, InterruptsAt: interrupts, Limits: limits(s.Limits), LimitResets: limitResets(s.LimitResets), Compactions: compactions, CompactKinds: compactKinds, Ctx: ctx, CtxWindow: s.CtxWindow, Corrections: s.Corrections(), Models: models, Tiers: tiers,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
 		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: reported, File: s.File, PRs: prs, PRAt: prAt,
 		Native: AggregateNative(s.Source, s.Measures), Meas: s.Measures, OutTracked: RecordsOf(s.Source, "outputs"),
 	}
+}
+
+// eventTiers は、サービスティアごとの応答の数（多い順）。Standard 以外のティアがなければ nil（画面に出さない）。
+func eventTiers(evs []Event) [][2]any {
+	var order []string
+	counts := map[string]int{}
+	other := false
+	for _, e := range evs {
+		if e.Advisor {
+			continue
+		}
+		n := TierName(e.Tier)
+		if _, ok := counts[n]; !ok {
+			order = append(order, n)
+		}
+		counts[n]++
+		other = other || e.Tier != ""
+	}
+	if !other {
+		return nil
+	}
+	return sortedCounts(order, counts, 0)
 }
 
 // sortedCounts は多い順（同数なら出てきた順）に並べる。limit 0 は全部。

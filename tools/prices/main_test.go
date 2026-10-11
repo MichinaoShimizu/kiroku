@@ -56,6 +56,24 @@ Flagship models
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | gpt-9-sol | $1.00 | $0.10 | $1.25 | $5.00 | $2.00 | $0.20 | $2.50 | $7.50 |
 
+Fast
+
+### Fast pricing data
+
+| Model | Short context input | Short context cached input | Short context cache writes | Short context output | Long context input | Long context cached input | Long context cache writes | Long context output |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| gpt-9-sol | $4.00 | $0.40 | $5.00 | $20.00 | $8.00 | $0.80 | $10.00 | $30.00 |
+| gpt-8.5 (<272K context length) | $12.50 | $1.25 | - | $75.00 | - | - | - | - |
+| gpt-4.1 | $3.50 | $0.875 | - | $14.00 | - | - | - | - |
+
+Ultrafast
+
+### Ultrafast pricing data
+
+| Model | Short context input | Short context cached input | Short context cache writes | Short context output | Long context input | Long context cached input | Long context cache writes | Long context output |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| gpt-9-sol | $12.00 | $0.60 | $15.00 | $60.00 | $24.00 | $1.20 | $30.00 | $90.00 |
+
 Short context: ≤272K input tokens. Long context: >272K input tokens.
 
 Cyber models
@@ -126,7 +144,16 @@ func TestParseOpenAI(t *testing.T) {
 		"| gpt-8.5-pro | 30 | - | - | 180 | 60 | - | - | 270 |\n" +
 		"| gpt-8-mini | 0.25 | 0.025 | - | 2 | - | - | - | - |\n" +
 		"| gpt-8.5-cyber | 12.5 | 1.25 | - | 75 | - | - | - | - |\n" +
-		"| gpt-8.3-codex | 1.75 | 0.175 | - | 14 | - | - | - | - |\n"
+		"| gpt-8.3-codex | 1.75 | 0.175 | - | 14 | - | - | - | - |\n" +
+		// サービスティア（Flex の表はないので書かない）。Specialized models の Fast の表の Codex は Fast の節に足す
+		"\n### Fast\n\nThe Fast service tier (Codex `service_tier`) instead of the standard rates above.\n\n" +
+		"| Model ID | Input | Cached input | Cache write | Output | Long input | Long cached input | Long cache write | Long output |\n|---|---|---|---|---|---|---|---|---|\n" +
+		"| gpt-9-sol | 4 | 0.4 | 5 | 20 | 8 | 0.8 | 10 | 30 |\n" +
+		"| gpt-8.5 | 12.5 | 1.25 | - | 75 | - | - | - | - |\n" +
+		"| gpt-8.3-codex | 3.5 | 0.35 | - | 28 | - | - | - | - |\n" +
+		"\n### Ultrafast\n\nThe Ultrafast service tier (Codex `service_tier`) instead of the standard rates above.\n\n" +
+		"| Model ID | Input | Cached input | Cache write | Output | Long input | Long cached input | Long cache write | Long output |\n|---|---|---|---|---|---|---|---|---|\n" +
+		"| gpt-9-sol | 12 | 0.6 | 15 | 60 | 24 | 1.2 | 30 | 90 |\n"
 	if got != want {
 		t.Errorf("got\n%s\nwant\n%s", got, want)
 	}
@@ -158,6 +185,14 @@ func TestParseRejectsUnexpectedShape(t *testing.T) {
 		"openai missing output":     {parseOpenAI, strings.Replace(openaiPage, "| gpt-8-mini | $0.25 | $0.025 | - | $2.00 |", "| gpt-8-mini | $0.25 | $0.025 | - | - |", 1)},
 		"openai cyber no table":     {parseOpenAI, strings.Replace(openaiPage, "Cyber models\n\n### Grouped Pricing Table data\n\n| Model |", "Cyber models\n\n### Grouped Pricing Table data\n\n| Name |", 1)},
 		"openai duplicate standard": {parseOpenAI, openaiPage + "\n### Standard pricing data\n"},
+		"openai duplicate tier":     {parseOpenAI, openaiPage + "\n### Fast pricing data\n"},
+		"openai tier no table":      {parseOpenAI, strings.Replace(openaiPage, "### Ultrafast pricing data\n\n|", "### Ultrafast pricing data\n\nText.\n\n|", 1)},
+		"openai tier odd price":     {parseOpenAI, strings.Replace(openaiPage, "| gpt-9-sol | $12.00 |", "| gpt-9-sol | 12 USD |", 1)},
+		"openai tier odd model":     {parseOpenAI, strings.Replace(openaiPage, "| gpt-9-sol | $12.00 |", "| gpt-9 sol | $12.00 |", 1)},
+		"openai tier no models":     {parseOpenAI, strings.Replace(openaiPage, "| gpt-9-sol | $12.00 |", "| o3 | $12.00 |", 1)},
+		"openai tier duplicate row": {parseOpenAI, strings.Replace(openaiPage, "| gpt-8.5 (<272K context length) | $12.50 |", "| gpt-9-sol | $12.50 |", 1)},
+		"openai special fast twice": {parseOpenAI, strings.Replace(openaiPage, "| Codex | gpt-8.3-codex | $3.50 | $0.35 | $28.00 |", "| Codex | gpt-8.3-codex | $3.50 | $0.35 | $28.00 |\n| Codex | gpt-8.3-codex | $3.50 | $0.35 | $28.00 |", 1)},
+		"openai special fast odd":   {parseOpenAI, strings.Replace(openaiPage, "| Codex | gpt-8.3-codex | $3.50 |", "| Codex | gpt-8.3-codex | 3.50 |", 1)},
 	}
 	for name, c := range bad {
 		if out, err := c.parse(c.page); err == nil {

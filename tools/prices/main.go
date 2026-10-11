@@ -342,8 +342,19 @@ var (
 	openaiLong  = regexp.MustCompile(`Short context: ≤(\d+)K input tokens\. Long context: >(\d+)K input tokens\.`)
 )
 
+// openaiTiers は、Standard のほかに読むサービスティアの表（見出し → 控えの節の名前）。Codex の service_tier で選ぶ料金で、
+// 節の名前は internal/core の OpenAITiers の Name と同じ。どれもなければその節を書かない（料金表に残っていれば TestPricesMatchUpstream が知らせる）。
+var openaiTiers = []struct{ heading, name string }{
+	{"### Flex pricing data", "Flex"},
+	{"### Fast pricing data", "Fast"},
+	{"### Ultrafast pricing data", "Ultrafast"},
+}
+
+const openaiTableHead = "| Model ID | Input | Cached input | Cache write | Output | Long input | Long cached input | Long cache write | Long output |\n|---|---|---|---|---|---|---|---|---|\n"
+
 // parseOpenAI は「### Standard pricing data」の表（gpt-5 以降）と、Cyber models の表（あれば）と、
-// Specialized models の Standard の表の Codex の行を読む。
+// Specialized models の Standard の表の Codex の行を読む。サービスティア（Flex・Fast・Ultrafast）の表と、
+// Specialized models の Fast の表の Codex の行は、それぞれ「### 名前」の節に書く。
 func parseOpenAI(page string) (string, error) {
 	lines := strings.Split(strings.ReplaceAll(page, "\r\n", "\n"), "\n")
 	at := lineIndex(lines, 0, "### Standard pricing data")
@@ -365,7 +376,7 @@ func parseOpenAI(page string) (string, error) {
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "Long context: more than %sK input tokens in one request (the whole request is billed at the long-context rates).\n\n", threshold)
-	b.WriteString("| Model ID | Input | Cached input | Cache write | Output | Long input | Long cached input | Long cache write | Long output |\n|---|---|---|---|---|---|---|---|---|\n")
+	b.WriteString(openaiTableHead)
 	seen := map[string][]string{} // 読んだモデルと料金（Cyber models の表に同じ行が重ねて載る）
 	n, err := openaiRows(&b, ts[0].rows, seen, false)
 	if err != nil {
@@ -437,6 +448,79 @@ func parseOpenAI(page string) (string, error) {
 	}
 	if codex == 0 {
 		return "", errors.New("no Codex models under Specialized models")
+	}
+
+	// サービスティアの表（見出しのすぐ後に Standard と同じ列の表）
+	tiers := map[string]*strings.Builder{}
+	tierSeen := map[string]map[string][]string{}
+	for _, tr := range openaiTiers {
+		hd := lineIndex(lines, at, tr.heading)
+		if hd < 0 {
+			continue
+		}
+		if lineIndex(lines, hd+1, tr.heading) >= 0 {
+			return "", fmt.Errorf("%q appears twice", tr.heading)
+		}
+		tt := tablesAfter(lines, hd, openaiHeader)
+		if len(tt) == 0 || tableLine(lines, hd, openaiHeader) != hd+2 {
+			return "", fmt.Errorf("no %s price table with the expected columns right after its heading", tr.name)
+		}
+		tb := &strings.Builder{}
+		tierSeen[tr.name] = map[string][]string{}
+		n, err := openaiRows(tb, tt[0].rows, tierSeen[tr.name], false)
+		if err != nil {
+			return "", fmt.Errorf("%s: %w", tr.name, err)
+		}
+		if n == 0 {
+			return "", fmt.Errorf("no gpt-5 or later models in the %s price table", tr.name)
+		}
+		tiers[tr.name] = tb
+	}
+
+	// Specialized models の Fast の表（Standard の表の後）の Codex の行は、Fast の節に足す
+	if fa := lineIndex(lines, tl+1, "Fast"); fa >= 0 {
+		end := lineIndex(lines, fa, "Finetuning")
+		ftl := tableLine(lines, fa, openaiSpecialHeader)
+		if end >= 0 && ftl >= end || ftl >= len(lines) {
+			return "", errors.New("no table under Fast in Specialized models")
+		}
+		ft := tablesAfter(lines, ftl, openaiSpecialHeader)
+		if len(ft) == 0 {
+			return "", errors.New("the Fast table under Specialized models has no separator row")
+		}
+		for _, r := range ft[0].rows {
+			if len(r) != len(openaiSpecialHeader) {
+				return "", fmt.Errorf("row %q has %d cells", r, len(r))
+			}
+			if r[0] != "Codex" {
+				continue
+			}
+			mm := openaiModel.FindStringSubmatch(r[1])
+			if mm == nil {
+				return "", fmt.Errorf("unexpected Codex model name %q", r[1])
+			}
+			id := mm[1]
+			v, err := openaiPrices(id, []string{r[2], r[3], "-", r[4]})
+			if err != nil {
+				return "", err
+			}
+			if v[0] == "-" || v[3] == "-" {
+				return "", fmt.Errorf("%s: no input or output price", id)
+			}
+			if tierSeen["Fast"] == nil {
+				tierSeen["Fast"], tiers["Fast"] = map[string][]string{}, &strings.Builder{}
+			}
+			if tierSeen["Fast"][id] != nil {
+				return "", fmt.Errorf("model %s appears twice in Fast", id)
+			}
+			tierSeen["Fast"][id] = v
+			fmt.Fprintf(tiers["Fast"], "| %s | %s | - | - | - | - |\n", id, strings.Join(v, " | "))
+		}
+	}
+	for _, tr := range openaiTiers {
+		if tb := tiers[tr.name]; tb != nil {
+			fmt.Fprintf(&b, "\n### %s\n\nThe %s service tier (Codex `service_tier`) instead of the standard rates above.\n\n%s%s", tr.name, tr.name, openaiTableHead, tb.String())
+		}
 	}
 	return b.String(), nil
 }

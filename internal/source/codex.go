@@ -19,6 +19,8 @@ import (
 //	session_meta  … id（スレッド ID）、cwd、git.branch、source（サブエージェントなら source.subagent.thread_spawn）
 //	turn_context  … model
 //	event_msg     … user_message（依頼）、agent_message、token_count（info.total_token_usage / last_token_usage）、
+//	                thread_settings_applied（thread_settings.service_tier: サービスティア。priority が Fast、ultrafast、flex。
+//	                なし・"default" は Standard。始めたとき・変えたとき・フォーク・再開で書く。そこからの応答の料金を決める）、
 //	                item_completed（history_mode が paginated の版の発言。item.type は UserMessage / AgentMessage）
 //	response_item … function_call / custom_tool_call / local_shell_call / web_search_call / tool_search_call /
 //	                image_generation_call（ツール）、message（role が assistant なら応答。user に heartbeat の印）
@@ -79,6 +81,7 @@ type codexFile struct {
 	path                  string
 	id, parent, role, cwd string
 	branch, model, title  string
+	tier                  string // いまのサービスティア（自分のスレッドの thread_settings_applied。core.ServiceTier でそろえた値）
 	start                 *float64
 	b                     *core.Builder
 	events                []core.Event
@@ -176,12 +179,27 @@ func codexTokens(u any) core.Tokens {
 
 // codexEvent は 1 つの使用量の記録。perRequest は u が応答 1 回分（last_token_usage・token_usage_record）のとき true で、
 // そのときだけ入力の量で長いコンテキストの料金を選ぶ（古い形の差分は何回分かの合計なので、短いコンテキストの料金にする）。
-func codexEvent(t *float64, model string, u core.Tokens, perRequest bool) core.Event {
-	e := core.Event{T: t, U: u, Model: model, Req: perRequest}
-	if c, ok := core.EventCost(e); ok {
-		e.Cost = &c
+// tier はそのときのサービスティアで、そのティアの料金にする（公式にないモデルは標準の料金で、TierStd に印を付ける）。
+func codexEvent(t *float64, model, tier string, u core.Tokens, perRequest bool) core.Event {
+	e := core.Event{T: t, U: u, Model: model, Req: perRequest, Tier: tier}
+	if c, ok, std := core.EventCostTier(e); ok {
+		e.Cost, e.TierStd = &c, std
 	}
 	return e
+}
+
+// codexTier は、thread_settings_applied のサービスティア。ok が false なら、このファイルのスレッドのものではない
+// （/review のあいだに写したレビュー用のサブエージェントのものなど）か、thread_settings がない。
+// thread_id のない古い版の行は、このファイルのスレッドのものとみなす（写した親の行は、その前に飛ばしている）。
+func codexTier(p core.Obj, id string) (string, bool) {
+	ts := core.Map(p["thread_settings"])
+	if ts == nil {
+		return "", false
+	}
+	if th := core.Str(p["thread_id"]); th != "" && th != id {
+		return "", false
+	}
+	return core.ServiceTier(core.Str(ts["service_tier"])), true
 }
 
 // codexClaim は Codex のスレッドの Claim の鍵（core.Builder.Claim）。Kiro Crew の Codex の backend の会話（ACP の会話 ID がスレッド ID）は、
@@ -580,8 +598,13 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 						countMeas = append(countMeas, core.Measure{Key: "responses", T: t, V: 1})
 					}
 					lastInfo, lastTotal, prevTotal = string(raw), total, cur
-					fromCounts = append(fromCounts, codexEvent(t, cf.model, u, perRequest))
+					fromCounts = append(fromCounts, codexEvent(t, cf.model, cf.tier, u, perRequest))
 					countMeas = append(countMeas, codexMeasures(t, core.Map(info["last_token_usage"]), core.NumOr0(info["model_context_window"]))...)
+				case "thread_settings_applied": // スレッドの設定（全部を書き直す）。サービスティアはここにしかない
+					s.Agent(t)
+					if tier, ok := codexTier(p, cf.id); ok {
+						cf.tier = tier
+					}
 				case "entered_review_mode": // legacy の版の /review の始まり（paginated は item_completed の EnteredReviewMode）
 					startReview(t, core.Str(p["user_facing_hint"]), core.Map(p["target"]))
 				case "task_complete", "turn_complete": // 名前は task_complete（turn_complete も同じものとして読む）
@@ -638,7 +661,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 				if cutEvents < 0 {
 					cutEvents, cutMeas = len(fromCounts), len(countMeas)
 				}
-				fromRecords = append(fromRecords, codexEvent(t, cf.model, codexTokens(p["usage"]), true))
+				fromRecords = append(fromRecords, codexEvent(t, cf.model, cf.tier, codexTokens(p["usage"]), true))
 				recordMeas = append(recordMeas, codexMeasures(t, core.Map(p["usage"]), 0)...)
 			case "response_item":
 				switch core.Str(p["type"]) {

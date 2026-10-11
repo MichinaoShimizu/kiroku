@@ -160,3 +160,23 @@ func TestWeekUsagePrefixPriced(t *testing.T) {
 		t.Errorf("JSON に prefixPriced がない: %s", b)
 	}
 }
+
+// OpenAI のサービスティアの料金が公式になく標準の料金で見積もった応答（Event.TierStd）は、モデルとティアの名前を JSON に入れる
+// （画面の「Data sources」で知らせる）。ティアの料金で見積もった応答は入れない。
+func TestWeekUsageTierStandard(t *testing.T) {
+	ws := time.Date(2026, 9, 28, 0, 0, 0, 0, time.Local)
+	start := float64(ws.Add(10 * time.Hour).Unix())
+	cost := 0.5
+	s := &core.Session{ID: "s1", Source: "Codex", Project: "app", Start: start, End: start + 600,
+		Segs: [][3]float64{{start, start + 600, 3}}, Prompts: []core.Prompt{},
+		UEv: []core.Event{
+			{T: &start, Model: "gpt-6-sol", Tier: core.TierFast, U: core.Tokens{In: 100}, Cost: &cost},
+			{T: &start, Model: "gpt-5.5-pro", Tier: core.TierFast, TierStd: true, U: core.Tokens{In: 100}, Cost: &cost},
+			{T: &start, Model: "gpt-5.5-pro", Tier: core.TierFast, TierStd: true, U: core.Tokens{In: 100}, Cost: &cost},
+		}}
+	w := Summarize([]*core.Session{s}, ws, ws.AddDate(0, 0, 7))
+	b, _ := json.Marshal(w.Usage)
+	if !strings.Contains(string(b), `"tierStandard":[["gpt-5.5-pro","Fast"]]`) {
+		t.Errorf("JSON に tierStandard がない: %s", b)
+	}
+}
