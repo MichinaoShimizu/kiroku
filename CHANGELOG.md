@@ -1,6 +1,6 @@
 # Changelog
 
-Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
+Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## v0.33.0 - 2026-10-11`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
 ## Unreleased
 
