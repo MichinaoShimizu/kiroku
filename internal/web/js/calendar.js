@@ -284,7 +284,7 @@ addEventListener("scroll", () => { if (st.sel) return;
 
 // Journey: project lanes across the selected week or month. No inferred relationships.
 function journeyGrid(sessions, ws, we){
-  const root = $("#tl"), days = Math.round((we-ws)/86400);
+  const root = $("#tl"), start = new Date(ws*1000), days = Math.round((Date.UTC(new Date(we*1000).getFullYear(),new Date(we*1000).getMonth(),new Date(we*1000).getDate())-Date.UTC(start.getFullYear(),start.getMonth(),start.getDate()))/864e5);
   const groups = new Map();
   sessions.forEach(s => { const name = s.project || "Unknown project";
     if (!groups.has(name)) groups.set(name, []);
@@ -296,7 +296,7 @@ function journeyGrid(sessions, ws, we){
     Array.from({length:days},(_,i)=>'<span>'+esc(dMD(addDays(new Date(ws*1000),i)))+'</span>').join("") +
     '</div></div>' + ordered.map(([name,items]) => {
       const byDay = Array.from({length:days},()=>[]);
-      items.forEach(s => { for(let i=0;i<days;i++){ const a=addDays(new Date(ws*1000),i).getTime()/1000, b=addDays(new Date(ws*1000),i+1).getTime()/1000;
+      items.forEach(s => { for(let i=0;i<days;i++){ const a=addDays(start,i).getTime()/1000, b=addDays(start,i+1).getTime()/1000;
         if(s.start<b && s.end>=a) byDay[i].push(s);
       }});
       return '<div class="journey-row"><div class="journey-name" title="'+esc(name)+'">'+esc(name)+'<small>'+plural(items.length,"session")+'</small></div><div class="journey-days">' +
