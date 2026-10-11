@@ -12,7 +12,7 @@ Scope: Phase 1 — local sessions
 
 kiroku started from local AI-agent history and local-first reporting. This record documents architectural properties observed in the repository at the time of writing, **not** a claim that an earlier ADR or formal approval existed.
 
-## Observed decisions and evidence
+## Decision
 
 Historical anchors: [#1](https://github.com/MichinaoShimizu/kiroku/pull/1) introduced the original Python, local-history, standalone-HTML workflow; [#6](https://github.com/MichinaoShimizu/kiroku/pull/6) migrated to Go and source adapters. The detailed current architecture below is **observed from code**, not proof of every original design motivation.
 
@@ -23,7 +23,7 @@ Historical anchors: [#1](https://github.com/MichinaoShimizu/kiroku/pull/1) intro
 5. **Enrich from local Git repositories.** `internal/gitlog/gitlog.go` uses session project paths to locate local repositories and collect commit/push context.
 6. **Keep history local.** `kiroku serve` defaults to loopback; HTML/JSON reports are generated locally. `internal/archive/archive.go` optionally preserves selected histories as compressed local copies, with its own enable/disable lifecycle.
 
-## Rationale and consequences
+## Consequences
 
 These properties enable a local-only product without a hosted kiroku account or AI API calls. They also imply constraints for future remote import: project paths may not exist locally, session IDs may collide across machines, imported histories must not be mistaken for archive copies, and existing privacy/dedup rules must remain intact.
 
@@ -34,14 +34,6 @@ Historical alternatives were not recorded; this retrospective ADR does **not** c
 ## Verification
 
 Source references: `internal/source/source.go`, `internal/core/session.go`, `internal/cli/load.go`, `internal/cli/cache.go`, `internal/gitlog/gitlog.go`, `internal/archive/archive.go`, `docs/guide.md`, `SECURITY.md`. Existing fixture roots include `testdata/home/.claude` and `testdata/codex`. This ADR records a source review, not a fresh execution of tests.
-
-## Decision
-
-The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
-
-## Consequences
-
-See the existing rationale and consequences discussion above. No additional outcome is asserted.
 
 ## Historical confidence and open questions
 
