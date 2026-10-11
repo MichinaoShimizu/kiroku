@@ -41,3 +41,7 @@ Use the template and quality gates in [forward-adr](../forward-adr/SKILL.md); th
 ## Shared ADR metadata and index contract
 
 Use the target repository's ADR index and lifecycle rules as the source of truth. In kiroku, `docs/adr/README.md` contains the routing index, inventory and metadata contract; there is no separate `docs/adr/index.md`. Keep routing rows, inventory entries, ADR headers, evidence and supersession links consistent in the same change. Preserve historical ADR content and unknown rationale; do not silently upgrade Retrospective to Accepted. Path matching is only a hint; use semantic matching for cross-cutting decisions. Before proposing or updating a record, verify stable ID, target links, Status, Date, Scope and reciprocal supersession references. A missing Date in a legacy ADR is a migration gap, not license to invent one.
+
+## Design Log separation (authoritative)
+
+Use the ADR index for **explicit decisions** and the Design Log index for historical context. Only an applicable **Accepted** ADR is a governing architectural decision. A historical Design Log, a compatibility stub at an old ADR path, and a Proposed ADR must never be treated as an accepted constraint. Consult Design Logs for provenance, uncertainties and prior behavior. Do not claim absence of Accepted ADRs proves safety. If a material new choice is needed, route to Forward ADR and human approval. The repository-specific directories are `docs/adr/` and `docs/design-log/`; other repositories may differ.
