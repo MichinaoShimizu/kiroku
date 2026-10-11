@@ -297,7 +297,7 @@ function journeyGrid(sessions, ws, we){
     '</div></div>' + ordered.map(([name,items]) => {
       const byDay = Array.from({length:days},()=>[]);
       items.forEach(s => { for(let i=0;i<days;i++){ const a=addDays(start,i).getTime()/1000, b=addDays(start,i+1).getTime()/1000;
-        if(s.start<b && s.end>=a) byDay[i].push(s);
+        if(s.start<b && s.end>a) byDay[i].push(s);
       }});
       return '<div class="journey-row"><div class="journey-name" title="'+esc(name)+'">'+esc(name)+'<small>'+plural(items.length,"session")+'</small></div><div class="journey-days">' +
         byDay.map(day => '<div class="journey-cell">'+day.slice(0,4).map(s =>
