@@ -25,3 +25,7 @@ Historical observations, implementation evolution and uncertainties; **not Accep
 - [0019 — time overlap semantics](0019-time-overlap-semantics.md)
 
 Historical claim IDs and original PR citations are preserved. A merged PR does not prove formal approval; unknown rationale remains unknown.
+
+## Record contract
+
+A Design Log has a stable historical ID, scope, source evidence, observations, known uncertainties and verification limits. `Historical decision date: Unknown` is not an ADR approval date. Do not add `Supersedes` or `Superseded by` lifecycle metadata unless linking to a genuine, separately governed ADR; instead use explicit `Related ADR` references. Existing historical headings called `Decision` describe recorded or observed choices, **not** an Accepted architectural rule. A Design Log may be amended with newly verified evidence without rewriting history.
