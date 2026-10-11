@@ -352,7 +352,7 @@ function projectGrid(sessions, ws, we){
     rows.map(([name,items])=>{
       const commits = visibleCommits.filter(c=>c.project === name && c.t >= ws && c.t < we);
       const prs = items.flatMap(s=>(s.prAt || []).filter(pr=>typeof pr.t === "number" && pr.t >= ws && pr.t < we).map(pr=>({s,pr})));
-      const first = Math.max(ws,Math.min(...items.map(s=>s.start)));
+      const first = Math.max(ws,items.reduce((v,s)=>Math.min(v,s.start),Infinity));
       const last = Math.min(we-1,items.reduce((v,s)=>Math.max(v,s.end),ws));
       return '<section class="project-card"><h3>'+esc(name)+'</h3><p class="project-meta">'+plural(items.length,"session")+' · '+plural(commits.length,"Git commit")+' · '+plural(prs.length,"recorded PR")+' · '+esc(dMD(new Date(first*1000)))+' → '+esc(dMD(new Date(last*1000)))+'</p>'+
         '<div class="project-events"><strong>Sessions</strong>'+items.slice().sort((a,b)=>b.start-a.start).slice(0,5).map(s=>'<button data-session="'+esc(s.id)+'">'+esc(s.title||s.project||"Session")+' · '+esc(s.source)+'</button>').join("")+
