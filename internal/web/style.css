@@ -849,3 +849,15 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
 .wk .view-controls .mode{margin-left:0}
 .year-entry{white-space:nowrap}
 @media(max-width:700px){.view-controls{width:100%;gap:8px}.control-group{gap:4px}}
+
+/* Project view: inventory rather than a chronological timeline. */
+.project-view{padding:16px;display:grid;gap:14px}
+.project-note{font-size:var(--fs-xs);color:var(--ink-3);margin:0}
+.project-card{border:1px solid var(--rule);border-radius:10px;padding:16px;min-width:0}
+.project-card h3{margin:0 0 6px;overflow-wrap:anywhere}
+.project-meta{color:var(--ink-3);font-size:var(--fs-xs);margin:0 0 12px}
+.project-events{display:grid;gap:6px;justify-items:start}
+.project-events strong{margin-top:8px;font-size:var(--fs-xs)}
+.project-events button{max-width:100%;text-align:left;overflow-wrap:anywhere;background:var(--surface-2);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:7px 10px;cursor:pointer}
+.project-events button:hover,.project-events button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.project-events small{color:var(--ink-3)}

@@ -14,7 +14,7 @@ kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), A
 
 [![The week calendar, a session, the token breakdown, search and the month view (dummy data)](docs/demo.gif)](https://michinaoshimizu.github.io/kiroku/)
 
-Choose **Calendar** or **Journey** under View, then independently choose **Week** or **Month** under Period. Journey groups observed sessions by project and date, and shows recorded Git commits and agent-recorded pull requests as separate clickable markers. These events are evidence of activity, not proof of progress or outcomes.
+Choose **Calendar**, **Journey**, or **Project** under View, then independently choose **Week** or **Month** under Period. Project summarizes recorded sessions, commits and PR creation by project for the selected period; Journey groups observed sessions by project and date, and shows recorded Git commits and agent-recorded pull requests as separate clickable markers. These events are evidence of activity, not proof of progress or outcomes.
 
 ## Why kiroku
 

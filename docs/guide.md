@@ -2,7 +2,7 @@
 
 This guide supplements the [README](../README.md). It covers installation and commands in detail, how to read the view, metric definitions, which histories are read, and options.
 
-## Journey view
+## Project view\n\nChoose **Project** under **View** to inventory the projects active in the selected Week or Month. Each card lists observed sessions, Git commits, and PR creation recorded in agent history, with links to existing details. The counts describe available evidence, not project status, completion, or productivity. Search and existing filters apply.\n\n## Journey view
 
 Choose **Calendar** or **Journey** in **View**, independently of **Week** or **Month** in **Period**, to group observed sessions by project and day for the current period. Select a session marker to open its existing details. Search and project/agent filters also apply to Journey. Journey distinguishes session dots, Git commit diamonds, and recorded PR markers; selecting one opens its existing details. Commit markers come from local Git history, while PR markers appear only when the agent history recorded PR creation. A marker represents recorded activity, not completion, progress, or business impact. Select **Calendar** to return to the calendar without changing the selected period. **Year in Review** is a separate annual report, not a view or period choice.
 
