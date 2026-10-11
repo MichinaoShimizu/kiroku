@@ -146,7 +146,7 @@ The old forms `kiroku --serve`, `--json`, `-o` and `--weekly` / `--monthly` have
 - Switch between light (the default) and dark themes with the button at the top right. Color by, zoom, theme and week / month view are saved in the browser
 - At smartphone widths, the week calendar scrolls horizontally (when opened, it shows the last day you worked up to today and the day before; the right edge fades while there are more days to the right), the session count ("20 / 20 sessions") is shown above the legend, and the summary is shown in a single column
 - The palette has 8 colors based on Okabe–Ito, chosen to stay distinguishable across types of color vision. Projects and branches get them in order of how many sessions they have; from the 9th item on, items are gray
-- Each agent has one fixed color everywhere (Color by Agent, the agent's badge, the cards and the Year in review): Claude Code blue, Codex green, Kiro IDE purple, Kiro CLI and Amazon Q light blue, and Kiro Crew pink. Orange and yellow are never used for agents, so an agent never reads as a warning; other agents get a color left over
+- Each agent has one fixed color everywhere (Color by Agent, the agent's badge, the cards and the Year in review): Claude Code blue, Codex green, Kiro IDE / CLI purple, Kiro CLI (Classic) and Amazon Q light blue, and Kiro Crew pink. Orange and yellow are never used for agents, so an agent never reads as a warning; other agents get a color left over
 - Every card that starts with a session name (Possible friction, Heaviest sessions, the sessions in Worth a look and in the breakdowns, the session behind a commit or push, and search results) shows the agent's initials as a badge before the name and a soft gradient in the agent's color. Cards in Repeated prompts look the same, with the prompt in place of the name and the agent of the session they open (the one where you last wrote it). Long names and prompts are cut to one line
 
 ## Reviews and reports with your agent
@@ -163,7 +163,7 @@ What the prompts give the agent:
 
 - **Numbers kiroku counted**, as a table the agent copies unchanged: active time, prompts, corrections and interruptions, the median wait time, Git commits (and how many AI ran), estimated cost, tokens, Kiro credits, and for a session, compactions and usage limit hits. Reports also have sessions, lines changed and the correction rate
 - **What happened**: for a review, the prompt flow with commits, pull requests, interruptions, subagents and other events between your prompts, in time order. For a report, time, commits (with their repository, for read-only git) and pull requests for each project, and a digest of each session: your prompts in the period and the start of the AI's reply to each (up to 20 prompts per session in a day, 8 in a week and 3 in a month)
-- **The history files**: a review asks the agent to read the session's history file first. A report asks it to write from the digests and open a history file only when a digest isn't enough, and only within the times listed for that session. For Amazon Q and the legacy Kiro CLI, whose history is one SQLite database, the prompts are copied in instead
+- **The history files**: a review asks the agent to read the session's history file first. A report asks it to write from the digests and open a history file only when a digest isn't enough, and only within the times listed for that session. For Amazon Q and Kiro CLI (SQLite), whose history is one SQLite database, the prompts are copied in instead
 - **Signals for advice**: prompts you wrote in 3 or more sessions (for a review, prompts in that session you also wrote in 3 or more sessions in the last 30 days), the tools the AI used most, subagents, compactions, the main model of each session, short sessions with no file edits on an Opus-class model, conversations whose input per response grew to 4× or more, and project switches (per day in a report; in a review, the prompts you wrote in other projects while the session ran). Weekly and monthly reports also list the metrics flagged under "Worth a look" and the share of input read from cache
 
 The advice has 2–4 points. Each names what it is based on (a figure, a prompt with its time, or a signal) and then the concrete change. It covers:
@@ -201,7 +201,7 @@ Things to know:
 | Long conversations | Sessions where the input read per response (new input plus cache reads and writes) in the last quarter of the conversation was at least 4 times that of the first quarter, peaking at half the model's context window or more (estimated cost $0.5 or more; only sessions with 8 or more responses, from agents that record tokens). For Claude Code the window comes from kiroku's table of Claude models (see Peak context usage under "Agent-specific metrics"), and for Codex from `model_context_window` in its history; where it is unknown, the peak must be 100K tokens or more |
 | Expensive models for light work | Total for sessions that mainly used Opus-class models, had 3 or fewer prompts, edited no files and cost $0.3 or more |
 | Usage limit hits | Count and times of usage limit errors (usage caps and rate limits) left in Claude Code, Codex and Kiro Crew history. For Claude Code, this includes spend limits, running out of prepaid Console credits ("Credit balance is too low") and API-key rate limits (`Request rejected (429)`); errors that are not about your usage do not count: the server's temporary throttling ("not your usage limit"), a conversation that outgrew the context window ("Context limit reached") and the notice that a limit has reset ("Usage limit reset · continuing automatically"). For Codex, it counts turns that stopped on a usage limit or a rate limit, and the usage limit responses Codex records with its limit usage; a conversation that outgrew the context window and a plan that does not include Codex do not count. For Kiro Crew, it counts the turns the Crew dashboard stopped because the plan's usage allowance was spent (the error lines Crew tags as a usage limit; sign-in and model errors do not count, and Crew gives no reset time). A hit in a subagent counts for its parent session. Hits within 1 minute count once. The calendar shows them with a red "Limit" mark. For Claude Code, when the message says when the limit resets (such as "resets 3:45pm" or "continuing automatically at 3:45pm"), the prompt flow, the "Usage limit hits" card and "Worth a look" show that text as written; it often has no date or time zone, so kiroku does not turn it into a time |
-| Compactions | How many times a conversation was compacted (summarized to free context, automatically or with `/compact`) in the period, and in how many sessions, with the times of the last ones. Read from Claude Code (`compact_boundary` lines, and the summary lines that follow them; the two count as one compaction, and summaries from older versions without `compact_boundary` count on their own), Codex (one `compacted` line per compaction, whether local, remote or token-budget) and the SQLite history of Amazon Q / Kiro CLI (`latest_summary`, the summary the CLI keeps from its last `/compact` or automatic compaction; earlier ones are overwritten, so at most one per conversation, the latest, is counted). Compactions within 1 minute count once. Only the main conversation counts, not subagents. Kiro IDE, Kiro CLI (JSON) and Kiro Crew record no compaction kiroku can rely on, so they are not included. Session details show the count and times, and the prompt flow marks each one ("automatic" or "manual" when Claude Code records it). It is not in "Worth a look": automatic compaction is how long conversations normally continue, and "Long conversations" already flags conversations that grew heavy |
+| Compactions | How many times a conversation was compacted (summarized to free context, automatically or with `/compact`) in the period, and in how many sessions, with the times of the last ones. Read from Claude Code (`compact_boundary` lines, and the summary lines that follow them; the two count as one compaction, and summaries from older versions without `compact_boundary` count on their own), Codex (one `compacted` line per compaction, whether local, remote or token-budget) and the SQLite history of Amazon Q / Kiro CLI (SQLite) (`latest_summary`, the summary the CLI keeps from its last `/compact` or automatic compaction; earlier ones are overwritten, so at most one per conversation, the latest, is counted). Compactions within 1 minute count once. Only the main conversation counts, not subagents. Kiro IDE, Kiro CLI (JSON) and Kiro Crew record no compaction kiroku can rely on, so they are not included. Session details show the count and times, and the prompt flow marks each one ("automatic" or "manual" when Claude Code records it). It is not in "Worth a look": automatic compaction is how long conversations normally continue, and "Long conversations" already flags conversations that grew heavy |
 | Sessions with possible friction | Up to 3 sessions started in the period with at least one correction or interruption, or 15 or more prompts, most first |
 | Oversized prompts | Number of prompts of 4,000+ characters in the period, and the length of the longest |
 | Repeated prompts | Prompts of 12+ characters in the period, grouped by how similar their text is; up to 3 written in 3 or more sessions, most first |
@@ -252,8 +252,8 @@ The numbers each agent records in its history are shown per agent (in the weekly
 | Agent | Metrics |
 |---|---|
 | Claude Code | Responses, Output tokens per response, Peak context usage, Tool calls |
-| Kiro CLI | Credits, Turns, Credits per turn, Model requests, Built-in tool runs |
-| Kiro IDE | Credits, Turns, Credits per turn, Model requests, Peak context usage, Tool calls |
+| Kiro CLI (Classic) | Credits, Turns, Credits per turn, Model requests, Built-in tool runs |
+| Kiro IDE / CLI | Credits, Turns, Credits per turn, Model requests, Peak context usage, Tool calls |
 | Kiro IDE (legacy) | Credits, Turns, Credits per turn (from execution files) |
 | Kiro Crew | Conversations run from Crew (Of which subagents), Credits, Turns, Peak context usage, Turns that did not end normally |
 | Kiro CLI (SQLite), Amazon Q | Time to first reply (median), Response time (median), Response size (average, in bytes), Tool calls, Peak context usage (estimate, with the CLI's characters ÷ 4 over the stored history), Context window |
@@ -268,7 +268,7 @@ Claude Code does not record how full the context window was, so for Claude Code,
 
 Codex records its own window.
 
-Times are calculated in your computer's time zone. All numbers are rough estimates from history. When there is no data, "Unknown" is shown instead of 0. When none of the agents used in the period records something (for example, Kiro IDE records no usage limit hits), the metric shows "—" and "Not recorded in … history" instead of 0; session details do the same for files changed. Tokens, estimated cost and total AI run time are rough measures of usage; they do not show productivity or time saved.
+Times are calculated in your computer's time zone. All numbers are rough estimates from history. When there is no data, "Unknown" is shown instead of 0. When none of the agents used in the period records something (for example, Kiro IDE / CLI records no usage limit hits), the metric shows "—" and "Not recorded in … history" instead of 0; session details do the same for files changed. Tokens, estimated cost and total AI run time are rough measures of usage; they do not show productivity or time saved.
 
 > These numbers are for reflecting on how you work. Don't use them to compare or evaluate people.
 
@@ -276,7 +276,7 @@ Times are calculated in your computer's time zone. All numbers are rough estimat
 
 Not every agent's history records everything kiroku shows. Active time, Total AI run time, Focus blocks, Parallel time, Project switches, Wait time, corrections, Oversized and Repeated prompts, the prompt flow with replies, and Git commits read from your repositories work for every agent. The rest depends on the agent:
 
-| Metric | Claude Code | Codex | Kiro IDE | Kiro IDE (legacy) | Kiro CLI | Kiro Crew | Kiro CLI (SQLite) | Amazon Q |
+| Metric | Claude Code | Codex | Kiro IDE / CLI | Kiro IDE (legacy) | Kiro CLI (Classic) | Kiro Crew | Kiro CLI (SQLite) | Amazon Q |
 |---|---|---|---|---|---|---|---|---|
 | Interruptions (in Prompts with corrections or interruptions) | ✓ | ✓ | — | — | — | — | ✓ | ✓ |
 | Usage limit hits | ✓ | ✓ | — | — | — | ✓ | — | — |
@@ -341,11 +341,11 @@ Press "?" on any metric in the view to see the same explanation, and open the me
 | Agent | Location | Time granularity |
 |---|---|---|
 | Claude Code | `~/.claude/projects/*/*.jsonl` | Per message |
-| Kiro IDE (v1.0 and later) | `~/.kiro/sessions/<hash>/sess_*/` | Per message |
-| Kiro CLI | `~/.kiro/sessions/cli/` (V3 sessions, `kiro-cli --v3`, are stored with Kiro IDE sessions and shown as Kiro IDE; see [How histories are read](sources.md#kiro-cli)) | Per prompt |
+| Kiro IDE / CLI: Kiro IDE v1.0 and later, and Kiro CLI V3 | `~/.kiro/sessions/<hash>/sess_*/` | Per message |
+| Kiro CLI (Classic): Kiro CLI V2 | `~/.kiro/sessions/cli/` | Per prompt |
 | Kiro IDE (before v1.0) | `<globalStorage>/kiro.kiroagent/workspace-sessions/`, the execution files in `<globalStorage>/kiro.kiroagent/<32-hex workspace>/<session>/` and the `.chat` files in `<globalStorage>/kiro.kiroagent/<32-hex workspace>/` (`<globalStorage>` is `~/Library/Application Support/Kiro/User/globalStorage` on macOS, `%APPDATA%\Kiro\User\globalStorage` on Windows, and `~/.config/Kiro/User/globalStorage` or `~/.kiro-server/data/User/globalStorage` on Linux) | Start and last update, plus the start and end of each execution when its file exists |
 | Kiro Crew | `~/.kiro/crew/` (`session_map.json`, `usage/tokens/`) | Per prompt or turn |
-| Kiro CLI (old versions) | `kiro-cli/data.sqlite3` (table below) | Per prompt |
+| Kiro CLI (SQLite): older Kiro CLI versions | `kiro-cli/data.sqlite3` (table below) | Per prompt |
 | Amazon Q Developer CLI | `amazon-q/data.sqlite3` (table below) | Per prompt |
 | Codex CLI | `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` (including `.jsonl.zst`) and `archived_sessions/` | Per message |
 | Git (your own commits) | Repositories in each session's working directory (local `git log`) | Per commit |
@@ -373,7 +373,7 @@ Some agents delete old history automatically. Deleted history cannot be shown by
 |---|---|---|
 | Claude Code | **Yes.** By default it silently deletes conversation history older than 30 days at startup. Since v2.1.248, sessions you started or last continued in Claude Desktop or Cowork are kept at any age unless `desktopSessionCleanupPeriodDays` is set (or your organization's managed settings set `cleanupPeriodDays`) | [`cleanupPeriodDays`](https://code.claude.com/docs/en/settings-reference#cleanupperioddays) in `~/.claude/settings.json` (days, a whole number, minimum 1; `0` fails validation, so use a large value such as `3650` for long retention) |
 | Kiro Crew | **Yes.** By default it deletes conversation records moved to `sessions/archive/` (and the logs of closed sessions) that are older than 30 days. It checks whenever it moves records there, at most once an hour | Crew's [`session.archive_retention_days`](https://github.com/kirodotdev/kirocrew/blob/main/src/kiro_crew/docs/configuration.md) in `~/.kiro/crew/config.local.json` (or `config.json`; under `KIROCREW_HOME` if set). Days; `-1` or `null` turns the cleanup off, and `0` deletes all archived records at the next cleanup |
-| Kiro IDE, Kiro CLI, Amazon Q, Codex | Their official docs do not describe age-based automatic deletion (manual cleanup exists) | — |
+| Kiro IDE / CLI, Kiro CLI (Classic), Amazon Q, Codex | Their official docs do not describe age-based automatic deletion (manual cleanup exists) | — |
 
 Example for Claude Code:
 
@@ -472,7 +472,7 @@ Common to the commands that read history (`serve`, `html`, `json`, `stats`, `doc
 | `--claude-root` | `~/.claude/projects` (`$CLAUDE_CONFIG_DIR/projects` if set) | Location of Claude Code history |
 | `--kiro-home` | `~/.kiro` | Location of Kiro data (`KIRO_HOME` is also used) |
 | `--crew-home` | `~/.kiro/crew` (`$KIROCREW_HOME` if set) | Location of Kiro Crew data. Like Crew itself, it does not move with `--kiro-home` or `KIRO_HOME`; a leading `~` in `KIROCREW_HOME` means your home folder |
-| `--kiro-cli-db` | Per OS | `data.sqlite3` of Kiro CLI (old versions) |
+| `--kiro-cli-db` | Per OS | `data.sqlite3` of Kiro CLI (SQLite), older Kiro CLI versions |
 | `--amazonq-db` | Per OS | `data.sqlite3` of Amazon Q Developer CLI |
 | `--codex-home` | `~/.codex` | Location of Codex data (`CODEX_HOME` is also used) |
 | `--gap` | `15` | Idle time (minutes) that splits session bars |

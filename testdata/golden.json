@@ -1574,7 +1574,7 @@
 },
 {
 "id": "sess_0ee61246",
-"source": "Kiro IDE",
+"source": "Kiro IDE / CLI",
 "project": "vp",
 "projectPath": "/Users/me/vp",
 "branch": null,
@@ -1698,7 +1698,7 @@
 },
 {
 "id": "1e13c3c1-d7ae-41c2-a324-e6a440665d9a",
-"source": "Kiro CLI",
+"source": "Kiro CLI (Classic)",
 "project": "infra",
 "projectPath": "/Users/me/infra",
 "branch": null,
@@ -1760,7 +1760,7 @@
 },
 {
 "id": "sess_7e06b008",
-"source": "Kiro IDE",
+"source": "Kiro IDE / CLI",
 "project": "vp",
 "projectPath": "/Users/me/vp",
 "branch": null,
@@ -1834,7 +1834,7 @@
 },
 {
 "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
-"source": "Kiro CLI",
+"source": "Kiro CLI (Classic)",
 "project": "infra",
 "projectPath": "/Users/me/infra",
 "branch": null,
@@ -1896,7 +1896,7 @@
 },
 {
 "id": "0d612aac-99c4-4a54-bda2-76ad60b6ddf3",
-"source": "Kiro CLI",
+"source": "Kiro CLI (Classic)",
 "project": "infra",
 "projectPath": "/Users/me/infra",
 "branch": null,
@@ -2058,7 +2058,7 @@
 },
 {
 "id": "sess_564f668e",
-"source": "Kiro IDE",
+"source": "Kiro IDE / CLI",
 "project": "vp",
 "projectPath": "/Users/me/vp",
 "branch": null,
@@ -2132,7 +2132,7 @@
 },
 {
 "id": "sess_1640c798",
-"source": "Kiro IDE",
+"source": "Kiro IDE / CLI",
 "project": "vp",
 "projectPath": "/Users/me/vp",
 "branch": null,
@@ -2206,7 +2206,7 @@
 },
 {
 "id": "sess_76df747b",
-"source": "Kiro IDE",
+"source": "Kiro IDE / CLI",
 "project": "vp",
 "projectPath": "/Users/me/vp",
 "branch": null,
@@ -2280,7 +2280,7 @@
 },
 {
 "id": "sess_97d6b4d7",
-"source": "Kiro IDE",
+"source": "Kiro IDE / CLI",
 "project": "vp",
 "projectPath": "/Users/me/vp",
 "branch": null,

@@ -30,7 +30,9 @@ This page summarizes where kiroku reads each agent's history from and how. The l
 - kiroku's price table (`Prices` in `internal/core/usage.go`) follows [Anthropic's pricing page](https://platform.claude.com/docs/en/about-claude/pricing); the numbers it uses are kept in [upstream/anthropic-pricing.md](upstream/anthropic-pricing.md), and a test checks that the two match. A model ID is looked up after removing Bedrock's region and `anthropic.` prefix (`us.anthropic.`, `eu.anthropic.`, `apac.anthropic.`, `global.anthropic.` and so on) and its version marks (a date, Vertex's `@` date, Bedrock's `-v1:0`); `claude-sonnet-4.5` is read as `claude-sonnet-4-5`. A model not in the table under its own ID gets the price of the longest ID it starts with (`claude-opus-5-6` is priced as `claude-opus-5`) and is listed in "Data sources" as "priced as" that ID
 - Claude Haiku 5.5 is priced by prompt length (`LongPrices` in `internal/core/usage.go`): a response whose prompt is over 100,000 tokens is priced at the higher rates as a whole (output included). As the [pricing page](https://platform.claude.com/docs/en/about-claude/pricing#long-context-pricing) says, the prompt length counts all input tokens: new input plus cache writes and reads. Each response is one message ID in the history, so this applies to every response priced from kiroku's table. A response that made several calls (`usage.iterations` with the advisor tool) is compared by its largest single call, not the sum. Other Claude models have one price for every length
 
-## Kiro IDE
+## Kiro IDE / CLI
+
+The store Kiro IDE (v1.0 and later) and Kiro CLI V3 (`kiro-cli --v3`, becoming the default) share. Both write the same `sessions/<hash>/sess_<id>/` layout, and nothing in it records which of them created a session, so kiroku shows them as one source, "Kiro IDE / CLI", and does not guess ([ADR 0021](adr/0021-kiro-cli-v3-separate-source.md)). Older kiroku versions showed this source as "Kiro IDE".
 
 - Replies in the prompt flow come from `assistant` payloads (v1.0 and later), whether their `content` is a string, `text` blocks or nested `content` / `text`; ones with `operationType: "Reasoning"` are the model's thinking, and ones whose content is just `...` are placeholders written while streaming (kiro-history skips them too); neither is a reply. Versions that do not record them simply show no reply
 - v1.0 and later: `<hash>/sess_*/session.json` + `messages.jsonl` under `~/.kiro/sessions/` (`~/.kiro` means `KIRO_HOME` when it is set; the same applies below). Per-message timestamps, and credits from `promptTurnSummaries` in `usage_summary`
@@ -45,19 +47,19 @@ This page summarizes where kiroku reads each agent's history from and how. The l
 
 `internal/source/kiro.go`
 
-## Kiro CLI
+## Kiro CLI (Classic)
 
-`~/.kiro/sessions/cli/<id>.json` (metadata) + `<id>.jsonl` (conversation). `internal/source/kiro.go`
+Kiro CLI V2 sessions, which Kiro calls "Classic" sessions. Older kiroku versions showed this source as "Kiro CLI". `~/.kiro/sessions/cli/<id>.json` (metadata) + `<id>.jsonl` (conversation). `internal/source/kiro.go`
 
-- A conversation whose `.jsonl` is missing is still shown from its metadata (title, times, credits), without prompts; the missing file is not reported as unreadable. The same holds for a Kiro IDE `messages.jsonl`
+- A conversation whose `.jsonl` is missing is still shown from its metadata (title, times, credits), without prompts; the missing file is not reported as unreadable. The same holds for a Kiro IDE / CLI `messages.jsonl`
 - Credits come from `session_state.conversation_metadata.user_turn_metadatas[].metering_usage` (the `value` where `unit` is `credit`)
 - Replies in the prompt flow come from the `text` content of `AssistantMessage` lines (new format; these lines carry no timestamp, so a reply is placed at the end of its turn, `user_turn_metadatas[].end_timestamp`, or at its prompt's time when that is missing) and from `assistant.Response` / `assistant.ToolUse` `content` (SQLite; timed by `stream_end_timestamp_ms`)
 - Older versions use SQLite (`conversations` / `conversations_v2` in `data.sqlite3`). `internal/source/qstore.go`
 - The same conversation can appear in both the new format and SQLite. For a given conversation ID, only the new format is counted (because it has credits). The number left out appears in "Data sources"
 - The SQLite history has no tokens or credits, so it is not included in estimated cost or credits
 - The new format has no compaction marker kiroku can rely on (the format is not documented and the reference implementations don't read one), so Kiro CLI compactions are counted only from SQLite (see Amazon Q Developer CLI)
-- Kiro CLI now has three storages: V1 (SQLite), V2 (the JSON format under `sessions/cli`) and V3 (`kiro-cli --v3`; [V3](https://kiro.dev/docs/cli/v3/)). V3 runs on the same agent engine as Kiro IDE 1.x and writes to the same store, `sessions/<bucket>/sess_<uuid>/` (`session.json` + `messages.jsonl`; checked in the kiro-cli 2.29.0 release, which says "KAS uses the `sess_<uuid>` form"). Nothing in that store records whether the IDE or the CLI created a session, so kiroku reads Kiro CLI V3 sessions and shows them as "Kiro IDE". Classic (V2) sessions show a deprecation notice since CLI 2.26
-- kiro-cli can convert a Classic session to V3, and the V3 engine treats a V2 ID `X` as `sess_X`; such a converted session may be counted in both "Kiro CLI" and "Kiro IDE" (not yet confirmed on a real session). How V3 should be labeled and deduplicated is proposed in [ADR 0021](adr/0021-kiro-cli-v3-separate-source.md)
+- Kiro CLI has three storages: V1 (SQLite, "Kiro CLI (SQLite)"), V2 (the JSON format under `sessions/cli`, "Kiro CLI (Classic)") and V3 ([V3](https://kiro.dev/docs/cli/v3/)), which stores sessions in `~/.kiro/sessions/<hash>/sess_<id>/` in the same format as Kiro IDE and is read as part of "Kiro IDE / CLI" (see above and [ADR 0021](adr/0021-kiro-cli-v3-separate-source.md))
+- kiro-cli can convert a Classic session to V3, and the V3 engine treats a V2 ID `X` as `sess_X`; such a converted session may be counted in both "Kiro CLI (Classic)" and "Kiro IDE / CLI" (not yet confirmed on a real session; [ADR 0021](adr/0021-kiro-cli-v3-separate-source.md))
 
 ## Kiro Crew
 
@@ -154,7 +156,7 @@ Which facts each agent's local history records, and which only official docs giv
 - **None**: neither the history nor official docs give it
 - **?**: not verified
 
-| | Claude Code | Codex CLI | Kiro IDE (1.0+) | Kiro CLI (JSON) | Kiro Crew | Amazon Q / Kiro CLI (SQLite) |
+| | Claude Code | Codex CLI | Kiro IDE / CLI (Kiro IDE 1.0+, Kiro CLI V3) | Kiro CLI (Classic) (JSON) | Kiro Crew | Amazon Q / Kiro CLI (SQLite) |
 |---|---|---|---|---|---|---|
 | Model | Read | Read (the requested model; the model that actually answered is not recorded); `service_tier` (in `thread_settings_applied`): Read (`priority` shown as Fast, `ultrafast`, `flex`; none or `default` is standard; tracked through the thread, so a switch applies from that point; the tier that actually served a response is not recorded) | Read (one per session, may be `auto`); before 1.0: Read (`modelId` in execution files or `metadata.modelId` in `.chat` files, otherwise `selectedModel`) | Read (often `auto`) | Read (`model`; may be `auto` or blank when Crew does not know which model served the turn, or a Bedrock inference profile ID such as `global.anthropic.claude-opus-4-8[1m]`); private (`incognito` or `temporary`) conversations are shown with counts and times only | Read |
 | Tokens | Read (advisor tool calls from `usage.iterations`, at the advisor model) | Read (a `/review`'s usage is only in the reviewer's own rollout, counted once as a `review` subagent) | None | None (`input_token_count` / `output_token_count` exist, but kiro-cli always writes 0, as Kiro Crew's `usage.py` notes) | Read (filled only for non-Kiro backends; not added for the Claude Code and Codex backends, whose own history has them; a Codex turn is told by the row's model ID when the key now runs on kiro-cli) | None (the CLI only estimates characters ÷ 4 at run time) |

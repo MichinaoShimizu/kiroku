@@ -16,7 +16,7 @@ CLAUDE.md の「Security」を常に守る。利用者のファイル（履歴�
 - **何をやめるか**: 画面に出る名前（`Source.Name()`）と `--sources` の名前（`Family()`）を、`internal/source/source.go` の `All` から特定する。1 つの `Family` に複数の `Name` があることがある（`kiro` = Kiro IDE・Kiro CLI・Kiro Crew・Kiro CLI (SQLite)・Kiro IDE (legacy)）。`Family` の一部だけをやめるのか、全部をやめるのかをはっきりさせる
 - **共有しているコード**: 同じ実装を使うものがあれば、そのものは残す（例: `QStore` は Kiro CLI (SQLite) と Amazon Q が共有、Kiro Crew は `KiroCLI` の中で読む、Kiro IDE (legacy) は `kiro.go` の中）。やめるものだけに使われている分岐・関数・定数だけを消す
 - **その結果できなくなること**: やめたエージェントのセッションは画面と `kiroku json` から消え、過去の週の数字も変わる。`docs/compatibility.md` の「Which histories are read」により、マイナーリリースで変えてよいが、CHANGELOG に書く
-- **golden に入っているか**: `internal/cli/load_test.go` の `python`（Claude Code・Kiro IDE・Kiro CLI・Kiro IDE (legacy)）に入っているエージェントをやめる場合、`testdata/golden.json` は Python 版の数字なので作り直せない。比べ方をどう変えるか（そのエージェントのセッションを比べる対象から外すなど）をユーザーと決める
+- **golden に入っているか**: `internal/cli/load_test.go` の `python`（Claude Code・Kiro IDE / CLI・Kiro CLI (Classic)・Kiro IDE (legacy)）に入っているエージェントをやめる場合、`testdata/golden.json` は Python 版の数字なので作り直せない。比べ方をどう変えるか（そのエージェントのセッションを比べる対象から外すなど）をユーザーと決める
 
 ## 1. 消し残しの一覧を作る
 

@@ -10,13 +10,14 @@ import (
 // kiroku archive のフォルダ、画面の色と頭文字（web が __AGENTS__ として埋めこむ）。
 // TestAgentsCoverEverySource が、source.All の Name・Family と食い違っていないかを確かめる。
 type Agent struct {
-	Name    string   `json:"name"` // 画面とセッションの source に出る名前（Source.Name()。Kiro Crew のように、ほかの Source が読むものもある）
-	Family  string   `json:"-"`    // --sources で選ぶ名前（Source.Family()）
-	Slot    int      `json:"slot"` // 画面の色（--c<Slot>）。警告の色（AgentWarnSlots）は使わない
-	Mark    string   `json:"mark"` // バッジに出す頭文字
-	Env     []string `json:"-"`    // 読む場所を変える、エージェント自身の環境変数（kiroku autostart が書き残す）
-	Archive string   `json:"-"`    // kiroku archive がコピーを置く、保存場所の下のフォルダ（空ならコピーしない）
-	Note    string   `json:"-"`    // --sources の説明で、Family に添える一言
+	Name    string   `json:"name"`            // 画面とセッションの source に出る名前（Source.Name()。Kiro Crew のように、ほかの Source が読むものもある）
+	Family  string   `json:"-"`               // --sources で選ぶ名前（Source.Family()）
+	Slot    int      `json:"slot"`            // 画面の色（--c<Slot>）。警告の色（AgentWarnSlots）は使わない
+	Mark    string   `json:"mark"`            // バッジに出す頭文字
+	Env     []string `json:"-"`               // 読む場所を変える、エージェント自身の環境変数（kiroku autostart が書き残す）
+	Archive string   `json:"-"`               // kiroku archive がコピーを置く、保存場所の下のフォルダ（空ならコピーしない）
+	Note    string   `json:"-"`               // --sources の説明で、Family に添える一言
+	About   string   `json:"about,omitempty"` // 画面の「Data sources」で名前に添える説明（名前だけでは何の履歴かわかりにくいとき）
 }
 
 // AgentWarnSlots は、警告に見えるのでエージェントに使わない色（オレンジ・黄色）。
@@ -26,10 +27,11 @@ var AgentWarnSlots = []int{1, 4}
 // Amazon Q は Kiro CLI の前身なので同じ色にする。
 var Agents = []Agent{
 	{Name: "Claude Code", Family: "claude", Slot: 0, Mark: "CC", Env: []string{"CLAUDE_CONFIG_DIR"}, Archive: "claude"},
-	{Name: "Kiro IDE", Family: "kiro", Slot: 6, Mark: "KI", Env: []string{"KIRO_HOME"}},
+	{Name: "Kiro IDE / CLI", Family: "kiro", Slot: 6, Mark: "KI", Env: []string{"KIRO_HOME"},
+		About: "Kiro IDE 1.x and Kiro CLI V3, which share one history that doesn't record which of them ran a session"},
 	{Name: "Kiro IDE (legacy)", Family: "kiro", Slot: 6, Mark: "KI"},
-	{Name: "Kiro CLI", Family: "kiro", Slot: 5, Mark: "KC", Env: []string{"KIRO_HOME"}},
-	{Name: "Kiro CLI (SQLite)", Family: "kiro", Slot: 5, Mark: "KC"},
+	{Name: "Kiro CLI (Classic)", Family: "kiro", Slot: 5, Mark: "KC", Env: []string{"KIRO_HOME"}, About: "Kiro CLI V2"},
+	{Name: "Kiro CLI (SQLite)", Family: "kiro", Slot: 5, Mark: "KC", About: "older Kiro CLI versions"},
 	{Name: "Kiro Crew", Family: "kiro", Slot: 3, Mark: "KW", Env: []string{"KIROCREW_HOME"}, Archive: "crew", Note: "includes Kiro Crew"},
 	{Name: "Amazon Q", Family: "amazonq", Slot: 5, Mark: "Q"},
 	{Name: "Codex", Family: "codex", Slot: 2, Mark: "CX", Env: []string{"CODEX_HOME"}},
