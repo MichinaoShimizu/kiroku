@@ -201,6 +201,128 @@ func TestCodexOpenAIPrices(t *testing.T) {
 	}
 }
 
+// サービスティア: Codex はスレッドの service_tier を thread_settings_applied（thread_settings.service_tier）に書く
+// （始めたとき・変えたとき・フォーク・再開）。priority は Fast、ultrafast は Ultrafast、flex は Flex の料金で、
+// 途中で変えたら、そこからの応答をそのティアの料金にする。書かれていない（または "default"）なら Standard。
+func TestCodexServiceTierPrices(t *testing.T) {
+	home := t.TempDir()
+	settings := func(ts, id, model, tier string) string {
+		st := ""
+		if tier != "" {
+			st = `,"service_tier":"` + tier + `"`
+		}
+		return `{"timestamp":"` + ts + `","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"` + id + `","thread_settings":{"model":"` + model + `","model_provider_id":"openai"` + st + `}}}`
+	}
+	small := func(ts, id, rid string) string { // 入力 200K（キャッシュなし 100K・キャッシュ済み 100K）、出力 10K
+		return `{"timestamp":"` + ts + `","type":"token_usage_record","payload":{"thread_id":"` + id + `","response_id":"` + rid + `","usage":{"input_tokens":200000,"cached_input_tokens":100000,"output_tokens":10000,"total_tokens":210000}}}`
+	}
+	// gpt-6-sol は Codex の既定が priority（Fast）。途中で Standard に戻す
+	writeCodex(t, home, "thr-fast",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-fast","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		settings("2026-10-06T00:00:00.100Z", "thr-fast", "gpt-6-sol", "priority"),
+		`{"timestamp":"2026-10-06T00:00:01.000Z","type":"turn_context","payload":{"model":"gpt-6-sol"}}`,
+		`{"timestamp":"2026-10-06T00:00:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"直して"}}`,
+		small("2026-10-06T00:00:10.000Z", "thr-fast", "r1"),
+		`{"timestamp":"2026-10-06T00:00:20.000Z","type":"token_usage_record","payload":{"thread_id":"thr-fast","response_id":"r2","usage":{"input_tokens":1000000,"cached_input_tokens":600000,"cache_write_input_tokens":300000,"output_tokens":100000,"total_tokens":1100000}}}`,
+		settings("2026-10-06T00:00:30.000Z", "thr-fast", "gpt-6-sol", "default"),
+		small("2026-10-06T00:00:40.000Z", "thr-fast", "r3"),
+	)
+	// Ultrafast から Flex に変える
+	writeCodex(t, home, "thr-ultra",
+		`{"timestamp":"2026-10-06T01:00:00.000Z","type":"session_meta","payload":{"id":"thr-ultra","timestamp":"2026-10-06T01:00:00.000Z","cwd":"/Users/me/web"}}`,
+		settings("2026-10-06T01:00:00.100Z", "thr-ultra", "gpt-6.1-sol", "ultrafast"),
+		`{"timestamp":"2026-10-06T01:00:01.000Z","type":"turn_context","payload":{"model":"gpt-6.1-sol"}}`,
+		`{"timestamp":"2026-10-06T01:00:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"直して"}}`,
+		small("2026-10-06T01:00:10.000Z", "thr-ultra", "r1"),
+		settings("2026-10-06T01:00:20.000Z", "thr-ultra", "gpt-6.1-sol", "flex"),
+		small("2026-10-06T01:00:30.000Z", "thr-ultra", "r2"),
+	)
+	// Fast の料金が公式にないモデル（gpt-5.5-pro）は標準の料金で見積もり、印を付ける。"fast" は古い版の priority
+	writeCodex(t, home, "thr-pro",
+		`{"timestamp":"2026-10-06T02:00:00.000Z","type":"session_meta","payload":{"id":"thr-pro","timestamp":"2026-10-06T02:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T02:00:00.100Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_settings":{"model":"gpt-5.5-pro","service_tier":"fast"}}}`,
+		`{"timestamp":"2026-10-06T02:00:01.000Z","type":"turn_context","payload":{"model":"gpt-5.5-pro"}}`,
+		`{"timestamp":"2026-10-06T02:00:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"直して"}}`,
+		`{"timestamp":"2026-10-06T02:00:10.000Z","type":"token_usage_record","payload":{"thread_id":"thr-pro","response_id":"r1","usage":{"input_tokens":100000,"output_tokens":10000,"total_tokens":110000}}}`,
+	)
+	bs := load(t, &Codex{Home: home})
+	got := map[string]*core.Session{}
+	for _, b := range bs {
+		got[b.ID] = b.Finish(15)
+	}
+	// r1: Fast 0.1M*4 + 0.1M*0.4 + 0.01M*20、r2: Fast の長いコンテキスト 0.1M*8 + 0.3M*10 + 0.6M*0.8 + 0.1M*30、
+	// r3: Standard 0.1M*2 + 0.1M*0.2 + 0.01M*10
+	if want := core.Round(0.64+7.28+0.32, 4); got["thr-fast"].Usage.Cost != want {
+		t.Errorf("thr-fast cost = %v, want %v", got["thr-fast"].Usage.Cost, want)
+	}
+	// r1: Ultrafast 0.1M*12 + 0.1M*0.6 + 0.01M*60、r2: Flex 0.1M*1 + 0.1M*0.05 + 0.01M*5
+	if want := core.Round(1.86+0.155, 4); got["thr-ultra"].Usage.Cost != want {
+		t.Errorf("thr-ultra cost = %v, want %v", got["thr-ultra"].Usage.Cost, want)
+	}
+	if want := core.Round(0.1*30+0.01*180, 4); got["thr-pro"].Usage.Cost != want {
+		t.Errorf("thr-pro cost = %v, want %v", got["thr-pro"].Usage.Cost, want)
+	}
+	if ev := got["thr-pro"].UEv; len(ev) != 1 || ev[0].Tier != core.TierFast || !ev[0].TierStd {
+		t.Errorf("thr-pro events = %+v, want Fast priced at standard rates", ev)
+	}
+	for _, e := range got["thr-fast"].UEv {
+		if e.TierStd {
+			t.Errorf("thr-fast: %+v は Fast の料金がある", e)
+		}
+	}
+	// 詳細の画面に出すティアごとの応答の数
+	if tiers := fmt.Sprint(got["thr-fast"].Tiers); tiers != "[[Fast 2] [Standard 1]]" {
+		t.Errorf("thr-fast tiers = %s", tiers)
+	}
+	if tiers := fmt.Sprint(got["thr-ultra"].Tiers); tiers != "[[Ultrafast 1] [Flex 1]]" {
+		t.Errorf("thr-ultra tiers = %s", tiers)
+	}
+}
+
+// サブエージェントやフォークは、写しのあとに自分の thread_settings_applied を書く（spawn.rs・session/mod.rs）。
+// 写した親の thread_settings_applied（親のスレッド ID）のティアは使わず、自分のティアの料金にする。
+// ほかのスレッドの thread_settings_applied（/review のあいだに写したレビュー用のサブエージェントのものなど）も使わない。
+func TestCodexServiceTierSubagent(t *testing.T) {
+	home := t.TempDir()
+	rec := func(ts, id, rid string) string { // 入力 200K（キャッシュなし 100K・キャッシュ済み 100K）、出力 10K
+		return `{"timestamp":"` + ts + `","type":"token_usage_record","payload":{"thread_id":"` + id + `","response_id":"` + rid + `","usage":{"input_tokens":200000,"cached_input_tokens":100000,"output_tokens":10000,"total_tokens":210000}}}`
+	}
+	writeCodex(t, home, "thr-p",
+		`{"timestamp":"2026-10-06T01:00:00.000Z","type":"session_meta","payload":{"id":"thr-p","timestamp":"2026-10-06T01:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T01:00:00.100Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"thr-p","thread_settings":{"model":"gpt-6-sol","service_tier":"flex"}}}`,
+		`{"timestamp":"2026-10-06T01:00:01.000Z","type":"turn_context","payload":{"model":"gpt-6-sol"}}`,
+		`{"timestamp":"2026-10-06T01:00:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"親の依頼"}}`,
+		rec("2026-10-06T01:00:20.000Z", "thr-p", "p1"),
+		`{"timestamp":"2026-10-06T01:00:30.000Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"thr-other","thread_settings":{"model":"gpt-6-sol","service_tier":"ultrafast"}}}`,
+		rec("2026-10-06T01:00:40.000Z", "thr-p", "p2"),
+	)
+	writeCodex(t, home, "thr-c",
+		`{"timestamp":"2026-10-06T01:01:00.000Z","type":"session_meta","payload":{"id":"thr-c","timestamp":"2026-10-06T01:01:00.000Z","cwd":"/Users/me/web","source":{"subagent":{"thread_spawn":{"parent_thread_id":"thr-p","depth":1,"agent_role":"explorer"}}}}}`,
+		// 親から写した行
+		`{"timestamp":"2026-10-06T01:01:00.100Z","type":"session_meta","payload":{"id":"thr-p","timestamp":"2026-10-06T01:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T01:01:00.100Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"thr-p","thread_settings":{"model":"gpt-6-sol","service_tier":"flex"}}}`,
+		`{"timestamp":"2026-10-06T01:01:00.100Z","type":"turn_context","payload":{"model":"gpt-6-sol"}}`,
+		// 子の行
+		`{"timestamp":"2026-10-06T01:01:00.100Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"thr-c","thread_settings":{"model":"gpt-6-sol","service_tier":"priority"}}}`,
+		`{"timestamp":"2026-10-06T01:01:01.000Z","type":"turn_context","payload":{"model":"gpt-6-sol"}}`,
+		`{"timestamp":"2026-10-06T01:01:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"子の依頼"}}`,
+		rec("2026-10-06T01:01:30.000Z", "thr-c", "c1"),
+	)
+	p := find(load(t, &Codex{Home: home}), "thr-p")
+	if p == nil {
+		t.Fatal("thr-p がない")
+	}
+	s := p.Finish(15)
+	// 親 p1・p2: Flex 0.1M*1 + 0.1M*0.1 + 0.01M*5（p2 の前のほかのスレッドの Ultrafast は使わない）
+	if want := core.Round(2*0.16, 4); s.Usage.Cost != want {
+		t.Errorf("親の cost = %v, want %v", s.Usage.Cost, want)
+	}
+	// 子 c1: Fast 0.1M*4 + 0.1M*0.4 + 0.01M*20
+	if len(s.Subagents) != 1 || s.Subagents[0].Usage.Cost != 0.64 {
+		t.Errorf("サブエージェント = %+v, want cost 0.64", s.Subagents)
+	}
+}
+
 // paginated のサブエージェントは、親の履歴を自分の session_meta のあとに写す（時刻は写したとき）。
 // subagent_history_start_ordinal より前の ordinal の行は写しなので数えない。
 func TestCodexSubagentHistoryStartOrdinal(t *testing.T) {

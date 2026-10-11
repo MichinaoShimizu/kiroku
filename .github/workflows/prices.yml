@@ -63,7 +63,7 @@ jobs:
           {
             echo "The official price pages no longer match \`docs/upstream\` (found by [this run]($RUN_URL))."
             echo
-            echo "To update: run \`go run ./tools/prices\`, update \`Prices\` / \`OpenAIPrices\` / \`OpenAILongPrices\` and \`PricesAsOf\` in \`internal/core/usage.go\` to match (\`go test ./internal/core\` checks it), add a CHANGELOG entry and open a pull request."
+            echo "To update: run \`go run ./tools/prices\`, update \`Prices\` / \`OpenAIPrices\` / \`OpenAILongPrices\` / \`OpenAITiers\` and \`PricesAsOf\` in \`internal/core/usage.go\` to match (\`go test ./internal/core\` checks it), add a CHANGELOG entry and open a pull request."
             echo
             echo '~~~diff'
             printf '%s' "$DIFF" | base64 -d

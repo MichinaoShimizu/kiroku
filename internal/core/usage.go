@@ -55,7 +55,8 @@ var LongPrices = map[string]LongPrice{
 // 入力（キャッシュなし）, 出力, キャッシュ書き込み, キャッシュ書き込み（同じ値。OpenAI に 1 時間の区別はない）, キャッシュ済み入力。
 // 出典: https://developers.openai.com/api/docs/pricing の Standard（短いコンテキスト）、Cyber models、Specialized models の Codex（2026-10 時点）。
 // 公式にキャッシュ書き込み・キャッシュ済み入力の料金がない（"-"）モデルは、その分も入力の料金にする。
-// 公式の数字の控えは docs/upstream/openai-pricing.md。Fast・Batch・Flex・データ所在地の上乗せは入れていない。
+// 公式の数字の控えは docs/upstream/openai-pricing.md。Fast・Ultrafast・Flex は OpenAITiers（Codex の service_tier で選ぶ）。
+// Batch・データ所在地の上乗せは入れていない。
 var OpenAIPrices = map[string][5]float64{
 	"gpt-6-astra":   {10, 50, 12.5, 12.5, 1},
 	"gpt-6.1-sol":   {2, 10, 2.5, 2.5, 0.1},
@@ -98,7 +99,125 @@ var OpenAILongPrices = map[string][5]float64{
 }
 
 // OpenAILongContext は OpenAI の長いコンテキストの境目（入力トークン。これを超えると OpenAILongPrices）。
+// サービスティア（OpenAITiers）の料金も同じ境目で変わる。
 const OpenAILongContext = 272000
+
+// OpenAI のサービスティア。値は Codex が履歴（thread_settings_applied の thread_settings.service_tier）に書き、
+// Responses API の service_tier に送る値。""（なし・"default"）は Standard。
+const (
+	TierFast      = "priority"  // Fast（2026-07-30 に Priority processing から名前が変わった。値は priority のまま）
+	TierUltrafast = "ultrafast" // Ultrafast
+	TierFlex      = "flex"      // Flex
+)
+
+// OpenAITier は、1 つのサービスティアの料金。並びと長いコンテキストの扱いは OpenAIPrices・OpenAILongPrices と同じ。
+type OpenAITier struct {
+	Name  string                // 画面と公式の表の名前（docs/upstream の見出し）
+	Rates map[string][5]float64 // 短いコンテキスト
+	Long  map[string][5]float64 // 長いコンテキスト（公式に "-" のモデルは入れない）
+}
+
+// OpenAITiers は、サービスティアごとの OpenAI の料金。出典は OpenAIPrices と同じページの Flex・Fast・Ultrafast の表と、
+// Specialized models の Fast の表の Codex（2026-10 時点）。キーの引き方は OpenAIPrices と同じ（PriceOf が当てたキーで引く）。
+// ティアの表にないモデル（Fast の gpt-5.5-pro など）や、長いコンテキストの料金がティアにないモデル（Fast の gpt-5.5 など）は、
+// 標準の料金で見積もり、画面の「Data sources」で知らせる（Event.TierStd）。--prices で上書きしたモデルは、どのティアでもその料金。
+var OpenAITiers = map[string]OpenAITier{
+	TierFast: {Name: "Fast", Rates: map[string][5]float64{
+		"gpt-6-astra":   {20, 100, 25, 25, 2},
+		"gpt-6.1-sol":   {4, 20, 5, 5, 0.2},
+		"gpt-6-luna":    {0.2, 1, 0.25, 0.25, 0.02},
+		"gpt-6-sol":     {4, 20, 5, 5, 0.4},
+		"gpt-5.6-sol":   {8, 40, 10, 10, 0.8},
+		"gpt-5.6-terra": {4, 24, 5, 5, 0.4},
+		"gpt-5.6-luna":  {0.4, 2.4, 0.5, 0.5, 0.04},
+		"gpt-5.5":       {12.5, 75, 12.5, 12.5, 1.25},
+		"gpt-5.4":       {5, 30, 5, 5, 0.5},
+		"gpt-5.4-mini":  {1.5, 9, 1.5, 1.5, 0.15},
+		"gpt-5.3-codex": {3.5, 28, 3.5, 3.5, 0.35}, // Specialized models の Fast の表
+		"gpt-5.2":       {3.5, 28, 3.5, 3.5, 0.35},
+		"gpt-5.1":       {2.5, 20, 2.5, 2.5, 0.25},
+		"gpt-5":         {2.5, 20, 2.5, 2.5, 0.25},
+		"gpt-5-mini":    {0.45, 3.6, 0.45, 0.45, 0.045},
+	}, Long: map[string][5]float64{
+		"gpt-6-astra":   {40, 150, 50, 50, 4},
+		"gpt-6.1-sol":   {8, 30, 10, 10, 0.4},
+		"gpt-6-luna":    {0.4, 1.5, 0.5, 0.5, 0.04},
+		"gpt-6-sol":     {8, 30, 10, 10, 0.8},
+		"gpt-5.6-sol":   {16, 60, 20, 20, 1.6},
+		"gpt-5.6-terra": {8, 36, 10, 10, 0.8},
+		"gpt-5.6-luna":  {0.8, 3.6, 1, 1, 0.08},
+	}},
+	TierUltrafast: {Name: "Ultrafast", Rates: map[string][5]float64{
+		"gpt-6-astra": {60, 300, 75, 75, 6},
+		"gpt-6.1-sol": {12, 60, 15, 15, 0.6},
+	}, Long: map[string][5]float64{
+		"gpt-6-astra": {120, 450, 150, 150, 12},
+		"gpt-6.1-sol": {24, 90, 30, 30, 1.2},
+	}},
+	TierFlex: {Name: "Flex", Rates: map[string][5]float64{
+		"gpt-6-astra":   {5, 25, 6.25, 6.25, 0.5},
+		"gpt-6.1-sol":   {1, 5, 1.25, 1.25, 0.05},
+		"gpt-6-luna":    {0.05, 0.25, 0.0625, 0.0625, 0.005},
+		"gpt-6-sol":     {1, 5, 1.25, 1.25, 0.1},
+		"gpt-5.6-sol":   {2, 10, 2.5, 2.5, 0.2},
+		"gpt-5.6-terra": {1, 6, 1.25, 1.25, 0.1},
+		"gpt-5.6-luna":  {0.1, 0.6, 0.125, 0.125, 0.01},
+		"gpt-5.5":       {2.5, 15, 2.5, 2.5, 0.25},
+		"gpt-5.5-pro":   {15, 90, 15, 15, 15},
+		"gpt-5.4":       {1.25, 7.5, 1.25, 1.25, 0.13}, // 公式の表のまま（キャッシュ済み入力は $0.13）
+		"gpt-5.4-mini":  {0.375, 2.25, 0.375, 0.375, 0.0375},
+		"gpt-5.4-nano":  {0.1, 0.625, 0.1, 0.1, 0.01},
+		"gpt-5.4-pro":   {15, 90, 15, 15, 15},
+		"gpt-5.2":       {0.875, 7, 0.875, 0.875, 0.0875},
+		"gpt-5.1":       {0.625, 5, 0.625, 0.625, 0.0625},
+		"gpt-5":         {0.625, 5, 0.625, 0.625, 0.0625},
+		"gpt-5-mini":    {0.125, 1, 0.125, 0.125, 0.0125},
+		"gpt-5-nano":    {0.025, 0.2, 0.025, 0.025, 0.0025},
+	}, Long: map[string][5]float64{
+		"gpt-6-astra":   {10, 37.5, 12.5, 12.5, 1},
+		"gpt-6.1-sol":   {2, 7.5, 2.5, 2.5, 0.1},
+		"gpt-6-luna":    {0.1, 0.375, 0.125, 0.125, 0.01},
+		"gpt-6-sol":     {2, 7.5, 2.5, 2.5, 0.2},
+		"gpt-5.6-sol":   {4, 15, 5, 5, 0.4},
+		"gpt-5.6-terra": {2, 9, 2.5, 2.5, 0.2},
+		"gpt-5.6-luna":  {0.2, 0.9, 0.25, 0.25, 0.02},
+		"gpt-5.5":       {5, 22.5, 5, 5, 0.5},
+		"gpt-5.4":       {2.5, 11.25, 2.5, 2.5, 0.25},
+		"gpt-5.4-pro":   {30, 135, 30, 30, 30},
+	}},
+}
+
+// ServiceTier は、履歴に書かれたサービスティアの値をそろえる（"fast" は古い版の priority）。
+// Standard（なし・"default"）と、決まった形でない値は ""。知らない名前のティアはそのまま返す（標準の料金で見積もり、知らせる）。
+func ServiceTier(v string) string {
+	v = strings.ToLower(strings.TrimSpace(v))
+	switch v {
+	case "", "default", "standard", "auto":
+		return ""
+	case "fast", TierFast:
+		return TierFast
+	}
+	if len(v) > 32 {
+		return ""
+	}
+	for i := 0; i < len(v); i++ {
+		if c := v[i]; !(c >= 'a' && c <= 'z' || c == '-' || c == '_' || i > 0 && c >= '0' && c <= '9') {
+			return ""
+		}
+	}
+	return v
+}
+
+// TierName は、サービスティアの画面の名前（"" は Standard）。
+func TierName(tier string) string {
+	if tier == "" {
+		return "Standard"
+	}
+	if t, ok := OpenAITiers[tier]; ok {
+		return t.Name
+	}
+	return tier
+}
 
 // WebSearchPrice は、ウェブ検索 1 回の料金（USD）。トークンの料金とは別に、1,000 回あたり $10 かかる。
 // fast モードや US 内だけの推論の倍率は、トークンの料金にだけ掛かる。
@@ -145,6 +264,10 @@ type Price struct {
 	Over  float64     // 1 回の応答の入力（Tokens.Input）がこれを超えたら Long
 	Key   string      // 当たった料金表のキー
 	Exact bool        // 版の印（日付・-v1:0 など）を除くとキーと同じ。false は先頭一致だけで当てたもの（新しいモデルに古い料金を当てているかもしれない）
+	// OpenAI のサービスティア（PriceOfTier）。StdRates は、ティアを指定したのに Rates がそのティアの料金でない（標準の料金）。
+	// StdLong は、Long がそのティアの料金でない（ティアに長いコンテキストの料金がなく、標準の長いコンテキストの料金を使う）
+	StdRates, StdLong bool
+	openai            bool // OpenAIPrices から当てた（--prices で上書きしていない）
 }
 
 var (
@@ -227,7 +350,7 @@ func PriceOf(model string) (Price, bool) {
 	if best == "" {
 		return Price{}, false
 	}
-	p := Price{Key: best, Exact: m == best}
+	p := Price{Key: best, Exact: m == best, openai: fromOpenAI}
 	if fromOpenAI {
 		p.Rates = OpenAIPrices[best]
 		if l, ok := OpenAILongPrices[best]; ok {
@@ -238,6 +361,31 @@ func PriceOf(model string) (Price, bool) {
 		if l, ok := LongPrices[best]; ok {
 			p.Long, p.Over = &l.Rates, l.Over
 		}
+	}
+	return p, true
+}
+
+// PriceOfTier は、OpenAI のサービスティア tier（ServiceTier でそろえた値。"" は Standard）でのモデルの料金。
+// キーは PriceOf と同じ引き方で決め、そのキーでティアの表を引く。ティアの表にないキーは標準の料金（StdRates）、
+// ティアに長いコンテキストの料金がなければ標準の長いコンテキストの料金（StdLong）にする。
+// --prices で上書きしたモデルと Anthropic のモデルは、ティアによらず PriceOf と同じ。
+func PriceOfTier(model, tier string) (Price, bool) {
+	p, ok := PriceOf(model)
+	if !ok || tier == "" || !p.openai {
+		return p, ok
+	}
+	t := OpenAITiers[tier]
+	r, ok := t.Rates[p.Key]
+	if !ok {
+		p.StdRates = true
+		p.StdLong = p.Long != nil
+		return p, true
+	}
+	p.Rates = r
+	if l, ok := t.Long[p.Key]; ok {
+		p.Long, p.Over = &l, OpenAILongContext
+	} else if p.Long != nil {
+		p.StdLong = true
 	}
 	return p, true
 }
@@ -281,18 +429,22 @@ func tokenCost(model string, u Tokens) (float64, bool) {
 
 // CostOfRequest は、u が応答 1 回分と分かっているときの目安コスト。入力（キャッシュの読み書きを含む）が境目を超えたら
 // （OpenAI は OpenAILongContext、Anthropic は LongPrices の Over）、その応答の全部を長いコンテキストの料金にする。
-func CostOfRequest(model string, u Tokens) (float64, bool) { return costOfRequest(model, u, u.Input()) }
+func CostOfRequest(model string, u Tokens) (float64, bool) {
+	c, ok, _ := costOfRequest(model, "", u, u.Input())
+	return c, ok
+}
 
 // costOfRequest は CostOfRequest と同じだが、境目と比べるプロンプトの大きさを prompt で渡す（Event.Prompt を参照）。
-func costOfRequest(model string, u Tokens, prompt float64) (float64, bool) {
-	p, ok := PriceOf(model)
+// tier は OpenAI のサービスティア（"" は Standard）。std は、ティアの料金が公式になく標準の料金で見積もったか。
+func costOfRequest(model, tier string, u Tokens, prompt float64) (c float64, ok, std bool) {
+	p, ok := PriceOfTier(model, tier)
 	if !ok {
-		return 0, false
+		return 0, false, false
 	}
 	if p.Long != nil && prompt > p.Over {
-		return costAt(*p.Long, u), true
+		return costAt(*p.Long, u), true, p.StdLong
 	}
-	return costAt(p.Rates, u), true
+	return costAt(p.Rates, u), true, p.StdRates
 }
 
 func costAt(p [5]float64, u Tokens) float64 {
@@ -330,6 +482,8 @@ type Event struct {
 	Req     bool    // U が応答 1 回分（入力の量で長いコンテキストの料金を選べる）。false は何回分かの合計かもしれない
 	Prompt  float64 // 1 回の呼び出しでモデルが読んだいちばん大きいプロンプト（usage.iterations に呼び出しが 2 回以上あるとき）。0 なら U.Input()
 	Advisor bool    // advisor ツールの呼び出し（Model は advisor のモデル）。応答の数やコンテキストの使用率には入れない
+	Tier    string  // OpenAI のサービスティア（ServiceTier でそろえた値。"" は Standard）。料金表は OpenAITiers
+	TierStd bool    // Tier の料金が公式になく、標準の料金で見積もった（低く見積もっているかもしれない）
 }
 
 // prompt は、e の 1 回の呼び出しのプロンプトの大きさ（入力 + キャッシュの読み書き）。
@@ -342,11 +496,22 @@ func (e Event) prompt() float64 {
 }
 
 // EventCost は e のトークンの目安コスト（料金表にないモデルは ok=false）。倍率は掛けず、ウェブ検索の料金も入れない。
+// e.Tier があれば、そのサービスティアの料金（OpenAITiers）にする。
 func EventCost(e Event) (float64, bool) {
+	c, ok, _ := EventCostTier(e)
+	return c, ok
+}
+
+// EventCostTier は EventCost と同じで、std は e.Tier の料金が公式になく標準の料金で見積もったか（Event.TierStd）。
+func EventCostTier(e Event) (c float64, ok, std bool) {
 	if e.Req {
-		return costOfRequest(e.Model, e.U, e.prompt())
+		return costOfRequest(e.Model, e.Tier, e.U, e.prompt())
 	}
-	return tokenCost(e.Model, e.U)
+	p, ok := PriceOfTier(e.Model, e.Tier)
+	if !ok {
+		return 0, false, false
+	}
+	return costAt(p.Rates, e.U), true, p.StdRates
 }
 
 // iteration は usage.iterations の 1 つ（advisor ツールを使った応答だけにある）。
@@ -464,7 +629,8 @@ func (u *Usage) Events() []Event {
 		if e.Cost != nil {
 			c := *e.Cost
 			e.Cost = &c
-		} else if c, ok := EventCost(e); ok {
+		} else if c, ok, std := EventCostTier(e); ok {
+			e.TierStd = std
 			if e.Mult > 0 {
 				c *= e.Mult // 倍率はトークンの料金にだけ掛かり、ウェブ検索の料金には掛からない
 			}

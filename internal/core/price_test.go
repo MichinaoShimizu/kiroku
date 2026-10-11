@@ -1,6 +1,9 @@
 package core
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // 料金表の引き方: 版の印を除いて同じキーなら Exact、先頭一致だけなら Exact=false（画面の「Data sources」で知らせる）。
 func TestPriceOfExactAndPrefix(t *testing.T) {
@@ -154,3 +157,99 @@ func TestUsageHaiku55LongPrompt(t *testing.T) {
 }
 
 func near(a, b float64) bool { return a-b < 1e-9 && b-a < 1e-9 }
+
+// サービスティア: PriceOf と同じキー（先頭一致の規則も同じ）で OpenAITiers を引く。ティアの表にないモデルは標準の料金（StdRates）、
+// ティアに長いコンテキストの料金がなければ標準の長いコンテキストの料金（StdLong）。
+func TestPriceOfTier(t *testing.T) {
+	cases := []struct {
+		model, tier, key string
+		rates            [5]float64
+		long             *[5]float64
+		exact, stdRates  bool
+		stdLong          bool
+	}{
+		{"gpt-6-sol", TierFast, "gpt-6-sol", [5]float64{4, 20, 5, 5, 0.4}, &[5]float64{8, 30, 10, 10, 0.8}, true, false, false},
+		{"gpt-6-luna", TierFast, "gpt-6-luna", [5]float64{0.2, 1, 0.25, 0.25, 0.02}, &[5]float64{0.4, 1.5, 0.5, 0.5, 0.04}, true, false, false},
+		{"gpt-6-astra", TierUltrafast, "gpt-6-astra", [5]float64{60, 300, 75, 75, 6}, &[5]float64{120, 450, 150, 150, 12}, true, false, false},
+		{"gpt-6.1-sol", TierFlex, "gpt-6.1-sol", [5]float64{1, 5, 1.25, 1.25, 0.05}, &[5]float64{2, 7.5, 2.5, 2.5, 0.1}, true, false, false},
+		{"gpt-5.3-codex", TierFast, "gpt-5.3-codex", [5]float64{3.5, 28, 3.5, 3.5, 0.35}, nil, true, false, false},
+		// 先頭一致の規則は PriceOf と同じ（gpt-5-codex は gpt-5 の Fast の料金。Exact ではない）
+		{"gpt-5-codex", TierFast, "gpt-5", [5]float64{2.5, 20, 2.5, 2.5, 0.25}, nil, false, false, false},
+		{"gpt-5.4-mini-2026-03-17", TierFlex, "gpt-5.4-mini", [5]float64{0.375, 2.25, 0.375, 0.375, 0.0375}, nil, true, false, false},
+		// Fast の gpt-5.5 は長いコンテキストの料金が公式にない: 短いのは Fast、長いのは標準の料金
+		{"gpt-5.5", TierFast, "gpt-5.5", [5]float64{12.5, 75, 12.5, 12.5, 1.25}, &[5]float64{10, 45, 10, 10, 1}, true, false, true},
+		// Ultrafast の表にない gpt-6-sol、Fast の表にない gpt-5.5-pro・gpt-5-nano は標準の料金
+		{"gpt-6-sol", TierUltrafast, "gpt-6-sol", [5]float64{2, 10, 2.5, 2.5, 0.2}, &[5]float64{4, 15, 5, 5, 0.4}, true, true, true},
+		{"gpt-5.5-pro", TierFast, "gpt-5.5-pro", [5]float64{30, 180, 30, 30, 30}, &[5]float64{60, 270, 60, 60, 60}, true, true, true},
+		{"gpt-5-nano", TierFast, "gpt-5-nano", [5]float64{0.05, 0.4, 0.05, 0.05, 0.005}, nil, true, true, false},
+		// 知らない名前のティアも標準の料金で、印を付ける
+		{"gpt-6-sol", "scale", "gpt-6-sol", [5]float64{2, 10, 2.5, 2.5, 0.2}, &[5]float64{4, 15, 5, 5, 0.4}, true, true, true},
+		// Standard と、Claude（ティアはない）
+		{"gpt-6-sol", "", "gpt-6-sol", [5]float64{2, 10, 2.5, 2.5, 0.2}, &[5]float64{4, 15, 5, 5, 0.4}, true, false, false},
+		{"claude-opus-5-5", TierFast, "claude-opus-5-5", [5]float64{4, 20, 5, 8, 0.20}, nil, true, false, false},
+	}
+	for _, c := range cases {
+		p, ok := PriceOfTier(c.model, c.tier)
+		if !ok || p.Key != c.key || p.Rates != c.rates || p.Exact != c.exact || p.StdRates != c.stdRates || p.StdLong != c.stdLong ||
+			(p.Long == nil) != (c.long == nil) || p.Long != nil && *p.Long != *c.long {
+			t.Errorf("PriceOfTier(%q, %q) = %+v (long %v) ok=%v", c.model, c.tier, p, p.Long, ok)
+		}
+	}
+	// 料金表にないモデル（Daybreak・codex-auto-review）はティアによらず料金なし
+	for _, m := range []string{"gpt-daybreak-1-latest", "codex-auto-review"} {
+		if _, ok := PriceOfTier(m, TierFast); ok {
+			t.Errorf("PriceOfTier(%q) は料金なし", m)
+		}
+	}
+}
+
+// --prices で上書きしたモデルは、どのティアでもその料金（標準の料金とはみなさない）。
+func TestPriceOfTierOverride(t *testing.T) {
+	Prices["gpt-6-sol"] = [5]float64{1, 2, 3, 4, 5}
+	defer delete(Prices, "gpt-6-sol")
+	p, ok := PriceOfTier("gpt-6-sol", TierFast)
+	if !ok || p.Rates != [5]float64{1, 2, 3, 4, 5} || p.Long != nil || p.StdRates {
+		t.Errorf("PriceOfTier = %+v", p)
+	}
+}
+
+// 1 回の応答のコスト: ティアの料金で、入力が 272K を超えたら長いコンテキストの料金。std はティアの料金がなかったか。
+func TestEventCostTier(t *testing.T) {
+	short := Tokens{In: 100_000, CR: 100_000, Out: 10_000}
+	long := Tokens{In: 100_000, CW: 300_000, CR: 600_000, Out: 100_000}
+	cases := []struct {
+		model, tier string
+		u           Tokens
+		cost        float64
+		std         bool
+	}{
+		{"gpt-6-sol", TierFast, short, 0.4 + 0.04 + 0.2, false},
+		{"gpt-6-sol", TierFast, long, 0.8 + 3 + 0.48 + 3, false},
+		{"gpt-6-sol", "", short, 0.2 + 0.02 + 0.1, false},
+		{"gpt-5.5", TierFast, short, 1.25 + 0.125 + 0.75, false},
+		{"gpt-5.5", TierFast, long, 1 + 3 + 0.6 + 4.5, true}, // 長いコンテキストの Fast の料金はない（標準の長いコンテキストの料金）
+		{"gpt-6-sol", TierUltrafast, short, 0.2 + 0.02 + 0.1, true},
+	}
+	for _, c := range cases {
+		got, ok, std := EventCostTier(Event{Model: c.model, Tier: c.tier, U: c.u, Req: true})
+		if !ok || Round(got, 6) != Round(c.cost, 6) || std != c.std {
+			t.Errorf("EventCostTier(%s, %q, %+v) = %v std=%v, want %v std=%v", c.model, c.tier, c.u, got, std, c.cost, c.std)
+		}
+	}
+	// 応答 1 回分と分からない（Req が false）ときは短いコンテキストの料金
+	if got, _, _ := EventCostTier(Event{Model: "gpt-6-sol", Tier: TierFast, U: long}); Round(got, 6) != Round(0.4+1.5+0.24+2, 6) {
+		t.Errorf("Req=false: %v", got)
+	}
+}
+
+func TestServiceTier(t *testing.T) {
+	for in, want := range map[string]string{"priority": TierFast, "fast": TierFast, " Priority ": TierFast, "ultrafast": TierUltrafast, "flex": TierFlex,
+		"": "", "default": "", "scale": "scale", "<b>x</b>": "", "9x": "", strings.Repeat("a", 33): ""} {
+		if got := ServiceTier(in); got != want {
+			t.Errorf("ServiceTier(%q) = %q, want %q", in, got, want)
+		}
+	}
+	if TierName(TierFast) != "Fast" || TierName("") != "Standard" || TierName(TierUltrafast) != "Ultrafast" || TierName("scale") != "scale" {
+		t.Error("TierName")
+	}
+}
