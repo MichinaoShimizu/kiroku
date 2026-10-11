@@ -343,7 +343,13 @@ function journeyGrid(sessions, ws, we){
 /* Project is an inventory of observed work in the selected period.
    Unlike Journey it does not infer a sequence or a project status. */
 function projectGrid(sessions, ws, we){
-  const root = $("#tl"), groups = new Map(), visibleCommits = gitShown(sessions);
+  const root = $("#tl"), groups = new Map(), commitsByProject = new Map();
+  // Index commits once rather than scanning all commits for every project card.
+  gitShown(sessions).forEach(c => {
+    if (c.t < ws || c.t >= we) return;
+    if (!commitsByProject.has(c.project)) commitsByProject.set(c.project, []);
+    commitsByProject.get(c.project).push(c);
+  });
   sessions.forEach(s => {
     const name = s.project || "Unknown project";
     if (!groups.has(name)) groups.set(name, []);
@@ -353,7 +359,7 @@ function projectGrid(sessions, ws, we){
   const rows = [...groups].sort((a,b)=>b[1].length-a[1].length || a[0].localeCompare(b[0]));
   root.innerHTML = '<div class="project-view"><p class="project-note">Observed activity in the selected period. Commits and recorded PR creation are not measures of completion or business impact.</p>' +
     rows.map(([name,items])=>{
-      const commits = visibleCommits.filter(c=>c.project === name && c.t >= ws && c.t < we);
+      const commits = commitsByProject.get(name) || [];
       const prs = items.flatMap(s=>(s.prAt || []).filter(pr=>typeof pr.t === "number" && pr.t >= ws && pr.t < we).map(pr=>({s,pr})));
       const first = Math.max(ws,items.reduce((v,s)=>Math.min(v,s.start),Infinity));
       const last = Math.min(we-1,items.reduce((v,s)=>Math.max(v,s.end),ws));
