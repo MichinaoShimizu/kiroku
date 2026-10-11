@@ -28,7 +28,8 @@ function keepCalFocus(n){ // カレンダーの中にいたまま期間を移っ
 function setMode(m){ if (m === "month" && META.scope && META.scope.mode === "week") return; // 週だけのファイルの月表示は、1 か月ぶんに見えて紛らわしい
   if (m === "month" && st.mode !== "month") st.month = monthOf(addDays(st.week, 3));
   if (m === "week" && st.mode === "month" && monthOf(st.week).getTime() !== st.month.getTime()) st.week = mondayOf(st.month);
-  st.mode = m; store.set("mode", m); st.sel = null; st.animate = true; render(); scrollToWork(); }
+  st.journey = false; $("#journeybtn").setAttribute("aria-pressed", "false"); st.mode = m; store.set("mode", m); st.sel = null; st.animate = true; render(); scrollToWork(); }
+$("#journeybtn").onclick = () => { st.journey = !st.journey; $("#journeybtn").setAttribute("aria-pressed", String(st.journey)); render(); };
 document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = () => setMode(b.dataset.v)); // Year（#yrbtn）は表示の切り替えではなく、1 年の露光を開く
 $("#prev").onclick = () => go(-1); $("#next").onclick = () => go(1); $("#today").onclick = () => go(null);
 function zoom(dv){ st.z = Math.max(0, Math.min(HOURS.length-1, st.z+dv)); st.zAuto = false; store.set("zh", st.z); render(); scrollToWork(); }

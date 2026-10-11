@@ -14,6 +14,8 @@ kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), A
 
 [![The week calendar, a session, the token breakdown, search and the month view (dummy data)](docs/demo.gif)](https://michinaoshimizu.github.io/kiroku/)
 
+The **Journey** view groups sessions by project and date, complementing the Week and Month calendar without inferring progress or outcomes.
+
 ## Why kiroku
 
 - **Remember.** Revisit prompts, replies, commands, commits and projects across agents, in one timeline.

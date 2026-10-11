@@ -39,7 +39,7 @@ function render(){
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
 
   if (!M && st.zAuto) st.z = fitZoom(); // ズームを選んでいなければ、この週の作業の時間帯が枠に収まる高さに
-  M ? monthGrid(shown, ws, we, todayKey) : timeline(shown, inRange, ws, we, todayKey);
+  if (st.journey) journeyGrid(shown, ws, we); else M ? monthGrid(shown, ws, we, todayKey) : timeline(shown, inRange, ws, we, todayKey);
   edgeFade($("#tl")); // 月表示や空の週では消す
   $("#skipcal").hidden = !!st.q; // 検索の最中は、結果がカレンダーの上にあり、下のサマリーは空
   lastFlags = []; // 見直す候補は表示中の期間のものだけ（検索中や記録のない期間に、前の期間の候補を詳細に出さない）
@@ -281,3 +281,28 @@ addEventListener("scroll", () => { if (st.sel) return;
   const a = document.activeElement, r = a && a.classList && a.classList.contains("run") && a.matches(":focus-visible") && $("#tip").classList.contains("on") && a.getBoundingClientRect();
   if (r && r.bottom > 0 && r.top < innerHeight) tipMove(tipAt(a)); else tipOff(); }, {passive: true, capture: true}); // キーボードで選んだブロックは、Tab で移ったときのスクロールで消さずに付いていく
 
+
+// Journey: project lanes across the selected week or month. No inferred relationships.
+function journeyGrid(sessions, ws, we){
+  const root = $("#tl"), start = new Date(ws*1000), days = Math.round((Date.UTC(new Date(we*1000).getFullYear(),new Date(we*1000).getMonth(),new Date(we*1000).getDate())-Date.UTC(start.getFullYear(),start.getMonth(),start.getDate()))/864e5);
+  const groups = new Map();
+  sessions.forEach(s => { const name = s.project || "Unknown project";
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name).push(s);
+  });
+  if (!groups.size){ root.innerHTML = '<div class="journey-empty">No matching project activity in this period.</div>'; return; }
+  const ordered = [...groups].sort((a,b) => b[1].length-a[1].length || a[0].localeCompare(b[0]));
+  root.innerHTML = '<div class="journey"><div class="journey-axis"><span>Project</span><div class="journey-days">' +
+    Array.from({length:days},(_,i)=>'<span>'+esc(dMD(addDays(new Date(ws*1000),i)))+'</span>').join("") +
+    '</div></div>' + ordered.map(([name,items]) => {
+      const byDay = Array.from({length:days},()=>[]);
+      items.forEach(s => { for(let i=0;i<days;i++){ const a=addDays(start,i).getTime()/1000, b=addDays(start,i+1).getTime()/1000;
+        if(s.start<b && s.end>a) byDay[i].push(s);
+      }});
+      return '<div class="journey-row"><div class="journey-name" title="'+esc(name)+'">'+esc(name)+'<small>'+plural(items.length,"session")+'</small></div><div class="journey-days">' +
+        byDay.map(day => '<div class="journey-cell">'+day.slice(0,4).map(s =>
+          '<button class="journey-dot" style="--c:'+colorOf(keyOf(s))+'" data-session="'+esc(s.id)+'" title="'+esc((s.title||s.project||"Session")+' · '+s.source)+'" aria-label="'+esc((s.title||"Session")+' · '+s.source)+'"></button>'
+        ).join("")+(day.length>4?'<span class="journey-more">+'+(day.length-4)+'</span>':"")+'</div>').join("")+'</div></div>';
+    }).join("")+'</div>';
+  root.querySelectorAll("[data-session]").forEach(b => b.onclick=()=>select(b.dataset.session));
+}

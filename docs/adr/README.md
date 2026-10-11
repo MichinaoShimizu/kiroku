@@ -6,6 +6,7 @@ ADRs record explicit design choices; [Decision Logs](../decision-log/README.md) 
 
 | Topic | Status | ADR |
 |---|---|---|
+| Complementary Calendar and Journey history views (`internal/web`; keywords: Journey, project lanes, calendar, view navigation, local HTML, search/filter) | Proposed (not accepted) | [0026](0026-complementary-history-views.md) |
 | Remote session import (Phase 2) | Proposed (not accepted) | [0020](0020-remote-session-import.md) |
 | Kiro CLI V3 apart from V2; V3 shares the Kiro IDE store, shown as "Kiro IDE / CLI"; V2 shown as "Kiro CLI (Classic)" (`internal/source/kiro.go`, `core.Agents`, `core.Records`; keywords: Kiro CLI, V3, KAS, sess_, labels, V2 dedup, kiroku json source) | Accepted | [0021](0021-kiro-cli-v3-separate-source.md) |
 | History stays on the machine: no telemetry, only GitHub Releases on the network; history, git and network input untrusted (escape, no shell, validate paths); 0600/0700 files; serve on 127.0.0.1 with Host check and key, wider access opt-in; private sessions masked (`internal/source`, `internal/gitlog`, `internal/web`, `internal/cli` serve/html/json, `SECURITY.md`; keywords: privacy, telemetry, network, AI API, XSS, escape, shell, path, permissions, serve, listen, Host, key, incognito) | Accepted | [0022](0022-history-stays-local.md) |
