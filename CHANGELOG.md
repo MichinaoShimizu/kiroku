@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Codex sessions run at the Fast or Ultrafast service tier were priced at standard rates, so their estimated cost was too low: about half for Fast and a sixth for Ultrafast. gpt-6-sol and gpt-6-luna run at Fast by default in Codex, so most of their sessions were affected. kiroku now reads the tier Codex records for the thread (`thread_settings_applied`: `priority` shown as Fast, `ultrafast`, `flex`) and prices each response at the tier in effect at that time, so a switch mid-session applies from that point, and a subagent or fork uses its own tier. Fast, Ultrafast and Flex prices come from OpenAI's pricing page, with their long-context rates over 272K input tokens (for example gpt-6-sol on Fast: $4.00 input, $0.40 cached input, $5.00 cache writes, $20.00 output per million tokens; gpt-6.1-sol on Ultrafast: $12.00, $0.60, $15.00, $60.00). A model with no published price for its tier, such as gpt-5.5-pro on Fast, is priced at standard rates and listed in "Data sources". Session details list the responses by service tier
+
 ## v0.31.0 - 2026-10-10
 
 ### Added

@@ -49,7 +49,7 @@ kiroku の料金表には日付がない（`PriceOf` はモデル ID だけで�
 
 ## 3. 料金表を直す
 
-- `internal/core/usage.go` の `Prices`・`LongPrices`・`OpenAIPrices`・`OpenAILongPrices` を控えに合わせる。並びはコメントのとおり（Anthropic は 入力, 出力, 5 分の書き込み, 1 時間の書き込み, 読み込み。控えの列の並びとは違う）
+- `internal/core/usage.go` の `Prices`・`LongPrices`・`OpenAIPrices`・`OpenAILongPrices`・`OpenAITiers`（控えの「### Fast」などの節。Codex の service_tier で選ぶ）を控えに合わせる。並びはコメントのとおり（Anthropic は 入力, 出力, 5 分の書き込み, 1 時間の書き込み, 読み込み。控えの列の並びとは違う）
 - `PricesAsOf` を控えの「Fetched」の月にする（`TestPricesMatchUpstream` が古いと失敗させる）
 - モデル ID は先頭一致で引き、長いキーが優先される。新しいキーを足したら、既存の ID（日付付き、Bedrock の `us.anthropic.` 付きなど）が意図しないキーに当たらないかを `internal/core/price_test.go` に足すテストで確かめる
 - 料金の仕組みそのものが新しい場合（新しい割増や、今の表で表せない段階など）は、この作業の範囲を超える。差分と提案をユーザーに見せ、決めてもらう

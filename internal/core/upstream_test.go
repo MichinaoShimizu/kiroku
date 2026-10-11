@@ -9,8 +9,15 @@ import (
 	"testing"
 )
 
-// upstreamTable は docs/upstream/<name> の表（Model ID → 列の値。"-" は料金なし）と、取ってきた日（YYYY-MM-DD）。
+// upstreamTable は docs/upstream/<name> の最初の節の表（Model ID → 列の値。"-" は料金なし）と、取ってきた日（YYYY-MM-DD）。
 func upstreamTable(t *testing.T, name string, cols int) (map[string][]string, string) {
+	t.Helper()
+	secs, d := upstreamSections(t, name, cols)
+	return secs[""], d
+}
+
+// upstreamSections は、docs/upstream/<name> の節（「### 名前」。最初の節は ""）ごとの表。
+func upstreamSections(t *testing.T, name string, cols int) (map[string]map[string][]string, string) {
 	t.Helper()
 	b, err := os.ReadFile(filepath.Join("..", "..", "docs", "upstream", name))
 	if err != nil {
@@ -21,8 +28,18 @@ func upstreamTable(t *testing.T, name string, cols int) (map[string][]string, st
 	if m == nil {
 		t.Fatalf("%s: 取ってきた日がない", name)
 	}
-	rows := map[string][]string{}
+	secs := map[string]map[string][]string{"": {}}
+	sec := ""
 	for _, line := range strings.Split(text, "\n") {
+		if h, ok := strings.CutPrefix(line, "### "); ok {
+			if _, dup := secs[h]; dup {
+				t.Fatalf("%s: 節 %s が 2 回ある", name, h)
+			}
+			sec = h
+			secs[sec] = map[string][]string{}
+			continue
+		}
+		rows := secs[sec]
 		if !strings.HasPrefix(line, "| ") || strings.HasPrefix(line, "| Model ID ") {
 			continue
 		}
@@ -35,10 +52,28 @@ func upstreamTable(t *testing.T, name string, cols int) (map[string][]string, st
 		}
 		rows[cells[0]] = cells[1:]
 	}
-	if len(rows) == 0 {
-		t.Fatalf("%s: 表がない", name)
+	for sec, rows := range secs {
+		if len(rows) == 0 {
+			t.Fatalf("%s: 節 %q に表がない", name, sec)
+		}
 	}
-	return rows, m[1]
+	return secs, m[1]
+}
+
+// openaiRates は、OpenAI の控えの 1 行 → OpenAIPrices の並びの短いコンテキストと長いコンテキスト（なければ ok=false）の料金。
+// 控えの並び: 入力, キャッシュ済み, 書き込み, 出力, 長い入力, 長いキャッシュ済み, 長い書き込み, 長い出力。
+// キャッシュ済み・書き込みの料金がない（"-"）ものは入力の料金にする
+func openaiRates(t *testing.T, c []string) (short, long [5]float64, ok bool) {
+	t.Helper()
+	in := num(t, c[0], -1)
+	cw := num(t, c[2], in)
+	short = [5]float64{in, num(t, c[3], -1), cw, cw, num(t, c[1], in)}
+	if c[4] == "-" {
+		return short, long, false
+	}
+	lin := num(t, c[4], -1)
+	lcw := num(t, c[6], lin)
+	return short, [5]float64{lin, num(t, c[7], -1), lcw, lcw, num(t, c[5], lin)}, true
 }
 
 // num は表の値（"-" は or の値）。
@@ -95,29 +130,24 @@ func TestPricesMatchUpstream(t *testing.T) {
 		}
 	}
 
-	oai, d := upstreamTable(t, "openai-pricing.md", 8)
+	secs, d := upstreamSections(t, "openai-pricing.md", 8)
+	oai := secs[""]
 	fetched = append(fetched, d)
 	for id, c := range oai {
-		// 控えの並び: 入力, キャッシュ済み, 書き込み, 出力, 長い入力, 長いキャッシュ済み, 長い書き込み, 長い出力。
-		// キャッシュ済み・書き込みの料金がない（"-"）ものは入力の料金にする
-		in := num(t, c[0], -1)
-		cw := num(t, c[2], in)
-		want := [5]float64{in, num(t, c[3], -1), cw, cw, num(t, c[1], in)}
+		want, long, hasLong := openaiRates(t, c)
 		if got, ok := OpenAIPrices[id]; !ok {
 			t.Errorf("OpenAIPrices に %s がない（公式の料金 %v）", id, want)
 		} else if got != want {
 			t.Errorf("OpenAIPrices[%q] = %v, 公式は %v", id, got, want)
 		}
 		got, ok := OpenAILongPrices[id]
-		if c[4] == "-" {
+		if !hasLong {
 			if ok {
 				t.Errorf("OpenAILongPrices の %s は公式に長いコンテキストの料金がない", id)
 			}
 			continue
 		}
-		lin := num(t, c[4], -1)
-		lcw := num(t, c[6], lin)
-		want = [5]float64{lin, num(t, c[7], -1), lcw, lcw, num(t, c[5], lin)}
+		want = long
 		if !ok {
 			t.Errorf("OpenAILongPrices に %s がない（公式の料金 %v）", id, want)
 		} else if got != want {
@@ -134,6 +164,52 @@ func TestPricesMatchUpstream(t *testing.T) {
 			t.Errorf("OpenAILongPrices の %s は公式の表にない", id)
 		}
 	}
+	// サービスティア（OpenAITiers。控えの「### Fast」などの節）
+	tierNames := map[string]bool{}
+	for key, tier := range OpenAITiers {
+		tierNames[tier.Name] = true
+		rows, ok := secs[tier.Name]
+		if !ok {
+			t.Errorf("OpenAITiers[%q]（%s）は公式の表にない", key, tier.Name)
+			continue
+		}
+		for id, c := range rows {
+			if _, ok := oai[id]; !ok {
+				t.Errorf("%s の %s は Standard の表にない（PriceOf で当たらない）", tier.Name, id)
+			}
+			want, long, hasLong := openaiRates(t, c)
+			if got, ok := tier.Rates[id]; !ok {
+				t.Errorf("OpenAITiers[%q].Rates に %s がない（公式の料金 %v）", key, id, want)
+			} else if got != want {
+				t.Errorf("OpenAITiers[%q].Rates[%q] = %v, 公式は %v", key, id, got, want)
+			}
+			got, ok := tier.Long[id]
+			switch {
+			case !hasLong && ok:
+				t.Errorf("OpenAITiers[%q].Long の %s は公式に長いコンテキストの料金がない", key, id)
+			case hasLong && !ok:
+				t.Errorf("OpenAITiers[%q].Long に %s がない（公式の料金 %v）", key, id, long)
+			case hasLong && got != long:
+				t.Errorf("OpenAITiers[%q].Long[%q] = %v, 公式は %v", key, id, got, long)
+			}
+		}
+		for id := range tier.Rates {
+			if _, ok := rows[id]; !ok {
+				t.Errorf("OpenAITiers[%q].Rates の %s は公式の表にない", key, id)
+			}
+		}
+		for id := range tier.Long {
+			if _, ok := rows[id]; !ok {
+				t.Errorf("OpenAITiers[%q].Long の %s は公式の表にない", key, id)
+			}
+		}
+	}
+	for name := range secs {
+		if name != "" && !tierNames[name] {
+			t.Errorf("控えの節 %s が OpenAITiers にない", name)
+		}
+	}
+
 	b, _ := os.ReadFile(filepath.Join("..", "..", "docs", "upstream", "openai-pricing.md"))
 	if m := regexp.MustCompile(`more than (\d+)K input tokens`).FindStringSubmatch(string(b)); m == nil || m[1]+"000" != strconv.Itoa(OpenAILongContext) {
 		t.Errorf("OpenAILongContext = %d, 控えは %v", OpenAILongContext, m)
