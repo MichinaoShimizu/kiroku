@@ -169,6 +169,38 @@ func TestKiroIDEPlaceholderReply(t *testing.T) {
 	}
 }
 
+// Kiro CLI V2 から 3.0 へ移した会話の、切り替える前の応答には使える時刻がない（時刻がない、またはその回の外の時刻）。
+// 行の順で、直前の依頼の応答にする。時刻がその回の中にある応答は、そのまま使う。
+func TestKiroIDERepliesWithoutUsableTime(t *testing.T) {
+	home := t.TempDir()
+	writeFiles(t, home, map[string]string{
+		"sessions/abc/sess_u1/session.json": `{"id": "sess_u1"}`,
+		"sessions/abc/sess_u1/messages.jsonl": `{"timestamp": "2026-09-29T10:00:00Z", "payload": {"type": "user", "content": "一"}}
+{"payload": {"type": "assistant", "content": "一の答え", "operationType": "Say"}}
+{"timestamp": "2026-09-29T10:10:00Z", "payload": {"type": "user", "content": "二"}}
+{"timestamp": "2026-09-29T10:59:00Z", "payload": {"type": "assistant", "content": "二の答え", "operationType": "Say"}}
+{"timestamp": "2026-09-29T10:20:00Z", "payload": {"type": "user", "content": "三"}}
+{"timestamp": "2026-09-29T10:00:00Z", "payload": {"type": "assistant", "content": "三の答え"}}
+{"timestamp": "2026-09-29T11:00:00Z", "payload": {"type": "user", "content": "四"}}
+{"timestamp": "2026-09-29T11:01:00Z", "payload": {"type": "assistant", "content": "四の答え", "operationType": "Say"}}
+`,
+	})
+	s := find(load(t, &KiroIDE{Home: home}), "sess_u1")
+	if s == nil {
+		t.Fatal("sess_u1 がない")
+	}
+	ps := s.Finish(15).Prompts
+	want := []string{"一の答え", "二の答え", "三の答え", "四の答え"}
+	if len(ps) != len(want) {
+		t.Fatalf("依頼 = %d, want %d", len(ps), len(want))
+	}
+	for i, w := range want {
+		if r := ps[i].Reply; r == nil || r.Text != w {
+			t.Errorf("%d 番目の応答 = %+v, want %s", i+1, r, w)
+		}
+	}
+}
+
 // Kiro IDE v1.0 より前: Kiro が依頼に足す <steering-reminder>・<EnvironmentContext>・「## Included Rules」の塊は、
 // 依頼から外して notes に回す。残りが空なら依頼に数えない。
 func TestKiroIDELegacyInjected(t *testing.T) {
