@@ -14,3 +14,4 @@ tools/screenshots/node_modules
 *.whl
 # サブエージェントが作業する worktree（Claude Code が作る）
 .claude/worktrees/
+__pycache__/
