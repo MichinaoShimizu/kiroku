@@ -12,7 +12,7 @@ Scope: Phase 1 — local sessions
 
 Agent transcripts can contain prompts, source code, project paths and other sensitive information. The local history viewer needs deliberate controls at storage, rendering, server access and subprocess boundaries.
 
-## Documented decisions
+## Decision
 
 - **Local processing and export.** The initial tool reads local histories and exports standalone HTML ([#1](https://github.com/MichinaoShimizu/kiroku/pull/1)); Go single-binary distribution retains the local execution model ([#6](https://github.com/MichinaoShimizu/kiroku/pull/6)).
 - **No automatic AI submission.** Early AI-advice UX copied a prompt for users to paste themselves; kiroku did not invoke an AI API ([#22](https://github.com/MichinaoShimizu/kiroku/pull/22)). That particular suggestion panel was later removed ([#304](https://github.com/MichinaoShimizu/kiroku/pull/304)); report prompts follow the same user-mediated boundary ([#292](https://github.com/MichinaoShimizu/kiroku/pull/292)).
@@ -21,7 +21,7 @@ Agent transcripts can contain prompts, source code, project paths and other sens
 - **Respect private agent sessions.** Kiro Crew incognito/temporary histories retain timing, counts, model/usage/credits/cost, tool names and project while masking prompts and removing replies, notes, edited files, PR URLs, subagent tasks and history-file links ([#312](https://github.com/MichinaoShimizu/kiroku/pull/312)).
 - **Avoid incidental network reads.** Git enrichment must not fetch remote repositories ([#293](https://github.com/MichinaoShimizu/kiroku/pull/293)).
 
-## Rationale and consequences
+## Consequences
 
 Local-first is a data-flow and security boundary, not a guarantee that any generated report is safe to publish. HTML/JSON exports and user-copied prompts can contain sensitive material. Install/update are separate explicitly networked workflows; no absolute offline claim is made.
 
