@@ -14,7 +14,7 @@ kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), A
 
 [![The week calendar, a session, the token breakdown, search and the month view (dummy data)](docs/demo.gif)](https://michinaoshimizu.github.io/kiroku/)
 
-The **Journey** view groups sessions by project and date, complementing the Week and Month calendar without inferring progress or outcomes.
+Choose **Calendar** or **Journey** under View, then independently choose **Week** or **Month** under Period. Journey groups observed sessions by project and date; neither view infers progress or outcomes.
 
 ## Why kiroku
 
@@ -62,7 +62,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 **Search across all time.** Prompts, edited files and commits, with excerpts showing where they matched.
 
-**Your year in one picture.** "Year", next to Week and Month, draws a year of active time as streaks of light, and makes an image to share where you choose what goes on it: no prompts, project names or cost, and nothing about late nights or time off unless you tick it. It describes how you worked; it doesn't score or rank you.
+**Your year in one picture.** "Year in Review", separate from View and Period, draws a year of active time as streaks of light, and makes an image to share where you choose what goes on it: no prompts, project names or cost, and nothing about late nights or time off unless you tick it. It describes how you worked; it doesn't score or rank you.
 
 ![Year in review share image (dummy data)](docs/year.png)
 
