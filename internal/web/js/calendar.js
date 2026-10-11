@@ -301,15 +301,24 @@ function journeyGrid(sessions, ws, we){
       items.forEach(s => { for(let i=0;i<days;i++){ const a=addDays(start,i).getTime()/1000, b=addDays(start,i+1).getTime()/1000;
         if(s.start<b && s.end>a) byDay[i].push(s);
       }});
+      // Observed Git commits are milestones, not inferred completion.
+      const commitsByDay = Array.from({length:days},()=>[]);
+      gitShown(sessions).filter(c => c.project === name && c.t >= ws && c.t < we).forEach(c => {
+        for(let i=0;i<days;i++){
+          const a=addDays(start,i).getTime()/1000, b=addDays(start,i+1).getTime()/1000;
+          if(c.t>=a && c.t<b){ commitsByDay[i].push(c); break; }
+        }
+      });
       const uniqueDays = byDay.filter(day => day.length).length;
       const orderedItems = [...items].sort((a,b)=>a.start-b.start);
       const first = orderedItems[0];
       const activity = plural(uniqueDays, "active day") + " · " + plural(items.length, "session");
       const span = first ? dMD(new Date(Math.max(ws, first.start)*1000)) + " → " + dMD(new Date(Math.min(we-1, Math.max(...items.map(x=>x.end)))*1000)) : "";
       return '<div class="journey-row"><div class="journey-name" title="'+esc(name)+'">'+esc(name)+'<small title="Observed sessions only; not a measure of progress">'+esc(activity)+'</small><small>'+esc(span)+'</small></div><div class="journey-days">' +
-        byDay.map(day => '<div class="journey-cell">'+day.slice(0,4).map(s =>
+        byDay.map((day,i) => '<div class="journey-cell">'+day.slice(0,4).map(s =>
           '<button class="journey-dot" style="--c:'+colorOf(keyOf(s))+'" data-session="'+esc(s.id)+'" title="'+esc((s.title||s.project||"Session")+' · '+s.source)+'" aria-label="'+esc((s.title||"Session")+' · '+s.source)+'"></button>'
-        ).join("")+(day.length>4?'<span class="journey-more">+'+(day.length-4)+'</span>':"")+'</div>').join("")+'</div></div>';
+        ).join("")+(day.length>4?'<span class="journey-more">+'+(day.length-4)+'</span>':"")+commitsByDay[i].slice(0,3).map(c => '<button class="journey-dot" data-git="'+esc(c.hash)+'" title="'+esc("Commit · "+c.subject)+'" aria-label="'+esc("Commit · "+c.subject)+'" style="--c:var(--ink-3)">◆</button>').join("")+(commitsByDay[i].length>3?'<span class="journey-more">+'+(commitsByDay[i].length-3)+' commits</span>':"")+'</div>').join("")+'</div></div>';
     }).join("")+'</div>';
   root.querySelectorAll("[data-session]").forEach(b => b.onclick=()=>select(b.dataset.session));
+  root.querySelectorAll("[data-git]").forEach(b => b.onclick=()=>select("git:"+b.dataset.git));
 }
