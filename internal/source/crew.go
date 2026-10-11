@@ -711,7 +711,7 @@ func (h *crewHeld) flush(home string, emit func(*core.Builder)) {
 		if parent == nil && home != "" {
 			parent = h.byPath[crewTranscriptPath(home, x.info.Key)]
 		}
-		// 親が Codex の記録のセッションに譲る（Yield）ときは、まとめると一緒に消えるので、サブエージェントはそのまま出す
+		// 親がほかのセッション（Codex の記録、3.0 へ移した写し）に譲る（Yield）ときは、まとめると一緒に消えるので、サブエージェントはそのまま出す
 		if parent == nil || parent == x.b || parent.Yield != "" {
 			continue
 		}

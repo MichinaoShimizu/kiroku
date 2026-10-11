@@ -74,6 +74,7 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		return nil
 	}
 	var errs fileErrs
+	classic := map[string]bool{} // 使用量を足した V2 の会話
 	for _, metaPath := range glob(filepath.Join(base, "*", "*", "session.json")) {
 		dir := filepath.Dir(metaPath)
 		if filepath.Base(filepath.Dir(dir)) == "cli" {
@@ -85,7 +86,8 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		s := core.NewBuilder("Kiro IDE / CLI", firstNonEmpty(core.Str(meta["id"]), filepath.Base(dir)))
 		// v1.0 へ移した会話は、v1.0 より前の形式（KiroIDELegacy）にも同じ ID で残る。v1.0 のほうを使う（kiro-history と同じ）。
 		// id のない会話（フォルダ名の ID）は、v1.0 より前の会話と同じものかわからないので Claim しない
-		if id := core.Str(meta["id"]); id != "" {
+		id := core.Str(meta["id"])
+		if id != "" {
 			s.Claim = "kiro-ide:" + id
 		}
 		s.File = filepath.Join(dir, "messages.jsonl")
@@ -149,9 +151,51 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		if !modeled && len(s.Prompts) > 0 {
 			s.Model(model) // usage_summary がなければ、会話のモデル（modelId）を 1 回数える（v1.0 より前の selectedModel と同じ）
 		}
+		// Kiro CLI V2（Classic）の会話 X を 3.0 で開く（--resume-id X）と、sess_X に写される。V2 の会話は残るが、
+		// こちらを使う（KiroCLI の Yield）。写しには usage_summary の行がないので、切り替える前のクレジットなどを V2 から足す
+		// 同じ id の写しが 2 つあっても、V2 の使用量は 1 回だけ足す。読めない V2 の会話は KiroCLI が知らせる
+		if x, ok := strings.CutPrefix(id, "sess_"); ok && safeName(x) && !classic[x] {
+			classic[x] = true
+			addClassicUsage(s, filepath.Join(base, "cli", x+".json"))
+		}
 		emit(s)
 	}
 	return errs.err()
+}
+
+// kiroClassicYield は Kiro CLI V2 の会話 sid の Yield。3.0 へ移した会話（sess_<sid>）があれば、そちらを使う（KiroIDE の Claim）。
+func kiroClassicYield(sid string) string { return "kiro-ide:sess_" + sid }
+
+// addClassicUsage は、3.0 へ移した Kiro CLI V2 の会話（path）の依頼のうち、s（3.0 の写し）の最初の usage_summary より前に終わったものの
+// クレジット・回数・モデルへのリクエストの数を s に足す。写しが V2 の使用量を持っていれば（最初の usage_summary が V2 の依頼と同じか前）、
+// 何も足さない。V2 の会話がなければ何もしない。
+func addClassicUsage(s *core.Builder, path string) {
+	raw, _ := core.ReadJSONFile(path)
+	if raw == nil {
+		return
+	}
+	var first *float64
+	for _, m := range s.Measures {
+		if m.Key == "turns" && m.T != nil && (first == nil || *m.T < *first) {
+			first = m.T
+		}
+	}
+	for _, t := range core.List(core.Get(core.Map(raw), "session_state", "conversation_metadata", "user_turn_metadatas")) {
+		tm := core.Map(t)
+		te := ts(tm["end_timestamp"])
+		if first != nil && (te == nil || *te >= *first) {
+			continue
+		}
+		used := creditsOf(tm["metering_usage"], "unit", "value")
+		if used != 0 {
+			s.Credits = append(s.Credits, core.Credit{T: te, V: used})
+		}
+		s.Measure("credits", te, used)
+		s.Measure("turns", te, 1)
+		if v, ok := core.Num(tm["total_request_count"]); ok {
+			s.Measure("requests", te, v)
+		}
+	}
 }
 
 // replyText は Kiro IDE の応答の文。ふつうは文字列か text の塊の並び（core.TextOf）だが、
@@ -313,6 +357,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 				if c := info.codexClaim(); c != "" {
 					k.claims = append(k.claims, c)
 				}
+				k.claims = append(k.claims, kiroClassicYield(sid)) // 3.0 へ移した写し（sess_<sid>）も中身を出さない
 			}
 		}
 		sort.Strings(k.withheld)
@@ -348,7 +393,11 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 	held := &crewHeld{parents: map[string]*core.Builder{}, byPath: map[string]*core.Builder{}}
 	owners := map[string][]*crewOwner{} // 使用量の記録の slot → Crew から動かした kiro-cli の会話
 	var plain []*core.Builder           // Crew の目印のない kiro-cli の会話（前の会話を見つけてから出す）
-	seenRows := map[string]bool{}       // 会話の記録を使った（kiro-cli の会話に結びついた）会話キー
+	moved := map[string]bool{}          // 3.0 へ移した写し（sessions/<hash>/sess_<id>）のある V2 の会話の ID
+	for _, d := range glob(filepath.Join(k.Home, "sessions", "*", "sess_*", "session.json")) {
+		moved[strings.TrimPrefix(filepath.Base(filepath.Dir(d)), "sess_")] = true
+	}
+	seenRows := map[string]bool{} // 会話の記録を使った（kiro-cli の会話に結びついた）会話キー
 	for _, metaPath := range glob(filepath.Join(base, "*.json")) {
 		raw, err := core.ReadJSONFile(metaPath)
 		errs.file(metaPath, err)
@@ -358,6 +407,11 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		s := core.NewBuilder("Kiro CLI (Classic)", sid)
 		s.File = strings.TrimSuffix(metaPath, ".json") + ".jsonl"
 		s.Key = "kiro-cli:" + sid
+		// 3.0 へ移した写しがあるときだけ譲る（写しのない会話は、Crew のサブエージェントをふつうにまとめる）。
+		// 写しは V2 のファイル名で使用量を探すので、ID とファイル名が同じものだけ
+		if sid == stem && moved[sid] {
+			s.Yield = kiroClassicYield(sid)
+		}
 		s.Title, s.Project = core.Str(meta["title"]), core.Str(meta["cwd"])
 		s.Tick(ts(meta["created_at"]))
 		s.Tick(ts(meta["updated_at"]))
@@ -621,11 +675,12 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		if crew[sid].Private {
 			withhold("kiro-cli:" + sid)
 			claim(crew[sid].codexClaim())
+			claim(kiroClassicYield(sid)) // 3.0 へ移した写し（sess_<sid>）も中身を出さない
 		}
 	}
 	for b := range held.private {
 		withhold(b.Key)
-		claim(b.Yield) // Codex の backend の会話（Yield は codexClaim だけ）
+		claim(b.Yield) // Codex の backend の会話（Crew の記録から作る会話の Yield は codexClaim だけ）
 	}
 	sort.Strings(k.withheld)
 	sort.Strings(k.claims)

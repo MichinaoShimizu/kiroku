@@ -24,7 +24,10 @@ func TestCollectHidesWithheldCopies(t *testing.T) {
 	kiro, crew := filepath.Join(dir, "kiro"), filepath.Join(dir, "crew")
 	for p, c := range map[string]string{
 		filepath.Join(kiro, "sessions", "cli", ".keep"): "",
-		filepath.Join(crew, "session_map.json"):         `{"dashboard:chat-1-100": {"sid": "k1", "cwd": "/w"}}`,
+		// 3.0 へ移した写し（kiro-cli chat --v3 --resume-id k1）も中身を出さない
+		filepath.Join(kiro, "sessions", "b1", "sess_k1", "session.json"):   `{"id": "sess_k1", "title": "SECRET-V3-TITLE"}`,
+		filepath.Join(kiro, "sessions", "b1", "sess_k1", "messages.jsonl"): `{"timestamp": "2026-09-29T10:02:00Z", "payload": {"type": "user", "content": "SECRET-V3-PROMPT"}}` + "\n",
+		filepath.Join(crew, "session_map.json"):                            `{"dashboard:chat-1-100": {"sid": "k1", "cwd": "/w"}}`,
 		filepath.Join(crew, "sessions", "dashboard_chat-1-100.jsonl"): `{"_type": "metadata", "title": "SECRET-TITLE", "memory_mode": "incognito"}` + "\n" +
 			`{"role": "user", "content": "SECRET-CREW-PROMPT", "ts": "2026-09-29T10:01:00+00:00"}` + "\n",
 	} {
@@ -59,6 +62,7 @@ func TestCollectHidesWithheldCopies(t *testing.T) {
 	db.Close()
 	all := []source.Source{
 		&source.KiroCLI{Home: kiro, CrewHome: crew},
+		&source.KiroIDE{Home: kiro},
 		&source.QStore{Label: "Kiro CLI (SQLite)", Fam: "kiro", DB: dbPath, Command: "kiro-cli chat --resume"},
 	}
 	for _, cache := range []*loadCache{nil, newLoadCache()} {

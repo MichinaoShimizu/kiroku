@@ -48,7 +48,7 @@ Both were read as data only. Nothing was run, and no code was copied.
 
   **No field records which surface (IDE or CLI) created the session.**
 - **Usage lines.** `messages.jsonl` carries `usage_summary` lines with `promptTurnSummaries[].usage` (credits) and context usage, the same shapes kiroku's Kiro IDE reader parses.
-- **V2 to V3 conversion.** kiro-cli has an internal V2 → KAS session conversion (`ensure-session`), and the engine resolves a legacy ID `X` as `sess_X`. A converted Classic session would then sit in both `sessions/cli/X.json` (V2) and `sessions/<bucket>/sess_X/` (V3). This is inferred from the ID compatibility code and has not been confirmed on a real converted session.
+- **V2 to V3 conversion.** kiro-cli has an internal V2 → KAS session conversion (`ensure-session`), and the engine resolves a legacy ID `X` as `sess_X`. A converted Classic session would then sit in both `sessions/cli/X.json` (V2) and `sessions/<bucket>/sess_X/` (V3). Confirmed on 2026-10-11 by the maintainer: a Classic session opened with `kiro-cli chat --v3 --resume-id X` showed up in both sources in `kiroku serve`. V3's own resume list (`--resume`, `--resume-picker`) doesn't show Classic sessions, so only an explicit `--resume-id` converts one. The converter's strings in kiro-cli 2.29.0 name the payloads it writes (user, assistant, tool_call, tool_result, summarization, checkpoint_revert, tombstone) and no `usage_summary`, so the copy has no credits for the turns before the switch.
 
 ### Consequence for kiroku today
 
@@ -64,6 +64,7 @@ kiroku already reads Kiro CLI V3 sessions, but labels them "Kiro IDE". Nothing i
 
    Both renames ship in one release, so users see one breaking change, not two.
 3. **Deduplicate V2 against its converted V3 copy.** When the same conversation exists as V2 `X` and V3 `sess_X`, count it once, preferring the V3 copy (the session that continues). This uses the existing Claim/Yield mechanism ([DL 0004](../design-log/0004-session-identity-and-deduplication.md)). It ships only with a test built from a real converted session, or with the conversion's ID mapping confirmed.
+   - Implemented: each Classic session yields to `kiro-ide:sess_<id>`. Because the V3 copy has no credit records for the turns before the switch, the V3 session takes the credits, turns and model requests of the Classic turns that ended before its first `usage_summary`. If a future converter copies the usage, that first `usage_summary` comes no later than the Classic turns, and nothing is added.
 4. **No guessed surface split.** kiroku does not try to tell IDE from CLI V3 sessions by heuristics such as title shape or tool names. If Kiro adds a field that records the surface, revisit this.
 
 ## Alternatives
@@ -95,5 +96,5 @@ kiroku already reads Kiro CLI V3 sessions, but labels them "Kiro IDE". Nothing i
 
 ## Open questions
 
-- Whether the V2 → V3 conversion really keeps the V2 file, and whether the converted ID is always `sess_<V2 id>`.
+- Whether a converted V1 (SQLite) conversation is also copied as `sess_<conversation id>`. kiro-cli has a V1 → V2 export step, but no converted V1 conversation has been seen, so "Kiro CLI (SQLite)" doesn't yield to V3.
 - Whether `cloud-sandbox` sessions (`executionTarget`) are also written to the local store, and whether they should count as local activity.
