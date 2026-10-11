@@ -35,3 +35,7 @@ To claim behavioral validation, run each scenario against actual agent skill loa
 4. Historical rationale, dates and test results are never invented.
 5. Supersession and routing changes are traceable, reciprocal and reviewed.
 6. Unknown coverage does not mean a change is safe.
+
+## Live-agent execution instructions
+
+Use the [reproducible execution protocol](agent-execution-protocol.md) for isolated prompts, fixtures, evaluation rubric and result capture. The current 12 PASS labels above are **static instruction assessments only**. Behavioral status remains **NOT RUN** until an actual agent with the skills loaded produces captured transcripts.
