@@ -79,3 +79,7 @@ Useful signals include fewer accidental reversals of accepted constraints, faste
 ## kiroku reference implementation
 
 See the [ADR index](README.md), [Design Log index](../design-log/README.md), [Reverse ADR](../../.claude/skills/reverse-adr/SKILL.md), [ADR Guard](../../.claude/skills/adr-guard/SKILL.md) and [Forward ADR](../../.claude/skills/forward-adr/SKILL.md).
+
+## Scenario validation
+
+The [Decision Continuity scenario matrix](../design-log/scenario-tests.md) contains twelve static contract checks for historical evidence, unknown rationale, Proposed versus Accepted decisions, ADR Guard applicability, reversals, test evidence and legacy references. These are documentation-level checks; actual agent-runtime behavior remains **NOT RUN** until a reproducible harness executes the skills against fixtures and records outputs.
