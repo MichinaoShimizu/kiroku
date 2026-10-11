@@ -33,3 +33,7 @@ A Design Log has a stable historical ID, scope, source evidence, observations, k
 ## Evidence and audit trail
 
 The historical [decision ledger](../adr/phase1-decision-ledger.md), [claim evidence matrix](../adr/evidence.yaml), and [audit snapshot](../adr/audit.md) retain their original paths and legacy `ADR-xxxx` claim identifiers for compatibility. These identifiers represent historical claims, not Accepted ADRs. The audit snapshot was compiled before the Design Log migration and does not establish exhaustive review or formal approval.
+
+## Validation scenarios
+
+[Decision Continuity scenario tests](scenario-tests.md) document twelve expected behaviors, static instruction checks and the outstanding live-agent execution gate.
