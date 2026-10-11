@@ -1,6 +1,7 @@
 package source
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -653,5 +654,53 @@ func TestKiroIDENotUserAndCredits(t *testing.T) {
 	}
 	if c := s.Credits; c != 2 {
 		t.Errorf("credits = %v, want 2（負の値は 0）", c)
+	}
+}
+
+// Kiro のエージェントと同じく、値ではなくキーがあるかで見る（null でも当てはまる）。前の空白は JavaScript の \s の範囲。
+// 壊れた・ありえない大きさのクレジットは 0 とみなし、合計が +Inf にならない（JSON に書けず画面全体が出なくなるため）。
+func TestKiroNotUserEdges(t *testing.T) {
+	for _, c := range []struct {
+		line string
+		want string
+	}{
+		{`{"type": "user", "content": "x", "kind": null}`, "notice"},
+		{`{"type": "user", "content": "x", "kind": false}`, "notice"},
+		{`{"type": "user", "content": "x", "_meta": {"kiro": {"notification": null}}}`, "notice"},
+		{`{"type": "user", "content": "x", "_meta": {"kiro": {"syntheticUserMessageReason": null}}}`, "agent"},
+		{`{"type": "user", "content": "\u00a0\ufeff[notification/warning] w", "source": "steer"}`, "notice"},
+		{`{"type": "user", "content": "[NOTIFICATION/INFO] x", "source": "steer"}`, ""},
+		{`{"type": "user", "content": "[notification/debug] x", "source": "steer"}`, ""},
+		{`{"type": "user", "content": "[notification/info] x", "source": "chat"}`, ""},
+		{`{"type": "user", "content": "x", "_meta": "str"}`, ""},
+		{`{"type": "user", "content": "x", "_meta": {"kiro": ["a"]}}`, ""},
+	} {
+		var p core.Obj
+		if err := json.Unmarshal([]byte(c.line), &p); err != nil {
+			t.Fatal(err)
+		}
+		if got := kiroNotUser(p); got != c.want {
+			t.Errorf("%s: %q, want %q", c.line, got, c.want)
+		}
+	}
+	if got := creditsOf([]any{map[string]any{"usage": 1.7e308}, map[string]any{"usage": 1.7e308}, map[string]any{"usage": 1.5}}, "unit", "usage"); got != 1.5 {
+		t.Errorf("credits = %v, want 1.5（ありえない大きさは 0）", got)
+	}
+	home := t.TempDir()
+	writeFiles(t, home, map[string]string{
+		"sessions/cli/c1.json": `{"session_id": "c1", "created_at": "2026-10-05T00:00:00Z", "session_state": {"conversation_metadata": {"user_turn_metadatas": [
+  {"end_timestamp": "2026-10-05T00:04:00Z", "metering_usage": [{"value": 1.7e308, "unit": "credit"}, {"value": 1.7e308, "unit": "credit"}, {"value": 2, "unit": "credit"}]}]}}}`,
+		"sessions/cli/c1.jsonl": `{"version": "v1", "kind": "Prompt", "data": {"content": [{"kind": "text", "data": "hi"}]}}` + "\n",
+	})
+	bs := load(t, &KiroCLI{Home: home})
+	if len(bs) != 1 {
+		t.Fatalf("%d 件, want 1", len(bs))
+	}
+	s := bs[0].Finish(15)
+	if s.Credits != 2 {
+		t.Errorf("credits = %v, want 2", s.Credits)
+	}
+	if _, err := json.Marshal(s); err != nil {
+		t.Errorf("セッションを JSON に書けない: %v", err)
 	}
 }

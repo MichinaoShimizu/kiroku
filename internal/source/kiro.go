@@ -22,6 +22,10 @@ func (k *KiroIDE) Name() string   { return "Kiro IDE / CLI" }
 func (k *KiroIDE) Family() string { return "kiro" }
 func (k *KiroIDE) Where() string  { return filepath.Join(k.Home, "sessions") }
 
+// kiroMaxCredits は、1 つの記録で使ったクレジットとして受けとる上限。いちばん大きいプランでも月 10,000 なので、
+// これを超えるものは壊れた記録とみなす（足し算で無限大にならないように）。
+const kiroMaxCredits = 1e6
+
 func creditsOf(list any, unitKey, valueKey string) float64 {
 	used := 0.0
 	for _, x := range core.List(list) {
@@ -31,7 +35,9 @@ func creditsOf(list any, unitKey, valueKey string) float64 {
 			unit = "credit"
 		}
 		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(unit)), "credit") { // "credit"・"Credits" など、表記の揺れを許す
-			if v := core.NumOr0(m[valueKey]); v > 0 { // 使ったクレジットは負にならない。負の値（壊れた記録）は 0 とみなす
+			// 使ったクレジットは負にならない。負の値・ありえない大きさ（壊れた記録）は 0 とみなす
+			// （大きな値を足して合計が +Inf になると JSON に書けず、画面全体が出なくなる）
+			if v := core.NumOr0(m[valueKey]); v > 0 && v <= kiroMaxCredits {
 				used += v
 			}
 		}
@@ -40,19 +46,22 @@ func creditsOf(list any, unitKey, valueKey string) float64 {
 }
 
 // kiroNotifyRe は、Kiro のエージェントが user の行として書く通知の文の頭（"[notification/info] …" など）。
-var kiroNotifyRe = regexp.MustCompile(`^\s*\[notification/(info|success|warning|error)\]`)
+// 前の空白は JavaScript の \s と同じ範囲（Kiro のエージェントは JavaScript なので、NBSP や BOM も空白とみなす）。
+var kiroNotifyRe = regexp.MustCompile(`^[\t\n\v\f\r \x{00A0}\x{1680}\x{2000}-\x{200A}\x{2028}\x{2029}\x{202F}\x{205F}\x{3000}\x{FEFF}]*\[notification/(info|success|warning|error)\]`)
 
 // kiroNotUser は、user の行が人の打った依頼でないときの種類（Inject の kind）。人の依頼なら空。
 // Kiro のエージェント（kiro-cli 2.29.0 に入っている @kiro/agent）自身の見分け方に合わせる:
 // _meta.kiro.notification・kind があるか、source が "steer" で文が通知の形のものは通知、
 // _meta.kiro.syntheticUserMessageReason のあるもの（ワークフローの続きなど）はエージェントが書いた依頼。
 func kiroNotUser(p core.Obj) string {
+	// Kiro は値ではなく「キーがあるか」（!== undefined）で見るので、null でもキーがあれば当てはまる
 	kiro := core.Map(core.Get(p, "_meta", "kiro"))
+	has := func(m core.Obj, k string) bool { _, ok := m[k]; return ok }
 	switch {
-	case kiro["notification"] != nil, p["kind"] != nil,
+	case has(kiro, "notification"), has(p, "kind"),
 		core.Str(p["source"]) == "steer" && kiroNotifyRe.MatchString(core.TextOf(p["content"])):
 		return "notice"
-	case kiro["syntheticUserMessageReason"] != nil:
+	case has(kiro, "syntheticUserMessageReason"):
 		return "agent"
 	}
 	return ""
