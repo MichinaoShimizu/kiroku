@@ -12,7 +12,7 @@ Scope: Phase 1
 
 Reparsing all agent histories on every live refresh becomes expensive as histories grow, particularly when agents append frequently.
 
-## Documented decisions
+## Decision
 
 - Start with a lightweight file-name/size/mtime fingerprint to detect changes while serving a local view ([#11](https://github.com/MichinaoShimizu/kiroku/pull/11)).
 - Debounce reloads during active writes while enforcing a maximum delay to avoid indefinitely stale views ([#23](https://github.com/MichinaoShimizu/kiroku/pull/23)).
@@ -20,7 +20,7 @@ Reparsing all agent histories on every live refresh becomes expensive as histori
 - Improve Codex/Git incremental behavior ([#129](https://github.com/MichinaoShimizu/kiroku/pull/129)), and later recalculate only affected weeks/months ([#258](https://github.com/MichinaoShimizu/kiroku/pull/258)).
 - Benchmark year-scale history and avoid unnecessary processing/marshaling ([#257](https://github.com/MichinaoShimizu/kiroku/pull/257)).
 
-## Rationale and consequences
+## Consequences
 
 Optimize source-unit reading and affected time ranges without changing observable counts. Caches must invalidate when source identity, parsing rules or attribution changes; correctness fixtures take precedence over cache hits.
 
