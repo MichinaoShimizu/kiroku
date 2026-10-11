@@ -849,3 +849,15 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
 .wk .view-controls .mode{margin-left:0}
 .year-entry{white-space:nowrap}
 @media(max-width:700px){.view-controls{width:100%;gap:8px}.control-group{gap:4px}}
+
+/* Project-first overview; no inferred milestones. */
+.project-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px;padding:16px}
+.project-card{border:1px solid var(--rule);border-radius:12px;padding:18px;min-width:0;background:var(--surface)}
+.project-card h3{margin:0 0 8px;overflow-wrap:anywhere}
+.project-span,.project-sources,.project-disclaimer{font-size:var(--fs-xs);color:var(--ink-3)}
+.project-stats{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.project-stats span{padding:5px 8px;border-radius:6px;background:var(--surface-2);font-size:var(--fs-xs)}
+.project-events{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.project-events button{border:1px solid var(--rule);border-radius:6px;padding:8px;text-align:left;background:var(--surface);color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.project-events button:hover,.project-events button:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+.project-disclaimer{padding:0 16px 16px}
