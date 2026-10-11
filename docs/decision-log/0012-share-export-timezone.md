@@ -1,4 +1,4 @@
-# Design Log 0012: Scoped exports and time-zone fidelity
+# Decision Log 0012: Scoped exports and time-zone fidelity
 
 Status: Historical observation (not an accepted decision)
 Historical decision date: Unknown

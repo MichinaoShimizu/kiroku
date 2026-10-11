@@ -1,16 +1,16 @@
 # ADR 0023: What stays compatible within a major version
 
-Status: Accepted (2026-10-11, approved by the maintainer when promoting Design Log 0006)
+Status: Accepted (2026-10-11, approved by the maintainer when promoting Decision Log 0006)
 Date: 2026-10-11
 Scope: Public contract — CLI, `kiroku json`, `--prices`, archive copies, the serve key, release artifacts (`internal/cli`, `internal/archive`, `docs/compatibility.md`, `testdata/compat/`)
 Related ADRs: [ADR 0021](0021-kiro-cli-v3-separate-source.md) (a breaking change made under this contract), [ADR 0022](0022-history-stays-local.md)
-Related Design Logs: [DL 0006 — compatibility contract](../design-log/0006-compatibility-contract.md)
+Related Decision Logs: [DL 0006 — compatibility contract](../decision-log/0006-compatibility-contract.md)
 Supersedes/Amends: None
 Decision owner: Repository maintainer
 
 ## Context
 
-[DL 0006](../design-log/0006-compatibility-contract.md) records the policy set in [#208](https://github.com/MichinaoShimizu/kiroku/pull/208) and [#209](https://github.com/MichinaoShimizu/kiroku/issues/209). `docs/compatibility.md` states it in detail. As a Design Log it is context only; this ADR makes it a binding decision.
+[DL 0006](../decision-log/0006-compatibility-contract.md) records the policy set in [#208](https://github.com/MichinaoShimizu/kiroku/pull/208) and [#209](https://github.com/MichinaoShimizu/kiroku/issues/209). `docs/compatibility.md` states it in detail. As a Decision Log it is context only; this ADR makes it a binding decision.
 
 ## Decision
 
@@ -23,7 +23,7 @@ Decision owner: Repository maintainer
 
 ## Alternatives
 
-- **Keep it as Design Log 0006 plus `docs/compatibility.md`.** ADR Guard wouldn't flag a change to a protected surface as a conflict. Not chosen.
+- **Keep it as Decision Log 0006 plus `docs/compatibility.md`.** ADR Guard wouldn't flag a change to a protected surface as a conflict. Not chosen.
 - **Treat `/data.json` as public too.** It would freeze the view's internal transport. Not chosen, as in #208.
 
 ## Consequences

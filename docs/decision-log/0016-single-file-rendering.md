@@ -1,4 +1,4 @@
-# Design Log 0016: Maintainable web source with single-file output
+# Decision Log 0016: Maintainable web source with single-file output
 
 Status: Historical observation (not an accepted decision)
 Historical decision date: Unknown

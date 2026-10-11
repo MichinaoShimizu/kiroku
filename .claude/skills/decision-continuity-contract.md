@@ -2,13 +2,13 @@
 
 Applies to reverse-adr, adr-guard, and forward-adr. Follow target repository conventions; these paths are examples, not hard-coded requirements.
 
-- **Design Log**: historical observation and evolution, with evidence and uncertainty. It is not a policy or approval.
+- **Decision Log**: historical observation and evolution, with evidence and uncertainty. It is not a policy or approval.
 - **Proposed ADR**: a candidate durable choice. It is not binding.
 - **Accepted ADR**: an explicitly human-approved decision. Only applicable, current Accepted ADRs govern changes.
 - **Superseded/Rejected/Deprecated ADR**: historical decision records, not current constraints. Keep chronology and links.
-- **Legacy redirect**: a pointer to a Design Log, never an Accepted ADR by implication.
+- **Legacy redirect**: a pointer to a Decision Log, never an Accepted ADR by implication.
 
-In kiroku, use `docs/design-log/README.md` for historical evidence and `docs/adr/README.md` for explicit decisions. Historical 0001–0019 are Design Logs; their old ADR paths are redirects. Keep evidence IDs stable, but never infer authority from an ID prefix.
+In kiroku, use `docs/decision-log/README.md` for historical evidence and `docs/adr/README.md` for explicit decisions. Historical 0001–0019 are Decision Logs; their old ADR paths are redirects. Keep evidence IDs stable, but never infer authority from an ID prefix.
 
 ## Rules
 

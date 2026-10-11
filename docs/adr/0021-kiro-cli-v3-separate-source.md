@@ -4,7 +4,7 @@ Status: Accepted (2026-10-11, approved by the maintainer in review of #359)
 Date: 2026-10-11
 Scope: History sources — Kiro (`internal/source/kiro.go`, `internal/core/agents.go`, `internal/core/records.go`, `docs/sources.md`)
 Related ADRs: None
-Related Design Logs: [DL 0010 — agent source coverage](../design-log/0010-agent-source-coverage.md), [DL 0004 — session identity and deduplication](../design-log/0004-session-identity-and-deduplication.md), [DL 0006 — compatibility contract](../design-log/0006-compatibility-contract.md)
+Related Decision Logs: [DL 0010 — agent source coverage](../decision-log/0010-agent-source-coverage.md), [DL 0004 — session identity and deduplication](../decision-log/0004-session-identity-and-deduplication.md), [DL 0006 — compatibility contract](../decision-log/0006-compatibility-contract.md)
 Supersedes/Amends: None
 Decision owner: Repository maintainer
 
@@ -63,7 +63,7 @@ kiroku already reads Kiro CLI V3 sessions, but labels them "Kiro IDE". Nothing i
    - "Kiro CLI (SQLite)", "Kiro IDE (legacy)" and the `--sources` family `kiro` don't change.
 
    Both renames ship in one release, so users see one breaking change, not two.
-3. **Deduplicate V2 against its converted V3 copy.** When the same conversation exists as V2 `X` and V3 `sess_X`, count it once, preferring the V3 copy (the session that continues). This uses the existing Claim/Yield mechanism ([DL 0004](../design-log/0004-session-identity-and-deduplication.md)). It ships only with a test built from a real converted session, or with the conversion's ID mapping confirmed.
+3. **Deduplicate V2 against its converted V3 copy.** When the same conversation exists as V2 `X` and V3 `sess_X`, count it once, preferring the V3 copy (the session that continues). This uses the existing Claim/Yield mechanism ([DL 0004](../decision-log/0004-session-identity-and-deduplication.md)). It ships only with a test built from a real converted session, or with the conversion's ID mapping confirmed.
 4. **No guessed surface split.** kiroku does not try to tell IDE from CLI V3 sessions by heuristics such as title shape or tool names. If Kiro adds a field that records the surface, revisit this.
 
 ## Alternatives

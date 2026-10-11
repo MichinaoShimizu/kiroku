@@ -1,6 +1,6 @@
 # Phase 1 decision recovery — evidence ledger
 
-Status: **In progress (retrospective)**. This ledger captures *documented decisions and reversals* in merged PRs, not invented meeting records. The GitHub merged-PR listing contained 318 entries when inspected on 2026-10-10. The entries below are a curated first pass, **not** an exhaustive review of all 318 PRs. Use this ledger to document historical evolution in Design Logs; nominate Proposed ADRs only for explicit durable choices requiring human review. Keep implementation details and minor UI changes here rather than creating an ADR for every PR.
+Status: **In progress (retrospective)**. This ledger captures *documented decisions and reversals* in merged PRs, not invented meeting records. The GitHub merged-PR listing contained 318 entries when inspected on 2026-10-10. The entries below are a curated first pass, **not** an exhaustive review of all 318 PRs. Use this ledger to document historical evolution in Decision Logs; nominate Proposed ADRs only for explicit durable choices requiring human review. Keep implementation details and minor UI changes here rather than creating an ADR for every PR.
 
 ## Evidence classes
 
@@ -67,6 +67,6 @@ This pass screened titles of the remaining historical merged PRs in numbered ran
 - `#214` is a measurement contract, not a display-only detail: unknown/missing is not zero.
 - A PR title alone is weaker evidence than its body, review and diff. Validate the rationale for second-pass entries before marking their proposed ADRs Accepted.
 
-## Interpretation after Design Log migration
+## Interpretation after Decision Log migration
 
-This ledger was compiled before historical ADRs 0001–0019 became Design Logs. Historical ADR references now route to [Design Logs](../design-log/README.md) and do not imply accepted policy. The original candidate labels are preserved as historical data. ADR 0020 remains Proposed; no historical approvals are inferred from merged PRs.
+This ledger was compiled before historical ADRs 0001–0019 became Decision Logs. Historical ADR references now route to [Decision Logs](../decision-log/README.md) and do not imply accepted policy. The original candidate labels are preserved as historical data. ADR 0020 remains Proposed; no historical approvals are inferred from merged PRs.

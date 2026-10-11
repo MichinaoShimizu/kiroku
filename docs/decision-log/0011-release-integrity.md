@@ -1,4 +1,4 @@
-# Design Log 0011: Release integrity and provenance
+# Decision Log 0011: Release integrity and provenance
 
 Status: Historical observation (not an accepted decision)
 Related ADR: [ADR 0024](../adr/0024-verified-releases.md) (Accepted) — the binding decision for this area; this log stays the historical record

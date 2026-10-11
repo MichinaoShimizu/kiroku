@@ -1,16 +1,16 @@
 # ADR 0024: Releases are verified before they replace anything
 
-Status: Accepted (2026-10-11, approved by the maintainer when promoting Design Log 0011)
+Status: Accepted (2026-10-11, approved by the maintainer when promoting Decision Log 0011)
 Date: 2026-10-11
 Scope: Supply chain — `kiroku update`, `install.sh`, the release workflow, GitHub Actions, dependencies (`internal/cli/update.go`, `install.sh`, `.github/workflows`, `.goreleaser.yaml`, `SECURITY.md`)
 Related ADRs: [ADR 0022](0022-history-stays-local.md), [ADR 0023](0023-compatibility-contract.md)
-Related Design Logs: [DL 0011 — release integrity](../design-log/0011-release-integrity.md)
+Related Decision Logs: [DL 0011 — release integrity](../decision-log/0011-release-integrity.md)
 Supersedes/Amends: None
 Decision owner: Repository maintainer
 
 ## Context
 
-`kiroku update` and `install.sh` download a binary and replace the one on the user's machine; the user runs it with access to all their history. [DL 0011](../design-log/0011-release-integrity.md) records how checksums, build provenance, SBOMs and a reproducibility check were added. The rules below are already in `CLAUDE.md`; this ADR makes them a binding decision.
+`kiroku update` and `install.sh` download a binary and replace the one on the user's machine; the user runs it with access to all their history. [DL 0011](../decision-log/0011-release-integrity.md) records how checksums, build provenance, SBOMs and a reproducibility check were added. The rules below are already in `CLAUDE.md`; this ADR makes them a binding decision.
 
 ## Decision
 
@@ -21,7 +21,7 @@ Decision owner: Repository maintainer
 
 ## Alternatives
 
-- **Keep these as Design Log 0011 plus `CLAUDE.md`.** ADR Guard wouldn't flag a change that weakens verification. Not chosen.
+- **Keep these as Decision Log 0011 plus `CLAUDE.md`.** ADR Guard wouldn't flag a change that weakens verification. Not chosen.
 - **Require provenance on every install.** `install.sh` can't assume `gh` is installed and signed in, so provenance is checked when available and required only with `KIROKU_REQUIRE_ATTESTATION=1`. Checksums are always required.
 
 ## Consequences

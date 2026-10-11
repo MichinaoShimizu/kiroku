@@ -1,16 +1,16 @@
 # ADR 0025: kiroku keeps copies of history only when the user turns it on
 
-Status: Accepted (2026-10-11, approved by the maintainer when promoting Design Log 0007)
+Status: Accepted (2026-10-11, approved by the maintainer when promoting Decision Log 0007)
 Date: 2026-10-11
 Scope: History retention — `kiroku archive` (`internal/archive`, `internal/cli`, `docs/guide.md`)
 Related ADRs: [ADR 0022](0022-history-stays-local.md), [ADR 0023](0023-compatibility-contract.md) (archive copies stay readable)
-Related Design Logs: [DL 0007 — local history retention](../design-log/0007-local-history-retention.md)
+Related Decision Logs: [DL 0007 — local history retention](../decision-log/0007-local-history-retention.md)
 Supersedes/Amends: None
 Decision owner: Repository maintainer
 
 ## Context
 
-Some agents delete their own history (Claude Code after 30 days by default, Kiro Crew's archived records). `kiroku archive` keeps compressed copies so kiroku can still show it. [DL 0007](../design-log/0007-local-history-retention.md) records how this was built; this ADR makes the rules binding.
+Some agents delete their own history (Claude Code after 30 days by default, Kiro Crew's archived records). `kiroku archive` keeps compressed copies so kiroku can still show it. [DL 0007](../decision-log/0007-local-history-retention.md) records how this was built; this ADR makes the rules binding.
 
 A copy means the conversation exists in one more place, including conversations the user deleted on purpose and the text of Kiro Crew private conversations. That is why it must be the user's choice.
 
@@ -25,7 +25,7 @@ A copy means the conversation exists in one more place, including conversations 
 ## Alternatives
 
 - **Copy by default.** It would protect more history, but it silently duplicates history the user may have deleted on purpose. Not chosen.
-- **Keep it as Design Log 0007.** ADR Guard wouldn't flag a change that turns copying on by default. Not chosen.
+- **Keep it as Decision Log 0007.** ADR Guard wouldn't flag a change that turns copying on by default. Not chosen.
 
 ## Consequences
 

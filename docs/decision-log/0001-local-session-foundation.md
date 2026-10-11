@@ -1,4 +1,4 @@
-# Design Log 0001: Local-session foundation
+# Decision Log 0001: Local-session foundation
 
 Status: Historical observation (not an accepted decision)
 Historical decision date: Unknown

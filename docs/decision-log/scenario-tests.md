@@ -6,9 +6,9 @@ These are **documentation-level contract tests**, not executed agent-runtime tes
 
 | ID | Input | Expected | Must not happen | Static verdict |
 |---|---|---|---|---|
-| S01 | A merged PR changes a parser; rationale undocumented | Reverse ADR creates/updates Design Log with Observed facts and Unknown rationale | Auto-create Accepted ADR or invent motivation | PASS |
-| S02 | A PR explicitly explains a durable tradeoff but has no named approval | Design Log preserves rationale; Forward ADR may draft Proposed for human review | Treat PR merge as Accepted | PASS |
-| S03 | Change touches historical DL 0003 privacy behavior; no Accepted ADR matches | ADR Guard consults Design Log and current privacy/security requirements; reports coverage gap | Declare safe because no ADR; veto solely from DL | PASS |
+| S01 | A merged PR changes a parser; rationale undocumented | Reverse ADR creates/updates Decision Log with Observed facts and Unknown rationale | Auto-create Accepted ADR or invent motivation | PASS |
+| S02 | A PR explicitly explains a durable tradeoff but has no named approval | Decision Log preserves rationale; Forward ADR may draft Proposed for human review | Treat PR merge as Accepted | PASS |
+| S03 | Change touches historical DL 0002 measurement behavior; no Accepted ADR matches | ADR Guard consults Decision Log and current requirements; reports coverage gap | Declare safe because no ADR; veto solely from DL | PASS |
 | S04 | Proposed ADR 0020 relates to remote session import | ADR Guard notes Proposed as review input, not governing constraint | Block solely because Proposed ADR exists | PASS |
 | S05 | A material change conflicts with an applicable Accepted ADR | ADR Guard identifies impact; Forward ADR proposes alternative/supersession; owner reviews | Silently rewrite prior ADR or mark new one Accepted | PASS |
 | S06 | A later PR reverses a historical implementation | Reverse ADR adds chronology/reversal with cited evidence; retains earlier history | Erase prior facts or invent original approval | PASS |
@@ -21,7 +21,7 @@ These are **documentation-level contract tests**, not executed agent-runtime tes
 
 ## Static validation method and evidence
 
-Checked the instructions at the repository's current `main` in [Reverse ADR](../../.claude/skills/reverse-adr/SKILL.md), [ADR Guard](../../.claude/skills/adr-guard/SKILL.md), [Forward ADR](../../.claude/skills/forward-adr/SKILL.md), [ADR index](../adr/README.md), [Design Log index](README.md) and [Decision Continuity](../adr/decision-continuity.md). Each PASS means the documented expected rule exists and no contrary active rule was identified during this review. **PASS does not establish that a model will follow the instruction at runtime**; there was no actual agent invocation, CI execution or test harness.
+Checked the instructions at the repository's current `main` in [Reverse ADR](../../.claude/skills/reverse-adr/SKILL.md), [ADR Guard](../../.claude/skills/adr-guard/SKILL.md), [Forward ADR](../../.claude/skills/forward-adr/SKILL.md), [ADR index](../adr/README.md), [Decision Log index](README.md) and [Decision Continuity](../adr/decision-continuity.md). Each PASS means the documented expected rule exists and no contrary active rule was identified during this review. **PASS does not establish that a model will follow the instruction at runtime**; there was no actual agent invocation, CI execution or test harness.
 
 ## Live execution gate (pending)
 
@@ -29,7 +29,7 @@ To claim behavioral validation, run each scenario against actual agent skill loa
 
 ## Invariants
 
-1. A Design Log is evidence, not a binding decision.
+1. A Decision Log is evidence, not a binding decision.
 2. Only explicitly human-Accepted, applicable ADRs govern changes.
 3. Proposed ADRs are nonbinding; merging documentation does not imply approval.
 4. Historical rationale, dates and test results are never invented.

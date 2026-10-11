@@ -1,10 +1,10 @@
-# Historical Design Log / ADR audit — 2026-10-10
+# Historical Decision Log / ADR audit — 2026-10-10
 
 Status: **In progress**. Baseline: PR #331 branch `docs/phase1-decision-recovery` (moving head; pin to a commit for reproducible future runs).
 
 ## Scope and coverage
 
-- **20 historical/decision files inspected**: 19 historical Phase 1 records (now Design Logs) and 1 proposed Phase 2 ADR.
+- **20 historical/decision files inspected**: 19 historical Phase 1 records (now Decision Logs) and 1 proposed Phase 2 ADR.
 - At the time of the original audit, all 20 ADR headings matched their filenames; no reference to the retired `0014-remote-session-import.md` was found **inside the 20 files inspected at that time**.
 - Historical PR #1, #54, #93, #208 and #285 descriptions were re-read, along with current `internal/report/share.go`, `internal/report/share_test.go`, `internal/web/web.go`, `internal/web/web_test.go` and `docs/compatibility.md`.
 - The earlier scan of 318 merged PR titles/bodies was **candidate discovery**, not a full diff/review audit. Only five PRs were re-read in this pass; all historical diffs, reviews and current code paths were **not** exhaustively inspected.
@@ -83,4 +83,4 @@ Next evidence gate: inspect `requireKey` tests and `TestGuideRecordsTable` asser
 
 ## Migration note — 2026-10-11
 
-The original audit above describes the **pre-migration** repository state and is retained as a historical audit snapshot, not a claim of current structure. Retrospective ADR 0001–0019 were reclassified as historical [Design Logs](../design-log/README.md), with compatibility redirects at their old paths. ADR 0020 remains Proposed. The evidence matrix retains legacy `ADR-xxxx` claim IDs for compatibility; these are historical claim identifiers, **not** Accepted ADRs. This migration did not re-run tests, inspect every historical PR or establish any formal approvals. See [Decision Continuity](decision-continuity.md) for the current workflow.
+The original audit above describes the **pre-migration** repository state and is retained as a historical audit snapshot, not a claim of current structure. Retrospective ADR 0001–0019 were reclassified as historical [Decision Logs](../decision-log/README.md), with compatibility redirects at their old paths. ADR 0020 remains Proposed. The evidence matrix retains legacy `ADR-xxxx` claim IDs for compatibility; these are historical claim identifiers, **not** Accepted ADRs. This migration did not re-run tests, inspect every historical PR or establish any formal approvals. See [Decision Continuity](decision-continuity.md) for the current workflow.

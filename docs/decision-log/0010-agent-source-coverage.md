@@ -1,4 +1,4 @@
-# Design Log 0010: Native source adapters and recording coverage
+# Decision Log 0010: Native source adapters and recording coverage
 
 Status: Historical observation (not an accepted decision)
 Historical decision date: Unknown

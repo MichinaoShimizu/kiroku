@@ -1,4 +1,4 @@
-# Design Log 0019: Time overlap and usage allocation
+# Decision Log 0019: Time overlap and usage allocation
 
 Status: Historical observation (not an accepted decision)
 Historical decision date: Unknown

@@ -1,6 +1,6 @@
 ---
 name: reverse-adr
-description: "Reconstruct evidence-backed Design Logs from an existing repository's PRs, issues, review discussions, code and tests; identify explicit ADR candidates without inventing approvals. Use when asked to recover historical decisions, explain architectural evolution, audit existing ADRs, identify reversals, or build a verified decision ledger. Supports 'audit' (read-only) and 'write' (create/update docs on a branch)."
+description: "Reconstruct evidence-backed Decision Logs from an existing repository's PRs, issues, review discussions, code and tests; identify explicit ADR candidates without inventing approvals. Use when asked to recover historical decisions, explain architectural evolution, audit existing ADRs, identify reversals, or build a verified decision ledger. Supports 'audit' (read-only) and 'write' (create/update docs on a branch)."
 ---
 
 # Reverse ADR — reconstruct decisions without inventing history
@@ -11,12 +11,12 @@ This skill is **repository-agnostic**. Work in the repository requested by the u
 
 Recover the *decision trail*, not merely summarize the latest implementation. A decision is a choice between meaningful alternatives, with a context and consequences. A bug fix or cosmetic edit is not automatically an architectural decision. The output must distinguish **what happened**, **why it happened (if recorded)**, **what is true today**, and **what is still unverified**.
 
-For a **comprehensive audit**, produce a decision ledger, Design Logs for material historical changes, justified ADR candidates, claim-level evidence and a coverage report. For a scoped request, provide only proportionate artifacts. **Never claim complete coverage solely because all PR titles were scanned.**
+For a **comprehensive audit**, produce a decision ledger, Decision Logs for material historical changes, justified ADR candidates, claim-level evidence and a coverage report. For a scoped request, provide only proportionate artifacts. **Never claim complete coverage solely because all PR titles were scanned.**
 
 ## Modes
 
 - `audit`: inventory, verify, report gaps and contradictions; do not modify the repository.
-- `write`: audit first, then create or update Design Logs/ledger/evidence and, when justified, Proposed ADRs on a branch and open or update a PR.
+- `write`: audit first, then create or update Decision Logs/ledger/evidence and, when justified, Proposed ADRs on a branch and open or update a PR.
 - `scope=<path|subsystem|date range|phase>`: restrict scope, record exclusions.
 - `resume`: continue from the evidence matrix; do not redo verified work without reason.
 
@@ -57,7 +57,7 @@ Never invent approval meetings, alternative options, tradeoffs, motivations, or 
 
 ### 3. Verify every material claim
 
-For each Design Log or ADR, break prose into testable factual claims. Maintain **three independent evidence dimensions**:
+For each Decision Log or ADR, break prose into testable factual claims. Maintain **three independent evidence dimensions**:
 
 - **H — Historical**: dated PR, issue, diff or review supports the original decision and rationale.
 - **C — Current**: code/config/docs at a pinned commit support present behavior.
@@ -74,16 +74,16 @@ Assign each claim one status:
 - `proposed`: future choice, not implemented;
 - `unknown`: insufficient evidence even for historical claim.
 
-These statuses are **claim-level**, not badges for whole ADRs. A historical-only claim can be perfectly valid in a Design Log. Never promote to `verified` merely because CI exists or passed unrelated tests.
+These statuses are **claim-level**, not badges for whole ADRs. A historical-only claim can be perfectly valid in a Decision Log. Never promote to `verified` merely because CI exists or passed unrelated tests.
 
 ### 4. Reconcile and write
 
-For each material historical change, write a **Design Log** with a stable ID, scope, observed facts, documented rationale if available, source links, historical/current/test evidence, reversals, unknowns and verification limits. Never infer an Accepted ADR from implementation or a merged PR. An explicit durable decision may be proposed separately using Forward ADR; human approval is required for Accepted.
+For each material historical change, write a **Decision Log** with a stable ID, scope, observed facts, documented rationale if available, source links, historical/current/test evidence, reversals, unknowns and verification limits. Never infer an Accepted ADR from implementation or a merged PR. An explicit durable decision may be proposed separately using Forward ADR; human approval is required for Accepted.
 
-#### Design Log template
+#### Decision Log template
 
 ```markdown
-# Design Log NNNN: <topic>
+# Decision Log NNNN: <topic>
 
 Status: Historical observation (not an accepted decision)
 Historical decision date: Unknown
@@ -105,13 +105,13 @@ Scope: <subsystem / phase>
 <unknown motives, missing verification and possible reversals>
 ```
 
-Maintain the Design Log index separately from the ADR index. Keep stable historical IDs and existing evidence claim IDs; avoid renumbering published records. Route genuine explicit decision candidates to Forward ADR as Proposed, not automatically Accepted. Preserve historical source references and uncertainty.
+Maintain the Decision Log index separately from the ADR index. Keep stable historical IDs and existing evidence claim IDs; avoid renumbering published records. Route genuine explicit decision candidates to Forward ADR as Proposed, not automatically Accepted. Preserve historical source references and uncertainty.
 
 ### 5. Audit and quality gates
 
 Before finishing:
-1. Verify every referenced Design Log and ADR path, unique ID, link target and status.
-2. Ensure the ledger, Design Log index, ADR index and evidence matrix agree on phases, scope and supersession.
+1. Verify every referenced Decision Log and ADR path, unique ID, link target and status.
+2. Ensure the ledger, Decision Log index, ADR index and evidence matrix agree on phases, scope and supersession.
 3. Check each `verified` claim's test actually asserts the claim and its run is for the pinned revision.
 4. Count all candidates and claims by status; list `conflict`, `unknown` and `untested` with next actions.
 5. Run repository tests and documentation checks when tools permit; report exact commands and results. If tools cannot execute tests, mark T unverified.
@@ -121,11 +121,11 @@ Before finishing:
 
 ## Detailed audit artifacts (on demand)
 
-For comprehensive audits or evidence-matrix requests, consult [audit-artifacts.md](references/audit-artifacts.md). For routine scoped reconstruction, produce only the evidence and Design Logs warranted by the task; do not create every optional artifact by default.
+For comprehensive audits or evidence-matrix requests, consult [audit-artifacts.md](references/audit-artifacts.md). For routine scoped reconstruction, produce only the evidence and Decision Logs warranted by the task; do not create every optional artifact by default.
 
 ## Reporting format
 
-Summarize: scope and revision; decision trajectories discovered; new/updated Design Logs and genuine ADRs; evidence coverage; confirmed reversals; conflicts; unverified items; tests/CI actually run; PR URL if applicable. Prioritize actionable discrepancies over a large count of documents.
+Summarize: scope and revision; decision trajectories discovered; new/updated Decision Logs and genuine ADRs; evidence coverage; confirmed reversals; conflicts; unverified items; tests/CI actually run; PR URL if applicable. Prioritize actionable discrepancies over a large count of documents.
 
 ## Failure modes to avoid
 
@@ -133,11 +133,11 @@ Summarize: scope and revision; decision trajectories discovered; new/updated Des
 - Current code used as proof of historical motivation.
 - Review comments ignored when they qualify a security or compatibility decision.
 - A passing unrelated CI job presented as proof of a particular claim.
-- New ADRs created for historical observations instead of maintaining Design Logs.
+- New ADRs created for historical observations instead of maintaining Decision Logs.
 - Published ADR IDs renumbered for aesthetics.
 - Generated evidence links that were not opened or confirmed.
 - Sensitive history copied into public reports.
 
 ## Shared lifecycle rules
 
-Follow the [Decision Continuity shared contract](../decision-continuity-contract.md). This includes the Design Log / ADR separation, human acceptance boundary, legacy redirects and evidence discipline. Consult supporting audit/test material only when needed.
+Follow the [Decision Continuity shared contract](../decision-continuity-contract.md). This includes the Decision Log / ADR separation, human acceptance boundary, legacy redirects and evidence discipline. Consult supporting audit/test material only when needed.

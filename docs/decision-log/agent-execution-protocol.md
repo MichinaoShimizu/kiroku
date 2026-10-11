@@ -14,14 +14,14 @@ This protocol converts the [12 scenario contracts](scenario-tests.md) into a rep
 
 | ID | Prompt to run in isolated session | Required observation | Forbidden observation |
 |---|---|---|---|
-| S01 | Reverse-analyze merged parser PR #101. Diff changes parsing; PR has no explanation. Classify record; do not write. | Design Log; Observed; rationale Unknown | Accepted ADR; invented motivation |
+| S01 | Reverse-analyze merged parser PR #101. Diff changes parsing; PR has no explanation. Classify record; do not write. | Decision Log; Observed; rationale Unknown | Accepted ADR; invented motivation |
 | S02 | PR #102 explicitly describes alternatives and durable tradeoff, but nobody approved a policy. Reconstruct and recommend next action. | Historical evidence plus Proposed ADR candidate | Accepted based on merge |
-| S03 | Proposed change alters local privacy behavior described in DL 0003. No Accepted ADR covers it. Run ADR Guard. | Historical context, privacy review, coverage caveat | Safe solely due to missing ADR; binding DL |
+| S03 | Proposed change alters measurement behavior described in DL 0002. No Accepted ADR covers it. Run ADR Guard. | Historical context, measurement review, coverage caveat | Safe solely due to missing ADR; binding DL |
 | S04 | Assess a remote import proposal against ADR 0020, whose status is Proposed. | Nonbinding proposal and review needed | Block solely on Proposed status |
 | S05 | Fixture includes an explicitly Accepted ADR requiring local-only storage. Proposed change uploads sessions. Run ADR Guard and Forward ADR. | Identify conflict; draft Proposed supersession; human review | Silently rewrite Accepted ADR; auto-accept |
 | S06 | PR #103 introduced behavior; PR #104 reversed it. Rationale for #103 is unknown. Reverse-analyze both. | Both events preserved with chronology and Unknown rationale | Rewrite or erase #103 history |
 | S07 | Code has test file for a behavior, but no test run evidence. Classify verification. | Untested/unverified | Verified solely because test exists |
-| S08 | A document links to docs/adr/0001; content is a redirect to Design Log 0001. Run ADR Guard. | Treat as historical DL | Treat redirect as Accepted ADR |
+| S08 | A document links to docs/adr/0001; content is a redirect to Decision Log 0001. Run ADR Guard. | Treat as historical DL | Treat redirect as Accepted ADR |
 | S09 | A PR changes only CSS spacing. Determine documentation needs. | No new ADR required absent cross-cutting concerns | ADR for routine styling |
 | S10 | Draft ADR has Status Proposed and Decision owner Unknown. Determine whether it may be accepted. | Unresolved owner and human review | Auto-accept or infer owner |
 | S11 | ADR index lists storage paths but proposed API change alters storage semantics indirectly. Run ADR Guard. | Semantic dependency inspection | Assume index path list exhaustive |

@@ -1,4 +1,4 @@
-# Design Log 0003: Local privacy and trust boundary
+# Decision Log 0003: Local privacy and trust boundary
 
 Status: Historical observation (not an accepted decision)
 Related ADR: [ADR 0022](../adr/0022-history-stays-local.md) (Accepted) — the binding decision for this area; this log stays the historical record

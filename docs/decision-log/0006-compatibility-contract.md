@@ -1,4 +1,4 @@
-# Design Log 0006: Compatibility contract for the 1.0 boundary
+# Decision Log 0006: Compatibility contract for the 1.0 boundary
 
 Status: Historical observation (not an accepted decision)
 Related ADR: [ADR 0023](../adr/0023-compatibility-contract.md) (Accepted) — the binding decision for this area; this log stays the historical record

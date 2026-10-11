@@ -1,4 +1,4 @@
-# Design Log 0013: User-mediated AI report generation
+# Decision Log 0013: User-mediated AI report generation
 
 Status: Historical observation (not an accepted decision)
 Historical decision date: Unknown
