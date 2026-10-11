@@ -291,7 +291,7 @@ function keepRow(r){ // 計測の状態に添える：どこまでさかのぼ�
 // 気をつけること（読めないファイル・既定のままで消える履歴・料金表にないモデル・似た ID の料金を当てたモデル）があるときは、見出しに印を付けて開いておく
 function measure(w){
   const rows = META.report.map(r => { const dt = r.detailEn || r.detail;
-    return `<li class="${r.error?"warn":""}">${esc((r.name))}: ${plural(r.n, "session")}${dt?` (${esc(dt)})`:""}${r.dup?` (${plural(r.dup, "duplicate conversation")} found elsewhere not counted)`:""}${r.error?` (some files couldn't be read)`:""}${keepRow(r)}</li>`; });
+    return `<li class="${r.error?"warn":""}">${esc((r.name))}${AG_ABOUT[r.name] ? ` <span class="muted">— ${esc(AG_ABOUT[r.name])}</span>` : ""}: ${plural(r.n, "session")}${dt?` (${esc(dt)})`:""}${r.dup?` (${plural(r.dup, "duplicate conversation")} found elsewhere not counted)`:""}${r.error?` (some files couldn't be read)`:""}${keepRow(r)}</li>`; });
   const a = META.archive; // kiroku archive
   if (a && (a.on || a.files)) rows.push(`<li>${a.on ? `kiroku's copy: on (${plural(a.files, "file")}, ${bytes(a.bytes)})`
       : `kiroku's copy: off. Copies kept so far (${plural(a.files, "file")}, ${bytes(a.bytes)}) are still shown`}<br><code>${esc(a.dir)}</code></li>`);
