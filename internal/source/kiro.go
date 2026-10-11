@@ -31,10 +31,31 @@ func creditsOf(list any, unitKey, valueKey string) float64 {
 			unit = "credit"
 		}
 		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(unit)), "credit") { // "credit"・"Credits" など、表記の揺れを許す
-			used += core.NumOr0(m[valueKey])
+			if v := core.NumOr0(m[valueKey]); v > 0 { // 使ったクレジットは負にならない。負の値（壊れた記録）は 0 とみなす
+				used += v
+			}
 		}
 	}
 	return used
+}
+
+// kiroNotifyRe は、Kiro のエージェントが user の行として書く通知の文の頭（"[notification/info] …" など）。
+var kiroNotifyRe = regexp.MustCompile(`^\s*\[notification/(info|success|warning|error)\]`)
+
+// kiroNotUser は、user の行が人の打った依頼でないときの種類（Inject の kind）。人の依頼なら空。
+// Kiro のエージェント（kiro-cli 2.29.0 に入っている @kiro/agent）自身の見分け方に合わせる:
+// _meta.kiro.notification・kind があるか、source が "steer" で文が通知の形のものは通知、
+// _meta.kiro.syntheticUserMessageReason のあるもの（ワークフローの続きなど）はエージェントが書いた依頼。
+func kiroNotUser(p core.Obj) string {
+	kiro := core.Map(core.Get(p, "_meta", "kiro"))
+	switch {
+	case kiro["notification"] != nil, p["kind"] != nil,
+		core.Str(p["source"]) == "steer" && kiroNotifyRe.MatchString(core.TextOf(p["content"])):
+		return "notice"
+	case kiro["syntheticUserMessageReason"] != nil:
+		return "agent"
+	}
+	return ""
 }
 
 // Load は全部の会話を読む。読めないファイルがあっても読めた分は出し、最初のエラー（と残りの数）を返す。
@@ -75,6 +96,10 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 			typ := core.Str(p["type"])
 			if typ == "user" {
 				s.Tick(t)
+				if k := kiroNotUser(p); k != "" {
+					s.Inject(t, k, core.TextOf(p["content"]))
+					return
+				}
 				s.Prompt(t, core.TextOf(p["content"]))
 				return
 			}

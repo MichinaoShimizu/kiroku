@@ -619,3 +619,39 @@ func TestKiroIDEModelWithoutUsage(t *testing.T) {
 		t.Errorf("モデル = %v", f.Models)
 	}
 }
+
+// Kiro のエージェントが user の行として書く通知とエージェントの依頼は、人の依頼として数えない
+// （kiro-cli 2.29.0 の @kiro/agent の見分け方: _meta.kiro.notification・kind・"[notification/…]" で始まる steer・syntheticUserMessageReason）。
+// 人の依頼（source のないもの、chat、通知でない steer）は今までどおり数える。負のクレジットは 0 とみなす。
+func TestKiroIDENotUserAndCredits(t *testing.T) {
+	home := t.TempDir()
+	lines := []string{
+		`{"timestamp": "2026-10-01T01:01:00Z", "payload": {"type": "user", "content": "ビルドを直して"}}`,
+		`{"timestamp": "2026-10-01T01:02:00Z", "payload": {"type": "user", "content": "[notification/info] workflow finished", "source": "steer"}}`,
+		`{"timestamp": "2026-10-01T01:03:00Z", "payload": {"type": "user", "content": "task done", "source": "steer", "_meta": {"kiro": {"notification": {"kind": "system-notification"}}}}}`,
+		`{"timestamp": "2026-10-01T01:04:00Z", "payload": {"type": "user", "content": "continue", "kind": "x"}}`,
+		`{"timestamp": "2026-10-01T01:05:00Z", "payload": {"type": "user", "content": "next step", "_meta": {"kiro": {"syntheticUserMessageReason": "workflow-continuation"}}}}`,
+		`{"timestamp": "2026-10-01T01:06:00Z", "payload": {"type": "user", "content": "テストも足して", "source": "steer"}}`,
+		`{"timestamp": "2026-10-01T01:07:00Z", "payload": {"type": "user", "content": "README を直して", "source": "chat"}}`,
+		`{"timestamp": "2026-10-01T01:08:00Z", "payload": {"type": "usage_summary", "promptTurnSummaries": [{"usage": 2, "unit": "credit"}, {"usage": -5, "unit": "credit"}]}}`,
+	}
+	writeFiles(t, home, map[string]string{
+		"sessions/0123456789abcdef/sess_n1/session.json":   `{"schemaVersion": "1.0.0", "id": "sess_n1", "workspacePaths": ["/Users/me/app"], "createdAt": "2026-10-01T01:00:00Z"}`,
+		"sessions/0123456789abcdef/sess_n1/messages.jsonl": strings.Join(lines, "\n") + "\n",
+	})
+	bs := load(t, &KiroIDE{Home: home})
+	if len(bs) != 1 {
+		t.Fatalf("%d 件, want 1", len(bs))
+	}
+	s := bs[0].Finish(15)
+	var got []string
+	for _, p := range s.Prompts {
+		got = append(got, p.Text)
+	}
+	if want := []string{"ビルドを直して", "テストも足して", "README を直して"}; strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Errorf("依頼 = %q, want %q", got, want)
+	}
+	if c := s.Credits; c != 2 {
+		t.Errorf("credits = %v, want 2（負の値は 0）", c)
+	}
+}
