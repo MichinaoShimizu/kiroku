@@ -19,8 +19,9 @@ function render(){
   $("#yrbtn").hidden = !YEAR_ON || !DATA.length || !!(META && META.scope); // 週・月だけを書き出したファイルには 1 年の記録がない（最初の記録や「初めて」を取り違える）
   $("#prev").setAttribute("aria-label", M ? "Previous month" : "Previous week"); $("#next").setAttribute("aria-label", M ? "Next month" : "Next week");
   document.querySelectorAll("#mode button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.mode));
-  $("#calendarbtn").setAttribute("aria-pressed", String(!st.journey));
-  $("#journeybtn").setAttribute("aria-pressed", String(st.journey));
+  $("#calendarbtn").setAttribute("aria-pressed", String(st.view === "calendar"));
+  $("#journeybtn").setAttribute("aria-pressed", String(st.view === "journey"));
+  $("#projectbtn").setAttribute("aria-pressed", String(st.view === "project"));
 
   const inRange = DATA.filter(s => s.end >= ws && s.start < we);
   const shown = inRange.filter(matches);
@@ -41,7 +42,7 @@ function render(){
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
 
   if (!M && st.zAuto) st.z = fitZoom(); // ズームを選んでいなければ、この週の作業の時間帯が枠に収まる高さに
-  if (st.journey) journeyGrid(shown, ws, we); else M ? monthGrid(shown, ws, we, todayKey) : timeline(shown, inRange, ws, we, todayKey);
+  if (st.view === "project") projectGrid(shown, ws, we); else if (st.journey) journeyGrid(shown, ws, we); else M ? monthGrid(shown, ws, we, todayKey) : timeline(shown, inRange, ws, we, todayKey);
   edgeFade($("#tl")); // 月表示や空の週では消す
   $("#skipcal").hidden = !!st.q; // 検索の最中は、結果がカレンダーの上にあり、下のサマリーは空
   lastFlags = []; // 見直す候補は表示中の期間のものだけ（検索中や記録のない期間に、前の期間の候補を詳細に出さない）
@@ -334,4 +335,33 @@ function journeyGrid(sessions, ws, we){
   root.querySelectorAll("[data-session]").forEach(b => b.onclick=()=>select(b.dataset.session));
   root.querySelectorAll("[data-git]").forEach(b => b.onclick=()=>select("git:"+b.dataset.git));
   root.querySelectorAll("[data-pr]").forEach(b => b.onclick=()=>select("pr:"+b.dataset.pr));
+}
+
+/* Project is an inventory of observed work in the selected period.
+   Unlike Journey it does not infer a sequence or a project status. */
+function projectGrid(sessions, ws, we){
+  const root = $("#tl"), groups = new Map(), visibleCommits = gitShown(sessions);
+  sessions.forEach(s => {
+    const name = s.project || "Unknown project";
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name).push(s);
+  });
+  if (!groups.size){ root.innerHTML = '<div class="journey-empty">No matching projects in this period.</div>'; return; }
+  const rows = [...groups].sort((a,b)=>b[1].length-a[1].length || a[0].localeCompare(b[0]));
+  root.innerHTML = '<div class="project-view"><p class="project-note">Observed activity in the selected period. Commits and recorded PR creation are not measures of completion or business impact.</p>' +
+    rows.map(([name,items])=>{
+      const commits = visibleCommits.filter(c=>c.project === name && c.t >= ws && c.t < we);
+      const prs = items.flatMap(s=>(s.prAt || []).filter(pr=>typeof pr.t === "number" && pr.t >= ws && pr.t < we).map(pr=>({s,pr})));
+      const first = Math.max(ws,Math.min(...items.map(s=>s.start)));
+      const last = Math.min(we-1,items.reduce((v,s)=>Math.max(v,s.end),ws));
+      return '<section class="project-card"><h3>'+esc(name)+'</h3><p class="project-meta">'+plural(items.length,"session")+' · '+plural(commits.length,"Git commit")+' · '+plural(prs.length,"recorded PR")+' · '+esc(dMD(new Date(first*1000)))+' → '+esc(dMD(new Date(last*1000)))+'</p>'+
+        '<div class="project-events"><strong>Sessions</strong>'+items.slice().sort((a,b)=>b.start-a.start).slice(0,5).map(s=>'<button data-session="'+esc(s.id)+'">'+esc(s.title||s.project||"Session")+' · '+esc(s.source)+'</button>').join("")+
+        (items.length>5?'<small>+'+(items.length-5)+' more sessions</small>':"")+
+        (commits.length?'<strong>Git commits</strong>'+commits.slice(0,3).map(c=>'<button data-git="'+esc(c.hash)+'">'+esc(c.subject||c.hash)+'</button>').join(""):"")+
+        (prs.length?'<strong>Recorded PRs</strong>'+prs.slice(0,3).map(({s,pr})=>'<button data-pr="'+esc(prKey(s,pr))+'">'+esc(pr.url||"Pull request")+'</button>').join(""):"")+
+        '</div></section>';
+    }).join("")+'</div>';
+  root.querySelectorAll("[data-session]").forEach(b=>b.onclick=()=>select(b.dataset.session));
+  root.querySelectorAll("[data-git]").forEach(b=>b.onclick=()=>select("git:"+b.dataset.git));
+  root.querySelectorAll("[data-pr]").forEach(b=>b.onclick=()=>select("pr:"+b.dataset.pr));
 }
