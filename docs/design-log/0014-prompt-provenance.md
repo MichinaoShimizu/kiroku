@@ -1,11 +1,8 @@
 # Design Log 0014: Prompt provenance and automatic events
 
 Status: Historical observation (not an accepted decision)
-Date: Unknown
+Historical decision date: Unknown
 Earliest cited merged PR: [#103](https://github.com/MichinaoShimizu/kiroku/pull/103) (2026-10-05 UTC; evidence anchor, not an approval date)
-Related: None
-Supersedes: None
-Superseded by: None
 
 Scope: Phase 1 — local sessions
 
