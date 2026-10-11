@@ -354,11 +354,21 @@ function projectGrid(sessions, ws, we){
       const prs = items.flatMap(s=>(s.prAt || []).filter(pr=>typeof pr.t === "number" && pr.t >= ws && pr.t < we).map(pr=>({s,pr})));
       const first = Math.max(ws,items.reduce((v,s)=>Math.min(v,s.start),Infinity));
       const last = Math.min(we-1,items.reduce((v,s)=>Math.max(v,s.end),ws));
+      const eventList = (label, entries, limit, makeButton) => {
+        if (!entries.length) return "";
+        const ordered = entries;
+        const visible = ordered.slice(0,limit).map(makeButton).join("");
+        const rest = ordered.length > limit ? '<details class="project-more"><summary>Show '+(ordered.length-limit)+' more '+esc(label.toLowerCase())+'</summary>'+ordered.slice(limit).map(makeButton).join("")+'</details>' : "";
+        return '<strong>'+esc(label)+'</strong>'+visible+rest;
+      };
+      const sessionsList = items.slice().sort((a,b)=>b.start-a.start);
+      const commitsList = commits.slice().sort((a,b)=>b.t-a.t);
+      const prsList = prs.slice().sort((a,b)=>b.pr.t-a.pr.t);
       return '<section class="project-card"><h3>'+esc(name)+'</h3><p class="project-meta">'+plural(items.length,"session")+' · '+plural(commits.length,"Git commit")+' · '+plural(prs.length,"recorded PR")+' · '+esc(dMD(new Date(first*1000)))+' → '+esc(dMD(new Date(last*1000)))+'</p>'+
-        '<div class="project-events"><strong>Sessions</strong>'+items.slice().sort((a,b)=>b.start-a.start).slice(0,5).map(s=>'<button data-session="'+esc(s.id)+'">'+esc(s.title||s.project||"Session")+' · '+esc(s.source)+'</button>').join("")+
-        (items.length>5?'<small>+'+(items.length-5)+' more sessions</small>':"")+
-        (commits.length?'<strong>Git commits</strong>'+commits.slice(0,3).map(c=>'<button data-git="'+esc(c.hash)+'">'+esc(c.subject||c.hash)+'</button>').join(""):"")+
-        (prs.length?'<strong>Recorded PRs</strong>'+prs.slice(0,3).map(({s,pr})=>'<button data-pr="'+esc(prKey(s,pr))+'">'+esc(pr.url||"Pull request")+'</button>').join(""):"")+
+        '<div class="project-events">'+
+        eventList("Sessions",sessionsList,5,s=>'<button data-session="'+esc(s.id)+'">'+esc(s.title||s.project||"Session")+' · '+esc(s.source)+'</button>')+
+        eventList("Git commits",commitsList,3,c=>'<button data-git="'+esc(c.hash)+'">'+esc(c.subject||c.hash)+'</button>')+
+        eventList("Recorded PRs",prsList,3,({s,pr})=>'<button data-pr="'+esc(prKey(s,pr))+'">'+esc(pr.url||"Pull request")+'</button>')+
         '</div></section>';
     }).join("")+'</div>';
   root.querySelectorAll("[data-session]").forEach(b=>b.onclick=()=>select(b.dataset.session));
