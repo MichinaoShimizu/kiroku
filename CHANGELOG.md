@@ -9,6 +9,8 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Kiro: a Kiro CLI Classic session that you open in Kiro CLI 3.0 (`kiro-cli chat --v3 --resume-id <id>`) was counted twice, once in "Kiro CLI (Classic)" and once in "Kiro IDE / CLI", because kiro-cli copies it to the 3.0 store as `sess_<id>` and keeps the Classic file. It is now counted once, as the 3.0 session, which holds the prompts sent after the switch. The 3.0 copy has no credit records for the turns before the switch, so their credits, turn count and model requests are taken from the Classic session ([ADR 0021](docs/adr/0021-kiro-cli-v3-separate-source.md))
 - Kiro IDE / CLI: in a Classic session opened in Kiro CLI 3.0, the prompts from before the switch were shown without their replies. The copied replies carry no usable time, so kiroku now matches each reply to the prompt before it in the history, as it already does for Kiro CLI (Classic)
 
+- Daily report prompt: each project now comes with its active time and share of the day, split between projects that ran at the same time as in the weekly report, so the AI no longer has to estimate them from session spans. Session lines in the report prompts separate the agent and model with "·" instead of parentheses, so names like "Kiro CLI (Classic)" no longer read as "Kiro CLI (Classic) (model)", and the prompts ask the AI to open the listed history files by their exact paths without searching the folders around them
+
 ### Security
 
 - A Kiro Crew conversation held in incognito or temporary mode, opened in Kiro CLI 3.0 (`--resume-id`), is now shown with counts and times only in its 3.0 copy too, as its Classic and SQLite copies already were; its prompts and title in the 3.0 copy were shown in full
