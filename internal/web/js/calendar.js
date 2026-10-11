@@ -294,7 +294,7 @@ function journeyGrid(sessions, ws, we){
   });
   if (!groups.size){ root.innerHTML = '<div class="journey-empty">No matching project activity in this period.</div>'; return; }
   const ordered = [...groups].sort((a,b) => b[1].length-a[1].length || a[0].localeCompare(b[0]));
-  root.innerHTML = '<div class="journey"><div class="journey-axis"><span>Project</span><div class="journey-days">' +
+  root.innerHTML = '<div class="journey"><div class="journey-legend" aria-label="Journey marker legend"><span><i class="journey-legend-session"></i> Session</span><span><i class="journey-legend-commit">◆</i> Git commit</span><span><i class="journey-legend-pr">PR</i> Pull request</span><small>Recorded events only; not proof of progress or completion.</small></div><div class="journey-axis"><span>Project</span><div class="journey-days">' +
     Array.from({length:days},(_,i)=>'<span>'+esc(dMD(addDays(new Date(ws*1000),i)))+'</span>').join("") +
     '</div></div>' + ordered.map(([name,items]) => {
       const byDay = Array.from({length:days},()=>[]);
@@ -325,7 +325,7 @@ function journeyGrid(sessions, ws, we){
       return '<div class="journey-row"><div class="journey-name" title="'+esc(name)+'">'+esc(name)+'<small title="Observed sessions only; not a measure of progress">'+esc(activity)+'</small><small>'+esc(span)+'</small></div><div class="journey-days">' +
         byDay.map((day,i) => '<div class="journey-cell">'+day.slice(0,4).map(s =>
           '<button class="journey-dot" style="--c:'+colorOf(keyOf(s))+'" data-session="'+esc(s.id)+'" title="'+esc((s.title||s.project||"Session")+' · '+s.source)+'" aria-label="'+esc((s.title||"Session")+' · '+s.source)+'"></button>'
-        ).join("")+(day.length>4?'<span class="journey-more">+'+(day.length-4)+'</span>':"")+commitsByDay[i].slice(0,3).map(c => '<button class="journey-dot" data-git="'+esc(c.hash)+'" title="'+esc("Commit · "+c.subject)+'" aria-label="'+esc("Commit · "+c.subject)+'" style="--c:var(--ink-3)">◆</button>').join("")+(commitsByDay[i].length>3?'<span class="journey-more">+'+(commitsByDay[i].length-3)+' commits</span>':"")+prsByDay[i].slice(0,2).map(({session,pr}) => '<button class="journey-dot" data-pr="'+esc(prKey(session,pr))+'" title="'+esc("Recorded pull request"+(pr.url?" · "+pr.url:""))+'" aria-label="Recorded pull request" style="--c:var(--ink-3)">PR</button>').join("")+(prsByDay[i].length>2?'<span class="journey-more">+'+(prsByDay[i].length-2)+' PRs</span>':"")+'</div>').join("")+'</div></div>';
+        ).join("")+(day.length>4?'<span class="journey-more">+'+(day.length-4)+'</span>':"")+commitsByDay[i].slice(0,3).map(c => '<button class="journey-dot journey-commit" data-git="'+esc(c.hash)+'" title="'+esc("Commit · "+c.subject)+'" aria-label="'+esc("Commit · "+c.subject)+'" style="--c:var(--ink-3)">◆</button>').join("")+(commitsByDay[i].length>3?'<span class="journey-more">+'+(commitsByDay[i].length-3)+' commits</span>':"")+prsByDay[i].slice(0,2).map(({session,pr}) => '<button class="journey-dot journey-pr" data-pr="'+esc(prKey(session,pr))+'" title="'+esc("Recorded pull request"+(pr.url?" · "+pr.url:""))+'" aria-label="Recorded pull request" style="--c:var(--ink-3)">PR</button>').join("")+(prsByDay[i].length>2?'<span class="journey-more">+'+(prsByDay[i].length-2)+' PRs</span>':"")+'</div>').join("")+'</div></div>';
     }).join("")+'</div>';
   root.querySelectorAll("[data-session]").forEach(b => b.onclick=()=>select(b.dataset.session));
   root.querySelectorAll("[data-git]").forEach(b => b.onclick=()=>select("git:"+b.dataset.git));
