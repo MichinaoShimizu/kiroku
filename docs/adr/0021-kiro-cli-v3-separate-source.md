@@ -1,12 +1,12 @@
 # ADR 0021: Read Kiro CLI V3 apart from Kiro CLI V2
 
-Status: Proposed
+Status: Accepted (2026-10-11, approved by the maintainer in review of #359)
 Date: 2026-10-11
 Scope: History sources — Kiro (`internal/source/kiro.go`, `internal/core/agents.go`, `internal/core/records.go`, `docs/sources.md`)
 Related ADRs: None
 Related Design Logs: [DL 0010 — agent source coverage](../design-log/0010-agent-source-coverage.md), [DL 0004 — session identity and deduplication](../design-log/0004-session-identity-and-deduplication.md), [DL 0006 — compatibility contract](../design-log/0006-compatibility-contract.md)
 Supersedes/Amends: None
-Decision owner: Repository maintainer (acceptance pending)
+Decision owner: Repository maintainer
 
 ## Context
 
@@ -57,7 +57,12 @@ kiroku already reads Kiro CLI V3 sessions, but labels them "Kiro IDE". Nothing i
 ## Decision
 
 1. **Read V3 apart from V2.** V3 sessions are read by the reader for the shared store (`sessions/<bucket>/sess_*`), never by the V2 "Kiro CLI" reader. V2 keeps its own source, so it can be retired on its own (`/drop-agent`) once Kiro removes Classic sessions.
-2. **Name the source for what the store is.** The store holds sessions from the Kiro IDE and the Kiro CLI V3 alike. Its display name should therefore not claim "IDE". The proposal is to keep the internal source key and change the label to one that covers both surfaces (working name "Kiro"). The final name needs a decision; see Open questions.
+2. **Name the sources for what the stores are, using Kiro's own terms.**
+   - The shared store (Kiro IDE 1.x and Kiro CLI V3) is shown as **"Kiro IDE / CLI"** instead of "Kiro IDE".
+   - The V2 JSON store is shown as **"Kiro CLI (Classic)"** instead of "Kiro CLI", since Kiro calls V2 sessions "Classic".
+   - "Kiro CLI (SQLite)", "Kiro IDE (legacy)" and the `--sources` family `kiro` don't change.
+
+   Both renames ship in one release, so users see one breaking change, not two.
 3. **Deduplicate V2 against its converted V3 copy.** When the same conversation exists as V2 `X` and V3 `sess_X`, count it once, preferring the V3 copy (the session that continues). This uses the existing Claim/Yield mechanism ([DL 0004](../design-log/0004-session-identity-and-deduplication.md)). It ships only with a test built from a real converted session, or with the conversion's ID mapping confirmed.
 4. **No guessed surface split.** kiroku does not try to tell IDE from CLI V3 sessions by heuristics such as title shape or tool names. If Kiro adds a field that records the surface, revisit this.
 
@@ -70,7 +75,11 @@ kiroku already reads Kiro CLI V3 sessions, but labels them "Kiro IDE". Nothing i
 
 ## Consequences
 
-- **Renaming the label is user-visible.** The label appears in the agent list, Data sources, reports, `kiroku json` (the `source` field) and possibly `--sources` help. Under [DL 0006](../design-log/0006-compatibility-contract.md), `--sources` names and the archive layout must stay compatible. Keep `kiro` as the `--sources` family and treat the display label as a view change. Check whether anything keys on the literal "Kiro IDE" (`core.Records`, `core.Agents`, saved filters, JSON consumers) before renaming.
+- **The rename is BREAKING for `kiroku json`.** [compatibility.md](../compatibility.md) keeps the meaning of `source` ("the agent, as shown in the view") and gives `Kiro IDE` as an example value. Consumers that match `"Kiro IDE"` or `"Kiro CLI"` must update. The CHANGELOG marks it `BREAKING`, which bumps the minor version while kiroku is 0.x.
+  - `schemaVersion` stays 1, because the field's name, type and meaning don't change.
+  - `--sources`, environment variables and the archive layout don't change.
+  - Inside kiroku, `core.Agents`, `core.Records`, `core.Native`, the per-agent colors and any saved per-agent view state keyed by the label must move to the new names.
+- **Weighing it.** Keeping the old labels would avoid the breaking change. But once V3 is the CLI default, most Kiro CLI work would be shown as "Kiro IDE". The maintainer accepted the rename as the lesser cost.
 - **"Kiro IDE (legacy)" (0.x) stays as it is.** The deduplication of 0.x against 1.0 is unaffected.
 - **Kiro Crew.** Crew's V3 (`kas`) conversations get their tokens and cost from Crew's usage records. Crew deletes a KAS session's record when it frees the session, so overlap with the shared store is limited. Before relying on that, check whether a still-running Crew KAS session should yield as Codex-backend conversations do (#353).
 - **Security.** Nothing new is read. The same files are already opened with the regular-file guard from #352.
@@ -86,6 +95,5 @@ kiroku already reads Kiro CLI V3 sessions, but labels them "Kiro IDE". Nothing i
 
 ## Open questions
 
-- The display label for the shared store ("Kiro", "Kiro IDE / CLI", or keep "Kiro IDE" with a note).
 - Whether the V2 → V3 conversion really keeps the V2 file, and whether the converted ID is always `sess_<V2 id>`.
 - Whether `cloud-sandbox` sessions (`executionTarget`) are also written to the local store, and whether they should count as local activity.

@@ -7,9 +7,9 @@ ADRs record explicit design choices; [Design Logs](../design-log/README.md) pres
 | Topic | Status | ADR |
 |---|---|---|
 | Remote session import (Phase 2) | Proposed (not accepted) | [0020](0020-remote-session-import.md) |
-| Kiro CLI V3 apart from V2; V3 shares the Kiro IDE store (`internal/source/kiro.go`, `core.Records`; keywords: Kiro CLI, V3, KAS, sess_, Kiro IDE label, V2 dedup) | Proposed (not accepted) | [0021](0021-kiro-cli-v3-separate-source.md) |
+| Kiro CLI V3 apart from V2; V3 shares the Kiro IDE store, shown as "Kiro IDE / CLI"; V2 shown as "Kiro CLI (Classic)" (`internal/source/kiro.go`, `core.Agents`, `core.Records`; keywords: Kiro CLI, V3, KAS, sess_, labels, V2 dedup, kiroku json source) | Accepted | [0021](0021-kiro-cli-v3-separate-source.md) |
 
-There are no currently Accepted ADRs in this index. Only a human decision owner may accept an ADR. Proposed records are not binding constraints. An empty index does not prove a change safe.
+Only a human decision owner may accept an ADR. Proposed records are not binding constraints. An empty index does not prove a change safe.
 
 ## Historical compatibility
 
