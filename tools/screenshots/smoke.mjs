@@ -384,6 +384,10 @@ async function run(env) {
     check("Journey に期間内の活動範囲が表示される", await p.locator(".journey-name small").filter({hasText:"→"}).count() > 0);
     check("Journey のコミットマーカーは詳細を開ける", await p.locator(".journey [data-git]").count() === 0 || await p.locator(".journey [data-git]").first().getAttribute("aria-label") !== null);
     check("Journey のPRマーカーには説明がある", await p.locator(".journey [data-pr]").count() === 0 || await p.locator(".journey [data-pr]").first().getAttribute("aria-label") === "Recorded pull request");
+    await p.locator("#projectbtn").click(); await pause();
+    check("Project view にプロジェクトの概要が表示される", await p.locator(".project-card").count() > 0 && await p.locator(".project-stats").count() > 0);
+    check("Project view は Month を維持する", await p.locator("#projectbtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
+    check("Project view に推測を避ける説明がある", await p.locator(".project-disclaimer").count() === 1);
     await p.locator("#calendarbtn").click(); await pause();
     check("Calendar に戻っても Month を維持する", await p.locator("#calendarbtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
     await p.keyboard.press("w"); await pause();
