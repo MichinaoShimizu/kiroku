@@ -19,8 +19,9 @@ function render(){
   $("#yrbtn").hidden = !YEAR_ON || !DATA.length || !!(META && META.scope); // 週・月だけを書き出したファイルには 1 年の記録がない（最初の記録や「初めて」を取り違える）
   $("#prev").setAttribute("aria-label", M ? "Previous month" : "Previous week"); $("#next").setAttribute("aria-label", M ? "Next month" : "Next week");
   document.querySelectorAll("#mode button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.mode));
-  $("#calendarbtn").setAttribute("aria-pressed", String(!st.journey));
+  $("#calendarbtn").setAttribute("aria-pressed", String(!st.journey && !st.projectView));
   $("#journeybtn").setAttribute("aria-pressed", String(st.journey));
+  $("#projectbtn").setAttribute("aria-pressed", String(st.projectView));
 
   const inRange = DATA.filter(s => s.end >= ws && s.start < we);
   const shown = inRange.filter(matches);
@@ -41,7 +42,7 @@ function render(){
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
 
   if (!M && st.zAuto) st.z = fitZoom(); // ズームを選んでいなければ、この週の作業の時間帯が枠に収まる高さに
-  if (st.journey) journeyGrid(shown, ws, we); else M ? monthGrid(shown, ws, we, todayKey) : timeline(shown, inRange, ws, we, todayKey);
+  if (st.projectView) projectGrid(shown, ws, we); else if (st.journey) journeyGrid(shown, ws, we); else M ? monthGrid(shown, ws, we, todayKey) : timeline(shown, inRange, ws, we, todayKey);
   edgeFade($("#tl")); // 月表示や空の週では消す
   $("#skipcal").hidden = !!st.q; // 検索の最中は、結果がカレンダーの上にあり、下のサマリーは空
   lastFlags = []; // 見直す候補は表示中の期間のものだけ（検索中や記録のない期間に、前の期間の候補を詳細に出さない）
@@ -334,4 +335,29 @@ function journeyGrid(sessions, ws, we){
   root.querySelectorAll("[data-session]").forEach(b => b.onclick=()=>select(b.dataset.session));
   root.querySelectorAll("[data-git]").forEach(b => b.onclick=()=>select("git:"+b.dataset.git));
   root.querySelectorAll("[data-pr]").forEach(b => b.onclick=()=>select("pr:"+b.dataset.pr));
+}
+
+/* Project: a project-first summary of observed events in the selected period.
+   Counts are activity evidence, never inferred progress or outcomes. */
+function projectGrid(sessions, ws, we){
+  const root = $("#tl"), groups = new Map();
+  sessions.forEach(s => {
+    const name = s.project || "Unknown project";
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name).push(s);
+  });
+  if (!groups.size){ root.innerHTML = '<div class="journey-empty">No matching project activity in this period.</div>'; return; }
+  const commits = gitShown(sessions).filter(c => c.t >= ws && c.t < we);
+  const ordered = [...groups].sort((a,b)=>b[1].length-a[1].length || a[0].localeCompare(b[0]));
+  root.innerHTML = '<div class="project-grid" aria-label="Projects in selected period">' + ordered.map(([name,items]) => {
+    const projectCommits = commits.filter(c=>c.project===name);
+    const prs = items.flatMap(s=>(s.prAt||[]).filter(pr=>typeof pr.t==="number" && pr.t>=ws && pr.t<we).map(pr=>({s,pr})));
+    const first = items.reduce((n,s)=>Math.min(n,s.start),we);
+    const last = items.reduce((n,s)=>Math.max(n,s.end),ws);
+    const sources = [...new Set(items.map(s=>s.source).filter(Boolean))].sort();
+    return '<section class="project-card"><h3>'+esc(name)+'</h3><p class="project-span">'+esc(dMD(new Date(Math.max(ws,first)*1000))+' → '+dMD(new Date(Math.min(we-1,last)*1000)))+'</p><div class="project-stats"><span>'+plural(items.length,"session")+'</span><span>'+plural(projectCommits.length,"commit")+'</span><span>'+plural(prs.length,"recorded PR")+'</span></div><p class="project-sources">'+esc(sources.join(" · ") || "Unknown agent")+'</p><div class="project-events" aria-label="Recent recorded events">'+
+      [...items.map(s=>({t:s.start,type:"session",id:s.id,label:s.title||"Session"})),...projectCommits.map(c=>({t:c.t,type:"git",id:c.hash,label:c.subject||"Commit"})),...prs.map(({s,pr})=>({t:pr.t,type:"pr",id:prKey(s,pr),label:"Recorded pull request"}))].sort((a,b)=>b.t-a.t).slice(0,8).map(e=>'<button data-event="'+esc(e.type+":"+e.id)+'" title="'+esc(e.label)+'">'+esc(e.type==="session"?"Session":e.type==="git"?"Commit":"PR")+' · '+esc(e.label)+'</button>').join("")+
+      '</div></section>';
+  }).join("")+'</div><p class="project-disclaimer">Observed activity only. Counts do not measure progress, completion, or business impact.</p>';
+  root.querySelectorAll("[data-event]").forEach(b=>b.onclick=()=>{ const v=b.dataset.event; select(v.startsWith("session:")?v.slice(8):v); });
 }
