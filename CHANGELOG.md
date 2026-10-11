@@ -2,6 +2,16 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Kiro: a Kiro CLI Classic session that you open in Kiro CLI 3.0 (`kiro-cli chat --v3 --resume-id <id>`) was counted twice, once in "Kiro CLI (Classic)" and once in "Kiro IDE / CLI", because kiro-cli copies it to the 3.0 store as `sess_<id>` and keeps the Classic file. It is now counted once, as the 3.0 session, which holds the prompts sent after the switch. The 3.0 copy has no credit records for the turns before the switch, so their credits, turn count and model requests are taken from the Classic session ([ADR 0021](docs/adr/0021-kiro-cli-v3-separate-source.md))
+
+### Security
+
+- A Kiro Crew conversation held in incognito or temporary mode, opened in Kiro CLI 3.0 (`--resume-id`), is now shown with counts and times only in its 3.0 copy too, as its Classic and SQLite copies already were; its prompts and title in the 3.0 copy were shown in full
+
 ## v0.32.0 - 2026-10-11
 
 ### Changed
