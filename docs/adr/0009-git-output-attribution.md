@@ -28,14 +28,5 @@ Earlier approaches and reversals are listed only where linked PRs document them.
 
 Current implementation: `internal/gitlog/gitlog.go` defines `Commit.AI` as a time-matched heuristic and documents local push-reflog limitations. Verify any later output metrics against `internal/core/output.go` and current report UI.
 
-## Decision
 
-The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
 
-## Consequences
-
-See the existing rationale and consequences discussion above. No additional outcome is asserted.
-
-## Historical confidence and open questions
-
-Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.
