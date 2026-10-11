@@ -1,11 +1,8 @@
 # Design Log 0015: Comparable periods and explicitly estimated forecasts
 
 Status: Historical observation (not an accepted decision)
-Date: Unknown
+Historical decision date: Unknown
 Earliest cited merged PR: [#70](https://github.com/MichinaoShimizu/kiroku/pull/70) (2026-10-04 UTC; evidence anchor, not an approval date)
-Related: None
-Supersedes: None
-Superseded by: None
 
 Scope: Phase 1 — local sessions
 

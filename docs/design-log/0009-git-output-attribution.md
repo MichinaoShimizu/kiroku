@@ -1,10 +1,7 @@
 # Design Log 0009: Git output is evidence, not business outcome
 
 Status: Historical observation (not an accepted decision)
-Date: Unknown
-Related: None
-Supersedes: None
-Superseded by: None
+Historical decision date: Unknown
 
 Scope: Phase 1 — local sessions
 

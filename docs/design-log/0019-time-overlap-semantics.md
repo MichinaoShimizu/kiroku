@@ -1,11 +1,8 @@
 # Design Log 0019: Time overlap and usage allocation
 
 Status: Historical observation (not an accepted decision)
-Date: Unknown
+Historical decision date: Unknown
 Earliest cited merged PR: [#54](https://github.com/MichinaoShimizu/kiroku/pull/54) (2026-10-04 UTC; evidence anchor, not an approval date)
-Related: None
-Supersedes: None
-Superseded by: None
 
 Scope: Phase 1 — local sessions
 

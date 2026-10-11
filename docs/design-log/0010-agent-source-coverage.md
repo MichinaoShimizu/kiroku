@@ -1,11 +1,8 @@
 # Design Log 0010: Native source adapters and recording coverage
 
 Status: Historical observation (not an accepted decision)
-Date: Unknown
+Historical decision date: Unknown
 Earliest cited merged PR: [#6](https://github.com/MichinaoShimizu/kiroku/pull/6) (2026-10-03 UTC; evidence anchor, not an approval date)
-Related: None
-Supersedes: None
-Superseded by: None
 
 Scope: Phase 1 — local sessions
 

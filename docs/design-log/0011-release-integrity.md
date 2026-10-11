@@ -1,11 +1,8 @@
 # Design Log 0011: Release integrity and provenance
 
 Status: Historical observation (not an accepted decision)
-Date: Unknown
+Historical decision date: Unknown
 Earliest cited merged PR: [#56](https://github.com/MichinaoShimizu/kiroku/pull/56) (2026-10-04 UTC; evidence anchor, not an approval date)
-Related: None
-Supersedes: None
-Superseded by: None
 
 Scope: Phase 1 — local sessions
 

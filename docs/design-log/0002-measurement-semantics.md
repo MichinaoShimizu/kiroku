@@ -1,11 +1,8 @@
 # Design Log 0002: Measurement semantics and evidence fidelity
 
 Status: Historical observation (not an accepted decision)
-Date: Unknown
+Historical decision date: Unknown
 Earliest cited merged PR: [#10](https://github.com/MichinaoShimizu/kiroku/pull/10) (2026-10-03 UTC; evidence anchor, not an approval date)
-Related: None
-Supersedes: None
-Superseded by: None
 
 Scope: Phase 1 — local sessions
 

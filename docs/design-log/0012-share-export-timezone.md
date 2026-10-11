@@ -1,11 +1,8 @@
 # Design Log 0012: Scoped exports and time-zone fidelity
 
 Status: Historical observation (not an accepted decision)
-Date: Unknown
+Historical decision date: Unknown
 Earliest cited merged PR: [#124](https://github.com/MichinaoShimizu/kiroku/pull/124) (2026-10-06 UTC; evidence anchor, not an approval date)
-Related: None
-Supersedes: None
-Superseded by: None
 
 Scope: Phase 1 — local sessions
 
