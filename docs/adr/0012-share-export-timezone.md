@@ -12,11 +12,11 @@ Scope: Phase 1 — local sessions
 
 This decision area evolved through multiple merged PRs. This record preserves the documented tradeoffs without inventing historical approvals or alternatives.
 
-## Documented decision and evolution
+## Decision
 
 [#124](https://github.com/MichinaoShimizu/kiroku/pull/124) adds period-scoped `kiroku html --week/--month` exports alongside local diagnostics/autostart. [#127](https://github.com/MichinaoShimizu/kiroku/pull/127) fixes the writer/viewer time-zone discrepancy: exported scoped pages use the writer's time zone and carry `meta.scope.offset`/`zone`. [#28](https://github.com/MichinaoShimizu/kiroku/pull/28) notes exported HTML can include Git commit messages.
 
-## Rationale and consequences
+## Consequences
 
 A shareable file is not automatically safe to share. The scope restricts time, not necessarily the sensitivity of paths, prompts, commit messages or repository information. Date boundaries must not silently change when a file opens in another time zone.
 
