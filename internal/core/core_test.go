@@ -339,6 +339,11 @@ func TestIsLimitError(t *testing.T) {
 		"Usage limit reached · continuing automatically at 3:45pm · esc to cancel",
 		"429 Too Many Requests",
 		"API Error: status 429",
+		// Console の前払いクレジットが尽きた（Usage limits の "Credit balance is too low"）
+		"Credit balance is too low",
+		`API Error: 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API."}}`,
+		// 使用量のクレジットに切りかえる確認に答えがなく、上限で止まった
+		"Fable limit reached · continuing on Fable 5.1 uses usage credits, and the prompt to confirm went unanswered",
 	}
 	for _, s := range yes {
 		if !IsLimitError(s) {
@@ -358,6 +363,8 @@ func TestIsLimitError(t *testing.T) {
 		// 上限が解除されて続きを始めた知らせ
 		"Usage limit reset · continuing automatically",
 		"Your usage limit has reset",
+		// 使用量のクレジットを使うという知らせで、上限ではない
+		"Fable 5.1 now uses usage credits",
 	}
 	for _, s := range no {
 		if IsLimitError(s) {

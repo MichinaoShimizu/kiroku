@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Usage limit hits now include Claude Code's "Credit balance is too low" error (prepaid Console credits ran out), also when it comes as the API's "Your credit balance is too low to access the Anthropic API"
+
 ## v0.31.0 - 2026-10-10
 
 ### Added
