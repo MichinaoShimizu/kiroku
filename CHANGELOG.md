@@ -20,6 +20,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Security
 
+- Any history (Claude Code, Codex, Kiro Crew and the others) with numbers too large to be real, such as a token count of 1.7e308, could make a total infinite, after which `kiroku html` and `kiroku json` failed and `kiroku serve` showed no history at all. Numbers above 10^15, and NaN or infinity, are now ignored wherever kiroku reads a number from history
 - A Kiro history with credit amounts too large to be real (such as 1.7e308) could make the total infinite, after which `kiroku html` and `kiroku json` failed and `kiroku serve` showed no history at all. A single entry above 1,000,000 credits now counts as 0
 - A Kiro Crew conversation held in incognito or temporary mode on the Codex backend is now shown with counts and times only in its Codex session too, as its kiro-cli and SQLite copies already were; its prompts, replies and title in Codex's own history were shown in full
 - kiroku no longer hangs when a named pipe (FIFO) or another non-regular file sits where history is expected, such as `~/.claude/projects/<project>/<session>.jsonl` or a Codex `rollout-*.jsonl`. `kiroku stats`, `kiroku serve`, `kiroku html` and `kiroku archive` used to wait forever opening it; now such files are not opened and are listed as unreadable in "Data sources" ("not a regular file"). JSON history files (Kiro `session.json`, Crew `session_map.json` and `state.json`, and others) larger than 64 MiB are no longer read into memory and are listed as unreadable too

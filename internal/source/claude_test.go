@@ -1,6 +1,7 @@
 package source
 
 import (
+	"encoding/json"
 	"math"
 	"os"
 	"path/filepath"
@@ -527,5 +528,22 @@ func TestClaudeAdvisorUsage(t *testing.T) {
 	}
 	if seen != 2 {
 		t.Errorf("Responses・Peak context usage が出ていない: %+v", s.Native)
+	}
+}
+
+// 壊れた・悪意のある記録の巨大な数（1.7e308 のトークン数）を足しても +Inf にならず、セッションを JSON に書ける。
+func TestClaudeHugeUsageStaysFinite(t *testing.T) {
+	root := t.TempDir()
+	lines := `{"type":"user","sessionId":"s1","uuid":"u1","timestamp":"2026-10-05T00:00:00Z","cwd":"/w","message":{"role":"user","content":"hi"}}
+{"type":"assistant","sessionId":"s1","uuid":"a1","requestId":"r1","timestamp":"2026-10-05T00:00:05Z","message":{"id":"m1","model":"claude-opus-5-5","role":"assistant","content":[{"type":"text","text":"ok"}],"usage":{"input_tokens":1.7e308,"output_tokens":5}}}
+{"type":"assistant","sessionId":"s1","uuid":"a2","requestId":"r2","timestamp":"2026-10-05T00:00:09Z","message":{"id":"m2","model":"claude-opus-5-5","role":"assistant","content":[{"type":"text","text":"ok"}],"usage":{"input_tokens":1.7e308,"output_tokens":5}}}
+`
+	writeFiles(t, root, map[string]string{"p/s1.jsonl": lines})
+	bs := load(t, &Claude{Root: root})
+	if len(bs) != 1 {
+		t.Fatalf("%d 件, want 1", len(bs))
+	}
+	if _, err := json.Marshal(bs[0].Finish(15)); err != nil {
+		t.Errorf("セッションを JSON に書けない: %v", err)
 	}
 }
