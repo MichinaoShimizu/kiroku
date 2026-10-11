@@ -342,7 +342,7 @@ Press "?" on any metric in the view to see the same explanation, and open the me
 |---|---|---|
 | Claude Code | `~/.claude/projects/*/*.jsonl` | Per message |
 | Kiro IDE (v1.0 and later) | `~/.kiro/sessions/<hash>/sess_*/` | Per message |
-| Kiro CLI | `~/.kiro/sessions/cli/` (the opt-in V3 storage, `kiro-cli --v3`, is not read yet) | Per prompt |
+| Kiro CLI | `~/.kiro/sessions/cli/` (V3 sessions, `kiro-cli --v3`, are stored with Kiro IDE sessions and shown as Kiro IDE; see [How histories are read](sources.md#kiro-cli)) | Per prompt |
 | Kiro IDE (before v1.0) | `<globalStorage>/kiro.kiroagent/workspace-sessions/`, the execution files in `<globalStorage>/kiro.kiroagent/<32-hex workspace>/<session>/` and the `.chat` files in `<globalStorage>/kiro.kiroagent/<32-hex workspace>/` (`<globalStorage>` is `~/Library/Application Support/Kiro/User/globalStorage` on macOS, `%APPDATA%\Kiro\User\globalStorage` on Windows, and `~/.config/Kiro/User/globalStorage` or `~/.kiro-server/data/User/globalStorage` on Linux) | Start and last update, plus the start and end of each execution when its file exists |
 | Kiro Crew | `~/.kiro/crew/` (`session_map.json`, `usage/tokens/`) | Per prompt or turn |
 | Kiro CLI (old versions) | `kiro-cli/data.sqlite3` (table below) | Per prompt |
