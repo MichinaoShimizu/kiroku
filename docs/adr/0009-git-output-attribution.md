@@ -12,11 +12,11 @@ Scope: Phase 1 — local sessions
 
 This decision area evolved through multiple merged PRs. This record preserves the documented tradeoffs without inventing historical approvals or alternatives.
 
-## Documented decision and evolution
+## Decision
 
 Git commits complement agent-tool events rather than proving business value. [#27](https://github.com/MichinaoShimizu/kiroku/pull/27) introduced successful Claude tool invocations as output proxies, explicitly excluding failed/unrecorded tool results. [#28](https://github.com/MichinaoShimizu/kiroku/pull/28) added local Git commits including human-authored work; it associates AI tool commits with Git records using a ±2-minute timestamp heuristic, not cryptographic provenance. [#112](https://github.com/MichinaoShimizu/kiroku/pull/112) removed PR counts and AI-edited lines from key views because only partial agent histories recorded them. [#293](https://github.com/MichinaoShimizu/kiroku/pull/293) prevented implicit remote Git fetching, even from partial clones.
 
-## Rationale and consequences
+## Consequences
 
 The output count is an observable proxy, not a causal measure of AI contribution or business outcome. Git enrichment reads only local repositories; missing local repositories or unrecorded manual/remote activity limits coverage.
 
