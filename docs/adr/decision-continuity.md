@@ -52,7 +52,7 @@ flowchart LR
 
 ## Minimal artifact contract
 
-- **Design Log**: stable ID, topic/scope, historical observations, links to source evidence, confidence labels (Documented/Observed/Inferred/Unknown), reversals, open questions and verification limits. A Design Log does not need a fictitious decision owner or rejected alternatives.
+- **Design Log**: stable ID, topic/scope, historical observations, links to source evidence, historical date if verified (otherwise Unknown), confidence labels (Documented/Observed/Inferred/Unknown), reversals, open questions and verification limits. A Design Log does not need a fictitious decision owner, ADR supersession status or rejected alternatives. Its historical date must not be confused with ADR approval.
 - **ADR**: stable ID, Status, Date (or Unknown), Scope, owner, Context, proposed or accepted Decision, actual Alternatives, Consequences, Verification, Related/Supersedes links. Only an authorized owner can accept or reject.
 - **ADR index**: only actual ADRs and their applicability, status and supersession. A legacy compatibility redirect is not an ADR entry.
 - **Design Log index**: historical records, topic/path hints, evidence status and references to related ADRs where genuinely established.
