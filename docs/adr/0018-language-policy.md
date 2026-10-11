@@ -8,11 +8,11 @@ Superseded by: None
 
 Scope: Phase 1 — local sessions
 
-## Documented decision and evolution
+## Decision
 
 [#46](https://github.com/MichinaoShimizu/kiroku/pull/46) first added a bilingual interface with locale detection and a manual language switch. [#110](https://github.com/MichinaoShimizu/kiroku/pull/110) deliberately removed the bilingual UI and translated application/documentation text into English, while retaining Japanese history parsing. [#317](https://github.com/MichinaoShimizu/kiroku/pull/317) restored a Japanese README for discovery while leaving the guide in English.
 
-## Rationale and consequences
+## Consequences
 
 The current intended distinction is English application UI and guide, with a Japanese README as an entry point. Historical bilingual support was superseded; it should not be inferred from older screenshots or source discussions.
 
