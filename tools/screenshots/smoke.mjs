@@ -386,6 +386,7 @@ async function run(env) {
     check("Journey のPRマーカーには説明がある", await p.locator(".journey [data-pr]").count() === 0 || await p.locator(".journey [data-pr]").first().getAttribute("aria-label") === "Recorded pull request");
     await p.locator("#projectbtn").click(); await pause();
     check("Project ビューが選択できる", await p.locator("#projectbtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
+    check("Project のエージェント内訳が表示される", await p.locator(".project-agents .project-agent").count() > 0);
     check("Project に記録された活動が表示される", await p.locator(".project-card").count() > 0 && await p.locator(".project-events [data-session]").count() > 0);
     await p.locator(".project-events button[data-session]").first().click(); await pause();
     check("Project session opens details", await p.locator("#drawer").getAttribute("aria-hidden") === "false");
