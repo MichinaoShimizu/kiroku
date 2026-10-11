@@ -8,11 +8,11 @@ Superseded by: None
 
 Scope: Phase 1 — local sessions
 
-## Context and documented decision
+## Context and decision
 
 [#1](https://github.com/MichinaoShimizu/kiroku/pull/1) established a standalone HTML deliverable. [#93](https://github.com/MichinaoShimizu/kiroku/pull/93) separated the 260 KB monolithic web template into HTML, CSS and JavaScript source files while preserving byte-for-byte identical assembled output through Go embedding. Subsequent UI modules evolved further; the distributable remains a generated local view rather than a hosted web application.
 
-## Rationale and consequences
+## Consequences
 
 Internal modularity and an easily shared, local one-file report are compatible. Template assembly must be tested, including script/CSP integrity and cross-platform line endings.
 
