@@ -36,4 +36,4 @@ The historical [decision ledger](../adr/phase1-decision-ledger.md), [claim evide
 
 ## Validation scenarios
 
-[Decision Continuity scenario tests](scenario-tests.md) document twelve expected behaviors, static instruction checks and the outstanding live-agent execution gate.
+[Decision Continuity scenario tests](scenario-tests.md) document twelve expected behaviors, static instruction checks and the live-agent gate; [first live results](scenario-results-2026-10-11.md).

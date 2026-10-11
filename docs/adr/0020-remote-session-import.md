@@ -42,7 +42,7 @@ No implementation or test execution is claimed by this ADR.
 
 ## Relationship to roadmap
 
-[ADR 0001](0001-local-session-foundation.md) records the existing **Phase 1: local sessions** foundation. This ADR proposes **Phase 2: remote sessions**. References in the existing issues to “Phase 0” and “Phase 1 offline import” describe the former remote-import-only work breakdown; see [ADR index](README.md) for the terminology mapping.
+[Decision Log 0001](../decision-log/0001-local-session-foundation.md) records the existing **Phase 1: local sessions** foundation. This ADR proposes **Phase 2: remote sessions**. References in the existing issues to “Phase 0” and “Phase 1 offline import” describe the former remote-import-only work breakdown; see [ADR index](README.md) for the terminology mapping.
 
 ## Consequences
 

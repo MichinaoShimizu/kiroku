@@ -48,6 +48,29 @@ class RunnerSmokeTests(unittest.TestCase):
         self.assertEqual(manifest["results"][0]["exit_code"], 4)
         self.assertEqual(manifest["results"][0]["status"], "INCONCLUSIVE")
 
+    def test_checkout_revision_is_extracted_into_workspace(self):
+        with tempfile.TemporaryDirectory() as repo:
+            git = ["git", "-C", repo, "-c", "user.name=t", "-c", "user.email=t@example.com"]
+            subprocess.run(["git", "init", "-q", repo], check=True)
+            skill = pathlib.Path(repo) / ".claude" / "skills" / "adr-guard" / "SKILL.md"
+            skill.parent.mkdir(parents=True)
+            skill.write_text("pinned skill\n")
+            subprocess.run(git + ["add", "."], check=True)
+            subprocess.run(git + ["commit", "-q", "-m", "x"], check=True)
+            revision = subprocess.run(["git", "-C", repo, "rev-parse", "HEAD"], capture_output=True,
+                                      text=True, check=True).stdout.strip()
+            agent = [sys.executable, "-c", "print(open('.claude/skills/adr-guard/SKILL.md').read())"]
+            with tempfile.TemporaryDirectory() as directory:
+                result = subprocess.run(
+                    [sys.executable, str(RUNNER), "--revision", revision,
+                     "--agent-version", "fake", "--agent-argv-json", json.dumps(agent),
+                     "--checkout", repo, "--case", "S01", "--output", directory],
+                    capture_output=True, text=True, timeout=40, check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                response = (pathlib.Path(directory) / "S01.response.txt").read_text()
+                self.assertIn("pinned skill", response)
+
     def test_invalid_revision_rejected(self):
         agent = [sys.executable, "-c", "print('x')"]
         with tempfile.TemporaryDirectory() as directory:

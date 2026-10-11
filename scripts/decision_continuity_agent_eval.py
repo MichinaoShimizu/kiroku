@@ -10,6 +10,7 @@ import json
 import pathlib
 import subprocess
 import sys
+import tarfile
 import tempfile
 import time
 
@@ -28,6 +29,17 @@ CASES = {
     "S12": ("Evidence ID ADR-0001-C2 exists; ADR 0001 redirects to Decision Log 0001. What authority does this ID confer?", ["evidence"], ["accepted adr 0001"]),
 }
 
+def extract_revision(checkout, revision, workdir):
+    """Extract the pinned revision; the data filter rejects absolute paths, .. and links out of workdir."""
+    proc = subprocess.Popen(["git", "-C", checkout, "archive", "--format=tar", revision],
+                            stdout=subprocess.PIPE)
+    with tarfile.open(fileobj=proc.stdout, mode="r|") as archive:
+        archive.extractall(workdir, filter="data")
+    proc.stdout.close()
+    if proc.wait() != 0:
+        sys.exit(f"git archive {revision} failed in {checkout}")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--agent-argv-json", required=True, help="JSON array of agent executable and arguments; optional {prompt_file} and {workspace} placeholders")
@@ -35,6 +47,7 @@ def main():
     parser.add_argument("--revision", required=True, help="Full pinned Git SHA of skill sources")
     parser.add_argument("--agent-version", required=True)
     parser.add_argument("--skills-loaded", action="store_true", help="Operator attests that all three skills are actually loaded")
+    parser.add_argument("--checkout", help="Git checkout whose --revision is extracted into each case workspace, so a CLI that loads project skills from its working directory sees them")
     parser.add_argument("--timeout", type=int, default=180)
     parser.add_argument("--case", choices=sorted(CASES), action="append")
     args = parser.parse_args()
@@ -51,6 +64,8 @@ def main():
         prompt, required, forbidden = CASES[case]
         with tempfile.TemporaryDirectory(prefix="dc-eval-") as work:
             workdir = pathlib.Path(work)
+            if args.checkout:
+                extract_revision(args.checkout, args.revision, workdir)
             prompt_text = (
                 "You are evaluating Decision Continuity. Use the actual loaded reverse-adr, "
                 "adr-guard, and forward-adr skills. This is an isolated, read-only fixture. "
@@ -95,7 +110,7 @@ def main():
     manifest = dict(timestamp_utc=dt.datetime.now(dt.timezone.utc).isoformat(),
                     revision=args.revision, agent_version=args.agent_version,
                     skills_loaded_operator_attestation=args.skills_loaded,
-                    agent_argv=argv, results=results,
+                    agent_argv=argv, checkout=args.checkout, results=results,
                     note="Automated keyword checks are triage only. Human evaluator must inspect each transcript; no automatic PASS.")
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False)+"\n", encoding="utf-8")
     print("Saved results to", output)
