@@ -1,35 +1,5 @@
-# ADR 0008: Incremental local history processing
+# Moved: Design Log 0008
 
-Status: Retrospective
-Date: Unknown
-Earliest cited merged PR: [#11](https://github.com/MichinaoShimizu/kiroku/pull/11) (2026-10-03 UTC; evidence anchor, not an approval date)
-Related: None
-Supersedes: None
-Superseded by: None
+This historical record is a Design Log, not an accepted ADR.
 
-Scope: Phase 1
-
-## Context
-
-Reparsing all agent histories on every live refresh becomes expensive as histories grow, particularly when agents append frequently.
-
-## Decision
-
-- Start with a lightweight file-name/size/mtime fingerprint to detect changes while serving a local view ([#11](https://github.com/MichinaoShimizu/kiroku/pull/11)).
-- Debounce reloads during active writes while enforcing a maximum delay to avoid indefinitely stale views ([#23](https://github.com/MichinaoShimizu/kiroku/pull/23)).
-- Load only changed histories and summarize sessions relevant to a period rather than rebuilding everything ([#69](https://github.com/MichinaoShimizu/kiroku/pull/69)).
-- Improve Codex/Git incremental behavior ([#129](https://github.com/MichinaoShimizu/kiroku/pull/129)), and later recalculate only affected weeks/months ([#258](https://github.com/MichinaoShimizu/kiroku/pull/258)).
-- Benchmark year-scale history and avoid unnecessary processing/marshaling ([#257](https://github.com/MichinaoShimizu/kiroku/pull/257)).
-
-## Consequences
-
-Optimize source-unit reading and affected time ranges without changing observable counts. Caches must invalidate when source identity, parsing rules or attribution changes; correctness fixtures take precedence over cache hits.
-
-## Historical confidence
-
-The incremental direction is evidenced by the PR sequence. This ADR does not claim a particular cache algorithm was formally selected in advance. Inspect `internal/cli/cache.go`, `internal/source/watch.go`, and report tests before changing the implementation.
-
-
-
-
-
+See [Design Log 0008](../design-log/0008-incremental-local-processing.md). This stub preserves old links.
