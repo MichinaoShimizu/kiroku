@@ -22,6 +22,9 @@ function render(){
   $("#calendarbtn").setAttribute("aria-pressed", String(st.view === "calendar"));
   $("#journeybtn").setAttribute("aria-pressed", String(st.view === "journey"));
   $("#projectbtn").setAttribute("aria-pressed", String(st.view === "project"));
+  const viewLabel = {calendar:"Calendar", journey:"Journey", project:"Project activity"}[st.view];
+  $("#tl").setAttribute("aria-label", viewLabel);
+  $("#skipcal").textContent = "Skip " + viewLabel.toLowerCase();
 
   const inRange = DATA.filter(s => s.end >= ws && s.start < we);
   const shown = inRange.filter(matches);
@@ -36,7 +39,7 @@ function render(){
   if (!M){ $("#zin").onclick = () => zoom(1); $("#zout").onclick = () => zoom(-1); }
   // 検索・凡例で絞り込んでいるあいだ、絞り込めない合計（作業時間・トークンなど）は薄くして、そう断る
   const fn = $("#fnote"); fn.hidden = !filtering();
-  fn.textContent = `${st.q ? "The calendar shows only sessions that match the search, and their commits." : "Hidden items are left out of the calendar."} Grey figures, at the top and ${M ? "in each day and week" : "under each date"}, are totals for all sessions; sessions and commits there count only what is shown.`;
+  fn.textContent = `${st.q ? "This view shows only sessions matching the search and their linked records." : "Hidden items are left out of this view."} Grey figures, at the top and ${M ? "in each day and week" : "under each date"}, are totals for all sessions; sessions and commits there count only what is shown.`;
   $("#legend").hidden = !inRange.length; // 記録のない期間は、色分け・ズーム・件数を出さない（押しても何も変わらない）
   const cb2 = $("#cb2"); if (cb2) cb2.onchange = () => { st.colorBy = cb2.value; st.hidden.clear(); store.set("colorBy", st.colorBy); render(); };
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });

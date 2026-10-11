@@ -385,6 +385,7 @@ async function run(env) {
     check("Journey のコミットマーカーは詳細を開ける", await p.locator(".journey [data-git]").count() === 0 || await p.locator(".journey [data-git]").first().getAttribute("aria-label") !== null);
     check("Journey のPRマーカーには説明がある", await p.locator(".journey [data-pr]").count() === 0 || await p.locator(".journey [data-pr]").first().getAttribute("aria-label") === "Recorded pull request");
     await p.locator("#projectbtn").click(); await pause();
+    check("Project の領域とスキップリンクが正しい", await p.locator("#tl").getAttribute("aria-label") === "Project activity" && await p.locator("#skipcal").textContent() === "Skip project activity");
     check("Project ビューが選択できる", await p.locator("#projectbtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
     check("Project のエージェント内訳が表示される", await p.locator(".project-agents .project-agent").count() > 0);
     check("Project に記録された活動が表示される", await p.locator(".project-card").count() > 0 && await p.locator(".project-events [data-session]").count() > 0);
@@ -392,6 +393,7 @@ async function run(env) {
     check("Project session opens details", await p.locator("#drawer").getAttribute("aria-hidden") === "false");
     await p.locator("#close").click(); await pause();
     await p.locator("#calendarbtn").click(); await pause();
+    check("Calendar の領域ラベルに戻る", await p.locator("#tl").getAttribute("aria-label") === "Calendar");
     check("Calendar に戻っても Month を維持する", await p.locator("#calendarbtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
     await p.keyboard.press("w"); await pause();
     await p.keyboard.press("?"); await pause();
