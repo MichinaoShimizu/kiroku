@@ -294,16 +294,19 @@ function journeyGrid(sessions, ws, we){
   });
   if (!groups.size){ root.innerHTML = '<div class="journey-empty">No matching project activity in this period.</div>'; return; }
   const ordered = [...groups].sort((a,b) => b[1].length-a[1].length || a[0].localeCompare(b[0]));
+  const shownCommits = gitShown(sessions);
+  const dayBounds = Array.from({length:days},(_,i)=>addDays(start,i).getTime()/1000);
+  dayBounds.push(addDays(start,days).getTime()/1000);
   root.innerHTML = '<div class="journey"><div class="journey-legend" aria-label="Journey marker legend"><span><i class="journey-legend-session"></i> Session</span><span><i class="journey-legend-commit">◆</i> Git commit</span><span><i class="journey-legend-pr">PR</i> Pull request</span><small>Recorded events only; not proof of progress or completion.</small></div><div class="journey-axis"><span>Project</span><div class="journey-days">' +
     Array.from({length:days},(_,i)=>'<span>'+esc(dMD(addDays(new Date(ws*1000),i)))+'</span>').join("") +
     '</div></div>' + ordered.map(([name,items]) => {
       const byDay = Array.from({length:days},()=>[]);
-      items.forEach(s => { for(let i=0;i<days;i++){ const a=addDays(start,i).getTime()/1000, b=addDays(start,i+1).getTime()/1000;
+      items.forEach(s => { for(let i=0;i<days;i++){ const a=dayBounds[i], b=dayBounds[i+1];
         if(s.start<b && s.end>a) byDay[i].push(s);
       }});
       // Observed Git commits are milestones, not inferred completion.
       const commitsByDay = Array.from({length:days},()=>[]);
-      gitShown(sessions).filter(c => c.project === name && c.t >= ws && c.t < we).forEach(c => {
+      shownCommits.filter(c => c.project === name && c.t >= ws && c.t < we).forEach(c => {
         for(let i=0;i<days;i++){
           const a=addDays(start,i).getTime()/1000, b=addDays(start,i+1).getTime()/1000;
           if(c.t>=a && c.t<b){ commitsByDay[i].push(c); break; }
@@ -321,7 +324,8 @@ function journeyGrid(sessions, ws, we){
       const orderedItems = [...items].sort((a,b)=>a.start-b.start);
       const first = orderedItems[0];
       const activity = plural(uniqueDays, "active day") + " · " + plural(items.length, "session");
-      const span = first ? dMD(new Date(Math.max(ws, first.start)*1000)) + " → " + dMD(new Date(Math.min(we-1, Math.max(...items.map(x=>x.end)))*1000)) : "";
+      const lastEnd = items.reduce((latest,item)=>Math.max(latest,item.end),ws);
+      const span = first ? dMD(new Date(Math.max(ws, first.start)*1000)) + " → " + dMD(new Date(Math.min(we-1,lastEnd)*1000)) : "";
       return '<div class="journey-row"><div class="journey-name" title="'+esc(name)+'">'+esc(name)+'<small title="Observed sessions only; not a measure of progress">'+esc(activity)+'</small><small>'+esc(span)+'</small></div><div class="journey-days">' +
         byDay.map((day,i) => '<div class="journey-cell">'+day.slice(0,4).map(s =>
           '<button class="journey-dot" style="--c:'+colorOf(keyOf(s))+'" data-session="'+esc(s.id)+'" title="'+esc((s.title||s.project||"Session")+' · '+s.source)+'" aria-label="'+esc((s.title||"Session")+' · '+s.source)+'"></button>'
