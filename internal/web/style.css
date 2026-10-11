@@ -834,3 +834,11 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
 .journey-dot:hover,.journey-dot:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .journey-more{font-size:var(--fs-2xs);color:var(--ink-3)}
 .journey-empty{padding:36px;text-align:center;color:var(--ink-3)}
+
+/* Distinct controls: visualization, time granularity, and annual report. */
+.view-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.control-group{display:inline-flex;align-items:center;gap:6px}
+.control-label{font-size:var(--fs-xs);color:var(--ink-3);font-weight:600}
+.wk .view-controls .mode{margin-left:0}
+.year-entry{white-space:nowrap}
+@media(max-width:700px){.view-controls{width:100%;gap:8px}.control-group{gap:4px}}

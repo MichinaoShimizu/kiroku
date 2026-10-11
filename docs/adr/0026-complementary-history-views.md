@@ -16,7 +16,7 @@ This is a prospective product/design choice, not a reconstruction of past approv
 
 ## Decision
 
-**Proposed:** Retain Calendar (Week/Month) as the default and allow complementary, explicitly labeled views over the same local session records. Start with a Journey view grouping observed sessions by project and date. Reuse the existing search/filter and session-detail semantics rather than maintaining separate data interpretations. Display counts as activity, not as productivity or business outcomes. Do not infer relationships, progress, or intent from mere temporal proximity.
+**Proposed:** Keep View (Calendar/Journey) independent of Period (Week/Month), with Year in Review as a separate report. Retain Calendar as the default and allow complementary, explicitly labeled views over the same local session records. Start with a Journey view grouping observed sessions by project and date. Reuse the existing search/filter and session-detail semantics rather than maintaining separate data interpretations. Display counts as activity, not as productivity or business outcomes. Do not infer relationships, progress, or intent from mere temporal proximity.
 
 Keep all views inside the existing assembled single-file HTML with no external AI, telemetry, or history upload. Future views should justify their distinct question before being added; do not introduce a generic view framework until repeated implementations demonstrate a need.
 
@@ -43,7 +43,7 @@ Before merge: run `sh tools/check.sh` and `sh tools/check.sh --e2e`; test week/m
 
 ## Open questions
 
-- Should Journey use a separate top-level view selector rather than appear inside the Week/Month control?
+- View and Period are separate controls; switching one preserves the other.
 - What is the expected behavior for long months and hundreds of sessions per project?
 - How should missing or renamed project identities be presented?
 - Which user scenario demonstrates a benefit over existing project summaries?

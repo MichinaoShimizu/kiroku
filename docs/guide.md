@@ -4,7 +4,7 @@ This guide supplements the [README](../README.md). It covers installation and co
 
 ## Journey view
 
-Select **Journey** beside Week and Month to group observed sessions by project and day for the current period. Select a session marker to open its existing details. Search and project/agent filters also apply to Journey. A marker represents recorded activity, not completion, progress, or business impact. Return to Week or Month to inspect the calendar.
+Choose **Calendar** or **Journey** in **View**, independently of **Week** or **Month** in **Period**, to group observed sessions by project and day for the current period. Select a session marker to open its existing details. Search and project/agent filters also apply to Journey. A marker represents recorded activity, not completion, progress, or business impact. Select **Calendar** to return to the calendar without changing the selected period. **Year in Review** is a separate annual report, not a view or period choice.
 
 ## Install
 

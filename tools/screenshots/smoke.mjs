@@ -375,6 +375,13 @@ async function run(env) {
     check("m で月表示になる", await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
     check("月表示では、ズームを出さない", await p.locator("#zin").count() === 0);
     await p.keyboard.press("w"); await pause();
+    await p.locator("#journeybtn").click(); await pause();
+    check("Journey と Week を組み合わせられる", await p.locator("#journeybtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=week]").getAttribute("aria-pressed") === "true");
+    await p.locator("#mode button[data-v=month]").click(); await pause();
+    check("Journey のまま Month に切り替えられる", await p.locator("#journeybtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
+    await p.locator("#calendarbtn").click(); await pause();
+    check("Calendar に戻っても Month を維持する", await p.locator("#calendarbtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
+    await p.keyboard.press("w"); await pause();
     await p.keyboard.press("?"); await pause();
     check("? でショートカットの一覧が開く", await p.locator("#keys").evaluate(d => d.open));
     await p.locator("#keys form button").click(); await pause();
@@ -392,7 +399,8 @@ async function run(env) {
       check("y で 1 年の露光が開かない", !(await p.locator("#yr").evaluate(d => d.open)));
       return;
     }
-    check("Year は Week・Month の隣に出る", await p.locator("#mode #yrbtn").isVisible());
+    check("Year in Review は View・Period と独立した入口に出る", await p.locator(".view-controls > #yrbtn").isVisible());
+    check("View と Period が独立している", await p.locator("#calendarbtn").count() === 1 && await p.locator("#journeybtn").count() === 1 && await p.locator("#mode button[data-v]").count() === 2);
     await p.locator("#yrbtn").click(); await pause();
     check("Year を押すと 1 年の露光が開き、Week・Month の選択は変わらない", await p.locator("#yr").evaluate(d => d.open) && await p.locator("#mode [aria-pressed=true]").count() === 1);
     await p.keyboard.press("Escape"); await pause();
