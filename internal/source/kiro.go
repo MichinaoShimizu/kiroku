@@ -177,12 +177,17 @@ type KiroCLI struct {
 	crewText    int      // Crew の会話の記録だけにある会話
 	crewElse    int      // ほかの履歴（Claude Code・Codex）が記録しているので、トークンとドル額を足さなかった Crew の行
 	withheld    []string // 中身を出さない会話の core.Builder.Key（Withheld）
+	claims      []string // 中身を出さない会話の、ほかのエージェントの履歴の Claim の鍵（WithheldClaims）
 }
 
 // Withheld は、中身を出さない Crew の会話の core.Builder.Key（kiro-cli の会話 ID の "kiro-cli:<id>" をふくむ）。
 // Kiro CLI の SQLite（QStore）は同じ会話を同じ Key で出し、Crew を見ないので、読み込む側が HideWithheld で隠す。
 // Crew は会話を閉じるときに sessions/cli/<id>.json を消すので、SQLite の写しだけが残ることがある。
 func (k *KiroCLI) Withheld() []string { return k.withheld }
+
+// WithheldClaims は、中身を出さない Crew の会話のうち、Codex の backend で動いた会話の Codex のスレッドの Claim の鍵（CrewInfo.codexClaim）。
+// 同じ会話は Codex 自身の記録（CODEX_HOME）にも残り、kiroku の Codex の読み取りが中身ごと読むので、読み込む側が HideWithheld で隠す。
+func (k *KiroCLI) WithheldClaims() []string { return k.claims }
 
 // Keep は、kiroku archive で残す場所（Kiro Crew は退避した古い会話の記録を消すため）。
 func (k *KiroCLI) Keep() []Kept {
@@ -265,20 +270,24 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 	base := k.Where()
 	if !isDir(base) {
 		// kiro-cli の JSON の履歴がなくても、SQLite の写しを隠せるように、中身を出さない会話は調べる
-		k.withheld = nil
+		k.withheld, k.claims = nil, nil
 		for sid, info := range loadCrew(k.CrewHome, nil, newCrewPrivacy(k.CrewHome, k.CrewArchive)) {
 			if info.Private {
 				k.withheld = append(k.withheld, "kiro-cli:"+sid)
+				if c := info.codexClaim(); c != "" {
+					k.claims = append(k.claims, c)
+				}
 			}
 		}
 		sort.Strings(k.withheld)
+		sort.Strings(k.claims)
 		return nil
 	}
 	var errs fileErrs
 	priv := newCrewPrivacy(k.CrewHome, k.CrewArchive) // 中身を残さない会話（loadCrew・loadCrewSpawns と同じものを使う）
 	crew := loadCrew(k.CrewHome, &errs, priv)
 	usage := loadCrewUsage(k.CrewHome, &errs)
-	k.crew, k.crewFixed, k.crewOnly, k.crewCr, k.crewText, k.crewElse, k.withheld = 0, 0, 0, 0, 0, 0, nil
+	k.crew, k.crewFixed, k.crewOnly, k.crewCr, k.crewText, k.crewElse, k.withheld, k.claims = 0, 0, 0, 0, 0, 0, nil, nil
 	slotInfo := map[string]*CrewInfo{} // 使用量の記録の slot → Crew の情報（session_map の会話と、サブエージェント）
 	sids := make([]string, 0, len(crew))
 	for sid := range crew {
@@ -436,7 +445,8 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			if !o.info.Former {
 				live = i
 			}
-			need = need || len(o.s.Prompts) == 0
+			// 依頼が kiro-cli の履歴にあっても、使用量の上限に当たった行（crewLimitKind）は Crew の会話の記録にしかないので読む
+			need = true
 		}
 		if len(ow) > 0 && ow[0].info.Subagent { // サブエージェントの会話の記録は読まない
 			need = len(rest) > 0
@@ -468,6 +478,8 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 				seenRows[o.info.Key] = true
 				if len(o.s.Prompts) == 0 {
 					addCrewRows(o.s, o.rows)
+				} else {
+					addCrewLimits(o.s, o.rows)
 				}
 			}
 			if len(o.turns) > 0 {
@@ -532,8 +544,11 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			s.File = p
 			s.Key = "kiro-crew:" + stem
 			s.Title, s.Project = firstNonEmpty(cm.title, "Kiro Crew: "+stem), "(Kiro Crew)"
-			if info := byFile[p]; info != nil && info.Cwd != "" {
-				s.Project = info.Cwd
+			if info := byFile[p]; info != nil {
+				if info.Cwd != "" {
+					s.Project = info.Cwd
+				}
+				s.Yield = info.codexClaim() // Codex の backend の会話は、Codex の記録のセッションがあればそちらだけを数える
 			}
 			addCrewRows(s, rows)
 			var first *float64
@@ -559,15 +574,25 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			k.withheld = append(k.withheld, key)
 		}
 	}
+	claimed := map[string]bool{}
+	claim := func(c string) {
+		if c != "" && !claimed[c] {
+			claimed[c] = true
+			k.claims = append(k.claims, c)
+		}
+	}
 	for _, sid := range sids {
 		if crew[sid].Private {
 			withhold("kiro-cli:" + sid)
+			claim(crew[sid].codexClaim())
 		}
 	}
 	for b := range held.private {
 		withhold(b.Key)
+		claim(b.Yield) // Codex の backend の会話（Yield は codexClaim だけ）
 	}
 	sort.Strings(k.withheld)
+	sort.Strings(k.claims)
 	return errs.err()
 }
 

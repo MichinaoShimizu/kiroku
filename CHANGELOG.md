@@ -2,6 +2,17 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Kiro Crew: usage limit hits are now counted. When a spent plan allowance stops a turn, the Crew dashboard writes an `error` line tagged `meta.kind: "usage_limit"` to the conversation log; kiroku counts each one as a usage limit hit at its time (hits within 1 minute count once), including in conversations whose prompts are in the kiro-cli history and, as times only, in private conversations. Sign-in, model and session-start errors are not counted, and the message text is never used
+- Kiro Crew: conversations run on the Codex backend were counted twice, once as a "Kiro Crew" session from Crew's usage records and conversation log and once as the Codex session Codex itself records, doubling their prompts, turns and active time. Crew's session ID for these conversations is the Codex thread ID, so the "Kiro Crew" session is now left out when the Codex session with that thread ID is loaded
+
+### Security
+
+- A Kiro Crew conversation held in incognito or temporary mode on the Codex backend is now shown with counts and times only in its Codex session too, as its kiro-cli and SQLite copies already were; its prompts, replies and title in Codex's own history were shown in full
+
 ## v0.31.0 - 2026-10-10
 
 ### Added

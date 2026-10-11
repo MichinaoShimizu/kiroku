@@ -67,10 +67,17 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 	// 中身を出してはいけない会話（Kiro Crew の incognito・temporary）は、同じエージェントの別の履歴に残る写し
 	// （Kiro CLI の SQLite）も隠す。Amazon Q は同じ形の Key を使うが別のエージェントなので、エージェントの家族（Family）が同じものだけ
 	withheld := map[string]bool{} // Family + "\x00" + Key
+	// ほかのエージェントの履歴に残る写し（Kiro Crew の Codex の backend の会話の、Codex 自身の記録）は Claim の鍵で隠す
+	withheldClaims := map[string]bool{}
 	for _, s := range picked {
 		if w, ok := s.(source.Withholder); ok {
 			for _, key := range w.Withheld() {
 				withheld[s.Family()+"\x00"+key] = true
+			}
+		}
+		if w, ok := s.(source.ClaimWithholder); ok {
+			for _, c := range w.WithheldClaims() {
+				withheldClaims[c] = true
 			}
 		}
 	}
@@ -103,7 +110,7 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 			}
 			n++
 			if sess := o.sess; sess != nil {
-				if o.key != "" && withheld[s.Family()+"\x00"+o.key] {
+				if o.key != "" && withheld[s.Family()+"\x00"+o.key] || o.claim != "" && withheldClaims[o.claim] {
 					// 写しを隠す。sess は kiroku serve のキャッシュにあり、前の画面のデータとしても読まれているので変えない
 					data = append(data, source.HideWithheld(sess))
 				} else {
