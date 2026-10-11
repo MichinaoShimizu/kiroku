@@ -392,7 +392,7 @@ async function run(env) {
       check("y で 1 年の露光が開かない", !(await p.locator("#yr").evaluate(d => d.open)));
       return;
     }
-    check("Year は Week・Month の隣に出る", await p.locator("#mode #yrbtn").isVisible());
+    check("Year in Review は View・Period と独立した入口に出る", await p.locator(".view-controls > #yrbtn").isVisible());
     await p.locator("#yrbtn").click(); await pause();
     check("Year を押すと 1 年の露光が開き、Week・Month の選択は変わらない", await p.locator("#yr").evaluate(d => d.open) && await p.locator("#mode [aria-pressed=true]").count() === 1);
     await p.keyboard.press("Escape"); await pause();
