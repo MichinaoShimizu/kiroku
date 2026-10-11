@@ -2,6 +2,7 @@
 
 Status: Retrospective
 Date: Unknown
+Earliest cited merged PR: [#22](https://github.com/MichinaoShimizu/kiroku/pull/22) (2026-10-03 UTC; evidence anchor, not an approval date)
 Related: None
 Supersedes: None
 Superseded by: None

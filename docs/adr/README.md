@@ -94,7 +94,7 @@ Retrospective records should use sections Context, Decision, Consequences, Alter
 | [0019](0019-time-overlap-semantics.md) | Phase 1 (see ADR for subsystem) | Retrospective | None recorded |
 | [0020](0020-remote-session-import.md) | Phase 2 — remote sessions | Proposed | None recorded |
 
-Dates for legacy ADRs are recorded as `Unknown` pending verification against original merge dates; this is not a claim that the historical change lacked a date. The ADR body remains authoritative for detailed scope and evidence.
+Dates for legacy ADRs remain `Unknown` unless the actual decision date can be established. Where verified, `Earliest cited merged PR` records the UTC merge date of a linked historical source; it is **not** evidence of a formal decision or approval date. ADR 0009 remains pending source-date annotation. The ADR body remains authoritative for detailed scope and evidence.
 
 ## Layout
 
