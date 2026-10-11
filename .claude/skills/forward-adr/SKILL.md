@@ -32,7 +32,8 @@ Use after ADR Guard identifies a material choice that is new, intentionally chan
 Status: Proposed
 Date: <YYYY-MM-DD>
 Scope: <system or domain>
-Related ADRs: <ADR links, if any>\nRelated Design Logs: <Design Log links, if any>
+Related ADRs: <ADR links, if any>
+Related Design Logs: <Design Log links, if any>
 Supersedes/Amends: <ADR links, if any>
 Decision owner: <role or unknown>
 
@@ -72,6 +73,6 @@ Decision owner: <role or unknown>
 - **forward-adr** documents the next decision and its deliberate tradeoffs.
 - Periodic audits check whether accepted decisions still describe the implementation.
 
-## Separate record contracts
+## Shared lifecycle rules
 
-The ADR index lists actual explicit decisions, not historical observations. The Design Log index lists historical evidence and uncertainties. In kiroku these are `docs/adr/README.md` and `docs/design-log/README.md`. Historical Design Logs 0001–0019 are not Accepted ADRs; legacy ADR paths are compatibility redirects. Reference related Design Logs directly and do not fabricate original approvals, owners or dates. Only explicit human review changes a Proposed ADR to Accepted; supersession updates are reciprocal and occur only after approval.
+Follow the [Decision Continuity shared contract](../decision-continuity-contract.md). This includes the Design Log / ADR separation, human acceptance boundary, legacy redirects and evidence discipline. Consult supporting audit/test material only when needed.

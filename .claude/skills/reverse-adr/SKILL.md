@@ -11,7 +11,7 @@ This skill is **repository-agnostic**. Work in the repository requested by the u
 
 Recover the *decision trail*, not merely summarize the latest implementation. A decision is a choice between meaningful alternatives, with a context and consequences. A bug fix or cosmetic edit is not automatically an architectural decision. The output must distinguish **what happened**, **why it happened (if recorded)**, **what is true today**, and **what is still unverified**.
 
-A complete run produces a decision ledger, Design Logs for material historical changes, explicit ADR candidates only when justified, a claim-by-claim evidence matrix, and an audit report with an explicit coverage denominator. **Never claim complete coverage solely because all PR titles were scanned.**
+For a **comprehensive audit**, produce a decision ledger, Design Logs for material historical changes, justified ADR candidates, claim-level evidence and a coverage report. For a scoped request, provide only proportionate artifacts. **Never claim complete coverage solely because all PR titles were scanned.**
 
 ## Modes
 
@@ -119,33 +119,9 @@ Before finishing:
 
 **Completion gate:** report both breadth (e.g. PRs screened / total; diffs inspected / candidates; review threads inspected / candidates) and depth (verified / total claims; conflicts and unknowns). If either is incomplete, say so.
 
-## Artifacts
+## Detailed audit artifacts (on demand)
 
-Default paths if the repository has no existing convention:
-- `docs/design-log/README.md`: historical index;
-- `docs/design-log/NNNN-short-title.md`: historical observations and design evolution;
-- `docs/adr/README.md`: explicit decision routing index;
-- `docs/adr/NNNN-short-title.md`: Proposed or owner-approved decisions only;
-- `docs/adr/decision-ledger.md`: chronology and candidate decisions;
-- `docs/adr/evidence.yaml`: claim-by-claim references and statuses;
-- `docs/adr/audit.md`: coverage, checks and gaps.
-
-Evidence matrix example (replace placeholders with real evidence; do not copy them as facts):
-
-```yaml
-revision: "<commit-sha>"
-claims:
-  - id: ADR-0001-C1
-    statement: "<one falsifiable claim>"
-    status: historical-only
-    historical:
-      - "<PR or review permalink>"
-    current: []
-    tests: []
-    notes: "Current behavior not inspected"
-```
-
-Keep source references stable, prefer permalinks or commit-pinned paths, and never include sensitive session content, secrets or private user histories in public ADRs.
+For comprehensive audits or evidence-matrix requests, consult [audit-artifacts.md](references/audit-artifacts.md). For routine scoped reconstruction, produce only the evidence and Design Logs warranted by the task; do not create every optional artifact by default.
 
 ## Reporting format
 
@@ -162,6 +138,6 @@ Summarize: scope and revision; decision trajectories discovered; new/updated Des
 - Generated evidence links that were not opened or confirmed.
 - Sensitive history copied into public reports.
 
-## Shared Design Log and ADR contract
+## Shared lifecycle rules
 
-Follow the target repository's separate Design Log and ADR indexes. In kiroku, `docs/design-log/README.md` indexes historical evidence; `docs/adr/README.md` indexes explicit decisions. Historical records 0001–0019 were migrated to Design Logs; legacy ADR paths are redirects only. Do not interpret their historical claims as Accepted decisions. Preserve evidence IDs, confidence labels and verified source dates; do not invent a decision date from a PR merge timestamp. Cross-cutting applicability requires semantic review, not just path matching.
+Follow the [Decision Continuity shared contract](../decision-continuity-contract.md). This includes the Design Log / ADR separation, human acceptance boundary, legacy redirects and evidence discipline. Consult supporting audit/test material only when needed.
