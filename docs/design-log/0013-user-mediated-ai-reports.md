@@ -1,11 +1,8 @@
 # Design Log 0013: User-mediated AI report generation
 
 Status: Historical observation (not an accepted decision)
-Date: Unknown
+Historical decision date: Unknown
 Earliest cited merged PR: [#22](https://github.com/MichinaoShimizu/kiroku/pull/22) (2026-10-03 UTC; evidence anchor, not an approval date)
-Related: None
-Supersedes: None
-Superseded by: None
 
 Scope: Phase 1 — local sessions
 
