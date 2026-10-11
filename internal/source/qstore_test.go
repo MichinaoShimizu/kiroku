@@ -594,3 +594,54 @@ func TestQCancelledOnly(t *testing.T) {
 		}
 	}
 }
+
+// Amazon Q は人が打った文をそのまま残す（message.rs の UserMessageContent::Prompt）。
+// 先頭がタグ（<template> など）や「Caveat:」でも Claude Code の仕組みの文ではないので、プロンプトとして数え、応答もその依頼に付ける。
+// ツールを断ったときに打った文（CancelledToolUses の prompt）も同じ。
+func TestQStoreTypedPromptsAreVerbatim(t *testing.T) {
+	t0 := time.Date(2026, 9, 29, 1, 0, 0, 0, time.UTC)
+	entry := func(content map[string]any, sec int, reply string) map[string]any {
+		return map[string]any{
+			"user":             map[string]any{"timestamp": t0.Add(time.Duration(sec) * time.Second).Format(time.RFC3339), "content": content},
+			"assistant":        map[string]any{"Response": map[string]any{"content": reply}},
+			"request_metadata": map[string]any{"model_id": "m"},
+		}
+	}
+	prompt := func(text string) map[string]any { return map[string]any{"Prompt": map[string]any{"prompt": text}} }
+	cancelled := func(text string) map[string]any {
+		return map[string]any{"CancelledToolUses": map[string]any{"prompt": text, "tool_use_results": []any{}}}
+	}
+	want := []string{
+		"最初の依頼",
+		"<template><div>x</div></template> why doesn't this render",
+		"<html lang=en> fix it",
+		"Caveat: this is a typed prompt",
+		"<div> を使わずに書いて",
+	}
+	replies := []string{"r0", "r1", "r2", "r3", "r4"}
+	history := []any{
+		entry(prompt("  \n "), 0, "blank"), // 空白だけの文は数えない
+		entry(prompt(want[0]), 10, replies[0]),
+		entry(prompt(want[1]), 60, replies[1]),
+		entry(prompt(want[2]), 120, replies[2]),
+		entry(prompt(want[3]), 180, replies[3]),
+		entry(cancelled(want[4]), 240, replies[4]), // ツールを断ったときに打った文
+	}
+	b := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})[0]
+	var texts []string
+	for _, p := range b.Prompts {
+		texts = append(texts, p.Text)
+	}
+	if strings.Join(texts, "|") != strings.Join(want, "|") {
+		t.Errorf("プロンプト = %q, want %q（打った文はそのまま数える）", texts, want)
+	}
+	if len(b.Notes) != 0 {
+		t.Errorf("Notes = %+v, want なし", b.Notes)
+	}
+	f := b.Finish(15)
+	for i := range min(len(f.Prompts), len(replies)) {
+		if r := f.Prompts[i].Reply; r == nil || r.Text != replies[i] {
+			t.Errorf("%d つ目の依頼の応答 = %+v, want %q", i+1, r, replies[i])
+		}
+	}
+}

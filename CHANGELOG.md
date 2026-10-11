@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Amazon Q / Kiro CLI (SQLite): prompts you type that start with a tag (`<template>…`, `<html lang=en> fix it`) or "Caveat:" are counted as prompts with their text, instead of being shown as notes with their reply attached to the previous prompt. These histories store exactly what you typed, so kiroku no longer applies the Claude Code transcript rules to them
+
 ## v0.31.0 - 2026-10-10
 
 ### Added

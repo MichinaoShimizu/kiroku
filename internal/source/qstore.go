@@ -201,7 +201,9 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 					s.Inject(t, "output", text)
 					s.Agent(t)
 				default:
-					s.Prompt(t, text)
+					// 人が打った文はそのまま残る（message.rs の UserMessageContent::Prompt）。
+					// Claude Code の仕組みの文（<system-reminder> など）はないので、先頭のタグや「Caveat:」でも依頼として数える
+					s.PromptRaw(t, text)
 				}
 			case content["CancelledToolUses"] != nil:
 				// ツールを断った・止めたときの発言。prompt は人が打った文か、CLI が入れた決まった文
@@ -214,8 +216,8 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 					reply = false
 				case trimmed == qDenied, qForbidden(trimmed): // 「n」で断った・設定で禁じた引数のツールを CLI が断った
 					s.Inject(t, "meta", text)
-				default:
-					s.Prompt(t, text)
+				default: // 断ったときに人が打った文（conversation.rs の abandon_tool_use）。上と同じくそのまま数える
+					s.PromptRaw(t, text)
 				}
 			default: // ToolUseResults は自動で返したもの
 				s.Agent(t)
