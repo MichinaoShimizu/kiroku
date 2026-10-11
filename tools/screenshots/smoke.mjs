@@ -375,6 +375,13 @@ async function run(env) {
     check("m で月表示になる", await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
     check("月表示では、ズームを出さない", await p.locator("#zin").count() === 0);
     await p.keyboard.press("w"); await pause();
+    await p.locator("#journeybtn").click(); await pause();
+    check("Journey と Week を組み合わせられる", await p.locator("#journeybtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=week]").getAttribute("aria-pressed") === "true");
+    await p.locator("#mode button[data-v=month]").click(); await pause();
+    check("Journey のまま Month に切り替えられる", await p.locator("#journeybtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
+    await p.locator("#calendarbtn").click(); await pause();
+    check("Calendar に戻っても Month を維持する", await p.locator("#calendarbtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
+    await p.keyboard.press("w"); await pause();
     await p.keyboard.press("?"); await pause();
     check("? でショートカットの一覧が開く", await p.locator("#keys").evaluate(d => d.open));
     await p.locator("#keys form button").click(); await pause();
