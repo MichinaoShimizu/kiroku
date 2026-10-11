@@ -12,11 +12,11 @@ Scope: Phase 1 — local sessions
 
 This decision area evolved through multiple merged PRs. This record preserves the documented tradeoffs without inventing historical approvals or alternatives.
 
-## Documented decision and evolution
+## Decision
 
 [#6](https://github.com/MichinaoShimizu/kiroku/pull/6) introduced a Go `Source` contract. [#7](https://github.com/MichinaoShimizu/kiroku/pull/7) reads legacy Kiro/Amazon Q SQLite and prefers `conversations_v2` on duplicates. [#8](https://github.com/MichinaoShimizu/kiroku/pull/8) uses Crew metadata without double-counting CLI conversations. [#9](https://github.com/MichinaoShimizu/kiroku/pull/9) reads Codex rollouts and handles cumulative token records. [#214](https://github.com/MichinaoShimizu/kiroku/pull/214) centralizes which metrics each source can record. [#247](https://github.com/MichinaoShimizu/kiroku/pull/247) centralizes agent registry metadata in `core.Agents`.
 
-## Rationale and consequences
+## Consequences
 
 A shared session model does not imply identical source coverage. Unknown, absent and zero are distinct. New agents require registry, parser, fixture, UI, archive and documentation review.
 
