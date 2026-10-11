@@ -6,6 +6,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Fixed
 
+- Amazon Q / Kiro CLI (SQLite): prompts you type that start with a tag (`<template>…`, `<html lang=en> fix it`) or "Caveat:" are counted as prompts with their text, instead of being shown as notes with their reply attached to the previous prompt. These histories store exactly what you typed, so kiroku no longer applies the Claude Code transcript rules to them
 - Usage limit hits now include Claude Code's "Credit balance is too low" error (prepaid Console credits ran out), also when it comes as the API's "Your credit balance is too low to access the Anthropic API"
 
 ## v0.31.0 - 2026-10-10
