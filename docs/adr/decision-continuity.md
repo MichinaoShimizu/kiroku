@@ -1,145 +1,81 @@
-# Decision Continuity: Reverse ADR, ADR Guard and Forward ADR
+# Decision Continuity: Design Logs, ADR Guard, and Forward ADR
 
-## Concept
+Decision Continuity keeps **what happened** separate from **what has been deliberately decided**. It is repository-agnostic and does not require any particular programming language or agent.
 
-**Decision Continuity** is a repository-agnostic practice for recovering the reasoning behind an existing system and keeping that reasoning available as the system evolves.
+## Two distinct records
 
-It connects three complementary activities, all sharing a maintained **decision discovery index**:
+| | Design Log | Architecture Decision Record (ADR) |
+|---|---|---|
+| Question | What happened, what was explored, and what remains unknown? | What should we do, why, and under whose authority? |
+| Evidence | PRs, code, tests, reviews, alternatives explored, reversals | Explicit proposed or approved choice, alternatives, consequences, owner |
+| Lifecycle | Historical or ongoing; may remain uncertain | Proposed, Accepted, Rejected, Superseded, Deprecated |
+| Authority | Context and evidence, **not a rule** | Only an applicable **Accepted** decision constrains future changes |
+| Maintenance | Append findings and corrections with provenance | New ADR for material changed decisions; preserve historical rationale |
 
-- **Reverse ADR (recover):** reconstruct the historical decision trail from PRs, issues, code, tests and reviews. Separate documented intent from observed implementation and unknown rationale.
-- **ADR Guard (apply):** consult relevant decisions when proposing changes and identify preserved constraints and potential conflicts.
-- **Forward ADR (decide):** formulate and document a prospective choice, its alternatives and consequences, including deliberate supersession of an earlier decision.
+A merged PR proves a change occurred, **not** that an architectural policy was formally approved. An observed implementation is never automatically promoted to an Accepted ADR. A Proposed ADR is not a constraint.
 
-The **ADR index is an operational interface**, not merely a table of contents. It routes a proposed change to applicable decisions using paths, components, interfaces, semantic concerns, status and supersession links. Reverse ADR builds and repairs this index; ADR Guard queries it; Forward ADR updates it when decisions are proposed or changed. Index coverage is never proof that an unlisted change is safe.
-
-```mermaid
-flowchart LR
-    R["Reverse ADR<br/>recover"] -- "builds and repairs" --> I[("ADR index")]
-    G["ADR Guard<br/>apply"] -- "queries" --> I
-    F["Forward ADR<br/>decide"] -- "updates" --> I
-    R -- "evidence-linked baseline" --> G
-    G -- "intentional change" --> F
-    F -- "periodic drift audit" --> R
-```
-
-No single activity is sufficient alone. Reverse ADR without ongoing use becomes a static archive; ADR Guard without a reliable historical baseline may enforce accidental or imagined constraints. Together they turn decision history into a **maintained input to future decisions**.
-
-## Lifecycle
+## End-to-end workflow
 
 ```mermaid
 flowchart TD
-    H["Existing system and history"] --> R["Reverse ADR:<br/>discover, reconstruct, verify, reconcile"]
-    R --> B["Evidence-linked decision baseline<br/>+ maintained ADR index"]
-    B --> W["New work"]
-    W --> Q{"ADR index:<br/>paths + semantics + status"}
-    Q -- "no relevant decision" --> N["Normal implementation"]
-    Q -- "relevant decision" --> G{"ADR Guard"}
-    G -- "preserve or extend" --> T["Implement + test"]
-    G -- "unintentional conflict" --> X["Adjust the change<br/>to keep the decision"]
-    X --> T
-    G -- "rationale unknown" --> U["Flag the uncertainty,<br/>investigate proportionately"]
-    U --> G
-    G -- "intentional material change" --> P["New Proposed ADR"]
-    P --> A["Human review and acceptance"]
-    A --> T
-    A --> S["Old ADR status: Superseded<br/>update the index"]
-    N --> D["Periodic drift audit:<br/>refresh evidence, index and gaps"]
-    T --> D
-    S --> D
-    D -. "next change" .-> W
+    S["PRs, issues, code, tests, discussions"] --> R["Reverse analysis: verify claims and uncertainty"]
+    R --> L[("Design Logs + evidence ledger")]
+    L --> Q{"Explicit material decision needed?"}
+    Q -- "No" --> K["Keep Design Log; no invented policy"]
+    Q -- "Yes" --> P["Forward ADR: Proposed + owner + tradeoffs"]
+    P --> H{"Human decision"}
+    H -- "Accept" --> A[("Accepted ADR + routing index")]
+    H -- "Reject or defer" --> L
+    A --> G["ADR Guard: check relevant changes"]
+    L -. "context and unknowns" .-> G
+    G -- "preserves decision" --> I["Implement and verify"]
+    G -- "intentional change" --> P
+    I --> S
 ```
 
-## Uncertainty Preservation
+The ADR index routes by path **and meaning**; the Design Log index provides historical evidence. ADR Guard can consult both but must distinguish the authority of an Accepted ADR from the informational value of a Design Log.
 
-A historical change can be certain even when its rationale is unknown. For example, a merged PR with an empty description may establish that implementation A was replaced by B, without establishing **why** it happened, what alternatives were considered, or whether the change reflected an explicit architectural decision. Record these separately: **observed change (confirmed)**, **historical rationale (unknown)**, and **open questions (to investigate)**. Do not invent intent or promote observed behavior to a binding decision.
+## Decision authority and uncertainty
 
 ```mermaid
 flowchart LR
-    PR["Merged PR<br/>with an empty description"] --> C["Observed change:<br/>A replaced by B (confirmed)"]
-    PR --> W["Historical rationale<br/>(unknown)"]
-    W --> Q["Open questions<br/>(to investigate)"]
-    C --> I[("ADR index entry<br/>flagged: rationale unknown")]
-    Q --> I
-    I --> G["ADR Guard:<br/>flag and investigate, not veto"]
-    G --> F["Forward ADR:<br/>new explicit decision,<br/>old reason stays unknown"]
+    O["Observed implementation change"] --> DL["Design Log: observed fact"]
+    DL --> U["Unknown rationale stays unknown"]
+    DL --> C{"Documented decision and owner review?"}
+    C -- "No" --> DL
+    C -- "Yes" --> PA["Proposed ADR"]
+    PA --> AC["Accepted only after human approval"]
+    AC --> GU["ADR Guard checks applicability"]
 ```
 
-This is **Uncertainty Preservation**: retain the known facts *and* the unresolved uncertainty as durable, discoverable inputs to later decisions. When ADR Guard encounters such a record, it should flag the unknown rationale, examine current evidence, and recommend proportionate follow-up investigation rather than automatically vetoing the change. Forward ADR can then document a new explicit decision without retroactively claiming certainty about the old one. The index should expose the uncertainty so the record is not silently treated as an accepted policy.
+**Uncertainty Preservation** means keeping confirmed behavior, historical rationale, test evidence, and unresolved questions on separate axes. A later explicit ADR does not rewrite why a historical change occurred.
 
-## Record format
+## Minimal artifact contract
 
-Decision Continuity keeps the common ADR elements (title, status, date, context, decision, consequences, alternatives) and adds what recovery and reuse need: per-claim evidence labels, separate historical/current/tested checks, open questions, and supersession links.
+- **Design Log**: stable ID, topic/scope, historical observations, links to source evidence, confidence labels (Documented/Observed/Inferred/Unknown), reversals, open questions and verification limits. A Design Log does not need a fictitious decision owner or rejected alternatives.
+- **ADR**: stable ID, Status, Date (or Unknown), Scope, owner, Context, proposed or accepted Decision, actual Alternatives, Consequences, Verification, Related/Supersedes links. Only an authorized owner can accept or reject.
+- **ADR index**: only actual ADRs and their applicability, status and supersession. A legacy compatibility redirect is not an ADR entry.
+- **Design Log index**: historical records, topic/path hints, evidence status and references to related ADRs where genuinely established.
 
-Two axes stay separate:
+## Agent responsibilities
 
-- **Status** is the lifecycle of the decision: Retrospective, Proposed, Accepted, Rejected, Superseded or Deprecated.
-- **Evidence labels** (Documented, Observed, Inferred, Unknown) describe each claim inside the record.
+1. **Reverse ADR / reverse design analysis** reconstructs Design Logs by default. It may identify *candidate* decisions, but must not assert acceptance or create binding policy from code alone.
+2. **ADR Guard** reads the ADR index for relevant Accepted decisions, and consults Design Logs for context or uncertainty. Proposed ADRs are review inputs, not enforced rules.
+3. **Forward ADR** drafts material new decisions with alternatives and consequences. Human review determines acceptance. Intentional departures create a new ADR and reciprocal supersession links.
+4. **Periodic audit** checks links, routing, evidence confidence, supersession, drift and missing review. Routine changes need no ceremonial ADR.
 
-```mermaid
-stateDiagram-v2
-    [*] --> Retrospective: recovered by Reverse ADR
-    [*] --> Proposed: drafted by Forward ADR
-    Retrospective --> Accepted: owner review
-    Proposed --> Accepted: owner review
-    Proposed --> Rejected: owner review
-    Retrospective --> Superseded: later ADR accepted
-    Accepted --> Superseded: later ADR accepted
-    Accepted --> Deprecated: no longer applies
-```
+## Adoption and migration
 
-Evidence labels do not move a record along this lifecycle; they stay on each claim.
+1. Inventory existing records; classify historical observations as Design Logs unless formal decision authority is evidenced.
+2. Preserve historical source links and stable legacy URLs through compatibility redirects; never silently renumber old records.
+3. Create separate Design Log and ADR indexes. Move old evidence to Design Logs without claiming a retrospective ADR was Accepted.
+4. Update agent instructions and PR review conventions to check Accepted ADRs, then consult Design Logs when useful.
+5. Record new durable decisions as Proposed ADRs and request explicit owner review before acceptance.
 
-A strong evidence label does not make a decision accepted, and a record with unknown rationale is not promoted to Accepted without human review. When a decision is superseded, only the old record's status line changes; its body stays as recorded.
+## Success criteria and limitations
 
-## Principles
+Useful signals include fewer accidental reversals of accepted constraints, faster understanding of historical design, and fewer false-positive governance warnings. These are hypotheses, not measured outcomes. Neither a merged PR nor a test file alone proves approval or a passing test. Routing indexes may miss semantic dependencies; privacy, identity, compatibility and measurement changes require proportionate cross-cutting review.
 
-1. **Evidence before authority.** A retrospective ADR is a claim about history, not a retroactive approval. Label documented, observed, inferred and unknown statements. Verify current code and tests separately.
-2. **Selective retrieval.** Every task can cheaply check an ADR index; only relevant tasks need full ADR text. Match both changed paths and semantic impact. Critical cross-cutting constraints cannot rely on path matching alone.
-3. **Decisions can change.** An ADR is not a permanent prohibition. Preserve the original record and explain intentional changes through a new ADR, with alternatives, consequences, migration and verification.
-4. **Proportional process.** Do not require an ADR for every bug fix or cosmetic change. Prioritize durable architectural, privacy, security, data, compatibility and product-policy decisions.
-5. **Traceability, not ceremonial compliance.** Connect claims to historical evidence, current behavior and actual test results. A test file is not a passing test.
-6. **Uncertainty Preservation.** Preserve confirmed historical changes even when their rationale is unknown; keep facts, inferred motives and unresolved questions separate. Missing evidence is a gap to investigate, not permission to invent rationale or silently declare a decision accepted.
-7. **Human governance.** Agents can surface conflicts and draft ADRs; owners decide whether to accept tradeoffs. Automated checks should not convert uncertain historical interpretations into unquestionable rules.
+## kiroku reference implementation
 
-## The ADR index as a shared contract
-
-An ADR index should identify each decision by stable ID and link, a short statement of scope, applicable path/component hints, semantic keywords and cross-cutting concerns, lifecycle status, and supersession/amendment relationships. A compact Markdown table is sufficient at small scale; structured metadata and automated validation can be added as coverage grows. Do not equate paths with exhaustive relevance, or treat a Proposed/retrospective/uncertain ADR as an Accepted constraint.
-
-**Ownership across the cycle:** Reverse ADR creates or corrects index entries from historical evidence; ADR Guard checks the index before implementation and reports missing or ambiguous coverage; Forward ADR adds entries for new Proposed decisions and updates status/supersession relationships only after the appropriate review. Periodic drift audits check stale paths, broken links, missing entries, conflicting statuses and discrepancies with current code. All index changes should be reviewed alongside ADR changes, not postponed to separate maintenance.
-
-**Failure mode:** An incomplete or stale index can cause false negatives. For privacy, security, public interfaces, identity and data semantics, search by meaning and inspect cross-cutting decisions even if path matching finds nothing. Explicitly report when relevance is uncertain.
-
-## Minimal artifacts
-
-| Artifact | Purpose |
-|---|---|
-| ADR index / routing map | Quickly identify relevant decisions from paths, topics and interfaces |
-| Reverse ADR skill or procedure | Recover decisions and mark evidence confidence |
-| Decision ledger + evidence matrix | Track smaller decisions, reversals, unresolved claims and H/C/T evidence |
-| ADR Guard skill or review checklist | Check change impact against relevant decisions |
-| Forward ADRs and supersession links | Explain why a deliberate policy or design change was made |
-| Periodic drift report | Detect discrepancies between documented decisions and current implementation |
-
-## Adoption in an existing repository
-
-1. Inventory important boundaries and decisions; recover a small, high-risk baseline first.
-2. Publish an ADR index with concise path/topic hints and explicit evidence limitations.
-3. Add a lightweight pre-implementation relevance check to agent instructions and PR reviews.
-4. Require review of applicable ADRs for material changes; document intentional supersession.
-5. Periodically compare the ADR baseline against current source, tests and newly merged changes.
-
-Start with privacy, data meaning, identity, compatibility and major architectural boundaries. Expand coverage based on risk and observed change frequency, not ADR count.
-
-## What success means
-
-Success is **not** the number of ADRs or the percentage of tasks forced to read them. Useful signals include: fewer accidental reversals of documented constraints; faster explanation of why a design exists; fewer repeated debates; clearer impact reviews; and shorter time to resolve discrepancies between historical intent and present behavior.
-
-These are evaluation hypotheses, not measured outcomes. The practice should remain lightweight enough that routine development is not slowed by document ceremony.
-
-## Limits
-
-A historical PR merge does not prove formal design approval. A current test definition does not prove it passes. ADR coverage can be incomplete, especially for decisions made outside version control. The routing map can miss indirect dependencies. Periodic audits and human review remain necessary.
-
-## Reference implementation
-
-kiroku keeps the corresponding procedures in [reverse-adr](../../.claude/skills/reverse-adr/SKILL.md), [adr-guard](../../.claude/skills/adr-guard/SKILL.md) and [forward-adr](../../.claude/skills/forward-adr/SKILL.md), with a repository-specific routing index in [ADR README](README.md). This document describes the **general practice** and is not dependent on kiroku, Go, Claude Code or any specific agent framework.
+See the [ADR index](README.md), [Design Log index](../design-log/README.md), [Reverse ADR](../../.claude/skills/reverse-adr/SKILL.md), [ADR Guard](../../.claude/skills/adr-guard/SKILL.md) and [Forward ADR](../../.claude/skills/forward-adr/SKILL.md).
