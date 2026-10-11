@@ -75,3 +75,7 @@ Decision owner: <role or unknown>
 ## Shared ADR metadata and index contract
 
 Use the target repository's ADR index and lifecycle rules as the source of truth. In kiroku, `docs/adr/README.md` contains the routing index, inventory and metadata contract; there is no separate `docs/adr/index.md`. Keep routing rows, inventory entries, ADR headers, evidence and supersession links consistent in the same change. Preserve historical ADR content and unknown rationale; do not silently upgrade Retrospective to Accepted. Path matching is only a hint; use semantic matching for cross-cutting decisions. Before proposing or updating a record, verify stable ID, target links, Status, Date, Scope and reciprocal supersession references. A missing Date in a legacy ADR is a migration gap, not license to invent one.
+
+## Design Log separation (authoritative)
+
+Forward ADR drafts a new **Proposed** decision when explicit material governance is required. Reference Design Logs for historical evidence, but do not convert their observations into Accepted constraints or invent original decision owners. Only explicit human approval sets Accepted. Update the ADR index for actual ADRs; update the Design Log index only when new historical evidence is recorded. In kiroku, `docs/design-log/` holds recovered history and `docs/adr/` holds decisions. Existing retrospective ADR generation guidance elsewhere is superseded by this separation.
