@@ -202,6 +202,10 @@ func codexTier(p core.Obj, id string) (string, bool) {
 	return core.ServiceTier(core.Str(ts["service_tier"])), true
 }
 
+// codexClaim は Codex のスレッドの Claim の鍵（core.Builder.Claim）。Kiro Crew の Codex の backend の会話（ACP の会話 ID がスレッド ID）は、
+// Crew の記録から作るセッションに同じ鍵の Yield をつけ、Codex の記録のセッションがあればそちらだけを数える。
+func codexClaim(id string) string { return "codex:" + id }
+
 // Load は全部の会話を読む。読めないファイルがあっても残りは読み、最初のエラー（と残りの数）を返す。
 func (c *Codex) Load(emit func(*core.Builder)) error {
 	var errs fileErrs
@@ -306,7 +310,7 @@ func (c *Codex) head(p string) codexHead {
 // readCodexHead は、最初の session_meta までだけ読む（ふつうは 1 行目）。
 // err は、session_meta にたどり着く前に読めなくなったとき（消えていたときは nil）。
 func readCodexHead(path string) codexHead {
-	f, err := os.Open(path)
+	f, err := core.OpenRegular(path) // 名前つきパイプなどは開かない（読めないファイルとして知らせる）
 	if err != nil {
 		return codexHead{err: fileErr(path, err)}
 	}
@@ -908,6 +912,9 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		s.CtxWindow = core.PeakContextWindowFrom(cf.events, cf.windows) // 「長い会話」の最大の目安（ウィンドウの半分）
 		if s.Project != "" {
 			s.Resume = core.ResumeCmd(s.Project, "codex resume", s.ID)
+		}
+		if s.ID != "" {
+			s.Claim = codexClaim(s.ID) // Kiro Crew の Codex の backend の会話（CrewInfo.codexClaim）は、こちらだけを数える
 		}
 		emit(s)
 	}
