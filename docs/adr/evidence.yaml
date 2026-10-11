@@ -1,7 +1,7 @@
-# Evidence matrix — initial reverse ADR pass
+# Evidence matrix — initial historical Design Log recovery pass
 #
 # A test file's existence is NOT evidence of a passing run.
-# This is a partial, claim-level sample; remaining ADRs are not yet claim-audited.
+# This is a partial, claim-level sample; remaining Design Logs are not yet claim-audited.\n# Legacy ADR-xxxx claim IDs remain stable to preserve external evidence references.\n# These IDs are NOT evidence that a historical decision was formally Accepted.
 baseline:
   repository: MichinaoShimizu/kiroku
   ref: main
