@@ -35,9 +35,18 @@ func Str(v any) string {
 }
 
 // Num は数値だけを返す（bool や文字列は 0, false）。
+// MaxNum は、履歴から数として受けとる値の大きさの上限。トークン数・額・回数・ミリ秒の時刻（2026 年で約 1.7e12）は
+// どれもずっと小さい。これを超える値や NaN・無限大は壊れた・悪意のある記録とみなして読まない
+// （1.7e308 のような値を 2 つ足すと +Inf になり、JSON に書けず画面全体が出なくなる）。
+const MaxNum = 1e15
+
+// Num は、履歴の JSON の数（float64）。数でないもの、NaN・無限大、MaxNum を超える大きさのものは ok=false。
 func Num(v any) (float64, bool) {
 	f, ok := v.(float64)
-	return f, ok
+	if !ok || math.IsNaN(f) || math.IsInf(f, 0) || math.Abs(f) > MaxNum {
+		return 0, false
+	}
+	return f, true
 }
 
 func NumOr0(v any) float64 {

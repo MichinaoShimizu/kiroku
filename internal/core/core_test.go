@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -441,5 +442,21 @@ func TestCorrectionHints(t *testing.T) {
 	}
 	if mayCorrect("Fix the failing test in pkg12 and explain why it broke; the worktree has notes") {
 		t.Error("ふつうの依頼でも正規表現を試している（前ふるいが効いていない）")
+	}
+}
+
+// Num は NaN・無限大・MaxNum を超える大きさを読まない（足して +Inf になると JSON に書けず、画面全体が出なくなる）。
+func TestNumRejectsHuge(t *testing.T) {
+	for _, c := range []struct {
+		v  any
+		ok bool
+	}{
+		{1.0, true}, {-3.5, true}, {1.7e12, true}, {MaxNum, true}, {-MaxNum, true},
+		{MaxNum * 10, false}, {1.7e308, false}, {-1.7e308, false}, {math.Inf(1), false}, {math.NaN(), false},
+		{"1", false}, {nil, false},
+	} {
+		if _, ok := Num(c.v); ok != c.ok {
+			t.Errorf("Num(%v) ok = %v, want %v", c.v, ok, c.ok)
+		}
 	}
 }
