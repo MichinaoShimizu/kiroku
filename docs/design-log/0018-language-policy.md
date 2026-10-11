@@ -1,11 +1,8 @@
 # Design Log 0018: English product UI and Japanese entry documentation
 
 Status: Historical observation (not an accepted decision)
-Date: Unknown
+Historical decision date: Unknown
 Earliest cited merged PR: [#46](https://github.com/MichinaoShimizu/kiroku/pull/46) (2026-10-04 UTC; evidence anchor, not an approval date)
-Related: None
-Supersedes: None
-Superseded by: None
 
 Scope: Phase 1 — local sessions
 
