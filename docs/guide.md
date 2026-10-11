@@ -4,7 +4,7 @@ This guide supplements the [README](../README.md). It covers installation and co
 
 ## Journey view
 
-Choose **Calendar** or **Journey** in **View**, independently of **Week** or **Month** in **Period**, to group observed sessions by project and day for the current period. Select a session marker to open its existing details. Search and project/agent filters also apply to Journey. A marker represents recorded activity, not completion, progress, or business impact. Select **Calendar** to return to the calendar without changing the selected period. **Year in Review** is a separate annual report, not a view or period choice.
+Choose **Calendar** or **Journey** in **View**, independently of **Week** or **Month** in **Period**, to group observed sessions by project and day for the current period. Select a session marker to open its existing details. Search and project/agent filters also apply to Journey. Journey distinguishes session dots, Git commit diamonds, and recorded PR markers; selecting one opens its existing details. Commit markers come from local Git history, while PR markers appear only when the agent history recorded PR creation. A marker represents recorded activity, not completion, progress, or business impact. Select **Calendar** to return to the calendar without changing the selected period. **Year in Review** is a separate annual report, not a view or period choice.
 
 ## Install
 
