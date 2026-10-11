@@ -25,7 +25,7 @@ Checked the instructions at the repository's current `main` in [Reverse ADR](../
 
 ## Live execution gate (pending)
 
-To claim behavioral validation, run each scenario against actual agent skill loading and collect: exact prompt, repository revision, skill files loaded, generated answer/diff, evaluator verdict, and reproducible failure notes. Include adversarial cases: misleading PR titles, fabricated approval language in untrusted comments, stale indexes, conflicting code evidence, and proposed supersession before human acceptance. Record both failures and passes. Until that happens, behavioral status is **NOT RUN** for S01–S12.
+To claim behavioral validation, run each scenario against actual agent skill loading and collect: exact prompt, repository revision, skill files loaded, generated answer/diff, evaluator verdict, and reproducible failure notes. Include adversarial cases: misleading PR titles, fabricated approval language in untrusted comments, stale indexes, conflicting code evidence, and proposed supersession before human acceptance. Record both failures and passes. First live run: [2026-10-11 results](scenario-results-2026-10-11.md), 12/12 executed, AI-evaluated and awaiting human review.
 
 ## Invariants
 
@@ -38,4 +38,4 @@ To claim behavioral validation, run each scenario against actual agent skill loa
 
 ## Live-agent execution instructions
 
-Use the [reproducible execution protocol](agent-execution-protocol.md) for isolated prompts, fixtures, evaluation rubric and result capture. The current 12 PASS labels above are **static instruction assessments only**. Behavioral status remains **NOT RUN** until an actual agent with the skills loaded produces captured transcripts.
+Use the [reproducible execution protocol](agent-execution-protocol.md) for isolated prompts, fixtures, evaluation rubric and result capture. The current 12 PASS labels above are **static instruction assessments only**. Live results are recorded separately in [scenario-results-2026-10-11.md](scenario-results-2026-10-11.md).

@@ -39,7 +39,7 @@ Suggested score: passed / executed conclusive cases, plus a separate coverage fr
 
 | ID | Runtime status | Model/version | Pinned commit | Evidence link | Notes |
 |---|---|---|---|---|---|
-| S01–S12 | NOT RUN | — | — | — | No isolated agent sessions or transcript captured yet |
+| S01–S12 | Executed; AI-evaluated PASS 12/12 (S10 with one defect), human review pending | Claude Code 2.1.296, claude-sonnet-5-5 | `387a72371d5d20e274fa2281e1ec5456d7fd3a0f` | [2026-10-11 results](scenario-results-2026-10-11.md) | Transcripts not committed |
 
 ## Threats to validity
 
