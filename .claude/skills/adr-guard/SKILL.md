@@ -38,6 +38,6 @@ Use the template and quality gates in [forward-adr](../forward-adr/SKILL.md); th
 - Every material behavior change has test/verification guidance.
 - State when ADR coverage or test execution could not be verified.
 
-## Separate record contracts
+## Shared lifecycle rules
 
-Use the target repository's ADR index for Proposed/Accepted/Rejected/Superseded decisions and its Design Log index for historical facts, provenance and uncertainty. In kiroku these are `docs/adr/README.md` and `docs/design-log/README.md`. Former retrospective ADRs 0001–0019 are compatibility redirects, not binding decisions. Never silently promote Design Logs or Proposed ADRs to Accepted. Check path and semantic applicability; report missing coverage. When a new explicit choice is required, draft a Proposed ADR through Forward ADR and request human acceptance. Preserve original evidence links and avoid invented decision dates.
+Follow the [Decision Continuity shared contract](../decision-continuity-contract.md). This includes the Design Log / ADR separation, human acceptance boundary, legacy redirects and evidence discipline. Consult supporting audit/test material only when needed.
