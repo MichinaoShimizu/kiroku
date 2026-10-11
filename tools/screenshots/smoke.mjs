@@ -387,6 +387,9 @@ async function run(env) {
     await p.locator("#projectbtn").click(); await pause();
     check("Project ビューが選択できる", await p.locator("#projectbtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
     check("Project に記録された活動が表示される", await p.locator(".project-card").count() > 0 && await p.locator(".project-events [data-session]").count() > 0);
+    await p.locator(".project-events button[data-session]").first().click(); await pause();
+    check("Project session opens details", await p.locator("#drawer").getAttribute("aria-hidden") === "false");
+    await p.locator("#close").click(); await pause();
     await p.locator("#calendarbtn").click(); await pause();
     check("Calendar に戻っても Month を維持する", await p.locator("#calendarbtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
     await p.keyboard.press("w"); await pause();

@@ -861,3 +861,8 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
 .project-events button{max-width:100%;text-align:left;overflow-wrap:anywhere;background:var(--surface-2);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:7px 10px;cursor:pointer}
 .project-events button:hover,.project-events button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .project-events small{color:var(--ink-3)}
+
+.project-more{width:100%;max-width:100%;margin-top:4px}
+.project-more summary{cursor:pointer;color:var(--ink);font-size:var(--fs-xs);padding:6px 0}
+.project-more[open]{display:grid;gap:6px}
+.project-more summary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
