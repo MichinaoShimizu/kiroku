@@ -329,7 +329,8 @@ func TestCacheRepoTimeout(t *testing.T) {
 		t.Fatalf("1 回目のコミット = %d, want 2", len(cs))
 	}
 
-	hanging, RepoTimeout = true, 300*time.Millisecond
+	// fast も同じ上限の中で git を何度か呼ぶ。Windows のランナーではプロセスの起動だけで数百ミリ秒かかるので、上限に余裕を持たせる
+	hanging, RepoTimeout = true, 3*time.Second
 	commitSlow("b.txt")
 	commitFast("b.txt")
 	cs, _, stale := c.Collect(data)
