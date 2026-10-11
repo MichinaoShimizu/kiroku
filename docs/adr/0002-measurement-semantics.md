@@ -35,10 +35,4 @@ Earlier coaching-oriented and grading-oriented UI was tried and subsequently red
 
 Review linked PRs, `internal/core`, `internal/source`, `internal/report`, `docs/sources.md`, and regression fixtures. This retrospective document does not certify fresh test execution.
 
-## Decision
 
-The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
-
-## Historical confidence and open questions
-
-Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.
