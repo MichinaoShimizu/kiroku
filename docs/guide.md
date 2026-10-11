@@ -2,6 +2,10 @@
 
 This guide supplements the [README](../README.md). It covers installation and commands in detail, how to read the view, metric definitions, which histories are read, and options.
 
+## Journey view
+
+Select **Journey** beside Week and Month to group observed sessions by project and day for the current period. Select a session marker to open its existing details. Search and project/agent filters also apply to Journey. A marker represents recorded activity, not completion, progress, or business impact. Return to Week or Month to inspect the calendar.
+
 ## Install
 
 ### macOS and Linux (recommended)
