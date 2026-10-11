@@ -1,6 +1,7 @@
 # Design Log 0007: Opt-in preservation of local agent history
 
 Status: Historical observation (not an accepted decision)
+Related ADR: [ADR 0025](../adr/0025-opt-in-history-copies.md) (Accepted) — the binding decision for this area; this log stays the historical record
 Historical decision date: Unknown
 Earliest cited merged PR: [#75](https://github.com/MichinaoShimizu/kiroku/pull/75) (2026-10-04 UTC; evidence anchor, not an approval date)
 

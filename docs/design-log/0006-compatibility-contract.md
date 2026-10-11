@@ -1,6 +1,7 @@
 # Design Log 0006: Compatibility contract for the 1.0 boundary
 
 Status: Historical observation (not an accepted decision)
+Related ADR: [ADR 0023](../adr/0023-compatibility-contract.md) (Accepted) — the binding decision for this area; this log stays the historical record
 Historical decision date: Unknown
 Earliest cited merged PR: [#208](https://github.com/MichinaoShimizu/kiroku/pull/208) (2026-10-07 UTC; evidence anchor, not an approval date)
 
