@@ -1,5 +1,5 @@
-# Moved: Design Log 0007
+# Moved: Decision Log 0007
 
-This retrospective record is a **Design Log**, not an accepted ADR.
+This retrospective record is a **Decision Log**, not an accepted ADR.
 
-Read [Design Log 0007](../design-log/0007-local-history-retention.md) for the historical evidence. This compatibility stub preserves existing links.
+Read [Decision Log 0007](../decision-log/0007-local-history-retention.md) for the historical evidence. This compatibility stub preserves existing links.

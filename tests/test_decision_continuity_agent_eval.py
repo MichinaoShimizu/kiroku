@@ -27,7 +27,7 @@ class RunnerSmokeTests(unittest.TestCase):
             return result, manifest, responses
 
     def test_mock_agent_runs_selected_case_without_auto_pass(self):
-        agent = [sys.executable, "-c", "import sys; print('Design Log: rationale Unknown'); sys.stdin.read()"]
+        agent = [sys.executable, "-c", "import sys; print('Decision Log: rationale Unknown'); sys.stdin.read()"]
         result, manifest, responses = self.invoke(agent, "--case", "S01", "--skills-loaded")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(len(manifest["results"]), 1)
@@ -36,7 +36,7 @@ class RunnerSmokeTests(unittest.TestCase):
         self.assertIn("S01.response.txt", responses)
 
     def test_no_attestation_is_inconclusive(self):
-        agent = [sys.executable, "-c", "print('Design Log Unknown')"]
+        agent = [sys.executable, "-c", "print('Decision Log Unknown')"]
         result, manifest, _ = self.invoke(agent, "--case", "S01")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(manifest["results"][0]["status"], "INCONCLUSIVE")

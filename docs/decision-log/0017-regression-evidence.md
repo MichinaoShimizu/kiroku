@@ -1,4 +1,4 @@
-# Design Log 0017: Synthetic fixtures and user-oriented verification
+# Decision Log 0017: Synthetic fixtures and user-oriented verification
 
 Status: Historical observation (not an accepted decision)
 Historical decision date: Unknown

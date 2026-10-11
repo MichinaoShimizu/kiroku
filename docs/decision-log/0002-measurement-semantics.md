@@ -1,4 +1,4 @@
-# Design Log 0002: Measurement semantics and evidence fidelity
+# Decision Log 0002: Measurement semantics and evidence fidelity
 
 Status: Historical observation (not an accepted decision)
 Historical decision date: Unknown

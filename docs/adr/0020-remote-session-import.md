@@ -2,7 +2,7 @@
 
 Status: Proposed
 Date: Unknown
-Related Design Log: [DL 0001](../design-log/0001-local-session-foundation.md)
+Related Decision Log: [DL 0001](../decision-log/0001-local-session-foundation.md)
 Supersedes: None
 Superseded by: None
 Decision owner: Unknown

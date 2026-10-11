@@ -1,4 +1,4 @@
-# Design Log 0005: Reflection without grading
+# Decision Log 0005: Reflection without grading
 
 Status: Historical observation (not an accepted decision)
 Historical decision date: Unknown

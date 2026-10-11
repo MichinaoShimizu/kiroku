@@ -1,4 +1,4 @@
-# Design Log 0009: Git output is evidence, not business outcome
+# Decision Log 0009: Git output is evidence, not business outcome
 
 Status: Historical observation (not an accepted decision)
 Historical decision date: Unknown

@@ -5,8 +5,8 @@ This reference is loaded only for comprehensive historical audits or when the us
 ## Artifacts
 
 Default paths if the repository has no existing convention:
-- `docs/design-log/README.md`: historical index;
-- `docs/design-log/NNNN-short-title.md`: historical observations and design evolution;
+- `docs/decision-log/README.md`: historical index;
+- `docs/decision-log/NNNN-short-title.md`: historical observations and design evolution;
 - `docs/adr/README.md`: explicit decision routing index;
 - `docs/adr/NNNN-short-title.md`: Proposed or owner-approved decisions only;
 - `docs/adr/decision-ledger.md`: chronology and candidate decisions;

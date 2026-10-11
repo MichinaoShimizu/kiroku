@@ -1,4 +1,4 @@
-# Design Log 0004: Session identity and deduplication
+# Decision Log 0004: Session identity and deduplication
 
 Status: Historical observation (not an accepted decision)
 Historical decision date: Unknown

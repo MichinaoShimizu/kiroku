@@ -1,4 +1,4 @@
-# Design Log 0018: English product UI and Japanese entry documentation
+# Decision Log 0018: English product UI and Japanese entry documentation
 
 Status: Historical observation (not an accepted decision)
 Historical decision date: Unknown

@@ -1,4 +1,4 @@
-# Design Log 0014: Prompt provenance and automatic events
+# Decision Log 0014: Prompt provenance and automatic events
 
 Status: Historical observation (not an accepted decision)
 Historical decision date: Unknown

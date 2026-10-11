@@ -4,7 +4,7 @@ This is a **manual, document-based review of actual repository records**, not a 
 
 ## Reverse ADR — provenance and uncertainty
 
-- [Design Log 0010](0010-agent-source-coverage.md), [0004](0004-session-identity-and-deduplication.md), and [0006](0006-compatibility-contract.md) are historical context linked by ADR 0021. They are not independently binding decisions.
+- [Decision Log 0010](0010-agent-source-coverage.md), [0004](0004-session-identity-and-deduplication.md), and [0006](0006-compatibility-contract.md) are historical context linked by ADR 0021. They are not independently binding decisions.
 - ADR 0021 documents a distinct, explicitly approved choice: its status says **Accepted (2026-10-11, approved by the maintainer in review of #359)**. This walkthrough accepts that as the record's claim; it has **not** independently inspected the review approval.
 - ADR 0021 explicitly marks V2-to-V3 conversion identity as inferred rather than verified on a real converted session. Do not turn that inference into a test result.
 
@@ -25,7 +25,7 @@ If the product intentionally changes the Accepted Kiro V3 labeling policy, Forwa
 
 | Check | Result |
 |---|---|
-| Historical Design Logs distinguished from formal ADRs | PASS — document review |
+| Historical Decision Logs distinguished from formal ADRs | PASS — document review |
 | Accepted 0021 vs Proposed 0020 authority distinguished | PASS — document review |
 | Intentional change routed to Proposed + human approval | PASS — document review |
 | Actual agent invocation with skills loaded | NOT RUN |

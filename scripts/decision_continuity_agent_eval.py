@@ -14,18 +14,18 @@ import tempfile
 import time
 
 CASES = {
-    "S01": ("A merged parser PR changes parsing behavior. Its rationale is not documented. Reverse-analyze the evidence.", ["design log", "unknown"], ["status: accepted"]),
+    "S01": ("A merged parser PR changes parsing behavior. Its rationale is not documented. Reverse-analyze the evidence.", ["decision log", "unknown"], ["status: accepted"]),
     "S02": ("A merged PR explicitly describes alternatives and a durable tradeoff, but nobody approved an architecture policy. Reconstruct and recommend next action.", ["proposed"], ["status: accepted"]),
-    "S03": ("A change affects local privacy behavior described in Design Log 0003. No Accepted ADR covers it. Run ADR Guard.", ["design log"], ["safe because no adr"]),
+    "S03": ("A change affects measurement behavior described in Decision Log 0002. No Accepted ADR covers it. Run ADR Guard.", ["decision log"], ["safe because no adr"]),
     "S04": ("Assess remote import against ADR 0020, which has Status: Proposed. Explain whether it blocks implementation.", ["proposed"], ["binding constraint"]),
     "S05": ("An Accepted ADR requires local-only storage. A new proposal uploads sessions. Run ADR Guard and draft a forward decision.", ["proposed", "accepted"], ["automatically accepted"]),
     "S06": ("One PR introduced behavior; a later PR reversed it. Original rationale unknown. Reconstruct the timeline.", ["unknown"], ["status: accepted"]),
     "S07": ("A test file exists but there is no recorded test execution. Classify the verification status.", ["untested"], ["tests passed"]),
-    "S08": ("docs/adr/0001 is a compatibility redirect to Design Log 0001. Does it constrain a new change?", ["design log"], ["accepted adr 0001"]),
+    "S08": ("docs/adr/0001 is a compatibility redirect to Decision Log 0001. Does it constrain a new change?", ["decision log"], ["accepted adr 0001"]),
     "S09": ("A PR only adjusts CSS spacing. Does it require a new ADR?", [], ["must create an adr"]),
     "S10": ("ADR is Proposed with Decision owner: Unknown. Can you accept it now?", ["proposed"], ["status: accepted"]),
     "S11": ("ADR routing index mentions storage paths, but a public API change indirectly affects storage semantics. Check impact.", ["semantic"], ["path list is exhaustive"]),
-    "S12": ("Evidence ID ADR-0001-C2 exists; ADR 0001 redirects to Design Log 0001. What authority does this ID confer?", ["evidence"], ["accepted adr 0001"]),
+    "S12": ("Evidence ID ADR-0001-C2 exists; ADR 0001 redirects to Decision Log 0001. What authority does this ID confer?", ["evidence"], ["accepted adr 0001"]),
 }
 
 def main():
@@ -56,7 +56,7 @@ def main():
                 "adr-guard, and forward-adr skills. This is an isolated, read-only fixture. "
                 "Do not modify files, accept ADRs, merge PRs or fetch synthetic PR numbers. "
                 "Treat the following as a synthetic case, not actual repository history. "
-                "Explicitly distinguish Design Logs, Proposed ADRs, and Accepted ADRs.\n\n"
+                "Explicitly distinguish Decision Logs, Proposed ADRs, and Accepted ADRs.\n\n"
                 + prompt + "\n"
             )
             prompt_file = workdir / "prompt.txt"

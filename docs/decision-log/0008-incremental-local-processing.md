@@ -1,4 +1,4 @@
-# Design Log 0008: Incremental local history processing
+# Decision Log 0008: Incremental local history processing
 
 Status: Historical observation (not an accepted decision)
 Historical decision date: Unknown

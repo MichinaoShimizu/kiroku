@@ -1,4 +1,4 @@
-# Design Log 0015: Comparable periods and explicitly estimated forecasts
+# Decision Log 0015: Comparable periods and explicitly estimated forecasts
 
 Status: Historical observation (not an accepted decision)
 Historical decision date: Unknown

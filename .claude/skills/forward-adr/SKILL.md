@@ -15,9 +15,9 @@ Use after ADR Guard identifies a material choice that is new, intentionally chan
 
 ## Workflow
 
-1. Read repository instructions, ADR index, Design Log index and relevant prior ADRs; use ADR Guard to classify preservation, extension or intentional conflict.
+1. Read repository instructions, ADR index, Decision Log index and relevant prior ADRs; use ADR Guard to classify preservation, extension or intentional conflict.
 2. Determine whether a durable decision exists. Avoid ADRs for trivial fixes, routine refactors and stylistic changes.
-3. State the decision question, context, constraints, stakeholders and evidence. Distinguish facts from assumptions and unresolved questions. Preserve unknown rationale in related Design Logs: a new explicit decision must not retroactively invent a reason for a prior observed change.
+3. State the decision question, context, constraints, stakeholders and evidence. Distinguish facts from assumptions and unresolved questions. Preserve unknown rationale in related Decision Logs: a new explicit decision must not retroactively invent a reason for a prior observed change.
 4. Describe a specific **proposed** choice and why it is preferred; compare genuine alternatives, including doing nothing when applicable. Do not fabricate deliberation.
 5. Analyze consequences: benefits, costs, reversibility, migration, compatibility, security/privacy, operations, observability and failure modes as relevant.
 6. Define verification and a review/acceptance owner or process. Tests not executed must be marked unverified.
@@ -33,7 +33,7 @@ Status: Proposed
 Date: <YYYY-MM-DD>
 Scope: <system or domain>
 Related ADRs: <ADR links, if any>
-Related Design Logs: <Design Log links, if any>
+Related Decision Logs: <Decision Log links, if any>
 Supersedes/Amends: <ADR links, if any>
 Decision owner: <role or unknown>
 
@@ -68,11 +68,11 @@ Decision owner: <role or unknown>
 
 ## Relationship to other skills
 
-- **reverse-adr** recovers historical changes and uncertainty into Design Logs, identifying explicit ADR candidates separately.
+- **reverse-adr** recovers historical changes and uncertainty into Decision Logs, identifying explicit ADR candidates separately.
 - **adr-guard** identifies which prior decisions a change touches.
 - **forward-adr** documents the next decision and its deliberate tradeoffs.
 - Periodic audits check whether accepted decisions still describe the implementation.
 
 ## Shared lifecycle rules
 
-Follow the [Decision Continuity shared contract](../decision-continuity-contract.md). This includes the Design Log / ADR separation, human acceptance boundary, legacy redirects and evidence discipline. Consult supporting audit/test material only when needed.
+Follow the [Decision Continuity shared contract](../decision-continuity-contract.md). This includes the Decision Log / ADR separation, human acceptance boundary, legacy redirects and evidence discipline. Consult supporting audit/test material only when needed.
