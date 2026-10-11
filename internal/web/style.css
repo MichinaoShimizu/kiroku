@@ -832,6 +832,13 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
 .journey-cell{border-left:1px solid var(--rule);padding:8px 3px;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:4px;min-height:54px}
 .journey-dot{height:14px;width:14px;flex:none;border-radius:4px;background:var(--c);border:1px solid var(--surface);cursor:pointer}
 .journey-dot:hover,.journey-dot:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.journey-legend{position:sticky;left:0;display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;padding:10px 12px;font-size:var(--fs-xs);background:var(--surface-2);color:var(--ink);border-bottom:1px solid var(--rule)}
+.journey-legend span{display:inline-flex;align-items:center;gap:5px}
+.journey-legend small{color:var(--ink-3)}
+.journey-legend i{font-style:normal;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px}
+.journey-legend-session{background:var(--ink-3);border-radius:4px}
+.journey-legend-commit,.journey-legend-pr{border:1px solid var(--ink-3);border-radius:4px;font-size:10px;font-weight:700}
+.journey-dot.journey-commit,.journey-dot.journey-pr{width:20px;height:20px;background:var(--surface);color:var(--ink);border:1px solid var(--ink-3);font-size:10px;font-weight:700;line-height:1}
 .journey-more{font-size:var(--fs-2xs);color:var(--ink-3)}
 .journey-empty{padding:36px;text-align:center;color:var(--ink-3)}
 
