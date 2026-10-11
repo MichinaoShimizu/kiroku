@@ -33,18 +33,6 @@ For Phase 2, the same upstream session IDs can appear on different machines; ori
 
 No historical evidence is claimed for unmentioned identity alternatives. Verify against source fixtures and the cited PRs; no new tests were run for this ADR.
 
-## Decision
 
-The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
 
-## Consequences
 
-See the existing rationale and consequences discussion above. No additional outcome is asserted.
-
-## Historical confidence and open questions
-
-Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.
-
-## Verification
-
-See existing source and test references where available. No new test execution is claimed.

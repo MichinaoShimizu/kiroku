@@ -37,10 +37,4 @@ The sequence above is supported by linked PR descriptions. It does not claim tha
 
 Review the PR sequence, current view and reports. No fresh visual regression testing is claimed.
 
-## Alternatives
 
-Not documented as a separate set of evaluated options in this record.
-
-## Historical confidence and open questions
-
-Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.

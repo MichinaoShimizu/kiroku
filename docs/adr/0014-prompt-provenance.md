@@ -22,22 +22,7 @@ Inspect `internal/core/kind.go`, source adapters and the prompt timeline and JSO
 
 This ADR records documented changes, not an approval meeting or an unverified current behavior.
 
-## Decision
 
-The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
 
-## Consequences
 
-See the existing rationale and consequences discussion above. No additional outcome is asserted.
 
-## Alternatives
-
-Not documented as a separate set of evaluated options in this record.
-
-## Historical confidence and open questions
-
-Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.
-
-## Verification
-
-See existing source and test references where available. No new test execution is claimed.
