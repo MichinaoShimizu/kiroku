@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -282,16 +283,13 @@ func crewFilePrivate(path string) bool {
 }
 
 // openRegular はふつうのファイル（シンボリックリンクの先も）だけを開く。名前つきパイプなどは、開くだけで止まってしまうので開かない
-// （ないものと同じに扱い、エラーは返さない）。
+// （ないものと同じに扱い、エラーは返さない）。調べ方は core.OpenRegular と同じ。
 func openRegular(path string) (*os.File, error) {
-	st, err := os.Stat(path)
-	if err != nil {
-		return nil, err
-	}
-	if !st.Mode().IsRegular() {
+	f, err := core.OpenRegular(path)
+	if errors.Is(err, core.ErrNotRegular) {
 		return nil, os.ErrNotExist
 	}
-	return os.Open(path)
+	return f, err
 }
 
 // crewBOM は UTF-8 の BOM（手で編集したファイルの先頭につくことがある）。
@@ -609,7 +607,7 @@ func readCrewLog(p string, seen map[string]bool, spawns *[]crewSpawn) (slot, cwd
 	if st, err := os.Lstat(p); err != nil || !st.Mode().IsRegular() {
 		return "", "", nil
 	}
-	f, err := os.Open(p)
+	f, err := core.OpenRegular(p)
 	if err != nil {
 		return "", "", err
 	}
@@ -1642,7 +1640,7 @@ func configObject(path string) map[string]any {
 	if err != nil || !st.Mode().IsRegular() || st.Size() > configMax {
 		return nil
 	}
-	f, err := os.Open(path)
+	f, err := core.OpenRegular(path)
 	if err != nil {
 		return nil
 	}

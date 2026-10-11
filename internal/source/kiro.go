@@ -2,6 +2,7 @@ package source
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -660,9 +661,18 @@ func readKiroExecFile(p string, keys []string, errs *fileErrs) (data map[string]
 	if err != nil || !st.Mode().IsRegular() || st.Size() > kiroExecMax {
 		return nil, 0, false
 	}
-	b, err := os.ReadFile(p)
+	f, err := core.OpenRegular(p)
 	if err != nil {
 		errs.file(p, err)
+		return nil, 0, false
+	}
+	defer f.Close()
+	b, err := io.ReadAll(io.LimitReader(f, kiroExecMax+1))
+	if err != nil {
+		errs.file(p, err)
+		return nil, 0, false
+	}
+	if len(b) > kiroExecMax { // 調べたあとに大きくなった
 		return nil, 0, false
 	}
 	// 実行ファイルには会話の全文（context）が入っていて大きい。全体を組み立てると読み込みがとても遅くなるので、

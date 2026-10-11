@@ -14,6 +14,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 ### Security
 
 - A Kiro Crew conversation held in incognito or temporary mode on the Codex backend is now shown with counts and times only in its Codex session too, as its kiro-cli and SQLite copies already were; its prompts, replies and title in Codex's own history were shown in full
+- kiroku no longer hangs when a named pipe (FIFO) or another non-regular file sits where history is expected, such as `~/.claude/projects/<project>/<session>.jsonl` or a Codex `rollout-*.jsonl`. `kiroku stats`, `kiroku serve`, `kiroku html` and `kiroku archive` used to wait forever opening it; now such files are not opened and are listed as unreadable in "Data sources" ("not a regular file"). JSON history files (Kiro `session.json`, Crew `session_map.json` and `state.json`, and others) larger than 64 MiB are no longer read into memory and are listed as unreadable too
 
 ## v0.31.0 - 2026-10-10
 

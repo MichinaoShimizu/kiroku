@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"hash/maphash"
 	"io"
-	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -197,10 +196,7 @@ var originFields = []string{"uuid", "type", "requestId", "sessionId", "forkedFro
 func (o *claudeOrigins) readKeys(path, id string) map[uint64]struct{} {
 	originReads.Add(1)
 	keys := map[uint64]struct{}{}
-	if st, err := os.Stat(path); err != nil || !st.Mode().IsRegular() {
-		return keys
-	}
-	f, err := os.Open(path)
+	f, err := core.OpenRegular(path)
 	if err != nil {
 		return keys
 	}
