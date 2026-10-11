@@ -1,29 +1,3 @@
-# ADR 0014: Prompt provenance and automatic events
+# Moved: Design Log 0014
 
-Status: Retrospective
-Date: Unknown
-Earliest cited merged PR: [#103](https://github.com/MichinaoShimizu/kiroku/pull/103) (2026-10-05 UTC; evidence anchor, not an approval date)
-Related: None
-Supersedes: None
-Superseded by: None
-
-Scope: Phase 1 — local sessions
-
-## Context and decision
-
-[#103](https://github.com/MichinaoShimizu/kiroku/pull/103) distinguishes human text, slash commands, shell commands and automatically injected material. Slash/shell commands count as human prompts; system reminders, hooks, notifications and generated summaries are tracked as notes, not human requests. Rephrase detection applies only to ordinary text prompts.
-
-## Consequences
-
-This classification is part of the measurement contract: automatically inserted context must not inflate human prompt counts. Source-specific parsers should preserve provenance when available and avoid silently treating unknown events as human intent.
-
-## Historical confidence and verification
-
-Inspect `internal/core/kind.go`, source adapters and the prompt timeline and JSON tests. Historical behavior is documented by #103; exact present-day parsing paths still require a full code audit.
-
-This ADR records documented changes, not an approval meeting or an unverified current behavior.
-
-
-
-
-
+Historical evidence is now [Design Log 0014](../design-log/0014-prompt-provenance.md). This legacy link is not an Accepted ADR.
