@@ -246,7 +246,7 @@ func (l *live) handler() http.Handler {
 			http.NotFound(w, r)
 			return
 		}
-		f, err := os.Open(real)
+		f, err := core.OpenRegular(real) // 名前つきパイプなどは開かない（開くだけで止まる）
 		if err != nil {
 			http.NotFound(w, r)
 			return

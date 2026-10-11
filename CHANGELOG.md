@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Security
+
+- kiroku no longer hangs when a named pipe (FIFO) or another non-regular file sits where history is expected, such as `~/.claude/projects/<project>/<session>.jsonl` or a Codex `rollout-*.jsonl`. `kiroku stats`, `kiroku serve`, `kiroku html` and `kiroku archive` used to wait forever opening it; now such files are not opened and are listed as unreadable in "Data sources" ("not a regular file"). JSON history files (Kiro `session.json`, Crew `session_map.json` and `state.json`, and others) larger than 64 MiB are no longer read into memory and are listed as unreadable too
+
 ## v0.31.0 - 2026-10-10
 
 ### Added

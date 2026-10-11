@@ -288,7 +288,7 @@ func (c *Codex) head(p string) codexHead {
 // readCodexHead は、最初の session_meta までだけ読む（ふつうは 1 行目）。
 // err は、session_meta にたどり着く前に読めなくなったとき（消えていたときは nil）。
 func readCodexHead(path string) codexHead {
-	f, err := os.Open(path)
+	f, err := core.OpenRegular(path) // 名前つきパイプなどは開かない（読めないファイルとして知らせる）
 	if err != nil {
 		return codexHead{err: fileErr(path, err)}
 	}

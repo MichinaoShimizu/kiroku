@@ -6,6 +6,7 @@
 package archive
 
 import (
+	"errors"
 	"io"
 	"io/fs"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/klauspost/compress/zstd"
 )
 
@@ -179,6 +181,9 @@ func Sync(src, dst string) (int, error) {
 			return nil
 		}
 		if err := compress(p, out, info); err != nil {
+			if errors.Is(err, core.ErrNotRegular) {
+				return nil // ふつうのファイルでないもの（名前つきパイプなど）は残さない（大きさ 0 のものと同じ）
+			}
 			if first == nil {
 				first = err
 			}
@@ -203,7 +208,7 @@ func resolve(p string) string {
 
 // compress は src を zstd で圧縮して dst に書く。途中で失敗しても前のコピーは残る（一時ファイルに書いてから置きかえる）。
 func compress(src, dst string, info fs.FileInfo) error {
-	in, err := os.Open(src)
+	in, err := core.OpenRegular(src) // シンボリックリンクの先が名前つきパイプでも止まらない
 	if err != nil {
 		return err
 	}

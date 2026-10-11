@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -175,8 +174,9 @@ func TextOf(content any) string {
 // ReadJSONL は 1 行ずつ JSON を読む。壊れた行は飛ばす。名前が .zst で終わるファイルは zstd で圧縮されたものとして読む。
 // 開けない・途中で読めなくなったときはエラーを返す（それまでに読めた行は fn に渡してある）。
 // MaxLine より長い行は飛ばして続きを読み、最後にそのことをエラーで返す（読めないファイルとして知らせる）。
+// ふつうのファイルでないもの（名前つきパイプなど）は開かずにエラーを返す（OpenRegular）。
 func ReadJSONL(path string, fn func(Obj)) error {
-	f, err := os.Open(path)
+	f, err := OpenRegular(path)
 	if err != nil {
 		return err
 	}
@@ -232,11 +232,14 @@ func readLine(r *bufio.Reader, max int, line []byte) ([]byte, bool, error) {
 	}
 }
 
-func lineLimit() string {
-	if MaxLine >= 1<<20 && MaxLine%(1<<20) == 0 {
-		return fmt.Sprintf("%d MiB", MaxLine>>20)
+func lineLimit() string { return sizeLimit(MaxLine) }
+
+// sizeLimit は大きさの上限を読みやすく書く（64 MiB など）。
+func sizeLimit(n int) string {
+	if n >= 1<<20 && n%(1<<20) == 0 {
+		return fmt.Sprintf("%d MiB", n>>20)
 	}
-	return fmt.Sprintf("%d bytes", MaxLine)
+	return fmt.Sprintf("%d bytes", n)
 }
 
 // lineReaders は ReadJSONLFrom の読み手（1 MiB の入れ物）を使い回す。
@@ -287,11 +290,24 @@ func ReadJSON(path string) any {
 	return v
 }
 
+// MaxJSONFile は ReadJSONFile で読むファイルの大きさの上限（バイト）。ファイル全体が 1 つの JSON なので、MaxLine と同じにする。
+// テストで小さくする。
+var MaxJSONFile = 64 << 20
+
 // ReadJSONFile は ReadJSON と同じだけど、読めなかったわけ（開けない・JSON として壊れている）も返す。
+// ふつうのファイルでないもの（名前つきパイプなど）は開かず、MaxJSONFile より大きいファイルは全部を読まずにエラーを返す。
 func ReadJSONFile(path string) (any, error) {
-	b, err := os.ReadFile(path)
+	f, err := OpenRegular(path)
 	if err != nil {
 		return nil, err
+	}
+	defer f.Close()
+	b, err := io.ReadAll(io.LimitReader(f, int64(MaxJSONFile)+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(b) > MaxJSONFile {
+		return nil, fmt.Errorf("file larger than %s", sizeLimit(MaxJSONFile)) // ファイル名は呼ぶ側がつける（fileErr）
 	}
 	var v any
 	if err := json.Unmarshal(b, &v); err != nil {
