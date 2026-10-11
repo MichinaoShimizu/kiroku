@@ -1,6 +1,7 @@
 package source
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -617,5 +618,89 @@ func TestKiroIDEModelWithoutUsage(t *testing.T) {
 	f := load(t, &KiroIDE{Home: home})[0].Finish(15)
 	if len(f.Models) != 1 || f.Models[0][0] != "claude-sonnet-4.5" {
 		t.Errorf("モデル = %v", f.Models)
+	}
+}
+
+// Kiro のエージェントが user の行として書く通知とエージェントの依頼は、人の依頼として数えない
+// （kiro-cli 2.29.0 の @kiro/agent の見分け方: _meta.kiro.notification・kind・"[notification/…]" で始まる steer・syntheticUserMessageReason）。
+// 人の依頼（source のないもの、chat、通知でない steer）は今までどおり数える。負のクレジットは 0 とみなす。
+func TestKiroIDENotUserAndCredits(t *testing.T) {
+	home := t.TempDir()
+	lines := []string{
+		`{"timestamp": "2026-10-01T01:01:00Z", "payload": {"type": "user", "content": "ビルドを直して"}}`,
+		`{"timestamp": "2026-10-01T01:02:00Z", "payload": {"type": "user", "content": "[notification/info] workflow finished", "source": "steer"}}`,
+		`{"timestamp": "2026-10-01T01:03:00Z", "payload": {"type": "user", "content": "task done", "source": "steer", "_meta": {"kiro": {"notification": {"kind": "system-notification"}}}}}`,
+		`{"timestamp": "2026-10-01T01:04:00Z", "payload": {"type": "user", "content": "continue", "kind": "x"}}`,
+		`{"timestamp": "2026-10-01T01:05:00Z", "payload": {"type": "user", "content": "next step", "_meta": {"kiro": {"syntheticUserMessageReason": "workflow-continuation"}}}}`,
+		`{"timestamp": "2026-10-01T01:06:00Z", "payload": {"type": "user", "content": "テストも足して", "source": "steer"}}`,
+		`{"timestamp": "2026-10-01T01:07:00Z", "payload": {"type": "user", "content": "README を直して", "source": "chat"}}`,
+		`{"timestamp": "2026-10-01T01:08:00Z", "payload": {"type": "usage_summary", "promptTurnSummaries": [{"usage": 2, "unit": "credit"}, {"usage": -5, "unit": "credit"}]}}`,
+	}
+	writeFiles(t, home, map[string]string{
+		"sessions/0123456789abcdef/sess_n1/session.json":   `{"schemaVersion": "1.0.0", "id": "sess_n1", "workspacePaths": ["/Users/me/app"], "createdAt": "2026-10-01T01:00:00Z"}`,
+		"sessions/0123456789abcdef/sess_n1/messages.jsonl": strings.Join(lines, "\n") + "\n",
+	})
+	bs := load(t, &KiroIDE{Home: home})
+	if len(bs) != 1 {
+		t.Fatalf("%d 件, want 1", len(bs))
+	}
+	s := bs[0].Finish(15)
+	var got []string
+	for _, p := range s.Prompts {
+		got = append(got, p.Text)
+	}
+	if want := []string{"ビルドを直して", "テストも足して", "README を直して"}; strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Errorf("依頼 = %q, want %q", got, want)
+	}
+	if c := s.Credits; c != 2 {
+		t.Errorf("credits = %v, want 2（負の値は 0）", c)
+	}
+}
+
+// Kiro のエージェントと同じく、値ではなくキーがあるかで見る（null でも当てはまる）。前の空白は JavaScript の \s の範囲。
+// 壊れた・ありえない大きさのクレジットは 0 とみなし、合計が +Inf にならない（JSON に書けず画面全体が出なくなるため）。
+func TestKiroNotUserEdges(t *testing.T) {
+	for _, c := range []struct {
+		line string
+		want string
+	}{
+		{`{"type": "user", "content": "x", "kind": null}`, "notice"},
+		{`{"type": "user", "content": "x", "kind": false}`, "notice"},
+		{`{"type": "user", "content": "x", "_meta": {"kiro": {"notification": null}}}`, "notice"},
+		{`{"type": "user", "content": "x", "_meta": {"kiro": {"syntheticUserMessageReason": null}}}`, "agent"},
+		{`{"type": "user", "content": "\u00a0\ufeff[notification/warning] w", "source": "steer"}`, "notice"},
+		{`{"type": "user", "content": "[NOTIFICATION/INFO] x", "source": "steer"}`, ""},
+		{`{"type": "user", "content": "[notification/debug] x", "source": "steer"}`, ""},
+		{`{"type": "user", "content": "[notification/info] x", "source": "chat"}`, ""},
+		{`{"type": "user", "content": "x", "_meta": "str"}`, ""},
+		{`{"type": "user", "content": "x", "_meta": {"kiro": ["a"]}}`, ""},
+	} {
+		var p core.Obj
+		if err := json.Unmarshal([]byte(c.line), &p); err != nil {
+			t.Fatal(err)
+		}
+		if got := kiroNotUser(p); got != c.want {
+			t.Errorf("%s: %q, want %q", c.line, got, c.want)
+		}
+	}
+	if got := creditsOf([]any{map[string]any{"usage": 1.7e308}, map[string]any{"usage": 1.7e308}, map[string]any{"usage": 1.5}}, "unit", "usage"); got != 1.5 {
+		t.Errorf("credits = %v, want 1.5（ありえない大きさは 0）", got)
+	}
+	home := t.TempDir()
+	writeFiles(t, home, map[string]string{
+		"sessions/cli/c1.json": `{"session_id": "c1", "created_at": "2026-10-05T00:00:00Z", "session_state": {"conversation_metadata": {"user_turn_metadatas": [
+  {"end_timestamp": "2026-10-05T00:04:00Z", "metering_usage": [{"value": 1.7e308, "unit": "credit"}, {"value": 1.7e308, "unit": "credit"}, {"value": 2, "unit": "credit"}]}]}}}`,
+		"sessions/cli/c1.jsonl": `{"version": "v1", "kind": "Prompt", "data": {"content": [{"kind": "text", "data": "hi"}]}}` + "\n",
+	})
+	bs := load(t, &KiroCLI{Home: home})
+	if len(bs) != 1 {
+		t.Fatalf("%d 件, want 1", len(bs))
+	}
+	s := bs[0].Finish(15)
+	if s.Credits != 2 {
+		t.Errorf("credits = %v, want 2", s.Credits)
+	}
+	if _, err := json.Marshal(s); err != nil {
+		t.Errorf("セッションを JSON に書けない: %v", err)
 	}
 }

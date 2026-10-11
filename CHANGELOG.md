@@ -10,6 +10,8 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Fixed
 
+- Kiro IDE / CLI: notifications and follow-up requests that Kiro's agent writes into a conversation (such as "[notification/info] …" or a workflow continuing) were counted as prompts you typed. They are now shown as notices or as sent by the agent, as Kiro itself tells them apart
+- Kiro: a credit amount below 0 in the history no longer lowers the credit total; it counts as 0
 - Amazon Q / Kiro CLI (SQLite): prompts you type that start with a tag (`<template>…`, `<html lang=en> fix it`) or "Caveat:" are counted as prompts with their text, instead of being shown as notes with their reply attached to the previous prompt. These histories store exactly what you typed, so kiroku no longer applies the Claude Code transcript rules to them
 - Usage limit hits now include Claude Code's "Credit balance is too low" error (prepaid Console credits ran out), also when it comes as the API's "Your credit balance is too low to access the Anthropic API"
 - Kiro Crew: usage limit hits are now counted. When a spent plan allowance stops a turn, the Crew dashboard writes an `error` line tagged `meta.kind: "usage_limit"` to the conversation log; kiroku counts each one as a usage limit hit at its time (hits within 1 minute count once), including in conversations whose prompts are in the kiro-cli history and, as times only, in private conversations. Sign-in, model and session-start errors are not counted, and the message text is never used
@@ -18,6 +20,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Security
 
+- A Kiro history with credit amounts too large to be real (such as 1.7e308) could make the total infinite, after which `kiroku html` and `kiroku json` failed and `kiroku serve` showed no history at all. A single entry above 1,000,000 credits now counts as 0
 - A Kiro Crew conversation held in incognito or temporary mode on the Codex backend is now shown with counts and times only in its Codex session too, as its kiro-cli and SQLite copies already were; its prompts, replies and title in Codex's own history were shown in full
 - kiroku no longer hangs when a named pipe (FIFO) or another non-regular file sits where history is expected, such as `~/.claude/projects/<project>/<session>.jsonl` or a Codex `rollout-*.jsonl`. `kiroku stats`, `kiroku serve`, `kiroku html` and `kiroku archive` used to wait forever opening it; now such files are not opened and are listed as unreadable in "Data sources" ("not a regular file"). JSON history files (Kiro `session.json`, Crew `session_map.json` and `state.json`, and others) larger than 64 MiB are no longer read into memory and are listed as unreadable too
 
