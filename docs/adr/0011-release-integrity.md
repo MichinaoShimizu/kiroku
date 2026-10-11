@@ -28,14 +28,5 @@ Earlier approaches and reversals are listed only where linked PRs document them.
 
 Verify release workflows in `.github/workflows`, `.goreleaser.yaml`, `tools/reproduce.sh`, `SECURITY.md`, and actual published release artifacts. This ADR does not claim a fresh release build or external verification.
 
-## Decision
 
-The recovered decisions remain in the original evidence and decision-history sections above; no new interpretation is introduced.
 
-## Consequences
-
-See the existing rationale and consequences discussion above. No additional outcome is asserted.
-
-## Historical confidence and open questions
-
-Rationale is limited to the linked historical evidence. Unrecorded alternatives and approval history remain unknown.
