@@ -56,7 +56,8 @@ This page summarizes where kiroku reads each agent's history from and how. The l
 - The same conversation can appear in both the new format and SQLite. For a given conversation ID, only the new format is counted (because it has credits). The number left out appears in "Data sources"
 - The SQLite history has no tokens or credits, so it is not included in estimated cost or credits
 - The new format has no compaction marker kiroku can rely on (the format is not documented and the reference implementations don't read one), so Kiro CLI compactions are counted only from SQLite (see Amazon Q Developer CLI)
-- Kiro CLI now has three storages: V1 (SQLite), V2 (the JSON format under `sessions/cli`) and an opt-in V3 (`kiro-cli --v3`) that stores sessions in `~/.kiro/sessions/` in a new format without public documentation ([V3](https://kiro.dev/docs/cli/v3/)). kiroku does not read V3 yet
+- Kiro CLI now has three storages: V1 (SQLite), V2 (the JSON format under `sessions/cli`) and V3 (`kiro-cli --v3`, or the `chat.agentEngine` setting; [V3](https://kiro.dev/docs/cli/v3/)). V3 runs on the same agent harness as the other Kiro surfaces and keeps its own session store, which V2 can't open; V2 sessions are not converted. Kiro's docs describe local sessions only as "a SQLite database in `~/.kiro/`" ([session management](https://kiro.dev/docs/cli/chat/session-management/)), so the V3 path and format are not verified. kiroku does not read V3 yet. Classic (V2) sessions show a deprecation notice since CLI 2.26, so V3 is becoming the default
+- When V3 is read, it will be its own source, separate from V2 ([ADR 0021](adr/0021-kiro-cli-v3-separate-source.md), Proposed)
 
 ## Kiro Crew
 
