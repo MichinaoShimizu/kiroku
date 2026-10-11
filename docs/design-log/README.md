@@ -29,3 +29,11 @@ Historical claim IDs and original PR citations are preserved. A merged PR does n
 ## Record contract
 
 A Design Log has a stable historical ID, scope, source evidence, observations, known uncertainties and verification limits. `Historical decision date: Unknown` is not an ADR approval date. Do not add `Supersedes` or `Superseded by` lifecycle metadata unless linking to a genuine, separately governed ADR; instead use explicit `Related ADR` references. Existing historical headings called `Decision` describe recorded or observed choices, **not** an Accepted architectural rule. A Design Log may be amended with newly verified evidence without rewriting history.
+
+## Evidence and audit trail
+
+The historical [decision ledger](../adr/phase1-decision-ledger.md), [claim evidence matrix](../adr/evidence.yaml), and [audit snapshot](../adr/audit.md) retain their original paths and legacy `ADR-xxxx` claim identifiers for compatibility. These identifiers represent historical claims, not Accepted ADRs. The audit snapshot was compiled before the Design Log migration and does not establish exhaustive review or formal approval.
+
+## Validation scenarios
+
+[Decision Continuity scenario tests](scenario-tests.md) document twelve expected behaviors, static instruction checks and the outstanding live-agent execution gate.

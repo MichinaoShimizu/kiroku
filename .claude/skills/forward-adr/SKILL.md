@@ -15,9 +15,9 @@ Use after ADR Guard identifies a material choice that is new, intentionally chan
 
 ## Workflow
 
-1. Read repository instructions, ADR index and relevant prior ADRs; use ADR Guard to classify preservation, extension or intentional conflict.
+1. Read repository instructions, ADR index, Design Log index and relevant prior ADRs; use ADR Guard to classify preservation, extension or intentional conflict.
 2. Determine whether a durable decision exists. Avoid ADRs for trivial fixes, routine refactors and stylistic changes.
-3. State the decision question, context, constraints, stakeholders and evidence. Distinguish facts from assumptions and unresolved questions. Preserve unknown rationale in related retrospective records: a new explicit decision must not retroactively invent a reason for a prior observed change.
+3. State the decision question, context, constraints, stakeholders and evidence. Distinguish facts from assumptions and unresolved questions. Preserve unknown rationale in related Design Logs: a new explicit decision must not retroactively invent a reason for a prior observed change.
 4. Describe a specific **proposed** choice and why it is preferred; compare genuine alternatives, including doing nothing when applicable. Do not fabricate deliberation.
 5. Analyze consequences: benefits, costs, reversibility, migration, compatibility, security/privacy, operations, observability and failure modes as relevant.
 6. Define verification and a review/acceptance owner or process. Tests not executed must be marked unverified.
@@ -32,7 +32,7 @@ Use after ADR Guard identifies a material choice that is new, intentionally chan
 Status: Proposed
 Date: <YYYY-MM-DD>
 Scope: <system or domain>
-Related: <ADR links>
+Related ADRs: <ADR links, if any>\nRelated Design Logs: <Design Log links, if any>
 Supersedes/Amends: <ADR links, if any>
 Decision owner: <role or unknown>
 
@@ -67,15 +67,11 @@ Decision owner: <role or unknown>
 
 ## Relationship to other skills
 
-- **reverse-adr** recovers historical decisions and uncertainty.
+- **reverse-adr** recovers historical changes and uncertainty into Design Logs, identifying explicit ADR candidates separately.
 - **adr-guard** identifies which prior decisions a change touches.
 - **forward-adr** documents the next decision and its deliberate tradeoffs.
 - Periodic audits check whether accepted decisions still describe the implementation.
 
-## Shared ADR metadata and index contract
+## Separate record contracts
 
-Use the target repository's ADR index and lifecycle rules as the source of truth. In kiroku, `docs/adr/README.md` contains the routing index, inventory and metadata contract; there is no separate `docs/adr/index.md`. Keep routing rows, inventory entries, ADR headers, evidence and supersession links consistent in the same change. Preserve historical ADR content and unknown rationale; do not silently upgrade Retrospective to Accepted. Path matching is only a hint; use semantic matching for cross-cutting decisions. Before proposing or updating a record, verify stable ID, target links, Status, Date, Scope and reciprocal supersession references. A missing Date in a legacy ADR is a migration gap, not license to invent one.
-
-## Design Log separation (authoritative)
-
-Forward ADR drafts a new **Proposed** decision when explicit material governance is required. Reference Design Logs for historical evidence, but do not convert their observations into Accepted constraints or invent original decision owners. Only explicit human approval sets Accepted. Update the ADR index for actual ADRs; update the Design Log index only when new historical evidence is recorded. In kiroku, `docs/design-log/` holds recovered history and `docs/adr/` holds decisions. Existing retrospective ADR generation guidance elsewhere is superseded by this separation.
+The ADR index lists actual explicit decisions, not historical observations. The Design Log index lists historical evidence and uncertainties. In kiroku these are `docs/adr/README.md` and `docs/design-log/README.md`. Historical Design Logs 0001–0019 are not Accepted ADRs; legacy ADR paths are compatibility redirects. Reference related Design Logs directly and do not fabricate original approvals, owners or dates. Only explicit human review changes a Proposed ADR to Accepted; supersession updates are reciprocal and occur only after approval.
