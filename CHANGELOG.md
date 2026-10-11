@@ -4,6 +4,11 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Fixed
+
+- Amazon Q / Kiro CLI (SQLite): prompts you type that start with a tag (`<template>…`, `<html lang=en> fix it`) or "Caveat:" are counted as prompts with their text, instead of being shown as notes with their reply attached to the previous prompt. These histories store exactly what you typed, so kiroku no longer applies the Claude Code transcript rules to them
+- Usage limit hits now include Claude Code's "Credit balance is too low" error (prepaid Console credits ran out), also when it comes as the API's "Your credit balance is too low to access the Anthropic API"
+
 ### Security
 
 - kiroku no longer hangs when a named pipe (FIFO) or another non-regular file sits where history is expected, such as `~/.claude/projects/<project>/<session>.jsonl` or a Codex `rollout-*.jsonl`. `kiroku stats`, `kiroku serve`, `kiroku html` and `kiroku archive` used to wait forever opening it; now such files are not opened and are listed as unreadable in "Data sources" ("not a regular file"). JSON history files (Kiro `session.json`, Crew `session_map.json` and `state.json`, and others) larger than 64 MiB are no longer read into memory and are listed as unreadable too

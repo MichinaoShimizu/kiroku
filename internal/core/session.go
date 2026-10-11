@@ -215,6 +215,21 @@ func (s *Builder) Prompt(ts *float64, text string) {
 	}
 }
 
+// PromptRaw は、人が打った文をそのままプロンプトとして残す（splitUser を通さない）。
+// 打った文だけを残すエージェント（Amazon Q）が使う。先頭のタグ（<template> など）や「Caveat:」でも
+// Claude Code の仕組みの文とみなさない。空白だけの文は Prompt と同じく数えない。
+func (s *Builder) PromptRaw(ts *float64, text string) {
+	t := strings.TrimSpace(text)
+	if t == "" {
+		return
+	}
+	first := len(s.Prompts) == 0
+	s.addPrompt(ts, "", t)
+	if IsCorrection(text, first) && ts != nil {
+		s.FixTS = append(s.FixTS, *ts)
+	}
+}
+
 // Command は、スラッシュコマンドを人が打ったプロンプト（KindCommand）として残す。
 // コマンドをタグ（<command-name>）の形で残さないエージェント（Codex の /review）が使う。text は「/名前 引数」。
 func (s *Builder) Command(ts *float64, text string) {

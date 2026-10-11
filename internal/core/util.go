@@ -334,11 +334,12 @@ func Runes(s string, n int) string {
 // limitText は、エージェントが返した利用上限（使用量の上限・レート制限）のエラー文。
 // 例: "Claude AI usage limit reached|1750000000"、"5-hour limit reached ∙ resets 3pm"、"API Error: 429 …rate_limit_error…"、
 // "You've hit your session limit · resets 3:45pm"（weekly・Opus・Sonnet も同じ形）、"You've hit your org's monthly spend limit"、
-// "You've hit your team's shared budget"、"API Error: Request rejected (429)"（API キーのレート制限）。
+// "You've hit your team's shared budget"、"API Error: Request rejected (429)"（API キーのレート制限）、
+// "Credit balance is too low"・"Your credit balance is too low to access the Anthropic API."（Console の前払いクレジットが尽きた）。
 // 429 は HTTP の状態コードとして書かれたとき（"API Error: 429"・"(429)"・"status 429"・文の先頭の "429 "）だけ数え、
 // "~1,429 tokens" のような数の一部は数えない。
-// 出典: https://code.claude.com/docs/en/errors （Usage limits）
-var limitText = regexp.MustCompile(`(?i)usage limit|limit reached|limit will reset|hit your [^.\n]{0,40}?(limit|budget)|reached your .{0,20}limit|rate[_ ]limit|` +
+// 出典: https://code.claude.com/docs/en/errors （Usage limits・Credit balance is too low）
+var limitText = regexp.MustCompile(`(?i)usage limit|limit reached|limit will reset|hit your [^.\n]{0,40}?(limit|budget)|reached your .{0,20}limit|rate[_ ]limit|credit balance is too low|` +
 	`api error:?\s*429\b|\(429\)|\bstatus(?:\s+code)?:?\s*429\b|^\s*429\b|\b429 too many requests`)
 
 // notLimitText は、limitText に当たるが利用上限ではないエラー文。
