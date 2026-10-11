@@ -8,11 +8,11 @@ Superseded by: None
 
 Scope: Phase 1 — local sessions
 
-## Documented decision and evolution
+## Decision
 
 [#68](https://github.com/MichinaoShimizu/kiroku/pull/68) added a whole-dataset snapshot covering seven source formats and Go-only metrics because Python-parity golden tests missed Codex and later adapters. The PR explicitly tested timezone stability and deliberately mutated Codex token calculations to demonstrate detection. [#42](https://github.com/MichinaoShimizu/kiroku/pull/42) introduced goal-based usability scenarios and a user-tester agent, explicitly noting that AI-simulated user tests do not replace real people.
 
-## Rationale and consequences
+## Consequences
 
 Use both numerical snapshots and task-oriented usability tests. Snapshot stability does not establish semantic correctness, and simulated users are not a substitute for actual users.
 
