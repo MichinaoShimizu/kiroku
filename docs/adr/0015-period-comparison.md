@@ -8,11 +8,11 @@ Superseded by: None
 
 Scope: Phase 1 — local sessions
 
-## Context and documented decision
+## Context and decision
 
 [#70](https://github.com/MichinaoShimizu/kiroku/pull/70) corrected partial-week/month comparisons to use the same elapsed number of days in the previous period instead of comparing a partial period with a complete one. The same PR labeled end-of-month projections as estimates conditional on the current pace and excluded certain incomplete or boundary periods.
 
-## Rationale and consequences
+## Consequences
 
 A comparison must disclose its denominator and time range; a projection is not an observation. Output metrics without reliable daily attribution should not be compared as though the partial-period data were complete.
 
