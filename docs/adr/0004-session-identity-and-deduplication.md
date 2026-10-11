@@ -12,7 +12,7 @@ Scope: Phase 1 — local sessions
 
 Multiple files and agent components may represent the same user interaction. Summing them naively inflates prompts, time, token use and outputs.
 
-## Documented decisions
+## Decision
 
 - **Unify native agent readers through an adapter contract.** The Go rewrite introduced `Source` and a common session model ([#6](https://github.com/MichinaoShimizu/kiroku/pull/6)).
 - **Avoid Crew/Kiro double counts.** Crew's own logs are used for identity/title/provenance while Kiro CLI provides the underlying conversation and usage when they refer to the same work ([#8](https://github.com/MichinaoShimizu/kiroku/pull/8)).
@@ -23,7 +23,7 @@ Multiple files and agent components may represent the same user interaction. Sum
 
 `internal/cli/load.go` uses `Builder.Key` and `Claim/Yield` in collection; `internal/core/session.go` defines the normalized identity and fields. These are **current-code observations**, not a claim that their exact semantics were established in one historical PR.
 
-## Rationale and consequences
+## Consequences
 
 One human action must not become multiple metrics merely because an agent stores multiple representations. Identity rules require agent-specific tests, not just generic file-hash deduplication.
 

@@ -8,11 +8,11 @@ Superseded by: None
 
 Scope: Phase 1 — local sessions
 
-## Context and documented decision
+## Context and decision
 
 [#103](https://github.com/MichinaoShimizu/kiroku/pull/103) distinguishes human text, slash commands, shell commands and automatically injected material. Slash/shell commands count as human prompts; system reminders, hooks, notifications and generated summaries are tracked as notes, not human requests. Rephrase detection applies only to ordinary text prompts.
 
-## Rationale and consequences
+## Consequences
 
 This classification is part of the measurement contract: automatically inserted context must not inflate human prompt counts. Source-specific parsers should preserve provenance when available and avoid silently treating unknown events as human intent.
 

@@ -12,7 +12,7 @@ Scope: Phase 1 — local sessions
 
 AI-agent histories are heterogeneous: fields, units and events vary by agent and version. A uniform dashboard must not imply that missing data means zero, that estimated prices are bills, or that two duplicated transcript rows represent two actions.
 
-## Documented decisions
+## Decision
 
 - **Keep measurements descriptive rather than normative.** Native agent-specific metrics were introduced as reference values with sample counts, not performance grades ([#10](https://github.com/MichinaoShimizu/kiroku/pull/10)). Earlier prescriptive reflection was removed in favor of weekly/monthly descriptive summaries ([#14](https://github.com/MichinaoShimizu/kiroku/pull/14)).
 - **Preserve missingness.** Show “Not recorded” rather than 0 when the source does not record a metric ([#214](https://github.com/MichinaoShimizu/kiroku/pull/214)); document per-agent recording coverage ([#215](https://github.com/MichinaoShimizu/kiroku/pull/215)).

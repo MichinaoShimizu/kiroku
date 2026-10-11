@@ -12,7 +12,7 @@ Scope: Phase 1
 
 During 0.x, CLI commands, output fields and archive files changed frequently. A stable public contract was needed before 1.0.
 
-## Documented decisions
+## Decision
 
 - Treat 1.0 as a compatibility boundary, with future breaking changes requiring a new major version ([#209](https://github.com/MichinaoShimizu/kiroku/issues/209)).
 - Version the public `kiroku json` schema using `schemaVersion: 1`; do **not** treat the internal `/data.json` endpoint as the same versioned public API ([#208](https://github.com/MichinaoShimizu/kiroku/pull/208), [#209](https://github.com/MichinaoShimizu/kiroku/issues/209)).
@@ -25,7 +25,7 @@ The policy in [#208](https://github.com/MichinaoShimizu/kiroku/pull/208) protect
 
 The policy explicitly permits changes in any release to the UI, metrics and calculated values, estimated costs, readable prose, generated HTML, history formats supported and JSON fields outside the enumerated contract. Security fixes may override compatibility.
 
-## Rationale and consequences
+## Consequences
 
 Users and scripts need stable semantics, but stabilizing too early would preserve accidental CLI shapes. Distinguish public JSON contracts from internal browser transport and from on-disk user data.
 
