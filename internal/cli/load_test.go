@@ -227,6 +227,75 @@ func TestKiroIDEMigratedOnlyLegacyYields(t *testing.T) {
 	}
 }
 
+// Kiro CLI V2（Classic）の会話 X を 3.0 で開く（kiro-cli chat --v3 --resume-id X）と、V2 の会話を残したまま sess_X に写す。
+// 1 回だけ数え、3.0 の写しを使う。写しにない切り替え前のクレジットは V2 から足す（写しが持っていれば足さない）。
+func TestKiroClassicConvertedToV3CountsOnce(t *testing.T) {
+	home := t.TempDir()
+	v2 := func(id string, turns ...string) string {
+		return `{"session_id": "` + id + `", "cwd": "/Users/me/app", "created_at": "2026-09-29T10:00:00Z", "session_state": {"conversation_metadata": {"user_turn_metadatas": [` + strings.Join(turns, ",") + `]}}}`
+	}
+	turn := func(end string, v float64) string {
+		return fmt.Sprintf(`{"end_timestamp": %q, "metering_usage": [{"value": %g, "unit": "credit"}]}`, end, v)
+	}
+	prompt := func(at, text string) string {
+		return `{"timestamp": "` + at + `", "payload": {"type": "user", "content": "` + text + `"}}` + "\n"
+	}
+	usage := func(at string, v float64) string {
+		return fmt.Sprintf(`{"timestamp": %q, "payload": {"type": "usage_summary", "promptTurnSummaries": [{"usage": %g, "unit": "credit"}]}}`, at, v) + "\n"
+	}
+	files := map[string]string{
+		// 写しに usage_summary がない（kiro-cli 2.29 の変換）: 切り替え前の 1 + 0.5 を足す。3.0 で送った依頼の 2 と合わせて 3.5
+		"sessions/cli/u1.json":             v2("u1", turn("2026-09-29T10:01:00Z", 1), turn("2026-09-29T10:02:00Z", 0.5)),
+		"sessions/cli/u1.jsonl":            `{"kind": "Prompt", "data": {"content": [{"kind": "text", "data": "表を作って"}]}, "timestamp": "2026-09-29T10:00:30Z"}` + "\n",
+		"sessions/b1/sess_u1/session.json": `{"id": "sess_u1", "createdAt": "2026-09-29T11:00:00Z"}`,
+		"sessions/b1/sess_u1/messages.jsonl": prompt("2026-09-29T10:00:30Z", "表を作って") +
+			prompt("2026-09-29T11:01:00Z", "列を足して") + usage("2026-09-29T11:02:00Z", 2),
+		// 写しが切り替え前のクレジットを持っていれば、足さない（1 のまま）
+		"sessions/cli/u2.json":               v2("u2", turn("2026-09-29T10:01:00Z", 1)),
+		"sessions/b1/sess_u2/session.json":   `{"id": "sess_u2"}`,
+		"sessions/b1/sess_u2/messages.jsonl": prompt("2026-09-29T10:00:30Z", "図を描いて") + usage("2026-09-29T10:01:00Z", 1),
+		// 移していない V2 の会話はそのまま出す
+		"sessions/cli/u3.json": v2("u3", turn("2026-09-29T10:01:00Z", 4)),
+	}
+	writeTree(t, home, files)
+	all := source.All(source.Options{KiroHome: home, CrewHome: filepath.Join(home, "crew"), KiroCLIDB: filepath.Join(home, "none.sqlite3")})
+	data, rep := collect(all, map[string]bool{"kiro": true}, 15)
+	n := map[string]source.Report{}
+	for _, r := range rep {
+		n[r.Name] = r
+	}
+	if r := n["Kiro CLI (Classic)"]; r.N != 1 || r.Dup != 2 {
+		t.Errorf("Kiro CLI (Classic): n=%d dup=%d, want 1 と 2（3.0 へ移した 2 つは数えない）", r.N, r.Dup)
+	}
+	credits := map[string]float64{}
+	for _, s := range data {
+		credits[s.Source+" "+s.ID] = s.Credits
+	}
+	want := map[string]float64{"Kiro IDE / CLI sess_u1": 3.5, "Kiro IDE / CLI sess_u2": 1, "Kiro CLI (Classic) u3": 4}
+	if len(credits) != len(want) {
+		t.Errorf("セッション = %v, want %v", credits, want)
+	}
+	for k, v := range want {
+		if got, ok := credits[k]; !ok || got != v {
+			t.Errorf("%s のクレジット = %v (%v), want %v", k, got, ok, v)
+		}
+	}
+}
+
+// writeTree は dir からの相対パス → 中身 のファイルを作る。
+func writeTree(t *testing.T, dir string, files map[string]string) {
+	t.Helper()
+	for p, body := range files {
+		full := filepath.Join(dir, filepath.FromSlash(p))
+		if err := os.MkdirAll(filepath.Dir(full), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 func roundTrip(t *testing.T, v any) any {
 	b, err := json.Marshal(v)
 	if err != nil {
