@@ -101,17 +101,36 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		model := core.Str(meta["modelId"])
 		modeled := false // usage_summary でモデルを数えたか
 		s.Tick(ts(meta["createdAt"]))
+		// 応答は、次の依頼の行まで待ってから入れる。行の時刻がない・その回（直前の依頼から次の依頼まで）の外にある応答は、
+		// 直前の依頼の時刻を使う。Kiro CLI V2 から 3.0 へ移した会話の、切り替える前の応答には、使える時刻がない
+		var asked *float64     // 直前の依頼の時刻
+		var pending *kiroReply // その回の最後の応答（Builder.Reply も、その回の最後の応答だけを残す）
+		flush := func(next *float64) {
+			if pending == nil {
+				return
+			}
+			t := pending.t
+			if t == nil || asked != nil && *t < *asked || next != nil && *t >= *next {
+				t = asked
+			}
+			s.Reply(t, "", pending.text)
+			pending = nil
+		}
 		errs.file(s.File, core.ReadJSONL(s.File, func(e core.Obj) {
 			t := ts(e["timestamp"])
 			p := core.Map(e["payload"])
 			typ := core.Str(p["type"])
 			if typ == "user" {
 				s.Tick(t)
+				flush(t)
 				if k := kiroNotUser(p); k != "" {
 					s.Inject(t, k, core.TextOf(p["content"]))
 					return
 				}
 				s.Prompt(t, core.TextOf(p["content"]))
+				if t != nil {
+					asked = t
+				}
 				return
 			}
 			s.Agent(t)
@@ -119,7 +138,7 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 			case "assistant": // 人に返した文（依頼の流れに出す）。考えている途中の文（operationType: Reasoning）は入れない
 				// 中身が「...」だけの行は、書いている途中に置く仮の文（参考実装 kiro-history の server/ide-v1.ts も飛ばす）。応答にしない
 				if text := replyText(p["content"]); core.Str(p["operationType"]) != "Reasoning" && strings.TrimSpace(text) != "..." {
-					s.Reply(t, "", text)
+					pending = &kiroReply{t, text}
 				}
 			case "tool_call":
 				s.Tool(core.Str(p["toolName"]), p["args"])
@@ -148,6 +167,7 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 				}
 			}
 		}))
+		flush(nil)
 		if !modeled && len(s.Prompts) > 0 {
 			s.Model(model) // usage_summary がなければ、会話のモデル（modelId）を 1 回数える（v1.0 より前の selectedModel と同じ）
 		}
@@ -161,6 +181,12 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		emit(s)
 	}
 	return errs.err()
+}
+
+// kiroReply は、入れるのを待っている Kiro IDE / CLI の応答。
+type kiroReply struct {
+	t    *float64
+	text string
 }
 
 // kiroClassicYield は Kiro CLI V2 の会話 sid の Yield。3.0 へ移した会話（sess_<sid>）があれば、そちらを使う（KiroIDE の Claim）。
