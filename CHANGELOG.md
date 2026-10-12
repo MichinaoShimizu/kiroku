@@ -1,19 +1,25 @@
 # Changelog
 
-Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## v0.33.0 - 2026-10-11`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
+Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## v0.33.0 - 2026-10-12`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
 ## Unreleased
 
 ### Added
 
+- Project view: inspect observed sessions, Git commits and recorded pull requests grouped by project, with an agent-source breakdown, expandable complete event lists and existing detail navigation. View choice remains independent of Week/Month.
 - Journey view: inspect observed AI sessions by project and day alongside the Week and Month calendar. Session details and existing search/filter remain available.
 
 ### Fixed
 
+- View accessibility: Calendar, Journey and Project now use view-specific accessible region labels, skip-link text and filtering descriptions.
 - Kiro: a Kiro CLI Classic session that you open in Kiro CLI 3.0 (`kiro-cli chat --v3 --resume-id <id>`) was counted twice, once in "Kiro CLI (Classic)" and once in "Kiro IDE / CLI", because kiro-cli copies it to the 3.0 store as `sess_<id>` and keeps the Classic file. It is now counted once, as the 3.0 session, which holds the prompts sent after the switch. The 3.0 copy has no credit records for the turns before the switch, so their credits, turn count and model requests are taken from the Classic session ([ADR 0021](docs/adr/0021-kiro-cli-v3-separate-source.md))
 - Kiro IDE / CLI: in a Classic session opened in Kiro CLI 3.0, the prompts from before the switch were shown without their replies. The copied replies carry no usable time, so kiroku now matches each reply to the prompt before it in the history, as it already does for Kiro CLI (Classic)
 
 - Daily report prompt: each project now comes with its active time and share of the day, split between projects that ran at the same time as in the weekly report, so the AI no longer has to estimate them from session spans. Session lines in the report prompts separate the agent and model with "·" instead of parentheses, so names like "Kiro CLI (Classic)" no longer read as "Kiro CLI (Classic) (model)", and the prompts ask the AI to open the listed history files by their exact paths without searching the folders around them
+
+### Changed
+
+- Project view indexes Git commits once per render instead of scanning them for every project card, without changing displayed counts.
 
 ### Security
 
