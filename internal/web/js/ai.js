@@ -9,7 +9,7 @@ async function runAIReview(button, prompt, title) {
   notice.textContent = "Review the exact prompt below. Running an agent may transmit its contents and referenced history to an external AI provider.";
   const agentLabel = document.createElement("label"); agentLabel.textContent = "Agent ";
   const agent = document.createElement("select");
-  for (const id of ["claude", "codex"]) { const o = document.createElement("option"); o.value = id; o.textContent = id; agent.append(o); }
+  for (const id of ["claude", "codex", "kiro"]) { const o = document.createElement("option"); o.value = id; o.textContent = id; agent.append(o); }
   agentLabel.append(agent);
   const preview = document.createElement("textarea");
   preview.readOnly = true; preview.value = prompt;
