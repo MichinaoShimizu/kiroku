@@ -2,6 +2,8 @@ package ai
 
 import (
  "encoding/json"
+ "errors"
+ "io"
  "net/http"
  "strings"
 )
@@ -27,7 +29,11 @@ func (h Handler) ServeHTTP(w http.ResponseWriter,r *http.Request) {
  r.Body=http.MaxBytesReader(w,r.Body,256*1024+1024)
  defer r.Body.Close()
  var in request
- if err:=json.NewDecoder(r.Body).Decode(&in);err!=nil { http.Error(w,"invalid request",http.StatusBadRequest);return }
+ decoder:=json.NewDecoder(r.Body)
+ decoder.DisallowUnknownFields()
+ if err:=decoder.Decode(&in);err!=nil { http.Error(w,"invalid request",http.StatusBadRequest);return }
+ var extra any
+ if err:=decoder.Decode(&extra);!errors.Is(err,io.EOF) { http.Error(w,"unexpected trailing data",http.StatusBadRequest);return }
  if !in.Consent || strings.TrimSpace(in.Prompt)=="" { http.Error(w,"consent and prompt required",http.StatusBadRequest);return }
  // One request per invocation, no arbitrary shell args or filesystem paths.
  result,err:=h.Runner.Run(r.Context(),in.Agent,in.Prompt)
