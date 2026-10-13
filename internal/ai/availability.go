@@ -11,7 +11,7 @@ type Availability struct {
 }
 
 // Adapter describes a verified, explicitly supported noninteractive execution target.
-// Additional providers (including Kiro CLI and Kiro Crew) must not be advertised
+// Additional providers (including Kiro Crew) must not be advertised
 // until their invocation, permissions and output contracts are verified.
 type Adapter struct {
 	ID     string
