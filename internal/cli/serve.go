@@ -520,7 +520,9 @@ func newServer(h http.Handler) *http.Server {
 // 先に待ち受けてから読む（履歴が多いと最初の読み込みに時間がかかり、その間ポートが開いていないとブラウザが「つながらない」になるため）。
 // 読み終わるまでは、読み込み中の画面を出す。
 func serveLive(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool) error {
-	return serveLiveWithAI(addr, allow, every, picked, load, keep, open, false)
+	host, _, err := net.SplitHostPort(listenAddr(addr))
+	loopback := err == nil && net.ParseIP(host) != nil && net.ParseIP(host).IsLoopback()
+	return serveLiveWithAI(addr, allow, every, picked, load, keep, open, loopback)
 }
 
 func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool, enableAI bool) error {
