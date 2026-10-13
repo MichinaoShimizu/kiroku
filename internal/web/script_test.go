@@ -331,8 +331,9 @@ func TestI18nCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := regexp.MustCompile(`(?ms)^const JA_TEXT = \{.*?^\};$`).FindString(string(src))
-	fn := regexp.MustCompile(`(?ms)^function t\(s, vars\)\{.*?^\}$`).FindString(string(src))
+	text := strings.ReplaceAll(string(src), "\r\n", "\n") // Windows の取り出しでは改行が CRLF になる
+	m := regexp.MustCompile(`(?ms)^const JA_TEXT = \{.*?^\};$`).FindString(text)
+	fn := regexp.MustCompile(`(?ms)^function t\(s, vars\)\{.*?^\}$`).FindString(text)
 	if m == "" || fn == "" {
 		t.Fatal("i18n.js に JA_TEXT か t が見つからない")
 	}
