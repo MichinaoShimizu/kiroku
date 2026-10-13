@@ -520,10 +520,20 @@ func newServer(h http.Handler) *http.Server {
 // 先に待ち受けてから読む（履歴が多いと最初の読み込みに時間がかかり、その間ポートが開いていないとブラウザが「つながらない」になるため）。
 // 読み終わるまでは、読み込み中の画面を出す。
 func serveLive(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool) error {
+	return serveLiveWithAI(addr, allow, every, picked, load, keep, open, false)
+}
+
+func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool, enableAI bool) error {
 	if every < time.Second {
 		every = time.Second
 	}
 	addr = listenAddr(addr)
+	if enableAI {
+		host, _, err := net.SplitHostPort(addr)
+		if err != nil || net.ParseIP(host) == nil || !net.ParseIP(host).IsLoopback() {
+			return fmt.Errorf("AI execution requires a numeric loopback listen address")
+		}
+	}
 	ln, err := net.Listen("tcp", addr) // ポートがふさがっていたら、読む前にすぐ止める
 	if err != nil {
 		return fmt.Errorf("could not listen on %s (try another port, e.g. \"kiroku serve :8485\"): %w", addr, err)
@@ -542,6 +552,9 @@ func serveLive(addr string, allow []string, every time.Duration, picked []source
 		names = append(names, s.Name())
 	}
 	l := &live{load: load, paths: paths, roots: historyRoots(picked), print: logw, keep: keep, prog: newProgress(names)}
+	if enableAI {
+		l.aiRun = ai.NewHandler(ai.Runner{Enabled: true})
+	}
 	addr = ln.Addr().String()
 	url := viewURL(addr)
 	st := styleFor(l.print)
