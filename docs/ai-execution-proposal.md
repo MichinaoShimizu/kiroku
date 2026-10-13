@@ -48,3 +48,10 @@ Execution jobs should include an id, scope, selected agent, input references, st
 - English and Japanese documentation, security disclosures, screenshots and release notes match the shipped behavior.
 
 This proposal is intentionally documentation-only; no AI integration is implemented by this change.
+
+
+## Provider extensibility (Kiro CLI and Kiro Crew)
+
+The execution layer must not assume Claude Code and Codex are the only review agents. Define a stable agent adapter contract with an identifier, capability detection, invocation strategy, read-only/sandbox guarantees, cancellation, bounded output, and error reporting. Candidate adapters include Claude Code, Codex, Kiro CLI, and Kiro Crew. Kiro Crew may require orchestration and multiple outputs rather than a single subprocess; keep the report prompt and UI independent of adapter details.
+
+Do not guess Kiro CLI or Kiro Crew flags or run arbitrary user-supplied shell commands. Before enabling either adapter, verify the actual CLI interface, authentication, input/output protocol, permissions, and noninteractive execution behavior. An installed binary alone does not prove support. Present only verified, supported adapters in the UI. Require explicit user consent for each invocation and disclose that the selected provider may transmit history to an external service.
