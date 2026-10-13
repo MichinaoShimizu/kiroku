@@ -82,6 +82,7 @@ kiroku 自身が外部と通信するのは、GitHub Releases（`https://github.
 - `kiroku serve`・`html`・`json`・`stats`・`archive` は外部と通信しません。自動で更新を確認する仕組みもありません
 - 全体で通信を無効にする設定や環境変数はありません。`doctor` の確認を止めたい場合は `--no-update-check` を使うか、ネットワーク側で制御してください
 - HTML の画面は Content-Security-Policy で外部リソースの読み込みを禁止しています（`connect-src` は保存した HTML では `'none'`、`kiroku serve` では `'self'`。`internal/web/web.go`）。画面の下の GitHub へのリンクは、利用者が押したときだけブラウザで開きます
+- 画面には `translate="no"` を付け、ブラウザの翻訳機能が履歴の文字を翻訳サービスに送らないようにしています。日本語の表示は、kiroku に入っている訳（`internal/web/js/i18n.js`）で行い、通信はしません
 - 料金表の更新は CI（`.github/workflows/prices.yml`）だけが行い、kiroku 本体は料金ページを取得しません
 - `install.sh` と `go install` は、それぞれ GitHub と Go のモジュールプロキシからダウンロードします（kiroku 本体の通信ではありません）
 - 6 章の「Run with AI」では、kiroku が起動した AI CLI が、それぞれの提供元と通信します

@@ -130,6 +130,12 @@ kiroku help               # すべてのコマンド（オプションは kiroku
 - `kiroku autostart on` は `kiroku serve --no-open` を登録します（macOS は `~/Library/LaunchAgents/io.github.michinaoshimizu.kiroku.plist`、Linux は `~/.config/systemd/user/kiroku.service`）。状態は `kiroku autostart` で見られます
 - ほかの機器から開けるようにする（`kiroku serve 0.0.0.0:8484` など）と、同じネットワークの人も届きます。会社の端末では既定の `127.0.0.1` のまま使ってください
 
+## 画面の言語
+
+画面は、ブラウザの言語が日本語なら日本語で、それ以外なら英語で出ます。右上の「日本語」「EN」ボタンで切り替えられ、選んだ言語はそのブラウザで覚えます。最初の言語を決めたいときは `kiroku html --lang ja` や `kiroku serve --lang ja`（環境変数 `KIROKU_LANG=ja`。`kiroku autostart on` はこの値も引き継ぎます）を使います。
+
+訳すのは kiroku の文言だけです。履歴の中身（プロンプト・題・ファイル名）、エージェントやモデルの名前、`kiroku json`、端末への出力、AI に渡すためにコピーするプロンプトはそのままです。ブラウザの翻訳機能は使わないでください（履歴の文字がブラウザの翻訳サービスに送られることがあるため、画面は翻訳を断る設定にしています）。
+
 ## Run with AI
 
 kiroku は、既定では AI を呼びません。振り返りや週報のプロンプトをコピーし、自分でエージェントに貼ります。
