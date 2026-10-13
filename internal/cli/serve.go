@@ -561,7 +561,7 @@ func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []
 	}
 	l := &live{load: load, paths: paths, roots: historyRoots(picked), print: logw, keep: keep, prog: newProgress(names)}
 	if enableAI {
-		l.aiRun = ai.NewHandler(ai.Runner{Enabled: true})
+		l.aiRun = ai.NewHandler(ai.Runner{Enabled: true, Dirs: l.roots})
 	}
 	addr = ln.Addr().String()
 	url := viewURL(addr)
