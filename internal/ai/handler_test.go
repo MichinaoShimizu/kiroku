@@ -39,3 +39,20 @@ func TestHandlerRejectsForeignOrigin(t *testing.T) {
  h.ServeHTTP(w,r)
  if w.Code!=http.StatusForbidden { t.Fatalf("status %d",w.Code) }
 }
+
+func TestHandlerRejectsUnknownFields(t *testing.T) {
+ h:=Handler{Runner:Runner{Enabled:true}}
+ r:=httptest.NewRequest(http.MethodPost,"http://localhost:8485/ai/run",strings.NewReader(`{"agent":"claude","prompt":"hi","consent":true,"command":"rm"}`))
+ r.Header.Set("X-Kiroku","1")
+ w:=httptest.NewRecorder()
+ h.ServeHTTP(w,r)
+ if w.Code!=http.StatusBadRequest { t.Fatalf("status %d",w.Code) }
+}
+func TestHandlerRejectsTrailingJSON(t *testing.T) {
+ h:=Handler{Runner:Runner{Enabled:true}}
+ r:=httptest.NewRequest(http.MethodPost,"http://localhost:8485/ai/run",strings.NewReader(`{"agent":"claude","prompt":"hi","consent":true} {}`))
+ r.Header.Set("X-Kiroku","1")
+ w:=httptest.NewRecorder()
+ h.ServeHTTP(w,r)
+ if w.Code!=http.StatusBadRequest { t.Fatalf("status %d",w.Code) }
+}
