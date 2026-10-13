@@ -21,6 +21,9 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Changed
 
+- "Run with AI" when it is off (a saved HTML file, or `kiroku serve` without `--ai`): the button reads "Run with AI: off" ("AI off" next to a date) and no longer looks like an action, its tooltip says why it is off, and its dialog says how to turn it on, including for a `kiroku serve` already running and with `kiroku autostart`. The view calls the feature "Run with AI" everywhere, and every place says the same about what the agent may send. With `--ai` on, the badge reads "LIVE · AI on" and the terminal says so. The agent list names `kiro-cli`, and the confirmation dialog's buttons look like buttons ("Run", "Close")
+- "Discover knowledge" is now "Copy knowledge prompt", like the other prompt buttons, and says what the copied prompt contains. Its prompt notes when the week or month is still in progress, and the README and guide list it
+- `kiroku serve --ai` with an address that isn't a loopback IP now shows an example of one that works
 - Project view indexes Git commits once per render instead of scanning them for every project card, without changing displayed counts.
 
 ### Security
