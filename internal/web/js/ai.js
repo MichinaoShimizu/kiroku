@@ -60,7 +60,7 @@ function showLocalAIInfo() {
   dialog.id = "ai-local-info";
   dialog.style.cssText = "width:min(440px,90vw);max-height:80vh;padding:24px;border:1px solid #888;border-radius:12px;background:var(--surface,#fff);color:var(--ink,#111)";
   const heading = document.createElement("h2"); heading.textContent = "AI review · Local only";
-  const message = document.createElement("p"); message.textContent = "AI review runs only in the local kiroku live server. Install and run kiroku serve on your computer to review sessions or generate daily, weekly and monthly reports with Claude Code, Codex or Kiro CLI. This public demo never invokes an AI provider.";
+  const message = document.createElement("p"); message.textContent = "AI review runs only when you start kiroku on your computer with \"kiroku serve --ai\". It then runs Claude Code, Codex or Kiro CLI on this computer after you confirm each run, and that agent may send the prompt and the history it reads to its provider. Without --ai, and in a saved HTML file, kiroku never runs an AI agent; use the Copy buttons to paste a prompt into an agent yourself.";
   const close = document.createElement("button"); close.type = "button"; close.textContent = "Close";
   function dismiss() { if (dialog.open && typeof dialog.close === "function") dialog.close(); dialog.remove(); }
   close.onclick = dismiss;
