@@ -6,7 +6,6 @@ import (
  "errors"
  "fmt"
  "bytes"
- "io"
  "os/exec"
  "strings"
  "time"
@@ -52,8 +51,10 @@ func (r Runner) Run(ctx context.Context, agent, prompt string) (Result, error) {
  defer cancel()
  cmd:=exec.CommandContext(bounded,binary,args...)
  cmd.Stdin=strings.NewReader(prompt)
+ // Do not let agents modify the current repository by default.
+ // CLI adapters must be validated on each supported platform before UI exposure.
  var buf bytes.Buffer
- cmd.Stdout=io.MultiWriter(&limitedWriter{w:&buf, max:1024*1024})
+ cmd.Stdout=&limitedWriter{w:&buf, max:1024*1024}
  err:=cmd.Run()
  output:=buf.Bytes()
  if len(output)>=1024*1024 { return Result{},errors.New("agent output exceeds size limit") }
