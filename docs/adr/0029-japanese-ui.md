@@ -1,6 +1,6 @@
-# ADR 0029: Offer the view in Japanese through a message catalog, English by default
+# ADR 0029: Offer the view in Japanese through a message catalog, following the browser's language
 
-Status: Proposed
+Status: Accepted (2026-10-14, the maintainer asked to make the view's language switchable)
 Date: 2026-10-14
 Scope: `internal/web` (view text, dates, numbers), `internal/cli` (language option for `html` and `serve`), `docs/guide.md` and `docs/ja/`
 Related ADRs: [0022](0022-history-stays-local.md) (history stays local), [0023](0023-compatibility-contract.md) (compatibility)
@@ -29,22 +29,26 @@ Constraints:
 - ADR 0023: `kiroku json` fields and values, CLI names and `/data.json` semantics must not change with the language. `source` values such as "Kiro IDE / CLI" stay English.
 - History is untrusted. Any new interpolation must keep escaping history values; catalog entries are fixed text, not HTML.
 
-## Decision (proposed)
+## Decision
 
 1. **Message catalog, not inline pairs.**
-   - Add `internal/web/js/i18n.js` with `T(key, vars)` and two flat catalogs, `en` and `ja`.
-   - `T` returns plain text. Callers keep passing history values through `esc()` or `textContent`.
+   - `internal/web/js/i18n.js` holds `t(s, vars)` and one catalog, `JA_TEXT`. The key is the English sentence itself (gettext style), so templates keep reading as English and the English output stays byte-for-byte the same.
+   - `{name}` placeholders take values. Whole sentences are keys, because Japanese word order differs.
+   - `t` returns plain text. Callers escape it, and any history values filled into it, with `esc()` when building HTML, or use `textContent`.
    - Catalog entries contain no markup. Markup stays in the templates.
-   - A missing `ja` entry falls back to `en`, so an untranslated string never blocks a release.
-2. **English stays the default.** The language is chosen by, in order:
-   - a per-viewer choice in the view, stored in `localStorage` (a convenience; the page must work without it);
-   - `kiroku html --lang ja` and `kiroku serve --lang ja`, also settable with `KIROKU_LANG`, for the initial language and for saved files;
+   - A sentence without a Japanese entry is shown in English, so an untranslated string never blocks a release.
+   - Static text in `template.html` is marked with `data-t` and translated once at start-up. Dynamic areas, which hold history, are never looked up.
+2. **Follow the browser's language, with English as the fallback.** The language is chosen by, in order:
+   - `?lang=` in the address;
+   - the viewer's choice from the button at the top right, stored in `localStorage` (a convenience; switching also reloads with `?lang=`, so it works without storage);
+   - `kiroku html --lang ja` and `kiroku serve --lang ja`, also settable with `KIROKU_LANG` (`kiroku autostart` keeps it);
+   - the browser's preferred language (`navigator.languages[0]`): Japanese if it starts with `ja`;
    - otherwise English.
 
-   No automatic switch from the browser locale. That would change screenshots, docs and support conversations depending on the machine. Revisit after rollout feedback.
+   The maintainer chose to follow the browser's language (2026-10-14) over always starting in English. Screenshots and docs stay in English: `tools/screenshots` and the e2e tests run the browser with the `en-US` locale.
 3. **What gets translated:**
    - **Phase 1:** the view's labels, buttons, tooltips, `aria-label`s, dialogs, toasts, empty states, and the "?" metric explanations (`HELP` and the JS help tables).
-   - **Phase 2:** dates and numbers. `LOC()` and `hm()` follow the language, with Japanese date forms such as `10月14日(水)`.
+   - **Also in Phase 1:** dates and numbers. `LOC()` and `hm()` follow the language, with Japanese date forms such as `10月14日(水)`.
    - **Not translated:**
      - Go-generated names and `kiroku json` values (ADR 0023)
      - CLI help and terminal output
@@ -52,8 +56,7 @@ Constraints:
      - the AI prompts, which already ask the agent to answer in the language the person writes prompts in, and whose output quality is measured by `report-eval` in English
 4. **Keep the view's text out of browser translation.** Add `translate="no"` to the page, so the browser's built-in translation doesn't send history text to a translation service. The Japanese catalog is the supported way to read the view in Japanese. Document this in SECURITY.md and the Japanese security review.
 5. **Tests guard the two catalogs from drifting:**
-   - **Key parity:** every key used by `T()` exists in `en`. A `ja` key without an `en` key fails. Missing `ja` keys are listed but don't fail.
-   - **No inline English:** no new inline English in templates outside the catalog. Start as a report, and become a failure once Phase 1 is complete.
+   - **Catalog check (`TestI18nCatalog`):** no `<` or `>` in entries, the same `{placeholders}` as the English key, and `t()` lookup and fallback work. Keys used in `t("…")` without a Japanese entry are listed but don't fail.
    - **e2e:** runs the existing four widths in `ja` too, since Japanese labels wrap differently.
 
 ## Alternatives
@@ -69,11 +72,11 @@ Constraints:
 - **Benefits:** Japanese readers can use the view without a third-party translator. Domain terms are translated once and consistently. The view becomes safer against accidental leaks through browser translation for everyone.
 - **Costs:**
   - Every UI change needs a catalog key, and ideally a Japanese entry, roughly the doubled work #110 removed. This is mitigated by the English fallback and the parity test, but it doesn't go away.
-  - Moving about 2,700 lines of templates to `T()` is a large, mechanical change with merge-conflict risk.
+  - Moving about 2,700 lines of templates to `t()` is a large, mechanical change with merge-conflict risk.
   - Japanese entries need a native reviewer.
   - Screenshots and `docs/usability.md` scenarios need a `ja` pass.
 - **Security:**
-  - `T()` must never return or accept HTML. A catalog entry that contains `<`, or `{var}` placeholders filled with unescaped history, would be an XSS path. The parity test also checks that entries contain no `<`.
+  - `t()` must never return or accept HTML. A catalog entry that contains `<`, or `{var}` placeholders filled with unescaped history, would be an XSS path. The parity test also checks that entries contain no `<`.
   - `translate="no"` reduces exposure.
 - **Compatibility:** no change to `kiroku json`, `/data.json`, CLI names or archive. `--lang` and `KIROKU_LANG` are additions.
 - **Reversibility:** high. Removing the `ja` catalog and the option returns to English-only without touching data.
@@ -82,7 +85,7 @@ Constraints:
 
 - Unit tests (Node, as in `internal/web/script_test.go`):
   - catalog parity and no `<` in entries;
-  - `T()` with missing keys and variables;
+  - `t()` with missing keys and variables;
   - a template given a history value containing `<img onerror>` renders it inert in both languages.
 - e2e at 1440, 1000, 390 and 320 widths in `en` and `ja`, with no horizontal overflow.
 - `hostile-tester` on the language switch and the catalog interpolation. `user-tester` on `docs/usability.md` scenarios in Japanese.

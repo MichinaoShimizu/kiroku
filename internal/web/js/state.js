@@ -32,11 +32,23 @@ const SLOTS = 8;
 const $ = s => document.querySelector(s);
 const store = { get(k,d){ try { const v = localStorage.getItem("kiroku:"+k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
                 set(k,v){ try { localStorage.setItem("kiroku:"+k, JSON.stringify(v)); } catch(e){} } };
-const LOC = () => "en-US";
-const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+/* 画面の言語（ADR 0029）。?lang=、見る人が選んだもの、kiroku html / serve の --lang（$KIROKU_LANG）、ブラウザの言語の順。
+   どれでもなければ英語。切り替えるときは ?lang= を付けて開き直すので、localStorage が使えなくても効く */
+const LANGS = ["en", "ja"];
+const LANG = (() => { let q = null; try { q = new URLSearchParams(location.search).get("lang"); } catch(e){}
+  const nav = () => { try { return (navigator.languages && navigator.languages[0] || navigator.language || "").toLowerCase().startsWith("ja") ? "ja" : "en"; } catch(e){ return "en"; } };
+  const v = [q, store.get("lang", null), __LANG__].find(x => LANGS.includes(x)) || nav(); return LANGS.includes(v) ? v : "en"; })();
+const JA = LANG === "ja";
+/* AI に渡すプロンプトは英語のまま（ADR 0029）。inEnglish の中では、t・plural・日付の小物が英語を返す */
+let EN_ONLY = 0;
+const isJA = () => JA && !EN_ONLY;
+function inEnglish(f){ EN_ONLY++; try { return f(); } finally { EN_ONLY--; } }
+const LOC = () => isJA() ? "ja-JP" : "en-US";
+const DOW_EN = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"], DOW_JA = ["日","月","火","水","木","金","土"];
+const DOW = new Proxy(DOW_EN, {get: (a, k) => (isJA() ? DOW_JA : DOW_EN)[k]}); // DOW[i] がその時の言語の曜日
 const dow = i => DOW[i];
 const wkc = i => i === 6 ? " sat" : i === 0 ? " sun" : ""; // 曜日（getDay）から、土日の色のクラス
-const plural = (n, one, many) => `${n} ${n === 1 ? one : many || one + "s"}`;
+const plural = (n, one, many) => isJA() ? `${n} ${t(one)}` : `${n} ${n === 1 ? one : many || one + "s"}`; // 日本語は数と名詞（単数の形を辞書で引く）
 // zAuto: ズームを選んでいなければ、週ごとに作業の時間帯が収まる高さにする
 const st = { view: ["calendar","journey","project"].includes(store.get("view", "calendar")) ? store.get("view", "calendar") : "calendar", journey: store.get("view", "calendar") === "journey", z: store.get("zh", 2), zAuto: store.get("zh", null) == null, colorBy: store.get("colorBy", "project"), theme: store.get("theme", "light") === "dark" ? "dark" : "light", // 既定はライト（以前の「自動」もライトにする）
              week: mondayOf(today0()), month: monthOf(today0()), mode: store.get("mode", "week"), flowUser: !!store.get("flowUser", false),

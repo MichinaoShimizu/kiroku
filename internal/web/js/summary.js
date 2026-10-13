@@ -2,41 +2,42 @@
 /* ── 週次・月次サマリー：① プロジェクト別 ② コストとアウトプット ③ 時間 ④ AI ⑤ かたち。基準を超えた指標には、その場に印と推移を付ける ── */
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
-  const head = `<div class="rvhead"><h2>${M ? "Monthly summary" : "Weekly summary"}</h2><p>Rough figures for reflecting on how you work. They are not for comparing people or for evaluations.</p>${w ? copyBtn(`Copy ${M ? "monthly" : "weekly"} report prompt`, `id="rptcopy" title="A prompt that asks an AI agent on this computer to write your ${M ? "monthly" : "weekly"} report from your history"`, "pill fill") : ""}${w ? (aiRun() ? `<button class="pill ai-action" id="rptrun" type="button">Run with AI</button>` : `<button class="pill ai-off ai-demo-info" type="button" title="${esc(AI_OFF_WHY())}">Run with AI: off</button>`) : ""}</div>${w ? `<p class="note rpthint">${`The ${M ? "monthly" : "weekly"} report prompt is for an AI agent on this computer, such as Claude Code or Codex. It points the agent to this ${M ? "month" : "week"}'s history files, and the agent reads them. Copying a prompt sends nothing. ${aiRun() ? "With \"Run with AI\", after you confirm, the agent you choose may send the prompt and the history it reads to its provider." : "\"Run with AI\" works only in kiroku serve --ai."}`}</p>` : ""}`;
+  const hint = (M ? t("The monthly report prompt is for an AI agent on this computer, such as Claude Code or Codex. It points the agent to this month's history files, and the agent reads them. Copying a prompt sends nothing.") : t("The weekly report prompt is for an AI agent on this computer, such as Claude Code or Codex. It points the agent to this week's history files, and the agent reads them. Copying a prompt sends nothing.")) + (JA ? "" : " ") + (aiRun() ? t("With \"Run with AI\", after you confirm, the agent you choose may send the prompt and the history it reads to its provider.") : t("\"Run with AI\" works only in kiroku serve --ai."));
+  const head = `<div class="rvhead"><h2>${esc(M ? t("Monthly summary") : t("Weekly summary"))}</h2><p>${esc(t("Rough figures for reflecting on how you work. They are not for comparing people or for evaluations."))}</p>${w ? copyBtn(esc(M ? t("Copy monthly report prompt") : t("Copy weekly report prompt")), `id="rptcopy" title="${esc(M ? t("A prompt that asks an AI agent on this computer to write your monthly report from your history") : t("A prompt that asks an AI agent on this computer to write your weekly report from your history"))}"`, "pill fill") : ""}${w ? (aiRun() ? `<button class="pill ai-action" id="rptrun" type="button">${esc(t("Run with AI"))}</button>` : `<button class="pill ai-off ai-demo-info" type="button" title="${esc(AI_OFF_WHY())}">${esc(t("Run with AI: off"))}</button>`) : ""}</div>${w ? `<p class="note rpthint">${esc(hint)}</p>` : ""}`;
   const WK = $("#worth"); $("#sres").hidden = true; $("#sres").innerHTML = "";
   if (!w){ WK.hidden = true; R.innerHTML = foot(); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
-  const pct = v => v == null ? "Unknown" : `${v}<small>%</small>`;
+  const pct = v => v == null ? esc(t("Unknown")) :`${v}<small>%</small>`;
   const times = n => `${n}`;
   const F = findList(w, pw, unit);
   WK.innerHTML = flagSum(F); WK.hidden = false; lastFlags = F; // 見直す候補は、カレンダーの上（期間の要点のすぐ下）に出す。押すと真ん中のダイアログで開く
   R.innerHTML = `${head}<div class="rvgrid">
   ${projectPanel(w, unit)}
   ${outcomePanel(w, pw, unit)}
-  <section class="panel time">${panelH(3, "How you spent time", "When and how long sessions ran")}
+  <section class="panel time">${panelH(3, esc(t("How you spent time")), esc(t("When and how long sessions ran")))}
     <div class="stats">
-      ${statH("Focus blocks (60+ min)", times(w.focus.length), longest ? `Longest ${dur(longest)}` : "", "focus", w.focus.length ? "focus" : "")}
-      ${(() => { const {ws, we} = period(), H = limitHits(ws, we), N = unrecorded(ws, we, "limits"); return N ? norecStat("Usage limit hits", N, "limits") : statH("Usage limit hits", times(H.length), H.length ? H.slice(-4).map(h => `${md(h.t)} ${hm(h.t)}${h.r ? ` (resets ${esc(h.r)})` : ""}`).join(", ") + (H.length > 4 ? ", …" : "") : "From Claude Code, Codex and Kiro Crew history", "limits", H.length ? "limits" : ""); })()}
-      ${(() => { const {ws, we} = period(), C = compactionsOf(ws, we), n = new Set(C.map(c => c.s.id)).size, N = unrecorded(ws, we, "compactions"); return N ? norecStat("Compactions", N, "compactions") : statH("Compactions", times(C.length), C.length ? `In ${plural(n, "session")} · ${C.slice(-4).map(c => `${md(c.t)} ${hm(c.t)}`).join(", ")}${C.length > 4 ? ", …" : ""}` : "From Claude Code, Codex and Amazon Q / Kiro CLI (SQLite) history", "compactions", C.length ? "compactions" : ""); })()}
+      ${statH(esc(t("Focus blocks (60+ min)")), times(w.focus.length), longest ? esc(t("Longest {dur}", {dur: dur(longest)})) : "", "focus", w.focus.length ? "focus" : "")}
+      ${(() => { const {ws, we} = period(), H = limitHits(ws, we), N = unrecorded(ws, we, "limits"); return N ? norecStat(esc(t("Usage limit hits")), N, "limits") : statH(esc(t("Usage limit hits")), times(H.length), esc(H.length ? H.slice(-4).map(h => h.r ? t("{time} (resets {r})", {time: `${md(h.t)} ${hm(h.t)}`, r: h.r}) : `${md(h.t)} ${hm(h.t)}`).join(", ") + (H.length > 4 ? ", …" : "") : t("From Claude Code, Codex and Kiro Crew history")), "limits", H.length ? "limits" : ""); })()}
+      ${(() => { const {ws, we} = period(), C = compactionsOf(ws, we), n = new Set(C.map(c => c.s.id)).size, N = unrecorded(ws, we, "compactions"); return N ? norecStat(esc(t("Compactions")), N, "compactions") : statH(esc(t("Compactions")), times(C.length), esc(C.length ? t("In {sessions} · {times}", {sessions: plural(n, "session"), times: C.slice(-4).map(c => `${md(c.t)} ${hm(c.t)}`).join(", ") + (C.length > 4 ? ", …" : "")}) : t("From Claude Code, Codex and Amazon Q / Kiro CLI (SQLite) history")), "compactions", C.length ? "compactions" : ""); })()}
     </div>
-    ${secH("More metrics (includes estimates)")}<div class="stats">
-      ${statH("Prompts with corrections or interruptions", pct(w.fixRate), `n=${w.prompts}`, "fix", w.fixRate ? "fix" : "")}
-      ${(() => { const {ws, we} = period(), B = bigOf(ws, we); return statH("Oversized prompts", `${B.n}`, `${commas(BIG_PROMPT)}+ characters${B.n ? ` · longest ${commas(B.max)}` : ""}`, "bigPrompts", B.n ? "bigPrompts" : ""); })()}
-      ${statH("Project switches per day", times(w.switchesAvg), `Max ${w.switchesMax}`, "switches", "switches")}
-      ${statH("Parallel time", dur(w.parallel,true), `Up to ${w.maxConc} at once`, "parallel", w.parallel ? "parallel" : "")}
-      ${statH("Wait time (median)", secsH(w.waitMedian), `n=${w.waitCount} · 90th percentile ${secs(w.waitP90)}`, "wait", w.waitCount ? "wait" : "")}
-      ${statH("Total AI run time", dur(w.ai,true), "Includes parallel runs", "ai", "ai")}
+    ${secH(esc(t("More metrics (includes estimates)")))}<div class="stats">
+      ${statH(esc(t("Prompts with corrections or interruptions")), pct(w.fixRate), `n=${w.prompts}`, "fix", w.fixRate ? "fix" : "")}
+      ${(() => { const {ws, we} = period(), B = bigOf(ws, we); return statH(esc(t("Oversized prompts")), `${B.n}`, esc(B.n ? t("{n}+ characters · longest {max}", {n: commas(BIG_PROMPT), max: commas(B.max)}) : t("{n}+ characters", {n: commas(BIG_PROMPT)})), "bigPrompts", B.n ? "bigPrompts" : ""); })()}
+      ${statH(esc(t("Project switches per day")), times(w.switchesAvg), esc(t("Max {n}", {n: w.switchesMax})), "switches", "switches")}
+      ${statH(esc(t("Parallel time")), dur(w.parallel,true), esc(t("Up to {n} at once", {n: w.maxConc})), "parallel", w.parallel ? "parallel" : "")}
+      ${statH(esc(t("Wait time (median)")), secsH(w.waitMedian), esc(t("n={n} · 90th percentile {p}", {n: w.waitCount, p: secs(w.waitP90)})), "wait", w.waitCount ? "wait" : "")}
+      ${statH(esc(t("Total AI run time")), dur(w.ai,true), esc(t("Includes parallel runs")), "ai", "ai")}
     </div>
     </section>
-  <section class="panel">${panelH(4, "How you used AI", "Cache, models and heavy sessions")}
-    ${aiUsage(w, pw, unit) || noneH("No token or credit records.")}
+  <section class="panel">${panelH(4, esc(t("How you used AI")), esc(t("Cache, models and heavy sessions")))}
+    ${aiUsage(w, pw, unit) || noneH(esc(t("No token or credit records.")))}
     ${nativeSection(w)}</section>
-  <section class="panel shape">${panelH(5, M ? "Shape of the month" : "Shape of the week", "Friction and repeated prompts")}
-    ${w.friction.length ? secH("Possible friction", "friction") : ""}
+  <section class="panel shape">${panelH(5, esc(M ? t("Shape of the month") : t("Shape of the week")), esc(t("Friction and repeated prompts")))}
+    ${w.friction.length ? secH(esc(t("Possible friction")), "friction") : ""}
     ${w.friction.length ? w.friction.map(f => sesCardH(sesById(f.id, f.title), `${sesMeta(f)} ${whyOf(f).map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}`)).join("") : ""}
-    ${repeatsOf(period().ws, period().we).length ? secH("Repeated prompts", "repeats") : ""}
-    ${(() => { const {ws, we} = period(), RP = repeatsOf(ws, we); return RP.length ? RP.slice(0, 3).map(c => sesCardH(sesById(c.id, snipOf(c.text, 90)), `${c.n} times in ${c.ids.size} sessions ${uThis(unit)} · last on ${md(c.last)}`)).join("") : ""; })()}
-    ${w.friction.length || repeatsOf(period().ws, period().we).length ? "" : noneH("No sessions with possible friction and no repeated prompts.")}</section>
+    ${repeatsOf(period().ws, period().we).length ? secH(esc(t("Repeated prompts")), "repeats") : ""}
+    ${(() => { const {ws, we} = period(), RP = repeatsOf(ws, we); return RP.length ? RP.slice(0, 3).map(c => { const v = {n: c.n, s: c.ids.size, day: md(c.last)}; return sesCardH(sesById(c.id, snipOf(c.text, 90)), esc(M ? t("{n} times in {s} sessions this month · last on {day}", v) : t("{n} times in {s} sessions this week · last on {day}", v))); }).join("") : ""; })()}
+    ${w.friction.length || repeatsOf(period().ws, period().we).length ? "" : noneH(esc(t("No sessions with possible friction and no repeated prompts.")))}</section>
   <section class="panel metap">${measure(w)}${foot()}</section></div>`;
   placeFlags(R, F);
   R.querySelectorAll(".card,.fses").forEach(c => c.onclick = () => select(c.dataset.id));
@@ -45,36 +46,36 @@ function summary(){
   R.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b)); // 上の帯と同じ内訳
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
   R.querySelectorAll(".keeparch").forEach(b => b.onclick = () => { R.querySelectorAll(".keeparch").forEach(x => x.disabled = true); keepArchive(); });
-  const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy(reportPrompt(w, M), `Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending`, 8000, rc);
+  const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy(reportPrompt(w, M), t("Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending"), 8000, rc);
 
-  R.querySelectorAll(".knowledge-discover").forEach(b => b.onclick = () => copy(projectKnowledgePrompt(b.dataset.project), "Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending", 8000, b));
+  R.querySelectorAll(".knowledge-discover").forEach(b => b.onclick = () => copy(projectKnowledgePrompt(b.dataset.project), t("Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending"), 8000, b));
   R.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
   const run = R.querySelector("#rptrun");
-  if (run) run.onclick = () => runAIReview(run, reportPrompt(w, M), M ? "Monthly report" : "Weekly report");
+  if (run) run.onclick = () => runAIReview(run, reportPrompt(w, M), M ? t("Monthly report") : t("Weekly report"));
   bindCopy(R); bindHelp(R); bindHelp(WK);
   if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }
 /* 期間の言い方（unit は "週" か "月"） */
 const uThis = unit => unit === "月" ? "this month" : "this week";
 const uLast = unit => unit === "月" ? "last month" : "last week";
-const whyOf = f => f.whyEn && f.whyEn.length === f.why.length ? f.whyEn : f.why; // こじれた理由（Go の英語の文）
+const whyOf = f => !JA && f.whyEn && f.whyEn.length === f.why.length ? f.whyEn : f.why; // こじれた理由（Go の文。日本語の画面では why、英語では whyEn）
 /* 配分：作業時間・トークン・目安コスト・クレジットのそれぞれで、何割をどのくくりに使ったか。くくりは色分け（プロジェクト・ブランチ・エージェント）に合わせる。
    指標を縦に並べ、「時間の割にコストが多い」のようなずれを見比べられるようにする（上位 5 つ＋その他） */
 function shareBlock(w, ps){
   const all = st.colorBy === "project" ? ps.map(p => ({key: p.project, minutes: p.minutes, tokens: p.tokens, cost: p.cost, credits: p.credits})) : ((w.shares || {})[st.colorBy] || []);
-  const head = `<h3 class="shh">${`Share by ${CB()[st.colorBy].toLowerCase()}`}</h3><p class="shn">Follows the Project / Branch / Agent switch at the top</p>`;
+  const head = `<h3 class="shh">${esc(({project: t("Share by project"), branch: t("Share by branch"), source: t("Share by agent")})[st.colorBy])}</h3><p class="shn">${esc(t("Follows the Project / Branch / Agent switch at the top"))}</p>`;
   if (!all.length) return "";
-  if (all.length < 2) return head + noneH(`Only "${esc(all[0].key)}" this period.`);
+  if (all.length < 2) return head + noneH(esc(t("Only \"{name}\" this period.", {name: all[0].key})));
   const N = 5, top = all.slice(0, N), rest = all.slice(N);
   const rows = top.map(p => ({name: p.key, c: colorOf(p.key), v: p}));
-  if (rest.length) rows.push({name: `Other (${rest.length})`, c: "var(--other)", other: true,
+  if (rest.length) rows.push({name: t("Other ({n})", {n: rest.length}), c: "var(--other)", other: true,
     v: rest.reduce((a, p) => ({minutes: a.minutes + p.minutes, tokens: a.tokens + p.tokens, cost: a.cost + p.cost, credits: a.credits + p.credits}), {minutes: 0, tokens: 0, cost: 0, credits: 0})});
-  const ms = [["minutes", "Active time", dur], ["tokens", "Tokens", tok], ["cost", "Est. cost", usd], ["credits", "Credits", cr]]
+  const ms = [["minutes", t("Active time"), dur], ["tokens", t("Tokens"), tok], ["cost", t("Est. cost"), usd], ["credits", t("Credits"), cr]]
     .map(([k, n, f]) => ({k, n, f, t: rows.reduce((t, r) => t + (r.v[k] || 0), 0)})).filter(m => m.t > 0);
   if (!ms.length) return "";
   const pc = (r, m) => Math.round((r.v[m.k] || 0) * 100 / m.t);
-  const bars = ms.map(m => `<span class="k">${m.n}</span><div class="stack" role="img" aria-label="${esc(`${m.n}: ${rows.map(r => `${r.name} ${pc(r, m)}%`).join(", ")}`)}">${rows.filter(r => r.v[m.k] > 0).map(r => `<span style="flex:${r.v[m.k]};--c:${r.c}" ${tipAttr(r.name, `${m.n} ${m.f(r.v[m.k])}${` (${pc(r, m)}%)`}`)}></span>`).join("")}</div>`).join("");
-  const tab = `<table class="shtab"><thead><tr><th scope="col">${CB()[st.colorBy]}</th>${ms.map(m => `<th scope="col">${m.n}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr style="--c:${r.c}"><td title="${esc(r.name)}"><i aria-hidden="true"></i>${esc(r.name)}</td>${ms.map(m => `<td>${r.v[m.k] ? pc(r, m) + "%" : "—"}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  const bars = ms.map(m => `<span class="k">${esc(m.n)}</span><div class="stack" role="img" aria-label="${esc(`${m.n}: ${rows.map(r => `${r.name} ${pc(r, m)}%`).join(", ")}`)}">${rows.filter(r => r.v[m.k] > 0).map(r => `<span style="flex:${r.v[m.k]};--c:${r.c}" ${tipAttr(r.name, `${m.n} ${m.f(r.v[m.k])}${` (${pc(r, m)}%)`}`)}></span>`).join("")}</div>`).join("");
+  const tab = `<table class="shtab"><thead><tr><th scope="col">${CB()[st.colorBy]}</th>${ms.map(m => `<th scope="col">${esc(m.n)}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr style="--c:${r.c}"><td title="${esc(r.name)}"><i aria-hidden="true"></i>${esc(r.name)}</td>${ms.map(m => `<td>${r.v[m.k] ? pc(r, m) + "%" : "—"}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
   return `${head}<div class="sharebox"><div class="share">${bars}</div>${tab}</div>`;
 }
 /* プロジェクト別：何に何時間、どれだけのトークン・コスト・クレジットを使い、何が残ったか（モデルと重いセッションは ④ に） */
@@ -87,17 +88,17 @@ function projectPanel(w, unit){
     return `<article class="pcard" style="--c:${c}">
       <div class="hd"><i></i><b title="${esc(p.project)}">${esc(p.project)}</b><span>${p.minutes ? dur(p.minutes) : "—"}${p.minutes ? ` · ${share}%` : ""}</span></div>
       <div class="bar2"><span style="width:${share}%"></span></div>
-      <div class="kv"><div><div class="k">Sessions / prompts</div><div class="v">${p.sessions}/${p.prompts}</div></div>
-        <div><div class="k">Tokens</div><div class="v">${p.tokens ? tok(p.tokens) : "—"}</div></div>
-        <div><div class="k">Est. cost</div><div class="v">${p.cost >= 0.005 ? usd(p.cost) : "—"}</div></div>
-        ${anyCr ? `<div><div class="k">Credits</div><div class="v">${p.credits ? cr(p.credits) : "—"}</div></div>` : ""}</div>
-      ${p.git && p.git.commits ? `<div><div class="lab">Left behind</div><div class="pout">Git commits ${p.git.commits} · ${p.git.ai} by AI · <span>+${p.git.added} −${p.git.removed} lines</span></div></div>` : p.outputs && p.outputs.commits ? `<div><div class="lab">Left behind</div><div class="pout">AI commits ${p.outputs.commits}</div></div>` : ""}
-      ${copyBtn("Copy knowledge prompt", `type="button" data-project="${esc(p.project)}" title="A prompt that asks an AI agent on this computer to find domain knowledge, decisions and open questions for this project in ${uThis(unit)}'s history, citing where each comes from"`, "pill knowledge-discover")}
+      <div class="kv"><div><div class="k">${esc(t("Sessions / prompts"))}</div><div class="v">${p.sessions}/${p.prompts}</div></div>
+        <div><div class="k">${esc(t("Tokens"))}</div><div class="v">${p.tokens ? tok(p.tokens) : "—"}</div></div>
+        <div><div class="k">${esc(t("Est. cost"))}</div><div class="v">${p.cost >= 0.005 ? usd(p.cost) : "—"}</div></div>
+        ${anyCr ? `<div><div class="k">${esc(t("Credits"))}</div><div class="v">${p.credits ? cr(p.credits) : "—"}</div></div>` : ""}</div>
+      ${p.git && p.git.commits ? `<div><div class="lab">${esc(t("Left behind"))}</div><div class="pout">${esc(t("Git commits {n} · {ai} by AI", {n: p.git.commits, ai: p.git.ai}))} · <span>${esc(t("+{added} −{removed} lines", {added: p.git.added, removed: p.git.removed}))}</span></div></div>` : p.outputs && p.outputs.commits ? `<div><div class="lab">${esc(t("Left behind"))}</div><div class="pout">${esc(t("AI commits {n}", {n: p.outputs.commits}))}</div></div>` : ""}
+      ${copyBtn(esc(t("Copy knowledge prompt")), `type="button" data-project="${esc(p.project)}" title="${esc(unit === "月" ? t("A prompt that asks an AI agent on this computer to find domain knowledge, decisions and open questions for this project in this month's history, citing where each comes from") : t("A prompt that asks an AI agent on this computer to find domain knowledge, decisions and open questions for this project in this week's history, citing where each comes from"))}"`, "pill knowledge-discover")}
     </article>`; }).join("");
-  return `<section class="panel projs">${panelH(1, "By project", `Where your time and AI went ${uThis(unit)}`, "projects")}
+  return `<section class="panel projs">${panelH(1, esc(t("By project")), esc(unit === "月" ? t("Where your time and AI went this month") : t("Where your time and AI went this week")), "projects")}
     ${shareBlock(w, ps)}
     <div class="pgrid">${cards}</div>
-    ${ps.length > LIMIT ? `<button class="pill pmore" id="pmore">${st.allProj ? "Show top projects only" : `Show ${plural(ps.length - LIMIT, "more project")}`}</button>` : ""}</section>`;
+    ${ps.length > LIMIT ? `<button class="pill pmore" id="pmore">${esc(st.allProj ? t("Show top projects only") : ps.length - LIMIT === 1 ? t("Show 1 more project") : t("Show {n} more projects", {n: ps.length - LIMIT}))}</button>` : ""}</section>`;
 
 }
 /* 指標の読み方：定義・言えること・言えないこと・打てる手。画面の「?」と、改善案プロンプトの前提に使う */
@@ -140,14 +141,16 @@ const HELP = {
   costPerCommit: {n: "Estimated cost per commit", d: "Estimated cost of Claude Code sessions ÷ number of commits AI ran in them (only Claude Code records outputs, so other agents' cost is left out). Commits you made by hand are not counted", c: "Roughly how heavy it was to reach a checkpoint", x: "Differences in commit size, or work that went into commits you made by hand", a: "Next period, keep each prompt to one change and commit often"},
   native: {n: "Agent-specific metrics", d: "Numbers each agent records in its history", c: "Trends within the same agent", x: "Comparisons between agents (definitions differ)", a: "Only look at changes over time for the same agent"},
 };
-const H = () => HELP;
+// 画面に出す HELP（今の言語）。HELP の英語の文を鍵にして訳す（HELP そのものは英語のまま）
+let helpL = null;
+const H = () => helpL || (helpL = Object.fromEntries(Object.entries(HELP).map(([id, h]) => [id, Object.fromEntries(Object.entries(h).map(([f, v]) => [f, t(v)]))])));
 // 期間のエージェントのどれも記録しない指標のカード（unrecorded）。数字の欄に「—」を太字で出すと 0 や読み込み中に見えるので、
 // 数字の代わりに控えめな文で「記録されていない」と言い、点線の枠で数字のカードと見分けがつくようにする
-function hb(id){ return H()[id] ? `<button class="hb" data-help="${id}" aria-label="${`How to read ${H()[id].n}`}" aria-expanded="false" aria-controls="hpop">?</button>` : ""; }
+function hb(id){ return H()[id] ? `<button class="hb" data-help="${id}" aria-label="${esc(t("How to read {name}", {name: H()[id].n}))}" aria-expanded="false" aria-controls="hpop">?</button>` : ""; }
 // hintBody は「?」の説明の中身（定義・わかること・わからないこと・次にやること・推移）。押した ? の近くの吹き出し（#hpop）に出す
 function hintBody(id){ const h = H()[id]; if (!h) return "";
   const tr = MET[id] ? spark(id, true) : ""; // 推移を出せる指標は、印が付いていなくても説明の中で推移を見られる
-  return `<p class="hpt">${esc(h.n)}</p><p>${esc(h.d)}</p><dl><dt>Tells you</dt><dd>${esc(h.c)}</dd><dt>Doesn't tell you</dt><dd>${esc(h.x)}</dd><dt>What to try</dt><dd>${esc(h.a)}</dd></dl>${tr ? `<div class="htrend">${tr}</div>` : ""}`; }
+  return `<p class="hpt">${esc(h.n)}</p><p>${esc(h.d)}</p><dl><dt>${esc(t("Tells you"))}</dt><dd>${esc(h.c)}</dd><dt>${esc(t("Doesn't tell you"))}</dt><dd>${esc(h.x)}</dd><dt>${esc(t("What to try"))}</dt><dd>${esc(h.a)}</dd></dl>${tr ? `<div class="htrend">${tr}</div>` : ""}`; }
 
 // 「?」の説明は、カードを広げずに、押した ? の近くの吹き出し（#hpop）に出す。開くのは 1 つだけ。
 // 同じ ? をもう一度・Esc・吹き出しの外を押すと閉じる（Esc では ? にフォーカスを戻す）。描き直しで ? が消えたら閉じる
@@ -169,7 +172,7 @@ addEventListener("resize", () => hideHint());
 
 /* Phase 1: copy-only, evidence-first knowledge discovery. No automatic AI or persistence.
    報告のプロンプトと同じく、履歴ファイルの場所を渡し、履歴はコードブロックに 1 行ずつ入れて、指示ではなくデータだと伝える */
-function projectKnowledgePrompt(project) {
+function projectKnowledgePrompt(project) { return inEnglish(() => { // AI に渡すので英語のまま
   const {ws, we} = period();
   const ses = DATA.filter(s => s.project === project && s.segs.some(([a, b]) => b > ws && a < we) && !st.hidden.has(keyOf(s))).sort((a, b) => a.start - b.start);
   const cut = (t, n) => { t = oneLine(t); return t.length > n ? t.slice(0, n) + "…" : t; };
@@ -199,4 +202,4 @@ function projectKnowledgePrompt(project) {
   if (!ses.length) D.push("- None");
   L.push("", "# History data", mdFence(D.join("\n")));
   return L.join("\n");
-}
+}); }

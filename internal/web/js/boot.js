@@ -9,8 +9,9 @@ if (DATA.length && !MONTHS[mkey(st.month)]) st.month = monthOf(new Date(DATA[DAT
 if (META && META.scope){ const f = scopeStart(); st.week = mondayOf(f); st.month = monthOf(f); st.mode = META.scope.mode;
   const bar = $("#scopebar"); bar.textContent = ""; bar.insertAdjacentHTML("beforeend", scopeNote()); bar.hidden = false;
   if (META.scope.mode === "week") $("#mode").hidden = true; }
+applyStaticText();
 const mq = matchMedia("(max-width:1000px)"),
- ph = () => $("#q").placeholder = mq.matches ? "Search" : "Prompts, files, commits"; // 狭い画面では入力欄も狭いので短く
+ ph = () => $("#q").placeholder = t(mq.matches ? "Search" : "Prompts, files, commits"); // 狭い画面では入力欄も狭いので短く
 mq.addEventListener("change", () => { ph(); render(); }); ph();
 applyTheme(); render(); scrollToWork();
 

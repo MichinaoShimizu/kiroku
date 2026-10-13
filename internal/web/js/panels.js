@@ -12,6 +12,13 @@ function hitOf(s, q){
   for (const [label, xs] of tries) for (const x of xs){ const h = snip(x, q); if (h) return {label, h}; }
   return {label: "", h: ""};
 }
+/* tph は t() の HTML 版：訳した文を esc() し、{name} を埋める。vars の値が {h: "..."} なら HTML（呼ぶ側でエスケープ済み）としてそのまま、
+   ほかは文字としてエスケープして入れる。辞書の文には < を入れず、<code> などはここで差し込む */
+function tph(s, vars){
+  return t(s).split(/(\{\w+\})/).map(x => { const m = /^\{(\w+)\}$/.exec(x);
+    if (!m || !vars || !Object.prototype.hasOwnProperty.call(vars, m[1])) return esc(x);
+    const v = vars[m[1]]; return v && typeof v === "object" ? v.h : esc(v); }).join("");
+}
 const SR_FIRST = 10, SR_STEP = 50; // 検索結果は、はじめに 10 件、「もっと見る」で 50 件ずつ
 function searchPanel(){
   const R = $("#sres"), q = st.q, nS = st.srN || SR_FIRST, nC = st.scN || SR_FIRST;
@@ -21,18 +28,18 @@ function searchPanel(){
   const row = s => { const h = hitOf(s, q);
     return `<button class="srow ag" data-s="${esc(s.id)}" style="--c:${colorOf(keyOf(s))};--ag:${agColor(s.source)}"><time>${md(s.start)}<small>${hm(s.start)}</small></time>
       <span class="b"><span class="ti">${agMark(s.source)}${esc(s.title)}</span><span class="me">${esc(s.project)}${s.branch ? ` · ${esc(s.branch)}` : ""} · ${esc((s.source))}</span>
-      ${h.h ? `<span class="hit"><em>${h.label}</em>${h.h}</span>` : ""}</span></button>`; };
+      ${h.h ? `<span class="hit"><em>${esc(t(h.label))}</em>${h.h}</span>` : ""}</span></button>`; };
   const crow = c => `<button class="srow" data-c="${esc(c.hash)}" style="--c:${colorOf(c.project)}"><time>${md(c.t)}<small>${hm(c.t)}</small></time>
-      <span class="b"><span class="ti"><i></i>${snip(c.subject, q) || esc(c.subject)}</span><span class="me">${esc(c.project)}${c.branch ? ` · ${esc(c.branch)}` : ""} · <span class="mono">${esc(c.hash.slice(0,7))}</span> · ${plural(c.nFiles, "file")} +${c.added} −${c.removed}</span>
-      ${(() => { const f = (c.files || []).find(f => f.path.toLowerCase().includes(q)); return f ? `<span class="hit"><em>File</em>${snip(f.path, q)}</span>` : ""; })()}</span></button>`;
-  const more = (id, shown, all) => all > shown ? `<button class="pill srmore" id="${id}">${all - shown <= SR_STEP ? `Show the last ${all - shown}` : `Show ${SR_STEP} more`} <span class="muted">(${shown} of ${all} shown)</span></button>` : "";
-  R.innerHTML = `<div class="rvhead"><h2 id="srh" tabindex="-1">Search results</h2><p>${`Matches for "${esc(q)}" ${META.scope ? "in this file" : "(all time)"}, newest first. Sessions are matched on prompts, project, branch, agent, files changed by AI, pull requests and commits made during the session; commits on subject, body, hash and changed files. Click one to see its details; the calendar below moves to its week.`}</p>
-      <button class="pill" id="sclear">Clear search</button></div>
+      <span class="b"><span class="ti"><i></i>${snip(c.subject, q) || esc(c.subject)}</span><span class="me">${esc(c.project)}${c.branch ? ` · ${esc(c.branch)}` : ""} · <span class="mono">${esc(c.hash.slice(0,7))}</span> · ${esc(plural(c.nFiles, "file"))} +${c.added} −${c.removed}</span>
+      ${(() => { const f = (c.files || []).find(f => f.path.toLowerCase().includes(q)); return f ? `<span class="hit"><em>${esc(t("File"))}</em>${snip(f.path, q)}</span>` : ""; })()}</span></button>`;
+  const more = (id, shown, all) => all > shown ? `<button class="pill srmore" id="${id}">${esc(all - shown <= SR_STEP ? t("Show the last {n}", {n: all - shown}) : t("Show {n} more", {n: SR_STEP}))} <span class="muted">${esc(t("({shown} of {all} shown)", {shown, all}))}</span></button>` : "";
+  R.innerHTML = `<div class="rvhead"><h2 id="srh" tabindex="-1">${esc(t("Search results"))}</h2><p>${esc(META.scope ? t('Matches for "{q}" in this file, newest first.', {q}) : t('Matches for "{q}" (all time), newest first.', {q}))} ${esc(t("Sessions are matched on prompts, project, branch, agent, files changed by AI, pull requests and commits made during the session; commits on subject, body, hash and changed files. Click one to see its details; the calendar below moves to its week."))}</p>
+      <button class="pill" id="sclear">${esc(t("Clear search"))}</button></div>
     <div class="rvgrid srgrid">
-      <section class="panel">${panelH(null, `Sessions · ${ss.length}`)}
-        ${ss.length ? ss.slice(0, nS).map(row).join("") + more("srmS", nS, ss.length) : noneH("No matching sessions.")}</section>
-      <section class="panel">${panelH(null, `Commits · ${cs.length}`)}
-        ${cs.length ? cs.slice(0, nC).map(crow).join("") + more("srmC", nC, cs.length) : noneH((META.git || []).length ? "No matching commits." : "No git commits were loaded.")}</section>
+      <section class="panel">${panelH(null, esc(t("Sessions · {n}", {n: ss.length})))}
+        ${ss.length ? ss.slice(0, nS).map(row).join("") + more("srmS", nS, ss.length) : noneH(esc(t("No matching sessions.")))}</section>
+      <section class="panel">${panelH(null, esc(t("Commits · {n}", {n: cs.length})))}
+        ${cs.length ? cs.slice(0, nC).map(crow).join("") + more("srmC", nC, cs.length) : noneH(esc((META.git || []).length ? t("No matching commits.") : t("No git commits were loaded.")))}</section>
     </div>`;
   // もっと見る：足した最初の結果へフォーカスを移す（押したボタンは消えるので）
   const grow = (k, n, sel) => { const b = R.querySelector(sel === "s" ? "#srmS" : "#srmC"); if (!b) return;
@@ -167,7 +174,7 @@ function spanIn(s, ws, we){
 }
 /* 週報・月報を書いてもらうプロンプト（kiroku 自身は AI を呼ばない）。事実は kiroku が git と履歴から集め、何をなぜしたかは、
    この PC で動く AI に、期間の中のセッションの履歴ファイルを読んで書いてもらう。全セッションが 1 つに入る SQLite（reviewFile が空）は、プロンプトを書き写す */
-function reportPrompt(w, M, day){ // day があれば日報（その日。週の w は使わない）
+function reportPrompt(w, M, day){ return inEnglish(() => { //  day があれば日報（その日。週の w は使わない）（AI に渡すので英語のまま）
   const start = day || (M ? st.month : st.week), last = day || (M ? new Date(st.month.getFullYear(), st.month.getMonth()+1, 0) : addDays(st.week, 6));
   const R = day ? {ws: day.getTime() / 1000, we: addDays(day, 1).getTime() / 1000, day: true, label: `${DOW[day.getDay()]}, ${dMDY(day)}`} : null;
   const {ws, we, P: pw} = R || period(), wk = day ? "day" : M ? "month" : "week", Kind = day ? "Daily" : M ? "Monthly" : "Weekly", when = day ? R.label : dPeriod(M, start, last);
@@ -221,7 +228,7 @@ function reportPrompt(w, M, day){ // day があれば日報（その日。週の
   if (!ses.length) D.push("- None");
   L.push("", "# History data", mdFence(D.join("\n")));
   return L.join("\n");
-}
+}); }
 /* 期間に git へ残ったもの：コミットから数えたファイルと、この PC からの push。
    w.git と同じ範囲（凡例で隠した分は、ほかの数字と同じで差し引かない）で数える */
 function periodGit(){
@@ -243,37 +250,37 @@ function outcomePanel(w, pw, unit){
   const po = pw && pw.outputs, V = vsPrev(pw, unit), d = (a, b) => V.diff(a, V.of(null, b)); // AI のコミットと PR は日ごとの値がないので、途中の期間は比べない
   const n = commas, times = v => `${v}`, base = w.outBase ?? w.sessions;
   const cost = [
-    statH("Active time", dur(w.active,true), V.diff(w.active, V.of("active", pw && pw.active), dur), "active", "active"),
-    statH("Prompts", n(w.prompts), V.diff(w.prompts, V.of("prompts", pw && pw.prompts)), "prompts", "sessions"),
-    u.tokens ? statH("Estimated cost", usdH(costOf(u)), costOf(u) == null ? "Models not in the price table" : V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost", "cost") : "",
-    u.tokens ? statH("Tokens", tok(u.tokens), `Output ${tok(u.out)}`, "tokens", "tokens") : "",
-    u.credits ? statH("Kiro credits", crN(u.credits), "As recorded in history", "credits", "credits") : "",
+    statH(esc(t("Active time")), dur(w.active,true), V.diff(w.active, V.of("active", pw && pw.active), dur), "active", "active"),
+    statH(esc(t("Prompts")), n(w.prompts), V.diff(w.prompts, V.of("prompts", pw && pw.prompts)), "prompts", "sessions"),
+    u.tokens ? statH(esc(t("Estimated cost")), usdH(costOf(u)), costOf(u) == null ? esc(t("Models not in the price table")) : V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost", "cost") : "",
+    u.tokens ? statH(esc(t("Tokens")), tok(u.tokens), esc(t("Output {n}", {n: tok(u.out)})), "tokens", "tokens") : "",
+    u.credits ? statH(esc(t("Kiro credits")), crN(u.credits), esc(t("As recorded in history")), "credits", "credits") : "",
   ].join("");
   const lines = gc ? gc.added + gc.removed : 0;
   const out = hasOut ? [
-    gc ? statH("Git commits", times(gc.commits), `${gc.ai} by AI (${Math.round(gc.ai*100/gc.commits)}%)${pw && pw.git ? ` · ${V.diff(gc.commits, V.of("commits", pw.git.commits))}` : ""}`, "gitCommits", "commits") : "",
-    gc ? "" : statH("AI commits", times(o.commits), d(o.commits, po && po.commits), "commits", o.commits ? "aiCommits" : ""), // Git のコミットがあれば「うち AI」に出ている
-    gc ? statH("Lines changed", n(lines), `+${n(gc.added)} −${n(gc.removed)} · ${n(Math.round(lines/gc.commits))} per git commit`, "lines", "lines") : "",
-    gc && G.files ? statH("Files changed", n(G.files), `In ${plural(G.projects, "project")}${G.trunc ? " · at least" : ""}`, "files", "files") : "",
-    G.pushes ? statH("Pushes", times(G.pushes), `To ${plural(G.refs, "branch", "branches")} · from this computer`, "pushes", "pushes") : "",
-    o.prs ? statH("Pull requests", times(o.prs), "Created by AI", "prs", "prs") : "",
+    gc ? statH(esc(t("Git commits")), times(gc.commits), `${esc(t("{n} by AI ({pct}%)", {n: gc.ai, pct: Math.round(gc.ai*100/gc.commits)}))}${pw && pw.git ? ` · ${V.diff(gc.commits, V.of("commits", pw.git.commits))}` : ""}`, "gitCommits", "commits") : "",
+    gc ? "" : statH(esc(t("AI commits")), times(o.commits), d(o.commits, po && po.commits), "commits", o.commits ? "aiCommits" : ""), // Git のコミットがあれば「うち AI」に出ている
+    gc ? statH(esc(t("Lines changed")), n(lines), `+${n(gc.added)} −${n(gc.removed)} · ${esc(t("{n} per git commit", {n: n(Math.round(lines/gc.commits))}))}`, "lines", "lines") : "",
+    gc && G.files ? statH(esc(t("Files changed")), n(G.files), `${esc(t("In {projects}", {projects: plural(G.projects, "project")}))}${G.trunc ? ` · ${esc(t("at least"))}` : ""}`, "files", "files") : "",
+    G.pushes ? statH(esc(t("Pushes")), times(G.pushes), esc(t("To {branches} · from this computer", {branches: plural(G.refs, "branch", "branches")})), "pushes", "pushes") : "",
+    o.prs ? statH(esc(t("Pull requests")), times(o.prs), esc(t("Created by AI")), "prs", "prs") : "",
   ].join("") : "";
   // 使ったものと比べた指標。残ったものではないので別の行にして、何と何を割ったかを添える
   const cmp = hasCommit ? [
-    w.costPerCommit != null ? statH("Estimated cost per commit", usdH(w.costPerCommit), `Claude Code's estimated cost ÷ ${plural(o.commits, "AI commit")}`, "costPerCommit", "costPerCommit") : "",
-    statH("Sessions that reached a commit or PR", base ? `${Math.round(w.outSessions*100/base)}<small>%</small>` : "—", `${w.outSessions} of ${plural(base, "session")}`, "outSessions", base ? "outSessions" : ""),
+    w.costPerCommit != null ? statH(esc(t("Estimated cost per commit")), usdH(w.costPerCommit), esc(t("Claude Code's estimated cost ÷ {commits}", {commits: plural(o.commits, "AI commit")})), "costPerCommit", "costPerCommit") : "",
+    statH(esc(t("Sessions that reached a commit or PR")), base ? `${Math.round(w.outSessions*100/base)}<small>%</small>` : "—", esc(t("{n} of {sessions}", {n: w.outSessions, sessions: plural(base, "session")})), "outSessions", base ? "outSessions" : ""),
   ].join("") : "";
   // 「残ったもの」に添える一言は、実際に出したカードから作る（git を読めなかった週に、行やファイルがあるように書かないため）
   const names = [o.commits || gc ? "commits" : "", gc ? "lines" : "", gc && G.files ? "files" : "", G.pushes ? "pushes" : "", o.prs ? "pull requests" : ""].filter(Boolean);
-  const outSub = names.length ? names.join(", ").replace(/, ([^,]+)$/, " and $1").replace(/^./, c => c.toUpperCase()) : "From git and from history";
+  const outSub = esc(!names.length ? t("From git and from history") : JA ? names.map(x => t(x)).join("・") : names.join(", ").replace(/, ([^,]+)$/, " and $1").replace(/^./, c => c.toUpperCase())); // 日本語は「・」でつなぐ
   const side = (cls, label, sub, body) => `<div class="ocside ${cls}"><div class="ocl"><b>${label}</b><span>${sub}</span></div>${body}</div>`;
-  return `<section class="panel oc">${panelH(2, "Cost and outputs", `What you spent ${uThis(unit)} and what it left behind`, "outputs")}
+  return `<section class="panel oc">${panelH(2, esc(t("Cost and outputs")), esc(unit === "月" ? t("What you spent this month and what it left behind") : t("What you spent this week and what it left behind")), "outputs")}
     <div class="ocgrid">
-      ${side("spent", "Cost", "Time and usage", `<div class="stats">${cost}</div>`)}
+      ${side("spent", esc(t("Cost")), esc(t("Time and usage")), `<div class="stats">${cost}</div>`)}
       <div class="ocarrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-      ${side("left", "Left behind", outSub, out ? `<div class="stats">${out}</div>${gc ? "" : noneH("Lines, files and pushes are counted from git commits, which were not read here.")}` : noneH("No commits recorded."))}
+      ${side("left", esc(t("Left behind")), outSub, out ? `<div class="stats">${out}</div>${gc ? "" : noneH(esc(t("Lines, files and pushes are counted from git commits, which were not read here.")))}` : noneH(esc(t("No commits recorded."))))}
     </div>
-    ${cmp ? side("occmp", "Compared", "Cost ÷ what it left behind", `<div class="stats">${cmp}</div>`) : ""}</section>`;
+    ${cmp ? side("occmp", esc(t("Compared")), esc(t("Cost ÷ what it left behind")), `<div class="stats">${cmp}</div>`) : ""}</section>`;
 }
 /* 計測の状態 */
 /* kiroku html --week / --month で書き出した、1 つの期間だけのファイル。渡された人がいちばん上で、何のファイルか・ほかの期間が空の理由・
@@ -281,7 +288,11 @@ function outcomePanel(w, pw, unit){
 function scopeNote(){
   const sc = META.scope; if (!sc) return "";
   const h = sc.offset === 0 ? "" : `${sc.offset < 0 ? "−" : "+"}${Math.floor(Math.abs(sc.offset)/3600)}${Math.abs(sc.offset)%3600 ? ":" + String(Math.abs(sc.offset)%3600/60).padStart(2, "0") : ""}`;
-  return `This file only includes ${sc.mode === "week" ? "the " : ""}${periodLabel(sc.mode, sc.key)}. Sessions that cross its edges are included whole; other ${sc.mode}s have no records here.${SHIFT ? ` Times are shown in ${esc(sc.zone || "")} (UTC${h}), where the file was written.` : ""}`; }
+  const p = periodLabel(sc.mode, sc.key);
+  return esc(sc.mode === "week" ? t("This file only includes the {period}. Sessions that cross its edges are included whole; other weeks have no records here.", {period: p})
+    : sc.mode === "month" ? t("This file only includes {period}. Sessions that cross its edges are included whole; other months have no records here.", {period: p})
+    : `This file only includes ${p}. Sessions that cross its edges are included whole; other ${sc.mode}s have no records here.`)
+    + (SHIFT ? " " + esc(t("Times are shown in {zone} (UTC{h}), where the file was written.", {zone: sc.zone || "", h})) : ""); }
 // scopeStart は、期間だけのファイルの期間の初日。時刻（from）ではなく名前（2026-09-28 / 2026-09）から作る。
 // 週・月の集計は書き出した人の時間帯で区切っていて、ほかの時間帯で開くと from が前の日になり、前の週を開いてしまうため
 function scopeStart(){ const [y, m, d] = META.scope.key.split("-").map(Number); return new Date(y, m-1, d || 1); }
@@ -291,40 +302,52 @@ async function keepArchive(){
   try {
     const r = await fetch("archive", {method:"POST", headers:{"X-Kiroku":"1"}, cache:"no-store"}); if (!r.ok) throw new Error(r.status);
     applyData(await r.json()); render();
-    toast(`Backed up to ${(META.archive && META.archive.dir) || "kiroku's folder"}. kiroku adds to it each time you open it`, 6000);
-  } catch(e){ toast("Couldn't start the backup. Run kiroku archive on instead", 4500); }
+    toast(t("Backed up to {dir}. kiroku adds to it each time you open it", {dir: (META.archive && META.archive.dir) || t("kiroku's folder")}), 6000);
+  } catch(e){ toast(t("Couldn't start the backup. Run kiroku archive on instead"), 4500); }
 }
 function keepRow(r){ // 計測の状態に添える：どこまでさかのぼれるか、いつ消えるか
   const o = r.oldest ? dMDY(new Date(r.oldest*1000)) : "";
-  const k = r.retention, link = k && k.docs ? ` ${ext(k.docs, "official docs ↗")}` : "", by = k && k.who ? `${esc(k.who)}: ` : ""; // by は、履歴を消すものが Report と違うとき（Kiro CLI の行の Kiro Crew）
+  const k = r.retention, link = k && k.docs ? ` ${ext(k.docs, esc(t("official docs ↗")))}` : "", by = k && k.who ? `${esc(k.who)}: ` : ""; // by は、履歴を消すものが Report と違うとき（Kiro CLI の行の Kiro Crew）
+  const set = k ? {h: `<code>${esc(k.setting)}</code>`} : null; // 設定の名前（<code>）
   // how は、既定のままで消える履歴を残す 2 つの方法。バックアップ先のフォルダを先に見せる（押す前に、どこに何ができるかわかるように）
-  const dir = META.archive && META.archive.dir, how = () => `<br>${`To keep them, set <code>${esc(k.snippet || `"${k.setting}": 3650`)}</code>${k.file ? ` in <code>${esc(k.file)}</code>` : ""}, or ${LIVE ? "let kiroku" : "run <code>kiroku archive on</code> to let kiroku"} back them up to ${dir ? `<code>${esc(dir)}</code>` : "a folder on this computer"} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and <code>kiroku archive off</code> stops it)`}${LIVE ? ` <button class="pill keeparch">Back up to this folder</button>` : ""}`;
-  return (o ? ` · oldest record ${o}` : "") +
-    (r.archived ? ` · ${plural(r.archived, "deleted conversation")} shown from kiroku's copy` : "") +
-    (!k ? "" : k.now && archOn() ? `<br>${by}${`Older records are deleted at the next cleanup (<code>${esc(k.setting)}</code> is 0), but kiroku keeps a copy`}`
-      : k.now ? `<br><span class="kw">${by}${`Older records are deleted at the next cleanup (<code>${esc(k.setting)}</code> is 0)`}${link}</span>` // 0 日（days の 0 は「わからない」なので now で見分ける）
-      : k.days && !k.set && archOn() ? `<br>${by}${`Records older than ${k.days} days are deleted automatically, but kiroku keeps a copy`}`
-      : k.days && !k.set ? `<br><span class="kw">${by}${`Records older than ${k.days} days are deleted automatically (<code>${esc(k.setting)}</code> is at its default)`}${link}</span>${how()}`
-      : k.days ? `<br>${by}${`Kept for ${k.days} days (<code>${esc(k.setting)}</code>)`}`
-      : `<br>${by}${`Older records are deleted after a period (<code>${esc(k.setting)}</code>)`}${link}`); }
+  const dir = META.archive && META.archive.dir, how = () => { const v = {snippet: {h: `<code>${esc(k.snippet || `"${k.setting}": 3650`)}</code>`},
+      file: {h: `<code>${esc(k.file || "")}</code>`}, dir: dir ? {h: `<code>${esc(dir)}</code>`} : t("a folder on this computer"),
+      on: {h: "<code>kiroku archive on</code>"}, off: {h: "<code>kiroku archive off</code>"}};
+    const s = LIVE ? (k.file ? "To keep them, set {snippet} in {file}, or let kiroku back them up to {dir} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and {off} stops it)"
+        : "To keep them, set {snippet}, or let kiroku back them up to {dir} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and {off} stops it)")
+      : (k.file ? "To keep them, set {snippet} in {file}, or run {on} to let kiroku back them up to {dir} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and {off} stops it)"
+        : "To keep them, set {snippet}, or run {on} to let kiroku back them up to {dir} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and {off} stops it)");
+    return `<br>${tph(s, v)}${LIVE ? ` <button class="pill keeparch">${esc(t("Back up to this folder"))}</button>` : ""}`; };
+  return (o ? ` · ${esc(t("oldest record {date}", {date: o}))}` : "") +
+    (r.archived ? ` · ${esc(t("{n} shown from kiroku's copy", {n: plural(r.archived, "deleted conversation")}))}` : "") +
+    (!k ? "" : k.now && archOn() ? `<br>${by}${tph("Older records are deleted at the next cleanup ({setting} is 0), but kiroku keeps a copy", {setting: set})}`
+      : k.now ? `<br><span class="kw">${by}${tph("Older records are deleted at the next cleanup ({setting} is 0)", {setting: set})}${link}</span>` // 0 日（days の 0 は「わからない」なので now で見分ける）
+      : k.days && !k.set && archOn() ? `<br>${by}${esc(t("Records older than {days} days are deleted automatically, but kiroku keeps a copy", {days: k.days}))}`
+      : k.days && !k.set ? `<br><span class="kw">${by}${tph("Records older than {days} days are deleted automatically ({setting} is at its default)", {days: k.days, setting: set})}${link}</span>${how()}`
+      : k.days ? `<br>${by}${tph("Kept for {days} days ({setting})", {days: k.days, setting: set})}`
+      : `<br>${by}${tph("Older records are deleted after a period ({setting})", {setting: set})}${link}`); }
 // measure は、計測の状態（読んだ履歴・消える設定・kiroku のコピー・料金表）。ふだんはたたみ、
 // 気をつけること（読めないファイル・既定のままで消える履歴・料金表にないモデル・似た ID の料金を当てたモデル）があるときは、見出しに印を付けて開いておく
 function measure(w){
-  const rows = META.report.map(r => { const dt = r.detailEn || r.detail;
-    return `<li class="${r.error?"warn":""}">${esc((r.name))}${AG_ABOUT[r.name] ? ` <span class="muted">— ${esc(AG_ABOUT[r.name])}</span>` : ""}: ${plural(r.n, "session")}${dt?` (${esc(dt)})`:""}${r.dup?` (${plural(r.dup, "duplicate conversation")} found elsewhere not counted)`:""}${r.error?` (some files couldn't be read)`:""}${keepRow(r)}</li>`; });
+  const rows = META.report.map(r => { const dt = JA ? r.detail || r.detailEn : r.detailEn || r.detail; // Go の一言（日本語の Detail と英語の DetailEn）
+    return `<li class="${r.error?"warn":""}">${esc((r.name))}${AG_ABOUT[r.name] ? ` <span class="muted">— ${esc(AG_ABOUT[r.name])}</span>` : ""}: ${esc(plural(r.n, "session"))}${dt?` (${esc(dt)})`:""}${r.dup?` (${esc(t("{n} found elsewhere not counted", {n: plural(r.dup, "duplicate conversation")}))})`:""}${r.error?` (${esc(t("some files couldn't be read"))})`:""}${keepRow(r)}</li>`; });
   const a = META.archive; // kiroku archive
-  if (a && (a.on || a.files)) rows.push(`<li>${a.on ? `kiroku's copy: on (${plural(a.files, "file")}, ${bytes(a.bytes)})`
-      : `kiroku's copy: off. Copies kept so far (${plural(a.files, "file")}, ${bytes(a.bytes)}) are still shown`}<br><code>${esc(a.dir)}</code></li>`);
+  if (a && (a.on || a.files)) rows.push(`<li>${esc(a.on ? t("kiroku's copy: on ({files}, {size})", {files: plural(a.files, "file"), size: bytes(a.bytes)})
+      : t("kiroku's copy: off. Copies kept so far ({files}, {size}) are still shown", {files: plural(a.files, "file"), size: bytes(a.bytes)}))}<br><code>${esc(a.dir)}</code></li>`);
+  const prices = {h: "<code>--prices</code>"};
   if (w.usage && w.usage.unpriced) { const ms = (w.usage.unpricedModels || []).map(m => `<code>${esc((m))}</code>`).join(", ");
-    rows.push(`<li class="warn">${`${tok(w.usage.unpriced)} tokens from models not in the price table are not included in the estimated cost${ms ? ` (${ms})` : ""}. Add their prices with <code>--prices</code>`}</li>`); }
+    rows.push(`<li class="warn">${ms ? tph("{tokens} tokens from models not in the price table are not included in the estimated cost ({models}). Add their prices with {prices}", {tokens: tok(w.usage.unpriced), models: {h: ms}, prices})
+      : tph("{tokens} tokens from models not in the price table are not included in the estimated cost. Add their prices with {prices}", {tokens: tok(w.usage.unpriced), prices})}</li>`); }
   const pp = (w.usage && w.usage.prefixPriced) || []; // 料金表に同じ ID がなく、似た ID（先頭一致）の料金を当てたモデル
-  if (pp.length) rows.push(`<li class="warn">${`Not in the price table under their own ID, so priced as a similar model: ${pp.map(([m, k]) => `<code>${esc(m)}</code> priced as <code>${esc(k)}</code>`).join(", ")}. If a new model has different rates, set them with <code>--prices</code>`}</li>`);
+  if (pp.length) rows.push(`<li class="warn">${tph("Not in the price table under their own ID, so priced as a similar model: {list}. If a new model has different rates, set them with {prices}", {list: {h: pp.map(([m, k]) => tph("{model} priced as {as}", {model: {h: `<code>${esc(m)}</code>`}, as: {h: `<code>${esc(k)}</code>`}})).join(", ")}, prices})}</li>`);
   const ts = (w.usage && w.usage.tierStandard) || []; // OpenAI のサービスティア（Fast など）の料金が公式になく、標準の料金を当てたモデル
-  if (ts.length) rows.push(`<li class="warn">${`No published price for their service tier, so priced at standard rates (the estimate may be low): ${ts.map(([m, t]) => `<code>${esc(m)}</code> (${esc(t)})`).join(", ")}`}</li>`);
-  if (w.usage && w.usage.tokens) rows.push(`<li>${`Price table for estimated cost: ${META.prices && META.prices.custom ? "from <code>--prices</code>" : (META.prices ? `Anthropic and OpenAI public rates as of ${esc(META.prices.asOf)}` : "public rates") + " (change it with <code>--prices</code>)"}`}</li>`);
+  if (ts.length) rows.push(`<li class="warn">${tph("No published price for their service tier, so priced at standard rates (the estimate may be low): {list}", {list: {h: ts.map(([m, tier]) => `<code>${esc(m)}</code> (${esc(tier)})`).join(", ")}})}</li>`);
+  if (w.usage && w.usage.tokens) rows.push(`<li>${META.prices && META.prices.custom ? tph("Price table for estimated cost: from {prices}", {prices})
+      : META.prices ? tph("Price table for estimated cost: Anthropic and OpenAI public rates as of {date} (change it with {prices})", {date: META.prices.asOf, prices})
+      : tph("Price table for estimated cost: public rates (change it with {prices})", {prices})}</li>`);
   const alert = (META.report || []).some(r => r.error || r.retention && (r.retention.days && !r.retention.set || r.retention.now) && !archOn()) || !!(w.usage && w.usage.unpriced) || pp.length > 0 || ts.length > 0;
   const n = (META.report || []).filter(r => r.n).length;
-  return `<details class="dsrc"${alert ? " open" : ""}><summary>${ico("caret", "dsc")}<h3>Data sources</h3><span class="muted">${plural(n, "history", "histories")} read</span>${alert ? `<span title="Something here needs your attention">${ico("flag", "fdot")}</span>` : ""}</summary><ul class="mlist">${rows.join("")}</ul></details>`;
+  return `<details class="dsrc"${alert ? " open" : ""}><summary>${ico("caret", "dsc")}<h3>${esc(t("Data sources"))}</h3><span class="muted">${esc(t("{n} read", {n: plural(n, "history", "histories")}))}</span>${alert ? `<span title="${esc(t("Something here needs your attention"))}">${ico("flag", "fdot")}</span>` : ""}</summary><ul class="mlist">${rows.join("")}</ul></details>`;
 }
 // soFar は、今見ている期間が途中なら、始まりから今日までの日数（今日を含む）。終わった期間や先の期間は null。
 function soFar(){ const {ws, we} = period(), now = nowMs()/1000, a = new Date(ws*1000);
@@ -337,9 +360,9 @@ function soFar(){ const {ws, we} = period(), now = nowMs()/1000, a = new Date(ws
 function vsPrev(pw, unit){
   const n0 = pw ? soFar() : null, n = n0 == null ? null : Math.min(n0, pw.days.length); // 先月が今月より短いときは、先月の最後の日まで
   const a = n == null ? null : new Date(periodBack(1).ws * 1000), range = n == null ? "" : n === 1 ? dMD(a) : dSpan(a, addDays(a, n - 1));
-  const label = n == null ? `vs ${uLast(unit)}` : `vs ${range}`;
+  const label = esc(n == null ? (unit === "月" ? t("vs last month") : t("vs last week")) : t("vs {range}", {range}));
   const of = (f, whole) => !pw || whole == null ? null : n == null ? whole : f ? pw.days.slice(0, n).reduce((t, d) => t + (d[f] || 0), 0) : null;
-  const diff = (a, b, fmt = x => x) => b == null ? "" : a === b ? `${label} <span class="nw">no change</span>` : `${label} <span class="nw">${a-b>0?"+":"−"}${fmt(Math.abs(a-b))}</span>`;
+  const diff = (a, b, fmt = x => x) => b == null ? "" : a === b ? `${label} <span class="nw">${esc(t("no change"))}</span>` : `${label} <span class="nw">${a-b>0?"+":"−"}${fmt(Math.abs(a-b))}</span>`;
   return {n, range, label, of, diff};
 }
 // projection は、今月の途中なら、今日までのペースが月末まで続いたときの目安コストとクレジット（推定）。
@@ -356,39 +379,40 @@ function aiUsage(w, pw, unit){
   const pj = projection(w);
   const totalC = u.models.reduce((t,r)=>t+r[1],0) || 1, totalT = u.models.reduce((t,r)=>t+r[2],0) || 1, byCost = totalC > 0.0001;
   return `<div class="stats">
-      ${pj && pj.cost != null ? statH("Month-end cost (estimate)", "≈ " + usdH(pj.cost), `If the pace of the first ${pj.days} days continues`, "projection", "projection") : ""}
-      ${pj && pj.credits != null ? statH("Month-end credits (estimate)", `≈ ${crN(pj.credits)}<small> credits</small>`, `If the pace of the first ${pj.days} days continues`, "projectionCr", "projectionCr") : ""}
-      ${u.tokens ? statH("Read from cache", u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, "Share of input", "cache", u.cacheHit == null ? "" : "cache") : ""}
-      ${(() => { const {ws, we} = period(), N = !u.subagents && unrecorded(ws, we, "subagents"); return N ? norecStat("Subagents", N, "subagents") : statH("Subagents", `${u.subagents}`, u.subagents ? `Total run time ${dur(u.subMin)}` : "Not used", "subagents", u.subagents ? "subagents" : ""); })()}
-      ${w.costPerAsk != null ? statH("Estimated cost per prompt", usdH(w.costPerAsk), `n=${w.costPrompts}`, "costPerAsk", "costPerAsk") : ""}
+      ${pj && pj.cost != null ? statH(esc(t("Month-end cost (estimate)")), "≈ " + usdH(pj.cost), esc(t("If the pace of the first {n} days continues", {n: pj.days})), "projection", "projection") : ""}
+      ${pj && pj.credits != null ? statH(esc(t("Month-end credits (estimate)")), `≈ ${crN(pj.credits)}<small> ${esc(t("credits"))}</small>`, esc(t("If the pace of the first {n} days continues", {n: pj.days})), "projectionCr", "projectionCr") : ""}
+      ${u.tokens ? statH(esc(t("Read from cache")), u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, esc(t("Share of input")), "cache", u.cacheHit == null ? "" : "cache") : ""}
+      ${(() => { const {ws, we} = period(), N = !u.subagents && unrecorded(ws, we, "subagents"); return N ? norecStat(esc(t("Subagents")), N, "subagents") : statH(esc(t("Subagents")), `${u.subagents}`, esc(u.subagents ? t("Total run time {d}", {d: dur(u.subMin)}) : t("Not used")), "subagents", u.subagents ? "subagents" : ""); })()}
+      ${w.costPerAsk != null ? statH(esc(t("Estimated cost per prompt")), usdH(w.costPerAsk), `n=${w.costPrompts}`, "costPerAsk", "costPerAsk") : ""}
     </div>
-    ${u.models.length ? `${secH(`By model${byCost ? " (estimated cost)" : " (tokens)"}`, "models")}
-      <div class="mstack">${u.models.map((r,i)=>`<span style="flex:${byCost?r[1]:r[2]};--o:${shade(i)}"${tipAttr((r[0]), `Estimated cost ${usd(r[1])}`, `Tokens ${tok(r[2])}`, `${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%`)}></span>`).join("")}</div>
-      ${u.models.slice(0,6).map((r,i)=>`<div class="mrow"><span class="nm"><i style="--o:${shade(i)}"></i>${esc((r[0]))}</span><span class="tm">${!r[1] && (u.unpricedModels || []).includes(r[0]) ? `<span title="Not in the price table">—</span>` : usd(r[1])}<small>${tok(r[2])}</small></span><span class="pc">${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%</span></div>`).join("")}` : ""}
-    ${u.subTypes.length ? `${secH("Subagent types (calls)")}<div class="chips">${u.subTypes.map(([k,v])=>`<span class="mono">${esc(k)}<b>${v}</b></span>`).join("")}</div>` : ""}
-    ${u.heavy.length ? `${secH("Heaviest sessions", "heavy")}${u.heavy.map(h => sesCardH(sesById(h.id, h.title), sesMeta(h, h.subagents ? plural(h.subagents, "subagent") : ""), usd(h.cost))).join("")}` : ""}`;
+    ${u.models.length ? `${secH(esc(byCost ? t("By model (estimated cost)") : t("By model (tokens)")), "models")}
+      <div class="mstack">${u.models.map((r,i)=>`<span style="flex:${byCost?r[1]:r[2]};--o:${shade(i)}"${tipAttr((r[0]), t("Estimated cost {usd}", {usd: usd(r[1])}), t("Tokens {n}", {n: tok(r[2])}), `${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%`)}></span>`).join("")}</div>
+      ${u.models.slice(0,6).map((r,i)=>`<div class="mrow"><span class="nm"><i style="--o:${shade(i)}"></i>${esc((r[0]))}</span><span class="tm">${!r[1] && (u.unpricedModels || []).includes(r[0]) ? `<span title="${esc(t("Not in the price table"))}">—</span>` : usd(r[1])}<small>${tok(r[2])}</small></span><span class="pc">${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%</span></div>`).join("")}` : ""}
+    ${u.subTypes.length ? `${secH(esc(t("Subagent types (calls)")))}<div class="chips">${u.subTypes.map(([k,v])=>`<span class="mono">${esc(k)}<b>${v}</b></span>`).join("")}</div>` : ""}
+    ${u.heavy.length ? `${secH(esc(t("Heaviest sessions")), "heavy")}${u.heavy.map(h => sesCardH(sesById(h.id, h.title), sesMeta(h, h.subagents ? esc(plural(h.subagents, "subagent")) : ""), usd(h.cost))).join("")}` : ""}`;
 }
 function nativeText(v){
   const num = (x, d) => commas(Number(x.toFixed(d)));
+  if (JA) return v.unit === "%" ? `${num(v.v,1)}%` : v.unit === "秒" ? `${num(v.v,1)}秒` : v.unit === "クレジット" ? `${crN(v.v)} クレジット` : `${num(v.v,0)}${v.unit ? " " + v.unit : ""}`; // 日本語は Go の単位のまま
   const u = {"回": "", "件": "", "トークン": " tokens", "バイト": " bytes"}[v.unit]; // 単位は Go の定義（日本語）を英語に読みかえる
   return v.unit === "%" ? `${num(v.v,1)}%` : v.unit === "秒" ? `${num(v.v,1)}s` : v.unit === "クレジット" ? `${crN(v.v)} credits` : `${num(v.v,0)}${u ?? " " + v.unit}`;
 }
-const nlabel = v => v.labelEn || v.label; // 参考指標の名前（Go の英語の名前）
+const nlabel = v => JA ? v.label || v.labelEn : v.labelEn || v.label; // 参考指標の名前（Go の名前。英語表示では英語の名前）
 function nativeRows(values){
   return values.map(v=>`<div class="nrow"><span>${esc(nlabel(v))}</span><span class="v">${esc(nativeText(v))}</span><span class="n">n=${v.n}</span></div>`).join("");
 }
 function nativeSection(w){
   if (!w.native || !w.native.length) return "";
   // 各エージェントが自分で記録する数。エージェントどうしでは比べられないので、エージェントごとのカードに分ける
-  return `${secH("Agent-specific metrics (numbers each agent records itself)", "native")}<div class="ngroups">
-    ${w.native.map(g=>`<div class="ngroup" style="--ag:${agColor(g.source)}"><div class="hd"><b>${agMark(g.source)}${esc((g.source))}</b><span>${plural(g.sessions, "session")}</span></div>${nativeRows(g.values)}</div>`).join("")}</div>`;
+  return `${secH(esc(t("Agent-specific metrics (numbers each agent records itself)")), "native")}<div class="ngroups">
+    ${w.native.map(g=>`<div class="ngroup" style="--ag:${agColor(g.source)}"><div class="hd"><b>${agMark(g.source)}${esc((g.source))}</b><span>${esc(plural(g.sessions, "session"))}</span></div>${nativeRows(g.values)}</div>`).join("")}</div>`;
 }
 // foot は、ページのいちばん下：作った時刻・kiroku の版（リリースのページへ）・リポジトリへのリンク。
 // リンクは押したときに開くだけで、kiroku からは何も送らない（noopener noreferrer）
 const REPO = "https://github.com/MichinaoShimizu/kiroku";
 function foot(){
   const v = String((META && META.version) || ""), rel = /^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/.test(v);
-  return `<div class="foot"><div>Generated ${dStamp(GENERATED)} · ${rel ? ext(`${REPO}/releases/tag/v${v}`, esc(`kiroku v${v}`)) : `kiroku${v ? " " + esc(v) : ""}`} · ${ext(REPO, "GitHub")}</div></div>`;
+  return `<div class="foot"><div>${esc(t("Generated {date}", {date: dStamp(GENERATED)}))} · ${rel ? ext(`${REPO}/releases/tag/v${v}`, esc(`kiroku v${v}`)) : `kiroku${v ? " " + esc(v) : ""}`} · ${ext(REPO, "GitHub")}</div></div>`;
 }
 
 function bindCopy(root){ root.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy, "", 0, b)); }

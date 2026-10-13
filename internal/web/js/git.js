@@ -34,7 +34,7 @@ function commitsOf(s){ // セッションが作ったコミットと、同じプ
 }
 function fileRows(files, n, repo){
   const num = v => v < 0 ? "bin" : v;
-  return `<ul class="gfiles">${files.map(f => `<li title="${esc(f.path)}"><span>${ico("file")}${fileA(f.url || localHref(f.path, repo), esc(f.path))}</span><b><i>+${num(f.added)}</i> −${num(f.removed)}</b></li>`).join("")}</ul>${n > files.length ? `<p class="more">${`${plural(n - files.length, "more file")}`}</p>` : ""}`;
+  return `<ul class="gfiles">${files.map(f => `<li title="${esc(f.path)}"><span>${ico("file")}${fileA(f.url || localHref(f.path, repo), esc(f.path))}</span><b><i>+${num(f.added)}</i> −${num(f.removed)}</b></li>`).join("")}</ul>${n > files.length ? `<p class="more">${esc(JA ? t("{n} more files", {n: n - files.length}) : plural(n - files.length, "more file"))}</p>` : ""}`;
 }
 function fileLink(s, abs){ // セッションの間のコミットのうち、最後にそのファイルを変えたコミットでのリンク
   const p = abs.replace(/\\/g, "/");
@@ -44,27 +44,27 @@ function fileLink(s, abs){ // セッションの間のコミットのうち、�
 }
 function sessionCommits(s){
   const cs = commitsOf(s); if (!cs.length) return "";
-  return `<h3>Commits during this session · ${cs.length}</h3>${cs.map(c => `<button class="gc-row" data-git="${esc(c.hash)}"><time>${hm(c.t)}</time><span><i class="gtag${c.ai ? " ai" : ""}">${GIT_ICON}${esc(c.hash.slice(0,7))}</i> ${esc(c.subject)}</span><b>+${c.added} −${c.removed}</b></button>`).join("")}`;
+  return `<h3>${esc(t("Commits during this session"))} · ${cs.length}</h3>${cs.map(c => `<button class="gc-row" data-git="${esc(c.hash)}"><time>${hm(c.t)}</time><span><i class="gtag${c.ai ? " ai" : ""}">${GIT_ICON}${esc(c.hash.slice(0,7))}</i> ${esc(c.subject)}</span><b>+${c.added} −${c.removed}</b></button>`).join("")}`;
 }
 function commitDetail(c){
   const ses = DATA.find(x => x.id === c.session) || DATA.find(x => x.project === c.project && c.t >= x.start - 60 && c.t <= x.end + 600);
   const P = $("#panel");
   P.innerHTML = `<div style="--c:${st.colorBy === "project" ? colorOf(c.project) : "var(--ink-3)"}">
-    ${dHead(`GIT · ${c.ai ? "Run by AI" : "By hand (or another tool)"}`, c.subject, `${md(c.t)} ${hm(c.t)}`, [projTag(c.project), branchTag(c.branch), ext(c.url, `<span class="tg mono" title="Commit">${ico("commit")}<span class="sr">Commit: </span>${esc(c.hash.slice(0,7))}</span>`)])}
+    ${dHead(`GIT · ${esc(c.ai ? t("Run by AI") : t("By hand (or another tool)"))}`, c.subject, `${md(c.t)} ${hm(c.t)}`, [projTag(c.project), branchTag(c.branch), ext(c.url, `<span class="tg mono" title="${esc(t("Commit"))}">${ico("commit")}<span class="sr">${esc(t("Commit:"))} </span>${esc(c.hash.slice(0,7))}</span>`)])}
     <div class="dcols"><div class="dcol">
     <div class="mini">
-      <div><div class="k">Files changed</div><div class="v">${c.nFiles}</div></div>
-      <div><div class="k">Added</div><div class="v"><small>+</small>${c.added}<small> lines</small></div></div>
-      <div><div class="k">Removed</div><div class="v"><small>−</small>${c.removed}<small> lines</small></div></div>
+      <div><div class="k">${esc(t("Files changed"))}</div><div class="v">${c.nFiles}</div></div>
+      <div><div class="k">${esc(t("Added"))}</div><div class="v"><small>+</small>${c.added}<small> ${esc(t("lines"))}</small></div></div>
+      <div><div class="k">${esc(t("Removed"))}</div><div class="v"><small>−</small>${c.removed}<small> ${esc(t("lines"))}</small></div></div>
     </div>
-    ${c.body ? `<h3>Message body</h3><p class="gbody">${esc(c.body)}</p>` : ""}
-    ${ses ? sesCard(ses, c.session ? "Session that made this commit" : "Session running at this time") : ""}
-    ${pushedIn(c).map(p => `<h3>Pushed</h3><button class="gc-row" data-push="${esc(pushKey(p))}"><time>${md(p.t)} ${hm(p.t)}</time><span><i class="gtag">${ico("push")}${esc(p.ref)}</i>${p.commits ? ` ${plural(p.commits, "commit")}` : ""}</span><b></b></button>`).join("")}
-    ${c.url ? `<p class="dact">${ext(c.url, "Open this commit on the remote ↗", "pill")}</p>` : ""}
+    ${c.body ? `<h3>${esc(t("Message body"))}</h3><p class="gbody">${esc(c.body)}</p>` : ""}
+    ${ses ? sesCard(ses, esc(c.session ? t("Session that made this commit") : t("Session running at this time"))) : ""}
+    ${pushedIn(c).map(p => `<h3>${esc(t("Pushed"))}</h3><button class="gc-row" data-push="${esc(pushKey(p))}"><time>${md(p.t)} ${hm(p.t)}</time><span><i class="gtag">${ico("push")}${esc(p.ref)}</i>${p.commits ? ` ${plural(p.commits, "commit")}` : ""}</span><b></b></button>`).join("")}
+    ${c.url ? `<p class="dact">${ext(c.url, esc(t("Open this commit on the remote ↗")), "pill")}</p>` : ""}
     </div><div class="dcol">
-    <h3>Files changed · ${c.nFiles}</h3>
-    ${c.files.length ? fileRows(c.files, c.nFiles, c.repo) : noneH("None")}
-    ${c.cmd ? `<h3>Repository</h3>${codeH(c.cmd)}` : ""}
+    <h3>${esc(t("Files changed"))} · ${c.nFiles}</h3>
+    ${c.files.length ? fileRows(c.files, c.nFiles, c.repo) : noneH(esc(t("None")))}
+    ${c.cmd ? `<h3>${esc(t("Repository"))}</h3>${codeH(c.cmd)}` : ""}
   </div></div></div>`;
   P.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.id));
   bindGitEvents(P); bindCopy(P);
@@ -86,22 +86,22 @@ function pushDetail(p){
   const hs = p.hashes || [], known = hs.map(h => byHash.get(h)).filter(Boolean), unknown = hs.filter(h => !byHash.has(h));
   const ses = DATA.filter(x => x.project === p.project && p.t >= x.start - 60 && p.t <= x.end + 600);
   P.innerHTML = `<div style="--c:${st.colorBy === "project" ? colorOf(p.project) : "var(--ink-3)"}">
-    ${dHead("GIT · Push", `Pushed to ${p.ref}`, `${md(p.t)} ${hm(p.t)}`, [projTag(p.project), branchTag(p.ref), ext(p.url, `<span class="tg mono" title="Commit">${ico("commit")}<span class="sr">Commit: </span>${esc(p.hash.slice(0,7))}</span>`)])}
+    ${dHead(`GIT · ${esc(t("Push"))}`, t("Pushed to {ref}", {ref: p.ref}), `${md(p.t)} ${hm(p.t)}`, [projTag(p.project), branchTag(p.ref), ext(p.url, `<span class="tg mono" title="${esc(t("Commit"))}">${ico("commit")}<span class="sr">${esc(t("Commit:"))} </span>${esc(p.hash.slice(0,7))}</span>`)])}
     <div class="dcols"><div class="dcol">
     <div class="mini">
-      <div><div class="k">Commits sent</div><div class="v">${p.prev ? p.commits : "—"}</div></div>
-      <div><div class="k">Latest commit</div><div class="v mono">${esc(p.hash.slice(0,7))}</div></div>
+      <div><div class="k">${esc(t("Commits sent"))}</div><div class="v">${p.prev ? p.commits : "—"}</div></div>
+      <div><div class="k">${esc(t("Latest commit"))}</div><div class="v mono">${esc(p.hash.slice(0,7))}</div></div>
     </div>
-    <p class="note">${p.prev ? "Read from this computer's git reflog: what moved this remote-tracking branch with a push." : "The first push kiroku can see for this branch, so how many commits it sent is unknown."}</p>
-    ${ses.length ? ses.map((s, i) => sesCard(s, i ? "" : (ses.length > 1 ? "Sessions running at this time" : "Session running at this time"))).join("") : ""}
-    ${p.url ? `<p class="dact">${ext(p.url, "Open the latest commit on the remote ↗", "pill")}</p>` : ""}
+    <p class="note">${esc(p.prev ? t("Read from this computer's git reflog: what moved this remote-tracking branch with a push.") : t("The first push kiroku can see for this branch, so how many commits it sent is unknown."))}</p>
+    ${ses.length ? ses.map((s, i) => sesCard(s, i ? "" : esc(ses.length > 1 ? t("Sessions running at this time") : t("Session running at this time")))).join("") : ""}
+    ${p.url ? `<p class="dact">${ext(p.url, esc(t("Open the latest commit on the remote ↗")), "pill")}</p>` : ""}
     </div><div class="dcol">
-    <h3>${`Commits sent · ${p.prev ? p.commits : "?"}`}</h3>
+    <h3>${esc(t("Commits sent"))} · ${p.prev ? p.commits : "?"}</h3>
     ${known.length ? known.map(gitRow).join("") : ""}
-    ${unknown.length ? `<p class="note">${plural(unknown.length, "commit")} not in kiroku's view (made before the history kiroku read, or not by you): ${unknown.slice(0, 8).map(h => `<span class="mono">${esc(h.slice(0,7))}</span>`).join(", ")}${unknown.length > 8 ? " …" : ""}</p>` : ""}
-    ${p.commits > hs.length ? `<p class="note">${`Showing the latest ${hs.length} of ${p.commits}.`}</p>` : ""}
-    ${!hs.length ? noneH(p.prev ? "None recorded" : "Unknown") : ""}
-    ${p.cmd ? `<h3>Repository</h3>${codeH(p.cmd)}` : ""}
+    ${unknown.length ? `<p class="note">${esc(JA ? t("{n} commits not in kiroku's view (made before the history kiroku read, or not by you):", {n: unknown.length}) : `${plural(unknown.length, "commit")} not in kiroku's view (made before the history kiroku read, or not by you):`)} ${unknown.slice(0, 8).map(h => `<span class="mono">${esc(h.slice(0,7))}</span>`).join(", ")}${unknown.length > 8 ? " …" : ""}</p>` : ""}
+    ${p.commits > hs.length ? `<p class="note">${esc(t("Showing the latest {n} of {total}.", {n: hs.length, total: p.commits}))}</p>` : ""}
+    ${!hs.length ? noneH(esc(p.prev ? t("None recorded") : t("Unknown"))) : ""}
+    ${p.cmd ? `<h3>${esc(t("Repository"))}</h3>${codeH(p.cmd)}` : ""}
   </div></div></div>`;
   P.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.id));
   bindGitEvents(P); bindCopy(P);
@@ -111,15 +111,15 @@ function prDetail(s, r){
   const cs = commitsOf(s).filter(c => c.t <= r.t + 60); // PR を作るまでにそのセッションでしたコミット
   const ps = (META.push || []).filter(p => p.project === s.project && p.t >= s.start - 60 && p.t <= r.t + 60);
   P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
-    ${dHead(ico("pr") + "Pull request", m ? `${m[1]} #${m[2]}` : r.url ? prName(r.url) : "Pull request", `Created ${md(r.t)} ${hm(r.t)}`, [projTag(s.project), branchTag(s.branch)])}
+    ${dHead(ico("pr") + esc(t("Pull request")), m ? `${m[1]} #${m[2]}` : r.url ? prName(r.url) : t("Pull request"), esc(t("Created {time}", {time: `${md(r.t)} ${hm(r.t)}`})), [projTag(s.project), branchTag(s.branch)])}
     <div class="dcols"><div class="dcol">
-    ${r.url ? `<p class="dact">${ext(r.url, "Open this pull request ↗", "pill")}</p>` : ""}
-    <p class="note">Recorded when an agent created it in this session (gh pr create or GitHub tools). kiroku never asks GitHub, so its title, status and reviews are not shown here.</p>
-    ${sesCard(s, "Session that created it")}
+    ${r.url ? `<p class="dact">${ext(r.url, esc(t("Open this pull request ↗")), "pill")}</p>` : ""}
+    <p class="note">${esc(t("Recorded when an agent created it in this session (gh pr create or GitHub tools). kiroku never asks GitHub, so its title, status and reviews are not shown here."))}</p>
+    ${sesCard(s, esc(t("Session that created it")))}
     </div><div class="dcol">
-    ${ps.length ? `<h3>${`Pushes before it · ${ps.length}`}</h3>${ps.map(p => `<button class="gc-row" data-push="${esc(pushKey(p))}"><time>${md(p.t)} ${hm(p.t)}</time><span><i class="gtag">${ico("push")}${esc(p.ref)}</i>${p.commits ? ` ${plural(p.commits, "commit")}` : ""}</span><b></b></button>`).join("")}` : ""}
-    <h3>${`Commits in the session before it · ${cs.length}`}</h3>
-    ${cs.length ? cs.map(gitRow).join("") : noneH("None")}
+    ${ps.length ? `<h3>${esc(t("Pushes before it"))} · ${ps.length}</h3>${ps.map(p => `<button class="gc-row" data-push="${esc(pushKey(p))}"><time>${md(p.t)} ${hm(p.t)}</time><span><i class="gtag">${ico("push")}${esc(p.ref)}</i>${p.commits ? ` ${plural(p.commits, "commit")}` : ""}</span><b></b></button>`).join("")}` : ""}
+    <h3>${esc(t("Commits in the session before it"))} · ${cs.length}</h3>
+    ${cs.length ? cs.map(gitRow).join("") : noneH(esc(t("None")))}
   </div></div></div>`;
   P.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.id));
   bindGitEvents(P);

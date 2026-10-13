@@ -428,7 +428,7 @@ If you'd rather not change the setting, kiroku can keep a copy of the history in
 - macOS: a launchd agent, `~/Library/LaunchAgents/io.github.michinaoshimizu.kiroku.plist`. Output goes to `~/Library/Logs/kiroku.log`
 - Linux: a systemd user service, `~/.config/systemd/user/kiroku.service` (under `XDG_CONFIG_HOME` if set). See its output with `journalctl --user -u kiroku`
 - Windows is not supported yet. Put a shortcut to `kiroku serve --no-open` in your Startup folder (Win+R, `shell:startup`) instead
-- To use another port, run `kiroku autostart on :8485`. A login session does not see the variables set in your shell, so `PATH` (to find git), `CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME`, `KIROKU_ARCHIVE_DIR`, `KIROKU_CONFIG_DIR` and `XDG_CONFIG_HOME` (where the key of kiroku serve is kept) are written into the settings as they are when you run it (on Linux, a value with a newline or another control character is refused). Run `kiroku autostart on` again after changing them
+- To use another port, run `kiroku autostart on :8485`. A login session does not see the variables set in your shell, so `PATH` (to find git), `CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME`, `KIROKU_ARCHIVE_DIR`, `KIROKU_CONFIG_DIR`, `KIROKU_LANG` (the view's language) and `XDG_CONFIG_HOME` (where the key of kiroku serve is kept) are written into the settings as they are when you run it (on Linux, a value with a newline or another control character is refused). Run `kiroku autostart on` again after changing them
 - It uses the `kiroku` you ran, at its path. `kiroku update` replaces it in place; after reinstalling it somewhere else, run `kiroku autostart on` again
 - `kiroku autostart` (and `kiroku doctor`) shows whether it is on, reading your history, or answering. If `autostart on` reports that nothing answered, the output above (log) says why; a common cause is another `kiroku serve` you started yourself already using the port
 
@@ -494,6 +494,7 @@ Per command:
 | `serve` | `--ai` | off | Let the view run a review or report prompt with an AI agent on this computer (`claude`, `codex` or `kiro-cli`), after you confirm each run. The agent may send the prompt and the history it reads to its provider. Needs a numeric loopback address (the default `127.0.0.1:8484` works) |
 | `serve` | `--allow-host` | | Extra host names the view may be opened by, comma-separated (for example a name in your hosts file). `localhost`, `127.0.0.1` and `::1` always work, and so do this computer's IPs and host name when it listens on all interfaces (such as `0.0.0.0:8485`); requests addressed to any other name are refused |
 | `serve` | `--interval` | `5s` | How often to check history for changes. Reloads when changes stop for twice the interval (at most 12 times the interval) |
+| `serve`, `html` | `--lang` | the browser's language (or `$KIROKU_LANG`) | Language of the view: `en` or `ja`. Without it, the view follows the browser's language (Japanese if it is Japanese, otherwise English). The button at the top right switches it too, and the view remembers the choice in this browser |
 | `serve`, `html` | `--no-open` | | Don't open the browser |
 | `html` | `-o`, `--out` | `kiroku.html` | HTML file to write |
 | `doctor` | `--no-update-check` | | Don't ask GitHub whether a newer release exists |

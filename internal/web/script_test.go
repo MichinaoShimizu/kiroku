@@ -12,6 +12,10 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
 
+// i18nStub は、js/ から関数だけを取り出して Node で動かすテストの前に置く。画面の言語は英語（ADR 0029 の t・JA・inEnglish の代わり）
+const i18nStub = "const JA = false, isJA = () => false, inEnglish = f => f();\n" +
+	"function t(s, vars){ return vars ? s.replace(/\\{(\\w+)\\}/g, (m, k) => Object.prototype.hasOwnProperty.call(vars, k) ? String(vars[k]) : m) : s; }\n"
+
 // 画面のスクリプトに構文の誤りがないこと（文字列の中に ${} を書いてしまうなど）。
 // Node があるときだけ node --check で確かめる（CI のランナーには入っている）。
 func TestScriptParses(t *testing.T) {
@@ -77,12 +81,17 @@ func TestKeepRow(t *testing.T) {
 	if fn == "" {
 		t.Fatal("panels.js に keepRow が見つからない")
 	}
+	// keepRow は文言を tph（訳して <code> を差し込む）で作るので、それもいっしょに取り出す
+	tph := regexp.MustCompile(`(?ms)^function tph\(s, vars\)\{.*?^\}$`).FindString(text)
+	if tph == "" {
+		t.Fatal("panels.js に tph が見つからない")
+	}
 	cases, err := os.ReadFile(filepath.Join("testdata", "keeprow_test.js"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	f := filepath.Join(t.TempDir(), "keep.js")
-	if err := os.WriteFile(f, append([]byte(fn+"\n"), cases...), 0o600); err != nil {
+	if err := os.WriteFile(f, append([]byte(tph+"\n"+fn+"\n"), cases...), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
@@ -209,7 +218,7 @@ func TestReviewFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 	f := filepath.Join(t.TempDir(), "reviewflow.js")
-	if err := os.WriteFile(f, append([]byte(strings.Join(code, "\n")+"\n"), cases...), 0o600); err != nil {
+	if err := os.WriteFile(f, append([]byte(i18nStub+strings.Join(code, "\n")+"\n"), cases...), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	cmd := exec.Command(node, f)
@@ -228,6 +237,7 @@ func TestSpanIn(t *testing.T) {
 	}
 	var code []string
 	for _, x := range []struct{ file, re string }{
+		{"js/state.js", `(?m)^const DOW_EN = .*$`},
 		{"js/state.js", `(?m)^const DOW = .*$`},
 		{"js/format.js", `(?m)^const MON = .*$`},
 		{"js/format.js", `(?m)^const dMD = .*$`},
@@ -250,7 +260,7 @@ func TestSpanIn(t *testing.T) {
 		t.Fatal(err)
 	}
 	f := filepath.Join(t.TempDir(), "spanin.js")
-	if err := os.WriteFile(f, append([]byte(strings.Join(code, "\n")+"\n"), cases...), 0o600); err != nil {
+	if err := os.WriteFile(f, append([]byte(i18nStub+strings.Join(code, "\n")+"\n"), cases...), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	cmd := exec.Command(node, f)
@@ -269,6 +279,7 @@ func TestKnowledgePrompt(t *testing.T) {
 	}
 	var code []string
 	for _, x := range []struct{ file, re string }{
+		{"js/state.js", `(?m)^const DOW_EN = .*$`},
 		{"js/state.js", `(?m)^const DOW = .*$`},
 		{"js/state.js", `(?m)^const plural = .*$`},
 		{"js/format.js", `(?m)^const MON = .*$`},
@@ -282,7 +293,7 @@ func TestKnowledgePrompt(t *testing.T) {
 		{"js/panels.js", `(?ms)^function spanIn\(.*?^\}$`},
 		{"js/session.js", `(?m)^const reviewFile = .*$`},
 		{"js/session.js", `(?m)^function utcOff\(t\)\{.*$`},
-		{"js/summary.js", `(?ms)^function projectKnowledgePrompt\(.*?^\}$`},
+		{"js/summary.js", `(?ms)^function projectKnowledgePrompt\(.*?^\}\); \}$`},
 	} {
 		src, err := jsFiles.ReadFile(x.file)
 		if err != nil {
@@ -299,13 +310,65 @@ func TestKnowledgePrompt(t *testing.T) {
 		t.Fatal(err)
 	}
 	f := filepath.Join(t.TempDir(), "knowledge.js")
-	if err := os.WriteFile(f, append([]byte(strings.Join(code, "\n")+"\n"), cases...), 0o600); err != nil {
+	if err := os.WriteFile(f, append([]byte(i18nStub+strings.Join(code, "\n")+"\n"), cases...), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	cmd := exec.Command(node, f)
 	cmd.Env = append(os.Environ(), "TZ=UTC")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Errorf("projectKnowledgePrompt が違う:\n%s", out)
+	}
+}
+
+// 画面の日本語（i18n.js の JA_TEXT）。値に HTML を入れていないこと、{name} が英語の鍵とそろっていること、
+// t() が辞書を引くこと。js/ の t("…") で日本語のないものは、落とさずに一覧だけ出す（ADR 0029：訳のない文は英語で出る）
+func TestI18nCatalog(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/i18n.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`(?ms)^const JA_TEXT = \{.*?^\};$`).FindString(string(src))
+	fn := regexp.MustCompile(`(?ms)^function t\(s, vars\)\{.*?^\}$`).FindString(string(src))
+	if m == "" || fn == "" {
+		t.Fatal("i18n.js に JA_TEXT か t が見つからない")
+	}
+	keys := map[string]bool{}
+	call := regexp.MustCompile(`\bt\("((?:[^"\\]|\\.)*)"`)
+	for _, name := range scripts {
+		body, err := jsFiles.ReadFile("js/" + name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, c := range call.FindAllStringSubmatch(string(body), -1) {
+			var k string
+			if err := json.Unmarshal([]byte(`"`+c[1]+`"`), &k); err == nil {
+				keys[k] = true
+			}
+		}
+	}
+	list := make([]string, 0, len(keys))
+	for k := range keys {
+		list = append(list, k)
+	}
+	kj, _ := json.Marshal(list)
+	cases, err := os.ReadFile(filepath.Join("testdata", "i18n_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "i18n.js")
+	code := "const JA = true, isJA = () => true;\n" + m + "\n" + fn + "\nconst KEYS = " + string(kj) + ";\n" + string(cases)
+	if err := os.WriteFile(f, []byte(code), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out, err := exec.Command(node, f).CombinedOutput()
+	if err != nil {
+		t.Errorf("JA_TEXT が違う:\n%s", out)
+	} else if len(out) > 0 {
+		t.Logf("日本語のない文言（英語で出る）:\n%s", out)
 	}
 }
 
@@ -334,7 +397,7 @@ func TestYearStory(t *testing.T) {
 		t.Fatal(err)
 	}
 	f := filepath.Join(t.TempDir(), "year.js")
-	if err := os.WriteFile(f, append([]byte(strings.Join(fns, "\n")), cases...), 0o600); err != nil {
+	if err := os.WriteFile(f, append([]byte(i18nStub+strings.Join(fns, "\n")), cases...), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
