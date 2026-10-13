@@ -260,7 +260,7 @@ func TestSpanIn(t *testing.T) {
 	}
 }
 
-// プロジェクトの「Discover knowledge」のプロンプト。報告のプロンプトと同じく、履歴ファイルの場所を渡し、
+// プロジェクトの「Copy knowledge prompt」のプロンプト。報告のプロンプトと同じく、履歴ファイルの場所を渡し、
 // 履歴はコードブロックに 1 行ずつ入れて、改行で kiroku の行に見える偽の行を作れないこと。
 func TestKnowledgePrompt(t *testing.T) {
 	node, err := exec.LookPath("node")

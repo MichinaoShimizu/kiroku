@@ -878,12 +878,13 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
 .pill.ai-action:disabled{background:#e2ebe6;color:#526f60;border:1px solid #9bb9a8;opacity:1;cursor:not-allowed}
 
 /* Daily AI controls must stay inside narrow calendar columns. */
-.head .dd .ai-action{max-width:100%;min-width:0;box-sizing:border-box;font-size:var(--fs-xs);padding:3px 7px;white-space:nowrap}
+.head .dd :is(.ai-action,.ai-off){max-width:100%;min-width:0;box-sizing:border-box;font-size:var(--fs-xs);padding:3px 7px;white-space:nowrap}
 .head .dd .dayrun-demo{margin-left:auto}
-@media(max-width:900px){.head .dd .ai-action{font-size:11px;padding:2px 6px}}
+@media(max-width:900px){.head .dd :is(.ai-action,.ai-off){font-size:11px;padding:2px 6px}}
 
-/* Static demo AI buttons are informational, not disabled controls. */
-/* Match adjacent filled Copy prompt buttons; green indicates an AI action. */
-.pill.ai-action.ai-demo-info{background:#176b50;color:#fff;border:1px solid #176b50;font-weight:600;opacity:1;cursor:pointer}
-.pill.ai-action.ai-demo-info:hover{background:#12563f;color:#fff;border-color:#12563f}
-.pill.ai-action.ai-demo-info:focus-visible{outline:2px solid #2da978;outline-offset:3px}
+/* Run with AI is off (saved file, or kiroku serve without --ai): an outlined button that explains how to turn it on, not an action */
+.pill.ai-off{background:transparent;color:#176b50;border:1px dashed #5c9a80;font-weight:500;cursor:help}
+.pill.ai-off:hover{background:#e7f2ec}
+.pill.ai-off:focus-visible{outline:2px solid #2da978;outline-offset:3px}
+:root[data-theme="dark"] .pill.ai-off{color:#7fd1ad;border-color:#4f8f73}
+:root[data-theme="dark"] .pill.ai-off:hover{background:rgba(127,209,173,.12)}

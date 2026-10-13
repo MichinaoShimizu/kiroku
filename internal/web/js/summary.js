@@ -2,7 +2,7 @@
 /* ── 週次・月次サマリー：① プロジェクト別 ② コストとアウトプット ③ 時間 ④ AI ⑤ かたち。基準を超えた指標には、その場に印と推移を付ける ── */
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
-  const head = `<div class="rvhead"><h2>${M ? "Monthly summary" : "Weekly summary"}</h2><p>Rough figures for reflecting on how you work. They are not for comparing people or for evaluations.</p>${w ? copyBtn(`Copy ${M ? "monthly" : "weekly"} report prompt`, `id="rptcopy" title="A prompt that asks an AI agent on this computer to write your ${M ? "monthly" : "weekly"} report from your history"`, "pill fill") : ""}${w ? (aiRun() ? `<button class="pill ai-action" id="rptrun" type="button">Run with AI</button>` : `<button class="pill ai-action ai-demo-info" type="button" title="Learn how to run AI locally">Run with AI · Local only</button>`) : ""}</div>${w ? `<p class="note rpthint">${`The ${M ? "monthly" : "weekly"} report prompt is for an AI agent on this computer, such as Claude Code or Codex. It points the agent to this ${M ? "month" : "week"}'s history files, and the agent reads them. Copying a prompt sends nothing. Running with AI may send selected history to the chosen provider after confirmation.`}</p>` : ""}`;
+  const head = `<div class="rvhead"><h2>${M ? "Monthly summary" : "Weekly summary"}</h2><p>Rough figures for reflecting on how you work. They are not for comparing people or for evaluations.</p>${w ? copyBtn(`Copy ${M ? "monthly" : "weekly"} report prompt`, `id="rptcopy" title="A prompt that asks an AI agent on this computer to write your ${M ? "monthly" : "weekly"} report from your history"`, "pill fill") : ""}${w ? (aiRun() ? `<button class="pill ai-action" id="rptrun" type="button">Run with AI</button>` : `<button class="pill ai-off ai-demo-info" type="button" title="${esc(AI_OFF_WHY())}">Run with AI: off</button>`) : ""}</div>${w ? `<p class="note rpthint">${`The ${M ? "monthly" : "weekly"} report prompt is for an AI agent on this computer, such as Claude Code or Codex. It points the agent to this ${M ? "month" : "week"}'s history files, and the agent reads them. Copying a prompt sends nothing. ${aiRun() ? "With \"Run with AI\", after you confirm, the agent you choose may send the prompt and the history it reads to its provider." : "\"Run with AI\" works only in kiroku serve --ai."}`}</p>` : ""}`;
   const WK = $("#worth"); $("#sres").hidden = true; $("#sres").innerHTML = "";
   if (!w){ WK.hidden = true; R.innerHTML = foot(); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
@@ -47,7 +47,7 @@ function summary(){
   R.querySelectorAll(".keeparch").forEach(b => b.onclick = () => { R.querySelectorAll(".keeparch").forEach(x => x.disabled = true); keepArchive(); });
   const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy(reportPrompt(w, M), `Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending`, 8000, rc);
 
-  R.querySelectorAll(".knowledge-discover").forEach(b => b.onclick = () => copy(projectKnowledgePrompt(b.dataset.project), "Knowledge extraction prompt copied. Review it before sharing with an AI agent.", 8000, b));
+  R.querySelectorAll(".knowledge-discover").forEach(b => b.onclick = () => copy(projectKnowledgePrompt(b.dataset.project), "Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending", 8000, b));
   R.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
   const run = R.querySelector("#rptrun");
   if (run) run.onclick = () => runAIReview(run, reportPrompt(w, M), M ? "Monthly report" : "Weekly report");
@@ -92,7 +92,7 @@ function projectPanel(w, unit){
         <div><div class="k">Est. cost</div><div class="v">${p.cost >= 0.005 ? usd(p.cost) : "—"}</div></div>
         ${anyCr ? `<div><div class="k">Credits</div><div class="v">${p.credits ? cr(p.credits) : "—"}</div></div>` : ""}</div>
       ${p.git && p.git.commits ? `<div><div class="lab">Left behind</div><div class="pout">Git commits ${p.git.commits} · ${p.git.ai} by AI · <span>+${p.git.added} −${p.git.removed} lines</span></div></div>` : p.outputs && p.outputs.commits ? `<div><div class="lab">Left behind</div><div class="pout">AI commits ${p.outputs.commits}</div></div>` : ""}
-      <button class="pill knowledge-discover" type="button" data-project="${esc(p.project)}" title="Copy evidence-grounded knowledge extraction prompt">Discover knowledge</button>
+      ${copyBtn("Copy knowledge prompt", `type="button" data-project="${esc(p.project)}" title="A prompt that asks an AI agent on this computer to find domain knowledge, decisions and open questions for this project in ${uThis(unit)}'s history, citing where each comes from"`, "pill knowledge-discover")}
     </article>`; }).join("");
   return `<section class="panel projs">${panelH(1, "By project", `Where your time and AI went ${uThis(unit)}`, "projects")}
     ${shareBlock(w, ps)}
@@ -174,7 +174,8 @@ function projectKnowledgePrompt(project) {
   const ses = DATA.filter(s => s.project === project && s.segs.some(([a, b]) => b > ws && a < we) && !st.hidden.has(keyOf(s))).sort((a, b) => a.start - b.start);
   const cut = (t, n) => { t = oneLine(t); return t.length > n ? t.slice(0, n) + "…" : t; };
   const anyFile = ses.some(reviewFile), zst = ses.some(s => /\.zst$/.test(reviewFile(s))), claude = ses.some(s => s.source === "Claude Code" && reviewFile(s));
-  const L = [`Extract candidate project knowledge for the project below from my AI agent history between ${md(ws)} and ${md(we - 1)} (times are ${utcOff(ws)}). kiroku, a tool on this computer that aggregates my AI agent history, lists the sessions below${anyFile ? " and points to their history files" : ""}.`,
+  const now = Date.now() / 1000, open = now < we;
+  const L = [`Extract candidate project knowledge for the project below from my AI agent history between ${md(ws)} and ${md(we - 1)} (times are ${utcOff(ws)}).${open ? ` The period is still in progress: the history runs up to ${md(now)} ${hm(now)}.` : ""} kiroku, a tool on this computer that aggregates my AI agent history, lists the sessions below${anyFile ? " and points to their history files" : ""}.`,
     "", "# What to extract",
     "1. Domain concepts and business rules",
     "2. Technical and product decisions, with rationale, alternatives considered and when to revisit them",

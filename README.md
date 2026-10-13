@@ -25,7 +25,7 @@ Choose **Calendar**, **Journey**, or **Project** under View, then independently 
 - **Every agent on one calendar.** Claude Code, Codex, Kiro and Amazon Q side by side, instead of one dashboard per agent.
 - **Sessions you can read, not just count.** What you asked, what the AI replied, and the commands, commits and pull requests in between, next to time, tokens and cost.
 - **Reviews written by your own agent.** kiroku doesn't call an AI unless you start `kiroku serve --ai`. One click copies a prompt grounded in your history for the agent you already use.
-- **Your history never leaves your computer.** A single binary, no account, no telemetry.
+- **Your history never leaves your computer** (unless you turn on `kiroku serve --ai` and run a prompt with an agent). A single binary, no account, no telemetry.
 
 ## Install
 
@@ -75,6 +75,7 @@ kiroku doesn't call an AI by default. Instead, one click copies a prompt that yo
 | A session | "Copy review prompt" in session details | Summary, numbers, each place that needed rework with the prompt behind it and its cause (something missing from your prompt, a hard task, or the AI's own mistake), advice, and an example first prompt for next time |
 | A day | "Report" next to each date in the week calendar | A daily report: summary, numbers next to the previous day, what was done in each project and why, and advice |
 | A week or month | "Copy weekly report prompt" ("monthly" in month view) in the summary | The same report for the week or month, numbers next to the previous period, ready to share with your team |
+| A project | "Copy knowledge prompt" on each project card under "By project" | Candidate domain knowledge, decisions and open questions from that week's or month's history, each with the session and excerpt it comes from, for you to review |
 
 The advice is grounded in your history, not generic tips. Each point names what it is based on: a figure, a prompt with its time, or a signal kiroku counted. It covers
 

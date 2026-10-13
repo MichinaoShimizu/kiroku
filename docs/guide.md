@@ -157,13 +157,14 @@ The old forms `kiroku --serve`, `--json`, `-o` and `--weekly` / `--monthly` have
 
 kiroku doesn't call an AI by default. For a session, a day, a week or a month, it copies a prompt that you paste into the AI agent you already use on this computer (such as Claude Code or Codex). The agent reads the facts in the prompt and the history files it points to, and writes a review or report in a fixed format, ending with advice from an expert on working with AI agents.
 
-If you start `kiroku serve --ai`, the view also offers "Run with AI". It shows the exact prompt, and after you confirm, runs it with `claude`, `codex` or `kiro-cli` on this computer and shows the result. The agent may send the prompt and the history it reads to its provider. Without `--ai`, and in a saved HTML file, kiroku never runs an agent.
+If you start `kiroku serve --ai`, the view also offers "Run with AI". It shows the exact prompt, and after you confirm, runs it with `claude`, `codex` or `kiro-cli` on this computer and shows the result. The agent may send the prompt and the history it reads to its provider. Without `--ai`, and in a saved HTML file, kiroku never runs an agent, and the button reads "Run with AI: off" ("AI off" next to a date); pressing it explains how to turn it on. To turn it on for a `kiroku serve` that is already running, stop it (Ctrl+C) and start it again with `--ai`. With `--ai` on, the badge at the top reads "LIVE · AI on".
 
 | Scope | Button | Format |
 |---|---|---|
 | A session | "Copy review prompt" in session details, next to "Everything" / "Only user prompts" | Summary, Numbers, Rework, Advice from an expert (with an example first prompt for similar work next time) |
 | A day | "Report" next to each date with history in the week calendar (an icon on narrow screens) | Summary, Numbers (next to the previous day), By project, Advice from an expert |
 | A week or month | "Copy weekly report prompt" ("Copy monthly report prompt" in month view) in the summary heading | Summary, Numbers (next to the previous week or month), By project, Advice from an expert |
+| A project | "Copy knowledge prompt" on each project card under "① By project" | Knowledge, Decisions, Open Questions: candidates from that week's or month's history, each with its session and a short excerpt, marked as needing your review |
 
 What the prompts give the agent:
 
@@ -422,7 +423,7 @@ If you'd rather not change the setting, kiroku can keep a copy of the history in
 
 ### Start kiroku when you log in
 
-`kiroku autostart on` registers `kiroku serve --no-open` to start each time you log in, starts it right away and waits a few seconds until it answers. The view is then always at `http://localhost:8484/` (run `kiroku open` once to give your browser the key); while the first read of your history is running, the page says so and switches to the view by itself. With `kiroku archive on`, history is kept as soon as it is written.
+`kiroku autostart on` registers `kiroku serve --no-open` (without `--ai`) to start each time you log in, starts it right away and waits a few seconds until it answers. The view is then always at `http://localhost:8484/` (run `kiroku open` once to give your browser the key); while the first read of your history is running, the page says so and switches to the view by itself. With `kiroku archive on`, history is kept as soon as it is written.
 
 - macOS: a launchd agent, `~/Library/LaunchAgents/io.github.michinaoshimizu.kiroku.plist`. Output goes to `~/Library/Logs/kiroku.log`
 - Linux: a systemd user service, `~/.config/systemd/user/kiroku.service` (under `XDG_CONFIG_HOME` if set). See its output with `journalctl --user -u kiroku`

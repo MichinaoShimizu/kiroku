@@ -2,6 +2,7 @@
 /* ── live（kiroku serve） ── 新しい履歴を見つけたら、見ている週・選んだセッションはそのままで取り込む */
 if (LIVE){
   const badge = $("#live"); badge.hidden = false;
+  if (aiRun()){ badge.textContent = "LIVE · AI on"; badge.title += ". \"Run with AI\" is on (kiroku serve --ai)"; }
   let busy = false;
   async function poll(){
     if (busy || document.hidden) return; busy = true;
