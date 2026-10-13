@@ -47,6 +47,24 @@ function summary(){
   R.querySelectorAll(".keeparch").forEach(b => b.onclick = () => { R.querySelectorAll(".keeparch").forEach(x => x.disabled = true); keepArchive(); });
   const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy(reportPrompt(w, M), `Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending`, 8000, rc);
 
+  const run = R.querySelector("#rptrun");
+  if (run) run.onclick = async () => {
+    const agent = window.prompt("AI CLI: claude or codex", "claude");
+    if (!["claude", "codex"].includes(agent)) return;
+    const prompt = reportPrompt(w, M);
+    if (!window.confirm("Send this report prompt and referenced history to " + agent + "? The agent may transmit information to its AI provider.")) return;
+    run.disabled = true;
+    try {
+      const response = await fetch("ai/run", {method:"POST", headers:{"Content-Type":"application/json", "X-Kiroku":"1"}, body:JSON.stringify({agent, prompt, consent:true})});
+      if (!response.ok) throw new Error("AI run failed: HTTP " + response.status);
+      const result = await response.json();
+      copy(result.Output || "", "AI report copied", 4000);
+    } catch (e) {
+      toast(String(e.message || e));
+    } finally {
+      run.disabled = false;
+    }
+  };
   bindCopy(R); bindHelp(R); bindHelp(WK);
   if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }
