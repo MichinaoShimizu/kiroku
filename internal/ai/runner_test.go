@@ -57,3 +57,15 @@ func TestCancellationBeforeExecution(t *testing.T) {
 		t.Fatal("expected canceled or missing binary error")
 	}
 }
+
+func TestKiroCancellationBeforeExecution(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := (Runner{Enabled: true}).Run(ctx, "kiro", "hello")
+	if err == nil {
+		t.Fatal("expected canceled or missing binary error")
+	}
+	if errors.Is(err, ErrUnsupportedAgent) {
+		t.Fatal("Kiro must be recognized as a supported agent")
+	}
+}
