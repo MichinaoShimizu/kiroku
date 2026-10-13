@@ -41,6 +41,7 @@ type live struct {
 	roots []string // /history で見せてよいファイルの場所（履歴の場所と kiroku archive のコピーの場所）
 	print io.Writer
 	keep  func() error  // 画面から kiroku archive をオンにする（nil ならできない）
+	aiRun http.Handler // nil means AI execution remains disabled
 	ready bool          // 最初の読み込みが終わったか（mu で守る）。終わるまでは読み込み中の画面と 503 を返す
 	fail  error         // 最初の読み込みの失敗（mu で守る）。読み込み中の画面に出す
 	prog  *loadProgress // 最初の読み込みの進み具合（読み込み中の画面が /progress で見る）
@@ -216,7 +217,11 @@ func (l *live) handler() http.Handler {
 	})
 	// Optional AI execution is not enabled by default. The endpoint is reserved
 	// until CLI compatibility and explicit user-facing enablement are verified.
-	mux.Handle("/ai/run", ai.NewHandler(ai.Runner{}))
+	if l.aiRun != nil {
+		mux.Handle("/ai/run", l.aiRun)
+	} else {
+		mux.Handle("/ai/run", ai.NewHandler(ai.Runner{}))
+	}
 	mux.HandleFunc("/data.json", func(w http.ResponseWriter, r *http.Request) {
 		if !l.loaded(w) {
 			return
