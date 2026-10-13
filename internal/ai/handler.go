@@ -2,7 +2,6 @@ package ai
 
 import (
  "encoding/json"
- "io"
  "net/http"
  "strings"
 )
@@ -35,6 +34,3 @@ func (h Handler) ServeHTTP(w http.ResponseWriter,r *http.Request) {
  if err!=nil { http.Error(w,"AI execution failed",http.StatusBadGateway);return }
  _=json.NewEncoder(w).Encode(result)
 }
-
-// DecodeRequest is intentionally private; never accept executable arguments from the browser.
-var _ io.Reader
