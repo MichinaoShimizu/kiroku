@@ -12,6 +12,12 @@ import (
 // kiroku serve's existing authentication and same-origin protections.
 type Handler struct {
 	Runner Runner
+	Slots chan struct{}
+}
+
+// NewHandler limits concurrent agent invocations. A zero-value Handler remains disabled.
+func NewHandler(r Runner) Handler {
+	return Handler{Runner: r, Slots: make(chan struct{}, 1)}
 }
 
 type request struct {
@@ -48,6 +54,15 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !in.Consent || strings.TrimSpace(in.Prompt) == "" {
 		http.Error(w, "consent and prompt required", http.StatusBadRequest)
 		return
+	}
+	if h.Slots != nil {
+		select {
+		case h.Slots <- struct{}{}:
+			defer func() { <-h.Slots }()
+		default:
+			http.Error(w, "AI execution already running", http.StatusTooManyRequests)
+			return
+		}
 	}
 	result, err := h.Runner.Run(r.Context(), in.Agent, in.Prompt)
 	if err != nil {
