@@ -10,7 +10,6 @@ type Availability struct {
 	Path      string
 }
 
-// Detect checks only the known executables and never executes them.
 // Adapter describes a verified, explicitly supported noninteractive execution target.
 // Additional providers (including Kiro CLI and Kiro Crew) must not be advertised
 // until their invocation, permissions and output contracts are verified.
@@ -25,6 +24,7 @@ var supportedAdapters = []Adapter{
 	{ID: "codex", Binary: "codex", Mode: "single"},
 }
 
+// Detect checks only the known executables and never executes them.
 func Detect() []Availability {
 	out := make([]Availability, 0, len(supportedAdapters))
 	for _, adapter := range supportedAdapters {
