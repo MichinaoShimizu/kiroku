@@ -876,3 +876,8 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
 .pill.ai-action:not(:disabled):hover{background:#12563f;border-color:#12563f}
 .pill.ai-action:focus-visible{outline:2px solid #2da978;outline-offset:3px}
 .pill.ai-action:disabled{background:#e2ebe6;color:#526f60;border:1px solid #9bb9a8;opacity:1;cursor:not-allowed}
+
+/* Daily AI controls must stay inside narrow calendar columns. */
+.head .dd .ai-action{max-width:100%;min-width:0;box-sizing:border-box;font-size:var(--fs-xs);padding:3px 7px;white-space:nowrap}
+.head .dd .dayrun-demo{margin-left:auto}
+@media(max-width:900px){.head .dd .ai-action{font-size:11px;padding:2px 6px}}
