@@ -22,6 +22,7 @@ type Adapter struct {
 var supportedAdapters = []Adapter{
 	{ID: "claude", Binary: "claude", Mode: "single"},
 	{ID: "codex", Binary: "codex", Mode: "single"},
+	{ID: "kiro", Binary: "kiro-cli", Mode: "single"},
 }
 
 // Detect checks only the known executables and never executes them.
