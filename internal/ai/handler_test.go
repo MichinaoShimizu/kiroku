@@ -95,3 +95,14 @@ func TestHandlerRejectsGet(t *testing.T) {
 		t.Fatalf("status %d", w.Code)
 	}
 }
+func TestHandlerRejectsConcurrentRun(t *testing.T) {
+	h := NewHandler(Runner{Enabled: true})
+	h.Slots <- struct{}{}
+	r := httptest.NewRequest(http.MethodPost, "http://localhost:8485/ai/run", strings.NewReader(`{"agent":"claude","prompt":"hello","consent":true}`))
+	r.Header.Set("X-Kiroku", "1")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code != http.StatusTooManyRequests {
+		t.Fatalf("status %d", w.Code)
+	}
+}
