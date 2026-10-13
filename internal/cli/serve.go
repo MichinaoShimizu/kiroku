@@ -40,10 +40,10 @@ type live struct {
 	paths []string // 履歴の場所
 	roots []string // /history で見せてよいファイルの場所（履歴の場所と kiroku archive のコピーの場所）
 	print io.Writer
-	keep  func() error  // 画面から kiroku archive をオンにする（nil ならできない）
-	aiRun http.Handler  // nil means AI execution remains disabled
-	ready bool          // 最初の読み込みが終わったか（mu で守る）。終わるまでは読み込み中の画面と 503 を返す
-	fail  error         // 最初の読み込みの失敗（mu で守る）。読み込み中の画面に出す
+	keep  func() error // 画面から kiroku archive をオンにする（nil ならできない）
+	aiRun http.Handler // nil means AI execution remains disabled
+	ready bool         // 最初の読み込みが終わったか（mu で守る）。終わるまでは読み込み中の画面と 503 を返す
+	fail  error        // 最初の読み込みの失敗（mu で守る）。読み込み中の画面に出す
 	prog  *loadProgress // 最初の読み込みの進み具合（読み込み中の画面が /progress で見る）
 
 	reload sync.Mutex // 読み直しは 1 本ずつ（load の中の loadCache は同時に使えない）
