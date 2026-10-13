@@ -216,7 +216,7 @@ func (l *live) handler() http.Handler {
 	})
 	// Optional AI execution is not enabled by default. The endpoint is reserved
 	// until CLI compatibility and explicit user-facing enablement are verified.
-	mux.Handle("/ai/run", ai.Handler{Runner: ai.Runner{Enabled: false}})
+	mux.Handle("/ai/run", ai.NewHandler(ai.Runner{}))
 	mux.HandleFunc("/data.json", func(w http.ResponseWriter, r *http.Request) {
 		if !l.loaded(w) {
 			return
