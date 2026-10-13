@@ -241,24 +241,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
   bindGitEvents(T);
   T.querySelectorAll(".dayrpt").forEach(b => b.onclick = e => { e.stopPropagation(); // 日報のプロンプト（週報と同じ作り。その日の分だけ）
     copy(reportPrompt(null, false, addDays(st.week, +b.dataset.d)), "Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending", 8000, b); });
-  T.querySelectorAll(".dayrun").forEach(b => b.onclick = async e => {
-    e.stopPropagation();
-    const agent = window.prompt("AI CLI: claude or codex", "claude");
-    if (!["claude", "codex"].includes(agent)) return;
-    const prompt = reportPrompt(null, false, addDays(st.week, +b.dataset.d));
-    if (!window.confirm("Send this daily report prompt and referenced history to " + agent + "? The agent may transmit information to its AI provider.")) return;
-    b.disabled = true;
-    try {
-      const response = await fetch("ai/run", {method:"POST", headers:{"Content-Type":"application/json", "X-Kiroku":"1"}, body:JSON.stringify({agent, prompt, consent:true})});
-      if (!response.ok) throw new Error("AI run failed: HTTP " + response.status);
-      const result = await response.json();
-      copy(result.Output || "", "AI daily report copied", 4000);
-    } catch (error) {
-      toast(String(error.message || error));
-    } finally {
-      b.disabled = false;
-    }
-  });
+  T.querySelectorAll(".dayrun").forEach(b => b.onclick = e => { e.stopPropagation(); runAIReview(b, reportPrompt(null, false, addDays(st.week, +b.dataset.d)), "Daily report"); });
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });
   T.querySelectorAll(".run").forEach(el => { const bk = runs[+el.dataset.r];
     el.onclick = e => { e.stopPropagation(); select(bk.s.id); };
