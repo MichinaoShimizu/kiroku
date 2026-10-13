@@ -30,7 +30,10 @@ async function runAIReview(button, prompt, title) {
   function close() { if (controller) controller.abort(); dialog.close(); dialog.remove(); }
   cancel.onclick = close;
   dialog.addEventListener("cancel", e => { e.preventDefault(); close(); });
-  copyResult.onclick = () => { output.select(); document.execCommand("copy"); status.textContent = "Result copied"; };
+  copyResult.onclick = async () => {
+    try { await navigator.clipboard.writeText(output.value); status.textContent = "Result copied"; }
+    catch { output.focus(); output.select(); status.textContent = "Select the result and copy it manually"; }
+  };
   start.onclick = async () => {
     controller = new AbortController();
     start.disabled = true; agent.disabled = true;
@@ -47,5 +50,5 @@ async function runAIReview(button, prompt, title) {
       status.textContent = error.name === "AbortError" ? "Canceled" : String(error.message || error);
     } finally { controller = null; cancel.textContent = "Close"; }
   };
-  dialog.showModal();
+  if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
 }
