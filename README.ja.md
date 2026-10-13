@@ -1,18 +1,22 @@
 # kiroku
 
-[![CI](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml/badge.svg)](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/MichinaoShimizu/kiroku)](https://github.com/MichinaoShimizu/kiroku/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![Downloads](https://img.shields.io/github/downloads/MichinaoShimizu/kiroku/total)](https://github.com/MichinaoShimizu/kiroku/releases)
+[![CI](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml/badge.svg)](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/MichinaoShimizu/kiroku)](https://github.com/MichinaoShimizu/kiroku/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![CodeQL](https://github.com/MichinaoShimizu/kiroku/actions/workflows/codeql.yml/badge.svg)](https://github.com/MichinaoShimizu/kiroku/actions/workflows/codeql.yml) [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/MichinaoShimizu/kiroku/badge)](https://scorecard.dev/viewer/?uri=github.com/MichinaoShimizu/kiroku) [![Go](https://img.shields.io/github/go-mod/go-version/MichinaoShimizu/kiroku)](go.mod) [![Downloads](https://img.shields.io/github/downloads/MichinaoShimizu/kiroku/total)](https://github.com/MichinaoShimizu/kiroku/releases)
 
 [English](README.md) | 日本語
+
+日本語のドキュメント: [インストールと社内展開のガイド](docs/ja/install.md) ・ [セキュリティレビュー資料](docs/ja/security-review.md)
 
 **AI と積み重ねた仕事を、記録から価値へ。**
 
 何を作り、どう働いたかを振り返り、次の AI 活用につなげる。
 
-kiroku は、Claude Code、Kiro（IDE・CLI・Kiro Crew）、Amazon Q Developer CLI、Codex CLI のローカル履歴を 1 つにまとめます。過去の仕事をたどり、働き方の傾向を理解し、いつもの AI エージェントで根拠に基づく振り返りを行えます。アカウント・テレメトリ・アップロード・外部 AI 呼び出しは不要です。
+kiroku は、Claude Code、Kiro（IDE・CLI・Kiro Crew）、Amazon Q Developer CLI、Codex CLI のローカル履歴を 1 つにまとめます。過去の仕事をたどり、働き方の傾向を理解し、いつもの AI エージェントで根拠に基づく振り返りを行えます。アカウント・テレメトリ・アップロードは不要で、`kiroku serve --ai` を使わない限り AI も呼びません。
 
 **[デモを試す →](https://michinaoshimizu.github.io/kiroku/)**（ダミーデータ。ブラウザだけで動きます）
 
 [![週のカレンダー、セッションの詳細、トークンの内訳、検索、月の表示（ダミーデータ）](docs/demo.gif)](https://michinaoshimizu.github.io/kiroku/)
+
+画面の上の **View** で **Calendar**・**Journey**・**Project** を選び、それとは別に **Period** で **Week** か **Month** を選びます。Project は、選んだ期間のセッション・コミット・プルリクエストの作成をプロジェクトごとにまとめます。Journey は、記録されたセッションをプロジェクトと日付ごとに並べ、Git のコミットとエージェントが記録したプルリクエストを、それぞれ押して開ける印で表示します。これらは作業があったことの記録で、進み具合や成果を示すものではありません。
 
 ## kiroku の特長
 
@@ -22,8 +26,8 @@ kiroku は、Claude Code、Kiro（IDE・CLI・Kiro Crew）、Amazon Q Developer 
 
 - **どのエージェントも 1 つのカレンダーに。** Claude Code・Codex・Kiro・Amazon Q を並べて見られます。エージェントごとにダッシュボードを開く必要はありません。
 - **数えるだけでなく、読めるセッション。** 何を頼み、AI が何と答え、その間にどんなコマンド・コミット・プルリクエストがあったかを、時間・トークン・費用と並べて見られます。
-- **振り返りは、あなたのエージェントが書く。** kiroku は AI を呼びません。履歴に基づくプロンプトをワンクリックでコピーし、いつものエージェントに貼るだけです。
-- **履歴はパソコンの外に出ません。** バイナリ 1 つで動き、アカウントもテレメトリもありません。
+- **振り返りは、あなたのエージェントが書く。** kiroku は、`kiroku serve --ai` で起動しない限り AI を呼びません。履歴に基づくプロンプトをワンクリックでコピーし、いつものエージェントに貼るだけです。
+- **履歴はパソコンの外に出ません**（`kiroku serve --ai` をオンにして、エージェントでプロンプトを実行したときを除きます）。バイナリ 1 つで動き、アカウントもテレメトリもありません。
 
 ## インストール
 
@@ -60,19 +64,20 @@ kiroku serve    # http://localhost:8484/ で画面を開く
 
 **全期間を検索。** 依頼・編集したファイル・コミットを、合った箇所の抜粋つきで探せます。
 
-**1 年を 1 枚の写真に。** Week・Month の隣の「Year」を押すと、1 年の作業時間を光の筋として描き、シェア用の画像を作ります。画像に載せるものは自分で選べます。依頼・プロジェクト名・費用は載らず、深夜の割合や休みも、選ばなければ載りません。働き方を描くだけで、点数や順位は付けません。
+**1 年を 1 枚の写真に。** View や Period とは別の「Year in Review」は、1 年の作業時間を光の筋として描き、シェア用の画像を作ります。画像に載せるものは自分で選べます。依頼・プロジェクト名・費用は載らず、深夜の割合や休みも、選ばなければ載りません。働き方を描くだけで、点数や順位は付けません。
 
 ![Year in review のシェア画像（ダミーデータ）](docs/year.png)
 
 ## 振り返りとアドバイスは、あなたのエージェントが書く
 
-kiroku は AI を呼びません。代わりに、ワンクリックでプロンプトをコピーします。それを、このパソコンでいつも使っている AI エージェント（Claude Code や Codex など）に貼ってください。プロンプトには kiroku が数えた事実と履歴ファイルの場所が入っているので、エージェントは実際に起きたことを読み、決まった形で振り返りを書きます。最後には、AI エージェントとの働き方に詳しい専門家としてのアドバイスが付きます。
+kiroku は、既定では AI を呼びません。代わりに、ワンクリックでプロンプトをコピーします。それを、このパソコンでいつも使っている AI エージェント（Claude Code や Codex など）に貼ってください。プロンプトには kiroku が数えた事実と履歴ファイルの場所が入っているので、エージェントは実際に起きたことを読み、決まった形で振り返りを書きます。最後には、AI エージェントとの働き方に詳しい専門家としてのアドバイスが付きます。`kiroku serve --ai` で起動すると、「Run with AI」で同じプロンプトをそのエージェントで実行できます（実行のたびに確認します）。
 
 | 範囲 | 場所 | 得られるもの |
 |---|---|---|
 | 1 つのセッション | セッションの詳細の「Copy review prompt」 | 要約、数字、やり直しになった箇所とその元の依頼・原因（依頼に足りなかったこと、難しい作業、AI 自身の間違い）、アドバイス、次に使える最初の依頼の例 |
 | 1 日 | 週のカレンダーの各日付の横の「Report」 | 日報: 要約、前日と比べた数字、プロジェクトごとにしたことと理由、アドバイス |
 | 1 週間・1 か月 | まとめの「Copy weekly report prompt」（月の表示では monthly） | 同じ形の週報・月報。前の期間と比べた数字つきで、チームにそのまま共有できます |
+| 1 つのプロジェクト | 「By project」の各プロジェクトのカードの「Copy knowledge prompt」 | その週・月の履歴から拾った、ドメイン知識・決めたこと・未解決の問いの候補。どれにも元になったセッションと抜粋が付き、あなたが確かめる前提です |
 
 アドバイスはよくある一般論ではなく、あなたの履歴に基づきます。どの指摘にも、根拠（数字、時刻つきの依頼、kiroku が数えた兆候）が書かれます。扱うのは次のことです。
 
@@ -90,7 +95,7 @@ kiroku は AI を呼びません。代わりに、ワンクリックでプロン
 
 ## プライバシー
 
-- 履歴はパソコンの外に出ません。テレメトリも、アカウントも、AI サービスもありません。ネットワークを使うのは、kiroku 自身の新しい版を GitHub で確かめてダウンロードするときだけです。
+- 履歴はパソコンの外に出ません。テレメトリも、アカウントも、AI サービスもありません（ただし `kiroku serve --ai` で起動して実行を確認したときは、選んだエージェントが、プロンプトと読んだ履歴をその提供元に送ることがあります）。ネットワークを使うのは、kiroku 自身の新しい版を GitHub で確かめてダウンロードするときだけです。
 - kiroku が履歴から書くファイルは、あなたしか読めません。`kiroku serve` は `127.0.0.1` で待ち受け、鍵を持つブラウザにだけ開きます。
 - HTML には、依頼・AI の返事・ファイルのパス・コミットメッセージがそのまま入っています。人に渡す前に中身を確かめてください。
 - 振り返りと報告のプロンプトは、パソコン上の AI エージェントに履歴ファイルの場所を教え、エージェントはそれを読みます。履歴を任せられるエージェントを使ってください。

@@ -8,7 +8,7 @@ English | [日本語](README.ja.md)
 
 See what you built, understand how you worked, and make your next AI session better.
 
-kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), Amazon Q Developer CLI and Codex CLI together in one place. Revisit what happened, explore patterns, and copy evidence-based review prompts for the AI agent you already use. No account, telemetry, uploads or external AI calls.
+kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), Amazon Q Developer CLI and Codex CLI together in one place. Revisit what happened, explore patterns, and copy evidence-based review prompts for the AI agent you already use. No account, telemetry or uploads, and no AI calls unless you turn on `kiroku serve --ai`.
 
 **[Try the live demo →](https://michinaoshimizu.github.io/kiroku/)** (dummy data, runs in your browser)
 
