@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/MichinaoShimizu/kiroku/internal/ai"
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/MichinaoShimizu/kiroku/internal/report"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
@@ -213,6 +214,9 @@ func (l *live) handler() http.Handler {
 		defer l.mu.RUnlock()
 		send(w, "text/html; charset=utf-8", l.html)
 	})
+	// Optional AI execution is not enabled by default. The endpoint is reserved
+	// until CLI compatibility and explicit user-facing enablement are verified.
+	mux.Handle("/ai/run", ai.Handler{Runner: ai.Runner{Enabled: false}})
 	mux.HandleFunc("/data.json", func(w http.ResponseWriter, r *http.Request) {
 		if !l.loaded(w) {
 			return
