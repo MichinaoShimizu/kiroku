@@ -15,9 +15,9 @@ type Availability struct {
 // Additional providers (including Kiro CLI and Kiro Crew) must not be advertised
 // until their invocation, permissions and output contracts are verified.
 type Adapter struct {
-	ID string
+	ID     string
 	Binary string
-	Mode string
+	Mode   string
 }
 
 var supportedAdapters = []Adapter{
