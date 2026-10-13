@@ -12,7 +12,7 @@ import (
 // kiroku serve's existing authentication and same-origin protections.
 type Handler struct {
 	Runner Runner
-	Slots chan struct{}
+	Slots  chan struct{}
 }
 
 // NewHandler limits concurrent agent invocations. A zero-value Handler remains disabled.
