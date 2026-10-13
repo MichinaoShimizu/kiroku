@@ -45,7 +45,7 @@ async function runAIReview(button, prompt, title) {
     status.textContent = "Running " + agent.value + "…";
     try {
       const response = await fetch("ai/run", {method:"POST", headers:{"Content-Type":"application/json","X-Kiroku":"1"}, body:JSON.stringify({agent:agent.value,prompt:preview.value,consent:true}),signal:controller.signal});
-      if (!response.ok) throw new Error("AI execution failed (HTTP " + response.status + ")");
+      if (!response.ok) { const why = (await response.text().catch(() => "")).trim().slice(0, 600); throw new Error(why || "AI execution failed (HTTP " + response.status + ")"); }
       const result = await response.json();
       output.value = result.Output || "";
       output.style.display = "block"; copyResult.hidden = false;

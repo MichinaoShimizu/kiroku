@@ -65,8 +65,8 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	result, err := h.Runner.Run(r.Context(), in.Agent, in.Prompt)
-	if err != nil {
-		http.Error(w, "AI execution failed", http.StatusBadGateway)
+	if err != nil { // the agent's own message (such as "not logged in") tells the person what to fix
+		http.Error(w, "AI execution failed: "+err.Error(), http.StatusBadGateway)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(result)
