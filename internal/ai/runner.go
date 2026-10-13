@@ -5,6 +5,8 @@ import (
  "context"
  "errors"
  "fmt"
+ "bytes"
+ "io"
  "os/exec"
  "strings"
  "time"
@@ -50,8 +52,20 @@ func (r Runner) Run(ctx context.Context, agent, prompt string) (Result, error) {
  defer cancel()
  cmd:=exec.CommandContext(bounded,binary,args...)
  cmd.Stdin=strings.NewReader(prompt)
- output,err:=cmd.Output()
- if len(output)>1024*1024 { return Result{},errors.New("agent output exceeds size limit") }
+ var buf bytes.Buffer
+ cmd.Stdout=io.MultiWriter(&limitedWriter{w:&buf, max:1024*1024})
+ err:=cmd.Run()
+ output:=buf.Bytes()
+ if len(output)>=1024*1024 { return Result{},errors.New("agent output exceeds size limit") }
  if err!=nil { return Result{},fmt.Errorf("agent %s failed: %w",agent,err) }
  return Result{Output:string(output),Agent:agent},nil
+}
+
+// limitedWriter prevents retaining unbounded agent output in memory.
+type limitedWriter struct { w *bytes.Buffer; max int }
+func (w *limitedWriter) Write(p []byte) (int,error) {
+ remaining:=w.max-w.w.Len()
+ if remaining<=0 { return 0,errors.New("agent output limit reached") }
+ if len(p)>remaining { _,_ = w.w.Write(p[:remaining]); return remaining,errors.New("agent output limit reached") }
+ return w.w.Write(p)
 }
