@@ -73,3 +73,25 @@ func TestHandlerRejectsTrailingJSON(t *testing.T) {
 	}
 }
 
+func TestHandlerRejectsOversizedBody(t *testing.T) {
+	h := Handler{Runner: Runner{Enabled: true}}
+	body := `{"agent":"claude","consent":true,"prompt":"` + strings.Repeat("a", 260000) + `"}`
+	r := httptest.NewRequest(http.MethodPost, "http://localhost:8485/ai/run", strings.NewReader(body))
+	r.Header.Set("X-Kiroku", "1")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status %d", w.Code)
+	}
+}
+
+func TestHandlerRejectsGet(t *testing.T) {
+	h := Handler{Runner: Runner{Enabled: true}}
+	r := httptest.NewRequest(http.MethodGet, "http://localhost:8485/ai/run", nil)
+	r.Header.Set("X-Kiroku", "1")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("status %d", w.Code)
+	}
+}
