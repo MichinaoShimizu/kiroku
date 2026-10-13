@@ -48,7 +48,7 @@ async function runAIReview(button, prompt, title) {
       status.textContent = "Completed with " + (result.Agent || agent.value);
     } catch (error) {
       status.textContent = error.name === "AbortError" ? "Canceled" : String(error.message || error);
-    } finally { controller = null; cancel.textContent = "Close"; }
+    } finally { controller = null; cancel.textContent = "Close"; start.disabled = false; agent.disabled = false; start.textContent = "Run again"; }
   };
   if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
 }
