@@ -54,6 +54,7 @@ func (r Runner) Run(ctx context.Context, agent, prompt string) (Result, error) {
 	defer cancel()
 	cmd := exec.CommandContext(bounded, binary, args...)
 	cmd.Stdin = strings.NewReader(prompt)
+	cmd.WaitDelay = 2 * time.Second
 	var buf bytes.Buffer
 	cmd.Stdout = &limitedWriter{w: &buf, max: 1024 * 1024}
 	err := cmd.Run()
