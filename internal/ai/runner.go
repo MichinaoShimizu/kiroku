@@ -43,6 +43,9 @@ func (r Runner) Run(ctx context.Context, agent, prompt string) (Result, error) {
 	case "codex":
 		binary = "codex"
 		args = []string{"exec", "--sandbox", "read-only", "-"}
+	case "kiro":
+		binary = "kiro-cli"
+		args = []string{"chat", "--no-interactive"}
 	default:
 		return Result{}, ErrUnsupportedAgent
 	}
