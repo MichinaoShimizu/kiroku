@@ -252,6 +252,7 @@ func cmdServe(args []string) error {
 	c := addCommon(fs)
 	interval := fs.Duration("interval", 5*time.Second, "how often to check the history for changes (reloads after writes settle)")
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
+	enableAI := fs.Bool("ai", false, "enable local AI execution (loopback only; requires explicit consent per request)")
 	allow := fs.String("allow-host", "", "comma-separated extra host `names` the view may be opened by (e.g. a name in your hosts file); localhost, 127.0.0.1 and ::1 always work, and this computer's own IPs and host name too when ADDR is 0.0.0.0 or another all-interfaces address")
 	pos, err := parse(fs, args, 1)
 	if err != nil {
@@ -268,7 +269,7 @@ func cmdServe(args []string) error {
 	if err != nil {
 		return err
 	}
-	return serveLive(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen)
+	return serveLiveWithAI(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen, *enableAI)
 }
 
 func cmdHTML(args []string) error {
