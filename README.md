@@ -24,7 +24,7 @@ Choose **Calendar**, **Journey**, or **Project** under View, then independently 
 
 - **Every agent on one calendar.** Claude Code, Codex, Kiro and Amazon Q side by side, instead of one dashboard per agent.
 - **Sessions you can read, not just count.** What you asked, what the AI replied, and the commands, commits and pull requests in between, next to time, tokens and cost.
-- **Reviews written by your own agent.** kiroku never calls an AI. One click copies a prompt grounded in your history for the agent you already use.
+- **Reviews written by your own agent.** kiroku doesn't call an AI unless you start `kiroku serve --ai`. One click copies a prompt grounded in your history for the agent you already use.
 - **Your history never leaves your computer.** A single binary, no account, no telemetry.
 
 ## Install
@@ -68,7 +68,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 ## Reviews and advice, written by your own agent
 
-kiroku never calls an AI. Instead, one click copies a prompt that you paste into the AI agent you already use on this computer, such as Claude Code or Codex. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, ending with advice from an expert on working with AI agents.
+kiroku doesn't call an AI by default. Instead, one click copies a prompt that you paste into the AI agent you already use on this computer, such as Claude Code or Codex. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, ending with advice from an expert on working with AI agents. With `kiroku serve --ai`, "Run with AI" runs the same prompt with that agent for you, after you confirm each run.
 
 | Scope | Where | What you get |
 |---|---|---|
@@ -92,7 +92,7 @@ The prompts stay light: a report carries a short digest of each session, and the
 
 ## Privacy
 
-- Your history never leaves your computer: no telemetry, no account, no AI service. The only network access is checking for and downloading kiroku's own releases from GitHub.
+- Your history never leaves your computer: no telemetry, no account, no AI service (unless you start `kiroku serve --ai` and confirm a run, when the agent you pick may send the prompt and the history it reads to its provider). The only network access is checking for and downloading kiroku's own releases from GitHub.
 - Files kiroku writes from your history are readable only by you, and `kiroku serve` listens on `127.0.0.1` and opens only for browsers that have its key.
 - The HTML contains your prompts, the AI's replies, file paths and commit messages as they are. Check it before sharing.
 - The review and report prompts point an AI agent on your computer to your history files, and the agent reads them. Use an agent you'd trust with them.

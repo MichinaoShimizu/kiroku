@@ -253,6 +253,7 @@ func cmdServe(args []string) error {
 	interval := fs.Duration("interval", 5*time.Second, "how often to check the history for changes (reloads after writes settle)")
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
 	allow := fs.String("allow-host", "", "comma-separated extra host `names` the view may be opened by (e.g. a name in your hosts file); localhost, 127.0.0.1 and ::1 always work, and this computer's own IPs and host name too when ADDR is 0.0.0.0 or another all-interfaces address")
+	aiRun := fs.Bool("ai", false, "let the view run a review or report prompt with an AI agent installed on this computer (claude, codex or kiro-cli), after you confirm each run; the agent may send the prompt and the history it reads to its provider. Needs a numeric loopback ADDR such as 127.0.0.1:8485")
 	pos, err := parse(fs, args, 1)
 	if err != nil {
 		return quiet(err)
@@ -268,7 +269,7 @@ func cmdServe(args []string) error {
 	if err != nil {
 		return err
 	}
-	return serveLive(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen)
+	return serveLiveWithAI(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen, *aiRun)
 }
 
 func cmdHTML(args []string) error {

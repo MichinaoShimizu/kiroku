@@ -556,6 +556,13 @@ func TestServeLive(t *testing.T) {
 	if code, body, _ := fetchHost(t, "GET", base+"/stamp", "127.0.0.1:"+port); code != 200 || body != "42" {
 		t.Errorf("/stamp = %d %q", code, body)
 	}
+	// --ai なしでは、鍵があっても loopback でも AI を動かさず、画面にも「Run with AI」を出さない
+	if code, body, _ := fetchHost(t, "POST", base+"/ai/run", "localhost:"+port); code != 403 || !strings.Contains(body, "disabled") {
+		t.Errorf("--ai なしの /ai/run = %d %q, want 403", code, body)
+	}
+	if code, body, _ := fetchHost(t, "GET", base+"/data.json", "localhost:"+port); code != 200 || strings.Contains(body, "aiRun") {
+		t.Errorf("--ai なしの /data.json に aiRun がある: %d", code)
+	}
 	srv.Close()
 	select {
 	case err := <-errc:

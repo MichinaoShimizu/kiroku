@@ -155,7 +155,9 @@ The old forms `kiroku --serve`, `--json`, `-o` and `--weekly` / `--monthly` have
 
 ## Reviews and reports with your agent
 
-kiroku never calls an AI. For a session, a day, a week or a month, it copies a prompt that you paste into the AI agent you already use on this computer (such as Claude Code or Codex). The agent reads the facts in the prompt and the history files it points to, and writes a review or report in a fixed format, ending with advice from an expert on working with AI agents.
+kiroku doesn't call an AI by default. For a session, a day, a week or a month, it copies a prompt that you paste into the AI agent you already use on this computer (such as Claude Code or Codex). The agent reads the facts in the prompt and the history files it points to, and writes a review or report in a fixed format, ending with advice from an expert on working with AI agents.
+
+If you start `kiroku serve --ai`, the view also offers "Run with AI". It shows the exact prompt, and after you confirm, runs it with `claude`, `codex` or `kiro-cli` on this computer and shows the result. The agent may send the prompt and the history it reads to its provider. Without `--ai`, and in a saved HTML file, kiroku never runs an agent.
 
 | Scope | Button | Format |
 |---|---|---|
@@ -488,6 +490,7 @@ Per command:
 | Command | Option | Default | Description |
 |---|---|---|---|
 | `serve` | `[ADDR]` | `127.0.0.1:8484` | A port alone, such as `:8485`, also works (it listens on `127.0.0.1`). To open it from other devices, write an address such as `0.0.0.0:8485` (anyone on your network can then see your history) |
+| `serve` | `--ai` | off | Let the view run a review or report prompt with an AI agent on this computer (`claude`, `codex` or `kiro-cli`), after you confirm each run. The agent may send the prompt and the history it reads to its provider. Needs a numeric loopback address (the default `127.0.0.1:8484` works) |
 | `serve` | `--allow-host` | | Extra host names the view may be opened by, comma-separated (for example a name in your hosts file). `localhost`, `127.0.0.1` and `::1` always work, and so do this computer's IPs and host name when it listens on all interfaces (such as `0.0.0.0:8485`); requests addressed to any other name are refused |
 | `serve` | `--interval` | `5s` | How often to check history for changes. Reloads when changes stop for twice the interval (at most 12 times the interval) |
 | `serve`, `html` | `--no-open` | | Don't open the browser |

@@ -53,6 +53,14 @@ func (l *live) refresh() error {
 	l.reload.Lock()
 	defer l.reload.Unlock()
 	snap := l.load()
+	if l.aiRun != nil { // the view shows "Run with AI" only when kiroku serve --ai turned it on
+		meta := make(map[string]any, len(snap.meta)+1)
+		for k, v := range snap.meta {
+			meta[k] = v
+		}
+		meta["aiRun"] = true
+		snap.meta = meta
+	}
 	parts, err := web.Marshal(snap.data, snap.weeks, snap.months, snap.meta, snap.gen) // HTML と /data.json で使い回す
 	if err != nil {
 		return err
@@ -215,8 +223,7 @@ func (l *live) handler() http.Handler {
 		defer l.mu.RUnlock()
 		send(w, "text/html; charset=utf-8", l.html)
 	})
-	// Optional AI execution is not enabled by default. The endpoint is reserved
-	// until CLI compatibility and explicit user-facing enablement are verified.
+	// AI execution is off unless kiroku serve was started with --ai; the endpoint then answers 403.
 	if l.aiRun != nil {
 		mux.Handle("/ai/run", l.aiRun)
 	} else {
@@ -519,10 +526,9 @@ func newServer(h http.Handler) *http.Server {
 // serveLive は kiroku serve。allow は Host として受け付ける名前を足すもの、keep は画面から kiroku archive をオンにする関数。
 // 先に待ち受けてから読む（履歴が多いと最初の読み込みに時間がかかり、その間ポートが開いていないとブラウザが「つながらない」になるため）。
 // 読み終わるまでは、読み込み中の画面を出す。
+// AI execution stays off; serveLiveWithAI turns it on for kiroku serve --ai.
 func serveLive(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool) error {
-	host, _, err := net.SplitHostPort(listenAddr(addr))
-	loopback := err == nil && net.ParseIP(host) != nil && net.ParseIP(host).IsLoopback()
-	return serveLiveWithAI(addr, allow, every, picked, load, keep, open, loopback)
+	return serveLiveWithAI(addr, allow, every, picked, load, keep, open, false)
 }
 
 func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool, enableAI bool) error {

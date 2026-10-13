@@ -8,6 +8,8 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - Project view: inspect observed sessions, Git commits and recorded pull requests grouped by project, with an agent-source breakdown, expandable complete event lists and existing detail navigation. View choice remains independent of Week/Month.
 - Journey view: inspect observed AI sessions by project and day alongside the Week and Month calendar. Session details and existing search/filter remain available.
+- `kiroku serve --ai`: "Run with AI" on session reviews and daily, weekly and monthly reports runs the prompt with `claude`, `codex` or `kiro-cli` on this computer after you confirm each run, and shows the result. Off unless you pass `--ai`; the agent may send the prompt and the history it reads to its provider
+- "By project" in the weekly and monthly summary: "Discover knowledge" copies a prompt that asks an AI agent on this computer to extract candidate domain knowledge, decisions and open questions for a project, with evidence from the period's history. It lists the sessions' history files by path, as the report prompts do
 
 ### Fixed
 
@@ -23,6 +25,8 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Security
 
+- Running an AI agent from the view (`POST /ai/run`) was on whenever `kiroku serve` listened on loopback, so any page with the serve key could have an agent read history and send it to its provider without you choosing to allow it. It is now off unless you start `kiroku serve --ai`, and the view shows "Run with AI" only then
+- The "Discover knowledge" prompt now puts the project's history inside a fenced block, one line per value, and marks it as data, as the other AI prompts do, so a title or prompt in history can't forge lines that look like kiroku's or close the block
 - A Kiro Crew conversation held in incognito or temporary mode, opened in Kiro CLI 3.0 (`--resume-id`), is now shown with counts and times only in its 3.0 copy too, as its Classic and SQLite copies already were; its prompts and title in the 3.0 copy were shown in full
 
 ## v0.32.0 - 2026-10-11
