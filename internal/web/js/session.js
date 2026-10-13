@@ -57,6 +57,24 @@ function detail(s){
   bindGitEvents(P);
   P.querySelectorAll(".sflags [data-goto]").forEach(b => b.onclick = () => openWorth(b.dataset.goto, b));
   const sr = P.querySelector("#sreview"); if (sr) sr.onclick = () => copy(sessionPrompt(s, active, med), reviewFile(s) ? "Copied. Paste it into an AI agent on this computer. It includes your prompts and the session's history file path, and the agent reads that file, so check it before sending" : "Copied a prompt that asks an AI to review this session. It includes your prompts, so check it before sending", 8000, sr);
+  const run = P.querySelector("#srun");
+  if (run) run.onclick = async () => {
+    const agent = window.prompt("AI CLI: claude or codex", "claude");
+    if (!["claude", "codex"].includes(agent)) return;
+    const prompt = sessionPrompt(s, active, med);
+    if (!window.confirm("Send this session review prompt and referenced history to " + agent + "? The agent may transmit information to its AI provider.")) return;
+    run.disabled = true;
+    try {
+      const response = await fetch("ai/run", {method:"POST", headers:{"Content-Type":"application/json", "X-Kiroku":"1"}, body:JSON.stringify({agent, prompt, consent:true})});
+      if (!response.ok) throw new Error("AI run failed: HTTP " + response.status);
+      const result = await response.json();
+      copy(result.Output || "", "AI session review copied", 4000);
+    } catch (e) {
+      toast(String(e.message || e));
+    } finally {
+      run.disabled = false;
+    }
+  };
   P.querySelectorAll(".pexp").forEach(b => b.onclick = () => { const li = b.closest("li"), open = b.getAttribute("aria-expanded") !== "true";
     li.querySelector(".pshort").hidden = open; li.querySelector(".pfull").hidden = !open; b.setAttribute("aria-expanded", open); b.textContent = open ? "Show less" : pexpLabel(li.dataset.full ? {} : s.prompts[b.dataset.i]); });
   P.querySelectorAll(".pload").forEach(b => b.onclick = async () => { // kiroku serve のときだけ、切ったプロンプトの全文をサーバーから読む
