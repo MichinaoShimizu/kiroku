@@ -27,7 +27,7 @@ async function runAIReview(button, prompt, title) {
   dialog.append(heading, notice, agentLabel, preview, status, output, controls);
   document.body.append(dialog);
   let controller = null;
-  function close() { if (controller) controller.abort(); dialog.close(); dialog.remove(); }
+  function close() { if (controller) controller.abort(); if (dialog.open && typeof dialog.close === "function") dialog.close(); dialog.remove(); }
   cancel.onclick = close;
   dialog.addEventListener("cancel", e => { e.preventDefault(); close(); });
   copyResult.onclick = async () => {
@@ -36,7 +36,7 @@ async function runAIReview(button, prompt, title) {
   };
   start.onclick = async () => {
     controller = new AbortController();
-    start.disabled = true; agent.disabled = true;
+    start.disabled = true; agent.disabled = true; output.style.display = "none"; copyResult.hidden = true;
     cancel.textContent = "Cancel execution";
     status.textContent = "Running " + agent.value + "…";
     try {
