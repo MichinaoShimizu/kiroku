@@ -176,7 +176,7 @@ function reportPrompt(w, M, day){ // day があれば日報（その日。週の
   const cut = (t, n) => { t = oneLine(t); return t.length > n ? t.slice(0, n) + "…" : t; };
   const now = Date.now() / 1000, open = now < we, anyFile = ses.some(reviewFile), zst = ses.some(s => /\.zst$/.test(reviewFile(s))), claude = ses.some(s => s.source === "Claude Code" && reviewFile(s));
   const K = M ? 3 : day ? 20 : 8; // セッションごとに入れるプロンプトの数（月は多いので少なく。ファイルを全部読ませると重いので、まずこの要約で書いてもらう）
-  const L = [`I need a ${Kind.toLowerCase()} report for ${when} (times are ${utcOff(ws)}), to share with my team.${open ? ` The ${wk} is still in progress: the data runs up to ${md(now)} ${hm(now)}.` : ""} kiroku, a tool on this computer that aggregates my AI agent history, gives you the facts and a digest of each session below${anyFile ? ", and points to the sessions' history files" : ""}.`,
+  const L = [`Act as a professional engineering advisor. Prepare an evidence-based ${Kind.toLowerCase()} report for ${when} (times are ${utcOff(ws)}), to share with my team.${open ? ` The ${wk} is still in progress: the data runs up to ${md(now)} ${hm(now)}.` : ""} kiroku, a tool on this computer that aggregates my AI agent history, gives you the facts and a digest of each session below${anyFile ? ", and points to the sessions' history files" : ""}.`,
     "", "# Format",
     `Write the report in exactly this format, as Markdown I can paste as is, in the language I mostly write my prompts in (translate the headings too). Keep the sections in this order.`,
     "", mdFence([`## ${Kind} report: ${when}`, "",
@@ -188,7 +188,17 @@ function reportPrompt(w, M, day){ // day があれば日報（その日。週の
       "- Results: pull requests and notable commits, with the links from the facts",
       "- Next: what is left, only if the history shows it", "",
       "(one section per project, in the order of the facts)", "",
-      ...adviceLines()].join("\n")),
+      "### Expert observations", "Up to three meaningful evidence-based observations about progress, risks, verification or work patterns. Include strengths; do not force criticism.", "",
+      "### Next actions", "Up to three specific, proportionate actions supported by the history, with rationale and expected benefit. Clearly mark hypotheses."].join("\n")),
+    "", "# Professional review principles",
+    "- Provide practical, evidence-based engineering advice rather than proprietary scores or invented rules",
+    "- Do not equate time, prompt count, token usage or commit volume with productivity or business value",
+    "- Separate observed output from demonstrated business outcomes; label any proposed impact as a hypothesis",
+    "- Recognize effective work and avoid manufacturing criticisms or generic improvement suggestions",
+    "- Daily: emphasize actual progress, blockers and tomorrow's next step",
+    "- Weekly: synthesize delivery patterns, risks, coordination and next-week priorities",
+    "- Monthly: consider sustained trends, recurring constraints and structural opportunities",
+    "- Make recommendations only where the recorded evidence supports them; state uncertainty",
     "", "# How to work",
     "- Copy the numbers, commits, pull requests and links from \"Facts\" as they are. Don't change the numbers or add commits, pull requests or links",
     `- Each session under "Sessions" lists my prompts ${day ? "on this day" : `in this ${wk}`} and the start of the AI's reply to each, shortened. Write from that first`,

@@ -57,6 +57,8 @@ function detail(s){
   bindGitEvents(P);
   P.querySelectorAll(".sflags [data-goto]").forEach(b => b.onclick = () => openWorth(b.dataset.goto, b));
   const sr = P.querySelector("#sreview"); if (sr) sr.onclick = () => copy(sessionPrompt(s, active, med), reviewFile(s) ? "Copied. Paste it into an AI agent on this computer. It includes your prompts and the session's history file path, and the agent reads that file, so check it before sending" : "Copied a prompt that asks an AI to review this session. It includes your prompts, so check it before sending", 8000, sr);
+  const run = P.querySelector("#srun");
+  if (run) run.onclick = () => runAIReview(run, sessionPrompt(s, active, med), "Session review");
   P.querySelectorAll(".pexp").forEach(b => b.onclick = () => { const li = b.closest("li"), open = b.getAttribute("aria-expanded") !== "true";
     li.querySelector(".pshort").hidden = open; li.querySelector(".pfull").hidden = !open; b.setAttribute("aria-expanded", open); b.textContent = open ? "Show less" : pexpLabel(li.dataset.full ? {} : s.prompts[b.dataset.i]); });
   P.querySelectorAll(".pload").forEach(b => b.onclick = async () => { // kiroku serve のときだけ、切ったプロンプトの全文をサーバーから読む
@@ -135,7 +137,7 @@ function promptFlow(s){
     ...[["commit", "Commit"], ["push", "Push"], ["pr", "Pull request"], ["agent", "Subagent"], ["int", "Interruption"], ["cmp", "Compaction"], ["warn", "Usage limit"]].filter(([k]) => kinds.has(k)).map(([k, l]) => `<span class="kev ${k}">${ico(EV_ICON[k])}${l}</span>`)].filter(Boolean).join("");
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";
   // 見出しと出し方の切り替えは 1 行に（最初の画面に入るプロンプトを 1 つでも多くする）
-  const bar = `<div class="flowhead"><h3>Prompt flow</h3><div class="flowbar"><div class="segc" role="group" aria-label="Show" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">Everything</button><button data-v="user" aria-pressed="${!!st.flowUser}">Only user prompts</button></div>${copyBtn("Copy review prompt", `id="sreview" title="A prompt that asks an AI agent on this computer how you could have prompted and split the work better"`, "pill fill")}</div></div>`;
+  const bar = `<div class="flowhead"><h3>Prompt flow</h3><div class="flowbar"><div class="segc" role="group" aria-label="Show" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">Everything</button><button data-v="user" aria-pressed="${!!st.flowUser}">Only user prompts</button></div>${copyBtn("Copy review prompt", `id="sreview" title="A prompt that asks an AI agent on this computer how you could have prompted and split the work better"`, "pill fill")}${LIVE ? `<button class="pill" id="srun" type="button">Run with AI</button>` : ""}</div></div>`;
   return `${bar}<div class="tlkey${st.flowUser ? " only-user" : ""}">${key}</div><ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${`Show ${plural(rest, "more prompt")}${also}`}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${"\"AI worked\" is the time from a prompt to the AI's last activity; \"wait\" is the time from there to your next prompt. Both are estimates from the history's timestamps."}</p>` : ""}${s.prompts.some(p => p.reply) ? `<p class="note">${`The reply after a prompt is the last thing the AI wrote to you in that turn, in its own words — not its thinking, its tool calls or their output. A turn where it only ran tools, or whose words the agent does not record, has no reply. A long one shows its first ${REPLY_RUNES} characters.`}</p>` : ""}`;
 }
 /* 振り返りのプロンプトに入れる流れ: プロンプトと、そのあとに起きたこと（中断・コミットなど）を時刻の順に 1 本のテキストにする。
@@ -180,7 +182,7 @@ function sessionNumbers(s, active, med){
 /* 1 つのセッションを AI と振り返るためのプロンプト（kiroku 自身は AI を呼ばない）。週報・月報と同じ作り: 決まった形式、kiroku が埋めた数字の表、共通の「Advice from an expert」 */
 function sessionPrompt(s, active, med){
   const file = reviewFile(s), cut = (t, n) => { t = oneLine(t); return t.length > n ? t.slice(0, n) + "…" : t; };
-  const L = [`I'd like a review of one session I had with an AI agent, to learn how to write prompts and use agents better (times are ${utcOff(s.start)}). kiroku, a tool on this computer that aggregates my AI agent history, gives you the facts below${file ? " and points to the session's history file" : ""}.`,
+  const L = [`Act as a professional AI prompt advisor. Review this session using established prompt-engineering and agent-workflow principles, not a proprietary scoring framework. Help me improve real outcomes, not simply write longer prompts (times are ${utcOff(s.start)}). kiroku, a tool on this computer that aggregates my AI agent history, gives you the facts below${file ? " and points to the session's history file" : ""}.`,
     ...(file ? ["", "# Read the history file first",
       "- The full record of this session is in the history file named under \"History data\": my prompts in full, the AI's replies, its tool calls and their results. Read it before judging, and use it to see what the AI did between my prompts",
       `- Read only that file${s.source === "Claude Code" ? " and, if it exists, the folder next to it with the same name (subagents' records)" : ""}. Don't read or change anything else${/\.zst$/.test(file) ? ". It is compressed with zstd: read it with zstd -dc" : ""}`] : []),
@@ -189,9 +191,13 @@ function sessionPrompt(s, active, med){
     "", mdFence(["## Session review: <the session's title, shortened> (<date and start time>)", "",
       "### Summary", "2–3 lines: what the session achieved, and the biggest lesson.", "",
       "### Numbers", "The \"Numbers\" table from the facts, unchanged.", "",
-      "### Rework", "A table with one row per place that needed rework: time | my prompt (quoted) | what happened | cause. The cause is (A) something missing from my prompt, (B) the task itself being hard or uncertain, or (C) the AI getting it wrong although the prompt was enough; a mix like \"mostly C, partly A\" is fine. Write \"None\" if there was no rework.", "",
-      ...adviceLines(["End with an example first prompt for similar work next time, in a code block."])].join("\n")),
-    "", "# How to judge",
+      "### Professional prompt assessment", "Evaluate goal clarity, context, constraints, task decomposition, iteration, verification, and effective use of the agent. Discuss only dimensions supported by evidence; recognize what worked.", "",
+      "### Prioritized advice", "At most three actionable improvements. For each: timestamp and short original prompt quote, observed outcome, why the change matters, and a concrete improved prompt. Distinguish prompt gaps from model/tool failures and task uncertainty.", "",
+      "### Reusable prompt playbook", "Give an improved opening prompt for similar work in a code block and practical follow-up/checkpoint prompts. Do not force criticism if the session worked well."].join("\n")),
+    "", "# Evidence-based review standards",
+    "- Act as a professional AI prompt advisor, not as a judge using kiroku-specific heuristics or scores",
+    "- Use proven practical principles: clear outcomes, sufficient context, constraints, examples when useful, decomposition, feedback loops and verification",
+    "- Do not prescribe rigid templates or verbosity without demonstrating a likely benefit",
     `- Judge each prompt by what happened right after it (${file ? "the AI's reply and actions, " : ""}my next prompt, corrections, interruptions, commits), not by its length. A short prompt that was enough in context is a good prompt`,
     "- Quote the prompt and give the time for every point. Leave out points you can't tie to a prompt",
     "- If something went fine, say so in the summary. Don't make up problems",

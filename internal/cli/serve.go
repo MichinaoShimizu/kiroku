@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/MichinaoShimizu/kiroku/internal/ai"
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/MichinaoShimizu/kiroku/internal/report"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
@@ -40,6 +41,7 @@ type live struct {
 	roots []string // /history で見せてよいファイルの場所（履歴の場所と kiroku archive のコピーの場所）
 	print io.Writer
 	keep  func() error  // 画面から kiroku archive をオンにする（nil ならできない）
+	aiRun http.Handler  // nil means AI execution remains disabled
 	ready bool          // 最初の読み込みが終わったか（mu で守る）。終わるまでは読み込み中の画面と 503 を返す
 	fail  error         // 最初の読み込みの失敗（mu で守る）。読み込み中の画面に出す
 	prog  *loadProgress // 最初の読み込みの進み具合（読み込み中の画面が /progress で見る）
@@ -213,6 +215,13 @@ func (l *live) handler() http.Handler {
 		defer l.mu.RUnlock()
 		send(w, "text/html; charset=utf-8", l.html)
 	})
+	// Optional AI execution is not enabled by default. The endpoint is reserved
+	// until CLI compatibility and explicit user-facing enablement are verified.
+	if l.aiRun != nil {
+		mux.Handle("/ai/run", l.aiRun)
+	} else {
+		mux.Handle("/ai/run", ai.NewHandler(ai.Runner{}))
+	}
 	mux.HandleFunc("/data.json", func(w http.ResponseWriter, r *http.Request) {
 		if !l.loaded(w) {
 			return
@@ -511,10 +520,22 @@ func newServer(h http.Handler) *http.Server {
 // 先に待ち受けてから読む（履歴が多いと最初の読み込みに時間がかかり、その間ポートが開いていないとブラウザが「つながらない」になるため）。
 // 読み終わるまでは、読み込み中の画面を出す。
 func serveLive(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool) error {
+	host, _, err := net.SplitHostPort(listenAddr(addr))
+	loopback := err == nil && net.ParseIP(host) != nil && net.ParseIP(host).IsLoopback()
+	return serveLiveWithAI(addr, allow, every, picked, load, keep, open, loopback)
+}
+
+func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool, enableAI bool) error {
 	if every < time.Second {
 		every = time.Second
 	}
 	addr = listenAddr(addr)
+	if enableAI {
+		host, _, err := net.SplitHostPort(addr)
+		if err != nil || net.ParseIP(host) == nil || !net.ParseIP(host).IsLoopback() {
+			return fmt.Errorf("AI execution requires a numeric loopback listen address")
+		}
+	}
 	ln, err := net.Listen("tcp", addr) // ポートがふさがっていたら、読む前にすぐ止める
 	if err != nil {
 		return fmt.Errorf("could not listen on %s (try another port, e.g. \"kiroku serve :8485\"): %w", addr, err)
@@ -533,6 +554,9 @@ func serveLive(addr string, allow []string, every time.Duration, picked []source
 		names = append(names, s.Name())
 	}
 	l := &live{load: load, paths: paths, roots: historyRoots(picked), print: logw, keep: keep, prog: newProgress(names)}
+	if enableAI {
+		l.aiRun = ai.NewHandler(ai.Runner{Enabled: true})
+	}
 	addr = ln.Addr().String()
 	url := viewURL(addr)
 	st := styleFor(l.print)
