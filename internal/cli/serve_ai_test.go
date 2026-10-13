@@ -17,3 +17,17 @@ func TestAIEndpointDisabledByDefault(t *testing.T) {
 		t.Fatalf("want forbidden, got %d", w.Code)
 	}
 }
+
+func TestAIRejectsPublicBind(t *testing.T) {
+	err := serveLiveWithAI("0.0.0.0:8485", nil, 0, nil, nil, nil, false, true)
+	if err == nil {
+		t.Fatal("expected AI execution to reject public listener")
+	}
+}
+
+func TestAIRejectsHostnameBind(t *testing.T) {
+	err := serveLiveWithAI("localhost:8485", nil, 0, nil, nil, nil, false, true)
+	if err == nil {
+		t.Fatal("expected numeric loopback requirement")
+	}
+}
