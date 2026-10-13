@@ -176,7 +176,7 @@ function reportPrompt(w, M, day){ // day があれば日報（その日。週の
   const cut = (t, n) => { t = oneLine(t); return t.length > n ? t.slice(0, n) + "…" : t; };
   const now = Date.now() / 1000, open = now < we, anyFile = ses.some(reviewFile), zst = ses.some(s => /\.zst$/.test(reviewFile(s))), claude = ses.some(s => s.source === "Claude Code" && reviewFile(s));
   const K = M ? 3 : day ? 20 : 8; // セッションごとに入れるプロンプトの数（月は多いので少なく。ファイルを全部読ませると重いので、まずこの要約で書いてもらう）
-  const L = [`I need a ${Kind.toLowerCase()} report for ${when} (times are ${utcOff(ws)}), to share with my team.${open ? ` The ${wk} is still in progress: the data runs up to ${md(now)} ${hm(now)}.` : ""} kiroku, a tool on this computer that aggregates my AI agent history, gives you the facts and a digest of each session below${anyFile ? ", and points to the sessions' history files" : ""}.`,
+  const L = [`Act as a professional engineering advisor. Prepare an evidence-based ${Kind.toLowerCase()} report for ${when} (times are ${utcOff(ws)}), to share with my team.${open ? ` The ${wk} is still in progress: the data runs up to ${md(now)} ${hm(now)}.` : ""} kiroku, a tool on this computer that aggregates my AI agent history, gives you the facts and a digest of each session below${anyFile ? ", and points to the sessions' history files" : ""}.`,
     "", "# Format",
     `Write the report in exactly this format, as Markdown I can paste as is, in the language I mostly write my prompts in (translate the headings too). Keep the sections in this order.`,
     "", mdFence([`## ${Kind} report: ${when}`, "",
