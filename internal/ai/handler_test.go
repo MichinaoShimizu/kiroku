@@ -75,7 +75,7 @@ func TestHandlerRejectsTrailingJSON(t *testing.T) {
 
 func TestHandlerRejectsOversizedBody(t *testing.T) {
 	h := Handler{Runner: Runner{Enabled: true}}
-	body := `{"agent":"claude","consent":true,"prompt":"` + strings.Repeat("a", 260000) + `"}`
+	body := `{"agent":"claude","consent":true,"prompt":"` + strings.Repeat("a", 264000) + `"}`
 	r := httptest.NewRequest(http.MethodPost, "http://localhost:8485/ai/run", strings.NewReader(body))
 	r.Header.Set("X-Kiroku", "1")
 	w := httptest.NewRecorder()
