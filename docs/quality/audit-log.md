@@ -27,6 +27,10 @@ Template for a new section:
 ### Open items
 - <what> — why it stays open; how to check next time; due date or who decides
 
+### Loop
+| Run | Findings (certain) | Fixed | Median days to fix | Open items | Overdue | Previous items resolved |
+|---|---|---|---|---|---|---|
+
 ### Next time
 - <aspects to weigh more>
 ```
@@ -85,6 +89,11 @@ Decisions the maintainer made during this run: keep the serve key in per-origin 
 - UX, low: year chart colors differ from the main view; the phone header hides the tagline; the copy toast is narrow on phones; ArrowDown doesn't move into search results; "N more sessions" in Worth a look can't be opened; narrow blocks split words; the phone year chart cuts the first month label; a large blank at 1440 in the summary; 「今週」 nearly touches 「表示」 at 1000 px. Due: next ux audit
 - i18n, low: Go-side native metric labels (「見積もり」, 「最初の返事」, 「週の枠」) differ from the view's words, but they are also map keys in stored data, so renaming needs a migration. Decides: maintainer
 - After #414, each browser (and `localhost` and `127.0.0.1` separately) needs `kiroku open` once. Watch for reports
+
+### Loop
+| Run | Findings (certain) | Fixed | Median days to fix | Open items | Overdue | Previous items resolved |
+|---|---|---|---|---|---|---|
+| 2026-10-14 full | 86 | not counted (see "Fixed in") | 0 (fixed the same day) | 15 | 0 | 3 of 6 |
 
 ### Next time
 - data (the open Kiro and Crew items above), code (the moved-session case, the zstd cap, Windows process cleanup), ux (the low items above)
