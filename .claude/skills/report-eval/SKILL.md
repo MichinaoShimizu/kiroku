@@ -105,7 +105,7 @@ sh tools/reportbench/run.sh "$SCRATCH/rb-after"
 
 - `/pre-pr` の手順で点検してから PR を作る（タイトルは英語。例: `Make the report prompts shorter and clearer`）
 - 本文に、前後の表（正しさ・伝わりやすさ・エコさ）、直したこと、採用しなかった直しとその理由、試した回数とモデルを書く
-- 利用者に見える変更（報告の形や中身が変わる）なら CHANGELOG の `## Unreleased` に書く
+- 利用者に見える変更（報告の形や中身が変わる）なら変更の断片（`changes/<短い名前>.changed.md` など。形式は `changes/README.md`）に書く
 - `subscribe_pr_activity` で見守る
 
 ## やらないこと

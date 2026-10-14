@@ -92,7 +92,7 @@ snapshot の違いが「やめたエージェントのセッション・デー�
 
 ## 7. CHANGELOG と PR
 
-- `CHANGELOG.md` の `## Unreleased` の `### Removed` に、やめたエージェント、その理由、残したもの（オプションは警告を出して何もしない、archive の写しは消さず `kiroku archive off` で消せる）を書く
+- 変更の断片 `changes/<短い名前>.removed.md`（形式は `changes/README.md`）に、やめたエージェント、その理由、残したもの（オプションは警告を出して何もしない、archive の写しは消さず `kiroku archive off` で消せる）を書く
 - `gofmt -l .`・`go vet ./...`・`go test ./...`・staticcheck を通す
 - 差分を自分で読み直す。特に、ほかのエージェントの読み取り・色・数字を変えていないか、利用者のファイルを消すコードを足していないか
 - push して PR を作り、`subscribe_pr_activity` で見守る。タイトルは英語で（例: `Stop reading Amazon Q history`）。本文に、0 で決めたこと、snapshot の違いの説明、6 で残したものとその理由を書く
