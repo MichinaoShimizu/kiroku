@@ -389,7 +389,8 @@ async function run(env) {
     check("Journey と Week を組み合わせられる", await p.locator("#journeybtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=week]").getAttribute("aria-pressed") === "true");
     await p.locator("#mode button[data-v=month]").click(); await pause();
     check("Journey のまま Month に切り替えられる", await p.locator("#journeybtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
-    check("Journey に観測された活動日数が表示される", await p.locator(".journey-name small[title*=\"Recorded activity\"]").count() > 0);
+    check("Journey に観測された活動日数が表示される", await p.locator(".journey-name small").filter({hasText: /\d+ active days?/}).count() > 0);
+    check("Journey の「記録された活動だけ」は 1 度だけ（行ごとに繰り返さない）", await p.locator(".journey").getByText("Recorded activity only", {exact: false}).count() === 1 && await p.locator(".journey-name [title*=\"Recorded activity\"]").count() === 0);
     check("Journey の記録種別を凡例で区別できる", await p.locator(".journey-legend").getByText("Session").count() === 1 && await p.locator(".journey-legend").getByText("Git commit").count() === 1 && await p.locator(".journey-legend").getByText("Pull request").count() === 1);
     check("Journey に期間内の活動範囲が表示される", await p.locator(".journey-name small").filter({hasText:"–"}).count() > 0);
     check("Journey のコミットマーカーは詳細を開ける", await p.locator(".journey [data-git]").count() === 0 || await p.locator(".journey [data-git]").first().getAttribute("aria-label") !== null);
