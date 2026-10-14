@@ -683,3 +683,33 @@ func TestQStoreInjectedPromptAfterToolUse(t *testing.T) {
 		t.Errorf("プロンプト = %q（CLI が入れた依頼は数えない）", got)
 	}
 }
+
+// 画像つきのツールの結果（ToolUseResults と images）を CLI が Prompt に書き換えると、時刻と images が残る。
+// 人の依頼には images がないので、時刻があっても依頼として数えない。書き換えられていないものも数えない。
+func TestQStoreImageToolResultsRewrittenAsPrompt(t *testing.T) {
+	t0 := time.Date(2026, 9, 29, 1, 0, 0, 0, time.UTC)
+	at := func(sec int) string { return t0.Add(time.Duration(sec) * time.Second).Format(time.RFC3339) }
+	meta := map[string]any{"model_id": "m-real"}
+	img := []any{map[string]any{"format": "png", "source": map[string]any{"Bytes": []any{1, 2}}}}
+	history := []any{
+		map[string]any{
+			"user":             map[string]any{"timestamp": at(0), "content": map[string]any{"Prompt": map[string]any{"prompt": "画面を見て"}}},
+			"assistant":        map[string]any{"Response": map[string]any{"content": "見ます"}},
+			"request_metadata": meta,
+		},
+		map[string]any{ // 書き換えられた画像つきのツールの結果
+			"user":             map[string]any{"timestamp": at(10), "images": img, "content": map[string]any{"Prompt": map[string]any{"prompt": "See images data supplied"}}},
+			"assistant":        map[string]any{"Response": map[string]any{"content": "ボタンがずれています"}},
+			"request_metadata": meta,
+		},
+		map[string]any{ // 書き換えられていない画像つきのツールの結果
+			"user":             map[string]any{"timestamp": at(20), "images": img, "content": map[string]any{"ToolUseResults": map[string]any{"tool_use_results": []any{}}}},
+			"assistant":        map[string]any{"Response": map[string]any{"content": "直しました"}},
+			"request_metadata": meta,
+		},
+	}
+	b := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})[0]
+	if len(b.Prompts) != 1 || b.Prompts[0].Text != "画面を見て" {
+		t.Errorf("プロンプト = %+v（画像つきのツールの結果は数えない）", b.Prompts)
+	}
+}

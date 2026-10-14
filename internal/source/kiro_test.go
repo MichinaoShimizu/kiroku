@@ -736,3 +736,52 @@ func TestKiroNotUserEdges(t *testing.T) {
 		t.Errorf("セッションを JSON に書けない: %v", err)
 	}
 }
+
+// Kiro CLI 2.30 からのモデルの切り替え（session_metadata の modelFallback）。scope が turn ならそのターンだけ、
+// session なら切り替える前のターンは from、以後は session.json の modelId（切り替え先に書き換わっている）。
+func TestKiroIDEModelFallback(t *testing.T) {
+	home := t.TempDir()
+	us := func(ts, ex string) string {
+		return `{"timestamp": "` + ts + `", "payload": {"type": "usage_summary", "promptTurnSummaries": [{"unit": "credit", "usage": 1}], "executionId": "` + ex + `"}}` + "\n"
+	}
+	fb := func(ts, ex, from, to, scope string) string {
+		return `{"timestamp": "` + ts + `", "payload": {"type": "session_metadata", "key": "modelFallback", "executionId": "` + ex + `", "value": {"from": "` + from + `", "to": "` + to + `", "scope": "` + scope + `", "trigger": "availability"}}}` + "\n"
+	}
+	writeFiles(t, home, map[string]string{
+		"sessions/abc/sess_t/session.json":   `{"id": "sess_t", "createdAt": "2026-09-29T01:00:00Z", "modelId": "claude-sonnet-4.5"}`,
+		"sessions/abc/sess_t/messages.jsonl": `{"timestamp": "2026-09-29T01:01:00Z", "payload": {"type": "user", "content": "a"}}` + "\n" + us("2026-09-29T01:02:00Z", "e1") + fb("2026-09-29T01:03:00Z", "e2", "claude-sonnet-4.5", "claude-haiku-4.5", "turn") + us("2026-09-29T01:04:00Z", "e2"),
+		"sessions/abc/sess_s/session.json":   `{"id": "sess_s", "createdAt": "2026-09-29T01:00:00Z", "modelId": "claude-haiku-4.5"}`,
+		"sessions/abc/sess_s/messages.jsonl": `{"timestamp": "2026-09-29T01:01:00Z", "payload": {"type": "user", "content": "a"}}` + "\n" + us("2026-09-29T01:02:00Z", "e1") + fb("2026-09-29T01:03:00Z", "e2", "claude-sonnet-4.5", "claude-haiku-4.5", "session") + us("2026-09-29T01:04:00Z", "e2"),
+	})
+	bs := load(t, &KiroIDE{Home: home})
+	for _, id := range []string{"sess_t", "sess_s"} {
+		got := map[string]float64{}
+		for _, m := range find(bs, id).Finish(15).Models {
+			got[m[0].(string)] += float64(m[1].(int))
+		}
+		if got["claude-sonnet-4.5"] != 1 || got["claude-haiku-4.5"] != 1 {
+			t.Errorf("%s: モデル = %v, want sonnet 1・haiku 1", id, got)
+		}
+	}
+}
+
+// KIRO_HOME は、Kiro が使う値だけ使う。相対パス・根・ホームとその上は無視して ~/.kiro。
+func TestKiroHomeOverride(t *testing.T) {
+	h := t.TempDir()
+	t.Setenv("HOME", h)
+	t.Setenv("USERPROFILE", h)
+	abs := filepath.Join(h, "elsewhere", "kiro")
+	for v, want := range map[string]string{
+		"rel/dir":                  filepath.Join(h, ".kiro"),
+		string(filepath.Separator): filepath.Join(h, ".kiro"),
+		h:                          filepath.Join(h, ".kiro"),
+		filepath.Dir(h):            filepath.Join(h, ".kiro"),
+		abs:                        abs,
+		h + "-x":                   h + "-x",
+	} {
+		t.Setenv("KIRO_HOME", v)
+		if got := DefaultKiroHome(); got != want {
+			t.Errorf("KIRO_HOME=%q: %q, want %q", v, got, want)
+		}
+	}
+}
