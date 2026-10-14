@@ -889,3 +889,4 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
 :root[data-theme="dark"] .pill.ai-off{color:#7fd1ad;border-color:#4f8f73}
 :root[data-theme="dark"] .pill.ai-off:hover{background:rgba(127,209,173,.12)}
 .iconbtn.langbtn{width:auto;min-width:36px;padding:0 10px;font-size:var(--fs-xs);font-weight:600;letter-spacing:.02em}
+html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り返す（対応していないブラウザは今までどおり） */

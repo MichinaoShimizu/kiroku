@@ -181,7 +181,7 @@ func TestUnrecorded(t *testing.T) {
 		t.Fatal(err)
 	}
 	f := filepath.Join(t.TempDir(), "records.js")
-	if err := os.WriteFile(f, append([]byte(code+"\n"), cases...), 0o600); err != nil {
+	if err := os.WriteFile(f, append([]byte(i18nStub+"const LSEP = () => \", \";\n"+code+"\n"), cases...), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {

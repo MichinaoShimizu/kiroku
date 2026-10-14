@@ -28,7 +28,7 @@ function searchPanel(){
   const row = s => { const h = hitOf(s, q);
     return `<button class="srow ag" data-s="${esc(s.id)}" style="--c:${colorOf(keyOf(s))};--ag:${agColor(s.source)}"><time>${md(s.start)}<small>${hm(s.start)}</small></time>
       <span class="b"><span class="ti">${agMark(s.source)}${esc(s.title)}</span><span class="me">${esc(s.project)}${s.branch ? ` · ${esc(s.branch)}` : ""} · ${esc((s.source))}</span>
-      ${h.h ? `<span class="hit"><em>${esc(t(h.label))}</em>${h.h}</span>` : ""}</span></button>`; };
+      ${h.h ? `<span class="hit"><em>${esc((h.label === "PR" ? "PR" : t(h.label)))}</em>${h.h}</span>` : ""}</span></button>`; };
   const crow = c => `<button class="srow" data-c="${esc(c.hash)}" style="--c:${colorOf(c.project)}"><time>${md(c.t)}<small>${hm(c.t)}</small></time>
       <span class="b"><span class="ti"><i></i>${snip(c.subject, q) || esc(c.subject)}</span><span class="me">${esc(c.project)}${c.branch ? ` · ${esc(c.branch)}` : ""} · <span class="mono">${esc(c.hash.slice(0,7))}</span> · ${esc(plural(c.nFiles, "file"))} +${c.added} −${c.removed}</span>
       ${(() => { const f = (c.files || []).find(f => f.path.toLowerCase().includes(q)); return f ? `<span class="hit"><em>${esc(t("File"))}</em>${snip(f.path, q)}</span>` : ""; })()}</span></button>`;
@@ -330,12 +330,12 @@ function keepRow(r){ // 計測の状態に添える：どこまでさかのぼ�
 // 気をつけること（読めないファイル・既定のままで消える履歴・料金表にないモデル・似た ID の料金を当てたモデル）があるときは、見出しに印を付けて開いておく
 function measure(w){
   const rows = META.report.map(r => { const dt = JA ? r.detail || r.detailEn : r.detailEn || r.detail; // Go の一言（日本語の Detail と英語の DetailEn）
-    return `<li class="${r.error?"warn":""}">${esc((r.name))}${AG_ABOUT[r.name] ? ` <span class="muted">— ${esc(AG_ABOUT[r.name])}</span>` : ""}: ${esc(plural(r.n, "session"))}${dt?` (${esc(dt)})`:""}${r.dup?` (${esc(t("{n} found elsewhere not counted", {n: plural(r.dup, "duplicate conversation")}))})`:""}${r.error?` (${esc(t("some files couldn't be read"))})`:""}${keepRow(r)}</li>`; });
+    return `<li class="${r.error?"warn":""}">${esc((r.name))}${AG_ABOUT[r.name] ? ` <span class="muted">— ${esc(t(AG_ABOUT[r.name]))}</span>` : ""}: ${esc(plural(r.n, "session"))}${dt?` (${esc(dt)})`:""}${r.dup?` (${esc(t("{n} found elsewhere not counted", {n: plural(r.dup, "duplicate conversation")}))})`:""}${r.error?` (${esc(t("some files couldn't be read"))})`:""}${keepRow(r)}</li>`; });
   const a = META.archive; // kiroku archive
   if (a && (a.on || a.files)) rows.push(`<li>${esc(a.on ? t("kiroku's copy: on ({files}, {size})", {files: plural(a.files, "file"), size: bytes(a.bytes)})
       : t("kiroku's copy: off. Copies kept so far ({files}, {size}) are still shown", {files: plural(a.files, "file"), size: bytes(a.bytes)}))}<br><code>${esc(a.dir)}</code></li>`);
   const prices = {h: "<code>--prices</code>"};
-  if (w.usage && w.usage.unpriced) { const ms = (w.usage.unpricedModels || []).map(m => `<code>${esc((m))}</code>`).join(", ");
+  if (w.usage && w.usage.unpriced) { const ms = (w.usage.unpricedModels || []).map(m => `<code>${esc((m))}</code>`).join(LSEP());
     rows.push(`<li class="warn">${ms ? tph("{tokens} tokens from models not in the price table are not included in the estimated cost ({models}). Add their prices with {prices}", {tokens: tok(w.usage.unpriced), models: {h: ms}, prices})
       : tph("{tokens} tokens from models not in the price table are not included in the estimated cost. Add their prices with {prices}", {tokens: tok(w.usage.unpriced), prices})}</li>`); }
   const pp = (w.usage && w.usage.prefixPriced) || []; // 料金表に同じ ID がなく、似た ID（先頭一致）の料金を当てたモデル
@@ -343,7 +343,7 @@ function measure(w){
   const ts = (w.usage && w.usage.tierStandard) || []; // OpenAI のサービスティア（Fast など）の料金が公式になく、標準の料金を当てたモデル
   if (ts.length) rows.push(`<li class="warn">${tph("No published price for their service tier, so priced at standard rates (the estimate may be low): {list}", {list: {h: ts.map(([m, tier]) => `<code>${esc(m)}</code> (${esc(tier)})`).join(", ")}})}</li>`);
   if (w.usage && w.usage.tokens) rows.push(`<li>${META.prices && META.prices.custom ? tph("Price table for estimated cost: from {prices}", {prices})
-      : META.prices ? tph("Price table for estimated cost: Anthropic and OpenAI public rates as of {date} (change it with {prices})", {date: META.prices.asOf, prices})
+      : META.prices ? tph("Price table for estimated cost: Anthropic and OpenAI public rates as of {date} (change it with {prices})", {date: isJA() && /^\d{4}-\d{2}$/.test(META.prices.asOf) ? `${META.prices.asOf.slice(0, 4)}年${+META.prices.asOf.slice(5)}月` : META.prices.asOf, prices})
       : tph("Price table for estimated cost: public rates (change it with {prices})", {prices})}</li>`);
   const alert = (META.report || []).some(r => r.error || r.retention && (r.retention.days && !r.retention.set || r.retention.now) && !archOn()) || !!(w.usage && w.usage.unpriced) || pp.length > 0 || ts.length > 0;
   const n = (META.report || []).filter(r => r.n).length;

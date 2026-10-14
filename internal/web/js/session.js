@@ -22,8 +22,8 @@ function detail(s){
       <div><div class="k">${esc(t("Prompts"))}</div><div class="v">${s.nPrompts}</div></div>
       <div><div class="k">${esc(t("Wait time (median)"))}</div><div class="v">${med==null?"—":secsH(med)}</div></div>
       <div><div class="k">${esc(t("Corrections / interruptions"))}</div><div class="v">${s.corrections + s.interrupts}</div></div>
-      ${s.compactions && s.compactions.length ? `<div><div class="k">${esc(t("Compactions"))}</div><div class="v">${s.compactions.length}</div><div class="k">${s.compactions.map(hm).join(", ")}</div></div>` : ""}
-      ${s.limits && s.limits.length ? `<div><div class="k">${esc(t("Usage limit hits"))}</div><div class="v wv">${s.limits.length}</div><div class="k">${s.limits.map(hm).join(", ")}</div></div>` : ""}
+      ${s.compactions && s.compactions.length ? `<div><div class="k">${esc(t("Compactions"))}</div><div class="v">${s.compactions.length}</div><div class="k">${s.compactions.map(hm).join(LSEP())}</div></div>` : ""}
+      ${s.limits && s.limits.length ? `<div><div class="k">${esc(t("Usage limit hits"))}</div><div class="v wv">${s.limits.length}</div><div class="k">${s.limits.map(hm).join(LSEP())}</div></div>` : ""}
       ${s.source === "Claude Code" ? `<div><div class="k">${esc(s.costReported ? t("Estimated cost (from Claude Code)") : t("Estimated cost"))}</div><div class="v"${sCost == null ? ` title="${esc(NOPRICE)}"` : ""}>${usdH(sCost)}</div></div>
       <div><div class="k">${esc(t("Tokens"))}</div><div class="v">${tok(allTok)}</div></div>
       ${(() => { const cs = commitsOf(s), ai = cs.filter(c => c.ai).length, o = s.outputs || {}; // 右の「このセッションの間のコミット」と同じ数え方（手でのコミットも入れ、うち AI を添える）

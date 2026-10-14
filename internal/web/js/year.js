@@ -274,7 +274,7 @@ function drawCard(){
   // 割り付け：上に見出しと小さな合計、右に光の名前と見どころ、その下に読み方と見どころの見出しの帯、その下に光（主役）、いちばん下に凡例と kiroku の場所。
   // 光は左右に余白を取り（PX〜PX+PW）、時刻の目盛りはその左の余白に書く。光の上に文字を重ねない（朝の筋は上端に写るので、重ねると朝型の人の光が隠れる）
   const PX = 80, PW = W - 160, PT = 492, PB = 792;
-  const ls = v => { if ("letterSpacing" in g) g.letterSpacing = v; };
+  const ls = v => { if ("letterSpacing" in g) g.letterSpacing = isJA() ? "0px" : v; }; // 日本語は字間を空けると読みにくい
   const fit = (t, w, size, font) => { let fs = size; g.font = font(fs); while (fs > 14 && g.measureText(t).width > w){ fs--; g.font = font(fs); } return fs; };
   g.clearRect(0, 0, W, H); g.fillStyle = "#06070a"; g.fillRect(0, 0, W, H);
   // 使い始めたばかりでも光が端に寄らないよう、画像は記録のある日から（短ければ 4 週ぶん）だけを写す
@@ -326,7 +326,7 @@ function drawCard(){
   g.fillStyle = ink; fit(title, 760, 64, fs => `700 ${fs}px ${FONT.mincho}`); g.fillText(title, PX, 172);
   // 合計は小さく（主役は光。人と比べる数字にしない）。時間が何を数えたかを、すぐ下に書く
   if (o.totals){
-    const hrs = x.active/60, hv = hrs >= 10 ? Math.round(hrs) : Math.round(hrs*10)/10, w = (n, one, many) => [commas(n), t(n === 1 ? one : many)];
+    const hrs = x.active/60, hv = hrs >= 10 ? Math.round(hrs) : Math.round(hrs*10)/10, w = (n, one, many) => [commas(n), isJA() ? t(one) : n === 1 ? one : many]; // 日本語は単数の形を辞書で（件のコミット）
     const items = [w(hv, "hour with a session active", "hours with a session active"), w(x.sessions, "session", "sessions")];
     if (x.commits) items.push(w(x.commits, "commit", "commits")); if (x.prs) items.push(w(x.prs, "PR", "PRs"));
     let cx = PX;

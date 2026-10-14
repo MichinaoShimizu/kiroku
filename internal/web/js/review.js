@@ -6,7 +6,9 @@ function compactionsOf(ws, we){ const C = []; DATA.forEach(s => (s.compactions |
 /* i 番目のコンパクションが自動か手動か（わからなければ ""）。履歴の値はそのまま出さず、決まった言葉にする */
 function compactKind(s, i){ return ({auto: t("automatic"), manual: t("manual")})[(s.compactKinds || [])[i]] || ""; }
 /* i 番目の利用上限のエラー文にあった解除の時刻（"3:45pm" など、書いてあるとおりの文。日付や時間帯がないこともある）。なければ "" */
-function limitReset(s, i){ return String((s.limitResets || [])[i] || ""); }
+function limitReset(s, i){ const r = String((s.limitResets || [])[i] || ""); // 履歴の文（"9pm" など）。日本語では読める時刻は 24 時間に
+  if (!isJA()) return r;
+  return r.replace(/\b(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m\.?\b/gi, (m, h, mm, ap) => { h = +h % 12 + (ap.toLowerCase() === "p" ? 12 : 0); return `${String(h).padStart(2, "0")}:${mm || "00"}`; }); }
 /* 見直す候補の判定に使う部品（期間 [ws, we) を渡す。推移の計算でも使う） */
 const inP = (s, ws, we) => s.segs.some(([a,b]) => b > ws && a < we);
 function idleOf(ws, we){ // 目安コストが大きいのにコミットも PR もないセッション（アウトプットを記録できる Claude Code のみ）
@@ -85,7 +87,7 @@ function spark(k, plain){ // 8 期間の推移（記録のない期間は飛ば�
   const W = 168, H = 34, f0 = pts.findIndex(p => p.v != null), step = (W - 8) / (7 - f0); // 値が 2 つ以上あるので f0 は 6 以下
   const lo = Math.min(...vs), hi = Math.max(...vs), rng = lo === hi ? fmtM(k, lo) : `${fmtM(k, lo)}–${fmtM(k, hi)}`, x = i => 4 + (i - f0) * step, y = v => hi === lo ? H / 2 : H - 4 - (v - lo) / (hi - lo) * (H - 8);
   const line = pts.map((p, i) => p.v == null ? null : `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).filter(Boolean).join(" ");
-  const list = pts.map(p => `${p.l} ${fmtM(k, p.v)}`).join(", "), txt = st.mode === "month" ? t("8-month trend: {list}", {list}) : t("8-week trend: {list}", {list});
+  const list = pts.map(p => `${p.l} ${fmtM(k, p.v)}`).join(LSEP()), txt = st.mode === "month" ? t("8-month trend: {list}", {list}) : t("8-week trend: {list}", {list});
   const hits = pts.map((p, i) => i < f0 ? "" : `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H}"${tipAttr(p.l, fmtM(k, p.v) === "—" ? t("No records") : fmtM(k, p.v))}/>`).join(""); // 点ごとに、その期間の値を出す
   // 両端（記録のある最初の期間と、表示中の期間）には、触れなくても読めるよう期間と値を添える
   const sl = i => { const p = periodBack(7 - i), [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? MON[mm - 1] : dMD(new Date(yy, mm - 1, dd)); };
@@ -109,8 +111,9 @@ function findList(w, pw, unit){
     L: {see: see.l, why: why.l, rule: rule.l, because: because && because.l}});
   const LH = limitHits(ws, we);
   if (LH.length){
-    const hl = rs => LH.slice(-3).map(h => h.r ? fillEn(rs, {time: `${md(h.t)} ${hm(h.t)}`, r: h.r}) : `${md(h.t)} ${hm(h.t)}`).join(", ") + (LH.length > 3 ? ", …" : "");
-    const v = [{n: LH.length, list: hl("{time} (resets {r})")}, {list: hl(t("{time} (resets {r})"))}];
+    const hl = (rs, hs) => hs.slice(-3).map(h => h.r ? fillEn(rs, {time: `${md(h.t)} ${hm(h.t)}`, r: h.r}) : `${md(h.t)} ${hm(h.t)}`).join(LSEP()) + (hs.length > 3 ? LSEP() + "…" : "");
+    // 英語の文（週報のプロンプトにも入る）は、日付と解除時刻も英語のまま
+    const v = [{n: LH.length, list: inEnglish(() => hl("{time} (resets {r})", limitHits(ws, we)))}, {list: hl(t("{time} (resets {r})"), LH)}];
     add("limits", 40, LH.length === 1 ? tx("Hit the usage limit once ({list})", ...v) : tx("Hit the usage limit {n} times ({list})", ...v), tx("Hitting a limit stops your work until it resets. The cause is often in how you worked just before"), tx("1 or more"), [...new Set(LH.map(h => h.s.id))].reverse(), LH.length === 1 ? tx("you hit the usage limit once {period}") : tx("you hit the usage limit {n} times {period}", {n: LH.length}));
   }
   if (w.fixRate != null && w.prompts >= 10 && w.fixRate >= 20)

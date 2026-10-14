@@ -12,7 +12,7 @@ function render(){
   const {ws, we} = period(), M = st.mode === "month";
   const todayKey = key(today0()), end = addDays(st.week,6);
   const rel = relName(); // 今週・先週（今月・先月）なら、日付の上にそう書く（開いたときに、どの期間を見ているかわかるように）
-  if (M){ $("#ry").textContent = `${st.month.getFullYear()} · ${rel || t("Month")}`; $("#rd").innerHTML = `${MONTH[st.month.getMonth()]} <span>${st.month.getFullYear()}</span>`; }
+  if (M){ $("#ry").textContent = `${st.month.getFullYear()} · ${rel || t("Month")}`; $("#rd").innerHTML = isJA() ? `${st.month.getFullYear()}年<span>${st.month.getMonth()+1}月</span>` : `${MONTH[st.month.getMonth()]} <span>${st.month.getFullYear()}</span>`; }
   else { $("#ry").textContent = `${st.week.getFullYear()} · ${t("Week {n}", {n: isoWeek(st.week)})}${rel ? ` · ${rel}` : ""}`; $("#rd").innerHTML = `${dMD(st.week)}<span> – </span>${dMD(end)}`; }
   $("#today").textContent = META.scope ? (META.scope.mode === "month" ? t("Back to included month") : t("Back to included week")) : M ? t("This month") : t("This week");
   [["#prev", -1], ["#next", 1]].forEach(([id, n]) => { const b = $(id), off = !canGo(n); // 先の週・ファイルの外へは押せない
@@ -148,7 +148,7 @@ function monthGrid(shown, ms, me, todayKey){
   for (let r = 0; r < 6; r++){
     const wk = addDays(first, 7*r); if (wk.getTime()/1000 >= me) break;
     const W = WEEKS[key(wk)], wa = W ? W.active : 0, wc = W && W.git ? W.git.commits : 0; // 週の合計（月の外の日も含む、その週まるごと）
-    h += `<button class="cell wkc" data-w="${key(wk)}"${tipAttr(t("Week {n}", {n: isoWeek(wk)}), W ? [`${t("Active")} ${dur(wa)}`, `${t("Sessions")} ${W.sessions}`, ...useLines(W.usage), `${t("Git commits")} ${wc}`] : t("No records"))}><span class="dn">W${isoWeek(wk)}</span>${W && wa ? calDl(calRows(wa, W.usage, W.sessions, wc, kinds, un && 2)) + calShort(wa, W.usage, un) : ""}</button>`;
+    h += `<button class="cell wkc" data-w="${key(wk)}"${tipAttr(t("Week {n}", {n: isoWeek(wk)}), W ? [`${t("Active")} ${dur(wa)}`, `${t("Sessions")} ${W.sessions}`, ...useLines(W.usage), `${t("Git commits")} ${wc}`] : t("No records"))}><span class="dn">${isJA() ? `${isoWeek(wk)}週` : `W${isoWeek(wk)}`}</span>${W && wa ? calDl(calRows(wa, W.usage, W.sessions, wc, kinds, un && 2)) + calShort(wa, W.usage, un) : ""}</button>`;
     for (let c = 0; c < 7; c++){
       const d = addDays(wk, c), ds = d.getTime()/1000, de = addDays(d,1).getTime()/1000, inM = d.getMonth() === st.month.getMonth();
       if (!inM){ h += `<div class="cell out"><span class="dn">${d.getDate()}</span></div>`; continue; }
@@ -306,7 +306,7 @@ function journeyGrid(sessions, ws, we){
   const dayBounds = Array.from({length:days},(_,i)=>addDays(start,i).getTime()/1000);
   dayBounds.push(addDays(start,days).getTime()/1000);
   root.innerHTML = '<div class="journey"><div class="journey-legend" aria-label="'+esc(t("Journey marker legend"))+'"><span><i class="journey-legend-session"></i> '+esc(t("Session"))+'</span><span><i class="journey-legend-commit">◆</i> '+esc(t("Git commit"))+'</span><span><i class="journey-legend-pr">PR</i> '+esc(t("Pull request"))+'</span><small>'+esc(t("Recorded events only; not proof of progress or completion."))+'</small></div><div class="journey-axis"><span>'+esc(t("Project"))+'</span><div class="journey-days">' +
-    Array.from({length:days},(_,i)=>'<span>'+esc(dMD(addDays(new Date(ws*1000),i)))+'</span>').join("") +
+    Array.from({length:days},(_,i)=>{ const d = addDays(new Date(ws*1000),i); return '<span>'+esc(isJA() && days > 7 ? `${d.getDate()}日` : dMD(d))+'</span>'; }).join("") +
     '</div></div>' + ordered.map(([name,items]) => {
       const byDay = Array.from({length:days},()=>[]);
       items.forEach(s => { for(let i=0;i<days;i++){ const a=dayBounds[i], b=dayBounds[i+1];

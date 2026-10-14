@@ -26,7 +26,7 @@ const records = (src, what) => (RECORDS[src] || []).includes(what);
 // 期間 [ws, we) のセッションのエージェントのどれも what を記録しないなら、それらのエージェントの名前。どれかが記録するか、セッションがなければ null
 function unrecorded(ws, we, what){ const srcs = [...new Set(DATA.filter(s => s.end >= ws && s.start < we).map(s => s.source))];
   return srcs.length && !srcs.some(x => records(x, what)) ? srcs : null; }
-const notRec = srcs => `Not recorded in ${srcs.join(", ")} history`;
+const notRec = srcs => t("Not recorded in {list} history", {list: srcs.join(LSEP())});
 const YEAR_ON = true; // 1 年の露光（ボタンと Y キー）。false にすると隠す
 const SLOTS = 8;
 const $ = s => document.querySelector(s);

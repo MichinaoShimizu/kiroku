@@ -240,8 +240,14 @@ func newFS(name, usage string) *flag.FlagSet {
 }
 
 // langFlag は画面の言語（ADR 0029）。見る人は画面で切り替えられる。既定は $KIROKU_LANG、なければ英語。
+// $KIROKU_LANG の値が使えないときは、止めずに注意だけ出して、ブラウザの言語に任せる（autostart の serve が起動のたびに落ちないように）。
 func langFlag(fs *flag.FlagSet) *string {
-	return fs.String("lang", os.Getenv("KIROKU_LANG"), "language of the view: en or ja ($KIROKU_LANG; default: the browser's language, English if it isn't Japanese). You can switch it in the view too")
+	env := os.Getenv("KIROKU_LANG")
+	if env != "" && !web.ValidLang(env) {
+		fmt.Fprintf(logw, "ignoring KIROKU_LANG=%q: use one of %s\n", env, strings.Join(web.Langs, ", "))
+		env = ""
+	}
+	return fs.String("lang", env, "language of the view: en or ja ($KIROKU_LANG; default: the browser's language, English if it isn't Japanese). You can switch it in the view too")
 }
 
 func checkLang(lang string) error {

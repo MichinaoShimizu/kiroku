@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"flag"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -60,5 +61,27 @@ func TestAIRunFlagInMeta(t *testing.T) {
 		if j.Meta["x"] == nil || !strings.Contains(string(l.html), `"aiRun":true`) == on {
 			t.Errorf("meta lost other keys or HTML disagrees (on=%v)", on)
 		}
+	}
+}
+
+// --lang に書いた値が使えなければ止まる。$KIROKU_LANG の値が使えないときは無視して、ブラウザの言語に任せる
+func TestLangFlag(t *testing.T) {
+	for _, v := range []string{"fr", "ja-JP", `"><script>`, "__proto__"} {
+		if err := checkLang(v); err == nil {
+			t.Errorf("checkLang(%q) = nil, want an error", v)
+		}
+	}
+	for _, v := range []string{"", "en", "ja"} {
+		if err := checkLang(v); err != nil {
+			t.Errorf("checkLang(%q) = %v", v, err)
+		}
+	}
+	t.Setenv("KIROKU_LANG", "fr")
+	if got := *langFlag(flag.NewFlagSet("x", flag.ContinueOnError)); got != "" {
+		t.Errorf("KIROKU_LANG=fr gave %q, want it ignored", got)
+	}
+	t.Setenv("KIROKU_LANG", "ja")
+	if got := *langFlag(flag.NewFlagSet("x", flag.ContinueOnError)); got != "ja" {
+		t.Errorf("KIROKU_LANG=ja gave %q", got)
 	}
 }
