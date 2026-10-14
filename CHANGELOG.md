@@ -8,6 +8,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - Compressed history (`.jsonl.zst`: Codex rollouts, `kiroku archive` copies, Kiro Crew archives) is decompressed only up to 1 GiB per file. A small file that expands much further (a 380 KB file expanding to 3 GB took 40 seconds to read) is now listed as unreadable under "Data sources", with what was read up to the limit kept, instead of stalling every `kiroku serve` reload; `kiroku serve` also cuts off the `/history` download of such a file
 
+### Fixed
+
+- Claude Code: when a session moved to another project folder left a second file (such as a `kiroku archive` copy from the old folder) with no lines of its own, the subagents found only next to that file were not counted; they are now counted once, with the session of the file kiroku keeps, and linked to the Agent call that started them
+
 ## v0.35.0 - 2026-10-14
 
 ### Changed
