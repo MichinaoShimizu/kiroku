@@ -21,6 +21,7 @@ ok(!P.includes("data.sqlite3"), "SQLite のファイルを渡している");
 ok(!P.includes("/x/d.jsonl") && !P.includes("/x/e.jsonl"), "ほかのプロジェクトや期間の外のセッションが入っている");
 ok(P.includes("Read only the history files listed, by their exact paths"), "読むのを渡したファイルに限っていない");
 ok(P.includes(AI_DATA_NOTE), "履歴はデータだと伝えていない");
+ok(P.includes(PRIVACY_NOTE), "秘密・個人の情報・パスを書かないと伝えていない");
 // 履歴は囲みの中に 1 行ずつ。改行で偽の History file 行を作れず、``` で囲みを閉じられない
 const fence = P.match(/\n(`{4,})text\n/);
 ok(fence, "囲みが ``` より長くない");
