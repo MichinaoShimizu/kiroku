@@ -82,7 +82,7 @@ func TestExceptions(t *testing.T) {
 		{Rule: "listen", File: "cmd/fixture.go", Func: "listens"},
 		{Rule: "js-html", File: js, Match: "document.write(s)"},
 	}
-	problems := apply(fs, allowAll, []exception{{Rule: "js-html", File: js, Count: 6}})
+	problems, _ := apply(fs, allowAll, []exception{{Rule: "js-html", File: js, Count: 6}})
 	// 残るのは workflow の 4 つと、当たらない allow の項目だけ
 	var left []string
 	for _, p := range problems {
@@ -94,13 +94,14 @@ func TestExceptions(t *testing.T) {
 		t.Errorf("with exceptions:\n%s", strings.Join(problems, "\n"))
 	}
 	// baseline より多い・少ない
-	more := apply(fs, allowAll[1:], []exception{{Rule: "js-html", File: js, Count: 5}})
+	more, _ := apply(fs, allowAll[1:], []exception{{Rule: "js-html", File: js, Count: 5}})
 	if !containsAll(more, "6 HTML insertions, the baseline allows 5") {
 		t.Errorf("above the baseline:\n%s", strings.Join(more, "\n"))
 	}
-	fewer := apply(fs, allowAll[1:], []exception{{Rule: "js-html", File: js, Count: 9}})
-	if !containsAll(fewer, "fewer than the baseline of 9; lower Count") {
-		t.Errorf("below the baseline:\n%s", strings.Join(fewer, "\n"))
+	// 減ったのは失敗にせず、知らせるだけ
+	fewer, notes := apply(fs, allowAll[1:], []exception{{Rule: "js-html", File: js, Count: 9}})
+	if containsAll(fewer, "js-html") || !containsAll(notes, "fewer than the baseline of 9; lower Count") {
+		t.Errorf("below the baseline:\nproblems:\n%s\nnotes:\n%s", strings.Join(fewer, "\n"), strings.Join(notes, "\n"))
 	}
 }
 

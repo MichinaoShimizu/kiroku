@@ -62,7 +62,7 @@ var allow = []exception{
 }
 
 // baseline は、いまある esc() を通したテンプレートの HTML（決まった値ではない）。XSS の e2e（tools/screenshots/hostile.py・xss.mjs）が
-// 履歴の文字列が HTML として動かないことを確かめている。数が増えたら失敗し、減ったら数を下げるよう求める（新しい箇所は textContent か
+// 履歴の文字列が HTML として動かないことを確かめている。数が増えたら失敗し、減ったら数を下げるよう知らせる（失敗にはしない。新しい箇所は textContent か
 // 決まった値で書く。どうしても要るなら、レビューを経てここを上げる）
 var baseline = []exception{
 	{Rule: "js-html", File: "internal/web/js/boot.js", Count: 1, Reason: "the scope note, built from t() and esc()"},
@@ -104,7 +104,10 @@ func run(root string, allow, baseline []exception, w io.Writer) int {
 		fmt.Fprintf(w, "seclint: %v\n", err)
 		return 2
 	}
-	problems := apply(found, allow, baseline)
+	problems, notes := apply(found, allow, baseline)
+	for _, n := range notes {
+		fmt.Fprintln(w, "note: "+n)
+	}
 	for _, p := range problems {
 		fmt.Fprintln(w, p)
 	}
@@ -116,8 +119,9 @@ func run(root string, allow, baseline []exception, w io.Writer) int {
 	return 0
 }
 
-// apply は allow と baseline を当て、残った問題と、使われなかった項目を返す
-func apply(found []finding, allow, baseline []exception) []string {
+// apply は allow と baseline を当て、残った問題と使われなかった allow の項目（problems）と、
+// baseline より減ったファイル（notes。失敗にはしない。HTML を減らした PR や、ほかの PR を止めないように）を返す
+func apply(found []finding, allow, baseline []exception) (problems, notes []string) {
 	usedAllow := make([]bool, len(allow))
 	perFile := map[string][]finding{} // baseline と比べる js-html
 	var out []string
@@ -157,7 +161,7 @@ func apply(found []finding, allow, baseline []exception) []string {
 			}
 			out = append(out, fmt.Sprintf("%s: js-html: %d HTML insertions, the baseline allows %d; use textContent or DOM nodes for the new one", b.File, len(got), b.Count))
 		case len(got) < b.Count:
-			out = append(out, fmt.Sprintf("%s: js-html: %d HTML insertions, fewer than the baseline of %d; lower Count in tools/seclint/main.go", b.File, len(got), b.Count))
+			notes = append(notes, fmt.Sprintf("%s: js-html: %d HTML insertions, fewer than the baseline of %d; lower Count in tools/seclint/main.go", b.File, len(got), b.Count))
 		}
 	}
 	for file, got := range perFile {
@@ -174,7 +178,8 @@ func apply(found []finding, allow, baseline []exception) []string {
 		}
 	}
 	sort.Strings(out)
-	return out
+	sort.Strings(notes)
+	return out, notes
 }
 
 // scan はリポジトリを歩いて、決まりに当たるところを集める
