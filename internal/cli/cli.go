@@ -26,13 +26,14 @@ Usage:
 
 Commands:
   serve [ADDR]          Open the view in your browser and keep it updated as new history arrives (default 127.0.0.1:8484)
-  open                  Open the view of a running "kiroku serve" with its key (--print shows the address for another device)
+  open [ADDR]           Open the view of a running "kiroku serve" with its key (--print shows the address for another device)
   html                  Write the view as a single static HTML file (default kiroku.html) and open it
                         (--week or --month writes only that period, for sharing)
   json                  Write the aggregated data as JSON (default kiroku.json, "-" for stdout)
   stats                 Print a one-screen summary of this week (--week last, --month this, ...) in the terminal
   archive [on|off]      Keep compressed copies of history that agents delete (Claude Code, Kiro Crew); no argument shows the status
-  autostart [on|off]    Start "kiroku serve" in the background each time you log in; no argument shows the status
+  autostart [on [ADDR]|off]
+                        Start "kiroku serve" in the background each time you log in; no argument shows the status
   doctor                Check what kiroku can read, whether any history will be deleted, and what to run next
   version               Print the version
   update                Update kiroku to the latest release
@@ -240,7 +241,7 @@ func newFS(name, usage string) *flag.FlagSet {
 	return fs
 }
 
-// langFlag は画面の言語（ADR 0029）。見る人は画面で切り替えられる。既定は $KIROKU_LANG、なければ英語。
+// langFlag は画面の言語（ADR 0029）。見る人は画面で切り替えられる。既定は $KIROKU_LANG、なければブラウザの言語（日本語でなければ英語）。
 // $KIROKU_LANG の値が使えないときは、止めずに注意だけ出して、ブラウザの言語に任せる（autostart の serve が起動のたびに落ちないように）。
 func langFlag(fs *flag.FlagSet) *string {
 	env := os.Getenv("KIROKU_LANG")
@@ -273,7 +274,7 @@ func cmdServe(args []string) error {
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
 	allow := fs.String("allow-host", "", "comma-separated extra host `names` the view may be opened by (e.g. a name in your hosts file); localhost, 127.0.0.1 and ::1 always work, and this computer's own IPs and host name too when ADDR is 0.0.0.0 or another all-interfaces address")
 	lang := langFlag(fs)
-	aiRun := fs.Bool("ai", false, "let the view run a review or report prompt with an AI agent installed on this computer (claude, codex or kiro-cli), after you confirm each run; the agent may send the prompt and the history it reads to its provider. Needs a numeric loopback ADDR such as 127.0.0.1:8485")
+	aiRun := fs.Bool("ai", false, "let the view run a review or report prompt with an AI agent installed on this computer (claude, codex or kiro-cli), after you confirm each run; the agent may send the prompt and the history it reads to its provider. Works with the default address; a custom ADDR must be a loopback IP or a bare port (e.g. 127.0.0.1:8485 or :8485)")
 	pos, err := parse(fs, args, 1)
 	if err != nil {
 		return quiet(err)
