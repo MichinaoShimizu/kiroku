@@ -4,6 +4,11 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Added
+
+- `kiroku doctor` has a "Format check" section: for Claude Code and Codex, the newest agent version seen in history, lines that couldn't be read and record kinds kiroku doesn't know, with counts. Unknown kinds can mean the agent changed its history format. "Data sources" in the view shows the same next to each agent, and `kiroku json` adds them to `meta.report[]` (`agentVersion`, `badLines`, `unknown`, `kindsChecked`)
+- `kiroku doctor --report` prints a short block to paste into a GitHub issue: kiroku version, OS, and per agent the number of sessions, newest version seen, unreadable lines and unknown kinds with counts. It contains no paths, project names, IDs or content, and kiroku sends nothing; you review and share it yourself ([ADR 0032](docs/adr/0032-user-mediated-diagnostics.md))
+
 ### Security
 
 - Compressed history (`.jsonl.zst`: Codex rollouts, `kiroku archive` copies, Kiro Crew archives) is decompressed only up to 1 GiB per file. A small file that expands much further (a 380 KB file expanding to 3 GB took 40 seconds to read) is now listed as unreadable under "Data sources", with what was read up to the limit kept, instead of stalling every `kiroku serve` reload; `kiroku serve` also cuts off the `/history` download of such a file

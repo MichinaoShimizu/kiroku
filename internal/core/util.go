@@ -3,6 +3,7 @@ package core
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -191,6 +192,12 @@ func TextOf(content any) string {
 // MaxLine より長い行は飛ばして続きを読み、最後にそのことをエラーで返す（読めないファイルとして知らせる）。
 // ふつうのファイルでないもの（名前つきパイプなど）は開かずにエラーを返す（OpenRegular）。
 func ReadJSONL(path string, fn func(Obj)) error {
+	return ReadJSONLBad(path, fn, nil)
+}
+
+// ReadJSONLBad は ReadJSONL と同じ。bad が nil でなければ、JSON のオブジェクトとして読めなかった行を数える
+// （kiroku doctor の「Format check」）。空白だけの行と、改行で終わっていない最後の行（エージェントが書いている途中）は数えない。
+func ReadJSONLBad(path string, fn func(Obj), bad *int) error {
 	f, err := OpenRegular(path)
 	if err != nil {
 		return err
@@ -202,9 +209,9 @@ func ReadJSONL(path string, fn func(Obj)) error {
 			return err
 		}
 		defer d.Close()
-		return ReadJSONLFrom(d, fn)
+		return readJSONLFrom(d, fn, bad)
 	}
-	return ReadJSONLFrom(f, fn)
+	return readJSONLFrom(f, fn, bad)
 }
 
 // MaxLine は 1 行の上限（バイト）。壊れたファイルやわざと作ったファイルで、メモリを使い切らないため。
@@ -314,6 +321,10 @@ var lineReaders = sync.Pool{New: func() any { return bufio.NewReaderSize(nil, 1<
 
 // ReadJSONLFrom は ReadJSONL の io.Reader 版（圧縮されたファイルなど）。
 func ReadJSONLFrom(src io.Reader, fn func(Obj)) error {
+	return readJSONLFrom(src, fn, nil)
+}
+
+func readJSONLFrom(src io.Reader, fn func(Obj), bad *int) error {
 	r := lineReaders.Get().(*bufio.Reader)
 	r.Reset(src)
 	defer func() {
@@ -331,10 +342,14 @@ func ReadJSONLFrom(src io.Reader, fn func(Obj)) error {
 			skipped++
 		} else if len(line) > 0 {
 			var v any
+			m := Obj(nil)
 			if json.Unmarshal(line, &v) == nil {
-				if m := Map(v); m != nil {
-					fn(m)
-				}
+				m = Map(v)
+			}
+			if m != nil {
+				fn(m)
+			} else if bad != nil && line[len(line)-1] == '\n' && len(bytes.TrimSpace(line)) > 0 {
+				*bad++
 			}
 		}
 		if err == io.EOF {

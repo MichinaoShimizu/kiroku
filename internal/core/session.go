@@ -183,6 +183,7 @@ type Builder struct {
 	Outputs                        []Output       // アウトプット（output.go）。成功したツール呼び出しだけを入れる
 	Reported                       []ReportedCost // エージェント自身が記録した使用料（reported.go）
 	File                           string         // 履歴のファイル（画面から開けるように）
+	Format                         *Format        // 読んだファイルの形の手がかり（知らない種類・読めない行・版）。Source の読む単位ごとに 1 つの Builder だけに付ける
 	replies                        []pendingReply // 応答（Reply で入れ、Finish で依頼に割り当てる）
 	turn                           int            // 人の発言を読んだ回数（1 ターンの最後の応答だけを残すための区切り）
 	toolOrder                      []string

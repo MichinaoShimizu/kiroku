@@ -334,6 +334,20 @@ function keepRow(r){ // 計測の状態に添える：どこまでさかのぼ�
       : k.days && !k.set ? `<br><span class="kw">${by}${tph("Records older than {days} days are deleted automatically ({setting} is at its default)", {days: k.days, setting: set})}${link}</span>${how()}`
       : k.days ? `<br>${tph("{agent} keeps history for {days} days (setting: {setting})", {agent: k.who || r.name, days: k.days, setting: set})}`
       : `<br>${by}${tph("Older records are deleted after a period ({setting})", {setting: set})}${link}`); }
+// 履歴の形の手がかり（ADR 0032）。Go の core.SafeKind・core.SafeVersion と同じ形だけを出す（名前に発言やパスがまぎれこんでも出さない）
+const safeKind = k => /^[A-Za-z0-9_.:-]{1,40}$/.test(k) ? k : "other";
+const safeVer = v => { const m = /^v?(\d{1,6}(?:\.\d{1,6}){0,3})(?:[-+ ].*)?$/.exec(typeof v === "string" ? v : ""); return m && m[1].length <= 20 ? m[1] : ""; };
+// kindsText は知らない種類を「名前 数」で、数の多い順（同じなら名前の順）に並べる
+function kindsText(u){
+  const all = {}; for (const [k, n] of Object.entries(u || {})) if (Number.isFinite(n) && n > 0) all[safeKind(k)] = (all[safeKind(k)] || 0) + Math.floor(n);
+  return Object.keys(all).sort((a, b) => all[b] - all[a] || (a < b ? -1 : a > b ? 1 : 0)).map(k => `${k} ${all[k]}`).join(", ");
+}
+// formatRow は「Data sources」の 1 行に添える、履歴にあった最新の版・読めない行・知らない種類
+function formatRow(r){
+  const v = safeVer(r.agentVersion), k = kindsText(r.unknown), bad = Number.isFinite(r.badLines) && r.badLines > 0 ? Math.floor(r.badLines) : 0;
+  return (v ? ` · ${esc(t("newest version seen: {v}", {v}))}` : "") + (bad ? ` · ${esc(plural(bad, "unreadable line"))}` : "") +
+    (k ? `<br><span class="kw">${esc(t("Record kinds kiroku doesn't know: {list}", {list: k}))}</span> ${tph("The agent may have changed its history format; please report them with {cmd}", {cmd: {h: "<code>kiroku doctor --report</code>"}})}` : "");
+}
 // measure は、計測の状態（読んだ履歴・消える設定・kiroku のコピー・料金表）。ふだんはたたみ、
 // 気をつけること（読めないファイル・既定のままで消える履歴・料金表にないモデル・似た ID の料金を当てたモデル）があるときは、見出しに印を付けて開いておく
 function measure(w){
@@ -341,7 +355,7 @@ function measure(w){
   const warnKeep = r => r.retention && (r.retention.days && !r.retention.set || r.retention.now) && !archOn();
   const found = r => r.n || r.error || r.dup || r.archived || warnKeep(r);
   const row = r => { const dt = JA ? r.detail || r.detailEn : r.detailEn || r.detail; // Go の一言（日本語の Detail と英語の DetailEn）
-    return `<li class="${r.error?"warn":""}">${esc((r.name))}${AG_ABOUT[r.name] ? ` <span class="muted">— ${esc(t(AG_ABOUT[r.name]))}</span>` : ""}: ${esc(plural(r.n, "session"))}${dt?` (${esc(dt)})`:""}${r.dup?` (${esc(t("{n} also found elsewhere, counted once", {n: plural(r.dup, "duplicate conversation")}))})`:""}${r.error?` (${esc(t("some files couldn't be read"))})`:""}${keepRow(r)}</li>`; };
+    return `<li class="${r.error?"warn":""}">${esc((r.name))}${AG_ABOUT[r.name] ? ` <span class="muted">— ${esc(t(AG_ABOUT[r.name]))}</span>` : ""}: ${esc(plural(r.n, "session"))}${dt?` (${esc(dt)})`:""}${r.dup?` (${esc(t("{n} also found elsewhere, counted once", {n: plural(r.dup, "duplicate conversation")}))})`:""}${r.error?` (${esc(t("some files couldn't be read"))})`:""}${formatRow(r)}${keepRow(r)}</li>`; };
   const rows = META.report.filter(found).map(row), nf = META.report.filter(r => !found(r));
   if (nf.length) rows.push(`<li><details class="dnf"><summary>${esc(t("Not found: {n}", {n: nf.length}))}</summary><ul class="mlist">${nf.map(row).join("")}</ul></details></li>`);
   const a = META.archive; // kiroku archive
