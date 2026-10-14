@@ -828,55 +828,13 @@ dialog.yr h4.yrsub{font:600 var(--fs-md)/1.5 var(--sans);margin:12px 0 6px;color
 .lim{display:inline-flex;align-items:center;gap:3px}.lim .ic{width:10px;height:10px;stroke-width:1.8} /* 利用上限 */
 .agm{display:inline-grid;place-items:center;min-width:14px;height:14px;padding:0 3px;margin-right:5px;border-radius:4px;border:1px solid color-mix(in oklab,var(--ag,var(--rule-2)) 55%,var(--rule-2));background:color-mix(in oklab,var(--ag,var(--surface-2)) 16%,var(--surface-2));color:var(--ag,var(--ink-2));font:700 var(--fs-2xs)/1 var(--mono);font-style:normal;letter-spacing:0;text-transform:none;vertical-align:1px;flex:none;white-space:nowrap;overflow-wrap:normal} /* エージェントの頭文字（ロゴは使わない）。並びの中で縮めず、親の overflow-wrap:anywhere（見直す候補のダイアログの .fl など）を受けても「KC」を 1 文字ずつに折らない */
 
-/* Journey view: same sessions and filters as the calendar, grouped by project. */
-.journey{overflow:auto;max-height:74vh}
-.journey-axis,.journey-row{display:grid;grid-template-columns:minmax(140px,220px) minmax(560px,1fr);min-width:720px;border-bottom:1px solid var(--rule)}
-.journey-axis{position:sticky;top:0;background:var(--surface-2);z-index:2;font-size:var(--fs-xs);color:var(--ink-3)}
-.journey-axis>span,.journey-name{padding:12px;overflow-wrap:anywhere}
-.journey-name{font-weight:600}.journey-name small{display:block;font-weight:400;color:var(--ink-3)}
-.journey-days{display:grid;grid-auto-columns:minmax(36px,1fr);grid-auto-flow:column}
-.journey-axis .journey-days span{padding:12px 3px;text-align:center;white-space:nowrap;overflow:hidden;font-size:var(--fs-2xs)}
-.journey-cell{border-left:1px solid var(--rule);padding:8px 3px;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:4px;min-height:54px}
-.journey-dot{height:14px;width:14px;flex:none;border-radius:4px;background:var(--c);border:1px solid var(--surface);cursor:pointer}
-.journey-dot:hover,.journey-dot:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-.journey-legend{position:sticky;left:0;display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;padding:10px 12px;font-size:var(--fs-xs);background:var(--surface-2);color:var(--ink);border-bottom:1px solid var(--rule)}
-.journey-legend span{display:inline-flex;align-items:center;gap:5px}
-.journey-legend small{color:var(--ink-3)}
-.journey-legend i{font-style:normal;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px}
-.journey-legend-session{background:var(--ink-3);border-radius:4px}
-.journey-legend-commit,.journey-legend-pr{border:1px solid var(--ink-3);border-radius:4px;font-size:10px;font-weight:700}
-.journey-dot.journey-commit,.journey-dot.journey-pr{width:20px;height:20px;background:var(--surface);color:var(--ink);border:1px solid var(--ink-3);font-size:10px;font-weight:700;line-height:1}
-.journey-more{font-size:var(--fs-2xs);color:var(--ink-3)}
-.journey-empty{padding:36px;text-align:center;color:var(--ink-3)}
-
-/* Distinct controls: visualization, time granularity, and annual report. */
+/* Period (week / month) and the Year in review entry. */
 .view-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
 .control-group{display:inline-flex;align-items:center;gap:6px}
 .control-label{font-size:var(--fs-xs);color:var(--ink-3);font-weight:600}
 .wk .view-controls .mode{margin-left:0}
 .year-entry{white-space:nowrap}
 @media(max-width:700px){.view-controls{width:100%;gap:8px}.control-group{gap:4px}}
-
-/* Project view: inventory rather than a chronological timeline. */
-.project-view{padding:16px;display:grid;gap:14px}
-.project-note{font-size:var(--fs-xs);color:var(--ink-3);margin:0}
-.project-card{border:1px solid var(--rule);border-radius:10px;padding:16px;min-width:0}
-.project-card h3{margin:0 0 6px;overflow-wrap:anywhere}
-.project-meta{color:var(--ink-3);font-size:var(--fs-xs);margin:0 0 12px}
-.project-events{display:grid;gap:6px;justify-items:start}
-.project-events strong{margin-top:8px;font-size:var(--fs-xs)}
-.project-events button{max-width:100%;text-align:left;overflow-wrap:anywhere;background:var(--surface-2);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:7px 10px;cursor:pointer}
-.project-events button:hover,.project-events button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-.project-events small{color:var(--ink-3)}
-
-.project-more{width:100%;max-width:100%;margin-top:4px}
-.project-more summary{cursor:pointer;color:var(--ink);font-size:var(--fs-xs);padding:6px 0}
-.project-more[open]{display:grid;gap:6px}
-.project-more summary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-
-.project-agents{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
-.project-agent{font-size:var(--fs-xs);padding:4px 8px;border:1px solid var(--rule);border-radius:999px;color:var(--ink)}
-.project-agent strong{font-variant-numeric:tabular-nums}
 
 /* AI execution is visually distinct from local copy and navigation actions. */
 .pill.ai-action:not(:disabled){background:#176b50;color:#fff;border-color:#176b50;font-weight:600}

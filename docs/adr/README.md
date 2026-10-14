@@ -6,9 +6,7 @@ ADRs record explicit design choices; [Decision Logs](../decision-log/README.md) 
 
 | Topic | Status | ADR |
 |---|---|---|
-| Complementary Calendar and Journey history views (`internal/web`; keywords: Journey, project lanes, calendar, view navigation, local HTML, search/filter) | Accepted | [0026](0026-complementary-history-views.md) |
-| Project view: a project-first inventory of recorded sessions, commits and PRs, no inferred progress (`internal/web/js/calendar.js`; keywords: Project view, project activity, evidence inventory, cards) | Accepted | [0027](0027-project-view.md) |
-| Knowledge discovery: evidence-grounded, unverified candidates from a project's history; Phase 1 is the copied knowledge prompt (`internal/web/js/summary.js`; keywords: knowledge, discover, decisions, open questions, project, extraction prompt) | Phase 1 Accepted; later phases Proposed | [0028](0028-knowledge-discovery.md) |
+| The view is the calendar only: Week / Month calendar, search, legend filters, session details, summary, Worth a look, Year in review; no View switch, no Journey or Project view, no knowledge prompt; a saved `view` of journey or project opens the calendar; supersedes 0026, 0027, 0028 (`internal/web` template/state/events/calendar/summary; keywords: view, calendar, Journey, Project view, knowledge, view navigation, kiroku:view) | Accepted | [0033](0033-calendar-only-view.md) |
 | Opt-in local AI agent execution: only `kiroku serve --ai`, each run confirmed, provider disclosure in the dialog, fixed command lines, least access per agent, bounded runs, reply shown as text; amends 0022 (`internal/ai`, `/ai/run`, `internal/cli` serve, `internal/web/js/ai.js`, `mdview.js`; keywords: AI execution, --ai, Analyze with AI, agent, claude, codex, kiro-cli, provider, disclosure, run) | Accepted | [0030](0030-opt-in-local-agent-execution.md) |
 | Remote session import (Phase 2) | Proposed (not accepted) | [0020](0020-remote-session-import.md) |
 | Japanese view through a message catalog, following the browser's language; `--lang`/`KIROKU_LANG`; JSON, CLI names and AI prompts stay English; `translate="no"` keeps history out of browser translation (`internal/web`, `internal/cli` html/serve; keywords: i18n, language, Japanese, locale, translation, catalog, LOC, date format) | Accepted | [0029](0029-japanese-ui.md) |
@@ -19,6 +17,14 @@ ADRs record explicit design choices; [Decision Logs](../decision-log/README.md) 
 | Compatibility within a major version: CLI, exit status, `kiroku json` schemaVersion 1 fields, `--prices`, archive copies, serve key, release artifacts; `/data.json` not public; 0.x BREAKING allowed (`internal/cli`, `internal/archive`, `docs/compatibility.md`, `testdata/compat/`; keywords: breaking, rename, option, flag, env var, JSON field, schema) | Accepted | [0023](0023-compatibility-contract.md) |
 | Releases verified before replacing (checksums.txt, provenance when available); GitHub Releases only; Actions pinned to SHA with least permissions; govulncheck clean (`internal/cli/update.go`, `install.sh`, `.github/workflows`, `.goreleaser.yaml`; keywords: update, install, download, checksum, attestation, workflow, permissions, dependency) | Accepted | [0024](0024-verified-releases.md) |
 | History copies are opt-in (`kiroku archive on`), only for agents that delete history, private and local, private sessions still masked, removable (`internal/archive`, `internal/cli` archive; keywords: archive, retention, backup, copy, cleanup) | Accepted | [0025](0025-opt-in-history-copies.md) |
+
+## Superseded ADRs
+
+| Topic | Superseded by | ADR |
+|---|---|---|
+| Complementary Calendar and Journey history views | [0033](0033-calendar-only-view.md) | [0026](0026-complementary-history-views.md) |
+| Project view | [0033](0033-calendar-only-view.md) | [0027](0027-project-view.md) |
+| Knowledge discovery (Phase 1: the copied knowledge prompt) | [0033](0033-calendar-only-view.md) | [0028](0028-knowledge-discovery.md) |
 
 Only a human decision owner may accept an ADR. Proposed records are not binding constraints. An empty index does not prove a change safe.
 

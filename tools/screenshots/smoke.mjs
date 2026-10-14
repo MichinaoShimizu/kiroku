@@ -447,28 +447,14 @@ async function run(env) {
     check("m で月表示になる", await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
     check("月表示では、ズームを出さない", await p.locator("#zin").count() === 0);
     await p.keyboard.press("w"); await pause();
-    await p.locator("#journeybtn").click(); await pause();
-    check("Journey と Week を組み合わせられる", await p.locator("#journeybtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=week]").getAttribute("aria-pressed") === "true");
-    await p.locator("#mode button[data-v=month]").click(); await pause();
-    check("Journey のまま Month に切り替えられる", await p.locator("#journeybtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
-    check("Journey に観測された活動日数が表示される", await p.locator(".journey-name small").filter({hasText: /\d+ active days?/}).count() > 0);
-    check("Journey の「記録された活動だけ」は 1 度だけ（行ごとに繰り返さない）", await p.locator(".journey").getByText("Recorded activity only", {exact: false}).count() === 1 && await p.locator(".journey-name [title*=\"Recorded activity\"]").count() === 0);
-    check("Journey の記録種別を凡例で区別できる", await p.locator(".journey-legend").getByText("Session").count() === 1 && await p.locator(".journey-legend").getByText("Git commit").count() === 1 && await p.locator(".journey-legend").getByText("Pull request").count() === 1);
-    check("Journey に期間内の活動範囲が表示される", await p.locator(".journey-name small").filter({hasText:"–"}).count() > 0);
-    check("Journey のコミットマーカーは詳細を開ける", await p.locator(".journey [data-git]").count() === 0 || await p.locator(".journey [data-git]").first().getAttribute("aria-label") !== null);
-    check("Journey のPRマーカーには説明がある", await p.locator(".journey [data-pr]").count() === 0 || await p.locator(".journey [data-pr]").first().getAttribute("aria-label") === "Recorded pull request");
-    await p.locator("#projectbtn").click(); await pause();
-    check("Project の領域とスキップリンクが正しい", await p.locator("#tl").getAttribute("aria-label") === "Project activity" && await p.locator("#skipcal").textContent() === "Skip project activity");
-    check("Project ビューが選択できる", await p.locator("#projectbtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
-    check("Project のエージェント内訳が表示される", await p.locator(".project-agents .project-agent").count() > 0);
-    check("Project に記録された活動が表示される", await p.locator(".project-card").count() > 0 && await p.locator(".project-events [data-session]").count() > 0);
-    await p.locator(".project-events button[data-session]").first().click(); await pause();
-    check("Project session opens details", await p.locator("#drawer").getAttribute("aria-hidden") === "false");
-    await p.locator("#close").click(); await pause();
-    await p.locator("#calendarbtn").click(); await pause();
-    check("Calendar の領域ラベルに戻る", await p.locator("#tl").getAttribute("aria-label") === "Calendar");
-    check("Calendar に戻っても Month を維持する", await p.locator("#calendarbtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
-    await p.keyboard.press("w"); await pause();
+    check("表示の切り替え（Journey・Project）はない。カレンダーだけ", await p.locator("#journeybtn, #projectbtn, #calendarbtn").count() === 0 && await p.locator("#tl").getAttribute("aria-label") === "Calendar");
+    // 以前の版が保存した表示（journey・project）が残っていても、カレンダーで開く（ADR 0033）
+    for (const v of ["journey", "project"]) {
+      await p.evaluate(v => localStorage.setItem("kiroku:view", JSON.stringify(v)), v);
+      await open();
+      check(`保存された表示が ${v} でも、カレンダーで開く`, await p.locator("#tl .calscroll, #tl .empty").count() === 1 && await p.locator("#tl").getAttribute("aria-label") === "Calendar");
+    }
+    await p.evaluate(() => localStorage.removeItem("kiroku:view"));
     await p.keyboard.press("?"); await pause();
     check("? でショートカットの一覧が開く", await p.locator("#keys").evaluate(d => d.open));
     await p.locator("#keys form button").click(); await pause();
@@ -486,8 +472,8 @@ async function run(env) {
       check("y で 1 年の露光が開かない", !(await p.locator("#yr").evaluate(d => d.open)));
       return;
     }
-    check("Year in Review は View・Period と独立した入口に出る", await p.locator(".view-controls > #yrbtn").isVisible());
-    check("View と Period が独立している", await p.locator("#calendarbtn").count() === 1 && await p.locator("#journeybtn").count() === 1 && await p.locator("#mode button[data-v]").count() === 2);
+    check("Year in Review は Period と独立した入口に出る", await p.locator(".view-controls > #yrbtn").isVisible());
+    check("Period（Week・Month）がある", await p.locator("#mode button[data-v]").count() === 2);
     await p.locator("#yrbtn").click(); await pause();
     check("Year を押すと 1 年の露光が開き、Week・Month の選択は変わらない", await p.locator("#yr").evaluate(d => d.open) && await p.locator("#mode [aria-pressed=true]").count() === 1);
     await p.keyboard.press("Escape"); await pause();

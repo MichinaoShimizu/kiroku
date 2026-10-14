@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Removed
+
+- The Journey and Project views, and the View switch above the calendar: the view is the Week / Month calendar, with search, the legend's filters, session details, the summary and the Year in review as before. A browser that last showed Journey or Project opens the calendar ([ADR 0033](docs/adr/0033-calendar-only-view.md))
+- "Copy knowledge prompt" on each project card under "① By project", and its prompt (knowledge discovery, ADR 0028)
+
 ## v0.36.0 - 2026-10-14
 
 ### Added
