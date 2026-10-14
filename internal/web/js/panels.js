@@ -372,6 +372,7 @@ function measure(w){
   if (w.usage && w.usage.tokens) rows.push(`<li>${META.prices && META.prices.custom ? tph("Price table for estimated cost: from {prices}", {prices})
       : META.prices ? tph("Price table for estimated cost: Anthropic and OpenAI public rates as of {date} (change it with {prices})", {date: isJA() && /^\d{4}-\d{2}$/.test(META.prices.asOf) ? `${META.prices.asOf.slice(0, 4)}年${+META.prices.asOf.slice(5)}月` : META.prices.asOf, prices})
       : tph("Price table for estimated cost: public rates (change it with {prices})", {prices})}</li>`);
+  rows.push(`<li>${esc(t("Something looks wrong?"))} ${reportLinks()}</li>`);
   const alert = (META.report || []).some(r => r.error || warnKeep(r)) || !!(w.usage && w.usage.unpriced) || pp.length > 0 || ts.length > 0;
   const n = (META.report || []).filter(r => r.n).length;
   return `<details class="dsrc"${alert ? " open" : ""}><summary>${ico("caret", "dsc")}<h3>${esc(t("Data sources"))}</h3><span class="muted">${esc(t("{n} read", {n: plural(n, "history", "histories")}))}</span>${alert ? `<span title="${esc(t("Something here needs your attention"))}">${ico("flag", "fdot")}</span>` : ""}</summary><ul class="mlist">${rows.join("")}</ul></details>`;
@@ -442,7 +443,43 @@ function nativeSection(w){
 const REPO = "https://github.com/MichinaoShimizu/kiroku";
 function foot(){
   const v = String((META && META.version) || ""), rel = /^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/.test(v);
-  return `<div class="foot"><div>${esc(t("Generated {date}", {date: dStamp(GENERATED)}))} · ${rel ? ext(`${REPO}/releases/tag/v${v}`, esc(`kiroku v${v}`)) : `kiroku${v ? " " + esc(v) : ""}`} · ${ext(REPO, "GitHub")}</div></div>`;
+  return `<div class="foot"><div>${esc(t("Generated {date}", {date: dStamp(GENERATED)}))} · ${rel ? ext(`${REPO}/releases/tag/v${v}`, esc(`kiroku v${v}`)) : `kiroku${v ? " " + esc(v) : ""}`} · ${ext(REPO, "GitHub")}</div><div class="report">${reportLinks()}</div></div>`;
+}
+// 問題の報告（ADR 0032）。issue のリンクには、履歴に由来しないもの（kiroku の版・OS・画面の言語・いまの画面）だけを入れる。
+// リンクを開くと URL が GitHub に届くため。履歴の形の手がかり（種類と数）は URL に入れず、「Copy diagnostics」で写して、利用者が読んでから自分で貼る
+const kVer = () => { const v = String((META && META.version) || ""); return /^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/.test(v) ? "v" + v : v === "dev" ? "dev" : ""; };
+const kOS = () => { const o = String((META && META.os) || ""); return /^[a-z0-9]{1,16}\/[a-z0-9]{1,16}$/.test(o) ? o : ""; };
+// issueURL は「Report a problem」の行き先。値は決まった言葉か、形を確かめた版・OS だけ
+function issueURL(){
+  const view = {calendar: "Calendar", journey: "Journey", project: "Project"}[st.view] || "", mode = {week: "week", month: "month"}[st.mode] || "";
+  const screen = [view && (st.view === "calendar" && mode ? `${view} (${mode})` : view), `language: ${JA ? "ja" : "en"}`, LIVE ? "kiroku serve" : "saved HTML"].filter(Boolean).join(", ");
+  const q = new URLSearchParams({template: "bug.yml"});
+  if (kVer()) q.set("version", kVer());
+  if (kOS()) q.set("os", kOS());
+  q.set("screen", screen);
+  return `${REPO}/issues/new?${q}`;
+}
+// diagText は kiroku doctor --report と同じ形の文（internal/cli/diagnose.go の diagnostics）。種類と数と版だけで、
+// パス・プロジェクト名・ID・中身は入れない。名前と版は safeKind・safeVer でもう一度確かめる
+function diagText(){
+  const L = ["kiroku diagnostics (kinds and counts only)", `kiroku: ${kVer() || "unknown"}`, `os: ${kOS() || "unknown"}`];
+  const num = x => Number.isFinite(x) && x > 0 ? Math.floor(x) : 0;
+  for (const r of (META && META.report) || []) {
+    const name = String(r.name || ""); if (!/^[A-Za-z0-9 ()\/.-]{1,60}$/.test(name)) continue; // エージェントの名前（core.Agents）の形だけ
+    const n = num(r.n), bad = num(r.badLines), v = safeVer(r.agentVersion), k = kindsText(r.unknown);
+    if (!n && !bad && !k && !v) continue;
+    L.push(!r.kindsChecked && !bad && !k && !v ? `${name}: sessions ${n}; format not checked` : `${name}: sessions ${n}; version ${v || "unknown"}; unreadable lines ${bad}; unknown kinds: ${k || "none"}`);
+  }
+  if (L.length === 3) L.push("no history found");
+  return L.join("\n") + "\n";
+}
+// reportLinks は「Report a problem」（GitHub の issue を新しいタブで開く）と「Copy diagnostics」。押したときの動きは bindReport
+function reportLinks(){
+  return `<a class="xl reportlink" href="${esc(issueURL())}" target="_blank" rel="noopener noreferrer">${esc(t("Report a problem"))}</a> <button class="pill diagcopy" type="button" title="${esc(t("Copies kinds and counts only (agent versions, unreadable lines, unknown record kinds), the same as kiroku doctor --report. Check it before you paste it."))}">${esc(t("Copy diagnostics"))}</button>`;
+}
+function bindReport(root){
+  root.querySelectorAll(".reportlink").forEach(a => a.onclick = () => { a.href = issueURL(); }); // いまの画面を入れ直す
+  root.querySelectorAll(".diagcopy").forEach(b => b.onclick = () => copy(diagText(), t("Copied. It has kinds and counts only; check it, then paste it into the issue."), 6000, b));
 }
 
 function bindCopy(root){ root.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy, "", 0, b)); }

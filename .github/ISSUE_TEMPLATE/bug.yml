@@ -1,0 +1,68 @@
+name: Bug report
+description: Something is wrong or missing in kiroku
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. **Do not paste real agent history**: it can contain private prompts, paths and project names. Describe the shape of the data instead, or redact it. English or Japanese is fine.
+
+        "Report a problem" in kiroku's view fills in only the kiroku version, OS and screen below. Nothing from your history is sent; review everything here before you submit.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: input
+    id: screen
+    attributes:
+      label: Screen
+      description: Where in kiroku you saw it (for example Calendar (week), Journey, Project, kiroku doctor, kiroku serve)
+  - type: input
+    id: version
+    attributes:
+      label: kiroku version
+      description: Output of `kiroku version`
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: macOS 15 / Ubuntu 24.04 / Windows 11
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install kiroku?
+      options:
+        - install.sh
+        - Releases (zip / tar.gz)
+        - go install
+        - Built from source
+  - type: input
+    id: agent
+    attributes:
+      label: Agent and version
+      description: The agent involved and its version, if you know them
+      placeholder: Claude Code 2.1.300 / Codex 0.50.0 / Kiro CLI 2.30
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Paste from "Copy diagnostics" in the view (bottom of the page, or "Data sources"), or the output of `kiroku doctor --report`. It holds kinds and counts only, but check it first.
+      render: text
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce
+      description: Commands you ran, and what "Data sources" at the bottom of the summary says if relevant
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy
+      options:
+        - label: I checked this contains no private information (prompts, paths, project names, session IDs)
+          required: true
