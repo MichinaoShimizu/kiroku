@@ -1,0 +1,78 @@
+name: Upstream
+
+# kiroku が履歴を読むエージェント（Claude Code・Codex・Kiro CLI・Kiro IDE）の最新の版を、公開の情報（npm と kiro.dev の
+# changelog）から週 1 回取ってきて、docs/upstream/agents.md の控えと比べる。新しい版が出ていたら、1 つの issue（ラベル upstream）に書く。
+# 新しい版は、履歴の形が変わっていないかを /source-audit で調べるきっかけ（壊れた証拠ではない）。コードは push しない。
+# 取ってきた情報は tools/upstream（このリポジトリのコード）が版の形だけを読み、実行しない。履歴は使わない。
+# 情報を取るジョブ（check）は書き込みのトークンを持たず、issue を書くジョブ（issue）はコードを checkout しない。
+on:
+  schedule:
+    - cron: "41 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+      diff: ${{ steps.diff.outputs.diff }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false # トークンを .git に残さない（後のステップから読めないように）
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      # 形が変わって読めなければ、何も書かずに失敗する（ワークフローの失敗として知らせる）
+      - name: Fetch the latest versions
+        run: go run ./tools/upstream
+      - id: diff
+        name: Compare with docs/upstream
+        run: |
+          if git diff --quiet -- docs/upstream/agents.md; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "docs/upstream/agents.md is up to date"
+          else
+            git diff -- docs/upstream/agents.md
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "diff=$(git diff -- docs/upstream/agents.md | head -c 20000 | base64 -w0)" >> "$GITHUB_OUTPUT"
+          fi
+
+  issue:
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the upstream issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          DIFF: ${{ needs.check.outputs.diff }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          body="$RUNNER_TEMP/body.md"
+          {
+            echo "A new version of an agent kiroku reads was released (found by [this run]($RUN_URL))."
+            echo
+            echo "To check: run \`/source-audit <agent>\` for each agent below (or the data aspect of \`/quality-audit\`), fix what it finds in per-agent pull requests, and update \`docs/upstream/agents.md\` with \`go run ./tools/upstream\` in one of them."
+            echo
+            echo '~~~diff'
+            printf '%s' "$DIFF" | base64 -d
+            echo '~~~'
+          } > "$body"
+          gh label create upstream --color 0E8A16 --description "A new version of an agent kiroku reads" --force
+          number=$(gh issue list --label upstream --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --body-file "$body"
+            gh issue comment "$number" --body "Updated with the latest versions ($RUN_URL)."
+          else
+            gh issue create --title "New versions of agents kiroku reads" --label upstream --body-file "$body"
+          fi
