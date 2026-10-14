@@ -231,7 +231,7 @@ async function run(env) {
     check("振り返りは専門的な助言と証拠を備える", /professional AI prompt advisor/.test(rv) && /^- Title: /m.test(rv) && /^### Professional prompt assessment$/m.test(rv) && /^### Prioritized advice$/m.test(rv) && /^### Reusable prompt playbook$/m.test(rv) && /^\| \| This session \|$/m.test(rv) && /^\| Prompts \| \d+ \|$/m.test(rv), rv.slice(0, 200));
     check("振り返りの事実と流れは、コードブロックの中にある", /# History data\n`{3,}text\n# Facts/.test(rv) && /## Prompt flow/.test(rv));
     await btn.click(); await pause();
-    check("押すと、プロンプトが入っていると知らせる", /Copied a prompt.*your prompts|Copied\. Paste it into an AI agent on this computer.*history file path|Couldn't copy/.test(await p.locator("#toast").innerText()), await p.locator("#toast").innerText());
+    check("押すと、プロンプトが入っていると知らせる", /Copied\. Paste it into an AI agent on this computer\. It includes your prompts|Copied\. Paste it into an AI agent on this computer.*history file path|Couldn't copy/.test(await p.locator("#toast").innerText()), await p.locator("#toast").innerText());
     await p.keyboard.press("Escape"); await pause();
   });
 
@@ -335,6 +335,12 @@ async function run(env) {
     check("決まった形式と、kiroku が埋めた数字の表がある", /# Format/.test(text) && /### By project/.test(text) && /^\| Active time \| \S/m.test(text) && /^\| Git commits \(by AI\) \| \d+ \(\d+\) \|/m.test(text), JSON.stringify(text.match(/^\| Active time.*$/m)));
     const day = await p.evaluate(() => { const b = document.querySelector(".head .dayrpt"); return b ? {fill: b.classList.contains("fill"), text: reportPrompt(null, false, addDays(st.week, +b.dataset.d))} : null; });
     check("記録のある日の見出しに、塗りの日報ボタンがある", !!day && day.fill);
+    if (day){ // 固定した日付の見出しのボタンにフォーカスが移っても、カレンダーが 0 時まで巻き戻らない
+      const sc = p.locator(".calscroll"); await sc.evaluate(e => { e.scrollTop = 300; }); await pause();
+      const before = await sc.evaluate(e => e.scrollTop);
+      await p.locator(".head .dayrpt").first().focus(); await pause();
+      check("日報のボタンにフォーカスしても、カレンダーの位置が変わらない", await sc.evaluate(e => e.scrollTop) === before, `${before} → ${await sc.evaluate(e => e.scrollTop)}`);
+    }
     if (day) check("日報のプロンプトは、その日の形式と前日との数字の表", /## Daily report: /.test(day.text) && /^\| \| This day \| Previous day \|$/m.test(day.text) && /^\| Active time \| /m.test(day.text), day.text.slice(0, 120));
     check("セッションごとに、プロンプトと応答の要約がある", /^  - [A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2} \d\d:\d\d Prompt: /m.test(text));
     check("事実と履歴は、コードブロックの中にある", /# History data\n`{3,}text\n# Facts/.test(text));
@@ -379,9 +385,9 @@ async function run(env) {
     check("Journey と Week を組み合わせられる", await p.locator("#journeybtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=week]").getAttribute("aria-pressed") === "true");
     await p.locator("#mode button[data-v=month]").click(); await pause();
     check("Journey のまま Month に切り替えられる", await p.locator("#journeybtn").getAttribute("aria-pressed") === "true" && await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
-    check("Journey に観測された活動日数が表示される", await p.locator(".journey-name small[title*=Observed]").count() > 0);
+    check("Journey に観測された活動日数が表示される", await p.locator(".journey-name small[title*=\"Recorded activity\"]").count() > 0);
     check("Journey の記録種別を凡例で区別できる", await p.locator(".journey-legend").getByText("Session").count() === 1 && await p.locator(".journey-legend").getByText("Git commit").count() === 1 && await p.locator(".journey-legend").getByText("Pull request").count() === 1);
-    check("Journey に期間内の活動範囲が表示される", await p.locator(".journey-name small").filter({hasText:"→"}).count() > 0);
+    check("Journey に期間内の活動範囲が表示される", await p.locator(".journey-name small").filter({hasText:"–"}).count() > 0);
     check("Journey のコミットマーカーは詳細を開ける", await p.locator(".journey [data-git]").count() === 0 || await p.locator(".journey [data-git]").first().getAttribute("aria-label") !== null);
     check("Journey のPRマーカーには説明がある", await p.locator(".journey [data-pr]").count() === 0 || await p.locator(".journey [data-pr]").first().getAttribute("aria-label") === "Recorded pull request");
     await p.locator("#projectbtn").click(); await pause();

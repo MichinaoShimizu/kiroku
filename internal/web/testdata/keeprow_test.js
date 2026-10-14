@@ -3,6 +3,8 @@
    panels.js はほかのファイルに頼るので、keepRow だけを取り出し、使う関数をここで用意して動かす（script_test.go） */
 let META = {archive: {on: false}};
 const LIVE = false;
+const JA = false;
+const t = (s, vars) => vars ? s.replace(/\{(\w+)\}/g, (m, k) => Object.prototype.hasOwnProperty.call(vars, k) ? String(vars[k]) : m) : s; // i18n.js の t（英語）
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 const ext = (u, t) => `<a href="${esc(u)}">${t}</a>`;
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;

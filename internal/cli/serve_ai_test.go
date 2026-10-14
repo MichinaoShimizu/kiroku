@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"flag"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -23,7 +24,7 @@ func TestAIEndpointDisabledByDefault(t *testing.T) {
 
 func TestAIRejectsPublicBind(t *testing.T) {
 	for _, addr := range []string{"0.0.0.0:8485", "[::]:8485", "[::ffff:0.0.0.0]:8485"} {
-		if err := serveLiveWithAI(addr, nil, 0, nil, nil, nil, false, true, nil); err == nil || !strings.Contains(err.Error(), "loopback") {
+		if err := serveLiveWithAI(addr, nil, 0, nil, nil, nil, false, true, "", nil); err == nil || !strings.Contains(err.Error(), "loopback") {
 			t.Errorf("%s: err = %v, want the loopback requirement", addr, err)
 		}
 	}
@@ -32,7 +33,7 @@ func TestAIRejectsPublicBind(t *testing.T) {
 // Host names and shorthand IPv4 forms are refused before listening, as the resolver could map them anywhere.
 func TestAIRejectsHostnameBind(t *testing.T) {
 	for _, addr := range []string{"localhost:8485", "127.1:8485", "2130706433:8485", "example.com:8485"} {
-		if err := serveLiveWithAI(addr, nil, 0, nil, nil, nil, false, true, nil); err == nil || !strings.Contains(err.Error(), "loopback") {
+		if err := serveLiveWithAI(addr, nil, 0, nil, nil, nil, false, true, "", nil); err == nil || !strings.Contains(err.Error(), "loopback") {
 			t.Errorf("%s: err = %v, want the loopback requirement", addr, err)
 		}
 	}
@@ -60,5 +61,27 @@ func TestAIRunFlagInMeta(t *testing.T) {
 		if j.Meta["x"] == nil || !strings.Contains(string(l.html), `"aiRun":true`) == on {
 			t.Errorf("meta lost other keys or HTML disagrees (on=%v)", on)
 		}
+	}
+}
+
+// --lang に書いた値が使えなければ止まる。$KIROKU_LANG の値が使えないときは無視して、ブラウザの言語に任せる
+func TestLangFlag(t *testing.T) {
+	for _, v := range []string{"fr", "ja-JP", `"><script>`, "__proto__"} {
+		if err := checkLang(v); err == nil {
+			t.Errorf("checkLang(%q) = nil, want an error", v)
+		}
+	}
+	for _, v := range []string{"", "en", "ja"} {
+		if err := checkLang(v); err != nil {
+			t.Errorf("checkLang(%q) = %v", v, err)
+		}
+	}
+	t.Setenv("KIROKU_LANG", "fr")
+	if got := *langFlag(flag.NewFlagSet("x", flag.ContinueOnError)); got != "" {
+		t.Errorf("KIROKU_LANG=fr gave %q, want it ignored", got)
+	}
+	t.Setenv("KIROKU_LANG", "ja")
+	if got := *langFlag(flag.NewFlagSet("x", flag.ContinueOnError)); got != "ja" {
+		t.Errorf("KIROKU_LANG=ja gave %q", got)
 	}
 }

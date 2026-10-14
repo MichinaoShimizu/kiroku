@@ -63,14 +63,14 @@ const panelH = (n, t, s, h) => `<div class="ph">${n == null ? "" : `<span class=
 const secH = (t, h) => `<h3>${t}${hb(h)}</h3>`;
 /* 数の枠：k は名前、v は値（HTML）、s は下の一言（HTML）、h は「?」の説明の id、m は押すと開く内訳（metric.js の BRK の id）。
    m があれば値をボタンにし、枠全体を押せるようにする（「?」と印は枠の上に重ねて、別に押せる）。記録しないエージェントだけなら norecStat */
-const statH = (k, v, s, h, m) => `<div class="stat${m ? " mstat" : ""}"><div class="k">${k}${hb(h)}</div>${m ? `<button type="button" class="v" data-metric="${m}" aria-haspopup="dialog" title="Click for the breakdown">${v}</button>` : `<div class="v">${v}</div>`}${s ? `<div class="s">${s}</div>` : ""}</div>`;
+const statH = (k, v, s, h, m) => `<div class="stat${m ? " mstat" : ""}"><div class="k">${k}${hb(h)}</div>${m ? `<button type="button" class="v" data-metric="${m}" aria-haspopup="dialog" title="${esc(t("Click for the breakdown"))}">${v}</button>` : `<div class="v">${v}</div>`}${s ? `<div class="s">${s}</div>` : ""}</div>`;
 /* 空のときの一言：text は HTML（呼ぶ側でエスケープする） */
 const noneH = text => `<p class="none">${text}</p>`;
 /* コードの枠：text は文字（ここでエスケープする）。cls は枠に足すクラス、extra はコピーの前に置くもの（HTML。「Open」のリンクなど） */
-const codeH = (text, cls, extra) => `<div class="code${cls ? " " + cls : ""}"><code>${esc(text)}</code>${extra || ""}${copyBtn("Copy", `data-copy="${esc(text)}"`, "copy")}</div>`;
+const codeH = (text, cls, extra) => `<div class="code${cls ? " " + cls : ""}"><code>${esc(text)}</code>${extra || ""}${copyBtn(esc(t("Copy")), `data-copy="${esc(text)}"`, "copy")}</div>`;
 /* コピーのボタン：label は文字、attrs は属性（HTML。呼ぶ側でエスケープする）。押してコピーできると、印が 1.6 秒だけ ✓ に変わる（copied） */
 const copyBtn = (label, attrs, cls = "pill") => `<button class="${cls} cp" ${attrs}>${ico("copy", "cpi")}${ico("check", "cpok")}${label}</button>`;
 /* 詳細の頭の札：プロジェクトとブランチは、同じ形の札が並ぶので印で見分ける（意味はツールチップと読み上げでも出す） */
-const projTag = p => `<span class="tg" title="Project">${ico("folder")}<span class="sr">Project: </span>${esc(p)}</span>`;
-const branchTag = b => b ? `<span class="tg" title="Branch">${ico("branch")}<span class="sr">Branch: </span>${esc(b)}</span>` : "";
-function norecStat(k, srcs, h){ return `<div class="stat norec"><div class="k">${k}${hb(h)}</div><div class="v">Not recorded</div><div class="s">${esc(`${srcs.join(", ")} ${srcs.length > 1 ? "don't" : "doesn't"} record this`)}</div></div>`; }
+const projTag = p => `<span class="tg" title="${esc(t("Project"))}">${ico("folder")}<span class="sr">${esc(t("Project"))}: </span>${esc(p)}</span>`;
+const branchTag = b => b ? `<span class="tg" title="${esc(t("Branch"))}">${ico("branch")}<span class="sr">${esc(t("Branch"))}: </span>${esc(b)}</span>` : "";
+function norecStat(k, srcs, h){ return `<div class="stat norec"><div class="k">${k}${hb(h)}</div><div class="v">${esc(t("Not recorded"))}</div><div class="s">${esc(srcs.length > 1 ? t("{agents} don't record this", {agents: srcs.join(", ")}) : t("{agents} doesn't record this", {agents: srcs.join(", ")}))}</div></div>`; }

@@ -6,6 +6,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Added
 
+- The view in Japanese: it follows the browser's language (Japanese if the browser prefers Japanese, otherwise English), and the button at the top right switches between English and 日本語. `kiroku html --lang ja` and `kiroku serve --lang ja` (or `KIROKU_LANG`) pick the language when the viewer hasn't chosen one. Labels, tooltips, dialogs, the "?" explanations, the Year in review and its image, and dates (10月14日(水)) are translated; history, agent and model names, `kiroku json`, the terminal output and the prompts copied for an AI stay as they are ([ADR 0029](docs/adr/0029-japanese-ui.md))
 - Project view: inspect observed sessions, Git commits and recorded pull requests grouped by project, with an agent-source breakdown, expandable complete event lists and existing detail navigation. View choice remains independent of Week/Month.
 - Journey view: inspect observed AI sessions by project and day alongside the Week and Month calendar. Session details and existing search/filter remain available.
 - `kiroku serve --ai`: "Run with AI" on session reviews and daily, weekly and monthly reports runs the prompt with `claude`, `codex` or `kiro-cli` on this computer after you confirm each run, and shows the result. Off unless you pass `--ai`; the agent may send the prompt and the history it reads to its provider
@@ -13,6 +14,9 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Fixed
 
+- Week calendar: pressing or tabbing to a day's "Report" button no longer scrolls the calendar back to midnight
+- Search: when nothing matches anywhere, only the search results say so (the calendar no longer adds a second empty message), and dates in the results stay on one line
+- Amazon Q / Kiro CLI (SQLite): when you quit at a tool approval and later ran `--resume` without input, the summary request the CLI sends ("In a few words, summarize our conversation so far.") was counted as your prompt, and so were the `/todos resume` and response-timeout requests in the same situation. The CLI stores them as the answer to the unfinished tool call, so kiroku now recognizes them there too and shows them as notes
 - "Run with AI" (`kiroku serve --ai`): Claude Code ran with no tools, so it couldn't open the history files the review and report prompts point to; it now has the Read tool, limited to the history folders. Codex refused to run when `kiroku serve` was started outside a git repository. The agent now runs in an empty temporary folder, so the project instructions and settings of the folder `kiroku serve` was started in no longer apply, and when it fails, the view shows the agent's own error message (such as not being signed in) instead of "AI execution failed (HTTP 502)"
 - View accessibility: Calendar, Journey and Project now use view-specific accessible region labels, skip-link text and filtering descriptions.
 - Kiro: a Kiro CLI Classic session that you open in Kiro CLI 3.0 (`kiro-cli chat --v3 --resume-id <id>`) was counted twice, once in "Kiro CLI (Classic)" and once in "Kiro IDE / CLI", because kiro-cli copies it to the 3.0 store as `sess_<id>` and keeps the Classic file. It is now counted once, as the 3.0 session, which holds the prompts sent after the switch. The 3.0 copy has no credit records for the turns before the switch, so their credits, turn count and model requests are taken from the Classic session ([ADR 0021](docs/adr/0021-kiro-cli-v3-separate-source.md))
@@ -29,6 +33,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Security
 
+- The page now asks browsers not to offer page translation (`translate="no"`). A browser's built-in translation can send the page's text, which includes your prompts, titles and file paths, to the browser vendor's translation service; use the Japanese view instead
 - Running an AI agent from the view (`POST /ai/run`) was on whenever `kiroku serve` listened on loopback, so any page with the serve key could have an agent read history and send it to its provider without you choosing to allow it. It is now off unless you start `kiroku serve --ai`, and the view shows "Run with AI" only then
 - The "Discover knowledge" prompt now puts the project's history inside a fenced block, one line per value, and marks it as data, as the other AI prompts do, so a title or prompt in history can't forge lines that look like kiroku's or close the block
 - A Kiro Crew conversation held in incognito or temporary mode, opened in Kiro CLI 3.0 (`--resume-id`), is now shown with counts and times only in its 3.0 copy too, as its Classic and SQLite copies already were; its prompts and title in the 3.0 copy were shown in full

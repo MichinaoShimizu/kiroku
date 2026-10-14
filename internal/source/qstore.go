@@ -216,6 +216,13 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 					reply = false
 				case trimmed == qDenied, qForbidden(trimmed): // 「n」で断った・設定で禁じた引数のツールを CLI が断った
 					s.Inject(t, "meta", text)
+				case qInjected[trimmed] != "":
+					// ツールの確認の途中で止めた会話の --resume など、CLI が入れた依頼も、前のターンがツールの呼び出しなら
+					// CancelledToolUses に書き換えられる（conversation.rs の enforce_conversation_invariants）。Prompt と同じく数えない
+					s.Inject(t, qInjected[trimmed], text)
+					reply = trimmed != qResumeSummary
+				case strings.HasPrefix(trimmed, qSystemNote): // /todos resume が入れた依頼（同じく書き換えられたもの）
+					s.Inject(t, "meta", text)
 				default: // 断ったときに人が打った文（conversation.rs の abandon_tool_use）。上と同じくそのまま数える
 					s.PromptRaw(t, text)
 				}

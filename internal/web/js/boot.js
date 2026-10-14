@@ -9,8 +9,16 @@ if (DATA.length && !MONTHS[mkey(st.month)]) st.month = monthOf(new Date(DATA[DAT
 if (META && META.scope){ const f = scopeStart(); st.week = mondayOf(f); st.month = monthOf(f); st.mode = META.scope.mode;
   const bar = $("#scopebar"); bar.textContent = ""; bar.insertAdjacentHTML("beforeend", scopeNote()); bar.hidden = false;
   if (META.scope.mode === "week") $("#mode").hidden = true; }
+// 言語を切り替えて開き直したときは、切り替える前の期間とセッションに戻る（setLang）
+try { const k = JSON.parse(sessionStorage.getItem("kiroku:keep") || "null"); sessionStorage.removeItem("kiroku:keep");
+  if (k && /^\d{4}-\d{2}-\d{2}$/.test(k.week) && /^\d{4}-\d{2}$/.test(k.month)){
+    const [y, m, d] = k.week.split("-").map(Number), [my, mm] = k.month.split("-").map(Number);
+    st.week = mondayOf(new Date(y, m-1, d)); st.month = new Date(my, mm-1, 1);
+    if (k.mode === "week" || k.mode === "month") st.mode = k.mode;
+    if (typeof k.sel === "string" && DATA.some(s => s.id === k.sel)) st.sel = k.sel; } } catch(e){}
+applyStaticText();
 const mq = matchMedia("(max-width:1000px)"),
- ph = () => $("#q").placeholder = mq.matches ? "Search" : "Prompts, files, commits"; // 狭い画面では入力欄も狭いので短く
+ ph = () => $("#q").placeholder = t(mq.matches ? "Search" : "Prompts, files, commits"); // 狭い画面では入力欄も狭いので短く
 mq.addEventListener("change", () => { ph(); render(); }); ph();
 applyTheme(); render(); scrollToWork();
 

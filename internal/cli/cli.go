@@ -33,7 +33,7 @@ Commands:
   stats                 Print a one-screen summary of this week (--week last, --month this, ...) in the terminal
   archive [on|off]      Keep compressed copies of history that agents delete (Claude Code, Kiro Crew); no argument shows the status
   autostart [on|off]    Start "kiroku serve" in the background each time you log in; no argument shows the status
-  doctor                Check what kiroku can read and whether your history will be deleted, and what to run next
+  doctor                Check what kiroku can read, whether any history will be deleted, and what to run next
   version               Print the version
   update                Update kiroku to the latest release
   help                  Show this help
@@ -102,7 +102,7 @@ func addCommon(fs *flag.FlagSet) *common {
 		claudeRoot: fs.String("claude-root", source.DefaultClaudeRoot(), "Claude Code history directory ($CLAUDE_CONFIG_DIR/projects or ~/.claude/projects)"),
 		kiroHome:   fs.String("kiro-home", source.DefaultKiroHome(), "Kiro data directory ($KIRO_HOME)"),
 		crewHome:   fs.String("crew-home", "", "Kiro Crew data directory (default $KIROCREW_HOME or ~/.kiro/crew; not moved by --kiro-home or $KIRO_HOME)"),
-		kiroCLIDB:  fs.String("kiro-cli-db", "", "path to the data.sqlite3 of Kiro CLI (SQLite), older Kiro CLI versions (default: OS-specific)"),
+		kiroCLIDB:  fs.String("kiro-cli-db", "", "path to data.sqlite3 of older Kiro CLI versions (Kiro CLI (SQLite)) (default: OS-specific)"),
 		amazonQDB:  fs.String("amazonq-db", "", "path to the Amazon Q Developer CLI data.sqlite3 (default: OS-specific)"),
 		codexHome:  fs.String("codex-home", "", "Codex data directory (default $CODEX_HOME or ~/.codex)"),
 		sources:    fs.String("sources", strings.Join(core.Families(), ","), "comma-separated sources to read: "+core.FamiliesHelp()),
@@ -240,6 +240,24 @@ func newFS(name, usage string) *flag.FlagSet {
 	return fs
 }
 
+// langFlag は画面の言語（ADR 0029）。見る人は画面で切り替えられる。既定は $KIROKU_LANG、なければ英語。
+// $KIROKU_LANG の値が使えないときは、止めずに注意だけ出して、ブラウザの言語に任せる（autostart の serve が起動のたびに落ちないように）。
+func langFlag(fs *flag.FlagSet) *string {
+	env := os.Getenv("KIROKU_LANG")
+	if env != "" && !web.ValidLang(env) {
+		fmt.Fprintf(logw, "ignoring KIROKU_LANG=%q: use one of %s\n", env, strings.Join(web.Langs, ", "))
+		env = ""
+	}
+	return fs.String("lang", env, "language of the view: en or ja ($KIROKU_LANG; default: the browser's language, English if it isn't Japanese). You can switch it in the view too")
+}
+
+func checkLang(lang string) error {
+	if lang != "" && !web.ValidLang(lang) {
+		return fmt.Errorf("--lang must be one of %s: %s", strings.Join(web.Langs, ", "), lang)
+	}
+	return nil
+}
+
 // quiet は --help のときにエラーにしない。
 func quiet(err error) error {
 	if errors.Is(err, flag.ErrHelp) {
@@ -254,6 +272,7 @@ func cmdServe(args []string) error {
 	interval := fs.Duration("interval", 5*time.Second, "how often to check the history for changes (reloads after writes settle)")
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
 	allow := fs.String("allow-host", "", "comma-separated extra host `names` the view may be opened by (e.g. a name in your hosts file); localhost, 127.0.0.1 and ::1 always work, and this computer's own IPs and host name too when ADDR is 0.0.0.0 or another all-interfaces address")
+	lang := langFlag(fs)
 	aiRun := fs.Bool("ai", false, "let the view run a review or report prompt with an AI agent installed on this computer (claude, codex or kiro-cli), after you confirm each run; the agent may send the prompt and the history it reads to its provider. Needs a numeric loopback ADDR such as 127.0.0.1:8485")
 	pos, err := parse(fs, args, 1)
 	if err != nil {
@@ -270,8 +289,11 @@ func cmdServe(args []string) error {
 	if err != nil {
 		return err
 	}
+	if err := checkLang(*lang); err != nil {
+		return err
+	}
 	_, want, all := c.picked()
-	return serveLiveWithAI(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen, *aiRun, scanWatchPaths(all, want))
+	return serveLiveWithAI(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen, *aiRun, *lang, scanWatchPaths(all, want))
 }
 
 func cmdHTML(args []string) error {
@@ -282,8 +304,12 @@ func cmdHTML(args []string) error {
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
 	week := fs.String("week", "", "write only this `week` (this, last, or any date in it such as 2026-10-05); default file kiroku-<monday>.html")
 	month := fs.String("month", "", "write only this `month` (this, last, or 2026-09); default file kiroku-<month>.html")
+	lang := langFlag(fs)
 	if _, err := parse(fs, args, 0); err != nil {
 		return quiet(err)
+	}
+	if err := checkLang(*lang); err != nil {
+		return err
 	}
 	p, err := parsePeriod(*week, *month, time.Now())
 	if err != nil {
@@ -295,7 +321,7 @@ func cmdHTML(args []string) error {
 	}
 	snap := load()
 	if p == nil {
-		return writeHTML(snap, *out, !*noOpen)
+		return writeHTML(snap, *out, !*noOpen, *lang)
 	}
 	explicit := false
 	fs.Visit(func(f *flag.Flag) { explicit = explicit || f.Name == "o" || f.Name == "out" })
@@ -303,7 +329,7 @@ func cmdHTML(args []string) error {
 		*out = p.file()
 	}
 	if len(snap.data) == 0 {
-		return writeHTML(snap, *out, !*noOpen) // 履歴がまったくないときの案内は writeHTML が出す
+		return writeHTML(snap, *out, !*noOpen, *lang) // 履歴がまったくないときの案内は writeHTML が出す
 	}
 	first, last := snap.data[0].Start, snap.data[0].End
 	for _, d := range snap.data {
@@ -314,10 +340,10 @@ func cmdHTML(args []string) error {
 		day := func(t float64) string { return time.Unix(int64(t), 0).Format("2006-01-02") }
 		return fmt.Errorf("no history in %s (your history covers %s to %s)", p.label(), day(first), day(last))
 	}
-	if err := writeHTML(snap, *out, !*noOpen); err != nil {
+	if err := writeHTML(snap, *out, !*noOpen, *lang); err != nil {
 		return err
 	}
-	fmt.Fprintf(logw, "it has only %s, but includes its prompts, the AI's replies, file paths and commit messages as they are; check it before sharing\n", p.label())
+	fmt.Fprintf(logw, "%s has only %s, but includes its prompts, the AI's replies, file paths and commit messages as they are; check it before sharing\n", *out, p.label())
 	return nil
 }
 
@@ -346,16 +372,21 @@ func loadNonEmpty(c *common) (snapshot, error) {
 	}
 	snap := load()
 	if len(snap.data) == 0 {
-		return snap, fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --codex-home, --amazonq-db; see \"kiroku html --help\")")
+		return snap, fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db, --amazonq-db; see \"kiroku doctor --all\")")
 	}
 	return snap, nil
 }
 
-func writeHTML(snap snapshot, out string, open bool) error {
+func writeHTML(snap snapshot, out string, open bool, lang string) error {
 	if len(snap.data) == 0 {
-		return fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --codex-home, --amazonq-db; see \"kiroku html --help\")")
+		return fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db, --amazonq-db; see \"kiroku doctor --all\")")
 	}
-	html, err := web.Render(snap.data, snap.weeks, snap.months, snap.meta, snap.gen, false)
+	parts, err := web.Marshal(snap.data, snap.weeks, snap.months, snap.meta, snap.gen)
+	if err != nil {
+		return err
+	}
+	parts.Lang = lang
+	html, err := parts.HTML(false)
 	if err != nil {
 		return err
 	}
