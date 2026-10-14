@@ -24,7 +24,7 @@ git status --short
 ## 1. CI と同じチェック
 
 ```bash
-sh tools/check.sh          # gofmt・vet・staticcheck・govulncheck・test・build・shellcheck
+sh tools/check.sh          # gofmt・vet・staticcheck・govulncheck・test・build・seclint（セキュリティの lint）・shellcheck
 sh tools/check.sh --e2e    # internal/web か tools/screenshots を変えたとき
 ```
 
@@ -75,7 +75,7 @@ CLAUDE.md の「Architecture decisions」のとおり、`docs/adr/README.md` の
 - **CHANGELOG**: ユーザーに見える変更は `## Unreleased` の `### Added`・`### Changed`・`### Fixed`・`### Security` などに英語で書いたか。コマンド・オプション・出力ファイルを壊す変更は `BREAKING` と書いたか（`sh tools/next-version.sh` で次の版が意図どおりか見る）。内部だけの変更・テスト・ドキュメントだけなら書かない
 - **ドキュメント**: 画面・コマンド・オプション・指標を変えたら、README・`docs/guide.md` を同じ PR で直したか。指標の説明を変えたら `HELP` と guide の表の両方か（`TestHelpMatchesGuide`）
 - **スクショ**: README と guide に載っている画面の見た目を変えたら、撮り直したか（`sh tools/screenshots/run.sh`。手順は `/docs-refresh` の 2）
-- **ベンチマーク**: 読み取り・集計・描画を変えたら、変更の前と後で `go test ./internal/cli -run '^$' -bench Large -benchtime 3x -benchmem` を回し、両方の結果を PR の本文に載せる
+- **ベンチマーク**: 読み取り・集計・描画を変えたら、`git fetch origin main` のあと `sh tools/bench-compare.sh` を回し（origin/main と今の作業ツリーで BenchmarkLarge を 6 回ずつ回し、benchstat で比べる。比べる元は引数で変えられる）、出てきた比較を PR の本文に載せる。速さ・メモリが有意に悪くなっていたら（benchstat の p が小さく、変化が数 % を超える）、理由を書くか直す
 - **データ**: `testdata/` やスクショに本物の履歴・手元のパス・ユーザー名が入っていない（`/Users/me` のような作り物だけ）
 
 ## 5. diff を読み直す

@@ -45,7 +45,7 @@ sh tools/check.sh                       # gofmt・vet・staticcheck・govulnchec
 sh tools/check.sh --e2e                 # 画面の e2e（smoke.mjs）と XSS
 go test -count=3 ./...                  # 3 回まわして、時刻や順番で落ちるテストを探す
 go test -cover ./... | sort -k5         # カバレッジ（前回より大きく下がったパッケージを見る）
-go test ./internal/cli -run '^$' -bench Large -benchtime 3x -benchmem   # 前回の記録と比べる
+go test ./internal/cli -run '^$' -bench Large -benchtime 3x -benchmem   # 前回の記録と比べる（前回の精査の commit と比べるなら sh tools/bench-compare.sh <commit>）
 ```
 
 - main の CI の直近の結果: `gh api "repos/MichinaoShimizu/kiroku/actions/runs?branch=main&per_page=20" --jq '.workflow_runs[] | "\(.name) \(.conclusion)"'`。失敗があれば原因を調べる（「flake」は原因ではない）
