@@ -92,7 +92,7 @@ function kpis(){
   const u = w.usage || {}, days = w.days.filter(d => d.active).length, pj = projection(w);
   const n0 = soFar(), nd = n0 == null ? w.days.length : Math.min(n0, w.days.length); // 途中の週・月は、まだ来ていない日を分母に入れない（今日までの日数）
   // 前の期間並みに収めるなら、残りの日 1 日あたりいくらか（pacing）。超えていれば、超えた分。良し悪しは言わない
-  const pc = pacing(w, pw), paceK = (x, id, f, cr) => !x ? "" : x.rest > 0
+  const pc = pacing(w, pw), paceK = (x, id, f, cr) => !x ? "" : x.rest >= 0 // ちょうど同じ額なら、超過 +0 ではなく 1 日 0
     ? kpi(cr ? t(M ? "Credits a day to match last month" : "Credits a day to match last week") : t(M ? "A day to match last month" : "A day to match last week"), `${f(x.per)}<small class="xd"> × ${esc(plural(pc.left, "day"))}</small>`, t(M ? "To stay at last month's total of {v}" : "To stay at last week's total of {v}", {v: f(x.ref, true)}), "key", id)
     : kpi(cr ? t(M ? "Past last month's credits" : "Past last week's credits") : t(M ? "Past last month's total" : "Past last week's total"), `<small>+</small>${f(-x.rest)}`, t(M ? "Last month's total was {v}" : "Last week's total was {v}", {v: f(x.ref, true)}), "key", id);
   const pace = pj ? t("If the pace of the first {n} days continues", {n: pj.days}) : "";
@@ -127,13 +127,13 @@ const calDl = rows => `<dl class="cm">${rows.map(([k, v, c]) => `<div${c ? ` cla
 function calShort(act, u, un, kinds){
   const q = un ? " u" : "";
   const use = [u && (kinds.cost ? u.cost > 0 && usdS(u.cost) : u.tokens && tokS(u.tokens)) || "", u && u.credits ? cr(u.credits) : ""].filter(Boolean);
-  return `<span class="acs${q}">${act >= 60 ? (act/60).toFixed(1)+"h" : act+"m"}</span>${use.map(v => `<span class="uss${q}">${v}</span>`).join("")}`;
+  return `<span class="acs${q}">${act >= 60 ? (act/60).toFixed(1)+"h" : act+"m"}</span>${use.map(v => `<span class="uss${q}">${esc(v)}</span>`).join("")}`;
 }
 // allowH は、まだ来ていない日に置く「目安」：前の期間と同じ推定費用（クレジット）に収めるなら、残りの日 1 日あたりいくらか（pacing）。
 // 前の期間をもう超えていれば出さない（0 と書くと「使うな」と読めるため。超えたことは上の帯が言う）。short は月のマス（狭い）
 function allowH(pc, short){
   const xs = [pc.cost && pc.cost.rest > 0 && usd(pc.cost.per), pc.credits && pc.credits.rest > 0 && cr(pc.credits.per)].filter(Boolean); if (!xs.length) return short ? "" : `<small>—</small>`;
-  const tip = t(st.mode === "month" ? "To stay at last month's total, about this much a day for the {n} days left" : "To stay at last week's total, about this much a day for the {n} days left", {n: pc.left});
+  const tip = t(st.mode === "month" ? "To stay at last month's total, about this much a day for the {n} left" : "To stay at last week's total, about this much a day for the {n} left", {n: plural(pc.left, "day")});
   return `<div class="allow${short ? " s" : ""}"${tipAttr(t("To match"), tip, ...xs)}><span>${esc(t("To match"))}</span>${xs.map(x => `<b>${esc(x)}</b>`).join("")}</div>`;
 }
 const filtering = () => !!st.q || st.hidden.size > 0;

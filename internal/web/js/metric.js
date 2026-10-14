@@ -92,7 +92,7 @@ const calcH = parts => `<div class="mcalc">${parts.map(p => typeof p === "string
 // 前の期間並みに収める 1 日の目安（pacing）：前の期間の合計 − ここまで = 残り、÷ 残りの日。
 // 費用だけでなく、前の期間とここまでに残したもの（コミット）も並べる。費用が同じでも、残したものが減っていれば気づけるように
 function paceBody(w, k, m){
-  const pc = pacing(w, period().P), x = pc && pc[k]; if (!x) return null; const M = st.mode === "month", on = x.rest > 0, C = k === "credits";
+  const pc = pacing(w, period().P), x = pc && pc[k]; if (!x) return null; const M = st.mode === "month", on = x.rest >= 0, C = k === "credits";
   // 見出しは上の帯と同じ言葉（超えたあとは「超過」。超えた分を 1 日の目安と読まれないように）
   const title = on ? (C ? t(M ? "Credits a day to match last month" : "Credits a day to match last week") : t(M ? "A day to match last month" : "A day to match last week"))
     : (C ? t(M ? "Past last month's credits" : "Past last week's credits") : t(M ? "Past last month's total" : "Past last week's total"));
