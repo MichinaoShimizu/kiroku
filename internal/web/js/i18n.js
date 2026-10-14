@@ -119,6 +119,7 @@ const JA_TEXT = {
   "Change period": "期間を変える",
   "Changed most often": "変更の多いファイル",
   "Check that you use them to save the main conversation's context": "メインの会話のコンテキストを節約するために使っているか確かめる",
+  "The agent you choose may send the prompt and the history it reads to its provider.": "選んだエージェントは、プロンプトと読んだ履歴をその提供元に送ることがあります。",
   "Check the exact prompt below. When you press Run, it goes to the agent on this computer.": "送るプロンプトを下で確かめてください。「実行」を押すと、この PC のエージェントに渡します。",
   "Check the same metric": "同じ指標を確かめる",
   "Claude Code sessions": "Claude Code のセッション",

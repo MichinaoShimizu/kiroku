@@ -4,6 +4,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Changed
+
+- The "Analyze with AI" dialog again says, next to the prompt you confirm, that the agent you choose may send the prompt and the history it reads to its provider. [ADR 0030](docs/adr/0030-opt-in-local-agent-execution.md) records `kiroku serve --ai` as an opt-in exception to "history stays on the machine" (ADR 0022)
+
 ### Fixed
 
 - The page `kiroku serve` shows while it reads your history follows the view's language (`--lang`, the language chosen in the view, or the browser's), so it is in Japanese too
