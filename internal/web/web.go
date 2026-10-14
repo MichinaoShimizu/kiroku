@@ -32,6 +32,7 @@ var (
 // まだ決まっていない名前を使わないよう、この順は変えない。ファイルを足したらここにも書く。
 var scripts = []string{
 	"state.js",    // 埋め込んだデータ・画面の状態
+	"i18n.js",     // 画面の文言の日本語（ADR 0029）
 	"format.js",   // 書き方の小物・色・テーマ
 	"markdown.js", // 書き出す Markdown に履歴の文字を入れる小物
 	"ui.js",       // 共通の部品（印・セッションのカード・見出し・数の枠）
@@ -91,6 +92,19 @@ func assemble(s string, pairs ...string) string {
 	return s
 }
 
+// Langs are the languages the view can be shown in (ADR 0029). English is the default.
+var Langs = []string{"en", "ja"}
+
+// ValidLang reports whether lang is one of Langs.
+func ValidLang(lang string) bool {
+	for _, l := range Langs {
+		if l == lang {
+			return true
+		}
+	}
+	return false
+}
+
 // Render は __DATA__ などの置き場に JSON を入れる。
 // encoding/json は < > & を < などに変えるので、</script> で閉じられる心配はない。
 // live が true なら、画面は /stamp を見張って新しい履歴を取り込む（--serve 用）。
@@ -106,6 +120,9 @@ func Render(data, weeks, months, meta any, generated float64, live bool) (string
 // 両方で配るので、1 回だけ JSON にして使い回す（1 年分の履歴で、セッションだけで 20 MB ほどになる）。
 type Parts struct {
 	data, weeks, months, meta, gen []byte
+	// Lang is the view's language when the viewer hasn't chosen one ("en" or "ja"; empty follows the browser's language).
+	// The viewer can still switch it in the page.
+	Lang string
 }
 
 // Marshal は画面に入れるデータを JSON にする。
@@ -127,7 +144,11 @@ func Marshal(data, weeks, months, meta any, generated float64) (*Parts, error) {
 // HTML は、置き場にデータを入れた画面。
 func (p *Parts) HTML(live bool) (string, error) {
 	repl := []string{"__DATA__", string(p.data), "__WEEKS__", string(p.weeks), "__MONTHS__", string(p.months), "__META__", string(p.meta), "__GEN__", string(p.gen)}
-	for k, v := range map[string]any{"__LIVE__": live, "__PROMPT_RUNES__": core.PromptRunes, "__REPLY_RUNES__": core.ReplyRunes, "__RECORDS__": core.Records, "__AGENTS__": core.Agents, "__AGENT_WARN__": core.AgentWarnSlots} {
+	lang := p.Lang // 空なら、画面がブラウザの言語に合わせる
+	if !ValidLang(lang) {
+		lang = ""
+	}
+	for k, v := range map[string]any{"__LANG__": lang, "__LIVE__": live, "__PROMPT_RUNES__": core.PromptRunes, "__REPLY_RUNES__": core.ReplyRunes, "__RECORDS__": core.Records, "__AGENTS__": core.Agents, "__AGENT_WARN__": core.AgentWarnSlots} {
 		b, err := json.Marshal(v)
 		if err != nil {
 			return "", err

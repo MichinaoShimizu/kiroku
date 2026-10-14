@@ -42,6 +42,7 @@ type live struct {
 	print io.Writer
 	keep  func() error  // 画面から kiroku archive をオンにする（nil ならできない）
 	aiRun http.Handler  // nil means AI execution remains disabled
+	lang  string        // the view's language when the page doesn't choose one (kiroku serve --lang)
 	ready bool          // 最初の読み込みが終わったか（mu で守る）。終わるまでは読み込み中の画面と 503 を返す
 	fail  error         // 最初の読み込みの失敗（mu で守る）。読み込み中の画面に出す
 	prog  *loadProgress // 最初の読み込みの進み具合（読み込み中の画面が /progress で見る）
@@ -65,6 +66,7 @@ func (l *live) refresh() error {
 	if err != nil {
 		return err
 	}
+	parts.Lang = l.lang
 	html, err := parts.HTML(true)
 	if err != nil {
 		return err
@@ -528,10 +530,10 @@ func newServer(h http.Handler) *http.Server {
 // 読み終わるまでは、読み込み中の画面を出す。
 // AI execution stays off; serveLiveWithAI turns it on for kiroku serve --ai.
 func serveLive(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool) error {
-	return serveLiveWithAI(addr, allow, every, picked, load, keep, open, false)
+	return serveLiveWithAI(addr, allow, every, picked, load, keep, open, false, "")
 }
 
-func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool, enableAI bool) error {
+func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool, enableAI bool, lang string) error {
 	if every < time.Second {
 		every = time.Second
 	}
@@ -559,14 +561,14 @@ func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []
 	for _, s := range picked {
 		names = append(names, s.Name())
 	}
-	l := &live{load: load, paths: paths, roots: historyRoots(picked), print: logw, keep: keep, prog: newProgress(names)}
+	l := &live{load: load, paths: paths, roots: historyRoots(picked), print: logw, keep: keep, prog: newProgress(names), lang: lang}
 	if enableAI {
 		l.aiRun = ai.NewHandler(ai.Runner{Enabled: true, Dirs: l.roots})
 	}
 	addr = ln.Addr().String()
 	url := viewURL(addr)
 	st := styleFor(l.print)
-	fmt.Fprintf(l.print, "serving %s %s\n", st.bold(url), st.dim("(reading history...; press Ctrl+C to stop)"))
+	fmt.Fprintf(l.print, "serving %s %s\n", st.bold(url), st.dim("(reading history…; press Ctrl+C to stop)"))
 	startLive(l, every)
 	fmt.Fprintln(l.print, st.dim("only browsers with its key can open it (to protect it from other users of this computer); \"kiroku open\" opens it with the key"))
 	if enableAI {

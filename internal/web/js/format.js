@@ -15,15 +15,16 @@ function hm(t){ return new Date(t*1000).toLocaleTimeString("en-US",{hour:"2-digi
    どれも Date の日付をそのまま読むだけなので、デモや期間だけのファイルの時計（SHIFT）はそのまま効く */
 const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const MONTH = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const dMD = d => `${MON[d.getMonth()]} ${d.getDate()}`; // Sep 28
-const dMDY = d => `${dMD(d)}, ${d.getFullYear()}`; // Sep 28, 2026
-const dMY = d => `${MONTH[d.getMonth()]} ${d.getFullYear()}`; // October 2026
+// 日本語では 9月28日・2026年9月28日・2026年10月
+const dMD = d => isJA() ? `${d.getMonth()+1}月${d.getDate()}日` : `${MON[d.getMonth()]} ${d.getDate()}`; // Sep 28
+const dMDY = d => isJA() ? `${d.getFullYear()}年${dMD(d)}` : `${dMD(d)}, ${d.getFullYear()}`; // Sep 28, 2026
+const dMY = d => isJA() ? `${d.getFullYear()}年${d.getMonth()+1}月` : `${MONTH[d.getMonth()]} ${d.getFullYear()}`; // October 2026
 // dSpan は a から b まで（"Sep 28 – Oct 4"）。y なら年も付ける（"Sep 28 – Oct 4, 2026"、年をまたぐときは両方に）
-function dSpan(a, b, y){ return !y ? `${dMD(a)} – ${dMD(b)}` : a.getFullYear() === b.getFullYear() ? `${dMD(a)} – ${dMDY(b)}` : `${dMDY(a)} – ${dMDY(b)}`; }
+function dSpan(a, b, y){ return !y ? `${dMD(a)} – ${dMD(b)}` : a.getFullYear() !== b.getFullYear() ? `${dMDY(a)} – ${dMDY(b)}` : isJA() ? `${dMDY(a)} – ${dMD(b)}` : `${dMD(a)} – ${dMDY(b)}`; }
 // dPeriod は、文面（週報の下書き・AI へのプロンプト）に書く期間の名前。月は "October 2026"、週は "Sep 28 – Oct 4, 2026"
 const dPeriod = (M, a, b) => M ? dMY(a) : dSpan(a, b, true);
-function dStamp(t){ return `${dMDY(new Date(t*1000))}, ${hm(t)}`; } // Oct 6, 2026, 17:14（時刻はカレンダーと同じ 24 時間で）
-function md(t){ const d = new Date(t*1000); return `${DOW[d.getDay()]}, ${dMD(d)}`; } // Mon, Sep 28
+function dStamp(t){ return `${dMDY(new Date(t*1000))}${isJA() ? " " : ", "}${hm(t)}`; } // Oct 6, 2026, 17:14（時刻はカレンダーと同じ 24 時間で）
+function md(t){ const d = new Date(t*1000); return isJA() ? `${dMD(d)}(${DOW[d.getDay()]})` : `${DOW[d.getDay()]}, ${dMD(d)}`; } // Mon, Sep 28・9月28日(月)
 function dur(m, html){ m = Math.round(m); const h = Math.floor(m/60), r = m%60;
   const u = x => html ? `<small>${x}</small>` : x; return h ? `${h}${u("h")}${r ? ` ${r}${u("m")}` : ""}` : `${r}${u("m")}`; }
 function tok(n){ n = n || 0; return n >= 1e9 ? (n/1e9).toFixed(1)+"B" : n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? Math.round(n/1e3)+"K" : String(n); }
@@ -34,7 +35,7 @@ function usdH(v){ const s = esc(usd(v)), i = s.indexOf("$"); return i < 0 ? s : 
 // costOf は使用量の目安コスト。見積もれた分がなく、料金表にないモデルのトークンだけなら null（usd・usdH が "—" にする）。
 // 値がないところに $0.00 と出すと「使っていない」と読めてしまうため（Codex のように料金表にないモデルだけを使ったとき）
 const costOf = u => !u ? null : !u.cost && u.unpriced ? null : (u.cost || 0);
-const NOPRICE = "The models used are not in the price table, so the estimated cost cannot be shown. Add their prices with --prices";
+const NOPRICE = t("The models used are not in the price table, so the estimated cost cannot be shown. Add their prices with --prices.");
 const crN = v => v >= 1 || v <= 0 ? commas(Math.round(v)) : v.toFixed(2); // クレジットは整数で（1 未満だけ小数 2 桁）
 function cr(v){ return `${crN(v)} cr`; }
 const tokS = v => v >= 1e7 ? Math.round(v/1e6)+"M" : v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e4 ? Math.round(v/1e3)+"K" : tok(v); // 狭いマス用に、桁を減らしたトークン
@@ -80,14 +81,14 @@ function searchText(s){
   return t;
 }
 function toast(msg, ms){ const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(()=>t.classList.remove("on"), ms || 1600); }
-async function copy(text, msg, ms, btn){ try { await navigator.clipboard.writeText(text); toast(msg || "Copied", ms); copied(btn); } catch(e){ toast("Couldn't copy"); } }
+async function copy(text, msg, ms, btn){ try { await navigator.clipboard.writeText(text); toast(msg || t("Copied"), ms); copied(btn); } catch(e){ toast(t("Couldn't copy")); } }
 function copied(btn){ if (!btn) return; btn.classList.add("ok"); clearTimeout(btn._ok); btn._ok = setTimeout(() => btn.classList.remove("ok"), 1600); } // copyBtn の印を ✓ に
 const ICON = { light:'<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6L6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></svg>',
   dark:'<svg class="i" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>' };
 function applyTheme(){ document.documentElement.setAttribute("data-theme", st.theme); // ボタンには、押すと切り替わる先のテーマを出す
   const next = st.theme === "dark" ? "light" : "dark";
-  $("#theme").innerHTML = ICON[next]; $("#theme").setAttribute("aria-label", `Switch to ${next} theme`); }
-const CB = () => ({project: "Project", branch: "Branch", source: "Agent"});
-if (YEAR_ON) $("#keys .keys kbd:nth-of-type(9)").insertAdjacentHTML("beforebegin", `<kbd>Y</kbd><span>Year in review</span>`); // Esc の前に足す
+  $("#theme").innerHTML = ICON[next]; $("#theme").setAttribute("aria-label", next === "dark" ? t("Switch to dark theme") : t("Switch to light theme")); }
+const CB = () => ({project: t("Project"), branch: t("Branch"), source: t("Agent")});
+if (YEAR_ON) $("#keys .keys kbd:nth-of-type(9)").insertAdjacentHTML("beforebegin", `<kbd>Y</kbd><span>${esc(t("Year in review"))}</span>`); // Esc の前に足す
 
 

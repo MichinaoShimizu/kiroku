@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="light"><head><meta charset="utf-8">
+<html lang="en" translate="no" data-theme="light"><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="__CSP__">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
@@ -12,57 +12,58 @@
 <header>
   <div class="wrap bar">
     <div class="brand">
-      <a class="home" id="home" href="/" title="Back to the start"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--ink)"/><rect x="6" y="8" width="13" height="4" rx="2" fill="var(--acc)"/><rect x="11" y="14" width="15" height="4" rx="2" fill="var(--bg)"/><rect x="6" y="20" width="9" height="4" rx="2" fill="var(--bg)" opacity=".55"/></svg>
-      <h1 class="word">kiroku</h1></a><span class="tag">A record of your time with AI</span>
-      <span class="live" id="live" hidden title="Updates automatically as your history grows">LIVE</span>
+      <a data-t class="home" id="home" href="/" title="Back to the start"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--ink)"/><rect x="6" y="8" width="13" height="4" rx="2" fill="var(--acc)"/><rect x="11" y="14" width="15" height="4" rx="2" fill="var(--bg)"/><rect x="6" y="20" width="9" height="4" rx="2" fill="var(--bg)" opacity=".55"/></svg>
+      <h1 class="word">kiroku</h1></a><span data-t class="tag">A record of your time with AI</span>
+      <span data-t class="live" id="live" hidden title="Updates automatically as your history grows">LIVE</span>
     </div>
-    <label class="search"><span class="sr">Search</span>
+    <label class="search"><span data-t class="sr">Search</span>
       <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
-      <input id="q" type="search" placeholder="Prompts, files, commits" autocomplete="off"><kbd>/</kbd></label>
-    <button class="iconbtn" id="guide" aria-label="Metrics guide" title="Metrics guide (G)" aria-haspopup="dialog"><svg class="i" viewBox="0 0 24 24"><path d="M9 4.5L3.5 6.5v13l5.5-2 6 2 5.5-2v-13l-5.5 2z"/><path d="M9 4.5v13M15 6.5v13"/></svg></button>
-    <button class="iconbtn" id="theme" aria-label="Switch theme"></button>
-    <button class="iconbtn" id="help" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)"><svg class="i" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h.01M10 10h.01M13.5 10h.01M17 10h.01M8 14h8"/></svg></button>
+      <input data-t id="q" type="search" placeholder="Prompts, files, commits" autocomplete="off"><kbd>/</kbd></label>
+    <button data-t class="iconbtn" id="guide" aria-label="Metrics guide" title="Metrics guide (G)" aria-haspopup="dialog"><svg class="i" viewBox="0 0 24 24"><path d="M9 4.5L3.5 6.5v13l5.5-2 6 2 5.5-2v-13l-5.5 2z"/><path d="M9 4.5v13M15 6.5v13"/></svg></button>
+    <button data-t class="iconbtn" id="theme" aria-label="Switch theme"></button>
+    <button class="iconbtn langbtn" id="lang" type="button"></button>
+    <button data-t class="iconbtn" id="help" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)"><svg class="i" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h.01M10 10h.01M13.5 10h.01M17 10h.01M8 14h8"/></svg></button>
   </div>
 </header>
 <main class="wrap">
   <p class="scope" id="scopebar" role="note" hidden></p>
-  <section class="week" aria-label="Period">
-    <nav class="wk" aria-label="Change period">
+  <section data-t class="week" aria-label="Period">
+    <nav data-t class="wk" aria-label="Change period">
       <div class="lbl" aria-live="polite"><div class="y" id="ry"></div><div class="d" id="rd"></div></div>
       <div class="nav">
-        <button class="iconbtn" id="prev" aria-label="Previous"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
-        <button class="iconbtn" id="next" aria-label="Next"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-        <button class="pill" id="today">This week</button>
-        <div class="view-controls"><div class="control-group"><span class="control-label">View</span><div class="segc" role="group" aria-label="View"><button id="calendarbtn" aria-pressed="true">Calendar</button><button id="journeybtn" aria-pressed="false" title="Project activity over time">Journey</button><button id="projectbtn" aria-pressed="false" title="Project-centered activity summary">Project</button></div></div><div class="control-group"><span class="control-label">Period</span><div class="segc mode" role="group" aria-label="Period" id="mode"><button data-v="week">Week</button><button data-v="month">Month</button></div></div><button class="pill year-entry" id="yrbtn" aria-haspopup="dialog" aria-label="Year in review" title="Year in review (Y)" hidden>Year in Review<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 16L16 8M10 8h6v6"/></svg></button></div>
+        <button data-t class="iconbtn" id="prev" aria-label="Previous"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <button data-t class="iconbtn" id="next" aria-label="Next"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button data-t class="pill" id="today">This week</button>
+        <div class="view-controls"><div class="control-group"><span data-t class="control-label">View</span><div data-t class="segc" role="group" aria-label="View"><button data-t id="calendarbtn" aria-pressed="true">Calendar</button><button data-t id="journeybtn" aria-pressed="false" title="Sessions, commits and PRs by project and day">Journey</button><button data-t id="projectbtn" aria-pressed="false" title="One card per project for this period">Project</button></div></div><div class="control-group"><span data-t class="control-label">Period</span><div data-t class="segc mode" role="group" aria-label="Period" id="mode"><button data-t data-v="week">Week</button><button data-t data-v="month">Month</button></div></div><button data-t class="pill year-entry" id="yrbtn" aria-haspopup="dialog" aria-label="Year in review" title="Year in review (Y)" hidden>Year in review<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 16L16 8M10 8h6v6"/></svg></button></div>
       </div>
     </nav>
     <div class="kpis" id="kpis"></div>
   </section>
   <div class="flagsum" id="worth"></div>
-  <div class="legend" id="legend" aria-label="Legend"></div>
-  <section class="srbox" id="sres" aria-label="Search results" hidden></section>
+  <div data-t class="legend" id="legend" aria-label="Legend"></div>
+  <section data-t class="srbox" id="sres" aria-label="Search results" hidden></section>
   <p class="fnote" id="fnote" role="note" hidden></p>
-  <a class="skip" id="skipcal" href="#review">Skip the calendar</a>
-  <section class="tlbox" id="tl" aria-label="Calendar"></section>
-  <section id="review"></section>
+  <a data-t class="skip" id="skipcal" href="#review">Skip calendar</a>
+  <section data-t class="tlbox" id="tl" aria-label="Calendar"></section>
+  <section data-t id="review"></section>
 </main>
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dkind dtitle" aria-hidden="true">
-  <div class="dh"><span class="sr" id="dkind">Session details</span><span class="dt" id="dtop" aria-hidden="true"></span><button class="back" id="back"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Back</button>
-    <button class="iconbtn" id="close" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="dh"><span data-t class="sr" id="dkind">Session details</span><span data-t class="dt" id="dtop" aria-hidden="true"></span><button data-t class="back" id="back"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Back</button>
+    <button data-t class="iconbtn" id="close" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="db" id="panel"></div>
 </aside>
 <div class="tip" id="tip" role="tooltip"></div>
 <div class="hint" id="hpop" role="dialog" hidden></div>
 <div class="toast" id="toast" role="status"></div>
 <dialog id="keys">
-  <form method="dialog" class="dclose"><button class="iconbtn" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form>
-  <div class="eyebrow">Shortcuts</div><h2>Keyboard shortcuts</h2>
+  <form method="dialog" class="dclose"><button data-t class="iconbtn" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form>
+  <div data-t class="eyebrow">Shortcuts</div><h2 data-t>Keyboard shortcuts</h2>
   <div class="keys">
-    <kbd>←</kbd><span>Previous week / month</span><kbd>→</kbd><span>Next week / month</span><kbd>T</kbd><span>Back to this week / month</span>
-    <kbd>/</kbd><span>Search</span><kbd>+</kbd><span>Zoom in (<kbd>−</kbd> to zoom out)</span>
-    <kbd>W</kbd><span>Week view</span><kbd>M</kbd><span>Month view</span>
-    <kbd>G</kbd><span>Metrics guide</span><kbd>Esc</kbd><span>Close details</span><kbd>?</kbd><span>This list</span>
+    <kbd>←</kbd><span data-t>Previous week / month</span><kbd>→</kbd><span data-t>Next week / month</span><kbd>T</kbd><span data-t>Back to this week / month</span>
+    <kbd>/</kbd><span data-t>Search</span><span class="kpair"><kbd>+</kbd> <kbd>−</kbd></span><span data-t>Zoom in / out</span>
+    <kbd>W</kbd><span data-t>Week view</span><kbd>M</kbd><span data-t>Month view</span>
+    <kbd>G</kbd><span data-t>Metrics guide</span><kbd>Esc</kbd><span data-t>Close details</span><kbd>?</kbd><span data-t>This list</span>
   </div>
 </dialog>
 <dialog id="yr" class="yr" aria-labelledby="yrh"></dialog>
