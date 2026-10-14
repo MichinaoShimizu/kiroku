@@ -47,7 +47,8 @@ function mDays(w, m, proj){
   const max = Math.max(...vals, avg, 1e-9);
   const cols = w.days.map((d, i) => { const dt = addDays(a, i), fut = proj && i > cur, v = fut ? avg : vals[i];
     const tip = `${md(dt.getTime()/1000)}: ${fut ? t("≈ {v} at the current pace", {v: m.f(avg)}) : m.f(vals[i])}`;
-    return `<span class="mcol${fut ? " fut" : ""}${i === cur ? " now" : ""}" title="${esc(tip)}"><span class="b" style="height:${v ? Math.max(2, v/max*100) : 0}%"></span><small>${M ? dt.getDate() : DOW[dt.getDay()]}</small></span>`; }).join("");
+    const lab = !M && !fut && v > 0; // 週は 7 本なので、棒の上に値を書く（月は細すぎるので、ポインターを合わせたときだけ）
+    return `<span class="mcol${fut ? " fut" : ""}${i === cur ? " now" : ""}" title="${esc(tip)}">${lab ? `<span class="bv">${esc(m.f(v))}</span>` : ""}<span class="b" style="height:${v ? `calc(${M ? "100%" : "100% - 16px"} * ${Math.max(0.02, v/max).toFixed(4)})` : 0}"></span><small>${M ? dt.getDate() : DOW[dt.getDay()]}</small></span>`; }).join("");
   return `<h3>${esc(t("By day"))}</h3><div class="mdays${M ? " month" : ""}"${proj ? ` style="--avg:${avg/max*100}%"` : ""}>${cols}</div>`;
 }
 // 横の棒の一覧（エージェント・プロジェクト・モデル）。total が false なら割合の欄を空ける（割合や中央値のように、足しても意味のない値）。
@@ -218,14 +219,14 @@ function openMetric(id, from){
       if (m.model) body += mBars("By model", (u.models || []).map(r => ({name: r[0], c: "var(--acc)", v: r[m.model] || 0})), m);
     }
     if (m.ses){ const top = inRange.map(s => [s, m.ses(s) || 0]).filter(x => x[1] > 0).sort((a,b) => b[1] - a[1]).slice(0, 5);
-      body += mSessions(id === "active" ? "Longest sessions" : id === "sessions" ? "Sessions with the most prompts" : id === "tokens" ? "Sessions with the most tokens" : id === "cost" ? "Sessions with the highest estimated cost" : "Sessions with the most credits", top, m.f);
+      body += mSessions(id === "active" ? "Longest sessions" : id === "sessions" ? "Sessions with the most prompts" : id === "tokens" ? "Sessions with the most tokens" : id === "cost" ? "Heaviest sessions" : "Sessions with the most credits", top, m.f);
       if (top.length && id !== "active") body += WHOLE(); }
   }
-  // 英語は「. 」と大文字の前で、日本語（HELP の訳）は最初の「。」の後ろで切る
-  const [d1, dr] = !h ? ["", ""] : JA && h.d.includes("。") ? (i => [h.d.slice(0, i + 1), h.d.slice(i + 1)])(h.d.indexOf("。")) : (i => i < 0 ? [h.d, ""] : [h.d.slice(0, i), h.d.slice(i + 2)])(h.d.search(/\. (?=[A-Z])/));
+  // 英語は「. 」と大文字の前（「.」は残す）で、日本語（HELP の訳）は最初の「。」の後ろで切る
+  const [d1, dr] = !h ? ["", ""] : JA && h.d.includes("。") ? (i => [h.d.slice(0, i + 1), h.d.slice(i + 1)])(h.d.indexOf("。")) : (i => i < 0 ? [h.d, ""] : [h.d.slice(0, i + 1), h.d.slice(i + 2)])(h.d.search(/\. (?=[A-Z])/));
   D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" aria-label="${esc(t("Close"))}"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form>
     <div class="eyebrow">${esc(t("Breakdown"))} · ${st.mode === "month" ? dMY(st.month) : dSpan(st.week, addDays(st.week, 6))}</div><h2 id="mdh">${esc(t(m.n))}</h2><div class="mbig">${big}</div>${h ? `<p class="mdef" id="mdd">${esc(d1)}</p>` : ""}${body}
-    ${h ? `<div class="mnot">${dr ? `<p>${esc(dr)}</p>` : ""}<p><b>${esc(t("Doesn't tell you"))}:</b> ${esc(h.x)}</p></div>` : ""}`; // 定義の 1 文目は数字のすぐ下に（読む前に何を数えたかがわかる）、細則と言えないことは読み終えたあとに
+    ${h ? `<div class="mnot">${dr && id !== "cost" ? `<p>${esc(dr)}</p>` : ""}<p><b>${esc(t("Doesn't tell you"))}:</b> ${esc(h.x)}</p></div>` : ""}`; // 定義の 1 文目は数字のすぐ下に（読む前に何を数えたかがわかる）、細則と言えないことは読み終えたあとに。推定費用の料金の細則は長いので「?」にだけ書く
   if (h) D.setAttribute("aria-describedby", "mdd"); else D.removeAttribute("aria-describedby");
   D.querySelectorAll("[data-id]").forEach(b => b.onclick = () => { D.close(); select(b.dataset.id); });
   ["git", "push", "pr"].forEach(k => D.querySelectorAll(`[data-${k}]`).forEach(b => b.onclick = () => { D.close(); select(`${k}:${b.dataset[k]}`); })); // コミット・push・PR の一覧

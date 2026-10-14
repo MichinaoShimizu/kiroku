@@ -191,7 +191,7 @@ async function run(env) {
     const wk = await p.evaluate(() => document.querySelector("#rd").textContent);
     await p.keyboard.press("ArrowLeft"); await p.keyboard.press("g"); await pause();
     check("内訳を開いているあいだは ← で期間が動かず、G でガイドも重ならない", await p.evaluate(wk => document.querySelector("#rd").textContent === wk && !document.querySelector("#mg").open && document.querySelector("#md").open, wk));
-    check("指標の定義は大きな数字のすぐ下にあり、言えないことは最後にある", await p.evaluate(() => { const d = document.querySelector("#md"), def = d.querySelector(".mbig + .mdef"); return !!def && def.textContent.length > 0 && d.getAttribute("aria-describedby") === def.id && d.lastElementChild.matches(".mnot") && /Doesn't tell you/.test(d.lastElementChild.textContent) && def.textContent + ". " + d.querySelector(".mnot p").textContent === HELP.cost.d; })); // 定義の 1 文目が上、残りが最後
+    check("指標の定義は大きな数字のすぐ下にあり、言えないことは最後にある", await p.evaluate(() => { const d = document.querySelector("#md"), def = d.querySelector(".mbig + .mdef"); return !!def && def.textContent.length > 0 && d.getAttribute("aria-describedby") === def.id && d.lastElementChild.matches(".mnot") && /Doesn't tell you/.test(d.lastElementChild.textContent) && def.textContent === HELP.cost.d.slice(0, HELP.cost.d.indexOf(". ") + 1) && d.querySelectorAll(".mnot p").length === 1; })); // 定義の 1 文目が上。料金の細則は「?」にだけあり、ダイアログでは繰り返さない
     await p.keyboard.press("Escape"); await pause();
     check("閉じると押した数字にフォーカスが戻る", await p.evaluate(() => document.activeElement.dataset.metric === "cost" && !!document.activeElement.closest("#review")));
     const hb = p.locator("#review .stat.mstat:has([data-metric=cost]) .hb");
@@ -322,8 +322,10 @@ async function run(env) {
     check("フッターにリポジトリへのリンクがある（参照元を渡さない）", await gh.count() === 1 && /noreferrer/.test(await gh.getAttribute("rel") || "") && await gh.getAttribute("target") === "_blank");
     const ds = p.locator("#review details.dsrc");
     check("Data sources は、気をつけることがなければたたんである", await ds.count() === 1 && !(await ds.evaluate(d => d.open)));
-    await ds.locator("summary").click(); await pause();
+    await ds.locator(":scope > summary").click(); await pause();
     check("開くと、読んだ履歴が見える", await ds.locator(".mlist li").first().isVisible());
+    const nf = ds.locator("details.dnf");
+    if (await nf.count()) check("セッションのないエージェントは「Not found: N」の下にたたむ", /^Not found: \d+$/.test((await nf.locator("summary").innerText()).trim()) && !(await nf.evaluate(d => d.open)));
   });
 
   await step("週報を書いてもらうプロンプト", async () => {

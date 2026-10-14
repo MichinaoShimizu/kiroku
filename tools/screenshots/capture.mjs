@@ -19,9 +19,9 @@ await p.screenshot({ path: path.join(docs, "screenshot.png") });
 await p.evaluate(() => { const e = document.querySelector("#review"); window.scrollTo(0, e.getBoundingClientRect().top + window.scrollY - document.querySelector("header").offsetHeight - 16); }); // 固定の見出しの下から
 await p.waitForTimeout(400);
 await p.screenshot({ path: path.join(docs, "summary.png") });
-// 見直す候補（Worth a look）：期間の要点の下の「Sessions with possible friction」を押して開くダイアログ
+// 見直す候補（Worth a look）：期間の要点の下の「Possible friction」を押して開くダイアログ
 await p.evaluate(() => window.scrollTo(0, 0));
-await p.locator("#worth .flink", { hasText: "Sessions with possible friction" }).first().click();
+await p.locator("#worth .flink", { hasText: "Possible friction" }).first().click();
 await p.waitForTimeout(600);
 await p.evaluate(() => { const d = document.querySelector("#wk"); d.style.maxHeight = "none"; }); // 中身がまるごと写るように
 await p.locator("#wk").screenshot({ path: path.join(docs, "worth.png") });
