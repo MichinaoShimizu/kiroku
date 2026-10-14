@@ -9,6 +9,9 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - The page `kiroku serve` shows while it reads your history follows the view's language (`--lang`, the language chosen in the view, or the browser's), so it is in Japanese too
 - In Japanese, a file written with `kiroku html --week` no longer names its week in English ("week of …"), lists of agents and models use 「、」, and "Month-end cost" and "Month-end credits" have one name each
 - The guide and the READMEs describe the sections the review and report prompts ask for now (Professional prompt assessment, Prioritized advice and Reusable prompt playbook for a session; Expert observations and Next actions for a report), and README.ja uses the view's words (PC, プロンプト, 応答, 基準)
+- Claude Code: a compaction no longer extends a session's end or adds an activity block. Since 2.1.290 Claude Code compacts about 54 minutes after you leave (`idleCompaction`), so a session you left looked active until then. The compaction is still counted, and a manual `/compact` still counts from the command you typed
+- Kiro Crew: a subagent running on the Codex backend (`provider: "codex"` in its `state.json`) is no longer counted twice. Its "Kiro Crew" session is no longer folded into its parent and is dropped when the Codex session of the same thread is loaded, as conversations on the Codex backend already were
+- docs/sources.md lists the Kiro Crew archive reason `file-changes`, which is read like `compact` (lines that match a line kept elsewhere are dropped)
 
 ## v0.34.1 - 2026-10-14
 

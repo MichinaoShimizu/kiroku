@@ -71,9 +71,13 @@ type CrewInfo struct {
 // スレッドは CODEX_HOME に Codex 自身の記録（rollout）として残り（acp/harness/codex.py の SpawnPlan の注記）、kiroku の Codex の読み取りが
 // 依頼・時刻・トークン・コストを読むので、Crew の記録から作る Crew のセッションは、そのスレッドのセッションがあれば数えない（core.Builder.Yield）。
 // session_map の provider は会話キーの今の backend なので、今の sid だけを使う（discarded_sid の backend はわからない）。
-// サブエージェントは親の会話にまとめるので使わない。中身を残さない会話の写しを隠す鍵は、これより広い crewSidClaims。
+// Codex の backend のサブエージェントも同じで（kirocrew #18150）、state.json の provider が "codex" なら session_id がスレッド ID。
+// Codex の記録のスレッドにはターン・時刻・トークンが残るので、Crew の記録から作るサブエージェントの会話は親の会話にまとめず
+// （crewHeld.flush）、そのスレッドのセッションがあれば数えない（ターンと時刻を 2 度数えず、Crew の会話の記録の依頼（task）を
+// 人の依頼として出さない）。Crew は届け終えたサブエージェントの state.json を 1 時間で消すので、そのあとは結びつけられない
+// （crew-log の subagent/spawned からは会話 ID を読まない）。中身を残さない会話の写しを隠す鍵は、これより広い crewSidClaims。
 func (i CrewInfo) codexClaim() string {
-	if i.Subagent || i.Former || i.Provider != "codex" || i.Sid == "" {
+	if i.Former || i.Provider != "codex" || i.Sid == "" {
 		return ""
 	}
 	return codexClaim(i.Sid)
@@ -933,8 +937,10 @@ func (h *crewHeld) flush(home string, emit func(*core.Builder)) {
 		if parent == nil && home != "" {
 			parent = h.byPath[crewTranscriptPath(home, x.info.Key)]
 		}
-		// 親がほかのセッション（Codex の記録、3.0 へ移した写し）に譲る（Yield）ときは、まとめると一緒に消えるので、サブエージェントはそのまま出す
-		if parent == nil || parent == x.b || parent.Yield != "" {
+		// 親がほかのセッション（Codex の記録、3.0 へ移した写し）に譲る（Yield）ときは、まとめると一緒に消えるので、サブエージェントはそのまま出す。
+		// サブエージェント自身が Codex のスレッドに譲る（CrewInfo.codexClaim）ときも、まとめると親の会話にターンと時刻が残って
+		// Codex のセッションと 2 度数えるので、まとめずにそのまま出す（読み込む側が、Codex のセッションがあれば落とす）
+		if parent == nil || parent == x.b || parent.Yield != "" || x.b.Yield != "" {
 			continue
 		}
 		foldCrewSubagent(parent, x.b, *x.info)
@@ -1206,6 +1212,8 @@ func (idx *crewArchiveIndex) segments(stem string) []crewSeg {
 //     （dashboard/slot_persistence/transcript_merge.py）。同じ行が今の記録にあるので読まない
 //   - "compact": 巻き戻し・作り直し・fork で記録を書きなおしたときに落とした行（同じ）。会話を巻き戻して消えたターン
 //     （本当にあった依頼）と、書きかえた行の前の形（新しい形が残っている）が入るので、残っている行と同じ行だけを除く（crewRowSet）
+//   - "file-changes"（kirocrew 2987fc9f で加わった）: ほかの reason と同じく default の規則で読む。残っている行と同じ行
+//     （meta.mid が同じもの。mid がなければ role・ts・内容が同じもの）を除く
 //
 // Crew 自身の画面は "rotate" だけを読む（history_projection.py の read_rotated_messages。消したものを画面に戻さないため）が、
 // kiroku はあったことの記録なので、巻き戻したターンの依頼も残す。reason のないファイル（古い Crew）は "rotate" と同じに読む。
