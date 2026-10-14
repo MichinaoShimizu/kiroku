@@ -81,7 +81,7 @@ func TestLiveRefresh(t *testing.T) {
 
 	stop, done := make(chan struct{}), make(chan struct{})
 	defer func() { close(stop); <-done }() // 読み直しの途中で次のテストへ進まない（time.Local を書きかえるテストと競合する）
-	go func() { l.watch(20*time.Millisecond, stop); close(done) }()
+	go func() { l.watch(l.fingerprint(), 20*time.Millisecond, stop); close(done) }()
 	time.Sleep(60 * time.Millisecond)
 	add("1e13c3c1-d7ae-41c2-a324-e6a440665d9a")
 	deadline := time.Now().Add(5 * time.Second)
@@ -776,4 +776,25 @@ func TestTook(t *testing.T) {
 			t.Errorf("took(%v) = %s, want %s", in, got, want)
 		}
 	}
+}
+
+// 最初の読み込みのあいだに書かれた履歴も、あとで読み直す（指紋を読み込みの前に取る）。
+func TestServeReloadsHistoryWrittenDuringFirstLoad(t *testing.T) {
+	logw = io.Discard
+	defer func() { logw = os.Stderr }()
+	dir := t.TempDir()
+	var calls atomic.Int32
+	load := func() snapshot {
+		if calls.Add(1) == 1 { // 最初の読み込みの途中で、エージェントが履歴を書く
+			if err := os.WriteFile(filepath.Join(dir, "a.jsonl"), []byte("x"), 0o600); err != nil {
+				t.Error(err)
+			}
+		}
+		return snapshot{weeks: map[string]*report.Week{}, meta: map[string]any{}}
+	}
+	l := &live{load: load, paths: []string{dir}, print: &syncBuf{}}
+	stop, done := make(chan struct{}), make(chan struct{})
+	go func() { l.start(20*time.Millisecond, stop); close(done) }()
+	defer func() { close(stop); <-done }()
+	waitFor(t, "読み込みの途中に書かれた履歴の読み直し", func() bool { return calls.Load() >= 2 })
 }

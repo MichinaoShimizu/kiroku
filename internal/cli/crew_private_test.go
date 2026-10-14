@@ -271,7 +271,7 @@ func TestServeCrewPrivateWithoutKiroReloads(t *testing.T) {
 	assertVisible(t, snapData(), "Claude Code", "c-pub", "VISIBLE-CLAUDE")
 	stop, done := make(chan struct{}), make(chan struct{})
 	defer func() { close(stop); <-done }()
-	go func() { l.watch(20*time.Millisecond, stop); close(done) }()
+	go func() { l.watch(l.fingerprint(), 20*time.Millisecond, stop); close(done) }()
 	time.Sleep(60 * time.Millisecond)
 	writeUnder(t, crew, map[string]string{"session_map.json": `{"dashboard:chat-1-100": {"sid": "c-priv", "discarded_sid": "x-old", "provider": "claude_code", "cwd": "/w"},
  "dashboard:chat-3-300": {"sid": "c-pub", "provider": "claude_code", "cwd": "/w", "flags": {"incognito": true}}}`})
