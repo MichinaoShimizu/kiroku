@@ -100,6 +100,8 @@ func shellMeta(meta map[string]any) map[string]any {
 // 失敗しても止めず、読み込み中の画面にエラーを出して見張りを続ける（履歴が変われば読み直しを試す）。
 func (l *live) start(every time.Duration, stop <-chan struct{}) {
 	t0 := time.Now()
+	// 指紋は読み込みの前に取る。読み込みのあいだ（大きな履歴では数秒）に書かれた履歴も、あとで読み直す
+	last := l.fingerprint()
 	tracker = l.prog
 	err := l.refresh()
 	// ここから先の読み直しでは、エージェントごとの行も進み具合も出さない。
@@ -114,7 +116,7 @@ func (l *live) start(every time.Duration, stop <-chan struct{}) {
 		l.markReady()
 		fmt.Fprintf(l.print, "%s loaded in %s %s\n", plural(l.count(), "session"), took(time.Since(t0)), styleFor(l.print).dim("(checking for new history every "+every.String()+")"))
 	}
-	l.watch(every, stop)
+	l.watch(last, every, stop)
 }
 
 func (l *live) markReady() {
@@ -181,8 +183,7 @@ func (s *settler) step(changed bool, now time.Time) bool {
 
 // watch は every ごとに指紋を取り、変化が落ち着いたら読み直す（落ち着くまで every の 2 倍、長くても 12 倍）。
 // 読み直しは 1 本ずつしか走らない。stop が閉じられたら終わる（テスト用）。
-func (l *live) watch(every time.Duration, stop <-chan struct{}) {
-	last := l.fingerprint()
+func (l *live) watch(last string, every time.Duration, stop <-chan struct{}) {
 	s := settler{settle: 2 * every, max: 12 * every}
 	t := time.NewTicker(every)
 	defer t.Stop()
