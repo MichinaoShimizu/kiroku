@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Security
+
+- Compressed history (`.jsonl.zst`: Codex rollouts, `kiroku archive` copies, Kiro Crew archives) is decompressed only up to 1 GiB per file. A small file that expands much further (a 380 KB file expanding to 3 GB took 40 seconds to read) is now listed as unreadable under "Data sources", with what was read up to the limit kept, instead of stalling every `kiroku serve` reload; `kiroku serve` also cuts off the `/history` download of such a file
+
 ## v0.35.0 - 2026-10-14
 
 ### Changed

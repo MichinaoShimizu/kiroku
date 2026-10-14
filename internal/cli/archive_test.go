@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +13,7 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/archive"
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
+	"github.com/klauspost/compress/zstd"
 )
 
 // テストで、使っている人の kiroku archive の保存場所を読み書きしない。
@@ -147,5 +149,33 @@ func TestServeHistoryArchived(t *testing.T) {
 	b, _ := io.ReadAll(r.Body)
 	if r.StatusCode != 200 || !strings.Contains(string(b), "直して") {
 		t.Errorf("= %d %q", r.StatusCode, b)
+	}
+}
+
+// /history は、ほどいた大きさが core.MaxZstd を超える .zst（展開爆弾）を上限までしかほどかず、応答を切る
+// （途中までを全体として見せない）。
+func TestServeHistoryZstdBomb(t *testing.T) {
+	old := core.MaxZstd
+	core.MaxZstd = 1 << 20
+	defer func() { core.MaxZstd = old }()
+	dir := t.TempDir()
+	p := filepath.Join(dir, "-Users-me-app", "s1.jsonl.zst")
+	os.MkdirAll(filepath.Dir(p), 0o700)
+	var buf bytes.Buffer
+	enc, _ := zstd.NewWriter(&buf)
+	enc.Write(bytes.Repeat([]byte(`{"type":"user","message":{"content":"x"}}`+"\n"), 8<<20/42))
+	enc.Close()
+	os.WriteFile(p, buf.Bytes(), 0o600)
+	l := &live{snap: snapshot{data: []*core.Session{{ID: "s1", File: p}}}, ready: true, roots: historyRoots([]source.Source{&source.Claude{Root: t.TempDir(), Archive: dir}})}
+	srv := httptest.NewServer(l.handler())
+	defer srv.Close()
+	r, err := http.Get(srv.URL + "/history?id=s1")
+	if err != nil {
+		return // 応答を切った
+	}
+	defer r.Body.Close()
+	n, err := io.Copy(io.Discard, r.Body)
+	if err == nil || n > core.MaxZstd {
+		t.Errorf("読めた = %d bytes, err = %v, want 上限までで切れる", n, err)
 	}
 }
