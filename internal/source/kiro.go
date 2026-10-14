@@ -384,8 +384,10 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 				sids = append(sids, sid)
 			}
 		}
-		k.withheld, k.claims = crewWithheld(append(sids, crewPrivateSids(k.CrewHome, priv)...))
-		return nil
+		// 調べられなかったこと（session_map.json が読めないなど）は知らせる（隠しきれていないかもしれないので）
+		var errs fileErrs
+		k.withheld, k.claims = crewWithheld(append(sids, crewPrivateSids(k.CrewHome, priv, &errs)...))
+		return errs.err()
 	}
 	var errs fileErrs
 	priv := newCrewPrivacy(k.CrewHome, k.CrewArchive) // 中身を残さない会話（loadCrew・loadCrewSpawns と同じものを使う）
@@ -686,7 +688,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			private = append(private, sid)
 		}
 	}
-	k.withheld, k.claims = crewWithheld(append(private, crewPrivateSids(k.CrewHome, priv)...))
+	k.withheld, k.claims = crewWithheld(append(private, crewPrivateSids(k.CrewHome, priv, nil)...))
 	seen := map[string]bool{}
 	for _, key := range k.withheld {
 		seen[key] = true
@@ -730,11 +732,16 @@ func crewWithheld(sids []string) (withheld, claims []string) {
 
 // ScanWithheldClaims は WithheldClaims と同じ鍵のうち、Crew の記録だけから決まるもの（crewPrivateSids）を、Load なしで調べる。
 // 読み込む側は、Kiro の履歴を選んでいないとき（--sources codex・claude など）もこれで調べ、Codex・Claude Code に残る
-// 中身を残さない会話の写しを隠す（ClaimScanner）。
-func (k *KiroCLI) ScanWithheldClaims() []string {
-	_, claims := crewWithheld(crewPrivateSids(k.CrewHome, newCrewPrivacy(k.CrewHome, k.CrewArchive)))
-	return claims
+// 中身を残さない会話の写しを隠す（ClaimScanner）。err は、調べるのに読めなかったファイル（隠しきれていないかもしれない）。
+func (k *KiroCLI) ScanWithheldClaims() ([]string, error) {
+	var errs fileErrs
+	_, claims := crewWithheld(crewPrivateSids(k.CrewHome, newCrewPrivacy(k.CrewHome, k.CrewArchive), &errs))
+	return claims, errs.err()
 }
+
+// ScanPaths は ScanWithheldClaims が読む場所（Crew の場所と、その kiroku archive のコピー）。kiroku serve は、Kiro の履歴を
+// 選んでいなくても、ここが変わったら読み直す（あとから中身を残さない会話になった写しを隠すため）。
+func (k *KiroCLI) ScanPaths() []string { return []string{k.CrewHome, k.CrewArchive} }
 
 // KiroIDELegacy は Kiro IDE v1.0 より前: workspace-sessions/<ws>/sessions.json + <sessionId>.json。
 // 発言ごとの時刻がないので、開始 = dateCreated、終了 = ファイル更新時刻 のざっくり表示。

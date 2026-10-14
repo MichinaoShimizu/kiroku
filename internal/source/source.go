@@ -82,8 +82,10 @@ type ClaimWithholder interface {
 
 // ClaimScanner は、ClaimWithholder の鍵を Load なしで調べられる Source が実装する。読み込む側は、その Source を選んでいないとき
 // （--sources codex など）もこれで調べて隠す。選ぶ履歴によって、中身を出してはいけない会話の写しが出てしまわないように。
+// err は、調べるのに読めなかったファイル（読み込む側は「Data sources」に出す）。ScanPaths は調べる場所（kiroku serve が見張る）。
 type ClaimScanner interface {
-	ScanWithheldClaims() []string
+	ScanWithheldClaims() ([]string, error)
+	ScanPaths() []string
 }
 
 // Kept は、残す元の場所と、コピーを置く場所。

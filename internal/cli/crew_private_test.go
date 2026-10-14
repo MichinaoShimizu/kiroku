@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
@@ -212,4 +213,192 @@ func TestCollectCrewNonPrivateUnchanged(t *testing.T) {
 	}
 	assertVisible(t, data, "Claude Code", "c-priv", "SECRET-CLAUDE-CURRENT")
 	assertVisible(t, data, "Codex", "x-priv", "SECRET-CODEX-CURRENT")
+}
+
+// writeUnder は root の下に files（相対パス → 中身）を書く。
+func writeUnder(t *testing.T, root string, files map[string]string) {
+	t.Helper()
+	for p, c := range files {
+		p = filepath.Join(root, filepath.FromSlash(p))
+		if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(c), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// claudeTranscript は Claude Code の会話のファイル（依頼 1 つと応答 1 つ）。
+func claudeTranscript(prompt string) string {
+	return `{"type":"user","timestamp":"2026-10-06T00:00:01Z","cwd":"/w","message":{"role":"user","content":"` + prompt + `"}}` + "\n" +
+		`{"type":"assistant","timestamp":"2026-10-06T00:00:09Z","cwd":"/w","message":{"role":"assistant","model":"claude-sonnet-4-5","content":[{"type":"text","text":"` + prompt + `-REPLY"}],"usage":{"input_tokens":10,"output_tokens":5}}}` + "\n"
+}
+
+// kiroku serve で Kiro を選んでいない（--sources claude）とき、Crew の側だけが変わって会話が中身を残さないものになっても
+// （ここでは session_map の flags）、ほかの履歴が変わるのを待たずに読み直して、Claude Code の写しを隠す。
+func TestServeCrewPrivateWithoutKiroReloads(t *testing.T) {
+	quietLog(t)
+	all := crewPrivateSources(t)
+	want := map[string]bool{"claude": true}
+	crew := all[1].(*source.KiroCLI).CrewHome
+	var picked []source.Source
+	for _, s := range all {
+		if want[s.Family()] {
+			picked = append(picked, s)
+		}
+	}
+	cache := newLoadCache()
+	load := func() snapshot {
+		data, rep := collectCached(all, want, 15, cache)
+		return snapshot{data: data, meta: map[string]any{}, rep: rep}
+	}
+	var paths []string
+	for _, s := range picked {
+		paths = append(paths, source.WatchPaths(s)...)
+	}
+	l := &live{load: load, paths: append(paths, scanWatchPaths(all, want)...), print: io.Discard}
+	if err := l.refresh(); err != nil {
+		t.Fatal(err)
+	}
+	l.markReady()
+	snapData := func() []*core.Session {
+		l.mu.RLock()
+		defer l.mu.RUnlock()
+		return l.snap.data
+	}
+	assertVisible(t, snapData(), "Claude Code", "c-pub", "VISIBLE-CLAUDE")
+	stop, done := make(chan struct{}), make(chan struct{})
+	defer func() { close(stop); <-done }()
+	go func() { l.watch(20*time.Millisecond, stop); close(done) }()
+	time.Sleep(60 * time.Millisecond)
+	writeUnder(t, crew, map[string]string{"session_map.json": `{"dashboard:chat-1-100": {"sid": "c-priv", "discarded_sid": "x-old", "provider": "claude_code", "cwd": "/w"},
+ "dashboard:chat-3-300": {"sid": "c-pub", "provider": "claude_code", "cwd": "/w", "flags": {"incognito": true}}}`})
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		if s := sessionBy(snapData(), "Claude Code", "c-pub"); s != nil && s.Title == "Kiro Crew private conversation" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("Crew の側だけが変わったとき、読み直さず、あとから中身を残さないものになった会話の Claude Code の写しを出したまま")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	b, _ := json.Marshal(snapData())
+	if strings.Contains(string(b), "VISIBLE-CLAUDE") {
+		t.Errorf("隠した写しの中身が残っている: %s", b)
+	}
+}
+
+// Kiro を選んでいるときは、Crew の場所はもう見張っている（WatchPaths）ので、足さない。
+func TestScanWatchPathsOnlyUnpicked(t *testing.T) {
+	all := crewPrivateSources(t)
+	crew := all[1].(*source.KiroCLI).CrewHome
+	if got := scanWatchPaths(all, map[string]bool{"kiro": true, "claude": true}); len(got) != 0 {
+		t.Errorf("Kiro を選んでいるのに足した: %v", got)
+	}
+	if got := scanWatchPaths(all, map[string]bool{"codex": true}); len(got) == 0 || got[0] != crew {
+		t.Errorf("Kiro を選んでいないのに Crew の場所を見張らない: %v", got)
+	}
+}
+
+// crew-log の 1 行目に slot がない（null）ときは、readCrewLog と同じく session/opened の data.slot で会話キーを決める。
+// その会話キーが中身を残さないものなら、crew-log の会話 ID の写しを隠す。
+func TestCollectCrewPrivateCrewLogOpenedSlot(t *testing.T) {
+	quietLog(t)
+	all := crewPrivateSources(t)
+	crew, claude := all[1].(*source.KiroCLI).CrewHome, all[0].(*source.Claude).Root
+	writeUnder(t, crew, map[string]string{
+		"crew-log/sessions/c-log2/log.jsonl": `{"type": "session", "id": "c-log2", "owner": "o", "agent": "a", "slot": null}` + "\n" +
+			`{"type": "session/opened", "data": {"slot": "dashboard:chat-1-100", "agent": "a", "cwd": "/w"}}` + "\n",
+	})
+	writeUnder(t, claude, map[string]string{"-w/c-log2.jsonl": claudeTranscript("SECRET-CLAUDE-OPENED-SLOT")})
+	for _, want := range []map[string]bool{{"claude": true}, {"kiro": true, "claude": true}} {
+		data, _ := collect(all, want, 15)
+		assertPrivate(t, data, "Claude Code", "c-log2")
+	}
+}
+
+// crew-log の session/opened の data.class.memory（と、あとからの session/class の data.memory）が persistent でない会話は、
+// 会話の記録と session_map の行が消えていても、crew-log の会話 ID（と data.previous.sid）の写しを隠す。
+// class のない古い crew-log と、persistent のままの crew-log は、そのまま出す。
+func TestCollectCrewPrivateCrewLogClass(t *testing.T) {
+	quietLog(t)
+	all := crewPrivateSources(t)
+	crew, claude := all[1].(*source.KiroCLI).CrewHome, all[0].(*source.Claude).Root
+	head := func(id, slot string) string {
+		return `{"type": "session", "id": "` + id + `", "owner": "o", "agent": "a", "slot": "` + slot + `"}` + "\n"
+	}
+	opened := func(slot, class string) string {
+		return `{"type": "session/opened", "data": {"slot": "` + slot + `", "agent": "a"` + class + `}}` + "\n"
+	}
+	writeUnder(t, crew, map[string]string{
+		// 会話の記録も session_map の行もない会話キー（閉じて消えた）
+		"crew-log/sessions/g1/log.jsonl": head("g-incog", "dashboard:chat-9-900") +
+			`{"type": "session/opened", "data": {"slot": "dashboard:chat-9-900", "previous": {"sid": "g-prev"}, "class": {"memory": "incognito"}}}` + "\n",
+		// persistent で開き、あとで temporary に変わった（後ろのファイルに書かれた）
+		"crew-log/sessions/g2/log.jsonl":   head("g-later", "dashboard:chat-8-800") + opened("dashboard:chat-8-800", `, "class": {"memory": "persistent"}`),
+		"crew-log/sessions/g2/log.1.jsonl": `{"type": "session/class", "data": {"memory": "temporary"}}` + "\n",
+		// 読めない class（object でない）は中身を残さない側に倒す
+		"crew-log/sessions/g3/log.jsonl": head("g-bad", "dashboard:chat-7-700") + opened("dashboard:chat-7-700", `, "class": "x"`),
+		// persistent のまま、class のない古い crew-log は、そのまま
+		"crew-log/sessions/g4/log.jsonl": head("g-pers", "dashboard:chat-6-600") + opened("dashboard:chat-6-600", `, "class": {"memory": " Persistent "}`),
+		"crew-log/sessions/g5/log.jsonl": head("g-old", "dashboard:chat-5-500") + opened("dashboard:chat-5-500", ""),
+	})
+	writeUnder(t, claude, map[string]string{
+		"-w/g-incog.jsonl": claudeTranscript("SECRET-CLASS-INCOGNITO"),
+		"-w/g-prev.jsonl":  claudeTranscript("SECRET-CLASS-PREVIOUS"),
+		"-w/g-later.jsonl": claudeTranscript("SECRET-CLASS-LATER"),
+		"-w/g-bad.jsonl":   claudeTranscript("SECRET-CLASS-BAD"),
+		"-w/g-pers.jsonl":  claudeTranscript("VISIBLE-CLASS-PERSISTENT"),
+		"-w/g-old.jsonl":   claudeTranscript("VISIBLE-CLASS-OLD"),
+	})
+	for _, want := range []map[string]bool{{"claude": true}, {"kiro": true, "claude": true}} {
+		data, _ := collect(all, want, 15)
+		assertPrivate(t, data, "Claude Code", "g-incog", "g-prev", "g-later", "g-bad")
+		assertVisible(t, data, "Claude Code", "g-pers", "VISIBLE-CLASS-PERSISTENT")
+		assertVisible(t, data, "Claude Code", "g-old", "VISIBLE-CLASS-OLD")
+	}
+}
+
+// Kiro を選んでいないとき、session_map.json が読めない（壊れている）と、どの会話が中身を残さないかを調べきれない。
+// 黙って出さず「Data sources」と端末に知らせ、厳しい側に倒して、state.json・crew-log からわかる会話 ID の写しは全部隠す。
+// 読めるときは知らせない。
+func TestCollectCrewPrivateScanReportsUnreadableMap(t *testing.T) {
+	quietLog(t)
+	all := crewPrivateSources(t)
+	crew, claude := all[1].(*source.KiroCLI).CrewHome, all[0].(*source.Claude).Root
+	writeUnder(t, crew, map[string]string{
+		// 中身を残す会話のサブエージェント（session_map の flags で中身を残さないことになっていたかもしれない）
+		"subagents/a3/state.json": `{"parent_session": "dashboard:chat-3-300", "session_id": "s-pub", "provider": "claude_code"}`,
+	})
+	writeUnder(t, claude, map[string]string{"-w/s-pub.jsonl": claudeTranscript("SECRET-SUBAGENT-OF-PERSISTENT")})
+	want := map[string]bool{"claude": true}
+	data, rep := collect(all, want, 15)
+	for _, r := range rep {
+		if r.Name == crewScanName {
+			t.Errorf("読める session_map.json で知らせた: %+v", r)
+		}
+	}
+	assertVisible(t, data, "Claude Code", "s-pub", "SECRET-SUBAGENT-OF-PERSISTENT")
+
+	writeUnder(t, crew, map[string]string{"session_map.json": `{"dashboard:chat-1-100": {"sid": "c-priv"`})
+	for _, cache := range []*loadCache{nil, newLoadCache()} {
+		data, rep = collectCached(all, want, 15, cache)
+		var found *source.Report
+		for i, r := range rep {
+			if r.Name == crewScanName {
+				found = &rep[i]
+			}
+		}
+		if found == nil || found.Error == nil || !strings.Contains(*found.Error, "session_map.json") || found.DetailEn == "" {
+			t.Fatalf("読めない session_map.json を知らせない: %+v", rep)
+		}
+		for _, id := range []string{"s-pub", "s-claude", "c-log"} {
+			if s := sessionBy(data, "Claude Code", id); s == nil || s.Title != "Kiro Crew private conversation" {
+				t.Errorf("session_map.json が読めないのに、Crew からわかる会話 %s の写しを出した: %+v", id, s)
+			}
+		}
+		assertVisible(t, data, "Claude Code", "c-pub", "VISIBLE-CLAUDE") // Crew の記録からわからない会話は、そのまま
+	}
 }

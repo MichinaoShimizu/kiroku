@@ -83,15 +83,30 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 	}
 	// 選んでいない Source（--sources codex で Kiro を読まないときの Kiro Crew など）も、ほかのエージェントに残る写しは隠す。
 	// all は選んでいないものもふくめて渡す（cli の loader・doctor）
+	// 調べるのに読めないファイルがあれば（session_map.json が壊れているなど）、隠しきれていないかもしれないので「Data sources」に出す
+	var scanRep []source.Report
 	if len(picked) > 0 {
 		for _, s := range all {
 			if want[s.Family()] {
 				continue
 			}
-			if w, ok := s.(source.ClaimScanner); ok {
-				for _, c := range w.ScanWithheldClaims() {
-					withheldClaims[c] = true
+			w, ok := s.(source.ClaimScanner)
+			if !ok {
+				continue
+			}
+			claims, err := cache.scan(w)
+			for _, c := range claims {
+				withheldClaims[c] = true
+			}
+			if err != nil {
+				msg := err.Error()
+				where := ""
+				if ps := w.ScanPaths(); len(ps) > 0 {
+					where = ps[0]
 				}
+				scanRep = append(scanRep, source.Report{Name: crewScanName, Where: where, Error: &msg,
+					Detail:   "中身を残さない Kiro Crew の会話を調べきれず、その Codex・Claude Code の写しが中身ごと出ているかもしれない",
+					DetailEn: "could not fully check which Kiro Crew conversations are private, so their copies in Codex or Claude Code may be shown in full"})
 			}
 		}
 	}
@@ -154,9 +169,16 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 		rep = append(rep, r)
 	}
 	logSources(rep, len(data) > 0)
+	for _, r := range scanRep {
+		fmt.Fprintf(logw, "  %s %s: %s (%s)\n", styleFor(logw).warn("!"), r.Name, r.DetailEn, *r.Error)
+	}
+	rep = append(rep, scanRep...)
 	sort.SliceStable(data, func(i, j int) bool { return data[i].Start < data[j].Start })
 	return data, rep
 }
+
+// crewScanName は、選んでいない Kiro Crew の記録を、中身を残さない会話の写しを隠すために調べたときの「Data sources」の名前。
+const crewScanName = "Kiro Crew (private conversations check)"
 
 // sessions は outs のうち、セッションになったもの（時刻のあるもの）の数。
 func sessions(outs []loaded) int {

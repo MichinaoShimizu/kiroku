@@ -23,7 +23,7 @@ func TestAIEndpointDisabledByDefault(t *testing.T) {
 
 func TestAIRejectsPublicBind(t *testing.T) {
 	for _, addr := range []string{"0.0.0.0:8485", "[::]:8485", "[::ffff:0.0.0.0]:8485"} {
-		if err := serveLiveWithAI(addr, nil, 0, nil, nil, nil, false, true); err == nil || !strings.Contains(err.Error(), "loopback") {
+		if err := serveLiveWithAI(addr, nil, 0, nil, nil, nil, false, true, nil); err == nil || !strings.Contains(err.Error(), "loopback") {
 			t.Errorf("%s: err = %v, want the loopback requirement", addr, err)
 		}
 	}
@@ -32,7 +32,7 @@ func TestAIRejectsPublicBind(t *testing.T) {
 // Host names and shorthand IPv4 forms are refused before listening, as the resolver could map them anywhere.
 func TestAIRejectsHostnameBind(t *testing.T) {
 	for _, addr := range []string{"localhost:8485", "127.1:8485", "2130706433:8485", "example.com:8485"} {
-		if err := serveLiveWithAI(addr, nil, 0, nil, nil, nil, false, true); err == nil || !strings.Contains(err.Error(), "loopback") {
+		if err := serveLiveWithAI(addr, nil, 0, nil, nil, nil, false, true, nil); err == nil || !strings.Contains(err.Error(), "loopback") {
 			t.Errorf("%s: err = %v, want the loopback requirement", addr, err)
 		}
 	}

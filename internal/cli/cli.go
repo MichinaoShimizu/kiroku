@@ -270,7 +270,8 @@ func cmdServe(args []string) error {
 	if err != nil {
 		return err
 	}
-	return serveLiveWithAI(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen, *aiRun)
+	_, want, all := c.picked()
+	return serveLiveWithAI(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen, *aiRun, scanWatchPaths(all, want))
 }
 
 func cmdHTML(args []string) error {

@@ -12,6 +12,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -94,12 +95,17 @@ func crewSidClaims(sid string) []string {
 // （provider・今か前か・サブエージェントかによらない。並べて重なりを除く）:
 //   - session_map の sid と discarded_sid（flags の印か、会話の記録のメタデータで中身を残さない会話キーのもの）
 //   - サブエージェントの state.json の session_id（state.json が中身を残さないと示すか、親の会話キーが中身を残さないもの）
-//   - crew-log の会話の 1 行目（SessionHeader）の id（slot が中身を残さない会話キーのもの。backend を切りかえる前の会話も残る）
+//   - crew-log の会話の 1 行目（SessionHeader）の id と、session/opened の data.previous.sid（slot が中身を残さない会話キーのものか、
+//     crew-log の session/opened・session/class が記録した会話の class.memory が persistent でないもの。crewLogDir）
 //
-// loadCrew と違い、同じ sid が 2 つのキーにあっても片方に決めず、どちらかが中身を残さないなら出す。会話の記録の中身は読まない。
+// loadCrew と違い、同じ sid が 2 つのキーにあっても片方に決めず、どちらかが中身を残さないなら出す。
+// 会話の記録は memory_mode を探すために読むが（crewFilePrivate）、中身は持たず、出さない。
 // 中身を残さない一時的なサブエージェントは state.json を書かないので（subagent_persistence.py）、その会話 ID はわからない。
+// session_map.json があるのに読めない（壊れている・大きすぎる・ふつうのファイルでない）ときは、どの会話キーが中身を残さないか
+// わからないので、厳しい側に倒して、state.json と crew-log からわかる会話 ID を全部出す。
 // priv は中身を残さない会話（loadCrew と同じものを渡せば、調べた結果を使い回す。nil なら作る）。
-func crewPrivateSids(home string, priv *crewPrivacy) []string {
+// errs には、調べるのに読めなかったファイルを足す（nil なら足さない）。
+func crewPrivateSids(home string, priv *crewPrivacy, errs *fileErrs) []string {
 	if home == "" || !isDir(home) {
 		return nil
 	}
@@ -112,8 +118,18 @@ func crewPrivateSids(home string, priv *crewPrivacy) []string {
 			set[id] = true
 		}
 	}
-	sm, _ := core.ReadJSONFile(filepath.Join(home, "session_map.json"))
+	mapPath := filepath.Join(home, "session_map.json")
+	sm, err := core.ReadJSONFile(mapPath)
 	entries := core.Map(sm)
+	broken := false // あるのに読めない
+	switch {
+	case err != nil && !errors.Is(err, os.ErrNotExist):
+		broken = true
+		errs.file(mapPath, err)
+	case err == nil && entries == nil:
+		broken = true
+		errs.file(mapPath, errors.New("not a JSON object"))
+	}
 	for key, v := range entries {
 		if crewPrivateFlags(core.Map(v)["flags"]) {
 			priv.mark(key)
@@ -131,9 +147,10 @@ func crewPrivateSids(home string, priv *crewPrivacy) []string {
 		}
 	}
 	for _, p := range glob(filepath.Join(home, "subagents", "*", "state.json")) {
-		v, _ := core.ReadJSONFile(p)
+		v, err := core.ReadJSONFile(p)
+		errs.file(p, err)
 		st := core.Map(v)
-		if crewPrivateMeta(st) || priv.key(core.Str(st["parent_session"])) {
+		if broken || crewPrivateMeta(st) || priv.key(core.Str(st["parent_session"])) {
 			add(core.Str(st["session_id"]))
 		}
 	}
@@ -141,8 +158,10 @@ func crewPrivateSids(home string, priv *crewPrivacy) []string {
 		if !realDir(dir) {
 			continue
 		}
-		if segs := crewLogSegments(dir); len(segs) > 0 {
-			if id, slot := crewLogHeader(segs[0]); priv.key(slot) {
+		d := priv.crewLog(dir)
+		d.report(errs)
+		if broken || d.private || priv.key(d.slot) {
+			for _, id := range d.ids {
 				add(id)
 			}
 		}
@@ -155,22 +174,52 @@ func crewPrivateSids(home string, priv *crewPrivacy) []string {
 	return out
 }
 
-// crewLogHeader は crew-log のファイルの 1 行目（{"type": "session", "id", "slot", …}）の id と slot。読めなければ空。
-func crewLogHeader(p string) (id, slot string) {
-	if st, err := os.Lstat(p); err != nil || !st.Mode().IsRegular() {
-		return "", ""
+// crewLogDir は crew-log の 1 つの会話のフォルダ（crewLogSegments のファイル全部）から読んだもの。
+type crewLogDir struct {
+	slot, cwd string      // 会話キー（1 行目の slot か、session/opened の data.slot）と作業場所
+	ids       []string    // 1 行目の id と、session/opened の data.previous.sid（同じ会話キーの前の会話）
+	private   bool        // session/opened の data.class か session/class の data が、persistent でない memory を記録した（crewClassPrivate）
+	spawns    []crewSpawn // subagent/spawned（同じ id は最初のものだけ）
+	errs      []error     // 読めなかったファイル（ファイル名つき）
+}
+
+// report は、読めなかったファイルを errs に足す。
+func (d *crewLogDir) report(errs *fileErrs) {
+	for _, err := range d.errs {
+		errs.add(err)
 	}
-	f, err := core.OpenRegular(p)
-	if err != nil {
-		return "", ""
+}
+
+// crewLog は dir の crew-log を読む（1 回の読み込みで 1 度だけ。loadCrewSpawns と crewPrivateSids で使い回す）。
+func (p *crewPrivacy) crewLog(dir string) *crewLogDir {
+	if d, ok := p.logs[dir]; ok {
+		return d
 	}
-	defer f.Close()
-	line, tooLong, _ := core.ReadLine(bufio.NewReaderSize(f, 1<<16), core.MaxLine)
-	var e core.Obj
-	if tooLong || json.Unmarshal(line, &e) != nil || core.Str(e["type"]) != "session" {
-		return "", ""
+	d := &crewLogDir{}
+	seen := map[string]bool{} // 読んだサブエージェントの id（中身は最初のものだけ持つ）
+	for _, f := range crewLogSegments(dir) {
+		err := readCrewLog(f, seen, d)
+		if err = fileErr(f, err); err != nil {
+			d.errs = append(d.errs, err)
+		}
 	}
-	return core.Str(e["id"]), core.Str(e["slot"])
+	if p.logs == nil {
+		p.logs = map[string]*crewLogDir{}
+	}
+	p.logs[dir] = d
+	return d
+}
+
+// crewClassPrivate は、crew-log の session/opened の data.class（か session/class の data）が、persistent でない会話を示すか
+// （crew_log/emit.py の on_session_opened・_note_class_change。memory は slot の memory_mode をそのまま書く）。
+// memory の値は crewPrivateMode と同じに読む。class が object でない、memory がない・null のときは、読めない記録なので
+// 中身を残さない側に倒す（emit.py は memory があるときにだけ class を書く）。
+func crewClassPrivate(v any) bool {
+	m, ok := v.(map[string]any)
+	if !ok || m["memory"] == nil {
+		return true
+	}
+	return crewPrivateMode(m["memory"])
 }
 
 // usageSlot は、その会話の使用量の記録の slot。
@@ -262,7 +311,8 @@ func crewPrivateFlags(v any) bool {
 type crewPrivacy struct {
 	home, arch string
 	stems      map[string]bool
-	idx        *crewArchiveIndex // 退避した記録（archive で作る）
+	idx        *crewArchiveIndex      // 退避した記録（archive で作る）
+	logs       map[string]*crewLogDir // crew-log の会話のフォルダ → 読んだもの（crewLog で作る）
 }
 
 func newCrewPrivacy(home, arch string) *crewPrivacy {
@@ -639,20 +689,16 @@ func loadCrewSpawns(home string, errs *fileErrs, priv *crewPrivacy) map[string]C
 		if !realDir(dir) {
 			continue
 		}
-		var slot, cwd string
-		var spawns []crewSpawn
-		seen := map[string]bool{} // 同じ会話の中で読んだ id（中身は最初のものだけ持つ）
-		for _, p := range crewLogSegments(dir) {
-			s, c, err := readCrewLog(p, seen, &spawns)
-			errs.file(p, err)
-			slot, cwd = firstNonEmpty(slot, s), firstNonEmpty(cwd, c)
-		}
+		d := priv.crewLog(dir)
+		d.report(errs)
+		slot, cwd := d.slot, d.cwd
 		if slot == "" {
 			continue
 		}
-		// crew-log は会話の memory_mode を見ずに書かれるので、親の会話が中身を残さないものなら、子への依頼も残さない
-		private := priv.key(slot)
-		for _, x := range spawns {
+		// crew-log の subagent/spawned は会話の memory_mode を見ずに書かれるので、親の会話が中身を残さないものなら
+		// （crew-log 自身の class.memory が persistent でないときも）、子への依頼も残さない
+		private := priv.key(slot) || d.private
+		for _, x := range d.spawns {
 			key := crewSlot("subagent:" + x.id)
 			if _, dup := out[key]; dup {
 				continue
@@ -695,50 +741,80 @@ func crewLogSegments(dir string) []string {
 	return out
 }
 
-// readCrewLog は crew-log のファイル 1 つから、会話キー（1 行目の slot か、session/opened の data.slot）と作業場所を読み、
-// subagent/spawned の行を spawns に足す（seen にある id は飛ばす）。シンボリックリンクでないふつうのファイルだけ。
+// crewOpenedMark・crewClassMark は session/opened・session/class の行にだけある文字（ほかの行は JSON として読まない）。
+var (
+	crewOpenedMark = []byte(`"session/opened"`)
+	crewClassMark  = []byte(`"session/class"`)
+)
+
+// readCrewLog は crew-log のファイル 1 つを読んで d に足す: 会話キー（1 行目の slot か、session/opened の data.slot）と作業場所、
+// 1 行目の id と session/opened の data.previous.sid、session/opened の data.class・session/class の data の memory
+// （crewClassPrivate）、subagent/spawned の行（seen にある id は飛ばす）。シンボリックリンクでないふつうのファイルだけ。
 // 長すぎる行は飛ばし、その数をエラーで返す（ほかの履歴と同じく「Data sources」に出る）。
-func readCrewLog(p string, seen map[string]bool, spawns *[]crewSpawn) (slot, cwd string, err error) {
+func readCrewLog(p string, seen map[string]bool, d *crewLogDir) error {
 	if st, err := os.Lstat(p); err != nil || !st.Mode().IsRegular() {
-		return "", "", nil
+		return nil
 	}
 	f, err := core.OpenRegular(p)
 	if err != nil {
-		return "", "", err
+		return err
 	}
 	defer f.Close()
 	r := bufio.NewReaderSize(f, 1<<16)
 	long := 0
+	addID := func(id string) {
+		if id != "" && !slices.Contains(d.ids, id) {
+			d.ids = append(d.ids, id)
+		}
+	}
 	for first := true; ; first = false {
 		line, tooLong, err := core.ReadLine(r, core.MaxLine)
 		var e core.Obj
 		switch {
 		case tooLong:
 			long++
-		case first && json.Unmarshal(line, &e) == nil && core.Str(e["type"]) == "session":
-			slot, cwd = core.Str(e["slot"]), core.Str(e["cwd"])
-		case slot == "" && bytes.Contains(line, []byte(`"session/opened"`)):
-			if json.Unmarshal(line, &e) == nil && core.Str(e["type"]) == "session/opened" {
-				slot = core.Str(core.Map(e["data"])["slot"])
-			}
-		case bytes.Contains(line, crewSpawnedMark):
-			if json.Unmarshal(line, &e) == nil && core.Str(e["type"]) == "subagent/spawned" {
-				d := core.Map(e["data"])
-				if id := core.Str(d["agent_id"]); id != "" && !seen[id] {
+		case !first && !bytes.Contains(line, crewOpenedMark) && !bytes.Contains(line, crewClassMark) && !bytes.Contains(line, crewSpawnedMark):
+		case json.Unmarshal(line, &e) != nil:
+		default:
+			data := core.Map(e["data"])
+			switch core.Str(e["type"]) {
+			case "session":
+				if first {
+					if d.slot == "" {
+						d.slot, d.cwd = core.Str(e["slot"]), firstNonEmpty(d.cwd, core.Str(e["cwd"]))
+					} else {
+						d.cwd = firstNonEmpty(d.cwd, core.Str(e["cwd"]))
+					}
+					addID(core.Str(e["id"]))
+				}
+			case "session/opened":
+				if d.slot == "" {
+					d.slot = core.Str(data["slot"])
+				}
+				addID(core.Str(core.Map(data["previous"])["sid"]))
+				if c, ok := data["class"]; ok && crewClassPrivate(c) {
+					d.private = true
+				}
+			case "session/class":
+				if crewClassPrivate(e["data"]) {
+					d.private = true
+				}
+			case "subagent/spawned":
+				if id := core.Str(data["agent_id"]); id != "" && !seen[id] {
 					seen[id] = true
-					*spawns = append(*spawns, crewSpawn{id: id, agent: core.Runes(core.Str(d["agent"]), 120),
-						task: core.Runes(strings.TrimSpace(core.Str(d["task"])), 120)})
+					d.spawns = append(d.spawns, crewSpawn{id: id, agent: core.Runes(core.Str(data["agent"]), 120),
+						task: core.Runes(strings.TrimSpace(core.Str(data["task"])), 120)})
 				}
 			}
 		}
 		if err == io.EOF {
 			if long > 0 {
-				return slot, cwd, fmt.Errorf("skipped %d line(s) longer than %d bytes", long, core.MaxLine)
+				return fmt.Errorf("skipped %d line(s) longer than %d bytes", long, core.MaxLine)
 			}
-			return slot, cwd, nil
+			return nil
 		}
 		if err != nil {
-			return slot, cwd, err
+			return err
 		}
 	}
 }
