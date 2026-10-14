@@ -519,7 +519,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			}
 		}
 		var lastTotal float64 = -1
-		var lastInfo, lastLimits string
+		var lastInfo, lastLimits, lastLast string // lastLast: 前の token_count の last_token_usage
 		var prevTotal core.Tokens
 		records := map[string]bool{}
 		var fromCounts, fromRecords []core.Event
@@ -586,8 +586,15 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					}
 					cur := codexTokens(info["total_token_usage"])
 					u := cur // 1 回目は合計がそのまま 1 回分
-					perRequest := false
-					if last := core.Map(info["last_token_usage"]); last != nil {
+					perRequest, stale := false, false
+					lastRaw, _ := json.Marshal(info["last_token_usage"])
+					delta := core.Tokens{In: max(0, cur.In-prevTotal.In), Out: max(0, cur.Out-prevTotal.Out),
+						CW: max(0, cur.CW-prevTotal.CW), CR: max(0, cur.CR-prevTotal.CR)}
+					if last := core.Map(info["last_token_usage"]); last != nil && lastTotal >= 0 && string(lastRaw) == lastLast && delta != codexTokens(last) {
+						// 途中で終わった応答（response.incomplete）の使用量は、合計にだけ足して last_token_usage は前の応答のまま書く
+						// （codex-rs の record_incomplete_response_usage → SpendingOnly）。前の応答を重ねて数えず、合計の差をその応答の分にする
+						u, perRequest, stale = delta, true, true
+					} else if last != nil {
 						u, perRequest = codexTokens(last), true
 					} else if lastTotal >= 0 { // 古い形: 前回の合計との差
 						u = core.Tokens{In: max(0, cur.In-prevTotal.In), Out: max(0, cur.Out-prevTotal.Out),
@@ -597,9 +604,13 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 						// last_token_usage のないとても古い版: 合計が増えたら応答 1 回（中身の内訳はない）
 						countMeas = append(countMeas, core.Measure{Key: "responses", T: t, V: 1})
 					}
-					lastInfo, lastTotal, prevTotal = string(raw), total, cur
+					lastInfo, lastTotal, prevTotal, lastLast = string(raw), total, cur, string(lastRaw)
 					fromCounts = append(fromCounts, codexEvent(t, cf.model, cf.tier, u, perRequest))
-					countMeas = append(countMeas, codexMeasures(t, core.Map(info["last_token_usage"]), core.NumOr0(info["model_context_window"]))...)
+					if stale { // 前の応答の last_token_usage で、出力やコンテキストの使用率を重ねて測らない
+						countMeas = append(countMeas, core.Measure{Key: "responses", T: t, V: 1}, core.Measure{Key: "output", T: t, V: u.Out})
+					} else {
+						countMeas = append(countMeas, codexMeasures(t, core.Map(info["last_token_usage"]), core.NumOr0(info["model_context_window"]))...)
+					}
 				case "thread_settings_applied": // スレッドの設定（全部を書き直す）。サービスティアはここにしかない
 					s.Agent(t)
 					if tier, ok := codexTier(p, cf.id); ok {
@@ -652,6 +663,9 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 				s.Agent(t)
 				s.Compact(t, "")
 			case "token_usage_record":
+				if th := core.Str(p["thread_id"]); th != "" && cf.id != "" && th != cf.id {
+					return // ほかのスレッドの使用量（Codex は自分の thread_id で書く。写した親の行は上で飛ばしている）
+				}
 				s.Agent(t)
 				id := core.Str(p["response_id"])
 				if id != "" && records[id] {
