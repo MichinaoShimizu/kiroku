@@ -6,8 +6,7 @@ function compactionsOf(ws, we){ const C = []; DATA.forEach(s => (s.compactions |
 /* i 番目のコンパクションが自動か手動か（わからなければ ""）。履歴の値はそのまま出さず、決まった言葉にする */
 function compactKind(s, i){ return ({auto: t("automatic"), manual: t("manual")})[(s.compactKinds || [])[i]] || ""; }
 /* i 番目の利用上限のエラー文にあった解除の時刻（"3:45pm" など、書いてあるとおりの文。日付や時間帯がないこともある）。なければ "" */
-function limitReset(s, i){ const r = String((s.limitResets || [])[i] || ""); // 履歴の文（"9pm" など）。日本語では読める時刻は 24 時間に
-  if (!isJA()) return r;
+function limitReset(s, i){ const r = String((s.limitResets || [])[i] || ""); // 履歴の文（"9pm" など）。読める時刻は、ほかの時刻と同じ 24 時間に
   return r.replace(/\b(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m\.?\b/gi, (m, h, mm, ap) => { h = +h % 12 + (ap.toLowerCase() === "p" ? 12 : 0); return `${String(h).padStart(2, "0")}:${mm || "00"}`; }); }
 /* 見直す候補の判定に使う部品（期間 [ws, we) を渡す。推移の計算でも使う） */
 const inP = (s, ws, we) => s.segs.some(([a,b]) => b > ws && a < we);
@@ -50,18 +49,18 @@ const pctOf = (a, b) => b ? Math.round(a * 100 / b) : null;
 const MET = {
   limits: {f: (w, ws, we) => limitHits(ws, we).length, low: true, u: ""},
   longctx: {f: (w, ws, we) => longCtxOf(ws, we).length, low: true, u: ""},
-  heavy: {f: (w, ws, we) => w.usage && w.usage.cost >= 0.01 ? pctOf(idleOf(ws, we).c, w.usage.cost) : null, low: true, u: "%"},
+  heavy: {f: (w, ws, we) => w.usage && w.usage.cost >= 0.01 ? pctOf(idleOf(ws, we).c, w.usage.cost) : null, low: true, u: "%", cap: "Share of cost with no commit or PR"},
   cost: {f: w => w.usage ? w.usage.cost : null, low: true, fmt: v => usd(v)},
   costPerCommit: {f: w => w.costPerCommit, low: true, fmt: v => usd(v)},
   modelfit: {f: (w, ws, we) => w.usage && w.usage.cost >= 0.01 ? pctOf(lightOf(ws, we).c, w.usage.cost) : null, low: true, u: "%"},
   fix: {f: w => w.fixRate, low: true, u: "%"},
-  friction: {f: w => w.friction.length, low: true, u: ""},
+  friction: {f: w => w.frictionN ?? w.friction.length, low: true, u: ""},
   bigPrompts: {f: (w, ws, we) => bigOf(ws, we).n, low: true, u: ""},
   cache: {f: w => w.usage && w.usage.cacheHit != null ? Math.round(w.usage.cacheHit * 100) : null, low: false, u: "%"},
   outSessions: {f: w => pctOf(w.outSessions, w.outBase ?? w.sessions), low: false, u: "%"},
   switches: {f: w => w.switchesAvg, low: true, u: ""},
   focus: {f: w => w.focus.length, low: false, u: ""},
-  wait: {f: w => w.waitP90 != null ? Math.round(w.waitP90 / 60) : null, low: true, u: t(" min")},
+  wait: {f: w => w.waitP90, low: true, fmt: v => secs(v), cap: "90th percentile"},
   // 見直す候補にはならないが、「?」の説明に推移を出す指標（試したことが効いたかを、印が付いていなくても確かめられるように）
   active: {f: w => w.active, fmt: v => dur(v)},
   prompts: {f: w => w.prompts, u: ""},
@@ -91,7 +90,7 @@ function spark(k, plain){ // 8 期間の推移（記録のない期間は飛ば�
   const hits = pts.map((p, i) => i < f0 ? "" : `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H}"${tipAttr(p.l, fmtM(k, p.v) === "—" ? t("No records") : fmtM(k, p.v))}/>`).join(""); // 点ごとに、その期間の値を出す
   // 両端（記録のある最初の期間と、表示中の期間）には、触れなくても読めるよう期間と値を添える
   const sl = i => { const p = periodBack(7 - i), [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? MON[mm - 1] : dMD(new Date(yy, mm - 1, dd)); };
-  return `<span class="spark"><span class="sr">${esc(txt)}</span><span class="spk" aria-hidden="true"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><polyline points="${line}"/>${pts.map((p, i) => p.v == null ? "" : `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="1.6"/>`).join("")}${pts[7].v != null ? `<circle cx="${x(7)}" cy="${y(pts[7].v)}" r="2.6"/>` : ""}${hits}</svg><span class="ends"><span>${sl(f0)} ${fmtM(k, pts[f0].v)}</span><span>${sl(7)} <b>${fmtM(k, pts[7].v)}</b></span></span></span><small aria-hidden="true">${esc(plain ? (st.mode === "month" ? t("8-month range {range}", {range: rng}) : t("8-week range {range}", {range: rng})) : `${GOTO[k] ? `${t(HELP[k].n)} · ` : ""}${st.mode === "month" ? (MET[k].low ? t("8-month range {range} · higher is worth a look", {range: rng}) : t("8-month range {range} · lower is worth a look", {range: rng})) : (MET[k].low ? t("8-week range {range} · higher is worth a look", {range: rng}) : t("8-week range {range} · lower is worth a look", {range: rng}))}`)}</small></span>`;
+  return `<span class="spark"><span class="sr">${esc(txt)}</span><span class="spk" aria-hidden="true"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><polyline points="${line}"/>${pts.map((p, i) => p.v == null ? "" : `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="1.6"/>`).join("")}${pts[7].v != null ? `<circle cx="${x(7)}" cy="${y(pts[7].v)}" r="2.6"/>` : ""}${hits}</svg><span class="ends"><span>${sl(f0)} ${fmtM(k, pts[f0].v)}</span><span>${sl(7)} <b>${fmtM(k, pts[7].v)}</b></span></span></span><small aria-hidden="true">${esc((MET[k].cap ? `${t(MET[k].cap)} · ` : "") + (plain ? (st.mode === "month" ? t("8-month range {range}", {range: rng}) : t("8-week range {range}", {range: rng})) : `${GOTO[k] ? `${t(HELP[k].n)} · ` : ""}${st.mode === "month" ? (MET[k].low ? t("8-month range {range} · higher is worth a look", {range: rng}) : t("8-month range {range} · lower is worth a look", {range: rng})) : (MET[k].low ? t("8-week range {range} · higher is worth a look", {range: rng}) : t("8-week range {range} · lower is worth a look", {range: rng}))}`))}</small></span>`;
 } // 向き（高いほど・低いほど見直す）だけを書く。印が付いた基準（決まった値）は、ダイアログの見出しのすぐ下に出す
 /* 見直す候補：指標が決まった基準を超えたものを拾う（AI は使わない。判定ではなく、確かめる候補） */
 // 見直す候補の文は 2 つ持つ。en は英語のまま（週報のプロンプトに入れる。訳さない）、L は画面に出す今の言語の文。
@@ -110,15 +109,15 @@ function findList(w, pw, unit){
     L: {see: see.l, why: why.l, rule: rule.l}});
   const LH = limitHits(ws, we);
   if (LH.length){
-    const hl = (rs, hs) => hs.slice(-3).map(h => h.r ? fillEn(rs, {time: `${md(h.t)} ${hm(h.t)}`, r: h.r}) : `${md(h.t)} ${hm(h.t)}`).join(LSEP()) + (hs.length > 3 ? LSEP() + "…" : "");
+    const hl = (rs, hs) => hs.slice(-3).map(h => h.r ? fillEn(rs, {time: `${md(h.t)} ${hm(h.t)}`, r: h.r}) : `${md(h.t)} ${hm(h.t)}`).join(TSEP()) + (hs.length > 3 ? TSEP() + "…" : "");
     // 英語の文（週報のプロンプトにも入る）は、日付と解除時刻も英語のまま
     const v = [{n: LH.length, list: inEnglish(() => hl("{time} (resets {r})", limitHits(ws, we)))}, {list: hl(t("{time} (resets {r})"), LH)}];
-    add("limits", 40, LH.length === 1 ? tx("Hit the usage limit once ({list})", ...v) : tx("Hit the usage limit {n} times ({list})", ...v), tx("Hitting a limit stops your work until it resets. The cause is often in how you worked just before"), tx("1+ hit"), [...new Set(LH.map(h => h.s.id))].reverse());
+    add("limits", 40, LH.length === 1 ? tx("Hit the usage limit once: {list}", ...v) : tx("Hit the usage limit {n} times: {list}", ...v), tx("Hitting a limit stops your work until it resets. The cause is often in how you worked just before"), tx("1+ hit"), [...new Set(LH.map(h => h.s.id))].reverse());
   }
   if (w.fixRate != null && w.prompts >= 10 && w.fixRate >= 20)
     add("fix", w.fixRate, tx("{pct}% of prompts had corrections or interruptions", {pct: w.fixRate}), tx("When a first prompt misses, redoing it costs time and tokens"), tx("20% or more, with 10+ prompts"), w.friction.map(f => f.id));
   else if (w.friction.length)
-    add("friction", 18, tx("{sessions} with possible friction", ...ses(w.friction.length)), tx("Rework is concentrated in a few sessions. Opening them usually hints at the cause"), tx("A session with 1+ correction or interruption, or 15+ prompts"), w.friction.map(f => f.id));
+    add("friction", 18, tx("{sessions} with possible friction", ...ses(w.frictionN ?? w.friction.length)), tx("Rework is concentrated in a few sessions. Opening them usually hints at the cause"), tx("A session with 1+ correction or interruption, or 15+ prompts"), w.friction.map(f => f.id));
   const LC = longCtxOf(ws, we);
   if (LC.length){
     const [a, b] = ses(LC.length);
@@ -173,10 +172,11 @@ const flagSes = (ids, line) => ids.map(id => { const s = DATA.find(x => x.id ===
 let lastFlags = []; // 表示中の期間の候補（summary が入れる）
 function openWorth(id, from){
   const D = $("#wk"), fs = lastFlags.filter(f => (GOTO[f.k] || f.k) === id), h = H()[id]; if (!fs.length || !h) return;
-  const {ws, we} = period(), rp = id === "repeats" ? (repeatsOf(ws, we)[0] || {}).by : null;
+  const hk = fs.length === 1 && H()[fs[0].k] ? H()[fs[0].k] : h; // 印が 1 つだけなら、その候補自身の説明（長い会話で開いたときに、重いセッションの説明を出さないように）
+  const {ws, we} = period(), r0 = id === "repeats" && repeatsOf(ws, we)[0], rp = r0 ? new Map([...r0.by].filter(([, x]) => x !== r0.text)) : null; // 見出しと同じ書き方は、カードごとに繰り返さない
   const body = fs.map(f => `<div class="fl"><p class="see">${ico("flag", "fdot")}${esc(f.L.see)}</p><p class="rule">${esc(t("Threshold: {rule}", {rule: f.L.rule}))}</p>${f.k === "repeats" ? "" : `<p class="why">${esc(f.L.why)}</p>`}${spark(f.k)}${f.ids.length ? `<div class="fss">${flagSes(f.ids.slice(0, 6), f.k === "repeats" ? rp : null)}${f.ids.length > 6 ? `<p class="more">${esc(f.ids.length - 6 === 1 ? t("1 more session") : t("{n} more sessions", {n: f.ids.length - 6}))}</p>` : ""}</div>` : ""}</div>`).join(""); // 繰り返しのプロンプトの「なぜ」は「What to try」と同じことなので出さない
   D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" id="wkclose" aria-label="${esc(t("Close"))}"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form><div class="eyebrow">${ico("flag", "fdot")}${esc(t("Worth a look"))}</div><h2 id="wkh">${esc(h.n)}</h2>${body}
-    <dl class="wkhelp"><dt>${esc(t("What it is"))}</dt><dd>${esc(h.d)}</dd><dt>${esc(t("Doesn't tell you"))}</dt><dd>${esc(h.x)}</dd><dt>${esc(t("What to try"))}</dt><dd>${esc(h.a)}</dd></dl>`;
+    <dl class="wkhelp"><dt>${esc(t("What it is"))}</dt><dd>${esc(hk.d)}</dd><dt>${esc(t("Doesn't tell you"))}</dt><dd>${esc(hk.x)}</dd><dt>${esc(t("What to try"))}</dt><dd>${esc(hk.a)}</dd></dl>`;
   D.querySelectorAll(".fss [data-id]").forEach(b => b.onclick = () => { D.close(); select(b.dataset.id); });
   D.onclose = () => { if (from && from.isConnected && (!st.sel || from.closest("#panel")) && !document.activeElement?.closest?.("#review")) from.focus(); }; // 閉じたら押したリンクへ（サマリーや別のセッションへ移ったときは除く）
   D.showModal(); D.scrollTop = 0;

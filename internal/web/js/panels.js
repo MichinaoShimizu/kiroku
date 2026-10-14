@@ -27,8 +27,8 @@ function searchPanel(){
   const cs = (META.git || []).filter(gitHit).sort((a,b) => b.t - a.t);
   const row = s => { const h = hitOf(s, q);
     return `<button class="srow ag" data-s="${esc(s.id)}" style="--c:${colorOf(keyOf(s))};--ag:${agColor(s.source)}"><time>${md(s.start)}<small>${hm(s.start)}</small></time>
-      <span class="b"><span class="ti">${agMark(s.source)}${esc(s.title)}</span><span class="me">${esc(s.project)}${s.branch ? ` · ${esc(s.branch)}` : ""} · ${esc((s.source))}</span>
-      ${h.h ? `<span class="hit"><em>${esc((h.label === "PR" ? "PR" : t(h.label)))}</em>${h.h}</span>` : ""}</span></button>`; };
+      <span class="b"><span class="ti">${agMark(s.source)}${h.h && h.label === "Title" ? h.h : esc(s.title)}</span><span class="me">${esc(s.project)}${s.branch ? ` · ${esc(s.branch)}` : ""} · ${esc((s.source))}</span>
+      ${h.h && h.label !== "Title" ? `<span class="hit"><em>${esc((h.label === "PR" ? "PR" : t(h.label)))}</em>${h.h}</span>` : ""}</span></button>`; };
   const crow = c => `<button class="srow" data-c="${esc(c.hash)}" style="--c:${colorOf(c.project)}"><time>${md(c.t)}<small>${hm(c.t)}</small></time>
       <span class="b"><span class="ti"><i></i>${snip(c.subject, q) || esc(c.subject)}</span><span class="me">${esc(c.project)}${c.branch ? ` · ${esc(c.branch)}` : ""} · <span class="mono">${esc(c.hash.slice(0,7))}</span> · ${esc(plural(c.nFiles, "file"))} +${c.added} −${c.removed}</span>
       ${(() => { const f = (c.files || []).find(f => f.path.toLowerCase().includes(q)); return f ? `<span class="hit"><em>${esc(t("File"))}</em>${snip(f.path, q)}</span>` : ""; })()}</span></button>`;
@@ -367,7 +367,7 @@ function vsPrev(pw, unit){
   const a = n == null ? null : new Date(periodBack(1).ws * 1000), range = n == null ? "" : n === 1 ? dMD(a) : dSpan(a, addDays(a, n - 1));
   const label = esc(n == null ? (unit === "月" ? t("vs last month") : t("vs last week")) : t("vs {range}", {range}));
   const of = (f, whole) => !pw || whole == null ? null : n == null ? whole : f ? pw.days.slice(0, n).reduce((t, d) => t + (d[f] || 0), 0) : null;
-  const diff = (a, b, fmt = x => x) => b == null ? "" : a === b ? `${label} <span class="nw">${esc(t("no change"))}</span>` : `${label} <span class="nw">${a-b>0?"+":"−"}${fmt(Math.abs(a-b))}</span>`;
+  const diff = (a, b, fmt = x => x) => b == null ? "" : a === b ? `${label} <span class="nw">±0</span>` : `${label} <span class="nw">${a-b>0?"+":"−"}${fmt(Math.abs(a-b))}</span>`;
   return {n, range, label, of, diff};
 }
 // projection は、今月の途中なら、今日までのペースが月末まで続いたときの目安コストとクレジット（推定）。

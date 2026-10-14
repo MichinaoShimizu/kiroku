@@ -2558,6 +2558,7 @@
 "prompts": 0
 }
 ],
+"frictionN": 0,
 "friction": [],
 "start": "2026-08-31",
 "fixRate": 0.0,
@@ -2683,6 +2684,7 @@
 "prompts": 0
 }
 ],
+"frictionN": 0,
 "friction": [],
 "start": "2026-09-07",
 "fixRate": 0.0,
@@ -2810,6 +2812,7 @@
 "prompts": 0
 }
 ],
+"frictionN": 1,
 "friction": [
 {
 "id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
@@ -2962,6 +2965,7 @@
 "prompts": 0
 }
 ],
+"frictionN": 2,
 "friction": [
 {
 "id": "6f8a980c-3b83-43eb-b07d-758a36bc2400",
@@ -3102,6 +3106,7 @@
 "prompts": 0
 }
 ],
+"frictionN": 0,
 "friction": [],
 "start": "2026-09-28",
 "fixRate": 0.0,

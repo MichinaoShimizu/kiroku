@@ -34,14 +34,15 @@ function render(){
   // legend（この期間にあるものを、作業時間の多い順に。数はサマリーの「① By project」の配分と同じ作業時間）
   const cnt = {}; inRange.forEach(s => cnt[keyOf(s)] = (cnt[keyOf(s)]||0)+1);
   const mins = legendMinutes();
-  const noZoom = M || st.view !== "calendar"; // ズームは週のカレンダーの時間の高さだけ（月・Journey・Project activity では何も変わらない）
+  const noHit = !!st.q && !DATA.some(matches); // 検索がどこにも当たらない（カレンダーは空になり、上の検索結果だけが「ない」と言う）
+  const noZoom = M || st.view !== "calendar" || noHit; // ズームは週のカレンダーの時間の高さだけ（月・Journey・Project activity では何も変わらない）
   // 件数は横にスクロールする並び（.lrow）の外に置く。スマホでは並びの上に出し、チップが多くても画面の外へ押し出されないように
   $("#legend").innerHTML = `<label class="cbsel"><span class="cbt">${esc(t("Color by"))}</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label><div class="lrow"><span class="lab">${esc(t("Active time"))}<small> · ${esc(t("click to hide"))}</small></span>` +
     Object.keys(cnt).sort((a,b)=>(mins[b]||0)-(mins[a]||0) || cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}" title="${esc(t("{name}: {stats} (click to show or hide)", {name: k, stats: `${mins[k] ? dur(mins[k]) + " · " : ""}${plural(cnt[k], "session")}`}))}"><span class="dot"></span>${st.colorBy === "source" ? agMark(k) : ""}<span class="cn">${esc((k))}</span><span class="n">${mins[k] ? dur(mins[k]) : "—"}<span class="sr"> ${esc(t("active"))}</span></span></button>`).join("") +
     `</div>${noZoom ? "" : `<span class="zlab" aria-hidden="true">${esc(t("Zoom"))}</span><div class="segc zoom" role="group" aria-label="${esc(t("Zoom"))}"><button id="zout" aria-label="${esc(t("Zoom out"))}">−</button><button id="zin" aria-label="${esc(t("Zoom in"))}">+</button></div>`}<span class="count">${esc(t("{n} / {total} sessions", {n: shown.length, total: inRange.length}))}</span>`;
   if (!noZoom){ $("#zin").onclick = () => zoom(1); $("#zout").onclick = () => zoom(-1); }
   // 検索・凡例で絞り込んでいるあいだ、絞り込めない合計（作業時間・トークンなど）は薄くして、そう断る
-  const fn = $("#fnote"); fn.hidden = !filtering();
+  const fn = $("#fnote"); fn.hidden = !filtering() || noHit;
   fn.textContent = `${st.q ? t("This view shows only sessions matching the search and their linked records.") : t("Hidden items are left out of this view.")} ${M ? t("Gray figures, at the top and in each day and week, are totals for all sessions; sessions and commits there count only what is shown.") : t("Gray figures, at the top and under each date, are totals for all sessions; sessions and commits there count only what is shown.")}`;
   $("#legend").hidden = !inRange.length; // 記録のない期間は、色分け・ズーム・件数を出さない（押しても何も変わらない）
   const cb2 = $("#cb2"); if (cb2) cb2.onchange = () => { st.colorBy = cb2.value; st.hidden.clear(); store.set("colorBy", st.colorBy); render(); };
@@ -388,7 +389,7 @@ function projectGrid(sessions, ws, we){
       const sessionsList = items.slice().sort((a,b)=>b.start-a.start);
       const commitsList = commits.slice().sort((a,b)=>b.t-a.t);
       const prsList = prs.slice().sort((a,b)=>b.pr.t-a.pr.t);
-      return '<section class="project-card"><h3>'+esc(projName(name, items))+'</h3><p class="project-meta">'+plural(items.length,"session")+' · '+plural(commits.length,"Git commit")+' · '+plural(prs.length,"recorded PR")+' · '+esc(dSpan(new Date(first*1000), new Date(last*1000)))+'</p>'+agentSummary+
+      return '<section class="project-card"><h3>'+esc(projName(name, items))+'</h3><p class="project-meta">'+plural(items.length,"session")+' · '+plural(commits.length,"Git commit")+(prs.length ? ' · '+plural(prs.length,"recorded PR") : '')+' · '+esc(dSpan(new Date(first*1000), new Date(last*1000)))+'</p>'+agentSummary+
         '<div class="project-events">'+
         eventList(t("Sessions"),n=>t("Show {n} more sessions",{n}),sessionsList,5,s=>'<button data-session="'+esc(s.id)+'">'+esc(s.title||s.project||t("Session"))+' · '+esc(s.source)+'</button>')+
         eventList(t("Git commits"),n=>t("Show {n} more Git commits",{n}),commitsList,3,c=>'<button data-git="'+esc(c.hash)+'">'+esc(c.subject||c.hash)+'</button>')+

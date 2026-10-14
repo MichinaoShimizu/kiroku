@@ -31,7 +31,7 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | Location | Role |
 |---|---|
 | `main.go` | The entry point only (kept at the root so `go install github.com/MichinaoShimizu/kiroku@latest` works); the commands are in `internal/cli` |
-| `internal/cli/cli.go` | Subcommands (`serve`, `html`, `json`, `archive`, `autostart`, `doctor`, `version`, `update`, `help`), option parsing, and the message that points the removed old syntax (`kiroku --serve` and so on) to the new one |
+| `internal/cli/cli.go` | Subcommands (`serve`, `open`, `html`, `json`, `stats`, `archive`, `autostart`, `doctor`, `version`, `update`, `help`), option parsing, and the message that points the removed old syntax (`kiroku --serve` and so on) to the new one |
 | `internal/cli/load.go` | Loading history (removing duplicates), overriding the price table |
 | `internal/cli/archive.go` | `kiroku archive` (status, `on`, and `off`, which offers to delete the copies only in a folder marked by `on`) |
 | `internal/cli/update.go` | `kiroku update` (downloads from Releases, verifies, and replaces itself) |
@@ -39,8 +39,12 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | `internal/cli/autostart.go` | `kiroku autostart` (a launchd agent on macOS, a systemd user service on Linux) |
 | `internal/cli/scope.go` | `kiroku html --week` / `--month` (keeps only one period's sessions, commits and pushes) |
 | `internal/cli/serve.go` | `kiroku serve` (watches history for changes, reloads, and pushes to the view) |
+| `internal/cli/servekey.go` | The key of `kiroku serve` (`serve-key`, `0600`; the cookie) |
+| `internal/cli/open.go` | `kiroku open` |
+| `internal/cli/stats.go` | `kiroku stats` |
 | `internal/cli/cache.go` | On reload, skips history unchanged since last time (using a per-agent fingerprint and the per-conversation marks of `source.Splitter`) |
 | `internal/cli/color.go` | Colour and emphasis for what is written to the terminal (`styleFor` turns it off for pipes, files, `NO_COLOR` and `TERM=dumb`) |
+| `internal/ai` | `kiroku serve --ai`: runs `claude`, `codex` or `kiro-cli` in an empty temporary folder with read-only limits (`Runner`), and the `/ai/run` handler (checks, one run at a time, size limits) |
 | `internal/archive` | The copies `kiroku archive` keeps: the on/off marks, compressing history to `.zst` (`Sync`), usage, and deleting only the `.zst` copies (`Clear`) |
 | `internal/source` | Adapters that read each agent's history. Details on how they read are in [sources.md](sources.md) |
 | `internal/core` | The common session shape (`Builder` → `Session`), tokens and pricing, agent-specific metrics, and `Agents` (`agents.go`: each agent's name, `--sources` name, color, initials, environment variables and `kiroku archive` folder) |

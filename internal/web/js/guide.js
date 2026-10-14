@@ -23,7 +23,7 @@ function openGuide(){
   const tag = l => l.up ? `<span class="mgtag up">${esc(t("Left behind ↑"))}</span>` : `<span class="mgtag down">${esc(t("Cost ↓"))}</span>`;
   D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" aria-label="${esc(t("Close"))}"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form>
     <div class="eyebrow">${esc(t("Metrics guide"))}</div><h2 id="mgh">${esc(t("How the metrics fit together"))}</h2>
-    <p class="glead" id="mgd">${esc(t("kiroku doesn't measure productivity. It shows what you put in, what was left behind, and how you worked with AI in between. Each metric about how you worked acts through one of four levers: one adds to what is left behind, three take away from the cost. In the terms of the SPACE framework, this covers Activity and Efficiency and flow."))}</p>
+    <p class="glead" id="mgd">${esc(t("kiroku doesn't measure productivity. It shows what you put in, what was left behind, and how you worked with AI in between. Each metric about how you worked acts through one of four levers: one adds to what is left behind, three take away from the cost."))}</p>
     <div class="gflow" role="group" aria-label="${esc(t("Cost passes through four levers and becomes what is left behind"))}">
       <section class="gbox gin"><h3>${esc(t("Cost"))}</h3><p>${esc(t("What you put in"))}</p><ul>${names(GUIDE.cost)}</ul></section>
       <span class="garr" aria-hidden="true"></span>

@@ -106,8 +106,9 @@ type Summary struct {
 	ProjectStats  []ProjectStat      `json:"projectStats"` // プロジェクト別のまとめ（project.go）
 	Shares        map[string][]Share `json:"shares"`       // ブランチ・エージェントごとの配分（share.go）
 	Days          []Day              `json:"days"`         // 期間の日ごと（週なら 7、月なら 28〜31）
-	Friction      []Friction         `json:"friction"`
-	Native        []NativeGroup      `json:"native"` // エージェント別の参考指標
+	Friction      []Friction         `json:"friction"`     // 多い順に 3 つまで
+	FrictionN     int                `json:"frictionN"`    // 3 つに絞る前の数
+	Native        []NativeGroup      `json:"native"`       // エージェント別の参考指標
 	start, end    time.Time
 }
 
@@ -424,6 +425,7 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 		}
 	}
 	sort.SliceStable(friction, func(i, j int) bool { return friction[i].Score > friction[j].Score })
+	frictionN := len(friction)
 	if len(friction) > 3 {
 		friction = friction[:3]
 	}
@@ -522,7 +524,7 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 		Active: len(active), AI: ai, Parallel: parallel, MaxConc: maxConc, Weekend: weekend,
 		Focus: blocks, SwitchesAvg: core.Round(float64(swSum)/float64(activeDays), 1), SwitchesMax: swMax,
 		WaitMedian: pick(0.5), WaitP90: pick(0.9), WaitCount: len(waits), Projects: projList, Days: days,
-		Friction: friction, start: wsT, end: weT,
+		Friction: friction, FrictionN: frictionN, start: wsT, end: weT,
 	}
 }
 

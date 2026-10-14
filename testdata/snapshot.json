@@ -321,6 +321,7 @@
      ]
     }
    ],
+   "frictionN": 5,
    "git": {
     "added": 0,
     "ai": 0,
@@ -1782,6 +1783,7 @@
    "fixRate": 0,
    "focus": [],
    "friction": [],
+   "frictionN": 0,
    "git": {
     "added": 0,
     "ai": 0,
@@ -6584,6 +6586,7 @@
    "fixRate": 0,
    "focus": [],
    "friction": [],
+   "frictionN": 0,
    "git": {
     "added": 0,
     "ai": 0,
@@ -6854,6 +6857,7 @@
    "fixRate": 0,
    "focus": [],
    "friction": [],
+   "frictionN": 0,
    "git": {
     "added": 0,
     "ai": 0,
@@ -7172,6 +7176,7 @@
      ]
     }
    ],
+   "frictionN": 1,
    "git": {
     "added": 0,
     "ai": 0,
@@ -7548,6 +7553,7 @@
      ]
     }
    ],
+   "frictionN": 2,
    "git": {
     "added": 0,
     "ai": 0,
@@ -8105,6 +8111,7 @@
      ]
     }
    ],
+   "frictionN": 2,
    "git": {
     "added": 0,
     "ai": 0,

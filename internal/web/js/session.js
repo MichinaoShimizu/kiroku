@@ -131,7 +131,7 @@ function promptFlow(s){
   });
   flush(Infinity);
   const fixes = s.prompts.some(p => !p.kind && FIXRE.test(String(p.text || ""))), kinds = new Set(ev.map(x => x.k.split(" ")[0])), cmds = s.prompts.some(p => p.kind);
-  const key = [`<span class="kus">${ico("user")}${esc(t("User prompt"))}</span>`,
+  const key = [`<span class="kus">${ico("user")}${esc(t("Your prompt"))}</span>`,
     cmds ? `<span class="kcmd"><span class="pkind">${ico("command")}${esc(t("Command"))}</span><span class="pkind">${ico("shell")}${esc(t("Shell"))}</span>${esc(t("What you typed starting with / or !"))}</span>` : "",
     kinds.has("note") ? `<span class="kev note">${[...new Set(s.notes.filter(x => x.t).map(x => NOTE_ICON[x.kind] || "note"))].map(k => ico(k)).join("")}${esc(t("Added automatically (notifications, summaries, hooks; not counted as prompts)"))}</span>` : "",
     fixes ? `<span class="kus fix"><span class="pkind fix">${esc(t("Correction?"))}</span>${esc(t("Looks like a correction (guessed from the wording)"))}</span>` : "",
