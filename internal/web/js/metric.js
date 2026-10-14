@@ -245,6 +245,9 @@ function openMetric(id, from){
       body += mSessions(id === "active" ? "Longest sessions" : id === "sessions" ? "Sessions with the most prompts" : id === "tokens" ? "Sessions with the most tokens" : id === "cost" ? "Heaviest sessions" : "Sessions with the most credits", top, m.f);
       if (top.length && id !== "active") body += WHOLE(); }
   }
+  // 帯の使用量と月末の見込みは、推定費用とクレジットを 1 つの枠に並べるので、費用の内訳からクレジットの内訳へ移れるように
+  const go = (id === "cost" || id === "tokens") && u.credits ? "credits" : id === "projection" && projection(w)?.credits != null ? "projectionCr" : "";
+  if (go) body += `<p><button class="pill" type="button" data-go="${go}">${esc(t(go === "credits" ? "Kiro credits breakdown" : "Month-end credits breakdown"))}</button></p>`;
   // 英語は「. 」と大文字の前（「.」は残す）で、日本語（HELP の訳）は最初の「。」の後ろで切る
   const [d1, dr] = !h ? ["", ""] : JA && h.d.includes("。") ? (i => [h.d.slice(0, i + 1), h.d.slice(i + 1)])(h.d.indexOf("。")) : (i => i < 0 ? [h.d, ""] : [h.d.slice(0, i + 1), h.d.slice(i + 2)])(h.d.search(/\. (?=[A-Z])/));
   D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" aria-label="${esc(t("Close"))}"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form>
@@ -253,6 +256,7 @@ function openMetric(id, from){
   if (h) D.setAttribute("aria-describedby", "mdd"); else D.removeAttribute("aria-describedby");
   D.querySelectorAll("[data-id]").forEach(b => b.onclick = () => { D.close(); select(b.dataset.id); });
   ["git", "push", "pr"].forEach(k => D.querySelectorAll(`[data-${k}]`).forEach(b => b.onclick = () => { D.close(); select(`${k}:${b.dataset[k]}`); })); // コミット・push・PR の一覧
+  D.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { D.onclose = null; D.close(); openMetric(b.dataset.go, from); });
   D.onclose = () => { if (from && from.isConnected && !st.sel) from.focus(); };
   D.showModal(); D.scrollTop = 0;
   const hd = $("#mdh"); hd.tabIndex = -1; hd.focus();
