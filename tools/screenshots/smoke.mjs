@@ -187,6 +187,7 @@ async function run(env) {
     check("G・+・− を押しても何も開かず、期間も変わらない", await p.evaluate(wk => document.querySelector("#rd").textContent === wk && ![...document.querySelectorAll("dialog")].some(d => d.open), wk));
     check("週のカレンダーにズームの操作がない", await p.locator("#legend .zoom, #zin, #zout").count() === 0);
     check("ショートカットの一覧に G・ズームがない", !/Metrics guide|Zoom/.test(await p.locator("#keys").textContent()));
+    check("ショートカットの一覧の Y（Year in review）は 1 つだけで、Esc の前", await p.evaluate(() => { const ks = [...document.querySelectorAll("#keys .keys kbd")].map(k => k.textContent); return ks.filter(k => k === "Y").length === (YEAR_ON ? 1 : 0) && (!YEAR_ON || ks.indexOf("Y") === ks.indexOf("Esc") - 1); }));
   });
 
   await step("サマリーの数字から内訳が開く", async () => {
