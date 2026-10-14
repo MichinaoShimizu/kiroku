@@ -60,6 +60,7 @@ func (l *live) refresh() error {
 			meta[k] = v
 		}
 		meta["aiRun"] = true
+		meta["aiAgents"] = ai.Installed() // only agents whose command is on this computer are offered (checked on each reload)
 		snap.meta = meta
 	}
 	parts, err := web.Marshal(snap.data, snap.weeks, snap.months, snap.meta, snap.gen) // HTML と /data.json で使い回す

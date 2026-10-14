@@ -2,6 +2,16 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Added
+
+- "Run with AI" (`kiroku serve --ai`) shows the run as it happens: the command kiroku ran, the files Claude Code reads, the progress and errors the agent prints, and its reply as it is written. The reply can be shown formatted (headings, lists, tables and code laid out) or as the Markdown it was written in, and the choice is remembered. The agent list offers only the agents whose command is found on this computer
+
+### Changed
+
+- The weekly and monthly report buttons ("Copy prompt" and "Run with AI") moved from the summary heading to just below the period's dates and numbers, like each day's "Report" button sits on the day it covers. The "Run with AI" dialog no longer repeats that the agent may send the prompt and history to its provider (the guide and SECURITY.md still say so)
+
 ## v0.33.0 - 2026-10-14
 
 ### Added

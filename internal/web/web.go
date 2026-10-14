@@ -35,6 +35,7 @@ var scripts = []string{
 	"i18n.js",     // 画面の文言の日本語（ADR 0029）
 	"format.js",   // 書き方の小物・色・テーマ
 	"markdown.js", // 書き出す Markdown に履歴の文字を入れる小物
+	"mdview.js",   // AI の返事（Markdown）を整えて見せる
 	"ui.js",       // 共通の部品（印・セッションのカード・見出し・数の枠）
 	"ai.js",       // AI review dialog and execution
 	"calendar.js", // render・週と月のカレンダー・ツールチップ
