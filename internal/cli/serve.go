@@ -63,12 +63,17 @@ func (l *live) refresh() error {
 		meta["aiAgents"] = ai.Installed() // only agents whose command is on this computer are offered (checked on each reload)
 		snap.meta = meta
 	}
-	parts, err := web.Marshal(snap.data, snap.weeks, snap.months, snap.meta, snap.gen) // HTML と /data.json で使い回す
+	parts, err := web.Marshal(snap.data, snap.weeks, snap.months, snap.meta, snap.gen) // /data.json
 	if err != nil {
 		return err
 	}
-	parts.Lang = l.lang
-	html, err := parts.HTML(true)
+	// / は鍵なしでも開けるので（requireKey）、HTML には履歴を入れない（画面の骨組み）。画面は鍵を付けて /data.json を読む（ADR 0031）
+	shell, err := web.Marshal([]*core.Session{}, map[string]*report.Week{}, map[string]*report.Summary{}, shellMeta(snap.meta), 0)
+	if err != nil {
+		return err
+	}
+	shell.Lang = l.lang
+	html, err := shell.HTML(true)
 	if err != nil {
 		return err
 	}
@@ -77,6 +82,18 @@ func (l *live) refresh() error {
 	l.snap, l.html, l.json = snap, []byte(html), js
 	l.mu.Unlock()
 	return nil
+}
+
+// shellMeta は、画面の骨組み（鍵なしで返す /）の META。履歴から作ったものは入れず、shell（data.json を読むこと）と、
+// 履歴ではない設定（AI を動かせるか・使えるエージェント・デモの時計）だけにする。
+func shellMeta(meta map[string]any) map[string]any {
+	out := map[string]any{"shell": true}
+	for _, k := range []string{"aiRun", "aiAgents", "demo"} {
+		if v, ok := meta[k]; ok {
+			out[k] = v
+		}
+	}
+	return out
 }
 
 // start は最初の読み込みをして、そのあと履歴を見張る（watch）。serveLive が待ち受けを始めてから別の goroutine で呼ぶ。

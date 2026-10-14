@@ -52,9 +52,10 @@ function detail(s){
     <h3>${esc(t("Tools used"))}</h3>
     ${s.tools.length ? s.tools.map(([k,v],i)=>`<div class="trow"><span class="nm">${toolIcon(k)}<span>${esc(k)}</span></span><span class="track2"><span style="width:${v/maxT*100}%;background:var(--c${i % 8})"></span></span><span class="n">${v}</span></div>`).join("") : noneH(esc(t("None recorded")))}
     ${s.native && s.native.length ? `<h3>${esc(t("{agent} metrics", {agent: s.source}))}</h3>${nativeRows(s.native)}<p class="note">${esc(t("Numbers this agent records itself. Definitions differ from other agents."))}</p>` : ""}
-    ${s.file ? `<h3>${esc(t("History file"))}</h3>${codeH(s.file, "", `<a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" target="_blank" rel="noopener">${esc(t("Open"))}</a>`)}` : ""}
+    ${s.file ? `<h3>${esc(t("History file"))}</h3>${codeH(s.file, "", `<a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" ${LIVE ? "data-hist" : `target="_blank" rel="noopener"`}>${esc(t("Open"))}</a>`)}` : ""}
   </div></div></div>`;
   bindGitEvents(P);
+  const hl = P.querySelector("a[data-hist]"); if (hl) hl.onclick = e => { e.preventDefault(); saveHistory(s, hl); };
   P.querySelectorAll(".sflags [data-goto]").forEach(b => b.onclick = () => openWorth(b.dataset.goto, b));
   const sr = P.querySelector("#sreview"); if (sr) sr.onclick = () => copy(sessionPrompt(s, active, med), reviewFile(s) ? t("Copied. Paste it into an AI agent on this computer. It includes your prompts and the session's history file path, and the agent reads that file, so check it before sending.") : t("Copied. Paste it into an AI agent on this computer. It includes your prompts, so check it before sending."), 8000, sr);
   P.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
@@ -64,18 +65,31 @@ function detail(s){
     li.querySelector(".pshort").hidden = open; li.querySelector(".pfull").hidden = !open; b.setAttribute("aria-expanded", open); b.textContent = open ? t("Show less") : pexpLabel(li.dataset.full ? {} : s.prompts[b.dataset.i]); });
   P.querySelectorAll(".pload").forEach(b => b.onclick = async () => { // kiroku serve のときだけ、切ったプロンプトの全文をサーバーから読む
     b.disabled = true;
-    try { const r = await fetch(`prompt?id=${encodeURIComponent(s.id)}&i=${b.dataset.i}`, {cache: "no-store"}); if (!r.ok) throw 0;
+    try { const r = await kfetch(`prompt?id=${encodeURIComponent(s.id)}&i=${b.dataset.i}`); if (!r.ok) throw 0;
       const li = b.closest("li"); li.querySelector(".pfull").textContent = await r.text(); li.dataset.full = "1"; li.querySelector(".pexp").focus(); // 「閉じる」は残して、また畳めるように
     } catch { b.disabled = false; b.textContent = t("Couldn't load. Try again"); } });
   P.querySelectorAll(".rload").forEach(b => b.onclick = async () => { // kiroku serve のときだけ、切った応答の全文をサーバーから読む
     b.disabled = true;
-    try { const r = await fetch(`reply?id=${encodeURIComponent(s.id)}&i=${b.dataset.i}`, {cache: "no-store"}); if (!r.ok) throw 0;
+    try { const r = await kfetch(`reply?id=${encodeURIComponent(s.id)}&i=${b.dataset.i}`); if (!r.ok) throw 0;
       const li = b.closest("li.rp"); li.querySelector(".reptext").textContent = await r.text(); li.tabIndex = -1; li.focus(); // 読んでいた場所から離れないように
     } catch { b.disabled = false; b.textContent = t("Couldn't load. Try again"); } });
   P.querySelectorAll("#flowBy button").forEach(b => b.onclick = () => { st.flowUser = b.dataset.v === "user"; store.set("flowUser", st.flowUser); P.querySelector(".tl").classList.toggle("only-user", st.flowUser); P.querySelector(".tlkey").classList.toggle("only-user", st.flowUser); P.querySelectorAll("#flowBy button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); });
   const pall = P.querySelector(".pall"); if (pall) pall.onclick = () => { const shown = [...P.querySelectorAll(".tl li[hidden]")]; shown.forEach(li => li.hidden = false); pall.remove();
     const first = shown.find(li => li.classList.contains("pr")); if (first) first.focus(); }; // 出した最初のプロンプトへ（フォーカスを失わないように）
   bindCopy(P);
+}
+/* kiroku serve の履歴ファイル（/history）。リンクの移動では鍵のヘッダーを付けられないので（ADR 0031）、kfetch で読み、
+   Blob の URL から保存する。名前は履歴ファイルの名前（.zst はサーバーがほどいて返すので外す）。読めなければ知らせる */
+const histName = f => String(f || "").split(/[\\/]/).pop().replace(/\.zst$/, "").replace(/[\u0000-\u001f\u007f"*:<>?|]/g, "_") || "history.jsonl";
+async function saveHistory(s, a){
+  if (a.getAttribute("aria-busy") === "true") return;
+  a.setAttribute("aria-busy", "true");
+  try { const r = await kfetch("history?id=" + encodeURIComponent(s.id)); if (!r.ok) throw new Error(r.status);
+    const url = URL.createObjectURL(await r.blob()), d = document.createElement("a");
+    d.href = url; d.download = histName(s.file); d.hidden = true; document.body.append(d); d.click(); d.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch(e){ toast(t("Couldn't open the history file. If kiroku serve is running, run kiroku open and try again."), 5000); }
+  finally { a.removeAttribute("aria-busy"); }
 }
 /* プロンプトの流れ: プロンプトと、その間に起きたこと（コミット・PR・利用上限・中断・サブエージェント）を時刻の順に 1 本に並べる */
 const FLOW_SHOW = 30, FLOW_GAP = 1800; // はじめに出すプロンプトの数 / これより長い待たせは「あいた」の区切りにする（待たせの中央値と同じ 30 分）

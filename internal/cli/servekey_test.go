@@ -53,12 +53,18 @@ func TestServeKey(t *testing.T) {
 	}
 }
 
-// 鍵を知っているブラウザにだけ見せる。?key= で開くと Cookie を渡し、鍵を消した URL へ移す。
+// 鍵を知っている画面にだけ見せる（ADR 0031）。鍵は X-Kiroku-Key ヘッダーでだけ受け付け、Cookie では通さない
+// （Cookie はポートを区別しないので、同じコンピューターのほかのポートのサーバーにも送られ、鍵が盗まれる）。
+// ?key= で開くと、鍵をページに入れない中継のページを返し、鍵の Cookie は渡さず、以前の版の Cookie は消させる。
+// GET / だけは鍵なしで通す（履歴を入れない画面の骨組みを返すところ。TestServeShellHasNoHistory）。
 func TestRequireKey(t *testing.T) {
 	key := strings.Repeat("ab", 32)
 	h := requireKey("127.0.0.1:8484", key, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("history")) }))
-	do := func(method, target string, c *http.Cookie) *httptest.ResponseRecorder {
+	do := func(method, target string, hdr string, c *http.Cookie) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(method, target, nil)
+		if hdr != "" {
+			r.Header.Set("X-Kiroku-Key", hdr)
+		}
 		if c != nil {
 			r.AddCookie(c)
 		}
@@ -66,40 +72,87 @@ func TestRequireKey(t *testing.T) {
 		h.ServeHTTP(w, r)
 		return w
 	}
+	oldCookie := &http.Cookie{Name: "kiroku_key_8484", Value: key}
 	for _, c := range []struct {
 		name   string
+		method string
 		target string
+		hdr    string
 		cookie *http.Cookie
 	}{
-		{"鍵なし", "/data.json", nil},
-		{"違う鍵", "/?key=" + strings.Repeat("cd", 32), nil},
-		{"違う Cookie", "/", &http.Cookie{Name: "kiroku_key_8484", Value: strings.Repeat("cd", 32)}},
-		{"ほかのポートの Cookie", "/", &http.Cookie{Name: "kiroku_key_9999", Value: key}},
-		{"空の鍵", "/?key=", nil},
+		{"鍵なし", "GET", "/data.json", "", nil},
+		{"違う鍵", "GET", "/?key=" + strings.Repeat("cd", 32), "", nil},
+		{"空の鍵", "GET", "/?key=", "", nil},
+		{"違うヘッダー", "GET", "/data.json", strings.Repeat("cd", 32), nil},
+		{"短いヘッダー", "GET", "/data.json", key[:63], nil},
+		{"以前の版の Cookie だけ（もう通さない）", "GET", "/data.json", "", oldCookie},
+		{"以前の版の Cookie だけで /stamp", "GET", "/stamp", "", oldCookie},
+		{"以前の版の Cookie だけで POST", "POST", "/archive", "", oldCookie},
+		{"POST の ?key=", "POST", "/archive?key=" + key, "", nil},
+		{"POST /", "POST", "/", "", nil},
+		{"/ 以外は鍵なしで通さない", "GET", "/history?id=s1", "", nil},
 	} {
-		w := do("GET", c.target, c.cookie)
-		if w.Code != 403 || w.Body.String() == "history" || len(w.Result().Cookies()) != 0 {
+		w := do(c.method, c.target, c.hdr, c.cookie)
+		if w.Code != 403 || w.Body.String() == "history" || !strings.Contains(w.Body.String(), "kiroku open") {
 			t.Errorf("%s: %d %q", c.name, w.Code, w.Body.String())
 		}
+		for _, ck := range w.Result().Cookies() {
+			if ck.Value != "" || ck.MaxAge >= 0 {
+				t.Errorf("%s: 鍵の Cookie を渡した: %+v", c.name, ck)
+			}
+		}
 	}
-	if w := do("POST", "/archive?key="+key, nil); w.Code != 403 {
-		t.Errorf("POST の ?key= で通した: %d", w.Code)
+	// ヘッダーに鍵があれば通す（POST も。X-Kiroku と同じオリジンの確かめは、そのあとの /archive と /ai/run がする）
+	for _, m := range []string{"GET", "POST"} {
+		if w := do(m, "/data.json", key, nil); w.Code != 200 || w.Body.String() != "history" {
+			t.Errorf("ヘッダーつきの %s = %d %q", m, w.Code, w.Body.String())
+		}
 	}
-	// Strict の Cookie はよそから来た移動には付かないので、このポートのページから鍵のない URL へ移る
-	w := do("GET", "/history?id=s1&key="+key, nil)
-	if w.Code != 200 || !strings.Contains(w.Body.String(), `content="0;url=/history?id=s1"`) || strings.Contains(w.Body.String(), key) {
-		t.Fatalf("?key= = %d %q", w.Code, w.Body.String())
+	// GET / は鍵なしで通す（返すのは骨組みだけ）
+	if w := do("GET", "/", "", nil); w.Code != 200 {
+		t.Errorf("鍵なしの GET / = %d", w.Code)
+	}
+	// 以前の版の Cookie が送られてきたら、どの答えでも消させる
+	for _, target := range []string{"/", "/data.json"} {
+		w := do("GET", target, "", oldCookie)
+		cs := w.Result().Cookies()
+		if len(cs) != 1 || cs[0].Name != "kiroku_key_8484" || cs[0].Value != "" || cs[0].MaxAge >= 0 || cs[0].Path != "/" {
+			t.Errorf("%s: 以前の版の Cookie を消させていない: %+v", target, cs)
+		}
+	}
+	// ?key= は中継のページ。鍵はページに入れず（アドレスから読む）、localStorage にしまうスクリプトだけを CSP で許す
+	w := do("GET", "/history?id=s1&key="+key, "", oldCookie)
+	body := w.Body.String()
+	if w.Code != 200 || strings.Contains(body, key) || !strings.Contains(body, `<a id="to" href="/history?id=s1">`) ||
+		!strings.Contains(body, `localStorage.setItem("kiroku:key", k)`) || !strings.Contains(body, "location.replace(") ||
+		!strings.Contains(body, `<meta name="referrer" content="no-referrer">`) || strings.Contains(body, "http-equiv=\"refresh\"") {
+		t.Fatalf("?key= = %d %q", w.Code, body)
+	}
+	if w.Header().Get("Cache-Control") != "no-store" {
+		t.Errorf("中継のページの Cache-Control = %q", w.Header().Get("Cache-Control"))
+	}
+	if !strings.Contains(body, `content="`+hopKeyCSP+`"`) || !strings.Contains(hopKeyCSP, "default-src 'none'") || !strings.Contains(hopKeyCSP, cspHash(hopKeyScript)) ||
+		strings.Contains(hopKeyCSP, "unsafe-inline") || strings.Contains(hopKeyCSP, "connect-src") {
+		t.Errorf("中継のページの CSP = %q", hopKeyCSP)
+	}
+	if strings.Count(body, "<script>") != 1 || !strings.Contains(body, "<script>"+hopKeyScript+"</script>") {
+		t.Errorf("中継のページのスクリプトが hopKeyScript と違う（CSP のハッシュが合わない）: %q", body)
 	}
 	cs := w.Result().Cookies()
-	if len(cs) != 1 || cs[0].Name != "kiroku_key_8484" || cs[0].Value != key || !cs[0].HttpOnly || cs[0].SameSite != http.SameSiteStrictMode || cs[0].Path != "/" || cs[0].MaxAge <= 0 {
-		t.Fatalf("Cookie = %+v", cs)
+	if len(cs) != 1 || cs[0].Value != "" || cs[0].MaxAge >= 0 {
+		t.Fatalf("?key= で鍵の Cookie を渡した、または以前の版の Cookie を消させていない: %+v", cs)
 	}
-	// 移る先はこのサイトの中だけ（//evil.example のような URL にはしない）
-	if w := do("GET", "//evil.example/x?key="+key, nil); !strings.Contains(w.Body.String(), `url=/evil.example/x"`) {
-		t.Errorf("//host への移動 = %q", w.Body.String())
+	if w := do("GET", "/?key="+key, "", nil); len(w.Result().Cookies()) != 0 || !strings.Contains(w.Body.String(), `<a id="to" href="/">`) {
+		t.Errorf("Cookie のない ?key= = %+v %q", w.Result().Cookies(), w.Body.String())
 	}
-	if w := do("GET", "/data.json", cs[0]); w.Code != 200 || w.Body.String() != "history" {
-		t.Errorf("Cookie つき = %d %q", w.Code, w.Body.String())
+	// 移る先はこのサイトの中だけ（//evil.example のような URL にはしない）。エスケープもする
+	for _, target := range []string{"//evil.example/x?key=" + key, `/\evil.example/x?key=` + key, `/%5Cevil.example/x?key=` + key} {
+		if w := do("GET", target, "", nil); !strings.Contains(w.Body.String(), `href="/evil.example/x"`) {
+			t.Errorf("%s への移動 = %q", target, w.Body.String())
+		}
+	}
+	if w := do("GET", `/?a=%22%3E%3Cscript%3E&key=`+key, "", nil); strings.Count(w.Body.String(), "<script>") != 1 {
+		t.Errorf("移る先をエスケープしていない: %q", w.Body.String())
 	}
 }
 
@@ -202,5 +255,22 @@ func TestHopPage(t *testing.T) {
 	b, _ := os.ReadFile(filepath.Join(dir, "open.html"))
 	if !strings.Contains(string(b), `<meta name="referrer" content="no-referrer">`) || !strings.Contains(string(b), "color:var(--bg)") {
 		t.Errorf("open.html = %s", b)
+	}
+}
+
+// 中継のあとに移る先は、いつもこのサイトの中（ブラウザがタブ・改行を読み飛ばしたり \ を / と読んだりしても // にならない）
+func TestHopTargetStaysOnSite(t *testing.T) {
+	for _, p := range []string{"/", "//evil", "/\\evil", "/\t/evil", "/\r/evil", "/\\\t\\evil", "/\x7f/evil", "/a/\tb", "/x y"} {
+		to := hopTarget(p)
+		if !strings.HasPrefix(to, "/") || strings.HasPrefix(to, "//") || strings.HasPrefix(to, "/\\") || strings.ContainsFunc(to, func(c rune) bool { return c < 0x20 || c == 0x7f || c == '\\' }) {
+			t.Errorf("hopTarget(%q) = %q", p, to)
+		}
+		// ブラウザと同じく、タブと改行を除いてもこのサイトの中
+		if s := strings.NewReplacer("\t", "", "\r", "", "\n", "").Replace(to); strings.HasPrefix(s, "//") {
+			t.Errorf("hopTarget(%q) = %q becomes %q in a browser", p, to, s)
+		}
+	}
+	if got := hopTarget("/a/b"); got != "/a/b" {
+		t.Errorf("plain path = %q", got)
 	}
 }

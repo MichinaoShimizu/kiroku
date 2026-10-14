@@ -33,6 +33,17 @@ const SLOTS = 8;
 const $ = s => document.querySelector(s);
 const store = { get(k,d){ try { const v = localStorage.getItem("kiroku:"+k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
                 set(k,v){ try { localStorage.setItem("kiroku:"+k, JSON.stringify(v)); } catch(e){} } };
+/* kiroku serve の鍵（ADR 0031）。?key= の中継のページが localStorage（このオリジン＝このポートだけ）にしまったものを、
+   kfetch が X-Kiroku-Key ヘッダーに付ける。Cookie と違って、ほかのポートのサーバーには送られない。
+   JSON ではなくそのまま入れてあるので store ではなく直接読む。送り先はこのサイトの中だけ */
+const serveKey = () => { try { const k = localStorage.getItem("kiroku:key"); return k && /^[0-9a-f]{64}$/.test(k) ? k : null; } catch(e){ return null; } };
+function kfetch(url, opts = {}){
+  const u = new URL(url, location.href);
+  if (u.origin !== location.origin) return Promise.reject(new Error("kfetch: not this site"));
+  const headers = new Headers(opts.headers || {}), k = serveKey();
+  if (k) headers.set("X-Kiroku-Key", k);
+  return fetch(u.href, {cache: "no-store", ...opts, headers});
+}
 /* 画面の言語（ADR 0029）。?lang=、見る人が選んだもの、kiroku html / serve の --lang（$KIROKU_LANG）、ブラウザの言語の順。
    どれでもなければ英語。切り替えるときは ?lang= を付けて開き直すので、localStorage が使えなくても効く */
 const LANGS = ["en", "ja"];

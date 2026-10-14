@@ -223,7 +223,7 @@ var probe = func(addr string) int {
 		return noAnswer
 	}
 	if key, err := serveKey(false); err == nil { // 鍵がないと、鍵を確かめる画面（403）しか返らない
-		req.AddCookie(&http.Cookie{Name: keyCookie(addr), Value: key})
+		req.Header.Set(keyHeader, key)
 	}
 	r, err := c.Do(req)
 	if err != nil {
