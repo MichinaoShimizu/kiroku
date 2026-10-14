@@ -180,22 +180,14 @@ async function run(env) {
     check("閉じるとカードにフォーカスが戻る", await p.evaluate(id => { const a = document.activeElement; return a.dataset.id === id && !!a.closest("#review"); }, id));
   });
 
-  await step("ヘッダーから指標ガイドが開く", async () => {
-    await p.click("#guide"); await pause();
-    check("指標ガイドのダイアログが開き、見出しにフォーカスがある", await p.evaluate(() => document.querySelector("#mg").open && document.activeElement.id === "mgh"));
-    check("かけたもの・4 つのレバー・残ったもの・比べ方がある", await p.evaluate(() => { const d = document.querySelector("#mg"); return d.querySelectorAll(".gflow .gbox").length === 3 && d.querySelectorAll(".glev li").length === 4 && d.querySelectorAll(".glever").length === 4 && !!d.querySelector(".gcmp"); }));
-    check("名前は HELP から取る", await p.evaluate(() => [...document.querySelectorAll("#mg .gin li")].map(li => li.textContent).includes(HELP.active.n)));
-    await p.keyboard.press("Escape"); await pause();
-    check("閉じるとボタンにフォーカスが戻る", await p.evaluate(() => !document.querySelector("#mg").open && document.activeElement.id === "guide"));
-    await p.keyboard.press("g"); await pause();
-    check("G でも開く", await p.evaluate(() => document.querySelector("#mg").open));
-    await p.keyboard.press("ArrowRight"); await pause();
-    check("開いているあいだは ← → で期間が動かない", await p.evaluate(() => document.querySelector("#mg").open));
-    await p.keyboard.press("Escape"); await pause();
-    await p.locator("#review .stat.mstat:has([data-metric=cost]) .hb").click(); await pause();
-    await p.keyboard.press("g"); await pause();
-    check("開いた「?」の説明はガイドを開くと閉じる", await p.evaluate(() => document.querySelector("#mg").open && document.querySelector("#hpop").hidden));
-    await p.keyboard.press("Escape"); await pause();
+  await step("ガイドとズームはない", async () => {
+    check("ヘッダーに指標ガイドのボタンがなく、ダイアログもない", await p.locator("#guide, #mg").count() === 0);
+    const wk = await p.evaluate(() => document.querySelector("#rd").textContent);
+    await p.keyboard.press("g"); await p.keyboard.press("+"); await p.keyboard.press("-"); await pause();
+    check("G・+・− を押しても何も開かず、期間も変わらない", await p.evaluate(wk => document.querySelector("#rd").textContent === wk && ![...document.querySelectorAll("dialog")].some(d => d.open), wk));
+    check("週のカレンダーにズームの操作がない", await p.locator("#legend .zoom, #zin, #zout").count() === 0);
+    check("ショートカットの一覧に G・ズームがない", !/Metrics guide|Zoom/.test(await p.locator("#keys").textContent()));
+    check("ショートカットの一覧の Y（Year in review）は 1 つだけで、Esc の前", await p.evaluate(() => { const ks = [...document.querySelectorAll("#keys .keys kbd")].map(k => k.textContent); return ks.filter(k => k === "Y").length === (YEAR_ON ? 1 : 0) && (!YEAR_ON || ks.indexOf("Y") === ks.indexOf("Esc") - 1); }));
   });
 
   await step("サマリーの数字から内訳が開く", async () => {
@@ -206,8 +198,8 @@ async function run(env) {
     await p.mouse.click(s.x + 3, s.y + 3); await pause();
     check("押すと内訳のダイアログが開く", await p.evaluate(() => document.querySelector("#md").open && document.querySelector("#mdh").textContent === "Estimated cost"));
     const wk = await p.evaluate(() => document.querySelector("#rd").textContent);
-    await p.keyboard.press("ArrowLeft"); await p.keyboard.press("g"); await pause();
-    check("内訳を開いているあいだは ← で期間が動かず、G でガイドも重ならない", await p.evaluate(wk => document.querySelector("#rd").textContent === wk && !document.querySelector("#mg").open && document.querySelector("#md").open, wk));
+    await p.keyboard.press("ArrowLeft"); await pause();
+    check("内訳を開いているあいだは ← で期間が動かない", await p.evaluate(wk => document.querySelector("#rd").textContent === wk && document.querySelector("#md").open, wk));
     check("指標の定義は大きな数字のすぐ下にあり、言えないことは最後にある", await p.evaluate(() => { const d = document.querySelector("#md"), def = d.querySelector(".mbig + .mdef"); return !!def && def.textContent.length > 0 && d.getAttribute("aria-describedby") === def.id && d.lastElementChild.matches(".mnot") && /Doesn't tell you/.test(d.lastElementChild.textContent) && def.textContent === HELP.cost.d.slice(0, HELP.cost.d.indexOf(". ") + 1) && d.querySelectorAll(".mnot p").length === 1; })); // 定義の 1 文目が上。料金の細則は「?」にだけあり、ダイアログでは繰り返さない
     await p.keyboard.press("Escape"); await pause();
     check("閉じると押した数字にフォーカスが戻る", await p.evaluate(() => document.activeElement.dataset.metric === "cost" && !!document.activeElement.closest("#review")));
@@ -237,9 +229,8 @@ async function run(env) {
   await step("セッションを AI と振り返る", async () => {
     const run = await clickableRun(p);
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
-    const btn = p.locator("#panel .flowbar #sreview");
-    check("振り返りのプロンプトのボタンが、プロンプトの流れの見出しに並び、少し目立つ", await btn.count() === 1 && await btn.evaluate(b => b.classList.contains("fill")));
-    check("プロンプトだけをコピーするボタンはない", await p.locator("#panel #pcopy").count() === 0);
+    check("振り返りのプロンプトをコピーするボタンはない", await p.locator("#panel #sreview, #panel #pcopy").count() === 0);
+    check("プロンプトの流れの見出しに「Analyze with AI」が並ぶ", await p.locator("#panel .flowbar #srun, #panel .flowbar .ai-off").count() === 1);
     // 再開のコマンドは 1 つだけ見え、2 列の画面では右の列のいちばん上、1 列の画面では詳細のいちばん上
     const rs = await p.evaluate(() => { const v = [...document.querySelectorAll("#panel .dresume")].filter(e => e.offsetParent !== null);
       const col = v[0] && v[0].closest(".dcol"); return {n: v.length, wide: innerWidth >= 1100, side: !!col && col === col.parentElement.lastElementChild && col.firstElementChild === v[0], top: !!v[0] && !col}; });
@@ -247,8 +238,6 @@ async function run(env) {
     const rv = await p.evaluate(() => { const s = DATA.find(x => x.id === st.sel) || DATA[0]; return sessionPrompt(s, 1, null); });
     check("振り返りは専門的な助言と証拠を備える", /professional AI prompt advisor/.test(rv) && /^- Title: /m.test(rv) && /^### Professional prompt assessment$/m.test(rv) && /^### Prioritized advice$/m.test(rv) && /^### Reusable prompt playbook$/m.test(rv) && /^\| \| This session \|$/m.test(rv) && /^\| Prompts \| \d+ \|$/m.test(rv), rv.slice(0, 200));
     check("振り返りの事実と流れは、コードブロックの中にある", /# History data\n`{3,}text\n# Facts/.test(rv) && /## Prompt flow/.test(rv));
-    await btn.click(); await pause();
-    check("押すと、プロンプトが入っていると知らせる", /Copied\. Paste it into an AI agent on this computer\. It includes your prompts|Copied\. Paste it into an AI agent on this computer.*history file path|Couldn't copy/.test(await p.locator("#toast").innerText()), await p.locator("#toast").innerText());
     await p.keyboard.press("Escape"); await pause();
   });
 
@@ -370,8 +359,8 @@ async function run(env) {
   });
 
   await step("週報を書いてもらうプロンプト", async () => {
-    const btn = p.locator("#rptbar #rptcopy");
-    check("週報のボタンは、期間の見出しの下にある（サマリーには並べない）", await btn.count() === 1 && /Copy prompt/.test(await btn.innerText()) && await btn.getAttribute("aria-label") === "Copy weekly report prompt" && await p.locator("#review #rptcopy").count() === 0);
+    check("週報のプロンプトをコピーするボタンはない", await p.locator("#rptcopy").count() === 0);
+    check("週報の「Analyze with AI」は、期間の見出しの下にある（サマリーには並べない）", await p.locator("#rptbar #rptrun, #rptbar .ai-off").count() === 1 && await p.locator("#review #rptrun").count() === 0);
     check("週報のボタンは横にはみ出さない", await p.evaluate(() => [...document.querySelectorAll("#rptbar > *")].every(e => e.getBoundingClientRect().right <= innerWidth + 1)));
     const text = await p.evaluate(() => { const {S, P} = period(); return reportPrompt(S, st.mode === "month"); });
     check("事実の期間は「Sep 28 – Oct 4, 2026」の形", /^## Work for [A-Z][a-z]{2} \d{1,2} – ([A-Z][a-z]{2} \d{1,2}, )?\d{4}$|^## Work for [A-Z][a-z]{2} \d{1,2}, \d{4} – /m.test(text), JSON.stringify(text.slice(0, 80)));
@@ -385,15 +374,7 @@ async function run(env) {
         DATA = was.concat(many); const t = reportPrompt(S, false); return {size: utf8Len(t), short: /Shortened to keep this prompt small/.test(t), budget: PROMPT_BUDGET}; }
       finally { DATA = was; } });
     check("長い週でも、報告のプロンプトは送れる大きさに収まり、短くしたと書く", big.size <= big.budget && big.short, JSON.stringify(big));
-    const day = await p.evaluate(() => { const b = document.querySelector(".head .dayrpt"); return b ? {fill: b.classList.contains("fill"), text: reportPrompt(null, false, addDays(st.week, +b.dataset.d))} : null; });
-    check("記録のある日の見出しに、塗りの日報ボタンがある", !!day && day.fill);
-    if (day){ // 固定した日付の見出しのボタンにフォーカスが移っても、カレンダーが 0 時まで巻き戻らない
-      const sc = p.locator(".calscroll"); await sc.evaluate(e => { e.scrollTop = 300; }); await pause();
-      const before = await sc.evaluate(e => e.scrollTop);
-      await p.locator(".head .dayrpt").first().focus(); await pause();
-      check("日報のボタンにフォーカスしても、カレンダーの位置が変わらない", await sc.evaluate(e => e.scrollTop) === before, `${before} → ${await sc.evaluate(e => e.scrollTop)}`);
-    }
-    if (day) check("日報のプロンプトは、その日の形式と前日との数字の表", /## Daily report: /.test(day.text) && /^\| \| This day \| Previous day \|$/m.test(day.text) && /^\| Active time \| /m.test(day.text), day.text.slice(0, 120));
+    check("日付の見出しに日報のボタンはない", await p.locator(".head .dayrpt, .head .dayrun, .head button").count() === 0);
     check("セッションごとに、プロンプトと応答の要約がある", /^  - [A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2} \d\d:\d\d Prompt: /m.test(text));
     check("事実と履歴は、コードブロックの中にある", /# History data\n`{3,}text\n# Facts/.test(text));
     check("週報には週の決まりだけがあり、ほかのコマンドを禁じる", /next-week priorities/.test(text) && !/tomorrow's next step|sustained trends/.test(text) && /don't run other commands, change or write files, or send anything to another service/.test(text));
@@ -409,8 +390,6 @@ async function run(env) {
     if (hid){ const facts = hid.text.slice(hid.text.indexOf("# History data"));
       check("隠したプロジェクトのコミットと節を報告に入れない", hid.others.every(h => !facts.includes(h)) && !facts.includes("### `" + hid.project + "`") && !facts.includes(`- ${hid.project} · `), hid.project);
       check("隠したものがあると、Numbers の表はそれも数えると伝える", /left out of this report on purpose/.test(hid.text) && !/left out of this report on purpose/.test(text)); }
-    await btn.scrollIntoViewIfNeeded(); await btn.click(); await pause();
-    check("押すと、プロンプトとパスが入っていると知らせる", /Copied\. Paste it into an AI agent on this computer.*history file paths|Couldn't copy/.test(await p.locator("#toast").innerText()), await p.locator("#toast").innerText());
   });
 
   await step("検索", async () => {
@@ -439,13 +418,12 @@ async function run(env) {
     await p.keyboard.press("Escape"); await pause();
     check("閉じると検索結果に戻る", await p.evaluate(() => !!document.activeElement.closest("#sres .srow[data-s]")));
     await p.locator("#sclear").click(); await pause();
-    check("検索をやめるとサマリーに戻る", await p.locator("#q").inputValue() === "" && await p.locator("#rptcopy").isVisible() && await p.locator("#sres").isHidden());
+    check("検索をやめるとサマリーに戻る", await p.locator("#q").inputValue() === "" && await p.locator("#rptbar").isVisible() && await p.locator("#sres").isHidden());
   });
 
   await step("表示の切り替え", async () => {
     await p.keyboard.press("m"); await pause();
     check("m で月表示になる", await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
-    check("月表示では、ズームを出さない", await p.locator("#zin").count() === 0);
     await p.keyboard.press("w"); await pause();
     check("表示の切り替え（Journey・Project）はない。カレンダーだけ", await p.locator("#journeybtn, #projectbtn, #calendarbtn").count() === 0 && await p.locator("#tl").getAttribute("aria-label") === "Calendar");
     // 以前の版が保存した表示（journey・project）が残っていても、カレンダーで開く（ADR 0033）
@@ -570,7 +548,7 @@ async function runJa(env) {
   await step("読み込み", async () => {
     check("ブラウザの言語が日本語なら、日本語で開く", await p.evaluate(() => document.documentElement.lang === "ja" && JA));
     check("期間の見出しは日本語の日付", /\d+月\d+日/.test(await p.locator("#rd").innerText()), await p.locator("#rd").innerText());
-    check("週報のボタンが日本語", /[\u3040-\u30ff\u4e00-\u9fff]/.test(await p.locator("#rptcopy").innerText()), await p.locator("#rptcopy").innerText());
+    check("週報のボタンが日本語", /[\u3040-\u30ff\u4e00-\u9fff]/.test(await p.locator("#rptbar").innerText()), await p.locator("#rptbar").innerText());
     const [sw, iw] = await overflow();
     check("横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
     await noEnglish("最初の画面");
@@ -589,15 +567,12 @@ async function runJa(env) {
     await p.waitForFunction(() => document.querySelector("#drawer").getAttribute("aria-hidden") !== "false");
   });
 
-  await step("内訳と指標ガイド", async () => {
+  await step("内訳", async () => {
     await p.evaluate(() => document.querySelector('#review [data-metric="cost"]').click());
     await isOpen("#md");
     check("内訳の見出しが日本語", (await p.locator("#mdh").innerText()) !== "Estimated cost", await p.locator("#mdh").innerText());
     await noEnglish("内訳のダイアログ");
     await p.keyboard.press("Escape"); await isClosed("#md");
-    await p.keyboard.press("g"); await isOpen("#mg");
-    await noEnglish("指標ガイド");
-    await p.keyboard.press("Escape"); await isClosed("#mg");
   });
 
   await step("月表示", async () => {

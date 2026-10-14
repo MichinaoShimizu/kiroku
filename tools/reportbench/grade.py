@@ -4,8 +4,8 @@
   python3 -I tools/reportbench/grade.py <作業ディレクトリ>
 
 読むもの（作業ディレクトリの中）:
-  prompts/{day,week,month,session}.md と prompts/sizes.json（run.sh が作る）
-  answers/<scope>-<n>.md（AI が書いた報告。scope は day・week・month・session）
+  prompts/{week,month,session}.md と prompts/sizes.json（run.sh が作る）
+  answers/<scope>-<n>.md（AI が書いた報告。scope は week・month・session）
   answers/runs.json（あれば。{"week-1": {"tokens": 55234, "tool_uses": 3, "files": ["…"]}} の形。スキルの手順で書く）
 書くもの: grade.json と grade.md。分かりやすさ（伝わりやすさ）は機械では測れないので、スキルの手順で別に採点する。
 """
@@ -62,7 +62,7 @@ def grade(scope, prompt, ans, run):
 res = {}
 adir = os.path.join(W, "answers")
 for f in sorted(os.listdir(adir)) if os.path.isdir(adir) else []:
-    m = re.match(r"(day|week|month|session)-(\w+)\.md$", f)
+    m = re.match(r"(week|month|session)-(\w+)\.md$", f)
     if not m: continue
     scope = m.group(1)
     res[f[:-3]] = grade(scope, open(os.path.join(W, "prompts", scope + ".md")).read(), open(os.path.join(adir, f)).read(), runs.get(f[:-3], {}))

@@ -19,7 +19,7 @@ kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), A
 - **Every agent on one calendar.** Claude Code, Codex, Kiro and Amazon Q side by side, instead of one dashboard per agent.
 - **Sessions you can read, not just count.** What you asked, what the AI replied, and the commands, commits and pull requests in between, next to time, tokens and cost.
 - **How your work with AI changes.** Active time, tokens, estimated cost and patterns over time, from one session to Year in review.
-- **Reviews written by your own agent.** One click copies a prompt grounded in your history for the agent you already use.
+- **Reviews written by your own agent.** "Analyze with AI" runs a prompt grounded in your history with the agent you already use.
 - **Your history stays on your computer.** A single binary, no account, no telemetry (see [Privacy](#privacy) for `kiroku serve --ai`).
 
 ## Install
@@ -41,11 +41,11 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 ![The week calendar (dummy data)](docs/screenshot.png)
 
-**The whole story of a session.** The prompt flow with times, separating what you typed from what entered on its own, with commands, commits, pull requests, subagents and interruptions in between, and the AI's reply after each prompt, so a session reads as the conversation it was. One click copies a review prompt for it (see below).
+**The whole story of a session.** The prompt flow with times, separating what you typed from what entered on its own, with commands, commits, pull requests, subagents and interruptions in between, and the AI's reply after each prompt, so a session reads as the conversation it was. "Analyze with AI" reviews it with your own agent (see below).
 
 <img src="docs/session.png" alt="Session details (dummy data)" width="560">
 
-**Every number opens up.** Click any figure, at the top or in the weekly summary, such as tokens, estimated cost or Git commits, to see it by day, agent, project and model, with the sessions, commits or prompts behind it. The metrics guide (`G`) shows how the metrics fit together, and what they can't tell you.
+**Every number opens up.** Click any figure, at the top or in the weekly summary, such as tokens, estimated cost or Git commits, to see it by day, agent, project and model, with the sessions, commits or prompts behind it.
 
 **What's worth a look.** Metrics that crossed a threshold are listed under the key figures. Press one to see what was observed, why it matters, the sessions behind it, an 8-week trend and what to try, without leaving the calendar.
 
@@ -65,13 +65,12 @@ The view is in Japanese when your browser prefers Japanese; the button at the to
 
 ## Reviews and advice, written by your own agent
 
-One click copies a prompt that you paste into the AI agent you already use on this computer, such as Claude Code or Codex. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, as a professional advisor on prompts and engineering work would. With `kiroku serve --ai`, "Analyze with AI" runs the same prompt with that agent for you, after you confirm each run.
+With `kiroku serve --ai`, "Analyze with AI" runs a prompt with the AI agent you already use on this computer, such as Claude Code or Codex, after you confirm each run. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, as a professional advisor on prompts and engineering work would.
 
 | Scope | Where | What you get |
 |---|---|---|
-| A session | "Copy review prompt" in session details | Summary, numbers, an assessment of your prompts, up to three prioritized pieces of advice (each quoting the prompt with its time and giving an improved prompt), and a playbook of prompts for similar work |
-| A day | "Report" next to each date in the week calendar | A daily report: summary, numbers next to the previous day, what was done in each project and why, expert observations and next actions |
-| A week or month | "Copy prompt" under "Weekly report" ("Monthly report" in month view), below the period's dates | The same report for the week or month, numbers next to the previous period, ready to share with your team |
+| A session | "Analyze with AI" in session details | Summary, numbers, an assessment of your prompts, up to three prioritized pieces of advice (each quoting the prompt with its time and giving an improved prompt), and a playbook of prompts for similar work |
+| A week or month | "Analyze with AI" under "Weekly report" ("Monthly report" in month view), below the period's dates | A report for the week or month: summary, numbers next to the previous period, what was done in each project and why, expert observations and next actions, ready to share with your team |
 
 The advice is grounded in your history, not generic tips. Each point names what it is based on: a figure, a prompt with its time, or a signal kiroku counted. Where the history shows it, the advice covers
 
