@@ -2,7 +2,7 @@
 /* ── live（kiroku serve） ── 新しい履歴を見つけたら、見ている週・選んだセッションはそのままで取り込む */
 function startLive(){
   const badge = $("#live"); badge.hidden = false;
-  if (aiRun()){ badge.textContent = t("LIVE · AI on"); badge.title = t("Updates automatically as your history grows. \"Analyze with AI\" is on (kiroku serve --ai)"); }
+  if (aiRun()){ badge.textContent = t("LIVE · AI on"); badge.title = t("Updates automatically as your history grows. \"Analyze with AI\" is on (turn it off with kiroku serve --no-ai)"); }
   let busy = false;
   async function poll(){
     if (busy || document.hidden) return; busy = true;

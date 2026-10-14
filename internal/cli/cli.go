@@ -254,6 +254,16 @@ func langFlag(fs *flag.FlagSet) *string {
 	return fs.String("lang", env, "language of the view: en or ja ($KIROKU_LANG; default: the browser's language, English if it isn't Japanese). You can switch it in the view too")
 }
 
+// noAIEnv は $KIROKU_NO_AI（--no-ai の既定）。空と "0" と "false" 以外なら、AI の実行を切る。
+// kiroku autostart on も、登録するときのこの値を書き残す（autostartEnv）
+func noAIEnv() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("KIROKU_NO_AI"))) {
+	case "", "0", "false":
+		return false
+	}
+	return true
+}
+
 func checkLang(lang string) error {
 	if lang != "" && !web.ValidLang(lang) {
 		return fmt.Errorf("--lang must be one of %s: %s", strings.Join(web.Langs, ", "), lang)
@@ -276,7 +286,8 @@ func cmdServe(args []string) error {
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
 	allow := fs.String("allow-host", "", "comma-separated extra host `names` the view may be opened by (e.g. a name in your hosts file); localhost, 127.0.0.1 and ::1 always work, and this computer's own IPs and host name too when ADDR is 0.0.0.0 or another all-interfaces address")
 	lang := langFlag(fs)
-	aiRun := fs.Bool("ai", false, "let the view run a review or report prompt with an AI agent installed on this computer (claude, codex or kiro-cli), after you confirm each run; the agent may send the prompt and the history it reads to its provider. Works with the default address; a custom ADDR must be a loopback IP or a bare port (e.g. 127.0.0.1:8485 or :8485)")
+	noAI := fs.Bool("no-ai", noAIEnv(), "turn off \"Analyze with AI\" ($KIROKU_NO_AI=1). It is on by default: the view can run a review or report prompt with an AI agent installed on this computer (claude, codex or kiro-cli), after you confirm each run, and the agent may send the prompt and the history it reads to its provider. It is always off when ADDR is not a loopback IP or a bare port (e.g. 0.0.0.0:8485)")
+	oldAI := fs.Bool("ai", false, "no longer needed: \"Analyze with AI\" is on by default (accepted for old scripts; does nothing)")
 	pos, err := parse(fs, args, 1)
 	if err != nil {
 		return quiet(err)
@@ -295,8 +306,11 @@ func cmdServe(args []string) error {
 	if err := checkLang(*lang); err != nil {
 		return err
 	}
+	if *oldAI {
+		fmt.Fprintln(logw, "--ai is no longer needed: \"Analyze with AI\" is on by default (turn it off with --no-ai)")
+	}
 	_, want, all := c.picked()
-	return serveLiveWithAI(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen, *aiRun, *lang, scanWatchPaths(all, want))
+	return serveLiveWithAI(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen, !*noAI, *lang, scanWatchPaths(all, want))
 }
 
 func cmdHTML(args []string) error {

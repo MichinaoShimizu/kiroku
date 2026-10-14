@@ -804,12 +804,15 @@ dialog.yr h4.yrsub{font:600 var(--fs-md)/1.5 var(--sans);margin:12px 0 6px;color
 .pill.ai-action:focus-visible{outline:2px solid #2da978;outline-offset:3px}
 .pill.ai-action:disabled{background:#e2ebe6;color:#526f60;border:1px solid #9bb9a8;opacity:1;cursor:not-allowed}
 
-/* Analyze with AI is off (saved file, or kiroku serve without --ai): an outlined button that explains how to turn it on, not an action */
+/* Analyze with AI is off (kiroku serve --no-ai, or not on a loopback IP): an outlined button that explains how to turn it on, not an action */
 .pill.ai-off{background:transparent;color:#176b50;border:1px dashed #5c9a80;font-weight:500;cursor:help}
 .pill.ai-off:hover{background:#e7f2ec}
 .pill.ai-off:focus-visible{outline:2px solid #2da978;outline-offset:3px}
 :root[data-theme="dark"] .pill.ai-off{color:#7fd1ad;border-color:#4f8f73}
 :root[data-theme="dark"] .pill.ai-off:hover{background:rgba(127,209,173,.12)}
+/* エージェントのコマンドがないとき: 押せないボタンと、その理由（全文は title に） */
+.ai-none{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.ai-why{font-size:var(--fs-xs);color:var(--ink-3);cursor:help}
 .iconbtn.langbtn{width:auto;white-space:nowrap;flex:none;min-width:36px;padding:0 10px;font-size:var(--fs-xs);font-weight:600;letter-spacing:.02em}
 html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り返す（対応していないブラウザは今までどおり） */
 /* AI 分析: 経過（コマンド・ツール・エラー出力）と、返事（整えた表示か Markdown のまま） */

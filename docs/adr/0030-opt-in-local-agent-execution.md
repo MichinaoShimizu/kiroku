@@ -1,6 +1,6 @@
 # ADR 0030: Opt-in local AI agent execution (`kiroku serve --ai`)
 
-Status: Accepted (2026-10-14, approved by the maintainer during the quality audit)
+Status: Accepted (2026-10-14, approved by the maintainer during the quality audit); points 1 and 2 superseded by [ADR 0034](0034-ai-analysis-by-default.md) (2026-10-14), points 3–6 still in force
 Date: 2026-10-14
 Scope: Running an installed AI agent on a prompt built from history (`internal/ai`, `internal/cli` serve `--ai`, `/ai/run`, `internal/web/js/ai.js`, `internal/web/js/mdview.js`, `SECURITY.md`)
 Related ADRs: [ADR 0022](0022-history-stays-local.md), [ADR 0029](0029-japanese-ui.md)

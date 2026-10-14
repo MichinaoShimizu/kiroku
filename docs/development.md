@@ -46,7 +46,7 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | `internal/cli/stats.go` | `kiroku stats` |
 | `internal/cli/cache.go` | On reload, skips history unchanged since last time (using a per-agent fingerprint and the per-conversation marks of `source.Splitter`) |
 | `internal/cli/color.go` | Colour and emphasis for what is written to the terminal (`styleFor` turns it off for pipes, files, `NO_COLOR` and `TERM=dumb`) |
-| `internal/ai` | `kiroku serve --ai`: runs `claude`, `codex` or `kiro-cli` in an empty temporary folder with read-only limits (`Runner`), and the `/ai/run` handler (checks, one run at a time, size limits) |
+| `internal/ai` | "Analyze with AI" in `kiroku serve` (on unless `--no-ai`, ADR 0034): runs `claude`, `codex` or `kiro-cli` in an empty temporary folder with read-only limits (`Runner`), and the `/ai/run` handler (checks, one run at a time, size limits) |
 | `internal/archive` | The copies `kiroku archive` keeps: the on/off marks, compressing history to `.zst` (`Sync`), usage, and deleting only the `.zst` copies (`Clear`) |
 | `internal/source` | Adapters that read each agent's history. Details on how they read are in [sources.md](sources.md) |
 | `internal/core` | The common session shape (`Builder` → `Session`), tokens and pricing, agent-specific metrics, and `Agents` (`agents.go`: each agent's name, `--sources` name, color, initials, environment variables and `kiroku archive` folder) |
