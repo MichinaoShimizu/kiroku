@@ -364,6 +364,19 @@ async function run(env) {
     if (day) check("日報のプロンプトは、その日の形式と前日との数字の表", /## Daily report: /.test(day.text) && /^\| \| This day \| Previous day \|$/m.test(day.text) && /^\| Active time \| /m.test(day.text), day.text.slice(0, 120));
     check("セッションごとに、プロンプトと応答の要約がある", /^  - [A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2} \d\d:\d\d Prompt: /m.test(text));
     check("事実と履歴は、コードブロックの中にある", /# History data\n`{3,}text\n# Facts/.test(text));
+    check("週報には週の決まりだけがあり、ほかのコマンドを禁じる", /next-week priorities/.test(text) && !/tomorrow's next step|sustained trends/.test(text) && /don't run other commands, change or write files, or send anything to another service/.test(text));
+    // セッション全体の目安コストは、期間の数（Numbers）と合わないので、手がかりの行に入れない
+    const sig = text.slice(text.indexOf("## Signals for advice"), text.indexOf("# Sessions"));
+    check("モデルと短いセッションの手がかりに、セッション全体のコストを入れない", !/^- (Main model of each session|Short sessions).*\$\d/m.test(sig), sig.split("\n").filter(l => /Main model|Short sessions/.test(l)).join(" / "));
+    // 凡例で隠したプロジェクトは、セッションだけでなく、コミット・プロジェクトの節・繰り返しの手がかりからも外す
+    const hid = await p.evaluate(() => { const {ws, we, S} = period(), M = st.mode === "month";
+      const c = (META.git || []).find(c => c.t >= ws && c.t < we && c.project); if (!c) return null;
+      const by = st.colorBy, was = new Set(st.hidden); st.colorBy = "project"; st.hidden = new Set([c.project]);
+      try { return {project: c.project, hash: c.hash.slice(0, 12), others: (META.git || []).filter(x => x.t >= ws && x.t < we && x.project === c.project).map(x => x.hash.slice(0, 12)),
+        text: reportPrompt(S, M)}; } finally { st.colorBy = by; st.hidden = was; } });
+    if (hid){ const facts = hid.text.slice(hid.text.indexOf("# History data"));
+      check("隠したプロジェクトのコミットと節を報告に入れない", hid.others.every(h => !facts.includes(h)) && !facts.includes("### `" + hid.project + "`") && !facts.includes(`- ${hid.project} · `), hid.project);
+      check("隠したものがあると、Numbers の表はそれも数えると伝える", /left out of this report on purpose/.test(hid.text) && !/left out of this report on purpose/.test(text)); }
     await btn.scrollIntoViewIfNeeded(); await btn.click(); await pause();
     check("押すと、プロンプトとパスが入っていると知らせる", /Copied\. Paste it into an AI agent on this computer.*history file paths|Couldn't copy/.test(await p.locator("#toast").innerText()), await p.locator("#toast").innerText());
   });

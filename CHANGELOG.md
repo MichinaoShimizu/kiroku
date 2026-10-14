@@ -7,6 +7,8 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 ### Changed
 
 - The "Analyze with AI" dialog again says, next to the prompt you confirm, that the agent you choose may send the prompt and the history it reads to its provider. [ADR 0030](docs/adr/0030-opt-in-local-agent-execution.md) records `kiroku serve --ai` as an opt-in exception to "history stays on the machine" (ADR 0022)
+- The report and review prompts ask the agent to cite the figure or signal from "Signals for advice" that each next action or piece of advice rests on, treating signals as candidates, not verdicts. Reports include only the guidance for their own period (day, week or month) and, like the knowledge prompt, ask the agent not to run other commands, write files or send anything to another service. The review and knowledge prompts carry the reports' privacy rule (no secrets, personal data, command output, file contents or paths on your computer; excerpts only from your prompts and the AI's prose). The review prompt no longer repeats its role, and the note on the fenced history block says it holds kiroku's computed facts as well as quoted history
+- The report bench (`tools/reportbench`, `/report-eval`) grades the current sections: Summary, Numbers, By project, Expert observations and Next actions for reports; Summary, Numbers, Professional prompt assessment, Prioritized advice and Reusable prompt playbook for a review
 
 ### Security
 
@@ -19,6 +21,8 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Fixed
 
+- In report prompts, projects hidden in the legend (when colored by project) are left out of the commits, the project sections and the repeated-prompt signals too, not only their sessions, and the prompt says the Numbers table still counts them
+- In report prompts, "Main model of each session" and "Short sessions" no longer show whole-session estimated costs, which could add up to more than the period's Numbers table
 - "Analyze with AI" with Claude Code returns the result when the agent has finished but something it started still holds its output open, instead of waiting for the time limit and failing
 - "Data sources" in `kiroku serve` counts every history file that couldn't be read after a reload, not only the first
 - The page `kiroku serve` shows while it reads your history follows the view's language (`--lang`, the language chosen in the view, or the browser's), so it is in Japanese too
