@@ -15,6 +15,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Folders kiroku copies history into (archive subfolders) and its settings folder are made private (`0700`) even when they already existed, so other users can't list session IDs and project folders
 - Negative token counts in history are read as 0 instead of showing negative tokens and cost
 - A resume command for a session ID that starts with `=` quotes it, so zsh doesn't expand it to a program path
+- `install.sh` copies the new binary to a temporary file with a fresh random name (`mktemp`) next to the install location before moving it into place, instead of the fixed `.kiroku.new`, so a file or link someone else left there can't be written through. It and `tools/reproduce.sh` also download over HTTPS only (TLS 1.2 or later), even across redirects
 
 ### Fixed
 
@@ -30,10 +31,6 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Kiro Crew: a subagent running on the Codex backend (`provider: "codex"` in its `state.json`) is no longer counted twice. Its "Kiro Crew" session is no longer folded into its parent and is dropped when the Codex session of the same thread is loaded, as conversations on the Codex backend already were
 - docs/sources.md lists the Kiro Crew archive reason `file-changes`, which is read like `compact` (lines that match a line kept elsewhere are dropped)
 - The guide now says to delete `~/Library/Logs/kiroku.log` when uninstalling on macOS, that an AI agent installed while `kiroku serve --ai` runs is offered once history is read again, that kiroku ignores a `KIRO_HOME` or `KIROCREW_HOME` it can't safely use, and names the "Read more (N characters)" button of a cut prompt
-
-### Security
-
-- `install.sh` copies the new binary to a temporary file with a fresh random name (`mktemp`) next to the install location before moving it into place, instead of the fixed `.kiroku.new`, so a file or link someone else left there can't be written through. It and `tools/reproduce.sh` also download over HTTPS only (TLS 1.2 or later), even across redirects
 
 ## v0.34.1 - 2026-10-14
 
