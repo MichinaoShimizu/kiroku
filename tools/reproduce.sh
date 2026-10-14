@@ -57,8 +57,8 @@ trap 'rm -rf "$tmp"' EXIT INT TERM
 mkdir "$tmp/release" "$tmp/build"
 
 # 1. The released binary, checked against the release's checksums.txt.
-curl -fsSL -o "$tmp/release/$file" "$base/$file" || die "could not download $base/$file"
-curl -fsSL -o "$tmp/release/checksums.txt" "$base/checksums.txt" || die "could not download checksums.txt"
+curl --proto '=https' --tlsv1.2 -fsSL -o "$tmp/release/$file" "$base/$file" || die "could not download $base/$file"
+curl --proto '=https' --tlsv1.2 -fsSL -o "$tmp/release/checksums.txt" "$base/checksums.txt" || die "could not download checksums.txt"
 want=$(awk -v f="$file" '$2 == f { print $1 }' "$tmp/release/checksums.txt")
 [ -n "$want" ] || die "$file is not in checksums.txt"
 [ "$(sha256 "$tmp/release/$file")" = "$want" ] || die "$file does not match checksums.txt"
