@@ -6,8 +6,13 @@ import path from "node:path";
 import fs from "node:fs/promises";
 
 const [html, docs] = process.argv.slice(2);
+// KIROKU_FAKE_NOW があれば、ブラウザの時計もその時刻から進める（gen.py・mkgit.py と同じ「今」。smoke.mjs と同じ）。
+// 同じ時刻で撮り直すと同じ画像になるので、tools/screenshots/keep-changed.sh で本当に変わった画像だけを残せる
+const fakeNow = process.env.KIROKU_FAKE_NOW ? new Date(process.env.KIROKU_FAKE_NOW) : null;
+if (fakeNow && isNaN(fakeNow)) { console.error(`KIROKU_FAKE_NOW を日時として読めません: ${process.env.KIROKU_FAKE_NOW}`); process.exit(2); }
+const clock = async ctx => { if (fakeNow) await ctx.clock.install({ time: fakeNow }); return ctx; };
 const b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
-const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, timezoneId: "Asia/Tokyo", locale: "en-US" });
+const ctx = await clock(await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, timezoneId: "Asia/Tokyo", locale: "en-US" }));
 const p = await ctx.newPage();
 await p.goto("file://" + path.resolve(html));
 await p.waitForTimeout(600);
@@ -42,7 +47,7 @@ if (await p.evaluate(() => YEAR_ON)) { // 1 年の露光（一旦隠している
 }
 // セッションの詳細：依頼の流れに出来事（コマンド・コミット・PR など）がいちばん多い種類そろうセッションを開き、左の列（数字と依頼の流れ）だけを 2 倍で撮る。
 // 右の列にはダミーデータの一時フォルダのパスが出るので入れない
-const sc = await b.newContext({ viewport: { width: 1440, height: 1700 }, deviceScaleFactor: 2, timezoneId: "Asia/Tokyo", locale: "en-US" });
+const sc = await clock(await b.newContext({ viewport: { width: 1440, height: 1700 }, deviceScaleFactor: 2, timezoneId: "Asia/Tokyo", locale: "en-US" }));
 const s = await sc.newPage();
 await s.goto("file://" + path.resolve(html));
 await s.waitForTimeout(600);
@@ -70,7 +75,7 @@ const box = await s.evaluate(() => {
 });
 await s.screenshot({ path: path.join(docs, "session.png"), clip: box });
 // SNS のリンクカード用（og.png）。ふつうの画面幅（1440）で、カードの比率（1.91:1）に合わせた高さ 754 を 2 倍の 2880x1508 で撮る。デモページの og:image に使う
-const og = await b.newContext({ viewport: { width: 1440, height: 754 }, deviceScaleFactor: 2, timezoneId: "Asia/Tokyo", locale: "en-US" });
+const og = await clock(await b.newContext({ viewport: { width: 1440, height: 754 }, deviceScaleFactor: 2, timezoneId: "Asia/Tokyo", locale: "en-US" }));
 const q = await og.newPage();
 await q.goto("file://" + path.resolve(html));
 await q.waitForTimeout(600);

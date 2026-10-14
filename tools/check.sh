@@ -1,6 +1,6 @@
 #!/bin/sh
 # CI（.github/workflows/ci.yml）と同じチェックを手元でまとめて回す。PR を出す前に使う。
-#   sh tools/check.sh          # gofmt・go vet・staticcheck・govulncheck・go test・go build・shellcheck
+#   sh tools/check.sh          # gofmt・go vet・staticcheck・govulncheck・go test・changes/ の断片・go build・shellcheck
 #   sh tools/check.sh --e2e    # それに加えて、画面の e2e（smoke.mjs・xss.mjs・serve.mjs。Node と Playwright が必要）
 # staticcheck と govulncheck の版は ci.yml から読む（版を上げるときは ci.yml だけを書き換える）。
 # 途中で失敗しても最後まで回し、失敗したものを最後に並べて 1 で終わる。
@@ -49,7 +49,25 @@ shellcheck_scripts() {
     echo "shellcheck is not installed: skipped (CI runs it)"
     return 0
   fi
-  shellcheck install.sh tools/*.sh .claude/hooks/*.sh
+  # CI（ci.yml の install-script）と同じ引数。CI はランナーに入っている shellcheck（ubuntu-24.04 では 0.9.0）を使う。
+  # 0.11 は SC2015（A && B || C）などを出さないことがあるので、版が違えば CI で初めて落ちることがある
+  ver=$(shellcheck --version | sed -n 's/^version: //p')
+  case "$ver" in
+    0.9.* | 0.10.*) ;;
+    *) echo "note: shellcheck $ver here; CI's older shellcheck can report more (for example SC2015)" ;;
+  esac
+  shellcheck install.sh tools/*.sh tools/*/*.sh .claude/hooks/*.sh
+}
+
+# changes/ の断片の名前と中身（CI の release-dry-run と同じ）と、それをまとめる tools/changelog.sh・next-version.sh のテスト
+changelog() {
+  sh tools/changelog.sh --check || return 1
+  if out=$(sh tools/changelog_test.sh 2>&1); then
+    printf '%s\n' "$out" | tail -n 1
+    return 0
+  fi
+  printf '%s\n' "$out" | grep -v '^ok: '
+  return 1
 }
 
 build() {
@@ -96,6 +114,7 @@ step vet go vet ./...
 step staticcheck env GOTOOLCHAIN="$toolchain" go run "$staticcheck" ./...
 step govulncheck env GOTOOLCHAIN="$toolchain" go run "$govulncheck" ./...
 step test go test ./...
+step changelog changelog
 step build build
 step seclint go run ./tools/seclint
 step shellcheck shellcheck_scripts

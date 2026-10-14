@@ -16,7 +16,7 @@ if [ "${1:-}" = "--html" ]; then demo=1; else demo=; fi
 # 読むのはダミーデータだけ。自分の履歴や kiroku archive の写しを混ぜないよう、読む場所をすべて一時ディレクトリに向け、
 # 場所を変えるオプションのない Kiro IDE（v1.0 より前）のためにホームも替える（go のキャッシュはそのままにしたいので、先にビルドする）
 (cd "$root" && go build -o "$work/kiroku" .)
-(cd "$work" && HOME="$work/home" TZ=Asia/Tokyo KIROKU_LANG= KIROKU_DEMO=$demo ./kiroku html --no-open --sources claude,codex,kiro \
+(cd "$work" && HOME="$work/home" TZ=Asia/Tokyo KIROKU_LANG="" KIROKU_DEMO=$demo ./kiroku html --no-open --sources claude,codex,kiro \
   --claude-root "$work/home/.claude/projects" --codex-home "$work/home/.codex" --kiro-home "$work/home/.kiro" \
   --crew-home "$work/home/.kiro/crew" --kiro-cli-db "$work/none.sqlite3" --archive-dir "$work/archive" -o "$work/kiroku.html")
 if [ "${1:-}" = "--html" ]; then # ダミーデータの HTML だけを作る（利用者目線のテストなどに使う）
@@ -32,6 +32,8 @@ if ! command -v ffmpeg >/dev/null 2>&1; then
   exit 0
 fi
 mkdir "$work/video"
+# demo.mjs は「動画のパス 切り落とす秒数」を 1 行で出す（パスは mktemp の一時ディレクトリなので空白を含まない）
+# shellcheck disable=SC2046
 set -- $(node "$here/demo.mjs" "$work/kiroku.html" "$work/video")
 # 幅 880・10 fps・96 色で 5MB ほどに収める（README で読める大きさと、リポジトリの重さの釣り合い）
 ffmpeg -v error -y -ss "$2" -i "$1" -filter_complex \

@@ -10,6 +10,8 @@ AI testing does not replace real users. Use it as a first check to catch what mi
 sh tools/screenshots/run.sh --html /tmp/kiroku-test.html   # HTML with dummy data
 ```
 
+Scenarios 2 and 7 need `kiroku serve` (a saved HTML file has no AI actions): build kiroku, make dummy history with `python3 -I tools/screenshots/gen.py <dir>`, and start `kiroku serve` on it as `tools/screenshots/serve.mjs` does. Never press Run with a real agent: put a stand-in script named `codex` first on `PATH` and leave the real agents off it.
+
 Open it with Playwright and try it in the following 3 environments. Keep the default light theme, and take screenshots in light too.
 
 - 1440x900
@@ -25,12 +27,12 @@ Each scenario has the user's goal and a success condition. No steps are given. A
 | # | User | Goal | Success condition |
 |---|---|---|---|
 | 1 | Someone opening it for the first time | Learn what this view is and what they did last week | Within 30 seconds, can say "what this view is" and "the project they spent the most time on last week" |
-| 2 | Someone writing a weekly report | Paste last week's work into a weekly report | Copies the weekly report prompt, pastes it into an AI agent on this computer, and gets a report ready to share. Understands from the button and the message that the prompt includes prompts and history file paths, and that the agent reads those files |
+| 2 | Someone writing a weekly report | Turn last week's work into a weekly report | In `kiroku serve`, opens "Analyze with AI" under "Weekly report", checks the exact prompt and runs it with an AI agent on this computer, and gets a report ready to share. Understands from the dialog that the prompt includes prompts and history file paths, and that the agent reads those files; knows where to turn agent runs off (`--no-ai`). When no agent is installed, understands why the button can't be pressed |
 | 3 | Someone who wants to keep AI costs down | Decide on one thing to change from next week | Picks one action from "Worth a look" and can say in their own words what to do |
 | 4 | Someone who wants to know whether something they tried worked | Check whether what they tried last week worked | Finds the metric related to what they changed, from the 8-week trend of a marked metric or from a metric opened via "Worth a look" or "?", reads the direction of change and can judge whether it worked (including when it dropped off "Worth a look", or why it can't be judged) |
 | 5 | Someone hunting the cause of a bug | Find the session where the AI touched a particular file | Reaches the session and commit from search, and can read the prompt flow |
 | 6 | Someone who was stopped by a usage limit | Learn when and during what work they hit the limit | Finds the time and session of the limit hit, and can read what to do from "?" |
-| 7 | Someone looking back on one session | Review a session that went badly with an AI | Opens the details and can copy the review prompt |
+| 7 | Someone looking back on one session | Review a session that went badly with an AI | Opens the details in `kiroku serve` and can run the review with "Analyze with AI" |
 | 8 | Someone viewing on a phone | Glance at this week while on the move | Nothing overflows sideways, and can read the key figures, "Worth a look" and the calendar |
 | 9 | Someone using only the keyboard | Move between weeks, open session details and close them | Can do it without a mouse, and can see where they are |
 | 10 | Someone who wants to look back on the year and share it | Turn this year's usage into one image to post on social media | Opens "Year in review", understands how to read the chart and why they got their "Your light" name, checks what is and isn't in the image, then saves the PNG |

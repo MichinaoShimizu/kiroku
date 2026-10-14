@@ -1,0 +1,1 @@
+- BREAKING: `tool serve` no longer accepts the old flag

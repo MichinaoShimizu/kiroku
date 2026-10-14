@@ -66,18 +66,18 @@ kiroku の `testdata/` は開発者が作った合成データなので、形式
 - 頼むこと:
   - テストを足す（直す前のコードで失敗することも確かめる）
   - `docs/sources.md`・`docs/guide.md` の該当箇所を直す
-  - CHANGELOG の `## Unreleased` に追記する
+  - 変更の断片を `changes/<短い名前>.<節>.md` に書く（形式は `changes/README.md`。CHANGELOG.md は直接書き換えない）
   - `go test ./...`・`gofmt`・`go vet` を通す
   - ブランチにコミットする（push はさせない）
 - 上がってきた差分は自分で読む。気になる判断（推測の閾値、表示の変化など）は PR の説明の Notes に書く
 - push して PR を作り、`subscribe_pr_activity` で見守る
-- セキュリティ修正は CHANGELOG の `### Security` に書き、テストを必ず付ける
+- セキュリティ修正は `changes/<短い名前>.security.md` に書き、テストを必ず付ける
 
 ## 4. マージと表の更新
 
 ユーザーがマージを頼んだときだけ行う。
 
-- 1 つずつマージする。次の PR には main を取り込み、`CHANGELOG.md` などのぶつかりは両方の項目を残して解く
+- 1 つずつマージする。次の PR には main を取り込み、ぶつかりは両方の変更を残して解く（変更の断片は PR ごとに別のファイルなので、CHANGELOG ではぶつからない）
 - 解いたら、テスト・`gofmt`・`go vet` を通してから push する
 - CI が通ってから次をマージする
 - 最後に、直したあとの状態で `docs/sources.md` の「What history records」の表を更新する
@@ -87,9 +87,8 @@ kiroku の `testdata/` は開発者が作った合成データなので、形式
 
 ユーザーが頼んだときだけ行う。
 
-- `sh tools/next-version.sh` で番号を出す
-- `CHANGELOG.md` の `## Unreleased` を `## vX.Y.Z - YYYY-MM-DD` に変えた PR を作る
-- マージすると `tag.yml` がタグを付けてリリースする（docs/development.md の「Making a release」）
+- `sh tools/release.sh` でリリースの PR を手元に用意する（版を決め、`changes/` の断片と `## Unreleased` を `## vX.Y.Z - YYYY-MM-DD` にまとめ、チェックを回してコミットする。push はしない）。出てきた手順で push して PR を作る
+- マージすると `tag.yml` がタグを付けてリリースする（docs/development.md の「Making a release」）。出たら `sh tools/verify-release.sh vX.Y.Z` で確かめる
 
 ## やらないこと
 

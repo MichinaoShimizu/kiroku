@@ -16,7 +16,7 @@ A change that breaks one of these is marked `BREAKING` in the changelog and, fro
 - **The `--prices` file**: the JSON format described in [How you used AI](guide.md#how-you-used-ai), both the object and the array form
 - **`kiroku archive` copies**: a later version still reads the copies an earlier one kept, and `kiroku archive off` still recognizes the folder. The layout inside the folder may change if kiroku moves the old copies itself
 - **The `kiroku serve` key** kept in kiroku's config folder: a new version still accepts it, so bookmarks and `kiroku open` keep working. How the browser keeps it is not part of this: since [ADR 0031](adr/0031-serve-key-in-browser-storage.md) it is in the browser's site data instead of a cookie, and a browser set up with an older version needs `kiroku open` once
-- **`kiroku serve` stays local by default**: it listens on `127.0.0.1` and checks the Host header, and anything that widens access stays opt-in (see [SECURITY.md](../SECURITY.md))
+- **`kiroku serve` stays local by default**: it listens on `127.0.0.1` and checks the Host header, and anything that widens access stays opt-in (see [SECURITY.md](../SECURITY.md)). The one exception is "Analyze with AI", on by default since [ADR 0034](adr/0034-ai-analysis-by-default.md): it runs an agent only after a confirmation in the view, only on a loopback address, and `--no-ai` turns it off
 - **Downloads are verified**: `kiroku update` and `install.sh` check `checksums.txt` (and build provenance where available) before they replace anything. Release archive names and `checksums.txt` keep their form so older versions of `kiroku update` and `install.sh` can still update
 
 ## May change in any release

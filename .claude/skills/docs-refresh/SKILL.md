@@ -12,7 +12,7 @@ CLAUDE.md の「Security」を常に守る。スクショと文章に載せる�
 ## 0. 範囲を決める
 
 - 引数が `shots` なら 1 と 2 だけ、`text` なら 3 と 4 だけ、なければ全部
-- 前回のリリースのタグを起点にする: `git describe --tags --abbrev=0`。CHANGELOG の `## Unreleased` と、そのタグから今までの変更が点検の手がかりになる
+- 前回のリリースのタグを起点にする: `git describe --tags --abbrev=0`。`changes/` の断片と CHANGELOG の `## Unreleased`、そのタグから今までの変更が点検の手がかりになる
 - 手順の元は `docs/development.md` の「Screenshots」と「Docs」の項目。食い違ったらそちらを正とし、このファイルも直す
 
 ## 1. スクショが古いかを確かめる
@@ -25,7 +25,7 @@ git log --oneline "$last"..HEAD -- internal/web tools/screenshots
 ```
 
 - 何も出なければ、スクショは新しい。2 を飛ばす
-- 出たら、各コミットが README・guide に載っている画面（週のカレンダー、セッションの詳細、Worth a look、週のまとめ、日報・週報のボタン、Year in review）の見た目を変えたかを差分で確かめる。内部の整理だけで見た目が変わらないなら撮り直さない。迷ったら撮り直す
+- 出たら、各コミットが README・guide に載っている画面（週のカレンダー、セッションの詳細、Worth a look、週のまとめ、週報の「Analyze with AI」、Year in review）の見た目を変えたかを差分で確かめる。内部の整理だけで見た目が変わらないなら撮り直さない。迷ったら撮り直す
 
 ## 2. 撮り直して、目で確かめる
 
@@ -39,6 +39,7 @@ sh tools/screenshots/run.sh
   - 1 で見つけた変更が映っている
   - 崩れ・重なり・切れた文字・空の欄がない
   - 本物の履歴、手元のパス、ユーザー名が写っていない（`session.png` は右の列に一時パスが出るので左の列だけを撮る、という前提が保たれているか）
+- 撮ったあと `sh tools/screenshots/keep-changed.sh` で、コミットしてある版と比べて描画のゆらぎだけの画像を戻す（`demo.gif` は止まって見える場面どうしで比べる）。ダミーデータは「今」から作るので、日付ごと戻せるのは同じ `KIROKU_FAKE_NOW` で撮ったときだけ（`tools/release.sh` は ci.yml の e2e と同じ時刻で撮る）
 - `demo.gif`（README の先頭の動き）も同じ run.sh で撮り直される。いくつかのコマを ffmpeg で取り出して Read で確かめる
 - `year.png` は Year in review が隠れているあいだ（`js/state.js` の `YEAR_ON`）は撮られない。変わっていなくて正しい
 - 変わったのに理由を説明できない画像があれば、コミットせずに調べる
@@ -47,7 +48,7 @@ sh tools/screenshots/run.sh
 
 対象は README.md、README.ja.md（README.md と同じ内容か）、`docs/guide.md`、`docs/compatibility.md`、`docs/usability.md`、`docs/development.md`、SECURITY.md、CONTRIBUTING.md。`docs/sources.md` の「What history records」は `/source-audit` の担当なので、ここでは明らかな食い違いを報告するだけにする。
 
-- CHANGELOG の `## Unreleased` と前回のタグからの各項目について、ユーザーに見える変更（新しい指標・ボタン・オプション・コマンド・既定値・名前の変更・消えたもの）がドキュメントに書かれているかを確かめる
+- `changes/` の断片、CHANGELOG の `## Unreleased`、前回のタグからの各項目について、ユーザーに見える変更（新しい指標・ボタン・オプション・コマンド・既定値・名前の変更・消えたもの）がドキュメントに書かれているかを確かめる
 - 逆向きにも確かめる: ドキュメントにある名前（ボタン・見出し・指標・オプション・環境変数）を `grep` で `internal/` から探し、今もあるか、同じ綴りかを見る。消えたものの説明が残っていたら消す
 - `kiroku help` と各コマンドの `--help` の出力を、guide のコマンド表・オプション表と見比べる
 - README は入口なので、主な機能の一覧が今の画面と合っているか（大きな機能が抜けていないか、なくなった機能を宣伝していないか）を見る

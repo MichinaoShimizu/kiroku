@@ -580,12 +580,12 @@ func TestServeLive(t *testing.T) {
 		t.Errorf("以前の版の Cookie だけの /data.json = %d, Set-Cookie %q", code, h.Get("Set-Cookie"))
 	}
 	testKey = key
-	// --ai なしでは、鍵があっても loopback でも AI を動かさず、画面にも「Analyze with AI」を出さない
-	if code, body, _ := fetchHost(t, "POST", base+"/ai/run", "localhost:"+port); code != 403 || !strings.Contains(body, "disabled") {
-		t.Errorf("--ai なしの /ai/run = %d %q, want 403", code, body)
+	// AI を切った serve（serveLive。kiroku serve --no-ai と同じ）では、鍵があっても loopback でも /ai/run はなく（404）、画面にも「Analyze with AI」を出さない
+	if code, body, _ := fetchHost(t, "POST", base+"/ai/run", "localhost:"+port); code != 404 {
+		t.Errorf("--no-ai の /ai/run = %d %q, want 404", code, body)
 	}
 	if code, body, _ := fetchHost(t, "GET", base+"/data.json", "localhost:"+port); code != 200 || strings.Contains(body, "aiRun") {
-		t.Errorf("--ai なしの /data.json に aiRun がある: %d", code)
+		t.Errorf("--no-ai の /data.json に aiRun がある: %d", code)
 	}
 	srv.Close()
 	select {

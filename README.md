@@ -8,7 +8,7 @@ English | [日本語](README.ja.md)
 
 See what you built, understand how you worked, and make your next AI session better.
 
-kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), Amazon Q Developer CLI and Codex CLI together in one place. No account, telemetry or uploads, and no AI calls unless you turn on `kiroku serve --ai`.
+kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), Amazon Q Developer CLI and Codex CLI together in one place. No account, telemetry or uploads; an AI agent runs only when you confirm "Analyze with AI" in `kiroku serve`.
 
 **[Try the live demo →](https://michinaoshimizu.github.io/kiroku/)** (dummy data, runs in your browser)
 
@@ -19,8 +19,8 @@ kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), A
 - **Every agent on one calendar.** Claude Code, Codex, Kiro and Amazon Q side by side, instead of one dashboard per agent.
 - **Sessions you can read, not just count.** What you asked, what the AI replied, and the commands, commits and pull requests in between, next to time, tokens and cost.
 - **How your work with AI changes.** Active time, tokens, estimated cost and patterns over time, from one session to Year in review.
-- **Reviews written by your own agent.** One click copies a prompt grounded in your history for the agent you already use.
-- **Your history stays on your computer.** A single binary, no account, no telemetry (see [Privacy](#privacy) for `kiroku serve --ai`).
+- **Reviews written by your own agent.** "Analyze with AI" runs a prompt grounded in your history with the agent you already use.
+- **Your history stays on your computer.** A single binary, no account, no telemetry (see [Privacy](#privacy) for "Analyze with AI").
 
 ## Install
 
@@ -37,15 +37,15 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 ## What you get
 
-**Every session on a calendar.** When, in which project and what you asked, by week or month, with each day's active time, tokens, cost and Git commits. Under View, **Journey** lays sessions, commits and pull requests out by project and day, and **Project** gathers them per project; they record activity, not progress.
+**Every session on a calendar.** When, in which project and what you asked, by week or month, with each day's active time, tokens, cost and Git commits. It records activity, not progress.
 
 ![The week calendar (dummy data)](docs/screenshot.png)
 
-**The whole story of a session.** The prompt flow with times, separating what you typed from what entered on its own, with commands, commits, pull requests, subagents and interruptions in between, and the AI's reply after each prompt, so a session reads as the conversation it was. One click copies a review prompt for it (see below).
+**The whole story of a session.** The prompt flow with times, separating what you typed from what entered on its own, with commands, commits, pull requests, subagents and interruptions in between, and the AI's reply after each prompt, so a session reads as the conversation it was. "Analyze with AI" reviews it with your own agent (see below).
 
 <img src="docs/session.png" alt="Session details (dummy data)" width="560">
 
-**Every number opens up.** Click any figure, at the top or in the weekly summary, such as tokens, estimated cost or Git commits, to see it by day, agent, project and model, with the sessions, commits or prompts behind it. The metrics guide (`G`) shows how the metrics fit together, and what they can't tell you.
+**Every number opens up.** Click any figure, at the top or in the weekly summary, such as tokens, estimated cost or Git commits, to see it by day, agent, project and model, with the sessions, commits or prompts behind it.
 
 **What's worth a look.** Metrics that crossed a threshold are listed under the key figures. Press one to see what was observed, why it matters, the sessions behind it, an 8-week trend and what to try, without leaving the calendar.
 
@@ -57,7 +57,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 **Search across all time.** Prompts, edited files and commits, with excerpts showing where they matched.
 
-**Your year in one picture.** "Year in review", separate from View and Period, draws a year of active time as streaks of light, and makes an image to share where you choose what goes on it: no prompts, project names or cost, and nothing about late nights or time off unless you check it. It describes how you worked; it doesn't score or rank you.
+**Your year in one picture.** "Year in review", next to the week / month switch, draws a year of active time as streaks of light, and makes an image to share where you choose what goes on it: no prompts, project names or cost, and nothing about late nights or time off unless you check it. It describes how you worked; it doesn't score or rank you.
 
 ![Year in review share image (dummy data)](docs/year.png)
 
@@ -65,14 +65,12 @@ The view is in Japanese when your browser prefers Japanese; the button at the to
 
 ## Reviews and advice, written by your own agent
 
-One click copies a prompt that you paste into the AI agent you already use on this computer, such as Claude Code or Codex. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, as a professional advisor on prompts and engineering work would. With `kiroku serve --ai`, "Analyze with AI" runs the same prompt with that agent for you, after you confirm each run.
+In `kiroku serve`, "Analyze with AI" runs a prompt with the AI agent you already use on this computer, such as Claude Code or Codex, after you check the exact prompt and confirm the run (start it with `--no-ai` to turn this off; a saved HTML file never runs an agent). The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, as a professional advisor on prompts and engineering work would.
 
 | Scope | Where | What you get |
 |---|---|---|
-| A session | "Copy review prompt" in session details | Summary, numbers, an assessment of your prompts, up to three prioritized pieces of advice (each quoting the prompt with its time and giving an improved prompt), and a playbook of prompts for similar work |
-| A day | "Report" next to each date in the week calendar | A daily report: summary, numbers next to the previous day, what was done in each project and why, expert observations and next actions |
-| A week or month | "Copy prompt" under "Weekly report" ("Monthly report" in month view), below the period's dates | The same report for the week or month, numbers next to the previous period, ready to share with your team |
-| A project | "Copy knowledge prompt" on each project card under "By project" | Candidate domain knowledge, decisions and open questions from that week's or month's history, each with the session and excerpt it comes from, for you to review |
+| A session | "Analyze with AI" in session details | Summary, numbers, an assessment of your prompts, up to three prioritized pieces of advice (each quoting the prompt with its time and giving an improved prompt), and a playbook of prompts for similar work |
+| A week or month | "Analyze with AI" under "Weekly report" ("Monthly report" in month view), below the period's dates | A report for the week or month: summary, numbers next to the previous period, what was done in each project and why, expert observations and next actions, ready to share with your team |
 
 The advice is grounded in your history, not generic tips. Each point names what it is based on: a figure, a prompt with its time, or a signal kiroku counted. Where the history shows it, the advice covers
 
@@ -90,7 +88,7 @@ The prompts stay light: a report carries a short digest of each session, and the
 
 ## Privacy
 
-- Your history never leaves your computer: no telemetry, no account, no AI service (unless you start `kiroku serve --ai` and confirm a run, when the agent you pick may send the prompt and the history it reads to its provider). The only network access is checking for and downloading kiroku's own releases from GitHub.
+- Your history never leaves your computer: no telemetry, no account, no AI service, unless you confirm a run of "Analyze with AI" in `kiroku serve`: the agent you pick may send the prompt and the history it reads to its provider. `kiroku serve --no-ai` turns agent runs off. The only network access is checking for and downloading kiroku's own releases from GitHub.
 - Files kiroku writes from your history are readable only by you, and `kiroku serve` listens on `127.0.0.1` and opens only for browsers that have its key.
 - The HTML contains your prompts, the AI's replies, file paths and commit messages as they are. Check it before sharing.
 - The review and report prompts point an AI agent on your computer to your history files, and the agent reads them. Use an agent you'd trust with them.
