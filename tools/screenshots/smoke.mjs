@@ -135,8 +135,10 @@ async function run(env) {
       await rep.scrollIntoViewIfNeeded();
       check("応答の中身が読める", (await rep.locator(".reptext").innerText()).trim().length > 0);
       check("だれの発言か分かる", (await rep.locator(".rpw").innerText()).trim().length > 0);
+      // 依頼と応答の間に起きたこと（コミットなど）は応答の上に出るので、それを飛ばした手前が依頼
       check("応答は依頼のすぐ後に並ぶ", await p.evaluate(() => { const li = [...document.querySelectorAll("#panel .tl li")], i = li.findIndex(x => x.classList.contains("rp"));
-        return i > 0 && li[i - 1].classList.contains("pr"); }));
+        let j = i - 1; while (j >= 0 && li[j].classList.contains("ev")) j--;
+        return i > 0 && j >= 0 && li[j].classList.contains("pr"); }));
     }
     await p.locator('#flowBy button[data-v="user"]').click(); await pause();
     check("「ユーザープロンプトだけ」で、出来事が隠れる", await p.evaluate(() => [...document.querySelectorAll("#drawer .tl li.ev")].every(li => !li.offsetParent)));

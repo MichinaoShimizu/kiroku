@@ -774,7 +774,7 @@ dialog.yr h4.yrsub{font:600 var(--fs-md)/1.5 var(--sans);margin:12px 0 6px;color
   .panel.shape{grid-column:span 2}
 }
 @media (max-width:1180px){.tag{display:none}.kpis{margin-left:0;width:100%}.kpi{flex:1;min-width:0}}
-@media (max-width:1000px){.search kbd{display:none}.search input,.search input:focus{width:160px;padding-right:10px}}
+@media (max-width:1000px){.search kbd{display:none}.search input,.search input:focus{width:160px;padding-right:6px}}
 @media (max-width:480px){#help{display:none}} /* ショートカットの一覧は、キーボードのないスマホでは使わないので、ロゴと検索の場所を空ける */
 @media (max-width:820px){
   .rvgrid.srgrid{grid-template-columns:1fr}
