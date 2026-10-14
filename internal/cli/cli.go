@@ -33,7 +33,7 @@ Commands:
   stats                 Print a one-screen summary of this week (--week last, --month this, ...) in the terminal
   archive [on|off]      Keep compressed copies of history that agents delete (Claude Code, Kiro Crew); no argument shows the status
   autostart [on|off]    Start "kiroku serve" in the background each time you log in; no argument shows the status
-  doctor                Check what kiroku can read and whether your history will be deleted, and what to run next
+  doctor                Check what kiroku can read, whether any history will be deleted, and what to run next
   version               Print the version
   update                Update kiroku to the latest release
   help                  Show this help
@@ -102,7 +102,7 @@ func addCommon(fs *flag.FlagSet) *common {
 		claudeRoot: fs.String("claude-root", source.DefaultClaudeRoot(), "Claude Code history directory ($CLAUDE_CONFIG_DIR/projects or ~/.claude/projects)"),
 		kiroHome:   fs.String("kiro-home", source.DefaultKiroHome(), "Kiro data directory ($KIRO_HOME)"),
 		crewHome:   fs.String("crew-home", "", "Kiro Crew data directory (default $KIROCREW_HOME or ~/.kiro/crew; not moved by --kiro-home or $KIRO_HOME)"),
-		kiroCLIDB:  fs.String("kiro-cli-db", "", "path to the data.sqlite3 of Kiro CLI (SQLite), older Kiro CLI versions (default: OS-specific)"),
+		kiroCLIDB:  fs.String("kiro-cli-db", "", "path to data.sqlite3 of older Kiro CLI versions (Kiro CLI (SQLite)) (default: OS-specific)"),
 		amazonQDB:  fs.String("amazonq-db", "", "path to the Amazon Q Developer CLI data.sqlite3 (default: OS-specific)"),
 		codexHome:  fs.String("codex-home", "", "Codex data directory (default $CODEX_HOME or ~/.codex)"),
 		sources:    fs.String("sources", strings.Join(core.Families(), ","), "comma-separated sources to read: "+core.FamiliesHelp()),
@@ -341,7 +341,7 @@ func cmdHTML(args []string) error {
 	if err := writeHTML(snap, *out, !*noOpen, *lang); err != nil {
 		return err
 	}
-	fmt.Fprintf(logw, "it has only %s, but includes its prompts, the AI's replies, file paths and commit messages as they are; check it before sharing\n", p.label())
+	fmt.Fprintf(logw, "%s has only %s, but includes its prompts, the AI's replies, file paths and commit messages as they are; check it before sharing\n", *out, p.label())
 	return nil
 }
 
@@ -370,14 +370,14 @@ func loadNonEmpty(c *common) (snapshot, error) {
 	}
 	snap := load()
 	if len(snap.data) == 0 {
-		return snap, fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --codex-home, --amazonq-db; see \"kiroku html --help\")")
+		return snap, fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db, --amazonq-db; see \"kiroku doctor --all\")")
 	}
 	return snap, nil
 }
 
 func writeHTML(snap snapshot, out string, open bool, lang string) error {
 	if len(snap.data) == 0 {
-		return fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --codex-home, --amazonq-db; see \"kiroku html --help\")")
+		return fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db, --amazonq-db; see \"kiroku doctor --all\")")
 	}
 	parts, err := web.Marshal(snap.data, snap.weeks, snap.months, snap.meta, snap.gen)
 	if err != nil {

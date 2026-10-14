@@ -100,10 +100,10 @@ func TestGuideRecordsTable(t *testing.T) {
 	}
 	for label, what := range map[string]string{
 		"Interruptions (in Prompts with corrections or interruptions)": "interrupts",
-		"Usage limit hits":                "limits",
-		"Compactions":                     "compactions",
-		"Files changed (session details)": "files",
-		"Subagents":                       "subagents",
+		"Usage limit hits":                     "limits",
+		"Compactions":                          "compactions",
+		"Files edited by AI (session details)": "files",
+		"Subagents":                            "subagents",
 		"Outputs (AI commits, pull requests, sessions that reached a commit or PR, cost per commit)": "outputs",
 	} {
 		row, ok := rows[label]

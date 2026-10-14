@@ -44,7 +44,7 @@ function detail(s){
     ${s.resume ? `<div class="dresume dside"><h3>${esc(t("Resume"))}</h3>${codeH(s.resume, "resume")}</div>` : ""}
     ${sessionCommits(s)}
     ${s.prs && s.prs.length ? `<h3>${esc(t("Pull requests created"))} · ${s.prs.length}</h3><ul class="files">${s.prs.map(u => pathRow(u, ext(u, esc(u.replace(/^https?:\/\//, ""))), "pr")).join("")}</ul>` : ""}
-    <h3>${esc(t("Files changed"))}${s.files.length || records(s.source, "files") ? ` · ${s.nFiles}` : ""}</h3>
+    <h3>${esc(t("Files edited by AI"))}${s.files.length || records(s.source, "files") ? ` · ${s.nFiles}` : ""}</h3>
     ${(() => { if (!s.files.length) return noneH(esc(records(s.source, "files") ? t("None") : notRec([s.source]))); const us = s.files.map(f => fileLink(s, f)), ls = s.files.map((f, i) => us[i] ? "" : localHref(f, s.projectPath)); // コミットのリンクがなければ、この PC のファイル。断り書きは、そのリンクがあるときだけ
       return `<ul class="files">${s.files.map((f, i) => pathRow(f, fileA(us[i] || ls[i], esc(f)))).join("")}</ul>${us.some(Boolean) || ls.some(Boolean) ? `<p class="note">${esc([us.some(Boolean) ? t("Links marked ↗ open the file on the remote as of the commits made during this session.") : "", ls.some(Boolean) ? (us.some(Boolean) ? t("Other links open the file on this computer as it is now.") : t("Links open the file on this computer as it is now.")) : ""].filter(Boolean).join(JA ? "" : " "))}</p>` : ""}`; })()}
     ${s.models.length ? `<h3>${esc(t("Models used"))}</h3><div class="chips">${(mc => s.models.map(([m,n],i)=>`<span class="mono mdl" style="--m:${mc[i]}"><i aria-hidden="true"></i>${esc((m))}<b>${n}</b></span>`).join(""))(modelColors(s.models.map(([m]) => m)))}</div>` : ""}
@@ -56,7 +56,7 @@ function detail(s){
   </div></div></div>`;
   bindGitEvents(P);
   P.querySelectorAll(".sflags [data-goto]").forEach(b => b.onclick = () => openWorth(b.dataset.goto, b));
-  const sr = P.querySelector("#sreview"); if (sr) sr.onclick = () => copy(sessionPrompt(s, active, med), reviewFile(s) ? t("Copied. Paste it into an AI agent on this computer. It includes your prompts and the session's history file path, and the agent reads that file, so check it before sending") : t("Copied a prompt that asks an AI to review this session. It includes your prompts, so check it before sending"), 8000, sr);
+  const sr = P.querySelector("#sreview"); if (sr) sr.onclick = () => copy(sessionPrompt(s, active, med), reviewFile(s) ? t("Copied. Paste it into an AI agent on this computer. It includes your prompts and the session's history file path, and the agent reads that file, so check it before sending.") : t("Copied. Paste it into an AI agent on this computer. It includes your prompts, so check it before sending."), 8000, sr);
   P.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
   const run = P.querySelector("#srun");
   if (run) run.onclick = () => runAIReview(run, sessionPrompt(s, active, med), t("Session review"));
@@ -131,7 +131,7 @@ function promptFlow(s){
   flush(Infinity);
   const fixes = s.prompts.some(p => !p.kind && FIXRE.test(String(p.text || ""))), kinds = new Set(ev.map(x => x.k.split(" ")[0])), cmds = s.prompts.some(p => p.kind);
   const key = [`<span class="kus">${ico("user")}${esc(t("User prompt"))}</span>`,
-    cmds ? `<span class="kcmd"><span class="pkind">${ico("command")}${esc(t("Command"))}</span><span class="pkind">${ico("shell")}${esc(t("Shell"))}</span>${esc(t("What the user typed with / or !"))}</span>` : "",
+    cmds ? `<span class="kcmd"><span class="pkind">${ico("command")}${esc(t("Command"))}</span><span class="pkind">${ico("shell")}${esc(t("Shell"))}</span>${esc(t("What you typed starting with / or !"))}</span>` : "",
     kinds.has("note") ? `<span class="kev note">${[...new Set(s.notes.filter(x => x.t).map(x => NOTE_ICON[x.kind] || "note"))].map(k => ico(k)).join("")}${esc(t("Added automatically (notifications, summaries, hooks; not counted as prompts)"))}</span>` : "",
     fixes ? `<span class="kus fix"><span class="pkind fix">${esc(t("Correction?"))}</span>${esc(t("Looks like a correction (guessed from the wording)"))}</span>` : "",
     s.prompts.some(p => p.reply) ? `<span class="kev rep">${ico("reply")}${esc(t("What the AI wrote back"))}</span>` : "",
@@ -139,7 +139,7 @@ function promptFlow(s){
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";
   const showMore = JA ? (hiddenEv ? t("Show {n} more prompts (and {m} other events)", {n: rest, m: hiddenEv}) : t("Show {n} more prompts", {n: rest})) : `Show ${plural(rest, "more prompt")}${also}`;
   // 見出しと出し方の切り替えは 1 行に（最初の画面に入るプロンプトを 1 つでも多くする）
-  const bar = `<div class="flowhead"><h3>${esc(t("Prompt flow"))}</h3><div class="flowbar"><div class="segc" role="group" aria-label="${esc(t("Show"))}" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">${esc(t("Everything"))}</button><button data-v="user" aria-pressed="${!!st.flowUser}">${esc(t("Only user prompts"))}</button></div>${copyBtn(esc(t("Copy review prompt")), `id="sreview" title="${esc(t("A prompt that asks an AI agent on this computer how you could have prompted and split the work better"))}"`, "pill fill")}${aiRun() ? `<button class="pill ai-action" id="srun" type="button">${esc(t("Run with AI"))}</button>` : `<button class="pill ai-off ai-demo-info" type="button" title="${esc(AI_OFF_WHY())}">${esc(t("Run with AI: off"))}</button>`}</div></div>`;
+  const bar = `<div class="flowhead"><h3>${esc(t("Prompt flow"))}</h3><div class="flowbar"><div class="segc" role="group" aria-label="${esc(t("Show"))}" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">${esc(t("Everything"))}</button><button data-v="user" aria-pressed="${!!st.flowUser}">${esc(t("Your prompts only"))}</button></div>${copyBtn(esc(t("Copy review prompt")), `id="sreview" title="${esc(t("A prompt that asks an AI agent on this computer how you could have prompted and split the work better"))}"`, "pill fill")}${aiRun() ? `<button class="pill ai-action" id="srun" type="button">${esc(t("Run with AI"))}</button>` : `<button class="pill ai-off ai-demo-info" type="button" title="${esc(AI_OFF_WHY())}">${esc(t("Run with AI (off)"))}</button>`}</div></div>`;
   return `${bar}<div class="tlkey${st.flowUser ? " only-user" : ""}">${key}</div><ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${esc(showMore)}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${esc(t("\"AI worked\" is the time from a prompt to the AI's last activity; \"wait\" is the time from there to your next prompt. Both are estimates from the history's timestamps."))}</p>` : ""}${s.prompts.some(p => p.reply) ? `<p class="note">${esc(t("The reply after a prompt is the last thing the AI wrote to you in that turn, in its own words — not its thinking, its tool calls or their output. A turn where it only ran tools, or whose words the agent does not record, has no reply. A long one shows its first {n} characters.", {n: REPLY_RUNES}))}</p>` : ""}`;
 }
 /* 振り返りのプロンプトに入れる流れ: プロンプトと、そのあとに起きたこと（中断・コミットなど）を時刻の順に 1 本のテキストにする。

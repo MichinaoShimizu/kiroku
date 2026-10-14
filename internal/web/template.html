@@ -34,7 +34,7 @@
         <button data-t class="iconbtn" id="prev" aria-label="Previous"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
         <button data-t class="iconbtn" id="next" aria-label="Next"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
         <button data-t class="pill" id="today">This week</button>
-        <div class="view-controls"><div class="control-group"><span data-t class="control-label">View</span><div data-t class="segc" role="group" aria-label="View"><button data-t id="calendarbtn" aria-pressed="true">Calendar</button><button data-t id="journeybtn" aria-pressed="false" title="Project activity over time">Journey</button><button data-t id="projectbtn" aria-pressed="false" title="Project-centered activity summary">Project</button></div></div><div class="control-group"><span data-t class="control-label">Period</span><div data-t class="segc mode" role="group" aria-label="Period" id="mode"><button data-t data-v="week">Week</button><button data-t data-v="month">Month</button></div></div><button data-t class="pill year-entry" id="yrbtn" aria-haspopup="dialog" aria-label="Year in review" title="Year in review (Y)" hidden>Year in Review<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 16L16 8M10 8h6v6"/></svg></button></div>
+        <div class="view-controls"><div class="control-group"><span data-t class="control-label">View</span><div data-t class="segc" role="group" aria-label="View"><button data-t id="calendarbtn" aria-pressed="true">Calendar</button><button data-t id="journeybtn" aria-pressed="false" title="Sessions, commits and PRs by project and day">Journey</button><button data-t id="projectbtn" aria-pressed="false" title="One card per project for this period">Project</button></div></div><div class="control-group"><span data-t class="control-label">Period</span><div data-t class="segc mode" role="group" aria-label="Period" id="mode"><button data-t data-v="week">Week</button><button data-t data-v="month">Month</button></div></div><button data-t class="pill year-entry" id="yrbtn" aria-haspopup="dialog" aria-label="Year in review" title="Year in review (Y)" hidden>Year in review<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 16L16 8M10 8h6v6"/></svg></button></div>
       </div>
     </nav>
     <div class="kpis" id="kpis"></div>
@@ -43,7 +43,7 @@
   <div data-t class="legend" id="legend" aria-label="Legend"></div>
   <section data-t class="srbox" id="sres" aria-label="Search results" hidden></section>
   <p class="fnote" id="fnote" role="note" hidden></p>
-  <a data-t class="skip" id="skipcal" href="#review">Skip the calendar</a>
+  <a data-t class="skip" id="skipcal" href="#review">Skip calendar</a>
   <section data-t class="tlbox" id="tl" aria-label="Calendar"></section>
   <section data-t id="review"></section>
 </main>
@@ -61,7 +61,7 @@
   <div data-t class="eyebrow">Shortcuts</div><h2 data-t>Keyboard shortcuts</h2>
   <div class="keys">
     <kbd>←</kbd><span data-t>Previous week / month</span><kbd>→</kbd><span data-t>Next week / month</span><kbd>T</kbd><span data-t>Back to this week / month</span>
-    <kbd>/</kbd><span data-t>Search</span><kbd>+</kbd><span data-t>Zoom in (<kbd>−</kbd> to zoom out)</span>
+    <kbd>/</kbd><span data-t>Search</span><span class="kpair"><kbd>+</kbd> <kbd>−</kbd></span><span data-t>Zoom in / out</span>
     <kbd>W</kbd><span data-t>Week view</span><kbd>M</kbd><span data-t>Month view</span>
     <kbd>G</kbd><span data-t>Metrics guide</span><kbd>Esc</kbd><span data-t>Close details</span><kbd>?</kbd><span data-t>This list</span>
   </div>

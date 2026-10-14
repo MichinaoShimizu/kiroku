@@ -197,8 +197,8 @@ const LIGHTS = [
    de: "Your sessions ran long, with few prompts.",
    ask: "Your sessions ran long with few prompts. How often did the first result need a second round?",
    re: "45 minutes or more of active time per session, with 10 prompts or fewer on average"},
-  {k: "burst", en: "Burst", m: "per", t: x => x.perSes >= 15, sub: "many short prompts in each session",
-   de: "Your sessions had many short prompts.",
+  {k: "burst", en: "Burst", m: "per", t: x => x.perSes >= 15, sub: "many prompts in each session",
+   de: "Your sessions had many prompts.",
    ask: "Your sessions had many prompts. Would some of them have worked better as one clear request?",
    re: "15 or more prompts per session on average"},
   {k: "focus", en: "Bracketing", m: "fix", t: x => x.fix != null && x.fix >= 15, sub: "many prompts that correct or retry",
@@ -336,7 +336,7 @@ function drawCard(){
     g.fillText(t("Hours count parallel sessions once and include time the AI ran on its own."), PX, 266); g.globalAlpha = 1;
   }
   if (o.type && L){
-    g.textAlign = "right"; g.fillStyle = ink2; g.font = `500 20px ${FONT.mono}`; ls("4px"); g.fillText(t("YOUR LIGHT"), W - PX, 90); ls("0px");
+    g.textAlign = "right"; g.fillStyle = ink2; g.font = `500 20px ${FONT.mono}`; ls("4px"); g.fillText(t("Your light").toUpperCase(), W - PX, 90); ls("0px");
     g.shadowColor = "rgba(255,174,87,.5)"; g.shadowBlur = 36; g.fillStyle = amber; g.font = `800 60px ${FONT.mincho}`; g.fillText(t(L.en), W - PX, 156);
     g.shadowBlur = 0; g.fillStyle = ink2; g.font = `500 22px ${FONT.sans}`; g.fillText(t(L.sub), W - PX, 194);
     g.textAlign = "left";
@@ -345,7 +345,7 @@ function drawCard(){
   const side = sideLines(x, o);
   if (side.length){
     const y0 = o.type && L ? 250 : 90;
-    g.textAlign = "right"; g.fillStyle = ink2; g.font = `500 20px ${FONT.mono}`; ls("4px"); g.fillText(t("WHAT STANDS OUT"), W - PX, y0); ls("0px");
+    g.textAlign = "right"; g.fillStyle = ink2; g.font = `500 20px ${FONT.mono}`; ls("4px"); g.fillText(t("What stands out").toUpperCase(), W - PX, y0); ls("0px");
     g.fillStyle = ink;
     side.forEach((s, i) => { fit(s, 640, 24, fs => `500 ${fs}px ${FONT.sans}`); g.fillText(s, W - PX, y0 + 40 + i*34); });
     g.textAlign = "left";
@@ -425,7 +425,7 @@ function renderYear(pre){
     <label>${esc(t("Color by"))} <select id="yrcolor">${[["auto", "Auto"], ["agent", "Agent"], ["project", "Project"]].map(([v, l]) => `<option value="${v}"${yr.opt.color === v ? " selected" : ""}>${esc(t(l))}</option>`).join("")}</select></label></div>
   <canvas class="yrcard" id="yrcard" width="1600" height="900" role="img"></canvas>
   <div class="yract"><button class="pill" id="yrsave">${esc(t("Save as PNG"))}</button>${copyBtn(esc(t("Copy image")), `id="yrcopy"`)}</div>
-  <p class="note">${esc(t("The image shows the date range, the streaks of light, kiroku's address, the busiest month, an agent's first day and up to two changes since the middle of the period when they are found, and only what is ticked above. The longest stretch without AI has no dates written on it. Prompts, project names, branches, files and estimated cost are never included. It is made in this browser and sent nowhere."))}</p>
+  <p class="note">${esc(t("The image shows the date range, the streaks of light, kiroku's GitHub address, the busiest month, an agent's first day and up to two changes since the middle of the period when they are found, and only what is checked above. The longest stretch without AI has no dates written on it. Prompts, project names, branches, files and estimated cost are never included. It is made in this browser and sent nowhere."))}</p>
 
   <h3>${esc(t("Your light"))}</h3>
   ${L ? `<div class="yrtype"><div class="yrtn"><span>${name(L)}</span></div><div>
@@ -442,7 +442,7 @@ function renderYear(pre){
     const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `kiroku-${x.y}.png`; document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000); toast(t("Saved the PNG")); };
   $("#yrcopy").onclick = async () => { try { await navigator.clipboard.write([new ClipboardItem({"image/png": blob()})]); toast(t("Copied the image")); copied($("#yrcopy")); }
-    catch(e){ toast(t("Couldn't copy the image. Save it as a PNG instead"), 2600); } };
+    catch(e){ toast(t("Couldn't copy the image. Save it as a PNG instead."), 2600); } };
   drawPlate(); drawCardLabeled();
   // 自動更新（pre）では、読んでいる位置を動かさない
   if (pre && sl != null) dlg.querySelector(".yrscroll").scrollLeft = sl; else yrScrollEnd();

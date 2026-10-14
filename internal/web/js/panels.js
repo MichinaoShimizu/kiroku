@@ -32,14 +32,14 @@ function searchPanel(){
   const crow = c => `<button class="srow" data-c="${esc(c.hash)}" style="--c:${colorOf(c.project)}"><time>${md(c.t)}<small>${hm(c.t)}</small></time>
       <span class="b"><span class="ti"><i></i>${snip(c.subject, q) || esc(c.subject)}</span><span class="me">${esc(c.project)}${c.branch ? ` · ${esc(c.branch)}` : ""} · <span class="mono">${esc(c.hash.slice(0,7))}</span> · ${esc(plural(c.nFiles, "file"))} +${c.added} −${c.removed}</span>
       ${(() => { const f = (c.files || []).find(f => f.path.toLowerCase().includes(q)); return f ? `<span class="hit"><em>${esc(t("File"))}</em>${snip(f.path, q)}</span>` : ""; })()}</span></button>`;
-  const more = (id, shown, all) => all > shown ? `<button class="pill srmore" id="${id}">${esc(all - shown <= SR_STEP ? t("Show the last {n}", {n: all - shown}) : t("Show {n} more", {n: SR_STEP}))} <span class="muted">${esc(t("({shown} of {all} shown)", {shown, all}))}</span></button>` : "";
+  const more = (id, shown, all) => all > shown ? `<button class="pill srmore" id="${id}">${esc(all - shown <= SR_STEP ? t("Show the remaining {n}", {n: all - shown}) : t("Show {n} more", {n: SR_STEP}))} <span class="muted">${esc(t("({shown} of {all} shown)", {shown, all}))}</span></button>` : "";
   R.innerHTML = `<div class="rvhead"><h2 id="srh" tabindex="-1">${esc(t("Search results"))}</h2><p>${esc(META.scope ? t('Matches for "{q}" in this file, newest first.', {q}) : t('Matches for "{q}" (all time), newest first.', {q}))} ${esc(t("Sessions are matched on prompts, project, branch, agent, files changed by AI, pull requests and commits made during the session; commits on subject, body, hash and changed files. Click one to see its details; the calendar below moves to its week."))}</p>
       <button class="pill" id="sclear">${esc(t("Clear search"))}</button></div>
     <div class="rvgrid srgrid">
       <section class="panel">${panelH(null, esc(t("Sessions · {n}", {n: ss.length})))}
         ${ss.length ? ss.slice(0, nS).map(row).join("") + more("srmS", nS, ss.length) : noneH(esc(t("No matching sessions.")))}</section>
       <section class="panel">${panelH(null, esc(t("Commits · {n}", {n: cs.length})))}
-        ${cs.length ? cs.slice(0, nC).map(crow).join("") + more("srmC", nC, cs.length) : noneH(esc((META.git || []).length ? t("No matching commits.") : t("No git commits were loaded.")))}</section>
+        ${cs.length ? cs.slice(0, nC).map(crow).join("") + more("srmC", nC, cs.length) : noneH(esc((META.git || []).length ? t("No matching commits.") : t("No Git commits were loaded.")))}</section>
     </div>`;
   // もっと見る：足した最初の結果へフォーカスを移す（押したボタンは消えるので）
   const grow = (k, n, sel) => { const b = R.querySelector(sel === "s" ? "#srmS" : "#srmC"); if (!b) return;
@@ -253,14 +253,14 @@ function outcomePanel(w, pw, unit){
     statH(esc(t("Active time")), dur(w.active,true), V.diff(w.active, V.of("active", pw && pw.active), dur), "active", "active"),
     statH(esc(t("Prompts")), n(w.prompts), V.diff(w.prompts, V.of("prompts", pw && pw.prompts)), "prompts", "sessions"),
     u.tokens ? statH(esc(t("Estimated cost")), usdH(costOf(u)), costOf(u) == null ? esc(t("Models not in the price table")) : V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost", "cost") : "",
-    u.tokens ? statH(esc(t("Tokens")), tok(u.tokens), esc(t("Output {n}", {n: tok(u.out)})), "tokens", "tokens") : "",
+    u.tokens ? statH(esc(t("Tokens")), tok(u.tokens), esc(t("Output tokens {n}", {n: tok(u.out)})), "tokens", "tokens") : "",
     u.credits ? statH(esc(t("Kiro credits")), crN(u.credits), esc(t("As recorded in history")), "credits", "credits") : "",
   ].join("");
   const lines = gc ? gc.added + gc.removed : 0;
   const out = hasOut ? [
     gc ? statH(esc(t("Git commits")), times(gc.commits), `${esc(t("{n} by AI ({pct}%)", {n: gc.ai, pct: Math.round(gc.ai*100/gc.commits)}))}${pw && pw.git ? ` · ${V.diff(gc.commits, V.of("commits", pw.git.commits))}` : ""}`, "gitCommits", "commits") : "",
     gc ? "" : statH(esc(t("AI commits")), times(o.commits), d(o.commits, po && po.commits), "commits", o.commits ? "aiCommits" : ""), // Git のコミットがあれば「うち AI」に出ている
-    gc ? statH(esc(t("Lines changed")), n(lines), `+${n(gc.added)} −${n(gc.removed)} · ${esc(t("{n} per git commit", {n: n(Math.round(lines/gc.commits))}))}`, "lines", "lines") : "",
+    gc ? statH(esc(t("Lines changed")), n(lines), `+${n(gc.added)} −${n(gc.removed)} · ${esc(t("{n} per Git commit", {n: n(Math.round(lines/gc.commits))}))}`, "lines", "lines") : "",
     gc && G.files ? statH(esc(t("Files changed")), n(G.files), `${esc(t("In {projects}", {projects: plural(G.projects, "project")}))}${G.trunc ? ` · ${esc(t("at least"))}` : ""}`, "files", "files") : "",
     G.pushes ? statH(esc(t("Pushes")), times(G.pushes), esc(t("To {branches} · from this computer", {branches: plural(G.refs, "branch", "branches")})), "pushes", "pushes") : "",
     o.prs ? statH(esc(t("Pull requests")), times(o.prs), esc(t("Created by AI")), "prs", "prs") : "",
@@ -278,7 +278,7 @@ function outcomePanel(w, pw, unit){
     <div class="ocgrid">
       ${side("spent", esc(t("Cost")), esc(t("Time and usage")), `<div class="stats">${cost}</div>`)}
       <div class="ocarrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-      ${side("left", esc(t("Left behind")), outSub, out ? `<div class="stats">${out}</div>${gc ? "" : noneH(esc(t("Lines, files and pushes are counted from git commits, which were not read here.")))}` : noneH(esc(t("No commits recorded."))))}
+      ${side("left", esc(t("Left behind")), outSub, out ? `<div class="stats">${out}</div>${gc ? "" : noneH(esc(t("Lines, files and pushes are counted from Git commits, which were not read here.")))}` : noneH(esc(t("No commits recorded."))))}
     </div>
     ${cmp ? side("occmp", esc(t("Compared")), esc(t("Cost ÷ what it left behind")), `<div class="stats">${cmp}</div>`) : ""}</section>`;
 }
@@ -302,8 +302,8 @@ async function keepArchive(){
   try {
     const r = await fetch("archive", {method:"POST", headers:{"X-Kiroku":"1"}, cache:"no-store"}); if (!r.ok) throw new Error(r.status);
     applyData(await r.json()); render();
-    toast(t("Backed up to {dir}. kiroku adds to it each time you open it", {dir: (META.archive && META.archive.dir) || t("kiroku's folder")}), 6000);
-  } catch(e){ toast(t("Couldn't start the backup. Run kiroku archive on instead"), 4500); }
+    toast(t("Backed up to {dir}. kiroku adds new history to it each time it reads your history.", {dir: (META.archive && META.archive.dir) || t("kiroku's folder")}), 6000);
+  } catch(e){ toast(t("Couldn't start the backup. Run kiroku archive on instead."), 4500); }
 }
 function keepRow(r){ // 計測の状態に添える：どこまでさかのぼれるか、いつ消えるか
   const o = r.oldest ? dMDY(new Date(r.oldest*1000)) : "";
@@ -330,7 +330,7 @@ function keepRow(r){ // 計測の状態に添える：どこまでさかのぼ�
 // 気をつけること（読めないファイル・既定のままで消える履歴・料金表にないモデル・似た ID の料金を当てたモデル）があるときは、見出しに印を付けて開いておく
 function measure(w){
   const rows = META.report.map(r => { const dt = JA ? r.detail || r.detailEn : r.detailEn || r.detail; // Go の一言（日本語の Detail と英語の DetailEn）
-    return `<li class="${r.error?"warn":""}">${esc((r.name))}${AG_ABOUT[r.name] ? ` <span class="muted">— ${esc(t(AG_ABOUT[r.name]))}</span>` : ""}: ${esc(plural(r.n, "session"))}${dt?` (${esc(dt)})`:""}${r.dup?` (${esc(t("{n} found elsewhere not counted", {n: plural(r.dup, "duplicate conversation")}))})`:""}${r.error?` (${esc(t("some files couldn't be read"))})`:""}${keepRow(r)}</li>`; });
+    return `<li class="${r.error?"warn":""}">${esc((r.name))}${AG_ABOUT[r.name] ? ` <span class="muted">— ${esc(t(AG_ABOUT[r.name]))}</span>` : ""}: ${esc(plural(r.n, "session"))}${dt?` (${esc(dt)})`:""}${r.dup?` (${esc(t("{n} also found elsewhere, counted once", {n: plural(r.dup, "duplicate conversation")}))})`:""}${r.error?` (${esc(t("some files couldn't be read"))})`:""}${keepRow(r)}</li>`; });
   const a = META.archive; // kiroku archive
   if (a && (a.on || a.files)) rows.push(`<li>${esc(a.on ? t("kiroku's copy: on ({files}, {size})", {files: plural(a.files, "file"), size: bytes(a.bytes)})
       : t("kiroku's copy: off. Copies kept so far ({files}, {size}) are still shown", {files: plural(a.files, "file"), size: bytes(a.bytes)}))}<br><code>${esc(a.dir)}</code></li>`);
@@ -383,7 +383,7 @@ function aiUsage(w, pw, unit){
       ${pj && pj.credits != null ? statH(esc(t("Month-end credits (estimate)")), `≈ ${crN(pj.credits)}<small> ${esc(t("credits"))}</small>`, esc(t("If the pace of the first {n} days continues", {n: pj.days})), "projectionCr", "projectionCr") : ""}
       ${u.tokens ? statH(esc(t("Read from cache")), u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, esc(t("Share of input")), "cache", u.cacheHit == null ? "" : "cache") : ""}
       ${(() => { const {ws, we} = period(), N = !u.subagents && unrecorded(ws, we, "subagents"); return N ? norecStat(esc(t("Subagents")), N, "subagents") : statH(esc(t("Subagents")), `${u.subagents}`, esc(u.subagents ? t("Total run time {d}", {d: dur(u.subMin)}) : t("Not used")), "subagents", u.subagents ? "subagents" : ""); })()}
-      ${w.costPerAsk != null ? statH(esc(t("Estimated cost per prompt")), usdH(w.costPerAsk), `n=${w.costPrompts}`, "costPerAsk", "costPerAsk") : ""}
+      ${w.costPerAsk != null ? statH(esc(t("Estimated cost per prompt")), usdH(w.costPerAsk), esc(plural(w.costPrompts, "prompt")), "costPerAsk", "costPerAsk") : ""}
     </div>
     ${u.models.length ? `${secH(esc(byCost ? t("By model (estimated cost)") : t("By model (tokens)")), "models")}
       <div class="mstack">${u.models.map((r,i)=>`<span style="flex:${byCost?r[1]:r[2]};--o:${shade(i)}"${tipAttr((r[0]), t("Estimated cost {usd}", {usd: usd(r[1])}), t("Tokens {n}", {n: tok(r[2])}), `${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%`)}></span>`).join("")}</div>

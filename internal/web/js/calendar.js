@@ -14,7 +14,7 @@ function render(){
   const rel = relName(); // 今週・先週（今月・先月）なら、日付の上にそう書く（開いたときに、どの期間を見ているかわかるように）
   if (M){ $("#ry").textContent = `${st.month.getFullYear()} · ${rel || t("Month")}`; $("#rd").innerHTML = isJA() ? `${st.month.getFullYear()}年<span>${st.month.getMonth()+1}月</span>` : `${MONTH[st.month.getMonth()]} <span>${st.month.getFullYear()}</span>`; }
   else { $("#ry").textContent = `${st.week.getFullYear()} · ${t("Week {n}", {n: isoWeek(st.week)})}${rel ? ` · ${rel}` : ""}`; $("#rd").innerHTML = `${dMD(st.week)}<span> – </span>${dMD(end)}`; }
-  $("#today").textContent = META.scope ? (META.scope.mode === "month" ? t("Back to included month") : t("Back to included week")) : M ? t("This month") : t("This week");
+  $("#today").textContent = META.scope ? (META.scope.mode === "month" ? t("Back to this file's month") : t("Back to this file's week")) : M ? t("This month") : t("This week");
   [["#prev", -1], ["#next", 1]].forEach(([id, n]) => { const b = $(id), off = !canGo(n); // 先の週・ファイルの外へは押せない
     if (off && document.activeElement === b) $(n > 0 ? "#prev" : "#next").focus(); // 押せなくなるボタンにいたフォーカスは、隣のボタンへ
     b.disabled = off; });
@@ -41,7 +41,7 @@ function render(){
   if (!M){ $("#zin").onclick = () => zoom(1); $("#zout").onclick = () => zoom(-1); }
   // 検索・凡例で絞り込んでいるあいだ、絞り込めない合計（作業時間・トークンなど）は薄くして、そう断る
   const fn = $("#fnote"); fn.hidden = !filtering();
-  fn.textContent = `${st.q ? t("This view shows only sessions matching the search and their linked records.") : t("Hidden items are left out of this view.")} ${M ? t("Grey figures, at the top and in each day and week, are totals for all sessions; sessions and commits there count only what is shown.") : t("Grey figures, at the top and under each date, are totals for all sessions; sessions and commits there count only what is shown.")}`;
+  fn.textContent = `${st.q ? t("This view shows only sessions matching the search and their linked records.") : t("Hidden items are left out of this view.")} ${M ? t("Gray figures, at the top and in each day and week, are totals for all sessions; sessions and commits there count only what is shown.") : t("Gray figures, at the top and under each date, are totals for all sessions; sessions and commits there count only what is shown.")}`;
   $("#legend").hidden = !inRange.length; // 記録のない期間は、色分け・ズーム・件数を出さない（押しても何も変わらない）
   const cb2 = $("#cb2"); if (cb2) cb2.onchange = () => { st.colorBy = cb2.value; st.hidden.clear(); store.set("colorBy", st.colorBy); render(); };
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
@@ -97,10 +97,10 @@ function kpis(){
   if (!w){ K.innerHTML = `<div class="kpi"><div class="k">${esc(META.scope ? t("Not in this file") : shownName())}</div><div class="v">${esc(t("No records"))}</div></div>`; return; }
   // 押すと内訳のダイアログ（metric.js）。id のない数は押せない
   const kpi = (k, v, tt, cls, id) => { const tg = id ? "button" : "div";
-    return `<${tg} class="kpi${cls ? " " + cls : ""}"${id ? ` type="button" data-metric="${id}" aria-haspopup="dialog"` : ""}${tt || id ? ` title="${esc(tt ? (id ? t("{text}. Click for the breakdown", {text: tt}) : tt) : t("Click for the breakdown"))}"` : ""}><div class="k">${esc(k)}</div><div class="v">${v}</div></${tg}>`; };
+    return `<${tg} class="kpi${cls ? " " + cls : ""}"${id ? ` type="button" data-metric="${id}" aria-haspopup="dialog"` : ""}${tt || id ? ` title="${esc(tt ? (id ? t("{text}. Click for the breakdown.", {text: tt}) : tt) : t("Click for the breakdown"))}"` : ""}><div class="k">${esc(k)}</div><div class="v">${v}</div></${tg}>`; };
   const u = w.usage || {}, days = w.days.filter(d => d.active).length, pj = projection(w);
   const n0 = soFar(), nd = n0 == null ? w.days.length : Math.min(n0, w.days.length); // 途中の週・月は、まだ来ていない日を分母に入れない（今日までの日数）
-  const pace = pj ? t("Estimate: if the pace of the first {n} days continues", {n: pj.days}) : "";
+  const pace = pj ? t("If the pace of the first {n} days continues", {n: pj.days}) : "";
   // トークン・目安コスト・月末の見込み・クレジットは、いちばん大事な数なので先頭にまとめて目立たせる
   K.innerHTML = (u.tokens ? kpi(t("Tokens"), tok(u.tokens), "", "key", "tokens") + kpi(t("Estimated cost"), usdH(costOf(u)), costOf(u) == null ? NOPRICE : "", "key", "cost") : "") +
     (pj && pj.cost != null ? kpi(t("Month-end cost"), `<small>≈</small>${usdH(pj.cost)}`, pace, "key", "projection") : "") +
@@ -172,7 +172,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
   if (!inWeek.length || !shown.length){
     // 記録のない週は、ここで 1 度だけ「ない」と言い、記録のある最後の週へ行けるようにする（月は大文字のまま。toLowerCase で "jul 6" にしない）
     const last = !inWeek.length && !META.scope && DATA.length ? mondayOf(new Date(Math.max(...DATA.map(s => s.end))*1000)) : null, jump = last && last.getTime() !== st.week.getTime();
-    T.innerHTML = `<div class="empty"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><p>${esc(inWeek.length ? t("No sessions match the current filters") : META.scope ? t("This file has no records for this week.") : st.week.getTime() === mondayOf(today0()).getTime() ? t("No records this week.") : t("No records in the week of {date}.", {date: dMD(st.week)}))}</p>${jump ? `<p><button class="pill" id="tolast">${esc(t("Go to the latest week with records ({date})", {date: dMD(last)}))}</button></p>` : ""}</div>`;
+    T.innerHTML = `<div class="empty"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><p>${esc(inWeek.length ? t("No sessions match the current filters.") : META.scope ? t("This file has no records for this week.") : st.week.getTime() === mondayOf(today0()).getTime() ? t("No records this week.") : t("No records in the week of {date}.", {date: dMD(st.week)}))}</p>${jump ? `<p><button class="pill" id="tolast">${esc(t("Go to the latest week with records ({date})", {date: dMD(last)}))}</button></p>` : ""}</div>`;
     if (jump) $("#tolast").onclick = () => { st.week = last; st.sel = null; st.animate = true; render(); scrollToWork(); };
     return;
   }
@@ -188,7 +188,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
     const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${act || dayGit.length ? copyBtn(`<span class="dl">${esc(t("Report"))}</span>`, `data-d="${d}" aria-label="${esc(t("Copy daily report prompt for {date}", {date: md(ds)}))}" title="${esc(t("A prompt that asks an AI agent on this computer to write your daily report for {date}", {date: md(ds)}))}"`, "pill fill dayrpt") : ""}${act || dayGit.length ? (aiRun() ? `<button class="pill dayrun ai-action" data-d="${d}" type="button" aria-label="${esc(t("Run with AI: daily report for {date}", {date: md(ds)}))}">${esc(t("Run with AI"))}</button>` : `<button class="pill ai-off dayrun-demo ai-demo-info" type="button" aria-label="${esc(t("Run with AI is off: {why}", {why: AI_OFF_WHY()}))}" title="${esc(AI_OFF_WHY())}">${esc(t("AI off"))}</button>`) : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`;
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${act || dayGit.length ? copyBtn(`<span class="dl">${esc(t("Report"))}</span>`, `data-d="${d}" aria-label="${esc(t("Copy daily report prompt for {date}", {date: md(ds)}))}" title="${esc(t("A prompt that asks an AI agent on this computer to write your daily report for {date}", {date: md(ds)}))}"`, "pill fill dayrpt") : ""}${act || dayGit.length ? (aiRun() ? `<button class="pill dayrun ai-action" data-d="${d}" type="button" aria-label="${esc(t("Run with AI: daily report for {date}", {date: md(ds)}))}">${esc(t("Run with AI"))}</button>` : `<button class="pill ai-off dayrun-demo ai-demo-info" type="button" aria-label="${esc(t("Run with AI is off: {why}", {why: AI_OFF_WHY()}))}" title="${esc(AI_OFF_WHY())}">${esc(t("AI (off)"))}</button>`) : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`;
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
@@ -242,7 +242,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
   T.querySelectorAll(".lim").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); });
   bindGitEvents(T);
   T.querySelectorAll(".dayrpt").forEach(b => b.onclick = e => { e.stopPropagation(); // 日報のプロンプト（週報と同じ作り。その日の分だけ）
-    copy(reportPrompt(null, false, addDays(st.week, +b.dataset.d)), t("Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending"), 8000, b); });
+    copy(reportPrompt(null, false, addDays(st.week, +b.dataset.d)), t("Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending."), 8000, b); });
   T.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = e => { e.stopPropagation(); showLocalAIInfo(); });
   T.querySelectorAll(".dayrun").forEach(b => b.onclick = e => { e.stopPropagation(); runAIReview(b, reportPrompt(null, false, addDays(st.week, +b.dataset.d)), t("Daily report")); });
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });
@@ -300,12 +300,12 @@ function journeyGrid(sessions, ws, we){
     if (!groups.has(name)) groups.set(name, []);
     groups.get(name).push(s);
   });
-  if (!groups.size){ root.innerHTML = '<div class="journey-empty">'+esc(t("No matching project activity in this period."))+'</div>'; return; }
+  if (!groups.size){ root.innerHTML = '<div class="journey-empty">'+esc(t("No matching sessions in this period."))+'</div>'; return; }
   const ordered = [...groups].sort((a,b) => b[1].length-a[1].length || a[0].localeCompare(b[0]));
   const shownCommits = gitShown(sessions);
   const dayBounds = Array.from({length:days},(_,i)=>addDays(start,i).getTime()/1000);
   dayBounds.push(addDays(start,days).getTime()/1000);
-  root.innerHTML = '<div class="journey"><div class="journey-legend" aria-label="'+esc(t("Journey marker legend"))+'"><span><i class="journey-legend-session"></i> '+esc(t("Session"))+'</span><span><i class="journey-legend-commit">◆</i> '+esc(t("Git commit"))+'</span><span><i class="journey-legend-pr">PR</i> '+esc(t("Pull request"))+'</span><small>'+esc(t("Recorded events only; not proof of progress or completion."))+'</small></div><div class="journey-axis"><span>'+esc(t("Project"))+'</span><div class="journey-days">' +
+  root.innerHTML = '<div class="journey"><div class="journey-legend" aria-label="'+esc(t("Journey marker legend"))+'"><span><i class="journey-legend-session"></i> '+esc(t("Session"))+'</span><span><i class="journey-legend-commit">◆</i> '+esc(t("Git commit"))+'</span><span><i class="journey-legend-pr">PR</i> '+esc(t("Pull request"))+'</span><small>'+esc(t("Recorded activity only. It doesn't show progress, completion or value."))+'</small></div><div class="journey-axis"><span>'+esc(t("Project"))+'</span><div class="journey-days">' +
     Array.from({length:days},(_,i)=>{ const d = addDays(new Date(ws*1000),i); return '<span>'+esc(isJA() && days > 7 ? `${d.getDate()}日` : dMD(d))+'</span>'; }).join("") +
     '</div></div>' + ordered.map(([name,items]) => {
       const byDay = Array.from({length:days},()=>[]);
@@ -333,8 +333,8 @@ function journeyGrid(sessions, ws, we){
       const first = orderedItems[0];
       const activity = plural(uniqueDays, "active day") + " · " + plural(items.length, "session");
       const lastEnd = items.reduce((latest,item)=>Math.max(latest,item.end),ws);
-      const span = first ? dMD(new Date(Math.max(ws, first.start)*1000)) + " → " + dMD(new Date(Math.min(we-1,lastEnd)*1000)) : "";
-      return '<div class="journey-row"><div class="journey-name" title="'+esc(projName(name, items))+'">'+esc(projName(name, items))+'<small title="'+esc(t("Observed sessions only; not a measure of progress"))+'">'+esc(activity)+'</small><small>'+esc(span)+'</small></div><div class="journey-days">' +
+      const span = first ? dSpan(new Date(Math.max(ws, first.start)*1000), new Date(Math.min(we-1,lastEnd)*1000)) : "";
+      return '<div class="journey-row"><div class="journey-name" title="'+esc(projName(name, items))+'">'+esc(projName(name, items))+'<small title="'+esc(t("Recorded activity only. It doesn't show progress, completion or value."))+'">'+esc(activity)+'</small><small>'+esc(span)+'</small></div><div class="journey-days">' +
         byDay.map((day,i) => '<div class="journey-cell">'+day.slice(0,4).map(s =>
           '<button class="journey-dot" style="--c:'+colorOf(keyOf(s))+'" data-session="'+esc(s.id)+'" title="'+esc((s.title||s.project||t("Session"))+' · '+s.source)+'" aria-label="'+esc((s.title||t("Session"))+' · '+s.source)+'"></button>'
         ).join("")+(day.length>4?'<span class="journey-more">+'+(day.length-4)+'</span>':"")+commitsByDay[i].slice(0,3).map(c => '<button class="journey-dot journey-commit" data-git="'+esc(c.hash)+'" title="'+esc(t("Commit · {subject}", {subject: c.subject}))+'" aria-label="'+esc(t("Commit · {subject}", {subject: c.subject}))+'" style="--c:var(--ink-3)">◆</button>').join("")+(commitsByDay[i].length>3?'<span class="journey-more">'+esc(t("+{n} commits", {n: commitsByDay[i].length-3}))+'</span>':"")+prsByDay[i].slice(0,2).map(({session,pr}) => '<button class="journey-dot journey-pr" data-pr="'+esc(prKey(session,pr))+'" title="'+esc(t("Recorded pull request")+(pr.url?" · "+pr.url:""))+'" aria-label="'+esc(t("Recorded pull request"))+'" style="--c:var(--ink-3)">PR</button>').join("")+(prsByDay[i].length>2?'<span class="journey-more">'+esc(t("+{n} PRs", {n: prsByDay[i].length-2}))+'</span>':"")+'</div>').join("")+'</div></div>';
@@ -359,9 +359,9 @@ function projectGrid(sessions, ws, we){
     if (!groups.has(name)) groups.set(name, []);
     groups.get(name).push(s);
   });
-  if (!groups.size){ root.innerHTML = '<div class="journey-empty">'+esc(t("No matching projects in this period."))+'</div>'; return; }
+  if (!groups.size){ root.innerHTML = '<div class="journey-empty">'+esc(t("No matching sessions in this period."))+'</div>'; return; }
   const rows = [...groups].sort((a,b)=>b[1].length-a[1].length || a[0].localeCompare(b[0]));
-  root.innerHTML = '<div class="project-view"><p class="project-note">'+esc(t("Observed activity in the selected period. Commits and recorded PR creation are not measures of completion or business impact."))+'</p>' +
+  root.innerHTML = '<div class="project-view"><p class="project-note">'+esc(t("Recorded activity only. It doesn't show progress, completion or value."))+'</p>' +
     rows.map(([name,items])=>{
       const commits = commitsByProject.get(name) || [];
       const prs = items.flatMap(s=>(s.prAt || []).filter(pr=>typeof pr.t === "number" && pr.t >= ws && pr.t < we).map(pr=>({s,pr})));
@@ -382,11 +382,11 @@ function projectGrid(sessions, ws, we){
       const sessionsList = items.slice().sort((a,b)=>b.start-a.start);
       const commitsList = commits.slice().sort((a,b)=>b.t-a.t);
       const prsList = prs.slice().sort((a,b)=>b.pr.t-a.pr.t);
-      return '<section class="project-card"><h3>'+esc(projName(name, items))+'</h3><p class="project-meta">'+plural(items.length,"session")+' · '+plural(commits.length,"Git commit")+' · '+plural(prs.length,"recorded PR")+' · '+esc(dMD(new Date(first*1000)))+' → '+esc(dMD(new Date(last*1000)))+'</p>'+agentSummary+
+      return '<section class="project-card"><h3>'+esc(projName(name, items))+'</h3><p class="project-meta">'+plural(items.length,"session")+' · '+plural(commits.length,"Git commit")+' · '+plural(prs.length,"recorded PR")+' · '+esc(dSpan(new Date(first*1000), new Date(last*1000)))+'</p>'+agentSummary+
         '<div class="project-events">'+
         eventList(t("Sessions"),n=>t("Show {n} more sessions",{n}),sessionsList,5,s=>'<button data-session="'+esc(s.id)+'">'+esc(s.title||s.project||t("Session"))+' · '+esc(s.source)+'</button>')+
-        eventList(t("Git commits"),n=>t("Show {n} more git commits",{n}),commitsList,3,c=>'<button data-git="'+esc(c.hash)+'">'+esc(c.subject||c.hash)+'</button>')+
-        eventList(t("Recorded PRs"),n=>t("Show {n} more recorded prs",{n}),prsList,3,({s,pr})=>'<button data-pr="'+esc(prKey(s,pr))+'">'+esc(pr.url||t("Pull request"))+'</button>')+
+        eventList(t("Git commits"),n=>t("Show {n} more Git commits",{n}),commitsList,3,c=>'<button data-git="'+esc(c.hash)+'">'+esc(c.subject||c.hash)+'</button>')+
+        eventList(t("Recorded PRs"),n=>t("Show {n} more PRs",{n}),prsList,3,({s,pr})=>'<button data-pr="'+esc(prKey(s,pr))+'">'+esc(pr.url||t("Pull request"))+'</button>')+
         '</div></section>';
     }).join("")+'</div>';
   root.querySelectorAll("[data-session]").forEach(b=>b.onclick=()=>select(b.dataset.session));

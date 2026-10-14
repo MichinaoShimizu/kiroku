@@ -114,12 +114,12 @@ function findList(w, pw, unit){
     const hl = (rs, hs) => hs.slice(-3).map(h => h.r ? fillEn(rs, {time: `${md(h.t)} ${hm(h.t)}`, r: h.r}) : `${md(h.t)} ${hm(h.t)}`).join(LSEP()) + (hs.length > 3 ? LSEP() + "…" : "");
     // 英語の文（週報のプロンプトにも入る）は、日付と解除時刻も英語のまま
     const v = [{n: LH.length, list: inEnglish(() => hl("{time} (resets {r})", limitHits(ws, we)))}, {list: hl(t("{time} (resets {r})"), LH)}];
-    add("limits", 40, LH.length === 1 ? tx("Hit the usage limit once ({list})", ...v) : tx("Hit the usage limit {n} times ({list})", ...v), tx("Hitting a limit stops your work until it resets. The cause is often in how you worked just before"), tx("1 or more"), [...new Set(LH.map(h => h.s.id))].reverse(), LH.length === 1 ? tx("you hit the usage limit once {period}") : tx("you hit the usage limit {n} times {period}", {n: LH.length}));
+    add("limits", 40, LH.length === 1 ? tx("Hit the usage limit once ({list})", ...v) : tx("Hit the usage limit {n} times ({list})", ...v), tx("Hitting a limit stops your work until it resets. The cause is often in how you worked just before"), tx("1+ hit"), [...new Set(LH.map(h => h.s.id))].reverse(), LH.length === 1 ? tx("you hit the usage limit once {period}") : tx("you hit the usage limit {n} times {period}", {n: LH.length}));
   }
   if (w.fixRate != null && w.prompts >= 10 && w.fixRate >= 20)
     add("fix", w.fixRate, tx("{pct}% of prompts had corrections or interruptions", {pct: w.fixRate}), tx("When a first prompt misses, redoing it costs time and tokens"), tx("20% or more, with 10+ prompts"), w.friction.map(f => f.id), tx("{pct}% of {n} prompts {period} had corrections or interruptions", {pct: w.fixRate, n: w.prompts}));
   else if (w.friction.length)
-    add("friction", 18, tx("{sessions} with possible friction", ...ses(w.friction.length)), tx("Rework is concentrated in a few sessions. Opening them usually hints at the cause"), tx("Many corrections, interruptions or 15+ prompts"), w.friction.map(f => f.id), tx("{sessions} {period} crossed the threshold", ...ses(w.friction.length)));
+    add("friction", 18, tx("{sessions} with possible friction", ...ses(w.friction.length)), tx("Rework is concentrated in a few sessions. Opening them usually hints at the cause"), tx("A session with 1+ correction or interruption, or 15+ prompts"), w.friction.map(f => f.id), tx("{sessions} {period} crossed the threshold", ...ses(w.friction.length)));
   const LC = longCtxOf(ws, we);
   if (LC.length){
     const [a, b] = ses(LC.length);
@@ -133,9 +133,9 @@ function findList(w, pw, unit){
     add("heavy", 30 + Math.round(idleC*50/u.cost), tx("{pct}% of estimated cost ({cost}) went to sessions with no commit or pull request", {pct: Math.round(idleC*100/u.cost), cost: usd(idleC)}), tx("Fine for research or discussion. If they stopped partway, it's worth finding out why"), tx("Sessions of $1+ total 40%+ of all cost ($2+)"), idle.map(s => s.id), tx("such sessions took {pct}% of estimated cost {period}", {pct: Math.round(idleC*100/u.cost)}));
   const pc = V.of("cost", pw && pw.usage && pw.usage.cost); // 途中の期間は、前の期間の同じ日までと比べる
   if (pc != null && pc >= 1 && u.cost >= pc * 1.5)
-    add("cost", 25, tx("Estimated cost was {x}× {prev} ({from} → {to})", {x: (u.cost/pc).toFixed(1), from: usd(pc), to: usd(u.cost)}), tx("What it means depends on which projects and sessions the increase came from"), tx("1.5× {last} or more"), null, tx("estimated cost was {x}× {prev}", {x: (u.cost/pc).toFixed(1)}));
+    add("cost", 25, tx("Estimated cost was {x}× that of {prev} ({from} → {to})", {x: (u.cost/pc).toFixed(1), from: usd(pc), to: usd(u.cost)}), tx("What it means depends on which projects and sessions the increase came from"), tx("1.5× {last} or more"), null, tx("estimated cost was {x}× that of {prev}", {x: (u.cost/pc).toFixed(1)}));
   if (pw && pw.costPerCommit != null && w.costPerCommit != null && o.commits >= 3 && w.costPerCommit >= pw.costPerCommit * 1.5)
-    add("costPerCommit", 22, tx("Estimated cost per commit rose from {from} to {to}", {from: usd(pw.costPerCommit), to: usd(w.costPerCommit)}), tx("Reaching a checkpoint is getting heavier than before"), tx("1.5× {last} or more, with 3+ commits"), null, tx("it was {x}× {last}", {x: (w.costPerCommit/pw.costPerCommit).toFixed(1)}));
+    add("costPerCommit", 22, tx("Estimated cost per commit rose from {from} to {to}", {from: usd(pw.costPerCommit), to: usd(w.costPerCommit)}), tx("Each commit is costing more than before"), tx("1.5× {last} or more, with 3+ commits"), null, tx("it was {x}× {last}", {x: (w.costPerCommit/pw.costPerCommit).toFixed(1)}));
   if (u.cacheHit != null && u.tokens >= 1e6 && u.cacheHit < 0.5)
     add("cache", 20, tx("Only {pct}% of input was read from cache", {pct: Math.round(u.cacheHit*100)}), tx("You may be re-sending the same context every time"), tx("Under 50%, with 1M+ tokens"), null, tx("{pct}% of input {period} was read from cache", {pct: Math.round(u.cacheHit*100)}));
   if ((w.outBase ?? w.sessions) >= 5 && (o.commits || o.prs || (w.git && w.git.commits)) && w.outSessions / (w.outBase ?? w.sessions) < 0.25)
@@ -183,7 +183,7 @@ function openWorth(id, from){
 function placeFlags(R, F){ // 基準を超えた指標の名前の横に、小さな印だけを付ける（押すと「Worth a look」と同じダイアログ。中身はダイアログにだけ出し、サマリーで繰り返さない）
   [...new Set(F.map(f => GOTO[f.k] || f.k))].forEach(id => {
     const hb = R.querySelector(`.panel .hb[data-help="${id}"]`); if (!hb) return;
-    hb.insertAdjacentHTML("beforebegin", `<button class="fmark" data-goto="${id}" aria-haspopup="dialog" aria-label="${esc(t("Worth a look: {name}", {name: H()[id].n}))}" title="${esc(t("Crossed a threshold. Press to see why"))}">${ico("flag", "fdot")}</button>`);
+    hb.insertAdjacentHTML("beforebegin", `<button class="fmark" data-goto="${id}" aria-haspopup="dialog" aria-label="${esc(t("Worth a look: {name}", {name: H()[id].n}))}" title="${esc(t("Crossed a threshold. Click to see why."))}">${ico("flag", "fdot")}</button>`);
     const dt = hb.closest("details"); // 閉じた折りたたみの中の印は、見出しにも出す（開かずに、中に印があるとわかるように）
     if (dt){ const sm = dt.querySelector("summary"); if (!sm.querySelector(".fdot")) sm.insertAdjacentHTML("beforeend", `<span title="${esc(t("A metric crossed a threshold"))}">${ico("flag", "fdot")}</span>`); }
   });

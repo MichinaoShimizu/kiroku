@@ -2,7 +2,7 @@
 const AI_SENDS = "The agent you choose may send the prompt and the history it reads to its provider.";
 const AI_AGENTS = [["claude", "claude (Claude Code)"], ["codex", "codex (Codex)"], ["kiro", "kiro-cli (Kiro CLI)"]];
 // Why "Run with AI" is off here (button tooltips and the dialog)
-const AI_OFF_WHY = () => LIVE ? t("This kiroku serve was started without --ai. Start it with kiroku serve --ai to run prompts with an agent") : t("A saved HTML file never runs an AI agent. Run kiroku serve --ai on your computer to run prompts with an agent");
+const AI_OFF_WHY = () => LIVE ? t("This kiroku serve was started without --ai. Start it with kiroku serve --ai to run prompts with an agent.") : t("A saved HTML file never runs an AI agent. Run kiroku serve --ai on your computer to run prompts with an agent.");
 // AI_SEP は、続けて出す 2 つの文の間（日本語では空けない）
 const AI_SEP = () => JA ? "" : " ";
 async function runAIReview(button, prompt, title) {
@@ -23,7 +23,7 @@ async function runAIReview(button, prompt, title) {
   preview.style.cssText = "display:block;width:100%;height:220px;margin:12px 0;font:12px monospace";
   const status = document.createElement("p"); status.setAttribute("role", "status");
   const output = document.createElement("textarea"); output.readOnly = true;
-  output.setAttribute("aria-label", t("AI review result"));
+  output.setAttribute("aria-label", t("Result"));
   output.style.cssText = "display:none;width:100%;height:250px;margin:12px 0;font:13px monospace";
   const start = document.createElement("button"); start.type = "button"; start.className = "pill ai-action"; start.textContent = t("Run");
   const cancel = document.createElement("button"); cancel.type = "button"; cancel.className = "pill"; cancel.textContent = t("Close");
@@ -43,7 +43,7 @@ async function runAIReview(button, prompt, title) {
   start.onclick = async () => {
     controller = new AbortController();
     start.disabled = true; agent.disabled = true; output.style.display = "none"; copyResult.hidden = true;
-    cancel.textContent = t("Cancel execution");
+    cancel.textContent = t("Cancel");
     status.textContent = t("Running {agent}…", {agent: agent.value});
     try {
       const response = await fetch("ai/run", {method:"POST", headers:{"Content-Type":"application/json","X-Kiroku":"1"}, body:JSON.stringify({agent:agent.value,prompt:preview.value,consent:true}),signal:controller.signal});

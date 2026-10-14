@@ -35,7 +35,7 @@ function openGuide(){
     <h3 class="gh">${esc(t("The four levers"))}</h3>
     ${GUIDE.levers.map((l, i) => `<section class="glever"><h4><span class="mgnum" aria-hidden="true">${GNUM[i]}</span>${esc(t(l.n))}${tag(l)}</h4><p>${esc(t(l.m))}</p><dl class="grows">${rows(l.ids)}</dl></section>`).join("")}
     <h3 class="gh">${esc(t("Making a change"))}</h3>
-    <ol class="gsteps"><li><b>${esc(t("Open Worth a look"))}</b>${esc(t("Metrics that crossed a threshold, in priority order"))}</li><li><b>${esc(t("Open the sessions"))}</b>${esc(t("See where the time and usage went"))}</li><li><b>${esc(t("Try one change"))}</b>${esc(t("Follow \"What to try\" in the metric's \"?\""))}</li><li><b>${esc(t("Check the same metric"))}</b>${esc(t("Next week or month, in its 8-week or 8-month trend"))}</li></ol>
+    <ol class="gsteps"><li><b>${esc(t("Open \"Worth a look\""))}</b>${esc(t("Metrics that crossed a threshold, in priority order"))}</li><li><b>${esc(t("Open the sessions"))}</b>${esc(t("See where the time and usage went"))}</li><li><b>${esc(t("Try one change"))}</b>${esc(t("Follow \"What to try\" in the metric's \"?\""))}</li><li><b>${esc(t("Check the same metric"))}</b>${esc(t("Next week or month, in its 8-week or 8-month trend"))}</li></ol>
     <p class="gnote">${esc(t("To dig in: {list}.", {list: GUIDE.dig.filter(h).map(id => h(id).n).join(JA ? "、" : ", ")}))}</p>
     <h3 class="gh">${esc(t("What this doesn't tell you"))}</h3>
     <dl class="grows gnot">

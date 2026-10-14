@@ -91,8 +91,8 @@ const MB = {
     const cs = gitIn(ws, we).sort((a,b) => b.t - a.t), g = w.git || {}; if (!cs.length) return null;
     const ag = cs.filter(c => c.ai).map(c => (DATA.find(s => s.id === c.session) || {}).source || t("Unknown agent"));
     return {big: `${g.commits || cs.length}`, body: mDays(w, BRK.commits) + mBars("By project", pjRows(countBy(cs, c => c.project)), cnt) +
-      mBars("Who made them", [{name: t("By AI"), c: "var(--acc)", v: cs.filter(c => c.ai).length}, {name: t("Not by AI"), c: "var(--other)", v: cs.filter(c => !c.ai).length}], cnt) +
-      mBars("Run by AI, by agent", agRows(countBy(ag, x => x)), cnt) +
+      mBars("By AI or by hand", [{name: t("By AI"), c: "var(--acc)", v: cs.filter(c => c.ai).length}, {name: t("By hand (or another tool)"), c: "var(--other)", v: cs.filter(c => !c.ai).length}], cnt) +
+      mBars("AI commits by agent", agRows(countBy(ag, x => x)), cnt) +
       mList("Commits", cs.map(gitRow), 15)}; },
   aiCommits(w, {inRange}){ // git を読めなかったときの AI のコミット（履歴の outputs）
     const xs = inRange.filter(s => s.outputs && s.outputs.commits > 0);
@@ -108,7 +108,7 @@ const MB = {
     by.forEach(x => pj.set(x.project, (pj.get(x.project) || 0) + 1)); if (!by.size) return null;
     const dup = new Set(countBy([...by.values()], x => x.name).filter(([, v]) => v > 1).map(([k]) => k)); // 同じパスがほかのプロジェクトにもあれば、プロジェクト名を添える
     const trunc = cs.some(c => (c.files || []).length < c.nFiles);
-    return {big: commas(by.size), body: mBars("By project (different files)", pjRows([...pj]), cnt) +
+    return {big: commas(by.size), body: mBars("Files by project", pjRows([...pj]), cnt) +
       mBars("Changed most often", [...by.values()].filter(x => x.v > 1).map(x => ({...x, name: dup.has(x.name) ? `${x.project}: ${x.name}` : x.name, c: projColor(x.project)})), {f: v => plural(v, "commit")}, false) +
       (trunc ? `<p class="note">${esc(t("Some commits changed more than 40 files; kiroku keeps the first 40 of each, so this is at least the number shown."))}</p>` : "")}; },
   pushes(w, {ws, we}){ const ps = (META.push || []).filter(p => p.t >= ws && p.t < we).sort((a,b) => b.t - a.t); if (!ps.length) return null;
@@ -124,7 +124,7 @@ const MB = {
     const xs = inRange.filter(s => s.outputs && (s.outputs.commits || s.outputs.prs)).sort((a,b) => b.start - a.start);
     const what = s => [s.outputs.commits ? plural(s.outputs.commits, "commit") : "", s.outputs.prs ? plural(s.outputs.prs, "PR") : ""].filter(Boolean).join(" · ");
     return {big: `${Math.round(w.outSessions*100/base)}<small>%</small>`, body: calcH([["Reached a commit or PR", `${w.outSessions}`], "÷", ["Claude Code sessions", `${base}`]]) +
-      mBars("By project", pjRows(countBy(xs, s => s.project)), cnt) + mList("Sessions that reached one", xs.map(s => sesCardH(s, sesMeta(s), what(s))), 10)}; },
+      mBars("By project", pjRows(countBy(xs, s => s.project)), cnt) + mList("Sessions that reached a commit or PR", xs.map(s => sesCardH(s, sesMeta(s), what(s))), 10)}; },
   focus(w){ if (!w.focus.length) return null; const {ws, we} = period(), ses = DATA.filter(s => inP(s, ws, we));
     const main = b => { const a = b.t, e = b.t + b.min*60; let best = null, bv = 0; // その時間にいちばん長く動いていた、同じプロジェクトのセッション
       ses.forEach(s => { if (s.project !== b.project) return; const v = s.segs.reduce((t, [x, y]) => t + Math.max(0, Math.min(y, e) - Math.max(x, a)), 0); if (v > bv){ bv = v; best = s; } }); return best; };
@@ -137,11 +137,11 @@ const MB = {
     const why = s => [s.corrections ? plural(s.corrections, "correction") : "", s.interrupts ? plural(s.interrupts, "interruption") : ""].filter(Boolean).join(" · ");
     return {big: w.fixRate == null ? "—" : `${w.fixRate}<small>%</small>`, body: `<p class="note">${esc(t(w.prompts === 1 ? (st.mode === "month" ? "Of {n} prompt in this month." : "Of {n} prompt in this week.") : (st.mode === "month" ? "Of {n} prompts in this month." : "Of {n} prompts in this week."), {n: w.prompts}))}</p>` +
       mBars("By agent", agRows(sumBy(xs, s => s.source, n)), cnt) + mBars("By project", pjRows(sumBy(xs, s => s.project, n)), cnt) +
-      mList("Sessions with the most", xs.sort((a,b) => n(b) - n(a)).map(s => sesCardH(s, `${sesMeta(s)} · ${plural(s.nPrompts, "prompt")}`, why(s))), 8) + (xs.length ? WHOLE() : "")}; },
+      mList("Sessions with the most corrections or interruptions", xs.sort((a,b) => n(b) - n(a)).map(s => sesCardH(s, `${sesMeta(s)} · ${plural(s.nPrompts, "prompt")}`, why(s))), 8) + (xs.length ? WHOLE() : "")}; },
   bigPrompts(w, {ws, we}){ const xs = DATA.flatMap(s => s.prompts.filter(p => p.t >= ws && p.t < we && plen(p) >= BIG_PROMPT).map(p => ({s, p})));
     if (!xs.length) return null;
     return {big: `${xs.length}`, body: mBars("By project", pjRows(countBy(xs, x => x.s.project)), cnt) +
-      mList("Longest first", xs.sort((a,b) => plen(b.p) - plen(a.p)).map(({s, p}) => sesCardH(s, `${md(p.t)} ${hm(p.t)} · ${esc(s.project)} · ${esc(snipOf(p.text, 60))}`, t("{n} chars", {n: commas(plen(p))}))), 10)}; },
+      mList("Longest prompts", xs.sort((a,b) => plen(b.p) - plen(a.p)).map(({s, p}) => sesCardH(s, `${md(p.t)} ${hm(p.t)} · ${esc(s.project)} · ${esc(snipOf(p.text, 60))}`, t("{n} chars", {n: commas(plen(p))}))), 10)}; },
   switches(w){ const act = w.days.filter(d => d.active), sum = act.reduce((t, d) => t + d.switches, 0);
     return {big: `${w.switchesAvg}`, body: calcH([["Switches", `${sum}`], "÷", ["Days with activity", `${act.length}`], "=", ["Per day", `${w.switchesAvg}`]]) +
       mDays(w, {v: d => d.switches, f: v => plural(v, "switch", "switches")})}; },
@@ -171,12 +171,12 @@ const MB = {
     const xs = inRange.map(s => [s, use(s)]).filter(([, x]) => x.all > 0), pc = {f: v => `${Math.round(v)}%`};
     const by = f => { const g = new Map(); xs.forEach(([s, x]) => { const k = f(s), y = g.get(k) || {cr: 0, all: 0}; g.set(k, {cr: y.cr + x.cr, all: y.all + x.all}); }); return [...g].map(([k, y]) => [k, y.cr*100/y.all]); };
     return {big: `${Math.round(u.cacheHit*100)}<small>%</small>`, body: mBars("By agent", agRows(by(s => s.source)), pc, false) + mBars("By project", pjRows(by(s => s.project)), pc, false) +
-      mSessions("Sessions with the most input", xs.sort((p,q) => q[1].all - p[1].all).slice(0, 5), x => t("{pc}% of {tok}", {pc: Math.round(x.cr*100/x.all), tok: tok(x.all)})) + (xs.length ? WHOLE() : "")}; },
+      mSessions("Sessions with the most input", xs.sort((p,q) => q[1].all - p[1].all).slice(0, 5), x => t("{pc}% of {tok} tokens from cache", {pc: Math.round(x.cr*100/x.all), tok: tok(x.all)})) + (xs.length ? WHOLE() : "")}; },
   subagents(w, {ws, we, inRange}){ const u = w.usage || {}; if (!u.subagents) return null;
     const n = s => (s.subagents || []).filter(a => a.start >= ws && a.start < we).length, xs = inRange.filter(s => n(s) > 0);
     return {big: `${u.subagents}`, body: `<p class="note">${esc(t("Total run time {d}", {d: dur(u.subMin)}))}</p>` + mBars("By type", (u.subTypes || []).map(([k, v]) => ({name: k, c: "var(--acc)", v})), cnt) +
       mBars("By agent", agRows(sumBy(xs, s => s.source, n)), cnt) + mBars("By project", pjRows(sumBy(xs, s => s.project, n)), cnt) +
-      mSessions("Sessions with the most", xs.map(s => [s, n(s)]).sort((a,b) => b[1] - a[1]).slice(0, 5), v => plural(v, "subagent"))}; },
+      mSessions("Sessions with the most subagents", xs.map(s => [s, n(s)]).sort((a,b) => b[1] - a[1]).slice(0, 5), v => plural(v, "subagent"))}; },
   costPerAsk(w, {ws, we, inRange}){ const u = w.usage || {}; if (w.costPerAsk == null) return null;
     const tk = inRange.filter(s => sesTok(s) > 0), np = s => s.prompts.filter(p => p.t >= ws && p.t < we).length; // トークンを記録するセッションの、期間の中のプロンプト（Go と同じ分母）
     const rate = (costs, f) => { const P = new Map(sumBy(tk, f, np)); return costs.filter(([k, c]) => c > 0 && P.get(k) > 0).map(([k, c]) => [k, c / P.get(k)]); };
@@ -218,14 +218,14 @@ function openMetric(id, from){
       if (m.model) body += mBars("By model", (u.models || []).map(r => ({name: r[0], c: "var(--acc)", v: r[m.model] || 0})), m);
     }
     if (m.ses){ const top = inRange.map(s => [s, m.ses(s) || 0]).filter(x => x[1] > 0).sort((a,b) => b[1] - a[1]).slice(0, 5);
-      body += mSessions(id === "active" ? "Longest sessions" : id === "sessions" ? "Sessions with the most prompts" : "Top sessions", top, m.f);
+      body += mSessions(id === "active" ? "Longest sessions" : id === "sessions" ? "Sessions with the most prompts" : id === "tokens" ? "Sessions with the most tokens" : id === "cost" ? "Sessions with the highest estimated cost" : "Sessions with the most credits", top, m.f);
       if (top.length && id !== "active") body += WHOLE(); }
   }
   // 英語は「. 」と大文字の前で、日本語（HELP の訳）は最初の「。」の後ろで切る
   const [d1, dr] = !h ? ["", ""] : JA && h.d.includes("。") ? (i => [h.d.slice(0, i + 1), h.d.slice(i + 1)])(h.d.indexOf("。")) : (i => i < 0 ? [h.d, ""] : [h.d.slice(0, i), h.d.slice(i + 2)])(h.d.search(/\. (?=[A-Z])/));
   D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" aria-label="${esc(t("Close"))}"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form>
     <div class="eyebrow">${esc(t("Breakdown"))} · ${st.mode === "month" ? dMY(st.month) : dSpan(st.week, addDays(st.week, 6))}</div><h2 id="mdh">${esc(t(m.n))}</h2><div class="mbig">${big}</div>${h ? `<p class="mdef" id="mdd">${esc(d1)}</p>` : ""}${body}
-    ${h ? `<div class="mnot">${dr ? `<p>${esc(dr)}</p>` : ""}<p><b>${esc(t("Doesn't tell you:"))}</b> ${esc(h.x)}</p></div>` : ""}`; // 定義の 1 文目は数字のすぐ下に（読む前に何を数えたかがわかる）、細則と言えないことは読み終えたあとに
+    ${h ? `<div class="mnot">${dr ? `<p>${esc(dr)}</p>` : ""}<p><b>${esc(t("Doesn't tell you"))}:</b> ${esc(h.x)}</p></div>` : ""}`; // 定義の 1 文目は数字のすぐ下に（読む前に何を数えたかがわかる）、細則と言えないことは読み終えたあとに
   if (h) D.setAttribute("aria-describedby", "mdd"); else D.removeAttribute("aria-describedby");
   D.querySelectorAll("[data-id]").forEach(b => b.onclick = () => { D.close(); select(b.dataset.id); });
   ["git", "push", "pr"].forEach(k => D.querySelectorAll(`[data-${k}]`).forEach(b => b.onclick = () => { D.close(); select(`${k}:${b.dataset[k]}`); })); // コミット・push・PR の一覧

@@ -117,8 +117,8 @@ function prDetail(s, r){
     <p class="note">${esc(t("Recorded when an agent created it in this session (gh pr create or GitHub tools). kiroku never asks GitHub, so its title, status and reviews are not shown here."))}</p>
     ${sesCard(s, esc(t("Session that created it")))}
     </div><div class="dcol">
-    ${ps.length ? `<h3>${esc(t("Pushes before it"))} · ${ps.length}</h3>${ps.map(p => `<button class="gc-row" data-push="${esc(pushKey(p))}"><time>${md(p.t)} ${hm(p.t)}</time><span><i class="gtag">${ico("push")}${esc(p.ref)}</i>${p.commits ? ` ${plural(p.commits, "commit")}` : ""}</span><b></b></button>`).join("")}` : ""}
-    <h3>${esc(t("Commits in the session before it"))} · ${cs.length}</h3>
+    ${ps.length ? `<h3>${esc(t("Pushes before the PR"))} · ${ps.length}</h3>${ps.map(p => `<button class="gc-row" data-push="${esc(pushKey(p))}"><time>${md(p.t)} ${hm(p.t)}</time><span><i class="gtag">${ico("push")}${esc(p.ref)}</i>${p.commits ? ` ${plural(p.commits, "commit")}` : ""}</span><b></b></button>`).join("")}` : ""}
+    <h3>${esc(t("Commits in this session before the PR"))} · ${cs.length}</h3>
     ${cs.length ? cs.map(gitRow).join("") : noneH(esc(t("None")))}
   </div></div></div>`;
   P.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.id));
