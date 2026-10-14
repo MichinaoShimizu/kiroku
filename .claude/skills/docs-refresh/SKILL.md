@@ -25,7 +25,7 @@ git log --oneline "$last"..HEAD -- internal/web tools/screenshots
 ```
 
 - 何も出なければ、スクショは新しい。2 を飛ばす
-- 出たら、各コミットが README・guide に載っている画面（週のカレンダー、セッションの詳細、Worth a look、週のまとめ、週報の「Analyze with AI」、Year in review）の見た目を変えたかを差分で確かめる。内部の整理だけで見た目が変わらないなら撮り直さない。迷ったら撮り直す
+- 出たら、各コミットが README・guide に載っている画面（週のカレンダー、セッションの詳細、Worth a look、週のまとめ、週報の「Analyze with AI」）の見た目を変えたかを差分で確かめる。内部の整理だけで見た目が変わらないなら撮り直さない。迷ったら撮り直す
 
 ## 2. 撮り直して、目で確かめる
 
@@ -41,7 +41,6 @@ sh tools/screenshots/run.sh
   - 本物の履歴、手元のパス、ユーザー名が写っていない（`session.png` は右の列に一時パスが出るので左の列だけを撮る、という前提が保たれているか）
 - 撮ったあと `sh tools/screenshots/keep-changed.sh` で、コミットしてある版と比べて描画のゆらぎだけの画像を戻す（`demo.gif` は止まって見える場面どうしで比べる）。ダミーデータは「今」から作るので、日付ごと戻せるのは同じ `KIROKU_FAKE_NOW` で撮ったときだけ（`tools/release.sh` は ci.yml の e2e と同じ時刻で撮る）
 - `demo.gif`（README の先頭の動き）も同じ run.sh で撮り直される。いくつかのコマを ffmpeg で取り出して Read で確かめる
-- `year.png` は Year in review が隠れているあいだ（`js/state.js` の `YEAR_ON`）は撮られない。変わっていなくて正しい
 - 変わったのに理由を説明できない画像があれば、コミットせずに調べる
 
 ## 3. 文章が古いかを確かめる

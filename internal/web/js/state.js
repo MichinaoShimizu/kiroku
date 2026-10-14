@@ -29,7 +29,6 @@ const records = (src, what) => (RECORDS[src] || []).includes(what);
 function unrecorded(ws, we, what){ const srcs = [...new Set(DATA.filter(s => s.end >= ws && s.start < we).map(s => s.source))];
   return srcs.length && !srcs.some(x => records(x, what)) ? srcs : null; }
 const notRec = srcs => t("Not recorded in {list} history", {list: srcs.join(LSEP())});
-const YEAR_ON = true; // 1 年の露光（ボタンと Y キー）。false にすると隠す
 const SLOTS = 8;
 const $ = s => document.querySelector(s);
 const store = { get(k,d){ try { const v = localStorage.getItem("kiroku:"+k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
@@ -63,7 +62,7 @@ const dow = i => DOW[i];
 const wkc = i => i === 6 ? " sat" : i === 0 ? " sun" : ""; // 曜日（getDay）から、土日の色のクラス
 const plural = (n, one, many) => isJA() ? `${n} ${t(one)}` : `${n} ${n === 1 ? one : many || one + "s"}`; // 日本語は数と名詞（単数の形を辞書で引く）
 // hh: 週のカレンダーの 1 時間の高さ（render が作業の時間帯に合わせて決める。ズームはない。以前の版が保存した "zh" は読まない）
-// 画面はカレンダーだけ（ADR 0033）。以前の版が保存した "view"（journey・project）は読まない
+// 画面はカレンダーだけ（ADR 0033）。以前の版が保存した "view"（journey・project）と、Year in review の "yrOpt" は読まない
 const st = { hh: 44, colorBy: store.get("colorBy", "project"), theme: store.get("theme", "light") === "dark" ? "dark" : "light", // 既定はライト（以前の「自動」もライトにする）
              week: mondayOf(today0()), month: monthOf(today0()), mode: store.get("mode", "week"), flowUser: !!store.get("flowUser", false),
              hidden: new Set(), sel: null, back: [], q: "", animate: true };

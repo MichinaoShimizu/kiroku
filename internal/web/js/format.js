@@ -90,6 +90,5 @@ function applyTheme(){ document.documentElement.setAttribute("data-theme", st.th
   const next = st.theme === "dark" ? "light" : "dark";
   $("#theme").innerHTML = ICON[next]; $("#theme").setAttribute("aria-label", next === "dark" ? t("Switch to dark theme") : t("Switch to light theme")); }
 const CB = () => ({project: t("Project"), branch: t("Branch"), source: t("Agent")});
-if (YEAR_ON) [...document.querySelectorAll("#keys .keys kbd")].find(k => k.textContent === "Esc").insertAdjacentHTML("beforebegin", `<kbd>Y</kbd><span>${esc(t("Year in review"))}</span>`); // Esc の前に足す（並びが変わっても、Esc を探して）
 
 

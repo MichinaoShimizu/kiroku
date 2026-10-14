@@ -29,7 +29,7 @@ function setMode(m){ if (m === "month" && META.scope && META.scope.mode === "wee
   if (m === "month" && st.mode !== "month") st.month = monthOf(addDays(st.week, 3));
   if (m === "week" && st.mode === "month" && monthOf(st.week).getTime() !== st.month.getTime()) st.week = mondayOf(st.month);
   st.mode = m; store.set("mode", m); st.sel = null; st.animate = true; render(); scrollToWork(); }
-document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = () => setMode(b.dataset.v)); // Year（#yrbtn）は表示の切り替えではなく、1 年の露光を開く
+document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = () => setMode(b.dataset.v));
 $("#prev").onclick = () => go(-1); $("#next").onclick = () => go(1); $("#today").onclick = () => go(null);
 $("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); st.srN = st.scN = 0; render(); }; // 言葉が変わったら、結果はまた先頭の数件から
 // 検索欄で Enter：最初の結果へフォーカスを移す（結果はカレンダーの上）
@@ -39,9 +39,7 @@ $("#q").addEventListener("keydown", e => { if (e.key !== "Enter" || e.isComposin
 if (!LIVE) $("#home").href = location.href.split(/[?#]/)[0];
 $("#theme").onclick = () => { st.theme = st.theme === "dark" ? "light" : "dark"; store.set("theme", st.theme); applyTheme(); };
 $("#help").onclick = () => $("#keys").showModal();
-$("#yrbtn").onclick = openYear;
-let yrRaf = 0; addEventListener("resize", () => { if ($("#yr").open && !yrRaf) yrRaf = requestAnimationFrame(() => { yrRaf = 0; drawPlate(); }); }); // 1 年の図の描き直しは 1 コマに 1 回まで
-// ダイアログ（ショートカット・Worth a look・1 年の露光）は、枠の外を押すと閉じる（詳細のパネルの #scrim と同じ）。
+// ダイアログ（ショートカット・Worth a look など）は、枠の外を押すと閉じる（詳細のパネルの #scrim と同じ）。
 // 押し始めも外だったときだけ（枠の中で文字を選んで、外で離したときには閉じない）
 document.querySelectorAll("dialog").forEach(d => { let down = false;
   const out = e => { const r = d.getBoundingClientRect(); return e.target === d && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom); };
@@ -65,7 +63,7 @@ addEventListener("popstate", () => {
 const ARROW_OWN = "input, select, textarea, [contenteditable], .segc, [role=group], [role=radiogroup], [role=tablist], [role=listbox], [role=slider], [role=menu]";
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT"){ if (e.key === "Escape") e.target.blur(); return; }
-  if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open || $("#yr").open || $("#wk").open || $("#md").open) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open || $("#wk").open || $("#md").open) return;
   const k = e.key;
   if (k === "Escape" && closeHint()) return; // 開いた説明（?）があれば、それだけ閉じる
   if (k === "ArrowLeft" || k === "ArrowRight"){ // 詳細を開いているあいだも動かさない（閉じて別の週へ飛ぶと、どこにいるかわからなくなる）
@@ -75,7 +73,6 @@ document.addEventListener("keydown", e => {
   else if (k === "/"){ e.preventDefault(); $("#q").focus(); }
   else if (k === "Escape" && st.sel) select(null); else if (k === "?") $("#keys").showModal();
   else if (k === "w" || k === "W") setMode("week"); else if (k === "m" || k === "M") setMode("month");
-  else if ((k === "y" || k === "Y") && !$("#yrbtn").hidden && !$("#mode").hidden) openYear(); // ボタンが見えているときだけ（週だけを書き出したファイルでは開かない）
 });
 // workHours は、表示中の週の作業の時間帯 {first, last}（時。記録がなければ null）。
 // 朝 6 時より前の開始が 2 割に満たなければ、早い時刻の数本に引っぱられないよう、6 時以降でいちばん早い開始時刻から。

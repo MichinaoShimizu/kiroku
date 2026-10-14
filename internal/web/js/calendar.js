@@ -15,7 +15,6 @@ function render(){
   [["#prev", -1], ["#next", 1]].forEach(([id, n]) => { const b = $(id), off = !canGo(n); // 先の週・ファイルの外へは押せない
     if (off && document.activeElement === b) $(n > 0 ? "#prev" : "#next").focus(); // 押せなくなるボタンにいたフォーカスは、隣のボタンへ
     b.disabled = off; });
-  $("#yrbtn").hidden = !YEAR_ON || !DATA.length || !!(META && META.scope); // 週・月だけを書き出したファイルには 1 年の記録がない（最初の記録や「初めて」を取り違える）
   $("#prev").setAttribute("aria-label", M ? t("Previous month") : t("Previous week")); $("#next").setAttribute("aria-label", M ? t("Next month") : t("Next week"));
   document.querySelectorAll("#mode button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.mode));
 

@@ -18,7 +18,7 @@ kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), A
 
 - **Every agent on one calendar.** Claude Code, Codex, Kiro and Amazon Q side by side, instead of one dashboard per agent.
 - **Sessions you can read, not just count.** What you asked, what the AI replied, and the commands, commits and pull requests in between, next to time, tokens and cost.
-- **How your work with AI changes.** Active time, tokens, estimated cost and patterns over time, from one session to Year in review.
+- **How your work with AI changes.** Active time, tokens, estimated cost and patterns over time, from one session to a month.
 - **Reviews written by your own agent.** "Analyze with AI" runs a prompt grounded in your history with the agent you already use.
 - **Your history stays on your computer.** A single binary, no account, no telemetry (see [Privacy](#privacy) for "Analyze with AI").
 
@@ -56,10 +56,6 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 ![Weekly summary by project (dummy data)](docs/summary.png)
 
 **Search across all time.** Prompts, edited files and commits, with excerpts showing where they matched.
-
-**Your year in one picture.** "Year in review", next to the week / month switch, draws a year of active time as streaks of light, and makes an image to share where you choose what goes on it: no prompts, project names or cost, and nothing about late nights or time off unless you check it. It describes how you worked; it doesn't score or rank you.
-
-![Year in review share image (dummy data)](docs/year.png)
 
 The view is in Japanese when your browser prefers Japanese; the button at the top right (or `--lang`) switches between English and 日本語.
 

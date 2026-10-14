@@ -4,7 +4,6 @@
 // 見るのは「動くか」だけで、見た目や言葉の良し悪しは docs/usability.md のテストで確かめる。
 import { chromium } from "playwright";
 import path from "node:path";
-import { stat } from "node:fs/promises";
 
 const html = process.argv[2];
 if (!html) { console.error("使い方: node smoke.mjs <kiroku.html>"); process.exit(2); }
@@ -187,7 +186,7 @@ async function run(env) {
     check("G・+・− を押しても何も開かず、期間も変わらない", await p.evaluate(wk => document.querySelector("#rd").textContent === wk && ![...document.querySelectorAll("dialog")].some(d => d.open), wk));
     check("週のカレンダーにズームの操作がない", await p.locator("#legend .zoom, #zin, #zout").count() === 0);
     check("ショートカットの一覧に G・ズームがない", !/Metrics guide|Zoom/.test(await p.locator("#keys").textContent()));
-    check("ショートカットの一覧の Y（Year in review）は 1 つだけで、Esc の前", await p.evaluate(() => { const ks = [...document.querySelectorAll("#keys .keys kbd")].map(k => k.textContent); return ks.filter(k => k === "Y").length === (YEAR_ON ? 1 : 0) && (!YEAR_ON || ks.indexOf("Y") === ks.indexOf("Esc") - 1); }));
+    check("ショートカットの一覧に Y（Year in review）がない", await p.evaluate(() => ![...document.querySelectorAll("#keys .keys kbd")].some(k => k.textContent === "Y") && !/Year in review/.test(document.querySelector("#keys").textContent)));
   });
 
   await step("サマリーの数字から内訳が開く", async () => {
@@ -441,56 +440,17 @@ async function run(env) {
     check("一覧は枠の外を押しても閉じる", !(await p.locator("#keys").evaluate(d => d.open)));
   });
 
-  await step("1 年の露光", async () => {
-    const on = await p.evaluate(() => YEAR_ON);
-    if (!on){ // 一旦隠している間は、ボタンも Y キーも出ないことだけ確かめる
-      check("1 年の露光のボタンが出ない", await p.locator("#yrbtn").isHidden());
-      await p.keyboard.press("y"); await pause();
-      check("y で 1 年の露光が開かない", !(await p.locator("#yr").evaluate(d => d.open)));
-      return;
-    }
-    check("Year in Review は Period と独立した入口に出る", await p.locator(".view-controls > #yrbtn").isVisible());
+  await step("Year in review はない", async () => {
+    check("Year in review のボタンとダイアログがない", await p.locator("#yrbtn, dialog#yr").count() === 0 && !/Year in review/.test(await p.locator("header").innerText()));
     check("Period（Week・Month）がある", await p.locator("#mode button[data-v]").count() === 2);
-    await p.locator("#yrbtn").click(); await pause();
-    check("Year を押すと 1 年の露光が開き、Week・Month の選択は変わらない", await p.locator("#yr").evaluate(d => d.open) && await p.locator("#mode [aria-pressed=true]").count() === 1);
-    await p.keyboard.press("Escape"); await pause();
+    // 以前の版が保存した Year in review の設定（yrOpt）が残っていても、カレンダーで開き、y を押しても何も開かない
+    await p.evaluate(() => localStorage.setItem("kiroku:yrOpt", JSON.stringify({late: true, color: "project"})));
+    await open();
+    const wk = await p.locator("#rd").textContent();
     await p.keyboard.press("y"); await pause();
-    check("y で 1 年の露光が開く", await p.locator("#yr").evaluate(d => d.open));
-    check("シェア用の画像に光が描かれている", await p.locator("#yrcard").evaluate(c => {
-      const d = c.getContext("2d").getImageData(0, 430, c.width, c.height - 430).data; let lit = 0;
-      for (let i = 0; i < d.length; i += 4) if (d[i] + d[i+1] + d[i+2] > 240) lit++;
-      return lit > 200; }));
-    check("光の名前が出る（8 週に満たない記録では、名前の代わりにそう書く）", await p.evaluate(() => yr.x.short
-      ? !document.querySelector("#yr .yrtn") && /once you have 8 weeks/.test(document.querySelector("#yr").innerText)
-      : document.querySelector("#yr .yrtn").innerText.trim().length > 0));
-    check("見どころが出る", (await p.locator("#yr h3", { hasText: "What stands out" }).count()) === 1 && (await p.locator("#yr .yrhi li").count()) > 0);
-    check("深夜・週末と、いちばん長い休みは、選ぶまで画像に載せない", !(await p.locator('#yr [data-o="late"]').isChecked()) && !(await p.locator('#yr [data-o="breaks"]').isChecked()) &&
-      !/Late nights|Weekends|without AI|consecutive/.test(await p.locator("#yrcard").getAttribute("aria-label")));
-    // 深夜・週末：見せるものがある年は、選べば画像に加わる。ない年は押せない（ダミーデータは後半に夜の作業があるので、CI の決まった時刻（KIROKU_FAKE_NOW）なら押せるはず。年が始まって 2 か月ほどの時刻では、その年の夜の作業が少なく押せない）
-    check("ダミーデータの年には、深夜・週末の項目がある（押せる）", !(await p.locator('#yr [data-o="late"]').isDisabled()));
-    await p.locator('#yr [data-o="late"]').check(); await pause();
-    check("選べば、深夜・週末が画像（読み上げ用の説明）に加わる", /late nights|Late nights|Weekends/.test(await p.locator("#yrcard").getAttribute("aria-label")));
-    await p.locator('#yr [data-o="late"]').uncheck(); await pause();
-    check("開いたとき、フォーカスがダイアログの中にある", await p.evaluate(() => document.querySelector("#yr").contains(document.activeElement)));
-    await p.locator("#yrcolor").selectOption("project"); await pause();
-    check("色分けを変えても、フォーカスは色分けの選択に残る", await p.evaluate(() => document.activeElement && document.activeElement.id === "yrcolor"));
-    check("プロジェクトで色分けできる（画面の凡例にプロジェクトが並ぶ）", /Color = project/.test(await p.locator("#yr .yrhow").innerText()));
-    await p.locator("#yrcolor").selectOption("auto"); await pause();
-    // 「All 7」を開いたまま、光の名前のない短い年（ダミーデータの去年）に切り替えても壊れない
-    const ys = await p.evaluate(() => yearsOf());
-    if (ys.length > 1){
-      await p.evaluate(() => { const d = document.querySelector("#yr .yrtypes"); if (d) d.open = true; });
-      await p.locator("#yrsel").selectOption(String(ys[0])); await pause();
-      check("短い年に切り替えても、フォーカスは年の選択に残る", await p.evaluate(() => document.activeElement && document.activeElement.id === "yrsel"));
-      await p.locator("#yrsel").selectOption(String(ys[ys.length - 1])); await pause();
-    }
-    check("腕前の等級やメーターを出さない（人を順位付けしない）", !/Novice|Legendary|Master|Overexposed|Underexposed|Skill/.test(await p.locator("#yr").innerText()));
-    const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
-    check("1 年の露光が横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
-    const [dl] = await Promise.all([p.waitForEvent("download"), p.locator("#yrsave").click()]);
-    check("シェア用の画像を PNG で保存できる", /^kiroku-\d{4}\.png$/.test(dl.suggestedFilename()) && (await stat(await dl.path())).size > 1000, dl.suggestedFilename());
-    await p.keyboard.press("Escape"); await pause();
-    check("Esc で 1 年の露光を閉じる", !(await p.locator("#yr").evaluate(d => d.open)));
+    check("保存された yrOpt があっても、カレンダーで開き、y では何も開かず期間も変わらない", await p.locator("#tl").getAttribute("aria-label") === "Calendar" &&
+      await p.evaluate(wk => document.querySelector("#rd").textContent === wk && ![...document.querySelectorAll("dialog")].some(d => d.open), wk));
+    await p.evaluate(() => localStorage.removeItem("kiroku:yrOpt"));
   });
 
   check("スクリプトのエラーがない", errors.length === 0, errors.join(" / "));
@@ -581,16 +541,6 @@ async function runJa(env) {
     await noEnglish("月表示");
     await p.keyboard.press("w");
     await p.waitForFunction(() => document.querySelector("#mode button[data-v=week]").getAttribute("aria-pressed") === "true");
-  });
-
-  await step("1 年の露光", async () => {
-    if (!await p.evaluate(() => YEAR_ON)) return;
-    await p.keyboard.press("y"); await isOpen("#yr");
-    const [sw, iw] = await overflow();
-    check("1 年の露光が横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
-    check("見どころの見出しが日本語", await p.locator("#yr h3", { hasText: "What stands out" }).count() === 0);
-    await noEnglish("1 年の露光");
-    await p.keyboard.press("Escape"); await isClosed("#yr");
   });
 
   check("スクリプトのエラーがない", errors.length === 0, errors.join(" / "));
