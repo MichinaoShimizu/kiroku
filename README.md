@@ -37,7 +37,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 ## What you get
 
-**Every session on a calendar.** When, in which project and what you asked, by week or month, with each day's active time, tokens, cost and Git commits. Under View, **Journey** lays sessions, commits and pull requests out by project and day, and **Project** gathers them per project; they record activity, not progress.
+**Every session on a calendar.** When, in which project and what you asked, by week or month, with each day's active time, tokens, cost and Git commits. It records activity, not progress.
 
 ![The week calendar (dummy data)](docs/screenshot.png)
 
@@ -57,7 +57,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 **Search across all time.** Prompts, edited files and commits, with excerpts showing where they matched.
 
-**Your year in one picture.** "Year in review", separate from View and Period, draws a year of active time as streaks of light, and makes an image to share where you choose what goes on it: no prompts, project names or cost, and nothing about late nights or time off unless you check it. It describes how you worked; it doesn't score or rank you.
+**Your year in one picture.** "Year in review", next to the week / month switch, draws a year of active time as streaks of light, and makes an image to share where you choose what goes on it: no prompts, project names or cost, and nothing about late nights or time off unless you check it. It describes how you worked; it doesn't score or rank you.
 
 ![Year in review share image (dummy data)](docs/year.png)
 
@@ -72,7 +72,6 @@ One click copies a prompt that you paste into the AI agent you already use on th
 | A session | "Copy review prompt" in session details | Summary, numbers, an assessment of your prompts, up to three prioritized pieces of advice (each quoting the prompt with its time and giving an improved prompt), and a playbook of prompts for similar work |
 | A day | "Report" next to each date in the week calendar | A daily report: summary, numbers next to the previous day, what was done in each project and why, expert observations and next actions |
 | A week or month | "Copy prompt" under "Weekly report" ("Monthly report" in month view), below the period's dates | The same report for the week or month, numbers next to the previous period, ready to share with your team |
-| A project | "Copy knowledge prompt" on each project card under "By project" | Candidate domain knowledge, decisions and open questions from that week's or month's history, each with the session and excerpt it comes from, for you to review |
 
 The advice is grounded in your history, not generic tips. Each point names what it is based on: a figure, a prompt with its time, or a signal kiroku counted. Where the history shows it, the advice covers
 

@@ -1,6 +1,6 @@
 # ADR 0026: Support complementary views of local AI activity
 
-Status: Accepted (2026-10-14, approved by the maintainer during the quality audit; Calendar and Journey shipped in #372–#376, extended by the Project view in [ADR 0027](0027-project-view.md))
+Status: Superseded by [ADR 0033](0033-calendar-only-view.md) (2026-10-14). Previously Accepted (2026-10-14, approved by the maintainer during the quality audit; Calendar and Journey shipped in #372–#376, extended by the Project view in [ADR 0027](0027-project-view.md))
 Date: 2026-10-11
 Scope: Local HTML history exploration and view navigation (`internal/web`)
 Related ADRs: [ADR 0022](0022-history-stays-local.md), [ADR 0023](0023-compatibility-contract.md)

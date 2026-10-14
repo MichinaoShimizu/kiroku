@@ -1,6 +1,6 @@
 # ADR 0028: Evidence-grounded project knowledge discovery
 
-- Status: Phase 1 Accepted (2026-10-14, approved by the maintainer during the quality audit: the "Copy knowledge prompt" on each project card, shipped in 9a5344b); later phases remain Proposed
+- Status: Superseded by [ADR 0033](0033-calendar-only-view.md) (2026-10-14): knowledge discovery is removed. Previously Phase 1 Accepted (2026-10-14, approved by the maintainer during the quality audit: the "Copy knowledge prompt" on each project card, shipped in 9a5344b); later phases Proposed
 - Date: 2026-10-14
 
 ## Context

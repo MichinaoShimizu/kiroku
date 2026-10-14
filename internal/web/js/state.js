@@ -62,7 +62,8 @@ const dow = i => DOW[i];
 const wkc = i => i === 6 ? " sat" : i === 0 ? " sun" : ""; // 曜日（getDay）から、土日の色のクラス
 const plural = (n, one, many) => isJA() ? `${n} ${t(one)}` : `${n} ${n === 1 ? one : many || one + "s"}`; // 日本語は数と名詞（単数の形を辞書で引く）
 // zAuto: ズームを選んでいなければ、週ごとに作業の時間帯が収まる高さにする
-const st = { view: ["calendar","journey","project"].includes(store.get("view", "calendar")) ? store.get("view", "calendar") : "calendar", journey: store.get("view", "calendar") === "journey", z: store.get("zh", 2), zAuto: store.get("zh", null) == null, colorBy: store.get("colorBy", "project"), theme: store.get("theme", "light") === "dark" ? "dark" : "light", // 既定はライト（以前の「自動」もライトにする）
+// 画面はカレンダーだけ（ADR 0033）。以前の版が保存した "view"（journey・project）は読まない
+const st = { z: store.get("zh", 2), zAuto: store.get("zh", null) == null, colorBy: store.get("colorBy", "project"), theme: store.get("theme", "light") === "dark" ? "dark" : "light", // 既定はライト（以前の「自動」もライトにする）
              week: mondayOf(today0()), month: monthOf(today0()), mode: store.get("mode", "week"), flowUser: !!store.get("flowUser", false),
              hidden: new Set(), sel: null, back: [], q: "", animate: true };
 

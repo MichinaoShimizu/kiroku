@@ -451,8 +451,8 @@ const kVer = () => { const v = String((META && META.version) || ""); return /^\d
 const kOS = () => { const o = String((META && META.os) || ""); return /^[a-z0-9]{1,16}\/[a-z0-9]{1,16}$/.test(o) ? o : ""; };
 // issueURL は「Report a problem」の行き先。値は決まった言葉か、形を確かめた版・OS だけ
 function issueURL(){
-  const view = {calendar: "Calendar", journey: "Journey", project: "Project"}[st.view] || "", mode = {week: "week", month: "month"}[st.mode] || "";
-  const screen = [view && (st.view === "calendar" && mode ? `${view} (${mode})` : view), `language: ${JA ? "ja" : "en"}`, LIVE ? "kiroku serve" : "saved HTML"].filter(Boolean).join(", ");
+  const mode = {week: "week", month: "month"}[st.mode] || "";
+  const screen = [mode ? `Calendar (${mode})` : "Calendar", `language: ${JA ? "ja" : "en"}`, LIVE ? "kiroku serve" : "saved HTML"].join(", ");
   const q = new URLSearchParams({template: "bug.yml"});
   if (kVer()) q.set("version", kVer());
   if (kOS()) q.set("os", kOS());
