@@ -436,9 +436,15 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		if v := core.Str(e["version"]); v != "" {
 			version, versionT = v, *t
 		}
+		// コンパクションの行（compact_boundary と要約の行）は、作業の時刻に入れない。Claude Code（2.1.290 以降）は、
+		// 人が離れて 54 分ほどたつと会話を要約し（idleCompaction）、その行が終わりの時刻を延ばして、
+		// 誰も作業していない活動の区切りを作ってしまうため。コンパクションそのものは下の Compact で数え、
+		// 手動の /compact は、打ったコマンドの行の時刻で作業に入る
+		compactLine, _ := e["isCompactSummary"].(bool)
+		compactLine = compactLine && typ == "user" || typ == "system" && core.Str(e["subtype"]) == "compact_boundary"
 		if typ == "assistant" {
 			s.Agent(t)
-		} else {
+		} else if !compactLine {
 			s.Tick(t)
 		}
 		if s.Project == "" {
