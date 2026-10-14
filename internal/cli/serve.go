@@ -301,7 +301,11 @@ func (l *live) handler() http.Handler {
 		}
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
-		_, _ = io.Copy(w, body)
+		if _, err := io.Copy(w, body); err != nil && errors.Is(err, core.ErrZstdTooLarge) {
+			// ほどいた大きさが上限を超えた .zst は、途中までを全体に見せないよう、応答を切る（ブラウザでは失敗になる）
+			l.logf("could not send history file %s: %v\n", path, err)
+			panic(http.ErrAbortHandler)
+		}
 	})
 	// /prompt?id=<セッション ID>&i=<何件目> と /reply?… は、HTML には先頭だけを入れた依頼文・応答の全文を返す
 	// （依頼の流れの「全文を読み込む」）。
