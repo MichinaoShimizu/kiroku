@@ -1,13 +1,14 @@
 #!/bin/sh
 # 読み取り・集計・描画のベンチマーク（internal/cli の BenchmarkLarge）を、比べる元（既定: origin/main）と今の作業ツリーで回し、比べて出す。
-#   sh tools/bench-compare.sh              # origin/main と比べる
+#   sh tools/bench-compare.sh              # origin/main と比べる（先に git fetch origin main）
 #   sh tools/bench-compare.sh v0.36.0      # タグ・ブランチ・コミットと比べる
 # 環境変数:
 #   KIROKU_BENCH_COUNT  それぞれ何回回すか（-count。既定 6。benchstat が差を確かめるには 6 回ほど要る）
 #   KIROKU_BENCH_TIME   -benchtime（例: 3x。既定は go test の既定）
 #   KIROKU_BENCH_PLAIN=1  benchstat を使わず、平均の表を出す
 #   KIROKU_BENCH_DAYS・KIROKU_BENCH_PER_DAY  合成の履歴の大きさ（bench_test.go。両方に同じ値が渡る）
-# 比べる元は、一時ディレクトリの git worktree で回し、終わったら消す。今のほうは、まだコミットしていない変更も含めて回す。
+# 比べる元は一時ディレクトリの git worktree で、今のほうはまだコミットしていない変更も含めて、go test -c でテストのバイナリにし、
+# 1 回ずつ交互に回す（go test ./internal/cli -run '^$' -bench Large -benchmem -count N と同じ測り方）。worktree は終わったら消す。
 # 比べるのは benchstat（版を固定して go run で動かす。上げるときは下の benchstat= を書き換える）。動かせなければ、平均の表を出す。
 set -eu
 
@@ -36,22 +37,36 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-run() { # run <dir> <out>
-  set -- "$1" "$2" -run '^$' -bench Large -benchmem -count "$count"
-  if [ -n "${KIROKU_BENCH_TIME:-}" ]; then set -- "$@" -benchtime "$KIROKU_BENCH_TIME"; fi
-  (cd "$1" && shift 2 && go test ./internal/cli "$@") > "$2" 2>&1 || { cat "$2" >&2; return 1; }
-  grep -q '^BenchmarkLarge' "$2" || { cat "$2" >&2; return 1; }
+# 比べる元と今の、テストのバイナリを 1 度ずつ作る
+build() { # build <dir> <out>
+  (cd "$1" && go test -c -o "$2" ./internal/cli) > "$tmp/build.log" 2>&1 || { cat "$tmp/build.log" >&2; return 1; }
 }
-
-echo "== base: $base ($(git rev-parse --short "$commit")), $count runs"
+echo "== base: $base ($(git rev-parse --short "$commit"))"
 git worktree add --quiet --detach "$wt" "$commit"
-run "$wt" "$tmp/base.txt" || die "the benchmark failed on $base (does it have BenchmarkLarge in internal/cli?)"
-git worktree remove --force "$wt"
-
+build "$wt" "$tmp/base.test" || die "could not build the tests of $base"
 dirty=
 [ -z "$(git status --porcelain --untracked-files=no)" ] || dirty=" with uncommitted changes"
-echo "== head: $(git rev-parse --short HEAD)$dirty, $count runs"
-run "$root" "$tmp/head.txt" || die "the benchmark failed on the working tree"
+echo "== head: $(git rev-parse --short HEAD)$dirty"
+build "$root" "$tmp/head.test" || die "could not build the tests of the working tree"
+
+# 1 回ずつ交互に回す（base を全部回してから head を回すと、そのあいだの機械の混み具合や温度の変化が差に見えてしまう）。
+# テストのバイナリは internal/cli で動かす（go test と同じ）
+set -- -test.run '^$' -test.bench Large -test.benchmem -test.count 1
+if [ -n "${KIROKU_BENCH_TIME:-}" ]; then set -- "$@" -test.benchtime "$KIROKU_BENCH_TIME"; fi
+: > "$tmp/base.txt"
+: > "$tmp/head.txt"
+i=1
+while [ "$i" -le "$count" ]; do
+  printf '   run %d of %d\n' "$i" "$count"
+  for side in base head; do
+    if [ "$side" = base ]; then dir=$wt; else dir=$root; fi
+    (cd "$dir/internal/cli" && "$tmp/$side.test" "$@") > "$tmp/one.txt" 2>&1 || { cat "$tmp/one.txt" >&2; die "the benchmark failed on $side"; }
+    grep -q '^BenchmarkLarge' "$tmp/one.txt" || { cat "$tmp/one.txt" >&2; die "no BenchmarkLarge on $side (does $base have it in internal/cli?)"; }
+    cat "$tmp/one.txt" >> "$tmp/$side.txt"
+  done
+  i=$((i + 1))
+done
+git worktree remove --force "$wt"
 
 echo
 if [ -z "${KIROKU_BENCH_PLAIN:-}" ] && go run "$benchstat" -h >/dev/null 2>&1; then
