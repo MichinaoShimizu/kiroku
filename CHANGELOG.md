@@ -25,6 +25,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - The metrics guide (the map button at the top right and the `G` key). The "?" next to each metric and the keyboard shortcut list (`?`) stay
 - The calendar zoom ("Zoom" − + in the legend and the `+` `−` keys). The week calendar still fits the height of an hour to the week's working hours
 
+### Fixed
+
+- `kiroku serve` reloads history written while it was reading history for the first time (which can take seconds); before, it waited for the next change
+
 ## v0.36.0 - 2026-10-14
 
 ### Added
