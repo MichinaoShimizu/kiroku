@@ -204,7 +204,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .spark{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;color:var(--ink-3);min-width:0}
 .spark svg{flex:none;overflow:visible}
 .spark polyline{fill:none;stroke:var(--acc);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
-.spark circle{fill:var(--acc)}.spark .pt{opacity:.55}
+.spark circle{fill:var(--acc)}.spark .pt{opacity:.55}.spark circle.part{fill:var(--surface);stroke:var(--acc);stroke-width:1.4}
 .spark .hit{fill:transparent;pointer-events:all}.spark .hit:hover{fill:color-mix(in oklab,var(--acc) 14%,transparent)}
 .spark small{font-size:var(--fs-xs);line-height:1.5;flex:1 1 12em;min-width:0}
 .spk{display:inline-flex;flex-direction:column;gap:2px;flex:none}

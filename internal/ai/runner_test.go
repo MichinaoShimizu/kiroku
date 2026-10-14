@@ -272,3 +272,17 @@ func TestForwardKeepsCharactersWhole(t *testing.T) {
 		t.Errorf("cut = %q", c)
 	}
 }
+
+// Claude wrote its result and exited, but something it started still holds the output open: the run ends
+// soon with the result instead of waiting for the time limit and failing.
+func TestClaudeResultWithLingeringChild(t *testing.T) {
+	stubAgent(t, "claude", `cat >/dev/null; printf '{"type":"result","result":"done"}\n'; sleep 30 &`)
+	began := time.Now()
+	res, err := (Runner{Enabled: true, Timeout: 20 * time.Second}).Run(context.Background(), "claude", "hi")
+	if err != nil || res.Output != "done" {
+		t.Fatalf("res = %+v, err = %v; want the result", res, err)
+	}
+	if d := time.Since(began); d > 10*time.Second {
+		t.Errorf("run took %v", d)
+	}
+}

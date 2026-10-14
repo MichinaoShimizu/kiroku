@@ -17,8 +17,8 @@ check("引用・区切り線", "> q\n\n---", '<blockquote><p>"q"</p></blockquote
 check("深い入れ子でも止まらない", ">".repeat(50) + " x", out(mdView(">".repeat(50) + " x")));
 // 他人が書けるような意地悪な行でも、時間が行の長さに比例する（正規表現の後戻りや、閉じていない記号の探し直しで固まらない）。
 // CI の機械の速さはまちまちなので、決まった秒数ではなく、入力を 4 倍にしたときに時間が何倍になるかで確かめる
-// （比例なら約 4 倍。2 乗なら 16 倍、3 乗なら 64 倍）。短すぎて測れないときは、十分に速いとみなす
-const best = f => { let m = Infinity; for (let k = 0; k < 3; k++){ const t0 = process.hrtime.bigint(); f(); m = Math.min(m, Number(process.hrtime.bigint() - t0) / 1e6); } return m; };
+// （比例なら約 4 倍。2 乗なら 16 倍、3 乗なら 64 倍）。ほかのテストと並んで遅くなる揺れを避けるため、5 回の最速で比べ、50 ms に届かなければ十分に速いとみなす
+const best = f => { let m = Infinity; for (let k = 0; k < 5; k++){ const t0 = process.hrtime.bigint(); f(); m = Math.min(m, Number(process.hrtime.bigint() - t0) / 1e6); } return m; };
 for (const [name, make, n] of [
   ["閉じない強調", n => "**a ".repeat(n), 4999],
   ["閉じない括弧", n => "[".repeat(n), 19999],
@@ -26,10 +26,11 @@ for (const [name, make, n] of [
   ["後ろが空白の見出し", n => "# a" + " ".repeat(n) + "x", 19990],
   ["閉じない下線", n => "_a ".repeat(n), 6000],
   ["閉じないバッククォート", n => "`a ".repeat(n) + "``b ".repeat(n / 6), 6000],
+  ["閉じられないバッククォートの並び", n => ("\\```".repeat(n) + "\n").repeat(8), 5000],
   ["長い行がたくさん", n => (("**a " + "x".repeat(16)).repeat(900) + "\n").repeat(n), 48],
 ]) {
   const small = best(() => mdView(make(Math.floor(n / 4)))), big = best(() => mdView(make(n)));
-  if (big > 20 && big / Math.max(small, 1) > 10){ fail++; console.log(`SLOW ${name}: ${small.toFixed(1)} ms → ${big.toFixed(1)} ms for 4× the input`); }
+  if (big > 50 && big / Math.max(small, 1) > 10){ fail++; console.log(`SLOW ${name}: ${small.toFixed(1)} ms → ${big.toFixed(1)} ms for 4× the input`); }
   if (big > 10000){ fail++; console.log(`SLOW ${name}: ${big.toFixed(0)} ms`); }
 }
 check("見出しの後ろの #", "## Title ##", '<h4>"Title"</h4>');

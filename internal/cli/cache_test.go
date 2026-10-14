@@ -2,8 +2,11 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -311,5 +314,30 @@ func TestReportCacheFollowsLoadCache(t *testing.T) {
 	}
 	if reused == 0 || reused == len(second) {
 		t.Errorf("使い回したセッション %d / %d", reused, len(second))
+	}
+}
+
+// failingClaude は、どの会話も読めなかったことにする（会話ごとに違うエラー）。
+type failingClaude struct{ *source.Claude }
+
+func (c *failingClaude) LoadUnit(u source.Unit, emit func(*core.Builder)) error {
+	return errors.New(u.Key + ": broken")
+}
+
+// 会話ごとに読み直すときも、読めなかった数を落とさない（「… (and N more)」。全部を読み直すときと同じ形）
+func TestLoadCacheReportsAllUnitErrors(t *testing.T) {
+	setup(t)
+	root := t.TempDir()
+	if err := os.CopyFS(root, os.DirFS(filepath.Join("testdata", "home", ".claude", "projects"))); err != nil {
+		t.Fatal(err)
+	}
+	cl := &failingClaude{Claude: &source.Claude{Root: root}}
+	n := len(cl.Units())
+	if n < 2 {
+		t.Skip("needs two or more conversations in testdata")
+	}
+	_, err := newLoadCache().load(cl, 15)
+	if err == nil || !strings.Contains(err.Error(), fmt.Sprintf("(and %d more)", n-1)) {
+		t.Fatalf("err = %v, want the first error and (and %d more)", err, n-1)
 	}
 }

@@ -173,8 +173,8 @@ func itemText(item core.Obj) string {
 // 入力からは両方を引く。
 func codexTokens(u any) core.Tokens {
 	m := core.Map(u)
-	in, cached, written := core.NumOr0(m["input_tokens"]), core.NumOr0(m["cached_input_tokens"]), core.NumOr0(m["cache_write_input_tokens"])
-	return core.Tokens{In: max(0, in-cached-written), Out: core.NumOr0(m["output_tokens"]), CW: written, CR: cached}
+	in, cached, written := core.Count(m["input_tokens"]), core.Count(m["cached_input_tokens"]), core.Count(m["cache_write_input_tokens"])
+	return core.Tokens{In: max(0, in-cached-written), Out: core.Count(m["output_tokens"]), CW: written, CR: cached}
 }
 
 // codexEvent は 1 つの使用量の記録。perRequest は u が応答 1 回分（last_token_usage・token_usage_record）のとき true で、
