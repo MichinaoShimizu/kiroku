@@ -918,3 +918,14 @@ html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り
 .ai-dialog .ai-prompt.small{height:72px}
 .ai-controls{position:sticky;bottom:0;display:flex;gap:12px;flex-wrap:wrap;padding:12px 0 20px;background:var(--bg)}
 .ai-rhead[hidden],.ai-out[hidden],.ai-log[hidden]{display:none}
+/* 結果が出たら、入力と経過をゆっくりたたむ（高さを 1fr → 0fr にして、中身の高さによらず滑らかに） */
+.ai-inputs{display:grid;grid-template-rows:1fr;opacity:1;transition:grid-template-rows .5s var(--ease),opacity .4s var(--ease)}
+.ai-inputs.closed{grid-template-rows:0fr;opacity:0}
+.ai-inputs-in{min-height:0;overflow:hidden}
+.ai-intoggle{display:inline-flex;align-items:center;gap:6px;margin:-4px 0 8px;padding:2px 0;font-size:var(--fs-sm);color:var(--acc-ink);background:none;border:0;cursor:pointer}
+.ai-intoggle::before{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);transition:transform .3s var(--ease)}
+.ai-intoggle[aria-expanded="true"]::before{transform:rotate(45deg)}
+.ai-intoggle[hidden]{display:none}
+.ai-dialog .ai-out{transition:max-height .5s var(--ease)}
+.ai-dialog.ai-focus .ai-out{max-height:66vh}
+@media (prefers-reduced-motion:reduce){.ai-inputs,.ai-intoggle::before,.ai-dialog .ai-out{transition:none}}

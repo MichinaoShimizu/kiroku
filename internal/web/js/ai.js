@@ -65,7 +65,20 @@ async function runAIReview(button, prompt, title) {
   // ボタンの並びは、ダイアログの下に貼りつけておく（出力が長くても、キャンセルをすぐ押せるように）
   const controls = document.createElement("div"); controls.className = "ai-controls";
   controls.append(start, cancel, copyResult);
-  dialog.append(heading, notice, agentLabel, preview, status, activity, resultHead, output, controls);
+  // 結果が出たら、入力（説明・エージェント・プロンプト）と経過はゆっくりたたむ。見出しの下のボタンで開き直せる
+  const inputs = document.createElement("div"); inputs.className = "ai-inputs"; inputs.id = "ai-review-inputs";
+  const inputsIn = document.createElement("div"); inputsIn.className = "ai-inputs-in";
+  inputsIn.append(notice, agentLabel, preview, activity); inputs.append(inputsIn);
+  const inToggle = document.createElement("button"); inToggle.type = "button"; inToggle.className = "ai-intoggle"; inToggle.hidden = true;
+  inToggle.setAttribute("aria-controls", inputs.id);
+  const setInputs = open => {
+    inputs.classList.toggle("closed", !open); inputs.inert = !open; dialog.classList.toggle("ai-focus", !open);
+    inToggle.setAttribute("aria-expanded", String(open));
+    inToggle.textContent = open ? t("Hide prompt and progress") : t("Show prompt and progress");
+  };
+  inToggle.onclick = () => setInputs(inputs.classList.contains("closed"));
+  setInputs(true);
+  dialog.append(heading, inToggle, inputs, status, resultHead, output, controls);
   document.body.append(dialog);
   const key = title + "\n" + prompt;
   let controller = null;
@@ -79,9 +92,10 @@ async function runAIReview(button, prompt, title) {
     catch { setView("markdown"); const r = document.createRange(); r.selectNodeContents(output); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); status.textContent = t("Select the result and copy it manually"); }
   };
   const last = AI_LAST.get(key); // 前に同じプロンプトで得た結果
-  if (last){ text = last.text; showResult(true); drawn = -1; draw(); copyResult.hidden = false; start.textContent = t("Run again"); status.textContent = t("Last result with {agent}", {agent: aiName(last.agent)}); }
+  if (last){ text = last.text; showResult(true); drawn = -1; draw(); copyResult.hidden = false; start.textContent = t("Run again"); status.textContent = t("Last result with {agent}", {agent: aiName(last.agent)}); inToggle.hidden = false; setInputs(false); }
   start.onclick = async () => {
     controller = new AbortController();
+    inToggle.hidden = true; setInputs(true);
     start.disabled = true; agent.disabled = true; copyResult.hidden = true; errLines = 0;
     text = ""; drawn = -1; activity.replaceChildren(); activity.hidden = false; showResult(true); draw();
     preview.classList.add("small"); // 送ったプロンプトは小さくして、経過と結果を見えるところに
@@ -116,7 +130,7 @@ async function runAIReview(button, prompt, title) {
       text = String(done.output ?? text); drawn = -1; draw(); output.scrollTop = 0; // 読み始めは先頭から
       ok = !!text;
       status.textContent = t("Completed with {agent}", {agent: name});
-      if (ok) AI_LAST.set(key, {text, agent: agent.value});
+      if (ok){ AI_LAST.set(key, {text, agent: agent.value}); inToggle.hidden = false; setInputs(false); } // 結果だけを見せる（失敗・中止のときは、原因が見えるよう開いたまま）
     } catch (error) {
       status.textContent = error.name === "AbortError" ? t("Canceled") : String(error.message || error);
       draw();

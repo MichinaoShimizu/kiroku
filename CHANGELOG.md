@@ -6,7 +6,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Changed
 
-- "Run with AI" is now called "Analyze with AI", matching the Japanese 「AI 分析」. Its dialog: Cancel and Esc during a run stop it and keep what arrived (they no longer close the dialog), the buttons stay in view while output streams, focus moves to Cancel when a run starts, reopening the dialog for the same prompt shows the last result, a failed run points to the agent's own output instead of repeating it, and agents are listed by name ("Claude Code (claude)"). The daily report dialog names its date, and the AI buttons say which report they run for screen readers. With `--ai` but no agent installed, the view says to restart `kiroku serve --ai` after installing one
+- "Run with AI" is now called "Analyze with AI", matching the Japanese 「AI 分析」. Its dialog: Cancel and Esc during a run stop it and keep what arrived (they no longer close the dialog), the buttons stay in view while output streams, focus moves to Cancel when a run starts, reopening the dialog for the same prompt shows the last result, once a result arrives the prompt and progress fold away (smoothly, or at once with reduced motion) behind "Show prompt and progress" so the result has the room, a failed run points to the agent's own output instead of repeating it, and agents are listed by name ("Claude Code (claude)"). The daily report dialog names its date, and the AI buttons say which report they run for screen readers. With `--ai` but no agent installed, the view says to restart `kiroku serve --ai` after installing one
 
 ## v0.34.0 - 2026-10-14
 
