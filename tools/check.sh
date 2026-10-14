@@ -1,7 +1,7 @@
 #!/bin/sh
 # CI（.github/workflows/ci.yml）と同じチェックを手元でまとめて回す。PR を出す前に使う。
 #   sh tools/check.sh          # gofmt・go vet・staticcheck・govulncheck・go test・go build・shellcheck
-#   sh tools/check.sh --e2e    # それに加えて、画面の e2e（smoke.mjs と xss.mjs。Node と Playwright が必要）
+#   sh tools/check.sh --e2e    # それに加えて、画面の e2e（smoke.mjs・xss.mjs・serve.mjs。Node と Playwright が必要）
 # staticcheck と govulncheck の版は ci.yml から読む（版を上げるときは ci.yml だけを書き換える）。
 # 途中で失敗しても最後まで回し、失敗したものを最後に並べて 1 で終わる。
 set -u
@@ -71,7 +71,10 @@ e2e_run() {
     node tools/screenshots/smoke.mjs "$work/kiroku.html" &&
     python3 -I tools/screenshots/hostile.py "$work/hostile" &&
     TZ=UTC go run . html --no-open --sources claude --claude-root "$work/hostile/fx/projects" --week 2026-10-05 -o "$work/xss.html" &&
-    node tools/screenshots/xss.mjs "$work/xss.html"
+    node tools/screenshots/xss.mjs "$work/xss.html" &&
+    go build -o "$work/kiroku" . &&
+    python3 -I tools/screenshots/gen.py "$work/gen" >/dev/null &&
+    node tools/screenshots/serve.mjs "$work/kiroku" "$work/gen"
   rc=$?
   rm -rf "$work"
   return $rc

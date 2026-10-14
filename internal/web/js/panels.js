@@ -290,7 +290,7 @@ function archOn(){ return !!(META.archive && META.archive.on); }
 // keepArchive は「kiroku にコピーを残す」（kiroku serve のときだけ）。kiroku archive on と同じことをして、集計を取り込み直す。
 async function keepArchive(){
   try {
-    const r = await fetch("archive", {method:"POST", headers:{"X-Kiroku":"1"}, cache:"no-store"}); if (!r.ok) throw new Error(r.status);
+    const r = await kfetch("archive", {method:"POST", headers:{"X-Kiroku":"1"}}); if (!r.ok) throw new Error(r.status);
     applyData(await r.json()); render();
     toast(t("Backed up to {dir}. kiroku adds new history to it each time it reads your history.", {dir: (META.archive && META.archive.dir) || t("kiroku's folder")}), 6000);
   } catch(e){ toast(t("Couldn't start the backup. Run kiroku archive on instead."), 4500); }

@@ -83,7 +83,7 @@ pre:empty{display:none}
   <pre id="detail"></pre>
 </div></main>
 <script>
-// 1 秒ごとに stamp を見て、読み終わったら本物の画面に読み直す。503 の本文があれば読み込みの失敗。
+// 1 秒ごとに stamp を見て、読み終わったら本物の画面に読み直す。503 の本文があれば読み込みの失敗、403 なら鍵がない。
 // あいだは /progress を見て、エージェントごとの進み具合を出す（名前と数だけ。文字は textContent で入れる）
 (() => {
   const $ = id => document.getElementById(id);
@@ -101,6 +101,8 @@ pre:empty{display:none}
     "kiroku serve keeps running and tries again when your history changes. You can also stop it and run it again.": "kiroku serve は動き続け、履歴が変わるともう一度読みます。止めて起動し直すこともできます。",
     "Not connected to kiroku serve": "kiroku serve につながっていません",
     "If you stopped it, start it again; this page reconnects on its own.": "止めた場合は起動し直してください。この画面はつながると自動で戻ります。",
+    "Open kiroku with its key": "鍵を付けて kiroku を開いてください",
+    "Run kiroku open in a terminal to open this page with the key. After that, this browser can open it without the key.": "ターミナルで kiroku open を実行すると、鍵を付けてこの画面を開きます。そのあとは、このブラウザーなら鍵なしで開けます。",
   } : null;
   const t = s => JA && JA[s] || s;
   if (JA){ document.documentElement.lang = "ja";
@@ -112,6 +114,9 @@ pre:empty{display:none}
   // エージェントの色は本物の画面と同じ（core.Agents の Slot。web.go が埋めこむ）
   const SLOT = Object.fromEntries(__AGENTS__.map(a => [a.name, a.slot]));
   const color = n => n in SLOT ? `var(--c${SLOT[n]})` : "var(--other)";
+  // kiroku serve の鍵（ADR 0031）。?key= の中継のページが localStorage にしまったものを X-Kiroku-Key ヘッダーで送る
+  const kf = url => { let k = null; try { k = localStorage.getItem("kiroku:key"); } catch(e){}
+    return fetch(url, {cache:"no-store", headers: k && /^[0-9a-f]{64}$/.test(k) ? {"X-Kiroku-Key": k} : {}}); };
   const ms = v => v < 1000 ? `${v}ms` : `${(v/1000).toFixed(1)}s`;
   const show = (err, t, n, d) => { document.body.classList.toggle("err", err); title.textContent = t; note.textContent = n; detail.textContent = d || ""; };
   const rows = {};
@@ -142,7 +147,7 @@ pre:empty{display:none}
   function tick(){ if (live){ clock.textContent = ms(Math.round(base + performance.now() - at)); requestAnimationFrame(tick); } }
   async function progress(){
     try {
-      const r = await fetch("progress", {cache:"no-store"});
+      const r = await kf("progress");
       if (!r.ok) return;
       const p = await r.json();
       base = p.ms || 0; at = performance.now();
@@ -153,7 +158,8 @@ pre:empty{display:none}
   }
   async function poll(){
     try {
-      const r = await fetch("stamp", {cache:"no-store"});
+      const r = await kf("stamp");
+      if (r.status === 403){ live = false; show(true, t("Open kiroku with its key"), t("Run kiroku open in a terminal to open this page with the key. After that, this browser can open it without the key.")); setTimeout(poll, 2000); return; }
       if (r.ok){ live = false; document.body.classList.add("done"); title.textContent = t("Ready"); setTimeout(() => location.reload(), 250); return; }
       const txt = (await r.text()).trim();
       if (r.status === 503 && txt){ live = false; show(true, t("Could not read your history"), t("kiroku serve keeps running and tries again when your history changes. You can also stop it and run it again."), txt); }

@@ -438,22 +438,36 @@ func waitFor(t *testing.T, what string, cond func() bool) {
 	}
 }
 
-// testCookie は fetchHost が付ける Cookie（kiroku serve の鍵）。
-var testCookie *http.Cookie
+// testKey は fetchHost が X-Kiroku-Key ヘッダーに付ける kiroku serve の鍵（空なら付けない）。
+var testKey string
+
+// fetchHostCookie は fetchHost の GET に Cookie を付けたもの。
+func fetchHostCookie(t *testing.T, url, host string, c *http.Cookie) (int, string, http.Header) {
+	t.Helper()
+	return fetchWith(t, "GET", url, host, c)
+}
 
 // fetchHost は Host を指定して srv に送り、状態・本文・ヘッダーを返す。
 func fetchHost(t *testing.T, method, url, host string) (int, string, http.Header) {
+	t.Helper()
+	return fetchWith(t, method, url, host, nil)
+}
+
+func fetchWith(t *testing.T, method, url, host string, c *http.Cookie) (int, string, http.Header) {
 	t.Helper()
 	r, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if c != nil {
+		r.AddCookie(c)
+	}
 	if host != "" {
 		r.Host = host
 	}
 	r.Header.Set("X-Kiroku", "1")
-	if testCookie != nil {
-		r.AddCookie(testCookie)
+	if testKey != "" {
+		r.Header.Set(keyHeader, testKey)
 	}
 	res, err := http.DefaultClient.Do(r)
 	if err != nil {
@@ -524,17 +538,21 @@ func TestServeLive(t *testing.T) {
 		t.Errorf("kiroku open を案内するはず: %q", out.String())
 	}
 	// 鍵のないブラウザ（同じコンピューターのほかのユーザーなど）には、履歴を見せない
-	for _, path := range []string{"/", "/stamp", "/data.json"} {
+	for _, path := range []string{"/stamp", "/data.json", "/progress"} {
 		if code, body, _ := fetchHost(t, "GET", base+path, "localhost:"+port); code != 403 || !strings.Contains(body, "kiroku open") {
 			t.Errorf("鍵なしの %s = %d %.80q, want 403", path, code, body)
 		}
+	}
+	// / は鍵なしでも読み込み中の画面（履歴は入っていない）
+	if code, body, _ := fetchHost(t, "GET", base+"/", "localhost:"+port); code != 503 || !strings.Contains(body, "Reading your history") {
+		t.Errorf("鍵なしの読み込み中の / = %d %.80q", code, body)
 	}
 	key, err := serveKey(false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	testCookie = &http.Cookie{Name: "kiroku_key_" + port, Value: key}
-	defer func() { testCookie = nil }()
+	testKey = key
+	defer func() { testKey = "" }()
 
 	if code, body, _ := fetchHost(t, "GET", base+"/", "localhost:"+port); code != 503 || !strings.Contains(body, "Reading your history") {
 		t.Errorf("読み込み中の / = %d %.80q", code, body)
@@ -556,6 +574,12 @@ func TestServeLive(t *testing.T) {
 	if code, body, _ := fetchHost(t, "GET", base+"/stamp", "127.0.0.1:"+port); code != 200 || body != "42" {
 		t.Errorf("/stamp = %d %q", code, body)
 	}
+	// 以前の版の Cookie だけでは通さない（Cookie はほかのポートのサーバーにも送られるので、鍵として使わない）
+	testKey = ""
+	if code, _, h := fetchHostCookie(t, base+"/data.json", "localhost:"+port, &http.Cookie{Name: "kiroku_key_" + port, Value: key}); code != 403 || !strings.Contains(h.Get("Set-Cookie"), "Max-Age=0") {
+		t.Errorf("以前の版の Cookie だけの /data.json = %d, Set-Cookie %q", code, h.Get("Set-Cookie"))
+	}
+	testKey = key
 	// --ai なしでは、鍵があっても loopback でも AI を動かさず、画面にも「Analyze with AI」を出さない
 	if code, body, _ := fetchHost(t, "POST", base+"/ai/run", "localhost:"+port); code != 403 || !strings.Contains(body, "disabled") {
 		t.Errorf("--ai なしの /ai/run = %d %q, want 403", code, body)

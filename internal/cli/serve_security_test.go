@@ -184,3 +184,55 @@ func TestHistoryRoots(t *testing.T) {
 		t.Error("within がおかしい")
 	}
 }
+
+// 鍵なしで開ける / （画面の骨組み）には履歴を入れない（ADR 0031）。履歴は鍵のヘッダーを付けた /data.json などからだけ読める。
+// 骨組みの META は shell と、履歴ではない設定だけ。
+func TestServeShellHasNoHistory(t *testing.T) {
+	logw = io.Discard
+	defer func() { logw = os.Stderr }()
+	const title = "SYNTHETIC-SECRET-TITLE-7f3a"
+	ts := 1000.0
+	b := core.NewBuilder("Claude Code", "synthetic-session-9c1e")
+	b.Tick(&ts)
+	b.Prompt(&ts, title+" のプロンプト")
+	s := b.Finish(15)
+	s.Title = title
+	l := &live{load: func() snapshot {
+		return snapshot{data: []*core.Session{s}, meta: map[string]any{"git": []any{map[string]any{"msg": title}}, "demo": map[string]any{"offset": 0}}, gen: 7}
+	}, print: io.Discard, aiRun: http.NotFoundHandler()}
+	if err := l.refresh(); err != nil {
+		t.Fatal(err)
+	}
+	l.markReady()
+	key := strings.Repeat("ef", 32)
+	srv := httptest.NewServer(secureHeaders(sameOrigin("127.0.0.1:8484", nil, requireKey("127.0.0.1:8484", key, l.handler()))))
+	defer srv.Close()
+	const host = "localhost:8484"
+	code, body, _ := fetchHost(t, "GET", srv.URL+"/", host)
+	if code != 200 || !strings.Contains(body, "const LIVE = true") || !strings.Contains(body, `"shell":true`) {
+		t.Fatalf("鍵なしの / = %d %.200q", code, body)
+	}
+	for _, leak := range []string{title, "synthetic-session-9c1e"} {
+		if strings.Contains(body, leak) {
+			t.Errorf("鍵なしの / に履歴 %q が入っている", leak)
+		}
+	}
+	for _, want := range []string{`"aiRun":true`, `"demo":`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("骨組みの META に %s がない", want)
+		}
+	}
+	for _, p := range []string{"/data.json", "/stamp", "/prompt?id=synthetic-session-9c1e&i=0"} {
+		if code, body, _ := fetchHost(t, "GET", srv.URL+p, host); code != 403 || strings.Contains(body, title) {
+			t.Errorf("鍵なしの %s = %d", p, code)
+		}
+	}
+	testKey = key
+	defer func() { testKey = "" }()
+	if code, body, _ := fetchHost(t, "GET", srv.URL+"/data.json", host); code != 200 || !strings.Contains(body, title) {
+		t.Errorf("鍵つきの /data.json = %d %.80q", code, body)
+	}
+	if code, body, _ := fetchHost(t, "GET", srv.URL+"/", host); code != 200 || strings.Contains(body, title) {
+		t.Errorf("鍵つきでも / は骨組みだけ: %d", code)
+	}
+}
