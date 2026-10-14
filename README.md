@@ -8,24 +8,19 @@ English | [日本語](README.ja.md)
 
 See what you built, understand how you worked, and make your next AI session better.
 
-kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), Amazon Q Developer CLI and Codex CLI together in one place. Revisit what happened, explore patterns, and copy evidence-based review prompts for the AI agent you already use. No account, telemetry or uploads, and no AI calls unless you turn on `kiroku serve --ai`.
+kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), Amazon Q Developer CLI and Codex CLI together in one place. No account, telemetry or uploads, and no AI calls unless you turn on `kiroku serve --ai`.
 
 **[Try the live demo →](https://michinaoshimizu.github.io/kiroku/)** (dummy data, runs in your browser)
 
 [![The week calendar, a session, the token breakdown, search and the month view (dummy data)](docs/demo.gif)](https://michinaoshimizu.github.io/kiroku/)
 
-Choose **Calendar**, **Journey**, or **Project** under View, then independently choose **Week** or **Month** under Period. Project summarizes recorded sessions, commits and PR creation by project for the selected period; Journey groups observed sessions by project and date, and shows recorded Git commits and agent-recorded pull requests as separate clickable markers. These events are evidence of activity, not proof of progress or outcomes.
-
 ## Why kiroku
-
-- **Remember.** Revisit prompts, replies, commands, commits and projects across agents, in one timeline.
-- **Understand.** Explore active time, tokens, estimated costs and changes in how you use AI, from sessions to Year in review.
-- **Improve.** Copy review prompts grounded in your history to the agent you already use; turn evidence into ideas for your next session.
 
 - **Every agent on one calendar.** Claude Code, Codex, Kiro and Amazon Q side by side, instead of one dashboard per agent.
 - **Sessions you can read, not just count.** What you asked, what the AI replied, and the commands, commits and pull requests in between, next to time, tokens and cost.
-- **Reviews written by your own agent.** kiroku doesn't call an AI unless you start `kiroku serve --ai`. One click copies a prompt grounded in your history for the agent you already use.
-- **Your history never leaves your computer** (unless you turn on `kiroku serve --ai` and run a prompt with an agent). A single binary, no account, no telemetry.
+- **How your work with AI changes.** Active time, tokens, estimated cost and patterns over time, from one session to Year in review.
+- **Reviews written by your own agent.** One click copies a prompt grounded in your history for the agent you already use.
+- **Your history stays on your computer.** A single binary, no account, no telemetry (see [Privacy](#privacy) for `kiroku serve --ai`).
 
 ## Install
 
@@ -42,7 +37,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 ## What you get
 
-**Every session on a calendar.** When, in which project and what you asked, by week or month, with each day's active time, tokens, cost and Git commits.
+**Every session on a calendar.** When, in which project and what you asked, by week or month, with each day's active time, tokens, cost and Git commits. Under View, **Journey** lays sessions, commits and pull requests out by project and day, and **Project** gathers them per project; they record activity, not progress.
 
 ![The week calendar (dummy data)](docs/screenshot.png)
 
@@ -66,9 +61,11 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 ![Year in review share image (dummy data)](docs/year.png)
 
+The view is in Japanese when your browser prefers Japanese; the button at the top right (or `--lang`) switches between English and 日本語.
+
 ## Reviews and advice, written by your own agent
 
-kiroku doesn't call an AI by default. Instead, one click copies a prompt that you paste into the AI agent you already use on this computer, such as Claude Code or Codex. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, ending with advice from an expert on working with AI agents. With `kiroku serve --ai`, "Run with AI" runs the same prompt with that agent for you, after you confirm each run.
+One click copies a prompt that you paste into the AI agent you already use on this computer, such as Claude Code or Codex. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, ending with advice from an expert on working with AI agents. With `kiroku serve --ai`, "Run with AI" runs the same prompt with that agent for you, after you confirm each run.
 
 | Scope | Where | What you get |
 |---|---|---|
