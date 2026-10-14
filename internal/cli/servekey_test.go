@@ -257,3 +257,20 @@ func TestHopPage(t *testing.T) {
 		t.Errorf("open.html = %s", b)
 	}
 }
+
+// 中継のあとに移る先は、いつもこのサイトの中（ブラウザがタブ・改行を読み飛ばしたり \ を / と読んだりしても // にならない）
+func TestHopTargetStaysOnSite(t *testing.T) {
+	for _, p := range []string{"/", "//evil", "/\\evil", "/\t/evil", "/\r/evil", "/\\\t\\evil", "/\x7f/evil", "/a/\tb", "/x y"} {
+		to := hopTarget(p)
+		if !strings.HasPrefix(to, "/") || strings.HasPrefix(to, "//") || strings.HasPrefix(to, "/\\") || strings.ContainsFunc(to, func(c rune) bool { return c < 0x20 || c == 0x7f || c == '\\' }) {
+			t.Errorf("hopTarget(%q) = %q", p, to)
+		}
+		// ブラウザと同じく、タブと改行を除いてもこのサイトの中
+		if s := strings.NewReplacer("\t", "", "\r", "", "\n", "").Replace(to); strings.HasPrefix(s, "//") {
+			t.Errorf("hopTarget(%q) = %q becomes %q in a browser", p, to, s)
+		}
+	}
+	if got := hopTarget("/a/b"); got != "/a/b" {
+		t.Errorf("plain path = %q", got)
+	}
+}

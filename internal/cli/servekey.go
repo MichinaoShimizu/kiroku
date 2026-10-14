@@ -12,6 +12,7 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -136,7 +137,7 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 				return
 			}
 			q.Del("key")
-			to := "/" + strings.TrimLeft(r.URL.Path, `/\`) // //host や /\host（ブラウザは \ を / と読む）のような、ほかのサイトへの URL にしない
+			to := hopTarget(r.URL.Path)
 			if len(q) > 0 {
 				to += "?" + q.Encode()
 			}
@@ -151,6 +152,14 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 		}
 		locked(w)
 	})
+}
+
+// hopTarget は、?key= の中継のあとに移る、このサイトの中のパス。//host や /\host（ブラウザは \ を / と読む）、
+// /<タブ>/host（ブラウザは URL のタブと改行を読み飛ばす）のような、ほかのサイトへの URL にしない。
+// 先頭の / \ と制御文字を除き、残りは % で書く（中の制御文字も %09 などになり、ブラウザに読み飛ばされない）。
+func hopTarget(path string) string {
+	rest := strings.TrimLeftFunc(path, func(c rune) bool { return c == '/' || c == '\\' || c < 0x20 || c == 0x7f })
+	return (&url.URL{Path: "/" + rest}).EscapedPath()
 }
 
 // locked は、鍵のない問い合わせへの答え（403 と、kiroku open を案内するページ）。
@@ -181,6 +190,7 @@ const hopKeyScript = `(() => {
   let ok = false;
   if (/^[0-9a-f]{64}$/.test(k)) try { localStorage.setItem("` + keyStorage + `", k); ok = localStorage.getItem("` + keyStorage + `") === k; } catch(e){}
   if (ok){ location.replace(to.getAttribute("href")); return; }
+  try { history.replaceState(null, "", to.getAttribute("href")); } catch(e){} // しまえなくても、鍵はアドレスに残さない
   msg.textContent = "This browser doesn't let kiroku keep its key (site data may be blocked for this address), so it can't show your history here.";
   msg.className = "show";
 })();`
