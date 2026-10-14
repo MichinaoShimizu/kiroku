@@ -1,0 +1,6 @@
+- The view's first screen is easier to read
+  - One sentence above the calendar says what happened in the week or month: active time, on how many days, the project that took 40% or more of it, and usage limit hits when there were any
+  - The top shows 3 or 4 figures (Active time, Estimated cost or Kiro credits, Sessions / prompts, Usage limit hits when there were any); tokens, month-end estimates, active days and Git commits are in the summary
+  - Each day in the calendar shows only its active time; point at it (or touch it) for sessions, tokens, credits and commits, which screen readers also read
+  - In the weekly and monthly summary, only "① By project" is open; the other sections are folded, and the browser remembers which ones you opened
+  - In `kiroku serve`, "Analyze with AI" for the weekly or monthly report sits next to the period's sentence

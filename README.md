@@ -37,7 +37,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 ## What you get
 
-**Every session on a calendar.** When, in which project and what you asked, by week or month, with each day's active time, tokens, cost and Git commits. It records activity, not progress.
+**Every session on a calendar.** When, in which project and what you asked, by week or month, with one sentence on what happened and each day's active time. It records activity, not progress.
 
 ![The week calendar (dummy data)](docs/screenshot.png)
 
@@ -66,7 +66,7 @@ In `kiroku serve`, "Analyze with AI" runs a prompt with the AI agent you already
 | Scope | Where | What you get |
 |---|---|---|
 | A session | "Analyze with AI" in session details | Summary, numbers, an assessment of your prompts, up to three prioritized pieces of advice (each quoting the prompt with its time and giving an improved prompt), and a playbook of prompts for similar work |
-| A week or month | "Analyze with AI" under "Weekly report" ("Monthly report" in month view), below the period's dates | A report for the week or month: summary, numbers next to the previous period, what was done in each project and why, expert observations and next actions, ready to share with your team |
+| A week or month | "Analyze with AI" next to "Weekly report" ("Monthly report" in month view), beside the period's sentence | A report for the week or month: summary, numbers next to the previous period, what was done in each project and why, expert observations and next actions, ready to share with your team |
 
 The advice is grounded in your history, not generic tips. Each point names what it is based on: a figure, a prompt with its time, or a signal kiroku counted. Where the history shows it, the advice covers
 

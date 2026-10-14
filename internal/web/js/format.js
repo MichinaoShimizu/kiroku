@@ -39,7 +39,6 @@ const costOf = u => !u ? null : !u.cost && u.unpriced ? null : (u.cost || 0);
 const NOPRICE = t("The models used are not in the price table, so the estimated cost cannot be shown. Add their prices with --prices.");
 const crN = v => v >= 1 || v <= 0 ? commas(Math.round(v)) : v.toFixed(2); // クレジットは整数で（1 未満だけ小数 2 桁）
 function cr(v){ return `${crN(v)} cr`; }
-const tokS = v => v >= 1e7 ? Math.round(v/1e6)+"M" : v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e4 ? Math.round(v/1e3)+"K" : tok(v); // 狭いマス用に、桁を減らしたトークン
 function bytes(n){ return n >= 1<<30 ? (n/(1<<30)).toFixed(1)+" GB" : n >= 1<<20 ? (n/(1<<20)).toFixed(1)+" MB" : n >= 1<<10 ? (n/(1<<10)).toFixed(1)+" KB" : n+" B"; }
 function shade(i){ return [1,.72,.5,.34,.22,.14][Math.min(i,5)]; }
 function secs(v){ return v == null ? "—" : (v < 60 ? `${v}s` : `${Math.floor(v/60)}m ${v%60}s`); }

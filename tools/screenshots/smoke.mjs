@@ -133,6 +133,43 @@ async function run(env) {
     }
   });
 
+  await step("期間の一文と、上の帯", async () => { // 先週（記録のそろった週）で
+    const hl = p.locator("#headline");
+    check("期間の一文がある", await hl.isVisible() && / with AI across \d+ days?[.,]/.test(await hl.innerText()), await hl.innerText());
+    check("一文は期間の呼び名で始まる", /^(This week|Last week|Week of [A-Z][a-z]{2} \d{1,2})( so far)?: (\d+h( \d+m)?|\d+m) with AI/.test(await hl.innerText()), await hl.innerText());
+    check("一文は文字だけで作る（要素を入れない）", await hl.evaluate(e => e.children.length === 0));
+    const lim = await p.evaluate(() => { const {ws, we} = period(); return limitHits(ws, we).length; });
+    check("上限に当たったときだけ、一文でその回数を言う", lim ? /\d+ usage-limit hits?\.$/.test(await hl.innerText()) : !/usage-limit/.test(await hl.innerText()), await hl.innerText());
+    const n = await p.locator("#kpis .kpi").count();
+    check("上の帯は 3〜4 つだけ", n >= 3 && n <= 4, `${n} 個`);
+    check("上の帯にトークン・月末の見込み・稼働日・コミットはない（サマリーにある）", await p.locator('#kpis [data-metric="tokens"], #kpis [data-metric="projection"], #kpis [data-metric="projectionCr"], #kpis [data-metric="days"], #kpis [data-metric="commits"]').count() === 0);
+    check("上限に当たった回数の枠は、当たったときだけ", (await p.locator('#kpis [data-metric="limits"]').count() === 1) === lim > 0);
+    const over = await p.evaluate(() => [...document.querySelectorAll("#kpis .kpi")].filter(k => { const r = k.getBoundingClientRect(), v = k.querySelector(".v");
+      return r.left < -1 || r.right > innerWidth + 1 || v.scrollWidth > v.clientWidth + 1; }).map(k => k.textContent));
+    check("上の帯の枠がはみ出さず、数字が切れない", over.length === 0, over.join(" / "));
+    const heads = await p.evaluate(() => [...document.querySelectorAll("#tl .head")].filter(h => h.querySelector(".cm")).map(h => ({rows: h.querySelectorAll(".cm > div").length, sr: (h.querySelector(".sr:not(dt)") || {}).textContent || "", tip: (h.querySelector("[data-tip]") || {dataset: {}}).dataset.tip || ""})));
+    check("日付の見出しは作業時間の 1 行だけ", heads.length > 0 && heads.every(h => h.rows === 1), JSON.stringify(heads[0]));
+    check("ほかの数（セッション・コミット）は読み上げの文と吹き出しにある", heads.every(h => /Sessions \d+/.test(h.sr) && /Commits \d+/.test(h.sr) && /Sessions \d+/.test(h.tip)), JSON.stringify(heads[0]));
+  });
+
+  await step("サマリーの折りたたみ", async () => {
+    const folds = p.locator("#review details[data-fold]");
+    check("① のあとの番号つきの節が、たためる", await folds.count() >= 4, `${await folds.count()} 個`);
+    check("最初の節（① By project）だけが開いていて、ほかは閉じている", await p.locator("#review .panel.projs").isVisible() && await p.evaluate(() => [...document.querySelectorAll("#review details[data-fold]")].every(d => !d.open)));
+    const ids = await folds.evaluateAll(ds => ds.map(d => d.dataset.fold));
+    for (const id of ids) { const sm = p.locator(`#review details[data-fold="${id}"] > summary`); await sm.scrollIntoViewIfNeeded(); await sm.click(); await pause(); }
+    check("見出しを押すと開く", await p.evaluate(() => [...document.querySelectorAll("#review details[data-fold]")].every(d => d.open)));
+    check("開いた節の中身が見える", await p.locator("#review .panel.oc .stat").first().isVisible() && await p.locator('#review .hb[data-help="repeats"]').first().isVisible());
+    await open(); // 開き直しても、開いた節は開いたまま（ブラウザに覚える）。以降の流れは開いた節で確かめる
+    check("開いた節は、開き直しても開いたまま", await p.evaluate(() => [...document.querySelectorAll("#review details[data-fold]")].every(d => d.open)));
+    const first = p.locator(`#review details[data-fold="${ids[0]}"] > summary`);
+    await first.scrollIntoViewIfNeeded(); await first.click(); await pause(); await open();
+    check("閉じた節は、開き直しても閉じたまま", await p.evaluate(id => !document.querySelector(`#review details[data-fold="${id}"]`).open, ids[0]));
+    await first.scrollIntoViewIfNeeded(); await first.click(); await pause();
+    check("ブラウザに保存できなくても描ける（store が例外を飲む）", await p.evaluate(() => { const g = Storage.prototype.getItem; Storage.prototype.getItem = () => { throw new Error("blocked"); };
+      try { summary(); return document.querySelectorAll("#review details[data-fold]").length > 0; } finally { Storage.prototype.getItem = g; summary(); } }));
+  });
+
   await step("セッションの詳細", async () => {
     const run = await clickableRun(p);
     check("カレンダーにセッションがある", await run.count() > 0);
@@ -509,6 +546,9 @@ async function runJa(env) {
     check("期間の見出しは日本語の日付", /\d+月\d+日/.test(await p.locator("#rd").innerText()), await p.locator("#rd").innerText());
     const [sw, iw] = await overflow();
     check("横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
+    check("期間の一文が日本語で出る", await p.locator("#headline").isVisible() && /^.+は \d+ 日で (\d+h( \d+m)?|\d+m) AI と作業。/.test(await p.locator("#headline").innerText()), await p.locator("#headline").innerText());
+    const over = await p.evaluate(() => [...document.querySelectorAll("#kpis .kpi")].filter(k => { const r = k.getBoundingClientRect(), v = k.querySelector(".v"); return r.right > innerWidth + 1 || v.scrollWidth > v.clientWidth + 1; }).length);
+    check("上の帯の枠がはみ出さない", over === 0, `${over} 個`);
     await noEnglish("最初の画面");
   });
 

@@ -17,7 +17,7 @@ function summary(){
   R.innerHTML = `${head}<div class="rvgrid">
   ${projectPanel(w, unit)}
   ${outcomePanel(w, pw, unit)}
-  <section class="panel time">${panelH(3, esc(t("How you spent time")), esc(t("When and how long sessions ran")))}
+  ${foldH("time", "time", 3, esc(t("How you spent time")), esc(t("When and how long sessions ran")), "", `
     <div class="stats">
       ${statH(esc(t("Focus blocks (60+ min)")), times(w.focus.length), longest ? esc(t("Longest {dur}", {dur: dur(longest)})) : "", "focus", w.focus.length ? "focus" : "")}
       ${(() => { const {ws, we} = period(), H = limitHits(ws, we), N = unrecorded(ws, we, "limits"); return N ? norecStat(esc(t("Usage limit hits")), N, "limits") : statH(esc(t("Usage limit hits")), times(H.length), esc(H.length ? H.slice(-4).map(h => h.r ? t("{time} (resets {r})", {time: `${md(h.t)} ${hm(h.t)}`, r: h.r}) : `${md(h.t)} ${hm(h.t)}`).join(TSEP()) + (H.length > 4 ? TSEP() + "…" : "") : t("From Claude Code, Codex and Kiro Crew history")), "limits", H.length ? "limits" : ""); })()}
@@ -30,17 +30,16 @@ function summary(){
       ${statH(esc(t("Parallel time")), dur(w.parallel,true), esc(t("Up to {n} at once", {n: w.maxConc})), "parallel", w.parallel ? "parallel" : "")}
       ${statH(esc(t("Wait time (median)")), secsH(w.waitMedian), esc(t("{replies} · 90th percentile {p}", {replies: plural(w.waitCount, "reply", "replies"), p: secs(w.waitP90)})), "wait", w.waitCount ? "wait" : "")}
       ${statH(esc(t("Total AI run time")), dur(w.ai,true), esc(t("Includes parallel runs")), "ai", "ai")}
-    </div>
-    </section>
-  <section class="panel">${panelH(4, esc(t("How you used AI")), esc(t("Cache, models and heavy sessions")))}
+    </div>`)}
+  ${foldH("ai", "aiu", 4, esc(t("How you used AI")), esc(t("Cache, models and heavy sessions")), "", `
     ${aiUsage(w, pw, unit) || noneH(esc(t("No token or credit records.")))}
-    ${nativeSection(w)}</section>
-  <section class="panel shape">${panelH(5, esc(M ? t("Shape of the month") : t("Shape of the week")), esc(t("Friction and repeated prompts")))}
+    ${nativeSection(w)}`)}
+  ${foldH("shape", "shape", 5, esc(M ? t("Shape of the month") : t("Shape of the week")), esc(t("Friction and repeated prompts")), "", `
     ${w.friction.length ? secH(esc(t("Possible friction")), "friction") : ""}
     ${w.friction.length ? w.friction.map(f => sesCardH(sesById(f.id, f.title), `${sesMeta(f)} ${whyOf(f).map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}`)).join("") : ""}
     ${repeatsOf(period().ws, period().we).length ? secH(esc(t("Repeated prompts")), "repeats") : ""}
     ${(() => { const {ws, we} = period(), RP = repeatsOf(ws, we); return RP.length ? RP.slice(0, 3).map(c => { const v = {n: c.n, s: c.ids.size, day: md(c.last)}; return sesCardH(sesById(c.id, snipOf(c.text, 90)), esc(M ? t("{n} times in {s} sessions this month · last on {day}", v) : t("{n} times in {s} sessions this week · last on {day}", v))); }).join("") : ""; })()}
-    ${w.friction.length || repeatsOf(period().ws, period().we).length ? "" : noneH(esc(t("No sessions with possible friction and no repeated prompts.")))}</section>
+    ${w.friction.length || repeatsOf(period().ws, period().we).length ? "" : noneH(esc(t("No sessions with possible friction and no repeated prompts.")))}`)}
   <section class="panel metap">${measure(w)}${foot()}</section></div>`;
   placeFlags(R, F);
   R.querySelectorAll(".card,.fses").forEach(c => c.onclick = () => select(c.dataset.id));
@@ -53,7 +52,7 @@ function summary(){
   RB.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
   const run = RB.querySelector("#rptrun");
   if (run) run.onclick = () => runAIReview(run, reportPrompt(w, M), M ? t("Monthly report") : t("Weekly report"));
-  bindCopy(R); bindCopy(RB); bindHelp(R); bindHelp(WK); bindReport(R);
+  bindFolds(R); bindCopy(R); bindCopy(RB); bindHelp(R); bindHelp(WK); bindReport(R);
   if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }
 /* 期間の言い方（unit は "週" か "月"） */

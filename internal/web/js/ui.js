@@ -61,6 +61,12 @@ const dHead = (eyebrow, title, when, meta) => `<div class="eyebrow"><span class=
    secH:   パネルや詳細の中の見出し（h3）。h があれば「?」を付ける */
 const panelH = (n, t, s, h) => `<div class="ph">${n == null ? "" : `<span class="no">${n}</span>`}<h3>${t}${hb(h)}</h3>${s ? `<span>${s}</span>` : ""}</div>`;
 const secH = (t, h) => `<h3>${t}${hb(h)}</h3>`;
+/* foldH: サマリーの ② から後の節。最初の節（① By project）だけを開いておき、ほかはたためる <details> にする。
+   開いたかどうかはブラウザに覚える（store。localStorage が使えなくても、閉じたまま描くだけ）。id は覚える名前、cls はパネルのクラス、
+   「?」（h）は <summary> の中に置かない（押せるものを入れ子にしない）。開いたときだけ、見出しの右に重ねる */
+const FOLDS = () => { const v = store.get("folds", {}); return v && typeof v === "object" ? v : {}; };
+const foldH = (id, cls, n, title, sub, h, body) => `<details class="panel fold ${cls}" data-fold="${id}"${FOLDS()[id] ? " open" : ""}><summary class="ph"><span class="no">${n}</span><h3>${title}</h3>${sub ? `<span>${sub}</span>` : ""}${ico("caret", "fcar")}</summary>${h ? `<div class="fhelp">${hb(h)}</div>` : ""}${body}</details>`;
+function bindFolds(root){ root.querySelectorAll("details[data-fold]").forEach(d => d.ontoggle = () => { const v = FOLDS(); if (!!v[d.dataset.fold] === d.open) return; v[d.dataset.fold] = d.open; store.set("folds", v); }); }
 /* 数の枠：k は名前、v は値（HTML）、s は下の一言（HTML）、h は「?」の説明の id、m は押すと開く内訳（metric.js の BRK の id）。
    m があれば値をボタンにし、枠全体を押せるようにする（「?」と印は枠の上に重ねて、別に押せる）。記録しないエージェントだけなら norecStat */
 const statH = (k, v, s, h, m) => `<div class="stat${m ? " mstat" : ""}"><div class="k">${k}${hb(h)}</div>${m ? `<button type="button" class="v" data-metric="${m}" aria-haspopup="dialog" title="${esc(t("Click for the breakdown"))}">${v}</button>` : `<div class="v">${v}</div>`}${s ? `<div class="s">${s}</div>` : ""}</div>`;
