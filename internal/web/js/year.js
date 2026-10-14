@@ -420,7 +420,7 @@ function renderYear(pre){
   ${x.halves.length ? `<p class="note">${esc(t(`"Since …" compares the two halves of the dates you have history for, not calendar halves. "2+ sessions at once" is the share of active time when two or more sessions were running.`))}</p>` : ""}` : ""}
   ${asks.length ? `<h3>${esc(t("To reflect on"))}</h3>
   <ul class="yrhi">${asks.map(q => `<li>${esc(q)}</li>`).join("")}</ul>
-  <p class="note">${esc(t("Questions, not judgments. They stay on this screen: they are never saved, sent or put on the image. To dig into a month, copy its report prompt from the month view."))}</p>` : ""}
+  <p class="note">${esc(t("Questions, not judgments. They stay on this screen: they are never saved, sent or put on the image. To dig into a month, open it in the month view."))}</p>` : ""}
 
   <h3>${esc(t("Your light"))}</h3>
   ${L ? `<div class="yrtype"><div class="yrtn"><span>${name(L)}</span></div><div>

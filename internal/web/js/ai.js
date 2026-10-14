@@ -99,7 +99,7 @@ async function runAIReview(button, prompt, title) {
   start.onclick = async () => {
     const body = JSON.stringify({agent:agent.value,prompt:preview.value,consent:true}), size = utf8Len(body);
     if (size > AI_RUN_MAX){ // kiroku serve が受け付けない大きさなら、送らずにそう伝える（コピーして自分で貼る道は残る）
-      status.textContent = t("This prompt is too long to run here ({size} KB; the limit is {limit} KB). Copy it and paste it into the agent yourself.", {size: Math.ceil(size / 1024), limit: AI_RUN_MAX / 1024}); return; }
+      status.textContent = t("This prompt is too long to run here ({size} KB; the limit is {limit} KB).", {size: Math.ceil(size / 1024), limit: AI_RUN_MAX / 1024}); return; }
     controller = new AbortController();
     inToggle.hidden = true; setInputs(true);
     start.disabled = true; agent.disabled = true; copyResult.hidden = true; errLines = 0;
@@ -139,7 +139,7 @@ async function runAIReview(button, prompt, title) {
       if (ok){ AI_LAST.set(key, {text, agent: agent.value}); inToggle.hidden = false; setInputs(false); } // 結果だけを見せる（失敗・中止のときは、原因が見えるよう開いたまま）
     } catch (error) {
       // 通信そのものが切れたとき（"Failed to fetch" など）は、ブラウザの文ではなく、考えられる原因を書く
-      status.textContent = error.name === "AbortError" ? t("Canceled") : error.name === "TypeError" ? t("The connection to kiroku serve was lost. It may have stopped, or the prompt was too long; copy the prompt and paste it into the agent yourself if this repeats.") : String(error.message || error);
+      status.textContent = error.name === "AbortError" ? t("Canceled") : error.name === "TypeError" ? t("The connection to kiroku serve was lost. It may have stopped, or the prompt was too long.") : String(error.message || error);
       draw();
     } finally {
       controller = null; cancel.textContent = t("Close"); start.disabled = false; agent.disabled = false; start.textContent = t("Run again");
@@ -161,12 +161,12 @@ function showLocalAIInfo() {
   const why = document.createElement("p"); why.textContent = AI_OFF_WHY() + (LIVE && !(META && META.aiRun) // ボタンの説明と同じ文に、止めて起動し直す手順を足す
     ? AI_SEP() + t("To turn it on, stop it (Ctrl+C in its terminal) and start it again with --ai. kiroku autostart can't pass --ai: if you use it, run kiroku autostart off first.") : "");
   const noAgent = LIVE && META && META.aiRun; // --ai は付いているが、エージェントのコマンドがない
-  const what = document.createElement("p"); what.textContent = (noAgent ? "" : t("With --ai, \"Analyze with AI\" shows the exact prompt and, after you confirm, runs it with Claude Code, Codex or Kiro CLI on this computer.") + AI_SEP()) + t("Until then, the Copy buttons copy the same prompt for you to paste into an agent yourself.");
+  const what = document.createElement("p"); what.textContent = noAgent ? "" : t("With --ai, \"Analyze with AI\" shows the exact prompt and, after you confirm, runs it with Claude Code, Codex or Kiro CLI on this computer.");
   const close = document.createElement("button"); close.type = "button"; close.className = "pill"; close.textContent = t("Close");
   function dismiss() { if (dialog.open && typeof dialog.close === "function") dialog.close(); dialog.remove(); }
   close.onclick = dismiss;
   dialog.addEventListener("cancel", e => { e.preventDefault(); dismiss(); });
-  dialog.append(heading, why, what, close);
+  dialog.append(heading, why, ...(what.textContent ? [what] : []), close);
   document.body.append(dialog);
   if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
 }

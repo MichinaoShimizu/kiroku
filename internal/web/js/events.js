@@ -1,4 +1,4 @@
-// ボタンとキーの操作、期間の移動、ズーム
+// ボタンとキーの操作、期間の移動
 /* ── events ── */
 // navEnds は、‹ › で行ける端（表示中の週か月の初日）。先は今週・今月まで（デモはずらした時計で）。
 // 期間だけのファイルは、入っている期間の中だけ（月だけのファイルの週表示は、その月にかかる週）
@@ -31,7 +31,6 @@ function setMode(m){ if (m === "month" && META.scope && META.scope.mode === "wee
   st.mode = m; store.set("mode", m); st.sel = null; st.animate = true; render(); scrollToWork(); }
 document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = () => setMode(b.dataset.v)); // Year（#yrbtn）は表示の切り替えではなく、1 年の露光を開く
 $("#prev").onclick = () => go(-1); $("#next").onclick = () => go(1); $("#today").onclick = () => go(null);
-function zoom(dv){ st.z = Math.max(0, Math.min(HOURS.length-1, st.z+dv)); st.zAuto = false; store.set("zh", st.z); render(); scrollToWork(); }
 $("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); st.srN = st.scN = 0; render(); }; // 言葉が変わったら、結果はまた先頭の数件から
 // 検索欄で Enter：最初の結果へフォーカスを移す（結果はカレンダーの上）
 $("#q").addEventListener("keydown", e => { if (e.key !== "Enter" || e.isComposing || !st.q) return;
@@ -40,7 +39,6 @@ $("#q").addEventListener("keydown", e => { if (e.key !== "Enter" || e.isComposin
 if (!LIVE) $("#home").href = location.href.split(/[?#]/)[0];
 $("#theme").onclick = () => { st.theme = st.theme === "dark" ? "light" : "dark"; store.set("theme", st.theme); applyTheme(); };
 $("#help").onclick = () => $("#keys").showModal();
-$("#guide").onclick = openGuide;
 $("#yrbtn").onclick = openYear;
 let yrRaf = 0; addEventListener("resize", () => { if ($("#yr").open && !yrRaf) yrRaf = requestAnimationFrame(() => { yrRaf = 0; drawPlate(); }); }); // 1 年の図の描き直しは 1 コマに 1 回まで
 // ダイアログ（ショートカット・Worth a look・1 年の露光）は、枠の外を押すと閉じる（詳細のパネルの #scrim と同じ）。
@@ -67,16 +65,15 @@ addEventListener("popstate", () => {
 const ARROW_OWN = "input, select, textarea, [contenteditable], .segc, [role=group], [role=radiogroup], [role=tablist], [role=listbox], [role=slider], [role=menu]";
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT"){ if (e.key === "Escape") e.target.blur(); return; }
-  if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open || $("#yr").open || $("#wk").open || $("#md").open || $("#mg").open) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open || $("#yr").open || $("#wk").open || $("#md").open) return;
   const k = e.key;
   if (k === "Escape" && closeHint()) return; // 開いた説明（?）があれば、それだけ閉じる
   if (k === "ArrowLeft" || k === "ArrowRight"){ // 詳細を開いているあいだも動かさない（閉じて別の週へ飛ぶと、どこにいるかわからなくなる）
     if (st.sel || e.target.closest?.(ARROW_OWN)) return;
     go(k === "ArrowLeft" ? -1 : 1); }
   else if (k === "t" || k === "T") go(null);
-  else if (k === "/"){ e.preventDefault(); $("#q").focus(); } else if (k === "+" || k === "=") zoom(1); else if (k === "-") zoom(-1);
+  else if (k === "/"){ e.preventDefault(); $("#q").focus(); }
   else if (k === "Escape" && st.sel) select(null); else if (k === "?") $("#keys").showModal();
-  else if (k === "g" || k === "G") openGuide();
   else if (k === "w" || k === "W") setMode("week"); else if (k === "m" || k === "M") setMode("month");
   else if ((k === "y" || k === "Y") && !$("#yrbtn").hidden && !$("#mode").hidden) openYear(); // ボタンが見えているときだけ（週だけを書き出したファイルでは開かない）
 });
@@ -91,15 +88,15 @@ function workHours(){
   hs.sort((a,b) => a-b);
   const day = hs.filter(h => h >= 6), first = day.length >= hs.length*0.8 ? day[0] : hs[Math.floor(hs.length*0.2)];
   return {first, last: Math.max(first + 1, Math.ceil(last))}; }
-// fitZoom は、作業の時間帯がカレンダーの枠（.calscroll の高さから日付の見出しを引いたもの）に収まる、いちばん大きな 1 時間の高さ。
+// fitHour は、作業の時間帯がカレンダーの枠（.calscroll の高さから日付の見出しを引いたもの）に収まる、いちばん大きな 1 時間の高さ。
 // 既定（44px）より大きくはせず、小さくしすぎると名前が読めないので 36px より小さくもしない
-function fitZoom(){ const w = workHours(); if (!w) return 2;
+function fitHour(){ const w = workHours(); if (!w) return 44;
   const box = Math.min(innerHeight * (matchMedia("(max-width:820px)").matches ? .70 : .74), 880) - 140, span = w.last - w.first + 0.5;
-  return HOURS[2] * span <= box ? 2 : 1; }
+  return 44 * span <= box ? 44 : 36; }
 function scrollToWork(){ // その週の作業が始まるころの少し前へ
   const sc = $("#tl .calscroll"); if (!sc) return;
   const ws = st.week.getTime()/1000, we = addDays(st.week, 7).getTime()/1000, w = workHours(), first = w ? w.first : 8;
-  sc.scrollTop = Math.max(0, first * (HOURS[st.z] || 44) - 14); // その時刻の線がちょうど日付の下に見えるように
+  sc.scrollTop = Math.max(0, first * (st.hh || 44) - 14); // その時刻の線がちょうど日付の下に見えるように
   if (sc.scrollWidth > sc.clientWidth + 4){ // 横にスクロールする狭い画面では、今週は今日までで最後に作業日を、過ぎた週は月曜から見せる
     const w = WEEKS[key(st.week)], now = nowMs()/1000, heads = sc.querySelectorAll(".head");
     let i = -1; if (w && now < we) w.days.forEach((d, j) => { if (d.active && addDays(st.week, j).getTime()/1000 <= now) i = j; });

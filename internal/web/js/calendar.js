@@ -1,6 +1,5 @@
 // 描画の入口 render、上の帯（要点）、週と月のカレンダー、ツールチップ
 /* ── render ── */
-const HOURS = [28, 36, 44, 56, 72, 96]; // 1 時間の高さ（ズーム）
 function period(){ // 今見ている期間 [ws, we) と、その集計
   if (st.mode === "month"){ const a = st.month, b = new Date(a.getFullYear(), a.getMonth()+1, 1); return {ws:a.getTime()/1000, we:b.getTime()/1000, S:MONTHS[mkey(a)], P:MONTHS[mkey(new Date(a.getFullYear(), a.getMonth()-1, 1))]}; }
   return {ws:st.week.getTime()/1000, we:addDays(st.week,7).getTime()/1000, S:WEEKS[key(st.week)], P:WEEKS[key(addDays(st.week,-7))]};
@@ -27,20 +26,18 @@ function render(){
   const cnt = {}; inRange.forEach(s => cnt[keyOf(s)] = (cnt[keyOf(s)]||0)+1);
   const mins = legendMinutes();
   const noHit = !!st.q && !DATA.some(matches); // 検索がどこにも当たらない（カレンダーは空になり、上の検索結果だけが「ない」と言う）
-  const noZoom = M || noHit; // ズームは週のカレンダーの時間の高さだけ（月では何も変わらない）
   // 件数は横にスクロールする並び（.lrow）の外に置く。スマホでは並びの上に出し、チップが多くても画面の外へ押し出されないように
   $("#legend").innerHTML = `<label class="cbsel"><span class="cbt">${esc(t("Color by"))}</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label><div class="lrow"><span class="lab">${esc(t("Active time"))}<small> · ${esc(t("click to hide"))}</small></span>` +
     Object.keys(cnt).sort((a,b)=>(mins[b]||0)-(mins[a]||0) || cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}" title="${esc(t("{name}: {stats} (click to show or hide)", {name: k, stats: `${mins[k] ? dur(mins[k]) + " · " : ""}${plural(cnt[k], "session")}`}))}"><span class="dot"></span>${st.colorBy === "source" ? agMark(k) : ""}<span class="cn">${esc((k))}</span><span class="n">${mins[k] ? dur(mins[k]) : "—"}<span class="sr"> ${esc(t("active"))}</span></span></button>`).join("") +
-    `</div>${noZoom ? "" : `<span class="zlab" aria-hidden="true">${esc(t("Zoom"))}</span><div class="segc zoom" role="group" aria-label="${esc(t("Zoom"))}"><button id="zout" aria-label="${esc(t("Zoom out"))}">−</button><button id="zin" aria-label="${esc(t("Zoom in"))}">+</button></div>`}<span class="count">${esc(t("{n} / {total} sessions", {n: shown.length, total: inRange.length}))}</span>`;
-  if (!noZoom){ $("#zin").onclick = () => zoom(1); $("#zout").onclick = () => zoom(-1); }
+    `</div><span class="count">${esc(t("{n} / {total} sessions", {n: shown.length, total: inRange.length}))}</span>`;
   // 検索・凡例で絞り込んでいるあいだ、絞り込めない合計（作業時間・トークンなど）は薄くして、そう断る
   const fn = $("#fnote"); fn.hidden = !filtering() || noHit;
   fn.textContent = `${st.q ? t("This view shows only sessions matching the search and their linked records.") : t("Hidden items are left out of this view.")} ${M ? t("Gray figures, at the top and in each day and week, are totals for all sessions; sessions and commits there count only what is shown.") : t("Gray figures, at the top and under each date, are totals for all sessions; sessions and commits there count only what is shown.")}`;
-  $("#legend").hidden = !inRange.length; // 記録のない期間は、色分け・ズーム・件数を出さない（押しても何も変わらない）
+  $("#legend").hidden = !inRange.length; // 記録のない期間は、色分け・件数を出さない（押しても何も変わらない）
   const cb2 = $("#cb2"); if (cb2) cb2.onchange = () => { st.colorBy = cb2.value; st.hidden.clear(); store.set("colorBy", st.colorBy); render(); };
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
 
-  if (!M && st.zAuto) st.z = fitZoom(); // ズームを選んでいなければ、この週の作業の時間帯が枠に収まる高さに
+  if (!M) st.hh = fitHour(); // 1 時間の高さは、この週の作業の時間帯が枠に収まるように（44px か 36px）
   M ? monthGrid(shown, ws, we, todayKey) : timeline(shown, inRange, ws, we, todayKey);
   edgeFade($("#tl")); // 月表示や空の週では消す
   $("#skipcal").hidden = !!st.q; // 検索の最中は、結果がカレンダーの上にあり、下のサマリーは空
@@ -163,7 +160,7 @@ function monthGrid(shown, ms, me, todayKey){
 
 /* 週のカレンダー：曜日が列、時刻が縦。重なるセッションだけ横に並べる */
 function timeline(shown, inWeek, ws, we, todayKey){
-  const T = $("#tl"), hh = HOURS[st.z] || 44, H = 24*hh;
+  const T = $("#tl"), hh = st.hh || 44, H = 24*hh;
   if (inWeek.length && !shown.length && st.q && !DATA.some(matches)){ T.innerHTML = ""; return; } // 検索がどこにも当たらないときは、上の検索結果の「ない」だけにする
   if (!inWeek.length || !shown.length){
     // 記録のない週は、ここで 1 度だけ「ない」と言い、記録のある最後の週へ行けるようにする（月は大文字のまま。toLowerCase で "jul 6" にしない）
@@ -184,7 +181,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
     const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${act || dayGit.length ? copyBtn(`<span class="dl">${esc(t("Report"))}</span>`, `data-d="${d}" aria-label="${esc(t("Copy daily report prompt for {date}", {date: md(ds)}))}" title="${esc(t("A prompt that asks an AI agent on this computer to write your daily report for {date}", {date: md(ds)}))}"`, "pill fill dayrpt") : ""}${(act || dayGit.length) && aiRun() ? `<button class="pill dayrun ai-action" data-d="${d}" type="button" aria-label="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}">${esc(t("Analyze with AI"))}</button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`;
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i></div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`;
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
@@ -233,18 +230,10 @@ function timeline(shown, inWeek, ws, we, todayKey){
   const sc = T.querySelector(".calscroll");
   sc.style.scrollPaddingTop = T.querySelector(".heads").offsetHeight + "px"; sc.style.scrollPaddingLeft = "56px"; // Tab で移ったブロックが、固定の日付・時刻の下に隠れないように
   if (top != null) sc.scrollTop = top;
-  // 上に固定した日付の見出しのボタン（日報・AI）にフォーカスが移ると、ブラウザがそれを見せようとして 0 時まで巻き戻す。
-  // フォーカスは見出しの中だけなので、巻き戻す前（まだ scroll が届いていない値）に戻す
-  let seenTop = sc.scrollTop;
-  sc.addEventListener("scroll", () => { seenTop = sc.scrollTop; }, {passive: true});
-  sc.addEventListener("focusin", e => { if (e.target.closest(".heads") && sc.scrollTop !== seenTop) sc.scrollTop = seenTop; });
   fitRuns(T);
   sc.addEventListener("scroll", () => edgeFade(T), {passive: true}); edgeFade(T);
   T.querySelectorAll(".lim").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); });
   bindGitEvents(T);
-  T.querySelectorAll(".dayrpt").forEach(b => b.onclick = e => { e.stopPropagation(); // 日報のプロンプト（週報と同じ作り。その日の分だけ）
-    copy(reportPrompt(null, false, addDays(st.week, +b.dataset.d)), t("Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending."), 8000, b); });
-  T.querySelectorAll(".dayrun").forEach(b => b.onclick = e => { e.stopPropagation(); runAIReview(b, reportPrompt(null, false, addDays(st.week, +b.dataset.d)), t("Daily report for {date}", {date: md(addDays(st.week, +b.dataset.d).getTime() / 1000)})); });
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });
   T.querySelectorAll(".run").forEach(el => { const bk = runs[+el.dataset.r];
     el.onclick = e => { e.stopPropagation(); select(bk.s.id); };

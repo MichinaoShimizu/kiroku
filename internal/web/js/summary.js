@@ -2,11 +2,10 @@
 /* ── 週次・月次サマリー：① プロジェクト別 ② コストとアウトプット ③ 時間 ④ AI ⑤ かたち。基準を超えた指標には、その場に印と推移を付ける ── */
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
-  const hint = M ? t("For an AI agent on this computer; it points the agent to this month's history files. Copying sends nothing.") : t("For an AI agent on this computer; it points the agent to this week's history files. Copying sends nothing.");
   const head = `<div class="rvhead"><h2>${esc(M ? t("Monthly summary") : t("Weekly summary"))}</h2><p>${esc(t("Rough figures for reflecting on how you work. They are not for comparing people or for evaluations."))}</p></div>`;
-  // 週報・月報のボタンは、その期間の見出しの下に（日報のボタンが各日の見出しにあるのと同じ）
+  // 週報・月報の「Analyze with AI」は、その期間の見出しの下に
   const RB = $("#rptbar"); RB.hidden = !w;
-  RB.innerHTML = w ? `<span class="rptl">${esc(M ? t("Monthly report") : t("Weekly report"))}</span>${w ? copyBtn(esc(t("Copy prompt")), `id="rptcopy" title="${esc(hint)}" aria-label="${esc(M ? t("Copy monthly report prompt") : t("Copy weekly report prompt"))}"`, "pill fill") : ""}${w ? (aiRun() ? `<button class="pill ai-action" id="rptrun" type="button" aria-label="${esc(M ? t("Analyze with AI: monthly report") : t("Analyze with AI: weekly report"))}">${esc(t("Analyze with AI"))}</button>` : `<button class="pill ai-off ai-demo-info" type="button" title="${esc(AI_OFF_WHY())}">${esc(t("Analyze with AI (off)"))}</button>`) : ""}` : "";
+  RB.innerHTML = w ? `<span class="rptl">${esc(M ? t("Monthly report") : t("Weekly report"))}</span>${w ? (aiRun() ? `<button class="pill ai-action" id="rptrun" type="button" aria-label="${esc(M ? t("Analyze with AI: monthly report") : t("Analyze with AI: weekly report"))}">${esc(t("Analyze with AI"))}</button>` : `<button class="pill ai-off ai-demo-info" type="button" title="${esc(AI_OFF_WHY())}">${esc(t("Analyze with AI (off)"))}</button>`) : ""}` : "";
   const WK = $("#worth"); $("#sres").hidden = true; $("#sres").innerHTML = "";
   if (!w){ WK.hidden = true; R.innerHTML = foot(); bindReport(R); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
@@ -49,7 +48,6 @@ function summary(){
   R.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b)); // 上の帯と同じ内訳
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
   R.querySelectorAll(".keeparch").forEach(b => b.onclick = () => { R.querySelectorAll(".keeparch").forEach(x => x.disabled = true); keepArchive(); });
-  const rc = RB.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy(reportPrompt(w, M), t("Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending."), 8000, rc);
   R.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
   RB.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
   const run = RB.querySelector("#rptrun");

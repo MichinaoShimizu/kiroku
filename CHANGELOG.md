@@ -8,6 +8,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - The Journey and Project views, and the View switch above the calendar: the view is the Week / Month calendar, with search, the legend's filters, session details, the summary and the Year in review as before. A browser that last showed Journey or Project opens the calendar ([ADR 0033](docs/adr/0033-calendar-only-view.md))
 - "Copy knowledge prompt" on each project card under "① By project", and its prompt (knowledge discovery, ADR 0028)
+- The "Report" button on each day of the week calendar and the daily report prompt. Weekly and monthly reports stay
+- Every "Copy prompt" button: "Copy prompt" for the weekly and monthly report and "Copy review prompt" in session details. The report and review prompts are still built, for "Analyze with AI" only
+- The metrics guide (the map button at the top right and the `G` key). The "?" next to each metric and the keyboard shortcut list (`?`) stay
+- The calendar zoom ("Zoom" − + in the legend and the `+` `−` keys). The week calendar still fits the height of an hour to the week's working hours
 
 ## v0.36.0 - 2026-10-14
 
