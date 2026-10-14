@@ -100,6 +100,21 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		}
 		model := core.Str(meta["modelId"])
 		modeled := false // usage_summary でモデルを数えたか
+		// モデルの切り替え（Kiro CLI 2.30 から。session_metadata の modelFallback）。scope が turn ならそのターン
+		// （executionId）だけ、session なら以後のターンが to のモデルになり、session.json の modelId も to に書き換わる。
+		// usage_summary にはモデルがないので、ターンのモデルは最後に決める（それまでのターンは、切り替えの from）
+		turnModel := map[string]string{} // executionId → そのターンだけのモデル
+		var turns []string               // まだモデルを決めていないターンの executionId
+		settle := func(m string) {
+			for _, ex := range turns {
+				if tm := turnModel[ex]; tm != "" {
+					s.Model(tm)
+				} else {
+					s.Model(m)
+				}
+			}
+			turns = turns[:0]
+		}
 		s.Tick(ts(meta["createdAt"]))
 		// 応答は、次の依頼の行まで待ってから入れる。行の時刻がない・その回（直前の依頼から次の依頼まで）の外にある応答は、
 		// 直前の依頼の時刻を使う。Kiro CLI V2 から 3.0 へ移した会話の、切り替える前の応答には、使える時刻がない
@@ -155,11 +170,25 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 				if ids, ok := p["requestIds"].([]any); ok {
 					s.Measure("requests", t, float64(len(ids)))
 				}
-				s.Model(model)
+				turns = append(turns, core.Str(p["executionId"]))
 				modeled = true
 			case "session_metadata":
 				// {key: "contextUsage", value: {usagePercentage: 0〜100}}。参考実装 codeburn のテストデータ（tests/providers/kiro.test.ts）だけにある形。
 				// 0〜100 の数でなければ使わない
+				if core.Str(p["key"]) == "modelFallback" {
+					v := core.Map(p["value"])
+					from, to := core.Str(v["from"]), core.Str(v["to"])
+					switch core.Str(v["scope"]) {
+					case "turn":
+						if ex := core.Str(p["executionId"]); ex != "" && to != "" {
+							turnModel[ex] = to
+						}
+					case "session":
+						if from != "" {
+							settle(from) // 切り替える前のターンは from のモデル
+						}
+					}
+				}
 				if core.Str(p["key"]) == "contextUsage" {
 					if v, ok := core.Num(core.Map(p["value"])["usagePercentage"]); ok && v >= 0 && v <= 100 {
 						s.Measure("context_used", t, v/100)
@@ -168,6 +197,7 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 			}
 		}))
 		flush(nil)
+		settle(model)
 		if !modeled && len(s.Prompts) > 0 {
 			s.Model(model) // usage_summary がなければ、会話のモデル（modelId）を 1 回数える（v1.0 より前の selectedModel と同じ）
 		}
