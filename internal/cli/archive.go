@@ -61,7 +61,7 @@ func cmdArchive(args []string) error {
 		if err := archive.Enable(dir); err != nil {
 			return fmt.Errorf("could not create %s: %w", dir, err)
 		}
-		picked, _ := c.picked()
+		picked, _, _ := c.picked()
 		n := keepCopies(picked, dir)
 		files, size := archive.Usage(dir)
 		fmt.Printf("archive is on: kiroku keeps copies of history that agents delete in %s\nkept %s now (%s, %s in total); new history is kept each time kiroku reads it\n", dir, nFiles(n), nFiles(files), humanBytes(size))

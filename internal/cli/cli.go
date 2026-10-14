@@ -112,20 +112,21 @@ func addCommon(fs *flag.FlagSet) *common {
 	}
 }
 
-// picked は選んだ履歴。
-func (c *common) picked() ([]source.Source, map[string]bool) {
-	want := map[string]bool{}
+// picked は選んだ履歴。all は選んでいないものもふくめた全部（collect に渡す。選んでいない Kiro Crew からも、
+// 中身を出してはいけない会話の、Codex・Claude Code に残る写しを調べて隠すため。source.ClaimScanner）。
+func (c *common) picked() (picked []source.Source, want map[string]bool, all []source.Source) {
+	want = map[string]bool{}
 	for _, s := range strings.Split(*c.sources, ",") {
 		want[strings.ToLower(strings.TrimSpace(s))] = true
 	}
-	var picked []source.Source
-	for _, s := range source.All(source.Options{ClaudeRoot: *c.claudeRoot, KiroHome: *c.kiroHome, KiroCLIDB: *c.kiroCLIDB,
-		AmazonQDB: *c.amazonQDB, CrewHome: *c.crewHome, CodexHome: *c.codexHome, Archive: *c.archiveDir}) {
+	all = source.All(source.Options{ClaudeRoot: *c.claudeRoot, KiroHome: *c.kiroHome, KiroCLIDB: *c.kiroCLIDB,
+		AmazonQDB: *c.amazonQDB, CrewHome: *c.crewHome, CodexHome: *c.codexHome, Archive: *c.archiveDir})
+	for _, s := range all {
 		if want[s.Family()] {
 			picked = append(picked, s)
 		}
 	}
-	return picked, want
+	return picked, want, all
 }
 
 // keepFn は、kiroku serve の画面から kiroku archive をオンにする関数（コピーは次の読み直しで残す）。
@@ -141,7 +142,7 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 			return nil, nil, fmt.Errorf("could not read the price table: %w", err)
 		}
 	}
-	picked, want := c.picked()
+	picked, want, all := c.picked()
 	dir := *c.archiveDir
 	gap := *c.gap
 	cache := newLoadCache()     // kiroku serve の読み直しで、変わっていない履歴を読み直さない
@@ -152,7 +153,7 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 		if on {
 			keepCopies(picked, dir)
 		}
-		data, rep := collectCached(picked, want, gap, cache)
+		data, rep := collectCached(all, want, gap, cache)
 		if data == nil {
 			data = []*core.Session{} // 画面では null ではなく空の一覧として扱う
 		}

@@ -54,9 +54,9 @@ func cmdDoctor(args []string) error {
 			rel.checked = true
 		}()
 	}
-	picked, want := c.picked()
+	_, want, srcs := c.picked()
 	logw = io.Discard // エージェントごとの読み込みの行は、下の一覧にまとめて出す
-	data, rep := collect(picked, want, *c.gap)
+	data, rep := collect(srcs, want, *c.gap)
 	<-done
 	doctorReport(os.Stdout, rep, len(data), *c.archiveDir, rel, *all)
 	return nil

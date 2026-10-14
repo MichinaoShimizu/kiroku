@@ -67,7 +67,7 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 	// 中身を出してはいけない会話（Kiro Crew の incognito・temporary）は、同じエージェントの別の履歴に残る写し
 	// （Kiro CLI の SQLite）も隠す。Amazon Q は同じ形の Key を使うが別のエージェントなので、エージェントの家族（Family）が同じものだけ
 	withheld := map[string]bool{} // Family + "\x00" + Key
-	// ほかのエージェントの履歴に残る写し（Kiro Crew の Codex の backend の会話の、Codex 自身の記録）は Claim の鍵で隠す
+	// ほかのエージェントの履歴に残る写し（Kiro Crew の Codex・Claude Code の backend の会話の、それぞれ自身の記録）は Claim の鍵で隠す
 	withheldClaims := map[string]bool{}
 	for _, s := range picked {
 		if w, ok := s.(source.Withholder); ok {
@@ -78,6 +78,20 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 		if w, ok := s.(source.ClaimWithholder); ok {
 			for _, c := range w.WithheldClaims() {
 				withheldClaims[c] = true
+			}
+		}
+	}
+	// 選んでいない Source（--sources codex で Kiro を読まないときの Kiro Crew など）も、ほかのエージェントに残る写しは隠す。
+	// all は選んでいないものもふくめて渡す（cli の loader・doctor）
+	if len(picked) > 0 {
+		for _, s := range all {
+			if want[s.Family()] {
+				continue
+			}
+			if w, ok := s.(source.ClaimScanner); ok {
+				for _, c := range w.ScanWithheldClaims() {
+					withheldClaims[c] = true
+				}
 			}
 		}
 	}

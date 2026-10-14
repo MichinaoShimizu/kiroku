@@ -32,6 +32,9 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Running an AI agent from the view (`POST /ai/run`) was on whenever `kiroku serve` listened on loopback, so any page with the serve key could have an agent read history and send it to its provider without you choosing to allow it. It is now off unless you start `kiroku serve --ai`, and the view shows "Run with AI" only then
 - The "Discover knowledge" prompt now puts the project's history inside a fenced block, one line per value, and marks it as data, as the other AI prompts do, so a title or prompt in history can't forge lines that look like kiroku's or close the block
 - A Kiro Crew conversation held in incognito or temporary mode, opened in Kiro CLI 3.0 (`--resume-id`), is now shown with counts and times only in its 3.0 copy too, as its Classic and SQLite copies already were; its prompts and title in the 3.0 copy were shown in full
+- A Kiro Crew conversation held in incognito or temporary mode on the Claude Code backend is now shown with counts and times only in Claude Code's own history (`~/.claude/projects/<project>/<session ID>.jsonl`, which Crew doesn't delete) too; its prompts, replies and title there were shown in full
+- Copies of private Kiro Crew conversations in Codex's and Claude Code's history were shown in full when the Kiro history wasn't read (`--sources codex`, `--sources claude`). kiroku now reads Crew's records to find them whichever sources you pick
+- Only a private Kiro Crew conversation's current Codex thread was hidden. Its earlier conversation (`discarded_sid`), its subagents' sessions (`state.json`) and the conversations in its crew logs are now hidden too, in Codex's and Claude Code's history, whichever backend `session_map.json` names
 
 ## v0.32.0 - 2026-10-11
 

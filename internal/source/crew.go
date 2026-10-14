@@ -70,12 +70,107 @@ type CrewInfo struct {
 // スレッドは CODEX_HOME に Codex 自身の記録（rollout）として残り（acp/harness/codex.py の SpawnPlan の注記）、kiroku の Codex の読み取りが
 // 依頼・時刻・トークン・コストを読むので、Crew の記録から作る Crew のセッションは、そのスレッドのセッションがあれば数えない（core.Builder.Yield）。
 // session_map の provider は会話キーの今の backend なので、今の sid だけを使う（discarded_sid の backend はわからない）。
-// サブエージェントは親の会話にまとめるので使わない。
+// サブエージェントは親の会話にまとめるので使わない。中身を残さない会話の写しを隠す鍵は、これより広い crewSidClaims。
 func (i CrewInfo) codexClaim() string {
 	if i.Subagent || i.Former || i.Provider != "codex" || i.Sid == "" {
 		return ""
 	}
 	return codexClaim(i.Sid)
+}
+
+// crewSidClaims は、中身を残さない会話の backend の会話 ID sid が、ほかのエージェントの履歴に残す写しの Claim の鍵。
+// codexClaim は数え方（Yield）にも使うので今の Codex の sid だけだが、隠すほうは厳しい側に倒す: discarded_sid の backend はわからず、
+// サブエージェントの backend も state.json がなければわからないので、provider によらず Codex（スレッド ID）・Claude Code
+// （claude-agent-acp ではセッション ID。claudeClaim）・Kiro CLI 3.0 へ移した写し（kiroClassicYield）の鍵を全部出す。
+// 会話 ID は UUID なので、ほかの会話を隠すことはない。
+func crewSidClaims(sid string) []string {
+	if sid == "" {
+		return nil
+	}
+	return []string{codexClaim(sid), claudeClaim(sid), kiroClassicYield(sid)}
+}
+
+// crewPrivateSids は、中身を残さない Crew の会話（incognito・temporary）の、わかっている backend の会話 ID を全部返す
+// （provider・今か前か・サブエージェントかによらない。並べて重なりを除く）:
+//   - session_map の sid と discarded_sid（flags の印か、会話の記録のメタデータで中身を残さない会話キーのもの）
+//   - サブエージェントの state.json の session_id（state.json が中身を残さないと示すか、親の会話キーが中身を残さないもの）
+//   - crew-log の会話の 1 行目（SessionHeader）の id（slot が中身を残さない会話キーのもの。backend を切りかえる前の会話も残る）
+//
+// loadCrew と違い、同じ sid が 2 つのキーにあっても片方に決めず、どちらかが中身を残さないなら出す。会話の記録の中身は読まない。
+// 中身を残さない一時的なサブエージェントは state.json を書かないので（subagent_persistence.py）、その会話 ID はわからない。
+// priv は中身を残さない会話（loadCrew と同じものを渡せば、調べた結果を使い回す。nil なら作る）。
+func crewPrivateSids(home string, priv *crewPrivacy) []string {
+	if home == "" || !isDir(home) {
+		return nil
+	}
+	if priv == nil {
+		priv = newCrewPrivacy(home, "")
+	}
+	set := map[string]bool{}
+	add := func(id string) {
+		if id != "" {
+			set[id] = true
+		}
+	}
+	sm, _ := core.ReadJSONFile(filepath.Join(home, "session_map.json"))
+	entries := core.Map(sm)
+	for key, v := range entries {
+		if crewPrivateFlags(core.Map(v)["flags"]) {
+			priv.mark(key)
+		}
+	}
+	for key, v := range entries {
+		if !priv.key(key) {
+			continue
+		}
+		if m := core.Map(v); m != nil {
+			add(core.Str(m["sid"]))
+			add(core.Str(m["discarded_sid"]))
+		} else {
+			add(core.Str(v)) // 古い形は文字列だけ
+		}
+	}
+	for _, p := range glob(filepath.Join(home, "subagents", "*", "state.json")) {
+		v, _ := core.ReadJSONFile(p)
+		st := core.Map(v)
+		if crewPrivateMeta(st) || priv.key(core.Str(st["parent_session"])) {
+			add(core.Str(st["session_id"]))
+		}
+	}
+	for _, dir := range glob(filepath.Join(home, "crew-log", "sessions", "*")) {
+		if !realDir(dir) {
+			continue
+		}
+		if segs := crewLogSegments(dir); len(segs) > 0 {
+			if id, slot := crewLogHeader(segs[0]); priv.key(slot) {
+				add(id)
+			}
+		}
+	}
+	out := make([]string, 0, len(set))
+	for id := range set {
+		out = append(out, id)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// crewLogHeader は crew-log のファイルの 1 行目（{"type": "session", "id", "slot", …}）の id と slot。読めなければ空。
+func crewLogHeader(p string) (id, slot string) {
+	if st, err := os.Lstat(p); err != nil || !st.Mode().IsRegular() {
+		return "", ""
+	}
+	f, err := core.OpenRegular(p)
+	if err != nil {
+		return "", ""
+	}
+	defer f.Close()
+	line, tooLong, _ := core.ReadLine(bufio.NewReaderSize(f, 1<<16), core.MaxLine)
+	var e core.Obj
+	if tooLong || json.Unmarshal(line, &e) != nil || core.Str(e["type"]) != "session" {
+		return "", ""
+	}
+	return core.Str(e["id"]), core.Str(e["slot"])
 }
 
 // usageSlot は、その会話の使用量の記録の slot。

@@ -74,10 +74,16 @@ type Withholder interface {
 }
 
 // ClaimWithholder は、中身を出してはいけない会話が、ほかのエージェント（家族の違う Source）の履歴にも残ると知っている Source が実装する
-// （Kiro Crew の Codex の backend の会話は、Codex 自身の記録にも残る）。WithheldClaims は、その会話の core.Builder.Claim の鍵。
+// （Kiro Crew の Codex・Claude Code の backend の会話は、それぞれ自身の記録にも残る）。WithheldClaims は、その会話の core.Builder.Claim の鍵。
 // 読み込む側は、どの Source の会話でも、Claim がこれと同じなら HideWithheld で隠す。Load のあとに呼ぶ。
 type ClaimWithholder interface {
 	WithheldClaims() []string
+}
+
+// ClaimScanner は、ClaimWithholder の鍵を Load なしで調べられる Source が実装する。読み込む側は、その Source を選んでいないとき
+// （--sources codex など）もこれで調べて隠す。選ぶ履歴によって、中身を出してはいけない会話の写しが出てしまわないように。
+type ClaimScanner interface {
+	ScanWithheldClaims() []string
 }
 
 // Kept は、残す元の場所と、コピーを置く場所。
