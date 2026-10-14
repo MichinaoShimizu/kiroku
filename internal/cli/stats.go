@@ -243,6 +243,9 @@ func termSafe(s string, n int) string {
 	return s
 }
 
+// termMsg は、読めなかったファイルのエラー（ファイルの場所など、履歴から来た文字を含む）を端末に出せるようにする（termSafe）。
+func termMsg(s string) string { return termSafe(s, 2000) }
+
 // hm は分を「33h 14m」「45m」にする。
 func hm(min float64) string {
 	m := int(min + 0.5)

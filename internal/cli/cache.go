@@ -26,6 +26,14 @@ type loadCache struct {
 	mu      sync.Mutex // エージェントごとに並べて読むので、sources を守る
 	gap     int
 	sources map[source.Source]*sourceCache
+	scans   map[source.ClaimScanner]scanCache // 選んでいない Source の ScanWithheldClaims の結果
+}
+
+// scanCache は ScanWithheldClaims の結果と、そのときの ScanPaths の指紋。
+type scanCache struct {
+	fp     string
+	claims []string
+	err    error
 }
 
 type sourceCache struct {
@@ -41,7 +49,30 @@ type unitCache struct {
 	err   error
 }
 
-func newLoadCache() *loadCache { return &loadCache{sources: map[source.Source]*sourceCache{}} }
+func newLoadCache() *loadCache {
+	return &loadCache{sources: map[source.Source]*sourceCache{}, scans: map[source.ClaimScanner]scanCache{}}
+}
+
+// scan は s.ScanWithheldClaims。c があれば、調べる場所（ScanPaths）の指紋が前回と同じなら、前回の結果を使う
+// （kiroku serve の読み直しのたびに、Crew の会話の記録を全部読み直さないように）。指紋は調べる前に取るので、
+// 調べている間に変わったら、次の読み直しで調べ直す。
+func (c *loadCache) scan(s source.ClaimScanner) ([]string, error) {
+	if c == nil {
+		return s.ScanWithheldClaims()
+	}
+	fp := source.Fingerprint(s.ScanPaths())
+	c.mu.Lock()
+	prev, ok := c.scans[s]
+	c.mu.Unlock()
+	if ok && prev.fp == fp {
+		return prev.claims, prev.err
+	}
+	claims, err := s.ScanWithheldClaims()
+	c.mu.Lock()
+	c.scans[s] = scanCache{fp: fp, claims: claims, err: err}
+	c.mu.Unlock()
+	return claims, err
+}
 
 // load は s の会話を読む。c が nil なら、いつも全部を読む。ほかのエージェントの load と同時に呼んでよい。
 func (c *loadCache) load(s source.Source, gap int) ([]loaded, error) {

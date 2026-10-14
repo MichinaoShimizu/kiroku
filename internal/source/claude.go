@@ -300,6 +300,13 @@ func stemOf(path string) string {
 	return strings.TrimSuffix(strings.TrimSuffix(filepath.Base(path), ".zst"), ".jsonl")
 }
 
+// claudeClaim は Claude Code の会話の Claim の鍵（core.Builder.Claim。会話のファイルの名前 = セッション ID）。
+// Kiro Crew の Claude Code の backend（claude-agent-acp）では ACP の会話 ID が Claude Code のセッション ID で、
+// 会話は ~/.claude/projects/<p>/<ID>.jsonl に残る（Crew の providers/acp.py の cleanup_session は消さない）。
+// 中身を残さない Crew の会話なら、読み込む側がこの鍵で隠す（KiroCLI.WithheldClaims）。Yield には使わない
+// （どの会話もこの鍵を譲らないので、数え方は変わらない）。
+func claudeClaim(id string) string { return "claude:" + id }
+
 func isFile(p string) bool {
 	st, err := os.Stat(p)
 	return err == nil && !st.IsDir()
@@ -647,6 +654,9 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	}
 	if !strings.HasSuffix(path, ".zst") { // 消えた会話（kiroku archive のコピー）は Claude Code で再開できない
 		s.Resume = core.ResumeCmd(s.Project, "claude --resume", s.ID)
+	}
+	if stem != "" {
+		s.Claim = claudeClaim(stem) // Kiro Crew の中身を残さない会話（Claude Code の backend）なら、読み込む側が隠す（KiroCLI.WithheldClaims）
 	}
 	emit(s) // 途中までしか読めなくても、読めた分は出す
 	return readErr

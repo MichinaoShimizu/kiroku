@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -1615,5 +1616,148 @@ func TestKiroCrewCodexBackendYieldsToCodex(t *testing.T) {
 		if b.Yield != want {
 			t.Errorf("%s の Yield = %q, want %q", id, b.Yield, want)
 		}
+	}
+}
+
+// crew-log の session/opened の data.class.memory が persistent でない会話は、会話の記録がなくても、
+// そこから起動したサブエージェントへの依頼を残さない（slot は 1 行目になければ session/opened の data.slot）。
+func TestCrewLogClassPrivateSpawns(t *testing.T) {
+	crew := t.TempDir()
+	spawned := `{"type": "subagent/spawned", "data": {"agent_id": "%s", "agent": "a", "task": "%s"}}` + "\n"
+	writeFiles(t, crew, map[string]string{
+		"crew-log/sessions/p1/log.jsonl": `{"type": "session", "id": "p1", "owner": "o", "agent": "a", "slot": null}` + "\n" +
+			`{"type": "session/opened", "data": {"slot": "dashboard:p1", "class": {"memory": "incognito"}}}` + "\n" +
+			fmt.Sprintf(spawned, "s1", "SECRET-TASK"),
+		"crew-log/sessions/p2/log.jsonl": `{"type": "session", "id": "p2", "owner": "o", "agent": "a", "slot": "dashboard:p2"}` + "\n" +
+			`{"type": "session/opened", "data": {"slot": "dashboard:p2", "class": {"memory": "persistent"}}}` + "\n" +
+			fmt.Sprintf(spawned, "s2", "visible task"),
+	})
+	var errs fileErrs
+	got := loadCrewSpawns(crew, &errs, nil)
+	if i := got["subagent:s1"]; i.Key != "dashboard:p1" || !i.Private || i.Task != "" {
+		t.Errorf("s1 = %+v, want 中身を残さない（依頼なし）", i)
+	}
+	if i := got["subagent:s2"]; i.Key != "dashboard:p2" || i.Private || i.Task != "visible task" {
+		t.Errorf("s2 = %+v, want そのまま", i)
+	}
+	if ids := crewPrivateSids(crew, nil, &errs); !slices.Equal(ids, []string{"p1"}) {
+		t.Errorf("crewPrivateSids = %v, want [p1]", ids)
+	}
+	if err := errs.err(); err != nil {
+		t.Error(err)
+	}
+}
+
+// kiro-cli の JSON の履歴がないときも、中身を残さない会話を調べるのに session_map.json が読めなければ知らせ、
+// state.json からわかる会話 ID は隠す。
+func TestKiroCrewNoCLIHistoryReportsUnreadableMap(t *testing.T) {
+	kiro, crew := t.TempDir(), t.TempDir()
+	writeFiles(t, crew, map[string]string{
+		"session_map.json":         `{"dashboard:chat-1-100": `,
+		"subagents/sa1/state.json": `{"agent": "c", "parent_session": "dashboard:chat-1-100", "session_id": "s1"}`,
+	})
+	k := &KiroCLI{Home: kiro, CrewHome: crew}
+	if err := k.Load(func(*core.Builder) {}); err == nil || !strings.Contains(err.Error(), "session_map.json") {
+		t.Errorf("err = %v, want session_map.json が読めないこと", err)
+	}
+	if !slices.Contains(k.WithheldClaims(), claudeClaim("s1")) {
+		t.Errorf("claims = %v, want s1 の写しを隠す", k.WithheldClaims())
+	}
+}
+
+// 親の会話が中身を残さないことが crew-log の class だけでわかる（session_map の行も会話の記録もない）ときも、
+// そのサブエージェントの state.json の会話 ID と、同じ会話キーの class のない crew-log の会話 ID を隠す。
+// Kiro を選んでいるとき（kiro-cli の履歴あり・なし）も、選んでいないとき（ScanWithheldClaims）も同じ。
+func TestCrewLogClassPrivateMarksSlot(t *testing.T) {
+	files := map[string]string{
+		"crew-log/sessions/a-plain/log.jsonl": `{"type": "session", "id": "p-plain", "slot": "dashboard:P"}` + "\n",
+		"crew-log/sessions/b-class/log.jsonl": `{"type": "session", "id": "p-class", "slot": "dashboard:P"}` + "\n" +
+			`{"type": "session/class", "data": {"memory": "incognito"}}` + "\n",
+		"crew-log/sessions/c-other/log.jsonl": `{"type": "session", "id": "p-other", "slot": "dashboard:Q"}` + "\n",
+		"subagents/a1/state.json":             `{"parent_session": "dashboard:P", "session_id": "s1", "agent": "dev", "task": "SECRET-TASK"}`,
+		"subagents/a2/state.json":             `{"parent_session": "dashboard:Q", "session_id": "s2", "agent": "dev", "task": "visible"}`,
+	}
+	crew := t.TempDir()
+	writeFiles(t, crew, files)
+	if ids := crewPrivateSids(crew, nil, nil); !slices.Equal(ids, []string{"p-class", "p-plain", "s1"}) {
+		t.Errorf("crewPrivateSids = %v, want [p-class p-plain s1]", ids)
+	}
+	if i := loadCrew(crew, nil, newCrewPrivacy(crew, ""))["s1"]; !i.Private || i.Task != "" {
+		t.Errorf("s1 = %+v, want 中身を残さない（依頼なし）", i)
+	}
+	want := []string{"p-class", "p-plain", "s1"}
+	check := func(name string, claims []string) {
+		t.Helper()
+		for _, id := range want {
+			if !slices.Contains(claims, claudeClaim(id)) {
+				t.Errorf("%s: claims = %v, want %s の写しを隠す", name, claims, id)
+			}
+		}
+		for _, id := range []string{"p-other", "s2"} {
+			if slices.Contains(claims, claudeClaim(id)) {
+				t.Errorf("%s: 中身を残す %s の写しまで隠した", name, id)
+			}
+		}
+	}
+	claims, err := (&KiroCLI{CrewHome: crew}).ScanWithheldClaims()
+	if err != nil {
+		t.Error(err)
+	}
+	check("scan", claims)
+	for _, withCLI := range []bool{false, true} {
+		kiro := t.TempDir()
+		if withCLI {
+			writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
+		}
+		k := &KiroCLI{Home: kiro, CrewHome: crew}
+		if err := k.Load(func(*core.Builder) {}); err != nil {
+			t.Error(err)
+		}
+		check(fmt.Sprintf("Load (kiro-cli の履歴 %v)", withCLI), k.WithheldClaims())
+	}
+}
+
+// kiro-cli の履歴があって Kiro を選んでいるときも、session_map.json が JSON の object でない（[]・null）なら、
+// 中身を残さない会話を調べきれないことを知らせる（隠す側には倒す）。
+func TestKiroCrewReportsNonObjectMap(t *testing.T) {
+	for _, body := range []string{`[]`, `null`, `"x"`} {
+		kiro, crew := t.TempDir(), t.TempDir()
+		writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
+		writeFiles(t, crew, map[string]string{
+			"session_map.json":         body,
+			"subagents/sa1/state.json": `{"agent": "c", "parent_session": "dashboard:chat-1-100", "session_id": "s1"}`,
+		})
+		k := &KiroCLI{Home: kiro, CrewHome: crew}
+		if err := k.Load(func(*core.Builder) {}); err == nil || !strings.Contains(err.Error(), "session_map.json") || !strings.Contains(err.Error(), "not a JSON object") {
+			t.Errorf("%s: err = %v, want session_map.json が object でないこと", body, err)
+		}
+		if !slices.Contains(k.WithheldClaims(), claudeClaim("s1")) {
+			t.Errorf("%s: claims = %v, want s1 の写しを隠す", body, k.WithheldClaims())
+		}
+	}
+}
+
+// crew-log の type を JSON のエスケープで書いた行（"session\/class"・"session\u002fclass"）も読み落とさない。
+// 1 行目の BOM は読み飛ばす。
+func TestReadCrewLogEscapedTypeAndBOM(t *testing.T) {
+	hdr := func(id string) string {
+		return `{"type": "session", "id": "` + id + `", "slot": "dashboard:` + id + `"}` + "\n"
+	}
+	crew := t.TempDir()
+	writeFiles(t, crew, map[string]string{
+		"crew-log/sessions/e1/log.jsonl": hdr("e1") + `{"type":"session\/class","data":{"memory":"incognito"}}` + "\n",
+		"crew-log/sessions/e2/log.jsonl": hdr("e2") + `{"type":"session` + `\` + `u002fclass","data":{"memory":"temporary"}}` + "\n",
+		"crew-log/sessions/e3/log.jsonl": hdr("e3") + `{"type":"session\/opened","data":{"class":{"memory":"incognito"}}}` + "\n",
+		"crew-log/sessions/e4/log.jsonl": hdr("e4") + `{"type":"s` + `\` + `u0075bagent/spawned","data":{"agent_id":"x4","task":"t"}}` + "\n",
+		// エスケープはあるが読む行ではない（ターンの文など）
+		"crew-log/sessions/e5/log.jsonl": hdr("e5") + `{"type":"turn","data":{"text":"session/class \"memory\": \"incognito\"\n"}}` + "\n",
+		"crew-log/sessions/b1/log.jsonl": "\xef\xbb\xbf" + hdr("b1"),
+		"session_map.json":               `{"dashboard:b1": {"sid": "m1", "flags": {"incognito": true}}}`,
+	})
+	if ids := crewPrivateSids(crew, nil, nil); !slices.Equal(ids, []string{"b1", "e1", "e2", "e3", "m1"}) {
+		t.Errorf("crewPrivateSids = %v, want [b1 e1 e2 e3 m1]", ids)
+	}
+	if got := loadCrewSpawns(crew, nil, nil); got["subagent:x4"].Key != "dashboard:e4" {
+		t.Errorf("spawns = %+v, want エスケープした subagent/spawned も読む", got)
 	}
 }
