@@ -10,7 +10,7 @@ function detail(s){
   // 目安コスト。料金表にないモデルだけなら "—"（$0.00 と出すと、使っていないと読めてしまう）
   const sCost = costOf({cost: s.cost, unpriced: [s.usage, ...s.subagents.map(a=>a.usage)].reduce((t,u)=>t + (u ? u.unpriced||0 : 0), 0)});
   // Kiro のクレジット。Kiro Crew は Kiro 以外のバックエンドのトークンと、kiro-cli のクレジットの両方を持つことがある
-  const credH = s.credits ? `<div><div class="k">${esc(t("Kiro credits"))}</div><div class="v">${crN(s.credits)}</div></div><div><div class="k">${esc(t("Per prompt"))}</div><div class="v">${s.nPrompts ? crN(s.credits/s.nPrompts) : "—"}<small> ${esc(t("credits"))}</small></div></div>` : "";
+  const credH = s.credits ? `<div><div class="k">${esc(t("Kiro credits"))}</div><div class="v">${crN(s.credits)}</div></div><div><div class="k">${esc(t("Per prompt"))}</div><div class="v">${s.nPrompts ? crN(s.credits/s.nPrompts) : "—"}<small> cr</small></div></div>` : "";
   const P = $("#panel");
   P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
     ${dHead(agMark(s.source) + esc(s.source), s.title, `${md(s.start)} ${hm(s.start)} – ${sameDay ? "" : md(s.end)+" "}${hm(s.end)}`, [projTag(s.project), branchTag(s.branch)])}
@@ -105,7 +105,8 @@ const pexpLabel = p => p.len > 0 ? t("Read more ({n} characters)", {n: commas(p.
 /* 依頼に対する応答（エージェントが人に返した最後の文）。依頼の次の発言として、同じ流れの中に出す */
 function replyRow(r, i, hidden){
   const cut = r.len > 0;
-  const more = cut ? `<span class="pcut"> ${esc(t("(first {n} of {total} characters)", {n: REPLY_RUNES, total: commas(r.len)}))}${LIVE ? ` <button class="rload" data-i="${i}">${esc(t("Load the full reply"))}</button>` : ` ${esc(t("Open with kiroku serve to read it in full."))}`}</span>` : "";
+  // 保存した HTML では、切ったことは「…」だけで示す（kiroku serve で読めることは、流れの上に 1 度だけ書く）
+  const more = cut && LIVE ? `<span class="pcut"> ${esc(t("(first {n} of {total} characters)", {n: REPLY_RUNES, total: commas(r.len)}))} <button class="rload" data-i="${i}">${esc(t("Load the full reply"))}</button></span>` : "";
   return `<li class="rp"${hidden}><time>${r.t ? hm(r.t) : ""}</time>${ico("reply")}<p><span class="rpw">AI</span><span class="reptext">${esc(r.text)}${cut ? "…" : ""}${more}</span></p></li>`;
 }
 function promptFlow(s){
@@ -118,9 +119,9 @@ function promptFlow(s){
     if (p.t){ flush(p.t); // あいた間に起きたこと（手でのコミットなど）は、区切りの上に出す
       if (gap){ rows.push(`<li class="gap"${hide()}><p>${esc(t("{from}–{to}: {span} gap", {from: hm(gap.from), to: hm(p.t), span: span(gap.v)}))}</p></li>`); gap = null; } }
     n++;
-    const txt = String(p.text || ""), long = txt.length > 220, fix = !p.kind && FIXRE.test(txt), cut = p.len > 0;
-    const more = cut ? `<span class="pcut"> ${esc(t("(first {n} of {total} characters)", {n: PROMPT_RUNES, total: commas(p.len)}))}${LIVE ? ` <button class="pload" data-i="${i}">${esc(t("Load the full prompt"))}</button>` : ` ${esc(t("Open with kiroku serve to read it in full."))}`}</span>` : "";
-    const meta = [p.work ? t("AI worked {time}", {time: span(p.work)}) : "", p.wait && p.wait <= FLOW_GAP ? t("wait {time}", {time: secs(p.wait)}) : ""].filter(Boolean).join(" · ");
+    const txt = String(p.text || ""), long = txt.length > 240, fix = !p.kind && FIXRE.test(txt), cut = p.len > 0;
+    const more = !cut ? "" : LIVE ? `<span class="pcut"> ${esc(t("(first {n} of {total} characters)", {n: PROMPT_RUNES, total: commas(p.len)}))} <button class="pload" data-i="${i}">${esc(t("Load the full prompt"))}</button></span>` : "…";
+    const meta = [p.work ? t("AI worked {time}", {time: span(p.work)}) : "", p.wait && p.wait <= FLOW_GAP ? t("you replied after {time}", {time: secs(p.wait)}) : ""].filter(Boolean).join(" · ");
     rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time>${ico("user")}<p>${fix ? `<span class="pkind fix">${esc(t("Correction?"))}</span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${esc(PKIND()[p.kind] || p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${esc(t("Long · {n} chars", {n: commas(plen(p))}))}</span>` : ""}<span class="ptext">${p.kind ? "<code>" : ""}${long ? `<span class="pshort">${esc(txt.slice(0,220))}…</span><span class="pfull" hidden>${esc(txt)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${esc(pexpLabel(p))}</button>` : esc(txt)}${p.kind ? "</code>" : ""}</span>${meta ? `<span class="pmeta">${esc(meta)}</span>` : ""}</p></li>`);
     if (p.reply){ // 依頼と応答の間に起きたこと（コミットなど）は、応答より上に出す
       if (p.reply.t) flush(p.reply.t);
@@ -140,7 +141,8 @@ function promptFlow(s){
   const showMore = JA ? (hiddenEv ? t("Show {n} more prompts (and {m} other events)", {n: rest, m: hiddenEv}) : t("Show {n} more prompts", {n: rest})) : `Show ${plural(rest, "more prompt")}${also}`;
   // 見出しと出し方の切り替えは 1 行に（最初の画面に入るプロンプトを 1 つでも多くする）
   const bar = `<div class="flowhead"><h3>${esc(t("Prompt flow"))}</h3><div class="flowbar"><div class="segc" role="group" aria-label="${esc(t("Show"))}" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">${esc(t("Everything"))}</button><button data-v="user" aria-pressed="${!!st.flowUser}">${esc(t("Your prompts only"))}</button></div>${copyBtn(esc(t("Copy review prompt")), `id="sreview" title="${esc(t("A prompt that asks an AI agent on this computer how you could have prompted and split the work better"))}"`, "pill fill")}${aiRun() ? `<button class="pill ai-action" id="srun" type="button">${esc(t("Run with AI"))}</button>` : `<button class="pill ai-off ai-demo-info" type="button" title="${esc(AI_OFF_WHY())}">${esc(t("Run with AI (off)"))}</button>`}</div></div>`;
-  return `${bar}<div class="tlkey${st.flowUser ? " only-user" : ""}">${key}</div><ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${esc(showMore)}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${esc(t("\"AI worked\" is the time from a prompt to the AI's last activity; \"wait\" is the time from there to your next prompt. Both are estimates from the history's timestamps."))}</p>` : ""}${s.prompts.some(p => p.reply) ? `<p class="note">${esc(t("The reply after a prompt is the last thing the AI wrote to you in that turn, in its own words — not its thinking, its tool calls or their output. A turn where it only ran tools, or whose words the agent does not record, has no reply. A long one shows its first {n} characters.", {n: REPLY_RUNES}))}</p>` : ""}`;
+  const cutNote = !LIVE && s.prompts.some(p => p.len > 0 || (p.reply && p.reply.len > 0)) ? `<p class="note">${esc(t("Long prompts and replies end with … here. Open with kiroku serve to read them in full."))}</p>` : "";
+  return `${bar}<div class="tlkey${st.flowUser ? " only-user" : ""}">${key}</div>${cutNote}<ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${esc(showMore)}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${esc(t("\"AI worked\" is the time from a prompt to the AI's last activity; \"you replied after\" is the time from there to your next prompt. Both are estimates from the history's timestamps."))}</p>` : ""}${s.prompts.some(p => p.reply) ? `<p class="note">${esc(t("The reply after a prompt is the last thing the AI wrote to you in that turn, in its own words — not its thinking, its tool calls or their output. A turn where it only ran tools, or whose words the agent does not record, has no reply. A long one shows its first {n} characters.", {n: REPLY_RUNES}))}</p>` : ""}`;
 }
 /* 振り返りのプロンプトに入れる流れ: プロンプトと、そのあとに起きたこと（中断・コミットなど）を時刻の順に 1 本のテキストにする。
    件数だけでは、どのプロンプトのあとに手戻りが起きたかを AI が結びつけられないので。出すのは最初の n 個のプロンプトと、その間に起きたことまで。

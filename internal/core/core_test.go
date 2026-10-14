@@ -154,7 +154,7 @@ func TestAggregateNative(t *testing.T) {
 	for _, v := range AggregateNative("Kiro CLI (Classic)", ms) {
 		got[v.Label] = v
 	}
-	if got["クレジット"].V != 2 || got["1ターンあたりのクレジット"].V != 1 || got["モデルへのリクエスト"].N != 1 {
+	if got["クレジット"].V != 2 || got["1 ターンあたりのクレジット"].V != 1 || got["モデルへのリクエスト"].N != 1 {
 		t.Errorf("集計 = %+v", got)
 	}
 	if _, ok := got["組み込みツールの実行"]; ok {
@@ -201,7 +201,7 @@ func TestPromptFlow(t *testing.T) {
 	b.Agent(f(1010))
 	b.Agent(f(1100))
 	b.Prompt(f(1160), "[Request interrupted by user]")
-	b.Prompt(f(1200), strings.Repeat("あ", PromptRunes+5))
+	b.Prompt(f(1200), strings.Repeat("あ", PromptRunes+25))
 	b.Agent(f(1500))
 	b.Prompt(f(5000), "AI が動く前に次の依頼")
 	b.Prompt(nil, "時刻のない依頼")
@@ -215,7 +215,7 @@ func TestPromptFlow(t *testing.T) {
 		t.Errorf("1 件目 work %v wait %v", p.Work, p.Wait)
 	}
 	// 2 件目は切られて元の長さが残り、Full で全文が読める
-	if p := s.Prompts[1]; p.Len != PromptRunes+5 || len([]rune(p.Text)) != PromptRunes || len([]rune(p.Full())) != PromptRunes+5 || p.Work != 300 || p.Wait != 3500 {
+	if p := s.Prompts[1]; p.Len != PromptRunes+25 || len([]rune(p.Text)) != PromptRunes || len([]rune(p.Full())) != PromptRunes+25 || p.Work != 300 || p.Wait != 3500 {
 		t.Errorf("2 件目 len %d text %d full %d work %v wait %v", p.Len, len([]rune(p.Text)), len([]rune(p.Full())), p.Work, p.Wait)
 	}
 	// 間に AI が動いていない依頼と、時刻のない依頼には入れない
@@ -264,7 +264,7 @@ func TestPromptReplies(t *testing.T) {
 	b.Reply(f(1100), "m2", "直しました")
 	b.Agent(f(1100))
 	b.Prompt(f(1200), "次")
-	b.Reply(f(1210), "m3", strings.Repeat("長", ReplyRunes+7))
+	b.Reply(f(1210), "m3", strings.Repeat("長", ReplyRunes+27))
 	b.Reply(f(1220), "m3", "つづき") // 同じメッセージの続きはつなぐ
 	b.Prompt(f(1300), "応答のない依頼")
 	s := b.Finish(15)
@@ -274,7 +274,7 @@ func TestPromptReplies(t *testing.T) {
 	if r := s.Prompts[0].Reply; r == nil || r.Text != "直しました" || r.T == nil || *r.T != 1100 || r.Len != 0 {
 		t.Errorf("1 件目の応答 %+v", r)
 	}
-	if r := s.Prompts[1].Reply; r == nil || len([]rune(r.Text)) != ReplyRunes || r.Len != ReplyRunes+7+1+len([]rune("つづき")) ||
+	if r := s.Prompts[1].Reply; r == nil || len([]rune(r.Text)) != ReplyRunes || r.Len != ReplyRunes+27+1+len([]rune("つづき")) ||
 		!strings.HasSuffix(r.Full(), "つづき") {
 		t.Errorf("2 件目の応答 %+v", r)
 	}
@@ -457,6 +457,18 @@ func TestNumRejectsHuge(t *testing.T) {
 	} {
 		if _, ok := Num(c.v); ok != c.ok {
 			t.Errorf("Num(%v) ok = %v, want %v", c.v, ok, c.ok)
+		}
+	}
+}
+
+// 隠れるのが clipSlack 文字以下なら切らない（数文字のために「続きを読む」を出さない）
+func TestClipText(t *testing.T) {
+	for _, c := range []struct {
+		n, want, wantLen int
+	}{{PromptRunes, PromptRunes, 0}, {PromptRunes + clipSlack, PromptRunes + clipSlack, 0}, {PromptRunes + clipSlack + 1, PromptRunes, PromptRunes + clipSlack + 1}} {
+		got, n := clipText(strings.Repeat("あ", c.n), PromptRunes)
+		if len([]rune(got)) != c.want || n != c.wantLen {
+			t.Errorf("%d 文字: text %d len %d, want %d %d", c.n, len([]rune(got)), n, c.want, c.wantLen)
 		}
 	}
 }

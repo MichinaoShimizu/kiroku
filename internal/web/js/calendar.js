@@ -34,11 +34,12 @@ function render(){
   // legend（この期間にあるものを、作業時間の多い順に。数はサマリーの「① By project」の配分と同じ作業時間）
   const cnt = {}; inRange.forEach(s => cnt[keyOf(s)] = (cnt[keyOf(s)]||0)+1);
   const mins = legendMinutes();
+  const noZoom = M || st.view !== "calendar"; // ズームは週のカレンダーの時間の高さだけ（月・Journey・Project activity では何も変わらない）
   // 件数は横にスクロールする並び（.lrow）の外に置く。スマホでは並びの上に出し、チップが多くても画面の外へ押し出されないように
   $("#legend").innerHTML = `<label class="cbsel"><span class="cbt">${esc(t("Color by"))}</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label><div class="lrow"><span class="lab">${esc(t("Active time"))}<small> · ${esc(t("click to hide"))}</small></span>` +
     Object.keys(cnt).sort((a,b)=>(mins[b]||0)-(mins[a]||0) || cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}" title="${esc(t("{name}: {stats} (click to show or hide)", {name: k, stats: `${mins[k] ? dur(mins[k]) + " · " : ""}${plural(cnt[k], "session")}`}))}"><span class="dot"></span>${st.colorBy === "source" ? agMark(k) : ""}<span class="cn">${esc((k))}</span><span class="n">${mins[k] ? dur(mins[k]) : "—"}<span class="sr"> ${esc(t("active"))}</span></span></button>`).join("") +
-    `</div>${M ? "" : `<span class="zlab" aria-hidden="true">${esc(t("Zoom"))}</span><div class="segc zoom" role="group" aria-label="${esc(t("Zoom"))}"><button id="zout" aria-label="${esc(t("Zoom out"))}">−</button><button id="zin" aria-label="${esc(t("Zoom in"))}">+</button></div>`}<span class="count">${esc(t("{n} / {total} sessions", {n: shown.length, total: inRange.length}))}</span>`;
-  if (!M){ $("#zin").onclick = () => zoom(1); $("#zout").onclick = () => zoom(-1); }
+    `</div>${noZoom ? "" : `<span class="zlab" aria-hidden="true">${esc(t("Zoom"))}</span><div class="segc zoom" role="group" aria-label="${esc(t("Zoom"))}"><button id="zout" aria-label="${esc(t("Zoom out"))}">−</button><button id="zin" aria-label="${esc(t("Zoom in"))}">+</button></div>`}<span class="count">${esc(t("{n} / {total} sessions", {n: shown.length, total: inRange.length}))}</span>`;
+  if (!noZoom){ $("#zin").onclick = () => zoom(1); $("#zout").onclick = () => zoom(-1); }
   // 検索・凡例で絞り込んでいるあいだ、絞り込めない合計（作業時間・トークンなど）は薄くして、そう断る
   const fn = $("#fnote"); fn.hidden = !filtering();
   fn.textContent = `${st.q ? t("This view shows only sessions matching the search and their linked records.") : t("Hidden items are left out of this view.")} ${M ? t("Gray figures, at the top and in each day and week, are totals for all sessions; sessions and commits there count only what is shown.") : t("Gray figures, at the top and under each date, are totals for all sessions; sessions and commits there count only what is shown.")}`;
@@ -104,8 +105,8 @@ function kpis(){
   // トークン・目安コスト・月末の見込み・クレジットは、いちばん大事な数なので先頭にまとめて目立たせる
   K.innerHTML = (u.tokens ? kpi(t("Tokens"), tok(u.tokens), "", "key", "tokens") + kpi(t("Estimated cost"), usdH(costOf(u)), costOf(u) == null ? NOPRICE : "", "key", "cost") : "") +
     (pj && pj.cost != null ? kpi(t("Month-end cost"), `<small>≈</small>${usdH(pj.cost)}`, pace, "key", "projection") : "") +
-    (u.credits ? kpi(t("Kiro credits"), `${crN(u.credits)}<small>cr</small>`, "", "key", "credits") : "") +
-    (pj && pj.credits != null ? kpi(t("Month-end credits"), `<small>≈</small>${crN(pj.credits)}<small>cr</small>`, pace, "key", "projectionCr") : "") +
+    (u.credits ? kpi(t("Kiro credits"), `${crN(u.credits)}<small> cr</small>`, "", "key", "credits") : "") +
+    (pj && pj.credits != null ? kpi(t("Month-end credits"), `<small>≈</small>${crN(pj.credits)}<small> cr</small>`, pace, "key", "projectionCr") : "") +
     kpi(t("Active time"), dur(w.active, true), "", "", "active") + kpi(t("Active days"), `${days}<small> ${esc(n0 == null ? t("of {n}", {n: nd}) : t("of {n} so far", {n: nd}))}</small>`, n0 == null ? "" : M ? t("{days} of the {n} so far (this month is still in progress)", {days, n: plural(nd, "day")}) : t("{days} of the {n} so far (this week is still in progress)", {days, n: plural(nd, "day")}), "", "days") +
     kpi(t("Sessions / prompts"), `${w.sessions}<small>/</small>${w.prompts}`, "", "", "sessions") +
     (() => { const {ws, we} = period(), n = limitHits(ws, we).length; return n ? kpi(t("Usage limit hits"), `<span class="wv">${n}</span>`, "", "", "limits") : ""; })() +
@@ -161,7 +162,7 @@ function monthGrid(shown, ms, me, todayKey){
         ${pj.length ? `<span class="pj">${pj.map(([k,v])=>`<span style="flex:${v};--c:${colorOf(k)}"></span>`).join("")}</span>` : ""}</button>`;
     }
   }
-  h += `</div><div class="mlegend"><span class="nw">${esc(t("Less"))}</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${esc(matchMedia("(max-width:820px)").matches ? t("More (active time) · Each day and week shows active time, and tokens or credits (both when the month has both). A week counts all 7 days, including those in the next or previous month · Tap a date or week to open it") : t("More (active time) · Each day, and each week on the left, shows active time, tokens or credits (both when the month has both), sessions and Git commits. A week counts all 7 days, including those in the next or previous month · Click a date or week to open it"))}</div>`;
+  h += `</div><div class="mlegend"><span class="nw">${esc(t("Less"))}</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${esc(t("More"))} · ${esc(matchMedia("(max-width:820px)").matches ? t("Shade = active time. Week totals include all 7 days. Tap a date or week to open it.") : t("Shade = active time. Week totals include all 7 days. Click a date or week to open it."))}</div>`;
   T.innerHTML = h;
   T.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { const [y,m,dd] = b.dataset.w.split("-").map(Number); st.week = new Date(y, m-1, dd); setMode("week"); });
 }
@@ -189,7 +190,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
     const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${act || dayGit.length ? copyBtn(`<span class="dl">${esc(t("Report"))}</span>`, `data-d="${d}" aria-label="${esc(t("Copy daily report prompt for {date}", {date: md(ds)}))}" title="${esc(t("A prompt that asks an AI agent on this computer to write your daily report for {date}", {date: md(ds)}))}"`, "pill fill dayrpt") : ""}${act || dayGit.length ? (aiRun() ? `<button class="pill dayrun ai-action" data-d="${d}" type="button" aria-label="${esc(t("Run with AI: daily report for {date}", {date: md(ds)}))}">${esc(t("Run with AI"))}</button>` : `<button class="pill ai-off dayrun-demo ai-demo-info" type="button" aria-label="${esc(t("Run with AI is off: {why}", {why: AI_OFF_WHY()}))}" title="${esc(AI_OFF_WHY())}">${esc(t("AI (off)"))}</button>`) : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`;
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${act || dayGit.length ? copyBtn(`<span class="dl">${esc(t("Report"))}</span>`, `data-d="${d}" aria-label="${esc(t("Copy daily report prompt for {date}", {date: md(ds)}))}" title="${esc(t("A prompt that asks an AI agent on this computer to write your daily report for {date}", {date: md(ds)}))}"`, "pill fill dayrpt") : ""}${(act || dayGit.length) && aiRun() ? `<button class="pill dayrun ai-action" data-d="${d}" type="button" aria-label="${esc(t("Run with AI: daily report for {date}", {date: md(ds)}))}">${esc(t("Run with AI"))}</button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`;
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
@@ -249,7 +250,6 @@ function timeline(shown, inWeek, ws, we, todayKey){
   bindGitEvents(T);
   T.querySelectorAll(".dayrpt").forEach(b => b.onclick = e => { e.stopPropagation(); // 日報のプロンプト（週報と同じ作り。その日の分だけ）
     copy(reportPrompt(null, false, addDays(st.week, +b.dataset.d)), t("Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending."), 8000, b); });
-  T.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = e => { e.stopPropagation(); showLocalAIInfo(); });
   T.querySelectorAll(".dayrun").forEach(b => b.onclick = e => { e.stopPropagation(); runAIReview(b, reportPrompt(null, false, addDays(st.week, +b.dataset.d)), t("Daily report")); });
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });
   T.querySelectorAll(".run").forEach(el => { const bk = runs[+el.dataset.r];
@@ -276,7 +276,7 @@ function edgeFade(T){ const sc = T.querySelector(".calscroll"); T.classList.togg
 
 /* ── tooltip ── */
 function tipOn(e, bk){ const tp = $("#tip"), s = bk.s;
-  tp.innerHTML = `<b>${esc(s.title)}</b><div class="r" style="--c:${colorOf(keyOf(s))}"><i></i>${esc(s.project)}${s.branch?` · ${esc(s.branch)}`:""}</div><div class="r">${md(bk.a)} ${hm(bk.a)}–${hm(bk.b)}${` (${dur((bk.b-bk.a)/60)})`}</div><div class="r">${esc((s.source))} · ${plural(s.nPrompts, "prompt")}${s.cost ? ` · ${usd(s.cost)}` : ""}${s.credits ? ` · ${esc(t("{n} credits", {n: crN(s.credits)}))}` : ""}${s.subagents.length ? ` · ${plural(s.subagents.length, "subagent")}` : ""}</div>`;
+  tp.innerHTML = `<b>${esc(s.title)}</b><div class="r" style="--c:${colorOf(keyOf(s))}"><i></i>${esc(s.project)}${s.branch?` · ${esc(s.branch)}`:""}</div><div class="r">${md(bk.a)} ${hm(bk.a)}–${hm(bk.b)}${` (${dur((bk.b-bk.a)/60)})`}</div><div class="r">${esc((s.source))} · ${plural(s.nPrompts, "prompt")}${s.cost ? ` · ${usd(s.cost)}` : ""}${s.credits ? ` · ${cr(s.credits)}` : ""}${s.subagents.length ? ` · ${plural(s.subagents.length, "subagent")}` : ""}</div>`;
 
   tp.classList.add("on"); tipMove(e); }
 function tipMove(e){ const t = $("#tip"), w = t.offsetWidth, h = t.offsetHeight;
@@ -343,7 +343,7 @@ function journeyGrid(sessions, ws, we){
       return '<div class="journey-row"><div class="journey-name" title="'+esc(projName(name, items))+'">'+esc(projName(name, items))+'<small title="'+esc(t("Recorded activity only. It doesn't show progress, completion or value."))+'">'+esc(activity)+'</small><small>'+esc(span)+'</small></div><div class="journey-days">' +
         byDay.map((day,i) => '<div class="journey-cell">'+day.slice(0,4).map(s =>
           '<button class="journey-dot" style="--c:'+colorOf(keyOf(s))+'" data-session="'+esc(s.id)+'" title="'+esc((s.title||s.project||t("Session"))+' · '+s.source)+'" aria-label="'+esc((s.title||t("Session"))+' · '+s.source)+'"></button>'
-        ).join("")+(day.length>4?'<span class="journey-more">+'+(day.length-4)+'</span>':"")+commitsByDay[i].slice(0,3).map(c => '<button class="journey-dot journey-commit" data-git="'+esc(c.hash)+'" title="'+esc(t("Commit · {subject}", {subject: c.subject}))+'" aria-label="'+esc(t("Commit · {subject}", {subject: c.subject}))+'" style="--c:var(--ink-3)">◆</button>').join("")+(commitsByDay[i].length>3?'<span class="journey-more">'+esc(t("+{n} commits", {n: commitsByDay[i].length-3}))+'</span>':"")+prsByDay[i].slice(0,2).map(({session,pr}) => '<button class="journey-dot journey-pr" data-pr="'+esc(prKey(session,pr))+'" title="'+esc(t("Recorded pull request")+(pr.url?" · "+pr.url:""))+'" aria-label="'+esc(t("Recorded pull request"))+'" style="--c:var(--ink-3)">PR</button>').join("")+(prsByDay[i].length>2?'<span class="journey-more">'+esc(t("+{n} PRs", {n: prsByDay[i].length-2}))+'</span>':"")+'</div>').join("")+'</div></div>';
+        ).join("")+(day.length>4?'<span class="journey-more">+'+(day.length-4)+'</span>':"")+commitsByDay[i].slice(0,3).map(c => '<button class="journey-dot journey-commit" data-git="'+esc(c.hash)+'" title="'+esc(t("Commit · {subject}", {subject: c.subject}))+'" aria-label="'+esc(t("Commit · {subject}", {subject: c.subject}))+'" style="--c:var(--ink-3)">◆</button>').join("")+(commitsByDay[i].length>3?'<span class="journey-more">'+esc('+'+plural(commitsByDay[i].length-3, "commit"))+'</span>':"")+prsByDay[i].slice(0,2).map(({session,pr}) => '<button class="journey-dot journey-pr" data-pr="'+esc(prKey(session,pr))+'" title="'+esc(t("Recorded pull request")+(pr.url?" · "+pr.url:""))+'" aria-label="'+esc(t("Recorded pull request"))+'" style="--c:var(--ink-3)">PR</button>').join("")+(prsByDay[i].length>2?'<span class="journey-more">'+esc('+'+plural(prsByDay[i].length-2, "PR"))+'</span>':"")+'</div>').join("")+'</div></div>';
     }).join("")+'</div>';
   root.querySelectorAll("[data-session]").forEach(b => b.onclick=()=>select(b.dataset.session));
   root.querySelectorAll("[data-git]").forEach(b => b.onclick=()=>select("git:"+b.dataset.git));

@@ -84,6 +84,18 @@ type Prompt struct {
 // PromptRunes は、HTML に入れる依頼文の長さ（文字数）。
 const PromptRunes = 400
 
+// clipSlack は、切らずにそのまま入れる超過分（文字数）。隠れるのが数文字だけなら、「続きを読む」より全文を見せる。
+const clipSlack = 20
+
+// clipText は s を先頭 n 文字に切り、切ったときは元の文字数を返す（切らなければ 0）。
+// 隠れるのが clipSlack 文字以下なら切らない。
+func clipText(s string, n int) (string, int) {
+	if c := utf8.RuneCountInString(s); c > n+clipSlack {
+		return Runes(s, n), c
+	}
+	return s, 0
+}
+
 // fullRunes は、kiroku serve が全文として覚えておく長さの上限（貼り付けた長いログでメモリを使い切らないように）。
 const fullRunes = 100000
 
@@ -240,9 +252,9 @@ func (s *Builder) Command(ts *float64, text string) {
 
 func (s *Builder) addPrompt(ts *float64, kind, t string) {
 	s.turn++
-	p := Prompt{T: ts, Text: Runes(t, PromptRunes), Kind: kind}
-	if n := utf8.RuneCountInString(t); n > PromptRunes {
-		p.Len, p.full = n, Runes(t, fullRunes)
+	p := Prompt{T: ts, Kind: kind}
+	if p.Text, p.Len = clipText(t, PromptRunes); p.Len > 0 {
+		p.full = Runes(t, fullRunes)
 	}
 	s.Prompts = append(s.Prompts, p)
 }
@@ -313,9 +325,9 @@ func (s *Builder) withReplies(ps []Prompt) []Prompt {
 		if j < 0 {
 			continue
 		}
-		rep := Reply{T: r.t, Text: Runes(r.text, ReplyRunes)}
-		if n := utf8.RuneCountInString(r.text); n > ReplyRunes {
-			rep.Len, rep.full = n, r.text
+		rep := Reply{T: r.t}
+		if rep.Text, rep.Len = clipText(r.text, ReplyRunes); rep.Len > 0 {
+			rep.full = r.text
 		}
 		out[slots[j].i].Reply = &rep // 時刻の順に見るので、同じ依頼では後の応答が残る
 	}

@@ -195,7 +195,7 @@ const LIGHTS = [
    re: "3 or more agents, each with 10% or more of active time"},
   {k: "long", en: "Long Exposure", m: "avg", t: x => x.avgMin >= 45 && x.perSes <= 10, sub: "long sessions with few prompts",
    de: "Your sessions ran long, with few prompts.",
-   ask: "Your sessions ran long with few prompts. How often did the first result need a second round?",
+   ask: "How often did the first result need a second round?",
    re: "45 minutes or more of active time per session, with 10 prompts or fewer on average"},
   {k: "burst", en: "Burst", m: "per", t: x => x.perSes >= 15, sub: "many prompts in each session",
    de: "Your sessions had many prompts.",
@@ -405,27 +405,19 @@ function renderYear(pre){
   dlg.innerHTML = `<div class="yrhd"><div><div class="eyebrow">${esc(t("Year in review"))}</div><h2 id="yrh">${esc(t("{year} exposure", {year: x.y}))}</h2></div>
     <label><span class="sr">${esc(t("Year"))}</span><select id="yrsel">${ys.map(v => `<option value="${v}"${v === x.y ? " selected" : ""}>${v}</option>`).join("")}</select></label>
     <form method="dialog"><button class="iconbtn" aria-label="${esc(t("Close"))}"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form></div>
-  <p class="yrlead">${esc(R.c0 && R.c0 === x.c0
-    ? t("Your active time with AI, drawn like a year-long exposure. Across is the date, down is the time of day (6:00 to 6:00 the next morning). Each stretch of active time is a streak of light, brighter where sessions overlapped. Shown: {span} (from the first day with history).", {span: yrSpan(from, new Date(x.y, 0, R.last))})
-    : t("Your active time with AI, drawn like a year-long exposure. Across is the date, down is the time of day (6:00 to 6:00 the next morning). Each stretch of active time is a streak of light, brighter where sessions overlapped. Shown: {span}.", {span: yrSpan(from, new Date(x.y, 0, R.last))}))}</p>
+  <p class="yrlead">${esc(t("Your active time with AI in {year}, drawn like a year-long exposure. Shown: {range}.", {year: x.y, range: yrSpan(from, new Date(x.y, 0, R.last))}))}</p>
   <div class="yrscroll" tabindex="0" role="group" aria-label="${esc(t("Exposure chart, scrolls sideways on narrow screens"))}"><div class="yrchart"><div class="yrax" aria-hidden="true">${hours}</div><canvas class="yrplate" id="yrplate" role="img" aria-label="${esc(t("Active time in {year} by date and time of day. Active time {time}", {year: x.y, time: dur(x.active)}))}"></canvas><div class="yrx" aria-hidden="true">${months}</div></div></div>
   <div class="yrleg">${keys.map(a => `<span><i style="background:${a.c}"></i>${esc((a.k))} ${Math.round(a.pct)}%</span>`).join("")}</div>
   <div class="yrhow"><div><b>${esc(t("Length = how long a session was active"))}</b>${esc(t("Each streak is one stretch of active time in a session, estimated from the timestamps in the history. It includes time the AI ran on its own."))}</div>
     ${x.mode === "project" ? `<div><b>${esc(t("Color = project"))}</b>${esc(t("Shifts in color show when your time moved from one project to another. The image to share shows the colors, never the names."))}</div>` : `<div><b>${esc(t("Color = agent"))}</b>${esc(t("Colors that start to mix show when you began using more than one."))}</div>`}
     <div><b>${esc(t("Dark bands = days without AI sessions"))}</b>${esc(t("Days off, holidays and days spent on other work all look the same."))}</div></div>
   ${x.hi.length || x.halves.length ? `<h3>${esc(t("What stands out"))}</h3>
-  <ul class="yrhi">${x.hi.map(h => `<li>${esc(h.t)}</li>`).join("")}${x.halves.map(h => `<li>${esc(x.halves.mid ? t("Since {date}, compared with before: {change}", {date: dMD(new Date(x.halves.mid*1000)), change: h.t}) : t("Second half vs first: {change}", {change: h.t}))}</li>`).join("")}</ul>
+  ${x.hi.length ? `<ul class="yrhi">${x.hi.map(h => `<li>${esc(h.t)}</li>`).join("")}</ul>` : ""}
+  ${x.halves.length ? `<h4 class="yrsub">${esc(x.halves.mid ? t("Since {date} vs. before", {date: dMD(new Date(x.halves.mid*1000))}) : t("Second half vs. first"))}</h4><ul class="yrhi">${x.halves.map(h => `<li>${esc(h.t)}</li>`).join("")}</ul>` : ""}
   ${x.halves.length ? `<p class="note">${esc(t(`"Since …" compares the two halves of the dates you have history for, not calendar halves. "2+ sessions at once" is the share of active time when two or more sessions were running.`))}</p>` : ""}` : ""}
   ${asks.length ? `<h3>${esc(t("To reflect on"))}</h3>
   <ul class="yrhi">${asks.map(q => `<li>${esc(q)}</li>`).join("")}</ul>
   <p class="note">${esc(t("Questions, not judgments. They stay on this screen: they are never saved, sent or put on the image. To dig into a month, copy its report prompt from the month view."))}</p>` : ""}
-
-  <h3>${esc(t("An image to share"))}</h3>
-  <div class="yropts" role="group" aria-label="${esc(t("On the image"))}">${opt("totals", "Totals (hours, sessions, commits, PRs)")}${opt("type", "Your light", L ? "" : "needs 8 weeks of history")}${opt("agents", "Color key")}${opt("late", "Late nights and weekends", noLate ? "nothing to show this year" : "")}${opt("breaks", "Longest stretch without AI", noBreak ? "no stretch of 7 days or more" : "")}
-    <label>${esc(t("Color by"))} <select id="yrcolor">${[["auto", "Auto"], ["agent", "Agent"], ["project", "Project"]].map(([v, l]) => `<option value="${v}"${yr.opt.color === v ? " selected" : ""}>${esc(t(l))}</option>`).join("")}</select></label></div>
-  <canvas class="yrcard" id="yrcard" width="1600" height="900" role="img"></canvas>
-  <div class="yract"><button class="pill" id="yrsave">${esc(t("Save as PNG"))}</button>${copyBtn(esc(t("Copy image")), `id="yrcopy"`)}</div>
-  <p class="note">${esc(t("The image shows the date range, the streaks of light, kiroku's GitHub address, the busiest month, an agent's first day and up to two changes since the middle of the period when they are found, and only what is checked above. The longest stretch without AI has no dates written on it. Prompts, project names, branches, files and estimated cost are never included. It is made in this browser and sent nowhere."))}</p>
 
   <h3>${esc(t("Your light"))}</h3>
   ${L ? `<div class="yrtype"><div class="yrtn"><span>${name(L)}</span></div><div>
@@ -433,7 +425,14 @@ function renderYear(pre){
     <dl class="yrev">${ev.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>
     <p class="note">${esc(t("Your light describes the shape of your year in photography terms. It is not a verdict, and its thresholds are rough guides. Why: {why}.", {why: t(L.re)}))}${x.active < 600 ? (JA ? "" : " ") + esc(t("(based on little history, so take it lightly)")) : ""}</p>
     <details class="yrtypes"><summary>${esc(t("All {n} and how they are chosen", {n: LIGHTS.length}))}</summary><ul>${LIGHTS.map(l => `<li><b>${name(l)}</b> — ${esc(t(l.re))}</li>`).join("")}</ul>
-      <p class="note">${esc(t("The first one that matches, from the top, is chosen."))}</p></details></div></div>` : `<p class="note">${esc(t("Your light is named once you have 8 weeks of history. Until then there is too little to say."))}</p>`}`;
+      <p class="note">${esc(t("The first one that matches, from the top, is chosen."))}</p></details></div></div>` : `<p class="note">${esc(t("Your light is named once you have 8 weeks of history. Until then there is too little to say."))}</p>`}
+
+  <h3>${esc(t("An image to share"))}</h3>
+  <div class="yropts" role="group" aria-label="${esc(t("On the image"))}">${opt("totals", "Totals (hours, sessions, commits, PRs)")}${opt("type", "Your light", L ? "" : "needs 8 weeks of history")}${opt("agents", "Color key")}${opt("late", "Late nights and weekends", noLate ? "nothing to show this year" : "")}${opt("breaks", "Longest stretch without AI", noBreak ? "no stretch of 7 days or more" : "")}
+    <label>${esc(t("Color by"))} <select id="yrcolor">${[["auto", "Auto"], ["agent", "Agent"], ["project", "Project"]].map(([v, l]) => `<option value="${v}"${yr.opt.color === v ? " selected" : ""}>${esc(t(l))}</option>`).join("")}</select></label></div>
+  <canvas class="yrcard" id="yrcard" width="1600" height="900" role="img"></canvas>
+  <div class="yract"><button class="pill" id="yrsave">${esc(t("Save as PNG"))}</button>${copyBtn(esc(t("Copy image")), `id="yrcopy"`)}</div>
+  <p class="note">${esc(t("The image shows the date range, the streaks of light, kiroku's GitHub address, the busiest month, an agent's first day and up to two changes since the middle of the period when they are found, and only what is checked above. The longest stretch without AI has no dates written on it. Prompts, project names, branches, files and estimated cost are never included. It is made in this browser and sent nowhere."))}</p>`;
   $("#yrsel").onchange = e => { yr.y = +e.target.value; renderYear(); $("#yrsel").focus(); }; // 描き直しても、年の選択にフォーカスを残す
   $("#yrcolor").onchange = e => { yr.opt.color = e.target.value; store.set("yrOpt", yr.opt); renderYear(); $("#yrcolor").focus(); };
   dlg.querySelectorAll("[data-o]").forEach(c => c.onchange = () => { yr.opt[c.dataset.o] = c.checked; store.set("yrOpt", yr.opt); drawCardLabeled(); });

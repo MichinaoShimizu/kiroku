@@ -34,8 +34,8 @@ function repeatsOf(ws, we){
     const g = new Set(); for (let i = 0; i + 3 <= t.length; i++) g.add(t.slice(i, i + 3));
     const cnt = new Map(); g.forEach(x => (idx.get(x) || []).forEach(i => cnt.set(i, (cnt.get(i) || 0) + 1)));
     let best = -1, bs = 0.6; cnt.forEach((n, i) => { const j = n / (C[i].g.size + g.size - n); if (j >= bs){ bs = j; best = i; } });
-    if (best < 0){ best = C.length; C.push({g, n: 0, ids: new Set(), last: -1}); g.forEach(x => { if (!idx.has(x)) idx.set(x, []); idx.get(x).push(best); }); }
-    const c = C[best]; c.n++; c.ids.add(s.id); if (p.t >= c.last){ c.last = p.t; c.id = s.id; c.text = p.text; } // 見せるのは、いちばん新しい書き方
+    if (best < 0){ best = C.length; C.push({g, n: 0, ids: new Set(), by: new Map(), last: -1}); g.forEach(x => { if (!idx.has(x)) idx.set(x, []); idx.get(x).push(best); }); }
+    const c = C[best]; c.n++; c.ids.add(s.id); c.by.set(s.id, p.text); if (p.t >= c.last){ c.last = p.t; c.id = s.id; c.text = p.text; } // 見せるのは、いちばん新しい書き方。by はセッションごとに、束に入ったプロンプト（ダイアログでどれのことかを見せる）
   }));
   return repeatCache[ck] = C.filter(c => c.ids.size >= REPEAT_SES).sort((a,b) => b.ids.size - a.ids.size || b.n - a.n);
 }
@@ -91,8 +91,8 @@ function spark(k, plain){ // 8 期間の推移（記録のない期間は飛ば�
   const hits = pts.map((p, i) => i < f0 ? "" : `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H}"${tipAttr(p.l, fmtM(k, p.v) === "—" ? t("No records") : fmtM(k, p.v))}/>`).join(""); // 点ごとに、その期間の値を出す
   // 両端（記録のある最初の期間と、表示中の期間）には、触れなくても読めるよう期間と値を添える
   const sl = i => { const p = periodBack(7 - i), [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? MON[mm - 1] : dMD(new Date(yy, mm - 1, dd)); };
-  return `<span class="spark"><span class="sr">${esc(txt)}</span><span class="spk" aria-hidden="true"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><polyline points="${line}"/>${pts.map((p, i) => p.v == null ? "" : `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="1.6"/>`).join("")}${pts[7].v != null ? `<circle cx="${x(7)}" cy="${y(pts[7].v)}" r="2.6"/>` : ""}${hits}</svg><span class="ends"><span>${sl(f0)} ${fmtM(k, pts[f0].v)}</span><span>${sl(7)} <b>${fmtM(k, pts[7].v)}</b></span></span></span><small aria-hidden="true">${esc(plain ? (st.mode === "month" ? t("8-month trend · range {range}", {range: rng}) : t("8-week trend · range {range}", {range: rng})) : `${GOTO[k] ? `${t(HELP[k].n)} · ` : ""}${st.mode === "month" ? (MET[k].low ? t("8-month range {range} · higher is worth a look", {range: rng}) : t("8-month range {range} · lower is worth a look", {range: rng})) : (MET[k].low ? t("8-week range {range} · higher is worth a look", {range: rng}) : t("8-week range {range} · lower is worth a look", {range: rng}))}`)}</small></span>`;
-} // 向き（高いほど・低いほど見直す）だけを書く。印が付いた理由は、推移の下に「Flagged because …」で別に出す（基準は推移の高低ではなく、決まった値なので）
+  return `<span class="spark"><span class="sr">${esc(txt)}</span><span class="spk" aria-hidden="true"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><polyline points="${line}"/>${pts.map((p, i) => p.v == null ? "" : `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="1.6"/>`).join("")}${pts[7].v != null ? `<circle cx="${x(7)}" cy="${y(pts[7].v)}" r="2.6"/>` : ""}${hits}</svg><span class="ends"><span>${sl(f0)} ${fmtM(k, pts[f0].v)}</span><span>${sl(7)} <b>${fmtM(k, pts[7].v)}</b></span></span></span><small aria-hidden="true">${esc(plain ? (st.mode === "month" ? t("8-month range {range}", {range: rng}) : t("8-week range {range}", {range: rng})) : `${GOTO[k] ? `${t(HELP[k].n)} · ` : ""}${st.mode === "month" ? (MET[k].low ? t("8-month range {range} · higher is worth a look", {range: rng}) : t("8-month range {range} · lower is worth a look", {range: rng})) : (MET[k].low ? t("8-week range {range} · higher is worth a look", {range: rng}) : t("8-week range {range} · lower is worth a look", {range: rng}))}`)}</small></span>`;
+} // 向き（高いほど・低いほど見直す）だけを書く。印が付いた基準（決まった値）は、ダイアログの見出しのすぐ下に出す
 /* 見直す候補：指標が決まった基準を超えたものを拾う（AI は使わない。判定ではなく、確かめる候補） */
 // 見直す候補の文は 2 つ持つ。en は英語のまま（週報のプロンプトに入れる。訳さない）、L は画面に出す今の言語の文。
 // 鍵は英語の文で、{name} を埋める。英語の画面では L と en は同じになる
@@ -106,54 +106,53 @@ function findList(w, pw, unit){
   const loc = {period: M ? t("this month") : t("this week"), last: M ? t("last month") : t("last week")}; loc.prev = V.n == null ? loc.last : V.range;
   const tx = (s, v = {}, l = {}) => ({en: fillEn(s, {...en, ...v}), l: t(s, {...loc, ...v, ...l})});
   const ses = n => [{sessions: pluralEn(n, "session")}, {sessions: plural(n, "session")}];
-  // because は、印が付いた理由（この期間の実際の数と基準）。推移の高低で付くのではないので、推移とは別に書く
-  const add = (k, score, see, why, rule, ids, because) => F.push({k, score, see: see.en, why: why.en, rule: rule.en, ids: ids || [], because: because && because.en,
-    L: {see: see.l, why: why.l, rule: rule.l, because: because && because.l}});
+  const add = (k, score, see, why, rule, ids) => F.push({k, score, see: see.en, why: why.en, rule: rule.en, ids: ids || [],
+    L: {see: see.l, why: why.l, rule: rule.l}});
   const LH = limitHits(ws, we);
   if (LH.length){
     const hl = (rs, hs) => hs.slice(-3).map(h => h.r ? fillEn(rs, {time: `${md(h.t)} ${hm(h.t)}`, r: h.r}) : `${md(h.t)} ${hm(h.t)}`).join(LSEP()) + (hs.length > 3 ? LSEP() + "…" : "");
     // 英語の文（週報のプロンプトにも入る）は、日付と解除時刻も英語のまま
     const v = [{n: LH.length, list: inEnglish(() => hl("{time} (resets {r})", limitHits(ws, we)))}, {list: hl(t("{time} (resets {r})"), LH)}];
-    add("limits", 40, LH.length === 1 ? tx("Hit the usage limit once ({list})", ...v) : tx("Hit the usage limit {n} times ({list})", ...v), tx("Hitting a limit stops your work until it resets. The cause is often in how you worked just before"), tx("1+ hit"), [...new Set(LH.map(h => h.s.id))].reverse(), LH.length === 1 ? tx("you hit the usage limit once {period}") : tx("you hit the usage limit {n} times {period}", {n: LH.length}));
+    add("limits", 40, LH.length === 1 ? tx("Hit the usage limit once ({list})", ...v) : tx("Hit the usage limit {n} times ({list})", ...v), tx("Hitting a limit stops your work until it resets. The cause is often in how you worked just before"), tx("1+ hit"), [...new Set(LH.map(h => h.s.id))].reverse());
   }
   if (w.fixRate != null && w.prompts >= 10 && w.fixRate >= 20)
-    add("fix", w.fixRate, tx("{pct}% of prompts had corrections or interruptions", {pct: w.fixRate}), tx("When a first prompt misses, redoing it costs time and tokens"), tx("20% or more, with 10+ prompts"), w.friction.map(f => f.id), tx("{pct}% of {n} prompts {period} had corrections or interruptions", {pct: w.fixRate, n: w.prompts}));
+    add("fix", w.fixRate, tx("{pct}% of prompts had corrections or interruptions", {pct: w.fixRate}), tx("When a first prompt misses, redoing it costs time and tokens"), tx("20% or more, with 10+ prompts"), w.friction.map(f => f.id));
   else if (w.friction.length)
-    add("friction", 18, tx("{sessions} with possible friction", ...ses(w.friction.length)), tx("Rework is concentrated in a few sessions. Opening them usually hints at the cause"), tx("A session with 1+ correction or interruption, or 15+ prompts"), w.friction.map(f => f.id), tx("{sessions} {period} crossed the threshold", ...ses(w.friction.length)));
+    add("friction", 18, tx("{sessions} with possible friction", ...ses(w.friction.length)), tx("Rework is concentrated in a few sessions. Opening them usually hints at the cause"), tx("A session with 1+ correction or interruption, or 15+ prompts"), w.friction.map(f => f.id));
   const LC = longCtxOf(ws, we);
   if (LC.length){
     const [a, b] = ses(LC.length);
-    add("longctx", 34, tx("{sessions} where the conversation grew long and the input read per response rose to {x}× the first part (peak {peak} tokens)", {...a, x: Math.round(Math.max(...LC.map(s => s.ctx[1] / s.ctx[0]))), peak: tok(Math.max(...LC.map(s => s.ctx[2])))}, b), tx("The longer a conversation, the more earlier context each response rereads, so similar prompts get heavier"), tx("Later input 4×+ the first part, peak at half the model's context window or more (100K+ tokens when the window is unknown), $0.5+"), LC.map(s => s.id), tx("{sessions} {period} crossed the threshold", a, b));
+    add("longctx", 34, tx("{sessions} where the conversation grew long and the input read per response rose to {x}× the first part (peak {peak} tokens)", {...a, x: Math.round(Math.max(...LC.map(s => s.ctx[1] / s.ctx[0]))), peak: tok(Math.max(...LC.map(s => s.ctx[2])))}, b), tx("The longer a conversation, the more earlier context each response rereads, so similar prompts get heavier"), tx("Later input 4×+ the first part, peak at half the model's context window or more (100K+ tokens when the window is unknown), $0.5+"), LC.map(s => s.id));
   }
   const LT = lightOf(ws, we);
   if (u.cost >= 2 && LT.c >= Math.max(1, u.cost * 0.1))
-    add("modelfit", 24, tx("Short sessions with no edits spent {cost} ({pct}% of estimated cost) on Opus-class models", {cost: usd(LT.c), pct: Math.round(LT.c*100/u.cost)}), tx("For research and questions, a lighter model is often enough"), tx("Sessions with ≤3 prompts, no edits and $0.3+ total 10%+ of all cost ($2+) and $1+"), LT.xs.map(s => s.id), tx("such sessions took {pct}% of estimated cost {period}", {pct: Math.round(LT.c*100/u.cost)}));
+    add("modelfit", 24, tx("Short sessions with no edits spent {cost} ({pct}% of estimated cost) on Opus-class models", {cost: usd(LT.c), pct: Math.round(LT.c*100/u.cost)}), tx("For research and questions, a lighter model is often enough"), tx("Sessions with ≤3 prompts, no edits and $0.3+ total 10%+ of all cost ($2+) and $1+"), LT.xs.map(s => s.id));
   const {xs: idle, c: idleC} = idleOf(ws, we);
   if (u.cost >= 2 && idleC >= u.cost * 0.4)
-    add("heavy", 30 + Math.round(idleC*50/u.cost), tx("{pct}% of estimated cost ({cost}) went to sessions with no commit or pull request", {pct: Math.round(idleC*100/u.cost), cost: usd(idleC)}), tx("Fine for research or discussion. If they stopped partway, it's worth finding out why"), tx("Sessions of $1+ total 40%+ of all cost ($2+)"), idle.map(s => s.id), tx("such sessions took {pct}% of estimated cost {period}", {pct: Math.round(idleC*100/u.cost)}));
+    add("heavy", 30 + Math.round(idleC*50/u.cost), tx("{pct}% of estimated cost ({cost}) went to sessions with no commit or pull request", {pct: Math.round(idleC*100/u.cost), cost: usd(idleC)}), tx("Fine for research or discussion. If they stopped partway, it's worth finding out why"), tx("Sessions of $1+ total 40%+ of all cost ($2+)"), idle.map(s => s.id));
   const pc = V.of("cost", pw && pw.usage && pw.usage.cost); // 途中の期間は、前の期間の同じ日までと比べる
   if (pc != null && pc >= 1 && u.cost >= pc * 1.5)
-    add("cost", 25, tx("Estimated cost was {x}× that of {prev} ({from} → {to})", {x: (u.cost/pc).toFixed(1), from: usd(pc), to: usd(u.cost)}), tx("What it means depends on which projects and sessions the increase came from"), tx("1.5× {last} or more"), null, tx("estimated cost was {x}× that of {prev}", {x: (u.cost/pc).toFixed(1)}));
+    add("cost", 25, tx("Estimated cost was {x}× that of {prev} ({from} → {to})", {x: (u.cost/pc).toFixed(1), from: usd(pc), to: usd(u.cost)}), tx("What it means depends on which projects and sessions the increase came from"), tx("1.5× {last} or more"), null);
   if (pw && pw.costPerCommit != null && w.costPerCommit != null && o.commits >= 3 && w.costPerCommit >= pw.costPerCommit * 1.5)
-    add("costPerCommit", 22, tx("Estimated cost per commit rose from {from} to {to}", {from: usd(pw.costPerCommit), to: usd(w.costPerCommit)}), tx("Each commit is costing more than before"), tx("1.5× {last} or more, with 3+ commits"), null, tx("it was {x}× {last}", {x: (w.costPerCommit/pw.costPerCommit).toFixed(1)}));
+    add("costPerCommit", 22, tx("Estimated cost per commit rose from {from} to {to}", {from: usd(pw.costPerCommit), to: usd(w.costPerCommit)}), tx("Each commit is costing more than before"), tx("1.5× {last} or more, with 3+ commits"), null);
   if (u.cacheHit != null && u.tokens >= 1e6 && u.cacheHit < 0.5)
-    add("cache", 20, tx("Only {pct}% of input was read from cache", {pct: Math.round(u.cacheHit*100)}), tx("You may be re-sending the same context every time"), tx("Under 50%, with 1M+ tokens"), null, tx("{pct}% of input {period} was read from cache", {pct: Math.round(u.cacheHit*100)}));
+    add("cache", 20, tx("Only {pct}% of input was read from cache", {pct: Math.round(u.cacheHit*100)}), tx("You may be re-sending the same context every time"), tx("Under 50%, with 1M+ tokens"), null);
   if ((w.outBase ?? w.sessions) >= 5 && (o.commits || o.prs || (w.git && w.git.commits)) && w.outSessions / (w.outBase ?? w.sessions) < 0.25)
-    add("outSessions", 16, tx("{n} of {total} sessions reached a commit or pull request", {n: w.outSessions, total: w.outBase ?? w.sessions}), tx("Many sessions may have stopped partway"), tx("Under 25%, with 5+ sessions"), null, tx("{pct}% of sessions {period} reached a commit or pull request", {pct: pctOf(w.outSessions, w.outBase ?? w.sessions)}));
+    add("outSessions", 16, tx("{n} of {total} sessions reached a commit or pull request", {n: w.outSessions, total: w.outBase ?? w.sessions}), tx("Many sessions may have stopped partway"), tx("Under 25%, with 5+ sessions"), null);
   const BG = bigOf(ws, we);
   if (BG.n >= 3){
     const a = {prompts: pluralEn(BG.n, "prompt")}, b = {prompts: plural(BG.n, "prompt")};
-    add("bigPrompts", 11, tx("{prompts} of {min}+ characters (longest {max})", {...a, min: commas(BIG_PROMPT), max: commas(BG.max)}, b), tx("Pasting long logs or documents makes every later response re-read a heavier input, and buries the instructions that matter"), tx("3+ prompts of {min}+ characters", {min: commas(BIG_PROMPT)}), BG.ids, tx("{prompts} {period} crossed the threshold", a, b));
+    add("bigPrompts", 11, tx("{prompts} of {min}+ characters (longest {max})", {...a, min: commas(BIG_PROMPT), max: commas(BG.max)}, b), tx("Pasting long logs or documents makes every later response re-read a heavier input, and buries the instructions that matter"), tx("3+ prompts of {min}+ characters", {min: commas(BIG_PROMPT)}), BG.ids);
   }
   const RP = repeatsOf(ws, we);
   if (RP.length)
-    add("repeats", 9, tx("You wrote a similar prompt {n} times across {s} sessions {period} (\"{text}\")", {n: RP[0].n, s: RP[0].ids.size, text: snipOf(RP[0].text, 40)}), tx("A prompt you type every time can be written once as a command or in CLAUDE.md"), tx("{min}+ characters, in {ses}+ sessions", {min: REPEAT_MIN, ses: REPEAT_SES}), [...new Set([RP[0].id, ...RP[0].ids])], RP.length === 1 ? tx("1 prompt {period} was written in {ses} or more sessions", {ses: REPEAT_SES}) : tx("{n} different prompts {period} were each written in {ses} or more sessions", {n: RP.length, ses: REPEAT_SES}));
+    add("repeats", 9, tx("You wrote a similar prompt {n} times across {s} sessions {period} (\"{text}\")", {n: RP[0].n, s: RP[0].ids.size, text: snipOf(RP[0].text, 40)}), tx("A prompt you type every time can be written once as a command or in CLAUDE.md"), tx("{min}+ characters, in {ses}+ sessions", {min: REPEAT_MIN, ses: REPEAT_SES}), [...new Set([RP[0].id, ...RP[0].ids])]);
   if (w.switchesAvg >= 5)
-    add("switches", 14, tx("You switched projects {n} times a day on average", {n: w.switchesAvg}), tx("Each context switch tends to add ramp-up time and rework"), tx("5+ per day on average"), null, tx("you averaged {n} switches a day {period}", {n: w.switchesAvg}));
+    add("switches", 14, tx("You switched projects {n} times a day on average", {n: w.switchesAvg}), tx("Each context switch tends to add ramp-up time and rework"), tx("5+ per day on average"), null);
   if (!w.focus.length && w.active >= 240)
-    add("focus", 12, tx("You worked {dur}, but never for 60 minutes straight", {dur: dur(w.active)}), tx("Fragmented time makes it harder to hand large tasks to AI"), tx("No focus blocks, with 4+ hours of work"), null, tx("there were no focus blocks in {dur} of work {period}", {dur: dur(w.active)}));
+    add("focus", 12, tx("You worked {dur}, but never for 60 minutes straight", {dur: dur(w.active)}), tx("Fragmented time makes it harder to hand large tasks to AI"), tx("No focus blocks, with 4+ hours of work"), null);
   if (w.waitP90 != null && w.waitCount >= 10 && w.waitP90 >= 900)
-    add("wait", 10, tx("At the long end, {secs} passed between an AI reply and your next prompt", {secs: secs(w.waitP90)}), tx("AI may have sat idle until you noticed its reply"), tx("90th percentile of 15+ min"), null, tx("the 90th percentile {period} was {secs}", {secs: secs(w.waitP90)}));
+    add("wait", 10, tx("At the long end, {secs} passed between an AI reply and your next prompt", {secs: secs(w.waitP90)}), tx("AI may have sat idle until you noticed its reply"), tx("90th percentile of 15+ min"), null);
   return F.sort((a,b) => b.score - a.score);
 }
 const GOTO = {longctx: "heavy", modelfit: "models"}; // 専用の指標がない候補は、関係する指標に印を付ける
@@ -167,13 +166,15 @@ function sesFlags(s){ // 詳細の頭に、このセッションが関係する�
   const ids = [...new Set(lastFlags.filter(f => f.ids.includes(s.id)).map(f => GOTO[f.k] || f.k))];
   return ids.length ? `<div class="sflags"><span class="lbl" title="${esc(t("This session is one of the sessions behind these flags"))}">${ico("flag", "fdot")}${esc(t("Worth a look"))}</span>${ids.map(id => `<button class="flink" data-goto="${id}" aria-haspopup="dialog">${esc(H()[id].n)}</button>`).join("")}</div>` : "";
 }
-const flagSes = ids => ids.map(id => { const s = DATA.find(x => x.id === id); return s ? sesCardH(s, sesMeta(s)) : ""; }).join("");
+// line は、カードに添える 1 行（id → 文字）。繰り返しのプロンプトでは、そのセッションで書いたもの
+const flagSes = (ids, line) => ids.map(id => { const s = DATA.find(x => x.id === id), l = line && line.get(id); return s ? sesCardH(s, sesMeta(s) + (l ? `<span class="fq">${esc(snipOf(l, 90))}</span>` : "")) : ""; }).join("");
 /* 見直す候補の 1 つを、画面の真ん中のダイアログで開く（サマリーへ移らずに、何が見えて、なぜ大事で、次に何をするかを読める）。
    同じ指標に印の付く候補（GOTO）はまとめて出す。セッションを押すと、ダイアログを閉じて詳細を開く */
 let lastFlags = []; // 表示中の期間の候補（summary が入れる）
 function openWorth(id, from){
   const D = $("#wk"), fs = lastFlags.filter(f => (GOTO[f.k] || f.k) === id), h = H()[id]; if (!fs.length || !h) return;
-  const body = fs.map(f => `<div class="fl"><p class="see">${ico("flag", "fdot")}${esc(f.L.see)}</p><p class="why">${esc(f.L.why)}</p>${spark(f.k)}${f.because ? `<p class="because">${esc(t("Flagged because {reason}", {reason: f.L.because}))}</p>` : ""}${f.ids.length ? `<div class="fss">${flagSes(f.ids.slice(0, 6))}${f.ids.length > 6 ? `<p class="more">${esc(f.ids.length - 6 === 1 ? t("1 more session") : t("{n} more sessions", {n: f.ids.length - 6}))}</p>` : ""}</div>` : ""}<p class="rule">${esc(t("Threshold: {rule}", {rule: f.L.rule}))}</p></div>`).join("");
+  const {ws, we} = period(), rp = id === "repeats" ? (repeatsOf(ws, we)[0] || {}).by : null;
+  const body = fs.map(f => `<div class="fl"><p class="see">${ico("flag", "fdot")}${esc(f.L.see)}</p><p class="rule">${esc(t("Threshold: {rule}", {rule: f.L.rule}))}</p>${f.k === "repeats" ? "" : `<p class="why">${esc(f.L.why)}</p>`}${spark(f.k)}${f.ids.length ? `<div class="fss">${flagSes(f.ids.slice(0, 6), f.k === "repeats" ? rp : null)}${f.ids.length > 6 ? `<p class="more">${esc(f.ids.length - 6 === 1 ? t("1 more session") : t("{n} more sessions", {n: f.ids.length - 6}))}</p>` : ""}</div>` : ""}</div>`).join(""); // 繰り返しのプロンプトの「なぜ」は「What to try」と同じことなので出さない
   D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" id="wkclose" aria-label="${esc(t("Close"))}"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form><div class="eyebrow">${ico("flag", "fdot")}${esc(t("Worth a look"))}</div><h2 id="wkh">${esc(h.n)}</h2>${body}
     <dl class="wkhelp"><dt>${esc(t("What it is"))}</dt><dd>${esc(h.d)}</dd><dt>${esc(t("Doesn't tell you"))}</dt><dd>${esc(h.x)}</dd><dt>${esc(t("What to try"))}</dt><dd>${esc(h.a)}</dd></dl>`;
   D.querySelectorAll(".fss [data-id]").forEach(b => b.onclick = () => { D.close(); select(b.dataset.id); });

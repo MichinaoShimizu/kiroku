@@ -17,13 +17,14 @@ let row = keepRow({name: "Kiro CLI (Classic)", retention: zero});
 has(row, "Older records are deleted at the next cleanup (<code>session.archive_retention_days</code> is 0)", "0 日は次の片付けで消える");
 has(row, `class="kw"`, "0 日は注意として出す");
 not(row, "after a period", "0 日を「わからない期間」と出さない");
-not(row, "Kept for 0 days", "0 日を「0 日残す」と出さない");
+not(row, "for 0 days", "0 日を「0 日残す」と出さない");
 META.archive.on = true;
 row = keepRow({name: "Kiro CLI (Classic)", retention: zero});
 has(row, "but kiroku keeps a copy", "kiroku archive がオンなら、コピーがあると出す");
 not(row, `class="kw"`, "コピーがあれば注意にしない");
 META.archive.on = false;
-has(keepRow({name: "Kiro CLI (Classic)", retention: {days: 90, set: true, setting: "s"}}), "Kept for 90 days", "設定した日数");
+has(keepRow({name: "Kiro CLI (Classic)", retention: {days: 90, set: true, setting: "s"}}), "Kiro CLI (Classic) keeps history for 90 days (setting: <code>s</code>)", "設定した日数");
+has(keepRow({name: "Kiro CLI (Classic)", retention: {days: 90, set: true, who: "<Crew>", setting: "s"}}), "&lt;Crew&gt; keeps history for 90 days", "消すものが別なら、その名前で（打ち消して）");
 has(keepRow({name: "X", retention: {days: 0, set: false, setting: "s", docs: "d"}}), "Older records are deleted after a period", "日数がわからないとき");
 has(keepRow({name: "X", retention: {days: 30, set: false, setting: "<s>", docs: "d"}}), "<code>&lt;s&gt;</code>", "設定の名前は打ち消す");
 

@@ -233,7 +233,6 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .fl .see{font-size:var(--fs-sm);font-weight:600;line-height:1.6;color:var(--ink)}
 .fl .see .fdot{margin-right:6px}
 .fl .rule{font-size:var(--fs-xs);color:var(--ink-3)}
-.fl .because{font-size:var(--fs-sm);color:var(--ink-2)} /* 印が付いた理由（推移の高低とは別） */
 .fl .why{font-size:var(--fs-sm);color:var(--ink-2);line-height:1.6} /* 印の理由と説明は、判断に使う文なので小さくしない（基準の行 .rule だけ小さく） */
 .scope{margin:0 0 16px;padding:10px 14px;border-radius:12px;border:1px solid var(--rule);background:var(--surface-2);font-size:var(--fs-sm);line-height:1.7;color:var(--ink-2)}
 #scopebar{margin:16px 0 -8px}
@@ -299,6 +298,7 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .dsrc summary{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none}.dsrc summary::-webkit-details-marker{display:none}
 .dsrc .dsc{width:12px;height:12px;stroke:var(--ink-3);fill:none;stroke-width:1.8;transition:transform .2s var(--ease)}.dsrc[open] .dsc{transform:rotate(90deg)}
 .dsrc summary h3{margin:0}.dsrc summary .muted{font-size:var(--fs-xs)}
+.dsrc .dnf summary{display:list-item;list-style:revert;color:var(--ink-2)} /* 見つからなかったエージェント（0 セッション）。開くと一覧 */
 .foot .xl{color:var(--ink-2)}
 /* ── month（月カレンダー：日ごとの作業量） ───────────────── */
 .mgrid{display:grid;grid-template-columns:minmax(96px,.75fr) repeat(7,minmax(0,1fr))}
@@ -410,6 +410,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .card .ti>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card .me b{margin-left:auto;font-weight:600;color:var(--ink-2);white-space:nowrap}
 .card .me{font-size:var(--fs-xs);color:var(--ink-3);display:flex;gap:8px;align-items:center;margin-top:3px;flex-wrap:wrap}
+.card .me .fq{flex-basis:100%;color:var(--ink-2);font-size:var(--fs-sm);overflow-wrap:anywhere} /* 繰り返しのプロンプト：そのセッションで書いたもの */
 .tagx{font-size:var(--fs-xs);color:var(--warn);background:color-mix(in oklab,var(--warn) 10%,transparent);border-radius:4px;padding:0 6px}
 .none{color:var(--ink-3);font-size:var(--fs-sm)}
 .foot{margin-top:24px;padding-top:14px;border-top:1px solid var(--rule);font-size:var(--fs-xs);color:var(--ink-3);line-height:1.7}
@@ -670,6 +671,7 @@ dialog.mdlg h3{margin:20px 0 8px}
 .mcol.fut .b{opacity:.28;background:repeating-linear-gradient(135deg,var(--acc) 0 3px,transparent 3px 6px)}
 .mcol small{position:absolute;bottom:-18px;font-size:var(--fs-2xs);color:var(--ink-3);font-variant-numeric:tabular-nums}
 .mcol.now small{color:var(--acc-ink);font-weight:700}
+.mcol .bv{font-size:var(--fs-2xs);color:var(--ink-2);white-space:nowrap;font-variant-numeric:tabular-nums;line-height:14px;margin-bottom:2px;max-width:100%;overflow:hidden;text-overflow:ellipsis} /* 週の「By day」：棒の上の値 */
 .mdays.month .mcol small{visibility:hidden}.mdays.month .mcol:nth-child(5n+1) small,.mdays.month .mcol.now small{visibility:visible} /* 月は 5 日ごとと今日に日付を出す */
 .mdays.month .mcol.now+.mcol small,.mdays.month .mcol:has(+.mcol.now) small{visibility:hidden} /* 今日の隣の日付は、重ならないように出さない */
 .mbars{display:flex;flex-direction:column;gap:6px}
@@ -739,6 +741,7 @@ dialog.yr{width:min(1120px,calc(100vw - 32px));max-height:calc(100dvh - 32px);ov
 .yrhow div{border-top:1px solid var(--rule);padding-top:8px;font-size:var(--fs-sm);color:var(--ink-2);line-height:1.6}
 .yrhow b{display:block;color:var(--ink);font-size:var(--fs-sm)}
 dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
+dialog.yr h4.yrsub{font:600 var(--fs-md)/1.5 var(--sans);margin:12px 0 6px;color:var(--ink-2)} /* 「… 以降（それより前と比較）」。変わったことの前に 1 度だけ */
 .yrcard{display:block;width:100%;height:auto;aspect-ratio:16/9;border-radius:12px;background:#06070a}
 .yropts{display:flex;flex-wrap:wrap;gap:8px 18px;margin:12px 0;font-size:var(--fs-sm);color:var(--ink-2)}
 .yropts label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}.yropts label.off{opacity:.6;cursor:default}.yropts select{height:28px;border:1px solid var(--rule-2);border-radius:8px;background:var(--surface);color:var(--ink);padding:0 6px;font:inherit}.yropts label small{font-size:var(--fs-xs);color:var(--ink-3)}
@@ -878,9 +881,8 @@ dialog.yr h3{font:700 var(--fs-xl)/1.5 var(--sans);margin:30px 0 10px}
 .pill.ai-action:disabled{background:#e2ebe6;color:#526f60;border:1px solid #9bb9a8;opacity:1;cursor:not-allowed}
 
 /* Daily AI controls must stay inside narrow calendar columns. */
-.head .dd :is(.ai-action,.ai-off){max-width:100%;min-width:0;box-sizing:border-box;font-size:var(--fs-xs);padding:3px 7px;white-space:nowrap}
-.head .dd .dayrun-demo{margin-left:auto}
-@media(max-width:900px){.head .dd :is(.ai-action,.ai-off){font-size:11px;padding:2px 6px}}
+.head .dd .ai-action{max-width:100%;min-width:0;box-sizing:border-box;font-size:var(--fs-xs);padding:3px 7px;white-space:nowrap}
+@media(max-width:900px){.head .dd .ai-action{font-size:11px;padding:2px 6px}}
 
 /* Run with AI is off (saved file, or kiroku serve without --ai): an outlined button that explains how to turn it on, not an action */
 .pill.ai-off{background:transparent;color:#176b50;border:1px dashed #5c9a80;font-weight:500;cursor:help}

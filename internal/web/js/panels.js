@@ -254,7 +254,7 @@ function outcomePanel(w, pw, unit){
     statH(esc(t("Prompts")), n(w.prompts), V.diff(w.prompts, V.of("prompts", pw && pw.prompts)), "prompts", "sessions"),
     u.tokens ? statH(esc(t("Estimated cost")), usdH(costOf(u)), costOf(u) == null ? esc(t("Models not in the price table")) : V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost", "cost") : "",
     u.tokens ? statH(esc(t("Tokens")), tok(u.tokens), esc(t("Output tokens {n}", {n: tok(u.out)})), "tokens", "tokens") : "",
-    u.credits ? statH(esc(t("Kiro credits")), crN(u.credits), esc(t("As recorded in history")), "credits", "credits") : "",
+    u.credits ? statH(esc(t("Kiro credits")), crN(u.credits), esc(t("Not an estimate")), "credits", "credits") : "",
   ].join("");
   const lines = gc ? gc.added + gc.removed : 0;
   const out = hasOut ? [
@@ -324,13 +324,18 @@ function keepRow(r){ // 計測の状態に添える：どこまでさかのぼ�
       : k.now ? `<br><span class="kw">${by}${tph("Older records are deleted at the next cleanup ({setting} is 0)", {setting: set})}${link}</span>` // 0 日（days の 0 は「わからない」なので now で見分ける）
       : k.days && !k.set && archOn() ? `<br>${by}${esc(t("Records older than {days} days are deleted automatically, but kiroku keeps a copy", {days: k.days}))}`
       : k.days && !k.set ? `<br><span class="kw">${by}${tph("Records older than {days} days are deleted automatically ({setting} is at its default)", {days: k.days, setting: set})}${link}</span>${how()}`
-      : k.days ? `<br>${by}${tph("Kept for {days} days ({setting})", {days: k.days, setting: set})}`
+      : k.days ? `<br>${tph("{agent} keeps history for {days} days (setting: {setting})", {agent: k.who || r.name, days: k.days, setting: set})}`
       : `<br>${by}${tph("Older records are deleted after a period ({setting})", {setting: set})}${link}`); }
 // measure は、計測の状態（読んだ履歴・消える設定・kiroku のコピー・料金表）。ふだんはたたみ、
 // 気をつけること（読めないファイル・既定のままで消える履歴・料金表にないモデル・似た ID の料金を当てたモデル）があるときは、見出しに印を付けて開いておく
 function measure(w){
-  const rows = META.report.map(r => { const dt = JA ? r.detail || r.detailEn : r.detailEn || r.detail; // Go の一言（日本語の Detail と英語の DetailEn）
-    return `<li class="${r.error?"warn":""}">${esc((r.name))}${AG_ABOUT[r.name] ? ` <span class="muted">— ${esc(t(AG_ABOUT[r.name]))}</span>` : ""}: ${esc(plural(r.n, "session"))}${dt?` (${esc(dt)})`:""}${r.dup?` (${esc(t("{n} also found elsewhere, counted once", {n: plural(r.dup, "duplicate conversation")}))})`:""}${r.error?` (${esc(t("some files couldn't be read"))})`:""}${keepRow(r)}</li>`; });
+  // セッションが 0 件の行（その PC で見つからなかったエージェント）は「Not found: N」の下にたたむ。読めなかったものは出しておく
+  const warnKeep = r => r.retention && (r.retention.days && !r.retention.set || r.retention.now) && !archOn();
+  const found = r => r.n || r.error || r.dup || r.archived || warnKeep(r);
+  const row = r => { const dt = JA ? r.detail || r.detailEn : r.detailEn || r.detail; // Go の一言（日本語の Detail と英語の DetailEn）
+    return `<li class="${r.error?"warn":""}">${esc((r.name))}${AG_ABOUT[r.name] ? ` <span class="muted">— ${esc(t(AG_ABOUT[r.name]))}</span>` : ""}: ${esc(plural(r.n, "session"))}${dt?` (${esc(dt)})`:""}${r.dup?` (${esc(t("{n} also found elsewhere, counted once", {n: plural(r.dup, "duplicate conversation")}))})`:""}${r.error?` (${esc(t("some files couldn't be read"))})`:""}${keepRow(r)}</li>`; };
+  const rows = META.report.filter(found).map(row), nf = META.report.filter(r => !found(r));
+  if (nf.length) rows.push(`<li><details class="dnf"><summary>${esc(t("Not found: {n}", {n: nf.length}))}</summary><ul class="mlist">${nf.map(row).join("")}</ul></details></li>`);
   const a = META.archive; // kiroku archive
   if (a && (a.on || a.files)) rows.push(`<li>${esc(a.on ? t("kiroku's copy: on ({files}, {size})", {files: plural(a.files, "file"), size: bytes(a.bytes)})
       : t("kiroku's copy: off. Copies kept so far ({files}, {size}) are still shown", {files: plural(a.files, "file"), size: bytes(a.bytes)}))}<br><code>${esc(a.dir)}</code></li>`);
@@ -345,7 +350,7 @@ function measure(w){
   if (w.usage && w.usage.tokens) rows.push(`<li>${META.prices && META.prices.custom ? tph("Price table for estimated cost: from {prices}", {prices})
       : META.prices ? tph("Price table for estimated cost: Anthropic and OpenAI public rates as of {date} (change it with {prices})", {date: isJA() && /^\d{4}-\d{2}$/.test(META.prices.asOf) ? `${META.prices.asOf.slice(0, 4)}年${+META.prices.asOf.slice(5)}月` : META.prices.asOf, prices})
       : tph("Price table for estimated cost: public rates (change it with {prices})", {prices})}</li>`);
-  const alert = (META.report || []).some(r => r.error || r.retention && (r.retention.days && !r.retention.set || r.retention.now) && !archOn()) || !!(w.usage && w.usage.unpriced) || pp.length > 0 || ts.length > 0;
+  const alert = (META.report || []).some(r => r.error || warnKeep(r)) || !!(w.usage && w.usage.unpriced) || pp.length > 0 || ts.length > 0;
   const n = (META.report || []).filter(r => r.n).length;
   return `<details class="dsrc"${alert ? " open" : ""}><summary>${ico("caret", "dsc")}<h3>${esc(t("Data sources"))}</h3><span class="muted">${esc(t("{n} read", {n: plural(n, "history", "histories")}))}</span>${alert ? `<span title="${esc(t("Something here needs your attention"))}">${ico("flag", "fdot")}</span>` : ""}</summary><ul class="mlist">${rows.join("")}</ul></details>`;
 }
@@ -380,10 +385,10 @@ function aiUsage(w, pw, unit){
   const totalC = u.models.reduce((t,r)=>t+r[1],0) || 1, totalT = u.models.reduce((t,r)=>t+r[2],0) || 1, byCost = totalC > 0.0001;
   return `<div class="stats">
       ${pj && pj.cost != null ? statH(esc(t("Month-end cost (estimate)")), "≈ " + usdH(pj.cost), esc(t("If the pace of the first {n} days continues", {n: pj.days})), "projection", "projection") : ""}
-      ${pj && pj.credits != null ? statH(esc(t("Month-end credits (estimate)")), `≈ ${crN(pj.credits)}<small> ${esc(t("credits"))}</small>`, esc(t("If the pace of the first {n} days continues", {n: pj.days})), "projectionCr", "projectionCr") : ""}
+      ${pj && pj.credits != null ? statH(esc(t("Month-end credits (estimate)")), `≈ ${crN(pj.credits)}<small> cr</small>`, esc(t("If the pace of the first {n} days continues", {n: pj.days})), "projectionCr", "projectionCr") : ""}
       ${u.tokens ? statH(esc(t("Read from cache")), u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, esc(t("Share of input")), "cache", u.cacheHit == null ? "" : "cache") : ""}
       ${(() => { const {ws, we} = period(), N = !u.subagents && unrecorded(ws, we, "subagents"); return N ? norecStat(esc(t("Subagents")), N, "subagents") : statH(esc(t("Subagents")), `${u.subagents}`, esc(u.subagents ? t("Total run time {d}", {d: dur(u.subMin)}) : t("Not used")), "subagents", u.subagents ? "subagents" : ""); })()}
-      ${w.costPerAsk != null ? statH(esc(t("Estimated cost per prompt")), usdH(w.costPerAsk), esc(plural(w.costPrompts, "prompt")), "costPerAsk", "costPerAsk") : ""}
+      ${w.costPerAsk != null ? statH(esc(t("Estimated cost per prompt")), usdH(w.costPerAsk), esc(w.costPrompts === 1 ? t("1 prompt with token data") : t("{n} prompts with token data", {n: commas(w.costPrompts)})), "costPerAsk", "costPerAsk") : ""}
     </div>
     ${u.models.length ? `${secH(esc(byCost ? t("By model (estimated cost)") : t("By model (tokens)")), "models")}
       <div class="mstack">${u.models.map((r,i)=>`<span style="flex:${byCost?r[1]:r[2]};--o:${shade(i)}"${tipAttr((r[0]), t("Estimated cost {usd}", {usd: usd(r[1])}), t("Tokens {n}", {n: tok(r[2])}), `${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%`)}></span>`).join("")}</div>
@@ -393,18 +398,21 @@ function aiUsage(w, pw, unit){
 }
 function nativeText(v){
   const num = (x, d) => commas(Number(x.toFixed(d)));
-  if (JA) return v.unit === "%" ? `${num(v.v,1)}%` : v.unit === "秒" ? `${num(v.v,1)}秒` : v.unit === "クレジット" ? `${crN(v.v)} クレジット` : `${num(v.v,0)}${v.unit ? " " + v.unit : ""}`; // 日本語は Go の単位のまま
-  const u = {"回": "", "件": "", "トークン": " tokens", "バイト": " bytes"}[v.unit]; // 単位は Go の定義（日本語）を英語に読みかえる
-  return v.unit === "%" ? `${num(v.v,1)}%` : v.unit === "秒" ? `${num(v.v,1)}s` : v.unit === "クレジット" ? `${crN(v.v)} credits` : `${num(v.v,0)}${u ?? " " + v.unit}`;
+  // 名前が単位を言っているとき（「Credits」「Reasoning tokens」）は、数のあとに単位を繰り返さない
+  if (JA){ const u = v.unit === "秒" || v.unit === "%" ? v.unit : (nlabel(v) || "").includes(v.unit) ? "" : v.unit ? " " + v.unit : "";
+    return v.unit === "%" || v.unit === "秒" ? `${num(v.v,1)}${u}` : v.unit === "クレジット" ? `${crN(v.v)}${u}` : `${num(v.v,0)}${u}`; } // 日本語は Go の単位のまま
+  const w = {"回": "", "件": "", "トークン": "tokens", "バイト": "bytes", "クレジット": "credits"}[v.unit] ?? v.unit; // 単位は Go の定義（日本語）を英語に読みかえる
+  const u = w && !(nlabel(v) || "").toLowerCase().includes(w) ? " " + w : "";
+  return v.unit === "%" ? `${num(v.v,1)}%` : v.unit === "秒" ? `${num(v.v,1)}s` : v.unit === "クレジット" ? `${crN(v.v)}${u}` : `${num(v.v,0)}${u}`;
 }
 const nlabel = v => JA ? v.label || v.labelEn : v.labelEn || v.label; // 参考指標の名前（Go の名前。英語表示では英語の名前）
-function nativeRows(values){
-  return values.map(v=>`<div class="nrow"><span>${esc(nlabel(v))}</span><span class="v">${esc(nativeText(v))}</span><span class="n">n=${v.n}</span></div>`).join("");
+function nativeRows(values){ // n= は、表示した数と同じ（数えたものの合計）なら繰り返さない
+  return values.map(v=>`<div class="nrow"><span>${esc(nlabel(v))}</span><span class="v">${esc(nativeText(v))}</span>${Number(v.v.toFixed(1)) === v.n ? "" : `<span class="n">n=${v.n}</span>`}</div>`).join("");
 }
 function nativeSection(w){
   if (!w.native || !w.native.length) return "";
   // 各エージェントが自分で記録する数。エージェントどうしでは比べられないので、エージェントごとのカードに分ける
-  return `${secH(esc(t("Agent-specific metrics (numbers each agent records itself)")), "native")}<div class="ngroups">
+  return `${secH(esc(t("Agent-specific metrics")), "native")}<div class="ngroups">
     ${w.native.map(g=>`<div class="ngroup" style="--ag:${agColor(g.source)}"><div class="hd"><b>${agMark(g.source)}${esc((g.source))}</b><span>${esc(plural(g.sessions, "session"))}</span></div>${nativeRows(g.values)}</div>`).join("")}</div>`;
 }
 // foot は、ページのいちばん下：作った時刻・kiroku の版（リリースのページへ）・リポジトリへのリンク。
