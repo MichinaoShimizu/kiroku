@@ -17,7 +17,7 @@ PR ごとの点検（`/pre-pr`）は、その PR が変えたところしか見�
 
 1. main の CI（3 OS のテスト・e2e・XSS・release-dry-run・CodeQL）が緑で、直近 10 回に原因のわからない失敗がない
 2. `govulncheck` が kiroku の呼ぶコードに脆弱性を報告しない
-3. 履歴・git・ネットワーク・AI の返事を HTML として入れる箇所がない。外へ出る通信は GitHub のリリースだけ（`kiroku serve --ai` のエージェントを除く）
+3. 履歴・git・ネットワーク・AI の返事を HTML として入れる箇所がない。外へ出る通信は GitHub のリリースだけ（`kiroku serve` の「Analyze with AI」が動かすエージェントを除く。`--no-ai` で切れる）
 4. 書き出すファイルは 0600・ディレクトリは 0700。`kiroku serve` は既定で 127.0.0.1・Host と鍵の確認つき
 5. 読める各エージェントの最新版の履歴を、二重に数えず・取りこぼさずに読める（`docs/sources.md` の表が今の版に合っている）
 6. 画面の文言に英語と日本語で食い違い・訳し漏れ・同じ説明の重複がない。主要なシナリオ（`docs/usability.md`）を en・ja の 3 つの幅で通せる
@@ -66,7 +66,7 @@ go test ./internal/cli -run '^$' -bench Large -benchtime 3x -benchmem   # 前回
 | C. i18n | general-purpose | 英語と日本語の言葉のずれ（同じものに違う名前、画面とドキュメントの違い）、訳し漏れ、`JA_TEXT` の使われていないキー、同じ説明の重複 |
 | D. docs | `/docs-refresh text` の 3 の確かめる部分（直すのは 4 で） | README・README.ja・guide・SECURITY.md・development.md・CHANGELOG とコード（フラグ・既定値・環境変数・権限）の食い違い、リンク切れ、古いスクショ |
 | E. data | `/source-audit` の調べる部分（エージェントごと。直す PR は 4 で） | 各エージェントの新しい版の履歴の形と、kiroku の読み取りの食い違い（二重計上・取りこぼし・モデルやトークンの取り違え）。`/price-update` で料金表の古さ |
-| F. prompts | `/report-eval check` | 日報・週報・月報・振り返りのプロンプトの正しさと長さ（前回の点数と比べる） |
+| F. prompts | `/report-eval check` | 週報・月報・振り返りのプロンプトの正しさと長さ（前回の点数と比べる） |
 | G. code | general-purpose | 時刻・乱数・順番・機械の速さに頼るテスト、使われていないコード、握りつぶしたエラー、テストのない分岐、`runtime.GOOS` で分かれるところ |
 | H. arch | `/adr-guard check` | 前回からの変更が ADR に反していないか、Proposed のまま止まっている ADR、索引（`docs/adr/README.md`）の古さ |
 | I. supply | general-purpose | ワークフローのアクションの SHA 固定と `permissions`、必須チェックの設定（e2e が必須か）、release と install.sh の検証、依存の更新 |

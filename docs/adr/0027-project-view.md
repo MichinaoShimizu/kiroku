@@ -1,6 +1,6 @@
 # ADR 0027: Project-centered evidence inventory
 
-Status: Accepted (2026-10-14, approved by the maintainer during the quality audit; shipped in #379 and #380)
+Status: Superseded by [ADR 0033](0033-calendar-only-view.md) (2026-10-14). Previously Accepted (2026-10-14, approved by the maintainer during the quality audit; shipped in #379 and #380)
 Date: 2026-10-11
 Scope: The Project view of the HTML (`internal/web/js/calendar.js`)
 Related ADRs: [ADR 0026](0026-complementary-history-views.md) (this view extends it), [ADR 0022](0022-history-stays-local.md)

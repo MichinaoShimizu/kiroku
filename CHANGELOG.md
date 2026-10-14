@@ -2,6 +2,29 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- "Analyze with AI" is available in `kiroku serve` without `--ai`, for the weekly and monthly report and the session review ([ADR 0034](docs/adr/0034-ai-analysis-by-default.md))
+  - It offers the agents installed on this computer (`claude`, `codex`, `kiro-cli`). When none is installed, the button is shown disabled with the reason.
+  - Each run still shows the exact prompt and waits for you to confirm.
+  - The agent you choose may send the prompt and the history it reads to its provider. `kiroku serve` says so when it starts, and so do README, the guide and `SECURITY.md`; the run dialog no longer repeats it.
+  - Agent runs stay off when `kiroku serve` listens on an address that isn't a loopback IP.
+  - A saved HTML file never runs an agent and now shows no AI buttons.
+- New `kiroku serve --no-ai` (or `KIROKU_NO_AI=1`, which `kiroku autostart on` keeps) turns agent runs off; `/ai/run` then answers 404
+- `kiroku serve --ai` is still accepted but no longer needed: it does nothing except print a one-line notice. A non-loopback ADDR with `--ai` no longer fails; agent runs are just off there. An explicit `--ai=false` turns agent runs off, like `--no-ai`
+- If you registered `kiroku autostart on` before this version, agent runs are on after you update. To keep them off, run `KIROKU_NO_AI=1 kiroku autostart on` once
+
+### Removed
+
+- The Journey and Project views, and the View switch above the calendar: the view is the Week / Month calendar, with search, the legend's filters, session details, the summary and the Year in review as before. A browser that last showed Journey or Project opens the calendar ([ADR 0033](docs/adr/0033-calendar-only-view.md))
+- "Copy knowledge prompt" on each project card under "① By project", and its prompt (knowledge discovery, ADR 0028)
+- The "Report" button on each day of the week calendar and the daily report prompt. Weekly and monthly reports stay
+- Every "Copy prompt" button: "Copy prompt" for the weekly and monthly report and "Copy review prompt" in session details. The report and review prompts are still built, for "Analyze with AI" only
+- The metrics guide (the map button at the top right and the `G` key). The "?" next to each metric and the keyboard shortcut list (`?`) stay
+- The calendar zoom ("Zoom" − + in the legend and the `+` `−` keys). The week calendar still fits the height of an hour to the week's working hours
+
 ## v0.36.0 - 2026-10-14
 
 ### Added

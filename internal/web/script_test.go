@@ -270,57 +270,6 @@ func TestSpanIn(t *testing.T) {
 	}
 }
 
-// プロジェクトの「Copy knowledge prompt」のプロンプト。報告のプロンプトと同じく、履歴ファイルの場所を渡し、
-// 履歴はコードブロックに 1 行ずつ入れて、改行で kiroku の行に見える偽の行を作れないこと。
-func TestKnowledgePrompt(t *testing.T) {
-	node, err := exec.LookPath("node")
-	if err != nil {
-		t.Skip("node がないので省略")
-	}
-	var code []string
-	for _, x := range []struct{ file, re string }{
-		{"js/state.js", `(?m)^const DOW_EN = .*$`},
-		{"js/state.js", `(?m)^const DOW = .*$`},
-		{"js/state.js", `(?m)^const plural = .*$`},
-		{"js/format.js", `(?m)^const MON = .*$`},
-		{"js/format.js", `(?m)^const dMD = .*$`},
-		{"js/format.js", `(?m)^function md\(t\)\{.*$`},
-		{"js/format.js", `(?m)^function hm\(t\)\{.*$`},
-		{"js/format.js", `(?m)^const keyOf = .*$`},
-		{"js/markdown.js", `(?ms)^function oneLine\(s\)\{.*?\}$`},
-		{"js/markdown.js", `(?ms)^function mdFence\(text\)\{.*?\}$`},
-		{"js/markdown.js", `(?m)^const AI_DATA_NOTE = .*$`},
-		{"js/markdown.js", `(?m)^const PRIVACY_NOTE = .*$`},
-		{"js/panels.js", `(?ms)^function spanIn\(.*?^\}$`},
-		{"js/session.js", `(?m)^const reviewFile = .*$`},
-		{"js/session.js", `(?m)^function utcOff\(t\)\{.*$`},
-		{"js/summary.js", `(?ms)^function projectKnowledgePrompt\(.*?^\}\); \}$`},
-	} {
-		src, err := jsFiles.ReadFile(x.file)
-		if err != nil {
-			t.Fatal(err)
-		}
-		m := regexp.MustCompile(x.re).FindString(strings.ReplaceAll(string(src), "\r\n", "\n"))
-		if m == "" {
-			t.Fatalf("%s に %s が見つからない", x.file, x.re)
-		}
-		code = append(code, m)
-	}
-	cases, err := os.ReadFile(filepath.Join("testdata", "knowledge_test.js"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	f := filepath.Join(t.TempDir(), "knowledge.js")
-	if err := os.WriteFile(f, append([]byte(i18nStub+strings.Join(code, "\n")+"\n"), cases...), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	cmd := exec.Command(node, f)
-	cmd.Env = append(os.Environ(), "TZ=UTC")
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Errorf("projectKnowledgePrompt が違う:\n%s", out)
-	}
-}
-
 // 画面の日本語（i18n.js の JA_TEXT）。値に HTML を入れていないこと、{name} が英語の鍵とそろっていること、
 // t() が辞書を引くこと。js/ の t("…") で日本語のないものは、落とさずに一覧だけ出す（ADR 0029：訳のない文は英語で出る）
 func TestI18nCatalog(t *testing.T) {
