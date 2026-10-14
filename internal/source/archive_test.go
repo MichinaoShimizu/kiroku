@@ -161,3 +161,54 @@ func TestCrewReadsArchivedCopy(t *testing.T) {
 		t.Errorf("コピーを読まないとき rows = %d", len(rows))
 	}
 }
+
+// /cd や worktree への出入りで、Claude Code は会話のファイルを別のプロジェクトのフォルダへ移す。kiroku archive は元の場所の
+// コピーを残すので、同じ会話のファイルが 2 つになる。重なる行（応答・トークン・依頼・サブエージェント）は 1 度だけ数える。
+// 同じ ID でも中身が重ならないファイル（入れ子の claude -p など）は、どちらも数える。
+func TestClaudeSessionMovedToAnotherProject(t *testing.T) {
+	sub := []string{`{"type":"assistant","uuid":"s1","timestamp":"2026-09-30T01:02:00Z","requestId":"rs","message":{"id":"ms","model":"claude-haiku-5-5","usage":{"input_tokens":300,"output_tokens":30},"content":[{"type":"text","text":"done"}]}}`}
+	t.Run("kiroku archive のコピー", func(t *testing.T) {
+		root, arch := t.TempDir(), t.TempDir()
+		zstFile(t, filepath.Join(arch, "-Users-me-app", "orig.jsonl.zst"), origLines[:3], false)
+		zstFile(t, filepath.Join(arch, "-Users-me-app", "orig", "subagents", "agent-a.jsonl.zst"), sub, false)
+		writeLines(t, filepath.Join(root, "-Users-me-app-wt", "orig.jsonl"), origLines)
+		writeLines(t, filepath.Join(root, "-Users-me-app-wt", "orig", "subagents", "agent-a.jsonl"), sub)
+		var in float64
+		n := 0
+		for _, b := range load(t, &Claude{Root: root, Archive: arch}) {
+			s := b.Finish(15)
+			if s == nil {
+				continue
+			}
+			n++
+			in += s.Usage.In
+			for _, a := range s.Subagents {
+				in += a.Usage.In
+			}
+			if strings.HasSuffix(s.File, ".zst") {
+				t.Errorf("移る前のコピーも会話として出る: %s", s.File)
+			}
+		}
+		if n != 1 || in != 1300 {
+			t.Errorf("会話 %d, 入力トークン %v; want 1 会話, 1300（2 度数えない）", n, in)
+		}
+	})
+	t.Run("重ならない同じ ID", func(t *testing.T) {
+		root := t.TempDir()
+		writeLines(t, filepath.Join(root, "-Users-me-app", "orig.jsonl"), origLines[:3])
+		other := make([]string, 3)
+		for i, l := range origLines[:3] {
+			other[i] = strings.NewReplacer(`"uuid":"u`, `"uuid":"x`, `"id":"m1"`, `"id":"m9"`, `"requestId":"r1"`, `"requestId":"r9"`).Replace(l)
+		}
+		writeLines(t, filepath.Join(root, "-tmp-x", "orig.jsonl"), other)
+		var in float64
+		for _, b := range load(t, &Claude{Root: root}) {
+			if s := b.Finish(15); s != nil {
+				in += s.Usage.In
+			}
+		}
+		if in != 2000 {
+			t.Errorf("入力トークン %v, want 2000（重ならない行はどちらも数える）", in)
+		}
+	})
+}
