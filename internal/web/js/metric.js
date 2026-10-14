@@ -12,7 +12,6 @@ const BRK = {
   pace: {n: "A day to match the last period", h: "pace", v: x => x.cost, f: v => usd(v)},
   paceCr: {n: "Credits a day to match the last period", h: "paceCr", v: x => x.credits, f: v => `${crN(v)} cr`},
   active: {n: "Active time", h: "active", v: x => x.minutes ?? x.active, f: v => dur(v), ses: s => sesMin(s)},
-  days: {n: "Active days", h: "active", v: x => x.active, f: v => v ? dur(v) : "—"},
   sessions: {n: "Sessions / prompts", h: "prompts", v: x => x.prompts, f: v => `${Math.round(v)}`, ses: s => s.nPrompts},
   limits: {n: "Usage limit hits", h: "limits"},
   compactions: {n: "Compactions", h: "compactions"},
@@ -231,13 +230,15 @@ function openMetric(id, from){
       mBars("By project", by("project", (k, v) => ({name: k, c: projColor(k), v})), cm) +
       `<h3>${esc(t("When"))}</h3><div class="msess">${H2.map(x => sesCardH(x.s, `${md(x.t)} ${hm(x.t)} · ${esc(x.s.project)}${x.r ? ` · ${esc(t("resets {r}", {r: x.r}))}` : ""}`)).join("")}</div>`;
   } else {
-    const tot = id === "tokens" ? u.tokens : id === "cost" ? costOf(u) : id === "credits" ? u.credits : id === "active" || id === "days" ? w.active : w.prompts;
-    big = id === "days" ? `${w.days.filter(d => d.active).length}<small> ${esc(t("of {n}", {n: w.days.length}))}</small>` : id === "sessions" ? `${w.sessions}<small>/</small>${w.prompts}` : id === "cost" ? usdH(tot) : esc(m.f(tot || 0));
+    const tot = id === "tokens" ? u.tokens : id === "cost" ? costOf(u) : id === "credits" ? u.credits : id === "active" ? w.active : w.prompts;
+    // 稼働日は帯から外したので、作業時間の内訳の数字に添える（途中の期間は今日までの日数で）
+    const n0 = soFar(), nd = n0 == null ? w.days.length : Math.min(n0, w.days.length), ad = w.days.filter(d => d.active).length;
+    big = id === "active" ? `${dur(tot || 0, true)}<small> · ${esc(t("Active days"))} ${ad} ${esc(n0 == null ? t("of {n}", {n: nd}) : t("of {n} so far", {n: nd}))}</small>` : id === "sessions" ? `${w.sessions}<small>/</small>${w.prompts}` : id === "cost" ? usdH(tot) : esc(m.f(tot || 0));
     body = mDays(w, m);
     if (id === "sessions"){ // セッション数はエージェント別の集計にないので、期間にかかったセッションから数える
       const by = new Map(); inRange.forEach(s => by.set(s.source, (by.get(s.source) || 0) + (s.nPrompts || 0)));
       body += mBars("Prompts by agent", [...by].map(([k, v]) => ({name: k, c: agColor(k), mark: agMark(k), v})), m) + mBars("Prompts by project", projs, m);
-    } else if (id !== "days"){
+    } else {
       body += mBars("By agent", agents, m) + mBars("By project", projs, m);
       if (m.model) body += mBars("By model", (u.models || []).map(r => ({name: r[0], c: "var(--acc)", v: r[m.model] || 0})), m);
     }
