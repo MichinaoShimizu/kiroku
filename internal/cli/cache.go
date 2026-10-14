@@ -13,6 +13,7 @@ type loaded struct {
 	key          string // core.Builder.Key（同じ会話を 2 度数えないため）
 	claim, yield string // core.Builder.Claim と Yield
 	sess         *core.Session
+	format       *core.Format // core.Builder.Format（読んだファイルの形の手がかり）
 }
 
 // loadCache は、前回読んだ履歴を覚えておき、変わっていないものを読み直さない（kiroku serve 用）。
@@ -179,5 +180,5 @@ func parallel(n int, f func(i int)) {
 }
 
 func finish(b *core.Builder, gap int) loaded {
-	return loaded{key: b.Key, claim: b.Claim, yield: b.Yield, sess: b.Finish(gap)}
+	return loaded{key: b.Key, claim: b.Claim, yield: b.Yield, sess: b.Finish(gap), format: b.Format}
 }

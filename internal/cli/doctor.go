@@ -36,16 +36,17 @@ type release struct {
 // cmdDoctor は kiroku doctor。どの履歴が読めたか、消える設定のままか、kiroku archive・git・自動起動・新しい版はどうかを一覧にして、
 // 次に打つコマンドを案内する。読むだけで、設定もファイルも変えない。
 func cmdDoctor(args []string) error {
-	fs := newFS("doctor", "doctor [flags]\n\nChecks what kiroku can read, whether your history is at risk of being deleted\nand whether a newer kiroku is out, and suggests what to run next.\nIt only reads; nothing is changed.")
+	fs := newFS("doctor", "doctor [flags]\n\nChecks what kiroku can read, whether your history is at risk of being deleted\nand whether a newer kiroku is out, and suggests what to run next.\nIt only reads; nothing is changed.\n\nWith --report it prints only kinds and counts for a bug report, for you to\nreview and paste yourself; kiroku sends nothing.")
 	noCheck := fs.Bool("no-update-check", false, "do not ask GitHub whether a newer release exists")
 	all := fs.Bool("all", false, "list every agent kiroku looks at, including the ones with no history")
+	diag := fs.Bool("report", false, "print only kinds and counts (versions, unreadable lines, unknown kinds) to paste into a GitHub issue;\nno paths, project names, IDs or content")
 	c := addCommon(fs)
 	if _, err := parse(fs, args, 0); err != nil {
 		return quiet(err)
 	}
 	var rel release
 	done := make(chan struct{})
-	if *noCheck || version == "dev" { // 手元でビルドしたものは kiroku update で入れかえないので、確かめない
+	if *noCheck || *diag || version == "dev" { // 手元でビルドしたものは kiroku update で入れかえないので、確かめない。--report は版を書くだけ
 		close(done)
 	} else {
 		go func() { // 履歴を読むあいだに確かめる
@@ -58,6 +59,10 @@ func cmdDoctor(args []string) error {
 	logw = io.Discard // エージェントごとの読み込みの行は、下の一覧にまとめて出す
 	data, rep := collect(srcs, want, *c.gap)
 	<-done
+	if *diag {
+		diagnostics(os.Stdout, rep)
+		return nil
+	}
 	doctorReport(os.Stdout, rep, len(data), *c.archiveDir, rel, *all)
 	return nil
 }
@@ -95,6 +100,8 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 	if total == 0 {
 		fmt.Fprintf(w, "  %s No history found. If your agents keep it somewhere else, point kiroku to it\n      %s\n", s.warn("!"), s.dim("(--claude-root, --kiro-home, --codex-home, --amazonq-db; see \"kiroku doctor --help\")"))
 	}
+
+	formatCheck(w, rep)
 
 	on := archive.Enabled(archiveDir)
 	fmt.Fprintf(w, "\n%s\n", s.bold("Keeping history"))

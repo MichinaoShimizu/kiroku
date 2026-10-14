@@ -29,6 +29,9 @@ func (c *Claude) Name() string   { return "Claude Code" }
 func (c *Claude) Family() string { return "claude" }
 func (c *Claude) Where() string  { return c.Root }
 
+// ChecksFormat は、知らない行の type を数えること（claudeKinds）。
+func (c *Claude) ChecksFormat() bool { return true }
+
 // Retention は Claude Code の cleanupPeriodDays（既定 30 日。起動後に、それより古い会話の記録を黙って消す）。
 // 組織の設定（managed settings）のファイルにあればそれを、なければ利用者の設定（projects の隣の settings.json）を見る。
 // 組織の設定は利用者の設定より強い。claude.ai から届く組織の設定や MDM（macOS の構成プロファイル・Windows のレジストリ）、
@@ -453,8 +456,13 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	var branchAt *float64 // 数えなかった（元の会話にあった）写した行のいちばん遅い時刻（会話を分けた時刻）
 	var version string    // いちばん新しい行を書いた Claude Code の版（行の version）
 	var versionT float64  // その行の時刻
-	readErr := fileErr(path, core.ReadJSONL(path, func(e core.Obj) {
+	var fm core.Format    // 形の手がかり（kiroku doctor の「Format check」）
+	readErr := fileErr(path, core.ReadJSONLBad(path, func(e core.Obj) {
 		typ := core.Str(e["type"])
+		if !claudeKinds[typ] {
+			fm.Kind(typ)
+		}
+		fm.SawVersion(core.Str(e["version"]))
 		if origins.seenBefore(e, stem, path) {
 			return // 同じ会話の、先に数えるファイルにある行（/cd などで会話が別のプロジェクトのフォルダへ移った）
 		}
@@ -624,7 +632,10 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 				}
 			}
 		}
-	}))
+	}, &fm.Bad))
+	if !fm.Empty() {
+		s.Format = &fm
+	}
 	// サブエージェントの別ファイル（新しい版）を、agentId か時刻でつなぐ
 	var files []subFile
 	for _, f := range c.subagentFiles(u) {
@@ -783,6 +794,19 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	}
 	emit(s) // 途中までしか読めなくても、読めた分は出す
 	return readErr
+}
+
+// claudeKinds は、kiroku が知っている Claude Code の行の type（kiroku doctor の「Format check」で、知らない種類に数えない）。
+// 読むもの: user・assistant・system・attachment・summary・custom-title・ai-title・cost-state。
+// 残りは、あることを知っていて、わざと読まないもの（ファイルの編集の控え・送る前の依頼の列・途中経過・最後の依頼の写し・
+// 会話の名前や色・モード・PR へのリンク・ワークツリー・置きかえた中身・要約の控えなど）。形は公開されていないので、実際の履歴に見えたものを並べる
+var claudeKinds = map[string]bool{
+	"user": true, "assistant": true, "system": true, "attachment": true, "summary": true,
+	"custom-title": true, "ai-title": true, "cost-state": true,
+	"file-history-snapshot": true, "queue-operation": true, "progress": true, "last-prompt": true,
+	"tag": true, "agent-name": true, "agent-color": true, "agent-setting": true, "pr-link": true,
+	"mode": true, "permission-mode": true, "worktree-state": true, "content-replacement": true,
+	"marble-origami-commit": true, "marble-origami-snapshot": true, "speculation-accept": true, "attribution-snapshot": true,
 }
 
 // fileErr は、読めなかった履歴ファイルのエラーにファイル名をつける。
