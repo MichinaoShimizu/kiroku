@@ -4,6 +4,7 @@ package core
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -216,10 +217,55 @@ const (
 	zstdMaxWindow = 1 << 28
 )
 
-// NewZstdReader は、使うメモリに上限をつけた zstd の読み手（履歴のコピーや Codex の圧縮した履歴を読む）。
-func NewZstdReader(r io.Reader) (*zstd.Decoder, error) {
-	return zstd.NewReader(r, zstd.WithDecoderMaxMemory(zstdMaxMemory), zstd.WithDecoderMaxWindow(zstdMaxWindow))
+// MaxZstd は、圧縮した履歴（.zst）1 つをほどいた大きさの上限（バイト）。数百 KB でも数 GB にふくらむ .zst（展開爆弾）を
+// 最後までほどくと、kiroku serve の読み直しのたびに何十秒も止まる（3 GB で 40 秒ほど）。ほんとうの履歴は、長い会話でも
+// ほどいて数十〜数百 MiB（Claude Code の会話・Codex の rollout・Crew の記録）なので、1 GiB はその何倍も上にある。
+// 超えたらそこで読むのをやめ、ErrZstdTooLarge を返す（黙って切らず、読めないファイルとして知らせる）。テストで小さくする。
+var MaxZstd int64 = 1 << 30
+
+// ErrZstdTooLarge は、.zst をほどいた大きさが MaxZstd を超えたこと。
+var ErrZstdTooLarge = errors.New("decompressed size exceeds the limit")
+
+// ZstdReader は、使うメモリとほどく大きさに上限をつけた zstd の読み手（NewZstdReader）。
+type ZstdReader struct {
+	d    *zstd.Decoder
+	left int64 // あと何バイトほどいてよいか
 }
+
+// NewZstdReader は、使うメモリとほどく大きさ（MaxZstd）に上限をつけた zstd の読み手（履歴のコピーや Codex の圧縮した履歴を読む）。
+func NewZstdReader(r io.Reader) (*ZstdReader, error) {
+	d, err := zstd.NewReader(r, zstd.WithDecoderMaxMemory(zstdMaxMemory), zstd.WithDecoderMaxWindow(zstdMaxWindow))
+	if err != nil {
+		return nil, err
+	}
+	return &ZstdReader{d: d, left: MaxZstd}, nil
+}
+
+// Read はほどいた中身を読む。MaxZstd を超えるところまで来たら、上限までを返したあと ErrZstdTooLarge を返す。
+func (z *ZstdReader) Read(p []byte) (int, error) {
+	if z.left <= 0 {
+		// 上限ちょうどで終わるファイルは読めるように、もう 1 バイトあるかだけ確かめる
+		var one [1]byte
+		for {
+			n, err := z.d.Read(one[:])
+			if n > 0 {
+				return 0, fmt.Errorf("%w of %s", ErrZstdTooLarge, sizeLimit64(MaxZstd))
+			}
+			if err != nil {
+				return 0, err
+			}
+		}
+	}
+	if int64(len(p)) > z.left {
+		p = p[:z.left]
+	}
+	n, err := z.d.Read(p)
+	z.left -= int64(n)
+	return n, err
+}
+
+// Close は読み手を閉じる（ほどくのに使ったゴルーチンとメモリを返す）。
+func (z *ZstdReader) Close() { z.d.Close() }
 
 // ReadLine は改行までの 1 行を読む（改行もふくむ）。max より長い行は long を true にして、中身は持たずに読み飛ばす。
 // err は bufio.Reader.ReadBytes と同じ（最後の行に改行がなければ io.EOF といっしょに返す）。
@@ -249,7 +295,12 @@ func readLine(r *bufio.Reader, max int, line []byte) ([]byte, bool, error) {
 func lineLimit() string { return sizeLimit(MaxLine) }
 
 // sizeLimit は大きさの上限を読みやすく書く（64 MiB など）。
-func sizeLimit(n int) string {
+func sizeLimit(n int) string { return sizeLimit64(int64(n)) }
+
+func sizeLimit64(n int64) string {
+	if n >= 1<<30 && n%(1<<30) == 0 {
+		return fmt.Sprintf("%d GiB", n>>30)
+	}
 	if n >= 1<<20 && n%(1<<20) == 0 {
 		return fmt.Sprintf("%d MiB", n>>20)
 	}

@@ -212,6 +212,30 @@ func TestCodexReportsUnreadableFiles(t *testing.T) {
 	}
 }
 
+// 小さくても大きくふくらむ Codex の .zst（展開爆弾）は、core.MaxZstd でほどくのをやめ、読めないファイルとして知らせる。
+// ほかの会話と、上限までに読めた分はふつうに出す。
+func TestCodexReportsZstdBomb(t *testing.T) {
+	old := core.MaxZstd
+	core.MaxZstd = 1 << 20
+	defer func() { core.MaxZstd = old }()
+	home := codexHome(t)
+	dir := filepath.Join(home, "sessions", "2026", "09", "30")
+	lines := []string{`{"timestamp": "2026-09-30T06:00:00.000Z", "type": "session_meta", "payload": {"id": "thr-bomb", "timestamp": "2026-09-30T06:00:00.000Z", "cwd": "/Users/me/api"}}`}
+	msg := `{"timestamp": "2026-09-30T06:00:01.000Z", "type": "event_msg", "payload": {"type": "user_message", "message": "` + strings.Repeat("a", 1000) + `"}}`
+	for i := 0; i < 8<<10; i++ { // 上限の 8 倍ほど
+		lines = append(lines, msg)
+	}
+	zstFile(t, filepath.Join(dir, "rollout-2026-09-30T15-00-00-thr-bomb.jsonl.zst"), lines, false)
+
+	ids, err := loadAllErr(&Codex{Home: home})
+	if err == nil || !strings.Contains(err.Error(), "thr-bomb") || !strings.Contains(err.Error(), "decompressed size exceeds the limit of 1 MiB") {
+		t.Errorf("Load のエラー = %v, want 爆弾のファイル", err)
+	}
+	if !slices.Contains(ids, "thr-main") || !slices.Contains(ids, "thr-new") || !slices.Contains(ids, "thr-bomb") {
+		t.Errorf("読めた会話 = %v", ids)
+	}
+}
+
 // 一覧を作ってから読むまでの間に消えたファイルは、エラーにしない。
 func TestCodexVanishedFileIsNotAnError(t *testing.T) {
 	c := &Codex{Home: codexHome(t)}
