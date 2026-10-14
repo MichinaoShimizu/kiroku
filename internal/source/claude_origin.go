@@ -38,12 +38,13 @@ var (
 // claudeOrigins は、Claude が会話をまたいで持つもの（Units と LoadUnit は並べて呼ばれるので mu で守る）。
 type claudeOrigins struct {
 	mu    sync.Mutex
-	index map[string][]string    // 会話の ID ごとの、kiroku が読むファイル（Units が作る）
-	sets  map[string]*originSet  // 元の会話のファイル（パスと大きさ・更新時刻）ごとの行の印
-	order []string               // sets のキーを、使っていない順に
-	total int                    // sets の印の合計
-	used  map[string]usedOrigins // 会話のファイル（Unit.Key）ごとの、写した行を数えなかった元の会話（Units が Tag に使う）
-	seed  maphash.Seed           // 行の印のハッシュの種（プロセスごとに変わる）
+	index map[string][]string          // 会話の ID ごとの、kiroku が読むファイル（Units が作る）
+	sets  map[string]*originSet        // 元の会話のファイル（パスと大きさ・更新時刻）ごとの行の印
+	order []string                     // sets のキーを、使っていない順に
+	total int                          // sets の印の合計
+	used  map[string]usedOrigins       // 会話のファイル（Unit.Key）ごとの、写した行を数えなかった元の会話（Units が Tag に使う）
+	adopt map[string]map[string]string // 同じ会話の最初に数えるファイル（Unit.Key）ごとの、あとのファイルのサブエージェントと、そのあとのファイル（Units が作る）
+	seed  maphash.Seed                 // 行の印のハッシュの種（プロセスごとに変わる）
 	init  sync.Once
 }
 
@@ -273,6 +274,50 @@ func (o *claudeOrigins) before(path string) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// setAdopt は、Units が決めた、最初に数えるファイルが引き取るかもしれないサブエージェントのファイルを覚える。
+func (o *claudeOrigins) setAdopt(adopt map[string]map[string]string) {
+	o.mu.Lock()
+	o.adopt = adopt
+	o.mu.Unlock()
+}
+
+// adopted は、最初に数えるファイル key が引き取るかもしれないサブエージェントのファイルと、それがあるあとのファイル。
+func (o *claudeOrigins) adopted(key string) map[string]string {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	return o.adopt[key]
+}
+
+// ownLines は、同じ会話のあとのファイル path に、先に数えるファイル（before）にない自身の行があるか。
+// ないファイルからはセッションが出ないので、そのフォルダのサブエージェントは最初に数えるファイルが引き取る。
+// あとのファイルと最初に数えるファイルの両方が同じこの判定を使うので、サブエージェントはどちらか一方で数える。
+// 印は seenBefore と同じく先に数えるファイル maxOriginsPerUnit 個までと突き合わせる。
+func (o *claudeOrigins) ownLines(path string) bool {
+	stem := stemOf(path)
+	var prior []map[uint64]struct{}
+	for _, f := range o.before(path) {
+		if len(prior) >= maxOriginsPerUnit {
+			break
+		}
+		keys, _ := o.keys(f, stem)
+		prior = append(prior, keys)
+	}
+	mine, _ := o.keys(path, stem)
+	for h := range mine {
+		seen := false
+		for _, s := range prior {
+			if _, ok := s[h]; ok {
+				seen = true
+				break
+			}
+		}
+		if !seen {
+			return true
+		}
+	}
+	return false
 }
 
 // dupRank は、同じ会話のファイル a を b より先に数えるか。

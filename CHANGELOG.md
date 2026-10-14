@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- Claude Code: when a session moved to another project folder left a second file (such as a `kiroku archive` copy from the old folder) with no lines of its own, the subagents found only next to that file were not counted; they are now counted once, with the session of the file kiroku keeps, and linked to the Agent call that started them
+
 ## v0.35.0 - 2026-10-14
 
 ### Changed

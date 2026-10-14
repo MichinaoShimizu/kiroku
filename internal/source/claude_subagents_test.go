@@ -130,3 +130,62 @@ func TestClaudeMovedSessionDropsSeenSubagents(t *testing.T) {
 		}
 	})
 }
+
+// 移った会話のあとのファイルが、先に数えるファイルにある行だけでできている（ふつうは kiroku archive に残った移る前のコピー）と、
+// そのファイルからはセッションが出ない。そのフォルダにだけあるサブエージェントは、先に数えるファイルのセッションで 1 回数える。
+func TestClaudeMovedSessionAdoptsSubagentsOfDuplicateFile(t *testing.T) {
+	// 呼び出し（Agent）と結果（agentId）は、移る前から会話にあった（どちらのファイルにもある）
+	call := []string{
+		`{"type":"assistant","sessionId":"orig","uuid":"c1","timestamp":"2026-09-30T01:30:00Z","requestId":"rc","message":{"id":"mc","model":"claude-opus-5-5","usage":{"input_tokens":10,"output_tokens":5},"content":[{"type":"tool_use","id":"tc","name":"Agent","input":{"description":"調べる","subagent_type":"Explore"}}]}}`,
+		`{"type":"user","sessionId":"orig","uuid":"c2","timestamp":"2026-09-30T01:31:00Z","toolUseResult":{"agentId":"c"},"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"tc","content":"done"}]}}`,
+	}
+	old := append(slices.Clip(origLines[:3]), call...)
+	moved := append(slices.Clip(old), origLines[3:]...)
+
+	count := func(t *testing.T, c *Claude) (sessions int, in float64, byDesc map[string]float64) {
+		t.Helper()
+		byDesc = map[string]float64{}
+		for _, b := range load(t, c) {
+			s := b.Finish(15)
+			if s == nil {
+				continue
+			}
+			sessions++
+			for _, a := range s.Subagents {
+				in += a.Usage.In
+				byDesc[a.Desc] += a.Usage.In
+			}
+		}
+		return sessions, in, byDesc
+	}
+
+	t.Run("呼び出しのある会話のファイルへ", func(t *testing.T) {
+		// 会話は移った先（-Users-me-app-wt）へ移り、移る前のフォルダのものは kiroku archive のコピーにだけある。
+		// agent-c は移る前のフォルダにしかない
+		root, arch := t.TempDir(), t.TempDir()
+		writeLines(t, filepath.Join(root, "-Users-me-app-wt", "orig.jsonl"), moved)
+		writeLines(t, filepath.Join(root, "-Users-me-app-wt", "orig", "subagents", "agent-b.jsonl"), []string{subLine("b", 50)})
+		zstFile(t, filepath.Join(arch, "-Users-me-app", "orig.jsonl.zst"), old, false)
+		zstFile(t, filepath.Join(arch, "-Users-me-app", "orig", "subagents", "agent-c.jsonl.zst"), []string{subLine("c", 7)}, false)
+
+		n, in, byDesc := count(t, &Claude{Root: root, Archive: arch})
+		if n != 1 || in != 57 || byDesc["調べる"] != 7 {
+			t.Errorf("セッション %d 個・サブエージェントの入力トークン %v（呼び出しごと %v）, want 1 個・57（agent-b 50 + 呼び出し「調べる」の agent-c 7）", n, in, byDesc)
+		}
+	})
+
+	t.Run("呼び出しのないサブエージェントも", func(t *testing.T) {
+		// TestClaudeMovedSessionDropsSeenSubagents の kiroku archive の場合で、移る前のコピーに自身の行がないとき
+		root, arch := t.TempDir(), t.TempDir()
+		zstFile(t, filepath.Join(arch, "-Users-me-app-wt", "orig.jsonl.zst"), origLines, false)
+		zstFile(t, filepath.Join(arch, "-Users-me-app-wt", "orig", "subagents", "agent-a.jsonl.zst"), []string{subLine("a", 300)}, false)
+		zstFile(t, filepath.Join(arch, "-Users-me-app-wt", "orig", "subagents", "agent-b.jsonl.zst"), []string{subLine("b", 50)}, false)
+		zstFile(t, filepath.Join(arch, "-Users-me-app", "orig.jsonl.zst"), origLines[:3], false)
+		zstFile(t, filepath.Join(arch, "-Users-me-app", "orig", "subagents", "agent-a.jsonl.zst"), []string{subLine("a", 300)}, false)
+		zstFile(t, filepath.Join(arch, "-Users-me-app", "orig", "subagents", "agent-c.jsonl.zst"), []string{subLine("c", 7)}, false)
+
+		if n, in, _ := count(t, &Claude{Root: root, Archive: arch}); n != 1 || in != 357 {
+			t.Errorf("セッション %d 個・サブエージェントの入力トークン %v, want 1 個・357（agent-a 300 + agent-b 50 + agent-c 7）", n, in)
+		}
+	})
+}

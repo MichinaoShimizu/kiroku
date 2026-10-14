@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -287,12 +288,84 @@ func (c *Claude) Units() []Unit {
 		}
 	}
 	c.orig.setIndex(out)
+	befores := make([][]string, len(out))
+	first := map[string]int{} // 会話の ID ごとの、最初に数えるファイル（before のないもの）
 	for i := range out {
 		before := c.orig.before(out[i].Key)
+		befores[i] = before
 		out[i].Files = dropSeenSubagents(out[i].Files, before)
 		out[i].Tag = c.orig.tag(out[i].Key)
 		if len(before) > 0 { // 先に数えるファイルが増えたり減ったりしたら読み直す
 			out[i].Tag += " before:" + strings.Join(before, "\x00")
+		} else {
+			first[stemOf(out[i].Key)] = i
+		}
+	}
+	// あとのファイルに残ったサブエージェントは、そのファイルに自身の行がなければ（セッションが出ない）、最初に数えるファイルが
+	// 引き取る（ownLines。LoadUnit で決める）。どちらが数えるかは両方のファイルの中身で変わるので、両方の Tag に印を入れる
+	adopt := map[string]map[string]string{}
+	for i := range out {
+		f, ok := first[stemOf(out[i].Key)]
+		if len(befores[i]) == 0 || len(out[i].Files) < 2 || !ok {
+			continue
+		}
+		key := out[f].Key
+		have := map[string]bool{}
+		for _, p := range out[f].Files[1:] {
+			have[stemOf(p)] = true
+		}
+		for p := range adopt[key] {
+			have[stemOf(p)] = true
+		}
+		var subs []string
+		for _, p := range out[i].Files[1:] {
+			if have[stemOf(p)] { // 最初に数えるファイルに同じ名前のものがあれば、引き取らない（2 度数えない）
+				continue
+			}
+			if adopt[key] == nil {
+				adopt[key] = map[string]string{}
+			}
+			adopt[key][p] = out[i].Key
+			subs = append(subs, p)
+		}
+		if len(subs) == 0 {
+			continue
+		}
+		watch := Stamp(append(append([]string{out[i].Key}, befores[i]...), subs...))
+		out[f].Tag += " adopt:" + watch
+		out[i].Tag += " own:" + watch
+	}
+	c.orig.setAdopt(adopt)
+	return out
+}
+
+// subagentFiles は、会話 u で読むサブエージェントのファイル。同じ会話のあとのファイルに自身の行がなければ、そのフォルダに
+// 残ったものは最初に数えるファイルで読み、あとのファイルでは読まない（Units・ownLines）。
+func (c *Claude) subagentFiles(u Unit) []string {
+	files := u.Files[1:]
+	if len(files) > 0 && len(c.orig.before(u.Key)) > 0 && !c.orig.ownLines(u.Key) {
+		return nil // 自身の行がない（セッションが出ない）。最初に数えるファイルが引き取る
+	}
+	adopt := c.orig.adopted(u.Key)
+	if len(adopt) == 0 {
+		return files
+	}
+	paths := make([]string, 0, len(adopt))
+	for p := range adopt {
+		paths = append(paths, p)
+	}
+	sort.Strings(paths)
+	out := slices.Clone(files)
+	own := map[string]bool{}
+	for _, p := range paths {
+		later := adopt[p]
+		v, ok := own[later]
+		if !ok {
+			v = c.orig.ownLines(later)
+			own[later] = v
+		}
+		if !v { // あとのファイルに自身の行があれば、そちらで数える
+			out = append(out, p)
 		}
 	}
 	return out
@@ -554,7 +627,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	}))
 	// サブエージェントの別ファイル（新しい版）を、agentId か時刻でつなぐ
 	var files []subFile
-	for _, f := range u.Files[1:] {
+	for _, f := range c.subagentFiles(u) {
 		sf, err := loadSubagentFile(f)
 		if err := fileErr(f, err); err != nil && readErr == nil {
 			readErr = err
