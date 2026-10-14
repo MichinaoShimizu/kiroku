@@ -125,7 +125,9 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 		var ids []string
 		_, keeps := s.(source.Keeper)
 		outs, err := res[i].outs, res[i].err
+		var fm core.Format // 読んだファイルの形の手がかり（ほかの場所と同じ会話だったものも、読んだファイルなので入れる）
 		for _, o := range outs {
+			fm.Merge(o.format)
 			if o.yield != "" && claimed[o.yield] {
 				dup++
 				continue
@@ -154,9 +156,13 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 				}
 			}
 		}
-		r := source.Report{Name: s.Name(), N: n, Dup: dup, Archived: archived, Where: s.Where(), Oldest: oldest, IDs: ids, Took: res[i].took}
+		r := source.Report{Name: s.Name(), N: n, Dup: dup, Archived: archived, Where: s.Where(), Oldest: oldest, IDs: ids, Took: res[i].took,
+			Unknown: fm.Unknown, BadLines: fm.Bad, AgentVersion: fm.Version}
 		if k, ok := s.(source.Retainer); ok {
 			r.Keep = k.Retention()
+		}
+		if f, ok := s.(source.FormatChecker); ok {
+			r.Checked = f.ChecksFormat()
 		}
 		if d, ok := s.(source.Detailer); ok {
 			r.Detail, r.DetailEn = d.Detail(), d.DetailEn()

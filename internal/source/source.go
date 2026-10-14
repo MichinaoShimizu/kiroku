@@ -41,6 +41,17 @@ type Report struct {
 	Keep     *Retention    `json:"retention,omitempty"` // エージェントが履歴を自動で消す設定
 	IDs      []string      `json:"-"`                   // 読んだセッションの ID（kiroku html --week などで、期間の分だけ数え直すため）
 	Took     time.Duration `json:"-"`                   // 読むのにかかった時間（serve などの端末の行に出す）
+	// 履歴の形の手がかり（core.Format。kiroku doctor の「Format check」と --report、画面の「Data sources」）。
+	// 種類の名前（core.SafeKind）と数と版（core.SafeVersion）だけで、パス・プロジェクト名・ID・中身は入れない
+	Unknown      map[string]int `json:"unknown,omitempty"`      // kiroku の知らない記録の種類と、その行の数
+	BadLines     int            `json:"badLines,omitempty"`     // JSON として読めなかった行の数
+	AgentVersion string         `json:"agentVersion,omitempty"` // 履歴にあった、いちばん新しいエージェントの版
+	Checked      bool           `json:"kindsChecked,omitempty"` // 知らない記録の種類を数える Source か（FormatChecker）
+}
+
+// FormatChecker は、知らない記録の種類を数える Source が実装する（kiroku doctor の「Format check」で、数えていないものと分ける）。
+type FormatChecker interface {
+	ChecksFormat() bool
 }
 
 // Retention は、エージェントが古い履歴を自動で消す設定。画面で、過去の分が見られなくなることを知らせ、公式ドキュメントへ案内する。

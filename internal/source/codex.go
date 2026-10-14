@@ -63,6 +63,9 @@ func (c *Codex) Name() string   { return "Codex" }
 func (c *Codex) Family() string { return "codex" }
 func (c *Codex) Where() string  { return c.Home }
 
+// ChecksFormat は、知らない行の type を数えること（codexFormat）。
+func (c *Codex) ChecksFormat() bool { return true }
+
 // Watch は会話が入っている場所だけ。~/.codex の下にはログ（log/codex-tui.log）や history.jsonl などもあり、
 // ずっと書き換わるので、Home ごと見張ると何か書かれるたびに全部を読み直してしまう。
 func (c *Codex) Watch() []string {
@@ -462,6 +465,7 @@ func codexParent(p core.Obj) string {
 func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	var errs fileErrs
 	var all []*codexFile
+	var fm core.Format // 形の手がかり（kiroku doctor の「Format check」）。このまとまりで最初に出すセッションに付ける
 	for _, chain := range c.codexChains(u.Files) {
 		cf := &codexFile{path: chain[len(chain)-1].path, windows: map[string]float64{}}
 		var userMsgs, fallback []codexMsg
@@ -820,7 +824,8 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			handle(e)
 		}
 		for _, seg := range chain {
-			errs.file(seg.path, core.ReadJSONL(seg.path, func(e core.Obj) {
+			errs.file(seg.path, core.ReadJSONLBad(seg.path, func(e core.Obj) {
+				codexFormat(&fm, e)
 				if seg.limit >= 0 && core.Str(e["type"]) != "session_meta" {
 					// 巻き戻したスレッドの前半: ordinal が history_base の上限より前の行だけ（後ろは巻き戻して消したターン）
 					if n, ok := core.Num(e["ordinal"]); !ok || n >= seg.limit {
@@ -828,7 +833,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					}
 				}
 				line(e)
-			}))
+			}, &fm.Bad))
 		}
 		if cf.b == nil {
 			continue
@@ -930,9 +935,71 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		if s.ID != "" {
 			s.Claim = codexClaim(s.ID) // Kiro Crew の Codex の backend の会話（CrewInfo.codexClaim）は、こちらだけを数える
 		}
+		if !fm.Empty() {
+			f := fm
+			s.Format, fm = &f, core.Format{} // 2 つめからは付けない（同じまとまりを 2 度数えない）
+		}
 		emit(s)
 	}
 	return errs.err()
+}
+
+// codexKinds は、kiroku が知っている rollout の行の type。codexEvents と codexItems は event_msg と response_item の payload.type。
+// どれも、読むものと、あることを知っていてわざと読まないもの（作業の時刻にだけ入れる）を並べる。ここにないものは、
+// kiroku doctor の「Format check」で知らない種類に数える（event_msg と response_item の中のものは「event_msg:名前」の形）。
+// 名前は codex-rs の protocol（RolloutItem・EventMsg・ResponseItem）から。item_completed の中の TurnItem は数えない
+var (
+	codexKinds = map[string]bool{"session_meta": true, "turn_context": true, "event_msg": true, "response_item": true, "compacted": true, "token_usage_record": true}
+	// codexEvents の 1 段めは読むもの、残りはわざと読まないもの
+	codexEvents = map[string]bool{
+		"user_message": true, "agent_message": true, "token_count": true, "thread_settings_applied": true, "entered_review_mode": true,
+		"task_complete": true, "turn_complete": true, "turn_aborted": true, "item_completed": true,
+
+		"exited_review_mode": true, "task_started": true, "turn_started": true, "item_started": true, "error": true, "warning": true,
+		"stream_error": true, "background_event": true, "session_configured": true, "shutdown_complete": true, "deprecation_notice": true,
+		"agent_message_delta": true, "agent_message_content_delta": true, "agent_reasoning": true, "agent_reasoning_delta": true,
+		"agent_reasoning_raw_content": true, "agent_reasoning_raw_content_delta": true, "agent_reasoning_section_break": true,
+		"reasoning_content_delta": true, "reasoning_raw_content_delta": true, "context_compacted": true, "thread_rolled_back": true,
+		"thread_name_updated": true, "undo_started": true, "undo_completed": true, "plan_update": true, "turn_diff": true,
+		"exec_command_begin": true, "exec_command_output_delta": true, "exec_command_end": true, "terminal_interaction": true,
+		"exec_approval_request": true, "apply_patch_approval_request": true, "elicitation_request": true, "request_user_input": true,
+		"patch_apply_begin": true, "patch_apply_end": true, "mcp_tool_call_begin": true, "mcp_tool_call_end": true,
+		"mcp_startup_update": true, "mcp_startup_complete": true, "mcp_list_tools_response": true,
+		"web_search_begin": true, "web_search_end": true, "image_generation_begin": true, "image_generation_end": true,
+		"view_image_tool_call": true, "get_history_entry_response": true, "list_custom_prompts_response": true, "list_skills_response": true,
+		"raw_response_item": true, "model_reroute": true,
+		"collab_agent_spawn_begin": true, "collab_agent_spawn_end": true, "collab_agent_interaction_begin": true, "collab_agent_interaction_end": true,
+		"collab_waiting_begin": true, "collab_waiting_end": true, "collab_close_begin": true, "collab_close_end": true,
+	}
+	// codexItems の 1 段めは読むもの、残りはわざと読まないもの
+	codexItems = map[string]bool{
+		"message": true, "function_call": true, "custom_tool_call": true, "local_shell_call": true, "web_search_call": true,
+		"tool_search_call": true, "image_generation_call": true,
+
+		"reasoning": true, "function_call_output": true, "custom_tool_call_output": true, "tool_search_output": true,
+		"ghost_snapshot": true, "compaction": true, "compaction_summary": true, "other": true,
+	}
+)
+
+// codexFormat は、rollout の 1 行の種類を確かめ、知らないものを数える。session_meta の cli_version は版として覚える。
+func codexFormat(fm *core.Format, e core.Obj) {
+	typ := core.Str(e["type"])
+	if !codexKinds[typ] {
+		fm.Kind(typ)
+		return
+	}
+	switch typ {
+	case "session_meta":
+		fm.SawVersion(core.Str(core.Map(e["payload"])["cli_version"]))
+	case "event_msg":
+		if pt := core.Str(core.Map(e["payload"])["type"]); !codexEvents[pt] {
+			fm.Kind("event_msg:" + pt)
+		}
+	case "response_item":
+		if pt := core.Str(core.Map(e["payload"])["type"]); !codexItems[pt] {
+			fm.Kind("response_item:" + pt)
+		}
+	}
 }
 
 // codexMsg は人の発言の候補（user_message・UserMessage、古い版は response_item の user）と、/review を始めた印。

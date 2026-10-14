@@ -122,7 +122,7 @@ func scoped(snap snapshot, p *period) snapshot {
 			delete(months, k)
 		}
 	}
-	// 「Data sources」の件数も期間の分だけにし、いちばん古い記録と保存期間の設定は出さない（渡す相手には関係がなく、ほかの期間のことを渡さないため）
+	// 「Data sources」の件数も期間の分だけにし、いちばん古い記録・保存期間の設定・形の手がかりは出さない（渡す相手には関係がなく、ほかの期間のことを渡さないため）
 	in := map[string]*core.Session{}
 	for _, d := range data {
 		in[d.ID] = d
@@ -130,6 +130,7 @@ func scoped(snap snapshot, p *period) snapshot {
 	rep := make([]source.Report, len(snap.rep))
 	for i, r := range snap.rep {
 		r.N, r.Dup, r.Archived, r.Oldest, r.Keep = 0, 0, 0, 0, nil
+		r.Unknown, r.BadLines, r.AgentVersion = nil, 0, "" // 形の手がかりは履歴全体のもので、期間のものではない
 		for _, id := range r.IDs {
 			d := in[id]
 			if d == nil {

@@ -6444,6 +6444,7 @@
  "sources": [
   {
    "error": null,
+   "kindsChecked": true,
    "n": 10,
    "name": "Claude Code",
    "oldest": 1788367980,
@@ -6504,7 +6505,9 @@
    "where": "testdata/sqlite/amazon-q.sqlite3"
   },
   {
+   "agentVersion": "0.50.0",
    "error": null,
+   "kindsChecked": true,
    "n": 2,
    "name": "Codex",
    "oldest": 1790643601,
