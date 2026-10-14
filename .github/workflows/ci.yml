@@ -48,6 +48,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      # ダミーデータ（gen.py・mkgit.py）とブラウザの時計（smoke.mjs）の「今」。走らせた日付や時刻で結果が変わらないように決めておく
+      # （tools/check.sh --e2e もここから読む）
+      KIROKU_FAKE_NOW: "2026-10-14T15:00:00+09:00"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

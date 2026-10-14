@@ -3,6 +3,7 @@
 #   sh tools/screenshots/run.sh
 #   sh tools/screenshots/run.sh --html <出力先.html>   # ダミーデータの HTML だけを作る（git のリポジトリは一時ディレクトリごと消えるので、コミットのリンクは開けない）
 # 必要なもの: Go、Python 3、git、Node.js と Playwright（このディレクトリで npm ci --ignore-scripts。版は package.json で固定）
+# KIROKU_FAKE_NOW（例: 2026-10-14T15:00:00+09:00）を渡すと、今ではなくその時刻を「今」としてダミーデータを作る（e2e は決まった時刻で回す）
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)

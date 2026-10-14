@@ -32,7 +32,8 @@ replies = [
  "I could not reproduce it. The log shows a 500 from the payment stub, so the test environment looks like it is missing PAYMENT_URL. Shall I add it to .env.example?",
  "Added dark mode behind a setting, reusing the theme tokens that were already there. The screen follows the system setting on first launch and remembers the choice after that. I left the chart colours alone: they need their own palette to stay readable on a dark background, which looks like a change of its own.",
 ]
-now = dt.datetime.now(JST)
+# 今の時刻。KIROKU_FAKE_NOW（例: 2026-03-01T08:00:00+09:00）があればその時刻で作る（e2e を日付によらず同じデータで回すため。smoke.mjs も同じ時刻の時計で開く）
+now = dt.datetime.fromisoformat(os.environ["KIROKU_FAKE_NOW"]).astimezone(JST) if os.environ.get("KIROKU_FAKE_NOW") else dt.datetime.now(JST)
 today = now.replace(hour=0,minute=0,second=0,microsecond=0)
 last_wed = today - dt.timedelta(days=today.weekday() + 5)  # 先週の水曜。スクリーンショットとテストで開く先週に、利用上限の当たりを 1 つ入れる
 forced = False
@@ -43,7 +44,7 @@ for d in range(35, -1, -1):
     for _ in range(n):
         p = random.choices(list(projects), weights=[5,3,2,1])[0]
         start = day + dt.timedelta(hours=random.choice([9,10,11,13,14,15,16,17,20,22]), minutes=random.randint(0,50))
-        if start > now - dt.timedelta(minutes=30): continue
+        later = start > now - dt.timedelta(minutes=30)  # まだ始まっていない。乱数は同じだけ引いてから捨てる（乱数の並びが時刻で変わらないように）
         sid = str(uuid.uuid4()); cwd = os.path.join(REPOS, p); br = random.choice(branches[p])
         model = random.choice(models)
         t = start; lines = []; title = None
@@ -100,12 +101,12 @@ for d in range(35, -1, -1):
                 if did: text = committed
                 lines.append({"type":"assistant","timestamp":(t+dt.timedelta(seconds=6)).isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"requestId":"req_"+rid,"message":{"id":rid,"model":model,"role":"assistant","content":[{"type":"text","text":text}]}})
             t += dt.timedelta(seconds=random.randint(30, 600))
-        force = day == last_wed and not forced and t.hour >= 13; forced = forced or force
+        force = day == last_wed and not forced and t.hour >= 13 and not later; forced = forced or force
         if more.random() < 0.06 or force:  # ときどき利用上限に当たって止まる（Claude Code が作るエラーの発言。そこでセッションも終わる）
             t += dt.timedelta(seconds=more.randint(20, 90)); rid = "msg_"+uuid.uuid4().hex[:10]
             reset = (t + dt.timedelta(hours=more.randint(1, 4))).replace(minute=0, second=0, microsecond=0)
             lines.append({"type":"assistant","timestamp":t.isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"isApiErrorMessage":True,"message":{"id":rid,"model":"<synthetic>","role":"assistant","content":[{"type":"text","text":f"5-hour limit reached ∙ resets {reset.strftime('%-I%p').lower()}"}]}})
-        if t > now: continue
+        if later or t > now: continue
         dirn = os.path.join(OUT, "home", ".claude", "projects", f"-Users-me-{p}"); os.makedirs(dirn, exist_ok=True)
         with open(f"{dirn}/{sid}.jsonl","w") as f:
             for l in lines: f.write(json.dumps(l, ensure_ascii=False)+"\n")
@@ -133,7 +134,7 @@ for d in range(35, -1, -1):
         if oth.random() >= rate: continue
         p = oth.choice(list(others[agent])); cwd = os.path.join(REPOS, p)
         start = day + dt.timedelta(hours=oth.choice([9,10,11,13,14,15,16,17,19]), minutes=oth.randint(0,50))
-        if start > now - dt.timedelta(hours=2): continue
+        later = start > now - dt.timedelta(hours=2)  # まだ始まっていない。乱数は同じだけ引いてから捨てる
         sid = str(uuid.uuid4()); title = oth.choice(others[agent][p]); t = start
         asks = [title] + [oth.choice(follow) for _ in range(oth.randint(1, 6))]
         if agent == "codex":
@@ -161,7 +162,7 @@ for d in range(35, -1, -1):
                 t += dt.timedelta(seconds=4)
                 lines.append({"timestamp":iso(t),"type":"event_msg","payload":{"type":"agent_message","message":oth.choice(odone)}})
                 t += dt.timedelta(seconds=oth.randint(30, 400))
-            if t > now: continue
+            if later or t > now: continue
             dirn = os.path.join(CODEX, "sessions", start.strftime("%Y/%m/%d")); os.makedirs(dirn, exist_ok=True)
             with open(os.path.join(dirn, f"rollout-{start.strftime('%Y-%m-%dT%H-%M-%S')}-{sid}.jsonl"), "w") as f:
                 for l in lines: f.write(json.dumps(l, ensure_ascii=False)+"\n")
@@ -190,7 +191,7 @@ for d in range(35, -1, -1):
                 lines.append({"kind":"AssistantMessage","data":{"content":content}})
                 turns.append({"end_timestamp":iso(t),"metering_usage":[{"value":round(oth.uniform(0.2, 2.5), 2),"unit":"credit"}],"total_request_count":len(content),"model":model})
                 t += dt.timedelta(seconds=oth.randint(30, 400))
-            if t > now: continue
+            if later or t > now: continue
             dirn = os.path.join(KIRO, "sessions", "cli"); os.makedirs(dirn, exist_ok=True)
             json.dump({"session_id":sid,"cwd":cwd,"title":title,"created_at":iso(start),"updated_at":iso(t),"session_state":{"rts_model_state":{"model_info":{"model_id":model}},"conversation_metadata":{"user_turn_metadatas":turns}}}, open(os.path.join(dirn, sid+".json"), "w"))
             with open(os.path.join(dirn, sid+".jsonl"), "w") as f:
@@ -207,7 +208,7 @@ for d in range(35, -1, -1):
                 lines.append({"timestamp":iso(t),"payload":{"type":"assistant","content":[{"type":"text","text":oth.choice(odone)}]}})
                 lines.append({"timestamp":iso(t),"payload":{"type":"usage_summary","promptTurnSummaries":[{"usage":round(oth.uniform(0.3, 3), 2),"unit":"credit"}]}})
                 t += dt.timedelta(seconds=oth.randint(30, 400))
-            if t > now: continue
+            if later or t > now: continue
             dirn = os.path.join(KIRO, "sessions", uuid.uuid5(uuid.NAMESPACE_URL, cwd).hex[:16], "sess_"+sid); os.makedirs(dirn, exist_ok=True)
             json.dump({"id":"sess_"+sid,"title":title,"rootPaths":[cwd],"createdAt":iso(start),"modelId":"claude-sonnet-4.5"}, open(os.path.join(dirn, "session.json"), "w"))
             with open(os.path.join(dirn, "messages.jsonl"), "w") as f:

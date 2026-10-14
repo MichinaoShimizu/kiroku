@@ -495,14 +495,8 @@ func (e Event) prompt() float64 {
 	return e.U.Input()
 }
 
-// EventCost は e のトークンの目安コスト（料金表にないモデルは ok=false）。倍率は掛けず、ウェブ検索の料金も入れない。
-// e.Tier があれば、そのサービスティアの料金（OpenAITiers）にする。
-func EventCost(e Event) (float64, bool) {
-	c, ok, _ := EventCostTier(e)
-	return c, ok
-}
-
-// EventCostTier は EventCost と同じで、std は e.Tier の料金が公式になく標準の料金で見積もったか（Event.TierStd）。
+// EventCostTier は e のトークンの目安コスト（料金表にないモデルは ok=false）。倍率は掛けず、ウェブ検索の料金も入れない。
+// e.Tier があれば、そのサービスティアの料金（OpenAITiers）にする。std は e.Tier の料金が公式になく標準の料金で見積もったか（Event.TierStd）。
 func EventCostTier(e Event) (c float64, ok, std bool) {
 	if e.Req {
 		return costOfRequest(e.Model, e.Tier, e.U, e.prompt())
