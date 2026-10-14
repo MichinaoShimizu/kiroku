@@ -107,7 +107,7 @@ async function runAIReview(button, prompt, title) {
     status.textContent = t("Running {agent}…", {agent: name});
     let done = null, ok = false;
     try {
-      const response = await fetch("ai/run", {method:"POST", headers:{"Content-Type":"application/json","X-Kiroku":"1"}, body:JSON.stringify({agent:agent.value,prompt:preview.value,consent:true}),signal:controller.signal});
+      const response = await kfetch("ai/run", {method:"POST", headers:{"Content-Type":"application/json","X-Kiroku":"1"}, body:JSON.stringify({agent:agent.value,prompt:preview.value,consent:true}),signal:controller.signal});
       if (!response.ok) { const why = (await response.text().catch(() => "")).trim().slice(0, 600); throw new Error(why || t("AI execution failed (HTTP {status})", {status: response.status})); }
       // 1 行に 1 つの JSON（コマンド・返事の文字・ツール・エラー出力・最後に done）が、起きた順に届く
       const reader = response.body.getReader(), dec = new TextDecoder();

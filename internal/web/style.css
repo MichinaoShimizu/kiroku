@@ -51,6 +51,10 @@ header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px s
 .live::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 2.4s var(--ease) infinite}
 .live.off{color:var(--ink-3);background:var(--surface-2)} .live.off::before{animation:none;opacity:.5}
 .live[hidden],.segc[hidden],.scope[hidden],.legend[hidden]{display:none}
+/* kiroku serve で鍵がない（または読めない）ときの案内（live.js の showLocked）。履歴の画面は隠す */
+main[hidden]{display:none}
+.locked{max-width:36em;padding-top:4em;padding-bottom:4em;color:var(--ink-2)}.locked h2{color:var(--ink)}
+.locked code{font:var(--fs-xs) var(--mono);padding:1px 5px;border-radius:4px;background:var(--surface-2)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 .iconbtn{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;color:var(--ink-2);transition:background .2s var(--ease),color .2s}
 .iconbtn:hover{background:var(--surface-2);color:var(--ink)}
