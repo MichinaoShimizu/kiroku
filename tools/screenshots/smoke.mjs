@@ -331,8 +331,9 @@ async function run(env) {
   });
 
   await step("週報を書いてもらうプロンプト", async () => {
-    const btn = p.locator("#review .rvhead #rptcopy");
-    check("週報のプロンプトのボタンが、サマリーの見出しに並ぶ", await btn.count() === 1 && /Copy weekly report prompt/.test(await btn.innerText()));
+    const btn = p.locator("#rptbar #rptcopy");
+    check("週報のボタンは、期間の見出しの下にある（サマリーには並べない）", await btn.count() === 1 && /Copy prompt/.test(await btn.innerText()) && await btn.getAttribute("aria-label") === "Copy weekly report prompt" && await p.locator("#review #rptcopy").count() === 0);
+    check("週報のボタンは横にはみ出さない", await p.evaluate(() => [...document.querySelectorAll("#rptbar > *")].every(e => e.getBoundingClientRect().right <= innerWidth + 1)));
     const text = await p.evaluate(() => { const {S, P} = period(); return reportPrompt(S, st.mode === "month"); });
     check("事実の期間は「Sep 28 – Oct 4, 2026」の形", /^## Work for [A-Z][a-z]{2} \d{1,2} – ([A-Z][a-z]{2} \d{1,2}, )?\d{4}$|^## Work for [A-Z][a-z]{2} \d{1,2}, \d{4} – /m.test(text), JSON.stringify(text.slice(0, 80)));
     check("履歴ファイルのパスと、読む範囲の決まりがある", /History file: \//.test(text) && /Read only the files listed/.test(text));
@@ -363,6 +364,7 @@ async function run(env) {
     await p.locator("#q").fill(word); await pause();
     const heading = await p.locator("#sres h2").first().innerText();
     check("検索結果が出る", heading === "Search results", heading);
+    check("検索の最中は週報のボタンを出さない", await p.locator("#rptbar").isHidden());
     check("検索結果はカレンダーより上にある", await p.evaluate(() => document.querySelector("#sres").getBoundingClientRect().bottom <= document.querySelector("#tl").getBoundingClientRect().top));
     check("一致したセッションがある", await p.locator(".srow[data-s]").count() > 0, word);
     check("検索結果は枠の中でスクロールし、カレンダーを押し出さない", await p.evaluate(() => [...document.querySelectorAll("#sres .panel")].every(e => e.getBoundingClientRect().height <= Math.min(innerHeight * .52, 520) + 1)));
@@ -377,7 +379,7 @@ async function run(env) {
     await p.keyboard.press("Escape"); await pause();
     check("閉じると検索結果に戻る", await p.evaluate(() => !!document.activeElement.closest("#sres .srow[data-s]")));
     await p.locator("#sclear").click(); await pause();
-    check("検索をやめるとサマリーに戻る", await p.locator("#q").inputValue() === "" && await p.locator("#rptcopy").count() > 0 && await p.locator("#sres").isHidden());
+    check("検索をやめるとサマリーに戻る", await p.locator("#q").inputValue() === "" && await p.locator("#rptcopy").isVisible() && await p.locator("#sres").isHidden());
   });
 
   await step("表示の切り替え", async () => {

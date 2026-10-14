@@ -64,10 +64,34 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	result, err := h.Runner.Run(r.Context(), in.Agent, in.Prompt)
-	if err != nil { // the agent's own message (such as "not logged in") tells the person what to fix
-		http.Error(w, "AI execution failed: "+err.Error(), http.StatusBadGateway)
+	if _, _, err := h.Runner.command(in.Agent); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	_ = json.NewEncoder(w).Encode(result)
+	// The run streams one JSON object per line (application/x-ndjson): the command, then what the agent
+	// writes and does as it happens, then {"t":"done"} with the result or the error. The status is 200
+	// once streaming starts, so a failure is reported in the last line.
+	w.Header().Set("Content-Type", "application/x-ndjson")
+	rc := http.NewResponseController(w)
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(true)
+	write := func(v any) {
+		_ = enc.Encode(v)
+		_ = rc.Flush()
+	}
+	result, err := h.Runner.Stream(r.Context(), in.Agent, in.Prompt, func(e Event) { write(e) })
+	if err != nil { // the agent's own message (such as "not logged in") tells the person what to fix
+		write(done{T: "done", Agent: in.Agent, Error: "AI execution failed: " + err.Error()})
+		return
+	}
+	write(done{T: "done", Agent: result.Agent, OK: true, Output: result.Output})
+}
+
+// done is the last line of a run.
+type done struct {
+	T      string `json:"t"`
+	Agent  string `json:"agent"`
+	OK     bool   `json:"ok"`
+	Output string `json:"output,omitempty"`
+	Error  string `json:"error,omitempty"`
 }

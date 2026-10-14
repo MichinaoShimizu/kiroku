@@ -87,28 +87,104 @@ func stubAgent(t *testing.T, name, script string) {
 }
 
 func TestClaudeReadsOnlyHistoryDirs(t *testing.T) {
-	stubAgent(t, "claude", `cat >/dev/null; echo "$@"; pwd`)
+	stubAgent(t, "claude", `cat >/dev/null; printf '{"type":"result","result":"%s"}\n' "$(pwd)"`)
 	hist := t.TempDir()
 	file := filepath.Join(hist, "data.sqlite3")
 	if err := os.WriteFile(file, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
 	wd, _ := os.Getwd()
-	res, err := (Runner{Enabled: true, Dirs: []string{hist, file, filepath.Join(hist, "missing"), "-x"}}).Run(context.Background(), "claude", "hi")
+	var argv []string
+	res, err := (Runner{Enabled: true, Dirs: []string{hist, file, filepath.Join(hist, "missing"), "-x"}}).Stream(context.Background(), "claude", "hi", func(e Event) {
+		if e.T == "cmd" {
+			argv = e.Argv
+		}
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	lines := strings.Split(strings.TrimSpace(res.Output), "\n")
-	if len(lines) != 2 {
-		t.Fatalf("output %q", res.Output)
+	if got, want := strings.Join(argv, " "), "claude -p --output-format stream-json --verbose --include-partial-messages --strict-mcp-config --tools Read --add-dir "+hist; got != want {
+		t.Errorf("command = %q, want %q (only existing folders, no files or option-like names)", got, want)
 	}
-	if want := "-p --output-format text --strict-mcp-config --tools Read --add-dir " + hist; lines[0] != want {
-		t.Errorf("args = %q, want %q (only existing folders, no files or option-like names)", lines[0], want)
-	}
-	if dir := lines[1]; dir == wd || !strings.Contains(filepath.Base(dir), "kiroku-ai-") {
+	if dir := res.Output; dir == wd || !strings.Contains(filepath.Base(dir), "kiroku-ai-") {
 		t.Errorf("agent ran in %q, want an empty temporary folder", dir)
 	} else if _, err := os.Stat(dir); !os.IsNotExist(err) {
 		t.Errorf("temporary folder %q was not removed", dir)
+	}
+}
+
+// Claude Code's stream-json: the reply as it is written, each file it reads, and the final reply as the result.
+// Other events and lines that aren't JSON are skipped.
+func TestClaudeStreamsReplyAndTools(t *testing.T) {
+	stubAgent(t, "claude", `cat >/dev/null
+echo '{"type":"system","subtype":"init"}'
+echo 'not json'
+echo '{"type":"stream_event","event":{"type":"message_start"}}'
+echo '{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"Reading "}}}'
+echo '{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"the \u001b[31mfile"}}}'
+echo '{"type":"assistant","message":{"content":[{"type":"text","text":"Reading the file"},{"type":"tool_use","name":"Read","input":{"file_path":"/h/a.jsonl"}}]}}'
+echo '{"type":"user","message":{"content":[{"type":"tool_result","content":"secret history"}]}}'
+echo '{"type":"assistant","message":{"content":[{"type":"text","text":"# Report"}]}}'
+echo '{"type":"result","result":"# Report"}'`)
+	var got []string
+	res, err := (Runner{Enabled: true}).Stream(context.Background(), "claude", "hi", func(e Event) {
+		if e.T != "cmd" {
+			got = append(got, e.T+":"+e.S)
+		}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"text:Reading ", "text:the file", "tool:Read /h/a.jsonl", "text:\n\n", "text:# Report", "text:\n\n"}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Errorf("events = %q, want %q (escape sequences removed, tool results not shown)", got, want)
+	}
+	if res.Output != "# Report" {
+		t.Errorf("result = %q, want the final reply", res.Output)
+	}
+}
+
+// An error result from Claude Code fails the run with its message.
+func TestClaudeErrorResult(t *testing.T) {
+	stubAgent(t, "claude", `cat >/dev/null; echo '{"type":"result","is_error":true,"result":"Not logged in"}'`)
+	_, err := (Runner{Enabled: true}).Run(context.Background(), "claude", "hi")
+	if err == nil || !strings.Contains(err.Error(), "Not logged in") {
+		t.Fatalf("err = %v, want the agent's message", err)
+	}
+}
+
+// Codex and Kiro CLI: stderr (progress) and stdout (the reply) are sent as they arrive.
+func TestStreamsStdoutAndStderr(t *testing.T) {
+	stubAgent(t, "codex", `cat >/dev/null; echo "exec ls" >&2; sleep 0.2; printf 'line 1\n'; sleep 0.2; printf 'line 2\n'`)
+	var got []string
+	res, err := (Runner{Enabled: true}).Stream(context.Background(), "codex", "hi", func(e Event) {
+		if e.T != "cmd" {
+			got = append(got, e.T+":"+e.S)
+		}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(got, "|") != "log:exec ls\n|text:line 1\n|text:line 2\n" {
+		t.Errorf("events = %q", got)
+	}
+	if res.Output != "line 1\nline 2" {
+		t.Errorf("result = %q", res.Output)
+	}
+}
+
+// Output past the limit stops the agent and fails the run.
+func TestOutputLimit(t *testing.T) {
+	stubAgent(t, "codex", `cat >/dev/null; head -c 2000000 /dev/zero | tr '\0' 'x'; echo`)
+	_, err := (Runner{Enabled: true}).Run(context.Background(), "codex", "hi")
+	if err == nil || !strings.Contains(err.Error(), "size limit") {
+		t.Fatalf("err = %v, want the size limit", err)
+	}
+}
+
+func TestClean(t *testing.T) {
+	if got := clean("a\x1b[1mb\x1b]0;title\x07c\rd\te\u0085f\n"); got != "abcd\tef\n" {
+		t.Errorf("clean = %q", got)
 	}
 }
 
@@ -118,7 +194,7 @@ func TestCodexSkipsGitRepoCheck(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.TrimSpace(res.Output); got != "exec --sandbox read-only --skip-git-repo-check -" {
+	if got := res.Output; got != "exec --sandbox read-only --skip-git-repo-check -" {
 		t.Errorf("args = %q", got)
 	}
 }

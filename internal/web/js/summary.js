@@ -2,8 +2,11 @@
 /* ── 週次・月次サマリー：① プロジェクト別 ② コストとアウトプット ③ 時間 ④ AI ⑤ かたち。基準を超えた指標には、その場に印と推移を付ける ── */
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
-  const hint = (M ? t("For an AI agent on this computer; it points the agent to this month's history files. Copying sends nothing.") : t("For an AI agent on this computer; it points the agent to this week's history files. Copying sends nothing.")) + (aiRun() ? (JA ? "" : " ") + t("With \"Run with AI\", after you confirm, the agent you choose may send the prompt and the history it reads to its provider.") : "");
-  const head = `<div class="rvhead"><h2>${esc(M ? t("Monthly summary") : t("Weekly summary"))}</h2><p>${esc(t("Rough figures for reflecting on how you work. They are not for comparing people or for evaluations."))}</p>${w ? copyBtn(esc(M ? t("Copy monthly report prompt") : t("Copy weekly report prompt")), `id="rptcopy" title="${esc(M ? t("A prompt that asks an AI agent on this computer to write your monthly report from your history") : t("A prompt that asks an AI agent on this computer to write your weekly report from your history"))}"`, "pill fill") : ""}${w ? (aiRun() ? `<button class="pill ai-action" id="rptrun" type="button">${esc(t("Run with AI"))}</button>` : `<button class="pill ai-off ai-demo-info" type="button" title="${esc(AI_OFF_WHY())}">${esc(t("Run with AI (off)"))}</button>`) : ""}</div>${w ? `<p class="note rpthint">${esc(hint)}</p>` : ""}`;
+  const hint = M ? t("For an AI agent on this computer; it points the agent to this month's history files. Copying sends nothing.") : t("For an AI agent on this computer; it points the agent to this week's history files. Copying sends nothing.");
+  const head = `<div class="rvhead"><h2>${esc(M ? t("Monthly summary") : t("Weekly summary"))}</h2><p>${esc(t("Rough figures for reflecting on how you work. They are not for comparing people or for evaluations."))}</p></div>`;
+  // 週報・月報のボタンは、その期間の見出しの下に（日報のボタンが各日の見出しにあるのと同じ）
+  const RB = $("#rptbar"); RB.hidden = !w;
+  RB.innerHTML = w ? `<span class="rptl">${esc(M ? t("Monthly report") : t("Weekly report"))}</span>${w ? copyBtn(esc(t("Copy prompt")), `id="rptcopy" title="${esc(hint)}" aria-label="${esc(M ? t("Copy monthly report prompt") : t("Copy weekly report prompt"))}"`, "pill fill") : ""}${w ? (aiRun() ? `<button class="pill ai-action" id="rptrun" type="button">${esc(t("Run with AI"))}</button>` : `<button class="pill ai-off ai-demo-info" type="button" title="${esc(AI_OFF_WHY())}">${esc(t("Run with AI (off)"))}</button>`) : ""}` : "";
   const WK = $("#worth"); $("#sres").hidden = true; $("#sres").innerHTML = "";
   if (!w){ WK.hidden = true; R.innerHTML = foot(); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
@@ -46,13 +49,14 @@ function summary(){
   R.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b)); // 上の帯と同じ内訳
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
   R.querySelectorAll(".keeparch").forEach(b => b.onclick = () => { R.querySelectorAll(".keeparch").forEach(x => x.disabled = true); keepArchive(); });
-  const rc = R.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy(reportPrompt(w, M), t("Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending."), 8000, rc);
+  const rc = RB.querySelector("#rptcopy"); if (rc) rc.onclick = () => copy(reportPrompt(w, M), t("Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending."), 8000, rc);
 
   R.querySelectorAll(".knowledge-discover").forEach(b => b.onclick = () => copy(projectKnowledgePrompt(b.dataset.project), t("Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending."), 8000, b));
   R.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
-  const run = R.querySelector("#rptrun");
+  RB.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
+  const run = RB.querySelector("#rptrun");
   if (run) run.onclick = () => runAIReview(run, reportPrompt(w, M), M ? t("Monthly report") : t("Weekly report"));
-  bindCopy(R); bindHelp(R); bindHelp(WK);
+  bindCopy(R); bindCopy(RB); bindHelp(R); bindHelp(WK);
   if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }
 /* 期間の言い方（unit は "週" か "月"） */
