@@ -49,7 +49,7 @@ sh tools/check.sh --e2e    # internal/web か tools/screenshots を変えたと�
 | `.github/workflows` | サードパーティのアクションは SHA で固定、ジョブごとに最小の `permissions`、書き込みトークンで信頼できないコードを動かさない |
 
 - 問題があれば直して 1 からやり直す
-- セキュリティの修正なら、それを確かめるテストを足し、CHANGELOG の `### Security` に書く
+- セキュリティの修正なら、それを確かめるテストを足し、`changes/<短い名前>.security.md` に書く
 
 ### ADR への影響
 
@@ -72,7 +72,7 @@ CLAUDE.md の「Architecture decisions」のとおり、`docs/adr/README.md` の
 
 ## 4. 書き忘れを確かめる
 
-- **CHANGELOG**: ユーザーに見える変更は `## Unreleased` の `### Added`・`### Changed`・`### Fixed`・`### Security` などに英語で書いたか。コマンド・オプション・出力ファイルを壊す変更は `BREAKING` と書いたか（`sh tools/next-version.sh` で次の版が意図どおりか見る）。内部だけの変更・テスト・ドキュメントだけなら書かない
+- **CHANGELOG**: ユーザーに見える変更を、CHANGELOG.md ではなく変更の断片 `changes/<短い名前>.<節>.md`（節は added・changed・deprecated・removed・fixed・security。中身は英語の `- ` の項目。形式は `changes/README.md`）に書いたか。コマンド・オプション・出力ファイルを壊す変更は項目を `BREAKING:` で始めたか（`sh tools/changelog.sh --check` で形を、`sh tools/next-version.sh` で次の版が意図どおりかを見る）。内部だけの変更・テスト・ドキュメントだけなら書かない
 - **ドキュメント**: 画面・コマンド・オプション・指標を変えたら、README・`docs/guide.md` を同じ PR で直したか。指標の説明を変えたら `HELP` と guide の表の両方か（`TestHelpMatchesGuide`）
 - **スクショ**: README と guide に載っている画面の見た目を変えたら、撮り直したか（`sh tools/screenshots/run.sh`。手順は `/docs-refresh` の 2）
 - **ベンチマーク**: 読み取り・集計・描画を変えたら、変更の前と後で `go test ./internal/cli -run '^$' -bench Large -benchtime 3x -benchmem` を回し、両方の結果を PR の本文に載せる

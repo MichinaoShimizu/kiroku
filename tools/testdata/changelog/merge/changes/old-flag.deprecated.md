@@ -1,0 +1,1 @@
+- The `--old` option, which goes away in the next minor version

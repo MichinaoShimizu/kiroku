@@ -117,6 +117,26 @@ jobs:
             echo "::error file=CHANGELOG.md::$top の中身からすると、版は $want です（sh tools/next-version.sh $top）"
             exit 1
           fi
+      # changes/ の断片（形式は changes/README.md）：名前と中身を確かめ、まとめる仕組みのテストを回し、
+      # まだ出していない変更（断片と「## Unreleased」）から決まる次の版を出す
+      - name: Changelog fragments
+        run: |
+          sh tools/changelog.sh --check
+          sh tools/changelog_test.sh > "$RUNNER_TEMP/changelog_test.log" || { cat "$RUNNER_TEMP/changelog_test.log"; exit 1; }
+          top=$(grep -m1 '^## ' CHANGELOG.md | cut -d' ' -f2)
+          pending=$(sh tools/changelog.sh --print)
+          # リリースの PR（いちばん上がまだタグのない版）に、まとめていない断片が残っていたら止める（その版に入らない）
+          case "$top" in
+            v*)
+              if ! git rev-parse -q --verify "refs/tags/$top" >/dev/null && [ -n "$pending" ]; then
+                echo "::error file=CHANGELOG.md::changes/ にまだ断片があります。sh tools/changelog.sh --release $top で $top の節に入れてください"
+                exit 1
+              fi
+              ;;
+          esac
+          if [ -n "$pending" ]; then
+            echo "Next version from changes/ and ## Unreleased: $(sh tools/next-version.sh)"
+          fi
 
   # install.sh が最新のリリースを落として置けるか（macOS は shasum、Linux は sha256sum の道を通る）
   install-script:
@@ -134,7 +154,7 @@ jobs:
           persist-credentials: false # トークンを .git に残さない（後のステップから読めないように）
       - name: shellcheck
         if: runner.os == 'Linux'
-        run: shellcheck install.sh tools/*.sh .claude/hooks/*.sh
+        run: shellcheck install.sh tools/*.sh tools/*/*.sh .claude/hooks/*.sh
       - name: install
         run: |
           # 前の決まった名前（.kiroku.new）に置いたリンクの先には書かないこと、一時ファイルを残さないこと、755 で置くことも確かめる

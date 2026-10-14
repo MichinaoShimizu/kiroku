@@ -10,6 +10,10 @@ const [html, out] = process.argv.slice(2);
 const W = 1280, H = 800;
 const b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 const ctx = await b.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1, timezoneId: "Asia/Tokyo", locale: "en-US", recordVideo: { dir: out, size: { width: W, height: H } } });
+// KIROKU_FAKE_NOW があれば、ブラウザの時計もその時刻から進める（gen.py・mkgit.py と同じ「今」。capture.mjs・smoke.mjs と同じ）
+const fakeNow = process.env.KIROKU_FAKE_NOW ? new Date(process.env.KIROKU_FAKE_NOW) : null;
+if (fakeNow && isNaN(fakeNow)) { console.error(`KIROKU_FAKE_NOW を日時として読めません: ${process.env.KIROKU_FAKE_NOW}`); process.exit(2); }
+if (fakeNow) await ctx.clock.install({ time: fakeNow });
 const p = await ctx.newPage();
 const tStart = Date.now(); // 録画の始まり（ほぼ）
 await p.goto("file://" + path.resolve(html));
