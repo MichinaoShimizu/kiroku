@@ -461,15 +461,15 @@ func costAt(p [5]float64, u Tokens) float64 {
 // 書き込みの合計は cache_creation_input_tokens と内訳の和の大きいほうにする。
 func ReadUsage(raw any) Tokens {
 	m := Map(raw)
-	cw := NumOr0(m["cache_creation_input_tokens"])
+	cw := Count(m["cache_creation_input_tokens"])
 	cc := Map(m["cache_creation"])
-	cw1h := NumOr0(cc["ephemeral_1h_input_tokens"])
+	cw1h := Count(cc["ephemeral_1h_input_tokens"])
 	if v, ok := cc["ephemeral_5m_input_tokens"]; ok && v != nil {
-		cw = max(cw, NumOr0(v)+cw1h)
+		cw = max(cw, Count(v)+cw1h)
 	}
 	cw = max(cw, cw1h)
-	return Tokens{In: NumOr0(m["input_tokens"]), Out: NumOr0(m["output_tokens"]), CW: cw - cw1h, CW1h: cw1h, CR: NumOr0(m["cache_read_input_tokens"]),
-		WebSearches: max(0, NumOr0(Map(m["server_tool_use"])["web_search_requests"]))}
+	return Tokens{In: Count(m["input_tokens"]), Out: Count(m["output_tokens"]), CW: cw - cw1h, CW1h: cw1h, CR: Count(m["cache_read_input_tokens"]),
+		WebSearches: Count(Map(m["server_tool_use"])["web_search_requests"])}
 }
 
 // Event は 1 つの応答の使用量。Cost が nil なら料金表にないモデル。

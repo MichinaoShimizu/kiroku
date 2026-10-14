@@ -786,8 +786,8 @@ func readCostState(e core.Obj, lastT *float64, version string) *core.ReportedCos
 		if !ok {
 			continue
 		}
-		u := core.Tokens{In: core.NumOr0(m["inputTokens"]), Out: core.NumOr0(m["outputTokens"]),
-			CW: core.NumOr0(m["cacheCreationInputTokens"]), CR: core.NumOr0(m["cacheReadInputTokens"])}
+		u := core.Tokens{In: core.Count(m["inputTokens"]), Out: core.Count(m["outputTokens"]),
+			CW: core.Count(m["cacheCreationInputTokens"]), CR: core.Count(m["cacheReadInputTokens"])}
 		if overpricedCacheReads(name, version) {
 			cost = 0 // 記録の額は使わず、料金表で見積もる（applyReported は記録が 0 のモデルを見積もりのままにする）
 		}
