@@ -49,6 +49,13 @@ shellcheck_scripts() {
     echo "shellcheck is not installed: skipped (CI runs it)"
     return 0
   fi
+  # CI（ci.yml の install-script）と同じ引数。CI はランナーに入っている shellcheck（ubuntu-24.04 では 0.9.0）を使う。
+  # 0.11 は SC2015（A && B || C）などを出さないことがあるので、版が違えば CI で初めて落ちることがある
+  ver=$(shellcheck --version | sed -n 's/^version: //p')
+  case "$ver" in
+    0.9.* | 0.10.*) ;;
+    *) echo "note: shellcheck $ver here; CI's older shellcheck can report more (for example SC2015)" ;;
+  esac
   shellcheck install.sh tools/*.sh tools/*/*.sh .claude/hooks/*.sh
 }
 

@@ -130,7 +130,8 @@ main() {
     grep -E '\.(tar\.gz|zip)$' "$tmp/want" > "$tmp/archives"
     while IFS= read -r name; do
       [ -f "$tmp/dl/$name" ] || continue
-      how=$(attest "$tmp/dl/$name" "$version" "$bundle" "$tmp/attest.log") && rc=0 || rc=$?
+      rc=0
+      how=$(attest "$tmp/dl/$name" "$version" "$bundle" "$tmp/attest.log") || rc=$?
       case $rc in
         0) pass "build provenance of $name ($how)" ;;
         3) echo "skip  build provenance of $name: $how" ;;
@@ -162,7 +163,10 @@ sha256() {
 expected() {
   g=$1/.goreleaser.yaml
   r=$1/.github/workflows/release.yml
-  [ -f "$g" ] && [ -f "$r" ] || { echo "verify-release: $g or $r not found" >&2; return 1; }
+  if ! { [ -f "$g" ] && [ -f "$r" ]; }; then
+    echo "verify-release: $g or $r not found" >&2
+    return 1
+  fi
   # 「key: [a, b]」の 1 行から a b を出す。ちょうど 1 行でなければ失敗
   list() {
     out=$(grep -E "^ *$1: *\[[^]]*\] *(#.*)?$" "$g") || { echo "verify-release: no \"$1: [...]\" line in .goreleaser.yaml" >&2; return 1; }
@@ -177,8 +181,10 @@ expected() {
   overrides=$(awk '/^ *- goos: / { os = $3; next } os != "" && /^ *formats: *\[/ { f = $0; sub(/^[^[]*\[/, "", f); sub(/\].*/, "", f); print os " " f; os = "" }' "$g")
   template=$(sed -n 's/^ *name_template: *"\(.*\)" *$/\1/p' "$g" | head -n 1)
   checksum=$(awk '/^checksum:/ { on = 1; next } on && /^ *name_template:/ { print $2; exit } /^[^ ]/ { on = 0 }' "$g")
-  [ -n "$project" ] && [ -n "$oses" ] && [ -n "$arches" ] && [ -n "$checksum" ] ||
-    { echo "verify-release: could not read project_name, goos, goarch or the checksum name from .goreleaser.yaml" >&2; return 1; }
+  if ! { [ -n "$project" ] && [ -n "$oses" ] && [ -n "$arches" ] && [ -n "$checksum" ]; }; then
+    echo "verify-release: could not read project_name, goos, goarch or the checksum name from .goreleaser.yaml" >&2
+    return 1
+  fi
   case "$formats" in
     tar.gz | zip) ;;
     *) echo "verify-release: expected one archive format (tar.gz or zip) in .goreleaser.yaml, got \"$formats\"" >&2; return 1 ;;
