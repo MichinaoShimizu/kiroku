@@ -33,7 +33,7 @@ func (c *Claude) Where() string  { return c.Root }
 // 組織の設定は利用者の設定より強い。claude.ai から届く組織の設定や MDM（macOS の構成プロファイル・Windows のレジストリ）、
 // プロジェクトの設定にある場合は読まない。
 // Claude Code は保存期間を決められないとき、片付けを止めて何も消さない。そのときは nil:
-//   - 利用者の設定に受け付けない値（0・文字列・小数・null など）がある
+//   - 利用者の設定に受け付けない値（0・文字列・小数・null など）がある。desktopSessionCleanupPeriodDays（0 以上の整数）も同じ
 //   - 設定のファイルがあるのに読めない・JSON の object として読めない（skip_reason の settings_unknowable）。
 //     managed-settings.json が読めなくても、managed-settings.d/ に正しい値があれば止めない
 //
@@ -52,6 +52,9 @@ func (c *Claude) Retention() *Retention {
 	settings, bad := settingsFile(file)
 	if broken || bad {
 		return nil // 読めない設定のファイルがある。Claude Code は片付けを止める
+	}
+	if hasKey(settings, "desktopSessionCleanupPeriodDays") && !desktopDaysOK(settings["desktopSessionCleanupPeriodDays"]) {
+		return nil // 受け付けない値。設定の検証エラーとなり、Claude Code は片付けを止める（settings_invalid_key_set）
 	}
 	if hasKey(settings, "cleanupPeriodDays") {
 		days, ok := cleanupDays(settings)
@@ -112,6 +115,14 @@ func hasKey(settings map[string]any, key string) bool {
 }
 
 // cleanupDays は設定の cleanupPeriodDays。Claude Code が受け付ける形（1 以上の整数の数値）のときだけ ok。
+// desktopDaysOK は desktopSessionCleanupPeriodDays（v2.1.248 から。0 以上の整数、0 は期限なし）として受け付ける値か。
+// 受け付けない値があると設定の検証エラーになり、cleanupPeriodDays と同じく片付けが止まる。
+// 出典: https://code.claude.com/docs/en/settings-reference 、https://code.claude.com/docs/en/monitoring-usage （settings_invalid_key_set）
+func desktopDaysOK(v any) bool {
+	f, ok := v.(float64)
+	return ok && f >= 0 && f == math.Trunc(f) && f <= 1e9
+}
+
 func cleanupDays(settings map[string]any) (int, bool) {
 	v, ok := settings["cleanupPeriodDays"].(float64)
 	if !ok || v < 1 || v != math.Trunc(v) || v > 1e9 {
@@ -277,7 +288,37 @@ func (c *Claude) Units() []Unit {
 	}
 	c.orig.setIndex(out)
 	for i := range out {
+		before := c.orig.before(out[i].Key)
+		out[i].Files = dropSeenSubagents(out[i].Files, before)
 		out[i].Tag = c.orig.tag(out[i].Key)
+		if len(before) > 0 { // 先に数えるファイルが増えたり減ったりしたら読み直す
+			out[i].Tag += " before:" + strings.Join(before, "\x00")
+		}
+	}
+	return out
+}
+
+// dropSeenSubagents は、同じ会話の先に数えるファイル（before）に同じ名前のサブエージェントのファイルがあれば、それを除く
+// （/cd などで会話が別のプロジェクトのフォルダへ移ったあとに残った kiroku archive のコピーで、2 度数えないため）。
+func dropSeenSubagents(files, before []string) []string {
+	if len(before) == 0 || len(files) < 2 {
+		return files
+	}
+	seen := map[string]bool{}
+	for _, b := range before {
+		ext := ".jsonl"
+		if strings.HasSuffix(b, ".zst") {
+			ext = ".jsonl.zst"
+		}
+		for _, f := range glob(filepath.Join(filepath.Dir(b), stemOf(b), "subagents", "*"+ext)) {
+			seen[stemOf(f)] = true
+		}
+	}
+	out := files[:1:1]
+	for _, f := range files[1:] {
+		if !seen[stemOf(f)] {
+			out = append(out, f)
+		}
 	}
 	return out
 }
@@ -341,6 +382,9 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	var versionT float64  // その行の時刻
 	readErr := fileErr(path, core.ReadJSONL(path, func(e core.Obj) {
 		typ := core.Str(e["type"])
+		if origins.seenBefore(e, stem, path) {
+			return // 同じ会話の、先に数えるファイルにある行（/cd などで会話が別のプロジェクトのフォルダへ移った）
+		}
 		if origins.copied(e, stem) {
 			if t := ts(e["timestamp"]); t != nil && (branchAt == nil || *t > *branchAt) {
 				branchAt = t
