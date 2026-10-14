@@ -688,7 +688,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			private = append(private, sid)
 		}
 	}
-	k.withheld, k.claims = crewWithheld(append(private, crewPrivateSids(k.CrewHome, priv, nil)...))
+	k.withheld, k.claims = crewWithheld(append(private, crewPrivateSids(k.CrewHome, priv, &errs)...))
 	seen := map[string]bool{}
 	for _, key := range k.withheld {
 		seen[key] = true

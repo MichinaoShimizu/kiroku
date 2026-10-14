@@ -402,3 +402,83 @@ func TestCollectCrewPrivateScanReportsUnreadableMap(t *testing.T) {
 		assertVisible(t, data, "Claude Code", "c-pub", "VISIBLE-CLAUDE") // Crew の記録からわからない会話は、そのまま
 	}
 }
+
+// kiroku serve の読み込みのキャッシュは、Crew の場所や session_map.json がシンボリックリンクでも、その先が変わったことに気づく。
+// あとから中身を残さないものになった会話（ここでは session_map の flags）の写しを、次の読み直しで隠す
+// （Kiro を選んでいるときの Kiro の読み込みのキャッシュも、選んでいないときの調べ直しのキャッシュも）。
+func TestCollectCachedCrewPrivateBehindSymlink(t *testing.T) {
+	quietLog(t)
+	const flagged = `{"dashboard:chat-1-100": {"sid": "c-priv", "discarded_sid": "x-old", "provider": "claude_code", "cwd": "/w"},
+ "dashboard:chat-3-300": {"sid": "c-pub", "provider": "claude_code", "cwd": "/w", "flags": {"incognito": true}}}`
+	for _, link := range []string{"home", "session_map.json"} {
+		for _, want := range []map[string]bool{{"claude": true}, {"kiro": true, "claude": true}} {
+			all := crewPrivateSources(t)
+			k := all[1].(*source.KiroCLI)
+			real := k.CrewHome
+			mapFile := filepath.Join(real, "session_map.json")
+			switch link {
+			case "home": // Crew の場所がリンク
+				l := filepath.Join(t.TempDir(), "crew-link")
+				if err := os.Symlink(real, l); err != nil {
+					t.Fatal(err)
+				}
+				k.CrewHome = l
+			case "session_map.json": // session_map.json だけがリンク（ほかの場所にある）
+				other := filepath.Join(t.TempDir(), "map.json")
+				if err := os.Rename(mapFile, other); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Symlink(other, mapFile); err != nil {
+					t.Fatal(err)
+				}
+				mapFile = other
+			}
+			cache := newLoadCache()
+			data, _ := collectCached(all, want, 15, cache)
+			assertVisible(t, data, "Claude Code", "c-pub", "VISIBLE-CLAUDE")
+			if err := os.WriteFile(mapFile, []byte(flagged), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			data, _ = collectCached(all, want, 15, cache)
+			if s := sessionBy(data, "Claude Code", "c-pub"); s == nil || s.Title != "Kiro Crew private conversation" {
+				t.Errorf("%s がリンク（%v）: あとから中身を残さないものになった会話の写しを、読み直しても出したまま: %+v", link, want, s)
+			}
+		}
+	}
+}
+
+// 読めなかったファイルのエラー（履歴から来たファイルの場所を含む）を端末に出すときは、制御文字・書式文字を取り除く。
+func TestUnreadableWarningIsTerminalSafe(t *testing.T) {
+	all := crewPrivateSources(t)
+	k := all[1].(*source.KiroCLI)
+	evil := filepath.Join(filepath.Dir(k.CrewHome), "crew\x1b[2J\u202e")
+	if err := os.Rename(k.CrewHome, evil); err != nil {
+		t.Fatal(err)
+	}
+	k.CrewHome = evil
+	if err := os.WriteFile(filepath.Join(evil, "session_map.json"), []byte(`[]`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []map[string]bool{{"claude": true}, {"kiro": true, "claude": true}} {
+		var b strings.Builder
+		old := logw
+		logw = &b
+		_, rep := collect(all, want, 15)
+		logw = old
+		out := b.String()
+		if !strings.Contains(out, "not a JSON object") {
+			t.Errorf("%v: 読めなかったことを知らせていない:\n%q", want, out)
+		}
+		if strings.ContainsAny(out, "\x1b\u202e") {
+			t.Errorf("%v: 端末の制御文字をそのまま出した:\n%q", want, out)
+		}
+		var d strings.Builder
+		doctorReport(&d, rep, 1, t.TempDir(), release{}, false)
+		// エラーの行だけを見る（場所の行は、利用者が指定した Crew の場所そのもの）
+		for _, line := range strings.Split(d.String(), "\n") {
+			if strings.Contains(line, "couldn't be read") && strings.ContainsAny(line, "\x1b\u202e") {
+				t.Errorf("%v: doctor が読めなかったファイルのエラーの制御文字をそのまま出した:\n%q", want, line)
+			}
+		}
+	}
+}

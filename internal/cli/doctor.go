@@ -84,7 +84,7 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 			what += fmt.Sprintf(" (%d from kiroku's copy)", r.Archived)
 		}
 		if r.Error != nil {
-			mark, what = s.warn("!"), what+"; some files couldn't be read: "+*r.Error
+			mark, what = s.warn("!"), what+"; some files couldn't be read: "+termMsg(*r.Error)
 		}
 		fmt.Fprintf(w, "  %s %-18s %s\n      %s\n", mark, r.Name, what, s.dim(where(r.Where)))
 	}

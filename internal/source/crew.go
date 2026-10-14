@@ -135,6 +135,11 @@ func crewPrivateSids(home string, priv *crewPrivacy, errs *fileErrs) []string {
 			priv.mark(key)
 		}
 	}
+	// crew-log の class が中身を残さない会話キーにも、state.json と、同じ会話キーのほかの crew-log を見る前に印をつける
+	logs := priv.crewLogs(home)
+	for _, d := range logs {
+		d.report(errs)
+	}
 	for key, v := range entries {
 		if !priv.key(key) {
 			continue
@@ -154,12 +159,7 @@ func crewPrivateSids(home string, priv *crewPrivacy, errs *fileErrs) []string {
 			add(core.Str(st["session_id"]))
 		}
 	}
-	for _, dir := range glob(filepath.Join(home, "crew-log", "sessions", "*")) {
-		if !realDir(dir) {
-			continue
-		}
-		d := priv.crewLog(dir)
-		d.report(errs)
+	for _, d := range logs {
 		if broken || d.private || priv.key(d.slot) {
 			for _, id := range d.ids {
 				add(id)
@@ -188,6 +188,31 @@ func (d *crewLogDir) report(errs *fileErrs) {
 	for _, err := range d.errs {
 		errs.add(err)
 	}
+}
+
+// crewLogs は home の crew-log の会話のフォルダ（crew-log/sessions/<名前>/。シンボリックリンクでないもの）を全部読み、
+// class が中身を残さない会話（crewLogDir.private）の会話キーに印をつける（mark）。1 回の読み込みで 1 度だけ読む。
+// 印は、その会話キーのサブエージェントの state.json・crew-log の起動の記録、同じ会話キーのほかの crew-log、会話の記録を
+// 調べる前につける（loadCrew・loadCrewSpawns・crewPrivateSids の最初に呼ぶ）。
+func (p *crewPrivacy) crewLogs(home string) []*crewLogDir {
+	if p.logList != nil {
+		return *p.logList
+	}
+	var out []*crewLogDir
+	if home != "" {
+		for _, dir := range glob(filepath.Join(home, "crew-log", "sessions", "*")) {
+			if !realDir(dir) {
+				continue
+			}
+			d := p.crewLog(dir)
+			if d.private && d.slot != "" {
+				p.mark(d.slot)
+			}
+			out = append(out, d)
+		}
+	}
+	p.logList = &out
+	return out
 }
 
 // crewLog は dir の crew-log を読む（1 回の読み込みで 1 度だけ。loadCrewSpawns と crewPrivateSids で使い回す）。
@@ -313,6 +338,7 @@ type crewPrivacy struct {
 	stems      map[string]bool
 	idx        *crewArchiveIndex      // 退避した記録（archive で作る）
 	logs       map[string]*crewLogDir // crew-log の会話のフォルダ → 読んだもの（crewLog で作る）
+	logList    *[]*crewLogDir         // crew-log の会話のフォルダ全部（crewLogs で作る。印をつけ終えたら nil でない）
 }
 
 func newCrewPrivacy(home, arch string) *crewPrivacy {
@@ -593,6 +619,10 @@ func loadCrew(home string, errs *fileErrs, priv *crewPrivacy) map[string]CrewInf
 			priv.mark(key)
 		}
 	}
+	// crew-log の class が中身を残さない会話キーも（session_map の行も会話の記録もない会話のサブエージェントのため）
+	for _, d := range priv.crewLogs(home) {
+		d.report(errs)
+	}
 	for _, key := range keys {
 		v := entries[key]
 		sid, cwd, provider, discarded := core.Str(v), "", "", "" // 古い形は文字列だけ
@@ -685,11 +715,7 @@ func loadCrewSpawns(home string, errs *fileErrs, priv *crewPrivacy) map[string]C
 	if priv == nil {
 		priv = newCrewPrivacy(home, "")
 	}
-	for _, dir := range glob(filepath.Join(home, "crew-log", "sessions", "*")) {
-		if !realDir(dir) {
-			continue
-		}
-		d := priv.crewLog(dir)
+	for _, d := range priv.crewLogs(home) {
 		d.report(errs)
 		slot, cwd := d.slot, d.cwd
 		if slot == "" {
@@ -742,10 +768,32 @@ func crewLogSegments(dir string) []string {
 }
 
 // crewOpenedMark・crewClassMark は session/opened・session/class の行にだけある文字（ほかの行は JSON として読まない）。
+// 文字列のエスケープ（"session\/class"・"session\u002fclass" など）で書いた行はこれを含まないので、\ のある行は
+// type だけを読んで確かめる（crewLogWanted。読み落として、中身を残さない会話を見逃さないように）。
 var (
 	crewOpenedMark = []byte(`"session/opened"`)
 	crewClassMark  = []byte(`"session/class"`)
 )
+
+// crewLogWanted は、crew-log の 2 行目からの line が、readCrewLog が読む行（session/opened・session/class・subagent/spawned）かもしれないか。
+// 決まった文字があれば読む。なくても \ のある行（エスケープで書いたかもしれない）は、type だけを JSON として読んで確かめる。
+func crewLogWanted(line []byte) bool {
+	if bytes.Contains(line, crewOpenedMark) || bytes.Contains(line, crewClassMark) || bytes.Contains(line, crewSpawnedMark) {
+		return true
+	}
+	if bytes.IndexByte(line, '\\') < 0 {
+		return false
+	}
+	var probe map[string]json.RawMessage // 項目の名前は大文字・小文字を区別する（struct だと区別しない）。値はほどかない
+	if json.Unmarshal(line, &probe) != nil {
+		return false
+	}
+	var t string
+	if json.Unmarshal(probe["type"], &t) != nil {
+		return false
+	}
+	return t == "session/opened" || t == "session/class" || t == "subagent/spawned"
+}
 
 // readCrewLog は crew-log のファイル 1 つを読んで d に足す: 会話キー（1 行目の slot か、session/opened の data.slot）と作業場所、
 // 1 行目の id と session/opened の data.previous.sid、session/opened の data.class・session/class の data の memory
@@ -769,11 +817,14 @@ func readCrewLog(p string, seen map[string]bool, d *crewLogDir) error {
 	}
 	for first := true; ; first = false {
 		line, tooLong, err := core.ReadLine(r, core.MaxLine)
+		if first {
+			line = bytes.TrimPrefix(line, crewBOM) // 手で編集したファイルの先頭の BOM（1 行目を読み落とさないように）
+		}
 		var e core.Obj
 		switch {
 		case tooLong:
 			long++
-		case !first && !bytes.Contains(line, crewOpenedMark) && !bytes.Contains(line, crewClassMark) && !bytes.Contains(line, crewSpawnedMark):
+		case !first && !crewLogWanted(line):
 		case json.Unmarshal(line, &e) != nil:
 		default:
 			data := core.Map(e["data"])

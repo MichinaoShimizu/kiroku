@@ -164,13 +164,13 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 		if err != nil {
 			msg := err.Error()
 			r.Error = &msg
-			fmt.Fprintf(logw, "  %s %s: skipped unreadable files (%s)\n", styleFor(logw).warn("!"), s.Name(), msg)
+			fmt.Fprintf(logw, "  %s %s: skipped unreadable files (%s)\n", styleFor(logw).warn("!"), s.Name(), termMsg(msg))
 		}
 		rep = append(rep, r)
 	}
 	logSources(rep, len(data) > 0)
 	for _, r := range scanRep {
-		fmt.Fprintf(logw, "  %s %s: %s (%s)\n", styleFor(logw).warn("!"), r.Name, r.DetailEn, *r.Error)
+		fmt.Fprintf(logw, "  %s %s: %s (%s)\n", styleFor(logw).warn("!"), r.Name, r.DetailEn, termMsg(*r.Error))
 	}
 	rep = append(rep, scanRep...)
 	sort.SliceStable(data, func(i, j int) bool { return data[i].Start < data[j].Start })
