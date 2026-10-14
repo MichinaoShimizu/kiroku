@@ -107,7 +107,7 @@ function replyRow(r, i, hidden){
   const cut = r.len > 0;
   // 保存した HTML では、切ったことは「…」だけで示す（kiroku serve で読めることは、流れの上に 1 度だけ書く）
   const more = cut && LIVE ? `<span class="pcut"> ${esc(t("(first {n} of {total} characters)", {n: REPLY_RUNES, total: commas(r.len)}))} <button class="rload" data-i="${i}">${esc(t("Load the full reply"))}</button></span>` : "";
-  return `<li class="rp"${hidden}><time>${r.t ? hm(r.t) : ""}</time>${ico("reply")}<p><span class="rpw">AI</span><span class="reptext">${esc(r.text)}${cut ? "…" : ""}${more}</span></p></li>`;
+  return `<li class="rp"${hidden}><time>${r.t ? hm(r.t) : ""}</time>${ico("reply")}<p><span class="rpw" aria-hidden="true">AI</span><span class="sr">${esc(t("AI:"))} </span><span class="reptext">${esc(r.text)}${cut ? "…" : ""}${more}</span></p></li>`;
 }
 function promptFlow(s){
   const ev = flowEvents(s), rows = [];
@@ -122,7 +122,7 @@ function promptFlow(s){
     const txt = String(p.text || ""), long = txt.length > 240, fix = !p.kind && FIXRE.test(txt), cut = p.len > 0;
     const more = !cut ? "" : LIVE ? `<span class="pcut"> ${esc(t("(first {n} of {total} characters)", {n: PROMPT_RUNES, total: commas(p.len)}))} <button class="pload" data-i="${i}">${esc(t("Load the full prompt"))}</button></span>` : "…";
     const meta = [p.work ? t("AI worked {time}", {time: span(p.work)}) : "", p.wait && p.wait <= FLOW_GAP ? t("you replied after {time}", {time: secs(p.wait)}) : ""].filter(Boolean).join(" · ");
-    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time>${ico("user")}<p>${fix ? `<span class="pkind fix">${esc(t("Correction?"))}</span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${esc(PKIND()[p.kind] || p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${esc(t("Long · {n} chars", {n: commas(plen(p))}))}</span>` : ""}<span class="ptext">${p.kind ? "<code>" : ""}${long ? `<span class="pshort">${esc(txt.slice(0,220))}…</span><span class="pfull" hidden>${esc(txt)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${esc(pexpLabel(p))}</button>` : esc(txt)}${p.kind ? "</code>" : ""}</span>${meta ? `<span class="pmeta">${esc(meta)}</span>` : ""}</p></li>`);
+    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time>${ico("user")}<p><span class="sr">${esc(t("You:"))} </span>${fix ? `<span class="pkind fix">${esc(t("Correction?"))}</span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${esc(PKIND()[p.kind] || p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${esc(t("Long · {n} chars", {n: commas(plen(p))}))}</span>` : ""}<span class="ptext">${p.kind ? "<code>" : ""}${long ? `<span class="pshort">${esc(txt.slice(0,220))}…</span><span class="pfull" hidden>${esc(txt)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${esc(pexpLabel(p))}</button>` : esc(txt)}${p.kind ? "</code>" : ""}</span>${meta ? `<span class="pmeta">${esc(meta)}</span>` : ""}</p></li>`);
     if (p.reply){ // 依頼と応答の間に起きたこと（コミットなど）は、応答より上に出す
       if (p.reply.t) flush(p.reply.t);
       rows.push(replyRow(p.reply, i, hide()));

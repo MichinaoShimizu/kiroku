@@ -9,14 +9,31 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - The report and review prompts ask the agent to cite the figure or signal from "Signals for advice" that each next action or piece of advice rests on, treating signals as candidates, not verdicts. Reports include only the guidance for their own period (day, week or month) and, like the knowledge prompt, ask the agent not to run other commands, write files or send anything to another service. The review and knowledge prompts carry the reports' privacy rule (no secrets, personal data, command output, file contents or paths on your computer; excerpts only from your prompts and the AI's prose). The review prompt no longer repeats its role, and the note on the fenced history block says it holds kiroku's computed facts as well as quoted history
 - The report bench (`tools/reportbench`, `/report-eval`) grades the current sections: Summary, Numbers, By project, Expert observations and Next actions for reports; Summary, Numbers, Professional prompt assessment, Prioritized advice and Reusable prompt playbook for a review
 
+### Security
+
+- The formatted view of "Analyze with AI" no longer slows down quadratically on a reply full of backticks that can't close inline code (one such reply froze the page for seconds on every redraw)
+- Kiro Crew: a folder of archived or crew-log records that can't be listed is reported under "Data sources" instead of being read as empty, since it may hold the mark that a conversation keeps no content
+- Folders kiroku copies history into (archive subfolders) and its settings folder are made private (`0700`) even when they already existed, so other users can't list session IDs and project folders
+- Negative token counts in history are read as 0 instead of showing negative tokens and cost
+- A resume command for a session ID that starts with `=` quotes it, so zsh doesn't expand it to a program path
+- `install.sh` copies the new binary to a temporary file with a fresh random name (`mktemp`) next to the install location before moving it into place, instead of the fixed `.kiroku.new`, so a file or link someone else left there can't be written through. It and `tools/reproduce.sh` also download over HTTPS only (TLS 1.2 or later), even across redirects
+
 ### Fixed
 
 - In report prompts, projects hidden in the legend (when colored by project) are left out of the commits, the project sections and the repeated-prompt signals too, not only their sessions, and the prompt says the Numbers table still counts them
 - In report prompts, "Main model of each session" and "Short sessions" no longer show whole-session estimated costs, which could add up to more than the period's Numbers table
-
+- "Analyze with AI" with Claude Code returns the result when the agent has finished but something it started still holds its output open, instead of waiting for the time limit and failing
+- "Data sources" in `kiroku serve` counts every history file that couldn't be read after a reload, not only the first
 - The page `kiroku serve` shows while it reads your history follows the view's language (`--lang`, the language chosen in the view, or the browser's), so it is in Japanese too
 - In Japanese, a file written with `kiroku html --week` no longer names its week in English ("week of …"), lists of agents and models use 「、」, and "Month-end cost" and "Month-end credits" have one name each
+- The Year in review image no longer drops PRs from the totals when the labels are long (as in Japanese); it makes the text smaller instead
+- A trend whose last period is still in progress says so ("Oct 12 (so far)") and draws that point hollow, so a partial week doesn't look like an improvement. The "Worth a look" help says trends are shown for metrics counted per period
+- Screen readers hear the day of commit, push, pull request and usage-limit markers in the calendar, "You:" before your prompts and "AI:" before replies in the prompt flow, and session buttons in the Project view show their date
 - The guide and the READMEs describe the sections the review and report prompts ask for now (Professional prompt assessment, Prioritized advice and Reusable prompt playbook for a session; Expert observations and Next actions for a report), and README.ja uses the view's words (PC, プロンプト, 応答, 基準)
+- Claude Code: a compaction no longer extends a session's end or adds an activity block. Since 2.1.290 Claude Code compacts about 54 minutes after you leave (`idleCompaction`), so a session you left looked active until then. The compaction is still counted, and a manual `/compact` still counts from the command you typed
+- Kiro Crew: a subagent running on the Codex backend (`provider: "codex"` in its `state.json`) is no longer counted twice. Its "Kiro Crew" session is no longer folded into its parent and is dropped when the Codex session of the same thread is loaded, as conversations on the Codex backend already were
+- docs/sources.md lists the Kiro Crew archive reason `file-changes`, which is read like `compact` (lines that match a line kept elsewhere are dropped)
+- The guide now says to delete `~/Library/Logs/kiroku.log` when uninstalling on macOS, that an AI agent installed while `kiroku serve --ai` runs is offered once history is read again, that kiroku ignores a `KIRO_HOME` or `KIROCREW_HOME` it can't safely use, and names the "Read more (N characters)" button of a cut prompt
 
 ## v0.34.1 - 2026-10-14
 

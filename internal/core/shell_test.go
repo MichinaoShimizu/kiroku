@@ -8,6 +8,7 @@ func TestResumeCmd(t *testing.T) {
 		{"/Users/me/web", "codex resume", "thr-main", "cd /Users/me/web && codex resume thr-main"},
 		{"/Users/me/My Project", "claude --resume", "abc", "cd '/Users/me/My Project' && claude --resume abc"},
 		{"/tmp/x; rm -rf ~", "claude --resume", "abc", "cd '/tmp/x; rm -rf ~' && claude --resume abc"},
+		{"/tmp/p", "claude --resume", "=ls", "cd /tmp/p && claude --resume '=ls'"}, // zsh の = 展開をさせない
 		{"/tmp/$(touch pwned)", "claude --resume", "abc", "cd '/tmp/$(touch pwned)' && claude --resume abc"},
 		{"/tmp/it's", "q chat --resume", "", `cd '/tmp/it'\''s' && q chat --resume`},
 		{"/tmp/a`id`", "codex resume", "x", "cd '/tmp/a`id`' && codex resume x"},

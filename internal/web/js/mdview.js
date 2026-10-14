@@ -108,12 +108,13 @@ function mdInline(text, parent, depth = 0){
   // 記号ごとに「どこまで調べたか」と「見つけた位置」を覚え、同じところを調べ直さない
   const memo = {};
   const okClose = (d, k) => !/\s/.test(s[k - 1]) && !(d.length === 1 && (s[k + 1] === d || s[k - 1] === d)) && !((d === "_" || d === "__") && word(s[k + d.length]));
-  const validClose = (d, from) => {
-    const m = memo[d] || (memo[d] = {k: -1, at: 0});
+  const okTick = (d, k) => s[k + d.length] !== "`" && s[k - 1] !== "`"; // インラインコードは、ちょうど同じ数のバッククォートで閉じる
+  const validClose = (d, from, ok = okClose, key = d) => {
+    const m = memo[key] || (memo[key] = {k: -1, at: 0});
     if (m.k >= from) return m.k;
     if (m.k === -2) return -1;
     let k = Math.max(from, m.at);
-    while ((k = s.indexOf(d, k)) >= 0 && !okClose(d, k)) k += 1;
+    while ((k = s.indexOf(d, k)) >= 0 && !ok(d, k)) k += 1;
     m.at = k < 0 ? s.length : k + 1; m.k = k < 0 ? -2 : k;
     return k;
   };
@@ -122,8 +123,7 @@ function mdInline(text, parent, depth = 0){
     if (c === "\\" && i + 1 < s.length && "\\`*_{}[]()#+-.!|~>".includes(s[i + 1])){ buf += s[i + 1]; i += 2; continue; }
     if (c === "`"){ // インラインコード: 同じ数のバッククォートで閉じる
       let n = 1; while (s[i + n] === "`") n++;
-      const d = "`".repeat(n); let k = closeAt(d, i + n);
-      while (k >= 0 && (s[k + n] === "`" || s[k - 1] === "`")) k = s.indexOf(d, k + n + 1);
+      const d = "`".repeat(n), k = validClose(d, i + n, okTick, "code" + n); // 調べた位置を覚え、閉じられない候補を探し直さない
       if (k < 0){ buf += d; i += n; continue; }
       flush(); const e = mdEl("code"); e.textContent = s.slice(i + n, k).replace(/^ (.*) $/, "$1"); parent.append(e); i = k + n; continue;
     }

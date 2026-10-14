@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"os"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -53,6 +55,9 @@ func NumOr0(v any) float64 {
 	f, _ := Num(v)
 	return f
 }
+
+// Count は、履歴の数のうち負にならないもの（トークン数など）。負の値は壊れた・悪意のある記録とみなして 0 にする。
+func Count(v any) float64 { return max(0, NumOr0(v)) }
 
 // Get はネストしたキーをたどる。途中で見つからなければ nil。
 func Get(v any, keys ...string) any {
@@ -380,4 +385,25 @@ func LimitReset(text string) string {
 		return ""
 	}
 	return strings.Join(strings.Fields(m[1]), " ")
+}
+
+// PrivateDir は、履歴を入れるフォルダ dir を作り、ほかの人が開けないようにする（0700）。
+// MkdirAll はもうあるフォルダの権限を変えないので、ほかの人が開けるときは 0700 に直す
+// （中のファイルは 0600 でも、ファイル名に会話の id やプロジェクトの場所が出るため）。
+// シンボリックリンクはたどらない（リンクの先の権限は変えない）。Windows では権限を使わないので作るだけ。
+func PrivateDir(dir string) error {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+	fi, err := os.Lstat(dir)
+	if err != nil {
+		return err
+	}
+	if fi.IsDir() && fi.Mode().Perm()&0o077 != 0 {
+		return os.Chmod(dir, 0o700)
+	}
+	return nil
 }

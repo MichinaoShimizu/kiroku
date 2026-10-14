@@ -109,13 +109,13 @@ func (c *loadCache) load(s source.Source, gap int) ([]loaded, error) {
 			i := todo[j]
 			ucs[i].err = sp.LoadUnit(units[i], func(b *core.Builder) { ucs[i].outs = append(ucs[i].outs, finish(b, gap)) })
 		})
+		errs := make([]error, 0, len(units))
 		for i, u := range units {
 			next.units[u.Key] = ucs[i]
 			next.outs = append(next.outs, ucs[i].outs...)
-			if next.err == nil {
-				next.err = ucs[i].err
-			}
+			errs = append(errs, ucs[i].err)
 		}
+		next.err = source.UnitErrs(errs) // 最初のエラーと、ほかに読めなかった数（読み直さないときと同じ形）
 	} else {
 		next.outs, next.err = loadAll(s, gap)
 	}
