@@ -29,7 +29,10 @@ for (const [name, make, n] of [
   ["閉じられないバッククォートの並び", n => ("\\```".repeat(n) + "\n").repeat(8), 5000],
   ["長い行がたくさん", n => (("**a " + "x".repeat(16)).repeat(900) + "\n").repeat(n), 48],
 ]) {
-  const small = best(() => mdView(make(Math.floor(n / 4)))), big = best(() => mdView(make(n)));
+  const measure = () => [best(() => mdView(make(Math.floor(n / 4)))), best(() => mdView(make(n)))];
+  let [small, big] = measure();
+  // 大きな文字列を作る GC の揺れで、比例でも 10 倍を少し超えることがある（macOS の CI で 7 ms → 80 ms）。超えたら測り直し、2 回とも超えたときだけ落とす
+  if (big > 50 && big / Math.max(small, 1) > 10) [small, big] = measure();
   if (big > 50 && big / Math.max(small, 1) > 10){ fail++; console.log(`SLOW ${name}: ${small.toFixed(1)} ms → ${big.toFixed(1)} ms for 4× the input`); }
   if (big > 10000){ fail++; console.log(`SLOW ${name}: ${big.toFixed(0)} ms`); }
 }

@@ -130,7 +130,7 @@ func scoped(snap snapshot, p *period) snapshot {
 	rep := make([]source.Report, len(snap.rep))
 	for i, r := range snap.rep {
 		r.N, r.Dup, r.Archived, r.Oldest, r.Keep = 0, 0, 0, 0, nil
-		r.Unknown, r.BadLines, r.AgentVersion = nil, 0, "" // 形の手がかりは履歴全体のもので、期間のものではない
+		r.Unknown, r.BadLines, r.AgentVersion, r.Checked = nil, 0, "", false // 形の手がかりは履歴全体のもので、期間のものではない
 		for _, id := range r.IDs {
 			d := in[id]
 			if d == nil {
