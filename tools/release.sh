@@ -3,6 +3,7 @@
 #   sh tools/release.sh
 #   sh tools/release.sh --no-screenshots   # スクリーンショットを撮り直さない
 #   KIROKU_RELEASE_REMOTE=<リモートかパス>   # origin の代わりに、そこの main から作る（スクリプトを試すとき）
+#   KIROKU_RELEASE_TRAILER=<行>             # 「Release vX.Y.Z」のコミットの最後に、この行を足す（例: Co-Authored-By: ...。エージェントが作るときに使う）
 #
 # 流れ:
 #   1. 作業ツリーに変更があれば止まる（コミットするか、別のブランチに置いてから。素の git stash は使わない）
@@ -106,7 +107,11 @@ main() {
   if [ -n "$shots" ]; then
     git add -- docs
   fi
-  git commit --quiet -m "Release $v"
+  if [ -n "${KIROKU_RELEASE_TRAILER:-}" ]; then
+    git commit --quiet -m "Release $v" -m "$KIROKU_RELEASE_TRAILER"
+  else
+    git commit --quiet -m "Release $v"
+  fi
   echo
   echo "== committed $(git rev-parse --short HEAD) on $branch:"
   git show --stat --format='   %s' HEAD | sed 's/^/  /'

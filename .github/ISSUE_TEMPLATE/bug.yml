@@ -18,7 +18,7 @@ body:
     id: screen
     attributes:
       label: Screen
-      description: Where in kiroku you saw it (for example Calendar (week), Calendar (month), Year in review, kiroku doctor, kiroku serve)
+      description: Where in kiroku you saw it (for example Calendar (week), Calendar (month), kiroku doctor, kiroku serve)
   - type: input
     id: version
     attributes:

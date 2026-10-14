@@ -67,7 +67,6 @@ var allow = []exception{
 var baseline = []exception{
 	{Rule: "js-html", File: "internal/web/js/boot.js", Count: 1, Reason: "the scope note, built from t() and esc()"},
 	{Rule: "js-html", File: "internal/web/js/calendar.js", Count: 15, Reason: "period heading, legend, KPIs, week calendar, tooltips, Journey and Project views; history strings go through esc()"},
-	{Rule: "js-html", File: "internal/web/js/format.js", Count: 1, Reason: "the Year in review shortcut row, built from t() and esc()"},
 	{Rule: "js-html", File: "internal/web/js/git.js", Count: 3, Reason: "commit, PR and push panels; git strings go through esc()"},
 	{Rule: "js-html", File: "internal/web/js/guide.js", Count: 1, Reason: "the metrics guide dialog, built from HELP and esc()"},
 	{Rule: "js-html", File: "internal/web/js/metric.js", Count: 1, Reason: "the metric breakdown dialog; history strings go through esc()"},
@@ -75,7 +74,6 @@ var baseline = []exception{
 	{Rule: "js-html", File: "internal/web/js/review.js", Count: 3, Reason: "the Worth a look dialog and its markers, built from t() and esc()"},
 	{Rule: "js-html", File: "internal/web/js/session.js", Count: 1, Reason: "the session panel; history strings go through esc() and md()"},
 	{Rule: "js-html", File: "internal/web/js/summary.js", Count: 5, Reason: "the period summary, report bar, Worth a look and metric hints; history strings go through esc()"},
-	{Rule: "js-html", File: "internal/web/js/year.js", Count: 1, Reason: "the Year in review dialog, built from t() and esc()"},
 }
 
 type finding struct {

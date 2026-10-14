@@ -12,7 +12,7 @@ function startLive(){
         const d0 = await kfetch("data.json"); if (!d0.ok) throw new Error(d0.status);
         const j = await d0.json(), before = DATA.length;
         applyData(j);
-        render(); if ($("#yr").open) refreshYear();
+        render();
         const d = DATA.length - before;
         toast(d === 1 ? t("Added 1 new session") : d > 0 ? t("Added {n} new sessions", {n: d}) : t("Updated to the latest history"));
       }

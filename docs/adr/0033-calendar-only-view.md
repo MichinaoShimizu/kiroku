@@ -1,6 +1,6 @@
 # ADR 0033: The view is the calendar only
 
-Status: Accepted (2026-10-14, approved by the maintainer)
+Status: Accepted (2026-10-14, approved by the maintainer); amended 2026-10-14 (Year in review removed, see [Amendment](#amendment-2026-10-14-year-in-review-removed))
 Date: 2026-10-14
 Scope: Local HTML history exploration and view navigation (`internal/web`: `template.html`, `js/state.js`, `js/events.js`, `js/calendar.js`, `js/summary.js`, `style.css`)
 Related ADRs: [ADR 0022](0022-history-stays-local.md), [ADR 0023](0023-compatibility-contract.md), [ADR 0029](0029-japanese-ui.md)
@@ -44,3 +44,13 @@ On 2026-10-14 the maintainer decided to simplify kiroku. The three views answer 
 ## Open questions
 
 None.
+
+## Amendment (2026-10-14): Year in review removed
+
+On 2026-10-14 the maintainer also decided to remove the Year in review "for now". Point 1 no longer keeps it: the view is the Week and Month calendar, with search, the legend's filters, the session details panel, the weekly and monthly summary and "Worth a look".
+
+- Removed: the "Year in review" button, the `Y` shortcut and its row in the shortcut list, the year dialog and its share image ("Save as PNG", "Copy image"), `js/year.js`, its CSS and catalog strings, its tests, e2e steps and screenshots (`docs/year.png`, `docs/year-params.png`).
+- Old saved state falls back to the calendar: the stored Year in review options (`localStorage` key `kiroku:yrOpt`) are ignored, and `Y` does nothing. No URL ever opened it.
+- No contract change, as in point 5: the Year in review was never part of `kiroku json`, a CLI option or an environment variable, so under [ADR 0023](0023-compatibility-contract.md) point 2 this is not BREAKING. ADR 0022 is unaffected; the share image was made in the browser and sent nowhere.
+- Reversible from history (`git log` before this change). Revisit if a yearly look back is wanted again.
+- Verification: `smoke.mjs` checks that no Year in review button or dialog exists, that the shortcut list has no `Y`, and that a saved `yrOpt` still opens the calendar with `Y` opening nothing.
