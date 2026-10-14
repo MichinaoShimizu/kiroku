@@ -183,7 +183,7 @@ function sessionNumbers(s, active, med){
   rows.push(["Compactions (conversation summarized to free context)", String((s.compactions || []).length)], ["Usage limit hits", String((s.limits || []).length)]);
   return ["| | This session |", "|---|---|", ...rows.map(r => `| ${r.join(" | ")} |`)].join("\n");
 }
-/* 1 つのセッションを AI と振り返るためのプロンプト（kiroku 自身は AI を呼ばない）。週報・月報と同じ作り: 決まった形式、kiroku が埋めた数字の表、共通の「Advice from an expert」 */
+/* 1 つのセッションを AI と振り返るためのプロンプト（kiroku 自身は AI を呼ばない）。週報・月報と同じ作り: 決まった形式と、kiroku が埋めた数字の表 */
 function sessionPrompt(s, active, med){ return inEnglish(() => { // AI に渡すので英語のまま
   const file = reviewFile(s), cut = (t, n) => { t = oneLine(t); return t.length > n ? t.slice(0, n) + "…" : t; };
   const L = [`Act as a professional AI prompt advisor. Review this session using established prompt-engineering and agent-workflow principles, not a proprietary scoring framework. Help me improve real outcomes, not simply write longer prompts (times are ${utcOff(s.start)}). kiroku, a tool on this computer that aggregates my AI agent history, gives you the facts below${file ? " and points to the session's history file" : ""}.`,

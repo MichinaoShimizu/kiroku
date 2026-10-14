@@ -31,7 +31,7 @@ func TestCSP(t *testing.T) {
 		}
 		checkCSP(t, page, live)
 	}
-	checkCSP(t, string(Loading), true)
+	checkCSP(t, string(LoadingFor("")), true)
 }
 
 func checkCSP(t *testing.T, page string, live bool) {
@@ -135,5 +135,19 @@ func TestPartsJSON(t *testing.T) {
 	}
 	if old, _ := Render(data, weeks, months, meta, 1759999999.25, true); old != page {
 		t.Error("Render と Parts.HTML の結果が違う")
+	}
+}
+
+// 読み込み中の画面は --lang を属性に入れる。知らない値は入れない（属性を抜け出させない）
+func TestLoadingForLang(t *testing.T) {
+	if s := string(LoadingFor("ja")); !strings.Contains(s, `data-lang="ja"`) {
+		t.Fatal("ja not set")
+	}
+	for _, bad := range []string{"", `"><script>alert(1)</script>`, "fr"} {
+		s := string(LoadingFor(bad))
+		if !strings.Contains(s, `data-lang=""`) || strings.Contains(s, "alert(1)") || strings.Contains(s, "__LANG__") {
+			t.Fatalf("%q: lang leaked or placeholder left", bad)
+		}
+		checkCSP(t, s, true)
 	}
 }

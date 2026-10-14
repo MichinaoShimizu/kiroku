@@ -135,7 +135,7 @@ func writeStats(w io.Writer, data []*core.Session, commits []gitlog.Commit, p *p
 		notes = append(notes, "Cost is estimated at public API rates.")
 	}
 	if s.Usage.Unpriced > 0 {
-		notes = append(notes, fmt.Sprintf("%s tokens from models without a known price are not in the cost.", tokS(s.Usage.Unpriced)))
+		notes = append(notes, fmt.Sprintf("%s tokens from models not in the price table are not in the cost.", tokS(s.Usage.Unpriced)))
 	}
 	notes = append(notes, "Project names are shown as they are; check before sharing. Details: kiroku serve")
 	fmt.Fprintln(w)

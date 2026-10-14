@@ -75,12 +75,11 @@ function periodBack(i){ // 表示中の期間から i 個前の期間
   return {S: WEEKS[key(a)], ws: a.getTime()/1000, we: addDays(a, 7).getTime()/1000, label: periodLabel("week", key(a)), key: key(a)};
 }
 function periodLabel(mode, k){ const [y, m, d] = k.split("-").map(Number); // 期間の名前（"2026-05" か "2026-05-04"）
-  return mode === "month" ? dMY(new Date(y, m-1, 1)) : `week of ${dMD(new Date(y, m-1, d))}`; }
+  return mode === "month" ? dMY(new Date(y, m-1, 1)) : t("week of {date}", {date: dMD(new Date(y, m-1, d))}); } // 画面の言語で
 function metricAt(k, p){ if (!MET[k] || !p.S) return null; const v = MET[k].f(p.S, p.ws, p.we); return v == null || Number.isNaN(v) ? null : v; }
 function spark(k, plain){ // 8 期間の推移（記録のない期間は飛ばす。記録のある最初の期間から、幅いっぱいに描く）。plain は「?」の説明に添えるもの（見直す向きは書かない）
   if (!MET[k]) return "";
-  const lbl = p => { const [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? p.label : t("week of {date}", {date: dMD(new Date(yy, mm - 1, dd))}); }; // 期間の名前（画面の言語で）
-  const pts = []; for (let i = 7; i >= 0; i--){ const p = periodBack(i); pts.push({v: metricAt(k, p), l: lbl(p)}); }
+  const pts = []; for (let i = 7; i >= 0; i--){ const p = periodBack(i); pts.push({v: metricAt(k, p), l: p.label}); }
   const vs = pts.filter(p => p.v != null).map(p => p.v); if (vs.length < 2) return "";
   // 使い始めて間もないなど、はじめの期間に記録がないときは、その期間を描かずに記録のある最初の期間を左端にする（線が箱の途中から始まって短く見えないように）
   const W = 168, H = 34, f0 = pts.findIndex(p => p.v != null), step = (W - 8) / (7 - f0); // 値が 2 つ以上あるので f0 は 6 以下

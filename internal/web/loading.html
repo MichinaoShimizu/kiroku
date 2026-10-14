@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="en" translate="no" data-lang="__LANG__"><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="__CSP__">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
@@ -87,6 +87,26 @@ pre:empty{display:none}
 // あいだは /progress を見て、エージェントごとの進み具合を出す（名前と数だけ。文字は textContent で入れる）
 (() => {
   const $ = id => document.getElementById(id);
+  // 言語は本物の画面と同じ順で決める（?lang=、画面で選んだ言語、--lang、ブラウザの言語）。日本語のときだけ下の表で置きかえる
+  const pick = () => { try { const q = new URLSearchParams(location.search).get("lang"); if (q === "en" || q === "ja") return q; } catch(e){}
+    try { const s = JSON.parse(localStorage.getItem("kiroku:lang")); if (s === "en" || s === "ja") return s; } catch(e){}
+    const d = document.documentElement.dataset.lang; if (d === "en" || d === "ja") return d;
+    return /^ja\b/i.test((navigator.languages && navigator.languages[0]) || navigator.language || "") ? "ja" : "en"; };
+  const JA = pick() === "ja" ? {
+    "Reading your history…": "履歴を読んでいます…",
+    "The first read can take a while with a lot of history. This page opens the view as soon as it is ready.": "履歴が多いと、最初の読み込みに時間がかかります。読み終わるとすぐに画面を開きます。",
+    "History": "履歴", "Git": "Git", "View": "画面", "Agents": "エージェント", "Steps": "進み具合",
+    "session": "セッション", "sessions": "セッション", "no history": "履歴なし", "Ready": "準備ができました",
+    "Could not read your history": "履歴を読めませんでした",
+    "kiroku serve keeps running and tries again when your history changes. You can also stop it and run it again.": "kiroku serve は動き続け、履歴が変わるともう一度読みます。止めて起動し直すこともできます。",
+    "Not connected to kiroku serve": "kiroku serve につながっていません",
+    "If you stopped it, start it again; this page reconnects on its own.": "止めた場合は起動し直してください。この画面はつながると自動で戻ります。",
+  } : null;
+  const t = s => JA && JA[s] || s;
+  if (JA){ document.documentElement.lang = "ja";
+    ["title", "note"].forEach(id => { $(id).textContent = t($(id).textContent); });
+    document.querySelectorAll("#stages li").forEach(li => { li.textContent = t(li.textContent); });
+    ["agents", "stages"].forEach(id => $(id).setAttribute("aria-label", t($(id).getAttribute("aria-label")))); }
   const card = $("card"), title = $("title"), note = $("note"), detail = $("detail"), list = $("agents"), clock = $("clock"),
     wait = [title.textContent, note.textContent];
   // エージェントの色は本物の画面と同じ（core.Agents の Slot。web.go が埋めこむ）
@@ -114,9 +134,9 @@ pre:empty{display:none}
     r.classList.remove("wait"); r.classList.add(a.n ? "ok" : "none");
     r.stat.textContent = "";
     if (a.n){
-      const b = document.createElement("b"); b.textContent = a.n.toLocaleString("en-US");
-      r.stat.append(b, ` ${a.n === 1 ? "session" : "sessions"} · ${ms(a.ms)}`);
-    } else r.stat.textContent = "no history";
+      const b = document.createElement("b"); b.textContent = a.n.toLocaleString(JA ? "ja-JP" : "en-US");
+      r.stat.append(b, ` ${t(a.n === 1 ? "session" : "sessions")} · ${ms(a.ms)}`);
+    } else r.stat.textContent = t("no history");
   }
   let base = 0, at = performance.now(), live = true;
   function tick(){ if (live){ clock.textContent = ms(Math.round(base + performance.now() - at)); requestAnimationFrame(tick); } }
@@ -134,13 +154,13 @@ pre:empty{display:none}
   async function poll(){
     try {
       const r = await fetch("stamp", {cache:"no-store"});
-      if (r.ok){ live = false; document.body.classList.add("done"); title.textContent = "Ready"; setTimeout(() => location.reload(), 250); return; }
-      const t = (await r.text()).trim();
-      if (r.status === 503 && t){ live = false; show(true, "Could not read your history", "kiroku serve keeps running and tries again when your history changes. You can also stop it and run it again.", t); }
+      if (r.ok){ live = false; document.body.classList.add("done"); title.textContent = t("Ready"); setTimeout(() => location.reload(), 250); return; }
+      const txt = (await r.text()).trim();
+      if (r.status === 503 && txt){ live = false; show(true, t("Could not read your history"), t("kiroku serve keeps running and tries again when your history changes. You can also stop it and run it again."), txt); }
       else { live || (live = true, requestAnimationFrame(tick)); show(false, wait[0], wait[1]); }
     } catch(e){
       live = false;
-      show(true, "Not connected to kiroku serve", "If you stopped it, start it again; this page reconnects on its own.");
+      show(true, t("Not connected to kiroku serve"), t("If you stopped it, start it again; this page reconnects on its own."));
     }
     await progress();
     setTimeout(poll, 400);

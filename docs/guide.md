@@ -162,9 +162,9 @@ If you start `kiroku serve --ai`, the view also offers "Analyze with AI". It sho
 
 | Scope | Button | Format |
 |---|---|---|
-| A session | "Copy review prompt" in session details, next to "Everything" / "Your prompts only" | Summary, Numbers, Rework, Advice from an expert (with an example first prompt for similar work next time) |
-| A day | "Report" next to each date with history in the week calendar (an icon on narrow screens) | Summary, Numbers (next to the previous day), By project, Advice from an expert |
-| A week or month | "Copy prompt" under "Weekly report" ("Monthly report" in month view), below the period's dates | Summary, Numbers (next to the previous week or month), By project, Advice from an expert |
+| A session | "Copy review prompt" in session details, next to "Everything" / "Your prompts only" | Summary, Numbers, Professional prompt assessment, Prioritized advice (up to three, each with an improved prompt), Reusable prompt playbook (an improved opening prompt and follow-up prompts for similar work) |
+| A day | "Report" next to each date with history in the week calendar (an icon on narrow screens) | Summary, Numbers (next to the previous day), By project, Expert observations, Next actions |
+| A week or month | "Copy prompt" under "Weekly report" ("Monthly report" in month view), below the period's dates | Summary, Numbers (next to the previous week or month), By project, Expert observations, Next actions |
 | A project | "Copy knowledge prompt" on each project card under "① By project" | Knowledge, Decisions, Open Questions: candidates from that week's or month's history, each with its session and a short excerpt, marked as needing your review |
 
 What the prompts give the agent:
@@ -174,14 +174,10 @@ What the prompts give the agent:
 - **The history files**: a review asks the agent to read the session's history file first. A report asks it to write from the digests and open a history file only when a digest isn't enough, and only within the times listed for that session. For Amazon Q and Kiro CLI (SQLite), whose history is one SQLite database, the prompts are copied in instead
 - **Signals for advice**: prompts you wrote in 3 or more sessions (for a review, prompts in that session you also wrote in 3 or more sessions in the last 30 days), the tools the AI used most, subagents, compactions, the main model of each session, short sessions with no file edits on an Opus-class model, conversations whose input per response grew to 4× or more, and project switches (per day in a report; in a review, the prompts you wrote in other projects while the session ran). Weekly and monthly reports also list the metrics flagged under "Worth a look" and the share of input read from cache
 
-The advice has 2–4 points. Each names what it is based on (a figure, a prompt with its time, or a signal) and then the concrete change. It covers:
+The agent is asked to act as a professional advisor using established prompt-engineering and engineering practice, not a kiroku-specific score. Every point names what it is based on (a figure, a prompt with its time, a commit or a signal), and points the history doesn't support are left out:
 
-- how you write prompts: missing context, constraints or done criteria, and corrections a clearer first prompt would have avoided
-- how you use agents: splitting or ordering work, checking results, long sessions, waiting
-- model and context: whether the main model fits the work (a lighter model for questions and small, clear edits; a stronger one for hard design or debugging), long conversations and compactions, and switching between projects
-- what to move out of your prompts: instructions you repeat into a skill or the project's agent instructions, a separate role into a subagent, fixed steps into a script
-
-Generic tips the history doesn't support, and topics where nothing needs to change, are left out. In a review, each place that needed rework is a row with its time, the quoted prompt, what happened and the cause: (A) something missing from your prompt, (B) the task itself being hard or uncertain, or (C) the AI getting it wrong although the prompt was enough.
+- **A session review** assesses goal clarity, context, constraints, splitting the work, iteration, verification and use of the agent, only where the history shows them, and says what worked. Up to three prioritized pieces of advice each quote the prompt with its time, say what happened and why the change matters, give an improved prompt, and tell a gap in the prompt apart from a mistake by the model or tool and from a task that was simply uncertain. The playbook is an improved opening prompt for similar work and prompts to check in along the way
+- **A report** adds up to three expert observations (progress, risks, verification, work patterns, including what went well) and up to three next actions with their reason and expected benefit, marking guesses as guesses. It doesn't treat time, prompts, tokens or commits as a measure of productivity or value. A daily report stresses progress, blockers and the next step; a weekly report patterns, risks and the next week's priorities; a monthly report lasting trends and recurring constraints
 
 Things to know:
 
@@ -480,7 +476,7 @@ Common to the commands that read history (`serve`, `html`, `json`, `stats`, `doc
 | `--claude-root` | `~/.claude/projects` (`$CLAUDE_CONFIG_DIR/projects` if set) | Location of Claude Code history |
 | `--kiro-home` | `~/.kiro` | Location of Kiro data (`KIRO_HOME` is also used) |
 | `--crew-home` | `~/.kiro/crew` (`$KIROCREW_HOME` if set) | Location of Kiro Crew data. Like Crew itself, it does not move with `--kiro-home` or `KIRO_HOME`; a leading `~` in `KIROCREW_HOME` means your home folder |
-| `--kiro-cli-db` | Per OS | `data.sqlite3` of older Kiro CLI versions (Kiro CLI (SQLite)) |
+| `--kiro-cli-db` | Per OS | `data.sqlite3` of older Kiro CLI versions, shown as Kiro CLI (SQLite) |
 | `--amazonq-db` | Per OS | `data.sqlite3` of Amazon Q Developer CLI |
 | `--codex-home` | `~/.codex` | Location of Codex data (`CODEX_HOME` is also used) |
 | `--gap` | `15` | Idle time (minutes) that splits session bars |
