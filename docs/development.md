@@ -196,7 +196,7 @@ sh tools/release.sh                   # or --no-screenshots
 2. fetches `origin/main`, computes the version with `next-version.sh`, and creates `claude/release-vX.Y.Z` from `origin/main`
 3. runs `sh tools/changelog.sh --release vX.Y.Z`, which merges the fragments and `## Unreleased` into `## vX.Y.Z - <today, UTC>` (sections in the order Added, Changed, Deprecated, Removed, Fixed, Security, with existing entries first) and deletes the merged fragments
 4. when Chromium is available (`CHROMIUM`, or Playwright's own), retakes the screenshots and keeps only the images that really changed (see "Screenshots")
-5. runs `sh tools/check.sh` and `sh tools/release-notes.sh vX.Y.Z`, commits `Release vX.Y.Z`, and prints the next steps: push the branch and open the PR with the release notes as its body
+5. runs `sh tools/check.sh` and `sh tools/release-notes.sh vX.Y.Z`, commits `Release vX.Y.Z` (with `KIROKU_RELEASE_TRAILER` set, its value is added as the last line of the message, for example the `Co-Authored-By:` trailer an agent's commits need), and prints the next steps: push the branch and open the PR with the release notes as its body
 
 If `tools/check.sh` fails, the script stops on the release branch with the changes uncommitted: fix them there, commit, and continue with the next steps by hand. To prepare the section by hand instead, run `sh tools/changelog.sh --release vX.Y.Z` (it is idempotent; a fragment merged into main after that is added to the same section when you run it again).
 
