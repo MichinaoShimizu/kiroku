@@ -1,0 +1,24 @@
+name: Request (maintainer)
+description: A change the maintainer wants. A scheduled Claude Code routine picks these up and opens a pull request.
+title: "[request] "
+labels: [request]
+body:
+  - type: markdown
+    attributes:
+      value: Only requests opened by the maintainer are picked up automatically. To suggest an idea, use "Feature request" instead.
+  - type: textarea
+    id: want
+    attributes:
+      label: What you want
+      description: English or Japanese is fine.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why (optional)
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when (optional)
+      description: How you will check it, for example "the Sessions screen shows X".
