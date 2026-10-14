@@ -1619,6 +1619,62 @@ func TestKiroCrewCodexBackendYieldsToCodex(t *testing.T) {
 	}
 }
 
+// Codex の backend のサブエージェント（kirocrew #18150）も、state.json の session_id が Codex のスレッド ID で、Codex 自身の記録に残る。
+// Crew の記録から作るサブエージェントの会話は、同じスレッドの Codex のセッションに譲り（Yield と Claim が同じ鍵）、
+// 親の会話にまとめない（まとめると、ターンと時刻が親に残って Codex のセッションと 2 度数える）。ほかの backend のサブエージェントはまとめる。
+func TestKiroCrewCodexSubagentYieldsToCodex(t *testing.T) {
+	kiro, crew, cx := t.TempDir(), t.TempDir(), t.TempDir()
+	const thread = "019a0000-0000-7000-8000-0000000a9e47"
+	writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
+	row := func(ts, slot, model string) string {
+		return fmt.Sprintf(`{"_type": "tokens", "ts": %q, "slot": %q, "provider": "acp", "model": %q, "input": 1000, "output": 100, "cost": 0.5, "credits": 0}`, ts, slot, model)
+	}
+	writeFiles(t, crew, map[string]string{
+		"session_map.json": `{"dashboard:chat-9-900": {"sid": "", "cwd": "/w"}}`,
+		"sessions/dashboard_chat-9-900.jsonl": `{"_type": "metadata", "title": "親の会話"}` + "\n" +
+			`{"role": "user", "content": "サブエージェントに任せて", "ts": "2026-10-06T00:00:00+00:00", "meta": {"human": true}}` + "\n",
+		"subagents/cx1/state.json": `{"id": "cx1", "agent": "coder", "task": "パーサーを直す", "parent_session": "dashboard:chat-9-900", "session_id": "` + thread + `", "provider": "codex", "cwd": "/w"}`,
+		"subagents/gs1/state.json": `{"id": "gs1", "agent": "helper", "task": "調べる", "parent_session": "dashboard:chat-9-900", "session_id": "goose-sid", "provider": "goose"}`,
+		"usage/tokens/2026-10-06.jsonl": strings.Join([]string{
+			row("2026-10-06T00:01:00+00:00", "subagent:cx1", "gpt-6-sol"),
+			row("2026-10-06T00:02:00+00:00", "subagent:gs1", "glm-5"),
+		}, "\n") + "\n",
+	})
+	writeCodex(t, cx, thread,
+		`{"timestamp":"2026-10-06T00:00:30.000Z","type":"session_meta","payload":{"id":"`+thread+`","timestamp":"2026-10-06T00:00:30.000Z","cwd":"/w"}}`,
+		`{"timestamp":"2026-10-06T00:00:31.000Z","type":"event_msg","payload":{"type":"user_message","message":"パーサーを直す"}}`,
+		`{"timestamp":"2026-10-06T00:01:00.000Z","type":"event_msg","payload":{"type":"agent_message","message":"直しました"}}`,
+	)
+	cb := load(t, &Codex{Home: cx})
+	if len(cb) != 1 || cb[0].Claim != codexClaim(thread) {
+		t.Fatalf("Codex のセッションの Claim = %+v", cb)
+	}
+	by := map[string]*core.Builder{}
+	for _, b := range load(t, &KiroCLI{Home: kiro, CrewHome: crew}) {
+		by[b.ID] = b
+	}
+	sub := by["crew:subagent:cx1"]
+	if sub == nil {
+		t.Fatalf("Codex のサブエージェントが親にまとめられた（sessions = %v）", keysOf(by))
+	}
+	if sub.Yield != cb[0].Claim {
+		t.Errorf("Codex のサブエージェントの Yield = %q, want %q", sub.Yield, cb[0].Claim)
+	}
+	if _, ok := by["crew:subagent:gs1"]; ok {
+		t.Errorf("goose のサブエージェントは親にまとめる")
+	}
+	parent := by["crew:dashboard_chat-9-900"]
+	if parent == nil {
+		t.Fatalf("親の会話がない（sessions = %v）", keysOf(by))
+	}
+	if len(parent.Subagents) != 1 || parent.Subagents[0].Type != "helper" {
+		t.Errorf("親のサブエージェント = %+v, want goose の helper だけ", parent.Subagents)
+	}
+	if parent.Yield != "" {
+		t.Errorf("親の Yield = %q, want なし（kiro-cli の会話）", parent.Yield)
+	}
+}
+
 // crew-log の session/opened の data.class.memory が persistent でない会話は、会話の記録がなくても、
 // そこから起動したサブエージェントへの依頼を残さない（slot は 1 行目になければ session/opened の data.slot）。
 func TestCrewLogClassPrivateSpawns(t *testing.T) {
@@ -1760,4 +1816,14 @@ func TestReadCrewLogEscapedTypeAndBOM(t *testing.T) {
 	if got := loadCrewSpawns(crew, nil, nil); got["subagent:x4"].Key != "dashboard:e4" {
 		t.Errorf("spawns = %+v, want エスケープした subagent/spawned も読む", got)
 	}
+}
+
+// keysOf は by の会話 ID を並べる（失敗したときの表示用）。
+func keysOf(by map[string]*core.Builder) []string {
+	out := make([]string, 0, len(by))
+	for k := range by {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }
