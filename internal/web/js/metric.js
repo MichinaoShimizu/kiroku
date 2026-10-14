@@ -50,7 +50,7 @@ function mDays(w, m, proj){
   const cols = w.days.map((d, i) => { const dt = addDays(a, i), fut = proj && i > cur, v = fut ? avg : vals[i];
     const tip = `${md(dt.getTime()/1000)}: ${fut ? t(proj.tip || "≈ {v} at the current pace", {v: m.f(avg)}) : m.f(vals[i])}`;
     const lab = !M && !fut && v > 0; // 週は 7 本なので、棒の上に値を書く（月は細すぎるので、ポインターを合わせたときだけ）
-    return `<span class="mcol${fut ? " fut" : ""}${i === cur ? " now" : ""}" title="${esc(tip)}">${lab ? `<span class="bv">${esc(m.f(v))}</span>` : ""}<span class="b" style="height:${v ? `calc(${M ? "100%" : "100% - 16px"} * ${Math.max(0.02, v/max).toFixed(4)})` : 0}"></span><small>${M ? dt.getDate() : DOW[dt.getDay()]}</small></span>`; }).join("");
+    return `<span class="mcol${fut ? " fut" : ""}${i === cur ? " now" : ""}" title="${esc(tip)}">${lab ? `<span class="bv">${esc(m.f(v))}</span>` : ""}<span class="b" style="height:${v ? `calc((${M ? "100%" : "100% - 16px"}) * ${Math.max(0.02, v/max).toFixed(4)})` : 0}"></span><small>${M ? dt.getDate() : DOW[dt.getDay()]}</small></span>`; }).join("");
   return `<h3>${esc(t("By day"))}</h3><div class="mdays${M ? " month" : ""}"${proj ? ` style="--avg:${avg/max*100}%"` : ""}>${cols}</div>`;
 }
 // 横の棒の一覧（エージェント・プロジェクト・モデル）。total が false なら割合の欄を空ける（割合や中央値のように、足しても意味のない値）。
@@ -92,13 +92,19 @@ const calcH = parts => `<div class="mcalc">${parts.map(p => typeof p === "string
 // 前の期間並みに収める 1 日の目安（pacing）：前の期間の合計 − ここまで = 残り、÷ 残りの日。
 // 費用だけでなく、前の期間とここまでに残したもの（コミット）も並べる。費用が同じでも、残したものが減っていれば気づけるように
 function paceBody(w, k, m){
-  const pc = pacing(w, period().P), x = pc && pc[k]; if (!x) return null; const M = st.mode === "month";
-  const big = x.rest > 0 ? esc(m.f(x.per)) : `+${esc(m.f(-x.rest))}`;
-  const calc = calcH([[M ? "Last month" : "Last week", esc(m.f(x.ref))], "−", ["So far", esc(m.f(x.so))], "=", ["Left", x.rest > 0 ? esc(m.f(x.rest)) : "—"], "÷", ["Days left", `${pc.left}`], "=", ["A day", x.rest > 0 ? esc(m.f(x.per)) : "—"]]);
-  const note = x.rest > 0 ? t("If you keep to about {v} a day, this period ends near the last one. The faded bars are the days still to come at that amount.", {v: m.f(x.per)}) : t("This period has already passed the last one's total by {v}.", {v: m.f(-x.rest)});
-  const pw = period().P, gc = g => g && g.git ? g.git.commits : null, a = gc(pw), b = gc(w);
-  const out = a == null || b == null ? "" : `<p class="note">${esc(t(M ? "Left behind: {a} commits last month, {b} so far this month." : "Left behind: {a} commits last week, {b} so far this week.", {a, b}))}</p>`;
-  return {big, body: calc + `<p class="note">${esc(note)}</p>` + out + mDays(w, m, x.rest > 0 ? {avg: x.per, tip: "≈ {v} to match the last period"} : null)};
+  const pc = pacing(w, period().P), x = pc && pc[k]; if (!x) return null; const M = st.mode === "month", on = x.rest > 0, C = k === "credits";
+  // 見出しは上の帯と同じ言葉（超えたあとは「超過」。超えた分を 1 日の目安と読まれないように）
+  const title = on ? (C ? t(M ? "Credits a day to match last month" : "Credits a day to match last week") : t(M ? "A day to match last month" : "A day to match last week"))
+    : (C ? t(M ? "Past last month's credits" : "Past last week's credits") : t(M ? "Past last month's total" : "Past last week's total"));
+  const big = on ? esc(m.f(x.per)) : `+${esc(m.f(-x.rest))}`, last = M ? "Last month" : "Last week";
+  const calc = on ? calcH([[last, esc(m.f(x.ref))], "−", ["So far", esc(m.f(x.so))], "=", ["Left", esc(m.f(x.rest))], "÷", ["Days left", `${pc.left}`], "=", ["A day", esc(m.f(x.per))]])
+    : calcH([["So far", esc(m.f(x.so))], "−", [last, esc(m.f(x.ref))], "=", ["Over", esc(m.f(-x.rest))]]);
+  const note = on ? t("If you keep to about {v} a day, this period ends near the last one. What you use for the rest of today comes out of the days ahead. The faded bars are the days still to come at that amount.", {v: m.f(x.per)}) : t("This period has already passed the last one's total by {v}.", {v: m.f(-x.rest)});
+  // 残したもの：途中の期間は、前の期間の同じ日までとも比べる（途中の値を前の期間まるごととだけ並べない）
+  const pw = period().P, n = soFar(), gc = g => g && g.git ? g.git.commits : null, a = gc(pw), b = gc(w);
+  const same = a == null || n == null ? null : pw.days.slice(0, Math.min(n, pw.days.length)).reduce((s, d) => s + (d.commits || 0), 0);
+  const out = a == null || b == null ? "" : `<p class="note">${esc(t(M ? "Left behind: {a} commits last month ({s} by the same day), {b} so far this month." : "Left behind: {a} commits last week ({s} by the same day), {b} so far this week.", {a, s: same ?? "—", b}))}</p>`;
+  return {title, big, body: calc + `<p class="note">${esc(note)}</p>` + out + mDays(w, m, x.rest > 0 ? {avg: x.per, tip: "≈ {v} to match the last period"} : null)};
 }
 const MB = {
   pace(w){ return paceBody(w, "cost", BRK.pace); },
@@ -207,8 +213,8 @@ function openMetric(id, from){
   const D = $("#md"), u = w.usage || {}, h = H()[m.h], inRange = DATA.filter(s => inP(s, ws, we));
   const agents = ((w.shares || {}).source || []).map(x => ({name: x.key, c: agColor(x.key), mark: agMark(x.key), v: m.v ? m.v(x) || 0 : 0}));
   const projs = (w.projectStats || []).map(p => ({name: p.project, c: projColor(p.project), v: m.v ? m.v(p) || 0 : 0}));
-  let big = "", body = "";
-  if (MB[id]){ const r = MB[id](w, {ws, we, inRange}); if (!r) return; ({big, body} = r); }
+  let big = "", body = "", title = t(m.n); // 内訳によっては、状態に合わせた見出しにする（MB が title を返す）
+  if (MB[id]){ const r = MB[id](w, {ws, we, inRange}); if (!r) return; ({big, body} = r); if (r.title) title = r.title; }
   else if (m.proj){ // 月末の見込み：今日までの実績 ÷ 日数 × 月の日数
     const pj = projection(w), so = m.proj === "cost" ? costOf(u) : u.credits; if (!pj || so == null) return;
     const val = m.proj === "cost" ? pj.cost : pj.credits, nd = w.days.length, avg = so / pj.days;
@@ -240,7 +246,7 @@ function openMetric(id, from){
   // 英語は「. 」と大文字の前（「.」は残す）で、日本語（HELP の訳）は最初の「。」の後ろで切る
   const [d1, dr] = !h ? ["", ""] : JA && h.d.includes("。") ? (i => [h.d.slice(0, i + 1), h.d.slice(i + 1)])(h.d.indexOf("。")) : (i => i < 0 ? [h.d, ""] : [h.d.slice(0, i + 1), h.d.slice(i + 2)])(h.d.search(/\. (?=[A-Z])/));
   D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" aria-label="${esc(t("Close"))}"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form>
-    <div class="eyebrow">${esc(t("Breakdown"))} · ${st.mode === "month" ? dMY(st.month) : dSpan(st.week, addDays(st.week, 6))}</div><h2 id="mdh">${esc(t(m.n))}</h2><div class="mbig">${big}</div>${h ? `<p class="mdef" id="mdd">${esc(d1)}</p>` : ""}${body}
+    <div class="eyebrow">${esc(t("Breakdown"))} · ${st.mode === "month" ? dMY(st.month) : dSpan(st.week, addDays(st.week, 6))}</div><h2 id="mdh">${esc(title)}</h2><div class="mbig">${big}</div>${h ? `<p class="mdef" id="mdd">${esc(d1)}</p>` : ""}${body}
     ${h ? `<div class="mnot">${dr && id !== "cost" ? `<p>${esc(dr)}</p>` : ""}<p><b>${esc(t("Doesn't tell you"))}:</b> ${esc(h.x)}</p></div>` : ""}`; // 定義の 1 文目は数字のすぐ下に（読む前に何を数えたかがわかる）、細則と言えないことは読み終えたあとに。推定費用の料金の細則は長いので「?」にだけ書く
   if (h) D.setAttribute("aria-describedby", "mdd"); else D.removeAttribute("aria-describedby");
   D.querySelectorAll("[data-id]").forEach(b => b.onclick = () => { D.close(); select(b.dataset.id); });

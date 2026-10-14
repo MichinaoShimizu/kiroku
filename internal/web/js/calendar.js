@@ -118,7 +118,7 @@ function kpis(){
 const useKinds = xs => ({tokens: xs.some(d => d && d.tokens), cost: xs.some(d => d && d.cost > 0), credits: xs.some(d => d && d.credits)});
 function calRows(act, u, nS, nC, kinds, un){
   const k = un ? "k u" : "k", o = un > 1 ? "u" : "";
-  return [[t("Active"), act ? dur(act) : "—", k], kinds.cost ? [t("Estimated cost"), u && u.cost > 0 ? esc(usd(costOf(u))) : "—", k] : kinds.tokens && [t("Tokens"), u && u.tokens ? tok(u.tokens) : "—", k], kinds.credits && [t("Credits"), u && u.credits ? cr(u.credits) : "—", k],
+  return [[t("Active"), act ? dur(act) : "—", k], kinds.cost ? [t("Est. cost"), u && u.cost > 0 ? esc(usd(costOf(u))) : "—", k] : kinds.tokens && [t("Tokens"), u && u.tokens ? tok(u.tokens) : "—", k], kinds.credits && [t("Credits"), u && u.credits ? cr(u.credits) : "—", k],
     [t("Sessions"), nS, o], [t("Commits"), nC, o]].filter(Boolean);
 }
 const calDl = rows => `<dl class="cm">${rows.map(([k, v, c]) => `<div${c ? ` class="${c}"` : ""}><dt>${esc(k)}</dt><dd>${v}</dd></div>`).join("")}</dl>`; // k は強く出す値
@@ -134,7 +134,7 @@ function calShort(act, u, un, kinds){
 function allowH(pc, short){
   const xs = [pc.cost && pc.cost.rest > 0 && usd(pc.cost.per), pc.credits && pc.credits.rest > 0 && cr(pc.credits.per)].filter(Boolean); if (!xs.length) return short ? "" : `<small>—</small>`;
   const tip = t(st.mode === "month" ? "To stay at last month's total, about this much a day for the {n} days left" : "To stay at last week's total, about this much a day for the {n} days left", {n: pc.left});
-  return `<div class="allow${short ? " s" : ""}"${tipAttr(t("Pace"), tip, ...xs)}><span>${esc(t("Pace"))}</span>${xs.map(x => `<b>${esc(x)}</b>`).join("")}</div>`;
+  return `<div class="allow${short ? " s" : ""}"${tipAttr(t("To match"), tip, ...xs)}><span>${esc(t("To match"))}</span>${xs.map(x => `<b>${esc(x)}</b>`).join("")}</div>`;
 }
 const filtering = () => !!st.q || st.hidden.size > 0;
 /* カレンダーに出すコミット：凡例で隠したプロジェクトのものは出さない。検索中は、一致したセッションの間のコミットと、それ自体が一致したコミットだけ */
