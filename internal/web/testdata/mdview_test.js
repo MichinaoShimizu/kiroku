@@ -15,4 +15,21 @@ check("表", "| A | B |\n|---|:-:|\n| 1 | **2** |", '<div.mdtable><table><thead>
 check("コード", "```html\n<b>x</b>\n```", '<pre><code>"<b>x</b>"</code></pre>');
 check("引用・区切り線", "> q\n\n---", '<blockquote><p>"q"</p></blockquote><hr></hr>');
 check("深い入れ子でも止まらない", ">".repeat(50) + " x", out(mdView(">".repeat(50) + " x")));
+// 他人が書けるような意地悪な行でも、時間がかからない（正規表現の後戻りや、閉じていない記号の探し直しで固まらない）
+for (const [name, md] of [
+  ["閉じない強調", "**a ".repeat(4999)],
+  ["閉じない括弧", "[".repeat(19999)],
+  ["空白だけの表の線", "a|b\n" + " ".repeat(19990) + "x"],
+  ["後ろが空白の見出し", "# a" + " ".repeat(19990) + "x"],
+  ["閉じない下線", "_a ".repeat(6000)],
+  ["閉じないバッククォート", "`a ".repeat(6000) + "``b " .repeat(1000)],
+  ["長い行がたくさん", (("**a " + "x".repeat(16)).repeat(900) + "\n").repeat(50)],
+  ["1 MB の行", "*a ".repeat(350000)],
+]) {
+  const t0 = Date.now(); mdView(md); const ms = Date.now() - t0;
+  if (ms > 1500){ fail++; console.log("SLOW " + name + ": " + ms + " ms"); }
+}
+check("見出しの後ろの #", "## Title ##", '<h4>"Title"</h4>');
+check("後ろの # が語の一部なら残す", "# C#", '<h3>"C#"</h3>');
+check("snake_case の中の _ は斜体にしない", "a_b_c and _em_", '<p>"a_b_c and "<em>"em"</em></p>');
 if (fail) process.exit(1);

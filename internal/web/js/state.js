@@ -17,7 +17,8 @@ function shiftTimes(x){ if (!SHIFT) return x;
   return walk(x); }
 [DATA, WEEKS, MONTHS, META, GENERATED] = [shiftTimes(DATA), shiftTimes(WEEKS), shiftTimes(MONTHS), shiftTimes(META), shiftTimes(GENERATED)];
 const LIVE = __LIVE__; // kiroku serve で開いたとき true
-const aiRun = () => LIVE && !!(META && META.aiRun); // kiroku serve --ai のときだけ、画面から AI を動かせる
+const aiAgents = () => LIVE && META && Array.isArray(META.aiAgents) ? META.aiAgents.map(String) : []; // このコンピューターにコマンドがあるエージェント
+const aiRun = () => LIVE && !!(META && META.aiRun) && aiAgents().length > 0; // kiroku serve --ai で、使えるエージェントがあるときだけ、画面から AI を動かせる
 const PROMPT_RUNES = __PROMPT_RUNES__; // HTML に入れるプロンプトの長さ（core.PromptRunes）
 const REPLY_RUNES = __REPLY_RUNES__; // HTML に入れる応答の長さ（core.ReplyRunes）
 const AGENTS = __AGENTS__, AG_WARN = __AGENT_WARN__; // エージェントの名前・色・頭文字（core.Agents）と、エージェントに使わない警告の色

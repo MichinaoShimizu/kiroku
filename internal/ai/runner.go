@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 var ErrDisabled = errors.New("AI execution is disabled")
@@ -113,6 +114,7 @@ func (r Runner) Stream(ctx context.Context, agent, prompt string, emit func(Even
 	cmd.Dir = dir
 	cmd.Stdin = strings.NewReader(prompt)
 	cmd.WaitDelay = 2 * time.Second
+	ownGroup(cmd)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return Result{}, err
@@ -132,7 +134,7 @@ func (r Runner) Stream(ctx context.Context, agent, prompt string, emit func(Even
 				return
 			}
 			if shown += len(e.S); shown > maxOutput {
-				e.S = e.S[:len(e.S)-(shown-maxOutput)]
+				e.S = cut(e.S, len(e.S)-(shown-maxOutput))
 			}
 		}
 		emit(e)
@@ -141,6 +143,14 @@ func (r Runner) Stream(ctx context.Context, agent, prompt string, emit func(Even
 	if err := cmd.Start(); err != nil {
 		return Result{}, fmt.Errorf("agent %s failed: %w", agent, err)
 	}
+	// Once the run is stopped (timeout, the browser gave up, too much output), stop reading after a short
+	// delay even if something the agent started still holds its output open, so the run always ends.
+	stopReading := context.AfterFunc(bounded, func() {
+		time.Sleep(cmd.WaitDelay)
+		stdout.Close()
+		stderr.Close()
+	})
+	defer stopReading()
 	var tail bytes.Buffer
 	tw := &tailWriter{w: &tail, max: 2048}
 	errDone := make(chan struct{})
@@ -198,7 +208,7 @@ func (r Runner) Stream(ctx context.Context, agent, prompt string, emit func(Even
 	}
 	if err != nil {
 		mu.Lock()
-		msg := strings.TrimSpace(clean(firstNonEmpty(failed, tail.String())))
+		msg := strings.TrimSpace(clean(cut(firstNonEmpty(failed, tail.String()), 2048)))
 		mu.Unlock()
 		if msg != "" {
 			return Result{}, fmt.Errorf("agent %s failed: %w: %s", agent, err, msg)
@@ -209,21 +219,71 @@ func (r Runner) Stream(ctx context.Context, agent, prompt string, emit func(Even
 	if final != nil {
 		text = *final
 	}
+	if len(text) > maxOutput {
+		return Result{}, errors.New("agent output exceeds size limit")
+	}
 	return Result{Output: strings.TrimSpace(clean(text)), Agent: agent}, nil
 }
 
-// forward reads r and calls each with what arrived, a line (or 4 KiB of a long line) at a time.
+// forward reads r and calls each with what arrived, a line (or about 4 KiB of a long line) at a time.
+// A character split at the 4 KiB cut is kept whole for the next piece.
 func forward(r io.Reader, each func(string)) {
 	br := bufio.NewReaderSize(r, 4096)
+	var carry []byte
 	for {
 		line, err := br.ReadSlice('\n')
-		if len(line) > 0 {
-			each(string(line))
+		buf := append(carry, line...)
+		carry = nil
+		if errors.Is(err, bufio.ErrBufferFull) {
+			if k := partialRune(buf); k > 0 {
+				carry = append([]byte(nil), buf[len(buf)-k:]...)
+				buf = buf[:len(buf)-k]
+			}
+		}
+		if len(buf) > 0 {
+			each(string(buf))
 		}
 		if err != nil && !errors.Is(err, bufio.ErrBufferFull) {
+			if len(carry) > 0 {
+				each(string(carry))
+			}
 			return
 		}
 	}
+}
+
+// partialRune is how many bytes at the end of b start a UTF-8 character that isn't complete yet.
+func partialRune(b []byte) int {
+	for k := 1; k <= 3 && k <= len(b); k++ {
+		c := b[len(b)-k]
+		if c&0xC0 != 0x80 { // the first byte of a character: is it longer than what arrived?
+			need := 1
+			switch {
+			case c >= 0xF0:
+				need = 4
+			case c >= 0xE0:
+				need = 3
+			case c >= 0xC0:
+				need = 2
+			}
+			if need > k {
+				return k
+			}
+			return 0
+		}
+	}
+	return 0
+}
+
+// cut shortens s to at most n bytes without splitting a character.
+func cut(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
+	}
+	return s[:n]
 }
 
 // claudeLine is the part of a Claude Code stream-json event that kiroku reads.
@@ -343,6 +403,11 @@ func clean(s string) string {
 			return r
 		}
 		if r < 0x20 || r == 0x7f || (r >= 0x80 && r < 0xa0) {
+			return -1
+		}
+		// Characters that change the direction of the text or are invisible (but not the joiners emoji and
+		// some scripts need), so a file name can't be shown reversed or disguised.
+		if r == 0x200B || r == 0x200E || r == 0x200F || (r >= 0x202A && r <= 0x202E) || (r >= 0x2066 && r <= 0x2069) || r == 0xFEFF {
 			return -1
 		}
 		return r

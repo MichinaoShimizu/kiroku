@@ -407,6 +407,7 @@ const JA_TEXT = {
   "Next week / month": "次の週・月",
   "Next week or month, in its 8-week or 8-month trend": "翌週か翌月に、8 週か 8 か月の推移で",
   "Night Sky": "夜空（Night Sky）",
+  "No AI agent command (claude, codex or kiro-cli) was found on this computer. Install one, and it appears here when kiroku serve reloads.": "このコンピューターに AI エージェントのコマンド（claude・codex・kiro-cli）が見つかりません。入れると、kiroku serve が読み直したときにここに出ます。",
   "No Git commits were loaded.": "Git コミットを読み込んでいません。",
   "No commits recorded.": "コミットの記録はありません。",
   "No focus blocks, with 4+ hours of work": "集中ブロックなし（作業 4 時間以上）",

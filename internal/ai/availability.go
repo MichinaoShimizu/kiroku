@@ -25,6 +25,18 @@ var supportedAdapters = []Adapter{
 	{ID: "kiro", Binary: "kiro-cli", Mode: "single"},
 }
 
+// Installed lists the IDs of the supported agents whose command is found on PATH, in the fixed order.
+// The view offers only these.
+func Installed() []string {
+	ids := []string{}
+	for _, a := range Detect() {
+		if a.Installed {
+			ids = append(ids, a.Agent)
+		}
+	}
+	return ids
+}
+
 // Detect checks only the known executables and never executes them.
 func Detect() []Availability {
 	out := make([]Availability, 0, len(supportedAdapters))

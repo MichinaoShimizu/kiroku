@@ -8,8 +8,19 @@ function mdView(src){
   mdBlocks(String(src ?? "").replace(/\r\n?/g, "\n").split("\n"), frag, 0);
   return frag;
 }
-const MD_FENCE = /^ {0,3}(`{3,}|~{3,})/, MD_HEAD = /^ {0,3}(#{1,6})\s+(.*?)\s*#*\s*$/, MD_HR = /^ {0,3}([-*_])(\s*\1){2,}\s*$/;
-const MD_ITEM = /^(\s*)([-*+]|\d{1,9}[.)])\s+(.*)$/, MD_QUOTE = /^ {0,3}>\s?(.*)$/, MD_TSEP = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/;
+// 正規表現は、どの行でも行の長さに比例する時間で終わる形だけにする（返事は他人が書いた文字を含みうる）
+const MD_FENCE = /^ {0,3}(`{3,}|~{3,})/, MD_HEAD = /^ {0,3}(#{1,6})(?:[ \t]+(.*))?$/, MD_HR = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
+const MD_ITEM = /^([ \t]*)([-*+]|\d{1,9}[.)])[ \t]+(.*)$/, MD_QUOTE = /^ {0,3}>[ \t]?(.*)$/;
+const MD_LONG = 20000; // これより長い行は、書き方を読まずに文字のまま出す
+function mdTableSep(l){ // 表の見出しの下の線（| --- | :-: |）
+  const s = l.trim(); if (!s.includes("-") || s.length > MD_LONG) return false;
+  return s.replace(/^\|/, "").replace(/\|$/, "").split("|").every(c => /^:?-+:?$/.test(c.trim()));
+}
+function mdHeadText(t){ // 見出しの後ろの # を除く（「# 題 ##」→「題」）
+  t = (t || "").trimEnd(); let k = t.length;
+  while (k > 0 && t[k - 1] === "#") k--;
+  return k === 0 ? "" : k < t.length && (t[k - 1] === " " || t[k - 1] === "\t") ? t.slice(0, k).trimEnd() : t;
+}
 function mdEl(tag, cls){ const e = document.createElement(tag); if (cls) e.className = cls; return e; }
 // mdBlocks は lines を塊に分けて parent に足す。depth は入れ子の深さ（深すぎる入れ子で止まらないように）
 function mdBlocks(lines, parent, depth){
@@ -27,10 +38,10 @@ function mdBlocks(lines, parent, depth){
       continue;
     }
     if ((m = line.match(MD_HEAD))){ // 見出し（ダイアログの見出しより下の段にする）
-      const h = mdEl("h" + Math.min(6, m[1].length + 2)); mdInline(m[2], h); parent.append(h); i++; continue;
+      const h = mdEl("h" + Math.min(6, m[1].length + 2)); mdInline(mdHeadText(m[2]), h); parent.append(h); i++; continue;
     }
     if (MD_HR.test(line)){ parent.append(mdEl("hr")); i++; continue; }
-    if (line.includes("|") && i + 1 < lines.length && MD_TSEP.test(lines[i + 1]) && lines[i + 1].includes("-")){ // 表
+    if (line.includes("|") && i + 1 < lines.length && mdTableSep(lines[i + 1])){ // 表
       const cells = l => l.trim().replace(/^\|/, "").replace(/(?<!\\)\|$/, "").split(/(?<!\\)\|/).map(c => c.trim().replace(/\\\|/g, "|"));
       const wrap = mdEl("div", "mdtable"), table = mdEl("table"), thead = mdEl("thead"), tbody = mdEl("tbody"), hr = mdEl("tr");
       cells(line).forEach(c => { const th = mdEl("th"); mdInline(c, th); hr.append(th); });
@@ -82,36 +93,62 @@ function mdBlocks(lines, parent, depth){
     parent.append(p);
   }
 }
-// mdInline は 1 行の中の書き方（コード・強調・斜体・打ち消し・リンク）を要素にして parent に足す
-const MD_SPANS = [
-  [/`+/, "code"],
-  [/\*\*(?=\S)(.+?)(?<=\S)\*\*|__(?=\S)(.+?)(?<=\S)__/, "strong"],
-  [/~~(?=\S)(.+?)(?<=\S)~~/, "del"],
-  [/\*(?=[^\s*])(.+?)(?<=[^\s*])\*|(?<![\w\\])_(?=\S)(.+?)(?<=\S)_(?!\w)/, "em"],
-  [/!?\[([^\]\n]+)\]\(\s*<?([^)\s>]*)>?(?:\s+"[^"]*")?\s*\)/, "link"],
-];
+// mdInline は 1 行の中の書き方（コード・強調・斜体・打ち消し・リンク）を要素にして parent に足す。
+// 先頭から 1 度だけ読み、閉じる記号は indexOf で探す。閉じる記号がもうない記号は覚えておき、探し直さない
+// （閉じていない記号がたくさんあっても、行の長さにほぼ比例する時間で終わるように）
 function mdInline(text, parent, depth = 0){
-  let s = String(text);
-  while (s){
-    let best = null;
-    for (const [re, kind] of MD_SPANS){ const m = s.match(re); if (m && (!best || m.index < best.m.index)) best = {m, kind}; }
-    if (!best || depth > 6){ parent.append(document.createTextNode(mdUnescape(s))); return; }
-    const {m, kind} = best;
-    if (m.index) parent.append(document.createTextNode(mdUnescape(s.slice(0, m.index))));
-    let rest = s.slice(m.index + m[0].length);
-    if (kind === "code"){ // 同じ数のバッククォートで閉じる。閉じていなければ文字のまま
-      const close = rest.indexOf(m[0]);
-      if (close < 0){ parent.append(document.createTextNode(m[0])); s = rest; continue; }
-      const c = mdEl("code"); c.textContent = rest.slice(0, close).replace(/^ (.*) $/, "$1"); parent.append(c);
-      s = rest.slice(close + m[0].length); continue;
+  const s = String(text);
+  if (s.length > MD_LONG || depth > 6){ parent.append(document.createTextNode(s)); return; }
+  const none = new Set(); // 閉じる記号が、もう後ろにないもの
+  let buf = "", i = 0;
+  const flush = () => { if (buf){ parent.append(document.createTextNode(buf)); buf = ""; } };
+  const closeAt = (d, from) => { if (none.has(d)) return -1; const k = s.indexOf(d, from); if (k < 0) none.add(d); return k; };
+  const word = c => c !== undefined && /[\p{L}\p{N}_]/u.test(c);
+  // validClose は、from より後ろで最初の、閉じる記号として使える d の位置（なければ -1）。読む位置 i は前にしか進まないので、
+  // 記号ごとに「どこまで調べたか」と「見つけた位置」を覚え、同じところを調べ直さない
+  const memo = {};
+  const okClose = (d, k) => !/\s/.test(s[k - 1]) && !(d.length === 1 && (s[k + 1] === d || s[k - 1] === d)) && !((d === "_" || d === "__") && word(s[k + d.length]));
+  const validClose = (d, from) => {
+    const m = memo[d] || (memo[d] = {k: -1, at: 0});
+    if (m.k >= from) return m.k;
+    if (m.k === -2) return -1;
+    let k = Math.max(from, m.at);
+    while ((k = s.indexOf(d, k)) >= 0 && !okClose(d, k)) k += 1;
+    m.at = k < 0 ? s.length : k + 1; m.k = k < 0 ? -2 : k;
+    return k;
+  };
+  while (i < s.length){
+    const c = s[i];
+    if (c === "\\" && i + 1 < s.length && "\\`*_{}[]()#+-.!|~>".includes(s[i + 1])){ buf += s[i + 1]; i += 2; continue; }
+    if (c === "`"){ // インラインコード: 同じ数のバッククォートで閉じる
+      let n = 1; while (s[i + n] === "`") n++;
+      const d = "`".repeat(n); let k = closeAt(d, i + n);
+      while (k >= 0 && (s[k + n] === "`" || s[k - 1] === "`")) k = s.indexOf(d, k + n + 1);
+      if (k < 0){ buf += d; i += n; continue; }
+      flush(); const e = mdEl("code"); e.textContent = s.slice(i + n, k).replace(/^ (.*) $/, "$1"); parent.append(e); i = k + n; continue;
     }
-    if (kind === "link"){ // 押せる形にはせず、文字と URL を並べる（画像も読み込まない）
-      const a = mdEl("span", "mdlink"); mdInline(m[1], a, depth + 1); parent.append(a);
-      if (m[2] && m[2] !== m[1]){ const u = mdEl("span", "mdurl"); u.textContent = " (" + m[2] + ")"; parent.append(u); }
-      s = rest; continue;
+    const pair = (d, tag) => { // 強調・打ち消しなど: 中身が空白で始まらず終わらないときだけ
+      if (!s.startsWith(d, i) || /\s/.test(s[i + d.length] || " ")) return false;
+      if (d === "_" || d === "__"){ if (word(s[i - 1])) return false; }
+      const k = validClose(d, i + d.length + 1);
+      if (k < 0) return false;
+      flush(); const e = mdEl(tag); mdInline(s.slice(i + d.length, k), e, depth + 1); parent.append(e); i = k + d.length; return true;
+    };
+    if ((c === "*" || c === "_") && (pair(c + c, "strong") || pair(c, "em"))) continue;
+    if (c === "~" && pair("~~", "del")) continue;
+    if (c === "[" || (c === "!" && s[i + 1] === "[")){ // リンクと画像: 押せる形にせず、文字と URL を並べる（画像も読み込まない）
+      const o = c === "!" ? i + 1 : i, rb = closeAt("]", o + 1);
+      if (rb > o + 1 && s[rb + 1] === "("){
+        const rp = s.indexOf(")", rb + 2);
+        if (rp > 0){
+          flush(); const a = mdEl("span", "mdlink"); mdInline(s.slice(o + 1, rb), a, depth + 1); parent.append(a);
+          const url = s.slice(rb + 2, rp).trim().replace(/^<|>$/g, "").split(/\s+/)[0];
+          if (url){ const u = mdEl("span", "mdurl"); u.textContent = " (" + url + ")"; parent.append(u); }
+          i = rp + 1; continue;
+        }
+      }
     }
-    const e = mdEl(kind); mdInline(m[1] ?? m[2], e, depth + 1); parent.append(e);
-    s = rest;
+    buf += c; i++;
   }
+  flush();
 }
-const mdUnescape = s => s.replace(/\\([\\`*_{}[\]()#+\-.!|~>])/g, "$1");

@@ -6,7 +6,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Added
 
-- "Run with AI" (`kiroku serve --ai`) shows the run as it happens: the command kiroku ran, the files Claude Code reads, the progress and errors the agent prints, and its reply as it is written. The reply can be shown formatted (headings, lists, tables and code laid out) or as the Markdown it was written in, and the choice is remembered
+- "Run with AI" (`kiroku serve --ai`) shows the run as it happens: the command kiroku ran, the files Claude Code reads, the progress and errors the agent prints, and its reply as it is written. The reply can be shown formatted (headings, lists, tables and code laid out) or as the Markdown it was written in, and the choice is remembered. The agent list offers only the agents whose command is found on this computer
 
 ### Changed
 

@@ -1,7 +1,9 @@
 // Local AI execution: review the exact prompt before consenting; show output in-page.
 const AI_AGENTS = [["claude", "claude (Claude Code)"], ["codex", "codex (Codex)"], ["kiro", "kiro-cli (Kiro CLI)"]];
 // Why "Run with AI" is off here (button tooltips and the dialog)
-const AI_OFF_WHY = () => LIVE ? t("This kiroku serve was started without --ai. Start it with kiroku serve --ai to run prompts with an agent.") : t("A saved HTML file never runs an AI agent. Run kiroku serve --ai on your computer to run prompts with an agent.");
+const AI_OFF_WHY = () => !LIVE ? t("A saved HTML file never runs an AI agent. Run kiroku serve --ai on your computer to run prompts with an agent.")
+  : META && META.aiRun ? t("No AI agent command (claude, codex or kiro-cli) was found on this computer. Install one, and it appears here when kiroku serve reloads.")
+  : t("This kiroku serve was started without --ai. Start it with kiroku serve --ai to run prompts with an agent.");
 // AI_SEP は、続けて出す 2 つの文の間（日本語では空けない）
 const AI_SEP = () => JA ? "" : " ";
 async function runAIReview(button, prompt, title) {
@@ -14,7 +16,7 @@ async function runAIReview(button, prompt, title) {
   notice.textContent = t("Check the exact prompt below. When you press Run, it goes to the agent on this computer.");
   const agentLabel = document.createElement("label"); agentLabel.textContent = t("Agent") + " ";
   const agent = document.createElement("select");
-  for (const [id, name] of AI_AGENTS) { const o = document.createElement("option"); o.value = id; o.textContent = name; agent.append(o); }
+  for (const [id, name] of AI_AGENTS.filter(([id]) => aiAgents().includes(id))) { const o = document.createElement("option"); o.value = id; o.textContent = name; agent.append(o); }
   agentLabel.append(agent);
   const preview = document.createElement("textarea");
   preview.readOnly = true; preview.value = prompt;
@@ -41,7 +43,8 @@ async function runAIReview(button, prompt, title) {
     if (stick) output.scrollTop = output.scrollHeight;
   };
   let pending = 0;
-  const redraw = () => { if (!pending) pending = requestAnimationFrame(() => { pending = 0; draw(); }); };
+  // 返事が大きくなったら、描き直す間をあける（整えるのに時間がかかり、届くたびに描くと画面が重くなる）
+  const redraw = () => { if (!pending) pending = text.length > 100000 ? setTimeout(() => { pending = 0; draw(); }, 500) : requestAnimationFrame(() => { pending = 0; draw(); }); };
   const setView = v => { view = v === "markdown" ? "markdown" : "formatted"; store.set("aiView", view); viewBtns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === view))); draw(); };
   viewBtns.forEach(b => b.onclick = () => setView(b.dataset.v));
   setView(view);
@@ -114,7 +117,7 @@ function showLocalAIInfo() {
   dialog.id = "ai-local-info";
   dialog.style.cssText = "width:min(480px,90vw);max-height:80vh;padding:24px;border:1px solid #888;border-radius:12px;background:var(--surface,#fff);color:var(--ink,#111)";
   const heading = document.createElement("h2"); heading.textContent = t("Run with AI is off");
-  const why = document.createElement("p"); why.textContent = LIVE
+  const why = document.createElement("p"); why.textContent = LIVE && META && META.aiRun ? AI_OFF_WHY() : LIVE
     ? t("This kiroku serve was started without --ai. To turn it on, stop it (Ctrl+C in its terminal) and start it again with kiroku serve --ai. kiroku autostart can't pass --ai: if you use it, run kiroku autostart off first.")
     : t("This is a saved HTML file, which never runs an AI agent. To run prompts with an agent, start kiroku serve --ai on your computer.");
   const what = document.createElement("p"); what.textContent = t("With --ai, \"Run with AI\" shows the exact prompt and, after you confirm, runs it with Claude Code, Codex or Kiro CLI on this computer.") + AI_SEP() + t("Until then, the Copy buttons copy the same prompt for you to paste into an agent yourself.");

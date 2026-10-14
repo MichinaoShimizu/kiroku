@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"os/exec"
 	"strings"
 )
 
@@ -64,8 +65,13 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if _, _, err := h.Runner.command(in.Agent); err != nil {
+	binary, _, err := h.Runner.command(in.Agent)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if _, err := exec.LookPath(binary); err != nil {
+		http.Error(w, binary+" is not installed on this computer", http.StatusBadRequest)
 		return
 	}
 	// The run streams one JSON object per line (application/x-ndjson): the command, then what the agent

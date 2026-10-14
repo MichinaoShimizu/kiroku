@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
+	"unicode/utf8"
 )
 
 func TestDisabled(t *testing.T) {
@@ -223,5 +225,50 @@ func TestTailWriter(t *testing.T) {
 	w.Write([]byte("cdef"))
 	if b.String() != "bcdef" {
 		t.Errorf("kept %q", b.String())
+	}
+}
+
+// A process the agent started that keeps running (and holds the agent's output open) doesn't keep the run
+// going past its limit: the run ends shortly after it is stopped, and on Unix the process is killed too.
+func TestStoppedRunEndsWithChildren(t *testing.T) {
+	stubAgent(t, "codex", `cat >/dev/null; echo start; sleep 30 & sleep 31`)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	began := time.Now()
+	if _, err := (Runner{Enabled: true}).Run(ctx, "codex", "hi"); err == nil {
+		t.Fatal("want an error for the stopped run")
+	}
+	if d := time.Since(began); d > 8*time.Second {
+		t.Errorf("run took %v after being stopped at 1s", d)
+	}
+}
+
+// Claude's final result is held to the same limit as the rest of the output.
+func TestClaudeResultLimit(t *testing.T) {
+	stubAgent(t, "claude", `cat >/dev/null; printf '{"type":"result","result":"'; head -c 1100000 /dev/zero | tr '\0' 'x'; printf '"}\n'`)
+	if _, err := (Runner{Enabled: true}).Run(context.Background(), "claude", "hi"); err == nil || !strings.Contains(err.Error(), "size limit") {
+		t.Fatalf("err = %v, want the size limit", err)
+	}
+}
+
+// A character cut at the 4 KiB piece boundary is kept whole; direction overrides and invisible characters
+// are removed.
+func TestForwardKeepsCharactersWhole(t *testing.T) {
+	var got []string
+	forward(strings.NewReader(strings.Repeat("あ", 2000)+"\n"), func(s string) { got = append(got, s) })
+	all := strings.Join(got, "")
+	if all != strings.Repeat("あ", 2000)+"\n" || len(got) < 2 {
+		t.Fatalf("pieces %d, joined ok=%v", len(got), all == strings.Repeat("あ", 2000)+"\n")
+	}
+	for _, p := range got {
+		if !utf8.ValidString(p) {
+			t.Errorf("piece with a split character: %q…", p[:10])
+		}
+	}
+	if s := clean("a\u202eb\u2066c\u200bd\ufeffe\u200df"); s != "abcde\u200df" {
+		t.Errorf("clean = %q", s)
+	}
+	if c := cut("aあ", 2); c != "a" {
+		t.Errorf("cut = %q", c)
 	}
 }
