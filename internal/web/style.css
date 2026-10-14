@@ -892,7 +892,7 @@ dialog.yr h4.yrsub{font:600 var(--fs-md)/1.5 var(--sans);margin:12px 0 6px;color
 :root[data-theme="dark"] .pill.ai-off:hover{background:rgba(127,209,173,.12)}
 .iconbtn.langbtn{width:auto;white-space:nowrap;flex:none;min-width:36px;padding:0 10px;font-size:var(--fs-xs);font-weight:600;letter-spacing:.02em}
 html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り返す（対応していないブラウザは今までどおり） */
-/* AI で実行: 経過（コマンド・ツール・エラー出力）と、返事（整えた表示か Markdown のまま） */
+/* AI 分析: 経過（コマンド・ツール・エラー出力）と、返事（整えた表示か Markdown のまま） */
 .ai-log{margin:10px 0 0;max-height:150px;overflow:auto;padding:8px 10px;border-radius:8px;background:var(--surface-2);font:12px/1.5 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ink-2)}
 .ai-log .cmd{color:var(--ink);font-weight:600}.ai-log .tool{color:var(--acc-ink)}.ai-log .err{color:var(--ink-3)}
 .ai-rhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 6px;font-weight:600}
