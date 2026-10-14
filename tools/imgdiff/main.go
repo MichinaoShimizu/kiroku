@@ -30,7 +30,7 @@ import (
 // 読む画像の上限。docs の画像は大きくても数 MB（demo.gif が 5 MB ほど）なので、壊れた・巨大なファイルで止まらないように
 const (
 	maxFile   = 64 << 20
-	maxPixels = 1 << 30 // 全コマの画素の合計（demo.gif は 880x550 の 200 コマほどで 1 億ほど）
+	maxPixels = 1 << 28 // 全コマの画素の合計（demo.gif は 880x550 の 200 コマほどで 1 億ほど）
 )
 
 func main() {
