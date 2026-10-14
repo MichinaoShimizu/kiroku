@@ -138,7 +138,8 @@ async function runAIReview(button, prompt, title) {
       status.textContent = t("Completed with {agent}", {agent: name});
       if (ok){ AI_LAST.set(key, {text, agent: agent.value}); inToggle.hidden = false; setInputs(false); } // 結果だけを見せる（失敗・中止のときは、原因が見えるよう開いたまま）
     } catch (error) {
-      status.textContent = error.name === "AbortError" ? t("Canceled") : String(error.message || error);
+      // 通信そのものが切れたとき（"Failed to fetch" など）は、ブラウザの文ではなく、考えられる原因を書く
+      status.textContent = error.name === "AbortError" ? t("Canceled") : error.name === "TypeError" ? t("The connection to kiroku serve was lost. It may have stopped, or the prompt was too long; copy the prompt and paste it into the agent yourself if this repeats.") : String(error.message || error);
       draw();
     } finally {
       controller = null; cancel.textContent = t("Close"); start.disabled = false; agent.disabled = false; start.textContent = t("Run again");
