@@ -73,4 +73,4 @@ const copyBtn = (label, attrs, cls = "pill") => `<button class="${cls} cp" ${att
 /* 詳細の頭の札：プロジェクトとブランチは、同じ形の札が並ぶので印で見分ける（意味はツールチップと読み上げでも出す） */
 const projTag = p => `<span class="tg" title="${esc(t("Project"))}">${ico("folder")}<span class="sr">${esc(t("Project"))}: </span>${esc(p)}</span>`;
 const branchTag = b => b ? `<span class="tg" title="${esc(t("Branch"))}">${ico("branch")}<span class="sr">${esc(t("Branch"))}: </span>${esc(b)}</span>` : "";
-function norecStat(k, srcs, h){ return `<div class="stat norec"><div class="k">${k}${hb(h)}</div><div class="v">${esc(t("Not recorded"))}</div><div class="s">${esc(srcs.length > 1 ? t("{agents} don't record this", {agents: srcs.join(", ")}) : t("{agents} doesn't record this", {agents: srcs.join(", ")}))}</div></div>`; }
+function norecStat(k, srcs, h){ return `<div class="stat norec"><div class="k">${k}${hb(h)}</div><div class="v">${esc(t("Not recorded"))}</div><div class="s">${esc(srcs.length > 1 ? t("{agents} don't record this", {agents: srcs.join(LSEP())}) : t("{agents} doesn't record this", {agents: srcs.join(LSEP())}))}</div></div>`; }

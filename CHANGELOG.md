@@ -2,6 +2,14 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Fixed
+
+- The page `kiroku serve` shows while it reads your history follows the view's language (`--lang`, the language chosen in the view, or the browser's), so it is in Japanese too
+- In Japanese, a file written with `kiroku html --week` no longer names its week in English ("week of …"), lists of agents and models use 「、」, and "Month-end cost" and "Month-end credits" have one name each
+- The guide and the READMEs describe the sections the review and report prompts ask for now (Professional prompt assessment, Prioritized advice and Reusable prompt playbook for a session; Expert observations and Next actions for a report), and README.ja uses the view's words (PC, プロンプト, 応答, 基準)
+
 ## v0.34.1 - 2026-10-14
 
 ### Changed

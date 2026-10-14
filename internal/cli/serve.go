@@ -207,6 +207,7 @@ func (l *live) handler() http.Handler {
 		w.Header().Set("Cache-Control", "no-store")
 		_, _ = w.Write(body)
 	}
+	loading := web.LoadingFor(l.lang)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
@@ -219,7 +220,7 @@ func (l *live) handler() http.Handler {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Header().Set("Cache-Control", "no-store")
 			w.WriteHeader(http.StatusServiceUnavailable)
-			_, _ = w.Write(web.Loading)
+			_, _ = w.Write(loading)
 			return
 		}
 		l.mu.RLock()

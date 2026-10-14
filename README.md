@@ -65,16 +65,16 @@ The view is in Japanese when your browser prefers Japanese; the button at the to
 
 ## Reviews and advice, written by your own agent
 
-One click copies a prompt that you paste into the AI agent you already use on this computer, such as Claude Code or Codex. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, ending with advice from an expert on working with AI agents. With `kiroku serve --ai`, "Analyze with AI" runs the same prompt with that agent for you, after you confirm each run.
+One click copies a prompt that you paste into the AI agent you already use on this computer, such as Claude Code or Codex. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, as a professional advisor on prompts and engineering work would. With `kiroku serve --ai`, "Analyze with AI" runs the same prompt with that agent for you, after you confirm each run.
 
 | Scope | Where | What you get |
 |---|---|---|
-| A session | "Copy review prompt" in session details | Summary, numbers, each place that needed rework with the prompt behind it and its cause (something missing from your prompt, a hard task, or the AI's own mistake), advice, and an example first prompt for next time |
-| A day | "Report" next to each date in the week calendar | A daily report: summary, numbers next to the previous day, what was done in each project and why, and advice |
+| A session | "Copy review prompt" in session details | Summary, numbers, an assessment of your prompts, up to three prioritized pieces of advice (each quoting the prompt with its time and giving an improved prompt), and a playbook of prompts for similar work |
+| A day | "Report" next to each date in the week calendar | A daily report: summary, numbers next to the previous day, what was done in each project and why, expert observations and next actions |
 | A week or month | "Copy prompt" under "Weekly report" ("Monthly report" in month view), below the period's dates | The same report for the week or month, numbers next to the previous period, ready to share with your team |
 | A project | "Copy knowledge prompt" on each project card under "By project" | Candidate domain knowledge, decisions and open questions from that week's or month's history, each with the session and excerpt it comes from, for you to review |
 
-The advice is grounded in your history, not generic tips. Each point names what it is based on: a figure, a prompt with its time, or a signal kiroku counted. It covers
+The advice is grounded in your history, not generic tips. Each point names what it is based on: a figure, a prompt with its time, or a signal kiroku counted. Where the history shows it, the advice covers
 
 - **how you write prompts**: context, constraints and done criteria that were missing, and corrections a clearer first prompt would have avoided
 - **how you use agents**: splitting and ordering work, checking results, long sessions, waiting

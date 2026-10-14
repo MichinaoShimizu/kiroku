@@ -151,9 +151,8 @@ function showLocalAIInfo() {
   dialog.style.cssText = "width:min(480px,90vw);max-height:80vh;padding:24px;border:1px solid #888;border-radius:12px;background:var(--surface,#fff);color:var(--ink,#111)";
   dialog.setAttribute("aria-labelledby", "ai-local-title");
   const heading = document.createElement("h2"); heading.id = "ai-local-title"; heading.textContent = t("Analyze with AI is off");
-  const why = document.createElement("p"); why.textContent = LIVE && META && META.aiRun ? AI_OFF_WHY() : LIVE
-    ? t("This kiroku serve was started without --ai. To turn it on, stop it (Ctrl+C in its terminal) and start it again with kiroku serve --ai. kiroku autostart can't pass --ai: if you use it, run kiroku autostart off first.")
-    : t("This is a saved HTML file, which never runs an AI agent. To run prompts with an agent, start kiroku serve --ai on your computer.");
+  const why = document.createElement("p"); why.textContent = AI_OFF_WHY() + (LIVE && !(META && META.aiRun) // ボタンの説明と同じ文に、止めて起動し直す手順を足す
+    ? AI_SEP() + t("To turn it on, stop it (Ctrl+C in its terminal) and start it again with --ai. kiroku autostart can't pass --ai: if you use it, run kiroku autostart off first.") : "");
   const noAgent = LIVE && META && META.aiRun; // --ai は付いているが、エージェントのコマンドがない
   const what = document.createElement("p"); what.textContent = (noAgent ? "" : t("With --ai, \"Analyze with AI\" shows the exact prompt and, after you confirm, runs it with Claude Code, Codex or Kiro CLI on this computer.") + AI_SEP()) + t("Until then, the Copy buttons copy the same prompt for you to paste into an agent yourself.");
   const close = document.createElement("button"); close.type = "button"; close.className = "pill"; close.textContent = t("Close");

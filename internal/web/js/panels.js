@@ -117,16 +117,6 @@ function reportDayNumbers(day){
   if (a.credits || b.credits) rows.push(["Kiro credits", cr(a.credits), cr(b.credits)]);
   return ["| | This day | Previous day |", "|---|---|---|", ...rows.map(r => `| ${r.join(" | ")} |`)].join("\n");
 }
-/* 報告とセッションの振り返りの最後に共通の「Advice from an expert」の決まり（形式の見本の中の行） */
-function adviceLines(extra){
-  return ["### Advice from an expert",
-    "2–4 bullets, written as an expert in working with AI coding agents, on what to do differently next time. Each bullet names what it is based on (a figure, a prompt with its time, or a signal under \"Signals for advice\") and then the concrete change. Cover what the history supports:",
-    "- how I write prompts (missing context, constraints or done criteria; corrections that a clearer first prompt would have avoided)",
-    "- how I use agents (splitting or ordering work, checking results, long sessions, waiting)",
-    "- model and context: whether the main model fits the work (a lighter model for questions and small, clear edits; a stronger one for hard design or debugging), long conversations and compactions (start a fresh session, or hand over with a short summary), and switching between projects",
-    "- what to move out of prompts: instructions I repeat into a skill (or the project's agent instructions), a separate role that needs its own context into a subagent, and fixed steps into a script",
-    "Leave out generic tips the history doesn't support, and topics where nothing needs to change. Write \"None\" if nothing stands out.", ...(extra || [])];
-}
 /* プロジェクトの切り替え（続けて書いた 2 つのプロンプトでプロジェクトが変わった回数）。日報はその日、週報・月報は 1 日の平均と最大 */
 function switchLine(w, day){
   if (day){ const W = WEEKS[key(mondayOf(day))], x = W && W.days[(day.getDay() + 6) % 7]; return x ? `- Project switches on this day (the project changed between consecutive prompts): ${x.switches || 0}` : ""; }
@@ -344,9 +334,9 @@ function measure(w){
     rows.push(`<li class="warn">${ms ? tph("{tokens} tokens from models not in the price table are not included in the estimated cost ({models}). Add their prices with {prices}", {tokens: tok(w.usage.unpriced), models: {h: ms}, prices})
       : tph("{tokens} tokens from models not in the price table are not included in the estimated cost. Add their prices with {prices}", {tokens: tok(w.usage.unpriced), prices})}</li>`); }
   const pp = (w.usage && w.usage.prefixPriced) || []; // 料金表に同じ ID がなく、似た ID（先頭一致）の料金を当てたモデル
-  if (pp.length) rows.push(`<li class="warn">${tph("Not in the price table under their own ID, so priced as a similar model: {list}. If a new model has different rates, set them with {prices}", {list: {h: pp.map(([m, k]) => tph("{model} priced as {as}", {model: {h: `<code>${esc(m)}</code>`}, as: {h: `<code>${esc(k)}</code>`}})).join(", ")}, prices})}</li>`);
+  if (pp.length) rows.push(`<li class="warn">${tph("Not in the price table under their own ID, so priced as a similar model: {list}. If a new model has different rates, set them with {prices}", {list: {h: pp.map(([m, k]) => tph("{model} priced as {as}", {model: {h: `<code>${esc(m)}</code>`}, as: {h: `<code>${esc(k)}</code>`}})).join(LSEP())}, prices})}</li>`);
   const ts = (w.usage && w.usage.tierStandard) || []; // OpenAI のサービスティア（Fast など）の料金が公式になく、標準の料金を当てたモデル
-  if (ts.length) rows.push(`<li class="warn">${tph("No published price for their service tier, so priced at standard rates (the estimate may be low): {list}", {list: {h: ts.map(([m, tier]) => `<code>${esc(m)}</code> (${esc(tier)})`).join(", ")}})}</li>`);
+  if (ts.length) rows.push(`<li class="warn">${tph("No published price for their service tier, so priced at standard rates (the estimate may be low): {list}", {list: {h: ts.map(([m, tier]) => `<code>${esc(m)}</code> (${esc(tier)})`).join(LSEP())}})}</li>`);
   if (w.usage && w.usage.tokens) rows.push(`<li>${META.prices && META.prices.custom ? tph("Price table for estimated cost: from {prices}", {prices})
       : META.prices ? tph("Price table for estimated cost: Anthropic and OpenAI public rates as of {date} (change it with {prices})", {date: isJA() && /^\d{4}-\d{2}$/.test(META.prices.asOf) ? `${META.prices.asOf.slice(0, 4)}年${+META.prices.asOf.slice(5)}月` : META.prices.asOf, prices})
       : tph("Price table for estimated cost: public rates (change it with {prices})", {prices})}</li>`);

@@ -2,6 +2,7 @@
 package web
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"embed"
 	"encoding/base64"
@@ -175,9 +176,18 @@ func (p *Parts) JSON() []byte {
 	return append(b, '}')
 }
 
-// Loading は、kiroku serve が最初の読み込みを終えるまで出す画面（stamp を見て、読み終わったら本物の画面に切りかわる）。
+// LoadingFor は、kiroku serve が最初の読み込みを終えるまで出す画面。lang は --lang（"" ならブラウザの言語に任せる）。
+// 言語はスクリプトの外の属性に入れるので、CSP のハッシュは変わらない。
+func LoadingFor(lang string) []byte {
+	if !ValidLang(lang) {
+		lang = ""
+	}
+	return bytes.Replace(loadingPage, []byte(`data-lang="__LANG__"`), []byte(`data-lang="`+lang+`"`), 1)
+}
+
+// loadingPage は、stamp を見て、読み終わったら本物の画面に切りかわる画面。
 // 中のスクリプトは変わらないので、CSP は起動時に 1 回だけ入れる。
-var Loading = func() []byte {
+var loadingPage = func() []byte {
 	agents, err := json.Marshal(core.Agents)
 	if err != nil {
 		panic("web: agents: " + err.Error())

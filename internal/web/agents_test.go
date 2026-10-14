@@ -25,7 +25,7 @@ func TestNoAgentTablesInScripts(t *testing.T) {
 			}
 		}
 	}
-	if !strings.Contains(string(Loading), `"name":"Claude Code"`) || strings.Contains(string(Loading), "__AGENTS__") {
+	if !strings.Contains(string(LoadingFor("")), `"name":"Claude Code"`) || strings.Contains(string(LoadingFor("")), "__AGENTS__") {
 		t.Error("loading.html に core.Agents が入っていない")
 	}
 }
