@@ -329,9 +329,12 @@ function drawCard(){
     const hrs = x.active/60, hv = hrs >= 10 ? Math.round(hrs) : Math.round(hrs*10)/10, w = (n, one, many) => [commas(n), isJA() ? t(one) : n === 1 ? one : many]; // 日本語は単数の形を辞書で（件のコミット）
     const items = [w(hv, "hour with a session active", "hours with a session active"), w(x.sessions, "session", "sessions")];
     if (x.commits) items.push(w(x.commits, "commit", "commits")); if (x.prs) items.push(w(x.prs, "PR", "PRs"));
-    let cx = PX;
-    items.forEach(([v, l], i) => { if (cx > 820) return; g.font = `500 26px ${FONT.mono}`; g.fillStyle = ink; g.fillText(v, cx, 232); cx += g.measureText(v).width + 10;
-      g.font = `500 22px ${FONT.sans}`; g.fillStyle = ink2; g.fillText(l, cx, 232); cx += g.measureText(l).width + (i < items.length - 1 ? 34 : 0); });
+    // 右の列（幅 640）にかからない幅 780 に収める。長い言葉（日本語など）で入りきらないときは、項目を落とさずに字を小さくする
+    const run = (k, draw) => { let cx = PX; items.forEach(([v, l], i) => {
+      g.font = `500 ${Math.round(26 * k)}px ${FONT.mono}`; g.fillStyle = ink; if (draw) g.fillText(v, cx, 232); cx += g.measureText(v).width + 10 * k;
+      g.font = `500 ${Math.round(22 * k)}px ${FONT.sans}`; g.fillStyle = ink2; if (draw) g.fillText(l, cx, 232); cx += g.measureText(l).width + (i < items.length - 1 ? 34 * k : 0); });
+      return cx - PX; };
+    const wide = run(1, false); run(wide > 780 ? Math.max(.6, 780 / wide) : 1, true);
     g.font = `500 18px ${FONT.sans}`; g.fillStyle = ink2; g.globalAlpha = .8;
     g.fillText(t("Hours count parallel sessions once and include time the AI ran on its own."), PX, 266); g.globalAlpha = 1;
   }
