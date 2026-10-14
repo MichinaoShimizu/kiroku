@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -176,7 +177,8 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 		tracker.setStage("view")
 		files, size := archive.Usage(dir)
 		meta := map[string]any{"report": rep, "git": commits, "push": pushes, "prices": map[string]any{"asOf": core.PricesAsOf, "custom": *c.prices != ""},
-			"archive": map[string]any{"on": on, "dir": dir, "files": files, "bytes": size}, "version": version}
+			"archive": map[string]any{"on": on, "dir": dir, "files": files, "bytes": size}, "version": version,
+			"os": runtime.GOOS + "/" + runtime.GOARCH} // os は「Report a problem」と「Copy diagnostics」に入れる（履歴ではない）
 		if len(stale) > 0 { // 時間切れで読み終わらなかったリポジトリ（前回の結果を使った）
 			meta["gitTimeout"] = stale
 		}

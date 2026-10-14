@@ -8,7 +8,7 @@ function summary(){
   const RB = $("#rptbar"); RB.hidden = !w;
   RB.innerHTML = w ? `<span class="rptl">${esc(M ? t("Monthly report") : t("Weekly report"))}</span>${w ? copyBtn(esc(t("Copy prompt")), `id="rptcopy" title="${esc(hint)}" aria-label="${esc(M ? t("Copy monthly report prompt") : t("Copy weekly report prompt"))}"`, "pill fill") : ""}${w ? (aiRun() ? `<button class="pill ai-action" id="rptrun" type="button" aria-label="${esc(M ? t("Analyze with AI: monthly report") : t("Analyze with AI: weekly report"))}">${esc(t("Analyze with AI"))}</button>` : `<button class="pill ai-off ai-demo-info" type="button" title="${esc(AI_OFF_WHY())}">${esc(t("Analyze with AI (off)"))}</button>`) : ""}` : "";
   const WK = $("#worth"); $("#sres").hidden = true; $("#sres").innerHTML = "";
-  if (!w){ WK.hidden = true; R.innerHTML = foot(); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
+  if (!w){ WK.hidden = true; R.innerHTML = foot(); bindReport(R); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
   const pct = v => v == null ? esc(t("Unknown")) :`${v}<small>%</small>`;
   const times = n => `${n}`;
@@ -56,7 +56,7 @@ function summary(){
   RB.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
   const run = RB.querySelector("#rptrun");
   if (run) run.onclick = () => runAIReview(run, reportPrompt(w, M), M ? t("Monthly report") : t("Weekly report"));
-  bindCopy(R); bindCopy(RB); bindHelp(R); bindHelp(WK);
+  bindCopy(R); bindCopy(RB); bindHelp(R); bindHelp(WK); bindReport(R);
   if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }
 /* 期間の言い方（unit は "週" か "月"） */
