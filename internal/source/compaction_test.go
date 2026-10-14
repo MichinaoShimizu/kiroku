@@ -58,6 +58,40 @@ func TestClaudeCompactions(t *testing.T) {
 	}
 }
 
+// Claude Code（2.1.290 以降）は、人が離れて 54 分ほどたつと会話を要約する（idleCompaction）。
+// そのコンパクションの行（compact_boundary と要約の行）は作業ではないので、終わりの時刻を延ばさず、
+// 活動の区切りも増やさない。コンパクションは 1 回と数える。
+func TestClaudeIdleCompactionNotActivity(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	os.MkdirAll(dir, 0o755)
+	lines := []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"直して"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:05:00Z","message":{"id":"m1","model":"claude-sonnet-5-5","content":[{"type":"text","text":"直しました"}]}}`,
+		`{"type":"system","subtype":"compact_boundary","timestamp":"2026-09-30T01:59:00Z","content":"Conversation compacted","compactMetadata":{"trigger":"auto","preTokens":120000,"idleCompaction":true}}`,
+		`{"type":"user","timestamp":"2026-09-30T01:59:01Z","isCompactSummary":true,"isVisibleInTranscriptOnly":true,"message":{"role":"user","content":"This session is being continued from a previous conversation..."}}`,
+	}
+	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644)
+	bs := load(t, &Claude{Root: root})
+	if len(bs) != 1 {
+		t.Fatalf("セッション数 = %d, want 1", len(bs))
+	}
+	s := bs[0].Finish(15)
+	at := func(v string) float64 { f, _ := core.ParseTS(v); return f }
+	if want := at("2026-09-30T01:05:00Z"); s.End != want {
+		t.Errorf("終わり = %v, want %v（コンパクションの行で延ばさない）", s.End, want)
+	}
+	if len(s.Segs) != 1 {
+		t.Errorf("活動の区切り = %v, want 1 つ", s.Segs)
+	}
+	if len(s.Compactions) != 1 || s.Compactions[0] != at("2026-09-30T01:59:00Z") {
+		t.Errorf("コンパクション = %v, want [01:59]", s.Compactions)
+	}
+	if s.NPrompts != 1 {
+		t.Errorf("プロンプト = %d, want 1", s.NPrompts)
+	}
+}
+
 // Codex: コンパクションは compacted の行で 1 回と数える（同じ 1 回の context_compacted や item_completed の ContextCompaction は数えない）。
 // フォークが写した親の compacted は数えず、サブエージェント自身のコンパクションは親のセッションに入れない。
 func TestCodexCompactions(t *testing.T) {

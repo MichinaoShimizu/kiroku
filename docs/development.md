@@ -10,8 +10,8 @@ Go 1.26 or later is required. If Node is available, `internal/web/script_test.go
 sh tools/check.sh  # runs gofmt, go vet, staticcheck, govulncheck, go test, go build and shellcheck as CI does, and lists what failed (--e2e adds the view's e2e)
 go test ./...      # checks that the aggregates match the expected values, using synthetic data in testdata/
 go vet ./...
-GOTOOLCHAIN=$(go env GOVERSION) go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...   # static analysis (OK if nothing is printed)
-GOTOOLCHAIN=$(go env GOVERSION) go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...   # known vulnerabilities in the standard library and modules that kiroku calls
+GOTOOLCHAIN=$(go env GOVERSION) go run honnef.co/go/tools/cmd/staticcheck@2026.2.2 ./...   # static analysis (OK if nothing is printed)
+GOTOOLCHAIN=$(go env GOVERSION) go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...   # known vulnerabilities in the standard library and modules that kiroku calls
 go test ./internal/source -run '^$' -fuzz '^FuzzClaude$' -fuzztime 30s   # fuzz one target (list them with: go test -list '^Fuzz' ./...)
 go test ./internal/cli -run '^$' -bench Large -benchtime 3x -benchmem   # a year of synthetic history: time to read, aggregate and render, and the size of the HTML and /data.json
 gofmt -l .         # OK if nothing is printed
@@ -22,7 +22,7 @@ go build .         # builds ./kiroku (open the view with ./kiroku serve)
 
 In Claude Code, the `/pre-pr` skill (`.claude/skills/pre-pr/SKILL.md`) is the check before every pull request: it runs `tools/check.sh`, reads the diff against the Security rules in `CLAUDE.md`, starts `hostile-tester` and `user-tester` when the change touches what they cover, and checks the changelog, docs, screenshots and benchmark. In Claude Code cloud sessions, the SessionStart hook (`.claude/hooks/session-start.sh`) installs what those checks need beforehand: the Go modules, staticcheck and govulncheck at CI's versions, shellcheck, and Playwright from `tools/screenshots/package-lock.json` (with `--ignore-scripts`), and sets `CHROMIUM` to the container's Chromium. It does nothing on your own machine.
 
-`/pre-pr` only looks at what a change touches. The `/quality-audit` skill (`.claude/skills/quality-audit/SKILL.md`) looks at the whole project on a schedule: full once a month and before a minor release, quick once a week. It runs the same gates, then reviews security, UX in English and Japanese, wording, docs, how each agent's history is read, the report prompts, code health, ADR conformance, the supply chain and performance. It verifies each finding before fixing it, asks before anything that needs a decision, and records the results and the open items in [docs/quality/audit-log.md](quality/audit-log.md), so the next run starts from what was left
+`/pre-pr` only looks at what a change touches. The `/quality-audit` skill (`.claude/skills/quality-audit/SKILL.md`) looks at the whole project on a schedule: full once a month and before a minor release, quick once a week. It runs the same gates, then reviews security, UX in English and Japanese, wording, docs, how each agent's history is read, the report prompts, code health, ADR conformance, the supply chain and performance. It verifies each finding before fixing it, asks before anything that needs a decision, and records the results and the open items in [docs/quality/audit-log.md](quality/audit-log.md), so the next run starts from what was left.
 
 Run the benchmark before and after a change to reading, aggregating or rendering, and put both results in the PR. `KIROKU_BENCH_DAYS` and `KIROKU_BENCH_PER_DAY` change its size (365 days of 8 sessions by default).
 
@@ -116,7 +116,7 @@ go test -run TestSnapshot -update ./internal/cli
 
 On PRs and pushes to main, `.github/workflows/ci.yml` runs the following.
 
-- `test` (Ubuntu, macOS, Windows): gofmt (except Windows), vet, staticcheck and govulncheck (Ubuntu only, pinned to 2025.1.1 and v1.8.0), tests, build
+- `test` (Ubuntu, macOS, Windows): gofmt (except Windows), vet, staticcheck and govulncheck (Ubuntu only, pinned to 2026.2.2 and v1.9.0), tests, build
 - `release-dry-run`: `goreleaser release --snapshot` with the same pinned GoReleaser and syft as the release and no Go cache (does not publish; `go mod tidy -diff` also catches an untidy go.mod, and the SBOMs are generated too), extracting release notes from the top section of the CHANGELOG, and, if that section is a version not yet tagged, checking that its number matches `tools/next-version.sh`
 - `e2e`: opens the dummy-data HTML in Chromium and uses `tools/screenshots/smoke.mjs` to check that the key flows work (switching themes, moving between weeks, opening and closing session details and where focus returns after closing, the weekly report prompt, search, month view and shortcuts), that nothing overflows sideways, and that there are no script errors and no Content-Security-Policy violations, at 1440px, 1000px, 390px and 320px, and opens the main views in Japanese at the same widths to check they render without script errors or overflow and that no translated label is left in English. Playwright is pinned in `tools/screenshots/package.json` and `package-lock.json` and installed with `npm ci --ignore-scripts`; this job runs npm packages, so it does not use the Go cache. It also builds the view from synthetic history full of HTML and script payloads (`tools/screenshots/hostile.py`) and drives it with `tools/screenshots/xss.mjs` to check that no script runs, no element is injected and nothing is loaded from the network
 - `install-script` (Ubuntu, macOS): runs shellcheck on `install.sh`, `tools/*.sh` and `.claude/hooks/*.sh` (Ubuntu only), actually installs the latest release, and checks `kiroku --version`; it installs once more with `KIROKU_REQUIRE_ATTESTATION=1` so the build provenance check must pass
@@ -126,11 +126,11 @@ How the workflows are locked down:
 - Every third-party action is pinned to a full commit SHA with the version in a trailing comment (`uses: actions/checkout@<sha> # v7.0.1`). Dependabot updates the SHA and the comment together. To bump one by hand, resolve the tag with `git ls-remote https://github.com/<owner>/<repo> 'refs/tags/<tag>*'` (for an annotated tag, use the `^{}` line)
 - GoReleaser itself is pinned (`version:` in `release.yml` and `ci.yml`), and so is syft, which GoReleaser runs to write the SBOMs (`syft-version:` of `anchore/sbom-action/download-syft` in the same two files); Dependabot tracks neither, so bump them by hand
 - Each job declares the least `permissions` it needs. Only `release` (in `release.yml`) and `tag` write to the repository, only `deploy` in `pages.yml` gets `pages: write` and `id-token: write`, only `issue` in `prices.yml` gets `issues: write` (to open the price-change issue), and `codeql.yml` and `scorecard.yml` get only `security-events: write` to upload results (plus `id-token: write` in Scorecard, to prove where a published result came from)
-- `actions/checkout` runs with `persist-credentials: false` everywhere except `tag.yml`, which pushes the tag
-
-Beyond what CI checks, the `hostile-tester` agent (`.claude/agents/hostile-tester.md`) attacks a local build with crafted history for every agent, git repositories with settings that run programs, requests to `kiroku serve` without its key or with another Host, and broken or huge input, and reports what held and what broke without changing the code. Run it after changing how history is read or shown, `kiroku serve`, git or the files kiroku writes, and before a release.
+- `actions/checkout` runs with `persist-credentials: false` everywhere; `tag.yml` hands the token only to the step that pushes the tag
 - The release build (`release.yml`), `release-dry-run`, `e2e` and the demo build run `setup-go` with `cache: false`, so a cache written by a job that runs npm packages can't leak into the release build
 - Check the workflows with `go run github.com/rhysd/actionlint/cmd/actionlint@latest` after changing them
+
+Beyond what CI checks, the `hostile-tester` agent (`.claude/agents/hostile-tester.md`) attacks a local build with crafted history for every agent, git repositories with settings that run programs, requests to `kiroku serve` without its key or with another Host, and broken or huge input, and reports what held and what broke without changing the code. Run it after changing how history is read or shown, `kiroku serve`, git or the files kiroku writes, and before a release.
 
 Other workflows:
 

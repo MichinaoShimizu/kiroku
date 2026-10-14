@@ -33,12 +33,12 @@ jobs:
       # 依存（x/sys など）は go.mod の toolchain の版を求めるので、同じ版で動かす
       - name: staticcheck
         if: runner.os == 'Linux'
-        run: GOTOOLCHAIN=$(go env GOVERSION) go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...
+        run: GOTOOLCHAIN=$(go env GOVERSION) go run honnef.co/go/tools/cmd/staticcheck@2026.2.2 ./...
       # 既知の脆弱性（標準ライブラリと依存）を、kiroku のコードから呼ばれるものに絞って調べる。
       # 標準ライブラリは go.mod の toolchain の版で見る（リリースもこの版でビルドする）
       - name: govulncheck
         if: runner.os == 'Linux'
-        run: GOTOOLCHAIN=$(go env GOVERSION) go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+        run: GOTOOLCHAIN=$(go env GOVERSION) go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
       - run: go test ./...
       - run: go build -o kiroku-ci .
 
@@ -94,10 +94,10 @@ jobs:
       # GoReleaser が SBOM を作るのに使う syft を入れる（版を固定する。上げるときはここを書き換える）
       - uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
-          syft-version: v1.54.0
+          syft-version: v1.54.1
       - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
-          version: v2.18.2 # 版を固定する（Dependabot は追わないので、上げるときはここを書き換える）
+          version: v2.18.3 # 版を固定する（Dependabot は追わないので、上げるときはここを書き換える）
           args: release --snapshot --clean
       # リリースノートを抜き出す仕組みが壊れていないか（いちばん上の節で試す。Unreleased か、タグを打つ直前の版）
       - run: sh tools/release-notes.sh "$(grep -m1 '^## ' CHANGELOG.md | cut -d' ' -f2)"
@@ -132,8 +132,14 @@ jobs:
         run: shellcheck install.sh tools/*.sh .claude/hooks/*.sh
       - name: install
         run: |
+          # 前の決まった名前（.kiroku.new）に置いたリンクの先には書かないこと、一時ファイルを残さないこと、755 で置くことも確かめる
+          mkdir -p "$RUNNER_TEMP/bin"
+          ln -s "$RUNNER_TEMP/victim" "$RUNNER_TEMP/bin/.kiroku.new"
           KIROKU_INSTALL_DIR="$RUNNER_TEMP/bin" sh install.sh
           "$RUNNER_TEMP/bin/kiroku" --version
+          test ! -e "$RUNNER_TEMP/victim"
+          test -z "$(find "$RUNNER_TEMP/bin" -name '.kiroku.*' ! -name .kiroku.new)"
+          test -n "$(find "$RUNNER_TEMP/bin/kiroku" -perm 0755)"
       # 出どころの証明（gh attestation verify）を必ず確かめる道。gh はランナーに入っている
       - name: install (attestation required)
         env:

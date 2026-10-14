@@ -151,3 +151,19 @@ func TestLoadingForLang(t *testing.T) {
 		checkCSP(t, s, true)
 	}
 }
+
+// ADR 0030: AI 分析の実行の確認には、エージェントが履歴を提供元へ送りうるという一文が（日本語でも）入る
+func TestAIRunDisclosure(t *testing.T) {
+	page, err := Render([]any{}, map[string]any{}, map[string]any{}, map[string]any{"report": []any{}, "git": []any{}}, 0, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range []string{
+		`t("Check the exact prompt below. When you press Run, it goes to the agent on this computer.") + AI_SEP() + t(AI_SENDS)`,
+		`"The agent you choose may send the prompt and the history it reads to its provider.": "選んだエージェントは、プロンプトと読んだ履歴をその提供元に送ることがあります。"`,
+	} {
+		if !strings.Contains(page, s) {
+			t.Errorf("page lacks %q", s)
+		}
+	}
+}

@@ -213,7 +213,7 @@ func compress(src, dst string, info fs.FileInfo) error {
 		return err
 	}
 	defer in.Close()
-	if err := os.MkdirAll(filepath.Dir(dst), 0o700); err != nil {
+	if err := core.PrivateDir(filepath.Dir(dst)); err != nil {
 		return err
 	}
 	tmp, err := os.CreateTemp(filepath.Dir(dst), ".kiroku-tmp-*")
