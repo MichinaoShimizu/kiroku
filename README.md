@@ -37,7 +37,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 ## What you get
 
-**Every session on a calendar.** When, in which project and what you asked, by week or month, with each day's active time, tokens, cost and Git commits. It records activity, not progress.
+**Every session on a calendar.** When, in which project and what you asked, by week or month, with each day's active time, estimated cost and Git commits side by side. It records activity, not progress.
 
 ![The week calendar (dummy data)](docs/screenshot.png)
 
@@ -45,13 +45,13 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 <img src="docs/session.png" alt="Session details (dummy data)" width="560">
 
-**Every number opens up.** Click any figure, at the top or in the weekly summary, such as tokens, estimated cost or Git commits, to see it by day, agent, project and model, with the sessions, commits or prompts behind it.
+**Every number opens up.** Click any figure, at the top or in the weekly summary, such as estimated cost or Git commits, to see it by day, agent, project and model, with the sessions, commits or prompts behind it.
 
 **What's worth a look.** Metrics that crossed a threshold are listed under the key figures. Press one to see what was observed, why it matters, the sessions behind it, an 8-week trend and what to try, without leaving the calendar.
 
 <img src="docs/worth.png" alt="A flagged metric opened from Worth a look (dummy data)" width="560">
 
-**Cost next to output.** Time, tokens, estimated cost (Claude Code, Codex and Kiro Crew's non-Kiro backends, at public API rates) and credits by project, next to commits and cost per commit. Not every agent records everything; the guide lists [what each agent records](docs/guide.md#what-each-agent-records).
+**Cost next to output.** Time, tokens, estimated cost (Claude Code, Codex and Kiro Crew's non-Kiro backends, at public API rates) and credits by project, next to commits and cost per commit. While a week or month is in progress, the key figures and the days still to come show how much a day keeps it at the last one's total, with no budget to set. Not every agent records everything; the guide lists [what each agent records](docs/guide.md#what-each-agent-records).
 
 ![Weekly summary by project (dummy data)](docs/summary.png)
 

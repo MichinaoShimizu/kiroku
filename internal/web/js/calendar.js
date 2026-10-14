@@ -91,17 +91,22 @@ function kpis(){
     return `<${tg} class="kpi${cls ? " " + cls : ""}"${id ? ` type="button" data-metric="${id}" aria-haspopup="dialog"` : ""}${tt || id ? ` title="${esc(tt ? (id ? t("{text}. Click for the breakdown.", {text: tt}) : tt) : t("Click for the breakdown"))}"` : ""}><div class="k">${esc(k)}</div><div class="v">${v}</div></${tg}>`; };
   const u = w.usage || {}, days = w.days.filter(d => d.active).length, pj = projection(w);
   const n0 = soFar(), nd = n0 == null ? w.days.length : Math.min(n0, w.days.length); // 途中の週・月は、まだ来ていない日を分母に入れない（今日までの日数）
-  // 前の期間並みに収めるなら、残りの日 1 日あたりいくらか（pacing）。超えていれば、超えた分。良し悪しは言わない
-  const pc = pacing(w, pw), paceK = (x, id, f, cr) => !x ? "" : x.rest >= 0 // ちょうど同じ額なら、超過 +0 ではなく 1 日 0
-    ? kpi(cr ? t(M ? "Credits a day to match last month" : "Credits a day to match last week") : t(M ? "A day to match last month" : "A day to match last week"), `${f(x.per)}<small class="xd"> × ${esc(plural(pc.left, "day"))}</small>`, t(M ? "To stay at last month's total of {v}" : "To stay at last week's total of {v}", {v: f(x.ref, true)}), "key", id)
-    : kpi(cr ? t(M ? "Past last month's credits" : "Past last week's credits") : t(M ? "Past last month's total" : "Past last week's total"), `<small>+</small>${f(-x.rest)}`, t(M ? "Last month's total was {v}" : "Last week's total was {v}", {v: f(x.ref, true)}), "key", id);
+  // 前の期間並みに収めるなら、残りの日 1 日あたりいくらか（pacing）。費用とクレジットは 1 つの枠に並べる（枠を増やすと帯がカレンダーと主役を争うため）。
+  // 超えていれば、その分を「超過」と書く。良し悪しは言わない。ちょうど同じ額なら、超過 +0 ではなく 1 日 0
+  const pc = pacing(w, pw), paceK = () => {
+    const xs = [[pc.cost, (v, txt) => txt ? usd(v) : usdH(v)], [pc.credits, (v, txt) => txt ? cr(v) : `${crN(v)}<small> cr</small>`]].filter(([x]) => x);
+    const all = xs.every(([x]) => x.rest < 0);
+    const v = xs.map(([x, f]) => x.rest >= 0 ? f(x.per) : `<small>+</small>${f(-x.rest)}<small> ${esc(t("over"))}</small>`).join(`<small> · </small>`);
+    const ref = xs.map(([x, f]) => f(x.ref, true)).join(" · ");
+    return kpi(all ? t(M ? "Past last month's total" : "Past last week's total") : t(M ? "A day to match last month" : "A day to match last week"), v,
+      all ? t(M ? "Last month's total was {v}" : "Last week's total was {v}", {v: ref}) : t(M ? "To stay at last month's total of {v}, for the {n} left" : "To stay at last week's total of {v}, for the {n} left", {v: ref, n: plural(pc.left, "day")}), "key", pc.cost ? "pace" : "paceCr"); };
   const pace = pj ? t("If the pace of the first {n} days continues", {n: pj.days}) : "";
-  // トークン・目安コスト・月末の見込み・クレジットは、いちばん大事な数なので先頭にまとめて目立たせる
-  K.innerHTML = (u.tokens ? kpi(t("Tokens"), tok(u.tokens), "", "key", "tokens") + kpi(t("Estimated cost"), usdH(costOf(u)), costOf(u) == null ? NOPRICE : "", "key", "cost") : "") +
-    (pc ? paceK(pc.cost, "pace", (v, txt) => txt ? usd(v) : usdH(v)) : "") +
+  // 目安コスト・前の期間並みの目安・月末の見込み・クレジットは、いちばん大事な数なので先頭にまとめて色を付ける。
+  // トークンは費用の元の数で、推定費用の内訳（モデル別）とツールチップにあるので、帯には費用を見積もれないときだけ出す（枠が増えると帯がカレンダーと主役を争い、狭い幅で数字が切れる）
+  K.innerHTML = (u.tokens ? (costOf(u) == null ? kpi(t("Tokens"), tok(u.tokens), "", "key", "tokens") : "") + kpi(t("Estimated cost"), usdH(costOf(u)), costOf(u) == null ? NOPRICE : "", "key", "cost") : "") +
+    (pc ? paceK() : "") +
     (pj && pj.cost != null ? kpi(t("Month-end cost"), `<small>≈</small>${usdH(pj.cost)}`, pace, "key", "projection") : "") +
     (u.credits ? kpi(t("Kiro credits"), `${crN(u.credits)}<small> cr</small>`, "", "key", "credits") : "") +
-    (pc ? paceK(pc.credits, "paceCr", (v, txt) => txt ? cr(v) : `${crN(v)}<small> cr</small>`, true) : "") +
     (pj && pj.credits != null ? kpi(t("Month-end credits"), `<small>≈</small>${crN(pj.credits)}<small> cr</small>`, pace, "key", "projectionCr") : "") +
     kpi(t("Active time"), dur(w.active, true), "", "", "active") + kpi(t("Active days"), `${days}<small> ${esc(n0 == null ? t("of {n}", {n: nd}) : t("of {n} so far", {n: nd}))}</small>`, n0 == null ? "" : M ? t("{days} of the {n} so far (this month is still in progress)", {days, n: plural(nd, "day")}) : t("{days} of the {n} so far (this week is still in progress)", {days, n: plural(nd, "day")}), "", "days") +
     kpi(t("Sessions / prompts"), `${w.sessions}<small>/</small>${w.prompts}`, "", "", "sessions") +
@@ -167,7 +172,8 @@ function monthGrid(shown, ms, me, todayKey){
         ${pj.length ? `<span class="pj">${pj.map(([k,v])=>`<span style="flex:${v};--c:${colorOf(k)}"></span>`).join("")}</span>` : ""}</button>`;
     }
   }
-  h += `</div><div class="mlegend"><span class="nw">${esc(t("Less"))}</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${esc(t("More"))} · ${esc(matchMedia("(max-width:820px)").matches ? t("Shade = active time. Week totals include all 7 days. Tap a date or week to open it.") : t("Shade = active time. Week totals include all 7 days. Click a date or week to open it."))}</div>`;
+  const pk = pc ? ` · ${esc(t("Days to come: a day to match last month's total"))}` : ""; // スマホのマスでは「目安」の字を省くので、意味はここで言う
+  h += `</div><div class="mlegend"><span class="nw">${esc(t("Less"))}</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${esc(t("More"))} · ${esc(matchMedia("(max-width:820px)").matches ? t("Shade = active time. Week totals include all 7 days. Tap a date or week to open it.") : t("Shade = active time. Week totals include all 7 days. Click a date or week to open it."))}${pk}</div>`;
   T.innerHTML = h;
   T.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { const [y,m,dd] = b.dataset.w.split("-").map(Number); st.week = new Date(y, m-1, dd); setMode("week"); });
 }

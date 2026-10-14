@@ -91,7 +91,7 @@ const gitIn = (ws, we) => (META.git || []).filter(c => c.t >= ws && c.t < we);
 const calcH = parts => `<div class="mcalc">${parts.map(p => typeof p === "string" ? `<span>${p}</span>` : `<div><small>${esc(t(p[0]))}</small><b>${p[1]}</b></div>`).join("")}</div>`; // [名前, 値（HTML）] と記号（÷ =）
 // 前の期間並みに収める 1 日の目安（pacing）：前の期間の合計 − ここまで = 残り、÷ 残りの日。
 // 費用だけでなく、前の期間とここまでに残したもの（コミット）も並べる。費用が同じでも、残したものが減っていれば気づけるように
-function paceBody(w, k, m){
+function paceBody(w, k, m, brief){
   const pc = pacing(w, period().P), x = pc && pc[k]; if (!x) return null; const M = st.mode === "month", on = x.rest >= 0, C = k === "credits";
   // 見出しは上の帯と同じ言葉（超えたあとは「超過」。超えた分を 1 日の目安と読まれないように）
   const title = on ? (C ? t(M ? "Credits a day to match last month" : "Credits a day to match last week") : t(M ? "A day to match last month" : "A day to match last week"))
@@ -104,10 +104,12 @@ function paceBody(w, k, m){
   const pw = period().P, n = soFar(), gc = g => g && g.git ? g.git.commits : null, a = gc(pw), b = gc(w);
   const same = a == null || n == null ? null : pw.days.slice(0, Math.min(n, pw.days.length)).reduce((s, d) => s + (d.commits || 0), 0);
   const out = a == null || b == null ? "" : `<p class="note">${esc(t(M ? "Left behind: {a} commits last month ({s} by the same day), {b} so far this month." : "Left behind: {a} commits last week ({s} by the same day), {b} so far this week.", {a, s: same ?? "—", b}))}</p>`;
+  if (brief) return {title, body: calc + `<p class="note">${esc(note)}</p>`};
   return {title, big, body: calc + `<p class="note">${esc(note)}</p>` + out + mDays(w, m, x.rest > 0 ? {avg: x.per, tip: "≈ {v} to match the last period"} : null)};
 }
 const MB = {
-  pace(w){ return paceBody(w, "cost", BRK.pace); },
+  pace(w){ const r = paceBody(w, "cost", BRK.pace), c = r && paceBody(w, "credits", BRK.paceCr, true); // 帯は 1 つの枠なので、クレジットもここに
+    if (r && c) r.body += `<h3>${esc(t("Kiro credits"))}</h3>` + c.body; return r; },
   paceCr(w){ return paceBody(w, "credits", BRK.paceCr); },
   commits(w, {ws, we}){ // Git commits：日ごと・プロジェクトごと・AI のエージェントごと・だれが・一覧
     const cs = gitIn(ws, we).sort((a,b) => b.t - a.t), g = w.git || {}; if (!cs.length) return null;

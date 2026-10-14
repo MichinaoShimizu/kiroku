@@ -75,8 +75,8 @@ await p.waitForTimeout(900);
 await p.keyboard.press("Escape");
 await p.waitForTimeout(500);
 
-// どの数字も開ける：トークンの内訳
-await clickOn(p.locator('#kpis .kpi[data-metric="tokens"]'), 800);
+// どの数字も開ける：推定費用の内訳
+await clickOn(p.locator('#kpis .kpi[data-metric="cost"]'), 800);
 await p.waitForTimeout(2600);
 await p.keyboard.press("Escape");
 await p.waitForTimeout(500);
