@@ -2,7 +2,7 @@
 
 Status: Accepted (2026-10-14, the maintainer asked to make the view's language switchable)
 Date: 2026-10-14
-Scope: `internal/web` (view text, dates, numbers), `internal/cli` (language option for `html` and `serve`), `docs/guide.md` and `docs/ja/`
+Scope: `internal/web` (view text, dates, numbers), `internal/cli` (language option for `html` and `serve`), `docs/guide.md` and README.ja.md
 Related ADRs: [0022](0022-history-stays-local.md) (history stays local), [0023](0023-compatibility-contract.md) (compatibility)
 Related Decision Logs: [0018](../decision-log/0018-language-policy.md) (English product UI and Japanese entry documentation)
 Supersedes/Amends: none. It changes the current behavior that Decision Log 0018 records; that log is a historical observation, not an accepted decision.
@@ -52,7 +52,7 @@ Constraints:
    - **Not translated:**
      - Go-generated names and `kiroku json` values (ADR 0023)
      - CLI help and terminal output
-     - `docs/guide.md`, which stays English with Japanese entry documents under `docs/ja/`
+     - `docs/guide.md`, which stays English, with README.ja.md as the Japanese entry point
      - the AI prompts, which already ask the agent to answer in the language the person writes prompts in, and whose output quality is measured by `report-eval` in English
 4. **Keep the view's text out of browser translation.** Add `translate="no"` to the page, so the browser's built-in translation doesn't send history text to a translation service. The Japanese catalog is the supported way to read the view in Japanese. Document this in SECURITY.md and the Japanese security review.
 5. **Tests guard the two catalogs from drifting:**

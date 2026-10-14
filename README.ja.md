@@ -4,8 +4,6 @@
 
 [English](README.md) | 日本語
 
-日本語のドキュメント: [インストールと社内展開のガイド](docs/ja/install.md) ・ [セキュリティレビュー資料](docs/ja/security-review.md)
-
 **AI と積み重ねた仕事を、記録から価値へ。**
 
 何を作り、どう働いたかを振り返り、次の AI 活用につなげる。
