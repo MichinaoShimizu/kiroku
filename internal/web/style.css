@@ -255,6 +255,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .shtab th{font-weight:600;color:var(--ink-3);font-size:var(--fs-xs)}
 .shtab th:first-child,.shtab td:first-child{text-align:left;max-width:0;width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .shtab td:first-child i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c);margin-right:6px}
+@media (max-width:360px){.shtab th,.shtab td{padding:4px 3px}.shtab th:first-child,.shtab td:first-child{width:auto;max-width:none;white-space:normal;overflow-wrap:anywhere}}
 .shtab tr:last-child td{border-bottom:0}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,310px),1fr));gap:12px;margin-top:12px}
 .pcard{border:1px solid var(--rule);border-radius:14px;padding:14px 16px 12px;display:flex;flex-direction:column;gap:10px;min-width:0;
