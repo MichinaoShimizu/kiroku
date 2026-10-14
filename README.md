@@ -65,7 +65,7 @@ The view is in Japanese when your browser prefers Japanese; the button at the to
 
 ## Reviews and advice, written by your own agent
 
-One click copies a prompt that you paste into the AI agent you already use on this computer, such as Claude Code or Codex. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, ending with advice from an expert on working with AI agents. With `kiroku serve --ai`, "Run with AI" runs the same prompt with that agent for you, after you confirm each run.
+One click copies a prompt that you paste into the AI agent you already use on this computer, such as Claude Code or Codex. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, ending with advice from an expert on working with AI agents. With `kiroku serve --ai`, "Analyze with AI" runs the same prompt with that agent for you, after you confirm each run.
 
 | Scope | Where | What you get |
 |---|---|---|

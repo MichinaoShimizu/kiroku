@@ -884,7 +884,7 @@ dialog.yr h4.yrsub{font:600 var(--fs-md)/1.5 var(--sans);margin:12px 0 6px;color
 .head .dd .ai-action{max-width:100%;min-width:0;box-sizing:border-box;font-size:var(--fs-xs);padding:3px 7px;white-space:nowrap}
 @media(max-width:900px){.head .dd .ai-action{font-size:11px;padding:2px 6px}}
 
-/* Run with AI is off (saved file, or kiroku serve without --ai): an outlined button that explains how to turn it on, not an action */
+/* Analyze with AI is off (saved file, or kiroku serve without --ai): an outlined button that explains how to turn it on, not an action */
 .pill.ai-off{background:transparent;color:#176b50;border:1px dashed #5c9a80;font-weight:500;cursor:help}
 .pill.ai-off:hover{background:#e7f2ec}
 .pill.ai-off:focus-visible{outline:2px solid #2da978;outline-offset:3px}
@@ -911,3 +911,21 @@ html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り
 .rptbar{flex-basis:100%;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:-6px}
 .rptbar[hidden]{display:none}
 .rptbar .rptl{font-size:var(--fs-sm);font-weight:600;color:var(--ink-2);margin-right:2px}
+/* AI で分析のダイアログ: 上に寄せて固定（出力が増えても動かない）。ボタンの並びは下に貼りつける */
+.ai-dialog{width:min(900px,94vw);max-height:90vh;margin:5vh auto auto;padding:20px 20px 0;border:1px solid var(--rule-2);border-radius:12px;background:var(--bg);color:var(--ink)}
+.ai-dialog .ai-agent{display:inline-flex;align-items:center;gap:8px}
+.ai-dialog .ai-prompt{display:block;width:100%;height:220px;margin:12px 0;font:12px var(--mono);box-sizing:border-box}
+.ai-dialog .ai-prompt.small{height:72px}
+.ai-controls{position:sticky;bottom:0;display:flex;gap:12px;flex-wrap:wrap;padding:12px 0 20px;background:var(--bg)}
+.ai-rhead[hidden],.ai-out[hidden],.ai-log[hidden]{display:none}
+/* 結果が出たら、入力と経過をゆっくりたたむ（高さを 1fr → 0fr にして、中身の高さによらず滑らかに） */
+.ai-inputs{display:grid;grid-template-rows:1fr;opacity:1;transition:grid-template-rows .5s var(--ease),opacity .4s var(--ease)}
+.ai-inputs.closed{grid-template-rows:0fr;opacity:0}
+.ai-inputs-in{min-height:0;overflow:hidden}
+.ai-intoggle{display:inline-flex;align-items:center;gap:6px;margin:-4px 0 8px;padding:2px 0;font-size:var(--fs-sm);color:var(--acc-ink);background:none;border:0;cursor:pointer}
+.ai-intoggle::before{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);transition:transform .3s var(--ease)}
+.ai-intoggle[aria-expanded="true"]::before{transform:rotate(45deg)}
+.ai-intoggle[hidden]{display:none}
+.ai-dialog .ai-out{transition:max-height .5s var(--ease)}
+.ai-dialog.ai-focus .ai-out{max-height:66vh}
+@media (prefers-reduced-motion:reduce){.ai-inputs,.ai-intoggle::before,.ai-dialog .ai-out{transition:none}}

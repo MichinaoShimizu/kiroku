@@ -39,7 +39,7 @@ func TestAIRejectsHostnameBind(t *testing.T) {
 	}
 }
 
-// The view learns from meta.aiRun whether to offer "Run with AI"; only kiroku serve --ai sets it.
+// The view learns from meta.aiRun whether to offer "Analyze with AI"; only kiroku serve --ai sets it.
 func TestAIRunFlagInMeta(t *testing.T) {
 	for _, on := range []bool{false, true} {
 		l := &live{load: func() snapshot { return snapshot{meta: map[string]any{"x": 1}} }}

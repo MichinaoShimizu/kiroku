@@ -54,7 +54,7 @@ func (l *live) refresh() error {
 	l.reload.Lock()
 	defer l.reload.Unlock()
 	snap := l.load()
-	if l.aiRun != nil { // the view shows "Run with AI" only when kiroku serve --ai turned it on
+	if l.aiRun != nil { // the view shows "Analyze with AI" only when kiroku serve --ai turned it on
 		meta := make(map[string]any, len(snap.meta)+1)
 		for k, v := range snap.meta {
 			meta[k] = v
@@ -592,7 +592,7 @@ func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []
 	startLive(l, every)
 	fmt.Fprintln(l.print, st.dim("only browsers with its key can open it (to protect it from other users of this computer); \"kiroku open\" opens it with the key"))
 	if enableAI {
-		fmt.Fprintln(l.print, st.dim("\"Run with AI\" is on (--ai): after you confirm a run, the agent you choose may send the prompt and the history it reads to its provider"))
+		fmt.Fprintln(l.print, st.dim("\"Analyze with AI\" is on (--ai): after you confirm a run, the agent you choose may send the prompt and the history it reads to its provider"))
 	}
 	if open {
 		if err := openWithKey(url, key); err != nil {
