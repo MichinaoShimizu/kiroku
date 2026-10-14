@@ -169,6 +169,7 @@ function monthGrid(shown, ms, me, todayKey){
 /* 週のカレンダー：曜日が列、時刻が縦。重なるセッションだけ横に並べる */
 function timeline(shown, inWeek, ws, we, todayKey){
   const T = $("#tl"), hh = HOURS[st.z] || 44, H = 24*hh;
+  if (inWeek.length && !shown.length && st.q && !DATA.some(matches)){ T.innerHTML = ""; return; } // 検索がどこにも当たらないときは、上の検索結果の「ない」だけにする
   if (!inWeek.length || !shown.length){
     // 記録のない週は、ここで 1 度だけ「ない」と言い、記録のある最後の週へ行けるようにする（月は大文字のまま。toLowerCase で "jul 6" にしない）
     const last = !inWeek.length && !META.scope && DATA.length ? mondayOf(new Date(Math.max(...DATA.map(s => s.end))*1000)) : null, jump = last && last.getTime() !== st.week.getTime();
@@ -237,6 +238,11 @@ function timeline(shown, inWeek, ws, we, todayKey){
   const sc = T.querySelector(".calscroll");
   sc.style.scrollPaddingTop = T.querySelector(".heads").offsetHeight + "px"; sc.style.scrollPaddingLeft = "56px"; // Tab で移ったブロックが、固定の日付・時刻の下に隠れないように
   if (top != null) sc.scrollTop = top;
+  // 上に固定した日付の見出しのボタン（日報・AI）にフォーカスが移ると、ブラウザがそれを見せようとして 0 時まで巻き戻す。
+  // フォーカスは見出しの中だけなので、巻き戻す前（まだ scroll が届いていない値）に戻す
+  let seenTop = sc.scrollTop;
+  sc.addEventListener("scroll", () => { seenTop = sc.scrollTop; }, {passive: true});
+  sc.addEventListener("focusin", e => { if (e.target.closest(".heads") && sc.scrollTop !== seenTop) sc.scrollTop = seenTop; });
   fitRuns(T);
   sc.addEventListener("scroll", () => edgeFade(T), {passive: true}); edgeFade(T);
   T.querySelectorAll(".lim").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); });

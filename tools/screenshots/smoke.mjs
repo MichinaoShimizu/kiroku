@@ -335,6 +335,12 @@ async function run(env) {
     check("決まった形式と、kiroku が埋めた数字の表がある", /# Format/.test(text) && /### By project/.test(text) && /^\| Active time \| \S/m.test(text) && /^\| Git commits \(by AI\) \| \d+ \(\d+\) \|/m.test(text), JSON.stringify(text.match(/^\| Active time.*$/m)));
     const day = await p.evaluate(() => { const b = document.querySelector(".head .dayrpt"); return b ? {fill: b.classList.contains("fill"), text: reportPrompt(null, false, addDays(st.week, +b.dataset.d))} : null; });
     check("記録のある日の見出しに、塗りの日報ボタンがある", !!day && day.fill);
+    if (day){ // 固定した日付の見出しのボタンにフォーカスが移っても、カレンダーが 0 時まで巻き戻らない
+      const sc = p.locator(".calscroll"); await sc.evaluate(e => { e.scrollTop = 300; }); await pause();
+      const before = await sc.evaluate(e => e.scrollTop);
+      await p.locator(".head .dayrpt").first().focus(); await pause();
+      check("日報のボタンにフォーカスしても、カレンダーの位置が変わらない", await sc.evaluate(e => e.scrollTop) === before, `${before} → ${await sc.evaluate(e => e.scrollTop)}`);
+    }
     if (day) check("日報のプロンプトは、その日の形式と前日との数字の表", /## Daily report: /.test(day.text) && /^\| \| This day \| Previous day \|$/m.test(day.text) && /^\| Active time \| /m.test(day.text), day.text.slice(0, 120));
     check("セッションごとに、プロンプトと応答の要約がある", /^  - [A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2} \d\d:\d\d Prompt: /m.test(text));
     check("事実と履歴は、コードブロックの中にある", /# History data\n`{3,}text\n# Facts/.test(text));
