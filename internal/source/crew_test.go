@@ -1818,6 +1818,42 @@ func TestReadCrewLogEscapedTypeAndBOM(t *testing.T) {
 	}
 }
 
+// 退避した記録のフォルダを並べられないときは、空とみなさずに読めなかったと伝える
+// （中身を残さない会話の印が退避した記録にだけあると、隠せないまま出してしまうので）。
+// root でも並べられないよう、フォルダの場所にファイルを置く。
+func TestKiroCrewArchiveDirUnreadable(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows reports a file in place of a folder as a missing folder, so this can't build a folder that fails to list")
+	}
+	ch := t.TempDir()
+	os.MkdirAll(filepath.Join(ch, "sessions"), 0o755)
+	os.WriteFile(filepath.Join(ch, "sessions", "archive"), []byte("x"), 0o644)
+	os.WriteFile(filepath.Join(ch, "sessions", "slack_C1_123.jsonl"), []byte(`{"_type": "metadata", "title": "Slack の相談"}
+{"role": "user", "content": "リリースノートを書いて", "ts": "2026-09-30T13:00:00+09:00"}
+`), 0o644)
+	kh := t.TempDir()
+	os.MkdirAll(filepath.Join(kh, "sessions", "cli"), 0o755)
+	err := (&KiroCLI{Home: kh, CrewHome: ch}).Load(func(*core.Builder) {})
+	if err == nil || !strings.Contains(err.Error(), filepath.Join("sessions", "archive")) {
+		t.Fatalf("err = %v, want the archive folder reported", err)
+	}
+}
+
+// crew-log の会話のフォルダを並べられないときも、読めなかったと伝える。
+func TestCrewLogSegmentsUnreadable(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows reports a file in place of a folder as a missing folder, so this can't build a folder that fails to list")
+	}
+	f := filepath.Join(t.TempDir(), "notadir")
+	os.WriteFile(f, nil, 0o644)
+	if _, err := crewLogSegments(f); err == nil {
+		t.Fatal("want an error for a folder that can't be listed")
+	}
+	if segs, err := crewLogSegments(filepath.Join(t.TempDir(), "missing")); err != nil || len(segs) != 0 {
+		t.Fatalf("missing folder: %v %v, want nothing and no error", segs, err)
+	}
+}
+
 // keysOf は by の会話 ID を並べる（失敗したときの表示用）。
 func keysOf(by map[string]*core.Builder) []string {
 	out := make([]string, 0, len(by))

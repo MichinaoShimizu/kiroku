@@ -4,8 +4,18 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Security
+
+- The formatted view of "Analyze with AI" no longer slows down quadratically on a reply full of backticks that can't close inline code (one such reply froze the page for seconds on every redraw)
+- Kiro Crew: a folder of archived or crew-log records that can't be listed is reported under "Data sources" instead of being read as empty, since it may hold the mark that a conversation keeps no content
+- Folders kiroku copies history into (archive subfolders) and its settings folder are made private (`0700`) even when they already existed, so other users can't list session IDs and project folders
+- Negative token counts in history are read as 0 instead of showing negative tokens and cost
+- A resume command for a session ID that starts with `=` quotes it, so zsh doesn't expand it to a program path
+
 ### Fixed
 
+- "Analyze with AI" with Claude Code returns the result when the agent has finished but something it started still holds its output open, instead of waiting for the time limit and failing
+- "Data sources" in `kiroku serve` counts every history file that couldn't be read after a reload, not only the first
 - The page `kiroku serve` shows while it reads your history follows the view's language (`--lang`, the language chosen in the view, or the browser's), so it is in Japanese too
 - In Japanese, a file written with `kiroku html --week` no longer names its week in English ("week of …"), lists of agents and models use 「、」, and "Month-end cost" and "Month-end credits" have one name each
 - The Year in review image no longer drops PRs from the totals when the labels are long (as in Japanese); it makes the text smaller instead

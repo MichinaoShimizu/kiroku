@@ -226,7 +226,11 @@ func (p *crewPrivacy) crewLog(dir string) *crewLogDir {
 	}
 	d := &crewLogDir{}
 	seen := map[string]bool{} // 読んだサブエージェントの id（中身は最初のものだけ持つ）
-	for _, f := range crewLogSegments(dir) {
+	segs, err := crewLogSegments(dir)
+	if err != nil { // 並べられないフォルダは空とみなさず、読めなかったと伝える（中身を残さない会話の印を見落としうるので）
+		d.errs = append(d.errs, err)
+	}
+	for _, f := range segs {
 		err := readCrewLog(f, seen, d)
 		if err = fileErr(f, err); err != nil {
 			d.errs = append(d.errs, err)
@@ -747,14 +751,15 @@ func loadCrewSpawns(home string, errs *fileErrs, priv *crewPrivacy) map[string]C
 type crewSpawn struct{ id, agent, task string }
 
 // crewLogSegments は crew-log の 1 つの会話のファイルを、書いた順（seq の順。log.jsonl が先）に並べる。
-func crewLogSegments(dir string) []string {
+// フォルダを並べられなかったときは、そのエラーも返す（ないフォルダは nil）。
+func crewLogSegments(dir string) ([]string, error) {
 	type seg struct {
 		p string
 		n uint64
 	}
 	var segs []seg
 	// glob ではなくフォルダの中を並べる。dir の名前（* や [ など）がパターンとして読まれ、ほかのフォルダのファイルを拾わないように
-	ents, _ := os.ReadDir(dir)
+	ents, err := os.ReadDir(dir)
 	for _, e := range ents {
 		m := crewLogSegment.FindStringSubmatch(e.Name())
 		if m == nil {
@@ -768,7 +773,7 @@ func crewLogSegments(dir string) []string {
 	for i, x := range segs {
 		out[i] = x.p
 	}
-	return out
+	return out, fileErr(dir, err)
 }
 
 // crewOpenedMark・crewClassMark は session/opened・session/class の行にだけある文字（ほかの行は JSON として読まない）。
@@ -1079,6 +1084,9 @@ func readCrewStem(home, arch, stem string, errs *fileErrs) (meta crewMeta, rows 
 
 // readCrewStemIn は readCrewStem と同じ。退避した記録は idx（1 回の読み込みで 1 度だけ並べたもの）から探す。
 func readCrewStemIn(idx *crewArchiveIndex, stem string, errs *fileErrs) (meta crewMeta, rows []crewRow) {
+	for _, err := range idx.errs { // 同じエラーは 1 度だけ数える
+		errs.add(err)
+	}
 	segs := idx.segments(stem)
 	paths := make([]string, 0, len(segs)+1)
 	for _, s := range segs {
@@ -1150,6 +1158,7 @@ var crewArchiveName = regexp.MustCompile(`^(.+)__(\d{8}-\d{6})(?:-(\d{1,9}))?\.j
 type crewArchiveIndex struct {
 	home   string
 	byStem map[string][]crewSeg
+	errs   []error // 並べられなかったフォルダ（ないフォルダは入れない）
 }
 
 // newCrewArchiveIndex は home（と arch）の退避した記録を並べる。
@@ -1167,7 +1176,10 @@ func newCrewArchiveIndex(home, arch string) *crewArchiveIndex {
 		idx.byStem[m[1]] = append(idx.byStem[m[1]], crewSeg{path: p, stamp: m[2], n: n})
 	}
 	dir := filepath.Join(home, "sessions", "archive")
-	ents, _ := os.ReadDir(dir)
+	ents, err := os.ReadDir(dir)
+	if err = fileErr(dir, err); err != nil {
+		idx.errs = append(idx.errs, err)
+	}
 	orig := map[string]bool{}
 	for _, e := range ents {
 		if !e.IsDir() {
@@ -1177,7 +1189,10 @@ func newCrewArchiveIndex(home, arch string) *crewArchiveIndex {
 	}
 	if arch != "" {
 		adir := filepath.Join(arch, "sessions", "archive")
-		ents, _ := os.ReadDir(adir)
+		ents, err := os.ReadDir(adir)
+		if err = fileErr(adir, err); err != nil {
+			idx.errs = append(idx.errs, err)
+		}
 		for _, e := range ents {
 			name, ok := strings.CutSuffix(e.Name(), ".zst")
 			if ok && !e.IsDir() && !orig[name] {
