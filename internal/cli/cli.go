@@ -254,7 +254,7 @@ func langFlag(fs *flag.FlagSet) *string {
 	return fs.String("lang", env, "language of the view: en or ja ($KIROKU_LANG; default: the browser's language, English if it isn't Japanese). You can switch it in the view too")
 }
 
-// noAIEnv は $KIROKU_NO_AI（--no-ai の既定）。空と "0" と "false" 以外なら、AI の実行を切る。
+// noAIEnv は $KIROKU_NO_AI（--no-ai の既定）。前後の空白を除いて、空・"0"・"false"（大文字小文字を問わない）以外なら、AI の実行を切る（迷う値は切る側）。
 // kiroku autostart on も、登録するときのこの値を書き残す（autostartEnv）
 func noAIEnv() bool {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv("KIROKU_NO_AI"))) {
@@ -262,6 +262,17 @@ func noAIEnv() bool {
 		return false
 	}
 	return true
+}
+
+// flagSet は、名前の flag がコマンド行で指定されたか。
+func flagSet(fs *flag.FlagSet, name string) bool {
+	set := false
+	fs.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			set = true
+		}
+	})
+	return set
 }
 
 func checkLang(lang string) error {
@@ -308,6 +319,10 @@ func cmdServe(args []string) error {
 	}
 	if *oldAI {
 		fmt.Fprintln(logw, "--ai is no longer needed: \"Analyze with AI\" is on by default (turn it off with --no-ai)")
+	} else if flagSet(fs, "ai") {
+		// 以前の --ai=false は「切る」という意味だった。黙って入れないよう、--no-ai と同じに扱う
+		*noAI = true
+		fmt.Fprintln(logw, "--ai=false is no longer needed: use --no-ai to turn \"Analyze with AI\" off (it is off now)")
 	}
 	_, want, all := c.picked()
 	return serveLiveWithAI(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen, !*noAI, *lang, scanWatchPaths(all, want))

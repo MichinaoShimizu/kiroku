@@ -56,7 +56,7 @@ func TestAIStartLine(t *testing.T) {
 
 // $KIROKU_NO_AI is the default of --no-ai: anything but empty, 0 or false turns AI execution off.
 func TestNoAIEnv(t *testing.T) {
-	for v, want := range map[string]bool{"": false, "0": false, "false": false, "FALSE": false, "1": true, "true": true, "yes": true} {
+	for v, want := range map[string]bool{"": false, " ": false, "0": false, " 0": false, "false": false, "FALSE": false, "False": false, "1": true, "1 ": true, "true": true, "yes": true, "no": true, "off": true} {
 		t.Setenv("KIROKU_NO_AI", v)
 		if got := noAIEnv(); got != want {
 			t.Errorf("KIROKU_NO_AI=%q: noAIEnv() = %v, want %v", v, got, want)
@@ -108,5 +108,24 @@ func TestLangFlag(t *testing.T) {
 	t.Setenv("KIROKU_LANG", "ja")
 	if got := *langFlag(flag.NewFlagSet("x", flag.ContinueOnError)); got != "ja" {
 		t.Errorf("KIROKU_LANG=ja gave %q", got)
+	}
+}
+
+// 以前の --ai=false（切る）は、--no-ai と同じに扱う。指定がなければ既定のまま。
+func TestOldAIFalseTurnsOff(t *testing.T) {
+	for args, want := range map[string]bool{"": false, "--ai=false": true, "--ai": false, "--ai=true": false} {
+		fs := flag.NewFlagSet("t", flag.ContinueOnError)
+		fs.Bool("ai", false, "")
+		var a []string
+		if args != "" {
+			a = []string{args}
+		}
+		if err := fs.Parse(a); err != nil {
+			t.Fatal(err)
+		}
+		on := fs.Lookup("ai").Value.String() == "true"
+		if got := !on && flagSet(fs, "ai"); got != want {
+			t.Errorf("%q: off = %v, want %v", args, got, want)
+		}
 	}
 }

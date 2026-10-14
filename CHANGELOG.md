@@ -13,7 +13,8 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
   - Agent runs stay off when `kiroku serve` listens on an address that isn't a loopback IP.
   - A saved HTML file never runs an agent and now shows no AI buttons.
 - New `kiroku serve --no-ai` (or `KIROKU_NO_AI=1`, which `kiroku autostart on` keeps) turns agent runs off; `/ai/run` then answers 404
-- `kiroku serve --ai` is still accepted but no longer needed: it does nothing except print a one-line notice. A non-loopback ADDR with `--ai` no longer fails; agent runs are just off there
+- `kiroku serve --ai` is still accepted but no longer needed: it does nothing except print a one-line notice. A non-loopback ADDR with `--ai` no longer fails; agent runs are just off there. An explicit `--ai=false` turns agent runs off, like `--no-ai`
+- If you registered `kiroku autostart on` before this version, agent runs are on after you update. To keep them off, run `KIROKU_NO_AI=1 kiroku autostart on` once
 
 ### Removed
 
