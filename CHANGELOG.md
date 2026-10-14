@@ -12,6 +12,11 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Claude Code: a compaction no longer extends a session's end or adds an activity block. Since 2.1.290 Claude Code compacts about 54 minutes after you leave (`idleCompaction`), so a session you left looked active until then. The compaction is still counted, and a manual `/compact` still counts from the command you typed
 - Kiro Crew: a subagent running on the Codex backend (`provider: "codex"` in its `state.json`) is no longer counted twice. Its "Kiro Crew" session is no longer folded into its parent and is dropped when the Codex session of the same thread is loaded, as conversations on the Codex backend already were
 - docs/sources.md lists the Kiro Crew archive reason `file-changes`, which is read like `compact` (lines that match a line kept elsewhere are dropped)
+- The guide now says to delete `~/Library/Logs/kiroku.log` when uninstalling on macOS, that an AI agent installed while `kiroku serve --ai` runs is offered once history is read again, that kiroku ignores a `KIRO_HOME` or `KIROCREW_HOME` it can't safely use, and names the "Read more (N characters)" button of a cut prompt
+
+### Security
+
+- `install.sh` copies the new binary to a temporary file with a fresh random name (`mktemp`) next to the install location before moving it into place, instead of the fixed `.kiroku.new`, so a file or link someone else left there can't be written through. It and `tools/reproduce.sh` also download over HTTPS only (TLS 1.2 or later), even across redirects
 
 ## v0.34.1 - 2026-10-14
 
