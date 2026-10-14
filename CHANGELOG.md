@@ -22,6 +22,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Fixed
 
+- "Analyze with AI" failed with only "invalid request" when a report prompt was too long, which happens in a busy week or month (each session's prompts and replies are in the prompt, and Japanese text takes 3 bytes a character). Report prompts now shorten the session digest to stay under about 190 KB, fewer prompts per session first, and say so. A prompt still over the limit is not sent, and the dialog says it is too long and to copy it instead
 - In report prompts, projects hidden in the legend (when colored by project) are left out of the commits, the project sections and the repeated-prompt signals too, not only their sessions, and the prompt says the Numbers table still counts them
 - In report prompts, "Main model of each session" and "Short sessions" no longer show whole-session estimated costs, which could add up to more than the period's Numbers table
 - "Analyze with AI" with Claude Code returns the result when the agent has finished but something it started still holds its output open, instead of waiting for the time limit and failing

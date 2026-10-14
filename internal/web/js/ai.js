@@ -97,6 +97,9 @@ async function runAIReview(button, prompt, title) {
   const last = AI_LAST.get(key); // 前に同じプロンプトで得た結果
   if (last){ text = last.text; showResult(true); drawn = -1; draw(); copyResult.hidden = false; start.textContent = t("Run again"); status.textContent = t("Last result with {agent}", {agent: aiName(last.agent)}); inToggle.hidden = false; setInputs(false); }
   start.onclick = async () => {
+    const body = JSON.stringify({agent:agent.value,prompt:preview.value,consent:true}), size = utf8Len(body);
+    if (size > AI_RUN_MAX){ // kiroku serve が受け付けない大きさなら、送らずにそう伝える（コピーして自分で貼る道は残る）
+      status.textContent = t("This prompt is too long to run here ({size} KB; the limit is {limit} KB). Copy it and paste it into the agent yourself.", {size: Math.ceil(size / 1024), limit: AI_RUN_MAX / 1024}); return; }
     controller = new AbortController();
     inToggle.hidden = true; setInputs(true);
     start.disabled = true; agent.disabled = true; copyResult.hidden = true; errLines = 0;
@@ -107,7 +110,7 @@ async function runAIReview(button, prompt, title) {
     status.textContent = t("Running {agent}…", {agent: name});
     let done = null, ok = false;
     try {
-      const response = await kfetch("ai/run", {method:"POST", headers:{"Content-Type":"application/json","X-Kiroku":"1"}, body:JSON.stringify({agent:agent.value,prompt:preview.value,consent:true}),signal:controller.signal});
+      const response = await kfetch("ai/run", {method:"POST", headers:{"Content-Type":"application/json","X-Kiroku":"1"}, body,signal:controller.signal});
       if (!response.ok) { const why = (await response.text().catch(() => "")).trim().slice(0, 600); throw new Error(why || t("AI execution failed (HTTP {status})", {status: response.status})); }
       // 1 行に 1 つの JSON（コマンド・返事の文字・ツール・エラー出力・最後に done）が、起きた順に届く
       const reader = response.body.getReader(), dec = new TextDecoder();
