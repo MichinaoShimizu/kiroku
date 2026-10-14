@@ -645,3 +645,41 @@ func TestQStoreTypedPromptsAreVerbatim(t *testing.T) {
 		}
 	}
 }
+
+// ツールの確認の途中で止めた会話を --resume すると、CLI が入れた要約の依頼（と /todos resume・タイムアウトの依頼）は
+// 前のツールの実行の取り消しとして CancelledToolUses の prompt に書き換えられる（conversation.rs の enforce_conversation_invariants）。
+// これも人が打った依頼ではないので数えない
+func TestQStoreInjectedPromptAfterToolUse(t *testing.T) {
+	t0 := time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC)
+	at := func(sec int) string { return t0.Add(time.Duration(sec) * time.Second).Format(time.RFC3339Nano) }
+	ms := func(sec int) float64 { return float64(t0.Add(time.Duration(sec) * time.Second).UnixMilli()) }
+	meta := func(a, b int) map[string]any {
+		return map[string]any{"model_id": "m", "request_start_timestamp_ms": ms(a), "stream_end_timestamp_ms": ms(b), "response_size": 10}
+	}
+	toolUse := map[string]any{"ToolUse": map[string]any{"content": "", "tool_uses": []any{map[string]any{"id": "t", "name": "execute_bash", "args": map[string]any{}}}}}
+	response := func(s string) map[string]any { return map[string]any{"Response": map[string]any{"content": s}} }
+	cancelled := func(text string, sec int) map[string]any {
+		return map[string]any{"timestamp": at(sec), "content": map[string]any{"CancelledToolUses": map[string]any{"prompt": text, "tool_use_results": []any{}}}}
+	}
+	prompt := func(text string, sec int) map[string]any {
+		return map[string]any{"timestamp": at(sec), "content": map[string]any{"Prompt": map[string]any{"prompt": text}}}
+	}
+	history := []any{
+		map[string]any{"user": prompt("ビルドして", 0), "assistant": toolUse, "request_metadata": meta(1, 2)},
+		map[string]any{"user": cancelled("In a few words, summarize our conversation so far.", 3600), "assistant": response("要約です"), "request_metadata": meta(3601, 3602)},
+		map[string]any{"user": prompt("続けて", 3700), "assistant": toolUse, "request_metadata": meta(3701, 3702)},
+		map[string]any{"user": cancelled("[SYSTEM NOTE: This is an automated request, not from the user]\n\n Read the TODO list", 7200), "assistant": toolUse, "request_metadata": meta(7201, 7202)},
+		map[string]any{"user": cancelled("You took too long to respond - try to split up the work into smaller steps.", 7300), "assistant": response("はい"), "request_metadata": meta(7301, 7302)},
+	}
+	bs := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})
+	if len(bs) != 1 {
+		t.Fatalf("会話の数 = %d, want 1", len(bs))
+	}
+	var texts []string
+	for _, p := range bs[0].Prompts {
+		texts = append(texts, p.Text)
+	}
+	if got := strings.Join(texts, "|"); got != "ビルドして|続けて" {
+		t.Errorf("プロンプト = %q（CLI が入れた依頼は数えない）", got)
+	}
+}
