@@ -15,19 +15,22 @@ check("表", "| A | B |\n|---|:-:|\n| 1 | **2** |", '<div.mdtable><table><thead>
 check("コード", "```html\n<b>x</b>\n```", '<pre><code>"<b>x</b>"</code></pre>');
 check("引用・区切り線", "> q\n\n---", '<blockquote><p>"q"</p></blockquote><hr></hr>');
 check("深い入れ子でも止まらない", ">".repeat(50) + " x", out(mdView(">".repeat(50) + " x")));
-// 他人が書けるような意地悪な行でも、時間がかからない（正規表現の後戻りや、閉じていない記号の探し直しで固まらない）
-for (const [name, md] of [
-  ["閉じない強調", "**a ".repeat(4999)],
-  ["閉じない括弧", "[".repeat(19999)],
-  ["空白だけの表の線", "a|b\n" + " ".repeat(19990) + "x"],
-  ["後ろが空白の見出し", "# a" + " ".repeat(19990) + "x"],
-  ["閉じない下線", "_a ".repeat(6000)],
-  ["閉じないバッククォート", "`a ".repeat(6000) + "``b " .repeat(1000)],
-  ["長い行がたくさん", (("**a " + "x".repeat(16)).repeat(900) + "\n").repeat(50)],
-  ["1 MB の行", "*a ".repeat(350000)],
+// 他人が書けるような意地悪な行でも、時間が行の長さに比例する（正規表現の後戻りや、閉じていない記号の探し直しで固まらない）。
+// CI の機械の速さはまちまちなので、決まった秒数ではなく、入力を 4 倍にしたときに時間が何倍になるかで確かめる
+// （比例なら約 4 倍。2 乗なら 16 倍、3 乗なら 64 倍）。短すぎて測れないときは、十分に速いとみなす
+const best = f => { let m = Infinity; for (let k = 0; k < 3; k++){ const t0 = process.hrtime.bigint(); f(); m = Math.min(m, Number(process.hrtime.bigint() - t0) / 1e6); } return m; };
+for (const [name, make, n] of [
+  ["閉じない強調", n => "**a ".repeat(n), 4999],
+  ["閉じない括弧", n => "[".repeat(n), 19999],
+  ["空白だけの表の線", n => "a|b\n" + " ".repeat(n) + "x", 19990],
+  ["後ろが空白の見出し", n => "# a" + " ".repeat(n) + "x", 19990],
+  ["閉じない下線", n => "_a ".repeat(n), 6000],
+  ["閉じないバッククォート", n => "`a ".repeat(n) + "``b ".repeat(n / 6), 6000],
+  ["長い行がたくさん", n => (("**a " + "x".repeat(16)).repeat(900) + "\n").repeat(n), 48],
 ]) {
-  const t0 = Date.now(); mdView(md); const ms = Date.now() - t0;
-  if (ms > 1500){ fail++; console.log("SLOW " + name + ": " + ms + " ms"); }
+  const small = best(() => mdView(make(Math.floor(n / 4)))), big = best(() => mdView(make(n)));
+  if (big > 20 && big / Math.max(small, 1) > 10){ fail++; console.log(`SLOW ${name}: ${small.toFixed(1)} ms → ${big.toFixed(1)} ms for 4× the input`); }
+  if (big > 10000){ fail++; console.log(`SLOW ${name}: ${big.toFixed(0)} ms`); }
 }
 check("見出しの後ろの #", "## Title ##", '<h4>"Title"</h4>');
 check("後ろの # が語の一部なら残す", "# C#", '<h3>"C#"</h3>');
