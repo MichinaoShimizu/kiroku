@@ -17,6 +17,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
 
 // kiroku serve の鍵。127.0.0.1 で待ち受けていても、同じコンピューターのほかのユーザーはつなげてしまう。
@@ -54,7 +56,7 @@ func serveKey(create bool) (string, error) {
 	if !create {
 		return "", errNoKey
 	}
-	if err := os.MkdirAll(dir, 0o700); err != nil {
+	if err := core.PrivateDir(dir); err != nil {
 		return "", err
 	}
 	b := make([]byte, 32)
@@ -244,7 +246,7 @@ func openWithKey(url, key string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(dir, 0o700); err != nil {
+	if err := core.PrivateDir(dir); err != nil {
 		return err
 	}
 	page := hopPage(keyURL(url, key), `<meta name="referrer" content="no-referrer">`)

@@ -79,7 +79,7 @@ func shellArg(s string, win bool) (string, bool) {
 		}
 		return `"` + s + `"`, true
 	}
-	if posixPlain.MatchString(s) {
+	if posixPlain.MatchString(s) && s[0] != '=' { // zsh は =ls を /bin/ls に置きかえるので、= で始まるものは囲む
 		return s, true
 	}
 	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'", true

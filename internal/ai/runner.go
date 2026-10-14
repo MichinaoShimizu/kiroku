@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode/utf8"
 )
@@ -182,6 +183,10 @@ func (r Runner) Stream(ctx context.Context, agent, prompt string, emit func(Even
 		send(e)
 	}
 	limited := &io.LimitedReader{R: stdout, N: maxRead}
+	// Claude's result event ends the run. If something the agent started still holds its output open
+	// after that, stop it after a short delay instead of waiting for the time limit and losing the result.
+	var linger *time.Timer
+	var lingered atomic.Bool
 	if agent == "claude" {
 		readClaude(limited, add, func(text string, isErr bool) {
 			if isErr {
@@ -189,7 +194,13 @@ func (r Runner) Stream(ctx context.Context, agent, prompt string, emit func(Even
 			} else {
 				final = &text
 			}
+			if linger == nil {
+				linger = time.AfterFunc(cmd.WaitDelay, func() { lingered.Store(true); cancel() })
+			}
 		})
+		if linger != nil {
+			linger.Stop()
+		}
 	} else {
 		forward(limited, func(s string) { add(Event{T: "text", S: s}) })
 	}
@@ -200,6 +211,9 @@ func (r Runner) Stream(ctx context.Context, agent, prompt string, emit func(Even
 	_, _ = io.Copy(io.Discard, stdout)
 	<-errDone
 	err = cmd.Wait()
+	if lingered.Load() && ctx.Err() == nil && (final != nil || failed != "") {
+		err = nil // stopped by us after the result (above), not by the time limit or the browser
+	}
 	if tooLong {
 		return Result{}, errors.New("agent output exceeds size limit")
 	}

@@ -1,7 +1,11 @@
 # ADR 0027: Project-centered evidence inventory
 
-- Status: Accepted for prototype
-- Date: 2026-10-11
+Status: Accepted (2026-10-14, approved by the maintainer during the quality audit; shipped in #379 and #380)
+Date: 2026-10-11
+Scope: The Project view of the HTML (`internal/web/js/calendar.js`)
+Related ADRs: [ADR 0026](0026-complementary-history-views.md) (this view extends it), [ADR 0022](0022-history-stays-local.md)
+Supersedes/Amends: None
+Decision owner: Repository maintainer
 
 ## Context
 
@@ -13,7 +17,7 @@ Add a third **Project** view sharing the existing Week/Month period selector, se
 
 ## Consequences
 
-Users can review what projects they worked on without scanning the time grid. Project names remain history-derived, so renamed or missing project identifiers are not automatically reconciled. PRs appear only when the agent history records them. Counts represent recorded events, not progress. Limit displayed event links to keep the cards manageable; deeper history remains available through other views.
+Users can review what projects they worked on without scanning the time grid. Project names remain history-derived, so renamed or missing project identifiers are not automatically reconciled. PRs appear only when the agent history records them. Counts represent recorded events, not progress. Each card shows a few events first and expands to the full recorded list (#380), so nothing recorded is hidden.
 
 ## Alternatives
 

@@ -290,6 +290,7 @@ func TestKnowledgePrompt(t *testing.T) {
 		{"js/markdown.js", `(?ms)^function oneLine\(s\)\{.*?\}$`},
 		{"js/markdown.js", `(?ms)^function mdFence\(text\)\{.*?\}$`},
 		{"js/markdown.js", `(?m)^const AI_DATA_NOTE = .*$`},
+		{"js/markdown.js", `(?m)^const PRIVACY_NOTE = .*$`},
 		{"js/panels.js", `(?ms)^function spanIn\(.*?^\}$`},
 		{"js/session.js", `(?m)^const reviewFile = .*$`},
 		{"js/session.js", `(?m)^function utcOff\(t\)\{.*$`},

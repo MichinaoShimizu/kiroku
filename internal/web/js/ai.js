@@ -6,6 +6,8 @@ const aiName = id => ((AI_AGENTS.find(a => a[0] === id) || [])[1] || id).replace
 const AI_OFF_WHY = () => !LIVE ? t("A saved HTML file never runs an AI agent. Run kiroku serve --ai on your computer to run prompts with an agent.")
   : META && META.aiRun ? t("No AI agent command (claude, codex or kiro-cli) was found on this computer. Install one, then restart kiroku serve --ai.")
   : t("This kiroku serve was started without --ai. Start it with kiroku serve --ai to run prompts with an agent.");
+// AI_SENDS は、実行の前に必ず見せる一文（ADR 0030）
+const AI_SENDS = "The agent you choose may send the prompt and the history it reads to its provider.";
 // AI_SEP は、続けて出す 2 つの文の間（日本語では空けない）
 const AI_SEP = () => JA ? "" : " ";
 // 閉じたあとに同じプロンプトで開き直したら、前の結果を見せる（このページを開いているあいだだけ。保存はしない）
@@ -17,7 +19,8 @@ async function runAIReview(button, prompt, title) {
   dialog.setAttribute("aria-labelledby", "ai-review-title");
   const heading = document.createElement("h2"); heading.id = "ai-review-title"; heading.textContent = title;
   const notice = document.createElement("p");
-  notice.textContent = t("Check the exact prompt below. When you press Run, it goes to the agent on this computer.");
+  // ADR 0030: 実行の前に、エージェントが履歴を提供元へ送りうることを知らせる（--ai は ADR 0022 の例外）
+  notice.textContent = t("Check the exact prompt below. When you press Run, it goes to the agent on this computer.") + AI_SEP() + t(AI_SENDS);
   const agentLabel = document.createElement("label"); agentLabel.className = "ai-agent"; agentLabel.append(document.createTextNode(t("Agent")));
   const agent = document.createElement("select");
   for (const [id, name] of AI_AGENTS.filter(([id]) => aiAgents().includes(id))) { const o = document.createElement("option"); o.value = id; o.textContent = name; agent.append(o); }

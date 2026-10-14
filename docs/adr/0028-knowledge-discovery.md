@@ -1,6 +1,6 @@
 # ADR 0028: Evidence-grounded project knowledge discovery
 
-- Status: Proposed (not accepted)
+- Status: Phase 1 Accepted (2026-10-14, approved by the maintainer during the quality audit: the "Copy knowledge prompt" on each project card, shipped in 9a5344b); later phases remain Proposed
 - Date: 2026-10-14
 
 ## Context

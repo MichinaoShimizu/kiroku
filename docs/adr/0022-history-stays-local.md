@@ -1,6 +1,6 @@
 # ADR 0022: History stays on the machine and is treated as untrusted
 
-Status: Accepted (2026-10-11, approved by the maintainer when promoting Decision Log 0003)
+Status: Accepted (2026-10-11, approved by the maintainer when promoting Decision Log 0003); points 1 and 2 amended by [ADR 0030](0030-opt-in-local-agent-execution.md) for `kiroku serve --ai`
 Date: 2026-10-11
 Scope: Privacy and trust boundary — reading history, git, the HTML view, `kiroku serve`, files kiroku writes, network access (`internal/source`, `internal/gitlog`, `internal/web`, `internal/cli`, `internal/archive`, `SECURITY.md`)
 Related ADRs: [ADR 0024](0024-verified-releases.md) (the one allowed network use), [ADR 0025](0025-opt-in-history-copies.md)
