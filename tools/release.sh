@@ -2,10 +2,11 @@
 # リリースの PR を手元で用意する。push もタグ付けもしない（PR をマージすると tag.yml がタグを打ってリリースする）。
 #   sh tools/release.sh
 #   sh tools/release.sh --no-screenshots   # スクリーンショットを撮り直さない
+#   KIROKU_RELEASE_REMOTE=<リモートかパス>   # origin の代わりに、そこの main から作る（スクリプトを試すとき）
 #
 # 流れ:
 #   1. 作業ツリーに変更があれば止まる（コミットするか、別のブランチに置いてから。素の git stash は使わない）
-#   2. origin/main を取ってきて、tools/next-version.sh で次の版 vX.Y.Z を決め、そこから claude/release-vX.Y.Z を作る
+#   2. origin の main を取ってきて、tools/next-version.sh で次の版 vX.Y.Z を決め、そこから claude/release-vX.Y.Z を作る
 #   3. tools/changelog.sh --release で、changes/ の断片と「## Unreleased」を「## vX.Y.Z - <今日（UTC）>」にまとめる
 #   4. Chromium があれば（CHROMIUM か Playwright の Chromium）、スクリーンショットを撮り直し、tools/screenshots/keep-changed.sh で
 #      ゆらぎだけの画像を戻す。ダミーデータの「今」は KIROKU_FAKE_NOW（なければ ci.yml の e2e と同じ決まった時刻）。
@@ -46,29 +47,30 @@ main() {
   fi
 
   # 2. 版とブランチ
-  echo "== fetching origin/main"
-  git fetch --quiet origin main
+  remote=${KIROKU_RELEASE_REMOTE:-origin}
+  echo "== fetching main from $remote"
+  git fetch --quiet "$remote" main
   # ブランチを作る前に止まったら、もとのブランチに戻す
   orig=$(git symbolic-ref --quiet --short HEAD || git rev-parse HEAD)
   back() {
     git switch --quiet "$orig" 2>/dev/null || git switch --quiet --detach "$orig"
     die "$1"
   }
-  git switch --quiet --detach origin/main
+  git switch --quiet --detach FETCH_HEAD
   v=$(sh tools/next-version.sh) || back "nothing to release (no fragments in changes/ and no \"## Unreleased\" in CHANGELOG.md)"
   printf '%s\n' "$v" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || back "next-version.sh printed \"$v\""
   branch=claude/release-$v
   if git show-ref --verify --quiet "refs/heads/$branch"; then
     back "the branch $branch already exists. Delete it (git branch -D $branch) or finish that release"
   fi
-  if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
-    back "origin already has the branch $branch; finish that pull request first"
+  if git ls-remote --exit-code --heads "$remote" "$branch" >/dev/null 2>&1; then
+    back "$remote already has the branch $branch; finish that pull request first"
   fi
-  if git ls-remote --exit-code --tags origin "refs/tags/$v" >/dev/null 2>&1; then
-    back "the tag $v already exists on origin"
+  if git ls-remote --exit-code --tags "$remote" "refs/tags/$v" >/dev/null 2>&1; then
+    back "the tag $v already exists on $remote"
   fi
   git switch --quiet -c "$branch"
-  echo "== $branch (from origin/main $(git rev-parse --short HEAD))"
+  echo "== $branch (from main of $remote, $(git rev-parse --short HEAD))"
 
   # 3. CHANGELOG
   today=$(date -u +%Y-%m-%d)
@@ -112,7 +114,7 @@ main() {
 
 Next steps (this script pushes and tags nothing):
   1. Read the diff: git show HEAD
-  2. Push:          git push -u origin $branch
+  2. Push:          git push -u $remote $branch
   3. Open the pull request to main, titled "Release $v", with the release notes above as its body:
                     sh tools/release-notes.sh $v | gh pr create --base main --title "Release $v" --body-file -
   4. When it is merged, .github/workflows/tag.yml tags $v and runs Release. Then check what was published:
