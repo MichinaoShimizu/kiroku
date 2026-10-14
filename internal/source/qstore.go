@@ -188,6 +188,12 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 					// （message.rs の replace_content_with_tool_use_results）。人が打った文は消え、時刻だけ残る。下と同じく数えない
 					s.Inject(t, "output", text)
 					s.Agent(t)
+				case len(core.List(user["images"])) > 0 && !isLegacyEntry(h):
+					// 画像つきのツールの結果（ToolUseResults と images）を、CLI が Prompt に書き換えたもの
+					// （message.rs の replace_content_with_tool_use_results）。時刻は残る。人が打った依頼に images はない
+					// （new_prompt と new_cancelled_tool_uses は images: None）。ツールの出力として残す
+					s.Inject(t, "output", text)
+					s.Agent(t)
 				case user["timestamp"] == nil && meta == nil && !isLegacyEntry(h):
 					// MCP の /prompts get が入れた user と assistant の組（conversation.rs の append_prompts）。
 					// 時刻も request_metadata もない。応答も MCP サーバーの文で、モデルの応答ではないので付けない

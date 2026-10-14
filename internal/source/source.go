@@ -151,12 +151,30 @@ func DefaultClaudeRoot() string {
 	return filepath.Join(home(), ".claude", "projects")
 }
 
-// DefaultKiroHome は KIRO_HOME か ~/.kiro。
+// DefaultKiroHome は KIRO_HOME か ~/.kiro。Kiro は、相対パス・ファイルシステムの根・ホームとその上のフォルダの
+// KIRO_HOME を無視して ~/.kiro を使う（https://kiro.dev/docs/configuration ）。同じ場所を読むよう、kiroku も無視する。
 func DefaultKiroHome() string {
-	if d := os.Getenv("KIRO_HOME"); d != "" {
+	if d := kiroHomeOverride(os.Getenv("KIRO_HOME")); d != "" {
 		return d
 	}
 	return filepath.Join(home(), ".kiro")
+}
+
+// kiroHomeOverride は、Kiro が使う KIRO_HOME の値（使わないものは ""）。
+func kiroHomeOverride(v string) string {
+	if v == "" || !filepath.IsAbs(v) {
+		return ""
+	}
+	v = filepath.Clean(v)
+	if filepath.Dir(v) == v { // ファイルシステムの根（/ や C:\）
+		return ""
+	}
+	if h := home(); h != "" {
+		if rel, err := filepath.Rel(v, filepath.Clean(h)); err == nil && (rel == "." || rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))) {
+			return "" // ホームか、その上のフォルダ
+		}
+	}
+	return v
 }
 
 // KiroGlobalStorage は Kiro IDE（v1.0 より前）の保存場所。あるものだけ返す。
