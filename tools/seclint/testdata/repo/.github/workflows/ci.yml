@@ -1,0 +1,16 @@
+name: fixture
+on: push
+jobs:
+  a:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: "owner/action@main"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef45430 # 38 characters
+      - uses: docker://alpine:3
+      - uses: docker://alpine@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+  b:
+    uses: ./.github/workflows/release.yml
+  c:
+    uses: owner/repo/.github/workflows/w.yml@3d3c42e5aac5ba805825da76410c181273ba90b1

@@ -14,6 +14,7 @@ go vet ./...
 GOTOOLCHAIN=$(go env GOVERSION) go run honnef.co/go/tools/cmd/staticcheck@2026.2.2 ./...   # static analysis (OK if nothing is printed)
 GOTOOLCHAIN=$(go env GOVERSION) go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...   # known vulnerabilities in the standard library and modules that kiroku calls
 go test ./internal/source -run '^$' -fuzz '^FuzzClaude$' -fuzztime 30s   # fuzz one target (list them with: go test -list '^Fuzz' ./...)
+sh tools/bench-compare.sh   # the benchmark below on origin/main and on your working tree, compared with benchstat (or: sh tools/bench-compare.sh <ref>)
 go test ./internal/cli -run '^$' -bench Large -benchtime 3x -benchmem   # a year of synthetic history: time to read, aggregate and render, and the size of the HTML and /data.json
 gofmt -l .         # OK if nothing is printed
 go build .         # builds ./kiroku (open the view with ./kiroku serve)
@@ -21,11 +22,28 @@ go build .         # builds ./kiroku (open the view with ./kiroku serve)
 
 `tools/check.sh` reads the staticcheck and govulncheck versions from `.github/workflows/ci.yml`, so bump them there only. It skips shellcheck when it isn't installed.
 
+`tools/check.sh` also runs a security lint, `go run ./tools/seclint` (its test, `TestRepo`, runs in `go test ./...` too, so CI checks it). It catches cheap, deterministic regressions of the Security rules in `CLAUDE.md`; it doesn't replace reading the diff or the XSS e2e:
+
+- `js-html`: assigning `innerHTML` or `outerHTML`, `insertAdjacentHTML` or `document.write` in `internal/web/js` (assigning `""` is fine)
+- `shell-exec`: `exec.Command` or `exec.CommandContext` running a shell (`sh`, `bash`, `cmd` and so on) or given `-c`
+- `file-mode`: outside tests, `os.WriteFile` or `os.OpenFile` wider than 0600, `os.Mkdir` or `os.MkdirAll` wider than 0700, or a mode that isn't a constant
+- `listen`: outside tests, `http.ListenAndServe`, `net.Listen` and the like on an address that isn't a loopback constant
+- `unpinned-action`: a `uses:` in `.github/workflows` not pinned to a full 40-character commit SHA (local `./` workflows are fine)
+
+Exceptions live in `tools/seclint/main.go`, each with its file and a reason. `allow` holds uses known to be safe: the constant icon table in `format.js`, the autostart unit file, the developer tools that write `docs/upstream`, and `kiroku serve`'s documented listen path. `baseline` holds the view's existing HTML templates, which escape history with `esc()` and are covered by `xss.mjs`. The baseline is a count per file: a new insertion fails, and when a file has fewer, the lint prints a note to lower the count (without failing, so a PR that removes HTML insertions is never blocked). An `allow` entry that no longer matches anything fails. To add one, explain why in the PR.
+
 In Claude Code, the `/pre-pr` skill (`.claude/skills/pre-pr/SKILL.md`) is the check before every pull request: it runs `tools/check.sh`, reads the diff against the Security rules in `CLAUDE.md`, starts `hostile-tester` and `user-tester` when the change touches what they cover, and checks the changelog, docs, screenshots and benchmark. In Claude Code cloud sessions, the SessionStart hook (`.claude/hooks/session-start.sh`) installs what those checks need beforehand: the Go modules, staticcheck and govulncheck at CI's versions, shellcheck, and Playwright from `tools/screenshots/package-lock.json` (with `--ignore-scripts`), and sets `CHROMIUM` to the container's Chromium. It does nothing on your own machine.
 
 `/pre-pr` only looks at what a change touches. The `/quality-audit` skill (`.claude/skills/quality-audit/SKILL.md`) looks at the whole project on a schedule: full once a month and before a minor release, quick once a week. It runs the same gates, then reviews security, UX in English and Japanese, wording, docs, how each agent's history is read, the report prompts, code health, ADR conformance, the supply chain and performance. It verifies each finding before fixing it, asks before anything that needs a decision, and records the results and the open items in [docs/quality/audit-log.md](quality/audit-log.md), so the next run starts from what was left.
 
-Run the benchmark before and after a change to reading, aggregating or rendering, and put both results in the PR. `KIROKU_BENCH_DAYS` and `KIROKU_BENCH_PER_DAY` change its size (365 days of 8 sessions by default).
+Run the benchmark before and after a change to reading, aggregating or rendering, and put the comparison in the PR:
+
+```bash
+git fetch origin main
+sh tools/bench-compare.sh          # or against a ref: sh tools/bench-compare.sh v0.36.0
+```
+
+It measures the same as `go test ./internal/cli -run '^$' -bench Large -benchmem -count 6` on the base (in a temporary `git worktree` that it removes afterwards) and on your working tree, uncommitted changes included. It builds each side's test binary once and runs them one after the other, six times, so drift in the machine's load doesn't look like a difference (running all of one side first showed +17% on identical code). It compares them with benchstat, pinned in the script and run with `go run` like staticcheck. When benchstat can't run, or with `KIROKU_BENCH_PLAIN=1`, it prints a table of means instead (no significance test). `KIROKU_BENCH_COUNT` changes the number of runs, `KIROKU_BENCH_TIME` sets `-benchtime` (for example `3x`), and `KIROKU_BENCH_DAYS` and `KIROKU_BENCH_PER_DAY` change the size of the history (365 days of 8 sessions by default).
 
 Tests never use personal history. Everything in `testdata/` is synthetic, with made-up paths such as `/Users/me`. Never commit or attach real history, including in issues.
 

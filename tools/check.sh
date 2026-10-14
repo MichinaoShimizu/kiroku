@@ -116,6 +116,7 @@ step govulncheck env GOTOOLCHAIN="$toolchain" go run "$govulncheck" ./...
 step test go test ./...
 step changelog changelog
 step build build
+step seclint go run ./tools/seclint
 step shellcheck shellcheck_scripts
 if [ -n "$e2e" ]; then
   step e2e e2e_run
