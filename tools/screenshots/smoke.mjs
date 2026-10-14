@@ -230,7 +230,7 @@ async function run(env) {
     const run = await clickableRun(p);
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
     check("振り返りのプロンプトをコピーするボタンはない", await p.locator("#panel #sreview, #panel #pcopy").count() === 0);
-    check("プロンプトの流れの見出しに「Analyze with AI」が並ぶ", await p.locator("#panel .flowbar #srun, #panel .flowbar .ai-off").count() === 1);
+    check("保存した HTML では、詳細に AI の操作がない（ADR 0034）", await p.locator("#panel #srun, #panel .ai-off, #panel .ai-action, #panel .ai-none").count() === 0);
     // 再開のコマンドは 1 つだけ見え、2 列の画面では右の列のいちばん上、1 列の画面では詳細のいちばん上
     const rs = await p.evaluate(() => { const v = [...document.querySelectorAll("#panel .dresume")].filter(e => e.offsetParent !== null);
       const col = v[0] && v[0].closest(".dcol"); return {n: v.length, wide: innerWidth >= 1100, side: !!col && col === col.parentElement.lastElementChild && col.firstElementChild === v[0], top: !!v[0] && !col}; });
@@ -360,13 +360,12 @@ async function run(env) {
 
   await step("週報を書いてもらうプロンプト", async () => {
     check("週報のプロンプトをコピーするボタンはない", await p.locator("#rptcopy").count() === 0);
-    check("週報の「Analyze with AI」は、期間の見出しの下にある（サマリーには並べない）", await p.locator("#rptbar #rptrun, #rptbar .ai-off").count() === 1 && await p.locator("#review #rptrun").count() === 0);
-    check("週報のボタンは横にはみ出さない", await p.evaluate(() => [...document.querySelectorAll("#rptbar > *")].every(e => e.getBoundingClientRect().right <= innerWidth + 1)));
+    check("保存した HTML では、週報の帯ごと AI の操作を出さない（ADR 0034）", await p.locator("#rptbar").isHidden() && await p.locator("#rptrun, .ai-off, .ai-action, .ai-none").count() === 0);
     const text = await p.evaluate(() => { const {S, P} = period(); return reportPrompt(S, st.mode === "month"); });
     check("事実の期間は「Sep 28 – Oct 4, 2026」の形", /^## Work for [A-Z][a-z]{2} \d{1,2} – ([A-Z][a-z]{2} \d{1,2}, )?\d{4}$|^## Work for [A-Z][a-z]{2} \d{1,2}, \d{4} – /m.test(text), JSON.stringify(text.slice(0, 80)));
     check("履歴ファイルのパスと、読む範囲の決まりがある", /History file: \//.test(text) && /Read only the files listed/.test(text));
     check("決まった形式と、kiroku が埋めた数字の表がある", /# Format/.test(text) && /### By project/.test(text) && /^\| Active time \| \S/m.test(text) && /^\| Git commits \(by AI\) \| \d+ \(\d+\) \|/m.test(text), JSON.stringify(text.match(/^\| Active time.*$/m)));
-    // 長い日本語のプロンプトが多い週でも、kiroku serve --ai で送れる大きさに収まる（要約を短くし、そう書く）
+    // 長い日本語のプロンプトが多い週でも、kiroku serve の「AI 分析」で送れる大きさに収まる（要約を短くし、そう書く）
     const big = await p.evaluate(() => { const was = DATA; const {ws, we, S} = period();
       try { const inWeek = DATA.filter(s => s.segs.some(([a, b]) => b > ws && a < we));
         const many = []; for (let i = 0; i < 120; i++) inWeek.forEach(s => many.push({...s, id: s.id + "-x" + i,
@@ -418,7 +417,7 @@ async function run(env) {
     await p.keyboard.press("Escape"); await pause();
     check("閉じると検索結果に戻る", await p.evaluate(() => !!document.activeElement.closest("#sres .srow[data-s]")));
     await p.locator("#sclear").click(); await pause();
-    check("検索をやめるとサマリーに戻る", await p.locator("#q").inputValue() === "" && await p.locator("#rptbar").isVisible() && await p.locator("#sres").isHidden());
+    check("検索をやめるとサマリーに戻る", await p.locator("#q").inputValue() === "" && await p.locator("#review .stat").first().isVisible() && await p.locator("#sres").isHidden());
   });
 
   await step("表示の切り替え", async () => {
@@ -548,7 +547,6 @@ async function runJa(env) {
   await step("読み込み", async () => {
     check("ブラウザの言語が日本語なら、日本語で開く", await p.evaluate(() => document.documentElement.lang === "ja" && JA));
     check("期間の見出しは日本語の日付", /\d+月\d+日/.test(await p.locator("#rd").innerText()), await p.locator("#rd").innerText());
-    check("週報のボタンが日本語", /[\u3040-\u30ff\u4e00-\u9fff]/.test(await p.locator("#rptbar").innerText()), await p.locator("#rptbar").innerText());
     const [sw, iw] = await overflow();
     check("横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
     await noEnglish("最初の画面");

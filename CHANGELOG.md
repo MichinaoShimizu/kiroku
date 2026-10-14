@@ -4,6 +4,18 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Changed
+
+- "Analyze with AI" is available in `kiroku serve` without `--ai`, for the weekly and monthly report and the session review ([ADR 0034](docs/adr/0034-ai-analysis-by-default.md))
+  - It offers the agents installed on this computer (`claude`, `codex`, `kiro-cli`). When none is installed, the button is shown disabled with the reason.
+  - Each run still shows the exact prompt and waits for you to confirm.
+  - The agent you choose may send the prompt and the history it reads to its provider. `kiroku serve` says so when it starts, and so do README, the guide and `SECURITY.md`; the run dialog no longer repeats it.
+  - Agent runs stay off when `kiroku serve` listens on an address that isn't a loopback IP.
+  - A saved HTML file never runs an agent and now shows no AI buttons.
+- New `kiroku serve --no-ai` (or `KIROKU_NO_AI=1`, which `kiroku autostart on` keeps) turns agent runs off; `/ai/run` then answers 404
+- `kiroku serve --ai` is still accepted but no longer needed: it does nothing except print a one-line notice. A non-loopback ADDR with `--ai` no longer fails; agent runs are just off there. An explicit `--ai=false` turns agent runs off, like `--no-ai`
+- If you registered `kiroku autostart on` before this version, agent runs are on after you update. To keep them off, run `KIROKU_NO_AI=1 kiroku autostart on` once
+
 ### Removed
 
 - The Journey and Project views, and the View switch above the calendar: the view is the Week / Month calendar, with search, the legend's filters, session details, the summary and the Year in review as before. A browser that last showed Journey or Project opens the calendar ([ADR 0033](docs/adr/0033-calendar-only-view.md))
