@@ -884,7 +884,7 @@ dialog.yr h4.yrsub{font:600 var(--fs-md)/1.5 var(--sans);margin:12px 0 6px;color
 .head .dd .ai-action{max-width:100%;min-width:0;box-sizing:border-box;font-size:var(--fs-xs);padding:3px 7px;white-space:nowrap}
 @media(max-width:900px){.head .dd .ai-action{font-size:11px;padding:2px 6px}}
 
-/* Run with AI is off (saved file, or kiroku serve without --ai): an outlined button that explains how to turn it on, not an action */
+/* Analyze with AI is off (saved file, or kiroku serve without --ai): an outlined button that explains how to turn it on, not an action */
 .pill.ai-off{background:transparent;color:#176b50;border:1px dashed #5c9a80;font-weight:500;cursor:help}
 .pill.ai-off:hover{background:#e7f2ec}
 .pill.ai-off:focus-visible{outline:2px solid #2da978;outline-offset:3px}
@@ -911,3 +911,10 @@ html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り
 .rptbar{flex-basis:100%;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:-6px}
 .rptbar[hidden]{display:none}
 .rptbar .rptl{font-size:var(--fs-sm);font-weight:600;color:var(--ink-2);margin-right:2px}
+/* AI で分析のダイアログ: 上に寄せて固定（出力が増えても動かない）。ボタンの並びは下に貼りつける */
+.ai-dialog{width:min(900px,94vw);max-height:90vh;margin:5vh auto auto;padding:20px 20px 0;border:1px solid var(--rule-2);border-radius:12px;background:var(--bg);color:var(--ink)}
+.ai-dialog .ai-agent{display:inline-flex;align-items:center;gap:8px}
+.ai-dialog .ai-prompt{display:block;width:100%;height:220px;margin:12px 0;font:12px var(--mono);box-sizing:border-box}
+.ai-dialog .ai-prompt.small{height:72px}
+.ai-controls{position:sticky;bottom:0;display:flex;gap:12px;flex-wrap:wrap;padding:12px 0 20px;background:var(--bg)}
+.ai-rhead[hidden],.ai-out[hidden],.ai-log[hidden]{display:none}

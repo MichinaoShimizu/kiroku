@@ -192,7 +192,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
     const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${act || dayGit.length ? copyBtn(`<span class="dl">${esc(t("Report"))}</span>`, `data-d="${d}" aria-label="${esc(t("Copy daily report prompt for {date}", {date: md(ds)}))}" title="${esc(t("A prompt that asks an AI agent on this computer to write your daily report for {date}", {date: md(ds)}))}"`, "pill fill dayrpt") : ""}${(act || dayGit.length) && aiRun() ? `<button class="pill dayrun ai-action" data-d="${d}" type="button" aria-label="${esc(t("Run with AI: daily report for {date}", {date: md(ds)}))}">${esc(t("Run with AI"))}</button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`;
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${act || dayGit.length ? copyBtn(`<span class="dl">${esc(t("Report"))}</span>`, `data-d="${d}" aria-label="${esc(t("Copy daily report prompt for {date}", {date: md(ds)}))}" title="${esc(t("A prompt that asks an AI agent on this computer to write your daily report for {date}", {date: md(ds)}))}"`, "pill fill dayrpt") : ""}${(act || dayGit.length) && aiRun() ? `<button class="pill dayrun ai-action" data-d="${d}" type="button" aria-label="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}">${esc(t("Analyze with AI"))}</button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`;
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
@@ -252,7 +252,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
   bindGitEvents(T);
   T.querySelectorAll(".dayrpt").forEach(b => b.onclick = e => { e.stopPropagation(); // 日報のプロンプト（週報と同じ作り。その日の分だけ）
     copy(reportPrompt(null, false, addDays(st.week, +b.dataset.d)), t("Copied. Paste it into an AI agent on this computer. It includes your prompts and history file paths, and the agent reads those files, so check it before sending."), 8000, b); });
-  T.querySelectorAll(".dayrun").forEach(b => b.onclick = e => { e.stopPropagation(); runAIReview(b, reportPrompt(null, false, addDays(st.week, +b.dataset.d)), t("Daily report")); });
+  T.querySelectorAll(".dayrun").forEach(b => b.onclick = e => { e.stopPropagation(); runAIReview(b, reportPrompt(null, false, addDays(st.week, +b.dataset.d)), t("Daily report for {date}", {date: md(addDays(st.week, +b.dataset.d).getTime() / 1000)})); });
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });
   T.querySelectorAll(".run").forEach(el => { const bk = runs[+el.dataset.r];
     el.onclick = e => { e.stopPropagation(); select(bk.s.id); };
