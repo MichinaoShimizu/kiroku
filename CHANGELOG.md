@@ -9,6 +9,11 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - The page `kiroku serve` shows while it reads your history follows the view's language (`--lang`, the language chosen in the view, or the browser's), so it is in Japanese too
 - In Japanese, a file written with `kiroku html --week` no longer names its week in English ("week of …"), lists of agents and models use 「、」, and "Month-end cost" and "Month-end credits" have one name each
 - The guide and the READMEs describe the sections the review and report prompts ask for now (Professional prompt assessment, Prioritized advice and Reusable prompt playbook for a session; Expert observations and Next actions for a report), and README.ja uses the view's words (PC, プロンプト, 応答, 基準)
+- The guide now says to delete `~/Library/Logs/kiroku.log` when uninstalling on macOS, that an AI agent installed while `kiroku serve --ai` runs is offered once history is read again, that kiroku ignores a `KIRO_HOME` or `KIROCREW_HOME` it can't safely use, and names the "Read more (N characters)" button of a cut prompt
+
+### Security
+
+- `install.sh` copies the new binary to a temporary file with a fresh random name (`mktemp`) next to the install location before moving it into place, instead of the fixed `.kiroku.new`, so a file or link someone else left there can't be written through. It and `tools/reproduce.sh` also download over HTTPS only (TLS 1.2 or later), even across redirects
 
 ## v0.34.1 - 2026-10-14
 
