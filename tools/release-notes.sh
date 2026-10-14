@@ -9,7 +9,7 @@ notes=$(awk -v v="$ver" '
   on
 ' "$file" | sed '/./,$!d')
 if [ -z "$notes" ]; then
-  echo "release-notes: no \"## $ver\" section in $file. Rename \"## Unreleased\" to \"## $ver - YYYY-MM-DD\" before tagging." >&2
+  echo "release-notes: no \"## $ver\" section in $file. Make it with \"sh tools/release.sh\" (or \"sh tools/changelog.sh --release $ver\") before tagging." >&2
   exit 1
 fi
 printf '%s\n' "$notes"

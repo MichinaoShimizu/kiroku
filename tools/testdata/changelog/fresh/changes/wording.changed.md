@@ -1,0 +1,1 @@
+- Clearer wording on the made-up settings page

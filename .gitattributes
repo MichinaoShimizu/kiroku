@@ -1,2 +1,5 @@
 # テストの正解ファイルは改行を変えない（Windows で CRLF にならないように）
 testdata/** -text
+tools/testdata/** -text
+# 変更の断片は LF のまま（tools/changelog.sh は CR を含む行を誤りにする）
+changes/*.md text eol=lf

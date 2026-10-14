@@ -1,0 +1,1 @@
+- Pull requests now describe their user-visible changes in a file under `changes/` instead of editing `CHANGELOG.md`; the release merges them. For contributors only: the changelog itself reads the same
