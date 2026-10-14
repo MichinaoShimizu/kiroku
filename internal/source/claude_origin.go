@@ -259,9 +259,66 @@ func originLine(line []byte) core.Obj {
 	return e
 }
 
+// before は、同じ会話 ID のファイルのうち、path より先に数えるもの。会話を /cd や worktree への出入りで別のプロジェクトの
+// フォルダへ移すと、Claude Code は会話のファイルを移す（https://code.claude.com/docs/en/sessions 、worktrees）。
+// kiroku archive は元の場所のコピーを残すので、同じ会話のファイルが 2 つのフォルダにできる。重なる行は先のファイルで数える。
+// 先に数えるのは、元のファイル（.jsonl）、kiroku archive のコピー（.zst）の順で、同じ種類ならパスの順
+// （更新時刻で決めると、kiroku serve で順番が入れ替わったときに読み直されないファイルが出る）。
+func (o *claudeOrigins) before(path string) []string {
+	var out []string
+	for _, f := range o.files(stemOf(path)) {
+		if f != path && dupRank(f, path) {
+			out = append(out, f)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// dupRank は、同じ会話のファイル a を b より先に数えるか。
+func dupRank(a, b string) bool {
+	if za, zb := strings.HasSuffix(a, ".zst"), strings.HasSuffix(b, ".zst"); za != zb {
+		return zb
+	}
+	return a < b
+}
+
+// seenBefore は、行 e（このファイル path の会話は stem）が、同じ会話の先に数えるファイルに自身の行としてあるか。
+// 別の会話から写した行は copied が見る。突き合わせられない行は false（数える）。
+func (c *originCheck) seenBefore(e core.Obj, stem, path string) bool {
+	if copiedFrom(e, stem) != "" {
+		return false
+	}
+	key := lineKey(e)
+	if key == "" {
+		return false
+	}
+	if c.prior == nil {
+		c.prior = []map[uint64]struct{}{}
+		for _, f := range c.o.before(path) {
+			if c.reads >= maxOriginsPerUnit {
+				break
+			}
+			c.reads++
+			keys, stamp := c.o.keys(f, stem)
+			c.prior = append(c.prior, keys)
+			c.stamps[f] = stamp
+			c.found[stem] = true
+		}
+	}
+	h := c.o.hash(key)
+	for _, s := range c.prior {
+		if _, ok := s[h]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 // originCheck は、1 つの会話のファイルを読む間、写した行を元の会話と突き合わせる。
 type originCheck struct {
 	o      *claudeOrigins
+	prior  []map[uint64]struct{}            // 同じ会話の、先に数えるファイルの行の印（seenBefore。まだ読んでいなければ nil）
 	sets   map[string][]map[uint64]struct{} // 元の会話の ID ごとの行の印（ファイルごと）。確かめないものは nil
 	found  map[string]bool                  // 読んだ元の会話（tag 用）
 	stamps map[string]string                // 読んだ元の会話のファイルと、読んだときの印（tag 用）

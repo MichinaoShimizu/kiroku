@@ -260,6 +260,19 @@ func TestClaudeRetention(t *testing.T) {
 			t.Errorf("%s = %+v, want nil（消さない）", bad, r)
 		}
 	}
+	// desktopSessionCleanupPeriodDays に受け付けない値があっても、設定の検証エラーで片付けが止まる。正しい値なら既定の 30 日
+	for _, v := range []string{`-1`, `1.5`, `"x"`, `null`} {
+		os.WriteFile(filepath.Join(home, "settings.json"), []byte(`{"desktopSessionCleanupPeriodDays": `+v+`}`), 0o644)
+		if r := c.Retention(); r != nil {
+			t.Errorf("desktopSessionCleanupPeriodDays %s = %+v, want nil（消さない）", v, r)
+		}
+	}
+	for _, v := range []string{`0`, `90`} {
+		os.WriteFile(filepath.Join(home, "settings.json"), []byte(`{"desktopSessionCleanupPeriodDays": `+v+`}`), 0o644)
+		if r := c.Retention(); r == nil || r.Days != 30 {
+			t.Errorf("desktopSessionCleanupPeriodDays %s = %+v, want 30 日", v, r)
+		}
+	}
 	// ほかのキーだけなら既定の 30 日
 	os.WriteFile(filepath.Join(home, "settings.json"), []byte(`{"model": "opus"}`), 0o644)
 	if r := c.Retention(); r == nil || r.Days != 30 || r.Set {
