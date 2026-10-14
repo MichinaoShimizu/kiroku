@@ -1766,6 +1766,9 @@ func TestReadCrewLogEscapedTypeAndBOM(t *testing.T) {
 // （中身を残さない会話の印が退避した記録にだけあると、隠せないまま出してしまうので）。
 // root でも並べられないよう、フォルダの場所にファイルを置く。
 func TestKiroCrewArchiveDirUnreadable(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows reports a file in place of a folder as a missing folder, so this can't build a folder that fails to list")
+	}
 	ch := t.TempDir()
 	os.MkdirAll(filepath.Join(ch, "sessions"), 0o755)
 	os.WriteFile(filepath.Join(ch, "sessions", "archive"), []byte("x"), 0o644)
@@ -1782,6 +1785,9 @@ func TestKiroCrewArchiveDirUnreadable(t *testing.T) {
 
 // crew-log の会話のフォルダを並べられないときも、読めなかったと伝える。
 func TestCrewLogSegmentsUnreadable(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows reports a file in place of a folder as a missing folder, so this can't build a folder that fails to list")
+	}
 	f := filepath.Join(t.TempDir(), "notadir")
 	os.WriteFile(f, nil, 0o644)
 	if _, err := crewLogSegments(f); err == nil {
