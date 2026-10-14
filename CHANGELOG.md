@@ -2,7 +2,7 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
-## Unreleased
+## v0.36.1 - 2026-10-14
 
 ### Changed
 
@@ -15,6 +15,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - New `kiroku serve --no-ai` (or `KIROKU_NO_AI=1`, which `kiroku autostart on` keeps) turns agent runs off; `/ai/run` then answers 404
 - `kiroku serve --ai` is still accepted but no longer needed: it does nothing except print a one-line notice. A non-loopback ADDR with `--ai` no longer fails; agent runs are just off there. An explicit `--ai=false` turns agent runs off, like `--no-ai`
 - If you registered `kiroku autostart on` before this version, agent runs are on after you update. To keep them off, run `KIROKU_NO_AI=1 kiroku autostart on` once
+- Pull requests now describe their user-visible changes in a file under `changes/` instead of editing `CHANGELOG.md`; the release merges them. For contributors only: the changelog itself reads the same
 
 ### Removed
 
@@ -24,6 +25,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Every "Copy prompt" button: "Copy prompt" for the weekly and monthly report and "Copy review prompt" in session details. The report and review prompts are still built, for "Analyze with AI" only
 - The metrics guide (the map button at the top right and the `G` key). The "?" next to each metric and the keyboard shortcut list (`?`) stay
 - The calendar zoom ("Zoom" − + in the legend and the `+` `−` keys). The week calendar still fits the height of an hour to the week's working hours
+- The Year in review: its button next to Week / Month, the `Y` shortcut and the share image ("Save as PNG", "Copy image"). The view is the week and month calendar with its summary; options saved for the Year in review are ignored
 
 ### Fixed
 

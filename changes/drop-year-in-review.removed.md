@@ -1,1 +1,0 @@
-- The Year in review: its button next to Week / Month, the `Y` shortcut and the share image ("Save as PNG", "Copy image"). The view is the week and month calendar with its summary; options saved for the Year in review are ignored
