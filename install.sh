@@ -59,7 +59,7 @@ esac
 # 最新の版は、releases/latest のリダイレクト先から読む（API の回数制限にかからない）
 version="${KIROKU_VERSION:-}"
 if [ -z "$version" ]; then
-  url=$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/$REPO/releases/latest") ||
+  url=$(curl --proto '=https' --tlsv1.2 -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/$REPO/releases/latest") ||
     die "could not check the latest version"
   version="${url##*/}"
 fi
@@ -83,8 +83,8 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 say "downloading kiroku ${version} ($os/${arch})…"
-curl -fsSL -o "$tmp/$file" "$base/$file" || die "could not download $file (${base})"
-curl -fsSL -o "$tmp/checksums.txt" "$base/checksums.txt" || die "could not download checksums.txt"
+curl --proto '=https' --tlsv1.2 -fsSL -o "$tmp/$file" "$base/$file" || die "could not download $file (${base})"
+curl --proto '=https' --tlsv1.2 -fsSL -o "$tmp/checksums.txt" "$base/checksums.txt" || die "could not download checksums.txt"
 
 want=$(awk -v f="$file" '$2 == f { print $1 }' "$tmp/checksums.txt")
 [ -n "$want" ] || die "$file is not listed in checksums.txt"
@@ -171,10 +171,12 @@ if [ -z "$dir" ]; then
   fi
 fi
 mkdir -p "$dir" || die "could not create $dir"
-# いったん同じ場所の .kiroku.new に写してから名前を変える（同じファイルシステムの中なので、入れ替えは一瞬）。
-# 別のファイルシステムへの mv は、古いのを消してから写すので、途中で止まると壊れた kiroku が残るため
-new="$dir/.kiroku.new"
-if ! cp "$tmp/kiroku" "$new" 2>/dev/null || ! chmod +x "$new"; then
+# いったん同じ場所の一時ファイル（.kiroku.XXXXXX）に写してから名前を変える（同じファイルシステムの中なので、入れ替えは一瞬）。
+# 別のファイルシステムへの mv は、古いのを消してから写すので、途中で止まると壊れた kiroku が残るため。
+# 名前は mktemp で毎回新しく作る（決まった名前だと、ほかの人が先に置いたファイルやリンクに書き込んでしまう）。
+# mktemp は 0600 で作るので、写したあとで 0755 にする
+new=$(mktemp "$dir/.kiroku.XXXXXX" 2>/dev/null) || new=""
+if [ -z "$new" ] || ! cp "$tmp/kiroku" "$new" 2>/dev/null || ! chmod 755 "$new"; then
   die "could not install into $dir (set KIROKU_INSTALL_DIR to choose another place)"
 fi
 if [ "$os" = darwin ] && command -v xattr >/dev/null 2>&1; then
