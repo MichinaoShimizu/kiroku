@@ -1143,3 +1143,40 @@ func TestCodexReviewSubagentCopied(t *testing.T) {
 	)
 	checkCodexChild(t, home, "thr-p", "子の依頼", 300, 20)
 }
+
+// 途中で終わった応答（response.incomplete）の使用量は、合計にだけ足され、last_token_usage は前の応答のまま書かれる
+// （codex-rs の record_incomplete_response_usage → SpendingOnly）。token_count だけで読む部分では、前の応答を重ねて数えず、
+// 合計の差をその応答の分にする。token_usage_record がある部分は、そちらを使う。
+func TestCodexIncompleteResponseCountedOnce(t *testing.T) {
+	tok := func(i, o int) string {
+		return fmt.Sprintf(`{"input_tokens":%d,"cached_input_tokens":0,"output_tokens":%d,"total_tokens":%d}`, i, o, i+o)
+	}
+	tc := func(ts string, tin, tout, lin, lout int) string {
+		return `{"timestamp":"` + ts + `","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":` + tok(tin, tout) + `,"last_token_usage":` + tok(lin, lout) + `,"model_context_window":272000}}}`
+	}
+	rec := func(ts, th, rid string, i, o int) string {
+		return `{"timestamp":"` + ts + `","type":"token_usage_record","payload":{"thread_id":"` + th + `","response_id":"` + rid + `","usage":` + tok(i, o) + `}}`
+	}
+	head := func(id string) []string {
+		return []string{`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"` + id + `","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/x"}}`,
+			`{"timestamp":"2026-10-06T00:00:01.000Z","type":"turn_context","payload":{"model":"gpt-5.5"}}`}
+	}
+	home := t.TempDir()
+	writeCodex(t, home, "thr-a", append(head("thr-a"),
+		tc("2026-10-06T00:00:10.000Z", 1000, 100, 1000, 100),
+		tc("2026-10-06T00:00:20.000Z", 1500, 100, 1000, 100), // 途中で終わった応答: 入力 500、出力 0
+		tc("2026-10-06T00:00:30.000Z", 2500, 150, 1000, 50))...)
+	writeCodex(t, home, "thr-b", append(head("thr-b"),
+		rec("2026-10-06T00:00:10.000Z", "thr-b", "r1", 1000, 100),
+		tc("2026-10-06T00:00:10.000Z", 1000, 100, 1000, 100),
+		rec("2026-10-06T00:00:20.000Z", "thr-b", "r2", 500, 0),
+		tc("2026-10-06T00:00:20.000Z", 1500, 100, 1000, 100),
+		rec("2026-10-06T00:00:25.000Z", "thr-other", "o1", 9000, 900))...) // ほかのスレッドの使用量は数えない
+	bs := load(t, &Codex{Home: home})
+	for id, want := range map[string][2]float64{"thr-a": {2500, 150}, "thr-b": {1500, 100}} {
+		s := find(bs, id).Finish(15)
+		if s.Usage.In != want[0] || s.Usage.Out != want[1] {
+			t.Errorf("%s: 入力 %v・出力 %v, want %v", id, s.Usage.In, s.Usage.Out, want)
+		}
+	}
+}
