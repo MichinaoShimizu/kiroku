@@ -4,16 +4,26 @@
 #   ### Added がある → minor
 #   それ以外（Changed / Fixed / Removed だけ）→ patch
 # Usage: sh tools/next-version.sh [節の名前（既定: Unreleased）] [CHANGELOG.md]
+#        Unreleased（既定）は、CHANGELOG.md の「## Unreleased」と、まだまとめていない changes/ の断片を合わせた中身で決める
+#        （tools/changelog.sh --print。断片は CHANGELOG.md の隣の changes/ から読む）。
 #        前の版は、その節より下にある最初の正式な版の節（なければ最新の正式なタグ）。プレリリース（v0.2.0-rc.1）は飛ばす
 set -eu
 sec=${1:-Unreleased}
 file=${2:-CHANGELOG.md}
-body=$(awk -v v="$sec" '/^## / { if (on) exit; on = ($2 == v); next } on' "$file")
+if [ "$sec" = Unreleased ]; then
+  body=$(sh "$(dirname "$0")/changelog.sh" --print "$file")
+  what="\"## $sec\" in $file and changes/ are"
+else
+  body=$(awk -v v="$sec" '/^## / { if (on) exit; on = ($2 == v); next } on' "$file")
+  what="\"## $sec\" in $file is"
+fi
 if [ -z "$(printf '%s' "$body" | tr -d '[:space:]')" ]; then
-  echo "next-version: \"## $sec\" in $file is missing or empty" >&2
+  echo "next-version: $what missing or empty" >&2
   exit 1
 fi
-prev=$(awk -v v="$sec" '/^## / { if (seen && $2 ~ /^v[0-9]+\.[0-9]+\.[0-9]+$/) { print $2; exit } if ($2 == v) seen = 1 }' "$file")
+# 「## Unreleased」がまだない（変更は changes/ の断片だけ）ときは、いちばん上の版が前の版
+prev=$(awk -v v="$sec" -v seen="$( [ "$sec" = Unreleased ] && ! grep -q '^## Unreleased' "$file" && echo 1)" '
+  /^## / { if (seen && $2 ~ /^v[0-9]+\.[0-9]+\.[0-9]+$/) { print $2; exit } if ($2 == v) seen = 1 }' "$file")
 [ -n "$prev" ] || prev=$(git tag --list 'v*' --sort=-v:refname 2>/dev/null | grep -v -- - | head -1 || true)
 [ -n "$prev" ] || prev=v0.0.0
 IFS=. read -r ma mi pa <<VER

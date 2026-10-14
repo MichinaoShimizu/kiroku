@@ -1,7 +1,7 @@
 name: Tag
 
 # CHANGELOG.md のいちばん上の節が「## v0.1.6 - 2026-10-04」のような版で、そのタグがまだなければ、
-# タグを打って Release（release.yml）を動かす。リリースは「Unreleased を版に書き換える PR」をマージするだけで出る。
+# タグを打って Release（release.yml）を動かす。リリースは、sh tools/release.sh で作る PR（changes/ の断片と Unreleased を版の節にまとめる）をマージするだけで出る。
 # 手で動かすこともできる（Actions → Tag → Run workflow）。
 on:
   push:

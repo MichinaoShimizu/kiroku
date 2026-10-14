@@ -76,7 +76,7 @@ go test -run TestSnapshot -update ./internal/cli
 - `docs/guide.md`: 料金表の時点（「as of October 2026」など）、長さで料金が変わるモデルの説明、コンテキストウィンドウの段落
 - `docs/sources.md`: 料金表と長さによる料金の項目、「What history records」の Prices と Context window の行
 - `docs/development.md`: 料金表の説明が変わったときだけ
-- `CHANGELOG.md` の `## Unreleased`: 新しいモデルは `### Added`、値の訂正は `### Fixed`（どのセッションの推定が高すぎた・低すぎたかを書く）。どちらもモデル名・ID・新しい値を書く
+- 変更の断片（`changes/README.md`）: 新しいモデルは `changes/<短い名前>.added.md`、値の訂正は `changes/<短い名前>.fixed.md`（どのセッションの推定が高すぎた・低すぎたかを書く）。どちらもモデル名・ID・新しい値を書く
 
 ## 7. 確かめて PR にする
 

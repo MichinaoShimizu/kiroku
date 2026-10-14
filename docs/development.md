@@ -9,6 +9,7 @@ Go 1.26 or later is required. If Node is available, `internal/web/script_test.go
 ```bash
 sh tools/check.sh  # runs gofmt, go vet, staticcheck, govulncheck, go test, go build and shellcheck as CI does, and lists what failed (--e2e adds the view's e2e)
 go test ./...      # checks that the aggregates match the expected values, using synthetic data in testdata/
+sh tools/changelog.sh --check && sh tools/changelog_test.sh   # the changelog fragments in changes/, and the scripts that merge them (check.sh runs both)
 go vet ./...
 GOTOOLCHAIN=$(go env GOVERSION) go run honnef.co/go/tools/cmd/staticcheck@2026.2.2 ./...   # static analysis (OK if nothing is printed)
 GOTOOLCHAIN=$(go env GOVERSION) go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...   # known vulnerabilities in the standard library and modules that kiroku calls
@@ -54,7 +55,7 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | `internal/gitlog` | Reads commits, and pushes from the reflog, from the git repository in each session's working directory (skipped without git), with the repository's own settings that run programs turned off |
 | `internal/web` | The view. Written as `template.html` (markup), `style.css` and the script in `js/*.js`, split by role (`state.js` data and view state, `format.js` helpers, `ui.js` shared components, `calendar.js` week and month calendars, `summary.js` / `review.js` / `panels.js` the summary, `metric.js` the breakdown dialogs, `git.js` / `session.js` the details panel, `ai.js` Analyze with AI, `markdown.js` escaping for copied text, `mdview.js` the formatted view of an AI reply (elements and text only, never HTML), `i18n.js` the Japanese catalog, `year.js`, `events.js` input and keyboard, `boot.js` start-up, `live.js` updates under `kiroku serve`; `loading.html` is the page `kiroku serve` shows while it first reads history); `web.go` joins the script files in the fixed order of its `scripts` list into one `<script>` and combines everything with the aggregate JSON into one HTML file. `help_test.go`, `script_test.go` and `ui_test.go` check the view's explanations, script and use of the shared components |
 | `testdata/` | Synthetic history (`home/`, `codex/`, `crew/`, `sqlite/`), `golden.json`, `snapshot.json`, `mtimes.json`, and `compat/` (files an earlier kiroku wrote) |
-| `tools/` | `check.sh` (runs CI's checks locally), `release-notes.sh` and `next-version.sh` (releases), `reproduce.sh` (rebuilds a released binary from its tag and compares it), `prices/` (fetches the official price pages and writes the numbers kiroku uses to `docs/upstream/`), `reportbench/` (synthetic history with known answers, and a grader, for testing the daily, weekly and monthly report prompts with the `/report-eval` skill), `screenshots/` (dummy data with `gen.py` and `mkgit.py`, the demo's link card with `ogp.py`, screenshots with `capture.mjs`, the README's animation with `demo.mjs`, and the view's e2e: `smoke.mjs`, plus `hostile.py` and `xss.mjs` for XSS) |
+| `tools/` | `check.sh` (runs CI's checks locally), `release.sh`, `changelog.sh`, `next-version.sh`, `release-notes.sh` and `verify-release.sh` (releases, with `changelog_test.sh` and its fixtures in `testdata/changelog/`), `imgdiff/` (compares retaken images with the committed ones), `reproduce.sh` (rebuilds a released binary from its tag and compares it), `prices/` (fetches the official price pages and writes the numbers kiroku uses to `docs/upstream/`), `reportbench/` (synthetic history with known answers, and a grader, for testing the daily, weekly and monthly report prompts with the `/report-eval` skill), `screenshots/` (dummy data with `gen.py` and `mkgit.py`, the demo's link card with `ogp.py`, screenshots with `capture.mjs`, the README's animation with `demo.mjs`, `keep-changed.sh` to keep only images that really changed, and the view's e2e: `smoke.mjs`, plus `hostile.py` and `xss.mjs` for XSS) |
 | `install.sh`, `.goreleaser.yaml` | The installer, and how release files are built |
 
 The price tables are `Prices` and `LongPrices` (Anthropic; `LongPrices` holds models priced by prompt length, such as Claude Haiku 5.5 over 100K tokens), `OpenAIPrices` and `OpenAILongPrices` (OpenAI, for Codex), and `OpenAITiers` (OpenAI's Fast, Ultrafast and Flex rates, picked by the service tier Codex records; the `### Fast` and other sections of `openai-pricing.md`) in `internal/core/usage.go`. Their source of truth is the official pricing pages, of which `docs/upstream/anthropic-pricing.md` and `docs/upstream/openai-pricing.md` keep only the numbers kiroku uses. To update them:
@@ -119,7 +120,7 @@ On PRs and pushes to main, `.github/workflows/ci.yml` runs the following.
 - `test` (Ubuntu, macOS, Windows): gofmt (except Windows), vet, staticcheck and govulncheck (Ubuntu only, pinned to 2026.2.2 and v1.9.0), tests, build
 - `release-dry-run`: `goreleaser release --snapshot` with the same pinned GoReleaser and syft as the release and no Go cache (does not publish; `go mod tidy -diff` also catches an untidy go.mod, and the SBOMs are generated too), extracting release notes from the top section of the CHANGELOG, and, if that section is a version not yet tagged, checking that its number matches `tools/next-version.sh`
 - `e2e`: opens the dummy-data HTML in Chromium and uses `tools/screenshots/smoke.mjs` to check that the key flows work (switching themes, moving between weeks, opening and closing session details and where focus returns after closing, the weekly report prompt, search, month view and shortcuts), that nothing overflows sideways, and that there are no script errors and no Content-Security-Policy violations, at 1440px, 1000px, 390px and 320px, and opens the main views in Japanese at the same widths to check they render without script errors or overflow and that no translated label is left in English. Playwright is pinned in `tools/screenshots/package.json` and `package-lock.json` and installed with `npm ci --ignore-scripts`; this job runs npm packages, so it does not use the Go cache. It also builds the view from synthetic history full of HTML and script payloads (`tools/screenshots/hostile.py`) and drives it with `tools/screenshots/xss.mjs` to check that no script runs, no element is injected and nothing is loaded from the network
-- `install-script` (Ubuntu, macOS): runs shellcheck on `install.sh`, `tools/*.sh` and `.claude/hooks/*.sh` (Ubuntu only), actually installs the latest release, and checks `kiroku --version`; it installs once more with `KIROKU_REQUIRE_ATTESTATION=1` so the build provenance check must pass
+- `install-script` (Ubuntu, macOS): runs shellcheck on `install.sh`, `tools/*.sh`, `tools/*/*.sh` and `.claude/hooks/*.sh` (Ubuntu only), actually installs the latest release, and checks `kiroku --version`; it installs once more with `KIROKU_REQUIRE_ATTESTATION=1` so the build provenance check must pass
 
 How the workflows are locked down:
 
@@ -147,17 +148,41 @@ Other workflows:
 
 ## Making a release
 
-The version number is decided from the contents of `## Unreleased` by semantic versioning. `sh tools/next-version.sh` prints the next number. What counts as breaking (and what doesn't) is in [compatibility.md](compatibility.md).
+### Changelog entries
 
-| Contents of Unreleased | Part to bump |
+A PR with a user-visible change adds a fragment under `changes/` instead of editing `CHANGELOG.md`, so PRs that are open at the same time don't conflict: `changes/<short-name>.<section>.md`, where the section is `added`, `changed`, `deprecated`, `removed`, `fixed` or `security`, holding one or more `- ` bullets in English (the format is in [changes/README.md](../changes/README.md)). `sh tools/changelog.sh --check` checks them; `tools/check.sh` and CI (release-dry-run) run it. Entries already under `## Unreleased` in `CHANGELOG.md` still count and are kept.
+
+### The version number
+
+The version number is decided by semantic versioning from what is unreleased: the fragments in `changes/` together with anything under `## Unreleased`. `sh tools/next-version.sh` prints the next number. What counts as breaking (and what doesn't) is in [compatibility.md](compatibility.md).
+
+| Unreleased changes (fragments and `## Unreleased`) | Part to bump |
 |---|---|
 | A change marked `BREAKING` (one that breaks something [compatibility.md](compatibility.md) keeps compatible, such as commands, options or `kiroku archive` copies; changes to the view or the metrics don't count) | major from 1.0, minor while in 0.x |
-| Has `### Added` | minor |
-| Anything else (`### Changed`, `### Fixed`, `### Removed` and so on) | patch |
+| Has an Added change (`*.added.md`, `### Added`) | minor |
+| Anything else (Changed, Fixed, Removed and so on) | patch |
 
-Before that PR, run the `/docs-refresh` skill in Claude Code (`.claude/skills/docs-refresh/SKILL.md`). It checks whether the screenshots and the docs still match the view since the last release, retakes and rewrites what is out of date, trims what has grown too long, and opens one PR (or says nothing needs changing). Merge it before the release PR.
+### The release pull request
 
-Make a PR that renames `## Unreleased` in `CHANGELOG.md` to that number, like `## v0.1.8 - 2026-10-05`, and merge it into main (write it in English; its contents become the release notes as is). On merge, `.github/workflows/tag.yml` tags the version of the top section and runs Release directly. There is no need to tag by hand.
+Before the release, run the `/docs-refresh` skill in Claude Code (`.claude/skills/docs-refresh/SKILL.md`). It checks whether the screenshots and the docs still match the view since the last release, retakes and rewrites what is out of date, trims what has grown too long, and opens one PR (or says nothing needs changing). Merge it first.
+
+Then, on a clean working tree:
+
+```bash
+sh tools/release.sh                   # or --no-screenshots
+```
+
+`tools/release.sh` never pushes or tags. It:
+
+1. stops if the working tree has changes (commit them or move them to a branch; don't use a bare `git stash`)
+2. fetches `origin/main`, computes the version with `next-version.sh`, and creates `claude/release-vX.Y.Z` from `origin/main`
+3. runs `sh tools/changelog.sh --release vX.Y.Z`, which merges the fragments and `## Unreleased` into `## vX.Y.Z - <today, UTC>` (sections in the order Added, Changed, Deprecated, Removed, Fixed, Security, with existing entries first) and deletes the merged fragments
+4. when Chromium is available (`CHROMIUM`, or Playwright's own), retakes the screenshots and keeps only the images that really changed (see "Screenshots")
+5. runs `sh tools/check.sh` and `sh tools/release-notes.sh vX.Y.Z`, commits `Release vX.Y.Z`, and prints the next steps: push the branch and open the PR with the release notes as its body
+
+If `tools/check.sh` fails, the script stops on the release branch with the changes uncommitted: fix them there, commit, and continue with the next steps by hand. To prepare the section by hand instead, run `sh tools/changelog.sh --release vX.Y.Z` (it is idempotent; a fragment merged into main after that is added to the same section when you run it again).
+
+Merge the PR into main (its section becomes the release notes as is). On merge, `.github/workflows/tag.yml` tags the version of the top section and runs Release directly. There is no need to tag by hand.
 
 If it didn't work, you can rerun it from Actions → Tag → Run workflow. Tagging and pushing by hand also still releases as before.
 
@@ -166,9 +191,17 @@ git tag v0.1.8
 git push origin v0.1.8
 ```
 
-In PRs with changes, add user-visible changes to `## Unreleased` in English (right after a release, when the heading is missing, create `## Unreleased` at the top). If the CHANGELOG has no section for the tagged version, the release stops without being created (you can check locally with `sh tools/release-notes.sh v0.1.8`). If the number doesn't match the contents, CI (release-dry-run) and Tag also stop.
+If the CHANGELOG has no section for the tagged version, the release stops without being created (you can check locally with `sh tools/release-notes.sh v0.1.8`). If the number doesn't match the contents, CI (release-dry-run) and Tag also stop. CI also stops a release PR that leaves fragments in `changes/`, since they would miss the release.
 
-Release (`.github/workflows/release.yml`) tests on 3 OSes, then uses GoReleaser to build files and checksums for macOS, Linux and Windows (amd64 / arm64) and publishes them to Releases. It also writes an SPDX SBOM for each archive with syft, and then attests the archives, the SBOMs and `checksums.txt` with `actions/attest-build-provenance` (the job has `id-token: write` and `attestations: write`), so `gh attestation verify <file> --repo MichinaoShimizu/kiroku` and `install.sh` can check where they were built. Versions with a `-`, such as `v0.2.0-rc.1`, become prereleases (`prerelease: auto` in `.goreleaser.yaml`). The number check compares the part before the `-` (`v0.2.0`) with the result of `next-version.sh`.
+### After the release
+
+```bash
+sh tools/verify-release.sh v0.1.8     # --keep leaves the downloads in place
+```
+
+It downloads the release's assets over HTTPS into a new temporary directory, never extracts or runs them, and checks that the asset names and count match `.goreleaser.yaml` and `release.yml` (read from the tag when it is fetched locally), that every archive and SBOM matches `checksums.txt` and nothing else is listed there, and, when `gh` is installed, that each archive's build provenance verifies (`gh attestation verify`, the same conditions as `install.sh`, falling back to the release's `kiroku_<version>.sigstore.json` when gh can't reach the attestation API). Without `gh` it says it skipped that check. It exits 1 when anything is wrong.
+
+Release (`.github/workflows/release.yml`) tests on 3 OSes, then uses GoReleaser to build files and checksums for macOS, Linux and Windows (amd64 / arm64) and publishes them to Releases. It also writes an SPDX SBOM for each archive with syft, and then attests the archives, the SBOMs and `checksums.txt` with `actions/attest-build-provenance` (the job has `id-token: write` and `attestations: write`), so `gh attestation verify <file> --repo MichinaoShimizu/kiroku` and `install.sh` can check where they were built. Versions with a `-`, such as `v0.2.0-rc.1`, become prereleases (`prerelease: auto` in `.goreleaser.yaml`). The number check compares the part before the `-` (`v0.2.0`) with the result of `next-version.sh`. `tools/release.sh` makes only regular versions; for a prerelease, run `sh tools/changelog.sh --release v0.2.0-rc.1` yourself.
 
 ## Changing the view
 
@@ -209,6 +242,13 @@ sh tools/screenshots/run.sh
 ```
 
 Where Playwright can't download its Chromium, point it at an installed one with `CHROMIUM=/path/to/chromium sh tools/screenshots/run.sh`. `docs/demo.gif` also needs `ffmpeg`; without it, the GIF is left as it is.
+
+The dummy data is dated from now, so images taken on another day differ in their dates. With `KIROKU_FAKE_NOW` (for example `2026-10-14T15:00:00+09:00`, the time CI's e2e uses), `gen.py`, `mkgit.py` and the browser clock in `capture.mjs` and `demo.mjs` all start from that time, and retaking gives the same images unless the view changed. After retaking, `sh tools/screenshots/keep-changed.sh` compares each changed image with the committed one (`go run ./tools/imgdiff`, Go's image packages) and restores the ones whose difference is only rendering noise, so only real changes are committed:
+
+- PNG: a pixel counts as different when a channel differs by more than 24 (of 255), and the image counts as unchanged when at most 0.002% of its pixels differ. Two runs at the same `KIROKU_FAKE_NOW` differed in 0 pixels at that tolerance (15–20 pixels with no tolerance); a change of one dummy session moved 0.008% of `session.png`
+- `demo.gif`: it is made from a video, so the frame count and timing shift on every run and compression adds faint color noise. Instead of pixels, it compares the scenes that stay still for at least half a second (frames reduced to 4x4-pixel blocks of brightness) and keeps the new GIF only when a still scene of one GIF is missing from the other around the same time (±1.5 s), or the length changed by more than that
+
+`tools/release.sh` runs both with `KIROKU_FAKE_NOW` set to CI's time unless you set it yourself (`KIROKU_FAKE_NOW=` with an empty value uses the real time).
 
 `gen.py` creates about 5 weeks of history for 4 made-up projects from Claude Code, Codex CLI (with subagents), Kiro CLI (Classic) and Kiro IDE / CLI, and `mkgit.py` creates matching git repositories, in a temporary directory. `capture.mjs` takes the week calendar, the weekly summary and the flagged metrics (`worth.png`) for last week at 1440x900 (English, light theme, Asia/Tokyo); the left column of the session whose prompt flow has the most kinds of events at 2x (`session.png`; the right column shows the dummy data's temporary paths, so it is left out); the week calendar again at 1440x754 at 2x for `og.png` (2880x1508), and the Year in review share image (1600x900) for `year.png`, then `year-params.png` from `year-params.html`, which lays the streaks of `year.png` under how to read them and how your light is chosen (keep its wording in step with `LIGHTS` in `js/year.js` and the guide). `demo.mjs` records a 1280x800 video of last week's calendar, a session, the token breakdown, search and the month view, with a dot standing in for the mouse pointer, and `run.sh` turns it into `demo.gif` (880 wide, 10 fps). `gen.py` also writes about 11 months of shorter Claude Code history before those 5 weeks, so `year.png` shows a year; when this year has less than 8 weeks of history, `capture.mjs` uses the year with the most history. The `Demo` workflow adds the link-card tags that point at `og.png` with `ogp.py`; HTML you write yourself never gets them.
 

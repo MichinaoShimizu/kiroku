@@ -41,7 +41,7 @@ git fetch origin main && git checkout -b claude/request-<番号> origin/main
 ```
 
 - 変えるのは要望に要る範囲だけ。ついでの改善は入れず、気づいたことは PR の本文に書く
-- テスト、CHANGELOG（`## Unreleased`）、ドキュメント、画面の日本語の文言を、ふつうの PR と同じ決まりで入れる
+- テスト、変更の断片（`changes/`。CHANGELOG.md は直接書き換えない）、ドキュメント、画面の日本語の文言を、ふつうの PR と同じ決まりで入れる
 - `/pre-pr` を通す（check.sh、必要なら e2e、セキュリティの読み直し、hostile-tester・user-tester、ベンチマーク）
 
 ## 3. PR にする
