@@ -80,8 +80,9 @@ func TestHandlerRejectsOversizedBody(t *testing.T) {
 	r.Header.Set("X-Kiroku", "1")
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("status %d", w.Code)
+	// 何が悪いかわかる答え（以前は "invalid request" だけで、プロンプトが長すぎると気づけなかった）
+	if w.Code != http.StatusRequestEntityTooLarge || !strings.Contains(w.Body.String(), "too long") {
+		t.Fatalf("status %d, body %q", w.Code, w.Body.String())
 	}
 }
 

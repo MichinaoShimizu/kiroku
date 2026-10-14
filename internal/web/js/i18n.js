@@ -681,6 +681,8 @@ const JA_TEXT = {
   "This file has no records for this week.": "このファイルにはこの週の記録がありません。",
   "This file only includes the {period}. Sessions that cross its edges are included whole; other weeks have no records here.": "このファイルには {period} だけが入っています。期間の境目をまたぐセッションは丸ごと含みます。ほかの週の記録はありません。",
   "This file only includes {period}. Sessions that cross its edges are included whole; other months have no records here.": "このファイルには {period} だけが入っています。期間の境目をまたぐセッションは丸ごと含みます。ほかの月の記録はありません。",
+  "The connection to kiroku serve was lost. It may have stopped, or the prompt was too long; copy the prompt and paste it into the agent yourself if this repeats.": "kiroku serve との接続が切れました。止まったか、プロンプトが長すぎた可能性があります。くり返すときは、プロンプトをコピーしてエージェントに自分で貼ってください。",
+  "This prompt is too long to run here ({size} KB; the limit is {limit} KB). Copy it and paste it into the agent yourself.": "このプロンプトは長すぎて、ここでは実行できません（{size} KB。上限は {limit} KB）。コピーして、エージェントに自分で貼ってください。",
   "This kiroku serve was started without --ai. Start it with kiroku serve --ai to run prompts with an agent.": "この kiroku serve は --ai なしで起動しています。エージェントでプロンプトを実行するには、kiroku serve --ai で起動してください。",
   "To turn it on, stop it (Ctrl+C in its terminal) and start it again with --ai. kiroku autostart can't pass --ai: if you use it, run kiroku autostart off first.": "オンにするには、止めて（そのターミナルで Ctrl+C）、--ai を付けて起動し直してください。kiroku autostart は --ai を渡せないので、使っている場合は先に kiroku autostart off を実行してください。",
   "This list": "この一覧",

@@ -353,6 +353,14 @@ async function run(env) {
     check("事実の期間は「Sep 28 – Oct 4, 2026」の形", /^## Work for [A-Z][a-z]{2} \d{1,2} – ([A-Z][a-z]{2} \d{1,2}, )?\d{4}$|^## Work for [A-Z][a-z]{2} \d{1,2}, \d{4} – /m.test(text), JSON.stringify(text.slice(0, 80)));
     check("履歴ファイルのパスと、読む範囲の決まりがある", /History file: \//.test(text) && /Read only the files listed/.test(text));
     check("決まった形式と、kiroku が埋めた数字の表がある", /# Format/.test(text) && /### By project/.test(text) && /^\| Active time \| \S/m.test(text) && /^\| Git commits \(by AI\) \| \d+ \(\d+\) \|/m.test(text), JSON.stringify(text.match(/^\| Active time.*$/m)));
+    // 長い日本語のプロンプトが多い週でも、kiroku serve --ai で送れる大きさに収まる（要約を短くし、そう書く）
+    const big = await p.evaluate(() => { const was = DATA; const {ws, we, S} = period();
+      try { const inWeek = DATA.filter(s => s.segs.some(([a, b]) => b > ws && a < we));
+        const many = []; for (let i = 0; i < 120; i++) inWeek.forEach(s => many.push({...s, id: s.id + "-x" + i,
+          prompts: s.prompts.map(q => ({...q, text: "日本語の長いプロンプト。".repeat(40), reply: {t: q.t, text: "日本語の長い応答。".repeat(40)}}))}));
+        DATA = was.concat(many); const t = reportPrompt(S, false); return {size: utf8Len(t), short: /Shortened to keep this prompt small/.test(t), budget: PROMPT_BUDGET}; }
+      finally { DATA = was; } });
+    check("長い週でも、報告のプロンプトは送れる大きさに収まり、短くしたと書く", big.size <= big.budget && big.short, JSON.stringify(big));
     const day = await p.evaluate(() => { const b = document.querySelector(".head .dayrpt"); return b ? {fill: b.classList.contains("fill"), text: reportPrompt(null, false, addDays(st.week, +b.dataset.d))} : null; });
     check("記録のある日の見出しに、塗りの日報ボタンがある", !!day && day.fill);
     if (day){ // 固定した日付の見出しのボタンにフォーカスが移っても、カレンダーが 0 時まで巻き戻らない

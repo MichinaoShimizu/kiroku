@@ -44,6 +44,10 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&in); err != nil {
+		if tooBig := (*http.MaxBytesError)(nil); errors.As(err, &tooBig) { // 何が悪いかわかるように（"invalid request" ではなく）
+			http.Error(w, "the prompt is too long to run (limit 256 KB); copy it and paste it into the agent instead", http.StatusRequestEntityTooLarge)
+			return
+		}
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
