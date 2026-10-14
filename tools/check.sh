@@ -60,12 +60,23 @@ build() {
   return $rc
 }
 
-# CI の e2e ジョブと同じ流れ。CHROMIUM があればその Chromium を使う（Playwright の Chromium を取ってこられない環境向け）
+# CI の e2e ジョブと同じ流れ。CHROMIUM があればその Chromium を使う（Playwright の Chromium を取ってこられない環境向け）。
+# ダミーデータとブラウザの時計は、CI と同じ決まった時刻（KIROKU_FAKE_NOW。ci.yml から読む）を「今」にする（走らせた日付や時刻で結果が変わらないように）。
+# ほかの時刻で試すときは KIROKU_FAKE_NOW を渡す
 e2e_run() {
   if [ ! -d tools/screenshots/node_modules/playwright ]; then
     echo "Playwright is not installed: run (cd tools/screenshots && npm ci --ignore-scripts && npx playwright install chromium)"
     return 1
   fi
+  if [ -z "${KIROKU_FAKE_NOW:-}" ]; then
+    KIROKU_FAKE_NOW=$(sed -n 's/^ *KIROKU_FAKE_NOW: *"\{0,1\}\([^" ]*\)"\{0,1\} *$/\1/p' "$ci" | head -n 1)
+  fi
+  if [ -z "$KIROKU_FAKE_NOW" ]; then
+    echo "could not read KIROKU_FAKE_NOW from $ci"
+    return 1
+  fi
+  export KIROKU_FAKE_NOW
+  echo "KIROKU_FAKE_NOW=$KIROKU_FAKE_NOW"
   work=$(mktemp -d) || return 1
   sh tools/screenshots/run.sh --html "$work/kiroku.html" &&
     node tools/screenshots/smoke.mjs "$work/kiroku.html" &&
