@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -451,7 +452,12 @@ func TestCollectCachedCrewPrivateBehindSymlink(t *testing.T) {
 func TestUnreadableWarningIsTerminalSafe(t *testing.T) {
 	all := crewPrivateSources(t)
 	k := all[1].(*source.KiroCLI)
-	evil := filepath.Join(filepath.Dir(k.CrewHome), "crew\x1b[2J\u202e")
+	// Windows のファイル名には制御文字（ESC）が使えないので、書式文字（U+202E）だけで試す
+	name := "crew\x1b[2J\u202e"
+	if runtime.GOOS == "windows" {
+		name = "crew\u202e"
+	}
+	evil := filepath.Join(filepath.Dir(k.CrewHome), name)
 	if err := os.Rename(k.CrewHome, evil); err != nil {
 		t.Fatal(err)
 	}
