@@ -373,6 +373,17 @@ function projection(w){ const {ws, we} = period(), now = nowMs()/1000, u = w.usa
   if (st.mode !== "month" || !u || !(ws <= now && now < we) || days <= 7 || days >= nd) return null;
   const k = nd / days, c = u.tokens ? costOf(u) : null; // 料金表にないモデルだけなら、月末の目安コストも出さない
   return {cost: c == null ? null : c * k, credits: u.credits ? u.credits * k : null, days}; }
+// pacing は、途中の週・月で、前の期間と同じ推定費用（クレジット）に収めるときの、残りの日 1 日あたりの目安。
+// 予算を設定させずに「残りをどのくらいに抑えるか」に答えるため、比べる先は前の期間の合計（前の期間の同じ日までではない）。
+// 残りの日は明日から期間の終わりまで（今日の分は、ここまでの実績に入る）。料金表で見積もれない・前の期間に記録がない・終わった期間・最後の日は null。
+//   cost / credits: {ref: 前の期間の合計, so: ここまで, rest: ref − so, per: 残りの日 1 日あたり（超えていれば 0）}
+function pacing(w, pw){ const {ws, we} = period(), now = nowMs()/1000;
+  if (!w || !pw || !(ws <= now && now < we)) return null;
+  const a = new Date(ws*1000), left = dayNo(a, we) - (dayNo(a, now) + 1); if (left < 1) return null;
+  const one = (ref, so) => ref > 0 && so != null ? {ref, so, rest: ref - so, per: Math.max(0, ref - so) / left} : null;
+  const u = w.usage || {}, p = pw.usage || {};
+  const cost = one(p.tokens ? costOf(p) : null, u.tokens ? costOf(u) : 0), credits = one(p.credits, u.credits || 0);
+  return cost || credits ? {left, cost, credits} : null; }
 function aiUsage(w, pw, unit){
   const u = w.usage; if (!u || (!u.tokens && !u.credits)) return "";
   const pj = projection(w);

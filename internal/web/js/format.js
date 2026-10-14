@@ -31,6 +31,7 @@ function dur(m, html){ m = Math.round(m); const h = Math.floor(m/60), r = m%60;
 function tok(n){ n = n || 0; return n >= 1e9 ? (n/1e9).toFixed(1)+"B" : n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? Math.round(n/1e3)+"K" : String(n); }
 const commas = n => n.toLocaleString(LOC()); // 1,234（数のカンマ区切りはこれで）
 function usd(v){ return v == null ? "—" : v > 0 && v < 0.01 ? "<$0.01" : "$" + (v >= 100 ? commas(Math.round(v)) : v.toFixed(2)); }
+const usdS = v => v >= 10 ? "$" + commas(Math.round(v)) : v >= 0.01 ? "$" + v.toFixed(1) : "<$0.1"; // 狭いマス用に、桁を減らした推定費用
 // usdH は usd を HTML に入れる形にする（$ を小さく出す。"<$0.01" の < もエスケープする）
 function usdH(v){ const s = esc(usd(v)), i = s.indexOf("$"); return i < 0 ? s : s.slice(0, i) + "<small>$</small>" + s.slice(i + 1); }
 // costOf は使用量の目安コスト。見積もれた分がなく、料金表にないモデルのトークンだけなら null（usd・usdH が "—" にする）。

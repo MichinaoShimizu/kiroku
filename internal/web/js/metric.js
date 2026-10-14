@@ -9,6 +9,8 @@ const BRK = {
   projection: {n: "Month-end cost (estimate)", h: "projection", v: x => x.cost, f: v => usd(v), proj: "cost"},
   credits: {n: "Kiro credits", h: "credits", v: x => x.credits, f: v => `${crN(v)} cr`, ses: s => s.credits},
   projectionCr: {n: "Month-end credits (estimate)", h: "projectionCr", v: x => x.credits, f: v => `${crN(v)} cr`, proj: "credits"},
+  pace: {n: "A day to match the last period", h: "pace", v: x => x.cost, f: v => usd(v)},
+  paceCr: {n: "Credits a day to match the last period", h: "paceCr", v: x => x.credits, f: v => `${crN(v)} cr`},
   active: {n: "Active time", h: "active", v: x => x.minutes ?? x.active, f: v => dur(v), ses: s => sesMin(s)},
   days: {n: "Active days", h: "active", v: x => x.active, f: v => v ? dur(v) : "—"},
   sessions: {n: "Sessions / prompts", h: "prompts", v: x => x.prompts, f: v => `${Math.round(v)}`, ses: s => s.nPrompts},
@@ -46,7 +48,7 @@ function mDays(w, m, proj){
   const now = nowMs()/1000, cur = dayNo(a, now), avg = proj ? proj.avg : 0;
   const max = Math.max(...vals, avg, 1e-9);
   const cols = w.days.map((d, i) => { const dt = addDays(a, i), fut = proj && i > cur, v = fut ? avg : vals[i];
-    const tip = `${md(dt.getTime()/1000)}: ${fut ? t("≈ {v} at the current pace", {v: m.f(avg)}) : m.f(vals[i])}`;
+    const tip = `${md(dt.getTime()/1000)}: ${fut ? t(proj.tip || "≈ {v} at the current pace", {v: m.f(avg)}) : m.f(vals[i])}`;
     const lab = !M && !fut && v > 0; // 週は 7 本なので、棒の上に値を書く（月は細すぎるので、ポインターを合わせたときだけ）
     return `<span class="mcol${fut ? " fut" : ""}${i === cur ? " now" : ""}" title="${esc(tip)}">${lab ? `<span class="bv">${esc(m.f(v))}</span>` : ""}<span class="b" style="height:${v ? `calc(${M ? "100%" : "100% - 16px"} * ${Math.max(0.02, v/max).toFixed(4)})` : 0}"></span><small>${M ? dt.getDate() : DOW[dt.getDay()]}</small></span>`; }).join("");
   return `<h3>${esc(t("By day"))}</h3><div class="mdays${M ? " month" : ""}"${proj ? ` style="--avg:${avg/max*100}%"` : ""}>${cols}</div>`;
@@ -87,7 +89,20 @@ const pushRow = p => `<button class="gc-row" data-push="${esc(pushKey(p))}"><tim
 const prRow = ({s, r}) => `<button class="gc-row" data-pr="${esc(prKey(s, r))}"><time>${md(r.t)} ${hm(r.t)}</time><span><i class="gtag">${ico("pr")}${esc(r.url ? prName(r.url) : t("Pull request"))}</i> ${esc(s.title)}</span><b></b></button>`;
 const gitIn = (ws, we) => (META.git || []).filter(c => c.t >= ws && c.t < we);
 const calcH = parts => `<div class="mcalc">${parts.map(p => typeof p === "string" ? `<span>${p}</span>` : `<div><small>${esc(t(p[0]))}</small><b>${p[1]}</b></div>`).join("")}</div>`; // [名前, 値（HTML）] と記号（÷ =）
+// 前の期間並みに収める 1 日の目安（pacing）：前の期間の合計 − ここまで = 残り、÷ 残りの日。
+// 費用だけでなく、前の期間とここまでに残したもの（コミット）も並べる。費用が同じでも、残したものが減っていれば気づけるように
+function paceBody(w, k, m){
+  const pc = pacing(w, period().P), x = pc && pc[k]; if (!x) return null; const M = st.mode === "month";
+  const big = x.rest > 0 ? esc(m.f(x.per)) : `+${esc(m.f(-x.rest))}`;
+  const calc = calcH([[M ? "Last month" : "Last week", esc(m.f(x.ref))], "−", ["So far", esc(m.f(x.so))], "=", ["Left", x.rest > 0 ? esc(m.f(x.rest)) : "—"], "÷", ["Days left", `${pc.left}`], "=", ["A day", x.rest > 0 ? esc(m.f(x.per)) : "—"]]);
+  const note = x.rest > 0 ? t("If you keep to about {v} a day, this period ends near the last one. The faded bars are the days still to come at that amount.", {v: m.f(x.per)}) : t("This period has already passed the last one's total by {v}.", {v: m.f(-x.rest)});
+  const pw = period().P, gc = g => g && g.git ? g.git.commits : null, a = gc(pw), b = gc(w);
+  const out = a == null || b == null ? "" : `<p class="note">${esc(t(M ? "Left behind: {a} commits last month, {b} so far this month." : "Left behind: {a} commits last week, {b} so far this week.", {a, b}))}</p>`;
+  return {big, body: calc + `<p class="note">${esc(note)}</p>` + out + mDays(w, m, x.rest > 0 ? {avg: x.per, tip: "≈ {v} to match the last period"} : null)};
+}
 const MB = {
+  pace(w){ return paceBody(w, "cost", BRK.pace); },
+  paceCr(w){ return paceBody(w, "credits", BRK.paceCr); },
   commits(w, {ws, we}){ // Git commits：日ごと・プロジェクトごと・AI のエージェントごと・だれが・一覧
     const cs = gitIn(ws, we).sort((a,b) => b.t - a.t), g = w.git || {}; if (!cs.length) return null;
     const ag = cs.filter(c => c.ai).map(c => (DATA.find(s => s.id === c.session) || {}).source || t("Unknown agent"));

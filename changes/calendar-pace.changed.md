@@ -1,0 +1,1 @@
+- The calendar's day headings, month cells and week totals show estimated cost instead of tokens, next to sessions and commits, so a day with much cost and few commits stands out. Tokens move to the tooltip; when no model used is in the price table, tokens are shown as before
