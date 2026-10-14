@@ -530,10 +530,28 @@ func newServer(h http.Handler) *http.Server {
 // 読み終わるまでは、読み込み中の画面を出す。
 // AI execution stays off; serveLiveWithAI turns it on for kiroku serve --ai.
 func serveLive(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool) error {
-	return serveLiveWithAI(addr, allow, every, picked, load, keep, open, false, "")
+	return serveLiveWithAI(addr, allow, every, picked, load, keep, open, false, "", nil)
 }
 
-func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool, enableAI bool, lang string) error {
+// scanWatchPaths は、選んでいない Source のうち source.ClaimScanner のものが調べる場所（Kiro を選んでいないときの Kiro Crew の場所）。
+// kiroku serve はここも見張り、変わったら読み直す。あとから中身を残さない会話になった Crew の会話（session_map の flags、
+// 会話の記録の memory_mode、state.json、crew-log）の Codex・Claude Code の写しを、ほかの履歴が変わるのを待たずに隠すため。
+// /history で見せてよい場所（historyRoots）には入れない。
+func scanWatchPaths(all []source.Source, want map[string]bool) []string {
+	var out []string
+	for _, s := range all {
+		if want[s.Family()] {
+			continue
+		}
+		if w, ok := s.(source.ClaimScanner); ok {
+			out = append(out, w.ScanPaths()...)
+		}
+	}
+	return out
+}
+
+// serveLiveWithAI は serveLive。enableAI は kiroku serve --ai、lang は画面の言語（--lang）、watch は picked のほかに見張る場所（scanWatchPaths）。
+func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool, enableAI bool, lang string, watch []string) error {
 	if every < time.Second {
 		every = time.Second
 	}
@@ -552,6 +570,7 @@ func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []
 	for _, s := range picked {
 		paths = append(paths, source.WatchPaths(s)...)
 	}
+	paths = append(paths, watch...)
 	key, err := serveKey(true)
 	if err != nil {
 		ln.Close()

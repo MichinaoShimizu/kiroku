@@ -291,8 +291,9 @@ type KiroCLI struct {
 // Crew は会話を閉じるときに sessions/cli/<id>.json を消すので、SQLite の写しだけが残ることがある。
 func (k *KiroCLI) Withheld() []string { return k.withheld }
 
-// WithheldClaims は、中身を出さない Crew の会話のうち、Codex の backend で動いた会話の Codex のスレッドの Claim の鍵（CrewInfo.codexClaim）。
-// 同じ会話は Codex 自身の記録（CODEX_HOME）にも残り、kiroku の Codex の読み取りが中身ごと読むので、読み込む側が HideWithheld で隠す。
+// WithheldClaims は、中身を出さない Crew の会話の、ほかのエージェントの履歴に残る写しの Claim の鍵（crewSidClaims）。
+// Codex・Claude Code の backend の会話は、それぞれ自身の記録（CODEX_HOME・~/.claude/projects）にも残り、kiroku が中身ごと読むので、
+// 読み込む側が HideWithheld で隠す。わかっている会話 ID（今の sid・discarded_sid・サブエージェント・crew-log）を provider によらず全部使う。
 func (k *KiroCLI) WithheldClaims() []string { return k.claims }
 
 // Keep は、kiroku archive で残す場所（Kiro Crew は退避した古い会話の記録を消すため）。
@@ -376,19 +377,17 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 	base := k.Where()
 	if !isDir(base) {
 		// kiro-cli の JSON の履歴がなくても、SQLite の写しを隠せるように、中身を出さない会話は調べる
-		k.withheld, k.claims = nil, nil
-		for sid, info := range loadCrew(k.CrewHome, nil, newCrewPrivacy(k.CrewHome, k.CrewArchive)) {
+		priv := newCrewPrivacy(k.CrewHome, k.CrewArchive)
+		var sids []string
+		for sid, info := range loadCrew(k.CrewHome, nil, priv) {
 			if info.Private {
-				k.withheld = append(k.withheld, "kiro-cli:"+sid)
-				if c := info.codexClaim(); c != "" {
-					k.claims = append(k.claims, c)
-				}
-				k.claims = append(k.claims, kiroClassicYield(sid)) // 3.0 へ移した写し（sess_<sid>）も中身を出さない
+				sids = append(sids, sid)
 			}
 		}
-		sort.Strings(k.withheld)
-		sort.Strings(k.claims)
-		return nil
+		// 調べられなかったこと（session_map.json が読めないなど）は知らせる（隠しきれていないかもしれないので）
+		var errs fileErrs
+		k.withheld, k.claims = crewWithheld(append(sids, crewPrivateSids(k.CrewHome, priv, &errs)...))
+		return errs.err()
 	}
 	var errs fileErrs
 	priv := newCrewPrivacy(k.CrewHome, k.CrewArchive) // 中身を残さない会話（loadCrew・loadCrewSpawns と同じものを使う）
@@ -683,35 +682,66 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		}
 	}
 	held.flush(k.CrewHome, emit)
-	seen := map[string]bool{}
-	withhold := func(key string) {
-		if key != "" && !seen[key] {
-			seen[key] = true
-			k.withheld = append(k.withheld, key)
-		}
-	}
-	claimed := map[string]bool{}
-	claim := func(c string) {
-		if c != "" && !claimed[c] {
-			claimed[c] = true
-			k.claims = append(k.claims, c)
-		}
-	}
+	var private []string
 	for _, sid := range sids {
 		if crew[sid].Private {
-			withhold("kiro-cli:" + sid)
-			claim(crew[sid].codexClaim())
-			claim(kiroClassicYield(sid)) // 3.0 へ移した写し（sess_<sid>）も中身を出さない
+			private = append(private, sid)
 		}
 	}
+	k.withheld, k.claims = crewWithheld(append(private, crewPrivateSids(k.CrewHome, priv, &errs)...))
+	seen := map[string]bool{}
+	for _, key := range k.withheld {
+		seen[key] = true
+	}
+	claimed := map[string]bool{}
+	for _, c := range k.claims {
+		claimed[c] = true
+	}
 	for b := range held.private {
-		withhold(b.Key)
-		claim(b.Yield) // Codex の backend の会話（Crew の記録から作る会話の Yield は codexClaim だけ）
+		if b.Key != "" && !seen[b.Key] {
+			seen[b.Key] = true
+			k.withheld = append(k.withheld, b.Key)
+		}
+		if b.Yield != "" && !claimed[b.Yield] { // Codex の backend の会話（Crew の記録から作る会話の Yield は codexClaim だけ）
+			claimed[b.Yield] = true
+			k.claims = append(k.claims, b.Yield)
+		}
 	}
 	sort.Strings(k.withheld)
 	sort.Strings(k.claims)
 	return errs.err()
 }
+
+// crewWithheld は、中身を残さない Crew の会話の backend の会話 ID から、Withheld（Kiro CLI の会話の Key）と
+// WithheldClaims（ほかのエージェントの写しの Claim の鍵。crewSidClaims）を作る。重なりを除いて並べる。
+// 会話 ID の backend はわからないこともあるので（discarded_sid・サブエージェント）、どの ID もどのエージェントの写しとしても隠す。
+func crewWithheld(sids []string) (withheld, claims []string) {
+	seen := map[string]bool{}
+	for _, sid := range sids {
+		if sid == "" || seen[sid] {
+			continue
+		}
+		seen[sid] = true
+		withheld = append(withheld, "kiro-cli:"+sid)
+		claims = append(claims, crewSidClaims(sid)...)
+	}
+	sort.Strings(withheld)
+	sort.Strings(claims)
+	return withheld, claims
+}
+
+// ScanWithheldClaims は WithheldClaims と同じ鍵のうち、Crew の記録だけから決まるもの（crewPrivateSids）を、Load なしで調べる。
+// 読み込む側は、Kiro の履歴を選んでいないとき（--sources codex・claude など）もこれで調べ、Codex・Claude Code に残る
+// 中身を残さない会話の写しを隠す（ClaimScanner）。err は、調べるのに読めなかったファイル（隠しきれていないかもしれない）。
+func (k *KiroCLI) ScanWithheldClaims() ([]string, error) {
+	var errs fileErrs
+	_, claims := crewWithheld(crewPrivateSids(k.CrewHome, newCrewPrivacy(k.CrewHome, k.CrewArchive), &errs))
+	return claims, errs.err()
+}
+
+// ScanPaths は ScanWithheldClaims が読む場所（Crew の場所と、その kiroku archive のコピー）。kiroku serve は、Kiro の履歴を
+// 選んでいなくても、ここが変わったら読み直す（あとから中身を残さない会話になった写しを隠すため）。
+func (k *KiroCLI) ScanPaths() []string { return []string{k.CrewHome, k.CrewArchive} }
 
 // KiroIDELegacy は Kiro IDE v1.0 より前: workspace-sessions/<ws>/sessions.json + <sessionId>.json。
 // 発言ごとの時刻がないので、開始 = dateCreated、終了 = ファイル更新時刻 のざっくり表示。

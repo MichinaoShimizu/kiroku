@@ -54,9 +54,9 @@ func cmdDoctor(args []string) error {
 			rel.checked = true
 		}()
 	}
-	picked, want := c.picked()
+	_, want, srcs := c.picked()
 	logw = io.Discard // エージェントごとの読み込みの行は、下の一覧にまとめて出す
-	data, rep := collect(picked, want, *c.gap)
+	data, rep := collect(srcs, want, *c.gap)
 	<-done
 	doctorReport(os.Stdout, rep, len(data), *c.archiveDir, rel, *all)
 	return nil
@@ -84,7 +84,7 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 			what += fmt.Sprintf(" (%d from kiroku's copy)", r.Archived)
 		}
 		if r.Error != nil {
-			mark, what = s.warn("!"), what+"; some files couldn't be read: "+*r.Error
+			mark, what = s.warn("!"), what+"; some files couldn't be read: "+termMsg(*r.Error)
 		}
 		fmt.Fprintf(w, "  %s %-18s %s\n      %s\n", mark, r.Name, what, s.dim(where(r.Where)))
 	}
