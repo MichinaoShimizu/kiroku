@@ -293,17 +293,11 @@ func ReadJSONLFrom(src io.Reader, fn func(Obj)) error {
 	}
 }
 
-// ReadJSON は JSON ファイルを読む。読めなければ nil。
-func ReadJSON(path string) any {
-	v, _ := ReadJSONFile(path)
-	return v
-}
-
 // MaxJSONFile は ReadJSONFile で読むファイルの大きさの上限（バイト）。ファイル全体が 1 つの JSON なので、MaxLine と同じにする。
 // テストで小さくする。
 var MaxJSONFile = 64 << 20
 
-// ReadJSONFile は ReadJSON と同じだけど、読めなかったわけ（開けない・JSON として壊れている）も返す。
+// ReadJSONFile は JSON ファイルを読み、読めなかったわけ（開けない・JSON として壊れている）も返す。
 // ふつうのファイルでないもの（名前つきパイプなど）は開かず、MaxJSONFile より大きいファイルは全部を読まずにエラーを返す。
 func ReadJSONFile(path string) (any, error) {
 	f, err := OpenRegular(path)

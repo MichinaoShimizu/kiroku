@@ -25,7 +25,9 @@ for f in glob.glob(os.path.join(OUT,'home','.claude','projects','*','*.jsonl')):
                 edited=set()
 # hand commits
 projs=set(e[0] for e in ev) | {f"{R}/{p}" for p in ["web-app","data-pipeline","mobile","docs"]}
-now=dt.datetime.now().timestamp()
+# gen.py と同じ「今」（KIROKU_FAKE_NOW があればその時刻）
+now=(dt.datetime.fromisoformat(os.environ["KIROKU_FAKE_NOW"]) if os.environ.get("KIROKU_FAKE_NOW") else dt.datetime.now()).timestamp()
+projs=sorted(projs) # 集合の順は実行ごとに変わるので、並べてから乱数を引く
 for p in projs:
     for _ in range(random.randint(6,14)):
         t=now-random.uniform(0,35)*86400

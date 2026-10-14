@@ -9,6 +9,10 @@ import { stat } from "node:fs/promises";
 const html = process.argv[2];
 if (!html) { console.error("使い方: node smoke.mjs <kiroku.html>"); process.exit(2); }
 const url = "file://" + path.resolve(html);
+// KIROKU_FAKE_NOW（例: 2026-03-01T08:00:00+09:00）があれば、ブラウザの時計をその時刻から進める。ダミーデータ（gen.py・mkgit.py）も
+// 同じ時刻を「今」として作るので、e2e を走らせた日付や時刻で結果が変わらない（tools/check.sh と CI は決まった時刻を渡す）
+const fakeNow = process.env.KIROKU_FAKE_NOW ? new Date(process.env.KIROKU_FAKE_NOW) : null;
+if (fakeNow && isNaN(fakeNow)) { console.error(`KIROKU_FAKE_NOW を日時として読めません: ${process.env.KIROKU_FAKE_NOW}`); process.exit(2); }
 
 const envs = [
   { name: "1440", viewport: { width: 1440, height: 900 } },
@@ -21,7 +25,7 @@ const b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process
 // 画面の幅ごとの流れは互いに関係がないので、並べて動かす（待ち時間がほとんどなので、CI が速くなる）。
 // 出力は幅ごとにためておき、終わってから順に出す
 // clickableRun は、カレンダーのセッションのブロックのうち、真ん中がほかのブロックに隠れていない最初のもの（Playwright は真ん中を押す）。
-// ダミーデータは今日を基準に作るので、日によっては最初のブロックに、並行したセッションのブロックが重なる
+// ダミーデータは「今」（KIROKU_FAKE_NOW）を基準に作るので、日によっては最初のブロックに、並行したセッションのブロックが重なる
 async function clickableRun(p) {
   const i = await p.evaluate(() => [...document.querySelectorAll(".run[data-sid]")].findIndex(e => {
     e.scrollIntoView({ block: "center" });
@@ -29,6 +33,24 @@ async function clickableRun(p) {
     return e.contains(document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2));
   }));
   return p.locator(".run[data-sid]").nth(Math.max(i, 0));
+}
+
+// loaded は、開いたページが期間の見出しとサマリーを描き終えるまで待つ（決まった時間だけ待つ代わりに）
+const loaded = p => p.waitForFunction(() => document.querySelector("#rd") && document.querySelector("#rd").textContent.trim() !== "" && document.querySelector("#review .stat"));
+
+// openContext は、画面の幅 env・言語 locale のブラウザを開く。スクリプトのエラーは errors に、CSP に止められたものは csp にためる
+async function openContext(env, locale, csp) {
+  const ctx = await b.newContext({ ...env, locale, timezoneId: "Asia/Tokyo", acceptDownloads: true });
+  ctx.setDefaultTimeout(5000);
+  if (fakeNow) await ctx.clock.install({ time: fakeNow }); // 時計はこの時刻から普通に進む（タイマーも動く）
+  // CSP の違反はページの中で拾って知らせる（関数を渡す仕組みは CSP の外なので止められない）
+  await ctx.exposeFunction("kirokuCSPViolation", v => csp.push(v));
+  await ctx.addInitScript(() => addEventListener("securitypolicyviolation", e => window.kirokuCSPViolation(`${e.effectiveDirective} ${e.blockedURI || "inline"} ${e.sourceFile || ""}:${e.lineNumber || ""}`)));
+  const p = await ctx.newPage();
+  const errors = [];
+  p.on("pageerror", e => errors.push(e.message));
+  p.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
+  return { ctx, p, errors };
 }
 
 async function run(env) {
@@ -39,19 +61,11 @@ async function run(env) {
     if (ok) out.push(`  ok   ${what}`);
     else { failed++; out.push(`  FAIL ${what}${detail ? `: ${detail}` : ""}`); }
   }
-  const ctx = await b.newContext({ ...env, locale: "en-US", timezoneId: "Asia/Tokyo", acceptDownloads: true });
-  ctx.setDefaultTimeout(5000);
-  // CSP の違反はページの中で拾って知らせる（関数を渡す仕組みは CSP の外なので止められない）
-  await ctx.exposeFunction("kirokuCSPViolation", v => csp.push(v));
-  await ctx.addInitScript(() => addEventListener("securitypolicyviolation", e => window.kirokuCSPViolation(`${e.effectiveDirective} ${e.blockedURI || "inline"} ${e.sourceFile || ""}:${e.lineNumber || ""}`)));
-  const p = await ctx.newPage();
-  const errors = [];
-  p.on("pageerror", e => errors.push(e.message));
-  p.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
+  const { ctx, p, errors } = await openContext(env, "en-US", csp);
   const pause = () => p.waitForTimeout(300);
   const drawerOpen = async () => await p.locator("#drawer").getAttribute("aria-hidden") === "false";
   // 1 つの流れが途中で止まっても、失敗として数えて次の流れへ進む（開き直して、記録のそろった先週から始める）
-  const open = async () => { await p.goto(url); await p.waitForTimeout(500); await p.keyboard.press("ArrowLeft"); await pause(); };
+  const open = async () => { await p.goto(url); await loaded(p); await p.keyboard.press("ArrowLeft"); await pause(); };
   async function step(name, fn) {
     const before = failed;
     try { await fn(); } catch (e) { check(name, false, e.message.split("\n")[0]); }
@@ -59,10 +73,11 @@ async function run(env) {
   }
 
   await p.goto(url);
-  await p.waitForTimeout(500);
+  await loaded(p);
 
   await step("読み込み", async () => {
     check("セッションが読み込まれている", await p.evaluate("DATA.length") > 0);
+    if (fakeNow) check("ブラウザの時計は KIROKU_FAKE_NOW から進んでいる", await p.evaluate(t => Date.now() >= t && Date.now() - t < 10 * 60e3, fakeNow.getTime()));
     const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
     check("横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
     check("凡例の件数（20 / 20 sessions）が画面の中に見える", await p.evaluate(() => { const r = document.querySelector("#legend .count").getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= innerWidth + 1; }));
@@ -443,7 +458,7 @@ async function run(env) {
     check("見どころが出る", (await p.locator("#yr h3", { hasText: "What stands out" }).count()) === 1 && (await p.locator("#yr .yrhi li").count()) > 0);
     check("深夜・週末と、いちばん長い休みは、選ぶまで画像に載せない", !(await p.locator('#yr [data-o="late"]').isChecked()) && !(await p.locator('#yr [data-o="breaks"]').isChecked()) &&
       !/Late nights|Weekends|without AI|consecutive/.test(await p.locator("#yrcard").getAttribute("aria-label")));
-    // 深夜・週末：見せるものがある年は、選べば画像に加わる。ない年は押せない（ダミーデータは後半に夜の作業があるので、押せるはず）
+    // 深夜・週末：見せるものがある年は、選べば画像に加わる。ない年は押せない（ダミーデータは後半に夜の作業があるので、CI の決まった時刻（KIROKU_FAKE_NOW）なら押せるはず。年が始まって 2 か月ほどの時刻では、その年の夜の作業が少なく押せない）
     check("ダミーデータの年には、深夜・週末の項目がある（押せる）", !(await p.locator('#yr [data-o="late"]').isDisabled()));
     await p.locator('#yr [data-o="late"]').check(); await pause();
     check("選べば、深夜・週末が画像（読み上げ用の説明）に加わる", /late nights|Late nights|Weekends/.test(await p.locator("#yrcard").getAttribute("aria-label")));
@@ -484,7 +499,103 @@ async function run(env) {
   await ctx.close();
   return { out, failed };
 }
-const results = await Promise.all(envs.map(run));
+// 日本語の表示（ADR 0029）。日本語の文言は英語より折り返し方が違うので、同じ 4 つの幅で、主な画面がスクリプトのエラーなしに開き、
+// 横にはみ出さず、訳のある画面の文言が英語のまま残っていないかを見る。操作の細かな確かめは英語の流れ（run）でしているので、ここでは開いて見るだけ
+async function runJa(env) {
+  const out = [`# ${env.name} 日本語`];
+  let failed = 0;
+  const csp = [];
+  function check(what, ok, detail = "") {
+    if (ok) out.push(`  ok   ${what}`);
+    else { failed++; out.push(`  FAIL ${what}${detail ? `: ${detail}` : ""}`); }
+  }
+  const { ctx, p, errors } = await openContext(env, "ja-JP", csp);
+  async function step(name, fn) {
+    try { await fn(); } catch (e) { check(name, false, e.message.split("\n")[0]); await p.keyboard.press("Escape").catch(() => {}); }
+  }
+  const overflow = () => p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
+  const isOpen = sel => p.waitForFunction(sel => document.querySelector(sel).open, sel);
+  const isClosed = sel => p.waitForFunction(sel => !document.querySelector(sel).open, sel);
+  // 辞書（JA_TEXT）に訳のある英語の文が、そのまま文字・aria-label・title・placeholder に出ているもの。
+  // 履歴から来た文（ダミーデータのプロンプトや題名など）と、わざと別の言語で書いたもの（lang の違う要素。「EN」のボタンなど）は除く
+  const untranslated = () => p.evaluate(() => {
+    const hist = new Set();
+    for (const s of DATA) for (const v of [s.title, s.project, s.branch, s.source, ...(s.prompts || []).map(x => x.text)]) if (typeof v === "string") hist.add(v.trim());
+    const bad = new Set(), el = n => n.nodeType === 3 ? n.parentElement : n;
+    const look = (n, v) => { v = (v || "").trim();
+      if (v && Object.prototype.hasOwnProperty.call(JA_TEXT, v) && JA_TEXT[v] !== v && !hist.has(v) && (el(n).closest("[lang]") || {}).lang === "ja") bad.add(v); };
+    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) {
+      if (n.nodeType === 3) look(n, n.nodeValue);
+      else for (const a of ["aria-label", "title", "placeholder"]) look(n, n.getAttribute(a));
+    }
+    return [...bad];
+  });
+  const noEnglish = async where => { const bad = await untranslated(); check(`${where}に、訳のある英語の文言が残っていない`, bad.length === 0, bad.slice(0, 5).join(" / ")); };
+
+  await p.goto(url);
+  await loaded(p);
+
+  await step("読み込み", async () => {
+    check("ブラウザの言語が日本語なら、日本語で開く", await p.evaluate(() => document.documentElement.lang === "ja" && JA));
+    check("期間の見出しは日本語の日付", /\d+月\d+日/.test(await p.locator("#rd").innerText()), await p.locator("#rd").innerText());
+    check("週報のボタンが日本語", /[\u3040-\u30ff\u4e00-\u9fff]/.test(await p.locator("#rptcopy").innerText()), await p.locator("#rptcopy").innerText());
+    const [sw, iw] = await overflow();
+    check("横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
+    await noEnglish("最初の画面");
+  });
+
+  await step("セッションの詳細", async () => {
+    const before = await p.locator("#rd").innerText();
+    await p.keyboard.press("ArrowLeft"); // 記録のそろった先週で開く
+    await p.waitForFunction(b => document.querySelector("#rd").textContent !== b, before);
+    await (await clickableRun(p)).click();
+    await p.waitForFunction(() => document.querySelector("#drawer").getAttribute("aria-hidden") === "false");
+    const box = await p.locator("#drawer").boundingBox();
+    check("詳細が開き、画面に収まる", box && box.x >= -1 && box.x + box.width <= env.viewport.width + 1, JSON.stringify(box));
+    await noEnglish("セッションの詳細");
+    await p.keyboard.press("Escape");
+    await p.waitForFunction(() => document.querySelector("#drawer").getAttribute("aria-hidden") !== "false");
+  });
+
+  await step("内訳と指標ガイド", async () => {
+    await p.evaluate(() => document.querySelector('#review [data-metric="cost"]').click());
+    await isOpen("#md");
+    check("内訳の見出しが日本語", (await p.locator("#mdh").innerText()) !== "Estimated cost", await p.locator("#mdh").innerText());
+    await noEnglish("内訳のダイアログ");
+    await p.keyboard.press("Escape"); await isClosed("#md");
+    await p.keyboard.press("g"); await isOpen("#mg");
+    await noEnglish("指標ガイド");
+    await p.keyboard.press("Escape"); await isClosed("#mg");
+  });
+
+  await step("月表示", async () => {
+    await p.keyboard.press("m");
+    await p.waitForFunction(() => document.querySelector("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
+    const [sw, iw] = await overflow();
+    check("月表示でも横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
+    await noEnglish("月表示");
+    await p.keyboard.press("w");
+    await p.waitForFunction(() => document.querySelector("#mode button[data-v=week]").getAttribute("aria-pressed") === "true");
+  });
+
+  await step("1 年の露光", async () => {
+    if (!await p.evaluate(() => YEAR_ON)) return;
+    await p.keyboard.press("y"); await isOpen("#yr");
+    const [sw, iw] = await overflow();
+    check("1 年の露光が横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
+    check("見どころの見出しが日本語", await p.locator("#yr h3", { hasText: "What stands out" }).count() === 0);
+    await noEnglish("1 年の露光");
+    await p.keyboard.press("Escape"); await isClosed("#yr");
+  });
+
+  check("スクリプトのエラーがない", errors.length === 0, errors.join(" / "));
+  check("CSP に止められたものがない", csp.length === 0, csp.join(" / "));
+  await ctx.close();
+  return { out, failed };
+}
+
+const results = await Promise.all([...envs.map(run), ...envs.map(runJa)]);
 await b.close();
 for (const r of results) console.log(r.out.join("\n"));
 const failed = results.reduce((n, r) => n + r.failed, 0);
