@@ -2,7 +2,7 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
-## Unreleased
+## v0.36.1 - 2026-10-14
 
 ### Changed
 
@@ -15,6 +15,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - New `kiroku serve --no-ai` (or `KIROKU_NO_AI=1`, which `kiroku autostart on` keeps) turns agent runs off; `/ai/run` then answers 404
 - `kiroku serve --ai` is still accepted but no longer needed: it does nothing except print a one-line notice. A non-loopback ADDR with `--ai` no longer fails; agent runs are just off there. An explicit `--ai=false` turns agent runs off, like `--no-ai`
 - If you registered `kiroku autostart on` before this version, agent runs are on after you update. To keep them off, run `KIROKU_NO_AI=1 kiroku autostart on` once
+- Pull requests now describe their user-visible changes in a file under `changes/` instead of editing `CHANGELOG.md`; the release merges them. For contributors only: the changelog itself reads the same
 
 ### Removed
 
