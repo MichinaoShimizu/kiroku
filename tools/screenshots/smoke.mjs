@@ -372,7 +372,7 @@ async function run(env) {
         DATA = was.concat(many); const t = reportPrompt(S, false); return {size: utf8Len(t), short: /Shortened to keep this prompt small/.test(t), budget: PROMPT_BUDGET}; }
       finally { DATA = was; } });
     check("長い週でも、報告のプロンプトは送れる大きさに収まり、短くしたと書く", big.size <= big.budget && big.short, JSON.stringify(big));
-    check("日付の見出しに日報のボタンはない", await p.locator(".head .dayrpt, .head .dayrun, .head button").count() === 0);
+    check("保存した HTML では、日付の見出しに日報のボタンを出さない（AI の操作は kiroku serve だけ。ADR 0034）", await p.locator(".head .dayrpt, .head .dayrun, .head button").count() === 0);
     check("セッションごとに、プロンプトと応答の要約がある", /^  - [A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2} \d\d:\d\d Prompt: /m.test(text));
     check("事実と履歴は、コードブロックの中にある", /# History data\n`{3,}text\n# Facts/.test(text));
     check("週報には週の決まりだけがあり、ほかのコマンドを禁じる", /next-week priorities/.test(text) && !/tomorrow's next step|sustained trends/.test(text) && /don't run other commands, change or write files, or send anything to another service/.test(text));

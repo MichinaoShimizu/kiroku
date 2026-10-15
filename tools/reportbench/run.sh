@@ -1,7 +1,7 @@
 #!/bin/sh
 # 報告プロンプトの試験の材料を作る（/report-eval のスキル用）。
 #   sh tools/reportbench/run.sh <作業ディレクトリ>
-# 合成の履歴と git リポジトリ（fixture.py）→ kiroku の HTML → 週報・月報と振り返りのプロンプト（prompts.mjs）を <作業ディレクトリ>/prompts に。
+# 合成の履歴と git リポジトリ（fixture.py）→ kiroku の HTML → 日報・週報・月報と振り返りのプロンプト（prompts.mjs）を <作業ディレクトリ>/prompts に。
 # 自分の履歴を読まないよう、HOME と kiroku の読む場所はすべて作業ディレクトリに向ける。
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)

@@ -202,7 +202,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
     const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i></div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : pc && ds >= tmr ? allowH(pc) : `<small>—</small>`}</div>`;
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${(act || dayGit.length) && aiRun() ? `<button class="pill dayrun ai-action" data-d="${d}" type="button" aria-label="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}" title="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}">${esc(t("Daily report"))}</button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : pc && ds >= tmr ? allowH(pc) : `<small>—</small>`}</div>`;
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
@@ -253,6 +253,14 @@ function timeline(shown, inWeek, ws, we, todayKey){
   if (top != null) sc.scrollTop = top;
   fitRuns(T);
   sc.addEventListener("scroll", () => edgeFade(T), {passive: true}); edgeFade(T);
+  // 上に固定した日付の見出しのボタン（日報の AI 分析）にフォーカスが移ると、ブラウザがそれを見せようとして 0 時まで巻き戻す。
+  // フォーカスは見出しの中だけなので、巻き戻す前（まだ scroll が届いていない値）に戻す
+  let seenTop = sc.scrollTop;
+  sc.addEventListener("scroll", () => { seenTop = sc.scrollTop; }, {passive: true});
+  sc.addEventListener("focusin", e => { if (e.target.closest(".heads") && sc.scrollTop !== seenTop) sc.scrollTop = seenTop; });
+  // 日報の AI 分析（kiroku serve で、使えるエージェントがあるときだけ。週報と同じ作りで、その日の分だけ）
+  T.querySelectorAll(".dayrun").forEach(b => b.onclick = e => { e.stopPropagation(); const dd = addDays(st.week, +b.dataset.d);
+    runAIReview(b, reportPrompt(null, false, dd), t("Daily report for {date}", {date: md(dd.getTime() / 1000)})); });
   T.querySelectorAll(".lim").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); });
   bindGitEvents(T);
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });

@@ -129,6 +129,9 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .head i{font-style:normal;font-size:var(--fs-xs);color:var(--ink-3)}
 .head small{display:block;font-size:var(--fs-xs);color:var(--ink-3);font-variant-numeric:tabular-nums;margin-top:2px}
 .head.today{box-shadow:inset 0 -2px 0 var(--acc)}
+.head .dd .dayrun{margin-left:auto;align-self:center;font-size:var(--fs-xs);padding:2px 8px;white-space:nowrap} /* 日報の AI 分析（記録のある日だけ）。日付の右端に小さく */
+.head .dd .pill.dayrun.ai-action:not(:disabled){background:transparent;color:var(--ink-2);border-color:#2da978;font-weight:600} /* 7 日すべてに塗りのボタンが並ぶと目立ちすぎるので、枠だけ（押すと塗り） */
+.head .dd .pill.dayrun.ai-action:not(:disabled):hover{background:#176b50;color:#fff;border-color:#176b50}
 .head.today b,.head.today i{color:var(--acc-ink)}
 .hours{position:sticky;left:0;z-index:6;background:var(--surface)}
 .heads>div:first-child{position:sticky;left:0;z-index:9;background:var(--surface)}

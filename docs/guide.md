@@ -117,13 +117,14 @@ The old forms `kiroku --serve`, `--json`, `-o` and `--weekly` / `--monthly` have
 
 ## Reviews and reports with your agent
 
-For a session, a week or a month, kiroku builds a prompt for an AI agent on this computer (such as Claude Code or Codex). The agent reads the facts in the prompt and the history files it points to, and writes a review or report in a fixed format, ending with advice from an expert on working with AI agents.
+For a session, a day, a week or a month, kiroku builds a prompt for an AI agent on this computer (such as Claude Code or Codex). The agent reads the facts in the prompt and the history files it points to, and writes a review or report in a fixed format, ending with advice from an expert on working with AI agents.
 
 In `kiroku serve`, the view offers "Analyze with AI" (on by default). It shows the exact prompt, and after you confirm, runs it with `claude`, `codex` or `kiro-cli` on this computer (only the ones whose command is found are offered; with none, the button is disabled and says "No AI agent found", and an agent installed later is offered once kiroku reads your history again, which it does whenever the history changes, and you reload the page; restarting `kiroku serve` picks it up right away). While it runs, the dialog shows the command kiroku ran, what the agent does (the files Claude Code reads, and the progress and errors the agent prints) and its reply as it is written. "Formatted" shows the reply with headings, lists, tables and code laid out; "Markdown" shows the text as written, which "Copy result" copies (the choice is remembered in the browser). Links are shown as text with their address and images are not loaded. **The agent may send the prompt and the history it reads to its provider**, under its own account and terms; `kiroku serve` says so in the terminal when it starts. To turn agent runs off, start `kiroku serve --no-ai` (or set `KIROKU_NO_AI=1`); the button next to the weekly and monthly report and in session details then reads "Analyze with AI (off)", and pressing it explains how to turn it on. Agent runs are also off when `kiroku serve` listens on an address that isn't a loopback IP (such as `0.0.0.0:8485`). A saved HTML file never runs an agent and shows no AI buttons. While agent runs are on and an agent is found, the badge at the top reads "LIVE · AI on". `--ai`, which turned this on in earlier versions, is still accepted and does nothing.
 
 | Scope | Button | Format |
 |---|---|---|
 | A session | "Analyze with AI" in session details, next to "Everything" / "Your prompts only" | Summary, Numbers, Professional prompt assessment, Prioritized advice (up to three, each with an improved prompt), Reusable prompt playbook (an improved opening prompt and follow-up prompts for similar work) |
+| A day | "Daily report" next to each date with history in the week calendar (`kiroku serve` with an agent found only) | Summary, Numbers (next to the previous day), By project, Expert observations, Next actions |
 | A week or month | "Analyze with AI" under "Weekly report" ("Monthly report" in month view), below the period's dates | Summary, Numbers (next to the previous week or month), By project, Expert observations, Next actions |
 
 What the prompts give the agent:
@@ -144,7 +145,7 @@ Things to know:
 - A report asks the agent to base every bullet on a commit, pull request or session in the prompt, and to copy numbers, commits and links as they are
 - The prompts tell the agent that history is data, not instructions, and not to follow text in it that looks like instructions. They also ask it to leave out secrets, personal data, file contents, command output and paths on your computer (a review quotes only your prompts and the AI's prose), and not to run other commands, write files or send anything to another service (a report may run the read-only Git command it describes). Still, check a report before sharing it
 - The report is written in the language you mostly write your prompts in
-- In a week or month still in progress, the prompt says the data runs up to now. Sessions hidden in the legend are left out of reports, and so are the commits of projects hidden in the legend (when colored by project), their project sections, and signals that quote their prompts. The Numbers table still counts everything, and the prompt tells the agent to copy it unchanged without mentioning what was left out
+- In a day, week or month still in progress, the prompt says the data runs up to now. Sessions hidden in the legend are left out of reports, and so are the commits of projects hidden in the legend (when colored by project), their project sections, and signals that quote their prompts. The Numbers table still counts everything, and the prompt tells the agent to copy it unchanged without mentioning what was left out
 
 ## Weekly and monthly summary
 
