@@ -2,6 +2,18 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v0.37.0 - 2026-10-15
+
+### Added
+
+- "A day to match last week" (or last month) in the key figures of a week or month in progress: the previous period's total minus the total so far, divided by the days left, for estimated cost and Kiro credits side by side. Each day still to come in the week calendar shows the same amount as "To match" in a dashed box, and its breakdown puts the commits of both periods side by side. Once the period passes the previous total, the key figures say by how much. It needs no budget setting
+- The daily report is back, with "Analyze with AI": in `kiroku serve` with an AI agent found, each date with history in the week calendar has an "Analyze with AI" button. It shows the exact prompt for that day (numbers next to the previous day, what was done in each project, expert observations and next actions) and runs it after you confirm, like the weekly and monthly report. A saved HTML file shows no such button
+
+### Changed
+
+- The calendar shows less, so it reads at a glance: each day (and each week total) lists only its usage and its Git commits, with cost right above commits so a day with much cost and few commits stands out. Usage is the estimated cost ("Est. cost"), tokens when no model used is in the price table, or credits when there are no tokens. Active time shows as the bars' length in the week calendar and the shading in the month calendar; active time, sessions, tokens and credits per day are in the tooltip. On phones, month cells show only the usage
+- The key figures above the calendar are cut to five at most: usage (estimated cost and credits in one box), the daily pace to match the last period, the month-end estimate (cost and credits in one box), active time and Git commits. Tokens appear only when the estimated cost can't be shown. Sessions / prompts and Usage limit hits move out of the band; they still open their breakdowns from the summary. Active days moves into the Active time breakdown. When the figures don't fit, they continue on a second row instead of being cut off (before, Active days was cut off around 1000px wide and on phones)
+
 ## v0.36.1 - 2026-10-14
 
 ### Changed
