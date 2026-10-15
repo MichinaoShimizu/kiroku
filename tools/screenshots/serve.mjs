@@ -112,6 +112,18 @@ try {
   check("エージェントはこのコンピューターにあるものだけ", dlg.agents.includes("codex"), JSON.stringify(dlg.agents));
   await p.locator("#ai-review-dialog button", { hasText: "Close" }).click();
   check("Close で閉じ、何も動かさない", await p.locator("#ai-review-dialog").count() === 0 && !/\$ codex/.test(log));
+  // 日報の「Analyze with AI」: 週のカレンダーの、記録のある日付の横。押すとその日の日報のプロンプト（前日と並べた数字の表）
+  const dayBtn = p.locator(".head .dayrun").first();
+  check("記録のある日の見出しに、日報のボタンがある", await dayBtn.count() === 1 && await dayBtn.isEnabled());
+  const sc = p.locator(".calscroll"); await sc.evaluate(e => { e.scrollTop = 300; }); await p.waitForTimeout(150);
+  const before = await sc.evaluate(e => e.scrollTop); await dayBtn.focus(); await p.waitForTimeout(150);
+  check("日報のボタンにフォーカスしても、カレンダーの位置が変わらない", await sc.evaluate(e => e.scrollTop) === before);
+  await dayBtn.click();
+  await p.waitForSelector("#ai-review-dialog", { timeout: 5000 });
+  const dp = await p.evaluate(() => document.querySelector("#ai-review-dialog textarea.ai-prompt").value);
+  check("日報のプロンプトは、その日の形式と前日との数字の表", /## Daily report: /.test(dp) && /^\| \| This day \| Previous day \|$/m.test(dp) && /^\| Active time \| /m.test(dp), dp.slice(0, 300));
+  await p.locator("#ai-review-dialog button", { hasText: "Close" }).click();
+  check("日報も Close で閉じ、何も動かさない", await p.locator("#ai-review-dialog").count() === 0 && !/\$ codex/.test(log));
 
   // エージェントのコマンドが 1 つもない serve と、--no-ai の serve を、同じ鍵（同じ設定の場所）で立てる
   const startExtra = async (args, env2) => { let lg = ""; const s = spawn(path.resolve(bin), args, { env: { ...env, ...env2 }, stdio: ["ignore", "pipe", "pipe"] });
@@ -123,6 +135,7 @@ try {
   const pn = await ctx.newPage();
   await pn.goto(`${none.url}/?key=${key}`);
   await pn.waitForSelector("#rptbar .ai-none", { timeout: 15000 });
+  check("エージェントがないと、日報のボタンは出さない（理由は週報の帯で言う）", await pn.locator(".head .dayrun").count() === 0);
   check("エージェントがないと、ボタンは押せず、理由が添えてある", await pn.locator("#rptbar .ai-none button").isDisabled() && /No AI agent found/.test(await pn.locator("#rptbar .ai-why").innerText()) && /claude, codex or kiro-cli/.test(await pn.locator("#rptbar .ai-why").getAttribute("title")));
   await pn.close();
   const off = await startExtra([...serveArgs, "--no-ai", "--ai"], {});

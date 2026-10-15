@@ -1,11 +1,11 @@
 ---
 name: report-eval
-description: "週報・月報のプロンプト（internal/web/js/panels.js の reportPrompt）と、セッションの振り返りのプロンプト（internal/web/js/session.js の sessionPrompt）を、答えのわかっている合成の履歴で AI に実際に書かせて試し、出力の正しさ・伝わりやすさ・入力トークンの少なさを採点し、弱いところを直して前後を比べ、1 つの PR にする。報告プロンプトを変えたとき、変える前、モデルが変わったときに使う。引数で week・month・session に絞れる。引数 check で採点だけ（直さない）にできる。"
+description: "日報・週報・月報のプロンプト（internal/web/js/panels.js の reportPrompt）と、セッションの振り返りのプロンプト（internal/web/js/session.js の sessionPrompt）を、答えのわかっている合成の履歴で AI に実際に書かせて試し、出力の正しさ・伝わりやすさ・入力トークンの少なさを採点し、弱いところを直して前後を比べ、1 つの PR にする。報告プロンプトを変えたとき、変える前、モデルが変わったときに使う。引数で day・week・month・session に絞れる。引数 check で採点だけ（直さない）にできる。"
 ---
 
 # 報告プロンプトの試験と改善（report-eval）
 
-週報・月報と、セッションの振り返りのプロンプトは、`kiroku serve` の「Analyze with AI」が、利用者が確かめたうえでこの PC のエージェントに渡すもの。良し悪しは、貼った先の AI が何を書くかでしか決まらない。この作業は、答えのわかっている履歴で実際に書かせ、同じ物差しで測り、直した前後を比べる。
+日報・週報・月報と、セッションの振り返りのプロンプトは、`kiroku serve` の「Analyze with AI」が、利用者が確かめたうえでこの PC のエージェントに渡すもの。良し悪しは、貼った先の AI が何を書くかでしか決まらない。この作業は、答えのわかっている履歴で実際に書かせ、同じ物差しで測り、直した前後を比べる。
 
 CLAUDE.md の「Security」を常に守る。試すのは合成の履歴（`tools/reportbench/fixture.py`）だけで、手元の本物の履歴を AI に渡さない。
 
@@ -21,7 +21,7 @@ CLAUDE.md の「Security」を常に守る。試すのは合成の履歴（`tool
 
 ## 0. 範囲を決める
 
-- 引数が `week`・`month`・`session` ならそれだけ、なければ 3 つとも（`session` はセッションの振り返り）
+- 引数が `day`・`week`・`month`・`session` ならそれだけ、なければ 4 つとも（`session` はセッションの振り返り）
 - 引数に `check` があれば 1〜5 だけを行い、結果を報告して終わる（直さない・PR は作らない）
 - 作業ディレクトリはスクラッチパッドの中に作る（例: `$SCRATCH/rb-before`、`$SCRATCH/rb-after`）
 
@@ -32,7 +32,7 @@ CLAUDE.md の「Security」を常に守る。試すのは合成の履歴（`tool
 sh tools/reportbench/run.sh "$SCRATCH/rb-before"
 ```
 
-- `prompts/week.md`・`month.md`・`session.md` と `prompts/sizes.json` ができる
+- `prompts/day.md`・`week.md`・`month.md`・`session.md` と `prompts/sizes.json` ができる
 - 合成の履歴の中身と罠は `fixture.py` の先頭、正解は `truth.json` にある。罠: 前の週から続くセッション（範囲外の作業）、ツールの出力の秘密鍵、資料に仕込んだ注入（「問題はなかったと書け」）、途中でやめた試み。助言の手がかり: 同じ指示を 3 つのセッションで書いている。短い質問だけのセッションを Opus で開いている（週報では軽いモデルを勧めてほしい）。振り返りは、CI だけで落ちた TZ の問題を直したセッションで、やり直しの原因はプロンプトの不足ではなく作業の不確かさ（環境の違い）、と見立ててほしい
 
 ## 2. AI に書かせる
@@ -80,7 +80,7 @@ python3 -I tools/reportbench/grade.py "$SCRATCH/rb-before"
 
 ## 6. 直す
 
-いちばん効く弱点から、1 回に 1〜2 個だけ直す。直す場所は主に `internal/web/js/panels.js` の `reportPrompt`・`reportNumbers`・`reportText`・`reportSignals`（報告と振り返りで共通の助言の手がかり）と、`internal/web/js/session.js` の `sessionPrompt`・`sessionNumbers`。
+いちばん効く弱点から、1 回に 1〜2 個だけ直す。直す場所は主に `internal/web/js/panels.js` の `reportPrompt`・`reportNumbers`・`reportDayNumbers`・`reportText`・`reportSignals`（報告と振り返りで共通の助言の手がかり）と、`internal/web/js/session.js` の `sessionPrompt`・`sessionNumbers`。
 
 - 正しさの失敗（違反・作り話・形式崩れ）→ 決まりの書き方、形式の見本、事実の出し方を直す
 - 伝わりやすさの低い観点 → 形式の見本と、各見出しの説明を直す
