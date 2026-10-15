@@ -1,13 +1,13 @@
 # Live-agent scenario runner
 
-The repository includes [a Python standard-library runner](../../scripts/decision_continuity_agent_eval.py) for twelve isolated Decision Continuity cases. This is a **runner**, not a bundled agent or an automatic proof of correctness. It invokes a CLI chosen by the operator; no agent CLI, credentials or model access are included.
+The repository includes [a Python standard-library runner](agent_eval.py) for twelve isolated Decision Continuity cases. This is a **runner**, not a bundled agent or an automatic proof of correctness. It invokes a CLI chosen by the operator; no agent CLI, credentials or model access are included.
 
 ## Run
 
 Use a trusted local agent CLI that loads all three skills from a pinned checkout. The executable must accept the prompt on stdin or support a `{prompt_file}` argument. For example, **replace** `/path/to/your-agent` and its arguments with your real installed agent invocation:
 
 ```sh
-python3 scripts/decision_continuity_agent_eval.py \
+python3 -I tools/decision-continuity/agent_eval.py \
   --revision FULL_40_CHARACTER_GIT_SHA \
   --checkout . \
   --agent-version 'AGENT_AND_MODEL_VERSION' \

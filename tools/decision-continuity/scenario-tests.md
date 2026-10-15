@@ -21,7 +21,7 @@ These are **documentation-level contract tests**, not executed agent-runtime tes
 
 ## Static validation method and evidence
 
-Checked the instructions at the repository's current `main` in [Reverse ADR](../../.claude/skills/reverse-adr/SKILL.md), [ADR Guard](../../.claude/skills/adr-guard/SKILL.md), [Forward ADR](../../.claude/skills/forward-adr/SKILL.md), [ADR index](../adr/README.md), [Decision Log index](README.md) and [Decision Continuity](../adr/decision-continuity.md). Each PASS means the documented expected rule exists and no contrary active rule was identified during this review. **PASS does not establish that a model will follow the instruction at runtime**; there was no actual agent invocation, CI execution or test harness.
+Checked the instructions at the repository's current `main` in [Reverse ADR](../../.claude/skills/reverse-adr/SKILL.md), [ADR Guard](../../.claude/skills/adr-guard/SKILL.md), [Forward ADR](../../.claude/skills/forward-adr/SKILL.md), [ADR index](../../docs/adr/README.md), [Decision Log index](../../docs/decision-log/README.md) and [Decision Continuity](../../docs/adr/decision-continuity.md). Each PASS means the documented expected rule exists and no contrary active rule was identified during this review. **PASS does not establish that a model will follow the instruction at runtime**; there was no actual agent invocation, CI execution or test harness.
 
 ## Live execution gate (pending)
 

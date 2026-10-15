@@ -32,8 +32,8 @@ A Decision Log has a stable historical ID, scope, source evidence, observations,
 
 ## Evidence and audit trail
 
-The historical [decision ledger](../adr/phase1-decision-ledger.md), [claim evidence matrix](../adr/evidence.yaml), and [audit snapshot](../adr/audit.md) retain their original paths and legacy `ADR-xxxx` claim identifiers for compatibility. These identifiers represent historical claims, not Accepted ADRs. The audit snapshot was compiled before the Decision Log migration and does not establish exhaustive review or formal approval.
+The historical [decision ledger](evidence/phase1-decision-ledger.md), [claim evidence matrix](evidence/evidence.yaml), and [audit snapshot](evidence/audit.md) keep their legacy `ADR-xxxx` claim identifiers. These identifiers represent historical claims, not Accepted ADRs. The audit snapshot was compiled before the Decision Log migration and does not establish exhaustive review or formal approval.
 
 ## Validation scenarios
 
-[Decision Continuity scenario tests](scenario-tests.md) document twelve expected behaviors, static instruction checks and the live-agent gate; [first live results](scenario-results-2026-10-11.md).
+The skills themselves are evaluated in [tools/decision-continuity](../../tools/decision-continuity/scenario-tests.md): twelve expected behaviors, static instruction checks, the live-agent runner and the [first live results](../../tools/decision-continuity/scenario-results-2026-10-11.md).

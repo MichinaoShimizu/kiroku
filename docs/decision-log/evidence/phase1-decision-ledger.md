@@ -69,4 +69,4 @@ This pass screened titles of the remaining historical merged PRs in numbered ran
 
 ## Interpretation after Decision Log migration
 
-This ledger was compiled before historical ADRs 0001–0019 became Decision Logs. Historical ADR references now route to [Decision Logs](../decision-log/README.md) and do not imply accepted policy. The original candidate labels are preserved as historical data. ADR 0020 remains Proposed; no historical approvals are inferred from merged PRs.
+This ledger was compiled before historical ADRs 0001–0019 became Decision Logs. Historical ADR references now route to [Decision Logs](../README.md) and do not imply accepted policy. The original candidate labels are preserved as historical data. ADR 0020 remains Proposed; no historical approvals are inferred from merged PRs.

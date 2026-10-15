@@ -31,6 +31,6 @@ Only a human decision owner may accept an ADR. Proposed records are not binding 
 
 ## Historical compatibility
 
-Former retrospective ADRs 0001–0019 are now Decision Logs; old ADR file paths remain as redirects. They are **not** accepted constraints. Their original evidence remains in [evidence.yaml](evidence.yaml), [audit.md](audit.md) and [phase1-decision-ledger.md](phase1-decision-ledger.md). Legacy evidence IDs are preserved for traceability.
+Former retrospective ADRs 0001–0019 are now [Decision Logs](../decision-log/README.md) with the same numbers and file names. They are **not** accepted constraints. Their original evidence is in [docs/decision-log/evidence](../decision-log/evidence/); legacy evidence IDs are preserved for traceability.
 
 ADR Guard checks Accepted decisions, then consults Decision Logs for relevant historical context. New durable choices are drafted as Proposed ADRs and require explicit human review. Update routing and supersession links alongside decisions.
