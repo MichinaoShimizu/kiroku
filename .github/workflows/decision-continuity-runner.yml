@@ -3,8 +3,7 @@ name: Decision Continuity Runner Smoke
 on:
   pull_request:
     paths:
-      - 'scripts/decision_continuity_agent_eval.py'
-      - 'tests/test_decision_continuity_agent_eval.py'
+      - 'tools/decision-continuity/**'
       - '.github/workflows/decision-continuity-runner.yml'
   workflow_dispatch:
 
@@ -21,4 +20,4 @@ jobs:
         with:
           persist-credentials: false
       - name: Test runner with a fake agent (not a live model)
-        run: python3 -m unittest discover -s tests -p 'test_decision_continuity_agent_eval.py' -v
+        run: python3 -I -m unittest discover -s tools/decision-continuity -p 'test_agent_eval.py' -v

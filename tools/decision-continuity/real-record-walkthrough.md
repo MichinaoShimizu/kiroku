@@ -1,10 +1,10 @@
 # Decision Continuity — first real-record walkthrough (2026-10-11)
 
-This is a **manual, document-based review of actual repository records**, not a live execution of the three agent skills. It evaluates the lifecycle and routing rules against [ADR 0021](../adr/0021-kiro-cli-v3-separate-source.md) and [ADR 0020](../adr/0020-remote-session-import.md). It does not assert that current implementation, PR history, or tests have been independently verified.
+This is a **manual, document-based review of actual repository records**, not a live execution of the three agent skills. It evaluates the lifecycle and routing rules against [ADR 0021](../../docs/adr/0021-kiro-cli-v3-separate-source.md) and [ADR 0020](../../docs/adr/0020-remote-session-import.md). It does not assert that current implementation, PR history, or tests have been independently verified.
 
 ## Reverse ADR — provenance and uncertainty
 
-- [Decision Log 0010](0010-agent-source-coverage.md), [0004](0004-session-identity-and-deduplication.md), and [0006](0006-compatibility-contract.md) are historical context linked by ADR 0021. They are not independently binding decisions.
+- [Decision Log 0010](../../docs/decision-log/0010-agent-source-coverage.md), [0004](../../docs/decision-log/0004-session-identity-and-deduplication.md), and [0006](../../docs/decision-log/0006-compatibility-contract.md) are historical context linked by ADR 0021. They are not independently binding decisions.
 - ADR 0021 documents a distinct, explicitly approved choice: its status says **Accepted (2026-10-11, approved by the maintainer in review of #359)**. This walkthrough accepts that as the record's claim; it has **not** independently inspected the review approval.
 - ADR 0021 explicitly marks V2-to-V3 conversion identity as inferred rather than verified on a real converted session. Do not turn that inference into a test result.
 
@@ -12,8 +12,8 @@ This is a **manual, document-based review of actual repository records**, not a 
 
 | Proposed change (hypothetical, not an actual PR) | Applicable record | Expected classification | Action |
 |---|---|---|---|
-| Relabel shared-store Kiro V3 sessions back to **Kiro IDE** | [ADR 0021](../adr/0021-kiro-cli-v3-separate-source.md), Accepted | **Conflict** with the approved source-label decision | Explain impact on reporting/JSON consumers; retain approved label or draft a new Proposed ADR to intentionally change it |
-| Add an opt-in remote-session import | [ADR 0020](../adr/0020-remote-session-import.md), Proposed | **Review needed**, not a binding veto from ADR 0020 | Review privacy/security and applicable Accepted ADRs independently; don't treat ADR 0020 as approved implementation policy |
+| Relabel shared-store Kiro V3 sessions back to **Kiro IDE** | [ADR 0021](../../docs/adr/0021-kiro-cli-v3-separate-source.md), Accepted | **Conflict** with the approved source-label decision | Explain impact on reporting/JSON consumers; retain approved label or draft a new Proposed ADR to intentionally change it |
+| Add an opt-in remote-session import | [ADR 0020](../../docs/adr/0020-remote-session-import.md), Proposed | **Review needed**, not a binding veto from ADR 0020 | Review privacy/security and applicable Accepted ADRs independently; don't treat ADR 0020 as approved implementation policy |
 
 The second case does **not** establish that remote import is safe: missing or Proposed ADR coverage is not a safety guarantee. The first case does **not** establish that the code currently conforms to ADR 0021.
 

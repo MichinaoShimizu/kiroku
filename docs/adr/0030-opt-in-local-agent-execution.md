@@ -5,14 +5,14 @@ Date: 2026-10-14
 Scope: Running an installed AI agent on a prompt built from history (`internal/ai`, `internal/cli` serve `--ai`, `/ai/run`, `internal/web/js/ai.js`, `internal/web/js/mdview.js`, `SECURITY.md`)
 Related ADRs: [ADR 0022](0022-history-stays-local.md), [ADR 0029](0029-japanese-ui.md)
 Related Decision Logs: [DL 0013 — user-mediated AI reports](../decision-log/0013-user-mediated-ai-reports.md)
-Supersedes/Amends: Amends [ADR 0022](0022-history-stays-local.md) points 1 and 2; replaces the unnumbered draft [ai-execution-boundary.md](ai-execution-boundary.md)
+Supersedes/Amends: Amends [ADR 0022](0022-history-stays-local.md) points 1 and 2; replaces the unnumbered draft `ai-execution-boundary.md` (removed; see git history)
 Decision owner: Repository maintainer
 
 ## Context
 
 ADR 0022 says history never leaves the machine (point 1) and that kiroku never sends a prompt to an AI itself; the user copies it (point 2). Its Consequences say a feature that sends history off the machine, AI calls included, needs a new ADR.
 
-`kiroku serve --ai` shipped in v0.32–v0.34 (#385, #386, #387, #401, #403) without one. It runs `claude`, `codex` or `kiro-cli` on this computer with the prompt on stdin, and lets the agent read the history files the prompt points to. The agent may send the prompt and what it reads to its provider. A draft, [ai-execution-boundary.md](ai-execution-boundary.md), described this boundary but stayed Proposed, unnumbered and outside the index. The quality audit of 2026-10-14 found the conflict. It also found that #401 had removed the sentence telling the user, in the run dialog, that the agent may send data to its provider.
+`kiroku serve --ai` shipped in v0.32–v0.34 (#385, #386, #387, #401, #403) without one. It runs `claude`, `codex` or `kiro-cli` on this computer with the prompt on stdin, and lets the agent read the history files the prompt points to. The agent may send the prompt and what it reads to its provider. A draft, `ai-execution-boundary.md`, described this boundary but stayed Proposed, unnumbered and outside the index. The quality audit of 2026-10-14 found the conflict. It also found that #401 had removed the sentence telling the user, in the run dialog, that the agent may send data to its provider.
 
 ## Decision
 

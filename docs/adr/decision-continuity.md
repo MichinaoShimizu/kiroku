@@ -82,4 +82,4 @@ See the [ADR index](README.md), [Decision Log index](../decision-log/README.md),
 
 ## Scenario validation
 
-The [Decision Continuity scenario matrix](../decision-log/scenario-tests.md) contains twelve static contract checks for historical evidence, unknown rationale, Proposed versus Accepted decisions, ADR Guard applicability, reversals, test evidence and legacy references. These are documentation-level checks; the first live-agent run is in [scenario-results-2026-10-11.md](../decision-log/scenario-results-2026-10-11.md).
+The [Decision Continuity scenario matrix](../../tools/decision-continuity/scenario-tests.md) contains twelve static contract checks for historical evidence, unknown rationale, Proposed versus Accepted decisions, ADR Guard applicability, reversals, test evidence and legacy references. These are documentation-level checks; the first live-agent run is in [scenario-results-2026-10-11.md](../../tools/decision-continuity/scenario-results-2026-10-11.md).

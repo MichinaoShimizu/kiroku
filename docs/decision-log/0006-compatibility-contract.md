@@ -34,7 +34,7 @@ The decisions are explicit in issue #209 and related PRs. This ADR documents the
 
 ## Verification
 
-Current contract: `docs/compatibility.md` ("The JSON of kiroku json"). Tests: `internal/cli/cli_test.go` `TestJSONSchema` asserts `schemaVersion == 1` and the names and types of the enumerated session fields; `internal/cli/compat_test.go` `TestCompatArchive` and `TestCompatServeKey` read files written by earlier versions from `testdata/compat/`. These three tests passed at `ad670cb` (see [evidence.yaml](../adr/evidence.yaml)). No test asserts that `/data.json` stays outside the contract; that boundary is documentary.
+Current contract: `docs/compatibility.md` ("The JSON of kiroku json"). Tests: `internal/cli/cli_test.go` `TestJSONSchema` asserts `schemaVersion == 1` and the names and types of the enumerated session fields; `internal/cli/compat_test.go` `TestCompatArchive` and `TestCompatServeKey` read files written by earlier versions from `testdata/compat/`. These three tests passed at `ad670cb` (see [evidence.yaml](evidence/evidence.yaml)). No test asserts that `/data.json` stays outside the contract; that boundary is documentary.
 
 
 

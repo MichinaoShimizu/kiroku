@@ -8,7 +8,7 @@ Applies to reverse-adr, adr-guard, and forward-adr. Follow target repository con
 - **Superseded/Rejected/Deprecated ADR**: historical decision records, not current constraints. Keep chronology and links.
 - **Legacy redirect**: a pointer to a Decision Log, never an Accepted ADR by implication.
 
-In kiroku, use `docs/decision-log/README.md` for historical evidence and `docs/adr/README.md` for explicit decisions. Historical 0001–0019 are Decision Logs; their old ADR paths are redirects. Keep evidence IDs stable, but never infer authority from an ID prefix.
+In kiroku, use `docs/decision-log/README.md` for historical evidence and `docs/adr/README.md` for explicit decisions. Historical 0001–0019 are Decision Logs in `docs/decision-log/` (the old `docs/adr/` paths were removed). Keep evidence IDs stable, but never infer authority from an ID prefix.
 
 ## Rules
 

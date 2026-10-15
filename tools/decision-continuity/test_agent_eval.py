@@ -6,8 +6,7 @@ import sys
 import tempfile
 import unittest
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-RUNNER = ROOT / "scripts" / "decision_continuity_agent_eval.py"
+RUNNER = pathlib.Path(__file__).resolve().parent / "agent_eval.py"
 REVISION = "a" * 40
 
 
