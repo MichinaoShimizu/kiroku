@@ -98,7 +98,6 @@ const JA_TEXT = {
   "Credits a day to match last month": "先月並みの 1 日のクレジット",
   "Credits a day to match last week": "先週並みの 1 日のクレジット",
   "Credits a day to match the last period": "前の期間並みの 1 日のクレジット",
-  "Daily report": "日報",
   "Daily report for {date}": "{date}の日報",
   "Days left": "残りの日数",
   "Est. cost": "推定費用",

@@ -124,7 +124,7 @@ In `kiroku serve`, the view offers "Analyze with AI" (on by default). It shows t
 | Scope | Button | Format |
 |---|---|---|
 | A session | "Analyze with AI" in session details, next to "Everything" / "Your prompts only" | Summary, Numbers, Professional prompt assessment, Prioritized advice (up to three, each with an improved prompt), Reusable prompt playbook (an improved opening prompt and follow-up prompts for similar work) |
-| A day | "Daily report" next to each date with history in the week calendar (`kiroku serve` with an agent found only) | Summary, Numbers (next to the previous day), By project, Expert observations, Next actions |
+| A day | "Analyze with AI" next to each date with history in the week calendar (`kiroku serve` with an agent found only) | Summary, Numbers (next to the previous day), By project, Expert observations, Next actions |
 | A week or month | "Analyze with AI" under "Weekly report" ("Monthly report" in month view), below the period's dates | Summary, Numbers (next to the previous week or month), By project, Expert observations, Next actions |
 
 What the prompts give the agent:
