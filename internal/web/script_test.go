@@ -155,6 +155,42 @@ func TestCostOf(t *testing.T) {
 	}
 }
 
+// 前の期間並みに収める 1 日の目安（pacing）と、狭いマスの推定費用（usdS）。panels.js と format.js から取り出して Node で動かす。
+func TestPacing(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	var code strings.Builder
+	for _, x := range []struct{ file, re string }{
+		{"js/format.js", `(?m)^const costOf = .*$`},
+		{"js/format.js", `(?m)^function dayNo\(.*$`},
+		{"js/format.js", `(?m)^const usdS = .*$`},
+		{"js/panels.js", `(?ms)^function pacing\(w, pw\)\{.*? : null; \}$`},
+	} {
+		src, err := jsFiles.ReadFile(x.file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		m := regexp.MustCompile(x.re).FindString(strings.ReplaceAll(string(src), "\r\n", "\n"))
+		if m == "" {
+			t.Fatalf("%s に %s が見つからない", x.file, x.re)
+		}
+		code.WriteString(m + "\n")
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "pacing_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "pacing.js")
+	if err := os.WriteFile(f, append([]byte("const commas = n => n.toLocaleString(\"en-US\");\n"+code.String()), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("pacing が違う:\n%s", out)
+	}
+}
+
 // 履歴が記録しないもの（core.Records）を「0」ではなく「記録されていない」と出すための records・unrecorded。
 // state.js はほかの値に頼るので、その行だけを取り出し、RECORDS には core.Records を入れて Node で動かす。
 func TestUnrecorded(t *testing.T) {

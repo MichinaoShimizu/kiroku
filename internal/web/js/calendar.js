@@ -83,7 +83,7 @@ function shownName(){ const M = st.mode === "month", t0 = today0();
   return st.week.getTime() === mondayOf(t0).getTime() ? t("This week") : t("Week of {date}", {date: dMD(st.week)}); }
 /* 期間の要点（上の帯） */
 function kpis(){
-  const {S:w} = period(), K = $("#kpis"), M = st.mode === "month";
+  const {S:w, P:pw} = period(), K = $("#kpis"), M = st.mode === "month";
   K.classList.toggle("unf", filtering()); // 絞り込みの最中も、ここは全セッションの合計（薄くして、カレンダーの上に断り書き）
   if (!w){ K.innerHTML = `<div class="kpi"><div class="k">${esc(META.scope ? t("Not in this file") : shownName())}</div><div class="v">${esc(t("No records"))}</div></div>`; return; }
   // 押すと内訳のダイアログ（metric.js）。id のない数は押せない
@@ -91,36 +91,57 @@ function kpis(){
     return `<${tg} class="kpi${cls ? " " + cls : ""}"${id ? ` type="button" data-metric="${id}" aria-haspopup="dialog"` : ""}${tt || id ? ` title="${esc(tt ? (id ? t("{text}. Click for the breakdown.", {text: tt}) : tt) : t("Click for the breakdown"))}"` : ""}><div class="k">${esc(k)}</div><div class="v">${v}</div></${tg}>`; };
   const u = w.usage || {}, days = w.days.filter(d => d.active).length, pj = projection(w);
   const n0 = soFar(), nd = n0 == null ? w.days.length : Math.min(n0, w.days.length); // 途中の週・月は、まだ来ていない日を分母に入れない（今日までの日数）
+  // 前の期間並みに収めるなら、残りの日 1 日あたりいくらか（pacing）。費用とクレジットは 1 つの枠に並べる（枠を増やすと帯がカレンダーと主役を争うため）。
+  // 超えていれば、その分を「超過」と書く。良し悪しは言わない。ちょうど同じ額なら、超過 +0 ではなく 1 日 0
+  const pc = pacing(w, pw), paceK = () => {
+    const xs = [[pc.cost, (v, txt) => txt ? usd(v) : usdH(v)], [pc.credits, (v, txt) => txt ? cr(v) : `${crN(v)}<small> cr</small>`]].filter(([x]) => x);
+    const all = xs.every(([x]) => x.rest < 0);
+    const v = xs.map(([x, f]) => x.rest >= 0 ? f(x.per) : `<small>+</small>${f(-x.rest)}<small> ${esc(t("over"))}</small>`).join(`<small> · </small>`);
+    const ref = xs.map(([x, f]) => f(x.ref, true)).join(" · ");
+    return kpi(all ? t(M ? "Past last month's total" : "Past last week's total") : t(M ? "A day to match last month" : "A day to match last week"), v,
+      all ? t(M ? "Last month's total was {v}" : "Last week's total was {v}", {v: ref}) : t(M ? "To stay at last month's total of {v}, for the {n} left" : "To stay at last week's total of {v}, for the {n} left", {v: ref, n: plural(pc.left, "day")}), "key", pc.cost ? "pace" : "paceCr"); };
   const pace = pj ? t("If the pace of the first {n} days continues", {n: pj.days}) : "";
-  // トークン・目安コスト・月末の見込み・クレジットは、いちばん大事な数なので先頭にまとめて目立たせる
-  K.innerHTML = (u.tokens ? kpi(t("Tokens"), tok(u.tokens), "", "key", "tokens") + kpi(t("Estimated cost"), usdH(costOf(u)), costOf(u) == null ? NOPRICE : "", "key", "cost") : "") +
-    (pj && pj.cost != null ? kpi(t("Month-end cost"), `<small>≈</small>${usdH(pj.cost)}`, pace, "key", "projection") : "") +
-    (u.credits ? kpi(t("Kiro credits"), `${crN(u.credits)}<small> cr</small>`, "", "key", "credits") : "") +
-    (pj && pj.credits != null ? kpi(t("Month-end credits"), `<small>≈</small>${crN(pj.credits)}<small> cr</small>`, pace, "key", "projectionCr") : "") +
-    kpi(t("Active time"), dur(w.active, true), "", "", "active") + kpi(t("Active days"), `${days}<small> ${esc(n0 == null ? t("of {n}", {n: nd}) : t("of {n} so far", {n: nd}))}</small>`, n0 == null ? "" : M ? t("{days} of the {n} so far (this month is still in progress)", {days, n: plural(nd, "day")}) : t("{days} of the {n} so far (this week is still in progress)", {days, n: plural(nd, "day")}), "", "days") +
-    kpi(t("Sessions / prompts"), `${w.sessions}<small>/</small>${w.prompts}`, "", "", "sessions") +
-    (() => { const {ws, we} = period(), n = limitHits(ws, we).length; return n ? kpi(t("Usage limit hits"), `<span class="wv">${n}</span>`, "", "", "limits") : ""; })() +
+  // 帯は日々の判断に使う 5 つ前後だけ：使用量（推定費用とクレジット）・前の期間並みの 1 日の目安・月末の見込み（月）・稼働時間・残したもの（コミット）。
+  // 稼働日・セッション / プロンプト・利用上限への到達は振り返りの数なので、サマリーと「見直す候補」に任せる（帯が多いとカレンダーと主役を争う）。
+  // 推定費用とクレジットは別の枠の使用量なので足さずに、1 つの枠に「 · 」で並べる。トークンは推定費用を出せないときだけ
+  const c = u.tokens ? costOf(u) : null, two = (a, b) => [a, b].filter(Boolean).join(`<small> · </small>`);
+  const useV = two(u.tokens ? (c == null ? tok(u.tokens) : usdH(c)) : "", u.credits ? `${crN(u.credits)}<small> cr</small>` : "");
+  const useK = u.tokens && u.credits ? t(c == null ? "Tokens · credits" : "Estimated cost · credits") : u.tokens ? t(c == null ? "Tokens" : "Estimated cost") : t("Kiro credits");
+  const pjV = pj ? two(pj.cost != null ? `<small>≈</small>${usdH(pj.cost)}` : "", pj.credits != null ? `<small>≈</small>${crN(pj.credits)}<small> cr</small>` : "") : "";
+  K.innerHTML = (useV ? kpi(useK, useV, u.tokens && c == null ? NOPRICE : "", "key", u.tokens ? (c == null ? "tokens" : "cost") : "credits") : "") +
+    (pc ? paceK() : "") +
+    (pjV ? kpi(t(pj.cost != null && pj.credits != null ? "Month-end (estimate)" : pj.cost != null ? "Month-end cost" : "Month-end credits"), pjV, pace, "key", pj.cost != null ? "projection" : "projectionCr") : "") +
+    kpi(t("Active time"), dur(w.active, true), n0 == null ? "" : M ? t("{days} of the {n} so far (this month is still in progress)", {days, n: plural(nd, "day")}) : t("{days} of the {n} so far (this week is still in progress)", {days, n: plural(nd, "day")}), "", "active") +
     (w.git && w.git.commits ? kpi(t("Git commits"), `${w.git.commits}<small> · ${esc(t("{n} by AI", {n: w.git.ai}))}</small>`, "", "", "commits") :
      w.outputs && w.outputs.commits ? kpi(t("AI commits"), `${w.outputs.commits}`) : "");
   K.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b));
 }
 
-/* カレンダーの各日（月表示では各週も）に並べる：作業時間・トークン・クレジット・セッション・Git のコミット。
-   トークンとクレジットは、その期間にあるほう（両方あれば両方）を、どの日にも同じ見出しで出す（日によって見出しが変わると、横に並べて比べられない）。
+/* カレンダーの各日（月表示では各週も）に並べるのは 2 つだけ：使用量（推定費用。見積もれないならトークン、トークンがなければクレジット）と Git のコミット。
+   費用と残したものを上下に並べ、費用が増えても残したものが増えていない日を、カレンダーを見るだけで拾えるようにする。
+   作業時間は週では帯の長さ・月ではマスの濃さ、セッションは帯の数で見えるので、数は日のツールチップに（トークン・クレジットも）。
+   見出しは期間の中でそろえる（日によって見出しが変わると、横に並べて比べられない）。
    un は絞り込み（検索・凡例で隠す）の最中に、絞り込まれていない合計を薄くする（1: 作業時間・トークン・クレジット、2: 全部） */
-const useKinds = xs => ({tokens: xs.some(d => d && d.tokens), credits: xs.some(d => d && d.credits)});
+const useKinds = xs => ({tokens: xs.some(d => d && d.tokens), cost: xs.some(d => d && d.cost > 0), credits: xs.some(d => d && d.credits)});
 function calRows(act, u, nS, nC, kinds, un){
   const k = un ? "k u" : "k", o = un > 1 ? "u" : "";
-  return [[t("Active"), act ? dur(act) : "—", k], kinds.tokens && [t("Tokens"), u && u.tokens ? tok(u.tokens) : "—", k], kinds.credits && [t("Credits"), u && u.credits ? cr(u.credits) : "—", k],
-    [t("Sessions"), nS, o], [t("Commits"), nC, o]].filter(Boolean);
+  const use = kinds.cost ? [t("Est. cost"), u && u.cost > 0 ? esc(usd(costOf(u))) : "—", k] : kinds.tokens ? [t("Tokens"), u && u.tokens ? tok(u.tokens) : "—", k] : kinds.credits && [t("Credits"), u && u.credits ? cr(u.credits) : "—", k];
+  return [use, [t("Commits"), nC, o]].filter(Boolean);
 }
 const calDl = rows => `<dl class="cm">${rows.map(([k, v, c]) => `<div${c ? ` class="${c}"` : ""}><dt>${esc(k)}</dt><dd>${v}</dd></div>`).join("")}</dl>`; // k は強く出す値
 // スマホでは作業時間と使用量だけ。トークンとクレジットは別の行に出す（両方あれば 2 行）。
 // ひとつの枠にまとめると、Claude Code と Kiro を両方使う人には、片方しか見えないため。
-function calShort(act, u, un){
+function calShort(act, u, un, kinds){
   const q = un ? " u" : "";
-  const use = [u && u.tokens ? tokS(u.tokens) : "", u && u.credits ? cr(u.credits) : ""].filter(Boolean);
-  return `<span class="acs${q}">${act >= 60 ? (act/60).toFixed(1)+"h" : act+"m"}</span>${use.map(v => `<span class="uss${q}">${v}</span>`).join("")}`;
+  const v = !u ? "" : kinds.cost ? u.cost > 0 && usdS(u.cost) : kinds.tokens ? u.tokens && tokS(u.tokens) : u.credits && cr(u.credits);
+  return `<span class="acs${q}">${esc(v || "—")}</span>`;
+}
+// allowH は、まだ来ていない日に置く「目安」：前の期間と同じ推定費用（クレジット）に収めるなら、残りの日 1 日あたりいくらか（pacing）。
+// 前の期間をもう超えていれば出さない（0 と書くと「使うな」と読めるため。超えたことは上の帯が言う）。月のマスには出さない（同じ額が並ぶだけなので、帯の 1 か所で足りる）
+function allowH(pc){
+  const xs = [pc.cost && pc.cost.rest > 0 && usd(pc.cost.per), pc.credits && pc.credits.rest > 0 && cr(pc.credits.per)].filter(Boolean); if (!xs.length) return `<small>—</small>`;
+  const tip = t(st.mode === "month" ? "To stay at last month's total, about this much a day for the {n} left" : "To stay at last week's total, about this much a day for the {n} left", {n: plural(pc.left, "day")});
+  return `<div class="allow"${tipAttr(t("To match"), tip, ...xs)}><span>${esc(t("To match"))}</span>${xs.map(x => `<b>${esc(x)}</b>`).join("")}</div>`;
 }
 const filtering = () => !!st.q || st.hidden.size > 0;
 /* カレンダーに出すコミット：凡例で隠したプロジェクトのものは出さない。検索中は、一致したセッションの間のコミットと、それ自体が一致したコミットだけ */
@@ -139,7 +160,7 @@ function monthGrid(shown, ms, me, todayKey){
   for (let r = 0; r < 6; r++){
     const wk = addDays(first, 7*r); if (wk.getTime()/1000 >= me) break;
     const W = WEEKS[key(wk)], wa = W ? W.active : 0, wc = W && W.git ? W.git.commits : 0; // 週の合計（月の外の日も含む、その週まるごと）
-    h += `<button class="cell wkc" data-w="${key(wk)}"${tipAttr(t("Week {n}", {n: isoWeek(wk)}), W ? [`${t("Active")} ${dur(wa)}`, `${t("Sessions")} ${W.sessions}`, ...useLines(W.usage), `${t("Git commits")} ${wc}`] : t("No records"))}><span class="dn">${isJA() ? `${isoWeek(wk)}週` : `W${isoWeek(wk)}`}</span>${W && wa ? calDl(calRows(wa, W.usage, W.sessions, wc, kinds, un && 2)) + calShort(wa, W.usage, un) : ""}</button>`;
+    h += `<button class="cell wkc" data-w="${key(wk)}"${tipAttr(t("Week {n}", {n: isoWeek(wk)}), W ? [`${t("Active")} ${dur(wa)}`, `${t("Sessions")} ${W.sessions}`, ...useLines(W.usage), `${t("Git commits")} ${wc}`] : t("No records"))}><span class="dn">${isJA() ? `${isoWeek(wk)}週` : `W${isoWeek(wk)}`}</span>${W && wa ? calDl(calRows(wa, W.usage, W.sessions, wc, kinds, un && 2)) + calShort(wa, W.usage, un, kinds) : ""}</button>`;
     for (let c = 0; c < 7; c++){
       const d = addDays(wk, c), ds = d.getTime()/1000, de = addDays(d,1).getTime()/1000, inM = d.getMonth() === st.month.getMonth();
       if (!inM){ h += `<div class="cell out"><span class="dn">${d.getDate()}</span></div>`; continue; }
@@ -148,7 +169,7 @@ function monthGrid(shown, ms, me, todayKey){
       const pj = Object.entries(by).sort((a,b)=>b[1]-a[1]), nS = shown.filter(s => inP(s, ds, de)).length;
       const nC = G ? G.filter(c => c.t >= ds && c.t < de).length : x && x.commits || 0;
       h += `<button class="cell${d.getDay()%6===0?" we":""}${wkc(d.getDay())}${key(d)===todayKey?" today":""}" data-w="${key(mondayOf(d))}" style="--heat:${(act/max).toFixed(3)}"${tipAttr(md(ds), act ? [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(x), `${t("Git commits")} ${nC}`] : t("No records"))}>
-        <span class="dn">${d.getDate()}</span>${act ? calDl(calRows(act, x, nS, nC, kinds, un)) + calShort(act, x, un) : ""}
+        <span class="dn">${d.getDate()}</span>${act ? calDl(calRows(act, x, nS, nC, kinds, un)) + calShort(act, x, un, kinds) : ""}
         ${pj.length ? `<span class="pj">${pj.map(([k,v])=>`<span style="flex:${v};--c:${colorOf(k)}"></span>`).join("")}</span>` : ""}</button>`;
     }
   }
@@ -175,12 +196,13 @@ function timeline(shown, inWeek, ws, we, todayKey){
   for (let h=1; h<24; h++) if (Math.abs(h - nowH) * hh >= 20) hours += `<span style="top:${h*hh}px">${String(h).padStart(2,"0")}:00</span>`;
   if (nowS >= ws && nowS < we) hours += `<span class="now" style="top:${nowH*hh}px">${hm(nowS)}</span>`;
   const runs = [], un = filtering() ? 1 : 0, G = gitShown(shown), kinds = useKinds(w ? w.days : []);
+  const pc = pacing(w, period().P), tmr = addDays(today0(), 1).getTime()/1000; // まだ来ていない日の見出しには、前の週並みに収める 1 日の目安
   for (let d=0; d<7; d++){
     const day = addDays(st.week,d), ds = day.getTime()/1000, de = addDays(st.week,d+1).getTime()/1000, isToday = key(day) === todayKey;
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
     const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i></div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`;
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i></div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : pc && ds >= tmr ? allowH(pc) : `<small>—</small>`}</div>`;
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
