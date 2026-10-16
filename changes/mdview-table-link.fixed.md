@@ -1,0 +1,1 @@
+- "Analyze with AI": in the formatted reply, a table right after a line of text is shown as a table (before, it was shown as part of the paragraph), and a link whose address has parentheses, such as `https://en.wikipedia.org/wiki/Go_(programming_language)`, shows its whole address instead of stopping at the first `)`
