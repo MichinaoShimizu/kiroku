@@ -2,6 +2,15 @@
 // 表示名（コマンド名）。選択肢と、失敗したときの文に使う
 const AI_AGENTS = [["claude", "Claude Code (claude)"], ["codex", "Codex (codex)"], ["kiro", "Kiro CLI (kiro-cli)"]];
 const aiName = id => ((AI_AGENTS.find(a => a[0] === id) || [])[1] || id).replace(/ \(.*\)$/, "");
+// aiAgentOf は、履歴のエージェントの名前（Claude Code・Codex・Kiro …）から、それを動かすコマンドの id（なければ ""）
+const aiAgentOf = source => /^Claude/.test(source) ? "claude" : /^Codex/.test(source) ? "codex" : /^Kiro/.test(source) ? "kiro" : "";
+// aiAgentIn は、ws〜we にいちばん長く動いていたエージェントの id（凡例で隠したセッションは数えない。なければ ""）。日報・週報の既定に使う
+function aiAgentIn(ws, we){
+  const by = {};
+  DATA.forEach(s => { const id = aiAgentOf(s.source); if (!id || st.hidden.has(keyOf(s))) return;
+    s.segs.forEach(([a, b]) => { const d = Math.min(b, we) - Math.max(a, ws); if (d > 0) by[id] = (by[id] || 0) + d; }); });
+  return Object.keys(by).sort((x, y) => by[y] - by[x])[0] || "";
+}
 // kiroku serve が AI の実行を切っている理由（--no-ai か、ループバックの IP ではない待ち受け先。ボタンの説明とダイアログ）
 const AI_OFF_WHY = () => t("This kiroku serve doesn't run AI agents: it was started with --no-ai (or KIROKU_NO_AI), or it listens on an address other than a loopback IP.");
 // エージェントのコマンドが 1 つもないとき（ボタンは押せないまま、理由を添える）
@@ -64,7 +73,7 @@ function aiFixPrompt(prompt, text, P){ return inEnglish(() => [prompt, "",
   mdFence(text), "", "# What to fix", ...P.map(p => "- " + p.en), "",
   "Write the complete answer again, in the same format and language, following every rule above. Fix these points and keep what was already correct. Answer with the new text only."].join("\n")); }
 const AI_LAST = new Map();
-async function runAIReview(button, prompt, title) {
+async function runAIReview(button, prompt, title, prefer = "") { // prefer: 最初に選んでおくエージェントの id（このコンピューターになければ、一覧の先頭）
   if (document.getElementById("ai-review-dialog")) return;
   const dialog = document.createElement("dialog");
   dialog.id = "ai-review-dialog"; dialog.className = "ai-dialog";
@@ -78,6 +87,7 @@ async function runAIReview(button, prompt, title) {
   const agentLabel = document.createElement("label"); agentLabel.className = "ai-agent"; agentLabel.append(document.createTextNode(t("Agent")));
   const agent = document.createElement("select");
   for (const [id, name] of AI_AGENTS.filter(([id]) => aiAgents().includes(id))) { const o = document.createElement("option"); o.value = id; o.textContent = name; agent.append(o); }
+  if (prefer && [...agent.options].some(o => o.value === prefer)) agent.value = prefer;
   agentLabel.append(agent); agentLabel.hidden = demo;
   const preview = document.createElement("textarea");
   preview.readOnly = true; preview.value = prompt; preview.className = "ai-prompt";
@@ -179,7 +189,7 @@ async function runAIReview(button, prompt, title) {
   const checked = (base, n, wasFix) => { const sep = JA ? (/。$/.test(base) ? "" : "。") : " ";
     return base + (n ? sep + t("kiroku's check found {n}.", {n: plural(n, "problem")}) : wasFix ? sep + t("kiroku's check found no problems.") : ""); };
   const last = AI_LAST.get(key); // 前に同じプロンプトで得た結果
-  if (last){ text = last.text; showResult(true); drawn = -1; draw(); copyResult.hidden = false; start.textContent = t("Run again"); inToggle.hidden = false; setInputs(false); status.textContent = checked(t("Last result with {agent}", {agent: aiName(last.agent)}), showCheck(), false); }
+  if (last){ if ([...agent.options].some(o => o.value === last.agent)) agent.value = last.agent; text = last.text; showResult(true); drawn = -1; draw(); copyResult.hidden = false; start.textContent = t("Run again"); inToggle.hidden = false; setInputs(false); status.textContent = checked(t("Last result with {agent}", {agent: aiName(last.agent)}), showCheck(), false); }
   if (demo){ start.disabled = true; start.title = t("Runs only in kiroku serve"); }
   start.onclick = async () => {
     if (demo) return; // 念のため。デモでは何も送らない

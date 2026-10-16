@@ -59,7 +59,7 @@ function detail(s){
   P.querySelectorAll(".sflags [data-goto]").forEach(b => b.onclick = () => openWorth(b.dataset.goto, b));
   P.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
   const run = P.querySelector("#srun");
-  if (run) run.onclick = () => runAIReview(run, sessionPrompt(s, active, med), t("Session review"));
+  if (run) run.onclick = () => runAIReview(run, sessionPrompt(s, active, med), t("Session review"), aiAgentOf(s.source)); // 既定は、そのセッションのエージェント
   P.querySelectorAll(".pexp").forEach(b => b.onclick = () => { const li = b.closest("li"), open = b.getAttribute("aria-expanded") !== "true";
     li.querySelector(".pshort").hidden = open; li.querySelector(".pfull").hidden = !open; b.setAttribute("aria-expanded", open); b.textContent = open ? t("Show less") : pexpLabel(li.dataset.full ? {} : s.prompts[b.dataset.i]); });
   P.querySelectorAll(".pload").forEach(b => b.onclick = async () => { // kiroku serve のときだけ、切ったプロンプトの全文をサーバーから読む
