@@ -170,10 +170,17 @@ try {
   const fixPrompt = await pf.evaluate(() => document.querySelector("#ai-review-dialog textarea.ai-prompt").value);
   check("「直してもらう」は、元のプロンプト・前の返事・直すことを入れたプロンプトを見せる", /weekly report/.test(fixPrompt) && /\n# Your previous answer\n/.test(fixPrompt) && /\n# What to fix\n- The answer has 1 of the 5 "###" sections/.test(fixPrompt), fixPrompt.slice(-400));
   check("「直してもらう」だけでは送らない（Run を押すまで）", await nRuns() === 1 && await runBtn.innerText() === "Run" && await runBtn.isEnabled());
+  const dlgText = async () => pf.evaluate(() => document.querySelector("#ai-review-dialog").innerText);
+  check("送らないことを、ダイアログで言う", /Nothing is sent until you press Run/.test(await dlgText()));
+  await pf.locator("#ai-review-dialog .ai-check button", { hasText: "Use the original prompt" }).click();
+  check("元のプロンプトに戻せる", !/# What to fix/.test(await pf.evaluate(() => document.querySelector("#ai-review-dialog textarea.ai-prompt").value)) && await fixBtn.count() === 1 && await nRuns() === 1);
+  await fixBtn.click();
   await runBtn.click();
   await until("2 回目の実行", async () => await nRuns() === 2);
   check("Run で、見せたプロンプトをそのまま送る", (await readFile(path.join(work, "last-prompt.txt"), "utf8")).trim() === fixPrompt.trim());
   await pf.waitForSelector("#ai-review-dialog .ai-check:not([hidden])", { timeout: 20000 });
+  check("確認の結果を状態の 1 行でも言い、「もう一度実行」は元のプロンプトに戻る", /kiroku's check found 2 problems\./.test(await pf.locator("#ai-review-dialog [role=status]").innerText()) && !/# What to fix/.test(await pf.evaluate(() => document.querySelector("#ai-review-dialog textarea.ai-prompt").value)));
+  check("確認で問題があれば、フォーカスは「直してもらう」へ", await fixBtn.evaluate(e => e === document.activeElement));
   await fixBtn.click(); await runBtn.click();
   await until("3 回目の実行", async () => await nRuns() === 3);
   await pf.waitForSelector("#ai-review-dialog .ai-check:not([hidden])", { timeout: 20000 });

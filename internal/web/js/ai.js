@@ -32,8 +32,9 @@ function aiOutputProblems(prompt, text){
   const nm = /^## Numbers\n((?:\|.*\n?)+)/m.exec(prompt), rows = nm ? lines(nm[1]).filter(l => l.trim()).slice(2).map(cells) : [];
   const have = new Set(lines(text).filter(l => /^\s*\|/.test(l)).map(l => cells(l).slice(1).join("|")));
   const bad = rows.filter(c => c.length > 1 && !have.has(c.slice(1).join("|"))).map(c => c[0]);
-  if (bad.length) add(`The "Numbers" table is not copied unchanged. These rows are missing or their values differ: ${bad.slice(0, 5).map(x => JSON.stringify(x)).join(", ")}`,
-    t("The numbers table differs from kiroku's in {n}", {n: plural(bad.length, "row")}));
+  if (bad.length && bad.length === rows.length && !have.size) add(`The "Numbers" table is missing. Copy it from "Facts" unchanged`, t("The numbers table is missing"));
+  else if (bad.length) add(`The "Numbers" table is not copied unchanged. These rows are missing or their values differ: ${bad.map(x => JSON.stringify(x)).join(", ")}`,
+    t("The numbers table differs from kiroku's in: {rows}", {rows: bad.slice(0, 3).join(", ") + (bad.length > 3 ? t(", and {n} more", {n: bad.length - 3}) : "")}));
   const urls = s => new Set( // URL に使える ASCII の文字だけ（日本語の「）。」を含めない）。終わりの句読点は除く
     (s.match(/https?:\/\/[A-Za-z0-9\-._~:/?#@!$&*+,;=%]+/g) || []).map(u => u.replace(/[.,;:!?]+$/, "")));
   const up = urls(prompt), links = [...urls(text)].filter(u => !up.has(u));
@@ -70,7 +71,7 @@ async function runAIReview(button, prompt, title) {
   const status = document.createElement("p"); status.setAttribute("role", "status");
   // kiroku の確認（aiOutputProblems）で足りないところがあれば、その一覧と「直してもらう」。押すと直してもらうプロンプトを見せ、Run で送る（ADR 0034：実行ごとに確かめる）
   const checkBox = document.createElement("div"); checkBox.className = "ai-check"; checkBox.hidden = true;
-  let fixes = 0;
+  let fixes = 0, fixing = false, fixBtn = null; // fixing: 直してもらうプロンプトを入れて、Run を待っているところ
   // 経過（実行したコマンド・エージェントの動き・エラー出力）と、返事。返事は整えた表示と Markdown のまま見る表示を切り替えられる
   const activity = document.createElement("pre"); activity.className = "ai-log"; activity.hidden = true;
   activity.setAttribute("aria-label", t("Progress"));
@@ -136,27 +137,36 @@ async function runAIReview(button, prompt, title) {
     try { await navigator.clipboard.writeText(text); copyResult.textContent = t("Copied"); setTimeout(() => { copyResult.textContent = t("Copy result"); }, 2000); }
     catch { setView("markdown"); const r = document.createRange(); r.selectNodeContents(output); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); status.textContent = t("Select the result and copy it manually"); }
   };
-  const showCheck = () => { // 返事を確かめて、足りないところを見せる（確かめるのは、直してもらう前の元のプロンプトに対して）
+  const pill = label => { const b = document.createElement("button"); b.type = "button"; b.className = "pill"; b.textContent = label; checkBox.append(b); return b; };
+  const note = s => { const n = document.createElement("p"); n.textContent = s; checkBox.append(n); };
+  const showCheck = () => { // 返事を確かめて、問題を見せ、その数を返す（確かめるのは、直してもらう前の元のプロンプトに対して）
     const P = text ? aiOutputProblems(prompt, text) : [];
-    checkBox.replaceChildren(); checkBox.hidden = !P.length;
-    if (!P.length) return;
-    const head = document.createElement("p"); head.textContent = t("kiroku's check found problems in this result:");
-    const ul = document.createElement("ul"); P.forEach(p => { const li = document.createElement("li"); li.textContent = p.l; ul.append(li); });
-    checkBox.append(head, ul);
+    fixBtn = null; checkBox.replaceChildren(); checkBox.hidden = !P.length;
+    if (!P.length) return 0;
+    note(t("kiroku's check found problems in this result:"));
+    const ul = document.createElement("ul"); P.forEach(p => { const li = document.createElement("li"); li.textContent = p.l; ul.append(li); }); checkBox.append(ul);
+    if (fixing){ // 直してもらうプロンプトを入れたところ。まだ送っていない。元のプロンプトに戻せる
+      note(t("The prompt above now asks the agent to fix these points. Nothing is sent until you press Run."));
+      pill(t("Use the original prompt")).onclick = () => { fixing = false; fixes--; preview.value = prompt; start.textContent = t("Run again"); status.textContent = ""; showCheck(); (fixBtn || start).focus(); };
+      return P.length; }
+    if (fixes >= AI_FIX_MAX){ note(t("Still not fixed after {n}. Fix it by hand, or run the original prompt again.", {n: plural(fixes, "try", "tries")})); return P.length; }
     const fix = aiFixPrompt(prompt, text, P);
-    if (fixes >= AI_FIX_MAX){ const n = document.createElement("p"); n.textContent = t("Still not fixed after {n}. Fix it by hand, or run again.", {n: plural(fixes, "try", "tries")}); checkBox.append(n); return; }
-    if (utf8Len(JSON.stringify({agent: agent.value, prompt: fix, consent: true})) > AI_RUN_MAX){ const n = document.createElement("p"); n.textContent = t("A prompt to fix it would be too long to run here."); checkBox.append(n); return; }
-    const b = document.createElement("button"); b.type = "button"; b.className = "pill"; b.textContent = t("Ask to fix");
-    b.onclick = () => { // 送らずに、直してもらうプロンプトを見せるだけ。送るのは Run を押したとき
-      fixes++; preview.value = fix; preview.classList.remove("small"); checkBox.hidden = true;
+    if (utf8Len(JSON.stringify({agent: agent.value, prompt: fix, consent: true})) > AI_RUN_MAX){ note(t("A prompt to fix it would be too long to run here.")); return P.length; }
+    note(t("\u201cAsk to fix\u201d puts a prompt to fix them in the box above. Nothing is sent until you press Run."));
+    fixBtn = pill(t("Ask to fix"));
+    fixBtn.onclick = () => { // 送らずに、直してもらうプロンプトを入れるだけ。送るのは Run を押したとき（ADR 0034）
+      fixes++; fixing = true; preview.value = fix; preview.classList.remove("small");
       inToggle.hidden = true; setInputs(true); start.textContent = t("Run");
-      status.textContent = t("The prompt below asks the agent to fix these points. Check it, then press Run.");
-      preview.scrollTop = preview.scrollHeight; start.focus(); };
-    checkBox.append(b); };
+      status.textContent = t("Check the prompt above, then press Run to ask for the fix.");
+      showCheck(); preview.scrollTop = preview.scrollHeight; start.focus(); };
+    return P.length; };
+  // 状態の 1 行に、確認の結果を足す（読み上げにも届くように）
+  const checked = (base, n, wasFix) => { const sep = JA ? (/。$/.test(base) ? "" : "。") : " ";
+    return base + (n ? sep + t("kiroku's check found {n}.", {n: plural(n, "problem")}) : wasFix ? sep + t("kiroku's check found no problems.") : ""); };
   const last = AI_LAST.get(key); // 前に同じプロンプトで得た結果
-  if (last){ text = last.text; showResult(true); drawn = -1; draw(); copyResult.hidden = false; start.textContent = t("Run again"); status.textContent = t("Last result with {agent}", {agent: aiName(last.agent)}); inToggle.hidden = false; setInputs(false); showCheck(); }
+  if (last){ text = last.text; showResult(true); drawn = -1; draw(); copyResult.hidden = false; start.textContent = t("Run again"); inToggle.hidden = false; setInputs(false); status.textContent = checked(t("Last result with {agent}", {agent: aiName(last.agent)}), showCheck(), false); }
   start.onclick = async () => {
-    const body = JSON.stringify({agent:agent.value,prompt:preview.value,consent:true}), size = utf8Len(body);
+    const body = JSON.stringify({agent:agent.value,prompt:preview.value,consent:true}), size = utf8Len(body), wasFix = preview.value !== prompt;
     if (size > AI_RUN_MAX){ // kiroku serve が受け付けない大きさなら、送らずにそう伝える（コピーして自分で貼る道は残る）
       status.textContent = t("This prompt is too long to run here ({size} KB; the limit is {limit} KB).", {size: Math.ceil(size / 1024), limit: AI_RUN_MAX / 1024}); return; }
     controller = new AbortController();
@@ -195,7 +205,9 @@ async function runAIReview(button, prompt, title) {
       text = String(done.output ?? text); drawn = -1; draw(); output.scrollTop = 0; // 読み始めは先頭から
       ok = !!text;
       status.textContent = t("Completed with {agent}", {agent: name});
-      if (ok){ AI_LAST.set(key, {text, agent: agent.value}); inToggle.hidden = false; setInputs(false); showCheck(); } // 結果だけを見せる（失敗・中止のときは、原因が見えるよう開いたまま）
+      // 直してもらう実行が終わったら、プロンプトは元に戻す（「もう一度実行」は元のプロンプトを送る）
+      if (wasFix){ fixing = false; preview.value = prompt; }
+      if (ok){ AI_LAST.set(key, {text, agent: agent.value}); inToggle.hidden = false; setInputs(false); status.textContent = checked(status.textContent, showCheck(), wasFix); } // 結果だけを見せる（失敗・中止のときは、原因が見えるよう開いたまま）
     } catch (error) {
       // 通信そのものが切れたとき（"Failed to fetch" など）は、ブラウザの文ではなく、考えられる原因を書く
       status.textContent = error.name === "AbortError" ? t("Canceled") : error.name === "TypeError" ? t("The connection to kiroku serve was lost. It may have stopped, or the prompt was too long.") : String(error.message || error);
@@ -203,7 +215,7 @@ async function runAIReview(button, prompt, title) {
     } finally {
       controller = null; cancel.textContent = t("Close"); start.disabled = false; agent.disabled = false; start.textContent = t("Run again");
       copyResult.hidden = !text; showResult(!!text);
-      if (dialog.open) (ok ? copyResult : start).focus();
+      if (dialog.open) (ok ? fixBtn || copyResult : start).focus(); // 確認で問題があれば「直してもらう」へ
     }
   };
   if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");

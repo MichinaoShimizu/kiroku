@@ -17,7 +17,9 @@ eq(aiOutputProblems(prompt, cutOff).map(p => p.l), ["2 of the 5 sections are mis
 eq(/has 3 of the 5 "###" sections/.test(aiOutputProblems(prompt, cutOff)[0].en), true, "cut off en");
 // 数字の表の値が違う
 const P2 = aiOutputProblems(prompt, good.replace("| 7 (6) | 2 |", "| 7 | 2 |"));
-eq(P2.map(p => p.l), ["The numbers table differs from kiroku's in 1 row"], "numbers");
+eq(P2.map(p => p.l), ["The numbers table differs from kiroku's in: Git commits (by AI)"], "numbers");
+// 表がまるごとない
+eq(aiOutputProblems(prompt, good.replace(/^\|.*\n/gm, "")).map(p => p.l), ["The numbers table is missing"], "numbers missing");
 eq(P2[0].en.includes('"Git commits (by AI)"'), true, "numbers en names the row");
 // 作ったリンクとハッシュ
 const P3 = aiOutputProblems(prompt, good + "\n- https://github.com/example/reports/pull/13 と 9abc1234def0 も。");
