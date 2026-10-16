@@ -96,6 +96,14 @@ func TestRequireKey(t *testing.T) {
 		{"マニフェストへの POST", "POST", "/manifest.webmanifest", "", nil},
 		{"マニフェストの下のパス", "GET", "/manifest.webmanifest/x", "", nil},
 		{"マニフェストに似たパス", "GET", "/manifest.webmanifest.json", "", nil},
+		{"マニフェストの末尾の /", "GET", "/manifest.webmanifest/", "", nil},
+		{"マニフェストから ..", "GET", "/manifest.webmanifest/../data.json", "", nil},
+		{"マニフェストから %2e%2e", "GET", "/manifest.webmanifest/%2e%2e/data.json", "", nil},
+		{"// のマニフェスト", "GET", "//manifest.webmanifest", "", nil},
+		{"/./ のマニフェスト", "GET", "/./manifest.webmanifest", "", nil},
+		{"大文字のマニフェスト", "GET", "/MANIFEST.webmanifest", "", nil},
+		{"マニフェストへの OPTIONS", "OPTIONS", "/manifest.webmanifest", "", nil},
+		{"マニフェストへの PUT", "PUT", "/manifest.webmanifest", "", nil},
 	} {
 		w := do(c.method, c.target, c.hdr, c.cookie)
 		if w.Code != 403 || w.Body.String() == "history" || !strings.Contains(w.Body.String(), "kiroku open") {
