@@ -121,7 +121,7 @@ func TestRequireKey(t *testing.T) {
 			t.Errorf("ヘッダーつきの %s = %d %q", m, w.Code, w.Body.String())
 		}
 	}
-	// GET / は鍵なしで通す（返すのは骨組みだけ）。アプリのマニフェストも（ブラウザはヘッダーを付けずに読む、ADR 0035）
+	// GET / は鍵なしで通す（返すのは骨組みだけ）。アプリのマニフェストも（ブラウザはヘッダーを付けずに読む、ADR 0037）
 	for _, p := range append([]string{"/"}, web.AppPaths...) {
 		if w := do("GET", p, "", nil); w.Code != 200 {
 			t.Errorf("鍵なしの GET %s = %d", p, w.Code)
