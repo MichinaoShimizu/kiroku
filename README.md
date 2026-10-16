@@ -67,7 +67,7 @@ In `kiroku serve`, "Analyze with AI" runs a prompt with the AI agent you already
 |---|---|---|
 | A session | "Analyze with AI" in session details | Summary, numbers, an assessment of your prompts, up to three prioritized pieces of advice (each quoting the prompt with its time and giving an improved prompt), and a playbook of prompts for similar work |
 | A day | "Analyze with AI" next to each date with history in the week calendar | A daily report: summary, numbers next to the previous day, what was done in each project and why, expert observations and next actions |
-| A week or month | "Analyze with AI" under "Weekly report" ("Monthly report" in month view), below the period's dates | A report for the week or month: summary, numbers next to the previous period, what was done in each project and why, expert observations and next actions, ready to share with your team |
+| A week | "Analyze with AI" under "Weekly report" in week view, below the week's dates | A weekly report: summary, numbers next to the previous week, what was done in each project and why, expert observations and next actions, ready to share with your team |
 
 The advice is grounded in your history, not generic tips. Each point names what it is based on: a figure, a prompt with its time, or a signal kiroku counted. Where the history shows it, the advice covers
 

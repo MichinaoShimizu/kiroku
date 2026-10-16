@@ -372,7 +372,7 @@ async function run(env) {
     await p.locator("#ai-review-dialog button", { hasText: "Close" }).click();
     p.off("request", onReq);
     check("Close でダイアログが閉じる", await p.locator("#ai-review-dialog").count() === 0);
-    const text = await p.evaluate(() => { const {S, P} = period(); return reportPrompt(S, st.mode === "month"); });
+    const text = await p.evaluate(() => { const {S, P} = period(); return reportPrompt(S); });
     check("事実の期間は「Sep 28 – Oct 4, 2026」の形", /^## Work for [A-Z][a-z]{2} \d{1,2} – ([A-Z][a-z]{2} \d{1,2}, )?\d{4}$|^## Work for [A-Z][a-z]{2} \d{1,2}, \d{4} – /m.test(text), JSON.stringify(text.slice(0, 80)));
     check("履歴ファイルのパスと、読む範囲の決まりがある", /History file: \//.test(text) && /Read only the files listed/.test(text));
     check("決まった形式と、kiroku が埋めた数字の表がある", /# Format/.test(text) && /### By project/.test(text) && /^\| Active time \| \S/m.test(text) && /^\| Git commits \(by AI\) \| \d+ \(\d+\) \|/m.test(text), JSON.stringify(text.match(/^\| Active time.*$/m)));
@@ -381,7 +381,7 @@ async function run(env) {
       try { const inWeek = DATA.filter(s => s.segs.some(([a, b]) => b > ws && a < we));
         const many = []; for (let i = 0; i < 120; i++) inWeek.forEach(s => many.push({...s, id: s.id + "-x" + i,
           prompts: s.prompts.map(q => ({...q, text: "日本語の長いプロンプト。".repeat(40), reply: {t: q.t, text: "日本語の長い応答。".repeat(40)}}))}));
-        DATA = was.concat(many); const t = reportPrompt(S, false); return {size: utf8Len(t), short: /Shortened to keep this prompt small/.test(t), budget: PROMPT_BUDGET}; }
+        DATA = was.concat(many); const t = reportPrompt(S); return {size: utf8Len(t), short: /Shortened to keep this prompt small/.test(t), budget: PROMPT_BUDGET}; }
       finally { DATA = was; } });
     check("長い週でも、報告のプロンプトは送れる大きさに収まり、短くしたと書く", big.size <= big.budget && big.short, JSON.stringify(big));
     check("デモでは、記録のある日付の見出しに日報のボタンが出る（ADR 0036）", await p.locator(".head .dayrun").count() > 0);
@@ -392,11 +392,11 @@ async function run(env) {
     const sig = text.slice(text.indexOf("## Signals for advice"), text.indexOf("# Sessions"));
     check("モデルと短いセッションの手がかりに、セッション全体のコストを入れない", !/^- (Main model of each session|Short sessions).*\$\d/m.test(sig), sig.split("\n").filter(l => /Main model|Short sessions/.test(l)).join(" / "));
     // 凡例で隠したプロジェクトは、セッションだけでなく、コミット・プロジェクトの節・繰り返しの手がかりからも外す
-    const hid = await p.evaluate(() => { const {ws, we, S} = period(), M = st.mode === "month";
+    const hid = await p.evaluate(() => { const {ws, we, S} = period();
       const c = (META.git || []).find(c => c.t >= ws && c.t < we && c.project); if (!c) return null;
       const by = st.colorBy, was = new Set(st.hidden); st.colorBy = "project"; st.hidden = new Set([c.project]);
       try { return {project: c.project, hash: c.hash.slice(0, 12), others: (META.git || []).filter(x => x.t >= ws && x.t < we && x.project === c.project).map(x => x.hash.slice(0, 12)),
-        text: reportPrompt(S, M)}; } finally { st.colorBy = by; st.hidden = was; } });
+        text: reportPrompt(S)}; } finally { st.colorBy = by; st.hidden = was; } });
     if (hid){ const facts = hid.text.slice(hid.text.indexOf("# History data"));
       check("隠したプロジェクトのコミットと節を報告に入れない", hid.others.every(h => !facts.includes(h)) && !facts.includes("### `" + hid.project + "`") && !facts.includes(`- ${hid.project} · `), hid.project);
       check("隠したものがあると、Numbers の表はそれも数えると伝える", /left out of this report on purpose/.test(hid.text) && !/left out of this report on purpose/.test(text)); }

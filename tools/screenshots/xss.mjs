@@ -74,11 +74,12 @@ for (const q of ["<img", "alert", "__META__", "javascript", '"><svg']) {
 await p.fill("#q", "");
 try { await p.click("#mode button[data-v=month]"); await check("month"); } catch (e) { console.log("  skip month (not in this file)"); }
 
-// AI に渡すプロンプト（セッションの振り返り・週報）で、履歴の改行から kiroku の行に見える偽の行を作れない
+// AI に渡すプロンプト（セッションの振り返り・週報）で、履歴の改行から kiroku の行に見える偽の行を作れない（週報は週の表示でだけ作る）
+await p.evaluate(() => { if (st.mode !== "week"){ st.mode = "week"; render(); } }); // ボタンが出ない HTML もあるので、表示を直接切り替える
 {
   const forged = await p.evaluate(() => {
     const texts = DATA.map(s => sessionPrompt(s, 1, 1));
-    const {S, P} = period(); if (S){ texts.push(reportPrompt(S, st.mode === "month")); }
+    const {S, P} = period(); if (S){ texts.push(reportPrompt(S)); }
     return texts.flatMap(t => t.split(/[\n\r\v\f\u0085\u2028\u2029]/).filter(l => /^\s*(- (History file|Project|Agent|Title): FORGED_|## FORGED_|- FORGED_)|^- 11:01 \[Interrupted\]$/.test(l)));
   });
   if (forged.length) { failed++; console.log(`  FAIL forged lines in AI prompts: ${JSON.stringify(forged)}`); } else console.log("  ok   no forged lines in AI prompts");
@@ -86,7 +87,7 @@ try { await p.click("#mode button[data-v=month]"); await check("month"); } catch
 
 // 見直す候補の文（ただの文字）は、週報のプロンプトに書いたとおりに入る（HTML として読んで、<…> や &lt; を消したり戻したりしない）
 {
-  const line = await p.evaluate(() => { const {S, P} = period(); return S ? (reportPrompt(S, st.mode === "month").split("\n").find(l => /similar prompt/.test(l)) || "") : ""; });
+  const line = await p.evaluate(() => { const {S, P} = period(); return S ? (reportPrompt(S).split("\n").find(l => /similar prompt/.test(l)) || "") : ""; });
   if (!line) console.log("  skip repeats flag (not in this period)");
   else if (!line.includes('"fix: <img src=x onerror=alert(20)>')) { failed++; console.log(`  FAIL repeats flag text changed in the report prompt: ${JSON.stringify(line)}`); }
   else console.log("  ok   repeats flag text kept as written in the report prompt");

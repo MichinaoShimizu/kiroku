@@ -1,6 +1,6 @@
 # ADR 0036: "Analyze with AI" prompt preview in the live demo
 
-Status: Proposed
+Status: Accepted (2026-10-16, approved by the maintainer)
 Date: 2026-10-16
 Scope: The public demo built with `KIROKU_DEMO` (`tools/screenshots/run.sh --html`, `.github/workflows/pages.yml`), `internal/web/js` `state.js` (`aiDemo`), `ai.js` (`aiBtn`, `runAIReview`), `calendar.js`, the guide
 Related ADRs: [ADR 0034](0034-ai-analysis-by-default.md), [ADR 0030](0030-opt-in-local-agent-execution.md), [ADR 0022](0022-history-stays-local.md)
