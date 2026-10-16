@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v0.38.1 - 2026-10-16
+
+### Changed
+
+- "Analyze with AI" starts on the agent that did the work: for a session review, the agent of that session (a Codex session starts on Codex); for a daily or weekly report, the agent that ran longest that day or week. It falls back to the first agent found, as before, when that agent's command isn't on this computer. Reopening a dialog with an earlier result starts on the agent that wrote it
+- The view opens in the dark theme, with the calendar colored by agent ("Color by: Agent") instead of by project. A theme or "Color by" you chose before is kept; the button at the top right still switches to light
+
 ## v0.38.0 - 2026-10-16
 
 ### Added
