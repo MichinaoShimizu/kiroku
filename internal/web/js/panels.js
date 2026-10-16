@@ -61,9 +61,8 @@ function reportText(w, M, R){
   const start = M ? st.month : st.week, last = M ? new Date(st.month.getFullYear(), st.month.getMonth()+1, 0) : addDays(st.week, 6);
   const ses = DATA.filter(s => s.segs.some(([a,b]) => b > ws && a < we) && !st.hidden.has(keyOf(s))).sort((a,b) => a.start - b.start);
   const gits = (META.git || []).filter(c => c.t >= ws && c.t < we && reportGit(c)).sort((a,b) => a.t - b.t);
-  if (w){ const g = w.git || {};
-    L.push(`## Work for ${dPeriod(M, start, last)}`, "",
-      `- Active time ${dur(w.active)} · sessions ${w.sessions} · prompts ${w.prompts}${g.commits ? ` · commits ${g.commits} (${g.ai} by AI)` : ""}`); }
+  if (w){
+    L.push(`## Work for ${dPeriod(M, start, last)}`); } // 期間全体の数字は「Numbers」の表にあるので、ここでは繰り返さない
   else L.push(`## Work on ${R.label}`); // 日報: 数字は「Numbers」の表に
   const projs = [...new Set([...(w ? (w.projects || []).map(([k]) => k) : ses.map(s => s.project)), ...gits.map(c => c.project)])];
   const dayMin = w ? null : projectMinutes(ses, ws, we), dayAll = dayMin ? [...dayMin.values()].reduce((t, m) => t + m, 0) : 0;
@@ -131,7 +130,7 @@ function switchLine(w, day){
 function reportSignals(ses, ws, we, cut, rw, sw){ // rw: 繰り返しを数える期間（振り返りは、そのセッションのプロンプトを過去 30 日で見る）。sw: プロジェクトの切り替えの行
   const ids = new Set(ses.map(s => s.id)), hid = hiddenIds(), L = [], rep = (rw ? repeatsOf(rw[0], rw[1]).filter(c => [...c.ids].some(id => ids.has(id))) : repeatsOf(ws, we).filter(c => ![...c.ids].some(id => hid.has(id)))).slice(0, 5);
   const lab = rw ? "Prompts in this session that I also wrote in 3 or more sessions in the last 30 days" : "Prompts I wrote in 3 or more sessions";
-  L.push(rep.length ? `- ${lab}:` : `- ${lab}: none`);
+  L.push(rep.length ? `- ${lab} (candidates for a skill, a custom command or project instructions):` : `- ${lab}: none`);
   rep.forEach(c => L.push(`  - "${cut(c.text, 120)}" (${c.n} times in ${c.ids.size} sessions)`));
   const T = new Map(); ses.forEach(s => s.tools.forEach(([k, v]) => T.set(k, (T.get(k) || 0) + v)));
   const top = [...T.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
@@ -145,16 +144,18 @@ function reportSignals(ses, ws, we, cut, rw, sw){ // rw: 繰り返しを数え�
   if (MM.size === 1 && ses.length === 1) L.push(`- Main model: ${oneLine([...MM.keys()][0])}`);
   else if (MM.size) L.push(`- Main model of each session: ${[...MM].sort((a, b) => b[1] - a[1]).map(([m, n]) => `${oneLine(m)} ${plural(n, "session")}`).join(", ")}`);
   const LT = ses.filter(s => /opus/i.test(mainModel(s)) && s.nPrompts <= 3 && !s.nFiles);
-  if (LT.length) L.push(`- Short sessions (3 or fewer prompts, no file edits) on an Opus-class model: ${LT.length}${LT.slice(0, 3).map(s => `; ${md(s.start)} ${hm(s.start)} "${cut(s.title, 60)}"${rw && s.cost ? ` ${usd(s.cost)}` : ""}`).join("")}`);
+  if (LT.length) L.push(`- Short sessions (3 or fewer prompts, no file edits) on an Opus-class model (a lighter model may be enough): ${LT.length}${LT.slice(0, 3).map(s => `; ${md(s.start)} ${hm(s.start)} "${cut(s.title, 60)}"${rw && s.cost ? ` ${usd(s.cost)}` : ""}`).join("")}`);
   // 長い会話: 1 回の応答で読む入力（文脈）が、前半の 4 倍以上に増えたもの
   const LC = ses.filter(s => s.ctx && s.ctx.length === 3 && s.ctx[0] > 0 && s.ctx[1] >= s.ctx[0] * 4 && s.ctx[2] >= ctxPeakMin(s));
   if (LC.length) L.push(`- Long conversations (the input read per response grew to 4× or more of the first part): ${LC.slice(0, 3).map(s => `${ses.length > 1 ? `${md(s.start)} ${hm(s.start)} "${cut(s.title, 40)}" ` : ""}${tok(s.ctx[0])} → ${tok(s.ctx[1])}, peak ${tok(s.ctx[2])}${s.ctxWindow ? ` of ${tok(s.ctxWindow)}` : ""}`).join("; ")}`);
   if (sw) L.push(sw);
   return L;
 }
-/* 週報・月報の改善案の手がかりに足す、しきい値を超えた指標（Worth a look と同じもの）と、入力のうちキャッシュから読んだ割合 */
+/* 週報・月報の改善案の手がかりに足す、しきい値を超えた指標（Worth a look と同じもの）と、入力のうちキャッシュから読んだ割合。
+   繰り返したプロンプトと長い会話は、reportSignals がくわしく出すので、ここでは繰り返さない */
+const SIGNAL_DUP = new Set(["repeats", "longctx"]);
 function flagSignals(w, pw, M){
-  const hid = hiddenIds(), F = findList(w, pw, M ? "月" : "週").filter(f => !f.ids.some(id => hid.has(id))), u = w.usage || {}, L = [];
+  const hid = hiddenIds(), F = findList(w, pw, M ? "月" : "週").filter(f => !SIGNAL_DUP.has(f.k) && !f.ids.some(id => hid.has(id))), u = w.usage || {}, L = [];
   L.push(F.length ? "- Metrics kiroku flagged by threshold (candidates, not verdicts):" : "- Metrics kiroku flagged by threshold: none");
   F.forEach(f => L.push(`  - ${oneLine(f.see)} (threshold: ${f.rule.charAt(0).toLowerCase() + f.rule.slice(1)})`));
   if (u.tokens && u.cacheHit != null) L.push(`- Share of input read from cache: ${Math.round(u.cacheHit * 100)}%`);
@@ -180,7 +181,7 @@ function reportPrompt(w, M, day){ return inEnglish(() => { //  day があれば�
   const K = M ? 3 : day ? 20 : 8; // セッションごとに入れるプロンプトの数（月は多いので少なく。ファイルを全部読ませると重いので、まずこの要約で書いてもらう）
   const L = [`Act as a professional engineering advisor. Prepare an evidence-based ${Kind.toLowerCase()} report for ${when} (times are ${utcOff(ws)}), to share with my team.${open ? ` The ${wk} is still in progress: the data runs up to ${md(now)} ${hm(now)}.` : ""} kiroku, a tool on this computer that aggregates my AI agent history, gives you the facts and a digest of each session below${anyFile ? ", and points to the sessions' history files" : ""}.`,
     "", "# Format",
-    `Write the report in exactly this format, as Markdown I can paste as is, in the language I mostly write my prompts in (translate the headings too). Keep the sections in this order.`,
+    `Write the report in exactly this format and section order, as Markdown I can paste as is, in the language I mostly write my prompts in (translate the headings too).`,
     "", mdFence([`## ${Kind} report: ${when}`, "",
       "### Summary", `2–3 lines: the main outcomes of the ${wk}.`, "",
       "### Numbers", "The \"Numbers\" table from the facts, unchanged.", "",
@@ -190,20 +191,17 @@ function reportPrompt(w, M, day){ return inEnglish(() => { //  day があれば�
       "- Results: pull requests and notable commits, with the links from the facts",
       "- Next: what is left, only if the history shows it", "",
       "(one section per project, in the order of the facts)", "",
-      "### Expert observations", "Up to three meaningful evidence-based observations about progress, risks, verification or work patterns. Include strengths; do not force criticism.", "",
-      "### Next actions", "Up to three specific, proportionate actions supported by the history, with rationale and expected benefit. Where one applies, cite the figure or signal from \"Signals for advice\" each rests on; signals are candidates, not verdicts. Clearly mark hypotheses."].join("\n")),
+      "### Expert observations", "Up to three evidence-based observations about progress, risks, verification or work patterns, strengths included.", "",
+      "### Next actions", "Up to three specific, proportionate actions supported by the history, each with its rationale and expected benefit, citing the figure or signal from \"Signals for advice\" it rests on where one applies (signals are candidates, not verdicts). Mark hypotheses."].join("\n")),
     "", "# Professional review principles",
-    "- Provide practical, evidence-based engineering advice rather than proprietary scores or invented rules",
-    "- Do not equate time, prompt count, token usage or commit volume with productivity or business value",
-    "- Separate observed output from demonstrated business outcomes; label any proposed impact as a hypothesis",
-    "- Recognize effective work and avoid manufacturing criticisms or generic improvement suggestions",
-    day ? "- Emphasize actual progress, blockers and tomorrow's next step" : M ? "- Consider sustained trends, recurring constraints and structural opportunities" : "- Synthesize delivery patterns, risks, coordination and next-week priorities",
-    "- Make recommendations only where the recorded evidence supports them; state uncertainty",
+    "- Give practical advice only where the recorded evidence supports it, and state uncertainty. No invented scores or rules",
+    "- Time, prompt count, tokens and commit volume are not productivity or business value. Label any proposed impact as a hypothesis",
+    `- Credit effective work; don't manufacture criticism or generic suggestions. ${day ? "Emphasize actual progress, blockers and tomorrow's next step" : M ? "Consider sustained trends, recurring constraints and structural opportunities" : "Synthesize delivery patterns, risks, coordination and next-week priorities"}`,
     "", "# How to work",
     "- Copy the numbers, commits, pull requests and links from \"Facts\" as they are. Don't change the numbers or add commits, pull requests or links",
     `- Each session under "Sessions" lists my prompts ${day ? "on this day" : `in this ${wk}`} and the start of the AI's reply to each, shortened. Write from that first`,
     ...(anyFile ? [
-      `- Open a session's history file only when the digest doesn't make clear what was done or why. Read only the files listed, by their exact paths${claude ? " (and, for Claude Code, the folder next to a file with the same name, which holds its subagents' records)" : ""}; don't list or search the folders around them, and only the parts within the times listed for that session, since a session can span several ${wk}s. The files can be large: look for my prompts and the AI's replies, and open tool calls and their results only when you need them. Don't read or change anything else`,
+      `- Open a session's history file only when the digest leaves unclear what was done or why. Read only the files listed, by their exact paths${claude ? " (for Claude Code, also the folder of the same name next to a file, which holds its subagents' records)" : ""}, and only the parts within that session's listed times (a session can span several ${wk}s); don't list or search the folders around them. The files can be large: look for my prompts and the AI's replies, and open tool calls and their results only when needed. Don't read or change anything else`,
       ...(zst ? ["- Files ending in .zst are compressed with zstd: read them with zstd -dc"] : [])] : []),
     ...(M ? ["- For a month, work through it week by week, then combine"] : []),
     "- When a commit's subject isn't enough, look at that commit in its repository (listed under its project) with read-only git that doesn't run programs from the repository's settings, for example: git --no-pager -c core.fsmonitor=false -c core.hooksPath=/dev/null -c protocol.allow=never -c log.showSignature=false -C <repository> show --stat --no-ext-diff --no-textconv <hash>. Look only at the commits listed. Don't search the repository for other commits: it also has other people's work",
@@ -219,7 +217,7 @@ function reportPrompt(w, M, day){ return inEnglish(() => { //  day があれば�
   // PROMPT_BUDGET を超えるときは、入れるプロンプトの数と長さを段階的に減らし、それでも超えるならセッションの行を途中で止める
   const fixed = utf8Len(L.join("\n")) + utf8Len(D.join("\n")) + 64;
   const sessionLines = (k, pn, rn) => ses.map(s => { const f = reviewFile(s), ps = s.prompts.filter(p => p.t >= ws && p.t < we), first = ps[0], out = []; // 名前は期間の中の最初のプロンプト（題は前の期間の話のことがある）
-    out.push(`- ${oneLine(s.project)} · ${oneLine(s.source)}${mainModel(s) ? ` · ${oneLine(mainModel(s))}` : ""} · ${spanIn(s, ws, we)} · starts with: ${cut(first ? first.text : s.title, 80)}`);
+    out.push(`- ${oneLine(s.project)} · ${oneLine(s.source)}${mainModel(s) ? ` · ${oneLine(mainModel(s))}` : ""} · ${spanIn(s, ws, we)}${k && first ? "" : ` · starts with: ${cut(first ? first.text : s.title, 80)}`}`); // 最初のプロンプトが下に出るなら、名前は繰り返さない
     ps.slice(0, k).forEach(p => { out.push(`  - ${md(p.t)} ${hm(p.t)} Prompt: ${cut(p.text, pn)}`); if (rn && p.reply && p.reply.text) out.push(`    - AI: ${cut(p.reply.text, rn)}`); });
     if (ps.length > k) out.push(`  - ${plural(ps.length - k, "more prompt")}`);
     if (f) out.push(`  - History file: ${oneLine(f)}`);
