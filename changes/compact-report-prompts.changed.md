@@ -1,0 +1,2 @@
+- The daily, weekly and monthly report prompts are about 6–7% smaller: they no longer repeat the period's totals, a session's first prompt, or the flagged repeated prompts and long conversations that "Signals for advice" already lists, and their review principles are shorter
+- "Signals for advice" says what a repeated prompt and a short session on an Opus-class model suggest (a skill, a custom command or project instructions; a lighter model), so reports and session reviews give that advice more often
