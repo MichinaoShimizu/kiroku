@@ -1,0 +1,2 @@
+- "Analyze with AI" checks the reply of a report or a session review: missing sections (such as a reply cut off at the time limit), a Numbers table that differs from kiroku's, and links or commit hashes that aren't in the prompt
+  - "Ask to fix" shows a prompt that asks the agent to fix those points, and sends it when you press Run (at most twice per dialog)
