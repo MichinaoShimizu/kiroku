@@ -1,6 +1,6 @@
 # ADR 0035: No monthly AI report
 
-Status: Proposed
+Status: Accepted (2026-10-16, approved by the maintainer)
 Date: 2026-10-16
 Scope: The reports "Analyze with AI" offers in `kiroku serve` (`internal/web/js/summary.js`, `panels.js` `reportPrompt`, `tools/reportbench`, the report-eval skill, README, the guide)
 Related ADRs: [ADR 0034](0034-ai-analysis-by-default.md), [ADR 0030](0030-opt-in-local-agent-execution.md)
