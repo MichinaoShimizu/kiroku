@@ -260,7 +260,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
   sc.addEventListener("focusin", e => { if (e.target.closest(".heads") && sc.scrollTop !== seenTop) sc.scrollTop = seenTop; });
   // 日報の AI 分析（kiroku serve で、使えるエージェントがあるときだけ。週報と同じ作りで、その日の分だけ）
   T.querySelectorAll(".dayrun").forEach(b => b.onclick = e => { e.stopPropagation(); const dd = addDays(st.week, +b.dataset.d);
-    runAIReview(b, reportPrompt(null, false, dd), t("Daily report for {date}", {date: md(dd.getTime() / 1000)})); });
+    runAIReview(b, reportPrompt(null, dd), t("Daily report for {date}", {date: md(dd.getTime() / 1000)})); });
   T.querySelectorAll(".lim").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); });
   bindGitEvents(T);
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });

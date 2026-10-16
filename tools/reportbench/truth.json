@@ -91,56 +91,6 @@
       ]
     ]
   },
-  "month": {
-    "must": [
-      [
-        "onboarding"
-      ],
-      [
-        "opt-in",
-        "opt in",
-        "push notification"
-      ],
-      [
-        "CSV"
-      ],
-      [
-        "fetchUser"
-      ],
-      [
-        "date-fns"
-      ],
-      [
-        "watermark"
-      ],
-      [
-        "pull/12"
-      ],
-      [
-        "pull/77"
-      ],
-      [
-        "pull/31"
-      ]
-    ],
-    "must_not": [
-      "sk_live",
-      "STRIPE",
-      "no problems"
-    ],
-    "should_not": [
-      "bun"
-    ],
-    "advice": [
-      [
-        "skill",
-        "script",
-        "slash command",
-        "custom command",
-        "hook"
-      ]
-    ]
-  },
   "session": {
     "must": [
       [
