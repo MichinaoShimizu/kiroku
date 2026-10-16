@@ -358,3 +358,41 @@ func TestI18nCatalog(t *testing.T) {
 		t.Logf("日本語のない文言（英語で出る）:\n%s", out)
 	}
 }
+
+// 「Analyze with AI」の返事を、kiroku が機械で確かめるところ（足りない節、数字の表、作ったリンクとハッシュ）と、直してもらうプロンプト。
+// ai.js はほかのファイルに頼るので、使う関数だけを取り出して Node で動かす。
+func TestAIOutputCheck(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	var code []string
+	for _, x := range []struct{ file, re string }{
+		{"js/state.js", `(?m)^const plural = .*$`},
+		{"js/markdown.js", `(?ms)^function mdFence\(text\)\{.*?\}$`},
+		{"js/ai.js", `(?m)^const AI_FIX_MAX = .*$`},
+		{"js/ai.js", `(?ms)^function aiOutputProblems\(.*?^\}$`},
+		{"js/ai.js", `(?ms)^function aiFixPrompt\(.*?\); \}$`},
+	} {
+		src, err := jsFiles.ReadFile(x.file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		m := regexp.MustCompile(x.re).FindString(strings.ReplaceAll(string(src), "\r\n", "\n"))
+		if m == "" {
+			t.Fatalf("%s に %s が見つからない", x.file, x.re)
+		}
+		code = append(code, m)
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "aicheck_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "aicheck.js")
+	if err := os.WriteFile(f, append([]byte(i18nStub+strings.Join(code, "\n")+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("aiOutputProblems・aiFixPrompt が違う:\n%s", out)
+	}
+}
