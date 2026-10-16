@@ -14,6 +14,8 @@ const ctx = await b.newContext({ viewport: { width: W, height: H }, deviceScaleF
 const fakeNow = process.env.KIROKU_FAKE_NOW ? new Date(process.env.KIROKU_FAKE_NOW) : null;
 if (fakeNow && isNaN(fakeNow)) { console.error(`KIROKU_FAKE_NOW を日時として読めません: ${process.env.KIROKU_FAKE_NOW}`); process.exit(2); }
 if (fakeNow) await ctx.clock.install({ time: fakeNow });
+// README と guide の画像は、ライトテーマ・プロジェクトごとの色分けで撮る（画面の既定はダーク・エージェントごと。説明の文と合わせる）
+await ctx.addInitScript(() => { try { localStorage.setItem("kiroku:theme", '"light"'); localStorage.setItem("kiroku:colorBy", '"project"'); } catch (e) {} });
 const p = await ctx.newPage();
 const tStart = Date.now(); // 録画の始まり（ほぼ）
 await p.goto("file://" + path.resolve(html));
