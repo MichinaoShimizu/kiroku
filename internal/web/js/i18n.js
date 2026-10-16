@@ -124,7 +124,7 @@ const JA_TEXT = {
   "Left": "残り",
   "Left behind: {a} commits last month ({s} by the same day), {b} so far this month.": "残したもの：先月はコミット {a} 件（同じ日までは {s} 件）、今月はここまで {b} 件。",
   "Left behind: {a} commits last week ({s} by the same day), {b} so far this week.": "残したもの：先週はコミット {a} 件（同じ曜日までは {s} 件）、今週はここまで {b} 件。",
-  "Left running": "残っているもの",
+  "Left running": "残ったプロセス",
   "Month-end (estimate)": "月末の見込み",
   "Month-end credits breakdown": "月末の推定クレジットの内訳",
   "No AI agent command (claude, codex or kiro-cli) was found on this computer. Install one, then restart kiroku serve.": "この PC に AI エージェントのコマンド（claude・codex・kiro-cli）が見つかりません。どれかを入れてから、kiroku serve を起動し直してください。",
