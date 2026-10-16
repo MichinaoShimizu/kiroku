@@ -233,6 +233,7 @@ type call struct {
 	reportedUsage      *core.Tokens
 	file               *subFile
 	side               []core.Event
+	resumed            bool // 同じ agentId の前の呼び出しのファイルに、この分も入っている
 }
 
 func firstNonEmpty(s ...string) string {
@@ -627,8 +628,10 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					bg, _ := inp["run_in_background"].(bool)
 					c := &call{typ: firstNonEmpty(core.Str(inp["subagent_type"]), "general-purpose"),
 						desc: core.Runes(core.Str(inp["description"]), 120), bg: bg, start: t}
-					calls[core.Str(bm["id"])] = c
-					callOrder = append(callOrder, c)
+					if id := core.Str(bm["id"]); calls[id] == nil { // 同じ呼び出しの行が 2 度あっても 1 つ
+						calls[id] = c
+						callOrder = append(callOrder, c)
+					}
 				}
 			}
 		}
@@ -650,15 +653,40 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	sort.SliceStable(order, func(i, j int) bool { return val(order[i].start) < val(order[j].start) })
 	// 先に agentId の合うファイルをすべてつなぎ、残りを時刻でつなぐ。1 回でやると、時刻でつないだファイルが、
 	// あとで同じ呼び出しに agentId の合うファイルに置きかわって数えられなくなる
-	linked := make([]bool, len(files))
-	for i := range files {
-		for _, x := range order {
-			if x.file == nil && x.agentID != "" && x.agentID == files[i].agentID {
-				x.file, linked[i] = &files[i], true
-				break
-			}
+	byAgent := map[string][]*call{} // agentId ごとの呼び出し（始まりの順）
+	for _, x := range order {
+		if x.agentID != "" {
+			byAgent[x.agentID] = append(byAgent[x.agentID], x)
 		}
 	}
+	linked := make([]bool, len(files))
+	for i := range files {
+		cs := byAgent[files[i].agentID]
+		for j, x := range cs {
+			if x.file != nil {
+				continue
+			}
+			x.file, linked[i] = &files[i], true
+			// 同じ agentId の、あとの呼び出しは再開（resume）。その分も同じファイルに書き足されるので、
+			// 結果の usage で数えるともう 1 度数えてしまう
+			for _, y := range cs[j+1:] {
+				if y.file == nil {
+					y.resumed = true
+				}
+			}
+			break
+		}
+	}
+	// 時刻でつなぐ: ファイルの始まりが、呼び出しの始まりの 5 秒前から終わりの 5 秒後までに入る、始まりのいちばん早い呼び出し。
+	// 呼び出しもファイルも多いセッションで、ファイルごとに呼び出しを全部見ないよう、始まりの順に並べて木で探す
+	var free []*call // まだファイルのない呼び出し（始まりの順）
+	for _, x := range order {
+		if x.file == nil && !x.resumed && x.start != nil {
+			free = append(free, x)
+		}
+	}
+	tree := newEndTree(free)
+	var alone []*call // どの呼び出しにもつながらないファイル
 	for i := range files {
 		if linked[i] {
 			continue
@@ -666,23 +694,19 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		f := &files[i]
 		var c *call
 		if f.start != nil {
-			for _, x := range order {
-				end := *f.start
-				if x.end != nil {
-					end = *x.end
-				}
-				if x.file == nil && x.start != nil && *x.start-5 <= *f.start && *f.start <= end+5 {
-					c = x
-					break
-				}
+			k := sort.Search(len(free), func(j int) bool { return *free[j].start-5 > *f.start })
+			if j := tree.first(k, *f.start-5); j >= 0 {
+				c = free[j]
+				tree.take(j)
 			}
 		}
 		if c == nil {
 			c = &call{typ: "subagent", start: f.start, end: f.end}
-			order = append(order, c)
+			alone = append(alone, c)
 		}
 		c.file = f
 	}
+	order = append(order, alone...)
 	var sideEvs []core.Event
 	if len(files) == 0 {
 		// 古い形式: isSidechain の行を、呼び出しの時間帯で振り分ける
@@ -715,11 +739,13 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		} else {
 			evs = c.side
 		}
-		if len(evs) == 0 && c.reportedUsage != nil {
+		if c.resumed { // 使った分は、最初の呼び出しのファイルに入っている
+			evs = nil
+		} else if len(evs) == 0 && c.reportedUsage != nil {
 			evs = []core.Event{{T: c.start, U: *c.reportedUsage}}
 		}
 		tot := core.SumUsage(evs)
-		if c.file == nil && c.reportedUsage == nil && c.reported["totalTokens"] != 0 {
+		if c.file == nil && !c.resumed && c.reportedUsage == nil && c.reported["totalTokens"] != 0 {
 			tot.ReportedTokens = c.reported["totalTokens"]
 		}
 		end := c.end
@@ -954,4 +980,61 @@ func resultText(v any) string {
 	}
 	b, _ := json.Marshal(v)
 	return string(b)
+}
+
+// endTree は、始まりの順に並べた呼び出しの終わりの時刻の最大を持つ木（終わりのない呼び出しは +Inf、つないだものは -Inf）。
+// first(k, min) は、k より前で終わりが min 以上のうち、いちばん前の位置（なければ -1）。
+type endTree struct {
+	n   int
+	max []float64
+}
+
+func newEndTree(cs []*call) endTree {
+	n := 1
+	for n < len(cs) {
+		n *= 2
+	}
+	t := endTree{n: n, max: make([]float64, 2*n)}
+	for i := range t.max {
+		t.max[i] = math.Inf(-1)
+	}
+	for i, c := range cs {
+		t.max[n+i] = math.Inf(1)
+		if c.end != nil {
+			t.max[n+i] = *c.end
+		}
+	}
+	for i := n - 1; i >= 1; i-- {
+		t.max[i] = max(t.max[2*i], t.max[2*i+1])
+	}
+	return t
+}
+
+func (t endTree) take(i int) {
+	i += t.n
+	t.max[i] = math.Inf(-1)
+	for i /= 2; i >= 1; i /= 2 {
+		t.max[i] = max(t.max[2*i], t.max[2*i+1])
+	}
+}
+
+func (t endTree) first(k int, min float64) int {
+	var walk func(node, lo, hi int) int
+	walk = func(node, lo, hi int) int {
+		if lo >= k || t.max[node] < min {
+			return -1
+		}
+		if hi-lo == 1 {
+			return lo
+		}
+		mid := (lo + hi) / 2
+		if j := walk(2*node, lo, mid); j >= 0 {
+			return j
+		}
+		return walk(2*node+1, mid, hi)
+	}
+	if len(t.max) < 2 {
+		return -1
+	}
+	return walk(1, 0, t.n)
 }

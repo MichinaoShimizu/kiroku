@@ -2,8 +2,10 @@ package source
 
 import (
 	"fmt"
+	"math/rand/v2"
 	"path/filepath"
 	"slices"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -219,5 +221,127 @@ func TestClaudeSubagentAgentIDBeforeTime(t *testing.T) {
 	}
 	if byType["general-purpose"] != 50 || byType["subagent"] != 300 {
 		t.Errorf("入力 = %v, want Agent の呼び出しに agentId の合う agent-ag1（50）、呼び出しのない 1 つに agent-a0（300）", byType)
+	}
+}
+
+// 同じ agentId を返す呼び出しが 2 つ（2 つめは再開）で、ファイルが両方の分を持つときは、ファイルの分だけを数える
+// （2 つめの呼び出しの結果にある usage で、もう 1 度数えない）。
+func TestClaudeResumedSubagentCountedOnce(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	use := func(id, ts string) string {
+		return `{"type":"assistant","timestamp":"` + ts + `","message":{"id":"m` + id + `","model":"claude-sonnet-5-5","content":[{"type":"tool_use","id":"` + id + `","name":"Agent","input":{"subagent_type":"general-purpose","description":"実装"}}]}}`
+	}
+	result := func(id, ts string, in int) string {
+		return fmt.Sprintf(`{"type":"user","timestamp":"%s","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"%s","content":"done"}]},"toolUseResult":{"agentId":"ag","usage":{"input_tokens":%d,"output_tokens":1}}}`, ts, id, in)
+	}
+	writeLines(t, filepath.Join(dir, "s1.jsonl"), []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"任せて"}}`,
+		use("t1", "2026-09-30T01:01:00Z"), result("t1", "2026-09-30T01:11:00Z", 5),
+		use("t2", "2026-09-30T02:00:00Z"), result("t2", "2026-09-30T02:10:00Z", 7),
+	})
+	writeLines(t, filepath.Join(dir, "s1", "subagents", "agent-ag.jsonl"), []string{
+		`{"type":"assistant","timestamp":"2026-09-30T01:02:00Z","requestId":"r-a","message":{"id":"m-a","model":"claude-haiku-5-5","usage":{"input_tokens":5,"output_tokens":1},"content":[{"type":"text","text":"a"}]}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T02:01:00Z","requestId":"r-b","message":{"id":"m-b","model":"claude-haiku-5-5","usage":{"input_tokens":7,"output_tokens":1},"content":[{"type":"text","text":"b"}]}}`,
+	})
+	bs := load(t, &Claude{Root: root})
+	if len(bs) != 1 {
+		t.Fatalf("セッション数 = %d, want 1", len(bs))
+	}
+	var in float64
+	for _, a := range bs[0].Subagents {
+		in += a.Usage.In
+	}
+	if in != 12 {
+		t.Errorf("サブエージェントの入力 = %v, want 12（ファイルの 5 + 7。再開の結果の usage は数えない）", in)
+	}
+}
+
+// 同じ Agent の呼び出しの行（同じ id）が 2 度あっても、サブエージェントは 1 つ。
+func TestClaudeDuplicateAgentCallLine(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	call := `{"type":"assistant","timestamp":"2026-09-30T01:01:00Z","message":{"id":"m1","model":"claude-sonnet-5-5","content":[{"type":"tool_use","id":"t1","name":"Agent","input":{"subagent_type":"general-purpose","description":"実装"}}]}}`
+	writeLines(t, filepath.Join(dir, "s1.jsonl"), []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"任せて"}}`,
+		call, call,
+		`{"type":"user","timestamp":"2026-09-30T01:20:00Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"done"}]},"toolUseResult":{"agentId":"ag1"}}`,
+	})
+	writeLines(t, filepath.Join(dir, "s1", "subagents", "agent-ag1.jsonl"), []string{subLine("ag1", 5)})
+	bs := load(t, &Claude{Root: root})
+	if len(bs) != 1 {
+		t.Fatalf("セッション数 = %d, want 1", len(bs))
+	}
+	if subs := bs[0].Subagents; len(subs) != 1 || subs[0].Usage.In != 5 {
+		t.Errorf("サブエージェント = %d 個（%+v）, want 1 個、入力 5", len(subs), subs)
+	}
+}
+
+// 名前が agentId として重なるファイル（agent-foo と foo、agent- と .jsonl）も、それぞれ 1 度ずつ数える。
+func TestClaudeSubagentFilesWithCollidingIDs(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	writeLines(t, filepath.Join(dir, "s1.jsonl"), []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"任せて"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:01:00Z","message":{"id":"m1","model":"claude-sonnet-5-5","content":[{"type":"tool_use","id":"t1","name":"Agent","input":{"description":"a"}},{"type":"tool_use","id":"t2","name":"Agent","input":{"description":"b"}}]}}`,
+		`{"type":"user","timestamp":"2026-09-30T01:20:00Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"done"}]},"toolUseResult":{"agentId":"foo"}}`,
+		`{"type":"user","timestamp":"2026-09-30T01:21:00Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t2","content":"done"}]}}`,
+	})
+	sub := filepath.Join(dir, "s1", "subagents")
+	for name, in := range map[string]int{"agent-foo": 1, "foo": 10, "agent-": 100, "": 1000, "agent-agent-foo": 10000} {
+		writeLines(t, filepath.Join(sub, name+".jsonl"), []string{subLine("x"+name, in)})
+	}
+	bs := load(t, &Claude{Root: root})
+	if len(bs) != 1 {
+		t.Fatalf("セッション数 = %d, want 1", len(bs))
+	}
+	var in float64
+	for _, a := range bs[0].Subagents {
+		in += a.Usage.In
+	}
+	if n := len(bs[0].Subagents); n != 5 || in != 11111 {
+		t.Errorf("サブエージェント = %d 個、入力 %v, want 5 個、11111", n, in)
+	}
+}
+
+// endTree で探した呼び出しは、始まりの順に全部見て最初に合うもの（前の書き方）と同じ。
+func TestEndTreeMatchesLinearScan(t *testing.T) {
+	rng := rand.New(rand.NewPCG(1, 2))
+	for round := 0; round < 200; round++ {
+		n := rng.IntN(40)
+		cs := make([]*call, n)
+		for i := range cs {
+			st := float64(rng.IntN(100))
+			cs[i] = &call{start: &st}
+			if rng.IntN(4) > 0 {
+				e := st + float64(rng.IntN(30))
+				cs[i].end = &e
+			}
+		}
+		sort.SliceStable(cs, func(i, j int) bool { return *cs[i].start < *cs[j].start })
+		tree, used := newEndTree(cs), make([]bool, n)
+		for q := 0; q < 30; q++ {
+			fs := float64(rng.IntN(140) - 10)
+			want := -1
+			for j, x := range cs {
+				end := fs
+				if x.end != nil {
+					end = *x.end
+				}
+				if !used[j] && *x.start-5 <= fs && fs <= end+5 {
+					want = j
+					break
+				}
+			}
+			k := sort.Search(n, func(j int) bool { return *cs[j].start-5 > fs })
+			got := tree.first(k, fs-5)
+			if got != want {
+				t.Fatalf("round %d: file at %v: tree %d, linear %d", round, fs, got, want)
+			}
+			if got >= 0 {
+				used[got] = true
+				tree.take(got)
+			}
+		}
 	}
 }

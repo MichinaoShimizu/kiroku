@@ -1,1 +1,4 @@
 - Claude Code: when one subagent file matched an Agent call only by time and another file of the same session carried that call's `agentId`, the second replaced the first and one subagent (with its tokens and estimated cost) was not counted. Files are now linked by `agentId` first and by time after, so both are counted
+- Claude Code: a subagent resumed by a second Agent call (same `agentId`, one file for both runs) was counted twice: once from its file and again from the second call's reported usage. It is now counted from the file only
+- Claude Code: an Agent call line written twice no longer adds an empty second subagent
+- Claude Code: linking many subagent files to their Agent calls by time no longer slows down with the square of their number (30000 of each in one session: 25 s before, about 1 s now)
