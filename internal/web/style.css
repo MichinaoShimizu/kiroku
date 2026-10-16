@@ -197,7 +197,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .oc .stat .s{margin-top:auto;padding-top:2px}
 .ocarrow{display:flex;align-items:center;justify-content:center;align-self:stretch;color:var(--ink-3)}
 .ocarrow svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.fss{display:flex;flex-direction:column;min-width:0}
+.fss,.fss-rest{display:flex;flex-direction:column;min-width:0}.fss-rest[hidden]{display:none}
 .flink{color:var(--acc-ink);font-size:var(--fs-xs);font-weight:600}
 .flink:hover{text-decoration:underline}
 .spark{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;color:var(--ink-3);min-width:0}
@@ -223,6 +223,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .ic{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-2px} /* 形で見分ける印（js/git.js の ICON_PATH） */
 .fdot{color:var(--acc)} /* 見直す候補の印 */
 .fl .more{margin:0;font-size:var(--fs-xs)}
+button.fmore{margin:0;padding:0;border:0;background:none;color:var(--acc-ink);font-weight:600;cursor:pointer}button.fmore:hover{text-decoration:underline}
 /* サマリーの、基準を超えた指標の名前の横の印（placeFlags）。押すと「Worth a look」のダイアログを開く */
 .fmark{display:inline-flex;align-items:center;padding:0 2px;margin-left:4px;border-radius:4px;vertical-align:-1px;color:var(--acc-ink)}
 .fmark:hover{background:var(--acc-soft)}
@@ -644,7 +645,7 @@ body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:tra
 .drawer .nrow{font-size:var(--fs-md)}
 
 /* toast & dialog */
-.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,12px);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:10px;font-size:var(--fs-sm);opacity:0;transition:all .25s var(--ease);z-index:50;pointer-events:none}
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,12px);width:max-content;max-width:calc(100vw - 32px);box-sizing:border-box;text-align:center;background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:10px;font-size:var(--fs-sm);opacity:0;transition:all .25s var(--ease);z-index:50;pointer-events:none}
 .toast.on{opacity:1;transform:translate(-50%,0)}
 dialog{border:0;border-radius:16px;padding:26px 28px;background:var(--surface);color:var(--ink);box-shadow:0 30px 80px -20px rgba(0,0,0,.45);width:min(420px,calc(100vw - 32px))}
 dialog::backdrop{background:rgba(10,12,16,.35);backdrop-filter:blur(3px)}
@@ -761,7 +762,8 @@ dialog.mdlg h3{margin:20px 0 8px}
 .control-group{display:inline-flex;align-items:center;gap:6px}
 .control-label{font-size:var(--fs-xs);color:var(--ink-3);font-weight:600}
 .wk .view-controls .mode{margin-left:0}
-@media(max-width:700px){.view-controls{width:100%;gap:8px}.control-group{gap:4px}}
+.wk .nav .view-controls{margin-left:10px} /* 「今週」と「期間」がくっつかないように（日本語では幅が近い） */
+@media(max-width:700px){.view-controls{width:100%;gap:8px}.wk .nav .view-controls{margin-left:0}.control-group{gap:4px}}
 
 /* AI execution is visually distinct from local copy and navigation actions. */
 .pill.ai-action:not(:disabled){background:#176b50;color:#fff;border-color:#176b50;font-weight:600}

@@ -32,9 +32,13 @@ function setMode(m){ if (m === "month" && META.scope && META.scope.mode === "wee
 document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = () => setMode(b.dataset.v));
 $("#prev").onclick = () => go(-1); $("#next").onclick = () => go(1); $("#today").onclick = () => go(null);
 $("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); st.srN = st.scN = 0; render(); }; // 言葉が変わったら、結果はまた先頭の数件から
-// 検索欄で Enter：最初の結果へフォーカスを移す（結果はカレンダーの上）
-$("#q").addEventListener("keydown", e => { if (e.key !== "Enter" || e.isComposing || !st.q) return;
+// 検索欄で Enter か ↓：最初の結果へフォーカスを移す（結果はカレンダーの上）。結果の中では ↑↓ で隣へ、最初の結果で ↑ なら検索欄へ
+$("#q").addEventListener("keydown", e => { if ((e.key !== "Enter" && e.key !== "ArrowDown") || e.isComposing || !st.q) return;
   const f = $("#sres .srow") || $("#srh"); if (f){ e.preventDefault(); f.focus(); } });
+$("#sres").addEventListener("keydown", e => { if ((e.key !== "ArrowDown" && e.key !== "ArrowUp") || !e.target.matches(".srow")) return;
+  const rows = [...$("#sres").querySelectorAll(".srow")], i = rows.indexOf(e.target), to = rows[i + (e.key === "ArrowDown" ? 1 : -1)];
+  if (to) to.focus(); else if (e.key === "ArrowUp") $("#q").focus(); else return;
+  e.preventDefault(); });
 // ロゴは最初の画面へ。kiroku serve では "/"、HTML ファイルやデモでは、同じファイルを開き直す（"/" ではディスクやサイトの一番上へ行ってしまう）
 if (!LIVE) $("#home").href = location.href.split(/[?#]/)[0];
 $("#theme").onclick = () => { st.theme = st.theme === "dark" ? "light" : "dark"; store.set("theme", st.theme); applyTheme(); };
