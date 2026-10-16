@@ -23,24 +23,36 @@ function aiBtn(id, label){
    リンクとコミットのハッシュは、プロンプトにないもの（作り話）を拾う */
 const AI_FIX_MAX = 2; // 直してもらう回数の上限（1 つのダイアログで）
 function aiOutputProblems(prompt, text){
-  const P = [], add = (en, l) => P.push({en, l}), lines = s => s.replace(/\r\n/g, "\n").split("\n");
-  const fm = /^# Format\n[\s\S]*?^(`{3,})text\n([\s\S]*?)\n\1$/m.exec(prompt);
-  const want = fm ? lines(fm[2]).filter(l => /^### /.test(l)).length : 0, got = lines(text).filter(l => /^### /.test(l.trim())).length;
+  const P = [], add = (en, l) => P.push({en, l}), lines = s => s.replace(/\r\n/g, "\n").split("\n"), cap = (s, n) => s.length > n ? s.slice(0, n) + "…" : s;
+  // 「# Format」のすぐあとの囲みの中の ### を数える（行ごとに読む。正規表現で全体を探さない）
+  const pl = lines(prompt), fi = pl.indexOf("# Format");
+  let want = 0;
+  if (fi >= 0){ let k = fi + 1; while (k < pl.length && !/^`{3,}text$/.test(pl[k])) k++;
+    const close = k < pl.length ? pl[k].slice(0, -4) : null;
+    for (k++; close && k < pl.length && pl[k] !== close; k++) if (/^### /.test(pl[k])) want++; }
+  // 返事の ### は、コードブロックの中のものを数えない
+  let got = 0, inCode = null;
+  lines(text).forEach(l => { const f = /^\s*(`{3,}|~{3,})/.exec(l);
+    if (f){ if (!inCode) inCode = f[1]; else if (f[1][0] === inCode[0] && f[1].length >= inCode.length) inCode = null; return; }
+    if (!inCode && /^### /.test(l)) got++; });
   if (want && got < want) add(`The answer has ${got} of the ${want} "###" sections in "# Format". Write every section, in that order, to the end`,
     t("{n} of the {want} sections are missing", {n: want - got, want}));
-  const cells = l => l.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim().replace(/\s+/g, " "));
-  const nm = /^## Numbers\n((?:\|.*\n?)+)/m.exec(prompt), rows = nm ? lines(nm[1]).filter(l => l.trim()).slice(2).map(cells) : [];
-  const have = new Set(lines(text).filter(l => /^\s*\|/.test(l)).map(l => cells(l).slice(1).join("|")));
+  // 数字の表: 1 列目（訳されうる項目の名前）を除いた値で比べる。強調・引用・ダッシュの違いは同じとみなす
+  const cells = l => l.replace(/^\s*(>\s?)*/, "").trim().replace(/^\||\|$/g, "").split("|").map(c => c.replace(/[*_`]/g, "").replace(/[−–—]/g, "-").replace(/\s+/g, " ").trim());
+  const ni = pl.indexOf("## Numbers"), rows = [];
+  for (let k = ni + 3; ni >= 0 && k < pl.length && /^\|/.test(pl[k]); k++) rows.push(cells(pl[k]));
+  const have = new Set(lines(text).filter(l => /^\s*(>\s?)*\|/.test(l)).map(l => cells(l).slice(1).join("|")));
   const bad = rows.filter(c => c.length > 1 && !have.has(c.slice(1).join("|"))).map(c => c[0]);
   if (bad.length && bad.length === rows.length && !have.size) add(`The "Numbers" table is missing. Copy it from "Facts" unchanged`, t("The numbers table is missing"));
   else if (bad.length) add(`The "Numbers" table is not copied unchanged. These rows are missing or their values differ: ${bad.map(x => JSON.stringify(x)).join(", ")}`,
     t("The numbers table differs from kiroku's in: {rows}", {rows: bad.slice(0, 3).join(", ") + (bad.length > 3 ? t(", and {n} more", {n: bad.length - 3}) : "")}));
-  const urls = s => new Set( // URL に使える ASCII の文字だけ（日本語の「）。」を含めない）。終わりの句読点は除く
-    (s.match(/https?:\/\/[A-Za-z0-9\-._~:/?#@!$&*+,;=%]+/g) || []).map(u => u.replace(/[.,;:!?]+$/, "")));
+  const urls = s => new Set( // URL に使える ASCII の文字だけ（日本語の「）。」を含めない）。終わりの句読点と強調の記号は除く
+    (s.match(/https?:\/\/[A-Za-z0-9\-._~:/?#@!$&*+,;=%]+/g) || []).map(u => u.replace(/[.,;:!?*_]+$/, "")));
   const up = urls(prompt), links = [...urls(text)].filter(u => !up.has(u));
-  if (links.length) add(`These links are not in the prompt. Use only the links given there: ${links.slice(0, 5).map(u => JSON.stringify(u.slice(0, 200))).join(", ")}`,
-    t("Links that are not in the prompt: {links}", {links: links.slice(0, 3).join(", ")}));
-  const hashes = [...new Set(text.match(/\b(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b/g) || [])].filter(h => !prompt.includes(h));
+  if (links.length) add(`These links are not in the prompt. Use only the links given there: ${links.slice(0, 5).map(u => JSON.stringify(cap(u, 200))).join(", ")}`,
+    t("Links that are not in the prompt: {links}", {links: links.slice(0, 3).map(u => cap(u, 100)).join(", ")}));
+  // コミットのハッシュ: 7〜40 桁の 16 進（数字と a〜f の両方を含む）。UUID の一部（- でつながる）と色（#）は除く。長いハッシュは、先頭 12 桁がプロンプトにあればよい
+  const hashes = [...new Set(text.match(/(?<![-#\w])(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}(?![-\w])/g) || [])].filter(h => !prompt.includes(h.slice(0, 12)));
   if (hashes.length) add(`These commit hashes are not in the prompt. Use only the commits given there: ${hashes.slice(0, 5).join(", ")}`,
     t("Commit hashes that are not in the prompt: {hashes}", {hashes: hashes.slice(0, 3).join(", ")}));
   return P;
@@ -140,17 +152,17 @@ async function runAIReview(button, prompt, title) {
   const pill = label => { const b = document.createElement("button"); b.type = "button"; b.className = "pill"; b.textContent = label; checkBox.append(b); return b; };
   const note = s => { const n = document.createElement("p"); n.textContent = s; checkBox.append(n); };
   const showCheck = () => { // 返事を確かめて、問題を見せ、その数を返す（確かめるのは、直してもらう前の元のプロンプトに対して）
-    const P = text ? aiOutputProblems(prompt, text) : [];
+    let P = []; try { P = text ? aiOutputProblems(prompt, text) : []; } catch { P = []; } // 確かめられなくても、ダイアログは使えるままに
     fixBtn = null; checkBox.replaceChildren(); checkBox.hidden = !P.length;
     if (!P.length) return 0;
     note(t("kiroku's check found problems in this result:"));
     const ul = document.createElement("ul"); P.forEach(p => { const li = document.createElement("li"); li.textContent = p.l; ul.append(li); }); checkBox.append(ul);
     if (fixing){ // 直してもらうプロンプトを入れたところ。まだ送っていない。元のプロンプトに戻せる
       note(t("The prompt above now asks the agent to fix these points. Nothing is sent until you press Run."));
-      pill(t("Use the original prompt")).onclick = () => { fixing = false; fixes--; preview.value = prompt; start.textContent = t("Run again"); status.textContent = ""; showCheck(); (fixBtn || start).focus(); };
+      pill(t("Use the original prompt")).onclick = () => { fixing = false; fixes--; preview.value = prompt; start.textContent = t("Run again"); status.textContent = ""; showCheck(); (fixBtn || preview).focus(); };
       return P.length; }
     if (fixes >= AI_FIX_MAX){ note(t("Still not fixed after {n}. Fix it by hand, or run the original prompt again.", {n: plural(fixes, "try", "tries")})); return P.length; }
-    const fix = aiFixPrompt(prompt, text, P);
+    let fix; try { fix = aiFixPrompt(prompt, text, P); } catch { return P.length; }
     if (utf8Len(JSON.stringify({agent: agent.value, prompt: fix, consent: true})) > AI_RUN_MAX){ note(t("A prompt to fix it would be too long to run here.")); return P.length; }
     note(t("\u201cAsk to fix\u201d puts a prompt to fix them in the box above. Nothing is sent until you press Run."));
     fixBtn = pill(t("Ask to fix"));
@@ -158,7 +170,8 @@ async function runAIReview(button, prompt, title) {
       fixes++; fixing = true; preview.value = fix; preview.classList.remove("small");
       inToggle.hidden = true; setInputs(true); start.textContent = t("Run");
       status.textContent = t("Check the prompt above, then press Run to ask for the fix.");
-      showCheck(); preview.scrollTop = preview.scrollHeight; start.focus(); };
+      // フォーカスは Run ではなくプロンプトへ（押したままの Enter が Run を押さないように。送るのは、確かめてから Run を押したときだけ）
+      showCheck(); preview.scrollTop = preview.scrollHeight; preview.focus(); };
     return P.length; };
   // 状態の 1 行に、確認の結果を足す（読み上げにも届くように）
   const checked = (base, n, wasFix) => { const sep = JA ? (/。$/.test(base) ? "" : "。") : " ";

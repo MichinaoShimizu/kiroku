@@ -33,3 +33,17 @@ const fx = aiFixPrompt(prompt, cutOff + "\n" + F + "\ncode\n" + F, aiOutputProbl
 eq(fx.startsWith(prompt + "\n\n# Your previous answer\n"), true, "fix keeps the prompt");
 eq(fx.includes("\n````text\n"), true, "fix fences the answer");
 eq(/\n# What to fix\n- The answer has 3 of the 5 "###" sections/.test(fx), true, "fix lists the problems");
+// 落とされないこと: バッククォートの並びがとても多い返事（mdFence が引数を広げて落ちていた）
+const many = "## x\n### Summary\n" + "` ".repeat(200000);
+eq(aiFixPrompt(prompt, many, aiOutputProblems(prompt, many)).length > many.length, true, "many backticks");
+// 強調で囲んだリンク、UUID、色、短い形がプロンプトにある長いハッシュは、作り話とみなさない
+eq(aiOutputProblems(prompt, good + "\n**https://github.com/example/reports/pull/12** _https://github.com/example/reports/pull/12_ 123e4567-e89b-12d3-a456-426614174000 #1a2b3c4d fca3214b6b5317fd44d4c2d34e3076f14e482e45"), [], "not invented");
+// コードブロックの中の ### は節に数えない
+eq(aiOutputProblems(prompt, cutOff + "\n" + F + "\n### a\n### b\n" + F).map(p => p.l), ["2 of the 5 sections are missing"], "### in code");
+// 表の値の「−」と「-」、強調、引用の中の表は同じとみなす
+eq(aiOutputProblems(prompt, good.replace("| 稼働時間 | 2h 1m | 4m |", "> | 稼働時間 | **2h 1m** | 4m |")), [], "table variants");
+eq(aiOutputProblems(prompt.replace("| 7 (6) | 2 |", "| +82 −0 | 2 |"), good.replace("| 7 (6) | 2 |", "| +82 -0 | 2 |")), [], "minus sign");
+// 長いリンクは、画面の一覧で切る（英語の直すことは 200 字まで）。空白は入らない
+const longU = "https://evil.example/" + "a".repeat(5000);
+const PL = aiOutputProblems(prompt, good + "\n" + longU + " x");
+eq(PL[0].l.length < 200 && PL[0].en.length < 400 && !/\s/.test(PL[0].en.split(": ")[1]), true, "long url cut");

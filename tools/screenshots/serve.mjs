@@ -174,7 +174,9 @@ try {
   check("送らないことを、ダイアログで言う", /Nothing is sent until you press Run/.test(await dlgText()));
   await pf.locator("#ai-review-dialog .ai-check button", { hasText: "Use the original prompt" }).click();
   check("元のプロンプトに戻せる", !/# What to fix/.test(await pf.evaluate(() => document.querySelector("#ai-review-dialog textarea.ai-prompt").value)) && await fixBtn.count() === 1 && await nRuns() === 1);
-  await fixBtn.click();
+  // 「直してもらう」で Enter を押したままにしても、続けて Run は押されない（フォーカスは Run に移さない）
+  await fixBtn.focus(); for (let i = 0; i < 4; i++) await pf.keyboard.down("Enter"); await pf.keyboard.up("Enter"); await pf.waitForTimeout(500);
+  check("「直してもらう」で Enter を押したままでも送らない", await nRuns() === 1 && await runBtn.innerText() === "Run");
   await runBtn.click();
   await until("2 回目の実行", async () => await nRuns() === 2);
   check("Run で、見せたプロンプトをそのまま送る", (await readFile(path.join(work, "last-prompt.txt"), "utf8")).trim() === fixPrompt.trim());
