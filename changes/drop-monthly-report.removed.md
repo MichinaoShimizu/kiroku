@@ -1,1 +1,0 @@
-- The monthly report ("Analyze with AI" under "Monthly report" in month view). A month's history rarely fits in one agent run's 2-minute limit; use the weekly reports instead. The monthly summary and calendar are unchanged
