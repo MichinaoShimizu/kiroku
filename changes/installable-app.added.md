@@ -1,0 +1,1 @@
+- The `kiroku serve` view can be installed as an app in Chrome and Edge ("Install kiroku" in the address bar or menu), so kiroku opens in a window of its own with its icon in the Dock or taskbar. It uses the key the browser already has, and installs no service worker, so the browser keeps no copy of your history ([ADR 0035](docs/adr/0035-installable-serve-view.md))

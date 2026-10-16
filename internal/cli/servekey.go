@@ -16,9 +16,11 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
+	"github.com/MichinaoShimizu/kiroku/internal/web"
 )
 
 // kiroku serve の鍵。127.0.0.1 で待ち受けていても、同じコンピューターのほかのユーザーはつなげてしまう。
@@ -122,7 +124,7 @@ func oldKeyCookie(addr string) string {
 // requireKey は、鍵を知っている画面にだけ next を見せる。
 // 鍵は X-Kiroku-Key ヘッダーでだけ受け付ける。Cookie は、ほかのポートのサーバーにも送られて盗まれうるので使わない。
 // ?key=<鍵> で開かれたら、中継のページ（hopKeyPage）が鍵を localStorage にしまい、鍵を消した URL へ移る
-// （鍵がアドレスバーや履歴に残らないように）。GET / だけは鍵なしで通す。そこで返すのは履歴を入れていない画面の骨組みか
+// （鍵がアドレスバーや履歴に残らないように）。GET / とマニフェスト（keyless）だけは鍵なしで通す。そこで返すのは履歴を入れていない画面の骨組みか
 // 読み込み中の画面で、画面が localStorage の鍵を付けて data.json を読む（ブックマークなどの移動ではヘッダーを付けられないため）。
 func requireKey(addr, key string, next http.Handler) http.Handler {
 	old := oldKeyCookie(addr)
@@ -148,12 +150,18 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 			_, _ = io.WriteString(w, hopKeyPage(to))
 			return
 		}
-		if (get && r.URL.Path == "/") || match(r.Header.Get(keyHeader)) {
+		if (get && keyless(r.URL.Path)) || match(r.Header.Get(keyHeader)) {
 			next.ServeHTTP(w, r)
 			return
 		}
 		locked(w)
 	})
+}
+
+// keyless は、鍵なしの GET で返してよいパスか。/（履歴を入れていない画面の骨組み）と、アプリとしてインストールするための
+// マニフェスト（ブラウザはヘッダーを付けずに読む。ADR 0035）だけ。
+func keyless(path string) bool {
+	return path == "/" || slices.Contains(web.AppPaths, path)
 }
 
 // hopTarget は、?key= の中継のあとに移る、このサイトの中のパス。//host や /\host（ブラウザは \ を / と読む）、

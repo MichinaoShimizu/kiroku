@@ -203,6 +203,9 @@ var loading string
 // cspMark は <head> の CSP の meta の置き場。データより前にあるので、最初の 1 つだけを入れかえる。
 const cspMark = "__" + "CSP" + "__"
 
+// titleTag は <head> の <title>。kiroku serve の画面では、このあとにマニフェストへのリンクを入れる。
+const titleTag = "<title>kiroku</title>"
+
 // withCSP は、ページに入っているスクリプトと <style> のハッシュから CSP を作って meta に入れる。
 // 履歴の中身にスクリプトや style がまぎれこんでも（エスケープし忘れなど）、ハッシュが合わないので動かない。
 // 外へは何も読みにいかず、通信できるのは kiroku serve の自分のところ（live のとき）だけ。
@@ -218,19 +221,26 @@ func withCSP(page string, live bool) (string, error) {
 	if !strings.Contains(page, cspMark) {
 		return "", errors.New("CSP の置き場がない")
 	}
+	if live { // kiroku serve の画面はアプリとしてインストールできる（ADR 0035）。保存した HTML（file://）には入れない
+		if strings.Count(page, titleTag) != 1 {
+			return "", errors.New(titleTag + " がちょうど 1 つではない")
+		}
+		page = strings.Replace(page, titleTag, titleTag+"\n"+manifestLink, 1)
+	}
 	return strings.Replace(page, cspMark, policy(js, css, live), 1), nil
 }
 
 // policy は CSP の中身。style の要素はハッシュで縛り、style 属性（色の --c など）は許す。
 // style-src-elem を知らない古いブラウザは style-src の 'unsafe-inline' で動く。
 func policy(script, style string, live bool) string {
-	connect := "'none'"
+	connect, extra := "'none'", ""
 	if live {
-		connect = "'self'" // /stamp・/data.json・/prompt・/archive
+		connect = "'self'"              // /stamp・/data.json・/prompt・/archive
+		extra = "; manifest-src 'self'" // /manifest.webmanifest（ADR 0035）
 	}
 	return "default-src 'none'; script-src " + hash(script) +
 		"; style-src 'unsafe-inline'; style-src-elem " + hash(style) + "; style-src-attr 'unsafe-inline'" +
-		"; img-src data: blob:; connect-src " + connect +
+		"; img-src data: blob:; connect-src " + connect + extra +
 		"; base-uri 'none'; form-action 'none'; object-src 'none'"
 }
 

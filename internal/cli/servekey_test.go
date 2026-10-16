@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/MichinaoShimizu/kiroku/internal/web"
 )
 
 // kiroku serve の鍵は、本人しか読めないファイル（0600、フォルダは 0700）に作り、次からは同じ鍵を使う。
@@ -91,6 +93,9 @@ func TestRequireKey(t *testing.T) {
 		{"POST の ?key=", "POST", "/archive?key=" + key, "", nil},
 		{"POST /", "POST", "/", "", nil},
 		{"/ 以外は鍵なしで通さない", "GET", "/history?id=s1", "", nil},
+		{"マニフェストへの POST", "POST", "/manifest.webmanifest", "", nil},
+		{"マニフェストの下のパス", "GET", "/manifest.webmanifest/x", "", nil},
+		{"マニフェストに似たパス", "GET", "/manifest.webmanifest.json", "", nil},
 	} {
 		w := do(c.method, c.target, c.hdr, c.cookie)
 		if w.Code != 403 || w.Body.String() == "history" || !strings.Contains(w.Body.String(), "kiroku open") {
@@ -108,9 +113,11 @@ func TestRequireKey(t *testing.T) {
 			t.Errorf("ヘッダーつきの %s = %d %q", m, w.Code, w.Body.String())
 		}
 	}
-	// GET / は鍵なしで通す（返すのは骨組みだけ）
-	if w := do("GET", "/", "", nil); w.Code != 200 {
-		t.Errorf("鍵なしの GET / = %d", w.Code)
+	// GET / は鍵なしで通す（返すのは骨組みだけ）。アプリのマニフェストも（ブラウザはヘッダーを付けずに読む、ADR 0035）
+	for _, p := range append([]string{"/"}, web.AppPaths...) {
+		if w := do("GET", p, "", nil); w.Code != 200 {
+			t.Errorf("鍵なしの GET %s = %d", p, w.Code)
+		}
 	}
 	// 以前の版の Cookie が送られてきたら、どの答えでも消させる
 	for _, target := range []string{"/", "/data.json"} {

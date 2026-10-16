@@ -245,6 +245,10 @@ func (l *live) handler() http.Handler {
 		defer l.mu.RUnlock()
 		send(w, "text/html; charset=utf-8", l.html)
 	})
+	// マニフェスト（アプリとしてインストールするためのもの、ADR 0035）。履歴を入れていないので鍵なしで返す（requireKey）
+	mux.HandleFunc("/manifest.webmanifest", func(w http.ResponseWriter, r *http.Request) {
+		send(w, "application/manifest+json", web.Manifest())
+	})
 	// AI execution is on unless kiroku serve was started with --no-ai or on an address that isn't a loopback IP (ADR 0034).
 	// When it is off, /ai/run doesn't exist (404).
 	if l.aiRun != nil {
