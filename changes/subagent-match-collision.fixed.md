@@ -1,0 +1,1 @@
+- Claude Code: when one subagent file matched an Agent call only by time and another file of the same session carried that call's `agentId`, the second replaced the first and one subagent (with its tokens and estimated cost) was not counted. Files are now linked by `agentId` first and by time after, so both are counted

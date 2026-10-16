@@ -648,16 +648,24 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	}
 	order := append([]*call(nil), callOrder...)
 	sort.SliceStable(order, func(i, j int) bool { return val(order[i].start) < val(order[j].start) })
+	// 先に agentId の合うファイルをすべてつなぎ、残りを時刻でつなぐ。1 回でやると、時刻でつないだファイルが、
+	// あとで同じ呼び出しに agentId の合うファイルに置きかわって数えられなくなる
+	linked := make([]bool, len(files))
 	for i := range files {
-		f := &files[i]
-		var c *call
 		for _, x := range order {
-			if x.agentID != "" && x.agentID == f.agentID {
-				c = x
+			if x.file == nil && x.agentID != "" && x.agentID == files[i].agentID {
+				x.file, linked[i] = &files[i], true
 				break
 			}
 		}
-		if c == nil && f.start != nil {
+	}
+	for i := range files {
+		if linked[i] {
+			continue
+		}
+		f := &files[i]
+		var c *call
+		if f.start != nil {
 			for _, x := range order {
 				end := *f.start
 				if x.end != nil {

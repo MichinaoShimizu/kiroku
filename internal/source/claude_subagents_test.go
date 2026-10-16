@@ -189,3 +189,35 @@ func TestClaudeMovedSessionAdoptsSubagentsOfDuplicateFile(t *testing.T) {
 		}
 	})
 }
+
+// サブエージェントのファイルは、まず agentId でつなぎ、残りを時刻でつなぐ。時刻でつないだファイルが、
+// あとで agentId の合う別のファイルに同じ呼び出しを取られて消えることはない（片方は呼び出しのない 1 つとして数える）。
+func TestClaudeSubagentAgentIDBeforeTime(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	writeLines(t, filepath.Join(dir, "s1.jsonl"), []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"サブエージェントに任せて"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:01:00Z","message":{"id":"m1","model":"claude-sonnet-5-5","content":[{"type":"tool_use","id":"t1","name":"Agent","input":{"subagent_type":"general-purpose","description":"実装"}}]}}`,
+		`{"type":"user","timestamp":"2026-09-30T01:20:00Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"done"}]},"toolUseResult":{"agentId":"ag1"}}`,
+	})
+	// agent-a0 は名前の順で先に読み、時刻だけが Agent の呼び出しに合う。agent-ag1 はその呼び出しの agentId
+	writeLines(t, filepath.Join(dir, "s1", "subagents", "agent-a0.jsonl"), []string{subLine("a0", 300)})
+	writeLines(t, filepath.Join(dir, "s1", "subagents", "agent-ag1.jsonl"), []string{subLine("ag1", 50)})
+	bs := load(t, &Claude{Root: root})
+	if len(bs) != 1 {
+		t.Fatalf("セッション数 = %d, want 1", len(bs))
+	}
+	subs := bs[0].Subagents
+	var in float64
+	byType := map[string]float64{}
+	for _, a := range subs {
+		in += a.Usage.In
+		byType[a.Type] += a.Usage.In
+	}
+	if len(subs) != 2 || in != 350 {
+		t.Fatalf("サブエージェント = %d 個、入力 %v, want 2 個、350（どちらのファイルも数える）", len(subs), in)
+	}
+	if byType["general-purpose"] != 50 || byType["subagent"] != 300 {
+		t.Errorf("入力 = %v, want Agent の呼び出しに agentId の合う agent-ag1（50）、呼び出しのない 1 つに agent-a0（300）", byType)
+	}
+}
