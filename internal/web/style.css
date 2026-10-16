@@ -53,11 +53,14 @@ header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px s
 /* 動いているエージェントと残ったプロセス（kiroku serve。ADR 0035）：LIVE の横のボタン、一覧のダイアログ、詳細の「まだ動いているもの」 */
 .procs{font:600 var(--fs-2xs)/1 var(--sans);color:var(--ink-2);background:var(--surface-2);border:0;border-radius:99px;padding:5px 9px;cursor:pointer}
 .procs:hover{color:var(--ink)} .procs.warn{color:var(--on-warn);background:var(--warn)} .procs[hidden]{display:none}
+.procs .pxbs{display:none} @media (max-width:560px){.procs .pxbl{display:none}.procs .pxbs{display:inline}} /* 狭い画面では数だけ（ヘッダーからはみ出さないように） */
+.pxmsg{margin:8px 0 0;font-size:var(--fs-sm);font-weight:600;color:var(--ink)} .pxmsg:empty{display:none}
+.pxbusy{color:var(--ink-2)}
 .pxlist{list-style:none;margin:0;padding:0}
 .pxrow{padding:10px 0;border-bottom:1px dashed var(--rule)} .pxrow:last-child{border-bottom:0}
 .pxh{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;font-size:var(--fs-md)}
 .pxpid{color:var(--ink-3);font-size:var(--fs-xs);font-variant-numeric:tabular-nums}
-.pxst{font-size:var(--fs-xs);color:var(--ink-2)} .pxrow.warn .pxst{color:var(--warn);font-weight:600}
+.pxst{font-size:var(--fs-xs);color:var(--ink-2)}
 .pxm{font-size:var(--fs-xs);color:var(--ink-3);margin-top:4px;font-variant-numeric:tabular-nums}
 .pxcwd{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono)}
 .pxrow .card{margin-top:8px}

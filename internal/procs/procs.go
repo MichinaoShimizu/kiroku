@@ -206,7 +206,8 @@ func Classify(ps []Proc, self int) []Group {
 		}
 		out = append(out, group(*p, KindLeft, p.Marker))
 	}
-	// left running first (they are what the user is looking for), then orphaned agents, then the newest
+	// left running first (they are what the user is looking for), then orphaned agents, each oldest first, so that
+	// a process that starts later is added at the end and doesn't move the rows the user is looking at
 	rank := func(g Group) int {
 		switch {
 		case g.Kind == KindLeft:
@@ -221,9 +222,9 @@ func Classify(ps []Proc, self int) []Group {
 			return ra - rb
 		}
 		switch {
-		case a.Root.Start > b.Root.Start:
-			return -1
 		case a.Root.Start < b.Root.Start:
+			return -1
+		case a.Root.Start > b.Root.Start:
 			return 1
 		}
 		return a.Root.PID - b.Root.PID

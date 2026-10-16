@@ -160,7 +160,7 @@ Things to know:
 AI agents start processes for you, such as a dev server, a watcher or a build, and some keep running after the agent or its session ended: a command run in the background, a terminal closed while the agent was working, an agent that didn't exit. In `kiroku serve` on macOS and Linux, a button next to LIVE shows how many are left running (in red) or how many agents are running, and opens the list:
 
 - **Left running**: processes an agent started that are still running after that agent ended. kiroku recognizes them by the marker the agent puts in the environment of its commands: Claude Code marks every command of its Bash tool, and Codex marks commands in its sandbox. Kiro CLI and Amazon Q set no marker, so for them kiroku shows only the agent itself
-- **Agents**: running `claude`, `codex`, `kiro-cli` and `qchat` processes, with what they started, and where they run: in a terminal, under another program (such as an editor), or with their terminal gone
+- **Running agents**: running `claude`, `codex`, `kiro-cli` and `qchat` processes, with what they started, and where they run: in a terminal, under another program (such as an editor), or with their terminal gone
 - Each one shows the session it most likely belongs to (same agent, same project folder, active at that time), how long it has run, its memory and CPU time with everything under it, and its folder. Session details list them under "Still running"
 - **Stop…** asks first, naming the process and how many processes are under it, then asks it and everything under it to end (SIGTERM), like `kill`. Anything unsaved in them is lost. If it is still running a few seconds later, the view offers **Force stop** (SIGKILL). A group kiroku itself runs in can't be stopped from kiroku
 

@@ -233,20 +233,20 @@ func writePS(w io.Writer, gs []procs.Group, data []*core.Session, now time.Time)
 			fmt.Fprintf(w, "    session: %s %s\n", termSafe(s.Title, 200), st.dim(fmt.Sprintf("(%s, %s–%s)", s.Source, time.Unix(int64(s.Start), 0).Format("1/2 15:04"), time.Unix(int64(s.End), 0).Format("15:04"))))
 		}
 		if g.Self {
-			fmt.Fprintln(w, st.dim("    kiroku runs inside it"))
+			fmt.Fprintln(w, st.dim("    kiroku runs inside it, so it is not stopped from here"))
 			return
 		}
 		var ids []string
 		for _, m := range g.Members {
 			ids = append(ids, strconv.Itoa(m.PID))
 		}
-		fmt.Fprintf(w, "    %s %s\n", st.dim("stop:"), "kill "+strings.Join(ids, " "))
+		fmt.Fprintf(w, "    %s %s\n", st.dim("stop:"), "kill "+strings.Join(ids, " ")+st.dim("  (the processes as of now)"))
 	}
 	if len(left) > 0 {
 		fmt.Fprintf(w, "\n%s\n", st.bold("Left running"))
 		for _, g := range left {
 			if g.Kind == procs.KindLeft {
-				row(g, "left running after "+agentName(g.Family)+" ended")
+				row(g, "started by "+agentName(g.Family)+", now running on its own")
 			} else {
 				row(g, agentStatus(g))
 			}
@@ -269,7 +269,7 @@ func agentStatus(g procs.Group) string {
 	case g.Orphan:
 		return "its terminal or program is gone"
 	case g.Parent != "":
-		return "run by " + termSafe(g.Parent, 200)
+		return "started from " + termSafe(g.Parent, 200)
 	}
 	return "running"
 }

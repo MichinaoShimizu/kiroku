@@ -63,6 +63,7 @@ Until now kiroku read only history, git and GitHub Releases. Reading processes, 
   - `TestProcsStopRefusals`: GET, a missing `X-Kiroku`, another origin, a bad or oversized body, PID 1, a reused PID, a member, an unreported process and kiroku's own group are all refused.
   - On Linux, `TestProcsStopEndsProcess`.
 - The hostile-tester run before the PR: `/procs/stop` refused every abuse tried, names and folders were escaped. It found unbounded memory on a huge environment and an unescaped name in the stop log; both fixed with the tests above.
+- The user-tester run before the PR: wording that claimed more than kiroku knows ("after Claude Code ended" while it still ran; "never reads the environment"), focus lost on redraws, a hidden result message, a destructive default focus and an overflowing header on phones were fixed.
 - Manual: `kiroku serve` in a cloud container, with a process left running from a fake session and real orphaned `chrome_crashpad` processes left by Playwright under Claude Code. Both were listed, linked and stopped from the view in English and Japanese. Not yet run on a real Mac.
 
 ## Open questions

@@ -198,7 +198,7 @@ func TestWritePS(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := b.String()
-	for _, s := range []string{"Left running", "no[31mde", "PID 4242", "2 processes", "left running after Claude Code ended",
+	for _, s := range []string{"Left running", "no[31mde", "PID 4242", "2 processes", "started by Claude Code, now running on its own",
 		"running for 3h 0m", "3.0 GB memory", "10m CPU", "/w/app", "session: fix login", "kill 4242 4243", "Running agents", "open in a terminal", "kiroku runs inside it"} {
 		if !strings.Contains(out, s) {
 			t.Errorf("output lacks %q:\n%s", s, out)

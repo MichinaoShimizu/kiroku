@@ -42,8 +42,8 @@ func TestClassify(t *testing.T) {
 		pids   []int
 	}
 	exp := []want{
-		{30, KindLeft, "claude", true, []int{30, 31, 32}}, // newest first
-		{70, KindLeft, "claude", true, []int{70}},
+		{70, KindLeft, "claude", true, []int{70}}, // oldest first
+		{30, KindLeft, "claude", true, []int{30, 31, 32}},
 		{40, KindAgent, "codex", true, []int{40}},
 		{21, KindAgent, "claude", false, []int{21, 22, 24, 23}},
 	}
