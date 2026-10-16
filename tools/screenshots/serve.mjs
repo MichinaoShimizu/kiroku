@@ -148,6 +148,38 @@ try {
   check("--no-ai では、鍵があっても /ai/run は 404", st === 404, String(st));
   await po.close();
 
+  // 返事の確認と「直してもらう」: 偽の codex が、節の足りない週報を返す。kiroku が足りないところを見せ、「直してもらう」は
+  // 直してもらうプロンプトを見せるだけで送らない（ADR 0034）。Run で送り、直してもらうのは 2 回まで
+  const fixBin = path.join(work, "fixbin"), runs = path.join(work, "runs.txt");
+  await mkdir(fixBin, { recursive: true });
+  await writeFile(path.join(fixBin, "codex"), `#!/bin/sh\ncat > "${path.join(work, "last-prompt.txt")}"\necho run >> "${runs}"\nprintf '## Weekly report\\n\\n### Summary\\nDone.\\n'\n`);
+  await chmod(path.join(fixBin, "codex"), 0o700);
+  const fx = await startExtra(serveArgs, { PATH: `${fixBin}${path.delimiter}${process.env.PATH || ""}` });
+  const nRuns = async () => (await readFile(runs, "utf8").catch(() => "")).split("\n").filter(Boolean).length;
+  const pf = await ctx.newPage();
+  await pf.goto(`${fx.url}/?key=${key}`);
+  await pf.waitForSelector("#rptbar #rptrun", { timeout: 15000 });
+  await pf.locator("#rptbar #rptrun").click();
+  await pf.waitForSelector("#ai-review-dialog", { timeout: 5000 });
+  const runBtn = pf.locator("#ai-review-dialog .ai-action"), fixBtn = pf.locator("#ai-review-dialog .ai-check button", { hasText: "Ask to fix" });
+  await pf.locator("#ai-review-dialog select").selectOption("codex"); // このコンピューターに本物のエージェントがあっても、偽の codex を使う
+  await runBtn.click();
+  await pf.waitForSelector("#ai-review-dialog .ai-check:not([hidden])", { timeout: 20000 });
+  check("節の足りない返事には、kiroku の確認が足りないところを見せる", /4 of the 5 sections are missing/.test(await pf.locator("#ai-review-dialog .ai-check").innerText()));
+  await fixBtn.click();
+  const fixPrompt = await pf.evaluate(() => document.querySelector("#ai-review-dialog textarea.ai-prompt").value);
+  check("「直してもらう」は、元のプロンプト・前の返事・直すことを入れたプロンプトを見せる", /weekly report/.test(fixPrompt) && /\n# Your previous answer\n/.test(fixPrompt) && /\n# What to fix\n- The answer has 1 of the 5 "###" sections/.test(fixPrompt), fixPrompt.slice(-400));
+  check("「直してもらう」だけでは送らない（Run を押すまで）", await nRuns() === 1 && await runBtn.innerText() === "Run" && await runBtn.isEnabled());
+  await runBtn.click();
+  await until("2 回目の実行", async () => await nRuns() === 2);
+  check("Run で、見せたプロンプトをそのまま送る", (await readFile(path.join(work, "last-prompt.txt"), "utf8")).trim() === fixPrompt.trim());
+  await pf.waitForSelector("#ai-review-dialog .ai-check:not([hidden])", { timeout: 20000 });
+  await fixBtn.click(); await runBtn.click();
+  await until("3 回目の実行", async () => await nRuns() === 3);
+  await pf.waitForSelector("#ai-review-dialog .ai-check:not([hidden])", { timeout: 20000 });
+  check("直してもらうのは 2 回まで", await fixBtn.count() === 0 && /Still not fixed after 2 tries/.test(await pf.locator("#ai-review-dialog .ai-check").innerText()));
+  await pf.close();
+
   // 鍵のないブラウザ（同じコンピューターのほかのユーザーなど）は、案内だけを見る
   const fresh = await b.newContext();
   const q = await fresh.newPage();
