@@ -1,1 +1,0 @@
-- The view opens in the dark theme, with the calendar colored by agent ("Color by: Agent") instead of by project. A theme or "Color by" you chose before is kept; the button at the top right still switches to light
