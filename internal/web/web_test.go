@@ -78,7 +78,7 @@ func checkCSP(t *testing.T, page string, live bool) {
 	if !strings.Contains(csp, connect) {
 		t.Errorf("live=%v なのに %q がない: %s", live, connect, csp)
 	}
-	// kiroku serve の画面だけが、アプリとしてインストールするためのマニフェストを読む（ADR 0035）
+	// kiroku serve の画面だけが、アプリとしてインストールするためのマニフェストを読む（ADR 0037）
 	if hasLink, hasSrc := strings.Count(page, manifestLink) == 1, strings.Contains(csp, "; manifest-src 'self'"); hasLink != live || hasSrc != live {
 		t.Errorf("live=%v でマニフェストのリンク %v・manifest-src %v: %s", live, hasLink, hasSrc, csp)
 	}

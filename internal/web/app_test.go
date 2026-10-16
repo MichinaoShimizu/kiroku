@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// マニフェストは決まった値だけで、アプリの窓は kiroku serve の / を開く（ADR 0035）。
+// マニフェストは決まった値だけで、アプリの窓は kiroku serve の / を開く（ADR 0037）。
 func TestManifest(t *testing.T) {
 	var m struct {
 		ID, Name, StartURL, Scope, Display string

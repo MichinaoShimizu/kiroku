@@ -245,7 +245,7 @@ func (l *live) handler() http.Handler {
 		defer l.mu.RUnlock()
 		send(w, "text/html; charset=utf-8", l.html)
 	})
-	// マニフェスト（アプリとしてインストールするためのもの、ADR 0035）。履歴を入れていないので鍵なしで返す（requireKey）
+	// マニフェスト（アプリとしてインストールするためのもの、ADR 0037）。履歴を入れていないので鍵なしで返す（requireKey）
 	mux.HandleFunc("/manifest.webmanifest", func(w http.ResponseWriter, r *http.Request) {
 		send(w, "application/manifest+json", web.Manifest())
 	})

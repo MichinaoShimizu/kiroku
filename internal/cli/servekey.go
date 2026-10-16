@@ -159,7 +159,7 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 }
 
 // keyless は、鍵なしの GET で返してよいパスか。/（履歴を入れていない画面の骨組み）と、アプリとしてインストールするための
-// マニフェスト（ブラウザはヘッダーを付けずに読む。ADR 0035）だけ。
+// マニフェスト（ブラウザはヘッダーを付けずに読む。ADR 0037）だけ。
 func keyless(path string) bool {
 	return path == "/" || slices.Contains(web.AppPaths, path)
 }
