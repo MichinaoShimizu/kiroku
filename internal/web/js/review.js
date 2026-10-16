@@ -175,10 +175,14 @@ function openWorth(id, from){
   const D = $("#wk"), fs = lastFlags.filter(f => (GOTO[f.k] || f.k) === id), h = H()[id]; if (!fs.length || !h) return;
   const hk = fs.length === 1 && H()[fs[0].k] ? H()[fs[0].k] : h; // 印が 1 つだけなら、その候補自身の説明（長い会話で開いたときに、重いセッションの説明を出さないように）
   const {ws, we} = period(), r0 = id === "repeats" && repeatsOf(ws, we)[0], rp = r0 ? new Map([...r0.by].filter(([, x]) => x !== r0.text)) : null; // 見出しと同じ書き方は、カードごとに繰り返さない
-  const body = fs.map(f => `<div class="fl"><p class="see">${ico("flag", "fdot")}${esc(f.L.see)}</p><p class="rule">${esc(t("Threshold: {rule}", {rule: f.L.rule}))}</p>${f.k === "repeats" ? "" : `<p class="why">${esc(f.L.why)}</p>`}${spark(f.k)}${f.ids.length ? `<div class="fss">${flagSes(f.ids.slice(0, 6), f.k === "repeats" ? rp : null)}${f.ids.length > 6 ? `<p class="more">${esc(f.ids.length - 6 === 1 ? t("1 more session") : t("{n} more sessions", {n: f.ids.length - 6}))}</p>` : ""}</div>` : ""}</div>`).join(""); // 繰り返しのプロンプトの「なぜ」は「What to try」と同じことなので出さない
+  const body = fs.map(f => `<div class="fl"><p class="see">${ico("flag", "fdot")}${esc(f.L.see)}</p><p class="rule">${esc(t("Threshold: {rule}", {rule: f.L.rule}))}</p>${f.k === "repeats" ? "" : `<p class="why">${esc(f.L.why)}</p>`}${spark(f.k)}${f.ids.length ? `<div class="fss">${flagSes(f.ids.slice(0, 6), f.k === "repeats" ? rp : null)}${f.ids.length > 6 ? `<div class="fss-rest" hidden>${flagSes(f.ids.slice(6), f.k === "repeats" ? rp : null)}</div><button type="button" class="more fmore">${esc(f.ids.length - 6 === 1 ? t("1 more session") : t("{n} more sessions", {n: f.ids.length - 6}))}</button>` : ""}</div>` : ""}</div>`).join(""); // 繰り返しのプロンプトの「なぜ」は「What to try」と同じことなので出さない
   D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" id="wkclose" aria-label="${esc(t("Close"))}"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form><div class="eyebrow">${ico("flag", "fdot")}${esc(t("Worth a look"))}</div><h2 id="wkh">${esc(h.n)}</h2>${body}
     <dl class="wkhelp"><dt>${esc(t("What it is"))}</dt><dd>${esc(hk.d)}</dd><dt>${esc(t("Doesn't tell you"))}</dt><dd>${esc(hk.x)}</dd><dt>${esc(t("What to try"))}</dt><dd>${esc(hk.a)}</dd></dl>`;
-  D.querySelectorAll(".fss [data-id]").forEach(b => b.onclick = () => { D.close(); select(b.dataset.id); });
+  const bindSes = el => el.querySelectorAll("[data-id]").forEach(b => b.onclick = () => { D.close(); select(b.dataset.id); });
+  D.querySelectorAll(".fss").forEach(bindSes);
+  // 「ほか N セッション」: 隠しておいた残りのセッションをその場に出す（フォーカスは出した最初のセッションへ）
+  D.querySelectorAll(".fmore").forEach(b => b.onclick = () => { const rest = b.previousElementSibling; if (!rest) return;
+    rest.hidden = false; b.remove(); const first = rest.querySelector("[data-id]"); if (first) first.focus(); });
   D.onclose = () => { if (from && from.isConnected && (!st.sel || from.closest("#panel")) && !document.activeElement?.closest?.("#review")) from.focus(); }; // 閉じたら押したリンクへ（サマリーや別のセッションへ移ったときは除く）
   D.showModal(); D.scrollTop = 0;
   const hd = $("#wkh"); hd.tabIndex = -1; hd.focus(); } // 最初のボタンではなく見出しへ（読み上げで何のダイアログかわかり、セッションを押した表示にもならない）

@@ -32,9 +32,14 @@ function setMode(m){ if (m === "month" && META.scope && META.scope.mode === "wee
 document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = () => setMode(b.dataset.v));
 $("#prev").onclick = () => go(-1); $("#next").onclick = () => go(1); $("#today").onclick = () => go(null);
 $("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); st.srN = st.scN = 0; render(); }; // 言葉が変わったら、結果はまた先頭の数件から
-// 検索欄で Enter：最初の結果へフォーカスを移す（結果はカレンダーの上）
-$("#q").addEventListener("keydown", e => { if (e.key !== "Enter" || e.isComposing || !st.q) return;
+// 検索欄で Enter か ↓：最初の結果へフォーカスを移す（結果はカレンダーの上）。結果の中では ↑↓ で隣へ、最初の結果で ↑ なら検索欄へ
+$("#q").addEventListener("keydown", e => { if ((e.key !== "Enter" && e.key !== "ArrowDown") || e.isComposing || !st.q) return;
   const f = $("#sres .srow") || $("#srh"); if (f){ e.preventDefault(); f.focus(); } });
+// 「さらに表示」のボタンも順に入れる（↓ で飛ばすと、まだ結果があると気づかない）。結果がなければ見出しから ↑ で検索欄へ
+$("#sres").addEventListener("keydown", e => { if ((e.key !== "ArrowDown" && e.key !== "ArrowUp") || !e.target.matches(".srow, .srmore, #srh")) return;
+  const rows = [...$("#sres").querySelectorAll(".srow, .srmore")], i = rows.indexOf(e.target), to = i < 0 ? null : rows[i + (e.key === "ArrowDown" ? 1 : -1)];
+  e.preventDefault(); // 最後の結果で ↓ を押しても、ページはスクロールしない
+  if (to) to.focus(); else if (e.key === "ArrowUp" && i <= 0) $("#q").focus(); });
 // ロゴは最初の画面へ。kiroku serve では "/"、HTML ファイルやデモでは、同じファイルを開き直す（"/" ではディスクやサイトの一番上へ行ってしまう）
 if (!LIVE) $("#home").href = location.href.split(/[?#]/)[0];
 $("#theme").onclick = () => { st.theme = st.theme === "dark" ? "light" : "dark"; store.set("theme", st.theme); applyTheme(); };
@@ -59,8 +64,8 @@ addEventListener("popstate", () => {
   hist.pushed = false;
   if (!st.sel) return;
   if (st.back.length){ backStep(); histOpen(); } else select(null); });
-// ←→ を自分で使う部品（入力欄・選択・切り替えのボタン群など）にいるときは、週を動かさない
-const ARROW_OWN = "input, select, textarea, [contenteditable], .segc, [role=group], [role=radiogroup], [role=tablist], [role=listbox], [role=slider], [role=menu]";
+// ←→ を自分で使う部品（入力欄・選択・切り替えのボタン群など）と検索結果（↑↓ で動く）にいるときは、週を動かさない
+const ARROW_OWN = "input, select, textarea, [contenteditable], #sres, .segc, [role=group], [role=radiogroup], [role=tablist], [role=listbox], [role=slider], [role=menu]";
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT"){ if (e.key === "Escape") e.target.blur(); return; }
   if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open || $("#wk").open || $("#md").open) return;
