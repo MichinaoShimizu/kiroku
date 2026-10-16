@@ -65,7 +65,7 @@ const wkc = i => i === 6 ? " sat" : i === 0 ? " sun" : ""; // 曜日（getDay）
 const plural = (n, one, many) => isJA() ? `${n} ${t(one)}` : `${n} ${n === 1 ? one : many || one + "s"}`; // 日本語は数と名詞（単数の形を辞書で引く）
 // hh: 週のカレンダーの 1 時間の高さ（render が作業の時間帯に合わせて決める。ズームはない。以前の版が保存した "zh" は読まない）
 // 画面はカレンダーだけ（ADR 0033）。以前の版が保存した "view"（journey・project）と、Year in review の "yrOpt" は読まない
-const st = { hh: 44, colorBy: store.get("colorBy", "project"), theme: store.get("theme", "light") === "dark" ? "dark" : "light", // 既定はライト（以前の「自動」もライトにする）
+const st = { hh: 44, colorBy: store.get("colorBy", "source"), theme: store.get("theme", "dark") === "light" ? "light" : "dark", // 既定は、エージェントごとの色分けとダーク（ライトを選んだ人はライトのまま）
              week: mondayOf(today0()), month: monthOf(today0()), mode: store.get("mode", "week"), flowUser: !!store.get("flowUser", false),
              hidden: new Set(), sel: null, back: [], q: "", animate: true };
 

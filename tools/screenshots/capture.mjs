@@ -1,6 +1,6 @@
 // docs/screenshot.png・docs/summary.png・docs/worth.png・docs/session.png・docs/og.png を撮る。gen.py と mkgit.py で作ったダミーデータの HTML を使う。
 //   node capture.mjs <kiroku.html> <docs のディレクトリ>
-// Playwright が必要（このディレクトリで npm ci --ignore-scripts と npx playwright install chromium。版は package.json で固定）。英語表示（en-US）・ライトテーマ（既定）・時刻は Asia/Tokyo・1440x900。
+// Playwright が必要（このディレクトリで npm ci --ignore-scripts と npx playwright install chromium。版は package.json で固定）。英語表示（en-US）・ライトテーマ・プロジェクトごとの色分け（画面の既定ではない）・時刻は Asia/Tokyo・1440x900。
 import { chromium } from "playwright";
 import path from "node:path";
 
@@ -9,7 +9,11 @@ const [html, docs] = process.argv.slice(2);
 // 同じ時刻で撮り直すと同じ画像になるので、tools/screenshots/keep-changed.sh で本当に変わった画像だけを残せる
 const fakeNow = process.env.KIROKU_FAKE_NOW ? new Date(process.env.KIROKU_FAKE_NOW) : null;
 if (fakeNow && isNaN(fakeNow)) { console.error(`KIROKU_FAKE_NOW を日時として読めません: ${process.env.KIROKU_FAKE_NOW}`); process.exit(2); }
-const clock = async ctx => { if (fakeNow) await ctx.clock.install({ time: fakeNow }); return ctx; };
+// README と guide の画像は、ライトテーマ・プロジェクトごとの色分けで撮る（画面の既定はダーク・エージェントごと。説明の文と合わせる）。
+// 撮るためのどのコンテキストも clock を通るので、ここで決める
+const clock = async ctx => { if (fakeNow) await ctx.clock.install({ time: fakeNow });
+  await ctx.addInitScript(() => { try { localStorage.setItem("kiroku:theme", '"light"'); localStorage.setItem("kiroku:colorBy", '"project"'); } catch (e) {} });
+  return ctx; };
 const b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 const ctx = await clock(await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, timezoneId: "Asia/Tokyo", locale: "en-US" }));
 const p = await ctx.newPage();
