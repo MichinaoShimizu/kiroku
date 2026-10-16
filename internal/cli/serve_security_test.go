@@ -14,6 +14,7 @@ import (
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
+	"github.com/MichinaoShimizu/kiroku/internal/web"
 )
 
 var wantHeaders = map[string]string{
@@ -226,6 +227,14 @@ func TestServeShellHasNoHistory(t *testing.T) {
 		if code, body, _ := fetchHost(t, "GET", srv.URL+p, host); code != 403 || strings.Contains(body, title) {
 			t.Errorf("鍵なしの %s = %d", p, code)
 		}
+	}
+	// アプリのマニフェストは鍵なしで返すが、決まった中身で履歴は入っておらず、Host の確かめはそのまま（ADR 0035）
+	if code, body, hdr := fetchHost(t, "GET", srv.URL+"/manifest.webmanifest", host); code != 200 || body != string(web.Manifest()) ||
+		hdr.Get("Content-Type") != "application/manifest+json" || hdr.Get("Cache-Control") != "no-store" || hdr.Get("X-Content-Type-Options") != "nosniff" {
+		t.Errorf("鍵なしの /manifest.webmanifest = %d %v", code, hdr)
+	}
+	if code, _, _ := fetchHost(t, "GET", srv.URL+"/manifest.webmanifest", "evil.example:8484"); code != 403 {
+		t.Errorf("ほかの Host からの /manifest.webmanifest = %d", code)
 	}
 	testKey = key
 	defer func() { testKey = "" }()

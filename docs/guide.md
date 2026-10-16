@@ -399,6 +399,16 @@ If you'd rather not change the setting, kiroku can keep a copy of the history in
 - It uses the `kiroku` you ran, at its path. `kiroku update` replaces it in place; after reinstalling it somewhere else, run `kiroku autostart on` again
 - `kiroku autostart` (and `kiroku doctor`) shows whether it is on, reading your history, or answering. If `autostart on` reports that nothing answered, the output above (log) says why; a common cause is another `kiroku serve` you started yourself already using the port
 
+#### Open kiroku in a window of its own
+
+In Chrome or Edge, open the view (`kiroku open`) and choose "Install kiroku" in the address bar or the browser's menu (Edge: Apps → Install this site as an app). kiroku then opens in its own window, with its icon in the Dock or taskbar, like a desktop app. With `kiroku autostart on`, it is there whenever you log in.
+
+- The app window shows the view of `kiroku serve` at the same address, with the key your browser already has. If `kiroku serve` isn't running, it shows the browser's "can't connect" page
+- `localhost:8484` and `127.0.0.1:8484` are different apps; install from the address you use. After changing the port, install again
+- Nothing is kept for offline use: kiroku installs no service worker, so the browser keeps no copy of your history
+- Safari's "Add to Dock" is not tested yet; a web app there has its own site data and may show "Open kiroku with its key"
+- To remove it, use the app window's menu (Uninstall) or the browser's app list
+
 #### Turn it off
 
 `kiroku autostart off` stops it and removes it from login. Run it before deleting kiroku.
