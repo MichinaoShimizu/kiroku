@@ -16,10 +16,13 @@ p.on("dialog", async d => { dialogs.push(d.message()); await d.dismiss(); });
 p.on("pageerror", e => errors.push(e.message));
 p.on("request", r => { if (!/^(file|data|blob):/.test(r.url())) external.push(r.url()); });
 await p.addInitScript(() => { window.__hits = []; window.alert = x => { window.__hits.push(String(x)); }; });
+let failed = 0;
 await p.goto("file://" + path.resolve(html));
 await p.waitForTimeout(300);
+// デモでない保存した HTML には、AI の操作がない（ADR 0034。デモだけ例外: ADR 0036）
+{ const n = await p.locator("#rptrun, #srun, .dayrun, .ai-action, .ai-off, .ai-none").count(), bar = await p.locator("#rptbar").isHidden();
+  if (n || !bar) { failed++; console.log(`  FAIL saved HTML shows AI controls: ${n}`); } else console.log("  ok   saved HTML (not the demo) shows no AI controls"); }
 
-let failed = 0;
 const check = async step => {
   const r = await p.evaluate(() => ({
     hits: window.__hits.splice(0),
