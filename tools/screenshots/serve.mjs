@@ -245,6 +245,32 @@ esac
   check("Cancel のあと、エージェントもその子も残らない", pids.length === 2 && left.length === 0, `pids ${pids}, left ${left}`);
   await ps.close();
 
+  // エージェントの既定: claude と codex の両方があるとき、セッションの振り返りはそのセッションのエージェント、
+  // 週報はその週にいちばん長く動いていたエージェントを選んでおく（一覧の先頭の Claude Code ではなく）
+  const dBin = path.join(work, "dbin");
+  await mkdir(dBin, { recursive: true });
+  for (const n of ["claude", "codex"]){ await writeFile(path.join(dBin, n), "#!/bin/sh\ncat >/dev/null\n"); await chmod(path.join(dBin, n), 0o700); }
+  const dx = await startExtra([...serveArgs.slice(0, 4), "claude,codex", ...serveArgs.slice(5), "--codex-home", path.join(home, ".codex")], { PATH: `${dBin}${path.delimiter}${process.env.PATH || ""}` });
+  const pd = await ctx.newPage();
+  await pd.goto(`${dx.url}/?key=${key}`);
+  await pd.waitForSelector(".run[data-sid]", { timeout: 15000 });
+  const cx = await pd.evaluate(() => { const s = DATA.find(x => x.source === "Codex"); if (!s) return null; st.mode = "week"; st.week = mondayOf(new Date(s.start * 1000)); select(s.id); return s.id; });
+  check("ダミーの履歴に Codex のセッションがある（下の確かめのため）", !!cx);
+  await pd.waitForSelector("#srun", { timeout: 5000 });
+  await pd.locator("#srun").click();
+  await pd.waitForSelector("#ai-review-dialog", { timeout: 5000 });
+  check("Codex のセッションの振り返りは、Codex を選んでおく", await pd.locator("#ai-review-dialog select").inputValue() === "codex");
+  await pd.locator("#ai-review-dialog button", { hasText: "Close" }).click();
+  await pd.keyboard.press("Escape");
+  await pd.waitForSelector("#rptbar #rptrun", { timeout: 5000 });
+  const want = await pd.evaluate(() => aiAgentIn(period().ws, period().we));
+  await pd.locator("#rptbar #rptrun").click();
+  await pd.waitForSelector("#ai-review-dialog", { timeout: 5000 });
+  check("週報は、その週にいちばん長く動いていたエージェントを選んでおく", ["claude", "codex"].includes(want) && await pd.locator("#ai-review-dialog select").inputValue() === want, want);
+  await pd.locator("#ai-review-dialog button", { hasText: "Close" }).click();
+  check("既定を選んでも、何も動かさない", !/\$ (claude|codex)/.test(dx.log()));
+  await pd.close();
+
   // 鍵のないブラウザ（同じコンピューターのほかのユーザーなど）は、案内だけを見る
   const fresh = await b.newContext();
   const q = await fresh.newPage();

@@ -396,3 +396,30 @@ func TestAIOutputCheck(t *testing.T) {
 		t.Errorf("aiOutputProblems・aiFixPrompt が違う:\n%s", out)
 	}
 }
+
+// 「AI で分析」のエージェントの既定（aiAgentOf・aiAgentIn）。ai.js から取り出して Node で動かす。
+func TestAIDefaultAgent(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/ai.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	code := regexp.MustCompile(`(?ms)^const aiAgentOf = .*?^}$`).FindString(strings.ReplaceAll(string(src), "\r\n", "\n"))
+	if code == "" {
+		t.Fatal("ai.js に aiAgentOf から aiAgentIn までが見つからない")
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "aiagent_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "aiagent.js")
+	if err := os.WriteFile(f, append([]byte(code+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("AI のエージェントの既定が違う:\n%s", out)
+	}
+}

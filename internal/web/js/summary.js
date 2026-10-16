@@ -52,7 +52,7 @@ function summary(){
   R.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
   RB.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
   const run = RB.querySelector("#rptrun");
-  if (run) run.onclick = () => runAIReview(run, reportPrompt(w), t("Weekly report"));
+  if (run) run.onclick = () => runAIReview(run, reportPrompt(w), t("Weekly report"), aiAgentIn(period().ws, period().we)); // 既定は、その週にいちばん長く動いていたエージェント
   bindCopy(R); bindCopy(RB); bindHelp(R); bindHelp(WK); bindReport(R);
   if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }
