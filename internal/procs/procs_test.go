@@ -179,8 +179,9 @@ func TestPSArgs(t *testing.T) {
 }
 
 func TestParsePSEnv(t *testing.T) {
-	out := "  700 node server.js PATH=/usr/bin CLAUDECODE=1 HOME=/Users/me\n  701 sleep 100 NOTCLAUDECODE=1\n  702 sh -c echo CLAUDECODE=1x\n x y\n"
-	got := parsePSEnv(out)
+	// 703 is not one of the PIDs asked for: a line forged by a newline in 702's arguments can't mark it
+	out := "  700 node server.js PATH=/usr/bin CLAUDECODE=1 HOME=/Users/me\n  701 sleep 100 NOTCLAUDECODE=1\n  702 sh -c echo CLAUDECODE=1x\n  703 CLAUDECODE=1\n x y\n"
+	got := parsePSEnv(out, []int{700, 701, 702})
 	if len(got) != 1 || got[700] != "claude" {
 		t.Fatalf("got %v", got)
 	}

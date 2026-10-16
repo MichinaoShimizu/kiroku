@@ -150,7 +150,7 @@ func (l *live) procsHandler() http.Handler {
 			return
 		}
 		sent := procs.Stop(*g, ps, os.Getpid(), req.Force)
-		l.logf("stopped %s (PID %d) and the processes under it at the view's request: signaled %d (%s)\n", g.Root.Name, g.Root.PID, sent, map[bool]string{false: "SIGTERM", true: "SIGKILL"}[req.Force])
+		l.logf("%s", stopLine(g.Root.Name, g.Root.PID, sent, req.Force))
 		running := 0
 		for end := time.Now().Add(stopWait); ; time.Sleep(100 * time.Millisecond) {
 			if ps, err = listProcs(); err == nil {
@@ -302,4 +302,14 @@ func bytesH(n int64) string {
 		return fmt.Sprintf("%d MB", n>>20)
 	}
 	return fmt.Sprintf("%d KB", n>>10)
+}
+
+// stopLine is the line kiroku serve logs for each stop. The process name can be anything a process sets for
+// itself, so terminal control characters are removed (termSafe).
+func stopLine(name string, pid, sent int, force bool) string {
+	sig := "SIGTERM"
+	if force {
+		sig = "SIGKILL"
+	}
+	return fmt.Sprintf("stopped %s (PID %d) and the processes under it at the view's request: signaled %d (%s)\n", termSafe(name, 200), pid, sent, sig)
 }

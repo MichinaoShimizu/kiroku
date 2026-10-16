@@ -213,3 +213,11 @@ func TestWritePS(t *testing.T) {
 		t.Errorf("empty: %s", b.String())
 	}
 }
+
+// The log line of a stop carries no terminal control characters from the process name (a process sets its own name).
+func TestStopLineIsTerminalSafe(t *testing.T) {
+	got := stopLine("\x1b[2J\x1b]0;X\a\nZ", 42, 3, true)
+	if strings.ContainsAny(got[:len(got)-1], "\x1b\a\n") || !strings.Contains(got, "PID 42") || !strings.Contains(got, "signaled 3 (SIGKILL)") || !strings.HasSuffix(got, "\n") {
+		t.Fatalf("got %q", got)
+	}
+}

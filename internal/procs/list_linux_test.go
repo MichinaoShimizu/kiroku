@@ -3,9 +3,12 @@
 package procs
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -143,6 +146,46 @@ func TestParseStat(t *testing.T) {
 	for _, bad := range []string{"", "12", "x (a) S 1", "12 (a) S 1 2 3", "12 (a) S 99999999999999999999 1 1 0 -1 0 0 0 0 0 0 0 0 0 20 0 1 0 1 0 0"} {
 		if _, ok := parseStat([]byte(bad), 0, 4096); ok {
 			t.Errorf("parsed %q", bad)
+		}
+	}
+}
+
+// A process can give itself an environment of any size (prctl PR_SET_MM_MAP, no privilege needed). kiroku reads it
+// in pieces and only up to envMax, so memory stays small, a marker within the limit is still found, and one past it
+// is not read.
+func TestEnvironMarkerBounded(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name string, parts ...[]byte) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, bytes.Join(parts, nil), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	nuls := func(n int) []byte { return make([]byte, n) }
+	long := bytes.Repeat([]byte("A"), envEntryMax+10)
+	for _, c := range []struct {
+		name string
+		path string
+		want string
+	}{
+		{"plain", write("plain", []byte("PATH=/bin\x00CLAUDECODE=1\x00HOME=/h\x00")), "claude"},
+		{"last, no NUL", write("last", []byte("PATH=/bin\x00CODEX_SANDBOX=seatbelt")), "codex"},
+		{"after many NULs", write("nuls", nuls(1<<20), []byte("CLAUDECODE=1\x00")), "claude"},
+		{"past the limit", write("past", nuls(envMax), []byte("CLAUDECODE=1\x00")), ""},
+		{"after a too long entry", write("long", long, []byte("\x00CLAUDECODE=1\x00")), ""},
+		{"missing", filepath.Join(dir, "none"), ""},
+	} {
+		var before, after runtime.MemStats
+		runtime.GC()
+		runtime.ReadMemStats(&before)
+		got := environMarker(c.path)
+		runtime.ReadMemStats(&after)
+		if got != c.want {
+			t.Errorf("%s: marker %q, want %q", c.name, got, c.want)
+		}
+		if d := after.TotalAlloc - before.TotalAlloc; d > 1<<20 {
+			t.Errorf("%s: allocated %d bytes", c.name, d)
 		}
 	}
 }

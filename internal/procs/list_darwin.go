@@ -39,7 +39,7 @@ func List() ([]Proc, error) {
 	marks := map[int]string{}
 	if len(envPIDs) > 0 {
 		if out, err := run(ctx, "/bin/ps", psEnvArgs(envPIDs)...); err == nil || out != "" {
-			marks = parsePSEnv(out)
+			marks = parsePSEnv(out, envPIDs)
 		}
 	}
 	for i := range ps {

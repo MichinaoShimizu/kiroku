@@ -71,7 +71,12 @@ func psEnvArgs(pids []int) []string {
 
 // parsePSEnv finds the markers in the output of ps with psEnvArgs. ps puts the environment after the command
 // line with spaces between, so a marker counts only as a whole word; the rest of the line is not kept.
-func parsePSEnv(out string) map[int]string {
+// Only the PIDs asked for count: a newline in a process's arguments can't mark another process.
+func parsePSEnv(out string, asked []int) map[int]string {
+	want := make(map[int]bool, len(asked))
+	for _, p := range asked {
+		want[p] = true
+	}
 	res := map[int]string{}
 	sc := bufio.NewScanner(strings.NewReader(out))
 	sc.Buffer(make([]byte, 64*1024), 4*1024*1024)
@@ -81,10 +86,10 @@ func parsePSEnv(out string) map[int]string {
 			continue
 		}
 		pid, err := strconv.Atoi(f[0])
-		if err != nil {
+		if err != nil || !want[pid] {
 			continue
 		}
-		if m := markerOf(f[1:]); m != "" {
+		if m := markerOf(f[1:]); m != "" && res[pid] == "" {
 			res[pid] = m
 		}
 	}

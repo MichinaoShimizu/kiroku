@@ -3,7 +3,9 @@
 package procs
 
 import (
+	"bufio"
 	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -56,9 +58,7 @@ func listProc(root string, uid int) ([]Proc, error) {
 			continue
 		}
 		p.Cwd, _ = os.Readlink(filepath.Join(dir, "cwd"))
-		if env, err := os.ReadFile(filepath.Join(dir, "environ")); err == nil {
-			p.Marker = markerOf(strings.Split(string(env), "\x00"))
-		}
+		p.Marker = environMarker(filepath.Join(dir, "environ"))
 		out = append(out, p)
 	}
 	return out, nil
@@ -107,4 +107,41 @@ func parseStat(b []byte, boot float64, page int64) (Proc, bool) {
 		Start: boot + float64(num(19))/clockTicks,
 		RSS:   num(21) * page,
 	}, true
+}
+
+// Limits for reading /proc/<pid>/environ. A process can make its environment area as large as it likes
+// (prctl PR_SET_MM_MAP needs no privilege), so it is read in pieces and only up to envMax: an environment set by
+// execve is at most a few MiB, and an entry longer than envEntryMax (the kernel's MAX_ARG_STRLEN) can't be a marker.
+const (
+	envMax      = 4 << 20
+	envEntryMax = 128 << 10
+)
+
+// environMarker is the agent family of the first marker in the environ file at path, "" when none or unreadable.
+// Memory stays bounded whatever the file holds, and reading stops at the first marker.
+func environMarker(path string) string {
+	f, err := os.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(io.LimitReader(f, envMax))
+	sc.Buffer(make([]byte, 4096), envEntryMax)
+	sc.Split(func(data []byte, atEOF bool) (int, []byte, error) {
+		if i := bytes.IndexByte(data, 0); i >= 0 {
+			return i + 1, data[:i], nil
+		}
+		if atEOF && len(data) > 0 {
+			return len(data), data, nil
+		}
+		return 0, nil, nil
+	})
+	entry := make([]string, 1)
+	for sc.Scan() {
+		entry[0] = sc.Text()
+		if m := markerOf(entry); m != "" {
+			return m
+		}
+	}
+	return "" // an entry too long (bufio.ErrTooLong) ends the reading too
 }

@@ -57,11 +57,12 @@ Until now kiroku read only history, git and GitHub Releases. Reading processes, 
 
 ## Verification
 
-- `internal/procs`: `TestClassify`, `TestClassifySelf`, `TestLink`, `TestMarkerOf`, `TestAgentFamily`, `TestParseStat`, `TestParsePS`, `TestParsePSEnv`, `TestParseLsof`, `TestStopChecksIdentity`. On Linux, `TestListFindsAndStopsLeftRunning` (a real process left running with Claude Code's marker is found with its folder and stopped) and `TestListOnlyThisUser`.
+- `internal/procs`: `TestClassify`, `TestClassifySelf`, `TestLink`, `TestMarkerOf`, `TestAgentFamily`, `TestParseStat`, `TestParsePS`, `TestParsePSEnv`, `TestParseLsof`, `TestStopChecksIdentity`. On Linux, `TestListFindsAndStopsLeftRunning` (a real process left running with Claude Code's marker is found with its folder and stopped), `TestListOnlyThisUser` and `TestEnvironMarkerBounded` (a process can make its environment as large as it likes; kiroku reads at most 4 MiB in pieces).
 - `internal/cli`:
-  - `TestProcsNotFoundWhenOff`, `TestProcsList` (no command line or environment in the JSON), `TestProcsFlagInMeta`, `TestProcsStartLine`, `TestNoProcsEnv`, `TestWritePS` (terminal control characters removed).
+  - `TestProcsNotFoundWhenOff`, `TestProcsList` (no command line or environment in the JSON), `TestProcsFlagInMeta`, `TestProcsStartLine`, `TestNoProcsEnv`, `TestWritePS` and `TestStopLineIsTerminalSafe` (terminal control characters removed).
   - `TestProcsStopRefusals`: GET, a missing `X-Kiroku`, another origin, a bad or oversized body, PID 1, a reused PID, a member, an unreported process and kiroku's own group are all refused.
   - On Linux, `TestProcsStopEndsProcess`.
+- The hostile-tester run before the PR: `/procs/stop` refused every abuse tried, names and folders were escaped. It found unbounded memory on a huge environment and an unescaped name in the stop log; both fixed with the tests above.
 - Manual: `kiroku serve` in a cloud container, with a process left running from a fake session and real orphaned `chrome_crashpad` processes left by Playwright under Claude Code. Both were listed, linked and stopped from the view in English and Japanese. Not yet run on a real Mac.
 
 ## Open questions
