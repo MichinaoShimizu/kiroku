@@ -15,6 +15,7 @@ import (
 
 	"github.com/MichinaoShimizu/kiroku/internal/ai"
 	"github.com/MichinaoShimizu/kiroku/internal/core"
+	"github.com/MichinaoShimizu/kiroku/internal/procs"
 	"github.com/MichinaoShimizu/kiroku/internal/report"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
 	"github.com/MichinaoShimizu/kiroku/internal/web"
@@ -42,6 +43,7 @@ type live struct {
 	print io.Writer
 	keep  func() error  // 画面から kiroku archive をオンにする（nil ならできない）
 	aiRun http.Handler  // nil means AI execution remains disabled
+	procs http.Handler  // /procs and /procs/stop (ADR 0035); nil when off (--no-procs, not loopback, unsupported OS)
 	lang  string        // the view's language when the page doesn't choose one (kiroku serve --lang)
 	ready bool          // 最初の読み込みが終わったか（mu で守る）。終わるまでは読み込み中の画面と 503 を返す
 	fail  error         // 最初の読み込みの失敗（mu で守る）。読み込み中の画面に出す
@@ -61,6 +63,14 @@ func (l *live) refresh() error {
 		}
 		meta["aiRun"] = true
 		meta["aiAgents"] = ai.Installed() // only agents whose command is on this computer are offered (checked on each reload)
+		snap.meta = meta
+	}
+	if l.procs != nil { // the view asks /procs for running agents and what they left running only when it is there
+		meta := make(map[string]any, len(snap.meta)+1)
+		for k, v := range snap.meta {
+			meta[k] = v
+		}
+		meta["procs"] = true
 		snap.meta = meta
 	}
 	parts, err := web.Marshal(snap.data, snap.weeks, snap.months, snap.meta, snap.gen) // /data.json
@@ -85,10 +95,10 @@ func (l *live) refresh() error {
 }
 
 // shellMeta は、画面の骨組み（鍵なしで返す /）の META。履歴から作ったものは入れず、shell（data.json を読むこと）と、
-// 履歴ではない設定（AI を動かせるか・使えるエージェント・デモの時計）だけにする。
+// 履歴ではない設定（AI を動かせるか・使えるエージェント・プロセスを見られるか・デモの時計）だけにする。
 func shellMeta(meta map[string]any) map[string]any {
 	out := map[string]any{"shell": true}
-	for _, k := range []string{"aiRun", "aiAgents", "demo"} {
+	for _, k := range []string{"aiRun", "aiAgents", "procs", "demo"} {
 		if v, ok := meta[k]; ok {
 			out[k] = v
 		}
@@ -251,6 +261,14 @@ func (l *live) handler() http.Handler {
 		mux.Handle("/ai/run", l.aiRun)
 	} else {
 		mux.HandleFunc("/ai/run", http.NotFound)
+	}
+	// Running agents and what they left running (ADR 0035): only on a loopback address, unless --no-procs.
+	if l.procs != nil {
+		mux.Handle("/procs", l.procs)
+		mux.Handle("/procs/stop", l.procs)
+	} else {
+		mux.HandleFunc("/procs", http.NotFound)
+		mux.HandleFunc("/procs/stop", http.NotFound)
 	}
 	mux.HandleFunc("/data.json", func(w http.ResponseWriter, r *http.Request) {
 		if !l.loaded(w) {
@@ -555,7 +573,7 @@ func newServer(h http.Handler) *http.Server {
 // 読み終わるまでは、読み込み中の画面を出す。
 // AI execution stays off; serveLiveWithAI turns it on (kiroku serve without --no-ai).
 func serveLive(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool) error {
-	return serveLiveWithAI(addr, allow, every, picked, load, keep, open, false, "", nil)
+	return serveLiveWithAI(addr, allow, every, picked, load, keep, open, false, false, "", nil)
 }
 
 // aiStartLine は、起動したときに出す「Analyze with AI」の状態の 1 行（ADR 0034 の 2）。
@@ -567,6 +585,20 @@ func aiStartLine(enableAI, aiAddr bool) string {
 		return "\"Analyze with AI\" is off: it runs only on a loopback address written as an IP (such as 127.0.0.1:8484 or :8485)"
 	}
 	return "\"Analyze with AI\" is on: after you confirm a run, the agent you choose may send the prompt and the history it reads to its provider; turn it off with --no-ai"
+}
+
+// procsStartLine は、起動したときに出す、動いているエージェントと残ったプロセスの一覧の状態の 1 行（ADR 0035）。
+// 対応していない OS では何も出さない。
+func procsStartLine(enable, addrOK, supported bool) string {
+	switch {
+	case !supported:
+		return ""
+	case !enable:
+		return "the list of running AI agents is off (--no-procs)"
+	case !addrOK:
+		return "the list of running AI agents is off: it is shown only on a loopback address written as an IP"
+	}
+	return "the view lists running AI agents and the processes they left running, and can stop one after you confirm; turn it off with --no-procs"
 }
 
 // scanWatchPaths は、選んでいない Source のうち source.ClaimScanner のものが調べる場所（Kiro を選んでいないときの Kiro Crew の場所）。
@@ -595,8 +627,9 @@ func aiAddrOK(addr string) bool {
 }
 
 // serveLiveWithAI は serveLive。enableAI は「Analyze with AI」を使えるようにするか（--no-ai でなければ true。ADR 0034）。
-// 待ち受け先がループバックの IP でなければ、enableAI でも切る。lang は画面の言語（--lang）、watch は picked のほかに見張る場所（scanWatchPaths）。
-func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool, enableAI bool, lang string, watch []string) error {
+// enableProcs は、動いているエージェントと残ったプロセスを見せて止められるようにするか（--no-procs でなければ true。ADR 0035）。
+// 待ち受け先がループバックの IP でなければ、どちらも切る。lang は画面の言語（--lang）、watch は picked のほかに見張る場所（scanWatchPaths）。
+func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool, enableAI, enableProcs bool, lang string, watch []string) error {
 	if every < time.Second {
 		every = time.Second
 	}
@@ -624,6 +657,9 @@ func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []
 	if enableAI && aiAddr {
 		l.aiRun = ai.NewHandler(ai.Runner{Enabled: true, Dirs: l.roots})
 	}
+	if enableProcs && aiAddr && procs.Supported() {
+		l.procs = l.procsHandler()
+	}
 	addr = ln.Addr().String()
 	url := viewURL(addr)
 	st := styleFor(l.print)
@@ -631,6 +667,9 @@ func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []
 	startLive(l, every)
 	fmt.Fprintln(l.print, st.dim("only browsers with its key can open it (to protect it from other users of this computer); \"kiroku open\" opens it with the key"))
 	fmt.Fprintln(l.print, st.dim(aiStartLine(enableAI, aiAddr)))
+	if line := procsStartLine(enableProcs, aiAddr, procs.Supported()); line != "" {
+		fmt.Fprintln(l.print, st.dim(line))
+	}
 	if open {
 		if err := openWithKey(url, key); err != nil {
 			fmt.Fprintf(l.print, "could not open a browser: %v\n", err)

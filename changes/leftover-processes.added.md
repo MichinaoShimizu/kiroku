@@ -1,0 +1,3 @@
+- Running agents and what they left running (macOS and Linux): `kiroku serve` shows a button next to LIVE when an AI agent is running or a process an agent started (such as a dev server) is still running after the agent ended. It lists them with the session each came from, its folder, memory and CPU time, and stops one and the processes under it after you confirm. Session details show them under "Still running"
+  - `kiroku ps` prints the same list in the terminal with the `kill` command for each, and stops nothing
+  - `kiroku serve --no-procs` (or `KIROKU_NO_PROCS=1`) turns it off; it is off on an address that isn't a loopback IP

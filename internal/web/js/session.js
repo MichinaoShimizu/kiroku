@@ -41,6 +41,7 @@ function detail(s){
           <div class="lane"><span style="left:${l}%;width:${Math.min(w,100-l)}%"></span></div>
           <div class="ft">${a.start?`<span>${hm(a.start)}${a.end?"–"+hm(a.end):""}</span>`:""}${a.start&&a.end?`<span>${dur((a.end-a.start)/60)}</span>`:""}${tt?`<span>${esc(t("{n} tokens", {n: tok(tt)}))}</span>`:u.reportedTokens?`<span>${esc(t("{n} tokens (reported)", {n: tok(u.reportedTokens)}))}</span>`:""}${u.cost?`<span>${usd(u.cost)}</span>`:""}${a.model?`<span>${esc(a.model)}</span>`:""}${a.tools?`<span>${esc(plural(a.tools, "tool call"))}</span>`:""}</div></div>`; }).join("")}` : ""}
     </div><div class="dcol">
+    ${sessionProcsH(s)}
     ${s.resume ? `<div class="dresume dside"><h3>${esc(t("Resume"))}</h3>${codeH(s.resume, "resume")}</div>` : ""}
     ${sessionCommits(s)}
     ${s.prs && s.prs.length ? `<h3>${esc(t("Pull requests created"))} · ${s.prs.length}</h3><ul class="files">${s.prs.map(u => pathRow(u, ext(u, esc(u.replace(/^https?:\/\//, ""))), "pr")).join("")}</ul>` : ""}
@@ -54,7 +55,7 @@ function detail(s){
     ${s.native && s.native.length ? `<h3>${esc(t("{agent} metrics", {agent: s.source}))}</h3>${nativeRows(s.native)}<p class="note">${esc(t("Numbers this agent records itself. Definitions differ from other agents."))}</p>` : ""}
     ${s.file ? `<h3>${esc(t("History file"))}</h3>${codeH(s.file, "", `<a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" ${LIVE ? "data-hist" : `target="_blank" rel="noopener"`}>${esc(t("Open"))}</a>`)}` : ""}
   </div></div></div>`;
-  bindGitEvents(P);
+  bindGitEvents(P); fillSessionProcs();
   const hl = P.querySelector("a[data-hist]"); if (hl) hl.onclick = e => { e.preventDefault(); saveHistory(s, hl); };
   P.querySelectorAll(".sflags [data-goto]").forEach(b => b.onclick = () => openWorth(b.dataset.goto, b));
   P.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);

@@ -57,6 +57,8 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 **Search across all time.** Prompts, edited files and commits, with excerpts showing where they matched.
 
+**What your agents left running.** A dev server or watcher an agent started, still running after the agent ended, or an agent whose terminal you closed: `kiroku serve` lists them with the session each came from, its memory and CPU time, and stops one after you confirm (macOS and Linux; [details](docs/guide.md#running-agents-and-what-they-left-running)). `kiroku ps` prints the same list in the terminal.
+
 The view is in Japanese when your browser prefers Japanese; the button at the top right (or `--lang`) switches between English and 日本語.
 
 ## Reviews and advice, written by your own agent
@@ -99,6 +101,7 @@ kiroku serve              # the view at http://localhost:8484/, updated as new h
 kiroku open               # open it in another browser (it needs serve's key once)
 kiroku autostart on       # start kiroku serve each time you log in (macOS and Linux)
 kiroku stats --week last  # last week on one terminal screen: time, tokens, cost and commits by agent, model and project
+kiroku ps                 # AI agents running now and the processes they left running, with their sessions
 kiroku html --week last   # write only last week as one HTML file, to show someone
 kiroku update             # update to the latest release
 kiroku help               # all commands ("kiroku <command> --help" for options)

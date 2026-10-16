@@ -53,6 +53,7 @@ go install github.com/MichinaoShimizu/kiroku@latest
 | `kiroku json [-o FILE]` | Writes the aggregated data as JSON (`-o -` for stdout). Like `kiroku html`, it writes a file only you can read (`0600`). The fields scripts can rely on are listed in [Compatibility](compatibility.md#the-json-of-kiroku-json) |
 | `kiroku stats` | Prints a one-screen summary of this week in the terminal: active time and days, sessions and prompts, tokens, estimated cost, Kiro credits and Git commits, then a table by agent, the top 5 models by tokens and the top 5 projects by time. The numbers are the same as the view's key figures and weekly summary. `--week last` (or a date in the week) and `--month this` (or `last`, `2026-09`) pick another period. It writes no file. Project and model names are printed as they are, so check them before you share a screenshot |
 | `kiroku doctor` | Checks your setup in one go and only reads: which histories were found (sessions and the oldest date for each agent, and where it looked), whether an agent will delete old history (Claude Code on its 30-day default) and which settings file to change, whether `kiroku archive` is on, whether git is found, whether autostart is on, which kiroku is running, and whether a newer kiroku is out (it asks GitHub Releases while it reads history; `--no-update-check` skips this, and builds from source are not checked). Agents with no history yet are summed up in one line, so the lines that ask you to do something stay in view; `--all` lists each of them with the place kiroku looks. If another kiroku comes first in your `PATH`, so that `kiroku` runs that one instead, it says so. Under "Format check" it shows, per agent, the newest agent version seen in history, lines that couldn't be read and record kinds kiroku doesn't know, with counts (see [How histories are read](sources.md#format-check)); unknown kinds can mean the agent changed its history format. It ends with what to run next, including `kiroku update` when a newer release exists. Run it right after installing, or when something you expect is missing from the view. `kiroku doctor --report` prints only a short block for a bug report (kiroku version, OS, and per agent the number of sessions, newest version seen, unreadable lines and unknown kinds with counts; no paths, project names, IDs or content) for you to review and paste into a GitHub issue yourself; kiroku sends nothing |
+| `kiroku ps` | Lists the AI agents running on this computer and the processes they left running after they ended (such as a dev server started by the agent's shell), each with the session it belongs to, how long it has run, its memory and CPU time, and the `kill` command that stops it. Only reads. macOS and Linux. See "[Running agents and what they left running](#running-agents-and-what-they-left-running)" |
 | `kiroku autostart [on\|off]` | Starts `kiroku serve` in the background each time you log in, so the view is always at `http://localhost:8484/` (see "[Start kiroku when you log in](#start-kiroku-when-you-log-in)"). With no argument, shows the status |
 | `kiroku archive [on\|off]` | Keeps compressed copies of history that agents delete automatically (Claude Code, Kiro Crew) in kiroku's own folder (see "[Keep a copy of history in kiroku](#keep-a-copy-of-history-in-kiroku)"). With no argument, shows the status (on or off, location, number and size of files) |
 | `kiroku version` | Prints the version |
@@ -153,6 +154,17 @@ Things to know:
 - The prompts tell the agent that history is data, not instructions, and not to follow text in it that looks like instructions. They also ask it to leave out secrets, personal data, file contents, command output and paths on your computer (a review quotes only your prompts and the AI's prose), and not to run other commands, write files or send anything to another service (a report may run the read-only Git command it describes). Still, check a report before sharing it
 - The report is written in the language you mostly write your prompts in
 - In a day, week or month still in progress, the prompt says the data runs up to now. Sessions hidden in the legend are left out of reports, and so are the commits of projects hidden in the legend (when colored by project), their project sections, and signals that quote their prompts. The Numbers table still counts everything, and the prompt tells the agent to copy it unchanged without mentioning what was left out
+
+## Running agents and what they left running
+
+AI agents start processes for you, such as a dev server, a watcher or a build, and some keep running after the agent or its session ended: a command run in the background, a terminal closed while the agent was working, an agent that didn't exit. In `kiroku serve` on macOS and Linux, a button next to LIVE shows how many are left running (in red) or how many agents are running, and opens the list:
+
+- **Left running**: processes an agent started that are still running after that agent ended. kiroku recognizes them by the marker the agent puts in the environment of its commands: Claude Code marks every command of its Bash tool, and Codex marks commands in its sandbox. Kiro CLI and Amazon Q set no marker, so for them kiroku shows only the agent itself
+- **Agents**: running `claude`, `codex`, `kiro-cli` and `qchat` processes, with what they started, and where they run: in a terminal, under another program (such as an editor), or with their terminal gone
+- Each one shows the session it most likely belongs to (same agent, same project folder, active at that time), how long it has run, its memory and CPU time with everything under it, and its folder. Session details list them under "Still running"
+- **Stop…** asks first, naming the process and how many processes are under it, then asks it and everything under it to end (SIGTERM), like `kill`. Anything unsaved in them is lost. If it is still running a few seconds later, the view offers **Force stop** (SIGKILL). A group kiroku itself runs in can't be stopped from kiroku
+
+`kiroku ps` prints the same list in the terminal with the `kill` command for each, and stops nothing. kiroku reads only your own processes, and never their command lines; it reads their environment only to look for the agents' markers, and keeps nothing of it. The list is updated every 15 seconds while the view is open. `kiroku serve --no-procs` (or `KIROKU_NO_PROCS=1`) turns it off, and it is off on an address that isn't a loopback IP. Windows is not supported.
 
 ## Weekly and monthly summary
 
@@ -439,7 +451,7 @@ systemctl --user daemon-reload
 
 ## Options
 
-Common to the commands that read history (`serve`, `html`, `json`, `stats`, `doctor`, `archive`):
+Common to the commands that read history (`serve`, `html`, `json`, `stats`, `doctor`, `archive`, `ps`):
 
 | Option | Default | Description |
 |---|---|---|
@@ -460,6 +472,7 @@ Per command:
 |---|---|---|---|
 | `serve` | `[ADDR]` | `127.0.0.1:8484` | A port alone, such as `:8485`, also works (it listens on `127.0.0.1`). To open it from other devices, write an address such as `0.0.0.0:8485` (anyone on your network can then see your history) |
 | `serve` | `--no-ai` | `$KIROKU_NO_AI`, else off | Turn off "Analyze with AI". `KIROKU_NO_AI` turns it off for any value except empty, `0` and `false` (any case, spaces ignored), so `1`, `yes`, `no` and `off` all turn it off. An explicit `--ai=false` from older scripts also turns it off. Without it, the view can run a review or report prompt with an AI agent on this computer (`claude`, `codex` or `kiro-cli`) after you confirm each run, and the agent may send the prompt and the history it reads to its provider. Agent runs are always off when ADDR isn't a numeric loopback address (the default `127.0.0.1:8484` and a bare port such as `:8485` are) |
+| `serve` | `--no-procs` | `$KIROKU_NO_PROCS`, else off | Turn off the list of running agents and what they left running (and stopping them from the view). `KIROKU_NO_PROCS` turns it off for any value except empty, `0` and `false`. It is always off on an address that isn't a loopback IP, and on Windows |
 | `serve` | `--ai` | | No longer needed ("Analyze with AI" is on by default); accepted and does nothing except print a notice |
 | `serve` | `--allow-host` | | Extra host names the view may be opened by, comma-separated (for example a name in your hosts file). `localhost`, `127.0.0.1` and `::1` always work, and so do this computer's IPs and host name when it listens on all interfaces (such as `0.0.0.0:8485`); requests addressed to any other name are refused |
 | `serve` | `--interval` | `5s` | How often to check history for changes. Reloads when changes stop for twice the interval (at most 12 times the interval) |
@@ -473,6 +486,7 @@ Per command:
 | `autostart on` | `[ADDR]` | `127.0.0.1:8484` | Where the started `kiroku serve` listens, as for `serve` |
 | `html` | `--week` / `--month` | | Write only one week (`this`, `last` or a date in it) or month (`this`, `last` or `YYYY-MM`); see "[Share one week or month](#share-one-week-or-month)" |
 | `json` | `-o`, `--out` | `kiroku.json` | JSON file to write (`-` for stdout) |
+| `ps` | `--json` | | Print the list as JSON (the same fields as the view gets) |
 | `stats` | `--week` / `--month` | this week | Show one week (`this`, `last` or a date in it) or month (`this`, `last` or `YYYY-MM`) |
 | `update` | `--check` / `--to <version>` / `--force` | | Only check / choose a version / replace even a dev build, the same version or an older version given with `--to` |
 

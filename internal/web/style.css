@@ -50,6 +50,20 @@ header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px s
 .live::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 2.4s var(--ease) infinite}
 .live.off{color:var(--ink-3);background:var(--surface-2)} .live.off::before{animation:none;opacity:.5}
 .live[hidden],.segc[hidden],.scope[hidden],.legend[hidden]{display:none}
+/* 動いているエージェントと残ったプロセス（kiroku serve。ADR 0035）：LIVE の横のボタン、一覧のダイアログ、詳細の「まだ動いているもの」 */
+.procs{font:600 var(--fs-2xs)/1 var(--sans);color:var(--ink-2);background:var(--surface-2);border:0;border-radius:99px;padding:5px 9px;cursor:pointer}
+.procs:hover{color:var(--ink)} .procs.warn{color:var(--on-warn);background:var(--warn)} .procs[hidden]{display:none}
+.pxlist{list-style:none;margin:0;padding:0}
+.pxrow{padding:10px 0;border-bottom:1px dashed var(--rule)} .pxrow:last-child{border-bottom:0}
+.pxh{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;font-size:var(--fs-md)}
+.pxpid{color:var(--ink-3);font-size:var(--fs-xs);font-variant-numeric:tabular-nums}
+.pxst{font-size:var(--fs-xs);color:var(--ink-2)} .pxrow.warn .pxst{color:var(--warn);font-weight:600}
+.pxm{font-size:var(--fs-xs);color:var(--ink-3);margin-top:4px;font-variant-numeric:tabular-nums}
+.pxcwd{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono)}
+.pxrow .card{margin-top:8px}
+.pxact{margin-top:8px} #dprocs:not(:empty){margin-bottom:16px}
+.pxask{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:var(--fs-sm);color:var(--ink)} .pxask span{flex:1 1 240px}
+.pill.warn{color:var(--on-warn);background:var(--warn);border-color:var(--warn)} .pill.warn:hover{color:var(--on-warn);filter:brightness(1.08)}
 /* kiroku serve で鍵がない（または読めない）ときの案内（live.js の showLocked）。履歴の画面は隠す */
 main[hidden]{display:none}
 .locked{max-width:36em;padding-top:4em;padding-bottom:4em;color:var(--ink-2)}.locked h2{color:var(--ink)}

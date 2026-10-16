@@ -57,6 +57,8 @@ kiroku serve    # http://localhost:8484/ で画面を開く
 
 **全期間を検索。** プロンプト・編集したファイル・コミットを、合った箇所の抜粋つきで探せます。
 
+**エージェントが残したプロセス。** エージェントが起動し、エージェントが終わったあとも動いている開発サーバーやウォッチャー、ターミナルを閉じたのに残っているエージェントを、`kiroku serve` がどのセッションから来たか・メモリ・CPU 時間と並べて出し、確認のうえで止められます（macOS と Linux。[くわしく](docs/guide.md#running-agents-and-what-they-left-running)）。`kiroku ps` はターミナルに同じ一覧を出します。
+
 画面は、ブラウザの言語が日本語なら日本語で表示されます。右上のボタン（または `--lang`）で English と日本語を切り替えられます。
 
 ## 振り返りとアドバイスは、あなたのエージェントが書く
@@ -99,6 +101,7 @@ kiroku serve              # http://localhost:8484/ の画面。新しい履歴�
 kiroku open               # 別のブラウザで開く（最初に一度 serve の鍵が要る）
 kiroku autostart on       # ログインのたびに kiroku serve を起動（macOS と Linux）
 kiroku stats --week last  # 先週の時間・トークン・費用・コミットを、エージェント・モデル・プロジェクト別に端末に 1 画面で
+kiroku ps                 # 動いている AI エージェントと、エージェントが残したプロセスを、セッションと並べて
 kiroku html --week last   # 先週だけを 1 つの HTML に書き出して、人に見せる
 kiroku update             # 最新の版に更新
 kiroku help               # すべてのコマンド（オプションは "kiroku <command> --help"）

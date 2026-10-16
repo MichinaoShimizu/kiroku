@@ -8,7 +8,7 @@ While kiroku is in 0.x, anything here may still change in a minor release (marke
 
 A change that breaks one of these is marked `BREAKING` in the changelog and, from v1.0.0 on, only comes with a new major version.
 
-- **Commands**: `serve`, `open`, `html`, `json`, `stats`, `archive`, `autostart`, `doctor`, `version`, `update` and `help`, and their arguments (such as `archive on|off` and the `ADDR` of `serve`)
+- **Commands**: `serve`, `open`, `html`, `json`, `stats`, `archive`, `autostart`, `doctor`, `ps`, `version`, `update` and `help`, and their arguments (such as `archive on|off` and the `ADDR` of `serve`)
 - **Options**: the names, meanings and defaults listed under [Options](guide.md#options)
 - **Environment variables** kiroku reads: `KIROKU_ARCHIVE_DIR`, `KIROKU_CONFIG_DIR`, and the agents' own (`CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME`)
 - **Exit status**: 0 on success, and not 0 when a command fails
@@ -16,7 +16,7 @@ A change that breaks one of these is marked `BREAKING` in the changelog and, fro
 - **The `--prices` file**: the JSON format described in [How you used AI](guide.md#how-you-used-ai), both the object and the array form
 - **`kiroku archive` copies**: a later version still reads the copies an earlier one kept, and `kiroku archive off` still recognizes the folder. The layout inside the folder may change if kiroku moves the old copies itself
 - **The `kiroku serve` key** kept in kiroku's config folder: a new version still accepts it, so bookmarks and `kiroku open` keep working. How the browser keeps it is not part of this: since [ADR 0031](adr/0031-serve-key-in-browser-storage.md) it is in the browser's site data instead of a cookie, and a browser set up with an older version needs `kiroku open` once
-- **`kiroku serve` stays local by default**: it listens on `127.0.0.1` and checks the Host header, and anything that widens access stays opt-in (see [SECURITY.md](../SECURITY.md)). The one exception is "Analyze with AI", on by default since [ADR 0034](adr/0034-ai-analysis-by-default.md): it runs an agent only after a confirmation in the view, only on a loopback address, and `--no-ai` turns it off
+- **`kiroku serve` stays local by default**: it listens on `127.0.0.1` and checks the Host header, and anything that widens access stays opt-in (see [SECURITY.md](../SECURITY.md)). The exceptions are "Analyze with AI", on by default since [ADR 0034](adr/0034-ai-analysis-by-default.md): it runs an agent only after a confirmation in the view, only on a loopback address, and `--no-ai` turns it off; and the list of running agents ([ADR 0035](adr/0035-running-agents-and-leftover-processes.md), Proposed), which stops a process only after a confirmation in the view, only on a loopback address, and `--no-procs` turns it off
 - **Downloads are verified**: `kiroku update` and `install.sh` check `checksums.txt` (and build provenance where available) before they replace anything. Release archive names and `checksums.txt` keep their form so older versions of `kiroku update` and `install.sh` can still update
 
 ## May change in any release
@@ -27,7 +27,7 @@ These change as kiroku and the agents it reads change. Changes are listed in the
 - **Metrics and their numbers**: how a metric is defined or computed, its name, and thresholds such as those in "Worth a look". Fixing how a history is read can change past numbers
 - **Estimated cost**: the price table follows the providers' public prices, so estimates for past weeks can change
 - **Which histories are read**: kiroku follows the formats the agents write. When an agent changes its format, kiroku reads the new one; a history format an agent no longer writes may stop being read in a minor release, with a note in the changelog
-- **Text output** of `stats`, `doctor`, `version`, `update`, `archive` and errors: it is for people, not for scripts
+- **Text output** of `stats`, `doctor`, `ps`, `version`, `update`, `archive` and errors: it is for people, not for scripts
 - **The rest of the JSON written by `kiroku json`** (`weeks`, `months`, `meta` and the session fields not listed below), and the `/data.json` and other URLs of `kiroku serve`: they are the data behind the view and change with it
 - **The HTML written by `kiroku html`**: it is a page to open, not a format to parse
 - **Supported platforms and the Go version** needed to build: they follow the Go releases that are supported upstream

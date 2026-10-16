@@ -71,6 +71,7 @@ var baseline = []exception{
 	{Rule: "js-html", File: "internal/web/js/guide.js", Count: 1, Reason: "the metrics guide dialog, built from HELP and esc()"},
 	{Rule: "js-html", File: "internal/web/js/metric.js", Count: 1, Reason: "the metric breakdown dialog; history strings go through esc()"},
 	{Rule: "js-html", File: "internal/web/js/panels.js", Count: 1, Reason: "search results; history strings go through esc() and the highlighter"},
+	{Rule: "js-html", File: "internal/web/js/procs.js", Count: 3, Reason: "the running agents dialog, a session's \"Still running\" and the stop confirmation; process names, folders and session titles go through esc()"},
 	{Rule: "js-html", File: "internal/web/js/review.js", Count: 3, Reason: "the Worth a look dialog and its markers, built from t() and esc()"},
 	{Rule: "js-html", File: "internal/web/js/session.js", Count: 1, Reason: "the session panel; history strings go through esc() and md()"},
 	{Rule: "js-html", File: "internal/web/js/summary.js", Count: 5, Reason: "the period summary, report bar, Worth a look and metric hints; history strings go through esc()"},

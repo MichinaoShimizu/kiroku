@@ -46,6 +46,7 @@ var scripts = []string{
 	"metric.js",   // 上の帯とサマリーの数字の内訳（ダイアログ）
 	"git.js",      // 詳細：コミット・push・PR
 	"session.js",  // 詳細：セッション・プロンプトの流れ
+	"procs.js",    // 動いているエージェントと残ったプロセス（kiroku serve。ADR 0035）
 	"events.js",   // ボタンとキーの操作
 	"boot.js",     // 起動
 	"live.js",     // kiroku serve の自動更新

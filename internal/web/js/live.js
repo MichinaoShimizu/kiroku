@@ -22,6 +22,7 @@ function startLive(){
     busy = false;
   }
   setInterval(poll, 3000); document.addEventListener("visibilitychange", poll);
+  startProcs();
 }
 /* kiroku serve の / は鍵なしでも開けるので、履歴を入れていない骨組み（META.shell）。localStorage の鍵を付けて data.json を読み、
    届いてから最初の描画（期間を選ぶところから）をする。鍵がない・違う（403）ときは、履歴の代わりに kiroku open の案内を出す */

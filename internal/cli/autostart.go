@@ -25,7 +25,7 @@ const autostartLabel = "io.github.michinaoshimizu.kiroku"
 // autostartEnv は、ログイン時に起動したときにも同じ履歴を読むよう、登録するときの値を書き残す環境変数。
 // launchd や systemd から起動すると、シェルで設定した値（と PATH）は引き継がれないため（PATH は git を探すのに使う）。
 // エージェント自身の環境変数は core.Agents から取る。
-var autostartEnv = slices.Concat([]string{"PATH"}, core.AgentEnv(), []string{"KIROKU_ARCHIVE_DIR", "KIROKU_CONFIG_DIR", "KIROKU_LANG", "KIROKU_NO_AI", "XDG_CONFIG_HOME", "XDG_DATA_HOME"})
+var autostartEnv = slices.Concat([]string{"PATH"}, core.AgentEnv(), []string{"KIROKU_ARCHIVE_DIR", "KIROKU_CONFIG_DIR", "KIROKU_LANG", "KIROKU_NO_AI", "KIROKU_NO_PROCS", "XDG_CONFIG_HOME", "XDG_DATA_HOME"})
 
 // runCmd は launchctl・systemctl を実行する（テストで差しかえる）。
 var runCmd = func(name string, args ...string) error {
