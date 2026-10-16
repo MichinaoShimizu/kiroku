@@ -1,0 +1,1 @@
+- Windows: stopping "Analyze with AI" (Stop, the time limit or closing the page) now also stops what the agent started, such as `node` behind the `.cmd` shim that npm installs for `claude` and `codex`. Before, only `cmd.exe` was stopped and the agent could keep running. Anything the agent leaves running is also stopped when the run ends

@@ -115,7 +115,8 @@ func (r Runner) Stream(ctx context.Context, agent, prompt string, emit func(Even
 	cmd.Dir = dir
 	cmd.Stdin = strings.NewReader(prompt)
 	cmd.WaitDelay = 2 * time.Second
-	ownGroup(cmd)
+	started, done := ownGroup(cmd)
+	defer done()
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return Result{}, err
@@ -144,6 +145,7 @@ func (r Runner) Stream(ctx context.Context, agent, prompt string, emit func(Even
 	if err := cmd.Start(); err != nil {
 		return Result{}, fmt.Errorf("agent %s failed: %w", agent, err)
 	}
+	started()
 	// Once the run is stopped (timeout, the browser gave up, too much output), stop reading after a short
 	// delay even if something the agent started still holds its output open, so the run always ends.
 	stopReading := context.AfterFunc(bounded, func() {

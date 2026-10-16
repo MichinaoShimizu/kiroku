@@ -426,6 +426,7 @@ const JA_TEXT = {
   "Previous month": "前の月",
   "Previous week": "前の週",
   "Previous week / month": "前の週・月",
+  "Move through search results": "検索結果の中を移る",
   "Price table for estimated cost: Anthropic and OpenAI public rates as of {date} (change it with {prices})": "推定費用の料金表: Anthropic と OpenAI の公開料金（{date} 時点。{prices} で変更できます）",
   "Price table for estimated cost: from {prices}": "推定費用の料金表: {prices} で指定",
   "Price table for estimated cost: public rates (change it with {prices})": "推定費用の料金表: 公開料金（{prices} で変更できます）",
