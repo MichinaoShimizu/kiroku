@@ -20,6 +20,8 @@ const LIVE = __LIVE__; // kiroku serve で開いたとき true
 const aiAgents = () => LIVE && META && Array.isArray(META.aiAgents) ? META.aiAgents.map(String) : []; // このコンピューターにコマンドがあるエージェント
 const aiOn = () => LIVE && !!(META && META.aiRun); // kiroku serve が AI の実行を許しているか（--no-ai でなく、ループバックで待ち受けている。ADR 0034）。保存した HTML ではいつも false
 const aiRun = () => aiOn() && aiAgents().length > 0; // 使えるエージェントもあって、画面から AI を動かせる
+// 公開のデモ（KIROKU_DEMO で作ったダミーデータの HTML）では、「Analyze with AI」でプロンプトを見せるだけ（実行はしない。ADR 0036）
+const aiDemo = () => !LIVE && !!(META && META.demo);
 const PROMPT_RUNES = __PROMPT_RUNES__; // HTML に入れるプロンプトの長さ（core.PromptRunes）
 const REPLY_RUNES = __REPLY_RUNES__; // HTML に入れる応答の長さ（core.ReplyRunes）
 const AGENTS = __AGENTS__, AG_WARN = __AGENT_WARN__; // エージェントの名前・色・頭文字（core.Agents）と、エージェントに使わない警告の色

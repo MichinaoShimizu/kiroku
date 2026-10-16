@@ -156,6 +156,8 @@ const JA_TEXT = {
   "Links that are not in the prompt: {links}": "プロンプトにないリンク: {links}",
   "Commit hashes that are not in the prompt: {hashes}": "プロンプトにないコミットのハッシュ: {hashes}",
   "Ask to fix": "直してもらう",
+  "This is the demo, so nothing runs here. In kiroku serve on your computer, Run sends this exact prompt to an AI agent there (Claude Code, Codex or Kiro CLI) and shows its result below.": "これはデモなので、ここでは何も動きません。あなたのコンピューターの kiroku serve では、「実行」でこのプロンプトをそのまま AI エージェント（Claude Code・Codex・Kiro CLI）に渡し、結果を下に出します。",
+  "Runs only in kiroku serve": "kiroku serve でだけ実行できます",
   "\u201cAsk to fix\u201d puts a prompt to fix them in the box above. Nothing is sent until you press Run.": "「直してもらう」は、直してもらうプロンプトを上の欄に入れます。「実行」を押すまで送りません。",
   "Check the prompt above, then press Run to ask for the fix.": "上のプロンプトを確かめてから、「実行」を押して直してもらってください。",
   "The prompt above now asks the agent to fix these points. Nothing is sent until you press Run.": "上のプロンプトは、これらを直してもらう内容になりました。「実行」を押すまで送りません。",

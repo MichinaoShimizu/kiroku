@@ -229,7 +229,7 @@ async function run(env) {
     const run = await clickableRun(p);
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
     check("振り返りのプロンプトをコピーするボタンはない", await p.locator("#panel #sreview, #panel #pcopy").count() === 0);
-    check("保存した HTML では、詳細に AI の操作がない（ADR 0034）", await p.locator("#panel #srun, #panel .ai-off, #panel .ai-action, #panel .ai-none").count() === 0);
+    check("デモでは、詳細に「Analyze with AI」が出る（ADR 0036）", await p.locator("#panel #srun").count() === 1 && await p.locator("#panel .ai-off, #panel .ai-none").count() === 0);
     // 再開のコマンドは 1 つだけ見え、2 列の画面では右の列のいちばん上、1 列の画面では詳細のいちばん上
     const rs = await p.evaluate(() => { const v = [...document.querySelectorAll("#panel .dresume")].filter(e => e.offsetParent !== null);
       const col = v[0] && v[0].closest(".dcol"); return {n: v.length, wide: innerWidth >= 1100, side: !!col && col === col.parentElement.lastElementChild && col.firstElementChild === v[0], top: !!v[0] && !col}; });
@@ -359,7 +359,19 @@ async function run(env) {
 
   await step("週報を書いてもらうプロンプト", async () => {
     check("週報のプロンプトをコピーするボタンはない", await p.locator("#rptcopy").count() === 0);
-    check("保存した HTML では、週報の帯ごと AI の操作を出さない（ADR 0034）", await p.locator("#rptbar").isHidden() && await p.locator("#rptrun, .ai-off, .ai-action, .ai-none").count() === 0);
+    // デモ（ADR 0036）: 「Analyze with AI」はプロンプトを見せるだけ。Run は押せず、/ai/run に何も送らない
+    check("デモでは、週報の帯に「Analyze with AI」が出る", await p.locator("#rptbar").isVisible() && await p.locator("#rptbar #rptrun").count() === 1 && await p.locator(".ai-off, .ai-none").count() === 0);
+    const aiReq = []; const onReq = r => { if (/\/ai\/run/.test(r.url())) aiReq.push(r.url()); }; p.on("request", onReq);
+    await p.locator("#rptbar #rptrun").click();
+    await p.waitForSelector("#ai-review-dialog", { timeout: 5000 });
+    const dd = await p.evaluate(() => { const d = document.querySelector("#ai-review-dialog"), run = d.querySelector(".ai-action");
+      return { text: d.innerText, prompt: d.querySelector("textarea.ai-prompt").value, runDisabled: run.disabled, agentHidden: d.querySelector(".ai-agent").offsetParent === null }; });
+    check("デモのダイアログは、送るプロンプトを見せ、デモだと言い、Run は押せない", /weekly report/.test(dd.prompt) && /This is the demo, so nothing runs here/.test(dd.text) && dd.runDisabled && dd.agentHidden, JSON.stringify({...dd, prompt: dd.prompt.slice(0, 80)}));
+    await p.locator("#ai-review-dialog .ai-action").click({ force: true }).catch(() => {}); await pause();
+    check("デモでは /ai/run に何も送らない", aiReq.length === 0, JSON.stringify(aiReq));
+    await p.locator("#ai-review-dialog button", { hasText: "Close" }).click();
+    p.off("request", onReq);
+    check("Close でダイアログが閉じる", await p.locator("#ai-review-dialog").count() === 0);
     const text = await p.evaluate(() => { const {S, P} = period(); return reportPrompt(S); });
     check("事実の期間は「Sep 28 – Oct 4, 2026」の形", /^## Work for [A-Z][a-z]{2} \d{1,2} – ([A-Z][a-z]{2} \d{1,2}, )?\d{4}$|^## Work for [A-Z][a-z]{2} \d{1,2}, \d{4} – /m.test(text), JSON.stringify(text.slice(0, 80)));
     check("履歴ファイルのパスと、読む範囲の決まりがある", /History file: \//.test(text) && /Read only the files listed/.test(text));
@@ -372,7 +384,7 @@ async function run(env) {
         DATA = was.concat(many); const t = reportPrompt(S); return {size: utf8Len(t), short: /Shortened to keep this prompt small/.test(t), budget: PROMPT_BUDGET}; }
       finally { DATA = was; } });
     check("長い週でも、報告のプロンプトは送れる大きさに収まり、短くしたと書く", big.size <= big.budget && big.short, JSON.stringify(big));
-    check("保存した HTML では、日付の見出しに日報のボタンを出さない（AI の操作は kiroku serve だけ。ADR 0034）", await p.locator(".head .dayrpt, .head .dayrun, .head button").count() === 0);
+    check("デモでは、記録のある日付の見出しに日報のボタンが出る（ADR 0036）", await p.locator(".head .dayrun").count() > 0);
     check("セッションごとに、プロンプトと応答の要約がある", /^  - [A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2} \d\d:\d\d Prompt: /m.test(text));
     check("事実と履歴は、コードブロックの中にある", /# History data\n`{3,}text\n# Facts/.test(text));
     check("週報には週の決まりだけがあり、ほかのコマンドを禁じる", /next-week priorities/.test(text) && !/tomorrow's next step|sustained trends/.test(text) && /don't run other commands, change or write files, or send anything to another service/.test(text));
