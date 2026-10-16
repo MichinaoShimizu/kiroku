@@ -124,6 +124,12 @@ try {
   check("日報のプロンプトは、その日の形式と前日との数字の表", /## Daily report: /.test(dp) && /^\| \| This day \| Previous day \|$/m.test(dp) && /^\| Active time \| /m.test(dp), dp.slice(0, 300));
   await p.locator("#ai-review-dialog button", { hasText: "Close" }).click();
   check("日報も Close で閉じ、何も動かさない", await p.locator("#ai-review-dialog").count() === 0 && !/\$ codex/.test(log));
+  // 月報はない（ADR 0035）。月の表示では報告の帯もボタンも出さない
+  await p.click("#mode button[data-v=month]");
+  await p.waitForFunction(() => document.querySelector("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
+  check("月の表示には、報告の「Analyze with AI」がない", await p.locator("#rptbar").isHidden() && await p.locator("#rptrun").count() === 0);
+  await p.click("#mode button[data-v=week]");
+  await p.waitForSelector("#rptbar #rptrun", { timeout: 5000 });
 
   // エージェントのコマンドが 1 つもない serve と、--no-ai の serve を、同じ鍵（同じ設定の場所）で立てる
   const startExtra = async (args, env2) => { let lg = ""; const s = spawn(path.resolve(bin), args, { env: { ...env, ...env2 }, stdio: ["ignore", "pipe", "pipe"] });
