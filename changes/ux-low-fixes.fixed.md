@@ -1,4 +1,0 @@
-- "N more sessions" in a Worth a look dialog is now a button that shows the rest of the sessions in place (before, it was only text)
-- ↓ in the search box moves to the first result, like Enter, and ↑ and ↓ move between results and their "Show more" buttons (↑ on the first goes back to the search box). ← and → no longer change the week while the focus is on a search result. The shortcut list (`?`) shows ↑ ↓
-- The "Copied" message is no longer squeezed into a narrow box on phones
-- In Japanese at around 1000 px wide, 「今週」 no longer touches the 「期間」 label next to it

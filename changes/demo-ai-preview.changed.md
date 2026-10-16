@@ -1,1 +1,0 @@
-- The live demo shows the "Analyze with AI" buttons (weekly and daily report, session review). They open the dialog with the exact prompt for the dummy data; Run is disabled there, and nothing is sent

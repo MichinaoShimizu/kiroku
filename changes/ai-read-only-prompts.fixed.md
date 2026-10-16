@@ -1,1 +1,0 @@
-- "Analyze with AI" with Claude Code, which kiroku lets read files but not run commands: the report and review prompts no longer leave it stuck on their `zstd -dc` and read-only `git show` steps. They now say to write from the digest, the facts or the commit subjects when the agent can only read files

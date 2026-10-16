@@ -1,1 +1,0 @@
-- `kiroku serve` answers `GET /manifest.webmanifest` without the key, like `GET /`. It is a fixed document built from constants (no history, settings or key), and the Host check and security headers still apply. Its icons are `data:` URLs, so the view's `img-src` stays `data: blob:`; only the live view allows `manifest-src 'self'`

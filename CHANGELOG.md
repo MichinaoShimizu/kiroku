@@ -2,6 +2,42 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v0.38.0 - 2026-10-16
+
+### Added
+
+- "Analyze with AI" checks the reply of a report or a session review: missing sections (such as a reply cut off at the time limit), a Numbers table that differs from kiroku's, and links or commit hashes that aren't in the prompt
+  - "Ask to fix" shows a prompt that asks the agent to fix those points, and sends it when you press Run (at most twice per dialog)
+- The `kiroku serve` view can be installed as an app in Chrome and Edge ("Install kiroku" in the address bar or menu), so kiroku opens in a window of its own with its icon in the Dock or taskbar. It uses the key the browser already has, and installs no service worker, so the browser keeps no copy of your history ([ADR 0037](docs/adr/0037-installable-serve-view.md))
+
+### Changed
+
+- The daily and weekly report prompts are about 6–7% smaller: they no longer repeat the period's totals, a session's first prompt, or the flagged repeated prompts and long conversations that "Signals for advice" already lists, and their review principles are shorter
+- "Signals for advice" says what a repeated prompt and a short session on an Opus-class model suggest (a skill, a custom command or project instructions; a lighter model), so reports and session reviews give that advice more often
+- The live demo shows the "Analyze with AI" buttons (weekly and daily report, session review). They open the dialog with the exact prompt for the dummy data; Run is disabled there, and nothing is sent
+
+### Removed
+
+- The monthly report ("Analyze with AI" under "Monthly report" in month view). A month's history rarely fits in one agent run's 2-minute limit; use the weekly reports instead. The monthly summary and calendar are unchanged
+
+### Fixed
+
+- "Analyze with AI" with Claude Code, which kiroku lets read files but not run commands: the report and review prompts no longer leave it stuck on their `zstd -dc` and read-only `git show` steps. They now say to write from the digest, the facts or the commit subjects when the agent can only read files
+- "Analyze with AI": in the formatted reply, a table right after a line of text is shown as a table (before, it was shown as part of the paragraph), and a link whose address has parentheses, such as `https://en.wikipedia.org/wiki/Go_(programming_language)`, shows its whole address instead of stopping at the first `)`
+- Claude Code: when one subagent file matched an Agent call only by time and another file of the same session carried that call's `agentId`, the second replaced the first and one subagent (with its tokens and estimated cost) was not counted. Files are now linked by `agentId` first and by time after, so both are counted
+- Claude Code: a subagent resumed by a second Agent call (same `agentId`, one file for both runs) was counted twice: once from its file and again from the second call's reported usage. It is now counted from the file only
+- Claude Code: an Agent call line written twice no longer adds an empty second subagent
+- Claude Code: linking many subagent files to their Agent calls by time no longer slows down with the square of their number (30000 of each in one session: 25 s before, about 1 s now)
+- "N more sessions" in a Worth a look dialog is now a button that shows the rest of the sessions in place (before, it was only text)
+- ↓ in the search box moves to the first result, like Enter, and ↑ and ↓ move between results and their "Show more" buttons (↑ on the first goes back to the search box). ← and → no longer change the week while the focus is on a search result. The shortcut list (`?`) shows ↑ ↓
+- The "Copied" message is no longer squeezed into a narrow box on phones
+- In Japanese at around 1000 px wide, 「今週」 no longer touches the 「期間」 label next to it
+- Windows: stopping "Analyze with AI" (Stop, the time limit or closing the page) now also stops what the agent started, such as `node` behind the `.cmd` shim that npm installs for `claude` and `codex`. Before, only `cmd.exe` was stopped and the agent could keep running. Anything the agent leaves running is also stopped when the run ends
+
+### Security
+
+- `kiroku serve` answers `GET /manifest.webmanifest` without the key, like `GET /`. It is a fixed document built from constants (no history, settings or key), and the Host check and security headers still apply. Its icons are `data:` URLs, so the view's `img-src` stays `data: blob:`; only the live view allows `manifest-src 'self'`
+
 ## v0.37.0 - 2026-10-15
 
 ### Added
