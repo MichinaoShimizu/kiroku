@@ -125,3 +125,24 @@ func TestListOnlyThisUser(t *testing.T) {
 		}
 	}
 }
+
+func TestParseStat(t *testing.T) {
+	// a name with spaces and parentheses, as a process can set for itself
+	b := []byte("4242 (we (ird) name) S 1 4242 4242 34817 4242 4194560 1 0 0 0 250 50 0 0 20 0 1 0 12345 1000000 300 18446744073709551615")
+	p, ok := parseStat(b, 1_700_000_000, 4096)
+	if !ok {
+		t.Fatal("not parsed")
+	}
+	want := Proc{PID: 4242, PPID: 1, Name: "we (ird) name", TTY: true, CPU: 3, Start: 1_700_000_000 + 123.45, RSS: 300 * 4096}
+	if p != want {
+		t.Fatalf("got %+v, want %+v", p, want)
+	}
+	if _, ok := parseStat([]byte("9 (z) Z 1 9 9 0 -1 0 0 0 0 0 0 0 0 0 20 0 1 0 1 0 0 0"), 0, 4096); ok {
+		t.Error("a zombie was kept")
+	}
+	for _, bad := range []string{"", "12", "x (a) S 1", "12 (a) S 1 2 3"} {
+		if _, ok := parseStat([]byte(bad), 0, 4096); ok {
+			t.Errorf("parsed %q", bad)
+		}
+	}
+}
