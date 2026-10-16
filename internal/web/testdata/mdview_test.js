@@ -7,7 +7,11 @@ const check = (name, md, want) => { const got = out(mdView(md)); if (got !== wan
 check("見出しと段落", "# Title\nline 1\nline 2", '<h3>"Title"</h3><p>"line 1"<br></br>"line 2"</p>');
 check("HTML は文字のまま", '<img src=x onerror=alert(1)> <script>alert(1)</script>', '<p>"<img src=x onerror=alert(1)> <script>alert(1)</script>"</p>');
 check("リンクと画像は押せる形にしない", "[a](https://e.x/?q=1) ![i](https://e.x/i.png)", '<p><span.mdlink>"a"</span><span.mdurl>" (https://e.x/?q=1)"</span>" "<span.mdlink>"i"</span><span.mdurl>" (https://e.x/i.png)"</span></p>');
-check("javascript: の URL も文字", "[x](javascript:alert(1))", '<p><span.mdlink>"x"</span><span.mdurl>" (javascript:alert(1)"</span>")"</p>');
+check("javascript: の URL も文字", "[x](javascript:alert(1))", '<p><span.mdlink>"x"</span><span.mdurl>" (javascript:alert(1))"</span></p>');
+check("URL の中の括弧で切らない", "[w](https://e.x/wiki/Foo_(bar)) after", '<p><span.mdlink>"w"</span><span.mdurl>" (https://e.x/wiki/Foo_(bar))"</span>" after"</p>');
+check("釣り合わない括弧は、今までどおり最初の ) まで", "[w](https://e.x/a(b) c", '<p><span.mdlink>"w"</span><span.mdurl>" (https://e.x/a(b)"</span>" c"</p>');
+check("段落のすぐ下の表", "Numbers:\n| A | B |\n|---|---|\n| 1 | 2 |", '<p>"Numbers:"</p><div.mdtable><table><thead><tr><th>"A"</th><th>"B"</th></tr></thead><tbody><tr><td>"1"</td><td>"2"</td></tr></tbody></table></div>');
+check("| のある段落の行は、下が表の線でなければ段落のまま", "a | b\nc | d", '<p>"a | b"<br></br>"c | d"</p>');
 check("強調・コード", "**b** *i* `c<d>` ~~s~~ snake_case_name", '<p><strong>"b"</strong>" "<em>"i"</em>" "<code>"c<d>"</code>" "<del>"s"</del>" snake_case_name"</p>');
 check("入れ子の箇条書き", "- a\n  - b\n- [x] c", '<ul><li><span>"a"</span><ul><li><span>"b"</span></li></ul></li><li.task><span>"☑ ""c"</span></li></ul>');
 check("番号付き", "3. a\n4. b", '<ol start=3><li><span>"a"</span></li><li><span>"b"</span></li></ol>');
@@ -22,6 +26,8 @@ const best = f => { let m = Infinity; for (let k = 0; k < 5; k++){ const t0 = pr
 for (const [name, make, n] of [
   ["閉じない強調", n => "**a ".repeat(n), 4999],
   ["閉じない括弧", n => "[".repeat(n), 19999],
+  ["閉じないリンクの括弧", n => "[a](((".repeat(n), 3000],
+  ["表の線のない | の行がたくさん", n => "a | b\n".repeat(n), 20000],
   ["空白だけの表の線", n => "a|b\n" + " ".repeat(n) + "x", 19990],
   ["後ろが空白の見出し", n => "# a" + " ".repeat(n) + "x", 19990],
   ["閉じない下線", n => "_a ".repeat(n), 6000],

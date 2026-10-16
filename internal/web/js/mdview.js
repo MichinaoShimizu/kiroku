@@ -87,7 +87,8 @@ function mdBlocks(lines, parent, depth){
       continue;
     }
     const para = []; // 段落（行の区切りはそのまま改行にする）
-    for (; i < lines.length && lines[i].trim() && !(para.length && startsBlock(lines[i])); i++) para.push(lines[i].trim());
+    const tableAt = k => lines[k].includes("|") && k + 1 < lines.length && mdTableSep(lines[k + 1]); // 段落のすぐ下の表も表にする
+    for (; i < lines.length && lines[i].trim() && !(para.length && (startsBlock(lines[i]) || tableAt(i))); i++) para.push(lines[i].trim());
     const p = mdEl("p");
     para.forEach((l, k) => { if (k) p.append(mdEl("br")); mdInline(l, p); });
     parent.append(p);
@@ -118,6 +119,18 @@ function mdInline(text, parent, depth = 0){
     m.at = k < 0 ? s.length : k + 1; m.k = k < 0 ? -2 : k;
     return k;
   };
+  // linkEnd は、from から見て ( と ) の釣り合う最初の ) の位置（URL の中の括弧、例: …/Foo_(bar)）。見るのは 2000 字まで
+  // （閉じないリンクがたくさんあっても、行の長さにほぼ比例する時間で終わるように）。なければ -1
+  const linkEnd = from => {
+    let d = 0;
+    for (let k = from, end = Math.min(s.length, from + 2000); k < end; k++){
+      const ch = s[k];
+      if (ch === "\\"){ k++; continue; }
+      if (ch === "(") d++;
+      else if (ch === ")"){ if (!d) return k; d--; }
+    }
+    return -1;
+  };
   while (i < s.length){
     const c = s[i];
     if (c === "\\" && i + 1 < s.length && "\\`*_{}[]()#+-.!|~>".includes(s[i + 1])){ buf += s[i + 1]; i += 2; continue; }
@@ -139,7 +152,7 @@ function mdInline(text, parent, depth = 0){
     if (c === "[" || (c === "!" && s[i + 1] === "[")){ // リンクと画像: 押せる形にせず、文字と URL を並べる（画像も読み込まない）
       const o = c === "!" ? i + 1 : i, rb = closeAt("]", o + 1);
       if (rb > o + 1 && s[rb + 1] === "("){
-        const rp = s.indexOf(")", rb + 2);
+        let rp = linkEnd(rb + 2); if (rp < 0) rp = s.indexOf(")", rb + 2); // 釣り合う ) がなければ、最初の )
         if (rp > 0){
           flush(); const a = mdEl("span", "mdlink"); mdInline(s.slice(o + 1, rb), a, depth + 1); parent.append(a);
           const url = s.slice(rb + 2, rp).trim().replace(/^<|>$/g, "").split(/\s+/)[0];
