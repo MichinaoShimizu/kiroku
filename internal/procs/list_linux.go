@@ -94,9 +94,13 @@ func parseStat(b []byte, boot float64, page int64) (Proc, bool) {
 		return Proc{}, false
 	}
 	num := func(i int) int64 { n, _ := strconv.ParseInt(f[i], 10, 64); return n }
+	ppid, err := strconv.Atoi(f[1])
+	if err != nil {
+		return Proc{}, false
+	}
 	return Proc{
 		PID:   pid,
-		PPID:  int(num(1)),
+		PPID:  ppid,
 		Name:  string(b[open+1 : end]),
 		TTY:   num(4) != 0,
 		CPU:   float64(num(11)+num(12)) / clockTicks,

@@ -140,7 +140,7 @@ func TestParseStat(t *testing.T) {
 	if _, ok := parseStat([]byte("9 (z) Z 1 9 9 0 -1 0 0 0 0 0 0 0 0 0 20 0 1 0 1 0 0 0"), 0, 4096); ok {
 		t.Error("a zombie was kept")
 	}
-	for _, bad := range []string{"", "12", "x (a) S 1", "12 (a) S 1 2 3"} {
+	for _, bad := range []string{"", "12", "x (a) S 1", "12 (a) S 1 2 3", "12 (a) S 99999999999999999999 1 1 0 -1 0 0 0 0 0 0 0 0 0 20 0 1 0 1 0 0"} {
 		if _, ok := parseStat([]byte(bad), 0, 4096); ok {
 			t.Errorf("parsed %q", bad)
 		}
