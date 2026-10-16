@@ -7,6 +7,7 @@
 //   - 画面から同じコンピューターのほかのポートのサーバーへ移っても、鍵はどの問い合わせにも載らない（Cookie にも、ほかのところにも）
 //   - 「Analyze with AI」（ADR 0034）: フラグなしで出て、押すと送るプロンプトをそのまま見せる（Run は押さない）。エージェントのコマンドがなければ押せず理由を添え、
 //     --no-ai では「(off)」だけで /ai/run は 404。エージェントは偽の codex（何もしないスクリプト）を PATH の先頭に置いて決める
+//   - 偽の codex での実行: 返事の確認と「直してもらう」、届いた分から見える返事、エージェントの失敗、Cancel で止めるとエージェントとその子が残らない
 // を見る。Playwright が必要（smoke.mjs と同じ）。
 import { chromium } from "playwright";
 import { spawn } from "node:child_process";
@@ -194,6 +195,55 @@ try {
   await pf.waitForSelector("#ai-review-dialog .ai-check:not([hidden])", { timeout: 20000 });
   check("直してもらうのは 2 回まで", await fixBtn.count() === 0 && /Still not fixed after 2 tries/.test(await pf.locator("#ai-review-dialog .ai-check").innerText()));
   await pf.close();
+
+  // 実行の途中・失敗・中止: 偽の codex は mode のファイルで振る舞いを変える
+  //   stream: 返事の 1 行目を書き、go のファイルができるまで待ってから残りを書く（届いた分から見えるか）
+  //   fail: エラー出力に 1 行書いて 3 で終わる（理由が経過に出て、状態の 1 行が失敗を言うか）
+  //   hang: 子のプロセスを起こして待ち続ける（Cancel で止まり、エージェントもその子も残らないか）
+  const sBin = path.join(work, "sbin"), modeF = path.join(work, "mode"), goF = path.join(work, "go"), pidF = path.join(work, "pids");
+  await mkdir(sBin, { recursive: true });
+  await writeFile(path.join(sBin, "codex"), `#!/bin/sh
+cat >/dev/null
+case "$(cat "${modeF}")" in
+stream) printf '## Weekly report\\n\\n'; while [ ! -e "${goF}" ]; do sleep 0.1; done; printf '### Summary\\nAll done.\\n' ;;
+fail) echo "boom: the agent could not start" >&2; exit 3 ;;
+hang) echo started; sleep 60 & echo "$$ $!" > "${pidF}"; wait ;;
+esac
+`);
+  await chmod(path.join(sBin, "codex"), 0o700);
+  const sx = await startExtra(serveArgs, { PATH: `${sBin}${path.delimiter}${process.env.PATH || ""}` });
+  const ps = await ctx.newPage();
+  await ps.goto(`${sx.url}/?key=${key}`);
+  await ps.waitForSelector("#rptbar #rptrun", { timeout: 15000 });
+  await ps.locator("#rptbar #rptrun").click();
+  await ps.waitForSelector("#ai-review-dialog", { timeout: 5000 });
+  await ps.locator("#ai-review-dialog select").selectOption("codex");
+  const sRun = ps.locator("#ai-review-dialog .ai-action"), sStatus = ps.locator("#ai-review-dialog [role=status]"), sOut = ps.locator("#ai-review-dialog .ai-out");
+  const sCancel = ps.locator("#ai-review-dialog button", { hasText: /^(Cancel|Close)$/ });
+  await writeFile(modeF, "stream");
+  await sRun.click();
+  await until("返事の 1 行目", async () => /Weekly report/.test(await sOut.innerText().catch(() => "")));
+  check("返事は届いた分から見え、終わるまでは実行中と言う", /Running Codex/.test(await sStatus.innerText()) && await sRun.isDisabled() && await sCancel.innerText() === "Cancel");
+  await writeFile(goF, "");
+  await until("実行の終わり", async () => /Completed with Codex/.test(await sStatus.innerText()));
+  check("終わると、返事の全部と「もう一度実行」", /All done\./.test(await sOut.innerText()) && await sRun.innerText() === "Run again" && await sRun.isEnabled());
+  await writeFile(modeF, "fail");
+  await sRun.click();
+  await until("失敗", async () => /stopped with an error/.test(await sStatus.innerText()));
+  check("エージェントが失敗すると、理由は経過に出て、状態の 1 行は失敗を言う", /boom: the agent could not start/.test(await ps.locator("#ai-review-dialog .ai-log").innerText()) && /Codex stopped with an error\. Its output is shown above\./.test(await sStatus.innerText()));
+  check("失敗のあとも、もう一度実行できる", await sRun.isEnabled() && await sRun.innerText() === "Run again");
+  await writeFile(modeF, "hang");
+  await sRun.click();
+  const pids = (await until("エージェントの PID", () => readFile(pidF, "utf8").catch(() => ""))).trim().split(/\s+/).map(Number);
+  await sCancel.click();
+  await until("中止", async () => /^Canceled$/.test((await sStatus.innerText()).trim()));
+  check("Cancel で止まり、ダイアログは開いたまま、もう一度実行できる", await ps.locator("#ai-review-dialog").count() === 1 && await sRun.isEnabled() && await sCancel.innerText() === "Close");
+  // ゾンビ（親が待つ前の終わったプロセス）は残っていないと数える
+  const alive = async pid => { try { process.kill(pid, 0); } catch { return false; } const st = await readFile(`/proc/${pid}/stat`, "utf8").catch(() => null); return st === null ? process.platform !== "linux" : !/^\d+ \(.*\) Z/.test(st); };
+  let left = pids;
+  await until("エージェントとその子が終わる", async () => { left = []; for (const pid of pids) if (await alive(pid)) left.push(pid); return left.length === 0; }, 10000).catch(() => {});
+  check("Cancel のあと、エージェントもその子も残らない", pids.length === 2 && left.length === 0, `pids ${pids}, left ${left}`);
+  await ps.close();
 
   // 鍵のないブラウザ（同じコンピューターのほかのユーザーなど）は、案内だけを見る
   const fresh = await b.newContext();
