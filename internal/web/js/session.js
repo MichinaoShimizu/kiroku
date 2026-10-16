@@ -202,7 +202,7 @@ function sessionPrompt(s, active, med){ return inEnglish(() => { // AI に渡す
   const L = [`Act as a professional AI prompt advisor. Review this session using established prompt-engineering and agent-workflow principles, not a proprietary scoring framework. Help me improve real outcomes, not simply write longer prompts (times are ${utcOff(s.start)}). kiroku, a tool on this computer that aggregates my AI agent history, gives you the facts below${file ? " and points to the session's history file" : ""}.`,
     ...(file ? ["", "# Read the history file first",
       "- The full record of this session is in the history file named under \"History data\": my prompts in full, the AI's replies, its tool calls and their results. Read it before judging, and use it to see what the AI did between my prompts",
-      `- Read only that file${s.source === "Claude Code" ? " and, if it exists, the folder next to it with the same name (subagents' records)" : ""}. Don't read or change anything else${/\.zst$/.test(file) ? ". It is compressed with zstd: read it with zstd -dc" : ""}`] : []),
+      `- Read only that file${s.source === "Claude Code" ? " and, if it exists, the folder next to it with the same name (subagents' records)" : ""}. Don't read or change anything else${/\.zst$/.test(file) ? ". It is compressed with zstd: read it with zstd -dc. If you can only read files, not run commands, write from the facts below instead" : ""}`] : []),
     "", "# Format",
     "Write the review in exactly this format, as Markdown, in the language I mostly write my prompts in (translate the headings too). Keep the sections in this order.",
     "", mdFence(["## Session review: <the session's title, shortened> (<date and start time>)", "",

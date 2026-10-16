@@ -1,6 +1,6 @@
 # ADR 0034: "Analyze with AI" by default in `kiroku serve`
 
-Status: Accepted (2026-10-14, approved by the maintainer); point 1 amended by [ADR 0035](0035-no-monthly-ai-report.md) (2026-10-16)
+Status: Accepted (2026-10-14, approved by the maintainer); point 1 amended by [ADR 0035](0035-no-monthly-ai-report.md) and [ADR 0036](0036-ai-prompt-preview-in-demo.md) (2026-10-16)
 Date: 2026-10-14
 Scope: Running an installed AI agent on a prompt built from history (`internal/cli` serve `--no-ai` / `--ai` / `$KIROKU_NO_AI`, `/ai/run`, `internal/ai`, `internal/web/js/ai.js`, `state.js`, `summary.js`, `session.js`, `SECURITY.md`, README, the guide)
 Related ADRs: [ADR 0022](0022-history-stays-local.md), [ADR 0023](0023-compatibility-contract.md), [ADR 0030](0030-opt-in-local-agent-execution.md), [ADR 0033](0033-calendar-only-view.md)

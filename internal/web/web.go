@@ -221,7 +221,7 @@ func withCSP(page string, live bool) (string, error) {
 	if !strings.Contains(page, cspMark) {
 		return "", errors.New("CSP の置き場がない")
 	}
-	if live { // kiroku serve の画面はアプリとしてインストールできる（ADR 0035）。保存した HTML（file://）には入れない
+	if live { // kiroku serve の画面はアプリとしてインストールできる（ADR 0037）。保存した HTML（file://）には入れない
 		if strings.Count(page, titleTag) != 1 {
 			return "", errors.New(titleTag + " がちょうど 1 つではない")
 		}
@@ -236,7 +236,7 @@ func policy(script, style string, live bool) string {
 	connect, extra := "'none'", ""
 	if live {
 		connect = "'self'"              // /stamp・/data.json・/prompt・/archive
-		extra = "; manifest-src 'self'" // /manifest.webmanifest（ADR 0035）
+		extra = "; manifest-src 'self'" // /manifest.webmanifest（ADR 0037）
 	}
 	return "default-src 'none'; script-src " + hash(script) +
 		"; style-src 'unsafe-inline'; style-src-elem " + hash(style) + "; style-src-attr 'unsafe-inline'" +

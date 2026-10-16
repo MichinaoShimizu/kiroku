@@ -228,7 +228,7 @@ func TestServeShellHasNoHistory(t *testing.T) {
 			t.Errorf("鍵なしの %s = %d", p, code)
 		}
 	}
-	// アプリのマニフェストは鍵なしで返すが、決まった中身で履歴は入っておらず、Host の確かめはそのまま（ADR 0035）
+	// アプリのマニフェストは鍵なしで返すが、決まった中身で履歴は入っておらず、Host の確かめはそのまま（ADR 0037）
 	if code, body, hdr := fetchHost(t, "GET", srv.URL+"/manifest.webmanifest", host); code != 200 || body != string(web.Manifest()) ||
 		hdr.Get("Content-Type") != "application/manifest+json" || hdr.Get("Cache-Control") != "no-store" || hdr.Get("X-Content-Type-Options") != "nosniff" {
 		t.Errorf("鍵なしの /manifest.webmanifest = %d %v", code, hdr)

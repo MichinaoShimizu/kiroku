@@ -1,4 +1,4 @@
-# ADR 0035: The `kiroku serve` view can be installed as an app, without a service worker
+# ADR 0037: The `kiroku serve` view can be installed as an app, without a service worker
 
 Status: Proposed
 Date: 2026-10-16

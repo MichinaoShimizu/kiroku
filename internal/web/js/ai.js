@@ -11,7 +11,7 @@ const AI_SEP = () => JA ? "" : " ";
 /* aiBtn は「Analyze with AI」のボタン（id はボタンの id、label は読み上げの名前）。kiroku serve の画面だけに出し、保存した HTML には出さない（ADR 0034）。
    AI を切った serve では、切っている理由を開くボタン。エージェントがなければ、押せないボタンと、その理由 */
 function aiBtn(id, label){
-  if (!LIVE) return "";
+  if (!LIVE) return aiDemo() ? `<button class="pill ai-action" id="${id}" type="button" aria-label="${esc(label)}">${esc(t("Analyze with AI"))}</button>` : "";
   if (!aiOn()) return `<button class="pill ai-off ai-demo-info" type="button" title="${esc(AI_OFF_WHY())}">${esc(t("Analyze with AI (off)"))}</button>`;
   if (!aiAgents().length) return `<span class="ai-none"><button class="pill ai-action" type="button" disabled aria-label="${esc(label)}" aria-describedby="${id}-why">${esc(t("Analyze with AI"))}</button><span class="ai-why" id="${id}-why" title="${esc(AI_NONE_WHY())}">${esc(t("No AI agent found"))}</span></span>`;
   return `<button class="pill ai-action" id="${id}" type="button" aria-label="${esc(label)}">${esc(t("Analyze with AI"))}</button>`;
@@ -72,11 +72,13 @@ async function runAIReview(button, prompt, title) {
   const heading = document.createElement("h2"); heading.id = "ai-review-title"; heading.textContent = title;
   const notice = document.createElement("p");
   // 実行の前に、送るプロンプトをそのまま見せて確かめてもらう。エージェントが提供元へ送りうることは、ドキュメントと起動の 1 行で知らせる（ADR 0034）
+  const demo = aiDemo(); // デモ: プロンプトを見せるだけで、Run は押せない（/ai/run を呼ばない）
   notice.textContent = t("Check the exact prompt below. When you press Run, it goes to the agent on this computer.");
+  if (demo) notice.textContent = t("This is the demo, so nothing runs here. In kiroku serve on your computer, Run sends this exact prompt to an AI agent there (Claude Code, Codex or Kiro CLI) and shows its result below.");
   const agentLabel = document.createElement("label"); agentLabel.className = "ai-agent"; agentLabel.append(document.createTextNode(t("Agent")));
   const agent = document.createElement("select");
   for (const [id, name] of AI_AGENTS.filter(([id]) => aiAgents().includes(id))) { const o = document.createElement("option"); o.value = id; o.textContent = name; agent.append(o); }
-  agentLabel.append(agent);
+  agentLabel.append(agent); agentLabel.hidden = demo;
   const preview = document.createElement("textarea");
   preview.readOnly = true; preview.value = prompt; preview.className = "ai-prompt";
   preview.setAttribute("aria-label", t("Prompt to send"));
@@ -178,7 +180,9 @@ async function runAIReview(button, prompt, title) {
     return base + (n ? sep + t("kiroku's check found {n}.", {n: plural(n, "problem")}) : wasFix ? sep + t("kiroku's check found no problems.") : ""); };
   const last = AI_LAST.get(key); // 前に同じプロンプトで得た結果
   if (last){ text = last.text; showResult(true); drawn = -1; draw(); copyResult.hidden = false; start.textContent = t("Run again"); inToggle.hidden = false; setInputs(false); status.textContent = checked(t("Last result with {agent}", {agent: aiName(last.agent)}), showCheck(), false); }
+  if (demo){ start.disabled = true; start.title = t("Runs only in kiroku serve"); }
   start.onclick = async () => {
+    if (demo) return; // 念のため。デモでは何も送らない
     const body = JSON.stringify({agent:agent.value,prompt:preview.value,consent:true}), size = utf8Len(body), wasFix = preview.value !== prompt;
     if (size > AI_RUN_MAX){ // kiroku serve が受け付けない大きさなら、送らずにそう伝える（コピーして自分で貼る道は残る）
       status.textContent = t("This prompt is too long to run here ({size} KB; the limit is {limit} KB).", {size: Math.ceil(size / 1024), limit: AI_RUN_MAX / 1024}); return; }
@@ -232,6 +236,7 @@ async function runAIReview(button, prompt, title) {
     }
   };
   if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
+  if (demo){ preview.scrollTop = 0; cancel.focus(); } // デモ: Run は押せないので、フォーカスは Close へ。プロンプトは先頭から
 }
 
 // kiroku serve が AI の実行を切っているとき（--no-ai など）、その理由と入れ方を説明する。
