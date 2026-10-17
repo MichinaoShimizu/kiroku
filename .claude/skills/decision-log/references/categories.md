@@ -15,3 +15,21 @@
 | `cost` | コスト | インスタンスやプランの大きさ、サンプリングの割合、コストのための削減や上限 |
 | `product` | プロダクトの方針 | 仕様の線引き、やらないと決めたこと |
 | `other` | その他 | どれにも当たらないもの。多ければ分類を見直す |
+
+## 英語で書くとき
+
+索引の見出しと中身は次のとおりになる（[writing.md](writing.md#英語で書くとき)）。
+
+| `category` | Heading | About |
+|---|---|---|
+| `architecture` | Architecture | Splitting and merging, direction of dependencies, adopted technology, platform migrations |
+| `data` | Data meaning and storage | Schemas, meaning and units of values, where data is stored, retention (personal data is privacy) |
+| `security` | Authentication, permissions and security | Authentication methods, permission boundaries, secrets, signing and verification, encryption |
+| `privacy` | Personal data | Whether personal data is collected, where it is shown, sent or kept (logs, destinations, retention), masking |
+| `compatibility` | Compatibility and external contracts | Public APIs, formats, versions, deprecation |
+| `reliability` | Performance and reliability | Behavior under load and failure: timeouts, retries, limits, caches, degradation |
+| `release` | Release and operations | Deployment steps, flags, environments, monitoring, alerts and who gets them, logging and tracing |
+| `engineering` | Engineering rules | Required CI checks, testing policy, lint and code conventions, branch workflow |
+| `cost` | Cost | Instance and plan sizes, sampling rates, cuts and limits made for cost |
+| `product` | Product policy | Where the spec draws the line, things decided not to do |
+| `other` | Other | Anything that fits none of the above; if there are many, revisit the categories |

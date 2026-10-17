@@ -15,6 +15,7 @@ allowed-tools: Bash(git log:*) Bash(git show:*) Bash(git grep:*) Bash(git rev-pa
 | `audit`（既定） | 調べて、下書きと報告を返す。何も書かない |
 | `write` | `audit` のあと、ファイルに書く。頼まれたときだけ |
 | `scope=<パス｜サブシステム｜期間>` | 範囲を絞る。外したものを報告に書く |
+| `lang=en` | 英語で書く（[writing.md](references/writing.md#英語で書くとき)） |
 | `depth=<数>` | 差分とレビューまで読む候補の上限（既定 20）。残りは報告に分類ごとの数と番号で残す |
 
 ## 守ること

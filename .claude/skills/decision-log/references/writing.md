@@ -8,6 +8,7 @@
 - 追記の印
 - 保存と索引：[save.md](save.md)
 - 監査の記録
+- 英語で書くとき
 
 ## ファイルの形
 
@@ -82,3 +83,22 @@ PR の記録から。決めた人とは限らない。
 ## 監査の記録
 
 全体の監査を頼まれ、時系列と候補の一覧（ledger）を残すように言われたら、同じ置き場所に `[<リポジトリ名>] 監査 YYYY-MM-DD`（フロントマターは `kind: audit`）を書く。中身は範囲、広さと深さ、確かめた手順、未調査の範囲である。
+
+## 英語で書くとき
+
+`lang=en` か、リポジトリの指示（`CLAUDE.md`・`AGENTS.md` など）が英語を求めるときは、本文を英語で書く。形は日本語と同じで、決まった言葉だけを次のように置き換える。索引のスクリプトは両方を読み、索引の言語はいまの索引に合わせる（新しく作るときは多いほうの言語）。1 つの置き場所の中で言語を混ぜない。
+
+| 日本語 | 英語 |
+|---|---|
+| `# [<リポジトリ名>] <何が変わったか>` | `# [<repo>] <what changed>` |
+| `> 過去の観察である。決定ではなく、何も縛らない。` | `> A past observation, not a decision. It binds nothing.` |
+| `## 起きたこと`・`## 理由`・`## 関わった人`・`## 分かっていないこと`・`## 元の場所`・`## 関係する記録` | `## What happened`・`## Reason`・`## People involved`・`## Open questions`・`## Sources`・`## Related logs` |
+| `- C1 2025-03-04 いまも同じ：…。履歴：… ／ 現在：…` | `- C1 2025-03-04 Still true: …. History: … / Now: …` |
+| 状態：いまも同じ・置き換え済み・競合・履歴のみ | Still true・Replaced・Conflict・History only |
+| `記録あり（議論）：`・`記録あり（本文）：`・`記録あり（本文・AI）：` | `Documented (discussion):`・`Documented (description):`・`Documented (description, AI):` |
+| `推測：`・`不明（記録に書かれていない）。` | `Inferred:`・`Unknown (not recorded).` |
+| 関わった人の「作成・承認・マージ」 | opened・approved・merged |
+| `## 追記 YYYY-MM-DD（書いた人）` | `## Addendum YYYY-MM-DD (author)` |
+| `**分類を更新**（YYYY-MM-DD）` | `**Category updated** (YYYY-MM-DD)` |
+| `**分かった**（YYYY-MM-DD）：「<問い>」` | `**Answered** (YYYY-MM-DD): "<question>"` |
+| `**終了**（YYYY-MM-DD）：<理由>` | `**Retired** (YYYY-MM-DD): <reason>` |

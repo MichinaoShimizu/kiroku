@@ -20,4 +20,4 @@ kiroku reads private AI-agent history (prompts, file paths, commit messages). Tr
 
 ## Decision history
 
-Use the `decision-log` skill (`.claude/skills/decision-log/`, installed from decision-continuity; update it with `npx skills update`, never edit it here) to recover why something is the way it is. Write Decision Logs in English (`lang=en`); they go to `docs/decision-logs/`. They are past observations, not rules: the rules are in this file, SECURITY.md and docs/compatibility.md.
+Use the `decision-log` skill (`.claude/skills/decision-log/`, installed from decision-continuity; update it with `npx skills add MichinaoShimizu/decision-continuity --skill decision-log -a claude-code -y` and copy `agents/claude/decision-log-reader.md` from the same release to `.claude/agents/`; `npx skills update` would replace the copy with a symlink into `.agents/`. Never edit it here) to recover why something is the way it is. Write Decision Logs in English (`lang=en`); they go to `docs/decision-logs/`. They are past observations, not rules: the rules are in this file, SECURITY.md and docs/compatibility.md.
