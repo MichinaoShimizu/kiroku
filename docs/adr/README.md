@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-ADRs record explicit design choices; [Decision Logs](../decision-log/README.md) preserve historical observations. See [Decision Continuity](decision-continuity.md) for illustrated workflows.
+ADRs record explicit design choices. Decision Logs, written by the `decision-log` skill in `docs/decision-logs/`, record what happened in the history; they are observations, not constraints.
 
 ## Active ADR index
 
@@ -32,8 +32,8 @@ ADRs record explicit design choices; [Decision Logs](../decision-log/README.md) 
 
 Only a human decision owner may accept an ADR. Proposed records are not binding constraints. An empty index does not prove a change safe.
 
-## Historical compatibility
+## Numbering
 
-Former retrospective ADRs 0001–0019 are now [Decision Logs](../decision-log/README.md) with the same numbers and file names. They are **not** accepted constraints. Their original evidence is in [docs/decision-log/evidence](../decision-log/evidence/); legacy evidence IDs are preserved for traceability.
+ADR numbers start at 0020. Numbers 0001–0019 were retrospective records that later became Decision Logs; they were removed with the former Decision Continuity kit and are not reused.
 
-ADR Guard checks Accepted decisions, then consults Decision Logs for relevant historical context. New durable choices are drafted as Proposed ADRs and require explicit human review. Update routing and supersession links alongside decisions.
+Before a material change, find the applicable ADRs here by path and by meaning and read them. An intentional change of an Accepted decision is drafted as a new Proposed ADR (next number, `# ADR NNNN:` heading) with Supersedes or Amends links, and needs explicit human review. Update this index alongside.

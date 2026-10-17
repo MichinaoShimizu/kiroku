@@ -4,7 +4,7 @@ Status: Accepted (2026-10-14, approved by the maintainer during the quality audi
 Date: 2026-10-14
 Scope: Running an installed AI agent on a prompt built from history (`internal/ai`, `internal/cli` serve `--ai`, `/ai/run`, `internal/web/js/ai.js`, `internal/web/js/mdview.js`, `SECURITY.md`)
 Related ADRs: [ADR 0022](0022-history-stays-local.md), [ADR 0029](0029-japanese-ui.md)
-Related Decision Logs: [DL 0013 — user-mediated AI reports](../decision-log/0013-user-mediated-ai-reports.md)
+Related Decision Logs: DL 0013 — user-mediated AI reports
 Supersedes/Amends: Amends [ADR 0022](0022-history-stays-local.md) points 1 and 2; replaces the unnumbered draft `ai-execution-boundary.md` (removed; see git history)
 Decision owner: Repository maintainer
 

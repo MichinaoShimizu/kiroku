@@ -4,7 +4,7 @@ Status: Accepted (2026-10-14, approved by the maintainer); point 1 amended by [A
 Date: 2026-10-14
 Scope: Running an installed AI agent on a prompt built from history (`internal/cli` serve `--no-ai` / `--ai` / `$KIROKU_NO_AI`, `/ai/run`, `internal/ai`, `internal/web/js/ai.js`, `state.js`, `summary.js`, `session.js`, `SECURITY.md`, README, the guide)
 Related ADRs: [ADR 0022](0022-history-stays-local.md), [ADR 0023](0023-compatibility-contract.md), [ADR 0030](0030-opt-in-local-agent-execution.md), [ADR 0033](0033-calendar-only-view.md)
-Related Decision Logs: [DL 0013 — user-mediated AI reports](../decision-log/0013-user-mediated-ai-reports.md)
+Related Decision Logs: DL 0013 — user-mediated AI reports
 Supersedes/Amends: Supersedes [ADR 0030](0030-opt-in-local-agent-execution.md) points 1 and 2 (points 3–6 stay in force). Amends [ADR 0022](0022-history-stays-local.md) points 1 and 2 in the same way ADR 0030 did
 Decision owner: Repository maintainer
 

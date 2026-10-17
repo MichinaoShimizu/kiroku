@@ -4,13 +4,13 @@ Status: Accepted (2026-10-11, approved by the maintainer when promoting Decision
 Date: 2026-10-11
 Scope: Privacy and trust boundary — reading history, git, the HTML view, `kiroku serve`, files kiroku writes, network access (`internal/source`, `internal/gitlog`, `internal/web`, `internal/cli`, `internal/archive`, `SECURITY.md`)
 Related ADRs: [ADR 0024](0024-verified-releases.md) (the one allowed network use), [ADR 0025](0025-opt-in-history-copies.md)
-Related Decision Logs: [DL 0003 — local privacy boundary](../decision-log/0003-local-privacy-boundary.md), [DL 0013 — user-mediated AI reports](../decision-log/0013-user-mediated-ai-reports.md)
+Related Decision Logs: DL 0003 — local privacy boundary, DL 0013 — user-mediated AI reports
 Supersedes/Amends: None
 Decision owner: Repository maintainer
 
 ## Context
 
-kiroku reads private AI-agent history: prompts, replies, file paths, commit messages. [DL 0003](../decision-log/0003-local-privacy-boundary.md) records how the current boundary grew PR by PR, but as a Decision Log it doesn't bind later changes. The same rules are already enforced through the Security section of `CLAUDE.md`, `SECURITY.md` and tests. This ADR makes them an explicit, approved decision, so ADR Guard flags a change that would cross them.
+kiroku reads private AI-agent history: prompts, replies, file paths, commit messages. DL 0003 records how the current boundary grew PR by PR, but as a Decision Log it doesn't bind later changes. The same rules are already enforced through the Security section of `CLAUDE.md`, `SECURITY.md` and tests. This ADR makes them an explicit, approved decision, so ADR Guard flags a change that would cross them.
 
 This ADR records today's decision. It doesn't claim why each historical PR made its choice; that stays in DL 0003.
 

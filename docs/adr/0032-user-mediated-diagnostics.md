@@ -4,7 +4,7 @@ Status: Accepted (2026-10-14, approved by the maintainer)
 Date: 2026-10-14
 Scope: Format diagnostics and problem reports — `kiroku doctor` ("Format check", `--report`), the view's "Data sources" (`internal/source`, `internal/core/format.go`, `internal/cli/diagnose.go`, `internal/web/js/panels.js`, `SECURITY.md`)
 Related ADRs: [ADR 0022](0022-history-stays-local.md) (history stays on the machine), [ADR 0023](0023-compatibility-contract.md) (new `kiroku json` fields only)
-Related Decision Logs: [DL 0013 — user-mediated AI reports](../decision-log/0013-user-mediated-ai-reports.md)
+Related Decision Logs: DL 0013 — user-mediated AI reports
 Supersedes/Amends: None
 Decision owner: Repository maintainer
 

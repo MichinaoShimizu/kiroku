@@ -4,7 +4,7 @@ Status: Superseded by [ADR 0033](0033-calendar-only-view.md) (2026-10-14). Previ
 Date: 2026-10-11
 Scope: Local HTML history exploration and view navigation (`internal/web`)
 Related ADRs: [ADR 0022](0022-history-stays-local.md), [ADR 0023](0023-compatibility-contract.md)
-Related Decision Logs: [DL 0016](../decision-log/0016-single-file-rendering.md)
+Related Decision Logs: DL 0016
 Supersedes/Amends: None
 Decision owner: Repository maintainer
 

@@ -68,7 +68,7 @@ go test ./internal/cli -run '^$' -bench Large -benchtime 3x -benchmem   # 前回
 | E. data | `/source-audit` の調べる部分（エージェントごと。直す PR は 4 で） | 各エージェントの新しい版の履歴の形と、kiroku の読み取りの食い違い（二重計上・取りこぼし・モデルやトークンの取り違え）。`/price-update` で料金表の古さ |
 | F. prompts | `/report-eval check` | 日報・週報・振り返りのプロンプトの正しさと長さ（前回の点数と比べる） |
 | G. code | general-purpose | 時刻・乱数・順番・機械の速さに頼るテスト、使われていないコード、握りつぶしたエラー、テストのない分岐、`runtime.GOOS` で分かれるところ |
-| H. arch | `/adr-guard check` | 前回からの変更が ADR に反していないか、Proposed のまま止まっている ADR、索引（`docs/adr/README.md`）の古さ |
+| H. arch | general-purpose（`docs/adr/` を読む） | 前回からの変更が ADR に反していないか、Proposed のまま止まっている ADR、索引（`docs/adr/README.md`）の古さ |
 | I. supply | general-purpose | ワークフローのアクションの SHA 固定と `permissions`、必須チェックの設定（e2e が必須か）、release と install.sh の検証、依存の更新 |
 | J. perf | 自分で | 1 のベンチマークの前回との差（±15% を超えたら原因を調べる）、大きな履歴での `kiroku serve` のメモリ、画面の描画（1 MB の AI の返事など） |
 

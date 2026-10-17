@@ -4,7 +4,7 @@ Status: Accepted (2026-10-14, approved by the maintainer during the quality audi
 Date: 2026-10-14
 Scope: How a browser proves it has the `kiroku serve` key (`internal/cli/servekey.go`, `internal/cli/serve.go`, `internal/cli/autostart.go` probe, `internal/web` boot/live/session/panels/ai scripts and `loading.html`, `SECURITY.md`, `docs/guide.md`)
 Related ADRs: [ADR 0022](0022-history-stays-local.md) (point 5: serve requires its key), [ADR 0023](0023-compatibility-contract.md) (the serve key is in the compatibility contract)
-Related Decision Logs: [DL 0003 — local privacy boundary](../decision-log/0003-local-privacy-boundary.md)
+Related Decision Logs: DL 0003 — local privacy boundary
 Supersedes/Amends: Amends [ADR 0022](0022-history-stays-local.md) point 5 in detail only (how the key reaches the server); the rule that `kiroku serve` requires its key is unchanged
 Decision owner: Repository maintainer
 

@@ -4,7 +4,7 @@ Status: Accepted (2026-10-14, the maintainer asked to make the view's language s
 Date: 2026-10-14
 Scope: `internal/web` (view text, dates, numbers), `internal/cli` (language option for `html` and `serve`), `docs/guide.md` and README.ja.md
 Related ADRs: [0022](0022-history-stays-local.md) (history stays local), [0023](0023-compatibility-contract.md) (compatibility)
-Related Decision Logs: [0018](../decision-log/0018-language-policy.md) (English product UI and Japanese entry documentation)
+Related Decision Logs: 0018 (English product UI and Japanese entry documentation)
 Supersedes/Amends: none. It changes the current behavior that Decision Log 0018 records; that log is a historical observation, not an accepted decision.
 Decision owner: maintainer
 

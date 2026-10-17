@@ -4,13 +4,13 @@ Status: Accepted (2026-10-11, approved by the maintainer when promoting Decision
 Date: 2026-10-11
 Scope: History retention — `kiroku archive` (`internal/archive`, `internal/cli`, `docs/guide.md`)
 Related ADRs: [ADR 0022](0022-history-stays-local.md), [ADR 0023](0023-compatibility-contract.md) (archive copies stay readable)
-Related Decision Logs: [DL 0007 — local history retention](../decision-log/0007-local-history-retention.md)
+Related Decision Logs: DL 0007 — local history retention
 Supersedes/Amends: None
 Decision owner: Repository maintainer
 
 ## Context
 
-Some agents delete their own history (Claude Code after 30 days by default, Kiro Crew's archived records). `kiroku archive` keeps compressed copies so kiroku can still show it. [DL 0007](../decision-log/0007-local-history-retention.md) records how this was built; this ADR makes the rules binding.
+Some agents delete their own history (Claude Code after 30 days by default, Kiro Crew's archived records). `kiroku archive` keeps compressed copies so kiroku can still show it. DL 0007 records how this was built; this ADR makes the rules binding.
 
 A copy means the conversation exists in one more place, including conversations the user deleted on purpose and the text of Kiro Crew private conversations. That is why it must be the user's choice.
 

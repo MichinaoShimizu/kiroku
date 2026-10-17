@@ -4,7 +4,7 @@ Status: Proposed
 Date: 2026-10-16
 Scope: Opening the `kiroku serve` view in an app window of its own (`internal/web/app.go`, `internal/web/web.go` CSP and `<head>`, `internal/cli/serve.go` `/manifest.webmanifest`, `internal/cli/servekey.go` keyless paths, `SECURITY.md`, the guide)
 Related ADRs: [ADR 0022](0022-history-stays-local.md) (history stays local; serve requires its key), [ADR 0023](0023-compatibility-contract.md) (release artifacts), [ADR 0024](0024-verified-releases.md) (verified releases and self-update), [ADR 0031](0031-serve-key-in-browser-storage.md) (the key in `localStorage`; only `GET /` without the key)
-Related Decision Logs: [DL 0003 — local privacy boundary](../decision-log/0003-local-privacy-boundary.md)
+Related Decision Logs: DL 0003 — local privacy boundary
 Supersedes/Amends: Amends [ADR 0031](0031-serve-key-in-browser-storage.md) point 4 in detail only: besides `GET /`, `GET /manifest.webmanifest` answers without the key. It holds no history
 Decision owner: Repository maintainer
 

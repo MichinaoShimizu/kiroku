@@ -4,7 +4,7 @@ Status: Accepted (2026-10-16, approved by the maintainer)
 Date: 2026-10-16
 Scope: The reports "Analyze with AI" offers in `kiroku serve` (`internal/web/js/summary.js`, `panels.js` `reportPrompt`, `tools/reportbench`, the report-eval skill, README, the guide)
 Related ADRs: [ADR 0034](0034-ai-analysis-by-default.md), [ADR 0030](0030-opt-in-local-agent-execution.md)
-Related Decision Logs: [DL 0013 — user-mediated AI reports](../decision-log/0013-user-mediated-ai-reports.md)
+Related Decision Logs: DL 0013 — user-mediated AI reports
 Supersedes/Amends: Amends [ADR 0034](0034-ai-analysis-by-default.md) point 1, first bullet ("for the weekly and monthly report and the session review"). Everything else in ADR 0034 and ADR 0030 points 3–6 stays in force
 Decision owner: Repository maintainer
 

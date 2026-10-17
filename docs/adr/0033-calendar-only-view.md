@@ -4,7 +4,7 @@ Status: Accepted (2026-10-14, approved by the maintainer); amended 2026-10-14 (Y
 Date: 2026-10-14
 Scope: Local HTML history exploration and view navigation (`internal/web`: `template.html`, `js/state.js`, `js/events.js`, `js/calendar.js`, `js/summary.js`, `style.css`)
 Related ADRs: [ADR 0022](0022-history-stays-local.md), [ADR 0023](0023-compatibility-contract.md), [ADR 0029](0029-japanese-ui.md)
-Related Decision Logs: [DL 0016](../decision-log/0016-single-file-rendering.md)
+Related Decision Logs: DL 0016
 Supersedes/Amends: Supersedes [ADR 0026](0026-complementary-history-views.md), [ADR 0027](0027-project-view.md) and [ADR 0028](0028-knowledge-discovery.md)
 Decision owner: Repository maintainer
 
