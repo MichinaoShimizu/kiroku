@@ -118,7 +118,7 @@ func TestKiroMissingMessages(t *testing.T) {
 }
 
 // 共有の保存場所（sessions/<bucket>/sess_*。Kiro IDE v1.0 以降と Kiro CLI V3）の会話は "Kiro IDE / CLI"、
-// V2 の sessions/cli/ の会話は "Kiro CLI (Classic)" として出す（docs/adr/0021-kiro-cli-v3-separate-source.md）。
+// V2 の sessions/cli/ の会話は "Kiro CLI (Classic)" として出す。
 func TestKiroSourceLabels(t *testing.T) {
 	home := t.TempDir()
 	writeFiles(t, home, map[string]string{

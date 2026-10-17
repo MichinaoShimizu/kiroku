@@ -18,6 +18,6 @@ kiroku reads private AI-agent history (prompts, file paths, commit messages). Tr
 - GitHub Actions: pin third-party actions to a full commit SHA, give each job the least `permissions` it needs, and don't run untrusted code with write tokens.
 - Add a test for every security fix, and note it under `### Security` in CHANGELOG.md.
 
-## Architecture decisions
+## Decision history
 
-Before implementation, scan the lightweight ADR routing index in `docs/adr/README.md` for relevance using affected paths and behavior. Read only applicable ADR bodies. For trivial edits with no design impact, skip ADR bodies. For material architecture, measurement, privacy, security, identity, persistence, compatibility or product-policy changes, relevant ADR review is mandatory. Follow `.claude/skills/adr-guard/SKILL.md` to review compatibility and document intentional supersession with a new ADR using `.claude/skills/forward-adr/SKILL.md`. Use `.claude/skills/reverse-adr/SKILL.md` to recover missing decision history. Existing ADRs are evidence to evaluate, not immutable restrictions. Routine fixes need no ADR.
+Use the `decision-log` skill (`.claude/skills/decision-log/`, installed from decision-continuity; update it with `npx skills add MichinaoShimizu/decision-continuity --skill decision-log -a claude-code -y` and copy `agents/claude/decision-log-reader.md` from the same release to `.claude/agents/`; `npx skills update` would replace the copy with a symlink into `.agents/`. Never edit it here) to recover why something is the way it is. Write Decision Logs in English (`lang=en`); they go to `docs/decision-logs/`. They are past observations, not rules: the rules are in this file, SECURITY.md and docs/compatibility.md.

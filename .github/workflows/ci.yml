@@ -76,7 +76,7 @@ jobs:
           python3 -I tools/screenshots/hostile.py "$RUNNER_TEMP/hostile"
           TZ=UTC go run . html --no-open --sources claude --claude-root "$RUNNER_TEMP/hostile/fx/projects" --week 2026-10-05 -o "$RUNNER_TEMP/xss.html"
           node tools/screenshots/xss.mjs "$RUNNER_TEMP/xss.html"
-      # kiroku serve の鍵: 鍵のないブラウザに履歴を見せず、同じコンピューターのほかのポートのサーバーに鍵を送らないこと（ADR 0031）
+      # kiroku serve の鍵: 鍵のないブラウザに履歴を見せず、同じコンピューターのほかのポートのサーバーに鍵を送らないこと
       - run: |
           go build -o "$RUNNER_TEMP/kiroku" .
           python3 -I tools/screenshots/gen.py "$RUNNER_TEMP/gen" >/dev/null

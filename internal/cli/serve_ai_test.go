@@ -11,7 +11,7 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/ai"
 )
 
-// With AI execution off (kiroku serve --no-ai, or an address that isn't a loopback IP), /ai/run doesn't exist (ADR 0034).
+// With AI execution off (kiroku serve --no-ai, or an address that isn't a loopback IP), /ai/run doesn't exist.
 func TestAIEndpointNotFoundWhenOff(t *testing.T) {
 	l := &live{}
 	r := httptest.NewRequest(http.MethodPost, "http://localhost:8485/ai/run", strings.NewReader(`{"agent":"claude","prompt":"hello","consent":true}`))
@@ -38,7 +38,7 @@ func TestAIOnlyOnLoopbackIP(t *testing.T) {
 	}
 }
 
-// The startup line says whether agent runs are on, how to turn them off and that the agent may send data to its provider (ADR 0034).
+// The startup line says whether agent runs are on, how to turn them off and that the agent may send data to its provider.
 func TestAIStartLine(t *testing.T) {
 	on := aiStartLine(true, true)
 	for _, s := range []string{"is on", "--no-ai", "may send the prompt and the history it reads to its provider"} {

@@ -15,7 +15,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - "Analyze with AI" checks the reply of a report or a session review: missing sections (such as a reply cut off at the time limit), a Numbers table that differs from kiroku's, and links or commit hashes that aren't in the prompt
   - "Ask to fix" shows a prompt that asks the agent to fix those points, and sends it when you press Run (at most twice per dialog)
-- The `kiroku serve` view can be installed as an app in Chrome and Edge ("Install kiroku" in the address bar or menu), so kiroku opens in a window of its own with its icon in the Dock or taskbar. It uses the key the browser already has, and installs no service worker, so the browser keeps no copy of your history ([ADR 0037](docs/adr/0037-installable-serve-view.md))
+- The `kiroku serve` view can be installed as an app in Chrome and Edge ("Install kiroku" in the address bar or menu), so kiroku opens in a window of its own with its icon in the Dock or taskbar. It uses the key the browser already has, and installs no service worker, so the browser keeps no copy of your history (ADR 0037)
 
 ### Changed
 
@@ -61,7 +61,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Changed
 
-- "Analyze with AI" is available in `kiroku serve` without `--ai`, for the weekly and monthly report and the session review ([ADR 0034](docs/adr/0034-ai-analysis-by-default.md))
+- "Analyze with AI" is available in `kiroku serve` without `--ai`, for the weekly and monthly report and the session review (ADR 0034)
   - It offers the agents installed on this computer (`claude`, `codex`, `kiro-cli`). When none is installed, the button is shown disabled with the reason.
   - Each run still shows the exact prompt and waits for you to confirm.
   - The agent you choose may send the prompt and the history it reads to its provider. `kiroku serve` says so when it starts, and so do README, the guide and `SECURITY.md`; the run dialog no longer repeats it.
@@ -74,7 +74,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Removed
 
-- The Journey and Project views, and the View switch above the calendar: the view is the Week / Month calendar, with search, the legend's filters, session details, the summary and the Year in review as before. A browser that last showed Journey or Project opens the calendar ([ADR 0033](docs/adr/0033-calendar-only-view.md))
+- The Journey and Project views, and the View switch above the calendar: the view is the Week / Month calendar, with search, the legend's filters, session details, the summary and the Year in review as before. A browser that last showed Journey or Project opens the calendar (ADR 0033)
 - "Copy knowledge prompt" on each project card under "① By project", and its prompt (knowledge discovery, ADR 0028)
 - The "Report" button on each day of the week calendar and the daily report prompt. Weekly and monthly reports stay
 - Every "Copy prompt" button: "Copy prompt" for the weekly and monthly report and "Copy review prompt" in session details. The report and review prompts are still built, for "Analyze with AI" only
@@ -91,7 +91,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 ### Added
 
 - `kiroku doctor` has a "Format check" section: for Claude Code and Codex, the newest agent version seen in history, lines that couldn't be read and record kinds kiroku doesn't know, with counts. Unknown kinds can mean the agent changed its history format. "Data sources" in the view shows the same next to each agent, and `kiroku json` adds them to `meta.report[]` (`agentVersion`, `badLines`, `unknown`, `kindsChecked`)
-- `kiroku doctor --report` prints a short block to paste into a GitHub issue: kiroku version, OS, and per agent the number of sessions, newest version seen, unreadable lines and unknown kinds with counts. It contains no paths, project names, IDs or content, and kiroku sends nothing; you review and share it yourself ([ADR 0032](docs/adr/0032-user-mediated-diagnostics.md))
+- `kiroku doctor --report` prints a short block to paste into a GitHub issue: kiroku version, OS, and per agent the number of sessions, newest version seen, unreadable lines and unknown kinds with counts. It contains no paths, project names, IDs or content, and kiroku sends nothing; you review and share it yourself (ADR 0032)
 - "Report a problem" in the view's footer and "Data sources" opens a new GitHub issue (new `bug.yml` form, replacing `bug_report.yml`) with only the kiroku version, OS, view language and current screen filled in; nothing from your history goes into the link. "Copy diagnostics" next to it copies the same text as `kiroku doctor --report` for you to check and paste. Both work in `kiroku serve` and in a saved HTML file. The issue form asks for the screen, agent and version, diagnostics, and a confirmation that the report contains no private information
 
 ### Security
@@ -106,13 +106,13 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Changed
 
-- The "Analyze with AI" dialog again says, next to the prompt you confirm, that the agent you choose may send the prompt and the history it reads to its provider. [ADR 0030](docs/adr/0030-opt-in-local-agent-execution.md) records `kiroku serve --ai` as an opt-in exception to "history stays on the machine" (ADR 0022)
+- The "Analyze with AI" dialog again says, next to the prompt you confirm, that the agent you choose may send the prompt and the history it reads to its provider. ADR 0030 records `kiroku serve --ai` as an opt-in exception to "history stays on the machine" (ADR 0022)
 - The report and review prompts ask the agent to cite the figure or signal from "Signals for advice" that each next action or piece of advice rests on, treating signals as candidates, not verdicts. Reports include only the guidance for their own period (day, week or month) and, like the knowledge prompt, ask the agent not to run other commands, write files or send anything to another service. The review and knowledge prompts carry the reports' privacy rule (no secrets, personal data, command output, file contents or paths on your computer; excerpts only from your prompts and the AI's prose). The review prompt no longer repeats its role, and the note on the fenced history block says it holds kiroku's computed facts as well as quoted history
 - The report bench (`tools/reportbench`, `/report-eval`) grades the current sections: Summary, Numbers, By project, Expert observations and Next actions for reports; Summary, Numbers, Professional prompt assessment, Prioritized advice and Reusable prompt playbook for a review
 
 ### Security
 
-- BREAKING: `kiroku serve` no longer keeps its key in a browser cookie. Browsers send a cookie to every port of the same host, even with `SameSite=Strict`, so the `kiroku_key_<port>` cookie reached any other server on `localhost` (perhaps run by another user of the computer) when you typed its address, followed a link to it or the browser fetched its icon, and that server could then read your history through `kiroku serve`. The browser now keeps the key in its site data for that address and port (`localStorage`) and the view sends it in an `X-Kiroku-Key` header; cookies are no longer accepted, and an old key cookie is removed when a browser sends it. The plain address and bookmarks still work, but the page at `/` no longer contains your history: it reads it with the key, and shows how to open it with `kiroku open` when this browser has no key. The "Open" button for a session's history file now saves the file. The `?key=` page also no longer forwards an address such as `/\example.com` to another site. After upgrading, run `kiroku open` once in each browser you use ([ADR 0031](docs/adr/0031-serve-key-in-browser-storage.md))
+- BREAKING: `kiroku serve` no longer keeps its key in a browser cookie. Browsers send a cookie to every port of the same host, even with `SameSite=Strict`, so the `kiroku_key_<port>` cookie reached any other server on `localhost` (perhaps run by another user of the computer) when you typed its address, followed a link to it or the browser fetched its icon, and that server could then read your history through `kiroku serve`. The browser now keeps the key in its site data for that address and port (`localStorage`) and the view sends it in an `X-Kiroku-Key` header; cookies are no longer accepted, and an old key cookie is removed when a browser sends it. The plain address and bookmarks still work, but the page at `/` no longer contains your history: it reads it with the key, and shows how to open it with `kiroku open` when this browser has no key. The "Open" button for a session's history file now saves the file. The `?key=` page also no longer forwards an address such as `/\example.com` to another site. After upgrading, run `kiroku open` once in each browser you use (ADR 0031)
 - The formatted view of "Analyze with AI" no longer slows down quadratically on a reply full of backticks that can't close inline code (one such reply froze the page for seconds on every redraw)
 - Kiro Crew: a folder of archived or crew-log records that can't be listed is reported under "Data sources" instead of being read as empty, since it may hold the mark that a conversation keeps no content
 - Folders kiroku copies history into (archive subfolders) and its settings folder are made private (`0700`) even when they already existed, so other users can't list session IDs and project folders
@@ -158,7 +158,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Added
 
-- The view in Japanese: it follows the browser's language (Japanese if the browser prefers Japanese, otherwise English), and the button at the top right switches between English and 日本語. `kiroku html --lang ja` and `kiroku serve --lang ja` (or `KIROKU_LANG`) pick the language when the viewer hasn't chosen one. Labels, tooltips, dialogs, the "?" explanations, the Year in review and its image, and dates (10月14日(水)) are translated; history, agent and model names, `kiroku json`, the terminal output and the prompts copied for an AI stay as they are ([ADR 0029](docs/adr/0029-japanese-ui.md))
+- The view in Japanese: it follows the browser's language (Japanese if the browser prefers Japanese, otherwise English), and the button at the top right switches between English and 日本語. `kiroku html --lang ja` and `kiroku serve --lang ja` (or `KIROKU_LANG`) pick the language when the viewer hasn't chosen one. Labels, tooltips, dialogs, the "?" explanations, the Year in review and its image, and dates (10月14日(水)) are translated; history, agent and model names, `kiroku json`, the terminal output and the prompts copied for an AI stay as they are (ADR 0029)
 - Journey view: sessions by project and day, next to the Week and Month calendar, with session details, search and filters
 - Project view: a card per project with its sessions, Git commits and recorded pull requests, a breakdown by agent and the full list of events, each opening its details
 - `kiroku serve --ai`: "Run with AI" on session reviews and daily, weekly and monthly reports runs the prompt with `claude`, `codex` or `kiro-cli` on this computer after you confirm each run, and shows the result. Off unless you pass `--ai`: without it the button reads "Run with AI (off)" and its dialog says how to turn it on. The agent may send the prompt and the history it reads to its provider. It runs in an empty temporary folder, Claude Code with only the Read tool limited to the history folders and Codex in a read-only sandbox, and when it fails the view shows the agent's own error message
@@ -177,7 +177,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 - Week calendar: pressing or tabbing to a day's "Report" button no longer scrolls the calendar back to midnight
 - Search: when nothing matches anywhere, only the search results say so (the calendar no longer adds a second empty message), and dates in the results stay on one line
 - Amazon Q / Kiro CLI (SQLite): when you quit at a tool approval and later ran `--resume` without input, the summary request the CLI sends ("In a few words, summarize our conversation so far.") was counted as your prompt, and so were the `/todos resume` and response-timeout requests in the same situation. The CLI stores them as the answer to the unfinished tool call, so kiroku now recognizes them there too and shows them as notes
-- Kiro: a Kiro CLI Classic session that you open in Kiro CLI 3.0 (`kiro-cli chat --v3 --resume-id <id>`) was counted twice, once in "Kiro CLI (Classic)" and once in "Kiro IDE / CLI", because kiro-cli copies it to the 3.0 store as `sess_<id>` and keeps the Classic file. It is now counted once, as the 3.0 session, which holds the prompts sent after the switch. The 3.0 copy has no credit records for the turns before the switch, so their credits, turn count and model requests are taken from the Classic session ([ADR 0021](docs/adr/0021-kiro-cli-v3-separate-source.md))
+- Kiro: a Kiro CLI Classic session that you open in Kiro CLI 3.0 (`kiro-cli chat --v3 --resume-id <id>`) was counted twice, once in "Kiro CLI (Classic)" and once in "Kiro IDE / CLI", because kiro-cli copies it to the 3.0 store as `sess_<id>` and keeps the Classic file. It is now counted once, as the 3.0 session, which holds the prompts sent after the switch. The 3.0 copy has no credit records for the turns before the switch, so their credits, turn count and model requests are taken from the Classic session (ADR 0021)
 - Kiro IDE / CLI: in a Classic session opened in Kiro CLI 3.0, the prompts from before the switch were shown without their replies. The copied replies carry no usable time, so kiroku now matches each reply to the prompt before it in the history, as it already does for Kiro CLI (Classic)
 
 ### Changed
@@ -202,7 +202,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Changed
 
-- BREAKING: Kiro sessions stored in `~/.kiro/sessions/<workspace>/sess_*` are now shown as "Kiro IDE / CLI" instead of "Kiro IDE", and Kiro CLI V2 sessions (`~/.kiro/sessions/cli/`) as "Kiro CLI (Classic)" instead of "Kiro CLI". Kiro IDE 1.x and Kiro CLI 3.0 (`kiro-cli --v3`) write the same store in the same format, and nothing in it records which of them created a session, so kiroku can't tell them apart; "Classic" is Kiro's own name for V2 sessions ([ADR 0021](docs/adr/0021-kiro-cli-v3-separate-source.md)). The `source` value in `kiroku json` changes the same way, so scripts that match `"Kiro IDE"` or `"Kiro CLI"` need updating (`schemaVersion` stays 1). `--sources kiro`, the options, the environment variables and the `kiroku archive` layout are unchanged, and each source keeps its color. "Data sources" now says what each Kiro history covers
+- BREAKING: Kiro sessions stored in `~/.kiro/sessions/<workspace>/sess_*` are now shown as "Kiro IDE / CLI" instead of "Kiro IDE", and Kiro CLI V2 sessions (`~/.kiro/sessions/cli/`) as "Kiro CLI (Classic)" instead of "Kiro CLI". Kiro IDE 1.x and Kiro CLI 3.0 (`kiro-cli --v3`) write the same store in the same format, and nothing in it records which of them created a session, so kiroku can't tell them apart; "Classic" is Kiro's own name for V2 sessions (ADR 0021). The `source` value in `kiroku json` changes the same way, so scripts that match `"Kiro IDE"` or `"Kiro CLI"` need updating (`schemaVersion` stays 1). `--sources kiro`, the options, the environment variables and the `kiroku archive` layout are unchanged, and each source keeps its color. "Data sources" now says what each Kiro history covers
 
 ### Fixed
 

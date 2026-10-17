@@ -15,7 +15,7 @@ import (
 )
 
 // KiroIDE は Kiro IDE v1.0 以降と Kiro CLI V3 が共有する保存場所: <KIRO_HOME>/sessions/<hash>/sess_<id>/{session.json,messages.jsonl}（行ごとに timestamp あり）。
-// どちらが作った会話かは記録されないので、"Kiro IDE / CLI" として出す（docs/adr/0021-kiro-cli-v3-separate-source.md）。
+// どちらが作った会話かは記録されないので、"Kiro IDE / CLI" として出す。
 type KiroIDE struct{ Home string }
 
 func (k *KiroIDE) Name() string   { return "Kiro IDE / CLI" }

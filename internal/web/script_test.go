@@ -12,7 +12,7 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
 
-// i18nStub は、js/ から関数だけを取り出して Node で動かすテストの前に置く。画面の言語は英語（ADR 0029 の t・JA・inEnglish の代わり）
+// i18nStub は、js/ から関数だけを取り出して Node で動かすテストの前に置く。画面の言語は英語（t・JA・inEnglish の代わり）
 const i18nStub = "const JA = false, isJA = () => false, inEnglish = f => f();\n" +
 	"function t(s, vars){ return vars ? s.replace(/\\{(\\w+)\\}/g, (m, k) => Object.prototype.hasOwnProperty.call(vars, k) ? String(vars[k]) : m) : s; }\n"
 
@@ -307,7 +307,7 @@ func TestSpanIn(t *testing.T) {
 }
 
 // 画面の日本語（i18n.js の JA_TEXT）。値に HTML を入れていないこと、{name} が英語の鍵とそろっていること、
-// t() が辞書を引くこと。js/ の t("…") で日本語のないものは、落とさずに一覧だけ出す（ADR 0029：訳のない文は英語で出る）
+// t() が辞書を引くこと。js/ の t("…") で日本語のないものは、落とさずに一覧だけ出す（訳のない文は英語で出る）
 func TestI18nCatalog(t *testing.T) {
 	node, err := exec.LookPath("node")
 	if err != nil {

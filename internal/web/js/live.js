@@ -1,4 +1,4 @@
-// kiroku serve のときの自動更新と、鍵を付けて data.json を読んでから描く起動（ADR 0031）
+// kiroku serve のときの自動更新と、鍵を付けて data.json を読んでから描く起動
 /* ── live（kiroku serve） ── 新しい履歴を見つけたら、見ている週・選んだセッションはそのままで取り込む */
 function startLive(){
   const badge = $("#live"); badge.hidden = false;

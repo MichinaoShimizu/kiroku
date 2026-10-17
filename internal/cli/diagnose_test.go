@@ -13,7 +13,7 @@ import (
 )
 
 // kiroku doctor --report は、種類と数と版だけを書く。履歴にあるパス・プロジェクト名・セッション ID・発言・応答・ホームのフォルダは書かない
-// （名前の形でない種類も other にまとめる）。ADR 0032。
+// （名前の形でない種類も other にまとめる）。
 func TestDiagnosticsHaveNoHistory(t *testing.T) {
 	old := logw
 	t.Cleanup(func() { logw = old })

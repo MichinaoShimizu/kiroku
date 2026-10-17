@@ -33,7 +33,7 @@ var (
 // まだ決まっていない名前を使わないよう、この順は変えない。ファイルを足したらここにも書く。
 var scripts = []string{
 	"state.js",    // 埋め込んだデータ・画面の状態
-	"i18n.js",     // 画面の文言の日本語（ADR 0029）
+	"i18n.js",     // 画面の文言の日本語
 	"format.js",   // 書き方の小物・色・テーマ
 	"markdown.js", // 書き出す Markdown に履歴の文字を入れる小物
 	"mdview.js",   // AI の返事（Markdown）を整えて見せる
@@ -92,7 +92,7 @@ func assemble(s string, pairs ...string) string {
 	return s
 }
 
-// Langs are the languages the view can be shown in (ADR 0029). English is the default.
+// Langs are the languages the view can be shown in. English is the default.
 var Langs = []string{"en", "ja"}
 
 // ValidLang reports whether lang is one of Langs.
@@ -221,7 +221,7 @@ func withCSP(page string, live bool) (string, error) {
 	if !strings.Contains(page, cspMark) {
 		return "", errors.New("CSP の置き場がない")
 	}
-	if live { // kiroku serve の画面はアプリとしてインストールできる（ADR 0037）。保存した HTML（file://）には入れない
+	if live { // kiroku serve の画面はアプリとしてインストールできる。保存した HTML（file://）には入れない
 		if strings.Count(page, titleTag) != 1 {
 			return "", errors.New(titleTag + " がちょうど 1 つではない")
 		}
@@ -236,7 +236,7 @@ func policy(script, style string, live bool) string {
 	connect, extra := "'none'", ""
 	if live {
 		connect = "'self'"              // /stamp・/data.json・/prompt・/archive
-		extra = "; manifest-src 'self'" // /manifest.webmanifest（ADR 0037）
+		extra = "; manifest-src 'self'" // /manifest.webmanifest
 	}
 	return "default-src 'none'; script-src " + hash(script) +
 		"; style-src 'unsafe-inline'; style-src-elem " + hash(style) + "; style-src-attr 'unsafe-inline'" +

@@ -78,7 +78,7 @@ func checkCSP(t *testing.T, page string, live bool) {
 	if !strings.Contains(csp, connect) {
 		t.Errorf("live=%v なのに %q がない: %s", live, connect, csp)
 	}
-	// kiroku serve の画面だけが、アプリとしてインストールするためのマニフェストを読む（ADR 0037）
+	// kiroku serve の画面だけが、アプリとしてインストールするためのマニフェストを読む
 	if hasLink, hasSrc := strings.Count(page, manifestLink) == 1, strings.Contains(csp, "; manifest-src 'self'"); hasLink != live || hasSrc != live {
 		t.Errorf("live=%v でマニフェストのリンク %v・manifest-src %v: %s", live, hasLink, hasSrc, csp)
 	}
@@ -157,7 +157,7 @@ func TestLoadingForLang(t *testing.T) {
 	}
 }
 
-// ADR 0034: AI 分析の実行は、送るプロンプトをそのまま見せて確かめてから。エージェントが履歴を提供元へ送りうることは、
+// AI 分析の実行は、送るプロンプトをそのまま見せて確かめてから。エージェントが履歴を提供元へ送りうることは、
 // 実行のダイアログではなく、SECURITY.md・README・README.ja・ガイドに書く（起動の 1 行は internal/cli の TestAIStartLine）
 func TestAIRunDisclosure(t *testing.T) {
 	page, err := Render([]any{}, map[string]any{}, map[string]any{}, map[string]any{"report": []any{}, "git": []any{}}, 0, true)

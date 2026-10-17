@@ -7,7 +7,7 @@ description: "メンテナーが立てた要望の issue（[request]）を拾い
 
 kiroku の機能追加と改善は、メンテナーの要望から始める。上流の変化（`upstream` の issue）、`kiroku doctor` の知らない種類、利用者の報告や要望は材料であって、それだけでは作業を始めない。材料を見て「やる」と決めるのはメンテナーで、決めたものを要望の issue にする。
 
-前提として CLAUDE.md の「Security」と「Architecture decisions」を常に守る。使うのはダミーデータ（`tools/screenshots/gen.py`・`testdata/`）だけで、本物の履歴は読まない。
+前提として CLAUDE.md の「Security」を常に守る。使うのはダミーデータ（`tools/screenshots/gen.py`・`testdata/`）だけで、本物の履歴は読まない。
 
 ## 0. 要望を集める
 
@@ -30,8 +30,7 @@ kiroku の機能追加と改善は、メンテナーの要望から始める。�
 
 ## 1. 確かめる
 
-- 何をすればよいかが一つに決まらない、あるいは CLAUDE.md の Security や ADR に触れる判断（通信、書き出すファイル、`kiroku serve` の公開範囲、既存 ADR の置き換え）が要るなら、作らずに issue へ質問を 1 つのコメントで書く（英語、選択肢と勧めを添える）。返事を待つ
-- `docs/adr/README.md` を読み、関わる ADR を確かめる（`/adr-guard`）。置き換えが要るなら、それも質問に含める
+- 何をすればよいかが一つに決まらない、あるいは CLAUDE.md の Security や docs/compatibility.md に触れる判断（通信、書き出すファイル、`kiroku serve` の公開範囲、互換性を壊す変更）が要るなら、作らずに issue へ質問を 1 つのコメントで書く（英語、選択肢と勧めを添える）。返事を待つ
 - 要望が既に満たされていれば、その根拠を書いて質問の代わりにコメントし、閉じるかはメンテナーに任せる
 
 ## 2. 作る

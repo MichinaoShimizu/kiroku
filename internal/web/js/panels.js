@@ -331,7 +331,7 @@ function keepRow(r){ // 計測の状態に添える：どこまでさかのぼ�
       : k.days && !k.set ? `<br><span class="kw">${by}${tph("Records older than {days} days are deleted automatically ({setting} is at its default)", {days: k.days, setting: set})}${link}</span>${how()}`
       : k.days ? `<br>${tph("{agent} keeps history for {days} days (setting: {setting})", {agent: k.who || r.name, days: k.days, setting: set})}`
       : `<br>${by}${tph("Older records are deleted after a period ({setting})", {setting: set})}${link}`); }
-// 履歴の形の手がかり（ADR 0032）。Go の core.SafeKind・core.SafeVersion と同じ形だけを出す（名前に発言やパスがまぎれこんでも出さない）
+// 履歴の形の手がかり。Go の core.SafeKind・core.SafeVersion と同じ形だけを出す（名前に発言やパスがまぎれこんでも出さない）
 const safeKind = k => /^[A-Za-z0-9_.:-]{1,40}$/.test(k) ? k : "other";
 const safeVer = v => { const m = /^v?(\d{1,6}(?:\.\d{1,6}){0,3})(?:[-+ ].*)?$/.exec(typeof v === "string" ? v : ""); return m && m[1].length <= 20 ? m[1] : ""; };
 // kindsText は知らない種類を「名前 数」で、数の多い順（同じなら名前の順）に並べる
@@ -453,7 +453,7 @@ function foot(){
   const v = String((META && META.version) || ""), rel = /^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/.test(v);
   return `<div class="foot"><div>${esc(t("Generated {date}", {date: dStamp(GENERATED)}))} · ${rel ? ext(`${REPO}/releases/tag/v${v}`, esc(`kiroku v${v}`)) : `kiroku${v ? " " + esc(v) : ""}`} · ${ext(REPO, "GitHub")}</div><div class="report">${reportLinks()}</div></div>`;
 }
-// 問題の報告（ADR 0032）。issue のリンクには、履歴に由来しないもの（kiroku の版・OS・画面の言語・いまの画面）だけを入れる。
+// 問題の報告。issue のリンクには、履歴に由来しないもの（kiroku の版・OS・画面の言語・いまの画面）だけを入れる。
 // リンクを開くと URL が GitHub に届くため。履歴の形の手がかり（種類と数）は URL に入れず、「Copy diagnostics」で写して、利用者が読んでから自分で貼る
 const kVer = () => { const v = String((META && META.version) || ""); return /^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/.test(v) ? "v" + v : v === "dev" ? "dev" : ""; };
 const kOS = () => { const o = String((META && META.os) || ""); return /^[a-z0-9]{1,16}\/[a-z0-9]{1,16}$/.test(o) ? o : ""; };

@@ -77,7 +77,7 @@ function detail(s){
     const first = shown.find(li => li.classList.contains("pr")); if (first) first.focus(); }; // 出した最初のプロンプトへ（フォーカスを失わないように）
   bindCopy(P);
 }
-/* kiroku serve の履歴ファイル（/history）。リンクの移動では鍵のヘッダーを付けられないので（ADR 0031）、kfetch で読み、
+/* kiroku serve の履歴ファイル（/history）。リンクの移動では鍵のヘッダーを付けられないので、kfetch で読み、
    Blob の URL から保存する。名前は履歴ファイルの名前（.zst はサーバーがほどいて返すので外す）。読めなければ知らせる */
 const histName = f => String(f || "").split(/[\\/]/).pop().replace(/\.zst$/, "").replace(/[\u0000-\u001f\u007f"*:<>?|]/g, "_") || "history.jsonl";
 async function saveHistory(s, a){

@@ -243,7 +243,7 @@ func newFS(name, usage string) *flag.FlagSet {
 	return fs
 }
 
-// langFlag は画面の言語（ADR 0029）。見る人は画面で切り替えられる。既定は $KIROKU_LANG、なければブラウザの言語（日本語でなければ英語）。
+// langFlag は画面の言語。見る人は画面で切り替えられる。既定は $KIROKU_LANG、なければブラウザの言語（日本語でなければ英語）。
 // $KIROKU_LANG の値が使えないときは、止めずに注意だけ出して、ブラウザの言語に任せる（autostart の serve が起動のたびに落ちないように）。
 func langFlag(fs *flag.FlagSet) *string {
 	env := os.Getenv("KIROKU_LANG")
