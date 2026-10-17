@@ -7,7 +7,7 @@ description: "kiroku 全体を決まった観点で精査し、確かめた問�
 
 PR ごとの点検（`/pre-pr`）は、その PR が変えたところしか見ない。変えていないところの古び（取り込み元の新しい版、料金、文言のずれ、時刻しだいで落ちるテスト、記録されないまま残る保留）は、誰かが全体を見ないと溜まる。この手順は、その全体を決まった観点で決まった順に見て、確かめた問題だけを直し、見たこと・直したこと・残したことを記録に残す。
 
-前提として CLAUDE.md の「Security」と「Architecture decisions」を常に守る。精査で使うのはダミーデータ（`tools/screenshots/gen.py`・`testdata/`）だけで、本物の履歴を読んだり記録に書いたりしない。
+前提として CLAUDE.md の「Security」を常に守る。精査で使うのはダミーデータ（`tools/screenshots/gen.py`・`testdata/`）だけで、本物の履歴を読んだり記録に書いたりしない。
 
 食い違ったら CLAUDE.md・`docs/development.md`・各スキルを正とし、このファイルも直す。
 

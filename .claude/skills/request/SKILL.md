@@ -7,7 +7,7 @@ description: "メンテナーが立てた要望の issue（[request]）を拾い
 
 kiroku の機能追加と改善は、メンテナーの要望から始める。上流の変化（`upstream` の issue）、`kiroku doctor` の知らない種類、利用者の報告や要望は材料であって、それだけでは作業を始めない。材料を見て「やる」と決めるのはメンテナーで、決めたものを要望の issue にする。
 
-前提として CLAUDE.md の「Security」と「Architecture decisions」を常に守る。使うのはダミーデータ（`tools/screenshots/gen.py`・`testdata/`）だけで、本物の履歴は読まない。
+前提として CLAUDE.md の「Security」を常に守る。使うのはダミーデータ（`tools/screenshots/gen.py`・`testdata/`）だけで、本物の履歴は読まない。
 
 ## 0. 要望を集める
 
