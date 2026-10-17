@@ -25,7 +25,7 @@ import (
 
 // kiroku serve の鍵。127.0.0.1 で待ち受けていても、同じコンピューターのほかのユーザーはつなげてしまう。
 // そこで、本人しか読めないファイル（0600）に置いた鍵を知っているブラウザにだけ履歴を見せる。
-// ブラウザは一度 ?key= つきの URL を開くと鍵を localStorage にしまい、そのあとは鍵なしの URL（ブックマーク）で開ける（ADR 0031）。
+// ブラウザは一度 ?key= つきの URL を開くと鍵を localStorage にしまい、そのあとは鍵なしの URL（ブックマーク）で開ける。
 
 // configDir は kiroku の設定の場所（$KIROKU_CONFIG_DIR、なければ OS の設定の場所の kiroku）。
 func configDir() (string, error) {
@@ -107,7 +107,7 @@ func readKey(path string) (string, bool) {
 	return key, true
 }
 
-// keyHeader は、画面が鍵を付けて送るヘッダー（ADR 0031）。画面は鍵をブラウザの localStorage（オリジン、つまりポートごと）に
+// keyHeader は、画面が鍵を付けて送るヘッダー。画面は鍵をブラウザの localStorage（オリジン、つまりポートごと）に
 // しまい、履歴を返すもの・状態を変えるものへの問い合わせのたびに付ける。
 const keyHeader = "X-Kiroku-Key"
 
@@ -159,7 +159,7 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 }
 
 // keyless は、鍵なしの GET で返してよいパスか。/（履歴を入れていない画面の骨組み）と、アプリとしてインストールするための
-// マニフェスト（ブラウザはヘッダーを付けずに読む。ADR 0037）だけ。
+// マニフェスト（ブラウザはヘッダーを付けずに読む）だけ。
 func keyless(path string) bool {
 	return path == "/" || slices.Contains(web.AppPaths, path)
 }

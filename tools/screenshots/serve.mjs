@@ -1,11 +1,11 @@
-// kiroku serve の鍵（ADR 0031）を、本物のブラウザで確かめる（CI の e2e）。
+// kiroku serve の鍵を、本物のブラウザで確かめる（CI の e2e）。
 //   go build -o /tmp/kiroku . && python3 -I tools/screenshots/gen.py /tmp/gen && node tools/screenshots/serve.mjs /tmp/kiroku /tmp/gen
 // ダミーの履歴（gen.py）だけを読む kiroku serve を、使い捨ての HOME と設定の場所で空いているポートに立て、
 //   - /?key= で開くと履歴が出て、アドレスから鍵が消え、鍵の Cookie はない
 //   - 鍵なしの / を開き直しても出る（localStorage の鍵）。履歴ファイルの「Open」は鍵を付けて読んで保存する
 //   - 鍵のないブラウザ（新しいコンテキスト）は、案内だけで履歴を見ない。data.json も 403
 //   - 画面から同じコンピューターのほかのポートのサーバーへ移っても、鍵はどの問い合わせにも載らない（Cookie にも、ほかのところにも）
-//   - 「Analyze with AI」（ADR 0034）: フラグなしで出て、押すと送るプロンプトをそのまま見せる（Run は押さない）。エージェントのコマンドがなければ押せず理由を添え、
+//   - 「Analyze with AI」: フラグなしで出て、押すと送るプロンプトをそのまま見せる（Run は押さない）。エージェントのコマンドがなければ押せず理由を添え、
 //     --no-ai では「(off)」だけで /ai/run は 404。エージェントは偽の codex（何もしないスクリプト）を PATH の先頭に置いて決める
 //   - 偽の codex での実行: 返事の確認と「直してもらう」、届いた分から見える返事、エージェントの失敗、Cancel で止めるとエージェントとその子が残らない
 // を見る。Playwright が必要（smoke.mjs と同じ）。
@@ -100,7 +100,7 @@ try {
   await p.keyboard.press("Escape");
   check("CSP に止められたもの・ページのエラーがない", errors.length === 0, JSON.stringify(errors));
 
-  // 「Analyze with AI」（ADR 0034）: フラグなしで出る。押すと送るプロンプトをそのまま見せ、提供元の一文はダイアログに出さない。Run は押さない
+  // 「Analyze with AI」: フラグなしで出る。押すと送るプロンプトをそのまま見せ、提供元の一文はダイアログに出さない。Run は押さない
   await p.goto(`${base}/`);
   await p.waitForSelector("#rptbar #rptrun", { timeout: 15000 });
   check("フラグなしの serve で、週報の「Analyze with AI」が押せる", await p.locator("#rptbar #rptrun").isEnabled());
@@ -125,7 +125,7 @@ try {
   check("日報のプロンプトは、その日の形式と前日との数字の表", /## Daily report: /.test(dp) && /^\| \| This day \| Previous day \|$/m.test(dp) && /^\| Active time \| /m.test(dp), dp.slice(0, 300));
   await p.locator("#ai-review-dialog button", { hasText: "Close" }).click();
   check("日報も Close で閉じ、何も動かさない", await p.locator("#ai-review-dialog").count() === 0 && !/\$ codex/.test(log));
-  // 月報はない（ADR 0035）。月の表示では報告の帯もボタンも出さない
+  // 月報はない。月の表示では報告の帯もボタンも出さない
   await p.click("#mode button[data-v=month]");
   await p.waitForFunction(() => document.querySelector("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
   check("月の表示には、報告の「Analyze with AI」がない", await p.locator("#rptbar").isHidden() && await p.locator("#rptrun").count() === 0);
@@ -156,7 +156,7 @@ try {
   await po.close();
 
   // 返事の確認と「直してもらう」: 偽の codex が、節の足りない週報を返す。kiroku が足りないところを見せ、「直してもらう」は
-  // 直してもらうプロンプトを見せるだけで送らない（ADR 0034）。Run で送り、直してもらうのは 2 回まで
+  // 直してもらうプロンプトを見せるだけで送らない。Run で送り、直してもらうのは 2 回まで
   const fixBin = path.join(work, "fixbin"), runs = path.join(work, "runs.txt");
   await mkdir(fixBin, { recursive: true });
   await writeFile(path.join(fixBin, "codex"), `#!/bin/sh\ncat > "${path.join(work, "last-prompt.txt")}"\necho run >> "${runs}"\nprintf '## Weekly report\\n\\n### Summary\\nDone.\\n'\n`);

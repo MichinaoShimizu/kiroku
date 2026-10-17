@@ -114,7 +114,7 @@ pre:empty{display:none}
   // エージェントの色は本物の画面と同じ（core.Agents の Slot。web.go が埋めこむ）
   const SLOT = Object.fromEntries(__AGENTS__.map(a => [a.name, a.slot]));
   const color = n => n in SLOT ? `var(--c${SLOT[n]})` : "var(--other)";
-  // kiroku serve の鍵（ADR 0031）。?key= の中継のページが localStorage にしまったものを X-Kiroku-Key ヘッダーで送る
+  // kiroku serve の鍵。?key= の中継のページが localStorage にしまったものを X-Kiroku-Key ヘッダーで送る
   const kf = url => { let k = null; try { k = localStorage.getItem("kiroku:key"); } catch(e){}
     return fetch(url, {cache:"no-store", headers: k && /^[0-9a-f]{64}$/.test(k) ? {"X-Kiroku-Key": k} : {}}); };
   const ms = v => v < 1000 ? `${v}ms` : `${(v/1000).toFixed(1)}s`;

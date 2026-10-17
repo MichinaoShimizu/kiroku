@@ -17,7 +17,7 @@ const AI_OFF_WHY = () => t("This kiroku serve doesn't run AI agents: it was star
 const AI_NONE_WHY = () => t("No AI agent command (claude, codex or kiro-cli) was found on this computer. Install one, then restart kiroku serve.");
 // AI_SEP は、続けて出す 2 つの文の間（日本語では空けない）
 const AI_SEP = () => JA ? "" : " ";
-/* aiBtn は「Analyze with AI」のボタン（id はボタンの id、label は読み上げの名前）。kiroku serve の画面だけに出し、保存した HTML には出さない（ADR 0034）。
+/* aiBtn は「Analyze with AI」のボタン（id はボタンの id、label は読み上げの名前）。kiroku serve の画面だけに出し、保存した HTML には出さない。
    AI を切った serve では、切っている理由を開くボタン。エージェントがなければ、押せないボタンと、その理由 */
 function aiBtn(id, label){
   if (!LIVE) return aiDemo() ? `<button class="pill ai-action" id="${id}" type="button" aria-label="${esc(label)}">${esc(t("Analyze with AI"))}</button>` : "";
@@ -27,7 +27,7 @@ function aiBtn(id, label){
 }
 // 閉じたあとに同じプロンプトで開き直したら、前の結果を見せる（このページを開いているあいだだけ。保存はしない）
 /* 報告と振り返りの返事のうち、機械で確かめられるところ（AI は使わない）。直すことの一覧を返す。
-   en は直してもらうプロンプトに入れる英語（ADR 0029）、l は画面に出す今の言語。
+   en は直してもらうプロンプトに入れる英語、l は画面に出す今の言語。
    見出しは訳されるので、名前ではなく「# Format」の ### の数で見る。数字の表は、訳されうる 1 列目（項目の名前）を除いた値で見る。
    リンクとコミットのハッシュは、プロンプトにないもの（作り話）を拾う */
 const AI_FIX_MAX = 2; // 直してもらう回数の上限（1 つのダイアログで）
@@ -80,7 +80,7 @@ async function runAIReview(button, prompt, title, prefer = "") { // prefer: 最�
   dialog.setAttribute("aria-labelledby", "ai-review-title");
   const heading = document.createElement("h2"); heading.id = "ai-review-title"; heading.textContent = title;
   const notice = document.createElement("p");
-  // 実行の前に、送るプロンプトをそのまま見せて確かめてもらう。エージェントが提供元へ送りうることは、ドキュメントと起動の 1 行で知らせる（ADR 0034）
+  // 実行の前に、送るプロンプトをそのまま見せて確かめてもらう。エージェントが提供元へ送りうることは、ドキュメントと起動の 1 行で知らせる
   const demo = aiDemo(); // デモ: プロンプトを見せるだけで、Run は押せない（/ai/run を呼ばない）
   notice.textContent = t("Check the exact prompt below. When you press Run, it goes to the agent on this computer.");
   if (demo) notice.textContent = t("This is the demo, so nothing runs here. In kiroku serve on your computer, Run sends this exact prompt to an AI agent there (Claude Code, Codex or Kiro CLI) and shows its result below.");
@@ -93,7 +93,7 @@ async function runAIReview(button, prompt, title, prefer = "") { // prefer: 最�
   preview.readOnly = true; preview.value = prompt; preview.className = "ai-prompt";
   preview.setAttribute("aria-label", t("Prompt to send"));
   const status = document.createElement("p"); status.setAttribute("role", "status");
-  // kiroku の確認（aiOutputProblems）で足りないところがあれば、その一覧と「直してもらう」。押すと直してもらうプロンプトを見せ、Run で送る（ADR 0034：実行ごとに確かめる）
+  // kiroku の確認（aiOutputProblems）で足りないところがあれば、その一覧と「直してもらう」。押すと直してもらうプロンプトを見せ、Run で送る（実行ごとに確かめる）
   const checkBox = document.createElement("div"); checkBox.className = "ai-check"; checkBox.hidden = true;
   let fixes = 0, fixing = false, fixBtn = null; // fixing: 直してもらうプロンプトを入れて、Run を待っているところ
   // 経過（実行したコマンド・エージェントの動き・エラー出力）と、返事。返事は整えた表示と Markdown のまま見る表示を切り替えられる
@@ -178,7 +178,7 @@ async function runAIReview(button, prompt, title, prefer = "") { // prefer: 最�
     if (utf8Len(JSON.stringify({agent: agent.value, prompt: fix, consent: true})) > AI_RUN_MAX){ note(t("A prompt to fix it would be too long to run here.")); return P.length; }
     note(t("\u201cAsk to fix\u201d puts a prompt to fix them in the box above. Nothing is sent until you press Run."));
     fixBtn = pill(t("Ask to fix"));
-    fixBtn.onclick = () => { // 送らずに、直してもらうプロンプトを入れるだけ。送るのは Run を押したとき（ADR 0034）
+    fixBtn.onclick = () => { // 送らずに、直してもらうプロンプトを入れるだけ。送るのは Run を押したとき
       fixes++; fixing = true; preview.value = fix; preview.classList.remove("small");
       inToggle.hidden = true; setInputs(true); start.textContent = t("Run");
       status.textContent = t("Check the prompt above, then press Run to ask for the fix.");

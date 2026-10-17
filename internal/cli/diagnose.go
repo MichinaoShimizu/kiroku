@@ -11,7 +11,7 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/source"
 )
 
-// 履歴の形の手がかり（ADR 0032）。kiroku は何も送らない。kiroku doctor --report が書いた文を、利用者が読んで、
+// 履歴の形の手がかり。kiroku は何も送らない。kiroku doctor --report が書いた文を、利用者が読んで、
 // 自分で GitHub の issue に貼る。中身は種類の名前と数と版だけで、パス・プロジェクト名・ID・発言は入れない。
 
 // formatShown は、Format check と --report に出すエージェントか（セッションがあるか、形の手がかりがあるもの）。

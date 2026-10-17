@@ -67,7 +67,7 @@ func (l *live) refresh() error {
 	if err != nil {
 		return err
 	}
-	// / は鍵なしでも開けるので（requireKey）、HTML には履歴を入れない（画面の骨組み）。画面は鍵を付けて /data.json を読む（ADR 0031）
+	// / は鍵なしでも開けるので（requireKey）、HTML には履歴を入れない（画面の骨組み）。画面は鍵を付けて /data.json を読む
 	shell, err := web.Marshal([]*core.Session{}, map[string]*report.Week{}, map[string]*report.Summary{}, shellMeta(snap.meta), 0)
 	if err != nil {
 		return err
@@ -245,11 +245,11 @@ func (l *live) handler() http.Handler {
 		defer l.mu.RUnlock()
 		send(w, "text/html; charset=utf-8", l.html)
 	})
-	// マニフェスト（アプリとしてインストールするためのもの、ADR 0037）。履歴を入れていないので鍵なしで返す（requireKey）
+	// マニフェスト（アプリとしてインストールするためのもの）。履歴を入れていないので鍵なしで返す（requireKey）
 	mux.HandleFunc("/manifest.webmanifest", func(w http.ResponseWriter, r *http.Request) {
 		send(w, "application/manifest+json", web.Manifest())
 	})
-	// AI execution is on unless kiroku serve was started with --no-ai or on an address that isn't a loopback IP (ADR 0034).
+	// AI execution is on unless kiroku serve was started with --no-ai or on an address that isn't a loopback IP.
 	// When it is off, /ai/run doesn't exist (404).
 	if l.aiRun != nil {
 		mux.Handle("/ai/run", l.aiRun)
@@ -562,7 +562,7 @@ func serveLive(addr string, allow []string, every time.Duration, picked []source
 	return serveLiveWithAI(addr, allow, every, picked, load, keep, open, false, "", nil)
 }
 
-// aiStartLine は、起動したときに出す「Analyze with AI」の状態の 1 行（ADR 0034 の 2）。
+// aiStartLine は、起動したときに出す「Analyze with AI」の状態の 1 行。
 func aiStartLine(enableAI, aiAddr bool) string {
 	switch {
 	case !enableAI:
@@ -590,7 +590,7 @@ func scanWatchPaths(all []source.Source, want map[string]bool) []string {
 	return out
 }
 
-// aiAddrOK は、AI の実行を許す待ち受け先か。IP で書いたループバックのアドレスだけ（ADR 0030 の 5）。
+// aiAddrOK は、AI の実行を許す待ち受け先か。IP で書いたループバックのアドレスだけ。
 // 名前（localhost など）や 127.1 のような短い書き方は、名前解決でどこに向くかわからないので許さない。
 func aiAddrOK(addr string) bool {
 	host, _, err := net.SplitHostPort(listenAddr(addr))
@@ -598,7 +598,7 @@ func aiAddrOK(addr string) bool {
 	return err == nil && ip != nil && ip.IsLoopback()
 }
 
-// serveLiveWithAI は serveLive。enableAI は「Analyze with AI」を使えるようにするか（--no-ai でなければ true。ADR 0034）。
+// serveLiveWithAI は serveLive。enableAI は「Analyze with AI」を使えるようにするか（--no-ai でなければ true）。
 // 待ち受け先がループバックの IP でなければ、enableAI でも切る。lang は画面の言語（--lang）、watch は picked のほかに見張る場所（scanWatchPaths）。
 func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool, enableAI bool, lang string, watch []string) error {
 	if every < time.Second {

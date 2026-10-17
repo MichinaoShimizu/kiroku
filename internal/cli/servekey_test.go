@@ -55,7 +55,7 @@ func TestServeKey(t *testing.T) {
 	}
 }
 
-// 鍵を知っている画面にだけ見せる（ADR 0031）。鍵は X-Kiroku-Key ヘッダーでだけ受け付け、Cookie では通さない
+// 鍵を知っている画面にだけ見せる。鍵は X-Kiroku-Key ヘッダーでだけ受け付け、Cookie では通さない
 // （Cookie はポートを区別しないので、同じコンピューターのほかのポートのサーバーにも送られ、鍵が盗まれる）。
 // ?key= で開くと、鍵をページに入れない中継のページを返し、鍵の Cookie は渡さず、以前の版の Cookie は消させる。
 // GET / だけは鍵なしで通す（履歴を入れない画面の骨組みを返すところ。TestServeShellHasNoHistory）。
@@ -121,7 +121,7 @@ func TestRequireKey(t *testing.T) {
 			t.Errorf("ヘッダーつきの %s = %d %q", m, w.Code, w.Body.String())
 		}
 	}
-	// GET / は鍵なしで通す（返すのは骨組みだけ）。アプリのマニフェストも（ブラウザはヘッダーを付けずに読む、ADR 0037）
+	// GET / は鍵なしで通す（返すのは骨組みだけ）。アプリのマニフェストも（ブラウザはヘッダーを付けずに読む）
 	for _, p := range append([]string{"/"}, web.AppPaths...) {
 		if w := do("GET", p, "", nil); w.Code != 200 {
 			t.Errorf("鍵なしの GET %s = %d", p, w.Code)

@@ -229,7 +229,7 @@ async function run(env) {
     const run = await clickableRun(p);
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
     check("振り返りのプロンプトをコピーするボタンはない", await p.locator("#panel #sreview, #panel #pcopy").count() === 0);
-    check("デモでは、詳細に「Analyze with AI」が出る（ADR 0036）", await p.locator("#panel #srun").count() === 1 && await p.locator("#panel .ai-off, #panel .ai-none").count() === 0);
+    check("デモでは、詳細に「Analyze with AI」が出る", await p.locator("#panel #srun").count() === 1 && await p.locator("#panel .ai-off, #panel .ai-none").count() === 0);
     // 再開のコマンドは 1 つだけ見え、2 列の画面では右の列のいちばん上、1 列の画面では詳細のいちばん上
     const rs = await p.evaluate(() => { const v = [...document.querySelectorAll("#panel .dresume")].filter(e => e.offsetParent !== null);
       const col = v[0] && v[0].closest(".dcol"); return {n: v.length, wide: innerWidth >= 1100, side: !!col && col === col.parentElement.lastElementChild && col.firstElementChild === v[0], top: !!v[0] && !col}; });
@@ -333,7 +333,7 @@ async function run(env) {
     if (await nf.count()) check("セッションのないエージェントは「Not found: N」の下にたたむ", /^Not found: \d+$/.test((await nf.locator("summary").innerText()).trim()) && !(await nf.evaluate(d => d.open)));
   });
 
-  // 問題の報告（ADR 0032）: issue のリンクは決まった値だけ、「Copy diagnostics」は種類と数だけで、どちらにも履歴の中身が入らない
+  // 問題の報告: issue のリンクは決まった値だけ、「Copy diagnostics」は種類と数だけで、どちらにも履歴の中身が入らない
   await step("問題の報告", async () => {
     const a = p.locator("#review .foot a.reportlink");
     check("フッターに「Report a problem」がある（新しいタブ・参照元を渡さない）", await a.count() === 1 && await a.getAttribute("target") === "_blank" && /noopener/.test(await a.getAttribute("rel") || "") && /noreferrer/.test(await a.getAttribute("rel") || ""));
@@ -359,7 +359,7 @@ async function run(env) {
 
   await step("週報を書いてもらうプロンプト", async () => {
     check("週報のプロンプトをコピーするボタンはない", await p.locator("#rptcopy").count() === 0);
-    // デモ（ADR 0036）: 「Analyze with AI」はプロンプトを見せるだけ。Run は押せず、/ai/run に何も送らない
+    // デモ: 「Analyze with AI」はプロンプトを見せるだけ。Run は押せず、/ai/run に何も送らない
     check("デモでは、週報の帯に「Analyze with AI」が出る", await p.locator("#rptbar").isVisible() && await p.locator("#rptbar #rptrun").count() === 1 && await p.locator(".ai-off, .ai-none").count() === 0);
     const aiReq = []; const onReq = r => { if (/\/ai\/run/.test(r.url())) aiReq.push(r.url()); }; p.on("request", onReq);
     await p.locator("#rptbar #rptrun").click();
@@ -384,7 +384,7 @@ async function run(env) {
         DATA = was.concat(many); const t = reportPrompt(S); return {size: utf8Len(t), short: /Shortened to keep this prompt small/.test(t), budget: PROMPT_BUDGET}; }
       finally { DATA = was; } });
     check("長い週でも、報告のプロンプトは送れる大きさに収まり、短くしたと書く", big.size <= big.budget && big.short, JSON.stringify(big));
-    check("デモでは、記録のある日付の見出しに日報のボタンが出る（ADR 0036）", await p.locator(".head .dayrun").count() > 0);
+    check("デモでは、記録のある日付の見出しに日報のボタンが出る", await p.locator(".head .dayrun").count() > 0);
     check("セッションごとに、プロンプトと応答の要約がある", /^  - [A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2} \d\d:\d\d Prompt: /m.test(text));
     check("事実と履歴は、コードブロックの中にある", /# History data\n`{3,}text\n# Facts/.test(text));
     check("週報には週の決まりだけがあり、ほかのコマンドを禁じる", /next-week priorities/.test(text) && !/tomorrow's next step|sustained trends/.test(text) && /don't run other commands, change or write files, or send anything to another service/.test(text));
@@ -436,7 +436,7 @@ async function run(env) {
     check("m で月表示になる", await p.locator("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
     await p.keyboard.press("w"); await pause();
     check("表示の切り替え（Journey・Project）はない。カレンダーだけ", await p.locator("#journeybtn, #projectbtn, #calendarbtn").count() === 0 && await p.locator("#tl").getAttribute("aria-label") === "Calendar");
-    // 以前の版が保存した表示（journey・project）が残っていても、カレンダーで開く（ADR 0033）
+    // 以前の版が保存した表示（journey・project）が残っていても、カレンダーで開く
     for (const v of ["journey", "project"]) {
       await p.evaluate(v => localStorage.setItem("kiroku:view", JSON.stringify(v)), v);
       await open();
@@ -479,7 +479,7 @@ async function run(env) {
   await ctx.close();
   return { out, failed };
 }
-// 日本語の表示（ADR 0029）。日本語の文言は英語より折り返し方が違うので、同じ 4 つの幅で、主な画面がスクリプトのエラーなしに開き、
+// 日本語の表示。日本語の文言は英語より折り返し方が違うので、同じ 4 つの幅で、主な画面がスクリプトのエラーなしに開き、
 // 横にはみ出さず、訳のある画面の文言が英語のまま残っていないかを見る。操作の細かな確かめは英語の流れ（run）でしているので、ここでは開いて見るだけ
 async function runJa(env) {
   const out = [`# ${env.name} 日本語`];

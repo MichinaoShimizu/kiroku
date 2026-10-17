@@ -186,7 +186,7 @@ func TestHistoryRoots(t *testing.T) {
 	}
 }
 
-// 鍵なしで開ける / （画面の骨組み）には履歴を入れない（ADR 0031）。履歴は鍵のヘッダーを付けた /data.json などからだけ読める。
+// 鍵なしで開ける / （画面の骨組み）には履歴を入れない。履歴は鍵のヘッダーを付けた /data.json などからだけ読める。
 // 骨組みの META は shell と、履歴ではない設定だけ。
 func TestServeShellHasNoHistory(t *testing.T) {
 	logw = io.Discard
@@ -228,7 +228,7 @@ func TestServeShellHasNoHistory(t *testing.T) {
 			t.Errorf("鍵なしの %s = %d", p, code)
 		}
 	}
-	// アプリのマニフェストは鍵なしで返すが、決まった中身で履歴は入っておらず、Host の確かめはそのまま（ADR 0037）
+	// アプリのマニフェストは鍵なしで返すが、決まった中身で履歴は入っておらず、Host の確かめはそのまま
 	if code, body, hdr := fetchHost(t, "GET", srv.URL+"/manifest.webmanifest", host); code != 200 || body != string(web.Manifest()) ||
 		hdr.Get("Content-Type") != "application/manifest+json" || hdr.Get("Cache-Control") != "no-store" || hdr.Get("X-Content-Type-Options") != "nosniff" {
 		t.Errorf("鍵なしの /manifest.webmanifest = %d %v", code, hdr)
