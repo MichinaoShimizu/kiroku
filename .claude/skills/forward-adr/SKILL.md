@@ -68,7 +68,7 @@ Decision owner: <role or unknown>
 
 ## Relationship to other skills
 
-- **reverse-adr** recovers historical changes and uncertainty into Decision Logs, identifying explicit ADR candidates separately.
+- **decision-log** (from [decision-continuity](https://github.com/MichinaoShimizu/decision-continuity)) recovers historical changes and uncertainty into Decision Logs, identifying explicit ADR candidates separately.
 - **adr-guard** identifies which prior decisions a change touches.
 - **forward-adr** documents the next decision and its deliberate tradeoffs.
 - Periodic audits check whether accepted decisions still describe the implementation.

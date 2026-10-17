@@ -5,7 +5,7 @@ description: "Check proposed code or product changes against existing ADRs, expl
 
 # ADR Guard — preserve design intent while allowing change
 
-Use this skill for material design changes. Consult the ADR index for explicit decisions and the Decision Log index for historical evidence; Reverse ADR may bootstrap missing historical context. This is repository-agnostic: discover the target repository's ADR index and instructions rather than assuming kiroku paths.
+Use this skill for material design changes. Consult the ADR index for explicit decisions and the Decision Log index for historical evidence; the decision-log skill may bootstrap missing historical context. This is repository-agnostic: discover the target repository's ADR index and instructions rather than assuming kiroku paths.
 
 ## Modes
 

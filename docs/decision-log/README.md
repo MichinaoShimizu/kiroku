@@ -34,6 +34,6 @@ A Decision Log has a stable historical ID, scope, source evidence, observations,
 
 The historical [decision ledger](evidence/phase1-decision-ledger.md), [claim evidence matrix](evidence/evidence.yaml), and [audit snapshot](evidence/audit.md) keep their legacy `ADR-xxxx` claim identifiers. These identifiers represent historical claims, not Accepted ADRs. The audit snapshot was compiled before the Decision Log migration and does not establish exhaustive review or formal approval.
 
-## Validation scenarios
+## New Decision Logs
 
-The skills themselves are evaluated in [tools/decision-continuity](../../tools/decision-continuity/scenario-tests.md): twelve expected behaviors, static instruction checks, the live-agent runner and the [first live results](../../tools/decision-continuity/scenario-results-2026-10-11.md).
+These 19 records were written by the former in-repository `reverse-adr` skill and are kept as they are. New Decision Logs are written by the `decision-log` skill from [decision-continuity](https://github.com/MichinaoShimizu/decision-continuity) to `docs/decision-logs/`, with its own format and generated index. Read both when looking for history; that skill reads only its own folder, so check this index before writing a log on the same topic. The skill and its evaluation are maintained in decision-continuity, not here.

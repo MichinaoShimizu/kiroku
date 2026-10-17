@@ -59,7 +59,7 @@ flowchart LR
 
 ## Agent responsibilities
 
-1. **Reverse ADR / reverse design analysis** reconstructs Decision Logs by default. It may identify *candidate* decisions, but must not assert acceptance or create binding policy from code alone.
+1. **decision-log / reverse design analysis** reconstructs Decision Logs by default. It may identify *candidate* decisions, but must not assert acceptance or create binding policy from code alone.
 2. **ADR Guard** reads the ADR index for relevant Accepted decisions, and consults Decision Logs for context or uncertainty. Proposed ADRs are review inputs, not enforced rules.
 3. **Forward ADR** drafts material new decisions with alternatives and consequences. Human review determines acceptance. Intentional departures create a new ADR and reciprocal supersession links.
 4. **Periodic audit** checks links, routing, evidence confidence, supersession, drift and missing review. Routine changes need no ceremonial ADR.
@@ -78,8 +78,6 @@ Useful signals include fewer accidental reversals of accepted constraints, faste
 
 ## kiroku reference implementation
 
-See the [ADR index](README.md), [Decision Log index](../decision-log/README.md), [Reverse ADR](../../.claude/skills/reverse-adr/SKILL.md), [ADR Guard](../../.claude/skills/adr-guard/SKILL.md) and [Forward ADR](../../.claude/skills/forward-adr/SKILL.md).
+See the [ADR index](README.md), [Decision Log index](../decision-log/README.md), [decision-log](../../.claude/skills/decision-log/SKILL.md), [ADR Guard](../../.claude/skills/adr-guard/SKILL.md) and [Forward ADR](../../.claude/skills/forward-adr/SKILL.md).
 
-## Scenario validation
-
-The [Decision Continuity scenario matrix](../../tools/decision-continuity/scenario-tests.md) contains twelve static contract checks for historical evidence, unknown rationale, Proposed versus Accepted decisions, ADR Guard applicability, reversals, test evidence and legacy references. These are documentation-level checks; the first live-agent run is in [scenario-results-2026-10-11.md](../../tools/decision-continuity/scenario-results-2026-10-11.md).
+decision-log and its subagent decision-log-reader come from [decision-continuity](https://github.com/MichinaoShimizu/decision-continuity) (recorded in `skills-lock.json`), where they are tested and evaluated. They replaced the former in-repository Reverse ADR skill and its scenario runner; the Decision Logs that skill wrote stay in `docs/decision-log/`, and new ones go to `docs/decision-logs/`.

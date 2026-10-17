@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "decision-log": {
+      "source": "MichinaoShimizu/decision-continuity",
+      "sourceType": "github",
+      "skillPath": "skills/decision-log/SKILL.md",
+      "computedHash": "2a8eb45effcdcf5241fa24396dbffaa7c8870321fd167fe50d2e44b24162c8b7"
+    }
+  }
+}

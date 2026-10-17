@@ -1,6 +1,6 @@
 # Decision Continuity — shared contract
 
-Applies to reverse-adr, adr-guard, and forward-adr. Follow target repository conventions; these paths are examples, not hard-coded requirements.
+Applies to adr-guard and forward-adr, and to how they use Decision Logs written by the decision-log skill (installed from decision-continuity). Follow target repository conventions; these paths are examples, not hard-coded requirements.
 
 - **Decision Log**: historical observation and evolution, with evidence and uncertainty. It is not a policy or approval.
 - **Proposed ADR**: a candidate durable choice. It is not binding.
@@ -8,7 +8,7 @@ Applies to reverse-adr, adr-guard, and forward-adr. Follow target repository con
 - **Superseded/Rejected/Deprecated ADR**: historical decision records, not current constraints. Keep chronology and links.
 - **Legacy redirect**: a pointer to a Decision Log, never an Accepted ADR by implication.
 
-In kiroku, use `docs/decision-log/README.md` for historical evidence and `docs/adr/README.md` for explicit decisions. Historical 0001–0019 are Decision Logs in `docs/decision-log/` (the old `docs/adr/` paths were removed). Keep evidence IDs stable, but never infer authority from an ID prefix.
+In kiroku, use `docs/decision-log/README.md` for historical evidence and `docs/adr/README.md` for explicit decisions. Historical 0001–0019 are Decision Logs in `docs/decision-log/` (the old `docs/adr/` paths were removed); newer Decision Logs from the decision-log skill are in `docs/decision-logs/` (`DL-N`, index `docs/decision-logs/README.md`). Read both. Keep evidence IDs stable, but never infer authority from an ID prefix.
 
 ## Rules
 
