@@ -99,6 +99,20 @@ func TestWithCSP(t *testing.T) {
 	if strings.Count(got, mark) != 1 || !strings.Contains(got, `var s="`+mark+`"`) {
 		t.Errorf("データの側まで入れかえた: %s", got)
 	}
+	// kiroku serve の画面: CSP とマニフェストのリンクを、<title> と CSP の置き場がどちらの順でも 1 つずつ入れる
+	for _, head := range []string{titleTag + `<meta content="` + mark + `">`, `<meta content="` + mark + `">` + titleTag} {
+		page := `<head>` + head + `<style>a{}</style></head><script>var s="` + mark + `"</script>`
+		got, err := withCSP(page, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		js, _ := inline(page, "script")
+		css, _ := inline(page, "style")
+		want := strings.Replace(strings.Replace(page, titleTag, titleTag+"\n"+manifestLink, 1), mark, policy(js, css, true), 1)
+		if got != want {
+			t.Errorf("live のページが違う:\n got %s\nwant %s", got, want)
+		}
+	}
 	for _, bad := range []string{
 		`<head><meta content="` + mark + `"><style></style></head><script>a</script><script>b</script>`,
 		`<head><meta content="` + mark + `"><style></style></head><script src="x"></script><script>b</script>`,
