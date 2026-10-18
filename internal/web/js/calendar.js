@@ -101,7 +101,7 @@ function kpis(){
     return kpi(all ? t(M ? "Past last month's total" : "Past last week's total") : t(M ? "A day to match last month" : "A day to match last week"), v,
       all ? t(M ? "Last month's total was {v}" : "Last week's total was {v}", {v: ref}) : t(M ? "To stay at last month's total of {v}, for the {n} left" : "To stay at last week's total of {v}, for the {n} left", {v: ref, n: plural(pc.left, "day")}), "key", pc.cost ? "pace" : "paceCr"); };
   const pace = pj ? t("If the pace of the first {n} days continues", {n: pj.days}) : "";
-  // 帯は日々の判断に使う 5 つ前後だけ：使用量（推定費用とクレジット）・前の期間並みの 1 日の目安・月末の見込み（月）・稼働時間・残したもの（コミット）。
+  // 帯は日々の判断に使う 5 つ前後だけ：使用量（推定費用とクレジット）・前の期間並みの 1 日の目安・月末の推定（月）・稼働時間・残したもの（コミット）。
   // 稼働日・セッション / プロンプト・利用上限への到達は振り返りの数なので、サマリーと「見直す候補」に任せる（帯が多いとカレンダーと主役を争う）。
   // 推定費用とクレジットは別の枠の使用量なので足さずに、1 つの枠に「 · 」で並べる。トークンは推定費用を出せないときだけ
   const c = u.tokens ? costOf(u) : null, two = (a, b) => [a, b].filter(Boolean).join(`<small> · </small>`);
