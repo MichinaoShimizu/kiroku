@@ -1,0 +1,1 @@
+- A crafted `.jsonl.zst` history file (Codex) or `kiroku archive` copy could crash kiroku, including `kiroku serve`, instead of being reported as unreadable (GHSA-fpmh-frq8-7rj8 in github.com/klauspost/compress). Updated the module to v1.20.3
