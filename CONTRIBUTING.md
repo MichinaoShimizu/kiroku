@@ -7,8 +7,8 @@ Thanks for your interest in kiroku. Issues and pull requests are welcome in Engl
 Changes must keep kiroku's promises:
 
 - No external API calls, and no history leaves the machine. The only network access is checking for and downloading kiroku's own releases from GitHub (`install.sh`, `kiroku update`, `kiroku doctor`)
-- kiroku itself never calls an AI
-- The output is a single static HTML file
+- kiroku has no AI or AI service of its own; an agent on this computer runs only when you confirm "Analyze with AI" in `kiroku serve` (`--no-ai` turns it off)
+- The view is one self-contained HTML page: a file from `kiroku html`, or served by `kiroku serve` on loopback
 
 ## Development
 
@@ -36,7 +36,7 @@ Describe user-visible changes in a new file under [changes/](changes/README.md),
 
 The view lives in `internal/web`: `template.html` (markup), `style.css` and the script split by role into `js/*.js`, put together into one HTML file by `web.go`. The script files are joined in the order listed in `scripts` in `web.go` and share one `<script>` scope; add a new file to that list. When you change it:
 
-- The view is English only. Metric explanations live in `HELP`, and a test checks them against the "How to read the metrics" table in `docs/guide.md`
+- The view is in English and Japanese: pass text shown in the view through `t()` and add its Japanese to `js/i18n.js`. Metric explanations live in `HELP`, and a test checks them against the "How to read the metrics" table in `docs/guide.md`
 - Check light and dark, and 1440px, 1000px and phone widths
 - Update the README (both `README.md` and `README.ja.md`), the guides and the screenshots (`sh tools/screenshots/run.sh`) in the same change
 - Try the user scenarios in [docs/usability.md](docs/usability.md)

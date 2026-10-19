@@ -12,7 +12,7 @@ sh tools/screenshots/run.sh --html /tmp/kiroku-test.html   # HTML with dummy dat
 
 Scenarios 2 and 7 need `kiroku serve` (a saved HTML file has no AI actions): build kiroku, make dummy history with `python3 -I tools/screenshots/gen.py <dir>`, and start `kiroku serve` on it as `tools/screenshots/serve.mjs` does. Never press Run with a real agent: put a stand-in script named `codex` first on `PATH` and leave the real agents off it.
 
-Open it with Playwright and try it in the following 3 environments. Keep the default light theme, and take screenshots in light too.
+Open it with Playwright and try it in the following 3 environments. Start in the default dark theme, then check light too (the button at the top right).
 
 - 1440x900
 - 1000x800
@@ -27,7 +27,7 @@ Each scenario has the user's goal and a success condition. No steps are given. A
 | # | User | Goal | Success condition |
 |---|---|---|---|
 | 1 | Someone opening it for the first time | Learn what this view is and what they did last week | Within 30 seconds, can say "what this view is" and "the project they spent the most time on last week" |
-| 2 | Someone writing a weekly report | Turn last week's work into a weekly report | In `kiroku serve`, opens "Analyze with AI" under "Weekly report", checks the exact prompt and runs it with an AI agent on this computer, and gets a report ready to share. Understands from the dialog that the prompt includes prompts and history file paths, and that the agent reads those files; knows where to turn agent runs off (`--no-ai`). When no agent is installed, understands why the button can't be pressed |
+| 2 | Someone writing a weekly report | Turn last week's work into a weekly report | In `kiroku serve`, opens "Analyze with AI" under "Weekly report", checks the exact prompt and runs it with an AI agent on this computer, and gets a report ready to share. Can read in the dialog exactly what will be sent (the prompt, with its prompts and history file paths) before pressing Run. Turning agent runs off (`kiroku serve --no-ai`) is explained in the LIVE badge's hint and in the guide, not in the dialog. When no agent is installed, understands why the button can't be pressed |
 | 3 | Someone who wants to keep AI costs down | Decide on one thing to change from next week | Picks one action from "Worth a look" and can say in their own words what to do |
 | 4 | Someone who wants to know whether something they tried worked | Check whether what they tried last week worked | Finds the metric related to what they changed, from the 8-week trend of a marked metric or from a metric opened via "Worth a look" or "?", reads the direction of change and can judge whether it worked (including when it dropped off "Worth a look", or why it can't be judged) |
 | 5 | Someone hunting the cause of a bug | Find the session where the AI touched a particular file | Reaches the session and commit from search, and can read the prompt flow |
