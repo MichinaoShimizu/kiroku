@@ -2,6 +2,20 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v0.38.2 - 2026-10-19
+
+### Fixed
+
+- `kiroku doctor`'s "Format check" no longer reports record kinds that Codex 0.162 and later write as a matter of course (such as `world_state`, `retained_context`, `inter_agent_communication` and agent-to-agent `agent_message` items) as unknown
+- Escape in the "Analyze with AI" dialog no longer also closes the session details behind it, and the arrow keys, T, W, M and ? no longer change the period behind the open dialog
+- The "Not connected to kiroku serve" page says to reload the page after starting kiroku serve again, since it doesn't reconnect by itself
+
+### Security
+
+- `kiroku open` (and `kiroku serve` when it opens a browser) no longer puts the `kiroku serve` key in the address it opens. Browsers keep every address they open in their history, and sync it when history sync is on, so the key ended up there. kiroku now opens the view with a one-time code that works once, within 10 minutes, and the page it opens stores the key. `kiroku open --print` prints such a one-time address too
+  - An address with `?key=` from an older version still works, but it is already in your browser's history with the key. Delete those entries, or change the key: stop `kiroku serve`, delete `serve-key` and start it again, then run `kiroku open` once in each browser
+- A crafted `.jsonl.zst` history file (Codex) or `kiroku archive` copy could crash kiroku, including `kiroku serve`, instead of being reported as unreadable (GHSA-fpmh-frq8-7rj8 in github.com/klauspost/compress). Updated the module to v1.20.3
+
 ## v0.38.1 - 2026-10-16
 
 ### Changed
