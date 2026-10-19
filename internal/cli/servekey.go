@@ -18,6 +18,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/MichinaoShimizu/kiroku/internal/web"
@@ -25,7 +26,10 @@ import (
 
 // kiroku serve の鍵。127.0.0.1 で待ち受けていても、同じコンピューターのほかのユーザーはつなげてしまう。
 // そこで、本人しか読めないファイル（0600）に置いた鍵を知っているブラウザにだけ履歴を見せる。
-// ブラウザは一度 ?key= つきの URL を開くと鍵を localStorage にしまい、そのあとは鍵なしの URL（ブックマーク）で開ける。
+// kiroku open は、鍵そのものではなく使い捨てのコード（openCodeTTL のあいだ 1 回だけ使える）を ?code= に付けて開く。
+// ブラウザは開いた URL を履歴に残し、同期していれば送ってしまうので、残るのが使い終わったコードだけになるように。
+// 中継のページが鍵を localStorage にしまい、そのあとは鍵なしの URL（ブックマーク）で開ける。
+// 以前の版の ?key=<鍵> の URL（ブックマーク）も受け付けるが、kiroku からはもう作らない。
 
 // configDir は kiroku の設定の場所（$KIROKU_CONFIG_DIR、なければ OS の設定の場所の kiroku）。
 func configDir() (string, error) {
@@ -123,8 +127,8 @@ func oldKeyCookie(addr string) string {
 
 // requireKey は、鍵を知っている画面にだけ next を見せる。
 // 鍵は X-Kiroku-Key ヘッダーでだけ受け付ける。Cookie は、ほかのポートのサーバーにも送られて盗まれうるので使わない。
-// ?key=<鍵> で開かれたら、中継のページ（hopKeyPage）が鍵を localStorage にしまい、鍵を消した URL へ移る
-// （鍵がアドレスバーや履歴に残らないように）。GET / とマニフェスト（keyless）だけは鍵なしで通す。そこで返すのは履歴を入れていない画面の骨組みか
+// ?code=<使い捨てのコード>（または以前の版の ?key=<鍵>）で開かれたら、中継のページ（hopKeyPage）が鍵を localStorage にしまい、
+// それを消した URL へ移る。GET / とマニフェスト（keyless）だけは鍵なしで通す。そこで返すのは履歴を入れていない画面の骨組みか
 // 読み込み中の画面で、画面が localStorage の鍵を付けて data.json を読む（ブックマークなどの移動ではヘッダーを付けられないため）。
 func requireKey(addr, key string, next http.Handler) http.Handler {
 	old := oldKeyCookie(addr)
@@ -135,19 +139,29 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 		}
 		get := r.Method == http.MethodGet || r.Method == http.MethodHead
 		q := r.URL.Query()
-		if q.Has("key") {
-			if !get || !match(q.Get("key")) {
+		if q.Has("key") || q.Has("code") {
+			ok, give := false, ""
+			switch {
+			case q.Has("code") && q.Has("key"):
+			case q.Has("code"): // 1 回だけ使える。HEAD で使い切らないよう、GET のときだけ使う
+				ok = r.Method == http.MethodGet && useOpenCode(q.Get("code"))
+				give = key // 鍵はページに入れて渡す（アドレスには使い終わったコードしか残らない）
+			default:
+				ok = get && match(q.Get("key"))
+			}
+			if !ok {
 				locked(w)
 				return
 			}
 			q.Del("key")
+			q.Del("code")
 			to := hopTarget(r.URL.Path)
 			if len(q) > 0 {
 				to += "?" + q.Encode()
 			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Header().Set("Cache-Control", "no-store")
-			_, _ = io.WriteString(w, hopKeyPage(to))
+			_, _ = io.WriteString(w, hopKeyPage(to, give))
 			return
 		}
 		if (get && keyless(r.URL.Path)) || match(r.Header.Get(keyHeader)) {
@@ -191,12 +205,12 @@ const lockedPage = `<!doctype html>
 </html>
 `
 
-// hopKeyScript は、?key= で開かれたときの中継のページのスクリプト。鍵はページに入れず、アドレスから読む
-// （中身が変わらないので、CSP のハッシュは 1 回だけ作る）。形（64 桁の 16 進数）を確かめて localStorage にしまい、
+// hopKeyScript は、?code= か ?key= で開かれたときの中継のページのスクリプト。鍵は #to の data-k（?code= のとき）か、
+// アドレスの ?key= から読む（スクリプトの中身は変わらないので、CSP のハッシュは 1 回だけ作る）。形（64 桁の 16 進数）を確かめて localStorage にしまい、
 // 鍵を消した URL（サーバーが決めた #to のリンク先）へ、ブラウザの履歴に残さずに移る。
 // しまえなかったとき（このアドレスのサイトのデータを止めているなど）は、そう伝える。
 const hopKeyScript = `(() => {
-  const k = new URLSearchParams(location.search).get("key") || "", to = document.getElementById("to"), msg = document.getElementById("msg");
+  const to = document.getElementById("to"), msg = document.getElementById("msg"), k = to.dataset.k || new URLSearchParams(location.search).get("key") || "";
   let ok = false;
   if (/^[0-9a-f]{64}$/.test(k)) try { localStorage.setItem("` + keyStorage + `", k); ok = localStorage.getItem("` + keyStorage + `") === k; } catch(e){}
   if (ok){ location.replace(to.getAttribute("href")); return; }
@@ -205,14 +219,18 @@ const hopKeyScript = `(() => {
   msg.className = "show";
 })();`
 
-// hopKeyPage は、?key= で開かれたときの中継のページ。to は鍵を消した、このサイトの中の URL。
+// hopKeyPage は、?code= か ?key= で開かれたときの中継のページ。to はそれを消した、このサイトの中の URL。
+// give は、ページに入れて渡す鍵（?code= のとき。?key= のときは "" で、スクリプトがアドレスから読む）。
 // スクリプトと <style> は CSP のハッシュで許したものだけで、外へは何も読みにいかず、Referer も送らない。
-func hopKeyPage(to string) string {
-	to = html.EscapeString(to)
+func hopKeyPage(to, give string) string {
+	attrs := ` href="` + html.EscapeString(to) + `"`
+	if give != "" {
+		attrs += ` data-k="` + html.EscapeString(give) + `"`
+	}
 	return "<!doctype html>\n<html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"light dark\">" +
 		"<meta http-equiv=\"Content-Security-Policy\" content=\"" + hopKeyCSP + "\"><meta name=\"referrer\" content=\"no-referrer\">" +
 		"\n<title>kiroku</title>\n" + hopStyle +
-		"\n<p><a id=\"to\" href=\"" + to + "\">Open kiroku</a></p><p id=\"msg\"></p>\n<script>" + hopKeyScript + "</script>\n</html>\n"
+		"\n<p><a id=\"to\"" + attrs + ">Open kiroku</a></p><p id=\"msg\"></p>\n<script>" + hopKeyScript + "</script>\n</html>\n"
 }
 
 // hopKeyCSP は中継のページの CSP。
@@ -244,12 +262,91 @@ const hopStyle = `<style>html{--bg:#f3f4f6;--acc:#4338ca;background:var(--bg);co
 	`a{color:inherit;animation:show .3s 2s forwards}@keyframes show{to{color:var(--acc)}}` +
 	`#msg.show{color:CanvasText;max-width:32em;padding:0 16px}</style>`
 
-// keyURL は鍵つきの URL（url は http://host:port/ の形）。
-func keyURL(url, key string) string { return url + "?key=" + key }
+// openCodeTTL は、kiroku open のコードを使えるあいだ（ほかの機器で --print の URL を打ちこむ時間も見こむ）。
+const openCodeTTL = 10 * time.Minute
 
-// openWithKey は、鍵つきの URL をブラウザで開く。URL をそのままブラウザのコマンドに渡すと、
-// 鍵がプロセスの引数としてほかのユーザーに見えてしまうので、本人しか読めない HTML ファイルを開き、そこから移る。
-func openWithKey(url, key string) error {
+// openCodeDir は、使い捨てのコードを置くフォルダ（鍵と同じ設定のフォルダの中。0700）。
+// コードそのものは置かず、sha256 を名前にした空のファイル（0600）を置く。作った時刻はファイルの時刻。
+const openCodeDir = "open-codes"
+
+// newOpenCode は、kiroku serve の画面を 1 回だけ開ける、使い捨てのコードを作る。古いコードはここで片づける。
+func newOpenCode() (string, error) {
+	dir, err := configDir()
+	if err != nil {
+		return "", err
+	}
+	dir = filepath.Join(dir, openCodeDir)
+	if err := core.PrivateDir(dir); err != nil {
+		return "", err
+	}
+	pruneOpenCodes(dir)
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	code := hex.EncodeToString(b)
+	f, err := os.OpenFile(filepath.Join(dir, openCodeName(code)), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return "", err
+	}
+	return code, f.Close()
+}
+
+// openCodeName は、コードを置くファイルの名前（sha256 の 16 進数）。フォルダを読めても、コードはわからない。
+func openCodeName(code string) string {
+	sum := sha256.Sum256([]byte(code))
+	return hex.EncodeToString(sum[:])
+}
+
+// useOpenCode は、コードが使えるか確かめ、使えるなら使い切る（ファイルを消せたときだけ true。同時に 2 回使われても 1 回だけ通る）。
+func useOpenCode(code string) bool {
+	if len(code) != 64 {
+		return false
+	}
+	if _, err := hex.DecodeString(code); err != nil {
+		return false
+	}
+	dir, err := configDir()
+	if err != nil {
+		return false
+	}
+	path := filepath.Join(dir, openCodeDir, openCodeName(code))
+	st, err := os.Lstat(path)
+	if err != nil || !st.Mode().IsRegular() {
+		return false
+	}
+	if os.Remove(path) != nil {
+		return false
+	}
+	age := time.Since(st.ModTime())
+	return age >= -time.Minute && age <= openCodeTTL // 時計が少し戻っても通す
+}
+
+// pruneOpenCodes は、期限を過ぎたコードのファイルを消す。
+func pruneOpenCodes(dir string) {
+	es, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	for _, e := range es {
+		if st, err := e.Info(); err == nil && st.Mode().IsRegular() && time.Since(st.ModTime()) > openCodeTTL {
+			os.Remove(filepath.Join(dir, e.Name()))
+		}
+	}
+}
+
+// codeURL は使い捨てのコードつきの URL（url は http://host:port/ の形）。
+func codeURL(url string) (string, error) {
+	code, err := newOpenCode()
+	if err != nil {
+		return "", err
+	}
+	return url + "?code=" + code, nil
+}
+
+// openWithKey は、使い捨てのコードつきの URL をブラウザで開く。URL をそのままブラウザのコマンドに渡すと、
+// コードがプロセスの引数としてほかのユーザーに見えてしまうので、本人しか読めない HTML ファイルを開き、そこから移る。
+func openWithKey(url string) error {
 	dir, err := configDir()
 	if err != nil {
 		return err
@@ -257,7 +354,11 @@ func openWithKey(url, key string) error {
 	if err := core.PrivateDir(dir); err != nil {
 		return err
 	}
-	page := hopPage(keyURL(url, key), `<meta name="referrer" content="no-referrer">`)
+	to, err := codeURL(url)
+	if err != nil {
+		return err
+	}
+	page := hopPage(to, `<meta name="referrer" content="no-referrer">`)
 	path := filepath.Join(dir, "open.html")
 	if err := writePrivate(path, []byte(page)); err != nil {
 		return err

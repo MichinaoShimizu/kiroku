@@ -5,9 +5,11 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/web"
 )
@@ -135,7 +137,7 @@ func TestRequireKey(t *testing.T) {
 			t.Errorf("%s: 以前の版の Cookie を消させていない: %+v", target, cs)
 		}
 	}
-	// ?key= は中継のページ。鍵はページに入れず（アドレスから読む）、localStorage にしまうスクリプトだけを CSP で許す
+	// 以前の版の ?key= も中継のページ。鍵はページに入れず（アドレスから読む）、localStorage にしまうスクリプトだけを CSP で許す
 	w := do("GET", "/history?id=s1&key="+key, "", oldCookie)
 	body := w.Body.String()
 	if w.Code != 200 || strings.Contains(body, key) || !strings.Contains(body, `<a id="to" href="/history?id=s1">`) ||
@@ -171,6 +173,88 @@ func TestRequireKey(t *testing.T) {
 	}
 }
 
+// ?code= は使い捨て: 作ってから openCodeTTL のあいだ、GET で 1 回だけ通り、鍵を中継のページに入れて渡す。
+// HEAD・POST・?key= といっしょ・形の違うもの・期限切れ・使い終わったものは通さず、フォルダにはコードそのものを置かない。
+func TestOpenCode(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "kiroku")
+	t.Setenv("KIROKU_CONFIG_DIR", dir)
+	key, _ := serveKey(true)
+	h := requireKey("127.0.0.1:8484", key, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("history")) }))
+	do := func(method, target string) *httptest.ResponseRecorder {
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest(method, target, nil))
+		return w
+	}
+	code, err := newOpenCode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	es, _ := os.ReadDir(filepath.Join(dir, openCodeDir))
+	if len(es) != 1 || strings.Contains(es[0].Name(), code) {
+		t.Fatalf("コードのフォルダ = %v", es)
+	}
+	if st, _ := os.Stat(filepath.Join(dir, openCodeDir, es[0].Name())); runtime.GOOS != "windows" && st.Mode().Perm() != 0o600 {
+		t.Errorf("コードのファイルのモード = %v", st.Mode().Perm())
+	}
+	if st, _ := os.Stat(filepath.Join(dir, openCodeDir)); runtime.GOOS != "windows" && st.Mode().Perm() != 0o700 {
+		t.Errorf("コードのフォルダのモード = %v", st.Mode().Perm())
+	}
+	for _, c := range []struct{ name, method, target string }{
+		{"HEAD", "HEAD", "/?code=" + code},
+		{"POST", "POST", "/?code=" + code},
+		{"?key= といっしょ", "GET", "/?code=" + code + "&key=" + key},
+		{"違うコード", "GET", "/?code=" + strings.Repeat("cd", 32)},
+		{"短いコード", "GET", "/?code=" + code[:63]},
+		{"大文字", "GET", "/?code=" + strings.ToUpper(code)},
+		{"空のコード", "GET", "/?code="},
+		{"鍵をコードとして", "GET", "/?code=" + key},
+		{"コードのファイル名", "GET", "/?code=" + es[0].Name()},
+	} {
+		if w := do(c.method, c.target); w.Code != 403 || strings.Contains(w.Body.String(), key) {
+			t.Errorf("%s: %d %q", c.name, w.Code, w.Body.String())
+		}
+	}
+	// 上の失敗では使い切らない。GET で 1 回だけ通り、鍵は中継のページの data-k で渡す
+	w := do("GET", "/history?id=s1&code="+code)
+	body := w.Body.String()
+	if w.Code != 200 || !strings.Contains(body, `<a id="to" href="/history?id=s1" data-k="`+key+`">`) || strings.Contains(body, code) ||
+		w.Header().Get("Cache-Control") != "no-store" || strings.Count(body, "<script>") != 1 || !strings.Contains(body, "<script>"+hopKeyScript+"</script>") {
+		t.Fatalf("?code= = %d %q", w.Code, body)
+	}
+	if w := do("GET", "/?code="+code); w.Code != 403 || strings.Contains(w.Body.String(), key) {
+		t.Errorf("使い終わったコードがもう一度通った: %d", w.Code)
+	}
+	// 期限切れは通さず、次にコードを作るときに片づける
+	old, _ := newOpenCode()
+	stale := filepath.Join(dir, openCodeDir, openCodeName(old))
+	past := time.Now().Add(-openCodeTTL - time.Minute)
+	if err := os.Chtimes(stale, past, past); err != nil {
+		t.Fatal(err)
+	}
+	if w := do("GET", "/?code="+old); w.Code != 403 {
+		t.Errorf("期限切れのコード = %d", w.Code)
+	}
+	old, _ = newOpenCode()
+	stale = filepath.Join(dir, openCodeDir, openCodeName(old))
+	os.Chtimes(stale, past, past)
+	if _, err := newOpenCode(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Lstat(stale); !os.IsNotExist(err) {
+		t.Errorf("期限切れのコードを片づけていない: %v", err)
+	}
+	// コードのファイルがシンボリックリンクなら通さない
+	if runtime.GOOS != "windows" {
+		link := strings.Repeat("ef", 32)
+		if err := os.Symlink(filepath.Join(dir, keyFile), filepath.Join(dir, openCodeDir, openCodeName(link))); err != nil {
+			t.Fatal(err)
+		}
+		if w := do("GET", "/?code="+link); w.Code != 403 {
+			t.Errorf("シンボリックリンクのコード = %d", w.Code)
+		}
+	}
+}
+
 // ブラウザには鍵つきの URL をそのまま渡さず（プロセスの引数はほかのユーザーにも見える）、本人だけが読める HTML から移る。
 func TestOpenWithKey(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "kiroku")
@@ -179,16 +263,21 @@ func TestOpenWithKey(t *testing.T) {
 	old := openBrowser
 	openBrowser = func(target string) { opened = append(opened, target) }
 	defer func() { openBrowser = old }()
-	key := strings.Repeat("ab", 32)
-	if err := openWithKey("http://localhost:8484/", key); err != nil {
+	key, _ := serveKey(true)
+	if err := openWithKey("http://localhost:8484/"); err != nil {
 		t.Fatal(err)
 	}
-	if len(opened) != 1 || strings.Contains(opened[0], key) {
+	if len(opened) != 1 || strings.Contains(opened[0], key) || strings.Contains(opened[0], "code") {
 		t.Fatalf("ブラウザに渡したもの = %q", opened)
 	}
+	// 開く HTML には鍵を入れず、使い捨てのコードの URL を入れる（ブラウザの履歴に残るのは、使い終わったコードだけ）
 	b, err := os.ReadFile(opened[0])
-	if err != nil || !strings.Contains(string(b), `content="0;url=http://localhost:8484/?key=`+key+`"`) {
+	m := regexp.MustCompile(`content="0;url=http://localhost:8484/\?code=([0-9a-f]{64})"`).FindStringSubmatch(string(b))
+	if err != nil || m == nil || strings.Contains(string(b), key) {
 		t.Fatalf("開く HTML = %q %v", b, err)
+	}
+	if !useOpenCode(m[1]) || useOpenCode(m[1]) {
+		t.Error("開く HTML のコードが、1 回だけ使えるコードになっていない")
 	}
 	if st, _ := os.Stat(opened[0]); runtime.GOOS != "windows" && st.Mode().Perm() != 0o600 {
 		t.Errorf("開く HTML のモード = %v", st.Mode().Perm())
@@ -211,7 +300,7 @@ func TestCmdOpen(t *testing.T) {
 		if err := cmdOpen([]string{"--print", ":18999"}); err != nil {
 			t.Fatal(err)
 		}
-	}); !strings.HasPrefix(out, "http://localhost:18999/?key="+key+"\n") {
+	}); !regexp.MustCompile(`^http://localhost:18999/\?code=[0-9a-f]{64}\n`).MatchString(out) || strings.Contains(out, key) {
 		t.Errorf("--print = %q", out)
 	}
 	probe = func(addr string) int {
@@ -264,7 +353,7 @@ func TestHopPage(t *testing.T) {
 	old := openBrowser
 	openBrowser = func(string) {}
 	defer func() { openBrowser = old }()
-	if err := openWithKey("http://localhost:8484/", strings.Repeat("ab", 32)); err != nil {
+	if err := openWithKey("http://localhost:8484/"); err != nil {
 		t.Fatal(err)
 	}
 	b, _ := os.ReadFile(filepath.Join(dir, "open.html"))
