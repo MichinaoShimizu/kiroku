@@ -1,2 +1,0 @@
-- Escape in the "Analyze with AI" dialog no longer also closes the session details behind it, and the arrow keys, T, W, M and ? no longer change the period behind the open dialog
-- The "Not connected to kiroku serve" page says to reload the page after starting kiroku serve again, since it doesn't reconnect by itself
