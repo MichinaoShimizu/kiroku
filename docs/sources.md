@@ -55,7 +55,7 @@ The store Kiro IDE (v1.0 and later) and Kiro CLI V3 (`kiro-cli --v3`, becoming t
 - Kiro keeps the pre-1.0 copy of a conversation after migrating it to v1.0 ([What's new in 1.0](https://kiro.dev/docs/ide/whats-new-v1/)). A pre-1.0 conversation whose `sessionId` is also the `id` of a v1.0 `session.json` is not counted when that v1.0 conversation has a time or a prompt; the v1.0 one is used, as kiro-history does. v1.0 conversations are never left out for each other, and one without an `id` leaves nothing out. The number left out appears in "Data sources". The pre-1.0 copy's credits and execution files go with it, even when the v1.0 copy records none
 - v1.0 and later: a conversation with no `usage_summary` line counts its `modelId` once when it has a prompt (as pre-1.0 conversations without execution files count `selectedModel`)
 - Kiro CLI 2.30 and later: when a turn falls back to another model, a `session_metadata` line with `key: "modelFallback"` records `from`, `to` and `scope`. A `turn` fallback (matched to its `usage_summary` by `executionId`) counts `to` for that turn only. A `session` fallback rewrites `modelId` in session.json to `to`, so the turns before it count `from`
-- Compactions are not counted: neither format has a marker kiroku can rely on (the formats are not documented, and the reference implementations read none)
+- Compactions are not counted: neither format has a marker kiroku can rely on (the formats are not documented, and the reference implementations read none). Kiro CLI V3's docs say `/compact` is kept as a checkpoint marker, but its layout is not documented yet
 
 `internal/source/kiro.go`
 

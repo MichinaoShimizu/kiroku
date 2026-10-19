@@ -949,7 +949,10 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 // kiroku doctor の「Format check」で知らない種類に数える（event_msg と response_item の中のものは「event_msg:名前」の形）。
 // 名前は codex-rs の protocol（RolloutItem・EventMsg・ResponseItem）から。item_completed の中の TurnItem は数えない
 var (
-	codexKinds = map[string]bool{"session_meta": true, "turn_context": true, "event_msg": true, "response_item": true, "compacted": true, "token_usage_record": true}
+	codexKinds = map[string]bool{"session_meta": true, "turn_context": true, "event_msg": true, "response_item": true, "compacted": true, "token_usage_record": true,
+		// わざと読まないもの（0.162 からの rollout の policy.rs で残す種類。エージェントどうしのやりとり・状態の控えなど）
+		"world_state": true, "retained_context": true, "security_risk_score": true, "inter_agent_communication": true,
+		"inter_agent_communication_metadata": true, "realtime_item": true}
 	// codexEvents の 1 段めは読むもの、残りはわざと読まないもの
 	codexEvents = map[string]bool{
 		"user_message": true, "agent_message": true, "token_count": true, "thread_settings_applied": true, "entered_review_mode": true,
@@ -970,6 +973,7 @@ var (
 		"raw_response_item": true, "model_reroute": true,
 		"collab_agent_spawn_begin": true, "collab_agent_spawn_end": true, "collab_agent_interaction_begin": true, "collab_agent_interaction_end": true,
 		"collab_waiting_begin": true, "collab_waiting_end": true, "collab_close_begin": true, "collab_close_end": true,
+		"thread_goal_updated": true, "sub_agent_activity": true,
 	}
 	// codexItems の 1 段めは読むもの、残りはわざと読まないもの
 	codexItems = map[string]bool{
@@ -978,6 +982,8 @@ var (
 
 		"reasoning": true, "function_call_output": true, "custom_tool_call_output": true, "tool_search_output": true,
 		"ghost_snapshot": true, "compaction": true, "compaction_summary": true, "other": true,
+		// agent_message はエージェントどうしのメッセージ（author・recipient つき）で、あなたのプロンプトでも返事でもない
+		"agent_message": true, "additional_tools": true, "configuration_update": true, "context_compaction": true,
 	}
 )
 

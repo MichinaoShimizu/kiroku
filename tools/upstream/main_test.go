@@ -23,6 +23,13 @@ func TestKiroLatest(t *testing.T) {
 	if v, err := kiroLatest(page, "ide"); err != nil || v != "1.3" {
 		t.Errorf("ide = %q, %v", v, err)
 	}
+	// パッチの版（2-31-1）も見る。2-31-1 は 2-31 より新しく、2-32 より古い
+	if v, err := kiroLatest(append(page, `<a href="/changelog/cli/2-31-1/">e</a><a href="/changelog/ide/1-3-11/">f</a>`...), "cli"); err != nil || v != "2.31.1" {
+		t.Errorf("cli patch = %q, %v", v, err)
+	}
+	if v, err := kiroLatest(append(page, `<a href="/changelog/ide/1-3-11/">f</a><a href="/changelog/ide/1-4/">g</a>`...), "ide"); err != nil || v != "1.4" {
+		t.Errorf("ide after a patch = %q, %v", v, err)
+	}
 	if _, err := kiroLatest([]byte(`<html>changed</html>`), "cli"); err == nil {
 		t.Error("want an error when the page has no entries")
 	}
