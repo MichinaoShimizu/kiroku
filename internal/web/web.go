@@ -218,16 +218,37 @@ func withCSP(page string, live bool) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if !strings.Contains(page, cspMark) {
+	at := strings.Index(page, cspMark)
+	if at < 0 {
 		return "", errors.New("CSP の置き場がない")
 	}
+	// ページは履歴で数十 MB になるので、差しこみは 1 回のコピーで済ませる
+	type insert struct {
+		at, n int // 位置と、置きかえる長さ
+		s     string
+	}
+	csp := policy(js, css, live)
+	ins := []insert{{at, len(cspMark), csp}}
 	if live { // kiroku serve の画面はアプリとしてインストールできる。保存した HTML（file://）には入れない
 		if strings.Count(page, titleTag) != 1 {
 			return "", errors.New(titleTag + " がちょうど 1 つではない")
 		}
-		page = strings.Replace(page, titleTag, titleTag+"\n"+manifestLink, 1)
+		end := strings.Index(page, titleTag) + len(titleTag)
+		ins = append(ins, insert{end, 0, "\n" + manifestLink})
+		if end < at {
+			ins[0], ins[1] = ins[1], ins[0]
+		}
 	}
-	return strings.Replace(page, cspMark, policy(js, css, live), 1), nil
+	var b strings.Builder
+	b.Grow(len(page) + len(csp) + len(manifestLink) + 1)
+	prev := 0
+	for _, x := range ins {
+		b.WriteString(page[prev:x.at])
+		b.WriteString(x.s)
+		prev = x.at + x.n
+	}
+	b.WriteString(page[prev:])
+	return b.String(), nil
 }
 
 // policy は CSP の中身。style の要素はハッシュで縛り、style 属性（色の --c など）は許す。

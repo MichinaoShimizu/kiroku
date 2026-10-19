@@ -1,7 +1,9 @@
 // kiroku serve の鍵を、本物のブラウザで確かめる（CI の e2e）。
 //   go build -o /tmp/kiroku . && python3 -I tools/screenshots/gen.py /tmp/gen && node tools/screenshots/serve.mjs /tmp/kiroku /tmp/gen
 // ダミーの履歴（gen.py）だけを読む kiroku serve を、使い捨ての HOME と設定の場所で空いているポートに立て、
-//   - /?key= で開くと履歴が出て、アドレスから鍵が消え、鍵の Cookie はない
+//   - kiroku open --print の使い捨てのコード（?code=）で開くと履歴が出て、どの URL にも鍵が載らない（ブラウザの履歴に鍵が残らない）。
+//     鍵は中継のページの POST の答えでだけ受け取り、コードは 2 回目には使えない
+//   - 以前の版の /?key= で開いても履歴が出て、アドレスから鍵が消え、鍵の Cookie はない
 //   - 鍵なしの / を開き直しても出る（localStorage の鍵）。履歴ファイルの「Open」は鍵を付けて読んで保存する
 //   - 鍵のないブラウザ（新しいコンテキスト）は、案内だけで履歴を見ない。data.json も 403
 //   - 画面から同じコンピューターのほかのポートのサーバーへ移っても、鍵はどの問い合わせにも載らない（Cookie にも、ほかのところにも）
@@ -10,7 +12,7 @@
 //   - 偽の codex での実行: 返事の確認と「直してもらう」、届いた分から見える返事、エージェントの失敗、Cancel で止めるとエージェントとその子が残らない
 // を見る。Playwright が必要（smoke.mjs と同じ）。
 import { chromium } from "playwright";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -59,6 +61,27 @@ try {
   const errors = [];
   p.on("pageerror", e => errors.push(e.message));
   p.on("console", m => { if (m.type() === "error" && /Content Security Policy|Refused/.test(m.text())) errors.push(m.text()); });
+
+  // kiroku open --print の使い捨てのコード。開いた URL（ブラウザの履歴に残るもの）のどれにも鍵が載らない
+  const pc = await (await b.newContext()).newPage();
+  const visited = [];
+  pc.on("request", r => visited.push(r.url()));
+  const once = execFileSync(path.resolve(bin), ["open", "--print", `127.0.0.1:${port}`], { env, encoding: "utf8" }).split("\n")[0].trim();
+  check("kiroku open --print は使い捨てのコードの URL で、鍵を出さない", /^http:\/\/localhost:\d+\/\?code=[0-9a-f]{64}$/.test(once) && !once.includes(key), once);
+  await pc.goto(once);
+  await pc.waitForURL(u => !u.search.includes("code="), { timeout: 10000 });
+  await pc.waitForSelector(".run[data-sid]", { timeout: 15000 });
+  check("?code= で開くと履歴が出て、鍵は localStorage にある", await pc.evaluate(() => localStorage.getItem("kiroku:key")) === key);
+  check("開いた URL のどれにも鍵が載らない", !visited.some(u => u.includes(key)), JSON.stringify(visited));
+  // 使い終わったコードでは鍵を受け取れず、そう伝える（アドレスからコードも消す）
+  const pa = await (await b.newContext()).newPage();
+  await pa.goto(once);
+  await pa.waitForSelector("#msg.show", { timeout: 10000 });
+  check("使い終わったコードでは鍵を受け取れず、そう伝える", /already used or has expired/.test(await pa.locator("#msg").innerText()) &&
+    await pa.evaluate(() => localStorage.getItem("kiroku:key")) === null && !pa.url().includes("code="), pa.url());
+  // 中継のページの HTML（GET の答え）に鍵は入らない（リンクのプレビューなどが受け取らないように）
+  const hop = await (await fetch(once)).text();
+  check("?code= の GET の答えに鍵が入らない", !hop.includes(key));
 
   await p.goto(`${base}/?key=${key}`);
   await p.waitForURL(u => !u.search.includes("key="), { timeout: 10000 });
@@ -260,7 +283,13 @@ esac
   await pd.locator("#srun").click();
   await pd.waitForSelector("#ai-review-dialog", { timeout: 5000 });
   check("Codex のセッションの振り返りは、Codex を選んでおく", await pd.locator("#ai-review-dialog select").inputValue() === "codex");
-  await pd.locator("#ai-review-dialog button", { hasText: "Close" }).click();
+  // ダイアログのあいだのキーは、うしろの画面を動かさない: ← で週が変わらず、Escape はダイアログだけを閉じる（詳細は開いたまま）
+  const wk0 = await pd.evaluate(() => st.week.getTime());
+  await pd.locator("#ai-review-dialog button", { hasText: "Close" }).focus();
+  await pd.keyboard.press("ArrowLeft"); await pd.keyboard.press("m");
+  await pd.keyboard.press("Escape");
+  check("AI 分析のダイアログのキーは、うしろの画面を動かさない", !(await pd.evaluate(() => document.getElementById("ai-review-dialog")?.open)) &&
+    await pd.evaluate(() => [st.sel, st.mode, st.week.getTime()]).then(([sel, mode, w]) => sel === cx && mode === "week" && w === wk0));
   await pd.keyboard.press("Escape");
   await pd.waitForSelector("#rptbar #rptrun", { timeout: 5000 });
   const want = await pd.evaluate(() => aiAgentIn(period().ws, period().we));

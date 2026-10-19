@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -23,7 +24,7 @@ const out = "docs/upstream/agents.md"
 
 var (
 	semver    = regexp.MustCompile(`^[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,6}$`)
-	kiroEntry = regexp.MustCompile(`href="/changelog/(cli|ide)/([0-9]{1,3})-([0-9]{1,3})/?[#"]`)
+	kiroEntry = regexp.MustCompile(`href="/changelog/(cli|ide)/([0-9]{1,3})-([0-9]{1,3})(?:-([0-9]{1,3}))?/?[#"]`) // 2-31 と、パッチの 2-31-1
 )
 
 type agent struct {
@@ -116,19 +117,26 @@ func npmVersion(b []byte) (string, error) {
 
 // kiroLatest は kiro.dev/changelog の記事へのリンク（/changelog/cli/2-31/ など）から、いちばん新しい版（2.31）。
 func kiroLatest(page []byte, kind string) (string, error) {
-	best := [2]int{-1, -1}
+	best := [3]int{-1, -1, -1} // パッチのない 2-31 は -1 にして、2-31-0 より前に並べる
 	for _, m := range kiroEntry.FindAllSubmatch(page, -1) {
 		if string(m[1]) != kind {
 			continue
 		}
-		maj, _ := strconv.Atoi(string(m[2]))
-		min, _ := strconv.Atoi(string(m[3]))
-		if maj > best[0] || (maj == best[0] && min > best[1]) {
-			best = [2]int{maj, min}
+		v := [3]int{-1, -1, -1}
+		for i := range v {
+			if len(m[i+2]) > 0 {
+				v[i], _ = strconv.Atoi(string(m[i+2]))
+			}
+		}
+		if slices.Compare(v[:], best[:]) > 0 {
+			best = v
 		}
 	}
 	if best[0] < 0 {
 		return "", fmt.Errorf("no %s entries on the changelog page (its format may have changed)", kind)
 	}
-	return fmt.Sprintf("%d.%d", best[0], best[1]), nil
+	if best[2] < 0 {
+		return fmt.Sprintf("%d.%d", best[0], best[1]), nil
+	}
+	return fmt.Sprintf("%d.%d.%d", best[0], best[1], best[2]), nil
 }

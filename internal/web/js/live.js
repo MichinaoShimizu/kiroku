@@ -36,7 +36,7 @@ function showLocked(key){
   if (key) box.append(el("h2", t("Open kiroku with its key")), el("p", t("kiroku serve shows your history only to a browser that has its key, so that other users of this computer can't read it.")),
     withCmd(t("Run {cmd} in a terminal to open this page with the key. After that, this browser can open it without the key."), "kiroku open"),
     withCmd(t("To open it on another device, run {cmd} and open the address it prints there."), "kiroku open --print"));
-  else box.append(el("h2", t("Not connected to kiroku serve")), el("p", t("Not connected to kiroku serve. If you stopped it, start it again to resume.")));
+  else box.append(el("h2", t("Not connected to kiroku serve")), el("p", t("If you stopped it, start it again, then reload this page.")));
   $("main").after(box);
 }
 async function openShell(){

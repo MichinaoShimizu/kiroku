@@ -60,7 +60,7 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | `internal/cli/autostart.go` | `kiroku autostart` (a launchd agent on macOS, a systemd user service on Linux) |
 | `internal/cli/scope.go` | `kiroku html --week` / `--month` (keeps only one period's sessions, commits and pushes) |
 | `internal/cli/serve.go` | `kiroku serve` (watches history for changes, reloads, and pushes to the view) |
-| `internal/cli/servekey.go` | The key of `kiroku serve` (`serve-key`, `0600`; the `X-Kiroku-Key` header and the `?key=` page that stores it in the browser) |
+| `internal/cli/servekey.go` | The key of `kiroku serve` (`serve-key`, `0600`; the `X-Kiroku-Key` header, the one-time `?code=` of `kiroku open` (`open-codes/`) and the page that stores the key in the browser) |
 | `internal/cli/open.go` | `kiroku open` |
 | `internal/cli/diagnose.go` | "Format check" and `kiroku doctor --report` (only counts, versions and record kinds that look like identifiers; never paths or history text) |
 | `internal/cli/progress.go` | The progress of the first load of `kiroku serve`, shown by the loading page through `/progress` (agent names, counts and times only) |

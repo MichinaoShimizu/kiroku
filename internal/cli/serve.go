@@ -636,7 +636,7 @@ func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []
 	fmt.Fprintln(l.print, st.dim("only browsers with its key can open it (to protect it from other users of this computer); \"kiroku open\" opens it with the key"))
 	fmt.Fprintln(l.print, st.dim(aiStartLine(enableAI, aiAddr)))
 	if open {
-		if err := openWithKey(url, key); err != nil {
+		if err := openWithKey(url); err != nil {
 			fmt.Fprintf(l.print, "could not open a browser: %v\n", err)
 		}
 	}

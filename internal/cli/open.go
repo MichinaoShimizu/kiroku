@@ -6,10 +6,10 @@ import (
 )
 
 // cmdOpen は kiroku open: 動いている kiroku serve の画面を、鍵をつけてブラウザで開く。
-// --print は開かずに鍵つきの URL を出す（ほかの機器で開くとき）。
+// --print は開かずに、使い捨てのコードつきの URL を出す（ほかの機器で開くとき）。
 func cmdOpen(args []string) error {
 	fs := newFS("open", "open [flags] [ADDR]\n\nOpens the view of a running \"kiroku serve\" in your browser with its key.\nkiroku serve shows your history only to browsers that have the key, so that other users of\nthis computer can't read it. A browser needs this once; after that, the plain address works.\nADDR defaults to the address \"kiroku autostart\" uses, or "+defaultAddr+".")
-	printURL := fs.Bool("print", false, "print the address with the key instead of opening a browser (to open the view on another device); anyone with this address can read your history")
+	printURL := fs.Bool("print", false, "print a one-time address instead of opening a browser (to open the view on another device); it works once, within 10 minutes, and anyone who opens it first can read your history")
 	pos, err := parse(fs, args, 1)
 	if err != nil {
 		return quiet(err)
@@ -25,13 +25,16 @@ func cmdOpen(args []string) error {
 			addr = a
 		}
 	}
-	key, err := serveKey(false)
-	if err != nil {
+	if _, err := serveKey(false); err != nil {
 		return err
 	}
 	url := viewURL(addr)
 	if *printURL {
-		fmt.Println(keyURL(url, key))
+		to, err := codeURL(url)
+		if err != nil {
+			return err
+		}
+		fmt.Println(to)
 		if strings.HasPrefix(url, "http://localhost:") {
 			fmt.Println("(on another device, replace localhost with this computer's address; kiroku serve must listen on it, e.g. \"kiroku serve 0.0.0.0:8484\")")
 		}
@@ -40,7 +43,7 @@ func cmdOpen(args []string) error {
 	if probe(probeAddr(addr)) == noAnswer {
 		return fmt.Errorf("nothing answers at %s; start it with \"kiroku serve\" (or \"kiroku autostart on\")", url)
 	}
-	if err := openWithKey(url, key); err != nil {
+	if err := openWithKey(url); err != nil {
 		return err
 	}
 	fmt.Printf("opening %s in your browser\n", url)

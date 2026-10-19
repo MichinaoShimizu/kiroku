@@ -1,0 +1,1 @@
+- `kiroku doctor`'s "Format check" no longer reports record kinds that Codex 0.162 and later write as a matter of course (such as `world_state`, `retained_context`, `inter_agent_communication` and agent-to-agent `agent_message` items) as unknown
