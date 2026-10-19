@@ -10,7 +10,7 @@ A change that breaks one of these is marked `BREAKING` in the changelog and, fro
 
 - **Commands**: `serve`, `open`, `html`, `json`, `stats`, `archive`, `autostart`, `doctor`, `version`, `update` and `help`, and their arguments (such as `archive on|off` and the `ADDR` of `serve`)
 - **Options**: the names, meanings and defaults listed under [Options](guide.md#options)
-- **Environment variables** kiroku reads: `KIROKU_ARCHIVE_DIR`, `KIROKU_CONFIG_DIR`, and the agents' own (`CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME`)
+- **Environment variables** kiroku reads: `KIROKU_ARCHIVE_DIR`, `KIROKU_CONFIG_DIR`, `KIROKU_LANG`, `KIROKU_NO_AI`, and the agents' own (`CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME`)
 - **Exit status**: 0 on success, and not 0 when a command fails
 - **The fields of `kiroku json` listed under [The JSON of kiroku json](#the-json-of-kiroku-json)**, as long as `schemaVersion` stays the same
 - **The `--prices` file**: the JSON format described in [How you used AI](guide.md#how-you-used-ai), both the object and the array form

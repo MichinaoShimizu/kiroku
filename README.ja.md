@@ -10,7 +10,7 @@
 
 kiroku は、Claude Code、Kiro（IDE・CLI・Kiro Crew）、Amazon Q Developer CLI、Codex CLI のローカル履歴を 1 つにまとめます。アカウント・テレメトリ・アップロードは不要です。AI エージェントが動くのは、`kiroku serve` の「AI 分析」で実行を確認したときだけです。
 
-**[デモを試す →](https://michinaoshimizu.github.io/kiroku/)**（ダミーデータ。ブラウザだけで動きます）
+**[デモを試す →](https://michinaoshimizu.github.io/kiroku/)**（ダミーデータ。ブラウザーだけで動きます）
 
 [![週のカレンダー、セッションの詳細、トークンの内訳、検索、月の表示（ダミーデータ）](docs/demo.gif)](https://michinaoshimizu.github.io/kiroku/)
 
@@ -33,7 +33,7 @@ kiroku serve    # http://localhost:8484/ で画面を開く
 インストーラーは、ダウンロードしたファイルを `checksums.txt` で確かめます。[GitHub CLI](https://cli.github.com/) があれば、ビルドの来歴（build provenance）も確かめます。Windows では [Releases](https://github.com/MichinaoShimizu/kiroku/releases) の zip を、Go があれば `go install github.com/MichinaoShimizu/kiroku@latest` を使ってください。詳しくは[ガイド](docs/guide.md#install)（英語）にあります。
 
 > [!IMPORTANT]
-> **Claude Code は、既定では 30 日より古い会話を消します。** kiroku が見せられるのは、残っている履歴だけです。`~/.claude/settings.json` に `"cleanupPeriodDays": 3650` を設定するか（[公式ドキュメント](https://code.claude.com/docs/en/settings-reference#cleanupperioddays)）、`kiroku archive on` で kiroku に圧縮した写しを残させてください（[詳しく](docs/guide.md#keep-a-copy-of-history-in-kiroku)）。
+> **Claude Code は、既定では 30 日より古い会話を消します。** kiroku が見せられるのは、残っている履歴だけです。`~/.claude/settings.json` に `"cleanupPeriodDays": 3650` を設定するか（[公式ドキュメント](https://code.claude.com/docs/en/settings-reference#cleanupperioddays)）、`kiroku archive on` で kiroku に圧縮したコピーを残させてください（[詳しく](docs/guide.md#keep-a-copy-of-history-in-kiroku)）。
 
 ## できること
 
@@ -57,7 +57,7 @@ kiroku serve    # http://localhost:8484/ で画面を開く
 
 **全期間を検索。** プロンプト・編集したファイル・コミットを、合った箇所の抜粋つきで探せます。
 
-画面は、ブラウザの言語が日本語なら日本語で表示されます。右上のボタン（または `--lang`）で English と日本語を切り替えられます。
+画面は、ブラウザーの言語が日本語なら日本語で表示されます。右上のボタン（または `--lang`）で English と日本語を切り替えられます。
 
 ## 振り返りとアドバイスは、あなたのエージェントが書く
 
@@ -71,9 +71,9 @@ kiroku serve    # http://localhost:8484/ で画面を開く
 
 アドバイスはよくある一般論ではなく、あなたの履歴に基づきます。どの指摘にも、根拠（数字、時刻つきのプロンプト、kiroku が数えた兆候）が書かれます。履歴に表れていれば、次のことに触れます。
 
-- **プロンプトの書き方**: 足りなかった背景・制約・完了の条件、最初のプロンプトがはっきりしていれば要らなかった手直し
+- **プロンプトの書き方**: 足りなかった背景・制約・完了の条件、最初のプロンプトがはっきりしていれば要らなかった言い直し
 - **エージェントの使い方**: 作業の分け方と順番、結果の確かめ方、長いセッション、待ち時間
-- **モデルとコンテキスト**: 作業に合ったモデルか（たとえば 1 行の質問に Opus 級のモデル）、長くなった会話、コンパクション、プロジェクトの切り替え
+- **モデルとコンテキスト**: 作業に合ったモデルか（たとえば 1 行の質問に Opus 系のモデル）、長くなった会話、コンパクション、プロジェクトの切り替え
 - **プロンプトから外に出せること**: 何度も打っている指示はスキルやプロジェクトのエージェント向けの指示に、別の役割はサブエージェントに、決まった手順はスクリプトに
 
 ダミーの履歴から書かせた週報の抜粋（英語）:
@@ -86,7 +86,7 @@ kiroku serve    # http://localhost:8484/ で画面を開く
 ## プライバシー
 
 - 履歴は PC の外に出ません。テレメトリも、アカウントも、AI サービスもありません（ただし `kiroku serve` の「AI 分析」で実行を確認したときは、選んだエージェントが、プロンプトと読んだ履歴をその提供元に送ることがあります。`kiroku serve --no-ai` で、エージェントの実行を切れます）。ネットワークを使うのは、kiroku 自身の新しい版を GitHub で確かめてダウンロードするときだけです。
-- kiroku が履歴から書くファイルは、あなたしか読めません。`kiroku serve` は `127.0.0.1` で待ち受け、鍵を持つブラウザにだけ開きます。
+- kiroku が履歴から書くファイルは、あなたしか読めません。`kiroku serve` は `127.0.0.1` で待ち受け、鍵を持つブラウザーにだけ開きます。
 - HTML には、プロンプト・AI の応答・ファイルのパス・コミットメッセージがそのまま入っています。人に渡す前に中身を確かめてください。
 - 振り返りと報告のプロンプトは、PC 上の AI エージェントに履歴ファイルの場所を教え、エージェントはそれを読みます。履歴を任せられるエージェントを使ってください。
 
@@ -96,7 +96,7 @@ kiroku serve    # http://localhost:8484/ で画面を開く
 
 ```bash
 kiroku serve              # http://localhost:8484/ の画面。新しい履歴が入るたびに更新
-kiroku open               # 別のブラウザで開く（最初に一度 serve の鍵が要る）
+kiroku open               # 別のブラウザーで開く（最初に一度 serve の鍵が要る）
 kiroku autostart on       # ログインのたびに kiroku serve を起動（macOS と Linux）
 kiroku stats --week last  # 先週の時間・トークン・費用・コミットを、エージェント・モデル・プロジェクト別に端末に 1 画面で
 kiroku html --week last   # 先週だけを 1 つの HTML に書き出して、人に見せる
