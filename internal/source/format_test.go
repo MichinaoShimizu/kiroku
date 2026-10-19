@@ -58,6 +58,19 @@ func TestCodexFormat(t *testing.T) {
 		`{"timestamp":"2026-10-06T00:00:05.000Z","type":"response_item","payload":{"type":"brand_new_call","name":"x"}}`,
 		`{"timestamp":"2026-10-06T00:00:06.000Z","type":"rollout_extra","payload":{}}`,
 		`{"timestamp":"2026-10-06T00:00:07.000Z","type":"event_msg","payload":{"type":"agent_message","message":"done"}}`,
+		// 0.162 から Codex が残す種類は、知っていて読まないもの（知らない種類に数えない）
+		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"world_state","payload":{}}`,
+		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"retained_context","payload":{}}`,
+		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"security_risk_score","payload":{}}`,
+		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"inter_agent_communication","payload":{}}`,
+		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"inter_agent_communication_metadata","payload":{}}`,
+		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"realtime_item","payload":{}}`,
+		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"event_msg","payload":{"type":"thread_goal_updated"}}`,
+		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"event_msg","payload":{"type":"sub_agent_activity"}}`,
+		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"response_item","payload":{"type":"agent_message","author":"a","recipient":"b","content":[]}}`,
+		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"response_item","payload":{"type":"additional_tools"}}`,
+		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"response_item","payload":{"type":"configuration_update"}}`,
+		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"response_item","payload":{"type":"context_compaction"}}`,
 		`{broken`,
 	)
 	bs := load(t, &Codex{Home: home})
