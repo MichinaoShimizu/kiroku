@@ -176,7 +176,7 @@ async function runAIReview(button, prompt, title, prefer = "") { // prefer: 最�
     if (fixes >= AI_FIX_MAX){ note(t("Still not fixed after {n}. Fix it by hand, or run the original prompt again.", {n: plural(fixes, "try", "tries")})); return P.length; }
     let fix; try { fix = aiFixPrompt(prompt, text, P); } catch { return P.length; }
     if (utf8Len(JSON.stringify({agent: agent.value, prompt: fix, consent: true})) > AI_RUN_MAX){ note(t("A prompt to fix it would be too long to run here.")); return P.length; }
-    note(t("\u201cAsk to fix\u201d puts a prompt to fix them in the box above. Nothing is sent until you press Run."));
+    note(t("\u201cAsk to fix\u201d opens the prompt and adds a request to fix them. Nothing is sent until you press Run."));
     fixBtn = pill(t("Ask to fix"));
     fixBtn.onclick = () => { // 送らずに、直してもらうプロンプトを入れるだけ。送るのは Run を押したとき
       fixes++; fixing = true; preview.value = fix; preview.classList.remove("small");
@@ -186,7 +186,7 @@ async function runAIReview(button, prompt, title, prefer = "") { // prefer: 最�
       showCheck(); preview.scrollTop = preview.scrollHeight; preview.focus(); };
     return P.length; };
   // 状態の 1 行に、確認の結果を足す（読み上げにも届くように）
-  const checked = (base, n, wasFix) => { const sep = JA ? (/。$/.test(base) ? "" : "。") : " ";
+  const checked = (base, n, wasFix) => { const sep = JA ? (/。$/.test(base) ? "" : "。") : (/[.!?]$/.test(base) ? " " : ". ");
     return base + (n ? sep + t("kiroku's check found {n}.", {n: plural(n, "problem")}) : wasFix ? sep + t("kiroku's check found no problems.") : ""); };
   const last = AI_LAST.get(key); // 前に同じプロンプトで得た結果
   if (last){ if ([...agent.options].some(o => o.value === last.agent)) agent.value = last.agent; text = last.text; showResult(true); drawn = -1; draw(); copyResult.hidden = false; start.textContent = t("Run again"); inToggle.hidden = false; setInputs(false); status.textContent = checked(t("Last result with {agent}", {agent: aiName(last.agent)}), showCheck(), false); }
