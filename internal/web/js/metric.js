@@ -1,6 +1,6 @@
 // 上の帯とサマリーの数字を押したときの内訳（日ごと・エージェントごと・プロジェクトごと・モデルごと・セッション）
 /* ── 数字の内訳 ──
-   上の帯とサマリーの数字（トークン・目安コスト・月末の見込み・クレジット・作業時間など）を押すと、画面の真ん中のダイアログで内訳を出す。
+   上の帯とサマリーの数字（トークン・目安コスト・月末の推定・クレジット・作業時間など）を押すと、画面の真ん中のダイアログで内訳を出す。
    日ごと・エージェントごと・プロジェクトごと・モデルごとは期間の集計（Go）をそのまま使うので、合計と一致する。
    セッションの一覧だけは、期間にかかったセッションの、セッション全体の値（期間の外の分も入る） */
 const BRK = {
@@ -216,7 +216,7 @@ function openMetric(id, from){
   const projs = (w.projectStats || []).map(p => ({name: p.project, c: projColor(p.project), v: m.v ? m.v(p) || 0 : 0}));
   let big = "", body = "", title = t(m.n); // 内訳によっては、状態に合わせた見出しにする（MB が title を返す）
   if (MB[id]){ const r = MB[id](w, {ws, we, inRange}); if (!r) return; ({big, body} = r); if (r.title) title = r.title; }
-  else if (m.proj){ // 月末の見込み：今日までの実績 ÷ 日数 × 月の日数
+  else if (m.proj){ // 月末の推定：今日までの実績 ÷ 日数 × 月の日数
     const pj = projection(w), so = m.proj === "cost" ? costOf(u) : u.credits; if (!pj || so == null) return;
     const val = m.proj === "cost" ? pj.cost : pj.credits, nd = w.days.length, avg = so / pj.days;
     big = `≈ ${m.f(val)}`;
@@ -246,7 +246,7 @@ function openMetric(id, from){
       body += mSessions(id === "active" ? "Longest sessions" : id === "sessions" ? "Sessions with the most prompts" : id === "tokens" ? "Sessions with the most tokens" : id === "cost" ? "Heaviest sessions" : "Sessions with the most credits", top, m.f);
       if (top.length && id !== "active") body += WHOLE(); }
   }
-  // 帯の使用量と月末の見込みは、推定費用とクレジットを 1 つの枠に並べるので、費用の内訳からクレジットの内訳へ移れるように
+  // 帯の使用量と月末の推定は、推定費用とクレジットを 1 つの枠に並べるので、費用の内訳からクレジットの内訳へ移れるように
   const go = (id === "cost" || id === "tokens") && u.credits ? "credits" : id === "projection" && projection(w)?.credits != null ? "projectionCr" : "";
   if (go) body += `<p><button class="pill" type="button" data-go="${go}">${esc(t(go === "credits" ? "Kiro credits breakdown" : "Month-end credits breakdown"))}</button></p>`;
   // 英語は「. 」と大文字の前（「.」は残す）で、日本語（HELP の訳）は最初の「。」の後ろで切る

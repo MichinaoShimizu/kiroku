@@ -283,7 +283,13 @@ esac
   await pd.locator("#srun").click();
   await pd.waitForSelector("#ai-review-dialog", { timeout: 5000 });
   check("Codex のセッションの振り返りは、Codex を選んでおく", await pd.locator("#ai-review-dialog select").inputValue() === "codex");
-  await pd.locator("#ai-review-dialog button", { hasText: "Close" }).click();
+  // ダイアログのあいだのキーは、うしろの画面を動かさない: ← で週が変わらず、Escape はダイアログだけを閉じる（詳細は開いたまま）
+  const wk0 = await pd.evaluate(() => st.week.getTime());
+  await pd.locator("#ai-review-dialog button", { hasText: "Close" }).focus();
+  await pd.keyboard.press("ArrowLeft"); await pd.keyboard.press("m");
+  await pd.keyboard.press("Escape");
+  check("AI 分析のダイアログのキーは、うしろの画面を動かさない", !(await pd.evaluate(() => document.getElementById("ai-review-dialog")?.open)) &&
+    await pd.evaluate(() => [st.sel, st.mode, st.week.getTime()]).then(([sel, mode, w]) => sel === cx && mode === "week" && w === wk0));
   await pd.keyboard.press("Escape");
   await pd.waitForSelector("#rptbar #rptrun", { timeout: 5000 });
   const want = await pd.evaluate(() => aiAgentIn(period().ws, period().we));
