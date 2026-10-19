@@ -60,7 +60,7 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | `internal/cli/autostart.go` | `kiroku autostart` (a launchd agent on macOS, a systemd user service on Linux) |
 | `internal/cli/scope.go` | `kiroku html --week` / `--month` (keeps only one period's sessions, commits and pushes) |
 | `internal/cli/serve.go` | `kiroku serve` (watches history for changes, reloads, and pushes to the view) |
-| `internal/cli/servekey.go` | The key of `kiroku serve` (`serve-key`, `0600`; the `X-Kiroku-Key` header and the `?key=` page that stores it in the browser) |
+| `internal/cli/servekey.go` | The key of `kiroku serve` (`serve-key`, `0600`; the `X-Kiroku-Key` header, the one-time `?code=` of `kiroku open` (`open-codes/`) and the page that stores the key in the browser) |
 | `internal/cli/open.go` | `kiroku open` |
 | `internal/cli/stats.go` | `kiroku stats` |
 | `internal/cli/cache.go` | On reload, skips history unchanged since last time (using a per-agent fingerprint and the per-conversation marks of `source.Splitter`) |
