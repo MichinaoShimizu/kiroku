@@ -69,7 +69,7 @@ go test ./internal/cli -run '^$' -bench Large -benchtime 3x -benchmem   # 前回
 | F. prompts | `/report-eval check` | 日報・週報・振り返りのプロンプトの正しさと長さ（前回の点数と比べる） |
 | G. code | general-purpose | 時刻・乱数・順番・機械の速さに頼るテスト、使われていないコード、握りつぶしたエラー、テストのない分岐、`runtime.GOOS` で分かれるところ |
 | H. arch | general-purpose | 前回からの変更が SECURITY.md・docs/compatibility.md の約束に反していないか、パッケージの境界と依存の向き（docs/development.md の表）の古さ |
-| I. supply | general-purpose | ワークフローのアクションの SHA 固定と `permissions`、必須チェックの設定（e2e が必須か）、release と install.sh の検証、依存の更新 |
+| I. supply | general-purpose | ワークフローのアクションの SHA 固定と `permissions`、必須チェックの設定（e2e が必須か）、release と install.sh の検証、依存の更新。Go の依存は、govulncheck がまだ知らない GitHub の advisory（GHSA）も各モジュールで確かめる（2026-10-18 に compress の GHSA を見つけた） |
 | J. perf | 自分で | 1 のベンチマークの前回との差（±15% を超えたら原因を調べる）、大きな履歴での `kiroku serve` のメモリ、画面の描画（1 MB の AI の返事など） |
 
 - quick は A（前回からの変更だけ）・B（シナリオ 1 と 2）・C
