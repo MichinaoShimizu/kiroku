@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -149,7 +150,7 @@ func TestRequireKey(t *testing.T) {
 		t.Errorf("中継のページの Cache-Control = %q", w.Header().Get("Cache-Control"))
 	}
 	if !strings.Contains(body, `content="`+hopKeyCSP+`"`) || !strings.Contains(hopKeyCSP, "default-src 'none'") || !strings.Contains(hopKeyCSP, cspHash(hopKeyScript)) ||
-		strings.Contains(hopKeyCSP, "unsafe-inline") || strings.Contains(hopKeyCSP, "connect-src") {
+		strings.Contains(hopKeyCSP, "unsafe-inline") || !strings.Contains(hopKeyCSP, "connect-src 'self';") {
 		t.Errorf("中継のページの CSP = %q", hopKeyCSP)
 	}
 	if strings.Count(body, "<script>") != 1 || !strings.Contains(body, "<script>"+hopKeyScript+"</script>") {
@@ -173,85 +174,154 @@ func TestRequireKey(t *testing.T) {
 	}
 }
 
-// ?code= は使い捨て: 作ってから openCodeTTL のあいだ、GET で 1 回だけ通り、鍵を中継のページに入れて渡す。
-// HEAD・POST・?key= といっしょ・形の違うもの・期限切れ・使い終わったものは通さず、フォルダにはコードそのものを置かない。
+// ?code= は使い捨て: GET では鍵を渡さずコードも使わない（中継のページだけ）。そのページが X-Kiroku つきの同じオリジンの POST で
+// コードを鍵に換える。作ってから openCodeTTL のあいだ、作ったときのポートの serve で 1 回だけ。フォルダにはコードそのものを置かない。
 func TestOpenCode(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "kiroku")
 	t.Setenv("KIROKU_CONFIG_DIR", dir)
 	key, _ := serveKey(true)
-	h := requireKey("127.0.0.1:8484", key, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("history")) }))
-	do := func(method, target string) *httptest.ResponseRecorder {
+	h := sameOrigin("127.0.0.1:8484", nil, requireKey("127.0.0.1:8484", key, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("history")) })))
+	do := func(method, target string, hdr map[string]string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(method, target, nil)
+		r.Host = "localhost:8484"
+		for k, v := range hdr {
+			r.Header.Set(k, v)
+		}
 		w := httptest.NewRecorder()
-		h.ServeHTTP(w, httptest.NewRequest(method, target, nil))
+		h.ServeHTTP(w, r)
 		return w
 	}
-	code, err := newOpenCode()
+	ok := map[string]string{"X-Kiroku": "1", "Origin": "http://localhost:8484"}
+	code, err := newOpenCode("8484")
 	if err != nil {
 		t.Fatal(err)
 	}
-	es, _ := os.ReadDir(filepath.Join(dir, openCodeDir))
+	cdir := filepath.Join(dir, openCodeDir)
+	es, _ := os.ReadDir(cdir)
 	if len(es) != 1 || strings.Contains(es[0].Name(), code) {
 		t.Fatalf("コードのフォルダ = %v", es)
 	}
-	if st, _ := os.Stat(filepath.Join(dir, openCodeDir, es[0].Name())); runtime.GOOS != "windows" && st.Mode().Perm() != 0o600 {
+	if st, _ := os.Stat(filepath.Join(cdir, es[0].Name())); runtime.GOOS != "windows" && st.Mode().Perm() != 0o600 {
 		t.Errorf("コードのファイルのモード = %v", st.Mode().Perm())
 	}
-	if st, _ := os.Stat(filepath.Join(dir, openCodeDir)); runtime.GOOS != "windows" && st.Mode().Perm() != 0o700 {
+	if st, _ := os.Stat(cdir); runtime.GOOS != "windows" && st.Mode().Perm() != 0o700 {
 		t.Errorf("コードのフォルダのモード = %v", st.Mode().Perm())
 	}
-	for _, c := range []struct{ name, method, target string }{
-		{"HEAD", "HEAD", "/?code=" + code},
-		{"POST", "POST", "/?code=" + code},
-		{"?key= といっしょ", "GET", "/?code=" + code + "&key=" + key},
-		{"違うコード", "GET", "/?code=" + strings.Repeat("cd", 32)},
-		{"短いコード", "GET", "/?code=" + code[:63]},
-		{"大文字", "GET", "/?code=" + strings.ToUpper(code)},
-		{"空のコード", "GET", "/?code="},
-		{"鍵をコードとして", "GET", "/?code=" + key},
-		{"コードのファイル名", "GET", "/?code=" + es[0].Name()},
+	// GET は中継のページだけ。鍵は入れず、コードも使わない
+	w := do("GET", "/history?id=s1&code="+code, nil)
+	body := w.Body.String()
+	if w.Code != 200 || strings.Contains(body, key) || strings.Contains(body, code) || !strings.Contains(body, `<a id="to" href="/history?id=s1">`) ||
+		w.Header().Get("Cache-Control") != "no-store" || strings.Count(body, "<script>") != 1 || !strings.Contains(body, "<script>"+hopKeyScript+"</script>") {
+		t.Fatalf("GET ?code= = %d %q", w.Code, body)
+	}
+	for _, c := range []struct {
+		name, method, target string
+		hdr                  map[string]string
+	}{
+		{"X-Kiroku なし", "POST", "/?code=" + code, map[string]string{"Origin": "http://localhost:8484"}},
+		{"ほかのオリジン", "POST", "/?code=" + code, map[string]string{"X-Kiroku": "1", "Origin": "http://evil.example"}},
+		{"Origin: null", "POST", "/?code=" + code, map[string]string{"X-Kiroku": "1", "Origin": "null"}},
+		{"?key= といっしょ", "POST", "/?code=" + code + "&key=" + key, ok},
+		{"違うコード", "POST", "/?code=" + strings.Repeat("cd", 32), ok},
+		{"短いコード", "POST", "/?code=" + code[:63], ok},
+		{"大文字", "POST", "/?code=" + strings.ToUpper(code), ok},
+		{"最初の値だけを見る", "POST", "/?code=" + strings.Repeat("cd", 32) + "&code=" + code, ok},
+		{"空のコード", "POST", "/?code=", ok},
+		{"鍵をコードとして", "POST", "/?code=" + key, ok},
+		{"コードのファイル名", "POST", "/?code=" + es[0].Name(), ok},
 	} {
-		if w := do(c.method, c.target); w.Code != 403 || strings.Contains(w.Body.String(), key) {
+		if w := do(c.method, c.target, c.hdr); w.Code != 403 || strings.Contains(w.Body.String(), key) {
 			t.Errorf("%s: %d %q", c.name, w.Code, w.Body.String())
 		}
 	}
-	// 上の失敗では使い切らない。GET で 1 回だけ通り、鍵は中継のページの data-k で渡す
-	w := do("GET", "/history?id=s1&code="+code)
-	body := w.Body.String()
-	if w.Code != 200 || !strings.Contains(body, `<a id="to" href="/history?id=s1" data-k="`+key+`">`) || strings.Contains(body, code) ||
-		w.Header().Get("Cache-Control") != "no-store" || strings.Count(body, "<script>") != 1 || !strings.Contains(body, "<script>"+hopKeyScript+"</script>") {
-		t.Fatalf("?code= = %d %q", w.Code, body)
+	// Host の確かめはコードを使う前（ほかの Host ではコードは残る）
+	r := httptest.NewRequest("POST", "/?code="+code, nil)
+	r.Host = "evil.example:8484"
+	r.Header.Set("X-Kiroku", "1")
+	if w := httptest.NewRecorder(); func() bool { h.ServeHTTP(w, r); return w.Code != 403 }() {
+		t.Error("ほかの Host で通った")
 	}
-	if w := do("GET", "/?code="+code); w.Code != 403 || strings.Contains(w.Body.String(), key) {
-		t.Errorf("使い終わったコードがもう一度通った: %d", w.Code)
+	if _, err := os.Lstat(filepath.Join(cdir, openCodeName("8484", code))); err != nil {
+		t.Fatalf("通らなかった問い合わせでコードを使い切った: %v", err)
 	}
-	// 期限切れは通さず、次にコードを作るときに片づける
-	old, _ := newOpenCode()
-	stale := filepath.Join(dir, openCodeDir, openCodeName(old))
-	past := time.Now().Add(-openCodeTTL - time.Minute)
-	if err := os.Chtimes(stale, past, past); err != nil {
-		t.Fatal(err)
+	// ここまでの失敗では使い切らない。同時に 20 回換えようとしても、1 回だけ鍵が返る
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	got := 0
+	for range 20 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if w := do("POST", "/?code="+code, ok); w.Code == 200 {
+				mu.Lock()
+				defer mu.Unlock()
+				got++
+				if w.Body.String() != key || w.Header().Get("Cache-Control") != "no-store" {
+					t.Errorf("POST ?code= = %q %q", w.Body.String(), w.Header().Get("Cache-Control"))
+				}
+			}
+		}()
 	}
-	if w := do("GET", "/?code="+old); w.Code != 403 {
+	wg.Wait()
+	if got != 1 {
+		t.Errorf("鍵が %d 回返った（1 回だけのはず）", got)
+	}
+	// ほかのポートのコードは使えない
+	other, _ := newOpenCode("8485")
+	if w := do("POST", "/?code="+other, ok); w.Code != 403 {
+		t.Errorf("ほかのポートのコード = %d", w.Code)
+	}
+	// 期限切れは通さず、次にコードを作るときに片づける（時計が戻って未来の時刻になったものも）
+	past, future := time.Now().Add(-openCodeTTL-time.Minute), time.Now().Add(2*time.Minute)
+	old, _ := newOpenCode("8484")
+	os.Chtimes(filepath.Join(cdir, openCodeName("8484", old)), past, past)
+	if w := do("POST", "/?code="+old, ok); w.Code != 403 {
 		t.Errorf("期限切れのコード = %d", w.Code)
 	}
-	old, _ = newOpenCode()
-	stale = filepath.Join(dir, openCodeDir, openCodeName(old))
-	os.Chtimes(stale, past, past)
-	if _, err := newOpenCode(); err != nil {
+	var stale []string
+	for _, tm := range []time.Time{past, future} {
+		c, _ := newOpenCode("8484")
+		p := filepath.Join(cdir, openCodeName("8484", c))
+		os.Chtimes(p, tm, tm)
+		stale = append(stale, p)
+	}
+	if _, err := newOpenCode("8484"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Lstat(stale); !os.IsNotExist(err) {
-		t.Errorf("期限切れのコードを片づけていない: %v", err)
+	for _, p := range stale {
+		if _, err := os.Lstat(p); !os.IsNotExist(err) {
+			t.Errorf("古いコードを片づけていない: %s %v", p, err)
+		}
 	}
-	// コードのファイルがシンボリックリンクなら通さない
-	if runtime.GOOS != "windows" {
-		link := strings.Repeat("ef", 32)
-		if err := os.Symlink(filepath.Join(dir, keyFile), filepath.Join(dir, openCodeDir, openCodeName(link))); err != nil {
-			t.Fatal(err)
+	if runtime.GOOS == "windows" {
+		return
+	}
+	// ほかのユーザーが読めるコードのファイルや、シンボリックリンクは通さない
+	loose, _ := newOpenCode("8484")
+	os.Chmod(filepath.Join(cdir, openCodeName("8484", loose)), 0o644)
+	link := strings.Repeat("ef", 32)
+	if err := os.Symlink(filepath.Join(dir, keyFile), filepath.Join(cdir, openCodeName("8484", link))); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []string{loose, link} {
+		if w := do("POST", "/?code="+c, ok); w.Code != 403 {
+			t.Errorf("%s = %d", c, w.Code)
 		}
-		if w := do("GET", "/?code="+link); w.Code != 403 {
-			t.Errorf("シンボリックリンクのコード = %d", w.Code)
-		}
+	}
+	// コードのフォルダがシンボリックリンクなら、作りも使いもしない
+	planted, _ := newOpenCode("8484")
+	elsewhere := filepath.Join(t.TempDir(), "elsewhere")
+	if err := os.Rename(cdir, elsewhere); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(elsewhere, cdir); err != nil {
+		t.Fatal(err)
+	}
+	if w := do("POST", "/?code="+planted, ok); w.Code != 403 {
+		t.Errorf("リンクのフォルダのコード = %d", w.Code)
+	}
+	if _, err := newOpenCode("8484"); err == nil {
+		t.Error("リンクのフォルダにコードを作った")
 	}
 }
 
@@ -276,7 +346,7 @@ func TestOpenWithKey(t *testing.T) {
 	if err != nil || m == nil || strings.Contains(string(b), key) {
 		t.Fatalf("開く HTML = %q %v", b, err)
 	}
-	if !useOpenCode(m[1]) || useOpenCode(m[1]) {
+	if !useOpenCode(m[1], "8484") || useOpenCode(m[1], "8484") {
 		t.Error("開く HTML のコードが、1 回だけ使えるコードになっていない")
 	}
 	if st, _ := os.Stat(opened[0]); runtime.GOOS != "windows" && st.Mode().Perm() != 0o600 {

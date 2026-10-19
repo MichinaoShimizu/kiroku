@@ -1,7 +1,8 @@
 // kiroku serve の鍵を、本物のブラウザで確かめる（CI の e2e）。
 //   go build -o /tmp/kiroku . && python3 -I tools/screenshots/gen.py /tmp/gen && node tools/screenshots/serve.mjs /tmp/kiroku /tmp/gen
 // ダミーの履歴（gen.py）だけを読む kiroku serve を、使い捨ての HOME と設定の場所で空いているポートに立て、
-//   - kiroku open --print の使い捨てのコード（?code=）で開くと履歴が出て、どの URL にも鍵が載らない（ブラウザの履歴に鍵が残らない）。コードは 2 回目には使えない
+//   - kiroku open --print の使い捨てのコード（?code=）で開くと履歴が出て、どの URL にも鍵が載らない（ブラウザの履歴に鍵が残らない）。
+//     鍵は中継のページの POST の答えでだけ受け取り、コードは 2 回目には使えない
 //   - 以前の版の /?key= で開いても履歴が出て、アドレスから鍵が消え、鍵の Cookie はない
 //   - 鍵なしの / を開き直しても出る（localStorage の鍵）。履歴ファイルの「Open」は鍵を付けて読んで保存する
 //   - 鍵のないブラウザ（新しいコンテキスト）は、案内だけで履歴を見ない。data.json も 403
@@ -72,8 +73,15 @@ try {
   await pc.waitForSelector(".run[data-sid]", { timeout: 15000 });
   check("?code= で開くと履歴が出て、鍵は localStorage にある", await pc.evaluate(() => localStorage.getItem("kiroku:key")) === key);
   check("開いた URL のどれにも鍵が載らない", !visited.some(u => u.includes(key)), JSON.stringify(visited));
-  const again = await (await (await b.newContext()).newPage()).goto(once);
-  check("使い終わったコードは 403", again.status() === 403);
+  // 使い終わったコードでは鍵を受け取れず、そう伝える（アドレスからコードも消す）
+  const pa = await (await b.newContext()).newPage();
+  await pa.goto(once);
+  await pa.waitForSelector("#msg.show", { timeout: 10000 });
+  check("使い終わったコードでは鍵を受け取れず、そう伝える", /already used or has expired/.test(await pa.locator("#msg").innerText()) &&
+    await pa.evaluate(() => localStorage.getItem("kiroku:key")) === null && !pa.url().includes("code="), pa.url());
+  // 中継のページの HTML（GET の答え）に鍵は入らない（リンクのプレビューなどが受け取らないように）
+  const hop = await (await fetch(once)).text();
+  check("?code= の GET の答えに鍵が入らない", !hop.includes(key));
 
   await p.goto(`${base}/?key=${key}`);
   await p.waitForURL(u => !u.search.includes("key="), { timeout: 10000 });

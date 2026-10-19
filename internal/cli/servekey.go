@@ -132,6 +132,7 @@ func oldKeyCookie(addr string) string {
 // 読み込み中の画面で、画面が localStorage の鍵を付けて data.json を読む（ブックマークなどの移動ではヘッダーを付けられないため）。
 func requireKey(addr, key string, next http.Handler) http.Handler {
 	old := oldKeyCookie(addr)
+	_, port, _ := net.SplitHostPort(addr)
 	match := func(s string) bool { return subtle.ConstantTimeCompare([]byte(s), []byte(key)) == 1 }
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if _, err := r.Cookie(old); err == nil { // 以前の版の Cookie は消させる（もれた鍵が、ほかのポートへ送られ続けないように）
@@ -140,16 +141,20 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 		get := r.Method == http.MethodGet || r.Method == http.MethodHead
 		q := r.URL.Query()
 		if q.Has("key") || q.Has("code") {
-			ok, give := false, ""
-			switch {
-			case q.Has("code") && q.Has("key"):
-			case q.Has("code"): // 1 回だけ使える。HEAD で使い切らないよう、GET のときだけ使う
-				ok = r.Method == http.MethodGet && useOpenCode(q.Get("code"))
-				give = key // 鍵はページに入れて渡す（アドレスには使い終わったコードしか残らない）
-			default:
-				ok = get && match(q.Get("key"))
+			// ?code= の POST は、中継のページのスクリプトがコードを鍵に換えるところ。コードは 1 回だけ使え、鍵は答えの本文で返す。
+			// GET では鍵を渡さず、コードも使わない（リンクの先読みやチャットのプレビューが、コードを使い切ったり鍵を受け取ったりしないように）。
+			// ほかのサイトのページから換えさせないよう、/archive と同じく X-Kiroku ヘッダーと同じオリジンを求める
+			if r.Method == http.MethodPost && q.Has("code") && !q.Has("key") {
+				if r.Header.Get("X-Kiroku") != "1" || (r.Header.Get("Origin") != "" && r.Header.Get("Origin") != "http://"+r.Host) || !useOpenCode(q.Get("code"), port) {
+					http.Error(w, "forbidden", http.StatusForbidden)
+					return
+				}
+				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+				w.Header().Set("Cache-Control", "no-store")
+				_, _ = io.WriteString(w, key)
+				return
 			}
-			if !ok {
+			if !get || (q.Has("code") && q.Has("key")) || (q.Has("key") && !match(q.Get("key"))) {
 				locked(w)
 				return
 			}
@@ -161,7 +166,7 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Header().Set("Cache-Control", "no-store")
-			_, _ = io.WriteString(w, hopKeyPage(to, give))
+			_, _ = io.WriteString(w, hopKeyPage(to))
 			return
 		}
 		if (get && keyless(r.URL.Path)) || match(r.Header.Get(keyHeader)) {
@@ -205,38 +210,39 @@ const lockedPage = `<!doctype html>
 </html>
 `
 
-// hopKeyScript は、?code= か ?key= で開かれたときの中継のページのスクリプト。鍵は #to の data-k（?code= のとき）か、
-// アドレスの ?key= から読む（スクリプトの中身は変わらないので、CSP のハッシュは 1 回だけ作る）。形（64 桁の 16 進数）を確かめて localStorage にしまい、
-// 鍵を消した URL（サーバーが決めた #to のリンク先）へ、ブラウザの履歴に残さずに移る。
-// しまえなかったとき（このアドレスのサイトのデータを止めているなど）は、そう伝える。
-const hopKeyScript = `(() => {
-  const to = document.getElementById("to"), msg = document.getElementById("msg"), k = to.dataset.k || new URLSearchParams(location.search).get("key") || "";
-  let ok = false;
+// hopKeyScript は、?code= か ?key= で開かれたときの中継のページのスクリプト（中身は変わらないので、CSP のハッシュは 1 回だけ作る）。
+// ?code= なら同じアドレスへの POST でコードを鍵に換え、?key= ならアドレスから読む。形（64 桁の 16 進数）を確かめて localStorage にしまい、
+// コードや鍵を消した URL（サーバーが決めた #to のリンク先）へ、ブラウザの履歴に残さずに移る。
+// 換えられなかった（使い終わった・期限切れ）ときや、しまえなかったとき（このアドレスのサイトのデータを止めているなど）は、そう伝える。
+const hopKeyScript = `(async () => {
+  const to = document.getElementById("to"), msg = document.getElementById("msg"), q = new URLSearchParams(location.search);
+  let k = q.get("key") || "", ok = false, why = "This browser doesn't let kiroku keep its key (site data may be blocked for this address), so it can't show your history here.";
+  if (q.has("code")){
+    k = "";
+    try { const r = await fetch(location.href, {method: "POST", headers: {"X-Kiroku": "1"}, cache: "no-store"}); if (r.ok) k = await r.text(); } catch(e){}
+    if (!k) why = "This one-time address was already used or has expired. Run kiroku open again.";
+  }
   if (/^[0-9a-f]{64}$/.test(k)) try { localStorage.setItem("` + keyStorage + `", k); ok = localStorage.getItem("` + keyStorage + `") === k; } catch(e){}
   if (ok){ location.replace(to.getAttribute("href")); return; }
-  try { history.replaceState(null, "", to.getAttribute("href")); } catch(e){} // しまえなくても、鍵はアドレスに残さない
-  msg.textContent = "This browser doesn't let kiroku keep its key (site data may be blocked for this address), so it can't show your history here.";
+  try { history.replaceState(null, "", to.getAttribute("href")); } catch(e){} // しまえなくても、鍵やコードはアドレスに残さない
+  msg.textContent = why;
   msg.className = "show";
 })();`
 
-// hopKeyPage は、?code= か ?key= で開かれたときの中継のページ。to はそれを消した、このサイトの中の URL。
-// give は、ページに入れて渡す鍵（?code= のとき。?key= のときは "" で、スクリプトがアドレスから読む）。
-// スクリプトと <style> は CSP のハッシュで許したものだけで、外へは何も読みにいかず、Referer も送らない。
-func hopKeyPage(to, give string) string {
-	attrs := ` href="` + html.EscapeString(to) + `"`
-	if give != "" {
-		attrs += ` data-k="` + html.EscapeString(give) + `"`
-	}
+// hopKeyPage は、?code= か ?key= で開かれたときの中継のページ。to はそれを消した、このサイトの中の URL。ページに鍵は入れない。
+// スクリプトと <style> は CSP のハッシュで許したものだけで、問い合わせは同じオリジンへの POST だけ、Referer も送らない。
+func hopKeyPage(to string) string {
+	to = html.EscapeString(to)
 	return "<!doctype html>\n<html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"light dark\">" +
 		"<meta http-equiv=\"Content-Security-Policy\" content=\"" + hopKeyCSP + "\"><meta name=\"referrer\" content=\"no-referrer\">" +
 		"\n<title>kiroku</title>\n" + hopStyle +
-		"\n<p><a id=\"to\"" + attrs + ">Open kiroku</a></p><p id=\"msg\"></p>\n<script>" + hopKeyScript + "</script>\n</html>\n"
+		"\n<p><a id=\"to\" href=\"" + to + "\">Open kiroku</a></p><p id=\"msg\"></p>\n<script>" + hopKeyScript + "</script>\n</html>\n"
 }
 
 // hopKeyCSP は中継のページの CSP。
 var hopKeyCSP = "default-src 'none'; script-src " + cspHash(hopKeyScript) +
 	"; style-src " + cspHash(strings.TrimSuffix(strings.TrimPrefix(hopStyle, "<style>"), "</style>")) +
-	"; base-uri 'none'; form-action 'none'"
+	"; connect-src 'self'; base-uri 'none'; form-action 'none'"
 
 // cspHash は CSP に書く sha256 のハッシュ。
 func cspHash(s string) string {
@@ -269,14 +275,10 @@ const openCodeTTL = 10 * time.Minute
 // コードそのものは置かず、sha256 を名前にした空のファイル（0600）を置く。作った時刻はファイルの時刻。
 const openCodeDir = "open-codes"
 
-// newOpenCode は、kiroku serve の画面を 1 回だけ開ける、使い捨てのコードを作る。古いコードはここで片づける。
-func newOpenCode() (string, error) {
-	dir, err := configDir()
+// newOpenCode は、port で待ち受ける kiroku serve の画面を 1 回だけ開ける、使い捨てのコードを作る。古いコードはここで片づける。
+func newOpenCode(port string) (string, error) {
+	dir, err := openCodesDir(true)
 	if err != nil {
-		return "", err
-	}
-	dir = filepath.Join(dir, openCodeDir)
-	if err := core.PrivateDir(dir); err != nil {
 		return "", err
 	}
 	pruneOpenCodes(dir)
@@ -285,34 +287,64 @@ func newOpenCode() (string, error) {
 		return "", err
 	}
 	code := hex.EncodeToString(b)
-	f, err := os.OpenFile(filepath.Join(dir, openCodeName(code)), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	f, err := os.OpenFile(filepath.Join(dir, openCodeName(port, code)), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
 		return "", err
 	}
 	return code, f.Close()
 }
 
-// openCodeName は、コードを置くファイルの名前（sha256 の 16 進数）。フォルダを読めても、コードはわからない。
-func openCodeName(code string) string {
-	sum := sha256.Sum256([]byte(code))
+// openCodesDir は、コードを置くフォルダ。本人だけが開ける本物のフォルダ（シンボリックリンクではない）でなければ使わない。
+func openCodesDir(create bool) (string, error) {
+	dir, err := configDir()
+	if err != nil {
+		return "", err
+	}
+	dir = filepath.Join(dir, openCodeDir)
+	if create {
+		if err := core.PrivateDir(filepath.Dir(dir)); err != nil {
+			return "", err
+		}
+		if err := core.PrivateDir(dir); err != nil {
+			return "", err
+		}
+	}
+	st, err := os.Lstat(dir)
+	if err != nil {
+		return "", err
+	}
+	if !st.IsDir() || !private(st) {
+		return "", errors.New(dir + " is not a folder only you can open")
+	}
+	return dir, nil
+}
+
+// private は、ほかのユーザーが読み書きできないか（Windows では権限を使わないので確かめない）。
+func private(st fs.FileInfo) bool { return runtime.GOOS == "windows" || st.Mode().Perm()&0o077 == 0 }
+
+// openCodeName は、コードを置くファイルの名前（待ち受けるポートとコードの sha256 の 16 進数）。フォルダを読めても、コードはわからず、
+// ほかのポートの kiroku serve では使えない（止めているあいだにそのポートで待ち受けたほかのユーザーが、コードを本物のほうで使えないように）。
+func openCodeName(port, code string) string {
+	sum := sha256.Sum256([]byte(port + "\n" + code))
 	return hex.EncodeToString(sum[:])
 }
 
-// useOpenCode は、コードが使えるか確かめ、使えるなら使い切る（ファイルを消せたときだけ true。同時に 2 回使われても 1 回だけ通る）。
-func useOpenCode(code string) bool {
+// useOpenCode は、port で待ち受ける kiroku serve のコードが使えるか確かめ、使えるなら使い切る
+// （ファイルを消せたときだけ true。同時に 2 回使われても 1 回だけ通る）。
+func useOpenCode(code, port string) bool {
 	if len(code) != 64 {
 		return false
 	}
 	if _, err := hex.DecodeString(code); err != nil {
 		return false
 	}
-	dir, err := configDir()
+	dir, err := openCodesDir(false)
 	if err != nil {
 		return false
 	}
-	path := filepath.Join(dir, openCodeDir, openCodeName(code))
+	path := filepath.Join(dir, openCodeName(port, code))
 	st, err := os.Lstat(path)
-	if err != nil || !st.Mode().IsRegular() {
+	if err != nil || !st.Mode().IsRegular() || !private(st) {
 		return false
 	}
 	if os.Remove(path) != nil {
@@ -329,19 +361,23 @@ func pruneOpenCodes(dir string) {
 		return
 	}
 	for _, e := range es {
-		if st, err := e.Info(); err == nil && st.Mode().IsRegular() && time.Since(st.ModTime()) > openCodeTTL {
+		if st, err := e.Info(); err == nil && st.Mode().IsRegular() && (time.Since(st.ModTime()) > openCodeTTL || time.Until(st.ModTime()) > time.Minute) {
 			os.Remove(filepath.Join(dir, e.Name()))
 		}
 	}
 }
 
-// codeURL は使い捨てのコードつきの URL（url は http://host:port/ の形）。
-func codeURL(url string) (string, error) {
-	code, err := newOpenCode()
+// codeURL は使い捨てのコードつきの URL（u は http://host:port/ の形）。
+func codeURL(u string) (string, error) {
+	p, err := url.Parse(u)
+	if err != nil || p.Port() == "" {
+		return "", errors.New("no port in " + u)
+	}
+	code, err := newOpenCode(p.Port())
 	if err != nil {
 		return "", err
 	}
-	return url + "?code=" + code, nil
+	return u + "?code=" + code, nil
 }
 
 // openWithKey は、使い捨てのコードつきの URL をブラウザで開く。URL をそのままブラウザのコマンドに渡すと、
