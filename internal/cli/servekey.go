@@ -18,6 +18,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
@@ -329,6 +330,10 @@ func openCodeName(port, code string) string {
 	return hex.EncodeToString(sum[:])
 }
 
+// openCodeMu は、コードを確かめて消すあいだを 1 つずつにする。macOS（APFS）では、同じファイルを同時に消すと
+// どちらも成功を返すことがあり、ファイルを消せたかだけでは 1 回にならない。ポートを待ち受ける kiroku serve は 1 つなので、プロセスの中で足りる。
+var openCodeMu sync.Mutex
+
 // useOpenCode は、port で待ち受ける kiroku serve のコードが使えるか確かめ、使えるなら使い切る
 // （ファイルを消せたときだけ true。同時に 2 回使われても 1 回だけ通る）。
 func useOpenCode(code, port string) bool {
@@ -343,6 +348,8 @@ func useOpenCode(code, port string) bool {
 		return false
 	}
 	path := filepath.Join(dir, openCodeName(port, code))
+	openCodeMu.Lock()
+	defer openCodeMu.Unlock()
 	st, err := os.Lstat(path)
 	if err != nil || !st.Mode().IsRegular() || !private(st) {
 		return false
