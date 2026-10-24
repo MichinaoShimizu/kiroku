@@ -1,1 +1,0 @@
-- On macOS, a one-time code from `kiroku open` could give the `kiroku serve` key to more than one request when they arrived at the same moment, because the file system can report the code's file as deleted to each of them. kiroku now checks and uses a code one request at a time

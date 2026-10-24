@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v0.38.3 - 2026-10-24
+
+### Security
+
+- Release builds now use Go 1.26.10 instead of Go 1.26.9, whose standard library still trusts compromised intermediate certificates in `crypto/x509` (GO-2026-6809; found with `govulncheck`). kiroku relies on certificate checks when `kiroku update` checks and downloads releases from GitHub
+- On macOS, a one-time code from `kiroku open` could give the `kiroku serve` key to more than one request when they arrived at the same moment, because the file system can report the code's file as deleted to each of them. kiroku now checks and uses a code one request at a time
+
 ## v0.38.2 - 2026-10-19
 
 ### Fixed
