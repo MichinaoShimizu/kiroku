@@ -208,6 +208,11 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 			classic[x] = true
 			addClassicUsage(s, filepath.Join(base, "cli", x+".json"))
 		}
+		// 再開のコマンド。IDE と CLI V3 のどちらが作った会話かは記録されないが、どちらも同じ保存場所なので、
+		// kiro-cli の会話 ID（session.json の id、なければフォルダ名）で開くコマンドを出す
+		if s.Project != "" {
+			s.Resume = core.ResumeCmd(s.Project, "kiro-cli chat --resume-id", s.ID)
+		}
 		emit(s)
 	}
 	return errs.err()

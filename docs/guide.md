@@ -260,7 +260,7 @@ Not every agent's history records everything kiroku shows. Active time, Total AI
 | Tokens and estimated cost | ✓ | ✓ | — | — | — | Partly (backends other than kiro-cli) | — | — |
 | Kiro credits | — | — | ✓ | ✓ | ✓ | ✓ | — | — |
 | Long conversations | ✓ | ✓ | — | — | — | Partly (backends other than kiro-cli) | — | — |
-| Resume command | ✓ | ✓ | — | — | ✓ | — (shown for conversations kept in the kiro-cli history) | ✓ | ✓ |
+| Resume command | ✓ | ✓ | ✓ (`kiro-cli chat --resume-id`) | — | ✓ | — (shown for conversations kept in the kiro-cli history) | ✓ | ✓ |
 | History retention and `kiroku archive` | ✓ | — | — | — | — | ✓ | — | — |
 
 Why an agent doesn't record a metric is in [What history records](sources.md#what-history-records).

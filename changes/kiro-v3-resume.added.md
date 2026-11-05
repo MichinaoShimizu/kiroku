@@ -1,0 +1,1 @@
+- Kiro IDE / CLI sessions (Kiro CLI V3 and Kiro IDE v1.0 and later) now show a "Resume" command, `kiro-cli chat --resume-id <id>` in the session's workspace. Kiro doesn't record whether the IDE or the CLI created a session, so it is shown for both; Kiro CLI may not open a session that Kiro IDE created
