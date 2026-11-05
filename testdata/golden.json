@@ -1614,7 +1614,7 @@
 "spec.md"
 ],
 "nFiles": 1,
-"resume": null,
+"resume": "cd /Users/me/vp && kiro-cli chat --resume-id sess_0ee61246",
 "waits": [
 [
 1790550600.0,
@@ -1800,7 +1800,7 @@
 "spec.md"
 ],
 "nFiles": 1,
-"resume": null,
+"resume": "cd /Users/me/vp && kiro-cli chat --resume-id sess_7e06b008",
 "waits": [
 [
 1790662200.0,
@@ -2098,7 +2098,7 @@
 "spec.md"
 ],
 "nFiles": 1,
-"resume": null,
+"resume": "cd /Users/me/vp && kiro-cli chat --resume-id sess_564f668e",
 "waits": [
 [
 1790748780.0,
@@ -2172,7 +2172,7 @@
 "spec.md"
 ],
 "nFiles": 1,
-"resume": null,
+"resume": "cd /Users/me/vp && kiro-cli chat --resume-id sess_1640c798",
 "waits": [
 [
 1790752080.0,
@@ -2246,7 +2246,7 @@
 "spec.md"
 ],
 "nFiles": 1,
-"resume": null,
+"resume": "cd /Users/me/vp && kiro-cli chat --resume-id sess_76df747b",
 "waits": [
 [
 1790820660.0,
@@ -2320,7 +2320,7 @@
 "spec.md"
 ],
 "nFiles": 1,
-"resume": null,
+"resume": "cd /Users/me/vp && kiro-cli chat --resume-id sess_97d6b4d7",
 "waits": [
 [
 1790986260.0,

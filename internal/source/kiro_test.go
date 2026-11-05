@@ -59,6 +59,13 @@ broken line
 	if s.File != filepath.Join(home, "sessions", "abc", "sess_1", "messages.jsonl") {
 		t.Errorf("file = %q", s.File)
 	}
+	if want := "cd /Users/me/app && kiro-cli chat --resume-id sess_1"; s.Resume != want {
+		t.Errorf("resume = %q, want %q", s.Resume, want)
+	}
+	// 作業場所がわからない会話には、再開のコマンドを出さない
+	if s2 := find(bs, "sess_2"); s2 == nil || s2.Resume != "" {
+		t.Errorf("sess_2 = %+v, want 再開のコマンドなし", s2)
+	}
 	f := s.Finish(15)
 	if f.NPrompts != 2 || len(f.Fix) != 1 {
 		t.Errorf("依頼 = %d, 言い直し = %d", f.NPrompts, len(f.Fix))
