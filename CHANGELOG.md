@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v0.39.0 - 2026-11-05
+
+### Added
+
+- Kiro IDE / CLI sessions (Kiro CLI V3 and Kiro IDE v1.0 and later) now show a "Resume" command, `kiro-cli chat --resume-id <id>` in the session's workspace. Kiro doesn't record whether the IDE or the CLI created a session, so it is shown for both; Kiro CLI may not open a session that Kiro IDE created
+
 ## v0.38.3 - 2026-10-24
 
 ### Security
