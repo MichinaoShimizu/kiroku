@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -12,14 +13,23 @@ import (
 // 中身を出さない会話（Kiro Crew の incognito・temporary とその写し）のファイルは、Claude Code の Read の deny ルールにする。
 // 隣の同じ名前のフォルダ（subagents/）と、Crew が sessions/archive/ に退避した行もふくめる。名前の * などは文字として扱う。
 func TestDenyRules(t *testing.T) {
-	got := denyRules([]string{
-		"/home/me/.kiro/crew/sessions/dashboard_chat-1-100.jsonl",
-		"/home/me/.claude/projects/-w/abc.jsonl",
-		"/home/me/.codex/sessions/2026/11/01/rollout-x.jsonl.zst",
-		"/home/me/odd/a*b[1].jsonl",
-		"/home/me/odd/p(1)/x.jsonl",
+	// Windows では C:\home\me が //c/home/me になる（Claude Code はパスを POSIX の形にしてから比べる）
+	root, pre := "/", "//"
+	if runtime.GOOS == "windows" {
+		root, pre = `C:\`, "//c/"
+	}
+	in := func(parts ...string) string { return filepath.Join(append([]string{root}, parts...)...) }
+	files := []string{
+		in("home", "me", ".kiro", "crew", "sessions", "dashboard_chat-1-100.jsonl"),
+		in("home", "me", ".claude", "projects", "-w", "abc.jsonl"),
+		in("home", "me", ".codex", "sessions", "2026", "11", "01", "rollout-x.jsonl.zst"),
+		in("home", "me", "odd", "p(1)", "x.jsonl"),
 		"relative.jsonl", "",
-	})
+	}
+	if runtime.GOOS != "windows" { // * と [ はファイル名に使えない
+		files = append(files[:3], append([]string{in("home", "me", "odd", "a*b[1].jsonl")}, files[3:]...)...)
+	}
+	got := denyRules(files)
 	want := []string{
 		"Read(//home/me/.kiro/crew/sessions/dashboard_chat-1-100.jsonl)",
 		"Read(//home/me/.kiro/crew/sessions/dashboard_chat-1-100/**)",
@@ -32,12 +42,16 @@ func TestDenyRules(t *testing.T) {
 		`Read(//home/me/odd/a\*b\[1\]/**)`,
 		"Read(//home/me/odd/**)", // 括弧のある名前は、ルールに書けないので、書ける上のフォルダごと
 	}
+	if runtime.GOOS == "windows" {
+		want = append(want[:7], want[9:]...)
+	}
+	for i := range want {
+		want[i] = strings.Replace(want[i], "Read(//", "Read("+pre, 1)
+	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("denyRules =\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
-	if p := posixPath(`C:\Users\me\.kiro\crew\sessions\a.jsonl`); filepath.Separator == '\\' && p != "c/Users/me/.kiro/crew/sessions/a.jsonl" {
-		t.Errorf("posixPath = %q", p)
-	}
+
 }
 
 // Claude Code には、deny ルールを書いた設定ファイルを --settings で渡す（コマンドの行と画面には、ファイルの場所しか出ない）。
