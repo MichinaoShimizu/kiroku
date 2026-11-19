@@ -78,8 +78,13 @@ type qRow struct {
 }
 
 func (q *QStore) Load(emit func(*core.Builder)) error {
-	if _, err := os.Stat(q.DB); err != nil {
+	st, err := os.Stat(q.DB)
+	if err != nil {
 		return nil
+	}
+	// ふつうのファイルだけを開く。名前付きパイプを開くと SQLite が相手を待って止まり、フォルダは黙って 0 件になる
+	if !st.Mode().IsRegular() {
+		return fileErr(q.DB, core.ErrNotRegular)
 	}
 	db, err := sql.Open("sqlite", sqliteDSN(q.DB))
 	if err != nil {
