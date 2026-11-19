@@ -1,0 +1,1 @@
+- Kiro IDE / CLI: the "Resume" command is now `kiro-cli chat --v3 --resume-id <id>`. Without `--v3`, a saved `chat.agentEngine v2` setting started V2, which can't open V3 sessions
