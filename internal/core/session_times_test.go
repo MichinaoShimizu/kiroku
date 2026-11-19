@@ -96,7 +96,7 @@ func TestPromptTimesMatchNaive(t *testing.T) {
 }
 
 // 同じ時刻の依頼ばかりのセッション（壊れた・わざと作った履歴）でも、依頼の数にほぼ比例する時間で終わる（セキュリティ）。
-// 前は依頼の数の 2 乗かかり、20 MiB の履歴で 50 秒ほど止まっていた。機械の速さに頼らないよう、4 倍にしたときの時間の比で確かめる。
+// 前は依頼の数の 2 乗かかり、20 MiB の履歴で 50 秒ほど止まっていた。機械の速さに頼らないよう、8 倍にしたときの時間の比で確かめる。
 func TestPromptTimesSameTimestampScales(t *testing.T) {
 	run := func(n int) time.Duration {
 		b := &Builder{}
@@ -106,7 +106,7 @@ func TestPromptTimesSameTimestampScales(t *testing.T) {
 			b.AgentTimes = append(b.AgentTimes, v)
 		}
 		best := time.Duration(math.MaxInt64)
-		for k := 0; k < 3; k++ {
+		for k := 0; k < 5; k++ {
 			start := time.Now()
 			b.promptTimes(b.Prompts)
 			b.Waits()
@@ -116,11 +116,14 @@ func TestPromptTimesSameTimestampScales(t *testing.T) {
 		}
 		return best
 	}
-	small, large := run(20_000), run(80_000)
-	if small < time.Millisecond {
-		small = time.Millisecond
+	// 8 倍にする。線形なら約 8 倍（n log n でも 10 倍ほど）、2 乗なら 64 倍。どちらも時計の粗さ（Windows）より十分長くなる数にし、
+	// 小さいほうがキャッシュに収まって速く出ることもあるので、下限を置いて余裕のある閾値で比べる
+	small, large := run(50_000), run(400_000)
+	if small < 2*time.Millisecond {
+		small = 2 * time.Millisecond
 	}
-	if large > 12*small { // 線形なら約 4 倍（n log n でも 5 倍ほど）。2 乗なら 16 倍
-		t.Errorf("20k prompts: %v, 80k prompts: %v (more than 12x)", small, large)
+	t.Logf("50k: %v, 400k: %v", small, large)
+	if large > 30*small {
+		t.Errorf("50k prompts: %v, 400k prompts: %v (more than 30x)", small, large)
 	}
 }
