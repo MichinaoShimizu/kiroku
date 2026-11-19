@@ -45,7 +45,7 @@ function aiOutputProblems(prompt, text){
     if (f){ if (!inCode) inCode = f[1]; else if (f[1][0] === inCode[0] && f[1].length >= inCode.length) inCode = null; return; }
     if (!inCode && /^### /.test(l)) got++; });
   if (want && got < want) add(`The answer has ${got} of the ${want} "###" sections in "# Format". Write every section, in that order, to the end`,
-    t("{n} of the {want} sections are missing", {n: want - got, want}));
+    (got === 0 ? t("All {want} sections are missing", {want}) : t("{n} of the {want} sections are missing", {n: want - got, want})));
   // 数字の表: 1 列目（訳されうる項目の名前）を除いた値で比べる。強調・引用・ダッシュの違いは同じとみなす
   const cells = l => l.replace(/^\s*(>\s?)*/, "").trim().replace(/^\||\|$/g, "").split("|").map(c => c.replace(/[*_`]/g, "").replace(/[−–—]/g, "-").replace(/\s+/g, " ").trim());
   const ni = pl.indexOf("## Numbers"), rows = [];
