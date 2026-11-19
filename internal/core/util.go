@@ -241,15 +241,30 @@ type ZstdReader struct {
 
 // NewZstdReader は、使うメモリとほどく大きさ（MaxZstd）に上限をつけた zstd の読み手（履歴のコピーや Codex の圧縮した履歴を読む）。
 func NewZstdReader(r io.Reader) (*ZstdReader, error) {
-	d, err := zstd.NewReader(r, zstd.WithDecoderMaxMemory(zstdMaxMemory), zstd.WithDecoderMaxWindow(zstdMaxWindow))
+	// WithDecoderConcurrency(1) で、ほどくのを呼んだゴルーチンの中で行う。ほかのゴルーチンで panic すると kiroku serve ごと
+	// 止まるが、同じゴルーチンなら Read の recover で「読めないファイル」として知らせられる。
+	d, err := zstd.NewReader(r, zstd.WithDecoderMaxMemory(zstdMaxMemory), zstd.WithDecoderMaxWindow(zstdMaxWindow), zstd.WithDecoderConcurrency(1))
 	if err != nil {
 		return nil, err
 	}
 	return &ZstdReader{d: d, left: MaxZstd}, nil
 }
 
+// ErrZstdPanic は、壊れた .zst をほどく途中でライブラリが panic したこと（GHSA-fpmh-frq8-7rj8 のような不具合）。
+var ErrZstdPanic = errors.New("zstd decoder failed")
+
 // Read はほどいた中身を読む。MaxZstd を超えるところまで来たら、上限までを返したあと ErrZstdTooLarge を返す。
-func (z *ZstdReader) Read(p []byte) (int, error) {
+// ほどく途中の panic は ErrZstdPanic にする（1 つの壊れたファイルで kiroku を止めない）。
+func (z *ZstdReader) Read(p []byte) (n int, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			n, err = 0, fmt.Errorf("%w: %v", ErrZstdPanic, r)
+		}
+	}()
+	return z.read(p)
+}
+
+func (z *ZstdReader) read(p []byte) (int, error) {
 	if z.left <= 0 {
 		// 上限ちょうどで終わるファイルは読めるように、もう 1 バイトあるかだけ確かめる
 		var one [1]byte
