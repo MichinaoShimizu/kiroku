@@ -57,6 +57,8 @@ var allow = []exception{
 		Reason: "developer tool: writes public price tables to docs/upstream/*.md (0644), committed to the repository"},
 	{Rule: "file-mode", File: "tools/upstream/main.go", Func: "main",
 		Reason: "developer tool: writes public agent versions to docs/upstream/agents.md (0644), committed to the repository"},
+	{Rule: "shell-exec", File: "internal/gitlog/pastecmd_unix_test.go", Func: "TestPastedGitShowRunsNoRepoCommands",
+		Reason: "test: pastes the copied git command into sh as a user would, to check it runs none of a hostile repository's configured commands; the command is core.GitCmd of a temporary folder and a hash"},
 	{Rule: "listen", File: "internal/cli/serve.go", Func: "serveLiveWithAI",
 		Reason: "kiroku serve: 127.0.0.1 by default; another ADDR is opt-in, keeps the Host check and the key, and is documented in SECURITY.md"},
 }
@@ -66,9 +68,8 @@ var allow = []exception{
 // 決まった値で書く。どうしても要るなら、レビューを経てここを上げる）
 var baseline = []exception{
 	{Rule: "js-html", File: "internal/web/js/boot.js", Count: 1, Reason: "the scope note, built from t() and esc()"},
-	{Rule: "js-html", File: "internal/web/js/calendar.js", Count: 15, Reason: "period heading, legend, KPIs, week calendar, tooltips, Journey and Project views; history strings go through esc()"},
+	{Rule: "js-html", File: "internal/web/js/calendar.js", Count: 11, Reason: "period heading, legend, KPIs, week calendar, tooltips, Journey and Project views; history strings go through esc()"},
 	{Rule: "js-html", File: "internal/web/js/git.js", Count: 3, Reason: "commit, PR and push panels; git strings go through esc()"},
-	{Rule: "js-html", File: "internal/web/js/guide.js", Count: 1, Reason: "the metrics guide dialog, built from HELP and esc()"},
 	{Rule: "js-html", File: "internal/web/js/metric.js", Count: 1, Reason: "the metric breakdown dialog; history strings go through esc()"},
 	{Rule: "js-html", File: "internal/web/js/panels.js", Count: 1, Reason: "search results; history strings go through esc() and the highlighter"},
 	{Rule: "js-html", File: "internal/web/js/review.js", Count: 3, Reason: "the Worth a look dialog and its markers, built from t() and esc()"},
