@@ -32,7 +32,7 @@ function summary(){
       ${statH(esc(t("Total AI run time")), dur(w.ai,true), esc(t("Includes parallel runs")), "ai", "ai")}
     </div>
     </section>
-  <section class="panel">${panelH(4, esc(t("How you used AI")), esc(t("Cache, models and heavy sessions")))}
+  <section class="panel aiuse">${panelH(4, esc(t("How you used AI")), esc(t("Cache, models and heavy sessions")))}
     ${aiUsage(w, pw, unit) || noneH(esc(t("No token or credit records.")))}
     ${nativeSection(w)}</section>
   <section class="panel shape">${panelH(5, esc(M ? t("Shape of the month") : t("Shape of the week")), esc(t("Friction and repeated prompts")))}

@@ -2,6 +2,7 @@
    グラファイトの面に、インディゴを 1 色だけ。区分の色は Okabe–Ito（色覚の違いがあっても見分けやすい 8 色） */
 :root{
   color-scheme:light;
+  --agm-mix:50%; /* 明るい地では、エージェントの頭文字の色を文字の色に寄せて読めるようにする（.agm） */
   --bg:#f3f4f6; --surface:#ffffff; --surface-2:#eceef2; --ink:#121419; --ink-2:#464b56; --ink-3:#5f6573;
   --rule:#e1e4ea; --rule-2:#cdd2db; --acc:#4338ca; --acc-ink:#3730a3; --on-acc:#ffffff; --heatk:22%; --acc-soft:rgba(67,56,202,.08); --warn:#b42318; --on-warn:#ffffff;
   --weekend:rgba(18,20,25,.022);
@@ -16,6 +17,7 @@
 }
 :root[data-theme="dark"]{
   color-scheme:dark;
+  --agm-mix:75%;
   --bg:#0e0f13; --surface:#16181e; --surface-2:#1e2129; --ink:#eceef3; --ink-2:#b4b9c4; --ink-3:#8c92a0;
   --rule:#252832; --rule-2:#333743; --acc:#818cf8; --acc-ink:#a5b4fc; --on-acc:#0e0f13; --heatk:42%; --acc-soft:rgba(129,140,248,.12); --warn:#f97066; --on-warn:#0e0f13;
   --weekend:rgba(255,255,255,.018);
@@ -532,6 +534,13 @@ button.more{display:block;text-align:left}
 
 /* エージェント別 */
 .ngroups{margin-top:8px}
+/* ④ は横いっぱいにして、数の枠とエージェントごとのまとまりを横に並べる（1 列に積むと 1,400px ほどになり、
+   隣の短い ③・⑤ の下に大きな空きができていた） */
+.panel.aiuse{grid-column:1/-1}
+.panel.aiuse .stats{grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))}
+.panel.aiuse .ngroups{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:10px;align-items:start}
+.panel.aiuse .ngroup{margin-bottom:0}
+.panel.aiuse .stat:last-child:nth-child(odd){grid-column:auto} /* 2 列のときの「最後の 1 つは横いっぱい」をやめる（列は幅で決まる） */
 .ngroup{border:1px solid var(--rule);border-radius:14px;padding:12px 16px 6px;margin-bottom:10px;background:linear-gradient(180deg,color-mix(in oklab,var(--ag,var(--surface)) 7%,var(--surface)),var(--surface) 70px)} /* By project のカードと同じ、エージェントの色のグラデーション */
 .ngroup .hd b{display:flex;align-items:center}
 .ngroup .hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px}
@@ -697,14 +706,14 @@ dialog.mdlg h3{margin:20px 0 8px}
 .keys kbd{justify-self:start}
 
 /* ── responsive ─────────────────────────────────────────── */
-@media (max-width:1320px){.rvgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel.shape{grid-column:1/-1}}
-/* 広い画面：③ はカードがいちばん多いので、横いっぱいにしてカードを 4 列に。④ と ⑤ は次の行に 1:2 で並べる
+@media (max-width:1320px){.rvgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel.shape,.panel.time{grid-column:1/-1}}
+/* 広い画面：③ はカードがいちばん多いので、横いっぱいにしてカードを 4 列に。④ も横いっぱい（.panel.aiuse）、⑤ はその下に
    （3 つを横に並べると、③ だけが倍ほど長く、④ の下に大きな空きができていた） */
 @media (min-width:1321px){
   .panel.time{grid-column:1/-1}
   .panel.time .stats{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-flow:row dense;align-items:start} /* カードは中身の高さのまま */
   .panel.time .stat:last-child:nth-child(odd){grid-column:auto}
-  .panel.shape{grid-column:span 2}
+  .panel.shape{grid-column:1/-1}
 }
 @media (max-width:1180px){.tag{display:none}.kpis{margin-left:0;width:100%}}
 @media (max-width:1000px){.search kbd{display:none}.search input,.search input:focus{width:160px;padding-right:6px}}
@@ -755,7 +764,7 @@ dialog.mdlg h3{margin:20px 0 8px}
 
 .pkind .ic{width:11px;height:11px;margin-right:3px;vertical-align:-1px} /* コマンド（/）・シェル（>_） */
 .lim{display:inline-flex;align-items:center;gap:3px}.lim .ic{width:10px;height:10px;stroke-width:1.8} /* 利用上限 */
-.agm{display:inline-grid;place-items:center;min-width:14px;height:14px;padding:0 3px;margin-right:5px;border-radius:4px;border:1px solid color-mix(in oklab,var(--ag,var(--rule-2)) 55%,var(--rule-2));background:color-mix(in oklab,var(--ag,var(--surface-2)) 16%,var(--surface-2));color:var(--ag,var(--ink-2));font:700 var(--fs-2xs)/1 var(--mono);font-style:normal;letter-spacing:0;text-transform:none;vertical-align:1px;flex:none;white-space:nowrap;overflow-wrap:normal} /* エージェントの頭文字（ロゴは使わない）。並びの中で縮めず、親の overflow-wrap:anywhere（見直す候補のダイアログの .fl など）を受けても「KC」を 1 文字ずつに折らない */
+.agm{display:inline-grid;place-items:center;min-width:14px;height:14px;padding:0 3px;margin-right:5px;border-radius:4px;border:1px solid color-mix(in oklab,var(--ag,var(--rule-2)) 55%,var(--rule-2));background:color-mix(in oklab,var(--ag,var(--surface-2)) 16%,var(--surface-2));color:color-mix(in oklab,var(--ag,var(--ink-2)) var(--agm-mix),var(--ink));font:700 var(--fs-2xs)/1 var(--mono);font-style:normal;letter-spacing:0;text-transform:none;vertical-align:1px;flex:none;white-space:nowrap;overflow-wrap:normal} /* エージェントの頭文字（ロゴは使わない）。並びの中で縮めず、親の overflow-wrap:anywhere（見直す候補のダイアログの .fl など）を受けても「KC」を 1 文字ずつに折らない */
 
 /* Period (week / month). */
 .view-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
@@ -770,6 +779,7 @@ dialog.mdlg h3{margin:20px 0 8px}
 .pill.ai-action:not(:disabled):hover{background:#12563f;border-color:#12563f}
 .pill.ai-action:focus-visible{outline:2px solid #2da978;outline-offset:3px}
 .pill.ai-action:disabled{background:#e2ebe6;color:#526f60;border:1px solid #9bb9a8;opacity:1;cursor:not-allowed}
+:root[data-theme="dark"] .pill.ai-action:disabled{background:transparent;color:#8aa597;border-color:#3d5a4c} /* 暗い地では、押せるボタン（濃い緑の塗り）より目立たない枠だけに */
 
 /* Analyze with AI is off (kiroku serve --no-ai, or not on a loopback IP): an outlined button that explains how to turn it on, not an action */
 .pill.ai-off{background:transparent;color:#176b50;border:1px dashed #5c9a80;font-weight:500;cursor:help}
@@ -805,6 +815,9 @@ html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り
 .ai-dialog{width:min(900px,94vw);max-height:90vh;margin:5vh auto auto;padding:20px 20px 0;border:1px solid var(--rule-2);border-radius:12px;background:var(--bg);color:var(--ink)}
 .ai-dialog .ai-agent{display:inline-flex;align-items:center;gap:8px}
 .ai-dialog .ai-prompt{display:block;width:100%;height:220px;margin:12px 0;font:12px var(--mono);box-sizing:border-box}
+.ai-dialog select,.ai-dialog textarea{border:1px solid var(--rule-2);border-radius:8px;background:var(--surface);color:var(--ink);color-scheme:inherit} /* 暗い地でもブラウザーの灰色のままにしない */
+.ai-dialog select{height:28px;padding:0 6px;font:inherit;font-size:var(--fs-sm)}
+.ai-dialog textarea{padding:8px 10px}
 .ai-dialog .ai-prompt.small{height:72px}
 .ai-controls{position:sticky;bottom:0;display:flex;gap:12px;flex-wrap:wrap;padding:12px 0 20px;background:var(--bg)}
 .ai-check{margin:8px 0 0;padding:8px 12px;border-radius:8px;background:var(--surface-2);font-size:13px;overflow-wrap:anywhere}
