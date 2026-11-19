@@ -386,10 +386,10 @@ func (k *KiroCLI) Name() string { return "Kiro CLI (Classic)" }
 
 // Retention は Kiro Crew の会話の記録の保存期間（session.archive_retention_days。既定 30 日）。Crew を使っているときだけ。
 // Crew は退避した会話の記録を新しく書いたとき（1 つのプロセスで 1 時間に 1 回まで）に、sessions/archive/ のうち更新時刻がそれより古いものを消す
-// （history.py の _archive_lines → _cleanup_old_archives。閉じた会話の crew log も同じ設定で消す）。決まった間隔で動くのではない。
+// （history_files.py の _archive_lines → _cleanup_old_archives。閉じた会話の crew log も同じ設定で消す）。決まった間隔で動くのではない。
 // 消さない設定（null か負の数）なら nil。Crew は config.json に全部のキーを書き出すので、キーがあっても利用者が決めたとは限らない。
 // そこで、既定の 30 日と違う値のときだけ設定済み（Set）にする。設定を足す先は、config.json より勝つ config.local.json を案内する。
-// 0 日なら、Crew は次の片付け（次に記録を退避したとき）で退避した記録を全部消す（history.py の _cleanup_old_archives は cutoff = 今）。
+// 0 日なら、Crew は次の片付け（次に記録を退避したとき）で退避した記録を全部消す（history_files.py の _cleanup_old_archives は cutoff = 今）。
 // Days の 0 は「わからない」なので、Now で 0 日を表す。
 func (k *KiroCLI) Retention() *Retention {
 	if k.CrewHome == "" || !isDir(k.CrewHome) {

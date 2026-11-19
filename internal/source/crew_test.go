@@ -1501,7 +1501,7 @@ func TestKiroCrewEarlierLineageRules(t *testing.T) {
 }
 
 // 使える量を使い切ってターンが止まると、Crew のダッシュボードは会話の記録に meta.kind "usage_limit" の error の行を書く
-// （dashboard/chat_utils.py の USAGE_LIMIT_KIND、chat_turn/recovery.py の _terminal_error_meta）。これを上限に当たった時刻として数える。
+// （dashboard/chat_utils_injected_rows.py の USAGE_LIMIT_KIND、chat_turn/recovery.py の _terminal_error_meta）。これを上限に当たった時刻として数える。
 // 文からは決めない（Crew も文を見ない）。ほかの種類（auth_required など）や、印のない error の行は上限ではない。
 // kiro-cli の履歴に依頼が残る会話でも、上限の行は Crew の会話の記録にしかないので読む。中身を残さない会話でも数と時刻は出す。
 func TestKiroCrewUsageLimitRows(t *testing.T) {
