@@ -298,7 +298,7 @@ func cmdServe(args []string) error {
 	allow := fs.String("allow-host", "", "comma-separated extra host `names` the view may be opened by (e.g. a name in your hosts file); localhost, 127.0.0.1 and ::1 always work, and this computer's own IPs and host name too when ADDR is 0.0.0.0 or another all-interfaces address")
 	lang := langFlag(fs)
 	noAI := fs.Bool("no-ai", noAIEnv(), "turn off \"Analyze with AI\" ($KIROKU_NO_AI=1). It is on by default: the view can run a review or report prompt with an AI agent installed on this computer (claude, codex or kiro-cli), after you confirm each run, and the agent may send the prompt and the history it reads to its provider. It is always off when ADDR is not a loopback IP or a bare port (e.g. 0.0.0.0:8485)")
-	oldAI := fs.Bool("ai", false, "no longer needed: \"Analyze with AI\" is on by default (accepted for old scripts; does nothing)")
+	oldAI := fs.Bool("ai", false, "no longer needed: \"Analyze with AI\" is on by default (accepted for old scripts; --ai=false turns runs off like --no-ai)")
 	pos, err := parse(fs, args, 1)
 	if err != nil {
 		return quiet(err)
