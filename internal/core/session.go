@@ -183,6 +183,7 @@ type Builder struct {
 	Outputs                        []Output       // アウトプット（output.go）。成功したツール呼び出しだけを入れる
 	Reported                       []ReportedCost // エージェント自身が記録した使用料（reported.go）
 	File                           string         // 履歴のファイル（画面から開けるように）
+	PrivateFiles                   []string       // 中身を出さない会話（HideText）の履歴のファイル。画面には出さず、AI 分析に読ませない（Session.PrivateFiles）
 	Format                         *Format        // 読んだファイルの形の手がかり（知らない種類・読めない行・版）。Source の読む単位ごとに 1 つの Builder だけに付ける
 	replies                        []pendingReply // 応答（Reply で入れ、Finish で依頼に割り当てる）
 	turn                           int            // 人の発言を読んだ回数（1 ターンの最後の応答だけを残すための区切り）
@@ -421,6 +422,9 @@ func (s *Builder) HideText(text string) {
 	for i := range s.Subagents {
 		s.Subagents[i].Desc = ""
 	}
+	if s.File != "" {
+		s.PrivateFiles = append(s.PrivateFiles, s.File)
+	}
 	s.File = ""
 }
 
@@ -432,6 +436,9 @@ func (s *Session) Hidden(text, title string) *Session {
 	c.Prompts = make([]Prompt, len(s.Prompts))
 	for i, p := range s.Prompts {
 		c.Prompts[i] = Prompt{T: p.T, Text: text, Work: p.Work, Wait: p.Wait}
+	}
+	if s.File != "" {
+		c.PrivateFiles = append(append([]string(nil), s.PrivateFiles...), s.File)
 	}
 	c.Title, c.Notes, c.File = title, nil, ""
 	c.Files, c.NFiles = []string{}, 0
@@ -633,14 +640,17 @@ type Session struct {
 	Outputs      OutputTotal   `json:"outputs"`                // コミット・PR・変更した行（output.go）
 	CostReported bool          `json:"costReported,omitempty"` // 目安コストにエージェント自身の記録を使った
 	File         string        `json:"file,omitempty"`         // 履歴のファイル
-	PRs          []string      `json:"prs"`                    // AI が作った PR の URL（わかったもの）
-	PRAt         []PRAt        `json:"prAt"`                   // AI が PR を作った時刻（依頼の流れに出す）
-	UEv          []Event       `json:"-"`                      // 週ごとの集計用（HTML には入れない）
-	CEv          []Credit      `json:"-"`
-	OEv          []Output      `json:"-"`
-	Fix          []float64     `json:"-"`
-	Meas         []Measure     `json:"-"`
-	OutTracked   bool          `json:"-"` // アウトプットを記録できるエージェントのセッション（Records の outputs）
+	// PrivateFiles は、中身を出さない会話（Kiro Crew の incognito・temporary と、その写し）の履歴のファイル。
+	// HTML・JSON には入れず（json:"-"）、kiroku serve の「Analyze with AI」が読めないようにするのに使う
+	PrivateFiles []string  `json:"-"`
+	PRs          []string  `json:"prs"`  // AI が作った PR の URL（わかったもの）
+	PRAt         []PRAt    `json:"prAt"` // AI が PR を作った時刻（依頼の流れに出す）
+	UEv          []Event   `json:"-"`    // 週ごとの集計用（HTML には入れない）
+	CEv          []Credit  `json:"-"`
+	OEv          []Output  `json:"-"`
+	Fix          []float64 `json:"-"`
+	Meas         []Measure `json:"-"`
+	OutTracked   bool      `json:"-"` // アウトプットを記録できるエージェントのセッション（Records の outputs）
 }
 
 // PRAt は AI が PR を作った時刻と、わかれば URL。
@@ -778,7 +788,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 		Prompts: prompts, Notes: s.Notes, NPrompts: len(s.Prompts), Tools: tools, Files: files, NFiles: nFiles, Resume: strOrNil(s.Resume),
 		Waits: s.Waits(), Interrupts: s.Interrupts, InterruptsAt: interrupts, Limits: limits(s.Limits), LimitResets: limitResets(s.LimitResets), Compactions: compactions, CompactKinds: compactKinds, Ctx: ctx, CtxWindow: s.CtxWindow, Corrections: s.Corrections(), Models: models, Tiers: tiers,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
-		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: reported, File: s.File, PRs: prs, PRAt: prAt,
+		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: reported, File: s.File, PrivateFiles: s.PrivateFiles, PRs: prs, PRAt: prAt,
 		Native: AggregateNative(s.Source, s.Measures), Meas: s.Measures, OutTracked: RecordsOf(s.Source, "outputs"),
 	}
 }

@@ -490,3 +490,46 @@ func TestUnreadableWarningIsTerminalSafe(t *testing.T) {
 		}
 	}
 }
+
+// 中身を出さない会話の履歴のファイルは、セッションの PrivateFiles に残り（「Analyze with AI」の Claude Code に読ませないため）、
+// HTML・JSON には入らない。中身を残す会話のファイルは入らない（セキュリティ）。
+func TestCrewPrivateFilesForAI(t *testing.T) {
+	quietLog(t)
+	kiro, crew, claude, codex := crewPrivateFixture(t)
+	all := []source.Source{&source.Claude{Root: claude}, &source.KiroCLI{Home: kiro, CrewHome: crew}, &source.Codex{Home: codex}}
+	data, _ := collectCached(all, map[string]bool{"kiro": true, "claude": true, "codex": true}, 15, nil)
+	l := &live{snap: snapshot{data: data, private: all[1].(*source.KiroCLI).PrivateFiles()}}
+	got := l.privateFiles()
+	want := []string{
+		filepath.Join(claude, "-w", "c-priv.jsonl"),
+		filepath.Join(crew, "sessions", "dashboard_chat-1-100.jsonl"),
+		filepath.Join(crew, "sessions", "dashboard_chat-4-400.jsonl"),
+	}
+	has := func(p string) bool {
+		for _, g := range got {
+			if g == p {
+				return true
+			}
+		}
+		return false
+	}
+	for _, p := range want {
+		if !has(p) {
+			t.Errorf("PrivateFiles に %s がない: %q", p, got)
+		}
+	}
+	for _, p := range []string{filepath.Join(claude, "-w", "c-pub.jsonl"), filepath.Join(crew, "sessions", "dashboard_chat-2-200.jsonl")} {
+		if has(p) {
+			t.Errorf("中身を残す会話のファイル %s が PrivateFiles にある", p)
+		}
+	}
+	b, err := json.Marshal(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range want {
+		if strings.Contains(string(b), filepath.Base(p)) {
+			t.Errorf("JSON に %s が入っている", p)
+		}
+	}
+}
