@@ -6,19 +6,29 @@ function startLive(){
   let busy = false;
   async function poll(){
     if (busy || document.hidden) return; busy = true;
+    // 届いたデータは HTML に入れたものと同じく時計（SHIFT）をずらしてから比べ・取り込む。描くときの誤りは、つながらないこととは分けて出す
+    let j = null;
     try {
       const r = await kfetch("stamp"); if (!r.ok) throw new Error(r.status);
-      if (parseFloat(await r.text()) !== GENERATED){
+      if (shiftTimes(parseFloat(await r.text())) !== GENERATED){
         const d0 = await kfetch("data.json"); if (!d0.ok) throw new Error(d0.status);
-        const j = await d0.json(), before = DATA.length;
+        j = shiftTimes(await d0.json());
+      }
+      badge.classList.remove("off"); badge.title = t("Updates automatically as your history grows (last checked {time})", {time: hm(Date.now()/1000)});
+    } catch(e){
+      badge.classList.add("off");
+      // 403 は鍵が変わった（kiroku serve を起動し直しても直らない。kiroku open が要る）
+      badge.title = String(e && e.message) === "403" ? t("Open kiroku with its key") : t("Not connected to kiroku serve. If you stopped it, start it again to resume.");
+    }
+    if (j){
+      try {
+        const before = DATA.length;
         applyData(j);
         render();
         const d = DATA.length - before;
         toast(d === 1 ? t("Added 1 new session") : d > 0 ? t("Added {n} new sessions", {n: d}) : t("Updated to the latest history"));
-      }
-      badge.classList.remove("off"); badge.title = t("Updates automatically as your history grows (last checked {time})", {time: hm(Date.now()/1000)});
-    } catch(e){ badge.classList.add("off"); badge.title = t("Not connected to kiroku serve. If you stopped it, start it again to resume."); }
-
+      } catch(e){ console.error(e); }
+    }
     busy = false;
   }
   setInterval(poll, 3000); document.addEventListener("visibilitychange", poll);
