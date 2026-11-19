@@ -30,13 +30,16 @@ func ResumeCmd(dir, cmd, id string) string {
 // GitCmd は、コミットや push を手元で見るためにコピーして端末に貼るコマンド（git -C <repo> <cmd> <args>）を作る。
 // cmd は kiroku が決めた固定の文字列（show、log --oneline）。repo と args（ハッシュや範囲）は git から来た値なので、
 // ResumeCmd と同じく 1 つずつ囲み、安全に囲めない値があれば "" を返してコマンドは出さない。
+// リポジトリは他人が作ったものかもしれない。貼ったコマンドがそのリポジトリの設定（.git/config・.gitattributes）にある
+// ページャー・fsmonitor を動かさないよう、--no-pager と core.fsmonitor=false を付ける。show には gitShow を渡す
+// （外部の diff・textconv と、それが呼ぶ filter.*.process を動かさない）。
 func GitCmd(repo, cmd string, args ...string) string {
 	win := isWinPath(repo)
 	r, ok := shellArg(repo, win)
 	if !ok {
 		return ""
 	}
-	out := "git -C " + r + " " + cmd
+	out := "git --no-pager -c core.fsmonitor=false -C " + r + " " + cmd
 	for _, a := range args {
 		q, ok := shellArg(a, win)
 		if !ok {
@@ -46,6 +49,9 @@ func GitCmd(repo, cmd string, args ...string) string {
 	}
 	return out
 }
+
+// GitShow は、GitCmd に渡す show。リポジトリの設定の外部の diff と textconv（と、それが呼ぶ filter.*.process）を動かさない。
+const GitShow = "show --no-ext-diff --no-textconv"
 
 var (
 	winPath    = regexp.MustCompile(`^(?:[A-Za-z]:[\\/]|\\\\)`)

@@ -73,13 +73,14 @@ func TestGitCmd(t *testing.T) {
 		args []string
 		want string
 	}{
-		{"/Users/me/web", "show", []string{"4917468abc"}, "git -C /Users/me/web show 4917468abc"},
-		{"/Users/me/My Project", "show", []string{"abc"}, "git -C '/Users/me/My Project' show abc"},
-		{"/tmp/r$(touch pwned-dollar)`touch pwned-tick`;touch pwned-semi", "show", []string{"abc"}, "git -C '/tmp/r$(touch pwned-dollar)`touch pwned-tick`;touch pwned-semi' show abc"},
+		{"/Users/me/web", "show", []string{"4917468abc"}, "git --no-pager -c core.fsmonitor=false -C /Users/me/web show 4917468abc"},
+		{"/Users/me/web", GitShow, []string{"4917468abc"}, "git --no-pager -c core.fsmonitor=false -C /Users/me/web show --no-ext-diff --no-textconv 4917468abc"},
+		{"/Users/me/My Project", "show", []string{"abc"}, "git --no-pager -c core.fsmonitor=false -C '/Users/me/My Project' show abc"},
+		{"/tmp/r$(touch pwned-dollar)`touch pwned-tick`;touch pwned-semi", "show", []string{"abc"}, "git --no-pager -c core.fsmonitor=false -C '/tmp/r$(touch pwned-dollar)`touch pwned-tick`;touch pwned-semi' show abc"},
 		{"/tmp/it's", "log --oneline", []string{"aaa..bbb"}, ""},
 		{`/tmp/r\';touch pwned;#`, "show", []string{"abc"}, ""},
-		{"/Users/me/web", "show", []string{"abc; curl evil"}, "git -C /Users/me/web show 'abc; curl evil'"},
-		{`C:\Users\John Smith\a & calc`, "show", []string{"abc"}, `git -C "C:\Users\John Smith\a & calc" show abc`},
+		{"/Users/me/web", "show", []string{"abc; curl evil"}, "git --no-pager -c core.fsmonitor=false -C /Users/me/web show 'abc; curl evil'"},
+		{`C:\Users\John Smith\a & calc`, "show", []string{"abc"}, `git --no-pager -c core.fsmonitor=false -C "C:\Users\John Smith\a & calc" show abc`},
 		{`C:\Users\me\$(calc)`, "show", []string{"abc"}, ""},
 		{`C:\Users\me\%PATH%`, "show", []string{"abc"}, ""},
 		{"/tmp/a\nrm -rf ~", "show", []string{"abc"}, ""},
