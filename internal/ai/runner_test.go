@@ -41,19 +41,6 @@ func TestOversizedPrompt(t *testing.T) {
 	}
 }
 
-func TestLimitedWriter(t *testing.T) {
-	var b bytes.Buffer
-	w := &limitedWriter{w: &b, max: 3}
-	n, err := w.Write([]byte("abcdef"))
-	if err == nil || n != 3 || b.String() != "abc" {
-		t.Fatalf("n=%d err=%v output=%q", n, err, b.String())
-	}
-	n, err = w.Write([]byte("z"))
-	if err == nil || n != 0 {
-		t.Fatalf("expected full writer error, n=%d err=%v", n, err)
-	}
-}
-
 func TestCancellationBeforeExecution(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

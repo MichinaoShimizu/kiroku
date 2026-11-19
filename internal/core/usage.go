@@ -609,8 +609,6 @@ func firstNonEmpty(s ...string) string {
 	return ""
 }
 
-func (u *Usage) Len() int { return len(u.byMsg) }
-
 // Events は [(t, model, usage, cost)]。コストは料金表で見積もる。
 // AddEvent で入れたときにコストが決まっているもの（エージェント自身が記録したドル額。Kiro Crew）はそのまま使う。
 func (u *Usage) Events() []Event {

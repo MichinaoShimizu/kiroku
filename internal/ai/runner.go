@@ -439,23 +439,6 @@ func firstNonEmpty(s ...string) string {
 	return ""
 }
 
-type limitedWriter struct {
-	w   *bytes.Buffer
-	max int
-}
-
-func (w *limitedWriter) Write(p []byte) (int, error) {
-	remaining := w.max - w.w.Len()
-	if remaining <= 0 {
-		return 0, errors.New("agent output limit reached")
-	}
-	if len(p) > remaining {
-		_, _ = w.w.Write(p[:remaining])
-		return remaining, errors.New("agent output limit reached")
-	}
-	return w.w.Write(p)
-}
-
 // tailWriter keeps the last max bytes, so a failing agent's final error message is kept
 // without holding all of its output.
 type tailWriter struct {
