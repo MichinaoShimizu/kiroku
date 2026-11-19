@@ -1,0 +1,1 @@
+- A history file made of many prompts with the same timestamp no longer makes kiroku spend time growing with the square of the prompt count (about 50 seconds for a 20 MiB file, and longer for a small `.jsonl.zst` that expands to hundreds of MiB). Work and wait times per prompt are now found in one pass

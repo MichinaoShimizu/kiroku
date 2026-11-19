@@ -520,11 +520,12 @@ func (s *Builder) Waits() [][2]float64 {
 	var prev *float64
 	for i := range ps {
 		p := ps[i]
-		last, found := 0.0, false
-		for _, a := range agent {
-			if (prev == nil || a > *prev) && a < p && (!found || a > last) {
-				last, found = a, true
-			}
+		// prev より後で p より前の、いちばん遅い AI の時刻（agent は並べてあるので二分探索。依頼ごとに全部を見ると、
+		// 依頼の多いセッションで依頼の数 × AI の時刻の数かかる）
+		j := sort.SearchFloat64s(agent, p) - 1
+		last, found := 0.0, j >= 0 && (prev == nil || agent[j] > *prev)
+		if found {
+			last = agent[j]
 		}
 		if found && p-last > 0 && p-last <= 1800 {
 			out = append(out, [2]float64{p, Round(p-last, 0)})
@@ -547,18 +548,29 @@ func (s *Builder) promptTimes(ps []Prompt) []Prompt {
 	sort.Float64s(agent)
 	out := make([]Prompt, len(ps))
 	copy(out, ps)
-	for i := range out {
+	// nexts[i] は、i より後で最初に p より遅い依頼の時刻（なければ +Inf）。後ろから、遅いものだけを残した積み上げで求める。
+	// 前から 1 つずつ探すと、同じ時刻の依頼が続くセッション（壊れた・わざと作った履歴）で依頼の数の 2 乗かかる
+	nexts := make([]float64, len(out))
+	var stack []float64
+	for i := len(out) - 1; i >= 0; i-- {
+		nexts[i] = math.Inf(1)
 		if out[i].T == nil || *out[i].T == 0 {
 			continue
 		}
 		p := *out[i].T
-		next := math.Inf(1)
-		for _, q := range out[i+1:] {
-			if q.T != nil && *q.T > p {
-				next = *q.T
-				break
-			}
+		for len(stack) > 0 && stack[len(stack)-1] <= p {
+			stack = stack[:len(stack)-1]
 		}
+		if len(stack) > 0 {
+			nexts[i] = stack[len(stack)-1]
+		}
+		stack = append(stack, p)
+	}
+	for i := range out {
+		if out[i].T == nil || *out[i].T == 0 {
+			continue
+		}
+		p, next := *out[i].T, nexts[i]
 		// p より後で next より前の、いちばん遅い AI の時刻
 		j := sort.Search(len(agent), func(k int) bool { return agent[k] >= next }) - 1
 		if j < 0 || agent[j] <= p {
