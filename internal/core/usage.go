@@ -7,13 +7,15 @@ import (
 )
 
 // Prices は Anthropic のモデルの料金。USD / 100 万トークン: 入力, 出力, キャッシュ書き込み(5分), キャッシュ書き込み(1時間), キャッシュ読み込み。
-// 出典: https://platform.claude.com/docs/en/about-claude/pricing （2026-10 時点）。--prices で上書きできる。
+// 出典: https://platform.claude.com/docs/en/about-claude/pricing （2026-11 時点）。--prices で上書きできる。
 // 公式の数字の控えは docs/upstream/anthropic-pricing.md（tools/prices が作る）。TestPricesMatchUpstream が食い違いを見つける。
 // モデル ID の先頭一致で引く（長いキーが優先）。サブスクリプションの請求額とは別物。
 // PricesAsOf は収録した料金の時点。画面にも出す。料金表を更新したら合わせて変える。
-const PricesAsOf = "2026-10"
+const PricesAsOf = "2026-11"
 
 var Prices = map[string][5]float64{
+	"claude-fable-5-2":  {8, 40, 10, 16, 0.20},
+	"claude-mythos-5-2": {8, 40, 10, 16, 0.20},
 	"claude-fable-5-1":  {10, 50, 12.5, 20, 0.25},
 	"claude-mythos-5-1": {10, 50, 12.5, 20, 0.25},
 	"claude-fable-5":    {10, 50, 12.5, 20, 1.0},
@@ -33,7 +35,6 @@ var Prices = map[string][5]float64{
 	"claude-sonnet-4":   {3, 15, 3.75, 6, 0.30},
 	"claude-haiku-5-5":  {0.10, 0.50, 0.125, 0.20, 0.01}, // プロンプトが 100K 以下。超えたら LongPrices
 	"claude-haiku-4-5":  {1, 5, 1.25, 2, 0.10},
-	"claude-3-5-haiku":  {0.8, 4, 1, 1.6, 0.08},
 }
 
 // LongPrice は、1 回の応答のプロンプトが Over トークンを超えたときの料金（その応答の全部にかかる。出力も含む）。並びは Prices と同じ。
@@ -52,14 +53,19 @@ var LongPrices = map[string]LongPrice{
 }
 
 // OpenAIPrices は OpenAI のモデル（Codex が使う gpt-5 以降）の料金。並びは Prices と同じで、
-// 入力（キャッシュなし）, 出力, キャッシュ書き込み, キャッシュ書き込み（同じ値。OpenAI に 1 時間の区別はない）, キャッシュ済み入力。
-// 出典: https://developers.openai.com/api/docs/pricing の Standard（短いコンテキスト）、Cyber models、Specialized models の Codex（2026-10 時点）。
+// 入力（キャッシュなし）, 出力, キャッシュ書き込み, キャッシュ書き込み（同じ値）, キャッシュ済み入力。
+// キャッシュ書き込みは公式の 30 分の書き込み（30m write）の料金。公式には 12 時間の書き込み（12h write）もあるが、
+// Codex は履歴に TTL を書かない（どちらで書いたかわからない）ので使わない。
+// 出典: https://developers.openai.com/api/docs/pricing の Standard（短いコンテキスト）、Specialized models の Cyber と Codex（2026-11 時点）。
 // 公式にキャッシュ書き込み・キャッシュ済み入力の料金がない（"-"）モデルは、その分も入力の料金にする。
 // 公式の数字の控えは docs/upstream/openai-pricing.md。Fast・Ultrafast・Flex は OpenAITiers（Codex の service_tier で選ぶ）。
 // Batch・データ所在地の上乗せは入れていない。
 var OpenAIPrices = map[string][5]float64{
+	"gpt-6.2-astra": {8, 40, 10, 10, 0.4},
+	"gpt-6.2-sol":   {2, 10, 2.5, 2.5, 0.1},
 	"gpt-6-astra":   {10, 50, 12.5, 12.5, 1},
 	"gpt-6.1-sol":   {2, 10, 2.5, 2.5, 0.1},
+	"gpt-6.1-terra": {1, 5, 1.25, 1.25, 0.05},
 	"gpt-6-luna":    {0.1, 0.5, 0.125, 0.125, 0.01},
 	"gpt-6-sol":     {2, 10, 2.5, 2.5, 0.2},
 	"gpt-5.6-sol":   {4, 20, 5, 5, 0.4},
@@ -67,26 +73,32 @@ var OpenAIPrices = map[string][5]float64{
 	"gpt-5.6-luna":  {0.2, 1.2, 0.25, 0.25, 0.02},
 	"gpt-5.5":       {5, 30, 5, 5, 0.5},
 	"gpt-5.5-pro":   {30, 180, 30, 30, 30},
-	"gpt-5.6-cyber": {12.5, 75, 15.625, 15.625, 1.25}, // Cyber models の表（長いコンテキストの料金はない）
-	"gpt-5.5-cyber": {12.5, 75, 12.5, 12.5, 1.25},
-	"gpt-5.4":       {2.5, 15, 2.5, 2.5, 0.25},
-	"gpt-5.4-mini":  {0.75, 4.5, 0.75, 0.75, 0.075},
-	"gpt-5.4-nano":  {0.2, 1.25, 0.2, 0.2, 0.02},
-	"gpt-5.4-pro":   {30, 180, 30, 30, 30},
-	"gpt-5.3-codex": {1.75, 14, 1.75, 1.75, 0.175},
-	"gpt-5.2":       {1.75, 14, 1.75, 1.75, 0.175},
-	"gpt-5.2-pro":   {21, 168, 21, 21, 21},
-	"gpt-5.1":       {1.25, 10, 1.25, 1.25, 0.125},
-	"gpt-5":         {1.25, 10, 1.25, 1.25, 0.125},
-	"gpt-5-mini":    {0.25, 2, 0.25, 0.25, 0.025},
-	"gpt-5-nano":    {0.05, 0.4, 0.05, 0.05, 0.005},
-	"gpt-5-pro":     {15, 120, 15, 15, 15},
+	// Specialized models の Cyber の行（short context と long context の 2 行）
+	"gpt-6-cyber":           {20, 100, 25, 25, 2},
+	"gpt-5.6-cyber":         {12.5, 75, 15.625, 15.625, 1.25}, // 長いコンテキストの料金はない
+	"gpt-5.5-cyber-preview": {12.5, 75, 12.5, 12.5, 1.25},     // 2026-10 までの表では gpt-5.5-cyber（renamedIDs）
+	"gpt-5.4":               {2.5, 15, 2.5, 2.5, 0.25},
+	"gpt-5.4-mini":          {0.75, 4.5, 0.75, 0.75, 0.075},
+	"gpt-5.4-nano":          {0.2, 1.25, 0.2, 0.2, 0.02},
+	"gpt-5.4-pro":           {30, 180, 30, 30, 30},
+	"gpt-5.3-codex":         {1.75, 14, 1.75, 1.75, 0.175},
+	"gpt-5.2":               {1.75, 14, 1.75, 1.75, 0.175},
+	"gpt-5.2-pro":           {21, 168, 21, 21, 21},
+	"gpt-5.1":               {1.25, 10, 1.25, 1.25, 0.125},
+	"gpt-5":                 {1.25, 10, 1.25, 1.25, 0.125},
+	"gpt-5-mini":            {0.25, 2, 0.25, 0.25, 0.025},
+	"gpt-5-nano":            {0.05, 0.4, 0.05, 0.05, 0.005},
+	"gpt-5-pro":             {15, 120, 15, 15, 15},
 }
 
 // OpenAILongPrices は、1 回の応答の入力が OpenAILongContext を超えたときの料金（その応答の全部にかかる）。並びは OpenAIPrices と同じ。
 var OpenAILongPrices = map[string][5]float64{
+	"gpt-6.2-astra": {16, 60, 20, 20, 0.8},
+	"gpt-6.2-sol":   {4, 15, 5, 5, 0.2},
 	"gpt-6-astra":   {20, 75, 25, 25, 2},
 	"gpt-6.1-sol":   {4, 15, 5, 5, 0.2},
+	"gpt-6.1-terra": {2, 7.5, 2.5, 2.5, 0.1},
+	"gpt-6-cyber":   {40, 150, 40, 40, 4}, // 公式に長いコンテキストの書き込みの料金はない（入力の料金にする）
 	"gpt-6-luna":    {0.2, 0.75, 0.25, 0.25, 0.02},
 	"gpt-6-sol":     {4, 15, 5, 5, 0.4},
 	"gpt-5.6-sol":   {8, 30, 10, 10, 0.8},
@@ -118,13 +130,16 @@ type OpenAITier struct {
 }
 
 // OpenAITiers は、サービスティアごとの OpenAI の料金。出典は OpenAIPrices と同じページの Flex・Fast・Ultrafast の表と、
-// Specialized models の Fast の表の Codex（2026-10 時点）。キーの引き方は OpenAIPrices と同じ（PriceOf が当てたキーで引く）。
+// Specialized models の Fast の表の Codex（2026-11 時点）。キーの引き方は OpenAIPrices と同じ（PriceOf が当てたキーで引く）。
 // ティアの表にないモデル（Fast の gpt-5.5-pro など）や、長いコンテキストの料金がティアにないモデル（Fast の gpt-5.5 など）は、
 // 標準の料金で見積もり、画面の「Data sources」で知らせる（Event.TierStd）。--prices で上書きしたモデルは、どのティアでもその料金。
 var OpenAITiers = map[string]OpenAITier{
 	TierFast: {Name: "Fast", Rates: map[string][5]float64{
+		"gpt-6.2-astra": {16, 80, 20, 20, 0.8},
+		"gpt-6.2-sol":   {4, 20, 5, 5, 0.2},
 		"gpt-6-astra":   {20, 100, 25, 25, 2},
 		"gpt-6.1-sol":   {4, 20, 5, 5, 0.2},
+		"gpt-6.1-terra": {2, 10, 2.5, 2.5, 0.1},
 		"gpt-6-luna":    {0.2, 1, 0.25, 0.25, 0.02},
 		"gpt-6-sol":     {4, 20, 5, 5, 0.4},
 		"gpt-5.6-sol":   {8, 40, 10, 10, 0.8},
@@ -139,24 +154,34 @@ var OpenAITiers = map[string]OpenAITier{
 		"gpt-5":         {2.5, 20, 2.5, 2.5, 0.25},
 		"gpt-5-mini":    {0.45, 3.6, 0.45, 0.45, 0.045},
 	}, Long: map[string][5]float64{
+		"gpt-6.2-astra": {32, 120, 40, 40, 1.6},
+		"gpt-6.2-sol":   {8, 30, 10, 10, 0.4},
 		"gpt-6-astra":   {40, 150, 50, 50, 4},
 		"gpt-6.1-sol":   {8, 30, 10, 10, 0.4},
+		"gpt-6.1-terra": {4, 15, 5, 5, 0.2},
 		"gpt-6-luna":    {0.4, 1.5, 0.5, 0.5, 0.04},
 		"gpt-6-sol":     {8, 30, 10, 10, 0.8},
 		"gpt-5.6-sol":   {16, 60, 20, 20, 1.6},
 		"gpt-5.6-terra": {8, 36, 10, 10, 0.8},
 		"gpt-5.6-luna":  {0.8, 3.6, 1, 1, 0.08},
 	}},
+	// GPT-6.2 Astra・Sol は公式の list の表（Standard の 6 倍）。2027-02-28 までは promotion（3 倍）で請求されるが、
+	// 料金表に日付はないので、期間によらない list の料金にする（その間の見積もりは請求の 2 倍になる）。
 	TierUltrafast: {Name: "Ultrafast", Rates: map[string][5]float64{
-		"gpt-6-astra": {60, 300, 75, 75, 6},
-		"gpt-6.1-sol": {12, 60, 15, 15, 0.6},
+		"gpt-6-astra":   {60, 300, 75, 75, 6},
+		"gpt-6.1-sol":   {12, 60, 15, 15, 0.6},
+		"gpt-6.2-astra": {48, 240, 60, 60, 2.4},
+		"gpt-6.2-sol":   {12, 60, 15, 15, 0.6},
 	}, Long: map[string][5]float64{
-		"gpt-6-astra": {120, 450, 150, 150, 12},
-		"gpt-6.1-sol": {24, 90, 30, 30, 1.2},
+		"gpt-6-astra":   {120, 450, 150, 150, 12},
+		"gpt-6.1-sol":   {24, 90, 30, 30, 1.2},
+		"gpt-6.2-astra": {96, 360, 120, 120, 4.8},
+		"gpt-6.2-sol":   {24, 90, 30, 30, 1.2},
 	}},
 	TierFlex: {Name: "Flex", Rates: map[string][5]float64{
 		"gpt-6-astra":   {5, 25, 6.25, 6.25, 0.5},
 		"gpt-6.1-sol":   {1, 5, 1.25, 1.25, 0.05},
+		"gpt-6.1-terra": {0.5, 2.5, 0.625, 0.625, 0.025},
 		"gpt-6-luna":    {0.05, 0.25, 0.0625, 0.0625, 0.005},
 		"gpt-6-sol":     {1, 5, 1.25, 1.25, 0.1},
 		"gpt-5.6-sol":   {2, 10, 2.5, 2.5, 0.2},
@@ -176,6 +201,7 @@ var OpenAITiers = map[string]OpenAITier{
 	}, Long: map[string][5]float64{
 		"gpt-6-astra":   {10, 37.5, 12.5, 12.5, 1},
 		"gpt-6.1-sol":   {2, 7.5, 2.5, 2.5, 0.1},
+		"gpt-6.1-terra": {1, 3.75, 1.25, 1.25, 0.05},
 		"gpt-6-luna":    {0.1, 0.375, 0.125, 0.125, 0.01},
 		"gpt-6-sol":     {2, 7.5, 2.5, 2.5, 0.2},
 		"gpt-5.6-sol":   {4, 15, 5, 5, 0.4},
@@ -311,10 +337,20 @@ func priceIDOf(model string) string {
 	for {
 		s := versionSuffix.ReplaceAllString(m, "")
 		if s == m {
-			return m
+			break
 		}
 		m = s
 	}
+	if r, ok := renamedIDs[m]; ok {
+		return r
+	}
+	return m
+}
+
+// renamedIDs は、公式の料金表で名前が変わったモデル（前の名前 → 今のキー。料金は同じ）。前の名前で書かれた履歴も、
+// 先頭一致で別のモデル（gpt-5.5-cyber なら gpt-5.5）の料金にならないように、今のキーで引く。
+var renamedIDs = map[string]string{
+	"gpt-5.5-cyber": "gpt-5.5-cyber-preview", // 2026-11 から（それまでの表では gpt-5.5-cyber）
 }
 
 // prefixOf は key が m の先頭に区切りよく一致するか（gpt-5 は gpt-5-codex に当たるが、gpt-5.7 や gpt-50 には当てない）。
