@@ -1,0 +1,1 @@
+- Japanese view: errors from "Analyze with AI" (agent not installed, a run already going, prompt too long), the page shown to a browser without the key, the one-time `kiroku open` address page, the titles kiroku gives Kiro Crew and Kiro IDE sessions without one (such as "Kiro Crew private conversation"), and the private-conversation check in "Data sources" are now in Japanese

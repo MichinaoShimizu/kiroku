@@ -456,3 +456,21 @@ func TestHopTargetStaysOnSite(t *testing.T) {
 		t.Errorf("plain path = %q", got)
 	}
 }
+
+// 鍵のないブラウザーへの案内は、Accept-Language が日本語なら日本語にする（画面の showLocked と同じ文）。
+func TestLockedPageLanguage(t *testing.T) {
+	key := strings.Repeat("a", 64)
+	h := requireKey("127.0.0.1:8484", key, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	for al, want := range map[string]string{"ja,en;q=0.8": "鍵を付けて kiroku を開いてください", "ja-JP": "鍵を付けて kiroku を開いてください", "en-US,ja;q=0.5": "Open kiroku with its key", "": "Open kiroku with its key"} {
+		req := httptest.NewRequest("GET", "http://127.0.0.1:8484/data.json", nil)
+		req.Header.Set("Accept-Language", al)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), want) {
+			t.Errorf("Accept-Language %q: %d %q, want %q", al, rec.Code, rec.Body.String(), want)
+		}
+	}
+	if !strings.Contains(hopKeyScript, "もう一度 kiroku open を実行してください") {
+		t.Error("中継のページに日本語の知らせがない")
+	}
+}

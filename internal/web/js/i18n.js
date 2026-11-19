@@ -150,6 +150,17 @@ const JA_TEXT = {
   "Copy": "コピー",
   "Copy result": "結果をコピー",
   "kiroku's check found problems in this result:": "kiroku の確認で、この結果に問題が見つかりました:",
+  "{agent} is not installed on this computer": "このコンピューターに {agent} がインストールされていません",
+  "The prompt is too long to run (limit 256 KB). Copy it and paste it into the agent instead.": "プロンプトが長すぎて実行できません（上限 256 KB）。コピーして、エージェントに貼り付けてください。",
+  "Another AI run is still going. Wait for it to finish, then try again.": "ほかの AI 分析がまだ動いています。終わるのを待って、もう一度試してください。",
+  "Analyze with AI is off in this kiroku serve.": "この kiroku serve では AI 分析がオフです。",
+  "Kiro Crew private conversation": "Kiro Crew の非公開の会話",
+  "Kiro Crew background work": "Kiro Crew のバックグラウンドの作業",
+  "Kiro IDE hidden chat": "Kiro IDE の非表示のチャット",
+  "Kiro IDE executions without a chat": "チャットのない Kiro IDE の実行",
+  "Kiro Crew memory consolidation ({slot})": "Kiro Crew の記憶の整理（{slot}）",
+  "(private)": "（非公開）",
+  "Kiro Crew (private conversations check)": "Kiro Crew（非公開の会話の確認）",
   "All {want} sections are missing": "{want} 個の節がすべてありません",
   "{n} of the {want} sections are missing": "{want} 個の節のうち {n} 個がありません",
   "The numbers table is missing": "数字の表がありません",
@@ -860,3 +871,15 @@ function setLang(l){
 // 並べるときの区切り（日本語は「、」）
 const LSEP = () => isJA() ? "、" : ", ";
 const TSEP = () => isJA() ? "、" : "; "; // 日時の並び（英語の日付 "Tue, Sep 29" はコンマを含むので、セミコロンで区切る）
+
+/* localizeTitles は、kiroku が履歴の代わりに付けた決まった題（Go の source が付ける英語。Kiro Crew の中身を残さない会話など）と、
+   中身を残さない会話の依頼の代わりの文（"(private)"）を、画面の言語にする。何度呼んでも同じ。履歴から読んだ題は変えない */
+function localizeTitles(data){
+  if (!JA) return;
+  const fixed = {"Kiro Crew private conversation": 1, "Kiro Crew background work": 1, "Kiro IDE hidden chat": 1, "Kiro IDE executions without a chat": 1};
+  for (const s of data || []){
+    if (fixed[s.title]) s.title = t(s.title);
+    else { const m = /^Kiro Crew memory consolidation \((.*)\)$/.exec(s.title || ""); if (m) s.title = t("Kiro Crew memory consolidation ({slot})", {slot: m[1]}); }
+    for (const p of s.prompts || []) if (p.text === "(private)") p.text = t("(private)");
+  }
+}
