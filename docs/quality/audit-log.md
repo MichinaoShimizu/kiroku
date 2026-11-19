@@ -66,6 +66,15 @@ The third full run. A, B, C+D, E (one agent each for Claude Code, Codex and Kiro
 | I. supply | 3 | 0 | 0 | 0 | #481 (Go 1.26.11, Tag only from main, Prices parser) |
 | J. perf | 0 | 0 | 0 | 0 | — |
 
+Decisions the maintainer made after the run (fixed on #481):
+- Copied git commands carry `--no-pager -c core.fsmonitor=false` (and `--no-ext-diff --no-textconv` for `show`); a test pastes one into sh against a repository that sets every configured command
+- The Claude Code AI run gets a `Read` deny rule (in a `--settings` file) for each Kiro Crew private conversation and its copies
+- Prices: keep Haiku 3.5 removed and Ultrafast list prices
+- Kiro tangent, `/rewind` and fork double count: documented as a known limit in docs/sources.md
+- Japanese: README.ja uses アウトプット; `/ai/run` errors, the locked and one-time open pages, and kiroku's own session titles are translated
+- SECURITY.md lines 15–16 split into sub-bullets; the `KIROKU_NO_AI` value rules live only in the guide's Options
+- UX: badge contrast, dark disabled AI button and dialog controls, summary blank fixed. The week calendar's overlapping lanes stay as they are (cascading lanes already keep each title's first line; narrower boxes need a design decision)
+
 ### Open items
 - Previous: "Analyze with AI" with Codex and Kiro CLI only tested with stub commands. Decides: maintainer
 - Previous: Kiro CLI `KIRO_DATA_DIR` — still undocumented (settings and cli-commands pages, changelog 2.32–3.5). Due: next data audit
