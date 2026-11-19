@@ -150,7 +150,6 @@ const JA_TEXT = {
   "Copy": "コピー",
   "Copy result": "結果をコピー",
   "kiroku's check found problems in this result:": "kiroku の確認で、この結果に問題が見つかりました:",
-  "Breakdown of {name}: {value}": "{name} の内訳: {value}",
   "All {want} sections are missing": "{want} 個の節がすべてありません",
   "{n} of the {want} sections are missing": "{want} 個の節のうち {n} 個がありません",
   "The numbers table is missing": "数字の表がありません",
