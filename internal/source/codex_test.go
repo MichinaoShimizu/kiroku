@@ -531,6 +531,10 @@ func TestCodexLimitHits(t *testing.T) {
 		`{"timestamp":"2026-10-06T00:12:00.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t3","error":{"message":"budget","codex_error_info":"session_budget_exceeded"}}}`,
 		`{"timestamp":"2026-10-06T00:14:00.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t4","error":{"message":"retry","codex_error_info":{"response_too_many_failed_attempts":{"http_status_code":503}}}}}`,
 		`{"timestamp":"2026-10-06T00:20:00.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t5","error":{"message":"Rate limit reached","codex_error_info":"rate_limit_exceeded"}}}`,
+		// API の使用額の上限（キー・プロジェクト・組織）
+		`{"timestamp":"2026-10-06T00:30:00.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t6","error":{"message":"spend","codex_error_info":"api_key_spend_limit_exceeded"}}}`,
+		`{"timestamp":"2026-10-06T00:40:00.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t7","error":{"message":"spend","codex_error_info":"project_spend_limit_exceeded"}}}`,
+		`{"timestamp":"2026-10-06T00:50:00.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t8","error":{"message":"spend","codex_error_info":"organization_spend_limit_exceeded"}}}`,
 	)
 	writeCodex(t, home, "thr-lim-sub",
 		`{"timestamp":"2026-10-06T00:04:00.000Z","type":"session_meta","payload":{"id":"thr-lim-sub","timestamp":"2026-10-06T00:04:00.000Z","cwd":"/Users/me/web","source":{"subagent":{"thread_spawn":{"parent_thread_id":"thr-lim","agent_role":"explorer"}}}}}`,
@@ -542,7 +546,7 @@ func TestCodexLimitHits(t *testing.T) {
 	}
 	got := bs[0].Finish(15).Limits
 	base := float64(1791244800) // 2026-10-06T00:00:00Z
-	want := []float64{base + 60, base + 300, base + 1200}
+	want := []float64{base + 60, base + 300, base + 1200, base + 1800, base + 2400, base + 3000}
 	if len(got) != len(want) {
 		t.Fatalf("limits = %v, want %v", got, want)
 	}
