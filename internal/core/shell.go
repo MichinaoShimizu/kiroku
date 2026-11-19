@@ -57,7 +57,7 @@ var (
 func isWinPath(p string) bool { return winPath.MatchString(p) }
 
 // shellArg は、s を 1 つの引数として貼れる形にする。
-// POSIX のシェルでは単一引用符で囲む（中の単一引用符は、引用を閉じて \' を置き、また開く）。
+// POSIX のシェルでは単一引用符で囲む（単一引用符と \ を含むものは扱わない）。
 // Windows では cmd と PowerShell のどちらに貼られても同じ意味になるよう二重引用符で囲み、
 // 二重引用符の中でも展開される文字（cmd の % !、PowerShell の $ `）と " を含むものは扱わない。
 // - で始まる値は、囲んでもコマンド（cd、claude、codex など）がオプションとして読むので扱わない
@@ -82,7 +82,13 @@ func shellArg(s string, win bool) (string, bool) {
 	if posixPlain.MatchString(s) && s[0] != '=' { // zsh は =ls を /bin/ls に置きかえるので、= で始まるものは囲む
 		return s, true
 	}
-	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'", true
+	// 単一引用符と \ を含むものは扱わない。sh・bash・zsh なら '\'' で閉じて開き直せるが、fish は単一引用符の中でも \' と \\ を
+	// エスケープとして読み、PowerShell は \ をただの文字、'' を空の文字列として読むので、どちらでも囲みを抜けてコマンドを足せる。
+	// 含まないなら '…' は sh・bash・zsh・fish・PowerShell のどれでも同じ 1 つの文字列になる
+	if strings.ContainsAny(s, `'\`) {
+		return "", false
+	}
+	return "'" + s + "'", true
 }
 
 // unsafeRune は、貼るコマンドに入れない文字か：制御文字（C0、DEL、C1）、行と段落の区切り（U+2028、U+2029）、
