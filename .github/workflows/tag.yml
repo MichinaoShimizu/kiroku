@@ -18,6 +18,8 @@ concurrency:
 
 jobs:
   tag:
+    # 手で動かすときも main からだけ（ほかのブランチの CHANGELOG でタグを打たない）
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
