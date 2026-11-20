@@ -1,0 +1,1 @@
+- The figures above the calendar stay in one row on a wide window also in the month view, where they are set a little smaller, and the color legend is one row that scrolls sideways when it doesn't fit, with smaller chips, so the calendar gets more room
