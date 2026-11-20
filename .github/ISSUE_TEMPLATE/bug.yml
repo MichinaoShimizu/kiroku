@@ -6,8 +6,6 @@ body:
     attributes:
       value: |
         Thanks for reporting. **Do not paste real agent history**: it can contain private prompts, paths and project names. Describe the shape of the data instead, or redact it. English or Japanese is fine.
-
-        "Report a problem" in kiroku's view fills in only the kiroku version, OS and screen below. Nothing from your history is sent; review everything here before you submit.
   - type: textarea
     id: what
     attributes:
@@ -52,7 +50,7 @@ body:
     id: diagnostics
     attributes:
       label: Diagnostics
-      description: Paste from "Copy diagnostics" in the view (bottom of the page, or "Data sources"), or the output of `kiroku doctor --report`. It holds kinds and counts only, but check it first.
+      description: Paste the output of `kiroku doctor --report`. It holds kinds and counts only, but check it first.
       render: text
   - type: textarea
     id: steps

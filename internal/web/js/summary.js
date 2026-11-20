@@ -6,7 +6,7 @@ function summary(){
   // 週報の「Analyze with AI」は、週の見出しの下に。月報はない（1 か月は 2 分の制限に収まりにくい）
   // 保存した HTML には AI の操作がないので、帯ごと出さない
   const WK = $("#worth"); $("#sres").hidden = true; $("#sres").innerHTML = "";
-  if (!w){ WK.hidden = true; R.innerHTML = foot(); bindReport(R); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
+  if (!w){ WK.hidden = true; R.innerHTML = foot(); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
   const pct = v => v == null ? esc(t("Unknown")) :`${v}<small>%</small>`;
   const times = n => `${n}`;
@@ -49,7 +49,7 @@ function summary(){
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
   R.querySelectorAll(".keeparch").forEach(b => b.onclick = () => { R.querySelectorAll(".keeparch").forEach(x => x.disabled = true); keepArchive(); });
   R.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
-  bindCopy(R); bindHelp(R); bindHelp(WK); bindReport(R);
+  bindCopy(R); bindHelp(R); bindHelp(WK);
   if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }
 /* サマリーのパネル（① プロジェクト別から下）は、既定で閉じる（ページの主役はカレンダー。開けたものは開けたまま覚える）。

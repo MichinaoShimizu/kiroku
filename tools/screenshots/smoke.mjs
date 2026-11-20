@@ -407,29 +407,11 @@ async function run(env) {
     await view("cal");
   });
 
-  // 問題の報告: issue のリンクは決まった値だけ、「Copy diagnostics」は種類と数だけで、どちらにも履歴の中身が入らない
-  await step("問題の報告", async () => {
+  // 問題の報告と診断のコピーは画面に置かない（kiroku doctor --report が同じことをする）
+  await step("ページの下", async () => {
     await view("sum");
-    const a = p.locator("#review .foot a.reportlink");
-    check("フッターに「Report a problem」がある（新しいタブ・参照元を渡さない）", await a.count() === 1 && await a.getAttribute("target") === "_blank" && /noopener/.test(await a.getAttribute("rel") || "") && /noreferrer/.test(await a.getAttribute("rel") || ""));
-    check("Data sources には、読んだデータのことだけがある（報告と診断のコピーはページの下だけ）", await p.locator("#review details.dsrc a.reportlink, #review details.dsrc .diagcopy").count() === 0);
-    const href = await a.getAttribute("href");
-    const u = new URL(href);
-    check("行き先は kiroku の issue のテンプレート", u.origin + u.pathname === "https://github.com/MichinaoShimizu/kiroku/issues/new" && u.searchParams.get("template") === "bug.yml", href);
-    check("URL には version・os・screen・template だけ", [...u.searchParams.keys()].every(k => ["template", "version", "os", "screen"].includes(k)), href);
-    // 履歴に由来する文字（プロジェクト名・パス・ID・プロンプト・ブランチ・タイトル）を集めて、URL とコピーした文に入っていないことを確かめる
-    const secrets = await p.evaluate(() => { const s = new Set();
-      for (const d of DATA) { for (const v of [d.project, d.projectPath, d.id, d.file, d.branch, d.title]) if (v && String(v).length >= 4) s.add(String(v));
-        for (const q of d.prompts || []) if (q.text && q.text.length >= 8) s.add(q.text.slice(0, 40)); }
-      return [...s]; });
-    const leakURL = secrets.filter(x => decodeURIComponent(href).includes(x) || href.includes(x));
-    check("URL に履歴の中身がない", secrets.length > 0 && leakURL.length === 0, leakURL.slice(0, 3).join(" | "));
-    await p.evaluate(() => { window.__copied = null; navigator.clipboard.writeText = t => { window.__copied = t; return Promise.resolve(); }; });
-    await a.locator("xpath=following-sibling::button[contains(@class,'diagcopy')]").click(); await pause();
-    const txt = await p.evaluate(() => window.__copied) || "";
-    check("診断情報は kiroku doctor --report と同じ形", /^kiroku diagnostics \(kinds and counts only\)\nkiroku: .+\nos: .+\n/.test(txt) && /: sessions \d+;/.test(txt), txt.slice(0, 200));
-    const leak = secrets.filter(x => txt.includes(x));
-    check("診断情報に履歴のパス・プロジェクト名・ID・プロンプトがない", leak.length === 0 && !/\/Users\/|\/home\//.test(txt), leak.slice(0, 3).join(" | "));
+    check("フッターに「Report a problem」「Copy diagnostics」がない", await p.locator(".reportlink, .diagcopy, #review .foot .report").count() === 0 && !/Report a problem|Copy diagnostics/.test(await p.locator("#review .foot").innerText()));
+    check("フッターには版と GitHub のリンクがある", /kiroku/.test(await p.locator("#review .foot").innerText()) && await p.locator("#review .foot a", { hasText: "GitHub" }).count() === 1);
     await view("cal");
   });
 
