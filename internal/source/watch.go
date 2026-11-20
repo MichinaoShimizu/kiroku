@@ -16,8 +16,6 @@ type Watcher interface{ Watch() []string }
 
 func (k *KiroCLI) Watch() []string { return []string{k.Where(), k.CrewHome} }
 
-func (k *KiroIDELegacy) Watch() []string { return k.Storages }
-
 // SQLite は書き込みが -wal に先に入るので、それも見る。
 func (q *QStore) Watch() []string { return []string{q.DB, q.DB + "-wal"} }
 

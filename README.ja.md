@@ -8,7 +8,7 @@
 
 何を作り、どう働いたかを振り返り、次の AI 活用につなげる。
 
-kiroku は、Claude Code、Kiro（IDE・CLI・Kiro Crew）、Amazon Q Developer CLI、Codex CLI のローカル履歴を 1 つにまとめます。アカウント・テレメトリ・アップロードは不要です。AI エージェントが動くのは、`kiroku serve` の「AI 分析」で実行を確認したときだけです。
+kiroku は、Claude Code、Kiro（IDE・CLI・Kiro Crew）、Codex CLI のローカル履歴を 1 つにまとめます。アカウント・テレメトリ・アップロードは不要です。AI エージェントが動くのは、`kiroku serve` の「AI 分析」で実行を確認したときだけです。
 
 **[デモを試す →](https://michinaoshimizu.github.io/kiroku/)**（ダミーデータ。ブラウザーだけで動きます）
 
@@ -16,7 +16,7 @@ kiroku は、Claude Code、Kiro（IDE・CLI・Kiro Crew）、Amazon Q Developer 
 
 ## kiroku の特長
 
-- **どのエージェントも 1 つのカレンダーに。** Claude Code・Codex・Kiro・Amazon Q を並べて見られます。エージェントごとにダッシュボードを開く必要はありません。
+- **どのエージェントも 1 つのカレンダーに。** Claude Code・Codex・Kiro を並べて見られます。エージェントごとにダッシュボードを開く必要はありません。
 - **数えるだけでなく、読めるセッション。** 何を頼み、AI が何と答え、その間にどんなコマンド・コミット・プルリクエストがあったかを、時間・トークン・費用と並べて見られます。
 - **AI との働き方の変化がわかる。** 稼働時間・トークン・推定費用と、その移り変わりを、1 つのセッションから 1 か月まで確かめられます。
 - **振り返りは、あなたのエージェントが書く。** 「AI 分析」が、履歴に基づくプロンプトをいつものエージェントで実行します。

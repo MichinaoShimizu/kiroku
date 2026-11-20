@@ -42,8 +42,8 @@ func TestDiagnosticsHaveNoHistory(t *testing.T) {
 	}
 	os.WriteFile(filepath.Join(day, "rollout-2026-10-06T00-00-00-thr-acme-secret-42.jsonl"), []byte(strings.Join(codexLines, "\n")+"\n"), 0o600)
 
-	all := source.All(source.Options{ClaudeRoot: claude, CodexHome: codex, KiroHome: filepath.Join(tmp, "kiro"), KiroStorages: []string{},
-		CrewHome: filepath.Join(tmp, "crew"), KiroCLIDB: filepath.Join(tmp, "none.sqlite3"), AmazonQDB: filepath.Join(tmp, "none2.sqlite3")})
+	all := source.All(source.Options{ClaudeRoot: claude, CodexHome: codex, KiroHome: filepath.Join(tmp, "kiro"),
+		CrewHome: filepath.Join(tmp, "crew"), KiroCLIDB: filepath.Join(tmp, "none.sqlite3")})
 	want := map[string]bool{}
 	for _, s := range all {
 		want[s.Family()] = true

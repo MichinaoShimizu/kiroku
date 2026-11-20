@@ -287,7 +287,7 @@ func (s *Builder) Prompt(ts *float64, text string) {
 }
 
 // PromptRaw は、人が打った文をそのままプロンプトとして残す（splitUser を通さない）。
-// 打った文だけを残すエージェント（Amazon Q）が使う。先頭のタグ（<template> など）や「Caveat:」でも
+// 打った文だけを残すエージェント（Kiro CLI の SQLite）が使う。先頭のタグ（<template> など）や「Caveat:」でも
 // Claude Code の仕組みの文とみなさない。空白だけの文は Prompt と同じく数えない。
 func (s *Builder) PromptRaw(ts *float64, text string) {
 	t := strings.TrimSpace(text)
@@ -319,7 +319,7 @@ func (s *Builder) addPrompt(ts *float64, kind, t string) {
 }
 
 // Interrupt は、人が AI を途中で止めたことを記録する（プロンプトには数えない）。
-// 中断の文を Prompt に渡さないアダプター（Amazon Q の CancelledToolUses など）が直接呼ぶ。
+// 中断の文を Prompt に渡さないアダプター（Kiro CLI の SQLite の CancelledToolUses など）が直接呼ぶ。
 func (s *Builder) Interrupt(ts *float64) {
 	s.Interrupts++
 	if ts != nil {

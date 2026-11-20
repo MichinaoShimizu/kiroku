@@ -192,7 +192,7 @@ function reviewEvents(s){ // 流れの出来事のうち、振り返りに効く
   return ev.filter(x => x.t).sort((a, b) => a.t - b.t);
 }
 /* 振り返りを頼む AI に読んでもらう履歴ファイル。プロンプトの全文と、AI の応答・ツールの呼び出しはそこにある（kiroku はこの PC で動き、AI もこの PC で動かす前提）。
-   全セッションが 1 つに入る SQLite（Amazon Q・古い Kiro CLI）は渡さず、プロンプトを書き写す */
+   全セッションが 1 つに入る SQLite（古い Kiro CLI）は渡さず、プロンプトを書き写す */
 const reviewFile = s => s.file && !/\.sqlite3?$|\.db$/i.test(s.file) ? s.file : "";
 function utcOff(t){ const m = -new Date(t * 1000).getTimezoneOffset(), a = Math.abs(m); return `UTC${m < 0 ? "-" : "+"}${String(Math.floor(a / 60)).padStart(2, "0")}:${String(a % 60).padStart(2, "0")}`; }
 /* 1 つのセッションを AI と振り返るためのプロンプト（kiroku 自身は AI を呼ばない） */

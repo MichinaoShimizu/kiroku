@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/archive"
@@ -20,7 +21,7 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/web"
 )
 
-const helpText = `kiroku %s - see your AI coding agent history as a calendar (Claude Code, Kiro, Kiro Crew, Amazon Q, Codex)
+const helpText = `kiroku %s - see your AI coding agent history as a calendar (Claude Code, Kiro, Kiro Crew, Codex)
 
 Usage:
   kiroku <command> [flags] [args]
@@ -116,7 +117,7 @@ func addCommon(fs *flag.FlagSet) *common {
 		kiroHome:   fs.String("kiro-home", source.DefaultKiroHome(), "Kiro data directory ($KIRO_HOME)"),
 		crewHome:   fs.String("crew-home", "", "Kiro Crew data directory (default $KIROCREW_HOME or ~/.kiro/crew; not moved by --kiro-home or $KIRO_HOME)"),
 		kiroCLIDB:  fs.String("kiro-cli-db", "", "path to data.sqlite3 of older Kiro CLI versions, shown as Kiro CLI (SQLite) (default: OS-specific)"),
-		amazonQDB:  fs.String("amazonq-db", "", "path to the Amazon Q Developer CLI data.sqlite3 (default: OS-specific)"),
+		amazonQDB:  fs.String("amazonq-db", "", "does nothing: kiroku no longer reads Amazon Q history (kept so existing scripts keep working)"),
 		codexHome:  fs.String("codex-home", "", "Codex data directory (default $CODEX_HOME or ~/.codex)"),
 		sources:    fs.String("sources", strings.Join(core.Families(), ","), "comma-separated sources to read: "+core.FamiliesHelp()),
 		prices:     fs.String("prices", "", "JSON file overriding the model price table"),
@@ -125,6 +126,14 @@ func addCommon(fs *flag.FlagSet) *common {
 	}
 }
 
+// Amazon Q の読み取りはやめた。--amazonq-db と --sources amazonq は、互換のために受け付けて何もしない（1 回だけ知らせる。終了コードは変えない）
+const droppedAmazonQ = "kiroku: Amazon Q support was dropped; --amazonq-db and --sources amazonq do nothing (Kiro CLI history is still read)"
+
+var (
+	droppedOnce sync.Once
+	droppedW    io.Writer = os.Stderr // テストで差しかえる
+)
+
 // picked は選んだ履歴。all は選んでいないものもふくめた全部（collect に渡す。選んでいない Kiro Crew からも、
 // 中身を出してはいけない会話の、Codex・Claude Code に残る写しを調べて隠すため。source.ClaimScanner）。
 func (c *common) picked() (picked []source.Source, want map[string]bool, all []source.Source) {
@@ -132,8 +141,11 @@ func (c *common) picked() (picked []source.Source, want map[string]bool, all []s
 	for _, s := range strings.Split(*c.sources, ",") {
 		want[strings.ToLower(strings.TrimSpace(s))] = true
 	}
+	if *c.amazonQDB != "" || want["amazonq"] {
+		droppedOnce.Do(func() { fmt.Fprintln(droppedW, droppedAmazonQ) })
+	}
 	all = source.All(source.Options{ClaudeRoot: *c.claudeRoot, KiroHome: *c.kiroHome, KiroCLIDB: *c.kiroCLIDB,
-		AmazonQDB: *c.amazonQDB, CrewHome: *c.crewHome, CodexHome: *c.codexHome, Archive: *c.archiveDir})
+		CrewHome: *c.crewHome, CodexHome: *c.codexHome, Archive: *c.archiveDir})
 	for _, s := range all {
 		if want[s.Family()] {
 			picked = append(picked, s)
@@ -416,14 +428,14 @@ func loadNonEmpty(c *common) (snapshot, error) {
 	}
 	snap := load()
 	if len(snap.data) == 0 {
-		return snap, fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db, --amazonq-db; see \"kiroku doctor --all\")")
+		return snap, fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db; see \"kiroku doctor --all\")")
 	}
 	return snap, nil
 }
 
 func writeHTML(snap snapshot, out string, open bool, lang string) error {
 	if len(snap.data) == 0 {
-		return fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db, --amazonq-db; see \"kiroku doctor --all\")")
+		return fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db; see \"kiroku doctor --all\")")
 	}
 	parts, err := web.Marshal(snap.data, snap.weeks, snap.months, snap.meta, snap.gen)
 	if err != nil {

@@ -8,7 +8,7 @@ English | [日本語](README.ja.md)
 
 See what you built, understand how you worked, and make your next AI session better.
 
-kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), Amazon Q Developer CLI and Codex CLI together in one place. No account, telemetry or uploads; an AI agent runs only when you confirm "Analyze with AI" in `kiroku serve`.
+kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew) and Codex CLI together in one place. No account, telemetry or uploads; an AI agent runs only when you confirm "Analyze with AI" in `kiroku serve`.
 
 **[Try the live demo →](https://michinaoshimizu.github.io/kiroku/)** (dummy data, runs in your browser)
 
@@ -16,7 +16,7 @@ kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), A
 
 ## Why kiroku
 
-- **Every agent on one calendar.** Claude Code, Codex, Kiro and Amazon Q side by side, instead of one dashboard per agent.
+- **Every agent on one calendar.** Claude Code, Codex and Kiro side by side, instead of one dashboard per agent.
 - **Sessions you can read, not just count.** What you asked, what the AI replied, and the commands, commits and pull requests in between, next to time, tokens and cost.
 - **How your work with AI changes.** Active time, tokens, estimated cost and patterns over time, from one session to a month.
 - **Reviews written by your own agent.** "Analyze with AI" runs a prompt grounded in your history with the agent you already use.

@@ -1,6 +1,6 @@
 ---
 name: drop-agent
-description: "kiroku が読むエージェントのうち 1 つ（例: Amazon Q、Kiro IDE (legacy)、Codex）のサポートをやめる。読み取りの登録・エージェント固有のコード・画面の表・テストデータ・ドキュメントを消し、オプション・環境変数・--sources の名前・kiroku archive の写しは互換のために残して、1 つの PR にする。エージェントが提供を終えたとき、履歴の形式が読めなくなったとき、保守をやめると決めたときに使う。引数でエージェントを指定する（画面に出る名前か --sources の名前）。"
+description: "kiroku が読むエージェントのうち 1 つ（例: Kiro CLI (SQLite)、Codex）のサポートをやめる。読み取りの登録・エージェント固有のコード・画面の表・テストデータ・ドキュメントを消し、オプション・環境変数・--sources の名前・kiroku archive の写しは互換のために残して、1 つの PR にする。エージェントが提供を終えたとき、履歴の形式が読めなくなったとき、保守をやめると決めたときに使う。引数でエージェントを指定する（画面に出る名前か --sources の名前）。"
 ---
 
 # エージェントのサポートをやめる（drop-agent）
@@ -13,10 +13,10 @@ CLAUDE.md の「Security」を常に守る。利用者のファイル（履歴�
 
 始める前に、次をユーザーに見せて決めてもらう。決まるまでコードは変えない。
 
-- **何をやめるか**: 画面に出る名前（`Source.Name()`）と `--sources` の名前（`Family()`）を、`internal/source/source.go` の `All` から特定する。1 つの `Family` に複数の `Name` があることがある（`kiro` = Kiro IDE・Kiro CLI・Kiro Crew・Kiro CLI (SQLite)・Kiro IDE (legacy)）。`Family` の一部だけをやめるのか、全部をやめるのかをはっきりさせる
-- **共有しているコード**: 同じ実装を使うものがあれば、そのものは残す（例: `QStore` は Kiro CLI (SQLite) と Amazon Q が共有、Kiro Crew は `KiroCLI` の中で読む、Kiro IDE (legacy) は `kiro.go` の中）。やめるものだけに使われている分岐・関数・定数だけを消す
+- **何をやめるか**: 画面に出る名前（`Source.Name()`）と `--sources` の名前（`Family()`）を、`internal/source/source.go` の `All` から特定する。1 つの `Family` に複数の `Name` があることがある（`kiro` = Kiro IDE / CLI (V3)・Kiro CLI (V2)・Kiro Crew・Kiro CLI (SQLite)）。`Family` の一部だけをやめるのか、全部をやめるのかをはっきりさせる
+- **共有しているコード**: 同じ実装を使うものがあれば、そのものは残す（例: Kiro Crew は `KiroCLI` の中で読む、Kiro IDE / CLI (V3) の Claim は Kiro CLI (V2) の移行分の重複除外にも使う。Amazon Q と Kiro IDE (legacy) をやめたときは、`QStore` と `realDir`・`topFields` を残した）。やめるものだけに使われている分岐・関数・定数だけを消す
 - **その結果できなくなること**: やめたエージェントのセッションは画面と `kiroku json` から消え、過去の週の数字も変わる。`docs/compatibility.md` の「Which histories are read」により、マイナーリリースで変えてよいが、CHANGELOG に書く
-- **golden に入っているか**: `internal/cli/load_test.go` の `python`（Claude Code・Kiro IDE / CLI (V3)・Kiro CLI (V2)・Kiro IDE (legacy)）に入っているエージェントをやめる場合、`testdata/golden.json` は Python 版の数字なので作り直せない。比べ方をどう変えるか（そのエージェントのセッションを比べる対象から外すなど）をユーザーと決める
+- **golden に入っているか**: `internal/cli/load_test.go` の `python`（Claude Code・Kiro IDE / CLI (V3)・Kiro CLI (V2)）に入っているエージェントをやめる場合、`testdata/golden.json` は Python 版の数字なので作り直せない。比べ方をどう変えるかをユーザーと決める（Kiro IDE (legacy) のときは、`dropLegacy` でそのセッションと、それが入っていた週を golden から外して比べた）
 
 ## 1. 消し残しの一覧を作る
 
@@ -95,7 +95,7 @@ snapshot の違いが「やめたエージェントのセッション・デー�
 - 変更の断片 `changes/<短い名前>.removed.md`（形式は `changes/README.md`）に、やめたエージェント、その理由、残したもの（オプションは警告を出して何もしない、archive の写しは消さず `kiroku archive off` で消せる）を書く
 - `gofmt -l .`・`go vet ./...`・`go test ./...`・staticcheck を通す
 - 差分を自分で読み直す。特に、ほかのエージェントの読み取り・色・数字を変えていないか、利用者のファイルを消すコードを足していないか
-- push して PR を作り、`subscribe_pr_activity` で見守る。タイトルは英語で（例: `Stop reading Amazon Q history`）。本文に、0 で決めたこと、snapshot の違いの説明、6 で残したものとその理由を書く
+- push して PR を作り、`subscribe_pr_activity` で見守る。タイトルは英語で（例: `Stop reading Kiro CLI (SQLite) history`）。本文に、0 で決めたこと、snapshot の違いの説明、6 で残したものとその理由を書く
 
 ## やらないこと
 

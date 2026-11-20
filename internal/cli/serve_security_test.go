@@ -142,41 +142,11 @@ func TestServeHistoryOnlyUnderRoots(t *testing.T) {
 	}
 }
 
-// 監査で見つかった再現: Kiro IDE（v1.0 より前）の sessions.json に sessionId "../../outside/creds" と書くと、
-// 履歴の場所の外の creds.json を /history で読めた。いまは読み込みで捨て、/history も 404。
-func TestServeKiroLegacyTraversal(t *testing.T) {
-	logw = io.Discard
-	defer func() { logw = os.Stderr }()
-	base := t.TempDir()
-	gs := filepath.Join(base, "storage", "kiro.kiroagent")
-	ws := filepath.Join(gs, "workspace-sessions", "d3M=")
-	os.MkdirAll(ws, 0o700)
-	os.MkdirAll(filepath.Join(gs, "outside"), 0o700)
-	os.WriteFile(filepath.Join(ws, "sessions.json"), []byte(`[{"sessionId": "../../outside/creds", "dateCreated": 1759100000000}, {"sessionId": "ok", "dateCreated": 1759100000000}]`), 0o600)
-	os.WriteFile(filepath.Join(ws, "ok.json"), []byte(`{"history": []}`), 0o600)
-	os.WriteFile(filepath.Join(gs, "outside", "creds.json"), []byte(`{"history": [{"message": {"role": "user", "content": "secret"}}]}`), 0o600)
-	picked := []source.Source{&source.KiroIDELegacy{Storages: []string{gs}}}
-	var data []*core.Session
-	err := picked[0].Load(func(b *core.Builder) { data = append(data, b.Finish(15)) })
-	if err == nil || !strings.Contains(err.Error(), "unsafe sessionId") {
-		t.Errorf("Load のエラー = %v", err)
-	}
-	l := &live{snap: snapshot{data: data}, ready: true, roots: historyRoots(picked)}
-	srv := httptest.NewServer(l.handler())
-	defer srv.Close()
-	if code, body, _ := fetchHost(t, "GET", srv.URL+"/history?id=../../outside/creds", ""); code != 404 || strings.Contains(body, "secret") {
-		t.Errorf("../../outside/creds = %d %q, want 404", code, body)
-	}
-	if code, _, _ := fetchHost(t, "GET", srv.URL+"/history?id=ok", ""); code != 200 {
-		t.Errorf("ok = %d, want 200", code)
-	}
-}
-
 // /history で見せてよい場所は、Source が読む場所と kiroku archive のコピーの場所。
 func TestHistoryRoots(t *testing.T) {
-	picked := source.All(source.Options{ClaudeRoot: "/c/projects", KiroHome: "/k", KiroStorages: []string{"/legacy"}, CodexHome: "/x", Archive: "/arch"})
+	picked := source.All(source.Options{ClaudeRoot: "/c/projects", KiroHome: "/k", CodexHome: "/x", Archive: "/arch"})
 	got := strings.Join(historyRoots(picked), "|")
-	for _, want := range []string{"/c/projects", filepath.Join("/arch", "claude"), filepath.Join("/k", "sessions"), "/legacy", filepath.Join("/x", "sessions"), filepath.Join("/arch", "crew", "sessions", "archive")} {
+	for _, want := range []string{"/c/projects", filepath.Join("/arch", "claude"), filepath.Join("/k", "sessions"), filepath.Join("/x", "sessions"), filepath.Join("/arch", "crew", "sessions", "archive")} {
 		if !strings.Contains(got, want) {
 			t.Errorf("%q がない: %s", want, got)
 		}

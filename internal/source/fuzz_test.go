@@ -3,7 +3,6 @@ package source
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
@@ -86,24 +85,5 @@ func FuzzKiroIDE(f *testing.F) {
 		put(t, filepath.Join(home, "sessions", "abc", "sess_1", "session.json"), data)
 		put(t, filepath.Join(home, "sessions", "abc", "sess_1", "messages.jsonl"), data)
 		loadAll(t, &KiroIDE{Home: home})
-	})
-}
-
-// 古い Kiro IDE の sessions.json は、読む会話ファイルの名前（sessionId）を持っている。
-// どんな中身でも、読むのは同じ workspace-sessions/<ws> の中のファイルだけ。
-func FuzzKiroIDELegacy(f *testing.F) {
-	seed(f, "home/.config/Kiro/User/globalStorage/kiro.kiroagent/workspace-sessions/*/sessions.json")
-	f.Add([]byte(`[{"sessionId":"../../secret","title":"x"}]`))
-	f.Add([]byte(`[{"sessionId":"..","title":"x"},{"sessionId":"a/../../b"}]`))
-	f.Fuzz(func(t *testing.T, data []byte) {
-		gs := t.TempDir()
-		ws := filepath.Join(gs, "workspace-sessions", "d3M=")
-		put(t, filepath.Join(ws, "sessions.json"), data)
-		put(t, filepath.Join(gs, "secret.json"), []byte(`{"title":"outside"}`))
-		for _, b := range loadAll(t, &KiroIDELegacy{Storages: []string{gs}}) {
-			if rel, err := filepath.Rel(ws, b.File); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || strings.ContainsRune(rel, filepath.Separator) {
-				t.Fatalf("read %q outside %q", b.File, ws)
-			}
-		}
 	})
 }

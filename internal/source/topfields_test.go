@@ -62,7 +62,7 @@ func BenchmarkTopFieldsExec(b *testing.B) {
 		`"usageSummary":[{"usage":0.4,"unit":"credit"}],"context":{"messages":[` + strings.Repeat(msg+",", 100) + msg + `]}}`)
 	b.SetBytes(int64(len(file)))
 	for b.Loop() {
-		if _, ok := topFields(file, kiroExecKeys); !ok {
+		if _, ok := topFields(file, []string{"executionId", "chatSessionId", "startTime", "endTime", "modelId", "usageSummary"}); !ok {
 			b.Fatal("not read")
 		}
 	}

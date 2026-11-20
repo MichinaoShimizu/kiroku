@@ -1,8 +1,8 @@
 {
  "months": {
   "2026-09": {
-   "active": 851,
-   "ai": 861,
+   "active": 843,
+   "ai": 853,
    "costPerAsk": 0.124,
    "costPerCommit": null,
    "costPrompts": 48,
@@ -188,20 +188,20 @@
      "tokens": 0
     },
     {
-     "active": 1,
+     "active": 0,
      "commits": 0,
      "cost": 0,
      "credits": 0,
-     "prompts": 1,
+     "prompts": 0,
      "switches": 0,
      "tokens": 0
     },
     {
-     "active": 1,
+     "active": 0,
      "commits": 0,
      "cost": 0,
      "credits": 0,
-     "prompts": 1,
+     "prompts": 0,
      "switches": 0,
      "tokens": 0
     },
@@ -251,12 +251,12 @@
      "tokens": 0
     },
     {
-     "active": 27,
+     "active": 25,
      "commits": 0,
      "cost": 0,
      "credits": 4.92,
-     "prompts": 5,
-     "switches": 2,
+     "prompts": 4,
+     "switches": 1,
      "tokens": 0
     },
     {
@@ -269,16 +269,16 @@
      "tokens": 3300
     },
     {
-     "active": 82,
+     "active": 78,
      "commits": 0,
      "cost": 0.0123,
      "credits": 9.67,
-     "prompts": 10,
-     "switches": 4,
+     "prompts": 8,
+     "switches": 2,
      "tokens": 4100
     }
    ],
-   "fixRate": 9.1,
+   "fixRate": 9.7,
    "focus": [],
    "friction": [
     {
@@ -361,33 +361,6 @@
        "n": 202,
        "unit": "回",
        "v": 202
-      }
-     ]
-    },
-    {
-     "sessions": 2,
-     "source": "Amazon Q",
-     "values": [
-      {
-       "label": "応答にかかった時間（中央値）",
-       "labelEn": "Response time (median)",
-       "n": 1,
-       "unit": "秒",
-       "v": 20
-      },
-      {
-       "label": "コンテキストの最大使用率（見積もり）",
-       "labelEn": "Peak context usage (estimate)",
-       "n": 2,
-       "unit": "%",
-       "v": 0
-      },
-      {
-       "label": "コンテキストの上限",
-       "labelEn": "Context window",
-       "n": 2,
-       "unit": "トークン",
-       "v": 200000
       }
      ]
     },
@@ -840,62 +813,6 @@
     },
     {
      "cost": 0,
-     "credits": 0,
-     "git": {
-      "added": 0,
-      "ai": 0,
-      "commits": 0,
-      "removed": 0
-     },
-     "heavy": null,
-     "minutes": 7,
-     "models": [],
-     "outputs": {
-      "added": 0,
-      "commits": 0,
-      "prs": 0,
-      "removed": 0
-     },
-     "project": "old",
-     "prompts": 4,
-     "sessions": 4,
-     "subagents": 0,
-     "tokens": 0,
-     "top": [
-      {
-       "cost": 0,
-       "credits": 0,
-       "id": "372fbe38-1f0c-4f64-882e-d84f0f02817e",
-       "minutes": 2,
-       "source": "Kiro IDE (legacy)",
-       "start": 1790578380,
-       "title": "旧Kiroのチャット",
-       "tokens": 0
-      },
-      {
-       "cost": 0,
-       "credits": 0,
-       "id": "12c47fa1-6df4-4521-83f6-def4d849922d",
-       "minutes": 2,
-       "source": "Kiro IDE (legacy)",
-       "start": 1790739600,
-       "title": "旧Kiroのチャット",
-       "tokens": 0
-      },
-      {
-       "cost": 0,
-       "credits": 0,
-       "id": "12971eb2-2ee6-4dd7-9a6e-a50256c0bf1d",
-       "minutes": 2,
-       "source": "Kiro IDE (legacy)",
-       "start": 1790746140,
-       "title": "旧Kiroのチャット",
-       "tokens": 0
-      }
-     ]
-    },
-    {
-     "cost": 0,
      "credits": 2,
      "git": {
       "added": 0,
@@ -1117,42 +1034,6 @@
        "tokens": 4100
       }
      ]
-    },
-    {
-     "cost": 0,
-     "credits": 0,
-     "git": {
-      "added": 0,
-      "ai": 0,
-      "commits": 0,
-      "removed": 0
-     },
-     "heavy": null,
-     "minutes": 1,
-     "models": [],
-     "outputs": {
-      "added": 0,
-      "commits": 0,
-      "prs": 0,
-      "removed": 0
-     },
-     "project": "aws",
-     "prompts": 1,
-     "sessions": 1,
-     "subagents": 0,
-     "tokens": 0,
-     "top": [
-      {
-       "cost": 0,
-       "credits": 0,
-       "id": "q-1",
-       "minutes": 1,
-       "source": "Amazon Q",
-       "start": 1789970400,
-       "title": "S3のバケット一覧を出すスクリプト",
-       "tokens": 0
-      }
-     ]
     }
    ],
    "projects": [
@@ -1173,10 +1054,6 @@
      39
     ],
     [
-     "old",
-     7
-    ],
-    [
      "(Kiro Crew)",
      6
     ],
@@ -1191,14 +1068,10 @@
     [
      "api",
      2
-    ],
-    [
-     "aws",
-     1
     ]
    ],
-   "prompts": 77,
-   "sessions": 28,
+   "prompts": 72,
+   "sessions": 23,
    "shares": {
     "branch": [
      {
@@ -1252,13 +1125,6 @@
      },
      {
       "cost": 0,
-      "credits": 0,
-      "key": "old · —",
-      "minutes": 7,
-      "tokens": 0
-     },
-     {
-      "cost": 0,
       "credits": 2,
       "key": "(Kiro Crew) · —",
       "minutes": 6,
@@ -1291,13 +1157,6 @@
       "key": "web · feat/button",
       "minutes": 2,
       "tokens": 3300
-     },
-     {
-      "cost": 0,
-      "credits": 0,
-      "key": "aws · —",
-      "minutes": 1,
-      "tokens": 0
      }
     ],
     "source": [
@@ -1330,30 +1189,16 @@
       "tokens": 0
      },
      {
-      "cost": 0,
-      "credits": 0,
-      "key": "Kiro IDE (legacy)",
-      "minutes": 6,
-      "tokens": 0
-     },
-     {
       "cost": 0.0176,
       "credits": 0,
       "key": "Codex",
       "minutes": 4,
       "tokens": 7400
-     },
-     {
-      "cost": 0,
-      "credits": 0,
-      "key": "Amazon Q",
-      "minutes": 2,
-      "tokens": 0
      }
     ]
    },
    "start": "2026-09-01",
-   "switchesAvg": 1.1,
+   "switchesAvg": 1,
    "switchesMax": 5,
    "usage": {
     "cacheHit": 0.944,
@@ -3174,173 +3019,6 @@
    ]
   },
   {
-   "branch": null,
-   "corrections": 0,
-   "cost": 0,
-   "credits": 0,
-   "ctx": [],
-   "end": 1789970422,
-   "events": 3,
-   "file": "testdata/sqlite/amazon-q.sqlite3",
-   "files": [],
-   "id": "q-1",
-   "interrupts": 0,
-   "interruptsAt": [],
-   "limits": [],
-   "models": [
-    [
-     "claude-3-7-sonnet",
-     1
-    ]
-   ],
-   "nFiles": 0,
-   "nPrompts": 1,
-   "native": [
-    {
-     "label": "応答にかかった時間（中央値）",
-     "labelEn": "Response time (median)",
-     "n": 1,
-     "unit": "秒",
-     "v": 20
-    },
-    {
-     "label": "コンテキストの最大使用率（見積もり）",
-     "labelEn": "Peak context usage (estimate)",
-     "n": 1,
-     "unit": "%",
-     "v": 0
-    },
-    {
-     "label": "コンテキストの上限",
-     "labelEn": "Context window",
-     "n": 1,
-     "unit": "トークン",
-     "v": 200000
-    }
-   ],
-   "outputs": {
-    "added": 0,
-    "commits": 0,
-    "prs": 0,
-    "removed": 0
-   },
-   "prAt": [],
-   "project": "aws",
-   "projectPath": "/Users/me/aws",
-   "prompts": [
-    {
-     "reply": {
-      "t": 1789970422,
-      "text": "ok"
-     },
-     "t": 1789970400,
-     "text": "S3のバケット一覧を出すスクリプト",
-     "work": 22
-    }
-   ],
-   "prs": [],
-   "resume": "cd /Users/me/aws \u0026\u0026 q chat --resume",
-   "segs": [
-    [
-     1789970400,
-     1789970460,
-     3
-    ]
-   ],
-   "source": "Amazon Q",
-   "start": 1789970400,
-   "subagents": [],
-   "title": "S3のバケット一覧を出すスクリプト",
-   "tools": [],
-   "usage": {
-    "cost": 0,
-    "cr": 0,
-    "cw": 0,
-    "cw1h": 0,
-    "in": 0,
-    "out": 0,
-    "unpriced": 0
-   },
-   "waits": []
-  },
-  {
-   "branch": null,
-   "corrections": 0,
-   "cost": 0,
-   "credits": 0,
-   "ctx": [],
-   "end": 1790035200,
-   "events": 1,
-   "file": "testdata/sqlite/amazon-q.sqlite3",
-   "files": [],
-   "id": "q-old",
-   "interrupts": 0,
-   "interruptsAt": [],
-   "limits": [],
-   "models": [],
-   "nFiles": 0,
-   "nPrompts": 1,
-   "native": [
-    {
-     "label": "コンテキストの最大使用率（見積もり）",
-     "labelEn": "Peak context usage (estimate)",
-     "n": 1,
-     "unit": "%",
-     "v": 0
-    },
-    {
-     "label": "コンテキストの上限",
-     "labelEn": "Context window",
-     "n": 1,
-     "unit": "トークン",
-     "v": 200000
-    }
-   ],
-   "outputs": {
-    "added": 0,
-    "commits": 0,
-    "prs": 0,
-    "removed": 0
-   },
-   "prAt": [],
-   "project": "old",
-   "projectPath": "/Users/me/old",
-   "prompts": [
-    {
-     "reply": {
-      "t": 1790035200,
-      "text": "ok"
-     },
-     "t": 1790035200,
-     "text": "古い形の会話"
-    }
-   ],
-   "prs": [],
-   "resume": "cd /Users/me/old \u0026\u0026 q chat --resume",
-   "segs": [
-    [
-     1790035200,
-     1790035260,
-     1
-    ]
-   ],
-   "source": "Amazon Q",
-   "start": 1790035200,
-   "subagents": [],
-   "title": "古い形の会話",
-   "tools": [],
-   "usage": {
-    "cost": 0,
-    "cr": 0,
-    "cw": 0,
-    "cw1h": 0,
-    "in": 0,
-    "out": 0,
-    "unpriced": 0
-   },
-   "waits": []
-  },
-  {
    "branch": "main",
    "corrections": 0,
    "cost": 1.0625,
@@ -4553,69 +4231,6 @@
    "branch": null,
    "corrections": 0,
    "cost": 0,
-   "credits": 0,
-   "ctx": [],
-   "end": 1790597280,
-   "events": 2,
-   "file": "testdata/home/.config/Kiro/User/globalStorage/kiro.kiroagent/workspace-sessions/d3M=/372fbe38-1f0c-4f64-882e-d84f0f02817e.json",
-   "files": [],
-   "id": "372fbe38-1f0c-4f64-882e-d84f0f02817e",
-   "interrupts": 0,
-   "interruptsAt": [],
-   "limits": [],
-   "models": [],
-   "nFiles": 0,
-   "nPrompts": 1,
-   "native": [],
-   "outputs": {
-    "added": 0,
-    "commits": 0,
-    "prs": 0,
-    "removed": 0
-   },
-   "prAt": [],
-   "project": "old",
-   "projectPath": "/Users/me/old",
-   "prompts": [
-    {
-     "t": 1790578380,
-     "text": "昔の依頼"
-    }
-   ],
-   "prs": [],
-   "resume": null,
-   "segs": [
-    [
-     1790578380,
-     1790578440,
-     1
-    ],
-    [
-     1790597280,
-     1790597340,
-     1
-    ]
-   ],
-   "source": "Kiro IDE (legacy)",
-   "start": 1790578380,
-   "subagents": [],
-   "title": "旧Kiroのチャット",
-   "tools": [],
-   "usage": {
-    "cost": 0,
-    "cr": 0,
-    "cw": 0,
-    "cw1h": 0,
-    "in": 0,
-    "out": 0,
-    "unpriced": 0
-   },
-   "waits": []
-  },
-  {
-   "branch": null,
-   "corrections": 0,
-   "cost": 0,
    "credits": 3.73,
    "ctx": [],
    "end": 1790633760,
@@ -5482,69 +5097,6 @@
   {
    "branch": null,
    "corrections": 0,
-   "cost": 0,
-   "credits": 0,
-   "ctx": [],
-   "end": 1790747940,
-   "events": 2,
-   "file": "testdata/home/.config/Kiro/User/globalStorage/kiro.kiroagent/workspace-sessions/d3M=/12c47fa1-6df4-4521-83f6-def4d849922d.json",
-   "files": [],
-   "id": "12c47fa1-6df4-4521-83f6-def4d849922d",
-   "interrupts": 0,
-   "interruptsAt": [],
-   "limits": [],
-   "models": [],
-   "nFiles": 0,
-   "nPrompts": 1,
-   "native": [],
-   "outputs": {
-    "added": 0,
-    "commits": 0,
-    "prs": 0,
-    "removed": 0
-   },
-   "prAt": [],
-   "project": "old",
-   "projectPath": "/Users/me/old",
-   "prompts": [
-    {
-     "t": 1790739600,
-     "text": "昔の依頼"
-    }
-   ],
-   "prs": [],
-   "resume": null,
-   "segs": [
-    [
-     1790739600,
-     1790739660,
-     1
-    ],
-    [
-     1790747940,
-     1790748000,
-     1
-    ]
-   ],
-   "source": "Kiro IDE (legacy)",
-   "start": 1790739600,
-   "subagents": [],
-   "title": "旧Kiroのチャット",
-   "tools": [],
-   "usage": {
-    "cost": 0,
-    "cr": 0,
-    "cw": 0,
-    "cw1h": 0,
-    "in": 0,
-    "out": 0,
-    "unpriced": 0
-   },
-   "waits": []
-  },
-  {
-   "branch": null,
-   "corrections": 0,
    "cost": 0.0123,
    "credits": 0,
    "ctx": [],
@@ -5640,69 +5192,6 @@
      1
     ]
    ]
-  },
-  {
-   "branch": null,
-   "corrections": 0,
-   "cost": 0,
-   "credits": 0,
-   "ctx": [],
-   "end": 1790755500,
-   "events": 2,
-   "file": "testdata/home/.config/Kiro/User/globalStorage/kiro.kiroagent/workspace-sessions/d3M=/12971eb2-2ee6-4dd7-9a6e-a50256c0bf1d.json",
-   "files": [],
-   "id": "12971eb2-2ee6-4dd7-9a6e-a50256c0bf1d",
-   "interrupts": 0,
-   "interruptsAt": [],
-   "limits": [],
-   "models": [],
-   "nFiles": 0,
-   "nPrompts": 1,
-   "native": [],
-   "outputs": {
-    "added": 0,
-    "commits": 0,
-    "prs": 0,
-    "removed": 0
-   },
-   "prAt": [],
-   "project": "old",
-   "projectPath": "/Users/me/old",
-   "prompts": [
-    {
-     "t": 1790746140,
-     "text": "昔の依頼"
-    }
-   ],
-   "prs": [],
-   "resume": null,
-   "segs": [
-    [
-     1790746140,
-     1790746200,
-     1
-    ],
-    [
-     1790755500,
-     1790755560,
-     1
-    ]
-   ],
-   "source": "Kiro IDE (legacy)",
-   "start": 1790746140,
-   "subagents": [],
-   "title": "旧Kiroのチャット",
-   "tools": [],
-   "usage": {
-    "cost": 0,
-    "cr": 0,
-    "cw": 0,
-    "cw1h": 0,
-    "in": 0,
-    "out": 0,
-    "unpriced": 0
-   },
-   "waits": []
   },
   {
    "branch": null,
@@ -6491,20 +5980,6 @@
    "name": "Kiro CLI (SQLite)",
    "oldest": 1790553600,
    "where": "testdata/sqlite/kiro-cli.sqlite3"
-  },
-  {
-   "error": null,
-   "n": 3,
-   "name": "Kiro IDE (legacy)",
-   "oldest": 1790578380,
-   "where": "testdata/home/.config/Kiro/User/globalStorage/kiro.kiroagent"
-  },
-  {
-   "error": null,
-   "n": 2,
-   "name": "Amazon Q",
-   "oldest": 1789970400,
-   "where": "testdata/sqlite/amazon-q.sqlite3"
   },
   {
    "agentVersion": "0.50.0",
@@ -7458,27 +6933,27 @@
    "weekend": 128
   },
   "2026-09-21": {
-   "active": 348,
-   "ai": 353,
+   "active": 346,
+   "ai": 351,
    "costPerAsk": 0.13,
    "costPerCommit": null,
    "costPrompts": 23,
    "days": [
     {
-     "active": 1,
+     "active": 0,
      "commits": 0,
      "cost": 0,
      "credits": 0,
-     "prompts": 1,
+     "prompts": 0,
      "switches": 0,
      "tokens": 0
     },
     {
-     "active": 1,
+     "active": 0,
      "commits": 0,
      "cost": 0,
      "credits": 0,
-     "prompts": 1,
+     "prompts": 0,
      "switches": 0,
      "tokens": 0
     },
@@ -7528,7 +7003,7 @@
      "tokens": 0
     }
    ],
-   "fixRate": 12,
+   "fixRate": 13,
    "focus": [],
    "friction": [
     {
@@ -7567,33 +7042,6 @@
    },
    "maxConc": 2,
    "native": [
-    {
-     "sessions": 2,
-     "source": "Amazon Q",
-     "values": [
-      {
-       "label": "応答にかかった時間（中央値）",
-       "labelEn": "Response time (median)",
-       "n": 1,
-       "unit": "秒",
-       "v": 20
-      },
-      {
-       "label": "コンテキストの最大使用率（見積もり）",
-       "labelEn": "Peak context usage (estimate)",
-       "n": 2,
-       "unit": "%",
-       "v": 0
-      },
-      {
-       "label": "コンテキストの上限",
-       "labelEn": "Context window",
-       "n": 2,
-       "unit": "トークン",
-       "v": 200000
-      }
-     ]
-    },
     {
      "sessions": 4,
      "source": "Claude Code",
@@ -7781,78 +7229,6 @@
        "tokens": 1236949
       }
      ]
-    },
-    {
-     "cost": 0,
-     "credits": 0,
-     "git": {
-      "added": 0,
-      "ai": 0,
-      "commits": 0,
-      "removed": 0
-     },
-     "heavy": null,
-     "minutes": 1,
-     "models": [],
-     "outputs": {
-      "added": 0,
-      "commits": 0,
-      "prs": 0,
-      "removed": 0
-     },
-     "project": "aws",
-     "prompts": 1,
-     "sessions": 1,
-     "subagents": 0,
-     "tokens": 0,
-     "top": [
-      {
-       "cost": 0,
-       "credits": 0,
-       "id": "q-1",
-       "minutes": 1,
-       "source": "Amazon Q",
-       "start": 1789970400,
-       "title": "S3のバケット一覧を出すスクリプト",
-       "tokens": 0
-      }
-     ]
-    },
-    {
-     "cost": 0,
-     "credits": 0,
-     "git": {
-      "added": 0,
-      "ai": 0,
-      "commits": 0,
-      "removed": 0
-     },
-     "heavy": null,
-     "minutes": 1,
-     "models": [],
-     "outputs": {
-      "added": 0,
-      "commits": 0,
-      "prs": 0,
-      "removed": 0
-     },
-     "project": "old",
-     "prompts": 1,
-     "sessions": 1,
-     "subagents": 0,
-     "tokens": 0,
-     "top": [
-      {
-       "cost": 0,
-       "credits": 0,
-       "id": "q-old",
-       "minutes": 1,
-       "source": "Amazon Q",
-       "start": 1790035200,
-       "title": "古い形の会話",
-       "tokens": 0
-      }
-     ]
     }
    ],
    "projects": [
@@ -7863,18 +7239,10 @@
     [
      "vp",
      82
-    ],
-    [
-     "aws",
-     1
-    ],
-    [
-     "old",
-     1
     ]
    ],
-   "prompts": 25,
-   "sessions": 6,
+   "prompts": 23,
+   "sessions": 4,
    "shares": {
     "branch": [
      {
@@ -7897,20 +7265,6 @@
       "key": "vp · main",
       "minutes": 82,
       "tokens": 1236949
-     },
-     {
-      "cost": 0,
-      "credits": 0,
-      "key": "aws · —",
-      "minutes": 1,
-      "tokens": 0
-     },
-     {
-      "cost": 0,
-      "credits": 0,
-      "key": "old · —",
-      "minutes": 1,
-      "tokens": 0
      }
     ],
     "source": [
@@ -7920,18 +7274,11 @@
       "key": "Claude Code",
       "minutes": 346,
       "tokens": 4990729
-     },
-     {
-      "cost": 0,
-      "credits": 0,
-      "key": "Amazon Q",
-      "minutes": 2,
-      "tokens": 0
      }
     ]
    },
    "start": "2026-09-21",
-   "switchesAvg": 0.6,
+   "switchesAvg": 1,
    "switchesMax": 3,
    "usage": {
     "cacheHit": 0.942,
@@ -8016,19 +7363,19 @@
    "weekend": 207
   },
   "2026-09-28": {
-   "active": 249,
-   "ai": 254,
+   "active": 243,
+   "ai": 248,
    "costPerAsk": 0.038,
    "costPerCommit": null,
    "costPrompts": 5,
    "days": [
     {
-     "active": 27,
+     "active": 25,
      "commits": 0,
      "cost": 0,
      "credits": 4.92,
-     "prompts": 5,
-     "switches": 2,
+     "prompts": 4,
+     "switches": 1,
      "tokens": 0
     },
     {
@@ -8041,12 +7388,12 @@
      "tokens": 3300
     },
     {
-     "active": 82,
+     "active": 78,
      "commits": 0,
      "cost": 0.0123,
      "credits": 9.67,
-     "prompts": 10,
-     "switches": 4,
+     "prompts": 8,
+     "switches": 2,
      "tokens": 4100
     },
     {
@@ -8086,7 +7433,7 @@
      "tokens": 0
     }
    ],
-   "fixRate": 5.3,
+   "fixRate": 5.7,
    "focus": [],
    "friction": [
     {
@@ -8528,62 +7875,6 @@
     },
     {
      "cost": 0,
-     "credits": 0,
-     "git": {
-      "added": 0,
-      "ai": 0,
-      "commits": 0,
-      "removed": 0
-     },
-     "heavy": null,
-     "minutes": 6,
-     "models": [],
-     "outputs": {
-      "added": 0,
-      "commits": 0,
-      "prs": 0,
-      "removed": 0
-     },
-     "project": "old",
-     "prompts": 3,
-     "sessions": 3,
-     "subagents": 0,
-     "tokens": 0,
-     "top": [
-      {
-       "cost": 0,
-       "credits": 0,
-       "id": "372fbe38-1f0c-4f64-882e-d84f0f02817e",
-       "minutes": 2,
-       "source": "Kiro IDE (legacy)",
-       "start": 1790578380,
-       "title": "旧Kiroのチャット",
-       "tokens": 0
-      },
-      {
-       "cost": 0,
-       "credits": 0,
-       "id": "12c47fa1-6df4-4521-83f6-def4d849922d",
-       "minutes": 2,
-       "source": "Kiro IDE (legacy)",
-       "start": 1790739600,
-       "title": "旧Kiroのチャット",
-       "tokens": 0
-      },
-      {
-       "cost": 0,
-       "credits": 0,
-       "id": "12971eb2-2ee6-4dd7-9a6e-a50256c0bf1d",
-       "minutes": 2,
-       "source": "Kiro IDE (legacy)",
-       "start": 1790746140,
-       "title": "旧Kiroのチャット",
-       "tokens": 0
-      }
-     ]
-    },
-    {
-     "cost": 0,
      "credits": 2,
      "git": {
       "added": 0,
@@ -8821,10 +8112,6 @@
      36
     ],
     [
-     "old",
-     6
-    ],
-    [
      "(Kiro Crew)",
      6
     ],
@@ -8841,8 +8128,8 @@
      2
     ]
    ],
-   "prompts": 38,
-   "sessions": 20,
+   "prompts": 35,
+   "sessions": 17,
    "shares": {
     "branch": [
      {
@@ -8870,13 +8157,6 @@
       "cost": 0,
       "credits": 2,
       "key": "(Kiro Crew) · —",
-      "minutes": 6,
-      "tokens": 0
-     },
-     {
-      "cost": 0,
-      "credits": 0,
-      "key": "old · —",
       "minutes": 6,
       "tokens": 0
      },
@@ -8939,13 +8219,6 @@
       "tokens": 0
      },
      {
-      "cost": 0,
-      "credits": 0,
-      "key": "Kiro IDE (legacy)",
-      "minutes": 6,
-      "tokens": 0
-     },
-     {
       "cost": 0.0176,
       "credits": 0,
       "key": "Codex",
@@ -8955,7 +8228,7 @@
     ]
    },
    "start": "2026-09-28",
-   "switchesAvg": 2.4,
+   "switchesAvg": 1.8,
    "switchesMax": 5,
    "usage": {
     "cacheHit": 0.944,

@@ -8,7 +8,7 @@ import html, sys
 
 path, base = sys.argv[1], sys.argv[2]
 title = "kiroku — Your AI work history, visualized"
-desc = ("Claude Code, Kiro, Amazon Q and Codex history as a calendar: what you asked, what it cost, "
+desc = ("Claude Code, Kiro and Codex history as a calendar: what you asked, what it cost, "
         "and what turned into commits. Local-only, one HTML file. Live demo with dummy data.")
 tags = [
     ("name", "description", desc),

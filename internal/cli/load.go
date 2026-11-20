@@ -65,7 +65,7 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 	}
 	wg.Wait()
 	// 中身を出してはいけない会話（Kiro Crew の incognito・temporary）は、同じエージェントの別の履歴に残る写し
-	// （Kiro CLI の SQLite）も隠す。Amazon Q は同じ形の Key を使うが別のエージェントなので、エージェントの家族（Family）が同じものだけ
+	// （Kiro CLI の SQLite）も隠す。同じ形の Key を使う別のエージェントのものは隠さないよう、エージェントの家族（Family）が同じものだけ
 	withheld := map[string]bool{} // Family + "\x00" + Key
 	// ほかのエージェントの履歴に残る写し（Kiro Crew の Codex・Claude Code の backend の会話の、それぞれ自身の記録）は Claim の鍵で隠す
 	withheldClaims := map[string]bool{}

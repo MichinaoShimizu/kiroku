@@ -82,10 +82,10 @@ func TestKiroCLISQLite(t *testing.T) {
 	}
 }
 
-func TestAmazonQ(t *testing.T) {
+func TestQStoreSessions(t *testing.T) {
 	time.Local = time.UTC
 	db := filepath.Join("..", "..", "testdata", "sqlite", "amazon-q.sqlite3")
-	bs := load(t, &QStore{Label: "Amazon Q", Fam: "amazonq", DB: db, Command: "q chat --resume"})
+	bs := load(t, &QStore{Label: "Kiro CLI (SQLite)", Fam: "kiro", DB: db, Command: "q chat --resume"})
 	if len(bs) != 2 {
 		t.Fatalf("会話の数 = %d, want 2", len(bs))
 	}
@@ -123,7 +123,7 @@ func TestSQLitePathWithSpaces(t *testing.T) {
 }
 
 func TestMissingDatabaseIsNotAnError(t *testing.T) {
-	bs := load(t, &QStore{Label: "Amazon Q", DB: filepath.Join(t.TempDir(), "none.sqlite3")})
+	bs := load(t, &QStore{Label: "Kiro CLI (SQLite)", DB: filepath.Join(t.TempDir(), "none.sqlite3")})
 	if len(bs) != 0 {
 		t.Fatal("ないファイルは 0 件")
 	}
@@ -187,7 +187,7 @@ func TestQStoreSyntheticEntries(t *testing.T) {
 		map[string]any{"user": prompt("[SYSTEM NOTE: This is an automated request, not from the user]\n\n Read the TODO list contents below", 4100), "assistant": toolUse("", "todo_list"), "request_metadata": meta(4101, 4103)},
 		map[string]any{"user": prompt("ありがとう", 4200), "assistant": response("どういたしまして"), "request_metadata": meta(4201, 4203)},
 	}
-	bs := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})
+	bs := load(t, &QStore{Label: "Kiro CLI (SQLite)", DB: qHistoryDB(t, history)})
 	if len(bs) != 1 {
 		t.Fatalf("会話の数 = %d, want 1", len(bs))
 	}
@@ -242,7 +242,7 @@ func TestQStoreLegacyEntryWithoutTimestamp(t *testing.T) {
 	history := []any{
 		[]any{map[string]any{"content": map[string]any{"Prompt": map[string]any{"prompt": "古い形"}}}, map[string]any{"Response": map[string]any{"content": "ok"}}},
 	}
-	b := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})[0]
+	b := load(t, &QStore{Label: "Kiro CLI (SQLite)", DB: qHistoryDB(t, history)})[0]
 	if len(b.Prompts) != 1 || b.Prompts[0].Text != "古い形" || len(b.Notes) != 0 {
 		t.Errorf("プロンプト = %+v, Notes = %+v", b.Prompts, b.Notes)
 	}
@@ -333,7 +333,7 @@ func TestQStoreRowErrorIsReported(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out []*core.Builder
-	err = (&QStore{Label: "Amazon Q", DB: path}).Load(func(b *core.Builder) { out = append(out, b) })
+	err = (&QStore{Label: "Kiro CLI (SQLite)", DB: path}).Load(func(b *core.Builder) { out = append(out, b) })
 	if err == nil || !strings.Contains(err.Error(), path) {
 		t.Errorf("エラー = %v（読めなかった行を知らせる）", err)
 	}
@@ -385,7 +385,7 @@ func TestQStoreContextUsage(t *testing.T) {
 		},
 	}
 	conv := map[string]any{"conversation_id": "conv-x", "model_info": map[string]any{"model_id": "m", "context_window_tokens": 1000}, "context_message_length": 360, "history": history}
-	b := load(t, &QStore{Label: "Amazon Q", DB: qConvDB(t, conv)})[0]
+	b := load(t, &QStore{Label: "Kiro CLI (SQLite)", DB: qConvDB(t, conv)})[0]
 	var used []float64
 	for _, m := range b.Measures {
 		if m.Key == "context_used" {
@@ -409,12 +409,12 @@ func TestQStoreContextUsage(t *testing.T) {
 
 	// model_info がなければ CLI と同じく 200,000 トークン。上限を超えた見積もりは 100%
 	conv = map[string]any{"conversation_id": "conv-x", "history": history[:1]}
-	n = nativeOf(load(t, &QStore{Label: "Amazon Q", DB: qConvDB(t, conv)})[0].Finish(15))
+	n = nativeOf(load(t, &QStore{Label: "Kiro CLI (SQLite)", DB: qConvDB(t, conv)})[0].Finish(15))
 	if n["コンテキストの上限"].V != 200000 || (n["コンテキストの最大使用率（見積もり）"].V < 0.12 || n["コンテキストの最大使用率（見積もり）"].V > 0.13) {
 		t.Errorf("model_info なし = %+v", n)
 	}
 	conv = map[string]any{"conversation_id": "conv-x", "model_info": map[string]any{"model_id": "m", "context_window_tokens": 10}, "history": history[:1]}
-	if n = nativeOf(load(t, &QStore{Label: "Amazon Q", DB: qConvDB(t, conv)})[0].Finish(15)); n["コンテキストの最大使用率（見積もり）"].V != 100 {
+	if n = nativeOf(load(t, &QStore{Label: "Kiro CLI (SQLite)", DB: qConvDB(t, conv)})[0].Finish(15)); n["コンテキストの最大使用率（見積もり）"].V != 100 {
 		t.Errorf("上限を超えた見積もり = %+v", n)
 	}
 }
@@ -440,7 +440,7 @@ func TestQStoreToolResultsRewrittenAsPrompt(t *testing.T) {
 			"request_metadata": meta(61, 63),
 		},
 	}
-	b := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})[0]
+	b := load(t, &QStore{Label: "Kiro CLI (SQLite)", DB: qHistoryDB(t, history)})[0]
 	if len(b.Prompts) != 1 || b.Prompts[0].Text != "次へ" {
 		t.Errorf("プロンプト = %+v（書き換えられたツールの結果は数えない）", b.Prompts)
 	}
@@ -466,7 +466,7 @@ func TestQStoreResponseTimeoutIsNotReply(t *testing.T) {
 		[]any{prompt("もう一度", 600), timeout},                                // 古い [user, assistant] の形でも同じ
 		map[string]any{"user": prompt("小さくして", 900), "assistant": timeout}, // 再試行の前に終わった
 	}
-	f := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})[0].Finish(15)
+	f := load(t, &QStore{Label: "Kiro CLI (SQLite)", DB: qHistoryDB(t, history)})[0].Finish(15)
 	if len(f.Prompts) != 3 {
 		t.Fatalf("プロンプト = %+v", f.Prompts)
 	}
@@ -499,7 +499,7 @@ func TestQStoreBrokenJSONIsReported(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out []*core.Builder
-	err = (&QStore{Label: "Amazon Q", DB: path}).Load(func(b *core.Builder) { out = append(out, b) })
+	err = (&QStore{Label: "Kiro CLI (SQLite)", DB: path}).Load(func(b *core.Builder) { out = append(out, b) })
 	if err == nil || !strings.Contains(err.Error(), path) {
 		t.Errorf("エラー = %v（壊れた行を知らせる）", err)
 	}
@@ -548,7 +548,7 @@ func TestQStoreResumeCommand(t *testing.T) {
 		}
 	}
 	// ID で開くコマンドがなければ、v2 の会話には出さない（--resume では別の会話が開く）
-	q := load(t, &QStore{Label: "Amazon Q", DB: path, Command: "q chat --resume"})
+	q := load(t, &QStore{Label: "Kiro CLI (SQLite)", DB: path, Command: "q chat --resume"})
 	for id, want := range map[string]string{"v2-old": "", "v2-new": "", "v1": "cd /Users/me/ci && q chat --resume"} {
 		if b := find(q, id); b == nil || b.Resume != want {
 			t.Errorf("Amazon Q: %s の再開コマンド = %+v, want %q", id, b, want)
@@ -573,7 +573,7 @@ func TestQStoreCancelledToolUsesRewrittenAsPrompt(t *testing.T) {
 		entry("次へ", 60),
 		entry("Tool use was cancelled by the user だけど続けて", 120), // 人が打った文（決まった文だけではない）
 	}
-	b := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})[0]
+	b := load(t, &QStore{Label: "Kiro CLI (SQLite)", DB: qHistoryDB(t, history)})[0]
 	if len(b.Prompts) != 2 || b.Prompts[0].Text != "次へ" {
 		t.Errorf("プロンプト = %+v（書き換えられた、断ったツールの結果は数えない）", b.Prompts)
 	}
@@ -628,7 +628,7 @@ func TestQStoreTypedPromptsAreVerbatim(t *testing.T) {
 		entry(prompt(want[3]), 180, replies[3]),
 		entry(cancelled(want[4]), 240, replies[4]), // ツールを断ったときに打った文
 	}
-	b := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})[0]
+	b := load(t, &QStore{Label: "Kiro CLI (SQLite)", DB: qHistoryDB(t, history)})[0]
 	var texts []string
 	for _, p := range b.Prompts {
 		texts = append(texts, p.Text)
@@ -672,7 +672,7 @@ func TestQStoreInjectedPromptAfterToolUse(t *testing.T) {
 		map[string]any{"user": cancelled("[SYSTEM NOTE: This is an automated request, not from the user]\n\n Read the TODO list", 7200), "assistant": toolUse, "request_metadata": meta(7201, 7202)},
 		map[string]any{"user": cancelled("You took too long to respond - try to split up the work into smaller steps.", 7300), "assistant": response("はい"), "request_metadata": meta(7301, 7302)},
 	}
-	bs := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})
+	bs := load(t, &QStore{Label: "Kiro CLI (SQLite)", DB: qHistoryDB(t, history)})
 	if len(bs) != 1 {
 		t.Fatalf("会話の数 = %d, want 1", len(bs))
 	}
@@ -709,7 +709,7 @@ func TestQStoreImageToolResultsRewrittenAsPrompt(t *testing.T) {
 			"request_metadata": meta,
 		},
 	}
-	b := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})[0]
+	b := load(t, &QStore{Label: "Kiro CLI (SQLite)", DB: qHistoryDB(t, history)})[0]
 	if len(b.Prompts) != 1 || b.Prompts[0].Text != "画面を見て" {
 		t.Errorf("プロンプト = %+v（画像つきのツールの結果は数えない）", b.Prompts)
 	}
@@ -729,7 +729,7 @@ func TestQStoreNotRegular(t *testing.T) {
 func checkNotRegular(t *testing.T, p string) {
 	t.Helper()
 	done := make(chan error, 1)
-	go func() { done <- (&QStore{Label: "Amazon Q", DB: p}).Load(func(*core.Builder) {}) }()
+	go func() { done <- (&QStore{Label: "Kiro CLI (SQLite)", DB: p}).Load(func(*core.Builder) {}) }()
 	select {
 	case err := <-done:
 		if !errors.Is(err, core.ErrNotRegular) {

@@ -1,34 +1,12 @@
 package source
 
 import (
-	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
-
-// sessions.json の sessionId でほかの場所のファイルを読ませない（../../outside/creds など）。読めないファイルとして知らせる。
-func TestKiroIDELegacyRejectsUnsafeIDs(t *testing.T) {
-	base := t.TempDir()
-	gs := filepath.Join(base, "gs")
-	writeFiles(t, base, map[string]string{
-		"outside/creds.json": `{"title": "secret", "history": [{"message": {"role": "user", "content": "secret"}}]}`,
-		"gs/workspace-sessions/d3M=/sessions.json": `[{"sessionId": "../../../outside/creds", "dateCreated": 1759100000000},
-			{"sessionId": "..\\..\\..\\outside\\creds", "dateCreated": 1759100000000},
-			{"sessionId": "C:creds", "dateCreated": 1759100000000},
-			{"sessionId": "ok", "dateCreated": 1759100000000}]`,
-		"gs/workspace-sessions/d3M=/ok.json": `{"history": []}`,
-	})
-	ids, err := loadAllErr(&KiroIDELegacy{Storages: []string{gs}})
-	if !slices.Equal(ids, []string{"ok"}) {
-		t.Errorf("読んだ会話 = %v, want [ok] だけ", ids)
-	}
-	if err == nil || !strings.Contains(err.Error(), "unsafe sessionId") || !strings.Contains(err.Error(), "sessions.json") {
-		t.Errorf("Load のエラー = %v", err)
-	}
-}
 
 func TestSafeName(t *testing.T) {
 	for name, want := range map[string]bool{

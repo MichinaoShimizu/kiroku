@@ -1,4 +1,4 @@
-// kiroku — AI エージェント（Claude Code・Kiro・Kiro Crew・Amazon Q・Codex）の作業履歴を週カレンダーで振り返る。
+// kiroku — AI エージェント（Claude Code・Kiro・Kiro Crew・Codex）の作業履歴を週カレンダーで振り返る。
 //
 // 中身は internal/cli にある。ここは go install github.com/MichinaoShimizu/kiroku@latest で入れられるよう、入口だけを置く。
 package main
