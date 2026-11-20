@@ -1,1 +1,0 @@
-- The new-version check reads its cache only when it is a small regular file (not a link, FIFO or device), writes it through a fresh 0600 temporary file instead of a fixed name, treats only real terminals (not `/dev/null`) as interactive, and discards keys typed while the command ran before asking, so an earlier keypress can't answer the update prompt
