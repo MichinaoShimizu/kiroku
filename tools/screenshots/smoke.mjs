@@ -361,7 +361,7 @@ async function run(env) {
   await step("問題の報告", async () => {
     const a = p.locator("#review .foot a.reportlink");
     check("フッターに「Report a problem」がある（新しいタブ・参照元を渡さない）", await a.count() === 1 && await a.getAttribute("target") === "_blank" && /noopener/.test(await a.getAttribute("rel") || "") && /noreferrer/.test(await a.getAttribute("rel") || ""));
-    check("Data sources にも「Report a problem」と「Copy diagnostics」がある", await p.locator("#review details.dsrc a.reportlink").count() === 1 && await p.locator("#review details.dsrc .diagcopy").count() === 1);
+    check("Data sources には、読んだデータのことだけがある（報告と診断のコピーはページの下だけ）", await p.locator("#review details.dsrc a.reportlink, #review details.dsrc .diagcopy").count() === 0);
     const href = await a.getAttribute("href");
     const u = new URL(href);
     check("行き先は kiroku の issue のテンプレート", u.origin + u.pathname === "https://github.com/MichinaoShimizu/kiroku/issues/new" && u.searchParams.get("template") === "bug.yml", href);

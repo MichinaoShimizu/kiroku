@@ -369,7 +369,7 @@ function measure(w){
   if (w.usage && w.usage.tokens) rows.push(`<li>${META.prices && META.prices.custom ? tph("Price table for estimated cost: from {prices}", {prices})
       : META.prices ? tph("Price table for estimated cost: Anthropic and OpenAI public rates as of {date} (change it with {prices})", {date: isJA() && /^\d{4}-\d{2}$/.test(META.prices.asOf) ? `${META.prices.asOf.slice(0, 4)}年${+META.prices.asOf.slice(5)}月` : META.prices.asOf, prices})
       : tph("Price table for estimated cost: public rates (change it with {prices})", {prices})}</li>`);
-  rows.push(`<li>${esc(t("Something looks wrong?"))} ${reportLinks()}</li>`);
+  // 問題の報告と診断のコピーは、ページのいちばん下（foot）だけ。Data sources は読んだデータのことだけを出す
   const alert = (META.report || []).some(r => r.error || warnKeep(r)) || !!(w.usage && w.usage.unpriced) || pp.length > 0 || ts.length > 0;
   const n = (META.report || []).filter(r => r.n).length;
   return `<details class="dsrc"${alert ? " open" : ""}><summary>${ico("caret", "dsc")}<h3>${esc(t("Data sources"))}</h3><span class="muted">${esc(t("{n} read", {n: plural(n, "history", "histories")}))}</span>${alert ? `<span title="${esc(t("Something here needs your attention"))}">${ico("flag", "fdot")}</span>` : ""}</summary><ul class="mlist">${rows.join("")}</ul></details>`;

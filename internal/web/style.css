@@ -463,7 +463,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .pload,.rload{font-size:var(--fs-xs);color:var(--acc-ink);font-weight:600;padding:1px 8px;border:1px solid var(--acc);border-radius:99px;margin-left:2px}.pload:hover,.rload:hover{text-decoration:underline}
 .tl time{color:var(--ink-3);font-variant-numeric:tabular-nums;font-size:var(--fs-xs);padding-top:1px}
 .tl p{margin:0;overflow-wrap:anywhere}
-/* プロンプトの流れは、チャットの形で読む：あなたのプロンプトは右の吹き出し、AI の応答は左の吹き出し（AI の印つき）、
+/* プロンプトの流れは、チャットの形で読む：あなたのプロンプトは左の吹き出し（人の印）、AI の応答は右の吹き出し（機械の印）、
    そのあいだに起きたこと（コミット・PR・中断など）と、長くあいた間は、真ん中の小さな札。時刻は吹き出しの外の下の端に */
 .tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
 .tl li{display:flex;align-items:flex-end;gap:8px;min-width:0;font-size:var(--fs-sm);line-height:1.6}
@@ -476,10 +476,10 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl li.pr:not(.ev) .pmeta{margin-top:2px;color:var(--ink-2)} /* 色つきの地の上の小さな字は、ふだんより濃く（4.5:1 を保つ） */
 .tl .pmeta>span{white-space:nowrap}
 .av{flex:none;align-self:flex-start;display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:color-mix(in oklab,var(--c) 16%,var(--surface));color:var(--c)} /* 発言した人の印（丸）。あなたはセッションの色 */
-.av .ic{width:17px;height:17px;stroke-width:1.7}
+.av .ic{width:16px;height:16px;stroke-width:1.5} /* 30px の丸の真ん中に、整数の位置で（1 倍の画面でもにじまない） */
 .tl li.pr.fix>.av{background:color-mix(in oklab,var(--warn) 16%,var(--surface));color:var(--warn)}
 .tl li.pr.command>.av,.tl li.pr.shell>.av{color:var(--c4-ink)}
-.tlkey .av{width:20px;height:20px}.tlkey .av .ic{width:12px;height:12px}
+.tlkey .av{display:inline-grid;width:20px;height:20px}.tlkey .av .ic{width:12px;height:12px}
 .tl li.ev button.evd{color:var(--acc-ink)} /* コミット・PR・push の札は押せる（詳細が開く） */
 @media (max-width:600px){ /* 狭い画面では、出来事の札を切らずに折り返す */
   .tl li.ev{border-radius:12px;align-items:flex-start}
@@ -488,7 +488,8 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
   .tl li.ev>.ic{margin-top:3px}
 }
 .tl li.rp{justify-content:flex-end;padding-left:12%}
-.av.rpav{order:2;background:var(--surface-2);color:var(--ink-2)} /* AI は灰色の丸に機械の印 */
+@media (max-width:600px){.tl li.pr:not(.ev){padding-right:0}.tl li.rp{padding-left:0}} /* 狭い画面では吹き出しを広く */
+.tl li.rp>.av{order:2}.av.rpav{background:var(--surface-2);color:var(--ink-2)} /* AI は灰色の丸に機械の印 */
 
 .tl li.rp p{order:1;min-width:0;background:var(--surface-2);border-radius:18px 18px 4px 18px;padding:8px 14px;color:var(--ink)}
 .tl li.rp>time{order:0}
