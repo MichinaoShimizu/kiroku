@@ -7,7 +7,7 @@
 //   - 鍵なしの / を開き直しても出る（localStorage の鍵）。履歴ファイルの「Open」は鍵を付けて読んで保存する
 //   - 鍵のないブラウザ（新しいコンテキスト）は、案内だけで履歴を見ない。data.json も 403
 //   - 画面から同じコンピューターのほかのポートのサーバーへ移っても、鍵はどの問い合わせにも載らない（Cookie にも、ほかのところにも）
-//   - 「Analyze with AI」: フラグなしで出て、押すと送るプロンプトをそのまま見せる（Run は押さない）。エージェントのコマンドがなければ押せず理由を添え、
+//   - 「Analyze with AI」: 既定はオフ（--ai を付けたときだけ）。--ai で出て、押すと送るプロンプトをそのまま見せる（Run は押さない）。エージェントのコマンドがなければ押せず理由を添え、
 //     --no-ai では「(off)」だけで /ai/run は 404。エージェントは偽の codex（何もしないスクリプト）を PATH の先頭に置いて決める
 //   - 偽の codex での実行: 返事の確認と「直してもらう」、届いた分から見える返事、エージェントの失敗、Cancel で止めるとエージェントとその子が残らない
 // を見る。Playwright が必要（smoke.mjs と同じ）。
@@ -30,7 +30,7 @@ const fakeBin = path.join(work, "bin"), emptyBin = path.join(work, "empty");
 await mkdir(fakeBin, { recursive: true }); await mkdir(emptyBin, { recursive: true });
 await writeFile(path.join(fakeBin, "codex"), "#!/bin/sh\nexit 1\n"); await chmod(path.join(fakeBin, "codex"), 0o700);
 const env = { ...process.env, PATH: `${fakeBin}${path.delimiter}${process.env.PATH || ""}`, HOME: path.join(work, "home"), KIROKU_CONFIG_DIR: path.join(work, "config"), KIROKU_LANG: "", KIROKU_NO_AI: "", TZ: "Asia/Tokyo" };
-const serveArgs = ["serve", "127.0.0.1:0", "--no-open", "--sources", "claude", "--claude-root", path.join(home, ".claude", "projects"), "--archive-dir", path.join(work, "archive")];
+const serveArgs = ["serve", "127.0.0.1:0", "--no-open", "--sources", "claude", "--claude-root", path.join(home, ".claude", "projects"), "--archive-dir", path.join(work, "archive"), "--ai"]; // 「Analyze with AI」は --ai を付けたときだけ（既定はオフ）
 const srv = spawn(path.resolve(bin), serveArgs, { env, stdio: ["ignore", "pipe", "pipe"] });
 let log = "";
 srv.stdout.on("data", d => { log += d; }); srv.stderr.on("data", d => { log += d; });
@@ -58,7 +58,7 @@ try {
   // 読み終わるのを待つ（以前の版の Cookie も付けるのは、修正の前の版に対してこのテストが失敗することを確かめられるように）
   await until("読み込み", async () => (await fetch(`${base}/stamp`, { headers: { "X-Kiroku-Key": key, Cookie: `kiroku_key_${port}=${key}` } }).catch(() => ({ ok: false }))).ok);
   check("鍵なしの data.json は 403", (await fetch(`${base}/data.json`)).status === 403);
-  check("起動の 1 行で、AI の実行がオンで --no-ai で切れ、提供元に送りうると言う", /"Analyze with AI" is on: .*may send the prompt and the history it reads to its provider; turn it off with --no-ai/.test(log), log);
+  check("起動の 1 行で、--ai で AI の実行がオンになっていて、提供元に送りうると言う", /"Analyze with AI" is on \(--ai\): .*may send the prompt and the history it reads to its provider; start without --ai to turn it off/.test(log), log);
   check("鍵の Cookie（以前の版）だけの data.json は 403", (await fetch(`${base}/data.json`, { headers: { Cookie: `kiroku_key_${port}=${key}` } })).status === 403);
 
   b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
@@ -135,7 +135,7 @@ try {
   check("フラグなしの serve で、記録のある日の見出しに日報の「Analyze with AI」が押せる", await dayBtn.count() === 1 && await dayBtn.isEnabled());
   check("バッジが LIVE · AI on", (await p.locator("#live").innerText()).includes("AI on"));
   await p.locator("#live").click(); await p.waitForTimeout(200);
-  check("バッジを押すと、説明（--no-ai で止められること）が出る", /--no-ai/.test(await p.locator("#toast").innerText()));
+  check("バッジを押すと、説明（--ai で入れたこと）が出る", /--ai/.test(await p.locator("#toast").innerText()));
   await dayBtn.click();
   await p.waitForSelector("#ai-review-dialog", { timeout: 5000 });
   const dlg = await p.evaluate(() => { const d = document.querySelector("#ai-review-dialog"); return { text: d.innerText, prompt: d.querySelector("textarea.ai-prompt").value, readOnly: d.querySelector("textarea.ai-prompt").readOnly, agents: [...d.querySelectorAll("select option")].map(o => o.value) }; });
@@ -175,8 +175,18 @@ try {
   await pn.evaluate(() => select(DATA.find(s => s.prompts.length).id)); await pn.waitForSelector("#panel .ai-none", { timeout: 5000 });
   check("エージェントがないと、ボタンは押せず、理由が添えてある", await pn.locator("#panel .ai-none button").isDisabled() && /No AI agent found/.test(await pn.locator("#panel .ai-why").innerText()) && /claude, codex or kiro-cli/.test(await pn.locator("#panel .ai-why").getAttribute("title")));
   await pn.close();
+  // 既定（--ai なし）はオフ: 起動の 1 行がそう言い、/ai/run はなく、日報のボタンも出ない
+  const dflt = await startExtra(serveArgs.filter(a => a !== "--ai"), {});
+  check("--ai を付けなければ、起動の 1 行はオフと言い、--ai でオンにできると言う", /"Analyze with AI" is off: .*start with --ai/.test(dflt.log()), dflt.log());
+  const pz = await ctx.newPage();
+  await openWithKey(pz, dflt.url);
+  await pz.waitForSelector(".run[data-sid]", { timeout: 15000 });
+  check("--ai を付けなければ、日報のボタンも AI の操作もない", await pz.locator(".dayrun, #srun, .ai-action").count() === 0 && !(await pz.locator("#live").innerText()).includes("AI on"));
+  const sz = await pz.evaluate(async k => (await fetch("ai/run", { method: "POST", headers: { "X-Kiroku-Key": k, "X-Kiroku": "1", "Content-Type": "application/json" }, body: JSON.stringify({ agent: "codex", prompt: "x", consent: true }) })).status, key);
+  check("--ai を付けなければ、鍵があっても /ai/run は 404", sz === 404, String(sz));
+  await pz.close();
   const off = await startExtra([...serveArgs, "--no-ai"], {});
-  check("--no-ai の起動の 1 行はオフと言う", /"Analyze with AI" is off \(--no-ai\)/.test(off.log()), off.log());
+  check("--ai と --no-ai の両方なら、--no-ai が勝ってオフ", /"Analyze with AI" is off: /.test(off.log()), off.log());
   const po = await ctx.newPage();
   await openWithKey(po, off.url);
   await po.waitForSelector(".run[data-sid]", { timeout: 15000 });

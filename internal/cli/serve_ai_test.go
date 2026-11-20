@@ -41,13 +41,13 @@ func TestAIOnlyOnLoopbackIP(t *testing.T) {
 // The startup line says whether agent runs are on, how to turn them off and that the agent may send data to its provider.
 func TestAIStartLine(t *testing.T) {
 	on := aiStartLine(true, true)
-	for _, s := range []string{"is on", "--no-ai", "may send the prompt and the history it reads to its provider"} {
+	for _, s := range []string{"is on (--ai)", "without --ai", "may send the prompt and the history it reads to its provider"} {
 		if !strings.Contains(on, s) {
 			t.Errorf("start line %q lacks %q", on, s)
 		}
 	}
-	if s := aiStartLine(false, true); !strings.Contains(s, "is off (--no-ai)") {
-		t.Errorf("--no-ai start line = %q", s)
+	if s := aiStartLine(false, true); !strings.Contains(s, "is off") || !strings.Contains(s, "--ai") {
+		t.Errorf("off start line = %q", s)
 	}
 	if s := aiStartLine(true, false); !strings.Contains(s, "is off") || !strings.Contains(s, "loopback") {
 		t.Errorf("non-loopback start line = %q", s)
@@ -111,12 +111,18 @@ func TestLangFlag(t *testing.T) {
 	}
 }
 
-// 1.0 でなくした --ai（--ai=false も）は、何もせずに代わり（--no-ai）を教えて止まる。履歴は読まない。
-func TestRemovedAIFlag(t *testing.T) {
-	for _, args := range [][]string{{"--ai"}, {"--ai=false"}, {"-ai=true"}, {":8485", "--ai"}, {"--ai=1"}, {"-ai"}, {"--no-ai", "--ai"}} {
-		err := cmdServe(args)
-		if err == nil || !strings.Contains(err.Error(), "--ai was removed") || !strings.Contains(err.Error(), "--no-ai") {
-			t.Errorf("%q: err = %v", args, err)
+// 「Analyze with AI」は既定でオフ。--ai（$KIROKU_AI）でだけオンになり、--no-ai（$KIROKU_NO_AI）はそれより強い。
+// $KIROKU_AI は、はっきりオンと読める値（1・true・yes・on）だけ。迷う値はオフ
+func TestAIOptIn(t *testing.T) {
+	for _, c := range []struct{ ai, noAI, want bool }{{false, false, false}, {true, false, true}, {true, true, false}, {false, true, false}} {
+		if got := aiWanted(c.ai, c.noAI); got != c.want {
+			t.Errorf("aiWanted(%v, %v) = %v, want %v", c.ai, c.noAI, got, c.want)
+		}
+	}
+	for v, want := range map[string]bool{"": false, " ": false, "0": false, "false": false, "no": false, "off": false, "2": false, "enabled": false, "1": true, " 1 ": true, "true": true, "TRUE": true, "yes": true, "on": true} {
+		t.Setenv("KIROKU_AI", v)
+		if got := aiEnv(); got != want {
+			t.Errorf("KIROKU_AI=%q: aiEnv() = %v, want %v", v, got, want)
 		}
 	}
 }

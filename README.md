@@ -61,7 +61,7 @@ The view is in Japanese when your browser prefers Japanese; the button at the to
 
 ## Reviews and advice, written by your own agent
 
-In `kiroku serve`, "Analyze with AI" runs a prompt with the AI agent you already use on this computer, such as Claude Code or Codex, after you check the exact prompt and confirm the run (start it with `--no-ai` to turn this off; a saved HTML file never runs an agent). The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, as a professional advisor on prompts and engineering work would.
+In `kiroku serve`, "Analyze with AI" runs a prompt with the AI agent you already use on this computer, such as Claude Code or Codex, after you check the exact prompt and confirm the run. It is off unless you start `kiroku serve --ai`, because text in your history (web pages, tool output, other people's repositories) could steer an agent that reads it; a saved HTML file never runs an agent. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, as a professional advisor on prompts and engineering work would.
 
 | Scope | Where | What you get |
 |---|---|---|
@@ -84,7 +84,7 @@ The prompts stay light: a report carries a short digest of each session, and the
 
 ## Privacy
 
-- Your history never leaves your computer: no telemetry, no account, no AI service, unless you confirm a run of "Analyze with AI" in `kiroku serve`: the agent you pick may send the prompt and the history it reads to its provider. `kiroku serve --no-ai` turns agent runs off. The only network access is checking for and downloading kiroku's own releases from GitHub.
+- Your history never leaves your computer: no telemetry, no account, no AI service, unless you start `kiroku serve --ai` and confirm a run of "Analyze with AI": the agent you pick may send the prompt and the history it reads to its provider. Without `--ai`, kiroku runs no agent. The only network access is checking for and downloading kiroku's own releases from GitHub.
 - Files kiroku writes from your history are readable only by you, and `kiroku serve` listens on `127.0.0.1` and opens only for browsers that have its key.
 - The HTML contains your prompts, the AI's replies, file paths and commit messages as they are. Check it before sharing.
 - The review and report prompts point an AI agent on your computer to your history files, and the agent reads them. Use an agent you'd trust with them.
