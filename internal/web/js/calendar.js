@@ -117,7 +117,10 @@ function kpis(){
   const useV = two(u.tokens ? (c == null ? tok(u.tokens) : usdH(c)) : "", u.credits ? `${crN(u.credits)}<small>&nbsp;cr</small>` : "");
   const useK = u.tokens && u.credits ? t(c == null ? "Tokens · credits" : "Estimated cost · credits") : u.tokens ? t(c == null ? "Tokens" : "Estimated cost") : t("Kiro credits");
   const pjV = pj ? two(pj.cost != null ? `<small>≈</small>${usdH(pj.cost)}` : "", pj.credits != null ? `<small>≈</small>${crN(pj.credits)}<small>&nbsp;cr</small>` : "") : "";
-  const pu = pw && pw.usage, useD = u.tokens ? (c == null ? dl(u.tokens, V.of("tokens", pu && pu.tokens)) : dl(u.cost, V.of("cost", pu && pu.cost))) : dl(u.credits, V.of("credits", pu && pu.credits));
+  // 使用量が 2 つ（推定費用とクレジット）あるときは、増減も 2 つ、値と同じ順に並べる（1 つの % がどちらのものかわからないので）
+  const pu = pw && pw.usage, dTok = u.tokens ? (c == null ? dl(u.tokens, V.of("tokens", pu && pu.tokens)) : dl(u.cost, V.of("cost", pu && pu.cost))) : "",
+    dCr = u.credits ? dl(u.credits, V.of("credits", pu && pu.credits)) : "",
+    useD = u.tokens && u.credits && (dTok || dCr) ? `${dTok || `<span class="dl">—</span>`}<span class="dl">·</span>${dCr || `<span class="dl">—</span>`}` : dTok || dCr;
   K.innerHTML = (useV ? kpi(useK, useV, u.tokens && c == null ? NOPRICE : "", "key", u.tokens ? (c == null ? "tokens" : "cost") : "credits", useD) : "") +
     (pc && !pj ? paceK() : "") + // 月の途中は月末の推定を出すので、前の月並みの目安は出さない（内訳とサマリーにある）
     (pjV ? kpi(t(pj.cost != null && pj.credits != null ? "Month-end (estimate)" : pj.cost != null ? "Month-end cost" : "Month-end credits"), pjV, pace, "key", pj.cost != null ? "projection" : "projectionCr") : "") +

@@ -91,6 +91,10 @@ async function run(env) {
       if (!hb) return true; hb.click(); const ok = !d.open; if (typeof hideHint === "function") hideHint(); return ok; }));
     if (env.viewport.width > 820) check("上の数字の帯は 1 行（折り返さない）", await p.evaluate(() => new Set([...document.querySelectorAll("#kpis .kpi")].map(k => Math.round(k.getBoundingClientRect().top))).size === 1));
     check("上の数字に、前の期間との増減（%）が添えてある", await p.evaluate(() => [...document.querySelectorAll("#kpis .kpi .k .dl")].some(d => /^[+−±]\d*%?/.test(d.textContent))));
+    check("推定費用とクレジットが並ぶときは、増減も 2 つ（値と同じ順）", await p.evaluate(() => { const k = document.querySelector('#kpis [data-metric="cost"] .k'); return !k || !/·/.test(k.firstChild.textContent) || k.querySelectorAll(".dl").length >= 3; }));
+    check("履歴が前の期間の途中から始まるときは比べない", await p.evaluate(() => { const ok = vsPrev(period().P, "週").partial === false;
+      historyStartCache = {d: DATA, n: DATA.length, t: Infinity}; const V = vsPrev(period().P, "週"), r = V.partial === true && V.of("cost", 5) === null && V.diff(3, V.of("cost", 5)) === "";
+      historyStartCache = null; return ok && r; }));
     if (env.viewport.width <= 820){ // スマホの検索欄は虫めがねだけ。押すと広がり、画面からはみ出さない
       const box = () => p.evaluate(() => { const b = document.querySelector("#q").getBoundingClientRect(); return {l: b.left, r: b.right, w: b.width}; });
       const b0 = await box();

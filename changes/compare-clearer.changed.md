@@ -1,0 +1,3 @@
+- The change from the previous period is clearer:
+  - With both estimated cost and credits in one figure, each gets its own percent change, in the same order as the values
+  - When your history starts inside the previous period, figures and the summary show no comparison instead of counting the missing days as zero
