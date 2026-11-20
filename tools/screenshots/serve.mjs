@@ -3,7 +3,7 @@
 // ダミーの履歴（gen.py）だけを読む kiroku serve を、使い捨ての HOME と設定の場所で空いているポートに立て、
 //   - kiroku open --print の使い捨てのコード（?code=）で開くと履歴が出て、どの URL にも鍵が載らない（ブラウザの履歴に鍵が残らない）。
 //     鍵は中継のページの POST の答えでだけ受け取り、コードは 2 回目には使えない
-//   - 以前の版の /?key= で開いても履歴が出て、アドレスから鍵が消え、鍵の Cookie はない
+//   - 以前の版の /?key= は、鍵が合っていても 403 で、履歴を出さず、鍵をしまわない（1.0 から）
 //   - 鍵なしの / を開き直しても出る（localStorage の鍵）。履歴ファイルの「Open」は鍵を付けて読んで保存する
 //   - 鍵のないブラウザ（新しいコンテキスト）は、案内だけで履歴を見ない。data.json も 403
 //   - 画面から同じコンピューターのほかのポートのサーバーへ移っても、鍵はどの問い合わせにも載らない（Cookie にも、ほかのところにも）
@@ -48,6 +48,12 @@ try {
   const until = async (what, f, ms = 30000) => { const end = Date.now() + ms; for (;;) { const v = await f(); if (v) return v; if (Date.now() > end) throw new Error(`${what} にならない: ${log}`); await new Promise(r => setTimeout(r, 100)); } };
   const port = await until("待ち受け", () => (log.match(/serving http:\/\/localhost:(\d+)\//) || [])[1]);
   const key = (await until("鍵", () => readFile(path.join(env.KIROKU_CONFIG_DIR, "serve-key"), "utf8").catch(() => ""))).trim();
+  // 別のポートの serve は別のオリジンなので、その localStorage に鍵をしまってから開く（kiroku open の中継のページと同じこと）
+  const openWithKey = async (page, url) => {
+    await page.goto(`${url}/`);
+    await page.evaluate(k => localStorage.setItem("kiroku:key", k), key);
+    await page.goto(`${url}/`);
+  };
   const base = `http://localhost:${port}`;
   // 読み終わるのを待つ（以前の版の Cookie も付けるのは、修正の前の版に対してこのテストが失敗することを確かめられるように）
   await until("読み込み", async () => (await fetch(`${base}/stamp`, { headers: { "X-Kiroku-Key": key, Cookie: `kiroku_key_${port}=${key}` } }).catch(() => ({ ok: false }))).ok);
@@ -83,18 +89,16 @@ try {
   const hop = await (await fetch(once)).text();
   check("?code= の GET の答えに鍵が入らない", !hop.includes(key));
 
-  await p.goto(`${base}/?key=${key}`);
-  await p.waitForURL(u => !u.search.includes("key="), { timeout: 10000 });
-  await p.waitForSelector(".run[data-sid]", { timeout: 15000 });
-  check("?key= で開くと履歴が出る", await p.locator(".run[data-sid]").count() > 0);
-  check("アドレスに鍵が残らない", !p.url().includes(key), p.url());
-  check("鍵は localStorage にある", await p.evaluate(() => localStorage.getItem("kiroku:key")) === key);
+  // 以前の版の ?key= は受け付けない（鍵が合っていても）。新しいコンテキストで開き、履歴も鍵の保存もないことを見る
+  const pk = await (await b.newContext()).newPage();
+  const rk = await pk.goto(`${base}/?key=${key}`);
+  check("?key= は 403", rk && rk.status() === 403, String(rk && rk.status()));
+  check("?key= では履歴を出さず、鍵もしまわない", await pk.locator(".run[data-sid]").count() === 0 &&
+    await pk.evaluate(() => localStorage.getItem("kiroku:key")) === null);
   const cookies = await ctx.cookies();
   check("鍵の Cookie がない", !cookies.some(c => c.value.includes(key) || c.name.startsWith("kiroku_key_")), JSON.stringify(cookies));
-  await p.goBack(); // ?key= のページは location.replace で置きかえたので、戻ると開く前（about:blank）
-  check("鍵がブラウザの履歴に残らない", !p.url().includes("key="), p.url());
 
-  await p.goto(`${base}/`);
+  await openWithKey(p, base); // kiroku open の中継のページがしまうのと同じく、localStorage に鍵を置いてから鍵なしの / を開く
   await p.waitForSelector(".run[data-sid]", { timeout: 15000 });
   check("鍵なしの / を開き直しても履歴が出る", await p.locator(".run[data-sid]").count() > 0);
   const title = await p.evaluate(() => DATA.length ? DATA[DATA.length - 1].title : "");
@@ -163,15 +167,15 @@ try {
     return { url: `http://localhost:${pt}`, log: () => lg }; };
   const none = await startExtra(serveArgs, { PATH: emptyBin });
   const pn = await ctx.newPage();
-  await pn.goto(`${none.url}/?key=${key}`);
+  await openWithKey(pn, none.url);
   await pn.waitForSelector("#rptbar .ai-none", { timeout: 15000 });
   check("エージェントがないと、日報のボタンは出さない（理由は週報の帯で言う）", await pn.locator(".head .dayrun").count() === 0);
   check("エージェントがないと、ボタンは押せず、理由が添えてある", await pn.locator("#rptbar .ai-none button").isDisabled() && /No AI agent found/.test(await pn.locator("#rptbar .ai-why").innerText()) && /claude, codex or kiro-cli/.test(await pn.locator("#rptbar .ai-why").getAttribute("title")));
   await pn.close();
-  const off = await startExtra([...serveArgs, "--no-ai", "--ai"], {});
-  check("--no-ai の起動の 1 行はオフと言い、--ai はもう要らないと知らせる", /"Analyze with AI" is off \(--no-ai\)/.test(off.log()) && /--ai is no longer needed/.test(off.log()), off.log());
+  const off = await startExtra([...serveArgs, "--no-ai"], {});
+  check("--no-ai の起動の 1 行はオフと言う", /"Analyze with AI" is off \(--no-ai\)/.test(off.log()), off.log());
   const po = await ctx.newPage();
-  await po.goto(`${off.url}/?key=${key}`);
+  await openWithKey(po, off.url);
   await po.waitForSelector("#rptbar .ai-off", { timeout: 15000 });
   check("--no-ai では「Analyze with AI (off)」だけ", await po.locator("#rptrun, .ai-action").count() === 0);
   const st = await po.evaluate(async k => (await fetch("ai/run", { method: "POST", headers: { "X-Kiroku-Key": k, "X-Kiroku": "1", "Content-Type": "application/json" }, body: JSON.stringify({ agent: "codex", prompt: "x", consent: true }) })).status, key);
@@ -187,7 +191,7 @@ try {
   const fx = await startExtra(serveArgs, { PATH: `${fixBin}${path.delimiter}${process.env.PATH || ""}` });
   const nRuns = async () => (await readFile(runs, "utf8").catch(() => "")).split("\n").filter(Boolean).length;
   const pf = await ctx.newPage();
-  await pf.goto(`${fx.url}/?key=${key}`);
+  await openWithKey(pf, fx.url);
   await pf.waitForSelector("#rptbar #rptrun", { timeout: 15000 });
   await pf.locator("#rptbar #rptrun").click();
   await pf.waitForSelector("#ai-review-dialog", { timeout: 5000 });
@@ -236,7 +240,7 @@ esac
   await chmod(path.join(sBin, "codex"), 0o700);
   const sx = await startExtra(serveArgs, { PATH: `${sBin}${path.delimiter}${process.env.PATH || ""}` });
   const ps = await ctx.newPage();
-  await ps.goto(`${sx.url}/?key=${key}`);
+  await openWithKey(ps, sx.url);
   await ps.waitForSelector("#rptbar #rptrun", { timeout: 15000 });
   await ps.locator("#rptbar #rptrun").click();
   await ps.waitForSelector("#ai-review-dialog", { timeout: 5000 });
@@ -275,7 +279,7 @@ esac
   for (const n of ["claude", "codex"]){ await writeFile(path.join(dBin, n), "#!/bin/sh\ncat >/dev/null\n"); await chmod(path.join(dBin, n), 0o700); }
   const dx = await startExtra([...serveArgs.slice(0, 4), "claude,codex", ...serveArgs.slice(5), "--codex-home", path.join(home, ".codex")], { PATH: `${dBin}${path.delimiter}${process.env.PATH || ""}` });
   const pd = await ctx.newPage();
-  await pd.goto(`${dx.url}/?key=${key}`);
+  await openWithKey(pd, dx.url);
   await pd.waitForSelector(".run[data-sid]", { timeout: 15000 });
   const cx = await pd.evaluate(() => { const s = DATA.find(x => x.source === "Codex"); if (!s) return null; st.mode = "week"; st.week = mondayOf(new Date(s.start * 1000)); select(s.id); return s.id; });
   check("ダミーの履歴に Codex のセッションがある（下の確かめのため）", !!cx);

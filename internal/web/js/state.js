@@ -35,7 +35,7 @@ const SLOTS = 8;
 const $ = s => document.querySelector(s);
 const store = { get(k,d){ try { const v = localStorage.getItem("kiroku:"+k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
                 set(k,v){ try { localStorage.setItem("kiroku:"+k, JSON.stringify(v)); } catch(e){} } };
-/* kiroku serve の鍵。?key= の中継のページが localStorage（このオリジン＝このポートだけ）にしまったものを、
+/* kiroku serve の鍵。?code= の中継のページが localStorage（このオリジン＝このポートだけ）にしまったものを、
    kfetch が X-Kiroku-Key ヘッダーに付ける。Cookie と違って、ほかのポートのサーバーには送られない。
    JSON ではなくそのまま入れてあるので store ではなく直接読む。送り先はこのサイトの中だけ */
 const serveKey = () => { try { const k = localStorage.getItem("kiroku:key"); return k && /^[0-9a-f]{64}$/.test(k) ? k : null; } catch(e){ return null; } };

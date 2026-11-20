@@ -30,7 +30,7 @@ import (
 // kiroku open は、鍵そのものではなく使い捨てのコード（openCodeTTL のあいだ 1 回だけ使える）を ?code= に付けて開く。
 // ブラウザは開いた URL を履歴に残し、同期していれば送ってしまうので、残るのが使い終わったコードだけになるように。
 // 中継のページが鍵を localStorage にしまい、そのあとは鍵なしの URL（ブックマーク）で開ける。
-// 以前の版の ?key=<鍵> の URL（ブックマーク）も受け付けるが、kiroku からはもう作らない。
+// 以前の版の ?key=<鍵> の URL は受け付けない（1.0 から）。ブラウザの履歴に鍵が残るので、開かれたら鍵のない案内（locked）を返す。
 
 // configDir は kiroku の設定の場所（$KIROKU_CONFIG_DIR、なければ OS の設定の場所の kiroku）。
 func configDir() (string, error) {
@@ -128,7 +128,7 @@ func oldKeyCookie(addr string) string {
 
 // requireKey は、鍵を知っている画面にだけ next を見せる。
 // 鍵は X-Kiroku-Key ヘッダーでだけ受け付ける。Cookie は、ほかのポートのサーバーにも送られて盗まれうるので使わない。
-// ?code=<使い捨てのコード>（または以前の版の ?key=<鍵>）で開かれたら、中継のページ（hopKeyPage）が鍵を localStorage にしまい、
+// ?code=<使い捨てのコード> で開かれたら、中継のページ（hopKeyPage）が鍵を localStorage にしまい、
 // それを消した URL へ移る。GET / とマニフェスト（keyless）だけは鍵なしで通す。そこで返すのは履歴を入れていない画面の骨組みか
 // 読み込み中の画面で、画面が localStorage の鍵を付けて data.json を読む（ブックマークなどの移動ではヘッダーを付けられないため）。
 func requireKey(addr, key string, next http.Handler) http.Handler {
@@ -141,11 +141,15 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 		}
 		get := r.Method == http.MethodGet || r.Method == http.MethodHead
 		q := r.URL.Query()
-		if q.Has("key") || q.Has("code") {
+		if q.Has("key") { // 以前の版の ?key=<鍵>。鍵が合っていても使わない（kiroku open で開き直してもらう）
+			locked(w, r)
+			return
+		}
+		if q.Has("code") {
 			// ?code= の POST は、中継のページのスクリプトがコードを鍵に換えるところ。コードは 1 回だけ使え、鍵は答えの本文で返す。
 			// GET では鍵を渡さず、コードも使わない（リンクの先読みやチャットのプレビューが、コードを使い切ったり鍵を受け取ったりしないように）。
 			// ほかのサイトのページから換えさせないよう、/archive と同じく X-Kiroku ヘッダーと同じオリジンを求める
-			if r.Method == http.MethodPost && q.Has("code") && !q.Has("key") {
+			if r.Method == http.MethodPost {
 				if r.Header.Get("X-Kiroku") != "1" || (r.Header.Get("Origin") != "" && r.Header.Get("Origin") != "http://"+r.Host) || !useOpenCode(q.Get("code"), port) {
 					http.Error(w, "forbidden", http.StatusForbidden)
 					return
@@ -155,11 +159,10 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 				_, _ = io.WriteString(w, key)
 				return
 			}
-			if !get || (q.Has("code") && q.Has("key")) || (q.Has("key") && !match(q.Get("key"))) {
+			if !get {
 				locked(w, r)
 				return
 			}
-			q.Del("key")
 			q.Del("code")
 			to := hopTarget(r.URL.Path)
 			if len(q) > 0 {
@@ -184,7 +187,7 @@ func keyless(path string) bool {
 	return path == "/" || slices.Contains(web.AppPaths, path)
 }
 
-// hopTarget は、?key= の中継のあとに移る、このサイトの中のパス。//host や /\host（ブラウザは \ を / と読む）、
+// hopTarget は、?code= の中継のあとに移る、このサイトの中のパス。//host や /\host（ブラウザは \ を / と読む）、
 // /<タブ>/host（ブラウザは URL のタブと改行を読み飛ばす）のような、ほかのサイトへの URL にしない。
 // 先頭の / \ と制御文字を除き、残りは % で書く（中の制御文字も %09 などになり、ブラウザに読み飛ばされない）。
 func hopTarget(path string) string {
@@ -236,8 +239,8 @@ const lockedPageJA = `<!doctype html>
 </html>
 `
 
-// hopKeyScript は、?code= か ?key= で開かれたときの中継のページのスクリプト（中身は変わらないので、CSP のハッシュは 1 回だけ作る）。
-// ?code= なら同じアドレスへの POST でコードを鍵に換え、?key= ならアドレスから読む。形（64 桁の 16 進数）を確かめて localStorage にしまい、
+// hopKeyScript は、?code= で開かれたときの中継のページのスクリプト（中身は変わらないので、CSP のハッシュは 1 回だけ作る）。
+// 同じアドレスへの POST でコードを鍵に換える。形（64 桁の 16 進数）を確かめて localStorage にしまい、
 // コードや鍵を消した URL（サーバーが決めた #to のリンク先）へ、ブラウザの履歴に残さずに移る。
 // 換えられなかった（使い終わった・期限切れ）ときや、しまえなかったとき（このアドレスのサイトのデータを止めているなど）は、そう伝える。
 const hopKeyScript = `(async () => {
@@ -245,7 +248,7 @@ const hopKeyScript = `(async () => {
   const ja = (() => { try { const v = q.get("lang") || JSON.parse(localStorage.getItem("kiroku:lang") || "null"); if (v === "ja" || v === "en") return v === "ja"; } catch(e){}
     try { return (navigator.languages && navigator.languages[0] || navigator.language || "").toLowerCase().startsWith("ja"); } catch(e){ return false; } })();
   if (ja){ document.documentElement.lang = "ja"; to.textContent = "kiroku を開く"; }
-  let k = q.get("key") || "", ok = false, why = ja ? "このブラウザーは kiroku の鍵をしまえない（このアドレスのサイトのデータが止められているかもしれません）ので、ここでは履歴を見せられません。" : "This browser doesn't let kiroku keep its key (site data may be blocked for this address), so it can't show your history here.";
+  let k = "", ok = false, why = ja ? "このブラウザーは kiroku の鍵をしまえない（このアドレスのサイトのデータが止められているかもしれません）ので、ここでは履歴を見せられません。" : "This browser doesn't let kiroku keep its key (site data may be blocked for this address), so it can't show your history here.";
   if (q.has("code")){
     k = "";
     try { const r = await fetch(location.href, {method: "POST", headers: {"X-Kiroku": "1"}, cache: "no-store"}); if (r.ok) k = await r.text(); } catch(e){}
@@ -258,7 +261,7 @@ const hopKeyScript = `(async () => {
   msg.className = "show";
 })();`
 
-// hopKeyPage は、?code= か ?key= で開かれたときの中継のページ。to はそれを消した、このサイトの中の URL。ページに鍵は入れない。
+// hopKeyPage は、?code= で開かれたときの中継のページ。to はそれを消した、このサイトの中の URL。ページに鍵は入れない。
 // スクリプトと <style> は CSP のハッシュで許したものだけで、問い合わせは同じオリジンへの POST だけ、Referer も送らない。
 func hopKeyPage(to string) string {
 	to = html.EscapeString(to)
@@ -279,7 +282,7 @@ func cspHash(s string) string {
 	return "'sha256-" + base64.StdEncoding.EncodeToString(sum[:]) + "'"
 }
 
-// hopPage は、すぐに to へ移るだけの中継のページ（open.html。?key= で開かれたときは hopKeyPage）。
+// hopPage は、すぐに to へ移るだけの中継のページ（open.html。?code= で開かれたときは hopKeyPage）。
 // 移るまでの一瞬に白い背景と青いリンクが見えないよう、背景はローディング画面と同じ色にし、
 // リンクの文字も背景と同じ色にしておく。移れなかったとき（meta refresh が止められているなど）のために、
 // リンクは 2 秒たってから見えるようにする。head は <meta> などのタグだけ（中身はエスケープしない）。
