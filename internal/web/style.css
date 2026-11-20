@@ -3,15 +3,16 @@
 :root{
   color-scheme:light;
   --agm-mix:50%; /* 明るい地では、エージェントの頭文字の色を文字の色に寄せて読めるようにする（.agm） */
-  --bg:#f3f4f6; --surface:#ffffff; --surface-2:#eceef2; --ink:#121419; --ink-2:#464b56; --ink-3:#5f6573;
-  --rule:#e1e4ea; --rule-2:#cdd2db; --acc:#4338ca; --acc-ink:#3730a3; --on-acc:#ffffff; --heatk:22%; --acc-soft:rgba(67,56,202,.08); --warn:#b42318; --on-warn:#ffffff;
-  --weekend:rgba(18,20,25,.022);
-  --sat:#1d4ed8; --sun:#b91c1c; --sat-bg:rgba(37,99,235,.06); --sun-bg:rgba(220,38,38,.06); /* 土曜は青、日曜は赤（日本のカレンダーと同じ） */
-  --shadow:0 1px 2px rgba(16,18,24,.06),0 12px 32px -14px rgba(16,18,24,.22);
+  /* 地と文字は、真っ白・真っ黒を避けて少し寄せる（読みやすさの基準 4.5:1 は保ったまま、ページ全体のコントラストを強くしすぎない） */
+  --bg:#f4f4f2; --surface:#fcfcfb; --surface-2:#efefec; --ink:#23262c; --ink-2:#4a4e57; --ink-3:#62666f;
+  --rule:#e4e4e0; --rule-2:#d3d3ce; --acc:#4f4aa8; --acc-ink:#423d96; --on-acc:#ffffff; --heatk:20%; --acc-soft:rgba(79,74,168,.07); --warn:#b0362b; --on-warn:#ffffff;
+  --weekend:rgba(35,38,44,.02);
+  --sat:#3355b5; --sun:#b03a3a; --sat-bg:rgba(51,85,181,.045); --sun-bg:rgba(176,58,58,.045); /* 土曜は青、日曜は赤（日本のカレンダーと同じ） */
+  --shadow:0 1px 2px rgba(16,18,24,.05),0 12px 32px -14px rgba(16,18,24,.16);
   /* カテゴリーの色（プロジェクト・エージェント・モデル）。この順で検証した 8 色（隣どうしは色覚の違いでも見分けられ、明るさと鮮やかさがそろう）。鮮やかさは基準の下限の少し上に抑え、地との差が強すぎないように。
      順は青・オレンジ・アクア・黄・マゼンタ・緑・紫・ティール。増やすときも並べ替えるときも、検証し直してから（docs/development.md の「Colors」） */
   --c0:#3879cb; --c1:#e27045; --c2:#3bac7d; --c3:#e6a438; --c4:#e181a4; --c5:#23811f; --c6:#6256ca; --c7:#209db2; --other:#9aa0ab;
-  --amber:var(--c3); --amber-ink:#7a5200; --note:var(--note); /* 役目の名前（コマンドの札・自動で入ったもの）。色の番号は上の 8 色から */
+  --amber:var(--c3); --amber-ink:#7a5200; --note:var(--c6); /* 役目の名前（コマンドの札・自動で入ったもの）。色の番号は上の 8 色から */
   --t1:6%; --t2:11%; --t3:16%; /* 色を地に混ぜる濃さは 3 段だけ（淡い地・吹き出しや札・強め） */
   --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",system-ui,sans-serif; /* 英語の画面なので欧文の書体を先に。日本語のプロンプトは後ろの和文の書体で出す */
   /* 文字の大きさは 9 段だけ（2xs は狭い画面の月のマスだけ）。太さは 400・500・600・700、行間は 1.2（数字・見出し）・1.5（UI）・1.6〜1.7（長い文） */
@@ -22,10 +23,10 @@
 :root[data-theme="dark"]{
   color-scheme:dark;
   --agm-mix:75%;
-  --bg:#0e0f13; --surface:#16181e; --surface-2:#1e2129; --ink:#eceef3; --ink-2:#b4b9c4; --ink-3:#8c92a0;
-  --rule:#252832; --rule-2:#333743; --acc:#818cf8; --acc-ink:#a5b4fc; --on-acc:#0e0f13; --heatk:42%; --acc-soft:rgba(129,140,248,.12); --warn:#f97066; --on-warn:#0e0f13;
+  --bg:#121418; --surface:#191c21; --surface-2:#22252c; --ink:#dcdfe5; --ink-2:#a8adb7; --ink-3:#878d98;
+  --rule:#2a2d35; --rule-2:#363a44; --acc:#8a90d8; --acc-ink:#a9aee6; --on-acc:#121418; --heatk:38%; --acc-soft:rgba(138,144,216,.11); --warn:#e5786f; --on-warn:#121418;
   --weekend:rgba(255,255,255,.018);
-  --sat:#8fb3ff; --sun:#ff8f8f; --sat-bg:rgba(110,150,255,.075); --sun-bg:rgba(255,110,110,.075);
+  --sat:#93abe6; --sun:#e69393; --sat-bg:rgba(147,171,230,.05); --sun-bg:rgba(230,147,147,.05);
   --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -16px rgba(0,0,0,.7);
   --c0:#4888d8; --c1:#cf623a; --c2:#399b73; --c3:#bd842c; --c4:#cc5b82; --c5:#34a030; --c6:#9086e5; --c7:#1397ab; --other:#6b7180;
   --amber-ink:#f2b53a;
@@ -141,7 +142,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .head.today{box-shadow:inset 0 -2px 0 var(--acc)}
 .head .dd .dayrun{margin-left:auto;align-self:center;font-size:var(--fs-xs);padding:2px 8px;white-space:nowrap} /* 日報の「AI 分析」（記録のある日だけ）。日付の右端に小さく、入らなければ日付の下の行に */
 .head .dd .pill.dayrun.ai-action:not(:disabled){background:transparent;color:var(--ink-2);border-color:#2da978;font-weight:600} /* 7 日すべてに塗りのボタンが並ぶと目立ちすぎるので、枠だけ（押すと塗り） */
-.head .dd .pill.dayrun.ai-action:not(:disabled):hover{background:#176b50;color:#fff;border-color:#176b50}
+.head .dd .pill.dayrun.ai-action:not(:disabled):hover{background:#2f7a5e;color:#fff;border-color:#2f7a5e}
 .head.today b,.head.today i{color:var(--acc-ink)}
 .hours{position:sticky;left:0;z-index:6;background:var(--surface)}
 .heads>div:first-child{position:sticky;left:0;z-index:9;background:var(--surface)}
@@ -821,8 +822,8 @@ dialog.mdlg h3{margin:20px 0 8px}
 @media(max-width:700px){.view-controls{width:100%;gap:8px}.wk .nav .view-controls{margin-left:0}.control-group{gap:4px}}
 
 /* AI execution is visually distinct from local copy and navigation actions. */
-.pill.ai-action:not(:disabled){background:#176b50;color:#fff;border-color:#176b50;font-weight:600}
-.pill.ai-action:not(:disabled):hover{background:#12563f;border-color:#12563f}
+.pill.ai-action:not(:disabled){background:#2f7a5e;color:#fff;border-color:#2f7a5e;font-weight:600}
+.pill.ai-action:not(:disabled):hover{background:#286a52;border-color:#286a52}
 .pill.ai-action:focus-visible{outline:2px solid #2da978;outline-offset:3px}
 .pill.ai-action:disabled{background:#e2ebe6;color:#526f60;border:1px solid #9bb9a8;opacity:1;cursor:not-allowed}
 :root[data-theme="dark"] .pill.ai-action:disabled{background:transparent;color:#8aa597;border-color:#3d5a4c} /* 暗い地では、押せるボタン（濃い緑の塗り）より目立たない枠だけに */
