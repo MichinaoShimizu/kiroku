@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v1.0.5 - 2026-11-20
+
+### Changed
+
+- The eight colors now share one saturation, so no color (such as Kiro's violet or the green) stands out more than the others; they are told apart by lightness. AI commit marks on the calendar are a light tint instead of a solid fill
+
 ## v1.0.4 - 2026-11-20
 
 ### Changed
