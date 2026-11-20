@@ -1,2 +1,0 @@
-- The figures above the calendar show what was left behind on the right of what was used: Git commits (or AI commits), lines changed, files changed, pushes and pull requests, each opening its breakdown
-- In the weekly and monthly summary, ③ How you spent time and the panels after it are folded to their heading by default, so the calendar stays the main view. kiroku remembers the ones you open, and a folded panel with a metric past its threshold shows the warning triangle on its heading
