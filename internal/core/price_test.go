@@ -17,13 +17,19 @@ func TestPriceOfExactAndPrefix(t *testing.T) {
 		{"anthropic.claude-sonnet-4-5-20250929-v1:0", "claude-sonnet-4-5", true},
 		{"us.anthropic.claude-sonnet-4-5-20250929-v1:0", "claude-sonnet-4-5", true},
 		{"eu.anthropic.claude-opus-4-1-20250805-v1:0", "claude-opus-4-1", true},
-		{"apac.anthropic.claude-3-5-haiku-20241022-v1:0", "claude-3-5-haiku", true},
+		{"apac.anthropic.claude-haiku-4-5-20251001-v1:0", "claude-haiku-4-5", true},
 		{"global.anthropic.claude-opus-5-5-v1", "claude-opus-5-5", true},
 		{"claude-opus-4-5@20251101", "claude-opus-4-5", true},
 		{"Claude-Sonnet-4.5", "claude-sonnet-4-5", true},
-		{"claude-3-5-haiku-latest", "claude-3-5-haiku", true},
+		{"claude-haiku-4-5-latest", "claude-haiku-4-5", true},
 		{"claude-opus-4-6[1m]", "claude-opus-4-6", true},
 		{"claude-haiku-5-5", "claude-haiku-5-5", true},
+		// Fable・Mythos 5.2 は 5.1・5 のキーに当てない（5.1 と 5 も 5.2 に当てない）
+		{"claude-fable-5-2", "claude-fable-5-2", true},
+		{"claude-mythos-5-2-20261101", "claude-mythos-5-2", true},
+		{"us.anthropic.claude-fable-5-2-v1:0", "claude-fable-5-2", true},
+		{"claude-fable-5-1", "claude-fable-5-1", true},
+		{"claude-mythos-5", "claude-mythos-5", true},
 		{"claude-haiku-5-5-20261001", "claude-haiku-5-5", true},
 		{"us.anthropic.claude-haiku-5-5-v1:0", "claude-haiku-5-5", true},
 		// 新しいモデルに近い名前の料金を当てたもの
@@ -32,9 +38,17 @@ func TestPriceOfExactAndPrefix(t *testing.T) {
 		// OpenAI
 		{"gpt-5.5", "gpt-5.5", true},
 		{"gpt-5.3-codex", "gpt-5.3-codex", true},
-		{"gpt-5.5-cyber", "gpt-5.5-cyber", true}, // gpt-5.5 の料金にしない（Cyber models の表）
+		{"gpt-5.5-cyber", "gpt-5.5-cyber-preview", true}, // 前の名前（renamedIDs）。gpt-5.5 の料金にしない
+		{"gpt-5.5-cyber-preview", "gpt-5.5-cyber-preview", true},
+		{"gpt-6-cyber", "gpt-6-cyber", true},
 		{"gpt-5.6-cyber", "gpt-5.6-cyber", true},
 		{"gpt-5.4-mini-2026-03-17", "gpt-5.4-mini", true},
+		{"gpt-6.2-astra", "gpt-6.2-astra", true},
+		{"gpt-6.2-sol", "gpt-6.2-sol", true},
+		{"gpt-6.1-terra", "gpt-6.1-terra", true},
+		{"gpt-6.1-sol", "gpt-6.1-sol", true}, // gpt-6.1-terra・gpt-6.2-sol を足しても変わらない
+		{"gpt-6-astra", "gpt-6-astra", true},
+		{"gpt-6.2-astra-law", "gpt-6.2-astra", false},
 		{"gpt-5-codex", "gpt-5", false},
 		{"gpt-5.2-codex", "gpt-5.2", false},
 	}
@@ -45,9 +59,46 @@ func TestPriceOfExactAndPrefix(t *testing.T) {
 		}
 	}
 	// 区切りのない先頭一致や、別の版の番号には当てない
-	for _, m := range []string{"gpt-5.7-sol", "gpt-50", "gpt-6.2-sol", "claude-opus-45", "claude-haiku-5-55", "claude-haiku-5", "gpt-x", "", "anthropic."} {
+	for _, m := range []string{"gpt-5.7-sol", "gpt-50", "gpt-6.3-sol", "gpt-6.2", "claude-3-5-haiku-20241022", "claude-opus-45", "claude-haiku-5-55", "claude-haiku-5", "gpt-x", "", "anthropic."} {
 		if p, ok := PriceOf(m); ok {
 			t.Errorf("PriceOf(%q) = %q, want none", m, p.Key)
+		}
+	}
+}
+
+// gpt-5.5-cyber は 2026-11 の公式の表で gpt-5.5-cyber-preview になった。前の名前の履歴も同じ料金のまま（gpt-5.5 の料金にしない）。
+func TestRenamedCyberKeepsPrice(t *testing.T) {
+	want := [5]float64{12.5, 75, 12.5, 12.5, 1.25}
+	for _, m := range []string{"gpt-5.5-cyber", "gpt-5.5-cyber-preview", "GPT-5.5-Cyber"} {
+		if p, ok := PriceOf(m); !ok || p.Rates != want || p.Long != nil {
+			t.Errorf("PriceOf(%q) = %+v, want %v", m, p, want)
+		}
+	}
+	// ティアの表にはないので標準の料金（知らせる）
+	if p, ok := PriceOfTier("gpt-5.5-cyber", TierFast); !ok || p.Rates != want || !p.StdRates {
+		t.Errorf("Fast = %+v", p)
+	}
+}
+
+// GPT-6.2 Astra・Sol の Ultrafast は list の料金（Standard の 6 倍）。期間限定の promotion（3 倍）は使わない。
+func TestUltrafastListPrice(t *testing.T) {
+	for _, c := range []struct {
+		model string
+		short [5]float64
+		long  [5]float64
+	}{
+		{"gpt-6.2-astra", [5]float64{48, 240, 60, 60, 2.4}, [5]float64{96, 360, 120, 120, 4.8}},
+		{"gpt-6.2-sol", [5]float64{12, 60, 15, 15, 0.6}, [5]float64{24, 90, 30, 30, 1.2}},
+	} {
+		p, ok := PriceOfTier(c.model, TierUltrafast)
+		if !ok || p.StdRates || p.Rates != c.short || p.Long == nil || *p.Long != c.long {
+			t.Errorf("%s Ultrafast = %+v", c.model, p)
+		}
+		std, _ := PriceOf(c.model)
+		for i := range c.short {
+			if !near(c.short[i], 6*std.Rates[i]) {
+				t.Errorf("%s Ultrafast[%d] = %v, not 6x %v", c.model, i, c.short[i], std.Rates[i])
+			}
 		}
 	}
 }

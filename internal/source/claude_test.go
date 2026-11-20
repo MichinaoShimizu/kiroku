@@ -2,6 +2,7 @@ package source
 
 import (
 	"encoding/json"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -558,5 +559,47 @@ func TestClaudeHugeUsageStaysFinite(t *testing.T) {
 	}
 	if _, err := json.Marshal(bs[0].Finish(15)); err != nil {
 		t.Errorf("セッションを JSON に書けない: %v", err)
+	}
+}
+
+// agentId のない 2 つの重なった呼び出しは、ファイルの名前の順でなく始まりの順でつなぐ。
+// 名前の順だと、あとに始まった agent-a.jsonl が先の呼び出し A を取り、A のファイルは呼び出しのない行になっていた。
+func TestClaudeSubagentTimeMatchByStart(t *testing.T) {
+	root := t.TempDir()
+	p := filepath.Join(root, "-p", "s1.jsonl")
+	call := func(id, desc, ts string) string {
+		return fmt.Sprintf(`{"type":"assistant","uuid":"u-%s","sessionId":"s1","cwd":"/p","timestamp":"%s","message":{"id":"m-%s","model":"claude-opus-5-5","usage":{"input_tokens":1,"output_tokens":1},"content":[{"type":"tool_use","id":"%s","name":"Agent","input":{"description":"%s","subagent_type":"general-purpose"}}]}}`, id, ts, id, id, desc)
+	}
+	res := func(id, ts string) string {
+		return fmt.Sprintf(`{"type":"user","uuid":"r-%s","sessionId":"s1","cwd":"/p","timestamp":"%s","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"%s","content":"ok"}]}}`, id, ts, id)
+	}
+	writeLines(t, p, []string{
+		`{"type":"user","uuid":"u0","sessionId":"s1","cwd":"/p","timestamp":"2026-09-30T00:00:00Z","message":{"role":"user","content":"go"}}`,
+		call("A", "first", "2026-09-30T00:00:00Z"),
+		call("B", "second", "2026-09-30T00:00:30Z"),
+		res("A", "2026-09-30T00:10:00Z"), res("B", "2026-09-30T00:10:00Z"),
+	})
+	sub := func(model, ts string) string {
+		return fmt.Sprintf(`{"type":"assistant","uuid":"x-%s","timestamp":"%s","message":{"id":"mx-%s","model":"%s","usage":{"input_tokens":5,"output_tokens":5},"content":[{"type":"text","text":"x"}]}}`, model, ts, model, model)
+	}
+	dir := filepath.Join(root, "-p", "s1", "subagents")
+	writeLines(t, filepath.Join(dir, "agent-a.jsonl"), []string{sub("claude-sonnet-5-5", "2026-09-30T00:00:31Z")}) // B のもの
+	writeLines(t, filepath.Join(dir, "agent-b.jsonl"), []string{sub("claude-haiku-5-5", "2026-09-30T00:00:01Z")})  // A のもの
+	got := map[string]string{}
+	n := 0
+	if err := (&Claude{Root: root}).Load(func(b *core.Builder) {
+		for _, s := range b.Subagents {
+			n++
+			m := ""
+			if s.Model != nil {
+				m = *s.Model
+			}
+			got[s.Desc] = m
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if n != 2 || got["first"] != "claude-haiku-5-5" || got["second"] != "claude-sonnet-5-5" {
+		t.Errorf("subagents = %d %v, want first=haiku second=sonnet", n, got)
 	}
 }

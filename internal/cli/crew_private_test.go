@@ -271,7 +271,9 @@ func TestServeCrewPrivateWithoutKiroReloads(t *testing.T) {
 	assertVisible(t, snapData(), "Claude Code", "c-pub", "VISIBLE-CLAUDE")
 	stop, done := make(chan struct{}), make(chan struct{})
 	defer func() { close(stop); <-done }()
-	go func() { l.watch(l.fingerprint(), 20*time.Millisecond, stop); close(done) }()
+	// 基準は履歴を足す前にとる（goroutine の中でとると、足したあとの状態を基準にしかねない）
+	base := l.fingerprint()
+	go func() { l.watch(base, 20*time.Millisecond, stop); close(done) }()
 	time.Sleep(60 * time.Millisecond)
 	writeUnder(t, crew, map[string]string{"session_map.json": `{"dashboard:chat-1-100": {"sid": "c-priv", "discarded_sid": "x-old", "provider": "claude_code", "cwd": "/w"},
  "dashboard:chat-3-300": {"sid": "c-pub", "provider": "claude_code", "cwd": "/w", "flags": {"incognito": true}}}`})
@@ -485,6 +487,53 @@ func TestUnreadableWarningIsTerminalSafe(t *testing.T) {
 			if strings.Contains(line, "couldn't be read") && strings.ContainsAny(line, "\x1b\u202e") {
 				t.Errorf("%v: doctor が読めなかったファイルのエラーの制御文字をそのまま出した:\n%q", want, line)
 			}
+		}
+	}
+}
+
+// 中身を出さない会話の履歴のファイルは、セッションの PrivateFiles に残り（「Analyze with AI」の Claude Code に読ませないため）、
+// HTML・JSON には入らない。中身を残す会話のファイルは入らない（セキュリティ）。
+func TestCrewPrivateFilesForAI(t *testing.T) {
+	quietLog(t)
+	kiro, crew, claude, codex := crewPrivateFixture(t)
+	all := []source.Source{&source.Claude{Root: claude}, &source.KiroCLI{Home: kiro, CrewHome: crew}, &source.Codex{Home: codex}}
+	data, _ := collectCached(all, map[string]bool{"kiro": true, "claude": true, "codex": true}, 15, nil)
+	l := &live{snap: snapshot{data: data, private: all[1].(*source.KiroCLI).PrivateFiles()}}
+	got := l.privateFiles()
+	want := []string{
+		filepath.Join(claude, "-w", "c-priv.jsonl"),
+		filepath.Join(crew, "sessions", "dashboard_chat-1-100.jsonl"),
+		filepath.Join(crew, "sessions", "dashboard_chat-4-400.jsonl"),
+		// Crew 自身の記録: サブエージェントの state.json（依頼の文）と crew-log の会話のフォルダ
+		filepath.Join(crew, "subagents", "a1"),
+		filepath.Join(crew, "subagents", "a2"),
+		filepath.Join(crew, "crew-log", "sessions", "c-log"),
+	}
+	has := func(p string) bool {
+		for _, g := range got {
+			if g == p {
+				return true
+			}
+		}
+		return false
+	}
+	for _, p := range want {
+		if !has(p) {
+			t.Errorf("PrivateFiles に %s がない: %q", p, got)
+		}
+	}
+	for _, p := range []string{filepath.Join(claude, "-w", "c-pub.jsonl"), filepath.Join(crew, "sessions", "dashboard_chat-2-200.jsonl")} {
+		if has(p) {
+			t.Errorf("中身を残す会話のファイル %s が PrivateFiles にある", p)
+		}
+	}
+	b, err := json.Marshal(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range want {
+		if q, _ := json.Marshal(p); strings.Contains(string(b), strings.Trim(string(q), `"`)) {
+			t.Errorf("JSON に %s が入っている", p)
 		}
 	}
 }

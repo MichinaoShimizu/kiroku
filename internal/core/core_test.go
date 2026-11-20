@@ -337,6 +337,8 @@ func TestIsLimitError(t *testing.T) {
 		"You've hit your channel's monthly spend limit · an org owner or channel manager can raise it in the channel's Claude settings",
 		"API Error: Request rejected (429) · this may be a temporary capacity issue. If it persists, check https://status.claude.com.",
 		"spend limit reached (daily; resets 2026-08-09 00:00 UTC)",
+		"spend limit reached · resets Dec 1",
+		"This request exceeds your group's budget. Ask your organization's admins to raise it, or try again after it resets on November 1 at 00:00 UTC.",
 		"Usage limit reached · continuing automatically at 3:45pm · esc to cancel",
 		"429 Too Many Requests",
 		"API Error: status 429",
@@ -389,6 +391,8 @@ func TestLimitReset(t *testing.T) {
 		"resets <img src=x onerror=alert(1)>":                                        "",
 		"Usage limit reached · continuing automatically at 3:45pm · esc to cancel":   "3:45pm",
 		"Usage limit reached · limit resets 3:45pm":                                  "3:45pm",
+		"spend limit reached · resets Dec 1":                                         "Dec 1",
+		"This request exceeds your group's budget. Ask your organization's admins to raise it, or try again after it resets on November 1 at 00:00 UTC.": "November 1 at 00:00 UTC",
 	}
 	for in, want := range cases {
 		if got := LimitReset(in); got != want {

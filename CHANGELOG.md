@@ -2,6 +2,52 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v0.40.0 - 2026-11-20
+
+### Added
+
+- Prices as of November 2026:
+  - Claude Code: Claude Fable 5.2 (`claude-fable-5-2`) and Claude Mythos 5.2 (`claude-mythos-5-2`) at $8 input, $40 output, $10 / $16 cache writes (5 minutes / 1 hour) and $0.20 cache reads per million tokens, with a 1M-token context window for Peak context usage
+  - Codex: GPT-6.2 Astra (`gpt-6.2-astra`, $8 / $40, cached input $0.40, cache writes $10; long context $16 / $60), GPT-6.2 Sol (`gpt-6.2-sol`, $2 / $10, cached input $0.10, cache writes $2.50; long context $4 / $15) and GPT-6.1 Terra (`gpt-6.1-terra`, $1 / $5, cached input $0.05, cache writes $1.25; long context $2 / $7.50), with their Fast rates (and Flex for GPT-6.1 Terra), and GPT-6 Cyber (`gpt-6-cyber`, $20 / $100, cached input $2, cache writes $25; long context $40 / $150)
+  - Codex: GPT-6.2 Astra and GPT-6.2 Sol on Ultrafast at OpenAI's list rate (6 times standard: $48 / $240 and $12 / $60). OpenAI bills 3 times standard through February 28, 2027, so until then their Ultrafast estimate is twice the bill
+  - Codex: `gpt-5.5-cyber-preview`, the new name of `gpt-5.5-cyber`, at the same price; history that still names it `gpt-5.5-cyber` keeps that price
+
+### Removed
+
+- Claude Haiku 3.5 (`claude-3-5-haiku`) is no longer in the price table, because Anthropic's pricing page no longer lists it. Sessions that used it without a cost recorded by Claude Code are listed in "Data sources" as tokens not in the price table; add it with `--prices` (it was $0.80 input, $4 output, $1 / $1.60 cache writes and $0.08 cache reads per million tokens) to keep pricing them
+
+### Fixed
+
+- The summary's metric values now have names screen readers can read ("Active time 32h 55m" instead of just the number)
+- "Repeated prompts" now says it lists the prompts written in the most sessions first, which is how it is sorted, and the AI result check says "All 5 sections are missing" instead of "5 of the 5 sections are missing"
+- The "Usage limit hits" explanation in the view now names spend limits, and the Japanese view has a screen-reader label for AI replies
+- `kiroku doctor`'s hint for history kept elsewhere now also names `--crew-home` and `--kiro-cli-db`, and `kiroku serve --help` says that `--ai=false` turns AI runs off
+- Claude Code: a Claude apps gateway's pooled-budget error ("This request exceeds your group's budget … resets on November 1 at 00:00 UTC") now counts as a usage limit hit, and its reset date is shown as written. The current `spend limit reached · resets Dec 1` form also shows its reset date
+- Claude Code: when two subagent calls overlap and their transcripts carry no `agentId`, each transcript is now linked to its call by start time rather than by file name. Before, a later transcript could take the earlier call, leaving one call without usage and its transcript as an extra subagent row
+- Codex: a turn stopped by an API key, project or organization spend limit (`api_key_spend_limit_exceeded`, `project_spend_limit_exceeded`, `organization_spend_limit_exceeded`) now counts as a usage limit hit, as Codex itself counts it
+- Codex: `kiroku doctor` no longer reports the `dynamic_tools_updated` record (written when an app-server host replaces dynamic tools) as an unknown kind
+- Japanese view: only titles kiroku itself gives a session (marked `synthetic` in the data) are translated, so a session whose own title or prompt happens to read the same is shown as written, and "Analyze with AI" prompts keep these titles in English. The page shown to a browser without the key no longer breaks Japanese words or commands at odd places, and the summary's "How you used AI" spreads its cards across the row and keeps model names near their numbers
+- Japanese view: errors from "Analyze with AI" (agent not installed, a run already going, prompt too long), the page shown to a browser without the key, the one-time `kiroku open` address page, the titles kiroku gives Kiro Crew and Kiro IDE sessions without one (such as "Kiro Crew private conversation"), and the private-conversation check in "Data sources" are now in Japanese
+- Kiro IDE / CLI: the "Resume" command is now `kiro-cli chat --v3 --resume-id <id>`. Without `--v3`, a saved `chat.agentEngine v2` setting started V2, which can't open V3 sessions
+- `kiroku serve`: when the key changes, the LIVE badge now says to open kiroku with its key instead of "Not connected", and an error while drawing new history is no longer reported as a lost connection
+- `kiroku serve` with demo data in another time zone no longer reloads once and shows the times unshifted
+- On a phone-width screen, a long project or branch name in the session details now wraps instead of widening the page
+- Agent badges (CC, CX, KI, KW) are readable in the light theme (contrast 6:1 or more, from as low as 1.8:1) and in the dark theme
+- In the dark theme, a disabled "Analyze with AI" button is no longer brighter than an enabled one, and the agent list and prompt box in the AI dialog follow the theme
+- The summary no longer leaves a large blank beside "How you used AI": the panel spans the full width and lays out the agent-specific metrics side by side
+
+### Security
+
+- "Analyze with AI" with Claude Code can no longer read Kiro Crew private conversations (incognito and temporary): their conversation logs, their copies in Claude Code and Codex history, and Crew's own records of them (the subagents' `state.json` and the `crew-log` folders, which hold the tasks given to subagents). Those files are inside the history folders Claude Code may read, so a run could read text that kiroku keeps out of its own view and prompts. kiroku now passes a `Read` deny rule for each in a settings file (`--settings`); deny rules win over the folders it adds and over the user's own settings. A path the rule syntax can't hold exactly (with a parenthesis, backslash or line break) denies its nearest folder instead. Codex and Kiro CLI runs have no such rule (as before, kiroku sets only their read-only options)
+- `kiroku archive off` now deletes only the copies kiroku writes (`.jsonl.zst`), and the number of files it offers to delete is the number it deletes. Before, it also deleted other `.zst` files in the archive folders and counted files it then left alone
+- `kiroku archive on` and each read now make an archive folder and its per-agent folders (such as `claude/`) that already existed readable only by you. Folders made by older versions could stay readable by other users, who could list the project paths in their names
+- The `git show` and `git log` commands kiroku shows for a commit or push no longer run commands that a repository someone else made sets in its own configuration when you paste them into a terminal. They now carry `--no-pager`, `-c core.fsmonitor=false`, `-c log.showSignature=false` (no `gpg.program` for signed commits), `-c diff.submodule=short` (no submodule `diff.external`) and `-c protocol.*.allow=never` (a partial clone doesn't fetch missing objects through the repository's `remote.*.uploadpack` or `core.sshCommand`), and `show` also carries `--no-ext-diff --no-textconv`. kiroku itself already ran git with these turned off
+- Release builds now use Go 1.26.11 instead of Go 1.26.10, whose `net/http` server can crash from a header race in `MaxBytesReader` (GO-2026-6859; found with `govulncheck`). `kiroku serve` limits the size of "Analyze with AI" requests with `MaxBytesReader`, so a local page could stop the server
+- A history file made of many prompts with the same timestamp no longer makes kiroku spend time growing with the square of the prompt count (about 50 seconds for a 20 MiB file, and longer for a small `.jsonl.zst` that expands to hundreds of MiB). Work and wait times per prompt are now found in one pass
+- Amazon Q and Kiro CLI (SQLite): a named pipe or a folder where the database should be is now reported as unreadable instead of opened. A named pipe made kiroku wait forever, and a folder was silently read as no sessions
+- The resume and `git -C <repo> show` commands kiroku shows for pasting into a terminal are no longer given for a folder, session ID or ref that contains `'` or `\` on macOS and Linux. They were quoted as `'…'\''…'`, which is safe in sh, bash and zsh, but fish and PowerShell read `\` and `'` inside single quotes differently, so a crafted value in history (a working folder, or a Kiro session ID) could add a command when pasted there
+- A crash inside the zstd decoder while reading a compressed history file (`.zst`) is now reported as an unreadable file instead of stopping `kiroku serve`. kiroku decodes on the reading goroutine so it can recover, as hardening against decoder bugs such as GHSA-fpmh-frq8-7rj8
+
 ## v0.39.0 - 2026-11-05
 
 ### Added

@@ -59,7 +59,7 @@ broken line
 	if s.File != filepath.Join(home, "sessions", "abc", "sess_1", "messages.jsonl") {
 		t.Errorf("file = %q", s.File)
 	}
-	if want := "cd /Users/me/app && kiro-cli chat --resume-id sess_1"; s.Resume != want {
+	if want := "cd /Users/me/app && kiro-cli chat --v3 --resume-id sess_1"; s.Resume != want {
 		t.Errorf("resume = %q, want %q", s.Resume, want)
 	}
 	// 作業場所がわからない会話には、再開のコマンドを出さない

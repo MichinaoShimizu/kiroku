@@ -164,6 +164,7 @@ type Builder struct {
 	// Yield の会話は、同じ鍵を Claim した会話がセッションになっていれば数えない。Claim の会話どうしは落とし合わない
 	Claim, Yield                   string
 	Project, Branch, Title, Resume string
+	TitleByKiroku                  bool // Title は kiroku が決めた英語の文（Crew の中身を残さない会話など）。画面がその言語にする（Session.Synthetic）
 	Prompts                        []Prompt
 	Notes                          []Note // エージェントや仕組みが会話に入れたもの（kind.go）
 	Times                          []float64
@@ -183,6 +184,7 @@ type Builder struct {
 	Outputs                        []Output       // アウトプット（output.go）。成功したツール呼び出しだけを入れる
 	Reported                       []ReportedCost // エージェント自身が記録した使用料（reported.go）
 	File                           string         // 履歴のファイル（画面から開けるように）
+	PrivateFiles                   []string       // 中身を出さない会話（HideText）の履歴のファイル。画面には出さず、AI 分析に読ませない（Session.PrivateFiles）
 	Format                         *Format        // 読んだファイルの形の手がかり（知らない種類・読めない行・版）。Source の読む単位ごとに 1 つの Builder だけに付ける
 	replies                        []pendingReply // 応答（Reply で入れ、Finish で依頼に割り当てる）
 	turn                           int            // 人の発言を読んだ回数（1 ターンの最後の応答だけを残すための区切り）
@@ -421,6 +423,9 @@ func (s *Builder) HideText(text string) {
 	for i := range s.Subagents {
 		s.Subagents[i].Desc = ""
 	}
+	if s.File != "" {
+		s.PrivateFiles = append(s.PrivateFiles, s.File)
+	}
 	s.File = ""
 }
 
@@ -433,7 +438,10 @@ func (s *Session) Hidden(text, title string) *Session {
 	for i, p := range s.Prompts {
 		c.Prompts[i] = Prompt{T: p.T, Text: text, Work: p.Work, Wait: p.Wait}
 	}
-	c.Title, c.Notes, c.File = title, nil, ""
+	if s.File != "" {
+		c.PrivateFiles = append(append([]string(nil), s.PrivateFiles...), s.File)
+	}
+	c.Title, c.Notes, c.File, c.Synthetic = title, nil, "", true
 	c.Files, c.NFiles = []string{}, 0
 	c.Fix, c.Corrections = nil, 0
 	c.Interrupts, c.InterruptsAt = 0, []float64{}
@@ -520,11 +528,12 @@ func (s *Builder) Waits() [][2]float64 {
 	var prev *float64
 	for i := range ps {
 		p := ps[i]
-		last, found := 0.0, false
-		for _, a := range agent {
-			if (prev == nil || a > *prev) && a < p && (!found || a > last) {
-				last, found = a, true
-			}
+		// prev より後で p より前の、いちばん遅い AI の時刻（agent は並べてあるので二分探索。依頼ごとに全部を見ると、
+		// 依頼の多いセッションで依頼の数 × AI の時刻の数かかる）
+		j := sort.SearchFloat64s(agent, p) - 1
+		last, found := 0.0, j >= 0 && (prev == nil || agent[j] > *prev)
+		if found {
+			last = agent[j]
 		}
 		if found && p-last > 0 && p-last <= 1800 {
 			out = append(out, [2]float64{p, Round(p-last, 0)})
@@ -547,18 +556,29 @@ func (s *Builder) promptTimes(ps []Prompt) []Prompt {
 	sort.Float64s(agent)
 	out := make([]Prompt, len(ps))
 	copy(out, ps)
-	for i := range out {
+	// nexts[i] は、i より後で最初に p より遅い依頼の時刻（なければ +Inf）。後ろから、遅いものだけを残した積み上げで求める。
+	// 前から 1 つずつ探すと、同じ時刻の依頼が続くセッション（壊れた・わざと作った履歴）で依頼の数の 2 乗かかる
+	nexts := make([]float64, len(out))
+	var stack []float64
+	for i := len(out) - 1; i >= 0; i-- {
+		nexts[i] = math.Inf(1)
 		if out[i].T == nil || *out[i].T == 0 {
 			continue
 		}
 		p := *out[i].T
-		next := math.Inf(1)
-		for _, q := range out[i+1:] {
-			if q.T != nil && *q.T > p {
-				next = *q.T
-				break
-			}
+		for len(stack) > 0 && stack[len(stack)-1] <= p {
+			stack = stack[:len(stack)-1]
 		}
+		if len(stack) > 0 {
+			nexts[i] = stack[len(stack)-1]
+		}
+		stack = append(stack, p)
+	}
+	for i := range out {
+		if out[i].T == nil || *out[i].T == 0 {
+			continue
+		}
+		p, next := *out[i].T, nexts[i]
 		// p より後で next より前の、いちばん遅い AI の時刻
 		j := sort.Search(len(agent), func(k int) bool { return agent[k] >= next }) - 1
 		if j < 0 || agent[j] <= p {
@@ -584,12 +604,15 @@ func (s *Builder) Corrections() int {
 
 // Session は画面と JSON に出すセッション。
 type Session struct {
-	ID           string        `json:"id"`
-	Source       string        `json:"source"`
-	Project      string        `json:"project"`
-	ProjectPath  string        `json:"projectPath"`
-	Branch       *string       `json:"branch"`
-	Title        string        `json:"title"`
+	ID          string  `json:"id"`
+	Source      string  `json:"source"`
+	Project     string  `json:"project"`
+	ProjectPath string  `json:"projectPath"`
+	Branch      *string `json:"branch"`
+	Title       string  `json:"title"`
+	// Synthetic は、Title が履歴から読んだものではなく kiroku が決めた英語の文で、依頼の "(private)" も kiroku が入れたもの。
+	// 画面はこのときだけ、それらを画面の言語にする（履歴に同じ文があっても訳さない）
+	Synthetic    bool          `json:"synthetic,omitempty"`
 	Start        float64       `json:"start"`
 	End          float64       `json:"end"`
 	Events       int           `json:"events"`
@@ -621,14 +644,17 @@ type Session struct {
 	Outputs      OutputTotal   `json:"outputs"`                // コミット・PR・変更した行（output.go）
 	CostReported bool          `json:"costReported,omitempty"` // 目安コストにエージェント自身の記録を使った
 	File         string        `json:"file,omitempty"`         // 履歴のファイル
-	PRs          []string      `json:"prs"`                    // AI が作った PR の URL（わかったもの）
-	PRAt         []PRAt        `json:"prAt"`                   // AI が PR を作った時刻（依頼の流れに出す）
-	UEv          []Event       `json:"-"`                      // 週ごとの集計用（HTML には入れない）
-	CEv          []Credit      `json:"-"`
-	OEv          []Output      `json:"-"`
-	Fix          []float64     `json:"-"`
-	Meas         []Measure     `json:"-"`
-	OutTracked   bool          `json:"-"` // アウトプットを記録できるエージェントのセッション（Records の outputs）
+	// PrivateFiles は、中身を出さない会話（Kiro Crew の incognito・temporary と、その写し）の履歴のファイル。
+	// HTML・JSON には入れず（json:"-"）、kiroku serve の「Analyze with AI」が読めないようにするのに使う
+	PrivateFiles []string  `json:"-"`
+	PRs          []string  `json:"prs"`  // AI が作った PR の URL（わかったもの）
+	PRAt         []PRAt    `json:"prAt"` // AI が PR を作った時刻（依頼の流れに出す）
+	UEv          []Event   `json:"-"`    // 週ごとの集計用（HTML には入れない）
+	CEv          []Credit  `json:"-"`
+	OEv          []Output  `json:"-"`
+	Fix          []float64 `json:"-"`
+	Meas         []Measure `json:"-"`
+	OutTracked   bool      `json:"-"` // アウトプットを記録できるエージェントのセッション（Records の outputs）
 }
 
 // PRAt は AI が PR を作った時刻と、わかれば URL。
@@ -761,12 +787,12 @@ func (s *Builder) Finish(gapMin int) *Session {
 		subs = []Subagent{}
 	}
 	return &Session{
-		ID: s.ID, Source: s.Source, Project: name, ProjectPath: project, Branch: strOrNil(s.Branch), Title: title,
+		ID: s.ID, Source: s.Source, Project: name, ProjectPath: project, Branch: strOrNil(s.Branch), Title: title, Synthetic: s.TitleByKiroku,
 		Start: times[0], End: times[len(times)-1], Events: len(times), Segs: Segments(times, float64(gapMin*60)),
 		Prompts: prompts, Notes: s.Notes, NPrompts: len(s.Prompts), Tools: tools, Files: files, NFiles: nFiles, Resume: strOrNil(s.Resume),
 		Waits: s.Waits(), Interrupts: s.Interrupts, InterruptsAt: interrupts, Limits: limits(s.Limits), LimitResets: limitResets(s.LimitResets), Compactions: compactions, CompactKinds: compactKinds, Ctx: ctx, CtxWindow: s.CtxWindow, Corrections: s.Corrections(), Models: models, Tiers: tiers,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
-		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: reported, File: s.File, PRs: prs, PRAt: prAt,
+		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: reported, File: s.File, PrivateFiles: s.PrivateFiles, PRs: prs, PRAt: prAt,
 		Native: AggregateNative(s.Source, s.Measures), Meas: s.Measures, OutTracked: RecordsOf(s.Source, "outputs"),
 	}
 }

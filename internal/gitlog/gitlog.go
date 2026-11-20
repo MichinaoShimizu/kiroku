@@ -382,7 +382,7 @@ func readPushes(ctx context.Context, r *repo, counts map[string]pushed) []Push {
 			if p.Prev != "" {
 				p.Cmd = core.GitCmd(r.top, "log --oneline", abbrev(p.Prev)+".."+abbrev(p.Hash))
 			} else {
-				p.Cmd = core.GitCmd(r.top, "show", abbrev(p.Hash))
+				p.Cmd = core.GitCmd(r.top, core.GitShow, abbrev(p.Hash))
 			}
 			out = append(out, p)
 		}
@@ -419,7 +419,7 @@ func readRepo(ctx context.Context, r *repo) []Commit {
 			continue
 		}
 		c := Commit{Hash: f[0], URL: commitURL(r.web, f[0]), T: t, Project: r.project, Repo: r.top, Branch: branchOf(f[2]), Subject: core.Runes(f[3], 160),
-			Body: core.Runes(strings.TrimSpace(f[4]), 600), Files: []FileStat{}, Cmd: core.GitCmd(r.top, "show", f[0])}
+			Body: core.Runes(strings.TrimSpace(f[4]), 600), Files: []FileStat{}, Cmd: core.GitCmd(r.top, core.GitShow, f[0])}
 		for _, line := range strings.Split(stat, "\n") {
 			cols := strings.SplitN(line, "\t", 3)
 			if len(cols) != 3 {

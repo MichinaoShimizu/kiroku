@@ -952,7 +952,9 @@ var (
 	codexKinds = map[string]bool{"session_meta": true, "turn_context": true, "event_msg": true, "response_item": true, "compacted": true, "token_usage_record": true,
 		// わざと読まないもの（0.162 からの rollout の policy.rs で残す種類。エージェントどうしのやりとり・状態の控えなど）
 		"world_state": true, "retained_context": true, "security_risk_score": true, "inter_agent_communication": true,
-		"inter_agent_communication_metadata": true, "realtime_item": true}
+		"inter_agent_communication_metadata": true, "realtime_item": true,
+		// app-server のホストが動的なツールを入れかえたとき（0.170 の policy.rs・rollout_payload.rs）
+		"dynamic_tools_updated": true}
 	// codexEvents の 1 段めは読むもの、残りはわざと読まないもの
 	codexEvents = map[string]bool{
 		"user_message": true, "agent_message": true, "token_count": true, "thread_settings_applied": true, "entered_review_mode": true,
@@ -1174,6 +1176,8 @@ func codexFull(info core.Obj) bool {
 
 // codexLimitError は、ターンを止めたエラー（ErrorEvent の codex_error_info）が利用上限か。
 // usage_limit_exceeded は使用量の上限（ChatGPT のプランの 429 usage_limit_reached、クォータ切れなど）、
+// api_key_spend_limit_exceeded・project_spend_limit_exceeded・organization_spend_limit_exceeded は API の使用額の上限
+// （protocol.rs の CodexErrorInfo::is_usage_limit が使用量の上限に数えるもの）、
 // rate_limit_exceeded は API のレート制限。context_window_exceeded（会話が長すぎる）や
 // session_budget_exceeded（Codex 自身の予算）は利用上限ではない。
 // CodexErrorInfo は snake_case の文字列（フィールドのある種類は {"名前": {...}} なので、ここでは当たらない）。
@@ -1183,7 +1187,7 @@ func codexLimitError(e core.Obj) bool {
 	switch core.Str(e["codex_error_info"]) {
 	case "usage_limit_exceeded":
 		return !strings.Contains(core.Str(e["message"]), codexUsageNotIncluded)
-	case "rate_limit_exceeded":
+	case "rate_limit_exceeded", "api_key_spend_limit_exceeded", "project_spend_limit_exceeded", "organization_spend_limit_exceeded":
 		return true
 	}
 	return false

@@ -1,5 +1,6 @@
 // 起動：最初に開く期間を決めて、はじめて描く。データがそろってから呼ぶ（kiroku serve では data.json が届いてから。live.js の最後）
 function boot(){
+localizeTitles(DATA);
 // 今週に記録がなければ、いちばん新しい記録の週から開く
 if (DATA.length && !WEEKS[key(st.week)]) st.week = mondayOf(new Date(DATA[DATA.length-1].end*1000));
 // デモは週に 1 回（月曜）作り直すので、今週は記録が少ないことが多い。平日がそろったいちばん新しい週から開く

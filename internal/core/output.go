@@ -35,11 +35,6 @@ func (o *OutputTotal) Add(x Output) {
 	}
 }
 
-// Empty は何も記録がないとき true。
-func (o OutputTotal) Empty() bool {
-	return o.Commits == 0 && o.PRs == 0 && o.Added == 0 && o.Removed == 0
-}
-
 var (
 	commitRe = regexp.MustCompile(`(^|[;&|(\s])git(\s+-[Cc]\s+\S+)*\s+commit\b`)
 	prRe     = regexp.MustCompile(`(^|[;&|(\s])gh\s+pr\s+create\b`)

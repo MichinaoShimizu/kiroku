@@ -3,7 +3,7 @@
 # OpenAI API prices
 
 - Source: https://developers.openai.com/api/docs/pricing.md
-- Fetched: 2026-10-11 (the last time these numbers changed)
+- Fetched: 2026-11-19 (the last time these numbers changed)
 
 USD per million tokens, standard rates. Only the numbers kiroku uses.
 
@@ -11,8 +11,11 @@ Long context: more than 272K input tokens in one request (the whole request is b
 
 | Model ID | Input | Cached input | Cache write | Output | Long input | Long cached input | Long cache write | Long output |
 |---|---|---|---|---|---|---|---|---|
+| gpt-6.2-astra | 8 | 0.4 | 10 | 40 | 16 | 0.8 | 20 | 60 |
+| gpt-6.2-sol | 2 | 0.1 | 2.5 | 10 | 4 | 0.2 | 5 | 15 |
 | gpt-6-astra | 10 | 1 | 12.5 | 50 | 20 | 2 | 25 | 75 |
 | gpt-6.1-sol | 2 | 0.1 | 2.5 | 10 | 4 | 0.2 | 5 | 15 |
+| gpt-6.1-terra | 1 | 0.05 | 1.25 | 5 | 2 | 0.1 | 2.5 | 7.5 |
 | gpt-6-luna | 0.1 | 0.01 | 0.125 | 0.5 | 0.2 | 0.02 | 0.25 | 0.75 |
 | gpt-6-sol | 2 | 0.2 | 2.5 | 10 | 4 | 0.4 | 5 | 15 |
 | gpt-5.6-sol | 4 | 0.4 | 5 | 20 | 8 | 0.8 | 10 | 30 |
@@ -21,9 +24,9 @@ Long context: more than 272K input tokens in one request (the whole request is b
 | gpt-5.5 | 5 | 0.5 | - | 30 | 10 | 1 | - | 45 |
 | gpt-5.5-pro | 30 | - | - | 180 | 60 | - | - | 270 |
 | gpt-5.4 | 2.5 | 0.25 | - | 15 | 5 | 0.5 | - | 22.5 |
+| gpt-5.4-pro | 30 | - | - | 180 | 60 | - | - | 270 |
 | gpt-5.4-mini | 0.75 | 0.075 | - | 4.5 | - | - | - | - |
 | gpt-5.4-nano | 0.2 | 0.02 | - | 1.25 | - | - | - | - |
-| gpt-5.4-pro | 30 | - | - | 180 | 60 | - | - | 270 |
 | gpt-5.2 | 1.75 | 0.175 | - | 14 | - | - | - | - |
 | gpt-5.2-pro | 21 | - | - | 168 | - | - | - | - |
 | gpt-5.1 | 1.25 | 0.125 | - | 10 | - | - | - | - |
@@ -31,8 +34,9 @@ Long context: more than 272K input tokens in one request (the whole request is b
 | gpt-5-mini | 0.25 | 0.025 | - | 2 | - | - | - | - |
 | gpt-5-nano | 0.05 | 0.005 | - | 0.4 | - | - | - | - |
 | gpt-5-pro | 15 | - | - | 120 | - | - | - | - |
+| gpt-6-cyber | 20 | 2 | 25 | 100 | 40 | 4 | - | 150 |
 | gpt-5.6-cyber | 12.5 | 1.25 | 15.625 | 75 | - | - | - | - |
-| gpt-5.5-cyber | 12.5 | 1.25 | - | 75 | - | - | - | - |
+| gpt-5.5-cyber-preview | 12.5 | 1.25 | - | 75 | - | - | - | - |
 | gpt-5.3-codex | 1.75 | 0.175 | - | 14 | - | - | - | - |
 
 ### Flex
@@ -43,6 +47,7 @@ The Flex service tier (Codex `service_tier`) instead of the standard rates above
 |---|---|---|---|---|---|---|---|---|
 | gpt-6-astra | 5 | 0.5 | 6.25 | 25 | 10 | 1 | 12.5 | 37.5 |
 | gpt-6.1-sol | 1 | 0.05 | 1.25 | 5 | 2 | 0.1 | 2.5 | 7.5 |
+| gpt-6.1-terra | 0.5 | 0.025 | 0.625 | 2.5 | 1 | 0.05 | 1.25 | 3.75 |
 | gpt-6-luna | 0.05 | 0.005 | 0.0625 | 0.25 | 0.1 | 0.01 | 0.125 | 0.375 |
 | gpt-6-sol | 1 | 0.1 | 1.25 | 5 | 2 | 0.2 | 2.5 | 7.5 |
 | gpt-5.6-sol | 2 | 0.2 | 2.5 | 10 | 4 | 0.4 | 5 | 15 |
@@ -51,9 +56,9 @@ The Flex service tier (Codex `service_tier`) instead of the standard rates above
 | gpt-5.5 | 2.5 | 0.25 | - | 15 | 5 | 0.5 | - | 22.5 |
 | gpt-5.5-pro | 15 | - | - | 90 | - | - | - | - |
 | gpt-5.4 | 1.25 | 0.13 | - | 7.5 | 2.5 | 0.25 | - | 11.25 |
+| gpt-5.4-pro | 15 | - | - | 90 | 30 | - | - | 135 |
 | gpt-5.4-mini | 0.375 | 0.0375 | - | 2.25 | - | - | - | - |
 | gpt-5.4-nano | 0.1 | 0.01 | - | 0.625 | - | - | - | - |
-| gpt-5.4-pro | 15 | - | - | 90 | 30 | - | - | 135 |
 | gpt-5.2 | 0.875 | 0.0875 | - | 7 | - | - | - | - |
 | gpt-5.1 | 0.625 | 0.0625 | - | 5 | - | - | - | - |
 | gpt-5 | 0.625 | 0.0625 | - | 5 | - | - | - | - |
@@ -66,8 +71,11 @@ The Fast service tier (Codex `service_tier`) instead of the standard rates above
 
 | Model ID | Input | Cached input | Cache write | Output | Long input | Long cached input | Long cache write | Long output |
 |---|---|---|---|---|---|---|---|---|
+| gpt-6.2-astra | 16 | 0.8 | 20 | 80 | 32 | 1.6 | 40 | 120 |
+| gpt-6.2-sol | 4 | 0.2 | 5 | 20 | 8 | 0.4 | 10 | 30 |
 | gpt-6-astra | 20 | 2 | 25 | 100 | 40 | 4 | 50 | 150 |
 | gpt-6.1-sol | 4 | 0.2 | 5 | 20 | 8 | 0.4 | 10 | 30 |
+| gpt-6.1-terra | 2 | 0.1 | 2.5 | 10 | 4 | 0.2 | 5 | 15 |
 | gpt-6-luna | 0.2 | 0.02 | 0.25 | 1 | 0.4 | 0.04 | 0.5 | 1.5 |
 | gpt-6-sol | 4 | 0.4 | 5 | 20 | 8 | 0.8 | 10 | 30 |
 | gpt-5.6-sol | 8 | 0.8 | 10 | 40 | 16 | 1.6 | 20 | 60 |
@@ -90,3 +98,5 @@ The Ultrafast service tier (Codex `service_tier`) instead of the standard rates 
 |---|---|---|---|---|---|---|---|---|
 | gpt-6-astra | 60 | 6 | 75 | 300 | 120 | 12 | 150 | 450 |
 | gpt-6.1-sol | 12 | 0.6 | 15 | 60 | 24 | 1.2 | 30 | 90 |
+| gpt-6.2-astra | 48 | 2.4 | 60 | 240 | 96 | 4.8 | 120 | 360 |
+| gpt-6.2-sol | 12 | 0.6 | 15 | 60 | 24 | 1.2 | 30 | 90 |

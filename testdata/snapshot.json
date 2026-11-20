@@ -4421,7 +4421,7 @@
     }
    ],
    "prs": [],
-   "resume": "cd /Users/me/vp \u0026\u0026 kiro-cli chat --resume-id sess_0ee61246",
+   "resume": "cd /Users/me/vp \u0026\u0026 kiro-cli chat --v3 --resume-id sess_0ee61246",
    "segs": [
     [
      1790550000,
@@ -4776,6 +4776,7 @@
    "source": "Kiro Crew",
    "start": 1790639997,
    "subagents": [],
+   "synthetic": true,
    "title": "Kiro Crew background work",
    "tools": [],
    "usage": {
@@ -5139,7 +5140,7 @@
     }
    ],
    "prs": [],
-   "resume": "cd /Users/me/vp \u0026\u0026 kiro-cli chat --resume-id sess_7e06b008",
+   "resume": "cd /Users/me/vp \u0026\u0026 kiro-cli chat --v3 --resume-id sess_7e06b008",
    "segs": [
     [
      1790661600,
@@ -5464,6 +5465,7 @@
    "source": "Kiro Crew",
    "start": 1790726397,
    "subagents": [],
+   "synthetic": true,
    "title": "Kiro Crew background work",
    "tools": [],
    "usage": {
@@ -5785,7 +5787,7 @@
     }
    ],
    "prs": [],
-   "resume": "cd /Users/me/vp \u0026\u0026 kiro-cli chat --resume-id sess_564f668e",
+   "resume": "cd /Users/me/vp \u0026\u0026 kiro-cli chat --v3 --resume-id sess_564f668e",
    "segs": [
     [
      1790748000,
@@ -5906,7 +5908,7 @@
     }
    ],
    "prs": [],
-   "resume": "cd /Users/me/vp \u0026\u0026 kiro-cli chat --resume-id sess_1640c798",
+   "resume": "cd /Users/me/vp \u0026\u0026 kiro-cli chat --v3 --resume-id sess_1640c798",
    "segs": [
     [
      1790751600,
@@ -6129,7 +6131,7 @@
     }
    ],
    "prs": [],
-   "resume": "cd /Users/me/vp \u0026\u0026 kiro-cli chat --resume-id sess_76df747b",
+   "resume": "cd /Users/me/vp \u0026\u0026 kiro-cli chat --v3 --resume-id sess_76df747b",
    "segs": [
     [
      1790820000,
@@ -6250,7 +6252,7 @@
     }
    ],
    "prs": [],
-   "resume": "cd /Users/me/vp \u0026\u0026 kiro-cli chat --resume-id sess_97d6b4d7",
+   "resume": "cd /Users/me/vp \u0026\u0026 kiro-cli chat --v3 --resume-id sess_97d6b4d7",
    "segs": [
     [
      1790985600,

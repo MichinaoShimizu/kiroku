@@ -19,6 +19,8 @@ func TestContextGrowth(t *testing.T) {
 // コンテキストウィンドウは、料金表と同じくモデル ID の先頭一致（長いキーが優先）で引く。表にないモデルはわからない。
 func TestContextWindowOf(t *testing.T) {
 	cases := map[string]float64{
+		"claude-fable-5-2":           1e6,
+		"claude-mythos-5-2-20261101": 1e6,
 		"claude-fable-5-1":           1e6,
 		"claude-opus-5-5":            1e6,
 		"claude-opus-4-7":            1e6,

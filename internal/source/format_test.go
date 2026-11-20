@@ -64,6 +64,7 @@ func TestCodexFormat(t *testing.T) {
 		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"security_risk_score","payload":{}}`,
 		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"inter_agent_communication","payload":{}}`,
 		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"inter_agent_communication_metadata","payload":{}}`,
+		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"dynamic_tools_updated","payload":{"thread_id":"t","tools":[]}}`,
 		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"realtime_item","payload":{}}`,
 		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"event_msg","payload":{"type":"thread_goal_updated"}}`,
 		`{"timestamp":"2026-10-06T00:00:08.000Z","type":"event_msg","payload":{"type":"sub_agent_activity"}}`,

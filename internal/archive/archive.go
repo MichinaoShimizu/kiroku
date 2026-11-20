@@ -57,7 +57,7 @@ func Enabled(dir string) bool {
 
 // Enable は保存をオンにする（保存場所がなければ作る）。
 func Enable(dir string) error {
-	if err := os.MkdirAll(dir, 0o700); err != nil {
+	if err := core.PrivateDir(dir); err != nil { // 前からあって、ほかの人も読めるフォルダも自分だけにする
 		return err
 	}
 	if err := os.WriteFile(filepath.Join(dir, stamp), []byte("this folder holds kiroku archive copies of agent history\n"), 0o600); err != nil {
@@ -95,8 +95,8 @@ func Clear(dir string, subs []string) (int, error) {
 				dirs = append(dirs, p)
 				return nil
 			}
-			if !d.Type().IsRegular() || !strings.HasSuffix(p, ".zst") {
-				return nil // リンクやほかのファイルは残す
+			if !isCopy(d) {
+				return nil // リンクやほかのファイル（kiroku が書かない名前）は残す
 			}
 			if err := os.Remove(p); err != nil {
 				if first == nil {
@@ -115,6 +115,28 @@ func Clear(dir string, subs []string) (int, error) {
 		}
 	}
 	return n, first
+}
+
+// isCopy は、kiroku が書くコピー（Sync が書く、ふつうのファイルの .jsonl.zst）か。Clear と Kept が同じ決まりで数える。
+func isCopy(d fs.DirEntry) bool {
+	return d.Type().IsRegular() && strings.HasSuffix(d.Name(), ".jsonl.zst")
+}
+
+// Kept は、Clear が消すもの（dir の下の subs の中の、kiroku が書いたコピー）の数と大きさ。消すかを聞くときに使う。
+func Kept(dir string, subs []string) (files int, bytes int64) {
+	for _, sub := range subs {
+		_ = filepath.WalkDir(filepath.Join(dir, sub), func(p string, d fs.DirEntry, err error) error {
+			if err != nil || d.IsDir() || !isCopy(d) {
+				return nil
+			}
+			if info, err := d.Info(); err == nil {
+				files++
+				bytes += info.Size()
+			}
+			return nil
+		})
+	}
+	return files, bytes
 }
 
 // Disable は保存をやめる。すでに保存したコピーは残す。
@@ -160,6 +182,13 @@ func Sync(src, dst string) (int, error) {
 		return 0, nil
 	}
 	src = resolve(src) // WalkDir は起点のシンボリックリンクをたどらない（~/.claude/projects がリンクでも中を残す）
+	// 前の版などで作られて、ほかの人も読めるエージェントごとのフォルダ（claude/ など）は、自分だけが読めるようにする。
+	// 中のフォルダの名前はプロジェクトのパスなので、一覧を見せない
+	if st, err := os.Lstat(dst); err == nil && st.IsDir() {
+		if err := core.PrivateDir(dst); err != nil {
+			return 0, err
+		}
+	}
 	n := 0
 	var first error
 	err := filepath.WalkDir(src, func(p string, d fs.DirEntry, err error) error {

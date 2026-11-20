@@ -81,7 +81,9 @@ func TestLiveRefresh(t *testing.T) {
 
 	stop, done := make(chan struct{}), make(chan struct{})
 	defer func() { close(stop); <-done }() // 読み直しの途中で次のテストへ進まない（time.Local を書きかえるテストと競合する）
-	go func() { l.watch(l.fingerprint(), 20*time.Millisecond, stop); close(done) }()
+	// 基準は履歴を足す前にとる（goroutine の中でとると、足したあとの状態を基準にしかねない）
+	base := l.fingerprint()
+	go func() { l.watch(base, 20*time.Millisecond, stop); close(done) }()
 	time.Sleep(60 * time.Millisecond)
 	add("1e13c3c1-d7ae-41c2-a324-e6a440665d9a")
 	deadline := time.Now().Add(5 * time.Second)

@@ -687,7 +687,16 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	}
 	tree := newEndTree(free)
 	var alone []*call // どの呼び出しにもつながらないファイル
-	for i := range files {
+	// ファイルも始まりの順に見る。名前の順に見ると、重なった 2 つの呼び出しで、あとに始まったファイルが先の呼び出しを取ってしまう
+	byStart := make([]int, len(files))
+	for i := range byStart {
+		byStart[i] = i
+	}
+	sort.SliceStable(byStart, func(i, j int) bool {
+		a, b := files[byStart[i]].start, files[byStart[j]].start
+		return a != nil && (b == nil || *a < *b)
+	})
+	for _, i := range byStart {
 		if linked[i] {
 			continue
 		}

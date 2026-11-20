@@ -352,7 +352,7 @@ function measure(w){
   const warnKeep = r => r.retention && (r.retention.days && !r.retention.set || r.retention.now) && !archOn();
   const found = r => r.n || r.error || r.dup || r.archived || warnKeep(r);
   const row = r => { const dt = JA ? r.detail || r.detailEn : r.detailEn || r.detail; // Go の一言（日本語の Detail と英語の DetailEn）
-    return `<li class="${r.error?"warn":""}">${esc((r.name))}${AG_ABOUT[r.name] ? ` <span class="muted">— ${esc(t(AG_ABOUT[r.name]))}</span>` : ""}: ${esc(plural(r.n, "session"))}${dt?` (${esc(dt)})`:""}${r.dup?` (${esc(t("{n} also found elsewhere, counted once", {n: plural(r.dup, "duplicate conversation")}))})`:""}${r.error?` (${esc(t("some files couldn't be read"))})`:""}${formatRow(r)}${keepRow(r)}</li>`; };
+    return `<li class="${r.error?"warn":""}">${esc(t(r.name))}${AG_ABOUT[r.name] ? ` <span class="muted">— ${esc(t(AG_ABOUT[r.name]))}</span>` : ""}: ${esc(plural(r.n, "session"))}${dt?` (${esc(dt)})`:""}${r.dup?` (${esc(t("{n} also found elsewhere, counted once", {n: plural(r.dup, "duplicate conversation")}))})`:""}${r.error?` (${esc(t("some files couldn't be read"))})`:""}${formatRow(r)}${keepRow(r)}</li>`; };
   const rows = META.report.filter(found).map(row), nf = META.report.filter(r => !found(r));
   if (nf.length) rows.push(`<li><details class="dnf"><summary>${esc(t("Not found: {n}", {n: nf.length}))}</summary><ul class="mlist">${nf.map(row).join("")}</ul></details></li>`);
   const a = META.archive; // kiroku archive

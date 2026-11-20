@@ -161,12 +161,16 @@ func crewPrivateSids(home string, priv *crewPrivacy, errs *fileErrs) []string {
 		st := core.Map(v)
 		if broken || crewPrivateMeta(st) || priv.key(core.Str(st["parent_session"])) {
 			add(core.Str(st["session_id"]))
+			priv.files = append(priv.files, filepath.Dir(p)) // 依頼の文（task）などが入っている
 		}
 	}
 	for _, d := range logs {
 		if broken || d.private || priv.key(d.slot) {
 			for _, id := range d.ids {
 				add(id)
+			}
+			if d.dir != "" {
+				priv.files = append(priv.files, d.dir) // サブエージェントへの依頼（subagent/spawned の task）などが入っている
 			}
 		}
 	}
@@ -180,6 +184,7 @@ func crewPrivateSids(home string, priv *crewPrivacy, errs *fileErrs) []string {
 
 // crewLogDir は crew-log の 1 つの会話のフォルダ（crewLogSegments のファイル全部）から読んだもの。
 type crewLogDir struct {
+	dir       string      // このフォルダ
 	slot, cwd string      // 会話キー（1 行目の slot か、session/opened の data.slot）と作業場所
 	ids       []string    // 1 行目の id と、session/opened の data.previous.sid（同じ会話キーの前の会話）
 	private   bool        // session/opened の data.class か session/class の data が、persistent でない memory を記録した（crewClassPrivate）
@@ -224,7 +229,7 @@ func (p *crewPrivacy) crewLog(dir string) *crewLogDir {
 	if d, ok := p.logs[dir]; ok {
 		return d
 	}
-	d := &crewLogDir{}
+	d := &crewLogDir{dir: dir}
 	seen := map[string]bool{} // 読んだサブエージェントの id（中身は最初のものだけ持つ）
 	segs, err := crewLogSegments(dir)
 	if err != nil { // 並べられないフォルダは空とみなさず、読めなかったと伝える（中身を残さない会話の印を見落としうるので）
@@ -264,7 +269,7 @@ func (i CrewInfo) usageSlot() string {
 }
 
 // Crew の会話は、メタデータ（会話の記録の 1 行目）の memory_mode が incognito か temporary なら、Crew 自身も
-// そこから何も学ばない（要約・検索・書き出しを断る。history.py の INCOGNITO_MEMORY_MODES・transcript_withholds_derivation）。
+// そこから何も学ばない（要約・検索・書き出しを断る。history_derivation.py の INCOGNITO_MEMORY_MODES・transcript_withholds_derivation）。
 // kiroku もそうした会話は数と時刻だけを出し、依頼・応答の文、それから決めたタイトル、会話に出たファイルは出さない（hideCrew）。
 const (
 	crewPrivateTitle = "Kiro Crew private conversation"
@@ -347,6 +352,9 @@ type crewPrivacy struct {
 	idx        *crewArchiveIndex      // 退避した記録（archive で作る）
 	logs       map[string]*crewLogDir // crew-log の会話のフォルダ → 読んだもの（crewLog で作る）
 	logList    *[]*crewLogDir         // crew-log の会話のフォルダ全部（crewLogs で作る。印をつけ終えたら nil でない）
+	// files は、中身を残さない会話の Crew 自身の記録のフォルダ（サブエージェントの subagents/<id>/ と crew-log/sessions/<名前>/）。
+	// crewPrivateSids が集める。「Analyze with AI」に読ませない（KiroCLI.PrivateFiles）
+	files []string
 }
 
 func newCrewPrivacy(home, arch string) *crewPrivacy {
@@ -419,7 +427,7 @@ var crewMetaMark = []byte(`"metadata"`)
 // crewFilePrivate は、Crew の会話の記録のファイル（.zst のコピーも）のどれかの行が、中身を残さない会話のメタデータか。
 // 1 行目の BOM は読み飛ばす（Crew の json.loads は BOM のある行を読めず、中身を残さない側に倒す）。
 // 1 行目が長すぎて読めない（core.MaxLine を超える）か、memory_mode を含むのに読めないときも、中身を残さない会話とみなす
-// （Crew もメタデータの行を読めなければ断る。history.py の memory_mode_from_header_line）。ない・開けないファイルは false。
+// （Crew もメタデータの行を読めなければ断る。history_derivation.py の memory_mode_from_header_line）。ない・開けないファイルは false。
 // 1 行は core.MaxLine までしか持たないので、使うメモリは決まっている。
 func crewFilePrivate(path string) bool {
 	f, err := openRegular(path)
@@ -500,7 +508,7 @@ func crewJSONL(path string, fn func(core.Obj)) error {
 // hideCrew は、中身を残さない会話から、会話の中身から読んだものを消し、決まったタイトルにする（core.Builder.HideText）。
 func hideCrew(s *core.Builder) {
 	s.HideText(crewPrivateText)
-	s.Title = crewPrivateTitle
+	s.Title, s.TitleByKiroku = crewPrivateTitle, true
 }
 
 // HideWithheld は、Withholder が中身を出してはいけないとした会話（ほかの Source に残る同じ会話）を、
@@ -1039,7 +1047,7 @@ func (m *crewMeta) add(m2 crewMeta) {
 // ownRows は、fork した会話から、元の会話から写した行を除く。
 // Crew は fork するとき、新しい会話（created_at はそのときの時刻）に元の会話の行を元の ts と meta のまま写す
 // （dashboard/chat_fork.py。tail fork も同じ）。そのあとの行の ts は、写した行より後で created_at より後になる
-// （state.py の _ChatSlot.append と history.py の monotonic_transcript_ts）。なので created_at より前の行は写した行。
+// （state.py の _ChatSlot.append と history_schema.py の monotonic_transcript_ts）。なので created_at より前の行は写した行。
 // 元の会話は kiroku が別に読むので、写した行も数えると同じ依頼を 2 度数える。
 // created_at がない・読めない fork は見分けられないので、全部の行を使う。ts のない行も残す。
 func ownRows(m crewMeta, rows []crewRow) []crewRow {
@@ -1221,7 +1229,7 @@ func (idx *crewArchiveIndex) segments(stem string) []crewSeg {
 }
 
 // crewArchiveRows は、退避した記録（書いた順）と今の記録（最後）の行をつなぐ。reasons はファイルごとの reason（今の記録は空）。
-// Crew は次のわけで行を退避する（history.py の _archive_lines。ファイルの 1 行目 {"_type": "archive", "reason", …}）:
+// Crew は次のわけで行を退避する（history_files.py の _archive_lines。ファイルの 1 行目 {"_type": "archive", "reason", …}）:
 //   - "rotate": 記録が大きくなりすぎて、古い行をそのまま移したもの（本当の古い会話）。全部読む
 //   - "foreign-dedup": ほかのプロセスが書いた行のうち、今の記録に残る行と同じとみなして落としたもの
 //     （dashboard/slot_persistence/transcript_merge.py）。同じ行が今の記録にあるので読まない
@@ -1338,7 +1346,7 @@ var taskRunnerRow = regexp.MustCompile(`^\[Task: [^\n]*\] Task \d+: `)
 //
 // role が user の行は、人が書いたとは限らない。Crew は予定の実行（"# Cron Run: …"）・Issue Radar の呼び出し・
 // タスクの実行・auto-go なども user の行として書き、人が書いた行にだけ meta.human: true をつける
-// （history.py の HUMAN_TURN_META_KEY。目印のない行は人のものと数えない、という allowlist）。
+// （history_schema.py の HUMAN_TURN_META_KEY。目印のない行は人のものと数えない、という allowlist）。
 // 目印は新しい Crew だけが書くので、最初に目印のある行からあとは、目印のある行だけを依頼に数え、
 // ほかの user の行は仕組みが入れたもの（kind "agent"。Claude Code のほかのエージェントや予定から送られたものと同じ）として残す。
 // それより前の行（目印ができる前の記録）は、ほぼ見分けられないので今までどおり依頼に数える。
@@ -1378,7 +1386,7 @@ func addCrewRows(s *core.Builder, rows []crewRow) {
 }
 
 // crewLimitKind は、使える量（プランの月の上限など）を使い切ってターンが止まったときに、ダッシュボードが会話の記録に書く
-// error の行の meta.kind（dashboard/chat_utils.py の USAGE_LIMIT_KIND。chat_turn/recovery.py の _terminal_error_meta がつける）。
+// error の行の meta.kind（dashboard/chat_utils_injected_rows.py の USAGE_LIMIT_KIND。chat_turn/recovery.py の _terminal_error_meta がつける）。
 // Crew は backend の返した生のエラーから決め、文からは決めない（文は書きかえや翻訳で変わる）ので、kiroku も文は見ずにこの印だけを見る。
 // ほかの種類（auth_required・model_unentitled・session_start_failed）は上限ではない。
 const crewLimitKind = "usage_limit"
@@ -1779,9 +1787,9 @@ func crewOnly(home, slot string, turns []crewTurn, info *CrewInfo, title string,
 		}
 		switch {
 		case slot == "_bg":
-			s.Title = "Kiro Crew background work"
+			s.Title, s.TitleByKiroku = "Kiro Crew background work", true
 		case bg:
-			s.Title = "Kiro Crew memory consolidation (" + strings.TrimPrefix(slot, "memory-consolidation:") + ")"
+			s.Title, s.TitleByKiroku = "Kiro Crew memory consolidation ("+strings.TrimPrefix(slot, "memory-consolidation:")+")", true
 		case info != nil && info.Subagent: // kiro-cli の会話が消えたサブエージェント（残さないものは Crew が消す）
 			s.Title = subagentTitle(*info)
 		case info != nil && info.Title != "":

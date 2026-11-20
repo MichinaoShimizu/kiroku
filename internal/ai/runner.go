@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -35,6 +36,11 @@ type Runner struct {
 	// Dirs are the history folders the prompts point to. Claude Code may read only these
 	// (--add-dir with only the Read tool); the agent itself runs in an empty temporary folder.
 	Dirs []string
+	// Private returns the history files of conversations whose content kiroku keeps out of its view and
+	// prompts (Kiro Crew incognito and temporary conversations, and their copies in other agents' history).
+	// Claude Code gets a Read deny rule for each, in a settings file in the run's temporary folder, so it
+	// can't read them although they are inside Dirs. Deny rules win over --add-dir and the user's own rules.
+	Private func() []string
 }
 
 type Result struct {
@@ -111,6 +117,19 @@ func (r Runner) Stream(ctx context.Context, agent, prompt string, emit func(Even
 		return Result{}, err
 	}
 	defer os.RemoveAll(dir)
+	if agent == "claude" && r.Private != nil {
+		if rules := denyRules(r.Private()); len(rules) > 0 {
+			b, err := json.Marshal(map[string]any{"permissions": map[string]any{"deny": rules}})
+			if err != nil {
+				return Result{}, err
+			}
+			p := filepath.Join(dir, "kiroku-private.json")
+			if err := os.WriteFile(p, b, 0o600); err != nil {
+				return Result{}, err
+			}
+			args = append(args, "--settings", p)
+		}
+	}
 	cmd := exec.CommandContext(bounded, binary, args...)
 	cmd.Dir = dir
 	cmd.Stdin = strings.NewReader(prompt)
@@ -439,23 +458,6 @@ func firstNonEmpty(s ...string) string {
 	return ""
 }
 
-type limitedWriter struct {
-	w   *bytes.Buffer
-	max int
-}
-
-func (w *limitedWriter) Write(p []byte) (int, error) {
-	remaining := w.max - w.w.Len()
-	if remaining <= 0 {
-		return 0, errors.New("agent output limit reached")
-	}
-	if len(p) > remaining {
-		_, _ = w.w.Write(p[:remaining])
-		return remaining, errors.New("agent output limit reached")
-	}
-	return w.w.Write(p)
-}
-
 // tailWriter keeps the last max bytes, so a failing agent's final error message is kept
 // without holding all of its output.
 type tailWriter struct {
@@ -475,4 +477,89 @@ func (t *tailWriter) Write(p []byte) (int, error) {
 	}
 	t.w.Write(p)
 	return n, nil
+}
+
+// denyRules turns history files into Claude Code Read deny rules (gitignore patterns anchored at the
+// filesystem root with //). Each file also covers the folder of the same name beside it (Claude Code's
+// subagents/ folder) and, for a Kiro Crew conversation log in sessions/, the lines Crew moved to
+// sessions/archive/<name>__<time>.jsonl. A path the patterns can't express literally (with parentheses
+// or a line break) denies its whole folder instead.
+func denyRules(files []string) []string {
+	var out []string
+	seen := map[string]bool{}
+	add := func(pattern string) {
+		if r := "Read(//" + pattern + ")"; !seen[r] {
+			seen[r] = true
+			out = append(out, r)
+		}
+	}
+	for _, f := range files {
+		if f == "" || !filepath.IsAbs(f) {
+			continue
+		}
+		paths := []string{f}
+		if real, err := filepath.EvalSymlinks(f); err == nil && real != f {
+			paths = append(paths, real)
+		}
+		for _, p := range paths {
+			p = posixPath(p)
+			dir, base := pathDir(p), pathBase(p)
+			if strings.ContainsAny(p, unruled) {
+				// the nearest folder whose path the rule can hold; at worst the whole filesystem
+				up := dir
+				for strings.ContainsAny(up, unruled) {
+					up = pathDir(up)
+				}
+				if up == "" {
+					add("**")
+				} else {
+					add(globEscape(up) + "/**")
+				}
+				continue
+			}
+			add(globEscape(p))
+			stem := strings.TrimSuffix(base, filepath.Ext(base))
+			stem = strings.TrimSuffix(stem, ".jsonl") // .jsonl.zst
+			add(globEscape(dir+"/"+stem) + "/**")
+			if pathBase(dir) == "sessions" {
+				add(globEscape(dir+"/archive/"+stem) + "__*")
+			}
+		}
+	}
+	return out
+}
+
+// unruled are characters a rule can't hold literally: parentheses end Read(...), a line break ends the
+// list, and Claude Code turns \\ into \ before matching, so a name with a backslash can't be matched
+// exactly. A path with any of them denies the nearest folder whose path has none.
+const unruled = "()\\\n\r"
+
+// posixPath writes p the way Claude Code matches it: with / and, on Windows, C:\x as c/x (no leading /).
+func posixPath(p string) string {
+	p = filepath.ToSlash(p)
+	if len(p) >= 2 && p[1] == ':' {
+		p = strings.ToLower(p[:1]) + p[2:]
+	}
+	return strings.TrimLeft(p, "/")
+}
+
+func pathDir(p string) string {
+	if i := strings.LastIndex(p, "/"); i >= 0 {
+		return p[:i]
+	}
+	return ""
+}
+
+func pathBase(p string) string { return p[strings.LastIndex(p, "/")+1:] }
+
+// globEscape escapes the characters gitignore patterns treat specially, so a name matches only itself.
+func globEscape(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if strings.ContainsRune(`\*?[]!#`, r) {
+			b.WriteByte('\\')
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }

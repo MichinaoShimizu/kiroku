@@ -45,7 +45,7 @@ function aiOutputProblems(prompt, text){
     if (f){ if (!inCode) inCode = f[1]; else if (f[1][0] === inCode[0] && f[1].length >= inCode.length) inCode = null; return; }
     if (!inCode && /^### /.test(l)) got++; });
   if (want && got < want) add(`The answer has ${got} of the ${want} "###" sections in "# Format". Write every section, in that order, to the end`,
-    t("{n} of the {want} sections are missing", {n: want - got, want}));
+    (got === 0 ? t("All {want} sections are missing", {want}) : t("{n} of the {want} sections are missing", {n: want - got, want})));
   // 数字の表: 1 列目（訳されうる項目の名前）を除いた値で比べる。強調・引用・ダッシュの違いは同じとみなす
   const cells = l => l.replace(/^\s*(>\s?)*/, "").trim().replace(/^\||\|$/g, "").split("|").map(c => c.replace(/[*_`]/g, "").replace(/[−–—]/g, "-").replace(/\s+/g, " ").trim());
   const ni = pl.indexOf("## Numbers"), rows = [];
@@ -207,7 +207,7 @@ async function runAIReview(button, prompt, title, prefer = "") { // prefer: 最�
     let done = null, ok = false;
     try {
       const response = await kfetch("ai/run", {method:"POST", headers:{"Content-Type":"application/json","X-Kiroku":"1"}, body,signal:controller.signal});
-      if (!response.ok) { const why = (await response.text().catch(() => "")).trim().slice(0, 600); throw new Error(why || t("AI execution failed (HTTP {status})", {status: response.status})); }
+      if (!response.ok) { const why = (await response.text().catch(() => "")).trim().slice(0, 600); throw new Error(why ? aiServerError(why) : t("AI execution failed (HTTP {status})", {status: response.status})); }
       // 1 行に 1 つの JSON（コマンド・返事の文字・ツール・エラー出力・最後に done）が、起きた順に届く
       const reader = response.body.getReader(), dec = new TextDecoder();
       let buf = "";
@@ -267,4 +267,15 @@ function showLocalAIInfo() {
   dialog.append(heading, why, what, close);
   document.body.append(dialog);
   if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
+}
+
+// aiServerError は、kiroku serve の /ai/run が返した決まった英語の誤り（internal/ai/handler.go）を、画面の言語にする。
+// 知らない文はそのまま（文字として出す）
+function aiServerError(why){
+  const m = /^(\S+) is not installed on this computer$/.exec(why);
+  if (m) return t("{agent} is not installed on this computer", {agent: m[1]});
+  if (/^the prompt is too long to run/.test(why)) return t("The prompt is too long to run (limit 256 KB). Copy it and paste it into the agent instead.");
+  if (why === "AI execution already running") return t("Another AI run is still going. Wait for it to finish, then try again.");
+  if (why === "AI execution disabled") return t("Analyze with AI is off in this kiroku serve.");
+  return why;
 }

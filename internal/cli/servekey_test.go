@@ -40,7 +40,9 @@ func TestServeKey(t *testing.T) {
 				t.Errorf("%s のモード = %v, want %v", p, st.Mode().Perm(), want)
 			}
 		}
-		os.Chmod(path, 0o644)
+		if err := os.Chmod(path, 0o644); err != nil {
+			t.Fatal(err)
+		}
 		if _, err := serveKey(false); err != errNoKey {
 			t.Error("ほかのユーザーが読める鍵を使った")
 		}
@@ -274,7 +276,9 @@ func TestOpenCode(t *testing.T) {
 	// 期限切れは通さず、次にコードを作るときに片づける（時計が戻って未来の時刻になったものも）
 	past, future := time.Now().Add(-openCodeTTL-time.Minute), time.Now().Add(2*time.Minute)
 	old, _ := newOpenCode("8484")
-	os.Chtimes(filepath.Join(cdir, openCodeName("8484", old)), past, past)
+	if err := os.Chtimes(filepath.Join(cdir, openCodeName("8484", old)), past, past); err != nil {
+		t.Fatal(err)
+	}
 	if w := do("POST", "/?code="+old, ok); w.Code != 403 {
 		t.Errorf("期限切れのコード = %d", w.Code)
 	}
@@ -282,7 +286,9 @@ func TestOpenCode(t *testing.T) {
 	for _, tm := range []time.Time{past, future} {
 		c, _ := newOpenCode("8484")
 		p := filepath.Join(cdir, openCodeName("8484", c))
-		os.Chtimes(p, tm, tm)
+		if err := os.Chtimes(p, tm, tm); err != nil {
+			t.Fatal(err)
+		}
 		stale = append(stale, p)
 	}
 	if _, err := newOpenCode("8484"); err != nil {
@@ -298,7 +304,9 @@ func TestOpenCode(t *testing.T) {
 	}
 	// ほかのユーザーが読めるコードのファイルや、シンボリックリンクは通さない
 	loose, _ := newOpenCode("8484")
-	os.Chmod(filepath.Join(cdir, openCodeName("8484", loose)), 0o644)
+	if err := os.Chmod(filepath.Join(cdir, openCodeName("8484", loose)), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	link := strings.Repeat("ef", 32)
 	if err := os.Symlink(filepath.Join(dir, keyFile), filepath.Join(cdir, openCodeName("8484", link))); err != nil {
 		t.Fatal(err)
@@ -446,5 +454,23 @@ func TestHopTargetStaysOnSite(t *testing.T) {
 	}
 	if got := hopTarget("/a/b"); got != "/a/b" {
 		t.Errorf("plain path = %q", got)
+	}
+}
+
+// 鍵のないブラウザーへの案内は、Accept-Language が日本語なら日本語にする（画面の showLocked と同じ文）。
+func TestLockedPageLanguage(t *testing.T) {
+	key := strings.Repeat("a", 64)
+	h := requireKey("127.0.0.1:8484", key, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	for al, want := range map[string]string{"ja,en;q=0.8": "鍵を付けて kiroku を開いてください", "ja-JP": "鍵を付けて kiroku を開いてください", "en-US,ja;q=0.5": "Open kiroku with its key", "": "Open kiroku with its key"} {
+		req := httptest.NewRequest("GET", "http://127.0.0.1:8484/data.json", nil)
+		req.Header.Set("Accept-Language", al)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), want) {
+			t.Errorf("Accept-Language %q: %d %q, want %q", al, rec.Code, rec.Body.String(), want)
+		}
+	}
+	if !strings.Contains(hopKeyScript, "もう一度 kiroku open を実行してください") {
+		t.Error("中継のページに日本語の知らせがない")
 	}
 }
