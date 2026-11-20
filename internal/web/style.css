@@ -105,7 +105,6 @@ kbd{font:var(--fs-xs)/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px
 .kpi.key{background:var(--acc-soft)} /* いちばん大事な数（トークン・目安コスト・月末の推定・クレジット） */
 .kpi.key .k{color:var(--acc-ink);font-weight:600}
 .kpi.key+.kpi:not(.key){border-left-color:var(--rule-2)}
-.kpi:not(.out)+.kpi.out{border-left:2px solid var(--c2)} /* 使ったもの（左）と残したもの（右）の境目。サマリーの「残したもの」と同じ緑 */
 button.kpi{text-align:left;transition:background .15s var(--ease)} /* 押すと内訳（metric.js） */
 button.kpi:hover{background:var(--surface-2)}button.kpi.key:hover{background:color-mix(in oklab,var(--acc) var(--t3),var(--surface))}
 button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}

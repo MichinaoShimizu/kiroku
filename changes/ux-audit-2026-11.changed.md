@@ -17,4 +17,4 @@
   - In the prompt flow, "AI worked … · you replied after …" sits under the AI's reply it belongs to
   - The weekly report's and the session review's AI dialogs name the week or session in their title
   - Opening this week scrolls the page to the hour the week's work starts when it would be below the first screen (not in the demo)
-- The figures above the calendar no longer show Git information (commits and lines changed); they are in each calendar day and in the summary's ②. Pull requests created by AI stay
+- The figures above the calendar show only what you used: commits, lines changed and pull requests are in each calendar day and in the summary's ②

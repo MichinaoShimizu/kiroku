@@ -111,7 +111,7 @@ function kpis(){
       ov.map(([x, f]) => " · " + t(M ? "{v} over last month's total of {r}" : "{v} over last week's total of {r}", {v: f(-x.rest, true), r: f(x.ref, true)})).join("");
     return kpi(t(M ? "A day to match last month" : "A day to match last week"), v, tt, "key", ok[0][0] === pc.cost ? "pace" : "paceCr"); };
   const pace = pj ? t("If the pace of the first {n} days continues", {n: pj.days}) + bandNote(pj.cost != null ? pj.band.cost : pj.band.credits, pj.cost != null ? usd : cr) : "";
-  // 帯は日々の判断に使う数だけ：左に使ったもの（推定費用とクレジット・前の期間並みの 1 日の目安・月末の推定（月）・稼働時間）、右に AI の PR（outK。Git の情報は出さない）。
+  // 帯は日々の判断に使う数だけ：左に使ったもの（推定費用とクレジット・前の期間並みの 1 日の目安・月末の推定（月）・稼働時間）、残したもの（コミット・PR など）は出さない（カレンダーの各日とサマリーの ② に）。
   // 稼働日・セッション / プロンプト・利用上限への到達は振り返りの数なので、サマリーと「見直す候補」に任せる（帯が多いとカレンダーと主役を争う）。
   // 推定費用とクレジットは別の枠の使用量なので足さずに、1 つの枠に「 · 」で並べる。トークンは推定費用を出せないときだけ
   const c = u.tokens ? costOf(u) : null, two = (a, b) => [a, b].filter(Boolean).join(`<small> · </small>`);
@@ -122,18 +122,11 @@ function kpis(){
   K.innerHTML = (useV ? kpi(useK, useV, u.tokens && c == null ? NOPRICE : "", "key", u.tokens ? (c == null ? "tokens" : "cost") : "credits", useD) : "") +
     (pc && !pj ? paceK() : "") + // 月の途中は月末の推定を出すので、前の月並みの目安は出さない（内訳とサマリーにある）
     (pjV ? kpi(t(pj.cost != null && pj.credits != null ? "Month-end (estimate)" : pj.cost != null ? "Month-end cost" : "Month-end credits"), pjV, pace, "key", pj.cost != null ? "projection" : "projectionCr") : "") +
-    kpi(t("Active time"), dur(w.active, true), n0 == null ? "" : M ? t("{days} of the {n} so far (this month is still in progress)", {days, n: plural(nd, "day")}) : t("{days} of the {n} so far (this week is still in progress)", {days, n: plural(nd, "day")}), "", "active", dl(w.active, V.of("active", pw && pw.active))) +
-    outK(w, kpi, pw, V, dl);
+    kpi(t("Active time"), dur(w.active, true), n0 == null ? "" : M ? t("{days} of the {n} so far (this month is still in progress)", {days, n: plural(nd, "day")}) : t("{days} of the {n} so far (this week is still in progress)", {days, n: plural(nd, "day")}), "", "active", dl(w.active, V.of("active", pw && pw.active)));
   K.classList.toggle("dense", K.children.length > 7); // 数が多い（月表示など）ときは、一回り小さくして 1 行に
   K.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b));
 }
 
-/* 帯の右側：残したもの（アウトプット）。AI が作った PR だけ（履歴から数える）。Git の情報（コミット・変えた行）は帯に出さず、
-   カレンダーの各日とサマリーの ② に任せる（帯は使ったものと、日々の判断に使う数に絞る） */
-function outK(w, kpi, pw, V, dl){
-  const o = w.outputs || {}, po = pw && pw.outputs;
-  return o.prs ? kpi(t("Pull requests"), `${o.prs}`, "", "out", "prs", dl(o.prs, V.of(null, po && po.prs))) : ""; // PR は日ごとの値がないので、途中の期間では比べない
-}
 /* カレンダーの各日（月表示では各週も）に並べるのは 2 つだけ：使用量（推定費用。見積もれないならトークン、トークンがなければクレジット）と Git のコミット。
    費用と残したものを上下に並べ、費用が増えても残したものが増えていない日を、カレンダーを見るだけで拾えるようにする。
    作業時間は週では帯の長さ・月ではマスの濃さ、セッションは帯の数で見えるので、数は日のツールチップに（トークン・クレジットも）。
