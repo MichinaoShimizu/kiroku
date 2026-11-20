@@ -98,6 +98,12 @@ cl --release v1.0.0 --date 2026-11-20 "$c" > /dev/null
 printf -- '- STABLE: again\n- BREAKING: later\n' > "$tmp/fresh/changes/three.changed.md"
 expect_out v2.0.0 "after 1.0, STABLE: means nothing and BREAKING → major" nv Unreleased "$c"
 
+# STABLE: と BREAKING: は、いちばん上の段の項目の頭だけ（入れ子の項目や、文の中の語は数えない）
+copy fresh
+c=$tmp/fresh/CHANGELOG.md
+printf -- '- Fix a typo\n  - STABLE: nested\n- Not BREAKING anything\n' > "$tmp/fresh/changes/nest.fixed.md"
+expect_out v0.36.1 "a nested STABLE: or a BREAKING in prose → patch" nv Unreleased "$c"
+
 # 断片も「## Unreleased」もないとき
 copy fresh
 rm "$tmp/fresh/changes/"*.md

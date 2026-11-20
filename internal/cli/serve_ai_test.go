@@ -113,7 +113,7 @@ func TestLangFlag(t *testing.T) {
 
 // 1.0 でなくした --ai（--ai=false も）は、何もせずに代わり（--no-ai）を教えて止まる。履歴は読まない。
 func TestRemovedAIFlag(t *testing.T) {
-	for _, args := range [][]string{{"--ai"}, {"--ai=false"}, {"-ai=true"}, {":8485", "--ai"}} {
+	for _, args := range [][]string{{"--ai"}, {"--ai=false"}, {"-ai=true"}, {":8485", "--ai"}, {"--ai=1"}, {"-ai"}, {"--no-ai", "--ai"}} {
 		err := cmdServe(args)
 		if err == nil || !strings.Contains(err.Error(), "--ai was removed") || !strings.Contains(err.Error(), "--no-ai") {
 			t.Errorf("%q: err = %v", args, err)

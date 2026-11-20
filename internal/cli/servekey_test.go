@@ -141,7 +141,7 @@ func TestRequireKey(t *testing.T) {
 		}
 	}
 	// 以前の版の ?key= は、鍵が合っていても受け付けない（1.0 から）。鍵のない案内（403）を返し、鍵はページに入れない（セキュリティ）
-	for _, target := range []string{"/?key=" + key, "/history?id=s1&key=" + key, "/?code=abc&key=" + key, "/?key=wrong"} {
+	for _, target := range []string{"/?key=" + key, "/history?id=s1&key=" + key, "/?code=abc&key=" + key, "/?key=wrong", "/?k%65y=" + key, "/data.json?key=" + key} {
 		w := do("GET", target, "", oldCookie)
 		if w.Code != http.StatusForbidden || strings.Contains(w.Body.String(), key) || strings.Contains(w.Body.String(), "<script>") {
 			t.Errorf("%s = %d %q, want 403 without the key", target, w.Code, w.Body.String())
