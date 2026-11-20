@@ -1,1 +1,0 @@
-- Amazon Q and Kiro CLI (SQLite): a named pipe or a folder where the database should be is now reported as unreadable instead of opened. A named pipe made kiroku wait forever, and a folder was silently read as no sessions

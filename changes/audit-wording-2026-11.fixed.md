@@ -1,2 +1,0 @@
-- The "Usage limit hits" explanation in the view now names spend limits, and the Japanese view has a screen-reader label for AI replies
-- `kiroku doctor`'s hint for history kept elsewhere now also names `--crew-home` and `--kiro-cli-db`, and `kiroku serve --help` says that `--ai=false` turns AI runs off

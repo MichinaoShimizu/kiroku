@@ -1,1 +1,0 @@
-- On a phone-width screen, a long project or branch name in the session details now wraps instead of widening the page

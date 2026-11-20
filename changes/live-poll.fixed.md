@@ -1,2 +1,0 @@
-- `kiroku serve`: when the key changes, the LIVE badge now says to open kiroku with its key instead of "Not connected", and an error while drawing new history is no longer reported as a lost connection
-- `kiroku serve` with demo data in another time zone no longer reloads once and shows the times unshifted
