@@ -57,7 +57,7 @@ var allow = []exception{
 		Reason: "developer tool: writes public price tables to docs/upstream/*.md (0644), committed to the repository"},
 	{Rule: "file-mode", File: "tools/upstream/main.go", Func: "main",
 		Reason: "developer tool: writes public agent versions to docs/upstream/agents.md (0644), committed to the repository"},
-	{Rule: "shell-exec", File: "internal/gitlog/pastecmd_unix_test.go", Func: "TestPastedGitShowRunsNoRepoCommands",
+	{Rule: "shell-exec", File: "internal/gitlog/pastecmd_unix_test.go", Func: "pasteRuns",
 		Reason: "test: pastes the copied git command into sh as a user would, to check it runs none of a hostile repository's configured commands; the command is core.GitCmd of a temporary folder and a hash"},
 	{Rule: "listen", File: "internal/cli/serve.go", Func: "serveLiveWithAI",
 		Reason: "kiroku serve: 127.0.0.1 by default; another ADDR is opt-in, keeps the Host check and the key, and is documented in SECURITY.md"},

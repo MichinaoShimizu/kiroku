@@ -31,7 +31,7 @@ func ResumeCmd(dir, cmd, id string) string {
 // cmd は kiroku が決めた固定の文字列（show、log --oneline）。repo と args（ハッシュや範囲）は git から来た値なので、
 // ResumeCmd と同じく 1 つずつ囲み、安全に囲めない値があれば "" を返してコマンドは出さない。
 // リポジトリは他人が作ったものかもしれない。貼ったコマンドがそのリポジトリの設定（.git/config・.gitattributes）にある
-// ページャー・fsmonitor を動かさないよう、--no-pager と core.fsmonitor=false を付ける。show には gitShow を渡す
+// プログラムを動かさないよう、gitPasteFlags を付ける（-c はリポジトリの設定より強い）。show には GitShow を渡す
 // （外部の diff・textconv と、それが呼ぶ filter.*.process を動かさない）。
 func GitCmd(repo, cmd string, args ...string) string {
 	win := isWinPath(repo)
@@ -39,7 +39,7 @@ func GitCmd(repo, cmd string, args ...string) string {
 	if !ok {
 		return ""
 	}
-	out := "git --no-pager -c core.fsmonitor=false -C " + r + " " + cmd
+	out := "git " + gitPasteFlags + " -C " + r + " " + cmd
 	for _, a := range args {
 		q, ok := shellArg(a, win)
 		if !ok {
@@ -49,6 +49,17 @@ func GitCmd(repo, cmd string, args ...string) string {
 	}
 	return out
 }
+
+// gitPasteFlags は、貼る git のコマンドに付ける、リポジトリの設定のプログラムを止めるもの。kiroku 自身が git を動かすとき
+// （gitlog の gitCmd）と同じ考え。環境変数（GIT_ALLOW_PROTOCOL など）は、PowerShell・cmd に貼ると効かないので使わない。
+//   - --no-pager、core.fsmonitor=false: ページャー（core.pager・pager.<コマンド>）と fsmonitor
+//   - log.showSignature=false: 署名つきのコミットで gpg.program（ssh・x509 のプログラムも）
+//   - diff.submodule=short: サブモジュールの差分を別の git で出させない（そちらはサブモジュールの設定の外部の diff を動かす）
+//   - protocol.*.allow=never: 部分クローンで手元にない中身を取りに行かせない（そのとき remote.<名前>.uploadpack や
+//     core.sshCommand を動かす）。リポジトリの protocol.<名前>.allow は protocol.allow より強いので、名前ごとにも止める
+const gitPasteFlags = "--no-pager -c core.fsmonitor=false -c log.showSignature=false -c diff.submodule=short" +
+	" -c protocol.allow=never -c protocol.file.allow=never -c protocol.ssh.allow=never -c protocol.ext.allow=never" +
+	" -c protocol.git.allow=never -c protocol.http.allow=never -c protocol.https.allow=never"
 
 // GitShow は、GitCmd に渡す show。リポジトリの設定の外部の diff と textconv（と、それが呼ぶ filter.*.process）を動かさない。
 const GitShow = "show --no-ext-diff --no-textconv"
