@@ -22,7 +22,7 @@ const AI_SEP = () => JA ? "" : " ";
 function aiBtn(id, label){
   if (!LIVE) return aiDemo() ? `<button class="pill ai-action" id="${id}" type="button" aria-label="${esc(label)}">${esc(t("Analyze with AI"))}</button>` : "";
   if (!aiOn()) return `<button class="pill ai-off ai-demo-info" type="button" title="${esc(AI_OFF_WHY())}">${esc(t("Analyze with AI (off)"))}</button>`;
-  if (!aiAgents().length) return `<span class="ai-none"><button class="pill ai-action" type="button" disabled aria-label="${esc(label)}" aria-describedby="${id}-why">${esc(t("Analyze with AI"))}</button><span class="ai-why" id="${id}-why" title="${esc(AI_NONE_WHY())}">${esc(t("No AI agent found"))}</span></span>`;
+  if (!aiAgents().length) return `<span class="ai-none"><button class="pill ai-action" type="button" disabled aria-label="${esc(label)}" aria-describedby="${id}-why">${esc(t("Analyze with AI"))}</button><span class="ai-why" id="${id}-why">${esc(AI_NONE_WHY())}</span></span>`;
   return `<button class="pill ai-action" id="${id}" type="button" aria-label="${esc(label)}">${esc(t("Analyze with AI"))}</button>`;
 }
 // 閉じたあとに同じプロンプトで開き直したら、前の結果を見せる（このページを開いているあいだだけ。保存はしない）

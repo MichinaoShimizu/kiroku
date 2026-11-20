@@ -244,10 +244,18 @@ func TestOpenCode(t *testing.T) {
 			t.Errorf("%s: %d %q", c.name, w.Code, w.Body.String())
 		}
 	}
+	// Origin のない POST では換えない（コードも使い切らない）
+	r0 := httptest.NewRequest("POST", "/?code="+code, nil)
+	r0.Host = "localhost:8484"
+	r0.Header.Set("X-Kiroku", "1")
+	if w := httptest.NewRecorder(); func() bool { h.ServeHTTP(w, r0); return w.Code != 403 || strings.Contains(w.Body.String(), key) }() {
+		t.Error("Origin なしで鍵に換えられた")
+	}
 	// Host の確かめはコードを使う前（ほかの Host ではコードは残る）
 	r := httptest.NewRequest("POST", "/?code="+code, nil)
 	r.Host = "evil.example:8484"
 	r.Header.Set("X-Kiroku", "1")
+	r.Header.Set("Origin", "http://"+r.Host) // 画面からの POST は、ブラウザがいつも Origin を付ける
 	if w := httptest.NewRecorder(); func() bool { h.ServeHTTP(w, r); return w.Code != 403 }() {
 		t.Error("ほかの Host で通った")
 	}

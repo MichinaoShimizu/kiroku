@@ -30,7 +30,7 @@ type request struct {
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Content-Type", "application/json")
-	if r.Method != http.MethodPost || r.Header.Get("X-Kiroku") != "1" || (r.Header.Get("Origin") != "" && r.Header.Get("Origin") != "http://"+r.Host) {
+	if r.Method != http.MethodPost || r.Header.Get("X-Kiroku") != "1" || r.Header.Get("Origin") != "http://"+r.Host {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}

@@ -39,7 +39,7 @@ function summary(){
   R.querySelectorAll("details.fold").forEach(d => { d.ontoggle = () => store.set("fold:" + d.dataset.fold, d.open); // 開け閉めを覚える
     d.querySelector("summary").addEventListener("click", e => { if (e.target.closest(".hb, .fmark")) e.preventDefault(); }); }); // 見出しの「?」と印は、開け閉めしない
   R.querySelectorAll(".card,.fses").forEach(c => c.onclick = () => select(c.dataset.id));
-  WK.querySelectorAll("[data-goto]").forEach(b => { b.setAttribute("aria-haspopup", "dialog"); b.onclick = () => openWorth(b.dataset.goto, b); });
+  WK.querySelectorAll("[data-goto]").forEach(b => { b.setAttribute("aria-haspopup", "dialog"); b.onclick = () => { const d = WK.querySelector("details"); openWorth(b.dataset.goto, d ? WK.querySelector("summary") : b); if (d) d.open = false; }; }); // 選んだら一覧は閉じる（閉じたダイアログはアイコンへ戻る）
   R.querySelectorAll(".fmark").forEach(b => b.onclick = () => openWorth(b.dataset.goto, b));
   R.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b)); // 上の帯と同じ内訳
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };

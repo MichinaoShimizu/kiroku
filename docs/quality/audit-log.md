@@ -35,6 +35,28 @@ Template for a new section:
 - <aspects to weigh more>
 ```
 
+## 2026-11-20 — security and ux before v3.0.0 (PR #506)
+
+An aspect run on the v3.0.0 candidate (PR #506: leaner view and CLI, Kiro IDE (legacy) and Amazon Q dropped, `kiroku json` and `kiroku stats` removed). A ran as `hostile-tester` (hostile history across every agent, serve with and without `--ai`, git config traps, file modes, broken input); B as `user-tester` (all scenarios, en and ja, 1440, 1000 and 390, dark and light, serve with `--ai`, without it and with no agent, saved HTML).
+
+### Gates
+| Check | Result |
+|---|---|
+| tools/check.sh --e2e | pass |
+| go test -count=3 | pass |
+| Coverage by package | cli 88.2% (+1.6), core 83.6%, report 89.8%, source 94.5%, web 91.5%; others unchanged |
+
+### Findings
+| Aspect | Certain | Suspected | Needs a decision | Not worth fixing | Fixed in |
+|---|---|---|---|---|---|
+| A. security | 2 | 0 | 1 (symlinked history files are followed when reading and archiving) | 0 | #506 (`Origin` now required on `/ai/run`, `/archive` and the open-code exchange, with tests; stale `--lang` help) |
+| B. ux | 9 | 0 | 3 (page opens scrolled past the overview; daily AI button hidden until hover; one % for cost and credits, and comparisons when history starts inside the previous period) | 1 (legend chips scroll at 1000 px) | #506 (limit marks on their own block, late git marks inside the day, "Long conversations" name, list closes after a pick, no-agent reason as text, no "0" commit mark, units kept with numbers) |
+
+### Open items
+- Symlinked history files: a link inside a history folder pointing to another file you can read is shown and archived (not served by `/history`). Options: skip links whose target is outside the history location, or say so in SECURITY.md. Decides: maintainer
+- UX decisions above (opening scroll, hidden daily AI button, % labels). Decides: maintainer
+- Small: Repeated prompts rows that read the same; the phone right-edge fade over the search button. Due: next ux run
+
 ## 2026-11-20 — ux and i18n at 5297b6a (v1.1.2 and PR #502)
 
 An aspect run after many view changes since v1.0 (one page scroll, the figures strip, chat-style prompt flow, month-end ranges, the palette). B ran as `user-tester` (en and ja, 1440, 1000 and 390, dark and light, serve with a stub agent, no agent and `--no-ai`, and the saved HTML); C as a general-purpose agent. Fixes are on PR #502.

@@ -175,7 +175,7 @@ try {
   await pn.waitForSelector(".run[data-sid]", { timeout: 15000 });
   check("エージェントがないと、日報のボタンは出さない（理由はセッションの詳細で言う）", await pn.locator(".head .dayrun").count() === 0);
   await pn.evaluate(() => select(DATA.find(s => s.prompts.length).id)); await pn.waitForSelector("#panel .ai-none", { timeout: 5000 });
-  check("エージェントがないと、ボタンは押せず、理由が添えてある", await pn.locator("#panel .ai-none button").isDisabled() && /No AI agent found/.test(await pn.locator("#panel .ai-why").innerText()) && /claude, codex or kiro-cli/.test(await pn.locator("#panel .ai-why").getAttribute("title")));
+  check("エージェントがないと、ボタンは押せず、理由が添えてある", await pn.locator("#panel .ai-none button").isDisabled() && /No AI agent command/.test(await pn.locator("#panel .ai-why").innerText()) && /claude, codex or kiro-cli/.test(await pn.locator("#panel .ai-why").innerText()));
   await pn.close();
   // 既定（--ai なし）はオフ: 起動の 1 行がそう言い、/ai/run はなく、日報のボタンも出ない
   const dflt = await startExtra(serveArgs.filter(a => a !== "--ai"), {});

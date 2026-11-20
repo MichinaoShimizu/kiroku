@@ -18,6 +18,7 @@ func TestAIEndpointNotFoundWhenOff(t *testing.T) {
 	l := &live{}
 	r := httptest.NewRequest(http.MethodPost, "http://localhost:8485/ai/run", strings.NewReader(`{"agent":"claude","prompt":"hello","consent":true}`))
 	r.Header.Set("X-Kiroku", "1")
+	r.Header.Set("Origin", "http://"+r.Host) // 画面からの POST は、ブラウザがいつも Origin を付ける
 	w := httptest.NewRecorder()
 	l.handler().ServeHTTP(w, r)
 	if w.Code != http.StatusNotFound {

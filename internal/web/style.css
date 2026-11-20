@@ -823,7 +823,7 @@ dialog.mdlg h3{margin:20px 0 8px}
 .pill.ai-off:focus-visible{outline:2px solid var(--go);outline-offset:3px}
 /* エージェントのコマンドがないとき: 押せないボタンと、その理由（全文は title に） */
 .ai-none{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
-.ai-why{font-size:var(--fs-xs);color:var(--ink-3);cursor:help}
+.ai-why{display:block;margin-top:4px;font-size:var(--fs-xs);color:var(--ink-2)} /* 押せない理由は、触れずに読める文で（タッチやキーボードでも） */
 
 html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り返す（対応していないブラウザは今までどおり） */
 /* AI 分析: 経過（コマンド・ツール・エラー出力）と、返事（整えた表示か Markdown のまま） */

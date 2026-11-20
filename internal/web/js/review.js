@@ -141,7 +141,8 @@ const GOTO = {longctx: "heavy", modelfit: "models"}; // 専用の指標がない
 function flagSum(F){ // 期間の切り替えの行（#worth）に「見直す候補 N」の 1 つのボタン。押すと、基準を超えた指標の名前が優先度の高い順に開く（押すとその指標のダイアログ）
   const ids = [...new Set(F.map(f => GOTO[f.k] || f.k))];
   if (!ids.length) return `<span class="lbl muted wdi" role="img" aria-label="${esc(t("Worth a look"))}: 0" title="${esc(t("No metric crossed a threshold"))}">${ico("flag")}</span>`;
-  return `<details class="wdd"><summary class="pill wdi" aria-label="${esc(t("Worth a look"))}: ${ids.length}" title="${esc(t("Worth a look"))}">${ico("flag", "fdot")}<b>${ids.length}</b></summary><div class="wdl" role="group" aria-label="${esc(t("Worth a look"))}"><span class="wdh">${esc(t("Worth a look"))}${hb("findings")}</span>${ids.map(id => `<button class="flink" data-goto="${id}">${esc(H()[id].n)}</button>`).join("")}</div></details>`;
+  return `<details class="wdd"><summary class="pill wdi" aria-label="${esc(t("Worth a look"))}: ${ids.length}" title="${esc(t("Worth a look"))}">${ico("flag", "fdot")}<b>${ids.length}</b></summary><div class="wdl" role="group" aria-label="${esc(t("Worth a look"))}"><span class="wdh">${esc(t("Worth a look"))}${hb("findings")}</span>${ids.map(id => { const ks = [...new Set(F.filter(f => (GOTO[f.k] || f.k) === id).map(f => f.k))], n = ks.length === 1 && H()[ks[0]] ? H()[ks[0]].n : H()[id].n; // 候補が 1 つなら、その候補の名前（長い会話を「重いセッション」と呼ばない）
+      return `<button class="flink" data-goto="${id}">${esc(n)}</button>`; }).join("")}</div></details>`;
 }
 function sesFlags(s){ // 詳細の頭に、このセッションが関係する見直す候補（表示中の期間のもの）の名前だけを出す。押すとサマリーと同じダイアログ
   const ids = [...new Set(lastFlags.filter(f => f.ids.includes(s.id)).map(f => GOTO[f.k] || f.k))];
@@ -157,7 +158,7 @@ function openWorth(id, from){
   const hk = fs.length === 1 && H()[fs[0].k] ? H()[fs[0].k] : h; // 印が 1 つだけなら、その候補自身の説明（長い会話で開いたときに、重いセッションの説明を出さないように）
   const {ws, we} = period(), r0 = id === "repeats" && repeatsOf(ws, we)[0], rp = r0 ? new Map([...r0.by].filter(([, x]) => x !== r0.text)) : null; // 見出しと同じ書き方は、カードごとに繰り返さない
   const body = fs.map(f => `<div class="fl"><p class="see">${ico("flag", "fdot")}${esc(f.L.see)}</p><p class="rule">${esc(t("Threshold: {rule}", {rule: f.L.rule}))}</p>${f.k === "repeats" ? "" : `<p class="why">${esc(f.L.why)}</p>`}${spark(f.k)}${f.ids.length ? `<div class="fss">${flagSes(f.ids.slice(0, 6), f.k === "repeats" ? rp : null)}${f.ids.length > 6 ? `<div class="fss-rest" hidden>${flagSes(f.ids.slice(6), f.k === "repeats" ? rp : null)}</div><button type="button" class="more fmore">${esc(f.ids.length - 6 === 1 ? t("1 more session") : t("{n} more sessions", {n: f.ids.length - 6}))}</button>` : ""}</div>` : ""}</div>`).join(""); // 繰り返しのプロンプトの「なぜ」は「What to try」と同じことなので出さない
-  D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" id="wkclose" aria-label="${esc(t("Close"))}"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form><div class="eyebrow">${ico("flag", "fdot")}${esc(t("Worth a look"))}</div><h2 id="wkh">${esc(h.n)}</h2>${body}
+  D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" id="wkclose" aria-label="${esc(t("Close"))}"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form><div class="eyebrow">${ico("flag", "fdot")}${esc(t("Worth a look"))}</div><h2 id="wkh">${esc(hk.n)}</h2>${body}
     <dl class="wkhelp"><dt>${esc(t("What it is"))}</dt><dd>${esc(hk.d)}</dd><dt>${esc(t("Doesn't tell you"))}</dt><dd>${esc(hk.x)}</dd><dt>${esc(t("What to try"))}</dt><dd>${esc(hk.a)}</dd></dl>`;
   const bindSes = el => el.querySelectorAll("[data-id]").forEach(b => b.onclick = () => { D.close(); select(b.dataset.id); });
   D.querySelectorAll(".fss").forEach(bindSes);

@@ -264,7 +264,7 @@ func langFlag(fs *flag.FlagSet) *string {
 		fmt.Fprintf(logw, "ignoring KIROKU_LANG=%q: use one of %s\n", env, strings.Join(web.Langs, ", "))
 		env = ""
 	}
-	return fs.String("lang", env, "language of the view: en or ja ($KIROKU_LANG; default: the browser's language, English if it isn't Japanese). You can switch it in the view too")
+	return fs.String("lang", env, "language of the view: en or ja ($KIROKU_LANG; default: the browser's language, English if it isn't Japanese); ?lang=en or ?lang=ja in the address also picks it")
 }
 
 // aiEnv は $KIROKU_AI（--ai の既定）。前後の空白を除いて "1"・"true"・"yes"・"on"（大文字小文字を問わない）のときだけ、AI の実行を許す

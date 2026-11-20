@@ -11,3 +11,7 @@
   - "Worth a look" is an icon with a count, and "This week", the period and view switches and that icon share one height and center line
   - The week calendar shades weekday hours outside 9:00–18:00, so early-morning and late-night work stands out
   - Session blocks and usage-limit marks in the week calendar have square corners
+  - Usage-limit marks sit at the left edge of their own session's block, and their name says which session; late commit and push marks stay inside the day
+  - Worth a look names a long-conversation flag "Long conversations" (not "Heaviest sessions"), and its list closes once you pick an item
+  - With no agent installed, the reason ("No AI agent command (claude, codex or kiro-cli) was found…") is shown as text, not only on hover
+  - Day headings leave out the commit mark on days without commits, and credit units stay next to their numbers on phones

@@ -360,6 +360,9 @@ async function run(env) {
   await step("見直す候補", async () => {
     await view("sum");
     check("日の見出しの 1 行は、名前つきのただの文字（HTML を含まない）", await p.evaluate(() => [...document.querySelectorAll("#tl .head .cline > span[aria-label]")].every(e => !/[<>]/.test(e.getAttribute("aria-label")) && e.querySelectorAll("*:not(svg):not(svg *)").length === 0)));
+    check("上限の印は、そのセッションの帯の左端にある（隣の帯に重ねない）", await p.evaluate(() => [...document.querySelectorAll("#tl .lim")].every(m => { const r = m.getBoundingClientRect(), bs = [...m.closest(".day").querySelectorAll(`.run[data-sid="${CSS.escape(m.dataset.id)}"]`)].map(b => b.getBoundingClientRect());
+      return !bs.length || bs.some(b => Math.abs(b.left - r.left) <= 4); })));
+    check("夜遅い印も日の枠の中にある", await p.evaluate(() => [...document.querySelectorAll("#tl .day")].every(d => { const db = d.getBoundingClientRect(); return [...d.querySelectorAll(".gc, .gm")].every(m => m.getBoundingClientRect().bottom <= db.bottom + 1); })));
     check("平日の勤務時間（9:00〜18:00）の外は地の色が違う", await p.evaluate(() => { const d = [...document.querySelectorAll("#tl .day")].find(e => !e.classList.contains("we")); return !!d && (getComputedStyle(d).backgroundImage.match(/linear-gradient/g) || []).length === 2; }));
     check("見直す候補はアイコンだけ（名前は読み上げとツールチップ）", await p.evaluate(() => { const b = document.querySelector("#worth summary"); return !!b && !/[A-Za-z]{3}/.test(b.textContent) && /Worth a look/.test(b.getAttribute("aria-label") || ""); }));
     if (env.viewport.width > 820) check("今週・期間・表示・見直す候補は、同じ高さで中心がそろう", await p.evaluate(() => { const rs = ["#today", "#mode", "#view", "#worth summary"].map(s => document.querySelector(s).getBoundingClientRect());
@@ -381,7 +384,7 @@ async function run(env) {
     check("ダイアログが画面に収まる", box && box.x >= 0 && box.x + box.width <= env.viewport.width + 1, JSON.stringify(box));
     check("開いてもページは動かない", await p.evaluate("scrollY") === y0);
     await p.keyboard.press("Escape"); await pause();
-    check("Esc で閉じ、押した候補にフォーカスが戻る", !(await p.locator("#wk").evaluate(d => d.open)) && await link.evaluate(b => b === document.activeElement));
+    check("Esc で閉じ、見直す候補のアイコンにフォーカスが戻り、一覧は閉じている", !(await p.locator("#wk").evaluate(d => d.open)) && await p.locator("#worth summary").evaluate(b => b === document.activeElement) && !(await p.locator("#worth details").evaluate(d => d.open)));
     check("閉じるボタンは右上の × だけ（ほかのダイアログや詳細のパネルとそろえる）", await p.locator("#wk button.pill").count() === 0 && await p.locator("#wkclose").getAttribute("aria-label") === "Close");
     await p.evaluate(() => { const d = document.querySelector("#worth details"); if (d) d.open = true; }); await link.click(); await pause();
     await p.mouse.click(4, env.viewport.height - 4); await pause();

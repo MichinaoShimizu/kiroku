@@ -357,7 +357,7 @@ func (l *live) handler() http.Handler {
 	// ほかのサイトのページから押させないよう、画面だけが付ける X-Kiroku ヘッダーを求める
 	// （付けるとブラウザは先に確認の問い合わせ（preflight）をするが、ここは答えないので、ほかのサイトからは送れない）。
 	mux.HandleFunc("/archive", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.Header.Get("X-Kiroku") != "1" || (r.Header.Get("Origin") != "" && r.Header.Get("Origin") != "http://"+r.Host) {
+		if r.Method != http.MethodPost || r.Header.Get("X-Kiroku") != "1" || r.Header.Get("Origin") != "http://"+r.Host {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
