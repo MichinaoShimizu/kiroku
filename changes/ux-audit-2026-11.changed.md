@@ -1,0 +1,10 @@
+- The view's wording and figures, after a UX review:
+  - On a past week or month, the summary says "in the week shown" instead of "this week"
+  - In Japanese, the summary heading reads 週のサマリー／月のサマリー, matching the View button, and the metric heading reads 指標
+  - Kiro credits under 10 show one decimal (1.3 cr, not 1 cr)
+  - When only one of cost and credits is already past last week's (or month's) total, "A day to match last week" shows the target for the other and a short "credits over" note, instead of mixing a per-day target with a total overage; the tooltip gives the overage
+  - Ranges read "1 – 3" in English and 1〜3 in Japanese everywhere (breakdown table, dotted lines, tooltips), and the week breakdown's line is labelled "Pace to match the last period"
+  - Kiro CLI (V2), Kiro CLI (SQLite) and Amazon Q are teal instead of green, so they no longer look like Codex next to it
+- On phones, the week calendar's day headings stick under the page header while you scroll and follow its sideways scroll
+- The LIVE badge is a button: clicking or tapping it shows what it means (also with a keyboard or touch screen); the search box has a name for screen readers
+- Errors from "Analyze with AI" that the server reports after starting are shown in Japanese too

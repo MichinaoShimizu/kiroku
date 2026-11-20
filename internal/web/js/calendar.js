@@ -98,10 +98,15 @@ function kpis(){
   const pc = pacing(w, pw), paceK = () => {
     const xs = [[pc.cost, (v, txt) => txt ? usd(v) : usdH(v)], [pc.credits, (v, txt) => txt ? cr(v) : `${crN(v)}<small> cr</small>`]].filter(([x]) => x);
     const all = xs.every(([x]) => x.rest < 0);
-    const v = xs.map(([x, f]) => x.rest >= 0 ? f(x.per) : `<small>+</small>${f(-x.rest)}<small> ${esc(t("over"))}</small>`).join(`<small> · </small>`);
-    const ref = xs.map(([x, f]) => f(x.ref, true)).join(" · ");
-    return kpi(all ? t(M ? "Past last month's total" : "Past last week's total") : t(M ? "A day to match last month" : "A day to match last week"), v,
-      all ? t(M ? "Last month's total was {v}" : "Last week's total was {v}", {v: ref}) : t(M ? "To stay at last month's total of {v}, for the {n} left" : "To stay at last week's total of {v}, for the {n} left", {v: ref, n: plural(pc.left, "day")}), "key", pc.cost ? "pace" : "paceCr"); };
+    if (all) return kpi(t(M ? "Past last month's total" : "Past last week's total"), xs.map(([x, f]) => `<small>+</small>${f(-x.rest)}<small> ${esc(t("over"))}</small>`).join(`<small> · </small>`),
+      t(M ? "Last month's total was {v}" : "Last week's total was {v}", {v: xs.map(([x, f]) => f(x.ref, true)).join(" · ")}), "key", pc.cost ? "pace" : "paceCr");
+    // 片方（多くはクレジット）だけ超えたときは、1 日の目安の数に超過を混ぜない（「$3.20 · +5 cr 超過」は 1 日の額に読める）。
+    // 数は超えていない方の目安だけにし、超えた方は短い添え書き（「クレジットは超過」）と、ポップアップの文で伝える
+    const ok = xs.filter(([x]) => x.rest >= 0), ov = xs.filter(([x]) => x.rest < 0);
+    const v = ok.map(([x, f]) => f(x.per)).join(`<small> · </small>`) + (ov.length ? `<small class="ovr"> · ${esc(t(ov[0][0] === pc.credits ? "credits over" : "cost over"))}</small>` : "");
+    const tt = t(M ? "To stay at last month's total of {v}, for the {n} left" : "To stay at last week's total of {v}, for the {n} left", {v: ok.map(([x, f]) => f(x.ref, true)).join(" · "), n: plural(pc.left, "day")}) +
+      ov.map(([x, f]) => " · " + t(M ? "{v} over last month's total of {r}" : "{v} over last week's total of {r}", {v: f(-x.rest, true), r: f(x.ref, true)})).join("");
+    return kpi(t(M ? "A day to match last month" : "A day to match last week"), v, tt, "key", ok[0][0] === pc.cost ? "pace" : "paceCr"); };
   const pace = pj ? t("If the pace of the first {n} days continues", {n: pj.days}) + bandNote(pj.cost != null ? pj.band.cost : pj.band.credits, pj.cost != null ? usd : cr) : "";
   // 帯は日々の判断に使う数だけ：左に使ったもの（推定費用とクレジット・前の期間並みの 1 日の目安・月末の推定（月）・稼働時間）、右に残したもの（outK）。
   // 稼働日・セッション / プロンプト・利用上限への到達は振り返りの数なので、サマリーと「見直す候補」に任せる（帯が多いとカレンダーと主役を争う）。
@@ -259,8 +264,11 @@ function timeline(shown, inWeek, ws, we, todayKey){
     if (isToday && nowS >= ds && nowS < de) html += `<div class="nowline" style="top:${clockH(day, nowS)*hh}px"></div>`;
     cols += `<div class="day${day.getDay()%6===0?" we":""}${wkc(day.getDay())}${isToday?" today":""}" style="height:${H}px;--g:${marks.length ? 18 : 0}px">${html}</div>`;
   }
-  T.innerHTML = `<div class="calscroll" style="--hh:${hh}px"><div class="calin"><div class="heads">${heads}</div><div class="cgrid"><div class="hours" style="height:${H}px">${hours}</div>${cols}</div></div></div>`;
-  const sc = T.querySelector(".calscroll");
+  // 曜日の見出しは、横にスクロールする本体（.calscroll）の外に置き、ページのスクロールで上に貼り付ける（.tlhead）。
+  // 横のスクロールは本体に合わせて動かす（狭い画面でも、どの列が何日かわかるように）
+  T.innerHTML = `<div class="tlhead"><div class="calin"><div class="heads">${heads}</div></div></div><div class="calscroll" style="--hh:${hh}px"><div class="calin"><div class="cgrid"><div class="hours" style="height:${H}px">${hours}</div>${cols}</div></div></div>`;
+  const sc = T.querySelector(".calscroll"), th = T.querySelector(".tlhead");
+  sc.addEventListener("scroll", () => { th.scrollLeft = sc.scrollLeft; }, {passive: true});
   sc.style.scrollPaddingTop = T.querySelector(".heads").offsetHeight + "px"; sc.style.scrollPaddingLeft = "56px"; // Tab で移ったブロックが、固定の日付・時刻の下に隠れないように
   if (top != null) sc.scrollTop = top;
   fitRuns(T);
