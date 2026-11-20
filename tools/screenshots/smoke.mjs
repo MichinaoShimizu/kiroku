@@ -83,11 +83,11 @@ async function run(env) {
     check("ロゴはこのファイルを開き直すリンク（/ ではディスクの一番上へ行く）", await p.evaluate(() => document.querySelector("#home").getAttribute("href") === location.href.split(/[?#]/)[0]));
     check("ロゴが検索欄に隠れない", await p.evaluate(() => document.querySelector(".brand .word").getBoundingClientRect().right <= document.querySelector(".search").getBoundingClientRect().left));
     // カレンダーが主役：③ 時間の使い方から下のパネルは閉じていて、残したもの（アウトプット）は上の帯の右側に
-    check("③ から下のサマリーは既定で閉じている", await p.evaluate(() => { const f = [...document.querySelectorAll("#review details.panel.fold")]; return f.length >= 3 && f.every(d => !d.open); }));
+    check("サマリーのパネルは ① プロジェクト別から既定で閉じている", await p.evaluate(() => { const f = [...document.querySelectorAll("#review details.panel.fold")]; return f.length >= 5 && f[0].classList.contains("projs") && f.every(d => !d.open); }));
     check("上の帯に、残したもの（コミット）が使ったものの右に並ぶ", await p.evaluate(() => { const o = document.querySelector("#kpis .kpi.out"), a = document.querySelector('#kpis [data-metric="active"]');
       return !!o && !!a && (a.compareDocumentPosition(o) & Node.DOCUMENT_POSITION_FOLLOWING) > 0; }));
     check("見出しの「?」を押しても、パネルは開かない", await p.evaluate(() => { const d = document.querySelector("#review details.panel.fold"), hb = d.querySelector("summary .hb");
-      if (!hb) return true; hb.click(); const ok = !d.open; document.querySelector("#hpop")?.hidePopover?.(); return ok; }));
+      if (!hb) return true; hb.click(); const ok = !d.open; if (typeof hideHint === "function") hideHint(); return ok; }));
     for (const sm of await p.locator("#review details.panel.fold > summary").all()) await sm.click(); // 開ける（覚えるので、あとの確認は開いたまま）
     await pause();
     check("見出しを押すとパネルが開く", await p.evaluate(() => [...document.querySelectorAll("#review details.panel.fold")].every(d => d.open)));
@@ -157,7 +157,7 @@ async function run(env) {
     if (await rep.count() > 0){
       await rep.scrollIntoViewIfNeeded();
       check("応答の中身が読める", (await rep.locator(".reptext").innerText()).trim().length > 0);
-      check("だれの発言か分かる", (await rep.locator(".rpav").innerText()).trim().length > 0);
+      check("だれの発言か分かる", await rep.locator(".rpav svg").count() === 1);
       // 依頼と応答の間に起きたこと（コミットなど）は応答の上に出るので、それを飛ばした手前が依頼
       check("応答は依頼のすぐ後に並ぶ", await p.evaluate(() => { const li = [...document.querySelectorAll("#panel .tl li")], i = li.findIndex(x => x.classList.contains("rp"));
         let j = i - 1; while (j >= 0 && li[j].classList.contains("ev")) j--;
@@ -361,7 +361,7 @@ async function run(env) {
   await step("問題の報告", async () => {
     const a = p.locator("#review .foot a.reportlink");
     check("フッターに「Report a problem」がある（新しいタブ・参照元を渡さない）", await a.count() === 1 && await a.getAttribute("target") === "_blank" && /noopener/.test(await a.getAttribute("rel") || "") && /noreferrer/.test(await a.getAttribute("rel") || ""));
-    check("Data sources にも「Report a problem」と「Copy diagnostics」がある", await p.locator("#review details.dsrc a.reportlink").count() === 1 && await p.locator("#review details.dsrc .diagcopy").count() === 1);
+    check("Data sources には、読んだデータのことだけがある（報告と診断のコピーはページの下だけ）", await p.locator("#review details.dsrc a.reportlink, #review details.dsrc .diagcopy").count() === 0);
     const href = await a.getAttribute("href");
     const u = new URL(href);
     check("行き先は kiroku の issue のテンプレート", u.origin + u.pathname === "https://github.com/MichinaoShimizu/kiroku/issues/new" && u.searchParams.get("template") === "bug.yml", href);
