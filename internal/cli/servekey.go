@@ -142,7 +142,7 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 		get := r.Method == http.MethodGet || r.Method == http.MethodHead
 		q := r.URL.Query()
 		if q.Has("key") { // 以前の版の ?key=<鍵>。鍵が合っていても使わない（kiroku open で開き直してもらう）
-			locked(w, r)
+			lockedPage403(w, r, oldKeyPage, oldKeyPageJA)
 			return
 		}
 		if q.Has("code") {
@@ -197,14 +197,17 @@ func hopTarget(path string) string {
 
 // locked は、鍵のない問い合わせへの答え（403 と、kiroku open を案内するページ）。ブラウザーの言語（Accept-Language）が
 // 日本語なら日本語のページ（画面の showLocked と同じ文）にする。
-func locked(w http.ResponseWriter, r *http.Request) {
+func locked(w http.ResponseWriter, r *http.Request) { lockedPage403(w, r, lockedPage, lockedPageJA) }
+
+// lockedPage403 は、決まったページ（英語か日本語）を 403 で返す。ページに問い合わせの中身は入れない。
+func lockedPage403(w http.ResponseWriter, r *http.Request, en, ja string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Add("Vary", "Accept-Language")
 	w.WriteHeader(http.StatusForbidden)
-	page := lockedPage
+	page := en
 	if prefersJA(r.Header.Get("Accept-Language")) {
-		page = lockedPageJA
+		page = ja
 	}
 	_, _ = w.Write([]byte(page))
 }
@@ -236,6 +239,29 @@ const lockedPageJA = `<!doctype html>
 <p>kiroku serve は、この PC のほかのユーザーに履歴を読まれないよう、鍵を持つブラウザーにだけ履歴を見せます。</p>
 <p>ターミナルで <code>kiroku open</code> を実行すると、鍵を付けてこの画面を開きます。そのあとは、このブラウザーなら鍵なしで開けます。</p>
 <p>ほかの機器で開くときは、<code>kiroku open --print</code> を実行し、表示されたアドレスをその機器で開いてください。</p>
+</html>
+`
+
+// oldKeyPage は、以前の版の ?key=<鍵> のアドレスで開かれたときの案内。そのアドレスがもう使えないこと、kiroku open のあとは
+// 鍵のない / を開く（ブックマークし直す）こと、履歴とブックマークから消して鍵も変えることを言う。リンクは決まった / だけ。
+const oldKeyPage = `<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>kiroku</title>
+<style>body{font:16px/1.6 system-ui,sans-serif;max-width:36em;margin:4em auto;padding:0 16px}code{background:rgba(127,127,127,.15);padding:.1em .3em;border-radius:4px;white-space:nowrap}html:lang(ja){word-break:auto-phrase}</style>
+<h1>This address no longer opens kiroku</h1>
+<p>It was made by kiroku before v0.38.2 and has the key in it, so kiroku 1.0 and later refuse it.</p>
+<p>Run <code>kiroku open</code> in a terminal. After that, open <a href="/">kiroku without the key in the address</a> and bookmark that instead.</p>
+<p>Delete this address from your browser's history and bookmarks. Because it was in your history with the key, also change the key: stop <code>kiroku serve</code>, delete <code>serve-key</code> in kiroku's settings folder, and start it again.</p>
+</html>
+`
+
+// oldKeyPageJA は oldKeyPage の日本語。
+const oldKeyPageJA = `<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>kiroku</title>
+<style>body{font:16px/1.6 system-ui,sans-serif;max-width:36em;margin:4em auto;padding:0 16px}code{background:rgba(127,127,127,.15);padding:.1em .3em;border-radius:4px;white-space:nowrap}html:lang(ja){word-break:auto-phrase}</style>
+<h1>このアドレスでは kiroku を開けません</h1>
+<p>v0.38.2 より前の kiroku が作った、鍵の入ったアドレスです。kiroku 1.0 からは受け付けません。</p>
+<p>ターミナルで <code>kiroku open</code> を実行してください。そのあとは、<a href="/">鍵の入っていないアドレスの kiroku</a> を開き、そちらをブックマークしてください。</p>
+<p>このアドレスは、ブラウザーの履歴とブックマークから消してください。鍵が履歴に残っていたので、鍵も変えてください（<code>kiroku serve</code> を止め、kiroku の設定の場所の <code>serve-key</code> を消して、起動し直します）。</p>
 </html>
 `
 

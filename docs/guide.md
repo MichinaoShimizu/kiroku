@@ -325,7 +325,7 @@ Press "?" on any metric in the view to see the same explanation. It is also incl
 |---|---|---|
 | Claude Code | `~/.claude/projects/*/*.jsonl` | Per message |
 | Kiro IDE / CLI: Kiro IDE v1.0 and later, and Kiro CLI V3 | `~/.kiro/sessions/<hash>/sess_*/` | Per message |
-| Kiro CLI (V2): Kiro CLI V2 | `~/.kiro/sessions/cli/` | Per prompt |
+| Kiro CLI (V2): Kiro CLI V2 (`kiro-cli --v2`, and the default before Kiro CLI 3.0) | `~/.kiro/sessions/cli/` | Per prompt |
 | Kiro IDE (legacy): Kiro IDE before v1.0 | `<globalStorage>/kiro.kiroagent/workspace-sessions/`, the execution files in `<globalStorage>/kiro.kiroagent/<32-hex workspace>/<session>/` and the `.chat` files in `<globalStorage>/kiro.kiroagent/<32-hex workspace>/` (`<globalStorage>` is `~/Library/Application Support/Kiro/User/globalStorage` on macOS, `%APPDATA%\Kiro\User\globalStorage` on Windows, and `~/.config/Kiro/User/globalStorage` or `~/.kiro-server/data/User/globalStorage` on Linux) | Start and last update, plus the start and end of each execution when its file exists |
 | Kiro Crew | `~/.kiro/crew/` (`session_map.json`, `usage/tokens/`) | Per prompt or turn |
 | Kiro CLI (SQLite): older Kiro CLI versions | `kiro-cli/data.sqlite3` (table below) | Per prompt |
@@ -441,7 +441,7 @@ systemctl --user daemon-reload
 
 - The key is made the first time `kiroku serve` runs and kept in `serve-key` in kiroku's settings folder (`~/.config/kiroku` on Linux, `~/Library/Application Support/kiroku` on macOS, `%AppData%\kiroku` on Windows, or `$KIROKU_CONFIG_DIR`), readable only by you. Every `kiroku serve` of yours uses the same key
 - `kiroku serve` (unless `--no-open`) and `kiroku open` open the view with a one-time code (`?code=`), not the key: browsers keep every address they open in their history, and sync it when history sync is on. The code works once, within 10 minutes, and `kiroku serve` hands the key to the page it opens. They don't pass the address to the browser on its command line (other users can see that); they open `open.html` in the same folder, readable only by you, which forwards to it
-- An address with `?key=` made by a version before 1.0 no longer opens kiroku (run `kiroku open` instead). It may still be in your browser's history with the key in it: delete those entries, or change the key (below)
+- An address with `?key=` (made by versions before v0.38.2) no longer opens kiroku (run `kiroku open` instead). It may still be in your browser's history with the key in it: delete those entries, or change the key (below)
 - The browser then keeps the key in its site data (`localStorage`) for that address and port, and the address without the key works, including bookmarks: the page asks `kiroku serve` for your history with the key. Another browser, a private window, a browser whose site data was cleared, or the same port under another name (`127.0.0.1` instead of `localhost`) shows "Open kiroku with its key"; run `kiroku open` again
 - The key is not kept in a cookie: browsers send a cookie to every port of the same host, so another server on this computer could receive it. After upgrading from a version that used a cookie, run `kiroku open` once in each browser; kiroku removes the old cookie
 - To open the view on another device (with `kiroku serve 0.0.0.0:8484`), run `kiroku open --print` and open the printed address there within 10 minutes, with `localhost` replaced by this computer's address. It works once; whoever opens it first gets the key and can read your history, and the connection is not encrypted, so do this only on a network you trust

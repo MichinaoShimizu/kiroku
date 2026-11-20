@@ -304,7 +304,7 @@ const JA_TEXT = {
   "Interruption": "中断",
   "Keyboard shortcuts": "キーボードショートカット",
   "Keyboard shortcuts (?)": "キーボードショートカット（?）",
-  "Kiro CLI V2": "Kiro CLI V2",
+  "Kiro CLI V2 (kiro-cli --v2, and the default before Kiro CLI 3.0); V3 sessions are under Kiro IDE / CLI": "Kiro CLI V2（kiro-cli --v2。Kiro CLI 3.0 より前の既定）。V3 のセッションは Kiro IDE / CLI に入ります",
   "Kiro IDE 1.x and Kiro CLI V3, which share one history that doesn't record which of them ran a session": "Kiro IDE 1.x と Kiro CLI V3。同じ履歴を使い、どちらで動かしたセッションかは記録されません",
   "Kiro credits": "Kiro クレジット",
   "LIVE": "LIVE",
