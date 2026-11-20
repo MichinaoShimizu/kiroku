@@ -44,13 +44,17 @@ const pcOf = (v, t) => t > 0 ? Math.round(v*100/t) : 0;
 // 日ごとの柱。見込み（proj）があれば、まだ来ていない日に 1 日あたりの平均を薄く積む
 function mDays(w, m, proj){
   const {ws} = period(), a = new Date(ws*1000), M = st.mode === "month", vals = w.days.map(d => m.v(d) || 0);
-  const now = nowMs()/1000, cur = dayNo(a, now), avg = proj ? proj.avg : 0;
-  const max = Math.max(...vals, avg, 1e-9);
+  const now = nowMs()/1000, cur = dayNo(a, now), avg = proj ? proj.avg : 0, lines = (proj && proj.lines) || [];
+  const max = Math.max(...vals, avg, ...lines.map(l => l.hi), 1e-9);
   const cols = w.days.map((d, i) => { const dt = addDays(a, i), fut = proj && i > cur, v = fut ? avg : vals[i];
     const tip = `${md(dt.getTime()/1000)}: ${fut ? t(proj.tip || "≈ {v} at the current pace", {v: m.f(avg)}) : m.f(vals[i])}`;
     const lab = !M && !fut && v > 0; // 週は 7 本なので、棒の上に値を書く（月は細すぎるので、ポインターを合わせたときだけ）
     return `<span class="mcol${fut ? " fut" : ""}${i === cur ? " now" : ""}" title="${esc(tip)}">${lab ? `<span class="bv">${esc(m.f(v))}</span>` : ""}<span class="b" style="height:${v ? `calc((${M ? "100%" : "100% - 16px"}) * ${Math.max(0.02, v/max).toFixed(4)})` : 0}"></span><small>${M ? dt.getDate() : DOW[dt.getDay()]}</small></span>`; }).join("");
-  return `<h3>${esc(t("By day"))}</h3><div class="mdays${M ? " month" : ""}"${proj ? ` style="--avg:${avg/max*100}%"` : ""}>${cols}</div>`;
+  // 月末の推定の幅を、これからの日の 1 日あたりの量にして、点線で重ねる（1σ・2σ・3σ。外ほど薄く）
+  const from = ((cur + 1) / w.days.length * 100).toFixed(2);
+  const band = lines.map(l => [l.hi, l.lo].filter(v => v > 0).map(v => `<i class="mbl k${l.k}" style="left:${from}%;--y:${(v/max*100).toFixed(2)}%" title="${esc(`${l.k}σ: ${m.f(l.lo)} – ${m.f(l.hi)} ${t("a day")}`)}"></i>`).join("")).join("");
+  const key = lines.length ? `<p class="note mbkey">${lines.map(l => `<span class="k${l.k}">${l.k}σ</span>`).join("")} ${esc(t("Dotted lines: the range for each day still to come"))}</p>` : "";
+  return `<h3>${esc(t("By day"))}</h3><div class="mdays${M ? " month" : ""}"${proj ? ` style="--avg:${avg/max*100}%"` : ""}>${cols}${band}</div>${key}`;
 }
 // 横の棒の一覧（エージェント・プロジェクト・モデル）。total が false なら割合の欄を空ける（割合や中央値のように、足しても意味のない値）。
 // keep は並べ替えない（待ち時間の幅のように、順に意味がある）
@@ -228,7 +232,7 @@ function openMetric(id, from){
     const val = m.proj === "cost" ? pj.cost : pj.credits, nd = w.days.length, avg = so / pj.days;
     big = `≈ ${m.f(val)}`;
     body = `<div class="mcalc"><div><small>${esc(t("So far"))}</small><b>${esc(m.f(so))}</b></div><span>÷</span><div><small>${esc(t("Days so far"))}</small><b>${pj.days}</b></div><span>×</span><div><small>${esc(t("Days in the month"))}</small><b>${nd}</b></div><span>=</span><div><small>${esc(t("Month-end"))}</small><b>≈ ${esc(m.f(val))}</b></div></div>
-      <p class="note">${esc(t("About {v} a day. The faded bars are the days still to come at that pace.", {v: m.f(avg)}))}</p>` + bandTable(pj, m) + mDays(w, m, {avg}) + mBars("So far, by agent", agents, m) + mBars("So far, by project", projs, m);
+      <p class="note">${esc(t("About {v} a day. The faded bars are the days still to come at that pace.", {v: m.f(avg)}))}</p>` + bandTable(pj, m) + mDays(w, m, {avg, lines: (pj.band[m.proj] || []).map(x => { const R = w.days.length - pj.days; return {k: x.k, hi: (x.hi - so) / R, lo: (x.lo - so) / R}; })}) + mBars("So far, by agent", agents, m) + mBars("So far, by project", projs, m);
   } else if (id === "limits" || id === "compactions"){ // 起きた時刻の一覧：エージェントごと・プロジェクトごとと、いつどのセッションで
     const L = id === "limits", H2 = L ? limitHits(ws, we) : compactionsOf(ws, we); big = `${H2.length}`;
     const by = (key, mk) => countBy(H2, x => x.s[key]).map(([k, v]) => mk(k, v));

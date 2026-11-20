@@ -725,6 +725,10 @@ dialog.mdlg h3{margin:20px 0 8px}
 .mdays{position:relative;display:flex;align-items:flex-end;gap:4px;height:120px;padding-bottom:18px}
 .mdays.month{gap:2px}
 .mdays[style*="--avg"]::after{content:"";position:absolute;left:0;right:0;bottom:calc(18px + (100% - 18px) * var(--avg) / 100%);border-top:1px dashed var(--ink-3);pointer-events:none}
+.mbl{position:absolute;right:0;bottom:calc(18px + (100% - 18px) * var(--y) / 100%);border-top:1.5px dotted var(--acc);pointer-events:auto;height:6px;margin-bottom:-3px;background-clip:padding-box} /* 月末の推定の幅（これからの日の 1 日あたり） */
+.mbl.k1{opacity:.75}.mbl.k2{opacity:.5}.mbl.k3{opacity:.3}
+.mbkey span{display:inline-block;margin-right:8px;padding-left:16px;position:relative;font-weight:600;color:var(--ink-2)}.mbkey span::before{content:"";position:absolute;left:0;top:50%;width:12px;border-top:1.5px dotted var(--acc)}
+.mbkey .k1::before{opacity:.75}.mbkey .k2::before{opacity:.5}.mbkey .k3::before{opacity:.3}
 .mcol{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative}
 .mcol .b{width:100%;max-width:36px;background:var(--acc);border-radius:4px 4px 1px 1px;opacity:.85}
 .mcol.fut .b{opacity:.28;background:repeating-linear-gradient(135deg,var(--acc) 0 3px,transparent 3px 6px)}

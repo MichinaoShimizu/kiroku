@@ -355,6 +355,8 @@ const JA_TEXT = {
   "Month-end": "月末",
   "3σ: {lo}–{hi}": "3σ: {lo}〜{hi}",
   "Range": "幅",
+  "a day": "/日",
+  "Dotted lines: the range for each day still to come": "点線: これからの日の 1 日あたりの幅",
   "How far the month-end could land from the estimate, from how much the finished days varied. Days are not independent or normally distributed, so take it as a rough guide; the low end never goes below what is already used.": "終わった日のばらつきから見た、月末が推定からどのくらい離れうるかの幅です。日々の量は独立でも正規分布でもないので、目安として見てください。下の端は、もう使った分より小さくしません。",
   "Month-end cost": "月末の推定費用",
   "Month-end cost (estimate)": "月末の推定費用",
