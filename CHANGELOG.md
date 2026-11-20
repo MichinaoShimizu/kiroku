@@ -31,8 +31,8 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
   - Session details fold the history file, models, tools and the agent's own metrics under "More details"
   - The summary no longer shows Files changed, Pushes, Parallel time and Total AI run time
   - The month-end estimate shows only the 3σ range (table and dotted lines), not 1σ and 2σ
-
 - kiroku no longer checks for a newer release on its own when a command runs; run `kiroku update` (or `kiroku doctor`) to check. `KIROKU_NO_UPDATE_CHECK` is no longer needed and is ignored
+
 ### Removed
 
 - kiroku no longer reads Kiro IDE before v1.0 ("Kiro IDE (legacy)", the `kiro.kiroagent` folder) or Amazon Q Developer CLI. Their sessions leave the view, and the totals of the weeks that had them go down. Kiro IDE v1.0 and later, Kiro CLI (V3, V2 and the older SQLite history) and Kiro Crew are read as before
