@@ -1,0 +1,1 @@
+- In the weekly and monthly summary, ① By project and ② Cost and outputs are folded to their heading by default too, like the panels after them, so the calendar stays the main view

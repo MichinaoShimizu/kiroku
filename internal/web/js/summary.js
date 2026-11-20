@@ -57,7 +57,7 @@ function summary(){
   bindCopy(R); bindCopy(RB); bindHelp(R); bindHelp(WK); bindReport(R);
   if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }
-/* ③ 時間の使い方から下のパネルは、既定で閉じる（ページの主役はカレンダー。開けたものは開けたまま覚える）。
+/* サマリーのパネル（① プロジェクト別から下）は、既定で閉じる（ページの主役はカレンダー。開けたものは開けたまま覚える）。
    閉じたパネルの中に基準を超えた指標があれば、placeFlags が見出しに印を出す */
 const fold = (key, head, body) => `<details class="panel fold ${key}" data-fold="${key}"${store.get("fold:" + key, false) ? " open" : ""}><summary>${head}${ico("caret", "fcar")}</summary>${body}</details>`;
 /* 期間の言い方（unit は "週" か "月"） */
@@ -99,10 +99,10 @@ function projectPanel(w, unit){
         ${anyCr ? `<div><div class="k">${esc(t("Credits"))}</div><div class="v">${p.credits ? cr(p.credits) : "—"}</div></div>` : ""}</div>
       ${p.git && p.git.commits ? `<div><div class="lab">${esc(t("Left behind"))}</div><div class="pout">${esc(t("Git commits {n} · {ai} by AI", {n: p.git.commits, ai: p.git.ai}))} · <span>${esc(t("+{added} −{removed} lines", {added: p.git.added, removed: p.git.removed}))}</span></div></div>` : p.outputs && p.outputs.commits ? `<div><div class="lab">${esc(t("Left behind"))}</div><div class="pout">${esc(t("AI commits {n}", {n: p.outputs.commits}))}</div></div>` : ""}
     </article>`; }).join("");
-  return `<section class="panel projs">${panelH(1, esc(t("By project")), esc(unit === "月" ? t("Where your time and AI went this month") : t("Where your time and AI went this week")), "projects")}
+  return fold("projs", panelH(1, esc(t("By project")), esc(unit === "月" ? t("Where your time and AI went this month") : t("Where your time and AI went this week")), "projects"), `
     ${shareBlock(w, ps)}
     <div class="pgrid">${cards}</div>
-    ${ps.length > LIMIT ? `<button class="pill pmore" id="pmore">${esc(st.allProj ? t("Show top projects only") : ps.length - LIMIT === 1 ? t("Show 1 more project") : t("Show {n} more projects", {n: ps.length - LIMIT}))}</button>` : ""}</section>`;
+    ${ps.length > LIMIT ? `<button class="pill pmore" id="pmore">${esc(st.allProj ? t("Show top projects only") : ps.length - LIMIT === 1 ? t("Show 1 more project") : t("Show {n} more projects", {n: ps.length - LIMIT}))}</button>` : ""}`);
 
 }
 /* 指標の読み方：定義・言えること・言えないこと・打てる手。画面の「?」と、改善案プロンプトの前提に使う */

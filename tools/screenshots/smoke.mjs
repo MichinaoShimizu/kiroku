@@ -83,11 +83,11 @@ async function run(env) {
     check("ロゴはこのファイルを開き直すリンク（/ ではディスクの一番上へ行く）", await p.evaluate(() => document.querySelector("#home").getAttribute("href") === location.href.split(/[?#]/)[0]));
     check("ロゴが検索欄に隠れない", await p.evaluate(() => document.querySelector(".brand .word").getBoundingClientRect().right <= document.querySelector(".search").getBoundingClientRect().left));
     // カレンダーが主役：③ 時間の使い方から下のパネルは閉じていて、残したもの（アウトプット）は上の帯の右側に
-    check("③ から下のサマリーは既定で閉じている", await p.evaluate(() => { const f = [...document.querySelectorAll("#review details.panel.fold")]; return f.length >= 3 && f.every(d => !d.open); }));
+    check("サマリーのパネルは ① プロジェクト別から既定で閉じている", await p.evaluate(() => { const f = [...document.querySelectorAll("#review details.panel.fold")]; return f.length >= 5 && f[0].classList.contains("projs") && f.every(d => !d.open); }));
     check("上の帯に、残したもの（コミット）が使ったものの右に並ぶ", await p.evaluate(() => { const o = document.querySelector("#kpis .kpi.out"), a = document.querySelector('#kpis [data-metric="active"]');
       return !!o && !!a && (a.compareDocumentPosition(o) & Node.DOCUMENT_POSITION_FOLLOWING) > 0; }));
     check("見出しの「?」を押しても、パネルは開かない", await p.evaluate(() => { const d = document.querySelector("#review details.panel.fold"), hb = d.querySelector("summary .hb");
-      if (!hb) return true; hb.click(); const ok = !d.open; document.querySelector("#hpop")?.hidePopover?.(); return ok; }));
+      if (!hb) return true; hb.click(); const ok = !d.open; if (typeof hideHint === "function") hideHint(); return ok; }));
     for (const sm of await p.locator("#review details.panel.fold > summary").all()) await sm.click(); // 開ける（覚えるので、あとの確認は開いたまま）
     await pause();
     check("見出しを押すとパネルが開く", await p.evaluate(() => [...document.querySelectorAll("#review details.panel.fold")].every(d => d.open)));
