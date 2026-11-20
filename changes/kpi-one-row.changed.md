@@ -1,1 +1,0 @@
-- The figures above the calendar always stay in one row except on phones: on narrower windows their numbers are set smaller instead of wrapping to a second row
