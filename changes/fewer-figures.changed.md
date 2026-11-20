@@ -1,0 +1,1 @@
+- Fewer figures above the calendar: files changed and pushes moved to the summary's ② only, and in the month view the month-end estimate replaces "A day to match last month", so a month shows six figures instead of nine

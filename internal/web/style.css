@@ -900,17 +900,14 @@ body[data-view="cal"] #review{display:none}
 body[data-view="sum"] #tl,body[data-view="sum"] #skipcal{display:none}
 /* 上の帯の間は、どちらの表示でも同じに（切り替えたときに上の帯が動かないように）。カレンダーに高さを回すため少しだけ詰める */
 .week{padding:24px 0 16px}.flagsum{margin-bottom:12px}.legend{padding-bottom:12px}
-/* 固定するのは、カレンダーに十分な高さ（時間の目盛りが見える高さ）が残るときだけ。背の低い窓や拡大した画面、検索の最中は、
-   今までどおりページ全体がスクロールする（JS の fitLayout が body.fixed を付け外しする） */
+/* スクロールはページだけ（何も固定しない。上の帯はスクロールで流れていく）。カレンダーの中ではスクロールさせず、1 日を全部の高さで出す。
+   広い画面では、曜日の見出しが上の見出し（header）の下に貼り付いて、スクロールしても何日かわかる。
+   狭い画面は横にスクロールするので、見出しは貼り付かない（中で縦にスクロールさせて二重にしない） */
+#tl .calscroll{max-height:none}
 @media (min-width:821px){
-  body.fixed{height:100vh;display:flex;flex-direction:column;overflow:hidden}
-  body.fixed header{flex:none}
-  body.fixed main.wrap{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;overflow:hidden}
-  body.fixed main.wrap>*{flex:none}
-  body.fixed[data-view="cal"] #tl{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:24px;box-shadow:var(--shadow);overflow:auto}
-  body.fixed[data-view="cal"] #tl .calscroll{flex:1;min-height:0;max-height:none}
-  body.fixed[data-view="sum"] main.wrap{overflow:auto} /* サマリーは、上の帯ごと 1 つの流れでスクロールする */
-  body:not(.fixed) #tl .calscroll{max-height:none;overflow-y:visible} /* 固定しないときは、カレンダーの中ではスクロールさせない（スクロールはページだけ。二重にしない） */
+  #tl{overflow:clip} /* 角を丸く切るのは clip で（hidden だとスクロールの枠になり、見出しが貼り付かない） */
+  #tl .calscroll{overflow:visible}
+  #tl .heads{top:64px}
 }
 #tl{box-shadow:var(--shadow)} /* カレンダーの境目は、影でいつもはっきりと */
 

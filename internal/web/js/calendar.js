@@ -40,7 +40,6 @@ function render(){
   if (!M) st.hh = fitHour(); // 1 時間の高さは、この週の作業の時間帯が枠に収まるように（44px か 36px）
   M ? monthGrid(shown, ws, we, todayKey) : timeline(shown, inRange, ws, we, todayKey);
   edgeFade($("#tl")); // 月表示や空の週では消す
-  fitLayout(); // 描き直したカレンダーの高さで、ページを固定するかを決め直す
   $("#skipcal").hidden = !!st.q; // 検索の最中は、結果がカレンダーの上にあり、下のサマリーは空
   lastFlags = []; // 見直す候補は表示中の期間のものだけ（検索中や記録のない期間に、前の期間の候補を詳細に出さない）
   $("#rptbar").hidden = true; // 検索の最中は出さない（summary が期間の記録があれば出す）
@@ -111,7 +110,7 @@ function kpis(){
   const useK = u.tokens && u.credits ? t(c == null ? "Tokens · credits" : "Estimated cost · credits") : u.tokens ? t(c == null ? "Tokens" : "Estimated cost") : t("Kiro credits");
   const pjV = pj ? two(pj.cost != null ? `<small>≈</small>${usdH(pj.cost)}` : "", pj.credits != null ? `<small>≈</small>${crN(pj.credits)}<small> cr</small>` : "") : "";
   K.innerHTML = (useV ? kpi(useK, useV, u.tokens && c == null ? NOPRICE : "", "key", u.tokens ? (c == null ? "tokens" : "cost") : "credits") : "") +
-    (pc ? paceK() : "") +
+    (pc && !pj ? paceK() : "") + // 月の途中は月末の推定を出すので、前の月並みの目安は出さない（内訳とサマリーにある）
     (pjV ? kpi(t(pj.cost != null && pj.credits != null ? "Month-end (estimate)" : pj.cost != null ? "Month-end cost" : "Month-end credits"), pjV, pace, "key", pj.cost != null ? "projection" : "projectionCr") : "") +
     kpi(t("Active time"), dur(w.active, true), n0 == null ? "" : M ? t("{days} of the {n} so far (this month is still in progress)", {days, n: plural(nd, "day")}) : t("{days} of the {n} so far (this week is still in progress)", {days, n: plural(nd, "day")}), "", "active") +
     outK(w, kpi);
@@ -119,15 +118,13 @@ function kpis(){
   K.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b));
 }
 
-/* 帯の右側：残したもの（アウトプット）。コミット・変えた行・ファイル・push・PR。git を読めないときは AI のコミットだけ。
+/* 帯の右側：残したもの（アウトプット）。コミット・変えた行・PR だけ（ファイル数と push はサマリーの ② に）。git を読めないときは AI のコミットだけ。
    左の使ったもの（費用・稼働時間）と並べて、使った分が何か残したかを、カレンダーを見る前に 1 行で */
 function outK(w, kpi){
-  const g = w.git && w.git.commits ? w.git : null, o = w.outputs || {}, G = periodGit(), n = commas, out = "out";
+  const g = w.git && w.git.commits ? w.git : null, o = w.outputs || {}, n = commas, out = "out";
   return [
     g ? kpi(t("Git commits"), `${g.commits}<small> · ${esc(t("{n} by AI", {n: g.ai}))}</small>`, "", out, "commits") : o.commits ? kpi(t("AI commits"), `${o.commits}`, "", out, "aiCommits") : "",
     g ? kpi(t("Lines changed"), `${n(g.added + g.removed)}<small> +${n(g.added)} −${n(g.removed)}</small>`, "", out, "lines") : "",
-    g && G.files ? kpi(t("Files changed"), n(G.files), "", out, "files") : "",
-    G.pushes ? kpi(t("Pushes"), `${G.pushes}`, "", out, "pushes") : "",
     o.prs ? kpi(t("Pull requests"), `${o.prs}`, "", out, "prs") : "",
   ].join("");
 }
