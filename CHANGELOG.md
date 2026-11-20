@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v1.1.2 - 2026-11-20
+
+### Changed
+
+- Fewer figures above the calendar: files changed and pushes moved to the summary's ② only, and in the month view the month-end estimate replaces "A day to match last month", so a month shows six figures instead of nine
+- Nothing is fixed on screen anymore: only the page scrolls, the top scrolls away, and the week calendar shows the whole day at full height without a scroll of its own. On a wide window its day headings stick under the page header while you scroll
+
 ## v1.1.1 - 2026-11-20
 
 ### Changed
