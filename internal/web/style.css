@@ -144,8 +144,8 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .head.today{box-shadow:inset 0 -2px 0 var(--acc)}
 .head .dd .dayrun{margin-left:auto;align-self:center;font-size:var(--fs-xs);padding:2px 8px;white-space:nowrap} /* 日報の「AI 分析」（記録のある日だけ）。日付の右端に小さく、入らなければ日付の下の行に */
 /* 7 日分のボタンが並ぶと落ち着かないので、マウスで使う画面では日付の見出しに触れたとき（キーボードで入ったとき）だけ見せる。タッチの画面ではいつも出す */
-@media (hover:hover){.head .dd .dayrun{opacity:0;transition:opacity .15s var(--ease)}.head:hover .dd .dayrun,.head:focus-within .dd .dayrun{opacity:1}}
-.head .dd .pill.dayrun.ai-action:not(:disabled){background:transparent;color:var(--ink-2);border-color:var(--rule-2);font-weight:500} /* 7 日すべてに塗りのボタンが並ぶと目立ちすぎるので、枠だけ（押すと塗り） */
+@media (hover:hover){.head{position:relative}.head .dd .dayrun{position:absolute;top:8px;right:8px;z-index:2;opacity:0;transition:opacity .15s var(--ease)}.head:hover .dd .dayrun,.head:focus-within .dd .dayrun{opacity:1}} /* 隠しているあいだは場所も取らない（見出しの上に重ねて出す） */
+.head .dd .pill.dayrun.ai-action:not(:disabled){background:var(--surface);color:var(--ink-2);border-color:var(--rule-2);font-weight:500} /* 7 日すべてに塗りのボタンが並ぶと目立ちすぎるので、枠だけ（押すと塗り） */
 .head .dd .pill.dayrun.ai-action:not(:disabled):hover{background:color-mix(in oklab,var(--go) var(--t2),var(--surface));color:var(--go-ink);border-color:color-mix(in oklab,var(--go) 40%,var(--surface))}
 .head.today b,.head.today i{color:var(--acc-ink)}
 .hours{position:sticky;left:0;z-index:6;background:var(--surface)}
@@ -865,7 +865,7 @@ html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り
 .ai-out .mdtable{overflow-x:auto;margin:.5em 0}.ai-out table{border-collapse:collapse;font-size:.95em}.ai-out th,.ai-out td{border:1px solid var(--rule-2);padding:4px 8px;text-align:left;vertical-align:top}.ai-out th{background:var(--surface-2)}
 .ai-out .mdurl{color:var(--ink-3);font-size:.9em}
 /* 週報・月報の「Analyze with AI」（期間の見出しの下） */
-.rptbar{flex-basis:100%;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:-6px}
+.rptbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:6px} /* 週報の「AI 分析」は、期間の切り替えと同じ行に（縦の場所をカレンダーに回す） */
 .rptbar[hidden]{display:none}
 .rptbar .rptl{font-size:var(--fs-sm);font-weight:600;color:var(--ink-2);margin-right:2px}
 /* AI で分析のダイアログ: 上に寄せて固定（出力が増えても動かない）。ボタンの並びは下に貼りつける */
@@ -891,3 +891,25 @@ html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り
 .ai-dialog .ai-out{transition:max-height .5s var(--ease)}
 .ai-dialog.ai-focus .ai-out{max-height:66vh}
 @media (prefers-reduced-motion:reduce){.ai-inputs,.ai-intoggle::before,.ai-dialog .ai-out{transition:none}}
+
+/* ── 表示：カレンダーかサマリー ─────────────────────────────
+   1 度に見せるのはどちらか 1 つ（上の期間・数字・見直す候補・凡例は共通）。
+   広い画面ではページを画面に固定して、カレンダーは残りの高さいっぱい、スクロールはカレンダーの中だけにする
+   （ページとカレンダーが二重にスクロールして、ホイールがカレンダーに取られないように）。境目は影と余白ではっきりさせる */
+body[data-view="cal"] #review{display:none}
+body[data-view="sum"] #tl,body[data-view="sum"] #skipcal{display:none}
+@media (min-width:821px) and (min-height:560px){
+  html,body{height:100%}
+  body{display:flex;flex-direction:column;overflow:hidden}
+  header{flex:none}
+  main.wrap{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;overflow:hidden}
+  main.wrap>*{flex:none}
+  #sres{max-height:38vh;overflow:auto} /* 検索結果が多くても、カレンダーを画面の外へ押し出さない */
+  body[data-view="cal"] #tl{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:24px;box-shadow:var(--shadow);overflow:auto}
+  body[data-view="cal"] #tl .calscroll{flex:1;min-height:0;max-height:none}
+  body[data-view="sum"] main.wrap{overflow:auto} /* サマリーは、上の帯ごと 1 つの流れでスクロールする */
+  /* カレンダーに高さを回すため、上の帯の間は少しだけ詰める（ゆとりはカレンダーの外側の余白と影で） */
+  body[data-view="cal"] .week{padding:24px 0 16px}
+  body[data-view="cal"] .flagsum{margin-bottom:12px}
+  body[data-view="cal"] .legend{padding-bottom:12px}
+}

@@ -66,6 +66,6 @@ const plural = (n, one, many) => isJA() ? `${n} ${t(one)}` : `${n} ${n === 1 ? o
 // hh: 週のカレンダーの 1 時間の高さ（render が作業の時間帯に合わせて決める。ズームはない。以前の版が保存した "zh" は読まない）
 // 画面はカレンダーだけ。以前の版が保存した "view"（journey・project）と、Year in review の "yrOpt" は読まない
 const st = { hh: 44, colorBy: store.get("colorBy", "source"), theme: store.get("theme", "dark") === "light" ? "light" : "dark", // 既定は、エージェントごとの色分けとダーク（ライトを選んだ人はライトのまま）
-             week: mondayOf(today0()), month: monthOf(today0()), mode: store.get("mode", "week"), flowUser: !!store.get("flowUser", false), flowKey: !!store.get("flowKey", false),
+             week: mondayOf(today0()), month: monthOf(today0()), mode: store.get("mode", "week"), flowUser: !!store.get("flowUser", false), flowKey: !!store.get("flowKey", false), view: store.get("view", "cal") === "sum" ? "sum" : "cal",
              hidden: new Set(), sel: null, back: [], q: "", animate: true };
 
