@@ -1,1 +1,0 @@
-- Nothing is fixed on screen anymore: only the page scrolls, the top scrolls away, and the week calendar shows the whole day at full height without a scroll of its own. On a wide window its day headings stick under the page header while you scroll
