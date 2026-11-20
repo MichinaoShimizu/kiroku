@@ -1,1 +1,0 @@
-- On a phone-width screen, a long history location in "Data sources" now wraps instead of widening the page
