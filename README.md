@@ -61,13 +61,12 @@ The view is in Japanese when your browser prefers Japanese; the button at the to
 
 ## Reviews and advice, written by your own agent
 
-In `kiroku serve`, "Analyze with AI" runs a prompt with the AI agent you already use on this computer, such as Claude Code or Codex, after you check the exact prompt and confirm the run (start it with `--no-ai` to turn this off; a saved HTML file never runs an agent). The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, as a professional advisor on prompts and engineering work would.
+In `kiroku serve`, "Analyze with AI" runs a prompt with the AI agent you already use on this computer, such as Claude Code or Codex, after you check the exact prompt and confirm the run. It is off unless you start `kiroku serve --ai`, because text in your history (web pages, tool output, other people's repositories) could steer an agent that reads it; a saved HTML file never runs an agent. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, as a professional advisor on prompts and engineering work would.
 
 | Scope | Where | What you get |
 |---|---|---|
 | A session | "Analyze with AI" in session details | Summary, numbers, an assessment of your prompts, up to three prioritized pieces of advice (each quoting the prompt with its time and giving an improved prompt), and a playbook of prompts for similar work |
 | A day | "Analyze with AI" next to each date with history in the week calendar | A daily report: summary, numbers next to the previous day, what was done in each project and why, expert observations and next actions |
-| A week | "Analyze with AI" under "Weekly report" in week view, below the week's dates | A weekly report: summary, numbers next to the previous week, what was done in each project and why, expert observations and next actions, ready to share with your team |
 
 The advice is grounded in your history, not generic tips. Each point names what it is based on: a figure, a prompt with its time, or a signal kiroku counted. Where the history shows it, the advice covers
 
@@ -76,7 +75,7 @@ The advice is grounded in your history, not generic tips. Each point names what 
 - **model and context**: whether the model fits the work (for example a one-line question on an Opus-class model), conversations that grew long, compactions, and switching between projects
 - **what to move out of your prompts**: an instruction you keep typing into a skill or the project's agent instructions, a separate role into a subagent, fixed steps into a script
 
-An excerpt from a weekly report written from dummy history:
+An excerpt of advice written from dummy history:
 
 > - **Turn the repeated check into a skill or script.** You typed "Run the full test suite and the linter, fix anything that fails, and show me the summary" 3 times in 3 sessions. Make it a skill or a project script the agent runs before each commit.
 > - **Use a lighter model for quick questions.** On Thu, Aug 13 at 10:00 you asked a one-line question in a separate Opus session. A lighter model is enough for questions like this.
@@ -85,7 +84,7 @@ The prompts stay light: a report carries a short digest of each session, and the
 
 ## Privacy
 
-- Your history never leaves your computer: no telemetry, no account, no AI service, unless you confirm a run of "Analyze with AI" in `kiroku serve`: the agent you pick may send the prompt and the history it reads to its provider. `kiroku serve --no-ai` turns agent runs off. The only network access is checking for and downloading kiroku's own releases from GitHub.
+- Your history never leaves your computer: no telemetry, no account, no AI service, unless you start `kiroku serve --ai` and confirm a run of "Analyze with AI": the agent you pick may send the prompt and the history it reads to its provider. Without `--ai`, kiroku runs no agent. The only network access is checking for and downloading kiroku's own releases from GitHub.
 - Files kiroku writes from your history are readable only by you, and `kiroku serve` listens on `127.0.0.1` and opens only for browsers that have its key.
 - The HTML contains your prompts, the AI's replies, file paths and commit messages as they are. Check it before sharing.
 - The review and report prompts point an AI agent on your computer to your history files, and the agent reads them. Use an agent you'd trust with them.

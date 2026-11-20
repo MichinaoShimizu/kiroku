@@ -7,7 +7,7 @@
 //   - 鍵なしの / を開き直しても出る（localStorage の鍵）。履歴ファイルの「Open」は鍵を付けて読んで保存する
 //   - 鍵のないブラウザ（新しいコンテキスト）は、案内だけで履歴を見ない。data.json も 403
 //   - 画面から同じコンピューターのほかのポートのサーバーへ移っても、鍵はどの問い合わせにも載らない（Cookie にも、ほかのところにも）
-//   - 「Analyze with AI」: フラグなしで出て、押すと送るプロンプトをそのまま見せる（Run は押さない）。エージェントのコマンドがなければ押せず理由を添え、
+//   - 「Analyze with AI」: 既定はオフ（--ai を付けたときだけ）。--ai で出て、押すと送るプロンプトをそのまま見せる（Run は押さない）。エージェントのコマンドがなければ押せず理由を添え、
 //     --no-ai では「(off)」だけで /ai/run は 404。エージェントは偽の codex（何もしないスクリプト）を PATH の先頭に置いて決める
 //   - 偽の codex での実行: 返事の確認と「直してもらう」、届いた分から見える返事、エージェントの失敗、Cancel で止めるとエージェントとその子が残らない
 // を見る。Playwright が必要（smoke.mjs と同じ）。
@@ -30,7 +30,7 @@ const fakeBin = path.join(work, "bin"), emptyBin = path.join(work, "empty");
 await mkdir(fakeBin, { recursive: true }); await mkdir(emptyBin, { recursive: true });
 await writeFile(path.join(fakeBin, "codex"), "#!/bin/sh\nexit 1\n"); await chmod(path.join(fakeBin, "codex"), 0o700);
 const env = { ...process.env, PATH: `${fakeBin}${path.delimiter}${process.env.PATH || ""}`, HOME: path.join(work, "home"), KIROKU_CONFIG_DIR: path.join(work, "config"), KIROKU_LANG: "", KIROKU_NO_AI: "", TZ: "Asia/Tokyo" };
-const serveArgs = ["serve", "127.0.0.1:0", "--no-open", "--sources", "claude", "--claude-root", path.join(home, ".claude", "projects"), "--archive-dir", path.join(work, "archive")];
+const serveArgs = ["serve", "127.0.0.1:0", "--no-open", "--sources", "claude", "--claude-root", path.join(home, ".claude", "projects"), "--archive-dir", path.join(work, "archive"), "--ai"]; // 「Analyze with AI」は --ai を付けたときだけ（既定はオフ）
 const srv = spawn(path.resolve(bin), serveArgs, { env, stdio: ["ignore", "pipe", "pipe"] });
 let log = "";
 srv.stdout.on("data", d => { log += d; }); srv.stderr.on("data", d => { log += d; });
@@ -58,7 +58,7 @@ try {
   // 読み終わるのを待つ（以前の版の Cookie も付けるのは、修正の前の版に対してこのテストが失敗することを確かめられるように）
   await until("読み込み", async () => (await fetch(`${base}/stamp`, { headers: { "X-Kiroku-Key": key, Cookie: `kiroku_key_${port}=${key}` } }).catch(() => ({ ok: false }))).ok);
   check("鍵なしの data.json は 403", (await fetch(`${base}/data.json`)).status === 403);
-  check("起動の 1 行で、AI の実行がオンで --no-ai で切れ、提供元に送りうると言う", /"Analyze with AI" is on: .*may send the prompt and the history it reads to its provider; turn it off with --no-ai/.test(log), log);
+  check("起動の 1 行で、--ai で AI の実行がオンになっていて、提供元に送りうると言う", /"Analyze with AI" is on \(--ai\): .*may send the prompt and the history it reads to its provider; start without --ai to turn it off/.test(log), log);
   check("鍵の Cookie（以前の版）だけの data.json は 403", (await fetch(`${base}/data.json`, { headers: { Cookie: `kiroku_key_${port}=${key}` } })).status === 403);
 
   b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
@@ -129,25 +129,25 @@ try {
 
   // 「Analyze with AI」: フラグなしで出る。押すと送るプロンプトをそのまま見せ、提供元の一文はダイアログに出さない。Run は押さない
   await p.goto(`${base}/`);
-  await p.waitForSelector("#rptbar #rptrun", { timeout: 15000 });
-  check("フラグなしの serve で、週報の「Analyze with AI」が押せる", await p.locator("#rptbar #rptrun").isEnabled());
+  await p.waitForSelector(".head .dayrun", { timeout: 15000 });
+  check("週報の「Analyze with AI」はない（日報とセッションの振り返りだけ）", await p.locator("#rptbar, #rptrun").count() === 0);
+  const dayBtn = p.locator(".head .dayrun").first();
+  check("フラグなしの serve で、記録のある日の見出しに日報の「Analyze with AI」が押せる", await dayBtn.count() === 1 && await dayBtn.isEnabled());
   check("バッジが LIVE · AI on", (await p.locator("#live").innerText()).includes("AI on"));
   await p.locator("#live").click(); await p.waitForTimeout(200);
-  check("バッジを押すと、説明（--no-ai で止められること）が出る", /--no-ai/.test(await p.locator("#toast").innerText()));
-  await p.locator("#rptbar #rptrun").click();
+  check("バッジを押すと、説明（--ai で入れたこと）が出る", /--ai/.test(await p.locator("#toast").innerText()));
+  await dayBtn.click();
   await p.waitForSelector("#ai-review-dialog", { timeout: 5000 });
   const dlg = await p.evaluate(() => { const d = document.querySelector("#ai-review-dialog"); return { text: d.innerText, prompt: d.querySelector("textarea.ai-prompt").value, readOnly: d.querySelector("textarea.ai-prompt").readOnly, agents: [...d.querySelectorAll("select option")].map(o => o.value) }; });
-  check("ダイアログは送るプロンプトをそのまま（読み取り専用で）見せる", dlg.readOnly && /weekly report/.test(dlg.prompt) && /Check the exact prompt below/.test(dlg.text));
+  check("ダイアログは送るプロンプトをそのまま（読み取り専用で）見せる", dlg.readOnly && /daily report/.test(dlg.prompt) && /Check the exact prompt below/.test(dlg.text));
   check("ダイアログに提供元の一文はない（ドキュメントと起動の 1 行にある）", !/provider/.test(dlg.text));
   check("エージェントはこのコンピューターにあるものだけ", dlg.agents.includes("codex"), JSON.stringify(dlg.agents));
   await p.locator("#ai-review-dialog button", { hasText: "Close" }).click();
   check("Close で閉じ、何も動かさない", await p.locator("#ai-review-dialog").count() === 0 && !/\$ codex/.test(log));
-  // 日報の「Analyze with AI」: 週のカレンダーの、記録のある日付の横。押すとその日の日報のプロンプト（前日と並べた数字の表）
-  const dayBtn = p.locator(".head .dayrun").first();
-  check("記録のある日の見出しに、日報のボタンがある", await dayBtn.count() === 1 && await dayBtn.isEnabled());
-  const sc = p.locator(".calscroll"); await sc.evaluate(e => { e.scrollTop = 300; }); await p.waitForTimeout(150);
-  const before = await sc.evaluate(e => e.scrollTop); await dayBtn.focus(); await p.waitForTimeout(150);
-  check("日報のボタンにフォーカスしても、カレンダーの位置が変わらない", await sc.evaluate(e => e.scrollTop) === before);
+  // 日報のプロンプトは、その日の形式と前日と並べた数字の表
+  await p.evaluate(() => scrollTo(0, 400)); await p.waitForTimeout(150);
+  const before = await p.evaluate(() => scrollY); await dayBtn.focus(); await p.waitForTimeout(150);
+  check("日報のボタンにフォーカスしても、ページの位置が変わらない", await p.evaluate(() => scrollY) === before);
   await dayBtn.click();
   await p.waitForSelector("#ai-review-dialog", { timeout: 5000 });
   const dp = await p.evaluate(() => document.querySelector("#ai-review-dialog textarea.ai-prompt").value);
@@ -157,9 +157,9 @@ try {
   // 月報はない。月の表示では報告の帯もボタンも出さない
   await p.click("#mode button[data-v=month]");
   await p.waitForFunction(() => document.querySelector("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
-  check("月の表示には、報告の「Analyze with AI」がない", await p.locator("#rptbar").isHidden() && await p.locator("#rptrun").count() === 0);
+  check("月の表示には、報告の「Analyze with AI」がない", await p.locator(".dayrun, #rptrun").count() === 0);
   await p.click("#mode button[data-v=week]");
-  await p.waitForSelector("#rptbar #rptrun", { timeout: 5000 });
+  await p.waitForSelector(".head .dayrun", { timeout: 5000 });
 
   // エージェントのコマンドが 1 つもない serve と、--no-ai の serve を、同じ鍵（同じ設定の場所）で立てる
   const startExtra = async (args, env2) => { let lg = ""; const s = spawn(path.resolve(bin), args, { env: { ...env, ...env2 }, stdio: ["ignore", "pipe", "pipe"] });
@@ -170,16 +170,28 @@ try {
   const none = await startExtra(serveArgs, { PATH: emptyBin });
   const pn = await ctx.newPage();
   await openWithKey(pn, none.url);
-  await pn.waitForSelector("#rptbar .ai-none", { timeout: 15000 });
-  check("エージェントがないと、日報のボタンは出さない（理由は週報の帯で言う）", await pn.locator(".head .dayrun").count() === 0);
-  check("エージェントがないと、ボタンは押せず、理由が添えてある", await pn.locator("#rptbar .ai-none button").isDisabled() && /No AI agent found/.test(await pn.locator("#rptbar .ai-why").innerText()) && /claude, codex or kiro-cli/.test(await pn.locator("#rptbar .ai-why").getAttribute("title")));
+  await pn.waitForSelector(".run[data-sid]", { timeout: 15000 });
+  check("エージェントがないと、日報のボタンは出さない（理由はセッションの詳細で言う）", await pn.locator(".head .dayrun").count() === 0);
+  await pn.evaluate(() => select(DATA.find(s => s.prompts.length).id)); await pn.waitForSelector("#panel .ai-none", { timeout: 5000 });
+  check("エージェントがないと、ボタンは押せず、理由が添えてある", await pn.locator("#panel .ai-none button").isDisabled() && /No AI agent found/.test(await pn.locator("#panel .ai-why").innerText()) && /claude, codex or kiro-cli/.test(await pn.locator("#panel .ai-why").getAttribute("title")));
   await pn.close();
+  // 既定（--ai なし）はオフ: 起動の 1 行がそう言い、/ai/run はなく、日報のボタンも出ない
+  const dflt = await startExtra(serveArgs.filter(a => a !== "--ai"), {});
+  check("--ai を付けなければ、起動の 1 行はオフと言い、--ai でオンにできると言う", /"Analyze with AI" is off: .*start with --ai/.test(dflt.log()), dflt.log());
+  const pz = await ctx.newPage();
+  await openWithKey(pz, dflt.url);
+  await pz.waitForSelector(".run[data-sid]", { timeout: 15000 });
+  check("--ai を付けなければ、日報のボタンも AI の操作もない", await pz.locator(".dayrun, #srun, .ai-action").count() === 0 && !(await pz.locator("#live").innerText()).includes("AI on"));
+  const sz = await pz.evaluate(async k => (await fetch("ai/run", { method: "POST", headers: { "X-Kiroku-Key": k, "X-Kiroku": "1", "Content-Type": "application/json" }, body: JSON.stringify({ agent: "codex", prompt: "x", consent: true }) })).status, key);
+  check("--ai を付けなければ、鍵があっても /ai/run は 404", sz === 404, String(sz));
+  await pz.close();
   const off = await startExtra([...serveArgs, "--no-ai"], {});
-  check("--no-ai の起動の 1 行はオフと言う", /"Analyze with AI" is off \(--no-ai\)/.test(off.log()), off.log());
+  check("--ai と --no-ai の両方なら、--no-ai が勝ってオフ", /"Analyze with AI" is off: /.test(off.log()), off.log());
   const po = await ctx.newPage();
   await openWithKey(po, off.url);
-  await po.waitForSelector("#rptbar .ai-off", { timeout: 15000 });
-  check("--no-ai では「Analyze with AI (off)」だけ", await po.locator("#rptrun, .ai-action").count() === 0);
+  await po.waitForSelector(".run[data-sid]", { timeout: 15000 });
+  await po.evaluate(() => select(DATA.find(s => s.prompts.length).id)); await po.waitForSelector("#panel .ai-off", { timeout: 5000 });
+  check("--no-ai では「Analyze with AI (off)」だけ", await po.locator(".dayrun, #srun, .ai-action").count() === 0);
   const st = await po.evaluate(async k => (await fetch("ai/run", { method: "POST", headers: { "X-Kiroku-Key": k, "X-Kiroku": "1", "Content-Type": "application/json" }, body: JSON.stringify({ agent: "codex", prompt: "x", consent: true }) })).status, key);
   check("--no-ai では、鍵があっても /ai/run は 404", st === 404, String(st));
   await po.close();
@@ -189,14 +201,14 @@ try {
   // 直してもらうプロンプトを見せるだけで送らない。Run で送り、直してもらうのは 2 回まで
   const fixBin = path.join(work, "fixbin"), runs = path.join(work, "runs.txt");
   await mkdir(fixBin, { recursive: true });
-  await writeFile(path.join(fixBin, "codex"), `#!/bin/sh\ncase " $* " in *" --help "*) exit 0;; esac\ncat > "${path.join(work, "last-prompt.txt")}"\necho run >> "${runs}"\nprintf '## Weekly report\\n\\n### Summary\\nDone.\\n'\n`);
+  await writeFile(path.join(fixBin, "codex"), `#!/bin/sh\ncase " $* " in *" --help "*) exit 0;; esac\ncat > "${path.join(work, "last-prompt.txt")}"\necho run >> "${runs}"\nprintf '## Daily report\\n\\n### Summary\\nDone.\\n'\n`);
   await chmod(path.join(fixBin, "codex"), 0o700);
   const fx = await startExtra(serveArgs, { PATH: `${fixBin}${path.delimiter}${process.env.PATH || ""}` });
   const nRuns = async () => (await readFile(runs, "utf8").catch(() => "")).split("\n").filter(Boolean).length;
   const pf = await ctx.newPage();
   await openWithKey(pf, fx.url);
-  await pf.waitForSelector("#rptbar #rptrun", { timeout: 15000 });
-  await pf.locator("#rptbar #rptrun").click();
+  await pf.waitForSelector(".head .dayrun", { timeout: 15000 });
+  await pf.locator(".head .dayrun").first().click();
   await pf.waitForSelector("#ai-review-dialog", { timeout: 5000 });
   const runBtn = pf.locator("#ai-review-dialog .ai-action"), fixBtn = pf.locator("#ai-review-dialog .ai-check button", { hasText: "Ask to fix" });
   await pf.locator("#ai-review-dialog select").selectOption("codex"); // このコンピューターに本物のエージェントがあっても、偽の codex を使う
@@ -205,7 +217,7 @@ try {
   check("節の足りない返事には、kiroku の確認が足りないところを見せる", /4 of the 5 sections are missing/.test(await pf.locator("#ai-review-dialog .ai-check").innerText()));
   await fixBtn.click();
   const fixPrompt = await pf.evaluate(() => document.querySelector("#ai-review-dialog textarea.ai-prompt").value);
-  check("「直してもらう」は、元のプロンプト・前の返事・直すことを入れたプロンプトを見せる", /weekly report/.test(fixPrompt) && /\n# Your previous answer\n/.test(fixPrompt) && /\n# What to fix\n- The answer has 1 of the 5 "###" sections/.test(fixPrompt), fixPrompt.slice(-400));
+  check("「直してもらう」は、元のプロンプト・前の返事・直すことを入れたプロンプトを見せる", /daily report/.test(fixPrompt) && /\n# Your previous answer\n/.test(fixPrompt) && /\n# What to fix\n- The answer has 1 of the 5 "###" sections/.test(fixPrompt), fixPrompt.slice(-400));
   check("「直してもらう」だけでは送らない（Run を押すまで）", await nRuns() === 1 && await runBtn.innerText() === "Run" && await runBtn.isEnabled());
   const dlgText = async () => pf.evaluate(() => document.querySelector("#ai-review-dialog").innerText);
   check("送らないことを、ダイアログで言う", /Nothing is sent until you press Run/.test(await dlgText()));
@@ -236,7 +248,7 @@ try {
 case " $* " in *" --help "*) exit 0;; esac
 cat >/dev/null
 case "$(cat "${modeF}")" in
-stream) printf '## Weekly report\\n\\n'; while [ ! -e "${goF}" ]; do sleep 0.1; done; printf '### Summary\\nAll done.\\n' ;;
+stream) printf '## Daily report\\n\\n'; while [ ! -e "${goF}" ]; do sleep 0.1; done; printf '### Summary\\nAll done.\\n' ;;
 fail) echo "boom: the agent could not start" >&2; exit 3 ;;
 hang) echo started; sleep 60 & echo "$$ $!" > "${pidF}"; wait ;;
 esac
@@ -245,15 +257,15 @@ esac
   const sx = await startExtra(serveArgs, { PATH: `${sBin}${path.delimiter}${process.env.PATH || ""}` });
   const ps = await ctx.newPage();
   await openWithKey(ps, sx.url);
-  await ps.waitForSelector("#rptbar #rptrun", { timeout: 15000 });
-  await ps.locator("#rptbar #rptrun").click();
+  await ps.waitForSelector(".head .dayrun", { timeout: 15000 });
+  await ps.locator(".head .dayrun").first().click();
   await ps.waitForSelector("#ai-review-dialog", { timeout: 5000 });
   await ps.locator("#ai-review-dialog select").selectOption("codex");
   const sRun = ps.locator("#ai-review-dialog .ai-action"), sStatus = ps.locator("#ai-review-dialog [role=status]"), sOut = ps.locator("#ai-review-dialog .ai-out");
   const sCancel = ps.locator("#ai-review-dialog button", { hasText: /^(Cancel|Close)$/ });
   await writeFile(modeF, "stream");
   await sRun.click();
-  await until("返事の 1 行目", async () => /Weekly report/.test(await sOut.innerText().catch(() => "")));
+  await until("返事の 1 行目", async () => /Daily report/.test(await sOut.innerText().catch(() => "")));
   check("返事は届いた分から見え、終わるまでは実行中と言う", /Running Codex/.test(await sStatus.innerText()) && await sRun.isDisabled() && await sCancel.innerText() === "Cancel");
   await writeFile(goF, "");
   await until("実行の終わり", async () => /Completed with Codex/.test(await sStatus.innerText()));
@@ -277,7 +289,7 @@ esac
   await ps.close();
 
   // エージェントの既定: claude と codex の両方があるとき、セッションの振り返りはそのセッションのエージェント、
-  // 週報はその週にいちばん長く動いていたエージェントを選んでおく（一覧の先頭の Claude Code ではなく）
+  // 日報はその日にいちばん長く動いていたエージェントを選んでおく（一覧の先頭の Claude Code ではなく）
   const dBin = path.join(work, "dbin");
   await mkdir(dBin, { recursive: true });
   for (const n of ["claude", "codex"]){ await writeFile(path.join(dBin, n), "#!/bin/sh\ncat >/dev/null\n"); await chmod(path.join(dBin, n), 0o700); }
@@ -299,11 +311,11 @@ esac
   check("AI 分析のダイアログのキーは、うしろの画面を動かさない", !(await pd.evaluate(() => document.getElementById("ai-review-dialog")?.open)) &&
     await pd.evaluate(() => [st.sel, st.mode, st.week.getTime()]).then(([sel, mode, w]) => sel === cx && mode === "week" && w === wk0));
   await pd.keyboard.press("Escape");
-  await pd.waitForSelector("#rptbar #rptrun", { timeout: 5000 });
-  const want = await pd.evaluate(() => aiAgentIn(period().ws, period().we));
-  await pd.locator("#rptbar #rptrun").click();
+  await pd.waitForSelector(".head .dayrun", { timeout: 5000 });
+  const want = await pd.evaluate(() => { const dd = addDays(st.week, +document.querySelector(".head .dayrun").dataset.d); return aiAgentIn(dd.getTime() / 1000, addDays(dd, 1).getTime() / 1000); });
+  await pd.locator(".head .dayrun").first().click();
   await pd.waitForSelector("#ai-review-dialog", { timeout: 5000 });
-  check("週報は、その週にいちばん長く動いていたエージェントを選んでおく", ["claude", "codex"].includes(want) && await pd.locator("#ai-review-dialog select").inputValue() === want, want);
+  check("日報は、その日にいちばん長く動いていたエージェントを選んでおく", ["claude", "codex"].includes(want) && await pd.locator("#ai-review-dialog select").inputValue() === want, want);
   await pd.locator("#ai-review-dialog button", { hasText: "Close" }).click();
   check("既定を選んでも、何も動かさない", !/\$ (claude|codex)/.test(dx.log()));
   await pd.close();

@@ -200,8 +200,8 @@ func TestAIRunDisclosure(t *testing.T) {
 		if !strings.Contains(text, want) {
 			t.Errorf("%s lacks the disclosure %q", file, want)
 		}
-		if !strings.Contains(text, "--no-ai") {
-			t.Errorf("%s doesn't say how to turn agent runs off (--no-ai)", file)
+		if !strings.Contains(text, "--ai") { // 既定はオフ。オンにする方法（--ai）を書く
+			t.Errorf("%s doesn't say that agent runs need --ai", file)
 		}
 	}
 }

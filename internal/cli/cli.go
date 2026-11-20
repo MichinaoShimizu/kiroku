@@ -219,20 +219,6 @@ func splitList(s string) []string {
 	return out
 }
 
-// removedAI は、1.0 でなくした kiroku serve の --ai（--ai=false も）に、使い方の一覧より先に代わりを教える。
-// 「Analyze with AI」は前から既定でオンで、--ai は何もしなかった（--ai=false だけが切っていた）。
-func removedAI(args []string) error {
-	for _, a := range args {
-		if a == "--" {
-			break
-		}
-		if name, _, _ := strings.Cut(a, "="); name == "-ai" || name == "--ai" {
-			return fmt.Errorf("--ai was removed in kiroku 1.0: \"Analyze with AI\" is on by default; turn it off with --no-ai")
-		}
-	}
-	return nil
-}
-
 // parse はオプションと、オプションの前後に置いた位置引数（最大 maxPos 個）を読む。
 func parse(fs *flag.FlagSet, args []string, maxPos int) ([]string, error) {
 	for _, a := range args { // v0.20 で名前を変えた（flag のエラーと使い方の一覧より先に、新しい名前を教える）
@@ -285,6 +271,19 @@ func langFlag(fs *flag.FlagSet) *string {
 	return fs.String("lang", env, "language of the view: en or ja ($KIROKU_LANG; default: the browser's language, English if it isn't Japanese). You can switch it in the view too")
 }
 
+// aiEnv は $KIROKU_AI（--ai の既定）。前後の空白を除いて "1"・"true"・"yes"・"on"（大文字小文字を問わない）のときだけ、AI の実行を許す
+// （迷う値はオフ。履歴の中の文字が AI に指示として読まれうるので、使う人が選んだときだけ動かす）。kiroku autostart on も書き残す（autostartEnv）
+func aiEnv() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("KIROKU_AI"))) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+	return false
+}
+
+// aiWanted は、--ai と --no-ai から「Analyze with AI」を使えるようにするか。--no-ai（$KIROKU_NO_AI）は --ai より強い
+func aiWanted(ai, noAI bool) bool { return ai && !noAI }
+
 // noAIEnv は $KIROKU_NO_AI（--no-ai の既定）。前後の空白を除いて、空・"0"・"false"（大文字小文字を問わない）以外なら、AI の実行を切る（迷う値は切る側）。
 // kiroku autostart on も、登録するときのこの値を書き残す（autostartEnv）
 func noAIEnv() bool {
@@ -317,10 +316,8 @@ func cmdServe(args []string) error {
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
 	allow := fs.String("allow-host", "", "comma-separated extra host `names` the view may be opened by (e.g. a name in your hosts file); localhost, 127.0.0.1 and ::1 always work, and this computer's own IPs and host name too when ADDR is 0.0.0.0 or another all-interfaces address")
 	lang := langFlag(fs)
-	noAI := fs.Bool("no-ai", noAIEnv(), "turn off \"Analyze with AI\" ($KIROKU_NO_AI=1). It is on by default: the view can run a review or report prompt with an AI agent installed on this computer (claude, codex or kiro-cli), after you confirm each run, and the agent may send the prompt and the history it reads to its provider. It is always off when ADDR is not a loopback IP or a bare port (e.g. 0.0.0.0:8485)")
-	if err := removedAI(args); err != nil {
-		return err
-	}
+	ai := fs.Bool("ai", aiEnv(), "turn on \"Analyze with AI\" ($KIROKU_AI=1). It is off by default: with it, the view can run a review or report prompt with an AI agent installed on this computer (claude, codex or kiro-cli), after you confirm each run. The agent may send the prompt and the history it reads to its provider, and text in your history (from web pages, tool output or other people's repositories) could steer what it does. It is always off when ADDR is not a loopback IP or a bare port (e.g. 0.0.0.0:8485)")
+	noAI := fs.Bool("no-ai", noAIEnv(), "keep \"Analyze with AI\" off even with --ai or $KIROKU_AI ($KIROKU_NO_AI=1)")
 	pos, err := parse(fs, args, 1)
 	if err != nil {
 		return quiet(err)
@@ -340,7 +337,7 @@ func cmdServe(args []string) error {
 		return err
 	}
 	_, want, all := c.picked()
-	return serveLiveWithAI(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen, !*noAI, *lang, scanWatchPaths(all, want))
+	return serveLiveWithAI(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen, aiWanted(*ai, *noAI), *lang, scanWatchPaths(all, want))
 }
 
 func cmdHTML(args []string) error {

@@ -56,7 +56,7 @@ func (l *live) refresh() error {
 	l.reload.Lock()
 	defer l.reload.Unlock()
 	snap := l.load()
-	if l.aiRun != nil { // the view offers "Analyze with AI" only when AI execution is on (not --no-ai)
+	if l.aiRun != nil { // the view offers "Analyze with AI" only when AI execution is on (--ai)
 		meta := make(map[string]any, len(snap.meta)+1)
 		for k, v := range snap.meta {
 			meta[k] = v
@@ -251,7 +251,7 @@ func (l *live) handler() http.Handler {
 	mux.HandleFunc("/manifest.webmanifest", func(w http.ResponseWriter, r *http.Request) {
 		send(w, "application/manifest+json", web.Manifest())
 	})
-	// AI execution is on unless kiroku serve was started with --no-ai or on an address that isn't a loopback IP.
+	// AI execution is on only when kiroku serve was started with --ai (and not --no-ai) on a loopback IP address.
 	// When it is off, /ai/run doesn't exist (404).
 	if l.aiRun != nil {
 		mux.Handle("/ai/run", l.aiRun)
@@ -571,7 +571,7 @@ func newServer(h http.Handler) *http.Server {
 // serveLive は kiroku serve。allow は Host として受け付ける名前を足すもの、keep は画面から kiroku archive をオンにする関数。
 // 先に待ち受けてから読む（履歴が多いと最初の読み込みに時間がかかり、その間ポートが開いていないとブラウザが「つながらない」になるため）。
 // 読み終わるまでは、読み込み中の画面を出す。
-// AI execution stays off; serveLiveWithAI turns it on (kiroku serve without --no-ai).
+// AI execution stays off; serveLiveWithAI turns it on (kiroku serve --ai).
 func serveLive(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool) error {
 	return serveLiveWithAI(addr, allow, every, picked, load, keep, open, false, "", nil)
 }
@@ -580,11 +580,11 @@ func serveLive(addr string, allow []string, every time.Duration, picked []source
 func aiStartLine(enableAI, aiAddr bool) string {
 	switch {
 	case !enableAI:
-		return "\"Analyze with AI\" is off (--no-ai): the view runs no AI agent"
+		return "\"Analyze with AI\" is off: the view runs no AI agent; start with --ai (and without --no-ai) to turn it on"
 	case !aiAddr:
 		return "\"Analyze with AI\" is off: it runs only on a loopback address written as an IP (such as 127.0.0.1:8484 or :8485)"
 	}
-	return "\"Analyze with AI\" is on: after you confirm a run, the agent you choose may send the prompt and the history it reads to its provider; turn it off with --no-ai"
+	return "\"Analyze with AI\" is on (--ai): after you confirm a run, the agent you choose may send the prompt and the history it reads to its provider; start without --ai to turn it off"
 }
 
 // scanWatchPaths は、選んでいない Source のうち source.ClaimScanner のものが調べる場所（Kiro を選んでいないときの Kiro Crew の場所）。
@@ -612,7 +612,7 @@ func aiAddrOK(addr string) bool {
 	return err == nil && ip != nil && ip.IsLoopback()
 }
 
-// serveLiveWithAI は serveLive。enableAI は「Analyze with AI」を使えるようにするか（--no-ai でなければ true）。
+// serveLiveWithAI は serveLive。enableAI は「Analyze with AI」を使えるようにするか（--ai で、--no-ai でないとき true）。
 // 待ち受け先がループバックの IP でなければ、enableAI でも切る。lang は画面の言語（--lang）、watch は picked のほかに見張る場所（scanWatchPaths）。
 func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool, enableAI bool, lang string, watch []string) error {
 	if every < time.Second {

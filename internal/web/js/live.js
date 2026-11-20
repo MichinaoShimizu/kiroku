@@ -3,7 +3,7 @@
 function startLive(){
   const badge = $("#live"); badge.hidden = false;
   badge.onclick = () => toast(badge.title, 7000); // 説明は title だけだと、タッチやキーボードでは読めない。押すと下に出す
-  if (aiRun()){ badge.textContent = t("LIVE · AI on"); badge.title = t("Updates automatically as your history grows. \"Analyze with AI\" is on (turn it off with kiroku serve --no-ai)"); }
+  if (aiRun()){ badge.textContent = t("LIVE · AI on"); badge.title = t("Updates automatically as your history grows. \"Analyze with AI\" is on because kiroku serve was started with --ai (it is off without it)"); }
   let busy = false;
   async function poll(){
     if (busy || document.hidden) return; busy = true;

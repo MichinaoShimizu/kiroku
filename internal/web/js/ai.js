@@ -12,7 +12,7 @@ function aiAgentIn(ws, we){
   return Object.keys(by).sort((x, y) => by[y] - by[x])[0] || "";
 }
 // kiroku serve が AI の実行を切っている理由（--no-ai か、ループバックの IP ではない待ち受け先。ボタンの説明とダイアログ）
-const AI_OFF_WHY = () => t("This kiroku serve doesn't run AI agents: it was started with --no-ai (or KIROKU_NO_AI), or it listens on an address other than a loopback IP.");
+const AI_OFF_WHY = () => t("This kiroku serve doesn't run AI agents: it was started without --ai (the default) or with --no-ai, or it listens on an address other than a loopback IP.");
 // エージェントのコマンドが 1 つもないとき（ボタンは押せないまま、理由を添える）
 const AI_NONE_WHY = () => t("No AI agent command (claude, codex or kiro-cli) was found on this computer. Install one, then restart kiroku serve.");
 // AI_SEP は、続けて出す 2 つの文の間（日本語では空けない）
@@ -92,7 +92,7 @@ async function runAIReview(button, prompt, title, prefer = "") { // prefer: 最�
   // 実行の前に、送るプロンプトをそのまま見せて確かめてもらう。エージェントが提供元へ送りうることは、ドキュメントと起動の 1 行で知らせる
   const demo = aiDemo(); // デモ: プロンプトを見せるだけで、Run は押せない（/ai/run を呼ばない）
   notice.textContent = t("Check the exact prompt below. When you press Run, it goes to the agent on this computer.");
-  if (demo) notice.textContent = t("This is the demo, so nothing runs here. In kiroku serve on your computer, Run sends this exact prompt to an AI agent there (Claude Code, Codex or Kiro CLI) and shows its result below.");
+  if (demo) notice.textContent = t("This is the demo, so nothing runs here. In kiroku serve on your computer (started with --ai), Run sends this exact prompt to an AI agent there (Claude Code, Codex or Kiro CLI) and shows its result below.");
   const agentLabel = document.createElement("label"); agentLabel.className = "ai-agent"; agentLabel.append(document.createTextNode(t("Agent")));
   const agent = document.createElement("select");
   for (const [id, name] of AI_AGENTS.filter(([id]) => aiAgents().includes(id))) { const o = document.createElement("option"); o.value = id; o.textContent = name; agent.append(o); }
@@ -267,7 +267,7 @@ function showLocalAIInfo() {
   dialog.setAttribute("aria-labelledby", "ai-local-title");
   const heading = document.createElement("h2"); heading.id = "ai-local-title"; heading.textContent = t("Analyze with AI is off");
   const why = document.createElement("p"); why.textContent = AI_OFF_WHY() + AI_SEP() + // ボタンの説明と同じ文に、止めて起動し直す手順を足す
-    t("To turn it on, stop it (Ctrl+C in its terminal) and start it again without --no-ai, on the default address or a bare port such as :8485. With kiroku autostart, run kiroku autostart on again without KIROKU_NO_AI.");
+    t("To turn it on, stop it (Ctrl+C in its terminal) and start it again with --ai (and without --no-ai), on the default address or a bare port such as :8485. With kiroku autostart, run kiroku autostart on again with KIROKU_AI=1 set.");
   const what = document.createElement("p"); what.textContent = t("\"Analyze with AI\" shows the exact prompt and, after you confirm, runs it with Claude Code, Codex or Kiro CLI on this computer. The agent may send the prompt and the history it reads to its provider.");
   const close = document.createElement("button"); close.type = "button"; close.className = "pill"; close.textContent = t("Close");
   function dismiss() { if (dialog.open && typeof dialog.close === "function") dialog.close(); dialog.remove(); }

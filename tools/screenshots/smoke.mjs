@@ -103,6 +103,8 @@ async function run(env) {
     check("週の数：2026 年は 53 週、2025 年は 52 週（12 月 28 日の週）", await p.evaluate(() => isoWeek(new Date(2026, 11, 28)) === 53 && isoWeek(new Date(2025, 11, 28)) === 52));
     check("既定はカレンダー：サマリーのパネルは隠れ、カレンダーが見える", await p.locator("#review .rvhead").isHidden() && await p.locator("#review details.panel.fold").first().isHidden() && await p.locator("#tl").isVisible());
     check("カレンダーの表示でも、データソースとページの下（版）は見える", await p.locator("#review .dsrc").isVisible() && await p.locator("#review .foot").isVisible());
+    check("カレンダーとデータソースのあいだが空いている", await p.evaluate(() => document.querySelector("#review .metap").getBoundingClientRect().top - document.querySelector("#tl").getBoundingClientRect().bottom >= 16));
+    check("期間の行に「期間」「表示」の見出しを並べない", await p.evaluate(() => [...document.querySelectorAll(".control-label")].every(e => e.getBoundingClientRect().width <= 1)));
     check("スクロールはページだけ：カレンダーの中ではスクロールしない", await p.evaluate(() => { const c = document.querySelector("#tl .calscroll"); return !c || c.scrollHeight <= c.clientHeight + 1; }));
     { // どの幅でも、曜日の見出しがページの見出しの下に貼り付く（狭い画面は横のスクロールにも合わせる）
       await p.evaluate(() => window.scrollTo(0, document.querySelector("#tl").getBoundingClientRect().top + scrollY + 400)); await pause();
@@ -431,16 +433,16 @@ async function run(env) {
     await view("cal");
   });
 
-  await step("週報を書いてもらうプロンプト", async () => {
+  await step("報告を書いてもらうプロンプト", async () => {
     check("週報のプロンプトをコピーするボタンはない", await p.locator("#rptcopy").count() === 0);
-    // デモ: 「Analyze with AI」はプロンプトを見せるだけ。Run は押せず、/ai/run に何も送らない
-    check("デモでは、週報の帯に「Analyze with AI」が出る", await p.locator("#rptbar").isVisible() && await p.locator("#rptbar #rptrun").count() === 1 && await p.locator(".ai-off, .ai-none").count() === 0);
+    // デモ: 「Analyze with AI」はプロンプトを見せるだけ。Run は押せず、/ai/run に何も送らない。週報の AI 分析はない（日報とセッションの振り返りだけ）
+    check("週報の「Analyze with AI」はない", await p.locator("#rptbar, #rptrun").count() === 0 && await p.locator(".ai-off, .ai-none").count() === 0);
     const aiReq = []; const onReq = r => { if (/\/ai\/run/.test(r.url())) aiReq.push(r.url()); }; p.on("request", onReq);
-    await p.locator("#rptbar #rptrun").click();
+    await p.locator(".head .dayrun").first().click();
     await p.waitForSelector("#ai-review-dialog", { timeout: 5000 });
     const dd = await p.evaluate(() => { const d = document.querySelector("#ai-review-dialog"), run = d.querySelector(".ai-action");
       return { text: d.innerText, prompt: d.querySelector("textarea.ai-prompt").value, runDisabled: run.disabled, agentHidden: d.querySelector(".ai-agent").offsetParent === null }; });
-    check("デモのダイアログは、送るプロンプトを見せ、デモだと言い、Run は押せない", /weekly report/.test(dd.prompt) && /This is the demo, so nothing runs here/.test(dd.text) && dd.runDisabled && dd.agentHidden, JSON.stringify({...dd, prompt: dd.prompt.slice(0, 80)}));
+    check("デモのダイアログは、送るプロンプトを見せ、デモだと言い、Run は押せない", /daily report/.test(dd.prompt) && /This is the demo, so nothing runs here/.test(dd.text) && dd.runDisabled && dd.agentHidden, JSON.stringify({...dd, prompt: dd.prompt.slice(0, 80)}));
     await p.locator("#ai-review-dialog .ai-action").click({ force: true }).catch(() => {}); await pause();
     check("デモでは /ai/run に何も送らない", aiReq.length === 0, JSON.stringify(aiReq));
     await p.locator("#ai-review-dialog button", { hasText: "Close" }).click();
@@ -487,7 +489,6 @@ async function run(env) {
     await p.locator("#q").fill(word); await pause();
     const heading = await p.locator("#sres h2").first().innerText();
     check("検索結果が出る", heading === "Search results", heading);
-    check("検索の最中は週報のボタンを出さない", await p.locator("#rptbar").isHidden());
     check("検索結果はカレンダーより上にある", await p.evaluate(() => document.querySelector("#sres").getBoundingClientRect().bottom <= document.querySelector("#tl").getBoundingClientRect().top));
     check("一致したセッションがある", await p.locator(".srow[data-s]").count() > 0, word);
     check("検索結果は枠の中でスクロールし、カレンダーを押し出さない", await p.evaluate(() => [...document.querySelectorAll("#sres .panel")].every(e => e.getBoundingClientRect().height <= Math.min(innerHeight * .52, 520) + 1)));

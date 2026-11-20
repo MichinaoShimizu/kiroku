@@ -5,8 +5,6 @@ function summary(){
   const head = `<div class="rvhead"><h2>${esc(M ? t("Monthly summary") : t("Weekly summary"))}</h2><p>${esc(t("Rough figures for reflecting on how you work. They are not for comparing people or for evaluations."))}</p></div>`;
   // 週報の「Analyze with AI」は、週の見出しの下に。月報はない（1 か月は 2 分の制限に収まりにくい）
   // 保存した HTML には AI の操作がないので、帯ごと出さない
-  const RB = $("#rptbar"), rb = w && !M ? aiBtn("rptrun", t("Analyze with AI: weekly report")) : ""; RB.hidden = !rb;
-  RB.innerHTML = rb ? `<span class="rptl">${esc(t("Weekly report"))}</span>${rb}` : "";
   const WK = $("#worth"); $("#sres").hidden = true; $("#sres").innerHTML = "";
   if (!w){ WK.hidden = true; R.innerHTML = foot(); bindReport(R); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
   const longest = Math.max(0, ...w.focus.map(b=>b.min));
@@ -51,10 +49,7 @@ function summary(){
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
   R.querySelectorAll(".keeparch").forEach(b => b.onclick = () => { R.querySelectorAll(".keeparch").forEach(x => x.disabled = true); keepArchive(); });
   R.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
-  RB.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
-  const run = RB.querySelector("#rptrun");
-  if (run) run.onclick = () => runAIReview(run, reportPrompt(w), t("Weekly report for {range}", {range: dSpan(st.week, addDays(st.week, 6))}), aiAgentIn(period().ws, period().we)); // 既定は、その週にいちばん長く動いていたエージェント
-  bindCopy(R); bindCopy(RB); bindHelp(R); bindHelp(WK); bindReport(R);
+  bindCopy(R); bindHelp(R); bindHelp(WK); bindReport(R);
   if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }
 /* サマリーのパネル（① プロジェクト別から下）は、既定で閉じる（ページの主役はカレンダー。開けたものは開けたまま覚える）。
