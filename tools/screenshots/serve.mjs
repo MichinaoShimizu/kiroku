@@ -182,11 +182,12 @@ try {
   check("--no-ai では、鍵があっても /ai/run は 404", st === 404, String(st));
   await po.close();
 
+  // 偽の codex は、本物と同じく --help（kiroku が使えるオプションを確かめる）にはすぐ答え、実行には数えない
   // 返事の確認と「直してもらう」: 偽の codex が、節の足りない週報を返す。kiroku が足りないところを見せ、「直してもらう」は
   // 直してもらうプロンプトを見せるだけで送らない。Run で送り、直してもらうのは 2 回まで
   const fixBin = path.join(work, "fixbin"), runs = path.join(work, "runs.txt");
   await mkdir(fixBin, { recursive: true });
-  await writeFile(path.join(fixBin, "codex"), `#!/bin/sh\ncat > "${path.join(work, "last-prompt.txt")}"\necho run >> "${runs}"\nprintf '## Weekly report\\n\\n### Summary\\nDone.\\n'\n`);
+  await writeFile(path.join(fixBin, "codex"), `#!/bin/sh\ncase " $* " in *" --help "*) exit 0;; esac\ncat > "${path.join(work, "last-prompt.txt")}"\necho run >> "${runs}"\nprintf '## Weekly report\\n\\n### Summary\\nDone.\\n'\n`);
   await chmod(path.join(fixBin, "codex"), 0o700);
   const fx = await startExtra(serveArgs, { PATH: `${fixBin}${path.delimiter}${process.env.PATH || ""}` });
   const nRuns = async () => (await readFile(runs, "utf8").catch(() => "")).split("\n").filter(Boolean).length;
@@ -230,6 +231,7 @@ try {
   const sBin = path.join(work, "sbin"), modeF = path.join(work, "mode"), goF = path.join(work, "go"), pidF = path.join(work, "pids");
   await mkdir(sBin, { recursive: true });
   await writeFile(path.join(sBin, "codex"), `#!/bin/sh
+case " $* " in *" --help "*) exit 0;; esac
 cat >/dev/null
 case "$(cat "${modeF}")" in
 stream) printf '## Weekly report\\n\\n'; while [ ! -e "${goF}" ]; do sleep 0.1; done; printf '### Summary\\nAll done.\\n' ;;

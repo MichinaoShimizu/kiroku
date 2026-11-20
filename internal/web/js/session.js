@@ -144,8 +144,8 @@ function promptFlow(s){
     n++;
     const txt = String(p.text || ""), long = txt.length > 240, fix = !p.kind && FIXRE.test(txt), cut = p.len > 0;
     const more = !cut ? "" : LIVE ? `<span class="pcut"> ${esc(t("(first {n} of {total} characters)", {n: PROMPT_RUNES, total: commas(p.len)}))} <button class="pload" data-i="${i}">${esc(t("Load the full prompt"))}</button></span>` : "…";
-    const meta = [p.work ? t("AI worked {time}", {time: span(p.work)}) : "", p.wait && p.wait <= FLOW_GAP ? t("you replied after {time}", {time: secs(p.wait)}) : ""].filter(Boolean).join(" · ");
-    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time>${ico("user")}<p><span class="sr">${esc(t("You:"))} </span>${fix ? `<span class="pkind fix">${esc(t("Correction?"))}</span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${esc(PKIND()[p.kind] || p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${esc(t("Long · {n} chars", {n: commas(plen(p))}))}</span>` : ""}<span class="ptext">${p.kind ? "<code>" : ""}${long ? `<span class="pshort">${esc(txt.slice(0,220))}…</span><span class="pfull" hidden>${esc(txt)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${esc(pexpLabel(p))}</button>` : esc(txt)}${p.kind ? "</code>" : ""}</span>${meta ? `<span class="pmeta">${esc(meta)}</span>` : ""}</p></li>`);
+    const meta = [p.work ? t("AI worked {time}", {time: span(p.work)}) : "", p.wait && p.wait <= FLOW_GAP ? t("you replied after {time}", {time: secs(p.wait)}) : ""].filter(Boolean).map(x => `<span>${esc(x)}</span>`).join(" · "); // 1 つずつ折り返さない（「2m」と「0s」が別の行に分かれないように）
+    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time>${ico("user")}<p><span class="sr">${esc(t("You:"))} </span>${fix ? `<span class="pkind fix">${esc(t("Correction?"))}</span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${esc(PKIND()[p.kind] || p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${esc(t("Long · {n} chars", {n: commas(plen(p))}))}</span>` : ""}<span class="ptext">${p.kind ? "<code>" : ""}${long ? `<span class="pshort">${esc(txt.slice(0,220))}…</span><span class="pfull" hidden>${esc(txt)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${esc(pexpLabel(p))}</button>` : esc(txt)}${p.kind ? "</code>" : ""}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
     if (p.reply){ // 依頼と応答の間に起きたこと（コミットなど）は、応答より上に出す
       if (p.reply.t) flush(p.reply.t);
       rows.push(replyRow(p.reply, i, hide()));
@@ -154,7 +154,7 @@ function promptFlow(s){
   });
   flush(Infinity);
   const fixes = s.prompts.some(p => !p.kind && FIXRE.test(String(p.text || ""))), kinds = new Set(ev.map(x => x.k.split(" ")[0])), cmds = s.prompts.some(p => p.kind);
-  const key = [`<span class="kus">${ico("user")}${esc(t("Your prompt"))}</span>`,
+  const key = [`<span class="kus"><i class="kbub" aria-hidden="true"></i>${esc(t("Your prompt"))}</span>`,
     cmds ? `<span class="kcmd"><span class="pkind">${ico("command")}${esc(t("Command"))}</span><span class="pkind">${ico("shell")}${esc(t("Shell"))}</span>${esc(t("What you typed starting with / or !"))}</span>` : "",
     kinds.has("note") ? `<span class="kev note">${[...new Set(s.notes.filter(x => x.t).map(x => NOTE_ICON[x.kind] || "note"))].map(k => ico(k)).join("")}${esc(t("Added automatically (notifications, summaries, hooks; not counted as prompts)"))}</span>` : "",
     fixes ? `<span class="kus fix"><span class="pkind fix">${esc(t("Correction?"))}</span>${esc(t("Looks like a correction (guessed from the wording)"))}</span>` : "",
@@ -237,9 +237,9 @@ function sessionPrompt(s, active, med){ return inEnglish(() => { // AI に渡す
     `- Title: ${cut(s.title, 80)}`, `- Agent: ${oneLine(s.source)}`, `- Project: ${oneLine(s.project)}${s.branch ? ` (branch ${oneLine(s.branch)})` : ""}`,
     `- Time: ${md(s.start)} ${hm(s.start)}–${hm(s.end)}`];
   if (file) D.push(`- History file: ${oneLine(file)}`);
-  // このセッションの最初と最後のプロンプトの間に、ほかのプロジェクトで書いたプロンプト（切り替えの手がかり）
+  // このセッションの最初と最後のプロンプトの間に、ほかのプロジェクトで書いたプロンプト（切り替えの手がかり）。凡例で隠したものは入れない（週報と同じ）
   const a = s.prompts.length ? s.prompts[0].t : s.start, b = s.prompts.length ? s.prompts[s.prompts.length - 1].t : s.end, other = new Map();
-  DATA.forEach(x => { if (x.project !== s.project) x.prompts.forEach(p => { if (p.t > a && p.t < b) other.set(x.project, (other.get(x.project) || 0) + 1); }); });
+  DATA.forEach(x => { if (x.project !== s.project && !st.hidden.has(keyOf(x))) x.prompts.forEach(p => { if (p.t > a && p.t < b) other.set(x.project, (other.get(x.project) || 0) + 1); }); });
   const sw = `- Prompts I wrote in other projects while this session ran: ${other.size ? [...other].sort((x, y) => y[1] - x[1]).slice(0, 5).map(([k, v]) => `${oneLine(k)} ${v}`).join(", ") : "none"}`;
   D.push("", "## Signals for advice", ...reportSignals([s], s.start, s.end + 1, cut, [s.start - 30 * 86400, s.end + 1], sw));
   if (s.models.length > 1) D.push(`- Models in this session (responses): ${s.models.map(([m, n]) => `${oneLine(m)} ${n}`).join(", ")}`);

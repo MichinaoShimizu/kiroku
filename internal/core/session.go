@@ -195,6 +195,29 @@ type Builder struct {
 	models                         map[string]int
 }
 
+// IsAIRunDir reports whether dir is the temporary folder kiroku runs "Analyze with AI" in
+// (os.MkdirTemp("", "kiroku-ai-"): the prefix and random digits). An agent that keeps history of that run
+// records it there; kiroku leaves it out so the run doesn't show up as a session or feed later prompts.
+func IsAIRunDir(dir string) bool {
+	if dir == "" {
+		return false
+	}
+	base := dir
+	if i := strings.LastIndexAny(dir, `/\`); i >= 0 {
+		base = dir[i+1:]
+	}
+	digits, ok := strings.CutPrefix(base, "kiroku-ai-")
+	if !ok || digits == "" {
+		return false
+	}
+	for _, r := range digits {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 func NewBuilder(source, id string) *Builder {
 	return &Builder{Source: source, ID: id, Usage: NewUsage(), tools: map[string]int{}, files: map[string]bool{}, models: map[string]int{}}
 }
@@ -704,6 +727,9 @@ func (s *Builder) Finish(gapMin int) *Session {
 		return nil
 	}
 	sort.Float64s(times)
+	if IsAIRunDir(s.Project) {
+		return nil // kiroku's own "Analyze with AI" run: not a session of yours, and it holds a copy of the prompt
+	}
 	project := s.Project
 	if project == "" {
 		project = "(unknown)"

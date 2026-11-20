@@ -47,3 +47,9 @@ eq(aiOutputProblems(prompt.replace("| 7 (6) | 2 |", "| +82 −0 | 2 |"), good.re
 const longU = "https://evil.example/" + "a".repeat(5000);
 const PL = aiOutputProblems(prompt, good + "\n" + longU + " x");
 eq(PL[0].l.length < 200 && PL[0].en.length < 400 && !/\s/.test(PL[0].en.split(": ")[1]), true, "long url cut");
+// 履歴に書かれた指示で作らせた、外へ値を運ぶ URL：大文字のスキーム、スキームのない //host、画像。どれも見逃さない
+const PU = aiOutputProblems(prompt, good + "\nHTTPS://EVIL.EXAMPLE/p?d=secret Https://evil.example/a //evil.example/b");
+eq(PU.length === 1 && /evil\.example\/p\?d=secret/.test(PU[0].l) && /\/\/evil\.example\/b/.test(PU[0].en), true, "uppercase and scheme-less links");
+eq(aiOutputProblems(prompt, good + "\nHTTPS://GITHUB.COM/example/reports/pull/12"), [], "a prompt link in capitals is not invented");
+for (const img of ["![x](https://github.com/example/reports/pull/12)", "![x][r]", '<IMG src="https://github.com/example/reports/pull/12">'])
+  eq(aiOutputProblems(prompt, good + "\n" + img).some(p => /image/.test(p.l)), true, "image: " + img);

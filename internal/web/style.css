@@ -471,9 +471,18 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 /* 出来事の PR（li.ev.pr）は、プロンプト（li.pr）と同じ名前を持つので、:not(.ev) で分ける */
 .tl li.pr:not(.ev){justify-content:flex-end;padding-left:12%}
 .tl li.pr:not(.ev)>.ic{display:none} /* 右にあることで、あなたの発言とわかる（読み上げは「You:」） */
-.tl li.pr:not(.ev) p{min-width:0;background:color-mix(in oklab,var(--c) 20%,var(--surface));border-radius:18px 18px 4px 18px;padding:8px 14px;color:var(--ink);font-weight:500}
+.tl li.pr:not(.ev) p{min-width:0;background:color-mix(in oklab,var(--c) 13%,var(--surface));border-radius:18px 18px 4px 18px;padding:8px 14px;color:var(--ink);font-weight:500}
 .tl li.pr:not(.ev).fix p{outline:1.5px dashed var(--warn);outline-offset:-1.5px} /* 言い直しらしいものは、色に加えて破線と「Correction?」の札で（色だけに頼らない） */
-.tl li.pr:not(.ev) .pmeta{margin-top:2px}
+.tl li.pr:not(.ev) .pmeta{margin-top:2px;color:var(--ink-2)} /* 色つきの地の上の小さな字は、ふだんより濃く（4.5:1 を保つ） */
+.tl .pmeta>span{white-space:nowrap}
+.tlkey .kbub{width:16px;height:10px;border-radius:5px 5px 2px 5px;background:color-mix(in oklab,var(--c) 13%,var(--surface));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--c) 40%,transparent)} /* あなたのプロンプトの見本（右の吹き出し） */
+.tl li.ev button.evd{color:var(--acc-ink)} /* コミット・PR・push の札は押せる（詳細が開く） */
+@media (max-width:600px){ /* 狭い画面では、出来事の札を切らずに折り返す */
+  .tl li.ev{border-radius:12px;align-items:flex-start}
+  .tl li.ev p{white-space:normal;flex-wrap:wrap;gap:0 6px}
+  .tl li.ev .evd{white-space:normal;overflow-wrap:anywhere}
+  .tl li.ev>.ic{margin-top:3px}
+}
 .tl li.rp{padding-right:12%}
 .rpav{order:0;flex:none;align-self:flex-start;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--surface-2);color:var(--ink-2);font:700 10px/1 var(--sans);letter-spacing:.02em} /* AI の印（アイコンの丸） */
 .tlkey .rpav{width:18px;height:18px;font-size:8px}
@@ -497,9 +506,9 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl li.pr.command>.ic,.tl li.pr.shell>.ic{color:var(--c4-ink)}
 .tlkey .kus .ic{color:var(--c);stroke-width:1.8}
 .tl .pkind,.tlkey .pkind{display:inline-block;margin-right:6px;padding:0 6px;border-radius:5px;font-size:var(--fs-xs);font-weight:600;line-height:1.6;vertical-align:1px;color:var(--c4-ink);background:color-mix(in oklab,var(--c4) 16%,transparent)}
-.tl .pkind.fix,.tlkey .pkind.fix{color:var(--warn);background:color-mix(in oklab,var(--warn) 14%,transparent)}
+.tl .pkind.fix,.tlkey .pkind.fix{color:color-mix(in oklab,var(--warn) 78%,var(--ink));background:color-mix(in oklab,var(--warn) 14%,transparent)}
 .tl .pkind.big{color:var(--warn);background:color-mix(in oklab,var(--warn) 14%,transparent)}
-.tl li.ev.note{color:var(--ink-3)}.tl li.ev.note .evl{color:var(--c6)}
+.tl li.ev.note{color:var(--ink-3)}.tl li.ev.note .evl{color:color-mix(in oklab,var(--c6) 80%,var(--ink))}
 .tl li.ev.note>.ic,.tlkey .kev.note .ic{color:var(--c6)}
 .tlkey .pkind{display:inline-flex;gap:0;margin-right:0}.tlkey .kcmd .ic{color:var(--c4-ink)} /* 凡例は、行と同じ「/ Command」「>_ Shell」「Correction?」の札で。--c4-ink は、明るい地でも読める濃さの c4 */
 .tl.only-user li.ev,.tl.only-user li.gap{display:none}

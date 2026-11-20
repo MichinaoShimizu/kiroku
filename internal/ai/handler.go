@@ -69,7 +69,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	binary, _, err := h.Runner.command(in.Agent)
+	binary, err := binaryOf(in.Agent)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

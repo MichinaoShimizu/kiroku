@@ -171,6 +171,7 @@ const JA_TEXT = {
   "The numbers table differs from kiroku's in: {rows}": "数字の表が kiroku の表と違う行: {rows}",
   ", and {n} more": " ほか {n} 行",
   "Links that are not in the prompt: {links}": "プロンプトにないリンク: {links}",
+  "The result contains an image. Remove it before pasting the result anywhere": "結果に画像が入っています。どこかに貼る前に消してください",
   "Commit hashes that are not in the prompt: {hashes}": "プロンプトにないコミットのハッシュ: {hashes}",
   "Ask to fix": "直してもらう",
   "This is the demo, so nothing runs here. In kiroku serve on your computer, Run sends this exact prompt to an AI agent there (Claude Code, Codex or Kiro CLI) and shows its result below.": "これはデモなので、ここでは何も動きません。あなたの PC の kiroku serve では、「実行」でこのプロンプトをそのまま AI エージェント（Claude Code・Codex・Kiro CLI）に渡し、結果を下に出します。",

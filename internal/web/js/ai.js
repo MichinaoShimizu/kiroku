@@ -55,9 +55,13 @@ function aiOutputProblems(prompt, text){
   if (bad.length && bad.length === rows.length && !have.size) add(`The "Numbers" table is missing. Copy it from "Facts" unchanged`, t("The numbers table is missing"));
   else if (bad.length) add(`The "Numbers" table is not copied unchanged. These rows are missing or their values differ: ${bad.map(x => JSON.stringify(x)).join(", ")}`,
     t("The numbers table differs from kiroku's in: {rows}", {rows: bad.slice(0, 3).join(", ") + (bad.length > 3 ? t(", and {n} more", {n: bad.length - 3}) : "")}));
-  const urls = s => new Set( // URL に使える ASCII の文字だけ（日本語の「）。」を含めない）。終わりの句読点と強調の記号は除く
-    (s.match(/https?:\/\/[A-Za-z0-9\-._~:/?#@!$&*+,;=%]+/g) || []).map(u => u.replace(/[.,;:!?*_]+$/, "")));
-  const up = urls(prompt), links = [...urls(text)].filter(u => !up.has(u));
+  // URL に使える ASCII の文字だけ（日本語の「）。」を含めない）。終わりの句読点と強調の記号は除く。
+  // 大文字の HTTPS:// と、スキームのない //host も拾う（履歴に書かれた指示で、外へ値を運ぶ URL を作らせることがある）。比べるのは小文字で
+  const urls = s => new Set(
+    (s.match(/(?:https?:)?\/\/[A-Za-z0-9-]+\.[A-Za-z0-9\-._~:/?#@!$&*+,;=%]+/gi) || []).map(u => u.replace(/[.,;:!?*_]+$/, "").toLowerCase()));
+  const up = urls(prompt), links = [...urls(text)].filter(u => !up.has(u) && !up.has("https:" + u) && !up.has("http:" + u));
+  // 画像は、貼った先（GitHub など）が開くと、その URL へ取りに行く。報告に画像は要らないので、あれば必ず知らせる
+  if (/!\[[^\]]*\]\s*[\[(]|<img\b/i.test(text)) add("Remove the images. The report must not contain images", t("The result contains an image. Remove it before pasting the result anywhere"));
   if (links.length) add(`These links are not in the prompt. Use only the links given there: ${links.slice(0, 5).map(u => JSON.stringify(cap(u, 200))).join(", ")}`,
     t("Links that are not in the prompt: {links}", {links: links.slice(0, 3).map(u => cap(u, 100)).join(", ")}));
   // コミットのハッシュ: 7〜40 桁の 16 進（数字と a〜f の両方を含む）。UUID の一部（- でつながる）と色（#）は除く。長いハッシュは、先頭 12 桁がプロンプトにあればよい
