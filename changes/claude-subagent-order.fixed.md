@@ -1,0 +1,1 @@
+- Claude Code: when two subagent calls overlap and their transcripts carry no `agentId`, each transcript is now linked to its call by start time rather than by file name. Before, a later transcript could take the earlier call, leaving one call without usage and its transcript as an extra subagent row

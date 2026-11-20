@@ -156,7 +156,7 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 				return
 			}
 			if !get || (q.Has("code") && q.Has("key")) || (q.Has("key") && !match(q.Get("key"))) {
-				locked(w)
+				locked(w, r)
 				return
 			}
 			q.Del("key")
@@ -174,7 +174,7 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		locked(w)
+		locked(w, r)
 	})
 }
 
@@ -192,22 +192,47 @@ func hopTarget(path string) string {
 	return (&url.URL{Path: "/" + rest}).EscapedPath()
 }
 
-// locked は、鍵のない問い合わせへの答え（403 と、kiroku open を案内するページ）。
-func locked(w http.ResponseWriter) {
+// locked は、鍵のない問い合わせへの答え（403 と、kiroku open を案内するページ）。ブラウザーの言語（Accept-Language）が
+// 日本語なら日本語のページ（画面の showLocked と同じ文）にする。
+func locked(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Add("Vary", "Accept-Language")
 	w.WriteHeader(http.StatusForbidden)
-	_, _ = w.Write([]byte(lockedPage))
+	page := lockedPage
+	if prefersJA(r.Header.Get("Accept-Language")) {
+		page = lockedPageJA
+	}
+	_, _ = w.Write([]byte(page))
+}
+
+// prefersJA は、Accept-Language のいちばん先の言語が日本語か。
+func prefersJA(al string) bool {
+	first, _, _ := strings.Cut(al, ",")
+	first, _, _ = strings.Cut(first, ";")
+	first = strings.ToLower(strings.TrimSpace(first))
+	return first == "ja" || strings.HasPrefix(first, "ja-")
 }
 
 // lockedPage の文は、画面の骨組みが鍵なしで開かれたときの知らせ（js/live.js の showLocked）と同じ。
 const lockedPage = `<!doctype html>
 <html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>kiroku</title>
-<style>body{font:16px/1.6 system-ui,sans-serif;max-width:36em;margin:4em auto;padding:0 16px}code{background:rgba(127,127,127,.15);padding:.1em .3em;border-radius:4px}</style>
+<style>body{font:16px/1.6 system-ui,sans-serif;max-width:36em;margin:4em auto;padding:0 16px}code{background:rgba(127,127,127,.15);padding:.1em .3em;border-radius:4px;white-space:nowrap}html:lang(ja){word-break:auto-phrase}</style>
 <h1>Open kiroku with its key</h1>
 <p>kiroku serve shows your history only to a browser that has its key, so that other users of this computer can't read it.</p>
 <p>Run <code>kiroku open</code> in a terminal to open this page with the key. After that, this browser can open it without the key.</p>
 <p>To open it on another device, run <code>kiroku open --print</code> and open the address it prints there.</p>
+</html>
+`
+
+// lockedPageJA は lockedPage の日本語（i18n.js の showLocked の文と同じ）。
+const lockedPageJA = `<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>kiroku</title>
+<style>body{font:16px/1.6 system-ui,sans-serif;max-width:36em;margin:4em auto;padding:0 16px}code{background:rgba(127,127,127,.15);padding:.1em .3em;border-radius:4px;white-space:nowrap}html:lang(ja){word-break:auto-phrase}</style>
+<h1>鍵を付けて kiroku を開いてください</h1>
+<p>kiroku serve は、この PC のほかのユーザーに履歴を読まれないよう、鍵を持つブラウザーにだけ履歴を見せます。</p>
+<p>ターミナルで <code>kiroku open</code> を実行すると、鍵を付けてこの画面を開きます。そのあとは、このブラウザーなら鍵なしで開けます。</p>
+<p>ほかの機器で開くときは、<code>kiroku open --print</code> を実行し、表示されたアドレスをその機器で開いてください。</p>
 </html>
 `
 
@@ -217,11 +242,14 @@ const lockedPage = `<!doctype html>
 // 換えられなかった（使い終わった・期限切れ）ときや、しまえなかったとき（このアドレスのサイトのデータを止めているなど）は、そう伝える。
 const hopKeyScript = `(async () => {
   const to = document.getElementById("to"), msg = document.getElementById("msg"), q = new URLSearchParams(location.search);
-  let k = q.get("key") || "", ok = false, why = "This browser doesn't let kiroku keep its key (site data may be blocked for this address), so it can't show your history here.";
+  const ja = (() => { try { const v = q.get("lang") || JSON.parse(localStorage.getItem("kiroku:lang") || "null"); if (v === "ja" || v === "en") return v === "ja"; } catch(e){}
+    try { return (navigator.languages && navigator.languages[0] || navigator.language || "").toLowerCase().startsWith("ja"); } catch(e){ return false; } })();
+  if (ja){ document.documentElement.lang = "ja"; to.textContent = "kiroku を開く"; }
+  let k = q.get("key") || "", ok = false, why = ja ? "このブラウザーは kiroku の鍵をしまえない（このアドレスのサイトのデータが止められているかもしれません）ので、ここでは履歴を見せられません。" : "This browser doesn't let kiroku keep its key (site data may be blocked for this address), so it can't show your history here.";
   if (q.has("code")){
     k = "";
     try { const r = await fetch(location.href, {method: "POST", headers: {"X-Kiroku": "1"}, cache: "no-store"}); if (r.ok) k = await r.text(); } catch(e){}
-    if (!k) why = "This one-time address was already used or has expired. Run kiroku open again.";
+    if (!k) why = ja ? "この一度だけのアドレスは、もう使われたか期限が切れています。もう一度 kiroku open を実行してください。" : "This one-time address was already used or has expired. Run kiroku open again.";
   }
   if (/^[0-9a-f]{64}$/.test(k)) try { localStorage.setItem("` + keyStorage + `", k); ok = localStorage.getItem("` + keyStorage + `") === k; } catch(e){}
   if (ok){ location.replace(to.getAttribute("href")); return; }

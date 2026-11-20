@@ -3,7 +3,7 @@
 # Anthropic API prices
 
 - Source: https://platform.claude.com/docs/en/about-claude/pricing.md
-- Fetched: 2026-10-07 (the last time these numbers changed)
+- Fetched: 2026-11-19 (the last time these numbers changed)
 
 USD per million tokens, standard rates. Only the numbers kiroku uses.
 
@@ -11,6 +11,8 @@ Long over: a request whose prompt is more than this many tokens is billed at the
 
 | Model ID | Input | Cache write 5m | Cache write 1h | Cache read | Output | Long over | Long input | Long cache write 5m | Long cache write 1h | Long cache read | Long output |
 |---|---|---|---|---|---|---|---|---|---|---|---|
+| claude-fable-5-2 | 8 | 10 | 16 | 0.2 | 40 | - | - | - | - | - | - |
+| claude-mythos-5-2 | 8 | 10 | 16 | 0.2 | 40 | - | - | - | - | - | - |
 | claude-fable-5-1 | 10 | 12.5 | 20 | 0.25 | 50 | - | - | - | - | - | - |
 | claude-mythos-5-1 | 10 | 12.5 | 20 | 0.25 | 50 | - | - | - | - | - | - |
 | claude-fable-5 | 10 | 12.5 | 20 | 1 | 50 | - | - | - | - | - | - |
@@ -30,4 +32,3 @@ Long over: a request whose prompt is more than this many tokens is billed at the
 | claude-sonnet-4 | 3 | 3.75 | 6 | 0.3 | 15 | - | - | - | - | - | - |
 | claude-haiku-5-5 | 0.1 | 0.125 | 0.2 | 0.01 | 0.5 | 100000 | 0.5 | 0.625 | 1 | 0.05 | 2.5 |
 | claude-haiku-4-5 | 1 | 1.25 | 2 | 0.1 | 5 | - | - | - | - | - | - |
-| claude-3-5-haiku | 0.8 | 1 | 1.6 | 0.08 | 4 | - | - | - | - | - | - |

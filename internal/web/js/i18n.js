@@ -38,6 +38,7 @@ const JA_TEXT = {
   "A day to match the last period": "前の期間並みの 1 日の目安",
   "A metric crossed a threshold": "基準を超えた指標があります",
   "A prompt you type every time can be written once as a command or in CLAUDE.md": "毎回入力するプロンプトは、コマンドか CLAUDE.md に一度書けます",
+  "AI:": "AI の応答:",
   "A record of your time with AI": "AI と過ごした時間の記録",
   "A rough way to compare how heavy usage was, in money": "使用量の重さをお金でおおまかに比べる目安",
   "A session with 1+ correction or interruption, or 15+ prompts": "言い直しか中断が 1 回以上、またはプロンプトが 15 件以上のセッション",
@@ -149,6 +150,18 @@ const JA_TEXT = {
   "Copy": "コピー",
   "Copy result": "結果をコピー",
   "kiroku's check found problems in this result:": "kiroku の確認で、この結果に問題が見つかりました:",
+  "{agent} is not installed on this computer": "この PC に {agent} がインストールされていません。",
+  "The prompt is too long to run (limit 256 KB). Copy it and paste it into the agent instead.": "プロンプトが長すぎて実行できません（上限 256 KB）。コピーして、エージェントに貼り付けてください。",
+  "Another AI run is still going. Wait for it to finish, then try again.": "ほかの AI 分析がまだ動いています。終わるのを待って、もう一度試してください。",
+  "Analyze with AI is off in this kiroku serve.": "この kiroku serve では AI 分析がオフです。",
+  "Kiro Crew private conversation": "Kiro Crew の非公開の会話",
+  "Kiro Crew background work": "Kiro Crew のバックグラウンドの作業",
+  "Kiro IDE hidden chat": "Kiro IDE の非表示のチャット",
+  "Kiro IDE executions without a chat": "チャットのない Kiro IDE の実行",
+  "Kiro Crew memory consolidation ({slot})": "Kiro Crew の記憶の整理（{slot}）",
+  "(private)": "（非公開）",
+  "Kiro Crew (private conversations check)": "Kiro Crew（非公開の会話の確認）",
+  "All {want} sections are missing": "{want} 個の節がすべてありません",
   "{n} of the {want} sections are missing": "{want} 個の節のうち {n} 個がありません",
   "The numbers table is missing": "数字の表がありません",
   "The numbers table differs from kiroku's in: {rows}": "数字の表が kiroku の表と違う行: {rows}",
@@ -179,7 +192,7 @@ const JA_TEXT = {
   "Couldn't show the summary for this period ({error}). Please let us know in an issue.": "この期間のサマリーを表示できませんでした（{error}）。issue でお知らせください。",
   "Couldn't open the history file. If kiroku serve is running, run kiroku open and try again.": "履歴ファイルを開けませんでした。kiroku serve が動いているなら、kiroku open を実行してからもう一度お試しください。",
   "Couldn't start the backup. Run kiroku archive on instead.": "バックアップを始められませんでした。代わりに kiroku archive on を実行してください。",
-  "Count and times of usage limit errors (usage caps and rate limits) in Claude Code, Codex and Kiro Crew history. Hits within 1 minute count once": "Claude Code・Codex・Kiro Crew の履歴にある利用上限のエラー（使用量の上限とレート制限）の回数と時刻。1 分以内のものは 1 回と数えます",
+  "Count and times of usage limit errors (usage caps, spend limits and rate limits) in Claude Code, Codex and Kiro Crew history. Hits within 1 minute count once": "Claude Code・Codex・Kiro Crew の履歴にある利用上限のエラー（使用量の上限・使用額の上限・レート制限）の回数と時刻。1 分以内のものは 1 回と数えます",
   "Created a pull request": "プルリクエストを作成",
   "Created by AI": "AI が作成",
   "Created {time}": "{time} に作成",
@@ -440,7 +453,7 @@ const JA_TEXT = {
   "Prompts (sessions that record tokens)": "プロンプト（トークンを記録するセッション）",
   "Prompts by agent": "エージェント別のプロンプト",
   "Prompts by project": "プロジェクト別のプロンプト",
-  "Prompts of 12+ characters in the period, grouped by how similar their text is; up to 3 written in 3 or more sessions, most frequent first": "期間中の 12 文字以上のプロンプトを文面の似ている度合いでまとめ、3 つ以上のセッションで書いたものを回数の多い順に 3 件まで",
+  "Prompts of 12+ characters in the period, grouped by how similar their text is; up to 3 written in 3 or more sessions, those in the most sessions first": "期間中の 12 文字以上のプロンプトを文面の似ている度合いでまとめ、3 つ以上のセッションで書いたものを、書いたセッションの多い順に 3 件まで",
   "Prompts with corrections or interruptions": "言い直しや中断のあったプロンプト",
   "Prompts, files, commits": "プロンプト・ファイル・コミット",
   "Pull request": "プルリクエスト",
@@ -858,3 +871,17 @@ function setLang(l){
 // 並べるときの区切り（日本語は「、」）
 const LSEP = () => isJA() ? "、" : ", ";
 const TSEP = () => isJA() ? "、" : "; "; // 日時の並び（英語の日付 "Tue, Sep 29" はコンマを含むので、セミコロンで区切る）
+
+/* localizeTitles は、kiroku が決めた英語の題（Go が Synthetic にしたセッションだけ。Kiro Crew の中身を残さない会話など）と、
+   その依頼の代わりの文（"(private)"）を、画面の言語で返すようにする。データは書きかえず、読むときに t で引く getter にするので、
+   AI に渡すプロンプト（inEnglish の中）は英語のまま。履歴から読んだ題や依頼が同じ文でも、Synthetic でなければ訳さない */
+function localizeTitles(data){
+  const fixed = new Set(["Kiro Crew private conversation", "Kiro Crew background work", "Kiro IDE hidden chat", "Kiro IDE executions without a chat"]);
+  const localize = (o, k, f) => { const en = o[k]; Object.defineProperty(o, k, {get: () => f(en), set: v => { localize(o, k, () => v); }, enumerable: true, configurable: true}); };
+  for (const s of data || []){
+    if (!s.synthetic || (Object.getOwnPropertyDescriptor(s, "title") || {}).get) continue; // 2 度目は何もしない
+    if (fixed.has(s.title)) localize(s, "title", en => t(en));
+    else { const m = /^Kiro Crew memory consolidation \((.*)\)$/.exec(s.title || ""); if (m) localize(s, "title", () => t("Kiro Crew memory consolidation ({slot})", {slot: m[1]})); }
+    for (const p of s.prompts || []) if (p.text === "(private)") localize(p, "text", en => t(en));
+  }
+}

@@ -3,6 +3,7 @@ package source
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -711,5 +712,30 @@ func TestQStoreImageToolResultsRewrittenAsPrompt(t *testing.T) {
 	b := load(t, &QStore{Label: "Amazon Q", DB: qHistoryDB(t, history)})[0]
 	if len(b.Prompts) != 1 || b.Prompts[0].Text != "画面を見て" {
 		t.Errorf("プロンプト = %+v（画像つきのツールの結果は数えない）", b.Prompts)
+	}
+}
+
+// データベースの場所にふつうのファイルでないもの（フォルダ・名前付きパイプ）があれば、開かずに読めないものとして知らせる。
+// フォルダは黙って 0 件になり、名前付きパイプを開くと SQLite が書き手を待って kiroku が止まっていた（セキュリティ。パイプは qstore_unix_test.go）。
+func TestQStoreNotRegular(t *testing.T) {
+	folder := filepath.Join(t.TempDir(), "folder.sqlite3")
+	if err := os.Mkdir(folder, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	checkNotRegular(t, folder)
+}
+
+// checkNotRegular は、p を DB にした QStore が止まらずに ErrNotRegular を返すことを確かめる。
+func checkNotRegular(t *testing.T, p string) {
+	t.Helper()
+	done := make(chan error, 1)
+	go func() { done <- (&QStore{Label: "Amazon Q", DB: p}).Load(func(*core.Builder) {}) }()
+	select {
+	case err := <-done:
+		if !errors.Is(err, core.ErrNotRegular) {
+			t.Errorf("%s: err = %v, want ErrNotRegular", filepath.Base(p), err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatalf("%s: Load が止まった", filepath.Base(p))
 	}
 }

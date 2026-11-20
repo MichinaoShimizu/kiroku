@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -211,7 +212,7 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		// 再開のコマンド。IDE と CLI V3 のどちらが作った会話かは記録されないが、どちらも同じ保存場所なので、
 		// kiro-cli の会話 ID（session.json の id、なければフォルダ名）で開くコマンドを出す
 		if s.Project != "" {
-			s.Resume = core.ResumeCmd(s.Project, "kiro-cli chat --resume-id", s.ID)
+			s.Resume = core.ResumeCmd(s.Project, "kiro-cli chat --v3 --resume-id", s.ID)
 		}
 		emit(s)
 	}
@@ -319,7 +320,12 @@ type KiroCLI struct {
 	crewElse    int      // ほかの履歴（Claude Code・Codex）が記録しているので、トークンとドル額を足さなかった Crew の行
 	withheld    []string // 中身を出さない会話の core.Builder.Key（Withheld）
 	claims      []string // 中身を出さない会話の、ほかのエージェントの履歴の Claim の鍵（WithheldClaims）
+	private     []string // 中身を出さない Crew の会話の記録のファイル（PrivateFiles）
 }
+
+// PrivateFiles は、中身を出さない Crew の会話の記録のファイル。Codex に譲った会話（Yield）のように、画面のセッションに
+// 残らないものもふくむ。「Analyze with AI」の Claude Code に読ませない（ai.Runner.Private）。Load と同じゴルーチンで呼ぶ。
+func (k *KiroCLI) PrivateFiles() []string { return k.private }
 
 // Withheld は、中身を出さない Crew の会話の core.Builder.Key（kiro-cli の会話 ID の "kiro-cli:<id>" をふくむ）。
 // Kiro CLI の SQLite（QStore）は同じ会話を同じ Key で出し、Crew を見ないので、読み込む側が HideWithheld で隠す。
@@ -386,10 +392,10 @@ func (k *KiroCLI) Name() string { return "Kiro CLI (Classic)" }
 
 // Retention は Kiro Crew の会話の記録の保存期間（session.archive_retention_days。既定 30 日）。Crew を使っているときだけ。
 // Crew は退避した会話の記録を新しく書いたとき（1 つのプロセスで 1 時間に 1 回まで）に、sessions/archive/ のうち更新時刻がそれより古いものを消す
-// （history.py の _archive_lines → _cleanup_old_archives。閉じた会話の crew log も同じ設定で消す）。決まった間隔で動くのではない。
+// （history_files.py の _archive_lines → _cleanup_old_archives。閉じた会話の crew log も同じ設定で消す）。決まった間隔で動くのではない。
 // 消さない設定（null か負の数）なら nil。Crew は config.json に全部のキーを書き出すので、キーがあっても利用者が決めたとは限らない。
 // そこで、既定の 30 日と違う値のときだけ設定済み（Set）にする。設定を足す先は、config.json より勝つ config.local.json を案内する。
-// 0 日なら、Crew は次の片付け（次に記録を退避したとき）で退避した記録を全部消す（history.py の _cleanup_old_archives は cutoff = 今）。
+// 0 日なら、Crew は次の片付け（次に記録を退避したとき）で退避した記録を全部消す（history_files.py の _cleanup_old_archives は cutoff = 今）。
 // Days の 0 は「わからない」なので、Now で 0 日を表す。
 func (k *KiroCLI) Retention() *Retention {
 	if k.CrewHome == "" || !isDir(k.CrewHome) {
@@ -422,13 +428,18 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		// 調べられなかったこと（session_map.json が読めないなど）は知らせる（隠しきれていないかもしれないので）
 		var errs fileErrs
 		k.withheld, k.claims = crewWithheld(append(sids, crewPrivateSids(k.CrewHome, priv, &errs)...))
+		// Crew の記録は読まないので、中身を出さない会話があれば、会話の記録のフォルダごと AI に読ませない
+		k.private = append([]string(nil), priv.files...) // サブエージェント・crew-log の記録（crewPrivateSids が集めた）
+		if len(k.withheld) > 0 || len(k.claims) > 0 {
+			k.private = append(k.private, filepath.Join(k.CrewHome, "sessions"))
+		}
 		return errs.err()
 	}
 	var errs fileErrs
 	priv := newCrewPrivacy(k.CrewHome, k.CrewArchive) // 中身を残さない会話（loadCrew・loadCrewSpawns と同じものを使う）
 	crew := loadCrew(k.CrewHome, &errs, priv)
 	usage := loadCrewUsage(k.CrewHome, &errs)
-	k.crew, k.crewFixed, k.crewOnly, k.crewCr, k.crewText, k.crewElse, k.withheld, k.claims = 0, 0, 0, 0, 0, 0, nil, nil
+	k.crew, k.crewFixed, k.crewOnly, k.crewCr, k.crewText, k.crewElse, k.withheld, k.claims, k.private = 0, 0, 0, 0, 0, 0, nil, nil, nil
 	slotInfo := map[string]*CrewInfo{} // 使用量の記録の slot → Crew の情報（session_map の会話と、サブエージェント）
 	sids := make([]string, 0, len(crew))
 	for sid := range crew {
@@ -732,7 +743,9 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 	for _, c := range k.claims {
 		claimed[c] = true
 	}
+	k.private = append(k.private, priv.files...) // サブエージェント・crew-log の記録（crewPrivateSids が集めた）
 	for b := range held.private {
+		k.private = append(k.private, b.PrivateFiles...)
 		if b.Key != "" && !seen[b.Key] {
 			seen[b.Key] = true
 			k.withheld = append(k.withheld, b.Key)
@@ -744,6 +757,8 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 	}
 	sort.Strings(k.withheld)
 	sort.Strings(k.claims)
+	sort.Strings(k.private)
+	k.private = slices.Compact(k.private)
 	return errs.err()
 }
 
@@ -1108,10 +1123,10 @@ func emitKiroLeftovers(byID map[string]*kiroExec, claimed map[*kiroExec]bool, hi
 		s := core.NewBuilder("Kiro IDE (legacy)", "exec:"+key)
 		s.Project = "(Kiro IDE)"
 		if ws, hidden := hiddenWS[key]; hidden {
-			s.Title = "Kiro IDE hidden chat"
+			s.Title, s.TitleByKiroku = "Kiro IDE hidden chat", true
 			s.Project = firstNonEmpty(ws, s.Project)
 		} else {
-			s.Title = "Kiro IDE executions without a chat"
+			s.Title, s.TitleByKiroku = "Kiro IDE executions without a chat", true
 		}
 		addKiroExecs(s, groups[key], "", nil)
 		emit(s)

@@ -1,6 +1,9 @@
 package core
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // 履歴から来たフォルダ名や ID を、貼ったときにシェルが解釈しないこと（セキュリティ）。
 func TestResumeCmd(t *testing.T) {
@@ -10,7 +13,14 @@ func TestResumeCmd(t *testing.T) {
 		{"/tmp/x; rm -rf ~", "claude --resume", "abc", "cd '/tmp/x; rm -rf ~' && claude --resume abc"},
 		{"/tmp/p", "claude --resume", "=ls", "cd /tmp/p && claude --resume '=ls'"}, // zsh の = 展開をさせない
 		{"/tmp/$(touch pwned)", "claude --resume", "abc", "cd '/tmp/$(touch pwned)' && claude --resume abc"},
-		{"/tmp/it's", "q chat --resume", "", `cd '/tmp/it'\''s' && q chat --resume`},
+		// 単一引用符と \ は出さない。'\'' は sh・bash・zsh では正しいが、fish（単一引用符の中の \' と \\ はエスケープ）と
+		// PowerShell（\ はただの文字、'' は空の文字列）では囲みを抜けてコマンドを足せる
+		{"/tmp/it's", "q chat --resume", "", ""},
+		{`/tmp/a\';touch $T/pwned_fish;#`, "claude --resume", "abc", ""},
+		{"/tmp/a'; touch $T/pwned_pwsh #", "claude --resume", "abc", ""},
+		{"/w/a", "kiro-cli chat --v3 --resume-id", "x';touch pwned;'", ""},
+		{"/w/a", "claude --resume", `a\b`, ""},
+		{`/tmp/a\`, "claude --resume", "abc", ""},
 		{"/tmp/a`id`", "codex resume", "x", "cd '/tmp/a`id`' && codex resume x"},
 		{"/Users/me/web", "codex resume", "x && curl evil", "cd /Users/me/web && codex resume 'x && curl evil'"},
 		{"/tmp/a\nrm -rf ~", "claude --resume", "abc", ""},
@@ -67,9 +77,11 @@ func TestGitCmd(t *testing.T) {
 		want string
 	}{
 		{"/Users/me/web", "show", []string{"4917468abc"}, "git -C /Users/me/web show 4917468abc"},
+		{"/Users/me/web", GitShow, []string{"4917468abc"}, "git -C /Users/me/web show --no-ext-diff --no-textconv 4917468abc"},
 		{"/Users/me/My Project", "show", []string{"abc"}, "git -C '/Users/me/My Project' show abc"},
 		{"/tmp/r$(touch pwned-dollar)`touch pwned-tick`;touch pwned-semi", "show", []string{"abc"}, "git -C '/tmp/r$(touch pwned-dollar)`touch pwned-tick`;touch pwned-semi' show abc"},
-		{"/tmp/it's", "log --oneline", []string{"aaa..bbb"}, `git -C '/tmp/it'\''s' log --oneline aaa..bbb`},
+		{"/tmp/it's", "log --oneline", []string{"aaa..bbb"}, ""},
+		{`/tmp/r\';touch pwned;#`, "show", []string{"abc"}, ""},
 		{"/Users/me/web", "show", []string{"abc; curl evil"}, "git -C /Users/me/web show 'abc; curl evil'"},
 		{`C:\Users\John Smith\a & calc`, "show", []string{"abc"}, `git -C "C:\Users\John Smith\a & calc" show abc`},
 		{`C:\Users\me\$(calc)`, "show", []string{"abc"}, ""},
@@ -85,8 +97,10 @@ func TestGitCmd(t *testing.T) {
 		{"", "show", []string{"abc"}, ""},
 	}
 	for _, c := range cases {
-		if got := GitCmd(c.repo, c.cmd, c.args...); got != c.want {
-			t.Errorf("GitCmd(%q, %q, %q) = %q, want %q", c.repo, c.cmd, c.args, got, c.want)
+		// want は「git -C …」の形で書き、リポジトリの設定のプログラムを止める gitPasteFlags は比べるときに足す
+		want := strings.Replace(c.want, "git -C ", "git "+gitPasteFlags+" -C ", 1)
+		if got := GitCmd(c.repo, c.cmd, c.args...); got != want {
+			t.Errorf("GitCmd(%q, %q, %q) = %q, want %q", c.repo, c.cmd, c.args, got, want)
 		}
 	}
 }

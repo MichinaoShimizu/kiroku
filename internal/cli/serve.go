@@ -27,7 +27,9 @@ type snapshot struct {
 	months map[string]*report.Summary
 	meta   map[string]any
 	rep    []source.Report
-	gen    float64 // 読んだ時刻（UNIX 秒）。画面はこれが変わったら取り込み直す
+	// private は、セッションに残らない、中身を出さない会話の記録のファイル（Kiro CLI の PrivateFiles）。HTML・JSON には入れない
+	private []string
+	gen     float64 // 読んだ時刻（UNIX 秒）。画面はこれが変わったら取り込み直す
 }
 
 // live は kiroku serve の中身。履歴の指紋が変わったときだけ読み直し、最新の集計を配る。
@@ -422,6 +424,18 @@ func (l *live) logf(format string, args ...any) {
 	}
 }
 
+// privateFiles は、いま読んでいる履歴のうち、中身を出さない会話の履歴のファイル（core.Session.PrivateFiles）。
+// 「Analyze with AI」の Claude Code に読ませない（ai.Runner.Private）。
+func (l *live) privateFiles() []string {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	out := append([]string(nil), l.snap.private...)
+	for _, s := range l.snap.data {
+		out = append(out, s.PrivateFiles...)
+	}
+	return out
+}
+
 // allowed は、/history で path を見せてよいか。シンボリックリンクをたどった本当の場所が、
 // 読んでいる履歴の場所（roots）の下にあるときだけ見せる（履歴の中身で、ほかのファイルを読ませないため）。
 // 見せてよければ、たどった先の場所を返す。
@@ -626,7 +640,7 @@ func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []
 	}
 	l := &live{load: load, paths: paths, roots: historyRoots(picked), print: logw, keep: keep, prog: newProgress(names), lang: lang}
 	if enableAI && aiAddr {
-		l.aiRun = ai.NewHandler(ai.Runner{Enabled: true, Dirs: l.roots})
+		l.aiRun = ai.NewHandler(ai.Runner{Enabled: true, Dirs: l.roots, Private: l.privateFiles})
 	}
 	addr = ln.Addr().String()
 	url := viewURL(addr)

@@ -46,7 +46,7 @@ func TestArchiveOffDeletesOnlyCopies(t *testing.T) {
 
 	// kiroku archive on をしたことのないフォルダ
 	other := t.TempDir()
-	keep := filepath.Join(other, "claude", "photos", "a.zst")
+	keep := filepath.Join(other, "claude", "photos", "a.jsonl.zst")
 	os.MkdirAll(filepath.Dir(keep), 0o700)
 	os.WriteFile(keep, []byte("x"), 0o600)
 	asked = 0

@@ -35,6 +35,85 @@ Template for a new section:
 - <aspects to weigh more>
 ```
 
+## 2026-11-19 — full at 99b2fcd (v0.39.0)
+
+The third full run. A, B, C+D, E (one agent each for Claude Code, Codex and Kiro), and G+H ran as agents; I and J by hand. F (prompts) was not run (see Open items). Fixes are on one branch, #481, as separate commits.
+
+### Gates
+| Check | Result |
+|---|---|
+| tools/check.sh | fail: govulncheck reported GO-2026-6859 (net/http `MaxBytesReader` header race, reachable through `/ai/run`) in Go 1.26.10. Fixed with Go 1.26.11 (#481); pass after |
+| e2e and XSS | pass (smoke, xss and serve.mjs; en and ja) |
+| go test -count=3 (order and time) | pass; also `-shuffle=on`, `-race`, TZ Kiritimati and Los_Angeles, and `-cpu 1,4 -p 1` with 8 CPU burners. `TestLiveRefresh` and the Crew live test took their baseline inside the goroutine (open since 2026-10-18); fixed |
+| main CI, last 20 runs | CI, CodeQL, Scorecard, Demo, Fuzz, Upstream green. Prices failed twice (2026-11-09, 11-16): OpenAI changed every price table's columns, split cache writes into 30m and 12h, and moved Cyber models into Specialized. `tools/prices` rewritten (#481) |
+| govulncheck | GO-2026-6859 (above). Go modules checked on OSV for advisories govulncheck doesn't know yet: none for compress v1.20.3, sqlite v1.60.1, x/sys v0.49.0, libc, go-humanize |
+| Reproducible build of v0.39.0 | matches (linux/amd64) |
+| Coverage by package | ai 94.0%, archive 79.4%, cli 87.2% (-0.2), core 83.5%, gitlog 92.4%, report 90.1%, source 94.3%, web 91.5% (+0.9), tools/upstream 33.9% (+4.6); others unchanged |
+| Benchmark, BenchmarkLarge (n=6 against 7eecd3f) | read 771 ms vs 701 ms (p=0.13), aggregate 362 vs 349 ms (p=0.39), render 172 vs 181 ms (p=0.24): no significant change. Render memory -7.6% (p=0.004, #467) |
+| Stale PRs, issues, Dependabot | Issue #474 (upstream, 24 days; closed by #481). Dependabot #478 (actions, 12 days), #479 (Playwright), #480 (Go modules; its ubuntu job fails on govulncheck with Go 1.26.10, which #481 fixes) |
+
+### Findings
+| Aspect | Certain | Suspected | Needs a decision | Not worth fixing | Fixed in |
+|---|---|---|---|---|---|
+| A. security | 6 | 2 | 2 (copied `git show` runs the repository's config; Claude's `--add-dir` includes the Crew home) | 1 (symlinked session file shown but not served, as SECURITY.md says) | #481 (paste quoting for fish and PowerShell, SQLite named pipe, quadratic prompt times, `archive off`, archive folder modes, 390 px tags) |
+| B. ux | 14 | 0 | 7 (summary blank, pace tile, dark disabled button, badge contrast, calendar overlaps, default "Color by", LIVE badge hint) | 1 (sparkline label) | #481 (metric button names, repeated-prompt wording, AI check wording) |
+| C. i18n | 4 | 0 | 2 (Japanese words for cost and outputs; Go pages, `/ai/run` errors and synthetic titles in Japanese) | 0 | #481 |
+| D. docs | 9 | 2 | 2 (split SECURITY.md lines 15–16; write the `--no-ai` rules once) | 0 | #481 |
+| E. data | 12 | 11 | 3 (Kiro "Classic" name; Kiro tangent and fork double count; Ultrafast promotion) | 0 | #481 (prices, gateway budget, subagent order, Kiro `--v3` and docs, Codex spend limits and `dynamic_tools_updated`) |
+| F. prompts | — | — | — | — | not run |
+| G. code | 6 | 0 | 0 | 1 (`autostart off` ignores the unregister error: `launchctl bootout` fails when not running) | #481 (dead code, live test baseline, live.js errors and demo shift, test setup errors, zstd recover) |
+| H. arch | 2 | 0 | 0 | 0 | #481 (dependency table, `app.go`) |
+| I. supply | 3 | 0 | 0 | 0 | #481 (Go 1.26.11, Tag only from main, Prices parser) |
+| J. perf | 0 | 0 | 0 | 0 | — |
+
+Decisions the maintainer made after the run (fixed on #481):
+- Copied git commands carry `--no-pager -c core.fsmonitor=false` (and `--no-ext-diff --no-textconv` for `show`); a test pastes one into sh against a repository that sets every configured command
+- The Claude Code AI run gets a `Read` deny rule (in a `--settings` file) for each Kiro Crew private conversation and its copies
+- Prices: keep Haiku 3.5 removed and Ultrafast list prices
+- Kiro tangent, `/rewind` and fork double count: documented as a known limit in docs/sources.md
+- Japanese: README.ja uses アウトプット; `/ai/run` errors, the locked and one-time open pages, and kiroku's own session titles are translated
+- SECURITY.md lines 15–16 split into sub-bullets; the `KIROKU_NO_AI` value rules live only in the guide's Options
+- UX: badge contrast, dark disabled AI button and dialog controls, summary blank fixed. The week calendar's overlapping lanes stay as they are (cascading lanes already keep each title's first line; narrower boxes need a design decision)
+
+### Open items
+- Previous: "Analyze with AI" with Codex and Kiro CLI only tested with stub commands. Decides: maintainer
+- Previous: Kiro CLI `KIRO_DATA_DIR` — still undocumented (settings and cli-commands pages, changelog 2.32–3.5). Due: next data audit
+- Previous: Kiro and Codex read-only mechanism — unchanged. Candidates: a kiroku-written Kiro agent (`tools`/`allowedTools: ["fs_read"]`, `allowedPaths` = history folders, `--agent`, `--trust-tools=fs_read`); Codex `-c mcp_servers={}`. New: Claude's `--add-dir` includes the Kiro Crew home, so a run could read incognito Crew conversations kiroku keeps out of its prompts; user settings (`permissions.defaultMode`) still apply. Decides: maintainer
+- Previous: `ai.js` untested paths (non-OK answer, stream without `done`, lost connection, too-large prompt) — not checked this run. Due: next full run
+- Previous: Codex session started by a Kiro Crew subagent — now resolvable: Crew writes `child_sid` on `subagent/completed`/`failed` in the parent's crew-log, which isn't pruned. Plan: read it into `CrewInfo.Sid`, derive the provider from the spawn's `model`, and mark the Codex thread's first `user_message` as injected. Due: next data audit
+- Previous: Kiro V3 tangent, `/rewind` and IDE "Fork conversation" sessions count the parent's prompts again (now confirmed by the tangent and checkpoints docs). The dashboard can tell children apart, but the field isn't documented. Needs a real sample. Decides: maintainer (accept, or guess by matching prompts)
+- Previous: `KIRO_HOME` and V2 sessions — unchanged; V2 sessions in `~/.kiro/sessions/cli` are likely missed when `KIRO_HOME` is set. Due: next data audit
+- Previous: Claude Code subagent time match in name order — resolved (#481)
+- Previous: Claude Code moved-session file — narrower now: a later file whose only own lines are a compaction (idle compaction after `/cd`) creates no session, and its subagents and compaction are lost. A fix must keep the copied-line keys for dedupe; ignore compaction lines in `ownLines` only. Due: next data audit
+- Previous: Claude Code fork subagents and resumed `cost-state` — still can't tell without real samples (both suspected). Due: next data audit
+- Previous: zstd decoder panic — resolved (#481)
+- Previous: UX items — mostly still open (see Needs a decision above); resolved: the AI button's reason is no longer hover-only, `lockedPage` is in Japanese. Due: maintainer decision
+- Previous: Go-side native metric labels differ from the view's words. Decides: maintainer
+- Previous: `?key=` saved in browser histories. Decides: maintainer
+- Previous: security lows — `archive off` resolved (#481); `<code>` wraps now; symlinked session file unchanged (consistent with SECURITY.md); fish and PowerShell quoting resolved by refusing `'` and `\` (#481)
+- Previous: F (prompts) — overdue since 2026-11-01. Not run this time because the run's priority was the security floor, upstream and prices. Due: before the next minor release
+- Previous: G items — resolved except `codexNewer`, origin-index eviction, `--ai=false` through `cmdServe`, and the subagent end time from `totalDurationMs` without a file (all untested branches). Due: next full run
+- Previous: i18n — `/ai/run` errors, the hop page and synthetic session titles still English (lockedPage done). Decides: maintainer (adds Japanese to the CSP-hashed hop script)
+- Previous: supply — required checks use `enforcement_level: non_admins`; `install-script` and CodeQL not required. Decides: maintainer. `tag.yml` main guard resolved (#481). CI shellcheck still the runner's
+- Previous: docs — SECURITY.md line 16 is now about 5,250 characters, line 15 about 2,500; guide paragraphs at 129, 185, 505, 55 and 110 over 1,500. Decides: maintainer (moves text in a security document)
+- Previous: development.md dependency table — resolved (#481)
+- New: Haiku 3.5 left the Anthropic price page; `claude-3-5-haiku` was removed from the table (#481), so those sessions are unpriced unless `--prices` is used. Ultrafast for gpt-6.2-astra/sol uses list prices (6x), twice the bill during the promotion through 2027-02-28. Decides: maintainer (keep, or add dated prices)
+- New: data suspected — Claude Code: subagent folders left without their session file (before 2.1.323); unknown model IDs get no context window (Claude Code assumes 1M). Kiro: CLI 3.5 can make a second V3 copy of a V2 conversation with an undocumented ID; SQLite `conversations` resume now opens V3's newest session; text added by a UserPromptSubmit hook may count as typed; workflow step sessions before 2.32 copied the parent. Codex: guardian sessions labelled "subagent"; `attached_thread` forks. Due: next data audit
+- New: the copied `git -C <repo> show <hash>` runs the repository's own `filter.*.process` and `core.pager` when pasted (kiroku itself runs git safely). Options: add `-c core.pager=cat --no-ext-diff --no-textconv` and a note next to the copy button. Decides: maintainer
+- New: `docs/sources.md` line 75 still says V3's resume list doesn't show Classic sessions (the dashboard lists them now). Due: next `/docs-refresh`
+
+### Loop
+| Run | Findings (certain) | Fixed | Median days to fix | Open items | Overdue | Previous items resolved |
+|---|---|---|---|---|---|---|
+| 2026-11-19 full | 60 | 34 | 0 (same day; PR open) | 26 | 1 (F) | 9 of 24 |
+| 2026-10-18 full | 64 | 36 | 0 (fixed the same day; PRs open) | 24 | 0 | 8 of 17 |
+
+### Next time
+- F first: run `/report-eval` for the four open prompt items
+- data: the Crew `child_sid` link, the Kiro fork double count, the Claude compaction-only file; Kiro CLI keeps moving fast (3.0 → 3.5 in three weeks)
+- security: the AI least-access mechanism (Kiro agent file, Claude `--add-dir` without the Crew home)
+- Run the hostile tester with fish and PowerShell installed, so paste commands are checked by running them
+
 ## 2026-10-18 — full at 7eecd3f (v0.38.1)
 
 The second full run. All ten aspects ran: A, B, C, D, E and G as agents, H and I together in one agent, F with `/report-eval check` (6 writers and 1 grader), and J by hand. Fixes went in through #464–#469.

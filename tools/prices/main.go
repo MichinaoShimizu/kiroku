@@ -333,17 +333,31 @@ func tableLine(lines []string, from int, header []string) int {
 // ── OpenAI ──
 
 var (
-	openaiHeader = []string{"Model", "Short context input", "Short context cached input", "Short context cache writes", "Short context output",
-		"Long context input", "Long context cached input", "Long context cache writes", "Long context output"}
-	openaiSpecialHeader = []string{"Category", "Model", "Input", "Cached input", "Output"}
-	// Codex が使うモデル（gpt-5 以降）。名前の後ろの "(<272K context length)" は除く
-	openaiModel = regexp.MustCompile(`^(gpt-(?:[5-9]|[1-9]\d)(?:\.\d+)?(?:-[a-z0-9]+)*)(?: \(<\d+K context length\))?$`)
-	openaiPrice = regexp.MustCompile(`^(?:\$(\d+(?:\.\d+)?)|-)$`)
-	openaiLong  = regexp.MustCompile(`Short context: ≤(\d+)K input tokens\. Long context: >(\d+)K input tokens\.`)
+	// Standard・Flex・Fast・Ultrafast の表。長いコンテキストの料金があるモデルの表（wide）のすぐ後に、ないモデルの表（narrow）が続く。
+	// キャッシュの書き込みは 30 分（30m write）と 12 時間（12h write）の 2 つ。Codex は TTL を履歴に書かない（どちらで書いたかわからない）ので、
+	// 30 分の料金を kiroku のキャッシュ書き込みにする（2026-11 より前の 1 つだけの "cache writes" と同じ値）。12 時間は形だけ確かめて使わない。
+	openaiWideHeader = []string{"Model", "Short context input", "Short context output", "Short context cached input", "Short context 30m write", "Short context 12h write",
+		"Long context input", "Long context output", "Long context cached input", "Long context 30m write", "Long context 12h write"}
+	openaiNarrowHeader = []string{"Model", "Input", "Output", "Cached input"}
+	// Specialized models の Standard の表（Cyber・Codex など）と Fast の表
+	openaiSpecialHeader     = []string{"Category", "Model", "Input", "Output", "Cached input", "30m write", "12h write"}
+	openaiSpecialFastHeader = []string{"Category", "Model", "Input", "Output", "Cached input"}
+	// Codex が使うモデル（gpt-5 以降）の ID
+	openaiID = `gpt-(?:[5-9]|[1-9]\d)(?:\.\d+)?(?:-[a-z0-9]+)*`
+	// 名前の後ろの "(<272K context length)" は除く
+	openaiModel = regexp.MustCompile(`^(` + openaiID + `)(?: \(<\d+K context length\))?$`)
+	// Specialized models の Cyber の行（短いコンテキストと長いコンテキストが別の行: "gpt-6-cyber (short context)"）
+	openaiCyberModel = regexp.MustCompile(`^(` + openaiID + `) \((short|long) context\)$`)
+	// Category の前の飛び先（<a id="cyber-models"></a>）
+	openaiAnchor = regexp.MustCompile(`^<a id="[a-z0-9-]+"></a>`)
+	openaiPrice  = regexp.MustCompile(`^(?:\$(\d+(?:\.\d+)?)|-)$`)
+	openaiLong   = regexp.MustCompile(`Short context: ≤(\d+)K input tokens\. Long context: >(\d+)K input tokens\.`)
 )
 
 // openaiTiers は、Standard のほかに読むサービスティアの表（見出し → 控えの節の名前）。Codex の service_tier で選ぶ料金で、
 // 節の名前は internal/core の OpenAITiers の Name と同じ。どれもなければその節を書かない（料金表に残っていれば TestPricesMatchUpstream が知らせる）。
+// 「### <名前> list pricing data」の表（あれば）も同じ節に足す。期間限定の「### <名前> promotion pricing data」は日付で料金が変わるので使わず、
+// list の表と同じモデルがそろっていることだけ確かめる（promotion だけのモデルを黙って落とさないように）。
 var openaiTiers = []struct{ heading, name string }{
 	{"### Flex pricing data", "Flex"},
 	{"### Fast pricing data", "Fast"},
@@ -352,9 +366,9 @@ var openaiTiers = []struct{ heading, name string }{
 
 const openaiTableHead = "| Model ID | Input | Cached input | Cache write | Output | Long input | Long cached input | Long cache write | Long output |\n|---|---|---|---|---|---|---|---|---|\n"
 
-// parseOpenAI は「### Standard pricing data」の表（gpt-5 以降）と、Cyber models の表（あれば）と、
-// Specialized models の Standard の表の Codex の行を読む。サービスティア（Flex・Fast・Ultrafast）の表と、
-// Specialized models の Fast の表の Codex の行は、それぞれ「### 名前」の節に書く。
+// parseOpenAI は「### Standard pricing data」の表（gpt-5 以降）と、Specialized models の Standard の表の
+// Cyber と Codex の行を読む。サービスティア（Flex・Fast・Ultrafast）の表と、Specialized models の Fast の表の Codex の行は、
+// それぞれ「### 名前」の節に書く。
 func parseOpenAI(page string) (string, error) {
 	lines := strings.Split(strings.ReplaceAll(page, "\r\n", "\n"), "\n")
 	at := lineIndex(lines, 0, "### Standard pricing data")
@@ -364,9 +378,9 @@ func parseOpenAI(page string) (string, error) {
 	if lineIndex(lines, at+1, "### Standard pricing data") >= 0 {
 		return "", errors.New(`"### Standard pricing data" appears twice`)
 	}
-	ts := tablesAfter(lines, at, openaiHeader)
-	if len(ts) == 0 || tableLine(lines, at, openaiHeader) != at+2 {
-		return "", errors.New("no standard price table with the expected columns right after its heading")
+	std, err := priceTables(lines, at)
+	if err != nil {
+		return "", fmt.Errorf("standard: %w", err)
 	}
 	m := openaiLong.FindStringSubmatch(strings.Join(lines, "\n"))
 	if m == nil || m[1] != m[2] {
@@ -377,8 +391,8 @@ func parseOpenAI(page string) (string, error) {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Long context: more than %sK input tokens in one request (the whole request is billed at the long-context rates).\n\n", threshold)
 	b.WriteString(openaiTableHead)
-	seen := map[string][]string{} // 読んだモデルと料金（Cyber models の表に同じ行が重ねて載る）
-	n, err := openaiRows(&b, ts[0].rows, seen, false)
+	seen := map[string][]string{} // 読んだモデルと料金
+	n, err := openaiRows(&b, std, seen)
 	if err != nil {
 		return "", err
 	}
@@ -386,68 +400,83 @@ func parseOpenAI(page string) (string, error) {
 		return "", fmt.Errorf("only %d gpt-5 or later models in the standard price table", n)
 	}
 
-	// Cyber models（Flagship の Standard と同じ列の表。gpt-5.5-cyber など）。Standard にもある行は読み飛ばす
-	if cy := lineIndex(lines, at, "Cyber models"); cy >= 0 {
-		end := lineIndex(lines, cy, "Specialized models")
-		if mm := lineIndex(lines, cy, "Multimodal models"); mm >= 0 && (end < 0 || mm < end) {
-			end = mm
-		}
-		tl := tableLine(lines, cy, openaiHeader)
-		if end < 0 || tl >= end {
-			return "", errors.New("no price table under Cyber models")
-		}
-		cyber := tablesAfter(lines, tl, openaiHeader)
-		if len(cyber) == 0 {
-			return "", errors.New("the table under Cyber models has no separator row")
-		}
-		if _, err := openaiRows(&b, cyber[0].rows, seen, true); err != nil {
-			return "", err
-		}
-	}
-
-	// Specialized models の Standard（Fast の前）の表の Codex の行
+	// Specialized models の Standard（Fast の前）の表
 	sp := lineIndex(lines, at, "Specialized models")
 	if sp < 0 {
 		return "", errors.New(`no "Specialized models" section`)
 	}
 	st := lineIndex(lines, sp, "Standard")
 	tl := tableLine(lines, sp, openaiSpecialHeader)
-	if st < 0 || tl >= len(lines) || st > tl || lineIndex(lines[:tl], sp, "Fast") >= 0 {
-		return "", errors.New("no standard table under Specialized models")
+	if st < 0 || tl >= len(lines) || st > tl || firstTableLine(lines, st) != tl || lineIndex(lines[:tl], sp, "Fast") >= 0 {
+		return "", errors.New("no standard table with the expected columns under Specialized models")
 	}
 	special := tablesAfter(lines, tl, openaiSpecialHeader)
 	if len(special) == 0 {
 		return "", errors.New("the standard table under Specialized models has no separator row")
 	}
-	codex := 0
+	// Cyber の行: 1 つのモデルが short context と long context の 2 行になっている。1 行にまとめる
+	type cyberRow struct {
+		id          string
+		short, long []string // 入力, キャッシュ済み, 書き込み, 出力
+	}
+	var cyber []*cyberRow
+	byID := map[string]*cyberRow{}
+	var codex [][]string
 	for _, r := range special[0].rows {
 		if len(r) != len(openaiSpecialHeader) {
 			return "", fmt.Errorf("row %q has %d cells", r, len(r))
 		}
-		if r[0] != "Codex" {
-			continue
+		cat := openaiAnchor.ReplaceAllString(r[0], "")
+		switch {
+		case cat == "Codex":
+			mm := openaiModel.FindStringSubmatch(r[1])
+			if mm == nil {
+				return "", fmt.Errorf("unexpected Codex model name %q", r[1])
+			}
+			if err := checkPrices(mm[1], r[6:7]); err != nil {
+				return "", err
+			}
+			codex = append(codex, []string{mm[1], r[2], r[4], r[5], r[3], "-", "-", "-", "-"})
+		case cat == "Cyber" || strings.HasPrefix(cat, "Cyber "):
+			mm := openaiCyberModel.FindStringSubmatch(r[1])
+			if mm == nil {
+				return "", fmt.Errorf("unexpected Cyber model name %q", r[1])
+			}
+			id := mm[1]
+			if err := checkPrices(id, r[6:7]); err != nil {
+				return "", err
+			}
+			c := byID[id]
+			if c == nil {
+				c = &cyberRow{id: id}
+				byID[id] = c
+				cyber = append(cyber, c)
+			}
+			half := &c.short
+			if mm[2] == "long" {
+				half = &c.long
+			}
+			if *half != nil {
+				return "", fmt.Errorf("cyber model %s has two %s context rows", id, mm[2])
+			}
+			*half = []string{r[2], r[4], r[5], r[3]}
 		}
-		mm := openaiModel.FindStringSubmatch(r[1])
-		if mm == nil {
-			return "", fmt.Errorf("unexpected Codex model name %q", r[1])
-		}
-		id := mm[1]
-		v, err := openaiPrices(id, []string{r[2], r[3], "-", r[4]})
-		if err != nil {
-			return "", err
-		}
-		if v[0] == "-" || v[3] == "-" {
-			return "", fmt.Errorf("%s: no input or output price", id)
-		}
-		if seen[id] != nil {
-			return "", fmt.Errorf("model %s appears twice", id)
-		}
-		seen[id] = v
-		codex++
-		fmt.Fprintf(&b, "| %s | %s | - | - | - | - |\n", id, strings.Join(v, " | "))
 	}
-	if codex == 0 {
+	var cy [][]string
+	for _, c := range cyber {
+		if c.short == nil || c.long == nil {
+			return "", fmt.Errorf("cyber model %s needs both a short and a long context row", c.id)
+		}
+		cy = append(cy, append(append([]string{c.id}, c.short...), c.long...))
+	}
+	if _, err := openaiRows(&b, cy, seen); err != nil {
+		return "", err
+	}
+	if len(codex) == 0 {
 		return "", errors.New("no Codex models under Specialized models")
+	}
+	if _, err := openaiRows(&b, codex, seen); err != nil {
+		return "", err
 	}
 
 	// サービスティアの表（見出しのすぐ後に Standard と同じ列の表）
@@ -461,13 +490,13 @@ func parseOpenAI(page string) (string, error) {
 		if lineIndex(lines, hd+1, tr.heading) >= 0 {
 			return "", fmt.Errorf("%q appears twice", tr.heading)
 		}
-		tt := tablesAfter(lines, hd, openaiHeader)
-		if len(tt) == 0 || tableLine(lines, hd, openaiHeader) != hd+2 {
-			return "", fmt.Errorf("no %s price table with the expected columns right after its heading", tr.name)
+		rows, err := priceTables(lines, hd)
+		if err != nil {
+			return "", fmt.Errorf("%s: %w", tr.name, err)
 		}
 		tb := &strings.Builder{}
 		tierSeen[tr.name] = map[string][]string{}
-		n, err := openaiRows(tb, tt[0].rows, tierSeen[tr.name], false)
+		n, err := openaiRows(tb, rows, tierSeen[tr.name])
 		if err != nil {
 			return "", fmt.Errorf("%s: %w", tr.name, err)
 		}
@@ -475,46 +504,86 @@ func parseOpenAI(page string) (string, error) {
 			return "", fmt.Errorf("no gpt-5 or later models in the %s price table", tr.name)
 		}
 		tiers[tr.name] = tb
+
+		// list（日付によらない料金）を足し、promotion（期間限定）は list と同じモデルがそろっているかだけ見る
+		list, promo := map[string][]string{}, map[string][]string{}
+		for _, x := range []struct {
+			kind string
+			seen map[string][]string
+		}{{"list", list}, {"promotion", promo}} {
+			h := strings.TrimSuffix(tr.heading, " pricing data") + " " + x.kind + " pricing data"
+			xh := lineIndex(lines, at, h)
+			if xh < 0 {
+				continue
+			}
+			if lineIndex(lines, xh+1, h) >= 0 {
+				return "", fmt.Errorf("%q appears twice", h)
+			}
+			rows, err := priceTables(lines, xh)
+			if err != nil {
+				return "", fmt.Errorf("%s %s: %w", tr.name, x.kind, err)
+			}
+			xb := &strings.Builder{}
+			n, err := openaiRows(xb, rows, x.seen)
+			if err != nil {
+				return "", fmt.Errorf("%s %s: %w", tr.name, x.kind, err)
+			}
+			if n == 0 {
+				return "", fmt.Errorf("no gpt-5 or later models in the %s %s price table", tr.name, x.kind)
+			}
+			if x.kind == "list" {
+				for id, v := range list {
+					if tierSeen[tr.name][id] != nil {
+						return "", fmt.Errorf("model %s appears twice in %s", id, tr.name)
+					}
+					tierSeen[tr.name][id] = v
+				}
+				tb.WriteString(xb.String())
+			}
+		}
+		for id := range promo {
+			if list[id] == nil {
+				return "", fmt.Errorf("%s: %s has promotion prices but no list prices", tr.name, id)
+			}
+		}
+		for id := range list {
+			if len(promo) > 0 && promo[id] == nil {
+				return "", fmt.Errorf("%s: %s has list prices but no promotion prices", tr.name, id)
+			}
+		}
 	}
 
 	// Specialized models の Fast の表（Standard の表の後）の Codex の行は、Fast の節に足す
 	if fa := lineIndex(lines, tl+1, "Fast"); fa >= 0 {
-		end := lineIndex(lines, fa, "Finetuning")
-		ftl := tableLine(lines, fa, openaiSpecialHeader)
-		if end >= 0 && ftl >= end || ftl >= len(lines) {
-			return "", errors.New("no table under Fast in Specialized models")
+		ftl := tableLine(lines, fa, openaiSpecialFastHeader)
+		if ftl >= len(lines) || firstTableLine(lines, fa) != ftl {
+			return "", errors.New("no table with the expected columns under Fast in Specialized models")
 		}
-		ft := tablesAfter(lines, ftl, openaiSpecialHeader)
+		ft := tablesAfter(lines, ftl, openaiSpecialFastHeader)
 		if len(ft) == 0 {
 			return "", errors.New("the Fast table under Specialized models has no separator row")
 		}
+		var rows [][]string
 		for _, r := range ft[0].rows {
-			if len(r) != len(openaiSpecialHeader) {
+			if len(r) != len(openaiSpecialFastHeader) {
 				return "", fmt.Errorf("row %q has %d cells", r, len(r))
 			}
-			if r[0] != "Codex" {
+			if openaiAnchor.ReplaceAllString(r[0], "") != "Codex" {
 				continue
 			}
 			mm := openaiModel.FindStringSubmatch(r[1])
 			if mm == nil {
 				return "", fmt.Errorf("unexpected Codex model name %q", r[1])
 			}
-			id := mm[1]
-			v, err := openaiPrices(id, []string{r[2], r[3], "-", r[4]})
-			if err != nil {
-				return "", err
-			}
-			if v[0] == "-" || v[3] == "-" {
-				return "", fmt.Errorf("%s: no input or output price", id)
-			}
+			rows = append(rows, []string{mm[1], r[2], r[4], "-", r[3], "-", "-", "-", "-"})
+		}
+		if len(rows) > 0 {
 			if tierSeen["Fast"] == nil {
 				tierSeen["Fast"], tiers["Fast"] = map[string][]string{}, &strings.Builder{}
 			}
-			if tierSeen["Fast"][id] != nil {
-				return "", fmt.Errorf("model %s appears twice in Fast", id)
+			if _, err := openaiRows(tiers["Fast"], rows, tierSeen["Fast"]); err != nil {
+				return "", fmt.Errorf("specialized Fast: %w", err)
 			}
-			tierSeen["Fast"][id] = v
-			fmt.Fprintf(tiers["Fast"], "| %s | %s | - | - | - | - |\n", id, strings.Join(v, " | "))
 		}
 	}
 	for _, tr := range openaiTiers {
@@ -525,12 +594,96 @@ func parseOpenAI(page string) (string, error) {
 	return b.String(), nil
 }
 
-// openaiRows は、Standard と同じ列の表の行（gpt-5 以降）を b に書き、書いた数を返す。
-// again が true なら、すでに読んだモデルの行は読み飛ばす（Standard の表の料金を使う）。
-func openaiRows(b *strings.Builder, rows [][]string, seen map[string][]string, again bool) (int, error) {
+// firstTableLine は from から後で最初の表の行の行番号（なければ len(lines)）。
+func firstTableLine(lines []string, from int) int {
+	for i := from; i < len(lines); i++ {
+		if splitRow(lines[i]) != nil {
+			return i
+		}
+	}
+	return len(lines)
+}
+
+// tableAt は、lines[i] から始まる、見出しの行が header の表（なければ ok=false）と、表の次の行の行番号。
+func tableAt(lines []string, i int, header []string) (t mdTable, next int, ok bool) {
+	if i+1 >= len(lines) {
+		return t, i, false
+	}
+	h := splitRow(lines[i])
+	if h == nil || !equal(h, header) {
+		return t, i, false
+	}
+	if sep := splitRow(lines[i+1]); len(sep) != len(h) || !allMatch(sep, sepCell) {
+		return t, i, false
+	}
+	t.header = h
+	j := i + 2
+	for ; j < len(lines); j++ {
+		r := splitRow(lines[j])
+		if r == nil {
+			break
+		}
+		t.rows = append(t.rows, r)
+	}
+	return t, j, true
+}
+
+// priceTables は、見出し（lines[hd]）の 1 行空けたすぐ後の wide の表と、空行を挟んで続く narrow の表（あれば）の行を、
+// 控えの並び（モデル, 入力, キャッシュ済み, 書き込み, 出力, 長い入力, 長いキャッシュ済み, 長い書き込み, 長い出力）にして返す。
+// wide の表の後に別の形の表が続いていれば失敗する（読まずに落とさないように）。
+func priceTables(lines []string, hd int) ([][]string, error) {
+	if hd+1 >= len(lines) || strings.TrimSpace(lines[hd+1]) != "" {
+		return nil, errors.New("no price table with the expected columns right after its heading")
+	}
+	wide, next, ok := tableAt(lines, hd+2, openaiWideHeader)
+	if !ok {
+		return nil, errors.New("no price table with the expected columns right after its heading")
+	}
+	var out [][]string
+	for _, r := range wide.rows {
+		if len(r) != len(openaiWideHeader) {
+			return nil, fmt.Errorf("row %q has %d cells", r, len(r))
+		}
+		// 12 時間の書き込み（r[5]・r[10]）は使わないが、形は確かめる
+		if err := checkPrices(r[0], []string{r[5], r[10]}); err != nil {
+			return nil, err
+		}
+		out = append(out, []string{r[0], r[1], r[3], r[4], r[2], r[6], r[8], r[9], r[7]})
+	}
+	for next < len(lines) && strings.TrimSpace(lines[next]) == "" {
+		next++
+	}
+	if next >= len(lines) || splitRow(lines[next]) == nil {
+		return out, nil
+	}
+	narrow, _, ok := tableAt(lines, next, openaiNarrowHeader)
+	if !ok {
+		return nil, errors.New("a table with unexpected columns follows the price table")
+	}
+	for _, r := range narrow.rows {
+		if len(r) != len(openaiNarrowHeader) {
+			return nil, fmt.Errorf("row %q has %d cells", r, len(r))
+		}
+		out = append(out, []string{r[0], r[1], r[3], "-", r[2], "-", "-", "-", "-"})
+	}
+	return out, nil
+}
+
+// checkPrices は、使わない料金の欄も決まった形（"$1.25" か "-"）か確かめる。
+func checkPrices(id string, cells []string) error {
+	for _, c := range cells {
+		if !openaiPrice.MatchString(c) {
+			return fmt.Errorf("%s: unexpected price %q", id, c)
+		}
+	}
+	return nil
+}
+
+// openaiRows は、控えの並びの行（モデル, 料金 8 つ。gpt-5 以降）を b に書き、書いた数を返す。
+func openaiRows(b *strings.Builder, rows [][]string, seen map[string][]string) (int, error) {
 	n := 0
 	for _, r := range rows {
-		if len(r) != len(openaiHeader) {
+		if len(r) != 9 {
 			return 0, fmt.Errorf("row %q has %d cells", r, len(r))
 		}
 		if !strings.HasPrefix(r[0], "gpt-") {
@@ -555,9 +708,6 @@ func openaiRows(b *strings.Builder, rows [][]string, seen map[string][]string, a
 			return 0, fmt.Errorf("%s: long-context input and output prices must both be given or both missing", id)
 		}
 		if seen[id] != nil {
-			if again {
-				continue
-			}
 			return 0, fmt.Errorf("model %s appears twice", id)
 		}
 		seen[id] = v

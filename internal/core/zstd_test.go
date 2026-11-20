@@ -126,3 +126,41 @@ func TestZstdReaderCraftedHuffWeights(t *testing.T) {
 		t.Error("細工した .jsonl.zst を誤りなしで読んだ")
 	}
 }
+
+// panicReader は、圧縮した中身をいくらか返したあと panic する（ほどく途中でライブラリが panic したときの代わり）。
+type panicReader struct {
+	r    io.Reader
+	left int
+}
+
+func (p *panicReader) Read(b []byte) (int, error) {
+	if p.left <= 0 {
+		panic("decoder bug")
+	}
+	if len(b) > p.left {
+		b = b[:p.left]
+	}
+	n, err := p.r.Read(b)
+	p.left -= n
+	return n, err
+}
+
+// ほどく途中の panic は、Read の誤り（ErrZstdPanic）になり、kiroku serve ごと止めない。
+// ほどくのを呼んだゴルーチンの中で行うので（WithDecoderConcurrency(1)）、recover で受けられる。
+func TestZstdReaderRecoversPanic(t *testing.T) {
+	var buf bytes.Buffer
+	w, err := zstd.NewWriter(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	io.WriteString(w, strings.Repeat("kiroku history line\n", 200000))
+	w.Close()
+	z, err := NewZstdReader(&panicReader{r: bytes.NewReader(buf.Bytes()), left: buf.Len() / 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer z.Close()
+	if _, err := io.ReadAll(z); !errors.Is(err, ErrZstdPanic) {
+		t.Fatalf("err = %v, want ErrZstdPanic", err)
+	}
+}

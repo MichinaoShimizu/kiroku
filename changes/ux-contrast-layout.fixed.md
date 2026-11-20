@@ -1,0 +1,3 @@
+- Agent badges (CC, CX, KI, KW) are readable in the light theme (contrast 6:1 or more, from as low as 1.8:1) and in the dark theme
+- In the dark theme, a disabled "Analyze with AI" button is no longer brighter than an enabled one, and the agent list and prompt box in the AI dialog follow the theme
+- The summary no longer leaves a large blank beside "How you used AI": the panel spans the full width and lays out the agent-specific metrics side by side

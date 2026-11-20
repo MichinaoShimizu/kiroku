@@ -71,7 +71,7 @@ func cmdArchive(args []string) error {
 		if err := archive.Disable(dir); err != nil {
 			return err
 		}
-		files, size := archive.Usage(dir)
+		files, size := archive.Kept(dir, keptDirs) // 消すものと同じ決まりで数える（kiroku が書いたコピーだけ）
 		fmt.Println("archive is off: kiroku no longer keeps new copies")
 		if files == 0 {
 			return nil

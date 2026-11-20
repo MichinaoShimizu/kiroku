@@ -1,0 +1,1 @@
+- A crash inside the zstd decoder while reading a compressed history file (`.zst`) is now reported as an unreadable file instead of stopping `kiroku serve`. kiroku decodes on the reading goroutine so it can recover, as hardening against decoder bugs such as GHSA-fpmh-frq8-7rj8

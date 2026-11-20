@@ -1,0 +1,2 @@
+- Codex: a turn stopped by an API key, project or organization spend limit (`api_key_spend_limit_exceeded`, `project_spend_limit_exceeded`, `organization_spend_limit_exceeded`) now counts as a usage limit hit, as Codex itself counts it
+- Codex: `kiroku doctor` no longer reports the `dynamic_tools_updated` record (written when an app-server host replaces dynamic tools) as an unknown kind

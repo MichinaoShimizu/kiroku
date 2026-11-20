@@ -1,0 +1,2 @@
+- `kiroku archive off` now deletes only the copies kiroku writes (`.jsonl.zst`), and the number of files it offers to delete is the number it deletes. Before, it also deleted other `.zst` files in the archive folders and counted files it then left alone
+- `kiroku archive on` and each read now make an archive folder and its per-agent folders (such as `claude/`) that already existed readable only by you. Folders made by older versions could stay readable by other users, who could list the project paths in their names

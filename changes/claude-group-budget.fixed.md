@@ -1,0 +1,1 @@
+- Claude Code: a Claude apps gateway's pooled-budget error ("This request exceeds your group's budget … resets on November 1 at 00:00 UTC") now counts as a usage limit hit, and its reset date is shown as written. The current `spend limit reached · resets Dec 1` form also shows its reset date
