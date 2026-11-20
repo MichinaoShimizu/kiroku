@@ -67,7 +67,6 @@ kiroku serve    # http://localhost:8484/ で画面を開く
 |---|---|---|
 | 1 つのセッション | セッションの詳細の「AI 分析」 | 要約、数字、プロンプトの評価、優先度順のアドバイス 3 つまで（時刻つきで元のプロンプトを引き、よりよいプロンプトを示す）、似た作業に使えるプロンプト集 |
 | 1 日 | 週のカレンダーの、記録のある日付の横の「AI 分析」 | 日報: 要約、前日と比べた数字、プロジェクトごとにしたことと理由、専門家の所見と次の一手 |
-| 1 週間 | 週の表示の、期間の切り替えと同じ行の「✦ 週報」 | 週報: 要約、前の週と比べた数字、プロジェクトごとにしたことと理由、専門家の所見と次の一手。チームにそのまま共有できます |
 
 アドバイスはよくある一般論ではなく、あなたの履歴に基づきます。どの指摘にも、根拠（数字、時刻つきのプロンプト、kiroku が数えた兆候）が書かれます。履歴に表れていれば、次のことに触れます。
 
@@ -76,7 +75,7 @@ kiroku serve    # http://localhost:8484/ で画面を開く
 - **モデルとコンテキスト**: 作業に合ったモデルか（たとえば 1 行の質問に Opus 系のモデル）、長くなった会話、コンパクション、プロジェクトの切り替え
 - **プロンプトから外に出せること**: 何度も打っている指示はスキルやプロジェクトのエージェント向けの指示に、別の役割はサブエージェントに、決まった手順はスクリプトに
 
-ダミーの履歴から書かせた週報の抜粋（英語）:
+ダミーの履歴から書かせた助言の抜粋（英語）:
 
 > - **Turn the repeated check into a skill or script.** You typed "Run the full test suite and the linter, fix anything that fails, and show me the summary" 3 times in 3 sessions. Make it a skill or a project script the agent runs before each commit.
 > - **Use a lighter model for quick questions.** On Thu, Aug 13 at 10:00 you asked a one-line question in a separate Opus session. A lighter model is enough for questions like this.

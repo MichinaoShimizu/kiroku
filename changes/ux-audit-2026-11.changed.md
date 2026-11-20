@@ -1,2 +1,2 @@
-- The period row is shorter: the "Period" and "View" labels are only read out by screen readers, and the weekly report's "Analyze with AI" is one "✦ Weekly report" button
+- The period row is shorter: the "Period" and "View" labels are only read out by screen readers
 - There is space between the week calendar and Data sources below it

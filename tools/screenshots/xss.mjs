@@ -20,8 +20,8 @@ let failed = 0;
 await p.goto("file://" + path.resolve(html));
 await p.waitForTimeout(300);
 // デモでない保存した HTML には、AI の操作がない（デモだけ例外）
-{ const n = await p.locator("#rptrun, #srun, .dayrun, .ai-action, .ai-off, .ai-none").count(), bar = await p.locator("#rptbar").isHidden();
-  if (n || !bar) { failed++; console.log(`  FAIL saved HTML shows AI controls: ${n}`); } else console.log("  ok   saved HTML (not the demo) shows no AI controls"); }
+{ const n = await p.locator("#rptrun, #srun, .dayrun, .ai-action, .ai-off, .ai-none").count();
+  if (n) { failed++; console.log(`  FAIL saved HTML shows AI controls: ${n}`); } else console.log("  ok   saved HTML (not the demo) shows no AI controls"); }
 
 const check = async step => {
   const r = await p.evaluate(() => ({

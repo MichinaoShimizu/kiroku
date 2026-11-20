@@ -67,7 +67,6 @@ In `kiroku serve`, "Analyze with AI" runs a prompt with the AI agent you already
 |---|---|---|
 | A session | "Analyze with AI" in session details | Summary, numbers, an assessment of your prompts, up to three prioritized pieces of advice (each quoting the prompt with its time and giving an improved prompt), and a playbook of prompts for similar work |
 | A day | "Analyze with AI" next to each date with history in the week calendar | A daily report: summary, numbers next to the previous day, what was done in each project and why, expert observations and next actions |
-| A week | The "✦ Weekly report" button in week view, in the row with the period controls | A weekly report: summary, numbers next to the previous week, what was done in each project and why, expert observations and next actions, ready to share with your team |
 
 The advice is grounded in your history, not generic tips. Each point names what it is based on: a figure, a prompt with its time, or a signal kiroku counted. Where the history shows it, the advice covers
 
@@ -76,7 +75,7 @@ The advice is grounded in your history, not generic tips. Each point names what 
 - **model and context**: whether the model fits the work (for example a one-line question on an Opus-class model), conversations that grew long, compactions, and switching between projects
 - **what to move out of your prompts**: an instruction you keep typing into a skill or the project's agent instructions, a separate role into a subagent, fixed steps into a script
 
-An excerpt from a weekly report written from dummy history:
+An excerpt of advice written from dummy history:
 
 > - **Turn the repeated check into a skill or script.** You typed "Run the full test suite and the linter, fix anything that fails, and show me the summary" 3 times in 3 sessions. Make it a skill or a project script the agent runs before each commit.
 > - **Use a lighter model for quick questions.** On Thu, Aug 13 at 10:00 you asked a one-line question in a separate Opus session. A lighter model is enough for questions like this.

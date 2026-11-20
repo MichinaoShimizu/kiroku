@@ -876,9 +876,6 @@ html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り
 .ai-out .mdtable{overflow-x:auto;margin:.5em 0}.ai-out table{border-collapse:collapse;font-size:.95em}.ai-out th,.ai-out td{border:1px solid var(--rule-2);padding:4px 8px;text-align:left;vertical-align:top}.ai-out th{background:var(--surface-2)}
 .ai-out .mdurl{color:var(--ink-3);font-size:.9em}
 /* 週報・月報の「Analyze with AI」（期間の見出しの下） */
-.rptbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:6px} /* 週報の「AI 分析」は、期間の切り替えと同じ行に（縦の場所をカレンダーに回す） */
-.rptbar[hidden]{display:none}
-.rptbar .pill .ic{width:13px;height:13px;margin-right:4px;vertical-align:-2px}
 /* AI で分析のダイアログ: 上に寄せて固定（出力が増えても動かない）。ボタンの並びは下に貼りつける */
 .ai-dialog{width:min(900px,94vw);max-height:90vh;margin:5vh auto auto;padding:20px 20px 0;border:1px solid var(--rule-2);border-radius:12px;background:var(--bg);color:var(--ink)}
 .ai-dialog .ai-agent{display:inline-flex;align-items:center;gap:8px}
