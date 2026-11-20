@@ -8,3 +8,4 @@
   - The month calendar shows one figure per day (usage) with active time as the shade; commits are in the day's tooltip, and the project bars are gone
   - Agent-specific metrics (each agent's own counts, such as turns or response time) are no longer shown in the summary or session details: their definitions differ by agent, so they could not be compared
 - kiroku no longer checks for a newer release on its own when a command runs; run `kiroku update` (or `kiroku doctor`) to check. `KIROKU_NO_UPDATE_CHECK` is no longer needed and is ignored
+  - "Worth a look" is an icon with a count, and "This week", the period and view switches and that icon share one height and center line
