@@ -434,7 +434,7 @@ func TestProjectionSpread(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fn := regexp.MustCompile(`(?ms)^function spread\(.*?\); \}$`).FindString(string(src))
+	fn := regexp.MustCompile(`(?ms)^function spread\(.*?\); \}$`).FindString(strings.ReplaceAll(string(src), "\r\n", "\n")) // Windows のチェックアウトは CRLF
 	if fn == "" {
 		t.Fatal("panels.js に spread が見つからない")
 	}
