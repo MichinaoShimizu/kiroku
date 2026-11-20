@@ -128,6 +128,9 @@ func TestPastedGitShowRunsNoSubmoduleDiff(t *testing.T) {
 	run(t, top, nil, "commit", "-q", "-m", "t1")
 	run(t, top, nil, "-c", "protocol.file.allow=always", "submodule", "add", "-q", sub, "sub")
 	run(t, top, nil, "commit", "-q", "-m", "add sub")
+	// submodule add で作った写しには、名前とメールがない（CI のようにグローバルの設定がない環境）
+	run(t, filepath.Join(top, "sub"), nil, "config", "user.email", "me@example.com")
+	run(t, filepath.Join(top, "sub"), nil, "config", "user.name", "me")
 	os.WriteFile(filepath.Join(top, "sub", "f.txt"), []byte("2\n"), 0o644)
 	run(t, filepath.Join(top, "sub"), nil, "commit", "-q", "-am", "s2")
 	run(t, top, nil, "commit", "-q", "-am", "bump sub")
