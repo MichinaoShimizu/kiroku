@@ -351,6 +351,9 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .cell .dn{font:700 var(--fs-lg)/1 var(--sans);font-variant-numeric:tabular-nums}
 .cell.today .dn{color:var(--acc-ink);background:color-mix(in oklab,var(--acc) var(--t3),var(--surface));border-radius:6px;padding:3px 5px;margin:-3px 0 0 -5px;align-self:flex-start}
 .cell .acs{display:none}
+.head .cline{display:flex;align-items:baseline;gap:6px;margin-top:6px;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:0} /* 週の日の見出しの 1 行：使用量 · コミット */
+.head .cline .cu{font-size:var(--fs-md);font-weight:700;color:var(--ink)}.head .cline .cc{display:inline-flex;align-items:center;gap:3px;font-size:var(--fs-sm);font-weight:600;color:var(--ink-2)}.head .cline .cc .ic{width:12px;height:12px}
+.head .cline .sep{color:var(--ink-3)}.head .cline .u{color:var(--ink-3)}
 .cm{display:grid;gap:1px}.cell .cm{margin:auto 0 2px}.head .cm{margin-top:6px} /* カレンダーの各日・各週の 2 つ（使用量・コミット） */
 .cm div{display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-width:0}
 .cm dt{font-size:var(--fs-xs);color:var(--ink-2);white-space:nowrap} /* 濃さで色の付くマスの上でも読めるよう、ラベルも ink-3 より濃く */
@@ -466,8 +469,8 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .mini>div{padding:10px 12px;border-radius:10px;background:var(--surface-2)}
 .mini .k{font-size:var(--fs-xs);color:var(--ink-3)}
 .mini .v{font:700 var(--fs-xl)/1.3 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em}.mini .v small{font-size:var(--fs-xs);font-weight:500;color:var(--ink-2);margin-left:1px}
-.tl li.ev.ai>.ic,.tl li.ev.pr>.ic,.tlkey .kev.commit .ic,.tlkey .kev.pr .ic{color:var(--acc)}
-.tl li.ev.int>.ic,.tl li.ev.warn>.ic,.tlkey .kev.int .ic,.tlkey .kev.warn .ic{color:var(--warn)}
+.tl li.ev.ai>.ic,.tl li.ev.pr>.ic{color:var(--acc)}
+.tl li.ev.int>.ic,.tl li.ev.warn>.ic{color:var(--warn)}
 .tl li.ev.int .evl,.tl li.ev.warn .evl{color:var(--warn);font-weight:600}
 .tl li.pr:focus{outline:none}.tl li.pr:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:6px}
 .tl li.ev .evl{flex:none}
@@ -475,9 +478,6 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl li.ev button.evd:hover{color:var(--ink)}
 .tl .pmeta{display:block;font-size:var(--fs-xs);color:var(--ink-3);font-variant-numeric:tabular-nums}
 .tl .pcut{color:var(--ink-3);white-space:normal;font-size:var(--fs-xs)}
-.tlkey{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0 0 8px;font-size:var(--fs-xs);color:var(--ink-3)}
-.tlkey span{display:inline-flex;align-items:center;gap:6px}
-.tlkey i{flex:none;width:7px;height:7px}.tlkey .ic{width:12px;height:12px}
 .pload,.rload{font-size:var(--fs-xs);color:var(--acc-ink);font-weight:600;padding:1px 8px;border:1px solid var(--acc);border-radius:99px;margin-left:2px}.pload:hover,.rload:hover{text-decoration:underline}
 .tl time{color:var(--ink-3);font-variant-numeric:tabular-nums;font-size:var(--fs-xs);padding-top:1px}
 .tl p{margin:0;overflow-wrap:anywhere}
@@ -497,7 +497,6 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .av .ic{width:16px;height:16px;stroke-width:1.5} /* 30px の丸の真ん中に、整数の位置で（1 倍の画面でもにじまない） */
 .tl li.pr.fix>.av{background:color-mix(in oklab,var(--warn) var(--t3),var(--surface));color:var(--warn)}
 .tl li.pr.command>.av,.tl li.pr.shell>.av{color:var(--amber-ink)}
-.tlkey .av{display:inline-grid;width:20px;height:20px}.tlkey .av .ic{width:12px;height:12px}
 .tl li.ev button.evd{color:var(--acc-ink)} /* コミット・PR・push の札は押せる（詳細が開く） */
 @media (max-width:600px){ /* 狭い画面では、出来事の札を切らずに折り返す */
   .tl li.ev{border-radius:12px;align-items:flex-start}
@@ -527,19 +526,14 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 /* あなたのプロンプトは、点の代わりに人の印（セッションの色。言い直しらしいものは警告の色）。応答の ↩ と並べて、だれの発言かを形でも見分ける */
 
 
-.tlkey .kus .ic{color:var(--c);stroke-width:1.8}
-.tl .pkind,.tlkey .pkind{display:inline-block;margin-right:6px;padding:0 6px;border-radius:5px;font-size:var(--fs-xs);font-weight:600;line-height:1.6;vertical-align:1px;color:var(--amber-ink);background:color-mix(in oklab,var(--amber) var(--t3),transparent)}
-.tl .pkind.fix,.tlkey .pkind.fix{color:color-mix(in oklab,var(--warn) 78%,var(--ink));background:color-mix(in oklab,var(--warn) var(--t2),transparent)}
+.tl .pkind{display:inline-block;margin-right:6px;padding:0 6px;border-radius:5px;font-size:var(--fs-xs);font-weight:600;line-height:1.6;vertical-align:1px;color:var(--amber-ink);background:color-mix(in oklab,var(--amber) var(--t3),transparent)}
+.tl .pkind.fix{color:color-mix(in oklab,var(--warn) 78%,var(--ink));background:color-mix(in oklab,var(--warn) var(--t2),transparent)}
 .tl .pkind.big{color:var(--warn);background:color-mix(in oklab,var(--warn) var(--t2),transparent)}
 .tl li.ev.note{color:var(--ink-3)}.tl li.ev.note .evl{color:color-mix(in oklab,var(--note) 50%,var(--ink))}
-.tl li.ev.note>.ic,.tlkey .kev.note .ic{color:var(--note)}
-.tlkey .pkind{display:inline-flex;gap:0;margin-right:0}.tlkey .kcmd .ic{color:var(--amber-ink)} /* 凡例は、行と同じ「/ Command」「>_ Shell」「Correction?」の札で。--amber-ink は、明るい地でも読める濃さの黄（--amber） */
-.tl.only-user li.ev,.tl.only-user li.gap{display:none}
+.tl li.ev.note>.ic{color:var(--note)}
 /* 応答は、依頼の次の発言として同じ線の上に出す（会話として読めるように）。
    あなたが打ったものだけを見るときは出さない */
 .tl .reptext{white-space:pre-wrap}
-.tl.only-user li.rp{display:none}
-.tlkey.only-user .kev{display:none} /* 出ていないものの説明は出さない（出来事も応答も隠れている） */
 /* あなたのプロンプトは、セッションの色の線と淡い地の吹き出しにして、灰色の地の応答や出来事の行と見分けやすく */
 /* / のコマンドと ! のシェルは、打ったとおりに等幅のコードの枠で */
 .tl li.pr .ptext>code{display:block;margin-top:4px;padding:5px 9px;border-radius:6px;background:var(--surface-2);font:500 .92em/1.55 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
@@ -549,11 +543,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl li.ev.note .evd{flex:1 1 100%;color:var(--ink-2);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;white-space:pre-wrap;overflow-wrap:anywhere}
 .tl li.ev.note.output .evd{font-family:var(--mono);font-size:.92em}
 /* 「Prompt flow」の見出しと、出し方の切り替え・コピーを 1 行に並べる（見出しの線のあとに右寄せ） */
-.flowhead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:26px 0 10px}
-.flowhead h3{flex:1 1 140px;margin:0}
 /* 表示の切り替えと「Copy review prompt」は、押したときの重さが違うので離す（コピーはプロンプトと履歴の場所を持ち出す） */
-.flowbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px}
-.flowbar .segc button{height:26px;font-size:var(--fs-xs)}
 .tl .pfull{white-space:pre-wrap}
 .pexp,.pall{color:var(--acc-ink);font-weight:600}
 .pexp{font-size:var(--fs-xs);white-space:nowrap}
@@ -575,13 +565,6 @@ button.more{display:block;text-align:left}
 .drawer .dresume{margin-top:14px}.drawer .dresume>h3:first-child{margin-top:0}
 .drawer .sact>.drun:first-child h3,.drawer .scols>.smet:first-child>h3:first-child{margin-top:0}
 /* プロンプトの流れの凡例は、既定で閉じる（記号は 1 度見ればわかるので、流れを上に） */
-.tlkeyd{margin:0 0 8px}
-.tlkeyd>summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;list-style:none;font-size:var(--fs-xs);color:var(--ink-3);min-height:24px}
-.tlkeyd>summary::-webkit-details-marker{display:none}
-.tlkeyd>summary::before{content:"";width:6px;height:6px;border:solid currentColor;border-width:0 1.5px 1.5px 0;transform:rotate(-45deg);transition:transform .15s}
-.tlkeyd[open]>summary::before{transform:rotate(45deg)}
-.tlkeyd>summary:hover{color:var(--ink-2)}
-.tlkeyd[open]>.tlkey{margin-top:6px}
 
 /* エージェント別 */
 .ngroups{margin-top:8px}
@@ -688,12 +671,11 @@ body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:tra
 .drawer .mini .v.mono{font-size:var(--fs-md)} /* コミットのハッシュなど、数でない値 */
 .drawer .mini .v~.k{margin-top:2px} /* 値の下の添え書き（圧縮や利用上限の時刻） */
 .dact{margin-top:14px}.dcol>.dact:first-child{margin-top:4px} /* 詳細パネルの、外のページを開くボタンの段 */
-.drawer .flowhead h3{margin:0} /* .drawer h3 の上下の余白を打ち消す（見出しとボタンを同じ行の高さにそろえる） */
 .drawer .tl li{font-size:var(--fs-lg)}
 .drawer .tl li.ev{font-size:var(--fs-sm)}
 .drawer .tl li.gap{font-size:var(--fs-sm);padding:4px 0}
 .drawer .more{font-size:var(--fs-md)}
-.drawer .tl .pmeta,.drawer .tl .pcut,.drawer .tlkey{font-size:var(--fs-sm)}
+.drawer .tl .pmeta,.drawer .tl .pcut{font-size:var(--fs-sm)}
 .drawer .tl time{font-size:var(--fs-sm);color:var(--ink-2)}
 .drawer .none{font-size:var(--fs-md)}
 .drawer .sub{padding:12px 0}
@@ -860,7 +842,7 @@ dialog.mdlg h3{margin:20px 0 8px}
 /* エージェントのコマンドがないとき: 押せないボタンと、その理由（全文は title に） */
 .ai-none{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
 .ai-why{font-size:var(--fs-xs);color:var(--ink-3);cursor:help}
-.iconbtn.langbtn{width:auto;white-space:nowrap;flex:none;min-width:36px;padding:0 10px;font-size:var(--fs-xs);font-weight:600;letter-spacing:.02em}
+
 html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り返す（対応していないブラウザは今までどおり） */
 /* AI 分析: 経過（コマンド・ツール・エラー出力）と、返事（整えた表示か Markdown のまま） */
 .ai-log{margin:10px 0 0;max-height:150px;overflow:auto;padding:8px 10px;border-radius:8px;background:var(--surface-2);font:12px/1.5 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ink-2)}

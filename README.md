@@ -57,7 +57,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 **Search across all time.** Prompts, edited files and commits, with excerpts showing where they matched.
 
-The view is in Japanese when your browser prefers Japanese; the button at the top right (or `--lang`) switches between English and 日本語.
+The view is in Japanese when your browser prefers Japanese; `--lang` (or `KIROKU_LANG`) picks English or 日本語.
 
 ## Reviews and advice, written by your own agent
 

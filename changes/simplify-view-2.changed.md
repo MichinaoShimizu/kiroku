@@ -1,0 +1,5 @@
+- A simpler view, continued:
+  - The theme follows your system's light or dark setting, and the language follows your browser or `--lang`; the theme and language buttons are gone (a theme or language chosen earlier is kept)
+  - Week calendar day headings show usage and commits on one line ("$4.29 · 4")
+  - "Color by" offers Project and Agent (Branch is gone)
+  - The prompt flow has no "Everything / Your prompts only" switch and no legend

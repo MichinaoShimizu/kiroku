@@ -83,8 +83,6 @@ function detail(s){
     try { const r = await kfetch(`reply?id=${encodeURIComponent(s.id)}&i=${b.dataset.i}`); if (!r.ok) throw 0;
       const li = b.closest("li.rp"); li.querySelector(".reptext").textContent = await r.text(); li.tabIndex = -1; li.focus(); // 読んでいた場所から離れないように
     } catch { b.disabled = false; b.textContent = t("Couldn't load. Try again"); } });
-  const kd = P.querySelector(".tlkeyd"); if (kd) kd.ontoggle = () => { st.flowKey = kd.open; store.set("flowKey", st.flowKey); }; // 凡例は既定で閉じる。開けたら覚えておく
-  P.querySelectorAll("#flowBy button").forEach(b => b.onclick = () => { st.flowUser = b.dataset.v === "user"; store.set("flowUser", st.flowUser); P.querySelector(".tl").classList.toggle("only-user", st.flowUser); P.querySelector(".tlkey").classList.toggle("only-user", st.flowUser); P.querySelectorAll("#flowBy button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); });
   const pall = P.querySelector(".pall"); if (pall) pall.onclick = () => { const shown = [...P.querySelectorAll(".tl li[hidden]")]; shown.forEach(li => li.hidden = false); pall.remove();
     const first = shown.find(li => li.classList.contains("pr")); if (first) first.focus(); }; // 出した最初のプロンプトへ（フォーカスを失わないように）
   bindCopy(P);
@@ -155,19 +153,11 @@ function promptFlow(s){
     if (p.t && p.wait > FLOW_GAP) gap = {from: p.t + p.work, v: p.wait};
   });
   flush(Infinity);
-  const fixes = s.prompts.some(p => !p.kind && FIXRE.test(String(p.text || ""))), kinds = new Set(ev.map(x => x.k.split(" ")[0])), cmds = s.prompts.some(p => p.kind);
-  const key = [`<span class="kus"><span class="av" aria-hidden="true">${ico("user")}</span>${esc(t("Your prompt"))}</span>`,
-    cmds ? `<span class="kcmd"><span class="pkind">${ico("command")}${esc(t("Command"))}</span><span class="pkind">${ico("shell")}${esc(t("Shell"))}</span>${esc(t("What you typed starting with / or !"))}</span>` : "",
-    kinds.has("note") ? `<span class="kev note">${[...new Set(s.notes.filter(x => x.t).map(x => NOTE_ICON[x.kind] || "note"))].map(k => ico(k)).join("")}${esc(t("Added automatically (notifications, summaries, hooks; not counted as prompts)"))}</span>` : "",
-    fixes ? `<span class="kus fix"><span class="pkind fix">${esc(t("Correction?"))}</span>${esc(t("Looks like a correction (guessed from the wording)"))}</span>` : "",
-    s.prompts.some(p => p.reply) ? `<span class="kev rep"><span class="av rpav" aria-hidden="true">${ico("bot")}</span>${esc(t("What the AI wrote back"))}</span>` : "",
-    ...[["commit", "Commit"], ["push", "Push"], ["pr", "Pull request"], ["agent", "Subagent"], ["int", "Interruption"], ["cmp", "Compaction"], ["warn", "Usage limit"]].filter(([k]) => kinds.has(k)).map(([k, l]) => `<span class="kev ${k}">${ico(EV_ICON[k])}${esc(t(l))}</span>`)].filter(Boolean).join("");
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";
   const showMore = JA ? (hiddenEv ? t("Show {n} more prompts (and {m} other events)", {n: rest, m: hiddenEv}) : t("Show {n} more prompts", {n: rest})) : `Show ${plural(rest, "more prompt")}${also}`;
-  // 見出しと出し方の切り替えは 1 行に（最初の画面に入るプロンプトを 1 つでも多くする）
-  const bar = `<div class="flowhead"><h3>${esc(t("Prompt flow"))}</h3><div class="flowbar"><div class="segc" role="group" aria-label="${esc(t("Show"))}" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">${esc(t("Everything"))}</button><button data-v="user" aria-pressed="${!!st.flowUser}">${esc(t("Your prompts only"))}</button></div></div></div>`;
+  const bar = `<h3>${esc(t("Prompt flow"))}</h3>`; // 出し方の切り替えと凡例は置かない（印には title と読み上げの名前がある）
   const cutNote = !LIVE && s.prompts.some(p => p.len > 0 || (p.reply && p.reply.len > 0)) ? `<p class="note">${esc(t("Long prompts and replies end with … here. Open with kiroku serve to read them in full."))}</p>` : "";
-  return `${bar}<details class="tlkeyd"${st.flowKey ? " open" : ""}><summary>${esc(t("Legend"))}</summary><div class="tlkey${st.flowUser ? " only-user" : ""}">${key}</div></details>${cutNote}<ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${esc(showMore)}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${esc(t("\"AI worked\" is the time from a prompt to the AI's last activity; \"you replied after\" is the time from there to your next prompt. Both are estimates from the history's timestamps."))}</p>` : ""}${s.prompts.some(p => p.reply) ? `<p class="note">${esc(t("The reply after a prompt is the last thing the AI wrote to you in that turn, in its own words — not its thinking, its tool calls or their output. A turn where it only ran tools, or whose words the agent does not record, has no reply. A long one shows its first {n} characters.", {n: REPLY_RUNES}))}</p>` : ""}`;
+  return `${bar}${cutNote}<ol class="tl">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${esc(showMore)}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${esc(t("\"AI worked\" is the time from a prompt to the AI's last activity; \"you replied after\" is the time from there to your next prompt. Both are estimates from the history's timestamps."))}</p>` : ""}${s.prompts.some(p => p.reply) ? `<p class="note">${esc(t("The reply after a prompt is the last thing the AI wrote to you in that turn, in its own words — not its thinking, its tool calls or their output. A turn where it only ran tools, or whose words the agent does not record, has no reply. A long one shows its first {n} characters.", {n: REPLY_RUNES}))}</p>` : ""}`;
 }
 /* 振り返りのプロンプトに入れる流れ: プロンプトと、そのあとに起きたこと（中断・コミットなど）を時刻の順に 1 本のテキストにする。
    件数だけでは、どのプロンプトのあとに手戻りが起きたかを AI が結びつけられないので。出すのは最初の n 個のプロンプトと、その間に起きたことまで。

@@ -47,7 +47,7 @@ function secs(v){ return v == null ? "—" : (v < 60 ? `${v}s` : `${Math.floor(v
 function secsH(v){ return secs(v).replace(/(?<=\d)([ms])\b/g, "<small>$1</small>"); } // 単位を小さく
 function isoWeek(d){ d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const n = d.getUTCDay() || 7; d.setUTCDate(d.getUTCDate()+4-n);
   const y0 = new Date(Date.UTC(d.getUTCFullYear(),0,1)); return Math.ceil(((d-y0)/864e5+1)/7); }
-const keyOf = s => st.colorBy === "project" ? s.project : st.colorBy === "source" ? s.source : `${s.project} · ${s.branch || "—"}`;
+const keyOf = s => st.colorBy === "project" ? s.project : s.source;
 // エージェントの色は、どの画面でも同じにする（色分けの切り替えや件数の順では変わらない）。
 // 色は core.Agents の Slot（警告に見えないよう、AG_WARN のオレンジと黄色は使わない）。
 // 表にないエージェントは、表でも警告でも使っていない色を、多い順にあてる
@@ -85,11 +85,7 @@ function searchText(s){
 function toast(msg, ms){ const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(()=>t.classList.remove("on"), ms || 1600); }
 async function copy(text, msg, ms, btn){ try { await navigator.clipboard.writeText(text); toast(msg || t("Copied"), ms); copied(btn); } catch(e){ toast(t("Couldn't copy")); } }
 function copied(btn){ if (!btn) return; btn.classList.add("ok"); clearTimeout(btn._ok); btn._ok = setTimeout(() => btn.classList.remove("ok"), 1600); } // copyBtn の印を ✓ に
-const ICON = { light:'<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6L6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></svg>',
-  dark:'<svg class="i" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>' };
-function applyTheme(){ document.documentElement.setAttribute("data-theme", st.theme); // ボタンには、押すと切り替わる先のテーマを出す
-  const next = st.theme === "dark" ? "light" : "dark";
-  $("#theme").innerHTML = ICON[next]; $("#theme").setAttribute("aria-label", next === "dark" ? t("Switch to dark theme") : t("Switch to light theme")); }
-const CB = () => ({project: t("Project"), branch: t("Branch"), source: t("Agent")});
+function applyTheme(){ document.documentElement.setAttribute("data-theme", st.theme); }
+const CB = () => ({project: t("Project"), source: t("Agent")}); // 色分けはプロジェクトとエージェントだけ
 
 

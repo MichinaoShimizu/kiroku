@@ -39,7 +39,7 @@ const loaded = p => p.waitForFunction(() => document.querySelector("#rd") && doc
 
 // openContext は、画面の幅 env・言語 locale のブラウザを開く。スクリプトのエラーは errors に、CSP に止められたものは csp にためる
 async function openContext(env, locale, csp) {
-  const ctx = await b.newContext({ ...env, locale, timezoneId: "Asia/Tokyo", acceptDownloads: true });
+  const ctx = await b.newContext({ ...env, locale, timezoneId: "Asia/Tokyo", acceptDownloads: true, colorScheme: "dark" }); // テーマは OS に合わせるので、ダークの OS で確かめる（「テーマ」の手順でライトも見る）
   ctx.setDefaultTimeout(5000);
   if (fakeNow) await ctx.clock.install({ time: fakeNow }); // 時計はこの時刻から普通に進む（タイマーも動く）
   // CSP の違反はページの中で拾って知らせる（関数を渡す仕組みは CSP の外なので止められない）
@@ -131,11 +131,12 @@ async function run(env) {
 
   await step("テーマ", async () => {
     const theme = () => p.evaluate(() => document.documentElement.dataset.theme);
-    check("既定はダーク", await theme() === "dark", await theme());
-    await p.locator("#theme").click(); await pause();
-    check("押すとライトになる", await theme() === "light", await theme());
-    await p.locator("#theme").click(); await pause();
-    check("もう一度押すとダークに戻る", await theme() === "dark", await theme());
+    check("テーマと言語の切り替えボタンはない（OS とブラウザの設定に合わせる）", await p.locator("#theme, #lang").count() === 0);
+    await p.evaluate(() => { try { localStorage.removeItem("kiroku:theme"); } catch(e){} });
+    await p.emulateMedia({ colorScheme: "light" }); await pause();
+    check("OS がライトならライト", await theme() === "light", await theme());
+    await p.emulateMedia({ colorScheme: "dark" }); await pause();
+    check("OS がダークならダーク", await theme() === "dark", await theme());
   });
 
   await step("週の移動", async () => {
@@ -199,16 +200,7 @@ async function run(env) {
         let j = i - 1; while (j >= 0 && li[j].classList.contains("ev")) j--;
         return i > 0 && j >= 0 && li[j].classList.contains("pr"); }));
     }
-    check("流れの凡例は既定で閉じている", await p.evaluate(() => { const d = document.querySelector("#drawer .tlkeyd"); return !!d && !d.open && !d.querySelector(".tlkey").checkVisibility(); }));
-    await p.locator("#drawer .tlkeyd > summary").click(); await pause();
-    check("凡例を開くと、記号の説明が見える", await p.evaluate(() => document.querySelector("#drawer .tlkey span").checkVisibility()));
-    await p.locator('#flowBy button[data-v="user"]').click(); await pause();
-    check("「ユーザープロンプトだけ」で、出来事が隠れる", await p.evaluate(() => [...document.querySelectorAll("#drawer .tl li.ev")].every(li => !li.offsetParent)));
-    check("「ユーザープロンプトだけ」では、応答も隠れる", await p.evaluate(() => [...document.querySelectorAll("#drawer .tl li.rp")].every(x => !x.offsetParent)));
-    check("「ユーザープロンプトだけ」では、出ていないものの説明を凡例に残さない", await p.evaluate(() => [...document.querySelectorAll("#drawer .tlkey .kev")].every(x => !x.offsetParent)));
-    await p.locator('#flowBy button[data-v="all"]').click(); await pause();
-    check("開いた凡例は、切り替えのあとも開いたまま", await p.evaluate(() => document.querySelector("#drawer .tlkeyd").open));
-    await p.locator("#drawer .tlkeyd > summary").click(); await pause(); // 閉じて戻す（覚えた状態をあとの確認に残さない）
+    check("流れには、出し方の切り替えと凡例を置かない", await p.locator("#drawer #flowBy, #drawer .tlkeyd, #drawer .tlkey").count() === 0);
     await p.keyboard.press("Escape"); await pause();
     check("Esc で詳細が閉じる", !await drawerOpen());
     await run.focus(); await p.keyboard.press("ArrowLeft"); await pause();

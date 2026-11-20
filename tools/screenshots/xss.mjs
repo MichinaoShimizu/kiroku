@@ -67,7 +67,7 @@ await clickAll("[data-metric]", "breakdown", async () => { // 内訳の中のコ
   const g = "#md [data-git], #md [data-pr], #md [data-push]";
   if (await p.locator(g).count()) { await p.locator(g).first().click({ force: true }); await p.waitForTimeout(100); await check("breakdown → git"); }
 });
-for (const v of ["branch", "source", "project"]) { await p.selectOption("#cb2", v); await check(`color by ${v}`); }
+for (const v of ["source", "project"]) { await p.selectOption("#cb2", v); await check(`color by ${v}`); }
 for (const q of ["<img", "alert", "__META__", "javascript", '"><svg']) {
   await p.fill("#q", q); await p.waitForTimeout(200); await check(`search ${q}`);
   await clickAll("#sres .srow", `search result ${q}`);

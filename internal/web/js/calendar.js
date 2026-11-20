@@ -137,6 +137,8 @@ function calRows(act, u, nS, nC, kinds, un){
   const use = kinds.cost ? [t("Est. cost"), u && u.cost > 0 ? esc(usd(costOf(u))) : "—", k] : kinds.tokens ? [t("Tokens"), u && u.tokens ? tok(u.tokens) : "—", k] : kinds.credits && [t("Credits"), u && u.credits ? cr(u.credits) : "—", k];
   return [use, [t("Commits"), nC, o]].filter(Boolean);
 }
+// 週の日の見出しは 1 行：使用量（推定費用など）と、コミットの数（印つき）。何の数かは、見出しのツールチップと読み上げの名前で言う
+const calLine = rows => `<div class="cline">${rows.map(([k, v, c], i) => `<span class="${i ? "cc" : "cu"}${c && c.includes("u") ? " u" : ""}" aria-label="${esc(k)}: ${esc(String(v).replace(/<[^>]*>/g, ""))}">${i ? ico("commit") : ""}${v}</span>`).join(`<span class="sep" aria-hidden="true">·</span>`)}</div>`;
 const calDl = rows => `<dl class="cm">${rows.map(([k, v, c]) => `<div${c ? ` class="${c}"` : ""}><dt>${esc(k)}</dt><dd>${v}</dd></div>`).join("")}</dl>`; // k は強く出す値
 // スマホでは作業時間と使用量だけ。トークンとクレジットは別の行に出す（両方あれば 2 行）。
 // ひとつの枠にまとめると、Claude Code と Kiro を両方使う人には、片方しか見えないため。
@@ -203,7 +205,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
     const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${(act || dayGit.length) && (aiRun() || aiDemo()) ? `<button class="pill dayrun ai-action" data-d="${d}" type="button" aria-label="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}" title="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}">${ico("ai")}<span>${esc(t("Analyze with AI"))}</span></button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`; // まだ来ていない日に「目安」は置かない（同じ額が上の帯の「前の週並みの 1 日の目安」にある）
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${(act || dayGit.length) && (aiRun() || aiDemo()) ? `<button class="pill dayrun ai-action" data-d="${d}" type="button" aria-label="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}" title="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}">${ico("ai")}<span>${esc(t("Analyze with AI"))}</span></button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calLine(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`; // まだ来ていない日に「目安」は置かない（同じ額が上の帯の「前の週並みの 1 日の目安」にある）
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
