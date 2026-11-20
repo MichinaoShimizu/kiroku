@@ -64,7 +64,7 @@ const agIdx = name => AG_SLOT[name] ?? agSlot[name]; // 色の番号（--c0〜--
 const agColor = name => { const i = agIdx(name); return i == null ? "var(--other)" : `var(--c${i})`; };
 /* モデル名の色（--c0〜--c7）。系統（Opus・Sonnet・Haiku・GPT など）ごとに決まった色で、知らない名前は名前から決める。
    同じ一覧の中で色が重なったら（同じ系統の別の版など）、空いている次の色にして、モデル名ごとに見分けられるようにする */
-const MODEL_FAM = [[/opus/i, 6], [/sonnet/i, 0], [/haiku/i, 2], [/fable/i, 1], [/gpt|codex|^o\d/i, 5], [/gemini/i, 3], [/kiro|amazon|nova/i, 4]];
+const MODEL_FAM = [[/opus/i, 6], [/sonnet/i, 0], [/haiku/i, 2], [/fable/i, 1], [/gpt|codex|^o\d/i, 5], [/gemini/i, 4], [/kiro|amazon|nova/i, 3]];
 const modelSlot = m => { m = String(m || ""); const f = MODEL_FAM.find(([re]) => re.test(m)); if (f) return f[1];
   let h = 0; for (const ch of m) h = (h * 31 + ch.codePointAt(0)) >>> 0; return h % 8; };
 function modelColors(names){ const used = new Set();

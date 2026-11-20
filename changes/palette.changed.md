@@ -1,0 +1,1 @@
+- Colors follow one fixed, checked palette: the eight colors for projects, agents and models now share the same lightness and saturation and keep neighbors apart, also for color-blind readers, in light and dark themes. Tints (bubbles, labels, backgrounds) use three fixed strengths per theme. Kiro Crew is now magenta and Kiro CLI (V2) green
