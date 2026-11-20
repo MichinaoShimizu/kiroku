@@ -504,10 +504,10 @@ func denyRules(files []string) []string {
 		for _, p := range paths {
 			p = posixPath(p)
 			dir, base := pathDir(p), pathBase(p)
-			if strings.ContainsAny(p, "()\n\r") {
+			if strings.ContainsAny(p, unruled) {
 				// the nearest folder whose path the rule can hold; at worst the whole filesystem
 				up := dir
-				for strings.ContainsAny(up, "()\n\r") {
+				for strings.ContainsAny(up, unruled) {
 					up = pathDir(up)
 				}
 				if up == "" {
@@ -528,6 +528,11 @@ func denyRules(files []string) []string {
 	}
 	return out
 }
+
+// unruled are characters a rule can't hold literally: parentheses end Read(...), a line break ends the
+// list, and Claude Code turns \\ into \ before matching, so a name with a backslash can't be matched
+// exactly. A path with any of them denies the nearest folder whose path has none.
+const unruled = "()\\\n\r"
 
 // posixPath writes p the way Claude Code matches it: with / and, on Windows, C:\x as c/x (no leading /).
 func posixPath(p string) string {

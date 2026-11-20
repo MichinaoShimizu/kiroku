@@ -504,6 +504,10 @@ func TestCrewPrivateFilesForAI(t *testing.T) {
 		filepath.Join(claude, "-w", "c-priv.jsonl"),
 		filepath.Join(crew, "sessions", "dashboard_chat-1-100.jsonl"),
 		filepath.Join(crew, "sessions", "dashboard_chat-4-400.jsonl"),
+		// Crew 自身の記録: サブエージェントの state.json（依頼の文）と crew-log の会話のフォルダ
+		filepath.Join(crew, "subagents", "a1"),
+		filepath.Join(crew, "subagents", "a2"),
+		filepath.Join(crew, "crew-log", "sessions", "c-log"),
 	}
 	has := func(p string) bool {
 		for _, g := range got {
@@ -528,7 +532,7 @@ func TestCrewPrivateFilesForAI(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, p := range want {
-		if strings.Contains(string(b), filepath.Base(p)) {
+		if q, _ := json.Marshal(p); strings.Contains(string(b), strings.Trim(string(q), `"`)) {
 			t.Errorf("JSON に %s が入っている", p)
 		}
 	}

@@ -28,6 +28,8 @@ func TestDenyRules(t *testing.T) {
 	}
 	if runtime.GOOS != "windows" { // * と [ はファイル名に使えない
 		files = append(files[:3], append([]string{in("home", "me", "odd", "a*b[1].jsonl")}, files[3:]...)...)
+		// \ のある名前は、Claude Code が \\ を \ にしてから比べるのでルールに書けない。フォルダごと（上の括弧と同じルールになる）
+		files = append(files, in("home", "me", "odd", `back\slash.jsonl`))
 	}
 	got := denyRules(files)
 	want := []string{
