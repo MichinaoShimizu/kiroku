@@ -584,7 +584,7 @@ func aiStartLine(enableAI, aiAddr bool) string {
 	case !aiAddr:
 		return "\"Analyze with AI\" is off: it runs only on a loopback address written as an IP (such as 127.0.0.1:8484 or :8485)"
 	}
-	return "\"Analyze with AI\" is on (--ai): after you confirm a run, the agent you choose may send the prompt and the history it reads to its provider; start without --ai to turn it off"
+	return "\"Analyze with AI\" is on (--ai or KIROKU_AI): after you confirm a run, the agent you choose may send the prompt and the history it reads to its provider; start without them to turn it off"
 }
 
 // scanWatchPaths は、選んでいない Source のうち source.ClaimScanner のものが調べる場所（Kiro を選んでいないときの Kiro Crew の場所）。

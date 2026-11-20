@@ -53,8 +53,8 @@ An aspect run on the v3.0.0 candidate (PR #506: leaner view and CLI, Kiro IDE (l
 | B. ux | 9 | 0 | 3 (page opens scrolled past the overview; daily AI button hidden until hover; one % for cost and credits, and comparisons when history starts inside the previous period) | 1 (legend chips scroll at 1000 px) | #506 (limit marks on their own block, late git marks inside the day, "Long conversations" name, list closes after a pick, no-agent reason as text, no "0" commit mark, units kept with numbers) |
 
 ### Open items
-- Symlinked history files: a link inside a history folder pointing to another file you can read is shown and archived (not served by `/history`). Options: skip links whose target is outside the history location, or say so in SECURITY.md. Decides: maintainer
-- UX decisions above (opening scroll, hidden daily AI button, % labels). Decides: maintainer
+- Symlinked history files: kept as is (links are followed so history moved to another disk keeps working) and documented in SECURITY.md (#506)
+- UX: the opening scroll and the hover-only daily AI button stay as the maintainer asked earlier; % labels for two figures and comparisons when history starts inside the previous period stay open. Due: next ux run
 - Small: Repeated prompts rows that read the same; the phone right-edge fade over the search button. Due: next ux run
 
 ## 2026-11-20 — ux and i18n at 5297b6a (v1.1.2 and PR #502)

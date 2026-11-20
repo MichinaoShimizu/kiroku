@@ -44,7 +44,7 @@ func TestAIOnlyOnLoopbackIP(t *testing.T) {
 // The startup line says whether agent runs are on, how to turn them off and that the agent may send data to its provider.
 func TestAIStartLine(t *testing.T) {
 	on := aiStartLine(true, true)
-	for _, s := range []string{"is on (--ai)", "without --ai", "may send the prompt and the history it reads to its provider"} {
+	for _, s := range []string{"is on (--ai or KIROKU_AI)", "without them", "may send the prompt and the history it reads to its provider"} {
 		if !strings.Contains(on, s) {
 			t.Errorf("start line %q lacks %q", on, s)
 		}

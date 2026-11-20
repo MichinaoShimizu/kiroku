@@ -58,7 +58,7 @@ try {
   // 読み終わるのを待つ（以前の版の Cookie も付けるのは、修正の前の版に対してこのテストが失敗することを確かめられるように）
   await until("読み込み", async () => (await fetch(`${base}/stamp`, { headers: { "X-Kiroku-Key": key, Cookie: `kiroku_key_${port}=${key}` } }).catch(() => ({ ok: false }))).ok);
   check("鍵なしの data.json は 403", (await fetch(`${base}/data.json`)).status === 403);
-  check("起動の 1 行で、--ai で AI の実行がオンになっていて、提供元に送りうると言う", /"Analyze with AI" is on \(--ai\): .*may send the prompt and the history it reads to its provider; start without --ai to turn it off/.test(log), log);
+  check("起動の 1 行で、--ai で AI の実行がオンになっていて、提供元に送りうると言う", /"Analyze with AI" is on \(--ai or KIROKU_AI\): .*may send the prompt and the history it reads to its provider; start without them to turn it off/.test(log), log);
   check("鍵の Cookie（以前の版）だけの data.json は 403", (await fetch(`${base}/data.json`, { headers: { Cookie: `kiroku_key_${port}=${key}` } })).status === 403);
 
   b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
