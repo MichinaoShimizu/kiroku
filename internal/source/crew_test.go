@@ -103,7 +103,7 @@ func TestNoCrew(t *testing.T) {
 	td := filepath.Join("..", "..", "testdata")
 	k := &KiroCLI{Home: filepath.Join(td, "home", ".kiro"), CrewHome: filepath.Join(t.TempDir(), "none")}
 	for _, b := range load(t, k) {
-		if b.Source != "Kiro CLI (Classic)" {
+		if b.Source != "Kiro CLI (V2)" {
 			t.Fatal("Crew がなければ目印はつけない")
 		}
 	}
@@ -822,7 +822,7 @@ func TestKiroCrewRebind(t *testing.T) {
 	if got := strings.Join(promptTexts(find(bs, "k-new")), "|"); got != "今の会話での依頼" {
 		t.Errorf("k-new の依頼 = %q", got)
 	}
-	if f := get("k-user"); f.Credits != 7 || f.Source != "Kiro CLI (Classic)" {
+	if f := get("k-user"); f.Credits != 7 || f.Source != "Kiro CLI (V2)" {
 		t.Errorf("別の場所の kiro-cli の会話: credits = %v, source = %q", f.Credits, f.Source)
 	}
 	if by["crew:dashboard:chat-1-100"] != nil {

@@ -21,7 +21,7 @@ var Records = map[string][]string{
 	"Codex":              {"interrupts", "limits", "compactions", "files", "subagents"},
 	"Kiro IDE / CLI":     {"files"},
 	"Kiro IDE (legacy)":  {},
-	"Kiro CLI (Classic)": {"files"},
+	"Kiro CLI (V2)": {"files"},
 	"Kiro Crew":          {"limits", "subagents"},
 	"Kiro CLI (SQLite)":  {"interrupts", "compactions", "files"},
 	"Amazon Q":           {"interrupts", "compactions", "files"},

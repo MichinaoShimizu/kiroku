@@ -30,7 +30,7 @@ var Agents = []Agent{
 	{Name: "Kiro IDE / CLI", Family: "kiro", Slot: 6, Mark: "KI", Env: []string{"KIRO_HOME"},
 		About: "Kiro IDE 1.x and Kiro CLI V3, which share one history that doesn't record which of them ran a session"},
 	{Name: "Kiro IDE (legacy)", Family: "kiro", Slot: 6, Mark: "KI"},
-	{Name: "Kiro CLI (Classic)", Family: "kiro", Slot: 5, Mark: "KC", Env: []string{"KIRO_HOME"}, About: "Kiro CLI V2"},
+	{Name: "Kiro CLI (V2)", Family: "kiro", Slot: 5, Mark: "KC", Env: []string{"KIRO_HOME"}, About: "Kiro CLI V2"},
 	{Name: "Kiro CLI (SQLite)", Family: "kiro", Slot: 5, Mark: "KC", About: "older Kiro CLI versions"},
 	{Name: "Kiro Crew", Family: "kiro", Slot: 3, Mark: "KW", Env: []string{"KIROCREW_HOME"}, Archive: "crew", Note: "includes Kiro Crew"},
 	{Name: "Amazon Q", Family: "amazonq", Slot: 5, Mark: "Q"},

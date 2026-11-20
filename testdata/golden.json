@@ -1698,7 +1698,7 @@
 },
 {
 "id": "1e13c3c1-d7ae-41c2-a324-e6a440665d9a",
-"source": "Kiro CLI (Classic)",
+"source": "Kiro CLI (V2)",
 "project": "infra",
 "projectPath": "/Users/me/infra",
 "branch": null,
@@ -1834,7 +1834,7 @@
 },
 {
 "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
-"source": "Kiro CLI (Classic)",
+"source": "Kiro CLI (V2)",
 "project": "infra",
 "projectPath": "/Users/me/infra",
 "branch": null,
@@ -1896,7 +1896,7 @@
 },
 {
 "id": "0d612aac-99c4-4a54-bda2-76ad60b6ddf3",
-"source": "Kiro CLI (Classic)",
+"source": "Kiro CLI (V2)",
 "project": "infra",
 "projectPath": "/Users/me/infra",
 "branch": null,

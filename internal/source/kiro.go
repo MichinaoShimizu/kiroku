@@ -202,7 +202,7 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		if !modeled && len(s.Prompts) > 0 {
 			s.Model(model) // usage_summary がなければ、会話のモデル（modelId）を 1 回数える（v1.0 より前の selectedModel と同じ）
 		}
-		// Kiro CLI V2（Classic）の会話 X を 3.0 で開く（--resume-id X）と、sess_X に写される。V2 の会話は残るが、
+		// Kiro CLI V2 の会話 X を 3.0 で開く（--resume-id X）と、sess_X に写される。V2 の会話は残るが、
 		// こちらを使う（KiroCLI の Yield）。写しには usage_summary の行がないので、切り替える前のクレジットなどを V2 から足す
 		// 同じ id の写しが 2 つあっても、V2 の使用量は 1 回だけ足す。読めない V2 の会話は KiroCLI が知らせる
 		if x, ok := strings.CutPrefix(id, "sess_"); ok && safeName(x) && !classic[x] {
@@ -306,7 +306,7 @@ func replyAt(t *float64, turnEnds []*float64, n int, asked *float64) *float64 {
 	return asked
 }
 
-// KiroCLI は Kiro CLI V2（Kiro の言う Classic）: <KIRO_HOME>/sessions/cli/<id>.json（メタ）+ <id>.jsonl（Prompt/AssistantMessage）。
+// KiroCLI は Kiro CLI V2（kiroku 0.40 までの名前は Classic。Kiro は今、Classic を引退した V1 の名前に使う）: <KIRO_HOME>/sessions/cli/<id>.json（メタ）+ <id>.jsonl（Prompt/AssistantMessage）。
 // Kiro Crew から動かした会話には、Crew の目印とタイトルをつける（crew.go）。
 type KiroCLI struct {
 	Home        string
@@ -388,7 +388,7 @@ func (k *KiroCLI) DetailEn() string {
 	return strings.Join(parts, "; ")
 }
 
-func (k *KiroCLI) Name() string { return "Kiro CLI (Classic)" }
+func (k *KiroCLI) Name() string { return "Kiro CLI (V2)" }
 
 // Retention は Kiro Crew の会話の記録の保存期間（session.archive_retention_days。既定 30 日）。Crew を使っているときだけ。
 // Crew は退避した会話の記録を新しく書いたとき（1 つのプロセスで 1 時間に 1 回まで）に、sessions/archive/ のうち更新時刻がそれより古いものを消す
@@ -475,7 +475,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		meta := core.Map(raw)
 		stem := strings.TrimSuffix(filepath.Base(metaPath), ".json")
 		sid := firstNonEmpty(core.Str(meta["session_id"]), core.Str(meta["id"]), stem)
-		s := core.NewBuilder("Kiro CLI (Classic)", sid)
+		s := core.NewBuilder("Kiro CLI (V2)", sid)
 		s.File = strings.TrimSuffix(metaPath, ".json") + ".jsonl"
 		s.Key = "kiro-cli:" + sid
 		// 3.0 へ移した写しがあるときだけ譲る（写しのない会話は、Crew のサブエージェントをふつうにまとめる）。

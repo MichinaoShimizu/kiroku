@@ -145,12 +145,12 @@ func TestCollectCrewPrivateWithoutKiroSource(t *testing.T) {
 				assertVisible(t, data, "Claude Code", "c-pub", "VISIBLE-CLAUDE")
 			}
 			for _, r := range rep {
-				if r.Name == "Kiro CLI (Classic)" {
+				if r.Name == "Kiro CLI (V2)" {
 					t.Errorf("選んでいない Kiro CLI を読んだ: %+v", rep)
 				}
 			}
 			for _, s := range data {
-				if s.Source == "Kiro Crew" || s.Source == "Kiro CLI (Classic)" {
+				if s.Source == "Kiro Crew" || s.Source == "Kiro CLI (V2)" {
 					t.Errorf("選んでいない Kiro のセッションを出した: %+v", s)
 				}
 			}
