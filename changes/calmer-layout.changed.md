@@ -1,1 +1,0 @@
-- The page has more room: wider margins, more space between the period, figures, legend, calendar and summary, slightly larger corners and line spacing. The per-day "Analyze with AI" buttons in the week calendar appear when you point at or move into a day's heading (always on touch screens), so seven buttons no longer crowd the headings

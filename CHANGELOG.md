@@ -2,6 +2,23 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v1.1.0 - 2026-11-20
+
+### Added
+
+- Month-end estimates (cost, Kiro credits, tokens) come with a range at 1σ, 2σ and 3σ, from how much the finished days of the month varied. The breakdown shows all three; the figure's tooltip and the summary show the 3σ range, and the by-day chart draws the range for the days still to come as dotted lines
+- The by-day chart of a month-end estimate draws a trend line fitted to the finished days and extended to the end of the month, and the breakdown says where the month ends if that trend continues
+- When a command runs in a terminal, kiroku checks at most once a day whether a newer release exists and, after the command, says so and asks "Update now? [y/N]"; `y` updates the same way as `kiroku update`. `kiroku serve` prints one line instead. Nothing is sent about your history, and nothing is asked outside a terminal, in CI or for dev builds; set `KIROKU_NO_UPDATE_CHECK=1` to turn it off
+
+### Changed
+
+- The page shows either the calendar or the summary, switched with View "Calendar | Summary" next to Week | Month (or `V`). On a wide and tall enough window the page no longer scrolls: the top stays put, the calendar fills the rest of the window with a clear edge, and only the calendar scrolls. On shorter or zoomed windows and while searching, only the page scrolls and the calendar shows at full height, so scrolling no longer gets caught between the page and the calendar. The weekly report's "Analyze with AI" moved into the period controls' row
+- The page has more room: wider margins, more space between the period, figures, legend, calendar and summary, slightly larger corners and line spacing. The per-day "Analyze with AI" buttons in the week calendar appear when you point at or move into a day's heading (always on touch screens), so seven buttons no longer crowd the headings
+
+### Security
+
+- The new-version check reads its cache only when it is a small regular file (not a link, FIFO or device), writes it through a fresh 0600 temporary file instead of a fixed name, treats only real terminals (not `/dev/null`) as interactive, and discards keys typed while the command ran before asking, so an earlier keypress can't answer the update prompt
+
 ## v1.0.5 - 2026-11-20
 
 ### Changed
