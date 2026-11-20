@@ -17,6 +17,7 @@ function render(){
     b.disabled = off; });
   $("#prev").setAttribute("aria-label", M ? t("Previous month") : t("Previous week")); $("#next").setAttribute("aria-label", M ? t("Next month") : t("Next week"));
   document.querySelectorAll("#mode button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.mode));
+  showView(); // カレンダーかサマリーか（画面いっぱいに 1 つだけ）
 
   const inRange = DATA.filter(s => s.end >= ws && s.start < we);
   const shown = inRange.filter(matches);
@@ -39,6 +40,7 @@ function render(){
   if (!M) st.hh = fitHour(); // 1 時間の高さは、この週の作業の時間帯が枠に収まるように（44px か 36px）
   M ? monthGrid(shown, ws, we, todayKey) : timeline(shown, inRange, ws, we, todayKey);
   edgeFade($("#tl")); // 月表示や空の週では消す
+  fitLayout(); // 描き直したカレンダーの高さで、ページを固定するかを決め直す
   $("#skipcal").hidden = !!st.q; // 検索の最中は、結果がカレンダーの上にあり、下のサマリーは空
   lastFlags = []; // 見直す候補は表示中の期間のものだけ（検索中や記録のない期間に、前の期間の候補を詳細に出さない）
   $("#rptbar").hidden = true; // 検索の最中は出さない（summary が期間の記録があれば出す）
@@ -100,7 +102,7 @@ function kpis(){
     const ref = xs.map(([x, f]) => f(x.ref, true)).join(" · ");
     return kpi(all ? t(M ? "Past last month's total" : "Past last week's total") : t(M ? "A day to match last month" : "A day to match last week"), v,
       all ? t(M ? "Last month's total was {v}" : "Last week's total was {v}", {v: ref}) : t(M ? "To stay at last month's total of {v}, for the {n} left" : "To stay at last week's total of {v}, for the {n} left", {v: ref, n: plural(pc.left, "day")}), "key", pc.cost ? "pace" : "paceCr"); };
-  const pace = pj ? t("If the pace of the first {n} days continues", {n: pj.days}) : "";
+  const pace = pj ? t("If the pace of the first {n} days continues", {n: pj.days}) + bandNote(pj.cost != null ? pj.band.cost : pj.band.credits, pj.cost != null ? usd : cr) : "";
   // 帯は日々の判断に使う数だけ：左に使ったもの（推定費用とクレジット・前の期間並みの 1 日の目安・月末の推定（月）・稼働時間）、右に残したもの（outK）。
   // 稼働日・セッション / プロンプト・利用上限への到達は振り返りの数なので、サマリーと「見直す候補」に任せる（帯が多いとカレンダーと主役を争う）。
   // 推定費用とクレジットは別の枠の使用量なので足さずに、1 つの枠に「 · 」で並べる。トークンは推定費用を出せないときだけ

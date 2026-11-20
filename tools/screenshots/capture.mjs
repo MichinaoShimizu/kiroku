@@ -25,9 +25,14 @@ await p.waitForTimeout(500);
 await p.evaluate(() => { const sc = document.querySelector("#tl .calscroll"); if (sc) sc.scrollTop = 8 * 44; });
 await p.waitForTimeout(200);
 await p.screenshot({ path: path.join(docs, "screenshot.png") });
-await p.evaluate(() => { const e = document.querySelector("#review"); window.scrollTo(0, e.getBoundingClientRect().top + window.scrollY - document.querySelector("header").offsetHeight - 16); }); // 固定の見出しの下から
+// サマリーは「表示: サマリー」に切り替えて、サマリーの見出しが上に来るまで中をスクロールして撮る（広い画面ではページでなく main がスクロールする）
+await p.locator('#view button[data-v="sum"]').click();
+await p.waitForTimeout(300);
+await p.evaluate(() => { const e = document.querySelector("#review"), m = document.querySelector("main"); m.scrollTop += e.getBoundingClientRect().top - document.querySelector("header").offsetHeight - 16; });
 await p.waitForTimeout(400);
 await p.screenshot({ path: path.join(docs, "summary.png") });
+await p.locator('#view button[data-v="cal"]').click(); // 以降の画像はカレンダーで
+await p.waitForTimeout(300);
 // 見直す候補（Worth a look）：期間の要点の下の「Possible friction」を押して開くダイアログ
 await p.evaluate(() => window.scrollTo(0, 0));
 await p.locator("#worth .flink", { hasText: "Possible friction" }).first().click();

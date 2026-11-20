@@ -65,6 +65,8 @@ async function run(env) {
   const drawerOpen = async () => await p.locator("#drawer").getAttribute("aria-hidden") === "false";
   // 1 つの流れが途中で止まっても、失敗として数えて次の流れへ進む（開き直して、記録のそろった先週から始める）
   const open = async () => { await p.goto(url); await loaded(p); await p.keyboard.press("ArrowLeft"); await pause(); };
+  // 表示の切り替え（カレンダー / サマリー）。サマリーを触る確認は、サマリーに切り替えてから行い、終わったらカレンダーへ戻す
+  const view = async v => { await p.locator(`#view button[data-v="${v}"]`).click(); await p.waitForTimeout(150); };
   async function step(name, fn) {
     const before = failed;
     try { await fn(); } catch (e) { check(name, false, e.message.split("\n")[0]); }
@@ -88,9 +90,25 @@ async function run(env) {
       return !!o && !!a && (a.compareDocumentPosition(o) & Node.DOCUMENT_POSITION_FOLLOWING) > 0; }));
     check("見出しの「?」を押しても、パネルは開かない", await p.evaluate(() => { const d = document.querySelector("#review details.panel.fold"), hb = d.querySelector("summary .hb");
       if (!hb) return true; hb.click(); const ok = !d.open; if (typeof hideHint === "function") hideHint(); return ok; }));
+    check("既定はカレンダー：サマリーは隠れ、カレンダーが見える", await p.locator("#review").isHidden() && await p.locator("#tl").isVisible());
+    if (env.viewport.width > 820 && await p.evaluate(() => document.body.classList.contains("fixed"))) check("広い画面ではページはスクロールせず、カレンダーの中だけがスクロールする", await p.evaluate(() =>
+      document.documentElement.scrollHeight <= innerHeight + 1 && (() => { const c = document.querySelector("#tl .calscroll"); return !c || c.getBoundingClientRect().bottom <= innerHeight; })()));
+    if (env.viewport.width === 1440){ // 背の低い窓では固定しない（カレンダーの時間の目盛りが見えなくなるので、ページ全体をスクロールさせる）
+      await p.setViewportSize({width: 1024, height: 600}); await pause();
+      check("背の低い窓ではページを固定しない", await p.evaluate(() => !document.body.classList.contains("fixed") && document.documentElement.scrollHeight > innerHeight));
+      await p.setViewportSize(env.viewport); await pause();
+      check("広い窓に戻すと、また固定する", await p.evaluate(() => document.body.classList.contains("fixed")));
+      await p.fill("#q", "dashboard"); await pause();
+      check("検索の最中は固定しない（結果がページのスクロールで届く）", await p.evaluate(() => !document.body.classList.contains("fixed")));
+      await p.fill("#q", ""); await pause();
+    }
+    await view("sum");
+    check("サマリーに切り替えると、カレンダーは隠れる", await p.locator("#tl").isHidden() && await p.locator("#review").isVisible());
     for (const sm of await p.locator("#review details.panel.fold > summary").all()) await sm.click(); // 開ける（覚えるので、あとの確認は開いたまま）
     await pause();
     check("見出しを押すとパネルが開く", await p.evaluate(() => [...document.querySelectorAll("#review details.panel.fold")].every(d => d.open)));
+    await p.keyboard.press("v"); await pause();
+    check("V でカレンダーに戻る", await p.locator("#tl").isVisible());
   });
 
   await step("既定のままで消える履歴は、Data sources で残し方とバックアップ先を見せる", async () => {
@@ -181,6 +199,7 @@ async function run(env) {
   });
 
   await step("詳細を閉じると読んでいた場所へ戻る", async () => {
+    await view("sum");
     const card = p.locator("#review .card[data-id]").first();
     check("サマリーにセッションのカードがある", await card.count() > 0);
     await card.scrollIntoViewIfNeeded();
@@ -191,6 +210,7 @@ async function run(env) {
     const after = await p.evaluate("scrollY");
     check("閉じてもサマリーの位置のまま", Math.abs(after - y) <= 2, `${y} → ${after}`);
     check("閉じるとカードにフォーカスが戻る", await p.evaluate(id => { const a = document.activeElement; return a.dataset.id === id && !!a.closest("#review"); }, id));
+    await view("cal");
   });
 
   await step("ガイドとズームはない", async () => {
@@ -204,6 +224,7 @@ async function run(env) {
   });
 
   await step("サマリーの数字から内訳が開く", async () => {
+    await view("sum");
     const v = p.locator('#review .stat [data-metric="cost"]');
     check("サマリーの目安コストを押せる", await v.count() === 1);
     await v.scrollIntoViewIfNeeded();
@@ -220,9 +241,11 @@ async function run(env) {
     await hb.click(); await pause();
     check("枠の中の ? は説明を開き、内訳は開かない", await p.evaluate(() => !document.querySelector("#hpop").hidden && !document.querySelector("#md").open));
     await p.keyboard.press("Escape"); await pause();
+    await view("cal");
   });
 
   await step("サマリーのどの数字も内訳が開く", async () => {
+    await view("sum");
     const ids = await p.evaluate(() => [...document.querySelectorAll("#review [data-metric]")].map(b => b.dataset.metric));
     for (const id of ["lines", "files", "pushes", "focus", "parallel", "wait", "ai", "cache", "costPerAsk"]) check(`サマリーの ${id} を押せる`, ids.includes(id));
     for (const id of ids) {
@@ -237,6 +260,7 @@ async function run(env) {
     await row.click(); await pause();
     check("一覧のコミットを押すと、ダイアログを閉じてコミットの詳細が開く", await p.evaluate(() => !document.querySelector("#md").open && st.sel && st.sel.startsWith("git:")) && await drawerOpen());
     await p.keyboard.press("Escape"); await pause();
+    await view("cal");
   });
 
   await step("セッションを AI と振り返る", async () => {
@@ -281,6 +305,7 @@ async function run(env) {
   });
 
   await step("コストと残ったもの", async () => {
+    await view("sum");
     const oc = p.locator("#review .panel.oc"); await oc.scrollIntoViewIfNeeded(); await pause();
     check("使ったものと残ったものが左右に並ぶ", await oc.locator(".ocside.spent").count() === 1 && await oc.locator(".ocside.left").count() === 1);
     // git から数える指標（ダミーデータにはコミットも push もある）
@@ -289,9 +314,11 @@ async function run(env) {
     check("割った指標は残ったものではなく Compared の行にある", await oc.locator('.ocside.left .hb[data-help="costPerCommit"]').count() === 0
       && await oc.locator('.occmp .hb[data-help="costPerCommit"]').count() === 1 && await oc.locator('.occmp .hb[data-help="outSessions"]').count() === 1);
     check("カードが箱からはみ出さない", await oc.evaluate(e => [...e.querySelectorAll(".stat")].every(s => s.getBoundingClientRect().right <= e.getBoundingClientRect().right + 1)));
+    await view("cal");
   });
 
   await step("説明（?）を Esc で閉じる", async () => {
+    await view("sum");
     const hb = p.locator('#review .hb[data-help="active"]').first();
     await hb.scrollIntoViewIfNeeded(); await hb.click(); await pause();
     const card = await hb.evaluate(b => b.closest(".stat").getBoundingClientRect().height);
@@ -304,11 +331,13 @@ async function run(env) {
     check("Esc で説明が閉じ、? にフォーカスが戻る", await hb.getAttribute("aria-expanded") === "false" && !(await p.locator("#hpop").isVisible()) && await hb.evaluate(b => b === document.activeElement));
     await hb.click(); await pause(); await p.mouse.click(4, env.viewport.height - 4); await pause();
     check("吹き出しの外を押すと閉じる", !(await p.locator("#hpop").isVisible()));
+    await view("cal");
   });
 
   await step("見直す候補", async () => {
+    await view("sum");
     const n = await p.locator(".flagsum .flink").count();
-    check("見直す候補はカレンダーより上にある", await p.evaluate(() => document.querySelector("#worth").getBoundingClientRect().bottom <= document.querySelector("#tl").getBoundingClientRect().top));
+    check("見直す候補はカレンダー・サマリーより上にある", await p.evaluate(() => document.querySelector("#worth").getBoundingClientRect().bottom <= document.querySelector("#review").getBoundingClientRect().top));
     check("繰り返したプロンプトの欄がある", await p.locator('#review .hb[data-help="repeats"]').count() > 0);
     check("見直す候補の数だけ、サマリーの指標名の横に印が付く", n > 0 && await p.locator("#review .fmark").count() >= n, `候補 ${n}`);
     check("サマリーには理由や推移を繰り返さない（ダイアログにだけ出す）", await p.locator("#review .fl").count() === 0);
@@ -344,9 +373,11 @@ async function run(env) {
       check("詳細の頭に、このセッションが関係する見直す候補が出る", await p.locator("#panel .sflags .flink").count() > 0);
       await p.keyboard.press("Escape"); await pause(); }
     await open();
+    await view("cal");
   });
 
   await step("ページの下", async () => {
+    await view("sum");
     const gh = p.locator('#review .foot a[href="https://github.com/MichinaoShimizu/kiroku"]');
     check("フッターにリポジトリへのリンクがある（参照元を渡さない）", await gh.count() === 1 && /noreferrer/.test(await gh.getAttribute("rel") || "") && await gh.getAttribute("target") === "_blank");
     const ds = p.locator("#review details.dsrc");
@@ -355,10 +386,12 @@ async function run(env) {
     check("開くと、読んだ履歴が見える", await ds.locator(".mlist li").first().isVisible());
     const nf = ds.locator("details.dnf");
     if (await nf.count()) check("セッションのないエージェントは「Not found: N」の下にたたむ", /^Not found: \d+$/.test((await nf.locator("summary").innerText()).trim()) && !(await nf.evaluate(d => d.open)));
+    await view("cal");
   });
 
   // 問題の報告: issue のリンクは決まった値だけ、「Copy diagnostics」は種類と数だけで、どちらにも履歴の中身が入らない
   await step("問題の報告", async () => {
+    await view("sum");
     const a = p.locator("#review .foot a.reportlink");
     check("フッターに「Report a problem」がある（新しいタブ・参照元を渡さない）", await a.count() === 1 && await a.getAttribute("target") === "_blank" && /noopener/.test(await a.getAttribute("rel") || "") && /noreferrer/.test(await a.getAttribute("rel") || ""));
     check("Data sources には、読んだデータのことだけがある（報告と診断のコピーはページの下だけ）", await p.locator("#review details.dsrc a.reportlink, #review details.dsrc .diagcopy").count() === 0);
@@ -379,6 +412,7 @@ async function run(env) {
     check("診断情報は kiroku doctor --report と同じ形", /^kiroku diagnostics \(kinds and counts only\)\nkiroku: .+\nos: .+\n/.test(txt) && /: sessions \d+;/.test(txt), txt.slice(0, 200));
     const leak = secrets.filter(x => txt.includes(x));
     check("診断情報に履歴のパス・プロジェクト名・ID・プロンプトがない", leak.length === 0 && !/\/Users\/|\/home\//.test(txt), leak.slice(0, 3).join(" | "));
+    await view("cal");
   });
 
   await step("週報を書いてもらうプロンプト", async () => {
@@ -452,7 +486,7 @@ async function run(env) {
     await p.keyboard.press("Escape"); await pause();
     check("閉じると検索結果に戻る", await p.evaluate(() => !!document.activeElement.closest("#sres .srow[data-s]")));
     await p.locator("#sclear").click(); await pause();
-    check("検索をやめるとサマリーに戻る", await p.locator("#q").inputValue() === "" && await p.locator("#review .stat").first().isVisible() && await p.locator("#sres").isHidden());
+    check("検索をやめると元の表示に戻る", await p.locator("#q").inputValue() === "" && await p.locator("#review .stat").count() > 0 && await p.locator("#tl").isVisible() && await p.locator("#sres").isHidden());
   });
 
   await step("表示の切り替え", async () => {

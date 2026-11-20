@@ -30,6 +30,23 @@ function setMode(m){ if (m === "month" && META.scope && META.scope.mode === "wee
   if (m === "week" && st.mode === "month" && monthOf(st.week).getTime() !== st.month.getTime()) st.week = mondayOf(st.month);
   st.mode = m; store.set("mode", m); st.sel = null; st.animate = true; render(); scrollToWork(); }
 document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = () => setMode(b.dataset.v));
+/* 表示：カレンダーかサマリー。広い画面ではページ全体を画面に固定し、選んだほうだけが中でスクロールする（ページとカレンダーの二重のスクロールをなくす） */
+function showView(){ document.body.dataset.view = st.view;
+  document.querySelectorAll("#view button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.view)); fitLayout(); }
+/* ページを画面に固定するか（body.fixed）。広い画面で、カレンダーの時間の目盛りに十分な高さ（240px）が残るときだけ。
+   背の低い窓・拡大した画面・検索の最中は固定しない（ページ全体がスクロールし、カレンダーも検索結果も切れずに届く） */
+function fitLayout(){ const B = document.body;
+  if (!matchMedia("(min-width:821px)").matches || st.q){ B.classList.remove("fixed"); return; }
+  B.classList.add("fixed"); if (st.view !== "cal") return;
+  const tl = $("#tl"), sc = tl && tl.querySelector(".calscroll"), hd = sc && sc.querySelector(".heads");
+  const room = sc ? sc.getBoundingClientRect().height - (hd ? hd.offsetHeight : 0) : (tl ? tl.getBoundingClientRect().height : 0);
+  if (room < (sc ? 240 : 360)) B.classList.remove("fixed"); }
+let fitRaf = 0; addEventListener("resize", () => { cancelAnimationFrame(fitRaf); fitRaf = requestAnimationFrame(fitLayout); });
+function setView(v, focus){ if (v === st.view) return; st.view = v; store.set("view", v); showView();
+  const m = $("main"); if (m) m.scrollTop = 0; if (v === "cal") scrollToWork();
+  if (focus && v === "sum"){ const r = $("#review"); r.tabIndex = -1; r.focus({preventScroll: true}); } }
+document.querySelectorAll("#view button[data-v]").forEach(b => b.onclick = () => setView(b.dataset.v));
+$("#skipcal").onclick = e => { e.preventDefault(); setView("sum", true); };
 $("#prev").onclick = () => go(-1); $("#next").onclick = () => go(1); $("#today").onclick = () => go(null);
 $("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); st.srN = st.scN = 0; render(); }; // 言葉が変わったら、結果はまた先頭の数件から
 // 検索欄で Enter か ↓：最初の結果へフォーカスを移す（結果はカレンダーの上）。結果の中では ↑↓ で隣へ、最初の結果で ↑ なら検索欄へ
@@ -79,6 +96,7 @@ document.addEventListener("keydown", e => {
   else if (k === "/"){ e.preventDefault(); $("#q").focus(); }
   else if (k === "Escape" && st.sel) select(null); else if (k === "?") $("#keys").showModal();
   else if (k === "w" || k === "W") setMode("week"); else if (k === "m" || k === "M") setMode("month");
+  else if ((k === "v" || k === "V") && !st.sel) setView(st.view === "cal" ? "sum" : "cal"); // 詳細を開いているあいだは、うしろの表示を変えない
 });
 // workHours は、表示中の週の作業の時間帯 {first, last}（時。記録がなければ null）。
 // 朝 6 時より前の開始が 2 割に満たなければ、早い時刻の数本に引っぱられないよう、6 時以降でいちばん早い開始時刻から。
