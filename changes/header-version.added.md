@@ -1,0 +1,1 @@
+- The view shows the kiroku version (such as `v1.0.0`) next to the logo in the header, for release builds

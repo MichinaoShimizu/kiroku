@@ -1,5 +1,8 @@
 // 起動：最初に開く期間を決めて、はじめて描く。データがそろってから呼ぶ（kiroku serve では data.json が届いてから。live.js の最後）
 function boot(){
+// ヘッダーのロゴの隣に、リリースの版（v1.0.0 など）。開発中の版（dev）とわからないものは出さない。文字は textContent で入れる
+{ const v = String((META && META.version) || ""), el = $("#ver");
+  if (el && /^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/.test(v)){ el.textContent = "v" + v; el.title = t("kiroku version {v}", {v: "v" + v}); el.hidden = false; } }
 localizeTitles(DATA);
 // 今週に記録がなければ、いちばん新しい記録の週から開く
 if (DATA.length && !WEEKS[key(st.week)]) st.week = mondayOf(new Date(DATA[DATA.length-1].end*1000));

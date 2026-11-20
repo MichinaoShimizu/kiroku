@@ -161,6 +161,7 @@ const JA_TEXT = {
   "Kiro Crew memory consolidation ({slot})": "Kiro Crew の記憶の整理（{slot}）",
   "(private)": "（非公開）",
   "Kiro Crew (private conversations check)": "Kiro Crew（非公開の会話の確認）",
+  "kiroku version {v}": "kiroku の版 {v}",
   "All {want} sections are missing": "{want} 個の節がすべてありません",
   "{n} of the {want} sections are missing": "{want} 個の節のうち {n} 個がありません",
   "The numbers table is missing": "数字の表がありません",
