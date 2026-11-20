@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v1.0.1 - 2026-11-20
+
+### Changed
+
+- The view shows the history Kiro IDE and Kiro CLI V3 share as "Kiro IDE / CLI (V3)", next to "Kiro CLI (V2)", so it is clear where Kiro CLI V3 sessions are. The `source` value in `kiroku json` stays `Kiro IDE / CLI`, as docs/compatibility.md promises
+- Session details: on wide screens the left column is only the prompt flow, and the right column has what you can do (the resume command and "Analyze with AI"), then the key numbers (active time, prompts, wait time, cost, tokens), then the rest (history file, models, tools, the agent's own metrics, commits, pull requests, files, subagents). On narrow screens they come in that order with the prompt flow right after the key numbers, and `Tab` follows the same order. "Analyze with AI" moved from the prompt flow's heading to the actions
+
 ## v1.0.0 - 2026-11-20
 
 ### Added
