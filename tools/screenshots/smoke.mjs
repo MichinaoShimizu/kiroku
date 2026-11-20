@@ -154,11 +154,16 @@ async function run(env) {
         let j = i - 1; while (j >= 0 && li[j].classList.contains("ev")) j--;
         return i > 0 && j >= 0 && li[j].classList.contains("pr"); }));
     }
+    check("流れの凡例は既定で閉じている", await p.evaluate(() => { const d = document.querySelector("#drawer .tlkeyd"); return !!d && !d.open && !d.querySelector(".tlkey").checkVisibility(); }));
+    await p.locator("#drawer .tlkeyd > summary").click(); await pause();
+    check("凡例を開くと、記号の説明が見える", await p.evaluate(() => document.querySelector("#drawer .tlkey span").checkVisibility()));
     await p.locator('#flowBy button[data-v="user"]').click(); await pause();
     check("「ユーザープロンプトだけ」で、出来事が隠れる", await p.evaluate(() => [...document.querySelectorAll("#drawer .tl li.ev")].every(li => !li.offsetParent)));
     check("「ユーザープロンプトだけ」では、応答も隠れる", await p.evaluate(() => [...document.querySelectorAll("#drawer .tl li.rp")].every(x => !x.offsetParent)));
     check("「ユーザープロンプトだけ」では、出ていないものの説明を凡例に残さない", await p.evaluate(() => [...document.querySelectorAll("#drawer .tlkey .kev")].every(x => !x.offsetParent)));
     await p.locator('#flowBy button[data-v="all"]').click(); await pause();
+    check("開いた凡例は、切り替えのあとも開いたまま", await p.evaluate(() => document.querySelector("#drawer .tlkeyd").open));
+    await p.locator("#drawer .tlkeyd > summary").click(); await pause(); // 閉じて戻す（覚えた状態をあとの確認に残さない）
     await p.keyboard.press("Escape"); await pause();
     check("Esc で詳細が閉じる", !await drawerOpen());
     await run.focus(); await p.keyboard.press("ArrowLeft"); await pause();

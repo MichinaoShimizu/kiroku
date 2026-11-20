@@ -1,0 +1,1 @@
+- Session details: the legend of marks above the prompt flow is folded under "Legend" and closed by default (it stays open once you open it), so the flow starts higher. The right column has headings above "Analyze with AI" ("Session review") and above the key numbers ("Metrics")

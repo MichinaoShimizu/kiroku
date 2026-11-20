@@ -531,7 +531,15 @@ button.more{display:block;text-align:left}
 .files .fp a:focus-visible,.drawer .gfiles span>a:focus-visible{outline-offset:-2px} /* 行は overflow:hidden なので、枠を内側に描いて切れないように */
 .drawer .gfiles span>.ic{color:var(--ink-3);margin-right:6px;vertical-align:-2px}
 .drawer .dresume{margin-top:14px}.drawer .dresume>h3:first-child{margin-top:0}
-.drawer .drun{margin-top:14px}
+.drawer .drun h3{margin-top:22px}.drawer .sact>.drun:first-child h3{margin-top:0}
+/* プロンプトの流れの凡例は、既定で閉じる（記号は 1 度見ればわかるので、流れを上に） */
+.tlkeyd{margin:0 0 8px}
+.tlkeyd>summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;list-style:none;font-size:var(--fs-xs);color:var(--ink-3);padding:2px 0}
+.tlkeyd>summary::-webkit-details-marker{display:none}
+.tlkeyd>summary::before{content:"";width:6px;height:6px;border:solid currentColor;border-width:0 1.5px 1.5px 0;transform:rotate(-45deg);transition:transform .15s}
+.tlkeyd[open]>summary::before{transform:rotate(45deg)}
+.tlkeyd>summary:hover{color:var(--ink-2)}
+.tlkeyd[open]>.tlkey{margin-top:6px}
 
 /* エージェント別 */
 .ngroups{margin-top:8px}

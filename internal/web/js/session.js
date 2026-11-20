@@ -18,9 +18,10 @@ function detail(s){
     <div class="scols">
     <section class="sact" aria-label="${esc(t("Actions"))}">
     ${s.resume ? `<div class="dresume"><h3>${esc(t("Resume"))}</h3>${codeH(s.resume, "resume")}</div>` : ""}
-    ${s.prompts.length ? `<div class="drun">${aiBtn("srun", t("Analyze with AI: session review"))}</div>` : ""}
+    ${(b => b ? `<div class="drun"><h3>${esc(t("Session review"))}</h3>${b}</div>` : "")(s.prompts.length ? aiBtn("srun", t("Analyze with AI: session review")) : "")}
     </section>
-    <section class="smet" aria-label="${esc(t("Metrics"))}">
+    <section class="smet" aria-labelledby="smet-h">
+    <h3 id="smet-h">${esc(t("Metrics"))}</h3>
     <div class="mini tight">
       <div><div class="k">${esc(t("Active time"))}</div><div class="v">${dur(active,true)}</div></div>
       <div><div class="k">${esc(t("Prompts"))}</div><div class="v">${s.nPrompts}</div></div>
@@ -80,6 +81,7 @@ function detail(s){
     try { const r = await kfetch(`reply?id=${encodeURIComponent(s.id)}&i=${b.dataset.i}`); if (!r.ok) throw 0;
       const li = b.closest("li.rp"); li.querySelector(".reptext").textContent = await r.text(); li.tabIndex = -1; li.focus(); // 読んでいた場所から離れないように
     } catch { b.disabled = false; b.textContent = t("Couldn't load. Try again"); } });
+  const kd = P.querySelector(".tlkeyd"); if (kd) kd.ontoggle = () => { st.flowKey = kd.open; store.set("flowKey", st.flowKey); }; // 凡例は既定で閉じる。開けたら覚えておく
   P.querySelectorAll("#flowBy button").forEach(b => b.onclick = () => { st.flowUser = b.dataset.v === "user"; store.set("flowUser", st.flowUser); P.querySelector(".tl").classList.toggle("only-user", st.flowUser); P.querySelector(".tlkey").classList.toggle("only-user", st.flowUser); P.querySelectorAll("#flowBy button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); });
   const pall = P.querySelector(".pall"); if (pall) pall.onclick = () => { const shown = [...P.querySelectorAll(".tl li[hidden]")]; shown.forEach(li => li.hidden = false); pall.remove();
     const first = shown.find(li => li.classList.contains("pr")); if (first) first.focus(); }; // 出した最初のプロンプトへ（フォーカスを失わないように）
@@ -163,7 +165,7 @@ function promptFlow(s){
   // 見出しと出し方の切り替えは 1 行に（最初の画面に入るプロンプトを 1 つでも多くする）
   const bar = `<div class="flowhead"><h3>${esc(t("Prompt flow"))}</h3><div class="flowbar"><div class="segc" role="group" aria-label="${esc(t("Show"))}" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">${esc(t("Everything"))}</button><button data-v="user" aria-pressed="${!!st.flowUser}">${esc(t("Your prompts only"))}</button></div></div></div>`;
   const cutNote = !LIVE && s.prompts.some(p => p.len > 0 || (p.reply && p.reply.len > 0)) ? `<p class="note">${esc(t("Long prompts and replies end with … here. Open with kiroku serve to read them in full."))}</p>` : "";
-  return `${bar}<div class="tlkey${st.flowUser ? " only-user" : ""}">${key}</div>${cutNote}<ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${esc(showMore)}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${esc(t("\"AI worked\" is the time from a prompt to the AI's last activity; \"you replied after\" is the time from there to your next prompt. Both are estimates from the history's timestamps."))}</p>` : ""}${s.prompts.some(p => p.reply) ? `<p class="note">${esc(t("The reply after a prompt is the last thing the AI wrote to you in that turn, in its own words — not its thinking, its tool calls or their output. A turn where it only ran tools, or whose words the agent does not record, has no reply. A long one shows its first {n} characters.", {n: REPLY_RUNES}))}</p>` : ""}`;
+  return `${bar}<details class="tlkeyd"${st.flowKey ? " open" : ""}><summary>${esc(t("Legend"))}</summary><div class="tlkey${st.flowUser ? " only-user" : ""}">${key}</div></details>${cutNote}<ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${esc(showMore)}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${esc(t("\"AI worked\" is the time from a prompt to the AI's last activity; \"you replied after\" is the time from there to your next prompt. Both are estimates from the history's timestamps."))}</p>` : ""}${s.prompts.some(p => p.reply) ? `<p class="note">${esc(t("The reply after a prompt is the last thing the AI wrote to you in that turn, in its own words — not its thinking, its tool calls or their output. A turn where it only ran tools, or whose words the agent does not record, has no reply. A long one shows its first {n} characters.", {n: REPLY_RUNES}))}</p>` : ""}`;
 }
 /* 振り返りのプロンプトに入れる流れ: プロンプトと、そのあとに起きたこと（中断・コミットなど）を時刻の順に 1 本のテキストにする。
    件数だけでは、どのプロンプトのあとに手戻りが起きたかを AI が結びつけられないので。出すのは最初の n 個のプロンプトと、その間に起きたことまで。
