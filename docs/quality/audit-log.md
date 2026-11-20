@@ -49,7 +49,7 @@ An aspect run after many view changes since v1.0 (one page scroll, the figures s
 | govulncheck | clean (in tools/check.sh) |
 | Reproducible build of v1.1.2 | matches (linux/amd64, at release) |
 | Coverage by package | ai 93.2% (-0.8), archive 80.6% (+1.2), cli 86.6% (-0.6), core 83.7% (+0.2), web 91.5%; others unchanged |
-| Benchmark (read / aggregate / render) | BENCH |
+| Benchmark, BenchmarkLarge (n=6 against 99b2fcd) | read 881 vs 974 ms (p=0.59), aggregate 505 vs 465 ms (p=0.49), render 236 vs 216 ms (p=0.07): no significant change (the machine was noisy, ±15–25%). Memory unchanged |
 | Stale PRs, issues, Dependabot | not checked (aspect run) |
 
 ### Findings
