@@ -90,6 +90,8 @@ async function run(env) {
       return !!o && !!a && (a.compareDocumentPosition(o) & Node.DOCUMENT_POSITION_FOLLOWING) > 0; }));
     check("見出しの「?」を押しても、パネルは開かない", await p.evaluate(() => { const d = document.querySelector("#review details.panel.fold"), hb = d.querySelector("summary .hb");
       if (!hb) return true; hb.click(); const ok = !d.open; if (typeof hideHint === "function") hideHint(); return ok; }));
+    check("週の見出しは「Week x of y」（その年の週の数は 52 か 53）", /Week \d{1,2} of 5[23]\b/i.test(await p.locator("#ry").innerText()), await p.locator("#ry").innerText());
+    check("週の数：2026 年は 53 週、2025 年は 52 週（12 月 28 日の週）", await p.evaluate(() => isoWeek(new Date(2026, 11, 28)) === 53 && isoWeek(new Date(2025, 11, 28)) === 52));
     check("既定はカレンダー：サマリーは隠れ、カレンダーが見える", await p.locator("#review").isHidden() && await p.locator("#tl").isVisible());
     check("スクロールはページだけ：カレンダーの中ではスクロールしない", await p.evaluate(() => { const c = document.querySelector("#tl .calscroll"); return !c || c.scrollHeight <= c.clientHeight + 1; }));
     if (env.viewport.width > 820){ // 広い画面では、曜日の見出しがページの見出しの下に貼り付く

@@ -10,7 +10,8 @@ function render(){
   const todayKey = key(today0()), end = addDays(st.week,6);
   const rel = relName(); // 今週・先週（今月・先月）なら、日付の上にそう書く（開いたときに、どの期間を見ているかわかるように）
   if (M){ $("#ry").textContent = `${st.month.getFullYear()} · ${rel || t("Month")}`; $("#rd").innerHTML = isJA() ? `${st.month.getFullYear()}年<span>${st.month.getMonth()+1}月</span>` : `${MONTH[st.month.getMonth()]} <span>${st.month.getFullYear()}</span>`; }
-  else { $("#ry").textContent = `${st.week.getFullYear()} · ${t("Week {n}", {n: isoWeek(st.week)})}${rel ? ` · ${rel}` : ""}`; $("#rd").innerHTML = `${dMD(st.week)}<span> – </span>${dMD(end)}`; }
+  else { const iy = addDays(st.week, 3).getFullYear(); // ISO の週の年（その週の木曜の年）。週の数は、その年の 12 月 28 日の週（いつも最後の週）
+    $("#ry").textContent = `${iy} · ${t("Week {n} of {total}", {n: isoWeek(st.week), total: isoWeek(new Date(iy, 11, 28))})}${rel ? ` · ${rel}` : ""}`; $("#rd").innerHTML = `${dMD(st.week)}<span> – </span>${dMD(end)}`; }
   $("#today").textContent = META.scope ? (META.scope.mode === "month" ? t("Back to this file's month") : t("Back to this file's week")) : M ? t("This month") : t("This week");
   [["#prev", -1], ["#next", 1]].forEach(([id, n]) => { const b = $(id), off = !canGo(n); // 先の週・ファイルの外へは押せない
     if (off && document.activeElement === b) $(n > 0 ? "#prev" : "#next").focus(); // 押せなくなるボタンにいたフォーカスは、隣のボタンへ

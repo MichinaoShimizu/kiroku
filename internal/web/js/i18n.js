@@ -684,6 +684,7 @@ const JA_TEXT = {
   "Week of {date}": "{date}の週",
   "Week view": "週表示",
   "Week {n}": "第 {n} 週",
+  "Week {n} of {total}": "第{n}週 / 全{total}週",
   "Weekly report": "週報",
   "Weekly summary": "週のまとめ",
   "What it is": "これは何か",
