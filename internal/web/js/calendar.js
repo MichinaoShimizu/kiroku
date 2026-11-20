@@ -115,6 +115,7 @@ function kpis(){
     (pjV ? kpi(t(pj.cost != null && pj.credits != null ? "Month-end (estimate)" : pj.cost != null ? "Month-end cost" : "Month-end credits"), pjV, pace, "key", pj.cost != null ? "projection" : "projectionCr") : "") +
     kpi(t("Active time"), dur(w.active, true), n0 == null ? "" : M ? t("{days} of the {n} so far (this month is still in progress)", {days, n: plural(nd, "day")}) : t("{days} of the {n} so far (this week is still in progress)", {days, n: plural(nd, "day")}), "", "active") +
     outK(w, kpi);
+  K.classList.toggle("dense", K.children.length > 7); // 数が多い（月表示など）ときは、一回り小さくして 1 行に
   K.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b));
 }
 
