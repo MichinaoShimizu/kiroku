@@ -148,7 +148,7 @@ async function run(env) {
     if (await rep.count() > 0){
       await rep.scrollIntoViewIfNeeded();
       check("応答の中身が読める", (await rep.locator(".reptext").innerText()).trim().length > 0);
-      check("だれの発言か分かる", (await rep.locator(".rpw").innerText()).trim().length > 0);
+      check("だれの発言か分かる", (await rep.locator(".rpav").innerText()).trim().length > 0);
       // 依頼と応答の間に起きたこと（コミットなど）は応答の上に出るので、それを飛ばした手前が依頼
       check("応答は依頼のすぐ後に並ぶ", await p.evaluate(() => { const li = [...document.querySelectorAll("#panel .tl li")], i = li.findIndex(x => x.classList.contains("rp"));
         let j = i - 1; while (j >= 0 && li[j].classList.contains("ev")) j--;
@@ -243,7 +243,7 @@ async function run(env) {
       return {n: v.length, inAct: !v.length || !!v[0].closest(".sact"), wide, place: wide ? a.left > f.right - 1 : a.top < f.top,
         flowOnly: !flow.querySelector(".mini, .files, .trow, .dresume, #srun"),
         // HTML の順（Tab の順）が見た目の順と同じ：操作 → 数値 → 流れ → 情報。1 列ではモデル・ツールは流れより下
-        order: [".sact", ".smet", ".sflow", ".sinfo"].map(c => document.querySelector("#panel .scols > " + c)).every((e, i, a) => e && (!i || (a[i-1].compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING))),
+        order: [".sact", ".smet", ".sflow", ".sinfo"].map(c => document.querySelector("#panel .scols > " + c)).filter((e, i) => e || i).every((e, i, a) => e && (!i || (a[i-1].compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING))),
         toolsBelow: wide || [...document.querySelectorAll("#panel .trow")].every(e => e.getBoundingClientRect().top > f.bottom - 1)}; });
     check("詳細の HTML の順は、操作・数値・流れ・情報（Tab の順が見た目と合う）", rs.order === true, JSON.stringify(rs));
     check("1 列では、使ったツールは流れより下", rs.toolsBelow === true, JSON.stringify(rs));

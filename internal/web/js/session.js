@@ -11,15 +11,15 @@ function detail(s){
   const sCost = costOf({cost: s.cost, unpriced: [s.usage, ...s.subagents.map(a=>a.usage)].reduce((t,u)=>t + (u ? u.unpriced||0 : 0), 0)});
   // Kiro のクレジット。Kiro Crew は Kiro 以外のバックエンドのトークンと、kiro-cli のクレジットの両方を持つことがある
   const credH = s.credits ? `<div><div class="k">${esc(t("Kiro credits"))}</div><div class="v">${crN(s.credits)}</div></div><div><div class="k">${esc(t("Per prompt"))}</div><div class="v">${s.nPrompts ? crN(s.credits/s.nPrompts) : "—"}<small> cr</small></div></div>` : "";
+  // 操作（再開・AI 分析）。どちらもなければ節ごと出さない（右の列が「数値」から始まり、左の列と高さがそろう）
+  const actH = `    ${s.resume ? `<div class="dresume"><h3>${esc(t("Resume"))}</h3>${codeH(s.resume, "resume")}</div>` : ""}
+    ${(b => b ? `<div class="drun"><h3>${esc(t("Session review"))}</h3>${b}</div>` : "")(s.prompts.length ? aiBtn("srun", t("Analyze with AI: session review")) : "")}`.trim();
   const P = $("#panel");
   P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
     ${dHead(agMark(s.source) + esc(s.source), s.title, `${md(s.start)} ${hm(s.start)} – ${sameDay ? "" : md(s.end)+" "}${hm(s.end)}`, [projTag(s.project), branchTag(s.branch)])}
     ${sesFlags(s)}
     <div class="scols">
-    <section class="sact" aria-label="${esc(t("Actions"))}">
-    ${s.resume ? `<div class="dresume"><h3>${esc(t("Resume"))}</h3>${codeH(s.resume, "resume")}</div>` : ""}
-    ${(b => b ? `<div class="drun"><h3>${esc(t("Session review"))}</h3>${b}</div>` : "")(s.prompts.length ? aiBtn("srun", t("Analyze with AI: session review")) : "")}
-    </section>
+    ${actH ? `<section class="sact" aria-label="${esc(t("Actions"))}">${actH}</section>` : ""}
     <section class="smet" aria-labelledby="smet-h">
     <h3 id="smet-h">${esc(t("Metrics"))}</h3>
     <div class="mini tight">
@@ -130,7 +130,7 @@ function replyRow(r, i, hidden){
   const cut = r.len > 0;
   // 保存した HTML では、切ったことは「…」だけで示す（kiroku serve で読めることは、流れの上に 1 度だけ書く）
   const more = cut && LIVE ? `<span class="pcut"> ${esc(t("(first {n} of {total} characters)", {n: REPLY_RUNES, total: commas(r.len)}))} <button class="rload" data-i="${i}">${esc(t("Load the full reply"))}</button></span>` : "";
-  return `<li class="rp"${hidden}><time>${r.t ? hm(r.t) : ""}</time>${ico("reply")}<p><span class="rpw" aria-hidden="true">AI</span><span class="sr">${esc(t("AI:"))} </span><span class="reptext">${esc(r.text)}${cut ? "…" : ""}${more}</span></p></li>`;
+  return `<li class="rp"${hidden}><time>${r.t ? hm(r.t) : ""}</time><span class="rpav" aria-hidden="true">AI</span><p><span class="sr">${esc(t("AI:"))} </span><span class="reptext">${esc(r.text)}${cut ? "…" : ""}${more}</span></p></li>`;
 }
 function promptFlow(s){
   const ev = flowEvents(s), rows = [];
@@ -158,7 +158,7 @@ function promptFlow(s){
     cmds ? `<span class="kcmd"><span class="pkind">${ico("command")}${esc(t("Command"))}</span><span class="pkind">${ico("shell")}${esc(t("Shell"))}</span>${esc(t("What you typed starting with / or !"))}</span>` : "",
     kinds.has("note") ? `<span class="kev note">${[...new Set(s.notes.filter(x => x.t).map(x => NOTE_ICON[x.kind] || "note"))].map(k => ico(k)).join("")}${esc(t("Added automatically (notifications, summaries, hooks; not counted as prompts)"))}</span>` : "",
     fixes ? `<span class="kus fix"><span class="pkind fix">${esc(t("Correction?"))}</span>${esc(t("Looks like a correction (guessed from the wording)"))}</span>` : "",
-    s.prompts.some(p => p.reply) ? `<span class="kev rep">${ico("reply")}${esc(t("What the AI wrote back"))}</span>` : "",
+    s.prompts.some(p => p.reply) ? `<span class="kev rep"><span class="rpav" aria-hidden="true">AI</span>${esc(t("What the AI wrote back"))}</span>` : "",
     ...[["commit", "Commit"], ["push", "Push"], ["pr", "Pull request"], ["agent", "Subagent"], ["int", "Interruption"], ["cmp", "Compaction"], ["warn", "Usage limit"]].filter(([k]) => kinds.has(k)).map(([k, l]) => `<span class="kev ${k}">${ico(EV_ICON[k])}${esc(t(l))}</span>`)].filter(Boolean).join("");
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";
   const showMore = JA ? (hiddenEv ? t("Show {n} more prompts (and {m} other events)", {n: rest, m: hiddenEv}) : t("Show {n} more prompts", {n: rest})) : `Show ${plural(rest, "more prompt")}${also}`;

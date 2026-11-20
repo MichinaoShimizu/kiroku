@@ -1,0 +1,1 @@
+- Session details: the prompt flow reads like a chat. Your prompts are bubbles on the right, the AI's replies are bubbles on the left next to an "AI" mark, events between them (commits, pull requests, pushes, interruptions, subagents) are small labels in the middle, and a long break is a divider. Times sit at the bottom edge of each bubble
