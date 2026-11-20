@@ -2,6 +2,14 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v1.0.4 - 2026-11-20
+
+### Changed
+
+- Colors follow one fixed, checked palette: the eight colors for projects, agents and models now share the same lightness and a restrained saturation, so they don't stand out too strongly against the background, and keep neighbors apart, also for color-blind readers, in light and dark themes. Tints (bubbles, labels, backgrounds) use three fixed strengths per theme. Kiro Crew is now magenta and Kiro CLI (V2) green
+- The page as a whole is calmer: the background and text are no longer pure white and near-black, and borders, the accent, warnings, weekend tints, shadows and the "Analyze with AI" button are toned down, while text keeps a contrast of at least 4.5:1
+- Buttons are no longer solid fills: "Analyze with AI", the resume command's "Copy", today's date and the summary's panel numbers use a light tint with colored text, and the "Analyze with AI" buttons on each day are plain until you point at them
+
 ## v1.0.3 - 2026-11-20
 
 ### Changed
