@@ -13,7 +13,8 @@
      順は青・オレンジ・アクア・黄・マゼンタ・緑・紫・ティール。増やすときも並べ替えるときも、検証し直してから（docs/development.md の「Colors」） */
   --c0:#3879cb; --c1:#e27045; --c2:#3bac7d; --c3:#e6a438; --c4:#e181a4; --c5:#23811f; --c6:#6256ca; --c7:#209db2; --other:#9aa0ab;
   --amber:var(--c3); --amber-ink:#7a5200; --note:var(--c6); /* 役目の名前（コマンドの札・自動で入ったもの）。色の番号は上の 8 色から */
-  --t1:6%; --t2:11%; --t3:16%; /* 色を地に混ぜる濃さは 3 段だけ（淡い地・吹き出しや札・強め） */
+  --t1:6%; --t2:11%; --t3:16%;
+  --go:#2f7a5e; --go-ink:#235c47; /* 「AI で分析」の緑（塗りではなく、淡い地に濃い緑の字） */ /* 色を地に混ぜる濃さは 3 段だけ（淡い地・吹き出しや札・強め） */
   --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",system-ui,sans-serif; /* 英語の画面なので欧文の書体を先に。日本語のプロンプトは後ろの和文の書体で出す */
   /* 文字の大きさは 9 段だけ（2xs は狭い画面の月のマスだけ）。太さは 400・500・600・700、行間は 1.2（数字・見出し）・1.5（UI）・1.6〜1.7（長い文） */
   --fs-2xs:10px; --fs-xs:11px; --fs-sm:12px; --fs-md:13px; --fs-lg:14px; --fs-xl:16px; --fs-2xl:20px; --fs-3xl:24px; --fs-4xl:30px;
@@ -30,7 +31,8 @@
   --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -16px rgba(0,0,0,.7);
   --c0:#4888d8; --c1:#cf623a; --c2:#399b73; --c3:#bd842c; --c4:#cc5b82; --c5:#34a030; --c6:#9086e5; --c7:#1397ab; --other:#6b7180;
   --amber-ink:#f2b53a;
-  --t1:8%; --t2:14%; --t3:20%; /* 暗い地では、同じ 3 段を少し濃く（淡すぎて地に沈まないように） */
+  --t1:8%; --t2:14%; --t3:20%;
+  --go:#5fb08c; --go-ink:#9bd6ba; /* 暗い地では、同じ 3 段を少し濃く（淡すぎて地に沈まないように） */
 }
 
 /* ── base ───────────────────────────────────────────────── */
@@ -141,8 +143,8 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .head small{display:block;font-size:var(--fs-xs);color:var(--ink-3);font-variant-numeric:tabular-nums;margin-top:2px}
 .head.today{box-shadow:inset 0 -2px 0 var(--acc)}
 .head .dd .dayrun{margin-left:auto;align-self:center;font-size:var(--fs-xs);padding:2px 8px;white-space:nowrap} /* 日報の「AI 分析」（記録のある日だけ）。日付の右端に小さく、入らなければ日付の下の行に */
-.head .dd .pill.dayrun.ai-action:not(:disabled){background:transparent;color:var(--ink-2);border-color:#2da978;font-weight:600} /* 7 日すべてに塗りのボタンが並ぶと目立ちすぎるので、枠だけ（押すと塗り） */
-.head .dd .pill.dayrun.ai-action:not(:disabled):hover{background:#2f7a5e;color:#fff;border-color:#2f7a5e}
+.head .dd .pill.dayrun.ai-action:not(:disabled){background:transparent;color:var(--ink-2);border-color:var(--rule-2);font-weight:500} /* 7 日すべてに塗りのボタンが並ぶと目立ちすぎるので、枠だけ（押すと塗り） */
+.head .dd .pill.dayrun.ai-action:not(:disabled):hover{background:color-mix(in oklab,var(--go) var(--t2),var(--surface));color:var(--go-ink);border-color:color-mix(in oklab,var(--go) 40%,var(--surface))}
 .head.today b,.head.today i{color:var(--acc-ink)}
 .hours{position:sticky;left:0;z-index:6;background:var(--surface)}
 .heads>div:first-child{position:sticky;left:0;z-index:9;background:var(--surface)}
@@ -334,7 +336,7 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .cell.we{background-image:linear-gradient(var(--weekend),var(--weekend))}
 .cell.sat{background-image:linear-gradient(var(--sat-bg),var(--sat-bg))}.cell.sun{background-image:linear-gradient(var(--sun-bg),var(--sun-bg))}
 .cell .dn{font:700 var(--fs-lg)/1 var(--sans);font-variant-numeric:tabular-nums}
-.cell.today .dn{color:var(--on-acc);background:var(--acc);border-radius:6px;padding:3px 5px;margin:-3px 0 0 -5px;align-self:flex-start}
+.cell.today .dn{color:var(--acc-ink);background:color-mix(in oklab,var(--acc) var(--t3),var(--surface));border-radius:6px;padding:3px 5px;margin:-3px 0 0 -5px;align-self:flex-start}
 .cell .acs{display:none}
 .cm{display:grid;gap:1px}.cell .cm{margin:auto 0 2px}.head .cm{margin-top:6px} /* カレンダーの各日・各週の 2 つ（使用量・コミット） */
 .cm div{display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-width:0}
@@ -382,7 +384,7 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .rvgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start;padding-bottom:48px}
 .panel{background:var(--surface);border:1px solid var(--rule);border-radius:16px;padding:20px 22px 22px;min-width:0}
 .ph{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-.ph .no{font:700 var(--fs-xs)/22px var(--sans);width:22px;height:22px;border-radius:7px;text-align:center;background:var(--ink);color:var(--bg)}
+.ph .no{font:700 var(--fs-xs)/22px var(--sans);width:22px;height:22px;border-radius:7px;text-align:center;background:var(--surface-2);color:var(--ink-2)}
 .ph h3{font:700 var(--fs-lg)/1.3 var(--sans);color:inherit;margin:0;display:block}.ph h3::after{content:none} /* 番号つきの見出し（h3）。見た目は前の太字のまま */
 .ph span{font-size:var(--fs-xs);color:var(--ink-3)}
 .eyebrow{font-size:var(--fs-xs);letter-spacing:.08em;color:var(--ink-3);text-transform:uppercase;display:flex;align-items:center;gap:8px;font-weight:600}
@@ -443,7 +445,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .cp{display:inline-flex;align-items:center;gap:6px}.cp .ic{width:13px;height:13px;vertical-align:0}.cp .cpok,.cp.ok .cpi{display:none}.cp.ok .cpok{display:inline;color:var(--acc)} /* コピーのボタン（copyBtn）。できたら印が ✓ に */
 /* 再開コマンドはよく使うので、ほかのコード（履歴ファイルのパス）よりはっきりさせる：アクセントの地と枠、Copy は塗りのボタン */
 .code.resume{background:var(--acc-soft);box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--acc) 45%,transparent);color:var(--ink)}
-.code.resume .copy{background:var(--acc);border-color:var(--acc);color:var(--on-acc);font-weight:600}
+.code.resume .copy{background:color-mix(in oklab,var(--acc) var(--t2),var(--surface));border-color:color-mix(in oklab,var(--acc) 40%,var(--surface));color:var(--acc-ink);font-weight:600}
 .code.resume .copy:hover{background:var(--acc-ink);border-color:var(--acc-ink);color:var(--on-acc)}
 .code.resume .cp.ok .cpok{color:inherit} /* 塗りのボタンの上では、✓ を文字の色に */
 .back{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--ink-3)}
@@ -822,18 +824,16 @@ dialog.mdlg h3{margin:20px 0 8px}
 @media(max-width:700px){.view-controls{width:100%;gap:8px}.wk .nav .view-controls{margin-left:0}.control-group{gap:4px}}
 
 /* AI execution is visually distinct from local copy and navigation actions. */
-.pill.ai-action:not(:disabled){background:#2f7a5e;color:#fff;border-color:#2f7a5e;font-weight:600}
-.pill.ai-action:not(:disabled):hover{background:#286a52;border-color:#286a52}
-.pill.ai-action:focus-visible{outline:2px solid #2da978;outline-offset:3px}
-.pill.ai-action:disabled{background:#e2ebe6;color:#526f60;border:1px solid #9bb9a8;opacity:1;cursor:not-allowed}
-:root[data-theme="dark"] .pill.ai-action:disabled{background:transparent;color:#8aa597;border-color:#3d5a4c} /* 暗い地では、押せるボタン（濃い緑の塗り）より目立たない枠だけに */
+/* ボタンは塗りつぶさない：淡い地・色の字・控えめな枠。押せることは枠と字の色で、強さは hover で少しだけ */
+.pill.ai-action:not(:disabled){background:color-mix(in oklab,var(--go) var(--t2),var(--surface));color:var(--go-ink);border-color:color-mix(in oklab,var(--go) 40%,var(--surface));font-weight:600}
+.pill.ai-action:not(:disabled):hover{background:color-mix(in oklab,var(--go) var(--t3),var(--surface));border-color:color-mix(in oklab,var(--go) 60%,var(--surface))}
+.pill.ai-action:focus-visible{outline:2px solid var(--go);outline-offset:3px}
+.pill.ai-action:disabled{background:transparent;color:var(--ink-3);border:1px solid var(--rule-2);opacity:1;cursor:not-allowed} /* 押せないときは色のない枠だけ（押せるボタンの淡い緑と見分ける） */
 
 /* Analyze with AI is off (kiroku serve --no-ai, or not on a loopback IP): an outlined button that explains how to turn it on, not an action */
-.pill.ai-off{background:transparent;color:#176b50;border:1px dashed #5c9a80;font-weight:500;cursor:help}
-.pill.ai-off:hover{background:#e7f2ec}
-.pill.ai-off:focus-visible{outline:2px solid #2da978;outline-offset:3px}
-:root[data-theme="dark"] .pill.ai-off{color:#7fd1ad;border-color:#4f8f73}
-:root[data-theme="dark"] .pill.ai-off:hover{background:rgba(127,209,173,.12)}
+.pill.ai-off{background:transparent;color:var(--go-ink);border:1px dashed color-mix(in oklab,var(--go) 50%,var(--surface));font-weight:500;cursor:help}
+.pill.ai-off:hover{background:color-mix(in oklab,var(--go) var(--t1),var(--surface))}
+.pill.ai-off:focus-visible{outline:2px solid var(--go);outline-offset:3px}
 /* エージェントのコマンドがないとき: 押せないボタンと、その理由（全文は title に） */
 .ai-none{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
 .ai-why{font-size:var(--fs-xs);color:var(--ink-3);cursor:help}
