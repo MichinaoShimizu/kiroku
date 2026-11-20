@@ -53,12 +53,12 @@ function mDays(w, m, proj){
     return `<span class="mcol${fut ? " fut" : ""}${i === cur ? " now" : ""}" title="${esc(tip)}">${lab ? `<span class="bv">${esc(m.f(v))}</span>` : ""}<span class="b" style="height:${v ? `calc((${M ? "100%" : "100% - 16px"}) * ${Math.max(0.02, v/max).toFixed(4)})` : 0}"></span><small>${M ? dt.getDate() : DOW[dt.getDay()]}</small></span>`; }).join("");
   // 月末の推定の幅を、これからの日の 1 日あたりの量にして、点線で重ねる（1σ・2σ・3σ。外ほど薄く）
   const from = ((cur + 1) / w.days.length * 100).toFixed(2);
-  const band = lines.map(l => [l.hi, l.lo].filter(v => v > 0).map(v => `<i class="mbl k${l.k}" style="left:${from}%;--y:${(v/max*100).toFixed(2)}%" title="${esc(`${l.k}σ: ${m.f(l.lo)} – ${m.f(l.hi)} ${t("a day")}`)}"></i>`).join("")).join("");
+  const band = lines.map(l => [l.hi, l.lo].filter(v => v > 0).map(v => `<i class="mbl k${l.k}" style="left:${from}%;--y:${(v/max*100).toFixed(2)}%" title="${esc(`${l.k}σ: ${rangeT(m.f(l.lo), m.f(l.hi))} ${t("a day")}`)}"></i>`).join("")).join("");
   // トレンド線：終わった日に引いた直線（最小二乗法）を、月の最後の日まで延ばす。これからの日の部分は破線
   const n = w.days.length, X = i => ((i + 0.5) / n * 100).toFixed(2), Y = i => (100 - trAt(i) / max * 100).toFixed(2);
   const trSvg = tr ? `<svg class="mtrend" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="${X(0)}" y1="${Y(0)}" x2="${X(cur)}" y2="${Y(cur)}"/><line class="fut" x1="${X(cur)}" y1="${Y(cur)}" x2="${X(n - 1)}" y2="${Y(n - 1)}"/></svg>` : "";
-  const key = lines.length || tr ? `<p class="note mbkey">${proj ? `<span class="pace">${esc(t("Current pace"))}</span>` : ""}${tr ? `<span class="tr">${esc(t("Trend"))}</span>` : ""}${lines.map(l => `<span class="k${l.k}">${l.k}σ</span>`).join("")} ${esc(lines.length ? t("σ lines: the range per day for the days still to come (the table above is for the whole month)") : "")}</p>` : "";
-  return `<h3>${esc(t("By day"))}</h3><div class="mdays${M ? " month" : ""}"${proj ? ` style="--avg:${avg/max*100}%"` : ""}>${cols}${band}${trSvg}</div>${key}`;
+  const key = lines.length || tr ? `<p class="note mbkey">${proj ? `<span class="pace">${esc(t(proj.label || "Current pace"))}</span>` : ""}${tr ? `<span class="tr">${esc(t("Trend"))}</span>` : ""}${lines.map(l => `<span class="k${l.k}">${l.k}σ</span>`).join("")} ${esc(lines.length ? t("σ lines: the range per day for the days still to come (the table above is for the whole month)") : "")}</p>` : "";
+  return `<h3>${esc(t("By day"))}</h3><div class="mdays${M ? " month" : " wk"}"${proj ? ` style="--avg:${avg/max*100}%"` : ""}>${cols}${band}${trSvg}</div>${key}`;
 }
 // 横の棒の一覧（エージェント・プロジェクト・モデル）。total が false なら割合の欄を空ける（割合や中央値のように、足しても意味のない値）。
 // keep は並べ替えない（待ち時間の幅のように、順に意味がある）
@@ -112,7 +112,7 @@ function paceBody(w, k, m, brief){
   const same = a == null || n == null ? null : pw.days.slice(0, Math.min(n, pw.days.length)).reduce((s, d) => s + (d.commits || 0), 0);
   const out = a == null || b == null ? "" : `<p class="note">${esc(t(M ? "Left behind: {a} commits last month ({s} by the same day), {b} so far this month." : "Left behind: {a} commits last week ({s} by the same day), {b} so far this week.", {a, s: same ?? "—", b}))}</p>`;
   if (brief) return {title, body: calc + `<p class="note">${esc(note)}</p>`};
-  return {title, big, body: calc + `<p class="note">${esc(note)}</p>` + out + mDays(w, m, x.rest > 0 ? {avg: x.per, tip: "≈ {v} to match the last period"} : null)};
+  return {title, big, body: calc + `<p class="note">${esc(note)}</p>` + out + mDays(w, m, x.rest > 0 ? {avg: x.per, tip: "≈ {v} to match the last period", label: "Pace to match the last period"} : null)};
 }
 const MB = {
   pace(w){ const r = paceBody(w, "cost", BRK.pace), c = r && paceBody(w, "credits", BRK.paceCr, true); // 帯は 1 つの枠なので、クレジットもここに
@@ -224,6 +224,8 @@ function trendNote(w, pj, so, m){
   const td = Math.max(0, tr.a + tr.b * (pj.days - 1)); // 今日は途中なので、今日の分も傾きから（使った分より少なければ使った分）
   const v = so + rest + Math.max(0, td - ((w.days[pj.days - 1] && m.v(w.days[pj.days - 1])) || 0));
   return `<p class="note">${esc(t("If the trend line continues: ≈ {v} (the slope of the finished days, {d} a day per day)", {v: m.f(v), d: (tr.b >= 0 ? "+" : "−") + m.f(Math.abs(tr.b))}))}</p>`; }
+/* 範囲の書き方（日本語は「〜」、英語は「 – 」。幅の表・点線の説明・帯のツールチップでそろえる） */
+const rangeT = (lo, hi) => isJA() ? `${lo}〜${hi}` : `${lo} – ${hi}`;
 /* 日ごとの値の直線の当てはめ（最小二乗法）。i 日目 ≈ a + b·i。2 日未満なら null */
 function trend(ys){ const n = ys.length; if (n < 2) return null;
   const mx = (n - 1) / 2, my = ys.reduce((s, y) => s + y, 0) / n;
@@ -231,7 +233,7 @@ function trend(ys){ const n = ys.length; if (n < 2) return null;
   const b = sxy / sxx; return {a: my - b * mx, b}; }
 /* 月末の推定の幅：1σ・2σ・3σ（おおよそ 68%・95%・99.7%）。費用の推定には、トークン数の幅も添える */
 function bandTable(pj, m){
-  const rows = (b, f) => b.map(x => `<tr><th>${x.k}σ <small>${["≈68%", "≈95%", "≈99.7%"][x.k - 1]}</small></th><td>${esc(f(x.lo))} – ${esc(f(x.hi))}</td></tr>`).join("");
+  const rows = (b, f) => b.map(x => `<tr><th>${x.k}σ <small>${["≈68%", "≈95%", "≈99.7%"][x.k - 1]}</small></th><td>${esc(rangeT(f(x.lo), f(x.hi)))}</td></tr>`).join("");
   const b = pj.band[m.proj]; if (!b) return "";
   const tk = m.proj === "cost" && pj.band.tokens ? `<tr><th colspan="2">${esc(t("Tokens"))} ≈ ${esc(tok(pj.tokens))}</th></tr>${rows(pj.band.tokens, tok)}` : "";
   return `<h3>${esc(t("Range"))}</h3><table class="mband"><tbody>${rows(b, m.f)}${tk}</tbody></table>

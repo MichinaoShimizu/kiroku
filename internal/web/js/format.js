@@ -38,7 +38,7 @@ function usdH(v){ const s = esc(usd(v)), i = s.indexOf("$"); return i < 0 ? s : 
 // 値がないところに $0.00 と出すと「使っていない」と読めてしまうため（Codex のように料金表にないモデルだけを使ったとき）
 const costOf = u => !u ? null : !u.cost && u.unpriced ? null : (u.cost || 0);
 const NOPRICE = t("The models used are not in the price table, so the estimated cost cannot be shown. Add their prices with --prices.");
-const crN = v => v >= 1 || v <= 0 ? commas(Math.round(v)) : v.toFixed(2); // クレジットは整数で（1 未満だけ小数 2 桁）
+const crN = v => v >= 10 || v <= 0 ? commas(Math.round(v)) : v >= 1 ? (Math.round(v * 10) / 10).toString() : v.toFixed(2); // クレジットは整数で。10 未満は小数 1 桁（1.33 を 1 と丸めすぎない）、1 未満は小数 2 桁
 function cr(v){ return `${crN(v)} cr`; }
 const tokS = v => v >= 1e7 ? Math.round(v/1e6)+"M" : v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e4 ? Math.round(v/1e3)+"K" : tok(v); // 狭いマス用に、桁を減らしたトークン
 function bytes(n){ return n >= 1<<30 ? (n/(1<<30)).toFixed(1)+" GB" : n >= 1<<20 ? (n/(1<<20)).toFixed(1)+" MB" : n >= 1<<10 ? (n/(1<<10)).toFixed(1)+" KB" : n+" B"; }

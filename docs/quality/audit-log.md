@@ -35,6 +35,60 @@ Template for a new section:
 - <aspects to weigh more>
 ```
 
+## 2026-11-20 — ux and i18n at 5297b6a (v1.1.2 and PR #502)
+
+An aspect run after many view changes since v1.0 (one page scroll, the figures strip, chat-style prompt flow, month-end ranges, the palette). B ran as `user-tester` (en and ja, 1440, 1000 and 390, dark and light, serve with a stub agent, no agent and `--no-ai`, and the saved HTML); C as a general-purpose agent. Fixes are on PR #502.
+
+### Gates
+| Check | Result |
+|---|---|
+| tools/check.sh | pass |
+| e2e and XSS | pass (en and ja; after the fixes, one new smoke step and checks for one-row figures, the week label, the sticky day headings and no inner calendar scroll) |
+| go test -count=3 (order and time) | pass |
+| main CI, last 20 runs | not checked (aspect run) |
+| govulncheck | clean (in tools/check.sh) |
+| Reproducible build of v1.1.2 | matches (linux/amd64, at release) |
+| Coverage by package | ai 93.2% (-0.8), archive 80.6% (+1.2), cli 86.6% (-0.6), core 83.7% (+0.2), web 91.5%; others unchanged |
+| Benchmark, BenchmarkLarge (n=6 against 99b2fcd) | read 881 vs 974 ms (p=0.59), aggregate 505 vs 465 ms (p=0.49), render 236 vs 216 ms (p=0.07): no significant change (the machine was noisy, ±15–25%). Memory unchanged |
+| Stale PRs, issues, Dependabot | not checked (aspect run) |
+
+### Findings
+| Aspect | Certain | Suspected | Needs a decision | Not worth fixing | Fixed in |
+|---|---|---|---|---|---|
+| B. ux | 10, and 9 small ones | 1 (Codex and Kiro CLI (V2) greens) | 3 (sticky day row on phones, splitting the credits overage, the Kiro CLI (V2) color) | 0 | #502 (pace and trend lines at the wrong height in week breakdowns and their label, LIVE badge readable by touch and keyboard, "this week" on past weeks, breakdown bars on one scale, "?" glyph contrast, credits under 10 rounded to integers, the search box's name) |
+| C. i18n | 6 | 0 | 1 (サマリー or まとめ) | 1 (目安コスト left in code comments only) | #502 (unused key, 数値 → 指標, 第{n}週 spacing, ranges with 〜 in Japanese, 推定費用 per commit, AI run errors in Japanese) |
+
+Decisions the maintainer made (fixed on #502):
+- Japanese uses サマリー for the summary everywhere (週のサマリー／月のサマリー; README.ja follows)
+- On phones, the day headings are a separate row that sticks under the page header and follows the calendar's sideways scroll; the calendar no longer scrolls vertically on its own (the leftover 16 px)
+- Kiro CLI (V2), Kiro CLI (SQLite) and Amazon Q move to the teal slot; stacked bars keep their 2 px gaps
+- When only one of cost and credits is past the last period's total, the pace figure shows the other's per-day target and a short "credits over" note; the overage is in its tooltip
+
+### Open items
+- Previous items of 2026-11-19 — not rechecked in this aspect run. Due: next full run
+- New: overlapping session titles — resolved on #502 (a title stops above a session cascaded over it; lanes unchanged)
+- New: the day "Analyze with AI" button covering the weekday — resolved on #502 (a small ✦ button on hover devices). The day tooltip still opens with it; low
+- New: the demo HTML's prompt says the browser's UTC offset while its times use the fixed demo clock (`utcOff` in session.js). Demo only. Due: next ux run
+- New (small): resolved on #502 — the search box on phones, the reply's "AI worked" note, AI dialog titles, Data sources and the footer in the calendar view. Still open: "Sessions that reached a commit or PR" doesn't say "Claude Code only" on the card; the prompt to check is English in Japanese (likely intentional). Due: next ux run
+- Previous: F (prompts), `/report-eval check` at this commit (2 runs each, general-purpose writers, one grader):
+  - Correctness: format and numbers copied in all 6; no secrets, injection or invented links; no file outside the allowed set. Recall: day 5/5, week 8/8, session 3/4
+  - Still failing as on 2026-10-18: the week report misses the "short question on Opus → a lighter model" hint (2 of 2; the skill hint missed in 1 of 2); the session review never names the PR (2 of 2); one day report and one week report mention the abandoned bun trial, and one day report names the earlier week's `feat/watermark` branch
+  - Grader (1–5): summary 4–5, outcomes first 5, specificity 3–5, concision 3–4, reader 4, review format 3–4, advice 3–5
+  - Prompt size: day 2.1K, week 3.3K, session 1.4K tokens (unchanged); writer tokens 74–82K
+  - Fixing them needs `/report-eval` with before/after runs. Due: before the next minor release (overdue since 2026-11-01). Decides: maintainer whether to spend the runs
+- Previous: "Analyze with AI" with real agents — Codex CLI 0.171.0 (npm, help only, no model call) lists every flag kiroku passes (`exec`, `--sandbox read-only`, `--skip-git-repo-check`, `--ephemeral`, `--config`). Kiro CLI isn't installable here (not on npm); a real run of either still needs an account. Decides: maintainer
+
+### Loop
+| Run | Findings (certain) | Fixed | Median days to fix | Open items | Overdue | Previous items resolved |
+|---|---|---|---|---|---|---|
+| 2026-11-20 ux, i18n | 25 | 25 | 0 (same day; PR open) | 2 new (and 26 not rechecked) | 1 (F, from 2026-11-19) | — (aspect run) |
+| 2026-11-19 full | 60 | 34 | 0 (same day; PR open) | 26 | 1 (F) | 9 of 24 |
+| 2026-10-18 full | 64 | 36 | 0 (fixed the same day; PRs open) | 24 | 0 | 8 of 17 |
+
+### Next time
+- ux: the open overlap and hover items, and a run on a real phone width after the sticky day row
+- The full run's open items (F prompts is overdue)
+
 ## 2026-11-19 — full at 99b2fcd (v0.39.0)
 
 The third full run. A, B, C+D, E (one agent each for Claude Code, Codex and Kiro), and G+H ran as agents; I and J by hand. F (prompts) was not run (see Open items). Fixes are on one branch, #481, as separate commits.

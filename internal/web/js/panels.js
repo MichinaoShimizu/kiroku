@@ -279,7 +279,7 @@ function outcomePanel(w, pw, unit){
   const names = [o.commits || gc ? "commits" : "", gc ? "lines" : "", gc && G.files ? "files" : "", G.pushes ? "pushes" : "", o.prs ? "pull requests" : ""].filter(Boolean);
   const outSub = esc(!names.length ? t("From git and from history") : JA ? names.map(x => t(x)).join("・") : names.join(", ").replace(/, ([^,]+)$/, " and $1").replace(/^./, c => c.toUpperCase())); // 日本語は「・」でつなぐ
   const side = (cls, label, sub, body) => `<div class="ocside ${cls}"><div class="ocl"><b>${label}</b><span>${sub}</span></div>${body}</div>`;
-  return fold("oc", panelH(2, esc(t("Cost and outputs")), esc(unit === "月" ? t("What you spent this month and what it left behind") : t("What you spent this week and what it left behind")), "outputs"), `
+  return fold("oc", panelH(2, esc(t("Cost and outputs")), esc(t(perLabel(unit, "What you spent this month and what it left behind", "What you spent this week and what it left behind", "What you spent in the month shown and what it left behind", "What you spent in the week shown and what it left behind"))), "outputs"), `
     <div class="ocgrid">
       ${side("spent", esc(t("Cost")), esc(t("Time and usage")), `<div class="stats">${cost}</div>`)}
       <div class="ocarrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>

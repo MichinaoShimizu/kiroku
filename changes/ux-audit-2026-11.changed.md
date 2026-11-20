@@ -1,0 +1,20 @@
+- The view's wording and figures, after a UX review:
+  - On a past week or month, the summary says "in the week shown" instead of "this week"
+  - In Japanese, the summary heading reads 週のサマリー／月のサマリー, matching the View button, and the metric heading reads 指標
+  - Kiro credits under 10 show one decimal (1.3 cr, not 1 cr)
+  - When only one of cost and credits is already past last week's (or month's) total, "A day to match last week" shows the target for the other and a short "credits over" note, instead of mixing a per-day target with a total overage; the tooltip gives the overage
+  - Ranges read "1 – 3" in English and 1〜3 in Japanese everywhere (breakdown table, dotted lines, tooltips), and the week breakdown's line is labelled "Pace to match the last period"
+  - Kiro CLI (V2), Kiro CLI (SQLite) and Amazon Q are teal instead of green, so they no longer look like Codex next to it
+- On phones, the week calendar's day headings stick under the page header while you scroll and follow its sideways scroll
+- The LIVE badge is a button: clicking or tapping it shows what it means (also with a keyboard or touch screen); the search box has a name for screen readers
+- Errors from "Analyze with AI" that the server reports after starting are shown in Japanese too
+- More view improvements:
+  - The figures above the calendar show the change from the previous week or month in percent next to each label (compared with the same days while the period is in progress), without a good or bad color
+  - In the week calendar, a session's title stops above a session that starts later on top of it, instead of showing cut-off letters beside it
+  - The day heading's "Analyze with AI" appears as a small ✦ button when you point at the heading, so it no longer covers the weekday
+  - On phones, the search box is a magnifier that widens when you press it, instead of a box cut to "Sear"
+  - Data sources and the footer (version, Report a problem) are shown in the calendar view too
+  - In the prompt flow, "AI worked … · you replied after …" sits under the AI's reply it belongs to
+  - The weekly report's and the session review's AI dialogs name the week or session in their title
+  - Opening this week scrolls the page to the hour the week's work starts when it would be below the first screen (not in the demo)
+- The figures above the calendar show only what you used: commits, lines changed and pull requests are in each calendar day and in the summary's ②

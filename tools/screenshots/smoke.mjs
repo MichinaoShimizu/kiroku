@@ -84,15 +84,27 @@ async function run(env) {
     check("凡例の件数（20 / 20 sessions）が画面の中に見える", await p.evaluate(() => { const r = document.querySelector("#legend .count").getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= innerWidth + 1; }));
     check("ロゴはこのファイルを開き直すリンク（/ ではディスクの一番上へ行く）", await p.evaluate(() => document.querySelector("#home").getAttribute("href") === location.href.split(/[?#]/)[0]));
     check("ロゴが検索欄に隠れない", await p.evaluate(() => document.querySelector(".brand .word").getBoundingClientRect().right <= document.querySelector(".search").getBoundingClientRect().left));
-    // カレンダーが主役：③ 時間の使い方から下のパネルは閉じていて、残したもの（アウトプット）は上の帯の右側に
+    // カレンダーが主役：① から下のパネルは閉じていて、上の帯は使ったものだけ
     check("サマリーのパネルは ① プロジェクト別から既定で閉じている", await p.evaluate(() => { const f = [...document.querySelectorAll("#review details.panel.fold")]; return f.length >= 5 && f[0].classList.contains("projs") && f.every(d => !d.open); }));
-    check("上の帯に、残したもの（コミット）が使ったものの右に並ぶ", await p.evaluate(() => { const o = document.querySelector("#kpis .kpi.out"), a = document.querySelector('#kpis [data-metric="active"]');
-      return !!o && !!a && (a.compareDocumentPosition(o) & Node.DOCUMENT_POSITION_FOLLOWING) > 0; }));
+    check("上の帯は使ったものだけ（残したもの：コミット・変えた行・PR は出さない）", await p.locator('#kpis .kpi.out, #kpis [data-metric="commits"], #kpis [data-metric="lines"], #kpis [data-metric="aiCommits"], #kpis [data-metric="prs"]').count() === 0);
     check("見出しの「?」を押しても、パネルは開かない", await p.evaluate(() => { const d = document.querySelector("#review details.panel.fold"), hb = d.querySelector("summary .hb");
       if (!hb) return true; hb.click(); const ok = !d.open; if (typeof hideHint === "function") hideHint(); return ok; }));
-    check("既定はカレンダー：サマリーは隠れ、カレンダーが見える", await p.locator("#review").isHidden() && await p.locator("#tl").isVisible());
+    if (env.viewport.width > 820) check("上の数字の帯は 1 行（折り返さない）", await p.evaluate(() => new Set([...document.querySelectorAll("#kpis .kpi")].map(k => Math.round(k.getBoundingClientRect().top))).size === 1));
+    check("上の数字に、前の期間との増減（%）が添えてある", await p.evaluate(() => [...document.querySelectorAll("#kpis .kpi .k .dl")].some(d => /^[+−±]\d*%?/.test(d.textContent))));
+    if (env.viewport.width <= 820){ // スマホの検索欄は虫めがねだけ。押すと広がり、画面からはみ出さない
+      const box = () => p.evaluate(() => { const b = document.querySelector("#q").getBoundingClientRect(); return {l: b.left, r: b.right, w: b.width}; });
+      const b0 = await box();
+      await p.locator("#q").focus(); await pause(); const b1 = await box();
+      check("スマホの検索欄は、閉じているあいだは虫めがねだけ", b0.w <= 40, JSON.stringify(b0));
+      check("押すと広がり、画面に収まる", b1.w > 150 && b1.l >= 0 && b1.r <= env.viewport.width, JSON.stringify(b1));
+      await p.locator("#q").blur(); await pause();
+    }
+    check("週の見出しは「Week x of y」（その年の週の数は 52 か 53）", /Week \d{1,2} of 5[23]\b/i.test(await p.locator("#ry").innerText()), await p.locator("#ry").innerText());
+    check("週の数：2026 年は 53 週、2025 年は 52 週（12 月 28 日の週）", await p.evaluate(() => isoWeek(new Date(2026, 11, 28)) === 53 && isoWeek(new Date(2025, 11, 28)) === 52));
+    check("既定はカレンダー：サマリーのパネルは隠れ、カレンダーが見える", await p.locator("#review .rvhead").isHidden() && await p.locator("#review details.panel.fold").first().isHidden() && await p.locator("#tl").isVisible());
+    check("カレンダーの表示でも、データソースとページの下（版）は見える", await p.locator("#review .dsrc").isVisible() && await p.locator("#review .foot").isVisible());
     check("スクロールはページだけ：カレンダーの中ではスクロールしない", await p.evaluate(() => { const c = document.querySelector("#tl .calscroll"); return !c || c.scrollHeight <= c.clientHeight + 1; }));
-    if (env.viewport.width > 820){ // 広い画面では、曜日の見出しがページの見出しの下に貼り付く
+    { // どの幅でも、曜日の見出しがページの見出しの下に貼り付く（狭い画面は横のスクロールにも合わせる）
       await p.evaluate(() => window.scrollTo(0, document.querySelector("#tl").getBoundingClientRect().top + scrollY + 400)); await pause();
       check("スクロールしても曜日の見出しが見えている", await p.evaluate(() => { const h = document.querySelector("#tl .heads").getBoundingClientRect(), top = document.querySelector("header").getBoundingClientRect().bottom; return Math.abs(h.top - top) <= 2; }));
       await p.evaluate(() => window.scrollTo(0, 0)); await pause();
@@ -143,6 +155,7 @@ async function run(env) {
     check("前の週では「次の週」を押せる", await p.locator("#next").isEnabled());
     check("先週なら、期間の見出しにそう書いてある", /last week$/i.test(await p.locator("#ry").innerText()), await p.locator("#ry").innerText());
     check("凡例の数は作業時間", /\d+(h|m)/.test(await p.locator("#legend .chip .n").first().innerText()), await p.locator("#legend .chip .n").first().innerText());
+    await p.evaluate(() => scrollTo(0, 0)); await pause(); // ページを下にスクロールしたあとは、貼り付いた見出しの下をブロックが通るのが正しい。開いた位置（ページの先頭）で確かめる
     const cut = await p.evaluate(() => { const hd = document.querySelector("#tl .heads").getBoundingClientRect().bottom;
       return [...document.querySelectorAll("#tl .run")].filter(r => { const b = r.getBoundingClientRect(); return b.top < hd - 1 && b.bottom > hd + 1; }).length; });
     check("開いた位置で、日付の見出しに半分隠れたブロックがない", cut === 0, `${cut} 件`);
@@ -153,6 +166,14 @@ async function run(env) {
       check("右端までスクロールすると、ぼかしが消える", await p.evaluate(() => !document.querySelector("#tl").classList.contains("morer")));
       await p.evaluate(() => { document.querySelector("#tl .calscroll").scrollLeft = 0; }); await pause();
     }
+  });
+
+  await step("前の週のサマリーは「今週」と言わない", async () => {
+    await p.keyboard.press("ArrowLeft"); await pause();
+    const subs = await p.evaluate(() => [...document.querySelectorAll("#review .ph > span")].map(e => e.textContent).join(" | "));
+    check("前の週を見ているとき、サマリーの説明に「this week」がない", !/this week/i.test(subs) && /week shown/.test(subs), subs);
+    check("クレジットは 10 未満なら小数 1 桁（1.33 を 1 と丸めすぎない）", await p.evaluate(() => crN(1.333) === "1.3" && crN(20) === "20" && crN(0.5) === "0.50"));
+    await p.keyboard.press("t"); await pause();
   });
 
   await step("セッションの詳細", async () => {

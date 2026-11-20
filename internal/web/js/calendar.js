@@ -10,7 +10,8 @@ function render(){
   const todayKey = key(today0()), end = addDays(st.week,6);
   const rel = relName(); // 今週・先週（今月・先月）なら、日付の上にそう書く（開いたときに、どの期間を見ているかわかるように）
   if (M){ $("#ry").textContent = `${st.month.getFullYear()} · ${rel || t("Month")}`; $("#rd").innerHTML = isJA() ? `${st.month.getFullYear()}年<span>${st.month.getMonth()+1}月</span>` : `${MONTH[st.month.getMonth()]} <span>${st.month.getFullYear()}</span>`; }
-  else { $("#ry").textContent = `${st.week.getFullYear()} · ${t("Week {n}", {n: isoWeek(st.week)})}${rel ? ` · ${rel}` : ""}`; $("#rd").innerHTML = `${dMD(st.week)}<span> – </span>${dMD(end)}`; }
+  else { const iy = addDays(st.week, 3).getFullYear(); // ISO の週の年（その週の木曜の年）。週の数は、その年の 12 月 28 日の週（いつも最後の週）
+    $("#ry").textContent = `${iy} · ${t("Week {n} of {total}", {n: isoWeek(st.week), total: isoWeek(new Date(iy, 11, 28))})}${rel ? ` · ${rel}` : ""}`; $("#rd").innerHTML = `${dMD(st.week)}<span> – </span>${dMD(end)}`; }
   $("#today").textContent = META.scope ? (META.scope.mode === "month" ? t("Back to this file's month") : t("Back to this file's week")) : M ? t("This month") : t("This week");
   [["#prev", -1], ["#next", 1]].forEach(([id, n]) => { const b = $(id), off = !canGo(n); // 先の週・ファイルの外へは押せない
     if (off && document.activeElement === b) $(n > 0 ? "#prev" : "#next").focus(); // 押せなくなるボタンにいたフォーカスは、隣のボタンへ
@@ -88,8 +89,11 @@ function kpis(){
   K.classList.toggle("unf", filtering()); // 絞り込みの最中も、ここは全セッションの合計（薄くして、カレンダーの上に断り書き）
   if (!w){ K.innerHTML = `<div class="kpi"><div class="k">${esc(META.scope ? t("Not in this file") : shownName())}</div><div class="v">${esc(t("No records"))}</div></div>`; return; }
   // 押すと内訳のダイアログ（metric.js）。id のない数は押せない
-  const kpi = (k, v, tt, cls, id) => { const tg = id ? "button" : "div";
-    return `<${tg} class="kpi${cls ? " " + cls : ""}"${id ? ` type="button" data-metric="${id}" aria-haspopup="dialog"` : ""}${tt || id ? ` title="${esc(tt ? (id ? t("{text}. Click for the breakdown.", {text: tt}) : tt) : t("Click for the breakdown"))}"` : ""}><div class="k">${esc(k)}</div><div class="v">${v}</div></${tg}>`; };
+  // 前の期間との増減（%）。途中の期間は、前の期間の同じ日までと比べる（vsPrev）。良し悪しの色は付けない
+  const V = vsPrev(pw, M ? "月" : "週"), vsT = V.n == null ? t(M ? "vs last month" : "vs last week") : t("vs {range}", {range: V.range});
+  const dl = (a, b) => b == null || !(b > 0) || a == null ? "" : `<span class="dl" title="${esc(vsT)}">${a === b ? "±0" : (a > b ? "+" : "−") + Math.round(Math.abs(a - b) / b * 100)}%<span class="sr"> ${esc(vsT)}</span></span>`;
+  const kpi = (k, v, tt, cls, id, d = "") => { const tg = id ? "button" : "div";
+    return `<${tg} class="kpi${cls ? " " + cls : ""}"${id ? ` type="button" data-metric="${id}" aria-haspopup="dialog"` : ""}${tt || id ? ` title="${esc(tt ? (id ? t("{text}. Click for the breakdown.", {text: tt}) : tt) : t("Click for the breakdown"))}"` : ""}><div class="k">${d ? `<span>${esc(k)}</span>${d}` : esc(k)}</div><div class="v">${v}</div></${tg}>`; };
   const u = w.usage || {}, days = w.days.filter(d => d.active).length, pj = projection(w);
   const n0 = soFar(), nd = n0 == null ? w.days.length : Math.min(n0, w.days.length); // 途中の週・月は、まだ来ていない日を分母に入れない（今日までの日数）
   // 前の期間並みに収めるなら、残りの日 1 日あたりいくらか（pacing）。費用とクレジットは 1 つの枠に並べる（枠を増やすと帯がカレンダーと主役を争うため）。
@@ -97,37 +101,32 @@ function kpis(){
   const pc = pacing(w, pw), paceK = () => {
     const xs = [[pc.cost, (v, txt) => txt ? usd(v) : usdH(v)], [pc.credits, (v, txt) => txt ? cr(v) : `${crN(v)}<small> cr</small>`]].filter(([x]) => x);
     const all = xs.every(([x]) => x.rest < 0);
-    const v = xs.map(([x, f]) => x.rest >= 0 ? f(x.per) : `<small>+</small>${f(-x.rest)}<small> ${esc(t("over"))}</small>`).join(`<small> · </small>`);
-    const ref = xs.map(([x, f]) => f(x.ref, true)).join(" · ");
-    return kpi(all ? t(M ? "Past last month's total" : "Past last week's total") : t(M ? "A day to match last month" : "A day to match last week"), v,
-      all ? t(M ? "Last month's total was {v}" : "Last week's total was {v}", {v: ref}) : t(M ? "To stay at last month's total of {v}, for the {n} left" : "To stay at last week's total of {v}, for the {n} left", {v: ref, n: plural(pc.left, "day")}), "key", pc.cost ? "pace" : "paceCr"); };
+    if (all) return kpi(t(M ? "Past last month's total" : "Past last week's total"), xs.map(([x, f]) => `<small>+</small>${f(-x.rest)}<small> ${esc(t("over"))}</small>`).join(`<small> · </small>`),
+      t(M ? "Last month's total was {v}" : "Last week's total was {v}", {v: xs.map(([x, f]) => f(x.ref, true)).join(" · ")}), "key", pc.cost ? "pace" : "paceCr");
+    // 片方（多くはクレジット）だけ超えたときは、1 日の目安の数に超過を混ぜない（「$3.20 · +5 cr 超過」は 1 日の額に読める）。
+    // 数は超えていない方の目安だけにし、超えた方は短い添え書き（「クレジットは超過」）と、ポップアップの文で伝える
+    const ok = xs.filter(([x]) => x.rest >= 0), ov = xs.filter(([x]) => x.rest < 0);
+    const v = ok.map(([x, f]) => f(x.per)).join(`<small> · </small>`) + (ov.length ? `<small class="ovr"> · ${esc(t(ov[0][0] === pc.credits ? "credits over" : "cost over"))}</small>` : "");
+    const tt = t(M ? "To stay at last month's total of {v}, for the {n} left" : "To stay at last week's total of {v}, for the {n} left", {v: ok.map(([x, f]) => f(x.ref, true)).join(" · "), n: plural(pc.left, "day")}) +
+      ov.map(([x, f]) => " · " + t(M ? "{v} over last month's total of {r}" : "{v} over last week's total of {r}", {v: f(-x.rest, true), r: f(x.ref, true)})).join("");
+    return kpi(t(M ? "A day to match last month" : "A day to match last week"), v, tt, "key", ok[0][0] === pc.cost ? "pace" : "paceCr"); };
   const pace = pj ? t("If the pace of the first {n} days continues", {n: pj.days}) + bandNote(pj.cost != null ? pj.band.cost : pj.band.credits, pj.cost != null ? usd : cr) : "";
-  // 帯は日々の判断に使う数だけ：左に使ったもの（推定費用とクレジット・前の期間並みの 1 日の目安・月末の推定（月）・稼働時間）、右に残したもの（outK）。
+  // 帯は日々の判断に使う数だけ：左に使ったもの（推定費用とクレジット・前の期間並みの 1 日の目安・月末の推定（月）・稼働時間）、残したもの（コミット・PR など）は出さない（カレンダーの各日とサマリーの ② に）。
   // 稼働日・セッション / プロンプト・利用上限への到達は振り返りの数なので、サマリーと「見直す候補」に任せる（帯が多いとカレンダーと主役を争う）。
   // 推定費用とクレジットは別の枠の使用量なので足さずに、1 つの枠に「 · 」で並べる。トークンは推定費用を出せないときだけ
   const c = u.tokens ? costOf(u) : null, two = (a, b) => [a, b].filter(Boolean).join(`<small> · </small>`);
   const useV = two(u.tokens ? (c == null ? tok(u.tokens) : usdH(c)) : "", u.credits ? `${crN(u.credits)}<small> cr</small>` : "");
   const useK = u.tokens && u.credits ? t(c == null ? "Tokens · credits" : "Estimated cost · credits") : u.tokens ? t(c == null ? "Tokens" : "Estimated cost") : t("Kiro credits");
   const pjV = pj ? two(pj.cost != null ? `<small>≈</small>${usdH(pj.cost)}` : "", pj.credits != null ? `<small>≈</small>${crN(pj.credits)}<small> cr</small>` : "") : "";
-  K.innerHTML = (useV ? kpi(useK, useV, u.tokens && c == null ? NOPRICE : "", "key", u.tokens ? (c == null ? "tokens" : "cost") : "credits") : "") +
+  const pu = pw && pw.usage, useD = u.tokens ? (c == null ? dl(u.tokens, V.of("tokens", pu && pu.tokens)) : dl(u.cost, V.of("cost", pu && pu.cost))) : dl(u.credits, V.of("credits", pu && pu.credits));
+  K.innerHTML = (useV ? kpi(useK, useV, u.tokens && c == null ? NOPRICE : "", "key", u.tokens ? (c == null ? "tokens" : "cost") : "credits", useD) : "") +
     (pc && !pj ? paceK() : "") + // 月の途中は月末の推定を出すので、前の月並みの目安は出さない（内訳とサマリーにある）
     (pjV ? kpi(t(pj.cost != null && pj.credits != null ? "Month-end (estimate)" : pj.cost != null ? "Month-end cost" : "Month-end credits"), pjV, pace, "key", pj.cost != null ? "projection" : "projectionCr") : "") +
-    kpi(t("Active time"), dur(w.active, true), n0 == null ? "" : M ? t("{days} of the {n} so far (this month is still in progress)", {days, n: plural(nd, "day")}) : t("{days} of the {n} so far (this week is still in progress)", {days, n: plural(nd, "day")}), "", "active") +
-    outK(w, kpi);
+    kpi(t("Active time"), dur(w.active, true), n0 == null ? "" : M ? t("{days} of the {n} so far (this month is still in progress)", {days, n: plural(nd, "day")}) : t("{days} of the {n} so far (this week is still in progress)", {days, n: plural(nd, "day")}), "", "active", dl(w.active, V.of("active", pw && pw.active)));
   K.classList.toggle("dense", K.children.length > 7); // 数が多い（月表示など）ときは、一回り小さくして 1 行に
   K.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b));
 }
 
-/* 帯の右側：残したもの（アウトプット）。コミット・変えた行・PR だけ（ファイル数と push はサマリーの ② に）。git を読めないときは AI のコミットだけ。
-   左の使ったもの（費用・稼働時間）と並べて、使った分が何か残したかを、カレンダーを見る前に 1 行で */
-function outK(w, kpi){
-  const g = w.git && w.git.commits ? w.git : null, o = w.outputs || {}, n = commas, out = "out";
-  return [
-    g ? kpi(t("Git commits"), `${g.commits}<small> · ${esc(t("{n} by AI", {n: g.ai}))}</small>`, "", out, "commits") : o.commits ? kpi(t("AI commits"), `${o.commits}`, "", out, "aiCommits") : "",
-    g ? kpi(t("Lines changed"), `${n(g.added + g.removed)}<small> +${n(g.added)} −${n(g.removed)}</small>`, "", out, "lines") : "",
-    o.prs ? kpi(t("Pull requests"), `${o.prs}`, "", out, "prs") : "",
-  ].join("");
-}
 /* カレンダーの各日（月表示では各週も）に並べるのは 2 つだけ：使用量（推定費用。見積もれないならトークン、トークンがなければクレジット）と Git のコミット。
    費用と残したものを上下に並べ、費用が増えても残したものが増えていない日を、カレンダーを見るだけで拾えるようにする。
    作業時間は週では帯の長さ・月ではマスの濃さ、セッションは帯の数で見えるので、数は日のツールチップに（トークン・クレジットも）。
@@ -213,7 +212,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
     const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${(act || dayGit.length) && (aiRun() || aiDemo()) ? `<button class="pill dayrun ai-action" data-d="${d}" type="button" aria-label="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}" title="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}">${esc(t("Analyze with AI"))}</button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : pc && ds >= tmr ? allowH(pc) : `<small>—</small>`}</div>`;
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${(act || dayGit.length) && (aiRun() || aiDemo()) ? `<button class="pill dayrun ai-action" data-d="${d}" type="button" aria-label="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}" title="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}">${ico("ai")}<span>${esc(t("Analyze with AI"))}</span></button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : pc && ds >= tmr ? allowH(pc) : `<small>—</small>`}</div>`;
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
@@ -234,13 +233,15 @@ function timeline(shown, inWeek, ws, we, todayKey){
     }
     // 名前の入らない短い帯は、すぐ下があいていれば、そこに名前を出す（ほかの帯と重なるなら出さない。押せば詳細は開ける）
     const free = bk => !blocks.some(o => o !== bk && o.y < bk.y + bk.h + 14 && o.y + o.h > bk.y + bk.h && o.l < bk.l + bk.w && o.l + o.w > bk.l);
+    // 後から右に重なった帯があれば、前の帯の名前と時刻は、その帯の上端より上に収める（下の行が重なった帯の左にちぎれて見えないように）
+    const room = bk => Math.min(bk.h, ...blocks.filter(o => o.cas && o.y > bk.y && o.y < bk.y + bk.h && o.l < bk.l + bk.w - 1e-6 && o.l + o.w > bk.l + 1e-6).map(o => o.y - bk.y - 2));
     blocks.forEach((bk, j) => {
-      const {y, h} = bk, mins = (bk.b-bk.a)/60;
+      const {y, h} = bk, th = room(bk), mins = (bk.b-bk.a)/60;
       const dens = Math.min(1, bk.n / Math.max(1, mins) / 2.5), id = runs.length;
       const pos = `left:calc((100% - var(--g)) * ${bk.l.toFixed(4)} + 3px);width:calc((100% - var(--g)) * ${bk.w.toFixed(4)} - 6px)`;
       runs.push(bk);
       // 20px 以上は名前（高さに入るだけ 3 行まで折り返す。38px からは下に時刻も）、10px からは小さい字で名前を帯の中に 1 行（帯の外へはみ出して見えないように）、それより短いものは帯の下に名前。名前の入らない細い帯は始まりの時刻（style.css の .st）
-      html += `<button class="run${h < 20 ? " thin" : ""}${bk.cas ? " cas" : ""}${st.sel === bk.s.id ? " sel" : ""}" data-r="${id}" data-sid="${esc(bk.s.id)}" style="top:${y}px;height:${h}px;${pos};--c:${colorOf(keyOf(bk.s))};--fill:${Math.round(16+30*dens)}%;--ln:${Math.max(1, Math.floor((h - 8) / 14))};--tl:${Math.max(1, Math.min(3, Math.floor((h - (h >= 38 ? 24 : 8)) / 14.3)))};${st.animate?`--delay:${d*30+Math.min(j,14)*10}ms`:"animation:none"}" aria-label="${esc(t("{title}, {project}, {date} {start} to {end}", {title: bk.s.title, project: bk.s.project, date: md(bk.a), start: hm(bk.a), end: hm(bk.b)}))}">${h >= 10 ? `<span class="t"><span>${esc(bk.s.title)}</span></span><span class="st">${hm(bk.a)}</span>` + (h >= 38 ? `<span class="m">${hm(bk.a)}–${hm(bk.b)} · ${esc(bk.s.project)}</span>` : "") : ""}</button>`;
+      html += `<button class="run${h < 20 ? " thin" : ""}${bk.cas ? " cas" : ""}${st.sel === bk.s.id ? " sel" : ""}" data-r="${id}" data-sid="${esc(bk.s.id)}" style="top:${y}px;height:${h}px;${pos};--c:${colorOf(keyOf(bk.s))};--fill:${Math.round(16+30*dens)}%;--ln:${Math.max(1, Math.floor((th - 8) / 14))};--tl:${Math.max(1, Math.min(3, Math.floor((th - (th >= 38 ? 24 : 8)) / 14.3)))};${st.animate?`--delay:${d*30+Math.min(j,14)*10}ms`:"animation:none"}" aria-label="${esc(t("{title}, {project}, {date} {start} to {end}", {title: bk.s.title, project: bk.s.project, date: md(bk.a), start: hm(bk.a), end: hm(bk.b)}))}">${h >= 10 ? `<span class="t"><span>${esc(bk.s.title)}</span></span><span class="st">${hm(bk.a)}</span>` + (th >= 38 ? `<span class="m">${hm(bk.a)}–${hm(bk.b)} · ${esc(bk.s.project)}</span>` : "") : ""}</button>`;
       if (h < 10 && free(bk)) html += `<span class="rlab" aria-hidden="true" style="top:${y + h + 1}px;${pos}">${esc(bk.s.title)}</span>`;
     });
     // 右端の溝に、コミット・push・PR を時刻の順に置く（近すぎるものは少し下へずらす）
@@ -258,8 +259,11 @@ function timeline(shown, inWeek, ws, we, todayKey){
     if (isToday && nowS >= ds && nowS < de) html += `<div class="nowline" style="top:${clockH(day, nowS)*hh}px"></div>`;
     cols += `<div class="day${day.getDay()%6===0?" we":""}${wkc(day.getDay())}${isToday?" today":""}" style="height:${H}px;--g:${marks.length ? 18 : 0}px">${html}</div>`;
   }
-  T.innerHTML = `<div class="calscroll" style="--hh:${hh}px"><div class="calin"><div class="heads">${heads}</div><div class="cgrid"><div class="hours" style="height:${H}px">${hours}</div>${cols}</div></div></div>`;
-  const sc = T.querySelector(".calscroll");
+  // 曜日の見出しは、横にスクロールする本体（.calscroll）の外に置き、ページのスクロールで上に貼り付ける（.tlhead）。
+  // 横のスクロールは本体に合わせて動かす（狭い画面でも、どの列が何日かわかるように）
+  T.innerHTML = `<div class="tlhead"><div class="calin"><div class="heads">${heads}</div></div></div><div class="calscroll" style="--hh:${hh}px"><div class="calin"><div class="cgrid"><div class="hours" style="height:${H}px">${hours}</div>${cols}</div></div></div>`;
+  const sc = T.querySelector(".calscroll"), th = T.querySelector(".tlhead");
+  sc.addEventListener("scroll", () => { th.scrollLeft = sc.scrollLeft; }, {passive: true});
   sc.style.scrollPaddingTop = T.querySelector(".heads").offsetHeight + "px"; sc.style.scrollPaddingLeft = "56px"; // Tab で移ったブロックが、固定の日付・時刻の下に隠れないように
   if (top != null) sc.scrollTop = top;
   fitRuns(T);

@@ -38,7 +38,7 @@ function summary(){
     ${w.friction.length ? secH(esc(t("Possible friction")), "friction") : ""}
     ${w.friction.length ? w.friction.map(f => sesCardH(sesById(f.id, f.title), `${sesMeta(f)} ${whyOf(f).map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}`)).join("") : ""}
     ${repeatsOf(period().ws, period().we).length ? secH(esc(t("Repeated prompts")), "repeats") : ""}
-    ${(() => { const {ws, we} = period(), RP = repeatsOf(ws, we); return RP.length ? RP.slice(0, 3).map(c => { const v = {n: c.n, s: c.ids.size, day: md(c.last)}; return sesCardH(sesById(c.id, snipOf(c.text, 90)), esc(M ? t("{n} times in {s} sessions this month · last on {day}", v) : t("{n} times in {s} sessions this week · last on {day}", v))); }).join("") : ""; })()}
+    ${(() => { const {ws, we} = period(), RP = repeatsOf(ws, we); return RP.length ? RP.slice(0, 3).map(c => { const v = {n: c.n, s: c.ids.size, day: md(c.last)}; return sesCardH(sesById(c.id, snipOf(c.text, 90)), esc(t(perLabel(M ? "月" : "週", "{n} times in {s} sessions this month · last on {day}", "{n} times in {s} sessions this week · last on {day}", "{n} times in {s} sessions in the month shown · last on {day}", "{n} times in {s} sessions in the week shown · last on {day}"), v))); }).join("") : ""; })()}
     ${w.friction.length || repeatsOf(period().ws, period().we).length ? "" : noneH(esc(t("No sessions with possible friction and no repeated prompts.")))}`)}
   <section class="panel metap">${measure(w)}${foot()}</section></div>`;
   placeFlags(R, F);
@@ -53,13 +53,15 @@ function summary(){
   R.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
   RB.querySelectorAll(".ai-demo-info").forEach(b => b.onclick = showLocalAIInfo);
   const run = RB.querySelector("#rptrun");
-  if (run) run.onclick = () => runAIReview(run, reportPrompt(w), t("Weekly report"), aiAgentIn(period().ws, period().we)); // 既定は、その週にいちばん長く動いていたエージェント
+  if (run) run.onclick = () => runAIReview(run, reportPrompt(w), t("Weekly report for {range}", {range: dSpan(st.week, addDays(st.week, 6))}), aiAgentIn(period().ws, period().we)); // 既定は、その週にいちばん長く動いていたエージェント
   bindCopy(R); bindCopy(RB); bindHelp(R); bindHelp(WK); bindReport(R);
   if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }
 /* サマリーのパネル（① プロジェクト別から下）は、既定で閉じる（ページの主役はカレンダー。開けたものは開けたまま覚える）。
    閉じたパネルの中に基準を超えた指標があれば、placeFlags が見出しに印を出す */
 const fold = (key, head, body) => `<details class="panel fold ${key}" data-fold="${key}"${store.get("fold:" + key, false) ? " open" : ""}><summary>${head}${ico("caret", "fcar")}</summary>${body}</details>`;
+/* 「今週・今月」と言ってよいのは、見ているのが今の週・月のときだけ（先週を見ているのに「今週」と書かない）。それ以外は「表示中の週・月」 */
+const perLabel = (unit, thisM, thisW, shownM, shownW) => soFar() != null ? (unit === "月" ? thisM : thisW) : (unit === "月" ? shownM : shownW);
 /* 期間の言い方（unit は "週" か "月"） */
 const uThis = unit => unit === "月" ? "this month" : "this week";
 const uLast = unit => unit === "月" ? "last month" : "last week";
@@ -99,7 +101,7 @@ function projectPanel(w, unit){
         ${anyCr ? `<div><div class="k">${esc(t("Credits"))}</div><div class="v">${p.credits ? cr(p.credits) : "—"}</div></div>` : ""}</div>
       ${p.git && p.git.commits ? `<div><div class="lab">${esc(t("Left behind"))}</div><div class="pout">${esc(t("Git commits {n} · {ai} by AI", {n: p.git.commits, ai: p.git.ai}))} · <span>${esc(t("+{added} −{removed} lines", {added: p.git.added, removed: p.git.removed}))}</span></div></div>` : p.outputs && p.outputs.commits ? `<div><div class="lab">${esc(t("Left behind"))}</div><div class="pout">${esc(t("AI commits {n}", {n: p.outputs.commits}))}</div></div>` : ""}
     </article>`; }).join("");
-  return fold("projs", panelH(1, esc(t("By project")), esc(unit === "月" ? t("Where your time and AI went this month") : t("Where your time and AI went this week")), "projects"), `
+  return fold("projs", panelH(1, esc(t("By project")), esc(t(perLabel(unit, "Where your time and AI went this month", "Where your time and AI went this week", "Where your time and AI went in the month shown", "Where your time and AI went in the week shown"))), "projects"), `
     ${shareBlock(w, ps)}
     <div class="pgrid">${cards}</div>
     ${ps.length > LIMIT ? `<button class="pill pmore" id="pmore">${esc(st.allProj ? t("Show top projects only") : ps.length - LIMIT === 1 ? t("Show 1 more project") : t("Show {n} more projects", {n: ps.length - LIMIT}))}</button>` : ""}`);

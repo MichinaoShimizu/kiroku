@@ -20,7 +20,7 @@ function go(n){
 function focusPeriod(){ const l = $(".wk .lbl"); if (!l) return; l.tabIndex = -1; l.focus({preventScroll: true}); }
 function keepCalFocus(n){ // カレンダーの中にいたまま期間を移ったら、描き直しで消えたフォーカスを、新しい期間の最初のブロック（なければ押したボタン）へ
   const sc = $("#tl .calscroll"), top = sc ? sc.scrollTop : 0;
-  const box = sc && sc.getBoundingClientRect(), head = sc && sc.querySelector(".head"), y0 = box ? box.top + (head ? head.offsetHeight : 0) : -Infinity;
+  const box = sc && sc.getBoundingClientRect(), head = $("#tl .head"), y0 = box ? box.top + (head ? head.offsetHeight : 0) : -Infinity;
   const cands = [...$("#tl").querySelectorAll(".run, button.cell")], seen = cands.find(el => el.getBoundingClientRect().top >= y0); // 見出しに隠れていないもの
   const el = seen || cands[0] || $(n == null ? "#today" : n < 0 ? "#prev" : "#next");
   if (el) el.focus({preventScroll: true});
@@ -110,7 +110,21 @@ function scrollToWork(){ // その週の作業が始まるころの少し前へ
   const ws = st.week.getTime()/1000, we = addDays(st.week, 7).getTime()/1000, w = workHours(), first = w ? w.first : 8;
   sc.scrollTop = Math.max(0, first * (st.hh || 44) - 14); // その時刻の線がちょうど日付の下に見えるように
   if (sc.scrollWidth > sc.clientWidth + 4){ // 横にスクロールする狭い画面では、今週は今日までで最後に作業日を、過ぎた週は月曜から見せる
-    const w = WEEKS[key(st.week)], now = nowMs()/1000, heads = sc.querySelectorAll(".head");
+    const w = WEEKS[key(st.week)], now = nowMs()/1000, heads = document.querySelectorAll("#tl .head");
     let i = -1; if (w && now < we) w.days.forEach((d, j) => { if (d.active && addDays(st.week, j).getTime()/1000 <= now) i = j; });
     const h = heads[i]; sc.scrollLeft = h ? Math.max(0, h.offsetLeft - 56 - h.offsetWidth) : 0; } // その日と前の日が収まるように
 }
+// openAtWork は、開いたときだけ、今週の作業が始まる時刻がページの下のほうに隠れていれば、その時刻が日付の見出しのすぐ下に来るまでページを送る
+// （カレンダーは 0 時から描くので、そのままだと最初の画面が夜中の空の時間で埋まる）。上の数字は、上へスクロールすれば見える。
+// デモ（README のスクリーンショット）と、セッションを開いた状態で戻ってきたときは送らない
+function openAtWork(){
+  if ((META && META.demo) || st.sel || st.view !== "cal" || st.mode !== "week" || soFar() == null) return;
+  const w = workHours(), sc = $("#tl .calscroll"), hd = $("#tl .tlhead"); if (!w || !sc || !hd) return;
+  const lineY = sc.getBoundingClientRect().top + scrollY + Math.max(0, w.first - 0.5) * (st.hh || 44);
+  if (lineY - scrollY < innerHeight * 0.6) return; // もう最初の画面の上のほうに見えている
+  const hdr = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hdr")) || 64;
+  scrollTo(0, Math.max(0, lineY - hdr - hd.offsetHeight - 8));
+}
+// --hdr は、ページの上の見出し（header）の高さ。カレンダーの曜日の見出しが、その下に貼り付く
+function setHdr(){ const h = document.querySelector("header"); if (h) document.documentElement.style.setProperty("--hdr", h.offsetHeight + "px"); }
+setHdr(); addEventListener("resize", setHdr);

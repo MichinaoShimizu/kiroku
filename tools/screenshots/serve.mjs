@@ -132,6 +132,8 @@ try {
   await p.waitForSelector("#rptbar #rptrun", { timeout: 15000 });
   check("フラグなしの serve で、週報の「Analyze with AI」が押せる", await p.locator("#rptbar #rptrun").isEnabled());
   check("バッジが LIVE · AI on", (await p.locator("#live").innerText()).includes("AI on"));
+  await p.locator("#live").click(); await p.waitForTimeout(200);
+  check("バッジを押すと、説明（--no-ai で止められること）が出る", /--no-ai/.test(await p.locator("#toast").innerText()));
   await p.locator("#rptbar #rptrun").click();
   await p.waitForSelector("#ai-review-dialog", { timeout: 5000 });
   const dlg = await p.evaluate(() => { const d = document.querySelector("#ai-review-dialog"); return { text: d.innerText, prompt: d.querySelector("textarea.ai-prompt").value, readOnly: d.querySelector("textarea.ai-prompt").readOnly, agents: [...d.querySelectorAll("select option")].map(o => o.value) }; });

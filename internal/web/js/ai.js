@@ -237,7 +237,7 @@ async function runAIReview(button, prompt, title, prefer = "") { // prefer: 最�
       }
       if (!done) throw new Error(t("The run ended without a result"));
       if (!done.ok) // エージェントのエラー出力は経過に出ているので、ここでは繰り返さない
-        throw new Error(errLines ? t("{agent} stopped with an error. Its output is shown above.", {agent: name}) : String(done.error || t("AI execution failed")).slice(0, 600));
+        throw new Error(errLines ? t("{agent} stopped with an error. Its output is shown above.", {agent: name}) : aiServerError(String(done.error || t("AI execution failed"))).slice(0, 600));
       text = String(done.output ?? text); drawn = -1; draw(); output.scrollTop = 0; // 読み始めは先頭から
       ok = !!text;
       status.textContent = t("Completed with {agent}", {agent: name});
@@ -286,5 +286,6 @@ function aiServerError(why){
   if (/^the prompt is too long to run/.test(why)) return t("The prompt is too long to run (limit 256 KB). Copy it and paste it into the agent instead.");
   if (why === "AI execution already running") return t("Another AI run is still going. Wait for it to finish, then try again.");
   if (why === "AI execution disabled") return t("Analyze with AI is off in this kiroku serve.");
+  const f = /^AI execution failed: (.*)$/s.exec(why); if (f) return `${t("AI execution failed")}: ${f[1]}`; // エージェントの出力（詳細）は英語のまま添える
   return why;
 }
