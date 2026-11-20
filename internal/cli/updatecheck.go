@@ -43,10 +43,6 @@ var updateCheckOn = func() bool {
 	return isTerminal(os.Stdin) && isTerminal(os.Stdout) && isTerminal(os.Stderr) // 出力をパイプに流しているときは聞かない
 }
 
-func isTerminal(f *os.File) bool {
-	st, err := f.Stat()
-	return err == nil && st.Mode()&os.ModeCharDevice != 0
-}
 
 // startUpdateCheck は、コマンドの前に呼ぶ。知らせないときは nil。
 func startUpdateCheck(cmd string) *updateNotice {
@@ -73,7 +69,7 @@ func cachedOrFetchLatest() string {
 	}
 	path := filepath.Join(dir, updateCheckFile)
 	var c updateCache
-	if b, err := os.ReadFile(path); err == nil && json.Unmarshal(b, &c) == nil && validTag(c.Latest) &&
+	if b, err := readSmallRegular(path, 4096); err == nil && json.Unmarshal(b, &c) == nil && validTag(c.Latest) &&
 		time.Since(time.Unix(c.Checked, 0)) < updateCheckEvery && c.Checked <= time.Now().Unix() {
 		return c.Latest
 	}
@@ -83,13 +79,28 @@ func cachedOrFetchLatest() string {
 	}
 	if os.MkdirAll(dir, 0o700) == nil {
 		if b, err := json.Marshal(updateCache{Checked: time.Now().Unix(), Latest: v}); err == nil {
-			tmp := path + ".tmp"
-			if os.WriteFile(tmp, b, 0o600) == nil {
-				_ = os.Rename(tmp, path)
-			}
+			_ = writePrivate(path, b) // 名前の決まった一時ファイルを使わない（そこに置かれたリンクをたどらない）。0600 で置きかえる
 		}
 	}
 	return v
+}
+
+// readSmallRegular は、path がふつうのファイル（リンク・FIFO・デバイスでない）なら、max バイトまで読む。
+// 残した結果がリンクで /dev/zero を指していても、際限なく読んだり止まったりしない。
+func readSmallRegular(path string, max int64) ([]byte, error) {
+	fi, err := os.Lstat(path)
+	if err != nil {
+		return nil, err
+	}
+	if !fi.Mode().IsRegular() || fi.Size() > max {
+		return nil, fmt.Errorf("%s is not a small regular file", path)
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return io.ReadAll(io.LimitReader(f, max))
 }
 
 // newer は、調べ終わっていて、この版より新しい版があれば、その版。待つのは updateCheckWait まで。
@@ -117,8 +128,11 @@ func (n *updateNotice) offer(in io.Reader, out io.Writer) {
 	}
 	st := styleFor(os.Stderr)
 	cur := "v" + strings.TrimPrefix(version, "v")
+	if f, ok := in.(*os.File); ok {
+		flushInput(f) // コマンドのあいだに打ちこまれていた文字では答えない
+	}
 	fmt.Fprintf(out, "\n%s kiroku %s is available (this is %s). Update now? [y/N] ", st.warn("!"), v, cur)
-	line, _ := bufio.NewReader(in).ReadString('\n')
+	line, _ := bufio.NewReader(io.LimitReader(in, 64)).ReadString('\n') // 改行の来ない入力でも、64 バイトでやめる
 	if a := strings.ToLower(strings.TrimSpace(line)); a != "y" && a != "yes" {
 		fmt.Fprintf(out, "%s\n", st.dim("Skipped. Run \"kiroku update\" any time; set KIROKU_NO_UPDATE_CHECK=1 to stop these checks."))
 		return

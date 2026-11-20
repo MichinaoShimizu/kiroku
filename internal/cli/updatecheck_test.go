@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 // 新しい版のお知らせ：1 日に 1 回まで releases/latest を見て、端末でだけ聞き、y でだけ更新する。
@@ -96,5 +97,67 @@ func TestUpdateCacheIgnoresBadEntries(t *testing.T) {
 		if int(hits.Load()) != i+1 {
 			t.Errorf("%q: did not ask again", bad)
 		}
+	}
+}
+
+// 残した結果がリンク（/dev/zero を指す）・FIFO・大きなファイルなら、読まずに聞き直す（際限なく読んだり止まったりしない）。
+// 書くときは、決まった名前の一時ファイルに置かれたリンクをたどらず、0600 のふつうのファイルで置きかえる。
+func TestUpdateCacheFileSafety(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlinks and FIFOs need a Unix system")
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Location", "/x/releases/tag/v2.0.0")
+		w.WriteHeader(http.StatusFound)
+	}))
+	defer srv.Close()
+	oldBase := releaseBase
+	t.Cleanup(func() { releaseBase = oldBase })
+	releaseBase = srv.URL
+	dir := t.TempDir()
+	t.Setenv("KIROKU_CONFIG_DIR", dir)
+	cache := filepath.Join(dir, updateCheckFile)
+	for name, mk := range map[string]func() error{
+		"symlink to /dev/zero": func() error { return os.Symlink("/dev/zero", cache) },
+		"fifo":                 func() error { return syscallMkfifo(cache) },
+		"big file":             func() error { return os.WriteFile(cache, bytes.Repeat([]byte(" "), 1<<20), 0o600) },
+	} {
+		os.Remove(cache)
+		if err := mk(); err != nil {
+			t.Fatal(name, err)
+		}
+		done := make(chan string, 1)
+		go func() { done <- cachedOrFetchLatest() }()
+		select {
+		case v := <-done:
+			if v != "v2.0.0" {
+				t.Errorf("%s: latest = %q", name, v)
+			}
+		case <-time.After(5 * time.Second):
+			t.Fatalf("%s: reading the cache hangs", name)
+		}
+		if fi, err := os.Lstat(cache); err != nil || !fi.Mode().IsRegular() || fi.Mode().Perm() != 0o600 {
+			t.Errorf("%s: cache is not replaced by a 0600 regular file (%v, %v)", name, fi, err)
+		}
+	}
+	// 以前の版が使った決まった名前の一時ファイルにリンクを置かれても、その先は変えない
+	victim := filepath.Join(t.TempDir(), "victim")
+	if err := os.WriteFile(victim, []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	os.Remove(cache)
+	if err := os.Symlink(victim, cache+".tmp"); err != nil {
+		t.Fatal(err)
+	}
+	cachedOrFetchLatest()
+	if b, _ := os.ReadFile(victim); string(b) != "keep" {
+		t.Errorf("the symlink target was overwritten: %q", b)
+	}
+	// /dev/null は端末ではない（cron の </dev/null >/dev/null で、見に行ったり聞いたりしない）
+	if f, err := os.Open(os.DevNull); err == nil {
+		if isTerminal(f) {
+			t.Error("/dev/null must not count as a terminal")
+		}
+		f.Close()
 	}
 }
