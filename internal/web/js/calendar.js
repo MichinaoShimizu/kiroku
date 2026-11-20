@@ -134,11 +134,12 @@ function kpis(){
 const useKinds = xs => ({tokens: xs.some(d => d && d.tokens), cost: xs.some(d => d && d.cost > 0), credits: xs.some(d => d && d.credits)});
 function calRows(act, u, nS, nC, kinds, un){
   const k = un ? "k u" : "k", o = un > 1 ? "u" : "";
-  const use = kinds.cost ? [t("Est. cost"), u && u.cost > 0 ? esc(usd(costOf(u))) : "—", k] : kinds.tokens ? [t("Tokens"), u && u.tokens ? tok(u.tokens) : "—", k] : kinds.credits && [t("Credits"), u && u.credits ? cr(u.credits) : "—", k];
-  return [use, [t("Commits"), nC, o]].filter(Boolean);
+  // [名前, 値（ただの文字）, class]。HTML に入れるときは、呼ぶ側で esc する
+  const use = kinds.cost ? [t("Est. cost"), u && u.cost > 0 ? usd(costOf(u)) : "—", k] : kinds.tokens ? [t("Tokens"), u && u.tokens ? tok(u.tokens) : "—", k] : kinds.credits && [t("Credits"), u && u.credits ? cr(u.credits) : "—", k];
+  return [use, [t("Commits"), String(nC), o]].filter(Boolean);
 }
 // 週の日の見出しは 1 行：使用量（推定費用など）と、コミットの数（印つき）。何の数かは、見出しのツールチップと読み上げの名前で言う
-const calLine = rows => `<div class="cline">${rows.map(([k, v, c], i) => `<span class="${i ? "cc" : "cu"}${c && c.includes("u") ? " u" : ""}" aria-label="${esc(k)}: ${esc(String(v).replace(/<[^>]*>/g, ""))}">${i ? ico("commit") : ""}${v}</span>`).join(`<span class="sep" aria-hidden="true">·</span>`)}</div>`;
+const calLine = rows => `<div class="cline">${rows.map(([k, v, c], i) => `<span class="${i ? "cc" : "cu"}${c && c.includes("u") ? " u" : ""}" aria-label="${esc(`${k}: ${v}`)}">${i ? ico("commit") : ""}${esc(v)}</span>`).join(`<span class="sep" aria-hidden="true">·</span>`)}</div>`;
 // スマホでは作業時間と使用量だけ。トークンとクレジットは別の行に出す（両方あれば 2 行）。
 // ひとつの枠にまとめると、Claude Code と Kiro を両方使う人には、片方しか見えないため。
 function calShort(act, u, un, kinds){
