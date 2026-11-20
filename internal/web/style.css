@@ -159,6 +159,8 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .hours span{position:absolute;right:9px;transform:translateY(-50%);font-size:var(--fs-xs);color:var(--ink-3);font-variant-numeric:tabular-nums}
 .hours span.now{right:4px;color:var(--on-acc);background:var(--acc);border-radius:5px;padding:1px 4px;font-weight:600;z-index:3}
 .day{position:relative;border-left:1px solid var(--rule);background-image:linear-gradient(var(--rule) 1px,transparent 1px);background-size:100% var(--hh)}
+/* 平日の勤務時間（9:00〜18:00）の外は少し暗く（Google カレンダーの勤務時間のように、夜中や早朝の作業がひと目でわかる）。週末は列ごと別の地の色 */
+.day:not(.we){--off:color-mix(in oklab,var(--ink) 4.5%,transparent);background-image:linear-gradient(var(--rule) 1px,transparent 1px),linear-gradient(var(--off) 0,var(--off) calc(var(--hh) * 9),transparent calc(var(--hh) * 9),transparent calc(var(--hh) * 18),var(--off) calc(var(--hh) * 18));background-size:100% var(--hh),100% 100%;background-repeat:repeat,no-repeat}
 .day.we{background-color:var(--weekend)}
 .day.sat{background-color:var(--sat-bg)}.day.sun{background-color:var(--sun-bg)}
 .head.sat b,.head.sat i,.mgrid .mh.sat,.cell.sat .dn{color:var(--sat)}

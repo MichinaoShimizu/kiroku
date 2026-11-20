@@ -359,6 +359,7 @@ async function run(env) {
 
   await step("見直す候補", async () => {
     await view("sum");
+    check("平日の勤務時間（9:00〜18:00）の外は地の色が違う", await p.evaluate(() => { const d = [...document.querySelectorAll("#tl .day")].find(e => !e.classList.contains("we")); return !!d && (getComputedStyle(d).backgroundImage.match(/linear-gradient/g) || []).length === 2; }));
     check("見直す候補はアイコンだけ（名前は読み上げとツールチップ）", await p.evaluate(() => { const b = document.querySelector("#worth summary"); return !!b && !/[A-Za-z]{3}/.test(b.textContent) && /Worth a look/.test(b.getAttribute("aria-label") || ""); }));
     if (env.viewport.width > 820) check("今週・期間・表示・見直す候補は、同じ高さで中心がそろう", await p.evaluate(() => { const rs = ["#today", "#mode", "#view", "#worth summary"].map(s => document.querySelector(s).getBoundingClientRect());
       return rs.every(r => Math.abs(r.height - rs[0].height) < 1 && Math.abs((r.top + r.height / 2) - (rs[0].top + rs[0].height / 2)) < 1); }));
