@@ -45,7 +45,8 @@ const pcOf = (v, t) => t > 0 ? Math.round(v*100/t) : 0;
 function mDays(w, m, proj){
   const {ws} = period(), a = new Date(ws*1000), M = st.mode === "month", vals = w.days.map(d => m.v(d) || 0);
   const now = nowMs()/1000, cur = dayNo(a, now), avg = proj ? proj.avg : 0, lines = (proj && proj.lines) || [];
-  const max = Math.max(...vals, avg, ...lines.map(l => l.hi), 1e-9);
+  const tr = proj ? trend(vals.slice(0, cur)) : null, trAt = i => tr ? Math.max(0, tr.a + tr.b * i) : 0; // 終わった日（今日は途中なので入れない）の傾き
+  const max = Math.max(...vals, avg, ...lines.map(l => l.hi), trAt(0), trAt(w.days.length - 1), 1e-9);
   const cols = w.days.map((d, i) => { const dt = addDays(a, i), fut = proj && i > cur, v = fut ? avg : vals[i];
     const tip = `${md(dt.getTime()/1000)}: ${fut ? t(proj.tip || "≈ {v} at the current pace", {v: m.f(avg)}) : m.f(vals[i])}`;
     const lab = !M && !fut && v > 0; // 週は 7 本なので、棒の上に値を書く（月は細すぎるので、ポインターを合わせたときだけ）
@@ -53,8 +54,11 @@ function mDays(w, m, proj){
   // 月末の推定の幅を、これからの日の 1 日あたりの量にして、点線で重ねる（1σ・2σ・3σ。外ほど薄く）
   const from = ((cur + 1) / w.days.length * 100).toFixed(2);
   const band = lines.map(l => [l.hi, l.lo].filter(v => v > 0).map(v => `<i class="mbl k${l.k}" style="left:${from}%;--y:${(v/max*100).toFixed(2)}%" title="${esc(`${l.k}σ: ${m.f(l.lo)} – ${m.f(l.hi)} ${t("a day")}`)}"></i>`).join("")).join("");
-  const key = lines.length ? `<p class="note mbkey">${lines.map(l => `<span class="k${l.k}">${l.k}σ</span>`).join("")} ${esc(t("Dotted lines: the range for each day still to come"))}</p>` : "";
-  return `<h3>${esc(t("By day"))}</h3><div class="mdays${M ? " month" : ""}"${proj ? ` style="--avg:${avg/max*100}%"` : ""}>${cols}${band}</div>${key}`;
+  // トレンド線：終わった日に引いた直線（最小二乗法）を、月の最後の日まで延ばす。これからの日の部分は破線
+  const n = w.days.length, X = i => ((i + 0.5) / n * 100).toFixed(2), Y = i => (100 - trAt(i) / max * 100).toFixed(2);
+  const trSvg = tr ? `<svg class="mtrend" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="${X(0)}" y1="${Y(0)}" x2="${X(cur)}" y2="${Y(cur)}"/><line class="fut" x1="${X(cur)}" y1="${Y(cur)}" x2="${X(n - 1)}" y2="${Y(n - 1)}"/></svg>` : "";
+  const key = lines.length || tr ? `<p class="note mbkey">${tr ? `<span class="tr">${esc(t("Trend"))}</span>` : ""}${lines.map(l => `<span class="k${l.k}">${l.k}σ</span>`).join("")} ${esc(lines.length ? t("Dotted lines: the range for each day still to come") : "")}</p>` : "";
+  return `<h3>${esc(t("By day"))}</h3><div class="mdays${M ? " month" : ""}"${proj ? ` style="--avg:${avg/max*100}%"` : ""}>${cols}${band}${trSvg}</div>${key}`;
 }
 // 横の棒の一覧（エージェント・プロジェクト・モデル）。total が false なら割合の欄を空ける（割合や中央値のように、足しても意味のない値）。
 // keep は並べ替えない（待ち時間の幅のように、順に意味がある）
@@ -213,6 +217,18 @@ const MB = {
       mBars("By project", pjRows(rate((w.projectStats || []).map(p => [p.project, p.cost]), s => s.project)), um, false) +
       mSessions("Sessions with the highest cost per prompt", top, usd) + (top.length ? WHOLE() : "")}; },
 };
+/* トレンド線のまま進んだときの月末（終わった日の傾きを、残りの日に延ばして足す。マイナスにはしない） */
+function trendNote(w, pj, so, m){
+  const tr = trend(w.days.slice(0, pj.days - 1).map(d => (d && m.v(d)) || 0)); if (!tr) return "";
+  let rest = 0; for (let i = pj.days; i < w.days.length; i++) rest += Math.max(0, tr.a + tr.b * i);
+  const td = Math.max(0, tr.a + tr.b * (pj.days - 1)); // 今日は途中なので、今日の分も傾きから（使った分より少なければ使った分）
+  const v = so + rest + Math.max(0, td - ((w.days[pj.days - 1] && m.v(w.days[pj.days - 1])) || 0));
+  return `<p class="note">${esc(t("If the trend line continues: ≈ {v} (the slope of the finished days, {d} a day per day)", {v: m.f(v), d: (tr.b >= 0 ? "+" : "−") + m.f(Math.abs(tr.b))}))}</p>`; }
+/* 日ごとの値の直線の当てはめ（最小二乗法）。i 日目 ≈ a + b·i。2 日未満なら null */
+function trend(ys){ const n = ys.length; if (n < 2) return null;
+  const mx = (n - 1) / 2, my = ys.reduce((s, y) => s + y, 0) / n;
+  let sxy = 0, sxx = 0; ys.forEach((y, i) => { sxy += (i - mx) * (y - my); sxx += (i - mx) ** 2; });
+  const b = sxy / sxx; return {a: my - b * mx, b}; }
 /* 月末の推定の幅：1σ・2σ・3σ（おおよそ 68%・95%・99.7%）。費用の推定には、トークン数の幅も添える */
 function bandTable(pj, m){
   const rows = (b, f) => b.map(x => `<tr><th>${x.k}σ <small>${["≈68%", "≈95%", "≈99.7%"][x.k - 1]}</small></th><td>${esc(f(x.lo))} – ${esc(f(x.hi))}</td></tr>`).join("");
@@ -232,7 +248,7 @@ function openMetric(id, from){
     const val = m.proj === "cost" ? pj.cost : pj.credits, nd = w.days.length, avg = so / pj.days;
     big = `≈ ${m.f(val)}`;
     body = `<div class="mcalc"><div><small>${esc(t("So far"))}</small><b>${esc(m.f(so))}</b></div><span>÷</span><div><small>${esc(t("Days so far"))}</small><b>${pj.days}</b></div><span>×</span><div><small>${esc(t("Days in the month"))}</small><b>${nd}</b></div><span>=</span><div><small>${esc(t("Month-end"))}</small><b>≈ ${esc(m.f(val))}</b></div></div>
-      <p class="note">${esc(t("About {v} a day. The faded bars are the days still to come at that pace.", {v: m.f(avg)}))}</p>` + bandTable(pj, m) + mDays(w, m, {avg, lines: (pj.band[m.proj] || []).map(x => { const R = w.days.length - pj.days; return {k: x.k, hi: (x.hi - so) / R, lo: (x.lo - so) / R}; })}) + mBars("So far, by agent", agents, m) + mBars("So far, by project", projs, m);
+      <p class="note">${esc(t("About {v} a day. The faded bars are the days still to come at that pace.", {v: m.f(avg)}))}</p>` + trendNote(w, pj, so, m) + bandTable(pj, m) + mDays(w, m, {avg, lines: (pj.band[m.proj] || []).map(x => { const R = w.days.length - pj.days; return {k: x.k, hi: (x.hi - so) / R, lo: (x.lo - so) / R}; })}) + mBars("So far, by agent", agents, m) + mBars("So far, by project", projs, m);
   } else if (id === "limits" || id === "compactions"){ // 起きた時刻の一覧：エージェントごと・プロジェクトごとと、いつどのセッションで
     const L = id === "limits", H2 = L ? limitHits(ws, we) : compactionsOf(ws, we); big = `${H2.length}`;
     const by = (key, mk) => countBy(H2, x => x.s[key]).map(([k, v]) => mk(k, v));

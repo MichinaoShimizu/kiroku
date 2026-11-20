@@ -1,1 +1,2 @@
 - Month-end estimates (cost, Kiro credits, tokens) come with a range at 1σ, 2σ and 3σ, from how much the finished days of the month varied. The breakdown shows all three; the figure's tooltip and the summary show the 3σ range, and the by-day chart draws the range for the days still to come as dotted lines
+- The by-day chart of a month-end estimate draws a trend line fitted to the finished days and extended to the end of the month, and the breakdown says where the month ends if that trend continues
