@@ -8,7 +8,7 @@
 
 何を作り、どう働いたかを振り返り、次の AI 活用につなげる。
 
-kiroku は、Claude Code、Kiro（IDE・CLI・Kiro Crew）、Amazon Q Developer CLI、Codex CLI のローカル履歴を 1 つにまとめます。アカウント・テレメトリ・アップロードは不要です。AI エージェントが動くのは、`kiroku serve` の「AI 分析」で実行を確認したときだけです。
+kiroku は、Claude Code、Kiro（IDE・CLI・Kiro Crew）、Codex CLI のローカル履歴を 1 つにまとめます。アカウント・テレメトリ・アップロードは不要です。AI エージェントが動くのは、`kiroku serve` の「AI 分析」で実行を確認したときだけです。
 
 **[デモを試す →](https://michinaoshimizu.github.io/kiroku/)**（ダミーデータ。ブラウザーだけで動きます）
 
@@ -16,7 +16,7 @@ kiroku は、Claude Code、Kiro（IDE・CLI・Kiro Crew）、Amazon Q Developer 
 
 ## kiroku の特長
 
-- **どのエージェントも 1 つのカレンダーに。** Claude Code・Codex・Kiro・Amazon Q を並べて見られます。エージェントごとにダッシュボードを開く必要はありません。
+- **どのエージェントも 1 つのカレンダーに。** Claude Code・Codex・Kiro を並べて見られます。エージェントごとにダッシュボードを開く必要はありません。
 - **数えるだけでなく、読めるセッション。** 何を頼み、AI が何と答え、その間にどんなコマンド・コミット・プルリクエストがあったかを、時間・トークン・費用と並べて見られます。
 - **AI との働き方の変化がわかる。** 稼働時間・トークン・推定費用と、その移り変わりを、1 つのセッションから 1 か月まで確かめられます。
 - **振り返りは、あなたのエージェントが書く。** 「AI 分析」が、履歴に基づくプロンプトをいつものエージェントで実行します。
@@ -57,7 +57,7 @@ kiroku serve    # http://localhost:8484/ で画面を開く
 
 **全期間を検索。** プロンプト・編集したファイル・コミットを、合った箇所の抜粋つきで探せます。
 
-画面は、ブラウザーの言語が日本語なら日本語で表示されます。右上のボタン（または `--lang`）で English と日本語を切り替えられます。
+画面は、ブラウザーの言語が日本語なら日本語で表示されます。`--lang`（または `KIROKU_LANG`）で English と日本語を選べます。
 
 ## 振り返りとアドバイスは、あなたのエージェントが書く
 
@@ -97,7 +97,6 @@ kiroku serve    # http://localhost:8484/ で画面を開く
 kiroku serve              # http://localhost:8484/ の画面。新しい履歴が入るたびに更新
 kiroku open               # 別のブラウザーで開く（最初に一度 serve の鍵が要る）
 kiroku autostart on       # ログインのたびに kiroku serve を起動（macOS と Linux）
-kiroku stats --week last  # 先週の時間・トークン・費用・コミットを、エージェント・モデル・プロジェクト別に端末に 1 画面で
 kiroku html --week last   # 先週だけを 1 つの HTML に書き出して、人に見せる
 kiroku update             # 最新の版に更新
 kiroku help               # すべてのコマンド（オプションは "kiroku <command> --help"）

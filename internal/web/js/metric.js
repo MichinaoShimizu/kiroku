@@ -19,8 +19,6 @@ const BRK = {
   // ここから下は、期間の集計（Go）に日ごと・エージェントごとの値がない数。MB の関数で、履歴やコミットから組み立てる
   aiCommits: {n: "AI commits", h: "commits"},
   lines: {n: "Lines changed", h: "lines"},
-  files: {n: "Files changed", h: "files"},
-  pushes: {n: "Pushes", h: "pushes"},
   prs: {n: "Pull requests", h: "prs"},
   costPerCommit: {n: "Estimated cost per commit", h: "costPerCommit"},
   outSessions: {n: "Sessions that reached a commit or PR", h: "outSessions"},
@@ -28,9 +26,7 @@ const BRK = {
   fix: {n: "Prompts with corrections or interruptions", h: "fix"},
   bigPrompts: {n: "Oversized prompts", h: "bigPrompts"},
   switches: {n: "Project switches per day", h: "switches"},
-  parallel: {n: "Parallel time", h: "parallel"},
   wait: {n: "Wait time (median)", h: "wait"},
-  ai: {n: "Total AI run time", h: "ai"},
   cache: {n: "Read from cache", h: "cache"},
   subagents: {n: "Subagents", h: "subagents"},
   costPerAsk: {n: "Estimated cost per prompt", h: "costPerAsk"},
@@ -51,7 +47,7 @@ function mDays(w, m, proj){
     const tip = `${md(dt.getTime()/1000)}: ${fut ? t(proj.tip || "≈ {v} at the current pace", {v: m.f(avg)}) : m.f(vals[i])}`;
     const lab = !M && !fut && v > 0; // 週は 7 本なので、棒の上に値を書く（月は細すぎるので、ポインターを合わせたときだけ）
     return `<span class="mcol${fut ? " fut" : ""}${i === cur ? " now" : ""}" title="${esc(tip)}">${lab ? `<span class="bv">${esc(m.f(v))}</span>` : ""}<span class="b" style="height:${v ? `calc((${M ? "100%" : "100% - 16px"}) * ${Math.max(0.02, v/max).toFixed(4)})` : 0}"></span><small>${M ? dt.getDate() : DOW[dt.getDay()]}</small></span>`; }).join("");
-  // 月末の推定の幅を、これからの日の 1 日あたりの量にして、点線で重ねる（1σ・2σ・3σ。外ほど薄く）
+  // 月末の推定の幅（3σ だけ）を、これからの日の 1 日あたりの量にして、点線で重ねる
   const from = ((cur + 1) / w.days.length * 100).toFixed(2);
   const band = lines.map(l => [l.hi, l.lo].filter(v => v > 0).map(v => `<i class="mbl k${l.k}" style="left:${from}%;--y:${(v/max*100).toFixed(2)}%" title="${esc(`${l.k}σ: ${rangeT(m.f(l.lo), m.f(l.hi))} ${t("a day")}`)}"></i>`).join("")).join("");
   // トレンド線：終わった日に引いた直線（最小二乗法）を、月の最後の日まで延ばす。これからの日の部分は破線
@@ -85,14 +81,6 @@ const projColor = p => st.colorBy === "project" ? colorOf(p) : "var(--acc)";
    日ごとの値は、Go と同じ数え方（1 分刻み・記録された時刻の日）で履歴やコミットから数え直すので、合計と一致する。
    セッションの値（WHOLE を添えるもの）だけは、セッション全体の値 */
 const cnt = {f: v => `${v}`}, durM = {f: v => dur(v)};
-// minuteGrid は、Go の Summarize と同じ 1 分刻みで、分ごとに動いていたセッション（ai は区間の分の合計）
-function minuteGrid(ws, we){ const n = Math.floor((we - ws)/60), M = new Array(n), own = new Map();
-  DATA.forEach(s => { if (s.end < ws || s.start >= we) return;
-    s.segs.forEach(([a, b]) => { const m0 = Math.max(0, Math.floor((a - ws)/60)), m1 = Math.min(n, Math.ceil((b - ws)/60));
-      if (m1 > m0) own.set(s, (own.get(s) || 0) + m1 - m0);
-      for (let m = m0; m < m1; m++) (M[m] ||= []).push(s); }); });
-  return {M, own}; }
-const pushRow = p => `<button class="gc-row" data-push="${esc(pushKey(p))}"><time>${md(p.t)} ${hm(p.t)}</time><span><i class="gtag">${ico("push")}${esc(p.ref)}</i>${p.commits ? ` ${plural(p.commits, "commit")}` : ""} · ${esc(p.project)}</span><b></b></button>`;
 const prRow = ({s, r}) => `<button class="gc-row" data-pr="${esc(prKey(s, r))}"><time>${md(r.t)} ${hm(r.t)}</time><span><i class="gtag">${ico("pr")}${esc(r.url ? prName(r.url) : t("Pull request"))}</i> ${esc(s.title)}</span><b></b></button>`;
 const gitIn = (ws, we) => (META.git || []).filter(c => c.t >= ws && c.t < we);
 const calcH = parts => `<div class="mcalc">${parts.map(p => typeof p === "string" ? `<span>${p}</span>` : `<div><small>${esc(t(p[0]))}</small><b>${p[1]}</b></div>`).join("")}</div>`; // [名前, 値（HTML）] と記号（÷ =）
@@ -134,17 +122,6 @@ const MB = {
     return {big: commas(g.added + g.removed), body: `<p class="note">${esc(t("+{a} added · −{r} removed", {a: commas(g.added), r: commas(g.removed)}))}</p>` + mDays(perDay(w, cs.map(c => [c.t, L(c)])), {v: d => d.v, f: v => commas(v)}) +
       mBars("By project", pjRows(sumBy(cs, c => c.project, L)), m) +
       mList("Largest commits", cs.filter(c => L(c) > 0).sort((a,b) => L(b) - L(a)).map(gitRow), 8)}; },
-  files(w, {ws, we}){ const cs = gitIn(ws, we), by = new Map(), pj = new Map();
-    cs.forEach(c => (c.files || []).forEach(f => { const k = `${c.repo}\u0000${f.path}`, x = by.get(k) || {name: f.path, project: c.project, v: 0}; x.v++; by.set(k, x); }));
-    by.forEach(x => pj.set(x.project, (pj.get(x.project) || 0) + 1)); if (!by.size) return null;
-    const dup = new Set(countBy([...by.values()], x => x.name).filter(([, v]) => v > 1).map(([k]) => k)); // 同じパスがほかのプロジェクトにもあれば、プロジェクト名を添える
-    const trunc = cs.some(c => (c.files || []).length < c.nFiles);
-    return {big: commas(by.size), body: mBars("Files by project", pjRows([...pj]), cnt) +
-      mBars("Changed most often", [...by.values()].filter(x => x.v > 1).map(x => ({...x, name: dup.has(x.name) ? `${x.project}: ${x.name}` : x.name, c: projColor(x.project)})), {f: v => plural(v, "commit")}, false) +
-      (trunc ? `<p class="note">${esc(t("Some commits changed more than 40 files; kiroku keeps the first 40 of each, so this is at least the number shown."))}</p>` : "")}; },
-  pushes(w, {ws, we}){ const ps = (META.push || []).filter(p => p.t >= ws && p.t < we).sort((a,b) => b.t - a.t); if (!ps.length) return null;
-    return {big: `${ps.length}`, body: mDays(perDay(w, ps.map(p => [p.t, 1])), {v: d => d.v, f: v => `${v}`}) + mBars("By project", pjRows(countBy(ps, p => p.project)), cnt) +
-      mBars("By branch", countBy(ps, p => p.ref).map(([k, v]) => ({name: k, c: "var(--acc)", v})), cnt) + mList("Pushes", ps.map(pushRow), 15)}; },
   prs(w, {ws, we}){ const xs = DATA.flatMap(s => (s.prAt || []).filter(r => r.t >= ws && r.t < we).map(r => ({s, r}))).sort((a,b) => b.r.t - a.r.t);
     return {big: `${(w.outputs || {}).prs || xs.length}`, body: mBars("By agent", agRows(countBy(xs, x => x.s.source)), cnt) + mBars("By project", pjRows(countBy(xs, x => x.s.project)), cnt) + mList("Pull requests", xs.map(prRow), 15)}; },
   costPerCommit(w, {inRange}){ const o = w.outputs || {}; if (w.costPerCommit == null || !o.commits) return null;
@@ -176,11 +153,6 @@ const MB = {
   switches(w){ const act = w.days.filter(d => d.active), sum = act.reduce((t, d) => t + d.switches, 0);
     return {big: `${w.switchesAvg}`, body: calcH([["Switches", `${sum}`], "÷", ["Days with activity", `${act.length}`], "=", ["Per day", `${w.switchesAvg}`]]) +
       mDays(w, {v: d => d.switches, f: v => plural(v, "switch", "switches")})}; },
-  parallel(w, {ws, we}){ const {M} = minuteGrid(ws, we), a = new Date(ws*1000), byDay = w.days.map(() => ({v: 0})), per = new Map(); let mx = 0, at = 0;
-    M.forEach((xs, m) => { const ids = new Set(xs.map(s => s.id)); if (ids.size > mx){ mx = ids.size; at = ws + m*60; }
-      if (ids.size < 2) return; const d = byDay[dayNo(a, ws + m*60)]; if (d) d.v++; new Set(xs).forEach(s => per.set(s, (per.get(s) || 0) + 1)); });
-    return {big: dur(w.parallel, true), body: `<p class="note">${esc(t("Up to {n} at once, first on {day} at {time}.", {n: mx, day: md(at), time: hm(at)}))}</p>` + mDays({days: byDay}, {v: d => d.v, f: v => v ? dur(v) : "—"}) +
-      mSessions("Sessions that ran alongside others most", [...per].sort((x,y) => y[1] - x[1]).slice(0, 8), v => dur(v))}; },
   wait(w, {ws, we}){ const xs = DATA.flatMap(s => (s.waits || []).filter(x => x[0] >= ws && x[0] < we).map(x => ({s, v: x[1]}))); if (!xs.length) return null;
     const B = [[30, "Under 30s"], [60, "30s – 1 min"], [120, "1 – 2 min"], [300, "2 – 5 min"], [600, "5 – 10 min"], [Infinity, "10 min or more"]];
     const med = list => { const v = list.map(x => x.v).sort((a,b) => a - b); return v[Math.min(v.length - 1, Math.floor(v.length * 0.5))]; };
@@ -191,12 +163,6 @@ const MB = {
       mBars("Median by agent", by(x => x.s.source, (k, v) => ({name: k, c: agColor(k), mark: agMark(k), v})), sm, false) +
       mBars("Median by project", by(x => x.s.project, (k, v) => ({name: k, c: projColor(k), v})), sm, false) +
       `<p class="note">${esc(t("Agents and projects with fewer than 3 replies are left out of the medians."))}</p>`}; },
-  ai(w, {ws, we}){ const {M, own} = minuteGrid(ws, we), a = new Date(ws*1000), byDay = w.days.map(() => ({v: 0}));
-    M.forEach((xs, m) => { const d = byDay[dayNo(a, ws + m*60)]; if (d) d.v += xs.length; });
-    const ss = [...own];
-    return {big: dur(w.ai, true), body: `<p class="note">${esc(t("{run} of run time in {active} of active time: about {n} sessions running at a time.", {run: dur(w.ai), active: dur(w.active), n: (w.ai / Math.max(1, w.active)).toFixed(1)}))}</p>` +
-      mDays({days: byDay}, {v: d => d.v, f: v => v ? dur(v) : "—"}) + mBars("By agent", agRows(sumBy(ss, ([s]) => s.source, ([, v]) => v)), durM) +
-      mBars("By project", pjRows(sumBy(ss, ([s]) => s.project, ([, v]) => v)), durM) + mSessions("Longest sessions", ss.sort((x,y) => y[1] - x[1]).slice(0, 5), v => dur(v))}; },
   cache(w, {inRange}){ const u = w.usage || {}; if (u.cacheHit == null) return null;
     const use = s => [s.usage, ...(s.subagents || []).map(a => a.usage)].reduce((t, x) => x ? {cr: t.cr + x.cr, all: t.all + x.cr + x.cw + x.cw1h + x.in} : t, {cr: 0, all: 0});
     const xs = inRange.map(s => [s, use(s)]).filter(([, x]) => x.all > 0), pc = {f: v => `${Math.round(v)}%`};
@@ -231,9 +197,9 @@ function trend(ys){ const n = ys.length; if (n < 2) return null;
   const mx = (n - 1) / 2, my = ys.reduce((s, y) => s + y, 0) / n;
   let sxy = 0, sxx = 0; ys.forEach((y, i) => { sxy += (i - mx) * (y - my); sxx += (i - mx) ** 2; });
   const b = sxy / sxx; return {a: my - b * mx, b}; }
-/* 月末の推定の幅：1σ・2σ・3σ（おおよそ 68%・95%・99.7%）。費用の推定には、トークン数の幅も添える */
+/* 月末の推定の幅：3σ（おおよそ 99.7%）だけ（1σ・2σ まで並べると読み取りにくい）。費用の推定には、トークン数の幅も添える */
 function bandTable(pj, m){
-  const rows = (b, f) => b.map(x => `<tr><th>${x.k}σ <small>${["≈68%", "≈95%", "≈99.7%"][x.k - 1]}</small></th><td>${esc(rangeT(f(x.lo), f(x.hi)))}</td></tr>`).join("");
+  const rows = (b, f) => b.filter(x => x.k === 3).map(x => `<tr><th>${x.k}σ <small>${["≈68%", "≈95%", "≈99.7%"][x.k - 1]}</small></th><td>${esc(rangeT(f(x.lo), f(x.hi)))}</td></tr>`).join("");
   const b = pj.band[m.proj]; if (!b) return "";
   const tk = m.proj === "cost" && pj.band.tokens ? `<tr><th colspan="2">${esc(t("Tokens"))} ≈ ${esc(tok(pj.tokens))}</th></tr>${rows(pj.band.tokens, tok)}` : "";
   return `<h3>${esc(t("Range"))}</h3><table class="mband"><tbody>${rows(b, m.f)}${tk}</tbody></table>
@@ -250,7 +216,7 @@ function openMetric(id, from){
     const val = m.proj === "cost" ? pj.cost : pj.credits, nd = w.days.length, avg = so / pj.days;
     big = `≈ ${m.f(val)}`;
     body = `<div class="mcalc"><div><small>${esc(t("So far"))}</small><b>${esc(m.f(so))}</b></div><span>÷</span><div><small>${esc(t("Days so far"))}</small><b>${pj.days}</b></div><span>×</span><div><small>${esc(t("Days in the month"))}</small><b>${nd}</b></div><span>=</span><div><small>${esc(t("Month-end"))}</small><b>≈ ${esc(m.f(val))}</b></div></div>
-      <p class="note">${esc(t("About {v} a day. The faded bars are the days still to come at that pace.", {v: m.f(avg)}))}</p>` + trendNote(w, pj, so, m) + bandTable(pj, m) + mDays(w, m, {avg, lines: (pj.band[m.proj] || []).map(x => { const R = w.days.length - pj.days; return {k: x.k, hi: (x.hi - so) / R, lo: (x.lo - so) / R}; })}) + mBars("So far, by agent", agents, m) + mBars("So far, by project", projs, m);
+      <p class="note">${esc(t("About {v} a day. The faded bars are the days still to come at that pace.", {v: m.f(avg)}))}</p>` + trendNote(w, pj, so, m) + bandTable(pj, m) + mDays(w, m, {avg, lines: (pj.band[m.proj] || []).filter(x => x.k === 3).map(x => { const R = w.days.length - pj.days; return {k: x.k, hi: (x.hi - so) / R, lo: (x.lo - so) / R}; })}) + mBars("So far, by agent", agents, m) + mBars("So far, by project", projs, m);
   } else if (id === "limits" || id === "compactions"){ // 起きた時刻の一覧：エージェントごと・プロジェクトごとと、いつどのセッションで
     const L = id === "limits", H2 = L ? limitHits(ws, we) : compactionsOf(ws, we); big = `${H2.length}`;
     const by = (key, mk) => countBy(H2, x => x.s[key]).map(([k, v]) => mk(k, v));

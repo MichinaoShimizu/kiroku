@@ -329,7 +329,7 @@ func TestKiroCrewNonKiroBackends(t *testing.T) {
 		t.Errorf("Claude Code の seam: usage = %+v, cost = %v, models = %v（トークンとコストは Claude Code の履歴で数える）", cc.Usage, cc.Cost, cc.Models)
 	}
 	if n := nativeOf(cc); n["コンテキストの最大使用率"].V != 25 || n["正常に終わらなかったターン"].V != 0 || n["正常に終わらなかったターン"].N != 1 {
-		t.Errorf("Claude Code の seam の参考指標 = %+v", cc.Native)
+		t.Errorf("Claude Code の seam の参考指標 = %+v", core.AggregateNative(cc.Source, cc.Meas))
 	}
 	gs := get("chat-2-200")
 	if gs.Usage.In != 1500 || gs.Usage.Out != 300 || gs.Usage.CW != 0 || gs.Usage.CR != 0 || math.Abs(gs.Cost-0.75) > 1e-9 || gs.Usage.Unpriced != 0 {
@@ -339,16 +339,16 @@ func TestKiroCrewNonKiroBackends(t *testing.T) {
 		t.Errorf("goose: project = %q, models = %v", gs.ProjectPath, gs.Models)
 	}
 	if n := nativeOf(gs); n["コンテキストの最大使用率"].V != 100 || n["正常に終わらなかったターン"].V != 1 || n["ターン"].V != 2 {
-		t.Errorf("goose の参考指標 = %+v（上限を超えた使用率は 100%%、cancelled は正常に終わらなかったターン）", gs.Native)
+		t.Errorf("goose の参考指標 = %+v（上限を超えた使用率は 100%%、cancelled は正常に終わらなかったターン）", core.AggregateNative(gs.Source, gs.Meas))
 	}
 	if cx := get("chat-3-300"); cx.Usage.Total() != 0 || nativeOf(cx)["コンテキストの最大使用率"].N != 0 {
-		t.Errorf("Codex: usage = %+v, native = %+v（窓が 0 の使用率は使わない）", cx.Usage, cx.Native)
+		t.Errorf("Codex: usage = %+v, native = %+v（窓が 0 の使用率は使わない）", cx.Usage, core.AggregateNative(cx.Source, cx.Meas))
 	}
 	if f := get("chat-4-400"); f.Usage.Unpriced != 330 || f.Cost != 0 {
 		t.Errorf("料金表にないモデル: usage = %+v, cost = %v", f.Usage, f.Cost)
 	}
 	if f := get("chat-5-500"); math.Abs(f.Cost-0.0015) > 1e-12 || nativeOf(f)["コンテキストの最大使用率"].N != 0 {
-		t.Errorf("料金表で見積もる: cost = %v, native = %+v（負の使用量は使わない）", f.Cost, f.Native)
+		t.Errorf("料金表で見積もる: cost = %v, native = %+v（負の使用量は使わない）", f.Cost, core.AggregateNative(f.Source, f.Meas))
 	}
 	if f := get("chat-6-600"); f.Usage.Total() != 0 || f.Cost != 0 {
 		t.Errorf("壊れた値: usage = %+v, cost = %v", f.Usage, f.Cost)
@@ -378,7 +378,7 @@ func TestKiroCrewNativeOnKiroCLISession(t *testing.T) {
 		t.Errorf("クレジット = %v, want 5（kiro-cli の記録のほうが多い）", f.Credits)
 	}
 	if n := nativeOf(f); n["コンテキストの最大使用率"].V != 20 || n["正常に終わらなかったターン"].V != 1 {
-		t.Errorf("参考指標 = %+v", f.Native)
+		t.Errorf("参考指標 = %+v", core.AggregateNative(f.Source, f.Meas))
 	}
 }
 
@@ -586,7 +586,7 @@ func TestKiroCrewSubagentUsage(t *testing.T) {
 	}
 	f := sa.Finish(15)
 	if f.Credits != 4 || nativeOf(f)["ターン"].V != 2 || nativeOf(f)["うちサブエージェント"].V != 1 {
-		t.Errorf("残すサブエージェント: credits = %v, native = %+v", f.Credits, f.Native)
+		t.Errorf("残すサブエージェント: credits = %v, native = %+v", f.Credits, core.AggregateNative(f.Source, f.Meas))
 	}
 	if by["crew:subagent:keep1"] != nil {
 		t.Error("kiro-cli の会話に結びついた使用量を、別の Crew のセッションにしない")
@@ -732,7 +732,7 @@ func TestKiroCrewSubagentsFoldViaCrewLog(t *testing.T) {
 		t.Fatalf("p1 のサブエージェント = %+v", f.Subagents)
 	}
 	if f.Credits != 1.75 || nativeOf(f)["うちサブエージェント"].V != 2 {
-		t.Errorf("p1: credits = %v, native = %+v", f.Credits, f.Native)
+		t.Errorf("p1: credits = %v, native = %+v", f.Credits, core.AggregateNative(f.Source, f.Meas))
 	}
 }
 
@@ -833,7 +833,7 @@ func TestKiroCrewRebind(t *testing.T) {
 		t.Errorf("切りかえ前の kiro-cli の会話: credits = %v, source = %q", f.Credits, f.Source)
 	}
 	if f := get("crew:dashboard:chat-2-200"); f.Credits != 0 || nativeOf(f)["ターン"].V != 1 {
-		t.Errorf("切りかえ後の Crew のセッション: credits = %v, native = %+v（kiro-cli のころのクレジットは k2 で数える）", f.Credits, f.Native)
+		t.Errorf("切りかえ後の Crew のセッション: credits = %v, native = %+v（kiro-cli のころのクレジットは k2 で数える）", f.Credits, core.AggregateNative(f.Source, f.Meas))
 	}
 	// (c)
 	if f := get("k3"); f.Credits != 0.25 {

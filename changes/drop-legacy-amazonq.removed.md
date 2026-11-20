@@ -1,0 +1,3 @@
+- kiroku no longer reads Kiro IDE before v1.0 ("Kiro IDE (legacy)", the `kiro.kiroagent` folder) or Amazon Q Developer CLI. Their sessions leave the view, `kiroku json` and `kiroku stats`, and the totals of the weeks that had them go down. Kiro IDE v1.0 and later, Kiro CLI (V3, V2 and the older SQLite history) and Kiro Crew are read as before
+  - `--amazonq-db` and `amazonq` in `--sources` are still accepted and do nothing; using them prints one notice and the exit status is unchanged
+  - Copies `kiroku archive` kept are not touched

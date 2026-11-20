@@ -20,7 +20,7 @@ import (
 )
 
 // testdata/snapshot.json は、testdata/ のすべての合成データ（Claude Code・Kiro IDE・Kiro CLI・Kiro Crew・
-// SQLite の Kiro CLI と Amazon Q・Kiro IDE（旧）・Codex）を読んだ Go 版の出力。
+// SQLite の Kiro CLI・Codex）を読んだ Go 版の出力。
 // golden.json（Python 版との比較）が見ない履歴と項目も含めて、集計の数字が意図せず変わっていないかを確かめる。
 // 集計を変えて数字が変わるときは、なぜ変わるのかを PR に書いてから、次で作り直す。
 //
@@ -71,15 +71,13 @@ func loadAllSources(t *testing.T) any {
 	h := filepath.Join("testdata", "home")
 	codex := codexHome(t)
 	all := source.All(source.Options{
-		ClaudeRoot:   filepath.Join(h, ".claude", "projects"),
-		KiroHome:     filepath.Join(h, ".kiro"),
-		KiroStorages: []string{filepath.Join(h, ".config", "Kiro", "User", "globalStorage", "kiro.kiroagent")},
-		CrewHome:     filepath.Join("testdata", "crew"),
-		KiroCLIDB:    filepath.Join("testdata", "sqlite", "kiro-cli.sqlite3"),
-		AmazonQDB:    filepath.Join("testdata", "sqlite", "amazon-q.sqlite3"),
-		CodexHome:    codex,
+		ClaudeRoot: filepath.Join(h, ".claude", "projects"),
+		KiroHome:   filepath.Join(h, ".kiro"),
+		CrewHome:   filepath.Join("testdata", "crew"),
+		KiroCLIDB:  filepath.Join("testdata", "sqlite", "kiro-cli.sqlite3"),
+		CodexHome:  codex,
 	})
-	sessions, rep := collect(all, map[string]bool{"claude": true, "kiro": true, "amazonq": true, "codex": true}, 15)
+	sessions, rep := collect(all, map[string]bool{"claude": true, "kiro": true, "codex": true}, 15)
 	for _, r := range rep {
 		if r.N == 0 {
 			t.Errorf("%s の合成データが読めていない", r.Name)
@@ -209,15 +207,13 @@ func TestPeriodsMatchFullScan(t *testing.T) {
 	setup(t)
 	h := filepath.Join("testdata", "home")
 	all := source.All(source.Options{
-		ClaudeRoot:   filepath.Join(h, ".claude", "projects"),
-		KiroHome:     filepath.Join(h, ".kiro"),
-		KiroStorages: []string{filepath.Join(h, ".config", "Kiro", "User", "globalStorage", "kiro.kiroagent")},
-		CrewHome:     filepath.Join("testdata", "crew"),
-		KiroCLIDB:    filepath.Join("testdata", "sqlite", "kiro-cli.sqlite3"),
-		AmazonQDB:    filepath.Join("testdata", "sqlite", "amazon-q.sqlite3"),
-		CodexHome:    codexHome(t),
+		ClaudeRoot: filepath.Join(h, ".claude", "projects"),
+		KiroHome:   filepath.Join(h, ".kiro"),
+		CrewHome:   filepath.Join("testdata", "crew"),
+		KiroCLIDB:  filepath.Join("testdata", "sqlite", "kiro-cli.sqlite3"),
+		CodexHome:  codexHome(t),
 	})
-	data, _ := collect(all, map[string]bool{"claude": true, "kiro": true, "amazonq": true, "codex": true}, 15)
+	data, _ := collect(all, map[string]bool{"claude": true, "kiro": true, "codex": true}, 15)
 	for k, w := range report.AllWeeks(data) {
 		ws, _ := time.ParseInLocation("2006-01-02", k, time.Local)
 		if full, _ := json.Marshal(report.Stats(data, ws)); string(full) != mustJSON(t, w) {

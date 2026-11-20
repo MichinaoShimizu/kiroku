@@ -1,0 +1,9 @@
+- A simpler view:
+  - The header shows only the logo, a small dot for LIVE (green while "Analyze with AI" is on; press it for what it means), search, theme and language. The tagline and the keyboard button are gone (press `?` for the shortcuts)
+  - "Worth a look" is one "Worth a look N" button in the row with the period controls; pressing it opens the list
+  - The session count next to the legend shows only while you filter
+  - Days still to come no longer show "To match": the same amount is in the figures above the calendar
+  - "Data sources" is always folded; a ⚠ next to its name marks something that needs your attention
+  - Session details fold the history file, models, tools and the agent's own metrics under "More details"
+  - The summary no longer shows Files changed, Pushes, Parallel time and Total AI run time
+  - The month-end estimate shows only the 3σ range (table and dotted lines), not 1σ and 2σ

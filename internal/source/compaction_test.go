@@ -152,7 +152,7 @@ func TestQStoreCompaction(t *testing.T) {
 	}
 	for _, c := range cases {
 		conv := map[string]any{"conversation_id": "conv-x", "history": history, "latest_summary": c.summary}
-		s := load(t, &QStore{Label: "Amazon Q", DB: qConvDB(t, conv)})[0].Finish(15)
+		s := load(t, &QStore{Label: "Kiro CLI (SQLite)", DB: qConvDB(t, conv)})[0].Finish(15)
 		if len(s.Compactions) != c.want {
 			t.Errorf("%s: コンパクション = %v, want %d 回", c.name, s.Compactions, c.want)
 		} else if c.want == 1 && s.Compactions[0] != float64(end)/1000 {

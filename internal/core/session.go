@@ -287,7 +287,7 @@ func (s *Builder) Prompt(ts *float64, text string) {
 }
 
 // PromptRaw は、人が打った文をそのままプロンプトとして残す（splitUser を通さない）。
-// 打った文だけを残すエージェント（Amazon Q）が使う。先頭のタグ（<template> など）や「Caveat:」でも
+// 打った文だけを残すエージェント（Kiro CLI の SQLite）が使う。先頭のタグ（<template> など）や「Caveat:」でも
 // Claude Code の仕組みの文とみなさない。空白だけの文は Prompt と同じく数えない。
 func (s *Builder) PromptRaw(ts *float64, text string) {
 	t := strings.TrimSpace(text)
@@ -319,7 +319,7 @@ func (s *Builder) addPrompt(ts *float64, kind, t string) {
 }
 
 // Interrupt は、人が AI を途中で止めたことを記録する（プロンプトには数えない）。
-// 中断の文を Prompt に渡さないアダプター（Amazon Q の CancelledToolUses など）が直接呼ぶ。
+// 中断の文を Prompt に渡さないアダプター（Kiro CLI の SQLite の CancelledToolUses など）が直接呼ぶ。
 func (s *Builder) Interrupt(ts *float64) {
 	s.Interrupts++
 	if ts != nil {
@@ -668,38 +668,37 @@ type Session struct {
 	Title       string  `json:"title"`
 	// Synthetic は、Title が履歴から読んだものではなく kiroku が決めた英語の文で、依頼の "(private)" も kiroku が入れたもの。
 	// 画面はこのときだけ、それらを画面の言語にする（履歴に同じ文があっても訳さない）
-	Synthetic    bool          `json:"synthetic,omitempty"`
-	Start        float64       `json:"start"`
-	End          float64       `json:"end"`
-	Events       int           `json:"events"`
-	Segs         [][3]float64  `json:"segs"`
-	Prompts      []Prompt      `json:"prompts"`
-	Notes        []Note        `json:"notes,omitempty"` // エージェントや仕組みが会話に入れたもの（プロンプトには数えない）
-	NPrompts     int           `json:"nPrompts"`
-	Tools        [][2]any      `json:"tools"`
-	Files        []string      `json:"files"`
-	NFiles       int           `json:"nFiles"`
-	Resume       *string       `json:"resume"`
-	Waits        [][2]float64  `json:"waits"`
-	Interrupts   int           `json:"interrupts"`
-	InterruptsAt []float64     `json:"interruptsAt"`           // 中断した時刻
-	Limits       []float64     `json:"limits"`                 // 利用上限に当たった時刻
-	LimitResets  []string      `json:"limitResets,omitempty"`  // limits と同じ並びで、解除の時刻の文（"3:45pm" など。日付や時間帯のないこともある。なければ空）
-	Compactions  []float64     `json:"compactions,omitempty"`  // 会話を要約して文脈を空けた（コンパクション）時刻
-	CompactKinds []string      `json:"compactKinds,omitempty"` // compactions と同じ並びで "auto"・"manual"（わからなければ空。どれもわからなければ出さない）
-	Ctx          []float64     `json:"ctx"`                    // 1 回の応答で読んだ入力（文脈）の大きさ [前半, 後半, 最大]（context.go）
-	CtxWindow    float64       `json:"ctxWindow,omitempty"`    // ctx の最大の応答のモデルのコンテキストウィンドウ（わからなければ 0）
-	Corrections  int           `json:"corrections"`
-	Models       [][2]any      `json:"models"`
-	Tiers        [][2]any      `json:"tiers,omitempty"` // OpenAI のサービスティアごとの応答の数 [名前, 数]（Standard 以外のティアの応答があるときだけ）
-	Usage        UsageTotal    `json:"usage"`
-	Subagents    []Subagent    `json:"subagents"`
-	Credits      float64       `json:"credits"`
-	Cost         float64       `json:"cost"`
-	Native       []NativeValue `json:"native"`                 // このセッションの参考指標
-	Outputs      OutputTotal   `json:"outputs"`                // コミット・PR・変更した行（output.go）
-	CostReported bool          `json:"costReported,omitempty"` // 目安コストにエージェント自身の記録を使った
-	File         string        `json:"file,omitempty"`         // 履歴のファイル
+	Synthetic    bool         `json:"synthetic,omitempty"`
+	Start        float64      `json:"start"`
+	End          float64      `json:"end"`
+	Events       int          `json:"events"`
+	Segs         [][3]float64 `json:"segs"`
+	Prompts      []Prompt     `json:"prompts"`
+	Notes        []Note       `json:"notes,omitempty"` // エージェントや仕組みが会話に入れたもの（プロンプトには数えない）
+	NPrompts     int          `json:"nPrompts"`
+	Tools        [][2]any     `json:"tools"`
+	Files        []string     `json:"files"`
+	NFiles       int          `json:"nFiles"`
+	Resume       *string      `json:"resume"`
+	Waits        [][2]float64 `json:"waits"`
+	Interrupts   int          `json:"interrupts"`
+	InterruptsAt []float64    `json:"interruptsAt"`           // 中断した時刻
+	Limits       []float64    `json:"limits"`                 // 利用上限に当たった時刻
+	LimitResets  []string     `json:"limitResets,omitempty"`  // limits と同じ並びで、解除の時刻の文（"3:45pm" など。日付や時間帯のないこともある。なければ空）
+	Compactions  []float64    `json:"compactions,omitempty"`  // 会話を要約して文脈を空けた（コンパクション）時刻
+	CompactKinds []string     `json:"compactKinds,omitempty"` // compactions と同じ並びで "auto"・"manual"（わからなければ空。どれもわからなければ出さない）
+	Ctx          []float64    `json:"ctx"`                    // 1 回の応答で読んだ入力（文脈）の大きさ [前半, 後半, 最大]（context.go）
+	CtxWindow    float64      `json:"ctxWindow,omitempty"`    // ctx の最大の応答のモデルのコンテキストウィンドウ（わからなければ 0）
+	Corrections  int          `json:"corrections"`
+	Models       [][2]any     `json:"models"`
+	Tiers        [][2]any     `json:"tiers,omitempty"` // OpenAI のサービスティアごとの応答の数 [名前, 数]（Standard 以外のティアの応答があるときだけ）
+	Usage        UsageTotal   `json:"usage"`
+	Subagents    []Subagent   `json:"subagents"`
+	Credits      float64      `json:"credits"`
+	Cost         float64      `json:"cost"`
+	Outputs      OutputTotal  `json:"outputs"`                // コミット・PR・変更した行（output.go）
+	CostReported bool         `json:"costReported,omitempty"` // 目安コストにエージェント自身の記録を使った
+	File         string       `json:"file,omitempty"`         // 履歴のファイル
 	// PrivateFiles は、中身を出さない会話（Kiro Crew の incognito・temporary と、その写し）の履歴のファイル。
 	// HTML・JSON には入れず（json:"-"）、kiroku serve の「Analyze with AI」が読めないようにするのに使う
 	PrivateFiles []string  `json:"-"`
@@ -852,7 +851,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 		Waits: s.Waits(), Interrupts: s.Interrupts, InterruptsAt: interrupts, Limits: limits(s.Limits), LimitResets: limitResets(s.LimitResets), Compactions: compactions, CompactKinds: compactKinds, Ctx: ctx, CtxWindow: s.CtxWindow, Corrections: s.Corrections(), Models: models, Tiers: tiers,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
 		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: reported, File: s.File, PrivateFiles: s.PrivateFiles, PRs: prs, PRAt: prAt,
-		Native: AggregateNative(s.Source, s.Measures), Meas: s.Measures, OutTracked: RecordsOf(s.Source, "outputs"),
+		Meas: s.Measures, OutTracked: RecordsOf(s.Source, "outputs"),
 	}
 }
 

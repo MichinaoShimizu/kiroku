@@ -52,7 +52,7 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | Location | Role |
 |---|---|
 | `main.go` | The entry point only (kept at the root so `go install github.com/MichinaoShimizu/kiroku@latest` works); the commands are in `internal/cli` |
-| `internal/cli/cli.go` | Subcommands (`serve`, `open`, `html`, `json`, `stats`, `archive`, `autostart`, `doctor`, `version`, `update`, `help`), option parsing, and the message that points the removed old syntax (`kiroku --serve` and so on) to the new one |
+| `internal/cli/cli.go` | Subcommands (`serve`, `open`, `html`, `archive`, `autostart`, `doctor`, `version`, `update`, `help`), option parsing, and the message that points the removed old syntax (`kiroku --serve` and so on) to the new one |
 | `internal/cli/load.go` | Loading history (removing duplicates), overriding the price table |
 | `internal/cli/archive.go` | `kiroku archive` (status, `on`, and `off`, which offers to delete the copies only in a folder marked by `on`) |
 | `internal/cli/update.go` | `kiroku update` (downloads from Releases, verifies, and replaces itself) |
@@ -64,17 +64,16 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | `internal/cli/open.go` | `kiroku open` |
 | `internal/cli/diagnose.go` | "Format check" and `kiroku doctor --report` (only counts, versions and record kinds that look like identifiers; never paths or history text) |
 | `internal/cli/progress.go` | The progress of the first load of `kiroku serve`, shown by the loading page through `/progress` (agent names, counts and times only) |
-| `internal/cli/stats.go` | `kiroku stats` |
 | `internal/cli/cache.go` | On reload, skips history unchanged since last time (using a per-agent fingerprint and the per-conversation marks of `source.Splitter`) |
 | `internal/cli/color.go` | Colour and emphasis for what is written to the terminal (`styleFor` turns it off for pipes, files, `NO_COLOR` and `TERM=dumb`) |
 | `internal/ai` | "Analyze with AI" in `kiroku serve` (off unless `--ai`): runs `claude`, `codex` or `kiro-cli` in an empty temporary folder with the limits each offers (`Runner`; only Claude's is read-only to the history files, see SECURITY.md), and the `/ai/run` handler (checks, one run at a time, size limits) |
 | `internal/archive` | The copies `kiroku archive` keeps: the on/off marks, compressing history to `.zst` (`Sync`), usage, and deleting only the `.zst` copies (`Clear`) |
 | `internal/source` | Adapters that read each agent's history. Details on how they read are in [sources.md](sources.md) |
-| `internal/core` | The common session shape (`Builder` → `Session`), tokens and pricing, agent-specific metrics, and `Agents` (`agents.go`: each agent's name, `--sources` name, color, initials, environment variables and `kiroku archive` folder) |
+| `internal/core` | The common session shape (`Builder` → `Session`), tokens and pricing, agent-specific measures (collected but no longer shown), and `Agents` (`agents.go`: each agent's name, `--sources` name, color, initials, environment variables and `kiroku archive` folder) |
 | `internal/report` | Weekly and monthly aggregates (`Summarize`), per-project summaries (`project.go`), shares by branch and agent (`share.go`) |
 | `internal/gitlog` | Reads commits, and pushes from the reflog, from the git repository in each session's working directory (skipped without git), with the repository's own settings that run programs turned off |
 | `internal/web` | The view. Written as `template.html` (markup), `style.css` and the script in `js/*.js`, split by role (`state.js` data and view state, `format.js` helpers, `ui.js` shared components, `calendar.js` week and month calendars, `summary.js` / `review.js` / `panels.js` the summary, `metric.js` the breakdown dialogs, `git.js` / `session.js` the details panel, `ai.js` Analyze with AI, `markdown.js` escaping history text put into Markdown (report drafts, exported prompts, prompts for an AI), `mdview.js` the formatted view of an AI reply (elements and text only, never HTML), `i18n.js` the Japanese catalog, `events.js` input and keyboard, `boot.js` start-up, `live.js` updates under `kiroku serve`; `loading.html` is the page `kiroku serve` shows while it first reads history); `web.go` joins the script files in the fixed order of its `scripts` list into one `<script>` and combines everything with the aggregate JSON into one HTML file; `app.go` is the install-as-app manifest and its icons, which `kiroku serve` returns without the key (`AppPaths`; nothing in them comes from history). `help_test.go`, `script_test.go` and `ui_test.go` check the view's explanations, script and use of the shared components |
-| `testdata/` | Synthetic history (`home/`, `codex/`, `crew/`, `sqlite/`), `golden.json`, `snapshot.json`, `mtimes.json`, and `compat/` (files an earlier kiroku wrote) |
+| `testdata/` | Synthetic history (`home/`, `codex/`, `crew/`, `sqlite/`), `golden.json`, `snapshot.json` and `compat/` (files an earlier kiroku wrote) |
 | `tools/` | `check.sh` (runs CI's checks locally), `release.sh`, `changelog.sh`, `next-version.sh`, `release-notes.sh` and `verify-release.sh` (releases, with `changelog_test.sh` and its fixtures in `testdata/changelog/`), `seclint/` (the security lint `check.sh` runs), `imgdiff/` (compares retaken images with the committed ones), `reproduce.sh` (rebuilds a released binary from its tag and compares it), `prices/` (fetches the official price pages and writes the numbers kiroku uses to `docs/upstream/`), `reportbench/` (synthetic history with known answers, and a grader, for testing the daily and weekly report prompts with the `/report-eval` skill), `screenshots/` (dummy data with `gen.py` and `mkgit.py`, the demo's link card with `ogp.py`, screenshots with `capture.mjs`, the README's animation with `demo.mjs`, `keep-changed.sh` to keep only images that really changed, and the view's e2e: `smoke.mjs`, plus `hostile.py` and `xss.mjs` for XSS) |
 | `install.sh`, `.goreleaser.yaml` | The installer, and how release files are built |
 
@@ -127,13 +126,13 @@ To stop supporting an agent, run the `/drop-agent` skill (`.claude/skills/drop-a
 
 `testdata/golden.json` is the aggregate JSON. It holds the numbers the Python version (before the port to Go) produced from the same synthetic data (`testdata/home`), and `TestMatchesPythonVersion` (`internal/cli/load_test.go`) compares the Go version's numbers against them.
 
-- Only the 4 histories the Python version had are compared (Claude Code, Kiro IDE / CLI (V3), Kiro CLI (V2), Kiro IDE (legacy)), with time split in Asia/Tokyo. The legacy Kiro IDE uses file modification times, so the test restores them from `testdata/mtimes.json`
+- Only the histories the Python version had and kiroku still reads are compared (Claude Code, Kiro IDE / CLI (V3), Kiro CLI (V2)), with time split in Asia/Tokyo. The Python version also read Kiro IDE (legacy), which kiroku no longer reads; the test leaves those sessions, and the weeks that had them, out of golden (golden is never regenerated)
 - When you add a field to the JSON, add it to the exclusion list in `compare` in `internal/cli/load_test.go` (otherwise it fails as a field missing from golden)
 - When a change to aggregation changes the numbers, explain why in the PR before updating golden
 
 ## Snapshot
 
-`testdata/snapshot.json` is the Go version's output (sessions, weeks, months and data sources status) from reading all synthetic data in `testdata/` (Claude Code, Kiro IDE / CLI (V3), Kiro CLI (V2), Kiro Crew, Kiro CLI and Amazon Q in SQLite, Kiro IDE (legacy), Codex). `TestSnapshot` (`internal/cli/snapshot_test.go`) checks that numbers haven't changed unintentionally, including histories and fields golden doesn't cover.
+`testdata/snapshot.json` is the Go version's output (sessions, weeks, months and data sources status) from reading all synthetic data in `testdata/` (Claude Code, Kiro IDE / CLI (V3), Kiro CLI (V2), Kiro Crew, Kiro CLI in SQLite, Codex). `TestSnapshot` (`internal/cli/snapshot_test.go`) checks that numbers haven't changed unintentionally, including histories and fields golden doesn't cover.
 
 `testdata/compat/<version>/` holds files kiroku itself wrote at that version: a `kiroku archive` folder (with one copy of a synthetic Claude Code session) and a `kiroku serve` key. `TestCompatArchive` and `TestCompatServeKey` (`internal/cli/compat_test.go`) check that the current version still reads them, as [compatibility.md](compatibility.md) promises. When you change how kiroku writes them, keep the old folder, add one for the new version (written by the new code) and add it to `compatVersions`.
 

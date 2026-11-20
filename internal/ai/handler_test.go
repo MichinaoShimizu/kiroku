@@ -11,6 +11,7 @@ func TestHandlerDisabledByDefault(t *testing.T) {
 	h := Handler{Runner: Runner{Enabled: false}}
 	r := httptest.NewRequest(http.MethodPost, "http://localhost:8485/ai/run", strings.NewReader(`{"agent":"claude","prompt":"hello","consent":true}`))
 	r.Header.Set("X-Kiroku", "1")
+	r.Header.Set("Origin", "http://"+r.Host) // 画面からの POST は、ブラウザがいつも Origin を付ける
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	if w.Code != 403 {
@@ -32,6 +33,7 @@ func TestHandlerRequiresConsent(t *testing.T) {
 	h := Handler{Runner: Runner{Enabled: true}}
 	r := httptest.NewRequest(http.MethodPost, "http://localhost:8485/ai/run", strings.NewReader(`{"agent":"claude","prompt":"hello"}`))
 	r.Header.Set("X-Kiroku", "1")
+	r.Header.Set("Origin", "http://"+r.Host) // 画面からの POST は、ブラウザがいつも Origin を付ける
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	if w.Code != 400 {
@@ -55,6 +57,7 @@ func TestHandlerRejectsUnknownFields(t *testing.T) {
 	h := Handler{Runner: Runner{Enabled: true}}
 	r := httptest.NewRequest(http.MethodPost, "http://localhost:8485/ai/run", strings.NewReader(`{"agent":"claude","prompt":"hi","consent":true,"command":"rm"}`))
 	r.Header.Set("X-Kiroku", "1")
+	r.Header.Set("Origin", "http://"+r.Host) // 画面からの POST は、ブラウザがいつも Origin を付ける
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	if w.Code != 400 {
@@ -66,6 +69,7 @@ func TestHandlerRejectsTrailingJSON(t *testing.T) {
 	h := Handler{Runner: Runner{Enabled: true}}
 	r := httptest.NewRequest(http.MethodPost, "http://localhost:8485/ai/run", strings.NewReader(`{"agent":"claude","prompt":"hi","consent":true} {}`))
 	r.Header.Set("X-Kiroku", "1")
+	r.Header.Set("Origin", "http://"+r.Host) // 画面からの POST は、ブラウザがいつも Origin を付ける
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	if w.Code != 400 {
@@ -78,6 +82,7 @@ func TestHandlerRejectsOversizedBody(t *testing.T) {
 	body := `{"agent":"claude","consent":true,"prompt":"` + strings.Repeat("a", 264000) + `"}`
 	r := httptest.NewRequest(http.MethodPost, "http://localhost:8485/ai/run", strings.NewReader(body))
 	r.Header.Set("X-Kiroku", "1")
+	r.Header.Set("Origin", "http://"+r.Host) // 画面からの POST は、ブラウザがいつも Origin を付ける
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	// 何が悪いかわかる答え（以前は "invalid request" だけで、プロンプトが長すぎると気づけなかった）
@@ -90,6 +95,7 @@ func TestHandlerRejectsGet(t *testing.T) {
 	h := Handler{Runner: Runner{Enabled: true}}
 	r := httptest.NewRequest(http.MethodGet, "http://localhost:8485/ai/run", nil)
 	r.Header.Set("X-Kiroku", "1")
+	r.Header.Set("Origin", "http://"+r.Host) // 画面からの POST は、ブラウザがいつも Origin を付ける
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	if w.Code != http.StatusForbidden {
@@ -101,6 +107,7 @@ func TestHandlerRejectsConcurrentRun(t *testing.T) {
 	h.Slots <- struct{}{}
 	r := httptest.NewRequest(http.MethodPost, "http://localhost:8485/ai/run", strings.NewReader(`{"agent":"claude","prompt":"hello","consent":true}`))
 	r.Header.Set("X-Kiroku", "1")
+	r.Header.Set("Origin", "http://"+r.Host) // 画面からの POST は、ブラウザがいつも Origin を付ける
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	if w.Code != http.StatusTooManyRequests {
@@ -115,6 +122,7 @@ func TestHandlerStreams(t *testing.T) {
 	h := NewHandler(Runner{Enabled: true})
 	r := httptest.NewRequest(http.MethodPost, "http://localhost:8485/ai/run", strings.NewReader(`{"agent":"codex","prompt":"hello","consent":true}`))
 	r.Header.Set("X-Kiroku", "1")
+	r.Header.Set("Origin", "http://"+r.Host) // 画面からの POST は、ブラウザがいつも Origin を付ける
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	if w.Code != 200 || w.Header().Get("Content-Type") != "application/x-ndjson" {
@@ -132,6 +140,7 @@ func TestHandlerStreams(t *testing.T) {
 	w = httptest.NewRecorder()
 	r = httptest.NewRequest(http.MethodPost, "http://localhost:8485/ai/run", strings.NewReader(`{"agent":"codex","prompt":"hello","consent":true}`))
 	r.Header.Set("X-Kiroku", "1")
+	r.Header.Set("Origin", "http://"+r.Host) // 画面からの POST は、ブラウザがいつも Origin を付ける
 	h.ServeHTTP(w, r)
 	last := strings.TrimSpace(w.Body.String())
 	last = last[strings.LastIndex(last, "\n")+1:]
@@ -145,9 +154,22 @@ func TestHandlerRejectsUnknownAgent(t *testing.T) {
 	h := NewHandler(Runner{Enabled: true})
 	r := httptest.NewRequest(http.MethodPost, "http://localhost:8485/ai/run", strings.NewReader(`{"agent":"sh","prompt":"hello","consent":true}`))
 	r.Header.Set("X-Kiroku", "1")
+	r.Header.Set("Origin", "http://"+r.Host) // 画面からの POST は、ブラウザがいつも Origin を付ける
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	if w.Code != 400 {
 		t.Fatalf("status %d", w.Code)
+	}
+}
+
+// Origin のない POST は通さない（ブラウザは画面からの POST にいつも Origin を付ける。付けないものは画面ではない）
+func TestHandlerRequiresOrigin(t *testing.T) {
+	h := Handler{Runner: Runner{Enabled: true}}
+	r := httptest.NewRequest(http.MethodPost, "http://localhost:8485/ai/run", strings.NewReader(`{"agent":"claude","prompt":"hello","consent":true}`))
+	r.Header.Set("X-Kiroku", "1")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code != 403 {
+		t.Fatalf("Origin なし: status %d, want 403", w.Code)
 	}
 }

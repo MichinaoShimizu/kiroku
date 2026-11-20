@@ -87,40 +87,6 @@ func TestFriction(t *testing.T) {
 	}
 }
 
-// エージェント別の参考指標は、期間の中の観測だけをまとめる。時刻のない観測はセッションの開始で数え、
-// 観測のないエージェントは出さない。
-func TestNativeGroups(t *testing.T) {
-	ws := time.Date(2026, 9, 28, 0, 0, 0, 0, time.Local)
-	we := AddDays(ws, 7)
-	in, out := float64(ws.Unix())+3600, float64(we.Unix())+60
-	a := sess("a", "Claude Code", "app", ws, 1, 30)
-	a.Meas = []core.Measure{{Key: "responses", V: 3}, {Key: "responses", T: &in, V: 2}, {Key: "responses", T: &out, V: 100}}
-	b := sess("b", "Claude Code", "app", ws, 2, 30)
-	b.Meas = []core.Measure{{Key: "responses", V: 5}, {Key: "context_used", V: 0.42}}
-	c := sess("c", "Kiro CLI (V2)", "web", ws, 3, 30) // 観測なし
-	got := nativeGroups([]*core.Session{a, b, c}, float64(ws.Unix()), float64(we.Unix()))
-	if len(got) != 1 || got[0].Source != "Claude Code" || got[0].Sessions != 2 {
-		t.Fatalf("nativeGroups = %+v", got)
-	}
-	vals := map[string]core.NativeValue{}
-	for _, v := range got[0].Values {
-		vals[v.LabelEn] = v
-	}
-	if v := vals["Responses"]; v.V != 10 || v.N != 3 {
-		t.Errorf("Responses = %+v, want 10 from 3", v)
-	}
-	if v := vals["Peak context usage"]; v.V != 42 || v.N != 1 {
-		t.Errorf("Peak context usage = %+v, want 42 from 1", v)
-	}
-	if _, ok := vals["Tool calls"]; ok {
-		t.Error("観測のない指標を出した")
-	}
-	// 期間の外の観測しかないセッションは、数にも入れない
-	if got := nativeGroups([]*core.Session{a}, float64(we.Unix()), float64(AddDays(we, 7).Unix())); len(got) != 1 || got[0].Sessions != 1 {
-		t.Errorf("次の週 = %+v", got)
-	}
-}
-
 // 週や月の境目をまたぐセッションは、動いていたどちらの期間にも数える。動いていない期間は作らない。
 func TestAllWeeksAndMonthsAcrossBoundaries(t *testing.T) {
 	sun := time.Date(2026, 9, 27, 23, 30, 0, 0, time.Local) // 日曜。次の月曜は 9/28

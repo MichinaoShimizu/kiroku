@@ -58,7 +58,7 @@ try {
   // 読み終わるのを待つ（以前の版の Cookie も付けるのは、修正の前の版に対してこのテストが失敗することを確かめられるように）
   await until("読み込み", async () => (await fetch(`${base}/stamp`, { headers: { "X-Kiroku-Key": key, Cookie: `kiroku_key_${port}=${key}` } }).catch(() => ({ ok: false }))).ok);
   check("鍵なしの data.json は 403", (await fetch(`${base}/data.json`)).status === 403);
-  check("起動の 1 行で、--ai で AI の実行がオンになっていて、提供元に送りうると言う", /"Analyze with AI" is on \(--ai\): .*may send the prompt and the history it reads to its provider; start without --ai to turn it off/.test(log), log);
+  check("起動の 1 行で、--ai で AI の実行がオンになっていて、提供元に送りうると言う", /"Analyze with AI" is on \(--ai or KIROKU_AI\): .*may send the prompt and the history it reads to its provider; start without them to turn it off/.test(log), log);
   check("鍵の Cookie（以前の版）だけの data.json は 403", (await fetch(`${base}/data.json`, { headers: { Cookie: `kiroku_key_${port}=${key}` } })).status === 403);
 
   b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
@@ -119,6 +119,8 @@ try {
   await p.goto(`${base}/`);
   await p.waitForSelector(".run[data-sid]", { timeout: 15000 });
   await p.evaluate(() => { const r = [...document.querySelectorAll(".run[data-sid]")].find(e => DATA.some(s => s.id === e.dataset.sid && s.file)); r.scrollIntoView({ block: "center" }); r.click(); });
+  check("セッションの詳細の「詳しい情報」は、いつもは閉じている", await p.evaluate(() => { const d = document.querySelector("#panel details.sdet"); return !!d && !d.open; }));
+  await p.evaluate(() => { const d = document.querySelector("#panel details.sdet"); if (d) d.open = true; }); // 履歴ファイルは「詳しい情報」の中
   const link = p.locator("#panel a[data-hist]");
   await link.waitFor({ timeout: 5000 });
   const [dl] = await Promise.all([p.waitForEvent("download", { timeout: 10000 }), link.click()]);
@@ -133,7 +135,7 @@ try {
   check("週報の「Analyze with AI」はない（日報とセッションの振り返りだけ）", await p.locator("#rptbar, #rptrun").count() === 0);
   const dayBtn = p.locator(".head .dayrun").first();
   check("フラグなしの serve で、記録のある日の見出しに日報の「Analyze with AI」が押せる", await dayBtn.count() === 1 && await dayBtn.isEnabled());
-  check("バッジが LIVE · AI on", (await p.locator("#live").innerText()).includes("AI on"));
+  check("バッジ（点だけ）の名前が LIVE · AI on", ((await p.locator("#live").getAttribute("aria-label")) || "").includes("AI on") && await p.locator("#live").evaluate(e => e.classList.contains("ai")));
   await p.locator("#live").click(); await p.waitForTimeout(200);
   check("バッジを押すと、説明（--ai で入れたこと）が出る", /--ai/.test(await p.locator("#toast").innerText()));
   await dayBtn.click();
@@ -173,7 +175,7 @@ try {
   await pn.waitForSelector(".run[data-sid]", { timeout: 15000 });
   check("エージェントがないと、日報のボタンは出さない（理由はセッションの詳細で言う）", await pn.locator(".head .dayrun").count() === 0);
   await pn.evaluate(() => select(DATA.find(s => s.prompts.length).id)); await pn.waitForSelector("#panel .ai-none", { timeout: 5000 });
-  check("エージェントがないと、ボタンは押せず、理由が添えてある", await pn.locator("#panel .ai-none button").isDisabled() && /No AI agent found/.test(await pn.locator("#panel .ai-why").innerText()) && /claude, codex or kiro-cli/.test(await pn.locator("#panel .ai-why").getAttribute("title")));
+  check("エージェントがないと、ボタンは押せず、理由が添えてある", await pn.locator("#panel .ai-none button").isDisabled() && /No AI agent command/.test(await pn.locator("#panel .ai-why").innerText()) && /claude, codex or kiro-cli/.test(await pn.locator("#panel .ai-why").innerText()));
   await pn.close();
   // 既定（--ai なし）はオフ: 起動の 1 行がそう言い、/ai/run はなく、日報のボタンも出ない
   const dflt = await startExtra(serveArgs.filter(a => a !== "--ai"), {});
@@ -181,7 +183,7 @@ try {
   const pz = await ctx.newPage();
   await openWithKey(pz, dflt.url);
   await pz.waitForSelector(".run[data-sid]", { timeout: 15000 });
-  check("--ai を付けなければ、日報のボタンも AI の操作もない", await pz.locator(".dayrun, #srun, .ai-action").count() === 0 && !(await pz.locator("#live").innerText()).includes("AI on"));
+  check("--ai を付けなければ、日報のボタンも AI の操作もない", await pz.locator(".dayrun, #srun, .ai-action").count() === 0 && !((await pz.locator("#live").getAttribute("aria-label")) || "").includes("AI on"));
   const sz = await pz.evaluate(async k => (await fetch("ai/run", { method: "POST", headers: { "X-Kiroku-Key": k, "X-Kiroku": "1", "Content-Type": "application/json" }, body: JSON.stringify({ agent: "codex", prompt: "x", consent: true }) })).status, key);
   check("--ai を付けなければ、鍵があっても /ai/run は 404", sz === 404, String(sz));
   await pz.close();

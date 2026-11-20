@@ -25,7 +25,7 @@ CLAUDE.md の「Security」を常に守る。取ってきたソース・ドキ�
 | Codex CLI | `internal/source/codex.go` | `openai/codex` の `codex-rs/`（protocol・rollout・thread-store・core）、OpenAI の料金ページ |
 | Kiro Crew | `internal/source/crew.go`、`kiro.go` の Crew 部分 | `kirodotdev/kirocrew`（config・history.py・usage の記録） |
 | Kiro IDE / Kiro CLI | `internal/source/kiro.go` | 公式の形式の文書はない。`pajaydev/kiro-history`、`getagentseal/codeburn`、kiro.dev のドキュメント |
-| Amazon Q / Kiro CLI (SQLite) | `internal/source/qstore.go` | `aws/amazon-q-developer-cli` の `crates/chat-cli/src/` |
+| Kiro CLI (SQLite) | `internal/source/qstore.go` | `aws/amazon-q-developer-cli` の `crates/chat-cli/src/` |
 
 kiroku の `testdata/` は開発者が作った合成データなので、形式の根拠にはしない。
 

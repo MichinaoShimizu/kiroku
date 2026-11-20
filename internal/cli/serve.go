@@ -357,7 +357,7 @@ func (l *live) handler() http.Handler {
 	// ほかのサイトのページから押させないよう、画面だけが付ける X-Kiroku ヘッダーを求める
 	// （付けるとブラウザは先に確認の問い合わせ（preflight）をするが、ここは答えないので、ほかのサイトからは送れない）。
 	mux.HandleFunc("/archive", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.Header.Get("X-Kiroku") != "1" || (r.Header.Get("Origin") != "" && r.Header.Get("Origin") != "http://"+r.Host) {
+		if r.Method != http.MethodPost || r.Header.Get("X-Kiroku") != "1" || r.Header.Get("Origin") != "http://"+r.Host {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
@@ -584,7 +584,7 @@ func aiStartLine(enableAI, aiAddr bool) string {
 	case !aiAddr:
 		return "\"Analyze with AI\" is off: it runs only on a loopback address written as an IP (such as 127.0.0.1:8484 or :8485)"
 	}
-	return "\"Analyze with AI\" is on (--ai): after you confirm a run, the agent you choose may send the prompt and the history it reads to its provider; start without --ai to turn it off"
+	return "\"Analyze with AI\" is on (--ai or KIROKU_AI): after you confirm a run, the agent you choose may send the prompt and the history it reads to its provider; start without them to turn it off"
 }
 
 // scanWatchPaths は、選んでいない Source のうち source.ClaimScanner のものが調べる場所（Kiro を選んでいないときの Kiro Crew の場所）。
@@ -646,9 +646,6 @@ func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []
 	url := viewURL(addr)
 	st := styleFor(l.print)
 	fmt.Fprintf(l.print, "serving %s %s\n", st.bold(url), st.dim("(reading history…; press Ctrl+C to stop)"))
-	if n := serveNotice; n != nil {
-		go n.note(l.print) // 新しい版があれば 1 行だけ（待たずに、わかったときに）
-	}
 	startLive(l, every)
 	fmt.Fprintln(l.print, st.dim("only browsers with its key can open it (to protect it from other users of this computer); \"kiroku open\" opens it with the key"))
 	fmt.Fprintln(l.print, st.dim(aiStartLine(enableAI, aiAddr)))

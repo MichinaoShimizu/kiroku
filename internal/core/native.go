@@ -43,13 +43,8 @@ var NativeDefs = map[string][]NativeDef{
 		{Key: "context_used", Label: "コンテキストの最大使用率", LabelEn: "Peak context usage", Unit: "%", Agg: "max", Scale: 100}, // session_metadata の contextUsage
 		{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},
 	},
-	"Kiro IDE (legacy)": { // 実行ファイルの usageSummary（source/kiro.go の kiroExec）
-		{Key: "credits", Label: "クレジット", LabelEn: "Credits", Unit: "クレジット", Agg: "sum"},
-		{Key: "turns", Label: "ターン", LabelEn: "Turns", Unit: "回", Agg: "sum"},
-		{Key: "credits_per_turn", Label: "1 ターンあたりのクレジット", LabelEn: "Credits per turn", Unit: "クレジット", Agg: "ratio", Num: "credits", Den: "turns", Scale: 1},
-	},
+
 	"Kiro CLI (SQLite)": qstoreDefs,
-	"Amazon Q":          qstoreDefs,
 	"Kiro Crew": {
 		{Key: "crew_sessions", Label: "Crew から動かした会話", LabelEn: "Conversations run from Crew", Unit: "件", Agg: "sum"},
 		{Key: "crew_subagents", Label: "うちサブエージェント", LabelEn: "Of which subagents", Unit: "件", Agg: "sum"},

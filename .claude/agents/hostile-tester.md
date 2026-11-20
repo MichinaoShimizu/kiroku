@@ -67,7 +67,7 @@ node tools/screenshots/xss.mjs "$T/xss.html"
 
 ### 5. 書き出すファイル
 
-- `kiroku html -o` と `kiroku json -o` の出力が `0600` になる。出力先に `$T` の外を指すシンボリックリンクを置いても、リンク先は書き換えられない
+- `kiroku html -o` の出力が `0600` になる。出力先に `$T` の外を指すシンボリックリンクを置いても、リンク先は書き換えられない
 - `kiroku archive on` のあとの写しのフォルダが `0700`、ファイルが `0600`
 - `kiroku archive off` が、`on` で印を付けていないフォルダや `.zst` 以外のファイルを消さない
 

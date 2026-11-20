@@ -39,7 +39,7 @@ const loaded = p => p.waitForFunction(() => document.querySelector("#rd") && doc
 
 // openContext は、画面の幅 env・言語 locale のブラウザを開く。スクリプトのエラーは errors に、CSP に止められたものは csp にためる
 async function openContext(env, locale, csp) {
-  const ctx = await b.newContext({ ...env, locale, timezoneId: "Asia/Tokyo", acceptDownloads: true });
+  const ctx = await b.newContext({ ...env, locale, timezoneId: "Asia/Tokyo", acceptDownloads: true, colorScheme: "dark" }); // テーマは OS に合わせるので、ダークの OS で確かめる（「テーマ」の手順でライトも見る）
   ctx.setDefaultTimeout(5000);
   if (fakeNow) await ctx.clock.install({ time: fakeNow }); // 時計はこの時刻から普通に進む（タイマーも動く）
   // CSP の違反はページの中で拾って知らせる（関数を渡す仕組みは CSP の外なので止められない）
@@ -81,11 +81,11 @@ async function run(env) {
     if (fakeNow) check("ブラウザの時計は KIROKU_FAKE_NOW から進んでいる", await p.evaluate(t => Date.now() >= t && Date.now() - t < 10 * 60e3, fakeNow.getTime()));
     const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
     check("横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
-    check("凡例の件数（20 / 20 sessions）が画面の中に見える", await p.evaluate(() => { const r = document.querySelector("#legend .count").getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= innerWidth + 1; }));
+    check("絞り込んでいないときは、凡例に件数（20 / 20 sessions）を出さない", await p.locator("#legend .count").count() === 0);
     check("ロゴはこのファイルを開き直すリンク（/ ではディスクの一番上へ行く）", await p.evaluate(() => document.querySelector("#home").getAttribute("href") === location.href.split(/[?#]/)[0]));
     check("ロゴが検索欄に隠れない", await p.evaluate(() => document.querySelector(".brand .word").getBoundingClientRect().right <= document.querySelector(".search").getBoundingClientRect().left));
     // カレンダーが主役：① から下のパネルは閉じていて、上の帯は使ったものだけ
-    check("サマリーのパネルは ① プロジェクト別から既定で閉じている", await p.evaluate(() => { const f = [...document.querySelectorAll("#review details.panel.fold")]; return f.length >= 5 && f[0].classList.contains("projs") && f.every(d => !d.open); }));
+    check("サマリーのパネルは ① プロジェクト別から既定で閉じている", await p.evaluate(() => { const f = [...document.querySelectorAll("#review details.panel.fold")]; return f.length === 4 && f[0].classList.contains("projs") && f.every(d => !d.open); }));
     check("上の帯は使ったものだけ（残したもの：コミット・変えた行・PR は出さない）", await p.locator('#kpis .kpi.out, #kpis [data-metric="commits"], #kpis [data-metric="lines"], #kpis [data-metric="aiCommits"], #kpis [data-metric="prs"]').count() === 0);
     check("見出しの「?」を押しても、パネルは開かない", await p.evaluate(() => { const d = document.querySelector("#review details.panel.fold"), hb = d.querySelector("summary .hb");
       if (!hb) return true; hb.click(); const ok = !d.open; if (typeof hideHint === "function") hideHint(); return ok; }));
@@ -131,11 +131,12 @@ async function run(env) {
 
   await step("テーマ", async () => {
     const theme = () => p.evaluate(() => document.documentElement.dataset.theme);
-    check("既定はダーク", await theme() === "dark", await theme());
-    await p.locator("#theme").click(); await pause();
-    check("押すとライトになる", await theme() === "light", await theme());
-    await p.locator("#theme").click(); await pause();
-    check("もう一度押すとダークに戻る", await theme() === "dark", await theme());
+    check("テーマと言語の切り替えボタンはない（OS とブラウザの設定に合わせる）", await p.locator("#theme, #lang").count() === 0);
+    await p.evaluate(() => { try { localStorage.removeItem("kiroku:theme"); } catch(e){} });
+    await p.emulateMedia({ colorScheme: "light" }); await pause();
+    check("OS がライトならライト", await theme() === "light", await theme());
+    await p.emulateMedia({ colorScheme: "dark" }); await pause();
+    check("OS がダークならダーク", await theme() === "dark", await theme());
   });
 
   await step("週の移動", async () => {
@@ -199,16 +200,7 @@ async function run(env) {
         let j = i - 1; while (j >= 0 && li[j].classList.contains("ev")) j--;
         return i > 0 && j >= 0 && li[j].classList.contains("pr"); }));
     }
-    check("流れの凡例は既定で閉じている", await p.evaluate(() => { const d = document.querySelector("#drawer .tlkeyd"); return !!d && !d.open && !d.querySelector(".tlkey").checkVisibility(); }));
-    await p.locator("#drawer .tlkeyd > summary").click(); await pause();
-    check("凡例を開くと、記号の説明が見える", await p.evaluate(() => document.querySelector("#drawer .tlkey span").checkVisibility()));
-    await p.locator('#flowBy button[data-v="user"]').click(); await pause();
-    check("「ユーザープロンプトだけ」で、出来事が隠れる", await p.evaluate(() => [...document.querySelectorAll("#drawer .tl li.ev")].every(li => !li.offsetParent)));
-    check("「ユーザープロンプトだけ」では、応答も隠れる", await p.evaluate(() => [...document.querySelectorAll("#drawer .tl li.rp")].every(x => !x.offsetParent)));
-    check("「ユーザープロンプトだけ」では、出ていないものの説明を凡例に残さない", await p.evaluate(() => [...document.querySelectorAll("#drawer .tlkey .kev")].every(x => !x.offsetParent)));
-    await p.locator('#flowBy button[data-v="all"]').click(); await pause();
-    check("開いた凡例は、切り替えのあとも開いたまま", await p.evaluate(() => document.querySelector("#drawer .tlkeyd").open));
-    await p.locator("#drawer .tlkeyd > summary").click(); await pause(); // 閉じて戻す（覚えた状態をあとの確認に残さない）
+    check("流れには、出し方の切り替えと凡例を置かない", await p.locator("#drawer #flowBy, #drawer .tlkeyd, #drawer .tlkey").count() === 0);
     await p.keyboard.press("Escape"); await pause();
     check("Esc で詳細が閉じる", !await drawerOpen());
     await run.focus(); await p.keyboard.press("ArrowLeft"); await pause();
@@ -262,10 +254,23 @@ async function run(env) {
     await view("cal");
   });
 
+  await step("月末の推定の幅は 3σ だけ", async () => {
+    await p.keyboard.press("m"); await pause();
+    const has = await p.locator('#kpis [data-metric="projection"], #kpis [data-metric="projectionCr"]').count();
+    if (has){
+      await p.locator('#kpis [data-metric="projection"], #kpis [data-metric="projectionCr"]').first().click(); await pause();
+      const r = await p.evaluate(() => ({rows: [...document.querySelectorAll("#md .mband tbody tr th")].map(e => e.textContent), lines: [...document.querySelectorAll("#md .mbl")].map(e => e.className)}));
+      check("幅の表と点線は 3σ だけ", r.rows.every(x => !/^[12]σ/.test(x)) && r.lines.every(c => /\bk3\b/.test(c)), JSON.stringify(r));
+      await p.keyboard.press("Escape"); await pause();
+    }
+    await p.keyboard.press("w"); await pause();
+  });
+
   await step("サマリーのどの数字も内訳が開く", async () => {
     await view("sum");
     const ids = await p.evaluate(() => [...document.querySelectorAll("#review [data-metric]")].map(b => b.dataset.metric));
-    for (const id of ["lines", "files", "pushes", "focus", "parallel", "wait", "ai", "cache", "costPerAsk"]) check(`サマリーの ${id} を押せる`, ids.includes(id));
+    for (const id of ["lines", "focus", "wait", "cache", "costPerAsk"]) check(`サマリーの ${id} を押せる`, ids.includes(id));
+    for (const id of ["files", "pushes", "parallel", "ai"]) check(`サマリーに ${id} は出さない（数を絞る）`, !ids.includes(id));
     for (const id of ids) {
       await p.evaluate(id => document.querySelector(`#review [data-metric="${id}"]`).click(), id); await pause();
       check(`${id} の内訳が開き、中身がある`, await p.evaluate(() => { const d = document.querySelector("#md"); return d.open && d.querySelectorAll("h3").length > 0; }));
@@ -327,7 +332,7 @@ async function run(env) {
     const oc = p.locator("#review .panel.oc"); await oc.scrollIntoViewIfNeeded(); await pause();
     check("使ったものと残ったものが左右に並ぶ", await oc.locator(".ocside.spent").count() === 1 && await oc.locator(".ocside.left").count() === 1);
     // git から数える指標（ダミーデータにはコミットも push もある）
-    for (const [name, id] of [["コミット", "gitCommits"], ["行", "lines"], ["ファイル", "files"], ["push", "pushes"]])
+    for (const [name, id] of [["コミット", "gitCommits"], ["行", "lines"]])
       check(`残ったものに${name}が出る`, await oc.locator(`.ocside.left .hb[data-help="${id}"]`).count() === 1);
     check("割った指標は残ったものではなく Compared の行にある", await oc.locator('.ocside.left .hb[data-help="costPerCommit"]').count() === 0
       && await oc.locator('.occmp .hb[data-help="costPerCommit"]').count() === 1 && await oc.locator('.occmp .hb[data-help="outSessions"]').count() === 1);
@@ -354,6 +359,17 @@ async function run(env) {
 
   await step("見直す候補", async () => {
     await view("sum");
+    check("日の見出しの 1 行は、名前つきのただの文字（HTML を含まない）", await p.evaluate(() => [...document.querySelectorAll("#tl .head .cline > span[aria-label]")].every(e => !/[<>]/.test(e.getAttribute("aria-label")) && e.querySelectorAll("*:not(svg):not(svg *)").length === 0)));
+    check("上限の印は、そのセッションの帯の左端にある（隣の帯に重ねない）", await p.evaluate(() => [...document.querySelectorAll("#tl .lim")].every(m => { const r = m.getBoundingClientRect(), bs = [...m.closest(".day").querySelectorAll(`.run[data-sid="${CSS.escape(m.dataset.id)}"]`)].map(b => b.getBoundingClientRect());
+      return !bs.length || bs.some(b => Math.abs(b.left - r.left) <= 4); })));
+    check("夜遅い印も日の枠の中にある", await p.evaluate(() => [...document.querySelectorAll("#tl .day")].every(d => { const db = d.getBoundingClientRect(); return [...d.querySelectorAll(".gc, .gm")].every(m => m.getBoundingClientRect().bottom <= db.bottom + 1); })));
+    check("平日の勤務時間（9:00〜18:00）の外は地の色が違う", await p.evaluate(() => { const d = [...document.querySelectorAll("#tl .day")].find(e => !e.classList.contains("we")); return !!d && (getComputedStyle(d).backgroundImage.match(/linear-gradient/g) || []).length === 2; }));
+    check("見直す候補はアイコンだけ（名前は読み上げとツールチップ）", await p.evaluate(() => { const b = document.querySelector("#worth summary"); return !!b && !/[A-Za-z]{3}/.test(b.textContent) && /Worth a look/.test(b.getAttribute("aria-label") || ""); }));
+    if (env.viewport.width > 820) check("今週・期間・表示・見直す候補は、同じ高さで中心がそろう", await p.evaluate(() => { const rs = ["#today", "#mode", "#view", "#worth summary"].map(s => document.querySelector(s).getBoundingClientRect());
+      return rs.every(r => Math.abs(r.height - rs[0].height) < 1 && Math.abs((r.top + r.height / 2) - (rs[0].top + rs[0].height / 2)) < 1); }));
+    check("見直す候補は 1 つのボタン（押すと一覧）", await p.locator("#worth details summary").count() === 1 && !(await p.locator("#worth details").evaluate(d => d.open)));
+    await p.locator("#worth summary").click(); await pause();
+    check("押すと候補の一覧が開く", await p.locator("#worth .flink").first().isVisible());
     const n = await p.locator(".flagsum .flink").count();
     check("見直す候補はカレンダー・サマリーより上にある", await p.evaluate(() => document.querySelector("#worth").getBoundingClientRect().bottom <= document.querySelector("#review").getBoundingClientRect().top));
     check("繰り返したプロンプトの欄がある", await p.locator('#review .hb[data-help="repeats"]').count() > 0);
@@ -368,9 +384,9 @@ async function run(env) {
     check("ダイアログが画面に収まる", box && box.x >= 0 && box.x + box.width <= env.viewport.width + 1, JSON.stringify(box));
     check("開いてもページは動かない", await p.evaluate("scrollY") === y0);
     await p.keyboard.press("Escape"); await pause();
-    check("Esc で閉じ、押した候補にフォーカスが戻る", !(await p.locator("#wk").evaluate(d => d.open)) && await link.evaluate(b => b === document.activeElement));
+    check("Esc で閉じ、見直す候補のアイコンにフォーカスが戻り、一覧は閉じている", !(await p.locator("#wk").evaluate(d => d.open)) && await p.locator("#worth summary").evaluate(b => b === document.activeElement) && !(await p.locator("#worth details").evaluate(d => d.open)));
     check("閉じるボタンは右上の × だけ（ほかのダイアログや詳細のパネルとそろえる）", await p.locator("#wk button.pill").count() === 0 && await p.locator("#wkclose").getAttribute("aria-label") === "Close");
-    await link.click(); await pause();
+    await p.evaluate(() => { const d = document.querySelector("#worth details"); if (d) d.open = true; }); await link.click(); await pause();
     await p.mouse.click(4, env.viewport.height - 4); await pause();
     check("枠の外を押すと閉じる", !(await p.locator("#wk").evaluate(d => d.open)));
     const mk = p.locator(`#review .fmark[data-goto="${id}"]`).first();
@@ -378,7 +394,7 @@ async function run(env) {
     check("サマリーの印を押すと、同じダイアログが開く", await p.locator("#wk").evaluate(d => d.open) && await p.locator("#wk .fl .see").count() > 0, id);
     await p.locator("#wkclose").click(); await pause();
     check("Close で閉じる", !(await p.locator("#wk").evaluate(d => d.open)));
-    const ses = p.locator(".flagsum .flink").first(); await ses.scrollIntoViewIfNeeded(); await ses.click(); await pause();
+    await p.evaluate(() => { const d = document.querySelector("#worth details"); if (d) d.open = true; }); const ses = p.locator(".flagsum .flink").first(); await ses.scrollIntoViewIfNeeded(); await ses.click(); await pause();
     const fs = p.locator("#wk .fss .card").first();
     if (await fs.count()){
       // エージェントの頭文字は、題名が長くても縮まず 1 行（.fl の overflow-wrap:anywhere で「KC」が K と C の 2 行に折れていた）
@@ -399,7 +415,7 @@ async function run(env) {
     const gh = p.locator('#review .foot a[href="https://github.com/MichinaoShimizu/kiroku"]');
     check("フッターにリポジトリへのリンクがある（参照元を渡さない）", await gh.count() === 1 && /noreferrer/.test(await gh.getAttribute("rel") || "") && await gh.getAttribute("target") === "_blank");
     const ds = p.locator("#review details.dsrc");
-    check("Data sources は、気をつけることがなければたたんである", await ds.count() === 1 && !(await ds.evaluate(d => d.open)));
+    check("Data sources は、いつもたたんである（気をつけることは見出しの ⚠）", await ds.count() === 1 && !(await ds.evaluate(d => d.open)));
     await ds.locator(":scope > summary").click(); await pause();
     check("開くと、読んだ履歴が見える", await ds.locator(".mlist li").first().isVisible());
     const nf = ds.locator("details.dnf");
@@ -407,29 +423,11 @@ async function run(env) {
     await view("cal");
   });
 
-  // 問題の報告: issue のリンクは決まった値だけ、「Copy diagnostics」は種類と数だけで、どちらにも履歴の中身が入らない
-  await step("問題の報告", async () => {
+  // 問題の報告と診断のコピーは画面に置かない（kiroku doctor --report が同じことをする）
+  await step("ページの下", async () => {
     await view("sum");
-    const a = p.locator("#review .foot a.reportlink");
-    check("フッターに「Report a problem」がある（新しいタブ・参照元を渡さない）", await a.count() === 1 && await a.getAttribute("target") === "_blank" && /noopener/.test(await a.getAttribute("rel") || "") && /noreferrer/.test(await a.getAttribute("rel") || ""));
-    check("Data sources には、読んだデータのことだけがある（報告と診断のコピーはページの下だけ）", await p.locator("#review details.dsrc a.reportlink, #review details.dsrc .diagcopy").count() === 0);
-    const href = await a.getAttribute("href");
-    const u = new URL(href);
-    check("行き先は kiroku の issue のテンプレート", u.origin + u.pathname === "https://github.com/MichinaoShimizu/kiroku/issues/new" && u.searchParams.get("template") === "bug.yml", href);
-    check("URL には version・os・screen・template だけ", [...u.searchParams.keys()].every(k => ["template", "version", "os", "screen"].includes(k)), href);
-    // 履歴に由来する文字（プロジェクト名・パス・ID・プロンプト・ブランチ・タイトル）を集めて、URL とコピーした文に入っていないことを確かめる
-    const secrets = await p.evaluate(() => { const s = new Set();
-      for (const d of DATA) { for (const v of [d.project, d.projectPath, d.id, d.file, d.branch, d.title]) if (v && String(v).length >= 4) s.add(String(v));
-        for (const q of d.prompts || []) if (q.text && q.text.length >= 8) s.add(q.text.slice(0, 40)); }
-      return [...s]; });
-    const leakURL = secrets.filter(x => decodeURIComponent(href).includes(x) || href.includes(x));
-    check("URL に履歴の中身がない", secrets.length > 0 && leakURL.length === 0, leakURL.slice(0, 3).join(" | "));
-    await p.evaluate(() => { window.__copied = null; navigator.clipboard.writeText = t => { window.__copied = t; return Promise.resolve(); }; });
-    await a.locator("xpath=following-sibling::button[contains(@class,'diagcopy')]").click(); await pause();
-    const txt = await p.evaluate(() => window.__copied) || "";
-    check("診断情報は kiroku doctor --report と同じ形", /^kiroku diagnostics \(kinds and counts only\)\nkiroku: .+\nos: .+\n/.test(txt) && /: sessions \d+;/.test(txt), txt.slice(0, 200));
-    const leak = secrets.filter(x => txt.includes(x));
-    check("診断情報に履歴のパス・プロジェクト名・ID・プロンプトがない", leak.length === 0 && !/\/Users\/|\/home\//.test(txt), leak.slice(0, 3).join(" | "));
+    check("フッターに「Report a problem」「Copy diagnostics」がない", await p.locator(".reportlink, .diagcopy, #review .foot .report").count() === 0 && !/Report a problem|Copy diagnostics/.test(await p.locator("#review .foot").innerText()));
+    check("フッターには版と GitHub のリンクがある", /kiroku/.test(await p.locator("#review .foot").innerText()) && await p.locator("#review .foot a", { hasText: "GitHub" }).count() === 1);
     await view("cal");
   });
 

@@ -1,0 +1,17 @@
+- A simpler view, continued:
+  - The theme follows your system's light or dark setting, and the language follows your browser or `--lang`; the theme and language buttons are gone (a theme or language chosen earlier is kept)
+  - Week calendar day headings show usage and commits on one line ("$4.29 · 4")
+  - "Color by" offers Project and Agent (Branch is gone)
+  - The prompt flow has no "Everything / Your prompts only" switch and no legend
+  - The summary has four panels: "How you spent time" and "Shape of the week / month" are one panel, "How you worked"
+  - "Worth a look" flags fewer things: usage limits, long conversations, expensive models for light work, cost with no commit or pull request, corrections or friction, and repeated prompts. Cost growth, cost per commit, cache, sessions that reached a commit, switches, focus blocks, wait time and oversized prompts stay in the summary but are no longer flagged
+  - The month calendar shows one figure per day (usage) with active time as the shade; commits are in the day's tooltip, and the project bars are gone
+  - Agent-specific metrics (each agent's own counts, such as turns or response time) are no longer shown in the summary or session details: their definitions differ by agent, so they could not be compared
+- kiroku no longer checks for a newer release on its own when a command runs; run `kiroku update` (or `kiroku doctor`) to check. `KIROKU_NO_UPDATE_CHECK` is no longer needed and is ignored
+  - "Worth a look" is an icon with a count, and "This week", the period and view switches and that icon share one height and center line
+  - The week calendar shades weekday hours outside 9:00–18:00, so early-morning and late-night work stands out
+  - Session blocks and usage-limit marks in the week calendar have square corners
+  - Usage-limit marks sit at the left edge of their own session's block, and their name says which session; late commit and push marks stay inside the day
+  - Worth a look names a long-conversation flag "Long conversations" (not "Heaviest sessions"), and its list closes once you pick an item
+  - With no agent installed, the reason ("No AI agent command (claude, codex or kiro-cli) was found…") is shown as text, not only on hover
+  - Day headings leave out the commit mark on days without commits, and credit units stay next to their numbers on phones

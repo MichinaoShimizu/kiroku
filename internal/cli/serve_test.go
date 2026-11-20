@@ -287,6 +287,7 @@ func TestServeBeforeLoad(t *testing.T) {
 		r, _ := http.NewRequest(method, srv.URL+path, nil)
 		r.Host = host
 		r.Header.Set("X-Kiroku", "1")
+		r.Header.Set("Origin", "http://"+r.Host) // 画面からの POST は、ブラウザがいつも Origin を付ける
 		res, err := http.DefaultClient.Do(r)
 		if err != nil {
 			t.Fatal(err)
@@ -468,6 +469,7 @@ func fetchWith(t *testing.T, method, url, host string, c *http.Cookie) (int, str
 		r.Host = host
 	}
 	r.Header.Set("X-Kiroku", "1")
+	r.Header.Set("Origin", "http://"+r.Host) // 画面からの POST は、ブラウザがいつも Origin を付ける
 	if testKey != "" {
 		r.Header.Set(keyHeader, testKey)
 	}
@@ -799,4 +801,25 @@ func TestServeReloadsHistoryWrittenDuringFirstLoad(t *testing.T) {
 	go func() { l.start(20*time.Millisecond, stop); close(done) }()
 	defer func() { close(stop); <-done }()
 	waitFor(t, "読み込みの途中に書かれた履歴の読み直し", func() bool { return calls.Load() >= 2 })
+}
+
+// POST /archive は、Origin のない問い合わせを通さない（画面からの POST にはブラウザがいつも Origin を付ける）。オンにもしない
+func TestServeArchiveRequiresOrigin(t *testing.T) {
+	called := false
+	l := &live{load: func() snapshot { return snapshot{meta: map[string]any{}} }, ready: true, keep: func() error { called = true; return nil }, print: io.Discard}
+	srv := httptest.NewServer(l.handler())
+	defer srv.Close()
+	r, _ := http.NewRequest("POST", srv.URL+"/archive", nil)
+	r.Header.Set("X-Kiroku", "1")
+	if testKey != "" {
+		r.Header.Set(keyHeader, testKey)
+	}
+	res, err := http.DefaultClient.Do(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != 403 || called {
+		t.Errorf("Origin なし: %d, archive on = %v; want 403 and not turned on", res.StatusCode, called)
+	}
 }

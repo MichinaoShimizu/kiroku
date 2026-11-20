@@ -83,7 +83,7 @@ func TestCodex(t *testing.T) {
 
 func nativeOf(f *core.Session) map[string]core.NativeValue {
 	out := map[string]core.NativeValue{}
-	for _, v := range f.Native {
+	for _, v := range core.AggregateNative(f.Source, f.Meas) {
 		out[v.Label] = v
 	}
 	return out
@@ -507,7 +507,7 @@ func TestCodexReplies(t *testing.T) {
 // nativeEn は参考指標を英語のラベルで引けるようにする。
 func nativeEn(f *core.Session) map[string]core.NativeValue {
 	out := map[string]core.NativeValue{}
-	for _, v := range f.Native {
+	for _, v := range core.AggregateNative(f.Source, f.Meas) {
 		out[v.LabelEn] = v
 	}
 	return out

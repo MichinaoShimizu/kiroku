@@ -20,11 +20,9 @@ var Records = map[string][]string{
 	"Claude Code":         {"interrupts", "limits", "compactions", "files", "subagents", "outputs"},
 	"Codex":               {"interrupts", "limits", "compactions", "files", "subagents"},
 	"Kiro IDE / CLI (V3)": {"files"},
-	"Kiro IDE (legacy)":   {},
 	"Kiro CLI (V2)":       {"files"},
 	"Kiro Crew":           {"limits", "subagents"},
 	"Kiro CLI (SQLite)":   {"interrupts", "compactions", "files"},
-	"Amazon Q":            {"interrupts", "compactions", "files"},
 }
 
 // RecordsOf は、source の履歴が what（Records の説明の名前）を記録するか。

@@ -98,6 +98,8 @@ function spark(k, plain){ // 8 期間の推移（記録のない期間は飛ば�
 // 鍵は英語の文で、{name} を埋める。英語の画面では L と en は同じになる
 const fillEn = (s, v) => s.replace(/\{(\w+)\}/g, (m, k) => Object.prototype.hasOwnProperty.call(v, k) ? String(v[k]) : m);
 const pluralEn = (n, one) => `${n} ${n === 1 ? one : one + "s"}`;
+// 見直す候補は、次に何を変えればよいかがはっきりするものだけ：利用上限・修正の多さ（またはつまずき）・長くなった会話・モデルの選び方・
+// 何も残さなかったセッションの費用・繰り返したプロンプト（費用の増え方・キャッシュ・切り替えなどは数字としてサマリーにある）
 function findList(w, pw, unit){
   const F = [], u = w.usage || {}, o = w.outputs || {}, {ws, we} = period();
   const M = unit === "月", V = vsPrev(pw, unit);
@@ -130,37 +132,17 @@ function findList(w, pw, unit){
   const {xs: idle, c: idleC} = idleOf(ws, we);
   if (u.cost >= 2 && idleC >= u.cost * 0.4)
     add("heavy", 30 + Math.round(idleC*50/u.cost), tx("{pct}% of estimated cost ({cost}) went to sessions with no commit or pull request", {pct: Math.round(idleC*100/u.cost), cost: usd(idleC)}), tx("Fine for research or discussion. If they stopped partway, it's worth finding out why"), tx("Sessions of $1+ total 40%+ of all cost ($2+)"), idle.map(s => s.id));
-  const pc = V.of("cost", pw && pw.usage && pw.usage.cost); // 途中の期間は、前の期間の同じ日までと比べる
-  if (pc != null && pc >= 1 && u.cost >= pc * 1.5)
-    add("cost", 25, tx("Estimated cost was {x}× that of {prev} ({from} → {to})", {x: (u.cost/pc).toFixed(1), from: usd(pc), to: usd(u.cost)}), tx("What it means depends on which projects and sessions the increase came from"), tx("1.5× {last} or more"), null);
-  if (pw && pw.costPerCommit != null && w.costPerCommit != null && o.commits >= 3 && w.costPerCommit >= pw.costPerCommit * 1.5)
-    add("costPerCommit", 22, tx("Estimated cost per commit rose from {from} to {to}", {from: usd(pw.costPerCommit), to: usd(w.costPerCommit)}), tx("Each commit is costing more than before"), tx("1.5× {last} or more, with 3+ commits"), null);
-  if (u.cacheHit != null && u.tokens >= 1e6 && u.cacheHit < 0.5)
-    add("cache", 20, tx("Only {pct}% of input was read from cache", {pct: Math.round(u.cacheHit*100)}), tx("You may be re-sending the same context every time"), tx("Under 50%, with 1M+ tokens"), null);
-  if ((w.outBase ?? w.sessions) >= 5 && (o.commits || o.prs || (w.git && w.git.commits)) && w.outSessions / (w.outBase ?? w.sessions) < 0.25)
-    add("outSessions", 16, tx("{n} of {total} sessions reached a commit or pull request", {n: w.outSessions, total: w.outBase ?? w.sessions}), tx("Many sessions may have stopped partway"), tx("Under 25%, with 5+ sessions"), null);
-  const BG = bigOf(ws, we);
-  if (BG.n >= 3){
-    const a = {prompts: pluralEn(BG.n, "prompt")}, b = {prompts: plural(BG.n, "prompt")};
-    add("bigPrompts", 11, tx("{prompts} of {min}+ characters (longest {max})", {...a, min: commas(BIG_PROMPT), max: commas(BG.max)}, b), tx("Pasting long logs or documents makes every later response re-read a heavier input, and buries the instructions that matter"), tx("3+ prompts of {min}+ characters", {min: commas(BIG_PROMPT)}), BG.ids);
-  }
   const RP = repeatsOf(ws, we);
   if (RP.length)
     add("repeats", 9, tx("You wrote a similar prompt {n} times across {s} sessions {period} (\"{text}\")", {n: RP[0].n, s: RP[0].ids.size, text: snipOf(RP[0].text, 40)}), tx("A prompt you type every time can be written once as a command or in CLAUDE.md"), tx("{min}+ characters, in {ses}+ sessions", {min: REPEAT_MIN, ses: REPEAT_SES}), [...new Set([RP[0].id, ...RP[0].ids])]);
-  if (w.switchesAvg >= 5)
-    add("switches", 14, tx("You switched projects {n} times a day on average", {n: w.switchesAvg}), tx("Each context switch tends to add ramp-up time and rework"), tx("5+ per day on average"), null);
-  if (!w.focus.length && w.active >= 240)
-    add("focus", 12, tx("You worked {dur}, but never for 60 minutes straight", {dur: dur(w.active)}), tx("Fragmented time makes it harder to hand large tasks to AI"), tx("No focus blocks, with 4+ hours of work"), null);
-  if (w.waitP90 != null && w.waitCount >= 10 && w.waitP90 >= 900)
-    add("wait", 10, tx("At the long end, {secs} passed between an AI reply and your next prompt", {secs: secs(w.waitP90)}), tx("AI may have sat idle until you noticed its reply"), tx("90th percentile of 15+ min"), null);
   return F.sort((a,b) => b.score - a.score);
 }
 const GOTO = {longctx: "heavy", modelfit: "models"}; // 専用の指標がない候補は、関係する指標に印を付ける
-function flagSum(F){ // 期間の要点の下（#worth）に、基準を超えた指標の名前だけを優先度の高い順に並べる（押すとサマリーのその指標へ）
+function flagSum(F){ // 期間の切り替えの行（#worth）に「見直す候補 N」の 1 つのボタン。押すと、基準を超えた指標の名前が優先度の高い順に開く（押すとその指標のダイアログ）
   const ids = [...new Set(F.map(f => GOTO[f.k] || f.k))];
-  return `<span class="lbl">${ico("flag", "fdot")}${esc(t("Worth a look"))}${hb("findings")}</span>${ids.length
-    ? ids.map(id => `<button class="flink" data-goto="${id}">${esc(H()[id].n)}</button>`).join("")
-    : `<span class="muted">${esc(t("No metric crossed a threshold"))}</span>`}`;
+  if (!ids.length) return `<span class="lbl muted wdi" role="img" aria-label="${esc(t("Worth a look"))}: 0" title="${esc(t("No metric crossed a threshold"))}">${ico("flag")}</span>`;
+  return `<details class="wdd"><summary class="pill wdi" aria-label="${esc(t("Worth a look"))}: ${ids.length}" title="${esc(t("Worth a look"))}">${ico("flag", "fdot")}<b>${ids.length}</b></summary><div class="wdl" role="group" aria-label="${esc(t("Worth a look"))}"><span class="wdh">${esc(t("Worth a look"))}${hb("findings")}</span>${ids.map(id => { const ks = [...new Set(F.filter(f => (GOTO[f.k] || f.k) === id).map(f => f.k))], n = ks.length === 1 && H()[ks[0]] ? H()[ks[0]].n : H()[id].n; // 候補が 1 つなら、その候補の名前（長い会話を「重いセッション」と呼ばない）
+      return `<button class="flink" data-goto="${id}">${esc(n)}</button>`; }).join("")}</div></details>`;
 }
 function sesFlags(s){ // 詳細の頭に、このセッションが関係する見直す候補（表示中の期間のもの）の名前だけを出す。押すとサマリーと同じダイアログ
   const ids = [...new Set(lastFlags.filter(f => f.ids.includes(s.id)).map(f => GOTO[f.k] || f.k))];
@@ -176,7 +158,7 @@ function openWorth(id, from){
   const hk = fs.length === 1 && H()[fs[0].k] ? H()[fs[0].k] : h; // 印が 1 つだけなら、その候補自身の説明（長い会話で開いたときに、重いセッションの説明を出さないように）
   const {ws, we} = period(), r0 = id === "repeats" && repeatsOf(ws, we)[0], rp = r0 ? new Map([...r0.by].filter(([, x]) => x !== r0.text)) : null; // 見出しと同じ書き方は、カードごとに繰り返さない
   const body = fs.map(f => `<div class="fl"><p class="see">${ico("flag", "fdot")}${esc(f.L.see)}</p><p class="rule">${esc(t("Threshold: {rule}", {rule: f.L.rule}))}</p>${f.k === "repeats" ? "" : `<p class="why">${esc(f.L.why)}</p>`}${spark(f.k)}${f.ids.length ? `<div class="fss">${flagSes(f.ids.slice(0, 6), f.k === "repeats" ? rp : null)}${f.ids.length > 6 ? `<div class="fss-rest" hidden>${flagSes(f.ids.slice(6), f.k === "repeats" ? rp : null)}</div><button type="button" class="more fmore">${esc(f.ids.length - 6 === 1 ? t("1 more session") : t("{n} more sessions", {n: f.ids.length - 6}))}</button>` : ""}</div>` : ""}</div>`).join(""); // 繰り返しのプロンプトの「なぜ」は「What to try」と同じことなので出さない
-  D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" id="wkclose" aria-label="${esc(t("Close"))}"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form><div class="eyebrow">${ico("flag", "fdot")}${esc(t("Worth a look"))}</div><h2 id="wkh">${esc(h.n)}</h2>${body}
+  D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" id="wkclose" aria-label="${esc(t("Close"))}"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form><div class="eyebrow">${ico("flag", "fdot")}${esc(t("Worth a look"))}</div><h2 id="wkh">${esc(hk.n)}</h2>${body}
     <dl class="wkhelp"><dt>${esc(t("What it is"))}</dt><dd>${esc(hk.d)}</dd><dt>${esc(t("Doesn't tell you"))}</dt><dd>${esc(hk.x)}</dd><dt>${esc(t("What to try"))}</dt><dd>${esc(hk.a)}</dd></dl>`;
   const bindSes = el => el.querySelectorAll("[data-id]").forEach(b => b.onclick = () => { D.close(); select(b.dataset.id); });
   D.querySelectorAll(".fss").forEach(bindSes);

@@ -35,6 +35,7 @@ await p.locator('#view button[data-v="cal"]').click(); // 以降の画像はカ�
 await p.waitForTimeout(300);
 // 見直す候補（Worth a look）：期間の要点の下の「Possible friction」を押して開くダイアログ
 await p.evaluate(() => window.scrollTo(0, 0));
+await p.evaluate(() => { const d = document.querySelector("#worth details"); if (d) d.open = true; });
 await p.locator("#worth .flink", { hasText: "Possible friction" }).first().click();
 await p.waitForTimeout(600);
 await p.evaluate(() => { const d = document.querySelector("#wk"); d.style.maxHeight = "none"; }); // 中身がまるごと写るように

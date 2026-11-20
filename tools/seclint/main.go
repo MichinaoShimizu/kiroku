@@ -47,8 +47,6 @@ type exception struct {
 
 // allow は、安全だとわかっていて認めるもの
 var allow = []exception{
-	{Rule: "js-html", File: "internal/web/js/format.js", Match: `$("#theme").innerHTML = ICON[next]`,
-		Reason: "ICON is a constant table of SVG icons in the same file; nothing from history, git or the network"},
 	{Rule: "file-mode", File: "internal/cli/autostart.go", Func: "cmdAutostart",
 		Reason: "the LaunchAgent plist or systemd user unit (0644, in a 0755 folder) holds only the kiroku path and serve options, no history; launchd and systemd read it as usual"},
 	{Rule: "file-mode", File: "tools/prices/main.go", Func: "run",
@@ -74,7 +72,7 @@ var baseline = []exception{
 	{Rule: "js-html", File: "internal/web/js/panels.js", Count: 1, Reason: "search results; history strings go through esc() and the highlighter"},
 	{Rule: "js-html", File: "internal/web/js/review.js", Count: 3, Reason: "the Worth a look dialog and its markers, built from t() and esc()"},
 	{Rule: "js-html", File: "internal/web/js/session.js", Count: 1, Reason: "the session panel; history strings go through esc() and md()"},
-	{Rule: "js-html", File: "internal/web/js/summary.js", Count: 5, Reason: "the period summary, report bar, Worth a look and metric hints; history strings go through esc()"},
+	{Rule: "js-html", File: "internal/web/js/summary.js", Count: 4, Reason: "the period summary, Worth a look and metric hints; history strings go through esc()"},
 }
 
 type finding struct {

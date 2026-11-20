@@ -150,7 +150,7 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 			// GET では鍵を渡さず、コードも使わない（リンクの先読みやチャットのプレビューが、コードを使い切ったり鍵を受け取ったりしないように）。
 			// ほかのサイトのページから換えさせないよう、/archive と同じく X-Kiroku ヘッダーと同じオリジンを求める
 			if r.Method == http.MethodPost {
-				if r.Header.Get("X-Kiroku") != "1" || (r.Header.Get("Origin") != "" && r.Header.Get("Origin") != "http://"+r.Host) || !useOpenCode(q.Get("code"), port) {
+				if r.Header.Get("X-Kiroku") != "1" || r.Header.Get("Origin") != "http://"+r.Host || !useOpenCode(q.Get("code"), port) {
 					http.Error(w, "forbidden", http.StatusForbidden)
 					return
 				}

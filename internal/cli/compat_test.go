@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"encoding/json"
+	"flag"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -52,32 +52,24 @@ func TestCompatArchive(t *testing.T) {
 			if files, _ := archive.Usage(dir); files != 1 {
 				t.Errorf("コピーの数 %d, want 1", files)
 			}
-			out := filepath.Join(t.TempDir(), "k.json")
 			t.Setenv("CLAUDE_CONFIG_DIR", t.TempDir()) // 元の履歴はない（コピーだけ）
-			args := []string{"json", "--sources", "claude", "--archive-dir", dir, "-o", out}
+			fs := flag.NewFlagSet("t", flag.ContinueOnError)
+			c := addCommon(fs)
+			if err := fs.Parse([]string{"--sources", "claude", "--archive-dir", dir}); err != nil {
+				t.Fatal(err)
+			}
+			var snap snapshot
 			captureOutput(t, func() {
-				if err := dispatch(args); err != nil {
+				_, load, err := c.loader()
+				if err != nil {
 					t.Fatal(err)
 				}
+				snap = load()
 			})
-			b, err := os.ReadFile(out)
-			if err != nil {
-				t.Fatal(err)
+			if len(snap.data) != 1 {
+				t.Fatalf("セッション %d 件, want 1", len(snap.data))
 			}
-			var got struct {
-				Sessions []struct {
-					ID       string `json:"id"`
-					Project  string `json:"project"`
-					NPrompts int    `json:"nPrompts"`
-				} `json:"sessions"`
-			}
-			if err := json.Unmarshal(b, &got); err != nil {
-				t.Fatal(err)
-			}
-			if len(got.Sessions) != 1 {
-				t.Fatalf("セッション %d 件, want 1", len(got.Sessions))
-			}
-			s := got.Sessions[0]
+			s := snap.data[0]
 			if s.ID != "0c0a7c1e-0000-4000-8000-00000000c0de" || s.Project != "app" || s.NPrompts != 2 {
 				t.Errorf("読んだセッション %+v", s)
 			}

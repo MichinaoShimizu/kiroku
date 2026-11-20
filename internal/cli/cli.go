@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -10,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/archive"
@@ -20,7 +20,7 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/web"
 )
 
-const helpText = `kiroku %s - see your AI coding agent history as a calendar (Claude Code, Kiro, Kiro Crew, Amazon Q, Codex)
+const helpText = `kiroku %s - see your AI coding agent history as a calendar (Claude Code, Kiro, Kiro Crew, Codex)
 
 Usage:
   kiroku <command> [flags] [args]
@@ -30,8 +30,6 @@ Commands:
   open [ADDR]           Open the view of a running "kiroku serve" with its key (--print shows the address for another device)
   html                  Write the view as a single static HTML file (default kiroku.html) and open it
                         (--week or --month writes only that period, for sharing)
-  json                  Write the aggregated data as JSON (default kiroku.json, "-" for stdout)
-  stats                 Print a one-screen summary of this week (--week last, --month this, ...) in the terminal
   archive [on|off]      Keep compressed copies of history that agents delete (Claude Code, Kiro Crew); no argument shows the status
   autostart [on [ADDR]|off]
                         Start "kiroku serve" in the background each time you log in; no argument shows the status
@@ -48,22 +46,11 @@ Get started: kiroku doctor, then kiroku serve
 func Main(v string) {
 	version = v
 	cleanupOldExe()
-	var notice *updateNotice
-	if len(os.Args) > 1 {
-		notice = startUpdateCheck(os.Args[1])
-		if os.Args[1] == "serve" {
-			serveNotice, notice = notice, nil // serve は始めに 1 行だけ知らせる（終わるまで待って聞かない）
-		}
-	}
 	if err := dispatch(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, styleFor(os.Stderr).bad(err.Error()))
 		os.Exit(1)
 	}
-	notice.offer(os.Stdin, os.Stderr) // 新しい版があれば知らせて、y なら更新する
 }
-
-// serveNotice は、kiroku serve の始めに知らせる新しい版（なければ nil）。
-var serveNotice *updateNotice
 
 func printHelp(w io.Writer) { fmt.Fprintf(w, helpText, version) }
 
@@ -78,10 +65,8 @@ func dispatch(args []string) error {
 		return cmdServe(args[1:])
 	case "html":
 		return cmdHTML(args[1:])
-	case "json":
-		return cmdJSON(args[1:])
-	case "stats":
-		return cmdStats(args[1:])
+	case "json", "stats":
+		return fmt.Errorf("\"kiroku %s\" was removed in kiroku 3.0; use \"kiroku serve\" (or \"kiroku html\" for a file) to see your history", args[0])
 	case "archive":
 		return cmdArchive(args[1:])
 	case "open":
@@ -116,7 +101,7 @@ func addCommon(fs *flag.FlagSet) *common {
 		kiroHome:   fs.String("kiro-home", source.DefaultKiroHome(), "Kiro data directory ($KIRO_HOME)"),
 		crewHome:   fs.String("crew-home", "", "Kiro Crew data directory (default $KIROCREW_HOME or ~/.kiro/crew; not moved by --kiro-home or $KIRO_HOME)"),
 		kiroCLIDB:  fs.String("kiro-cli-db", "", "path to data.sqlite3 of older Kiro CLI versions, shown as Kiro CLI (SQLite) (default: OS-specific)"),
-		amazonQDB:  fs.String("amazonq-db", "", "path to the Amazon Q Developer CLI data.sqlite3 (default: OS-specific)"),
+		amazonQDB:  fs.String("amazonq-db", "", "does nothing: kiroku no longer reads Amazon Q history (kept so existing scripts keep working)"),
 		codexHome:  fs.String("codex-home", "", "Codex data directory (default $CODEX_HOME or ~/.codex)"),
 		sources:    fs.String("sources", strings.Join(core.Families(), ","), "comma-separated sources to read: "+core.FamiliesHelp()),
 		prices:     fs.String("prices", "", "JSON file overriding the model price table"),
@@ -125,6 +110,14 @@ func addCommon(fs *flag.FlagSet) *common {
 	}
 }
 
+// Amazon Q の読み取りはやめた。--amazonq-db と --sources amazonq は、互換のために受け付けて何もしない（1 回だけ知らせる。終了コードは変えない）
+const droppedAmazonQ = "kiroku: Amazon Q support was dropped; --amazonq-db and --sources amazonq do nothing (Kiro CLI history is still read)"
+
+var (
+	droppedOnce sync.Once
+	droppedW    io.Writer = os.Stderr // テストで差しかえる
+)
+
 // picked は選んだ履歴。all は選んでいないものもふくめた全部（collect に渡す。選んでいない Kiro Crew からも、
 // 中身を出してはいけない会話の、Codex・Claude Code に残る写しを調べて隠すため。source.ClaimScanner）。
 func (c *common) picked() (picked []source.Source, want map[string]bool, all []source.Source) {
@@ -132,8 +125,11 @@ func (c *common) picked() (picked []source.Source, want map[string]bool, all []s
 	for _, s := range strings.Split(*c.sources, ",") {
 		want[strings.ToLower(strings.TrimSpace(s))] = true
 	}
+	if *c.amazonQDB != "" || want["amazonq"] {
+		droppedOnce.Do(func() { fmt.Fprintln(droppedW, droppedAmazonQ) })
+	}
 	all = source.All(source.Options{ClaudeRoot: *c.claudeRoot, KiroHome: *c.kiroHome, KiroCLIDB: *c.kiroCLIDB,
-		AmazonQDB: *c.amazonQDB, CrewHome: *c.crewHome, CodexHome: *c.codexHome, Archive: *c.archiveDir})
+		CrewHome: *c.crewHome, CodexHome: *c.codexHome, Archive: *c.archiveDir})
 	for _, s := range all {
 		if want[s.Family()] {
 			picked = append(picked, s)
@@ -268,7 +264,7 @@ func langFlag(fs *flag.FlagSet) *string {
 		fmt.Fprintf(logw, "ignoring KIROKU_LANG=%q: use one of %s\n", env, strings.Join(web.Langs, ", "))
 		env = ""
 	}
-	return fs.String("lang", env, "language of the view: en or ja ($KIROKU_LANG; default: the browser's language, English if it isn't Japanese). You can switch it in the view too")
+	return fs.String("lang", env, "language of the view: en or ja ($KIROKU_LANG; default: the browser's language, English if it isn't Japanese); ?lang=en or ?lang=ja in the address also picks it")
 }
 
 // aiEnv は $KIROKU_AI（--ai の既定）。前後の空白を除いて "1"・"true"・"yes"・"on"（大文字小文字を問わない）のときだけ、AI の実行を許す
@@ -391,39 +387,9 @@ func cmdHTML(args []string) error {
 	return nil
 }
 
-func cmdJSON(args []string) error {
-	fs := newFS("json", "json [flags]")
-	c := addCommon(fs)
-	out := fs.String("o", "kiroku.json", "output `file` (\"-\" for stdout)")
-	fs.StringVar(out, "out", "kiroku.json", "same as -o")
-	if _, err := parse(fs, args, 0); err != nil {
-		return quiet(err)
-	}
-	if *out == "-" {
-		logw = io.Discard // 標準出力を JSON だけにする
-	}
-	snap, err := loadNonEmpty(c)
-	if err != nil {
-		return err
-	}
-	return writeJSON(snap, *out)
-}
-
-func loadNonEmpty(c *common) (snapshot, error) {
-	_, load, err := c.loader()
-	if err != nil {
-		return snapshot{}, err
-	}
-	snap := load()
-	if len(snap.data) == 0 {
-		return snap, fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db, --amazonq-db; see \"kiroku doctor --all\")")
-	}
-	return snap, nil
-}
-
 func writeHTML(snap snapshot, out string, open bool, lang string) error {
 	if len(snap.data) == 0 {
-		return fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db, --amazonq-db; see \"kiroku doctor --all\")")
+		return fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db; see \"kiroku doctor --all\")")
 	}
 	parts, err := web.Marshal(snap.data, snap.weeks, snap.months, snap.meta, snap.gen)
 	if err != nil {
@@ -444,40 +410,6 @@ func writeHTML(snap snapshot, out string, open bool, lang string) error {
 		}
 	}
 	return nil
-}
-
-// jsonSchema は kiroku json の形の版。docs/compatibility.md の項目を消したり、名前や意味を変えたりしたら上げる（BREAKING）。
-const jsonSchema = 1
-
-// jsonSource は、画面の名前を変えたソースの、kiroku json の source の値（docs/compatibility.md が約束した値）。
-// 画面では Kiro IDE / CLI (V3) と出すが、1.0 で決めた "Kiro IDE / CLI" を変えるのは互換を壊す変更なので、書き出すときに戻す。
-var jsonSource = map[string]string{"Kiro IDE / CLI (V3)": "Kiro IDE / CLI"}
-
-// jsonSessions は、kiroku json に書くセッション。source を jsonSource の値に戻す（セッションは kiroku serve のキャッシュと
-// 共有しているので、変えるものは写しにする）。
-func jsonSessions(data []*core.Session) []*core.Session {
-	out := make([]*core.Session, len(data))
-	for i, s := range data {
-		if v, ok := jsonSource[s.Source]; ok {
-			c := *s
-			c.Source = v
-			s = &c
-		}
-		out[i] = s
-	}
-	return out
-}
-
-func writeJSON(snap snapshot, out string) error {
-	b, err := json.MarshalIndent(map[string]any{"schemaVersion": jsonSchema, "sessions": jsonSessions(snap.data), "weeks": snap.weeks, "months": snap.months, "meta": snap.meta}, "", " ")
-	if err != nil {
-		return err
-	}
-	if out == "-" {
-		_, err = os.Stdout.Write(append(b, '\n'))
-		return err
-	}
-	return writePrivate(out, b)
 }
 
 // writePrivate は、履歴を含むファイルをほかのユーザーが読めないように（0600）書く。
@@ -506,7 +438,7 @@ func writePrivate(out string, b []byte) error {
 // legacyForm は、v1.0 の前に消した前の書き方（kiroku --serve、--json、-o など）に、いまの書き方を教える。
 func legacyForm(arg string) error {
 	name, _, _ := strings.Cut(strings.TrimLeft(arg, "-"), "=")
-	now := map[string]string{"serve": "kiroku serve", "json": "kiroku json -o FILE", "o": "kiroku html -o FILE", "out": "kiroku html -o FILE",
+	now := map[string]string{"serve": "kiroku serve", "json": "kiroku html -o FILE", "o": "kiroku html -o FILE", "out": "kiroku html -o FILE",
 		"weekly": "kiroku serve", "monthly": "kiroku serve"}[name]
 	if now == "" {
 		return fmt.Errorf("unknown command: %s (run \"kiroku help\" for the list)", arg)

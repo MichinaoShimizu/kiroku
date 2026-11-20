@@ -5,7 +5,6 @@ package source
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -104,14 +103,12 @@ type Kept struct{ Src, Dst string }
 
 // Options は読み込みの設定。
 type Options struct {
-	ClaudeRoot   string
-	KiroHome     string
-	KiroStorages []string // nil なら OS ごとの場所を探す
-	CrewHome     string   // 空なら KIROCREW_HOME か ~/.kiro/crew（Crew は KIRO_HOME を見ない）
-	KiroCLIDB    string   // 空なら OS ごとの場所
-	AmazonQDB    string
-	CodexHome    string // 空なら CODEX_HOME か ~/.codex
-	Archive      string // kiroku archive の保存場所（空ならコピーを読まない）
+	ClaudeRoot string
+	KiroHome   string
+	CrewHome   string // 空なら KIROCREW_HOME か ~/.kiro/crew（Crew は KIRO_HOME を見ない）
+	KiroCLIDB  string // 空なら OS ごとの場所
+	CodexHome  string // 空なら CODEX_HOME か ~/.codex
+	Archive    string // kiroku archive の保存場所（空ならコピーを読まない）
 }
 
 func q(v, def string) string {
@@ -128,8 +125,6 @@ func All(o Options) []Source {
 		&KiroIDE{Home: o.KiroHome},
 		&KiroCLI{Home: o.KiroHome, CrewHome: q(o.CrewHome, DefaultCrewHome()), CrewArchive: sub(o.Archive, core.ArchiveDirOf("Kiro Crew"))},
 		&QStore{Label: "Kiro CLI (SQLite)", Fam: "kiro", DB: q(o.KiroCLIDB, filepath.Join(DataDir("kiro-cli"), "data.sqlite3")), Command: "kiro-cli chat --resume", ResumeID: "kiro-cli chat --resume-id"},
-		&KiroIDELegacy{Storages: storages(o.KiroStorages)},
-		&QStore{Label: "Amazon Q", Fam: "amazonq", DB: q(o.AmazonQDB, filepath.Join(DataDir("amazon-q"), "data.sqlite3")), Command: "q chat --resume"},
 		&Codex{Home: q(o.CodexHome, DefaultCodexHome())},
 	}
 }
@@ -140,13 +135,6 @@ func sub(dir, name string) string {
 		return ""
 	}
 	return filepath.Join(dir, name)
-}
-
-func storages(s []string) []string {
-	if s != nil {
-		return s
-	}
-	return KiroGlobalStorage()
 }
 
 func home() string {
@@ -186,31 +174,6 @@ func kiroHomeOverride(v string) string {
 		}
 	}
 	return v
-}
-
-// KiroGlobalStorage は Kiro IDE（v1.0 より前）の保存場所。あるものだけ返す。
-func KiroGlobalStorage() []string {
-	var bases []string
-	switch runtime.GOOS {
-	case "darwin":
-		bases = []string{filepath.Join(home(), "Library", "Application Support", "Kiro")}
-	case "windows":
-		appdata := os.Getenv("APPDATA")
-		if appdata == "" {
-			appdata = filepath.Join(home(), "AppData", "Roaming")
-		}
-		bases = []string{filepath.Join(appdata, "Kiro")}
-	default:
-		bases = []string{filepath.Join(home(), ".config", "Kiro"), filepath.Join(home(), ".kiro-server", "data")}
-	}
-	var out []string
-	for _, b := range bases {
-		p := filepath.Join(b, "User", "globalStorage", "kiro.kiroagent")
-		if isDir(p) {
-			out = append(out, p)
-		}
-	}
-	return out
 }
 
 // safeName は、履歴の中身から読んだ名前（セッション ID など）を、ファイル名の 1 つの部分として使ってよいか。

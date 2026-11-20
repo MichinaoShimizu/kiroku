@@ -5,7 +5,9 @@ import (
 	"flag"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/MichinaoShimizu/kiroku/internal/ai"
@@ -16,6 +18,7 @@ func TestAIEndpointNotFoundWhenOff(t *testing.T) {
 	l := &live{}
 	r := httptest.NewRequest(http.MethodPost, "http://localhost:8485/ai/run", strings.NewReader(`{"agent":"claude","prompt":"hello","consent":true}`))
 	r.Header.Set("X-Kiroku", "1")
+	r.Header.Set("Origin", "http://"+r.Host) // 画面からの POST は、ブラウザがいつも Origin を付ける
 	w := httptest.NewRecorder()
 	l.handler().ServeHTTP(w, r)
 	if w.Code != http.StatusNotFound {
@@ -41,7 +44,7 @@ func TestAIOnlyOnLoopbackIP(t *testing.T) {
 // The startup line says whether agent runs are on, how to turn them off and that the agent may send data to its provider.
 func TestAIStartLine(t *testing.T) {
 	on := aiStartLine(true, true)
-	for _, s := range []string{"is on (--ai)", "without --ai", "may send the prompt and the history it reads to its provider"} {
+	for _, s := range []string{"is on (--ai or KIROKU_AI)", "without them", "may send the prompt and the history it reads to its provider"} {
 		if !strings.Contains(on, s) {
 			t.Errorf("start line %q lacks %q", on, s)
 		}
@@ -125,4 +128,37 @@ func TestAIOptIn(t *testing.T) {
 			t.Errorf("KIROKU_AI=%q: aiEnv() = %v, want %v", v, got, want)
 		}
 	}
+}
+
+// Amazon Q の読み取りはやめた。--amazonq-db と --sources amazonq は受け付けたまま何もせず、1 回だけ知らせる（エラーにしない）
+func TestDroppedAmazonQOptions(t *testing.T) {
+	for _, args := range [][]string{{"--amazonq-db", "/x/q.sqlite3"}, {"--sources", "claude,amazonq"}} {
+		var buf strings.Builder
+		droppedOnce, droppedW = sync.Once{}, &buf
+		fs := flag.NewFlagSet("x", flag.ContinueOnError)
+		c := addCommon(fs)
+		if err := fs.Parse(args); err != nil {
+			t.Fatalf("%q: %v", args, err)
+		}
+		picked, _, _ := c.picked()
+		c.picked() // 2 回目は知らせない
+		if n := strings.Count(buf.String(), "Amazon Q support was dropped"); n != 1 {
+			t.Errorf("%q: 知らせ %d 回: %q", args, n, buf.String())
+		}
+		for _, s := range picked {
+			if s.Family() == "amazonq" || s.Name() == "Amazon Q" {
+				t.Errorf("%q: Amazon Q を読もうとした", args)
+			}
+		}
+	}
+	var buf strings.Builder
+	droppedOnce, droppedW = sync.Once{}, &buf
+	fs := flag.NewFlagSet("x", flag.ContinueOnError)
+	c := addCommon(fs)
+	fs.Parse(nil)
+	c.picked()
+	if buf.Len() != 0 {
+		t.Errorf("使っていないのに知らせた: %q", buf.String())
+	}
+	t.Cleanup(func() { droppedOnce, droppedW = sync.Once{}, os.Stderr })
 }

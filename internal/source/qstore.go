@@ -13,8 +13,8 @@ import (
 	_ "modernc.org/sqlite" // C を使わない SQLite。どの OS にもそのままビルドできる
 )
 
-// QStore は Kiro CLI（古い版）と Amazon Q Developer CLI の data.sqlite3。
-// どちらも同じ作り（amazon-q-developer-cli が元）:
+// QStore は Kiro CLI（古い版）の data.sqlite3（Amazon Q Developer CLI は読まなくなった）。
+// 作りは amazon-q-developer-cli が元:
 //
 //	conversations(key = 作業フォルダ, value = 会話の JSON)          … フォルダごとに 1 行を上書き
 //	conversations_v2(key, conversation_id, value, created_at, updated_at) … Kiro CLI だけ。フォルダに会話が何件も入る

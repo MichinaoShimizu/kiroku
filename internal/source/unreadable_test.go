@@ -73,22 +73,6 @@ func TestKiroIDEReportsUnreadableFiles(t *testing.T) {
 	}
 }
 
-func TestKiroIDELegacyReportsUnreadableFiles(t *testing.T) {
-	gs := t.TempDir()
-	writeFiles(t, gs, map[string]string{
-		"workspace-sessions/d3M=/sessions.json": `[{"sessionId": "a", "dateCreated": 1759100000000}, {"sessionId": "gone", "dateCreated": 1759100000000}]`,
-		"workspace-sessions/d3M=/a.json":        `{"history": [`,
-		"workspace-sessions/eA==/sessions.json": `[{"sessionId": `,
-	})
-	ids, err := loadAllErr(&KiroIDELegacy{Storages: []string{gs}})
-	if err == nil || !strings.Contains(err.Error(), "a.json") || !strings.Contains(err.Error(), "and 1 more") {
-		t.Errorf("Load のエラー = %v, want a.json と、ほかに 1 つ（消えた gone.json は数えない）", err)
-	}
-	if !slices.Contains(ids, "a") {
-		t.Errorf("読めた会話 = %v", ids)
-	}
-}
-
 // Kiro CLI の壊れたメタデータと、Crew の途中で切れた kiroku archive のコピー。
 func TestKiroCLIAndCrewReportUnreadableFiles(t *testing.T) {
 	kh, ch, arch := t.TempDir(), t.TempDir(), t.TempDir()

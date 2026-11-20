@@ -27,27 +27,14 @@ func setup(t *testing.T) (data any, weeks map[string]*report.Week, rep []source.
 		t.Skip("タイムゾーンのデータがない:", err)
 	}
 	time.Local = tokyo
-	// 古い Kiro IDE は終了時刻にファイルの更新時刻を使う。git はそれを保存しないので、ここで戻す。
-	var mt map[string]float64
-	b, err := os.ReadFile("testdata/mtimes.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	json.Unmarshal(b, &mt)
-	for rel, ts := range mt {
-		tm := time.Unix(0, int64(ts*1e9))
-		if err := os.Chtimes(filepath.Join("testdata", "home", filepath.FromSlash(rel)), tm, tm); err != nil {
-			t.Fatal(err)
-		}
-	}
 	h := filepath.Join("testdata", "home")
 	all := source.All(source.Options{
-		ClaudeRoot:   filepath.Join(h, ".claude", "projects"),
-		KiroHome:     filepath.Join(h, ".kiro"),
-		KiroStorages: []string{filepath.Join(h, ".config", "Kiro", "User", "globalStorage", "kiro.kiroagent")},
+		ClaudeRoot: filepath.Join(h, ".claude", "projects"),
+		KiroHome:   filepath.Join(h, ".kiro"),
 	})
-	// Python 版にあった 4 つの履歴だけで比べる（あとから足したアダプターは internal/source のテストで確かめる）
-	python := map[string]bool{"Claude Code": true, "Kiro IDE / CLI (V3)": true, "Kiro CLI (V2)": true, "Kiro IDE (legacy)": true}
+	// Python 版にあった履歴だけで比べる（あとから足したアダプターは internal/source のテストで確かめる）。
+	// Python 版にあった Kiro IDE (legacy) は読まなくなったので、TestMatchesPythonVersion がその分を golden から外して比べる
+	python := map[string]bool{"Claude Code": true, "Kiro IDE / CLI (V3)": true, "Kiro CLI (V2)": true}
 	var picked []source.Source
 	for _, s := range all {
 		if python[s.Name()] {
@@ -74,6 +61,7 @@ func TestMatchesPythonVersion(t *testing.T) {
 	if err := json.Unmarshal(b, &want); err != nil {
 		t.Fatal(err)
 	}
+	dropLegacy(want, got)
 	var diffs []string
 	compare(want, got, "", &diffs)
 	for i, d := range diffs {
@@ -136,94 +124,6 @@ func TestSameConversationCountedOnce(t *testing.T) {
 	}
 	if len(data) != rep[0].N+2 {
 		t.Fatalf("セッション数 = %d", len(data))
-	}
-}
-
-// Kiro IDE を v1.0 へ移すと、v1.0 より前の形式の会話も残る（kiro.dev の whats-new-v1）。同じ ID の会話は v1.0 のほうだけを数える。
-func TestKiroIDEMigratedCountedOnce(t *testing.T) {
-	home, gs := t.TempDir(), t.TempDir()
-	files := map[string]string{
-		filepath.Join(home, "sessions", "h", "sess_1", "session.json"):   `{"id": "conv-a", "createdAt": "2026-09-29T01:00:00Z", "modelId": "claude-sonnet-4.5"}`,
-		filepath.Join(home, "sessions", "h", "sess_1", "messages.jsonl"): `{"timestamp": "2026-09-29T01:01:00Z", "payload": {"type": "user", "content": "画面を作って"}}` + "\n",
-		filepath.Join(gs, "workspace-sessions", "d3M=", "sessions.json"): `[{"sessionId": "conv-a", "dateCreated": 1759100000000}, {"sessionId": "conv-b", "dateCreated": 1759100000000}]`,
-		filepath.Join(gs, "workspace-sessions", "d3M=", "conv-a.json"):   `{"history": [{"message": {"role": "user", "content": "画面を作って"}}]}`,
-		filepath.Join(gs, "workspace-sessions", "d3M=", "conv-b.json"):   `{"history": [{"message": {"role": "user", "content": "表を作って"}}]}`,
-	}
-	for p, body := range files {
-		if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(p, []byte(body), 0o600); err != nil {
-			t.Fatal(err)
-		}
-	}
-	all := source.All(source.Options{KiroHome: home, KiroStorages: []string{gs}, CrewHome: filepath.Join(home, "crew"),
-		KiroCLIDB: filepath.Join(home, "none.sqlite3")})
-	data, rep := collect(all, map[string]bool{"kiro": true}, 15)
-	n := map[string]source.Report{}
-	for _, r := range rep {
-		n[r.Name] = r
-	}
-	if r := n["Kiro IDE / CLI (V3)"]; r.N != 1 || r.Error != nil {
-		t.Errorf("Kiro IDE: n=%d err=%v, want 1", r.N, r.Error)
-	}
-	if r := n["Kiro IDE (legacy)"]; r.N != 1 || r.Dup != 1 || r.Error != nil {
-		t.Errorf("Kiro IDE (legacy): n=%d dup=%d err=%v, want 1 と 1（v1.0 にもある会話は外す。読めないファイルではない）", r.N, r.Dup, r.Error)
-	}
-	if len(data) != 2 {
-		t.Fatalf("セッション数 = %d, want 2", len(data))
-	}
-	for _, s := range data {
-		if s.ID == "conv-a" && s.Source != "Kiro IDE / CLI (V3)" {
-			t.Errorf("conv-a は v1.0 のほうを使う: %s", s.Source)
-		}
-	}
-}
-
-// v1.0 より前の会話を外すのは、同じ ID の v1.0 の会話がセッションになったときだけ。v1.0 の会話どうしは外し合わない。
-func TestKiroIDEMigratedOnlyLegacyYields(t *testing.T) {
-	home, gs := t.TempDir(), t.TempDir()
-	prompt := `{"timestamp": "2026-09-29T01:01:00Z", "payload": {"type": "user", "content": "画面を作って"}}` + "\n"
-	files := map[string]string{
-		// 時刻も依頼もない v1.0 の会話（置かれただけのものや、読めなかったもの）は、v1.0 より前の会話を隠さない
-		filepath.Join(home, "sessions", "zz", "s1", "session.json"): `{"id": "conv-a"}`,
-		// 同じ id の v1.0 の会話が 2 つあっても、両方出す
-		filepath.Join(home, "sessions", "a0", "s9", "session.json"):   `{"id": "dup", "title": "one"}`,
-		filepath.Join(home, "sessions", "a0", "s9", "messages.jsonl"): prompt,
-		filepath.Join(home, "sessions", "h1", "s2", "session.json"):   `{"id": "dup", "title": "two"}`,
-		filepath.Join(home, "sessions", "h1", "s2", "messages.jsonl"): prompt,
-		// id がなく、フォルダ名が同じ会話も両方出す
-		filepath.Join(home, "sessions", "h3", "same", "session.json"):    `{"title": "three"}`,
-		filepath.Join(home, "sessions", "h3", "same", "messages.jsonl"):  prompt,
-		filepath.Join(home, "sessions", "h4", "same", "session.json"):    `{"title": "four"}`,
-		filepath.Join(home, "sessions", "h4", "same", "messages.jsonl"):  prompt,
-		filepath.Join(gs, "workspace-sessions", "d3M=", "sessions.json"): `[{"sessionId": "conv-a", "dateCreated": 1759100000000}, {"sessionId": "same", "dateCreated": 1759100000000}]`,
-		filepath.Join(gs, "workspace-sessions", "d3M=", "conv-a.json"):   `{"history": [{"message": {"role": "user", "content": "画面を作って"}}]}`,
-		filepath.Join(gs, "workspace-sessions", "d3M=", "same.json"):     `{"history": [{"message": {"role": "user", "content": "表を作って"}}]}`,
-	}
-	for p, body := range files {
-		if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(p, []byte(body), 0o600); err != nil {
-			t.Fatal(err)
-		}
-	}
-	all := source.All(source.Options{KiroHome: home, KiroStorages: []string{gs}, CrewHome: filepath.Join(home, "crew"),
-		KiroCLIDB: filepath.Join(home, "none.sqlite3")})
-	data, rep := collect(all, map[string]bool{"kiro": true}, 15)
-	n := map[string]source.Report{}
-	for _, r := range rep {
-		n[r.Name] = r
-	}
-	if r := n["Kiro IDE / CLI (V3)"]; r.N != 5 || r.Dup != 0 {
-		t.Errorf("Kiro IDE: n=%d dup=%d, want 5 と 0（v1.0 どうしは外さない）", r.N, r.Dup)
-	}
-	if r := n["Kiro IDE (legacy)"]; r.N != 2 || r.Dup != 0 {
-		t.Errorf("Kiro IDE (legacy): n=%d dup=%d, want 2 と 0（空の v1.0 の会話や id のない会話では外さない）", r.N, r.Dup)
-	}
-	if len(data) != 6 {
-		t.Errorf("セッション数 = %d, want 6", len(data))
 	}
 }
 
@@ -435,5 +335,35 @@ func TestLoadPricesOverridesLongPrices(t *testing.T) {
 	c, ok := core.CostOfRequest("claude-haiku-5-5", core.Tokens{In: 200_000, Out: 1_000_000})
 	if want := 0.2 + 2.0; !ok || math.Abs(c-want) > 1e-9 {
 		t.Errorf("cost = %v, want %v", c, want)
+	}
+}
+
+// dropLegacy は、golden（Python 版の数字。作り直さない）から、読まなくなった Kiro IDE (legacy) のセッションと、
+// それが入っていた週を外す（その週の合計は、もう同じにならない）。ほかの週とセッションは今までどおり比べる
+func dropLegacy(want, got any) {
+	w, g := want.(map[string]any), got.(map[string]any)
+	var kept []any
+	weeks := map[string]bool{}
+	monday := func(sec float64) string {
+		d := time.Unix(int64(sec), 0).In(time.Local)
+		d = time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, time.Local)
+		return d.AddDate(0, 0, -((int(d.Weekday()) + 6) % 7)).Format("2006-01-02")
+	}
+	for _, x := range w["sessions"].([]any) {
+		s := x.(map[string]any)
+		if s["source"] != "Kiro IDE (legacy)" {
+			kept = append(kept, x)
+			continue
+		}
+		for _, k := range []string{"start", "end"} {
+			if v, ok := s[k].(float64); ok {
+				weeks[monday(v)] = true
+			}
+		}
+	}
+	w["sessions"] = kept
+	for k := range weeks {
+		delete(w["weeks"].(map[string]any), k)
+		delete(g["weeks"].(map[string]any), k)
 	}
 }

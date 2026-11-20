@@ -30,7 +30,7 @@ function render(){
   // 件数は横にスクロールする並び（.lrow）の外に置く。スマホでは並びの上に出し、チップが多くても画面の外へ押し出されないように
   $("#legend").innerHTML = `<label class="cbsel"><span class="cbt">${esc(t("Color by"))}</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label><div class="lrow"><span class="lab">${esc(t("Active time"))}<small> · ${esc(t("click to hide"))}</small></span>` +
     Object.keys(cnt).sort((a,b)=>(mins[b]||0)-(mins[a]||0) || cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}" title="${esc(t("{name}: {stats} (click to show or hide)", {name: k, stats: `${mins[k] ? dur(mins[k]) + " · " : ""}${plural(cnt[k], "session")}`}))}"><span class="dot"></span>${st.colorBy === "source" ? agMark(k) : ""}<span class="cn">${esc((k))}</span><span class="n">${mins[k] ? dur(mins[k]) : "—"}<span class="sr"> ${esc(t("active"))}</span></span></button>`).join("") +
-    `</div><span class="count">${esc(t("{n} / {total} sessions", {n: shown.length, total: inRange.length}))}</span>`;
+    `</div>${filtering() ? `<span class="count">${esc(t("{n} / {total} sessions", {n: shown.length, total: inRange.length}))}</span>` : ""}`; // 件数は絞り込んでいるときだけ（ふだんは全件なので言うことがない）
   // 検索・凡例で絞り込んでいるあいだ、絞り込めない合計（作業時間・トークンなど）は薄くして、そう断る
   const fn = $("#fnote"); fn.hidden = !filtering() || noHit;
   fn.textContent = `${st.q ? t("This view shows only sessions matching the search and their linked records.") : t("Hidden items are left out of this view.")} ${M ? t("Gray figures, at the top and in each day and week, are totals for all sessions; sessions and commits there count only what is shown.") : t("Gray figures, at the top and under each date, are totals for all sessions; sessions and commits there count only what is shown.")}`;
@@ -98,7 +98,7 @@ function kpis(){
   // 前の期間並みに収めるなら、残りの日 1 日あたりいくらか（pacing）。費用とクレジットは 1 つの枠に並べる（枠を増やすと帯がカレンダーと主役を争うため）。
   // 超えていれば、その分を「超過」と書く。良し悪しは言わない。ちょうど同じ額なら、超過 +0 ではなく 1 日 0
   const pc = pacing(w, pw), paceK = () => {
-    const xs = [[pc.cost, (v, txt) => txt ? usd(v) : usdH(v)], [pc.credits, (v, txt) => txt ? cr(v) : `${crN(v)}<small> cr</small>`]].filter(([x]) => x);
+    const xs = [[pc.cost, (v, txt) => txt ? usd(v) : usdH(v)], [pc.credits, (v, txt) => txt ? cr(v) : `${crN(v)}<small>&nbsp;cr</small>`]].filter(([x]) => x);
     const all = xs.every(([x]) => x.rest < 0);
     if (all) return kpi(t(M ? "Past last month's total" : "Past last week's total"), xs.map(([x, f]) => `<small>+</small>${f(-x.rest)}<small> ${esc(t("over"))}</small>`).join(`<small> · </small>`),
       t(M ? "Last month's total was {v}" : "Last week's total was {v}", {v: xs.map(([x, f]) => f(x.ref, true)).join(" · ")}), "key", pc.cost ? "pace" : "paceCr");
@@ -114,9 +114,9 @@ function kpis(){
   // 稼働日・セッション / プロンプト・利用上限への到達は振り返りの数なので、サマリーと「見直す候補」に任せる（帯が多いとカレンダーと主役を争う）。
   // 推定費用とクレジットは別の枠の使用量なので足さずに、1 つの枠に「 · 」で並べる。トークンは推定費用を出せないときだけ
   const c = u.tokens ? costOf(u) : null, two = (a, b) => [a, b].filter(Boolean).join(`<small> · </small>`);
-  const useV = two(u.tokens ? (c == null ? tok(u.tokens) : usdH(c)) : "", u.credits ? `${crN(u.credits)}<small> cr</small>` : "");
+  const useV = two(u.tokens ? (c == null ? tok(u.tokens) : usdH(c)) : "", u.credits ? `${crN(u.credits)}<small>&nbsp;cr</small>` : "");
   const useK = u.tokens && u.credits ? t(c == null ? "Tokens · credits" : "Estimated cost · credits") : u.tokens ? t(c == null ? "Tokens" : "Estimated cost") : t("Kiro credits");
-  const pjV = pj ? two(pj.cost != null ? `<small>≈</small>${usdH(pj.cost)}` : "", pj.credits != null ? `<small>≈</small>${crN(pj.credits)}<small> cr</small>` : "") : "";
+  const pjV = pj ? two(pj.cost != null ? `<small>≈</small>${usdH(pj.cost)}` : "", pj.credits != null ? `<small>≈</small>${crN(pj.credits)}<small>&nbsp;cr</small>` : "") : "";
   const pu = pw && pw.usage, useD = u.tokens ? (c == null ? dl(u.tokens, V.of("tokens", pu && pu.tokens)) : dl(u.cost, V.of("cost", pu && pu.cost))) : dl(u.credits, V.of("credits", pu && pu.credits));
   K.innerHTML = (useV ? kpi(useK, useV, u.tokens && c == null ? NOPRICE : "", "key", u.tokens ? (c == null ? "tokens" : "cost") : "credits", useD) : "") +
     (pc && !pj ? paceK() : "") + // 月の途中は月末の推定を出すので、前の月並みの目安は出さない（内訳とサマリーにある）
@@ -134,23 +134,18 @@ function kpis(){
 const useKinds = xs => ({tokens: xs.some(d => d && d.tokens), cost: xs.some(d => d && d.cost > 0), credits: xs.some(d => d && d.credits)});
 function calRows(act, u, nS, nC, kinds, un){
   const k = un ? "k u" : "k", o = un > 1 ? "u" : "";
-  const use = kinds.cost ? [t("Est. cost"), u && u.cost > 0 ? esc(usd(costOf(u))) : "—", k] : kinds.tokens ? [t("Tokens"), u && u.tokens ? tok(u.tokens) : "—", k] : kinds.credits && [t("Credits"), u && u.credits ? cr(u.credits) : "—", k];
-  return [use, [t("Commits"), nC, o]].filter(Boolean);
+  // [名前, 値（ただの文字）, class]。HTML に入れるときは、呼ぶ側で esc する
+  const use = kinds.cost ? [t("Est. cost"), u && u.cost > 0 ? usd(costOf(u)) : "—", k] : kinds.tokens ? [t("Tokens"), u && u.tokens ? tok(u.tokens) : "—", k] : kinds.credits && [t("Credits"), u && u.credits ? cr(u.credits) : "—", k];
+  return [use, [t("Commits"), String(nC), o]].filter(Boolean);
 }
-const calDl = rows => `<dl class="cm">${rows.map(([k, v, c]) => `<div${c ? ` class="${c}"` : ""}><dt>${esc(k)}</dt><dd>${v}</dd></div>`).join("")}</dl>`; // k は強く出す値
+// 週の日の見出しは 1 行：使用量（推定費用など）と、コミットの数（印つき）。何の数かは、見出しのツールチップと読み上げの名前で言う
+const calLine = rows => `<div class="cline">${rows.filter(([, v], i) => !(i && v === "0")).map(([k, v, c], i) => `<span class="${i ? "cc" : "cu"}${c && c.includes("u") ? " u" : ""}" aria-label="${esc(`${k}: ${v}`)}">${i ? ico("commit") : ""}${esc(v)}</span>`).join(`<span class="sep" aria-hidden="true">·</span>`)}</div>`;
 // スマホでは作業時間と使用量だけ。トークンとクレジットは別の行に出す（両方あれば 2 行）。
 // ひとつの枠にまとめると、Claude Code と Kiro を両方使う人には、片方しか見えないため。
 function calShort(act, u, un, kinds){
   const q = un ? " u" : "";
   const v = !u ? "" : kinds.cost ? u.cost > 0 && usdS(u.cost) : kinds.tokens ? u.tokens && tokS(u.tokens) : u.credits && cr(u.credits);
   return `<span class="acs${q}">${esc(v || "—")}</span>`;
-}
-// allowH は、まだ来ていない日に置く「目安」：前の期間と同じ推定費用（クレジット）に収めるなら、残りの日 1 日あたりいくらか（pacing）。
-// 前の期間をもう超えていれば出さない（0 と書くと「使うな」と読めるため。超えたことは上の帯が言う）。月のマスには出さない（同じ額が並ぶだけなので、帯の 1 か所で足りる）
-function allowH(pc){
-  const xs = [pc.cost && pc.cost.rest > 0 && usd(pc.cost.per), pc.credits && pc.credits.rest > 0 && cr(pc.credits.per)].filter(Boolean); if (!xs.length) return `<small>—</small>`;
-  const tip = t(st.mode === "month" ? "To stay at last month's total, about this much a day for the {n} left" : "To stay at last week's total, about this much a day for the {n} left", {n: plural(pc.left, "day")});
-  return `<div class="allow"${tipAttr(t("To match"), tip, ...xs)}><span>${esc(t("To match"))}</span>${xs.map(x => `<b>${esc(x)}</b>`).join("")}</div>`;
 }
 const filtering = () => !!st.q || st.hidden.size > 0;
 /* カレンダーに出すコミット：凡例で隠したプロジェクトのものは出さない。検索中は、一致したセッションの間のコミットと、それ自体が一致したコミットだけ */
@@ -169,17 +164,16 @@ function monthGrid(shown, ms, me, todayKey){
   for (let r = 0; r < 6; r++){
     const wk = addDays(first, 7*r); if (wk.getTime()/1000 >= me) break;
     const W = WEEKS[key(wk)], wa = W ? W.active : 0, wc = W && W.git ? W.git.commits : 0; // 週の合計（月の外の日も含む、その週まるごと）
-    h += `<button class="cell wkc" data-w="${key(wk)}"${tipAttr(t("Week {n}", {n: isoWeek(wk)}), W ? [`${t("Active")} ${dur(wa)}`, `${t("Sessions")} ${W.sessions}`, ...useLines(W.usage), `${t("Git commits")} ${wc}`] : t("No records"))}><span class="dn">${isJA() ? `${isoWeek(wk)}週` : `W${isoWeek(wk)}`}</span>${W && wa ? calDl(calRows(wa, W.usage, W.sessions, wc, kinds, un && 2)) + calShort(wa, W.usage, un, kinds) : ""}</button>`;
+    h += `<button class="cell wkc" data-w="${key(wk)}"${tipAttr(t("Week {n}", {n: isoWeek(wk)}), W ? [`${t("Active")} ${dur(wa)}`, `${t("Sessions")} ${W.sessions}`, ...useLines(W.usage), `${t("Git commits")} ${wc}`] : t("No records"))}><span class="dn">${isJA() ? `${isoWeek(wk)}週` : `W${isoWeek(wk)}`}</span>${W && wa ? calShort(wa, W.usage, un, kinds) : ""}</button>`;
     for (let c = 0; c < 7; c++){
       const d = addDays(wk, c), ds = d.getTime()/1000, de = addDays(d,1).getTime()/1000, inM = d.getMonth() === st.month.getMonth();
       if (!inM){ h += `<div class="cell out"><span class="dn">${d.getDate()}</span></div>`; continue; }
       const x = S ? S.days[d.getDate()-1] : null, act = x ? x.active : 0;
-      const by = {}; shown.forEach(s => s.segs.forEach(([a,b]) => { const o = Math.min(b,de) - Math.max(a,ds); if (o > 0) by[keyOf(s)] = (by[keyOf(s)]||0) + o; }));
-      const pj = Object.entries(by).sort((a,b)=>b[1]-a[1]), nS = shown.filter(s => inP(s, ds, de)).length;
+      const nS = shown.filter(s => inP(s, ds, de)).length;
       const nC = G ? G.filter(c => c.t >= ds && c.t < de).length : x && x.commits || 0;
       h += `<button class="cell${d.getDay()%6===0?" we":""}${wkc(d.getDay())}${key(d)===todayKey?" today":""}" data-w="${key(mondayOf(d))}" style="--heat:${(act/max).toFixed(3)}"${tipAttr(md(ds), act ? [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(x), `${t("Git commits")} ${nC}`] : t("No records"))}>
-        <span class="dn">${d.getDate()}</span>${act ? calDl(calRows(act, x, nS, nC, kinds, un)) + calShort(act, x, un, kinds) : ""}
-        ${pj.length ? `<span class="pj">${pj.map(([k,v])=>`<span style="flex:${v};--c:${colorOf(k)}"></span>`).join("")}</span>` : ""}</button>`;
+        <span class="dn">${d.getDate()}</span>${act ? calShort(act, x, un, kinds) : ""}
+        </button>`;
     }
   }
   h += `</div><div class="mlegend"><span class="nw">${esc(t("Less"))}</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${esc(t("More"))} · ${esc(matchMedia("(max-width:820px)").matches ? t("Shade = active time. Week totals include all 7 days. Tap a date or week to open it.") : t("Shade = active time. Week totals include all 7 days. Click a date or week to open it."))}</div>`;
@@ -205,13 +199,12 @@ function timeline(shown, inWeek, ws, we, todayKey){
   for (let h=1; h<24; h++) if (Math.abs(h - nowH) * hh >= 20) hours += `<span style="top:${h*hh}px">${String(h).padStart(2,"0")}:00</span>`;
   if (nowS >= ws && nowS < we) hours += `<span class="now" style="top:${nowH*hh}px">${hm(nowS)}</span>`;
   const runs = [], un = filtering() ? 1 : 0, G = gitShown(shown), kinds = useKinds(w ? w.days : []);
-  const pc = pacing(w, period().P), tmr = addDays(today0(), 1).getTime()/1000; // まだ来ていない日の見出しには、前の週並みに収める 1 日の目安
   for (let d=0; d<7; d++){
     const day = addDays(st.week,d), ds = day.getTime()/1000, de = addDays(st.week,d+1).getTime()/1000, isToday = key(day) === todayKey;
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
     const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${(act || dayGit.length) && (aiRun() || aiDemo()) ? `<button class="pill dayrun ai-action" data-d="${d}" type="button" aria-label="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}" title="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}">${ico("ai")}<span>${esc(t("Analyze with AI"))}</span></button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : pc && ds >= tmr ? allowH(pc) : `<small>—</small>`}</div>`;
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${(act || dayGit.length) && (aiRun() || aiDemo()) ? `<button class="pill dayrun ai-action" data-d="${d}" type="button" aria-label="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}" title="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}">${ico("ai")}<span>${esc(t("Analyze with AI"))}</span></button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calLine(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`; // まだ来ていない日に「目安」は置かない（同じ額が上の帯の「前の週並みの 1 日の目安」にある）
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
@@ -248,13 +241,17 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const marks = [...dayGit.map(c => ({t: c.t, c})),
       ...(META.push || []).filter(p => p.t >= ds && p.t < de && showP(p)).map(p => ({t: p.t, p})),
       ...shown.flatMap(s => (s.prAt || []).filter(x => x.t >= ds && x.t < de).map(x => ({t: x.t, r: x, s})))].sort((a, b) => a.t - b.t);
-    let gy = -99;
-    marks.forEach(({t: at, c, p, r, s}) => { // 読み上げの名前には日付も入れる（セッションと同じく、どの日のものかわかるように）
-      const y = Math.max(clockH(day, at)*hh, gy + 17); gy = y;
+    // 印の縦の位置：重ならないよう下へ積み、日の終わり（24:00）を越える分は上へ戻す（夜遅い印が枠の外に出て見えなくならないように）
+    const ys = []; { let g = -99; marks.forEach(m => { g = Math.max(clockH(day, m.t)*hh, g + 17); ys.push(g); });
+      for (let i = ys.length - 1; i >= 0; i--) ys[i] = Math.min(ys[i], i === ys.length - 1 ? H - 16 : ys[i+1] - 17); }
+    marks.forEach(({t: at, c, p, r, s}, mi) => { // 読み上げの名前には日付も入れる（セッションと同じく、どの日のものかわかるように）
+      const y = ys[mi];
       if (p){ html += `<button class="gm push${st.sel === "push:" + pushKey(p) ? " sel" : ""}" data-push="${esc(pushKey(p))}" style="top:${y}px" title="${esc((p.commits ? t("{time} Pushed to {ref} ({commits}) · {project}", {time: hm(at), ref: p.ref, commits: plural(p.commits, "commit"), project: p.project}) : t("{time} Pushed to {ref} · {project}", {time: hm(at), ref: p.ref, project: p.project})) + "\n" + t("From this computer (git reflog)"))}" aria-label="${esc(t("Push {time} to {ref}", {time: md(at) + " " + hm(at), ref: p.ref}))}">${ico("push")}</button>`; return; }
       if (r){ html += `<button class="gm prm${st.sel === "pr:" + prKey(s, r) ? " sel" : ""}" data-pr="${esc(prKey(s, r))}" style="top:${y}px" title="${esc(t("{time} Created a pull request · {project}", {time: hm(at), project: s.project}) + (r.url ? "\n" + r.url : "") + "\n" + t("Recorded when an agent created it"))}" aria-label="${esc(t("Pull request {time}", {time: md(at) + " " + hm(at)}))}">${ico("pr")}</button>`; return; }
       html += `<button class="gc${c.ai ? " ai" : ""}${st.sel === "git:"+c.hash ? " sel" : ""}" data-c="${esc(c.hash)}" style="top:${y}px" title="${esc(`${hm(c.t)} ${c.project}${c.branch ? " · "+c.branch : ""} · ${c.hash}\n${c.subject}\n${plural(c.nFiles, "file")} +${c.added} −${c.removed}${c.ai ? " · " + t("run by AI") : ""}`)}" aria-label="${esc(t("Commit {time} {subject}", {time: md(c.t) + " " + hm(c.t), subject: c.subject}))}">${GIT_ICON}<span>${esc(c.hash.slice(0,7))}</span></button>`; });
-    limitHits(ds, de).filter(h => matches(h.s)).forEach(h => { html += `<button class="lim" data-id="${esc(h.s.id)}" style="top:${clockH(day, h.t)*hh}px" title="${esc(t("{time} Hit the usage limit ({title})", {time: hm(h.t), title: h.s.title}))}" aria-label="${esc(t("{time} usage limit", {time: md(h.t) + " " + hm(h.t)}))}">${ico("limit")}${esc(t("Limit"))}</button>`; });
+    limitHits(ds, de).filter(h => matches(h.s)).forEach(h => { // 上限の印は、そのセッションの帯の左端に置く（隣の帯の上に出して、ほかの作業の印に見えないように）
+      const bk = blocks.find(b => b.s === h.s && b.a <= h.t && h.t <= b.b) || blocks.find(b => b.s === h.s), left = bk ? `left:calc((100% - var(--g)) * ${bk.l.toFixed(4)} + 3px);` : "";
+      html += `<button class="lim" data-id="${esc(h.s.id)}" style="${left}top:${clockH(day, h.t)*hh}px" title="${esc(t("{time} Hit the usage limit ({title})", {time: hm(h.t), title: h.s.title}))}" aria-label="${esc(t("{time} Hit the usage limit ({title})", {time: md(h.t) + " " + hm(h.t), title: h.s.title}))}">${ico("limit")}${esc(t("Limit"))}</button>`; });
     if (isToday && nowS >= ds && nowS < de) html += `<div class="nowline" style="top:${clockH(day, nowS)*hh}px"></div>`;
     cols += `<div class="day${day.getDay()%6===0?" we":""}${wkc(day.getDay())}${isToday?" today":""}" style="height:${H}px;--g:${marks.length ? 18 : 0}px">${html}</div>`;
   }

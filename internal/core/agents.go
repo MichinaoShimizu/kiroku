@@ -24,16 +24,13 @@ type Agent struct {
 var AgentWarnSlots = []int{1, 3}
 
 // Agents は対応しているエージェント。並びは --sources の既定値と説明、環境変数の順。
-// Amazon Q は Kiro CLI の前身なので同じ色にする。
 var Agents = []Agent{
 	{Name: "Claude Code", Family: "claude", Slot: 0, Mark: "CC", Env: []string{"CLAUDE_CONFIG_DIR"}, Archive: "claude"},
 	{Name: "Kiro IDE / CLI (V3)", Family: "kiro", Slot: 6, Mark: "KI", Env: []string{"KIRO_HOME"},
 		About: "Kiro IDE 1.x and Kiro CLI V3, which share one history that doesn't record which of them ran a session"},
-	{Name: "Kiro IDE (legacy)", Family: "kiro", Slot: 6, Mark: "KI"},
 	{Name: "Kiro CLI (V2)", Family: "kiro", Slot: 7, Mark: "KC", Env: []string{"KIRO_HOME"}, About: "Kiro CLI V2 (kiro-cli --v2, and the default before Kiro CLI 3.0); V3 sessions are under Kiro IDE / CLI (V3)"},
 	{Name: "Kiro CLI (SQLite)", Family: "kiro", Slot: 7, Mark: "KC", About: "older Kiro CLI versions"},
 	{Name: "Kiro Crew", Family: "kiro", Slot: 4, Mark: "KW", Env: []string{"KIROCREW_HOME"}, Archive: "crew", Note: "includes Kiro Crew"},
-	{Name: "Amazon Q", Family: "amazonq", Slot: 7, Mark: "Q"},
 	{Name: "Codex", Family: "codex", Slot: 2, Mark: "CX", Env: []string{"CODEX_HOME"}},
 }
 
@@ -64,7 +61,7 @@ func Families() []string {
 	return fs
 }
 
-// FamiliesHelp は --sources の説明に出す一覧（例: "claude, kiro (includes Kiro Crew), amazonq, codex"）。
+// FamiliesHelp は --sources の説明に出す一覧（例: "claude, kiro (includes Kiro Crew), codex"）。
 func FamiliesHelp() string {
 	var parts []string
 	for _, f := range Families() {

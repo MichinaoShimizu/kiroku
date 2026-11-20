@@ -8,7 +8,7 @@ English | [日本語](README.ja.md)
 
 See what you built, understand how you worked, and make your next AI session better.
 
-kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), Amazon Q Developer CLI and Codex CLI together in one place. No account, telemetry or uploads; an AI agent runs only when you confirm "Analyze with AI" in `kiroku serve`.
+kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew) and Codex CLI together in one place. No account, telemetry or uploads; an AI agent runs only when you confirm "Analyze with AI" in `kiroku serve`.
 
 **[Try the live demo →](https://michinaoshimizu.github.io/kiroku/)** (dummy data, runs in your browser)
 
@@ -16,7 +16,7 @@ kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew), A
 
 ## Why kiroku
 
-- **Every agent on one calendar.** Claude Code, Codex, Kiro and Amazon Q side by side, instead of one dashboard per agent.
+- **Every agent on one calendar.** Claude Code, Codex and Kiro side by side, instead of one dashboard per agent.
 - **Sessions you can read, not just count.** What you asked, what the AI replied, and the commands, commits and pull requests in between, next to time, tokens and cost.
 - **How your work with AI changes.** Active time, tokens, estimated cost and patterns over time, from one session to a month.
 - **Reviews written by your own agent.** "Analyze with AI" runs a prompt grounded in your history with the agent you already use.
@@ -57,7 +57,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 **Search across all time.** Prompts, edited files and commits, with excerpts showing where they matched.
 
-The view is in Japanese when your browser prefers Japanese; the button at the top right (or `--lang`) switches between English and 日本語.
+The view is in Japanese when your browser prefers Japanese; `--lang` (or `KIROKU_LANG`) picks English or 日本語.
 
 ## Reviews and advice, written by your own agent
 
@@ -97,7 +97,6 @@ See [SECURITY.md](SECURITY.md) for details and for verifying a release.
 kiroku serve              # the view at http://localhost:8484/, updated as new history arrives
 kiroku open               # open it in another browser (it needs serve's key once)
 kiroku autostart on       # start kiroku serve each time you log in (macOS and Linux)
-kiroku stats --week last  # last week on one terminal screen: time, tokens, cost and commits by agent, model and project
 kiroku html --week last   # write only last week as one HTML file, to show someone
 kiroku update             # update to the latest release
 kiroku help               # all commands ("kiroku <command> --help" for options)
