@@ -1,1 +1,0 @@
-- Session details: in the prompt flow, your prompts are now on the left next to a person mark and the AI's replies on the right next to a robot mark
