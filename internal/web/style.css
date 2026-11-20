@@ -589,20 +589,20 @@ button.more{display:block;text-align:left}
 body.open .scrim{opacity:1;pointer-events:auto}
 body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:translate(-50%,-50%);transition:transform .28s var(--ease),opacity .2s var(--ease)}
 .drawer .mini{grid-template-columns:repeat(3,minmax(0,1fr))}
-/* 左はプロンプトの流れだけ。右は上から、操作（再開・AI 分析・履歴ファイル）、数値、残したもの（コミット・PR・ファイル・サブエージェント）。
-   1 列の画面では、操作と数値を先に、流れ、残したものの順にする（.dside を display:contents にして order で並べる） */
-.drawer .scols{display:flex;flex-direction:column;margin-top:10px}
-.drawer .sside{display:contents}
-.drawer .sact{order:1}.drawer .smet{order:2}.drawer .sflow{order:3}.drawer .sinfo{order:4}
+/* 左はプロンプトの流れだけ。右は上から、操作（再開・AI 分析）、数値、情報（履歴ファイル・モデル・ツール・コミット・PR・ファイル・サブエージェント）。
+   HTML も 1 列の画面も、操作 → 数値 → 流れ → 情報の順（Tab の順と見た目の順をそろえる）。広い画面では流れだけを左の列に置く */
+.drawer .scols{margin-top:10px}
 .drawer .sact>:first-child{margin-top:0}
 /* コミット・push・PR の詳細（git.js）は、広い画面で左に中身、右にファイルなど */
 @media (min-width:1100px){
   .drawer{width:min(1080px,calc(100vw - 48px))}
-  .drawer .scols{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:0 40px;margin-top:18px;align-items:start}
-  .drawer .sflow{order:0} /* 1 列のときの順（order）を戻し、流れを左の列に */
-  .drawer .sside{display:block;border-left:1px solid var(--rule);padding-left:40px}
-  .drawer .sflow>:first-child,.drawer .sside>:first-child>:first-child{margin-top:0}
-  .drawer .sside .mini.tight{grid-template-columns:repeat(2,minmax(0,1fr))} /* 右の列は狭いので 2 列（.mini.tight の 4 列より強く） */
+  /* 右の列は 3 行（操作・数値・情報）。流れは左の列の 3 行を通しで使い、流れのほうが長いときの余りは最後の行（1fr）が受ける */
+  .drawer .scols{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);grid-template-rows:auto auto 1fr;column-gap:40px;margin-top:18px}
+  .drawer .sflow{grid-column:1;grid-row:1 / 4;align-self:start}
+  .drawer .sact,.drawer .smet,.drawer .sinfo{grid-column:2;border-left:1px solid var(--rule);padding-left:40px}
+  .drawer .sact{grid-row:1}.drawer .smet{grid-row:2}.drawer .sinfo{grid-row:3}
+  .drawer .sflow>:first-child,.drawer .sact>:first-child>:first-child{margin-top:0}
+  .drawer .smet .mini.tight{grid-template-columns:repeat(2,minmax(0,1fr))} /* 右の列は狭いので 2 列（.mini.tight の 4 列より強く） */
   .drawer .dcols{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:0 40px;margin-top:18px}
   .drawer .dcol>:first-child{margin-top:0}
   .drawer .dcol+.dcol{border-left:1px solid var(--rule);padding-left:40px}

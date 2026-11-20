@@ -236,7 +236,12 @@ async function run(env) {
       if (!act || !flow) return {n: v.length, ok: false};
       const a = act.getBoundingClientRect(), f = flow.getBoundingClientRect(), wide = innerWidth >= 1100;
       return {n: v.length, inAct: !v.length || !!v[0].closest(".sact"), wide, place: wide ? a.left > f.right - 1 : a.top < f.top,
-        flowOnly: !flow.querySelector(".mini, .files, .trow, .dresume, #srun")}; });
+        flowOnly: !flow.querySelector(".mini, .files, .trow, .dresume, #srun"),
+        // HTML の順（Tab の順）が見た目の順と同じ：操作 → 数値 → 流れ → 情報。1 列ではモデル・ツールは流れより下
+        order: [".sact", ".smet", ".sflow", ".sinfo"].map(c => document.querySelector("#panel .scols > " + c)).every((e, i, a) => e && (!i || (a[i-1].compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING))),
+        toolsBelow: wide || [...document.querySelectorAll("#panel .trow")].every(e => e.getBoundingClientRect().top > f.bottom - 1)}; });
+    check("詳細の HTML の順は、操作・数値・流れ・情報（Tab の順が見た目と合う）", rs.order === true, JSON.stringify(rs));
+    check("1 列では、使ったツールは流れより下", rs.toolsBelow === true, JSON.stringify(rs));
     check("詳細の流れの列には、プロンプトの流れだけがある", rs.flowOnly === true, JSON.stringify(rs));
     check("再開のコマンドと AI 分析は操作にあり、2 列なら右の列、1 列なら流れより上", rs.n <= 1 && rs.inAct && rs.place, JSON.stringify(rs));
     const rv = await p.evaluate(() => { const s = DATA.find(x => x.id === st.sel) || DATA[0]; return sessionPrompt(s, 1, null); });

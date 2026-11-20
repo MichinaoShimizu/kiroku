@@ -15,13 +15,10 @@ function detail(s){
   P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
     ${dHead(agMark(s.source) + esc(s.source), s.title, `${md(s.start)} ${hm(s.start)} – ${sameDay ? "" : md(s.end)+" "}${hm(s.end)}`, [projTag(s.project), branchTag(s.branch)])}
     ${sesFlags(s)}
-    <div class="scols"><div class="sflow">
-    ${s.prompts.length ? promptFlow(s) : `<h3>${esc(t("Prompt flow"))}</h3>${noneH(esc(s.source === "Kiro Crew" ? t("No prompts recorded. Kiro Crew deletes conversation records after a while, so only the usage record remains for this conversation.") : t("No prompts recorded.")))}`}
-    </div><div class="sside">
+    <div class="scols">
     <section class="sact" aria-label="${esc(t("Actions"))}">
     ${s.resume ? `<div class="dresume"><h3>${esc(t("Resume"))}</h3>${codeH(s.resume, "resume")}</div>` : ""}
     ${s.prompts.length ? `<div class="drun">${aiBtn("srun", t("Analyze with AI: session review"))}</div>` : ""}
-    ${s.file ? `<h3>${esc(t("History file"))}</h3>${codeH(s.file, "", `<a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" ${LIVE ? "data-hist" : `target="_blank" rel="noopener"`}>${esc(t("Open"))}</a>`)}` : ""}
     </section>
     <section class="smet" aria-label="${esc(t("Metrics"))}">
     <div class="mini tight">
@@ -40,13 +37,17 @@ function detail(s){
       <div><div class="k">${esc(t("Tokens"))}</div><div class="v">${tok(allTok)}</div></div>${credH}
 ` : credH}
     </div>
+    </section>
+    <div class="sflow">
+    ${s.prompts.length ? promptFlow(s) : `<h3>${esc(t("Prompt flow"))}</h3>${noneH(esc(s.source === "Kiro Crew" ? t("No prompts recorded. Kiro Crew deletes conversation records after a while, so only the usage record remains for this conversation.") : t("No prompts recorded.")))}`}
+    </div>
+    <section class="sinfo" aria-label="${esc(t("Information"))}">
+    ${s.file ? `<h3>${esc(t("History file"))}</h3>${codeH(s.file, "", `<a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" ${LIVE ? "data-hist" : `target="_blank" rel="noopener"`}>${esc(t("Open"))}</a>`)}` : ""}
     ${s.models.length ? `<h3>${esc(t("Models used"))}</h3><div class="chips">${(mc => s.models.map(([m,n],i)=>`<span class="mono mdl" style="--m:${mc[i]}"><i aria-hidden="true"></i>${esc((m))}<b>${n}</b></span>`).join(""))(modelColors(s.models.map(([m]) => m)))}</div>` : ""}
     ${s.tiers && s.tiers.length ? `<h3>${esc(t("Service tier"))}</h3><div class="chips">${s.tiers.map(([t,n])=>`<span class="mono">${esc(t)}<b>${n}</b></span>`).join("")}</div>` : ""}
     <h3>${esc(t("Tools used"))}</h3>
     ${s.tools.length ? s.tools.map(([k,v],i)=>`<div class="trow"><span class="nm">${toolIcon(k)}<span>${esc(k)}</span></span><span class="track2"><span style="width:${v/maxT*100}%;background:var(--c${i % 8})"></span></span><span class="n">${v}</span></div>`).join("") : noneH(esc(t("None recorded")))}
     ${s.native && s.native.length ? `<h3>${esc(t("{agent} metrics", {agent: s.source}))}</h3>${nativeRows(s.native)}<p class="note">${esc(t("Numbers this agent records itself. Definitions differ from other agents."))}</p>` : ""}
-    </section>
-    <section class="sinfo" aria-label="${esc(t("Information"))}">
     ${sessionCommits(s)}
     ${s.prs && s.prs.length ? `<h3>${esc(t("Pull requests created"))} · ${s.prs.length}</h3><ul class="files">${s.prs.map(u => pathRow(u, ext(u, esc(u.replace(/^https?:\/\//, ""))), "pr")).join("")}</ul>` : ""}
     <h3>${esc(t("Files edited by AI"))}${s.files.length || records(s.source, "files") ? ` · ${s.nFiles}` : ""}</h3>
@@ -59,7 +60,7 @@ function detail(s){
           <div class="lane"><span style="left:${l}%;width:${Math.min(w,100-l)}%"></span></div>
           <div class="ft">${a.start?`<span>${hm(a.start)}${a.end?"–"+hm(a.end):""}</span>`:""}${a.start&&a.end?`<span>${dur((a.end-a.start)/60)}</span>`:""}${tt?`<span>${esc(t("{n} tokens", {n: tok(tt)}))}</span>`:u.reportedTokens?`<span>${esc(t("{n} tokens (reported)", {n: tok(u.reportedTokens)}))}</span>`:""}${u.cost?`<span>${usd(u.cost)}</span>`:""}${a.model?`<span>${esc(a.model)}</span>`:""}${a.tools?`<span>${esc(plural(a.tools, "tool call"))}</span>`:""}</div></div>`; }).join("")}` : ""}
     </section>
-    </div></div>
+    </div>
   </div>`;
   bindGitEvents(P);
   const hl = P.querySelector("a[data-hist]"); if (hl) hl.onclick = e => { e.preventDefault(); saveHistory(s, hl); };
