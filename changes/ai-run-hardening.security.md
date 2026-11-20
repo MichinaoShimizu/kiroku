@@ -1,6 +1,0 @@
-- "Analyze with AI" runs Claude Code with `--restricted` (or `--setting-sources project` on older versions), so your own Claude Code settings (allow rules, extra folders, `bypassPermissions`, hooks) can't widen what text planted in history could make it read
-- The run is no longer kept as a new session (`--no-session-persistence` for Claude Code, `--ephemeral` for Codex), and kiroku leaves out sessions recorded in its temporary `kiroku-ai-` folder, so a run's copy of the prompt and of the history it read doesn't show up as your session or feed later prompts
-- Codex runs with web search and MCP servers turned off
-- The agent no longer inherits a surrounding Claude Code session's variables or tokens it doesn't need (names ending in `_TOKEN` or `_PAT`, such as `GH_TOKEN` or `NPM_TOKEN`; the AI providers' own stay)
-- The reply check also catches links in capitals, without `https:`, with character references or non-ASCII hosts, and warns about images, video, embeds and `data:` URIs, which a page you paste the result into could load
-- The session review's "prompts in other projects" line leaves out the projects hidden in the legend, as the weekly report does

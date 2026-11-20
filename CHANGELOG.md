@@ -2,6 +2,24 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v1.0.2 - 2026-11-20
+
+### Changed
+
+- Session details: the prompt flow reads like a chat. Your prompts are bubbles on the right, the AI's replies are bubbles on the left next to an "AI" mark, events between them (commits, pull requests, pushes, interruptions, subagents) are small labels in the middle, and a long break is a divider. Times sit at the bottom edge of each bubble
+- Session details: the legend of marks above the prompt flow is folded under "Legend" and closed by default (it stays open once you open it), so the flow starts higher. The right column has headings above "Analyze with AI" ("Session review") and above the key numbers ("Metrics")
+- The figures above the calendar show what was left behind on the right of what was used: Git commits (or AI commits), lines changed, files changed, pushes and pull requests, each opening its breakdown
+- In the weekly and monthly summary, ③ How you spent time and the panels after it are folded to their heading by default, so the calendar stays the main view. kiroku remembers the ones you open, and a folded panel with a metric past its threshold shows the warning triangle on its heading
+
+### Security
+
+- "Analyze with AI" runs Claude Code with `--restricted` (or `--setting-sources project` on older versions), so your own Claude Code settings (allow rules, extra folders, `bypassPermissions`, hooks) can't widen what text planted in history could make it read
+- The run is no longer kept as a new session (`--no-session-persistence` for Claude Code, `--ephemeral` for Codex), and kiroku leaves out sessions recorded in its temporary `kiroku-ai-` folder, so a run's copy of the prompt and of the history it read doesn't show up as your session or feed later prompts
+- Codex runs with web search and MCP servers turned off
+- The agent no longer inherits a surrounding Claude Code session's variables or tokens it doesn't need (names ending in `_TOKEN` or `_PAT`, such as `GH_TOKEN` or `NPM_TOKEN`; the AI providers' own stay)
+- The reply check also catches links in capitals, without `https:`, with character references or non-ASCII hosts, and warns about images, video, embeds and `data:` URIs, which a page you paste the result into could load
+- The session review's "prompts in other projects" line leaves out the projects hidden in the legend, as the weekly report does
+
 ## v1.0.1 - 2026-11-20
 
 ### Changed
