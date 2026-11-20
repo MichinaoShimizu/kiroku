@@ -2,6 +2,21 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v2.0.0 - 2026-11-20
+
+### Changed
+
+- The period row is shorter: the "Period" and "View" labels are only read out by screen readers
+- There is space between the week calendar and Data sources below it
+
+### Removed
+
+- The weekly report's "Analyze with AI" is gone; "Analyze with AI" remains for a day (next to each date in the week calendar) and for a session (in session details). With no agent installed, session details say why
+
+### Security
+
+- BREAKING: "Analyze with AI" in `kiroku serve` is off by default; start `kiroku serve --ai` (or set `KIROKU_AI=1`) to use it. An agent that reads your history reads text other people wrote (web pages, tool output, other repositories), which could try to steer it (prompt injection); kiroku now runs no agent unless you ask for it. `--no-ai` and `KIROKU_NO_AI` still keep it off, even with `--ai`. With `kiroku autostart`, run `KIROKU_AI=1 kiroku autostart on` to keep it on
+
 ## v1.1.3 - 2026-11-20
 
 ### Changed

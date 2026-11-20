@@ -1,2 +1,0 @@
-- The period row is shorter: the "Period" and "View" labels are only read out by screen readers
-- There is space between the week calendar and Data sources below it

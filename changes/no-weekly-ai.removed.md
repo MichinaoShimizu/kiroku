@@ -1,1 +1,0 @@
-- The weekly report's "Analyze with AI" is gone; "Analyze with AI" remains for a day (next to each date in the week calendar) and for a session (in session details). With no agent installed, session details say why
