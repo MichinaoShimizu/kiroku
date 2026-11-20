@@ -919,11 +919,14 @@ body[data-view="sum"] #tl,body[data-view="sum"] #skipcal{display:none}
   .legend .lab small{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
   .chip{flex:none}
 }
-@media (min-width:1100px){
+/* 数字の帯は、スマホ以外ではいつも 1 行（折り返さない）。幅が足りないときは、値の文字を画面の幅に合わせて小さくし（clamp）、
+   見出しは … で切る。値も入りきらなければ … で切り、全部はツールチップと内訳に */
+@media (min-width:821px){
   .kpis{flex-wrap:nowrap}
-  .kpi{min-width:0;flex:1 1 auto}
-  .kpi .k{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .kpi{min-width:0;flex:1 1 auto;padding:10px 14px 9px}
+  .kpi .k,.kpi .v{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .kpi .v{min-width:0;font-size:clamp(var(--fs-lg),1.45vw,var(--fs-2xl))}
   .kpis.dense .kpi{padding:10px 12px 9px}
-  .kpis.dense .kpi .v{font-size:var(--fs-xl);min-width:0}
-  .kpis.dense .kpi .v small{margin-left:1px}
+  .kpis.dense .kpi .v{font-size:clamp(var(--fs-lg),1.25vw,var(--fs-xl))}
+  .kpi .v small{margin-left:1px}
 }
