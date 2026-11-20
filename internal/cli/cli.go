@@ -48,11 +48,22 @@ Get started: kiroku doctor, then kiroku serve
 func Main(v string) {
 	version = v
 	cleanupOldExe()
+	var notice *updateNotice
+	if len(os.Args) > 1 {
+		notice = startUpdateCheck(os.Args[1])
+		if os.Args[1] == "serve" {
+			serveNotice, notice = notice, nil // serve は始めに 1 行だけ知らせる（終わるまで待って聞かない）
+		}
+	}
 	if err := dispatch(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, styleFor(os.Stderr).bad(err.Error()))
 		os.Exit(1)
 	}
+	notice.offer(os.Stdin, os.Stderr) // 新しい版があれば知らせて、y なら更新する
 }
+
+// serveNotice は、kiroku serve の始めに知らせる新しい版（なければ nil）。
+var serveNotice *updateNotice
 
 func printHelp(w io.Writer) { fmt.Fprintf(w, helpText, version) }
 

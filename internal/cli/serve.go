@@ -646,6 +646,9 @@ func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []
 	url := viewURL(addr)
 	st := styleFor(l.print)
 	fmt.Fprintf(l.print, "serving %s %s\n", st.bold(url), st.dim("(reading history…; press Ctrl+C to stop)"))
+	if n := serveNotice; n != nil {
+		go n.note(l.print) // 新しい版があれば 1 行だけ（待たずに、わかったときに）
+	}
 	startLive(l, every)
 	fmt.Fprintln(l.print, st.dim("only browsers with its key can open it (to protect it from other users of this computer); \"kiroku open\" opens it with the key"))
 	fmt.Fprintln(l.print, st.dim(aiStartLine(enableAI, aiAddr)))

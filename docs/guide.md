@@ -495,6 +495,7 @@ Per command:
 | `html` | `--week` / `--month` | | Write only one week (`this`, `last` or a date in it) or month (`this`, `last` or `YYYY-MM`); see "[Share one week or month](#share-one-week-or-month)" |
 | `json` | `-o`, `--out` | `kiroku.json` | JSON file to write (`-` for stdout) |
 | `stats` | `--week` / `--month` | this week | Show one week (`this`, `last` or a date in it) or month (`this`, `last` or `YYYY-MM`) |
+| (any) | | `$KIROKU_NO_UPDATE_CHECK` | When a command runs in a terminal, kiroku asks GitHub at most once a day for the latest release (the same request as `kiroku update --check`; nothing about your history is sent), and after the command says when a newer one exists and asks "Update now? [y/N]". `y` runs `kiroku update`; anything else skips. `kiroku serve` only prints one line. Nothing is asked when input or output is not a terminal, in CI, for dev builds, or when `KIROKU_NO_UPDATE_CHECK` is set |
 | `update` | `--check` / `--to <version>` / `--force` | | Only check / choose a version / replace even a dev build, the same version or an older version given with `--to` |
 
 ## Uninstall
