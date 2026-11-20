@@ -230,10 +230,15 @@ async function run(env) {
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
     check("振り返りのプロンプトをコピーするボタンはない", await p.locator("#panel #sreview, #panel #pcopy").count() === 0);
     check("デモでは、詳細に「Analyze with AI」が出る", await p.locator("#panel #srun").count() === 1 && await p.locator("#panel .ai-off, #panel .ai-none").count() === 0);
-    // 再開のコマンドは 1 つだけ見え、2 列の画面では右の列のいちばん上、1 列の画面では詳細のいちばん上
+    // 左（1 列の画面では間）はプロンプトの流れだけ。再開のコマンドは操作（.sact）に 1 つだけ見え、2 列なら右の列、1 列なら流れより上
     const rs = await p.evaluate(() => { const v = [...document.querySelectorAll("#panel .dresume")].filter(e => e.offsetParent !== null);
-      const col = v[0] && v[0].closest(".dcol"); return {n: v.length, wide: innerWidth >= 1100, side: !!col && col === col.parentElement.lastElementChild && col.firstElementChild === v[0], top: !!v[0] && !col}; });
-    if (rs.n) check("再開のコマンドは、2 列なら右の列の上、1 列なら詳細の上に 1 つだけ", rs.n === 1 && (rs.wide ? rs.side : rs.top), JSON.stringify(rs));
+      const act = document.querySelector("#panel .sact"), flow = document.querySelector("#panel .sflow");
+      if (!act || !flow) return {n: v.length, ok: false};
+      const a = act.getBoundingClientRect(), f = flow.getBoundingClientRect(), wide = innerWidth >= 1100;
+      return {n: v.length, inAct: !v.length || !!v[0].closest(".sact"), wide, place: wide ? a.left > f.right - 1 : a.top < f.top,
+        flowOnly: !flow.querySelector(".mini, .files, .trow, .dresume, #srun")}; });
+    check("詳細の流れの列には、プロンプトの流れだけがある", rs.flowOnly === true, JSON.stringify(rs));
+    check("再開のコマンドと AI 分析は操作にあり、2 列なら右の列、1 列なら流れより上", rs.n <= 1 && rs.inAct && rs.place, JSON.stringify(rs));
     const rv = await p.evaluate(() => { const s = DATA.find(x => x.id === st.sel) || DATA[0]; return sessionPrompt(s, 1, null); });
     check("振り返りは専門的な助言と証拠を備える", /professional AI prompt advisor/.test(rv) && /^- Title: /m.test(rv) && /^### Professional prompt assessment$/m.test(rv) && /^### Prioritized advice$/m.test(rv) && /^### Reusable prompt playbook$/m.test(rv) && /^\| \| This session \|$/m.test(rv) && /^\| Prompts \| \d+ \|$/m.test(rv), rv.slice(0, 200));
     check("振り返りの事実と流れは、コードブロックの中にある", /# History data\n`{3,}text\n# Facts/.test(rv) && /## Prompt flow/.test(rv));
