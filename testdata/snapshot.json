@@ -393,7 +393,7 @@
     },
     {
      "sessions": 4,
-     "source": "Kiro IDE / CLI",
+     "source": "Kiro IDE / CLI (V3)",
      "values": [
       {
        "label": "クレジット",
@@ -697,7 +697,7 @@
        "credits": 3.29,
        "id": "sess_564f668e",
        "minutes": 30,
-       "source": "Kiro IDE / CLI",
+       "source": "Kiro IDE / CLI (V3)",
        "start": 1790748000,
        "title": "Kiro: specを書いて",
        "tokens": 0
@@ -707,7 +707,7 @@
        "credits": 3.6,
        "id": "sess_1640c798",
        "minutes": 25,
-       "source": "Kiro IDE / CLI",
+       "source": "Kiro IDE / CLI (V3)",
        "start": 1790751600,
        "title": "Kiro: specを書いて",
        "tokens": 0
@@ -1311,7 +1311,7 @@
      {
       "cost": 0,
       "credits": 13.89,
-      "key": "Kiro IDE / CLI",
+      "key": "Kiro IDE / CLI (V3)",
       "minutes": 101,
       "tokens": 0
      },
@@ -1794,7 +1794,7 @@
    "native": [
     {
      "sessions": 2,
-     "source": "Kiro IDE / CLI",
+     "source": "Kiro IDE / CLI (V3)",
      "values": [
       {
        "label": "クレジット",
@@ -1886,7 +1886,7 @@
       "credits": 4.5,
       "id": "sess_76df747b",
       "minutes": 20,
-      "source": "Kiro IDE / CLI",
+      "source": "Kiro IDE / CLI (V3)",
       "start": 1790820000,
       "title": "Kiro: specを書いて",
       "tokens": 0
@@ -1917,7 +1917,7 @@
        "credits": 2.62,
        "id": "sess_97d6b4d7",
        "minutes": 24,
-       "source": "Kiro IDE / CLI",
+       "source": "Kiro IDE / CLI (V3)",
        "start": 1790985600,
        "title": "Kiro: specを書いて",
        "tokens": 0
@@ -1927,7 +1927,7 @@
        "credits": 4.5,
        "id": "sess_76df747b",
        "minutes": 20,
-       "source": "Kiro IDE / CLI",
+       "source": "Kiro IDE / CLI (V3)",
        "start": 1790820000,
        "title": "Kiro: specを書いて",
        "tokens": 0
@@ -2026,7 +2026,7 @@
      {
       "cost": 0,
       "credits": 7.12,
-      "key": "Kiro IDE / CLI",
+      "key": "Kiro IDE / CLI (V3)",
       "minutes": 44,
       "tokens": 0
      },
@@ -4429,7 +4429,7 @@
      13
     ]
    ],
-   "source": "Kiro IDE / CLI",
+   "source": "Kiro IDE / CLI (V3)",
    "start": 1790550000,
    "subagents": [],
    "title": "Kiro: specを書いて",
@@ -5148,7 +5148,7 @@
      13
     ]
    ],
-   "source": "Kiro IDE / CLI",
+   "source": "Kiro IDE / CLI (V3)",
    "start": 1790661600,
    "subagents": [],
    "title": "Kiro: specを書いて",
@@ -5795,7 +5795,7 @@
      13
     ]
    ],
-   "source": "Kiro IDE / CLI",
+   "source": "Kiro IDE / CLI (V3)",
    "start": 1790748000,
    "subagents": [],
    "title": "Kiro: specを書いて",
@@ -5916,7 +5916,7 @@
      13
     ]
    ],
-   "source": "Kiro IDE / CLI",
+   "source": "Kiro IDE / CLI (V3)",
    "start": 1790751600,
    "subagents": [],
    "title": "Kiro: specを書いて",
@@ -6139,7 +6139,7 @@
      13
     ]
    ],
-   "source": "Kiro IDE / CLI",
+   "source": "Kiro IDE / CLI (V3)",
    "start": 1790820000,
    "subagents": [],
    "title": "Kiro: specを書いて",
@@ -6260,7 +6260,7 @@
      13
     ]
    ],
-   "source": "Kiro IDE / CLI",
+   "source": "Kiro IDE / CLI (V3)",
    "start": 1790985600,
    "subagents": [],
    "title": "Kiro: specを書いて",
@@ -6463,7 +6463,7 @@
   {
    "error": null,
    "n": 6,
-   "name": "Kiro IDE / CLI",
+   "name": "Kiro IDE / CLI (V3)",
    "oldest": 1790550000,
    "where": "testdata/home/.kiro/sessions"
   },
@@ -8127,7 +8127,7 @@
    "native": [
     {
      "sessions": 6,
-     "source": "Kiro IDE / CLI",
+     "source": "Kiro IDE / CLI (V3)",
      "values": [
       {
        "label": "クレジット",
@@ -8328,7 +8328,7 @@
       "credits": 4.92,
       "id": "sess_0ee61246",
       "minutes": 24,
-      "source": "Kiro IDE / CLI",
+      "source": "Kiro IDE / CLI (V3)",
       "start": 1790550000,
       "title": "Kiro: specを書いて",
       "tokens": 0
@@ -8359,7 +8359,7 @@
        "credits": 3.29,
        "id": "sess_564f668e",
        "minutes": 30,
-       "source": "Kiro IDE / CLI",
+       "source": "Kiro IDE / CLI (V3)",
        "start": 1790748000,
        "title": "Kiro: specを書いて",
        "tokens": 0
@@ -8369,7 +8369,7 @@
        "credits": 3.6,
        "id": "sess_1640c798",
        "minutes": 25,
-       "source": "Kiro IDE / CLI",
+       "source": "Kiro IDE / CLI (V3)",
        "start": 1790751600,
        "title": "Kiro: specを書いて",
        "tokens": 0
@@ -8379,7 +8379,7 @@
        "credits": 4.92,
        "id": "sess_0ee61246",
        "minutes": 24,
-       "source": "Kiro IDE / CLI",
+       "source": "Kiro IDE / CLI (V3)",
        "start": 1790550000,
        "title": "Kiro: specを書いて",
        "tokens": 0
@@ -8913,7 +8913,7 @@
      {
       "cost": 0,
       "credits": 21.01,
-      "key": "Kiro IDE / CLI",
+      "key": "Kiro IDE / CLI (V3)",
       "minutes": 145,
       "tokens": 0
      },

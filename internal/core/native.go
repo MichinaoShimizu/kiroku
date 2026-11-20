@@ -35,7 +35,7 @@ var NativeDefs = map[string][]NativeDef{
 		{Key: "requests", Label: "モデルへのリクエスト", LabelEn: "Model requests", Unit: "回", Agg: "sum"},
 		{Key: "builtin_tools", Label: "組み込みツールの実行", LabelEn: "Built-in tool runs", Unit: "回", Agg: "sum"},
 	},
-	"Kiro IDE / CLI": {
+	"Kiro IDE / CLI (V3)": {
 		{Key: "credits", Label: "クレジット", LabelEn: "Credits", Unit: "クレジット", Agg: "sum"},
 		{Key: "turns", Label: "ターン", LabelEn: "Turns", Unit: "回", Agg: "sum"},
 		{Key: "credits_per_turn", Label: "1 ターンあたりのクレジット", LabelEn: "Credits per turn", Unit: "クレジット", Agg: "ratio", Num: "credits", Den: "turns", Scale: 1},

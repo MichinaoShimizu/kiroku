@@ -15,8 +15,12 @@ function detail(s){
   P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
     ${dHead(agMark(s.source) + esc(s.source), s.title, `${md(s.start)} ${hm(s.start)} – ${sameDay ? "" : md(s.end)+" "}${hm(s.end)}`, [projTag(s.project), branchTag(s.branch)])}
     ${sesFlags(s)}
-    ${s.resume ? `<div class="dresume dtop"><h3>${esc(t("Resume"))}</h3>${codeH(s.resume, "resume")}</div>` : ""}
-    <div class="dcols"><div class="dcol">
+    <div class="scols">
+    <section class="sact" aria-label="${esc(t("Actions"))}">
+    ${s.resume ? `<div class="dresume"><h3>${esc(t("Resume"))}</h3>${codeH(s.resume, "resume")}</div>` : ""}
+    ${s.prompts.length ? `<div class="drun">${aiBtn("srun", t("Analyze with AI: session review"))}</div>` : ""}
+    </section>
+    <section class="smet" aria-label="${esc(t("Metrics"))}">
     <div class="mini tight">
       <div><div class="k">${esc(t("Active time"))}</div><div class="v">${dur(active,true)}</div></div>
       <div><div class="k">${esc(t("Prompts"))}</div><div class="v">${s.nPrompts}</div></div>
@@ -33,27 +37,31 @@ function detail(s){
       <div><div class="k">${esc(t("Tokens"))}</div><div class="v">${tok(allTok)}</div></div>${credH}
 ` : credH}
     </div>
+    </section>
+    <div class="sflow">
     ${s.prompts.length ? promptFlow(s) : `<h3>${esc(t("Prompt flow"))}</h3>${noneH(esc(s.source === "Kiro Crew" ? t("No prompts recorded. Kiro Crew deletes conversation records after a while, so only the usage record remains for this conversation.") : t("No prompts recorded.")))}`}
+    </div>
+    <section class="sinfo" aria-label="${esc(t("Information"))}">
+    ${s.file ? `<h3>${esc(t("History file"))}</h3>${codeH(s.file, "", `<a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" ${LIVE ? "data-hist" : `target="_blank" rel="noopener"`}>${esc(t("Open"))}</a>`)}` : ""}
+    ${s.models.length ? `<h3>${esc(t("Models used"))}</h3><div class="chips">${(mc => s.models.map(([m,n],i)=>`<span class="mono mdl" style="--m:${mc[i]}"><i aria-hidden="true"></i>${esc((m))}<b>${n}</b></span>`).join(""))(modelColors(s.models.map(([m]) => m)))}</div>` : ""}
+    ${s.tiers && s.tiers.length ? `<h3>${esc(t("Service tier"))}</h3><div class="chips">${s.tiers.map(([t,n])=>`<span class="mono">${esc(t)}<b>${n}</b></span>`).join("")}</div>` : ""}
+    <h3>${esc(t("Tools used"))}</h3>
+    ${s.tools.length ? s.tools.map(([k,v],i)=>`<div class="trow"><span class="nm">${toolIcon(k)}<span>${esc(k)}</span></span><span class="track2"><span style="width:${v/maxT*100}%;background:var(--c${i % 8})"></span></span><span class="n">${v}</span></div>`).join("") : noneH(esc(t("None recorded")))}
+    ${s.native && s.native.length ? `<h3>${esc(t("{agent} metrics", {agent: s.source}))}</h3>${nativeRows(s.native)}<p class="note">${esc(t("Numbers this agent records itself. Definitions differ from other agents."))}</p>` : ""}
+    ${sessionCommits(s)}
+    ${s.prs && s.prs.length ? `<h3>${esc(t("Pull requests created"))} · ${s.prs.length}</h3><ul class="files">${s.prs.map(u => pathRow(u, ext(u, esc(u.replace(/^https?:\/\//, ""))), "pr")).join("")}</ul>` : ""}
+    <h3>${esc(t("Files edited by AI"))}${s.files.length || records(s.source, "files") ? ` · ${s.nFiles}` : ""}</h3>
+    ${(() => { if (!s.files.length) return noneH(esc(records(s.source, "files") ? t("None") : notRec([s.source]))); const us = s.files.map(f => fileLink(s, f)), ls = s.files.map((f, i) => us[i] ? "" : localHref(f, s.projectPath)); // コミットのリンクがなければ、この PC のファイル。断り書きは、そのリンクがあるときだけ
+      return `<ul class="files">${s.files.map((f, i) => pathRow(f, fileA(us[i] || ls[i], esc(f)))).join("")}</ul>${us.some(Boolean) || ls.some(Boolean) ? `<p class="note">${esc([us.some(Boolean) ? t("Links marked ↗ open the file on the remote as of the commits made during this session.") : "", ls.some(Boolean) ? (us.some(Boolean) ? t("Other links open the file on this computer as it is now.") : t("Links open the file on this computer as it is now.")) : ""].filter(Boolean).join(JA ? "" : " "))}</p>` : ""}`; })()}
     ${s.subagents.length ? `<h3>${esc(t("Subagents"))} · ${s.subagents.length}</h3>${s.subagents.map(a=>{
         const span = Math.max(1, s.end - s.start), l = a.start ? Math.max(0,(a.start - s.start)/span*100) : 0, w = a.start && a.end ? Math.max(.8,(a.end - a.start)/span*100) : .8;
         const u = a.usage, tt = u.in + u.out + u.cw + u.cw1h + u.cr;
         return `<div class="sub"><div class="hd"><span class="ty">${esc(a.type)}</span><span class="ds">${esc(a.desc || t("(no description)"))}</span>${a.bg?`<span class="bg">${esc(t("Background"))}</span>`:""}</div>
           <div class="lane"><span style="left:${l}%;width:${Math.min(w,100-l)}%"></span></div>
           <div class="ft">${a.start?`<span>${hm(a.start)}${a.end?"–"+hm(a.end):""}</span>`:""}${a.start&&a.end?`<span>${dur((a.end-a.start)/60)}</span>`:""}${tt?`<span>${esc(t("{n} tokens", {n: tok(tt)}))}</span>`:u.reportedTokens?`<span>${esc(t("{n} tokens (reported)", {n: tok(u.reportedTokens)}))}</span>`:""}${u.cost?`<span>${usd(u.cost)}</span>`:""}${a.model?`<span>${esc(a.model)}</span>`:""}${a.tools?`<span>${esc(plural(a.tools, "tool call"))}</span>`:""}</div></div>`; }).join("")}` : ""}
-    </div><div class="dcol">
-    ${s.resume ? `<div class="dresume dside"><h3>${esc(t("Resume"))}</h3>${codeH(s.resume, "resume")}</div>` : ""}
-    ${sessionCommits(s)}
-    ${s.prs && s.prs.length ? `<h3>${esc(t("Pull requests created"))} · ${s.prs.length}</h3><ul class="files">${s.prs.map(u => pathRow(u, ext(u, esc(u.replace(/^https?:\/\//, ""))), "pr")).join("")}</ul>` : ""}
-    <h3>${esc(t("Files edited by AI"))}${s.files.length || records(s.source, "files") ? ` · ${s.nFiles}` : ""}</h3>
-    ${(() => { if (!s.files.length) return noneH(esc(records(s.source, "files") ? t("None") : notRec([s.source]))); const us = s.files.map(f => fileLink(s, f)), ls = s.files.map((f, i) => us[i] ? "" : localHref(f, s.projectPath)); // コミットのリンクがなければ、この PC のファイル。断り書きは、そのリンクがあるときだけ
-      return `<ul class="files">${s.files.map((f, i) => pathRow(f, fileA(us[i] || ls[i], esc(f)))).join("")}</ul>${us.some(Boolean) || ls.some(Boolean) ? `<p class="note">${esc([us.some(Boolean) ? t("Links marked ↗ open the file on the remote as of the commits made during this session.") : "", ls.some(Boolean) ? (us.some(Boolean) ? t("Other links open the file on this computer as it is now.") : t("Links open the file on this computer as it is now.")) : ""].filter(Boolean).join(JA ? "" : " "))}</p>` : ""}`; })()}
-    ${s.models.length ? `<h3>${esc(t("Models used"))}</h3><div class="chips">${(mc => s.models.map(([m,n],i)=>`<span class="mono mdl" style="--m:${mc[i]}"><i aria-hidden="true"></i>${esc((m))}<b>${n}</b></span>`).join(""))(modelColors(s.models.map(([m]) => m)))}</div>` : ""}
-    ${s.tiers && s.tiers.length ? `<h3>${esc(t("Service tier"))}</h3><div class="chips">${s.tiers.map(([t,n])=>`<span class="mono">${esc(t)}<b>${n}</b></span>`).join("")}</div>` : ""}
-    <h3>${esc(t("Tools used"))}</h3>
-    ${s.tools.length ? s.tools.map(([k,v],i)=>`<div class="trow"><span class="nm">${toolIcon(k)}<span>${esc(k)}</span></span><span class="track2"><span style="width:${v/maxT*100}%;background:var(--c${i % 8})"></span></span><span class="n">${v}</span></div>`).join("") : noneH(esc(t("None recorded")))}
-    ${s.native && s.native.length ? `<h3>${esc(t("{agent} metrics", {agent: s.source}))}</h3>${nativeRows(s.native)}<p class="note">${esc(t("Numbers this agent records itself. Definitions differ from other agents."))}</p>` : ""}
-    ${s.file ? `<h3>${esc(t("History file"))}</h3>${codeH(s.file, "", `<a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" ${LIVE ? "data-hist" : `target="_blank" rel="noopener"`}>${esc(t("Open"))}</a>`)}` : ""}
-  </div></div></div>`;
+    </section>
+    </div>
+  </div>`;
   bindGitEvents(P);
   const hl = P.querySelector("a[data-hist]"); if (hl) hl.onclick = e => { e.preventDefault(); saveHistory(s, hl); };
   P.querySelectorAll(".sflags [data-goto]").forEach(b => b.onclick = () => openWorth(b.dataset.goto, b));
@@ -153,7 +161,7 @@ function promptFlow(s){
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";
   const showMore = JA ? (hiddenEv ? t("Show {n} more prompts (and {m} other events)", {n: rest, m: hiddenEv}) : t("Show {n} more prompts", {n: rest})) : `Show ${plural(rest, "more prompt")}${also}`;
   // 見出しと出し方の切り替えは 1 行に（最初の画面に入るプロンプトを 1 つでも多くする）
-  const bar = `<div class="flowhead"><h3>${esc(t("Prompt flow"))}</h3><div class="flowbar"><div class="segc" role="group" aria-label="${esc(t("Show"))}" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">${esc(t("Everything"))}</button><button data-v="user" aria-pressed="${!!st.flowUser}">${esc(t("Your prompts only"))}</button></div>${aiBtn("srun", t("Analyze with AI: session review"))}</div></div>`;
+  const bar = `<div class="flowhead"><h3>${esc(t("Prompt flow"))}</h3><div class="flowbar"><div class="segc" role="group" aria-label="${esc(t("Show"))}" id="flowBy"><button data-v="all" aria-pressed="${!st.flowUser}">${esc(t("Everything"))}</button><button data-v="user" aria-pressed="${!!st.flowUser}">${esc(t("Your prompts only"))}</button></div></div></div>`;
   const cutNote = !LIVE && s.prompts.some(p => p.len > 0 || (p.reply && p.reply.len > 0)) ? `<p class="note">${esc(t("Long prompts and replies end with … here. Open with kiroku serve to read them in full."))}</p>` : "";
   return `${bar}<div class="tlkey${st.flowUser ? " only-user" : ""}">${key}</div>${cutNote}<ol class="tl${st.flowUser ? " only-user" : ""}">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${esc(showMore)}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${esc(t("\"AI worked\" is the time from a prompt to the AI's last activity; \"you replied after\" is the time from there to your next prompt. Both are estimates from the history's timestamps."))}</p>` : ""}${s.prompts.some(p => p.reply) ? `<p class="note">${esc(t("The reply after a prompt is the last thing the AI wrote to you in that turn, in its own words — not its thinking, its tool calls or their output. A turn where it only ran tools, or whose words the agent does not record, has no reply. A long one shows its first {n} characters.", {n: REPLY_RUNES}))}</p>` : ""}`;
 }

@@ -59,7 +59,7 @@ await s.waitForTimeout(600);
 await s.evaluate(() => document.querySelectorAll("#panel .dresume").forEach(e => { e.style.display = "none"; }));
 const box = await s.evaluate(() => {
   const pn = document.querySelector("#panel"), d = document.querySelector("#drawer").getBoundingClientRect();
-  const top = pn.querySelector(".eyebrow").getBoundingClientRect(), col = pn.querySelector(".dcols > *").getBoundingClientRect();
+  const top = pn.querySelector(".eyebrow").getBoundingClientRect(), col = pn.querySelector(".scols > .sflow").getBoundingClientRect(); // 左の列（プロンプトの流れ）だけ。右の列には一時フォルダのパスが出る
   const x = Math.max(d.left + 2, col.left - 24), y = Math.max(d.top + 2, top.top - 22);
   return { x, y, width: col.right + 24 - x, height: Math.min(980, d.bottom - 2 - y) };
 });

@@ -124,7 +124,7 @@ func TestKiroMissingMessages(t *testing.T) {
 	}
 }
 
-// 共有の保存場所（sessions/<bucket>/sess_*。Kiro IDE v1.0 以降と Kiro CLI V3）の会話は "Kiro IDE / CLI"、
+// 共有の保存場所（sessions/<bucket>/sess_*。Kiro IDE v1.0 以降と Kiro CLI V3）の会話は "Kiro IDE / CLI (V3)"、
 // V2 の sessions/cli/ の会話は "Kiro CLI (V2)" として出す。
 func TestKiroSourceLabels(t *testing.T) {
 	home := t.TempDir()
@@ -138,7 +138,7 @@ func TestKiroSourceLabels(t *testing.T) {
 		src  Source
 		want string
 	}{
-		{&KiroIDE{Home: home}, "Kiro IDE / CLI"},
+		{&KiroIDE{Home: home}, "Kiro IDE / CLI (V3)"},
 		{&KiroCLI{Home: home}, "Kiro CLI (V2)"},
 	} {
 		if c.src.Name() != c.want {
