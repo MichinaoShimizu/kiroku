@@ -55,9 +55,18 @@ function aiOutputProblems(prompt, text){
   if (bad.length && bad.length === rows.length && !have.size) add(`The "Numbers" table is missing. Copy it from "Facts" unchanged`, t("The numbers table is missing"));
   else if (bad.length) add(`The "Numbers" table is not copied unchanged. These rows are missing or their values differ: ${bad.map(x => JSON.stringify(x)).join(", ")}`,
     t("The numbers table differs from kiroku's in: {rows}", {rows: bad.slice(0, 3).join(", ") + (bad.length > 3 ? t(", and {n} more", {n: bad.length - 3}) : "")}));
-  const urls = s => new Set( // URL に使える ASCII の文字だけ（日本語の「）。」を含めない）。終わりの句読点と強調の記号は除く
-    (s.match(/https?:\/\/[A-Za-z0-9\-._~:/?#@!$&*+,;=%]+/g) || []).map(u => u.replace(/[.,;:!?*_]+$/, "")));
+  // 外を指すものを広めに拾う：大文字のスキーム、https:/ や https:\\ の崩れた形、スキームのない //host、&#47; のような文字参照、
+  // 日本語以外の文字を含むホストやパス、数字だけのホスト。URL は空白・引用符・山かっこと、日本語の句読点・全角の文字で終わる。
+  // 終わりの句読点・強調の記号と、対になっていない ) は除く。比べるのは、小文字にし、スキームと区切りをそろえた形で
+  const deref = x => x.replace(/&#(\d+);?|&#x([0-9a-f]+);?/gi, (m, d, h) => String.fromCodePoint(Math.min(+(d || 0) || parseInt(h, 16) || 0, 0x10FFFF))).replace(/&(sol|colon|period);/gi, (m, n) => ({sol: "/", colon: ":", period: "."})[n.toLowerCase()]);
+  const UC = "[^\\s<>\"`\\u3000-\\u30FF\\u4E00-\\u9FFF\\uFF00-\\uFFEF]";
+  const URLRE = new RegExp(`(?:https?:[\\/\\\\]*|(?<![:\\w/\\\\])[\\/\\\\]{2}(?=${UC}*\\.))${UC}+`, "gi");
+  const trim = u => { u = u.replace(/[.,;:!?*_]+$/, ""); while (u.endsWith(")") && (u.match(/\(/g) || []).length < (u.match(/\)/g) || []).length) u = u.slice(0, -1).replace(/[.,;:!?*_]+$/, ""); return u; };
+  const norm = u => trim(u).toLowerCase().replace(/\\/g, "/").replace(/^(?:https?:)?\/*/, "https://");
+  const urls = s => new Set((deref(s).match(URLRE) || []).map(norm).filter(u => u.length > "https://".length));
   const up = urls(prompt), links = [...urls(text)].filter(u => !up.has(u));
+  // 画像・動画・埋め込み・data: の URI は、貼った先（GitHub など）が開くと取りに行く。報告には要らないので、あれば必ず知らせる
+  if (/!\[|<(img|picture|video|audio|source|iframe|object|embed|image|svg)\b|\bposter\s*=|\bdata:[a-z]+\/[a-z0-9.+-]+[;,]/i.test(deref(text))) add("Remove the images. The report must not contain images", t("The result contains an image. Remove it before pasting the result anywhere"));
   if (links.length) add(`These links are not in the prompt. Use only the links given there: ${links.slice(0, 5).map(u => JSON.stringify(cap(u, 200))).join(", ")}`,
     t("Links that are not in the prompt: {links}", {links: links.slice(0, 3).map(u => cap(u, 100)).join(", ")}));
   // コミットのハッシュ: 7〜40 桁の 16 進（数字と a〜f の両方を含む）。UUID の一部（- でつながる）と色（#）は除く。長いハッシュは、先頭 12 桁がプロンプトにあればよい

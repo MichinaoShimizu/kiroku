@@ -190,7 +190,8 @@ function placeFlags(R, F){ // 基準を超えた指標の名前の横に、小�
   [...new Set(F.map(f => GOTO[f.k] || f.k))].forEach(id => {
     const hb = R.querySelector(`.panel .hb[data-help="${id}"]`); if (!hb) return;
     hb.insertAdjacentHTML("beforebegin", `<button class="fmark" data-goto="${id}" aria-haspopup="dialog" aria-label="${esc(t("Worth a look: {name}", {name: H()[id].n}))}" title="${esc(t("Crossed a threshold. Click to see why."))}">${ico("flag", "fdot")}</button>`);
-    const dt = hb.closest("details"); // 閉じた折りたたみの中の印は、見出しにも出す（開かずに、中に印があるとわかるように）
-    if (dt){ const sm = dt.querySelector("summary"); if (!sm.querySelector(".fdot")) sm.insertAdjacentHTML("beforeend", `<span title="${esc(t("A metric crossed a threshold"))}">${ico("flag", "fdot")}</span>`); }
+    // 閉じた折りたたみの中の印は、見出しにも出す（開かずに、中に印があるとわかるように）。折りたたみが重なっていれば（③ からのパネルの中の「もっと見る」）、どれの見出しにも
+    for (let dt = hb.closest("details"); dt; dt = dt.parentElement.closest("details")){ const sm = dt.querySelector(":scope > summary");
+      if (sm && !sm.contains(hb) && !sm.querySelector(".fdot")) sm.insertAdjacentHTML("beforeend", `<span title="${esc(t("A metric crossed a threshold"))}">${ico("flag", "fdot")}</span>`); }
   });
 }

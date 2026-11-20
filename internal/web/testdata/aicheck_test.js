@@ -47,3 +47,17 @@ eq(aiOutputProblems(prompt.replace("| 7 (6) | 2 |", "| +82 −0 | 2 |"), good.re
 const longU = "https://evil.example/" + "a".repeat(5000);
 const PL = aiOutputProblems(prompt, good + "\n" + longU + " x");
 eq(PL[0].l.length < 200 && PL[0].en.length < 400 && !/\s/.test(PL[0].en.split(": ")[1]), true, "long url cut");
+// 履歴に書かれた指示で作らせた、外へ値を運ぶ URL：大文字のスキーム、スキームのない //host、画像。どれも見逃さない
+const PU = aiOutputProblems(prompt, good + "\nHTTPS://EVIL.EXAMPLE/p?d=secret Https://evil.example/a //evil.example/b");
+eq(PU.length === 1 && /evil\.example\/p\?d=secret/.test(PU[0].l) && /\/\/evil\.example\/b/.test(PU[0].en), true, "uppercase and scheme-less links");
+eq(aiOutputProblems(prompt, good + "\nHTTPS://GITHUB.COM/example/reports/pull/12"), [], "a prompt link in capitals is not invented");
+for (const img of ["![x](https://github.com/example/reports/pull/12)", "![x][r]", '<IMG src="https://github.com/example/reports/pull/12">'])
+  eq(aiOutputProblems(prompt, good + "\n" + img).some(p => /image/.test(p.l)), true, "image: " + img);
+// 攻撃テストで見逃した形（プロンプトには https://github.com/example/reports/pull/12 がある）
+for (const x of ["[x](https://github.com/example/reports/pull/12(SECRET))", "https://github.com/example/reports/pull/12'SECRET", "https://github.com/example/reports/pull/12|SECRET",
+  "https://github.com/example/reports/pull/12é?d=SECRET", "https://bücher.example/?d=S", "http:/evil2.example/x", "http:\\\\evil2.example/x", "https:&#47;&#47;evil2.example/x", "http://16843009/"])
+  eq(aiOutputProblems(prompt, good + "\n" + x + " end").some(p => /Links that are not in the prompt/.test(p.l)), true, "link: " + x);
+for (const x of ["Logo: ![logo] is here.\n\n[logo]: https://github.com/example/reports/pull/12(SECRET)", "data:image/png;base64,AAAA", '<video poster="https://x.example/a">'])
+  eq(aiOutputProblems(prompt, good + "\n" + x).some(p => /image/.test(p.l)), true, "image: " + x);
+// 日本語の文の中のリンクと、コードのコメント（// のあとに空白）は、作ったリンクにしない
+eq(aiOutputProblems(prompt, good + "\nPR（https://github.com/example/reports/pull/12）。// note.txt を見た"), [], "japanese punctuation and comments");

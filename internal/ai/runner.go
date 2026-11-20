@@ -62,12 +62,39 @@ type Event struct {
 }
 
 // command is the fixed command line for an agent. The request never supplies any of it.
-func (r Runner) command(agent string) (string, []string, error) {
+// binaryOf is the program each agent runs as.
+func binaryOf(agent string) (string, error) {
+	switch agent {
+	case "claude", "codex":
+		return agent, nil
+	case "kiro":
+		return "kiro-cli", nil
+	}
+	return "", ErrUnsupportedAgent
+}
+
+// ctx bounds reading the agent's help (flagsOf).
+func (r Runner) command(ctx context.Context, agent string) (string, []string, error) {
 	switch agent {
 	case "claude":
 		// Only Read, and only inside the history folders: reads elsewhere need approval, which -p denies.
 		// stream-json (which needs --verbose with -p) shows the reply and each file read as they happen.
 		args := []string{"-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages", "--strict-mcp-config", "--tools", "Read"}
+		// The user's own settings could widen that (allow rules, extra folders, bypassPermissions, hooks), and
+		// history could ask the agent to use them. --restricted ignores user, project and local settings and keeps
+		// the file tools inside the working folders; older versions get --setting-sources instead (only the
+		// empty temporary folder's project settings). --no-session-persistence keeps the run, which holds the
+		// prompt and the files it read, out of Claude Code's history. Each is added only when this claude has it.
+		fl := flagsOf(ctx, "claude", "--help")
+		switch {
+		case fl["--restricted"]:
+			args = append(args, "--restricted")
+		case fl["--setting-sources"]:
+			args = append(args, "--setting-sources", "project")
+		}
+		if fl["--no-session-persistence"] {
+			args = append(args, "--no-session-persistence")
+		}
 		for _, d := range r.Dirs {
 			if fi, err := os.Stat(d); err == nil && fi.IsDir() && !strings.HasPrefix(d, "-") {
 				args = append(args, "--add-dir", d)
@@ -76,7 +103,17 @@ func (r Runner) command(agent string) (string, []string, error) {
 		return "claude", args, nil
 	case "codex":
 		// The temporary folder is not a git repository, which codex exec otherwise refuses.
-		return "codex", []string{"exec", "--sandbox", "read-only", "--skip-git-repo-check", "-"}, nil
+		args := []string{"exec", "--sandbox", "read-only", "--skip-git-repo-check"}
+		fl := flagsOf(ctx, "codex", "exec", "--help")
+		if fl["--ephemeral"] {
+			args = append(args, "--ephemeral") // don't keep the run (the prompt and what it read) as a Codex session
+		}
+		if fl["--config"] {
+			// No web search and none of the user's MCP servers: ways out of the machine for what it read.
+			// Both spellings of web search (newer and older Codex); a key a version doesn't know is ignored.
+			args = append(args, "-c", `web_search="disabled"`, "-c", "tools.web_search=false", "-c", "mcp_servers={}")
+		}
+		return "codex", append(args, "-"), nil
 	case "kiro":
 		return "kiro-cli", []string{"chat", "--no-interactive"}, nil
 	}
@@ -100,16 +137,19 @@ func (r Runner) Stream(ctx context.Context, agent, prompt string, emit func(Even
 	if len(prompt) > maxPrompt {
 		return Result{}, errors.New("prompt exceeds size limit")
 	}
-	binary, args, err := r.command(agent)
-	if err != nil {
-		return Result{}, err
-	}
 	timeout := r.Timeout
 	if timeout <= 0 || timeout > 5*time.Minute {
 		timeout = 2 * time.Minute
 	}
 	bounded, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
+	binary, args, err := r.command(bounded, agent)
+	if err != nil {
+		return Result{}, err
+	}
+	if err := bounded.Err(); err != nil {
+		return Result{}, err // stopped while reading the agent's help
+	}
 	// An empty folder of its own, so the agent doesn't pick up the project instructions, settings or
 	// repository of wherever kiroku serve was started.
 	dir, err := os.MkdirTemp("", "kiroku-ai-")
@@ -132,6 +172,7 @@ func (r Runner) Stream(ctx context.Context, agent, prompt string, emit func(Even
 	}
 	cmd := exec.CommandContext(bounded, binary, args...)
 	cmd.Dir = dir
+	cmd.Env = agentEnv(os.Environ())
 	cmd.Stdin = strings.NewReader(prompt)
 	cmd.WaitDelay = 2 * time.Second
 	started, done := ownGroup(cmd)
@@ -562,4 +603,123 @@ func globEscape(s string) string {
 		b.WriteRune(r)
 	}
 	return b.String()
+}
+
+// flagsOf returns the long options (--name) that a command's help lists, such as `claude --help`, so kiroku
+// adds an option only when the installed version has it. A help that was read in full is kept per program
+// (the file the command resolves to, its size and time, so an update is read again); one that failed, timed
+// out or was stopped is not kept, so a slow first start doesn't leave the run without its options for good.
+func flagsOf(ctx context.Context, name string, helpArgs ...string) map[string]bool {
+	path, err := exec.LookPath(name)
+	if err != nil {
+		return nil
+	}
+	key := path + "\x00" + strings.Join(helpArgs, " ")
+	real := path
+	if r, err := filepath.EvalSymlinks(path); err == nil {
+		real = r
+	}
+	if fi, err := os.Stat(real); err == nil {
+		key += fmt.Sprintf("\x00%s\x00%d\x00%d", real, fi.Size(), fi.ModTime().UnixNano())
+	}
+	if v, ok := helpCache.Load(key); ok {
+		return v.(map[string]bool)
+	}
+	hctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(hctx, path, helpArgs...)
+	cmd.Env = agentEnv(os.Environ())
+	cmd.Dir = os.TempDir()
+	cmd.WaitDelay = 500 * time.Millisecond // a child left holding the output doesn't keep the run waiting
+	out := &capWriter{max: 1 << 20}        // at most 1 MiB of help: a program that prints without end isn't kept in memory
+	cmd.Stdout = out
+	started, done := ownGroup(cmd)
+	defer done()
+	if err := cmd.Start(); err != nil {
+		return nil
+	}
+	started()
+	err = cmd.Wait()
+	if cmd.Cancel != nil {
+		_ = cmd.Cancel() // processes the help started are ended with it (its process group, or job object on Windows)
+	}
+	fl := map[string]bool{}
+	for _, m := range helpFlag.FindAllString(out.b.String(), -1) {
+		fl[m] = true
+	}
+	if err != nil || hctx.Err() != nil || out.full {
+		return fl // used for this run, but read again next time
+	}
+	helpCache.Store(key, fl)
+	return fl
+}
+
+// capWriter keeps the first max bytes and then refuses more, which ends copying the output.
+type capWriter struct {
+	b    bytes.Buffer
+	max  int
+	full bool
+}
+
+func (w *capWriter) Write(p []byte) (int, error) {
+	if room := w.max - w.b.Len(); len(p) > room {
+		w.b.Write(p[:max(room, 0)])
+		w.full = true
+		return 0, errors.New("help too long")
+	}
+	return w.b.Write(p)
+}
+
+var (
+	helpCache sync.Map
+	helpFlag  = regexp.MustCompile(`--[a-z][a-z0-9-]*`)
+)
+
+// agentEnv is kiroku's environment without what would steer the agent or hand it unrelated secrets:
+//   - the variables a Claude Code session sets for the commands it runs (kiroku serve started from inside
+//     Claude Code, locally or in the cloud): they could add folders, tie the run to that session or copy its
+//     output elsewhere. Only the ones that choose a provider or sign-in stay (keepClaude)
+//   - tokens and personal access tokens (names ending in _TOKEN or _PAT, such as GH_TOKEN, NPM_TOKEN,
+//     HF_TOKEN), which the analysis never needs, except the providers' own (Anthropic, AWS for Bedrock,
+//     Google Cloud for Vertex, Azure)
+//
+// Everything else stays, since the agent needs its own sign-in and provider settings (API keys, credentials
+// files, proxies and CA bundles).
+func agentEnv(env []string) []string {
+	out := make([]string, 0, len(env))
+	for _, kv := range env {
+		k, _, _ := strings.Cut(kv, "=")
+		if dropEnv(k) {
+			continue
+		}
+		out = append(out, kv)
+	}
+	return out
+}
+
+var keepClaude = map[string]bool{
+	"CLAUDE_CODE_USE_BEDROCK": true, "CLAUDE_CODE_USE_VERTEX": true, "CLAUDE_CODE_USE_FOUNDRY": true,
+	"CLAUDE_CODE_SKIP_BEDROCK_AUTH": true, "CLAUDE_CODE_SKIP_VERTEX_AUTH": true, "CLAUDE_CODE_SKIP_FOUNDRY_AUTH": true,
+	"CLAUDE_CODE_OAUTH_TOKEN": true, "CLAUDE_CODE_API_KEY_HELPER_TTL_MS": true,
+	"CLAUDE_CODE_CLIENT_CERT": true, "CLAUDE_CODE_CLIENT_KEY": true, "CLAUDE_CODE_CLIENT_KEY_PASSPHRASE": true,
+	"CLAUDE_CONFIG_DIR": true,
+}
+
+func dropEnv(k string) bool {
+	u := strings.ToUpper(k) // Windows names are case-insensitive
+	if keepClaude[u] {
+		return false
+	}
+	if u == "CLAUDECODE" || u == "CLAUDE_PID" || strings.HasPrefix(u, "CLAUDE_") || strings.HasPrefix(u, "SESSION_INGRESS") {
+		return true // CLAUDE_CODE_*, CLAUDE_SESSION_*, CLAUDE_ADDITIONAL_DIRECTORIES and the like
+	}
+	if strings.HasSuffix(u, "_TOKEN") || strings.HasSuffix(u, "_PAT") || u == "TWINE_PASSWORD" {
+		for _, p := range []string{"ANTHROPIC_", "AWS_", "GOOGLE_", "CLOUDSDK_", "AZURE_", "OPENAI_", "CODEX_", "KIRO_"} {
+			if strings.HasPrefix(u, p) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
 }

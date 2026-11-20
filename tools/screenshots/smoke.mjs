@@ -82,6 +82,15 @@ async function run(env) {
     check("凡例の件数（20 / 20 sessions）が画面の中に見える", await p.evaluate(() => { const r = document.querySelector("#legend .count").getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= innerWidth + 1; }));
     check("ロゴはこのファイルを開き直すリンク（/ ではディスクの一番上へ行く）", await p.evaluate(() => document.querySelector("#home").getAttribute("href") === location.href.split(/[?#]/)[0]));
     check("ロゴが検索欄に隠れない", await p.evaluate(() => document.querySelector(".brand .word").getBoundingClientRect().right <= document.querySelector(".search").getBoundingClientRect().left));
+    // カレンダーが主役：③ 時間の使い方から下のパネルは閉じていて、残したもの（アウトプット）は上の帯の右側に
+    check("③ から下のサマリーは既定で閉じている", await p.evaluate(() => { const f = [...document.querySelectorAll("#review details.panel.fold")]; return f.length >= 3 && f.every(d => !d.open); }));
+    check("上の帯に、残したもの（コミット）が使ったものの右に並ぶ", await p.evaluate(() => { const o = document.querySelector("#kpis .kpi.out"), a = document.querySelector('#kpis [data-metric="active"]');
+      return !!o && !!a && (a.compareDocumentPosition(o) & Node.DOCUMENT_POSITION_FOLLOWING) > 0; }));
+    check("見出しの「?」を押しても、パネルは開かない", await p.evaluate(() => { const d = document.querySelector("#review details.panel.fold"), hb = d.querySelector("summary .hb");
+      if (!hb) return true; hb.click(); const ok = !d.open; document.querySelector("#hpop")?.hidePopover?.(); return ok; }));
+    for (const sm of await p.locator("#review details.panel.fold > summary").all()) await sm.click(); // 開ける（覚えるので、あとの確認は開いたまま）
+    await pause();
+    check("見出しを押すとパネルが開く", await p.evaluate(() => [...document.querySelectorAll("#review details.panel.fold")].every(d => d.open)));
   });
 
   await step("既定のままで消える履歴は、Data sources で残し方とバックアップ先を見せる", async () => {
@@ -148,17 +157,22 @@ async function run(env) {
     if (await rep.count() > 0){
       await rep.scrollIntoViewIfNeeded();
       check("応答の中身が読める", (await rep.locator(".reptext").innerText()).trim().length > 0);
-      check("だれの発言か分かる", (await rep.locator(".rpw").innerText()).trim().length > 0);
+      check("だれの発言か分かる", (await rep.locator(".rpav").innerText()).trim().length > 0);
       // 依頼と応答の間に起きたこと（コミットなど）は応答の上に出るので、それを飛ばした手前が依頼
       check("応答は依頼のすぐ後に並ぶ", await p.evaluate(() => { const li = [...document.querySelectorAll("#panel .tl li")], i = li.findIndex(x => x.classList.contains("rp"));
         let j = i - 1; while (j >= 0 && li[j].classList.contains("ev")) j--;
         return i > 0 && j >= 0 && li[j].classList.contains("pr"); }));
     }
+    check("流れの凡例は既定で閉じている", await p.evaluate(() => { const d = document.querySelector("#drawer .tlkeyd"); return !!d && !d.open && !d.querySelector(".tlkey").checkVisibility(); }));
+    await p.locator("#drawer .tlkeyd > summary").click(); await pause();
+    check("凡例を開くと、記号の説明が見える", await p.evaluate(() => document.querySelector("#drawer .tlkey span").checkVisibility()));
     await p.locator('#flowBy button[data-v="user"]').click(); await pause();
     check("「ユーザープロンプトだけ」で、出来事が隠れる", await p.evaluate(() => [...document.querySelectorAll("#drawer .tl li.ev")].every(li => !li.offsetParent)));
     check("「ユーザープロンプトだけ」では、応答も隠れる", await p.evaluate(() => [...document.querySelectorAll("#drawer .tl li.rp")].every(x => !x.offsetParent)));
     check("「ユーザープロンプトだけ」では、出ていないものの説明を凡例に残さない", await p.evaluate(() => [...document.querySelectorAll("#drawer .tlkey .kev")].every(x => !x.offsetParent)));
     await p.locator('#flowBy button[data-v="all"]').click(); await pause();
+    check("開いた凡例は、切り替えのあとも開いたまま", await p.evaluate(() => document.querySelector("#drawer .tlkeyd").open));
+    await p.locator("#drawer .tlkeyd > summary").click(); await pause(); // 閉じて戻す（覚えた状態をあとの確認に残さない）
     await p.keyboard.press("Escape"); await pause();
     check("Esc で詳細が閉じる", !await drawerOpen());
     await run.focus(); await p.keyboard.press("ArrowLeft"); await pause();
@@ -238,7 +252,7 @@ async function run(env) {
       return {n: v.length, inAct: !v.length || !!v[0].closest(".sact"), wide, place: wide ? a.left > f.right - 1 : a.top < f.top,
         flowOnly: !flow.querySelector(".mini, .files, .trow, .dresume, #srun"),
         // HTML の順（Tab の順）が見た目の順と同じ：操作 → 数値 → 流れ → 情報。1 列ではモデル・ツールは流れより下
-        order: [".sact", ".smet", ".sflow", ".sinfo"].map(c => document.querySelector("#panel .scols > " + c)).every((e, i, a) => e && (!i || (a[i-1].compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING))),
+        order: [".sact", ".smet", ".sflow", ".sinfo"].map(c => document.querySelector("#panel .scols > " + c)).filter((e, i) => e || i).every((e, i, a) => e && (!i || (a[i-1].compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING))),
         toolsBelow: wide || [...document.querySelectorAll("#panel .trow")].every(e => e.getBoundingClientRect().top > f.bottom - 1)}; });
     check("詳細の HTML の順は、操作・数値・流れ・情報（Tab の順が見た目と合う）", rs.order === true, JSON.stringify(rs));
     check("1 列では、使ったツールは流れより下", rs.toolsBelow === true, JSON.stringify(rs));
