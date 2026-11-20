@@ -15,7 +15,6 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
   - "Worth a look" flags fewer things: usage limits, long conversations, expensive models for light work, cost with no commit or pull request, corrections or friction, and repeated prompts. Cost growth, cost per commit, cache, sessions that reached a commit, switches, focus blocks, wait time and oversized prompts stay in the summary but are no longer flagged
   - The month calendar shows one figure per day (usage) with active time as the shade; commits are in the day's tooltip, and the project bars are gone
   - Agent-specific metrics (each agent's own counts, such as turns or response time) are no longer shown in the summary or session details: their definitions differ by agent, so they could not be compared
-- kiroku no longer checks for a newer release on its own when a command runs; run `kiroku update` (or `kiroku doctor`) to check. `KIROKU_NO_UPDATE_CHECK` is no longer needed and is ignored
   - "Worth a look" is an icon with a count, and "This week", the period and view switches and that icon share one height and center line
   - The week calendar shades weekday hours outside 9:00–18:00, so early-morning and late-night work stands out
   - Session blocks and usage-limit marks in the week calendar have square corners
@@ -24,8 +23,8 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
   - With no agent installed, the reason ("No AI agent command (claude, codex or kiro-cli) was found…") is shown as text, not only on hover
   - Day headings leave out the commit mark on days without commits, and credit units stay next to their numbers on phones
 - A simpler view:
-  - The header shows only the logo, a small dot for LIVE (green while "Analyze with AI" is on; press it for what it means), search, theme and language. The tagline and the keyboard button are gone (press `?` for the shortcuts)
-  - "Worth a look" is one "Worth a look N" button in the row with the period controls; pressing it opens the list
+  - The header shows only the logo, a small dot for LIVE (green while "Analyze with AI" is on; press it for what it means) and search. The tagline and the keyboard button are gone (press `?` for the shortcuts)
+  - "Worth a look" is one button in the row with the period controls; pressing it opens the list
   - The session count next to the legend shows only while you filter
   - Days still to come no longer show "To match": the same amount is in the figures above the calendar
   - "Data sources" is always folded; a ⚠ next to its name marks something that needs your attention
@@ -33,9 +32,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
   - The summary no longer shows Files changed, Pushes, Parallel time and Total AI run time
   - The month-end estimate shows only the 3σ range (table and dotted lines), not 1σ and 2σ
 
+- kiroku no longer checks for a newer release on its own when a command runs; run `kiroku update` (or `kiroku doctor`) to check. `KIROKU_NO_UPDATE_CHECK` is no longer needed and is ignored
 ### Removed
 
-- kiroku no longer reads Kiro IDE before v1.0 ("Kiro IDE (legacy)", the `kiro.kiroagent` folder) or Amazon Q Developer CLI. Their sessions leave the view, `kiroku json` and `kiroku stats`, and the totals of the weeks that had them go down. Kiro IDE v1.0 and later, Kiro CLI (V3, V2 and the older SQLite history) and Kiro Crew are read as before
+- kiroku no longer reads Kiro IDE before v1.0 ("Kiro IDE (legacy)", the `kiro.kiroagent` folder) or Amazon Q Developer CLI. Their sessions leave the view, and the totals of the weeks that had them go down. Kiro IDE v1.0 and later, Kiro CLI (V3, V2 and the older SQLite history) and Kiro Crew are read as before
   - `--amazonq-db` and `amazonq` in `--sources` are still accepted and do nothing; using them prints one notice and the exit status is unchanged
   - Copies `kiroku archive` kept are not touched
 - "Report a problem" and "Copy diagnostics" are gone from the view's footer; to report a problem, run `kiroku doctor --report` and paste its output (kinds and counts only) into a new issue
