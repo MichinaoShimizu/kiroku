@@ -32,16 +32,7 @@ function setMode(m){ if (m === "month" && META.scope && META.scope.mode === "wee
 document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = () => setMode(b.dataset.v));
 /* 表示：カレンダーかサマリー。広い画面ではページ全体を画面に固定し、選んだほうだけが中でスクロールする（ページとカレンダーの二重のスクロールをなくす） */
 function showView(){ document.body.dataset.view = st.view;
-  document.querySelectorAll("#view button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.view)); fitLayout(); }
-/* ページを画面に固定するか（body.fixed）。広い画面で、カレンダーの時間の目盛りに十分な高さ（240px）が残るときだけ。
-   背の低い窓・拡大した画面・検索の最中は固定しない（ページ全体がスクロールし、カレンダーも検索結果も切れずに届く） */
-function fitLayout(){ const B = document.body;
-  if (!matchMedia("(min-width:821px)").matches || st.q){ B.classList.remove("fixed"); return; }
-  B.classList.add("fixed"); if (st.view !== "cal") return;
-  const tl = $("#tl"), sc = tl && tl.querySelector(".calscroll"), hd = sc && sc.querySelector(".heads");
-  const room = sc ? sc.getBoundingClientRect().height - (hd ? hd.offsetHeight : 0) : (tl ? tl.getBoundingClientRect().height : 0);
-  if (room < (sc ? 240 : 360)) B.classList.remove("fixed"); }
-let fitRaf = 0; addEventListener("resize", () => { cancelAnimationFrame(fitRaf); fitRaf = requestAnimationFrame(fitLayout); });
+  document.querySelectorAll("#view button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.view)); }
 function setView(v, focus){ if (v === st.view) return; st.view = v; store.set("view", v); showView();
   const m = $("main"); if (m) m.scrollTop = 0; if (v === "cal") scrollToWork();
   if (focus && v === "sum"){ const r = $("#review"); r.tabIndex = -1; r.focus({preventScroll: true}); } }
