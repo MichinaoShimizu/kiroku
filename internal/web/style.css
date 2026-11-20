@@ -756,14 +756,13 @@ dialog.mdlg h3{margin:20px 0 8px}
 .keys kbd{justify-self:start}
 
 /* ── responsive ─────────────────────────────────────────── */
-@media (max-width:1320px){.rvgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel.shape,.panel.time{grid-column:1/-1}}
+@media (max-width:1320px){.rvgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel.time{grid-column:1/-1}}
 /* 広い画面：③ はカードがいちばん多いので、横いっぱいにしてカードを 4 列に。④ も横いっぱい（.panel.aiuse）、⑤ はその下に
    （3 つを横に並べると、③ だけが倍ほど長く、④ の下に大きな空きができていた） */
 @media (min-width:1321px){
   .panel.time{grid-column:1/-1}
   .panel.time .stats{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-flow:row dense;align-items:start} /* カードは中身の高さのまま */
   .panel.time .stat:last-child:nth-child(odd){grid-column:auto}
-  .panel.shape{grid-column:1/-1}
 }
 @media (max-width:1180px){.kpis{margin-left:0;width:100%}}
 @media (max-width:1000px){.search kbd{display:none}.search input,.search input:focus{width:160px;padding-right:6px}}

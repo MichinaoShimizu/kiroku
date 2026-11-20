@@ -98,6 +98,8 @@ function spark(k, plain){ // 8 期間の推移（記録のない期間は飛ば�
 // 鍵は英語の文で、{name} を埋める。英語の画面では L と en は同じになる
 const fillEn = (s, v) => s.replace(/\{(\w+)\}/g, (m, k) => Object.prototype.hasOwnProperty.call(v, k) ? String(v[k]) : m);
 const pluralEn = (n, one) => `${n} ${n === 1 ? one : one + "s"}`;
+// 見直す候補は、次に何を変えればよいかがはっきりするものだけ：利用上限・修正の多さ（またはつまずき）・長くなった会話・モデルの選び方・
+// 何も残さなかったセッションの費用・繰り返したプロンプト（費用の増え方・キャッシュ・切り替えなどは数字としてサマリーにある）
 function findList(w, pw, unit){
   const F = [], u = w.usage || {}, o = w.outputs || {}, {ws, we} = period();
   const M = unit === "月", V = vsPrev(pw, unit);
@@ -130,29 +132,9 @@ function findList(w, pw, unit){
   const {xs: idle, c: idleC} = idleOf(ws, we);
   if (u.cost >= 2 && idleC >= u.cost * 0.4)
     add("heavy", 30 + Math.round(idleC*50/u.cost), tx("{pct}% of estimated cost ({cost}) went to sessions with no commit or pull request", {pct: Math.round(idleC*100/u.cost), cost: usd(idleC)}), tx("Fine for research or discussion. If they stopped partway, it's worth finding out why"), tx("Sessions of $1+ total 40%+ of all cost ($2+)"), idle.map(s => s.id));
-  const pc = V.of("cost", pw && pw.usage && pw.usage.cost); // 途中の期間は、前の期間の同じ日までと比べる
-  if (pc != null && pc >= 1 && u.cost >= pc * 1.5)
-    add("cost", 25, tx("Estimated cost was {x}× that of {prev} ({from} → {to})", {x: (u.cost/pc).toFixed(1), from: usd(pc), to: usd(u.cost)}), tx("What it means depends on which projects and sessions the increase came from"), tx("1.5× {last} or more"), null);
-  if (pw && pw.costPerCommit != null && w.costPerCommit != null && o.commits >= 3 && w.costPerCommit >= pw.costPerCommit * 1.5)
-    add("costPerCommit", 22, tx("Estimated cost per commit rose from {from} to {to}", {from: usd(pw.costPerCommit), to: usd(w.costPerCommit)}), tx("Each commit is costing more than before"), tx("1.5× {last} or more, with 3+ commits"), null);
-  if (u.cacheHit != null && u.tokens >= 1e6 && u.cacheHit < 0.5)
-    add("cache", 20, tx("Only {pct}% of input was read from cache", {pct: Math.round(u.cacheHit*100)}), tx("You may be re-sending the same context every time"), tx("Under 50%, with 1M+ tokens"), null);
-  if ((w.outBase ?? w.sessions) >= 5 && (o.commits || o.prs || (w.git && w.git.commits)) && w.outSessions / (w.outBase ?? w.sessions) < 0.25)
-    add("outSessions", 16, tx("{n} of {total} sessions reached a commit or pull request", {n: w.outSessions, total: w.outBase ?? w.sessions}), tx("Many sessions may have stopped partway"), tx("Under 25%, with 5+ sessions"), null);
-  const BG = bigOf(ws, we);
-  if (BG.n >= 3){
-    const a = {prompts: pluralEn(BG.n, "prompt")}, b = {prompts: plural(BG.n, "prompt")};
-    add("bigPrompts", 11, tx("{prompts} of {min}+ characters (longest {max})", {...a, min: commas(BIG_PROMPT), max: commas(BG.max)}, b), tx("Pasting long logs or documents makes every later response re-read a heavier input, and buries the instructions that matter"), tx("3+ prompts of {min}+ characters", {min: commas(BIG_PROMPT)}), BG.ids);
-  }
   const RP = repeatsOf(ws, we);
   if (RP.length)
     add("repeats", 9, tx("You wrote a similar prompt {n} times across {s} sessions {period} (\"{text}\")", {n: RP[0].n, s: RP[0].ids.size, text: snipOf(RP[0].text, 40)}), tx("A prompt you type every time can be written once as a command or in CLAUDE.md"), tx("{min}+ characters, in {ses}+ sessions", {min: REPEAT_MIN, ses: REPEAT_SES}), [...new Set([RP[0].id, ...RP[0].ids])]);
-  if (w.switchesAvg >= 5)
-    add("switches", 14, tx("You switched projects {n} times a day on average", {n: w.switchesAvg}), tx("Each context switch tends to add ramp-up time and rework"), tx("5+ per day on average"), null);
-  if (!w.focus.length && w.active >= 240)
-    add("focus", 12, tx("You worked {dur}, but never for 60 minutes straight", {dur: dur(w.active)}), tx("Fragmented time makes it harder to hand large tasks to AI"), tx("No focus blocks, with 4+ hours of work"), null);
-  if (w.waitP90 != null && w.waitCount >= 10 && w.waitP90 >= 900)
-    add("wait", 10, tx("At the long end, {secs} passed between an AI reply and your next prompt", {secs: secs(w.waitP90)}), tx("AI may have sat idle until you noticed its reply"), tx("90th percentile of 15+ min"), null);
   return F.sort((a,b) => b.score - a.score);
 }
 const GOTO = {longctx: "heavy", modelfit: "models"}; // 専用の指標がない候補は、関係する指標に印を付ける

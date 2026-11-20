@@ -15,7 +15,7 @@ function summary(){
   R.innerHTML = `${head}<div class="rvgrid">
   ${projectPanel(w, unit)}
   ${outcomePanel(w, pw, unit)}
-  ${fold("time", panelH(3, esc(t("How you spent time")), esc(t("When and how long sessions ran"))), `
+  ${fold("time", panelH(3, esc(t("How you worked")), esc(t("Time, friction and repeated prompts"))), `
     <div class="stats">
       ${statH(esc(t("Focus blocks (60+ min)")), times(w.focus.length), longest ? esc(t("Longest {dur}", {dur: dur(longest)})) : "", "focus", w.focus.length ? "focus" : "")}
       ${(() => { const {ws, we} = period(), H = limitHits(ws, we), N = unrecorded(ws, we, "limits"); return N ? norecStat(esc(t("Usage limit hits")), N, "limits") : statH(esc(t("Usage limit hits")), times(H.length), esc(H.length ? H.slice(-4).map(h => h.r ? t("{time} (resets {r})", {time: `${md(h.t)} ${hm(h.t)}`, r: h.r}) : `${md(h.t)} ${hm(h.t)}`).join(TSEP()) + (H.length > 4 ? TSEP() + "…" : "") : t("From Claude Code, Codex and Kiro Crew history")), "limits", H.length ? "limits" : ""); })()}
@@ -26,16 +26,15 @@ function summary(){
       ${(() => { const {ws, we} = period(), B = bigOf(ws, we); return statH(esc(t("Oversized prompts")), `${B.n}`, esc(B.n ? t("{n}+ characters · longest {max}", {n: commas(BIG_PROMPT), max: commas(B.max)}) : t("{n}+ characters", {n: commas(BIG_PROMPT)})), "bigPrompts", B.n ? "bigPrompts" : ""); })()}
       ${statH(esc(t("Project switches per day")), times(w.switchesAvg), esc(t("Max {n}", {n: w.switchesMax})), "switches", "switches")}
       ${statH(esc(t("Wait time (median)")), secsH(w.waitMedian), esc(t("{replies} · 90th percentile {p}", {replies: plural(w.waitCount, "reply", "replies"), p: secs(w.waitP90)})), "wait", w.waitCount ? "wait" : "")}
-    </div>`)}
-  ${fold("aiuse", panelH(4, esc(t("How you used AI")), esc(t("Cache, models and heavy sessions"))), `
-    ${aiUsage(w, pw, unit) || noneH(esc(t("No token or credit records.")))}
-    ${nativeSection(w)}`)}
-  ${fold("shape", panelH(5, esc(M ? t("Shape of the month") : t("Shape of the week")), esc(t("Friction and repeated prompts"))), `
+    </div>
     ${w.friction.length ? secH(esc(t("Possible friction")), "friction") : ""}
     ${w.friction.length ? w.friction.map(f => sesCardH(sesById(f.id, f.title), `${sesMeta(f)} ${whyOf(f).map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}`)).join("") : ""}
     ${repeatsOf(period().ws, period().we).length ? secH(esc(t("Repeated prompts")), "repeats") : ""}
     ${(() => { const {ws, we} = period(), RP = repeatsOf(ws, we); return RP.length ? RP.slice(0, 3).map(c => { const v = {n: c.n, s: c.ids.size, day: md(c.last)}; return sesCardH(sesById(c.id, snipOf(c.text, 90)), esc(t(perLabel(M ? "月" : "週", "{n} times in {s} sessions this month · last on {day}", "{n} times in {s} sessions this week · last on {day}", "{n} times in {s} sessions in the month shown · last on {day}", "{n} times in {s} sessions in the week shown · last on {day}"), v))); }).join("") : ""; })()}
     ${w.friction.length || repeatsOf(period().ws, period().we).length ? "" : noneH(esc(t("No sessions with possible friction and no repeated prompts.")))}`)}
+  ${fold("aiuse", panelH(4, esc(t("How you used AI")), esc(t("Cache, models and heavy sessions"))), `
+    ${aiUsage(w, pw, unit) || noneH(esc(t("No token or credit records.")))}
+    ${nativeSection(w)}`)}
   <section class="panel metap">${measure(w)}${foot()}</section></div>`;
   placeFlags(R, F);
   R.querySelectorAll("details.fold").forEach(d => { d.ontoggle = () => store.set("fold:" + d.dataset.fold, d.open); // 開け閉めを覚える
