@@ -5,3 +5,4 @@
   - The prompt flow has no "Everything / Your prompts only" switch and no legend
   - The summary has four panels: "How you spent time" and "Shape of the week / month" are one panel, "How you worked"
   - "Worth a look" flags fewer things: usage limits, long conversations, expensive models for light work, cost with no commit or pull request, corrections or friction, and repeated prompts. Cost growth, cost per commit, cache, sessions that reached a commit, switches, focus blocks, wait time and oversized prompts stay in the summary but are no longer flagged
+  - The month calendar shows one figure per day (usage) with active time as the shade; commits and the project bars moved to the day's tooltip

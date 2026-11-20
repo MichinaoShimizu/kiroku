@@ -350,18 +350,11 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .cell.sat{background-image:linear-gradient(var(--sat-bg),var(--sat-bg))}.cell.sun{background-image:linear-gradient(var(--sun-bg),var(--sun-bg))}
 .cell .dn{font:700 var(--fs-lg)/1 var(--sans);font-variant-numeric:tabular-nums}
 .cell.today .dn{color:var(--acc-ink);background:color-mix(in oklab,var(--acc) var(--t3),var(--surface));border-radius:6px;padding:3px 5px;margin:-3px 0 0 -5px;align-self:flex-start}
-.cell .acs{display:none}
+.cell .acs{display:block;font:700 var(--fs-md)/1.2 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap;margin-top:auto} /* 月のマスは使用量の 1 つだけ（作業時間はマスの濃さで見える） */
+.cell .acs.u,.kpis.unf .v{color:var(--ink-3)} /* 絞り込みの最中の、絞り込まれていない合計 */
 .head .cline{display:flex;align-items:baseline;gap:6px;margin-top:6px;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:0} /* 週の日の見出しの 1 行：使用量 · コミット */
 .head .cline .cu{font-size:var(--fs-md);font-weight:700;color:var(--ink)}.head .cline .cc{display:inline-flex;align-items:center;gap:3px;font-size:var(--fs-sm);font-weight:600;color:var(--ink-2)}.head .cline .cc .ic{width:12px;height:12px}
 .head .cline .sep{color:var(--ink-3)}.head .cline .u{color:var(--ink-3)}
-.cm{display:grid;gap:1px}.cell .cm{margin:auto 0 2px}.head .cm{margin-top:6px} /* カレンダーの各日・各週の 2 つ（使用量・コミット） */
-.cm div{display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-width:0}
-.cm dt{font-size:var(--fs-xs);color:var(--ink-2);white-space:nowrap} /* 濃さで色の付くマスの上でも読めるよう、ラベルも ink-3 より濃く */
-.cm dd{margin:0;font-size:var(--fs-sm);font-weight:600;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cm .k dd{font-size:var(--fs-md);font-weight:700;color:var(--ink)} /* 作業時間とトークン・クレジットを強く、セッションとコミットは控えめに。色は使わず濃さと太さで分ける */
-.cm .u dt,.cm .u dd,.cm .k.u dd,.cell .acs.u,.kpis.unf .v{color:var(--ink-3)} /* 絞り込みの最中の、絞り込まれていない合計 */
-.cell .pj{display:flex;gap:2px;height:5px;border-radius:3px;overflow:hidden}
-.cell .pj span{background:var(--c);min-width:2px}
 .mlegend{display:flex;align-items:center;gap:8px;justify-content:flex-end;padding:10px 14px;font-size:var(--fs-xs);color:var(--ink-3);border-top:1px solid var(--rule)}
 .mlegend i{width:16px;height:10px;border-radius:3px;background:color-mix(in oklab,var(--acc) calc(var(--h) * var(--heatk)),var(--surface));box-shadow:inset 0 0 0 1px var(--rule)}
 .wk .mode{margin-left:10px}
@@ -771,8 +764,8 @@ dialog.mdlg h3{margin:20px 0 8px}
   .rvgrid.srgrid{grid-template-columns:1fr}
   .rvhead .pill{margin-left:0}
   .mgrid{grid-template-columns:42px repeat(7,minmax(0,1fr))}
-  .head{padding:8px 8px 7px}.head .cm .k dd{font-size:var(--fs-sm)} /* 狭い列でも週の各日の数が切れないように */
-  .cell{min-height:64px;padding:6px 6px 7px}.cell .cm{display:none}.cell .acs{display:block;font:700 var(--fs-sm)/1.2 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap;margin-top:auto} /* スマホの月のマスは使用量だけ（作業時間はマスの濃さで見える） */
+  .head{padding:8px 8px 7px}.head .cline .cu{font-size:var(--fs-sm)} /* 狭い列でも週の各日の数が切れないように */
+  .cell{min-height:64px;padding:6px 6px 7px}.cell .acs{font-size:var(--fs-sm)}
   .ph{flex-wrap:wrap;row-gap:2px}.ph span:not(.no){flex-basis:100%;padding-left:32px}
   .mgrid .mh{padding:8px 6px}
   .wrap{padding:0 16px}
@@ -812,7 +805,6 @@ dialog.mdlg h3{margin:20px 0 8px}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media (forced-colors:active){.run{border:1px solid CanvasText}}
-@media (min-width:821px) and (max-width:1180px){.cell.wkc .cm{display:none}.cell.wkc .acs{display:block;font:700 var(--fs-sm)/1.2 var(--sans);font-variant-numeric:tabular-nums;white-space:nowrap;margin-top:auto}} /* 左の週の列は狭いので、作業時間と使用量だけ */
 @media (max-width:400px){.cell{padding:5px 3px 6px}.cell .acs{font-size:var(--fs-xs)}} /* いちばん狭い画面でも、月のマスの時間とトークンが切れないように */
 
 .pkind .ic{width:11px;height:11px;margin-right:3px;vertical-align:-1px} /* コマンド（/）・シェル（>_） */
