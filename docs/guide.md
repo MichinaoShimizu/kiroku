@@ -140,7 +140,7 @@ A saved HTML file never runs an agent and shows no AI buttons. The exception is 
 | Scope | Button | Format |
 |---|---|---|
 | A session | "Analyze with AI" in session details, under the resume command | Summary, Numbers, Professional prompt assessment, Prioritized advice (up to three, each with an improved prompt), Reusable prompt playbook (an improved opening prompt and follow-up prompts for similar work) |
-| A day | "Analyze with AI" next to each date with history in the week calendar (`kiroku serve` with an agent found only) | Summary, Numbers (next to the previous day), By project, Expert observations, Next actions |
+| A day | "Analyze with AI" next to each date with history in the week calendar, shown when you point at or move into that day's heading (always on touch screens; `kiroku serve` with an agent found only) | Summary, Numbers (next to the previous day), By project, Expert observations, Next actions |
 | A week | "Analyze with AI" under "Weekly report" in week view, below the week's dates | Summary, Numbers (next to the previous week), By project, Expert observations, Next actions |
 
 What the prompts give the agent:
