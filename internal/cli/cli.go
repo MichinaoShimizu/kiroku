@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -31,8 +30,6 @@ Commands:
   open [ADDR]           Open the view of a running "kiroku serve" with its key (--print shows the address for another device)
   html                  Write the view as a single static HTML file (default kiroku.html) and open it
                         (--week or --month writes only that period, for sharing)
-  json                  Write the aggregated data as JSON (default kiroku.json, "-" for stdout)
-  stats                 Print a one-screen summary of this week (--week last, --month this, ...) in the terminal
   archive [on|off]      Keep compressed copies of history that agents delete (Claude Code, Kiro Crew); no argument shows the status
   autostart [on [ADDR]|off]
                         Start "kiroku serve" in the background each time you log in; no argument shows the status
@@ -68,10 +65,8 @@ func dispatch(args []string) error {
 		return cmdServe(args[1:])
 	case "html":
 		return cmdHTML(args[1:])
-	case "json":
-		return cmdJSON(args[1:])
-	case "stats":
-		return cmdStats(args[1:])
+	case "json", "stats":
+		return fmt.Errorf("\"kiroku %s\" was removed in kiroku 3.0; use \"kiroku serve\" (or \"kiroku html\" for a file) to see your history", args[0])
 	case "archive":
 		return cmdArchive(args[1:])
 	case "open":
@@ -392,36 +387,6 @@ func cmdHTML(args []string) error {
 	return nil
 }
 
-func cmdJSON(args []string) error {
-	fs := newFS("json", "json [flags]")
-	c := addCommon(fs)
-	out := fs.String("o", "kiroku.json", "output `file` (\"-\" for stdout)")
-	fs.StringVar(out, "out", "kiroku.json", "same as -o")
-	if _, err := parse(fs, args, 0); err != nil {
-		return quiet(err)
-	}
-	if *out == "-" {
-		logw = io.Discard // 標準出力を JSON だけにする
-	}
-	snap, err := loadNonEmpty(c)
-	if err != nil {
-		return err
-	}
-	return writeJSON(snap, *out)
-}
-
-func loadNonEmpty(c *common) (snapshot, error) {
-	_, load, err := c.loader()
-	if err != nil {
-		return snapshot{}, err
-	}
-	snap := load()
-	if len(snap.data) == 0 {
-		return snap, fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db; see \"kiroku doctor --all\")")
-	}
-	return snap, nil
-}
-
 func writeHTML(snap snapshot, out string, open bool, lang string) error {
 	if len(snap.data) == 0 {
 		return fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db; see \"kiroku doctor --all\")")
@@ -445,40 +410,6 @@ func writeHTML(snap snapshot, out string, open bool, lang string) error {
 		}
 	}
 	return nil
-}
-
-// jsonSchema は kiroku json の形の版。docs/compatibility.md の項目を消したり、名前や意味を変えたりしたら上げる（BREAKING）。
-const jsonSchema = 1
-
-// jsonSource は、画面の名前を変えたソースの、kiroku json の source の値（docs/compatibility.md が約束した値）。
-// 画面では Kiro IDE / CLI (V3) と出すが、1.0 で決めた "Kiro IDE / CLI" を変えるのは互換を壊す変更なので、書き出すときに戻す。
-var jsonSource = map[string]string{"Kiro IDE / CLI (V3)": "Kiro IDE / CLI"}
-
-// jsonSessions は、kiroku json に書くセッション。source を jsonSource の値に戻す（セッションは kiroku serve のキャッシュと
-// 共有しているので、変えるものは写しにする）。
-func jsonSessions(data []*core.Session) []*core.Session {
-	out := make([]*core.Session, len(data))
-	for i, s := range data {
-		if v, ok := jsonSource[s.Source]; ok {
-			c := *s
-			c.Source = v
-			s = &c
-		}
-		out[i] = s
-	}
-	return out
-}
-
-func writeJSON(snap snapshot, out string) error {
-	b, err := json.MarshalIndent(map[string]any{"schemaVersion": jsonSchema, "sessions": jsonSessions(snap.data), "weeks": snap.weeks, "months": snap.months, "meta": snap.meta}, "", " ")
-	if err != nil {
-		return err
-	}
-	if out == "-" {
-		_, err = os.Stdout.Write(append(b, '\n'))
-		return err
-	}
-	return writePrivate(out, b)
 }
 
 // writePrivate は、履歴を含むファイルをほかのユーザーが読めないように（0600）書く。
@@ -507,7 +438,7 @@ func writePrivate(out string, b []byte) error {
 // legacyForm は、v1.0 の前に消した前の書き方（kiroku --serve、--json、-o など）に、いまの書き方を教える。
 func legacyForm(arg string) error {
 	name, _, _ := strings.Cut(strings.TrimLeft(arg, "-"), "=")
-	now := map[string]string{"serve": "kiroku serve", "json": "kiroku json -o FILE", "o": "kiroku html -o FILE", "out": "kiroku html -o FILE",
+	now := map[string]string{"serve": "kiroku serve", "json": "kiroku html -o FILE", "o": "kiroku html -o FILE", "out": "kiroku html -o FILE",
 		"weekly": "kiroku serve", "monthly": "kiroku serve"}[name]
 	if now == "" {
 		return fmt.Errorf("unknown command: %s (run \"kiroku help\" for the list)", arg)

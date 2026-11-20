@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
@@ -264,4 +265,25 @@ func cleanupOldExe() {
 	if exe, err := os.Executable(); err == nil {
 		os.Remove(exe + ".old")
 	}
+}
+
+// termMsg は、読めなかったファイルのエラー（ファイルの場所など、履歴から来た文字を含む）を端末に出せるようにする（termSafe）。
+func termMsg(s string) string { return termSafe(s, 2000) }
+
+// termSafe は、履歴から来た名前を端末にそのまま出せるようにする。制御文字（ESC で始まる色や画面の操作など）と、
+// Unicode の書式文字（文字の向きを変える U+202E、幅のない空白など）、行・段落の区切りを取り除き、長い名前は n 文字で切る。
+func termSafe(s string, n int) string {
+	s = strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) || unicode.In(r, unicode.Cf, unicode.Zl, unicode.Zp) {
+			return -1
+		}
+		return r
+	}, s)
+	if r := []rune(s); len(r) > n {
+		return string(r[:n-1]) + "…"
+	}
+	if s == "" {
+		return "—"
+	}
+	return s
 }

@@ -1,22 +1,20 @@
 package cli
 
 import (
-	"io"
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
 )
 
 // kiroku html / json が書くファイルは、ほかのユーザーが読めない（0600）。前からある 0644 のファイルも 0600 にし、
 // 置き場所にシンボリックリンクがあっても、その先は書きかえない。書きかけの一時ファイルは残さない。
-func TestHTMLAndJSONArePrivate(t *testing.T) {
+func TestHTMLIsPrivate(t *testing.T) {
 	setup(t)
 	h := filepath.Join("testdata", "home")
 	dir := t.TempDir()
 	common := []string{"--claude-root", filepath.Join(h, ".claude", "projects"), "--kiro-home", filepath.Join(h, ".kiro"), "--sources", "claude,kiro"}
-	for _, c := range []struct{ cmd, name string }{{"html", "k.html"}, {"json", "k.json"}} {
+	for _, c := range []struct{ cmd, name string }{{"html", "k.html"}} {
 		out := filepath.Join(dir, c.name)
 		if err := os.WriteFile(out, []byte("old"), 0o644); err != nil {
 			t.Fatal(err)
@@ -67,30 +65,5 @@ func TestHTMLAndJSONArePrivate(t *testing.T) {
 	// 書けない場所ならエラーで、何も作らない
 	if err := writePrivate(filepath.Join(dir, "no-such-dir", "k.html"), []byte("x")); err == nil {
 		t.Error("ないフォルダに書けた")
-	}
-}
-
-// json -o - は標準出力に書く（ファイルは作らない）。
-func TestJSONStdout(t *testing.T) {
-	setup(t)
-	defer func(w io.Writer) { logw = w }(logw) // json -o - は logw を捨てる
-	h := filepath.Join("testdata", "home")
-	dir := t.TempDir()
-	wd, _ := os.Getwd()
-	args := []string{"json", "-o", "-", "--claude-root", filepath.Join(wd, h, ".claude", "projects"), "--kiro-home", filepath.Join(wd, h, ".kiro"), "--sources", "claude,kiro"}
-	if err := os.Chdir(dir); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Chdir(wd)
-	out := captureOutput(t, func() {
-		if err := dispatch(args); err != nil {
-			t.Fatal(err)
-		}
-	})
-	if !strings.HasPrefix(out, "{") || !strings.Contains(out, `"sessions"`) {
-		t.Errorf("標準出力 = %.80q", out)
-	}
-	if ents, _ := os.ReadDir(dir); len(ents) != 0 {
-		t.Errorf("ファイルを作った: %v", ents)
 	}
 }

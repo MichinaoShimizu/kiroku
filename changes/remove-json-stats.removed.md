@@ -1,0 +1,1 @@
+- BREAKING: `kiroku json` and `kiroku stats` are removed. Use `kiroku serve` to see your history, or `kiroku html` (with `--week` or `--month` for one period) for a file. Running either command now stops with a message naming what to use instead
