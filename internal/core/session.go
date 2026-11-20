@@ -2,6 +2,7 @@ package core
 
 import (
 	"math"
+	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -196,26 +197,58 @@ type Builder struct {
 }
 
 // IsAIRunDir reports whether dir is the temporary folder kiroku runs "Analyze with AI" in
-// (os.MkdirTemp("", "kiroku-ai-"): the prefix and random digits). An agent that keeps history of that run
-// records it there; kiroku leaves it out so the run doesn't show up as a session or feed later prompts.
+// (os.MkdirTemp("", "kiroku-ai-"): the prefix and random digits, directly in a temporary folder), or
+// Claude Code's folder name for it when a session has no working folder ("-tmp-kiroku-ai-123"). An agent
+// that keeps history of that run records it there; kiroku leaves it out so the run doesn't show up as a
+// session or feed later prompts. A project of yours with that name elsewhere is kept.
 func IsAIRunDir(dir string) bool {
 	if dir == "" {
 		return false
 	}
-	base := dir
-	if i := strings.LastIndexAny(dir, `/\`); i >= 0 {
-		base = dir[i+1:]
+	norm := strings.ReplaceAll(dir, `\`, "/")
+	parent, base := "", norm
+	if i := strings.LastIndex(norm, "/"); i >= 0 {
+		parent, base = norm[:i], norm[i+1:]
 	}
-	digits, ok := strings.CutPrefix(base, "kiroku-ai-")
-	if !ok || digits == "" {
+	if d, ok := strings.CutPrefix(base, "kiroku-ai-"); ok && allDigits(d) {
+		return isTempDir(parent)
+	}
+	// Claude Code's encoded folder name: "/" and "." become "-"
+	if i := strings.LastIndex(base, "-kiroku-ai-"); i > 0 && strings.HasPrefix(base, "-") && allDigits(base[i+len("-kiroku-ai-"):]) {
+		enc := strings.ToLower(base[:i]) + "-"
+		for _, t := range []string{"-tmp-", "-t-", "-temp-"} {
+			if strings.HasSuffix(enc, t) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func allDigits(s string) bool {
+	if s == "" {
 		return false
 	}
-	for _, r := range digits {
+	for _, r := range s {
 		if r < '0' || r > '9' {
 			return false
 		}
 	}
 	return true
+}
+
+// isTempDir: this computer's temporary folder, or one that looks like a temporary folder on the computer the
+// history was recorded on (/tmp, macOS's …/T, Windows's …/Temp).
+func isTempDir(parent string) bool {
+	if parent == "" {
+		return false
+	}
+	clean := func(p string) string { return strings.TrimRight(strings.ReplaceAll(p, `\`, "/"), "/") }
+	if strings.EqualFold(clean(parent), clean(os.TempDir())) {
+		return true
+	}
+	last := parent[strings.LastIndex(parent, "/")+1:]
+	return parent == "/tmp" || parent == "/private/tmp" || last == "T" || strings.EqualFold(last, "Temp") || strings.EqualFold(last, "tmp")
 }
 
 func NewBuilder(source, id string) *Builder {

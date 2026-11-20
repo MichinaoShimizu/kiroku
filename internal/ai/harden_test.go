@@ -78,6 +78,15 @@ func TestAgentEnvDropsSessionAndUnrelatedTokens(t *testing.T) {
 	t.Setenv("GITHUB_TOKEN", "ghp_secret")
 	t.Setenv("NPM_TOKEN", "npm_secret")
 	t.Setenv("ANTHROPIC_API_KEY", "sk-keep")
+	t.Setenv("CLAUDE_SESSION_INGRESS_TOKEN_FILE", "/x")
+	t.Setenv("SESSION_INGRESS_URL", "http://x")
+	t.Setenv("CLAUDE_CODE_TEE_SDK_STDOUT", "/x")
+	t.Setenv("CLAUDE_CODE_REMOTE_SDK_URL", "http://x")
+	t.Setenv("GITHUB_PAT", "x")
+	t.Setenv("HF_TOKEN", "x")
+	t.Setenv("Gh_Token", "x")
+	t.Setenv("AWS_SESSION_TOKEN", "keep")
+	t.Setenv("CLAUDE_CONFIG_DIR", "/keep")
 	t.Setenv("CLAUDE_CODE_USE_BEDROCK", "1")
 	stubAgent(t, "claude", `cat >/dev/null; printf '{"type":"result","result":"%s"}\n' "$(env | cut -d= -f1 | tr '\n' ' ')"`)
 	res, err := (Runner{Enabled: true}).Run(context.Background(), "claude", "hi")
@@ -85,14 +94,49 @@ func TestAgentEnvDropsSessionAndUnrelatedTokens(t *testing.T) {
 		t.Fatal(err)
 	}
 	names := strings.Fields(res.Output)
-	for _, gone := range []string{"CLAUDECODE", "CLAUDE_ADDITIONAL_DIRECTORIES", "CLAUDE_CODE_SESSION_ID", "GH_TOKEN", "GITHUB_TOKEN", "NPM_TOKEN"} {
+	for _, gone := range []string{"CLAUDECODE", "CLAUDE_ADDITIONAL_DIRECTORIES", "CLAUDE_CODE_SESSION_ID", "GH_TOKEN", "GITHUB_TOKEN", "NPM_TOKEN",
+		"CLAUDE_SESSION_INGRESS_TOKEN_FILE", "SESSION_INGRESS_URL", "CLAUDE_CODE_TEE_SDK_STDOUT", "CLAUDE_CODE_REMOTE_SDK_URL", "GITHUB_PAT", "HF_TOKEN", "Gh_Token"} {
 		if slices.Contains(names, gone) {
 			t.Errorf("agent got %s", gone)
 		}
 	}
-	for _, kept := range []string{"ANTHROPIC_API_KEY", "CLAUDE_CODE_USE_BEDROCK", "PATH"} {
+	for _, kept := range []string{"ANTHROPIC_API_KEY", "CLAUDE_CODE_USE_BEDROCK", "AWS_SESSION_TOKEN", "CLAUDE_CONFIG_DIR", "PATH"} {
 		if !slices.Contains(names, kept) {
 			t.Errorf("agent lost %s", kept)
 		}
+	}
+}
+
+// The help is read again after a slow or failed first read, so one timeout doesn't leave every later run
+// without its options; a help that never ends isn't kept in memory.
+func TestHelpReadAgainAfterTimeout(t *testing.T) {
+	dir := t.TempDir()
+	stubAgent(t, "claude", `if [ "$1" = --help ]; then
+  if [ ! -e "`+dir+`/once" ]; then touch "`+dir+`/once"; sleep 7; fi
+  echo '  --restricted'; echo '  --no-session-persistence'; exit 0; fi
+cat >/dev/null; echo '{"type":"result","result":"ok"}'`)
+	argvOf := func() string {
+		var argv []string
+		if _, err := (Runner{Enabled: true}).Stream(context.Background(), "claude", "hi", func(e Event) {
+			if e.T == "cmd" {
+				argv = e.Argv
+			}
+		}); err != nil {
+			t.Fatal(err)
+		}
+		return strings.Join(argv, " ")
+	}
+	first := argvOf()
+	if second := argvOf(); !strings.Contains(second, "--restricted") || !strings.Contains(second, "--no-session-persistence") {
+		t.Errorf("after a timed-out help (first run %q), the next run is still without its options: %q", first, second)
+	}
+}
+
+func TestHelpOutputIsCapped(t *testing.T) {
+	stubAgent(t, "claude", `if [ "$1" = --help ]; then echo '  --restricted'; head -c 50000000 /dev/zero; exit 0; fi
+cat >/dev/null; echo '{"type":"result","result":"ok"}'`)
+	fl := flagsOf(context.Background(), "claude", "--help")
+	if !fl["--restricted"] {
+		t.Errorf("flags = %v, want --restricted read from the first MiB", fl)
 	}
 }
