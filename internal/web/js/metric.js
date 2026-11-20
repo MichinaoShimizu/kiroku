@@ -57,7 +57,7 @@ function mDays(w, m, proj){
   // トレンド線：終わった日に引いた直線（最小二乗法）を、月の最後の日まで延ばす。これからの日の部分は破線
   const n = w.days.length, X = i => ((i + 0.5) / n * 100).toFixed(2), Y = i => (100 - trAt(i) / max * 100).toFixed(2);
   const trSvg = tr ? `<svg class="mtrend" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="${X(0)}" y1="${Y(0)}" x2="${X(cur)}" y2="${Y(cur)}"/><line class="fut" x1="${X(cur)}" y1="${Y(cur)}" x2="${X(n - 1)}" y2="${Y(n - 1)}"/></svg>` : "";
-  const key = lines.length || tr ? `<p class="note mbkey">${tr ? `<span class="tr">${esc(t("Trend"))}</span>` : ""}${lines.map(l => `<span class="k${l.k}">${l.k}σ</span>`).join("")} ${esc(lines.length ? t("Dotted lines: the range for each day still to come") : "")}</p>` : "";
+  const key = lines.length || tr ? `<p class="note mbkey">${proj ? `<span class="pace">${esc(t("Current pace"))}</span>` : ""}${tr ? `<span class="tr">${esc(t("Trend"))}</span>` : ""}${lines.map(l => `<span class="k${l.k}">${l.k}σ</span>`).join("")} ${esc(lines.length ? t("σ lines: the range per day for the days still to come (the table above is for the whole month)") : "")}</p>` : "";
   return `<h3>${esc(t("By day"))}</h3><div class="mdays${M ? " month" : ""}"${proj ? ` style="--avg:${avg/max*100}%"` : ""}>${cols}${band}${trSvg}</div>${key}`;
 }
 // 横の棒の一覧（エージェント・プロジェクト・モデル）。total が false なら割合の欄を空ける（割合や中央値のように、足しても意味のない値）。

@@ -43,7 +43,6 @@ var updateCheckOn = func() bool {
 	return isTerminal(os.Stdin) && isTerminal(os.Stdout) && isTerminal(os.Stderr) // 出力をパイプに流しているときは聞かない
 }
 
-
 // startUpdateCheck は、コマンドの前に呼ぶ。知らせないときは nil。
 func startUpdateCheck(cmd string) *updateNotice {
 	switch cmd {

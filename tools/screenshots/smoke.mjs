@@ -91,8 +91,17 @@ async function run(env) {
     check("見出しの「?」を押しても、パネルは開かない", await p.evaluate(() => { const d = document.querySelector("#review details.panel.fold"), hb = d.querySelector("summary .hb");
       if (!hb) return true; hb.click(); const ok = !d.open; if (typeof hideHint === "function") hideHint(); return ok; }));
     check("既定はカレンダー：サマリーは隠れ、カレンダーが見える", await p.locator("#review").isHidden() && await p.locator("#tl").isVisible());
-    if (env.viewport.width > 820 && env.viewport.height >= 560) check("広い画面ではページはスクロールせず、カレンダーの中だけがスクロールする", await p.evaluate(() =>
+    if (env.viewport.width > 820 && await p.evaluate(() => document.body.classList.contains("fixed"))) check("広い画面ではページはスクロールせず、カレンダーの中だけがスクロールする", await p.evaluate(() =>
       document.documentElement.scrollHeight <= innerHeight + 1 && (() => { const c = document.querySelector("#tl .calscroll"); return !c || c.getBoundingClientRect().bottom <= innerHeight; })()));
+    if (env.viewport.width === 1440){ // 背の低い窓では固定しない（カレンダーの時間の目盛りが見えなくなるので、ページ全体をスクロールさせる）
+      await p.setViewportSize({width: 1024, height: 600}); await pause();
+      check("背の低い窓ではページを固定しない", await p.evaluate(() => !document.body.classList.contains("fixed") && document.documentElement.scrollHeight > innerHeight));
+      await p.setViewportSize(env.viewport); await pause();
+      check("広い窓に戻すと、また固定する", await p.evaluate(() => document.body.classList.contains("fixed")));
+      await p.fill("#q", "dashboard"); await pause();
+      check("検索の最中は固定しない（結果がページのスクロールで届く）", await p.evaluate(() => !document.body.classList.contains("fixed")));
+      await p.fill("#q", ""); await pause();
+    }
     await view("sum");
     check("サマリーに切り替えると、カレンダーは隠れる", await p.locator("#tl").isHidden() && await p.locator("#review").isVisible());
     for (const sm of await p.locator("#review details.panel.fold > summary").all()) await sm.click(); // 開ける（覚えるので、あとの確認は開いたまま）
