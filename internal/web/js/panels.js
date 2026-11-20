@@ -398,7 +398,18 @@ function projection(w){ const {ws, we} = period(), now = nowMs()/1000, u = w.usa
   const a = new Date(ws*1000), nd = dayNo(a, we), days = dayNo(a, now) + 1; // 今日を含めた日数（日付で数える）
   if (st.mode !== "month" || !u || !(ws <= now && now < we) || days <= 7 || days >= nd) return null;
   const k = nd / days, c = u.tokens ? costOf(u) : null; // 料金表にないモデルだけなら、月末の目安コストも出さない
-  return {cost: c == null ? null : c * k, credits: u.credits ? u.credits * k : null, days}; }
+  const b = (so, f) => so == null ? null : spread(w.days.slice(0, days - 1).map(d => (d && f(d)) || 0), so, nd, days);
+  return {cost: c == null ? null : c * k, credits: u.credits ? u.credits * k : null, tokens: u.tokens ? u.tokens * k : null, days,
+    band: {cost: c == null ? null : b(c, d => d.cost), credits: u.credits ? b(u.credits, d => d.credits) : null, tokens: u.tokens ? b(u.tokens, d => d.tokens) : null}}; }
+/* 月末の推定の幅（1σ・2σ・3σ）。終わった日の 1 日あたりの量のばらつき（標本標準偏差 s、n 日）から、残りの R 日の合計のばらつきを
+   s·√(R + R²/n) とみる（R 日分の日々のゆれと、1 日あたりの平均の見積もりのずれ）。日々の量は正規分布ではなく、週末や偏りもあるので、目安。
+   下は、もう使った分（so）より小さくしない。終わった日が 2 日未満なら出さない */
+const bandNote = (b, f) => b ? " · " + t("3σ: {lo}–{hi}", {lo: f(b[2].lo), hi: f(b[2].hi)}) : ""; // 幅は 3σ だけを添える（ダイアログに 1σ・2σ も）
+function spread(xs, so, nd, days){
+  const n = xs.length, R = nd - days; if (n < 2 || R < 1) return null;
+  const m = xs.reduce((a, b) => a + b, 0) / n, sd = Math.sqrt(xs.reduce((a, x) => a + (x - m) ** 2, 0) / (n - 1));
+  const P = so * nd / days, e = sd * Math.sqrt(R + R * R / n);
+  return [1, 2, 3].map(k => ({k, lo: Math.max(so, P - k * e), hi: P + k * e})); }
 // pacing は、途中の週・月で、前の期間と同じ推定費用（クレジット）に収めるときの、残りの日 1 日あたりの目安。
 // 予算を設定させずに「残りをどのくらいに抑えるか」に答えるため、比べる先は前の期間の合計（前の期間の同じ日までではない）。
 // 残りの日は明日から期間の終わりまで（今日の分は、ここまでの実績に入る）。料金表で見積もれない・前の期間に記録がない・終わった期間・最後の日は null。
@@ -415,8 +426,8 @@ function aiUsage(w, pw, unit){
   const pj = projection(w);
   const totalC = u.models.reduce((t,r)=>t+r[1],0) || 1, totalT = u.models.reduce((t,r)=>t+r[2],0) || 1, byCost = totalC > 0.0001;
   return `<div class="stats">
-      ${pj && pj.cost != null ? statH(esc(t("Month-end cost (estimate)")), "≈ " + usdH(pj.cost), esc(t("If the pace of the first {n} days continues", {n: pj.days})), "projection", "projection") : ""}
-      ${pj && pj.credits != null ? statH(esc(t("Month-end credits (estimate)")), `≈ ${crN(pj.credits)}<small> cr</small>`, esc(t("If the pace of the first {n} days continues", {n: pj.days})), "projectionCr", "projectionCr") : ""}
+      ${pj && pj.cost != null ? statH(esc(t("Month-end cost (estimate)")), "≈ " + usdH(pj.cost), esc(t("If the pace of the first {n} days continues", {n: pj.days}) + bandNote(pj.band.cost, usd)), "projection", "projection") : ""}
+      ${pj && pj.credits != null ? statH(esc(t("Month-end credits (estimate)")), `≈ ${crN(pj.credits)}<small> cr</small>`, esc(t("If the pace of the first {n} days continues", {n: pj.days}) + bandNote(pj.band.credits, cr)), "projectionCr", "projectionCr") : ""}
       ${u.tokens ? statH(esc(t("Read from cache")), u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, esc(t("Share of input")), "cache", u.cacheHit == null ? "" : "cache") : ""}
       ${(() => { const {ws, we} = period(), N = !u.subagents && unrecorded(ws, we, "subagents"); return N ? norecStat(esc(t("Subagents")), N, "subagents") : statH(esc(t("Subagents")), `${u.subagents}`, esc(u.subagents ? t("Total run time {d}", {d: dur(u.subMin)}) : t("Not used")), "subagents", u.subagents ? "subagents" : ""); })()}
       ${w.costPerAsk != null ? statH(esc(t("Estimated cost per prompt")), usdH(w.costPerAsk), esc(w.costPrompts === 1 ? t("1 prompt with token data") : t("{n} prompts with token data", {n: commas(w.costPrompts)})), "costPerAsk", "costPerAsk") : ""}

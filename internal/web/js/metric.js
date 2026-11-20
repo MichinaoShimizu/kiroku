@@ -209,6 +209,13 @@ const MB = {
       mBars("By project", pjRows(rate((w.projectStats || []).map(p => [p.project, p.cost]), s => s.project)), um, false) +
       mSessions("Sessions with the highest cost per prompt", top, usd) + (top.length ? WHOLE() : "")}; },
 };
+/* 月末の推定の幅：1σ・2σ・3σ（おおよそ 68%・95%・99.7%）。費用の推定には、トークン数の幅も添える */
+function bandTable(pj, m){
+  const rows = (b, f) => b.map(x => `<tr><th>${x.k}σ <small>${["≈68%", "≈95%", "≈99.7%"][x.k - 1]}</small></th><td>${esc(f(x.lo))} – ${esc(f(x.hi))}</td></tr>`).join("");
+  const b = pj.band[m.proj]; if (!b) return "";
+  const tk = m.proj === "cost" && pj.band.tokens ? `<tr><th colspan="2">${esc(t("Tokens"))} ≈ ${esc(tok(pj.tokens))}</th></tr>${rows(pj.band.tokens, tok)}` : "";
+  return `<h3>${esc(t("Range"))}</h3><table class="mband"><tbody>${rows(b, m.f)}${tk}</tbody></table>
+    <p class="note">${esc(t("How far the month-end could land from the estimate, from how much the finished days varied. Days are not independent or normally distributed, so take it as a rough guide; the low end never goes below what is already used."))}</p>`; }
 function openMetric(id, from){
   const {S:w, ws, we} = period(), m = BRK[id]; if (!w || !m) return;
   const D = $("#md"), u = w.usage || {}, h = H()[m.h], inRange = DATA.filter(s => inP(s, ws, we));
@@ -221,7 +228,7 @@ function openMetric(id, from){
     const val = m.proj === "cost" ? pj.cost : pj.credits, nd = w.days.length, avg = so / pj.days;
     big = `≈ ${m.f(val)}`;
     body = `<div class="mcalc"><div><small>${esc(t("So far"))}</small><b>${esc(m.f(so))}</b></div><span>÷</span><div><small>${esc(t("Days so far"))}</small><b>${pj.days}</b></div><span>×</span><div><small>${esc(t("Days in the month"))}</small><b>${nd}</b></div><span>=</span><div><small>${esc(t("Month-end"))}</small><b>≈ ${esc(m.f(val))}</b></div></div>
-      <p class="note">${esc(t("About {v} a day. The faded bars are the days still to come at that pace.", {v: m.f(avg)}))}</p>` + mDays(w, m, {avg}) + mBars("So far, by agent", agents, m) + mBars("So far, by project", projs, m);
+      <p class="note">${esc(t("About {v} a day. The faded bars are the days still to come at that pace.", {v: m.f(avg)}))}</p>` + bandTable(pj, m) + mDays(w, m, {avg}) + mBars("So far, by agent", agents, m) + mBars("So far, by project", projs, m);
   } else if (id === "limits" || id === "compactions"){ // 起きた時刻の一覧：エージェントごと・プロジェクトごとと、いつどのセッションで
     const L = id === "limits", H2 = L ? limitHits(ws, we) : compactionsOf(ws, we); big = `${H2.length}`;
     const by = (key, mk) => countBy(H2, x => x.s[key]).map(([k, v]) => mk(k, v));

@@ -423,3 +423,39 @@ func TestAIDefaultAgent(t *testing.T) {
 		t.Errorf("AI のエージェントの既定が違う:\n%s", out)
 	}
 }
+
+// 月末の推定の幅（spread）：終わった日のばらつきから 1σ・2σ・3σ。下は使った分より小さくしない。日が足りなければ出さない。
+func TestProjectionSpread(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/panels.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fn := regexp.MustCompile(`(?ms)^function spread\(.*?\); \}$`).FindString(string(src))
+	if fn == "" {
+		t.Fatal("panels.js に spread が見つからない")
+	}
+	code := fn + `
+const eq = (a, b, m) => { if (Math.abs(a - b) > 1e-9) { console.error(m, a, "!=", b); process.exit(1); } };
+// 10 日たって（今日を含む）、終わった 9 日は 10 と 20 が交互。30 日の月
+const xs = [10,20,10,20,10,20,10,20,10], so = 150, b = spread(xs, so, 30, 10);
+const m = 130/9, sd = Math.sqrt(xs.reduce((a, x) => a + (x - m) ** 2, 0) / 8), P = 450, e = sd * Math.sqrt(20 + 400/9);
+eq(b.length, 3, "three bands"); eq(b[0].hi, P + e, "1σ hi"); eq(b[2].hi, P + 3*e, "3σ hi"); eq(b[1].lo, P - 2*e, "2σ lo");
+// 毎日同じなら幅はない
+const z = spread([5,5,5,5,5,5,5,5], 45, 30, 9); eq(z[2].lo, 45*30/9, "flat lo"); eq(z[2].hi, 45*30/9, "flat hi");
+// 下は使った分より小さくしない
+const w = spread([0,0,0,0,0,0,0,100], 100, 30, 9); eq(w[2].lo, 100, "floor at so");
+// 終わった日が 1 日しかない・最後の日は出さない
+if (spread([3], 3, 30, 2) !== null || spread([1,2,3], 6, 4, 4) !== null) { console.error("should be null"); process.exit(1); }
+`
+	f := filepath.Join(t.TempDir(), "spread.js")
+	if err := os.WriteFile(f, []byte(code), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("spread が違う:\n%s", out)
+	}
+}

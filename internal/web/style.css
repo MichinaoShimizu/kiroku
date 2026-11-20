@@ -740,6 +740,7 @@ dialog.mdlg h3{margin:20px 0 8px}
 .mbar .tr span{display:block;height:100%;background:var(--c);border-radius:4px}
 .mbar .vv{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .mbar .pc{font-size:var(--fs-xs);color:var(--ink-3);text-align:right;font-variant-numeric:tabular-nums}
+.mband{border-collapse:collapse;margin:6px 0 4px;font-size:var(--fs-sm);font-variant-numeric:tabular-nums}.mband th{text-align:left;font-weight:600;color:var(--ink-2);padding:3px 18px 3px 0}.mband th small{font-weight:400;color:var(--ink-3);margin-left:4px}.mband td{padding:3px 0;color:var(--ink)} /* 月末の推定の幅（1σ〜3σ） */
 .mcalc{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 12px;margin:10px 0 2px;padding:12px 14px;border-radius:12px;background:var(--surface-2)}
 .mcalc div{display:flex;flex-direction:column}.mcalc small{font-size:var(--fs-xs);color:var(--ink-3)}
 .mcalc b{font:700 var(--fs-lg)/1.3 var(--sans);font-variant-numeric:tabular-nums}.mcalc span{color:var(--ink-3);padding-bottom:3px}
