@@ -257,7 +257,7 @@ func TestCollectCrewCodexBackendCountedOnce(t *testing.T) {
 			if sessionBy(data, "Kiro Crew", "crew:dashboard:chat-1-100") != nil {
 				t.Error("Codex のセッションがある会話を、Crew のセッションとしても出している")
 			}
-			if r := rep[0]; r.Name != "Kiro CLI (Classic)" || r.Dup != 2 {
+			if r := rep[0]; r.Name != "Kiro CLI (V2)" || r.Dup != 2 {
 				t.Errorf("Kiro CLI の report = %+v, want dup 2", r)
 			}
 			b, err := json.Marshal(data)

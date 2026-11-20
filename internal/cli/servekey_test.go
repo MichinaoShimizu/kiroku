@@ -140,13 +140,25 @@ func TestRequireKey(t *testing.T) {
 			t.Errorf("%s: 以前の版の Cookie を消させていない: %+v", target, cs)
 		}
 	}
-	// 以前の版の ?key= も中継のページ。鍵はページに入れず（アドレスから読む）、localStorage にしまうスクリプトだけを CSP で許す
-	w := do("GET", "/history?id=s1&key="+key, "", oldCookie)
+	// 以前の版の ?key= は、鍵が合っていても受け付けない（1.0 から）。鍵のない案内（403）を返し、鍵はページに入れない（セキュリティ）
+	for _, target := range []string{"/?key=" + key, "/history?id=s1&key=" + key, "/?code=abc&key=" + key, "/?key=wrong", "/?k%65y=" + key, "/data.json?key=" + key} {
+		w := do("GET", target, "", oldCookie)
+		if w.Code != http.StatusForbidden || strings.Contains(w.Body.String(), key) || strings.Contains(w.Body.String(), "<script>") ||
+			!strings.Contains(w.Body.String(), "This address no longer opens kiroku") {
+			t.Errorf("%s = %d %q, want 403 without the key", target, w.Code, w.Body.String())
+		}
+		if cs := w.Result().Cookies(); len(cs) != 1 || cs[0].Value != "" || cs[0].MaxAge >= 0 {
+			t.Errorf("%s: 以前の版の Cookie を消させていない: %+v", target, cs)
+		}
+	}
+	// ?code= の GET は中継のページ。鍵もコードもページに入れず、localStorage にしまうスクリプトだけを CSP で許す
+	code := strings.Repeat("c", 64)
+	w := do("GET", "/history?id=s1&code="+code, "", nil)
 	body := w.Body.String()
-	if w.Code != 200 || strings.Contains(body, key) || !strings.Contains(body, `<a id="to" href="/history?id=s1">`) ||
+	if w.Code != 200 || strings.Contains(body, key) || strings.Contains(body, code) || !strings.Contains(body, `<a id="to" href="/history?id=s1">`) ||
 		!strings.Contains(body, `localStorage.setItem("kiroku:key", k)`) || !strings.Contains(body, "location.replace(") ||
 		!strings.Contains(body, `<meta name="referrer" content="no-referrer">`) || strings.Contains(body, "http-equiv=\"refresh\"") {
-		t.Fatalf("?key= = %d %q", w.Code, body)
+		t.Fatalf("?code= = %d %q", w.Code, body)
 	}
 	if w.Header().Get("Cache-Control") != "no-store" {
 		t.Errorf("中継のページの Cache-Control = %q", w.Header().Get("Cache-Control"))
@@ -158,20 +170,16 @@ func TestRequireKey(t *testing.T) {
 	if strings.Count(body, "<script>") != 1 || !strings.Contains(body, "<script>"+hopKeyScript+"</script>") {
 		t.Errorf("中継のページのスクリプトが hopKeyScript と違う（CSP のハッシュが合わない）: %q", body)
 	}
-	cs := w.Result().Cookies()
-	if len(cs) != 1 || cs[0].Value != "" || cs[0].MaxAge >= 0 {
-		t.Fatalf("?key= で鍵の Cookie を渡した、または以前の版の Cookie を消させていない: %+v", cs)
-	}
-	if w := do("GET", "/?key="+key, "", nil); len(w.Result().Cookies()) != 0 || !strings.Contains(w.Body.String(), `<a id="to" href="/">`) {
-		t.Errorf("Cookie のない ?key= = %+v %q", w.Result().Cookies(), w.Body.String())
+	if strings.Contains(hopKeyScript, `q.get("key")`) {
+		t.Error("中継のページが、アドレスの ?key= をまだ読む")
 	}
 	// 移る先はこのサイトの中だけ（//evil.example のような URL にはしない）。エスケープもする
-	for _, target := range []string{"//evil.example/x?key=" + key, `/\evil.example/x?key=` + key, `/%5Cevil.example/x?key=` + key} {
+	for _, target := range []string{"//evil.example/x?code=" + code, `/\evil.example/x?code=` + code, `/%5Cevil.example/x?code=` + code} {
 		if w := do("GET", target, "", nil); !strings.Contains(w.Body.String(), `href="/evil.example/x"`) {
 			t.Errorf("%s への移動 = %q", target, w.Body.String())
 		}
 	}
-	if w := do("GET", `/?a=%22%3E%3Cscript%3E&key=`+key, "", nil); strings.Count(w.Body.String(), "<script>") != 1 {
+	if w := do("GET", `/?a=%22%3E%3Cscript%3E&code=`+code, "", nil); strings.Count(w.Body.String(), "<script>") != 1 {
 		t.Errorf("移る先をエスケープしていない: %q", w.Body.String())
 	}
 }

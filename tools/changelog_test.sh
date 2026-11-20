@@ -88,6 +88,22 @@ expect_out v0.36.1 "next-version after creating ## Unreleased" nv Unreleased "$c
 printf -- '- A new thing\n' > "$tmp/fresh/changes/thing.added.md"
 expect_out v0.37.0 "an Added fragment with an existing Unreleased → minor" nv Unreleased "$c"
 
+# STABLE: の項目は、0.x から 1.0.0 にする（BREAKING があっても）。1.0 以降は意味を持たない
+copy fresh
+c=$tmp/fresh/CHANGELOG.md
+printf -- '- STABLE: kiroku 1.0\n' > "$tmp/fresh/changes/one.changed.md"
+printf -- '- BREAKING: renamed\n' > "$tmp/fresh/changes/two.changed.md"
+expect_out v1.0.0 "a STABLE: fragment in 0.x → 1.0.0" nv Unreleased "$c"
+cl --release v1.0.0 --date 2026-11-20 "$c" > /dev/null
+printf -- '- STABLE: again\n- BREAKING: later\n' > "$tmp/fresh/changes/three.changed.md"
+expect_out v2.0.0 "after 1.0, STABLE: means nothing and BREAKING → major" nv Unreleased "$c"
+
+# STABLE: と BREAKING: は、いちばん上の段の項目の頭だけ（入れ子の項目や、文の中の語は数えない）
+copy fresh
+c=$tmp/fresh/CHANGELOG.md
+printf -- '- Fix a typo\n  - STABLE: nested\n- Not BREAKING anything\n' > "$tmp/fresh/changes/nest.fixed.md"
+expect_out v0.36.1 "a nested STABLE: or a BREAKING in prose → patch" nv Unreleased "$c"
+
 # 断片も「## Unreleased」もないとき
 copy fresh
 rm "$tmp/fresh/changes/"*.md

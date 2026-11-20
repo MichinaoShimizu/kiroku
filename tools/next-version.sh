@@ -1,6 +1,7 @@
 #!/bin/sh
 # CHANGELOG.md の節の中身から、次の版の番号を出す（セマンティック バージョニング）。
-#   BREAKING を含む → 1.0 以降は major、0.x の間は minor
+#   0.x の間に STABLE: で始まる項目（いちばん上の段の「- STABLE:」）を含む → 1.0.0（互換の約束 docs/compatibility.md を固める版。1.0 以降は意味を持たない）
+#   BREAKING: で始まる項目（いちばん上の段の「- BREAKING:」。文の中の BREAKING という語は数えない）を含む → 1.0 以降は major、0.x の間は minor
 #   ### Added がある → minor
 #   それ以外（Changed / Fixed / Removed だけ）→ patch
 # Usage: sh tools/next-version.sh [節の名前（既定: Unreleased）] [CHANGELOG.md]
@@ -29,7 +30,9 @@ prev=$(awk -v v="$sec" -v seen="$( [ "$sec" = Unreleased ] && ! grep -q '^## Unr
 IFS=. read -r ma mi pa <<VER
 $(printf '%s' "${prev#v}" | sed 's/-.*//')
 VER
-if printf '%s\n' "$body" | grep -q 'BREAKING'; then
+if [ "$ma" -eq 0 ] && printf '%s\n' "$body" | grep -q '^- STABLE:'; then
+  ma=1 mi=0 pa=0
+elif printf '%s\n' "$body" | grep -q '^- BREAKING:'; then
   if [ "$ma" -ge 1 ]; then ma=$((ma + 1)); mi=0; else mi=$((mi + 1)); fi
   pa=0
 elif printf '%s\n' "$body" | grep -q '^### Added'; then

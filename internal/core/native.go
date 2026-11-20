@@ -28,7 +28,7 @@ var NativeDefs = map[string][]NativeDef{
 		{Key: "context_used", Label: "コンテキストの最大使用率", LabelEn: "Peak context usage", Unit: "%", Agg: "max", Scale: 100}, // ContextUsed（context.go）
 		{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},
 	},
-	"Kiro CLI (Classic)": {
+	"Kiro CLI (V2)": {
 		{Key: "credits", Label: "クレジット", LabelEn: "Credits", Unit: "クレジット", Agg: "sum"},
 		{Key: "turns", Label: "ターン", LabelEn: "Turns", Unit: "回", Agg: "sum"},
 		{Key: "credits_per_turn", Label: "1 ターンあたりのクレジット", LabelEn: "Credits per turn", Unit: "クレジット", Agg: "ratio", Num: "credits", Den: "turns", Scale: 1},

@@ -208,6 +208,20 @@ func splitList(s string) []string {
 	return out
 }
 
+// removedAI は、1.0 でなくした kiroku serve の --ai（--ai=false も）に、使い方の一覧より先に代わりを教える。
+// 「Analyze with AI」は前から既定でオンで、--ai は何もしなかった（--ai=false だけが切っていた）。
+func removedAI(args []string) error {
+	for _, a := range args {
+		if a == "--" {
+			break
+		}
+		if name, _, _ := strings.Cut(a, "="); name == "-ai" || name == "--ai" {
+			return fmt.Errorf("--ai was removed in kiroku 1.0: \"Analyze with AI\" is on by default; turn it off with --no-ai")
+		}
+	}
+	return nil
+}
+
 // parse はオプションと、オプションの前後に置いた位置引数（最大 maxPos 個）を読む。
 func parse(fs *flag.FlagSet, args []string, maxPos int) ([]string, error) {
 	for _, a := range args { // v0.20 で名前を変えた（flag のエラーと使い方の一覧より先に、新しい名前を教える）
@@ -270,17 +284,6 @@ func noAIEnv() bool {
 	return true
 }
 
-// flagSet は、名前の flag がコマンド行で指定されたか。
-func flagSet(fs *flag.FlagSet, name string) bool {
-	set := false
-	fs.Visit(func(f *flag.Flag) {
-		if f.Name == name {
-			set = true
-		}
-	})
-	return set
-}
-
 func checkLang(lang string) error {
 	if lang != "" && !web.ValidLang(lang) {
 		return fmt.Errorf("--lang must be one of %s: %s", strings.Join(web.Langs, ", "), lang)
@@ -304,7 +307,9 @@ func cmdServe(args []string) error {
 	allow := fs.String("allow-host", "", "comma-separated extra host `names` the view may be opened by (e.g. a name in your hosts file); localhost, 127.0.0.1 and ::1 always work, and this computer's own IPs and host name too when ADDR is 0.0.0.0 or another all-interfaces address")
 	lang := langFlag(fs)
 	noAI := fs.Bool("no-ai", noAIEnv(), "turn off \"Analyze with AI\" ($KIROKU_NO_AI=1). It is on by default: the view can run a review or report prompt with an AI agent installed on this computer (claude, codex or kiro-cli), after you confirm each run, and the agent may send the prompt and the history it reads to its provider. It is always off when ADDR is not a loopback IP or a bare port (e.g. 0.0.0.0:8485)")
-	oldAI := fs.Bool("ai", false, "no longer needed: \"Analyze with AI\" is on by default (accepted for old scripts; --ai=false turns runs off like --no-ai)")
+	if err := removedAI(args); err != nil {
+		return err
+	}
 	pos, err := parse(fs, args, 1)
 	if err != nil {
 		return quiet(err)
@@ -322,13 +327,6 @@ func cmdServe(args []string) error {
 	}
 	if err := checkLang(*lang); err != nil {
 		return err
-	}
-	if *oldAI {
-		fmt.Fprintln(logw, "--ai is no longer needed: \"Analyze with AI\" is on by default (turn it off with --no-ai)")
-	} else if flagSet(fs, "ai") {
-		// 以前の --ai=false は「切る」という意味だった。黙って入れないよう、--no-ai と同じに扱う
-		*noAI = true
-		fmt.Fprintln(logw, "--ai=false is no longer needed: use --no-ai to turn \"Analyze with AI\" off (it is off now)")
 	}
 	_, want, all := c.picked()
 	return serveLiveWithAI(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen, !*noAI, *lang, scanWatchPaths(all, want))

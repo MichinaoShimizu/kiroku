@@ -6472,7 +6472,7 @@
    "detailEn": "3 from Kiro Crew; 1 with credits filled in from Crew usage records; 3 found only in Crew usage records (2.00 credits)",
    "error": null,
    "n": 5,
-   "name": "Kiro CLI (Classic)",
+   "name": "Kiro CLI (V2)",
    "oldest": 1790632800,
    "retention": {
     "days": 30,

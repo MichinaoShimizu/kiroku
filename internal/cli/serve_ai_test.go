@@ -111,21 +111,12 @@ func TestLangFlag(t *testing.T) {
 	}
 }
 
-// 以前の --ai=false（切る）は、--no-ai と同じに扱う。指定がなければ既定のまま。
-func TestOldAIFalseTurnsOff(t *testing.T) {
-	for args, want := range map[string]bool{"": false, "--ai=false": true, "--ai": false, "--ai=true": false} {
-		fs := flag.NewFlagSet("t", flag.ContinueOnError)
-		fs.Bool("ai", false, "")
-		var a []string
-		if args != "" {
-			a = []string{args}
-		}
-		if err := fs.Parse(a); err != nil {
-			t.Fatal(err)
-		}
-		on := fs.Lookup("ai").Value.String() == "true"
-		if got := !on && flagSet(fs, "ai"); got != want {
-			t.Errorf("%q: off = %v, want %v", args, got, want)
+// 1.0 でなくした --ai（--ai=false も）は、何もせずに代わり（--no-ai）を教えて止まる。履歴は読まない。
+func TestRemovedAIFlag(t *testing.T) {
+	for _, args := range [][]string{{"--ai"}, {"--ai=false"}, {"-ai=true"}, {":8485", "--ai"}, {"--ai=1"}, {"-ai"}, {"--no-ai", "--ai"}} {
+		err := cmdServe(args)
+		if err == nil || !strings.Contains(err.Error(), "--ai was removed") || !strings.Contains(err.Error(), "--no-ai") {
+			t.Errorf("%q: err = %v", args, err)
 		}
 	}
 }

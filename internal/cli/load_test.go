@@ -47,7 +47,7 @@ func setup(t *testing.T) (data any, weeks map[string]*report.Week, rep []source.
 		KiroStorages: []string{filepath.Join(h, ".config", "Kiro", "User", "globalStorage", "kiro.kiroagent")},
 	})
 	// Python 版にあった 4 つの履歴だけで比べる（あとから足したアダプターは internal/source のテストで確かめる）
-	python := map[string]bool{"Claude Code": true, "Kiro IDE / CLI": true, "Kiro CLI (Classic)": true, "Kiro IDE (legacy)": true}
+	python := map[string]bool{"Claude Code": true, "Kiro IDE / CLI": true, "Kiro CLI (V2)": true, "Kiro IDE (legacy)": true}
 	var picked []source.Source
 	for _, s := range all {
 		if python[s.Name()] {
@@ -264,14 +264,14 @@ func TestKiroClassicConvertedToV3CountsOnce(t *testing.T) {
 	for _, r := range rep {
 		n[r.Name] = r
 	}
-	if r := n["Kiro CLI (Classic)"]; r.N != 1 || r.Dup != 2 {
-		t.Errorf("Kiro CLI (Classic): n=%d dup=%d, want 1 と 2（3.0 へ移した 2 つは数えない）", r.N, r.Dup)
+	if r := n["Kiro CLI (V2)"]; r.N != 1 || r.Dup != 2 {
+		t.Errorf("Kiro CLI (V2): n=%d dup=%d, want 1 と 2（3.0 へ移した 2 つは数えない）", r.N, r.Dup)
 	}
 	credits := map[string]float64{}
 	for _, s := range data {
 		credits[s.Source+" "+s.ID] = s.Credits
 	}
-	want := map[string]float64{"Kiro IDE / CLI sess_u1": 3.5, "Kiro IDE / CLI sess_u2": 1, "Kiro CLI (Classic) u3": 4}
+	want := map[string]float64{"Kiro IDE / CLI sess_u1": 3.5, "Kiro IDE / CLI sess_u2": 1, "Kiro CLI (V2) u3": 4}
 	if len(credits) != len(want) {
 		t.Errorf("セッション = %v, want %v", credits, want)
 	}

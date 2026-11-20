@@ -3,7 +3,7 @@ const eq = (got, want, msg) => { if (got !== want){ console.error(`${msg}: ${JSO
 eq(aiAgentOf("Claude Code"), "claude", "Claude Code は claude");
 eq(aiAgentOf("Codex"), "codex", "Codex は codex");
 eq(aiAgentOf("Kiro IDE / CLI"), "kiro", "Kiro は kiro-cli");
-eq(aiAgentOf("Kiro CLI (Classic)"), "kiro", "Kiro CLI (Classic) も kiro-cli");
+eq(aiAgentOf("Kiro CLI (V2)"), "kiro", "Kiro CLI (V2) も kiro-cli");
 eq(aiAgentOf("Amazon Q"), "", "動かすコマンドのないエージェントは空");
 const st = {hidden: new Set()}, keyOf = s => s.project;
 let DATA = [
