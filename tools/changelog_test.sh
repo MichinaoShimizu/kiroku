@@ -88,6 +88,16 @@ expect_out v0.36.1 "next-version after creating ## Unreleased" nv Unreleased "$c
 printf -- '- A new thing\n' > "$tmp/fresh/changes/thing.added.md"
 expect_out v0.37.0 "an Added fragment with an existing Unreleased → minor" nv Unreleased "$c"
 
+# STABLE: の項目は、0.x から 1.0.0 にする（BREAKING があっても）。1.0 以降は意味を持たない
+copy fresh
+c=$tmp/fresh/CHANGELOG.md
+printf -- '- STABLE: kiroku 1.0\n' > "$tmp/fresh/changes/one.changed.md"
+printf -- '- BREAKING: renamed\n' > "$tmp/fresh/changes/two.changed.md"
+expect_out v1.0.0 "a STABLE: fragment in 0.x → 1.0.0" nv Unreleased "$c"
+cl --release v1.0.0 --date 2026-11-20 "$c" > /dev/null
+printf -- '- STABLE: again\n- BREAKING: later\n' > "$tmp/fresh/changes/three.changed.md"
+expect_out v2.0.0 "after 1.0, STABLE: means nothing and BREAKING → major" nv Unreleased "$c"
+
 # 断片も「## Unreleased」もないとき
 copy fresh
 rm "$tmp/fresh/changes/"*.md

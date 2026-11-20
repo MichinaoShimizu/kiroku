@@ -189,6 +189,7 @@ The version number is decided by semantic versioning from what is unreleased: th
 
 | Unreleased changes (fragments and `## Unreleased`) | Part to bump |
 |---|---|
+| While in 0.x, a change whose bullet starts with `STABLE:` (the release that freezes what [compatibility.md](compatibility.md) keeps compatible) | 1.0.0 |
 | A change marked `BREAKING` (one that breaks something [compatibility.md](compatibility.md) keeps compatible, such as commands, options or `kiroku archive` copies; changes to the view or the metrics don't count) | major from 1.0, minor while in 0.x |
 | Has an Added change (`*.added.md`, `### Added`) | minor |
 | Anything else (Changed, Fixed, Removed and so on) | patch |

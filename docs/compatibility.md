@@ -2,7 +2,7 @@
 
 kiroku follows [Semantic Versioning](https://semver.org/). This page says what a version number promises: what stays compatible within a major version from v1.0.0 on, and what may change in any release.
 
-While kiroku is in 0.x, anything here may still change in a minor release (marked `BREAKING` in [CHANGELOG.md](../CHANGELOG.md)). The list is what v1.0.0 will freeze.
+From v1.0.0 on, the list below is kept within a major version. Before v1.0.0 it could change in a minor release (marked `BREAKING` in [CHANGELOG.md](../CHANGELOG.md)).
 
 ## Kept compatible within a major version
 
