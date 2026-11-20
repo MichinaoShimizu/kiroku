@@ -1,1 +1,0 @@
-- The week view's heading shows the week as "Week 46 of 53" (「第46週 / 全53週」), counting ISO weeks in the year the week belongs to
