@@ -111,7 +111,7 @@ function kpis(){
       ov.map(([x, f]) => " · " + t(M ? "{v} over last month's total of {r}" : "{v} over last week's total of {r}", {v: f(-x.rest, true), r: f(x.ref, true)})).join("");
     return kpi(t(M ? "A day to match last month" : "A day to match last week"), v, tt, "key", ok[0][0] === pc.cost ? "pace" : "paceCr"); };
   const pace = pj ? t("If the pace of the first {n} days continues", {n: pj.days}) + bandNote(pj.cost != null ? pj.band.cost : pj.band.credits, pj.cost != null ? usd : cr) : "";
-  // 帯は日々の判断に使う数だけ：左に使ったもの（推定費用とクレジット・前の期間並みの 1 日の目安・月末の推定（月）・稼働時間）、右に残したもの（outK）。
+  // 帯は日々の判断に使う数だけ：左に使ったもの（推定費用とクレジット・前の期間並みの 1 日の目安・月末の推定（月）・稼働時間）、右に AI の PR（outK。Git の情報は出さない）。
   // 稼働日・セッション / プロンプト・利用上限への到達は振り返りの数なので、サマリーと「見直す候補」に任せる（帯が多いとカレンダーと主役を争う）。
   // 推定費用とクレジットは別の枠の使用量なので足さずに、1 つの枠に「 · 」で並べる。トークンは推定費用を出せないときだけ
   const c = u.tokens ? costOf(u) : null, two = (a, b) => [a, b].filter(Boolean).join(`<small> · </small>`);
@@ -128,16 +128,11 @@ function kpis(){
   K.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b));
 }
 
-/* 帯の右側：残したもの（アウトプット）。コミット・変えた行・PR だけ（ファイル数と push はサマリーの ② に）。git を読めないときは AI のコミットだけ。
-   左の使ったもの（費用・稼働時間）と並べて、使った分が何か残したかを、カレンダーを見る前に 1 行で */
+/* 帯の右側：残したもの（アウトプット）。AI が作った PR だけ（履歴から数える）。Git の情報（コミット・変えた行）は帯に出さず、
+   カレンダーの各日とサマリーの ② に任せる（帯は使ったものと、日々の判断に使う数に絞る） */
 function outK(w, kpi, pw, V, dl){
-  const g = w.git && w.git.commits ? w.git : null, o = w.outputs || {}, n = commas, out = "out", pg = pw && pw.git, po = pw && pw.outputs;
-  // 日ごとの値がないもの（変えた行・AI のコミット・PR）は、途中の期間では比べない（V.of(null, …) が null）
-  return [
-    g ? kpi(t("Git commits"), `${g.commits}<small> · ${esc(t("{n} by AI", {n: g.ai}))}</small>`, "", out, "commits", dl(g.commits, V.of("commits", pg && pg.commits))) : o.commits ? kpi(t("AI commits"), `${o.commits}`, "", out, "aiCommits", dl(o.commits, V.of(null, po && po.commits))) : "",
-    g ? kpi(t("Lines changed"), `${n(g.added + g.removed)}<small> +${n(g.added)} −${n(g.removed)}</small>`, "", out, "lines", dl(g.added + g.removed, V.of(null, pg ? pg.added + pg.removed : null))) : "",
-    o.prs ? kpi(t("Pull requests"), `${o.prs}`, "", out, "prs", dl(o.prs, V.of(null, po && po.prs))) : "",
-  ].join("");
+  const o = w.outputs || {}, po = pw && pw.outputs;
+  return o.prs ? kpi(t("Pull requests"), `${o.prs}`, "", "out", "prs", dl(o.prs, V.of(null, po && po.prs))) : ""; // PR は日ごとの値がないので、途中の期間では比べない
 }
 /* カレンダーの各日（月表示では各週も）に並べるのは 2 つだけ：使用量（推定費用。見積もれないならトークン、トークンがなければクレジット）と Git のコミット。
    費用と残したものを上下に並べ、費用が増えても残したものが増えていない日を、カレンダーを見るだけで拾えるようにする。
