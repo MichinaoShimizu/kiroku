@@ -469,13 +469,17 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl li{display:flex;align-items:flex-end;gap:8px;min-width:0;font-size:var(--fs-sm);line-height:1.6}
 .tl li>time{flex:none;padding-bottom:2px;font-size:var(--fs-xs)}
 /* 出来事の PR（li.ev.pr）は、プロンプト（li.pr）と同じ名前を持つので、:not(.ev) で分ける */
-.tl li.pr:not(.ev){justify-content:flex-end;padding-left:12%}
-.tl li.pr:not(.ev)>.ic{display:none} /* 右にあることで、あなたの発言とわかる（読み上げは「You:」） */
-.tl li.pr:not(.ev) p{min-width:0;background:color-mix(in oklab,var(--c) 13%,var(--surface));border-radius:18px 18px 4px 18px;padding:8px 14px;color:var(--ink);font-weight:500}
+.tl li.pr:not(.ev){justify-content:flex-start;padding-right:12%}
+.tl li.pr:not(.ev)>.av{order:0}.tl li.pr:not(.ev) p{order:1}.tl li.pr:not(.ev)>time{order:2} /* 左にあなた（人の印）、右に AI（機械の印）。読み上げは「You:」「AI:」 */
+.tl li.pr:not(.ev) p{min-width:0;background:color-mix(in oklab,var(--c) 13%,var(--surface));border-radius:18px 18px 18px 4px;padding:8px 14px;color:var(--ink);font-weight:500}
 .tl li.pr:not(.ev).fix p{outline:1.5px dashed var(--warn);outline-offset:-1.5px} /* 言い直しらしいものは、色に加えて破線と「Correction?」の札で（色だけに頼らない） */
 .tl li.pr:not(.ev) .pmeta{margin-top:2px;color:var(--ink-2)} /* 色つきの地の上の小さな字は、ふだんより濃く（4.5:1 を保つ） */
 .tl .pmeta>span{white-space:nowrap}
-.tlkey .kbub{width:16px;height:10px;border-radius:5px 5px 2px 5px;background:color-mix(in oklab,var(--c) 13%,var(--surface));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--c) 40%,transparent)} /* あなたのプロンプトの見本（右の吹き出し） */
+.av{flex:none;align-self:flex-start;display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:color-mix(in oklab,var(--c) 16%,var(--surface));color:var(--c)} /* 発言した人の印（丸）。あなたはセッションの色 */
+.av .ic{width:17px;height:17px;stroke-width:1.7}
+.tl li.pr.fix>.av{background:color-mix(in oklab,var(--warn) 16%,var(--surface));color:var(--warn)}
+.tl li.pr.command>.av,.tl li.pr.shell>.av{color:var(--c4-ink)}
+.tlkey .av{width:20px;height:20px}.tlkey .av .ic{width:12px;height:12px}
 .tl li.ev button.evd{color:var(--acc-ink)} /* コミット・PR・push の札は押せる（詳細が開く） */
 @media (max-width:600px){ /* 狭い画面では、出来事の札を切らずに折り返す */
   .tl li.ev{border-radius:12px;align-items:flex-start}
@@ -483,11 +487,11 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
   .tl li.ev .evd{white-space:normal;overflow-wrap:anywhere}
   .tl li.ev>.ic{margin-top:3px}
 }
-.tl li.rp{padding-right:12%}
-.rpav{order:0;flex:none;align-self:flex-start;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--surface-2);color:var(--ink-2);font:700 10px/1 var(--sans);letter-spacing:.02em} /* AI の印（アイコンの丸） */
-.tlkey .rpav{width:18px;height:18px;font-size:8px}
-.tl li.rp p{order:1;min-width:0;background:var(--surface-2);border-radius:18px 18px 18px 4px;padding:8px 14px;color:var(--ink)}
-.tl li.rp>time{order:2}
+.tl li.rp{justify-content:flex-end;padding-left:12%}
+.av.rpav{order:2;background:var(--surface-2);color:var(--ink-2)} /* AI は灰色の丸に機械の印 */
+
+.tl li.rp p{order:1;min-width:0;background:var(--surface-2);border-radius:18px 18px 4px 18px;padding:8px 14px;color:var(--ink)}
+.tl li.rp>time{order:0}
 .tl li.ev{align-self:center;max-width:92%;gap:6px;align-items:center;padding:3px 12px;border-radius:99px;background:color-mix(in oklab,var(--ink-3) 10%,transparent);font-size:var(--fs-xs);color:var(--ink-2)}
 .tl li.ev>.ic{order:0;flex:none;width:13px;height:13px;color:var(--ink-3)}
 .tl li.ev p{order:1;display:flex;gap:6px;min-width:0;white-space:nowrap}
@@ -502,8 +506,8 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 /* プロンプトの種類：あなたが打ったコマンド（/ や !）と、自動で入ったもの（通知・要約・hook など）を色で分ける */
 .tl li.pr.command,.tl li.pr.shell{--c:var(--c4)}
 /* あなたのプロンプトは、点の代わりに人の印（セッションの色。言い直しらしいものは警告の色）。応答の ↩ と並べて、だれの発言かを形でも見分ける */
-.tl li.pr.fix>.ic{color:var(--warn)}
-.tl li.pr.command>.ic,.tl li.pr.shell>.ic{color:var(--c4-ink)}
+
+
 .tlkey .kus .ic{color:var(--c);stroke-width:1.8}
 .tl .pkind,.tlkey .pkind{display:inline-block;margin-right:6px;padding:0 6px;border-radius:5px;font-size:var(--fs-xs);font-weight:600;line-height:1.6;vertical-align:1px;color:var(--c4-ink);background:color-mix(in oklab,var(--c4) 16%,transparent)}
 .tl .pkind.fix,.tlkey .pkind.fix{color:color-mix(in oklab,var(--warn) 78%,var(--ink));background:color-mix(in oklab,var(--warn) 14%,transparent)}

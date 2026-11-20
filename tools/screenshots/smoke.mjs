@@ -157,7 +157,7 @@ async function run(env) {
     if (await rep.count() > 0){
       await rep.scrollIntoViewIfNeeded();
       check("応答の中身が読める", (await rep.locator(".reptext").innerText()).trim().length > 0);
-      check("だれの発言か分かる", (await rep.locator(".rpav").innerText()).trim().length > 0);
+      check("だれの発言か分かる", await rep.locator(".rpav svg").count() === 1);
       // 依頼と応答の間に起きたこと（コミットなど）は応答の上に出るので、それを飛ばした手前が依頼
       check("応答は依頼のすぐ後に並ぶ", await p.evaluate(() => { const li = [...document.querySelectorAll("#panel .tl li")], i = li.findIndex(x => x.classList.contains("rp"));
         let j = i - 1; while (j >= 0 && li[j].classList.contains("ev")) j--;
