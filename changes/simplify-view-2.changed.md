@@ -7,3 +7,4 @@
   - "Worth a look" flags fewer things: usage limits, long conversations, expensive models for light work, cost with no commit or pull request, corrections or friction, and repeated prompts. Cost growth, cost per commit, cache, sessions that reached a commit, switches, focus blocks, wait time and oversized prompts stay in the summary but are no longer flagged
   - The month calendar shows one figure per day (usage) with active time as the shade; commits are in the day's tooltip, and the project bars are gone
   - Agent-specific metrics (each agent's own counts, such as turns or response time) are no longer shown in the summary or session details: their definitions differ by agent, so they could not be compared
+- kiroku no longer checks for a newer release on its own when a command runs; run `kiroku update` (or `kiroku doctor`) to check. `KIROKU_NO_UPDATE_CHECK` is no longer needed and is ignored
