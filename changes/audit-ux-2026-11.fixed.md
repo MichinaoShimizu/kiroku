@@ -1,2 +1,0 @@
-- The summary's metric values now have names screen readers can read ("Active time 32h 55m" instead of just the number)
-- "Repeated prompts" now says it lists the prompts written in the most sessions first, which is how it is sorted, and the AI result check says "All 5 sections are missing" instead of "5 of the 5 sections are missing"
