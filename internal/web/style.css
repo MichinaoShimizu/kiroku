@@ -839,7 +839,7 @@ dialog.mdlg h3{margin:20px 0 8px}
 /* Period (week / month). */
 .view-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
 .control-group{display:inline-flex;align-items:center;gap:6px}
-.control-label{font-size:var(--fs-xs);color:var(--ink-3);font-weight:600}
+.control-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap} /* 「期間」「表示」は見た目からは外す（切り替えの中身で伝わる。読み上げ用の名前はグループの aria-label） */
 .wk .view-controls .mode{margin-left:0}
 .wk .nav .view-controls{margin-left:10px} /* 「今週」と「期間」がくっつかないように（日本語では幅が近い） */
 @media(max-width:700px){.view-controls{width:100%;gap:8px}.wk .nav .view-controls{margin-left:0}.control-group{gap:4px}}
@@ -878,7 +878,7 @@ html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り
 /* 週報・月報の「Analyze with AI」（期間の見出しの下） */
 .rptbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:6px} /* 週報の「AI 分析」は、期間の切り替えと同じ行に（縦の場所をカレンダーに回す） */
 .rptbar[hidden]{display:none}
-.rptbar .rptl{font-size:var(--fs-sm);font-weight:600;color:var(--ink-2);margin-right:2px}
+.rptbar .pill .ic{width:13px;height:13px;margin-right:4px;vertical-align:-2px}
 /* AI で分析のダイアログ: 上に寄せて固定（出力が増えても動かない）。ボタンの並びは下に貼りつける */
 .ai-dialog{width:min(900px,94vw);max-height:90vh;margin:5vh auto auto;padding:20px 20px 0;border:1px solid var(--rule-2);border-radius:12px;background:var(--bg);color:var(--ink)}
 .ai-dialog .ai-agent{display:inline-flex;align-items:center;gap:8px}
@@ -909,6 +909,7 @@ html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り
    （ページとカレンダーが二重にスクロールして、ホイールがカレンダーに取られないように）。境目は影と余白ではっきりさせる */
 body[data-view="cal"] #review>.rvhead,body[data-view="cal"] #review .rvgrid>:not(.metap){display:none} /* カレンダーの表示でも、データソースとページの下（版・問題の報告）は出す */
 body[data-view="cal"] #review .rvgrid{display:block}
+body[data-view="cal"] #review{margin-top:28px} /* カレンダーの下端とデータソースのあいだを空ける */
 body[data-view="sum"] #tl,body[data-view="sum"] #skipcal{display:none}
 /* 上の帯の間は、どちらの表示でも同じに（切り替えたときに上の帯が動かないように）。カレンダーに高さを回すため少しだけ詰める */
 .week{padding:24px 0 16px}.flagsum{margin-bottom:12px}.legend{padding-bottom:12px}

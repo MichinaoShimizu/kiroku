@@ -5,8 +5,8 @@ function summary(){
   const head = `<div class="rvhead"><h2>${esc(M ? t("Monthly summary") : t("Weekly summary"))}</h2><p>${esc(t("Rough figures for reflecting on how you work. They are not for comparing people or for evaluations."))}</p></div>`;
   // 週報の「Analyze with AI」は、週の見出しの下に。月報はない（1 か月は 2 分の制限に収まりにくい）
   // 保存した HTML には AI の操作がないので、帯ごと出さない
-  const RB = $("#rptbar"), rb = w && !M ? aiBtn("rptrun", t("Analyze with AI: weekly report")) : ""; RB.hidden = !rb;
-  RB.innerHTML = rb ? `<span class="rptl">${esc(t("Weekly report"))}</span>${rb}` : "";
+  const RB = $("#rptbar"), rb = w && !M ? aiBtn("rptrun", t("Analyze with AI: weekly report"), `${ico("ai")}${esc(t("Weekly report"))}`) : ""; RB.hidden = !rb;
+  RB.innerHTML = rb; // 「週報」の見出しとボタンを分けず、✦ 週報 の 1 つのボタンに（期間の行を詰める）
   const WK = $("#worth"); $("#sres").hidden = true; $("#sres").innerHTML = "";
   if (!w){ WK.hidden = true; R.innerHTML = foot(); bindReport(R); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
   const longest = Math.max(0, ...w.focus.map(b=>b.min));

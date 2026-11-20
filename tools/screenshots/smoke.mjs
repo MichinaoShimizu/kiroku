@@ -103,6 +103,8 @@ async function run(env) {
     check("週の数：2026 年は 53 週、2025 年は 52 週（12 月 28 日の週）", await p.evaluate(() => isoWeek(new Date(2026, 11, 28)) === 53 && isoWeek(new Date(2025, 11, 28)) === 52));
     check("既定はカレンダー：サマリーのパネルは隠れ、カレンダーが見える", await p.locator("#review .rvhead").isHidden() && await p.locator("#review details.panel.fold").first().isHidden() && await p.locator("#tl").isVisible());
     check("カレンダーの表示でも、データソースとページの下（版）は見える", await p.locator("#review .dsrc").isVisible() && await p.locator("#review .foot").isVisible());
+    check("カレンダーとデータソースのあいだが空いている", await p.evaluate(() => document.querySelector("#review .metap").getBoundingClientRect().top - document.querySelector("#tl").getBoundingClientRect().bottom >= 16));
+    check("期間の行に「期間」「表示」「週報」の見出しを並べない", await p.evaluate(() => [...document.querySelectorAll(".control-label")].every(e => e.getBoundingClientRect().width <= 1) && !document.querySelector("#rptbar .rptl")));
     check("スクロールはページだけ：カレンダーの中ではスクロールしない", await p.evaluate(() => { const c = document.querySelector("#tl .calscroll"); return !c || c.scrollHeight <= c.clientHeight + 1; }));
     { // どの幅でも、曜日の見出しがページの見出しの下に貼り付く（狭い画面は横のスクロールにも合わせる）
       await p.evaluate(() => window.scrollTo(0, document.querySelector("#tl").getBoundingClientRect().top + scrollY + 400)); await pause();

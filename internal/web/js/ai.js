@@ -19,11 +19,12 @@ const AI_NONE_WHY = () => t("No AI agent command (claude, codex or kiro-cli) was
 const AI_SEP = () => JA ? "" : " ";
 /* aiBtn は「Analyze with AI」のボタン（id はボタンの id、label は読み上げの名前）。kiroku serve の画面だけに出し、保存した HTML には出さない。
    AI を切った serve では、切っている理由を開くボタン。エージェントがなければ、押せないボタンと、その理由 */
-function aiBtn(id, label){
-  if (!LIVE) return aiDemo() ? `<button class="pill ai-action" id="${id}" type="button" aria-label="${esc(label)}">${esc(t("Analyze with AI"))}</button>` : "";
+// text: ボタンに出す文字（既定は「AI 分析」。HTML として入れるので、呼ぶ側でエスケープ済みのものだけ）
+function aiBtn(id, label, text = esc(t("Analyze with AI"))){
+  if (!LIVE) return aiDemo() ? `<button class="pill ai-action" id="${id}" type="button" aria-label="${esc(label)}">${text}</button>` : "";
   if (!aiOn()) return `<button class="pill ai-off ai-demo-info" type="button" title="${esc(AI_OFF_WHY())}">${esc(t("Analyze with AI (off)"))}</button>`;
-  if (!aiAgents().length) return `<span class="ai-none"><button class="pill ai-action" type="button" disabled aria-label="${esc(label)}" aria-describedby="${id}-why">${esc(t("Analyze with AI"))}</button><span class="ai-why" id="${id}-why" title="${esc(AI_NONE_WHY())}">${esc(t("No AI agent found"))}</span></span>`;
-  return `<button class="pill ai-action" id="${id}" type="button" aria-label="${esc(label)}">${esc(t("Analyze with AI"))}</button>`;
+  if (!aiAgents().length) return `<span class="ai-none"><button class="pill ai-action" type="button" disabled aria-label="${esc(label)}" aria-describedby="${id}-why">${text}</button><span class="ai-why" id="${id}-why" title="${esc(AI_NONE_WHY())}">${esc(t("No AI agent found"))}</span></span>`;
+  return `<button class="pill ai-action" id="${id}" type="button" aria-label="${esc(label)}">${text}</button>`;
 }
 // 閉じたあとに同じプロンプトで開き直したら、前の結果を見せる（このページを開いているあいだだけ。保存はしない）
 /* 報告と振り返りの返事のうち、機械で確かめられるところ（AI は使わない）。直すことの一覧を返す。
