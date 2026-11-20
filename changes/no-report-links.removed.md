@@ -1,1 +1,0 @@
-- "Report a problem" and "Copy diagnostics" are gone from the view's footer; to report a problem, run `kiroku doctor --report` and paste its output (kinds and counts only) into a new issue

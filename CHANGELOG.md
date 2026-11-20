@@ -2,6 +2,49 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v3.0.0 - 2026-11-20
+
+### Changed
+
+- A simpler view, continued:
+  - The theme follows your system's light or dark setting, and the language follows your browser or `--lang`; the theme and language buttons are gone (a theme or language chosen earlier is kept)
+  - Week calendar day headings show usage and commits on one line ("$4.29 · 4")
+  - "Color by" offers Project and Agent (Branch is gone)
+  - The prompt flow has no "Everything / Your prompts only" switch and no legend
+  - The summary has four panels: "How you spent time" and "Shape of the week / month" are one panel, "How you worked"
+  - "Worth a look" flags fewer things: usage limits, long conversations, expensive models for light work, cost with no commit or pull request, corrections or friction, and repeated prompts. Cost growth, cost per commit, cache, sessions that reached a commit, switches, focus blocks, wait time and oversized prompts stay in the summary but are no longer flagged
+  - The month calendar shows one figure per day (usage) with active time as the shade; commits are in the day's tooltip, and the project bars are gone
+  - Agent-specific metrics (each agent's own counts, such as turns or response time) are no longer shown in the summary or session details: their definitions differ by agent, so they could not be compared
+- kiroku no longer checks for a newer release on its own when a command runs; run `kiroku update` (or `kiroku doctor`) to check. `KIROKU_NO_UPDATE_CHECK` is no longer needed and is ignored
+  - "Worth a look" is an icon with a count, and "This week", the period and view switches and that icon share one height and center line
+  - The week calendar shades weekday hours outside 9:00–18:00, so early-morning and late-night work stands out
+  - Session blocks and usage-limit marks in the week calendar have square corners
+  - Usage-limit marks sit at the left edge of their own session's block, and their name says which session; late commit and push marks stay inside the day
+  - Worth a look names a long-conversation flag "Long conversations" (not "Heaviest sessions"), and its list closes once you pick an item
+  - With no agent installed, the reason ("No AI agent command (claude, codex or kiro-cli) was found…") is shown as text, not only on hover
+  - Day headings leave out the commit mark on days without commits, and credit units stay next to their numbers on phones
+- A simpler view:
+  - The header shows only the logo, a small dot for LIVE (green while "Analyze with AI" is on; press it for what it means), search, theme and language. The tagline and the keyboard button are gone (press `?` for the shortcuts)
+  - "Worth a look" is one "Worth a look N" button in the row with the period controls; pressing it opens the list
+  - The session count next to the legend shows only while you filter
+  - Days still to come no longer show "To match": the same amount is in the figures above the calendar
+  - "Data sources" is always folded; a ⚠ next to its name marks something that needs your attention
+  - Session details fold the history file, models, tools and the agent's own metrics under "More details"
+  - The summary no longer shows Files changed, Pushes, Parallel time and Total AI run time
+  - The month-end estimate shows only the 3σ range (table and dotted lines), not 1σ and 2σ
+
+### Removed
+
+- kiroku no longer reads Kiro IDE before v1.0 ("Kiro IDE (legacy)", the `kiro.kiroagent` folder) or Amazon Q Developer CLI. Their sessions leave the view, `kiroku json` and `kiroku stats`, and the totals of the weeks that had them go down. Kiro IDE v1.0 and later, Kiro CLI (V3, V2 and the older SQLite history) and Kiro Crew are read as before
+  - `--amazonq-db` and `amazonq` in `--sources` are still accepted and do nothing; using them prints one notice and the exit status is unchanged
+  - Copies `kiroku archive` kept are not touched
+- "Report a problem" and "Copy diagnostics" are gone from the view's footer; to report a problem, run `kiroku doctor --report` and paste its output (kinds and counts only) into a new issue
+- BREAKING: `kiroku json` and `kiroku stats` are removed. Use `kiroku serve` to see your history, or `kiroku html` (with `--week` or `--month` for one period) for a file. Running either command now stops with a message naming what to use instead
+
+### Security
+
+- `kiroku serve` now refuses `POST` requests without an `Origin` header on `/ai/run`, `/archive` and the one-time open-code exchange, as SECURITY.md says; before, a request with the key, `X-Kiroku: 1` and no `Origin` was accepted (browsers always send `Origin` on these requests, so the view is unaffected)
+
 ## v2.0.0 - 2026-11-20
 
 ### Changed

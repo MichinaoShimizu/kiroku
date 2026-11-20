@@ -1,1 +1,0 @@
-- `kiroku serve` now refuses `POST` requests without an `Origin` header on `/ai/run`, `/archive` and the one-time open-code exchange, as SECURITY.md says; before, a request with the key, `X-Kiroku: 1` and no `Origin` was accepted (browsers always send `Origin` on these requests, so the view is unaffected)
