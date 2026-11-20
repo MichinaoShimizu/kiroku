@@ -1,1 +1,0 @@
-- "Data sources" lists only the data kiroku read; "Report a problem" and "Copy diagnostics" are at the bottom of the page only

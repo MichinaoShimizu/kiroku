@@ -2,6 +2,14 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v1.0.3 - 2026-11-20
+
+### Changed
+
+- Session details: in the prompt flow, your prompts are now on the left next to a person mark and the AI's replies on the right next to a robot mark
+- "Data sources" lists only the data kiroku read; "Report a problem" and "Copy diagnostics" are at the bottom of the page only
+- In the weekly and monthly summary, ① By project and ② Cost and outputs are folded to their heading by default too, like the panels after them, so the calendar stays the main view
+
 ## v1.0.2 - 2026-11-20
 
 ### Changed
