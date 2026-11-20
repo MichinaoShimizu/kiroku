@@ -9,9 +9,9 @@
   --weekend:rgba(35,38,44,.02);
   --sat:#3355b5; --sun:#b03a3a; --sat-bg:rgba(51,85,181,.045); --sun-bg:rgba(176,58,58,.045); /* 土曜は青、日曜は赤（日本のカレンダーと同じ） */
   --shadow:0 1px 2px rgba(16,18,24,.05),0 12px 32px -14px rgba(16,18,24,.16);
-  /* カテゴリーの色（プロジェクト・エージェント・モデル）。この順で検証した 8 色（隣どうしは色覚の違いでも見分けられ、明るさと鮮やかさがそろう）。鮮やかさは基準の下限の少し上に抑え、地との差が強すぎないように。
+  /* カテゴリーの色（プロジェクト・エージェント・モデル）。この順で検証した 8 色（隣どうしは色覚の違いでも見分けられ、明るさと鮮やかさがそろう）。8 色とも同じ鮮やかさ（OKLCH の C 0.11〜0.115、灰色に見えない下限の少し上）で、どれかだけが強く見えないように。見分けは明るさの差でつける。
      順は青・オレンジ・アクア・黄・マゼンタ・緑・紫・ティール。増やすときも並べ替えるときも、検証し直してから（docs/development.md の「Colors」） */
-  --c0:#3879cb; --c1:#e27045; --c2:#3bac7d; --c3:#e6a438; --c4:#e181a4; --c5:#23811f; --c6:#6256ca; --c7:#209db2; --other:#9aa0ab;
+  --c0:#6da1e5; --c1:#b26140; --c2:#51b588; --c3:#a16f16; --c4:#ca7393; --c5:#508b4a; --c6:#9794e3; --c7:#008a9d; --other:#9aa0ab;
   --amber:var(--c3); --amber-ink:#7a5200; --note:var(--c6); /* 役目の名前（コマンドの札・自動で入ったもの）。色の番号は上の 8 色から */
   --t1:6%; --t2:11%; --t3:16%;
   --go:#2f7a5e; --go-ink:#235c47; /* 「AI で分析」の緑（塗りではなく、淡い地に濃い緑の字） */ /* 色を地に混ぜる濃さは 3 段だけ（淡い地・吹き出しや札・強め） */
@@ -29,7 +29,7 @@
   --weekend:rgba(255,255,255,.018);
   --sat:#93abe6; --sun:#e69393; --sat-bg:rgba(147,171,230,.05); --sun-bg:rgba(230,147,147,.05);
   --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -16px rgba(0,0,0,.7);
-  --c0:#4888d8; --c1:#cf623a; --c2:#399b73; --c3:#bd842c; --c4:#cc5b82; --c5:#34a030; --c6:#9086e5; --c7:#1397ab; --other:#6b7180;
+  --c0:#6191d1; --c1:#a95c3e; --c2:#45a47a; --c3:#a27323; --c4:#c47190; --c5:#4c8446; --c6:#6e6ab2; --c7:#15a0b6; --other:#6b7180;
   --amber-ink:#f2b53a;
   --t1:8%; --t2:14%; --t3:20%;
   --go:#5fb08c; --go-ink:#9bd6ba; /* 暗い地では、同じ 3 段を少し濃く（淡すぎて地に沈まないように） */
@@ -290,7 +290,7 @@ button.fmore{align-self:flex-start;margin:2px 0 0;padding:6px 0;border:0;backgro
 .xl{color:var(--acc-ink);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--acc) 40%,transparent);text-underline-offset:2px}.xl:hover{text-decoration-color:currentColor}
 a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .gc{position:absolute;right:1px;display:inline-flex;align-items:center;justify-content:center;gap:3px;min-width:16px;height:16px;margin-top:-8px;padding:0;border-radius:8px;background:var(--surface);border:1px solid var(--ink-3);color:var(--ink-2);font:600 var(--fs-2xs)/1 var(--mono);z-index:2;box-shadow:0 1px 2px rgba(0,0,0,.08)}
-.gc.ai{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.gc.ai{background:color-mix(in oklab,var(--acc) var(--t3),var(--surface));border-color:color-mix(in oklab,var(--acc) 55%,var(--surface));color:var(--acc-ink)} /* AI のコミットの印も、塗りではなく淡い地に（手でのコミットは白地に灰色の枠） */
 .gc span{display:none}
 .gc .gi{margin:0;width:11px;height:11px}
 .gc:hover,.gc:focus-visible,.gc.sel{box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 35%,transparent);z-index:5;padding:0 6px 0 3px}
@@ -522,7 +522,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl .pkind,.tlkey .pkind{display:inline-block;margin-right:6px;padding:0 6px;border-radius:5px;font-size:var(--fs-xs);font-weight:600;line-height:1.6;vertical-align:1px;color:var(--amber-ink);background:color-mix(in oklab,var(--amber) var(--t3),transparent)}
 .tl .pkind.fix,.tlkey .pkind.fix{color:color-mix(in oklab,var(--warn) 78%,var(--ink));background:color-mix(in oklab,var(--warn) var(--t2),transparent)}
 .tl .pkind.big{color:var(--warn);background:color-mix(in oklab,var(--warn) var(--t2),transparent)}
-.tl li.ev.note{color:var(--ink-3)}.tl li.ev.note .evl{color:color-mix(in oklab,var(--note) 80%,var(--ink))}
+.tl li.ev.note{color:var(--ink-3)}.tl li.ev.note .evl{color:color-mix(in oklab,var(--note) 50%,var(--ink))}
 .tl li.ev.note>.ic,.tlkey .kev.note .ic{color:var(--note)}
 .tlkey .pkind{display:inline-flex;gap:0;margin-right:0}.tlkey .kcmd .ic{color:var(--amber-ink)} /* 凡例は、行と同じ「/ Command」「>_ Shell」「Correction?」の札で。--amber-ink は、明るい地でも読める濃さの黄（--amber） */
 .tl.only-user li.ev,.tl.only-user li.gap{display:none}

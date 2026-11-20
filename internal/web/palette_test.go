@@ -11,7 +11,7 @@ import (
 // カテゴリーの 8 色（--c0〜--c7）は、明るい地と暗い地のそれぞれで、決めた基準を満たす組み合わせだけを使う。
 // プロジェクトは多い順にこの順で色を取るので、隣どうし（積み上げの帯・凡例で並ぶ色）が見分けられることを確かめる:
 //   - 明るさ（OKLCH の L）がそろっている（明るい地 0.43〜0.77、暗い地 0.48〜0.67）
-//   - 鮮やかさ（C）が 0.10 以上（灰色に見えない）
+//   - 鮮やかさ（C）が 0.10 以上（灰色に見えない）で、8 色の差が 0.02 以内（どれかだけが強く見えない）
 //   - 隣どうしの OKLab の差（×100）が、ふつうの見え方で 15 以上、1 型・2 型の色覚（Machado 2009）で 6 以上
 //
 // 色を変えるときは、このテストが通る値を選ぶ（目で選ばない）。
@@ -37,14 +37,19 @@ func TestCategoricalPalette(t *testing.T) {
 			}
 			pal = append(pal, mm[1])
 		}
+		minC, maxC := 1.0, 0.0
 		for _, c := range pal {
 			L, C := lch(c)
+			minC, maxC = math.Min(minC, C), math.Max(maxC, C)
 			if L < m.lo || L > m.hi {
 				t.Errorf("%s: %s の明るさ %.3f が %.2f〜%.2f の外", m.name, c, L, m.lo, m.hi)
 			}
 			if C < 0.10 {
 				t.Errorf("%s: %s の鮮やかさ %.3f が 0.10 未満（灰色に見える）", m.name, c, C)
 			}
+		}
+		if maxC-minC > 0.02 {
+			t.Errorf("%s: 鮮やかさが %.3f〜%.3f とばらつく（0.02 以内に）", m.name, minC, maxC)
 		}
 		for k := 0; k+1 < len(pal); k++ {
 			a, b := pal[k], pal[k+1]
