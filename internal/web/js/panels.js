@@ -384,9 +384,18 @@ function vsPrev(pw, unit){
   const n0 = pw ? soFar() : null, n = n0 == null ? null : Math.min(n0, pw.days.length); // 先月が今月より短いときは、先月の最後の日まで
   const a = n == null ? null : new Date(periodBack(1).ws * 1000), range = n == null ? "" : n === 1 ? dMD(a) : dSpan(a, addDays(a, n - 1));
   const label = esc(n == null ? (unit === "月" ? t("vs last month") : t("vs last week")) : t("vs {range}", {range}));
-  const of = (f, whole) => !pw || whole == null ? null : n == null ? whole : f ? pw.days.slice(0, n).reduce((t, d) => t + (d[f] || 0), 0) : null;
+  // 履歴が前の期間の途中から始まっているとき（前の期間の初めより古い記録がない）は比べない。記録のない日を 0 と数えて、増えたように見せないため
+  const partial = !!pw && historyStart() > periodBack(1).ws;
+  const of = (f, whole) => !pw || partial || whole == null ? null : n == null ? whole : f ? pw.days.slice(0, n).reduce((t, d) => t + (d[f] || 0), 0) : null;
   const diff = (a, b, fmt = x => x) => b == null ? "" : a === b ? `${label} <span class="nw">±0</span>` : `${label} <span class="nw">${a-b>0?"+":"−"}${fmt(Math.abs(a-b))}</span>`;
-  return {n, range, label, of, diff};
+  return {n, range, label, of, diff, partial};
+}
+// historyStart は、読んだ履歴でいちばん古い記録の時刻（期間だけのファイルでは、その期間の初め。比べる前の期間はもともとない）
+let historyStartCache = null;
+function historyStart(){
+  if (historyStartCache && historyStartCache.d === DATA && historyStartCache.n === DATA.length) return historyStartCache.t; // 読み直しで DATA が変われば数え直す
+  const t = DATA.reduce((m, s) => Math.min(m, s.start || Infinity), Infinity);
+  historyStartCache = {d: DATA, n: DATA.length, t}; return t;
 }
 // projection は、今月の途中なら、今日までのペースが月末まで続いたときの目安コストとクレジット（推定）。
 // 今日までの日数（今日を含む）で割り、月の日数を掛ける。月の初めは日数が少なく当てにならないので 7 日たつまで、
