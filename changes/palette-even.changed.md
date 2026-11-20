@@ -1,0 +1,1 @@
+- The eight colors now share one saturation, so no color (such as Kiro's violet or the green) stands out more than the others; they are told apart by lightness. AI commit marks on the calendar are a light tint instead of a solid fill
