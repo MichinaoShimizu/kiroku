@@ -91,9 +91,19 @@ async function run(env) {
     check("見出しの「?」を押しても、パネルは開かない", await p.evaluate(() => { const d = document.querySelector("#review details.panel.fold"), hb = d.querySelector("summary .hb");
       if (!hb) return true; hb.click(); const ok = !d.open; if (typeof hideHint === "function") hideHint(); return ok; }));
     if (env.viewport.width > 820) check("上の数字の帯は 1 行（折り返さない）", await p.evaluate(() => new Set([...document.querySelectorAll("#kpis .kpi")].map(k => Math.round(k.getBoundingClientRect().top))).size === 1));
+    check("上の数字に、前の期間との増減（%）が添えてある", await p.evaluate(() => [...document.querySelectorAll("#kpis .kpi .k .dl")].some(d => /^[+−±]\d*%?/.test(d.textContent))));
+    if (env.viewport.width <= 820){ // スマホの検索欄は虫めがねだけ。押すと広がり、画面からはみ出さない
+      const box = () => p.evaluate(() => { const b = document.querySelector("#q").getBoundingClientRect(); return {l: b.left, r: b.right, w: b.width}; });
+      const b0 = await box();
+      await p.locator("#q").focus(); await pause(); const b1 = await box();
+      check("スマホの検索欄は、閉じているあいだは虫めがねだけ", b0.w <= 40, JSON.stringify(b0));
+      check("押すと広がり、画面に収まる", b1.w > 150 && b1.l >= 0 && b1.r <= env.viewport.width, JSON.stringify(b1));
+      await p.locator("#q").blur(); await pause();
+    }
     check("週の見出しは「Week x of y」（その年の週の数は 52 か 53）", /Week \d{1,2} of 5[23]\b/i.test(await p.locator("#ry").innerText()), await p.locator("#ry").innerText());
     check("週の数：2026 年は 53 週、2025 年は 52 週（12 月 28 日の週）", await p.evaluate(() => isoWeek(new Date(2026, 11, 28)) === 53 && isoWeek(new Date(2025, 11, 28)) === 52));
-    check("既定はカレンダー：サマリーは隠れ、カレンダーが見える", await p.locator("#review").isHidden() && await p.locator("#tl").isVisible());
+    check("既定はカレンダー：サマリーのパネルは隠れ、カレンダーが見える", await p.locator("#review .rvhead").isHidden() && await p.locator("#review details.panel.fold").first().isHidden() && await p.locator("#tl").isVisible());
+    check("カレンダーの表示でも、データソースとページの下（版）は見える", await p.locator("#review .dsrc").isVisible() && await p.locator("#review .foot").isVisible());
     check("スクロールはページだけ：カレンダーの中ではスクロールしない", await p.evaluate(() => { const c = document.querySelector("#tl .calscroll"); return !c || c.scrollHeight <= c.clientHeight + 1; }));
     { // どの幅でも、曜日の見出しがページの見出しの下に貼り付く（狭い画面は横のスクロールにも合わせる）
       await p.evaluate(() => window.scrollTo(0, document.querySelector("#tl").getBoundingClientRect().top + scrollY + 400)); await pause();

@@ -22,7 +22,7 @@ await p.goto("file://" + path.resolve(html));
 await p.waitForTimeout(600);
 await p.keyboard.press("ArrowLeft"); // 先週（記録がそろっている週）
 await p.waitForTimeout(500);
-await p.evaluate(() => { const sc = document.querySelector("#tl .calscroll"); if (sc) sc.scrollTop = 8 * 44; });
+await p.evaluate(() => window.scrollTo(0, 0)); // 開いたときの作業の時刻への送り（今週だけ）をやめ、期間と上の数字から写す
 await p.waitForTimeout(200);
 await p.screenshot({ path: path.join(docs, "screenshot.png") });
 // サマリーは「表示: サマリー」に切り替えて、サマリーの見出しが上に来るまで中をスクロールして撮る（広い画面ではページでなく main がスクロールする）
@@ -77,7 +77,7 @@ await q.goto("file://" + path.resolve(html));
 await q.waitForTimeout(600);
 await q.keyboard.press("ArrowLeft");
 await q.waitForTimeout(500);
-await q.evaluate(() => { const sc = document.querySelector("#tl .calscroll"); if (sc) sc.scrollTop = 8 * 44; });
+await q.evaluate(() => window.scrollTo(0, 0));
 await q.waitForTimeout(200);
 await q.screenshot({ path: path.join(docs, "og.png") });
 await b.close();

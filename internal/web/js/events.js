@@ -114,6 +114,17 @@ function scrollToWork(){ // その週の作業が始まるころの少し前へ
     let i = -1; if (w && now < we) w.days.forEach((d, j) => { if (d.active && addDays(st.week, j).getTime()/1000 <= now) i = j; });
     const h = heads[i]; sc.scrollLeft = h ? Math.max(0, h.offsetLeft - 56 - h.offsetWidth) : 0; } // その日と前の日が収まるように
 }
+// openAtWork は、開いたときだけ、今週の作業が始まる時刻がページの下のほうに隠れていれば、その時刻が日付の見出しのすぐ下に来るまでページを送る
+// （カレンダーは 0 時から描くので、そのままだと最初の画面が夜中の空の時間で埋まる）。上の数字は、上へスクロールすれば見える。
+// デモ（README のスクリーンショット）と、セッションを開いた状態で戻ってきたときは送らない
+function openAtWork(){
+  if ((META && META.demo) || st.sel || st.view !== "cal" || st.mode !== "week" || soFar() == null) return;
+  const w = workHours(), sc = $("#tl .calscroll"), hd = $("#tl .tlhead"); if (!w || !sc || !hd) return;
+  const lineY = sc.getBoundingClientRect().top + scrollY + Math.max(0, w.first - 0.5) * (st.hh || 44);
+  if (lineY - scrollY < innerHeight * 0.6) return; // もう最初の画面の上のほうに見えている
+  const hdr = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hdr")) || 64;
+  scrollTo(0, Math.max(0, lineY - hdr - hd.offsetHeight - 8));
+}
 // --hdr は、ページの上の見出し（header）の高さ。カレンダーの曜日の見出しが、その下に貼り付く
 function setHdr(){ const h = document.querySelector("header"); if (h) document.documentElement.style.setProperty("--hdr", h.offsetHeight + "px"); }
 setHdr(); addEventListener("resize", setHdr);

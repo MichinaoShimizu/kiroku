@@ -8,3 +8,12 @@
 - On phones, the week calendar's day headings stick under the page header while you scroll and follow its sideways scroll
 - The LIVE badge is a button: clicking or tapping it shows what it means (also with a keyboard or touch screen); the search box has a name for screen readers
 - Errors from "Analyze with AI" that the server reports after starting are shown in Japanese too
+- More view improvements:
+  - The figures above the calendar show the change from the previous week or month in percent next to each label (compared with the same days while the period is in progress), without a good or bad color
+  - In the week calendar, a session's title stops above a session that starts later on top of it, instead of showing cut-off letters beside it
+  - The day heading's "Analyze with AI" appears as a small ✦ button when you point at the heading, so it no longer covers the weekday
+  - On phones, the search box is a magnifier that widens when you press it, instead of a box cut to "Sear"
+  - Data sources and the footer (version, Report a problem) are shown in the calendar view too
+  - In the prompt flow, "AI worked … · you replied after …" sits under the AI's reply it belongs to
+  - The weekly report's and the session review's AI dialogs name the week or session in their title
+  - Opening this week scrolls the page to the hour the week's work starts when it would be below the first screen (not in the demo)

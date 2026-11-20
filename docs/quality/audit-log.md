@@ -66,15 +66,22 @@ Decisions the maintainer made (fixed on #502):
 
 ### Open items
 - Previous items of 2026-11-19 — not rechecked in this aspect run. Due: next full run
-- New: overlapping session blocks cut each other's titles (letter fragments, 3 places at 1440 in the demo week). Same as the 2026-11-19 decision to keep cascading lanes; side-by-side lanes need a design decision. Decides: maintainer
-- New: the day "Analyze with AI" button covers the weekday on hover, and the day tooltip opens at the same time. How to check: hover a day heading in serve at 1440. Due: next ux run
+- New: overlapping session titles — resolved on #502 (a title stops above a session cascaded over it; lanes unchanged)
+- New: the day "Analyze with AI" button covering the weekday — resolved on #502 (a small ✦ button on hover devices). The day tooltip still opens with it; low
 - New: the demo HTML's prompt says the browser's UTC offset while its times use the fixed demo clock (`utcOff` in session.js). Demo only. Due: next ux run
-- New (small): at 390 in serve the search placeholder is cut to "Sear"; the prompt bubble puts "AI worked … · you replied after …" before the reply; the session and weekly AI dialog titles don't name the session or week; "Sessions that reached a commit or PR" doesn't say "Claude Code only" on the card; Data sources and the footer are only in the Summary view; the prompt to check is English in Japanese. Due: next ux run
+- New (small): resolved on #502 — the search box on phones, the reply's "AI worked" note, AI dialog titles, Data sources and the footer in the calendar view. Still open: "Sessions that reached a commit or PR" doesn't say "Claude Code only" on the card; the prompt to check is English in Japanese (likely intentional). Due: next ux run
+- Previous: F (prompts), `/report-eval check` at this commit (2 runs each, general-purpose writers, one grader):
+  - Correctness: format and numbers copied in all 6; no secrets, injection or invented links; no file outside the allowed set. Recall: day 5/5, week 8/8, session 3/4
+  - Still failing as on 2026-10-18: the week report misses the "short question on Opus → a lighter model" hint (2 of 2; the skill hint missed in 1 of 2); the session review never names the PR (2 of 2); one day report and one week report mention the abandoned bun trial, and one day report names the earlier week's `feat/watermark` branch
+  - Grader (1–5): summary 4–5, outcomes first 5, specificity 3–5, concision 3–4, reader 4, review format 3–4, advice 3–5
+  - Prompt size: day 2.1K, week 3.3K, session 1.4K tokens (unchanged); writer tokens 74–82K
+  - Fixing them needs `/report-eval` with before/after runs. Due: before the next minor release (overdue since 2026-11-01). Decides: maintainer whether to spend the runs
+- Previous: "Analyze with AI" with real agents — Codex CLI 0.171.0 (npm, help only, no model call) lists every flag kiroku passes (`exec`, `--sandbox read-only`, `--skip-git-repo-check`, `--ephemeral`, `--config`). Kiro CLI isn't installable here (not on npm); a real run of either still needs an account. Decides: maintainer
 
 ### Loop
 | Run | Findings (certain) | Fixed | Median days to fix | Open items | Overdue | Previous items resolved |
 |---|---|---|---|---|---|---|
-| 2026-11-20 ux, i18n | 25 | 21 | 0 (same day; PR open) | 4 new (and 26 not rechecked) | 1 (F, from 2026-11-19) | — (aspect run) |
+| 2026-11-20 ux, i18n | 25 | 25 | 0 (same day; PR open) | 2 new (and 26 not rechecked) | 1 (F, from 2026-11-19) | — (aspect run) |
 | 2026-11-19 full | 60 | 34 | 0 (same day; PR open) | 26 | 1 (F) | 9 of 24 |
 | 2026-10-18 full | 64 | 36 | 0 (fixed the same day; PRs open) | 24 | 0 | 8 of 17 |
 

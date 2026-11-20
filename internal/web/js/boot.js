@@ -22,7 +22,7 @@ try { const k = JSON.parse(sessionStorage.getItem("kiroku:keep") || "null"); ses
     if (k.mode === "week" || k.mode === "month") st.mode = k.mode;
     if (typeof k.sel === "string" && DATA.some(s => s.id === k.sel)) st.sel = k.sel; } } catch(e){}
 mq.addEventListener("change", () => { ph(); render(); });
-render(); scrollToWork();
+render(); scrollToWork(); openAtWork();
 }
 // 文言・入力欄・テーマは、データを待たずに整える（kiroku serve で data.json を読んでいるあいだも、見た目がそろうように）
 applyStaticText();
