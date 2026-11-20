@@ -329,185 +329,6 @@
     "removed": 0
    },
    "maxConc": 2,
-   "native": [
-    {
-     "sessions": 9,
-     "source": "Claude Code",
-     "values": [
-      {
-       "label": "応答の数",
-       "labelEn": "Responses",
-       "n": 202,
-       "unit": "回",
-       "v": 202
-      },
-      {
-       "label": "1 応答あたりの出力トークン",
-       "labelEn": "Output tokens per response",
-       "n": 202,
-       "unit": "トークン",
-       "v": 736.59
-      },
-      {
-       "label": "コンテキストの最大使用率",
-       "labelEn": "Peak context usage",
-       "n": 202,
-       "unit": "%",
-       "v": 30.43
-      },
-      {
-       "label": "ツール呼び出し",
-       "labelEn": "Tool calls",
-       "n": 202,
-       "unit": "回",
-       "v": 202
-      }
-     ]
-    },
-    {
-     "sessions": 4,
-     "source": "Kiro IDE / CLI (V3)",
-     "values": [
-      {
-       "label": "クレジット",
-       "labelEn": "Credits",
-       "n": 12,
-       "unit": "クレジット",
-       "v": 13.89
-      },
-      {
-       "label": "ターン",
-       "labelEn": "Turns",
-       "n": 12,
-       "unit": "回",
-       "v": 12
-      },
-      {
-       "label": "1 ターンあたりのクレジット",
-       "labelEn": "Credits per turn",
-       "n": 12,
-       "unit": "クレジット",
-       "v": 1.16
-      },
-      {
-       "label": "ツール呼び出し",
-       "labelEn": "Tool calls",
-       "n": 24,
-       "unit": "回",
-       "v": 24
-      }
-     ]
-    },
-    {
-     "sessions": 3,
-     "source": "Kiro CLI (SQLite)",
-     "values": [
-      {
-       "label": "応答にかかった時間（中央値）",
-       "labelEn": "Response time (median)",
-       "n": 6,
-       "unit": "秒",
-       "v": 20
-      },
-      {
-       "label": "ツール呼び出し",
-       "labelEn": "Tool calls",
-       "n": 2,
-       "unit": "回",
-       "v": 2
-      },
-      {
-       "label": "コンテキストの最大使用率（見積もり）",
-       "labelEn": "Peak context usage (estimate)",
-       "n": 6,
-       "unit": "%",
-       "v": 0.02
-      },
-      {
-       "label": "コンテキストの上限",
-       "labelEn": "Context window",
-       "n": 3,
-       "unit": "トークン",
-       "v": 200000
-      }
-     ]
-    },
-    {
-     "sessions": 5,
-     "source": "Kiro Crew",
-     "values": [
-      {
-       "label": "Crew から動かした会話",
-       "labelEn": "Conversations run from Crew",
-       "n": 6,
-       "unit": "件",
-       "v": 6
-      },
-      {
-       "label": "うちサブエージェント",
-       "labelEn": "Of which subagents",
-       "n": 1,
-       "unit": "件",
-       "v": 1
-      },
-      {
-       "label": "クレジット",
-       "labelEn": "Credits",
-       "n": 13,
-       "unit": "クレジット",
-       "v": 12.51
-      },
-      {
-       "label": "ターン",
-       "labelEn": "Turns",
-       "n": 13,
-       "unit": "回",
-       "v": 13
-      }
-     ]
-    },
-    {
-     "sessions": 2,
-     "source": "Codex",
-     "values": [
-      {
-       "label": "応答の数",
-       "labelEn": "Responses",
-       "n": 5,
-       "unit": "回",
-       "v": 5
-      },
-      {
-       "label": "推論トークン",
-       "labelEn": "Reasoning tokens",
-       "n": 5,
-       "unit": "トークン",
-       "v": 0
-      },
-      {
-       "label": "出力のうち推論の割合",
-       "labelEn": "Share of output spent on reasoning",
-       "n": 5,
-       "unit": "%",
-       "v": 0
-      },
-      {
-       "label": "コンテキストの最大使用率",
-       "labelEn": "Peak context usage",
-       "n": 4,
-       "unit": "%",
-       "v": 0
-      },
-      {
-       "label": "ツール呼び出し",
-       "labelEn": "Tool calls",
-       "n": 3,
-       "unit": "回",
-       "v": 3
-      }
-     ]
-    }
-   ],
    "outBase": 9,
    "outPrompts": 45,
    "outSessions": 0,
@@ -1636,76 +1457,6 @@
     "removed": 0
    },
    "maxConc": 1,
-   "native": [
-    {
-     "sessions": 2,
-     "source": "Kiro IDE / CLI (V3)",
-     "values": [
-      {
-       "label": "クレジット",
-       "labelEn": "Credits",
-       "n": 6,
-       "unit": "クレジット",
-       "v": 7.12
-      },
-      {
-       "label": "ターン",
-       "labelEn": "Turns",
-       "n": 6,
-       "unit": "回",
-       "v": 6
-      },
-      {
-       "label": "1 ターンあたりのクレジット",
-       "labelEn": "Credits per turn",
-       "n": 6,
-       "unit": "クレジット",
-       "v": 1.19
-      },
-      {
-       "label": "ツール呼び出し",
-       "labelEn": "Tool calls",
-       "n": 12,
-       "unit": "回",
-       "v": 12
-      }
-     ]
-    },
-    {
-     "sessions": 1,
-     "source": "Claude Code",
-     "values": [
-      {
-       "label": "応答の数",
-       "labelEn": "Responses",
-       "n": 10,
-       "unit": "回",
-       "v": 10
-      },
-      {
-       "label": "1 応答あたりの出力トークン",
-       "labelEn": "Output tokens per response",
-       "n": 10,
-       "unit": "トークン",
-       "v": 1008.4
-      },
-      {
-       "label": "コンテキストの最大使用率",
-       "labelEn": "Peak context usage",
-       "n": 10,
-       "unit": "%",
-       "v": 24.58
-      },
-      {
-       "label": "ツール呼び出し",
-       "labelEn": "Tool calls",
-       "n": 10,
-       "unit": "回",
-       "v": 10
-      }
-     ]
-    }
-   ],
    "outBase": 1,
    "outPrompts": 2,
    "outSessions": 0,
@@ -1972,36 +1723,6 @@
    ],
    "nFiles": 3,
    "nPrompts": 2,
-   "native": [
-    {
-     "label": "応答の数",
-     "labelEn": "Responses",
-     "n": 8,
-     "unit": "回",
-     "v": 8
-    },
-    {
-     "label": "1 応答あたりの出力トークン",
-     "labelEn": "Output tokens per response",
-     "n": 8,
-     "unit": "トークン",
-     "v": 936.88
-    },
-    {
-     "label": "コンテキストの最大使用率",
-     "labelEn": "Peak context usage",
-     "n": 8,
-     "unit": "%",
-     "v": 30.43
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 8,
-     "unit": "回",
-     "v": 8
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -2121,36 +1842,6 @@
    ],
    "nFiles": 3,
    "nPrompts": 7,
-   "native": [
-    {
-     "label": "応答の数",
-     "labelEn": "Responses",
-     "n": 33,
-     "unit": "回",
-     "v": 33
-    },
-    {
-     "label": "1 応答あたりの出力トークン",
-     "labelEn": "Output tokens per response",
-     "n": 33,
-     "unit": "トークン",
-     "v": 698.27
-    },
-    {
-     "label": "コンテキストの最大使用率",
-     "labelEn": "Peak context usage",
-     "n": 33,
-     "unit": "%",
-     "v": 6.15
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 33,
-     "unit": "回",
-     "v": 33
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -2421,36 +2112,6 @@
    ],
    "nFiles": 1,
    "nPrompts": 2,
-   "native": [
-    {
-     "label": "応答の数",
-     "labelEn": "Responses",
-     "n": 10,
-     "unit": "回",
-     "v": 10
-    },
-    {
-     "label": "1 応答あたりの出力トークン",
-     "labelEn": "Output tokens per response",
-     "n": 10,
-     "unit": "トークン",
-     "v": 1008.4
-    },
-    {
-     "label": "コンテキストの最大使用率",
-     "labelEn": "Peak context usage",
-     "n": 10,
-     "unit": "%",
-     "v": 24.58
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 10,
-     "unit": "回",
-     "v": 10
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -2576,36 +2237,6 @@
    ],
    "nFiles": 4,
    "nPrompts": 3,
-   "native": [
-    {
-     "label": "応答の数",
-     "labelEn": "Responses",
-     "n": 12,
-     "unit": "回",
-     "v": 12
-    },
-    {
-     "label": "1 応答あたりの出力トークン",
-     "labelEn": "Output tokens per response",
-     "n": 12,
-     "unit": "トークン",
-     "v": 555.58
-    },
-    {
-     "label": "コンテキストの最大使用率",
-     "labelEn": "Peak context usage",
-     "n": 12,
-     "unit": "%",
-     "v": 5.71
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 12,
-     "unit": "回",
-     "v": 12
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -2751,36 +2382,6 @@
    ],
    "nFiles": 4,
    "nPrompts": 8,
-   "native": [
-    {
-     "label": "応答の数",
-     "labelEn": "Responses",
-     "n": 36,
-     "unit": "回",
-     "v": 36
-    },
-    {
-     "label": "1 応答あたりの出力トークン",
-     "labelEn": "Output tokens per response",
-     "n": 36,
-     "unit": "トークン",
-     "v": 715.81
-    },
-    {
-     "label": "コンテキストの最大使用率",
-     "labelEn": "Peak context usage",
-     "n": 36,
-     "unit": "%",
-     "v": 5.96
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 36,
-     "unit": "回",
-     "v": 36
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -3049,36 +2650,6 @@
    ],
    "nFiles": 3,
    "nPrompts": 7,
-   "native": [
-    {
-     "label": "応答の数",
-     "labelEn": "Responses",
-     "n": 33,
-     "unit": "回",
-     "v": 33
-    },
-    {
-     "label": "1 応答あたりの出力トークン",
-     "labelEn": "Output tokens per response",
-     "n": 33,
-     "unit": "トークン",
-     "v": 698.27
-    },
-    {
-     "label": "コンテキストの最大使用率",
-     "labelEn": "Peak context usage",
-     "n": 33,
-     "unit": "%",
-     "v": 6.15
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 33,
-     "unit": "回",
-     "v": 33
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -3350,36 +2921,6 @@
    ],
    "nFiles": 2,
    "nPrompts": 3,
-   "native": [
-    {
-     "label": "応答の数",
-     "labelEn": "Responses",
-     "n": 10,
-     "unit": "回",
-     "v": 10
-    },
-    {
-     "label": "1 応答あたりの出力トークン",
-     "labelEn": "Output tokens per response",
-     "n": 10,
-     "unit": "トークン",
-     "v": 728.3
-    },
-    {
-     "label": "コンテキストの最大使用率",
-     "labelEn": "Peak context usage",
-     "n": 10,
-     "unit": "%",
-     "v": 28.8
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 10,
-     "unit": "回",
-     "v": 10
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -3523,36 +3064,6 @@
    ],
    "nFiles": 3,
    "nPrompts": 5,
-   "native": [
-    {
-     "label": "応答の数",
-     "labelEn": "Responses",
-     "n": 24,
-     "unit": "回",
-     "v": 24
-    },
-    {
-     "label": "1 応答あたりの出力トークン",
-     "labelEn": "Output tokens per response",
-     "n": 24,
-     "unit": "トークン",
-     "v": 818.29
-    },
-    {
-     "label": "コンテキストの最大使用率",
-     "labelEn": "Peak context usage",
-     "n": 24,
-     "unit": "%",
-     "v": 30.13
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 24,
-     "unit": "回",
-     "v": 24
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -3749,36 +3260,6 @@
    ],
    "nFiles": 4,
    "nPrompts": 8,
-   "native": [
-    {
-     "label": "応答の数",
-     "labelEn": "Responses",
-     "n": 36,
-     "unit": "回",
-     "v": 36
-    },
-    {
-     "label": "1 応答あたりの出力トークン",
-     "labelEn": "Output tokens per response",
-     "n": 36,
-     "unit": "トークン",
-     "v": 715.81
-    },
-    {
-     "label": "コンテキストの最大使用率",
-     "labelEn": "Peak context usage",
-     "n": 36,
-     "unit": "%",
-     "v": 5.96
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 36,
-     "unit": "回",
-     "v": 36
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -4040,36 +3521,6 @@
    ],
    "nFiles": 1,
    "nPrompts": 3,
-   "native": [
-    {
-     "label": "クレジット",
-     "labelEn": "Credits",
-     "n": 3,
-     "unit": "クレジット",
-     "v": 4.92
-    },
-    {
-     "label": "ターン",
-     "labelEn": "Turns",
-     "n": 3,
-     "unit": "回",
-     "v": 3
-    },
-    {
-     "label": "1 ターンあたりのクレジット",
-     "labelEn": "Credits per turn",
-     "n": 3,
-     "unit": "クレジット",
-     "v": 1.64
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 6,
-     "unit": "回",
-     "v": 6
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -4159,29 +3610,6 @@
    ],
    "nFiles": 0,
    "nPrompts": 1,
-   "native": [
-    {
-     "label": "応答にかかった時間（中央値）",
-     "labelEn": "Response time (median)",
-     "n": 1,
-     "unit": "秒",
-     "v": 20
-    },
-    {
-     "label": "コンテキストの最大使用率（見積もり）",
-     "labelEn": "Peak context usage (estimate)",
-     "n": 1,
-     "unit": "%",
-     "v": 0
-    },
-    {
-     "label": "コンテキストの上限",
-     "labelEn": "Context window",
-     "n": 1,
-     "unit": "トークン",
-     "v": 200000
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -4249,29 +3677,6 @@
    ],
    "nFiles": 0,
    "nPrompts": 4,
-   "native": [
-    {
-     "label": "Crew から動かした会話",
-     "labelEn": "Conversations run from Crew",
-     "n": 1,
-     "unit": "件",
-     "v": 1
-    },
-    {
-     "label": "クレジット",
-     "labelEn": "Credits",
-     "n": 4,
-     "unit": "クレジット",
-     "v": 3.73
-    },
-    {
-     "label": "ターン",
-     "labelEn": "Turns",
-     "n": 4,
-     "unit": "回",
-     "v": 4
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -4346,29 +3751,6 @@
    ],
    "nFiles": 0,
    "nPrompts": 0,
-   "native": [
-    {
-     "label": "Crew から動かした会話",
-     "labelEn": "Conversations run from Crew",
-     "n": 1,
-     "unit": "件",
-     "v": 1
-    },
-    {
-     "label": "クレジット",
-     "labelEn": "Credits",
-     "n": 1,
-     "unit": "クレジット",
-     "v": 0.25
-    },
-    {
-     "label": "ターン",
-     "labelEn": "Turns",
-     "n": 1,
-     "unit": "回",
-     "v": 1
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -4429,36 +3811,6 @@
    ],
    "nFiles": 1,
    "nPrompts": 2,
-   "native": [
-    {
-     "label": "応答にかかった時間（中央値）",
-     "labelEn": "Response time (median)",
-     "n": 3,
-     "unit": "秒",
-     "v": 20
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 1,
-     "unit": "回",
-     "v": 1
-    },
-    {
-     "label": "コンテキストの最大使用率（見積もり）",
-     "labelEn": "Peak context usage (estimate)",
-     "n": 3,
-     "unit": "%",
-     "v": 0.02
-    },
-    {
-     "label": "コンテキストの上限",
-     "labelEn": "Context window",
-     "n": 1,
-     "unit": "トークン",
-     "v": 200000
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -4547,43 +3899,6 @@
    ],
    "nFiles": 0,
    "nPrompts": 2,
-   "native": [
-    {
-     "label": "応答の数",
-     "labelEn": "Responses",
-     "n": 3,
-     "unit": "回",
-     "v": 3
-    },
-    {
-     "label": "推論トークン",
-     "labelEn": "Reasoning tokens",
-     "n": 3,
-     "unit": "トークン",
-     "v": 0
-    },
-    {
-     "label": "出力のうち推論の割合",
-     "labelEn": "Share of output spent on reasoning",
-     "n": 3,
-     "unit": "%",
-     "v": 0
-    },
-    {
-     "label": "コンテキストの最大使用率",
-     "labelEn": "Peak context usage",
-     "n": 3,
-     "unit": "%",
-     "v": 0
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 3,
-     "unit": "回",
-     "v": 3
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -4696,36 +4011,6 @@
    ],
    "nFiles": 1,
    "nPrompts": 3,
-   "native": [
-    {
-     "label": "クレジット",
-     "labelEn": "Credits",
-     "n": 3,
-     "unit": "クレジット",
-     "v": 2.08
-    },
-    {
-     "label": "ターン",
-     "labelEn": "Turns",
-     "n": 3,
-     "unit": "回",
-     "v": 3
-    },
-    {
-     "label": "1 ターンあたりのクレジット",
-     "labelEn": "Credits per turn",
-     "n": 3,
-     "unit": "クレジット",
-     "v": 0.69
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 6,
-     "unit": "回",
-     "v": 6
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -4815,36 +4100,6 @@
    ],
    "nFiles": 0,
    "nPrompts": 4,
-   "native": [
-    {
-     "label": "Crew から動かした会話",
-     "labelEn": "Conversations run from Crew",
-     "n": 2,
-     "unit": "件",
-     "v": 2
-    },
-    {
-     "label": "うちサブエージェント",
-     "labelEn": "Of which subagents",
-     "n": 1,
-     "unit": "件",
-     "v": 1
-    },
-    {
-     "label": "クレジット",
-     "labelEn": "Credits",
-     "n": 6,
-     "unit": "クレジット",
-     "v": 6.78
-    },
-    {
-     "label": "ターン",
-     "labelEn": "Turns",
-     "n": 6,
-     "unit": "回",
-     "v": 6
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -4956,29 +4211,6 @@
    ],
    "nFiles": 0,
    "nPrompts": 0,
-   "native": [
-    {
-     "label": "Crew から動かした会話",
-     "labelEn": "Conversations run from Crew",
-     "n": 1,
-     "unit": "件",
-     "v": 1
-    },
-    {
-     "label": "クレジット",
-     "labelEn": "Credits",
-     "n": 1,
-     "unit": "クレジット",
-     "v": 1.25
-    },
-    {
-     "label": "ターン",
-     "labelEn": "Turns",
-     "n": 1,
-     "unit": "回",
-     "v": 1
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -5035,29 +4267,6 @@
    ],
    "nFiles": 0,
    "nPrompts": 0,
-   "native": [
-    {
-     "label": "Crew から動かした会話",
-     "labelEn": "Conversations run from Crew",
-     "n": 1,
-     "unit": "件",
-     "v": 1
-    },
-    {
-     "label": "クレジット",
-     "labelEn": "Credits",
-     "n": 1,
-     "unit": "クレジット",
-     "v": 0.5
-    },
-    {
-     "label": "ターン",
-     "labelEn": "Turns",
-     "n": 1,
-     "unit": "回",
-     "v": 1
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -5117,36 +4326,6 @@
    ],
    "nFiles": 0,
    "nPrompts": 1,
-   "native": [
-    {
-     "label": "応答の数",
-     "labelEn": "Responses",
-     "n": 2,
-     "unit": "回",
-     "v": 2
-    },
-    {
-     "label": "推論トークン",
-     "labelEn": "Reasoning tokens",
-     "n": 2,
-     "unit": "トークン",
-     "v": 0
-    },
-    {
-     "label": "出力のうち推論の割合",
-     "labelEn": "Share of output spent on reasoning",
-     "n": 2,
-     "unit": "%",
-     "v": 0
-    },
-    {
-     "label": "コンテキストの最大使用率",
-     "labelEn": "Peak context usage",
-     "n": 1,
-     "unit": "%",
-     "v": 0
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -5217,36 +4396,6 @@
    ],
    "nFiles": 1,
    "nPrompts": 3,
-   "native": [
-    {
-     "label": "クレジット",
-     "labelEn": "Credits",
-     "n": 3,
-     "unit": "クレジット",
-     "v": 3.29
-    },
-    {
-     "label": "ターン",
-     "labelEn": "Turns",
-     "n": 3,
-     "unit": "回",
-     "v": 3
-    },
-    {
-     "label": "1 ターンあたりのクレジット",
-     "labelEn": "Credits per turn",
-     "n": 3,
-     "unit": "クレジット",
-     "v": 1.1
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 6,
-     "unit": "回",
-     "v": 6
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -5338,36 +4487,6 @@
    ],
    "nFiles": 1,
    "nPrompts": 3,
-   "native": [
-    {
-     "label": "クレジット",
-     "labelEn": "Credits",
-     "n": 3,
-     "unit": "クレジット",
-     "v": 3.6
-    },
-    {
-     "label": "ターン",
-     "labelEn": "Turns",
-     "n": 3,
-     "unit": "回",
-     "v": 3
-    },
-    {
-     "label": "1 ターンあたりのクレジット",
-     "labelEn": "Credits per turn",
-     "n": 3,
-     "unit": "クレジット",
-     "v": 1.2
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 6,
-     "unit": "回",
-     "v": 6
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -5457,36 +4576,6 @@
    ],
    "nFiles": 0,
    "nPrompts": 1,
-   "native": [
-    {
-     "label": "応答にかかった時間（中央値）",
-     "labelEn": "Response time (median)",
-     "n": 2,
-     "unit": "秒",
-     "v": 20
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 1,
-     "unit": "回",
-     "v": 1
-    },
-    {
-     "label": "コンテキストの最大使用率（見積もり）",
-     "labelEn": "Peak context usage (estimate)",
-     "n": 2,
-     "unit": "%",
-     "v": 0
-    },
-    {
-     "label": "コンテキストの上限",
-     "labelEn": "Context window",
-     "n": 1,
-     "unit": "トークン",
-     "v": 200000
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -5561,36 +4650,6 @@
    ],
    "nFiles": 1,
    "nPrompts": 3,
-   "native": [
-    {
-     "label": "クレジット",
-     "labelEn": "Credits",
-     "n": 3,
-     "unit": "クレジット",
-     "v": 4.5
-    },
-    {
-     "label": "ターン",
-     "labelEn": "Turns",
-     "n": 3,
-     "unit": "回",
-     "v": 3
-    },
-    {
-     "label": "1 ターンあたりのクレジット",
-     "labelEn": "Credits per turn",
-     "n": 3,
-     "unit": "クレジット",
-     "v": 1.5
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 6,
-     "unit": "回",
-     "v": 6
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -5682,36 +4741,6 @@
    ],
    "nFiles": 1,
    "nPrompts": 3,
-   "native": [
-    {
-     "label": "クレジット",
-     "labelEn": "Credits",
-     "n": 3,
-     "unit": "クレジット",
-     "v": 2.62
-    },
-    {
-     "label": "ターン",
-     "labelEn": "Turns",
-     "n": 3,
-     "unit": "回",
-     "v": 3
-    },
-    {
-     "label": "1 ターンあたりのクレジット",
-     "labelEn": "Credits per turn",
-     "n": 3,
-     "unit": "クレジット",
-     "v": 0.87
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 6,
-     "unit": "回",
-     "v": 6
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -5808,36 +4837,6 @@
    ],
    "nFiles": 1,
    "nPrompts": 2,
-   "native": [
-    {
-     "label": "応答の数",
-     "labelEn": "Responses",
-     "n": 10,
-     "unit": "回",
-     "v": 10
-    },
-    {
-     "label": "1 応答あたりの出力トークン",
-     "labelEn": "Output tokens per response",
-     "n": 10,
-     "unit": "トークン",
-     "v": 1008.4
-    },
-    {
-     "label": "コンテキストの最大使用率",
-     "labelEn": "Peak context usage",
-     "n": 10,
-     "unit": "%",
-     "v": 24.58
-    },
-    {
-     "label": "ツール呼び出し",
-     "labelEn": "Tool calls",
-     "n": 10,
-     "unit": "回",
-     "v": 10
-    }
-   ],
    "outputs": {
     "added": 0,
     "commits": 0,
@@ -6074,42 +5073,6 @@
     "removed": 0
    },
    "maxConc": 1,
-   "native": [
-    {
-     "sessions": 1,
-     "source": "Claude Code",
-     "values": [
-      {
-       "label": "応答の数",
-       "labelEn": "Responses",
-       "n": 8,
-       "unit": "回",
-       "v": 8
-      },
-      {
-       "label": "1 応答あたりの出力トークン",
-       "labelEn": "Output tokens per response",
-       "n": 8,
-       "unit": "トークン",
-       "v": 936.88
-      },
-      {
-       "label": "コンテキストの最大使用率",
-       "labelEn": "Peak context usage",
-       "n": 8,
-       "unit": "%",
-       "v": 30.43
-      },
-      {
-       "label": "ツール呼び出し",
-       "labelEn": "Tool calls",
-       "n": 8,
-       "unit": "回",
-       "v": 8
-      }
-     ]
-    }
-   ],
    "outBase": 1,
    "outPrompts": 2,
    "outSessions": 0,
@@ -6345,42 +5308,6 @@
     "removed": 0
    },
    "maxConc": 1,
-   "native": [
-    {
-     "sessions": 2,
-     "source": "Claude Code",
-     "values": [
-      {
-       "label": "応答の数",
-       "labelEn": "Responses",
-       "n": 43,
-       "unit": "回",
-       "v": 43
-      },
-      {
-       "label": "1 応答あたりの出力トークン",
-       "labelEn": "Output tokens per response",
-       "n": 43,
-       "unit": "トークン",
-       "v": 770.4
-      },
-      {
-       "label": "コンテキストの最大使用率",
-       "labelEn": "Peak context usage",
-       "n": 43,
-       "unit": "%",
-       "v": 24.58
-      },
-      {
-       "label": "ツール呼び出し",
-       "labelEn": "Tool calls",
-       "n": 43,
-       "unit": "回",
-       "v": 43
-      }
-     ]
-    }
-   ],
    "outBase": 2,
    "outPrompts": 9,
    "outSessions": 0,
@@ -6664,42 +5591,6 @@
     "removed": 0
    },
    "maxConc": 1,
-   "native": [
-    {
-     "sessions": 2,
-     "source": "Claude Code",
-     "values": [
-      {
-       "label": "応答の数",
-       "labelEn": "Responses",
-       "n": 48,
-       "unit": "回",
-       "v": 48
-      },
-      {
-       "label": "1 応答あたりの出力トークン",
-       "labelEn": "Output tokens per response",
-       "n": 48,
-       "unit": "トークン",
-       "v": 675.75
-      },
-      {
-       "label": "コンテキストの最大使用率",
-       "labelEn": "Peak context usage",
-       "n": 48,
-       "unit": "%",
-       "v": 5.96
-      },
-      {
-       "label": "ツール呼び出し",
-       "labelEn": "Tool calls",
-       "n": 48,
-       "unit": "回",
-       "v": 48
-      }
-     ]
-    }
-   ],
    "outBase": 2,
    "outPrompts": 11,
    "outSessions": 0,
@@ -7041,42 +5932,6 @@
     "removed": 0
    },
    "maxConc": 2,
-   "native": [
-    {
-     "sessions": 4,
-     "source": "Claude Code",
-     "values": [
-      {
-       "label": "応答の数",
-       "labelEn": "Responses",
-       "n": 103,
-       "unit": "回",
-       "v": 103
-      },
-      {
-       "label": "1 応答あたりの出力トークン",
-       "labelEn": "Output tokens per response",
-       "n": 103,
-       "unit": "トークン",
-       "v": 735.28
-      },
-      {
-       "label": "コンテキストの最大使用率",
-       "labelEn": "Peak context usage",
-       "n": 103,
-       "unit": "%",
-       "v": 30.13
-      },
-      {
-       "label": "ツール呼び出し",
-       "labelEn": "Tool calls",
-       "n": 103,
-       "unit": "回",
-       "v": 103
-      }
-     ]
-    }
-   ],
    "outBase": 4,
    "outPrompts": 23,
    "outSessions": 0,
@@ -7471,185 +6326,6 @@
     "removed": 0
    },
    "maxConc": 2,
-   "native": [
-    {
-     "sessions": 6,
-     "source": "Kiro IDE / CLI (V3)",
-     "values": [
-      {
-       "label": "クレジット",
-       "labelEn": "Credits",
-       "n": 18,
-       "unit": "クレジット",
-       "v": 21.01
-      },
-      {
-       "label": "ターン",
-       "labelEn": "Turns",
-       "n": 18,
-       "unit": "回",
-       "v": 18
-      },
-      {
-       "label": "1 ターンあたりのクレジット",
-       "labelEn": "Credits per turn",
-       "n": 18,
-       "unit": "クレジット",
-       "v": 1.17
-      },
-      {
-       "label": "ツール呼び出し",
-       "labelEn": "Tool calls",
-       "n": 36,
-       "unit": "回",
-       "v": 36
-      }
-     ]
-    },
-    {
-     "sessions": 3,
-     "source": "Kiro CLI (SQLite)",
-     "values": [
-      {
-       "label": "応答にかかった時間（中央値）",
-       "labelEn": "Response time (median)",
-       "n": 6,
-       "unit": "秒",
-       "v": 20
-      },
-      {
-       "label": "ツール呼び出し",
-       "labelEn": "Tool calls",
-       "n": 2,
-       "unit": "回",
-       "v": 2
-      },
-      {
-       "label": "コンテキストの最大使用率（見積もり）",
-       "labelEn": "Peak context usage (estimate)",
-       "n": 6,
-       "unit": "%",
-       "v": 0.02
-      },
-      {
-       "label": "コンテキストの上限",
-       "labelEn": "Context window",
-       "n": 3,
-       "unit": "トークン",
-       "v": 200000
-      }
-     ]
-    },
-    {
-     "sessions": 5,
-     "source": "Kiro Crew",
-     "values": [
-      {
-       "label": "Crew から動かした会話",
-       "labelEn": "Conversations run from Crew",
-       "n": 6,
-       "unit": "件",
-       "v": 6
-      },
-      {
-       "label": "うちサブエージェント",
-       "labelEn": "Of which subagents",
-       "n": 1,
-       "unit": "件",
-       "v": 1
-      },
-      {
-       "label": "クレジット",
-       "labelEn": "Credits",
-       "n": 13,
-       "unit": "クレジット",
-       "v": 12.51
-      },
-      {
-       "label": "ターン",
-       "labelEn": "Turns",
-       "n": 13,
-       "unit": "回",
-       "v": 13
-      }
-     ]
-    },
-    {
-     "sessions": 2,
-     "source": "Codex",
-     "values": [
-      {
-       "label": "応答の数",
-       "labelEn": "Responses",
-       "n": 5,
-       "unit": "回",
-       "v": 5
-      },
-      {
-       "label": "推論トークン",
-       "labelEn": "Reasoning tokens",
-       "n": 5,
-       "unit": "トークン",
-       "v": 0
-      },
-      {
-       "label": "出力のうち推論の割合",
-       "labelEn": "Share of output spent on reasoning",
-       "n": 5,
-       "unit": "%",
-       "v": 0
-      },
-      {
-       "label": "コンテキストの最大使用率",
-       "labelEn": "Peak context usage",
-       "n": 4,
-       "unit": "%",
-       "v": 0
-      },
-      {
-       "label": "ツール呼び出し",
-       "labelEn": "Tool calls",
-       "n": 3,
-       "unit": "回",
-       "v": 3
-      }
-     ]
-    },
-    {
-     "sessions": 1,
-     "source": "Claude Code",
-     "values": [
-      {
-       "label": "応答の数",
-       "labelEn": "Responses",
-       "n": 10,
-       "unit": "回",
-       "v": 10
-      },
-      {
-       "label": "1 応答あたりの出力トークン",
-       "labelEn": "Output tokens per response",
-       "n": 10,
-       "unit": "トークン",
-       "v": 1008.4
-      },
-      {
-       "label": "コンテキストの最大使用率",
-       "labelEn": "Peak context usage",
-       "n": 10,
-       "unit": "%",
-       "v": 24.58
-      },
-      {
-       "label": "ツール呼び出し",
-       "labelEn": "Tool calls",
-       "n": 10,
-       "unit": "回",
-       "v": 10
-      }
-     ]
-    }
-   ],
    "outBase": 1,
    "outPrompts": 2,
    "outSessions": 0,

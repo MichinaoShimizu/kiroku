@@ -54,13 +54,12 @@ function detail(s){
         return `<div class="sub"><div class="hd"><span class="ty">${esc(a.type)}</span><span class="ds">${esc(a.desc || t("(no description)"))}</span>${a.bg?`<span class="bg">${esc(t("Background"))}</span>`:""}</div>
           <div class="lane"><span style="left:${l}%;width:${Math.min(w,100-l)}%"></span></div>
           <div class="ft">${a.start?`<span>${hm(a.start)}${a.end?"–"+hm(a.end):""}</span>`:""}${a.start&&a.end?`<span>${dur((a.end-a.start)/60)}</span>`:""}${tt?`<span>${esc(t("{n} tokens", {n: tok(tt)}))}</span>`:u.reportedTokens?`<span>${esc(t("{n} tokens (reported)", {n: tok(u.reportedTokens)}))}</span>`:""}${u.cost?`<span>${usd(u.cost)}</span>`:""}${a.model?`<span>${esc(a.model)}</span>`:""}${a.tools?`<span>${esc(plural(a.tools, "tool call"))}</span>`:""}</div></div>`; }).join("")}` : ""}
-    <details class="sdet"><summary>${ico("caret", "dsc")}<h3>${esc(t("More details"))}</h3><span class="muted">${esc(t("History file, models, tools and agent metrics"))}</span></summary>
+    <details class="sdet"><summary>${ico("caret", "dsc")}<h3>${esc(t("More details"))}</h3><span class="muted">${esc(t("History file, models and tools"))}</span></summary>
     ${s.file ? `<h3>${esc(t("History file"))}</h3>${codeH(s.file, "", `<a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" ${LIVE ? "data-hist" : `target="_blank" rel="noopener"`}>${esc(t("Open"))}</a>`)}` : ""}
     ${s.models.length ? `<h3>${esc(t("Models used"))}</h3><div class="chips">${(mc => s.models.map(([m,n],i)=>`<span class="mono mdl" style="--m:${mc[i]}"><i aria-hidden="true"></i>${esc((m))}<b>${n}</b></span>`).join(""))(modelColors(s.models.map(([m]) => m)))}</div>` : ""}
     ${s.tiers && s.tiers.length ? `<h3>${esc(t("Service tier"))}</h3><div class="chips">${s.tiers.map(([t,n])=>`<span class="mono">${esc(t)}<b>${n}</b></span>`).join("")}</div>` : ""}
     <h3>${esc(t("Tools used"))}</h3>
     ${s.tools.length ? s.tools.map(([k,v],i)=>`<div class="trow"><span class="nm">${toolIcon(k)}<span>${esc(k)}</span></span><span class="track2"><span style="width:${v/maxT*100}%;background:var(--c${i % 8})"></span></span><span class="n">${v}</span></div>`).join("") : noneH(esc(t("None recorded")))}
-    ${s.native && s.native.length ? `<h3>${esc(t("{agent} metrics", {agent: s.source}))}</h3>${nativeRows(s.native)}<p class="note">${esc(t("Numbers this agent records itself. Definitions differ from other agents."))}</p>` : ""}
     </details>
     </section>
     </div>

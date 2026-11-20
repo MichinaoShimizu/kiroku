@@ -436,25 +436,6 @@ function aiUsage(w, pw, unit){
     ${u.subTypes.length ? `${secH(esc(t("Subagent types (calls)")))}<div class="chips">${u.subTypes.map(([k,v])=>`<span class="mono">${esc(k)}<b>${v}</b></span>`).join("")}</div>` : ""}
     ${u.heavy.length ? `${secH(esc(t("Heaviest sessions")), "heavy")}${u.heavy.map(h => sesCardH(sesById(h.id, h.title), sesMeta(h, h.subagents ? esc(plural(h.subagents, "subagent")) : ""), usd(h.cost))).join("")}` : ""}`;
 }
-function nativeText(v){
-  const num = (x, d) => commas(Number(x.toFixed(d)));
-  // 名前が単位を言っているとき（「Credits」「Reasoning tokens」）は、数のあとに単位を繰り返さない
-  if (JA){ const u = v.unit === "秒" || v.unit === "%" ? v.unit : (nlabel(v) || "").includes(v.unit) ? "" : v.unit ? " " + v.unit : "";
-    return v.unit === "%" || v.unit === "秒" ? `${num(v.v,1)}${u}` : v.unit === "クレジット" ? `${crN(v.v)}${u}` : `${num(v.v,0)}${u}`; } // 日本語は Go の単位のまま
-  const w = {"回": "", "件": "", "トークン": "tokens", "バイト": "bytes", "クレジット": "credits"}[v.unit] ?? v.unit; // 単位は Go の定義（日本語）を英語に読みかえる
-  const u = w && !(nlabel(v) || "").toLowerCase().includes(w) ? " " + w : "";
-  return v.unit === "%" ? `${num(v.v,1)}%` : v.unit === "秒" ? `${num(v.v,1)}s` : v.unit === "クレジット" ? `${crN(v.v)}${u}` : `${num(v.v,0)}${u}`;
-}
-const nlabel = v => JA ? v.label || v.labelEn : v.labelEn || v.label; // 参考指標の名前（Go の名前。英語表示では英語の名前）
-function nativeRows(values){ // n= は、表示した数と同じ（数えたものの合計）なら繰り返さない
-  return values.map(v=>`<div class="nrow"><span>${esc(nlabel(v))}</span><span class="v">${esc(nativeText(v))}</span>${Number(v.v.toFixed(1)) === v.n ? "" : `<span class="n">n=${v.n}</span>`}</div>`).join("");
-}
-function nativeSection(w){
-  if (!w.native || !w.native.length) return "";
-  // 各エージェントが自分で記録する数。エージェントどうしでは比べられないので、エージェントごとのカードに分ける
-  return `${secH(esc(t("Agent-specific metrics")), "native")}<div class="ngroups">
-    ${w.native.map(g=>`<div class="ngroup" style="--ag:${agColor(g.source)}"><div class="hd"><b>${agMark(g.source)}${esc((g.source))}</b><span>${esc(plural(g.sessions, "session"))}</span></div>${nativeRows(g.values)}</div>`).join("")}</div>`;
-}
 // foot は、ページのいちばん下：作った時刻・kiroku の版（リリースのページへ）・リポジトリへのリンク。
 // リンクは押したときに開くだけで、kiroku からは何も送らない（noopener noreferrer）
 const REPO = "https://github.com/MichinaoShimizu/kiroku";

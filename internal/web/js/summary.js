@@ -33,8 +33,7 @@ function summary(){
     ${(() => { const {ws, we} = period(), RP = repeatsOf(ws, we); return RP.length ? RP.slice(0, 3).map(c => { const v = {n: c.n, s: c.ids.size, day: md(c.last)}; return sesCardH(sesById(c.id, snipOf(c.text, 90)), esc(t(perLabel(M ? "月" : "週", "{n} times in {s} sessions this month · last on {day}", "{n} times in {s} sessions this week · last on {day}", "{n} times in {s} sessions in the month shown · last on {day}", "{n} times in {s} sessions in the week shown · last on {day}"), v))); }).join("") : ""; })()}
     ${w.friction.length || repeatsOf(period().ws, period().we).length ? "" : noneH(esc(t("No sessions with possible friction and no repeated prompts.")))}`)}
   ${fold("aiuse", panelH(4, esc(t("How you used AI")), esc(t("Cache, models and heavy sessions"))), `
-    ${aiUsage(w, pw, unit) || noneH(esc(t("No token or credit records.")))}
-    ${nativeSection(w)}`)}
+    ${aiUsage(w, pw, unit) || noneH(esc(t("No token or credit records.")))}`)}
   <section class="panel metap">${measure(w)}${foot()}</section></div>`;
   placeFlags(R, F);
   R.querySelectorAll("details.fold").forEach(d => { d.ontoggle = () => store.set("fold:" + d.dataset.fold, d.open); // 開け閉めを覚える
@@ -135,7 +134,6 @@ const HELP = {
   commits: {n: "AI commits", d: "Number of git commits that AI ran successfully. It takes the place of Git commits when kiroku could not read any git repository, and lines, files and pushes, which are counted from git, are left out for the same reason", c: "Roughly how often work reached a commit", x: "The value or size of the changes. Commit size varies by person and task", a: "In periods with few commits for the cost, check where the time went"},
   outSessions: {n: "Sessions that reached a commit or PR", d: "Number and share of sessions that made a commit or created a pull request in the period, counting only Claude Code sessions, the only agent whose outputs are recorded", c: "The share of sessions that left something behind", x: "The value of sessions not meant to commit, such as research or discussion", a: "If low, next period, state at the start of each session what done looks like (when to commit)"},
   costPerCommit: {n: "Estimated cost per commit", d: "Estimated cost of Claude Code sessions ÷ number of commits AI ran in them (only Claude Code records outputs, so other agents' cost is left out). Commits you made by hand are not counted", c: "Roughly how heavy each commit was", x: "Differences in commit size, or work that went into commits you made by hand", a: "Next period, keep each prompt to one change and commit often"},
-  native: {n: "Agent-specific metrics", d: "Numbers each agent records in its history. n= is how many records a figure is based on", c: "Trends within the same agent", x: "Comparisons between agents (definitions differ)", a: "Only look at changes over time for the same agent"},
 };
 // 画面に出す HELP（今の言語）。HELP の英語の文を鍵にして訳す（HELP そのものは英語のまま）
 let helpL = null;

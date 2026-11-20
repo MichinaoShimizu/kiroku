@@ -557,26 +557,13 @@ button.more{display:block;text-align:left}
 .drawer .gfiles span>.ic{color:var(--ink-3);margin-right:6px;vertical-align:-2px}
 .drawer .dresume{margin-top:14px}.drawer .dresume>h3:first-child{margin-top:0}
 .drawer .sact>.drun:first-child h3,.drawer .scols>.smet:first-child>h3:first-child{margin-top:0}
-/* プロンプトの流れの凡例は、既定で閉じる（記号は 1 度見ればわかるので、流れを上に） */
 
-/* エージェント別 */
-.ngroups{margin-top:8px}
 /* ④ は横いっぱいにして、数の枠とエージェントごとのまとまりを横に並べる（1 列に積むと 1,400px ほどになり、
    隣の短い ③・⑤ の下に大きな空きができていた） */
 .panel.aiuse{grid-column:1/-1}
 .panel.aiuse .stats{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))} /* 数の枠が少なくても横いっぱいに分ける */
 .panel.aiuse>.mstack,.panel.aiuse>.mrow,.panel.aiuse>.card{max-width:880px} /* 名前と数を、画面の端と端に離さない */
-.panel.aiuse .ngroups{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:10px;align-items:start}
-.panel.aiuse .ngroup{margin-bottom:0}
 .panel.aiuse .stat:last-child:nth-child(odd){grid-column:auto} /* 2 列のときの「最後の 1 つは横いっぱい」をやめる（列は幅で決まる） */
-.ngroup{border:1px solid var(--rule);border-radius:14px;padding:12px 16px 6px;margin-bottom:10px;background:linear-gradient(180deg,color-mix(in oklab,var(--ag,var(--surface)) 7%,var(--surface)),var(--surface) 70px)} /* By project のカードと同じ、エージェントの色のグラデーション */
-.ngroup .hd b{display:flex;align-items:center}
-.ngroup .hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px}
-.ngroup .hd b{font:600 var(--fs-md) var(--sans)}
-.ngroup .hd span{font-size:var(--fs-xs);color:var(--ink-3)}
-.nrow{display:grid;grid-template-columns:1fr auto 52px;gap:10px;padding:5px 0;border-top:1px dashed var(--rule);font-size:var(--fs-sm);align-items:baseline}
-.nrow .v{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
-.nrow .n{font-size:var(--fs-xs);color:var(--ink-3);text-align:right;font-variant-numeric:tabular-nums}
 /* AI の使い方 */
 .mrow{display:grid;grid-template-columns:1fr auto 40px;gap:10px;align-items:center;padding:6px 0;font-size:var(--fs-sm);border-bottom:1px dashed var(--rule)}
 .mrow:last-child{border-bottom:0}

@@ -108,7 +108,6 @@ type Summary struct {
 	Days          []Day              `json:"days"`         // 期間の日ごと（週なら 7、月なら 28〜31）
 	Friction      []Friction         `json:"friction"`     // 多い順に 3 つまで
 	FrictionN     int                `json:"frictionN"`    // 3 つに絞る前の数
-	Native        []NativeGroup      `json:"native"`       // エージェント別の参考指標
 	start, end    time.Time
 }
 
@@ -517,7 +516,6 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 	}
 	return &Summary{
 		Outputs: outs, OutSessions: outSes, OutBase: outBase, OutPrompts: outPrompts, CostPerCommit: costPerCommit, Git: gitTot,
-		Native:       nativeGroups(data, ws, we),
 		ProjectStats: projectStats(data, ws, we, projects, projOrder, commits),
 		Shares:       map[string][]Share{"branch": shares(data, ws, we, mins, ShareKeys["branch"]), "source": shares(data, ws, we, mins, ShareKeys["source"])},
 		FixRate:      fixRate, CostPerAsk: costPer, CostPrompts: costPrompts, Usage: usage, Start: wsT.Format("2006-01-02"), Sessions: sessions, Prompts: np,
@@ -526,46 +524,6 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 		WaitMedian: pick(0.5), WaitP90: pick(0.9), WaitCount: len(waits), Projects: projList, Days: days,
 		Friction: friction, FrictionN: frictionN, start: wsT, end: weT,
 	}
-}
-
-// NativeGroup は 1 つのエージェントの参考指標。
-type NativeGroup struct {
-	Source   string             `json:"source"`
-	Sessions int                `json:"sessions"`
-	Values   []core.NativeValue `json:"values"`
-}
-
-// nativeGroups はその週の観測をエージェントごとにまとめる。観測のないエージェントは出さない。
-func nativeGroups(data []*core.Session, ws, we float64) []NativeGroup {
-	by := map[string][]core.Measure{}
-	sess := map[string]int{}
-	var order []string
-	for _, d := range data {
-		used := false
-		for _, m := range d.Meas {
-			t := d.Start
-			if m.T != nil && *m.T != 0 {
-				t = *m.T
-			}
-			if ws <= t && t < we {
-				if _, ok := by[d.Source]; !ok {
-					order = append(order, d.Source)
-				}
-				by[d.Source] = append(by[d.Source], m)
-				used = true
-			}
-		}
-		if used {
-			sess[d.Source]++
-		}
-	}
-	out := []NativeGroup{}
-	for _, src := range order {
-		if vs := core.AggregateNative(src, by[src]); len(vs) > 0 {
-			out = append(out, NativeGroup{Source: src, Sessions: sess[src], Values: vs})
-		}
-	}
-	return out
 }
 
 // weekUsage は AI の使い方: トークン・目安コスト・クレジット・モデル・サブエージェント。
