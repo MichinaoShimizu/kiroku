@@ -2,6 +2,26 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v1.0.0 - 2026-11-20
+
+### Added
+
+- The view shows the kiroku version (such as `v1.0.0`) next to the logo in the header, for release builds
+
+### Changed
+
+- BREAKING: Kiro CLI V2 sessions (`~/.kiro/sessions/cli/`) are now shown as "Kiro CLI (V2)" instead of "Kiro CLI (Classic)", because Kiro now uses "Classic" for its retired V1 interface. The `source` value in `kiroku json` changes the same way, so scripts that match `"Kiro CLI (Classic)"` need updating (`schemaVersion` stays 1). `--sources kiro`, the options, the environment variables and the `kiroku archive` layout are unchanged
+- STABLE: kiroku 1.0.0. What [docs/compatibility.md](https://github.com/MichinaoShimizu/kiroku/blob/main/docs/compatibility.md) lists as kept compatible (commands and their arguments, options, environment variables, exit status, the listed fields of `kiroku json`, the `--prices` file, `kiroku archive` copies, the `kiroku serve` key, local-only defaults and verified downloads) now changes only with a new major version
+
+### Removed
+
+- BREAKING: `kiroku serve` no longer accepts an address with `?key=<key>` (made by versions before v0.38.2), even when the key is right: it shows a page that says the address no longer works and how to open kiroku instead. Such an address stays in the browser's history with the key in it, and the key itself still works, so if you ever opened one, change the key: stop `kiroku serve`, delete `serve-key` in kiroku's settings folder, start it again and run `kiroku open`. Bookmarks of the plain address and browsers already opened with `kiroku open` keep working
+- BREAKING: `kiroku serve --ai` is gone. "Analyze with AI" has been on by default since v0.36.1 and `--ai` only printed a notice (and `--ai=false` turned runs off); `--ai` and `--ai=false` now stop with a message that says to use `--no-ai` to turn it off
+
+### Fixed
+
+- On a phone-width screen, a long history location in "Data sources" now wraps instead of widening the page
+
 ## v0.40.0 - 2026-11-20
 
 ### Added
