@@ -30,7 +30,7 @@ function render(){
   // 件数は横にスクロールする並び（.lrow）の外に置く。スマホでは並びの上に出し、チップが多くても画面の外へ押し出されないように
   $("#legend").innerHTML = `<label class="cbsel"><span class="cbt">${esc(t("Color by"))}</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label><div class="lrow"><span class="lab">${esc(t("Active time"))}<small> · ${esc(t("click to hide"))}</small></span>` +
     Object.keys(cnt).sort((a,b)=>(mins[b]||0)-(mins[a]||0) || cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}" title="${esc(t("{name}: {stats} (click to show or hide)", {name: k, stats: `${mins[k] ? dur(mins[k]) + " · " : ""}${plural(cnt[k], "session")}`}))}"><span class="dot"></span>${st.colorBy === "source" ? agMark(k) : ""}<span class="cn">${esc((k))}</span><span class="n">${mins[k] ? dur(mins[k]) : "—"}<span class="sr"> ${esc(t("active"))}</span></span></button>`).join("") +
-    `</div><span class="count">${esc(t("{n} / {total} sessions", {n: shown.length, total: inRange.length}))}</span>`;
+    `</div>${filtering() ? `<span class="count">${esc(t("{n} / {total} sessions", {n: shown.length, total: inRange.length}))}</span>` : ""}`; // 件数は絞り込んでいるときだけ（ふだんは全件なので言うことがない）
   // 検索・凡例で絞り込んでいるあいだ、絞り込めない合計（作業時間・トークンなど）は薄くして、そう断る
   const fn = $("#fnote"); fn.hidden = !filtering() || noHit;
   fn.textContent = `${st.q ? t("This view shows only sessions matching the search and their linked records.") : t("Hidden items are left out of this view.")} ${M ? t("Gray figures, at the top and in each day and week, are totals for all sessions; sessions and commits there count only what is shown.") : t("Gray figures, at the top and under each date, are totals for all sessions; sessions and commits there count only what is shown.")}`;
@@ -145,13 +145,6 @@ function calShort(act, u, un, kinds){
   const v = !u ? "" : kinds.cost ? u.cost > 0 && usdS(u.cost) : kinds.tokens ? u.tokens && tokS(u.tokens) : u.credits && cr(u.credits);
   return `<span class="acs${q}">${esc(v || "—")}</span>`;
 }
-// allowH は、まだ来ていない日に置く「目安」：前の期間と同じ推定費用（クレジット）に収めるなら、残りの日 1 日あたりいくらか（pacing）。
-// 前の期間をもう超えていれば出さない（0 と書くと「使うな」と読めるため。超えたことは上の帯が言う）。月のマスには出さない（同じ額が並ぶだけなので、帯の 1 か所で足りる）
-function allowH(pc){
-  const xs = [pc.cost && pc.cost.rest > 0 && usd(pc.cost.per), pc.credits && pc.credits.rest > 0 && cr(pc.credits.per)].filter(Boolean); if (!xs.length) return `<small>—</small>`;
-  const tip = t(st.mode === "month" ? "To stay at last month's total, about this much a day for the {n} left" : "To stay at last week's total, about this much a day for the {n} left", {n: plural(pc.left, "day")});
-  return `<div class="allow"${tipAttr(t("To match"), tip, ...xs)}><span>${esc(t("To match"))}</span>${xs.map(x => `<b>${esc(x)}</b>`).join("")}</div>`;
-}
 const filtering = () => !!st.q || st.hidden.size > 0;
 /* カレンダーに出すコミット：凡例で隠したプロジェクトのものは出さない。検索中は、一致したセッションの間のコミットと、それ自体が一致したコミットだけ */
 const gitHit = c => [c.hash, c.subject, c.body || "", ...(c.files || []).map(f => f.path)].join("\n").toLowerCase().includes(st.q);
@@ -205,13 +198,12 @@ function timeline(shown, inWeek, ws, we, todayKey){
   for (let h=1; h<24; h++) if (Math.abs(h - nowH) * hh >= 20) hours += `<span style="top:${h*hh}px">${String(h).padStart(2,"0")}:00</span>`;
   if (nowS >= ws && nowS < we) hours += `<span class="now" style="top:${nowH*hh}px">${hm(nowS)}</span>`;
   const runs = [], un = filtering() ? 1 : 0, G = gitShown(shown), kinds = useKinds(w ? w.days : []);
-  const pc = pacing(w, period().P), tmr = addDays(today0(), 1).getTime()/1000; // まだ来ていない日の見出しには、前の週並みに収める 1 日の目安
   for (let d=0; d<7; d++){
     const day = addDays(st.week,d), ds = day.getTime()/1000, de = addDays(st.week,d+1).getTime()/1000, isToday = key(day) === todayKey;
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
     const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${(act || dayGit.length) && (aiRun() || aiDemo()) ? `<button class="pill dayrun ai-action" data-d="${d}" type="button" aria-label="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}" title="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}">${ico("ai")}<span>${esc(t("Analyze with AI"))}</span></button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : pc && ds >= tmr ? allowH(pc) : `<small>—</small>`}</div>`;
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${(act || dayGit.length) && (aiRun() || aiDemo()) ? `<button class="pill dayrun ai-action" data-d="${d}" type="button" aria-label="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}" title="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}">${ico("ai")}<span>${esc(t("Analyze with AI"))}</span></button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calDl(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`; // まだ来ていない日に「目安」は置かない（同じ額が上の帯の「前の週並みの 1 日の目安」にある）
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);

@@ -51,7 +51,7 @@ $("#sres").addEventListener("keydown", e => { if ((e.key !== "ArrowDown" && e.ke
 // ロゴは最初の画面へ。kiroku serve では "/"、HTML ファイルやデモでは、同じファイルを開き直す（"/" ではディスクやサイトの一番上へ行ってしまう）
 if (!LIVE) $("#home").href = location.href.split(/[?#]/)[0];
 $("#theme").onclick = () => { st.theme = st.theme === "dark" ? "light" : "dark"; store.set("theme", st.theme); applyTheme(); };
-$("#help").onclick = () => $("#keys").showModal();
+
 // ダイアログ（ショートカット・Worth a look など）は、枠の外を押すと閉じる（詳細のパネルの #scrim と同じ）。
 // 押し始めも外だったときだけ（枠の中で文字を選んで、外で離したときには閉じない）
 document.querySelectorAll("dialog").forEach(d => { let down = false;
@@ -128,3 +128,6 @@ function openAtWork(){
 // --hdr は、ページの上の見出し（header）の高さ。カレンダーの曜日の見出しが、その下に貼り付く
 function setHdr(){ const h = document.querySelector("header"); if (h) document.documentElement.style.setProperty("--hdr", h.offsetHeight + "px"); }
 setHdr(); addEventListener("resize", setHdr);
+
+// 「見直す候補」の一覧は、枠の外を押すと閉じる
+document.addEventListener("click", e => { const d = document.querySelector("#worth details"); if (d && d.open && !e.target.closest("#worth") && !e.target.closest("#wk")) d.open = false; });

@@ -156,11 +156,10 @@ function findList(w, pw, unit){
   return F.sort((a,b) => b.score - a.score);
 }
 const GOTO = {longctx: "heavy", modelfit: "models"}; // 専用の指標がない候補は、関係する指標に印を付ける
-function flagSum(F){ // 期間の要点の下（#worth）に、基準を超えた指標の名前だけを優先度の高い順に並べる（押すとサマリーのその指標へ）
+function flagSum(F){ // 期間の切り替えの行（#worth）に「見直す候補 N」の 1 つのボタン。押すと、基準を超えた指標の名前が優先度の高い順に開く（押すとその指標のダイアログ）
   const ids = [...new Set(F.map(f => GOTO[f.k] || f.k))];
-  return `<span class="lbl">${ico("flag", "fdot")}${esc(t("Worth a look"))}${hb("findings")}</span>${ids.length
-    ? ids.map(id => `<button class="flink" data-goto="${id}">${esc(H()[id].n)}</button>`).join("")
-    : `<span class="muted">${esc(t("No metric crossed a threshold"))}</span>`}`;
+  if (!ids.length) return `<span class="lbl muted" title="${esc(t("No metric crossed a threshold"))}">${ico("flag")}${esc(t("Worth a look"))} 0</span>`;
+  return `<details class="wdd"><summary class="pill">${ico("flag", "fdot")}${esc(t("Worth a look"))} <b>${ids.length}</b>${ico("caret", "wdc")}</summary><div class="wdl" role="group" aria-label="${esc(t("Worth a look"))}"><span class="wdh">${esc(t("Worth a look"))}${hb("findings")}</span>${ids.map(id => `<button class="flink" data-goto="${id}">${esc(H()[id].n)}</button>`).join("")}</div></details>`;
 }
 function sesFlags(s){ // 詳細の頭に、このセッションが関係する見直す候補（表示中の期間のもの）の名前だけを出す。押すとサマリーと同じダイアログ
   const ids = [...new Set(lastFlags.filter(f => f.ids.includes(s.id)).map(f => GOTO[f.k] || f.k))];

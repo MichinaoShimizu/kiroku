@@ -249,9 +249,9 @@ function periodGit(){
 /* アウトプット：使ったもの（コスト）→ git に残ったもの → その 2 つを割った指標（Compared）の順に並べる。
    残ったものは、出したものの量であって、価値や生産性ではない */
 function outcomePanel(w, pw, unit){
-  const o = w.outputs || {commits:0}, g = w.git, u = w.usage || {}, G = periodGit();
+  const o = w.outputs || {commits:0}, g = w.git, u = w.usage || {};
   const gc = g && g.commits ? g : null; // git のコミット（行・ファイル・push は git から数えるので、これがないときは出さない）
-  const hasOut = o.commits || gc || G.pushes || o.prs, hasCommit = o.commits || gc;
+  const hasOut = o.commits || gc || o.prs, hasCommit = o.commits || gc;
   const po = pw && pw.outputs, V = vsPrev(pw, unit), d = (a, b) => V.diff(a, V.of(null, b)); // AI のコミットと PR は日ごとの値がないので、途中の期間は比べない
   const n = commas, times = v => `${v}`, base = w.outBase ?? w.sessions;
   const cost = [
@@ -266,8 +266,6 @@ function outcomePanel(w, pw, unit){
     gc ? statH(esc(t("Git commits")), times(gc.commits), `${esc(t("{n} by AI ({pct}%)", {n: gc.ai, pct: Math.round(gc.ai*100/gc.commits)}))}${pw && pw.git ? ` · ${V.diff(gc.commits, V.of("commits", pw.git.commits))}` : ""}`, "gitCommits", "commits") : "",
     gc ? "" : statH(esc(t("AI commits")), times(o.commits), d(o.commits, po && po.commits), "commits", o.commits ? "aiCommits" : ""), // Git のコミットがあれば「うち AI」に出ている
     gc ? statH(esc(t("Lines changed")), n(lines), `+${n(gc.added)} −${n(gc.removed)} · ${esc(t("{n} per Git commit", {n: n(Math.round(lines/gc.commits))}))}`, "lines", "lines") : "",
-    gc && G.files ? statH(esc(t("Files changed")), n(G.files), `${esc(t("In {projects}", {projects: plural(G.projects, "project")}))}${G.trunc ? ` · ${esc(t("at least"))}` : ""}`, "files", "files") : "",
-    G.pushes ? statH(esc(t("Pushes")), times(G.pushes), esc(t("To {branches} · from this computer", {branches: plural(G.refs, "branch", "branches")})), "pushes", "pushes") : "",
     o.prs ? statH(esc(t("Pull requests")), times(o.prs), esc(t("Created by AI")), "prs", "prs") : "",
   ].join("") : "";
   // 使ったものと比べた指標。残ったものではないので別の行にして、何と何を割ったかを添える
@@ -276,7 +274,7 @@ function outcomePanel(w, pw, unit){
     statH(esc(t("Sessions that reached a commit or PR")), base ? `${Math.round(w.outSessions*100/base)}<small>%</small>` : "—", esc(t("{n} of {sessions}", {n: w.outSessions, sessions: plural(base, "session")})), "outSessions", base ? "outSessions" : ""),
   ].join("") : "";
   // 「残ったもの」に添える一言は、実際に出したカードから作る（git を読めなかった週に、行やファイルがあるように書かないため）
-  const names = [o.commits || gc ? "commits" : "", gc ? "lines" : "", gc && G.files ? "files" : "", G.pushes ? "pushes" : "", o.prs ? "pull requests" : ""].filter(Boolean);
+  const names = [o.commits || gc ? "commits" : "", gc ? "lines" : "", o.prs ? "pull requests" : ""].filter(Boolean); // ファイル数と push はサマリーに出さない（コミットの内訳とカレンダーの印にある）
   const outSub = esc(!names.length ? t("From git and from history") : JA ? names.map(x => t(x)).join("・") : names.join(", ").replace(/, ([^,]+)$/, " and $1").replace(/^./, c => c.toUpperCase())); // 日本語は「・」でつなぐ
   const side = (cls, label, sub, body) => `<div class="ocside ${cls}"><div class="ocl"><b>${label}</b><span>${sub}</span></div>${body}</div>`;
   return fold("oc", panelH(2, esc(t("Cost and outputs")), esc(t(perLabel(unit, "What you spent this month and what it left behind", "What you spent this week and what it left behind", "What you spent in the month shown and what it left behind", "What you spent in the week shown and what it left behind"))), "outputs"), `
@@ -369,10 +367,10 @@ function measure(w){
   if (w.usage && w.usage.tokens) rows.push(`<li>${META.prices && META.prices.custom ? tph("Price table for estimated cost: from {prices}", {prices})
       : META.prices ? tph("Price table for estimated cost: Anthropic and OpenAI public rates as of {date} (change it with {prices})", {date: isJA() && /^\d{4}-\d{2}$/.test(META.prices.asOf) ? `${META.prices.asOf.slice(0, 4)}年${+META.prices.asOf.slice(5)}月` : META.prices.asOf, prices})
       : tph("Price table for estimated cost: public rates (change it with {prices})", {prices})}</li>`);
-  // 問題の報告と診断のコピーは、ページのいちばん下（foot）だけ。Data sources は読んだデータのことだけを出す
+  // Data sources は読んだデータのことだけ。いつもたたんでおき、気をつけることがあれば見出しに ⚠ を出す（開いたままだとページの下が長くなる）
   const alert = (META.report || []).some(r => r.error || warnKeep(r)) || !!(w.usage && w.usage.unpriced) || pp.length > 0 || ts.length > 0;
   const n = (META.report || []).filter(r => r.n).length;
-  return `<details class="dsrc"${alert ? " open" : ""}><summary>${ico("caret", "dsc")}<h3>${esc(t("Data sources"))}</h3><span class="muted">${esc(t("{n} read", {n: plural(n, "history", "histories")}))}</span>${alert ? `<span title="${esc(t("Something here needs your attention"))}">${ico("flag", "fdot")}</span>` : ""}</summary><ul class="mlist">${rows.join("")}</ul></details>`;
+  return `<details class="dsrc"><summary>${ico("caret", "dsc")}<h3>${esc(t("Data sources"))}</h3><span class="muted">${esc(t("{n} read", {n: plural(n, "history", "histories")}))}</span>${alert ? `<span title="${esc(t("Something here needs your attention"))}">${ico("flag", "fdot")}</span>` : ""}</summary><ul class="mlist">${rows.join("")}</ul></details>`;
 }
 // soFar は、今見ている期間が途中なら、始まりから今日までの日数（今日を含む）。終わった期間や先の期間は null。
 function soFar(){ const {ws, we} = period(), now = nowMs()/1000, a = new Date(ws*1000);
