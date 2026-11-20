@@ -1,0 +1,1 @@
+- The view shows the history Kiro IDE and Kiro CLI V3 share as "Kiro IDE / CLI (V3)", next to "Kiro CLI (V2)", so it is clear where Kiro CLI V3 sessions are. The `source` value in `kiroku json` stays `Kiro IDE / CLI`, as docs/compatibility.md promises

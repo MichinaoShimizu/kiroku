@@ -82,7 +82,7 @@ func TestDiagnosticsHaveNoHistory(t *testing.T) {
 func TestFormatCheckQuiet(t *testing.T) {
 	rep := []source.Report{
 		{Name: "Claude Code", N: 3, AgentVersion: "2.1.300", Checked: true},
-		{Name: "Kiro IDE / CLI", N: 2},
+		{Name: "Kiro IDE / CLI (V3)", N: 2},
 		{Name: "Amazon Q"},
 	}
 	var b bytes.Buffer
@@ -95,7 +95,7 @@ func TestFormatCheckQuiet(t *testing.T) {
 	b.Reset()
 	diagnostics(&b, rep)
 	if out := b.String(); !strings.Contains(out, "Claude Code: sessions 3; version 2.1.300; unreadable lines 0; unknown kinds: none") ||
-		!strings.Contains(out, "Kiro IDE / CLI: sessions 2; format not checked") || strings.Contains(out, "Amazon Q") {
+		!strings.Contains(out, "Kiro IDE / CLI (V3): sessions 2; format not checked") || strings.Contains(out, "Amazon Q") {
 		t.Errorf("--report:\n%s", out)
 	}
 	// 万一、名前の形でない種類や版の形でないものが Report に入っていても、書くときにもう一度確かめる

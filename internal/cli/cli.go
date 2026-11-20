@@ -441,8 +441,27 @@ func writeHTML(snap snapshot, out string, open bool, lang string) error {
 // jsonSchema は kiroku json の形の版。docs/compatibility.md の項目を消したり、名前や意味を変えたりしたら上げる（BREAKING）。
 const jsonSchema = 1
 
+// jsonSource は、画面の名前を変えたソースの、kiroku json の source の値（docs/compatibility.md が約束した値）。
+// 画面では Kiro IDE / CLI (V3) と出すが、1.0 で決めた "Kiro IDE / CLI" を変えるのは互換を壊す変更なので、書き出すときに戻す。
+var jsonSource = map[string]string{"Kiro IDE / CLI (V3)": "Kiro IDE / CLI"}
+
+// jsonSessions は、kiroku json に書くセッション。source を jsonSource の値に戻す（セッションは kiroku serve のキャッシュと
+// 共有しているので、変えるものは写しにする）。
+func jsonSessions(data []*core.Session) []*core.Session {
+	out := make([]*core.Session, len(data))
+	for i, s := range data {
+		if v, ok := jsonSource[s.Source]; ok {
+			c := *s
+			c.Source = v
+			s = &c
+		}
+		out[i] = s
+	}
+	return out
+}
+
 func writeJSON(snap snapshot, out string) error {
-	b, err := json.MarshalIndent(map[string]any{"schemaVersion": jsonSchema, "sessions": snap.data, "weeks": snap.weeks, "months": snap.months, "meta": snap.meta}, "", " ")
+	b, err := json.MarshalIndent(map[string]any{"schemaVersion": jsonSchema, "sessions": jsonSessions(snap.data), "weeks": snap.weeks, "months": snap.months, "meta": snap.meta}, "", " ")
 	if err != nil {
 		return err
 	}

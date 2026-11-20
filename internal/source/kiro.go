@@ -16,10 +16,10 @@ import (
 )
 
 // KiroIDE は Kiro IDE v1.0 以降と Kiro CLI V3 が共有する保存場所: <KIRO_HOME>/sessions/<hash>/sess_<id>/{session.json,messages.jsonl}（行ごとに timestamp あり）。
-// どちらが作った会話かは記録されないので、"Kiro IDE / CLI" として出す。
+// どちらが作った会話かは記録されないので、"Kiro IDE / CLI (V3)" として出す。
 type KiroIDE struct{ Home string }
 
-func (k *KiroIDE) Name() string   { return "Kiro IDE / CLI" }
+func (k *KiroIDE) Name() string   { return "Kiro IDE / CLI (V3)" }
 func (k *KiroIDE) Family() string { return "kiro" }
 func (k *KiroIDE) Where() string  { return filepath.Join(k.Home, "sessions") }
 
@@ -84,7 +84,7 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		raw, err := core.ReadJSONFile(metaPath)
 		errs.file(metaPath, err)
 		meta := core.Map(raw)
-		s := core.NewBuilder("Kiro IDE / CLI", firstNonEmpty(core.Str(meta["id"]), filepath.Base(dir)))
+		s := core.NewBuilder("Kiro IDE / CLI (V3)", firstNonEmpty(core.Str(meta["id"]), filepath.Base(dir)))
 		// v1.0 へ移した会話は、v1.0 より前の形式（KiroIDELegacy）にも同じ ID で残る。v1.0 のほうを使う（kiro-history と同じ）。
 		// id のない会話（フォルダ名の ID）は、v1.0 より前の会話と同じものかわからないので Claim しない
 		id := core.Str(meta["id"])
@@ -219,7 +219,7 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 	return errs.err()
 }
 
-// kiroReply は、入れるのを待っている Kiro IDE / CLI の応答。
+// kiroReply は、入れるのを待っている Kiro IDE / CLI (V3) の応答。
 type kiroReply struct {
 	t    *float64
 	text string

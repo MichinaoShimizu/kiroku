@@ -27,10 +27,10 @@ var AgentWarnSlots = []int{1, 4}
 // Amazon Q は Kiro CLI の前身なので同じ色にする。
 var Agents = []Agent{
 	{Name: "Claude Code", Family: "claude", Slot: 0, Mark: "CC", Env: []string{"CLAUDE_CONFIG_DIR"}, Archive: "claude"},
-	{Name: "Kiro IDE / CLI", Family: "kiro", Slot: 6, Mark: "KI", Env: []string{"KIRO_HOME"},
+	{Name: "Kiro IDE / CLI (V3)", Family: "kiro", Slot: 6, Mark: "KI", Env: []string{"KIRO_HOME"},
 		About: "Kiro IDE 1.x and Kiro CLI V3, which share one history that doesn't record which of them ran a session"},
 	{Name: "Kiro IDE (legacy)", Family: "kiro", Slot: 6, Mark: "KI"},
-	{Name: "Kiro CLI (V2)", Family: "kiro", Slot: 5, Mark: "KC", Env: []string{"KIRO_HOME"}, About: "Kiro CLI V2 (kiro-cli --v2, and the default before Kiro CLI 3.0); V3 sessions are under Kiro IDE / CLI"},
+	{Name: "Kiro CLI (V2)", Family: "kiro", Slot: 5, Mark: "KC", Env: []string{"KIRO_HOME"}, About: "Kiro CLI V2 (kiro-cli --v2, and the default before Kiro CLI 3.0); V3 sessions are under Kiro IDE / CLI (V3)"},
 	{Name: "Kiro CLI (SQLite)", Family: "kiro", Slot: 5, Mark: "KC", About: "older Kiro CLI versions"},
 	{Name: "Kiro Crew", Family: "kiro", Slot: 3, Mark: "KW", Env: []string{"KIROCREW_HOME"}, Archive: "crew", Note: "includes Kiro Crew"},
 	{Name: "Amazon Q", Family: "amazonq", Slot: 5, Mark: "Q"},
