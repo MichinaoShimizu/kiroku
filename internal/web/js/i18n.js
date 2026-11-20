@@ -150,7 +150,7 @@ const JA_TEXT = {
   "Copy": "コピー",
   "Copy result": "結果をコピー",
   "kiroku's check found problems in this result:": "kiroku の確認で、この結果に問題が見つかりました:",
-  "{agent} is not installed on this computer": "このコンピューターに {agent} がインストールされていません",
+  "{agent} is not installed on this computer": "この PC に {agent} がインストールされていません。",
   "The prompt is too long to run (limit 256 KB). Copy it and paste it into the agent instead.": "プロンプトが長すぎて実行できません（上限 256 KB）。コピーして、エージェントに貼り付けてください。",
   "Another AI run is still going. Wait for it to finish, then try again.": "ほかの AI 分析がまだ動いています。終わるのを待って、もう一度試してください。",
   "Analyze with AI is off in this kiroku serve.": "この kiroku serve では AI 分析がオフです。",
@@ -872,14 +872,16 @@ function setLang(l){
 const LSEP = () => isJA() ? "、" : ", ";
 const TSEP = () => isJA() ? "、" : "; "; // 日時の並び（英語の日付 "Tue, Sep 29" はコンマを含むので、セミコロンで区切る）
 
-/* localizeTitles は、kiroku が履歴の代わりに付けた決まった題（Go の source が付ける英語。Kiro Crew の中身を残さない会話など）と、
-   中身を残さない会話の依頼の代わりの文（"(private)"）を、画面の言語にする。何度呼んでも同じ。履歴から読んだ題は変えない */
+/* localizeTitles は、kiroku が決めた英語の題（Go が Synthetic にしたセッションだけ。Kiro Crew の中身を残さない会話など）と、
+   その依頼の代わりの文（"(private)"）を、画面の言語で返すようにする。データは書きかえず、読むときに t で引く getter にするので、
+   AI に渡すプロンプト（inEnglish の中）は英語のまま。履歴から読んだ題や依頼が同じ文でも、Synthetic でなければ訳さない */
 function localizeTitles(data){
-  if (!JA) return;
-  const fixed = {"Kiro Crew private conversation": 1, "Kiro Crew background work": 1, "Kiro IDE hidden chat": 1, "Kiro IDE executions without a chat": 1};
+  const fixed = new Set(["Kiro Crew private conversation", "Kiro Crew background work", "Kiro IDE hidden chat", "Kiro IDE executions without a chat"]);
+  const localize = (o, k, f) => { const en = o[k]; Object.defineProperty(o, k, {get: () => f(en), set: v => { localize(o, k, () => v); }, enumerable: true, configurable: true}); };
   for (const s of data || []){
-    if (fixed[s.title]) s.title = t(s.title);
-    else { const m = /^Kiro Crew memory consolidation \((.*)\)$/.exec(s.title || ""); if (m) s.title = t("Kiro Crew memory consolidation ({slot})", {slot: m[1]}); }
-    for (const p of s.prompts || []) if (p.text === "(private)") p.text = t("(private)");
+    if (!s.synthetic || (Object.getOwnPropertyDescriptor(s, "title") || {}).get) continue; // 2 度目は何もしない
+    if (fixed.has(s.title)) localize(s, "title", en => t(en));
+    else { const m = /^Kiro Crew memory consolidation \((.*)\)$/.exec(s.title || ""); if (m) localize(s, "title", () => t("Kiro Crew memory consolidation ({slot})", {slot: m[1]})); }
+    for (const p of s.prompts || []) if (p.text === "(private)") localize(p, "text", en => t(en));
   }
 }

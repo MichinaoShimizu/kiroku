@@ -164,6 +164,7 @@ type Builder struct {
 	// Yield の会話は、同じ鍵を Claim した会話がセッションになっていれば数えない。Claim の会話どうしは落とし合わない
 	Claim, Yield                   string
 	Project, Branch, Title, Resume string
+	TitleByKiroku                  bool // Title は kiroku が決めた英語の文（Crew の中身を残さない会話など）。画面がその言語にする（Session.Synthetic）
 	Prompts                        []Prompt
 	Notes                          []Note // エージェントや仕組みが会話に入れたもの（kind.go）
 	Times                          []float64
@@ -440,7 +441,7 @@ func (s *Session) Hidden(text, title string) *Session {
 	if s.File != "" {
 		c.PrivateFiles = append(append([]string(nil), s.PrivateFiles...), s.File)
 	}
-	c.Title, c.Notes, c.File = title, nil, ""
+	c.Title, c.Notes, c.File, c.Synthetic = title, nil, "", true
 	c.Files, c.NFiles = []string{}, 0
 	c.Fix, c.Corrections = nil, 0
 	c.Interrupts, c.InterruptsAt = 0, []float64{}
@@ -603,12 +604,15 @@ func (s *Builder) Corrections() int {
 
 // Session は画面と JSON に出すセッション。
 type Session struct {
-	ID           string        `json:"id"`
-	Source       string        `json:"source"`
-	Project      string        `json:"project"`
-	ProjectPath  string        `json:"projectPath"`
-	Branch       *string       `json:"branch"`
-	Title        string        `json:"title"`
+	ID          string  `json:"id"`
+	Source      string  `json:"source"`
+	Project     string  `json:"project"`
+	ProjectPath string  `json:"projectPath"`
+	Branch      *string `json:"branch"`
+	Title       string  `json:"title"`
+	// Synthetic は、Title が履歴から読んだものではなく kiroku が決めた英語の文で、依頼の "(private)" も kiroku が入れたもの。
+	// 画面はこのときだけ、それらを画面の言語にする（履歴に同じ文があっても訳さない）
+	Synthetic    bool          `json:"synthetic,omitempty"`
 	Start        float64       `json:"start"`
 	End          float64       `json:"end"`
 	Events       int           `json:"events"`
@@ -783,7 +787,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 		subs = []Subagent{}
 	}
 	return &Session{
-		ID: s.ID, Source: s.Source, Project: name, ProjectPath: project, Branch: strOrNil(s.Branch), Title: title,
+		ID: s.ID, Source: s.Source, Project: name, ProjectPath: project, Branch: strOrNil(s.Branch), Title: title, Synthetic: s.TitleByKiroku,
 		Start: times[0], End: times[len(times)-1], Events: len(times), Segs: Segments(times, float64(gapMin*60)),
 		Prompts: prompts, Notes: s.Notes, NPrompts: len(s.Prompts), Tools: tools, Files: files, NFiles: nFiles, Resume: strOrNil(s.Resume),
 		Waits: s.Waits(), Interrupts: s.Interrupts, InterruptsAt: interrupts, Limits: limits(s.Limits), LimitResets: limitResets(s.LimitResets), Compactions: compactions, CompactKinds: compactKinds, Ctx: ctx, CtxWindow: s.CtxWindow, Corrections: s.Corrections(), Models: models, Tiers: tiers,

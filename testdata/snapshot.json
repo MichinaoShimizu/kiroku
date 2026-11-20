@@ -4776,6 +4776,7 @@
    "source": "Kiro Crew",
    "start": 1790639997,
    "subagents": [],
+   "synthetic": true,
    "title": "Kiro Crew background work",
    "tools": [],
    "usage": {
@@ -5464,6 +5465,7 @@
    "source": "Kiro Crew",
    "start": 1790726397,
    "subagents": [],
+   "synthetic": true,
    "title": "Kiro Crew background work",
    "tools": [],
    "usage": {

@@ -537,7 +537,8 @@ button.more{display:block;text-align:left}
 /* ④ は横いっぱいにして、数の枠とエージェントごとのまとまりを横に並べる（1 列に積むと 1,400px ほどになり、
    隣の短い ③・⑤ の下に大きな空きができていた） */
 .panel.aiuse{grid-column:1/-1}
-.panel.aiuse .stats{grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))}
+.panel.aiuse .stats{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))} /* 数の枠が少なくても横いっぱいに分ける */
+.panel.aiuse>.mstack,.panel.aiuse>.mrow,.panel.aiuse>.card{max-width:880px} /* 名前と数を、画面の端と端に離さない */
 .panel.aiuse .ngroups{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:10px;align-items:start}
 .panel.aiuse .ngroup{margin-bottom:0}
 .panel.aiuse .stat:last-child:nth-child(odd){grid-column:auto} /* 2 列のときの「最後の 1 つは横いっぱい」をやめる（列は幅で決まる） */

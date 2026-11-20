@@ -429,9 +429,9 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		var errs fileErrs
 		k.withheld, k.claims = crewWithheld(append(sids, crewPrivateSids(k.CrewHome, priv, &errs)...))
 		// Crew の記録は読まないので、中身を出さない会話があれば、会話の記録のフォルダごと AI に読ませない
-		k.private = nil
+		k.private = append([]string(nil), priv.files...) // サブエージェント・crew-log の記録（crewPrivateSids が集めた）
 		if len(k.withheld) > 0 || len(k.claims) > 0 {
-			k.private = []string{filepath.Join(k.CrewHome, "sessions")}
+			k.private = append(k.private, filepath.Join(k.CrewHome, "sessions"))
 		}
 		return errs.err()
 	}
@@ -743,6 +743,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 	for _, c := range k.claims {
 		claimed[c] = true
 	}
+	k.private = append(k.private, priv.files...) // サブエージェント・crew-log の記録（crewPrivateSids が集めた）
 	for b := range held.private {
 		k.private = append(k.private, b.PrivateFiles...)
 		if b.Key != "" && !seen[b.Key] {
@@ -1122,10 +1123,10 @@ func emitKiroLeftovers(byID map[string]*kiroExec, claimed map[*kiroExec]bool, hi
 		s := core.NewBuilder("Kiro IDE (legacy)", "exec:"+key)
 		s.Project = "(Kiro IDE)"
 		if ws, hidden := hiddenWS[key]; hidden {
-			s.Title = "Kiro IDE hidden chat"
+			s.Title, s.TitleByKiroku = "Kiro IDE hidden chat", true
 			s.Project = firstNonEmpty(ws, s.Project)
 		} else {
-			s.Title = "Kiro IDE executions without a chat"
+			s.Title, s.TitleByKiroku = "Kiro IDE executions without a chat", true
 		}
 		addKiroExecs(s, groups[key], "", nil)
 		emit(s)

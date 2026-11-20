@@ -161,12 +161,16 @@ func crewPrivateSids(home string, priv *crewPrivacy, errs *fileErrs) []string {
 		st := core.Map(v)
 		if broken || crewPrivateMeta(st) || priv.key(core.Str(st["parent_session"])) {
 			add(core.Str(st["session_id"]))
+			priv.files = append(priv.files, filepath.Dir(p)) // 依頼の文（task）などが入っている
 		}
 	}
 	for _, d := range logs {
 		if broken || d.private || priv.key(d.slot) {
 			for _, id := range d.ids {
 				add(id)
+			}
+			if d.dir != "" {
+				priv.files = append(priv.files, d.dir) // サブエージェントへの依頼（subagent/spawned の task）などが入っている
 			}
 		}
 	}
@@ -180,6 +184,7 @@ func crewPrivateSids(home string, priv *crewPrivacy, errs *fileErrs) []string {
 
 // crewLogDir は crew-log の 1 つの会話のフォルダ（crewLogSegments のファイル全部）から読んだもの。
 type crewLogDir struct {
+	dir       string      // このフォルダ
 	slot, cwd string      // 会話キー（1 行目の slot か、session/opened の data.slot）と作業場所
 	ids       []string    // 1 行目の id と、session/opened の data.previous.sid（同じ会話キーの前の会話）
 	private   bool        // session/opened の data.class か session/class の data が、persistent でない memory を記録した（crewClassPrivate）
@@ -224,7 +229,7 @@ func (p *crewPrivacy) crewLog(dir string) *crewLogDir {
 	if d, ok := p.logs[dir]; ok {
 		return d
 	}
-	d := &crewLogDir{}
+	d := &crewLogDir{dir: dir}
 	seen := map[string]bool{} // 読んだサブエージェントの id（中身は最初のものだけ持つ）
 	segs, err := crewLogSegments(dir)
 	if err != nil { // 並べられないフォルダは空とみなさず、読めなかったと伝える（中身を残さない会話の印を見落としうるので）
@@ -347,6 +352,9 @@ type crewPrivacy struct {
 	idx        *crewArchiveIndex      // 退避した記録（archive で作る）
 	logs       map[string]*crewLogDir // crew-log の会話のフォルダ → 読んだもの（crewLog で作る）
 	logList    *[]*crewLogDir         // crew-log の会話のフォルダ全部（crewLogs で作る。印をつけ終えたら nil でない）
+	// files は、中身を残さない会話の Crew 自身の記録のフォルダ（サブエージェントの subagents/<id>/ と crew-log/sessions/<名前>/）。
+	// crewPrivateSids が集める。「Analyze with AI」に読ませない（KiroCLI.PrivateFiles）
+	files []string
 }
 
 func newCrewPrivacy(home, arch string) *crewPrivacy {
@@ -500,7 +508,7 @@ func crewJSONL(path string, fn func(core.Obj)) error {
 // hideCrew は、中身を残さない会話から、会話の中身から読んだものを消し、決まったタイトルにする（core.Builder.HideText）。
 func hideCrew(s *core.Builder) {
 	s.HideText(crewPrivateText)
-	s.Title = crewPrivateTitle
+	s.Title, s.TitleByKiroku = crewPrivateTitle, true
 }
 
 // HideWithheld は、Withholder が中身を出してはいけないとした会話（ほかの Source に残る同じ会話）を、
@@ -1779,9 +1787,9 @@ func crewOnly(home, slot string, turns []crewTurn, info *CrewInfo, title string,
 		}
 		switch {
 		case slot == "_bg":
-			s.Title = "Kiro Crew background work"
+			s.Title, s.TitleByKiroku = "Kiro Crew background work", true
 		case bg:
-			s.Title = "Kiro Crew memory consolidation (" + strings.TrimPrefix(slot, "memory-consolidation:") + ")"
+			s.Title, s.TitleByKiroku = "Kiro Crew memory consolidation ("+strings.TrimPrefix(slot, "memory-consolidation:")+")", true
 		case info != nil && info.Subagent: // kiro-cli の会話が消えたサブエージェント（残さないものは Crew が消す）
 			s.Title = subagentTitle(*info)
 		case info != nil && info.Title != "":

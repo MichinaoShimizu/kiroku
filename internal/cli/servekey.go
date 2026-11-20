@@ -217,7 +217,7 @@ func prefersJA(al string) bool {
 // lockedPage の文は、画面の骨組みが鍵なしで開かれたときの知らせ（js/live.js の showLocked）と同じ。
 const lockedPage = `<!doctype html>
 <html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>kiroku</title>
-<style>body{font:16px/1.6 system-ui,sans-serif;max-width:36em;margin:4em auto;padding:0 16px}code{background:rgba(127,127,127,.15);padding:.1em .3em;border-radius:4px}</style>
+<style>body{font:16px/1.6 system-ui,sans-serif;max-width:36em;margin:4em auto;padding:0 16px}code{background:rgba(127,127,127,.15);padding:.1em .3em;border-radius:4px;white-space:nowrap}html:lang(ja){word-break:auto-phrase}</style>
 <h1>Open kiroku with its key</h1>
 <p>kiroku serve shows your history only to a browser that has its key, so that other users of this computer can't read it.</p>
 <p>Run <code>kiroku open</code> in a terminal to open this page with the key. After that, this browser can open it without the key.</p>
@@ -228,7 +228,7 @@ const lockedPage = `<!doctype html>
 // lockedPageJA は lockedPage の日本語（i18n.js の showLocked の文と同じ）。
 const lockedPageJA = `<!doctype html>
 <html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>kiroku</title>
-<style>body{font:16px/1.6 system-ui,sans-serif;max-width:36em;margin:4em auto;padding:0 16px}code{background:rgba(127,127,127,.15);padding:.1em .3em;border-radius:4px}</style>
+<style>body{font:16px/1.6 system-ui,sans-serif;max-width:36em;margin:4em auto;padding:0 16px}code{background:rgba(127,127,127,.15);padding:.1em .3em;border-radius:4px;white-space:nowrap}html:lang(ja){word-break:auto-phrase}</style>
 <h1>鍵を付けて kiroku を開いてください</h1>
 <p>kiroku serve は、この PC のほかのユーザーに履歴を読まれないよう、鍵を持つブラウザーにだけ履歴を見せます。</p>
 <p>ターミナルで <code>kiroku open</code> を実行すると、鍵を付けてこの画面を開きます。そのあとは、このブラウザーなら鍵なしで開けます。</p>
