@@ -2,6 +2,14 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v3.0.1 - 2026-11-20
+
+### Changed
+
+- The change from the previous period is clearer:
+  - With both estimated cost and credits in one figure, each gets its own percent change, in the same order as the values
+  - When your history starts inside the previous period, figures and the summary show no comparison instead of counting the missing days as zero
+
 ## v3.0.0 - 2026-11-20
 
 ### Changed
