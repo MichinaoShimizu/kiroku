@@ -21,7 +21,7 @@ type Agent struct {
 }
 
 // AgentWarnSlots は、警告に見えるのでエージェントに使わない色（オレンジ・黄色）。
-var AgentWarnSlots = []int{1, 4}
+var AgentWarnSlots = []int{1, 3}
 
 // Agents は対応しているエージェント。並びは --sources の既定値と説明、環境変数の順。
 // Amazon Q は Kiro CLI の前身なので同じ色にする。
@@ -32,7 +32,7 @@ var Agents = []Agent{
 	{Name: "Kiro IDE (legacy)", Family: "kiro", Slot: 6, Mark: "KI"},
 	{Name: "Kiro CLI (V2)", Family: "kiro", Slot: 5, Mark: "KC", Env: []string{"KIRO_HOME"}, About: "Kiro CLI V2 (kiro-cli --v2, and the default before Kiro CLI 3.0); V3 sessions are under Kiro IDE / CLI (V3)"},
 	{Name: "Kiro CLI (SQLite)", Family: "kiro", Slot: 5, Mark: "KC", About: "older Kiro CLI versions"},
-	{Name: "Kiro Crew", Family: "kiro", Slot: 3, Mark: "KW", Env: []string{"KIROCREW_HOME"}, Archive: "crew", Note: "includes Kiro Crew"},
+	{Name: "Kiro Crew", Family: "kiro", Slot: 4, Mark: "KW", Env: []string{"KIROCREW_HOME"}, Archive: "crew", Note: "includes Kiro Crew"},
 	{Name: "Amazon Q", Family: "amazonq", Slot: 5, Mark: "Q"},
 	{Name: "Codex", Family: "codex", Slot: 2, Mark: "CX", Env: []string{"CODEX_HOME"}},
 }
