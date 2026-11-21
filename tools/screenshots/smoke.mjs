@@ -430,7 +430,7 @@ async function run(env) {
     const run = await clickableRun(p);
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
     check("振り返りは、プロンプトをコピーするボタンだけ（AI を動かすボタンはない）", await p.locator("#panel #srun.ai-copy").count() === 1 && await p.locator("#panel .ai-action").count() === 0);
-    check("振り返りのボタンの下に、コピーするだけで kiroku は何も送らないと書く", /kiroku (runs nothing|は何も実行せず)/.test(await p.locator("#panel .drun").innerText()));
+    { const tx = await p.locator("#panel .drun").innerText(); check("振り返りのボタンの下は、エージェントに貼るプロンプトをコピーすると書くだけ（何も送らないとはあえて書かない）", /(Copies a review prompt|振り返りのプロンプトをコピー)/.test(tx) && !/(sends nothing|何も送りません)/.test(tx), tx); }
     check("AI が動いた時間は、あなたの吹き出しの中に入れない", await p.evaluate(() => !document.querySelector("#panel .tl li.pr:not(.ev) .pmeta")));
     // 左（1 列の画面では間）はプロンプトの流れだけ。再開のコマンドは操作（.sact）に 1 つだけ見え、2 列なら右の列、1 列なら流れより上
     const rs = await p.evaluate(() => { const v = [...document.querySelectorAll("#panel .dresume")].filter(e => e.offsetParent !== null);

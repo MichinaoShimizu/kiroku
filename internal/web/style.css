@@ -302,10 +302,10 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .panel.fold[open]{padding-bottom:22px}.panel.fold[open]>summary{margin-bottom:10px}
 .panel.fold>summary:focus-visible{outline:2px solid var(--acc);outline-offset:4px}
 .panel.metap .foot{margin-top:12px} /* 計測の状態と生成時刻：ページのいちばん下 */
-.dsrc summary,.sdet summary{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none}.dsrc summary::-webkit-details-marker,.sdet summary::-webkit-details-marker{display:none}
-.dsrc .dsc,.sdet .dsc{width:12px;height:12px;stroke:var(--ink-3);fill:none;stroke-width:1.8;transition:transform .2s var(--ease)}.dsrc[open] .dsc,.sdet[open] .dsc{transform:rotate(90deg)}
-.dsrc summary h3,.sdet summary h3{margin:0}.dsrc summary .muted,.sdet summary .muted{font-size:var(--fs-xs)}
-.sdet{margin-top:22px;padding-top:14px;border-top:1px solid var(--rule)} /* 詳細の「詳しい情報」：履歴ファイル・モデル・ツール・エージェントの指標（いつもは閉じる） */
+.dsrc summary{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none}.dsrc summary::-webkit-details-marker{display:none}
+.dsrc .dsc{width:12px;height:12px;stroke:var(--ink-3);fill:none;stroke-width:1.8;transition:transform .2s var(--ease)}.dsrc[open] .dsc{transform:rotate(90deg)}
+.dsrc summary h3{margin:0}.dsrc summary .muted{font-size:var(--fs-xs)}
+.sdet{margin-top:22px;padding-top:14px;border-top:1px solid var(--rule)}.sdet>h3:first-child{margin-top:0} /* 詳細の最後の節：履歴ファイル・モデル・ツール（畳まずに出す） */
 .dsrc .dnf summary{display:list-item;list-style:revert;color:var(--ink-2)} /* 見つからなかったエージェント（0 セッション）。開くと一覧 */
 .foot .xl{color:var(--ink-2)}
 /* ── month（月カレンダー：日ごとの作業量） ───────────────── */
