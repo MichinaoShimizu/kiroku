@@ -1024,7 +1024,9 @@
    "usage": {
     "cacheHit": 0.944,
     "cost": 5.96,
+    "cr": 9026190,
     "credits": 26.4,
+    "cw": 529853,
     "heavy": [
      {
       "cost": 1.36,
@@ -1051,6 +1053,7 @@
       "title": "READMEを整理して"
      }
     ],
+    "in": 8785,
     "models": [
      [
       "claude-opus-5-5",
@@ -1641,7 +1644,9 @@
    "usage": {
     "cacheHit": 0.948,
     "cost": 0.17,
+    "cr": 500049,
     "credits": 7.12,
+    "cw": 26809,
     "heavy": [
      {
       "cost": 0.17,
@@ -1652,6 +1657,7 @@
       "title": "評価シナリオを追加したい"
      }
     ],
+    "in": 359,
     "models": [
      [
       "claude-haiku-4-5",
@@ -5177,7 +5183,9 @@
    "usage": {
     "cacheHit": 0.945,
     "cost": 0.14,
+    "cr": 396066,
     "credits": 0,
+    "cw": 22760,
     "heavy": [
      {
       "cost": 0.14,
@@ -5188,6 +5196,7 @@
       "title": "カレンダー表示を足して"
      }
     ],
+    "in": 228,
     "models": [
      [
       "claude-haiku-4-5",
@@ -5428,7 +5437,9 @@
    "usage": {
     "cacheHit": 0.943,
     "cost": 1.24,
+    "cr": 1775382,
     "credits": 0,
+    "cw": 105239,
     "heavy": [
      {
       "cost": 1.06,
@@ -5447,6 +5458,7 @@
       "title": "評価シナリオを追加したい"
      }
     ],
+    "in": 1377,
     "models": [
      [
       "claude-opus-5-5",
@@ -5758,7 +5770,9 @@
    "usage": {
     "cacheHit": 0.947,
     "cost": 1.56,
+    "cr": 2252111,
     "credits": 0,
+    "cw": 123694,
     "heavy": [
      {
       "cost": 1.36,
@@ -5777,6 +5791,7 @@
       "title": "カレンダー表示を足して"
      }
     ],
+    "in": 1312,
     "models": [
      [
       "claude-opus-5-5",
@@ -6138,7 +6153,9 @@
    "usage": {
     "cacheHit": 0.942,
     "cost": 3,
+    "cr": 4599131,
     "credits": 0,
+    "cw": 278160,
     "heavy": [
      {
       "cost": 1.36,
@@ -6165,6 +6182,7 @@
       "title": "型エラー直して"
      }
     ],
+    "in": 2968,
     "models": [
      [
       "claude-opus-5-5",
@@ -6909,7 +6927,9 @@
    "usage": {
     "cacheHit": 0.944,
     "cost": 0.19,
+    "cr": 503549,
     "credits": 33.52,
+    "cw": 26809,
     "heavy": [
      {
       "cost": 0.17,
@@ -6936,6 +6956,7 @@
       "title": "ヘッダーのボタンの色"
      }
     ],
+    "in": 3259,
     "models": [
      [
       "claude-haiku-4-5",

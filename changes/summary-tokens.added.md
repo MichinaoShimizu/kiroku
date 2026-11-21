@@ -1,0 +1,1 @@
+- Summary: a "Tokens by type" card shows input, output, cache write and cache read as one stacked bar and as rows with the count and share, with the share read from cache against your past periods

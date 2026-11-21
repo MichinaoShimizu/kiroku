@@ -173,16 +173,18 @@ Each chart opens with a takeaway computed from the data (for example "pace $22.8
 - **Figures** (up to three per row, the same figures as the band above the calendar and more, in the order you'd use them): estimated cost with its pace; Kiro credits (or tokens); where you stand against the previous period (a day to match it, how far over it you already are, the month-end estimate, or the difference for a finished period), each with its formula; active time; cost per commit with its formula; and what to change first with its threshold. Press a value for the same breakdown as in the band
 - **Trend**: bars for the last periods of a metric you pick (cost, time, cost per commit, cache, corrections, wait), with the usual range as a band, the median dashed, the pace of the period in progress as a dashed outline, and red dots on periods far outside the range (1.5 times its width beyond it)
 - **Cost so far vs last period**: the cumulative cost (or active time) by day, against the previous period's line
-- **Advice**: up to three items from "Worth a look", each with its comparison, what to try and its sessions (point at an item for why it matters), and one metric outside the middle half on the better side
+- **Advice**: up to three items from "Worth a look", largest cost involved first (the cost of the sessions the item is about, shown as Σ, such as `cost involved = Σ $11.05 (3 sessions)`), each with its comparison, what to try and its sessions (point at an item for why it matters), and one metric outside the middle half on the better side
 - **Cost by session length**: estimated cost per length bucket (under 5 minutes to over 2 hours), with the number of sessions in each and the median length
 - **Cost and outputs**: each session by estimated cost and commits plus pull requests; costly sessions (top quarter, $0.5 or more) with no output are red. Press a point to open its session
-- **When you worked**: a weekday × hour heatmap of active time (overlapping sessions count once), the busiest three hours and the share outside weekday 9:00–18:00
+- **When you worked**: a weekday × hour heatmap of active time (overlapping sessions count once), the busiest three hours and the share outside weekday 9:00–18:00. Each row ends with the total for that weekday, so the values don't depend on pointing at a cell
+- **Tokens by type**: input, output, cache write and cache read as one stacked bar and as rows with the count and share, with the share read from cache = cache read ÷ (input + cache write + cache read) against your past periods
 
 The cards, in this order:
 
-- **Where it went**: estimated cost (or credits, tokens or time when there is no cost) by project, agent or model, largest first, as bars with the value and share
-- **Cost by session length** (see above), then **Cost and outputs** (the scatter) beside **Outputs**: Git commits with the share by AI, lines changed with the average per commit, pull requests, sessions that reached a commit or PR, and cost per commit, each divided figure with its formula
-- **How you used AI**: tokens with the output share, cache reads, Kiro credits, prompts, cost per prompt, subagents with their types, and the month-end estimates, beside **When you worked** (the heatmap)
+- **Where it went**: estimated cost (or credits, tokens or time when there is no cost) by project, agent or model, largest first, as bars with the value and share, beside **Tokens by type**
+- **Cost by session length** (see above) beside **Cost and outputs** (the scatter), then **Outputs**: Git commits with the share by AI, lines changed with the average per commit, pull requests, sessions that reached a commit or PR, and cost per commit, each divided figure with its formula
+- **How you used AI**: tokens with the output share, cache reads, Kiro credits, prompts, cost per prompt, subagents with their types, and the month-end estimates, beside **Outputs**
+- **When you worked** (the heatmap), across the page
 - **How you worked**: corrections and interruptions, usage limit hits, compactions, oversized prompts, focus blocks, project switches and wait time
 
 Each figure that has past periods shows its inequality against the 25th and 75th pct, and a figure past a "Worth a look" threshold has the warning triangle next to its name.

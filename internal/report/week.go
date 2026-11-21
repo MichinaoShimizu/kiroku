@@ -57,6 +57,9 @@ type Heavy struct {
 type WeekUsage struct {
 	Tokens    float64  `json:"tokens"`
 	Out       float64  `json:"out"`
+	In        float64  `json:"in,omitempty"` // 入力（キャッシュを使わない分）。トークンの内訳を画面で見せるため
+	CW        float64  `json:"cw,omitempty"` // キャッシュへの書き込み（5 分と 1 時間の合計）
+	CR        float64  `json:"cr,omitempty"` // キャッシュからの読み込み
 	Cost      float64  `json:"cost"`
 	Credits   float64  `json:"credits"`
 	CacheHit  *float64 `json:"cacheHit"`
@@ -675,7 +678,7 @@ func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
 		}
 		heavyRows = append(heavyRows, Heavy{d.ID, d.Title, d.Project, d.Start, core.Round(heavy[d.ID], 2), len(d.Subagents)})
 	}
-	return WeekUsage{Tokens: tot.Total(), Out: tot.Out, Cost: core.Round(cost, 2), Credits: core.Round(credits, 2),
+	return WeekUsage{Tokens: tot.Total(), Out: tot.Out, In: tot.In, CW: tot.CW + tot.CW1h, CR: tot.CR, Cost: core.Round(cost, 2), Credits: core.Round(credits, 2),
 		CacheHit: cacheHit, Models: mrows, Projects: prows, Subagents: nSubs, SubMin: core.Round(subSec/60, 0),
 		SubTypes: trows, Heavy: heavyRows, Unpriced: unpriced, UnpricedM: unpricedM, PrefixPriced: prefixPriced, TierStd: tierStd}
 }
