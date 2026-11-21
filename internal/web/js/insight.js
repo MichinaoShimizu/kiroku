@@ -43,14 +43,29 @@ function insExpr(b){
 const insPosText = b => `${insExpr(b)} (${insDef(b && b.n)})`; // 読み上げと title 用
 const insTone = b => !b || b.q1 == null || b.better == null ? "" : b.better ? " good" : " bad";
 const insChip = b => `<code class="ichip ifx${insTone(b)}" title="${esc(insDef(b && b.n))}">${esc(insExpr(b))}</code>`;
-/* 要点：大きな数字と、その式・いつもの範囲との不等式（3 つ）。費用・成果あたりの費用（なければ稼働時間）・最初に見直すもの */
+/* 要点の数字（最大 3 列）：上の帯と同じ数をサマリーでも、式といつもの範囲との不等式つきで。並びは判断に使う順：
+   使った額（推定費用・クレジット、なければトークン）→ 予算に対する位置（前の期間並みに収める 1 日の目安／月末の推定／前の期間との差）→ 稼働時間 → 効率（コミットあたり費用）→ まず見直すもの */
 function insHeadlines(F){
-  const {S: w, ws, we} = period(), T = [], tile = (label, b, v, f, m) => T.push(`<div class="itile${insTone(b)}"><span class="il">${esc(label)}</span>${m ? `<button type="button" class="itv" data-metric="${m}" aria-haspopup="dialog" aria-label="${esc(`${label} ${v}`)}">${esc(v)}</button>` : `<b>${esc(v)}</b>`}${f ? fx(f) : ""}${insChip(b)}</div>`); // 値を押すと、上の帯と同じ内訳
-  const bc = insBase("cost"), days = (we - ws) / 86400, el = insFrac() * days;
-  if (bc) tile(t("Estimated cost"), bc, fmtM("cost", bc.cur), bc.part ? `${t("pace")} = ${usd(bc.cur)} × ${days}${t("d")} ÷ ${el.toFixed(1)}${t("d")} = ${usd(bc.v)}` : "", "cost");
-  const bp = insBase("costPerCommit"), ba = insBase("active"), oc = w && w.outCost, nc = w && w.outputs && w.outputs.commits;
-  if (bp) tile(t("Cost per commit"), bp, fmtM("costPerCommit", bp.cur), oc && nc ? `= ${usd(oc)} ÷ ${nc} ${t("commits")}` : "", "costPerCommit");
-  else if (ba) tile(t("Active time"), ba, fmtM("active", ba.cur), "", "active");
+  const {S: w, P: pw, ws, we} = period(), T = [], u = (w && w.usage) || {}, M = st.mode === "month";
+  const tile = (label, b, v, f, m) => T.push(`<div class="itile${insTone(b)}"><span class="il">${esc(label)}</span>${m ? `<button type="button" class="itv" data-metric="${m}" aria-haspopup="dialog" aria-label="${esc(`${label} ${v}`)}">${esc(v)}</button>` : `<b>${esc(v)}</b>`}${[].concat(f || []).map(x => fx(x)).join("")}${b === false ? "" : insChip(b)}</div>`); // 値を押すと、上の帯と同じ内訳
+  const days = (we - ws) / 86400, el = insFrac() * days;
+  const bc = insBase("cost"); if (bc) tile(t("Estimated cost"), bc, fmtM("cost", bc.cur), bc.part ? `${t("pace")} = ${usd(bc.cur)} × ${days}${t("d")} ÷ ${el.toFixed(1)}${t("d")} = ${usd(bc.v)}` : "", "cost");
+  if (u.credits){ const bk = insRange("credits", u.credits, p => p.S && p.S.usage ? p.S.usage.credits || null : null, true, true, v => `${crN(v)} cr`);
+    tile(t("Kiro credits"), bk, `${crN(u.credits)} cr`, bk.part ? `${t("pace")} = ${Math.round(u.credits * 10) / 10} × ${days}${t("d")} ÷ ${el.toFixed(1)}${t("d")} = ${Math.round(bk.v * 10) / 10} cr` : t("Not an estimate"), "credits"); }
+  else if (u.tokens) { const bt = insBase("tokens"); tile(t("Tokens"), bt, tok(u.tokens), `${t("output")} ${tok(u.out)} ÷ ${tok(u.tokens)} = ${Math.round(u.out * 100 / u.tokens)}%`, "tokens"); }
+  // 予算に対する位置：途中の月は月末の推定、途中の週は前の週並みに収める 1 日の目安、終わった期間は前の期間との差
+  const pj = projection(w), pc = pacing(w, pw), fmc = x => x === "credits" ? (v => `${Math.round(v * 10) / 10} cr`) : usd; // 式の中のクレジットは小数 1 桁（整数に丸めると、引き算の結果と合わなくなる）
+  if (pj && (pj.cost != null || pj.credits != null)){ const k = pj.cost != null ? "cost" : "credits", so = k === "cost" ? costOf(u) : u.credits, v = pj[k];
+    tile(t("Month-end (estimate)"), false, `≈ ${fmc(k)(v)}`, `${fmc(k)(so)} ÷ ${pj.days}${t("d")} × ${w.days.length}${t("d")} = ${fmc(k)(v)}`, k === "cost" ? "projection" : "projectionCr"); }
+  else if (pc){ // 費用とクレジットのそれぞれについて：残りの日 1 日あたりの目安か、すでに超えた額（式で）
+    const xs = ["cost", "credits"].filter(k => pc[k]).map(k => ({k, x: pc[k], f: fmc(k)})), ok = xs.find(o => o.x.rest >= 0), fs = xs.map(({x, f}) => x.rest >= 0 ? `(${f(x.ref)} − ${f(x.so)}) ÷ ${pc.left}${t("d")} = ${f(x.per)}/${t("d")}` : `${f(x.so)} − ${f(x.ref)} = +${f(-x.rest)} ${t("over")}`);
+    if (ok) tile(M ? t("A day to match last month") : t("A day to match last week"), false, `${ok.f(ok.x.per)}/${t("d")}`, fs, ok.k === "cost" ? "pace" : "paceCr");
+    else tile(M ? t("Past last month's total") : t("Past last week's total"), false, `+${xs[0].f(-xs[0].x.rest)}`, fs, xs[0].k === "cost" ? "pace" : "paceCr"); }
+  else if (pw && pw.usage && u.tokens && costOf(pw.usage) != null && costOf(u) != null){ const a = costOf(u), b0 = costOf(pw.usage), d = a - b0;
+    tile(M ? t("vs the previous month") : t("vs the previous week"), false, `${d >= 0 ? "+" : "−"}${usd(Math.abs(d))}`, `${usd(a)} − ${usd(b0)} = ${d >= 0 ? "+" : "−"}${usd(Math.abs(d))}${b0 ? ` (${d >= 0 ? "+" : ""}${Math.round(d * 100 / b0)}%)` : ""}`); }
+  const ba = insBase("active"); if (ba) tile(t("Active time"), ba, fmtM("active", ba.cur), ba.part ? `${t("pace")} = ${dur(ba.cur)} × ${days}${t("d")} ÷ ${el.toFixed(1)}${t("d")} = ${dur(ba.v)}` : "", "active");
+  const bp = insBase("costPerCommit"), oc = w && w.outCost, nc = w && w.outputs && w.outputs.commits;
+  if (bp) tile(t("Cost per commit"), bp, fmtM("costPerCommit", bp.cur), oc && nc ? `${usd(oc)} ÷ ${nc} ${t("commits")} = ${usd(bp.cur)}` : "", "costPerCommit");
   T.push(F.length ? `<div class="itile bad"><span class="il">${esc(t("Change first"))}</span><b class="sm">${esc(insName(GOTO[F[0].k] || F[0].k))}</b>${fx(t("Threshold: {rule}", {rule: F[0].L.rule}))}</div>`
     : `<div class="itile good"><span class="il">${esc(t("Change first"))}</span><b class="sm">${esc(t("Nothing"))}</b>${fx(t("No metric crossed its threshold"))}</div>`);
   return `<div class="insh">${T.join("")}</div><p class="ifxs insdef">${fx(insDef())}</p>`;

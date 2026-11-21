@@ -256,7 +256,9 @@ async function run(env) {
     { // サマリーの頭：要点の文・推移といつもの範囲のグラフ・改善のアドバイス（見直す候補の上位 3 つまで）
       const r = await p.evaluate(() => ({heads: document.querySelectorAll("#review .insight .itile").length, cum: document.querySelectorAll("#review .insfig svg polyline.icum").length, donut: document.querySelectorAll("#review .iwr").length, hist: document.querySelectorAll("#review .insfig .ihb").length, svg: !!document.querySelector("#review .insfig svg[aria-label]"), bars: document.querySelectorAll("#review .insfig .ibar").length,
         adv: document.querySelectorAll("#review .insadv .insa").length, flags: (lastFlags || []).length, tabs: document.querySelectorAll("#review [data-ins]").length}));
-      check("サマリーの頭に、要点の 3 枚・推移・累積の線・どこに使ったかの横棒・長さ別の費用・上位 3 つまでのアドバイスがある", r.heads === 3 && r.svg && r.bars > 0 && r.cum === 1 && r.donut > 0 && r.hist === 6 && r.adv === Math.min(3, r.flags), JSON.stringify(r));
+      check("上の帯の数字（推定費用・稼働時間）はサマリーのカードにもあり、押すと同じ内訳が開く", await p.evaluate(() => ["cost", "active"].every(m => document.querySelector(`#review .itile [data-metric="${m}"]`))));
+      check("カードの中の数の枠は最大 3 列", await p.evaluate(() => [...document.querySelectorAll("#review .istats, #review .insh")].every(g => getComputedStyle(g).gridTemplateColumns.split(" ").length <= 3)));
+      check("サマリーの頭に、数字のカード 4〜6 枚（上の帯の数字を含む）・推移・累積の線・どこに使ったかの横棒・長さ別の費用・上位 3 つまでのアドバイスがある", r.heads >= 4 && r.heads <= 6 && r.svg && r.bars > 0 && r.cum === 1 && r.donut > 0 && r.hist === 6 && r.adv === Math.min(3, r.flags), JSON.stringify(r));
       const fx = await p.evaluate(() => ({chips: [...document.querySelectorAll("#review .insight .ichip.ifx")].map(e => e.textContent), def: (document.querySelector("#review .insdef") || {}).textContent || "",
         vague: /Usual|Higher|Lower|usual range|いつもの範囲|いつもどおり|高め|低め/.test(document.querySelector("#review .insight").innerText)}));
       check("いつもとの比べは不等式（Q1・Q3 の値）で出し、定義を 1 行で示す。曖昧な言葉は使わない", fx.chips.length > 0 && fx.chips.every(c => /Q[13]|≤|needs|必要/.test(c)) && /Q1, Q3 = .*IQR = Q3 − Q1/.test(fx.def) && !fx.vague, JSON.stringify(fx).slice(0, 300));

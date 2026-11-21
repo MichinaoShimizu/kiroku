@@ -133,6 +133,8 @@ const JA_TEXT = {
   "Copy this reply": "この応答をコピー",
   "Copied the first {n} characters": "先頭の {n} 文字をコピーしました",
   "Copied": "コピーしました",
+  "vs the previous month": "前の月との差",
+  "vs the previous week": "前の週との差",
   "Month shown": "表示中の月",
   "Week shown": "表示中の週",
   "Cumulative cost vs the previous month": "費用の積み上がり（前の月と比べて）",

@@ -170,7 +170,7 @@ The summary opens with an overview of charts, computed in the browser from your 
 
 Each chart opens with a takeaway computed from the data (for example "pace $22.86: 4 of 6 weeks from the highest; −$2.45 from the median $25.31") and, where the data supports one, a next step with numbers (for example "To stay within the previous period's $31.23: at most $12.97 in the 1 day left"). Cards in the same row are the same height.
 
-- **Three tiles**: estimated cost (with its pace formula), cost per commit (with its formula; or active time), and what to change first with its threshold
+- **Figures** (up to three per row, the same figures as the band above the calendar and more, in the order you'd use them): estimated cost with its pace; Kiro credits (or tokens); where you stand against the previous period (a day to match it, how far over it you already are, the month-end estimate, or the difference for a finished period), each with its formula; active time; cost per commit with its formula; and what to change first with its threshold. Press a value for the same breakdown as in the band
 - **Trend**: bars for the last periods of a metric you pick (cost, time, cost per commit, cache, corrections, wait), with the usual range as a band, the median dashed, the pace of the period in progress as a dashed outline, and red dots on periods far outside the range (1.5 times its width beyond it)
 - **Cost so far vs last period**: the cumulative cost (or active time) by day, against the previous period's line
 - **Advice**: up to three items from "Worth a look", each with its comparison, what to try and its sessions (point at an item for why it matters), and one metric on the better side of Q1–Q3

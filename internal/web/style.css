@@ -1038,3 +1038,8 @@ header{background:var(--s-cont);border-bottom:0}
 .istats .stat .s{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
 .istats .stat,.istats .stat:last-child:nth-child(odd){grid-column:auto} /* 2 列の欄の「最後の 1 つは横いっぱい」を、カードの中では使わない */
 .itile .itv{font:700 var(--fs-3xl)/1.15 var(--sans);letter-spacing:-.02em;color:var(--ink);text-align:left;border-radius:6px}.itile .itv:hover{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:4px}
+/* どのカードの中も最大 3 列 */
+.istats,.insrow.one .istats{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:1000px){.istats,.insrow.one .istats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.istats,.insrow.one .istats{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:1000px) and (min-width:821px){.insh{grid-template-columns:repeat(2,minmax(0,1fr))}}
