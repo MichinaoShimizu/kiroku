@@ -322,7 +322,7 @@ type KiroCLI struct {
 }
 
 // PrivateFiles は、中身を出さない Crew の会話の記録のファイル。Codex に譲った会話（Yield）のように、画面のセッションに
-// 残らないものもふくむ。「Analyze with AI」の Claude Code に読ませない（ai.Runner.Private）。Load と同じゴルーチンで呼ぶ。
+// 残らないものもふくむ。HTML・JSON には入れない。Load と同じゴルーチンで呼ぶ。
 func (k *KiroCLI) PrivateFiles() []string { return k.private }
 
 // Withheld は、中身を出さない Crew の会話の core.Builder.Key（kiro-cli の会話 ID の "kiro-cli:<id>" をふくむ）。

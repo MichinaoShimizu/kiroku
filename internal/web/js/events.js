@@ -76,7 +76,7 @@ const ARROW_OWN = "input, select, textarea, [contenteditable], #sres, .segc, [ro
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT"){ if (e.key === "Escape") e.target.blur(); return; }
   // ダイアログ（AI 分析も）のあいだは、うしろの画面を動かさない（Escape はダイアログだけを閉じる）
-  if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open || $("#wk").open || $("#md").open || document.getElementById("ai-review-dialog")?.open) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open || $("#wk").open || $("#md").open) return;
   const k = e.key;
   if (k === "Escape" && closeHint()) return; // 開いた説明（?）があれば、それだけ閉じる
   if (k === "ArrowLeft" || k === "ArrowRight"){ // 詳細を開いているあいだも動かさない（閉じて別の週へ飛ぶと、どこにいるかわからなくなる）

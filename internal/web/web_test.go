@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -171,37 +170,21 @@ func TestLoadingForLang(t *testing.T) {
 	}
 }
 
-// AI 分析の実行は、送るプロンプトをそのまま見せて確かめてから。エージェントが履歴を提供元へ送りうることは、
-// 実行のダイアログではなく、SECURITY.md・README・README.ja・ガイドに書く（起動の 1 行は internal/cli の TestAIStartLine）
-func TestAIRunDisclosure(t *testing.T) {
-	page, err := Render([]any{}, map[string]any{}, map[string]any{}, map[string]any{"report": []any{}, "git": []any{}}, 0, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, s := range []string{
-		`notice.textContent = t("Check the exact prompt below. When you press Run, it goes to the agent on this computer.");`,
-		`preview.readOnly = true; preview.value = prompt;`,
-	} {
-		if !strings.Contains(page, s) {
-			t.Errorf("the run dialog lacks %q", s)
-		}
-	}
-	for file, want := range map[string]string{
-		"../../SECURITY.md":   "may send the prompt and the history it reads to its provider",
-		"../../README.md":     "may send the prompt and the history it reads to its provider",
-		"../../docs/guide.md": "may send the prompt and the history it reads to its provider",
-		"../../README.ja.md":  "プロンプトと読んだ履歴をその提供元に送ることがあります",
-	} {
-		b, err := os.ReadFile(file)
+// kiroku は AI のエージェントを動かさない（4.0 で「Analyze with AI」を外した）。画面には AI を呼ぶ道（/ai/run への送信や実行のダイアログ）がなく、
+// 振り返り・日報はプロンプトをコピーするだけ
+func TestNoAIExecution(t *testing.T) {
+	for _, live := range []bool{false, true} {
+		page, err := Render([]any{}, map[string]any{}, map[string]any{}, map[string]any{"report": []any{}, "git": []any{}}, 0, live)
 		if err != nil {
 			t.Fatal(err)
 		}
-		text := strings.ReplaceAll(string(b), "\r\n", "\n")
-		if !strings.Contains(text, want) {
-			t.Errorf("%s lacks the disclosure %q", file, want)
+		for _, bad := range []string{"ai/run", "ai-review-dialog", "Analyze with AI", "aiRun", "consent"} {
+			if strings.Contains(page, bad) {
+				t.Errorf("live=%v: the page still has %q", live, bad)
+			}
 		}
-		if !strings.Contains(text, "--ai") { // 既定はオフ。オンにする方法（--ai）を書く
-			t.Errorf("%s doesn't say that agent runs need --ai", file)
+		if !strings.Contains(page, "function copyPrompt") && !strings.Contains(page, "const copyPrompt") {
+			t.Errorf("live=%v: no prompt copy", live)
 		}
 	}
 }

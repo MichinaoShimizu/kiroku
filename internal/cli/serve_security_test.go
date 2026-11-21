@@ -170,7 +170,7 @@ func TestServeShellHasNoHistory(t *testing.T) {
 	s.Title = title
 	l := &live{load: func() snapshot {
 		return snapshot{data: []*core.Session{s}, meta: map[string]any{"git": []any{map[string]any{"msg": title}}, "demo": map[string]any{"offset": 0}}, gen: 7}
-	}, print: io.Discard, aiRun: http.NotFoundHandler()}
+	}, print: io.Discard}
 	if err := l.refresh(); err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +188,7 @@ func TestServeShellHasNoHistory(t *testing.T) {
 			t.Errorf("鍵なしの / に履歴 %q が入っている", leak)
 		}
 	}
-	for _, want := range []string{`"aiRun":true`, `"demo":`} {
+	for _, want := range []string{`"demo":`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("骨組みの META に %s がない", want)
 		}

@@ -32,24 +32,23 @@ var (
 // 決めた名前は下のファイルから使える。読み込んだときに動く行（const や、はじめの描画）が
 // まだ決まっていない名前を使わないよう、この順は変えない。ファイルを足したらここにも書く。
 var scripts = []string{
-	"state.js",    // 埋め込んだデータ・画面の状態
-	"i18n.js",     // 画面の文言の日本語
-	"format.js",   // 書き方の小物・色・テーマ
-	"markdown.js", // 書き出す Markdown に履歴の文字を入れる小物
-	"mdview.js",   // AI の返事（Markdown）を整えて見せる
-	"ui.js",       // 共通の部品（印・セッションのカード・見出し・数の枠）
-	"ai.js",       // AI review dialog and execution
-	"calendar.js", // render・週と月のカレンダー・ツールチップ
-	"summary.js",  // サマリー・指標の説明 HELP
-	"review.js",   // 見直す候補と推移
-	"panels.js",   // 検索結果・週報の下書き・アウトプット・計測の状態など
-	"metric.js",   // 上の帯とサマリーの数字の内訳（ダイアログ）
-	"insight.js",  // サマリーの頭：要点・推移といつもの範囲・改善のアドバイス
-	"git.js",      // 詳細：コミット・push・PR
-	"session.js",  // 詳細：セッション・プロンプトの流れ
-	"events.js",   // ボタンとキーの操作
-	"boot.js",     // 起動
-	"live.js",     // kiroku serve の自動更新
+	"state.js",      // 埋め込んだデータ・画面の状態
+	"i18n.js",       // 画面の文言の日本語
+	"format.js",     // 書き方の小物・色・テーマ
+	"markdown.js",   // 書き出す Markdown に履歴の文字を入れる小物
+	"ui.js",         // 共通の部品（印・セッションのカード・見出し・数の枠）
+	"copyprompt.js", // 振り返り・日報のプロンプトのコピー（AI は動かさない）
+	"calendar.js",   // render・週と月のカレンダー・ツールチップ
+	"summary.js",    // サマリー・指標の説明 HELP
+	"review.js",     // 見直す候補と推移
+	"panels.js",     // 検索結果・週報の下書き・アウトプット・計測の状態など
+	"metric.js",     // 上の帯とサマリーの数字の内訳（ダイアログ）
+	"insight.js",    // サマリーの頭：要点・推移といつもの範囲・改善のアドバイス
+	"git.js",        // 詳細：コミット・push・PR
+	"session.js",    // 詳細：セッション・プロンプトの流れ
+	"events.js",     // ボタンとキーの操作
+	"boot.js",       // 起動
+	"live.js",       // kiroku serve の自動更新
 }
 
 // script は scripts の順に js/ のファイルをつなぐ。js/ にあって scripts にないファイルがあれば、

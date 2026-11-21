@@ -19,9 +19,9 @@ await p.addInitScript(() => { window.__hits = []; window.alert = x => { window._
 let failed = 0;
 await p.goto("file://" + path.resolve(html));
 await p.waitForTimeout(300);
-// デモでない保存した HTML には、AI を動かす操作がない（デモだけ例外）。あるのはプロンプトのコピーだけ
-{ const n = await p.locator(".ai-action, #rptrun").count();
-  if (n) { failed++; console.log(`  FAIL saved HTML shows AI run controls: ${n}`); } else console.log("  ok   saved HTML (not the demo) shows no AI run controls"); }
+// 保存した HTML には、AI を動かす操作がない（kiroku は AI を動かさない）。あるのはプロンプトのコピーだけ
+{ const n = await p.locator(".ai-action, #rptrun, #ai-review-dialog").count();
+  if (n) { failed++; console.log(`  FAIL saved HTML shows AI run controls: ${n}`); } else console.log("  ok   saved HTML shows no AI run controls"); }
 
 const check = async step => {
   const r = await p.evaluate(() => ({

@@ -3,8 +3,6 @@
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
   const head = `<div class="rvhead"><h2>${esc(M ? t("Monthly summary") : t("Weekly summary"))}</h2><p>${esc(t("Rough figures for reflecting on how you work. They are not for comparing people or for evaluations."))}</p></div>`;
-  // 週報の「Analyze with AI」は、週の見出しの下に。月報はない（1 か月は 2 分の制限に収まりにくい）
-  // 保存した HTML には AI の操作がないので、帯ごと出さない
   const WK = $("#worth"); $("#sres").hidden = true; $("#sres").innerHTML = "";
   if (!w){ WK.hidden = true; R.innerHTML = foot(); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
   const longest = Math.max(0, ...w.focus.map(b=>b.min));

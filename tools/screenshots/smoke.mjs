@@ -366,8 +366,7 @@ async function run(env) {
   await step("セッションを AI と振り返る", async () => {
     const run = await clickableRun(p);
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
-    check("デモでは、振り返りはプロンプトのコピーではなく「Analyze with AI」", await p.locator("#panel #sreview, #panel #pcopy, #panel .ai-copy").count() === 0);
-    check("デモでは、詳細に「Analyze with AI」が出る", await p.locator("#panel #srun").count() === 1 && await p.locator("#panel .ai-copy").count() === 0);
+    check("振り返りは、プロンプトをコピーするボタンだけ（AI を動かすボタンはない）", await p.locator("#panel #srun.ai-copy").count() === 1 && await p.locator("#panel .ai-action").count() === 0);
     // 左（1 列の画面では間）はプロンプトの流れだけ。再開のコマンドは操作（.sact）に 1 つだけ見え、2 列なら右の列、1 列なら流れより上
     const rs = await p.evaluate(() => { const v = [...document.querySelectorAll("#panel .dresume")].filter(e => e.offsetParent !== null);
       const act = document.querySelector("#panel .sact"), flow = document.querySelector("#panel .sflow");
@@ -511,24 +510,16 @@ async function run(env) {
 
   await step("報告を書いてもらうプロンプト", async () => {
     check("週報のプロンプトをコピーするボタンはない", await p.locator("#rptcopy").count() === 0);
-    // デモ: 「Analyze with AI」はプロンプトを見せるだけ。Run は押せず、/ai/run に何も送らない。週報の AI 分析はない（日報とセッションの振り返りだけ）
-    check("週報の「Analyze with AI」はない", await p.locator("#rptbar, #rptrun").count() === 0 && await p.locator(".ai-copy").count() === 0);
-    const aiReq = []; const onReq = r => { if (/\/ai\/run/.test(r.url())) aiReq.push(r.url()); }; p.on("request", onReq);
-    await p.locator(".head .dayrun").first().click();
-    await p.waitForSelector("#ai-review-dialog", { timeout: 5000 });
-    const dd = await p.evaluate(() => { const d = document.querySelector("#ai-review-dialog"), run = d.querySelector(".ai-action");
-      return { text: d.innerText, prompt: d.querySelector("textarea.ai-prompt").value, runDisabled: run.disabled, agentHidden: d.querySelector(".ai-agent").offsetParent === null }; });
-    check("デモのダイアログは、送るプロンプトを見せ、デモだと言い、Run は押せない", /daily report/.test(dd.prompt) && /This is the demo, so nothing runs here/.test(dd.text) && dd.runDisabled && dd.agentHidden, JSON.stringify({...dd, prompt: dd.prompt.slice(0, 80)}));
-    await p.locator("#ai-review-dialog .ai-action").click({ force: true }).catch(() => {}); await pause();
-    check("デモでは /ai/run に何も送らない", aiReq.length === 0, JSON.stringify(aiReq));
-    await p.locator("#ai-review-dialog button", { hasText: "Close" }).click();
-    p.off("request", onReq);
-    check("Close でダイアログが閉じる", await p.locator("#ai-review-dialog").count() === 0);
+    // 日報はプロンプトをコピーするだけ（kiroku は AI を動かさない。デモでも同じ）。週報のボタンはない
+    check("週報のボタンはなく、日報はプロンプトのコピー", await p.locator("#rptbar, #rptrun").count() === 0 && await p.locator(".head .dayrun.ai-copy").count() > 0 && await p.locator(".ai-action, dialog#ai-review-dialog").count() === 0);
+    { const r = await p.evaluate(async () => { window.__copied = null; navigator.clipboard.writeText = t => { window.__copied = t; return Promise.resolve(); };
+        document.querySelector(".head .dayrun").click(); await new Promise(z => setTimeout(z, 300)); return {got: window.__copied || "", dialog: !!document.querySelector("dialog[open]")}; });
+      check("日報のボタンは、その日のプロンプトをコピーするだけ", /## Daily report: /.test(r.got) && !r.dialog, r.got.slice(0, 120)); }
     const text = await p.evaluate(() => { const {S, P} = period(); return reportPrompt(S); });
     check("事実の期間は「Sep 28 – Oct 4, 2026」の形", /^## Work for [A-Z][a-z]{2} \d{1,2} – ([A-Z][a-z]{2} \d{1,2}, )?\d{4}$|^## Work for [A-Z][a-z]{2} \d{1,2}, \d{4} – /m.test(text), JSON.stringify(text.slice(0, 80)));
     check("履歴ファイルのパスと、読む範囲の決まりがある", /History file: \//.test(text) && /Read only the files listed/.test(text));
     check("決まった形式と、kiroku が埋めた数字の表がある", /# Format/.test(text) && /### By project/.test(text) && /^\| Active time \| \S/m.test(text) && /^\| Git commits \(by AI\) \| \d+ \(\d+\) \|/m.test(text), JSON.stringify(text.match(/^\| Active time.*$/m)));
-    // 長い日本語のプロンプトが多い週でも、kiroku serve の「AI 分析」で送れる大きさに収まる（要約を短くし、そう書く）
+    // 長い日本語のプロンプトが多い週でも、エージェントに貼れる大きさに収まる（要約を短くし、そう書く）
     const big = await p.evaluate(() => { const was = DATA; const {ws, we, S} = period();
       try { const inWeek = DATA.filter(s => s.segs.some(([a, b]) => b > ws && a < we));
         const many = []; for (let i = 0; i < 120; i++) inWeek.forEach(s => many.push({...s, id: s.id + "-x" + i,

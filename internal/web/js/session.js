@@ -13,7 +13,7 @@ function detail(s){
   const credH = s.credits ? `<div><div class="k">${esc(t("Kiro credits"))}</div><div class="v">${crN(s.credits)}</div></div><div><div class="k">${esc(t("Per prompt"))}</div><div class="v">${s.nPrompts ? crN(s.credits/s.nPrompts) : "—"}<small> cr</small></div></div>` : "";
   // 操作（再開・AI 分析）。どちらもなければ節ごと出さない（右の列が「数値」から始まり、左の列と高さがそろう）
   const actH = `    ${s.resume ? `<div class="dresume"><h3>${esc(t("Resume"))}</h3>${codeH(s.resume, "resume")}</div>` : ""}
-    ${(b => b ? `<div class="drun"><h3>${esc(t("Session review"))}</h3>${b}</div>` : "")(s.prompts.length ? aiBtn("srun", t("Analyze with AI: session review"), t("Copy the session review prompt")) : "")}`.trim();
+    ${(b => b ? `<div class="drun"><h3>${esc(t("Session review"))}</h3>${b}</div>` : "")(s.prompts.length ? promptBtn("srun", t("Copy the session review prompt")) : "")}`.trim();
   const P = $("#panel");
   P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
     ${dHead(agMark(s.source) + esc(s.source), s.title, `${md(s.start)} ${hm(s.start)} – ${sameDay ? "" : md(s.end)+" "}${hm(s.end)}`, [projTag(s.project), branchTag(s.branch)])}
@@ -68,7 +68,7 @@ function detail(s){
   const hl = P.querySelector("a[data-hist]"); if (hl) hl.onclick = e => { e.preventDefault(); saveHistory(s, hl); };
   P.querySelectorAll(".sflags [data-goto]").forEach(b => b.onclick = () => openWorth(b.dataset.goto, b));
   const run = P.querySelector("#srun");
-  if (run) run.onclick = () => runAIReview(run, sessionPrompt(s, active, med), t("Session review: {title}", {title: snipOf(s.title || "", 60)}), aiAgentOf(s.source)); // 既定は、そのセッションのエージェント
+  if (run) run.onclick = () => copyPrompt(run, sessionPrompt(s, active, med));
   P.querySelectorAll(".pexp").forEach(b => b.onclick = () => { const li = b.closest("li"), open = b.getAttribute("aria-expanded") !== "true";
     li.querySelector(".pshort").hidden = open; li.querySelector(".pfull").hidden = !open; b.setAttribute("aria-expanded", open); b.textContent = open ? t("Show less") : pexpLabel(li.dataset.full ? {} : s.prompts[b.dataset.i]); });
   // プロンプトをコピー（そのまま次の依頼に使えるように）。切ったプロンプトは、kiroku serve なら全文を読んでから写す。保存した HTML では入っている分だけ写し、そう言う

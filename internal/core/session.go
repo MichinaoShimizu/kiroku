@@ -196,10 +196,10 @@ type Builder struct {
 	models                         map[string]int
 }
 
-// IsAIRunDir reports whether dir is the temporary folder kiroku runs "Analyze with AI" in
+// IsAIRunDir reports whether dir is the temporary folder kiroku 1.x–3.x ran "Analyze with AI" in (removed in 4.0)
 // (os.MkdirTemp("", "kiroku-ai-"): the prefix and random digits, directly in a temporary folder), or
 // Claude Code's folder name for it when a session has no working folder ("-tmp-kiroku-ai-123"). An agent
-// that keeps history of that run records it there; kiroku leaves it out so the run doesn't show up as a
+// that keeps history of that run records it there, and that history stays after the update; kiroku leaves it out so the run doesn't show up as a
 // session or feed later prompts. A project of yours with that name elsewhere is kept.
 func IsAIRunDir(dir string) bool {
 	if dir == "" {
@@ -700,7 +700,7 @@ type Session struct {
 	CostReported bool         `json:"costReported,omitempty"` // 目安コストにエージェント自身の記録を使った
 	File         string       `json:"file,omitempty"`         // 履歴のファイル
 	// PrivateFiles は、中身を出さない会話（Kiro Crew の incognito・temporary と、その写し）の履歴のファイル。
-	// HTML・JSON には入れず（json:"-"）、kiroku serve の「Analyze with AI」が読めないようにするのに使う
+	// HTML・JSON には入れない（json:"-"）。中身を出さない会話を見分けて調べるために持つ
 	PrivateFiles []string  `json:"-"`
 	PRs          []string  `json:"prs"`  // AI が作った PR の URL（わかったもの）
 	PRAt         []PRAt    `json:"prAt"` // AI が PR を作った時刻（依頼の流れに出す）

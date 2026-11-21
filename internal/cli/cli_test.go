@@ -75,3 +75,18 @@ func TestRootRenamed(t *testing.T) {
 		}
 	}
 }
+
+// --ai（$KIROKU_AI）は 4.0 で外した。付けて起動しても止めず、外したことと代わりの「Copy prompt」を 1 行で伝える。付けなければ何も言わない
+func TestAIRemovedNote(t *testing.T) {
+	t.Setenv("KIROKU_AI", "")
+	if n := aiRemovedNote(false); n != "" {
+		t.Errorf("without --ai: %q", n)
+	}
+	if n := aiRemovedNote(true); !strings.Contains(n, "removed") || !strings.Contains(n, "Copy prompt") {
+		t.Errorf("with --ai: %q", n)
+	}
+	t.Setenv("KIROKU_AI", "1")
+	if n := aiRemovedNote(false); n == "" {
+		t.Error("KIROKU_AI=1 gave no note")
+	}
+}
