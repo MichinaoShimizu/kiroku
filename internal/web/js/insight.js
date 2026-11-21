@@ -152,8 +152,12 @@ function insChart(k){
   const lab = p => { const [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? (JA ? `${mm}月` : MON[mm - 1]) : dMD(new Date(yy, mm - 1, dd)); };
   const out = v => b && b.q1 != null && (v > b.q3 + 1.5 * (b.q3 - b.q1) || v < b.q1 - 1.5 * (b.q3 - b.q1));
   const n = ps.length, every = Math.ceil(n / (narrow ? 4 : 7)); // 期間の名前は間引く（右端の表示中の期間は必ず）
+  // 合計の指標（期間の長さに比例して増える量）は棒、率の指標（コミットあたり・行あたり・割合・待ち時間）は線と点で描く。率は足し上げる量ではないので、棒の高さで面積を比べさせない
+  const rate = !INS_ADD.has(k);
+  const line = rate ? (() => { const segs = []; let cur = []; ps.forEach(({v}, i) => { if (v == null){ if (cur.length) segs.push(cur); cur = []; } else cur.push(`${(x(i) + bw / 2).toFixed(1)},${y(v).toFixed(1)}`); }); if (cur.length) segs.push(cur);
+    return segs.map(sg => sg.length > 1 ? `<polyline class="iline" points="${sg.join(" ")}"/>` : "").join(""); })() : "";
   const bars = ps.map(({p, v}, i) => { const last = i === n - 1, cx = x(i) + bw / 2;
-    return `<g>${v == null ? "" : `<rect class="ibar${last ? " cur" : ""}" x="${(x(i) + bw * .18).toFixed(1)}" y="${y(v).toFixed(1)}" width="${(bw * .64).toFixed(1)}" height="${Math.max(0, Hh - B - y(v)).toFixed(1)}" rx="3"/>`}`
+    return `<g>${v == null ? "" : rate ? `<circle class="ipt${last ? " cur" : ""}" cx="${cx.toFixed(1)}" cy="${y(v).toFixed(1)}" r="${last ? 5 : 3.5}"/>` : `<rect class="ibar${last ? " cur" : ""}" x="${(x(i) + bw * .18).toFixed(1)}" y="${y(v).toFixed(1)}" width="${(bw * .64).toFixed(1)}" height="${Math.max(0, Hh - B - y(v)).toFixed(1)}" rx="3"/>`}`
       + (last && proj != null ? `<rect class="iproj" x="${(x(i) + bw * .18).toFixed(1)}" y="${y(proj).toFixed(1)}" width="${(bw * .64).toFixed(1)}" height="${Math.max(0, Hh - B - y(proj)).toFixed(1)}" rx="3"/>` : "")
       + (v != null && !last && out(v) ? `<circle class="iout" cx="${cx.toFixed(1)}" cy="${(y(v) - 7).toFixed(1)}" r="3"/>` : "")
       + ((n - 1 - i) % every === 0 ? `<text class="ixl${last ? " cur" : ""}" x="${cx.toFixed(1)}" y="${Hh - 8}">${esc(lab(p))}</text>` : "")
@@ -162,7 +166,7 @@ function insChart(k){
   let sy = b ? t("{x}; {need}", {x: (b.part ? t("pace") + " " : "") + fmtM(k, b.v), need: insExpr(b)}) : ""; if (b && b.q1 != null){ const all = [...b.xs, b.v], r = 1 + b.xs.filter(z => z > b.v).length, d = b.v - b.med, pc = b.med ? Math.round(d * 100 / b.med) : null;
     sy = t("{x}: {r} highest of {n} {unit}; {d} from the median {m}{pc}", {x: (b.part ? t("At this pace") + " " : "") + fmtM(k, b.v), r: JA ? r : `${r}${["th", "st", "nd", "rd"][r % 100 > 10 && r % 100 < 14 ? 0 : r % 10 < 4 ? r % 10 : 0]}`, n: all.length, unit: insUnit(all.length), d: (d >= 0 ? "+" : "−") + fmtM(k, Math.abs(d)), m: fmtM(k, b.med), pc: pc == null ? "" : ` (${pc >= 0 ? "+" : ""}${pc}%)`}); }
   const th = !b || b.q1 == null ? "" : b.pos === "typical" ? t("Within the middle half of your past {unit}", {unit: insNoun()}) : b.better === false ? t("Outside the middle half, on the worse side; the warning marks show where it came from") : b.better ? t("Outside the middle half, on the better side; keep what you changed") : b.pos === "high" ? t("Above the 75th pct of your past {unit}", {unit: insNoun()}) : t("Below the 25th pct of your past {unit}", {unit: insNoun()});
-  return `${say(sy, th)}<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(t("{metric} over the last {n} {unit}", {metric: insName(k), n, unit: insUnit(n)}))}">${ticks}${band}${bars}</svg>
+  return `${say(sy, th)}<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(t("{metric} over the last {n} {unit}", {metric: insName(k), n, unit: insUnit(n)}))}">${ticks}${band}${line}${bars}</svg>
     <figcaption><span class="lg iband">${esc(t("Middle half of the last {n} {unit}", {n: b ? b.n : 0, unit: insUnit(b ? b.n : 0)}))}</span><span class="lg imed">${fx(t("median"), "", t("median"))}</span>${proj != null ? `<span class="lg iproj">${fx(`${t("pace")} = ${t("so far")} × ${t("period")} ÷ ${t("elapsed")}`, "", t("At this pace"))}</span>` : ""}<span class="lg iout">${fx(`< ${LO()} − 1.5×${SP()} ${t("or")} > ${HI()} + 1.5×${SP()}`, "", t("Far above or below the other periods"))}</span></figcaption>
     <p class="sr">${esc(list)} — ${esc(insPosText(b))}</p></figure>`;
 }
@@ -311,25 +315,26 @@ function insCum(){
 /* セッションの長さ別の費用：表示中の期間に動いたセッションを、期間の中の作業時間で 6 つに分け、区分ごとの推定費用の合計を棒に（件数は棒の下）。
    費用の記録がなければ件数で。どの長さのセッションに費用が集まっているかを読む */
 // 長さ別の図に使う量：推定費用 → クレジット → トークンの順に、期間のセッションに記録のあるもの
-const HISTK = ss => ss.some(s => s.cost > 0) ? {k: "cost", v: s => s.cost, f: usd, n: t("cost"), title: t("Cost by session length")}
-  : ss.some(s => s.credits > 0) ? {k: "credits", v: s => s.credits, f: cr, n: t("credits"), title: t("Credits by session length")}
-  : ss.some(s => sesTok(s) > 0) ? {k: "tokens", v: s => sesTok(s), f: tok, n: t("tokens"), title: t("Tokens by session length")} : null;
+const HISTK = ss => ss.some(s => s.cost > 0) ? {k: "cost", v: s => s.cost, f: usd, n: t("cost"), title: t("Cost per session, by length")}
+  : ss.some(s => s.credits > 0) ? {k: "credits", v: s => s.credits, f: cr, n: t("credits"), title: t("Credits per session, by length")}
+  : ss.some(s => sesTok(s) > 0) ? {k: "tokens", v: s => sesTok(s), f: tok, n: t("tokens"), title: t("Tokens per session, by length")} : null;
 function insHist(){
-  // 長さごとに使った量（推定費用、なければクレジット、それもなければトークン）。件数だけでは、長いセッションが重いかを読めないので、量のないときは出さない
+  // 長さごとの、1 セッションあたりの量（推定費用、なければクレジット、それもなければトークン）。合計だと、セッションの多い区間が大きく見えるだけなので平均にする。
+  // 区間の合計とセッションの数は、ツールチップと読み取りの文に残す。量のないときは出さない
   const {ws, we} = period(), all = DATA.filter(s => inP(s, ws, we)), K = HISTK(all); if (!K) return "";
   const ss = all.map(s => ({m: sesMin(s), c: K.v(s) || 0})).filter(x => x.m > 0); if (ss.length < 3) return "";
   const edges = [0, 5, 15, 30, 60, 120, Infinity], labs = ["<5m", "5–15m", "15–30m", "30–60m", "1–2h", "2h+"], useC = K.k === "cost";
   const bins = labs.map((_, i) => ss.filter(x => x.m >= edges[i] && x.m < edges[i + 1])), val = b => b.reduce((a, x) => a + x.c, 0);
-  const vs = bins.map(val), tot = vs.reduce((a, v) => a + v, 0), mi = vs.indexOf(Math.max(...vs)), med = insQuant(ss.map(x => x.m), .5);
+  const sums = bins.map(val), tot = sums.reduce((a, v) => a + v, 0), vs = bins.map((b, i) => b.length ? sums[i] / b.length : 0), mi = vs.indexOf(Math.max(...vs)), med = insQuant(ss.map(x => x.m), .5);
   const max = Math.max(...vs) || 1, W = innerWidth < 600 ? 360 : 560, Hh = 180, B = 20, T = 16, bw = W / labs.length, fv = K.f;
   const bars = vs.map((v, i) => { const h = (Hh - B - T) * v / max, xx = i * bw;
-    return `<rect class="ihb${i === mi ? " med" : ""}" x="${(xx + bw * .14).toFixed(1)}" y="${(Hh - B - h).toFixed(1)}" width="${(bw * .72).toFixed(1)}" height="${h.toFixed(1)}" rx="3"${tipAttr(labs[i], plural(bins[i].length, "session"), fv(v))}/>`
+    return `<rect class="ihb${i === mi ? " med" : ""}" x="${(xx + bw * .14).toFixed(1)}" y="${(Hh - B - h).toFixed(1)}" width="${(bw * .72).toFixed(1)}" height="${h.toFixed(1)}" rx="3"${tipAttr(labs[i], t("{v} per session", {v: fv(v)}), `${plural(bins[i].length, "session")} · ${t("total")} ${fv(sums[i])}`)}/>`
       + (v ? `<text class="ihn" x="${(xx + bw / 2).toFixed(1)}" y="${(Hh - B - h - 4).toFixed(1)}">${esc(fv(v))}</text>` : "") + `<text class="ixl" x="${(xx + bw / 2).toFixed(1)}" y="${Hh - 4}">${labs[i]}</text>`; }).join(""); // 件数は棒のツールチップに（上の 1 文にも）
-  const sy = t("Sessions of {bin}: {pc}% of {metric} ({usd}) in {sessions}", {bin: labs[mi], pc: Math.round(vs[mi] * 100 / tot), metric: K.n, usd: fv(vs[mi]), sessions: plural(bins[mi].length, "session")});
+  const sy = t("Sessions of {bin} took the most per session: {v} each ({sessions}, {pc}% of {metric} in total)", {bin: labs[mi], v: fv(vs[mi]), sessions: plural(bins[mi].length, "session"), pc: Math.round(sums[mi] * 100 / tot), metric: K.n});
   const LC = useC ? longCtxOf(ws, we) : [];
   const th = mi >= 4 && LC.length ? t("{n} of the long sessions grew their input per response to up to {x}× the start: split them at a stopping point", {n: LC.length, x: Math.round(Math.max(...LC.map(s => s.ctx[1] / s.ctx[0])))}) : "";
-  return `${say(sy, th)}<figure class="insfig ihist"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(labs.map((l, i) => `${l} ${fv(vs[i])} (${plural(bins[i].length, "session")})`).join(", "))}">${bars}</svg>
-    <p class="ifxs">${fx(`${t("median")}(${t("active time of {n} sessions", {n: ss.length})}) = ${dur(med)}`)}${fx(`% = ${K.n} ${t("of the bin")} ÷ ${fv(tot)}`)}</p></figure>`;
+  return `${say(sy, th)}<figure class="insfig ihist"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(labs.map((l, i) => `${l} ${t("{v} per session", {v: fv(vs[i])})} (${plural(bins[i].length, "session")})`).join(", "))}">${bars}</svg>
+    <p class="ifxs">${fx(`${t("median")}(${t("active time of {n} sessions", {n: ss.length})}) = ${dur(med)}`)}${fx(`${t("per session")} = ${K.n} ${t("of the bin")} ÷ ${t("sessions of the bin")}`)}</p></figure>`;
 }
 
 /* どこに使ったか：プロジェクト・エージェント・モデルごとの費用（なければクレジット・トークン・時間）を、大きい順の横棒で。上位 7 つとその他 */

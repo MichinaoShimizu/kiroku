@@ -226,9 +226,6 @@ const JA_TEXT = {
   "Busiest {p}: {h} = {pc}% of the {all} in this chart; off-hours {off}%": "最も多いのは {p}：{h} = この図の {all} の {pc}%。時間外 {off}%",
   "Sessions of {bin}: {pc}% of {metric} ({usd}) in {sessions}": "長さ {bin} のセッション：{sessions}で{metric}の {pc}%（{usd}）",
   "of the bin": "（区分）",
-  "Cost by session length": "セッションの長さ別の費用",
-  "Credits by session length": "セッションの長さ別のクレジット",
-  "Tokens by session length": "セッションの長さ別のトークン",
   "pace": "ペース",
   "d": "日",
   "of the last {n} {unit}": "（過去 {n} {unit}）",
@@ -912,6 +909,14 @@ const JA_TEXT = {
   "{n} sessions": "{n} セッション",
   "Sessions with possible friction": "つまずいたかもしれないセッション",
   "Output and unit cost": "出力と単価",
+  "Cost per session, by length": "セッションの長さ別、1 セッションあたりの費用",
+  "Credits per session, by length": "セッションの長さ別、1 セッションあたりのクレジット",
+  "Tokens per session, by length": "セッションの長さ別、1 セッションあたりのトークン",
+  "{v} per session": "1 セッションあたり {v}",
+  "total": "合計",
+  "per session": "1 セッションあたり",
+  "sessions of the bin": "区間のセッションの数",
+  "Sessions of {bin} took the most per session: {v} each ({sessions}, {pc}% of {metric} in total)": "1 セッションあたりがいちばん多いのは {bin} のセッション：1 つあたり {v}（{sessions}、{metric}の合計の {pc}%）",
 };
 // t は英語の文 s を今の言語にする。{name} は vars の値で埋める（日本語では語順が変わるので、文ごと鍵にする）
 function t(s, vars){

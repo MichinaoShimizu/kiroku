@@ -876,6 +876,7 @@ header{background:var(--s-cont);border-bottom:0}
 .insfig .itk text{text-anchor:end}.insfig .ixl{text-anchor:middle}.insfig .ixl.cur{fill:var(--acc-ink);font-weight:600}
 .insfig .iband{fill:color-mix(in oklab,var(--ink) 8%,transparent)}.insfig .imed{stroke:var(--ink-3);stroke-dasharray:4 3;stroke-width:1.2} /* いつもの範囲は色みのない灰色（緑は「よい」の意味にだけ使う） */
 .insfig .ibar{fill:color-mix(in oklab,var(--acc) 30%,var(--surface))}.insfig .ibar.cur{fill:var(--acc)}
+.insfig .iline{fill:none;stroke:color-mix(in oklab,var(--acc) 55%,var(--surface));stroke-width:2;stroke-linejoin:round}.insfig .ipt{fill:var(--surface);stroke:var(--acc);stroke-width:2}.insfig .ipt.cur{fill:var(--acc)} /* 率の指標の推移は線と点 */
 .insfig .iproj{fill:none;stroke:var(--acc);stroke-dasharray:4 3;stroke-width:1.5}
 .insfig .iout{fill:var(--warn)}.insfig .ihit{fill:transparent}
 .insfig figcaption{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;font-size:var(--fs-xs);color:var(--ink-2)}
@@ -900,7 +901,7 @@ header{background:var(--s-cont);border-bottom:0}
 /* サマリーの頭：コストと出力の 2 段。段は 1 枚の面にして、数字は細い区切り線で分ける（数字ごとに色の線や塗りの箱を付けない）。
    いつもの範囲から外れたことは、数字の下の小さな印（.ichip）だけで言う */
 .insh{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
-.insh>.ikg{flex:1 1 380px;min-width:0} /* 広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる */
+.insh>.ikg{flex:1 1 290px;min-width:0} /* 広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる */
 .ikrow>.itile{border-left:1px solid var(--rule)}.ikrow{margin-left:-1px;clip-path:inset(0 0 0 1px)} /* 数字の間に縦の区切り線。折り返した行の左端の線は、1px ずらして切り落とす */
 /* タイルの背景：いつもの範囲より良い側は緑、悪い側は赤（大きく外れたら濃く）。範囲の中と、向きの決まっていない指標は色なし */
 .itile.good,.itile.bad{border-radius:12px;padding-top:10px;padding-bottom:10px}
@@ -1081,7 +1082,7 @@ header{background:var(--s-cont);border-bottom:0}
 /* サマリーのグラフのカードは 2 列（1000px 以下は 1 列）。.full は幅いっぱい */
 .insg{display:flex;flex-direction:column;gap:16px}
 .insrow{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch}
-.insrow>.inscol{flex:1 1 400px;min-width:0;container-type:inline-size} /* グラフのカードも、広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚 */
+.insrow>.inscol{flex:1 1 290px;min-width:0;container-type:inline-size} /* グラフのカードも、広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚 */
 @container (max-width:720px){.iout2{grid-template-columns:minmax(0,1fr)}} /* 出力のカードが狭いときは、Git と AI の編集を縦に並べる */
 /* トレンドの指標：広い画面は切り替え、狭い画面は選択リスト（横に隠れて選べなくならないように） */
 .insksel{display:none}
