@@ -1,1 +1,0 @@
-- On phones, the fade at the calendar's right edge no longer covers the search button in the header
