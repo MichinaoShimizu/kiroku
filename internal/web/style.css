@@ -22,20 +22,6 @@
   --mono:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,monospace;
   --ease:cubic-bezier(.2,0,0,1); /* M3 の standard */
 }
-:root[data-theme="dark"]{
-  color-scheme:dark;
-  --agm-mix:75%;
-  --bg:#141218; --surface:#1d1b20; --surface-2:#2b2930; --ink:#e6e0e9; --ink-2:#cac4d0; --ink-3:#938f99;
-  --s-lowest:#0f0d13; --s-cont:#211f26; --s-highest:#36343b; --pc:#4f378b; --on-pc:#eaddff; --sc:#4a4458; --on-sc:#e8def8; --inv:#e6e0e9; --on-inv:#322f35;
-  --rule:#49454f; --rule-2:#938f99; --acc:#d0bcff; --acc-ink:#d0bcff; --on-acc:#381e72; --heatk:38%; --acc-soft:rgba(208,188,255,.12); --warn:#f2b8b5; --on-warn:#601410;
-  --weekend:rgba(255,255,255,.018);
-  --sat:#93abe6; --sun:#e69393; --sat-bg:rgba(147,171,230,.05); --sun-bg:rgba(230,147,147,.05);
-  --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -16px rgba(0,0,0,.7);
-  --c0:#6191d1; --c1:#a95c3e; --c2:#45a47a; --c3:#a27323; --c4:#c47190; --c5:#4c8446; --c6:#6e6ab2; --c7:#15a0b6; --other:#6b7180;
-  --amber-ink:#f2b53a;
-  --t1:8%; --t2:14%; --t3:20%;
-  --go:#5fb08c; --go-ink:#9bd6ba; /* 暗い地では、同じ 3 段を少し濃く（淡すぎて地に沈まないように） */
-}
 
 /* ── base ───────────────────────────────────────────────── */
 *{box-sizing:border-box}
@@ -604,7 +590,7 @@ button.more{display:block;text-align:left}
 /* ── drawer（セッションの詳細） ──────────────────────────── */
 /* 画面の真ん中に出すモーダル。後ろのカレンダーはしっかり沈め、縁を線と影ではっきりさせる。ダークでは面の明るさが近いので幕を濃くする */
 .scrim{position:fixed;inset:0;z-index:20;background:rgba(10,12,16,.42);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s var(--ease)}
-:root[data-theme="dark"] .scrim{background:rgba(0,0,0,.62)}
+
 .drawer{position:fixed;top:50%;left:50%;z-index:21;width:min(760px,calc(100vw - 48px));max-height:min(92vh,1100px);background:var(--surface);border:1px solid var(--rule-2);border-radius:18px;
   box-shadow:0 40px 100px -20px rgba(0,0,0,.6);overflow:hidden;opacity:0;visibility:hidden;pointer-events:none;transform:translate(-50%,-48%) scale(.97);
   transition:transform .28s var(--ease),opacity .2s var(--ease),visibility 0s .28s;display:flex;flex-direction:column}

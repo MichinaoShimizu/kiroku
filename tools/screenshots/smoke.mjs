@@ -134,13 +134,12 @@ async function run(env) {
   });
 
   await step("テーマ", async () => {
-    const theme = () => p.evaluate(() => document.documentElement.dataset.theme);
-    check("テーマと言語の切り替えボタンはない（OS とブラウザの設定に合わせる）", await p.locator("#theme, #lang").count() === 0);
-    await p.evaluate(() => { try { localStorage.removeItem("kiroku:theme"); } catch(e){} });
-    await p.emulateMedia({ colorScheme: "light" }); await pause();
-    check("OS がライトならライト", await theme() === "light", await theme());
+    const bg = () => p.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    check("テーマと言語の切り替えボタンはない", await p.locator("#theme, #lang").count() === 0);
+    await p.emulateMedia({ colorScheme: "light" }); await pause(); const light = await bg();
     await p.emulateMedia({ colorScheme: "dark" }); await pause();
-    check("OS がダークならダーク", await theme() === "dark", await theme());
+    check("テーマはライトだけ（OS がダークでも同じ色）", await bg() === light && await p.evaluate(() => getComputedStyle(document.documentElement).colorScheme) === "light", await bg());
+    await p.emulateMedia({ colorScheme: "light" });
   });
 
   await step("週の移動", async () => {

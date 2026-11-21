@@ -85,7 +85,6 @@ function searchText(s){
 function toast(msg, ms){ const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(()=>t.classList.remove("on"), ms || 1600); }
 async function copy(text, msg, ms, btn){ try { await navigator.clipboard.writeText(text); toast(msg || t("Copied"), ms); copied(btn); } catch(e){ toast(t("Couldn't copy")); } }
 function copied(btn){ if (!btn) return; btn.classList.add("ok"); clearTimeout(btn._ok); btn._ok = setTimeout(() => btn.classList.remove("ok"), 1600); } // copyBtn の印を ✓ に
-function applyTheme(){ document.documentElement.setAttribute("data-theme", st.theme); }
 const CB = () => ({project: t("Project"), source: t("Agent")}); // 色分けはプロジェクトとエージェントだけ
 
 

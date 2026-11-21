@@ -12,7 +12,7 @@ sh tools/screenshots/run.sh --html /tmp/kiroku-test.html   # HTML with dummy dat
 
 Scenarios 2 and 7 need `kiroku serve` (a saved HTML file has no AI actions): build kiroku, make dummy history with `python3 -I tools/screenshots/gen.py <dir>`, and start `kiroku serve` on it as `tools/screenshots/serve.mjs` does. Never press Run with a real agent: put a stand-in script named `codex` first on `PATH` and leave the real agents off it.
 
-Open it with Playwright and try it in the following 3 environments. Start in the default dark theme, then check light too (the button at the top right).
+Open it with Playwright and try it in the following 3 environments (the view has a light theme only).
 
 - 1440x900
 - 1000x800
