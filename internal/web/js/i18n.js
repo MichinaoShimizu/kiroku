@@ -214,6 +214,8 @@ const JA_TEXT = {
   "Corrections {f}% of {p} prompts; {l} usage limit hits; {c} compactions": "言い直し・中断 {f}%（{p} プロンプト中）。利用上限 {l} 回。コンパクション {c} 回",
   "Outputs": "出力",
   "Unit cost": "単価",
+  "Kiro credits per prompt": "プロンプトあたりの Kiro クレジット",
+  "Tokens per prompt": "プロンプトあたりのトークン",
   "÷ Git commits not run by Claude Code": "Git のコミット（Claude Code が実行した分を除く）で割る",
   "AI changed {n} files (+{a} −{d} lines)": "AI が変えたファイル {n}（+{a} −{d} 行）",
   "; ": "。",

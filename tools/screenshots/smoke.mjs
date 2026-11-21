@@ -695,6 +695,10 @@ async function run(env) {
     const sk = await p.locator("#review [data-scat]").evaluateAll(xs => xs.map(x => x.dataset.scat));
     for (const k of sk){ await p.locator(`#review [data-scat="${k}"]`).click(); await pause();
       check(`散布図の横軸を ${k} にすると、その量で点を描く`, await p.evaluate(k => st.insS === k && document.querySelector(`#review [data-scat="${k}"]`).getAttribute("aria-pressed") === "true" && document.querySelectorAll("#review .ipt[data-sid]").length >= 3, k)); }
+    const wk = await p.locator("#review [data-wk]").evaluateAll(xs => xs.map(x => x.dataset.wk));
+    check("どこに使ったかは、記録のある量（費用・クレジット・トークン・時間）を切り替えられる", wk.length >= 2, JSON.stringify(wk));
+    for (const k of wk){ await p.locator(`#review [data-wk="${k}"]`).click(); await pause();
+      check(`どこに使ったかを ${k} にすると、その量の横棒になる`, await p.evaluate(k => st.insWk === k && document.querySelector(`#review [data-wk="${k}"]`).getAttribute("aria-pressed") === "true" && document.querySelectorAll("#review .iwrows .iwr").length > 0, k)); }
     check("長さ別の図に n= を並べない（件数はツールチップに）", !/n=\d/.test(await p.evaluate(() => (document.querySelector("#review .ihist svg") || {}).innerHTML || "")));
     await view("cal");
     await p.keyboard.press("m"); await pause();
