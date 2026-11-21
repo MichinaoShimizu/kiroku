@@ -31,7 +31,8 @@ const document = {createElement: el, createDocumentFragment: () => el("#frag"), 
 	if err := os.WriteFile(f, append([]byte(dom+string(code)+"\n"), cases...), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+	// --expose-gc: 時間を測る前にごみを回収する（testdata/mdview_test.js の best）
+	if out, err := exec.Command(node, "--expose-gc", f).CombinedOutput(); err != nil {
 		t.Errorf("mdView:\n%s", out)
 	}
 }
