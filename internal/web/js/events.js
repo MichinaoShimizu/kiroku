@@ -79,9 +79,16 @@ document.addEventListener("keydown", e => {
   if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open || $("#wk").open || $("#md").open) return;
   const k = e.key;
   if (k === "Escape" && closeHint()) return; // 開いた説明（?）があれば、それだけ閉じる
-  if (k === "ArrowLeft" || k === "ArrowRight"){ // 詳細を開いているあいだも動かさない（閉じて別の週へ飛ぶと、どこにいるかわからなくなる）
-    if (st.sel || e.target.closest?.(ARROW_OWN)) return;
+  const ses = st.sel && DATA.find(x => x.id === st.sel); // セッションの詳細を開いているとき
+  if (k === "ArrowLeft" || k === "ArrowRight"){ // 詳細を開いているあいだは前後のセッションへ（週は動かさない。閉じて別の週へ飛ぶと、どこにいるかわからなくなる）
+    if (e.target.closest?.(ARROW_OWN)) return;
+    if (st.sel){ if (ses){ e.preventDefault(); const n = sesNeighbors(ses.id); goSession(k === "ArrowLeft" ? n.prev : n.next); } return; }
     go(k === "ArrowLeft" ? -1 : 1); }
+  else if (st.sel && ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(k) && !e.target.closest?.(ARROW_OWN) && !(k === " " && e.target.closest?.("button, a, summary"))){ // スペースは、ボタンの上では押す動きのまま // 詳細の中をキーでスクロール
+    const P = $("#panel"), step = k === "ArrowUp" || k === "ArrowDown" ? 64 : P.clientHeight * 0.85;
+    e.preventDefault(); if (k === "Home") P.scrollTop = 0; else if (k === "End") P.scrollTop = P.scrollHeight; else P.scrollBy({top: (k === "ArrowUp" || k === "PageUp" ? -1 : 1) * step}); }
+  else if ((k === "f" || k === "F") && ses) toggleFlowFull();
+  else if (k === "Escape" && $("#drawer").classList.contains("flowfull")) toggleFlowFull(false);
   else if (k === "t" || k === "T") go(null);
   else if (k === "/"){ e.preventDefault(); $("#q").focus(); }
   else if (k === "Escape" && st.sel) select(null); else if (k === "?") $("#keys").showModal();

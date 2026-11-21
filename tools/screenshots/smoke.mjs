@@ -244,6 +244,35 @@ async function run(env) {
         return {label: b.getAttribute("aria-label"), got: window.__copied || "", first: String(s.prompts[0].text || "").slice(0, 30), n: s.prompts.length}; });
       check("会話全体を Markdown でコピーできる", !c.none && /Copy the conversation as Markdown/.test(c.label) && c.got.startsWith("# ") && (c.got.match(/^## You/gm) || []).length === c.n && c.got.includes(c.first), JSON.stringify({...c, got: c.got.slice(0, 80)}));
     }
+    { // 前後のセッションへ（キーと、見出しの帯の ‹ ›）・キーで流れをスクロール・流れの全画面
+      const id0 = await p.evaluate(() => st.sel);
+      const nb = await p.evaluate(() => { const v = b => ({dis: b.disabled, label: b.getAttribute("aria-label") || ""}); return {shown: !$("#snav").hidden, prev: v($("#sprev")), next: v($("#snext"))}; });
+      check("見出しの帯に前後のセッションへのボタンがあり、名前がある", nb.shown && /session/i.test(nb.prev.label) && /session/i.test(nb.next.label), JSON.stringify(nb));
+      const mv = nb.next.dis ? {key: "ArrowLeft", back: "ArrowRight", btn: "#snext"} : {key: "ArrowRight", back: "ArrowLeft", btn: "#sprev"};
+      await p.keyboard.press(mv.key); await pause();
+      const id1 = await p.evaluate(() => st.sel);
+      check("← → で隣のセッションに移り、詳細は開いたまま", id1 && id1 !== id0 && await drawerOpen(), `${id0} → ${id1}`);
+      await p.keyboard.press(mv.back); await pause();
+      check("反対のキーで元のセッションに戻る", await p.evaluate(() => st.sel) === id0);
+      const btn = mv.key === "ArrowRight" ? "#snext" : "#sprev";
+      await p.locator(btn).click(); await pause();
+      check("帯のボタンを押しても隣のセッションに移る", await p.evaluate(() => st.sel) === id1);
+      await p.keyboard.press(mv.back); await pause();
+      await p.evaluate(() => { $("#panel").scrollTop = 0; document.activeElement.blur(); });
+      await p.keyboard.press("ArrowDown"); await p.keyboard.press("PageDown"); await pause();
+      const y = await p.evaluate(() => [$("#panel").scrollTop, $("#panel").scrollHeight - $("#panel").clientHeight]);
+      check("↓ と PageDown で詳細がスクロールする", y[1] <= 0 || y[0] > 0, JSON.stringify(y));
+      await p.keyboard.press("f"); await pause();
+      const full = await p.evaluate(() => { const b = $("#drawer").getBoundingClientRect(), f = $("#panel .sflow"), btn = $("#panel .ffull");
+        return {on: $("#drawer").classList.contains("flowfull"), w: b.width, vw: innerWidth, flow: !!f && f.offsetParent !== null, pressed: btn && btn.getAttribute("aria-pressed")}; });
+      check("F で流れが全画面になる", full.on && full.w >= full.vw - 1 && full.flow && full.pressed === "true", JSON.stringify(full));
+      await p.keyboard.press("Escape"); await pause();
+      check("Esc はまず全画面だけを解き、詳細は開いたまま", !await p.evaluate(() => $("#drawer").classList.contains("flowfull")) && await drawerOpen());
+      await p.locator("#panel .ffull").click(); await pause();
+      check("流れの見出しのボタンでも全画面になる", await p.evaluate(() => $("#drawer").classList.contains("flowfull")));
+      await p.locator("#panel .ffull").click(); await pause();
+      check("もう一度押すと元に戻る", !await p.evaluate(() => $("#drawer").classList.contains("flowfull")));
+    }
     await p.keyboard.press("Escape"); await pause();
     check("Esc で詳細が閉じる", !await drawerOpen());
     await run.focus(); await p.keyboard.press("ArrowLeft"); await pause();
@@ -426,8 +455,12 @@ async function run(env) {
     const run = await clickableRun(p);
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
     check("詳細が開く", await drawerOpen());
+    const id0 = await p.evaluate(() => st.sel), hasPrev = await p.evaluate(() => !$("#sprev").disabled);
     await p.keyboard.press("ArrowLeft"); await pause();
-    check("詳細を開いているあいだは ← で週が変わらない", await drawerOpen() && await label() === before, await label());
+    check("詳細を開いているあいだの ← は週ではなく前のセッションへ移る（週はそのセッションに合わせる）", await drawerOpen() && await p.evaluate(([id0, hasPrev]) => {
+      const s = DATA.find(x => x.id === st.sel); return (hasPrev ? st.sel !== id0 : st.sel === id0) && +mondayOf(new Date(s.start * 1000)) === +st.week; }, [id0, hasPrev]), await label());
+    if (hasPrev){ await p.keyboard.press("ArrowRight"); await pause(); }
+    check("→ で元のセッションと週に戻る", await p.evaluate(() => st.sel) === id0 && await label() === before, await label());
     await p.goBack(); await pause();
     check("ブラウザの戻るで詳細が閉じ、ページに残る", !await drawerOpen() && await p.evaluate(() => typeof DATA === "object"), p.url());
     await (await clickableRun(p)).click(); await pause(); // 戻ると位置が変わり、さっきのブロックが隠れることがある

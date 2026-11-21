@@ -76,6 +76,7 @@ function detail(s){
   P.querySelectorAll(".pcopy").forEach(b => b.onclick = async e => { e.stopPropagation(); const r = await fullText(s, +b.dataset.i, b.classList.contains("rcopy")); if (!r) return;
     const msg = r.cut ? t("Copied the first {n} characters", {n: commas(r.text.length)}) : "";
     copy(r.text, msg, msg ? 5000 : 0, b); });
+  const ff = P.querySelector(".ffull"); if (ff) ff.onclick = () => toggleFlowFull();
   const fc = P.querySelector(".fcopy"); if (fc) fc.onclick = async () => { fc.disabled = true; // セッション全体（プロンプトと応答を順に）を Markdown で
     try { const r = await sessionMarkdown(s); copy(r.text, r.cut ? t("Copied. Some long prompts or replies are cut; open with kiroku serve to copy them in full.") : "", r.cut ? 6000 : 0, fc); } finally { fc.disabled = false; } };
   P.querySelectorAll(".pload").forEach(b => b.onclick = async () => { // kiroku serve のときだけ、切ったプロンプトの全文をサーバーから読む
@@ -180,7 +181,7 @@ function promptFlow(s){
   flush(Infinity);
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";
   const showMore = JA ? (hiddenEv ? t("Show {n} more prompts (and {m} other events)", {n: rest, m: hiddenEv}) : t("Show {n} more prompts", {n: rest})) : `Show ${plural(rest, "more prompt")}${also}`;
-  const bar = `<div class="flowhd"><h3>${esc(t("Prompt flow"))}</h3><button class="pill fcopy" type="button" aria-label="${esc(t("Copy the conversation as Markdown"))}" title="${esc(t("Copy the conversation as Markdown"))}">${ico("copy")}<span>${esc(t("Copy as Markdown"))}</span></button></div>`; // 出し方の切り替えと凡例は置かない（印には title と読み上げの名前がある）
+  const bar = `<div class="flowhd"><h3>${esc(t("Prompt flow"))}</h3><button class="pill fcopy" type="button" aria-label="${esc(t("Copy the conversation as Markdown"))}" title="${esc(t("Copy the conversation as Markdown"))}">${ico("copy")}<span>${esc(t("Copy as Markdown"))}</span></button>${(on => `<button class="pill ffull" type="button" aria-pressed="${on}" title="${esc(t("Prompt flow full screen (F)"))}"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="${on ? "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" : "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"}"/></svg><span>${esc(on ? t("Exit full screen") : t("Full screen"))}</span></button>`)($("#drawer").classList.contains("flowfull"))}</div>`; // 出し方の切り替えと凡例は置かない（印には title と読み上げの名前がある）
   const cutNote = !LIVE && s.prompts.some(p => p.len > 0 || (p.reply && p.reply.len > 0)) ? `<p class="note">${esc(t("Long prompts and replies end with … here. Open with kiroku serve to read them in full."))}</p>` : "";
   return `${bar}${cutNote}<ol class="tl">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${esc(showMore)}</button>` : ""}`;
 }
@@ -286,9 +287,28 @@ function focusOpener(sel, from){ // 閉じたら、詳細を開いた要素（�
     : sel.startsWith("push:") ? document.querySelector(`[data-push="${v}"]`) : sel.startsWith("pr:") ? document.querySelector(`[data-pr="${v}"]`)
     : document.querySelector(`.run[data-sid="${v}"],[data-id="${v}"],[data-s="${v}"]`);
   if (el) el.focus({preventScroll: false}); }
+// 前後のセッション（いま見えている条件で絞ったセッションを、始まった順に並べたときの前と次）。詳細の上の帯の ‹ › と ←→ で移る
+function sesNeighbors(id){ const xs = DATA.filter(matches).sort((a, b) => a.start - b.start || (a.id < b.id ? -1 : 1)), i = xs.findIndex(s => s.id === id);
+  return i < 0 ? {} : {prev: xs[i - 1], next: xs[i + 1]}; }
+// goSession は、前後のセッションへ移る（戻るの積み上げには入れない。カレンダーもそのセッションの週・月へ）
+function goSession(s){ if (!s) return; const d = new Date(s.start * 1000);
+  if (st.mode === "month") st.month = monthOf(d); else st.week = mondayOf(d);
+  st.sel = s.id; tipOff(); render(); const f = $("#drawer").classList.contains("flowfull") && $("#panel .sflow"); $("#panel").scrollTop = f ? Math.max(0, f.offsetTop - 8) : 0; dtopSync(); }
+// navSync は、詳細の上の帯の ‹ › を、表示中のセッションの前後に合わせる（セッション以外の詳細では出さない）
+function navSync(){ const N = $("#snav"), s = st.sel && DATA.find(x => x.id === st.sel); N.hidden = !s; if (!s) return;
+  const {prev, next} = sesNeighbors(s.id);
+  [["#sprev", prev, "Previous session: {title}", "No previous session"], ["#snext", next, "Next session: {title}", "No next session"]].forEach(([id, x, lab, none]) => { const b = $(id);
+    b.disabled = !x; const l = x ? t(lab, {title: x.title || x.id}) : t(none); b.setAttribute("aria-label", l); b.title = l + (x ? ` (${id === "#sprev" ? "←" : "→"})` : "");
+    b.onclick = () => goSession(x); }); }
+// toggleFlowFull は、プロンプトの流れを詳細いっぱいに広げる・戻す（ほかの節を隠して、流れだけを読む。F キーでも）
+function toggleFlowFull(on){ const D = $("#drawer"), v = on ?? !D.classList.contains("flowfull"); D.classList.toggle("flowfull", v);
+  const b = $("#panel .ffull"); if (b){ b.setAttribute("aria-pressed", String(v)); b.querySelector("span").textContent = v ? t("Exit full screen") : t("Full screen");
+    b.querySelector("path").setAttribute("d", v ? "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" : "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"); }
+  const f = $("#panel .sflow"); if (v && f) $("#panel").scrollTop = Math.max(0, f.offsetTop - 8); }
 function select(id){ // 詳細の中で別の詳細へ移ったときは、戻れるように前のものを積む
   if (id && !st.sel) focusDrawer.next = openerOf(lastClick) || openerOf(document.activeElement);
   if (id && st.sel && id !== st.sel){ st.back.push(st.sel); (st.backTop ||= []).push($("#panel").scrollTop); } else if (!id){ st.back = []; st.backTop = []; } // 戻ったとき、読んでいた位置に戻す
+  if (!id || !DATA.some(x => x.id === id)) $("#drawer").classList.remove("flowfull"); // 閉じたとき・セッション以外の詳細では、全画面をやめる
   st.sel = id; tipOff(); render(); if (id) $("#panel").scrollTop = 0; dtopSync(); }
 // 詳細の題名が上へ流れて見えなくなったら、上の帯（#dtop）に小さく出す（どの詳細を読んでいるかわからなくならないように）
 // 題名の前に、頭の小見出しと同じ色の点とエージェントの印を添える（どのセッションか、色と印でもわかるように）

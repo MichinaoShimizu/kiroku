@@ -1,0 +1,1 @@
+- Session details: ‹ › at the top right (or `←` `→`) open the previous or next session, `↑` `↓`, `PageUp` `PageDown`, `Home` `End` and `Space` scroll the details, and **Full screen** next to the prompt flow (or `F`) shows only the flow across the whole window

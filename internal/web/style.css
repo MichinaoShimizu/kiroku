@@ -1080,3 +1080,11 @@ body[data-view="sum"] #kpis{display:none}
 .mbar>:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* 予定の名前は、語の途中でハイフンを入れて折らない */
 .run .t span{hyphens:manual}
+/* 詳細の上の帯の、前後のセッションへ（いつも見える位置。閉じるボタンの左） */
+.snav{display:inline-flex;gap:2px;margin-left:auto}.snav .iconbtn:disabled{opacity:.3;cursor:default}
+#drawer .dh #close{margin-left:4px}
+/* プロンプトの流れを全画面で：詳細を画面いっぱいにし、流れだけを読みやすい幅で */
+body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radius:0}
+.drawer.flowfull .scols{display:block}.drawer.flowfull .scols>:not(.sflow),.drawer.flowfull .sflags{display:none}
+.drawer.flowfull .sflow{max-width:960px;margin:0 auto}
+.drawer .flowhd .ffull{height:28px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs)}.drawer .flowhd .ffull .i{width:14px;height:14px}
