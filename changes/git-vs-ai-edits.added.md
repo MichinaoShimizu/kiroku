@@ -1,2 +1,3 @@
 - Session details: an Output section for every agent, with Git (commits during the session, with the share by AI where the agent records it, and pull requests) and AI edits (files and lines edited, with Kiro credits or estimated cost per 100 AI-edited lines). Kiro sessions used to show no output there
 - Summary: estimated cost, Kiro credits and tokens per 100 AI-edited lines, in the Unit cost row and the Trend. They divide by the lines the agents edited according to history, so unlike Kiro credits per commit they don't depend on commits you made by hand
+- Summary: estimated cost, Kiro credits and tokens per session in How you used AI, each divided by the sessions that record it

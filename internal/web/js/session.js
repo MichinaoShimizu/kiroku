@@ -108,22 +108,26 @@ async function saveHistory(s, a){
 const FLOW_SHOW = 30, FLOW_GAP = 1800; // はじめに出すプロンプトの数 / これより長い待たせは「あいた」の区切りにする（待たせの中央値と同じ 30 分）
 /* セッションの出力。Git（リポジトリから読んだコミットと、AI が作った PR）と、AI の編集（エージェントの履歴の編集ツールから数えた
    ファイルと行。コミットしたかどうかによらない）は、数え方も元も違うので、見出しを分けて別のまとまりにし、混ぜて足さない */
+const EDIT_MIN = 50; // これより少ない行で割ると、行あたりの単価が極端になる（数行の編集で $10/100 行など）ので出さない
 function sessionOutputs(s){
   const tile = (k, v, sub, title) => `<div${title ? ` title="${esc(title)}"` : ""}><div class="k">${esc(k)}</div><div class="v">${v}</div>${sub ? `<div class="k">${sub}</div>` : ""}</div>`;
   const grp = (cls, icon, h, note, body) => `<div class="sog ${cls}"><h4>${ico(icon)}${esc(h)} <small>${esc(note)}</small></h4>${body}</div>`; // 印と見出しで、どちらのまとまりかがひと目でわかるように
+  const num = v => Math.max(0, Number(v) || 0); // 数として扱う（壊れた値を HTML に入れない）
   // Git：このセッションの間のコミット（右の「このセッションの間のコミット」と同じ数え方。手でのコミットも入る）。AI が実行したかは Claude Code だけが記録する
-  const cs = commitsOf(s), o = s.outputs || {}, byAI = records(s.source, "outputs"), G = [];
+  const cs = commitsOf(s), o = s.outputs || {}, byAI = records(s.source, "outputs"), G = [], oc = num(o.commits), op = num(o.prs);
   if (cs.length) G.push(tile(t("Git commits"), `${cs.length}`, esc(byAI ? t("{n} by AI", {n: cs.filter(c => c.ai).length}) : t("By you or AI: not recorded")), byAI ? "" : t("{agent} does not record which commits it ran", {agent: s.source})));
-  else if (o.commits) G.push(tile(t("AI commits"), `${o.commits}`, esc(t("Git not read: commits AI ran, from history")))); // git を読めないときは、AI が実行した回数
-  if (o.prs) G.push(tile(t("Pull requests created"), `${o.prs}`, ""));
-  const gitH = G.length ? `<div class="mini tight">${G.join("")}</div>` : noneH(esc((META.git || []).length ? t("No commits during this session") : t("Git not read")));
-  // AI の編集：履歴の編集ツールから（行は編集の前後を比べた目安）。単価は、このまとまりの行で割る（Git のコミットでは割らない）
-  const lines = (s.editAdded || 0) + (s.editRemoved || 0), A = [];
-  if (s.nFiles) A.push(tile(t("Files edited by AI"), `${s.nFiles}`, ""), lines > 0 ? tile(t("Lines edited by AI"), commas(lines), `+${commas(s.editAdded || 0)} −${commas(s.editRemoved || 0)}`)
+  else if (oc) G.push(tile(t("AI commits"), `${oc}`, esc(t("Commits AI ran, from history; none found in git during this session")))); // git に見つからないときは、AI が実行した回数
+  if (op) G.push(tile(t("Pull requests created"), `${op}`, ""));
+  const gitH = G.length ? `<div class="mini tight">${G.join("")}</div>` : noneH(esc(t("No commits found during this session")));
+  // AI の編集：履歴の編集ツールから（行は編集の前後を比べた目安）。単価は、このまとまりの行で割る（Git のコミットでは割らない）。
+  // 割る元は、サマリーの「AI が編集した 100 行あたり」と同じ（編集を記録するエージェントで、推定費用はトークンを記録したセッション）
+  const ad = num(s.editAdded), rm = num(s.editRemoved), lines = ad + rm, nf = num(s.nFiles), A = [], rec = records(s.source, "files");
+  const usd4 = v => "$" + (v < 0.01 ? v.toFixed(4) : v.toFixed(2)); // 式の中の額は、1 セント未満でも「<$0.01」にしない（式が合わなく見える）
+  if (nf) A.push(tile(t("Files edited by AI"), `${nf}`, ""), lines > 0 ? tile(t("Lines edited by AI"), commas(lines), `+${commas(ad)} −${commas(rm)}`)
     : tile(t("Lines edited by AI"), "—", esc(t("The history does not keep what the edits wrote")))); // ファイルは変えたのに行が 0 なら、0 行と見せず「—」（中身の残らない編集）
-  if (lines > 0 && s.credits) A.push(tile(t("Kiro credits per 100 AI-edited lines"), crN(s.credits * 100 / lines), esc(`${cr1(s.credits)} ÷ ${commas(lines)} × 100`)));
-  if (lines > 0 && s.cost) A.push(tile(t("Estimated cost per 100 AI-edited lines"), usdH(s.cost * 100 / lines), esc(`${usd(s.cost)} ÷ ${commas(lines)} × 100`)));
-  const editH = A.length ? `<div class="mini tight">${A.join("")}</div>` : noneH(esc(records(s.source, "files") ? t("None") : notRec([s.source])));
+  if (rec && lines >= EDIT_MIN && num(s.credits)) { const v = num(s.credits) * 100 / lines; A.push(tile(t("Kiro credits per 100 AI-edited lines"), crN(v), esc(`${cr1(num(s.credits))} ÷ ${t("{n} AI-edited lines", {n: commas(lines)})} × 100 = ${crN(v)}`))); }
+  if (rec && lines >= EDIT_MIN && num(s.cost) && sesTok(s)) { const v = num(s.cost) * 100 / lines; A.push(tile(t("Estimated cost per 100 AI-edited lines"), usdH(v), esc(`${usd4(num(s.cost))} ÷ ${t("{n} AI-edited lines", {n: commas(lines)})} × 100 = ${usd(v)}`))); }
+  const editH = A.length ? `<div class="mini tight">${A.join("")}</div>` : noneH(esc(rec ? t("None") : notRec([s.source])));
   return `<h3>${esc(t("Output"))}</h3>${grp("sog-git", "commit", t("Git"), t("from your repositories"), gitH)}${grp("sog-edit", "edit", t("AI edits"), t("from the agent's history, committed or not"), editH)}`;
 }
 function span(v){ return v < 3600 ? secs(v) : dur(v / 60); } // 秒数を、1 時間からは時間と分で

@@ -4,7 +4,7 @@
 const INS_N = 12, INS_MIN = 4; // 比べる期間の数と、比べるのに要る最低の数（それより少なければ「まだ比べられない」と言う）
 const INS_ADD = new Set(["cost", "credits", "active", "prompts", "tokens", "gitCommits", "limits", "longctx", "friction", "bigPrompts", "focus"]); // 期間の長さに比例して増える指標（途中の期間は、このペースで期間を終えたときの値で比べる）
 const INS_KEYS = ["cost", "credits", "tokens", "active", "costPerCommit", "creditsPerCommit", "tokensPerCommit", "costPerEdit", "creditsPerEdit", "tokensPerEdit", "cache", "fix", "wait"]; // グラフで切り替えて見られる指標
-const INS_SHORT = () => ({cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), active: t("Time"), costPerCommit: t("Cost per commit"), creditsPerCommit: t("Credits per commit"), tokensPerCommit: t("Tokens per commit"), costPerEdit: t("Cost per 100 AI lines"), creditsPerEdit: t("Credits per 100 AI lines"), tokensPerEdit: t("Tokens per 100 AI lines"), cache: t("Cache"), fix: t("Corrections"), wait: t("Wait")}); // 切り替えの短い名前（正式な名前は title と、グラフの下の文）
+const INS_SHORT = () => ({cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), active: t("Time"), costPerCommit: t("Cost per Git commit"), creditsPerCommit: t("Credits per Git commit"), tokensPerCommit: t("Tokens per Git commit"), costPerEdit: t("Cost per 100 AI lines"), creditsPerEdit: t("Credits per 100 AI lines"), tokensPerEdit: t("Tokens per 100 AI lines"), cache: t("Cache"), fix: t("Corrections"), wait: t("Wait")}); // 切り替えの短い名前（正式な名前は title と、グラフの下の文）
 // insNice は、目盛りの上端を切りのよい数（1・2・2.5・5・10 の 10 の累乗倍）に
 function insNice(v){ if (!(v > 0)) return 1; const e = Math.pow(10, Math.floor(Math.log10(v))); return [1, 2, 2.5, 5, 10].map(m => m * e).find(x => x >= v); }
 function insQuant(xs, q){ const s = [...xs].sort((a, b) => a - b), i = (s.length - 1) * q, lo = Math.floor(i), hi = Math.ceil(i); return s[lo] + (s[hi] - s[lo]) * (i - lo); }
@@ -78,7 +78,7 @@ function insHeadlines(F){
   const pj = projection(w), pc = pacing(w, pw), fmc = x => x === "credits" ? (cr1) : usd; // 式の中のクレジットは小数 1 桁（整数に丸めると、引き算の結果と合わなくなる）
   const pjf = (p, k, so) => `${fmc(k)(so)} ÷ ${p.days}${t("d")} × ${p.nd}${t("d")} = ${fmc(k)(p[k])}`; // 月末の推定の式（今日までの実績 ÷ 日数 × 月の日数）
   if (pj && (pj.cost != null || pj.credits != null)){ const ks = ["cost", "credits"].filter(k => pj[k] != null); // 推定費用とクレジットは別の枠なので、足さずに「 · 」で並べる（上の帯と同じ。内訳から、もう片方の内訳へ移れる）
-    tile(t(ks.length > 1 ? "Month-end (estimate)" : ks[0] === "cost" ? "Month-end cost" : "Month-end credits"), false, ks.map(k => `≈ ${fmc(k)(pj[k])}`).join(" · "), ks.map(k => pjf(pj, k, k === "cost" ? costOf(u) : u.credits)), ks[0] === "cost" ? "projection" : "projectionCr"); }
+    tile(t(ks.length > 1 ? "Month-end (estimate)" : ks[0] === "cost" ? "Month-end cost" : "Month-end credits"), false, ks.map(k => `≈ ${k === "credits" && ks.length === 1 ? crN(pj[k]) : fmc(k)(pj[k])}`).join(" · "), /* 「月末のクレジット」だけなら単位は見出しにある */ ks.map(k => pjf(pj, k, k === "cost" ? costOf(u) : u.credits)), ks[0] === "cost" ? "projection" : "projectionCr"); }
   else if (pc){ // 費用とクレジットのそれぞれについて：残りの日 1 日あたりの目安か、すでに超えた額（式で）
     const xs = ["cost", "credits"].filter(k => pc[k]).map(k => ({k, x: pc[k], f: fmc(k)})), ok = xs.find(o => o.x.rest >= 0), fs = xs.map(({x, f}) => x.rest >= 0 ? `(${f(x.ref)} − ${f(x.so)}) ÷ ${pc.left}${t("d")} = ${f(x.per)}/${t("d")}` : `${f(x.so)} − ${f(x.ref)} = +${f(-x.rest)} ${t("over")}`);
     if (ok) tile(M ? t("A day to match last month") : t("A day to match last week"), false, `${ok.f(ok.x.per)}/${t("d")}`, fs, ok.k === "cost" ? "pace" : "paceCr");
@@ -90,23 +90,23 @@ function insHeadlines(F){
   G = "outGit";
   const g = w && w.git && w.git.commits ? w.git : null, o = (w && w.outputs) || {};
   if (g) tile(t("Git commits"), insBase("gitCommits"), `${g.commits}`, {f: `AI ${g.ai} ÷ ${g.commits} = ${Math.round(g.ai * 100 / g.commits)}%`, p: t("{pc}% by AI", {pc: Math.round(g.ai * 100 / g.commits)})}, "commits");
-  else if (o.commits) tile(t("AI commits"), false, `${o.commits}`, t("Git not read: commits AI ran, from history"), "aiCommits");
+  else if (o.commits) tile(t("AI commits"), false, `${o.commits}`, t("Commits AI ran, from history"), "aiCommits");
   G = "outEdit";
   { const xs = DATA.filter(s => s.start >= ws && s.start < we && s.nFiles > 0), a = xs.reduce((x, s) => x + (s.editAdded || 0), 0), d = xs.reduce((x, s) => x + (s.editRemoved || 0), 0);
     if (a + d > 0) tile(t("Lines edited by AI"), false, commas(a + d), {f: `+${commas(a)} −${commas(d)}`, p: `+${commas(a)} −${commas(d)}`}); }
   // 単価も、割る数の元ごとに分ける：Git のコミットあたり・AI が編集した 100 行あたり・プロンプトあたり
   G = "unitGit";
   const bp = insBase("costPerCommit"), oc = w && w.outCost, nc = w && w.outputs && w.outputs.commits;
-  if (bp) tile(t("Cost per commit"), bp, fmtM("costPerCommit", bp.cur), oc && nc ? `Claude Code ${usd(oc)} ÷ ${nc} ${t("AI commits")} = ${usd(bp.cur)}` : "", "costPerCommit");
+  if (bp) tile(t("Estimated cost per Git commit"), bp, fmtM("costPerCommit", bp.cur), oc && nc ? `Claude Code ${usd(oc)} ÷ ${nc} ${t("AI commits")} = ${usd(bp.cur)}` : "", "costPerCommit");
   const bcc = insBase("creditsPerCommit"), gx = g ? g.commits - (g.ai || 0) : 0;
-  if (bcc) tile(t("Kiro credits per commit"), bcc, `${Math.round(bcc.cur * 10) / 10}`, {f: `${cr1(u.credits)} ÷ ${gx} ${t("commits")} = ${fmtM("creditsPerCommit", bcc.cur)}`, p: t("÷ Git commits not run by Claude Code")});
+  if (bcc) tile(t("Kiro credits per Git commit"), bcc, `${Math.round(bcc.cur * 10) / 10}`, {f: `${cr1(u.credits)} ÷ ${gx} ${t("commits")} = ${fmtM("creditsPerCommit", bcc.cur)}`, p: t("÷ Git commits not run by Claude Code")});
   const btc = insBase("tokensPerCommit");
-  if (btc) tile(t("Tokens per commit"), btc, fmtM("tokensPerCommit", btc.cur), nc ? `Claude Code ${t("tokens")} ÷ ${nc} ${t("AI commits")} = ${fmtM("tokensPerCommit", btc.cur)}` : "");
+  if (btc) tile(t("Tokens per Git commit"), btc, fmtM("tokensPerCommit", btc.cur), nc ? `Claude Code ${t("tokens")} ÷ ${nc} ${t("AI commits")} = ${fmtM("tokensPerCommit", btc.cur)}` : "");
   G = "unitEdit";
   for (const [k, label, fu] of [["costPerEdit", t("Estimated cost per 100 AI-edited lines"), usd], ["creditsPerEdit", t("Kiro credits per 100 AI-edited lines"), cr1]]){ // トークンは推移だけ（数字の段を増やしすぎない）
     const b = insBase(k); if (!b) continue;
     const e = editsBasis(ws, we, k.replace("PerEdit", ""));
-    tile(label, b, fmtM(k, b.cur), {f: `${fu(e.used)} ÷ ${commas(e.lines)} ${t("AI-edited lines")} × 100 = ${fmtM(k, b.cur)}`, p: t("{n} sessions that record edits", {n: e.n})}); }
+    tile(label, b, k === "creditsPerEdit" ? crN(b.cur) : fmtM(k, b.cur), {f: `${fu(e.used)} ÷ ${t("{n} AI-edited lines", {n: commas(e.lines)})} × 100 = ${fmtM(k, b.cur)}`, p: k === "creditsPerEdit" ? t("lines of the {n} sessions with Kiro credits", {n: e.n}) : t("lines of the {n} sessions with an estimated cost", {n: e.n})}); }
   G = "unitAsk";
   if (w && w.costPerAsk != null) tile(t("Estimated cost per prompt"), false, usd(w.costPerAsk), t("cost ÷ {n} prompts with token data", {n: commas(w.costPrompts)}), "costPerAsk");
   { const cs = DATA.filter(s => s.start >= ws && s.start < we && s.credits > 0), c = cs.reduce((a, s) => a + s.credits, 0), n = cs.reduce((a, s) => a + s.nPrompts, 0); // クレジットを記録したセッションの、プロンプトあたり
@@ -117,11 +117,13 @@ function insHeadlines(F){
   // まず見直すもの：数字の段の下に 1 行で（カードにすると、数字と同じ重さに見える）
   const C = f0 ? `<div class="icall${b0 && b0.better === false ? " bad" : ""}"><span class="il">${esc(t("Change first"))}${nIds > 1 ? ` · ${esc(t("{n} worth a look", {n: nIds}))}` : ""}</span><button type="button" class="icv insgo" data-goto="${esc(g0)}" aria-haspopup="dialog">${esc(n0)}</button><span class="isee">${esc(f0.L.see)}</span>${fx(t("Threshold: {rule}", {rule: f0.L.rule}))}${b0 ? insChip(b0) : ""}</div>`
     : `<div class="icall good"><span class="il">${esc(t("Change first"))}</span><b class="icv">${esc(t("Nothing"))}</b><span class="isee">${esc(t("No metric crossed its threshold"))}</span></div>`;
-  const grp = (k, label) => T[k].length ? `<section class="ikg" aria-label="${esc(label)}"><h5 class="ikgh">${esc(label)}</h5><div class="ikrow">${T[k].join("")}</div></section>` : "";
+  // カードは 4 列の格子に、中の数字の多い段の数だけ列を使って並べる（数字が少ないカードを横いっぱいに広げず、空いた横に次のカードを入れる）
+  const sp = n => ` sp${Math.min(4, Math.max(1, n))}`;
+  const grp = (k, label) => T[k].length ? `<section class="ikg${sp(T[k].length)}" aria-label="${esc(label)}"><h5 class="ikgh">${esc(label)}</h5><div class="ikrow">${T[k].join("")}</div></section>` : "";
   // 小見出しのある段：出どころ（Git と AI の編集）が違う数字を、同じ枠の中でも段と印で分ける
-  const sub = ([k, icon, label, note]) => T[k].length ? `<div class="iksub ${k}" role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><div class="ikrow">${T[k].join("")}</div></div>` : "";
-  const grp2 = (label, rows) => rows.some(r => T[r[0]].length) ? `<section class="ikg" aria-label="${esc(label)}"><h5 class="ikgh">${esc(label)}</h5>${rows.map(sub).join("")}</section>` : "";
-  return `<div class="insh">${grp("cost", t("Cost"))}${grp2(t("Output"), [["outGit", "commit", t("Git"), t("from your repositories")], ["outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not")]])}${grp2(t("Unit cost"), [["unitGit", "commit", t("Per Git commit"), ""], ["unitEdit", "edit", t("Per 100 AI-edited lines"), ""], ["unitAsk", "user", t("Per prompt"), ""]])}</div>${C}<p class="ifxs insdef">${fx(insDef())}</p>`;
+  const sub = ([k, icon, label, note, empty]) => !T[k].length && empty ? `<div class="iksub ${k}" role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><p class="none iknone">${esc(empty)}</p></div>` : T[k].length ? `<div class="iksub ${k}" role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><div class="ikrow">${T[k].join("")}</div></div>` : "";
+  const grp2 = (label, rows) => rows.some(r => T[r[0]].length) ? `<section class="ikg${sp(Math.max(...rows.map(r => T[r[0]].length)))}" aria-label="${esc(label)}"><h5 class="ikgh">${esc(label)}</h5>${rows.map(sub).join("")}</section>` : "";
+  return `<div class="insh">${grp("cost", t("Cost"))}${grp2(t("Output"), [["outGit", "commit", t("Git"), t("from your repositories"), T.outEdit.length ? t("No Git commits for this selection") : ""], ["outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not")]])}${grp2(t("Unit cost"), [["unitGit", "commit", t("Per Git commit"), ""], ["unitEdit", "edit", t("Per 100 AI-edited lines"), ""], ["unitAsk", "user", t("Per prompt"), ""]])}</div>${C}<p class="ifxs insdef">${fx(insDef())}</p>`;
 }
 /* 推移のグラフ：前の INS_N 期間と表示中の期間の棒。いつもの範囲（四分位）を帯、中央値を点線で重ねる。
    途中の期間は、今の値の棒と、このペースで終えたときの値の枠。範囲から大きく外れた期間には印 */
@@ -208,8 +210,8 @@ function bindInsight(R){
   R.querySelectorAll(".insksel").forEach(sl => sl.onchange = () => { st.insK = sl.value; store.set("insK", st.insK); summary(); const ns = $("#review .insksel"); if (ns) ns.focus(); });
   R.querySelectorAll(".insgo").forEach(b => b.onclick = () => insOpenWorth(b.dataset.goto, b));
   R.querySelectorAll("[data-where]").forEach(b => b.onclick = () => { st.insW = b.dataset.where; store.set("insW", st.insW); summary(); const nb = $("#review").querySelector(`[data-where="${CSS.escape(b.dataset.where)}"]`); if (nb) nb.focus(); });
-  R.querySelectorAll(".iwf[data-sid]").forEach(b => b.onclick = () => select(b.dataset.sid)); // いちばん変えたファイル：そのファイルをいちばん変えたセッションを開く
-  R.querySelectorAll(".insfig [data-sid]:not(.iwf)").forEach(c => { c.onclick = () => select(c.dataset.sid); c.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); select(c.dataset.sid); } }; }); // 散布図の点は、そのセッションを開く
+  R.querySelectorAll(".iwses[data-sid]").forEach(b => b.onclick = () => select(b.dataset.sid)); // いちばん変えたファイル：編集の回数から、そのファイルをいちばん変えたセッションを開く
+  R.querySelectorAll(".insfig [data-sid]:not(.iwses)").forEach(c => { c.onclick = () => select(c.dataset.sid); c.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); select(c.dataset.sid); } }; }); // 散布図の点は、そのセッションを開く
 }
 
 /* 費用と成果の散布図：表示中の期間に始まったセッションごとに、横は推定費用（平方根の目盛り）、縦は成果（そのセッションの間のコミットと作った PR）。
@@ -361,8 +363,11 @@ function insEditsBody(){
   const w0 = Math.max(1, top[0].a + top[0].d), multi = new Set(top.map(x => x.project)).size > 1;
   const S = [insStat(t("Files edited by AI"), n(nf), esc(plural(xs.length, "session")), "aiFiles"),
     insStat(t("Lines edited by AI"), n(add + del), fx(`+${n(add)} −${n(del)}; ${n(edits)} ${t("edits")}`, "", `+${n(add)} −${n(del)}`), "aiLines")].join("");
-  const rows = top.map(x => `<div class="iwr"><button type="button" class="iwn iwf" data-sid="${esc(x.sid)}" title="${esc(x.f)}">${multi ? `<small>${esc(x.project)}</small> ` : ""}${esc(x.rel)}</button><span class="iwb"><span style="width:${((x.a + x.d) * 100 / w0).toFixed(1)}%;background:var(--acc)"></span></span><span class="iwv">+${n(x.a)} −${n(x.d)}</span><b>${esc(t("{n}×", {n: x.n}))}</b></div>`).join("");
-  return {stats: S, files: `<figure class="insfig"><figcaption class="iwcap">${esc(t("Most changed files"))}</figcaption><div class="iwrows" role="table" aria-label="${esc(t("Most changed files"))}">${rows}</div><p class="ifxs">${fx(t("+ − = lines added and removed, compared before and after each edit; × = edits"), "", t("Lines: before and after each edit, an estimate"))}</p></figure>`, nf, add, del};
+  // ファイル名はファイルそのものを開く（セッションの間のコミットのリンク、なければこの PC のファイル。セッション詳細の一覧と同じ）。
+  // そのファイルをいちばん変えたセッションは、右端の編集の回数から開く
+  const href = x => { const ss = DATA.find(s => s.id === x.sid); return ss ? fileLink(ss, x.f) || localHref(x.f, ss.projectPath) : ""; };
+  const rows = top.map(x => `<div class="iwr"><span class="iwn iwf" title="${esc(x.f)}">${multi ? `<small>${esc(x.project)}</small> ` : ""}${fileA(href(x), esc(x.rel))}</span><span class="iwb"><span style="width:${((x.a + x.d) * 100 / w0).toFixed(1)}%;background:var(--acc)"></span></span><span class="iwv">+${n(x.a)} −${n(x.d)}</span><button type="button" class="iwses" data-sid="${esc(x.sid)}" title="${esc(t("Open the session that changed it most"))}">${esc(t("{n}×", {n: x.n}))}</button></div>`).join("");
+  return {stats: S, files: `<figure class="insfig"><figcaption class="iwcap">${esc(t("Most edited files"))}</figcaption><div class="iwrows" role="table" aria-label="${esc(t("Most edited files"))}">${rows}</div><p class="ifxs">${fx(t("+ − = lines added and removed, compared before and after each edit; × = edits"), "", t("Lines: before and after each edit, an estimate"))}</p></figure>`, nf, add, del};
 }
 /* 成果：コミット（うち AI）・変えた行・PR・成果まで届いたセッション・コミットあたりの費用。割った指標は式で */
 function insOutputs(){
@@ -371,16 +376,17 @@ function insOutputs(){
   if (!o.commits && !g && !o.prs && !E) return "";
   const lines = g ? g.added + g.removed : 0, sp = base ? Math.round(w.outSessions * 100 / base) : null;
   const S = [
-    g ? insStat(t("Git commits"), `${g.commits}`, fx(`AI ${g.ai} ÷ ${g.commits} = ${Math.round(g.ai * 100 / g.commits)}%`), "gitCommits", "commits", "gitCommits") : insStat(t("AI commits"), `${o.commits}`, "", "commits", o.commits ? "aiCommits" : ""),
+    g ? insStat(t("Git commits"), `${g.commits}`, fx(`AI ${g.ai} ÷ ${g.commits} = ${Math.round(g.ai * 100 / g.commits)}%`), "gitCommits", "commits", "gitCommits") : o.commits ? insStat(t("AI commits"), `${o.commits}`, esc(t("Commits AI ran, from history")), "commits", "aiCommits") : "", // AI のコミットが 0 なら出さない（記録しないエージェントで「0」と読めてしまう）
     g ? insStat(t("Lines in Git commits"), n(lines), fx(`+${n(g.added)} −${n(g.removed)}; ${n(lines)} ÷ ${g.commits} = ${n(Math.round(lines / g.commits))} ${t("per commit")}`), "lines", "lines") : "",
     o.prs ? insStat(t("Pull requests"), `${o.prs}`, esc(t("Created by AI")), "prs", "prs") : "",
     base ? insStat(t("Sessions that reached a commit or PR"), `${sp}<small>%</small>`, fx(`${w.outSessions} ÷ ${base} ${t("Claude Code sessions")} = ${sp}%`), "outSessions", "outSessions", "outSessions") : "",
   ].join("");
-  const sy = (g ? t("{c} commits, {ai}% by AI; {sp}% of Claude Code sessions reached a commit or PR", {c: g.commits, ai: Math.round(g.ai * 100 / g.commits), sp: sp ?? "—"}) : o.commits ? t("{c} AI commits; {sp}% of Claude Code sessions reached a commit or PR", {c: o.commits, sp: sp ?? "—"}) : "")
-    + (E ? (g || o.commits ? t("; ") : "") + t("AI changed {n} files (+{a} −{d} lines)", {n: n(E.nf), a: n(E.add), d: n(E.del)}) : "");
+  // 読み取りの 1 文も、Git と AI の編集で列ごとに分ける（1 つの文につなぐと、2 つを足した数に読めてしまう）
+  const syG = g ? t("{c} commits, {ai}% by AI; {sp}% of Claude Code sessions reached a commit or PR", {c: g.commits, ai: Math.round(g.ai * 100 / g.commits), sp: sp ?? "—"}) : o.commits ? t("{c} AI commits; {sp}% of Claude Code sessions reached a commit or PR", {c: o.commits, sp: sp ?? "—"}) : "";
+  const syE = E ? t("AI edited {n} files (+{a} −{d} lines)", {n: n(E.nf), a: n(E.add), d: n(E.del)}) : "";
   // Git（リポジトリ）と AI の編集（履歴）は元が違うので、列と小見出しで分け、足したり割ったりして混ぜない
   const col = (cls, icon, h, note, body) => `<div class="iosec ${cls}" role="group" aria-label="${esc(h)}"><h6 class="iksh">${ico(icon)}${esc(h)} <small>${esc(note)}</small></h6>${body}</div>`;
-  return `${say(sy)}<div class="iout2">${S ? col("outGit", "commit", t("Git"), t("from your repositories"), `<div class="stats istats">${S}</div>`) : ""}${E ? col("outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not"), `<div class="stats istats">${E.stats}</div>${E.files}`) : ""}</div>`;
+  return `<div class="iout2">${col("outGit", "commit", t("Git"), t("from your repositories"), S ? `${say(syG)}<div class="stats istats">${S}</div>` : noneH(esc(t("No Git commits for this selection"))))}${E ? col("outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not"), `${say(syE)}<div class="stats istats">${E.stats}</div>${E.files}`) : ""}</div>`;
 }
 /* AI の使い方：トークン・キャッシュ・クレジット・プロンプト・プロンプトあたりの費用・サブエージェント・月末の推定 */
 function insUsage(){
@@ -392,12 +398,24 @@ function insUsage(){
     u.credits ? insStat(t("Kiro credits"), crN(u.credits), esc(t("Not an estimate")), "credits", "credits") : "",
     insStat(t("Prompts"), commas(w.prompts), "", "prompts", "sessions", "prompts"),
     w.costPerAsk != null ? insStat(t("Estimated cost per prompt"), usdH(w.costPerAsk), fx(t("cost ÷ {n} prompts with token data", {n: commas(w.costPrompts)})), "costPerAsk", "costPerAsk") : "",
+    ...perSession(ws, we),
     N ? norecStat(esc(t("Subagents")), N, "subagents") : insStat(t("Subagents"), `${u.subagents}`, u.subagents ? esc(t("Total run time {d}", {d: dur(u.subMin)})) + (u.subTypes.length ? " · " + esc(u.subTypes.slice(0, 3).map(([k, v]) => `${k} ${v}`).join(", ")) : "") : esc(t("Not used")), "subagents", u.subagents ? "subagents" : ""),
     pj && pj.cost != null ? insStat(t("Month-end cost (estimate)"), "≈ " + usdH(pj.cost), fx(`${t("so far")} ÷ ${pj.days}${t("d")} × ${w.days.length}${t("d")}`), "projection", "projection") : "",
-    pj && pj.credits != null ? insStat(t("Month-end credits (estimate)"), `≈ ${crH(pj.credits)}`, fx(`${t("so far")} ÷ ${pj.days}${t("d")} × ${w.days.length}${t("d")}`), "projectionCr", "projectionCr") : "",
+    pj && pj.credits != null ? insStat(t("Month-end credits (estimate)"), `≈ ${crN(pj.credits)}`, fx(`${t("so far")} ÷ ${pj.days}${t("d")} × ${w.days.length}${t("d")}`), "projectionCr", "projectionCr") : "",
   ].join("");
   const sy = u.tokens ? t("{t} tokens; {c}% of input read from cache", {t: tok(u.tokens), c: u.cacheHit == null ? "—" : Math.round(u.cacheHit * 100)}) : t("{c} Kiro credits", {c: crN(u.credits)});
   return `${say(sy)}<div class="stats istats">${S}</div>`;
+}
+/* セッションあたり：期間に始まったセッションのうち、その使用量（推定費用・クレジット・トークン）を記録したものの平均。
+   エージェントごとに記録するものが違うので、それぞれ記録したセッションだけで割る */
+function perSession(ws, we){
+  const xs = DATA.filter(s => s.start >= ws && s.start < we), out = [];
+  const avg = f => { const ys = xs.filter(s => f(s) > 0); return ys.length ? {n: ys.length, sum: ys.reduce((a, s) => a + f(s), 0)} : null; };
+  const c = avg(s => sesTok(s) ? s.cost || 0 : 0), k = avg(s => s.credits || 0), tk = avg(sesTok);
+  if (c) out.push(insStat(t("Estimated cost per session"), usdH(c.sum / c.n), fx(`${usd(c.sum)} ÷ ${c.n} ${t("sessions")} = ${usd(c.sum / c.n)}`), "costPerSes"));
+  if (k) out.push(insStat(t("Kiro credits per session"), crN(k.sum / k.n), fx(`${cr1(k.sum)} ÷ ${k.n} ${t("sessions")} = ${cr1(k.sum / k.n)}`), "creditsPerSes"));
+  if (tk) out.push(insStat(t("Tokens per session"), tok(tk.sum / tk.n), fx(`${tok(tk.sum)} ÷ ${tk.n} ${t("sessions")} = ${tok(tk.sum / tk.n)}`), "tokensPerSes"));
+  return out;
 }
 /* 作業の進め方：言い直し・利用上限・コンパクション・長すぎるプロンプト・集中ブロック・切り替え・待ち時間 */
 function insWork(){

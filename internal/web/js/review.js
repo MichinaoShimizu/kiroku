@@ -66,10 +66,10 @@ const MET = {
   tokensPerCommit: {f: (w, ws, we) => { const c = w.outputs && w.outputs.commits; if (!c) return null; const n = DATA.filter(s => s.source === "Claude Code" && s.start >= ws && s.start < we).reduce((a, s) => a + sesTok(s), 0); return n ? n / c : null; }, low: true, fmt: v => tok(v)},
   // コミットあたりのクレジット：Kiro は AI が実行したコミットを記録しないので、Git のコミットのうち Claude Code が実行したもの以外で割る（手で打ったコミットも入る）
   creditsPerCommit: {f: w => { const c = w.usage && w.usage.credits, g = w.git, n = g ? g.commits - (g.ai || 0) : 0; return c && n > 0 ? c / n : null; }, low: true, fmt: v => cr1(v)},
-  // AI が編集した 100 行あたり：Git のコミットではなく、エージェントの履歴の編集ツールから数えた行で割る（editsBasis）
-  costPerEdit: {f: (w, ws, we) => perEdit(ws, we, "cost"), low: true, fmt: v => usd(v)},
-  creditsPerEdit: {f: (w, ws, we) => perEdit(ws, we, "credits"), low: true, fmt: v => cr1(v)},
-  tokensPerEdit: {f: (w, ws, we) => perEdit(ws, we, "tokens"), low: true, fmt: v => tok(v)},
+  // AI が編集した 100 行あたり（良し悪しの向きは付けない：行あたりが下がるのは、多く・冗長に書いただけのこともある）：Git のコミットではなく、エージェントの履歴の編集ツールから数えた行で割る（editsBasis）
+  costPerEdit: {f: (w, ws, we) => perEdit(ws, we, "cost"), fmt: v => usd(v)},
+  creditsPerEdit: {f: (w, ws, we) => perEdit(ws, we, "credits"), fmt: v => cr1(v)},
+  tokensPerEdit: {f: (w, ws, we) => perEdit(ws, we, "tokens"), fmt: v => tok(v)},
   modelfit: {f: (w, ws, we) => w.usage && w.usage.cost >= 0.01 ? pctOf(lightOf(ws, we).c, w.usage.cost) : null, low: true, u: "%"},
   fix: {f: w => w.fixRate, low: true, u: "%"},
   friction: {f: w => w.frictionN ?? w.friction.length, low: true, u: ""},

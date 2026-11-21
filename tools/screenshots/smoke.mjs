@@ -354,8 +354,8 @@ async function run(env) {
         const k = [...document.querySelectorAll("#review .insh .ikrow > .itile")], inside = k.every(c => { const r = c.getBoundingClientRect(); return r.left >= g.left - 1 && r.right <= g.right + 1; });
         const one = row => { const t = [...row.children].map(c => c.getBoundingClientRect().top); return t.every(x => Math.abs(x - t[0]) < 2); };
         return G.length === 3 && k.length > 1 && inside && (innerWidth <= 1100 || G.every(x => one(x.querySelector(".ikrow")))) && !!document.querySelector("#review .icall"); }));
-      check("式はふだん隠し、「式を表示」で見せる", await p.evaluate(async () => { const vis = () => [...document.querySelectorAll("#review .insight .ifx.fxo")].some(e => e.offsetParent !== null);
-        const off = !vis(); document.querySelector("#fxbtn").click(); await new Promise(r => setTimeout(r, 200)); const on = vis(); document.querySelector("#fxbtn").click(); await new Promise(r => setTimeout(r, 200)); return off && on && !vis(); }));
+      check("式はふだんから見せ、「式を隠す」で隠す", await p.evaluate(async () => { const vis = () => [...document.querySelectorAll("#review .insight .ifx.fxo")].some(e => e.offsetParent !== null);
+        const on = vis(); document.querySelector("#fxbtn").click(); await new Promise(r => setTimeout(r, 200)); const off = !vis(); document.querySelector("#fxbtn").click(); await new Promise(r => setTimeout(r, 200)); return on && off && vis(); }));
       check("サマリーの頭に、数字 5〜14 個（上の帯の数字を含む。コスト・出力（Git と AI の編集）・単価（Git コミットあたりと AI が編集した 100 行あたりを分ける）に分ける）・推移・累積の線・どこに使ったかの横棒・長さ別の費用があり、改善のアドバイスの枠はない", r.heads >= 5 && r.heads <= 14 && r.svg && r.bars > 0 && r.cum === 1 && r.donut > 0 && r.hist === 6 && r.adv === 0, JSON.stringify(r));
       const fx = await p.evaluate(() => ({chips: [...document.querySelectorAll("#review .insight .ichip.ifx")].map(e => e.textContent), def: (document.querySelector("#review .insdef") || {}).textContent || "",
         vague: /Usual|Higher|Lower|usual range|いつもの範囲|いつもどおり|高め|低め|\bQ[13]\b|IQR/.test(document.querySelector("#review .insight").innerText)}));
@@ -499,8 +499,9 @@ async function run(env) {
         const add = xs.reduce((a, s) => a + (s.editAdded || 0), 0), del = xs.reduce((a, s) => a + (s.editRemoved || 0), 0);
         return {n: xs.length, files: c.querySelectorAll(".iwf").length, lines: c.querySelector('.hb[data-help="aiLines"]').closest(".stat").innerText, want: commas(add + del), first: (c.querySelector(".iwf") || {}).textContent}; });
       check("AI の編集のカードに、変えたファイル・行といちばん変えたファイルが出る", ed.none ? ed.n === 0 : ed.files > 0 && ed.lines.includes(ed.want), JSON.stringify(ed));
-      if (!ed.none){ await p.locator("#review .iwf").first().click(); await pause();
-        check("いちばん変えたファイルを押すと、そのファイルを変えたセッションが開く", await drawerOpen() && await p.evaluate(f => { const s = DATA.find(x => x.id === st.sel); return !!s && s.files.some(x => x.endsWith(f.trim().split(" ").pop())); }, ed.first));
+      if (!ed.none){ check("いちばん変えたファイルの名前は、セッションではなくファイルへのリンク（serve では、コミットのリンクがなければ文字だけ）", await p.evaluate(() => [...document.querySelectorAll("#review .iwf")].every(e => !e.matches("button") && !e.hasAttribute("data-sid"))));
+        await p.locator("#review .iwses").first().click(); await pause();
+        check("いちばん変えたファイルの編集の回数を押すと、そのファイルを変えたセッションが開く", await drawerOpen() && await p.evaluate(f => { const s = DATA.find(x => x.id === st.sel); return !!s && s.files.some(x => x.endsWith(f.replace("↗", "").trim().split(" ").pop())); }, ed.first)); // 名前の後ろのリンクの印（↗）は除く
         await p.keyboard.press("Escape"); await pause(); }
     }
     await view("cal");
@@ -726,7 +727,7 @@ async function run(env) {
     await p.keyboard.press("Escape"); await pause();
     await view("sum");
     const tile = await p.evaluate(() => { const b = document.querySelector('#review .itile [data-metric="credits"]'); return b ? b.closest(".itile").innerText : ""; });
-    check("サマリーのクレジットのカードにも、今月末の推定がある", /Month-end \(this month\): ≈ /.test(tile) && tile.includes(mp.v), tile);
+    check("サマリーのクレジットのカードにも、今月末の推定がある（式を出しているときは式で）", /Month-end \(this month\): ≈ |Month-end credits = /.test(tile) && tile.includes(mp.v), tile);
     await view("cal");
   });
 

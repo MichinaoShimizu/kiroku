@@ -1,1 +1,6 @@
 - Outputs are kept in two parts everywhere, never added together: **Git** (commits, lines in Git commits and pull requests, from your repositories) and **AI edits** (files and lines the agents changed with their edit tools, from history, committed or not). The summary's Output and Unit cost rows, the Outputs card and session details show them under their own headings and marks. "Lines changed" is now "Lines in Git commits", and "Files/Lines changed by AI" are "Files/Lines edited by AI"
+- Summary: formulas are shown by default ("Hide formulas" turns them off). The Cost, Output and Unit cost cards sit side by side when they have few figures, with a line between the figures in a card
+- A value whose label already names its unit (Kiro credits, Month-end credits, credits per commit and so on) no longer repeats "credits", in the band, the summary and the breakdowns
+- Most changed files: the file name opens the file (as of the session's commits, or on this computer), and the number of edits opens the session that changed it most
+- Calendar: today has a "Today" badge and an outlined column in the week calendar, and an outlined day in the month calendar
+- The unit costs per commit are named per Git commit (estimated cost, Kiro credits and tokens per Git commit), and "Most changed files" is "Most edited files"
