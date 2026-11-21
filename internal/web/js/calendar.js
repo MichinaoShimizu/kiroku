@@ -124,12 +124,12 @@ function kpis(){
   // 稼働日・セッション / プロンプト・利用上限への到達は振り返りの数なので、サマリーと「見直す候補」に任せる（帯が多いとカレンダーと主役を争う）。
   // 推定費用とクレジットは別の枠の使用量なので足さずに、1 つの枠に「 · 」で並べる。トークンは推定費用を出せないときだけ
   const c = u.tokens ? costOf(u) : null, two = (a, b) => [a, b].filter(Boolean).join(`<small> · </small>`);
-  const useV = two(u.tokens ? (c == null ? tok(u.tokens) : usdH(c)) : "", u.credits ? crH(u.credits) : "");
+  const useV = two(u.tokens ? (c == null ? tok(u.tokens) : usdH(c)) : "", u.credits ? crN(u.credits) : ""); // 見出しに「クレジット」とあるので、数に単位は付けない
   const useK = u.tokens && u.credits ? t(c == null ? "Tokens · credits" : "Estimated cost · credits") : u.tokens ? t(c == null ? "Tokens" : "Estimated cost") : t("Kiro credits");
-  const pjV = pj ? two(pj.cost != null ? `<small>≈</small>${usdH(pj.cost)}` : "", pj.credits != null ? `<small>≈</small>${crH(pj.credits)}` : "") : "";
+  const pjV = pj ? two(pj.cost != null ? `<small>≈</small>${usdH(pj.cost)}` : "", pj.credits != null ? `<small>≈</small>${pj.cost != null ? crH(pj.credits) : crN(pj.credits)}` : "") : ""; // 「月末のクレジット」だけなら単位は見出しにある
   K.innerHTML = (useV ? kpi(useK, useV, u.tokens && c == null ? NOPRICE : "", "", u.tokens ? (c == null ? "tokens" : "cost") : "credits") : "") + // 増減（%）は帯に出さず、押したときの内訳に（kpiDelta）。枠の色もそろえる
     (pc && !pj ? paceK() : "") + // 月の途中は月末の推定を出すので、前の月並みの目安は出さない（内訳とサマリーにある）
-    ((mp => mp && mp.credits != null ? kpi(t("Month-end credits"), `<small>≈</small>${crH(mp.credits)}`, t("This month so far: {v}", {v: cr(mp.soCredits)}) + " · " + t("If the pace of the first {n} days continues", {n: mp.days}), "", "monthCr") : "")(monthProj())) + // 今週を見ているときも、クレジットの今月末の推定（クレジットは月ごとの枠）
+    ((mp => mp && mp.credits != null ? kpi(t("Month-end credits"), `<small>≈</small>${crN(mp.credits)}`, t("This month so far: {v}", {v: cr(mp.soCredits)}) + " · " + t("If the pace of the first {n} days continues", {n: mp.days}), "", "monthCr") : "")(monthProj())) + // 今週を見ているときも、クレジットの今月末の推定（クレジットは月ごとの枠）
     (pjV ? kpi(t(pj.cost != null && pj.credits != null ? "Month-end (estimate)" : pj.cost != null ? "Month-end cost" : "Month-end credits"), pjV, pace, "", pj.cost != null ? "projection" : "projectionCr") : "") +
     kpi(t("Active time"), dur(w.active, true), n0 == null ? "" : M ? t("{days} of the {n} so far (this month is still in progress)", {days, n: plural(nd, "day")}) : t("{days} of the {n} so far (this week is still in progress)", {days, n: plural(nd, "day")}), "", "active");
   K.classList.toggle("dense", K.children.length > 7); // 数が多い（月表示など）ときは、一回り小さくして 1 行に
@@ -249,7 +249,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
     const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${(act || dayGit.length) ? `<button class="pill dayrun ai-copy" data-d="${d}" type="button" aria-label="${esc(t("Copy the daily report prompt for {date}", {date: md(ds)}))}" title="${esc(t("Copy the daily report prompt for {date}", {date: md(ds)}))}">${ico("copy")}<span>${esc(t("Copy prompt"))}</span></button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calLine(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`; // まだ来ていない日に「目安」は置かない（同じ額が上の帯の「前の週並みの 1 日の目安」にある）
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${isToday ? `<span class="tdy">${esc(t("Today"))}</span>` : ""}${(act || dayGit.length) ? `<button class="pill dayrun ai-copy" data-d="${d}" type="button" aria-label="${esc(t("Copy the daily report prompt for {date}", {date: md(ds)}))}" title="${esc(t("Copy the daily report prompt for {date}", {date: md(ds)}))}">${ico("copy")}<span>${esc(t("Copy prompt"))}</span></button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calLine(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`; // まだ来ていない日に「目安」は置かない（同じ額が上の帯の「前の週並みの 1 日の目安」にある）
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);

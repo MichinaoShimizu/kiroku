@@ -18,9 +18,9 @@ const BRK = {
   commits: {n: "Git commits", h: "gitCommits", v: x => x.commits, f: v => `${Math.round(v)}`},
   // ここから下は、期間の集計（Go）に日ごと・エージェントごとの値がない数。MB の関数で、履歴やコミットから組み立てる
   aiCommits: {n: "AI commits", h: "commits"},
-  lines: {n: "Lines changed", h: "lines"},
+  lines: {n: "Lines in Git commits", h: "lines"},
   prs: {n: "Pull requests", h: "prs"},
-  costPerCommit: {n: "Estimated cost per commit", h: "costPerCommit"},
+  costPerCommit: {n: "Estimated cost per Git commit", h: "costPerCommit"},
   outSessions: {n: "Sessions that reached a commit or PR", h: "outSessions"},
   focus: {n: "Focus blocks (60+ min)", h: "focus"},
   fix: {n: "Prompts with corrections or interruptions", h: "fix"},
@@ -31,6 +31,8 @@ const BRK = {
   subagents: {n: "Subagents", h: "subagents"},
   costPerAsk: {n: "Estimated cost per prompt", h: "costPerAsk"},
 };
+// 内訳の大きな数字は、見出しの名前に「クレジット」とあるので単位を付けない（「Kiro クレジット 44」）
+const bigF = m => m.f === cr ? crN : m.f;
 const sesTok = s => [s.usage, ...(s.subagents || []).map(a => a.usage)].reduce((t,u) => t + (u ? u.in+u.out+u.cw+u.cw1h+u.cr : 0), 0);
 function sesMin(s){ const {ws, we} = period(); return s.segs.reduce((t, [a, b]) => t + Math.max(0, Math.min(b, we) - Math.max(a, ws))/60, 0); } // 期間の中で作業していた分
 // 名前ごとの件数。履歴の名前（プロジェクト）を {} のキーにすると、"__proto__" や "constructor" が数えられないので Map で数える
@@ -91,9 +93,9 @@ function paceBody(w, k, m, brief){
   // 見出しは上の帯と同じ言葉（超えたあとは「超過」。超えた分を 1 日の目安と読まれないように）
   const title = on ? (C ? t(M ? "Credits a day to match last month" : "Credits a day to match last week") : t(M ? "A day to match last month" : "A day to match last week"))
     : (C ? t(M ? "Over last month's credits" : "Over last week's credits") : t(M ? "Over last month's total" : "Over last week's total"));
-  const big = on ? esc(m.f(x.per)) : `+${esc(m.f(-x.rest))}`, last = M ? "Last month" : "Last week";
-  const calc = on ? calcH([[last, esc(m.f(x.ref))], "−", ["So far", esc(m.f(x.so))], "=", ["Left", esc(m.f(x.rest))], "÷", ["Days left", `${pc.left}`], "=", ["A day", esc(m.f(x.per))]])
-    : calcH([["So far", esc(m.f(x.so))], "−", [last, esc(m.f(x.ref))], "=", ["Over", esc(m.f(-x.rest))]]);
+  const big = on ? esc(bigF(m)(x.per)) : `+${esc(bigF(m)(-x.rest))}`, last = M ? "Last month" : "Last week";
+  const calc = on ? calcH([[last, esc(m.f(x.ref))], "−", ["So far", esc(m.f(x.so))], "=", ["Left", esc(m.f(x.rest))], "÷", ["Days left", `${pc.left}`], "=", ["A day", esc(bigF(m)(x.per))]])
+    : calcH([["So far", esc(m.f(x.so))], "−", [last, esc(m.f(x.ref))], "=", ["Over", esc(bigF(m)(-x.rest))]]);
   const note = on ? t("If you keep to about {v} a day, this period ends near the last one. What you use for the rest of today comes out of the days ahead. The faded bars are the days still to come at that amount.", {v: m.f(x.per)}) : t("This period has already passed the last one's total by {v}.", {v: m.f(-x.rest)});
   // 残したもの：途中の期間は、前の期間の同じ日までとも比べる（途中の値を前の期間まるごととだけ並べない）
   const pw = period().P, n = soFar(), gc = g => g && g.git ? g.git.commits : null, a = gc(pw), b = gc(w);
@@ -216,7 +218,7 @@ function openMetric(id, from){
   else if (m.proj){ // 月末の推定：今日までの実績 ÷ 日数 × 月の日数
     const pj = projection(w), so = m.proj === "cost" ? costOf(u) : u.credits; if (!pj || so == null) return;
     const val = m.proj === "cost" ? pj.cost : pj.credits, nd = w.days.length, avg = so / pj.days;
-    big = `≈ ${m.f(val)}`;
+    big = `≈ ${bigF(m)(val)}`;
     body = `<div class="mcalc"><div><small>${esc(t("So far"))}</small><b>${esc(m.f(so))}</b></div><span>÷</span><div><small>${esc(t("Days so far"))}</small><b>${pj.days}</b></div><span>×</span><div><small>${esc(t("Days in the month"))}</small><b>${nd}</b></div><span>=</span><div><small>${esc(t("Month-end"))}</small><b>≈ ${esc(m.f(val))}</b></div></div>
       <p class="note">${esc(t("About {v} a day. The faded bars are the days still to come at that pace.", {v: m.f(avg)}))}</p>` + trendNote(w, pj, so, m) + bandTable(pj, m) + mDays(w, m, {avg, lines: (pj.band[m.proj] || []).filter(x => x.k === 3).map(x => { const R = w.days.length - pj.days; return {k: x.k, hi: (x.hi - so) / R, lo: (x.lo - so) / R}; })}) + mBars("So far, by agent", agents, m) + mBars("So far, by project", projs, m);
   } else if (id === "limits" || id === "compactions"){ // 起きた時刻の一覧：エージェントごと・プロジェクトごとと、いつどのセッションで
@@ -230,7 +232,7 @@ function openMetric(id, from){
     const tot = id === "tokens" ? u.tokens : id === "cost" ? costOf(u) : id === "credits" ? u.credits : id === "active" ? w.active : w.prompts;
     // 稼働日は帯から外したので、作業時間の内訳の数字に添える（途中の期間は今日までの日数で）
     const n0 = soFar(), nd = n0 == null ? w.days.length : Math.min(n0, w.days.length), ad = w.days.filter(d => d.active).length;
-    big = id === "active" ? `${dur(tot || 0, true)}<small> · ${esc(t("Active days"))} ${ad} ${esc(n0 == null ? t("of {n}", {n: nd}) : t("of {n} so far", {n: nd}))}</small>` : id === "sessions" ? `${w.sessions}<small>/</small>${w.prompts}` : id === "cost" ? usdH(tot) : esc(m.f(tot || 0));
+    big = id === "active" ? `${dur(tot || 0, true)}<small> · ${esc(t("Active days"))} ${ad} ${esc(n0 == null ? t("of {n}", {n: nd}) : t("of {n} so far", {n: nd}))}</small>` : id === "sessions" ? `${w.sessions}<small>/</small>${w.prompts}` : id === "cost" ? usdH(tot) : esc(bigF(m)(tot || 0));
     { const dt = kpiDelta(id); if (dt) big += `<small class="mdl"> · ${esc(dt)}</small>`; } // 前の期間との増減（帯には出さない）
     body = mDays(w, m);
     if (id === "sessions"){ // セッション数はエージェント別の集計にないので、期間にかかったセッションから数える

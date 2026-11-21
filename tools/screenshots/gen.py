@@ -10,6 +10,15 @@ random.seed(7)
 extra = random.Random(11)  # 後から足したもの（コマンド・通知）は別の乱数で、ほかのダミーデータを変えない
 more = random.Random(13)  # さらに後から足したもの（利用上限・サブエージェントの時間）も別の乱数で
 cmpr = random.Random(17)  # コンパクションも別の乱数で
+kedit = random.Random(23)  # Kiro の編集の中身（行の数を数えられるように）も別の乱数で、ほかのダミーデータを変えない
+def ktext(n): return "\n".join(f"  line {i}" for i in range(n))
+def kargs(name, args):  # Kiro の編集ツールに、書いた中身を足す（Kiro IDE / CLI V3 は text・oldStr/newStr、V2 は fs_write の command）
+    if name == "fsWrite": args["text"] = ktext(kedit.randint(8, 60))
+    elif name == "strReplace": args["oldStr"], args["newStr"] = ktext(kedit.randint(1, 6)), ktext(kedit.randint(2, 14))
+    elif name == "fs_write":
+        if kedit.random() < 0.4: args.update(command="create", file_text=ktext(kedit.randint(10, 50)))
+        else: args.update(command="str_replace", old_str=ktext(kedit.randint(1, 5)), new_str=ktext(kedit.randint(2, 12)))
+    return args
 JST = dt.timezone(dt.timedelta(hours=9))
 projects = {
  "web-app": ["Fix validation on the login form","Add E2E tests for the checkout flow","Find out why the dashboard loads slowly","Clean up API error handling","Update dependencies"],
@@ -192,7 +201,8 @@ for d in range(35, -1, -1):
                 lines.append({"kind":"Prompt","data":{"content":[{"kind":"text","data":ask}],"meta":{"timestamp":iso(t)}}})
                 content = []
                 for _ in range(oth.randint(1, 3)):
-                    content.append({"kind":"toolUse","data":{"name":oth.choice(["fs_read","fs_write","execute_bash"]),"input":{"path":f"{cwd}/src/{oth.choice(['app','api','view'])}.ts"}}})
+                    nm = oth.choice(["fs_read","fs_write","execute_bash"])
+                    content.append({"kind":"toolUse","data":{"name":nm,"input":kargs(nm, {"path":f"{cwd}/src/{oth.choice(['app','api','view'])}.ts"})}})
                     t += dt.timedelta(seconds=oth.randint(15, 150))
                 content.insert(0, {"kind":"text","data":oth.choice(odone)})
                 lines.append({"kind":"AssistantMessage","data":{"content":content}})
@@ -210,7 +220,8 @@ for d in range(35, -1, -1):
                 lines.append({"timestamp":iso(t),"payload":{"type":"user","content":[{"type":"text","text":ask}]}})
                 for _ in range(oth.randint(1, 4)):
                     t += dt.timedelta(seconds=oth.randint(15, 150))
-                    lines.append({"timestamp":iso(t),"payload":{"type":"tool_call","toolName":oth.choice(["readFile","strReplace","fsWrite"]),"args":{"path":f"src/{oth.choice(['screens','api','store'])}/{oth.choice(['profile','feed','cache'])}.ts"}}})
+                    nm = oth.choice(["readFile","strReplace","fsWrite"])
+                    lines.append({"timestamp":iso(t),"payload":{"type":"tool_call","toolName":nm,"args":kargs(nm, {"path":f"src/{oth.choice(['screens','api','store'])}/{oth.choice(['profile','feed','cache'])}.ts"})}})
                 t += dt.timedelta(seconds=4)
                 lines.append({"timestamp":iso(t),"payload":{"type":"assistant","content":[{"type":"text","text":oth.choice(odone)}]}})
                 lines.append({"timestamp":iso(t),"payload":{"type":"usage_summary","promptTurnSummaries":[{"usage":round(oth.uniform(0.3, 3), 2),"unit":"credit"}]}})
