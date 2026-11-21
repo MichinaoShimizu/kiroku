@@ -2,6 +2,58 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v4.0.0 - 2026-11-21
+
+### Added
+
+- Session details: ‹ › at the top right (or `←` `→`) open the previous or next session, `↑` `↓`, `PageUp` `PageDown`, `Home` `End` and `Space` scroll the details, and **Full screen** next to the prompt flow (or `F`) shows only the flow across the whole window
+
+### Changed
+
+- The weekly and monthly data no longer carry each project's top models, longest sessions and heaviest session, which the view doesn't show; with the per-agent summaries this keeps a large multi-agent history's HTML at about the size it had before them (22.3 MB instead of 31.1 MB for 9,000 sessions across three agents)
+- README, the guide and the "?" help for Worth a look no longer describe "Analyze with AI" or the hidden Worth a look list as current; the Trend's note points to "Change first" and the warning marks instead of the removed Advice card
+- Week calendar: each day's "Copy prompt" is always faintly visible with a mouse (not only when pointing at the day); short sessions and git marks have a larger area to press; a session running through a whole day shows that day as ending at 24:00 instead of "00:00–00:00"
+- Copying a review or report prompt says that kiroku ran and sent nothing
+- Summary: "Change first" uses the same name as the dialog it opens and says how many items are worth a look; the dialog moves between them with ‹ and ›, and shows "What to try" right under the heading
+- Summary: "Show formulas" sits next to the Agent switch, reads "Hide formulas" while on and is filled while pressed
+- Summary: the band above the calendar is hidden in the summary view, where the same figures are in the first row with their comparisons
+- Summary: the Trend reads "At this pace $28.48: 3rd highest of 12 weeks"; the total in the cumulative chart matches the band's; "1 session" instead of "1 sessions"
+- The warning marks for items worth a look are amber, so they don't read as the accent purple used for selection and your prompts
+- Month calendar: stronger shades for active time, and days still to come are hatched instead of looking like quiet days
+- Session details: each bubble's time and copy button sit right under it, on the same side, at every width
+- The legend's chips wrap at 1200px and below instead of scrolling out of sight; "Over last week's total" replaces "Past last week's total"; "press to hide" replaces "click to hide"; the page footer has "Keyboard shortcuts"; "Go to the summary" is the first stop after the period controls
+- The light theme uses plain grays for backgrounds and surfaces instead of Material's tinted ones; the loading page and the page that opens kiroku with its key match
+- The band above the calendar no longer shows the change from the previous period next to each figure, and all its figures share one style; press a figure to see the change next to the value in its breakdown
+- Summary: the Advice card is gone ("Change first" and the warning marks open the same details), and the chart cards are in two columns, with By agent and any card left alone in a row across the full width
+- Summary: on narrow windows the Trend's metric is a drop-down list; before, the metrics past the edge of the scrolling switch could not be reached
+- The ⚠ "Worth a look" list in the period row is hidden for now; "Change first" and the warning marks in the summary open the same dialogs
+- Summary: the Trend's usual range and median are gray instead of green (green now only marks a figure better than usual)
+- Summary: comparisons with your past periods read in plain words ("$31.23: above your usual $19.92–$27.35"); "Show formulas" next to the heading shows the inequalities and the formulas behind computed figures, and the choice is remembered
+- Summary: the figures at the top wrap into three or two columns on narrower windows instead of scrolling sideways; on a phone the By agent table lists each agent's figures as label and value, and the Agent switch wraps
+- Summary: "Change first" and the Worth a look dialogs use one order: items outside your usual range on the worse side first, then items that can't be compared, then items within the range, each by the cost involved. "Change first" is red only when its metric is worse than usual
+- Summary: with one agent selected, a note says that its active time counts time shared with other agents in full (the By agent table and the legend split it) and that the figures above the calendar stay for all agents. The By agent shares use the same active time as the band
+- Summary: advice about repeated prompts and long background names each agent's project instructions (CLAUDE.md, AGENTS.md or Kiro steering); without cost records the cumulative chart and the length chart are titled by what they show (active time, sessions); the outputs headline says the share is of Claude Code sessions
+- Summary: the heatmap's headline says its total, and a note explains why it can be a little shorter than active time
+- Week calendar: 0:00–7:00 starts unfolded in a week with sessions in those hours, so that work isn't squeezed; the toggle reads "0–7h"
+- Week calendar: the usage limit mark is a small red square that no longer covers other sessions' names; pressing it opens the session at the limit hit in its prompt flow
+- Session details: a note under Session review says that "Copy prompt" copies a prompt for your agent and kiroku runs and sends nothing; a turn where the AI worked without a text reply shows its time on the AI side instead of inside your bubble; copy buttons are faintly visible before you point at them; on a phone, bubbles use the full width with the time below them
+- The theme follows your system's light or dark setting until you pick one with the moon / sun button; the loading page follows the same choice
+- The band's daily target says how far the other figure is over ("· 2.1 cr over" instead of "credits over"), and with one day left the advice says "at most $0.59 tomorrow"
+- While filtering, the session count reads "12 of the week's 20 sessions"
+- Demo and period-only files: review prompts give times in the same time zone as the view
+
+### Removed
+
+- BREAKING: "Analyze with AI" and running AI agents from `kiroku serve`. kiroku no longer runs an AI agent or calls an AI service: `/ai/run` is gone (404), and the session review and each day's report only offer "Copy prompt", which copies the prompt to paste into your agent. `--ai`, `--no-ai`, `KIROKU_AI` and `KIROKU_NO_AI` are still accepted and do nothing; `--ai` (or `KIROKU_AI`) prints one line saying so. `kiroku autostart on` no longer writes `KIROKU_AI` or `KIROKU_NO_AI`
+
+### Fixed
+
+- Summary: switching the Agent from one agent to another could keep the first agent's repeated prompts in "Change first" and the advice; each agent's summary is now computed from its own sessions
+
+### Security
+
+- kiroku has no path that runs an AI agent any more, so text planted in your history can no longer steer an agent started from the view (`/ai/run` answers 404 even with the key; tested in the serve e2e and `TestNoAIExecution`)
+
 ## v3.3.1 - 2026-11-21
 
 ### Changed
