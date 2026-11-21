@@ -2,6 +2,32 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v3.2.0 - 2026-11-21
+
+### Added
+
+- The weekly and monthly summary is rebuilt as one page of cards, computed in the browser without AI, in the order you'd use them to cut cost, credits and tokens:
+  - Figures (the band's figures and more, up to three per row): estimated cost, Kiro credits (or tokens), where you stand against the previous period (a day to match it, how far over it you are, the month-end estimate, or cost per active day for a finished period), active time, cost per commit, and what to change first. Each shows its formula, its change from the previous period, and how it compares with your own past periods
+  - Trend of a metric you pick, with the middle half of your past periods as a band and the median; cumulative cost against the previous period; advice (up to three flagged items with what to try and their sessions)
+  - Where it went (cost, credits, tokens or time by project, agent or model, largest first) and cost by session length
+  - Cost against outputs per session (a scatter that marks costly sessions with no commit or PR), outputs, how you used AI, when you worked (a weekday × hour heatmap) and how you worked
+- Comparisons with past periods are written as inequalities against the 25th and 75th percentiles of up to your last 12 periods, such as "$31.23 > 75th pct = $27.35", with a one-line definition; computed figures show their formula; every chart opens with a takeaway computed from the data and, where the data supports one, a next step with numbers. A period in progress is compared at its pace
+
+### Changed
+
+- Where kiroku can't run an AI agent (without `--ai`, with `--no-ai`, when no agent command is found, or in a saved HTML file), the session review and each day's report offer "Copy prompt" instead of "Analyze with AI (off)": it copies the same prompt, to paste into an AI agent yourself. kiroku runs nothing and sends nothing
+- Session details: the two paragraphs under the prompt flow are gone. What "AI worked" and "you replied after" measure, and what the AI's reply is, now show when you point at them (and are in the guide)
+- The view has a light theme only: it no longer switches to dark when your system is set to dark. The loading page and the page that opens kiroku with its key are light too
+
+### Removed
+
+- Summary: the four folded panels (By project, Cost and outputs, How you worked, How you used AI) and the project cards. Their figures are in the new cards; the lists of sessions with possible friction, repeated prompts and the heaviest sessions are reached from the advice, "Worth a look" and the scatter
+
+### Fixed
+
+- Week calendar: the hour next to the current-time marker (such as 12:00 at 11:50) is no longer hidden; it moves just past the marker in a lighter color
+- A project named `__proto__` (or `constructor`, `toString` and similar) now gets its color like any other project; before, its bars in the summary had none
+
 ## v3.1.0 - 2026-11-21
 
 ### Added
