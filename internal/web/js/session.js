@@ -72,6 +72,13 @@ function detail(s){
   if (run) run.onclick = () => runAIReview(run, sessionPrompt(s, active, med), t("Session review: {title}", {title: snipOf(s.title || "", 60)}), aiAgentOf(s.source)); // 既定は、そのセッションのエージェント
   P.querySelectorAll(".pexp").forEach(b => b.onclick = () => { const li = b.closest("li"), open = b.getAttribute("aria-expanded") !== "true";
     li.querySelector(".pshort").hidden = open; li.querySelector(".pfull").hidden = !open; b.setAttribute("aria-expanded", open); b.textContent = open ? t("Show less") : pexpLabel(li.dataset.full ? {} : s.prompts[b.dataset.i]); });
+  // プロンプトをコピー（そのまま次の依頼に使えるように）。切ったプロンプトは、kiroku serve なら全文を読んでから写す。保存した HTML では入っている分だけ写し、そう言う
+  // AI の応答も同じ（切った応答は、kiroku serve なら /reply で全文を読む）
+  P.querySelectorAll(".pcopy").forEach(b => b.onclick = async e => { e.stopPropagation(); const r = await fullText(s, +b.dataset.i, b.classList.contains("rcopy")); if (!r) return;
+    const msg = r.cut ? t("Copied the first {n} characters", {n: commas(r.text.length)}) : "";
+    copy(r.text, msg, msg ? 5000 : 0, b); });
+  const fc = P.querySelector(".fcopy"); if (fc) fc.onclick = async () => { fc.disabled = true; // セッション全体（プロンプトと応答を順に）を Markdown で
+    try { const r = await sessionMarkdown(s); copy(r.text, r.cut ? t("Copied. Some long prompts or replies are cut; open with kiroku serve to copy them in full.") : "", r.cut ? 6000 : 0, fc); } finally { fc.disabled = false; } };
   P.querySelectorAll(".pload").forEach(b => b.onclick = async () => { // kiroku serve のときだけ、切ったプロンプトの全文をサーバーから読む
     b.disabled = true;
     try { const r = await kfetch(`prompt?id=${encodeURIComponent(s.id)}&i=${b.dataset.i}`); if (!r.ok) throw 0;
@@ -129,7 +136,26 @@ function replyRow(r, i, hidden, meta = ""){
   const cut = r.len > 0;
   // 保存した HTML では、切ったことは「…」だけで示す（kiroku serve で読めることは、流れの上に 1 度だけ書く）
   const more = cut && LIVE ? `<span class="pcut"> ${esc(t("(first {n} of {total} characters)", {n: REPLY_RUNES, total: commas(r.len)}))} <button class="rload" data-i="${i}">${esc(t("Load the full reply"))}</button></span>` : "";
-  return `<li class="rp"${hidden}><time>${r.t ? hm(r.t) : ""}</time><span class="av rpav" aria-hidden="true">${ico("bot")}</span><p><span class="sr">${esc(t("AI:"))} </span><span class="reptext">${esc(r.text)}${cut ? "…" : ""}${more}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`;
+  return `<li class="rp"${hidden}><time>${r.t ? hm(r.t) : ""}</time><button class="iconbtn pcopy rcopy" type="button" data-i="${i}" aria-label="${esc(t("Copy this reply"))}" title="${esc(t("Copy this reply"))}">${ico("copy")}</button><span class="av rpav" aria-hidden="true">${ico("bot")}</span><p><span class="sr">${esc(t("AI:"))} </span><span class="reptext">${esc(r.text)}${cut ? "…" : ""}${more}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`;
+}
+/* i 番目のプロンプト（rp なら、その応答）の全文。切ったものは、kiroku serve なら /prompt・/reply で読む。読めなければ入っている分と cut: true */
+async function fullText(s, i, rp){
+  const q = s.prompts[i], p = q && (rp ? q.reply : q); if (!p) return null;
+  const text = String(p.text || ""); if (!(p.len > 0)) return {text, cut: false};
+  if (LIVE) try { const r = await kfetch(`${rp ? "reply" : "prompt"}?id=${encodeURIComponent(s.id)}&i=${i}`); if (r.ok) return {text: await r.text(), cut: false}; } catch {}
+  return {text, cut: true};
+}
+/* セッションの会話を Markdown に（別のエージェントへの引き継ぎや、PR・メモに経緯を貼るため）。見出しは発言者と時刻、本文は記録のまま */
+async function sessionMarkdown(s){
+  const head = [`# ${oneLine(s.title || s.id)}`, "", [s.source, s.project, s.branch, `${md(s.start)} ${hm(s.start)} – ${hm(s.end)}`].filter(Boolean).join(" · ")];
+  const parts = [], items = [];
+  s.prompts.forEach((p, i) => { items.push([i, false, p]); if (p.reply) items.push([i, true, p.reply]); });
+  const texts = [];
+  for (let k = 0; k < items.length; k += 6) texts.push(...await Promise.all(items.slice(k, k + 6).map(([i, rp]) => fullText(s, i, rp)))); // 一度に読むのは 6 つまで
+  let cut = false;
+  items.forEach(([, rp, p], k) => { const r = texts[k]; cut = cut || r.cut;
+    parts.push(`## ${rp ? "AI" : t("You")}${p.t ? " · " + hm(p.t) : ""}`, "", r.text.trim() + (r.cut ? " …" : ""), ""); });
+  return {text: [...head, "", ...parts].join("\n").trim() + "\n", cut};
 }
 function promptFlow(s){
   const ev = flowEvents(s), rows = [];
@@ -144,7 +170,7 @@ function promptFlow(s){
     const txt = String(p.text || ""), long = txt.length > 240, fix = !p.kind && FIXRE.test(txt), cut = p.len > 0;
     const more = !cut ? "" : LIVE ? `<span class="pcut"> ${esc(t("(first {n} of {total} characters)", {n: PROMPT_RUNES, total: commas(p.len)}))} <button class="pload" data-i="${i}">${esc(t("Load the full prompt"))}</button></span>` : "…";
     const meta = [p.work ? t("AI worked {time}", {time: span(p.work)}) : "", p.wait && p.wait <= FLOW_GAP ? t("you replied after {time}", {time: secs(p.wait)}) : ""].filter(Boolean).map(x => `<span>${esc(x)}</span>`).join(" · "); // 1 つずつ折り返さない（「2m」と「0s」が別の行に分かれないように）
-    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><span class="av" aria-hidden="true">${ico("user")}</span><p><span class="sr">${esc(t("You:"))} </span>${fix ? `<span class="pkind fix">${esc(t("Correction?"))}</span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${esc(PKIND()[p.kind] || p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${esc(t("Long · {n} chars", {n: commas(plen(p))}))}</span>` : ""}<span class="ptext">${p.kind ? "<code>" : ""}${long ? `<span class="pshort">${esc(txt.slice(0,220))}…</span><span class="pfull" hidden>${esc(txt)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${esc(pexpLabel(p))}</button>` : esc(txt)}${p.kind ? "</code>" : ""}</span>${meta && !p.reply ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
+    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><button class="iconbtn pcopy" type="button" data-i="${i}" aria-label="${esc(t("Copy this prompt"))}" title="${esc(t("Copy this prompt"))}">${ico("copy")}</button><span class="av" aria-hidden="true">${ico("user")}</span><p><span class="sr">${esc(t("You:"))} </span>${fix ? `<span class="pkind fix">${esc(t("Correction?"))}</span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${esc(PKIND()[p.kind] || p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${esc(t("Long · {n} chars", {n: commas(plen(p))}))}</span>` : ""}<span class="ptext">${p.kind ? "<code>" : ""}${long ? `<span class="pshort">${esc(txt.slice(0,220))}…</span><span class="pfull" hidden>${esc(txt)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${esc(pexpLabel(p))}</button>` : esc(txt)}${p.kind ? "</code>" : ""}</span>${meta && !p.reply ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
     if (p.reply){ // 依頼と応答の間に起きたこと（コミットなど）は、応答より上に出す
       if (p.reply.t) flush(p.reply.t);
       rows.push(replyRow(p.reply, i, hide(), meta)); // 「AI が動いた時間・返すまでの時間」は、読む順に合わせて応答の下に
@@ -154,7 +180,7 @@ function promptFlow(s){
   flush(Infinity);
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";
   const showMore = JA ? (hiddenEv ? t("Show {n} more prompts (and {m} other events)", {n: rest, m: hiddenEv}) : t("Show {n} more prompts", {n: rest})) : `Show ${plural(rest, "more prompt")}${also}`;
-  const bar = `<h3>${esc(t("Prompt flow"))}</h3>`; // 出し方の切り替えと凡例は置かない（印には title と読み上げの名前がある）
+  const bar = `<div class="flowhd"><h3>${esc(t("Prompt flow"))}</h3><button class="iconbtn fcopy" type="button" aria-label="${esc(t("Copy the conversation as Markdown"))}" title="${esc(t("Copy the conversation as Markdown"))}">${ico("copy")}</button></div>`; // 出し方の切り替えと凡例は置かない（印には title と読み上げの名前がある）
   const cutNote = !LIVE && s.prompts.some(p => p.len > 0 || (p.reply && p.reply.len > 0)) ? `<p class="note">${esc(t("Long prompts and replies end with … here. Open with kiroku serve to read them in full."))}</p>` : "";
   return `${bar}${cutNote}<ol class="tl">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${esc(showMore)}</button>` : ""}${s.prompts.some(p => p.work) ? `<p class="note">${esc(t("\"AI worked\" is the time from a prompt to the AI's last activity; \"you replied after\" is the time from there to your next prompt. Both are estimates from the history's timestamps."))}</p>` : ""}${s.prompts.some(p => p.reply) ? `<p class="note">${esc(t("The reply after a prompt is the last thing the AI wrote to you in that turn, in its own words — not its thinking, its tool calls or their output. A turn where it only ran tools, or whose words the agent does not record, has no reply. A long one shows its first {n} characters.", {n: REPLY_RUNES}))}</p>` : ""}`;
 }

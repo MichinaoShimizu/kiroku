@@ -1,0 +1,1 @@
+- Shorter animations: calendar blocks appear within about 0.4 seconds when you change the week or view (was up to 0.85), and the AI dialog folds its inputs faster

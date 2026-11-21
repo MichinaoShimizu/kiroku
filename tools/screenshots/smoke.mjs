@@ -169,6 +169,8 @@ async function run(env) {
     check("過ぎた週は月曜から見える", await p.evaluate(() => document.querySelector("#tl .calscroll").scrollLeft) === 0);
     if (env.isMobile){ // スマホでは、右にまだ日があるあいだだけ右端をぼかす
       check("右にまだ日があると、右端がぼける", await p.evaluate(() => document.querySelector("#tl").classList.contains("morer")));
+      check("右端のぼかしは、ヘッダー（検索のボタン）にかからない", await p.evaluate(() => { const h = document.querySelector("header"), f = getComputedStyle(document.querySelector("#tl"), "::after");
+        return +getComputedStyle(h).zIndex > +f.zIndex; })); // 開いた位置まで下へ送られていると、カレンダーはヘッダーの下を通る
       await p.evaluate(() => { const sc = document.querySelector("#tl .calscroll"); sc.scrollLeft = sc.scrollWidth; }); await pause();
       check("右端までスクロールすると、ぼかしが消える", await p.evaluate(() => !document.querySelector("#tl").classList.contains("morer")));
       await p.evaluate(() => { document.querySelector("#tl .calscroll").scrollLeft = 0; }); await pause();
@@ -205,6 +207,23 @@ async function run(env) {
         return i > 0 && j >= 0 && li[j].classList.contains("pr"); }));
     }
     check("流れには、出し方の切り替えと凡例を置かない", await p.locator("#drawer #flowBy, #drawer .tlkeyd, #drawer .tlkey").count() === 0);
+    { // プロンプトをコピーできる（ボタンには名前がある。写すのはそのプロンプトの文）
+      const r = await p.evaluate(async () => { window.__copied = null; navigator.clipboard.writeText = t => { window.__copied = t; return Promise.resolve(); };
+        const b = document.querySelector("#drawer .tl li.pr .pcopy"); if (!b) return {none: true};
+        const s = DATA.find(x => x.id === st.sel), p = s.prompts[+b.dataset.i]; b.click(); await new Promise(r => setTimeout(r, 300));
+        return {label: b.getAttribute("aria-label"), got: window.__copied, want: String(p.text || ""), cut: p.len > 0}; });
+      check("プロンプトにコピーのボタンがあり、そのプロンプトを写す", !r.none && /Copy this prompt/.test(r.label) && (r.cut ? r.want.startsWith(r.got.slice(0, 20)) : r.got === r.want), JSON.stringify({...r, got: (r.got || "").slice(0, 40), want: (r.want || "").slice(0, 40)}));
+      const q = await p.evaluate(async () => { window.__copied = null;
+        const b = document.querySelector("#drawer .tl li.rp .rcopy"); if (!b) return {none: true};
+        const s = DATA.find(x => x.id === st.sel), r = s.prompts[+b.dataset.i].reply; b.click(); await new Promise(z => setTimeout(z, 300));
+        return {label: b.getAttribute("aria-label"), got: window.__copied, want: String(r.text || ""), cut: r.len > 0}; });
+      check("AI の応答にもコピーのボタンがあり、その応答を写す", q.none || (/Copy this reply/.test(q.label) && (q.cut ? q.want.startsWith(q.got.slice(0, 20)) : q.got === q.want)), JSON.stringify({...q, got: (q.got || "").slice(0, 40), want: (q.want || "").slice(0, 40)}));
+      const c = await p.evaluate(async () => { window.__copied = null; // 会話全体を Markdown で写す（見出しは発言者と時刻、本文はプロンプトの順）
+        const b = document.querySelector("#drawer .flowhd .fcopy"); if (!b) return {none: true};
+        const s = DATA.find(x => x.id === st.sel); b.click(); await new Promise(z => setTimeout(z, 600));
+        return {label: b.getAttribute("aria-label"), got: window.__copied || "", first: String(s.prompts[0].text || "").slice(0, 30), n: s.prompts.length}; });
+      check("会話全体を Markdown でコピーできる", !c.none && /Copy the conversation as Markdown/.test(c.label) && c.got.startsWith("# ") && (c.got.match(/^## You/gm) || []).length === c.n && c.got.includes(c.first), JSON.stringify({...c, got: c.got.slice(0, 80)}));
+    }
     await p.keyboard.press("Escape"); await pause();
     check("Esc で詳細が閉じる", !await drawerOpen());
     await run.focus(); await p.keyboard.press("ArrowLeft"); await pause();
@@ -369,6 +388,10 @@ async function run(env) {
     check("夜遅い印も日の枠の中にある", await p.evaluate(() => [...document.querySelectorAll("#tl .day")].every(d => { const db = d.getBoundingClientRect(); return [...d.querySelectorAll(".gc, .gm")].every(m => m.getBoundingClientRect().bottom <= db.bottom + 1); })));
     check("平日の勤務時間（9:00〜18:00）の外は地の色が違う", await p.evaluate(() => { const d = [...document.querySelectorAll("#tl .day")].find(e => !e.classList.contains("we")); return !!d && (getComputedStyle(d).backgroundImage.match(/linear-gradient/g) || []).length === 2; }));
     check("見直す候補はアイコンだけ（名前は読み上げとツールチップ）", await p.evaluate(() => { const b = document.querySelector("#worth summary"); return !!b && !/[A-Za-z]{3}/.test(b.textContent) && /Worth a look/.test(b.getAttribute("aria-label") || ""); }));
+    if (env.viewport.width >= 1440) check("上の帯（期間の操作と指標）は 1 行に収まる（週・月とも）", await p.evaluate(async () => { // 死守する: 指標が次の行に落ちると、カレンダーが下がる
+      const one = () => { const k = document.querySelector(".kpis").getBoundingClientRect(), n = document.querySelector("#today").getBoundingClientRect(); return k.top < n.bottom && k.bottom > n.top; };
+      const w = st.week, a = one(); setMode("month"); await new Promise(r => setTimeout(r, 300)); const b = one(); setMode("week"); st.week = w; render(); await new Promise(r => setTimeout(r, 300));
+      return a && b; }));
     if (env.viewport.width > 820) check("今週・期間・表示・見直す候補は、同じ高さで中心がそろう", await p.evaluate(() => { const rs = ["#today", "#mode", "#view", "#worth summary"].map(s => document.querySelector(s).getBoundingClientRect());
       return rs.every(r => Math.abs(r.height - rs[0].height) < 1 && Math.abs((r.top + r.height / 2) - (rs[0].top + rs[0].height / 2)) < 1); }));
     check("見直す候補は 1 つのボタン（押すと一覧）", await p.locator("#worth details summary").count() === 1 && !(await p.locator("#worth details").evaluate(d => d.open)));
@@ -595,6 +618,10 @@ async function runJa(env) {
 
   await step("読み込み", async () => {
     check("ブラウザの言語が日本語なら、日本語で開く", await p.evaluate(() => document.documentElement.lang === "ja" && JA));
+    // 以前の版の切り替えボタンで English を選んだまま（localStorage に残っている）でも、ブラウザの言語に従う（ボタンがないので戻せないため）
+    await p.evaluate(() => localStorage.setItem("kiroku:lang", JSON.stringify("en"))); await p.reload(); await loaded(p);
+    check("以前選んだ English が残っていても、日本語で開く", await p.evaluate(() => document.documentElement.lang === "ja" && JA));
+    await p.evaluate(() => localStorage.removeItem("kiroku:lang"));
     check("期間の見出しは日本語の日付", /\d+月\d+日/.test(await p.locator("#rd").innerText()), await p.locator("#rd").innerText());
     const [sw, iw] = await overflow();
     check("横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
