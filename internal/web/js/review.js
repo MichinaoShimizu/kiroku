@@ -139,12 +139,6 @@ function findList(w, pw, unit){
   return F.sort((a,b) => b.score - a.score);
 }
 const GOTO = {longctx: "heavy", modelfit: "models"}; // 専用の指標がない候補は、関係する指標に印を付ける
-function flagSum(F){ // 期間の切り替えの行（#worth）に「見直す候補 N」の 1 つのボタン。押すと、基準を超えた指標の名前が優先度の高い順に開く（押すとその指標のダイアログ）
-  const ids = [...new Set(F.map(f => GOTO[f.k] || f.k))];
-  if (!ids.length) return `<span class="lbl muted wdi" role="img" aria-label="${esc(t("Worth a look"))}: 0" title="${esc(t("No metric crossed a threshold"))}">${ico("flag")}</span>`;
-  return `<details class="wdd"><summary class="pill wdi" aria-label="${esc(t("Worth a look"))}: ${ids.length}" title="${esc(t("Worth a look"))}">${ico("flag", "fdot")}<b>${ids.length}</b></summary><div class="wdl" role="group" aria-label="${esc(t("Worth a look"))}"><span class="wdh">${esc(t("Worth a look"))}${hb("findings")}</span>${ids.map(id => { const ks = [...new Set(F.filter(f => (GOTO[f.k] || f.k) === id).map(f => f.k))], n = ks.length === 1 && H()[ks[0]] ? H()[ks[0]].n : H()[id].n; // 候補が 1 つなら、その候補の名前（長い会話を「重いセッション」と呼ばない）
-      return `<button class="flink" data-goto="${id}">${esc(n)}</button>`; }).join("")}</div></details>`;
-}
 function sesFlags(s){ // 詳細の頭に、このセッションが関係する見直す候補（表示中の期間のもの）の名前だけを出す。押すとサマリーと同じダイアログ
   const ids = [...new Set(lastFlags.filter(f => f.ids.includes(s.id)).map(f => GOTO[f.k] || f.k))];
   return ids.length ? `<div class="sflags"><span class="lbl" title="${esc(t("This session is one of the sessions behind these flags"))}">${ico("flag", "fdot")}${esc(t("Worth a look"))}</span>${ids.map(id => `<button class="flink" data-goto="${id}" aria-haspopup="dialog">${esc(H()[id].n)}</button>`).join("")}</div>` : "";

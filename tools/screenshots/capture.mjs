@@ -32,10 +32,9 @@ await p.waitForTimeout(400);
 await p.screenshot({ path: path.join(docs, "summary.png") });
 await p.locator('#view button[data-v="cal"]').click(); // 以降の画像はカレンダーで
 await p.waitForTimeout(300);
-// 見直す候補（Worth a look）：期間の要点の下の「Possible friction」を押して開くダイアログ
+// 見直す候補（Worth a look）：「Possible friction」のダイアログ
 await p.evaluate(() => window.scrollTo(0, 0));
-await p.evaluate(() => { const d = document.querySelector("#worth details"); if (d) d.open = true; });
-await p.locator("#worth .flink", { hasText: "Possible friction" }).first().click();
+await p.evaluate(() => openWorth("friction")); // 期間の行の一覧はないので、ダイアログを直接開く
 await p.waitForTimeout(600);
 await p.evaluate(() => { const d = document.querySelector("#wk"); d.style.maxHeight = "none"; }); // 中身がまるごと写るように
 await p.locator("#wk").screenshot({ path: path.join(docs, "worth.png") });

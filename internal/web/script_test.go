@@ -405,3 +405,51 @@ const tr = trend([2,5,8,11]); eq(tr.a, 2, "trend a"); eq(tr.b, 3, "trend b"); if
 		t.Errorf("spread が違う:\n%s", out)
 	}
 }
+
+// JA_TEXT（i18n.js）のどの鍵も、画面のスクリプト・テンプレート・Go のどこかで使われている（消した画面の訳を残さない）。
+// 鍵は英語の文そのものなので、ほかのファイルにその文（i18n.js と同じ書き方）があるかで見る
+func TestI18nNoUnusedKeys(t *testing.T) {
+	src, err := jsFiles.ReadFile("js/i18n.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var other strings.Builder
+	names, _ := filepath.Glob("js/*.js")
+	names = append(names, "template.html")
+	goFiles, _ := filepath.Glob("../*/*.go")
+	for _, f := range goFiles {
+		if !strings.HasSuffix(f, "_test.go") {
+			names = append(names, f)
+		}
+	}
+	for _, f := range names {
+		if filepath.Base(f) == "i18n.js" {
+			continue
+		}
+		b, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		other.Write(b)
+		other.WriteByte('\n')
+	}
+	all := other.String()
+	var unused []string
+	for _, m := range regexp.MustCompile(`(?m)^  "((?:[^"\\]|\\.)*)": `).FindAllStringSubmatch(string(src), -1) {
+		raw := m[1]
+		var plain string
+		if err := json.Unmarshal([]byte(`"`+raw+`"`), &plain); err != nil {
+			plain = raw
+		}
+		head := plain // Go が組み立てる題（"Kiro Crew memory consolidation (" + slot + ")" など）は、{ の前までで見る
+		if i := strings.Index(plain, "{"); i > 8 {
+			head = plain[:i]
+		}
+		if !strings.Contains(all, raw) && !strings.Contains(all, plain) && !strings.Contains(all, head) {
+			unused = append(unused, plain)
+		}
+	}
+	if len(unused) > 0 {
+		t.Errorf("JA_TEXT に使われていない鍵が %d 個ある（消すか、使う場所を直す）:\n%s", len(unused), strings.Join(unused, "\n"))
+	}
+}

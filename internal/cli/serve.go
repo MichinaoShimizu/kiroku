@@ -26,9 +26,7 @@ type snapshot struct {
 	months map[string]*report.Summary
 	meta   map[string]any
 	rep    []source.Report
-	// private は、セッションに残らない、中身を出さない会話の記録のファイル（Kiro CLI の PrivateFiles）。HTML・JSON には入れない
-	private []string
-	gen     float64 // 読んだ時刻（UNIX 秒）。画面はこれが変わったら取り込み直す
+	gen    float64 // 読んだ時刻（UNIX 秒）。画面はこれが変わったら取り込み直す
 }
 
 // live は kiroku serve の中身。履歴の指紋が変わったときだけ読み直し、最新の集計を配る。

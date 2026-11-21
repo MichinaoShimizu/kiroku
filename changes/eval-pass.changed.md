@@ -1,0 +1,2 @@
+- The weekly and monthly data no longer carry each project's top models, longest sessions and heaviest session, which the view doesn't show; with the per-agent summaries this keeps a large multi-agent history's HTML at about the size it had before them (22.3 MB instead of 31.1 MB for 9,000 sessions across three agents)
+- README, the guide and the "?" help for Worth a look no longer describe "Analyze with AI" or the hidden Worth a look list as current; the Trend's note points to "Change first" and the warning marks instead of the removed Advice card

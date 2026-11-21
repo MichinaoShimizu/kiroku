@@ -279,7 +279,7 @@ async function run(env) {
       check("「まず見直す」は、並べた候補の先頭（いつもより悪い側に外れたもの → 比べられないもの → 範囲の中。同じ段は関わる費用の大きい順）。期間の行の ⚠ は出さない", await p.evaluate(() => {
         const F = lastFlags, side = f => insSide(f), ok = F.every((f, i) => i === 0 || side(F[i - 1]) < side(f) || side(F[i - 1]) === side(f) && ((F[i - 1].stake && F[i - 1].stake.c) ?? -1) >= ((f.stake && f.stake.c) ?? -1));
         const first = document.querySelector("#review .insh .insgo");
-        return ok && (!F.length || first.dataset.goto === (GOTO[F[0].k] || F[0].k)) && document.querySelector("#worth").hidden; }));
+        return ok && (!F.length || first.dataset.goto === (GOTO[F[0].k] || F[0].k)) && !document.querySelector("#worth"); }));
       check("エージェント別の表に、エージェントごとの行がある（費用とクレジットを混ぜない）", await p.evaluate(() => document.querySelectorAll("#review .iagt tbody tr").length >= 2));
       { // エージェントで絞る：サマリーの数字がそのエージェントの分になり、上の帯（すべて）は変わらない。戻すと元の数字
         const ags = await p.evaluate(() => [...document.querySelectorAll("#review [data-ag]")].map(b => b.dataset.ag));
@@ -465,7 +465,7 @@ async function run(env) {
     check("夜遅い印も日の枠の中にある", await p.evaluate(() => [...document.querySelectorAll("#tl .day")].every(d => { const db = d.getBoundingClientRect(); return [...d.querySelectorAll(".gc, .gm")].every(m => m.getBoundingClientRect().bottom <= db.bottom + 1); })));
     check("今の時刻の札に近い時刻も消さない（畳んだときは 07:00〜23:00 がそろう）", await p.evaluate(() => !document.querySelector("#tl .hours span.now") || [...document.querySelectorAll("#tl .hours span:not(.now)")].map(e => e.textContent).join(",") === Array.from({length: 17}, (_, i) => String(i + 7).padStart(2, "0") + ":00").join(",")));
     check("平日の勤務時間（9:00〜18:00）の外は地の色が違う", await p.evaluate(() => { const d = [...document.querySelectorAll("#tl .day")].find(e => !e.classList.contains("we")); return !!d && (getComputedStyle(d).backgroundImage.match(/linear-gradient/g) || []).length === 3; })); // 畳んだ帯・1 時間の線・勤務時間の外
-    check("期間の行の ⚠（見直す候補の一覧）は出さない", await p.evaluate(() => document.querySelector("#worth").hidden && !document.querySelector("#worth summary")));
+    check("期間の行の ⚠（見直す候補の一覧）は出さない", await p.evaluate(() => !document.querySelector("#worth") && !document.querySelector("#worth summary")));
     if (env.viewport.width >= 1440) check("上の帯（期間の操作と指標）は 1 行に収まる（週・月とも）", await p.evaluate(async () => { // 死守する: 指標が次の行に落ちると、カレンダーが下がる
       const one = () => { const k = document.querySelector(".kpis").getBoundingClientRect(), n = document.querySelector("#today").getBoundingClientRect(); return k.top < n.bottom && k.bottom > n.top; };
       const w = st.week, a = one(); setMode("month"); await new Promise(r => setTimeout(r, 300)); const b = one(); setMode("week"); st.week = w; render(); await new Promise(r => setTimeout(r, 300));

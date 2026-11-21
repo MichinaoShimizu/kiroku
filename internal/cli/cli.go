@@ -193,13 +193,7 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 			_, off := time.Now().Zone()
 			meta["demo"] = map[string]any{"offset": off}
 		}
-		var private []string // 中身を出さない会話の記録のファイル（「Analyze with AI」に読ませない）。読んだのと同じゴルーチンで集める
-		for _, s := range all {
-			if p, ok := s.(interface{ PrivateFiles() []string }); ok {
-				private = append(private, p.PrivateFiles()...)
-			}
-		}
-		return snapshot{data: data, weeks: rcache.AllWeeks(data, commits...), months: rcache.AllMonths(data, commits...), meta: meta, rep: rep, private: private, gen: float64(time.Now().UnixNano()) / 1e9}
+		return snapshot{data: data, weeks: rcache.AllWeeks(data, commits...), months: rcache.AllMonths(data, commits...), meta: meta, rep: rep, gen: float64(time.Now().UnixNano()) / 1e9}
 	}
 	return picked, load, nil
 }

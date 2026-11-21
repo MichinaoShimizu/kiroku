@@ -44,7 +44,7 @@ function render(){
   $("#skipcal").hidden = !!st.q; // 検索の最中は、結果がカレンダーの上にあり、下のサマリーは空
   lastFlags = []; // 見直す候補は表示中の期間のものだけ（検索中や記録のない期間に、前の期間の候補を詳細に出さない）
   try { st.q ? searchPanel() : summary(); } catch(e){ // サマリーで失敗しても、カレンダーと詳細は使えるようにする
-    console.error(e); $("#worth").hidden = true; $("#review").innerHTML = `<div class="panel">${noneH(esc(t("Couldn't show the summary for this period ({error}). Please let us know in an issue.", {error: e.message})))}</div>`; }
+    console.error(e); $("#review").innerHTML = `<div class="panel">${noneH(esc(t("Couldn't show the summary for this period ({error}). Please let us know in an issue.", {error: e.message})))}</div>`; }
   const gc = st.sel && st.sel.startsWith("git:") && (META.git || []).find(x => "git:" + x.hash === st.sel);
   const pu = st.sel && st.sel.startsWith("push:") && findPush(st.sel.slice(5)), pr = st.sel && st.sel.startsWith("pr:") && findPR(st.sel.slice(3));
   const s = !gc && !pu && !pr && st.sel && DATA.find(x => x.id === st.sel), open = !!(s || gc || pu || pr);
@@ -98,8 +98,8 @@ function kpis(){
   K.classList.toggle("unf", filtering()); // 絞り込みの最中も、ここは全セッションの合計（薄くして、カレンダーの上に断り書き）
   if (!w){ K.innerHTML = `<div class="kpi"><div class="k">${esc(META.scope ? t("Not in this file") : shownName())}</div><div class="v">${esc(t("No records"))}</div></div>`; return; }
   // 押すと内訳のダイアログ（metric.js）。id のない数は押せない
-  const kpi = (k, v, tt, cls, id, d = "") => { const tg = id ? "button" : "div";
-    return `<${tg} class="kpi${cls ? " " + cls : ""}"${id ? ` type="button" data-metric="${id}" aria-haspopup="dialog"` : ""}${tt || id ? ` title="${esc(tt ? (id ? t("{text}. Click for the breakdown.", {text: tt}) : tt) : t("Click for the breakdown"))}"` : ""}><div class="k">${d ? `<span>${esc(k)}</span>${d}` : esc(k)}</div><div class="v">${v}</div></${tg}>`; };
+  const kpi = (k, v, tt, cls, id) => { const tg = id ? "button" : "div";
+    return `<${tg} class="kpi${cls ? " " + cls : ""}"${id ? ` type="button" data-metric="${id}" aria-haspopup="dialog"` : ""}${tt || id ? ` title="${esc(tt ? (id ? t("{text}. Click for the breakdown.", {text: tt}) : tt) : t("Click for the breakdown"))}"` : ""}><div class="k">${esc(k)}</div><div class="v">${v}</div></${tg}>`; };
   const u = w.usage || {}, days = w.days.filter(d => d.active).length, pj = projection(w);
   const n0 = soFar(), nd = n0 == null ? w.days.length : Math.min(n0, w.days.length); // 途中の週・月は、まだ来ていない日を分母に入れない（今日までの日数）
   // 前の期間並みに収めるなら、残りの日 1 日あたりいくらか（pacing）。費用とクレジットは 1 つの枠に並べる（枠を増やすと帯がカレンダーと主役を争うため）。

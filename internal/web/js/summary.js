@@ -4,14 +4,10 @@ function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
   document.documentElement.classList.toggle("showfx", !!st.insFx); // 式を表示するか（ふだんは平易な 1 行だけ）
   const head = `<div class="rvhead"><h2>${esc(M ? t("Monthly summary") : t("Weekly summary"))}</h2><button type="button" class="pill fxbtn" id="fxbtn" aria-pressed="${!!st.insFx}">${esc(t("Show formulas"))}</button><p>${esc(t("Rough figures for reflecting on how you work. They are not for comparing people or for evaluations."))}</p></div>`;
-  const WK = $("#worth"); $("#sres").hidden = true; $("#sres").innerHTML = "";
-  if (!w){ WK.hidden = true; R.innerHTML = foot(); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
-  const longest = Math.max(0, ...w.focus.map(b=>b.min));
-  const pct = v => v == null ? esc(t("Unknown")) :`${v}<small>%</small>`;
-  const times = n => `${n}`;
-  const F = insRank(findList(w, pw, unit)); // 見直す候補の一覧・「まず見直す」・アドバイスで同じ並び
-  WK.innerHTML = ""; WK.hidden = true; // 期間の行の ⚠（見直す候補の一覧）は、いったん出さない。候補は「まず見直す」とサマリーの印から開く
-  const wd = WK.querySelector("details"); if (wd) wd.addEventListener("click", e => { if (e.target.closest(".hb")) e.preventDefault(); }); lastFlags = F; // 見直す候補は、カレンダーの上（期間の要点のすぐ下）に出す。押すと真ん中のダイアログで開く
+  $("#sres").hidden = true; $("#sres").innerHTML = "";
+  if (!w){ R.innerHTML = foot(); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
+  const F = insRank(findList(w, pw, unit)); // 見直す候補（「まず見直す」とダイアログで同じ並び）
+  lastFlags = F; // 見直す候補（詳細の頭の印と「まず見直す」が使う）
   // エージェントで絞る：2 つ以上のエージェントが動いた期間だけ、切り替えを出す（期間の集計の agents）。絞っている間はサマリーの中だけが、そのエージェントの分になる
   const ags = ((w.shares || {}).source || []).map(x => x.key).filter(k => w.agents && w.agents[k]), ag = ags.includes(st.insAg) ? st.insAg : "";
   const agSw = ags.length >= 2 ? `<div class="insagbar"><span class="lab">${esc(t("Agent"))}</span><div class="segc insk" role="group" aria-label="${esc(t("Agent"))}">${["", ...ags].map(k => `<button type="button" data-ag="${esc(k)}" aria-pressed="${k === ag}">${esc(k || t("All agents"))}</button>`).join("")}</div>${ag ? `<span class="note">${esc(t("Only {agent}. Its active time counts time it shared with other agents in full (the By agent table and the legend split it). Git commits made by hand are left out. The figures above the calendar stay for all agents", {agent: ag}))}</span>` : ""}</div>` : "";
@@ -23,11 +19,10 @@ function summary(){
   const fb = $("#fxbtn"); if (fb) fb.onclick = () => { st.insFx = !st.insFx; store.set("insFx", st.insFx); summary(); const nb = $("#fxbtn"); if (nb) nb.focus(); };
   R.querySelectorAll("[data-ag]").forEach(b => b.onclick = () => { st.insAg = b.dataset.ag; store.set("insAg", st.insAg); summary(); const nb = $("#review").querySelector(`[data-ag="${CSS.escape(b.dataset.ag)}"]`); if (nb) nb.focus(); });
   R.querySelectorAll(".card,.fses").forEach(c => c.onclick = () => select(c.dataset.id));
-  WK.querySelectorAll("[data-goto]").forEach(b => { b.setAttribute("aria-haspopup", "dialog"); b.onclick = () => { const d = WK.querySelector("details"); openWorth(b.dataset.goto, d ? WK.querySelector("summary") : b); if (d) d.open = false; }; }); // 選んだら一覧は閉じる（閉じたダイアログはアイコンへ戻る）
   R.querySelectorAll(".fmark").forEach(b => b.onclick = () => insOpenWorth(b.dataset.goto, b));
   R.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => agScope(insAg, () => openMetric(b.dataset.metric, b))); // 上の帯と同じ内訳（絞っていれば、そのエージェントの分）
   R.querySelectorAll(".keeparch").forEach(b => b.onclick = () => { R.querySelectorAll(".keeparch").forEach(x => x.disabled = true); keepArchive(); });
-  bindInsight(R); bindCopy(R); bindHelp(R); bindHelp(WK);
+  bindInsight(R); bindCopy(R); bindHelp(R);
   if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }
 // agScope は、fn を描く間だけ DATA・WEEKS・MONTHS をエージェント ag の分に入れかえる（ag が空なら、そのまま）。
@@ -46,7 +41,7 @@ const uThis = unit => unit === "月" ? "this month" : "this week";
 const uLast = unit => unit === "月" ? "last month" : "last week";
 /* 指標の読み方：定義・言えること・言えないこと・打てる手。画面の「?」と、改善案プロンプトの前提に使う */
 const HELP = {
-  findings: {n: "Worth a look", d: "Metrics that crossed a fixed threshold. Each is marked with a warning triangle where it appears, with what was observed, an 8-period trend (for metrics counted per period), the related sessions and the threshold; their names are listed here in priority order", c: "Which metric is worth reviewing first", x: "Whether something is good or bad. Thresholds are generic and may not fit how you work", a: "Pick one, try it next period, and check the change with the same metric"},
+  findings: {n: "Worth a look", d: "Metrics that crossed a fixed threshold. Each is marked with a warning triangle where it appears, with what was observed, an 8-period trend (for metrics counted per period), the related sessions and the threshold. Change first in the summary names the first in priority order", c: "Which metric is worth reviewing first", x: "Whether something is good or bad. Thresholds are generic and may not fit how you work", a: "Pick one, try it next period, and check the change with the same metric"},
   projects: {n: "By project", d: "Time, usage and what was left behind per project. Time when several projects ran at once is split between them", c: "How you divided time and AI across projects", x: "How important or successful a project was", a: "If the split differs from what you intended, revisit how you work or your priorities"},
   active: {n: "Active time", d: "Time when any session was running (overlaps count once)", c: "Total time you worked together with AI", x: "Whether you were focused. Includes time you left a session idle", a: "Compare with the previous period to see how much more or less you rely on AI"},
   focus: {n: "Focus blocks", d: "Work that continued for 60 minutes or more. Gaps within a session up to the session gap (15 minutes by default) and gaps of up to 5 minutes between sessions are treated as continuous", c: "Whether you had long stretches of uninterrupted work", x: "The quality of the work in that time", a: "If your time is fragmented, group the work you hand to AI into blocks of time"},

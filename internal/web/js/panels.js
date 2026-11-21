@@ -22,7 +22,7 @@ function tph(s, vars){
 const SR_FIRST = 10, SR_STEP = 50; // 検索結果は、はじめに 10 件、「もっと見る」で 50 件ずつ
 function searchPanel(){
   const R = $("#sres"), q = st.q, nS = st.srN || SR_FIRST, nC = st.scN || SR_FIRST;
-  $("#review").innerHTML = ""; $("#worth").hidden = true; R.hidden = false;
+  $("#review").innerHTML = ""; R.hidden = false;
   const ss = DATA.filter(s => !st.hidden.has(keyOf(s)) && searchText(s).includes(q)).sort((a,b) => b.start - a.start);
   const cs = (META.git || []).filter(gitHit).sort((a,b) => b.t - a.t);
   const row = s => { const h = hitOf(s, q);
@@ -234,18 +234,6 @@ function reportPrompt(w, day){ return inEnglish(() => { //  day があれば日�
   L.push("", "# History data", mdFence(D.join("\n")));
   return L.join("\n");
 }); }
-/* 期間に git へ残ったもの：コミットから数えたファイルと、この PC からの push。
-   w.git と同じ範囲（凡例で隠した分は、ほかの数字と同じで差し引かない）で数える */
-function periodGit(){
-  const {ws, we} = period(), cs = (META.git || []).filter(c => c.t >= ws && c.t < we);
-  const files = new Set(), projects = new Set(); let trunc = false;
-  cs.forEach(c => { const fs = c.files || [];
-    fs.forEach(f => files.add(`${c.repo}\u0000${f.path}`));
-    if (fs.length < c.nFiles) trunc = true; // 1 コミットにつき残すファイルは先頭 40 件なので、それを超えたら「少なくとも」
-    projects.add(c.project); });
-  const ps = (META.push || []).filter(p => p.t >= ws && p.t < we);
-  return {files: files.size, trunc, projects: projects.size, pushes: ps.length, refs: new Set(ps.map(p => `${p.repo}\u0000${p.ref}`)).size};
-}
 /* 計測の状態 */
 /* kiroku html --week / --month で書き出した、1 つの期間だけのファイル。渡された人がいちばん上で、何のファイルか・ほかの期間が空の理由・
    どの時計で見ているかがわかるように */

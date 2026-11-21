@@ -129,4 +129,3 @@ function setHdr(){ const h = document.querySelector("header"); if (h) document.d
 setHdr(); addEventListener("resize", setHdr);
 
 // 「見直す候補」の一覧は、枠の外を押すと閉じる
-document.addEventListener("click", e => { const d = document.querySelector("#worth details"); if (d && d.open && !e.target.closest("#worth") && !e.target.closest("#wk")) d.open = false; });

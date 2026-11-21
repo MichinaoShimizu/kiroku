@@ -8,7 +8,7 @@ English | [日本語](README.ja.md)
 
 See what you built, understand how you worked, and make your next AI session better.
 
-kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew) and Codex CLI together in one place. No account, telemetry or uploads; an AI agent runs only when you confirm "Analyze with AI" in `kiroku serve`.
+kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew) and Codex CLI together in one place. No account, telemetry or uploads, and kiroku never runs an AI agent.
 
 **[Try the live demo →](https://michinaoshimizu.github.io/kiroku/)** (dummy data, runs in your browser)
 
@@ -47,7 +47,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 **Every number opens up.** Click any figure, at the top or in the weekly summary, such as estimated cost or Git commits, to see it by day, agent, project and model, with the sessions, commits or prompts behind it.
 
-**What's worth a look.** Metrics that crossed a threshold are listed under the key figures. Press one to see what was observed, why it matters, the sessions behind it, an 8-week trend and what to try, without leaving the calendar.
+**What's worth a look.** Metrics that crossed a threshold are marked in the summary, and "Change first" names the one to look at first. Press one to see what was observed, why it matters, the sessions behind it, an 8-week trend and what to try, without leaving the calendar.
 
 <img src="docs/worth.png" alt="A flagged metric opened from Worth a look (dummy data)" width="560">
 
