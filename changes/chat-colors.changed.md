@@ -1,0 +1,1 @@
+- Session details: the prompt flow uses kiroku's own colors instead of a messaging app's: your prompts in purple bubbles on the right, the AI's replies in white (dark gray in the dark theme) bubbles on the left, on a light surface, with events as gray labels and limits and interruptions as red ones
