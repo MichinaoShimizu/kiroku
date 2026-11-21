@@ -171,7 +171,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
   background:color-mix(in oklab,var(--c) var(--fill),var(--surface));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--c) 55%,transparent);
   font-size:var(--fs-xs);line-height:1.3;color:var(--ink);text-align:left;
   transition:transform .18s var(--ease),box-shadow .18s var(--ease),opacity .25s var(--ease),filter .25s;
-  animation:rise .5s var(--ease) both;animation-delay:var(--delay,0ms)}
+  animation:rise .25s var(--ease) both;animation-delay:var(--delay,0ms)} /* 週を替えたときの出方は短く（ずらしを入れても 0.4 秒ほどで出そろう） */
 .run.thin{padding:0 6px;border-radius:0;justify-content:center}.run.thin .t{font-size:var(--fs-2xs);line-height:1;white-space:nowrap;align-items:center}.run.thin .t::before{width:5px;height:5px;margin-top:0}.run.thin .t span{display:block} /* 短い帯は小さい字で 1 行だけ */
 .rlab{position:absolute;z-index:1;font-size:var(--fs-2xs);line-height:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none} /* 名前の入らない短い帯の、すぐ下の名前 */
 .tlbox.focus .rlab{opacity:.25}
@@ -859,14 +859,14 @@ html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り
 .ai-check p{margin:0 0 4px}.ai-check ul{margin:0 0 8px;padding-left:20px}
 .ai-rhead[hidden],.ai-out[hidden],.ai-log[hidden],.ai-check[hidden],.ai-agent[hidden]{display:none}
 /* 結果が出たら、入力と経過をゆっくりたたむ（高さを 1fr → 0fr にして、中身の高さによらず滑らかに） */
-.ai-inputs{display:grid;grid-template-rows:1fr;opacity:1;transition:grid-template-rows .5s var(--ease),opacity .4s var(--ease)}
+.ai-inputs{display:grid;grid-template-rows:1fr;opacity:1;transition:grid-template-rows .3s var(--ease),opacity .25s var(--ease)}
 .ai-inputs.closed{grid-template-rows:0fr;opacity:0}
 .ai-inputs-in{min-height:0;overflow:hidden}
 .ai-intoggle{display:inline-flex;align-items:center;gap:6px;margin:-4px 0 8px;padding:2px 0;font-size:var(--fs-sm);color:var(--acc-ink);background:none;border:0;cursor:pointer}
 .ai-intoggle::before{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);transition:transform .3s var(--ease)}
 .ai-intoggle[aria-expanded="true"]::before{transform:rotate(45deg)}
 .ai-intoggle[hidden]{display:none}
-.ai-dialog .ai-out{transition:max-height .5s var(--ease)}
+.ai-dialog .ai-out{transition:max-height .3s var(--ease)}
 .ai-dialog.ai-focus .ai-out{max-height:66vh}
 @media (prefers-reduced-motion:reduce){.ai-inputs,.ai-intoggle::before,.ai-dialog .ai-out{transition:none}}
 
