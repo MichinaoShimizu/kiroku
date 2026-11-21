@@ -1,3 +1,0 @@
-- Summary: a "Tokens by type" card shows input, output, cache write and cache read as one stacked bar and as rows with the count and share, with the share read from cache against your past periods
-- Summary: a "By agent" table (when more than one agent ran) shows each agent's active time and share, sessions, prompts, estimated cost, Kiro credits and tokens side by side
-- Summary: an Agent switch (when more than one agent ran in the period) narrows the whole summary, including comparisons with past periods, to one agent. Git commits made by hand are left out of an agent's figures. The weekly and monthly data (`weeks` and `months` in `/data.json`) gain `agents` (the same figures per agent) and `only` (the agent, when just one ran)

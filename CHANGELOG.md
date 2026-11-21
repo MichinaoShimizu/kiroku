@@ -2,6 +2,24 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v3.3.0 - 2026-11-21
+
+### Added
+
+- A dark theme again, with a moon / sun button at the top right. The view stays light by default, whatever your system's setting; the choice is saved in the browser, and the page shown while `kiroku serve` reads your history follows it
+- Summary: a "Tokens by type" card shows input, output, cache write and cache read as one stacked bar and as rows with the count and share, with the share read from cache against your past periods
+- Summary: a "By agent" table (when more than one agent ran) shows each agent's active time and share, sessions, prompts, estimated cost, Kiro credits and tokens side by side
+- Summary: an Agent switch (when more than one agent ran in the period) narrows the whole summary, including comparisons with past periods, to one agent. Git commits made by hand are left out of an agent's figures. The weekly and monthly data (`weeks` and `months` in `/data.json`) gain `agents` (the same figures per agent) and `only` (the agent, when just one ran)
+
+### Changed
+
+- Week calendar: 0:00–7:00 is folded at the top, at a quarter of the height as a shaded band, so the working hours fit the first screen and night work still shows where it happened. "0–7" at the top of the hours unfolds it to full height and folds it again; the choice is remembered
+- Session details: the prompt flow looks like a messaging app: a blue-gray background, your prompts as green bubbles on the right, the AI's replies as white bubbles on the left, and events as dark labels in the middle (red for limits and interruptions)
+- Summary: the figures at the top are in one row; on narrower windows the row scrolls sideways
+- Summary: advice is ordered by the cost involved (the cost of the sessions each item is about, shown with its sum), largest first
+- Summary: the weekday × hour heatmap ends each row with that weekday's total, so its values show without pointing at a cell
+- Summary: a row of cards or stats that isn't full is filled by its last item, with no empty slot; on a phone, the trend's metric switch scrolls sideways instead of wrapping
+
 ## v3.2.0 - 2026-11-21
 
 ### Added
