@@ -264,6 +264,12 @@ async function run(env) {
       const fx = await p.evaluate(() => ({chips: [...document.querySelectorAll("#review .insight .ichip.ifx")].map(e => e.textContent), def: (document.querySelector("#review .insdef") || {}).textContent || "",
         vague: /Usual|Higher|Lower|usual range|いつもの範囲|いつもどおり|高め|低め/.test(document.querySelector("#review .insight").innerText)}));
       check("いつもとの比べは不等式（Q1・Q3 の値）で出し、定義を 1 行で示す。曖昧な言葉は使わない", fx.chips.length > 0 && fx.chips.every(c => /Q[13]|≤|needs|必要/.test(c)) && /Q1, Q3 = .*IQR = Q3 − Q1/.test(fx.def) && !fx.vague, JSON.stringify(fx).slice(0, 300));
+      const lay = await p.evaluate(() => { const cs = [...document.querySelectorAll("#review .insight .inscol")]; const say = cs.filter(c => c.querySelector(".isay")).length, charts = cs.filter(c => c.querySelector(".insfig, .ihgrid")).length;
+        // 同じ段（insrow）のカードは、上端と下端がそろう（カードの間に隙間がない）
+        const rows = innerWidth <= 1000 || [...document.querySelectorAll("#review .insrow")].every(r => { const k = [...r.children].map(c => c.getBoundingClientRect()); return k.every(b => Math.abs(b.top - k[0].top) < 1 && Math.abs(b.bottom - k[0].bottom) < 1); });
+        const g = document.querySelector("#review .insgrid"), l = g && g.querySelector(".insleft"), a = g && g.querySelector(".insadvc"); const lr = l && l.getBoundingClientRect(), ar = a && a.getBoundingClientRect();
+        return {say, charts, rows, grid: !lr || !ar || innerWidth <= 1000 || Math.abs(lr.bottom - ar.bottom) < 1}; });
+      check("どのグラフにも、データから計算した読み取りの 1 文があり、同じ段のカードは高さがそろう", lay.say === lay.charts && lay.rows && lay.grid, JSON.stringify(lay));
       const t0 = await p.locator('#review [data-ins][aria-pressed="true"]').getAttribute("data-ins");
       await p.locator('#review [data-ins]:not([aria-pressed="true"])').first().click(); await pause();
       check("グラフの指標を切り替えられる（押したものが選ばれ、フォーカスが残る）", await p.evaluate(t0 => { const b = document.querySelector('#review [data-ins][aria-pressed="true"]'); return !!b && b.dataset.ins !== t0 && document.activeElement === b; }, t0));

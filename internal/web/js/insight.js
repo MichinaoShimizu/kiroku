@@ -28,6 +28,7 @@ function insRange(k, cur, f, low, add, fmt){
 }
 const insName = k => (H()[k] || {}).n || k;
 const insUnit = () => st.mode === "month" ? t("months") : t("weeks");
+const say = (s, then) => (s ? `<p class="isay">${esc(s)}</p>` : "") + (then ? `<p class="ithen">→ ${esc(then)}</p>` : ""); // グラフの読み取り（データから計算した 1 文。見出しのすぐ下）
 // 式の表示：値・式は <code class="ifx"> に入れる（文ではなく、計算だとわかるように）
 const fx = (s, cls = "") => `<code class="ifx${cls}">${esc(s)}</code>`;
 const insDef = n => n == null ? t("Q1, Q3 = 25th and 75th percentiles of the past {unit} with records (up to {n}); IQR = Q3 − Q1", {n: INS_N, unit: insUnit()}) : t("Q1, Q3 = 25th and 75th percentiles of the last {n} {unit}; IQR = Q3 − Q1", {n, unit: insUnit()});
@@ -76,7 +77,10 @@ function insChart(k){
       + ((n - 1 - i) % every === 0 ? `<text class="ixl${last ? " cur" : ""}" x="${cx.toFixed(1)}" y="${Hh - 8}">${esc(lab(p))}</text>` : "")
       + `<rect class="ihit" x="${x(i).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${Hh}"${tipAttr(p.label, v == null ? t("No records") : fmtM(k, v), last && proj != null ? t("At this pace: {v}", {v: fmtM(k, proj)}) : "")}/></g>`; }).join("");
   const list = ps.filter(x => x.v != null).map(x => `${x.p.label} ${fmtM(k, x.v)}`).join(LSEP());
-  return `<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(t("{metric} over the last {n} {unit}", {metric: insName(k), n, unit: insUnit()}))}">${ticks}${band}${bars}</svg>
+  let sy = ""; if (b && b.q1 != null){ const all = [...b.xs, b.v], r = 1 + b.xs.filter(z => z > b.v).length, d = b.v - b.med, pc = b.med ? Math.round(d * 100 / b.med) : null;
+    sy = t("{x}: {r} of {n} {unit} from the highest; {d} from the median {m}{pc}", {x: (b.part ? t("pace") + " " : "") + fmtM(k, b.v), r, n: all.length, unit: insUnit(), d: (d >= 0 ? "+" : "−") + fmtM(k, Math.abs(d)), m: fmtM(k, b.med), pc: pc == null ? "" : ` (${pc >= 0 ? "+" : ""}${pc}%)`}); }
+  const th = !b || b.q1 == null ? "" : b.better === false ? t("Worse side of Q1–Q3; the advice lists where it came from") : b.better ? t("Better side of Q1–Q3; keep what you changed") : t("Within Q1–Q3 of your past {unit}", {unit: insUnit()});
+  return `${say(sy, th)}<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(t("{metric} over the last {n} {unit}", {metric: insName(k), n, unit: insUnit()}))}">${ticks}${band}${bars}</svg>
     <figcaption><span class="lg iband">${fx(`Q1–Q3`)} ${esc(t("of the last {n} {unit}", {n: b ? b.n : 0, unit: insUnit()}))}</span><span class="lg imed">${fx(t("median"))}</span>${proj != null ? `<span class="lg iproj">${fx(`${t("pace")} = ${t("so far")} × ${t("period")} ÷ ${t("elapsed")}`)}</span>` : ""}<span class="lg iout">${fx(`< Q1 − 1.5×IQR ${t("or")} > Q3 + 1.5×IQR`)}</span></figcaption>
     <p class="sr">${esc(list)} — ${esc(insPosText(b))}</p></figure>`;
 }
@@ -99,7 +103,7 @@ function insightH(F){
     <div class="insgrid"><div class="insleft"><div class="inscol"><div class="inshead"><h4>${esc(t("Trend"))}</h4><div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${tabs}</div></div>${insChart(k)}</div>
     ${card(st.mode === "month" ? t("Cost so far vs last month") : t("Cost so far vs last week"), insCum())}</div>
     ${card(t("Advice"), insAdvice(F), " insadvc")}</div>
-    <div class="insrow two">${card(t("Cost by model"), insDonut())}${card(t("Session length"), insHist())}</div>
+    <div class="insrow two">${card(t("Cost by model"), insDonut())}${card(t("Cost by session length"), insHist())}</div>
     <div class="insrow two">${card(t("Cost and outputs"), insScatter())}${card(t("When you worked"), insHeat())}</div></section>`;
 }
 function bindInsight(R){
@@ -123,7 +127,10 @@ function insScatter(){
   const pts = xs.map((p, i) => { const hit = p.o === 0 && p.c >= thr, jy = p.o === 0 ? -((i * 37) % 9) - 3 : 0; // 成果 0 の点は重なりやすいので、縦に少しずらす
     return `<circle class="ipt${hit ? " bad" : ""}" cx="${x(p.c).toFixed(1)}" cy="${(y(p.o) + jy).toFixed(1)}" r="${narrow ? 4 : 5}" tabindex="0" role="button" data-sid="${esc(p.s.id)}" aria-label="${esc(`${p.s.title || p.s.id}: ${usd(p.c)}, ${t("{n} outputs", {n: p.o})}`)}"${tipAttr(p.s.title || "", `${usd(p.c)} · ${t("{n} outputs", {n: p.o})}`, p.s.project)}/>`; }).join("");
   const note = `${t("outputs")} = 0 ∧ ${t("cost")} ≥ ${usd(thr)} : ${bad.length} · ${usd(badC)}`;
-  return `<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="group" aria-label="${esc(t("Cost and outputs per session"))}">${xt}${yt}${zone}${pts}
+  const tq = xs.filter(p => p.c >= thr).length, all$ = cs.reduce((a, c) => a + c, 0);
+  const sy = t("{m} of the {k} sessions costing {thr} or more had no output: {usd} = {pc}% of session cost", {m: bad.length, k: tq, thr: usd(thr), usd: usd(badC), pc: all$ ? Math.round(badC * 100 / all$) : 0});
+  const th = bad.length ? t("Open the red points: research is fine; work that stopped partway is the cost to cut") : "";
+  return `${say(sy, th)}<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="group" aria-label="${esc(t("Cost and outputs per session"))}">${xt}${yt}${zone}${pts}
     <text class="iax" x="${W - R}" y="${Hh - B - 4}">${esc(t("Estimated cost →"))}</text><text class="iax st" x="${L + 4}" y="${T + 10}">${esc(t("↑ Commits and PRs"))}</text></svg><figcaption><span class="lg izone">${fx(note)}</span></figcaption><p class="ifxs">${fx(`${t("outputs")} = ${t("commits")} + PRs`)}${fx(`${usd(thr)} = max($0.50, P75(${t("cost")}))`)}</p></figure>`;
 }
 /* 曜日×時間帯のヒートマップ：表示中の期間に AI と作業していた時間（重なりは 1 回）。月の表示では曜日ごとに足す。
@@ -147,7 +154,9 @@ function insHeat(){
   const cells = g.map((r, d) => `<span class="ihd">${esc(dow(days[d]))}</span>` + r.map((v, h) => `<span class="ihc${d >= 5 || h < 9 || h >= 18 ? " off" : ""}" style="--a:${v ? (0.12 + 0.88 * v / max).toFixed(2) : 0}"${tipAttr(`${dow(days[d])} ${h}:00–${h + 1}:00`, v ? dur(v) : t("None"))}></span>`).join("")).join("");
   const hrs = `<span></span>` + Array.from({length: 24}, (_, h) => `<span class="ihh">${h % 3 ? "" : h}</span>`).join("");
   const peak = `${dow(days[best.d])} ${best.h}–${best.h + 3}${JA ? "時" : ":00"}`;
-  return `<div class="ihgrid" role="img" aria-label="${esc(t("Busiest: {p}", {p: peak}))}">${hrs}${cells}</div>
+  const tot = insOffM(g).all, sy = t("Busiest {p}: {h} = {pc}% of active time; off-hours {off}%", {p: peak, h: dur(best.v), pc: tot ? Math.round(best.v * 100 / tot) : 0, off: off == null ? "—" : off});
+  const th = b && b.q1 != null && b.pos === "high" ? t("Off-hours share {off}% is above Q3 = {q3}% of your past {unit}", {off, q3: Math.round(b.q3), unit: insUnit()}) : "";
+  return `${say(sy, th)}<div class="ihgrid" role="img" aria-label="${esc(t("Busiest: {p}", {p: peak}))}">${hrs}${cells}</div>
     <p class="ifxs">${fx(`${t("peak 3h")} = ${peak} (${dur(best.v)})`)}${off != null ? fx(`${t("off-hours")} = ${dur(insOffM(g).off)} ÷ ${dur(insOffM(g).all)} = ${off}%`) : ""}${off != null ? insChip(b) : ""}</p>
     <p class="note">${esc(t("Off-hours: Saturday, Sunday, and weekdays before 9:00 or from 18:00"))}</p>`;
 }
@@ -164,8 +173,12 @@ function insCum(){
   const x = i => L + (W - L - R) * (n === 1 ? 0 : i / (n - 1)), y = v => T + (Hh - T - B) * (1 - v / top), line = a => a.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
   const ticks = [0, top / 2, top].map(v => `<g class="itk"><line x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${L - 6}" y="${(y(v) + 4).toFixed(1)}">${esc(fm(v))}</text></g>`).join("");
   const a = new Date(period().ws * 1000), xl = [0, n - 1].map(i => `<text class="ixl ${i ? "e" : "s"}" x="${x(i).toFixed(1)}" y="${Hh - 6}">${esc(dMD(addDays(a, i)))}</text>`).join(""); // 両端の日付は、内側に寄せる（はみ出さないように）
-  const last = cur.length - 1, diff = prev.length > last ? cur[last] - prev[last] : null;
-  return `<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(`${fm(cur[last])}${prev.length ? ` / ${fm(prev[Math.min(last, prev.length - 1)])}` : ""}`)}">${ticks}${xl}
+  const last = cur.length - 1, diff = prev.length > last ? cur[last] - prev[last] : null, ptot = prev.length ? prev[prev.length - 1] : null;
+  const sy = diff == null ? "" : t("Day {d} of {n}: {diff} ({pc}) vs the previous period", {d: last + 1, n, diff: (diff >= 0 ? "+" : "−") + fm(Math.abs(diff)), pc: prev[last] ? `${diff >= 0 ? "+" : ""}${Math.round(diff * 100 / prev[last])}%` : "—"})
+    + (fr < 1 && ptot != null ? t("; at this pace {end} at the end vs {prev}", {end: fm(cur[last] / fr), prev: fm(ptot)}) : "");
+  const left = n - (last + 1), rem = ptot == null ? null : ptot - cur[last];
+  const th = fr >= 1 || rem == null || !useCost ? "" : rem <= 0 ? t("Already {x} over the previous period's total {prev}", {x: fm(-rem), prev: fm(ptot)}) : left > 0 ? t("To stay within the previous period's {prev}: at most {rem} in the {d} left = {per}/day", {prev: fm(ptot), rem: fm(rem), d: plural(left, "day"), per: fm(rem / left)}) : "";
+  return `${say(sy, th)}<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(`${fm(cur[last])}${prev.length ? ` / ${fm(prev[Math.min(last, prev.length - 1)])}` : ""}`)}">${ticks}${xl}
     ${prev.length ? `<polyline class="iprev" points="${line(prev)}"/>` : ""}<polyline class="icum" points="${line(cur)}"/><circle class="icumd" cx="${x(last).toFixed(1)}" cy="${y(cur[last]).toFixed(1)}" r="4"/></svg>
     <figcaption><span class="lg icum">${esc(st.mode === "month" ? t("This month") : t("This week"))} <b>${esc(fm(cur[last]))}</b></span>${prev.length ? `<span class="lg iprev">${esc(st.mode === "month" ? t("Last month") : t("Last week"))}</span>` : ""}</figcaption>${diff != null ? `<p class="ifxs">${fx(`${fm(cur[last])} − ${fm(prev[last])} = ${(diff >= 0 ? "+" : "−") + fm(Math.abs(diff))}`, diff > 0 ? " bad" : " good")}<span class="note">${esc(t("vs the same day of the previous period ({d})", {d: dMD(addDays(new Date(periodBack(1).ws * 1000), last))}))}</span></p>` : ""}</figure>`;
 }
@@ -178,19 +191,28 @@ function insDonut(){
     const d = v >= tot ? `M${C},${C - R0}A${R0},${R0} 0 1 1 ${C - .01},${C - R0}L${C - .01},${C - r0}A${r0},${r0} 0 1 0 ${C},${C - r0}Z` : `M${p(R0, a0)}A${R0},${R0} 0 ${big} 1 ${p(R0, a1)}L${p(r0, a1)}A${r0},${r0} 0 ${big} 0 ${p(r0, a0)}Z`; a0 = a1; return d; };
   const col = i => `var(--c${i % 8})`;
   const segs = top.map((r, i) => `<path d="${arc(r[1], i)}" style="fill:${col(i)}"${tipAttr(r[0], `${usd(r[1])} · ${Math.round(r[1] * 100 / tot)}%`)}/>`).join("");
-  return `<figure class="insfig idonut"><svg viewBox="0 0 140 140" role="img" aria-label="${esc(top.map(r => `${r[0]} ${Math.round(r[1] * 100 / tot)}%`).join(", "))}">${segs}<text class="idc" x="70" y="75">${esc(usd(tot))}</text></svg>
+  let acc = 0, k80 = 0; for (const r of top){ acc += r[1]; k80++; if (acc >= tot * .8) break; }
+  const sy = t("{model}: {pc}% of cost ({usd}); 80% of cost is in {k} of {n} models", {model: top[0][0], pc: Math.round(top[0][1] * 100 / tot), usd: usd(top[0][1]), k: k80, n: ms.length});
+  const {ws: dws, we: dwe} = period(), LT = lightOf(dws, dwe);
+  const th = LT.c >= 0.01 ? t("{usd} went to short Opus-class sessions with no edits ({n}): candidates for a lighter model", {usd: usd(LT.c), n: plural(LT.xs.length, "session")}) : "";
+  return `${say(sy, th)}<figure class="insfig idonut"><svg viewBox="0 0 140 140" role="img" aria-label="${esc(top.map(r => `${r[0]} ${Math.round(r[1] * 100 / tot)}%`).join(", "))}">${segs}<text class="idc" x="70" y="75">${esc(usd(tot))}</text></svg>
     <ul class="idleg">${top.map((r, i) => `<li><i style="background:${col(i)}"></i><span title="${esc(r[0])}">${esc(r[0])}</span><span class="iv">${esc(usd(r[1]))}</span><b>${Math.round(r[1] * 100 / tot)}%</b></li>`).join("")}</ul></figure>
     <p class="ifxs">${fx(`% = ${t("model cost")} ÷ ${usd(tot)}`)}</p>`;
 }
-/* ヒストグラム：表示中の期間に動いたセッションの長さ（期間の中の作業時間）の分布。中央値の入る階級を濃く */
+/* セッションの長さ別の費用：表示中の期間に動いたセッションを、期間の中の作業時間で 6 つに分け、区分ごとの推定費用の合計を棒に（件数は棒の下）。
+   費用の記録がなければ件数で。どの長さのセッションに費用が集まっているかを読む */
 function insHist(){
-  const {ws, we} = period(), ms = DATA.filter(s => inP(s, ws, we)).map(sesMin).filter(m => m > 0); if (ms.length < 3) return "";
-  const edges = [0, 5, 15, 30, 60, 120, Infinity], labs = ["<5m", "5–15m", "15–30m", "30–60m", "1–2h", "2h+"];
-  const cnt = labs.map((_, i) => ms.filter(m => m >= edges[i] && m < edges[i + 1]).length), med = insQuant(ms, .5), mi = edges.findIndex((e, i) => med >= e && med < edges[i + 1]);
-  const max = Math.max(...cnt), W = innerWidth < 600 ? 360 : 560, Hh = 180, B = 22, T = 16, bw = W / labs.length;
-  const bars = cnt.map((c, i) => { const h = (Hh - B - T) * c / max, xx = i * bw;
-    return `<rect class="ihb${i === mi ? " med" : ""}" x="${(xx + bw * .14).toFixed(1)}" y="${(Hh - B - h).toFixed(1)}" width="${(bw * .72).toFixed(1)}" height="${h.toFixed(1)}" rx="3"${tipAttr(labs[i], plural(c, "session"))}/>`
-      + (c ? `<text class="ihn" x="${(xx + bw / 2).toFixed(1)}" y="${(Hh - B - h - 4).toFixed(1)}">${c}</text>` : "") + `<text class="ixl" x="${(xx + bw / 2).toFixed(1)}" y="${Hh - 6}">${labs[i]}</text>`; }).join("");
-  return `<figure class="insfig ihist"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(labs.map((l, i) => `${l} ${cnt[i]}`).join(", "))}">${bars}</svg>
-    <p class="ifxs">${fx(`${t("median")}(${t("active time of {n} sessions", {n: ms.length})}) = ${dur(med)}`)}</p></figure>`;
+  const {ws, we} = period(), ss = DATA.filter(s => inP(s, ws, we)).map(s => ({m: sesMin(s), c: s.cost || 0})).filter(x => x.m > 0); if (ss.length < 3) return "";
+  const edges = [0, 5, 15, 30, 60, 120, Infinity], labs = ["<5m", "5–15m", "15–30m", "30–60m", "1–2h", "2h+"], useC = ss.some(x => x.c > 0);
+  const bins = labs.map((_, i) => ss.filter(x => x.m >= edges[i] && x.m < edges[i + 1])), val = b => useC ? b.reduce((a, x) => a + x.c, 0) : b.length;
+  const vs = bins.map(val), tot = vs.reduce((a, v) => a + v, 0), mi = vs.indexOf(Math.max(...vs)), med = insQuant(ss.map(x => x.m), .5);
+  const max = Math.max(...vs) || 1, W = innerWidth < 600 ? 360 : 560, Hh = 180, B = 34, T = 16, bw = W / labs.length, fv = v => useC ? usd(v) : String(v);
+  const bars = vs.map((v, i) => { const h = (Hh - B - T) * v / max, xx = i * bw;
+    return `<rect class="ihb${i === mi ? " med" : ""}" x="${(xx + bw * .14).toFixed(1)}" y="${(Hh - B - h).toFixed(1)}" width="${(bw * .72).toFixed(1)}" height="${h.toFixed(1)}" rx="3"${tipAttr(labs[i], plural(bins[i].length, "session"), useC ? usd(v) : "")}/>`
+      + (v ? `<text class="ihn" x="${(xx + bw / 2).toFixed(1)}" y="${(Hh - B - h - 4).toFixed(1)}">${esc(fv(v))}</text>` : "") + `<text class="ixl" x="${(xx + bw / 2).toFixed(1)}" y="${Hh - 18}">${labs[i]}</text><text class="ixl sub" x="${(xx + bw / 2).toFixed(1)}" y="${Hh - 4}">n=${bins[i].length}</text>`; }).join("");
+  const sy = useC ? t("Sessions of {bin}: {pc}% of cost ({usd}) in {n} sessions", {bin: labs[mi], pc: Math.round(vs[mi] * 100 / tot), usd: usd(vs[mi]), n: bins[mi].length}) : t("Most sessions ran {bin} ({n})", {bin: labs[mi], n: vs[mi]});
+  const LC = useC ? longCtxOf(ws, we) : [];
+  const th = mi >= 4 && LC.length ? t("{n} of the long sessions grew their input per response to up to {x}× the start: split them at a stopping point", {n: LC.length, x: Math.round(Math.max(...LC.map(s => s.ctx[1] / s.ctx[0])))}) : "";
+  return `${say(sy, th)}<figure class="insfig ihist"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(labs.map((l, i) => `${l} ${fv(vs[i])} n=${bins[i].length}`).join(", "))}">${bars}</svg>
+    <p class="ifxs">${fx(`${t("median")}(${t("active time of {n} sessions", {n: ss.length})}) = ${dur(med)}`)}${useC ? fx(`% = ${t("cost of the bin")} ÷ ${usd(tot)}`) : ""}</p></figure>`;
 }

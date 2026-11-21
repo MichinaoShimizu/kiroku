@@ -1014,3 +1014,13 @@ header{background:var(--s-cont);border-bottom:0}
 .itile .ifx{max-width:100%}
 .idleg .iv{flex:none;color:var(--ink-3);font-variant-numeric:tabular-nums;margin-right:6px}
 .ifxs.insdef{margin:-8px 0 16px}
+/* カードの間に隙間を作らない：同じ段のカードは高さをそろえ、左の列の下のカードが残りを埋める */
+.insgrid,.insrow{align-items:stretch}
+.insleft>.inscol:last-child{flex:1}
+.inscol{display:flex;flex-direction:column}.inscol>.insfig{flex:1;display:flex;flex-direction:column}.inscol>.insfig>figcaption,.inscol>.insfig>.ifxs:last-child{margin-top:auto;padding-top:8px}
+.idonut{flex-direction:row}
+/* グラフの読み取り：見出しのすぐ下に、データから計算した 1 文 */
+.isay{margin:-4px 0 10px;font-size:var(--fs-md);font-weight:600;color:var(--ink);line-height:1.45}
+.insfig .ixl.sub{font-size:10px;fill:var(--ink-3)}
+.ithen{margin:-6px 0 10px;font-size:var(--fs-sm);color:var(--acc-ink);font-weight:500}
+.inscol>.insfig.idonut{flex-direction:row;align-items:center}
