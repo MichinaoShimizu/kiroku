@@ -193,13 +193,7 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 			_, off := time.Now().Zone()
 			meta["demo"] = map[string]any{"offset": off}
 		}
-		var private []string // 中身を出さない会話の記録のファイル（「Analyze with AI」に読ませない）。読んだのと同じゴルーチンで集める
-		for _, s := range all {
-			if p, ok := s.(interface{ PrivateFiles() []string }); ok {
-				private = append(private, p.PrivateFiles()...)
-			}
-		}
-		return snapshot{data: data, weeks: rcache.AllWeeks(data, commits...), months: rcache.AllMonths(data, commits...), meta: meta, rep: rep, private: private, gen: float64(time.Now().UnixNano()) / 1e9}
+		return snapshot{data: data, weeks: rcache.AllWeeks(data, commits...), months: rcache.AllMonths(data, commits...), meta: meta, rep: rep, gen: float64(time.Now().UnixNano()) / 1e9}
 	}
 	return picked, load, nil
 }
@@ -267,27 +261,14 @@ func langFlag(fs *flag.FlagSet) *string {
 	return fs.String("lang", env, "language of the view: en or ja ($KIROKU_LANG; default: the browser's language, English if it isn't Japanese); ?lang=en or ?lang=ja in the address also picks it")
 }
 
-// aiEnv は $KIROKU_AI（--ai の既定）。前後の空白を除いて "1"・"true"・"yes"・"on"（大文字小文字を問わない）のときだけ、AI の実行を許す
-// （迷う値はオフ。履歴の中の文字が AI に指示として読まれうるので、使う人が選んだときだけ動かす）。kiroku autostart on も書き残す（autostartEnv）
-func aiEnv() bool {
-	switch strings.ToLower(strings.TrimSpace(os.Getenv("KIROKU_AI"))) {
-	case "1", "true", "yes", "on":
-		return true
+// aiRemovedNote は、4.0 で外した「Analyze with AI」の --ai（$KIROKU_AI）を付けて起動したときに出す 1 行（なければ ""）。
+// 止めずに続ける（kiroku autostart on で登録した起動が、古い値のまま動き続けられるように）。kiroku は AI のエージェントを動かさない
+func aiRemovedNote(ai bool) string {
+	env := strings.ToLower(strings.TrimSpace(os.Getenv("KIROKU_AI")))
+	if !ai && env != "1" && env != "true" && env != "yes" && env != "on" {
+		return ""
 	}
-	return false
-}
-
-// aiWanted は、--ai と --no-ai から「Analyze with AI」を使えるようにするか。--no-ai（$KIROKU_NO_AI）は --ai より強い
-func aiWanted(ai, noAI bool) bool { return ai && !noAI }
-
-// noAIEnv は $KIROKU_NO_AI（--no-ai の既定）。前後の空白を除いて、空・"0"・"false"（大文字小文字を問わない）以外なら、AI の実行を切る（迷う値は切る側）。
-// kiroku autostart on も、登録するときのこの値を書き残す（autostartEnv）
-func noAIEnv() bool {
-	switch strings.ToLower(strings.TrimSpace(os.Getenv("KIROKU_NO_AI"))) {
-	case "", "0", "false":
-		return false
-	}
-	return true
+	return "--ai ($KIROKU_AI) was removed in 4.0: kiroku no longer runs AI agents. \"Copy prompt\" in the view copies the review and report prompts to paste into your agent"
 }
 
 func checkLang(lang string) error {
@@ -312,8 +293,8 @@ func cmdServe(args []string) error {
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
 	allow := fs.String("allow-host", "", "comma-separated extra host `names` the view may be opened by (e.g. a name in your hosts file); localhost, 127.0.0.1 and ::1 always work, and this computer's own IPs and host name too when ADDR is 0.0.0.0 or another all-interfaces address")
 	lang := langFlag(fs)
-	ai := fs.Bool("ai", aiEnv(), "turn on \"Analyze with AI\" ($KIROKU_AI=1). It is off by default: with it, the view can run a review or report prompt with an AI agent installed on this computer (claude, codex or kiro-cli), after you confirm each run. The agent may send the prompt and the history it reads to its provider, and text in your history (from web pages, tool output or other people's repositories) could steer what it does. It is always off when ADDR is not a loopback IP or a bare port (e.g. 0.0.0.0:8485)")
-	noAI := fs.Bool("no-ai", noAIEnv(), "keep \"Analyze with AI\" off even with --ai or $KIROKU_AI ($KIROKU_NO_AI=1)")
+	ai := fs.Bool("ai", false, "removed in 4.0 (kiroku no longer runs AI agents); accepted and ignored")
+	_ = fs.Bool("no-ai", false, "removed in 4.0 (kiroku no longer runs AI agents); accepted and ignored")
 	pos, err := parse(fs, args, 1)
 	if err != nil {
 		return quiet(err)
@@ -333,7 +314,10 @@ func cmdServe(args []string) error {
 		return err
 	}
 	_, want, all := c.picked()
-	return serveLiveWithAI(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen, aiWanted(*ai, *noAI), *lang, scanWatchPaths(all, want))
+	if n := aiRemovedNote(*ai); n != "" {
+		fmt.Fprintln(os.Stderr, n)
+	}
+	return serveLiveWith(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen, *lang, scanWatchPaths(all, want))
 }
 
 func cmdHTML(args []string) error {

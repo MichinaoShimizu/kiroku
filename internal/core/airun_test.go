@@ -2,7 +2,7 @@ package core
 
 import "testing"
 
-// A session an agent kept of kiroku's own "Analyze with AI" run (it ran in os.MkdirTemp("", "kiroku-ai-"))
+// A session an agent kept of a run of "Analyze with AI" from kiroku 1.x–3.x (it ran in os.MkdirTemp("", "kiroku-ai-"))
 // is left out: it isn't yours, and it holds a copy of the prompt and of the history the agent read.
 func TestAIRunSessionsAreLeftOut(t *testing.T) {
 	for dir, want := range map[string]bool{

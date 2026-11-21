@@ -22,9 +22,9 @@ function lightOf(ws, we){ // 編集のない短いセッションで、高いモ
   const xs = DATA.filter(s => inP(s, ws, we) && /opus/i.test(mainModel(s)) && s.nPrompts <= 3 && !s.nFiles && s.cost >= 0.3).sort((a,b) => b.cost - a.cost);
   return {xs, c: xs.reduce((t,s) => t + s.cost, 0)}; }
 /* 繰り返したプロンプト：期間中のプロンプトを、文字の 3 文字組の重なり（Jaccard 0.6 以上）でまとめ、3 つ以上のセッションで書いたものを拾う（AI は使わない） */
-const REPEAT_MIN = 12, REPEAT_SES = 3, repeatCache = {};
+const REPEAT_MIN = 12, REPEAT_SES = 3, repeatCache = new WeakMap(); // DATA の配列ごと（エージェントで絞ったサマリーは別の配列なので、絞り方が違えば別に数える）
 function repeatsOf(ws, we){
-  const ck = `${ws}:${we}:${DATA.length}`; if (repeatCache[ck]) return repeatCache[ck];
+  if (!repeatCache.has(DATA)) repeatCache.set(DATA, {}); const memo = repeatCache.get(DATA), ck = `${ws}:${we}`; if (memo[ck]) return memo[ck];
   const norm = t => String(t || "").toLowerCase().replace(/[\s　]+/g, " ").replace(/[「」『』"'`。、.,!?！？:：;；()（）\[\]]/g, "").trim();
   const C = [], idx = new Map(); // 3 文字組 → それを含む束の番号（束の代表は最初に見つけたプロンプト）
   DATA.forEach(s => s.prompts.forEach(p => {
@@ -36,7 +36,7 @@ function repeatsOf(ws, we){
     if (best < 0){ best = C.length; C.push({g, n: 0, ids: new Set(), by: new Map(), last: -1}); g.forEach(x => { if (!idx.has(x)) idx.set(x, []); idx.get(x).push(best); }); }
     const c = C[best]; c.n++; c.ids.add(s.id); c.by.set(s.id, p.text); if (p.t >= c.last){ c.last = p.t; c.id = s.id; c.text = p.text; } // 見せるのは、いちばん新しい書き方。by はセッションごとに、束に入ったプロンプト（ダイアログでどれのことかを見せる）
   }));
-  return repeatCache[ck] = C.filter(c => c.ids.size >= REPEAT_SES).sort((a,b) => b.ids.size - a.ids.size || b.n - a.n);
+  return memo[ck] = C.filter(c => c.ids.size >= REPEAT_SES).sort((a,b) => b.ids.size - a.ids.size || b.n - a.n);
 }
 const snipOf = (t, n) => { t = String(t || "").replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n) + "…" : t; };
 /* 長すぎるプロンプト：期間中に、BIG_PROMPT 文字以上のプロンプト（ログや資料をそのまま貼ったものなど） */
@@ -135,16 +135,10 @@ function findList(w, pw, unit){
     add("heavy", 30 + Math.round(idleC*50/u.cost), tx("{pct}% of estimated cost ({cost}) went to sessions with no commit or pull request", {pct: Math.round(idleC*100/u.cost), cost: usd(idleC)}), tx("Fine for research or discussion. If they stopped partway, it's worth finding out why"), tx("Sessions of $1+ total 40%+ of all cost ($2+)"), idle.map(s => s.id));
   const RP = repeatsOf(ws, we);
   if (RP.length)
-    add("repeats", 9, tx("You wrote a similar prompt {n} times across {s} sessions {period} (\"{text}\")", {n: RP[0].n, s: RP[0].ids.size, text: snipOf(RP[0].text, 40)}), tx("A prompt you type every time can be written once as a command or in CLAUDE.md"), tx("{min}+ characters, in {ses}+ sessions", {min: REPEAT_MIN, ses: REPEAT_SES}), [...new Set([RP[0].id, ...RP[0].ids])]);
+    add("repeats", 9, tx("You wrote a similar prompt {n} times across {s} sessions {period} (\"{text}\")", {n: RP[0].n, s: RP[0].ids.size, text: snipOf(RP[0].text, 40)}), tx("A prompt you type every time can be written once as a command or in the agent's project instructions (CLAUDE.md, AGENTS.md or Kiro steering)"), tx("{min}+ characters, in {ses}+ sessions", {min: REPEAT_MIN, ses: REPEAT_SES}), [...new Set([RP[0].id, ...RP[0].ids])]);
   return F.sort((a,b) => b.score - a.score);
 }
 const GOTO = {longctx: "heavy", modelfit: "models"}; // 専用の指標がない候補は、関係する指標に印を付ける
-function flagSum(F){ // 期間の切り替えの行（#worth）に「見直す候補 N」の 1 つのボタン。押すと、基準を超えた指標の名前が優先度の高い順に開く（押すとその指標のダイアログ）
-  const ids = [...new Set(F.map(f => GOTO[f.k] || f.k))];
-  if (!ids.length) return `<span class="lbl muted wdi" role="img" aria-label="${esc(t("Worth a look"))}: 0" title="${esc(t("No metric crossed a threshold"))}">${ico("flag")}</span>`;
-  return `<details class="wdd"><summary class="pill wdi" aria-label="${esc(t("Worth a look"))}: ${ids.length}" title="${esc(t("Worth a look"))}">${ico("flag", "fdot")}<b>${ids.length}</b></summary><div class="wdl" role="group" aria-label="${esc(t("Worth a look"))}"><span class="wdh">${esc(t("Worth a look"))}${hb("findings")}</span>${ids.map(id => { const ks = [...new Set(F.filter(f => (GOTO[f.k] || f.k) === id).map(f => f.k))], n = ks.length === 1 && H()[ks[0]] ? H()[ks[0]].n : H()[id].n; // 候補が 1 つなら、その候補の名前（長い会話を「重いセッション」と呼ばない）
-      return `<button class="flink" data-goto="${id}">${esc(n)}</button>`; }).join("")}</div></details>`;
-}
 function sesFlags(s){ // 詳細の頭に、このセッションが関係する見直す候補（表示中の期間のもの）の名前だけを出す。押すとサマリーと同じダイアログ
   const ids = [...new Set(lastFlags.filter(f => f.ids.includes(s.id)).map(f => GOTO[f.k] || f.k))];
   return ids.length ? `<div class="sflags"><span class="lbl" title="${esc(t("This session is one of the sessions behind these flags"))}">${ico("flag", "fdot")}${esc(t("Worth a look"))}</span>${ids.map(id => `<button class="flink" data-goto="${id}" aria-haspopup="dialog">${esc(H()[id].n)}</button>`).join("")}</div>` : "";
@@ -156,18 +150,21 @@ const flagSes = (ids, line) => ids.map(id => { const s = DATA.find(x => x.id ===
 let lastFlags = []; // 表示中の期間の候補（summary が入れる）
 function openWorth(id, from, F = lastFlags){
   const D = $("#wk"), fs = F.filter(f => (GOTO[f.k] || f.k) === id), h = H()[id]; if (!fs.length || !h) return;
+  const ids = [...new Set(F.map(f => GOTO[f.k] || f.k))]; // 前後の候補へ（「まず見直す」から開いても、ほかの候補を順に見られるように）
   const hk = fs.length === 1 && H()[fs[0].k] ? H()[fs[0].k] : h; // 印が 1 つだけなら、その候補自身の説明（長い会話で開いたときに、重いセッションの説明を出さないように）
   const {ws, we} = period(), r0 = id === "repeats" && repeatsOf(ws, we)[0], rp = r0 ? new Map([...r0.by].filter(([, x]) => x !== r0.text)) : null; // 見出しと同じ書き方は、カードごとに繰り返さない
   const body = fs.map(f => `<div class="fl"><p class="see">${ico("flag", "fdot")}${esc(f.L.see)}</p><p class="rule">${esc(t("Threshold: {rule}", {rule: f.L.rule}))}</p>${f.k === "repeats" ? "" : `<p class="why">${esc(f.L.why)}</p>`}${spark(f.k)}${f.ids.length ? `<div class="fss">${flagSes(f.ids.slice(0, 6), f.k === "repeats" ? rp : null)}${f.ids.length > 6 ? `<div class="fss-rest" hidden>${flagSes(f.ids.slice(6), f.k === "repeats" ? rp : null)}</div><button type="button" class="more fmore">${esc(f.ids.length - 6 === 1 ? t("1 more session") : t("{n} more sessions", {n: f.ids.length - 6}))}</button>` : ""}</div>` : ""}</div>`).join(""); // 繰り返しのプロンプトの「なぜ」は「What to try」と同じことなので出さない
-  D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" id="wkclose" aria-label="${esc(t("Close"))}"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form><div class="eyebrow">${ico("flag", "fdot")}${esc(t("Worth a look"))}</div><h2 id="wkh">${esc(hk.n)}</h2>${body}
-    <dl class="wkhelp"><dt>${esc(t("What it is"))}</dt><dd>${esc(hk.d)}</dd><dt>${esc(t("Doesn't tell you"))}</dt><dd>${esc(hk.x)}</dd><dt>${esc(t("What to try"))}</dt><dd>${esc(hk.a)}</dd></dl>`;
+  D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" id="wkclose" aria-label="${esc(t("Close"))}"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form><div class="eyebrow">${ico("flag", "fdot")}${esc(t("Worth a look"))}${ids.length > 1 ? `<span class="wknav"><button type="button" class="iconbtn" data-nav="-1" aria-label="${esc(t("Previous"))}">‹</button><span>${esc(t("{i} of {n}", {i: ids.indexOf(id) + 1, n: ids.length}))}</span><button type="button" class="iconbtn" data-nav="1" aria-label="${esc(t("Next"))}">›</button></span>` : ""}</div><h2 id="wkh">${esc(hk.n)}</h2><p class="wktry">${ico("ai", "ti")}<b>${esc(t("What to try"))}</b> ${esc(hk.a)}</p>${body}
+    <dl class="wkhelp"><dt>${esc(t("What it is"))}</dt><dd>${esc(hk.d)}</dd><dt>${esc(t("Doesn't tell you"))}</dt><dd>${esc(hk.x)}</dd></dl>`; // 次にやってみることは、見出しのすぐ下に（セッションの一覧より先に）
   const bindSes = el => el.querySelectorAll("[data-id]").forEach(b => b.onclick = () => { D.close(); select(b.dataset.id); });
   D.querySelectorAll(".fss").forEach(bindSes);
   // 「ほか N セッション」: 隠しておいた残りのセッションをその場に出す（フォーカスは出した最初のセッションへ）
   D.querySelectorAll(".fmore").forEach(b => b.onclick = () => { const rest = b.previousElementSibling; if (!rest) return;
     rest.hidden = false; b.remove(); const first = rest.querySelector("[data-id]"); if (first) first.focus(); });
   D.onclose = () => { if (from && from.isConnected && (!st.sel || from.closest("#panel")) && !document.activeElement?.closest?.("#review")) from.focus(); }; // 閉じたら押したリンクへ（サマリーや別のセッションへ移ったときは除く）
-  D.showModal(); D.scrollTop = 0;
+  D.querySelectorAll("[data-nav]").forEach(b => b.onclick = () => { const i = ids.indexOf(id), next = ids[(i + +b.dataset.nav + ids.length) % ids.length];
+    (F === insFlags ? insOpenWorth : (x, fr) => openWorth(x, fr, F))(next, from); const nb = D.querySelector(`[data-nav="${b.dataset.nav}"]`); if (nb) nb.focus(); });
+  if (!D.open) D.showModal(); D.scrollTop = 0;
   const hd = $("#wkh"); hd.tabIndex = -1; hd.focus(); } // 最初のボタンではなく見出しへ（読み上げで何のダイアログかわかり、セッションを押した表示にもならない）
 function placeFlags(R, F){ // 基準を超えた指標の名前の横に、小さな印だけを付ける（押すと「Worth a look」と同じダイアログ。中身はダイアログにだけ出し、サマリーで繰り返さない）
   [...new Set(F.map(f => GOTO[f.k] || f.k))].forEach(id => {

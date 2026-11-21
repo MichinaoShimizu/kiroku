@@ -90,7 +90,7 @@ function paceBody(w, k, m, brief){
   const pc = pacing(w, period().P), x = pc && pc[k]; if (!x) return null; const M = st.mode === "month", on = x.rest >= 0, C = k === "credits";
   // 見出しは上の帯と同じ言葉（超えたあとは「超過」。超えた分を 1 日の目安と読まれないように）
   const title = on ? (C ? t(M ? "Credits a day to match last month" : "Credits a day to match last week") : t(M ? "A day to match last month" : "A day to match last week"))
-    : (C ? t(M ? "Past last month's credits" : "Past last week's credits") : t(M ? "Past last month's total" : "Past last week's total"));
+    : (C ? t(M ? "Over last month's credits" : "Over last week's credits") : t(M ? "Over last month's total" : "Over last week's total"));
   const big = on ? esc(m.f(x.per)) : `+${esc(m.f(-x.rest))}`, last = M ? "Last month" : "Last week";
   const calc = on ? calcH([[last, esc(m.f(x.ref))], "−", ["So far", esc(m.f(x.so))], "=", ["Left", esc(m.f(x.rest))], "÷", ["Days left", `${pc.left}`], "=", ["A day", esc(m.f(x.per))]])
     : calcH([["So far", esc(m.f(x.so))], "−", [last, esc(m.f(x.ref))], "=", ["Over", esc(m.f(-x.rest))]]);
@@ -229,6 +229,7 @@ function openMetric(id, from){
     // 稼働日は帯から外したので、作業時間の内訳の数字に添える（途中の期間は今日までの日数で）
     const n0 = soFar(), nd = n0 == null ? w.days.length : Math.min(n0, w.days.length), ad = w.days.filter(d => d.active).length;
     big = id === "active" ? `${dur(tot || 0, true)}<small> · ${esc(t("Active days"))} ${ad} ${esc(n0 == null ? t("of {n}", {n: nd}) : t("of {n} so far", {n: nd}))}</small>` : id === "sessions" ? `${w.sessions}<small>/</small>${w.prompts}` : id === "cost" ? usdH(tot) : esc(m.f(tot || 0));
+    { const dt = kpiDelta(id); if (dt) big += `<small class="mdl"> · ${esc(dt)}</small>`; } // 前の期間との増減（帯には出さない）
     body = mDays(w, m);
     if (id === "sessions"){ // セッション数はエージェント別の集計にないので、期間にかかったセッションから数える
       const by = new Map(); inRange.forEach(s => by.set(s.source, (by.get(s.source) || 0) + (s.nPrompts || 0)));

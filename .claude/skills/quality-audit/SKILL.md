@@ -17,7 +17,7 @@ PR ごとの点検（`/pre-pr`）は、その PR が変えたところしか見�
 
 1. main の CI（3 OS のテスト・e2e・XSS・release-dry-run・CodeQL）が緑で、直近 10 回に原因のわからない失敗がない
 2. `govulncheck` が kiroku の呼ぶコードに脆弱性を報告しない
-3. 履歴・git・ネットワーク・AI の返事を HTML として入れる箇所がない。外へ出る通信は GitHub のリリースだけ（`kiroku serve` の「Analyze with AI」が動かすエージェントを除く。`--no-ai` で切れる）
+3. 履歴・git・ネットワーク・AI の返事を HTML として入れる箇所がない。外へ出る通信は GitHub のリリースだけ。AI のエージェントを動かす道がない（`/ai/run` は 404）
 4. 書き出すファイルは 0600・ディレクトリは 0700。`kiroku serve` は既定で 127.0.0.1・Host と鍵の確認つき
 5. 読める各エージェントの最新版の履歴を、二重に数えず・取りこぼさずに読める（`docs/sources.md` の表が今の版に合っている）
 6. 画面の文言に英語と日本語で食い違い・訳し漏れ・同じ説明の重複がない。主要なシナリオ（`docs/usability.md`）を en・ja の 3 つの幅で通せる
@@ -61,8 +61,8 @@ go test ./internal/cli -run '^$' -bench Large -benchtime 3x -benchmem   # 前回
 
 | 観点 | 担当 | 見ること |
 |---|---|---|
-| A. security | `hostile-tester` | 全体（履歴の読み取り・画面・serve・`/ai/run`・git・書き出し・update・install.sh）。前回からの変更を重点に。CLAUDE.md の「Security」の各項目 |
-| B. ux | `user-tester` | `docs/usability.md` の全シナリオと、AI 分析のダイアログ。en・ja、1440・1000・390。キーボードと読み上げの名前 |
+| A. security | `hostile-tester` | 全体（履歴の読み取り・画面・serve・git・書き出し・update・install.sh）。前回からの変更を重点に。CLAUDE.md の「Security」の各項目 |
+| B. ux | `user-tester` | `docs/usability.md` の全シナリオと、振り返り・日報のプロンプトのコピー。en・ja、1440・1000・390。キーボードと読み上げの名前 |
 | C. i18n | general-purpose | 英語と日本語の言葉のずれ（同じものに違う名前、画面とドキュメントの違い）、訳し漏れ、`JA_TEXT` の使われていないキー、同じ説明の重複 |
 | D. docs | `/docs-refresh text` の 3 の確かめる部分（直すのは 4 で） | README・README.ja・guide・SECURITY.md・development.md・CHANGELOG とコード（フラグ・既定値・環境変数・権限）の食い違い、リンク切れ、古いスクショ |
 | E. data | `/source-audit` の調べる部分（エージェントごと。直す PR は 4 で） | 各エージェントの新しい版の履歴の形と、kiroku の読み取りの食い違い（二重計上・取りこぼし・モデルやトークンの取り違え）。`/price-update` で料金表の古さ |

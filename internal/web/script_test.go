@@ -359,71 +359,6 @@ func TestI18nCatalog(t *testing.T) {
 	}
 }
 
-// 「Analyze with AI」の返事を、kiroku が機械で確かめるところ（足りない節、数字の表、作ったリンクとハッシュ）と、直してもらうプロンプト。
-// ai.js はほかのファイルに頼るので、使う関数だけを取り出して Node で動かす。
-func TestAIOutputCheck(t *testing.T) {
-	node, err := exec.LookPath("node")
-	if err != nil {
-		t.Skip("node がないので省略")
-	}
-	var code []string
-	for _, x := range []struct{ file, re string }{
-		{"js/state.js", `(?m)^const plural = .*$`},
-		{"js/markdown.js", `(?ms)^function mdFence\(text\)\{.*?\}$`},
-		{"js/ai.js", `(?m)^const AI_FIX_MAX = .*$`},
-		{"js/ai.js", `(?ms)^function aiOutputProblems\(.*?^\}$`},
-		{"js/ai.js", `(?ms)^function aiFixPrompt\(.*?\); \}$`},
-	} {
-		src, err := jsFiles.ReadFile(x.file)
-		if err != nil {
-			t.Fatal(err)
-		}
-		m := regexp.MustCompile(x.re).FindString(strings.ReplaceAll(string(src), "\r\n", "\n"))
-		if m == "" {
-			t.Fatalf("%s に %s が見つからない", x.file, x.re)
-		}
-		code = append(code, m)
-	}
-	cases, err := os.ReadFile(filepath.Join("testdata", "aicheck_test.js"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	f := filepath.Join(t.TempDir(), "aicheck.js")
-	if err := os.WriteFile(f, append([]byte(i18nStub+strings.Join(code, "\n")+"\n"), cases...), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
-		t.Errorf("aiOutputProblems・aiFixPrompt が違う:\n%s", out)
-	}
-}
-
-// 「AI で分析」のエージェントの既定（aiAgentOf・aiAgentIn）。ai.js から取り出して Node で動かす。
-func TestAIDefaultAgent(t *testing.T) {
-	node, err := exec.LookPath("node")
-	if err != nil {
-		t.Skip("node がないので省略")
-	}
-	src, err := jsFiles.ReadFile("js/ai.js")
-	if err != nil {
-		t.Fatal(err)
-	}
-	code := regexp.MustCompile(`(?ms)^const aiAgentOf = .*?^}$`).FindString(strings.ReplaceAll(string(src), "\r\n", "\n"))
-	if code == "" {
-		t.Fatal("ai.js に aiAgentOf から aiAgentIn までが見つからない")
-	}
-	cases, err := os.ReadFile(filepath.Join("testdata", "aiagent_test.js"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	f := filepath.Join(t.TempDir(), "aiagent.js")
-	if err := os.WriteFile(f, append([]byte(code+"\n"), cases...), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
-		t.Errorf("AI のエージェントの既定が違う:\n%s", out)
-	}
-}
-
 // 月末の推定の幅（spread）とトレンド線（trend）：終わった日のばらつきから 1σ・2σ・3σ。下は使った分より小さくしない。日が足りなければ出さない。
 func TestProjectionSpread(t *testing.T) {
 	node, err := exec.LookPath("node")
@@ -468,5 +403,53 @@ const tr = trend([2,5,8,11]); eq(tr.a, 2, "trend a"); eq(tr.b, 3, "trend b"); if
 	}
 	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
 		t.Errorf("spread が違う:\n%s", out)
+	}
+}
+
+// JA_TEXT（i18n.js）のどの鍵も、画面のスクリプト・テンプレート・Go のどこかで使われている（消した画面の訳を残さない）。
+// 鍵は英語の文そのものなので、ほかのファイルにその文（i18n.js と同じ書き方）があるかで見る
+func TestI18nNoUnusedKeys(t *testing.T) {
+	src, err := jsFiles.ReadFile("js/i18n.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var other strings.Builder
+	names, _ := filepath.Glob("js/*.js")
+	names = append(names, "template.html")
+	goFiles, _ := filepath.Glob("../*/*.go")
+	for _, f := range goFiles {
+		if !strings.HasSuffix(f, "_test.go") {
+			names = append(names, f)
+		}
+	}
+	for _, f := range names {
+		if filepath.Base(f) == "i18n.js" {
+			continue
+		}
+		b, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		other.Write(b)
+		other.WriteByte('\n')
+	}
+	all := other.String()
+	var unused []string
+	for _, m := range regexp.MustCompile(`(?m)^  "((?:[^"\\]|\\.)*)": `).FindAllStringSubmatch(string(src), -1) {
+		raw := m[1]
+		var plain string
+		if err := json.Unmarshal([]byte(`"`+raw+`"`), &plain); err != nil {
+			plain = raw
+		}
+		head := plain // Go が組み立てる題（"Kiro Crew memory consolidation (" + slot + ")" など）は、{ の前までで見る
+		if i := strings.Index(plain, "{"); i > 8 {
+			head = plain[:i]
+		}
+		if !strings.Contains(all, raw) && !strings.Contains(all, plain) && !strings.Contains(all, head) {
+			unused = append(unused, plain)
+		}
+	}
+	if len(unused) > 0 {
+		t.Errorf("JA_TEXT に使われていない鍵が %d 個ある（消すか、使う場所を直す）:\n%s", len(unused), strings.Join(unused, "\n"))
 	}
 }

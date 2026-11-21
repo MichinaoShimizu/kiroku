@@ -8,7 +8,7 @@ English | [日本語](README.ja.md)
 
 See what you built, understand how you worked, and make your next AI session better.
 
-kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew) and Codex CLI together in one place. No account, telemetry or uploads; an AI agent runs only when you confirm "Analyze with AI" in `kiroku serve`.
+kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew) and Codex CLI together in one place. No account, telemetry or uploads, and kiroku never runs an AI agent.
 
 **[Try the live demo →](https://michinaoshimizu.github.io/kiroku/)** (dummy data, runs in your browser)
 
@@ -19,8 +19,8 @@ kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew) an
 - **Every agent on one calendar.** Claude Code, Codex and Kiro side by side, instead of one dashboard per agent.
 - **Sessions you can read, not just count.** What you asked, what the AI replied, and the commands, commits and pull requests in between, next to time, tokens and cost.
 - **How your work with AI changes.** Active time, tokens, estimated cost and patterns over time, from one session to a month.
-- **Reviews written by your own agent.** "Analyze with AI" runs a prompt grounded in your history with the agent you already use.
-- **Your history stays on your computer.** A single binary, no account, no telemetry (see [Privacy](#privacy) for "Analyze with AI").
+- **Reviews written by your own agent.** "Copy prompt" gives you a review or report prompt grounded in your history to paste into the agent you already use.
+- **Your history stays on your computer.** A single binary, no account, no telemetry, and kiroku never runs an AI agent itself.
 
 ## Install
 
@@ -47,7 +47,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 **Every number opens up.** Click any figure, at the top or in the weekly summary, such as estimated cost or Git commits, to see it by day, agent, project and model, with the sessions, commits or prompts behind it.
 
-**What's worth a look.** Metrics that crossed a threshold are listed under the key figures. Press one to see what was observed, why it matters, the sessions behind it, an 8-week trend and what to try, without leaving the calendar.
+**What's worth a look.** Metrics that crossed a threshold are marked in the summary, and "Change first" names the one to look at first. Press one to see what was observed, why it matters, the sessions behind it, an 8-week trend and what to try, without leaving the calendar.
 
 <img src="docs/worth.png" alt="A flagged metric opened from Worth a look (dummy data)" width="560">
 
@@ -61,12 +61,12 @@ The view is in Japanese when your browser prefers Japanese; `--lang` (or `KIROKU
 
 ## Reviews and advice, written by your own agent
 
-In `kiroku serve`, "Analyze with AI" runs a prompt with the AI agent you already use on this computer, such as Claude Code or Codex, after you check the exact prompt and confirm the run. It is off unless you start `kiroku serve --ai`, because text in your history (web pages, tool output, other people's repositories) could steer an agent that reads it; a saved HTML file never runs an agent. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, as a professional advisor on prompts and engineering work would.
+"Copy prompt" in session details and next to each date in the week calendar copies a prompt to paste into the AI agent you already use, such as Claude Code or Codex. kiroku runs no agent and sends nothing; where you paste it is your choice. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, as a professional advisor on prompts and engineering work would.
 
 | Scope | Where | What you get |
 |---|---|---|
-| A session | "Analyze with AI" in session details | Summary, numbers, an assessment of your prompts, up to three prioritized pieces of advice (each quoting the prompt with its time and giving an improved prompt), and a playbook of prompts for similar work |
-| A day | "Analyze with AI" next to each date with history in the week calendar | A daily report: summary, numbers next to the previous day, what was done in each project and why, expert observations and next actions |
+| A session | "Copy prompt" in session details | Summary, numbers, an assessment of your prompts, up to three prioritized pieces of advice (each quoting the prompt with its time and giving an improved prompt), and a playbook of prompts for similar work |
+| A day | "Copy prompt" next to each date with history in the week calendar | A daily report: summary, numbers next to the previous day, what was done in each project and why, expert observations and next actions |
 
 The advice is grounded in your history, not generic tips. Each point names what it is based on: a figure, a prompt with its time, or a signal kiroku counted. Where the history shows it, the advice covers
 
@@ -84,10 +84,10 @@ The prompts stay light: a report carries a short digest of each session, and the
 
 ## Privacy
 
-- Your history never leaves your computer: no telemetry, no account, no AI service, unless you start `kiroku serve --ai` and confirm a run of "Analyze with AI": the agent you pick may send the prompt and the history it reads to its provider. Without `--ai`, kiroku runs no agent. The only network access is checking for and downloading kiroku's own releases from GitHub.
+- Your history never leaves your computer: no telemetry, no account, no AI service, and kiroku never runs an AI agent. The only network access is checking for and downloading kiroku's own releases from GitHub.
 - Files kiroku writes from your history are readable only by you, and `kiroku serve` listens on `127.0.0.1` and opens only for browsers that have its key.
 - The HTML contains your prompts, the AI's replies, file paths and commit messages as they are. Check it before sharing.
-- The review and report prompts point an AI agent on your computer to your history files, and the agent reads them. Use an agent you'd trust with them.
+- The review and report prompts you copy point an AI agent to your history files, and the agent reads them and may send them to its provider. Use an agent you'd trust with them.
 
 See [SECURITY.md](SECURITY.md) for details and for verifying a release.
 

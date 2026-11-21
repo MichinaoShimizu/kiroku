@@ -1,0 +1,13 @@
+- Summary: comparisons with your past periods read in plain words ("$31.23: above your usual $19.92–$27.35"); "Show formulas" next to the heading shows the inequalities and the formulas behind computed figures, and the choice is remembered
+- Summary: the figures at the top wrap into three or two columns on narrower windows instead of scrolling sideways; on a phone the By agent table lists each agent's figures as label and value, and the Agent switch wraps
+- Summary: "Change first" and the Worth a look dialogs use one order: items outside your usual range on the worse side first, then items that can't be compared, then items within the range, each by the cost involved. "Change first" is red only when its metric is worse than usual
+- Summary: with one agent selected, a note says that its active time counts time shared with other agents in full (the By agent table and the legend split it) and that the figures above the calendar stay for all agents. The By agent shares use the same active time as the band
+- Summary: advice about repeated prompts and long background names each agent's project instructions (CLAUDE.md, AGENTS.md or Kiro steering); without cost records the cumulative chart and the length chart are titled by what they show (active time, sessions); the outputs headline says the share is of Claude Code sessions
+- Summary: the heatmap's headline says its total, and a note explains why it can be a little shorter than active time
+- Week calendar: 0:00–7:00 starts unfolded in a week with sessions in those hours, so that work isn't squeezed; the toggle reads "0–7h"
+- Week calendar: the usage limit mark is a small red square that no longer covers other sessions' names; pressing it opens the session at the limit hit in its prompt flow
+- Session details: a note under Session review says that "Copy prompt" copies a prompt for your agent and kiroku runs and sends nothing; a turn where the AI worked without a text reply shows its time on the AI side instead of inside your bubble; copy buttons are faintly visible before you point at them; on a phone, bubbles use the full width with the time below them
+- The theme follows your system's light or dark setting until you pick one with the moon / sun button; the loading page follows the same choice
+- The band's daily target says how far the other figure is over ("· 2.1 cr over" instead of "credits over"), and with one day left the advice says "at most $0.59 tomorrow"
+- While filtering, the session count reads "12 of the week's 20 sessions"
+- Demo and period-only files: review prompts give times in the same time zone as the view

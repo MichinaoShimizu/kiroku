@@ -19,9 +19,9 @@ await p.addInitScript(() => { window.__hits = []; window.alert = x => { window._
 let failed = 0;
 await p.goto("file://" + path.resolve(html));
 await p.waitForTimeout(300);
-// デモでない保存した HTML には、AI を動かす操作がない（デモだけ例外）。あるのはプロンプトのコピーだけ
-{ const n = await p.locator(".ai-action, #rptrun").count();
-  if (n) { failed++; console.log(`  FAIL saved HTML shows AI run controls: ${n}`); } else console.log("  ok   saved HTML (not the demo) shows no AI run controls"); }
+// 保存した HTML には、AI を動かす操作がない（kiroku は AI を動かさない）。あるのはプロンプトのコピーだけ
+{ const n = await p.locator(".ai-action, #rptrun, #ai-review-dialog").count();
+  if (n) { failed++; console.log(`  FAIL saved HTML shows AI run controls: ${n}`); } else console.log("  ok   saved HTML shows no AI run controls"); }
 
 const check = async step => {
   const r = await p.evaluate(() => ({
@@ -47,9 +47,9 @@ const clickAll = async (sel, step, after) => {
 
 await check("load");
 // 見直す候補の中身（繰り返したプロンプトの文など）は、ダイアログにだけ出る。どれも開いて確かめる
-if (!(await p.locator('.flagsum .flink[data-goto="repeats"]').count())) { failed++; console.log("  FAIL the repeated-prompt finding is not shown (the test would not cover it)"); }
-await p.evaluate(() => { const d = document.querySelector("#worth details"); if (d) d.open = true; }); // 「見直す候補」の一覧を開いてから
-await clickAll(".flagsum .flink", "worth a look", async () => { await p.keyboard.press("Escape"); await p.waitForTimeout(50); });
+const ids = await p.evaluate(() => [...new Set((lastFlags || []).map(f => GOTO[f.k] || f.k))]); // 期間の行の一覧は出さないので、候補のダイアログを 1 つずつ開く
+if (!ids.includes("repeats")) { failed++; console.log("  FAIL the repeated-prompt finding is not shown (the test would not cover it)"); }
+for (const id of ids) { await p.evaluate(id => openWorth(id), id); await p.waitForTimeout(100); await check(`worth a look ${id}`); await p.keyboard.press("Escape"); await p.waitForTimeout(50); }
 const runs = p.locator(".run");
 for (let i = 0; i < await runs.count(); i++) await runs.nth(i).hover({ force: true });
 await check("hover sessions");
@@ -81,7 +81,7 @@ const summaryCheck = async label => {
 await summaryCheck("week");
 await clickAll("#review .card", "summary card");
 // 内訳のダイアログ（上の帯とサマリーの数字）。プロジェクト名やセッション名が棒やカードに入るので、どれも開いて確かめる
-await clickAll("[data-metric]", "breakdown", async () => { // 内訳の中のコミット・push・PR の行は、詳細を開く
+await clickAll("#kpis [data-metric]", "breakdown", async () => { // 帯の数（サマリーの数は summaryCheck で押す） // 内訳の中のコミット・push・PR の行は、詳細を開く
   const g = "#md [data-git], #md [data-pr], #md [data-push]";
   if (await p.locator(g).count()) { await p.locator(g).first().click({ force: true }); await p.waitForTimeout(100); await check("breakdown → git"); }
 });

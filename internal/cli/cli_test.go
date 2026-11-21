@@ -75,3 +75,27 @@ func TestRootRenamed(t *testing.T) {
 		}
 	}
 }
+
+// --ai（$KIROKU_AI）は 4.0 で外した。付けて起動しても止めず、外したことと代わりの「Copy prompt」を 1 行で伝える。付けなければ何も言わない
+func TestAIRemovedNote(t *testing.T) {
+	t.Setenv("KIROKU_AI", "")
+	if n := aiRemovedNote(false); n != "" {
+		t.Errorf("without --ai: %q", n)
+	}
+	if n := aiRemovedNote(true); !strings.Contains(n, "removed") || !strings.Contains(n, "Copy prompt") {
+		t.Errorf("with --ai: %q", n)
+	}
+	t.Setenv("KIROKU_AI", "1")
+	if n := aiRemovedNote(false); n == "" {
+		t.Error("KIROKU_AI=1 gave no note")
+	}
+}
+
+// --ai と --no-ai は 4.0 で外したが、kiroku autostart on で登録した起動などのために受け付ける（約束: docs/compatibility.md）
+func TestServeAcceptsRemovedAIFlags(t *testing.T) {
+	for _, f := range []string{"--ai", "--no-ai"} {
+		if err := cmdServe([]string{f, "--help"}); err != nil {
+			t.Errorf("kiroku serve %s: %v", f, err)
+		}
+	}
+}

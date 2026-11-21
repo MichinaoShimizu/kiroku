@@ -491,15 +491,17 @@ func TestUnreadableWarningIsTerminalSafe(t *testing.T) {
 	}
 }
 
-// 中身を出さない会話の履歴のファイルは、セッションの PrivateFiles に残り（「Analyze with AI」の Claude Code に読ませないため）、
+// 中身を出さない会話の履歴のファイルは、セッションの PrivateFiles に分けて残り、
 // HTML・JSON には入らない。中身を残す会話のファイルは入らない（セキュリティ）。
-func TestCrewPrivateFilesForAI(t *testing.T) {
+func TestCrewPrivateFiles(t *testing.T) {
 	quietLog(t)
 	kiro, crew, claude, codex := crewPrivateFixture(t)
 	all := []source.Source{&source.Claude{Root: claude}, &source.KiroCLI{Home: kiro, CrewHome: crew}, &source.Codex{Home: codex}}
 	data, _ := collectCached(all, map[string]bool{"kiro": true, "claude": true, "codex": true}, 15, nil)
-	l := &live{snap: snapshot{data: data, private: all[1].(*source.KiroCLI).PrivateFiles()}}
-	got := l.privateFiles()
+	got := append([]string(nil), all[1].(*source.KiroCLI).PrivateFiles()...)
+	for _, s := range data {
+		got = append(got, s.PrivateFiles...)
+	}
 	want := []string{
 		filepath.Join(claude, "-w", "c-priv.jsonl"),
 		filepath.Join(crew, "sessions", "dashboard_chat-1-100.jsonl"),

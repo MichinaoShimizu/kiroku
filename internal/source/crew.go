@@ -353,7 +353,7 @@ type crewPrivacy struct {
 	logs       map[string]*crewLogDir // crew-log の会話のフォルダ → 読んだもの（crewLog で作る）
 	logList    *[]*crewLogDir         // crew-log の会話のフォルダ全部（crewLogs で作る。印をつけ終えたら nil でない）
 	// files は、中身を残さない会話の Crew 自身の記録のフォルダ（サブエージェントの subagents/<id>/ と crew-log/sessions/<名前>/）。
-	// crewPrivateSids が集める。「Analyze with AI」に読ませない（KiroCLI.PrivateFiles）
+	// crewPrivateSids が集める（KiroCLI.PrivateFiles）
 	files []string
 }
 

@@ -21,9 +21,9 @@ type ProjectStat struct {
 	Subagents int              `json:"subagents"`
 	Outputs   core.OutputTotal `json:"outputs"` // AI が実行したコミット・PR 作成・変更した行
 	Git       GitTotal         `json:"git"`     // 手元の git のコミット
-	Models    []ModelShare     `json:"models"`  // トークンの多い順（上位 3）
-	Top       []TopSession     `json:"top"`     // 長く動いていた順（上位 3）
-	Heavy     *TopSession      `json:"heavy"`   // いちばん重かった（目安コスト、なければクレジット、なければトークン）
+	Models    []ModelShare     `json:"-"`       // トークンの多い順（上位 3）。画面は使わないので JSON に入れない（エージェントごとの集計で大きくなるため）
+	Top       []TopSession     `json:"-"`       // 長く動いていた順（上位 3）。JSON に入れない
+	Heavy     *TopSession      `json:"-"`       // JSON に入れない。いちばん重かった（目安コスト、なければクレジット、なければトークン）
 }
 
 type ModelShare struct {

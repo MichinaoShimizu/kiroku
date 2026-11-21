@@ -17,11 +17,6 @@ function shiftTimes(x){ if (!SHIFT) return x;
   return walk(x); }
 [DATA, WEEKS, MONTHS, META, GENERATED] = [shiftTimes(DATA), shiftTimes(WEEKS), shiftTimes(MONTHS), shiftTimes(META), shiftTimes(GENERATED)];
 const LIVE = __LIVE__; // kiroku serve で開いたとき true
-const aiAgents = () => LIVE && META && Array.isArray(META.aiAgents) ? META.aiAgents.map(String) : []; // このコンピューターにコマンドがあるエージェント
-const aiOn = () => LIVE && !!(META && META.aiRun); // kiroku serve が AI の実行を許しているか（--no-ai でなく、ループバックで待ち受けている）。保存した HTML ではいつも false
-const aiRun = () => aiOn() && aiAgents().length > 0; // 使えるエージェントもあって、画面から AI を動かせる
-// 公開のデモ（KIROKU_DEMO で作ったダミーデータの HTML）では、「Analyze with AI」でプロンプトを見せるだけ（実行はしない）
-const aiDemo = () => !LIVE && !!(META && META.demo);
 const PROMPT_RUNES = __PROMPT_RUNES__; // HTML に入れるプロンプトの長さ（core.PromptRunes）
 const REPLY_RUNES = __REPLY_RUNES__; // HTML に入れる応答の長さ（core.ReplyRunes）
 const AGENTS = __AGENTS__, AG_WARN = __AGENT_WARN__; // エージェントの名前・色・頭文字（core.Agents）と、エージェントに使わない警告の色
@@ -64,8 +59,8 @@ const dow = i => DOW[i];
 const wkc = i => i === 6 ? " sat" : i === 0 ? " sun" : ""; // 曜日（getDay）から、土日の色のクラス
 const plural = (n, one, many) => isJA() ? `${n} ${t(one)}` : `${n} ${n === 1 ? one : many || one + "s"}`; // 日本語は数と名詞（単数の形を辞書で引く）
 // hh: 週のカレンダーの 1 時間の高さ（render が作業の時間帯に合わせて決める。ズームはない。以前の版が保存した "zh" は読まない）
-// 画面はカレンダーだけ。以前の版が保存した "view"（journey・project）と、Year in review の "yrOpt" は読まない
+// 画面はカレンダーだけ。以前の版が保存した "view"（journey・project）は読まない
 const st = { hh: 44, colorBy: store.get("colorBy", "source") === "project" ? "project" : "source",
              week: mondayOf(today0()), month: monthOf(today0()), mode: store.get("mode", "week"), view: store.get("view", "cal") === "sum" ? "sum" : "cal",
-             hidden: new Set(), sel: null, back: [], q: "", animate: true, insK: store.get("insK", "cost"), insW: store.get("insW", "project"), insAg: store.get("insAg", ""), theme: store.get("theme", "light") === "dark" ? "dark" : "light", early: store.get("calEarly", false) === true };
+             hidden: new Set(), sel: null, back: [], q: "", animate: true, insK: store.get("insK", "cost"), insW: store.get("insW", "project"), insAg: store.get("insAg", ""), theme: (v => v === "dark" || v === "light" ? v : null)(store.get("theme", null)), early: store.get("calEarly", null), insFx: store.get("insFx", false) === true };
 

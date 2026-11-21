@@ -320,7 +320,7 @@ func hopPage(to, head string) string {
 }
 
 // hopStyle の色は loading.html の --bg と --acc。#msg.show は hopKeyPage で鍵をしまえなかったときの知らせ（すぐに見せる）。
-const hopStyle = `<style>html{--bg:#fef7ff;--acc:#6750a4;background:var(--bg);color:var(--bg)}` +
+const hopStyle = `<style>html{--bg:#fafafa;--acc:#6750a4;background:var(--bg);color:var(--bg)}` +
 	`body{margin:0;min-height:100vh;display:grid;place-items:center;font:13px/1.5 system-ui,sans-serif}` +
 	`a{color:inherit;animation:show .3s 2s forwards}@keyframes show{to{color:var(--acc)}}` +
 	`#msg.show{color:CanvasText;max-width:32em;padding:0 16px}</style>`

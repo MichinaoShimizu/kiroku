@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/MichinaoShimizu/kiroku/internal/ai"
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/MichinaoShimizu/kiroku/internal/report"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
@@ -27,9 +26,7 @@ type snapshot struct {
 	months map[string]*report.Summary
 	meta   map[string]any
 	rep    []source.Report
-	// private は、セッションに残らない、中身を出さない会話の記録のファイル（Kiro CLI の PrivateFiles）。HTML・JSON には入れない
-	private []string
-	gen     float64 // 読んだ時刻（UNIX 秒）。画面はこれが変わったら取り込み直す
+	gen    float64 // 読んだ時刻（UNIX 秒）。画面はこれが変わったら取り込み直す
 }
 
 // live は kiroku serve の中身。履歴の指紋が変わったときだけ読み直し、最新の集計を配る。
@@ -43,7 +40,6 @@ type live struct {
 	roots []string // /history で見せてよいファイルの場所（履歴の場所と kiroku archive のコピーの場所）
 	print io.Writer
 	keep  func() error  // 画面から kiroku archive をオンにする（nil ならできない）
-	aiRun http.Handler  // nil means AI execution remains disabled
 	lang  string        // the view's language when the page doesn't choose one (kiroku serve --lang)
 	ready bool          // 最初の読み込みが終わったか（mu で守る）。終わるまでは読み込み中の画面と 503 を返す
 	fail  error         // 最初の読み込みの失敗（mu で守る）。読み込み中の画面に出す
@@ -56,15 +52,6 @@ func (l *live) refresh() error {
 	l.reload.Lock()
 	defer l.reload.Unlock()
 	snap := l.load()
-	if l.aiRun != nil { // the view offers "Analyze with AI" only when AI execution is on (--ai)
-		meta := make(map[string]any, len(snap.meta)+1)
-		for k, v := range snap.meta {
-			meta[k] = v
-		}
-		meta["aiRun"] = true
-		meta["aiAgents"] = ai.Installed() // only agents whose command is on this computer are offered (checked on each reload)
-		snap.meta = meta
-	}
 	parts, err := web.Marshal(snap.data, snap.weeks, snap.months, snap.meta, snap.gen) // /data.json
 	if err != nil {
 		return err
@@ -87,13 +74,11 @@ func (l *live) refresh() error {
 }
 
 // shellMeta は、画面の骨組み（鍵なしで返す /）の META。履歴から作ったものは入れず、shell（data.json を読むこと）と、
-// 履歴ではない設定（AI を動かせるか・使えるエージェント・デモの時計）だけにする。
+// 履歴ではない設定（デモの時計）だけにする。
 func shellMeta(meta map[string]any) map[string]any {
 	out := map[string]any{"shell": true}
-	for _, k := range []string{"aiRun", "aiAgents", "demo"} {
-		if v, ok := meta[k]; ok {
-			out[k] = v
-		}
+	if v, ok := meta["demo"]; ok {
+		out["demo"] = v
 	}
 	return out
 }
@@ -251,13 +236,6 @@ func (l *live) handler() http.Handler {
 	mux.HandleFunc("/manifest.webmanifest", func(w http.ResponseWriter, r *http.Request) {
 		send(w, "application/manifest+json", web.Manifest())
 	})
-	// AI execution is on only when kiroku serve was started with --ai (and not --no-ai) on a loopback IP address.
-	// When it is off, /ai/run doesn't exist (404).
-	if l.aiRun != nil {
-		mux.Handle("/ai/run", l.aiRun)
-	} else {
-		mux.HandleFunc("/ai/run", http.NotFound)
-	}
 	mux.HandleFunc("/data.json", func(w http.ResponseWriter, r *http.Request) {
 		if !l.loaded(w) {
 			return
@@ -424,18 +402,6 @@ func (l *live) logf(format string, args ...any) {
 	}
 }
 
-// privateFiles は、いま読んでいる履歴のうち、中身を出さない会話の履歴のファイル（core.Session.PrivateFiles）。
-// 「Analyze with AI」の Claude Code に読ませない（ai.Runner.Private）。
-func (l *live) privateFiles() []string {
-	l.mu.RLock()
-	defer l.mu.RUnlock()
-	out := append([]string(nil), l.snap.private...)
-	for _, s := range l.snap.data {
-		out = append(out, s.PrivateFiles...)
-	}
-	return out
-}
-
 // allowed は、/history で path を見せてよいか。シンボリックリンクをたどった本当の場所が、
 // 読んでいる履歴の場所（roots）の下にあるときだけ見せる（履歴の中身で、ほかのファイルを読ませないため）。
 // 見せてよければ、たどった先の場所を返す。
@@ -571,20 +537,8 @@ func newServer(h http.Handler) *http.Server {
 // serveLive は kiroku serve。allow は Host として受け付ける名前を足すもの、keep は画面から kiroku archive をオンにする関数。
 // 先に待ち受けてから読む（履歴が多いと最初の読み込みに時間がかかり、その間ポートが開いていないとブラウザが「つながらない」になるため）。
 // 読み終わるまでは、読み込み中の画面を出す。
-// AI execution stays off; serveLiveWithAI turns it on (kiroku serve --ai).
 func serveLive(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool) error {
-	return serveLiveWithAI(addr, allow, every, picked, load, keep, open, false, "", nil)
-}
-
-// aiStartLine は、起動したときに出す「Analyze with AI」の状態の 1 行。
-func aiStartLine(enableAI, aiAddr bool) string {
-	switch {
-	case !enableAI:
-		return "\"Analyze with AI\" is off: the view runs no AI agent; start with --ai (and without --no-ai) to turn it on"
-	case !aiAddr:
-		return "\"Analyze with AI\" is off: it runs only on a loopback address written as an IP (such as 127.0.0.1:8484 or :8485)"
-	}
-	return "\"Analyze with AI\" is on (--ai or KIROKU_AI): after you confirm a run, the agent you choose may send the prompt and the history it reads to its provider; start without them to turn it off"
+	return serveLiveWith(addr, allow, every, picked, load, keep, open, "", nil)
 }
 
 // scanWatchPaths は、選んでいない Source のうち source.ClaimScanner のものが調べる場所（Kiro を選んでいないときの Kiro Crew の場所）。
@@ -604,22 +558,12 @@ func scanWatchPaths(all []source.Source, want map[string]bool) []string {
 	return out
 }
 
-// aiAddrOK は、AI の実行を許す待ち受け先か。IP で書いたループバックのアドレスだけ。
-// 名前（localhost など）や 127.1 のような短い書き方は、名前解決でどこに向くかわからないので許さない。
-func aiAddrOK(addr string) bool {
-	host, _, err := net.SplitHostPort(listenAddr(addr))
-	ip := net.ParseIP(host)
-	return err == nil && ip != nil && ip.IsLoopback()
-}
-
-// serveLiveWithAI は serveLive。enableAI は「Analyze with AI」を使えるようにするか（--ai で、--no-ai でないとき true）。
-// 待ち受け先がループバックの IP でなければ、enableAI でも切る。lang は画面の言語（--lang）、watch は picked のほかに見張る場所（scanWatchPaths）。
-func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool, enableAI bool, lang string, watch []string) error {
+// serveLiveWith は serveLive。lang は画面の言語（--lang）、watch は picked のほかに見張る場所（scanWatchPaths）。
+func serveLiveWith(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool, lang string, watch []string) error {
 	if every < time.Second {
 		every = time.Second
 	}
 	addr = listenAddr(addr)
-	aiAddr := aiAddrOK(addr)
 	ln, err := net.Listen("tcp", addr) // ポートがふさがっていたら、読む前にすぐ止める
 	if err != nil {
 		return fmt.Errorf("could not listen on %s (try another port, e.g. \"kiroku serve :8485\"): %w", addr, err)
@@ -639,16 +583,12 @@ func serveLiveWithAI(addr string, allow []string, every time.Duration, picked []
 		names = append(names, s.Name())
 	}
 	l := &live{load: load, paths: paths, roots: historyRoots(picked), print: logw, keep: keep, prog: newProgress(names), lang: lang}
-	if enableAI && aiAddr {
-		l.aiRun = ai.NewHandler(ai.Runner{Enabled: true, Dirs: l.roots, Private: l.privateFiles})
-	}
 	addr = ln.Addr().String()
 	url := viewURL(addr)
 	st := styleFor(l.print)
 	fmt.Fprintf(l.print, "serving %s %s\n", st.bold(url), st.dim("(reading history…; press Ctrl+C to stop)"))
 	startLive(l, every)
 	fmt.Fprintln(l.print, st.dim("only browsers with its key can open it (to protect it from other users of this computer); \"kiroku open\" opens it with the key"))
-	fmt.Fprintln(l.print, st.dim(aiStartLine(enableAI, aiAddr)))
 	if open {
 		if err := openWithKey(url); err != nil {
 			fmt.Fprintf(l.print, "could not open a browser: %v\n", err)

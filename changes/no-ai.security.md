@@ -1,0 +1,1 @@
+- kiroku has no path that runs an AI agent any more, so text planted in your history can no longer steer an agent started from the view (`/ai/run` answers 404 even with the key; tested in the serve e2e and `TestNoAIExecution`)

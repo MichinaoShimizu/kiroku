@@ -120,7 +120,7 @@ func TestRequireKey(t *testing.T) {
 			}
 		}
 	}
-	// ヘッダーに鍵があれば通す（POST も。X-Kiroku と同じオリジンの確かめは、そのあとの /archive と /ai/run がする）
+	// ヘッダーに鍵があれば通す（POST も。X-Kiroku と同じオリジンの確かめは、そのあとの /archive がする）
 	for _, m := range []string{"GET", "POST"} {
 		if w := do(m, "/data.json", key, nil); w.Code != 200 || w.Body.String() != "history" {
 			t.Errorf("ヘッダーつきの %s = %d %q", m, w.Code, w.Body.String())

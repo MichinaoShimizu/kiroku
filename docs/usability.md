@@ -27,12 +27,12 @@ Each scenario has the user's goal and a success condition. No steps are given. A
 | # | User | Goal | Success condition |
 |---|---|---|---|
 | 1 | Someone opening it for the first time | Learn what this view is and what they did last week | Within 30 seconds, can say "what this view is" and "the project they spent the most time on last week" |
-| 2 | Someone writing a daily report | Turn yesterday's work into a daily report | In `kiroku serve --ai`, opens "Analyze with AI" next to that day's date in the week calendar, checks the exact prompt and runs it with an AI agent on this computer, and gets a report ready to share. Can read in the dialog exactly what will be sent (the prompt, with its prompts and history file paths) before pressing Run. That agent runs are on because of `--ai` is explained in the LIVE badge's hint and in the guide, not in the dialog; without `--ai`, session details say how to turn them on. When no agent is installed, understands why (session details say so) |
+| 2 | Someone writing a daily report | Turn yesterday's work into a daily report | Presses "Copy prompt" next to that day's date in the week calendar, pastes the prompt into their AI agent, and gets a report ready to share. Learns from the message after copying that kiroku ran and sent nothing |
 | 3 | Someone who wants to keep AI costs down | Decide on one thing to change from next week | Picks one action from "Worth a look" and can say in their own words what to do |
 | 4 | Someone who wants to know whether something they tried worked | Check whether what they tried last week worked | Finds the metric related to what they changed, from the 8-week trend of a marked metric or from a metric opened via "Worth a look" or "?", reads the direction of change and can judge whether it worked (including when it dropped off "Worth a look", or why it can't be judged) |
 | 5 | Someone hunting the cause of a bug | Find the session where the AI touched a particular file | Reaches the session and commit from search, and can read the prompt flow |
 | 6 | Someone who was stopped by a usage limit | Learn when and during what work they hit the limit | Finds the time and session of the limit hit, and can read what to do from "?" |
-| 7 | Someone looking back on one session | Review a session that went badly with an AI | Opens the details in `kiroku serve` and can run the review with "Analyze with AI" |
+| 7 | Someone looking back on one session | Review a session that went badly with an AI | Opens the details and copies the review prompt with "Copy prompt" under Session review, which says kiroku runs and sends nothing |
 | 8 | Someone viewing on a phone | Glance at this week while on the move | Nothing overflows sideways, and can read the key figures, "Worth a look" and the calendar |
 | 9 | Someone using only the keyboard | Move between weeks, open session details and close them | Can do it without a mouse, and can see where they are |
 
