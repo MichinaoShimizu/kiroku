@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v3.3.1 - 2026-11-21
+
+### Changed
+
+- Session details: the prompt flow uses kiroku's own colors instead of a messaging app's: your prompts in purple bubbles on the right, the AI's replies in white (dark gray in the dark theme) bubbles on the left, on a light surface, with events as gray labels and limits and interruptions as red ones
+
 ## v3.3.0 - 2026-11-21
 
 ### Added
