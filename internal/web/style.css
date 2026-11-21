@@ -861,7 +861,7 @@ html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り
    1 度に見せるのはどちらか 1 つ（上の期間・数字・見直す候補・凡例は共通）。
    広い画面ではページを画面に固定して、カレンダーは残りの高さいっぱい、スクロールはカレンダーの中だけにする
    （ページとカレンダーが二重にスクロールして、ホイールがカレンダーに取られないように）。境目は影と余白ではっきりさせる */
-body[data-view="cal"] #review>.rvhead,body[data-view="cal"] #review .rvgrid>:not(.metap){display:none} /* カレンダーの表示でも、データソースとページの下（版・問題の報告）は出す */
+body[data-view="cal"] #review>.rvhead,body[data-view="cal"] #review>.insight,body[data-view="cal"] #review .rvgrid>:not(.metap){display:none} /* カレンダーの表示でも、データソースとページの下（版・問題の報告）は出す */
 body[data-view="cal"] #review .rvgrid{display:block}
 body[data-view="cal"] #review{margin-top:28px} /* カレンダーの下端とデータソースのあいだを空ける */
 body[data-view="sum"] #tl,body[data-view="sum"] #skipcal{display:none}
@@ -1024,3 +1024,17 @@ header{background:var(--s-cont);border-bottom:0}
 .insfig .ixl.sub{font-size:10px;fill:var(--ink-3)}
 .ithen{margin:-6px 0 10px;font-size:var(--fs-sm);color:var(--acc-ink);font-weight:500}
 .inscol>.insfig.idonut{flex-direction:row;align-items:center}
+.insrow.one{grid-template-columns:minmax(0,1fr)}
+/* どこに使ったか：大きい順の横棒（名前・棒・値・割合） */
+.iwrows{display:flex;flex-direction:column;gap:6px}
+.iwr{display:grid;grid-template-columns:minmax(0,30%) minmax(0,1fr) auto 3.2em;gap:10px;align-items:center;font-size:var(--fs-sm)}
+.iwn{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.iwn i{flex:none;width:9px;height:9px;border-radius:50%}
+.iwb{height:12px;background:var(--surface-2);border-radius:4px;overflow:hidden}.iwb>span{display:block;height:100%;border-radius:4px}
+.iwv{color:var(--ink-2);font-variant-numeric:tabular-nums;text-align:right}.iwr b{text-align:right;font-variant-numeric:tabular-nums}
+/* カードの中の数の枠 */
+.istats{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.insrow.one .istats{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.istats .stat{background:var(--s-cont);border:0;border-radius:12px}
+.istats .stat .s{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
+.istats .stat,.istats .stat:last-child:nth-child(odd){grid-column:auto} /* 2 列の欄の「最後の 1 つは横いっぱい」を、カードの中では使わない */
+.itile .itv{font:700 var(--fs-3xl)/1.15 var(--sans);letter-spacing:-.02em;color:var(--ink);text-align:left;border-radius:6px}.itile .itv:hover{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:4px}

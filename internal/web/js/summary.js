@@ -13,83 +13,19 @@ function summary(){
   const F = findList(w, pw, unit);
   WK.innerHTML = flagSum(F); WK.hidden = false; const wd = WK.querySelector("details"); if (wd) wd.addEventListener("click", e => { if (e.target.closest(".hb")) e.preventDefault(); }); lastFlags = F; // 見直す候補は、カレンダーの上（期間の要点のすぐ下）に出す。押すと真ん中のダイアログで開く
   R.innerHTML = `${head}${insightH(F)}<div class="rvgrid">
-  ${projectPanel(w, unit)}
-  ${outcomePanel(w, pw, unit)}
-  ${fold("time", panelH(3, esc(t("How you worked")), esc(t("Time, friction and repeated prompts"))), `
-    <div class="stats">
-      ${statH(esc(t("Focus blocks (60+ min)")), times(w.focus.length), longest ? esc(t("Longest {dur}", {dur: dur(longest)})) : "", "focus", w.focus.length ? "focus" : "")}
-      ${(() => { const {ws, we} = period(), H = limitHits(ws, we), N = unrecorded(ws, we, "limits"); return N ? norecStat(esc(t("Usage limit hits")), N, "limits") : statH(esc(t("Usage limit hits")), times(H.length), esc(H.length ? H.slice(-4).map(h => h.r ? t("{time} (resets {r})", {time: `${md(h.t)} ${hm(h.t)}`, r: h.r}) : `${md(h.t)} ${hm(h.t)}`).join(TSEP()) + (H.length > 4 ? TSEP() + "…" : "") : t("From Claude Code, Codex and Kiro Crew history")), "limits", H.length ? "limits" : ""); })()}
-      ${(() => { const {ws, we} = period(), C = compactionsOf(ws, we), n = new Set(C.map(c => c.s.id)).size, N = unrecorded(ws, we, "compactions"); return N ? norecStat(esc(t("Compactions")), N, "compactions") : statH(esc(t("Compactions")), times(C.length), esc(C.length ? t("In {sessions} · {times}", {sessions: plural(n, "session"), times: C.slice(-4).map(c => `${md(c.t)} ${hm(c.t)}`).join(TSEP()) + (C.length > 4 ? TSEP() + "…" : "")}) : t("From Claude Code, Codex and Kiro CLI (SQLite) history")), "compactions", C.length ? "compactions" : ""); })()}
-    </div>
-    ${secH(esc(t("More metrics (includes estimates)")))}<div class="stats">
-      ${statH(esc(t("Prompts with corrections or interruptions")), pct(w.fixRate), esc(plural(w.prompts, "prompt")), "fix", w.fixRate ? "fix" : "")}
-      ${(() => { const {ws, we} = period(), B = bigOf(ws, we); return statH(esc(t("Oversized prompts")), `${B.n}`, esc(B.n ? t("{n}+ characters · longest {max}", {n: commas(BIG_PROMPT), max: commas(B.max)}) : t("{n}+ characters", {n: commas(BIG_PROMPT)})), "bigPrompts", B.n ? "bigPrompts" : ""); })()}
-      ${statH(esc(t("Project switches per day")), times(w.switchesAvg), esc(t("Max {n}", {n: w.switchesMax})), "switches", "switches")}
-      ${statH(esc(t("Wait time (median)")), secsH(w.waitMedian), esc(t("{replies} · 90th percentile {p}", {replies: plural(w.waitCount, "reply", "replies"), p: secs(w.waitP90)})), "wait", w.waitCount ? "wait" : "")}
-    </div>
-    ${w.friction.length ? secH(esc(t("Possible friction")), "friction") : ""}
-    ${w.friction.length ? w.friction.map(f => sesCardH(sesById(f.id, f.title), `${sesMeta(f)} ${whyOf(f).map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}`)).join("") : ""}
-    ${repeatsOf(period().ws, period().we).length ? secH(esc(t("Repeated prompts")), "repeats") : ""}
-    ${(() => { const {ws, we} = period(), RP = repeatsOf(ws, we); return RP.length ? RP.slice(0, 3).map(c => { const v = {n: c.n, s: c.ids.size, day: md(c.last)}; return promptCardH(c.id, snipOf(c.text, 160), esc(t(perLabel(M ? "月" : "週", "{n} times in {s} sessions this month · last on {day}", "{n} times in {s} sessions this week · last on {day}", "{n} times in {s} sessions in the month shown · last on {day}", "{n} times in {s} sessions in the week shown · last on {day}"), v))); }).join("") : ""; })()}
-    ${w.friction.length || repeatsOf(period().ws, period().we).length ? "" : noneH(esc(t("No sessions with possible friction and no repeated prompts.")))}`)}
-  ${fold("aiuse", panelH(4, esc(t("How you used AI")), esc(t("Cache, models and heavy sessions"))), `
-    ${aiUsage(w, pw, unit) || noneH(esc(t("No token or credit records.")))}`)}
   <section class="panel metap">${measure(w)}${foot()}</section></div>`;
   placeFlags(R, F);
-  R.querySelectorAll("details.fold").forEach(d => { d.ontoggle = () => store.set("fold:" + d.dataset.fold, d.open); // 開け閉めを覚える
-    d.querySelector("summary").addEventListener("click", e => { if (e.target.closest(".hb, .fmark")) e.preventDefault(); }); }); // 見出しの「?」と印は、開け閉めしない
   R.querySelectorAll(".card,.fses").forEach(c => c.onclick = () => select(c.dataset.id));
   WK.querySelectorAll("[data-goto]").forEach(b => { b.setAttribute("aria-haspopup", "dialog"); b.onclick = () => { const d = WK.querySelector("details"); openWorth(b.dataset.goto, d ? WK.querySelector("summary") : b); if (d) d.open = false; }; }); // 選んだら一覧は閉じる（閉じたダイアログはアイコンへ戻る）
   R.querySelectorAll(".fmark").forEach(b => b.onclick = () => openWorth(b.dataset.goto, b));
   R.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b)); // 上の帯と同じ内訳
-  const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
   R.querySelectorAll(".keeparch").forEach(b => b.onclick = () => { R.querySelectorAll(".keeparch").forEach(x => x.disabled = true); keepArchive(); });
   bindInsight(R); bindCopy(R); bindHelp(R); bindHelp(WK);
   if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }
-/* サマリーのパネル（① プロジェクト別から下）は、既定で閉じる（ページの主役はカレンダー。開けたものは開けたまま覚える）。
-   閉じたパネルの中に基準を超えた指標があれば、placeFlags が見出しに印を出す */
-const fold = (key, head, body) => `<details class="panel fold ${key}" data-fold="${key}"${store.get("fold:" + key, false) ? " open" : ""}><summary>${head}${ico("caret", "fcar")}</summary>${body}</details>`;
-/* 「今週・今月」と言ってよいのは、見ているのが今の週・月のときだけ（先週を見ているのに「今週」と書かない）。それ以外は「表示中の週・月」 */
-const perLabel = (unit, thisM, thisW, shownM, shownW) => soFar() != null ? (unit === "月" ? thisM : thisW) : (unit === "月" ? shownM : shownW);
 /* 期間の言い方（unit は "週" か "月"） */
 const uThis = unit => unit === "月" ? "this month" : "this week";
 const uLast = unit => unit === "月" ? "last month" : "last week";
-const whyOf = f => !JA && f.whyEn && f.whyEn.length === f.why.length ? f.whyEn : f.why; // こじれた理由（Go の文。日本語の画面では why、英語では whyEn）
-/* 配分：作業時間・トークン・目安コスト・クレジットのそれぞれで、何割をどのくくりに使ったか。くくりは色分け（プロジェクト・ブランチ・エージェント）に合わせる。
-   指標を縦に並べ、「時間の割にコストが多い」のようなずれを見比べられるようにする（上位 5 つ＋その他） */
-function shareBlock(w, ps){
-  const all = st.colorBy === "project" ? ps.map(p => ({key: p.project, minutes: p.minutes, tokens: p.tokens, cost: p.cost, credits: p.credits})) : ((w.shares || {})[st.colorBy] || []);
-  const head = `<h3 class="shh">${esc(({project: t("Share by project"), branch: t("Share by branch"), source: t("Share by agent")})[st.colorBy])}</h3><p class="shn">${esc(t("Follows \"Color by\" in the legend"))}</p>`;
-  if (!all.length) return "";
-  if (all.length < 2) return head + noneH(esc(t("Only \"{name}\" this period.", {name: all[0].key})));
-  const N = 5, top = all.slice(0, N), rest = all.slice(N);
-  const rows = top.map(p => ({name: p.key, c: colorOf(p.key), v: p}));
-  if (rest.length) rows.push({name: t("Other ({n})", {n: rest.length}), c: "var(--other)", other: true,
-    v: rest.reduce((a, p) => ({minutes: a.minutes + p.minutes, tokens: a.tokens + p.tokens, cost: a.cost + p.cost, credits: a.credits + p.credits}), {minutes: 0, tokens: 0, cost: 0, credits: 0})});
-  const ms = [["minutes", t("Active time"), dur], ["tokens", t("Tokens"), tok], ["cost", t("Estimated cost"), usd], ["credits", t("Credits"), cr]]
-    .map(([k, n, f]) => ({k, n, f, t: rows.reduce((t, r) => t + (r.v[k] || 0), 0)})).filter(m => m.t > 0);
-  if (!ms.length) return "";
-  const pc = (r, m) => Math.round((r.v[m.k] || 0) * 100 / m.t);
-  const bars = ms.map(m => `<span class="k">${esc(m.n)}</span><div class="stack" role="img" aria-label="${esc(`${m.n}: ${rows.map(r => `${r.name} ${pc(r, m)}%`).join(", ")}`)}">${rows.filter(r => r.v[m.k] > 0).map(r => `<span style="flex:${r.v[m.k]};--c:${r.c}" ${tipAttr(r.name, `${m.n} ${m.f(r.v[m.k])}${` (${pc(r, m)}%)`}`)}></span>`).join("")}</div>`).join("");
-  const tab = `<table class="shtab"><thead><tr><th scope="col">${CB()[st.colorBy]}</th>${ms.map(m => `<th scope="col">${esc(m.n)}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr style="--c:${r.c}"><td title="${esc(r.name)}"><i aria-hidden="true"></i>${esc(r.name)}</td>${ms.map(m => `<td>${r.v[m.k] ? pc(r, m) + "%" : "—"}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
-  return `${head}<div class="sharebox"><div class="share">${bars}</div>${tab}</div>`;
-}
-/* プロジェクト別：何に何時間、どれだけのトークン・コスト・クレジットを使い、何が残ったか（モデルと重いセッションは ④ に） */
-function projectPanel(w, unit){
-  const ps = w.projectStats || []; if (!ps.length) return "";
-  const total = w.projects.reduce((t,[,v])=>t+v,0) || 1, LIMIT = 6, shown = st.allProj ? ps : ps.slice(0, LIMIT);
-  const anyCr = ps.some(p => p.credits); // この期間にクレジットの記録がまったくなければ、「—」だけの欄は出さない
-  // プロジェクトごとの数字は、カードを並べずに 1 つの表に（見比べやすく、縦に長くならないように）
-  const cards = `<table class="shtab ptab"><thead><tr><th scope="col">${esc(t("Project"))}</th><th scope="col">${esc(t("Active time"))}</th><th scope="col">${esc(t("Sessions / prompts"))}</th><th scope="col">${esc(t("Estimated cost"))}</th>${anyCr ? `<th scope="col">${esc(t("Credits"))}</th>` : ""}<th scope="col">${esc(t("Git commits"))}</th></tr></thead><tbody>${shown.map(p => {
-    const c = st.colorBy === "project" ? colorOf(p.project) : "var(--ink-3)", share = Math.round(p.minutes*100/total), cm = p.git && p.git.commits ? `${p.git.commits} · ${t("{n} by AI", {n: p.git.ai})}` : p.outputs && p.outputs.commits ? `${p.outputs.commits}` : "—";
-    return `<tr style="--c:${c}"><td title="${esc(p.project)}"><i aria-hidden="true"></i>${esc(p.project)}</td><td><span class="pbar"><span style="width:${share}%"></span></span>${p.minutes ? `${dur(p.minutes)} · ${share}%` : "—"}</td><td>${p.sessions}/${p.prompts}</td><td>${p.cost >= 0.005 ? usd(p.cost) : "—"}</td>${anyCr ? `<td>${p.credits ? cr(p.credits) : "—"}</td>` : ""}<td>${esc(cm)}</td></tr>`; }).join("")}</tbody></table>`;
-  return fold("projs", panelH(1, esc(t("By project")), esc(t(perLabel(unit, "Where your time and AI went this month", "Where your time and AI went this week", "Where your time and AI went in the month shown", "Where your time and AI went in the week shown"))), "projects"), `
-    ${shareBlock(w, ps)}
-    ${cards}
-    ${ps.length > LIMIT ? `<button class="pill pmore" id="pmore">${esc(st.allProj ? t("Show top projects only") : ps.length - LIMIT === 1 ? t("Show 1 more project") : t("Show {n} more projects", {n: ps.length - LIMIT}))}</button>` : ""}`);
-
-}
 /* 指標の読み方：定義・言えること・言えないこと・打てる手。画面の「?」と、改善案プロンプトの前提に使う */
 const HELP = {
   findings: {n: "Worth a look", d: "Metrics that crossed a fixed threshold. Each is marked with a warning triangle where it appears, with what was observed, an 8-period trend (for metrics counted per period), the related sessions and the threshold; their names are listed here in priority order", c: "Which metric is worth reviewing first", x: "Whether something is good or bad. Thresholds are generic and may not fit how you work", a: "Pick one, try it next period, and check the change with the same metric"},

@@ -170,7 +170,7 @@ function openWorth(id, from){
   const hd = $("#wkh"); hd.tabIndex = -1; hd.focus(); } // 最初のボタンではなく見出しへ（読み上げで何のダイアログかわかり、セッションを押した表示にもならない）
 function placeFlags(R, F){ // 基準を超えた指標の名前の横に、小さな印だけを付ける（押すと「Worth a look」と同じダイアログ。中身はダイアログにだけ出し、サマリーで繰り返さない）
   [...new Set(F.map(f => GOTO[f.k] || f.k))].forEach(id => {
-    const hb = R.querySelector(`.panel .hb[data-help="${id}"]`); if (!hb) return;
+    const hb = R.querySelector(`.insight .hb[data-help="${id}"], .panel .hb[data-help="${id}"]`); if (!hb) return;
     hb.insertAdjacentHTML("beforebegin", `<button class="fmark" data-goto="${id}" aria-haspopup="dialog" aria-label="${esc(t("Worth a look: {name}", {name: H()[id].n}))}" title="${esc(t("Crossed a threshold. Click to see why."))}">${ico("flag", "fdot")}</button>`);
     // 閉じた折りたたみの中の印は、見出しにも出す（開かずに、中に印があるとわかるように）。折りたたみが重なっていれば（③ からのパネルの中の「もっと見る」）、どれの見出しにも
     for (let dt = hb.closest("details"); dt; dt = dt.parentElement.closest("details")){ const sm = dt.querySelector(":scope > summary");
