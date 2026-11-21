@@ -50,7 +50,7 @@ svg.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;stro
 .wrap{max-width:1920px;margin:0 auto;padding:0 40px} /* 両端にゆとり（狭い画面は下で詰める） */
 
 /* ── header ─────────────────────────────────────────────── */
-header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--rule)} /* 透かすと、下を流れる数字が検索欄の後ろに薄く見えて読みにくい */
+header{position:sticky;top:0;z-index:15;background:var(--bg);border-bottom:1px solid var(--rule)} /* z-index はカレンダーの右端のフェード（10）より上に（スマホで検索のボタンにかからないように） */ /* 透かすと、下を流れる数字が検索欄の後ろに薄く見えて読みにくい */
 .bar{display:flex;align-items:center;gap:18px;height:64px}
 .brand{display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0}
 .home{display:flex;align-items:center;gap:10px;flex:none;color:inherit;text-decoration:none;border-radius:8px} /* ロゴと名前は最初の画面へのリンク */

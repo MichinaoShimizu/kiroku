@@ -169,6 +169,8 @@ async function run(env) {
     check("過ぎた週は月曜から見える", await p.evaluate(() => document.querySelector("#tl .calscroll").scrollLeft) === 0);
     if (env.isMobile){ // スマホでは、右にまだ日があるあいだだけ右端をぼかす
       check("右にまだ日があると、右端がぼける", await p.evaluate(() => document.querySelector("#tl").classList.contains("morer")));
+      check("右端のぼかしは、ヘッダー（検索のボタン）にかからない", await p.evaluate(() => { const h = document.querySelector("header"), f = getComputedStyle(document.querySelector("#tl"), "::after");
+        return +getComputedStyle(h).zIndex > +f.zIndex; })); // 開いた位置まで下へ送られていると、カレンダーはヘッダーの下を通る
       await p.evaluate(() => { const sc = document.querySelector("#tl .calscroll"); sc.scrollLeft = sc.scrollWidth; }); await pause();
       check("右端までスクロールすると、ぼかしが消える", await p.evaluate(() => !document.querySelector("#tl").classList.contains("morer")));
       await p.evaluate(() => { document.querySelector("#tl .calscroll").scrollLeft = 0; }); await pause();
