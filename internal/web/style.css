@@ -176,7 +176,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .head.sat{background:var(--sat-bg)}.head.sun{background:var(--sun-bg)}.mgrid .mh.sat,.mgrid .mh.sun{font-weight:700}
 .day.today{background-color:color-mix(in oklab,var(--acc) var(--t1),transparent)}
 .run{position:absolute;border-radius:0;padding:4px 7px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;gap:2px;
-  background:color-mix(in oklab,var(--c) var(--fill),var(--surface));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--c) 55%,transparent);
+  background:color-mix(in oklab,var(--c) var(--fill),var(--surface));box-shadow:inset 3px 0 0 var(--c); /* 枠線では囲まず、左端の細い帯と淡い塗りでエージェントの色を示す */
   font-size:var(--fs-xs);line-height:1.3;color:var(--ink);text-align:left;
   transition:transform .18s var(--ease),box-shadow .18s var(--ease),opacity .25s var(--ease),filter .25s;
   animation:rise .25s var(--ease) both;animation-delay:var(--delay,0ms)} /* 週を替えたときの出方は短く（ずらしを入れても 0.4 秒ほどで出そろう） */
@@ -185,7 +185,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .tlbox.focus .rlab{opacity:.25}
 /* 名前は帯の高さに入る行数（--tl、calendar.js が決める）まで折り返し、入らない分は … で省く。1 行に詰めると 1440px でも「Add E2…」になるため */
 .run .t{display:flex;align-items:flex-start;gap:5px;font-weight:600;overflow:hidden;min-width:0;flex:none}
-.run .t::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c);flex:none;margin-top:4px}
+.run .t::before{content:none} /* 色は左端の帯で示すので、名前の前の点は出さない */
 .run .t span{overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--tl,1);overflow-wrap:break-word;hyphens:auto;min-width:0}
 .run .m{color:var(--ink-2);font-size:var(--fs-xs);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 /* 重なって細くなった帯（スマホや 1000px）では、印と時刻を外して名前を語の切れ目で折り返す。語の途中では切らず、入らない語と行は … で省く */
@@ -195,10 +195,10 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
    時刻も入らない帯（.nn）は色だけ。名前は aria-label とツールチップ、押せば詳細で見られる */
 .run .st{display:none;margin:0 -6px;font-size:var(--fs-2xs);font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-align:center}
 .run.nt .t,.run.nt .m,.run.nn .t,.run.nn .m{display:none}.run.nt .st{display:block}.run.thin .st{line-height:1}
-.run.cas{box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--c) 55%,transparent),0 0 0 2px var(--bg)} /* 前の帯の上に重ねた帯は、地の色の縁で前の帯と分ける */
-.run:hover{box-shadow:inset 0 0 0 1.5px var(--c),var(--shadow);z-index:4}
+.run.cas{box-shadow:inset 3px 0 0 var(--c),0 0 0 2px var(--bg)} /* 前の帯の上に重ねた帯は、地の色の縁で前の帯と分ける */
+.run:hover{box-shadow:inset 3px 0 0 var(--c),var(--shadow);z-index:4}
 .tlbox.focus .run{opacity:.25;filter:saturate(.5)}
-.tlbox.focus .run.sel{opacity:1;filter:none;box-shadow:inset 0 0 0 2px var(--c),var(--shadow);z-index:2}
+.tlbox.focus .run.sel{opacity:1;filter:none;box-shadow:inset 3px 0 0 var(--c),0 0 0 2px var(--c),var(--shadow);z-index:2}
 @keyframes rise{from{opacity:0;transform:translateY(6px)}}
 .lim{position:absolute;left:3px;z-index:3;height:16px;margin-top:-8px;padding:0 6px;border-radius:0;font-size:var(--fs-2xs);font-weight:700;line-height:16px;color:var(--on-warn);background:var(--warn);box-shadow:0 0 0 2px var(--surface)}
 .lim:hover{filter:brightness(1.1)}
@@ -328,6 +328,7 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .head .cline .sep{color:var(--ink-3)}.head .cline .u{color:var(--ink-3)}
 .mlegend{display:flex;align-items:center;gap:8px;justify-content:flex-end;padding:10px 14px;font-size:var(--fs-xs);color:var(--ink-3);border-top:1px solid var(--rule)}
 .mlegend i{width:16px;height:10px;border-radius:3px;background:color-mix(in oklab,var(--acc) calc(var(--h) * var(--heatk)),var(--surface));box-shadow:inset 0 0 0 1px var(--rule)}
+.mshade{display:inline-flex;align-items:center;gap:6px;margin-right:auto}.mshade select{height:26px;padding:0 6px;border:1px solid var(--rule-2);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:var(--fs-xs)}
 .wk .mode{margin-left:10px}
 
 /* tooltip */
@@ -842,7 +843,7 @@ header{background:var(--s-cont);border-bottom:0}
 .cbsel select{height:32px;border-radius:4px;border-color:var(--rule-2);background:transparent;padding:0 8px}
 .tlbox{border:0;background:var(--s-lowest);box-shadow:var(--shadow)}
 .heads{background:color-mix(in oklab,var(--s-lowest) 92%,transparent)}
-.run{border-radius:8px}
+.run{border-radius:6px}
 .panel{border:0;border-radius:16px;background:var(--s-cont)}
 .card{border-color:transparent;border-radius:12px;background:var(--s-lowest)}
 

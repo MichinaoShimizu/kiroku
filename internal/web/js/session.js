@@ -10,7 +10,7 @@ function detail(s){
   // 目安コスト。料金表にないモデルだけなら "—"（$0.00 と出すと、使っていないと読めてしまう）
   const sCost = costOf({cost: s.cost, unpriced: [s.usage, ...s.subagents.map(a=>a.usage)].reduce((t,u)=>t + (u ? u.unpriced||0 : 0), 0)});
   // Kiro のクレジット。Kiro Crew は Kiro 以外のバックエンドのトークンと、kiro-cli のクレジットの両方を持つことがある
-  const credH = s.credits ? `<div><div class="k">${esc(t("Kiro credits"))}</div><div class="v">${crN(s.credits)}</div></div><div><div class="k">${esc(t("Per prompt"))}</div><div class="v">${s.nPrompts ? crN(s.credits/s.nPrompts) : "—"}<small> cr</small></div></div>` : "";
+  const credH = s.credits ? `<div><div class="k">${esc(t("Kiro credits"))}</div><div class="v">${crN(s.credits)}</div></div><div><div class="k">${esc(t("Per prompt"))}</div><div class="v">${s.nPrompts ? crH(s.credits/s.nPrompts) : "—"}</div></div>` : "";
   // 操作（再開・AI 分析）。どちらもなければ節ごと出さない（右の列が「数値」から始まり、左の列と高さがそろう）
   const actH = `    ${s.resume ? `<div class="dresume"><h3>${esc(t("Resume"))}</h3>${codeH(s.resume, "resume")}</div>` : ""}
     ${(b => b ? `<div class="drun"><h3>${esc(t("Session review"))}</h3>${b}<p class="note">${esc(t("Copies a review prompt to paste into your AI agent."))}</p></div>` : "")(s.prompts.length ? promptBtn("srun", t("Copy the session review prompt")) : "")}`.trim();
@@ -255,18 +255,21 @@ function sessionPrompt(s, active, med){ return inEnglish(() => { // AI に渡す
   const D = ["# Facts", "", "## Numbers", sessionNumbers(s, active, med), "", "## Session",
     `- Title: ${cut(s.title, 80)}`, `- Agent: ${oneLine(s.source)}`, `- Project: ${oneLine(s.project)}${s.branch ? ` (branch ${oneLine(s.branch)})` : ""}`,
     `- Time: ${md(s.start)} ${hm(s.start)}–${hm(s.end)}`];
-  if (file) D.push(`- History file: ${oneLine(file)}`);
+  if (file) D.push(`- Session ID: ${oneLine(s.id)}`, `- History file: ${oneLine(file)}`);
   // このセッションの最初と最後のプロンプトの間に、ほかのプロジェクトで書いたプロンプト（切り替えの手がかり）。凡例で隠したものは入れない（週報と同じ）
   const a = s.prompts.length ? s.prompts[0].t : s.start, b = s.prompts.length ? s.prompts[s.prompts.length - 1].t : s.end, other = new Map();
   DATA.forEach(x => { if (x.project !== s.project && !st.hidden.has(keyOf(x))) x.prompts.forEach(p => { if (p.t > a && p.t < b) other.set(x.project, (other.get(x.project) || 0) + 1); }); });
   const sw = `- Prompts I wrote in other projects while this session ran: ${other.size ? [...other].sort((x, y) => y[1] - x[1]).slice(0, 5).map(([k, v]) => `${oneLine(k)} ${v}`).join(", ") : "none"}`;
   D.push("", "## Signals for advice", ...reportSignals([s], s.start, s.end + 1, cut, [s.start - 30 * 86400, s.end + 1], sw));
   if (s.models.length > 1) D.push(`- Models in this session (responses): ${s.models.map(([m, n]) => `${oneLine(m)} ${n}`).join(", ")}`);
-  // 履歴ファイルにない、kiroku が git などから足した出来事と並べる。ファイルを読めるなら、プロンプトはファイルの中で探す目印になる頭だけ
-  D.push("", `## Prompt flow (my prompts and what happened between them, in time order; ${file ? "prompts are cut to their first words, the full text is in the history file" : "long ones are truncated"})`);
-  if (s.prompts.length) D.push(...reviewFlow(s.prompts, reviewEvents(s), 40, file ? 80 : 300));
-  else D.push("- No prompts recorded");
-  if (s.prompts.length > 40) D.push(`- ${s.nPrompts - 40} more`);
+  // 履歴ファイルを読めるなら、プロンプトと応答はそこにあるので書き写さない（セッション ID とファイルを渡すだけ）。
+  // 書くのは、履歴ファイルにない、kiroku が git などから足した出来事（コミット・PR など）の時刻だけ。読めないときは、プロンプトの流れを書き写す
+  if (file){ const ev = reviewEvents(s); D.push("", "## Events kiroku adds from git and the agent's records (time order; the prompts and replies are in the history file)");
+    D.push(...(ev.length ? ev.slice(0, 60).map(e => `- ${hm(e.t)} [${e.l}]${e.d ? ` ${cut(e.d, 120)}` : ""}`) : ["- None"])); if (ev.length > 60) D.push(`- ${ev.length - 60} more`); }
+  else { D.push("", "## Prompt flow (my prompts and what happened between them, in time order; long ones are truncated)");
+    if (s.prompts.length) D.push(...reviewFlow(s.prompts, reviewEvents(s), 40, 300));
+    else D.push("- No prompts recorded");
+    if (s.prompts.length > 40) D.push(`- ${s.nPrompts - 40} more`); }
   L.push("", "# History data", mdFence(D.join("\n")));
   return L.join("\n");
 }); }

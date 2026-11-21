@@ -460,7 +460,7 @@ async function run(env) {
     check("再開のコマンドと AI 分析は操作にあり、2 列なら右の列、1 列なら流れより上", rs.n <= 1 && rs.inAct && rs.place, JSON.stringify(rs));
     const rv = await p.evaluate(() => { const s = DATA.find(x => x.id === st.sel) || DATA[0]; return sessionPrompt(s, 1, null); });
     check("振り返りは専門的な助言と証拠を備える", /professional AI prompt advisor/.test(rv) && /^- Title: /m.test(rv) && /^### Professional prompt assessment$/m.test(rv) && /^### Prioritized advice$/m.test(rv) && /^### Reusable prompt playbook$/m.test(rv) && /^\| \| This session \|$/m.test(rv) && /^\| Prompts \| \d+ \|$/m.test(rv), rv.slice(0, 200));
-    check("振り返りの事実と流れは、コードブロックの中にある", /# History data\n`{3,}text\n# Facts/.test(rv) && /## Prompt flow/.test(rv));
+    check("振り返りの事実は、コードブロックの中にある（履歴ファイルを読めるなら、セッション ID とファイルと、履歴にない出来事だけ。プロンプトは書き写さない）", /# History data\n`{3,}text\n# Facts/.test(rv) && (/- Session ID: .+\n- History file: /.test(rv) ? /## Events kiroku adds/.test(rv) && !/## Prompt flow/.test(rv) : /## Prompt flow/.test(rv)), rv.slice(-400));
     await p.keyboard.press("Escape"); await pause();
   });
 
@@ -679,6 +679,27 @@ async function run(env) {
     await p.keyboard.press("?"); await pause();
     await p.mouse.click(4, env.viewport.height - 4); await pause();
     check("一覧は枠の外を押しても閉じる", !(await p.locator("#keys").evaluate(d => d.open)));
+  });
+
+  await step("積み上がりの切り替え・月の濃淡・クレジットの単位", async () => {
+    await p.goto(url); await loaded(p);
+    check("クレジットは cr ではなく言葉の単位で書く", !/\d\s*cr\b/.test(await p.locator("#kpis").innerText()));
+    await view("sum");
+    const ks = await p.locator("#review [data-cum]").evaluateAll(xs => xs.map(x => x.dataset.cum));
+    check("積み上がりは、記録のある量を切り替えられる", ks.length === 0 || ks.includes("active"), JSON.stringify(ks));
+    for (const k of ks){ await p.locator(`#review [data-cum="${k}"]`).click(); await pause();
+      check(`積み上がりを ${k} にすると、その量の線と 1 文になる`, await p.evaluate(k => st.insC === k && document.querySelector(`#review [data-cum="${k}"]`).getAttribute("aria-pressed") === "true" && !!document.querySelector("#review polyline.icum"), k)); }
+    check("見出しは「前週比」の言い方（vs last week）", /Cumulative, vs last (week|month)/.test(await p.locator("#review .inscol:has(polyline.icum) h4").innerText()));
+    check("長さ別の図に n= を並べない（件数はツールチップに）", !/n=\d/.test(await p.evaluate(() => (document.querySelector("#review .ihist svg") || {}).innerHTML || "")));
+    await view("cal");
+    await p.keyboard.press("m"); await pause();
+    const opts = await p.locator("#mshade option").evaluateAll(xs => xs.map(x => x.value));
+    if (opts.length > 1){ const heat = () => p.evaluate(() => [...document.querySelectorAll(".mgrid .cell[style*='--heat']")].map(c => c.style.getPropertyValue("--heat")).join(","));
+      const h0 = await heat(); await p.selectOption("#mshade", opts[opts.length - 1]); await pause();
+      check("月の濃淡の量を選べ、塗り方が変わり、選んだものが残る", await heat() !== h0 && await p.evaluate(v => st.shade === v && document.querySelector("#mshade").value === v, opts[opts.length - 1]), JSON.stringify(opts));
+      await p.selectOption("#mshade", opts[0]); await pause(); }
+    else console.log("  skip 月の濃淡に選べる量が 1 つしかない");
+    await p.keyboard.press("w"); await pause();
   });
 
   await step("今週の表示でも、クレジットの今月末の推定がわかる", async () => {
