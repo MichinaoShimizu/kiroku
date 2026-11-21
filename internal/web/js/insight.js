@@ -124,8 +124,7 @@ function insHeadlines(F){
   { const cs = DATA.filter(s => s.start >= ws && s.start < we && s.credits > 0), c = cs.reduce((a, s) => a + s.credits, 0), n = cs.reduce((a, s) => a + s.nPrompts, 0); // クレジットを記録したセッションの、プロンプトあたり
     if (c && n) tile(t("Kiro credits per prompt"), false, `${Math.round(c / n * 100) / 100}`, `${cr1(c)} ÷ ${n} ${t("prompts")} = ${Math.round(c / n * 100) / 100}`); }
   if (u.tokens && w && w.costPrompts) tile(t("Tokens per prompt"), false, tok(u.tokens / w.costPrompts), `${tok(u.tokens)} ÷ ${commas(w.costPrompts)} ${t("prompts")} = ${tok(u.tokens / w.costPrompts)}`);
-  // カードは 4 列の格子に、中の数字の多い段の数だけ列を使って並べる（数字が少ないカードを横いっぱいに広げず、空いた横に次のカードを入れる）。
-  // 最後のカードは、行の残りの列まで広げる（右に空きを残さない）
+  // カードは折り返す横の並びに置く：広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる
   // 小見出しのある段：出どころ（Git と AI の編集）が違う数字を、同じ枠の中でも段と印で分ける
   const sub = ([k, icon, label, note, empty]) => !T[k].length && empty ? `<div class="iksub ${k}" role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><p class="none iknone">${esc(empty)}</p></div>` : T[k].length ? `<div class="iksub ${k}" role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><div class="ikrow">${T[k].join("")}</div></div>` : "";
   const cards = [
@@ -133,9 +132,7 @@ function insHeadlines(F){
     {label: t("Output"), rows: [["outGit", "commit", t("Git"), t("from your repositories"), T.outEdit.length ? t("No Git commits for this selection") : ""], ["outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not")]]},
     {label: t("Unit cost"), rows: [["unitGit", "commit", t("Per Git commit"), ""], ["unitEdit", "edit", t("Per 100 AI-edited lines"), ""], ["unitAsk", "user", t("Per prompt"), ""]]},
   ].map(c => ({...c, n: c.rows ? Math.max(...c.rows.map(r => T[r[0]].length)) : T[c.k].length})).filter(c => c.n > 0);
-  let col = 0; cards.forEach(c => { c.span = Math.min(4, c.n); if (col + c.span > 4) col = 0; c.col = col; col += c.span; });
-  if (cards.length) { const z = cards[cards.length - 1]; z.span = 4 - z.col; }
-  const card = c => `<section class="ikg sp${c.span}" aria-label="${esc(c.label)}"><h5 class="ikgh">${esc(c.label)}</h5>${c.rows ? c.rows.map(sub).join("") : `<div class="ikrow">${T[c.k].join("")}</div>`}</section>`;
+  const card = c => `<section class="ikg" aria-label="${esc(c.label)}"><h5 class="ikgh">${esc(c.label)}</h5>${c.rows ? c.rows.map(sub).join("") : `<div class="ikrow">${T[c.k].join("")}</div>`}</section>`;
   return `<div class="insh">${cards.map(card).join("")}</div><p class="ifxs insdef">${fx(insDef())}</p>`;
 }
 /* 推移のグラフ：前の INS_N 期間と表示中の期間の棒。いつもの範囲（四分位）を帯、中央値を点線で重ねる。
@@ -188,7 +185,6 @@ function insightH(F){
   const avail = INS_KEYS.filter(x => insBase(x) && !(noCost && (x === "cost" || x === "costPerCommit" || x === "costPerEdit"))), k = avail.includes(st.insK) ? st.insK : avail[0] || "active";
   const tabs = avail.map(x => `<button type="button" data-ins="${x}" aria-pressed="${x === k}" title="${esc(insName(x))}">${esc(INS_SHORT()[x])}</button>`).join("");
   const card = (title, body, cls = "") => body ? `<div class="inscol${cls}"><h4>${esc(title)}</h4>${body}</div>` : "";
-  // グラフのカードは 2 列に並べる。エージェント別の表は幅いっぱい。2 枚の組にならずに 1 枚だけ残ったカードも幅いっぱいにする（空きを作らない）
   const sel = `<select class="insksel" aria-label="${esc(t("Metric"))}">${avail.map(x => `<option value="${x}"${x === k ? " selected" : ""}>${esc(INS_SHORT()[x])}</option>`).join("")}</select>`; // 狭い画面では、切り替えの代わりに選択リスト（横に隠さない）
   // カードは「コスト」（時間・クレジット・金額・トークン）・「出力」（コミット・変えた行）・「使い方」の 3 つに分けて並べる
   const cards = [{sec: t("Cost")},
@@ -196,15 +192,13 @@ function insightH(F){
     {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insCum())},
     {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insWhere())}, {h: card(t("Tokens by type"), insTokens())},
     {h: card((HISTK(DATA.filter(s => inP(s, period().ws, period().we))) || {}).title || "", insHist())},
-    {h: card(t("By agent"), insAgents()), full: true},
-    {sec: t("Output")}, {h: card(t("Outputs"), insOutputs(), " iout"), full: true},
-    {sec: t("Unit cost")}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insScatter())},
+    {h: card(t("By agent"), insAgents())},
+    {sec: t("Output and unit cost")}, {h: card(t("Outputs"), insOutputs(), " iout")}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insScatter())},
     {sec: t("How you used AI")}, {h: card(t("How you used AI"), insUsage())}, {h: card(t("When you worked"), insHeat())}, {h: card(t("How you worked"), insWork())},
   ].filter(c => c.h || c.sec);
-  let run = []; const out = [], flush = () => { if (run.length % 2) run[run.length - 1].full = true; out.push(...run); run = []; };
-  cards.forEach(c => { if (c.sec){ flush(); out.push(c); } else if (c.full){ flush(); out.push(c); } else run.push(c); }); flush();
-  const body = out.filter((c, i) => !c.sec || (out[i + 1] && !out[i + 1].sec)) // 中身のない見出しは出さない
-    .map(c => c.sec ? `<h3 class="inssec">${esc(c.sec)}</h3>` : c.full ? c.h.replace(/^<div class="inscol/, '<div class="inscol full') : c.h).join("");
+  // 見出しごとに、カードを折り返す横の並び（.insrow）に入れる。広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる
+  const secs = []; cards.forEach(c => c.sec ? secs.push({sec: c.sec, hs: []}) : secs.length && secs[secs.length - 1].hs.push(c.h));
+  const body = secs.filter(x => x.hs.length).map(x => `<h3 class="inssec">${esc(x.sec)}</h3><div class="insrow">${x.hs.join("")}</div>`).join("");
   return `<section class="insight" aria-labelledby="ins-h"><h3 id="ins-h" class="sr">${esc(t("Overview"))}</h3>${insHeadlines(F)}
     <div class="insg">${body}</div></section>`;
 }

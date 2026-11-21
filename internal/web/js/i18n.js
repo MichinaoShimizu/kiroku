@@ -911,6 +911,7 @@ const JA_TEXT = {
   "{n} commits sent": "{n} コミットを送った",
   "{n} sessions": "{n} セッション",
   "Sessions with possible friction": "つまずいたかもしれないセッション",
+  "Output and unit cost": "出力と単価",
 };
 // t は英語の文 s を今の言語にする。{name} は vars の値で埋める（日本語では語順が変わるので、文ごと鍵にする）
 function t(s, vars){

@@ -899,16 +899,14 @@ header{background:var(--s-cont);border-bottom:0}
 
 /* サマリーの頭：コストと出力の 2 段。段は 1 枚の面にして、数字は細い区切り線で分ける（数字ごとに色の線や塗りの箱を付けない）。
    いつもの範囲から外れたことは、数字の下の小さな印（.ichip）だけで言う */
-.insh{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:12px}
-.insh>.sp1{grid-column:span 1}.insh>.sp2{grid-column:span 2}.insh>.sp3{grid-column:span 3}.insh>.sp4{grid-column:span 4} /* カードは中の数字の数だけ列を使う */
-@media (max-width:1000px){.insh{grid-template-columns:repeat(2,minmax(0,1fr))}.insh>.sp3,.insh>.sp4{grid-column:span 2}}
-@media (max-width:600px){.insh{grid-template-columns:minmax(0,1fr)}.insh>.ikg{grid-column:auto}}
-.ikrow>.itile+.itile{border-left:1px solid var(--rule)}
+.insh{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+.insh>.ikg{flex:1 1 380px;min-width:0} /* 広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる */
+.ikrow>.itile{border-left:1px solid var(--rule)}.ikrow{margin-left:-1px;clip-path:inset(0 0 0 1px)} /* 数字の間に縦の区切り線。折り返した行の左端の線は、1px ずらして切り落とす */
 /* タイルの背景：いつもの範囲より良い側は緑、悪い側は赤（大きく外れたら濃く）。範囲の中と、向きの決まっていない指標は色なし */
 .itile.good,.itile.bad{border-radius:12px;padding-top:10px;padding-bottom:10px}
 .itile.good{background:color-mix(in oklab,var(--go) 10%,transparent)}.itile.good.far{background:color-mix(in oklab,var(--go) 20%,transparent)}
 .itile.bad{background:color-mix(in oklab,var(--warn) 10%,transparent)}.itile.bad.far{background:color-mix(in oklab,var(--warn) 20%,transparent)}
-.ikrow>.itile.good+.itile,.ikrow>.itile.bad+.itile,.ikrow>.itile+.itile.good,.ikrow>.itile+.itile.bad{border-left-color:transparent} /* 色の付いたタイルの横は、区切り線の代わりに色で分かれる */ /* カードの中に数字が 2 つ以上あれば、間に縦の区切り線 */
+.ikrow>.itile.good+.itile,.ikrow>.itile.bad+.itile,.ikrow>.itile.good,.ikrow>.itile.bad{border-left-color:transparent} /* 色の付いたタイルの横は、区切り線の代わりに色で分かれる */
 .ikg{border:1px solid var(--rule);border-radius:16px;background:var(--s-lowest);padding:14px 4px 16px}
 /* 分類の見出し（コスト・出力・単価）：本文より大きく太く、左に色の短い線 */
 .ikgh,.inssec{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--ink);letter-spacing:.02em}
@@ -934,7 +932,7 @@ header{background:var(--s-cont);border-bottom:0}
 @media (max-width:520px){.iout2 .istats{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:900px){.iout2{grid-template-columns:minmax(0,1fr)}}
 /* 幅いっぱいのカードの図は、横に伸びた分だけ高くならないように（文字が大きくなりすぎない） */
-.inscol.full .insfig>svg{display:block;width:min(100%,760px);margin:0 auto}
+.inscol .insfig>svg{display:block;width:100%;margin:0 auto}
 .itile .il{font-size:var(--fs-xs);color:var(--ink-2)}.itile b{font:700 var(--fs-3xl)/1.15 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink)}.itile b.sm{font-size:var(--fs-xl);line-height:1.4}
 .itile small{font-size:var(--fs-xs);color:var(--ink-2)}
 /* いつもの範囲との比べ：塗った箱ではなく、小さな印と文字で（外れたときだけ色） */
@@ -1081,9 +1079,10 @@ header{background:var(--s-cont);border-bottom:0}
 .tl li.ev.flash{outline:2px solid var(--warn);outline-offset:2px}
 :root:not(.showfx) .ichip{font-family:var(--sans)} /* 言葉のチップは、式の等幅でなく本文の字で */
 /* サマリーのグラフのカードは 2 列（1000px 以下は 1 列）。.full は幅いっぱい */
-.insg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch}
-.insg>.inscol.full{grid-column:1/-1}
-@media (max-width:1000px){.insg{grid-template-columns:minmax(0,1fr)}}
+.insg{display:flex;flex-direction:column;gap:16px}
+.insrow{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch}
+.insrow>.inscol{flex:1 1 400px;min-width:0;container-type:inline-size} /* グラフのカードも、広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚 */
+@container (max-width:720px){.iout2{grid-template-columns:minmax(0,1fr)}} /* 出力のカードが狭いときは、Git と AI の編集を縦に並べる */
 /* トレンドの指標：広い画面は切り替え、狭い画面は選択リスト（横に隠れて選べなくならないように） */
 .insksel{display:none}
 @media (max-width:820px){.insk.trendk{display:none}.insksel{display:inline-block}}

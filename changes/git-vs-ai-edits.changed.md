@@ -5,3 +5,4 @@
 - Calendar: today has a "Today" badge and an outlined column in the week calendar, and an outlined day in the month calendar
 - The unit costs per commit are named per Git commit (estimated cost, Kiro credits and tokens per Git commit), and "Most changed files" is "Most edited files"
 - Summary: "Change first" and the formula switch are gone; formulas are always shown, and every metric that is worth a look has its mark next to a figure (Possible friction and Repeated prompts are now figures in How you worked). Figures are tinted green or red by which side of your usual range they fall on, stronger when far outside it
+- Summary layout: the figure cards and the chart cards sit three to a row on wide windows (two, then one, as the window narrows), and a card left over at the end of a row widens to fill it. Output and Unit cost share one heading, and By agent and Outputs no longer take a full row

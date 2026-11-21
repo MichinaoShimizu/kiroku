@@ -350,23 +350,23 @@ async function run(env) {
       check("ヒートマップの各行に曜日の合計がある（触れなくても読める）", await p.evaluate(() => document.querySelectorAll("#review .ihgrid > .iht:not(.ihh)").length === 7));
       check("3 列の並びの最後の段に空きを作らない（余りは横に広げる）", await p.evaluate(() => [...document.querySelectorAll("#review .istats, #review .ikrow")].every(g => { const k = [...g.children], cols = getComputedStyle(g).gridTemplateColumns.split(" ").length; if (k.length < 2) return true; const r = k.map(c => c.getBoundingClientRect()), last = r[r.length - 1], row = r.filter(b => Math.abs(b.top - last.top) < 2); return Math.abs(row[row.length - 1].right - g.getBoundingClientRect().right) < 2 || row.length === cols; })));
       check("カードの中の数の枠は最大 3 列", await p.evaluate(() => [...document.querySelectorAll("#review .istats")].every(g => getComputedStyle(g).gridTemplateColumns.split(" ").length <= 3)));
-      check("サマリーの頭の数字は、コストと出力の 2 段に分かれ、広い画面ではそれぞれ 1 段、狭い画面では折り返し、どれも画面の中に見える", await p.evaluate(() => { const G = [...document.querySelectorAll("#review .insh .ikg")], g = document.querySelector("#review .insh").getBoundingClientRect();
+      check("サマリーの頭はコスト・出力・単価の 3 枚のカードで、広い画面では 1 行に 3 枚並び、どの数字も画面の中に見える", await p.evaluate(() => { const G = [...document.querySelectorAll("#review .insh .ikg")], g = document.querySelector("#review .insh").getBoundingClientRect();
         const k = [...document.querySelectorAll("#review .insh .ikrow > .itile")], inside = k.every(c => { const r = c.getBoundingClientRect(); return r.left >= g.left - 1 && r.right <= g.right + 1; });
-        const one = row => { const t = [...row.children].map(c => c.getBoundingClientRect().top); return t.every(x => Math.abs(x - t[0]) < 2); };
-        return G.length === 3 && k.length > 1 && inside && (innerWidth <= 1100 || G.every(x => one(x.querySelector(".ikrow")))) && !document.querySelector("#review .icall"); }));
+        const tops = G.map(x => Math.round(x.getBoundingClientRect().top));
+        return G.length === 3 && k.length > 1 && inside && (innerWidth < 1300 || tops.every(x => x === tops[0])) && !document.querySelector("#review .icall"); }));
       check("式はいつも見せ、切り替えのボタンは置かない", await p.evaluate(() => [...document.querySelectorAll("#review .insight .ifx.fxo")].some(e => e.offsetParent !== null) && !document.querySelector("#fxbtn")));
       check("サマリーの頭に、数字 5〜24 個（上の帯の数字を含む。コスト・出力（Git はコミット・行・ファイル・リポジトリ・日・push・PR、AI の編集はファイルと行）・単価（Git コミットあたりと AI が編集した 100 行あたりを分ける）に分ける）・推移・累積の線・どこに使ったかの横棒・長さ別の費用があり、改善のアドバイスの枠はない", r.heads >= 5 && r.heads <= 24 && r.svg && r.bars > 0 && r.cum === 1 && r.donut > 0 && r.hist === 6 && r.adv === 0, JSON.stringify(r));
       const fx = await p.evaluate(() => ({chips: [...document.querySelectorAll("#review .insight .ichip.ifx")].map(e => e.textContent), def: (document.querySelector("#review .insdef") || {}).textContent || "",
         vague: /Usual|Higher|Lower|usual range|いつもの範囲|いつもどおり|高め|低め|\bQ[13]\b|IQR/.test(document.querySelector("#review .insight").innerText)}));
       check("いつもとの比べは不等式（下位・上位25%点の値）で出し、定義を 1 行で示す。曖昧な言葉と Q1・Q3 の記号は使わない", fx.chips.length > 0 && fx.chips.every(c => /pct|%点|≤|needs|必要/.test(c)) && /(spread|幅) = /.test(fx.def) && !fx.vague, JSON.stringify(fx).slice(0, 300));
       const lay = await p.evaluate(() => { const cs = [...document.querySelectorAll("#review .insight .inscol")]; const say = cs.filter(c => c.querySelector(".insfig, .ihgrid") && c.querySelector(".isay")).length, charts = cs.filter(c => c.querySelector(".insfig, .ihgrid")).length;
-        // グラフのカードは 2 列（広い画面）。同じ行のカードは上端と下端がそろい、1 枚だけの行は幅いっぱい（空きを作らない）
-        const g = document.querySelector("#review .insg"), k = [...g.children].map(c => c.getBoundingClientRect()), gr = g.getBoundingClientRect();
-        const byTop = {}; k.forEach(b => { (byTop[Math.round(b.top)] ||= []).push(b); });
-        const rows = Object.values(byTop).every(row => row.every(b => Math.abs(b.bottom - row[0].bottom) < 1) && (row.length === 2 && innerWidth > 1000 || Math.abs(row[0].width - gr.width) < 2));
-        const two = innerWidth <= 1000 || Object.values(byTop).some(row => row.length === 2);
-        return {say, charts, rows, grid: two}; });
-      check("どのグラフにも、データから計算した読み取りの 1 文があり、カードは 2 列で、同じ行のカードは高さがそろう", lay.say === lay.charts && lay.rows && lay.grid, JSON.stringify(lay));
+        // グラフのカードは見出しごとの横の並び（.insrow）。広い画面では 1 行に 3 枚。同じ行のカードは上端と下端がそろい、行は幅いっぱい（空きを作らない）
+        const rowsOk = [...document.querySelectorAll("#review .insrow")].every(r => { const rr = r.getBoundingClientRect(), byTop = {};
+          [...r.children].forEach(c => { const b = c.getBoundingClientRect(); (byTop[Math.round(b.top)] ||= []).push(b); });
+          return Object.values(byTop).every(row => row.every(b => Math.abs(b.bottom - row[0].bottom) < 1) && Math.abs(Math.max(...row.map(b => b.right)) - rr.right) < 2); });
+        const three = innerWidth < 1300 || [...document.querySelectorAll("#review .insrow")].some(r => r.children.length >= 3 && Math.abs(r.children[0].getBoundingClientRect().top - r.children[2].getBoundingClientRect().top) < 1);
+        return {say, charts, rows: rowsOk, grid: three}; });
+      check("どのグラフにも、データから計算した読み取りの 1 文があり、広い画面ではカードが 1 行に 3 枚並び、同じ行のカードは高さがそろって行の幅を埋める", lay.say === lay.charts && lay.rows && lay.grid, JSON.stringify(lay));
       const tk = await p.evaluate(() => { const g = document.querySelector("#review .insk.trendk"), bs = [...g.querySelectorAll("button")], sel = document.querySelector("#review .insksel");
         const ks = (getComputedStyle(g).display === "none" ? [...sel.options].map(o => o.value) : bs.map(b => b.dataset.ins));
         return {tabs: getComputedStyle(g).display !== "none", oneRow: new Set(bs.map(b => Math.round(b.getBoundingClientRect().top))).size === 1, ks}; });
