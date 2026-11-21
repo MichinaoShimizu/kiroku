@@ -1226,3 +1226,41 @@ func TestCodexSubagentTimesExtendParentActivity(t *testing.T) {
 		}
 	}
 }
+
+// 親の最初の行より前のサブエージェントの時刻は入れない。自分を親にする（壊れた）スレッドと、長い親子の連なりでも止まり、
+// 連なりのいちばん下の時刻はいちばん上の親に入る。
+func TestCodexSubagentActivityBounds(t *testing.T) {
+	home := t.TempDir()
+	meta := func(ts, id, parent string) string {
+		src := ""
+		if parent != "" {
+			src = `,"source":{"subagent":{"thread_spawn":{"parent_thread_id":"` + parent + `"}}}`
+		}
+		return `{"timestamp":"` + ts + `","type":"session_meta","payload":{"id":"` + id + `","timestamp":"` + ts + `","cwd":"/Users/me/web"` + src + `}}`
+	}
+	msg := func(ts, text string) string {
+		return `{"timestamp":"` + ts + `","type":"event_msg","payload":{"type":"agent_message","message":"` + text + `"}}`
+	}
+	writeCodex(t, home, "thr-p", meta("2026-10-06T05:00:00.000Z", "thr-p", ""), msg("2026-10-06T05:00:10.000Z", "親"))
+	writeCodex(t, home, "thr-early", meta("2026-10-06T01:00:00.000Z", "thr-early", "thr-p"), msg("2026-10-06T01:00:10.000Z", "前"))
+	writeCodex(t, home, "thr-self", meta("2026-10-06T06:00:00.000Z", "thr-self", "thr-self"), msg("2026-10-06T06:00:10.000Z", "自分"))
+	const depth = 300
+	prev := "thr-p"
+	for i := 0; i < depth; i++ {
+		id := fmt.Sprintf("thr-c%03d", i)
+		writeCodex(t, home, id, meta("2026-10-06T05:01:00.000Z", id, prev), msg("2026-10-06T05:01:00.000Z", "子"))
+		prev = id
+	}
+	writeCodex(t, home, "thr-last", meta("2026-10-06T05:30:00.000Z", "thr-last", prev), msg("2026-10-06T05:30:00.000Z", "いちばん下"))
+	p := find(load(t, &Codex{Home: home}), "thr-p")
+	if p == nil {
+		t.Fatal("thr-p がない")
+	}
+	s := p.Finish(60)
+	if want := ts(`2026-10-06T05:00:10.000Z`); s.Start != *want { // 親の最初の行（session_meta は作業の時刻に入らない）
+		t.Errorf("Start = %v, want %v（親より前のサブエージェントの時刻は入れない）", s.Start, *want)
+	}
+	if want := ts(`2026-10-06T05:30:00.000Z`); s.End != *want {
+		t.Errorf("End = %v, want %v（連なりのいちばん下の時刻）", s.End, *want)
+	}
+}

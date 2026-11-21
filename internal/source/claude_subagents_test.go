@@ -374,3 +374,40 @@ func TestClaudeBackgroundSubagentExtendsParentActivity(t *testing.T) {
 		t.Errorf("Segs = %v, want 1 つ（10 分おきのサブエージェントの作業で、親の活動がつながる）", s.Segs)
 	}
 }
+
+// サブエージェントの時刻のうち、親の会話の最初の行より前のもの（流用されたファイル・壊れた時刻）と、会話の要約を受け持つ
+// サブエージェント（agent-acompact-*）の時刻は、親の活動に入れない。親に時刻がなければ、サブエージェントだけでセッションを作らない。
+func TestClaudeSubagentActivityBounds(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	writeLines(t, filepath.Join(dir, "s1.jsonl"), []string{
+		`{"type":"user","timestamp":"2026-09-30T05:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"調べて"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T05:00:30Z","message":{"id":"m1","model":"claude-sonnet-5-5","content":[{"type":"text","text":"はい"}]}}`,
+	})
+	writeLines(t, filepath.Join(dir, "s1", "subagents", "agent-old.jsonl"), []string{
+		`{"type":"assistant","timestamp":"2000-01-01T00:00:00Z","requestId":"r1","message":{"id":"o1","model":"claude-haiku-5-5","content":[{"type":"text","text":"x"}]}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:00:00Z","requestId":"r2","message":{"id":"o2","model":"claude-haiku-5-5","content":[{"type":"text","text":"x"}]}}`,
+	})
+	writeLines(t, filepath.Join(dir, "s1", "subagents", "agent-acompact-1234.jsonl"), []string{
+		`{"type":"user","timestamp":"2026-09-30T05:55:00Z","message":{"role":"user","content":"要約して"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T05:55:30Z","requestId":"r3","message":{"id":"c1","model":"claude-haiku-5-5","content":[{"type":"text","text":"要約"}]}}`,
+	})
+	// 時刻のある行がない会話に、サブエージェントだけがある
+	writeLines(t, filepath.Join(dir, "s2.jsonl"), []string{`{"type":"summary","summary":"x"}`})
+	writeLines(t, filepath.Join(dir, "s2", "subagents", "agent-x.jsonl"), []string{subLine("x", 10)})
+	var got []string
+	for _, b := range load(t, &Claude{Root: root}) {
+		if s := b.Finish(15); s != nil {
+			got = append(got, b.ID)
+			if want := ts(`2026-09-30T05:00:00Z`); s.Start != *want {
+				t.Errorf("Start = %v, want %v（親の最初の行より前のサブエージェントの時刻は入れない）", s.Start, *want)
+			}
+			if want := ts(`2026-09-30T05:00:30Z`); s.End != *want {
+				t.Errorf("End = %v, want %v（agent-acompact-* の時刻は入れない）", s.End, *want)
+			}
+		}
+	}
+	if !slices.Equal(got, []string{"s1"}) {
+		t.Errorf("セッション = %v, want [s1]（時刻のない会話は、サブエージェントだけではセッションにしない）", got)
+	}
+}

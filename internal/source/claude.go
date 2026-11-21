@@ -648,6 +648,14 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	}
 	// サブエージェントの別ファイル（新しい版）を、agentId か時刻でつなぐ
 	var files []subFile
+	// 親の会話の最初の時刻。サブエージェントは親より前には動かないので、それより前の時刻（別の会話から流用されたファイル、
+	// 壊れた・わざと作った時刻）は親の活動に入れない。親に時刻がなければ、サブエージェントだけでセッションを作らない
+	parentFirst := math.Inf(1)
+	for _, t := range s.Times {
+		if t != 0 && t < parentFirst {
+			parentFirst = t
+		}
+	}
 	for _, f := range c.subagentFiles(u) {
 		sf, err := loadSubagentFile(f)
 		if err := fileErr(f, err); err != nil && readErr == nil {
@@ -657,8 +665,15 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		s.Outputs = append(s.Outputs, sf.outputs...) // サブエージェントに任せた編集・コミット・PR も、そのセッションのアウトプット
 		// サブエージェントが動いた時刻は、親のセッションで AI が動いていた時刻にする（Kiro Crew と同じ）。バックグラウンドの
 		// サブエージェントが親の最後の行のあとまで動いても、カレンダーのバーと活動時間から外れないように
+		// 会話の要約（コンパクション）を受け持つサブエージェント（agent-acompact-*）は入れない。人が離れたあとの要約は、
+		// 親の会話のコンパクションの行と同じく、誰も作業していない活動を作るため
+		if strings.HasPrefix(filepath.Base(f), "agent-acompact") {
+			continue
+		}
 		for i := range sf.active {
-			s.Agent(&sf.active[i])
+			if sf.active[i] >= parentFirst {
+				s.Agent(&sf.active[i])
+			}
 		}
 	}
 	order := append([]*call(nil), callOrder...)
