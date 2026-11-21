@@ -1,1 +1,0 @@
-- Summary: switching the Agent from one agent to another could keep the first agent's repeated prompts in "Change first" and the advice; each agent's summary is now computed from its own sessions
