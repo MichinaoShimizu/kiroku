@@ -184,17 +184,15 @@ function monthGrid(shown, ms, me, todayKey){
   T.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { const [y,m,dd] = b.dataset.w.split("-").map(Number); st.week = new Date(y, m-1, dd); setMode("week"); });
 }
 
-// 週のカレンダーの 1 日は、朝 CAL_D0 時から次の朝 CAL_D0 時まで。夜中（0〜7 時）の作業はその前の日の列の下に続けて描き、
-// 最初の画面に朝からの作業の時間帯が入るようにする（夜中の記録は消さずに、前の日の夜の続きとして読める）
+// 週のカレンダーの列は、その日の 0 時から 24 時まで（見出しの数字と同じ）。描く順は、朝 CAL_D0 時から 24 時までを上に、
+// その日の 0 時から CAL_D0 時（明け方）をその下に。最初の画面に朝からの作業の時間帯が入り、明け方の作業もその日の列に残る
 const CAL_D0 = 7;
-// calY は、時刻（時。0〜23）のカレンダーの上からの位置（px）。CAL_D0 時が上の端、0 時は 24 − CAL_D0 時間ぶん下
+// calY は、時刻（時）の、列の上からの位置（px）。CAL_D0 時が上の端、0 時は 24 − CAL_D0 時間ぶん下
 function calY(h){ return ((h - CAL_D0 + 24) % 24) * (st.hh || 44); }
-// colH は、その列（day の CAL_D0 時から）の始まりから t までの時間（0〜24 時間）
-function colH(day, t){ return Math.min(24, Math.max(0, clockH0(day, t) - CAL_D0)); }
-function clockH0(d, t){ const x = new Date(t*1000); return (x.getTime() - x.getTimezoneOffset()*6e4 - Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))/36e5; } // clockH と同じで、24 時を超えても切らない
-const colStart = d => { const x = addDays(st.week, d); x.setHours(CAL_D0); return x.getTime()/1000; }; // d 列目の始まり（その日の CAL_D0 時）
+// colH は、day の列での時刻 t の縦の位置（時間。0〜24）。end なら区間の終わりとして（CAL_D0 時ちょうどは明け方の帯の下の端）
+function colH(day, t, end){ const h = clockH(day, t); return h >= CAL_D0 && !(end && h === CAL_D0) ? h - CAL_D0 : h + 24 - CAL_D0; }
 
-/* 週のカレンダー：曜日が列、時刻が縦（朝 CAL_D0 時から次の朝 CAL_D0 時まで）。重なるセッションだけ横に並べる */
+/* 週のカレンダー：曜日が列、時刻が縦（朝 CAL_D0 時から 24 時、その下に明け方）。重なるセッションだけ横に並べる */
 function timeline(shown, inWeek, ws, we, todayKey){
   const T = $("#tl"), hh = st.hh || 44, Y = x => x * hh, H = Y(24);
   if (inWeek.length && !shown.length && st.q && !DATA.some(matches)){ T.innerHTML = ""; return; } // 検索がどこにも当たらないときは、上の検索結果の「ない」だけにする
@@ -208,27 +206,27 @@ function timeline(shown, inWeek, ws, we, todayKey){
   const keep = T.querySelector(".calscroll"), top = keep ? keep.scrollTop : null;
   const nowS = nowMs()/1000, w = WEEKS[key(st.week)];
   let heads = '<div></div>', hours = "", cols = "";
-  const tws = colStart(0), twe = colStart(7), nowIn = nowS >= tws && nowS < twe; // カレンダーに描く範囲（月曜の朝から次の月曜の朝まで）
-  const nowCol = nowIn ? [0,1,2,3,4,5,6].find(d => nowS < colStart(d + 1)) : -1, nowH = nowIn ? colH(addDays(st.week, nowCol), nowS) : -9;
-  // 時刻は朝 CAL_D0+1 時から次の朝 CAL_D0−1 時まで。0 時（日付の変わり目）は線を濃くする（.day の --mid）。
+  const nowIn = nowS >= ws && nowS < we, nowCol = nowIn ? [0,1,2,3,4,5,6].find(d => nowS < addDays(st.week, d + 1).getTime()/1000) : -1, nowH = nowIn ? colH(today0(), nowS) : -9;
+  // 時刻は朝 CAL_D0+1 時から 23 時、0 時から CAL_D0−1 時。0 時（明け方の帯の始まり）は線を濃くする（.day の --mid）。
   // 今の時刻の札（高さ約 20px）に重なる時刻は、消さずに札の上か下へずらして薄く出す（12:00 が見えなくならないように）
   for (let i=1; i<24; i++){ const h = (i + CAL_D0) % 24, d = Y(i) - Y(nowH), near = nowIn && Math.abs(d) < 20;
     hours += `<span class="${[near ? "near" : "", h === 0 ? "mid" : "", h < CAL_D0 ? "late" : ""].filter(Boolean).join(" ")}" style="top:${near ? Y(nowH) + (d >= 0 ? 20 : -20) : Y(i)}px">${String(h).padStart(2,"0")}:00</span>`; }
   if (nowIn) hours += `<span class="now" style="top:${Y(nowH)}px">${hm(nowS)}</span>`;
-  shown = DATA.filter(s => s.end >= tws && s.start < twe).filter(matches); // 夜中の続き（次の月曜の朝まで）も描く
   const runs = [], un = filtering() ? 1 : 0, G = gitShown(shown), kinds = useKinds(w ? w.days : []);
   for (let d=0; d<7; d++){
-    const day = addDays(st.week,d), hds = day.getTime()/1000, hde = addDays(st.week,d+1).getTime()/1000, isToday = key(day) === todayKey;
-    const ds = colStart(d), de = colStart(d + 1); // 列に描く範囲（その日の朝 CAL_D0 時から次の朝まで）。見出しの数字は 0 時から 24 時まで（上の帯・サマリーと同じ）
+    const day = addDays(st.week,d), ds = day.getTime()/1000, de = addDays(st.week,d+1).getTime()/1000, isToday = key(day) === todayKey;
+    const d0 = new Date(day); d0.setHours(CAL_D0); const dv = d0.getTime()/1000; // その日の朝 CAL_D0 時（帯はここで上下に分ける）
     const act = w && w.days[d] ? w.days[d].active : 0;
-    const dW = w && w.days[d], nS = shown.filter(s => inP(s, hds, hde)).length;
-    const headGit = G.filter(c => c.t >= hds && c.t < hde), dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${(act || headGit.length) ? (run => `<button class="pill dayrun ${run ? "ai-action" : "ai-copy"}" data-d="${d}" type="button" aria-label="${esc(run ? t("Analyze with AI: daily report for {date}", {date: md(hds)}) : t("Copy the daily report prompt for {date}", {date: md(hds)}))}" title="${esc(run ? t("Analyze with AI: daily report for {date}", {date: md(hds)}) : t("Copy the daily report prompt for {date}", {date: md(hds)}))}">${ico(run ? "ai" : "copy")}<span>${esc(run ? t("Analyze with AI") : t("Copy prompt"))}</span></button>`)(aiRun() || aiDemo()) : ""}</div>${act || headGit.length ? `<div${tipAttr(md(hds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${headGit.length}`])}>${calLine(calRows(act, dW, nS, headGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`; // まだ来ていない日に「目安」は置かない（同じ額が上の帯の「前の週並みの 1 日の目安」にある）
+    const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
+    const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${(act || dayGit.length) ? (run => `<button class="pill dayrun ${run ? "ai-action" : "ai-copy"}" data-d="${d}" type="button" aria-label="${esc(run ? t("Analyze with AI: daily report for {date}", {date: md(ds)}) : t("Copy the daily report prompt for {date}", {date: md(ds)}))}" title="${esc(run ? t("Analyze with AI: daily report for {date}", {date: md(ds)}) : t("Copy the daily report prompt for {date}", {date: md(ds)}))}">${ico(run ? "ai" : "copy")}<span>${esc(run ? t("Analyze with AI") : t("Copy prompt"))}</span></button>`)(aiRun() || aiDemo()) : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calLine(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`; // まだ来ていない日に「目安」は置かない（同じ額が上の帯の「前の週並みの 1 日の目安」にある）
     const blocks = [];
-    shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
-    blocks.sort((p,q) => p.a-q.a || q.b-p.b);
+    // 朝 CAL_D0 時をまたぐ帯は、明け方の分（下）と朝からの分（上）に分ける
+    shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y <= x) return;
+      if (x < dv && y > dv){ blocks.push({s, a:x, b:dv, n}, {s, a:dv, b:y, n}); } else blocks.push({s, a:x, b:y, n}); }));
     let html = "";
-    blocks.forEach(bk => { bk.y = Y(colH(day, bk.a)); bk.h = Math.max(4, Y(colH(day, bk.b)) - Y(colH(day, bk.a)) - 2); });
+    blocks.forEach(bk => { bk.y = Y(colH(day, bk.a)); bk.h = Math.max(4, Y(colH(day, bk.b, true)) - bk.y - 2); });
+    blocks.sort((p,q) => p.y-q.y || q.h-p.h); // 重なりの置き方は、上から順に
     // 重なる帯の置き方（l・w は溝を除いた幅に対する左端と幅の割合）。ほぼ同時に始まった帯（CASCADE px 以内。名前の 1 行目が見える高さ）はかたまりにして横に並べ、
     // それより後に始まった帯は、前の帯の上に右へずらして重ねる。前の帯は名前のある上の部分が隠れないので、幅いっぱいのまま読める
     // （重なれば最後まで 1/L の幅にすると、並行して動かすことの多い人ほど名前が数文字しか読めない）。見た目で重なるか（短い帯の下の名前も入れる）で決める
@@ -259,9 +257,9 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const showP = p => (!st.hidden.size || st.colorBy !== "project" || !st.hidden.has(p.project)) && (!st.q || shown.some(s => s.project === p.project && p.t >= s.start && p.t <= s.end + 600)); // 検索中は、一致したセッションの間の push だけ（詳細のプロンプトの流れと同じ範囲）
     const marks = [...dayGit.map(c => ({t: c.t, c})),
       ...(META.push || []).filter(p => p.t >= ds && p.t < de && showP(p)).map(p => ({t: p.t, p})),
-      ...shown.flatMap(s => (s.prAt || []).filter(x => x.t >= ds && x.t < de).map(x => ({t: x.t, r: x, s})))].sort((a, b) => a.t - b.t);
+      ...shown.flatMap(s => (s.prAt || []).filter(x => x.t >= ds && x.t < de).map(x => ({t: x.t, r: x, s})))].map(m => ({...m, y0: Y(colH(day, m.t))})).sort((a, b) => a.y0 - b.y0 || a.t - b.t);
     // 印の縦の位置：重ならないよう下へ積み、日の終わり（24:00）を越える分は上へ戻す（夜遅い印が枠の外に出て見えなくならないように）
-    const ys = []; { let g = -99; marks.forEach(m => { g = Math.max(Y(colH(day, m.t)), g + 17); ys.push(g); });
+    const ys = []; { let g = -99; marks.forEach(m => { g = Math.max(m.y0, g + 17); ys.push(g); });
       for (let i = ys.length - 1; i >= 0; i--) ys[i] = Math.min(ys[i], i === ys.length - 1 ? H - 16 : ys[i+1] - 17); }
     marks.forEach(({t: at, c, p, r, s}, mi) => { // 読み上げの名前には日付も入れる（セッションと同じく、どの日のものかわかるように）
       const y = ys[mi];

@@ -865,7 +865,7 @@ html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り
    1 度に見せるのはどちらか 1 つ（上の期間・数字・見直す候補・凡例は共通）。
    広い画面ではページを画面に固定して、カレンダーは残りの高さいっぱい、スクロールはカレンダーの中だけにする
    （ページとカレンダーが二重にスクロールして、ホイールがカレンダーに取られないように）。境目は影と余白ではっきりさせる */
-body[data-view="cal"] #review>.rvhead,body[data-view="cal"] #review>.insight,body[data-view="cal"] #review .rvgrid>:not(.metap){display:none} /* カレンダーの表示でも、データソースとページの下（版・問題の報告）は出す */
+body[data-view="cal"] #review>.rvhead,body[data-view="cal"] #review>.insight,body[data-view="cal"] #review>.insagbar,body[data-view="cal"] #review .rvgrid>:not(.metap){display:none} /* カレンダーの表示でも、データソースとページの下（版・問題の報告）は出す */
 body[data-view="cal"] #review .rvgrid{display:block}
 body[data-view="cal"] #review{margin-top:28px} /* カレンダーの下端とデータソースのあいだを空ける */
 body[data-view="sum"] #tl,body[data-view="sum"] #skipcal{display:none}
