@@ -1,31 +1,33 @@
 /* ── tokens ─────────────────────────────────────────────
-   グラファイトの面に、インディゴを 1 色だけ。区分の色は Okabe–Ito（色覚の違いがあっても見分けやすい 8 色） */
+   Material 3 の標準の配色（基準色 #6750A4 の tonal palette）。区分の色だけは kiroku の 8 色のまま。区分の色は Okabe–Ito（色覚の違いがあっても見分けやすい 8 色） */
 :root{
   color-scheme:light;
   --agm-mix:50%; /* 明るい地では、エージェントの頭文字の色を文字の色に寄せて読めるようにする（.agm） */
   /* 地と文字は、真っ白・真っ黒を避けて少し寄せる（読みやすさの基準 4.5:1 は保ったまま、ページ全体のコントラストを強くしすぎない） */
-  --bg:#f4f4f2; --surface:#fcfcfb; --surface-2:#efefec; --ink:#23262c; --ink-2:#4a4e57; --ink-3:#62666f;
-  --rule:#e4e4e0; --rule-2:#d3d3ce; --acc:#4f4aa8; --acc-ink:#423d96; --on-acc:#ffffff; --heatk:20%; --acc-soft:rgba(79,74,168,.07); --warn:#b0362b; --on-warn:#ffffff;
+  --bg:#fef7ff; --surface:#f7f2fa; --surface-2:#ece6f0; --ink:#1d1b20; --ink-2:#49454f; --ink-3:#625b71;
+  --s-lowest:#ffffff; --s-cont:#f3edf7; --s-highest:#e6e0e9; --pc:#eaddff; --on-pc:#21005d; --sc:#e8def8; --on-sc:#1d192b; --inv:#322f35; --on-inv:#f5eff7; /* M3 の面の段（lowest・container・highest）、主・副のコンテナ、反転（トースト） */
+  --rule:#cac4d0; --rule-2:#79747e; --acc:#6750a4; --acc-ink:#6750a4; --on-acc:#ffffff; --heatk:20%; --acc-soft:rgba(103,80,164,.08); --warn:#b3261e; --on-warn:#ffffff;
   --weekend:rgba(35,38,44,.02);
   --sat:#3355b5; --sun:#b03a3a; --sat-bg:rgba(51,85,181,.045); --sun-bg:rgba(176,58,58,.045); /* 土曜は青、日曜は赤（日本のカレンダーと同じ） */
-  --shadow:0 1px 2px rgba(16,18,24,.05),0 12px 32px -14px rgba(16,18,24,.16);
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 1px 3px 1px rgba(0,0,0,.15); /* M3 の elevation 1 */
   /* カテゴリーの色（プロジェクト・エージェント・モデル）。この順で検証した 8 色（隣どうしは色覚の違いでも見分けられ、明るさと鮮やかさがそろう）。8 色とも同じ鮮やかさ（OKLCH の C 0.11〜0.115、灰色に見えない下限の少し上）で、どれかだけが強く見えないように。見分けは明るさの差でつける。
      順は青・オレンジ・アクア・黄・マゼンタ・緑・紫・ティール。増やすときも並べ替えるときも、検証し直してから（docs/development.md の「Colors」） */
   --c0:#6da1e5; --c1:#b26140; --c2:#51b588; --c3:#a16f16; --c4:#ca7393; --c5:#508b4a; --c6:#9794e3; --c7:#008a9d; --other:#9aa0ab;
   --amber:var(--c3); --amber-ink:#7a5200; --note:var(--c6); /* 役目の名前（コマンドの札・自動で入ったもの）。色の番号は上の 8 色から */
   --t1:6%; --t2:11%; --t3:16%;
   --go:#2f7a5e; --go-ink:#235c47; /* 「AI で分析」の緑（塗りではなく、淡い地に濃い緑の字） */ /* 色を地に混ぜる濃さは 3 段だけ（淡い地・吹き出しや札・強め） */
-  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",system-ui,sans-serif; /* 英語の画面なので欧文の書体を先に。日本語のプロンプトは後ろの和文の書体で出す */
+  --sans:"Roboto","Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",system-ui,sans-serif; /* 英語の画面なので欧文の書体を先に。日本語のプロンプトは後ろの和文の書体で出す */
   /* 文字の大きさは 9 段だけ（2xs は狭い画面の月のマスだけ）。太さは 400・500・600・700、行間は 1.2（数字・見出し）・1.5（UI）・1.6〜1.7（長い文） */
   --fs-2xs:10px; --fs-xs:11px; --fs-sm:12px; --fs-md:13px; --fs-lg:14px; --fs-xl:16px; --fs-2xl:20px; --fs-3xl:24px; --fs-4xl:30px;
   --mono:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,monospace;
-  --ease:cubic-bezier(.2,.7,.1,1);
+  --ease:cubic-bezier(.2,0,0,1); /* M3 の standard */
 }
 :root[data-theme="dark"]{
   color-scheme:dark;
   --agm-mix:75%;
-  --bg:#121418; --surface:#191c21; --surface-2:#22252c; --ink:#dcdfe5; --ink-2:#a8adb7; --ink-3:#878d98;
-  --rule:#2a2d35; --rule-2:#363a44; --acc:#8a90d8; --acc-ink:#a9aee6; --on-acc:#121418; --heatk:38%; --acc-soft:rgba(138,144,216,.11); --warn:#e5786f; --on-warn:#121418;
+  --bg:#141218; --surface:#1d1b20; --surface-2:#2b2930; --ink:#e6e0e9; --ink-2:#cac4d0; --ink-3:#938f99;
+  --s-lowest:#0f0d13; --s-cont:#211f26; --s-highest:#36343b; --pc:#4f378b; --on-pc:#eaddff; --sc:#4a4458; --on-sc:#e8def8; --inv:#e6e0e9; --on-inv:#322f35;
+  --rule:#49454f; --rule-2:#938f99; --acc:#d0bcff; --acc-ink:#d0bcff; --on-acc:#381e72; --heatk:38%; --acc-soft:rgba(208,188,255,.12); --warn:#f2b8b5; --on-warn:#601410;
   --weekend:rgba(255,255,255,.018);
   --sat:#93abe6; --sun:#e69393; --sat-bg:rgba(147,171,230,.05); --sun-bg:rgba(230,147,147,.05);
   --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -16px rgba(0,0,0,.7);
@@ -911,3 +913,45 @@ body[data-view="sum"] #tl,body[data-view="sum"] #skipcal{display:none}
   .kpis.dense .kpi .v{font-size:clamp(var(--fs-lg),1.25vw,var(--fs-xl))}
   .kpi .v small{margin-left:1px}
 }
+
+/* ── Material 3 ─────────────────────────────────────────
+   形・ボタン・面を M3 に（色は上の tokens）。数字と履歴を読む画面なので、ボタンの高さは M3 の密度 -1 段（36px）にして、1 行に収める */
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px;border-radius:12px}
+header{background:var(--s-cont);border-bottom:0}
+.search input{height:40px;border-radius:20px;border:0;background:var(--s-highest);padding-left:40px;font-size:var(--fs-md)}
+.search input:focus{box-shadow:0 0 0 2px var(--acc)}
+.search svg{left:14px;top:12px}.search kbd{top:10px;right:12px}
+.pill{height:36px;padding:0 12px;border-radius:18px;border:1px solid var(--rule-2);background:transparent;color:var(--acc);font-weight:500}
+.pill:hover{background:color-mix(in srgb,var(--acc) 8%,transparent);border-color:var(--rule-2);color:var(--acc)}
+.iconbtn{border-radius:50%}
+.iconbtn:hover{background:color-mix(in srgb,var(--ink-2) 8%,transparent)}
+#worth summary.wdi{width:36px;border-radius:50%}
+.wk .nav .pill{height:36px} /* 「今週」と見直す候補も、期間・表示の切り替え（36px）とそろえる */
+.segc{padding:0;gap:0;border:1px solid var(--rule-2);border-radius:18px;background:transparent;overflow:hidden}
+.segc button{height:34px;padding:0 10px;border-radius:0;font-weight:500;color:var(--ink)}
+.segc button+button{border-left:1px solid var(--rule-2)}
+.segc button[aria-pressed="true"]{background:var(--sc);color:var(--on-sc);box-shadow:none}
+.segc button[aria-pressed="true"]::before{content:"✓";margin-right:4px;font-weight:700} /* 選んでいるものに印（M3 のセグメントボタン） */
+.kpis{border:0;border-radius:16px;background:var(--s-cont);gap:4px;padding:4px}
+.kpi .k:has(.dl){flex-wrap:wrap;column-gap:6px} /* 狭いと、増減は見出しの下へ（見出しを 1 文字ずつに折らない） */
+.kpi{border:0;margin:0;border-radius:12px;background:var(--s-lowest)}
+.kpi.key{background:var(--pc)}.kpi.key .k,.kpi.key .v{color:var(--on-pc)}
+.chip{height:32px;padding:0 12px 0 10px;border-radius:8px;border-color:var(--rule);background:transparent;font-weight:500}
+.chip:hover{background:color-mix(in srgb,var(--ink-2) 8%,transparent)}
+.cbsel select{height:32px;border-radius:4px;border-color:var(--rule-2);background:transparent;padding:0 8px}
+.tlbox{border:0;background:var(--s-lowest);box-shadow:var(--shadow)}
+.heads{background:color-mix(in oklab,var(--s-lowest) 92%,transparent)}
+.run{border-radius:8px}
+.panel{border:0;border-radius:16px;background:var(--s-cont)}
+.card{border-color:transparent;border-radius:12px;background:var(--s-lowest)}
+.pcard{border:0;border-radius:12px;background:var(--s-lowest)}
+.mini>div{border-radius:12px;background:var(--s-cont)}
+.tl li.pr p{border-radius:20px 20px 20px 4px}
+.tl li.rp p{border-radius:20px 20px 4px 20px}
+.toast{border-radius:4px;background:var(--inv);color:var(--on-inv)}
+.ai-dialog{border:0;border-radius:28px;background:var(--surface-2)}
+.ai-controls{background:var(--surface-2)}
+.ai-dialog select,.ai-dialog textarea{border-color:var(--rule-2);border-radius:4px;background:transparent}
+@media (min-width:821px){ .drawer{border:0;border-radius:28px;background:var(--surface-2)} }
+@media (max-width:820px){ .head .dd .pill.dayrun{height:28px;padding:0 10px;border-radius:14px} } /* スマホの日ごとの「AI 分析」は小さく（日付の見出しを高くしない） */
+.drawer .tl li.rp p{background:var(--s-lowest)} /* 応答の吹き出しが、詳細の地（surface-2）に沈まないように */
