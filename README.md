@@ -51,9 +51,9 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 <img src="docs/worth.png" alt="A flagged metric opened from Worth a look (dummy data)" width="560">
 
-**Cost next to output.** Time, tokens, estimated cost (Claude Code, Codex and Kiro Crew's non-Kiro backends, at public API rates) and credits by project, next to commits and cost per commit. While a week or month is in progress, the key figures and the days still to come show how much a day keeps it at the last one's total, with no budget to set. Not every agent records everything; the guide lists [what each agent records](docs/guide.md#what-each-agent-records).
+**A summary that tells you what to change.** The weekly and monthly summary is a page of charts: time, tokens, estimated cost (Claude Code, Codex and Kiro Crew's non-Kiro backends, at public API rates) and credits, where they went (project, agent, model, session length), next to commits and cost per commit. Each figure is compared with your own past weeks as an inequality against their quartiles (such as "$31.23 > Q3 = $27.35"), computed figures show their formula, every chart opens with a takeaway, and the advice lists what to try first. While a week or month is in progress, the key figures and the days still to come show how much a day keeps it at the last one's total, with no budget to set. Not every agent records everything; the guide lists [what each agent records](docs/guide.md#what-each-agent-records).
 
-![Weekly summary by project (dummy data)](docs/summary.png)
+![Weekly summary (dummy data)](docs/summary.png)
 
 **Search across all time.** Prompts, edited files and commits, with excerpts showing where they matched.
 
