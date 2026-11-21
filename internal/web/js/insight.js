@@ -115,19 +115,8 @@ function insChart(k){
     sy = t("{x}: {r} of {n} {unit} from the highest; {d} from the median {m}{pc}", {x: (b.part ? t("pace") + " " : "") + fmtM(k, b.v), r, n: all.length, unit: insUnit(all.length), d: (d >= 0 ? "+" : "−") + fmtM(k, Math.abs(d)), m: fmtM(k, b.med), pc: pc == null ? "" : ` (${pc >= 0 ? "+" : ""}${pc}%)`}); }
   const th = !b || b.q1 == null ? "" : b.pos === "typical" ? t("Within the middle half of your past {unit}", {unit: insNoun()}) : b.better === false ? t("Outside the middle half, on the worse side; the advice lists where it came from") : b.better ? t("Outside the middle half, on the better side; keep what you changed") : b.pos === "high" ? t("Above the 75th pct of your past {unit}", {unit: insNoun()}) : t("Below the 25th pct of your past {unit}", {unit: insNoun()});
   return `${say(sy, th)}<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(t("{metric} over the last {n} {unit}", {metric: insName(k), n, unit: insUnit(n)}))}">${ticks}${band}${bars}</svg>
-    <figcaption><span class="lg iband">${esc(t("Middle half of the last {n} {unit}", {n: b ? b.n : 0, unit: insUnit(b ? b.n : 0)}))}</span><span class="lg imed">${fx(t("median"))}</span>${proj != null ? `<span class="lg iproj">${fx(`${t("pace")} = ${t("so far")} × ${t("period")} ÷ ${t("elapsed")}`)}</span>` : ""}<span class="lg iout">${fx(`< ${LO()} − 1.5×${SP()} ${t("or")} > ${HI()} + 1.5×${SP()}`)}</span></figcaption>
+    <figcaption><span class="lg iband">${esc(t("Middle half of the last {n} {unit}", {n: b ? b.n : 0, unit: insUnit(b ? b.n : 0)}))}</span><span class="lg imed">${fx(t("median"), "", t("median"))}</span>${proj != null ? `<span class="lg iproj">${fx(`${t("pace")} = ${t("so far")} × ${t("period")} ÷ ${t("elapsed")}`, "", t("At this pace"))}</span>` : ""}<span class="lg iout">${fx(`< ${LO()} − 1.5×${SP()} ${t("or")} > ${HI()} + 1.5×${SP()}`, "", t("Periods far outside the 25th–75th pct"))}</span></figcaption>
     <p class="sr">${esc(list)} — ${esc(insPosText(b))}</p></figure>`;
-}
-/* 改善のアドバイス：見直す候補を効き目の大きい順に 3 つまで。何が・いつもと比べて・何をするか（指標の説明の「打てる手」）と、該当するセッション。
-   よくなった指標も 1 つ返す（続けることがわかるように） */
-function insAdvice(F){
-  const items = F.slice(0, 3).map(f => { const id = GOTO[f.k] || f.k, b = MET[f.k] ? insBase(f.k) : null, h = H()[f.k] || H()[id] || {};
-    return `<li class="insa" title="${esc(f.L.why)}"><div class="insw"><b>${esc(f.L.see)}</b>${b ? insChip(b) : ""}${f.stake && f.stake.c >= 0.01 ? fx(`${t("cost involved")} = Σ ${usd(f.stake.c)} (${plural(f.stake.n, "session")})`, "", t("{usd} in {sessions}", {usd: usd(f.stake.c), sessions: plural(f.stake.n, "session")})) : ""}</div>${h.a ? `<p class="todo">${ico("ai", "ti")}${esc(h.a)}</p>` : ""}
-      ${f.ids.length || f.k === "repeats" ? `<button class="pill insgo" type="button" data-goto="${esc(id)}">${esc(f.ids.length ? plural(f.ids.length, "session") : t("Details"))}</button>` : ""}</li>`; });
-  const good = Object.keys(MET).map(k => insBase(k)).filter(b => b && b.better).sort((a, b) => Math.abs(b.v - b.med) / ((b.q3 - b.q1) || 1) - Math.abs(a.v - a.med) / ((a.q3 - a.q1) || 1))[0];
-  const keep = good ? `<p class="inskeep">${ico("check")}${esc(insName(good.k))} ${insChip(good)}</p>` : "";
-  if (!items.length) return `${keep}<p class="note">${esc(t("Nothing to change"))}</p>`;
-  return `<ol class="insadv">${items.join("")}</ol>${keep}`;
 }
 /* 見直す候補の対象の費用（そのセッションの推定費用の合計）。費用で表せない候補（利用上限・繰り返し・長すぎるプロンプト）は null */
 function insStake(f){
@@ -149,19 +138,25 @@ function insightH(F){
   const tabs = avail.map(x => `<button type="button" data-ins="${x}" aria-pressed="${x === k}" title="${esc(insName(x))}">${esc(INS_SHORT()[x])}</button>`).join("");
   const useCostW = ((period().S || {}).days || []).some(d => d.cost > 0); // 費用の記録がなければ、時間・件数の図になるので見出しもそう言う
   const card = (title, body, cls = "") => body ? `<div class="inscol${cls}"><h4>${esc(title)}</h4>${body}</div>` : "";
+  // グラフのカードは 2 列に並べる。エージェント別の表は幅いっぱい。2 枚の組にならずに 1 枚だけ残ったカードも幅いっぱいにする（空きを作らない）
+  const sel = `<select class="insksel" aria-label="${esc(t("Metric"))}">${avail.map(x => `<option value="${x}"${x === k ? " selected" : ""}>${esc(INS_SHORT()[x])}</option>`).join("")}</select>`; // 狭い画面では、切り替えの代わりに選択リスト（横に隠さない）
+  const cards = [
+    {h: `<div class="inscol"><div class="inshead"><h4>${esc(t("Trend"))}</h4><div class="segc insk trendk" role="group" aria-label="${esc(t("Metric"))}">${tabs}</div>${sel}</div>${insChart(k)}</div>`},
+    {h: card(useCostW ? (st.mode === "month" ? t("Cumulative cost vs the previous month") : t("Cumulative cost vs the previous week")) : (st.mode === "month" ? t("Cumulative active time vs the previous month") : t("Cumulative active time vs the previous week")), insCum())},
+    {h: card(t("By agent"), insAgents()), full: true},
+    {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insWhere())}, {h: card(t("Tokens by type"), insTokens())},
+    {h: card(useCostW ? t("Cost by session length") : t("Sessions by length"), insHist())}, {h: card(t("Cost vs outputs per session"), insScatter())},
+    {h: card(t("Outputs"), insOutputs())}, {h: card(t("How you used AI"), insUsage())},
+    {h: card(t("When you worked"), insHeat())}, {h: card(t("How you worked"), insWork())},
+  ].filter(c => c.h);
+  let run = []; const out = [], flush = () => { if (run.length % 2) run[run.length - 1].full = true; out.push(...run); run = []; };
+  cards.forEach(c => { if (c.full){ flush(); out.push(c); } else run.push(c); }); flush();
   return `<section class="insight" aria-labelledby="ins-h"><h3 id="ins-h" class="sr">${esc(t("Overview"))}</h3>${insHeadlines(F)}
-    <div class="insgrid"><div class="insleft"><div class="inscol"><div class="inshead"><h4>${esc(t("Trend"))}</h4><div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${tabs}</div></div>${insChart(k)}</div>
-    ${card(useCostW ? (st.mode === "month" ? t("Cumulative cost vs the previous month") : t("Cumulative cost vs the previous week")) : (st.mode === "month" ? t("Cumulative active time vs the previous month") : t("Cumulative active time vs the previous week")), insCum())}</div>
-    ${card(t("Advice"), insAdvice(F), " insadvc")}</div>
-    <div class="insrow one">${card(t("By agent"), insAgents())}</div>
-    <div class="insrow two">${(b => b ? `<div class="inscol">${b}</div>` : "")(insWhere())}${card(t("Tokens by type"), insTokens())}</div>
-    <div class="insrow two">${card(useCostW ? t("Cost by session length") : t("Sessions by length"), insHist())}${card(t("Cost vs outputs per session"), insScatter())}</div>
-    <div class="insrow two">${card(t("Outputs"), insOutputs())}${card(t("How you used AI"), insUsage())}</div>
-    <div class="insrow one">${card(t("When you worked"), insHeat())}</div>
-    <div class="insrow one">${card(t("How you worked"), insWork())}</div></section>`;
+    <div class="insg">${out.map(c => c.full ? c.h.replace(/^<div class="inscol/, '<div class="inscol full') : c.h).join("")}</div></section>`;
 }
 function bindInsight(R){
   R.querySelectorAll("[data-ins]").forEach(b => b.onclick = () => { st.insK = b.dataset.ins; store.set("insK", st.insK); summary(); const nb = $("#review").querySelector(`[data-ins="${b.dataset.ins}"]`); if (nb) nb.focus(); });
+  R.querySelectorAll(".insksel").forEach(sl => sl.onchange = () => { st.insK = sl.value; store.set("insK", st.insK); summary(); const ns = $("#review .insksel"); if (ns) ns.focus(); });
   R.querySelectorAll(".insgo").forEach(b => b.onclick = () => insOpenWorth(b.dataset.goto, b));
   R.querySelectorAll("[data-where]").forEach(b => b.onclick = () => { st.insW = b.dataset.where; store.set("insW", st.insW); summary(); const nb = $("#review").querySelector(`[data-where="${b.dataset.where}"]`); if (nb) nb.focus(); });
   R.querySelectorAll(".insfig [data-sid]").forEach(c => { c.onclick = () => select(c.dataset.sid); c.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); select(c.dataset.sid); } }; }); // 散布図の点は、そのセッションを開く
@@ -187,7 +182,7 @@ function insScatter(){
   const sy = t("{m} of the {k} sessions costing {thr} or more had no output: {usd} = {pc}% of session cost", {m: bad.length, k: tq, thr: usd(thr), usd: usd(badC), pc: all$ ? Math.round(badC * 100 / all$) : 0});
   const th = bad.length ? t("Open the red points: research is fine; work that stopped partway is the cost to cut") : "";
   return `${say(sy, th)}<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="group" aria-label="${esc(t("Cost and outputs per session"))}">${xt}${yt}${zone}${pts}
-    <text class="iax" x="${W - R}" y="${Hh - 1}">${esc(t("Estimated cost (√ scale) →"))}</text><text class="iax st" x="${L + 4}" y="${T + 10}">${esc(t("↑ Commits and PRs"))}</text></svg><figcaption><span class="lg izone">${fx(note)}</span></figcaption><p class="ifxs">${fx(`${t("outputs")} = ${t("commits")} + PR`)}${fx(`${usd(thr)} = max($0.50, P75(${t("cost")}))`)}</p></figure>`;
+    <text class="iax" x="${W - R}" y="${Hh - 1}">${esc(t("Estimated cost (√ scale) →"))}</text><text class="iax st" x="${L + 4}" y="${T + 10}">${esc(t("↑ Commits and PRs"))}</text></svg><figcaption><span class="lg izone">${fx(note, "", t("Costly sessions with no output"))}</span></figcaption><p class="ifxs">${fx(`${t("outputs")} = ${t("commits")} + PR`)}${fx(`${usd(thr)} = max($0.50, P75(${t("cost")}))`)}</p></figure>`;
 }
 /* 曜日×時間帯のヒートマップ：表示中の期間に AI と作業していた時間（重なりは 1 回）。月の表示では曜日ごとに足す。
    平日 9〜18 時の外の割合を、いつもの範囲と比べる */

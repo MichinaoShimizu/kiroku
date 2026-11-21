@@ -88,8 +88,10 @@ async function run(env) {
     check("サマリーは概要のカードだけ（折りたたむパネルはない）", await p.evaluate(() => document.querySelectorAll("#review details.panel.fold").length === 0 && document.querySelectorAll("#review .insight .inscol").length >= 8));
     check("上の帯は使ったものだけ（残したもの：コミット・変えた行・PR は出さない）", await p.locator('#kpis .kpi.out, #kpis [data-metric="commits"], #kpis [data-metric="lines"], #kpis [data-metric="aiCommits"], #kpis [data-metric="prs"]').count() === 0);
     if (env.viewport.width > 820) check("上の数字の帯は 1 行（折り返さない）", await p.evaluate(() => new Set([...document.querySelectorAll("#kpis .kpi")].map(k => Math.round(k.getBoundingClientRect().top))).size === 1));
-    check("上の数字に、前の期間との増減（%）が添えてある", await p.evaluate(() => [...document.querySelectorAll("#kpis .kpi .k .dl")].some(d => /^[+−±]\d*%?/.test(d.textContent))));
-    check("推定費用とクレジットが並ぶときは、増減も 2 つ（値と同じ順）", await p.evaluate(() => { const k = document.querySelector('#kpis [data-metric="cost"] .k'); return !k || !/·/.test(k.firstChild.textContent) || k.querySelectorAll(".dl").length >= 3; }));
+    check("上の帯には前の期間との増減（%）を出さず、枠の色もそろう（増減は押したときの内訳に）", await p.evaluate(() => !document.querySelector("#kpis .kpi .dl") && !document.querySelector("#kpis .kpi.key")));
+    { const b = p.locator('#kpis [data-metric="cost"], #kpis [data-metric="active"]').first(); await b.click(); await pause();
+      check("帯の数を押すと、内訳の大きな数に前の期間との増減がある", /[+−±]\d*%/.test(await p.locator("#md").innerText()) || !(await p.evaluate(() => kpiDelta("cost") || kpiDelta("active"))));
+      await p.keyboard.press("Escape"); await pause(); }
     check("履歴が前の期間の途中から始まるときは比べない", await p.evaluate(() => { const ok = vsPrev(period().P, "週").partial === false;
       historyStartCache = {d: DATA, n: DATA.length, t: Infinity}; const V = vsPrev(period().P, "週"), r = V.partial === true && V.of("cost", 5) === null && V.diff(3, V.of("cost", 5)) === "";
       historyStartCache = null; return ok && r; }));
@@ -274,11 +276,10 @@ async function run(env) {
         adv: document.querySelectorAll("#review .insadv .insa").length, flags: (lastFlags || []).length, tabs: document.querySelectorAll("#review [data-ins]").length}));
       check("上の帯の数字（推定費用・稼働時間）はサマリーのカードにもあり、押すと同じ内訳が開く", await p.evaluate(() => ["cost", "active"].every(m => document.querySelector(`#review .itile [data-metric="${m}"]`))));
       check("トークンの種類別のカードと、アドバイスの対象の費用（Σ）がある", await p.evaluate(() => !!document.querySelector("#review .itbar") && document.querySelectorAll("#review .itbar > span").length >= 2));
-      check("見直す候補の一覧・「まず見直す」・アドバイスは同じ並び（いつもより悪い側に外れたもの → 比べられないもの → 範囲の中。同じ段は関わる費用の大きい順）", await p.evaluate(() => {
+      check("「まず見直す」は、並べた候補の先頭（いつもより悪い側に外れたもの → 比べられないもの → 範囲の中。同じ段は関わる費用の大きい順）。期間の行の ⚠ は出さない", await p.evaluate(() => {
         const F = lastFlags, side = f => insSide(f), ok = F.every((f, i) => i === 0 || side(F[i - 1]) < side(f) || side(F[i - 1]) === side(f) && ((F[i - 1].stake && F[i - 1].stake.c) ?? -1) >= ((f.stake && f.stake.c) ?? -1));
-        const adv = [...document.querySelectorAll("#review .insadv .insa .insw > b")].map(e => e.textContent), want = F.slice(0, 3).map(f => f.L.see);
-        const first = document.querySelector("#review .insh .insgo"), worth = [...document.querySelectorAll("#worth [data-goto]")].map(e => e.dataset.goto);
-        return ok && JSON.stringify(adv) === JSON.stringify(want) && (!F.length || first.dataset.goto === (GOTO[F[0].k] || F[0].k)) && (!worth.length || worth[0] === (GOTO[F[0].k] || F[0].k)); }));
+        const first = document.querySelector("#review .insh .insgo");
+        return ok && (!F.length || first.dataset.goto === (GOTO[F[0].k] || F[0].k)) && document.querySelector("#worth").hidden; }));
       check("エージェント別の表に、エージェントごとの行がある（費用とクレジットを混ぜない）", await p.evaluate(() => document.querySelectorAll("#review .iagt tbody tr").length >= 2));
       { // エージェントで絞る：サマリーの数字がそのエージェントの分になり、上の帯（すべて）は変わらない。戻すと元の数字
         const ags = await p.evaluate(() => [...document.querySelectorAll("#review [data-ag]")].map(b => b.dataset.ag));
@@ -309,20 +310,28 @@ async function run(env) {
         return k.length > 1 && inside && (innerWidth <= 1100 || k.every(c => Math.abs(c.getBoundingClientRect().top - k[0].getBoundingClientRect().top) < 2)); }));
       check("式はふだん隠し、「式を表示」で見せる", await p.evaluate(async () => { const vis = () => [...document.querySelectorAll("#review .insight .ifx.fxo")].some(e => e.offsetParent !== null);
         const off = !vis(); document.querySelector("#fxbtn").click(); await new Promise(r => setTimeout(r, 200)); const on = vis(); document.querySelector("#fxbtn").click(); await new Promise(r => setTimeout(r, 200)); return off && on && !vis(); }));
-      check("サマリーの頭に、数字のカード 4〜6 枚（上の帯の数字を含む）・推移・累積の線・どこに使ったかの横棒・長さ別の費用・上位 3 つまでのアドバイスがある", r.heads >= 4 && r.heads <= 6 && r.svg && r.bars > 0 && r.cum === 1 && r.donut > 0 && r.hist === 6 && r.adv === Math.min(3, r.flags), JSON.stringify(r));
+      check("サマリーの頭に、数字のカード 4〜6 枚（上の帯の数字を含む）・推移・累積の線・どこに使ったかの横棒・長さ別の費用があり、改善のアドバイスの枠はない", r.heads >= 4 && r.heads <= 6 && r.svg && r.bars > 0 && r.cum === 1 && r.donut > 0 && r.hist === 6 && r.adv === 0, JSON.stringify(r));
       const fx = await p.evaluate(() => ({chips: [...document.querySelectorAll("#review .insight .ichip.ifx")].map(e => e.textContent), def: (document.querySelector("#review .insdef") || {}).textContent || "",
         vague: /Usual|Higher|Lower|usual range|いつもの範囲|いつもどおり|高め|低め|\bQ[13]\b|IQR/.test(document.querySelector("#review .insight").innerText)}));
       check("いつもとの比べは不等式（下位・上位25%点の値）で出し、定義を 1 行で示す。曖昧な言葉と Q1・Q3 の記号は使わない", fx.chips.length > 0 && fx.chips.every(c => /pct|%点|≤|needs|必要/.test(c)) && /(spread|幅) = /.test(fx.def) && !fx.vague, JSON.stringify(fx).slice(0, 300));
       const lay = await p.evaluate(() => { const cs = [...document.querySelectorAll("#review .insight .inscol")]; const say = cs.filter(c => c.querySelector(".insfig, .ihgrid") && c.querySelector(".isay")).length, charts = cs.filter(c => c.querySelector(".insfig, .ihgrid")).length;
-        // 同じ段（insrow）のカードは、上端と下端がそろう（カードの間に隙間がない）
-        const rows = innerWidth <= 1000 || [...document.querySelectorAll("#review .insrow")].every(r => { const k = [...r.children].map(c => c.getBoundingClientRect()); return k.every(b => Math.abs(b.top - k[0].top) < 1 && Math.abs(b.bottom - k[0].bottom) < 1); });
-        const g = document.querySelector("#review .insgrid"), l = g && g.querySelector(".insleft"), a = g && g.querySelector(".insadvc"); const lr = l && l.getBoundingClientRect(), ar = a && a.getBoundingClientRect();
-        return {say, charts, rows, grid: !lr || !ar || innerWidth <= 1000 || Math.abs(lr.bottom - ar.bottom) < 1}; });
-      check("どのグラフにも、データから計算した読み取りの 1 文があり、同じ段のカードは高さがそろう", lay.say === lay.charts && lay.rows && lay.grid, JSON.stringify(lay));
-      const t0 = await p.locator('#review [data-ins][aria-pressed="true"]').getAttribute("data-ins");
-      await p.locator('#review [data-ins]:not([aria-pressed="true"])').first().click(); await pause();
-      check("グラフの指標を切り替えられる（押したものが選ばれ、フォーカスが残る）", await p.evaluate(t0 => { const b = document.querySelector('#review [data-ins][aria-pressed="true"]'); return !!b && b.dataset.ins !== t0 && document.activeElement === b; }, t0));
-      await p.locator(`#review [data-ins="${t0}"]`).click(); await pause();
+        // グラフのカードは 2 列（広い画面）。同じ行のカードは上端と下端がそろい、1 枚だけの行は幅いっぱい（空きを作らない）
+        const g = document.querySelector("#review .insg"), k = [...g.children].map(c => c.getBoundingClientRect()), gr = g.getBoundingClientRect();
+        const byTop = {}; k.forEach(b => { (byTop[Math.round(b.top)] ||= []).push(b); });
+        const rows = Object.values(byTop).every(row => row.every(b => Math.abs(b.bottom - row[0].bottom) < 1) && (row.length === 2 && innerWidth > 1000 || Math.abs(row[0].width - gr.width) < 2));
+        const two = innerWidth <= 1000 || Object.values(byTop).some(row => row.length === 2);
+        return {say, charts, rows, grid: two}; });
+      check("どのグラフにも、データから計算した読み取りの 1 文があり、カードは 2 列で、同じ行のカードは高さがそろう", lay.say === lay.charts && lay.rows && lay.grid, JSON.stringify(lay));
+      if (await p.evaluate(() => innerWidth > 820)){
+        const t0 = await p.locator('#review [data-ins][aria-pressed="true"]').getAttribute("data-ins");
+        await p.locator('#review [data-ins]:not([aria-pressed="true"])').first().click(); await pause();
+        check("グラフの指標を切り替えられる（押したものが選ばれ、フォーカスが残る）", await p.evaluate(t0 => { const b = document.querySelector('#review [data-ins][aria-pressed="true"]'); return !!b && b.dataset.ins !== t0 && document.activeElement === b; }, t0));
+        await p.locator(`#review [data-ins="${t0}"]`).click(); await pause();
+      } else { // 狭い画面では選択リスト。どの指標も選べる（横に隠れない）
+        const opts = await p.evaluate(() => [...document.querySelectorAll("#review .insksel option")].map(o => o.value));
+        let all = opts.length > 1; for (const v of opts){ await p.selectOption("#review .insksel", v); await pause(); all = all && await p.evaluate(v => st.insK === v && document.querySelector("#review .insksel").value === v, v); }
+        check("狭い画面では、グラフの指標を選択リストで選べ、どれも選べる", all && await p.evaluate(() => getComputedStyle(document.querySelector("#review .insk.trendk")).display === "none"), JSON.stringify(opts));
+        await p.selectOption("#review .insksel", opts[0]); await pause(); }
       const h = await p.evaluate(() => ({rows: document.querySelectorAll("#review .ihgrid .ihd").length, cells: document.querySelectorAll("#review .ihgrid .ihc").length, pts: document.querySelectorAll("#review .insfig .ipt[data-sid]").length, ptab: document.querySelectorAll("#review .ptab tbody tr").length, pcard: document.querySelectorAll("#review .pcard").length}));
       check("曜日×時間のヒートマップ（7×24）と費用と成果の散布図があり、プロジェクトのカードの列はない", h.rows === 7 && h.cells === 168 && h.pts > 0 && h.pcard === 0, JSON.stringify(h));
       const sid = await p.locator("#review .insfig .ipt[data-sid]").first().getAttribute("data-sid");
@@ -456,52 +465,45 @@ async function run(env) {
     check("夜遅い印も日の枠の中にある", await p.evaluate(() => [...document.querySelectorAll("#tl .day")].every(d => { const db = d.getBoundingClientRect(); return [...d.querySelectorAll(".gc, .gm")].every(m => m.getBoundingClientRect().bottom <= db.bottom + 1); })));
     check("今の時刻の札に近い時刻も消さない（畳んだときは 07:00〜23:00 がそろう）", await p.evaluate(() => !document.querySelector("#tl .hours span.now") || [...document.querySelectorAll("#tl .hours span:not(.now)")].map(e => e.textContent).join(",") === Array.from({length: 17}, (_, i) => String(i + 7).padStart(2, "0") + ":00").join(",")));
     check("平日の勤務時間（9:00〜18:00）の外は地の色が違う", await p.evaluate(() => { const d = [...document.querySelectorAll("#tl .day")].find(e => !e.classList.contains("we")); return !!d && (getComputedStyle(d).backgroundImage.match(/linear-gradient/g) || []).length === 3; })); // 畳んだ帯・1 時間の線・勤務時間の外
-    check("見直す候補はアイコンだけ（名前は読み上げとツールチップ）", await p.evaluate(() => { const b = document.querySelector("#worth summary"); return !!b && !/[A-Za-z]{3}/.test(b.textContent) && /Worth a look/.test(b.getAttribute("aria-label") || ""); }));
+    check("期間の行の ⚠（見直す候補の一覧）は出さない", await p.evaluate(() => document.querySelector("#worth").hidden && !document.querySelector("#worth summary")));
     if (env.viewport.width >= 1440) check("上の帯（期間の操作と指標）は 1 行に収まる（週・月とも）", await p.evaluate(async () => { // 死守する: 指標が次の行に落ちると、カレンダーが下がる
       const one = () => { const k = document.querySelector(".kpis").getBoundingClientRect(), n = document.querySelector("#today").getBoundingClientRect(); return k.top < n.bottom && k.bottom > n.top; };
       const w = st.week, a = one(); setMode("month"); await new Promise(r => setTimeout(r, 300)); const b = one(); setMode("week"); st.week = w; render(); await new Promise(r => setTimeout(r, 300));
       return a && b; }));
-    if (env.viewport.width > 820) check("今週・期間・表示・見直す候補は、同じ高さで中心がそろう", await p.evaluate(() => { const rs = ["#today", "#mode", "#view", "#worth summary"].map(s => document.querySelector(s).getBoundingClientRect());
-      return rs.every(r => Math.abs(r.height - rs[0].height) < 1 && Math.abs((r.top + r.height / 2) - (rs[0].top + rs[0].height / 2)) < 1); }));
-    check("見直す候補は 1 つのボタン（押すと一覧）", await p.locator("#worth details summary").count() === 1 && !(await p.locator("#worth details").evaluate(d => d.open)));
-    await p.locator("#worth summary").click(); await pause();
-    check("押すと候補の一覧が開く", await p.locator("#worth .flink").first().isVisible());
-    const n = await p.locator(".flagsum .flink").count();
-    check("見直す候補はカレンダー・サマリーより上にある", await p.evaluate(() => document.querySelector("#worth").getBoundingClientRect().bottom <= document.querySelector("#review").getBoundingClientRect().top));
-    check("見直す候補のうち、サマリーに指標の枠があるものには、指標名の横に印が付く", n > 0 && await p.evaluate(() => [...new Set(lastFlags.map(f => GOTO[f.k] || f.k))].filter(id => document.querySelector(`#review .stat .hb[data-help="${id}"]`)).every(id => document.querySelector(`#review .fmark[data-goto="${id}"]`))), `候補 ${n}`);
-    check("サマリーには理由や推移を繰り返さない（ダイアログにだけ出す）", await p.locator("#review .fl").count() === 0);
-    const link = p.locator(".flagsum .flink").first(), id = await link.getAttribute("data-goto");
-    await link.scrollIntoViewIfNeeded(); await pause(); const y0 = await p.evaluate("scrollY");
-    await link.click(); await pause();
-    check("候補を押すと、真ん中のダイアログで開く", await p.locator("#wk").evaluate(d => d.open) && (await p.locator("#wkh").innerText()).trim().length > 0, id);
-    check("ダイアログには、見えたこと・基準・次にやってみることがある", await p.locator("#wk .fl .see").count() > 0 && await p.locator("#wk .fl .rule").count() > 0 && /What to try/.test(await p.locator("#wk .wkhelp").innerText()));
-    const box = await p.locator("#wk").boundingBox();
-    check("ダイアログが画面に収まる", box && box.x >= 0 && box.x + box.width <= env.viewport.width + 1, JSON.stringify(box));
-    check("開いてもページは動かない", await p.evaluate("scrollY") === y0);
-    await p.keyboard.press("Escape"); await pause();
-    check("Esc で閉じ、見直す候補のアイコンにフォーカスが戻り、一覧は閉じている", !(await p.locator("#wk").evaluate(d => d.open)) && await p.locator("#worth summary").evaluate(b => b === document.activeElement) && !(await p.locator("#worth details").evaluate(d => d.open)));
-    check("閉じるボタンは右上の × だけ（ほかのダイアログや詳細のパネルとそろえる）", await p.locator("#wk button.pill").count() === 0 && await p.locator("#wkclose").getAttribute("aria-label") === "Close");
-    await p.evaluate(() => { const d = document.querySelector("#worth details"); if (d) d.open = true; }); await link.click(); await pause();
-    await p.mouse.click(4, env.viewport.height - 4); await pause();
-    check("枠の外を押すと閉じる", !(await p.locator("#wk").evaluate(d => d.open)));
-    const mk = p.locator("#review .fmark").first(); // サマリーの印（指標の枠のある候補だけに付く）
-    if (await mk.count()){ await mk.scrollIntoViewIfNeeded(); await mk.click(); await pause();
-      check("サマリーの印を押すと、同じダイアログが開く", await p.locator("#wk").evaluate(d => d.open) && await p.locator("#wk .fl .see").count() > 0, id);
-      await p.locator("#wkclose").click(); await pause();
-      check("Close で閉じる", !(await p.locator("#wk").evaluate(d => d.open))); }
-    await p.evaluate(() => { const d = document.querySelector("#worth details"); if (d) d.open = true; }); const ses = p.locator(".flagsum .flink").first(); await ses.scrollIntoViewIfNeeded(); await ses.click(); await pause();
-    const fs = p.locator("#wk .fss .card").first();
-    if (await fs.count()){
-      // エージェントの頭文字は、題名が長くても縮まず 1 行（.fl の overflow-wrap:anywhere で「KC」が K と C の 2 行に折れていた）
-      // 見えている印だけ（畳んだ一覧の中のものは測れない）
-      const marks = await p.locator("#wk .fss .card .agm").evaluateAll(es => es.filter(e => e.getClientRects().length).map(e => { const r = document.createRange(); r.selectNodeContents(e);
-        return {t: e.textContent, lines: new Set([...r.getClientRects()].map(x => Math.round(x.top))).size, fits: e.clientWidth >= r.getBoundingClientRect().width}; }));
-      const bad = marks.filter(m => m.lines !== 1 || !m.fits);
-      check("ダイアログのカードのエージェントの頭文字は 1 行に収まる", marks.length > 0 && !bad.length, JSON.stringify(bad[0] || {}));
-      await fs.click(); await pause();
-      check("ダイアログのセッションを押すと、ダイアログを閉じて詳細が開く", !(await p.locator("#wk").evaluate(d => d.open)) && await drawerOpen());
-      check("詳細の頭に、このセッションが関係する見直す候補が出る", await p.locator("#panel .sflags .flink").count() > 0);
-      await p.keyboard.press("Escape"); await pause(); }
+    const go = p.locator("#review .insh .insgo").first(); // 見直す候補は「まず見直す」とサマリーの印から開く
+    if (await go.count()){
+      const id = await go.getAttribute("data-goto");
+      await go.scrollIntoViewIfNeeded(); await pause(); const y0 = await p.evaluate("scrollY");
+      await go.click(); await pause();
+      check("「まず見直す」を押すと、真ん中のダイアログで開く", await p.locator("#wk").evaluate(d => d.open) && (await p.locator("#wkh").innerText()).trim().length > 0, id);
+      check("ダイアログには、見えたこと・基準・次にやってみることがある", await p.locator("#wk .fl .see").count() > 0 && await p.locator("#wk .fl .rule").count() > 0);
+      const box = await p.locator("#wk").boundingBox();
+      check("ダイアログが画面に収まる", box && box.x >= 0 && box.x + box.width <= env.viewport.width + 1, JSON.stringify(box));
+      check("開いてもページは動かない", await p.evaluate("scrollY") === y0);
+      await p.keyboard.press("Escape"); await pause();
+      check("Esc で閉じ、押したボタンにフォーカスが戻る", !(await p.locator("#wk").evaluate(d => d.open)) && await go.evaluate(e => e === document.activeElement));
+      await go.click(); await pause();
+      await p.mouse.click(4, env.viewport.height - 4); await pause();
+      check("枠の外を押すと閉じる", !(await p.locator("#wk").evaluate(d => d.open)));
+      const mk = p.locator("#review .fmark").first(); // サマリーの印（指標の枠のある候補だけに付く）
+      if (await mk.count()){ await mk.scrollIntoViewIfNeeded(); await mk.click(); await pause();
+        check("サマリーの印を押すと、同じダイアログが開く", await p.locator("#wk").evaluate(d => d.open) && await p.locator("#wk .fl .see").count() > 0);
+        await p.locator("#wkclose").click(); await pause();
+        check("Close で閉じる", !(await p.locator("#wk").evaluate(d => d.open))); }
+      await go.click(); await pause();
+      const fs = p.locator("#wk .fss .card").first();
+      if (await fs.count()){
+        // エージェントの頭文字は、題名が長くても縮まず 1 行。見えている印だけ（畳んだ一覧の中のものは測れない）
+        const marks = await p.locator("#wk .fss .card .agm").evaluateAll(es => es.filter(e => e.getClientRects().length).map(e => { const r = document.createRange(); r.selectNodeContents(e);
+          return {t: e.textContent, lines: new Set([...r.getClientRects()].map(x => Math.round(x.top))).size, fits: e.clientWidth >= r.getBoundingClientRect().width}; }));
+        const bad = marks.filter(m => m.lines !== 1 || !m.fits);
+        check("ダイアログのカードのエージェントの頭文字は 1 行に収まる", !bad.length, JSON.stringify(bad[0] || {}));
+        await fs.click(); await pause();
+        check("ダイアログのセッションを押すと、ダイアログを閉じて詳細が開く", !(await p.locator("#wk").evaluate(d => d.open)) && await drawerOpen());
+        check("詳細の頭に、このセッションが関係する見直す候補が出る", await p.locator("#panel .sflags .flink").count() > 0);
+        await p.keyboard.press("Escape"); await pause(); }
+      else { await p.keyboard.press("Escape"); await pause(); }
+    }
     await open();
     await view("cal");
   });

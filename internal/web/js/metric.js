@@ -229,6 +229,7 @@ function openMetric(id, from){
     // 稼働日は帯から外したので、作業時間の内訳の数字に添える（途中の期間は今日までの日数で）
     const n0 = soFar(), nd = n0 == null ? w.days.length : Math.min(n0, w.days.length), ad = w.days.filter(d => d.active).length;
     big = id === "active" ? `${dur(tot || 0, true)}<small> · ${esc(t("Active days"))} ${ad} ${esc(n0 == null ? t("of {n}", {n: nd}) : t("of {n} so far", {n: nd}))}</small>` : id === "sessions" ? `${w.sessions}<small>/</small>${w.prompts}` : id === "cost" ? usdH(tot) : esc(m.f(tot || 0));
+    { const dt = kpiDelta(id); if (dt) big += `<small class="mdl"> · ${esc(dt)}</small>`; } // 前の期間との増減（帯には出さない）
     body = mDays(w, m);
     if (id === "sessions"){ // セッション数はエージェント別の集計にないので、期間にかかったセッションから数える
       const by = new Map(); inRange.forEach(s => by.set(s.source, (by.get(s.source) || 0) + (s.nPrompts || 0)));

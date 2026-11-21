@@ -1,0 +1,5 @@
+- The light theme uses plain grays for backgrounds and surfaces instead of Material's tinted ones; the loading page and the page that opens kiroku with its key match
+- The band above the calendar no longer shows the change from the previous period next to each figure, and all its figures share one style; press a figure to see the change next to the value in its breakdown
+- Summary: the Advice card is gone ("Change first" and the warning marks open the same details), and the chart cards are in two columns, with By agent and any card left alone in a row across the full width
+- Summary: on narrow windows the Trend's metric is a drop-down list; before, the metrics past the edge of the scrolling switch could not be reached
+- The ⚠ "Worth a look" list in the period row is hidden for now; "Change first" and the warning marks in the summary open the same dialogs

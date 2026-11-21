@@ -10,7 +10,8 @@ function summary(){
   const pct = v => v == null ? esc(t("Unknown")) :`${v}<small>%</small>`;
   const times = n => `${n}`;
   const F = insRank(findList(w, pw, unit)); // 見直す候補の一覧・「まず見直す」・アドバイスで同じ並び
-  WK.innerHTML = flagSum(F); WK.hidden = false; const wd = WK.querySelector("details"); if (wd) wd.addEventListener("click", e => { if (e.target.closest(".hb")) e.preventDefault(); }); lastFlags = F; // 見直す候補は、カレンダーの上（期間の要点のすぐ下）に出す。押すと真ん中のダイアログで開く
+  WK.innerHTML = ""; WK.hidden = true; // 期間の行の ⚠（見直す候補の一覧）は、いったん出さない。候補は「まず見直す」とサマリーの印から開く
+  const wd = WK.querySelector("details"); if (wd) wd.addEventListener("click", e => { if (e.target.closest(".hb")) e.preventDefault(); }); lastFlags = F; // 見直す候補は、カレンダーの上（期間の要点のすぐ下）に出す。押すと真ん中のダイアログで開く
   // エージェントで絞る：2 つ以上のエージェントが動いた期間だけ、切り替えを出す（期間の集計の agents）。絞っている間はサマリーの中だけが、そのエージェントの分になる
   const ags = ((w.shares || {}).source || []).map(x => x.key).filter(k => w.agents && w.agents[k]), ag = ags.includes(st.insAg) ? st.insAg : "";
   const agSw = ags.length >= 2 ? `<div class="insagbar"><span class="lab">${esc(t("Agent"))}</span><div class="segc insk" role="group" aria-label="${esc(t("Agent"))}">${["", ...ags].map(k => `<button type="button" data-ag="${esc(k)}" aria-pressed="${k === ag}">${esc(k || t("All agents"))}</button>`).join("")}</div>${ag ? `<span class="note">${esc(t("Only {agent}. Its active time counts time it shared with other agents in full (the By agent table and the legend split it). Git commits made by hand are left out. The figures above the calendar stay for all agents", {agent: ag}))}</span>` : ""}</div>` : "";

@@ -83,14 +83,21 @@ function shownName(){ const M = st.mode === "month", t0 = today0();
   if (M) return st.month.getTime() === monthOf(t0).getTime() ? t("This month") : dMY(st.month);
   return st.week.getTime() === mondayOf(t0).getTime() ? t("This week") : t("Week of {date}", {date: dMD(st.week)}); }
 /* 期間の要点（上の帯） */
+// kpiDelta は、帯の数（費用・クレジット・トークン・稼働時間）の前の期間との増減の文（なければ ""）。帯には出さず、押したときの内訳の大きな数に添える。
+// 途中の期間は、前の期間の同じ日までと比べる（vsPrev）。良し悪しの色は付けない
+function kpiDelta(id){
+  const {S: w, P: pw} = period(); if (!w) return "";
+  const M = st.mode === "month", V = vsPrev(pw, M ? "月" : "週"), vsT = V.n == null ? t(M ? "vs last month" : "vs last week") : t("vs {range}", {range: V.range});
+  const u = w.usage || {}, pu = pw && pw.usage;
+  const pair = {cost: [u.cost, V.of("cost", pu && pu.cost)], credits: [u.credits, V.of("credits", pu && pu.credits)], tokens: [u.tokens, V.of("tokens", pu && pu.tokens)], active: [w.active, V.of("active", pw && pw.active)]}[id];
+  if (!pair) return ""; const [a, b] = pair; if (b == null || !(b > 0) || a == null) return "";
+  return `${a === b ? "±0" : (a > b ? "+" : "−") + Math.round(Math.abs(a - b) / b * 100)}% ${vsT}`;
+}
 function kpis(){
   const {S:w, P:pw} = period(), K = $("#kpis"), M = st.mode === "month";
   K.classList.toggle("unf", filtering()); // 絞り込みの最中も、ここは全セッションの合計（薄くして、カレンダーの上に断り書き）
   if (!w){ K.innerHTML = `<div class="kpi"><div class="k">${esc(META.scope ? t("Not in this file") : shownName())}</div><div class="v">${esc(t("No records"))}</div></div>`; return; }
   // 押すと内訳のダイアログ（metric.js）。id のない数は押せない
-  // 前の期間との増減（%）。途中の期間は、前の期間の同じ日までと比べる（vsPrev）。良し悪しの色は付けない
-  const V = vsPrev(pw, M ? "月" : "週"), vsT = V.n == null ? t(M ? "vs last month" : "vs last week") : t("vs {range}", {range: V.range});
-  const dl = (a, b) => b == null || !(b > 0) || a == null ? "" : `<span class="dl" title="${esc(vsT)}">${a === b ? "±0" : (a > b ? "+" : "−") + Math.round(Math.abs(a - b) / b * 100)}%<span class="sr"> ${esc(vsT)}</span></span>`;
   const kpi = (k, v, tt, cls, id, d = "") => { const tg = id ? "button" : "div";
     return `<${tg} class="kpi${cls ? " " + cls : ""}"${id ? ` type="button" data-metric="${id}" aria-haspopup="dialog"` : ""}${tt || id ? ` title="${esc(tt ? (id ? t("{text}. Click for the breakdown.", {text: tt}) : tt) : t("Click for the breakdown"))}"` : ""}><div class="k">${d ? `<span>${esc(k)}</span>${d}` : esc(k)}</div><div class="v">${v}</div></${tg}>`; };
   const u = w.usage || {}, days = w.days.filter(d => d.active).length, pj = projection(w);
@@ -101,14 +108,14 @@ function kpis(){
     const xs = [[pc.cost, (v, txt) => txt ? usd(v) : usdH(v)], [pc.credits, (v, txt) => txt ? cr(v) : `${crN(v)}<small>&nbsp;cr</small>`]].filter(([x]) => x);
     const all = xs.every(([x]) => x.rest < 0);
     if (all) return kpi(t(M ? "Past last month's total" : "Past last week's total"), xs.map(([x, f]) => `<small>+</small>${f(-x.rest)}<small> ${esc(t("over"))}</small>`).join(`<small> · </small>`),
-      t(M ? "Last month's total was {v}" : "Last week's total was {v}", {v: xs.map(([x, f]) => f(x.ref, true)).join(" · ")}), "key", pc.cost ? "pace" : "paceCr");
+      t(M ? "Last month's total was {v}" : "Last week's total was {v}", {v: xs.map(([x, f]) => f(x.ref, true)).join(" · ")}), "", pc.cost ? "pace" : "paceCr");
     // 片方（多くはクレジット）だけ超えたときは、1 日の目安の数に超過を混ぜない（「$3.20 · +5 cr 超過」は 1 日の額に読める）。
     // 数は超えていない方の目安だけにし、超えた方は短い添え書き（「クレジットは超過」）と、ポップアップの文で伝える
     const ok = xs.filter(([x]) => x.rest >= 0), ov = xs.filter(([x]) => x.rest < 0);
     const v = ok.map(([x, f]) => f(x.per)).join(`<small> · </small>`) + (ov.length ? `<small class="ovr"> · ${esc(t("{v} over", {v: ov[0][1](-ov[0][0].rest, true)}))}</small>` : "");
     const tt = t(M ? "To stay at last month's total of {v}, for the {n} left" : "To stay at last week's total of {v}, for the {n} left", {v: ok.map(([x, f]) => f(x.ref, true)).join(" · "), n: plural(pc.left, "day")}) +
       ov.map(([x, f]) => " · " + t(M ? "{v} over last month's total of {r}" : "{v} over last week's total of {r}", {v: f(-x.rest, true), r: f(x.ref, true)})).join("");
-    return kpi(t(M ? "A day to match last month" : "A day to match last week"), v, tt, "key", ok[0][0] === pc.cost ? "pace" : "paceCr"); };
+    return kpi(t(M ? "A day to match last month" : "A day to match last week"), v, tt, "", ok[0][0] === pc.cost ? "pace" : "paceCr"); };
   const pace = pj ? t("If the pace of the first {n} days continues", {n: pj.days}) + bandNote(pj.cost != null ? pj.band.cost : pj.band.credits, pj.cost != null ? usd : cr) : "";
   // 帯は日々の判断に使う数だけ：左に使ったもの（推定費用とクレジット・前の期間並みの 1 日の目安・月末の推定（月）・稼働時間）、残したもの（コミット・PR など）は出さない（カレンダーの各日とサマリーの ② に）。
   // 稼働日・セッション / プロンプト・利用上限への到達は振り返りの数なので、サマリーと「見直す候補」に任せる（帯が多いとカレンダーと主役を争う）。
@@ -117,14 +124,10 @@ function kpis(){
   const useV = two(u.tokens ? (c == null ? tok(u.tokens) : usdH(c)) : "", u.credits ? `${crN(u.credits)}<small>&nbsp;cr</small>` : "");
   const useK = u.tokens && u.credits ? t(c == null ? "Tokens · credits" : "Estimated cost · credits") : u.tokens ? t(c == null ? "Tokens" : "Estimated cost") : t("Kiro credits");
   const pjV = pj ? two(pj.cost != null ? `<small>≈</small>${usdH(pj.cost)}` : "", pj.credits != null ? `<small>≈</small>${crN(pj.credits)}<small>&nbsp;cr</small>` : "") : "";
-  // 使用量が 2 つ（推定費用とクレジット）あるときは、増減も 2 つ、値と同じ順に並べる（1 つの % がどちらのものかわからないので）
-  const pu = pw && pw.usage, dTok = u.tokens ? (c == null ? dl(u.tokens, V.of("tokens", pu && pu.tokens)) : dl(u.cost, V.of("cost", pu && pu.cost))) : "",
-    dCr = u.credits ? dl(u.credits, V.of("credits", pu && pu.credits)) : "",
-    useD = u.tokens && u.credits && (dTok || dCr) ? `${dTok || `<span class="dl">—</span>`}<span class="dl">·</span>${dCr || `<span class="dl">—</span>`}` : dTok || dCr;
-  K.innerHTML = (useV ? kpi(useK, useV, u.tokens && c == null ? NOPRICE : "", "key", u.tokens ? (c == null ? "tokens" : "cost") : "credits", useD) : "") +
+  K.innerHTML = (useV ? kpi(useK, useV, u.tokens && c == null ? NOPRICE : "", "", u.tokens ? (c == null ? "tokens" : "cost") : "credits") : "") + // 増減（%）は帯に出さず、押したときの内訳に（kpiDelta）。枠の色もそろえる
     (pc && !pj ? paceK() : "") + // 月の途中は月末の推定を出すので、前の月並みの目安は出さない（内訳とサマリーにある）
-    (pjV ? kpi(t(pj.cost != null && pj.credits != null ? "Month-end (estimate)" : pj.cost != null ? "Month-end cost" : "Month-end credits"), pjV, pace, "key", pj.cost != null ? "projection" : "projectionCr") : "") +
-    kpi(t("Active time"), dur(w.active, true), n0 == null ? "" : M ? t("{days} of the {n} so far (this month is still in progress)", {days, n: plural(nd, "day")}) : t("{days} of the {n} so far (this week is still in progress)", {days, n: plural(nd, "day")}), "", "active", dl(w.active, V.of("active", pw && pw.active)));
+    (pjV ? kpi(t(pj.cost != null && pj.credits != null ? "Month-end (estimate)" : pj.cost != null ? "Month-end cost" : "Month-end credits"), pjV, pace, "", pj.cost != null ? "projection" : "projectionCr") : "") +
+    kpi(t("Active time"), dur(w.active, true), n0 == null ? "" : M ? t("{days} of the {n} so far (this month is still in progress)", {days, n: plural(nd, "day")}) : t("{days} of the {n} so far (this week is still in progress)", {days, n: plural(nd, "day")}), "", "active");
   K.classList.toggle("dense", K.children.length > 7); // 数が多い（月表示など）ときは、一回り小さくして 1 行に
   K.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b));
 }
