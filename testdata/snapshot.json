@@ -1,11 +1,11 @@
 {
  "months": {
   "2026-09": {
-   "active": 843,
+   "active": 844,
    "agents": {
     "Claude Code": {
-     "active": 675,
-     "ai": 680,
+     "active": 676,
+     "ai": 681,
      "costPerAsk": 0.132,
      "costPerCommit": null,
      "costPrompts": 45,
@@ -236,7 +236,7 @@
        "tokens": 453517
       },
       {
-       "active": 207,
+       "active": 208,
        "commits": 0,
        "cost": 1.7836,
        "credits": 0,
@@ -374,7 +374,7 @@
         "commits": 0,
         "removed": 0
        },
-       "minutes": 98,
+       "minutes": 100,
        "outputs": {
         "added": 0,
         "commits": 0,
@@ -417,7 +417,7 @@
       ],
       [
        "vp",
-       98
+       100
       ],
       [
        "blog",
@@ -469,7 +469,7 @@
         "cost": 5.9399,
         "credits": 0,
         "key": "Claude Code",
-        "minutes": 675,
+        "minutes": 676,
         "tokens": 9772523
        }
       ]
@@ -568,7 +568,7 @@
      "waitCount": 36,
      "waitMedian": 300,
      "waitP90": 1800,
-     "weekend": 366
+     "weekend": 367
     },
     "Codex": {
      "active": 6,
@@ -1054,7 +1054,7 @@
      },
      "waitCount": 3,
      "waitMedian": 1,
-     "waitP90": 149,
+     "waitP90": 60,
      "weekend": 0
     },
     "Kiro CLI (SQLite)": {
@@ -2298,7 +2298,7 @@
      "weekend": 0
     }
    },
-   "ai": 853,
+   "ai": 854,
    "costPerAsk": 0.124,
    "costPerCommit": null,
    "costPrompts": 48,
@@ -2529,7 +2529,7 @@
      "tokens": 453517
     },
     {
-     "active": 207,
+     "active": 208,
      "commits": 0,
      "cost": 1.7836,
      "credits": 0,
@@ -2941,7 +2941,7 @@
       "cost": 5.9399,
       "credits": 0,
       "key": "Claude Code",
-      "minutes": 675,
+      "minutes": 676,
       "tokens": 9772523
      },
      {
@@ -3116,7 +3116,7 @@
    "waitCount": 50,
    "waitMedian": 180,
    "waitP90": 1800,
-   "weekend": 366
+   "weekend": 367
   },
   "2026-10": {
    "active": 75,
@@ -3535,8 +3535,8 @@
       "unpricedModels": []
      },
      "waitCount": 1,
-     "waitMedian": 420,
-     "waitP90": 420,
+     "waitMedian": 210,
+     "waitP90": 210,
      "weekend": 31
     },
     "Kiro IDE / CLI (V3)": {
@@ -4376,7 +4376,7 @@
    },
    "waitCount": 5,
    "waitMedian": 180,
-   "waitP90": 420,
+   "waitP90": 210,
    "weekend": 55
   }
  },
@@ -4393,7 +4393,7 @@
    ],
    "ctxWindow": 200000,
    "end": 1788369000,
-   "events": 19,
+   "events": 23,
    "file": "testdata/home/.claude/projects/-Users-me-vp/45502558-80a6-4028-a0ef-6476e9599703.jsonl",
    "fileEdits": [
     [
@@ -4457,7 +4457,7 @@
     [
      1788367980,
      1788369000,
-     19
+     23
     ]
    ],
    "source": "Claude Code",
@@ -4513,7 +4513,7 @@
    "waits": [
     [
      1788368820,
-     300
+     90
     ]
    ]
   },
@@ -4818,7 +4818,7 @@
    ],
    "ctxWindow": 200000,
    "end": 1789217220,
-   "events": 23,
+   "events": 27,
    "file": "testdata/home/.claude/projects/-Users-me-app/5c2c46e3-3212-4c02-83c7-f6e31dc33803.jsonl",
    "fileEdits": [
     [
@@ -4875,7 +4875,7 @@
     [
      1789215840,
      1789217220,
-     18
+     22
     ]
    ],
    "source": "Claude Code",
@@ -4931,7 +4931,7 @@
    "waits": [
     [
      1789216500,
-     420
+     210
     ]
    ]
   },
@@ -4947,7 +4947,7 @@
    ],
    "ctxWindow": 1000000,
    "end": 1789441800,
-   "events": 28,
+   "events": 32,
    "file": "testdata/home/.claude/projects/-Users-me-blog/fa1e3455-e4a8-485a-ace2-9a6ccbaea201.jsonl",
    "fileEdits": [
     [
@@ -5023,7 +5023,7 @@
     [
      1789434120,
      1789435980,
-     15
+     19
     ],
     [
      1789437780,
@@ -5094,7 +5094,7 @@
    "waits": [
     [
      1789435920,
-     660
+     450
     ],
     [
      1789439940,
@@ -5114,7 +5114,7 @@
    ],
    "ctxWindow": 1000000,
    "end": 1789824240,
-   "events": 84,
+   "events": 100,
    "file": "testdata/home/.claude/projects/-Users-me-app/6f8a980c-3b83-43eb-b07d-758a36bc2401.jsonl",
    "fileEdits": [
     [
@@ -5225,12 +5225,12 @@
     [
      1789806000,
      1789807320,
-     16
+     20
     ],
     [
      1789809120,
      1789811700,
-     30
+     34
     ],
     [
      1789813500,
@@ -5240,7 +5240,7 @@
     [
      1789815300,
      1789815900,
-     5
+     9
     ],
     [
      1789817700,
@@ -5255,7 +5255,7 @@
     [
      1789821780,
      1789824240,
-     19
+     23
     ]
    ],
    "source": "Claude Code",
@@ -5365,7 +5365,7 @@
    "waits": [
     [
      1789807020,
-     420
+     210
     ],
     [
      1789809720,
@@ -5694,7 +5694,7 @@
    ],
    "ctxWindow": 200000,
    "end": 1790322960,
-   "events": 24,
+   "events": 28,
    "file": "testdata/home/.claude/projects/-Users-me-app/d8bda5e8-265b-4f26-8a8a-54c9c8651701.jsonl",
    "fileEdits": [
     [
@@ -5762,7 +5762,7 @@
     [
      1790318160,
      1790318880,
-     8
+     12
     ],
     [
      1790320680,
@@ -5828,7 +5828,7 @@
    "waits": [
     [
      1790318880,
-     360
+     150
     ],
     [
      1790322960,
@@ -5847,8 +5847,8 @@
     60266
    ],
    "ctxWindow": 200000,
-   "end": 1790412180,
-   "events": 56,
+   "end": 1790412210,
+   "events": 68,
    "file": "testdata/home/.claude/projects/-Users-me-vp/57c94728-2884-42b4-8c7d-b3e65e11e800.jsonl",
    "fileEdits": [
     [
@@ -5930,17 +5930,17 @@
     [
      1790403540,
      1790405280,
-     17
+     21
     ],
     [
      1790407080,
      1790410140,
-     32
+     36
     ],
     [
      1790411940,
-     1790412180,
-     7
+     1790412210,
+     11
     ]
    ],
    "source": "Claude Code",
@@ -6032,7 +6032,7 @@
    "waits": [
     [
      1790405100,
-     540
+     330
     ],
     [
      1790407560,
@@ -6060,7 +6060,7 @@
    ],
    "ctxWindow": 1000000,
    "end": 1790429040,
-   "events": 84,
+   "events": 100,
    "file": "testdata/home/.claude/projects/-Users-me-app/6f8a980c-3b83-43eb-b07d-758a36bc2400.jsonl",
    "fileEdits": [
     [
@@ -6171,12 +6171,12 @@
     [
      1790410800,
      1790412120,
-     16
+     20
     ],
     [
      1790413920,
      1790416500,
-     30
+     34
     ],
     [
      1790418300,
@@ -6186,7 +6186,7 @@
     [
      1790420100,
      1790420700,
-     5
+     9
     ],
     [
      1790422500,
@@ -6201,7 +6201,7 @@
     [
      1790426580,
      1790429040,
-     19
+     23
     ]
    ],
    "source": "Claude Code",
@@ -6311,7 +6311,7 @@
    "waits": [
     [
      1790411820,
-     420
+     210
     ],
     [
      1790414520,
@@ -6740,7 +6740,7 @@
    "ctx": [],
    "ctxWindow": 272000,
    "end": 1790643810,
-   "events": 11,
+   "events": 15,
    "file": "$CODEX/sessions/2026/09/29/rollout-2026-09-29T10-00-00-thr-main.jsonl",
    "files": [],
    "id": "thr-main",
@@ -6787,7 +6787,7 @@
     [
      1790643601,
      1790643810,
-     11
+     15
     ]
    ],
    "source": "Codex",
@@ -6839,7 +6839,7 @@
     ],
     [
      1790643780,
-     149
+     60
     ]
    ]
   },
@@ -7711,7 +7711,7 @@
    ],
    "ctxWindow": 200000,
    "end": 1791031620,
-   "events": 23,
+   "events": 27,
    "file": "testdata/home/.claude/projects/-Users-me-app/5c2c46e3-3212-4c02-83c7-f6e31dc33800.jsonl",
    "fileEdits": [
     [
@@ -7768,7 +7768,7 @@
     [
      1791030240,
      1791031620,
-     18
+     22
     ]
    ],
    "source": "Claude Code",
@@ -7824,7 +7824,7 @@
    "waits": [
     [
      1791030900,
-     420
+     210
     ]
    ]
   }
@@ -8088,8 +8088,8 @@
     "unpricedModels": []
    },
    "waitCount": 1,
-   "waitMedian": 300,
-   "waitP90": 300,
+   "waitMedian": 90,
+   "waitP90": 90,
    "weekend": 0
   },
   "2026-09-07": {
@@ -8580,8 +8580,8 @@
    "weekend": 128
   },
   "2026-09-21": {
-   "active": 346,
-   "ai": 351,
+   "active": 347,
+   "ai": 352,
    "costPerAsk": 0.13,
    "costPerCommit": null,
    "costPrompts": 23,
@@ -8632,7 +8632,7 @@
      "tokens": 453517
     },
     {
-     "active": 207,
+     "active": 208,
      "commits": 0,
      "cost": 1.7836,
      "credits": 0,
@@ -8786,7 +8786,7 @@
       "cost": 3.0034,
       "credits": 0,
       "key": "Claude Code",
-      "minutes": 346,
+      "minutes": 347,
       "tokens": 4990729
      }
     ]
@@ -8875,9 +8875,9 @@
     "unpricedModels": []
    },
    "waitCount": 19,
-   "waitMedian": 300,
+   "waitMedian": 210,
    "waitP90": 1800,
-   "weekend": 207
+   "weekend": 208
   },
   "2026-09-28": {
    "active": 243,
@@ -9080,8 +9080,8 @@
       "unpricedModels": []
      },
      "waitCount": 1,
-     "waitMedian": 420,
-     "waitP90": 420,
+     "waitMedian": 210,
+     "waitP90": 210,
      "weekend": 31
     },
     "Codex": {
@@ -9361,7 +9361,7 @@
      },
      "waitCount": 3,
      "waitMedian": 1,
-     "waitP90": 149,
+     "waitP90": 60,
      "weekend": 0
     },
     "Kiro CLI (SQLite)": {
@@ -10504,8 +10504,8 @@
     "unpricedModels": []
    },
    "waitCount": 19,
-   "waitMedian": 120,
-   "waitP90": 218,
+   "waitMedian": 60,
+   "waitP90": 210,
    "weekend": 55
   }
  }

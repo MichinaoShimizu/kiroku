@@ -146,6 +146,7 @@ type subFile struct {
 	models     map[string]int
 	tools      int
 	outputs    []core.Output // サブエージェントが成功させたコミット・PR・編集した行
+	active     []float64     // サブエージェントが動いていた時刻（コンパクションの行は除く。親のセッションで AI が動いた時刻にする）
 }
 
 func loadSubagentFile(path string) (subFile, error) {
@@ -157,6 +158,12 @@ func loadSubagentFile(path string) (subFile, error) {
 		t := ts(e["timestamp"])
 		if t != nil {
 			times = append(times, *t)
+			// 親の会話と同じく、コンパクションの行（compact_boundary と要約の行）は作業の時刻に入れない
+			compactLine, _ := e["isCompactSummary"].(bool)
+			compactLine = compactLine && core.Str(e["type"]) == "user" || core.Str(e["type"]) == "system" && core.Str(e["subtype"]) == "compact_boundary"
+			if !compactLine {
+				f.active = append(f.active, *t)
+			}
 		}
 		msg := core.Map(e["message"])
 		if core.Str(e["type"]) == "assistant" {
@@ -641,6 +648,14 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	}
 	// サブエージェントの別ファイル（新しい版）を、agentId か時刻でつなぐ
 	var files []subFile
+	// 親の会話の最初の時刻。サブエージェントは親より前には動かないので、それより前の時刻（別の会話から流用されたファイル、
+	// 壊れた・わざと作った時刻）は親の活動に入れない。親に時刻がなければ、サブエージェントだけでセッションを作らない
+	parentFirst := math.Inf(1)
+	for _, t := range s.Times {
+		if t != 0 && t < parentFirst {
+			parentFirst = t
+		}
+	}
 	for _, f := range c.subagentFiles(u) {
 		sf, err := loadSubagentFile(f)
 		if err := fileErr(f, err); err != nil && readErr == nil {
@@ -648,6 +663,18 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		}
 		files = append(files, sf)
 		s.Outputs = append(s.Outputs, sf.outputs...) // サブエージェントに任せた編集・コミット・PR も、そのセッションのアウトプット
+		// サブエージェントが動いた時刻は、親のセッションで AI が動いていた時刻にする（Kiro Crew と同じ）。バックグラウンドの
+		// サブエージェントが親の最後の行のあとまで動いても、カレンダーのバーと活動時間から外れないように
+		// 会話の要約（コンパクション）を受け持つサブエージェント（agent-acompact-*）は入れない。人が離れたあとの要約は、
+		// 親の会話のコンパクションの行と同じく、誰も作業していない活動を作るため
+		if strings.HasPrefix(filepath.Base(f), "agent-acompact") {
+			continue
+		}
+		for i := range sf.active {
+			if sf.active[i] >= parentFirst {
+				s.Agent(&sf.active[i])
+			}
+		}
 	}
 	order := append([]*call(nil), callOrder...)
 	sort.SliceStable(order, func(i, j int) bool { return val(order[i].start) < val(order[j].start) })

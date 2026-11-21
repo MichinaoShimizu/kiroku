@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -885,6 +886,61 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	byID := map[string]*codexFile{}
 	for _, cf := range all {
 		byID[cf.id] = cf
+	}
+	// topOf は、まとめて表示するいちばん上の親のスレッド（親のファイルがなければ自分）。親をたどった結果を覚えて、
+	// 長い親子の連なりでもスレッドごとに 1 度だけたどる。自分を親にする（壊れた）スレッドでも止まる
+	tops := map[string]*codexFile{}
+	topOf := func(cf *codexFile) *codexFile {
+		if t := tops[cf.id]; t != nil {
+			return t
+		}
+		path := []*codexFile{}
+		seen := map[string]bool{}
+		x := cf
+		for !seen[x.id] && tops[x.id] == nil {
+			seen[x.id] = true
+			path = append(path, x)
+			p := byID[x.parent]
+			if x.parent == "" || p == nil {
+				break
+			}
+			x = p
+		}
+		top := x
+		if t := tops[x.id]; t != nil {
+			top = t
+		}
+		for _, y := range path {
+			tops[y.id] = top
+		}
+		return top
+	}
+	// 親の最初の時刻。サブエージェントは親より前には動かないので、それより前の時刻は親の活動に入れない
+	firsts := map[*codexFile]float64{}
+	for _, cf := range all {
+		if cf.parent == "" || byID[cf.parent] == nil {
+			continue
+		}
+		top := topOf(cf)
+		first, ok := firsts[top]
+		if !ok {
+			first = math.Inf(1)
+			for _, t := range top.b.Times {
+				if t != 0 && t < first {
+					first = t
+				}
+			}
+			firsts[top] = first
+		}
+		if top != cf { // 自分を親にするスレッドは、自分に足さない
+			// サブエージェントが動いた時刻は、いちばん上の親のセッションで AI が動いていた時刻にする（Kiro Crew と同じ）。
+			// サブエージェントのサブエージェントは、先に親へまとめたかどうかによらず、まとめて表示するセッションに入れる
+			for i := range cf.b.Times {
+				if cf.b.Times[i] >= first {
+					top.b.Agent(&cf.b.Times[i])
+				}
+			}
+		}
 	}
 	for _, cf := range all {
 		if cf.parent == "" || byID[cf.parent] == nil {
