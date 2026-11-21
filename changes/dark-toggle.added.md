@@ -1,0 +1,1 @@
+- A dark theme again, with a moon / sun button at the top right. The view stays light by default, whatever your system's setting; the choice is saved in the browser, and the page shown while `kiroku serve` reads your history follows it

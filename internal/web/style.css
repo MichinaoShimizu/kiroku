@@ -22,6 +22,21 @@
   --mono:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,monospace;
   --ease:cubic-bezier(.2,0,0,1); /* M3 の standard */
 }
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --agm-mix:75%;
+  --bg:#141218; --surface:#1d1b20; --surface-2:#2b2930; --ink:#e6e0e9; --ink-2:#cac4d0; --ink-3:#938f99;
+  --s-lowest:#0f0d13; --s-cont:#211f26; --s-highest:#36343b; --pc:#4f378b; --on-pc:#eaddff; --sc:#4a4458; --on-sc:#e8def8; --inv:#e6e0e9; --on-inv:#322f35;
+  --rule:#49454f; --rule-2:#938f99; --acc:#d0bcff; --acc-ink:#d0bcff; --on-acc:#381e72; --heatk:38%; --acc-soft:rgba(208,188,255,.12); --warn:#f2b8b5; --on-warn:#601410;
+  --weekend:rgba(255,255,255,.018);
+  --sat:#93abe6; --sun:#e69393; --sat-bg:rgba(147,171,230,.05); --sun-bg:rgba(230,147,147,.05);
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -16px rgba(0,0,0,.7);
+  --c0:#6191d1; --c1:#a95c3e; --c2:#45a47a; --c3:#a27323; --c4:#c47190; --c5:#4c8446; --c6:#6e6ab2; --c7:#15a0b6; --other:#6b7180;
+  --amber-ink:#f2b53a;
+  --t1:8%; --t2:14%; --t3:20%;
+  --go:#5fb08c; --go-ink:#9bd6ba; /* 暗い地では、同じ 3 段を少し濃く（淡すぎて地に沈まないように） */
+}
+:root[data-theme="dark"] .scrim{background:rgba(0,0,0,.62)}
 
 /* ── base ───────────────────────────────────────────────── */
 *{box-sizing:border-box}
@@ -1062,32 +1077,34 @@ header{background:var(--s-cont);border-bottom:0}
 /* ── プロンプトの流れ：メッセージアプリの会話の見た目 ──
    青みのある灰色の地に、あなたの発言は右の緑の吹き出し（自分の印は出さない）、AI の応答は左の白い吹き出しと印。
    時刻は吹き出しの外の下の端。あいだに起きたこと（コミット・PR・中断など）は、真ん中の濃い札に白い字 */
-.tl{--chat-bg:#8cabd8;--chat-me:#8de055;--chat-sys:#4f6488;--chat-ink:#1f2f4d;background:var(--chat-bg);border-radius:16px;padding:14px 12px}
+.tl{--chat-bg:#8cabd8;--chat-me:#8de055;--chat-me-ink:#111;--chat-me-meta:#24421a;--chat-ai:#fff;--chat-ai-ink:#111;--chat-ai-meta:#3b3b3b;--chat-sys:#4f6488;--chat-warn:#a8322d;--chat-ink:#1f2f4d;--chat-tag:rgba(255,255,255,.55);--chat-tag-ink:#3d2a00;--chat-link:#0b4a9e;background:var(--chat-bg);border-radius:16px;padding:14px 12px}
+/* ダーク：夜の会話アプリのように、紺の地・落ち着いた緑・暗い灰の吹き出し */
+:root[data-theme="dark"] .tl{--chat-bg:#1c2636;--chat-me:#5fa83f;--chat-me-ink:#0c1a06;--chat-me-meta:#14300a;--chat-ai:#2f3542;--chat-ai-ink:#e8eaf0;--chat-ai-meta:#b9becb;--chat-sys:#3a4a66;--chat-warn:#8f2a25;--chat-ink:#b9c6dc;--chat-tag:rgba(0,0,0,.25);--chat-tag-ink:#f2d58a;--chat-link:#a9c8ff}
 .tl li>time,.tl time{color:var(--chat-ink)}
 .tl li.pr:not(.ev){justify-content:flex-end;padding-right:0;padding-left:12%}
 .tl li.pr:not(.ev)>.av{display:none}
 .tl li.pr:not(.ev)>.pcopy{order:0}.tl li.pr:not(.ev)>time{order:1}.tl li.pr:not(.ev) p{order:2}
-.tl li.pr:not(.ev) p,.drawer .tl li.pr:not(.ev) p{background:var(--chat-me);color:#111;border-radius:18px 4px 18px 18px;font-weight:400;box-shadow:none}
-.tl li.pr:not(.ev) .pmeta{color:#24421a}
+.tl li.pr:not(.ev) p,.drawer .tl li.pr:not(.ev) p{background:var(--chat-me);color:var(--chat-me-ink);border-radius:18px 4px 18px 18px;font-weight:400;box-shadow:none}
+.tl li.pr:not(.ev) .pmeta{color:var(--chat-me-meta)}
 .tl li.rp{justify-content:flex-start;padding-left:0;padding-right:12%}
 .tl li.rp>.av{order:0}.tl li.rp p{order:1}.tl li.rp>time{order:2}.tl li.rp>.rcopy{order:3}
-.tl li.rp p,.drawer .tl li.rp p{background:#fff;color:#111;border-radius:4px 18px 18px 18px}
-.av.rpav{background:#fff;color:var(--chat-sys)}
+.tl li.rp p,.drawer .tl li.rp p{background:var(--chat-ai);color:var(--chat-ai-ink);border-radius:4px 18px 18px 18px}
+.av.rpav{background:var(--chat-ai);color:var(--chat-ai-ink)}
 .tl li .pcopy{color:var(--chat-ink)}
 @media (max-width:600px){.tl li.pr:not(.ev){padding-left:0}.tl li.rp{padding-right:0}}
 .tl li.ev,.tl li.ev.note{background:var(--chat-sys);color:#fff}
 .tl li.ev>.ic,.tl li.ev.note>.ic,.tl li.ev.ai>.ic,.tl li.ev.pr>.ic,.tl li.ev>time{color:#fff}
 .tl li.ev.note .evl,.tl li.ev.note .evd,.tl li.ev.int .evl,.tl li.ev.warn .evl{color:#fff}
-.tl li.ev.int,.tl li.ev.warn{background:#a8322d}
+.tl li.ev.int,.tl li.ev.warn{background:var(--chat-warn)}
 .tl li.ev.int>.ic,.tl li.ev.warn>.ic{color:#fff}
 .tl li.ev button.evd{color:#fff;text-decoration:underline;text-underline-offset:2px}
 .tl li.ev button.evd:hover{color:#fff}
 .tl li.ev .gtag{color:#fff;border-color:rgba(255,255,255,.7)}
 .tl li.gap{color:var(--chat-ink)}.tl li.gap::before,.tl li.gap::after{background:rgba(255,255,255,.6)}
-.tl .pkind{color:#3d2a00;background:rgba(255,255,255,.55)}
-.tl li.pr .ptext>code{background:rgba(255,255,255,.6)}
-.tl .pcut,.tl li.rp .pmeta{color:#3b3b3b}
-.tl .pexp,.tl .pload,.tl .rload{color:#0b4a9e}.tl .pload,.tl .rload{border-color:#0b4a9e}
+.tl .pkind{color:var(--chat-tag-ink);background:var(--chat-tag)}
+.tl li.pr .ptext>code{background:var(--chat-tag)}
+.tl .pcut,.tl li.rp .pmeta{color:var(--chat-ai-meta)}
+.tl .pexp,.tl .pload,.tl .rload{color:var(--chat-link)}.tl .pload,.tl .rload{border-color:var(--chat-link)}
 /* サマリーの頭の数字は 1 段に並べる（何枚でも等分）。狭い画面では 1 段のまま横にスクロール */
 .insh{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px}
 .insh .itile{padding:12px 14px}
@@ -1108,3 +1125,9 @@ header{background:var(--s-cont);border-bottom:0}
 .insagbar .lab{font-size:var(--fs-xs);color:var(--ink-2)}
 .insagbar .note{font-size:var(--fs-xs);color:var(--ink-2)}
 .insrow.two>:only-child{grid-column:1/-1} /* 2 枚の行に 1 枚しかないとき（エージェントで絞ったときなど）は、幅いっぱい */
+/* テーマの切り替え（ヘッダーの右端）。ライトでは月、ダークでは太陽の印 */
+.themebtn{flex:none;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;color:var(--ink-2)}
+.themebtn:hover{background:color-mix(in oklab,var(--ink) 8%,transparent)}
+.themebtn:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.themebtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.themebtn .sun,:root[data-theme="dark"] .themebtn .moon{display:none}:root[data-theme="dark"] .themebtn .sun{display:block}

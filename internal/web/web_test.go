@@ -205,3 +205,13 @@ func TestAIRunDisclosure(t *testing.T) {
 		}
 	}
 }
+
+// ビューでダークを選んだ人には、読み込み中の画面もダーク（同じサイトの localStorage の kiroku:theme を読み、暗い地の色を持つ）
+func TestLoadingFollowsDarkChoice(t *testing.T) {
+	s := string(LoadingFor(""))
+	for _, want := range []string{`localStorage.getItem("kiroku:theme")`, `:root[data-theme="dark"]{color-scheme:dark;`} {
+		if !strings.Contains(s, want) {
+			t.Errorf("loading page lacks %q", want)
+		}
+	}
+}
