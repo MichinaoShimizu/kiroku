@@ -207,6 +207,8 @@ const JA_TEXT = {
   "characters": "文字",
   "Corrections {f}% of {p} prompts; {l} usage limit hits; {c} compactions": "言い直し・中断 {f}%（{p} プロンプト中）。利用上限 {l} 回。コンパクション {c} 回",
   "Outputs": "出力",
+  "Unit cost": "単価",
+  "÷ Git commits not run by Claude Code": "Git のコミット（Claude Code が実行した分を除く）で割る",
   "AI changed {n} files (+{a} −{d} lines)": "AI が変えたファイル {n}（+{a} −{d} 行）",
   "; ": "。",
   "Already {x} over the previous period's total {prev}": "前の期間の合計 {prev} をすでに {x} 超えている",

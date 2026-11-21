@@ -890,12 +890,15 @@ header{background:var(--s-cont);border-bottom:0}
    いつもの範囲から外れたことは、数字の下の小さな印（.ichip）だけで言う */
 .insh{display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
 .ikg{border:1px solid var(--rule);border-radius:16px;background:var(--s-lowest);padding:14px 4px 16px}
-.ikgh{margin:0 0 8px;padding:0 18px;font-size:var(--fs-xs);font-weight:600;letter-spacing:.04em;color:var(--ink-3)}
+/* 分類の見出し（コスト・出力・単価）：本文より大きく太く、左に色の短い線 */
+.ikgh,.inssec{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--ink);letter-spacing:.02em}
+.ikgh::before,.inssec::before{content:"";flex:none;width:4px;height:1em;border-radius:2px;background:var(--acc)}
+.ikgh{margin:0 0 12px;padding:0 18px;font-size:var(--fs-xl)}
 .ikrow{display:flex;flex-wrap:wrap;row-gap:16px} /* 数字は等分に並べ、入らなければ折り返す（折り返した段も幅いっぱいに広げる） */
 .itile{flex:1 1 170px;padding:2px 18px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
 @media (max-width:700px){.itile{flex-basis:40%}.itile{padding:2px 14px}.ikgh{padding:0 14px}}
 /* カードの見出し（コスト・出力・使い方）：2 列の並びの幅いっぱいに */
-.inssec{grid-column:1/-1;margin:18px 0 -4px;padding:0 2px;font-size:var(--fs-sm);font-weight:600;letter-spacing:.04em;color:var(--ink-3)}
+.inssec{grid-column:1/-1;margin:26px 0 -2px;padding:0 2px;font-size:var(--fs-2xl)}
 .inssec:first-child{margin-top:0}
 /* 出力のカード：左に数、右に変更の多いファイル（狭ければ縦に） */
 .iout2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px 28px;align-items:start}.iout2 .iwcap{margin-top:0}
