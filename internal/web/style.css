@@ -1141,3 +1141,10 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 /* 式を開く「ƒx」：指標名のすぐ横に小さく。押している間は塗る */
 .fxb{margin-left:6px;padding:0 5px;border:1px solid var(--rule);border-radius:6px;background:none;color:var(--ink-2);font:italic 600 var(--fs-xs)/1.5 var(--serif,Georgia,serif);cursor:pointer;vertical-align:baseline}
 .fxb:hover{color:var(--acc-ink);border-color:var(--acc)}.fxb[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+
+/* 見直す候補の 1 行：見出しのカードのすぐ下。基準を超えた指標の名前を並べ、押すとその候補のダイアログ */
+.iworth{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 12px;padding:10px 14px;border:1px solid var(--rule);border-radius:12px;background:var(--s-lowest)}
+.iworth .iwl{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:var(--fs-sm);color:var(--ink)}.iworth .iwl svg{width:14px;height:14px;color:var(--warn)}
+.iwlink{padding:3px 10px;border:1px solid var(--rule);border-radius:999px;background:var(--surface);color:var(--ink);font:500 var(--fs-sm)/1.4 var(--sans);cursor:pointer}.iwlink:hover{border-color:var(--acc);color:var(--acc-ink)}
+.iwnone{font-size:var(--fs-sm);color:var(--ink-2)}
+.fxb{position:relative;z-index:2} /* 値のボタンが枠いっぱいに重なる数字の枠でも、「ƒx」を押せるように */

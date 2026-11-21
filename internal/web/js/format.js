@@ -42,6 +42,7 @@ const crN = v => v >= 10 || v <= 0 ? commas(Math.round(v)) : v >= 1 ? (Math.roun
 // クレジットの単位（"cr" では何の数かわからないので、言葉で。日本語は「クレジット」）
 const crUnit = v => isJA() ? "クレジット" : v === 1 ? "credit" : "credits";
 function cr(v){ return `${crN(v)} ${crUnit(v)}`; }
+const crR = v => v >= 100 ? commas(Math.round(v)) : (Math.round(v * 10) / 10).toLocaleString(LOC()); // クレジットの率（小数 1 桁。いつもの範囲の数と同じ丸め）
 const cr1 = v => `${Math.round(v * 10) / 10} ${crUnit(v)}`; // 式の中のクレジット（小数 1 桁。整数に丸めると、引き算の結果と合わなくなる）
 const crH = v => `${crN(v)}<small>&nbsp;${esc(crUnit(v))}</small>`; // HTML に入れる形（単位を小さく）
 const tokS = v => v >= 1e7 ? Math.round(v/1e6)+"M" : v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e4 ? Math.round(v/1e3)+"K" : tok(v); // 狭いマス用に、桁を減らしたトークン
