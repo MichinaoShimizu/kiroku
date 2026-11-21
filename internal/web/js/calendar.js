@@ -184,17 +184,16 @@ function monthGrid(shown, ms, me, todayKey){
   T.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { const [y,m,dd] = b.dataset.w.split("-").map(Number); st.week = new Date(y, m-1, dd); setMode("week"); });
 }
 
-// 週のカレンダーの列は、その日の 0 時から 24 時まで（見出しの数字と同じ）。描く順は、朝 CAL_D0 時から 24 時までを上に、
-// その日の 0 時から CAL_D0 時（明け方）をその下に。最初の画面に朝からの作業の時間帯が入り、明け方の作業もその日の列に残る
+// 週のカレンダーの 0 時から CAL_D0 時は、ふだん畳んで（1 時間を 1/4 の高さで）描く。最初の画面に朝からの作業の時間帯が入り、
+// 夜中の記録も正しい位置に小さく見える。左上の「0–7」を押すと広げる（選んだものを覚える）
 const CAL_D0 = 7;
-// calY は、時刻（時）の、列の上からの位置（px）。CAL_D0 時が上の端、0 時は 24 − CAL_D0 時間ぶん下
-function calY(h){ return ((h - CAL_D0 + 24) % 24) * (st.hh || 44); }
-// colH は、day の列での時刻 t の縦の位置（時間。0〜24）。end なら区間の終わりとして（CAL_D0 時ちょうどは明け方の帯の下の端）
-function colH(day, t, end){ const h = clockH(day, t); return h >= CAL_D0 && !(end && h === CAL_D0) ? h - CAL_D0 : h + 24 - CAL_D0; }
+const calFold = () => !st.early; // 畳んでいるか
+// calY は、時刻（時。0〜24）の、列の上からの位置（px）
+function calY(h){ const hh = st.hh || 44; return !calFold() ? h * hh : h < CAL_D0 ? h * hh / 4 : CAL_D0 * hh / 4 + (h - CAL_D0) * hh; }
 
-/* 週のカレンダー：曜日が列、時刻が縦（朝 CAL_D0 時から 24 時、その下に明け方）。重なるセッションだけ横に並べる */
+/* 週のカレンダー：曜日が列、時刻が縦（0 時から CAL_D0 時はふだん畳む）。重なるセッションだけ横に並べる */
 function timeline(shown, inWeek, ws, we, todayKey){
-  const T = $("#tl"), hh = st.hh || 44, Y = x => x * hh, H = Y(24);
+  const T = $("#tl"), hh = st.hh || 44, Y = calY, H = Y(24), fold = calFold(), E0 = fold ? Y(CAL_D0) : 0;
   if (inWeek.length && !shown.length && st.q && !DATA.some(matches)){ T.innerHTML = ""; return; } // 検索がどこにも当たらないときは、上の検索結果の「ない」だけにする
   if (!inWeek.length || !shown.length){
     // 記録のない週は、ここで 1 度だけ「ない」と言い、記録のある最後の週へ行けるようにする（月は大文字のまま。toLowerCase で "jul 6" にしない）
@@ -206,27 +205,24 @@ function timeline(shown, inWeek, ws, we, todayKey){
   const keep = T.querySelector(".calscroll"), top = keep ? keep.scrollTop : null;
   const nowS = nowMs()/1000, w = WEEKS[key(st.week)];
   let heads = '<div></div>', hours = "", cols = "";
-  const nowIn = nowS >= ws && nowS < we, nowCol = nowIn ? [0,1,2,3,4,5,6].find(d => nowS < addDays(st.week, d + 1).getTime()/1000) : -1, nowH = nowIn ? colH(today0(), nowS) : -9;
-  // 時刻は朝 CAL_D0+1 時から 23 時、0 時から CAL_D0−1 時。0 時（明け方の帯の始まり）は線を濃くする（.day の --mid）。
-  // 今の時刻の札（高さ約 20px）に重なる時刻は、消さずに札の上か下へずらして薄く出す（12:00 が見えなくならないように）
-  for (let i=1; i<24; i++){ const h = (i + CAL_D0) % 24, d = Y(i) - Y(nowH), near = nowIn && Math.abs(d) < 20;
-    hours += `<span class="${[near ? "near" : "", h === 0 ? "mid" : "", h < CAL_D0 ? "late" : ""].filter(Boolean).join(" ")}" style="top:${near ? Y(nowH) + (d >= 0 ? 20 : -20) : Y(i)}px">${String(h).padStart(2,"0")}:00</span>`; }
+  const nowIn = nowS >= ws && nowS < we, nowCol = nowIn ? [0,1,2,3,4,5,6].find(d => nowS < addDays(st.week, d + 1).getTime()/1000) : -1, nowH = nowIn ? clockH(today0(), nowS) : -9;
+  // 畳んだ時間帯には時刻を出さない（そこは「0–7」のボタン）。今の時刻の札（高さ約 20px）に重なる時刻は、消さずに札の上か下へずらして薄く出す（12:00 が見えなくならないように）
+  for (let h=1; h<24; h++){ if (fold && h < CAL_D0) continue; const d = Y(h) - Y(nowH), near = nowIn && Math.abs(d) < 20;
+    hours += `<span${near ? ' class="near"' : ""} style="top:${near ? Y(nowH) + (d >= 0 ? 20 : -20) : Y(h)}px">${String(h).padStart(2,"0")}:00</span>`; }
+  hours += `<button type="button" class="calfold" id="calfold" style="height:${fold ? Math.max(18, Y(CAL_D0) - 14) : 18}px" aria-expanded="${!fold}" title="${esc(fold ? t("Show 0:00–7:00 at full height") : t("Fold 0:00–7:00"))}" aria-label="${esc(fold ? t("Show 0:00–7:00 at full height") : t("Fold 0:00–7:00"))}">0–7<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${fold ? "M7 10l5 5 5-5" : "M7 14l5-5 5 5"}"/></svg></button>`;
   if (nowIn) hours += `<span class="now" style="top:${Y(nowH)}px">${hm(nowS)}</span>`;
   const runs = [], un = filtering() ? 1 : 0, G = gitShown(shown), kinds = useKinds(w ? w.days : []);
   for (let d=0; d<7; d++){
     const day = addDays(st.week,d), ds = day.getTime()/1000, de = addDays(st.week,d+1).getTime()/1000, isToday = key(day) === todayKey;
-    const d0 = new Date(day); d0.setHours(CAL_D0); const dv = d0.getTime()/1000; // その日の朝 CAL_D0 時（帯はここで上下に分ける）
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
     const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
     heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${(act || dayGit.length) ? (run => `<button class="pill dayrun ${run ? "ai-action" : "ai-copy"}" data-d="${d}" type="button" aria-label="${esc(run ? t("Analyze with AI: daily report for {date}", {date: md(ds)}) : t("Copy the daily report prompt for {date}", {date: md(ds)}))}" title="${esc(run ? t("Analyze with AI: daily report for {date}", {date: md(ds)}) : t("Copy the daily report prompt for {date}", {date: md(ds)}))}">${ico(run ? "ai" : "copy")}<span>${esc(run ? t("Analyze with AI") : t("Copy prompt"))}</span></button>`)(aiRun() || aiDemo()) : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calLine(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`; // まだ来ていない日に「目安」は置かない（同じ額が上の帯の「前の週並みの 1 日の目安」にある）
     const blocks = [];
-    // 朝 CAL_D0 時をまたぐ帯は、明け方の分（下）と朝からの分（上）に分ける
-    shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y <= x) return;
-      if (x < dv && y > dv){ blocks.push({s, a:x, b:dv, n}, {s, a:dv, b:y, n}); } else blocks.push({s, a:x, b:y, n}); }));
+    shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
+    blocks.sort((p,q) => p.a-q.a || q.b-p.b);
     let html = "";
-    blocks.forEach(bk => { bk.y = Y(colH(day, bk.a)); bk.h = Math.max(4, Y(colH(day, bk.b, true)) - bk.y - 2); });
-    blocks.sort((p,q) => p.y-q.y || q.h-p.h); // 重なりの置き方は、上から順に
+    blocks.forEach(bk => { bk.y = Y(clockH(day, bk.a)); bk.h = Math.max(4, Y(clockH(day, bk.b)) - bk.y - 2); });
     // 重なる帯の置き方（l・w は溝を除いた幅に対する左端と幅の割合）。ほぼ同時に始まった帯（CASCADE px 以内。名前の 1 行目が見える高さ）はかたまりにして横に並べ、
     // それより後に始まった帯は、前の帯の上に右へずらして重ねる。前の帯は名前のある上の部分が隠れないので、幅いっぱいのまま読める
     // （重なれば最後まで 1/L の幅にすると、並行して動かすことの多い人ほど名前が数文字しか読めない）。見た目で重なるか（短い帯の下の名前も入れる）で決める
@@ -257,7 +253,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const showP = p => (!st.hidden.size || st.colorBy !== "project" || !st.hidden.has(p.project)) && (!st.q || shown.some(s => s.project === p.project && p.t >= s.start && p.t <= s.end + 600)); // 検索中は、一致したセッションの間の push だけ（詳細のプロンプトの流れと同じ範囲）
     const marks = [...dayGit.map(c => ({t: c.t, c})),
       ...(META.push || []).filter(p => p.t >= ds && p.t < de && showP(p)).map(p => ({t: p.t, p})),
-      ...shown.flatMap(s => (s.prAt || []).filter(x => x.t >= ds && x.t < de).map(x => ({t: x.t, r: x, s})))].map(m => ({...m, y0: Y(colH(day, m.t))})).sort((a, b) => a.y0 - b.y0 || a.t - b.t);
+      ...shown.flatMap(s => (s.prAt || []).filter(x => x.t >= ds && x.t < de).map(x => ({t: x.t, r: x, s})))].map(m => ({...m, y0: Y(clockH(day, m.t))})).sort((a, b) => a.t - b.t);
     // 印の縦の位置：重ならないよう下へ積み、日の終わり（24:00）を越える分は上へ戻す（夜遅い印が枠の外に出て見えなくならないように）
     const ys = []; { let g = -99; marks.forEach(m => { g = Math.max(m.y0, g + 17); ys.push(g); });
       for (let i = ys.length - 1; i >= 0; i--) ys[i] = Math.min(ys[i], i === ys.length - 1 ? H - 16 : ys[i+1] - 17); }
@@ -268,14 +264,15 @@ function timeline(shown, inWeek, ws, we, todayKey){
       html += `<button class="gc${c.ai ? " ai" : ""}${st.sel === "git:"+c.hash ? " sel" : ""}" data-c="${esc(c.hash)}" style="top:${y}px" title="${esc(`${hm(c.t)} ${c.project}${c.branch ? " · "+c.branch : ""} · ${c.hash}\n${c.subject}\n${plural(c.nFiles, "file")} +${c.added} −${c.removed}${c.ai ? " · " + t("run by AI") : ""}`)}" aria-label="${esc(t("Commit {time} {subject}", {time: md(c.t) + " " + hm(c.t), subject: c.subject}))}">${GIT_ICON}<span>${esc(c.hash.slice(0,7))}</span></button>`; });
     limitHits(ds, de).filter(h => matches(h.s)).forEach(h => { // 上限の印は、そのセッションの帯の左端に置く（隣の帯の上に出して、ほかの作業の印に見えないように）
       const bk = blocks.find(b => b.s === h.s && b.a <= h.t && h.t <= b.b) || blocks.find(b => b.s === h.s), left = bk ? `left:calc((100% - var(--g)) * ${bk.l.toFixed(4)} + 3px);` : "";
-      html += `<button class="lim" data-id="${esc(h.s.id)}" style="${left}top:${Y(colH(day, h.t))}px" title="${esc(t("{time} Hit the usage limit ({title})", {time: hm(h.t), title: h.s.title}))}" aria-label="${esc(t("{time} Hit the usage limit ({title})", {time: md(h.t) + " " + hm(h.t), title: h.s.title}))}">${ico("limit")}${esc(t("Limit"))}</button>`; });
+      html += `<button class="lim" data-id="${esc(h.s.id)}" style="${left}top:${Y(clockH(day, h.t))}px" title="${esc(t("{time} Hit the usage limit ({title})", {time: hm(h.t), title: h.s.title}))}" aria-label="${esc(t("{time} Hit the usage limit ({title})", {time: md(h.t) + " " + hm(h.t), title: h.s.title}))}">${ico("limit")}${esc(t("Limit"))}</button>`; });
     if (d === nowCol) html += `<div class="nowline" style="top:${Y(nowH)}px"></div>`;
-    cols += `<div class="day${day.getDay()%6===0?" we":""}${wkc(day.getDay())}${isToday?" today":""}" style="height:${H}px;--g:${marks.length ? 18 : 0}px;--mid:${Y(24 - CAL_D0)}px">${html}</div>`;
+    cols += `<div class="day${day.getDay()%6===0?" we":""}${wkc(day.getDay())}${isToday?" today":""}" style="height:${H}px;--g:${marks.length ? 18 : 0}px;--e0:${E0}px;--ch:${fold ? CAL_D0 : 0}">${html}</div>`;
   }
   // 曜日の見出しは、横にスクロールする本体（.calscroll）の外に置き、ページのスクロールで上に貼り付ける（.tlhead）。
   // 横のスクロールは本体に合わせて動かす（狭い画面でも、どの列が何日かわかるように）
   T.innerHTML = `<div class="tlhead"><div class="calin"><div class="heads">${heads}</div></div></div><div class="calscroll" style="--hh:${hh}px"><div class="calin"><div class="cgrid"><div class="hours" style="height:${H}px">${hours}</div>${cols}</div></div></div>`;
   const sc = T.querySelector(".calscroll"), th = T.querySelector(".tlhead");
+  $("#calfold").onclick = () => { st.early = !st.early; store.set("calEarly", st.early); render(); const b = $("#calfold"); if (b) b.focus({preventScroll: true}); };
   sc.addEventListener("scroll", () => { th.scrollLeft = sc.scrollLeft; }, {passive: true});
   sc.style.scrollPaddingTop = T.querySelector(".heads").offsetHeight + "px"; sc.style.scrollPaddingLeft = "56px"; // Tab で移ったブロックが、固定の日付・時刻の下に隠れないように
   if (top != null) sc.scrollTop = top;

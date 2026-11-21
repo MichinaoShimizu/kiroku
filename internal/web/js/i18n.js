@@ -54,6 +54,8 @@ const JA_TEXT = {
   "Agent": "エージェント",
   "All agents": "すべて",
   "Dark mode": "ダークモード",
+  "Show 0:00–7:00 at full height": "0:00〜7:00 を広げる",
+  "Fold 0:00–7:00": "0:00〜7:00 を畳む",
   "Light mode": "ライトモード",
   "Only {agent}. Git commits made by hand are left out": "{agent} だけ。手でのコミットは入れません",
   "Agents and projects with fewer than 3 replies are left out of the medians.": "応答が 3 回未満のエージェントとプロジェクトは、中央値から除いています。",

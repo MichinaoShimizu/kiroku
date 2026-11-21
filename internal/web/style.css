@@ -161,14 +161,17 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .heads>div:first-child{position:sticky;left:0;z-index:9;background:var(--surface)}
 .hours span{position:absolute;right:9px;transform:translateY(-50%);font-size:var(--fs-xs);color:var(--ink-3);font-variant-numeric:tabular-nums}
 .hours span.now{right:4px;color:var(--on-acc);background:var(--acc);border-radius:5px;padding:1px 4px;font-weight:600;z-index:3}
-.hours span.mid{font-weight:700;color:var(--ink-2)} /* 0 時（ここから次の日の夜中） */
+/* 畳んだ 0〜7 時を広げる・畳むボタン（時刻の列のいちばん上） */
+.calfold{position:absolute;top:1px;left:4px;right:4px;display:flex;align-items:center;justify-content:center;gap:2px;border-radius:6px;font-size:var(--fs-2xs);font-weight:600;color:var(--ink-2);background:var(--surface-2);z-index:2}
+.calfold:hover{color:var(--ink);background:var(--s-highest)}.calfold:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.calfold svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .hours span.near{opacity:.55} /* 今の時刻の札に重なるので、ずらした時刻 */
 .day{position:relative;border-left:1px solid var(--rule)}
 /* 平日の勤務時間（9:00〜18:00）の外は少し暗く（Google カレンダーの勤務時間のように、夜中や早朝の作業がひと目でわかる）。週末は列ごと別の地の色 */
-/* 列は朝 7 時から次の朝 7 時まで（calendar.js の CAL_D0）。0 時（日付の変わり目、--mid）は線を濃く */
-.day{--mid:-9px;background-image:linear-gradient(transparent calc(var(--mid) - 1px),var(--rule-2) calc(var(--mid) - 1px),var(--rule-2) calc(var(--mid) + 1px),transparent calc(var(--mid) + 1px)),linear-gradient(var(--rule) 1px,transparent 1px);background-size:100% 100%,100% var(--hh);background-repeat:no-repeat,repeat-y}
-/* 平日の勤務時間（9:00〜18:00、上の端から 2〜11 時間）の外は少し暗く（Google カレンダーの勤務時間のように、夜中や早朝の作業がひと目でわかる）。週末は列ごと別の地の色 */
-.day:not(.we){--off:color-mix(in oklab,var(--ink) 4.5%,transparent);background-image:linear-gradient(transparent calc(var(--mid) - 1px),var(--rule-2) calc(var(--mid) - 1px),var(--rule-2) calc(var(--mid) + 1px),transparent calc(var(--mid) + 1px)),linear-gradient(var(--rule) 1px,transparent 1px),linear-gradient(var(--off) 0,var(--off) calc(var(--hh) * 2),transparent calc(var(--hh) * 2),transparent calc(var(--hh) * 11),var(--off) calc(var(--hh) * 11));background-size:100% 100%,100% var(--hh),100% 100%;background-repeat:no-repeat,repeat-y,no-repeat}
+/* 0 時から --ch 時（calendar.js の CAL_D0）を畳んでいるときは、その高さ --e0 を淡い地の帯にし（線は引かない）、1 時間の線はその下から。色の --c0 とは別の名前 */
+.day{--e0:0px;--ch:0;--early:var(--surface-2);background-image:linear-gradient(var(--early) 0,var(--early) var(--e0),transparent var(--e0)),linear-gradient(var(--rule) 1px,transparent 1px);background-size:100% 100%,100% var(--hh);background-position:0 0,0 var(--e0);background-repeat:no-repeat,repeat-y}
+/* 平日の勤務時間（9:00〜18:00）の外は少し暗く（Google カレンダーの勤務時間のように、夜中や早朝の作業がひと目でわかる）。週末は列ごと別の地の色 */
+.day:not(.we){--off:color-mix(in oklab,var(--ink) 4.5%,transparent);background-image:linear-gradient(var(--early) 0,var(--early) var(--e0),transparent var(--e0)),linear-gradient(var(--rule) 1px,transparent 1px),linear-gradient(var(--off) 0,var(--off) calc(var(--e0) + var(--hh) * (9 - var(--ch))),transparent calc(var(--e0) + var(--hh) * (9 - var(--ch))),transparent calc(var(--e0) + var(--hh) * (18 - var(--ch))),var(--off) calc(var(--e0) + var(--hh) * (18 - var(--ch))));background-size:100% 100%,100% var(--hh),100% 100%;background-position:0 0,0 var(--e0),0 0;background-repeat:no-repeat,repeat-y,no-repeat}
 .day.we{background-color:var(--weekend)}
 .day.sat{background-color:var(--sat-bg)}.day.sun{background-color:var(--sun-bg)}
 .head.sat b,.head.sat i,.mgrid .mh.sat,.cell.sat .dn{color:var(--sat)}

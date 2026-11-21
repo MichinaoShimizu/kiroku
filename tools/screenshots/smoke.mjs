@@ -107,7 +107,15 @@ async function run(env) {
     check("カレンダーの表示でも、データソースとページの下（版）は見える", await p.locator("#review .dsrc").isVisible() && await p.locator("#review .foot").isVisible());
     check("カレンダーとデータソースのあいだが空いている", await p.evaluate(() => document.querySelector("#review .metap").getBoundingClientRect().top - document.querySelector("#tl").getBoundingClientRect().bottom >= 16));
     check("期間の行に「期間」「表示」の見出しを並べない", await p.evaluate(() => [...document.querySelectorAll(".control-label")].every(e => e.getBoundingClientRect().width <= 1)));
-    check("週のカレンダーは朝 7 時から 24 時、その下に同じ日の明け方（0 時は 17 時間下。セッションの色は消えない）", await p.evaluate(() => { const sp = [...document.querySelectorAll("#tl .hours span:not(.now)")], at = l => { const x = sp.find(e => e.textContent === l); return x ? parseFloat(x.style.top) : NaN; }, hh = parseFloat(getComputedStyle(document.querySelector("#tl .calscroll")).getPropertyValue("--hh")); const r = document.querySelector("#tl .run"), c = r && getComputedStyle(r).getPropertyValue("--c").trim(); return Math.abs(at("08:00") - hh) < 1 && Math.abs(at("00:00") - 17 * hh) < 1 && !!c && !/^\d/.test(c); }));
+    { // 0〜7 時は正しい位置に畳む（1/4 の高さ）。ボタンで広げ、もう一度で畳む。セッションの色は消えない
+      const pos = () => p.evaluate(() => { const sp = [...document.querySelectorAll("#tl .hours span:not(.now)")], at = l => { const x = sp.find(e => e.textContent === l); return x ? parseFloat(x.style.top) : NaN; }; return {hh: parseFloat(getComputedStyle(document.querySelector("#tl .calscroll")).getPropertyValue("--hh")), h1: at("01:00"), h7: at("07:00"), h8: at("08:00"), exp: document.querySelector("#calfold").getAttribute("aria-expanded")}; });
+      const a = await pos(), r = await p.evaluate(() => { const r = document.querySelector("#tl .run"), c = r && getComputedStyle(r).getPropertyValue("--c").trim(); return !!c && !/^\d/.test(c); });
+      check("週のカレンダーは 0〜7 時を正しい位置で畳む（07:00 は 7/4 時間ぶん下、01:00 は出さない）", a.exp === "false" && Math.abs(a.h7 - 1.75 * a.hh) < 1 && Math.abs(a.h8 - 2.75 * a.hh) < 1 && Number.isNaN(a.h1) && r, JSON.stringify(a));
+      await p.click("#calfold"); await pause(); const b = await pos();
+      check("「0–7」で広げると 0 時から 1 時間ずつ", b.exp === "true" && Math.abs(b.h1 - b.hh) < 1 && Math.abs(b.h7 - 7 * b.hh) < 1, JSON.stringify(b));
+      await p.click("#calfold"); await pause();
+      check("もう一度押すと畳む", (await pos()).exp === "false");
+    }
     check("カレンダーの表示に、サマリーの部品（エージェントの切り替えなど）が出ない", await p.evaluate(() => st.view !== "cal" || [...document.querySelectorAll("#review .insagbar, #review .insight")].every(e => !e.offsetParent)));
     check("スクロールはページだけ：カレンダーの中ではスクロールしない", await p.evaluate(() => { const c = document.querySelector("#tl .calscroll"); return !c || c.scrollHeight <= c.clientHeight + 1; }));
     { // どの幅でも、曜日の見出しがページの見出しの下に貼り付く（狭い画面は横のスクロールにも合わせる）
@@ -429,8 +437,8 @@ async function run(env) {
     check("上限の印は、そのセッションの帯の左端にある（隣の帯に重ねない）", await p.evaluate(() => [...document.querySelectorAll("#tl .lim")].every(m => { const r = m.getBoundingClientRect(), bs = [...m.closest(".day").querySelectorAll(`.run[data-sid="${CSS.escape(m.dataset.id)}"]`)].map(b => b.getBoundingClientRect());
       return !bs.length || bs.some(b => Math.abs(b.left - r.left) <= 4); })));
     check("夜遅い印も日の枠の中にある", await p.evaluate(() => [...document.querySelectorAll("#tl .day")].every(d => { const db = d.getBoundingClientRect(); return [...d.querySelectorAll(".gc, .gm")].every(m => m.getBoundingClientRect().bottom <= db.bottom + 1); })));
-    check("今の時刻の札に近い時刻も消さない（08:00 から次の朝 06:00 までそろう）", await p.evaluate(() => !document.querySelector("#tl .hours span.now") || [...document.querySelectorAll("#tl .hours span:not(.now)")].map(e => e.textContent).join(",") === Array.from({length: 23}, (_, i) => String((i + 8) % 24).padStart(2, "0") + ":00").join(",")));
-    check("平日の勤務時間（9:00〜18:00）の外は地の色が違う", await p.evaluate(() => { const d = [...document.querySelectorAll("#tl .day")].find(e => !e.classList.contains("we")); return !!d && (getComputedStyle(d).backgroundImage.match(/linear-gradient/g) || []).length === 3; })); // 0 時の線・1 時間の線・勤務時間の外
+    check("今の時刻の札に近い時刻も消さない（畳んだときは 07:00〜23:00 がそろう）", await p.evaluate(() => !document.querySelector("#tl .hours span.now") || [...document.querySelectorAll("#tl .hours span:not(.now)")].map(e => e.textContent).join(",") === Array.from({length: 17}, (_, i) => String(i + 7).padStart(2, "0") + ":00").join(",")));
+    check("平日の勤務時間（9:00〜18:00）の外は地の色が違う", await p.evaluate(() => { const d = [...document.querySelectorAll("#tl .day")].find(e => !e.classList.contains("we")); return !!d && (getComputedStyle(d).backgroundImage.match(/linear-gradient/g) || []).length === 3; })); // 畳んだ帯・1 時間の線・勤務時間の外
     check("見直す候補はアイコンだけ（名前は読み上げとツールチップ）", await p.evaluate(() => { const b = document.querySelector("#worth summary"); return !!b && !/[A-Za-z]{3}/.test(b.textContent) && /Worth a look/.test(b.getAttribute("aria-label") || ""); }));
     if (env.viewport.width >= 1440) check("上の帯（期間の操作と指標）は 1 行に収まる（週・月とも）", await p.evaluate(async () => { // 死守する: 指標が次の行に落ちると、カレンダーが下がる
       const one = () => { const k = document.querySelector(".kpis").getBoundingClientRect(), n = document.querySelector("#today").getBoundingClientRect(); return k.top < n.bottom && k.bottom > n.top; };
