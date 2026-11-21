@@ -1057,7 +1057,9 @@ header{background:var(--s-cont);border-bottom:0}
 /* 見直す候補の印は琥珀色（紫は選択・あなたのプロンプト・グラフの色なので、注意の印と混ぜない） */
 .fdot,.fmark{color:var(--amber-ink)}.fmark:hover{background:color-mix(in oklab,var(--amber) var(--t2),transparent)}
 /* サマリーの表示では、上の帯を出さない（同じ数がすぐ下の数字の枠にあり、比べも付いているので） */
-body[data-view="sum"] #kpis,body[data-view="sum"] #legend,body[data-view="sum"] #fnote{display:none} /* サマリーは色分け・凡例での非表示・検索の絞り込みを使わない（自分のエージェントの切り替えがある）ので、その行と断り書きは出さない */
+body[data-view="sum"] #kpis{visibility:hidden} /* サマリーでは上の帯を見せない。広い画面では帯が期間の行の高さを決めているので、消さずに場所を残す（切り替えるたびに期間の見出しとボタンが上下にずれないように） */
+@media (max-width:1180px){body[data-view="sum"] #kpis{display:none}} /* 狭い画面では帯は期間の行の下なので、消しても行は動かない */
+body[data-view="sum"] #legend,body[data-view="sum"] #fnote{display:none} /* サマリーは色分け・凡例での非表示・検索の絞り込みを使わない（自分のエージェントの切り替えがある）ので、その行と断り書きは出さない */
 /* 吹き出しの時刻とコピー（.pfoot）は、吹き出しのすぐ下に小さく（吹き出しから離れて浮かないように。どの幅でも同じ並び）。
    あなたの発言は右寄せ（時刻・コピーも右端）、AI の応答は左（印の右に吹き出し、その下に時刻・コピー） */
 .tl li.pr:not(.ev){display:grid;grid-template-columns:minmax(12%,1fr) auto;align-items:start;row-gap:2px;padding-left:0;padding-right:0}

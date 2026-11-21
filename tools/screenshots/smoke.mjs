@@ -132,8 +132,13 @@ async function run(env) {
       check("スクロールしても曜日の見出しが見えている", await p.evaluate(() => { const h = document.querySelector("#tl .heads").getBoundingClientRect(), top = document.querySelector("header").getBoundingClientRect().bottom; return Math.abs(h.top - top) <= 2; }));
       await p.evaluate(() => window.scrollTo(0, 0)); await pause();
     }
+    const at = () => p.evaluate(() => ["#rd", "#view"].map(q => { const r = document.querySelector(q).getBoundingClientRect(); return [Math.round(r.x), Math.round(r.y + scrollY)]; }));
+    const pos0 = await at();
     await view("sum");
     check("サマリーに切り替えると、カレンダーは隠れる", await p.locator("#tl").isHidden() && await p.locator("#review").isVisible());
+    const pos1 = await at();
+    check("切り替えても、期間の見出しと切り替えのボタンは動かない（上の帯の高さでずれない）", JSON.stringify(pos0) === JSON.stringify(pos1), `${JSON.stringify(pos0)} → ${JSON.stringify(pos1)}`);
+    check("サマリーでは上の帯を見せず、押せない", !await p.evaluate(() => { const k = document.querySelector("#kpis"); const r = k.getBoundingClientRect(); return getComputedStyle(k).visibility === "visible" && getComputedStyle(k).display !== "none" && r.height > 0; }));
     check("サマリーでは、色分けと稼働時間の行（カレンダーの凡例）を出さない", await p.locator("#legend").isHidden() && await p.locator("#fnote").isHidden());
     await p.keyboard.press("v"); await pause();
     check("V でカレンダーに戻る", await p.locator("#tl").isVisible());

@@ -150,7 +150,7 @@ function insightH(F){
     {h: card(t("By agent"), insAgents()), full: true},
     {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insWhere())}, {h: card(t("Tokens by type"), insTokens())},
     {h: card(useCostW ? t("Cost by session length") : t("Sessions by length"), insHist())}, {h: card(t("Cost vs outputs per session"), insScatter())},
-    {h: card(t("Outputs"), insOutputs())}, {h: card(t("How you used AI"), insUsage())},
+    {h: card(t("Outputs (Git)"), insOutputs())}, {h: card(t("How you used AI"), insUsage())},
     {h: card(t("When you worked"), insHeat())}, {h: card(t("How you worked"), insWork())},
   ].filter(c => c.h);
   let run = []; const out = [], flush = () => { if (run.length % 2) run[run.length - 1].full = true; out.push(...run); run = []; };

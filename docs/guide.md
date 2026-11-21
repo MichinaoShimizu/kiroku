@@ -176,8 +176,8 @@ The chart cards are in two columns (one on narrow windows); a card left alone in
 - **Agent** (above the figures, when more than one agent ran in the period): "All agents" or one agent. With one agent, every card in the summary counts only that agent's sessions, including the comparison with past periods; Git commits made by hand, which belong to no agent, are left out. The band above the calendar and the calendar itself stay for all agents. kiroku remembers the choice
 - **By agent** (when more than one agent ran): one row per agent with active time and its share, sessions, prompts, estimated cost, Kiro credits and tokens, side by side so costs and credits are never added together. Time when agents ran at once is split between them
 - **Where it went**: estimated cost (or credits, tokens or time when there is no cost) by project, agent or model, largest first, as bars with the value and share, next to **Tokens by type**
-- **Cost by session length** (see above) beside **Cost and outputs** (the scatter), then **Outputs**: Git commits with the share by AI, lines changed with the average per commit, pull requests, sessions that reached a commit or PR, and cost per commit, each divided figure with its formula
-- **How you used AI**: tokens with the output share, cache reads, Kiro credits, prompts, cost per prompt, subagents with their types, and the month-end estimates, beside **Outputs**
+- **Cost by session length** (see above) beside **Cost and outputs** (the scatter), then **Outputs (Git)**: Git commits with the share by AI, lines changed with the average per commit, pull requests, sessions that reached a commit or PR, and cost per commit, each divided figure with its formula
+- **How you used AI**: tokens with the output share, cache reads, Kiro credits, prompts, cost per prompt, subagents with their types, and the month-end estimates, beside **Outputs (Git)**
 - **When you worked** (the heatmap), across the page
 - **How you worked**: corrections and interruptions, usage limit hits, compactions, oversized prompts, focus blocks, project switches and wait time
 
