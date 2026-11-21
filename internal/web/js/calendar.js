@@ -28,15 +28,13 @@ function render(){
   const mins = legendMinutes();
   const noHit = !!st.q && !DATA.some(matches); // 検索がどこにも当たらない（カレンダーは空になり、上の検索結果だけが「ない」と言う）
   // 件数は横にスクロールする並び（.lrow）の外に置く。スマホでは並びの上に出し、チップが多くても画面の外へ押し出されないように
-  const CP = calPick((M ? (MONTHS[mkey(st.month)] || {}).days : (WEEKS[key(st.week)] || {}).days) || []), SH = SHADE();
-  $("#legend").innerHTML = `<label class="cbsel"><span class="cbt">${esc(t("Color by"))}</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label>${CP.avail.length > 1 ? `<label class="cbsel"><span class="cbt">${esc(t("Figures"))}</span><select id="calk">${CP.avail.map(k => `<option value="${k}"${k === CP.k ? " selected" : ""}>${esc(SH[k].s)}</option>`).join("")}</select></label>` : ""}<div class="lrow"><span class="lab">${esc(t("Active time"))}<small> · ${esc(t("press to hide"))}</small></span>` +
+  $("#legend").innerHTML = `<label class="cbsel"><span class="cbt">${esc(t("Color by"))}</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label><div class="lrow"><span class="lab">${esc(t("Active time"))}<small> · ${esc(t("press to hide"))}</small></span>` +
     Object.keys(cnt).sort((a,b)=>(mins[b]||0)-(mins[a]||0) || cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}" title="${esc(t("{name}: {stats} (click to show or hide)", {name: k, stats: `${mins[k] ? dur(mins[k]) + " · " : ""}${plural(cnt[k], "session")}`}))}"><span class="dot"></span>${st.colorBy === "source" ? agMark(k) : ""}<span class="cn">${esc((k))}</span><span class="n">${mins[k] ? dur(mins[k]) : "—"}<span class="sr"> ${esc(t("active"))}</span></span></button>`).join("") +
     `</div>${filtering() ? `<span class="count">${esc(t(M ? "{n} of the month's {total} sessions" : "{n} of the week's {total} sessions", {n: shown.length, total: inRange.length}))}</span>` : ""}`; // 件数は絞り込んでいるときだけ（ふだんは全件なので言うことがない）
   // 検索・凡例で絞り込んでいるあいだ、絞り込めない合計（作業時間・トークンなど）は薄くして、そう断る
   const fn = $("#fnote"); fn.hidden = !filtering() || noHit;
   fn.textContent = `${st.q ? t("This view shows only sessions matching the search and their linked records.") : t("Hidden items are left out of this view.")} ${M ? t("Gray figures, at the top and in each day and week, are totals for all sessions; sessions and commits there count only what is shown.") : t("Gray figures, at the top and under each date, are totals for all sessions; sessions and commits there count only what is shown.")}`;
   $("#legend").hidden = !inRange.length; // 記録のない期間は、色分け・件数を出さない（押しても何も変わらない）
-  const ck = $("#calk"); if (ck) ck.onchange = () => { st.shade = ck.value; store.set("mShade", st.shade); render(); const n = $("#calk"); if (n) n.focus(); }; // 日の数（と月の濃さ）に使う量
   const cb2 = $("#cb2"); if (cb2) cb2.onchange = () => { st.colorBy = cb2.value; st.hidden.clear(); store.set("colorBy", st.colorBy); render(); };
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
 
@@ -146,19 +144,11 @@ addEventListener("resize", () => kWrap());
    作業時間は週では帯の長さ・月ではマスの濃さ、セッションは帯の数で見えるので、数は日のツールチップに（トークン・クレジットも）。
    見出しは期間の中でそろえる（日によって見出しが変わると、横に並べて比べられない）。
    un は絞り込み（検索・凡例で隠す）の最中に、絞り込まれていない合計を薄くする（1: 作業時間・トークン・クレジット、2: 全部） */
-/* カレンダーに書く量（週の日の見出し・月のマスの数と濃さ）。凡例の「量」で選ぶ。選べるのは表示中の期間の日に記録のある量で、
-   既定は推定費用、なければトークン、なければクレジット、どれもなければ稼働時間 */
-function calPick(days){ const SH = SHADE(), avail = Object.keys(SH).filter(k => days.some(d => d && SH[k].f(d) > 0)), kn = useKinds(days);
-  const def = kn.cost ? "cost" : kn.tokens ? "tokens" : kn.credits ? "credits" : "active";
-  return {avail, k: avail.includes(st.shade) ? st.shade : avail.includes(def) ? def : avail[0] || "active"}; }
-// calVal は、量 k の値を書く（short はマスの狭い所：桁を減らし、クレジットは単位を省く。何の量かは凡例の「量」にある）
-const calVal = (k, act, u, short) => k === "active" ? (act ? dur(act) : "") : !u ? "" : k === "cost" ? (u.cost > 0 ? (short ? usdS(u.cost) : usd(costOf(u))) : "")
-  : k === "tokens" ? (u.tokens ? (short ? tokS(u.tokens) : tok(u.tokens)) : "") : (u.credits ? (short ? crN(u.credits) : cr(u.credits)) : "");
 const useKinds = xs => ({tokens: xs.some(d => d && d.tokens), cost: xs.some(d => d && d.cost > 0), credits: xs.some(d => d && d.credits)});
 function calRows(act, u, nS, nC, kinds, un){
   const k = un ? "k u" : "k", o = un > 1 ? "u" : "";
   // [名前, 値（ただの文字）, class]。HTML に入れるときは、呼ぶ側で esc する
-  const use = kinds.k && [SHADE()[kinds.k].s, calVal(kinds.k, act, u) || "—", k]; // 書く量は選べる（calPick）
+  const use = kinds.cost ? [t("Est. cost"), u && u.cost > 0 ? usd(costOf(u)) : "—", k] : kinds.tokens ? [t("Tokens"), u && u.tokens ? tok(u.tokens) : "—", k] : kinds.credits && [t("Credits"), u && u.credits ? cr(u.credits) : "—", k];
   return [use, [t("Commits"), String(nC), o]].filter(Boolean);
 }
 // 週の日の見出しは 1 行：使用量（推定費用など）と、コミットの数（印つき）。何の数かは、見出しのツールチップと読み上げの名前で言う
@@ -167,7 +157,7 @@ const calLine = rows => `<div class="cline">${rows.filter(([, v], i) => !(i && v
 // ひとつの枠にまとめると、Claude Code と Kiro を両方使う人には、片方しか見えないため。
 function calShort(act, u, un, kinds){
   const q = un ? " u" : "";
-  const v = calVal(kinds.k, act, u, true);
+  const v = !u ? "" : kinds.cost ? u.cost > 0 && usdS(u.cost) : kinds.tokens ? u.tokens && tokS(u.tokens) : u.credits && cr(u.credits);
   return `<span class="acs${q}">${esc(v || "—")}</span>`;
 }
 const filtering = () => !!st.q || st.hidden.size > 0;
@@ -185,7 +175,8 @@ function monthGrid(shown, ms, me, todayKey){
   const un = filtering() ? 1 : 0, G = un ? gitShown(shown) : null;
   const wks = []; for (let r = 0; r < 6 && addDays(first, 7*r).getTime()/1000 < me; r++) wks.push(addDays(first, 7*r));
   const kinds = useKinds([...(S ? S.days : []), ...wks.map(wk => (WEEKS[key(wk)] || {}).usage)]);
-  const SH = SHADE(), days = S ? S.days : [], sk = calPick(days).k; kinds.k = sk;
+  const SH = SHADE(), days = S ? S.days : [], shAvail = Object.keys(SH).filter(k => days.some(d => d && SH[k].f(d) > 0));
+  const shDef = kinds.cost ? "cost" : kinds.tokens ? "tokens" : kinds.credits ? "credits" : "active", sk = shAvail.includes(st.shade) ? st.shade : shAvail.includes(shDef) ? shDef : shAvail[0] || "active";
   const max = Math.max(1e-9, ...days.map(d => d ? SH[sk].f(d) : 0));
   let h = `<div class="mgrid"><div class="mh"></div>${[1,2,3,4,5,6,0].map(i=>`<div class="mh${wkc(i)}">${dow(i)}</div>`).join("")}`;
   for (let r = 0; r < 6; r++){
@@ -203,8 +194,10 @@ function monthGrid(shown, ms, me, todayKey){
         </button>`;
     }
   }
-  h += `</div><div class="mlegend"><span class="mshade">${esc(t("Shade: {k}", {k: SH[sk].s}))}</span> <span class="nw">${esc(t("Less"))}</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${esc(t("More"))} · ${esc(matchMedia("(max-width:820px)").matches ? t("Week totals include all 7 days. Tap a date or week to open it.") : t("Week totals include all 7 days. Click a date or week to open it."))}</div>`;
+  const shSel = shAvail.length > 1 ? `<label class="mshade"><span>${esc(t("Shade"))}</span><select id="mshade">${shAvail.map(k => `<option value="${k}"${k === sk ? " selected" : ""}>${esc(SH[k].s)}</option>`).join("")}</select></label>` : `<span>${esc(t("Shade"))}: ${esc(SH[sk].s)}</span>`;
+  h += `</div><div class="mlegend">${shSel} <span class="nw">${esc(t("Less"))}</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${esc(t("More"))} · ${esc(matchMedia("(max-width:820px)").matches ? t("Week totals include all 7 days. Tap a date or week to open it.") : t("Week totals include all 7 days. Click a date or week to open it."))}</div>`;
   T.innerHTML = h;
+  const ms2 = $("#mshade"); if (ms2) ms2.onchange = () => { st.shade = ms2.value; store.set("mShade", st.shade); render(); const n = $("#mshade"); if (n) n.focus(); };
   T.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { const [y,m,dd] = b.dataset.w.split("-").map(Number); st.week = new Date(y, m-1, dd); setMode("week"); });
 }
 
@@ -243,7 +236,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     hours += `<span${near ? ' class="near"' : ""} style="top:${near ? Y(nowH) + (d >= 0 ? 20 : -20) : Y(h)}px">${String(h).padStart(2,"0")}:00</span>`; }
   hours += `<button type="button" class="calfold" id="calfold" style="height:${fold ? Math.max(18, Y(CAL_D0) - 14) : 18}px" aria-expanded="${!fold}" title="${esc(fold ? t("Show 0:00–7:00 at full height") : t("Fold 0:00–7:00"))}" aria-label="${esc(fold ? t("Show 0:00–7:00 at full height") : t("Fold 0:00–7:00"))}">${esc(t("0–7h"))}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${fold ? "M7 10l5 5 5-5" : "M7 14l5-5 5 5"}"/></svg></button>`;
   if (nowIn) hours += `<span class="now" style="top:${Y(nowH)}px">${hm(nowS)}</span>`;
-  const runs = [], un = filtering() ? 1 : 0, G = gitShown(shown), kinds = useKinds(w ? w.days : []); kinds.k = calPick(w ? w.days : []).k;
+  const runs = [], un = filtering() ? 1 : 0, G = gitShown(shown), kinds = useKinds(w ? w.days : []);
   for (let d=0; d<7; d++){
     const day = addDays(st.week,d), ds = day.getTime()/1000, de = addDays(st.week,d+1).getTime()/1000, isToday = key(day) === todayKey;
     const act = w && w.days[d] ? w.days[d].active : 0;

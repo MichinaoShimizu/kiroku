@@ -702,14 +702,11 @@ async function run(env) {
     check("長さ別の図に n= を並べない（件数はツールチップに）", !/n=\d/.test(await p.evaluate(() => (document.querySelector("#review .ihist svg") || {}).innerHTML || "")));
     await view("cal");
     await p.keyboard.press("m"); await pause();
-    const opts = await p.locator("#calk option").evaluateAll(xs => xs.map(x => x.value));
+    const opts = await p.locator("#mshade option").evaluateAll(xs => xs.map(x => x.value));
     if (opts.length > 1){ const heat = () => p.evaluate(() => [...document.querySelectorAll(".mgrid .cell[style*='--heat']")].map(c => c.style.getPropertyValue("--heat")).join(","));
-      const h0 = await heat(); await p.selectOption("#calk", opts[opts.length - 1]); await pause();
-      check("月の濃淡の量を凡例の「数字」で選べ、塗り方が変わり、選んだものが残る", await heat() !== h0 && await p.evaluate(v => st.shade === v && document.querySelector("#calk").value === v, opts[opts.length - 1]), JSON.stringify(opts));
-      await p.keyboard.press("w"); await pause();
-      const lab = await p.evaluate(() => (document.querySelector("#tl .head .cu") || {}).getAttribute?.("aria-label") || "");
-      check("週カレンダーの日の数字も、選んだ量で書く", await p.evaluate(v => document.querySelector("#calk") && document.querySelector("#calk").value === v, opts[opts.length - 1]) && lab.startsWith(await p.evaluate(v => SHADE()[v].s, opts[opts.length - 1])), lab);
-      await p.selectOption("#calk", opts[0]); await pause(); await p.keyboard.press("m"); await pause(); }
+      const h0 = await heat(); await p.selectOption("#mshade", opts[opts.length - 1]); await pause();
+      check("月の濃淡の量を選べ、塗り方が変わり、選んだものが残る", await heat() !== h0 && await p.evaluate(v => st.shade === v && document.querySelector("#mshade").value === v, opts[opts.length - 1]), JSON.stringify(opts));
+      await p.selectOption("#mshade", opts[0]); await pause(); }
     else console.log("  skip 月の濃淡に選べる量が 1 つしかない");
     await p.keyboard.press("w"); await pause();
   });
