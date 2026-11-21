@@ -388,6 +388,10 @@ async function run(env) {
     check("夜遅い印も日の枠の中にある", await p.evaluate(() => [...document.querySelectorAll("#tl .day")].every(d => { const db = d.getBoundingClientRect(); return [...d.querySelectorAll(".gc, .gm")].every(m => m.getBoundingClientRect().bottom <= db.bottom + 1); })));
     check("平日の勤務時間（9:00〜18:00）の外は地の色が違う", await p.evaluate(() => { const d = [...document.querySelectorAll("#tl .day")].find(e => !e.classList.contains("we")); return !!d && (getComputedStyle(d).backgroundImage.match(/linear-gradient/g) || []).length === 2; }));
     check("見直す候補はアイコンだけ（名前は読み上げとツールチップ）", await p.evaluate(() => { const b = document.querySelector("#worth summary"); return !!b && !/[A-Za-z]{3}/.test(b.textContent) && /Worth a look/.test(b.getAttribute("aria-label") || ""); }));
+    if (env.viewport.width >= 1440) check("上の帯（期間の操作と指標）は 1 行に収まる（週・月とも）", await p.evaluate(async () => { // 死守する: 指標が次の行に落ちると、カレンダーが下がる
+      const one = () => { const k = document.querySelector(".kpis").getBoundingClientRect(), n = document.querySelector("#today").getBoundingClientRect(); return k.top < n.bottom && k.bottom > n.top; };
+      const w = st.week, a = one(); setMode("month"); await new Promise(r => setTimeout(r, 300)); const b = one(); setMode("week"); st.week = w; render(); await new Promise(r => setTimeout(r, 300));
+      return a && b; }));
     if (env.viewport.width > 820) check("今週・期間・表示・見直す候補は、同じ高さで中心がそろう", await p.evaluate(() => { const rs = ["#today", "#mode", "#view", "#worth summary"].map(s => document.querySelector(s).getBoundingClientRect());
       return rs.every(r => Math.abs(r.height - rs[0].height) < 1 && Math.abs((r.top + r.height / 2) - (rs[0].top + rs[0].height / 2)) < 1); }));
     check("見直す候補は 1 つのボタン（押すと一覧）", await p.locator("#worth details summary").count() === 1 && !(await p.locator("#worth details").evaluate(d => d.open)));

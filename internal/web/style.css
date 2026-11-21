@@ -928,13 +928,12 @@ header{background:var(--s-cont);border-bottom:0}
 #worth summary.wdi{width:36px;border-radius:50%}
 .wk .nav .pill{height:36px} /* 「今週」と見直す候補も、期間・表示の切り替え（36px）とそろえる */
 .segc{padding:0;gap:0;border:1px solid var(--rule-2);border-radius:18px;background:transparent;overflow:hidden}
-.segc button{height:34px;padding:0 10px;border-radius:0;font-weight:500;color:var(--ink)}
+.segc button{height:34px;padding:0 8px;border-radius:0;font-weight:500;color:var(--ink)}
 .segc button+button{border-left:1px solid var(--rule-2)}
 .segc button[aria-pressed="true"]{background:var(--sc);color:var(--on-sc);box-shadow:none}
-.segc button[aria-pressed="true"]::before{content:"✓";margin-right:4px;font-weight:700} /* 選んでいるものに印（M3 のセグメントボタン） */
-.kpis{border:0;border-radius:16px;background:var(--s-cont);gap:4px;padding:4px}
+.kpis{border:0;border-radius:16px;background:var(--s-cont)} /* 1 枚のカードを区切り線で分ける（カードを並べると幅を取り、上の帯が 1 行に収まらない） */
 .kpi .k:has(.dl){flex-wrap:wrap;column-gap:6px} /* 狭いと、増減は見出しの下へ（見出しを 1 文字ずつに折らない） */
-.kpi{border:0;margin:0;border-radius:12px;background:var(--s-lowest)}
+.kpi{border-color:var(--rule);padding-left:14px;padding-right:14px}
 .kpi.key{background:var(--pc)}.kpi.key .k,.kpi.key .v{color:var(--on-pc)}
 .chip{height:32px;padding:0 12px 0 10px;border-radius:8px;border-color:var(--rule);background:transparent;font-weight:500}
 .chip:hover{background:color-mix(in srgb,var(--ink-2) 8%,transparent)}
