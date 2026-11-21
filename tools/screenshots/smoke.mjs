@@ -350,10 +350,12 @@ async function run(env) {
       check("ヒートマップの各行に曜日の合計がある（触れなくても読める）", await p.evaluate(() => document.querySelectorAll("#review .ihgrid > .iht:not(.ihh)").length === 7));
       check("3 列の並びの最後の段に空きを作らない（余りは横に広げる）", await p.evaluate(() => [...document.querySelectorAll("#review .istats, #review .ikrow")].every(g => { const k = [...g.children], cols = getComputedStyle(g).gridTemplateColumns.split(" ").length; if (k.length < 2) return true; const r = k.map(c => c.getBoundingClientRect()), last = r[r.length - 1], row = r.filter(b => Math.abs(b.top - last.top) < 2); return Math.abs(row[row.length - 1].right - g.getBoundingClientRect().right) < 2 || row.length === cols; })));
       check("カードの中の数の枠は最大 3 列", await p.evaluate(() => [...document.querySelectorAll("#review .istats")].every(g => getComputedStyle(g).gridTemplateColumns.split(" ").length <= 3)));
-      check("サマリーの頭はコスト・出力・単価の 3 枚のカードで、広い画面では 1 行に 3 枚並び、どの数字も画面の中に見える", await p.evaluate(() => { const G = [...document.querySelectorAll("#review .insh .ikg")], g = document.querySelector("#review .insh").getBoundingClientRect();
+      check("サマリーの頭はコスト・出力・単価の 3 枚のカードで、広い画面ではコストと出力を左に積み単価を右に置き、どの数字も画面の中に見える", await p.evaluate(() => { const G = [...document.querySelectorAll("#review .insh .ikg")], g = document.querySelector("#review .insh").getBoundingClientRect();
         const k = [...document.querySelectorAll("#review .insh .ikrow > .itile")], inside = k.every(c => { const r = c.getBoundingClientRect(); return r.left >= g.left - 1 && r.right <= g.right + 1; });
-        const tops = G.map(x => Math.round(x.getBoundingClientRect().top));
-        return G.length === 3 && k.length > 1 && inside && (innerWidth < 1300 || tops.every(x => x === tops[0])) && !document.querySelector("#review .icall"); }));
+        // 広い画面では、コストと出力を左に縦に積み、単価を右に置く（短いカードの下を空けない）
+        const r = c => document.querySelector(`#review .insh .ik-${c}`).getBoundingClientRect(), wide = innerWidth >= 1100;
+        const lay = !wide || (Math.abs(r("cost").top - r("unit").top) < 2 && r("out").top >= r("cost").bottom - 1 && r("unit").left >= r("cost").right - 1 && Math.abs(r("out").left - r("cost").left) < 2);
+        return G.length === 3 && k.length > 1 && inside && lay && !document.querySelector("#review .icall"); }));
       check("式はふだん隠し、指標名の横の「ƒx」で、その数字の式だけを開く（もう一度押すと閉じる）", await p.evaluate(async () => {
         const vis = el => [...el.querySelectorAll(".ifx.fxo")].some(e => e.offsetParent !== null), I = document.querySelector("#review .insight");
         const b = I.querySelector(".itile .fxb"), tile = b && b.closest(".itile"); if (!tile || vis(I) || document.querySelector("#fxbtn")) return false;

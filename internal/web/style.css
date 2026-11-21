@@ -902,7 +902,10 @@ header{background:var(--s-cont);border-bottom:0}
 /* サマリーの頭：コストと出力の 2 段。段は 1 枚の面にして、数字は細い区切り線で分ける（数字ごとに色の線や塗りの箱を付けない）。
    いつもの範囲から外れたことは、数字の下の小さな印（.ichip）だけで言う */
 .insh{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
-.insh>.ikg{flex:1 1 290px;min-width:0}.insh>.ikg:last-child{flex-grow:2} /* 単価（いちばん数字が多いカード）は幅を 2 倍に取り、1 段に 3 つ並べて縦に長くしない */ /* 広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる */
+.insh>.ikg{flex:1 1 290px;min-width:0}.insh>.ikg:last-child{flex-grow:2}
+/* 広い画面：コストと出力を左に縦に積み、数字の多い単価を右に置く（横に 3 枚並べると、短いカードの下が大きく空く） */
+@media (min-width:1100px){.insh:has(>.ik-unit){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"cost unit" "out unit";align-items:start}
+  .insh>.ik-cost{grid-area:cost}.insh>.ik-out{grid-area:out}.insh>.ik-unit{grid-area:unit;align-self:stretch}} /* 単価（いちばん数字が多いカード）は幅を 2 倍に取り、1 段に 3 つ並べて縦に長くしない */ /* 広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる */
 .ikrow>.itile{border-left:1px solid var(--rule)}.ikrow{margin-left:-1px;clip-path:inset(0 0 0 1px)} /* 数字の間に縦の区切り線。折り返した行の左端の線は、1px ずらして切り落とす */
 /* タイルの背景：いつもの範囲より良い側は緑、悪い側は赤（大きく外れたら濃く）。範囲の中と、向きの決まっていない指標は色なし */
 .itile.good,.itile.bad{border-radius:12px;padding-top:10px;padding-bottom:10px}
@@ -1085,7 +1088,7 @@ header{background:var(--s-cont);border-bottom:0}
 /* サマリーのグラフのカードは 2 列（1000px 以下は 1 列）。.full は幅いっぱい */
 .insg{display:flex;flex-direction:column;gap:16px}
 .insrow{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch}
-.insrow>.inscol{flex:1 1 360px;min-width:0;container-type:inline-size} /* グラフのカードも、広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚 */
+.insrow>.inscol{flex:1 1 360px;min-width:0;container-type:inline-size}.insrow>.inscol.wide{flex-grow:2} /* 出力のカードは中身が多いので、横に広く取り、中を 2 列にして背を低くする */ /* グラフのカードも、広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚 */
 @container (max-width:720px){.iout2{grid-template-columns:minmax(0,1fr)}} /* 出力のカードが狭いときは、Git と AI の編集を縦に並べる */
 /* トレンドの指標：広い画面は切り替え、狭い画面は選択リスト（横に隠れて選べなくならないように） */
 .insksel{display:none}
