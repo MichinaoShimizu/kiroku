@@ -129,3 +129,5 @@ function setHdr(){ const h = document.querySelector("header"); if (h) document.d
 setHdr(); addEventListener("resize", setHdr);
 
 // 「見直す候補」の一覧は、枠の外を押すと閉じる
+
+document.addEventListener("click", e => { const b = e.target.closest && e.target.closest("[data-keys]"); if (b) $("#keys").showModal(); }); // ページの下の「キーボードの操作」（? と同じ一覧）

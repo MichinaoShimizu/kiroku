@@ -28,7 +28,7 @@ function render(){
   const mins = legendMinutes();
   const noHit = !!st.q && !DATA.some(matches); // 検索がどこにも当たらない（カレンダーは空になり、上の検索結果だけが「ない」と言う）
   // 件数は横にスクロールする並び（.lrow）の外に置く。スマホでは並びの上に出し、チップが多くても画面の外へ押し出されないように
-  $("#legend").innerHTML = `<label class="cbsel"><span class="cbt">${esc(t("Color by"))}</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label><div class="lrow"><span class="lab">${esc(t("Active time"))}<small> · ${esc(t("click to hide"))}</small></span>` +
+  $("#legend").innerHTML = `<label class="cbsel"><span class="cbt">${esc(t("Color by"))}</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label><div class="lrow"><span class="lab">${esc(t("Active time"))}<small> · ${esc(t("press to hide"))}</small></span>` +
     Object.keys(cnt).sort((a,b)=>(mins[b]||0)-(mins[a]||0) || cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}" title="${esc(t("{name}: {stats} (click to show or hide)", {name: k, stats: `${mins[k] ? dur(mins[k]) + " · " : ""}${plural(cnt[k], "session")}`}))}"><span class="dot"></span>${st.colorBy === "source" ? agMark(k) : ""}<span class="cn">${esc((k))}</span><span class="n">${mins[k] ? dur(mins[k]) : "—"}<span class="sr"> ${esc(t("active"))}</span></span></button>`).join("") +
     `</div>${filtering() ? `<span class="count">${esc(t(M ? "{n} of the month's {total} sessions" : "{n} of the week's {total} sessions", {n: shown.length, total: inRange.length}))}</span>` : ""}`; // 件数は絞り込んでいるときだけ（ふだんは全件なので言うことがない）
   // 検索・凡例で絞り込んでいるあいだ、絞り込めない合計（作業時間・トークンなど）は薄くして、そう断る
@@ -107,7 +107,7 @@ function kpis(){
   const pc = pacing(w, pw), paceK = () => {
     const xs = [[pc.cost, (v, txt) => txt ? usd(v) : usdH(v)], [pc.credits, (v, txt) => txt ? cr(v) : `${crN(v)}<small>&nbsp;cr</small>`]].filter(([x]) => x);
     const all = xs.every(([x]) => x.rest < 0);
-    if (all) return kpi(t(M ? "Past last month's total" : "Past last week's total"), xs.map(([x, f]) => `<small>+</small>${f(-x.rest)}<small> ${esc(t("over"))}</small>`).join(`<small> · </small>`),
+    if (all) return kpi(t(M ? "Over last month's total" : "Over last week's total"), xs.map(([x, f]) => `<small>+</small>${f(-x.rest)}<small> ${esc(t("over"))}</small>`).join(`<small> · </small>`),
       t(M ? "Last month's total was {v}" : "Last week's total was {v}", {v: xs.map(([x, f]) => f(x.ref, true)).join(" · ")}), "", pc.cost ? "pace" : "paceCr");
     // 片方（多くはクレジット）だけ超えたときは、1 日の目安の数に超過を混ぜない（「$3.20 · +5 cr 超過」は 1 日の額に読める）。
     // 数は超えていない方の目安だけにし、超えた方は短い添え書き（「クレジットは超過」）と、ポップアップの文で伝える
@@ -177,7 +177,7 @@ function monthGrid(shown, ms, me, todayKey){
       const x = S ? S.days[d.getDate()-1] : null, act = x ? x.active : 0;
       const nS = shown.filter(s => inP(s, ds, de)).length;
       const nC = G ? G.filter(c => c.t >= ds && c.t < de).length : x && x.commits || 0;
-      h += `<button class="cell${d.getDay()%6===0?" we":""}${wkc(d.getDay())}${key(d)===todayKey?" today":""}" data-w="${key(mondayOf(d))}" style="--heat:${(act/max).toFixed(3)}"${tipAttr(md(ds), act ? [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(x), `${t("Git commits")} ${nC}`] : t("No records"))}>
+      h += `<button class="cell${d.getDay()%6===0?" we":""}${wkc(d.getDay())}${key(d)===todayKey?" today":""}${d.getTime() > nowMs() ? " fut" : ""}" data-w="${key(mondayOf(d))}" style="--heat:${(act/max).toFixed(3)}"${tipAttr(md(ds), act ? [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(x), `${t("Git commits")} ${nC}`] : t("No records"))}>
         <span class="dn">${d.getDate()}</span>${act ? calShort(act, x, un, kinds) : ""}
         </button>`;
     }
@@ -191,7 +191,11 @@ function monthGrid(shown, ms, me, todayKey){
 // 夜中の記録も正しい位置に小さく見える。左上の「0–7時」を押すと広げる・畳む（選んだものを覚える）。
 // 選んでいなければ、その週の 0〜7 時にセッションがあるときは広げておく（実際の作業を潰さない）
 const CAL_D0 = 7;
+let earlyMemo = {}; // weekHasEarly は描画のたびに何百回も呼ばれる（calY）ので、週と DATA の組ごとに覚える
 function weekHasEarly(){ const ws = st.week.getTime()/1000, we = addDays(st.week, 7).getTime()/1000;
+  if (earlyMemo.ws === ws && earlyMemo.data === DATA) return earlyMemo.v;
+  earlyMemo = {ws, data: DATA, v: weekHasEarlyScan(ws, we)}; return earlyMemo.v; }
+function weekHasEarlyScan(ws, we){
   return DATA.some(s => s.segs.some(([a, b]) => { if (b <= ws || a >= we) return false;
     for (let d = 0; d < 7; d++){ const ds = addDays(st.week, d).getTime()/1000, x = new Date(ds*1000); x.setHours(CAL_D0); if (a < x.getTime()/1000 && b > ds) return true; } return false; })); }
 const calFold = () => st.early == null ? !weekHasEarly() : !st.early; // 畳んでいるか
@@ -253,7 +257,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
       const pos = `left:calc((100% - var(--g)) * ${bk.l.toFixed(4)} + 3px);width:calc((100% - var(--g)) * ${bk.w.toFixed(4)} - 6px)`;
       runs.push(bk);
       // 20px 以上は名前（高さに入るだけ 3 行まで折り返す。38px からは下に時刻も）、10px からは小さい字で名前を帯の中に 1 行（帯の外へはみ出して見えないように）、それより短いものは帯の下に名前。名前の入らない細い帯は始まりの時刻（style.css の .st）
-      html += `<button class="run${h < 20 ? " thin" : ""}${bk.cas ? " cas" : ""}${st.sel === bk.s.id ? " sel" : ""}" data-r="${id}" data-sid="${esc(bk.s.id)}" style="top:${y}px;height:${h}px;${pos};--c:${colorOf(keyOf(bk.s))};--fill:${Math.round(16+30*dens)}%;--ln:${Math.max(1, Math.floor((th - 8) / 14))};--tl:${Math.max(1, Math.min(3, Math.floor((th - (th >= 38 ? 24 : 8)) / 14.3)))};${st.animate?`--delay:${d*15+Math.min(j,14)*5}ms`:"animation:none"}" aria-label="${esc(t("{title}, {project}, {date} {start} to {end}", {title: bk.s.title, project: bk.s.project, date: md(bk.a), start: hm(bk.a), end: hm(bk.b)}))}">${h >= 10 ? `<span class="t"><span>${esc(bk.s.title)}</span></span><span class="st">${hm(bk.a)}</span>` + (th >= 38 ? `<span class="m">${hm(bk.a)}–${hm(bk.b)} · ${esc(bk.s.project)}</span>` : "") : ""}</button>`;
+      html += `<button class="run${h < 20 ? " thin" : ""}${bk.cas ? " cas" : ""}${st.sel === bk.s.id ? " sel" : ""}" data-r="${id}" data-sid="${esc(bk.s.id)}" style="top:${y}px;height:${h}px;${pos};--c:${colorOf(keyOf(bk.s))};--fill:${Math.round(16+30*dens)}%;--ln:${Math.max(1, Math.floor((th - 8) / 14))};--tl:${Math.max(1, Math.min(3, Math.floor((th - (th >= 38 ? 24 : 8)) / 14.3)))};${st.animate?`--delay:${d*15+Math.min(j,14)*5}ms`:"animation:none"}" aria-label="${esc(t("{title}, {project}, {date} {start} to {end}", {title: bk.s.title, project: bk.s.project, date: md(bk.a), start: hm(bk.a), end: bk.b >= de ? "24:00" : hm(bk.b)}))}">${h >= 10 ? `<span class="t"><span>${esc(bk.s.title)}</span></span><span class="st">${hm(bk.a)}</span>` + (th >= 38 ? `<span class="m">${hm(bk.a)}–${bk.b >= de ? "24:00" : hm(bk.b)} · ${esc(bk.s.project)}</span>` : "") : ""}</button>`;
       if (h < 10 && free(bk)) html += `<span class="rlab" aria-hidden="true" style="top:${y + h + 1}px;${pos}">${esc(bk.s.title)}</span>`;
     });
     // 右端の溝に、コミット・push・PR を時刻の順に置く（近すぎるものは少し下へずらす）
@@ -340,8 +344,4 @@ addEventListener("scroll", () => { if (st.sel) return;
   const a = document.activeElement, r = a && a.classList && a.classList.contains("run") && a.matches(":focus-visible") && $("#tip").classList.contains("on") && a.getBoundingClientRect();
   if (r && r.bottom > 0 && r.top < innerHeight) tipMove(tipAt(a)); else tipOff(); }, {passive: true, capture: true}); // キーボードで選んだブロックは、Tab で移ったときのスクロールで消さずに付いていく
 
-// showFlowEvent は、開いた詳細のプロンプトの流れで、kind の出来事（時刻 at）を見せる（畳んだ分にあれば広げてから）。上限の印から開いたときに使う
-function showFlowEvent(kind, at){
-  const find = () => [...document.querySelectorAll(`#panel .tl li.ev.${kind}`)].find(li => (li.querySelector("time") || {}).textContent === hm(at));
-  let li = find(); if (li && li.hidden){ const all = $("#panel .pall"); if (all) all.click(); li = find(); }
-  if (!li) return; li.scrollIntoView({block: "center"}); li.classList.add("flash"); setTimeout(() => li.classList.remove("flash"), 1600); }
+

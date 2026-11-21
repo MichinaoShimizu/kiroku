@@ -90,7 +90,7 @@ function paceBody(w, k, m, brief){
   const pc = pacing(w, period().P), x = pc && pc[k]; if (!x) return null; const M = st.mode === "month", on = x.rest >= 0, C = k === "credits";
   // 見出しは上の帯と同じ言葉（超えたあとは「超過」。超えた分を 1 日の目安と読まれないように）
   const title = on ? (C ? t(M ? "Credits a day to match last month" : "Credits a day to match last week") : t(M ? "A day to match last month" : "A day to match last week"))
-    : (C ? t(M ? "Past last month's credits" : "Past last week's credits") : t(M ? "Past last month's total" : "Past last week's total"));
+    : (C ? t(M ? "Over last month's credits" : "Over last week's credits") : t(M ? "Over last month's total" : "Over last week's total"));
   const big = on ? esc(m.f(x.per)) : `+${esc(m.f(-x.rest))}`, last = M ? "Last month" : "Last week";
   const calc = on ? calcH([[last, esc(m.f(x.ref))], "−", ["So far", esc(m.f(x.so))], "=", ["Left", esc(m.f(x.rest))], "÷", ["Days left", `${pc.left}`], "=", ["A day", esc(m.f(x.per))]])
     : calcH([["So far", esc(m.f(x.so))], "−", [last, esc(m.f(x.ref))], "=", ["Over", esc(m.f(-x.rest))]]);

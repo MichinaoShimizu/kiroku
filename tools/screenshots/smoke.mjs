@@ -467,8 +467,10 @@ async function run(env) {
     check("平日の勤務時間（9:00〜18:00）の外は地の色が違う", await p.evaluate(() => { const d = [...document.querySelectorAll("#tl .day")].find(e => !e.classList.contains("we")); return !!d && (getComputedStyle(d).backgroundImage.match(/linear-gradient/g) || []).length === 3; })); // 畳んだ帯・1 時間の線・勤務時間の外
     check("期間の行の ⚠（見直す候補の一覧）は出さない", await p.evaluate(() => !document.querySelector("#worth") && !document.querySelector("#worth summary")));
     if (env.viewport.width >= 1440) check("上の帯（期間の操作と指標）は 1 行に収まる（週・月とも）", await p.evaluate(async () => { // 死守する: 指標が次の行に落ちると、カレンダーが下がる
+      setView("cal"); await new Promise(r => setTimeout(r, 200)); // 帯はカレンダーの表示で見る（サマリーの表示では出さない）
       const one = () => { const k = document.querySelector(".kpis").getBoundingClientRect(), n = document.querySelector("#today").getBoundingClientRect(); return k.top < n.bottom && k.bottom > n.top; };
       const w = st.week, a = one(); setMode("month"); await new Promise(r => setTimeout(r, 300)); const b = one(); setMode("week"); st.week = w; render(); await new Promise(r => setTimeout(r, 300));
+      setView("sum"); await new Promise(r => setTimeout(r, 200));
       return a && b; }));
     const go = p.locator("#review .insh .insgo").first(); // 見直す候補は「まず見直す」とサマリーの印から開く
     if (await go.count()){

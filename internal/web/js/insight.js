@@ -78,14 +78,15 @@ function insHeadlines(F){
   else if (pc){ // 費用とクレジットのそれぞれについて：残りの日 1 日あたりの目安か、すでに超えた額（式で）
     const xs = ["cost", "credits"].filter(k => pc[k]).map(k => ({k, x: pc[k], f: fmc(k)})), ok = xs.find(o => o.x.rest >= 0), fs = xs.map(({x, f}) => x.rest >= 0 ? `(${f(x.ref)} − ${f(x.so)}) ÷ ${pc.left}${t("d")} = ${f(x.per)}/${t("d")}` : `${f(x.so)} − ${f(x.ref)} = +${f(-x.rest)} ${t("over")}`);
     if (ok) tile(M ? t("A day to match last month") : t("A day to match last week"), false, `${ok.f(ok.x.per)}/${t("d")}`, fs, ok.k === "cost" ? "pace" : "paceCr");
-    else tile(M ? t("Past last month's total") : t("Past last week's total"), false, `+${xs[0].f(-xs[0].x.rest)}`, fs, xs[0].k === "cost" ? "pace" : "paceCr"); }
+    else tile(M ? t("Over last month's total") : t("Over last week's total"), false, `+${xs[0].f(-xs[0].x.rest)}`, fs, xs[0].k === "cost" ? "pace" : "paceCr"); }
   else if (u.tokens && costOf(u) != null){ const a = costOf(u), dd = w.days.filter(d => d.active).length; // 終わった期間：使った日 1 日あたり（前の期間との差は推定費用のカードの式にある）
     if (dd) tile(t("Cost per active day"), false, `${usd(a / dd)}/${t("d")}`, `${usd(a)} ÷ ${dd}${t("d")} = ${usd(a / dd)}`); }
   const ba = insBase("active"); if (ba) tile(t("Active time"), ba, fmtM("active", ba.cur), [vs(ba.cur, V.of("active", pw && pw.active), v => dur(v))].concat(ba.part ? pace(ba.cur, ba.v, v => dur(v)) : "").filter(Boolean), "active");
   const bp = insBase("costPerCommit"), oc = w && w.outCost, nc = w && w.outputs && w.outputs.commits;
   if (bp) tile(t("Cost per commit"), bp, fmtM("costPerCommit", bp.cur), oc && nc ? `Claude Code ${usd(oc)} ÷ ${nc} ${t("AI commits")} = ${usd(bp.cur)}` : "", "costPerCommit");
-  const f0 = F[0], g0 = f0 && (GOTO[f0.k] || f0.k), b0 = f0 && MET[f0.k] ? insBase(f0.k) : null;
-  T.push(f0 ? `<div class="itile${b0 && b0.better === false ? " bad" : ""}"><span class="il">${esc(t("Change first"))}</span><button type="button" class="itv sm insgo" data-goto="${esc(g0)}" aria-haspopup="dialog">${esc(insName(g0))}</button><span class="isee">${esc(f0.L.see)}</span>${fx(t("Threshold: {rule}", {rule: f0.L.rule}), "", t("Threshold: {rule}", {rule: f0.L.rule}))}${b0 ? insChip(b0) : ""}</div>`
+  const f0 = F[0], g0 = f0 && (GOTO[f0.k] || f0.k), b0 = f0 && MET[f0.k] ? insBase(f0.k) : null, nIds = new Set(F.map(f => GOTO[f.k] || f.k)).size;
+  const n0 = f0 && F.filter(f => (GOTO[f.k] || f.k) === g0).length === 1 && H()[f0.k] ? H()[f0.k].n : g0 && insName(g0); // 開くダイアログの見出しと同じ名前
+  T.push(f0 ? `<div class="itile${b0 && b0.better === false ? " bad" : ""}"><span class="il">${esc(t("Change first"))}${nIds > 1 ? ` · ${esc(t("{n} worth a look", {n: nIds}))}` : ""}</span><button type="button" class="itv sm insgo" data-goto="${esc(g0)}" aria-haspopup="dialog">${esc(n0)}</button><span class="isee">${esc(f0.L.see)}</span>${fx(t("Threshold: {rule}", {rule: f0.L.rule}), "", t("Threshold: {rule}", {rule: f0.L.rule}))}${b0 ? insChip(b0) : ""}</div>`
     : `<div class="itile good"><span class="il">${esc(t("Change first"))}</span><b class="sm">${esc(t("Nothing"))}</b>${pln(t("No metric crossed its threshold"))}</div>`);
   return `<div class="insh">${T.join("")}</div><p class="ifxs insdef">${fx(insDef())}</p>`;
 }
@@ -112,10 +113,10 @@ function insChart(k){
       + `<rect class="ihit" x="${x(i).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${Hh}"${tipAttr(p.label, v == null ? t("No records") : fmtM(k, v), last && proj != null ? t("At this pace: {v}", {v: fmtM(k, proj)}) : "")}/></g>`; }).join("");
   const list = ps.filter(x => x.v != null).map(x => `${x.p.label} ${fmtM(k, x.v)}`).join(LSEP());
   let sy = b ? t("{x}; {need}", {x: (b.part ? t("pace") + " " : "") + fmtM(k, b.v), need: insExpr(b)}) : ""; if (b && b.q1 != null){ const all = [...b.xs, b.v], r = 1 + b.xs.filter(z => z > b.v).length, d = b.v - b.med, pc = b.med ? Math.round(d * 100 / b.med) : null;
-    sy = t("{x}: {r} of {n} {unit} from the highest; {d} from the median {m}{pc}", {x: (b.part ? t("pace") + " " : "") + fmtM(k, b.v), r, n: all.length, unit: insUnit(all.length), d: (d >= 0 ? "+" : "−") + fmtM(k, Math.abs(d)), m: fmtM(k, b.med), pc: pc == null ? "" : ` (${pc >= 0 ? "+" : ""}${pc}%)`}); }
+    sy = t("{x}: {r} highest of {n} {unit}; {d} from the median {m}{pc}", {x: (b.part ? t("At this pace") + " " : "") + fmtM(k, b.v), r: JA ? r : `${r}${["th", "st", "nd", "rd"][r % 100 > 10 && r % 100 < 14 ? 0 : r % 10 < 4 ? r % 10 : 0]}`, n: all.length, unit: insUnit(all.length), d: (d >= 0 ? "+" : "−") + fmtM(k, Math.abs(d)), m: fmtM(k, b.med), pc: pc == null ? "" : ` (${pc >= 0 ? "+" : ""}${pc}%)`}); }
   const th = !b || b.q1 == null ? "" : b.pos === "typical" ? t("Within the middle half of your past {unit}", {unit: insNoun()}) : b.better === false ? t("Outside the middle half, on the worse side; \"Change first\" and the warning marks show where it came from") : b.better ? t("Outside the middle half, on the better side; keep what you changed") : b.pos === "high" ? t("Above the 75th pct of your past {unit}", {unit: insNoun()}) : t("Below the 25th pct of your past {unit}", {unit: insNoun()});
   return `${say(sy, th)}<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(t("{metric} over the last {n} {unit}", {metric: insName(k), n, unit: insUnit(n)}))}">${ticks}${band}${bars}</svg>
-    <figcaption><span class="lg iband">${esc(t("Middle half of the last {n} {unit}", {n: b ? b.n : 0, unit: insUnit(b ? b.n : 0)}))}</span><span class="lg imed">${fx(t("median"), "", t("median"))}</span>${proj != null ? `<span class="lg iproj">${fx(`${t("pace")} = ${t("so far")} × ${t("period")} ÷ ${t("elapsed")}`, "", t("At this pace"))}</span>` : ""}<span class="lg iout">${fx(`< ${LO()} − 1.5×${SP()} ${t("or")} > ${HI()} + 1.5×${SP()}`, "", t("Periods far outside the 25th–75th pct"))}</span></figcaption>
+    <figcaption><span class="lg iband">${esc(t("Middle half of the last {n} {unit}", {n: b ? b.n : 0, unit: insUnit(b ? b.n : 0)}))}</span><span class="lg imed">${fx(t("median"), "", t("median"))}</span>${proj != null ? `<span class="lg iproj">${fx(`${t("pace")} = ${t("so far")} × ${t("period")} ÷ ${t("elapsed")}`, "", t("At this pace"))}</span>` : ""}<span class="lg iout">${fx(`< ${LO()} − 1.5×${SP()} ${t("or")} > ${HI()} + 1.5×${SP()}`, "", t("Far above or below the other periods"))}</span></figcaption>
     <p class="sr">${esc(list)} — ${esc(insPosText(b))}</p></figure>`;
 }
 /* 見直す候補の対象の費用（そのセッションの推定費用の合計）。費用で表せない候補（利用上限・繰り返し・長すぎるプロンプト）は null */
@@ -155,10 +156,10 @@ function insightH(F){
     <div class="insg">${out.map(c => c.full ? c.h.replace(/^<div class="inscol/, '<div class="inscol full') : c.h).join("")}</div></section>`;
 }
 function bindInsight(R){
-  R.querySelectorAll("[data-ins]").forEach(b => b.onclick = () => { st.insK = b.dataset.ins; store.set("insK", st.insK); summary(); const nb = $("#review").querySelector(`[data-ins="${b.dataset.ins}"]`); if (nb) nb.focus(); });
+  R.querySelectorAll("[data-ins]").forEach(b => b.onclick = () => { st.insK = b.dataset.ins; store.set("insK", st.insK); summary(); const nb = $("#review").querySelector(`[data-ins="${CSS.escape(b.dataset.ins)}"]`); if (nb) nb.focus(); });
   R.querySelectorAll(".insksel").forEach(sl => sl.onchange = () => { st.insK = sl.value; store.set("insK", st.insK); summary(); const ns = $("#review .insksel"); if (ns) ns.focus(); });
   R.querySelectorAll(".insgo").forEach(b => b.onclick = () => insOpenWorth(b.dataset.goto, b));
-  R.querySelectorAll("[data-where]").forEach(b => b.onclick = () => { st.insW = b.dataset.where; store.set("insW", st.insW); summary(); const nb = $("#review").querySelector(`[data-where="${b.dataset.where}"]`); if (nb) nb.focus(); });
+  R.querySelectorAll("[data-where]").forEach(b => b.onclick = () => { st.insW = b.dataset.where; store.set("insW", st.insW); summary(); const nb = $("#review").querySelector(`[data-where="${CSS.escape(b.dataset.where)}"]`); if (nb) nb.focus(); });
   R.querySelectorAll(".insfig [data-sid]").forEach(c => { c.onclick = () => select(c.dataset.sid); c.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); select(c.dataset.sid); } }; }); // 散布図の点は、そのセッションを開く
 }
 
@@ -179,7 +180,7 @@ function insScatter(){
     return `<circle class="ipt${hit ? " bad" : ""}" cx="${x(p.c).toFixed(1)}" cy="${(y(p.o) + jy).toFixed(1)}" r="${narrow ? 4 : 5}" tabindex="0" role="button" data-sid="${esc(p.s.id)}" aria-label="${esc(`${p.s.title || p.s.id}: ${usd(p.c)}, ${plural(p.o, "output")}`)}"${tipAttr(p.s.title || "", `${usd(p.c)} · ${plural(p.o, "output")}`, p.s.project)}/>`; }).join("");
   const note = `${t("outputs")} = 0 ∧ ${t("cost")} ≥ ${usd(thr)} : ${bad.length} · ${usd(badC)}`;
   const tq = xs.filter(p => p.c >= thr).length, all$ = cs.reduce((a, c) => a + c, 0);
-  const sy = t("{m} of the {k} sessions costing {thr} or more had no output: {usd} = {pc}% of session cost", {m: bad.length, k: tq, thr: usd(thr), usd: usd(badC), pc: all$ ? Math.round(badC * 100 / all$) : 0});
+  const sy = t("{m} of {sessions} costing {thr} or more had no output: {usd} = {pc}% of session cost", {m: bad.length, sessions: plural(tq, "session"), thr: usd(thr), usd: usd(badC), pc: all$ ? Math.round(badC * 100 / all$) : 0});
   const th = bad.length ? t("Open the red points: research is fine; work that stopped partway is the cost to cut") : "";
   return `${say(sy, th)}<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="group" aria-label="${esc(t("Cost and outputs per session"))}">${xt}${yt}${zone}${pts}
     <text class="iax" x="${W - R}" y="${Hh - 1}">${esc(t("Estimated cost (√ scale) →"))}</text><text class="iax st" x="${L + 4}" y="${T + 10}">${esc(t("↑ Commits and PRs"))}</text></svg><figcaption><span class="lg izone">${fx(note, "", t("Costly sessions with no output"))}</span></figcaption><p class="ifxs">${fx(`${t("outputs")} = ${t("commits")} + PR`)}${fx(`${usd(thr)} = max($0.50, P75(${t("cost")}))`)}</p></figure>`;
@@ -224,6 +225,8 @@ function insCum(){
   const x = i => L + (W - L - R) * (n === 1 ? 0 : i / (n - 1)), y = v => T + (Hh - T - B) * (1 - v / top), line = a => a.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
   const ticks = [0, top / 2, top].map(v => `<g class="itk"><line x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${L - 6}" y="${(y(v) + 4).toFixed(1)}">${esc(fm(v))}</text></g>`).join("");
   const a = new Date(period().ws * 1000), xl = [0, n - 1].map(i => `<text class="ixl ${i ? "e" : "s"}" x="${x(i).toFixed(1)}" y="${Hh - 6}">${esc(dMD(addDays(a, i)))}</text>`).join(""); // 両端の日付は、内側に寄せる（はみ出さないように）
+  if (useCost){ const a = costOf(w.usage || {}), b = pw ? costOf(pw.usage || {}) : null; // 合計は帯と同じ値（日ごとの丸めを足すと、帯と 1 セントずれる）
+    if (a != null && cur.length) cur[cur.length - 1] = a; if (b != null && prev.length) prev[prev.length - 1] = b; }
   const last = cur.length - 1, ptot = prev.length ? prev[prev.length - 1] : null, pref = fr >= 1 ? ptot : prev.length > last ? prev[last] : null, diff = pref == null ? null : cur[last] - pref; // 終わった期間は前の期間の合計と、途中の期間は同じ日までと比べる
   const sy = diff == null ? "" : (fr >= 1 ? t("Total {diff} ({pc}) vs the previous period's total", {diff: (diff >= 0 ? "+" : "−") + fm(Math.abs(diff)), pc: pref ? `${diff >= 0 ? "+" : ""}${Math.round(diff * 100 / pref)}%` : "—"})
       : t("Day {d} of {n}: {diff} ({pc}) vs the previous period", {d: last + 1, n: w.days.length, diff: (diff >= 0 ? "+" : "−") + fm(Math.abs(diff)), pc: pref ? `${diff >= 0 ? "+" : ""}${Math.round(diff * 100 / pref)}%` : "—"}))
@@ -245,7 +248,7 @@ function insHist(){
   const bars = vs.map((v, i) => { const h = (Hh - B - T) * v / max, xx = i * bw;
     return `<rect class="ihb${i === mi ? " med" : ""}" x="${(xx + bw * .14).toFixed(1)}" y="${(Hh - B - h).toFixed(1)}" width="${(bw * .72).toFixed(1)}" height="${h.toFixed(1)}" rx="3"${tipAttr(labs[i], plural(bins[i].length, "session"), useC ? usd(v) : "")}/>`
       + (v ? `<text class="ihn" x="${(xx + bw / 2).toFixed(1)}" y="${(Hh - B - h - 4).toFixed(1)}">${esc(fv(v))}</text>` : "") + `<text class="ixl" x="${(xx + bw / 2).toFixed(1)}" y="${Hh - 18}">${labs[i]}</text><text class="ixl sub" x="${(xx + bw / 2).toFixed(1)}" y="${Hh - 4}">n=${bins[i].length}</text>`; }).join("");
-  const sy = useC ? t("Sessions of {bin}: {pc}% of cost ({usd}) in {n} sessions", {bin: labs[mi], pc: Math.round(vs[mi] * 100 / tot), usd: usd(vs[mi]), n: bins[mi].length}) : t("Most sessions ran {bin} ({n})", {bin: labs[mi], n: vs[mi]});
+  const sy = useC ? t("Sessions of {bin}: {pc}% of cost ({usd}) in {sessions}", {bin: labs[mi], pc: Math.round(vs[mi] * 100 / tot), usd: usd(vs[mi]), sessions: plural(bins[mi].length, "session")}) : t("Most sessions ran {bin} ({n})", {bin: labs[mi], n: vs[mi]});
   const LC = useC ? longCtxOf(ws, we) : [];
   const th = mi >= 4 && LC.length ? t("{n} of the long sessions grew their input per response to up to {x}× the start: split them at a stopping point", {n: LC.length, x: Math.round(Math.max(...LC.map(s => s.ctx[1] / s.ctx[0])))}) : "";
   return `${say(sy, th)}<figure class="insfig ihist"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(labs.map((l, i) => `${l} ${fv(vs[i])} n=${bins[i].length}`).join(", "))}">${bars}</svg>

@@ -150,18 +150,21 @@ const flagSes = (ids, line) => ids.map(id => { const s = DATA.find(x => x.id ===
 let lastFlags = []; // 表示中の期間の候補（summary が入れる）
 function openWorth(id, from, F = lastFlags){
   const D = $("#wk"), fs = F.filter(f => (GOTO[f.k] || f.k) === id), h = H()[id]; if (!fs.length || !h) return;
+  const ids = [...new Set(F.map(f => GOTO[f.k] || f.k))]; // 前後の候補へ（「まず見直す」から開いても、ほかの候補を順に見られるように）
   const hk = fs.length === 1 && H()[fs[0].k] ? H()[fs[0].k] : h; // 印が 1 つだけなら、その候補自身の説明（長い会話で開いたときに、重いセッションの説明を出さないように）
   const {ws, we} = period(), r0 = id === "repeats" && repeatsOf(ws, we)[0], rp = r0 ? new Map([...r0.by].filter(([, x]) => x !== r0.text)) : null; // 見出しと同じ書き方は、カードごとに繰り返さない
   const body = fs.map(f => `<div class="fl"><p class="see">${ico("flag", "fdot")}${esc(f.L.see)}</p><p class="rule">${esc(t("Threshold: {rule}", {rule: f.L.rule}))}</p>${f.k === "repeats" ? "" : `<p class="why">${esc(f.L.why)}</p>`}${spark(f.k)}${f.ids.length ? `<div class="fss">${flagSes(f.ids.slice(0, 6), f.k === "repeats" ? rp : null)}${f.ids.length > 6 ? `<div class="fss-rest" hidden>${flagSes(f.ids.slice(6), f.k === "repeats" ? rp : null)}</div><button type="button" class="more fmore">${esc(f.ids.length - 6 === 1 ? t("1 more session") : t("{n} more sessions", {n: f.ids.length - 6}))}</button>` : ""}</div>` : ""}</div>`).join(""); // 繰り返しのプロンプトの「なぜ」は「What to try」と同じことなので出さない
-  D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" id="wkclose" aria-label="${esc(t("Close"))}"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form><div class="eyebrow">${ico("flag", "fdot")}${esc(t("Worth a look"))}</div><h2 id="wkh">${esc(hk.n)}</h2>${body}
-    <dl class="wkhelp"><dt>${esc(t("What it is"))}</dt><dd>${esc(hk.d)}</dd><dt>${esc(t("Doesn't tell you"))}</dt><dd>${esc(hk.x)}</dd><dt>${esc(t("What to try"))}</dt><dd>${esc(hk.a)}</dd></dl>`;
+  D.innerHTML = `<form method="dialog" class="dclose"><button class="iconbtn" id="wkclose" aria-label="${esc(t("Close"))}"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form><div class="eyebrow">${ico("flag", "fdot")}${esc(t("Worth a look"))}${ids.length > 1 ? `<span class="wknav"><button type="button" class="iconbtn" data-nav="-1" aria-label="${esc(t("Previous"))}">‹</button><span>${esc(t("{i} of {n}", {i: ids.indexOf(id) + 1, n: ids.length}))}</span><button type="button" class="iconbtn" data-nav="1" aria-label="${esc(t("Next"))}">›</button></span>` : ""}</div><h2 id="wkh">${esc(hk.n)}</h2><p class="wktry">${ico("ai", "ti")}<b>${esc(t("What to try"))}</b> ${esc(hk.a)}</p>${body}
+    <dl class="wkhelp"><dt>${esc(t("What it is"))}</dt><dd>${esc(hk.d)}</dd><dt>${esc(t("Doesn't tell you"))}</dt><dd>${esc(hk.x)}</dd></dl>`; // 次にやってみることは、見出しのすぐ下に（セッションの一覧より先に）
   const bindSes = el => el.querySelectorAll("[data-id]").forEach(b => b.onclick = () => { D.close(); select(b.dataset.id); });
   D.querySelectorAll(".fss").forEach(bindSes);
   // 「ほか N セッション」: 隠しておいた残りのセッションをその場に出す（フォーカスは出した最初のセッションへ）
   D.querySelectorAll(".fmore").forEach(b => b.onclick = () => { const rest = b.previousElementSibling; if (!rest) return;
     rest.hidden = false; b.remove(); const first = rest.querySelector("[data-id]"); if (first) first.focus(); });
   D.onclose = () => { if (from && from.isConnected && (!st.sel || from.closest("#panel")) && !document.activeElement?.closest?.("#review")) from.focus(); }; // 閉じたら押したリンクへ（サマリーや別のセッションへ移ったときは除く）
-  D.showModal(); D.scrollTop = 0;
+  D.querySelectorAll("[data-nav]").forEach(b => b.onclick = () => { const i = ids.indexOf(id), next = ids[(i + +b.dataset.nav + ids.length) % ids.length];
+    (F === insFlags ? insOpenWorth : (x, fr) => openWorth(x, fr, F))(next, from); const nb = D.querySelector(`[data-nav="${b.dataset.nav}"]`); if (nb) nb.focus(); });
+  if (!D.open) D.showModal(); D.scrollTop = 0;
   const hd = $("#wkh"); hd.tabIndex = -1; hd.focus(); } // 最初のボタンではなく見出しへ（読み上げで何のダイアログかわかり、セッションを押した表示にもならない）
 function placeFlags(R, F){ // 基準を超えた指標の名前の横に、小さな印だけを付ける（押すと「Worth a look」と同じダイアログ。中身はダイアログにだけ出し、サマリーで繰り返さない）
   [...new Set(F.map(f => GOTO[f.k] || f.k))].forEach(id => {

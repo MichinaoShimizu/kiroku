@@ -382,7 +382,7 @@ function pacing(w, pw){ const {ws, we} = period(), now = nowMs()/1000;
 const REPO = "https://github.com/MichinaoShimizu/kiroku";
 function foot(){
   const v = String((META && META.version) || ""), rel = /^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/.test(v);
-  return `<div class="foot"><div>${esc(t("Generated {date}", {date: dStamp(GENERATED)}))} · ${rel ? ext(`${REPO}/releases/tag/v${v}`, esc(`kiroku v${v}`)) : `kiroku${v ? " " + esc(v) : ""}`} · ${ext(REPO, "GitHub")}</div></div>`;
+  return `<div class="foot"><div>${esc(t("Generated {date}", {date: dStamp(GENERATED)}))} · ${rel ? ext(`${REPO}/releases/tag/v${v}`, esc(`kiroku v${v}`)) : `kiroku${v ? " " + esc(v) : ""}`} · ${ext(REPO, "GitHub")} · <button type="button" class="lnk keysbtn" data-keys>${esc(t("Keyboard shortcuts"))} <kbd>?</kbd></button></div></div>`;
 }
 function bindCopy(root){ root.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy, "", 0, b)); }
 

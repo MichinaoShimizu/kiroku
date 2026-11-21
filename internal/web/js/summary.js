@@ -3,14 +3,16 @@
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
   document.documentElement.classList.toggle("showfx", !!st.insFx); // 式を表示するか（ふだんは平易な 1 行だけ）
-  const head = `<div class="rvhead"><h2>${esc(M ? t("Monthly summary") : t("Weekly summary"))}</h2><button type="button" class="pill fxbtn" id="fxbtn" aria-pressed="${!!st.insFx}">${esc(t("Show formulas"))}</button><p>${esc(t("Rough figures for reflecting on how you work. They are not for comparing people or for evaluations."))}</p></div>`;
+  const head = `<div class="rvhead"><h2>${esc(M ? t("Monthly summary") : t("Weekly summary"))}</h2><p>${esc(t("Rough figures for reflecting on how you work. They are not for comparing people or for evaluations."))}</p></div>`;
   $("#sres").hidden = true; $("#sres").innerHTML = "";
   if (!w){ R.innerHTML = foot(); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
   const F = insRank(findList(w, pw, unit)); // 見直す候補（「まず見直す」とダイアログで同じ並び）
   lastFlags = F; // 見直す候補（詳細の頭の印と「まず見直す」が使う）
   // エージェントで絞る：2 つ以上のエージェントが動いた期間だけ、切り替えを出す（期間の集計の agents）。絞っている間はサマリーの中だけが、そのエージェントの分になる
-  const ags = ((w.shares || {}).source || []).map(x => x.key).filter(k => w.agents && w.agents[k]), ag = ags.includes(st.insAg) ? st.insAg : "";
-  const agSw = ags.length >= 2 ? `<div class="insagbar"><span class="lab">${esc(t("Agent"))}</span><div class="segc insk" role="group" aria-label="${esc(t("Agent"))}">${["", ...ags].map(k => `<button type="button" data-ag="${esc(k)}" aria-pressed="${k === ag}">${esc(k || t("All agents"))}</button>`).join("")}</div>${ag ? `<span class="note">${esc(t("Only {agent}. Its active time counts time it shared with other agents in full (the By agent table and the legend split it). Git commits made by hand are left out. The figures above the calendar stay for all agents", {agent: ag}))}</span>` : ""}</div>` : "";
+  const ags = ((w.shares || {}).source || []).map(x => x.key).filter(k => w.agents && Object.hasOwn(w.agents, k)), ag = ags.includes(st.insAg) ? st.insAg : "";
+  const fxB = `<button type="button" class="pill fxbtn" id="fxbtn" aria-pressed="${!!st.insFx}">${esc(st.insFx ? t("Hide formulas") : t("Show formulas"))}</button>`; // 式の表示の切り替え（押すと文字も変わる）
+  const agPart = ags.length >= 2 ? `<span class="lab">${esc(t("Agent"))}</span><div class="segc insk" role="group" aria-label="${esc(t("Agent"))}">${["", ...ags].map(k => `<button type="button" data-ag="${esc(k)}" aria-pressed="${k === ag}">${esc(k || t("All agents"))}</button>`).join("")}</div>${ag ? `<span class="note">${esc(t("Only {agent}. Its active time counts time it shared with other agents in full (the By agent table and the legend split it). Git commits made by hand are left out. The figures above the calendar stay for all agents", {agent: ag}))}</span>` : ""}` : "";
+  const agSw = `<div class="insagbar">${agPart}${fxB}</div>`;
   insFlags = F; insAg = ag;
   agScope(ag, () => { const {S: w2, P: pw2} = period(), F2 = ag ? insRank(findList(w2, pw2, unit)) : F; insFlags = F2;
     R.innerHTML = `${head}${agSw}${insightH(F2)}<div class="rvgrid">
@@ -30,7 +32,7 @@ function summary(){
 let insFlags = [], insAg = "";
 const agData = new WeakMap();
 function agScope(ag, fn){ if (!ag) return fn();
-  const D = DATA, W = WEEKS, Mo = MONTHS, pick = o => { const r = {}; for (const [k, x] of Object.entries(o)){ const y = x && (x.agents ? x.agents[ag] : x.only === ag ? x : null); if (y) r[k] = y; } return r; };
+  const D = DATA, W = WEEKS, Mo = MONTHS, pick = o => { const r = {}; for (const [k, x] of Object.entries(o)){ const y = x && (x.agents ? (Object.hasOwn(x.agents, ag) ? x.agents[ag] : null) : x.only === ag ? x : null); if (y) r[k] = y; } return r; };
   if (!agData.has(D)) agData.set(D, {}); const per = agData.get(D); // 絞った配列は、もとの DATA ごとに使い回す（配列ごとに覚える計算を、絞るたびにやり直さない）
   DATA = per[ag] || (per[ag] = D.filter(s => s.source === ag)); WEEKS = pick(W); MONTHS = pick(Mo);
   try { return fn(); } finally { DATA = D; WEEKS = W; MONTHS = Mo; } }
@@ -58,7 +60,7 @@ const HELP = {
   cost: {n: "Estimated cost", d: "Usage priced at public API rates. Uses the cost Claude Code records for itself when available (this also covers price changes, new models and calls not in the history, such as auto-compaction); otherwise, and where it records 0 for a model it did use, tokens in the history times the kiroku price table, plus web searches at $10 per 1,000. Shown as — when none of the models used are in the price table", c: "A rough way to compare how heavy usage was, in money", x: "What you are actually billed (subscriptions differ)", a: "Open the sessions behind the increase, and next period keep that kind of work in shorter conversations"},
   projection: {n: "Month-end cost (estimate)", d: "In a month in progress, the estimated cost from the 1st through today, divided by the days so far and multiplied by the days in the month. Not shown for the first 7 days or on the last day", c: "Roughly where this month's cost is heading at the current pace", x: "Your actual bill, or how you will work from now on (it is off if the pace changes)", a: "If it is too high, look at the heavy sessions and models"},
   projectionCr: {n: "Month-end credits (estimate)", d: "In a month in progress, the Kiro credits from the 1st through today, divided by the days so far and multiplied by the days in the month. Counted separately from the estimated cost, because tokens and credits are separate allowances. Not shown for the first 7 days or on the last day", c: "Roughly how many credits this month is heading for at the current pace", x: "What your account page will show, or how you will work from now on (it is off if the pace changes)", a: "If it is heading past your limit, spread the heavy work out or move some of it to another agent"},
-  pace: {n: "A day to match the last period", d: "In a week or month in progress, the previous week's or month's total estimated cost minus the estimate so far (today included), divided by the days left after today. It also appears on each day still to come in the calendar. Not shown on the last day, or when the previous period has no estimated cost. It is a reference from your own last period, not a budget", c: "Roughly how much a day keeps this period at the level of the last one", x: "Whether the last period's level is right for you, or your actual bill", a: "Use it when planning heavy work for the rest of the period, and read it next to what the work left behind (commits)"},
+  pace: {n: "A day to match the last period", d: "In a week or month in progress, the previous week's or month's total estimated cost minus the estimate so far (today included), divided by the days left after today. Once the estimate so far is past that total, it shows how far over it is instead. It also appears on each day still to come in the calendar. Not shown on the last day, or when the previous period has no estimated cost. It is a reference from your own last period, not a budget", c: "Roughly how much a day keeps this period at the level of the last one", x: "Whether the last period's level is right for you, or your actual bill", a: "Use it when planning heavy work for the rest of the period, and read it next to what the work left behind (commits)"},
   paceCr: {n: "Credits a day to match the last period", d: "The same reference for Kiro credits: the previous period's total credits minus the credits so far, divided by the days left after today. Kept apart from the estimated cost, because tokens and credits are separate allowances", c: "Roughly how many credits a day keep this period at the level of the last one", x: "Your plan's limit, or what your account page will show", a: "If the remaining amount is small, spread the heavy work out or move some of it to another agent"},
   tokens: {n: "Tokens", d: "Input, output, cache reads and cache writes combined", c: "How much you consumed", x: "Whether more or less is good", a: "Look for skew by project and by day"},
   cache: {n: "Read from cache", d: "The share of input tokens read from cache", c: "Whether the same context was reused", x: "Why it is low (it may just be many short sessions)", a: "If low, next period, write long background once in the agent's project instructions (CLAUDE.md, AGENTS.md or Kiro steering) instead of pasting it every time"},
@@ -91,7 +93,7 @@ function hintBody(id){ const h = H()[id]; if (!h) return "";
 // 同じ ? をもう一度・Esc・吹き出しの外を押すと閉じる（Esc では ? にフォーカスを戻す）。描き直しで ? が消えたら閉じる
 let hpopFor = null;
 function bindHelp(root){ root.querySelectorAll(".hb").forEach(b => b.onclick = e => { e.stopPropagation(); hpopFor === b ? hideHint() : showHint(b); }); }
-function showHint(b){ const P = $("#hpop"), body = hintBody(b.dataset.help); if (!body) return;
+function showHint(b){ const P = $("#hpop"), body = b.closest("#review") ? agScope(insAg, () => hintBody(b.dataset.help)) : hintBody(b.dataset.help); if (!body) return; // サマリーの「?」の推移は、エージェントで絞っていればその分
   hideHint(); P.innerHTML = body; P.setAttribute("aria-label", b.getAttribute("aria-label")); P.hidden = false; hpopFor = b; b.setAttribute("aria-expanded", "true");
   const r = b.getBoundingClientRect(), w = P.offsetWidth, h = P.offsetHeight, m = 12;
   const left = Math.min(Math.max(m, r.left + r.width/2 - w/2), innerWidth - w - m); // 画面の端からはみ出さない
