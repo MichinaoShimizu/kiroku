@@ -362,12 +362,17 @@ async function run(env) {
         const two = innerWidth <= 1000 || Object.values(byTop).some(row => row.length === 2);
         return {say, charts, rows, grid: two}; });
       check("どのグラフにも、データから計算した読み取りの 1 文があり、カードは 2 列で、同じ行のカードは高さがそろう", lay.say === lay.charts && lay.rows && lay.grid, JSON.stringify(lay));
-      if (await p.evaluate(() => innerWidth > 820)){
+      const tk = await p.evaluate(() => { const g = document.querySelector("#review .insk.trendk"), bs = [...g.querySelectorAll("button")], sel = document.querySelector("#review .insksel");
+        const ks = (getComputedStyle(g).display === "none" ? [...sel.options].map(o => o.value) : bs.map(b => b.dataset.ins));
+        return {tabs: getComputedStyle(g).display !== "none", oneRow: new Set(bs.map(b => Math.round(b.getBoundingClientRect().top))).size === 1, ks}; });
+      check("トレンドでクレジットとトークンも選べる", tk.ks.includes("credits") && tk.ks.includes("tokens"), JSON.stringify(tk.ks));
+      check("トレンドの指標の切り替えは 1 行に収まるか、収まらなければ選択リストになる（折り返さない）", !tk.tabs || tk.oneRow, JSON.stringify(tk));
+      if (tk.tabs){
         const t0 = await p.locator('#review [data-ins][aria-pressed="true"]').getAttribute("data-ins");
         await p.locator('#review [data-ins]:not([aria-pressed="true"])').first().click(); await pause();
         check("グラフの指標を切り替えられる（押したものが選ばれ、フォーカスが残る）", await p.evaluate(t0 => { const b = document.querySelector('#review [data-ins][aria-pressed="true"]'); return !!b && b.dataset.ins !== t0 && document.activeElement === b; }, t0));
         await p.locator(`#review [data-ins="${t0}"]`).click(); await pause();
-      } else { // 狭い画面では選択リスト。どの指標も選べる（横に隠れない）
+      } else { // 狭い画面（と切り替えが 1 行に収まらない幅）では選択リスト。どの指標も選べる（横に隠れない）
         const opts = await p.evaluate(() => [...document.querySelectorAll("#review .insksel option")].map(o => o.value));
         let all = opts.length > 1; for (const v of opts){ await p.selectOption("#review .insksel", v); await pause(); all = all && await p.evaluate(v => st.insK === v && document.querySelector("#review .insksel").value === v, v); }
         check("狭い画面では、グラフの指標を選択リストで選べ、どれも選べる", all && await p.evaluate(() => getComputedStyle(document.querySelector("#review .insk.trendk")).display === "none"), JSON.stringify(opts));
@@ -659,6 +664,22 @@ async function run(env) {
     await p.keyboard.press("?"); await pause();
     await p.mouse.click(4, env.viewport.height - 4); await pause();
     check("一覧は枠の外を押しても閉じる", !(await p.locator("#keys").evaluate(d => d.open)));
+  });
+
+  await step("今週の表示でも、クレジットの今月末の推定がわかる", async () => {
+    await p.goto(url); await loaded(p); await p.keyboard.press("t"); await pause(); // 今週へ（今週に記録がなくても、今月の記録から推定する）
+    const mp = await p.evaluate(() => { const m = monthProj(); return m && m.credits != null ? {v: crN(m.credits), so: crN(m.soCredits)} : null; });
+    if (!mp){ console.log("  skip 今月のクレジットの記録がない（月の最初の 7 日間か、今週を見ていない）"); return; }
+    const band = p.locator('#kpis [data-metric="monthCr"]');
+    check("上の帯に、今月末の推定クレジットがある", await band.count() === 1 && (await band.innerText()).includes(mp.v), mp.v);
+    await band.click(); await pause();
+    const dlg = await p.evaluate(() => ({open: $("#md").open, txt: $("#md").innerText}));
+    check("押すと、今月の日ごとの内訳（月末の推定）が開き、週の表示はそのまま", dlg.open && dlg.txt.includes(mp.v) && dlg.txt.includes(mp.so) && await p.evaluate(() => st.mode === "week"), dlg.txt.slice(0, 120));
+    await p.keyboard.press("Escape"); await pause();
+    await view("sum");
+    const tile = await p.evaluate(() => { const b = document.querySelector('#review .itile [data-metric="credits"]'); return b ? b.closest(".itile").innerText : ""; });
+    check("サマリーのクレジットのカードにも、今月末の推定がある", /Month-end \(this month\): ≈ /.test(tile) && tile.includes(mp.v), tile);
+    await view("cal");
   });
 
   check("スクリプトのエラーがない", errors.length === 0, errors.join(" / "));

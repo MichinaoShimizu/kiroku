@@ -65,6 +65,7 @@ const MET = {
   active: {f: w => w.active, fmt: v => dur(v)},
   prompts: {f: w => w.prompts, u: ""},
   tokens: {f: w => w.usage && w.usage.tokens ? w.usage.tokens : null, fmt: v => tok(v)},
+  credits: {f: w => w.usage && w.usage.credits ? w.usage.credits : null, low: true, fmt: v => `${crN(v)} cr`}, // 推定費用と同じく、多いときに印（クレジットは使う枠）
   gitCommits: {f: w => w.git ? w.git.commits : null, u: ""},
 };
 const fmtM = (k, v) => v == null ? "—" : MET[k].fmt ? MET[k].fmt(v) : `${Math.round(v * 10) / 10}${MET[k].u ?? ""}`; // 本文と同じく「8 件」「5.2 回」

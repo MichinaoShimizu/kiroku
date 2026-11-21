@@ -1042,6 +1042,7 @@ header{background:var(--s-cont);border-bottom:0}
 /* トレンドの指標：広い画面は切り替え、狭い画面は選択リスト（横に隠れて選べなくならないように） */
 .insksel{display:none;height:32px;padding:0 8px;border:1px solid var(--rule-2);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:var(--fs-sm)}
 @media (max-width:820px){.insk.trendk{display:none}.insksel{display:inline-block}}
+.inshead.foldk .insk.trendk{display:none}.inshead.foldk .insksel{display:inline-block} /* 切り替えが 1 行に収まらないときも選択リスト（fitTrend） */
 /* 日報の「プロンプトをコピー」は、マウスでもいつも薄く見せる（乗せたときだけでは、あることに気づけない） */
 @media (hover:hover){.head .dd .dayrun{opacity:.5}}
 /* 式の表示の切り替えは、エージェントの切り替えと同じ行の右端に。押している間は、ほかの切り替えと同じ色 */

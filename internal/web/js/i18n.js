@@ -423,6 +423,8 @@ const JA_TEXT = {
   "Month-end cost": "月末の推定費用",
   "Month-end cost (estimate)": "月末の推定費用",
   "Month-end credits": "月末の推定クレジット",
+  "This month so far: {v}": "今月ここまで：{v}",
+  "Month-end (this month): ≈ {v}": "今月末の推定：≈ {v}",
   "Month-end credits (estimate)": "月末の推定クレジット",
   "Monthly summary": "月のサマリー",
   "More": "多",

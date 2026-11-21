@@ -34,7 +34,7 @@ document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = () =>
 function showView(){ document.body.dataset.view = st.view;
   document.querySelectorAll("#view button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.view)); }
 function setView(v, focus){ if (v === st.view) return; st.view = v; store.set("view", v); showView();
-  const m = $("main"); if (m) m.scrollTop = 0; if (v === "cal") scrollToWork();
+  const m = $("main"); if (m) m.scrollTop = 0; if (v === "cal") scrollToWork(); else fitTrend();
   if (focus && v === "sum"){ const r = $("#review"); r.tabIndex = -1; r.focus({preventScroll: true}); } }
 document.querySelectorAll("#view button[data-v]").forEach(b => b.onclick = () => setView(b.dataset.v));
 $("#skipcal").onclick = e => { e.preventDefault(); setView("sum", true); };
