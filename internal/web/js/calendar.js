@@ -132,7 +132,12 @@ function kpis(){
     kpi(t("Active time"), dur(w.active, true), n0 == null ? "" : M ? t("{days} of the {n} so far (this month is still in progress)", {days, n: plural(nd, "day")}) : t("{days} of the {n} so far (this week is still in progress)", {days, n: plural(nd, "day")}), "", "active");
   K.classList.toggle("dense", K.children.length > 7); // 数が多い（月表示など）ときは、一回り小さくして 1 行に
   K.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b));
+  kWrap();
 }
+// kWrap は、上の帯が期間の行の右に収まらず、下の行に回ったかを印にする（サマリーでは、回ったときだけ帯の場所を残さない）
+function kWrap(){ const K = $("#kpis"), W = $("#kpis") && $("#kpis").parentElement, N = W && W.querySelector(".wk"); if (!N) return;
+  W.classList.remove("kwrap"); if (K.offsetHeight && K.offsetTop >= N.offsetTop + N.offsetHeight - 4) W.classList.add("kwrap"); }
+addEventListener("resize", () => kWrap());
 
 /* カレンダーの各日（月表示では各週も）に並べるのは 2 つだけ：使用量（推定費用。見積もれないならトークン、トークンがなければクレジット）と Git のコミット。
    費用と残したものを上下に並べ、費用が増えても残したものが増えていない日を、カレンダーを見るだけで拾えるようにする。
