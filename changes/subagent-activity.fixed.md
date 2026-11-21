@@ -1,1 +1,0 @@
-- Claude Code and Codex: a subagent that keeps working after the parent conversation's last line (such as a background subagent) now counts in the parent session's calendar bar and active time, as Kiro Crew subagents already did; before, that part of its work was left out
