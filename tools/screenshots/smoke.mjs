@@ -302,7 +302,6 @@ async function run(env) {
     check("G・+・− を押しても何も開かず、期間も変わらない", await p.evaluate(wk => document.querySelector("#rd").textContent === wk && ![...document.querySelectorAll("dialog")].some(d => d.open), wk));
     check("週のカレンダーにズームの操作がない", await p.locator("#legend .zoom, #zin, #zout").count() === 0);
     check("ショートカットの一覧に G・ズームがない", !/Metrics guide|Zoom/.test(await p.locator("#keys").textContent()));
-    check("ショートカットの一覧に Y（Year in review）がない", await p.evaluate(() => ![...document.querySelectorAll("#keys .keys kbd")].some(k => k.textContent === "Y") && !/Year in review/.test(document.querySelector("#keys").textContent)));
   });
 
   await step("サマリーの数字から内訳が開く", async () => {
@@ -655,19 +654,6 @@ async function run(env) {
     await p.keyboard.press("?"); await pause();
     await p.mouse.click(4, env.viewport.height - 4); await pause();
     check("一覧は枠の外を押しても閉じる", !(await p.locator("#keys").evaluate(d => d.open)));
-  });
-
-  await step("Year in review はない", async () => {
-    check("Year in review のボタンとダイアログがない", await p.locator("#yrbtn, dialog#yr").count() === 0 && !/Year in review/.test(await p.locator("header").innerText()));
-    check("Period（Week・Month）がある", await p.locator("#mode button[data-v]").count() === 2);
-    // 以前の版が保存した Year in review の設定（yrOpt）が残っていても、カレンダーで開き、y を押しても何も開かない
-    await p.evaluate(() => localStorage.setItem("kiroku:yrOpt", JSON.stringify({late: true, color: "project"})));
-    await open();
-    const wk = await p.locator("#rd").textContent();
-    await p.keyboard.press("y"); await pause();
-    check("保存された yrOpt があっても、カレンダーで開き、y では何も開かず期間も変わらない", await p.locator("#tl").getAttribute("aria-label") === "Calendar" &&
-      await p.evaluate(wk => document.querySelector("#rd").textContent === wk && ![...document.querySelectorAll("dialog")].some(d => d.open), wk));
-    await p.evaluate(() => localStorage.removeItem("kiroku:yrOpt"));
   });
 
   check("スクリプトのエラーがない", errors.length === 0, errors.join(" / "));

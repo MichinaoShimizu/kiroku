@@ -59,7 +59,7 @@ const dow = i => DOW[i];
 const wkc = i => i === 6 ? " sat" : i === 0 ? " sun" : ""; // 曜日（getDay）から、土日の色のクラス
 const plural = (n, one, many) => isJA() ? `${n} ${t(one)}` : `${n} ${n === 1 ? one : many || one + "s"}`; // 日本語は数と名詞（単数の形を辞書で引く）
 // hh: 週のカレンダーの 1 時間の高さ（render が作業の時間帯に合わせて決める。ズームはない。以前の版が保存した "zh" は読まない）
-// 画面はカレンダーだけ。以前の版が保存した "view"（journey・project）と、Year in review の "yrOpt" は読まない
+// 画面はカレンダーだけ。以前の版が保存した "view"（journey・project）は読まない
 const st = { hh: 44, colorBy: store.get("colorBy", "source") === "project" ? "project" : "source",
              week: mondayOf(today0()), month: monthOf(today0()), mode: store.get("mode", "week"), view: store.get("view", "cal") === "sum" ? "sum" : "cal",
              hidden: new Set(), sel: null, back: [], q: "", animate: true, insK: store.get("insK", "cost"), insW: store.get("insW", "project"), insAg: store.get("insAg", ""), theme: (v => v === "dark" || v === "light" ? v : null)(store.get("theme", null)), early: store.get("calEarly", null), insFx: store.get("insFx", false) === true };
