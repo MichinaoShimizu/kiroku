@@ -2,6 +2,23 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v3.1.0 - 2026-11-21
+
+### Added
+
+- The session's prompt flow has a button that copies the whole conversation, prompts and replies in order, as Markdown, to hand the work to another agent or paste its history into a PR or a note. In `kiroku serve`, long prompts and replies are copied in full; a saved HTML file copies the part it contains and says so
+- Each prompt and each AI reply in session details has a copy button, to reuse it. In `kiroku serve`, a long prompt or reply is copied in full; a saved HTML file copies the part it contains and says so
+
+### Changed
+
+- The view now follows Material 3: its standard color scheme (light and dark), pill-shaped buttons, segmented buttons, a pill search bar, a tonal card for the key numbers, larger corner radii on cards and dialogs, and Roboto when it is installed (no font is downloaded). Category colors (projects, agents, models) are unchanged. Buttons use a slightly denser size than the Material default, so the period controls and key numbers fit on one line down to a narrower window than before (week view from 1360px in English, 1340px in Japanese)
+- Shorter animations: calendar blocks appear within about 0.4 seconds when you change the week or view (was up to 0.85), and the AI dialog folds its inputs faster
+
+### Fixed
+
+- The view follows your browser's language and your system's theme again even if you picked a language or theme with the buttons of an earlier version: that saved choice could no longer be changed, so a Japanese browser could stay in English. `--lang` (or `KIROKU_LANG`) and `?lang=` still pick the language
+- On phones, the fade at the calendar's right edge no longer covers the search button in the header
+
 ## v3.0.1 - 2026-11-20
 
 ### Changed

@@ -1,1 +1,0 @@
-- Each prompt and each AI reply in session details has a copy button, to reuse it. In `kiroku serve`, a long prompt or reply is copied in full; a saved HTML file copies the part it contains and says so
