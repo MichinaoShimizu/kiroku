@@ -1006,3 +1006,11 @@ header{background:var(--s-cont);border-bottom:0}
 @media (max-width:1000px){.insrow,.insrow.two,.insrow.two:last-child{grid-template-columns:minmax(0,1fr)}}
 .insfig .ixl.s{text-anchor:start}.insfig .ixl.e{text-anchor:end}
 .insfig.ihist svg{max-height:220px}
+/* 式と不等式：計算だとわかるよう、等幅の小さな枠に */
+.ifx{font-family:var(--mono);font-size:var(--fs-xs);color:var(--ink-2);background:var(--surface-2);border-radius:6px;padding:1px 6px;white-space:normal;overflow-wrap:anywhere}
+.ifx.good{color:var(--go-ink);background:color-mix(in oklab,var(--go) 14%,var(--surface))}.ifx.bad{color:var(--warn);background:color-mix(in oklab,var(--warn) 12%,var(--surface))}
+.ichip.ifx{font-weight:500}
+.ifxs{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin:8px 0 0;font-size:var(--fs-xs)}
+.itile .ifx{max-width:100%}
+.idleg .iv{flex:none;color:var(--ink-3);font-variant-numeric:tabular-nums;margin-right:6px}
+.ifxs.insdef{margin:-8px 0 16px}

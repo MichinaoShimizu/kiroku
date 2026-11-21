@@ -19,7 +19,7 @@ function insBase(k){
 function insRange(k, cur, f, low, add, fmt){
   const fr = insFrac(), v = add && fr < 1 ? cur / fr : cur, hs = historyStart(), xs = [];
   for (let i = 1; i <= INS_N; i++){ const p = periodBack(i); if (p.ws < hs) continue; const x = f(p); if (x != null) xs.push(x); }
-  const r = {k, cur, v, part: fr < 1, n: xs.length, xs, fmt};
+  const r = {k, cur, v, part: fr < 1 && add, n: xs.length, xs, fmt};
   if (xs.length < INS_MIN) return r;
   const q1 = insQuant(xs, .25), med = insQuant(xs, .5), q3 = insQuant(xs, .75), iqr = q3 - q1;
   const pos = v > q3 ? "high" : v < q1 ? "low" : "typical", far = v > q3 + 1.5 * iqr || v < q1 - 1.5 * iqr;
@@ -28,33 +28,31 @@ function insRange(k, cur, f, low, add, fmt){
 }
 const insName = k => (H()[k] || {}).n || k;
 const insUnit = () => st.mode === "month" ? t("months") : t("weeks");
-// insPosText は、いつもの範囲との比べ（文）。比べられないときは、そう言う
-function insPosText(b){
-  if (!b || b.q1 == null) return t("Not enough history to compare yet (needs {n} past {unit})", {n: INS_MIN, unit: insUnit()});
-  const fm = b.fmt || (x => fmtM(b.k, x)), range = rangeT(fm(b.q1), fm(b.q3)), v = {range, n: b.n, unit: insUnit()};
-  if (b.q1 === b.q3){ const u = {v: fm(b.med), n: b.n, unit: insUnit()}; // いつもほぼ同じ値（0 回など）：範囲ではなく、その値と比べる
-    return b.pos === "typical" ? t("Same as usual ({v} in most of the last {n} {unit})", u) : b.pos === "high" ? t("Higher than usual (usually {v} over the last {n} {unit})", u) : t("Lower than usual (usually {v} over the last {n} {unit})", u); }
-  if (b.pos === "typical") return t("Within your usual range ({range}, the middle half of the last {n} {unit})", v);
-  const s = b.pos === "high" ? (b.far ? t("Far above your usual range ({range}, the middle half of the last {n} {unit})", v) : t("Above your usual range ({range}, the middle half of the last {n} {unit})", v))
-    : (b.far ? t("Far below your usual range ({range}, the middle half of the last {n} {unit})", v) : t("Below your usual range ({range}, the middle half of the last {n} {unit})", v));
-  return s;
+// 式の表示：値・式は <code class="ifx"> に入れる（文ではなく、計算だとわかるように）
+const fx = (s, cls = "") => `<code class="ifx${cls}">${esc(s)}</code>`;
+const insDef = n => n == null ? t("Q1, Q3 = 25th and 75th percentiles of the past {unit} with records (up to {n}); IQR = Q3 − Q1", {n: INS_N, unit: insUnit()}) : t("Q1, Q3 = 25th and 75th percentiles of the last {n} {unit}; IQR = Q3 − Q1", {n, unit: insUnit()});
+// insExpr は、比べた結果を不等式で（x は表示中の期間の値。途中の期間の、期間に比例する指標はペース）
+function insExpr(b){
+  if (!b || b.q1 == null) return t("Q1–Q3: needs {min} past {unit} (have {n})", {min: INS_MIN, unit: insUnit(), n: b ? b.n : 0});
+  const fm = b.fmt || (x => fmtM(b.k, x)), x = (b.part ? t("pace") + " " : "") + fm(b.v), iqr = b.q3 - b.q1;
+  if (b.pos === "typical") return `Q1 ${fm(b.q1)} ≤ ${x} ≤ Q3 ${fm(b.q3)}`;
+  if (b.pos === "high") return b.far ? `${x} > Q3 + 1.5×IQR = ${fm(b.q3 + 1.5 * iqr)}` : `${x} > Q3 = ${fm(b.q3)}`;
+  return b.far ? `${x} < Q1 − 1.5×IQR = ${fm(b.q1 - 1.5 * iqr)}` : `${x} < Q1 = ${fm(b.q1)}`;
 }
+const insPosText = b => `${insExpr(b)} (${insDef(b && b.n)})`; // 読み上げと title 用
 const insTone = b => !b || b.q1 == null || b.better == null ? "" : b.better ? " good" : " bad";
-/* 状態の札：いつもの範囲との比べを 2〜4 文字で（くわしい文は title に） */
-function insChip(b){
-  if (!b || b.q1 == null) return `<span class="ichip" title="${esc(insPosText(b))}">${esc(t("No baseline"))}</span>`;
-  const l = b.pos === "typical" ? t("Usual") : b.pos === "high" ? (b.far ? t("Much higher") : t("Higher")) : (b.far ? t("Much lower") : t("Lower"));
-  return `<span class="ichip${insTone(b)}" title="${esc(insPosText(b))}">${esc(l)}</span>`;
-}
-/* 要点：大きな数字と札だけ（3 つ）。費用・成果あたりの費用（なければ稼働時間）・いちばん見直す価値のあるもの */
+const insChip = b => `<code class="ichip ifx${insTone(b)}" title="${esc(insDef(b && b.n))}">${esc(insExpr(b))}</code>`;
+/* 要点：大きな数字と、その式・いつもの範囲との不等式（3 つ）。費用・成果あたりの費用（なければ稼働時間）・最初に見直すもの */
 function insHeadlines(F){
-  const T = [], tile = (k, label, b, v, sub) => T.push(`<div class="itile${insTone(b)}"><span class="il">${esc(label)}</span><b>${esc(v)}</b>${sub || ""}${insChip(b)}</div>`);
-  const bc = insBase("cost"); if (bc) tile("cost", t("Estimated cost"), bc, fmtM("cost", bc.cur), bc.part ? `<small>${esc(t("Pace {v}", {v: fmtM("cost", bc.v)}))}</small>` : "");
-  const bp = insBase("costPerCommit"), ba = insBase("active");
-  if (bp) tile("costPerCommit", t("Cost per commit"), bp, fmtM("costPerCommit", bp.cur)); else if (ba) tile("active", t("Active time"), ba, fmtM("active", ba.cur));
-  T.push(F.length ? `<div class="itile bad"><span class="il">${esc(t("Change first"))}</span><b class="sm">${esc(insName(GOTO[F[0].k] || F[0].k))}</b></div>`
-    : `<div class="itile good"><span class="il">${esc(t("Change first"))}</span><b class="sm">${esc(t("Nothing"))}</b></div>`);
-  return `<div class="insh">${T.join("")}</div>`;
+  const {S: w, ws, we} = period(), T = [], tile = (label, b, v, f) => T.push(`<div class="itile${insTone(b)}"><span class="il">${esc(label)}</span><b>${esc(v)}</b>${f ? fx(f) : ""}${insChip(b)}</div>`);
+  const bc = insBase("cost"), days = (we - ws) / 86400, el = insFrac() * days;
+  if (bc) tile(t("Estimated cost"), bc, fmtM("cost", bc.cur), bc.part ? `${t("pace")} = ${usd(bc.cur)} × ${days}${t("d")} ÷ ${el.toFixed(1)}${t("d")} = ${usd(bc.v)}` : "");
+  const bp = insBase("costPerCommit"), ba = insBase("active"), oc = w && w.outCost, nc = w && w.outputs && w.outputs.commits;
+  if (bp) tile(t("Cost per commit"), bp, fmtM("costPerCommit", bp.cur), oc && nc ? `= ${usd(oc)} ÷ ${nc} ${t("commits")}` : "");
+  else if (ba) tile(t("Active time"), ba, fmtM("active", ba.cur), "");
+  T.push(F.length ? `<div class="itile bad"><span class="il">${esc(t("Change first"))}</span><b class="sm">${esc(insName(GOTO[F[0].k] || F[0].k))}</b>${fx(t("Threshold: {rule}", {rule: F[0].L.rule}))}</div>`
+    : `<div class="itile good"><span class="il">${esc(t("Change first"))}</span><b class="sm">${esc(t("Nothing"))}</b>${fx(t("No metric crossed its threshold"))}</div>`);
+  return `<div class="insh">${T.join("")}</div><p class="ifxs insdef">${fx(insDef())}</p>`;
 }
 /* 推移のグラフ：前の INS_N 期間と表示中の期間の棒。いつもの範囲（四分位）を帯、中央値を点線で重ねる。
    途中の期間は、今の値の棒と、このペースで終えたときの値の枠。範囲から大きく外れた期間には印 */
@@ -79,7 +77,7 @@ function insChart(k){
       + `<rect class="ihit" x="${x(i).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${Hh}"${tipAttr(p.label, v == null ? t("No records") : fmtM(k, v), last && proj != null ? t("At this pace: {v}", {v: fmtM(k, proj)}) : "")}/></g>`; }).join("");
   const list = ps.filter(x => x.v != null).map(x => `${x.p.label} ${fmtM(k, x.v)}`).join(LSEP());
   return `<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(t("{metric} over the last {n} {unit}", {metric: insName(k), n, unit: insUnit()}))}">${ticks}${band}${bars}</svg>
-    <figcaption><span class="lg iband">${esc(t("Your usual range (middle half)"))}</span><span class="lg imed">${esc(t("Median"))}</span>${proj != null ? `<span class="lg iproj">${esc(t("At this pace"))}</span>` : ""}<span class="lg iout">${esc(t("Far outside the usual range"))}</span></figcaption>
+    <figcaption><span class="lg iband">${fx(`Q1–Q3`)} ${esc(t("of the last {n} {unit}", {n: b ? b.n : 0, unit: insUnit()}))}</span><span class="lg imed">${fx(t("median"))}</span>${proj != null ? `<span class="lg iproj">${fx(`${t("pace")} = ${t("so far")} × ${t("period")} ÷ ${t("elapsed")}`)}</span>` : ""}<span class="lg iout">${fx(`< Q1 − 1.5×IQR ${t("or")} > Q3 + 1.5×IQR`)}</span></figcaption>
     <p class="sr">${esc(list)} — ${esc(insPosText(b))}</p></figure>`;
 }
 /* 改善のアドバイス：見直す候補を効き目の大きい順に 3 つまで。何が・いつもと比べて・何をするか（指標の説明の「打てる手」）と、該当するセッション。
@@ -89,7 +87,7 @@ function insAdvice(F){
     return `<li class="insa" title="${esc(f.L.why)}"><div class="insw"><b>${esc(f.L.see)}</b>${b ? insChip(b) : ""}</div>${h.a ? `<p class="todo">${ico("ai", "ti")}${esc(h.a)}</p>` : ""}
       ${f.ids.length || f.k === "repeats" ? `<button class="pill insgo" type="button" data-goto="${esc(id)}">${esc(f.ids.length ? plural(f.ids.length, "session") : t("Details"))}</button>` : ""}</li>`; });
   const good = Object.keys(MET).map(k => insBase(k)).filter(b => b && b.better).sort((a, b) => Math.abs(b.v - b.med) / ((b.q3 - b.q1) || 1) - Math.abs(a.v - a.med) / ((a.q3 - a.q1) || 1))[0];
-  const keep = good ? `<p class="inskeep" title="${esc(insPosText(good))}">${ico("check")}${esc(insName(good.k))} <b>${esc(fmtM(good.k, good.cur))}</b></p>` : "";
+  const keep = good ? `<p class="inskeep">${ico("check")}${esc(insName(good.k))} ${insChip(good)}</p>` : "";
   if (!items.length) return `${keep}<p class="note">${esc(t("Nothing to change"))}</p>`;
   return `<ol class="insadv">${items.join("")}</ol>${keep}`;
 }
@@ -124,9 +122,9 @@ function insScatter(){
   const zone = `<rect class="izone" x="${x(thr).toFixed(1)}" y="${(y(0) - 14).toFixed(1)}" width="${(W - R - x(thr)).toFixed(1)}" height="14"/>`;
   const pts = xs.map((p, i) => { const hit = p.o === 0 && p.c >= thr, jy = p.o === 0 ? -((i * 37) % 9) - 3 : 0; // 成果 0 の点は重なりやすいので、縦に少しずらす
     return `<circle class="ipt${hit ? " bad" : ""}" cx="${x(p.c).toFixed(1)}" cy="${(y(p.o) + jy).toFixed(1)}" r="${narrow ? 4 : 5}" tabindex="0" role="button" data-sid="${esc(p.s.id)}" aria-label="${esc(`${p.s.title || p.s.id}: ${usd(p.c)}, ${t("{n} outputs", {n: p.o})}`)}"${tipAttr(p.s.title || "", `${usd(p.c)} · ${t("{n} outputs", {n: p.o})}`, p.s.project)}/>`; }).join("");
-  const note = bad.length ? t("No output, high cost: {n} · {cost}", {n: bad.length, cost: usd(badC)}) : t("No high-cost session without output");
+  const note = `${t("outputs")} = 0 ∧ ${t("cost")} ≥ ${usd(thr)} : ${bad.length} · ${usd(badC)}`;
   return `<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="group" aria-label="${esc(t("Cost and outputs per session"))}">${xt}${yt}${zone}${pts}
-    <text class="iax" x="${W - R}" y="${Hh - B - 4}">${esc(t("Estimated cost →"))}</text><text class="iax st" x="${L + 4}" y="${T + 10}">${esc(t("↑ Commits and PRs"))}</text></svg><figcaption><span class="lg izone" title="${esc(t("Top quarter of cost ({thr} or more) with no commit or PR", {thr: usd(thr)}))}">${esc(note)}</span></figcaption></figure>`;
+    <text class="iax" x="${W - R}" y="${Hh - B - 4}">${esc(t("Estimated cost →"))}</text><text class="iax st" x="${L + 4}" y="${T + 10}">${esc(t("↑ Commits and PRs"))}</text></svg><figcaption><span class="lg izone">${fx(note)}</span></figcaption><p class="ifxs">${fx(`${t("outputs")} = ${t("commits")} + PRs`)}${fx(`${usd(thr)} = max($0.50, P75(${t("cost")}))`)}</p></figure>`;
 }
 /* 曜日×時間帯のヒートマップ：表示中の期間に AI と作業していた時間（重なりは 1 回）。月の表示では曜日ごとに足す。
    平日 9〜18 時の外の割合を、いつもの範囲と比べる */
@@ -138,7 +136,8 @@ function insMinutes(ws, we){ // [ws, we) の作業時間を、曜日（月曜 0�
     g[(d.getDay() + 6) % 7][d.getHours()] += (e - t0) / 60; t0 = e; } });
   return g;
 }
-const insOff = g => { let off = 0, all = 0; g.forEach((r, d) => r.forEach((v, h) => { all += v; if (d >= 5 || h < 9 || h >= 18) off += v; })); return all ? Math.round(off * 100 / all) : null; };
+const insOffM = g => { let off = 0, all = 0; g.forEach((r, d) => r.forEach((v, h) => { all += v; if (d >= 5 || h < 9 || h >= 18) off += v; })); return {off, all}; };
+const insOff = g => { const {off, all} = insOffM(g); return all ? Math.round(off * 100 / all) : null; };
 function insHeat(){
   const {ws, we} = period(), g = insMinutes(ws, we), max = Math.max(...g.flat()); if (!(max > 0)) return "";
   // 作業がいちばん集まった 3 時間（曜日ごと）
@@ -149,7 +148,8 @@ function insHeat(){
   const hrs = `<span></span>` + Array.from({length: 24}, (_, h) => `<span class="ihh">${h % 3 ? "" : h}</span>`).join("");
   const peak = `${dow(days[best.d])} ${best.h}–${best.h + 3}${JA ? "時" : ":00"}`;
   return `<div class="ihgrid" role="img" aria-label="${esc(t("Busiest: {p}", {p: peak}))}">${hrs}${cells}</div>
-    <p class="istat"><span>${esc(t("Busiest"))} <b>${esc(peak)}</b></span>${off != null ? `<span>${esc(t("Off-hours"))} <b>${off}%</b> ${insChip(b)}</span>` : ""}</p>`;
+    <p class="ifxs">${fx(`${t("peak 3h")} = ${peak} (${dur(best.v)})`)}${off != null ? fx(`${t("off-hours")} = ${dur(insOffM(g).off)} ÷ ${dur(insOffM(g).all)} = ${off}%`) : ""}${off != null ? insChip(b) : ""}</p>
+    <p class="note">${esc(t("Off-hours: Saturday, Sunday, and weekdays before 9:00 or from 18:00"))}</p>`;
 }
 
 /* 累積の折れ線：表示中の期間の日ごとの推定費用を積み上げた線と、前の期間の線。どの時点で前より多いか少ないかを見る（費用の記録がなければ稼働時間） */
@@ -167,7 +167,7 @@ function insCum(){
   const last = cur.length - 1, diff = prev.length > last ? cur[last] - prev[last] : null;
   return `<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(`${fm(cur[last])}${prev.length ? ` / ${fm(prev[Math.min(last, prev.length - 1)])}` : ""}`)}">${ticks}${xl}
     ${prev.length ? `<polyline class="iprev" points="${line(prev)}"/>` : ""}<polyline class="icum" points="${line(cur)}"/><circle class="icumd" cx="${x(last).toFixed(1)}" cy="${y(cur[last]).toFixed(1)}" r="4"/></svg>
-    <figcaption><span class="lg icum">${esc(st.mode === "month" ? t("This month") : t("This week"))} <b>${esc(fm(cur[last]))}</b></span>${prev.length ? `<span class="lg iprev">${esc(st.mode === "month" ? t("Last month") : t("Last week"))}</span>` : ""}${diff != null ? `<span class="ichip${(diff > 0) === true ? " bad" : " good"}">${esc((diff >= 0 ? "+" : "−") + fm(Math.abs(diff)))}</span>` : ""}</figcaption></figure>`;
+    <figcaption><span class="lg icum">${esc(st.mode === "month" ? t("This month") : t("This week"))} <b>${esc(fm(cur[last]))}</b></span>${prev.length ? `<span class="lg iprev">${esc(st.mode === "month" ? t("Last month") : t("Last week"))}</span>` : ""}</figcaption>${diff != null ? `<p class="ifxs">${fx(`${fm(cur[last])} − ${fm(prev[last])} = ${(diff >= 0 ? "+" : "−") + fm(Math.abs(diff))}`, diff > 0 ? " bad" : " good")}<span class="note">${esc(t("vs the same day of the previous period ({d})", {d: dMD(addDays(new Date(periodBack(1).ws * 1000), last))}))}</span></p>` : ""}</figure>`;
 }
 /* ドーナツ：モデル別の推定費用の割合（上位 5 つとその他）。真ん中に合計 */
 function insDonut(){
@@ -179,7 +179,8 @@ function insDonut(){
   const col = i => `var(--c${i % 8})`;
   const segs = top.map((r, i) => `<path d="${arc(r[1], i)}" style="fill:${col(i)}"${tipAttr(r[0], `${usd(r[1])} · ${Math.round(r[1] * 100 / tot)}%`)}/>`).join("");
   return `<figure class="insfig idonut"><svg viewBox="0 0 140 140" role="img" aria-label="${esc(top.map(r => `${r[0]} ${Math.round(r[1] * 100 / tot)}%`).join(", "))}">${segs}<text class="idc" x="70" y="75">${esc(usd(tot))}</text></svg>
-    <ul class="idleg">${top.map((r, i) => `<li><i style="background:${col(i)}"></i><span title="${esc(r[0])}">${esc(r[0])}</span><b>${Math.round(r[1] * 100 / tot)}%</b></li>`).join("")}</ul></figure>`;
+    <ul class="idleg">${top.map((r, i) => `<li><i style="background:${col(i)}"></i><span title="${esc(r[0])}">${esc(r[0])}</span><span class="iv">${esc(usd(r[1]))}</span><b>${Math.round(r[1] * 100 / tot)}%</b></li>`).join("")}</ul></figure>
+    <p class="ifxs">${fx(`% = ${t("model cost")} ÷ ${usd(tot)}`)}</p>`;
 }
 /* ヒストグラム：表示中の期間に動いたセッションの長さ（期間の中の作業時間）の分布。中央値の入る階級を濃く */
 function insHist(){
@@ -191,5 +192,5 @@ function insHist(){
     return `<rect class="ihb${i === mi ? " med" : ""}" x="${(xx + bw * .14).toFixed(1)}" y="${(Hh - B - h).toFixed(1)}" width="${(bw * .72).toFixed(1)}" height="${h.toFixed(1)}" rx="3"${tipAttr(labs[i], plural(c, "session"))}/>`
       + (c ? `<text class="ihn" x="${(xx + bw / 2).toFixed(1)}" y="${(Hh - B - h - 4).toFixed(1)}">${c}</text>` : "") + `<text class="ixl" x="${(xx + bw / 2).toFixed(1)}" y="${Hh - 6}">${labs[i]}</text>`; }).join("");
   return `<figure class="insfig ihist"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(labs.map((l, i) => `${l} ${cnt[i]}`).join(", "))}">${bars}</svg>
-    <p class="istat"><span>${esc(t("Median"))} <b>${esc(dur(med))}</b></span><span>${esc(plural(ms.length, "session"))}</span></p></figure>`;
+    <p class="ifxs">${fx(`${t("median")}(${t("active time of {n} sessions", {n: ms.length})}) = ${dur(med)}`)}</p></figure>`;
 }

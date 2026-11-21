@@ -261,6 +261,9 @@ async function run(env) {
       const r = await p.evaluate(() => ({heads: document.querySelectorAll("#review .insight .itile").length, cum: document.querySelectorAll("#review .insfig svg polyline.icum").length, donut: document.querySelectorAll("#review .idonut path").length, hist: document.querySelectorAll("#review .insfig .ihb").length, svg: !!document.querySelector("#review .insfig svg[aria-label]"), bars: document.querySelectorAll("#review .insfig .ibar").length,
         adv: document.querySelectorAll("#review .insadv .insa").length, flags: (lastFlags || []).length, tabs: document.querySelectorAll("#review [data-ins]").length}));
       check("サマリーの頭に、要点の 3 枚・推移・累積の線・モデル別のドーナツ・長さのヒストグラム・上位 3 つまでのアドバイスがある", r.heads === 3 && r.svg && r.bars > 0 && r.cum === 1 && r.donut > 0 && r.hist === 6 && r.adv === Math.min(3, r.flags), JSON.stringify(r));
+      const fx = await p.evaluate(() => ({chips: [...document.querySelectorAll("#review .insight .ichip.ifx")].map(e => e.textContent), def: (document.querySelector("#review .insdef") || {}).textContent || "",
+        vague: /Usual|Higher|Lower|usual range|いつもの範囲|いつもどおり|高め|低め/.test(document.querySelector("#review .insight").innerText)}));
+      check("いつもとの比べは不等式（Q1・Q3 の値）で出し、定義を 1 行で示す。曖昧な言葉は使わない", fx.chips.length > 0 && fx.chips.every(c => /Q[13]|≤|needs|必要/.test(c)) && /Q1, Q3 = .*IQR = Q3 − Q1/.test(fx.def) && !fx.vague, JSON.stringify(fx).slice(0, 300));
       const t0 = await p.locator('#review [data-ins][aria-pressed="true"]').getAttribute("data-ins");
       await p.locator('#review [data-ins]:not([aria-pressed="true"])').first().click(); await pause();
       check("グラフの指標を切り替えられる（押したものが選ばれ、フォーカスが残る）", await p.evaluate(t0 => { const b = document.querySelector('#review [data-ins][aria-pressed="true"]'); return !!b && b.dataset.ins !== t0 && document.activeElement === b; }, t0));

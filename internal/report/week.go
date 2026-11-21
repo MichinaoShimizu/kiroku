@@ -79,16 +79,17 @@ type WeekUsage struct {
 // Summary は 1 期間（週か月）の集計。
 type Summary struct {
 	Usage         WeekUsage          `json:"usage"`
-	Start         string             `json:"start"`         // 期間の最初の日（YYYY-MM-DD）
-	FixRate       *float64           `json:"fixRate"`       // 言い直し・中断のあった依頼の割合（%）。依頼がなければ nil
-	CostPerAsk    *float64           `json:"costPerAsk"`    // 1 依頼あたりの目安コスト。トークンの記録がなければ nil
-	CostPrompts   int                `json:"costPrompts"`   // トークンを記録するセッションの依頼の数（CostPerAsk の分母）
-	Outputs       core.OutputTotal   `json:"outputs"`       // AI が実行したコミット・PR 作成・変更した行（アウトプットの量）
-	OutSessions   int                `json:"outSessions"`   // コミットか PR 作成まで行ったセッションの数
-	OutBase       int                `json:"outBase"`       // そのうち、アウトプットを記録できるエージェント（いまは Claude Code）のセッションの数。OutSessions の割合の分母
-	OutPrompts    int                `json:"outPrompts"`    // アウトプットを記録できるエージェントのセッションの依頼の数（1 コミットあたりの依頼の分子）
-	CostPerCommit *float64           `json:"costPerCommit"` // 1 コミットあたりの目安コスト。コミットかトークンの記録がなければ nil
-	Git           GitTotal           `json:"git"`           // 手元の git リポジトリのコミット（gitlog）
+	Start         string             `json:"start"`             // 期間の最初の日（YYYY-MM-DD）
+	FixRate       *float64           `json:"fixRate"`           // 言い直し・中断のあった依頼の割合（%）。依頼がなければ nil
+	CostPerAsk    *float64           `json:"costPerAsk"`        // 1 依頼あたりの目安コスト。トークンの記録がなければ nil
+	CostPrompts   int                `json:"costPrompts"`       // トークンを記録するセッションの依頼の数（CostPerAsk の分母）
+	Outputs       core.OutputTotal   `json:"outputs"`           // AI が実行したコミット・PR 作成・変更した行（アウトプットの量）
+	OutSessions   int                `json:"outSessions"`       // コミットか PR 作成まで行ったセッションの数
+	OutBase       int                `json:"outBase"`           // そのうち、アウトプットを記録できるエージェント（いまは Claude Code）のセッションの数。OutSessions の割合の分母
+	OutPrompts    int                `json:"outPrompts"`        // アウトプットを記録できるエージェントのセッションの依頼の数（1 コミットあたりの依頼の分子）
+	CostPerCommit *float64           `json:"costPerCommit"`     // 1 コミットあたりの目安コスト。コミットかトークンの記録がなければ nil
+	OutCost       *float64           `json:"outCost,omitempty"` // CostPerCommit の分子（コミットを数えたセッションの目安コスト）。画面で式を見せるため
+	Git           GitTotal           `json:"git"`               // 手元の git リポジトリのコミット（gitlog）
 	Sessions      int                `json:"sessions"`
 	Prompts       int                `json:"prompts"`
 	Active        int                `json:"active"`
@@ -510,12 +511,13 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 			outSes++
 		}
 	}
-	var costPerCommit *float64
+	var costPerCommit, outCostP *float64
 	if outs.Commits > 0 && outCost > 0 {
 		costPerCommit = fptr(core.Round(outCost/outs.Commits, 2))
+		outCostP = fptr(core.Round(outCost, 2))
 	}
 	return &Summary{
-		Outputs: outs, OutSessions: outSes, OutBase: outBase, OutPrompts: outPrompts, CostPerCommit: costPerCommit, Git: gitTot,
+		Outputs: outs, OutSessions: outSes, OutBase: outBase, OutPrompts: outPrompts, CostPerCommit: costPerCommit, OutCost: outCostP, Git: gitTot,
 		ProjectStats: projectStats(data, ws, we, projects, projOrder, commits),
 		Shares:       map[string][]Share{"branch": shares(data, ws, we, mins, ShareKeys["branch"]), "source": shares(data, ws, we, mins, ShareKeys["source"])},
 		FixRate:      fixRate, CostPerAsk: costPer, CostPrompts: costPrompts, Usage: usage, Start: wsT.Format("2006-01-02"), Sessions: sessions, Prompts: np,
