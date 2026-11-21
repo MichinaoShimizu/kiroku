@@ -1,3 +1,3 @@
-- Week calendar: 0:00–7:00 is drawn at a quarter of the height as a shaded band, so the working hours fit the first screen and night work still shows. In a week whose work usually starts before 7:00, only the hours before that start are shrunk
+- Week calendar: each day runs from 7:00 to 7:00 the next morning, so the working hours fit the first screen; work after midnight continues at the bottom of the previous day's column, below a darker line at 00:00. The figures under each date still count from midnight
 - Session details: the prompt flow looks like a messaging app: a blue-gray background, your prompts as green bubbles on the right, the AI's replies as white bubbles on the left, and events as dark labels in the middle (red for limits and interruptions)
 - Summary: the figures at the top are in one row; on narrower windows the row scrolls sideways

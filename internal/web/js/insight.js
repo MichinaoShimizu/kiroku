@@ -56,7 +56,7 @@ function insHeadlines(F){
   // 上の帯の増減（%）と同じ比べを式で：途中の期間は前の期間の同じ日まで、終わった期間は前の期間まるごと
   const vs = (a, b, f) => b == null || !b ? "" : `(${f(a)} − ${f(b)}) ÷ ${f(b)} = ${a >= b ? "+" : "−"}${Math.round(Math.abs(a - b) * 100 / b)}% ${V.n == null ? (M ? t("vs last month") : t("vs last week")) : t("vs {range}", {range: V.range})}`;
   const pu = pw && pw.usage;
-  const bc = insBase("cost"); if (bc) tile(t("Estimated cost"), bc, fmtM("cost", bc.cur), [vs(bc.cur, V.of("cost", pu && pu.tokens ? costOf(pu) : null), usd), bc.part ? `${t("pace")} = ${usd(bc.cur)} × ${days}${t("d")} ÷ ${el}${t("d")} = ${usd(bc.v)}` : ""].filter(Boolean), "cost");
+  const bc = insBase("cost"); if (bc && (u.tokens || bc.cur)) tile(t("Estimated cost"), bc, fmtM("cost", bc.cur), [vs(bc.cur, V.of("cost", pu && pu.tokens ? costOf(pu) : null), usd), bc.part ? `${t("pace")} = ${usd(bc.cur)} × ${days}${t("d")} ÷ ${el}${t("d")} = ${usd(bc.v)}` : ""].filter(Boolean), "cost");
   if (u.credits){ const bk = insRange("credits", u.credits, p => p.S && p.S.usage ? p.S.usage.credits || null : null, true, true, v => `${crN(v)} cr`);
     tile(t("Kiro credits"), bk, `${crN(u.credits)} cr`, [vs(u.credits, V.of("credits", pu && pu.credits), v => `${Math.round(v * 10) / 10} cr`)].concat(bk.part ? `${t("pace")} = ${Math.round(u.credits * 10) / 10} × ${days}${t("d")} ÷ ${el}${t("d")} = ${Math.round(bk.v * 10) / 10} cr` : t("Not an estimate")).filter(Boolean), "credits"); }
   else if (u.tokens) { const bt = insBase("tokens"); tile(t("Tokens"), bt, tok(u.tokens), `${t("output")} ${tok(u.out)} ÷ ${tok(u.tokens)} = ${Math.round(u.out * 100 / u.tokens)}%`, "tokens"); }
@@ -131,8 +131,9 @@ function insStake(f){
 const insRank = F => F.map((f, i) => ({f, i, s: insStake(f)})).sort((a, b) => ((b.s && b.s.c) ?? -1) - ((a.s && a.s.c) ?? -1) || a.i - b.i).map(x => Object.assign({}, x.f, {stake: x.s}));
 function insightH(F){
   F = insRank(F);
-  const k = INS_KEYS.includes(st.insK) ? st.insK : "cost";
-  const tabs = INS_KEYS.filter(x => insBase(x)).map(x => `<button type="button" data-ins="${x}" aria-pressed="${x === k}" title="${esc(insName(x))}">${esc(INS_SHORT()[x])}</button>`).join("");
+  const noCost = !((period().S || {}).usage || {}).tokens && !(((period().S || {}).usage || {}).cost > 0); // クレジットだけを記録するエージェントに絞ったときは、推定費用の推移を出さない
+  const avail = INS_KEYS.filter(x => insBase(x) && !(noCost && (x === "cost" || x === "costPerCommit"))), k = avail.includes(st.insK) ? st.insK : avail[0] || "active";
+  const tabs = avail.map(x => `<button type="button" data-ins="${x}" aria-pressed="${x === k}" title="${esc(insName(x))}">${esc(INS_SHORT()[x])}</button>`).join("");
   const card = (title, body, cls = "") => body ? `<div class="inscol${cls}"><h4>${esc(title)}</h4>${body}</div>` : "";
   return `<section class="insight" aria-labelledby="ins-h"><h3 id="ins-h" class="sr">${esc(t("Overview"))}</h3>${insHeadlines(F)}
     <div class="insgrid"><div class="insleft"><div class="inscol"><div class="inshead"><h4>${esc(t("Trend"))}</h4><div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${tabs}</div></div>${insChart(k)}</div>
@@ -147,7 +148,7 @@ function insightH(F){
 }
 function bindInsight(R){
   R.querySelectorAll("[data-ins]").forEach(b => b.onclick = () => { st.insK = b.dataset.ins; store.set("insK", st.insK); summary(); const nb = $("#review").querySelector(`[data-ins="${b.dataset.ins}"]`); if (nb) nb.focus(); });
-  R.querySelectorAll(".insgo").forEach(b => b.onclick = () => openWorth(b.dataset.goto, b));
+  R.querySelectorAll(".insgo").forEach(b => b.onclick = () => insOpenWorth(b.dataset.goto, b));
   R.querySelectorAll("[data-where]").forEach(b => b.onclick = () => { st.insW = b.dataset.where; store.set("insW", st.insW); summary(); const nb = $("#review").querySelector(`[data-where="${b.dataset.where}"]`); if (nb) nb.focus(); });
   R.querySelectorAll(".insfig [data-sid]").forEach(c => { c.onclick = () => select(c.dataset.sid); c.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); select(c.dataset.sid); } }; }); // 散布図の点は、そのセッションを開く
 }

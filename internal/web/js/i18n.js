@@ -52,6 +52,8 @@ const JA_TEXT = {
   "Added by the agent": "エージェントが追加",
   "Added {n} new sessions": "新しいセッションを {n} 件追加しました",
   "Agent": "エージェント",
+  "All agents": "すべて",
+  "Only {agent}. Git commits made by hand are left out": "{agent} だけ。手でのコミットは入れません",
   "Agents and projects with fewer than 3 replies are left out of the medians.": "応答が 3 回未満のエージェントとプロジェクトは、中央値から除いています。",
   "Analyze with AI: daily report for {date}": "AI 分析: {date}の日報",
   "At a good stopping point, write down the key points and continue in a new session": "区切りのよいところで要点を書き出し、新しいセッションで続ける",

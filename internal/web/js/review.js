@@ -154,8 +154,8 @@ const flagSes = (ids, line) => ids.map(id => { const s = DATA.find(x => x.id ===
 /* 見直す候補の 1 つを、画面の真ん中のダイアログで開く（サマリーへ移らずに、何が見えて、なぜ大事で、次に何をするかを読める）。
    同じ指標に印の付く候補（GOTO）はまとめて出す。セッションを押すと、ダイアログを閉じて詳細を開く */
 let lastFlags = []; // 表示中の期間の候補（summary が入れる）
-function openWorth(id, from){
-  const D = $("#wk"), fs = lastFlags.filter(f => (GOTO[f.k] || f.k) === id), h = H()[id]; if (!fs.length || !h) return;
+function openWorth(id, from, F = lastFlags){
+  const D = $("#wk"), fs = F.filter(f => (GOTO[f.k] || f.k) === id), h = H()[id]; if (!fs.length || !h) return;
   const hk = fs.length === 1 && H()[fs[0].k] ? H()[fs[0].k] : h; // 印が 1 つだけなら、その候補自身の説明（長い会話で開いたときに、重いセッションの説明を出さないように）
   const {ws, we} = period(), r0 = id === "repeats" && repeatsOf(ws, we)[0], rp = r0 ? new Map([...r0.by].filter(([, x]) => x !== r0.text)) : null; // 見出しと同じ書き方は、カードごとに繰り返さない
   const body = fs.map(f => `<div class="fl"><p class="see">${ico("flag", "fdot")}${esc(f.L.see)}</p><p class="rule">${esc(t("Threshold: {rule}", {rule: f.L.rule}))}</p>${f.k === "repeats" ? "" : `<p class="why">${esc(f.L.why)}</p>`}${spark(f.k)}${f.ids.length ? `<div class="fss">${flagSes(f.ids.slice(0, 6), f.k === "repeats" ? rp : null)}${f.ids.length > 6 ? `<div class="fss-rest" hidden>${flagSes(f.ids.slice(6), f.k === "repeats" ? rp : null)}</div><button type="button" class="more fmore">${esc(f.ids.length - 6 === 1 ? t("1 more session") : t("{n} more sessions", {n: f.ids.length - 6}))}</button>` : ""}</div>` : ""}</div>`).join(""); // 繰り返しのプロンプトの「なぜ」は「What to try」と同じことなので出さない

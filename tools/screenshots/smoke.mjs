@@ -107,7 +107,7 @@ async function run(env) {
     check("カレンダーの表示でも、データソースとページの下（版）は見える", await p.locator("#review .dsrc").isVisible() && await p.locator("#review .foot").isVisible());
     check("カレンダーとデータソースのあいだが空いている", await p.evaluate(() => document.querySelector("#review .metap").getBoundingClientRect().top - document.querySelector("#tl").getBoundingClientRect().bottom >= 16));
     check("期間の行に「期間」「表示」の見出しを並べない", await p.evaluate(() => [...document.querySelectorAll(".control-label")].every(e => e.getBoundingClientRect().width <= 1)));
-    check("週のカレンダーは朝の時間帯を縮める（07:00 の線が 2 時間分の高さより上。セッションの色は消えない）", await p.evaluate(() => { const h = [...document.querySelectorAll("#tl .hours span")].find(x => x.textContent === "07:00"), hh = parseFloat(getComputedStyle(document.querySelector("#tl .calscroll")).getPropertyValue("--hh")); const r = document.querySelector("#tl .run"); return !!h && parseFloat(h.style.top) < 2 * hh && !!r && getComputedStyle(r).getPropertyValue("--c").trim() !== "" && !/^\d/.test(getComputedStyle(r).getPropertyValue("--c").trim()); }));
+    check("週のカレンダーは朝 7 時から次の朝 7 時まで（0 時は 17 時間下。セッションの色は消えない）", await p.evaluate(() => { const sp = [...document.querySelectorAll("#tl .hours span:not(.now)")], at = l => { const x = sp.find(e => e.textContent === l); return x ? parseFloat(x.style.top) : NaN; }, hh = parseFloat(getComputedStyle(document.querySelector("#tl .calscroll")).getPropertyValue("--hh")); const r = document.querySelector("#tl .run"), c = r && getComputedStyle(r).getPropertyValue("--c").trim(); return Math.abs(at("08:00") - hh) < 1 && Math.abs(at("00:00") - 17 * hh) < 1 && !!c && !/^\d/.test(c); }));
     check("スクロールはページだけ：カレンダーの中ではスクロールしない", await p.evaluate(() => { const c = document.querySelector("#tl .calscroll"); return !c || c.scrollHeight <= c.clientHeight + 1; }));
     { // どの幅でも、曜日の見出しがページの見出しの下に貼り付く（狭い画面は横のスクロールにも合わせる）
       await p.evaluate(() => window.scrollTo(0, document.querySelector("#tl").getBoundingClientRect().top + scrollY + 400)); await pause();
@@ -261,6 +261,21 @@ async function run(env) {
       check("トークンの種類別のカードと、アドバイスの対象の費用（Σ）がある", await p.evaluate(() => !!document.querySelector("#review .itbar") && document.querySelectorAll("#review .itbar > span").length >= 2));
       check("アドバイスは対象の費用の大きい順（費用で表せない候補はそのあと）", await p.evaluate(() => { const v = [...document.querySelectorAll("#review .insadv .insa")].map(li => { const m = /Σ \$([\d,.]+)/.exec(li.textContent); return m ? +m[1].replace(/,/g, "") : -1; }); return v.every((x, i) => i === 0 || v[i - 1] >= x); }));
       check("エージェント別の表に、エージェントごとの行がある（費用とクレジットを混ぜない）", await p.evaluate(() => document.querySelectorAll("#review .iagt tbody tr").length >= 2));
+      { // エージェントで絞る：サマリーの数字がそのエージェントの分になり、上の帯（すべて）は変わらない。戻すと元の数字
+        const ags = await p.evaluate(() => [...document.querySelectorAll("#review [data-ag]")].map(b => b.dataset.ag));
+        check("サマリーにエージェントの切り替えがある（すべて + 2 つ以上）", ags.length >= 3 && ags[0] === "");
+        if (ags.length >= 3){
+          const val = () => p.evaluate(() => (document.querySelector('#review .itile [data-metric="active"]') || {}).textContent || "");
+          const band = () => p.evaluate(() => document.querySelector(".kpis").textContent);
+          const all = await val(), b0 = await band();
+          await p.click(`#review [data-ag="${ags[2]}"]`); await pause();
+          const one = await val(), b1 = await band();
+          check("絞ると稼働時間が変わり、エージェント別の表は消え、上の帯は変わらない", one !== all && b1 === b0 && await p.evaluate(() => !document.querySelector("#review .iagt") && !!document.querySelector('#review [data-ag][aria-pressed="true"]:not([data-ag=""])')));
+          check("絞ったまま、カレンダーのセッションは減らない", await p.evaluate(() => DATA.length > 0 && new Set(DATA.map(s => s.source)).size >= 2));
+          await p.click('#review [data-ag=""]'); await pause();
+          check("「すべて」に戻すと元の数字", await val() === all);
+        }
+      }
       check("ヒートマップの各行に曜日の合計がある（触れなくても読める）", await p.evaluate(() => document.querySelectorAll("#review .ihgrid > .iht:not(.ihh)").length === 7));
       check("3 列の並びの最後の段に空きを作らない（余りは横に広げる）", await p.evaluate(() => [...document.querySelectorAll("#review .istats, #review .insh")].every(g => { const k = [...g.children], cols = getComputedStyle(g).gridTemplateColumns.split(" ").length; if (k.length < 2) return true; const r = k.map(c => c.getBoundingClientRect()), last = r[r.length - 1], row = r.filter(b => Math.abs(b.top - last.top) < 2); return Math.abs(row[row.length - 1].right - g.getBoundingClientRect().right) < 2 || row.length === cols; })));
       check("カードの中の数の枠は最大 3 列", await p.evaluate(() => [...document.querySelectorAll("#review .istats")].every(g => getComputedStyle(g).gridTemplateColumns.split(" ").length <= 3)));
@@ -409,8 +424,8 @@ async function run(env) {
     check("上限の印は、そのセッションの帯の左端にある（隣の帯に重ねない）", await p.evaluate(() => [...document.querySelectorAll("#tl .lim")].every(m => { const r = m.getBoundingClientRect(), bs = [...m.closest(".day").querySelectorAll(`.run[data-sid="${CSS.escape(m.dataset.id)}"]`)].map(b => b.getBoundingClientRect());
       return !bs.length || bs.some(b => Math.abs(b.left - r.left) <= 4); })));
     check("夜遅い印も日の枠の中にある", await p.evaluate(() => [...document.querySelectorAll("#tl .day")].every(d => { const db = d.getBoundingClientRect(); return [...d.querySelectorAll(".gc, .gm")].every(m => m.getBoundingClientRect().bottom <= db.bottom + 1); })));
-    check("今の時刻の札に近い時刻も消さない（縮めない時間帯の時刻が 23:00 までそろう）", await p.evaluate(() => { const c = Math.max(1, st.h0 || 0); return !document.querySelector("#tl .hours span.now") || [...document.querySelectorAll("#tl .hours span:not(.now):not(.early)")].map(e => e.textContent).join(",") === Array.from({length: 24 - c}, (_, i) => String(i + c).padStart(2, "0") + ":00").join(","); }));
-    check("平日の勤務時間（9:00〜18:00）の外は地の色が違う", await p.evaluate(() => { const d = [...document.querySelectorAll("#tl .day")].find(e => !e.classList.contains("we")); return !!d && (getComputedStyle(d).backgroundImage.match(/linear-gradient/g) || []).length === 3; })); // 縮めた朝の帯・1 時間の線・勤務時間の外
+    check("今の時刻の札に近い時刻も消さない（08:00 から次の朝 06:00 までそろう）", await p.evaluate(() => !document.querySelector("#tl .hours span.now") || [...document.querySelectorAll("#tl .hours span:not(.now)")].map(e => e.textContent).join(",") === Array.from({length: 23}, (_, i) => String((i + 8) % 24).padStart(2, "0") + ":00").join(",")));
+    check("平日の勤務時間（9:00〜18:00）の外は地の色が違う", await p.evaluate(() => { const d = [...document.querySelectorAll("#tl .day")].find(e => !e.classList.contains("we")); return !!d && (getComputedStyle(d).backgroundImage.match(/linear-gradient/g) || []).length === 3; })); // 0 時の線・1 時間の線・勤務時間の外
     check("見直す候補はアイコンだけ（名前は読み上げとツールチップ）", await p.evaluate(() => { const b = document.querySelector("#worth summary"); return !!b && !/[A-Za-z]{3}/.test(b.textContent) && /Worth a look/.test(b.getAttribute("aria-label") || ""); }));
     if (env.viewport.width >= 1440) check("上の帯（期間の操作と指標）は 1 行に収まる（週・月とも）", await p.evaluate(async () => { // 死守する: 指標が次の行に落ちると、カレンダーが下がる
       const one = () => { const k = document.querySelector(".kpis").getBoundingClientRect(), n = document.querySelector("#today").getBoundingClientRect(); return k.top < n.bottom && k.bottom > n.top; };
