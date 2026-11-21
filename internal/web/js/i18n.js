@@ -132,6 +132,8 @@ const JA_TEXT = {
   "Completed with {agent}": "{agent} で完了しました",
   "Conversation compacted": "会話を要約",
   "Conversation summary": "会話の要約",
+  "Copy this prompt": "このプロンプトをコピー",
+  "Copied the first {n} characters": "先頭の {n} 文字をコピーしました",
   "Copied": "コピーしました",
   "Copy": "コピー",
   "Copy result": "結果をコピー",

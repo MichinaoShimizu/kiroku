@@ -72,6 +72,12 @@ function detail(s){
   if (run) run.onclick = () => runAIReview(run, sessionPrompt(s, active, med), t("Session review: {title}", {title: snipOf(s.title || "", 60)}), aiAgentOf(s.source)); // 既定は、そのセッションのエージェント
   P.querySelectorAll(".pexp").forEach(b => b.onclick = () => { const li = b.closest("li"), open = b.getAttribute("aria-expanded") !== "true";
     li.querySelector(".pshort").hidden = open; li.querySelector(".pfull").hidden = !open; b.setAttribute("aria-expanded", open); b.textContent = open ? t("Show less") : pexpLabel(li.dataset.full ? {} : s.prompts[b.dataset.i]); });
+  // プロンプトをコピー（そのまま次の依頼に使えるように）。切ったプロンプトは、kiroku serve なら全文を読んでから写す。保存した HTML では入っている分だけ写し、そう言う
+  P.querySelectorAll(".pcopy").forEach(b => b.onclick = async e => { e.stopPropagation(); const p = s.prompts[+b.dataset.i]; if (!p) return;
+    let text = String(p.text || ""), msg = "";
+    if (p.len > 0){ if (LIVE){ try { const r = await kfetch(`prompt?id=${encodeURIComponent(s.id)}&i=${b.dataset.i}`); if (r.ok) text = await r.text(); else msg = t("Copied the first {n} characters", {n: commas(text.length)}); } catch { msg = t("Copied the first {n} characters", {n: commas(text.length)}); } }
+      else msg = t("Copied the first {n} characters", {n: commas(text.length)}); }
+    copy(text, msg, msg ? 5000 : 0, b); });
   P.querySelectorAll(".pload").forEach(b => b.onclick = async () => { // kiroku serve のときだけ、切ったプロンプトの全文をサーバーから読む
     b.disabled = true;
     try { const r = await kfetch(`prompt?id=${encodeURIComponent(s.id)}&i=${b.dataset.i}`); if (!r.ok) throw 0;
@@ -144,7 +150,7 @@ function promptFlow(s){
     const txt = String(p.text || ""), long = txt.length > 240, fix = !p.kind && FIXRE.test(txt), cut = p.len > 0;
     const more = !cut ? "" : LIVE ? `<span class="pcut"> ${esc(t("(first {n} of {total} characters)", {n: PROMPT_RUNES, total: commas(p.len)}))} <button class="pload" data-i="${i}">${esc(t("Load the full prompt"))}</button></span>` : "…";
     const meta = [p.work ? t("AI worked {time}", {time: span(p.work)}) : "", p.wait && p.wait <= FLOW_GAP ? t("you replied after {time}", {time: secs(p.wait)}) : ""].filter(Boolean).map(x => `<span>${esc(x)}</span>`).join(" · "); // 1 つずつ折り返さない（「2m」と「0s」が別の行に分かれないように）
-    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><span class="av" aria-hidden="true">${ico("user")}</span><p><span class="sr">${esc(t("You:"))} </span>${fix ? `<span class="pkind fix">${esc(t("Correction?"))}</span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${esc(PKIND()[p.kind] || p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${esc(t("Long · {n} chars", {n: commas(plen(p))}))}</span>` : ""}<span class="ptext">${p.kind ? "<code>" : ""}${long ? `<span class="pshort">${esc(txt.slice(0,220))}…</span><span class="pfull" hidden>${esc(txt)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${esc(pexpLabel(p))}</button>` : esc(txt)}${p.kind ? "</code>" : ""}</span>${meta && !p.reply ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
+    rows.push(`<li class="pr${fix ? " fix" : ""}${p.kind ? " " + esc(p.kind) : ""}" tabindex="-1"${hide()}><time>${p.t ? hm(p.t) : ""}</time><button class="iconbtn pcopy" type="button" data-i="${i}" aria-label="${esc(t("Copy this prompt"))}" title="${esc(t("Copy this prompt"))}">${ico("copy")}</button><span class="av" aria-hidden="true">${ico("user")}</span><p><span class="sr">${esc(t("You:"))} </span>${fix ? `<span class="pkind fix">${esc(t("Correction?"))}</span>` : ""}${p.kind ? `<span class="pkind">${ico(p.kind)}${esc(PKIND()[p.kind] || p.kind)}</span>` : ""}${plen(p) >= BIG_PROMPT ? `<span class="pkind big">${esc(t("Long · {n} chars", {n: commas(plen(p))}))}</span>` : ""}<span class="ptext">${p.kind ? "<code>" : ""}${long ? `<span class="pshort">${esc(txt.slice(0,220))}…</span><span class="pfull" hidden>${esc(txt)}${more}</span> <button class="pexp" aria-expanded="false" data-i="${i}">${esc(pexpLabel(p))}</button>` : esc(txt)}${p.kind ? "</code>" : ""}</span>${meta && !p.reply ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`);
     if (p.reply){ // 依頼と応答の間に起きたこと（コミットなど）は、応答より上に出す
       if (p.reply.t) flush(p.reply.t);
       rows.push(replyRow(p.reply, i, hide(), meta)); // 「AI が動いた時間・返すまでの時間」は、読む順に合わせて応答の下に

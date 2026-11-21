@@ -1,0 +1,1 @@
+- Each prompt in session details has a copy button, to reuse a past prompt. In `kiroku serve`, a long prompt is copied in full; a saved HTML file copies the part it contains and says so

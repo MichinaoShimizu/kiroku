@@ -485,7 +485,9 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .tl li>time{flex:none;padding-bottom:2px;font-size:var(--fs-xs)}
 /* 出来事の PR（li.ev.pr）は、プロンプト（li.pr）と同じ名前を持つので、:not(.ev) で分ける */
 .tl li.pr:not(.ev){justify-content:flex-start;padding-right:12%}
-.tl li.pr:not(.ev)>.av{order:0}.tl li.pr:not(.ev) p{order:1}.tl li.pr:not(.ev)>time{order:2} /* 左にあなた（人の印）、右に AI（機械の印）。読み上げは「You:」「AI:」 */
+.tl li.pr:not(.ev)>.av{order:0}.tl li.pr:not(.ev) p{order:1}.tl li.pr:not(.ev)>time{order:2}.tl li.pr:not(.ev)>.pcopy{order:3}
+.tl li.pr .pcopy{width:26px;height:26px;flex:none;align-self:center;opacity:0;transition:opacity .15s var(--ease)}.tl li.pr .pcopy .ic{width:13px;height:13px}
+.tl li.pr:hover .pcopy,.tl li.pr:focus-within .pcopy{opacity:1}@media (hover:none){.tl li.pr .pcopy{opacity:.7}} /* コピーは、吹き出しに載せたとき（タッチの画面ではいつも）出す */ /* 左にあなた（人の印）、右に AI（機械の印）。読み上げは「You:」「AI:」 */
 .tl li.pr:not(.ev) p{min-width:0;background:color-mix(in oklab,var(--c) var(--t2),var(--surface));border-radius:18px 18px 18px 4px;padding:8px 14px;color:var(--ink);font-weight:500}
 .tl li.pr:not(.ev).fix p{outline:1.5px dashed var(--warn);outline-offset:-1.5px} /* 言い直しらしいものは、色に加えて破線と「Correction?」の札で（色だけに頼らない） */
 .tl li.pr:not(.ev) .pmeta{margin-top:2px;color:var(--ink-2)}.tl li.rp .pmeta{margin-top:4px;color:var(--ink-2)} /* 色つきの地の上の小さな字は、ふだんより濃く（4.5:1 を保つ） */

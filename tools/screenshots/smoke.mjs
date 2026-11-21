@@ -205,6 +205,13 @@ async function run(env) {
         return i > 0 && j >= 0 && li[j].classList.contains("pr"); }));
     }
     check("流れには、出し方の切り替えと凡例を置かない", await p.locator("#drawer #flowBy, #drawer .tlkeyd, #drawer .tlkey").count() === 0);
+    { // プロンプトをコピーできる（ボタンには名前がある。写すのはそのプロンプトの文）
+      const r = await p.evaluate(async () => { window.__copied = null; navigator.clipboard.writeText = t => { window.__copied = t; return Promise.resolve(); };
+        const b = document.querySelector("#drawer .tl li.pr .pcopy"); if (!b) return {none: true};
+        const s = DATA.find(x => x.id === st.sel), p = s.prompts[+b.dataset.i]; b.click(); await new Promise(r => setTimeout(r, 300));
+        return {label: b.getAttribute("aria-label"), got: window.__copied, want: String(p.text || ""), cut: p.len > 0}; });
+      check("プロンプトにコピーのボタンがあり、そのプロンプトを写す", !r.none && /Copy this prompt/.test(r.label) && (r.cut ? r.want.startsWith(r.got.slice(0, 20)) : r.got === r.want), JSON.stringify({...r, got: (r.got || "").slice(0, 40), want: (r.want || "").slice(0, 40)}));
+    }
     await p.keyboard.press("Escape"); await pause();
     check("Esc で詳細が閉じる", !await drawerOpen());
     await run.focus(); await p.keyboard.press("ArrowLeft"); await pause();
