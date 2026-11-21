@@ -3,3 +3,4 @@
 - Summary: the Advice card is gone ("Change first" and the warning marks open the same details), and the chart cards are in two columns, with By agent and any card left alone in a row across the full width
 - Summary: on narrow windows the Trend's metric is a drop-down list; before, the metrics past the edge of the scrolling switch could not be reached
 - The ⚠ "Worth a look" list in the period row is hidden for now; "Change first" and the warning marks in the summary open the same dialogs
+- Summary: the Trend's usual range and median are gray instead of green (green now only marks a figure better than usual)

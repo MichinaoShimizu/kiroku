@@ -923,13 +923,13 @@ header{background:var(--s-cont);border-bottom:0}
 .insfig{margin:0}.insfig svg{width:100%;height:auto;display:block}
 .insfig .itk line{stroke:var(--rule);stroke-width:1}.insfig .itk text,.insfig .ixl{font-size:11px;fill:var(--ink-3);font-family:var(--sans)}
 .insfig .itk text{text-anchor:end}.insfig .ixl{text-anchor:middle}.insfig .ixl.cur{fill:var(--acc-ink);font-weight:600}
-.insfig .iband{fill:color-mix(in oklab,var(--go) 14%,transparent)}.insfig .imed{stroke:var(--go);stroke-dasharray:4 3;stroke-width:1.2}
+.insfig .iband{fill:color-mix(in oklab,var(--ink) 8%,transparent)}.insfig .imed{stroke:var(--ink-3);stroke-dasharray:4 3;stroke-width:1.2} /* いつもの範囲は色みのない灰色（緑は「よい」の意味にだけ使う） */
 .insfig .ibar{fill:color-mix(in oklab,var(--acc) 30%,var(--surface))}.insfig .ibar.cur{fill:var(--acc)}
 .insfig .iproj{fill:none;stroke:var(--acc);stroke-dasharray:4 3;stroke-width:1.5}
 .insfig .iout{fill:var(--warn)}.insfig .ihit{fill:transparent}
 .insfig figcaption{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;font-size:var(--fs-xs);color:var(--ink-2)}
 .insfig .lg::before{content:"";display:inline-block;width:12px;height:8px;margin-right:5px;vertical-align:middle;border-radius:2px}
-.insfig .lg.iband::before{background:color-mix(in oklab,var(--go) 22%,transparent)}.insfig .lg.imed::before{height:0;border-top:1.5px dashed var(--go)}
+.insfig .lg.iband::before{background:color-mix(in oklab,var(--ink) 12%,transparent)}.insfig .lg.imed::before{height:0;border-top:1.5px dashed var(--ink-3)}
 .insfig .lg.iproj::before{border:1.5px dashed var(--acc)}.insfig .lg.iout::before{width:8px;border-radius:50%;background:var(--warn)}
 .insnow{margin:10px 0 0;font-size:var(--fs-sm);color:var(--ink-2)}.insnow.bad{color:var(--warn)}.insnow.good{color:var(--go-ink)}
 .insadv{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;counter-reset:ia}
