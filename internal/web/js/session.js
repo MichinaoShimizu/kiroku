@@ -73,9 +73,10 @@ function detail(s){
   P.querySelectorAll(".pexp").forEach(b => b.onclick = () => { const li = b.closest("li"), open = b.getAttribute("aria-expanded") !== "true";
     li.querySelector(".pshort").hidden = open; li.querySelector(".pfull").hidden = !open; b.setAttribute("aria-expanded", open); b.textContent = open ? t("Show less") : pexpLabel(li.dataset.full ? {} : s.prompts[b.dataset.i]); });
   // プロンプトをコピー（そのまま次の依頼に使えるように）。切ったプロンプトは、kiroku serve なら全文を読んでから写す。保存した HTML では入っている分だけ写し、そう言う
-  P.querySelectorAll(".pcopy").forEach(b => b.onclick = async e => { e.stopPropagation(); const p = s.prompts[+b.dataset.i]; if (!p) return;
+  // AI の応答も同じ（切った応答は、kiroku serve なら /reply で全文を読む）
+  P.querySelectorAll(".pcopy").forEach(b => b.onclick = async e => { e.stopPropagation(); const rp = b.classList.contains("rcopy"), q = s.prompts[+b.dataset.i], p = q && (rp ? q.reply : q); if (!p) return;
     let text = String(p.text || ""), msg = "";
-    if (p.len > 0){ if (LIVE){ try { const r = await kfetch(`prompt?id=${encodeURIComponent(s.id)}&i=${b.dataset.i}`); if (r.ok) text = await r.text(); else msg = t("Copied the first {n} characters", {n: commas(text.length)}); } catch { msg = t("Copied the first {n} characters", {n: commas(text.length)}); } }
+    if (p.len > 0){ if (LIVE){ try { const r = await kfetch(`${rp ? "reply" : "prompt"}?id=${encodeURIComponent(s.id)}&i=${b.dataset.i}`); if (r.ok) text = await r.text(); else msg = t("Copied the first {n} characters", {n: commas(text.length)}); } catch { msg = t("Copied the first {n} characters", {n: commas(text.length)}); } }
       else msg = t("Copied the first {n} characters", {n: commas(text.length)}); }
     copy(text, msg, msg ? 5000 : 0, b); });
   P.querySelectorAll(".pload").forEach(b => b.onclick = async () => { // kiroku serve のときだけ、切ったプロンプトの全文をサーバーから読む
@@ -135,7 +136,7 @@ function replyRow(r, i, hidden, meta = ""){
   const cut = r.len > 0;
   // 保存した HTML では、切ったことは「…」だけで示す（kiroku serve で読めることは、流れの上に 1 度だけ書く）
   const more = cut && LIVE ? `<span class="pcut"> ${esc(t("(first {n} of {total} characters)", {n: REPLY_RUNES, total: commas(r.len)}))} <button class="rload" data-i="${i}">${esc(t("Load the full reply"))}</button></span>` : "";
-  return `<li class="rp"${hidden}><time>${r.t ? hm(r.t) : ""}</time><span class="av rpav" aria-hidden="true">${ico("bot")}</span><p><span class="sr">${esc(t("AI:"))} </span><span class="reptext">${esc(r.text)}${cut ? "…" : ""}${more}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`;
+  return `<li class="rp"${hidden}><time>${r.t ? hm(r.t) : ""}</time><button class="iconbtn pcopy rcopy" type="button" data-i="${i}" aria-label="${esc(t("Copy this reply"))}" title="${esc(t("Copy this reply"))}">${ico("copy")}</button><span class="av rpav" aria-hidden="true">${ico("bot")}</span><p><span class="sr">${esc(t("AI:"))} </span><span class="reptext">${esc(r.text)}${cut ? "…" : ""}${more}</span>${meta ? `<span class="pmeta">${meta}</span>` : ""}</p></li>`;
 }
 function promptFlow(s){
   const ev = flowEvents(s), rows = [];

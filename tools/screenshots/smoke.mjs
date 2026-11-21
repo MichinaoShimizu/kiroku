@@ -211,6 +211,11 @@ async function run(env) {
         const s = DATA.find(x => x.id === st.sel), p = s.prompts[+b.dataset.i]; b.click(); await new Promise(r => setTimeout(r, 300));
         return {label: b.getAttribute("aria-label"), got: window.__copied, want: String(p.text || ""), cut: p.len > 0}; });
       check("プロンプトにコピーのボタンがあり、そのプロンプトを写す", !r.none && /Copy this prompt/.test(r.label) && (r.cut ? r.want.startsWith(r.got.slice(0, 20)) : r.got === r.want), JSON.stringify({...r, got: (r.got || "").slice(0, 40), want: (r.want || "").slice(0, 40)}));
+      const q = await p.evaluate(async () => { window.__copied = null;
+        const b = document.querySelector("#drawer .tl li.rp .rcopy"); if (!b) return {none: true};
+        const s = DATA.find(x => x.id === st.sel), r = s.prompts[+b.dataset.i].reply; b.click(); await new Promise(z => setTimeout(z, 300));
+        return {label: b.getAttribute("aria-label"), got: window.__copied, want: String(r.text || ""), cut: r.len > 0}; });
+      check("AI の応答にもコピーのボタンがあり、その応答を写す", q.none || (/Copy this reply/.test(q.label) && (q.cut ? q.want.startsWith(q.got.slice(0, 20)) : q.got === q.want)), JSON.stringify({...q, got: (q.got || "").slice(0, 40), want: (q.want || "").slice(0, 40)}));
     }
     await p.keyboard.press("Escape"); await pause();
     check("Esc で詳細が閉じる", !await drawerOpen());

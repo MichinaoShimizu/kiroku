@@ -133,6 +133,7 @@ const JA_TEXT = {
   "Conversation compacted": "会話を要約",
   "Conversation summary": "会話の要約",
   "Copy this prompt": "このプロンプトをコピー",
+  "Copy this reply": "この応答をコピー",
   "Copied the first {n} characters": "先頭の {n} 文字をコピーしました",
   "Copied": "コピーしました",
   "Copy": "コピー",
