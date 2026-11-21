@@ -166,14 +166,14 @@ Things to know:
 
 ![Weekly summary (dummy data)](summary.png)
 
-The summary opens with an overview of charts, computed in the browser from your history (no AI). Figures are compared with your own past periods as inequalities, in a monospace box, such as `$31.23 > Q3 = $27.35` or `Q1 $13.42 ≤ $18.26 ≤ Q3 $27.35`. Q1 and Q3 are the 25th and 75th percentiles of up to your last 12 weeks or months with records (periods before your history starts are left out); IQR = Q3 − Q1, and a value beyond Q3 + 1.5×IQR or Q1 − 1.5×IQR is marked as such. They need 4 past periods. In a period in progress, cost and time are compared at their pace: pace = so far × days in the period ÷ days elapsed. Figures computed from others show their formula, such as cost per commit = cost ÷ commits, the share outside working hours = off-hours time ÷ active time, or the difference from the previous period on the same day.
+The summary opens with an overview of charts, computed in the browser from your history (no AI). Figures are compared with your own past periods as inequalities, in a monospace box, such as `$31.23 > 75th pct = $27.35` or `25th pct $13.42 ≤ $18.26 ≤ 75th pct $27.35`. The 25th and 75th pct are the values a quarter of the way from the bottom and from the top when up to your last 12 weeks or months with records are sorted (periods before your history starts are left out), so half of them fall between; spread = 75th pct − 25th pct, and a value beyond 75th pct + 1.5×spread or 25th pct − 1.5×spread is marked as such. They need 4 past periods. In a period in progress, cost, time and counts are compared at their pace: pace = so far × days in the period ÷ days elapsed. Figures computed from others show their formula, such as cost per commit = Claude Code cost ÷ AI commits, the share outside working hours = off-hours time ÷ session time, or the difference from the previous period on the same day.
 
 Each chart opens with a takeaway computed from the data (for example "pace $22.86: 4 of 6 weeks from the highest; −$2.45 from the median $25.31") and, where the data supports one, a next step with numbers (for example "To stay within the previous period's $31.23: at most $12.97 in the 1 day left"). Cards in the same row are the same height.
 
 - **Figures** (up to three per row, the same figures as the band above the calendar and more, in the order you'd use them): estimated cost with its pace; Kiro credits (or tokens); where you stand against the previous period (a day to match it, how far over it you already are, the month-end estimate, or the difference for a finished period), each with its formula; active time; cost per commit with its formula; and what to change first with its threshold. Press a value for the same breakdown as in the band
 - **Trend**: bars for the last periods of a metric you pick (cost, time, cost per commit, cache, corrections, wait), with the usual range as a band, the median dashed, the pace of the period in progress as a dashed outline, and red dots on periods far outside the range (1.5 times its width beyond it)
 - **Cost so far vs last period**: the cumulative cost (or active time) by day, against the previous period's line
-- **Advice**: up to three items from "Worth a look", each with its comparison, what to try and its sessions (point at an item for why it matters), and one metric on the better side of Q1–Q3
+- **Advice**: up to three items from "Worth a look", each with its comparison, what to try and its sessions (point at an item for why it matters), and one metric outside the middle half on the better side
 - **Cost by session length**: estimated cost per length bucket (under 5 minutes to over 2 hours), with the number of sessions in each and the median length
 - **Cost and outputs**: each session by estimated cost and commits plus pull requests; costly sessions (top quarter, $0.5 or more) with no output are red. Press a point to open its session
 - **When you worked**: a weekday × hour heatmap of active time (overlapping sessions count once), the busiest three hours and the share outside weekday 9:00–18:00
@@ -185,7 +185,7 @@ The cards, in this order:
 - **How you used AI**: tokens with the output share, cache reads, Kiro credits, prompts, cost per prompt, subagents with their types, and the month-end estimates, beside **When you worked** (the heatmap)
 - **How you worked**: corrections and interruptions, usage limit hits, compactions, oversized prompts, focus blocks, project switches and wait time
 
-Each figure that has past periods shows its inequality against Q1–Q3, and a figure past a "Worth a look" threshold has the warning triangle next to its name.
+Each figure that has past periods shows its inequality against the 25th and 75th pct, and a figure past a "Worth a look" threshold has the warning triangle next to its name.
 
 | Metric | Definition |
 |---|---|

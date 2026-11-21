@@ -260,8 +260,8 @@ async function run(env) {
       check("カードの中の数の枠は最大 3 列", await p.evaluate(() => [...document.querySelectorAll("#review .istats, #review .insh")].every(g => getComputedStyle(g).gridTemplateColumns.split(" ").length <= 3)));
       check("サマリーの頭に、数字のカード 4〜6 枚（上の帯の数字を含む）・推移・累積の線・どこに使ったかの横棒・長さ別の費用・上位 3 つまでのアドバイスがある", r.heads >= 4 && r.heads <= 6 && r.svg && r.bars > 0 && r.cum === 1 && r.donut > 0 && r.hist === 6 && r.adv === Math.min(3, r.flags), JSON.stringify(r));
       const fx = await p.evaluate(() => ({chips: [...document.querySelectorAll("#review .insight .ichip.ifx")].map(e => e.textContent), def: (document.querySelector("#review .insdef") || {}).textContent || "",
-        vague: /Usual|Higher|Lower|usual range|いつもの範囲|いつもどおり|高め|低め/.test(document.querySelector("#review .insight").innerText)}));
-      check("いつもとの比べは不等式（Q1・Q3 の値）で出し、定義を 1 行で示す。曖昧な言葉は使わない", fx.chips.length > 0 && fx.chips.every(c => /Q[13]|≤|needs|必要/.test(c)) && /Q1, Q3 = .*IQR = Q3 − Q1/.test(fx.def) && !fx.vague, JSON.stringify(fx).slice(0, 300));
+        vague: /Usual|Higher|Lower|usual range|いつもの範囲|いつもどおり|高め|低め|\bQ[13]\b|IQR/.test(document.querySelector("#review .insight").innerText)}));
+      check("いつもとの比べは不等式（下位・上位25%点の値）で出し、定義を 1 行で示す。曖昧な言葉と Q1・Q3 の記号は使わない", fx.chips.length > 0 && fx.chips.every(c => /pct|%点|≤|needs|必要/.test(c)) && /(spread|幅) = /.test(fx.def) && !fx.vague, JSON.stringify(fx).slice(0, 300));
       const lay = await p.evaluate(() => { const cs = [...document.querySelectorAll("#review .insight .inscol")]; const say = cs.filter(c => c.querySelector(".insfig, .ihgrid") && c.querySelector(".isay")).length, charts = cs.filter(c => c.querySelector(".insfig, .ihgrid")).length;
         // 同じ段（insrow）のカードは、上端と下端がそろう（カードの間に隙間がない）
         const rows = innerWidth <= 1000 || [...document.querySelectorAll("#review .insrow")].every(r => { const k = [...r.children].map(c => c.getBoundingClientRect()); return k.every(b => Math.abs(b.top - k[0].top) < 1 && Math.abs(b.bottom - k[0].bottom) < 1); });

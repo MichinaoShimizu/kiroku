@@ -1,1 +1,0 @@
-- Summary: "Repeated prompts" shows each prompt as a prompt bubble with a person mark, as in the prompt flow, instead of a row that looked like a session; pressing it still opens the session where you last wrote it
