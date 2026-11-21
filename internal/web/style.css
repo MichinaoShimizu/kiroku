@@ -903,7 +903,12 @@ header{background:var(--s-cont);border-bottom:0}
 .insh>.sp1{grid-column:span 1}.insh>.sp2{grid-column:span 2}.insh>.sp3{grid-column:span 3}.insh>.sp4{grid-column:span 4} /* カードは中の数字の数だけ列を使う */
 @media (max-width:1000px){.insh{grid-template-columns:repeat(2,minmax(0,1fr))}.insh>.sp3,.insh>.sp4{grid-column:span 2}}
 @media (max-width:600px){.insh{grid-template-columns:minmax(0,1fr)}.insh>.ikg{grid-column:auto}}
-.ikrow>.itile+.itile{border-left:1px solid var(--rule)} /* カードの中に数字が 2 つ以上あれば、間に縦の区切り線 */
+.ikrow>.itile+.itile{border-left:1px solid var(--rule)}
+/* タイルの背景：いつもの範囲より良い側は緑、悪い側は赤（大きく外れたら濃く）。範囲の中と、向きの決まっていない指標は色なし */
+.itile.good,.itile.bad{border-radius:12px;padding-top:10px;padding-bottom:10px}
+.itile.good{background:color-mix(in oklab,var(--go) 10%,transparent)}.itile.good.far{background:color-mix(in oklab,var(--go) 20%,transparent)}
+.itile.bad{background:color-mix(in oklab,var(--warn) 10%,transparent)}.itile.bad.far{background:color-mix(in oklab,var(--warn) 20%,transparent)}
+.ikrow>.itile.good+.itile,.ikrow>.itile.bad+.itile,.ikrow>.itile+.itile.good,.ikrow>.itile+.itile.bad{border-left-color:transparent} /* 色の付いたタイルの横は、区切り線の代わりに色で分かれる */ /* カードの中に数字が 2 つ以上あれば、間に縦の区切り線 */
 .ikg{border:1px solid var(--rule);border-radius:16px;background:var(--s-lowest);padding:14px 4px 16px}
 /* 分類の見出し（コスト・出力・単価）：本文より大きく太く、左に色の短い線 */
 .ikgh,.inssec{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--ink);letter-spacing:.02em}
@@ -930,10 +935,6 @@ header{background:var(--s-cont);border-bottom:0}
 @media (max-width:900px){.iout2{grid-template-columns:minmax(0,1fr)}}
 /* 幅いっぱいのカードの図は、横に伸びた分だけ高くならないように（文字が大きくなりすぎない） */
 .inscol.full .insfig>svg{display:block;width:min(100%,760px);margin:0 auto}
-.icall{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;row-gap:4px;margin-bottom:12px;padding:12px 18px;border-radius:12px;background:var(--s-cont)}
-.icall .il{font-size:var(--fs-xs);font-weight:600;color:var(--ink-3)}.icall .icv{font:600 var(--fs-md)/1.4 var(--sans);color:var(--ink);text-align:left}
-.icall button.icv:hover{text-decoration:underline;text-underline-offset:3px}.icall .isee{font-size:var(--fs-sm);color:var(--ink-2);flex:1 1 320px;min-width:0}
-.icall.bad .il::before{content:"";display:inline-block;width:7px;height:7px;margin-right:6px;border-radius:50%;background:var(--warn);vertical-align:1px}
 .itile .il{font-size:var(--fs-xs);color:var(--ink-2)}.itile b{font:700 var(--fs-3xl)/1.15 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink)}.itile b.sm{font-size:var(--fs-xl);line-height:1.4}
 .itile small{font-size:var(--fs-xs);color:var(--ink-2)}
 /* いつもの範囲との比べ：塗った箱ではなく、小さな印と文字で（外れたときだけ色） */
@@ -1090,8 +1091,6 @@ header{background:var(--s-cont);border-bottom:0}
 /* 日報の「プロンプトをコピー」は、マウスでもいつも薄く見せる（乗せたときだけでは、あることに気づけない） */
 @media (hover:hover){.head .dd .dayrun{opacity:.5}}
 /* 式の表示の切り替えは、エージェントの切り替えと同じ行の右端に。押している間は、ほかの切り替えと同じ色 */
-.insagbar .fxbtn{margin-left:auto;height:28px;padding:0 12px;font-size:var(--fs-xs)}
-.fxbtn[aria-pressed="true"]{background:var(--pc);color:var(--on-pc);border-color:var(--acc)}
 /* 見直す候補のダイアログの、前後の候補へ */
 .wknav{display:inline-flex;align-items:center;gap:2px;margin-left:12px;font-weight:500;color:var(--ink-2)}.wknav .iconbtn{width:24px;height:24px;font-size:16px;line-height:1}
 /* 短いセッションの帯や git の印も、押せる範囲は少なくとも 20px（タッチでは 24px）。見た目の帯の太さは変えない */

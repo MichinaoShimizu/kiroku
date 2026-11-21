@@ -321,10 +321,10 @@ async function run(env) {
         adv: document.querySelectorAll("#review .insadvc, #review .insadv").length, flags: (lastFlags || []).length, tabs: document.querySelectorAll("#review [data-ins]").length}));
       check("上の帯の数字（推定費用・稼働時間）はサマリーのカードにもあり、押すと同じ内訳が開く", await p.evaluate(() => ["cost", "active"].every(m => document.querySelector(`#review .itile [data-metric="${m}"]`))));
       check("トークンの種類別のカード（種類ごとの積み上げ棒）がある", await p.evaluate(() => !!document.querySelector("#review .itbar") && document.querySelectorAll("#review .itbar > span").length >= 2));
-      check("「まず見直す」は、並べた候補の先頭（いつもより悪い側に外れたもの → 比べられないもの → 範囲の中。同じ段は関わる費用の大きい順）。期間の行の ⚠ は出さない", await p.evaluate(() => {
+      check("見直す候補の並びは、いつもより悪い側に外れたもの → 比べられないもの → 範囲の中（同じ段は関わる費用の大きい順）。「まず見直す」の行と期間の行の ⚠ は出さない", await p.evaluate(() => {
         const F = lastFlags, side = f => insSide(f), ok = F.every((f, i) => i === 0 || side(F[i - 1]) < side(f) || side(F[i - 1]) === side(f) && ((F[i - 1].stake && F[i - 1].stake.c) ?? -1) >= ((f.stake && f.stake.c) ?? -1));
-        const first = document.querySelector("#review .icall .insgo");
-        return ok && (!F.length || first.dataset.goto === (GOTO[F[0].k] || F[0].k)) && !document.querySelector("#worth"); }));
+        return ok && !document.querySelector("#review .icall") && !document.querySelector("#worth"); }));
+      check("見直す候補はどれも、サマリーの指標の横の印から開ける（「まず見直す」の行はない）", await p.evaluate(() => [...new Set(lastFlags.map(f => GOTO[f.k] || f.k))].every(id => document.querySelector(`#review .fmark[data-goto="${id}"]`))));
       check("エージェント別の表に、エージェントごとの行がある（費用とクレジットを混ぜない）", await p.evaluate(() => document.querySelectorAll("#review .iagt tbody tr").length >= 2));
       { // エージェントで絞る：サマリーの数字がそのエージェントの分になり、上の帯（すべて）は変わらない。戻すと元の数字
         const ags = await p.evaluate(() => [...document.querySelectorAll("#review [data-ag]")].map(b => b.dataset.ag));
@@ -340,7 +340,7 @@ async function run(env) {
           await p.click('#review [data-ag=""]'); await pause();
           check("「すべて」に戻すと元の数字", await val() === all);
           if (ags.length >= 4){ // A から B に切り替えた結果と、B を直接開いた結果が同じ（前のエージェントの候補が残らない）
-            const advice = () => p.evaluate(() => [...document.querySelectorAll("#review .icall .insgo")].map(e => e.textContent).join("|"));
+            const advice = () => p.evaluate(() => [...document.querySelectorAll("#review .fmark")].map(e => e.dataset.goto).join("|"));
             await p.click(`#review [data-ag="${ags[1]}"]`); await pause(); await p.click(`#review [data-ag="${ags[3]}"]`); await pause(); const viaA = await advice();
             await p.click('#review [data-ag=""]'); await pause(); await p.evaluate(() => { DATA = DATA.slice(); }); await p.click(`#review [data-ag="${ags[3]}"]`); await pause(); const direct = await advice();
             check("エージェントを切り替えても、前のエージェントのアドバイスが残らない", viaA === direct, `${viaA} / ${direct}`);
@@ -353,10 +353,9 @@ async function run(env) {
       check("サマリーの頭の数字は、コストと出力の 2 段に分かれ、広い画面ではそれぞれ 1 段、狭い画面では折り返し、どれも画面の中に見える", await p.evaluate(() => { const G = [...document.querySelectorAll("#review .insh .ikg")], g = document.querySelector("#review .insh").getBoundingClientRect();
         const k = [...document.querySelectorAll("#review .insh .ikrow > .itile")], inside = k.every(c => { const r = c.getBoundingClientRect(); return r.left >= g.left - 1 && r.right <= g.right + 1; });
         const one = row => { const t = [...row.children].map(c => c.getBoundingClientRect().top); return t.every(x => Math.abs(x - t[0]) < 2); };
-        return G.length === 3 && k.length > 1 && inside && (innerWidth <= 1100 || G.every(x => one(x.querySelector(".ikrow")))) && !!document.querySelector("#review .icall"); }));
-      check("式はふだんから見せ、「式を隠す」で隠す", await p.evaluate(async () => { const vis = () => [...document.querySelectorAll("#review .insight .ifx.fxo")].some(e => e.offsetParent !== null);
-        const on = vis(); document.querySelector("#fxbtn").click(); await new Promise(r => setTimeout(r, 200)); const off = !vis(); document.querySelector("#fxbtn").click(); await new Promise(r => setTimeout(r, 200)); return on && off && vis(); }));
-      check("サマリーの頭に、数字 5〜14 個（上の帯の数字を含む。コスト・出力（Git と AI の編集）・単価（Git コミットあたりと AI が編集した 100 行あたりを分ける）に分ける）・推移・累積の線・どこに使ったかの横棒・長さ別の費用があり、改善のアドバイスの枠はない", r.heads >= 5 && r.heads <= 14 && r.svg && r.bars > 0 && r.cum === 1 && r.donut > 0 && r.hist === 6 && r.adv === 0, JSON.stringify(r));
+        return G.length === 3 && k.length > 1 && inside && (innerWidth <= 1100 || G.every(x => one(x.querySelector(".ikrow")))) && !document.querySelector("#review .icall"); }));
+      check("式はいつも見せ、切り替えのボタンは置かない", await p.evaluate(() => [...document.querySelectorAll("#review .insight .ifx.fxo")].some(e => e.offsetParent !== null) && !document.querySelector("#fxbtn")));
+      check("サマリーの頭に、数字 5〜24 個（上の帯の数字を含む。コスト・出力（Git はコミット・行・ファイル・リポジトリ・日・push・PR、AI の編集はファイルと行）・単価（Git コミットあたりと AI が編集した 100 行あたりを分ける）に分ける）・推移・累積の線・どこに使ったかの横棒・長さ別の費用があり、改善のアドバイスの枠はない", r.heads >= 5 && r.heads <= 24 && r.svg && r.bars > 0 && r.cum === 1 && r.donut > 0 && r.hist === 6 && r.adv === 0, JSON.stringify(r));
       const fx = await p.evaluate(() => ({chips: [...document.querySelectorAll("#review .insight .ichip.ifx")].map(e => e.textContent), def: (document.querySelector("#review .insdef") || {}).textContent || "",
         vague: /Usual|Higher|Lower|usual range|いつもの範囲|いつもどおり|高め|低め|\bQ[13]\b|IQR/.test(document.querySelector("#review .insight").innerText)}));
       check("いつもとの比べは不等式（下位・上位25%点の値）で出し、定義を 1 行で示す。曖昧な言葉と Q1・Q3 の記号は使わない", fx.chips.length > 0 && fx.chips.every(c => /pct|%点|≤|needs|必要/.test(c)) && /(spread|幅) = /.test(fx.def) && !fx.vague, JSON.stringify(fx).slice(0, 300));
@@ -539,12 +538,12 @@ async function run(env) {
       const w = st.week, a = one(); setMode("month"); await new Promise(r => setTimeout(r, 300)); const b = one(); setMode("week"); st.week = w; render(); await new Promise(r => setTimeout(r, 300));
       setView("sum"); await new Promise(r => setTimeout(r, 200));
       return a && b; }));
-    const go = p.locator("#review .icall .insgo").first(); // 見直す候補は「まず見直す」とサマリーの印から開く
+    const go = p.locator("#review .fmark").first(); // 見直す候補は、サマリーの指標の横の印から開く
     if (await go.count()){
       const id = await go.getAttribute("data-goto");
       await go.scrollIntoViewIfNeeded(); await pause(); const y0 = await p.evaluate("scrollY");
       await go.click(); await pause();
-      check("「まず見直す」を押すと、真ん中のダイアログで開く", await p.locator("#wk").evaluate(d => d.open) && (await p.locator("#wkh").innerText()).trim().length > 0, id);
+      check("見直す候補の印を押すと、真ん中のダイアログで開く", await p.locator("#wk").evaluate(d => d.open) && (await p.locator("#wkh").innerText()).trim().length > 0, id);
       check("ダイアログには、見えたこと・基準・次にやってみることがある", await p.locator("#wk .fl .see").count() > 0 && await p.locator("#wk .fl .rule").count() > 0);
       const box = await p.locator("#wk").boundingBox();
       check("ダイアログが画面に収まる", box && box.x >= 0 && box.x + box.width <= env.viewport.width + 1, JSON.stringify(box));

@@ -2,7 +2,7 @@
 /* ── 週次・月次サマリー：① プロジェクト別 ② コストとアウトプット ③ 時間 ④ AI ⑤ かたち。基準を超えた指標には、その場に印と推移を付ける ── */
 function summary(){
   const {S:w, P:pw} = period(), R = $("#review"), M = st.mode === "month", unit = M ? "月" : "週";
-  document.documentElement.classList.toggle("showfx", !!st.insFx); // 式を表示するか（ふだんは平易な 1 行だけ）
+  document.documentElement.classList.add("showfx"); // 式はいつも出す（切り替えのボタンは置かない）
   const head = `<div class="rvhead"><h2>${esc(M ? t("Monthly summary") : t("Weekly summary"))}</h2><p>${esc(t("Rough figures for reflecting on how you work. They are not for comparing people or for evaluations."))}</p></div>`;
   $("#sres").hidden = true; $("#sres").innerHTML = "";
   if (!w){ R.innerHTML = foot(); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
@@ -10,15 +10,13 @@ function summary(){
   lastFlags = F; // 見直す候補（詳細の頭の印と「まず見直す」が使う）
   // エージェントで絞る：2 つ以上のエージェントが動いた期間だけ、切り替えを出す（期間の集計の agents）。絞っている間はサマリーの中だけが、そのエージェントの分になる
   const ags = ((w.shares || {}).source || []).map(x => x.key).filter(k => w.agents && Object.hasOwn(w.agents, k)), ag = ags.includes(st.insAg) ? st.insAg : "";
-  const fxB = `<button type="button" class="pill fxbtn" id="fxbtn" aria-pressed="${!!st.insFx}">${esc(st.insFx ? t("Hide formulas") : t("Show formulas"))}</button>`; // 式の表示の切り替え（押すと文字も変わる）
   const agPart = ags.length >= 2 ? `<span class="lab">${esc(t("Agent"))}</span><div class="segc insk" role="group" aria-label="${esc(t("Agent"))}">${["", ...ags].map(k => `<button type="button" data-ag="${esc(k)}" aria-pressed="${k === ag}">${esc(k || t("All agents"))}</button>`).join("")}</div>${ag ? `<span class="note">${esc(t("Only {agent}. Its active time counts time it shared with other agents in full (the By agent table and the legend split it). Git commits made by hand are left out. The figures above the calendar stay for all agents", {agent: ag}))}</span>` : ""}` : "";
-  const agSw = `<div class="insagbar">${agPart}${fxB}</div>`;
+  const agSw = agPart ? `<div class="insagbar">${agPart}</div>` : "";
   insFlags = F; insAg = ag;
   agScope(ag, () => { const {S: w2, P: pw2} = period(), F2 = ag ? insRank(findList(w2, pw2, unit)) : F; insFlags = F2;
     R.innerHTML = `${head}${agSw}${insightH(F2)}<div class="rvgrid">
   <section class="panel metap">${measure(w2)}${foot()}</section></div>`;
     placeFlags(R, F2); });
-  const fb = $("#fxbtn"); if (fb) fb.onclick = () => { st.insFx = !st.insFx; store.set("insFx", st.insFx); summary(); const nb = $("#fxbtn"); if (nb) nb.focus(); };
   R.querySelectorAll("[data-ag]").forEach(b => b.onclick = () => { st.insAg = b.dataset.ag; store.set("insAg", st.insAg); summary(); const nb = $("#review").querySelector(`[data-ag="${CSS.escape(b.dataset.ag)}"]`); if (nb) nb.focus(); });
   R.querySelectorAll(".card,.fses").forEach(c => c.onclick = () => select(c.dataset.id));
   R.querySelectorAll(".fmark").forEach(b => b.onclick = () => insOpenWorth(b.dataset.goto, b));
@@ -43,7 +41,7 @@ const uThis = unit => unit === "月" ? "this month" : "this week";
 const uLast = unit => unit === "月" ? "last month" : "last week";
 /* 指標の読み方：定義・言えること・言えないこと・打てる手。画面の「?」と、改善案プロンプトの前提に使う */
 const HELP = {
-  findings: {n: "Worth a look", d: "Metrics that crossed a fixed threshold. Each is marked with a warning triangle where it appears, with what was observed, an 8-period trend (for metrics counted per period), the related sessions and the threshold. Change first in the summary names the first in priority order", c: "Which metric is worth reviewing first", x: "Whether something is good or bad. Thresholds are generic and may not fit how you work", a: "Pick one, try it next period, and check the change with the same metric"},
+  findings: {n: "Worth a look", d: "Metrics that crossed a fixed threshold. Each is marked with a warning triangle where it appears, with what was observed, an 8-period trend (for metrics counted per period), the related sessions and the threshold", c: "Which metric is worth reviewing first", x: "Whether something is good or bad. Thresholds are generic and may not fit how you work", a: "Pick one, try it next period, and check the change with the same metric"},
   projects: {n: "By project", d: "Time, usage and what was left behind per project. Time when several projects ran at once is split between them", c: "How you divided time and AI across projects", x: "How important or successful a project was", a: "If the split differs from what you intended, revisit how you work or your priorities"},
   active: {n: "Active time", d: "Time when any session was running (overlaps count once)", c: "Total time you worked together with AI", x: "Whether you were focused. Includes time you left a session idle", a: "Compare with the previous period to see how much more or less you rely on AI"},
   focus: {n: "Focus blocks", d: "Work that continued for 60 minutes or more. Gaps within a session up to the session gap (15 minutes by default) and gaps of up to 5 minutes between sessions are treated as continuous", c: "Whether you had long stretches of uninterrupted work", x: "The quality of the work in that time", a: "If your time is fragmented, group the work you hand to AI into blocks of time"},

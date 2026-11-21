@@ -4,3 +4,4 @@
 - Most changed files: the file name opens the file (as of the session's commits, or on this computer), and the number of edits opens the session that changed it most
 - Calendar: today has a "Today" badge and an outlined column in the week calendar, and an outlined day in the month calendar
 - The unit costs per commit are named per Git commit (estimated cost, Kiro credits and tokens per Git commit), and "Most changed files" is "Most edited files"
+- Summary: "Change first" and the formula switch are gone; formulas are always shown, and every metric that is worth a look has its mark next to a figure (Possible friction and Repeated prompts are now figures in How you worked). Figures are tinted green or red by which side of your usual range they fall on, stronger when far outside it
