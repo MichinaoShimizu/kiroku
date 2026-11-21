@@ -1,1 +1,0 @@
-- A project named `__proto__` (or `constructor`, `toString` and similar) now gets its color like any other project; before, its bars in the summary had none

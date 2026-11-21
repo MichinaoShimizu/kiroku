@@ -1,1 +1,0 @@
-- The view has a light theme only: it no longer switches to dark when your system is set to dark. The loading page and the page that opens kiroku with its key are light too
