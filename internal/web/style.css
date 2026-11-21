@@ -943,10 +943,6 @@ header{background:var(--s-cont);border-bottom:0}
 /* ── サマリーの頭（要点・推移といつもの範囲・アドバイス） ── */
 .insight{margin:0 0 24px}
 .insh{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
-.inshl{padding:14px 18px;border-radius:16px;background:var(--s-cont);display:flex;flex-direction:column;gap:4px;min-width:0;border-left:4px solid var(--rule-2)}
-.inshl b{font-size:var(--fs-xl);font-weight:600;color:var(--ink)}
-.inshl span{font-size:var(--fs-sm);color:var(--ink-2)}
-.inshl.good{border-left-color:var(--go)}.inshl.bad{border-left-color:var(--warn)}
 .insgrid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;align-items:start}
 .inscol{background:var(--s-lowest);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow);min-width:0}
 .inscol h4{margin:0 0 10px;font-size:var(--fs-lg);font-weight:600}
@@ -988,3 +984,25 @@ header{background:var(--s-cont);border-bottom:0}
 .ptab td .pbar{display:inline-block;width:48px;height:6px;margin-right:8px;vertical-align:middle;border-radius:3px;background:var(--surface-2);overflow:hidden}.ptab td .pbar>span{display:block;height:100%;background:var(--c)}
 .ptab th:first-child,.ptab td:first-child{width:30%}
 @media (max-width:820px){.ptab th:nth-child(3),.ptab td:nth-child(3){display:none}.ihgrid{grid-template-columns:22px repeat(24,minmax(0,1fr));gap:1px}.ihgrid .ihc{height:14px}}
+
+.itile{padding:14px 18px;border-radius:16px;background:var(--s-cont);display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;border-left:4px solid var(--rule-2)}
+.itile.good{border-left-color:var(--go)}.itile.bad{border-left-color:var(--warn)}
+.itile .il{font-size:var(--fs-xs);color:var(--ink-2)}.itile b{font:700 var(--fs-3xl)/1.15 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink)}.itile b.sm{font-size:var(--fs-xl);line-height:1.4}
+.itile small{font-size:var(--fs-xs);color:var(--ink-2)}
+.ichip{display:inline-block;padding:1px 8px;border-radius:8px;font-size:var(--fs-xs);font-weight:600;background:var(--surface-2);color:var(--ink-2);white-space:nowrap}
+.ichip.good{background:color-mix(in oklab,var(--go) 16%,var(--surface));color:var(--go-ink)}.ichip.bad{background:color-mix(in oklab,var(--warn) 14%,var(--surface));color:var(--warn)}
+.insrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:16px;align-items:start}.insrow.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.insrow.two:last-child{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
+.insw{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:6px 8px}
+.insa .todo{display:flex;gap:6px;align-items:flex-start;margin:6px 0 0}.insa .todo .ti{flex:none;margin-top:3px;width:14px;height:14px;stroke:var(--acc)}
+.insa .insgo{margin-top:8px;height:28px;font-size:var(--fs-xs)}
+.inskeep b{margin-left:4px}
+.insfig .icum{fill:none;stroke:var(--acc);stroke-width:2.5;stroke-linejoin:round}.insfig .iprev{fill:none;stroke:var(--ink-3);stroke-width:1.5;stroke-dasharray:5 4}.insfig .icumd{fill:var(--acc)}
+.insfig .lg.icum::before{height:0;border-top:2.5px solid var(--acc)}.insfig .lg.iprev::before{height:0;border-top:1.5px dashed var(--ink-3)}
+.idonut{display:flex;gap:14px;align-items:center}.idonut svg{width:140px;flex:none}.idonut .idc{font:700 15px var(--sans);fill:var(--ink);text-anchor:middle}
+.idleg{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;min-width:0;flex:1;font-size:var(--fs-sm)}
+.idleg li{display:flex;align-items:center;gap:6px;min-width:0}.idleg i{flex:none;width:9px;height:9px;border-radius:50%}.idleg span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.idleg b{font-variant-numeric:tabular-nums}
+.insfig .ihb{fill:color-mix(in oklab,var(--acc) 35%,var(--surface))}.insfig .ihb.med{fill:var(--acc)}.insfig .ihn{font-size:11px;fill:var(--ink-2);text-anchor:middle;font-family:var(--sans)}
+.istat{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;margin:8px 0 0;font-size:var(--fs-sm);color:var(--ink-2)}.istat b{color:var(--ink);margin:0 2px}
+@media (max-width:1000px){.insrow,.insrow.two,.insrow.two:last-child{grid-template-columns:minmax(0,1fr)}}
+.insfig .ixl.s{text-anchor:start}.insfig .ixl.e{text-anchor:end}
+.insfig.ihist svg{max-height:220px}

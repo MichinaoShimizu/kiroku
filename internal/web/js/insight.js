@@ -40,17 +40,21 @@ function insPosText(b){
   return s;
 }
 const insTone = b => !b || b.q1 == null || b.better == null ? "" : b.better ? " good" : " bad";
-/* 要点の文（3 つまで）：費用・成果あたりの費用・いちばん効く見直し。数字を並べず、いつもの範囲と比べて言い切る */
+/* 状態の札：いつもの範囲との比べを 2〜4 文字で（くわしい文は title に） */
+function insChip(b){
+  if (!b || b.q1 == null) return `<span class="ichip" title="${esc(insPosText(b))}">${esc(t("No baseline"))}</span>`;
+  const l = b.pos === "typical" ? t("Usual") : b.pos === "high" ? (b.far ? t("Much higher") : t("Higher")) : (b.far ? t("Much lower") : t("Lower"));
+  return `<span class="ichip${insTone(b)}" title="${esc(insPosText(b))}">${esc(l)}</span>`;
+}
+/* 要点：大きな数字と札だけ（3 つ）。費用・成果あたりの費用（なければ稼働時間）・いちばん見直す価値のあるもの */
 function insHeadlines(F){
-  const L = [], bc = insBase("cost");
-  if (bc){ const now = fmtM("cost", bc.cur), pace = bc.part ? t(" (at this pace, {v} for the {period})", {v: fmtM("cost", bc.v), period: st.mode === "month" ? t("month") : t("week")}) : "";
-    L.push({k: "cost", tone: insTone(bc), h: t("Estimated cost {v}{pace}", {v: now, pace}), d: insPosText(bc)}); }
-  const bp = insBase("costPerCommit");
-  if (bp) L.push({k: "costPerCommit", tone: insTone(bp), h: t("{v} per commit", {v: fmtM("costPerCommit", bp.cur)}), d: insPosText(bp)});
-  else { const ba = insBase("active"); if (ba) L.push({k: "active", tone: insTone(ba), h: t("Active time {v}", {v: fmtM("active", ba.cur)}), d: insPosText(ba)}); }
-  L.push(F.length ? {k: "", tone: " bad", h: t("Most worth changing: {what}", {what: insName(GOTO[F[0].k] || F[0].k)}), d: t("See the advice below")}
-    : {k: "", tone: " good", h: t("Nothing stands out to change"), d: t("No metric crossed its threshold in the period shown")});
-  return `<div class="insh">${L.map(x => `<div class="inshl${x.tone}"><b>${esc(x.h)}</b><span>${esc(x.d)}</span></div>`).join("")}</div>`;
+  const T = [], tile = (k, label, b, v, sub) => T.push(`<div class="itile${insTone(b)}"><span class="il">${esc(label)}</span><b>${esc(v)}</b>${sub || ""}${insChip(b)}</div>`);
+  const bc = insBase("cost"); if (bc) tile("cost", t("Estimated cost"), bc, fmtM("cost", bc.cur), bc.part ? `<small>${esc(t("Pace {v}", {v: fmtM("cost", bc.v)}))}</small>` : "");
+  const bp = insBase("costPerCommit"), ba = insBase("active");
+  if (bp) tile("costPerCommit", t("Cost per commit"), bp, fmtM("costPerCommit", bp.cur)); else if (ba) tile("active", t("Active time"), ba, fmtM("active", ba.cur));
+  T.push(F.length ? `<div class="itile bad"><span class="il">${esc(t("Change first"))}</span><b class="sm">${esc(insName(GOTO[F[0].k] || F[0].k))}</b></div>`
+    : `<div class="itile good"><span class="il">${esc(t("Change first"))}</span><b class="sm">${esc(t("Nothing"))}</b></div>`);
+  return `<div class="insh">${T.join("")}</div>`;
 }
 /* 推移のグラフ：前の INS_N 期間と表示中の期間の棒。いつもの範囲（四分位）を帯、中央値を点線で重ねる。
    途中の期間は、今の値の棒と、このペースで終えたときの値の枠。範囲から大きく外れた期間には印 */
@@ -76,28 +80,29 @@ function insChart(k){
   const list = ps.filter(x => x.v != null).map(x => `${x.p.label} ${fmtM(k, x.v)}`).join(LSEP());
   return `<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(t("{metric} over the last {n} {unit}", {metric: insName(k), n, unit: insUnit()}))}">${ticks}${band}${bars}</svg>
     <figcaption><span class="lg iband">${esc(t("Your usual range (middle half)"))}</span><span class="lg imed">${esc(t("Median"))}</span>${proj != null ? `<span class="lg iproj">${esc(t("At this pace"))}</span>` : ""}<span class="lg iout">${esc(t("Far outside the usual range"))}</span></figcaption>
-    <p class="sr">${esc(list)}</p><p class="insnow${insTone(b)}">${esc(insName(k))}: ${esc(fmtM(k, cur.v))} — ${esc(insPosText(b))}</p></figure>`;
+    <p class="sr">${esc(list)} — ${esc(insPosText(b))}</p></figure>`;
 }
 /* 改善のアドバイス：見直す候補を効き目の大きい順に 3 つまで。何が・いつもと比べて・何をするか（指標の説明の「打てる手」）と、該当するセッション。
    よくなった指標も 1 つ返す（続けることがわかるように） */
 function insAdvice(F){
   const items = F.slice(0, 3).map(f => { const id = GOTO[f.k] || f.k, b = MET[f.k] ? insBase(f.k) : null, h = H()[f.k] || H()[id] || {};
-    return `<li class="insa"><div class="insw"><b>${esc(f.L.see)}</b>${b && b.q1 != null ? `<span class="insb${insTone(b)}">${esc(insPosText(b))}</span>` : ""}</div>
-      <p class="why">${esc(f.L.why)}</p>${h.a ? `<p class="todo"><span>${esc(t("Try"))}</span>${esc(h.a)}</p>` : ""}
-      ${f.ids.length || f.k === "repeats" ? `<button class="pill insgo" type="button" data-goto="${esc(id)}">${esc(f.ids.length ? t("See {sessions}", {sessions: plural(f.ids.length, "session")}) : t("See the details"))}</button>` : ""}</li>`; });
-  // よくなった指標：範囲の外でよい側のうち、いちばん外れているもの
+    return `<li class="insa" title="${esc(f.L.why)}"><div class="insw"><b>${esc(f.L.see)}</b>${b ? insChip(b) : ""}</div>${h.a ? `<p class="todo">${ico("ai", "ti")}${esc(h.a)}</p>` : ""}
+      ${f.ids.length || f.k === "repeats" ? `<button class="pill insgo" type="button" data-goto="${esc(id)}">${esc(f.ids.length ? plural(f.ids.length, "session") : t("Details"))}</button>` : ""}</li>`; });
   const good = Object.keys(MET).map(k => insBase(k)).filter(b => b && b.better).sort((a, b) => Math.abs(b.v - b.med) / ((b.q3 - b.q1) || 1) - Math.abs(a.v - a.med) / ((a.q3 - a.q1) || 1))[0];
-  const keep = good ? `<p class="inskeep">${ico("check")}${esc(t("Keep it up: {metric} is {v}, better than your usual range ({range})", {metric: insName(good.k), v: fmtM(good.k, good.cur), range: rangeT(fmtM(good.k, good.q1), fmtM(good.k, good.q3))}))}</p>` : "";
-  if (!items.length) return `${keep}<p class="note">${esc(t("No metric crossed its threshold in the period shown. Nothing to change for now."))}</p>`;
+  const keep = good ? `<p class="inskeep" title="${esc(insPosText(good))}">${ico("check")}${esc(insName(good.k))} <b>${esc(fmtM(good.k, good.cur))}</b></p>` : "";
+  if (!items.length) return `${keep}<p class="note">${esc(t("Nothing to change"))}</p>`;
   return `<ol class="insadv">${items.join("")}</ol>${keep}`;
 }
 function insightH(F){
   const k = INS_KEYS.includes(st.insK) ? st.insK : "cost";
   const tabs = INS_KEYS.filter(x => insBase(x)).map(x => `<button type="button" data-ins="${x}" aria-pressed="${x === k}" title="${esc(insName(x))}">${esc(INS_SHORT()[x])}</button>`).join("");
+  const card = (title, body, cls = "") => body ? `<div class="inscol${cls}"><h4>${esc(title)}</h4>${body}</div>` : "";
   return `<section class="insight" aria-labelledby="ins-h"><h3 id="ins-h" class="sr">${esc(t("Overview"))}</h3>${insHeadlines(F)}
-    <div class="insgrid"><div class="insleft"><div class="inscol"><div class="inshead"><h4>${esc(t("Trend and your usual range"))}</h4><div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${tabs}</div></div>${insChart(k)}</div>
-    ${insScatter()}</div>
-    <div class="inscol"><h4>${esc(t("Advice"))}</h4>${insAdvice(F)}</div></div>${insHeat()}</section>`;
+    <div class="insgrid"><div class="insleft"><div class="inscol"><div class="inshead"><h4>${esc(t("Trend"))}</h4><div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${tabs}</div></div>${insChart(k)}</div>
+    ${card(st.mode === "month" ? t("Cost so far vs last month") : t("Cost so far vs last week"), insCum())}</div>
+    ${card(t("Advice"), insAdvice(F), " insadvc")}</div>
+    <div class="insrow two">${card(t("Cost by model"), insDonut())}${card(t("Session length"), insHist())}</div>
+    <div class="insrow two">${card(t("Cost and outputs"), insScatter())}${card(t("When you worked"), insHeat())}</div></section>`;
 }
 function bindInsight(R){
   R.querySelectorAll("[data-ins]").forEach(b => b.onclick = () => { st.insK = b.dataset.ins; store.set("insK", st.insK); summary(); const nb = $("#review").querySelector(`[data-ins="${b.dataset.ins}"]`); if (nb) nb.focus(); });
@@ -113,18 +118,15 @@ function insScatter(){
   const cs = xs.map(x => x.c), thr = Math.max(0.5, insQuant(cs, .75)), maxC = insNice(Math.max(...cs)), maxO = Math.max(4, ...xs.map(x => x.o));
   const narrow = innerWidth < 600, W = narrow ? 360 : 720, Hh = narrow ? 200 : 220, L = narrow ? 40 : 48, R = 12, T = 12, B = 30;
   const x = c => L + (W - L - R) * Math.sqrt(c / maxC), y = o => T + (Hh - T - B) * (1 - o / maxO);
-  const bad = xs.filter(p => p.o === 0 && p.c >= thr), badC = bad.reduce((t, p) => t + p.c, 0), med = a => a.length ? insQuant(a, .5) : null;
-  const mO = med(xs.filter(p => p.o > 0).map(p => p.c)), m0 = med(xs.filter(p => p.o === 0).map(p => p.c));
+  const bad = xs.filter(p => p.o === 0 && p.c >= thr), badC = bad.reduce((t, p) => t + p.c, 0);
   const xt = [0, maxC / 4, maxC].map(c => `<g class="itk"><line x1="${x(c).toFixed(1)}" x2="${x(c).toFixed(1)}" y1="${T}" y2="${Hh - B}"/><text class="ixl" x="${x(c).toFixed(1)}" y="${Hh - 10}">${esc(usd(c))}</text></g>`).join("");
   const yt = [0, Math.round(maxO / 2), maxO].map(o => `<g class="itk"><line x1="${L}" x2="${W - R}" y1="${y(o).toFixed(1)}" y2="${y(o).toFixed(1)}"/><text x="${L - 8}" y="${(y(o) + 4).toFixed(1)}">${o}</text></g>`).join("");
   const zone = `<rect class="izone" x="${x(thr).toFixed(1)}" y="${(y(0) - 14).toFixed(1)}" width="${(W - R - x(thr)).toFixed(1)}" height="14"/>`;
   const pts = xs.map((p, i) => { const hit = p.o === 0 && p.c >= thr, jy = p.o === 0 ? -((i * 37) % 9) - 3 : 0; // 成果 0 の点は重なりやすいので、縦に少しずらす
     return `<circle class="ipt${hit ? " bad" : ""}" cx="${x(p.c).toFixed(1)}" cy="${(y(p.o) + jy).toFixed(1)}" r="${narrow ? 4 : 5}" tabindex="0" role="button" data-sid="${esc(p.s.id)}" aria-label="${esc(`${p.s.title || p.s.id}: ${usd(p.c)}, ${t("{n} outputs", {n: p.o})}`)}"${tipAttr(p.s.title || "", `${usd(p.c)} · ${t("{n} outputs", {n: p.o})}`, p.s.project)}/>`; }).join("");
-  const note = bad.length ? t("{n} of the sessions in the top quarter of cost ({thr} or more) left no commit or PR: {cost} in all", {n: bad.length, thr: usd(thr), cost: usd(badC)}) : t("Every session in the top quarter of cost ({thr} or more) left a commit or PR", {thr: usd(thr)});
-  const meds = mO != null && m0 != null ? t("Median cost: {a} for sessions with outputs, {b} for those without", {a: usd(mO), b: usd(m0)}) : "";
-  return `<div class="inscol"><h4>${esc(t("Cost and outputs per session"))}</h4><figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="group" aria-label="${esc(t("Cost and outputs per session"))}">${xt}${yt}${zone}${pts}
-    <text class="iax" x="${W - R}" y="${Hh - B - 4}">${esc(t("Estimated cost →"))}</text><text class="iax st" x="${L + 4}" y="${T + 10}">${esc(t("↑ Commits and PRs"))}</text></svg>
-    <figcaption><span class="lg izone">${esc(t("Costly with no output"))}</span></figcaption><p class="insnow${bad.length ? " bad" : " good"}">${esc(note)}</p>${meds ? `<p class="note">${esc(meds)}</p>` : ""}</figure></div>`;
+  const note = bad.length ? t("No output, high cost: {n} · {cost}", {n: bad.length, cost: usd(badC)}) : t("No high-cost session without output");
+  return `<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="group" aria-label="${esc(t("Cost and outputs per session"))}">${xt}${yt}${zone}${pts}
+    <text class="iax" x="${W - R}" y="${Hh - B - 4}">${esc(t("Estimated cost →"))}</text><text class="iax st" x="${L + 4}" y="${T + 10}">${esc(t("↑ Commits and PRs"))}</text></svg><figcaption><span class="lg izone" title="${esc(t("Top quarter of cost ({thr} or more) with no commit or PR", {thr: usd(thr)}))}">${esc(note)}</span></figcaption></figure>`;
 }
 /* 曜日×時間帯のヒートマップ：表示中の期間に AI と作業していた時間（重なりは 1 回）。月の表示では曜日ごとに足す。
    平日 9〜18 時の外の割合を、いつもの範囲と比べる */
@@ -145,8 +147,49 @@ function insHeat(){
   const days = [1, 2, 3, 4, 5, 6, 0];
   const cells = g.map((r, d) => `<span class="ihd">${esc(dow(days[d]))}</span>` + r.map((v, h) => `<span class="ihc${d >= 5 || h < 9 || h >= 18 ? " off" : ""}" style="--a:${v ? (0.12 + 0.88 * v / max).toFixed(2) : 0}"${tipAttr(`${dow(days[d])} ${h}:00–${h + 1}:00`, v ? dur(v) : t("None"))}></span>`).join("")).join("");
   const hrs = `<span></span>` + Array.from({length: 24}, (_, h) => `<span class="ihh">${h % 3 ? "" : h}</span>`).join("");
-  const peak = t("Most of your work was on {day} {from}:00–{to}:00", {day: dow(days[best.d]), from: best.h, to: best.h + 3});
-  return `<div class="inscol insheat"><h4>${esc(t("When you worked"))}</h4><div class="ihgrid" role="img" aria-label="${esc(`${t("When you worked")}: ${peak}`)}">${hrs}${cells}</div>
-    <p class="insnow">${esc(peak)}${st.mode === "month" ? esc(t(" (weekdays summed over the month)")) : ""}</p>
-    ${off != null ? `<p class="insnow${insTone(b)}">${esc(t("Outside weekday 9:00–18:00: {pct}%", {pct: off}))} — ${esc(insPosText(b))}</p>` : ""}</div>`;
+  const peak = `${dow(days[best.d])} ${best.h}–${best.h + 3}${JA ? "時" : ":00"}`;
+  return `<div class="ihgrid" role="img" aria-label="${esc(t("Busiest: {p}", {p: peak}))}">${hrs}${cells}</div>
+    <p class="istat"><span>${esc(t("Busiest"))} <b>${esc(peak)}</b></span>${off != null ? `<span>${esc(t("Off-hours"))} <b>${off}%</b> ${insChip(b)}</span>` : ""}</p>`;
+}
+
+/* 累積の折れ線：表示中の期間の日ごとの推定費用を積み上げた線と、前の期間の線。どの時点で前より多いか少ないかを見る（費用の記録がなければ稼働時間） */
+function insCum(){
+  const {S: w, P: pw} = period(); if (!w) return "";
+  const useCost = w.days.some(d => d.cost > 0), f = d => (useCost ? d.cost : d.active) || 0, fm = useCost ? usd : v => dur(v);
+  const cum = ds => { let a = 0; return ds.map(d => a += f(d)); };
+  const fr = insFrac(), n = w.days.length, upto = fr < 1 ? Math.max(1, Math.ceil(fr * n)) : n;
+  const cur = cum(w.days).slice(0, upto), prev = pw ? cum(pw.days).slice(0, n) : [];
+  const top = insNice(Math.max(...cur, ...prev, 0) * 1.05);
+  const narrow = innerWidth < 600, W = narrow ? 360 : 720, Hh = narrow ? 180 : 170, L = narrow ? 52 : 64, R = 10, T = 10, B = 24;
+  const x = i => L + (W - L - R) * (n === 1 ? 0 : i / (n - 1)), y = v => T + (Hh - T - B) * (1 - v / top), line = a => a.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const ticks = [0, top / 2, top].map(v => `<g class="itk"><line x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${L - 6}" y="${(y(v) + 4).toFixed(1)}">${esc(fm(v))}</text></g>`).join("");
+  const a = new Date(period().ws * 1000), xl = [0, n - 1].map(i => `<text class="ixl ${i ? "e" : "s"}" x="${x(i).toFixed(1)}" y="${Hh - 6}">${esc(dMD(addDays(a, i)))}</text>`).join(""); // 両端の日付は、内側に寄せる（はみ出さないように）
+  const last = cur.length - 1, diff = prev.length > last ? cur[last] - prev[last] : null;
+  return `<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(`${fm(cur[last])}${prev.length ? ` / ${fm(prev[Math.min(last, prev.length - 1)])}` : ""}`)}">${ticks}${xl}
+    ${prev.length ? `<polyline class="iprev" points="${line(prev)}"/>` : ""}<polyline class="icum" points="${line(cur)}"/><circle class="icumd" cx="${x(last).toFixed(1)}" cy="${y(cur[last]).toFixed(1)}" r="4"/></svg>
+    <figcaption><span class="lg icum">${esc(st.mode === "month" ? t("This month") : t("This week"))} <b>${esc(fm(cur[last]))}</b></span>${prev.length ? `<span class="lg iprev">${esc(st.mode === "month" ? t("Last month") : t("Last week"))}</span>` : ""}${diff != null ? `<span class="ichip${(diff > 0) === true ? " bad" : " good"}">${esc((diff >= 0 ? "+" : "−") + fm(Math.abs(diff)))}</span>` : ""}</figcaption></figure>`;
+}
+/* ドーナツ：モデル別の推定費用の割合（上位 5 つとその他）。真ん中に合計 */
+function insDonut(){
+  const {S: w} = period(), ms = ((w && w.usage && w.usage.models) || []).filter(r => r[1] > 0); if (!ms.length) return "";
+  const top = ms.slice(0, 5).map(r => [r[0], r[1]]), rest = ms.slice(5).reduce((t, r) => t + r[1], 0); if (rest > 0) top.push([t("Other"), rest]);
+  const tot = top.reduce((t, r) => t + r[1], 0), R0 = 60, r0 = 38, C = 70; let a0 = -Math.PI / 2;
+  const arc = (v, i) => { const a1 = a0 + v / tot * Math.PI * 2, big = a1 - a0 > Math.PI ? 1 : 0, p = (r, a) => `${(C + r * Math.cos(a)).toFixed(2)},${(C + r * Math.sin(a)).toFixed(2)}`;
+    const d = v >= tot ? `M${C},${C - R0}A${R0},${R0} 0 1 1 ${C - .01},${C - R0}L${C - .01},${C - r0}A${r0},${r0} 0 1 0 ${C},${C - r0}Z` : `M${p(R0, a0)}A${R0},${R0} 0 ${big} 1 ${p(R0, a1)}L${p(r0, a1)}A${r0},${r0} 0 ${big} 0 ${p(r0, a0)}Z`; a0 = a1; return d; };
+  const col = i => `var(--c${i % 8})`;
+  const segs = top.map((r, i) => `<path d="${arc(r[1], i)}" style="fill:${col(i)}"${tipAttr(r[0], `${usd(r[1])} · ${Math.round(r[1] * 100 / tot)}%`)}/>`).join("");
+  return `<figure class="insfig idonut"><svg viewBox="0 0 140 140" role="img" aria-label="${esc(top.map(r => `${r[0]} ${Math.round(r[1] * 100 / tot)}%`).join(", "))}">${segs}<text class="idc" x="70" y="75">${esc(usd(tot))}</text></svg>
+    <ul class="idleg">${top.map((r, i) => `<li><i style="background:${col(i)}"></i><span title="${esc(r[0])}">${esc(r[0])}</span><b>${Math.round(r[1] * 100 / tot)}%</b></li>`).join("")}</ul></figure>`;
+}
+/* ヒストグラム：表示中の期間に動いたセッションの長さ（期間の中の作業時間）の分布。中央値の入る階級を濃く */
+function insHist(){
+  const {ws, we} = period(), ms = DATA.filter(s => inP(s, ws, we)).map(sesMin).filter(m => m > 0); if (ms.length < 3) return "";
+  const edges = [0, 5, 15, 30, 60, 120, Infinity], labs = ["<5m", "5–15m", "15–30m", "30–60m", "1–2h", "2h+"];
+  const cnt = labs.map((_, i) => ms.filter(m => m >= edges[i] && m < edges[i + 1]).length), med = insQuant(ms, .5), mi = edges.findIndex((e, i) => med >= e && med < edges[i + 1]);
+  const max = Math.max(...cnt), W = innerWidth < 600 ? 360 : 560, Hh = 180, B = 22, T = 16, bw = W / labs.length;
+  const bars = cnt.map((c, i) => { const h = (Hh - B - T) * c / max, xx = i * bw;
+    return `<rect class="ihb${i === mi ? " med" : ""}" x="${(xx + bw * .14).toFixed(1)}" y="${(Hh - B - h).toFixed(1)}" width="${(bw * .72).toFixed(1)}" height="${h.toFixed(1)}" rx="3"${tipAttr(labs[i], plural(c, "session"))}/>`
+      + (c ? `<text class="ihn" x="${(xx + bw / 2).toFixed(1)}" y="${(Hh - B - h - 4).toFixed(1)}">${c}</text>` : "") + `<text class="ixl" x="${(xx + bw / 2).toFixed(1)}" y="${Hh - 6}">${labs[i]}</text>`; }).join("");
+  return `<figure class="insfig ihist"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(labs.map((l, i) => `${l} ${cnt[i]}`).join(", "))}">${bars}</svg>
+    <p class="istat"><span>${esc(t("Median"))} <b>${esc(dur(med))}</b></span><span>${esc(plural(ms.length, "session"))}</span></p></figure>`;
 }

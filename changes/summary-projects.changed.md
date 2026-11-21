@@ -1,0 +1,1 @@
+- Summary: "By project" is one table instead of a card per project

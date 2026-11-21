@@ -169,13 +169,16 @@ Things to know:
 
 ![Weekly summary (dummy data)](summary.png)
 
-The summary opens with an overview, computed in the browser from your history (no AI):
+The summary opens with an overview of charts, computed in the browser from your history (no AI). Short labels compare each figure with your **usual range**: the middle half (25th to 75th percentile) of your own last 12 weeks or months, leaving out periods before your history starts ("Usual", "Higher", "Much higher" and so on; point at a label for the range). It needs 4 past periods. In a period in progress, cost and time are compared at their pace.
 
-- **Three sentences**: estimated cost, cost per commit (or active time when there are no commits), and the most worthwhile change. Each is placed against your **usual range**: the middle half (from the 25th to the 75th percentile) of your own last 12 weeks or months, leaving out periods before your history starts. It needs 4 past periods; until then it says so. In a period still in progress, cost and time are compared at their pace (so far ÷ the share of the period that has passed)
-- **Trend and your usual range**: the last weeks or months of a metric you pick (cost, time, cost per commit, cache, corrections, wait), with the usual range as a band and the median as a dashed line. The period in progress shows its pace as a dashed outline, and a period far outside the range (more than 1.5 times the range beyond it) gets a red dot
-- **Cost and outputs per session**: each session that started in the period, by estimated cost (across) and commits plus pull requests made during it (up). Sessions in the top quarter of cost ($0.5 or more) with no commit or pull request are red, with their count and total; press a point to open its session
-- **Advice**: up to three items from "Worth a look", most important first, each with how it compares with your usual range, why it matters, what to try and the sessions behind it, and one metric that is better than usual
-- **When you worked**: a weekday × hour heatmap of active time (overlapping sessions count once; the month view adds up each weekday), the busiest three hours, and the share outside weekday 9:00–18:00 against your usual range
+- **Three tiles**: estimated cost (with its pace), cost per commit (or active time), and what to change first
+- **Trend**: bars for the last periods of a metric you pick (cost, time, cost per commit, cache, corrections, wait), with the usual range as a band, the median dashed, the pace of the period in progress as a dashed outline, and red dots on periods far outside the range (1.5 times its width beyond it)
+- **Cost so far vs last period**: the cumulative cost (or active time) by day, against the previous period's line
+- **Advice**: up to three items from "Worth a look", each with its label, what to try and its sessions (point at an item for why it matters), and one metric that is better than usual
+- **Cost by model**: a donut of estimated cost per model
+- **Session length**: how many sessions ran how long, with the median
+- **Cost and outputs**: each session by estimated cost and commits plus pull requests; costly sessions (top quarter, $0.5 or more) with no output are red. Press a point to open its session
+- **When you worked**: a weekday × hour heatmap of active time (overlapping sessions count once), the busiest three hours and the share outside weekday 9:00–18:00
 
 Below the overview, the panels hold the figures, and "By project" is one table.
 

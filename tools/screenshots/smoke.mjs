@@ -258,9 +258,9 @@ async function run(env) {
   await step("サマリーの数字から内訳が開く", async () => {
     await view("sum");
     { // サマリーの頭：要点の文・推移といつもの範囲のグラフ・改善のアドバイス（見直す候補の上位 3 つまで）
-      const r = await p.evaluate(() => ({heads: document.querySelectorAll("#review .insight .inshl").length, svg: !!document.querySelector("#review .insfig svg[aria-label]"), bars: document.querySelectorAll("#review .insfig .ibar").length,
+      const r = await p.evaluate(() => ({heads: document.querySelectorAll("#review .insight .itile").length, cum: document.querySelectorAll("#review .insfig svg polyline.icum").length, donut: document.querySelectorAll("#review .idonut path").length, hist: document.querySelectorAll("#review .insfig .ihb").length, svg: !!document.querySelector("#review .insfig svg[aria-label]"), bars: document.querySelectorAll("#review .insfig .ibar").length,
         adv: document.querySelectorAll("#review .insadv .insa").length, flags: (lastFlags || []).length, tabs: document.querySelectorAll("#review [data-ins]").length}));
-      check("サマリーの頭に、要点の文が 3 つ・推移のグラフ・見直す候補の上位 3 つまでのアドバイスがある", r.heads === 3 && r.svg && r.bars > 0 && r.adv === Math.min(3, r.flags), JSON.stringify(r));
+      check("サマリーの頭に、要点の 3 枚・推移・累積の線・モデル別のドーナツ・長さのヒストグラム・上位 3 つまでのアドバイスがある", r.heads === 3 && r.svg && r.bars > 0 && r.cum === 1 && r.donut > 0 && r.hist === 6 && r.adv === Math.min(3, r.flags), JSON.stringify(r));
       const t0 = await p.locator('#review [data-ins][aria-pressed="true"]').getAttribute("data-ins");
       await p.locator('#review [data-ins]:not([aria-pressed="true"])').first().click(); await pause();
       check("グラフの指標を切り替えられる（押したものが選ばれ、フォーカスが残る）", await p.evaluate(t0 => { const b = document.querySelector('#review [data-ins][aria-pressed="true"]'); return !!b && b.dataset.ins !== t0 && document.activeElement === b; }, t0));
