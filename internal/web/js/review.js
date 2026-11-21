@@ -104,8 +104,9 @@ function findList(w, pw, unit){
   const F = [], u = w.usage || {}, o = w.outputs || {}, {ws, we} = period();
   const M = unit === "月", V = vsPrev(pw, unit);
   // en と L で違う値：期間の言い方と、数と名詞（plural は日本語の画面で日本語になる）
-  const en = {period: uThis(unit), last: uLast(unit), prev: V.n == null ? uLast(unit) : V.range};
-  const loc = {period: M ? t("this month") : t("this week"), last: M ? t("last month") : t("last week")}; loc.prev = V.n == null ? loc.last : V.range;
+  const cur = soFar() != null; // 表示中の期間が今の週・月でなければ「今週」と言わない
+  const en = {period: cur ? uThis(unit) : M ? "in the month shown" : "in the week shown", last: uLast(unit), prev: V.n == null ? uLast(unit) : V.range};
+  const loc = {period: cur ? (M ? t("this month") : t("this week")) : M ? t("in the month shown") : t("in the week shown"), last: M ? t("last month") : t("last week")}; loc.prev = V.n == null ? loc.last : V.range;
   const tx = (s, v = {}, l = {}) => ({en: fillEn(s, {...en, ...v}), l: t(s, {...loc, ...v, ...l})});
   const ses = n => [{sessions: pluralEn(n, "session")}, {sessions: plural(n, "session")}];
   const add = (k, score, see, why, rule, ids) => F.push({k, score, see: see.en, why: why.en, rule: rule.en, ids: ids || [],

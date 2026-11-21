@@ -633,7 +633,7 @@ body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:tra
 .drawer .eyebrow{font-size:var(--fs-xs)}
 .drawer h2{font-size:var(--fs-2xl);margin:14px 0 6px} /* 上の行の右に戻る・閉じるが重なるので、題名はその下から */
 .drawer h3{font-size:var(--fs-lg);font-weight:700;color:var(--ink);margin:30px 0 12px}
-.drawer .flowhd{display:flex;align-items:center;gap:6px;margin:30px 0 12px}.drawer .flowhd>h3{margin:0}.drawer .flowhd .fcopy{width:28px;height:28px}.drawer .flowhd .fcopy .ic{width:14px;height:14px} /* 会話全体のコピーは、流れの見出しの横 */
+.drawer .flowhd{display:flex;align-items:center;gap:6px;margin:30px 0 12px}.drawer .flowhd>h3{margin:0}.drawer .flowhd .fcopy{height:28px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs)}.drawer .flowhd .fcopy .ic{width:13px;height:13px} /* 会話全体のコピーは、流れの見出しの横 */
 .drawer h3::after{background:var(--rule-2)}
 .drawer .meta span,.drawer .chips span{font-size:var(--fs-sm);padding:2px 10px}
 .drawer .chips span.mono{font-size:var(--fs-sm)}
@@ -1043,3 +1043,4 @@ header{background:var(--s-cont);border-bottom:0}
 @media (max-width:1000px){.istats,.insrow.one .istats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:520px){.istats,.insrow.one .istats{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:1000px) and (min-width:821px){.insh{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.itile .itv.sm{font:600 var(--fs-xl)/1.4 var(--sans)}.itile .isee{font-size:var(--fs-sm);color:var(--ink-2)}

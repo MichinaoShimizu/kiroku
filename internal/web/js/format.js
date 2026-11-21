@@ -52,15 +52,15 @@ const keyOf = s => st.colorBy === "project" ? s.project : s.source;
 // 色は core.Agents の Slot（警告に見えないよう、AG_WARN のオレンジと黄色は使わない）。
 // 表にないエージェントは、表でも警告でも使っていない色を、多い順にあてる
 const AG_SLOT = Object.fromEntries(AGENTS.map(a => [a.name, a.slot]));
-let slot = {}, agSlot = {};
+let slot = Object.create(null), agSlot = Object.create(null); // 名前（プロジェクト名など、履歴から来る）を鍵にするので、__proto__ などがふつうの鍵になるように
 function assignColors(){ // 全期間の多い順に固定。週を変えても、非表示にしても色は変わらない
-  const count = f => { const n = {}; DATA.forEach(s => n[f(s)] = (n[f(s)]||0) + 1); return Object.keys(n).sort((a,b)=>n[b]-n[a]); };
+  const count = f => { const n = Object.create(null); DATA.forEach(s => n[f(s)] = (n[f(s)]||0) + 1); return Object.keys(n).sort((a,b)=>n[b]-n[a]); };
   const free = [...Array(SLOTS).keys()].filter(i => !Object.values(AG_SLOT).includes(i) && !AG_WARN.includes(i));
-  agSlot = {}; count(s => s.source).filter(k => !(k in AG_SLOT)).forEach((k,i) => { if (i < free.length) agSlot[k] = free[i]; });
-  slot = {}; if (st.colorBy === "source") return;
+  agSlot = Object.create(null); count(s => s.source).filter(k => !Object.hasOwn(AG_SLOT, k)).forEach((k,i) => { if (i < free.length) agSlot[k] = free[i]; });
+  slot = Object.create(null); if (st.colorBy === "source") return;
   count(keyOf).forEach((k,i) => slot[k] = i < SLOTS ? `var(--c${i})` : "var(--other)");
 }
-const agIdx = name => AG_SLOT[name] ?? agSlot[name]; // 色の番号（--c0〜--c7）。色がなければ undefined
+const agIdx = name => (Object.hasOwn(AG_SLOT, name) ? AG_SLOT[name] : undefined) ?? agSlot[name]; // 色の番号（--c0〜--c7）。色がなければ undefined
 const agColor = name => { const i = agIdx(name); return i == null ? "var(--other)" : `var(--c${i})`; };
 /* モデル名の色（--c0〜--c7）。系統（Opus・Sonnet・Haiku・GPT など）ごとに決まった色で、知らない名前は名前から決める。
    同じ一覧の中で色が重なったら（同じ系統の別の版など）、空いている次の色にして、モデル名ごとに見分けられるようにする */

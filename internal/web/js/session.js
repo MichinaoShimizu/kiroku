@@ -179,7 +179,7 @@ function promptFlow(s){
   flush(Infinity);
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";
   const showMore = JA ? (hiddenEv ? t("Show {n} more prompts (and {m} other events)", {n: rest, m: hiddenEv}) : t("Show {n} more prompts", {n: rest})) : `Show ${plural(rest, "more prompt")}${also}`;
-  const bar = `<div class="flowhd"><h3>${esc(t("Prompt flow"))}</h3><button class="iconbtn fcopy" type="button" aria-label="${esc(t("Copy the conversation as Markdown"))}" title="${esc(t("Copy the conversation as Markdown"))}">${ico("copy")}</button></div>`; // 出し方の切り替えと凡例は置かない（印には title と読み上げの名前がある）
+  const bar = `<div class="flowhd"><h3>${esc(t("Prompt flow"))}</h3><button class="pill fcopy" type="button" aria-label="${esc(t("Copy the conversation as Markdown"))}" title="${esc(t("Copy the conversation as Markdown"))}">${ico("copy")}<span>${esc(t("Copy as Markdown"))}</span></button></div>`; // 出し方の切り替えと凡例は置かない（印には title と読み上げの名前がある）
   const cutNote = !LIVE && s.prompts.some(p => p.len > 0 || (p.reply && p.reply.len > 0)) ? `<p class="note">${esc(t("Long prompts and replies end with … here. Open with kiroku serve to read them in full."))}</p>` : "";
   return `${bar}${cutNote}<ol class="tl">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${esc(showMore)}</button>` : ""}`;
 }
