@@ -822,14 +822,11 @@ dialog.mdlg h3{margin:20px 0 8px}
 .pill.ai-action:not(:disabled):hover{background:color-mix(in oklab,var(--go) var(--t3),var(--surface));border-color:color-mix(in oklab,var(--go) 60%,var(--surface))}
 .pill.ai-action:focus-visible{outline:2px solid var(--go);outline-offset:3px}
 .pill.ai-action:disabled{background:transparent;color:var(--ink-3);border:1px solid var(--rule-2);opacity:1;cursor:not-allowed} /* 押せないときは色のない枠だけ（押せるボタンの淡い緑と見分ける） */
+.pill.ai-copy{display:inline-flex;align-items:center;gap:6px}.pill.ai-copy .ic{width:14px;height:14px} /* AI を動かせないときの「プロンプトをコピー」 */
+.head .dd .pill.dayrun.ai-copy{padding:0;width:28px;height:28px;display:inline-grid;place-items:center;border-radius:50%}.head .dd .dayrun.ai-copy span{display:none}.head .dd .dayrun.ai-copy .ic{display:block;width:14px;height:14px} /* 日の見出しでは印だけ（文字だと狭い列からはみ出す。名前は aria-label と title） */
 
 /* Analyze with AI is off (kiroku serve --no-ai, or not on a loopback IP): an outlined button that explains how to turn it on, not an action */
-.pill.ai-off{background:transparent;color:var(--go-ink);border:1px dashed color-mix(in oklab,var(--go) 50%,var(--surface));font-weight:500;cursor:help}
-.pill.ai-off:hover{background:color-mix(in oklab,var(--go) var(--t1),var(--surface))}
-.pill.ai-off:focus-visible{outline:2px solid var(--go);outline-offset:3px}
 /* エージェントのコマンドがないとき: 押せないボタンと、その理由（全文は title に） */
-.ai-none{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
-.ai-why{display:block;margin-top:4px;font-size:var(--fs-xs);color:var(--ink-2)} /* 押せない理由は、触れずに読める文で（タッチやキーボードでも） */
 
 html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り返す（対応していないブラウザは今までどおり） */
 /* AI 分析: 経過（コマンド・ツール・エラー出力）と、返事（整えた表示か Markdown のまま） */

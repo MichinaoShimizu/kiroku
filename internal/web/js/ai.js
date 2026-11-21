@@ -11,20 +11,17 @@ function aiAgentIn(ws, we){
     s.segs.forEach(([a, b]) => { const d = Math.min(b, we) - Math.max(a, ws); if (d > 0) by[id] = (by[id] || 0) + d; }); });
   return Object.keys(by).sort((x, y) => by[y] - by[x])[0] || "";
 }
-// kiroku serve が AI の実行を切っている理由（--no-ai か、ループバックの IP ではない待ち受け先。ボタンの説明とダイアログ）
-const AI_OFF_WHY = () => t("This kiroku serve doesn't run AI agents: it was started without --ai (the default) or with --no-ai, or it listens on an address other than a loopback IP.");
-// エージェントのコマンドが 1 つもないとき（ボタンは押せないまま、理由を添える）
-const AI_NONE_WHY = () => t("No AI agent command (claude, codex or kiro-cli) was found on this computer. Install one, then restart kiroku serve.");
 // AI_SEP は、続けて出す 2 つの文の間（日本語では空けない）
 const AI_SEP = () => JA ? "" : " ";
-/* aiBtn は「Analyze with AI」のボタン（id はボタンの id、label は読み上げの名前）。kiroku serve の画面だけに出し、保存した HTML には出さない。
-   AI を切った serve では、切っている理由を開くボタン。エージェントがなければ、押せないボタンと、その理由 */
-function aiBtn(id, label){
-  if (!LIVE) return aiDemo() ? `<button class="pill ai-action" id="${id}" type="button" aria-label="${esc(label)}">${esc(t("Analyze with AI"))}</button>` : "";
-  if (!aiOn()) return `<button class="pill ai-off ai-demo-info" type="button" title="${esc(AI_OFF_WHY())}">${esc(t("Analyze with AI (off)"))}</button>`;
-  if (!aiAgents().length) return `<span class="ai-none"><button class="pill ai-action" type="button" disabled aria-label="${esc(label)}" aria-describedby="${id}-why">${esc(t("Analyze with AI"))}</button><span class="ai-why" id="${id}-why">${esc(AI_NONE_WHY())}</span></span>`;
-  return `<button class="pill ai-action" id="${id}" type="button" aria-label="${esc(label)}">${esc(t("Analyze with AI"))}</button>`;
+/* aiBtn は「Analyze with AI」のボタン（id はボタンの id、label は読み上げの名前）。kiroku serve --ai で、使えるエージェントがあるときと、公開のデモに出す。
+   AI を動かせないとき（--ai なし・--no-ai・エージェントがない・保存した HTML）は、同じ場所に「プロンプトをコピー」（copyLabel は読み上げの名前）。
+   kiroku は何も実行しない。貼るエージェントは利用者が選ぶ */
+function aiBtn(id, label, copyLabel){
+  if (aiRun() || aiDemo()) return `<button class="pill ai-action" id="${id}" type="button" aria-label="${esc(label)}">${esc(t("Analyze with AI"))}</button>`;
+  return `<button class="pill ai-copy" id="${id}" type="button" aria-label="${esc(copyLabel)}" title="${esc(copyLabel)}">${ico("copy")}<span>${esc(t("Copy prompt"))}</span></button>`;
 }
+// AI を動かせないときのボタン（ai-copy）は、プロンプトをコピーするだけ。kiroku serve なら、--ai でここから動かせることも言う
+const AI_COPIED = () => LIVE ? t("Copied the prompt. Paste it into your AI agent. To run it from here, start kiroku serve with --ai.") : t("Copied the prompt. Paste it into your AI agent.");
 // 閉じたあとに同じプロンプトで開き直したら、前の結果を見せる（このページを開いているあいだだけ。保存はしない）
 /* 報告と振り返りの返事のうち、機械で確かめられるところ（AI は使わない）。直すことの一覧を返す。
    en は直してもらうプロンプトに入れる英語、l は画面に出す今の言語。
@@ -83,6 +80,7 @@ function aiFixPrompt(prompt, text, P){ return inEnglish(() => [prompt, "",
   "Write the complete answer again, in the same format and language, following every rule above. Fix these points and keep what was already correct. Answer with the new text only."].join("\n")); }
 const AI_LAST = new Map();
 async function runAIReview(button, prompt, title, prefer = "") { // prefer: 最初に選んでおくエージェントの id（このコンピューターになければ、一覧の先頭）
+  if (button && button.classList.contains("ai-copy")) return copy(prompt, AI_COPIED(), 6000, button);
   if (document.getElementById("ai-review-dialog")) return;
   const dialog = document.createElement("dialog");
   dialog.id = "ai-review-dialog"; dialog.className = "ai-dialog";
@@ -256,26 +254,6 @@ async function runAIReview(button, prompt, title, prefer = "") { // prefer: 最�
   };
   if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
   if (demo){ preview.scrollTop = 0; cancel.focus(); } // デモ: Run は押せないので、フォーカスは Close へ。プロンプトは先頭から
-}
-
-// kiroku serve が AI の実行を切っているとき（--no-ai など）、その理由と入れ方を説明する。
-function showLocalAIInfo() {
-  if (document.getElementById("ai-local-info")) return;
-  const dialog = document.createElement("dialog");
-  dialog.id = "ai-local-info";
-  dialog.style.cssText = "width:min(480px,90vw);max-height:80vh;padding:24px;border:1px solid #888;border-radius:12px;background:var(--surface,#fff);color:var(--ink,#111)";
-  dialog.setAttribute("aria-labelledby", "ai-local-title");
-  const heading = document.createElement("h2"); heading.id = "ai-local-title"; heading.textContent = t("Analyze with AI is off");
-  const why = document.createElement("p"); why.textContent = AI_OFF_WHY() + AI_SEP() + // ボタンの説明と同じ文に、止めて起動し直す手順を足す
-    t("To turn it on, stop it (Ctrl+C in its terminal) and start it again with --ai (and without --no-ai), on the default address or a bare port such as :8485. With kiroku autostart, run kiroku autostart on again with KIROKU_AI=1 set.");
-  const what = document.createElement("p"); what.textContent = t("\"Analyze with AI\" shows the exact prompt and, after you confirm, runs it with Claude Code, Codex or Kiro CLI on this computer. The agent may send the prompt and the history it reads to its provider.");
-  const close = document.createElement("button"); close.type = "button"; close.className = "pill"; close.textContent = t("Close");
-  function dismiss() { if (dialog.open && typeof dialog.close === "function") dialog.close(); dialog.remove(); }
-  close.onclick = dismiss;
-  dialog.addEventListener("cancel", e => { e.preventDefault(); dismiss(); });
-  dialog.append(heading, why, what, close);
-  document.body.append(dialog);
-  if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
 }
 
 // aiServerError は、kiroku serve の /ai/run が返した決まった英語の誤り（internal/ai/handler.go）を、画面の言語にする。

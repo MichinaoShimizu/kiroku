@@ -1,0 +1,1 @@
+- Where kiroku can't run an AI agent (without `--ai`, with `--no-ai`, when no agent command is found, or in a saved HTML file), the session review and each day's report offer "Copy prompt" instead of "Analyze with AI (off)": it copies the same prompt, to paste into an AI agent yourself. kiroku runs nothing and sends nothing

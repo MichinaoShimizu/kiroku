@@ -312,8 +312,8 @@ async function run(env) {
   await step("セッションを AI と振り返る", async () => {
     const run = await clickableRun(p);
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
-    check("振り返りのプロンプトをコピーするボタンはない", await p.locator("#panel #sreview, #panel #pcopy").count() === 0);
-    check("デモでは、詳細に「Analyze with AI」が出る", await p.locator("#panel #srun").count() === 1 && await p.locator("#panel .ai-off, #panel .ai-none").count() === 0);
+    check("デモでは、振り返りはプロンプトのコピーではなく「Analyze with AI」", await p.locator("#panel #sreview, #panel #pcopy, #panel .ai-copy").count() === 0);
+    check("デモでは、詳細に「Analyze with AI」が出る", await p.locator("#panel #srun").count() === 1 && await p.locator("#panel .ai-copy").count() === 0);
     // 左（1 列の画面では間）はプロンプトの流れだけ。再開のコマンドは操作（.sact）に 1 つだけ見え、2 列なら右の列、1 列なら流れより上
     const rs = await p.evaluate(() => { const v = [...document.querySelectorAll("#panel .dresume")].filter(e => e.offsetParent !== null);
       const act = document.querySelector("#panel .sact"), flow = document.querySelector("#panel .sflow");
@@ -461,7 +461,7 @@ async function run(env) {
   await step("報告を書いてもらうプロンプト", async () => {
     check("週報のプロンプトをコピーするボタンはない", await p.locator("#rptcopy").count() === 0);
     // デモ: 「Analyze with AI」はプロンプトを見せるだけ。Run は押せず、/ai/run に何も送らない。週報の AI 分析はない（日報とセッションの振り返りだけ）
-    check("週報の「Analyze with AI」はない", await p.locator("#rptbar, #rptrun").count() === 0 && await p.locator(".ai-off, .ai-none").count() === 0);
+    check("週報の「Analyze with AI」はない", await p.locator("#rptbar, #rptrun").count() === 0 && await p.locator(".ai-copy").count() === 0);
     const aiReq = []; const onReq = r => { if (/\/ai\/run/.test(r.url())) aiReq.push(r.url()); }; p.on("request", onReq);
     await p.locator(".head .dayrun").first().click();
     await p.waitForSelector("#ai-review-dialog", { timeout: 5000 });
