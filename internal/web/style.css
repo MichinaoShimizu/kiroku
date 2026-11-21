@@ -939,3 +939,39 @@ header{background:var(--s-cont);border-bottom:0}
 @media (min-width:821px){ .drawer{border:0;border-radius:28px;background:var(--surface-2)} }
 @media (max-width:820px){ .head .dd .pill.dayrun{height:28px;padding:0 10px;border-radius:14px} } /* スマホの日ごとの「AI 分析」は小さく（日付の見出しを高くしない） */
 .drawer .tl li.rp p{background:var(--s-lowest)} /* 応答の吹き出しが、詳細の地（surface-2）に沈まないように */
+
+/* ── サマリーの頭（要点・推移といつもの範囲・アドバイス） ── */
+.insight{margin:0 0 24px}
+.insh{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.inshl{padding:14px 18px;border-radius:16px;background:var(--s-cont);display:flex;flex-direction:column;gap:4px;min-width:0;border-left:4px solid var(--rule-2)}
+.inshl b{font-size:var(--fs-xl);font-weight:600;color:var(--ink)}
+.inshl span{font-size:var(--fs-sm);color:var(--ink-2)}
+.inshl.good{border-left-color:var(--go)}.inshl.bad{border-left-color:var(--warn)}
+.insgrid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;align-items:start}
+.inscol{background:var(--s-lowest);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow);min-width:0}
+.inscol h4{margin:0 0 10px;font-size:var(--fs-lg);font-weight:600}
+.inshead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}.inshead h4{margin:0}
+.insk{flex-wrap:wrap}.insk button{height:28px;font-size:var(--fs-xs)}
+.insfig{margin:0}.insfig svg{width:100%;height:auto;display:block}
+.insfig .itk line{stroke:var(--rule);stroke-width:1}.insfig .itk text,.insfig .ixl{font-size:11px;fill:var(--ink-3);font-family:var(--sans)}
+.insfig .itk text{text-anchor:end}.insfig .ixl{text-anchor:middle}.insfig .ixl.cur{fill:var(--acc-ink);font-weight:600}
+.insfig .iband{fill:color-mix(in oklab,var(--go) 14%,transparent)}.insfig .imed{stroke:var(--go);stroke-dasharray:4 3;stroke-width:1.2}
+.insfig .ibar{fill:color-mix(in oklab,var(--acc) 30%,var(--surface))}.insfig .ibar.cur{fill:var(--acc)}
+.insfig .iproj{fill:none;stroke:var(--acc);stroke-dasharray:4 3;stroke-width:1.5}
+.insfig .iout{fill:var(--warn)}.insfig .ihit{fill:transparent}
+.insfig figcaption{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;font-size:var(--fs-xs);color:var(--ink-2)}
+.insfig .lg::before{content:"";display:inline-block;width:12px;height:8px;margin-right:5px;vertical-align:middle;border-radius:2px}
+.insfig .lg.iband::before{background:color-mix(in oklab,var(--go) 22%,transparent)}.insfig .lg.imed::before{height:0;border-top:1.5px dashed var(--go)}
+.insfig .lg.iproj::before{border:1.5px dashed var(--acc)}.insfig .lg.iout::before{width:8px;border-radius:50%;background:var(--warn)}
+.insnow{margin:10px 0 0;font-size:var(--fs-sm);color:var(--ink-2)}.insnow.bad{color:var(--warn)}.insnow.good{color:var(--go-ink)}
+.insadv{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;counter-reset:ia}
+.insa{padding:12px 14px 12px 44px;border-radius:12px;background:var(--s-cont);position:relative;counter-increment:ia}
+.insa::before{content:counter(ia);position:absolute;left:12px;top:12px;width:22px;height:22px;border-radius:50%;background:var(--pc);color:var(--on-pc);font-weight:700;font-size:var(--fs-xs);display:grid;place-items:center}
+.insw{display:flex;flex-direction:column;gap:4px}.insw b{font-weight:600;color:var(--ink)}
+.insb{font-size:var(--fs-xs);color:var(--ink-2)}.insb.bad{color:var(--warn)}.insb.good{color:var(--go-ink)}
+.insa .why{margin:6px 0 0;font-size:var(--fs-sm);color:var(--ink-2)}
+.insa .todo{margin:8px 0 0;font-size:var(--fs-sm);color:var(--ink)}.insa .todo span{display:inline-block;margin-right:8px;padding:1px 8px;border-radius:8px;background:var(--sc);color:var(--on-sc);font-size:var(--fs-xs);font-weight:600}
+.insa .insgo{margin-top:10px;height:30px}
+.inskeep{display:flex;gap:8px;align-items:flex-start;margin:12px 0 0;font-size:var(--fs-sm);color:var(--go-ink)}.inskeep .ic{flex:none;margin-top:2px;stroke:var(--go)}
+@media (max-width:1000px){.insgrid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:820px){.insh{grid-template-columns:minmax(0,1fr)}.inscol{padding:14px}}

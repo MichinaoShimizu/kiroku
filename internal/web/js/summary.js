@@ -12,7 +12,7 @@ function summary(){
   const times = n => `${n}`;
   const F = findList(w, pw, unit);
   WK.innerHTML = flagSum(F); WK.hidden = false; const wd = WK.querySelector("details"); if (wd) wd.addEventListener("click", e => { if (e.target.closest(".hb")) e.preventDefault(); }); lastFlags = F; // 見直す候補は、カレンダーの上（期間の要点のすぐ下）に出す。押すと真ん中のダイアログで開く
-  R.innerHTML = `${head}<div class="rvgrid">
+  R.innerHTML = `${head}${insightH(F)}<div class="rvgrid">
   ${projectPanel(w, unit)}
   ${outcomePanel(w, pw, unit)}
   ${fold("time", panelH(3, esc(t("How you worked")), esc(t("Time, friction and repeated prompts"))), `
@@ -44,7 +44,7 @@ function summary(){
   R.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b)); // 上の帯と同じ内訳
   const more = R.querySelector("#pmore"); if (more) more.onclick = () => { st.allProj = !st.allProj; summary(); };
   R.querySelectorAll(".keeparch").forEach(b => b.onclick = () => { R.querySelectorAll(".keeparch").forEach(x => x.disabled = true); keepArchive(); });
-  bindCopy(R); bindHelp(R); bindHelp(WK);
+  bindInsight(R); bindCopy(R); bindHelp(R); bindHelp(WK);
   if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }
 /* サマリーのパネル（① プロジェクト別から下）は、既定で閉じる（ページの主役はカレンダー。開けたものは開けたまま覚える）。

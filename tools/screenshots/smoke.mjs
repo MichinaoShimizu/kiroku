@@ -257,6 +257,15 @@ async function run(env) {
 
   await step("サマリーの数字から内訳が開く", async () => {
     await view("sum");
+    { // サマリーの頭：要点の文・推移といつもの範囲のグラフ・改善のアドバイス（見直す候補の上位 3 つまで）
+      const r = await p.evaluate(() => ({heads: document.querySelectorAll("#review .insight .inshl").length, svg: !!document.querySelector("#review .insfig svg[aria-label]"), bars: document.querySelectorAll("#review .insfig .ibar").length,
+        adv: document.querySelectorAll("#review .insadv .insa").length, flags: (lastFlags || []).length, tabs: document.querySelectorAll("#review [data-ins]").length}));
+      check("サマリーの頭に、要点の文が 3 つ・推移のグラフ・見直す候補の上位 3 つまでのアドバイスがある", r.heads === 3 && r.svg && r.bars > 0 && r.adv === Math.min(3, r.flags), JSON.stringify(r));
+      const t0 = await p.locator('#review [data-ins][aria-pressed="true"]').getAttribute("data-ins");
+      await p.locator('#review [data-ins]:not([aria-pressed="true"])').first().click(); await pause();
+      check("グラフの指標を切り替えられる（押したものが選ばれ、フォーカスが残る）", await p.evaluate(t0 => { const b = document.querySelector('#review [data-ins][aria-pressed="true"]'); return !!b && b.dataset.ins !== t0 && document.activeElement === b; }, t0));
+      await p.locator(`#review [data-ins="${t0}"]`).click(); await pause();
+    }
     const v = p.locator('#review .stat [data-metric="cost"]');
     check("サマリーの目安コストを押せる", await v.count() === 1);
     await v.scrollIntoViewIfNeeded();
