@@ -973,5 +973,18 @@ header{background:var(--s-cont);border-bottom:0}
 .insa .todo{margin:8px 0 0;font-size:var(--fs-sm);color:var(--ink)}.insa .todo span{display:inline-block;margin-right:8px;padding:1px 8px;border-radius:8px;background:var(--sc);color:var(--on-sc);font-size:var(--fs-xs);font-weight:600}
 .insa .insgo{margin-top:10px;height:30px}
 .inskeep{display:flex;gap:8px;align-items:flex-start;margin:12px 0 0;font-size:var(--fs-sm);color:var(--go-ink)}.inskeep .ic{flex:none;margin-top:2px;stroke:var(--go)}
-@media (max-width:1000px){.insgrid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:1000px){.insgrid{grid-template-columns:minmax(0,1fr)}.insgrid>.insleft{order:2}} /* 1 列のときは、アドバイスを先に */
 @media (max-width:820px){.insh{grid-template-columns:minmax(0,1fr)}.inscol{padding:14px}}
+.insleft{display:flex;flex-direction:column;gap:16px;min-width:0}
+.insheat{margin-top:16px}
+.insfig .izone{fill:color-mix(in oklab,var(--warn) 12%,transparent)}.insfig .lg.izone::before{background:color-mix(in oklab,var(--warn) 24%,transparent)}
+.insfig .ipt{fill:color-mix(in oklab,var(--acc) 55%,transparent);stroke:var(--s-lowest);stroke-width:1;cursor:pointer}.insfig .ipt.bad{fill:var(--warn)}
+.insfig .ipt:hover,.insfig .ipt:focus{stroke:var(--ink);stroke-width:2;outline:none}
+.insfig .iax{font-size:11px;fill:var(--ink-3);text-anchor:end;font-family:var(--sans)}.insfig .iax.st{text-anchor:start}
+.ihgrid{display:grid;grid-template-columns:28px repeat(24,minmax(0,1fr));gap:2px;font-size:10px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.ihgrid .ihd{display:flex;align-items:center;font-size:var(--fs-xs)}.ihgrid .ihh{text-align:left}
+.ihgrid .ihc{height:18px;border-radius:3px;background:color-mix(in oklab,var(--acc) calc(var(--a) * 100%),var(--surface-2))}
+.ihgrid .ihc.off{outline:1px dashed color-mix(in oklab,var(--ink-3) 30%,transparent);outline-offset:-1px}
+.ptab td .pbar{display:inline-block;width:48px;height:6px;margin-right:8px;vertical-align:middle;border-radius:3px;background:var(--surface-2);overflow:hidden}.ptab td .pbar>span{display:block;height:100%;background:var(--c)}
+.ptab th:first-child,.ptab td:first-child{width:30%}
+@media (max-width:820px){.ptab th:nth-child(3),.ptab td:nth-child(3){display:none}.ihgrid{grid-template-columns:22px repeat(24,minmax(0,1fr));gap:1px}.ihgrid .ihc{height:14px}}

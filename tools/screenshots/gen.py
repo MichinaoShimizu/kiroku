@@ -37,7 +37,8 @@ now = dt.datetime.fromisoformat(os.environ["KIROKU_FAKE_NOW"]).astimezone(JST) i
 today = now.replace(hour=0,minute=0,second=0,microsecond=0)
 last_wed = today - dt.timedelta(days=today.weekday() + 5)  # 先週の水曜。スクリーンショットとテストで開く先週に、利用上限の当たりを 1 つ入れる
 forced = False
-for d in range(35, -1, -1):
+def claude_day(d):
+    global forced
     day = today - dt.timedelta(days=d)
     wk = day.weekday()
     n = random.choice([0,1,1,2]) if wk>=5 else random.choice([2,3,3,4,5])
@@ -110,6 +111,12 @@ for d in range(35, -1, -1):
         dirn = os.path.join(OUT, "home", ".claude", "projects", f"-Users-me-{p}"); os.makedirs(dirn, exist_ok=True)
         with open(f"{dirn}/{sid}.jsonl","w") as f:
             for l in lines: f.write(json.dumps(l, ensure_ascii=False)+"\n")
+# 今までの 5 週より前の 7 週（サマリーの「いつもの範囲」を描けるように）。別の乱数で作り、今までの 5 週のデータは変えない
+_st = (random.getstate(), extra.getstate(), more.getstate())
+random.seed(4242); extra.seed(4243); more.seed(4244)
+for d in range(84, 35, -1): claude_day(d)
+random.setstate(_st[0]); extra.setstate(_st[1]); more.setstate(_st[2])
+for d in range(35, -1, -1): claude_day(d)
 # 履歴を長く残す設定にしておく（既定の 30 日のままだと、画面に「過去の履歴が消えます」のお知らせが出る）
 os.makedirs(os.path.join(OUT, "home", ".claude"), exist_ok=True)
 json.dump({"cleanupPeriodDays": 3650}, open(os.path.join(OUT, "home", ".claude", "settings.json"), "w"))

@@ -169,6 +169,16 @@ Things to know:
 
 ![Weekly summary (dummy data)](summary.png)
 
+The summary opens with an overview, computed in the browser from your history (no AI):
+
+- **Three sentences**: estimated cost, cost per commit (or active time when there are no commits), and the most worthwhile change. Each is placed against your **usual range**: the middle half (from the 25th to the 75th percentile) of your own last 12 weeks or months, leaving out periods before your history starts. It needs 4 past periods; until then it says so. In a period still in progress, cost and time are compared at their pace (so far ÷ the share of the period that has passed)
+- **Trend and your usual range**: the last weeks or months of a metric you pick (cost, time, cost per commit, cache, corrections, wait), with the usual range as a band and the median as a dashed line. The period in progress shows its pace as a dashed outline, and a period far outside the range (more than 1.5 times the range beyond it) gets a red dot
+- **Cost and outputs per session**: each session that started in the period, by estimated cost (across) and commits plus pull requests made during it (up). Sessions in the top quarter of cost ($0.5 or more) with no commit or pull request are red, with their count and total; press a point to open its session
+- **Advice**: up to three items from "Worth a look", most important first, each with how it compares with your usual range, why it matters, what to try and the sessions behind it, and one metric that is better than usual
+- **When you worked**: a weekday × hour heatmap of active time (overlapping sessions count once; the month view adds up each weekday), the busiest three hours, and the share outside weekday 9:00–18:00 against your usual range
+
+Below the overview, the panels hold the figures, and "By project" is one table.
+
 | Metric | Definition |
 |---|---|
 | Worth a look | Marks the metrics that crossed these thresholds and lists their names in priority order (the list below is not in priority order): hit a usage limit 1 or more times / there are Long conversations (later input 4× or more the first part, peak at half the model's context window or more (100K tokens or more when the window is unknown), $0.5 or more) / Expensive models for light work total 10% or more of estimated cost ($2 or more) and $1 or more / Claude Code sessions of $1 or more estimated cost with no commit or pull request make up 40% or more of the period's estimated cost ($2 or more) / Prompts with corrections or interruptions are 20% or more (10 or more prompts), or there are sessions with Possible friction / there are Repeated prompts. Other figures (cost compared with the previous period, cost per commit, cache, sessions that reached a commit, switches, focus blocks, wait time, oversized prompts) are in the summary but are not flagged |

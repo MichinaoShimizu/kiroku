@@ -265,6 +265,12 @@ async function run(env) {
       await p.locator('#review [data-ins]:not([aria-pressed="true"])').first().click(); await pause();
       check("グラフの指標を切り替えられる（押したものが選ばれ、フォーカスが残る）", await p.evaluate(t0 => { const b = document.querySelector('#review [data-ins][aria-pressed="true"]'); return !!b && b.dataset.ins !== t0 && document.activeElement === b; }, t0));
       await p.locator(`#review [data-ins="${t0}"]`).click(); await pause();
+      const h = await p.evaluate(() => ({rows: document.querySelectorAll("#review .ihgrid .ihd").length, cells: document.querySelectorAll("#review .ihgrid .ihc").length, pts: document.querySelectorAll("#review .insfig .ipt[data-sid]").length, ptab: document.querySelectorAll("#review .ptab tbody tr").length, pcard: document.querySelectorAll("#review .pcard").length}));
+      check("曜日×時間のヒートマップ（7×24）、費用と成果の散布図、プロジェクト別の表がある（カードの列はない）", h.rows === 7 && h.cells === 168 && h.pts > 0 && h.ptab > 0 && h.pcard === 0, JSON.stringify(h));
+      const sid = await p.locator("#review .insfig .ipt[data-sid]").first().getAttribute("data-sid");
+      await p.locator("#review .insfig .ipt[data-sid]").first().focus(); await p.keyboard.press("Enter"); await pause();
+      check("散布図の点から、そのセッションが開く（キーボードでも）", await p.evaluate(sid => st.sel === sid, sid));
+      await p.keyboard.press("Escape"); await pause();
     }
     const v = p.locator('#review .stat [data-metric="cost"]');
     check("サマリーの目安コストを押せる", await v.count() === 1);

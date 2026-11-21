@@ -80,20 +80,13 @@ function projectPanel(w, unit){
   const ps = w.projectStats || []; if (!ps.length) return "";
   const total = w.projects.reduce((t,[,v])=>t+v,0) || 1, LIMIT = 6, shown = st.allProj ? ps : ps.slice(0, LIMIT);
   const anyCr = ps.some(p => p.credits); // この期間にクレジットの記録がまったくなければ、「—」だけの欄は出さない
-  const cards = shown.map(p => {
-    const c = st.colorBy === "project" ? colorOf(p.project) : "var(--ink-3)", share = Math.round(p.minutes*100/total);
-    return `<article class="pcard" style="--c:${c}">
-      <div class="hd"><i></i><b title="${esc(p.project)}">${esc(p.project)}</b><span>${p.minutes ? dur(p.minutes) : "—"}${p.minutes ? ` · ${share}%` : ""}</span></div>
-      <div class="bar2"><span style="width:${share}%"></span></div>
-      <div class="kv"><div><div class="k">${esc(t("Sessions / prompts"))}</div><div class="v">${p.sessions}/${p.prompts}</div></div>
-        <div><div class="k">${esc(t("Tokens"))}</div><div class="v">${p.tokens ? tok(p.tokens) : "—"}</div></div>
-        <div><div class="k">${esc(t("Estimated cost"))}</div><div class="v">${p.cost >= 0.005 ? usd(p.cost) : "—"}</div></div>
-        ${anyCr ? `<div><div class="k">${esc(t("Credits"))}</div><div class="v">${p.credits ? cr(p.credits) : "—"}</div></div>` : ""}</div>
-      ${p.git && p.git.commits ? `<div><div class="lab">${esc(t("Left behind"))}</div><div class="pout">${esc(t("Git commits {n} · {ai} by AI", {n: p.git.commits, ai: p.git.ai}))} · <span>${esc(t("+{added} −{removed} lines", {added: p.git.added, removed: p.git.removed}))}</span></div></div>` : p.outputs && p.outputs.commits ? `<div><div class="lab">${esc(t("Left behind"))}</div><div class="pout">${esc(t("AI commits {n}", {n: p.outputs.commits}))}</div></div>` : ""}
-    </article>`; }).join("");
+  // プロジェクトごとの数字は、カードを並べずに 1 つの表に（見比べやすく、縦に長くならないように）
+  const cards = `<table class="shtab ptab"><thead><tr><th scope="col">${esc(t("Project"))}</th><th scope="col">${esc(t("Active time"))}</th><th scope="col">${esc(t("Sessions / prompts"))}</th><th scope="col">${esc(t("Estimated cost"))}</th>${anyCr ? `<th scope="col">${esc(t("Credits"))}</th>` : ""}<th scope="col">${esc(t("Git commits"))}</th></tr></thead><tbody>${shown.map(p => {
+    const c = st.colorBy === "project" ? colorOf(p.project) : "var(--ink-3)", share = Math.round(p.minutes*100/total), cm = p.git && p.git.commits ? `${p.git.commits} · ${t("{n} by AI", {n: p.git.ai})}` : p.outputs && p.outputs.commits ? `${p.outputs.commits}` : "—";
+    return `<tr style="--c:${c}"><td title="${esc(p.project)}"><i aria-hidden="true"></i>${esc(p.project)}</td><td><span class="pbar"><span style="width:${share}%"></span></span>${p.minutes ? `${dur(p.minutes)} · ${share}%` : "—"}</td><td>${p.sessions}/${p.prompts}</td><td>${p.cost >= 0.005 ? usd(p.cost) : "—"}</td>${anyCr ? `<td>${p.credits ? cr(p.credits) : "—"}</td>` : ""}<td>${esc(cm)}</td></tr>`; }).join("")}</tbody></table>`;
   return fold("projs", panelH(1, esc(t("By project")), esc(t(perLabel(unit, "Where your time and AI went this month", "Where your time and AI went this week", "Where your time and AI went in the month shown", "Where your time and AI went in the week shown"))), "projects"), `
     ${shareBlock(w, ps)}
-    <div class="pgrid">${cards}</div>
+    ${cards}
     ${ps.length > LIMIT ? `<button class="pill pmore" id="pmore">${esc(st.allProj ? t("Show top projects only") : ps.length - LIMIT === 1 ? t("Show 1 more project") : t("Show {n} more projects", {n: ps.length - LIMIT}))}</button>` : ""}`);
 
 }

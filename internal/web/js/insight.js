@@ -13,11 +13,15 @@ function insFrac(){ const {ws, we} = period(), now = nowMs() / 1000; return now 
 // insBase は、指標 k のいつもの範囲と、表示中の期間の位置。v は比べる値（途中の期間の、比例する指標はペース換算）
 function insBase(k){
   const cur = metricAt(k, periodBack(0)); if (cur == null) return null;
-  const fr = insFrac(), v = INS_ADD.has(k) && fr < 1 ? cur / fr : cur, hs = historyStart(), xs = [];
-  for (let i = 1; i <= INS_N; i++){ const p = periodBack(i); if (p.ws < hs) continue; const x = metricAt(k, p); if (x != null) xs.push(x); }
-  const r = {k, cur, v, part: fr < 1, n: xs.length, xs};
+  return insRange(k, cur, p => metricAt(k, p), !!MET[k].low, INS_ADD.has(k), v => fmtM(k, v));
+}
+// insRange は、値の関数 f（期間 → 値）で、表示中の期間の値 cur をいつもの範囲と比べる。MET にない値（勤務時間外の割合など）にも使う
+function insRange(k, cur, f, low, add, fmt){
+  const fr = insFrac(), v = add && fr < 1 ? cur / fr : cur, hs = historyStart(), xs = [];
+  for (let i = 1; i <= INS_N; i++){ const p = periodBack(i); if (p.ws < hs) continue; const x = f(p); if (x != null) xs.push(x); }
+  const r = {k, cur, v, part: fr < 1, n: xs.length, xs, fmt};
   if (xs.length < INS_MIN) return r;
-  const q1 = insQuant(xs, .25), med = insQuant(xs, .5), q3 = insQuant(xs, .75), iqr = q3 - q1, low = !!MET[k].low;
+  const q1 = insQuant(xs, .25), med = insQuant(xs, .5), q3 = insQuant(xs, .75), iqr = q3 - q1;
   const pos = v > q3 ? "high" : v < q1 ? "low" : "typical", far = v > q3 + 1.5 * iqr || v < q1 - 1.5 * iqr;
   const better = pos === "typical" ? null : (pos === "low") === low; // 範囲の外で、よい側か
   return {...r, q1, med, q3, pos, far, better, rank: Math.round(xs.filter(x => x < v).length * 100 / xs.length)};
@@ -27,8 +31,8 @@ const insUnit = () => st.mode === "month" ? t("months") : t("weeks");
 // insPosText は、いつもの範囲との比べ（文）。比べられないときは、そう言う
 function insPosText(b){
   if (!b || b.q1 == null) return t("Not enough history to compare yet (needs {n} past {unit})", {n: INS_MIN, unit: insUnit()});
-  const range = rangeT(fmtM(b.k, b.q1), fmtM(b.k, b.q3)), v = {range, n: b.n, unit: insUnit()};
-  if (b.q1 === b.q3){ const u = {v: fmtM(b.k, b.med), n: b.n, unit: insUnit()}; // いつもほぼ同じ値（0 回など）：範囲ではなく、その値と比べる
+  const fm = b.fmt || (x => fmtM(b.k, x)), range = rangeT(fm(b.q1), fm(b.q3)), v = {range, n: b.n, unit: insUnit()};
+  if (b.q1 === b.q3){ const u = {v: fm(b.med), n: b.n, unit: insUnit()}; // いつもほぼ同じ値（0 回など）：範囲ではなく、その値と比べる
     return b.pos === "typical" ? t("Same as usual ({v} in most of the last {n} {unit})", u) : b.pos === "high" ? t("Higher than usual (usually {v} over the last {n} {unit})", u) : t("Lower than usual (usually {v} over the last {n} {unit})", u); }
   if (b.pos === "typical") return t("Within your usual range ({range}, the middle half of the last {n} {unit})", v);
   const s = b.pos === "high" ? (b.far ? t("Far above your usual range ({range}, the middle half of the last {n} {unit})", v) : t("Above your usual range ({range}, the middle half of the last {n} {unit})", v))
@@ -91,10 +95,58 @@ function insightH(F){
   const k = INS_KEYS.includes(st.insK) ? st.insK : "cost";
   const tabs = INS_KEYS.filter(x => insBase(x)).map(x => `<button type="button" data-ins="${x}" aria-pressed="${x === k}" title="${esc(insName(x))}">${esc(INS_SHORT()[x])}</button>`).join("");
   return `<section class="insight" aria-labelledby="ins-h"><h3 id="ins-h" class="sr">${esc(t("Overview"))}</h3>${insHeadlines(F)}
-    <div class="insgrid"><div class="inscol"><div class="inshead"><h4>${esc(t("Trend and your usual range"))}</h4><div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${tabs}</div></div>${insChart(k)}</div>
-    <div class="inscol"><h4>${esc(t("Advice"))}</h4>${insAdvice(F)}</div></div></section>`;
+    <div class="insgrid"><div class="insleft"><div class="inscol"><div class="inshead"><h4>${esc(t("Trend and your usual range"))}</h4><div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${tabs}</div></div>${insChart(k)}</div>
+    ${insScatter()}</div>
+    <div class="inscol"><h4>${esc(t("Advice"))}</h4>${insAdvice(F)}</div></div>${insHeat()}</section>`;
 }
 function bindInsight(R){
   R.querySelectorAll("[data-ins]").forEach(b => b.onclick = () => { st.insK = b.dataset.ins; store.set("insK", st.insK); summary(); const nb = $("#review").querySelector(`[data-ins="${b.dataset.ins}"]`); if (nb) nb.focus(); });
   R.querySelectorAll(".insgo").forEach(b => b.onclick = () => openWorth(b.dataset.goto, b));
+  R.querySelectorAll(".insfig [data-sid]").forEach(c => { c.onclick = () => select(c.dataset.sid); c.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); select(c.dataset.sid); } }; }); // 散布図の点は、そのセッションを開く
+}
+
+/* 費用と成果の散布図：表示中の期間に始まったセッションごとに、横は推定費用（平方根の目盛り）、縦は成果（そのセッションの間のコミットと作った PR）。
+   費用が上位 25%（かつ $0.5 以上）なのに成果のないセッションを「見直す価値のある領域」として色を変え、件数と費用を文で言う */
+function insScatter(){
+  const {ws, we} = period(), xs = DATA.filter(s => s.start >= ws && s.start < we && s.cost > 0).map(s => ({s, c: s.cost, o: commitsOf(s).length + (s.prs || []).length}));
+  if (xs.length < 3) return "";
+  const cs = xs.map(x => x.c), thr = Math.max(0.5, insQuant(cs, .75)), maxC = insNice(Math.max(...cs)), maxO = Math.max(4, ...xs.map(x => x.o));
+  const narrow = innerWidth < 600, W = narrow ? 360 : 720, Hh = narrow ? 200 : 220, L = narrow ? 40 : 48, R = 12, T = 12, B = 30;
+  const x = c => L + (W - L - R) * Math.sqrt(c / maxC), y = o => T + (Hh - T - B) * (1 - o / maxO);
+  const bad = xs.filter(p => p.o === 0 && p.c >= thr), badC = bad.reduce((t, p) => t + p.c, 0), med = a => a.length ? insQuant(a, .5) : null;
+  const mO = med(xs.filter(p => p.o > 0).map(p => p.c)), m0 = med(xs.filter(p => p.o === 0).map(p => p.c));
+  const xt = [0, maxC / 4, maxC].map(c => `<g class="itk"><line x1="${x(c).toFixed(1)}" x2="${x(c).toFixed(1)}" y1="${T}" y2="${Hh - B}"/><text class="ixl" x="${x(c).toFixed(1)}" y="${Hh - 10}">${esc(usd(c))}</text></g>`).join("");
+  const yt = [0, Math.round(maxO / 2), maxO].map(o => `<g class="itk"><line x1="${L}" x2="${W - R}" y1="${y(o).toFixed(1)}" y2="${y(o).toFixed(1)}"/><text x="${L - 8}" y="${(y(o) + 4).toFixed(1)}">${o}</text></g>`).join("");
+  const zone = `<rect class="izone" x="${x(thr).toFixed(1)}" y="${(y(0) - 14).toFixed(1)}" width="${(W - R - x(thr)).toFixed(1)}" height="14"/>`;
+  const pts = xs.map((p, i) => { const hit = p.o === 0 && p.c >= thr, jy = p.o === 0 ? -((i * 37) % 9) - 3 : 0; // 成果 0 の点は重なりやすいので、縦に少しずらす
+    return `<circle class="ipt${hit ? " bad" : ""}" cx="${x(p.c).toFixed(1)}" cy="${(y(p.o) + jy).toFixed(1)}" r="${narrow ? 4 : 5}" tabindex="0" role="button" data-sid="${esc(p.s.id)}" aria-label="${esc(`${p.s.title || p.s.id}: ${usd(p.c)}, ${t("{n} outputs", {n: p.o})}`)}"${tipAttr(p.s.title || "", `${usd(p.c)} · ${t("{n} outputs", {n: p.o})}`, p.s.project)}/>`; }).join("");
+  const note = bad.length ? t("{n} of the sessions in the top quarter of cost ({thr} or more) left no commit or PR: {cost} in all", {n: bad.length, thr: usd(thr), cost: usd(badC)}) : t("Every session in the top quarter of cost ({thr} or more) left a commit or PR", {thr: usd(thr)});
+  const meds = mO != null && m0 != null ? t("Median cost: {a} for sessions with outputs, {b} for those without", {a: usd(mO), b: usd(m0)}) : "";
+  return `<div class="inscol"><h4>${esc(t("Cost and outputs per session"))}</h4><figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="group" aria-label="${esc(t("Cost and outputs per session"))}">${xt}${yt}${zone}${pts}
+    <text class="iax" x="${W - R}" y="${Hh - B - 4}">${esc(t("Estimated cost →"))}</text><text class="iax st" x="${L + 4}" y="${T + 10}">${esc(t("↑ Commits and PRs"))}</text></svg>
+    <figcaption><span class="lg izone">${esc(t("Costly with no output"))}</span></figcaption><p class="insnow${bad.length ? " bad" : " good"}">${esc(note)}</p>${meds ? `<p class="note">${esc(meds)}</p>` : ""}</figure></div>`;
+}
+/* 曜日×時間帯のヒートマップ：表示中の期間に AI と作業していた時間（重なりは 1 回）。月の表示では曜日ごとに足す。
+   平日 9〜18 時の外の割合を、いつもの範囲と比べる */
+function insMinutes(ws, we){ // [ws, we) の作業時間を、曜日（月曜 0）× 時の分にする。セッションの重なりは 1 回だけ数える
+  const iv = []; DATA.forEach(s => s.segs.forEach(([a, b]) => { a = Math.max(a, ws); b = Math.min(b, we); if (b > a) iv.push([a, b]); }));
+  iv.sort((p, q) => p[0] - q[0]); const m = []; iv.forEach(([a, b]) => { const l = m[m.length - 1]; if (l && a <= l[1]) l[1] = Math.max(l[1], b); else m.push([a, b]); });
+  const g = Array.from({length: 7}, () => new Array(24).fill(0));
+  m.forEach(([a, b]) => { for (let t0 = a; t0 < b;){ const d = new Date(t0 * 1000), h = new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours() + 1).getTime() / 1000, e = Math.min(b, h);
+    g[(d.getDay() + 6) % 7][d.getHours()] += (e - t0) / 60; t0 = e; } });
+  return g;
+}
+const insOff = g => { let off = 0, all = 0; g.forEach((r, d) => r.forEach((v, h) => { all += v; if (d >= 5 || h < 9 || h >= 18) off += v; })); return all ? Math.round(off * 100 / all) : null; };
+function insHeat(){
+  const {ws, we} = period(), g = insMinutes(ws, we), max = Math.max(...g.flat()); if (!(max > 0)) return "";
+  // 作業がいちばん集まった 3 時間（曜日ごと）
+  let best = {v: -1}; g.forEach((r, d) => { for (let h = 0; h + 3 <= 24; h++){ const v = r[h] + r[h + 1] + r[h + 2]; if (v > best.v) best = {v, d, h}; } });
+  const off = insOff(g), b = off == null ? null : insRange("offhours", off, p => p.S ? insOff(insMinutes(p.ws, p.we)) : null, true, false, v => `${Math.round(v)}%`);
+  const days = [1, 2, 3, 4, 5, 6, 0];
+  const cells = g.map((r, d) => `<span class="ihd">${esc(dow(days[d]))}</span>` + r.map((v, h) => `<span class="ihc${d >= 5 || h < 9 || h >= 18 ? " off" : ""}" style="--a:${v ? (0.12 + 0.88 * v / max).toFixed(2) : 0}"${tipAttr(`${dow(days[d])} ${h}:00–${h + 1}:00`, v ? dur(v) : t("None"))}></span>`).join("")).join("");
+  const hrs = `<span></span>` + Array.from({length: 24}, (_, h) => `<span class="ihh">${h % 3 ? "" : h}</span>`).join("");
+  const peak = t("Most of your work was on {day} {from}:00–{to}:00", {day: dow(days[best.d]), from: best.h, to: best.h + 3});
+  return `<div class="inscol insheat"><h4>${esc(t("When you worked"))}</h4><div class="ihgrid" role="img" aria-label="${esc(`${t("When you worked")}: ${peak}`)}">${hrs}${cells}</div>
+    <p class="insnow">${esc(peak)}${st.mode === "month" ? esc(t(" (weekdays summed over the month)")) : ""}</p>
+    ${off != null ? `<p class="insnow${insTone(b)}">${esc(t("Outside weekday 9:00–18:00: {pct}%", {pct: off}))} — ${esc(insPosText(b))}</p>` : ""}</div>`;
 }
