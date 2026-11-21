@@ -146,6 +146,7 @@ type subFile struct {
 	models     map[string]int
 	tools      int
 	outputs    []core.Output // サブエージェントが成功させたコミット・PR・編集した行
+	active     []float64     // サブエージェントが動いていた時刻（コンパクションの行は除く。親のセッションで AI が動いた時刻にする）
 }
 
 func loadSubagentFile(path string) (subFile, error) {
@@ -157,6 +158,12 @@ func loadSubagentFile(path string) (subFile, error) {
 		t := ts(e["timestamp"])
 		if t != nil {
 			times = append(times, *t)
+			// 親の会話と同じく、コンパクションの行（compact_boundary と要約の行）は作業の時刻に入れない
+			compactLine, _ := e["isCompactSummary"].(bool)
+			compactLine = compactLine && core.Str(e["type"]) == "user" || core.Str(e["type"]) == "system" && core.Str(e["subtype"]) == "compact_boundary"
+			if !compactLine {
+				f.active = append(f.active, *t)
+			}
 		}
 		msg := core.Map(e["message"])
 		if core.Str(e["type"]) == "assistant" {
@@ -648,6 +655,11 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		}
 		files = append(files, sf)
 		s.Outputs = append(s.Outputs, sf.outputs...) // サブエージェントに任せた編集・コミット・PR も、そのセッションのアウトプット
+		// サブエージェントが動いた時刻は、親のセッションで AI が動いていた時刻にする（Kiro Crew と同じ）。バックグラウンドの
+		// サブエージェントが親の最後の行のあとまで動いても、カレンダーのバーと活動時間から外れないように
+		for i := range sf.active {
+			s.Agent(&sf.active[i])
+		}
 	}
 	order := append([]*call(nil), callOrder...)
 	sort.SliceStable(order, func(i, j int) bool { return val(order[i].start) < val(order[j].start) })

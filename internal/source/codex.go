@@ -891,6 +891,15 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 			continue
 		}
 		parent := byID[cf.parent].b
+		// サブエージェントが動いた時刻は、いちばん上の親のセッションで AI が動いていた時刻にする（Kiro Crew と同じ）。
+		// サブエージェントのサブエージェントは、先に親へまとめたかどうかによらず、まとめて表示するセッションに入れる
+		top := byID[cf.parent]
+		for seen := map[string]bool{cf.id: true}; top.parent != "" && byID[top.parent] != nil && !seen[top.id]; top = byID[top.parent] {
+			seen[top.id] = true
+		}
+		for i := range cf.b.Times {
+			top.b.Agent(&cf.b.Times[i])
+		}
 		parent.Measures = append(parent.Measures, cf.b.Measures...) // サブエージェントの分も親のセッションの数字に入れる
 		parent.Limits = append(parent.Limits, cf.b.Limits...)       // サブエージェントが上限に当たっても、止まったのは親のセッションの作業
 		parent.LimitResets = append(parent.LimitResets, cf.b.LimitResets...)

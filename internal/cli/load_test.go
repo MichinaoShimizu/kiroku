@@ -62,6 +62,7 @@ func TestMatchesPythonVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 	dropLegacy(want, got)
+	dropSubagentActivity(want, got)
 	var diffs []string
 	compare(want, got, "", &diffs)
 	for i, d := range diffs {
@@ -366,5 +367,66 @@ func dropLegacy(want, got any) {
 	for k := range weeks {
 		delete(w["weeks"].(map[string]any), k)
 		delete(g["weeks"].(map[string]any), k)
+	}
+}
+
+// dropSubagentActivity は、Go 版でサブエージェント（Claude Code の subagents/agent-*.jsonl）の動いた時刻を親のセッションの
+// 活動に入れるようにしたので、それで時刻が変わったセッションの時刻の項目と、それが入っている週の作業時間・待ち時間を
+// golden（Python 版の数字。作り直さない）と比べない。ほかの項目と、時刻の変わらなかったセッション・週は今までどおり比べる
+func dropSubagentActivity(want, got any) {
+	w, g := want.(map[string]any), got.(map[string]any)
+	byID := map[string]map[string]any{}
+	for _, x := range g["sessions"].([]any) {
+		s := x.(map[string]any)
+		byID[fmt.Sprint(s["source"], "/", s["id"])] = s
+	}
+	timeKeys := []string{"start", "end", "events", "segs", "waits"}
+	monday := func(sec float64) string {
+		d := time.Unix(int64(sec), 0).In(time.Local)
+		d = time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, time.Local)
+		return d.AddDate(0, 0, -((int(d.Weekday()) + 6) % 7)).Format("2006-01-02")
+	}
+	weeks := map[string]bool{}
+	for _, x := range w["sessions"].([]any) {
+		ws := x.(map[string]any)
+		gs := byID[fmt.Sprint(ws["source"], "/", ws["id"])]
+		if gs == nil || ws["source"] != "Claude Code" || empty(ws["subagents"]) {
+			continue
+		}
+		var d []string
+		for _, k := range timeKeys {
+			compare(ws[k], gs[k], k, &d)
+		}
+		if len(d) == 0 {
+			continue
+		}
+		for _, k := range []string{"start", "end"} {
+			for _, s := range []map[string]any{ws, gs} {
+				if v, ok := s[k].(float64); ok {
+					weeks[monday(v)] = true
+				}
+			}
+		}
+		for _, k := range timeKeys {
+			delete(ws, k)
+			delete(gs, k)
+		}
+	}
+	for k := range weeks {
+		for _, m := range []map[string]any{w, g} {
+			wk, ok := m["weeks"].(map[string]any)[k].(map[string]any)
+			if !ok {
+				continue
+			}
+			for _, key := range []string{"active", "ai", "weekend", "waitMedian", "waitP90"} {
+				delete(wk, key)
+			}
+			days, _ := wk["days"].([]any)
+			for _, d := range days {
+				if dm, ok := d.(map[string]any); ok {
+					delete(dm, "active")
+				}
+			}
+		}
 	}
 }

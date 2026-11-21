@@ -345,3 +345,32 @@ func TestEndTreeMatchesLinearScan(t *testing.T) {
 		}
 	}
 }
+
+// バックグラウンドのサブエージェントが親の最後の行のあとまで動いても、その時刻は親のセッションで AI が動いた時刻に入る
+// （カレンダーのバーと活動時間から外れない。Kiro Crew と同じ）。コンパクションの行は入れない。
+func TestClaudeBackgroundSubagentExtendsParentActivity(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "-Users-me-app")
+	writeLines(t, filepath.Join(dir, "s1.jsonl"), []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:00Z","cwd":"/Users/me/app","message":{"role":"user","content":"裏で調べて"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:00:30Z","message":{"id":"m1","model":"claude-sonnet-5-5","content":[{"type":"tool_use","id":"t1","name":"Agent","input":{"subagent_type":"Explore","description":"調査","run_in_background":true}}]}}`,
+		`{"type":"user","timestamp":"2026-09-30T01:00:31Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"started"}]},"toolUseResult":{"agentId":"bg1"}}`,
+	})
+	writeLines(t, filepath.Join(dir, "s1", "subagents", "agent-bg1.jsonl"), []string{
+		`{"type":"user","timestamp":"2026-09-30T01:00:32Z","message":{"role":"user","content":"調査"}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:10:00Z","requestId":"r1","message":{"id":"sm1","model":"claude-haiku-5-5","usage":{"input_tokens":10,"output_tokens":10},"content":[{"type":"text","text":"途中"}]}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T01:20:00Z","requestId":"r2","message":{"id":"sm2","model":"claude-haiku-5-5","usage":{"input_tokens":10,"output_tokens":10},"content":[{"type":"text","text":"done"}]}}`,
+		`{"type":"system","subtype":"compact_boundary","timestamp":"2026-09-30T02:30:00Z"}`,
+	})
+	bs := load(t, &Claude{Root: root})
+	if len(bs) != 1 {
+		t.Fatalf("セッション数 = %d, want 1", len(bs))
+	}
+	s := bs[0].Finish(15)
+	if want := ts(`2026-09-30T01:20:00Z`); s.End != *want {
+		t.Errorf("End = %v, want %v（サブエージェントの最後の応答。コンパクションの行は入れない）", s.End, *want)
+	}
+	if len(s.Segs) != 1 {
+		t.Errorf("Segs = %v, want 1 つ（10 分おきのサブエージェントの作業で、親の活動がつながる）", s.Segs)
+	}
+}
