@@ -81,7 +81,7 @@ const summaryCheck = async label => {
 await summaryCheck("week");
 await clickAll("#review .card", "summary card");
 // 内訳のダイアログ（上の帯とサマリーの数字）。プロジェクト名やセッション名が棒やカードに入るので、どれも開いて確かめる
-await clickAll("[data-metric]", "breakdown", async () => { // 内訳の中のコミット・push・PR の行は、詳細を開く
+await clickAll("#kpis [data-metric]", "breakdown", async () => { // 帯の数（サマリーの数は summaryCheck で押す） // 内訳の中のコミット・push・PR の行は、詳細を開く
   const g = "#md [data-git], #md [data-pr], #md [data-push]";
   if (await p.locator(g).count()) { await p.locator(g).first().click({ force: true }); await p.waitForTimeout(100); await check("breakdown → git"); }
 });

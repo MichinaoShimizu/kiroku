@@ -473,7 +473,7 @@ Per command:
 | Command | Option | Default | Description |
 |---|---|---|---|
 | `serve` | `[ADDR]` | `127.0.0.1:8484` | A port alone, such as `:8485`, also works (it listens on `127.0.0.1`). To open it from other devices, write an address such as `0.0.0.0:8485` (anyone on your network can then see your history) |
-| `serve` | `--ai`, `--no-ai` | | Removed in 4.0: kiroku no longer runs AI agents. Both are still accepted and do nothing; `--ai` (or `KIROKU_AI`) prints one line saying so |
+| `serve` | `--ai`, `--no-ai` | | Removed in 4.0: kiroku no longer runs AI agents. Both, and `KIROKU_AI` and `KIROKU_NO_AI`, are still accepted and do nothing; `--ai` (or `KIROKU_AI`) prints one line saying so |
 | `serve` | `--allow-host` | | Extra host names the view may be opened by, comma-separated (for example a name in your hosts file). `localhost`, `127.0.0.1` and `::1` always work, and so do this computer's IPs and host name when it listens on all interfaces (such as `0.0.0.0:8485`); requests addressed to any other name are refused |
 | `serve` | `--interval` | `5s` | How often to check history for changes. Reloads when changes stop for twice the interval (at most 12 times the interval) |
 | `serve`, `html` | `--lang` | `$KIROKU_LANG`, else the browser's language | Language of the view: `en` or `ja`, until the viewer picks one with the button at the top right (remembered in that browser) |

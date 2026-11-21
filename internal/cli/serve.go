@@ -77,10 +77,8 @@ func (l *live) refresh() error {
 // 履歴ではない設定（デモの時計）だけにする。
 func shellMeta(meta map[string]any) map[string]any {
 	out := map[string]any{"shell": true}
-	for _, k := range []string{"demo"} {
-		if v, ok := meta[k]; ok {
-			out[k] = v
-		}
+	if v, ok := meta["demo"]; ok {
+		out["demo"] = v
 	}
 	return out
 }

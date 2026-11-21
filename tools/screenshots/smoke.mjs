@@ -109,6 +109,13 @@ async function run(env) {
     check("カレンダーの表示でも、データソースとページの下（版）は見える", await p.locator("#review .dsrc").isVisible() && await p.locator("#review .foot").isVisible());
     check("カレンダーとデータソースのあいだが空いている", await p.evaluate(() => document.querySelector("#review .metap").getBoundingClientRect().top - document.querySelector("#tl").getBoundingClientRect().bottom >= 16));
     check("期間の行に「期間」「表示」の見出しを並べない", await p.evaluate(() => [...document.querySelectorAll(".control-label")].every(e => e.getBoundingClientRect().width <= 1)));
+    { const lim = p.locator("#tl .lim").first(); // 上限の印を押すと、そのセッションの流れのその出来事まで移って強調する
+      if (await lim.count()){ await lim.scrollIntoViewIfNeeded(); await lim.click(); await pause();
+        check("上限の印を押すと、流れの上限の出来事が強調される", await p.evaluate(() => !!document.querySelector("#panel .tl li.ev.warn.flash")));
+        await p.keyboard.press("Escape"); await pause(); }
+      else console.log("  skip この週に上限の印がない"); }
+    check("0〜7 時を選んでいなければ、その週に 0〜7 時のセッションがあるときだけ広げる", await p.evaluate(async () => { const was = st.early; st.early = null; render(); await new Promise(r => setTimeout(r, 100));
+      const ok = document.querySelector("#calfold").getAttribute("aria-expanded") === String(weekHasEarly()); st.early = was; render(); return ok; }));
     { // 0〜7 時は正しい位置に畳む（1/4 の高さ）。ボタンで広げ、もう一度で畳む。セッションの色は消えない
       const pos = () => p.evaluate(() => { const sp = [...document.querySelectorAll("#tl .hours span:not(.now)")], at = l => { const x = sp.find(e => e.textContent === l); return x ? parseFloat(x.style.top) : NaN; }; return {hh: parseFloat(getComputedStyle(document.querySelector("#tl .calscroll")).getPropertyValue("--hh")), h1: at("01:00"), h7: at("07:00"), h8: at("08:00"), exp: document.querySelector("#calfold").getAttribute("aria-expanded")}; });
       const a = await pos(), r = await p.evaluate(() => { const r = document.querySelector("#tl .run"), c = r && getComputedStyle(r).getPropertyValue("--c").trim(); return !!c && !/^\d/.test(c); });
@@ -273,9 +280,9 @@ async function run(env) {
     await view("sum");
     { // サマリーの頭：要点の文・推移といつもの範囲のグラフ・改善のアドバイス（見直す候補の上位 3 つまで）
       const r = await p.evaluate(() => ({heads: document.querySelectorAll("#review .insight .itile").length, cum: document.querySelectorAll("#review .insfig svg polyline.icum").length, donut: document.querySelectorAll("#review .iwr").length, hist: document.querySelectorAll("#review .insfig .ihb").length, svg: !!document.querySelector("#review .insfig svg[aria-label]"), bars: document.querySelectorAll("#review .insfig .ibar").length,
-        adv: document.querySelectorAll("#review .insadv .insa").length, flags: (lastFlags || []).length, tabs: document.querySelectorAll("#review [data-ins]").length}));
+        adv: document.querySelectorAll("#review .insadvc, #review .insadv").length, flags: (lastFlags || []).length, tabs: document.querySelectorAll("#review [data-ins]").length}));
       check("上の帯の数字（推定費用・稼働時間）はサマリーのカードにもあり、押すと同じ内訳が開く", await p.evaluate(() => ["cost", "active"].every(m => document.querySelector(`#review .itile [data-metric="${m}"]`))));
-      check("トークンの種類別のカードと、アドバイスの対象の費用（Σ）がある", await p.evaluate(() => !!document.querySelector("#review .itbar") && document.querySelectorAll("#review .itbar > span").length >= 2));
+      check("トークンの種類別のカード（種類ごとの積み上げ棒）がある", await p.evaluate(() => !!document.querySelector("#review .itbar") && document.querySelectorAll("#review .itbar > span").length >= 2));
       check("「まず見直す」は、並べた候補の先頭（いつもより悪い側に外れたもの → 比べられないもの → 範囲の中。同じ段は関わる費用の大きい順）。期間の行の ⚠ は出さない", await p.evaluate(() => {
         const F = lastFlags, side = f => insSide(f), ok = F.every((f, i) => i === 0 || side(F[i - 1]) < side(f) || side(F[i - 1]) === side(f) && ((F[i - 1].stake && F[i - 1].stake.c) ?? -1) >= ((f.stake && f.stake.c) ?? -1));
         const first = document.querySelector("#review .insh .insgo");
@@ -295,7 +302,7 @@ async function run(env) {
           await p.click('#review [data-ag=""]'); await pause();
           check("「すべて」に戻すと元の数字", await val() === all);
           if (ags.length >= 4){ // A から B に切り替えた結果と、B を直接開いた結果が同じ（前のエージェントの候補が残らない）
-            const advice = () => p.evaluate(() => [...document.querySelectorAll("#review .insadv .insa .insw > b, #review .insh .insgo")].map(e => e.textContent).join("|"));
+            const advice = () => p.evaluate(() => [...document.querySelectorAll("#review .insh .insgo")].map(e => e.textContent).join("|"));
             await p.click(`#review [data-ag="${ags[1]}"]`); await pause(); await p.click(`#review [data-ag="${ags[3]}"]`); await pause(); const viaA = await advice();
             await p.click('#review [data-ag=""]'); await pause(); await p.evaluate(() => { DATA = DATA.slice(); }); await p.click(`#review [data-ag="${ags[3]}"]`); await pause(); const direct = await advice();
             check("エージェントを切り替えても、前のエージェントのアドバイスが残らない", viaA === direct, `${viaA} / ${direct}`);
@@ -491,7 +498,7 @@ async function run(env) {
       if (await mk.count()){ await mk.scrollIntoViewIfNeeded(); await mk.click(); await pause();
         check("サマリーの印を押すと、同じダイアログが開く", await p.locator("#wk").evaluate(d => d.open) && await p.locator("#wk .fl .see").count() > 0);
         await p.locator("#wkclose").click(); await pause();
-        check("Close で閉じる", !(await p.locator("#wk").evaluate(d => d.open))); }
+        check("Close で閉じる", !(await p.locator("#wk").evaluate(d => d.open))); } else console.log("  skip サマリーに印の付いた指標がない");
       await go.click(); await pause();
       const fs = p.locator("#wk .fss .card").first();
       if (await fs.count()){
@@ -504,8 +511,8 @@ async function run(env) {
         check("ダイアログのセッションを押すと、ダイアログを閉じて詳細が開く", !(await p.locator("#wk").evaluate(d => d.open)) && await drawerOpen());
         check("詳細の頭に、このセッションが関係する見直す候補が出る", await p.locator("#panel .sflags .flink").count() > 0);
         await p.keyboard.press("Escape"); await pause(); }
-      else { await p.keyboard.press("Escape"); await pause(); }
-    }
+      else { console.log("  skip ダイアログにセッションのカードがない"); await p.keyboard.press("Escape"); await pause(); }
+    } else check("「まず見直す」に候補がある（デモのデータで、下の確かめのため）", false);
     await open();
     await view("cal");
   });
