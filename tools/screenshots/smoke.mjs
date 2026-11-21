@@ -692,6 +692,9 @@ async function run(env) {
     for (const k of ks){ await p.locator(`#review [data-cum="${k}"]`).click(); await pause();
       check(`積み上がりを ${k} にすると、その量の線と 1 文になる`, await p.evaluate(k => st.insC === k && document.querySelector(`#review [data-cum="${k}"]`).getAttribute("aria-pressed") === "true" && !!document.querySelector("#review polyline.icum"), k)); }
     check("見出しは「前週比」の言い方（vs last week）", /Cumulative, vs last (week|month)/.test(await p.locator("#review .inscol:has(polyline.icum) h4").innerText()));
+    const sk = await p.locator("#review [data-scat]").evaluateAll(xs => xs.map(x => x.dataset.scat));
+    for (const k of sk){ await p.locator(`#review [data-scat="${k}"]`).click(); await pause();
+      check(`散布図の横軸を ${k} にすると、その量で点を描く`, await p.evaluate(k => st.insS === k && document.querySelector(`#review [data-scat="${k}"]`).getAttribute("aria-pressed") === "true" && document.querySelectorAll("#review .ipt[data-sid]").length >= 3, k)); }
     check("長さ別の図に n= を並べない（件数はツールチップに）", !/n=\d/.test(await p.evaluate(() => (document.querySelector("#review .ihist svg") || {}).innerHTML || "")));
     await view("cal");
     await p.keyboard.press("m"); await pause();

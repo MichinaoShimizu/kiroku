@@ -168,7 +168,7 @@ function insightH(F){
     {h: card((HISTK(DATA.filter(s => inP(s, period().ws, period().we))) || {}).title || "", insHist())},
     {h: card(t("By agent"), insAgents()), full: true},
     {sec: t("Output")}, {h: card(t("Outputs"), insOutputs(), " iout"), full: true},
-    {sec: t("Unit cost")}, {h: card(t("Cost vs outputs per session"), insScatter())},
+    {sec: t("Unit cost")}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insScatter())},
     {sec: t("How you used AI")}, {h: card(t("How you used AI"), insUsage())}, {h: card(t("When you worked"), insHeat())}, {h: card(t("How you worked"), insWork())},
   ].filter(c => c.h || c.sec);
   let run = []; const out = [], flush = () => { if (run.length % 2) run[run.length - 1].full = true; out.push(...run); run = []; };
@@ -187,6 +187,7 @@ addEventListener("resize", () => fitTrend());
 function bindInsight(R){
   requestAnimationFrame(fitTrend);
   R.querySelectorAll("[data-ins]").forEach(b => b.onclick = () => { st.insK = b.dataset.ins; store.set("insK", st.insK); summary(); const nb = $("#review").querySelector(`[data-ins="${CSS.escape(b.dataset.ins)}"]`); if (nb) nb.focus(); });
+  R.querySelectorAll("[data-scat]").forEach(b => b.onclick = () => { st.insS = b.dataset.scat; store.set("insS", st.insS); summary(); const nb = $("#review").querySelector(`[data-scat="${CSS.escape(b.dataset.scat)}"]`); if (nb) nb.focus(); });
   R.querySelectorAll("[data-cum]").forEach(b => b.onclick = () => { st.insC = b.dataset.cum; store.set("insC", st.insC); summary(); const nb = $("#review").querySelector(`[data-cum="${CSS.escape(b.dataset.cum)}"]`); if (nb) nb.focus(); });
   R.querySelectorAll(".insksel").forEach(sl => sl.onchange = () => { st.insK = sl.value; store.set("insK", st.insK); summary(); const ns = $("#review .insksel"); if (ns) ns.focus(); });
   R.querySelectorAll(".insgo").forEach(b => b.onclick = () => insOpenWorth(b.dataset.goto, b));
@@ -197,25 +198,33 @@ function bindInsight(R){
 
 /* 費用と成果の散布図：表示中の期間に始まったセッションごとに、横は推定費用（平方根の目盛り）、縦は成果（そのセッションの間のコミットと作った PR）。
    費用が上位 25%（かつ $0.5 以上）なのに成果のないセッションを「見直す価値のある領域」として色を変え、件数と費用を文で言う */
+// 散布図の横軸に使える量（セッションごとの値・書き方・目立たせる下限・名前）。推定費用のないエージェントでも、クレジットやトークンで描ける
+const SCAT = () => ({cost: {v: s => s.cost, f: usd, floor: 0.5, n: t("cost"), title: t("Cost vs outputs per session"), ax: t("Estimated cost (√ scale) →"), s: t("Cost")},
+  credits: {v: s => s.credits, f: cr, floor: 1, n: t("credits"), title: t("Credits vs outputs per session"), ax: t("Kiro credits (√ scale) →"), s: t("Credits")},
+  tokens: {v: s => sesTok(s), f: tok, floor: 1e5, n: t("tokens"), title: t("Tokens vs outputs per session"), ax: t("Tokens (√ scale) →"), s: t("Tokens")}});
 function insScatter(){
-  const {ws, we} = period(), xs = DATA.filter(s => s.start >= ws && s.start < we && s.cost > 0).map(s => ({s, c: s.cost, o: commitsOf(s).length + (s.prs || []).length}));
-  if (xs.length < 3) return "";
-  const cs = xs.map(x => x.c), thr = Math.max(0.5, insQuant(cs, .75)), maxC = insNice(Math.max(...cs)), maxO = Math.max(4, ...xs.map(x => x.o));
+  const {ws, we} = period(), ss = DATA.filter(s => s.start >= ws && s.start < we), K = SCAT(), avail = Object.keys(K).filter(k => ss.filter(s => K[k].v(s) > 0).length >= 3); if (!avail.length) return "";
+  const k = avail.includes(st.insS) ? st.insS : avail[0], M = K[k], fv = M.f;
+  const xs = ss.filter(s => M.v(s) > 0).map(s => ({s, c: M.v(s), o: commitsOf(s).length + (s.prs || []).length}));
+  const tabs = avail.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${avail.map(x => `<button type="button" data-scat="${x}" aria-pressed="${x === k}">${esc(K[x].s)}</button>`).join("")}</div>` : "";
+  const head = `<div class="inshead"><h4>${esc(M.title)}</h4>${tabs}</div>`;
+  const cs = xs.map(x => x.c), thr = Math.max(M.floor, insQuant(cs, .75)), maxC = insNice(Math.max(...cs)), maxO = Math.max(4, ...xs.map(x => x.o));
   const narrow = innerWidth < 600, W = narrow ? 360 : 720, Hh = narrow ? 214 : 234, L = narrow ? 40 : 48, R = 12, T = 12, B = 44; // 下に目盛りと軸の名前（点に重ならないように、目盛りの下）
   const x = c => L + (W - L - R) * Math.sqrt(c / maxC), y = o => T + (Hh - T - B) * (1 - o / maxO);
   const bad = xs.filter(p => p.o === 0 && p.c >= thr), badC = bad.reduce((t, p) => t + p.c, 0);
-  const xt = [0, maxC / 4, maxC].map(c => `<g class="itk"><line x1="${x(c).toFixed(1)}" x2="${x(c).toFixed(1)}" y1="${T}" y2="${Hh - B}"/><text class="ixl" x="${x(c).toFixed(1)}" y="${Hh - B + 16}">${esc(usd(c))}</text></g>`).join("");
+  const xt = [0, maxC / 4, maxC].map(c => `<g class="itk"><line x1="${x(c).toFixed(1)}" x2="${x(c).toFixed(1)}" y1="${T}" y2="${Hh - B}"/><text class="ixl" x="${x(c).toFixed(1)}" y="${Hh - B + 16}">${esc(k === "credits" ? crN(c) : fv(c))}</text></g>`).join("");
   const yt = [0, Math.round(maxO / 2), maxO].map(o => `<g class="itk"><line x1="${L}" x2="${W - R}" y1="${y(o).toFixed(1)}" y2="${y(o).toFixed(1)}"/><text x="${L - 8}" y="${(y(o) + 4).toFixed(1)}">${o}</text></g>`).join("");
   const zx = Math.min(W - R, x(Math.min(thr, maxC))); // しきい値が軸の外（どのセッションも $0.50 未満）なら、帯は描かない
   const zone = zx >= W - R ? "" : `<rect class="izone" x="${zx.toFixed(1)}" y="${(y(0) - 14).toFixed(1)}" width="${(W - R - zx).toFixed(1)}" height="14"/>`;
   const pts = xs.map((p, i) => { const hit = p.o === 0 && p.c >= thr, jy = p.o === 0 ? -((i * 37) % 9) - 3 : 0; // 成果 0 の点は重なりやすいので、縦に少しずらす
-    return `<circle class="ipt${hit ? " bad" : ""}" cx="${x(p.c).toFixed(1)}" cy="${(y(p.o) + jy).toFixed(1)}" r="${narrow ? 4 : 5}" tabindex="0" role="button" data-sid="${esc(p.s.id)}" aria-label="${esc(`${p.s.title || p.s.id}: ${usd(p.c)}, ${plural(p.o, "output")}`)}"${tipAttr(p.s.title || "", `${usd(p.c)} · ${plural(p.o, "output")}`, p.s.project)}/>`; }).join("");
-  const note = `${t("outputs")} = 0 ∧ ${t("cost")} ≥ ${usd(thr)} : ${bad.length} · ${usd(badC)}`;
+    return `<circle class="ipt${hit ? " bad" : ""}" cx="${x(p.c).toFixed(1)}" cy="${(y(p.o) + jy).toFixed(1)}" r="${narrow ? 4 : 5}" tabindex="0" role="button" data-sid="${esc(p.s.id)}" aria-label="${esc(`${p.s.title || p.s.id}: ${fv(p.c)}, ${plural(p.o, "output")}`)}"${tipAttr(p.s.title || "", `${fv(p.c)} · ${plural(p.o, "output")}`, p.s.project)}/>`; }).join("");
+  const note = `${t("outputs")} = 0 ∧ ${M.n} ≥ ${fv(thr)} : ${bad.length} · ${fv(badC)}`;
   const tq = xs.filter(p => p.c >= thr).length, all$ = cs.reduce((a, c) => a + c, 0);
-  const sy = t("{m} of {sessions} costing {thr} or more had no output: {usd} = {pc}% of session cost", {m: bad.length, sessions: plural(tq, "session"), thr: usd(thr), usd: usd(badC), pc: all$ ? Math.round(badC * 100 / all$) : 0});
+  const sy = k === "cost" ? t("{m} of {sessions} costing {thr} or more had no output: {usd} = {pc}% of session cost", {m: bad.length, sessions: plural(tq, "session"), thr: usd(thr), usd: usd(badC), pc: all$ ? Math.round(badC * 100 / all$) : 0})
+    : t("{m} of {sessions} using {thr} or more had no output: {v} = {pc}% of the sessions' {metric}", {m: bad.length, sessions: plural(tq, "session"), thr: fv(thr), v: fv(badC), pc: all$ ? Math.round(badC * 100 / all$) : 0, metric: M.n});
   const th = bad.length ? t("Open the red points: research is fine; work that stopped partway is the cost to cut") : "";
-  return `${say(sy, th)}<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="group" aria-label="${esc(t("Cost and outputs per session"))}">${xt}${yt}${zone}${pts}
-    <text class="iax" x="${W - R}" y="${Hh - 1}">${esc(t("Estimated cost (√ scale) →"))}</text><text class="iax st" x="${L + 4}" y="${T + 10}">${esc(t("↑ Commits and PRs"))}</text></svg><figcaption><span class="lg izone">${fx(note, "", t("Costly sessions with no output"))}</span></figcaption><p class="ifxs">${fx(`${t("outputs")} = ${t("commits")} + PR`)}${fx(`${usd(thr)} = max($0.50, P75(${t("cost")}))`)}</p></figure>`;
+  return `${head}${say(sy, th)}<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="group" aria-label="${esc(M.title)}">${xt}${yt}${zone}${pts}
+    <text class="iax" x="${W - R}" y="${Hh - 1}">${esc(M.ax)}</text><text class="iax st" x="${L + 4}" y="${T + 10}">${esc(t("↑ Commits and PRs"))}</text></svg><figcaption><span class="lg izone">${fx(note, "", k === "cost" ? t("Costly sessions with no output") : t("Heavy sessions with no output"))}</span></figcaption><p class="ifxs">${fx(`${t("outputs")} = ${t("commits")} + PR`)}${fx(`${fv(thr)} = max(${fv(M.floor)}, P75(${M.n}))`)}</p></figure>`;
 }
 /* 曜日×時間帯のヒートマップ：表示中の期間に AI と作業していた時間（重なりは 1 回）。月の表示では曜日ごとに足す。
    平日 9〜18 時の外の割合を、いつもの範囲と比べる */
