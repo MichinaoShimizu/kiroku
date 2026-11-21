@@ -1,1 +1,0 @@
-- Summary: the cost and outputs scatter can put Kiro credits or tokens on its horizontal axis instead of estimated cost, so agents without a cost estimate get it too

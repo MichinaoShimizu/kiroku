@@ -1,1 +1,0 @@
-- Switching between the calendar and the summary no longer moves the period heading and the switch up and down on wide windows; the band keeps its space while hidden in the summary

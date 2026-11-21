@@ -1,6 +1,0 @@
-- Kiro credits are written as "credits" (「クレジット」 in Japanese) everywhere instead of "cr"
-- Summary: the running total chart can show estimated cost, Kiro credits, tokens or active time, and is titled "Cumulative, vs last week / month" (「積み上がり（前週比）」「（前月比）」)
-- Summary: the session length chart uses credits or tokens when there is no cost, instead of a count of sessions, and no longer prints n= under each bar (it is in the tooltip)
-- Month calendar: the shade of each day follows the same usage as its figure (estimated cost, tokens or credits) instead of active time, and Shade under the calendar switches it among cost, credits, tokens and active time
-- Session review prompt: when the history file can be read, it passes the session ID and the file and lists only what the history doesn't have (commits, pull requests and other events with their times), instead of copying the prompt flow
-- Week calendar: sessions are shown with a colored edge on the left and a light fill instead of an outline and a dot

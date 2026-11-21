@@ -1,1 +1,0 @@
-- Summary: figures and cards are grouped under Cost, Output and Unit cost (「単価」: cost ÷ output, such as cost, credits and tokens per commit and cost per prompt), with larger, bolder headings; cost per commit moves from the Outputs card to Unit cost
