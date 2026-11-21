@@ -1,0 +1,3 @@
+- Week calendar: 0:00–7:00 is folded at the top, at a quarter of the height as a shaded band, so the working hours fit the first screen and night work still shows where it happened. "0–7" at the top of the hours unfolds it to full height and folds it again; the choice is remembered
+- Session details: the prompt flow looks like a messaging app: a blue-gray background, your prompts as green bubbles on the right, the AI's replies as white bubbles on the left, and events as dark labels in the middle (red for limits and interruptions)
+- Summary: the figures at the top are in one row; on narrower windows the row scrolls sideways

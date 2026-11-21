@@ -1,0 +1,3 @@
+- Summary: advice is ordered by the cost involved (the cost of the sessions each item is about, shown with its sum), largest first
+- Summary: the weekday × hour heatmap ends each row with that weekday's total, so its values show without pointing at a cell
+- Summary: a row of cards or stats that isn't full is filled by its last item, with no empty slot; on a phone, the trend's metric switch scrolls sideways instead of wrapping

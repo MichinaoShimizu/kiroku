@@ -57,6 +57,9 @@ type Heavy struct {
 type WeekUsage struct {
 	Tokens    float64  `json:"tokens"`
 	Out       float64  `json:"out"`
+	In        float64  `json:"in,omitempty"` // 入力（キャッシュを使わない分）。トークンの内訳を画面で見せるため
+	CW        float64  `json:"cw,omitempty"` // キャッシュへの書き込み（5 分と 1 時間の合計）
+	CR        float64  `json:"cr,omitempty"` // キャッシュからの読み込み
 	Cost      float64  `json:"cost"`
 	Credits   float64  `json:"credits"`
 	CacheHit  *float64 `json:"cacheHit"`
@@ -109,7 +112,12 @@ type Summary struct {
 	Days          []Day              `json:"days"`         // 期間の日ごと（週なら 7、月なら 28〜31）
 	Friction      []Friction         `json:"friction"`     // 多い順に 3 つまで
 	FrictionN     int                `json:"frictionN"`    // 3 つに絞る前の数
-	start, end    time.Time
+	// Agents は、2 つ以上のエージェントが動いた期間の、エージェントごとの同じ集計（画面のサマリーをエージェントで絞るため）。
+	// コミットは、そのエージェントのセッションが実行したものだけ（手でのコミットはどのエージェントにも入れない）。中の Agents は空
+	Agents map[string]*Summary `json:"agents,omitempty"`
+	// Only は、1 つのエージェントだけが動いた期間の、そのエージェント（Agents を作らない代わりに、絞っても同じ集計だとわかるように）
+	Only       string `json:"only,omitempty"`
+	start, end time.Time
 }
 
 // Week は 1 週間ぶんの Summary（互換のための別名）。
@@ -179,9 +187,9 @@ func MonthOf(ts float64) time.Time {
 	return Midnight(d.Year(), d.Month(), 1, time.Local)
 }
 
-// Stats は 1 週ぶんの集計。動いていた時間がなければ nil。
+// Stats は 1 週ぶんの集計（エージェントごとの集計つき。AllWeeks と同じ）。動いていた時間がなければ nil。
 func Stats(data []*core.Session, wsT time.Time, commits ...gitlog.Commit) *Week {
-	return Summarize(data, wsT, AddDays(wsT, 7), commits...)
+	return SummarizeByAgent(data, wsT, AddDays(wsT, 7), commits...)
 }
 
 // GitTotal は期間の git のコミットのまとめ。
@@ -675,7 +683,7 @@ func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
 		}
 		heavyRows = append(heavyRows, Heavy{d.ID, d.Title, d.Project, d.Start, core.Round(heavy[d.ID], 2), len(d.Subagents)})
 	}
-	return WeekUsage{Tokens: tot.Total(), Out: tot.Out, Cost: core.Round(cost, 2), Credits: core.Round(credits, 2),
+	return WeekUsage{Tokens: tot.Total(), Out: tot.Out, In: tot.In, CW: tot.CW + tot.CW1h, CR: tot.CR, Cost: core.Round(cost, 2), Credits: core.Round(credits, 2),
 		CacheHit: cacheHit, Models: mrows, Projects: prows, Subagents: nSubs, SubMin: core.Round(subSec/60, 0),
 		SubTypes: trows, Heavy: heavyRows, Unpriced: unpriced, UnpricedM: unpricedM, PrefixPriced: prefixPriced, TierStd: tierStd}
 }
@@ -721,7 +729,7 @@ func allPeriods(data []*core.Session, commits []gitlog.Commit, p period, memo ma
 				cs := commitsWithin(commits, ws, we)
 				e := memo[k]
 				if e == nil || !e.same(in, cs) {
-					e = &memoEntry{sessions: in, commits: cs, sum: Summarize(in, t, end, cs...)}
+					e = &memoEntry{sessions: in, commits: cs, sum: SummarizeByAgent(in, t, end, cs...)}
 				}
 				next[k] = e
 				if e.sum != nil {
@@ -736,6 +744,46 @@ func allPeriods(data []*core.Session, commits []gitlog.Commit, p period, memo ma
 		maps.Copy(memo, next)
 	}
 	return out
+}
+
+// SummarizeByAgent は Summarize に、エージェントごとの集計（Agents・Only）を添える。
+// エージェントは、期間に動いていたもの（shares の source。期間の外にしか記録のないエージェントは数えない）。
+func SummarizeByAgent(data []*core.Session, t, end time.Time, cs ...gitlog.Commit) *Summary {
+	sum := Summarize(data, t, end, cs...)
+	if sum == nil {
+		return nil
+	}
+	var order []string
+	for _, x := range sum.Shares["source"] {
+		order = append(order, x.Key)
+	}
+	if len(order) == 1 {
+		sum.Only = order[0]
+	}
+	if len(order) < 2 {
+		return sum
+	}
+	by := map[string][]*core.Session{}
+	src := map[string]string{} // セッションの ID → エージェント
+	for _, s := range data {
+		by[s.Source] = append(by[s.Source], s)
+		src[s.ID] = s.Source
+	}
+	for _, a := range order {
+		var mine []gitlog.Commit
+		for _, c := range cs {
+			if c.Session != "" && src[c.Session] == a {
+				mine = append(mine, c)
+			}
+		}
+		if x := Summarize(by[a], t, end, mine...); x != nil {
+			if sum.Agents == nil {
+				sum.Agents = map[string]*Summary{}
+			}
+			sum.Agents[a] = x
+		}
+	}
+	return sum
 }
 
 // commitsWithin は [ws, we) のコミット（並びは元のまま）。Summarize はこの期間のコミットしか見ない。

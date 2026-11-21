@@ -22,3 +22,8 @@ applyStaticText();
 const mq = matchMedia("(max-width:1000px)"),
  ph = () => $("#q").placeholder = t(mq.matches ? "Search" : "Prompts, files, commits"); // 狭い画面では入力欄も狭いので短く
 ph();
+// テーマ：既定はライト。ヘッダーのボタンでダークに切り替え、選んだものを覚える（読み込み中の画面も同じ選択を読む）
+function applyTheme(){ document.documentElement.setAttribute("data-theme", st.theme); const b = $("#theme"); if (!b) return;
+  const dark = st.theme === "dark", l = dark ? t("Light mode") : t("Dark mode"); b.setAttribute("aria-pressed", String(dark)); b.setAttribute("aria-label", t("Dark mode")); b.title = l; }
+applyTheme();
+$("#theme").onclick = () => { st.theme = st.theme === "dark" ? "light" : "dark"; store.set("theme", st.theme); applyTheme(); };

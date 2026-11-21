@@ -222,7 +222,7 @@ func TestPeriodsMatchFullScan(t *testing.T) {
 	}
 	for k, m := range report.AllMonths(data) {
 		ms, _ := time.ParseInLocation("2006-01", k, time.Local)
-		if full, _ := json.Marshal(report.Summarize(data, ms, ms.AddDate(0, 1, 0))); string(full) != mustJSON(t, m) {
+		if full, _ := json.Marshal(report.SummarizeByAgent(data, ms, ms.AddDate(0, 1, 0))); string(full) != mustJSON(t, m) {
 			t.Errorf("月 %s: 期間に関わるセッションだけで集計すると、結果が変わる", k)
 		}
 	}

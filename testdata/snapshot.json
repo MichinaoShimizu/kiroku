@@ -2,6 +2,2694 @@
  "months": {
   "2026-09": {
    "active": 843,
+   "agents": {
+    "Claude Code": {
+     "active": 675,
+     "ai": 680,
+     "costPerAsk": 0.132,
+     "costPerCommit": null,
+     "costPrompts": 45,
+     "days": [
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 17,
+       "commits": 0,
+       "cost": 0.1399,
+       "credits": 0,
+       "prompts": 2,
+       "switches": 0,
+       "tokens": 429223
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 114,
+       "commits": 0,
+       "cost": 1.0626,
+       "credits": 0,
+       "prompts": 7,
+       "switches": 0,
+       "tokens": 1387798
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 31,
+       "commits": 0,
+       "cost": 0.1728,
+       "credits": 0,
+       "prompts": 2,
+       "switches": 0,
+       "tokens": 540198
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 39,
+       "commits": 0,
+       "cost": 0.2004,
+       "credits": 0,
+       "prompts": 3,
+       "switches": 0,
+       "tokens": 512110
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 128,
+       "commits": 0,
+       "cost": 1.3609,
+       "credits": 0,
+       "prompts": 8,
+       "switches": 0,
+       "tokens": 1912465
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 114,
+       "commits": 0,
+       "cost": 1.0626,
+       "credits": 0,
+       "prompts": 7,
+       "switches": 0,
+       "tokens": 1387798
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 25,
+       "commits": 0,
+       "cost": 0.1571,
+       "credits": 0,
+       "prompts": 3,
+       "switches": 0,
+       "tokens": 453517
+      },
+      {
+       "active": 207,
+       "commits": 0,
+       "cost": 1.7836,
+       "credits": 0,
+       "prompts": 13,
+       "switches": 3,
+       "tokens": 3149414
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      }
+     ],
+     "fixRate": 11.1,
+     "focus": [],
+     "friction": [
+      {
+       "id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
+       "project": "app",
+       "score": 4,
+       "start": 1789804080,
+       "title": "カレンダー表示を足して",
+       "why": [
+        "言い直し 2 回"
+       ],
+       "whyEn": [
+        "2 corrections"
+       ]
+      },
+      {
+       "id": "6f8a980c-3b83-43eb-b07d-758a36bc2400",
+       "project": "app",
+       "score": 4,
+       "start": 1790408880,
+       "title": "カレンダー表示を足して",
+       "why": [
+        "言い直し 2 回"
+       ],
+       "whyEn": [
+        "2 corrections"
+       ]
+      },
+      {
+       "id": "d8bda5e8-265b-4f26-8a8a-54c9c8651701",
+       "project": "app",
+       "score": 2,
+       "start": 1790316060,
+       "title": "カレンダー表示を足して",
+       "why": [
+        "言い直し 1 回"
+       ],
+       "whyEn": [
+        "1 correction"
+       ]
+      }
+     ],
+     "frictionN": 3,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "maxConc": 2,
+     "outBase": 9,
+     "outPrompts": 45,
+     "outSessions": 0,
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "parallel": 5,
+     "projectStats": [
+      {
+       "cost": 5.1768,
+       "credits": 0,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": {
+        "cost": 1.3609,
+        "credits": 0,
+        "id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
+        "minutes": 128,
+        "source": "Claude Code",
+        "start": 1789804080,
+        "title": "カレンダー表示を足して",
+        "tokens": 1912465
+       },
+       "minutes": 538,
+       "models": [
+        {
+         "cost": 4.1258,
+         "model": "claude-opus-5-5",
+         "tokens": 4830462,
+         "turns": 138
+        },
+        {
+         "cost": 0.6524,
+         "model": "claude-sonnet-5-5",
+         "tokens": 1541576,
+         "turns": 40
+        },
+        {
+         "cost": 0.3987,
+         "model": "claude-haiku-4-5",
+         "tokens": 1222203,
+         "turns": 44
+        }
+       ],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "app",
+       "prompts": 35,
+       "sessions": 6,
+       "subagents": 18,
+       "tokens": 7594241,
+       "top": [
+        {
+         "cost": 1.3609,
+         "credits": 0,
+         "id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
+         "minutes": 128,
+         "source": "Claude Code",
+         "start": 1789804080,
+         "title": "カレンダー表示を足して",
+         "tokens": 1912465
+        },
+        {
+         "cost": 1.3609,
+         "credits": 0,
+         "id": "6f8a980c-3b83-43eb-b07d-758a36bc2400",
+         "minutes": 128,
+         "source": "Claude Code",
+         "start": 1790408880,
+         "title": "カレンダー表示を足して",
+         "tokens": 1912465
+        },
+        {
+         "cost": 1.0626,
+         "credits": 0,
+         "id": "68cb7e8c-a8e9-4b72-9b9f-95c791d04e02",
+         "minutes": 114,
+         "source": "Claude Code",
+         "start": 1788925320,
+         "title": "READMEを整理して",
+         "tokens": 1387798
+        }
+       ]
+      },
+      {
+       "cost": 0.5626,
+       "credits": 0,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": {
+        "cost": 0.4228,
+        "credits": 0,
+        "id": "57c94728-2884-42b4-8c7d-b3e65e11e800",
+        "minutes": 84,
+        "source": "Claude Code",
+        "start": 1790403540,
+        "title": "型エラー直して",
+        "tokens": 1236949
+       },
+       "minutes": 98,
+       "models": [
+        {
+         "cost": 0.3237,
+         "model": "claude-haiku-4-5",
+         "tokens": 1184172,
+         "turns": 32
+        },
+        {
+         "cost": 0.2389,
+         "model": "claude-sonnet-5-5",
+         "tokens": 482000,
+         "turns": 16
+        }
+       ],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "vp",
+       "prompts": 7,
+       "sessions": 2,
+       "subagents": 4,
+       "tokens": 1666172,
+       "top": [
+        {
+         "cost": 0.4228,
+         "credits": 0,
+         "id": "57c94728-2884-42b4-8c7d-b3e65e11e800",
+         "minutes": 84,
+         "source": "Claude Code",
+         "start": 1790403540,
+         "title": "型エラー直して",
+         "tokens": 1236949
+        },
+        {
+         "cost": 0.1399,
+         "credits": 0,
+         "id": "45502558-80a6-4028-a0ef-6476e9599703",
+         "minutes": 17,
+         "source": "Claude Code",
+         "start": 1788367980,
+         "title": "カレンダー表示を足して",
+         "tokens": 429223
+        }
+       ]
+      },
+      {
+       "cost": 0.2004,
+       "credits": 0,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": {
+        "cost": 0.2004,
+        "credits": 0,
+        "id": "fa1e3455-e4a8-485a-ace2-9a6ccbaea201",
+        "minutes": 39,
+        "source": "Claude Code",
+        "start": 1789434120,
+        "title": "カレンダー表示を足して",
+        "tokens": 512110
+       },
+       "minutes": 39,
+       "models": [
+        {
+         "cost": 0.2004,
+         "model": "claude-sonnet-5-5",
+         "tokens": 512110,
+         "turns": 16
+        }
+       ],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "blog",
+       "prompts": 3,
+       "sessions": 1,
+       "subagents": 1,
+       "tokens": 512110,
+       "top": [
+        {
+         "cost": 0.2004,
+         "credits": 0,
+         "id": "fa1e3455-e4a8-485a-ace2-9a6ccbaea201",
+         "minutes": 39,
+         "source": "Claude Code",
+         "start": 1789434120,
+         "title": "カレンダー表示を足して",
+         "tokens": 512110
+        }
+       ]
+      }
+     ],
+     "projects": [
+      [
+       "app",
+       538
+      ],
+      [
+       "vp",
+       98
+      ],
+      [
+       "blog",
+       39
+      ]
+     ],
+     "prompts": 45,
+     "sessions": 9,
+     "shares": {
+      "branch": [
+       {
+        "cost": 2.4551,
+        "credits": 0,
+        "key": "app · main",
+        "minutes": 284,
+        "tokens": 3769311
+       },
+       {
+        "cost": 2.7217,
+        "credits": 0,
+        "key": "app · fix/login",
+        "minutes": 254,
+        "tokens": 3824930
+       },
+       {
+        "cost": 0.4228,
+        "credits": 0,
+        "key": "vp · main",
+        "minutes": 82,
+        "tokens": 1236949
+       },
+       {
+        "cost": 0.2004,
+        "credits": 0,
+        "key": "blog · main",
+        "minutes": 39,
+        "tokens": 512110
+       },
+       {
+        "cost": 0.1399,
+        "credits": 0,
+        "key": "vp · feat/eval",
+        "minutes": 17,
+        "tokens": 429223
+       }
+      ],
+      "source": [
+       {
+        "cost": 5.9399,
+        "credits": 0,
+        "key": "Claude Code",
+        "minutes": 675,
+        "tokens": 9772523
+       }
+      ]
+     },
+     "start": "2026-09-01",
+     "switchesAvg": 0.4,
+     "switchesMax": 3,
+     "usage": {
+      "cacheHit": 0.944,
+      "cost": 5.94,
+      "cr": 9022690,
+      "credits": 0,
+      "cw": 529853,
+      "heavy": [
+       {
+        "cost": 1.36,
+        "id": "6f8a980c-3b83-43eb-b07d-758a36bc2401",
+        "project": "app",
+        "start": 1789804080,
+        "subagents": 4,
+        "title": "カレンダー表示を足して"
+       },
+       {
+        "cost": 1.36,
+        "id": "6f8a980c-3b83-43eb-b07d-758a36bc2400",
+        "project": "app",
+        "start": 1790408880,
+        "subagents": 4,
+        "title": "カレンダー表示を足して"
+       },
+       {
+        "cost": 1.06,
+        "id": "68cb7e8c-a8e9-4b72-9b9f-95c791d04e02",
+        "project": "app",
+        "start": 1788925320,
+        "subagents": 4,
+        "title": "READMEを整理して"
+       }
+      ],
+      "in": 5885,
+      "models": [
+       [
+        "claude-opus-5-5",
+        4.13,
+        4830462,
+        138
+       ],
+       [
+        "claude-sonnet-5-5",
+        1.09,
+        2535686,
+        72
+       ],
+       [
+        "claude-haiku-4-5",
+        0.72,
+        2406375,
+        76
+       ]
+      ],
+      "out": 214095,
+      "projects": [
+       [
+        "app",
+        5.18
+       ],
+       [
+        "vp",
+        0.56
+       ],
+       [
+        "blog",
+        0.2
+       ]
+      ],
+      "subMin": 96,
+      "subTypes": [
+       [
+        "Plan",
+        12
+       ],
+       [
+        "Explore",
+        10
+       ],
+       [
+        "general-purpose",
+        1
+       ]
+      ],
+      "subagents": 23,
+      "tokens": 9772523,
+      "unpriced": 0,
+      "unpricedModels": []
+     },
+     "waitCount": 36,
+     "waitMedian": 300,
+     "waitP90": 1800,
+     "weekend": 366
+    },
+    "Codex": {
+     "active": 6,
+     "ai": 6,
+     "costPerAsk": 0.007,
+     "costPerCommit": null,
+     "costPrompts": 3,
+     "days": [
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 4,
+       "commits": 0,
+       "cost": 0.0053,
+       "credits": 0,
+       "prompts": 2,
+       "switches": 0,
+       "tokens": 3300
+      },
+      {
+       "active": 2,
+       "commits": 0,
+       "cost": 0.0123,
+       "credits": 0,
+       "prompts": 1,
+       "switches": 0,
+       "tokens": 4100
+      }
+     ],
+     "fixRate": 33.3,
+     "focus": [],
+     "friction": [
+      {
+       "id": "thr-main",
+       "project": "web",
+       "score": 2,
+       "start": 1790643601,
+       "title": "ヘッダーのボタンの色",
+       "why": [
+        "言い直し 1 回"
+       ],
+       "whyEn": [
+        "1 correction"
+       ]
+      }
+     ],
+     "frictionN": 1,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "maxConc": 1,
+     "outBase": 0,
+     "outPrompts": 0,
+     "outSessions": 0,
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "parallel": 0,
+     "projectStats": [
+      {
+       "cost": 0.0053,
+       "credits": 0,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": {
+        "cost": 0.0053,
+        "credits": 0,
+        "id": "thr-main",
+        "minutes": 3,
+        "source": "Codex",
+        "start": 1790643601,
+        "title": "ヘッダーのボタンの色",
+        "tokens": 3300
+       },
+       "minutes": 4,
+       "models": [
+        {
+         "cost": 0.0044,
+         "model": "gpt-5-codex",
+         "tokens": 2850,
+         "turns": 2
+        },
+        {
+         "cost": 0.0009,
+         "model": "gpt-5-codex-mini",
+         "tokens": 450,
+         "turns": 1
+        }
+       ],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "web",
+       "prompts": 2,
+       "sessions": 1,
+       "subagents": 1,
+       "tokens": 3300,
+       "top": [
+        {
+         "cost": 0.0053,
+         "credits": 0,
+         "id": "thr-main",
+         "minutes": 3,
+         "source": "Codex",
+         "start": 1790643601,
+         "title": "ヘッダーのボタンの色",
+         "tokens": 3300
+        }
+       ]
+      },
+      {
+       "cost": 0.0123,
+       "credits": 0,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": {
+        "cost": 0.0123,
+        "credits": 0,
+        "id": "thr-new",
+        "minutes": 1,
+        "source": "Codex",
+        "start": 1790744401,
+        "title": "APIのテストを足して",
+        "tokens": 4100
+       },
+       "minutes": 2,
+       "models": [
+        {
+         "cost": 0.0123,
+         "model": "gpt-5.2-codex",
+         "tokens": 4100,
+         "turns": 2
+        }
+       ],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "api",
+       "prompts": 1,
+       "sessions": 1,
+       "subagents": 0,
+       "tokens": 4100,
+       "top": [
+        {
+         "cost": 0.0123,
+         "credits": 0,
+         "id": "thr-new",
+         "minutes": 1,
+         "source": "Codex",
+         "start": 1790744401,
+         "title": "APIのテストを足して",
+         "tokens": 4100
+        }
+       ]
+      }
+     ],
+     "projects": [
+      [
+       "web",
+       4
+      ],
+      [
+       "api",
+       2
+      ]
+     ],
+     "prompts": 3,
+     "sessions": 2,
+     "shares": {
+      "branch": [
+       {
+        "cost": 0.0053,
+        "credits": 0,
+        "key": "web · feat/button",
+        "minutes": 4,
+        "tokens": 3300
+       },
+       {
+        "cost": 0.0123,
+        "credits": 0,
+        "key": "api · —",
+        "minutes": 2,
+        "tokens": 4100
+       }
+      ],
+      "source": [
+       {
+        "cost": 0.0176,
+        "credits": 0,
+        "key": "Codex",
+        "minutes": 6,
+        "tokens": 7400
+       }
+      ]
+     },
+     "start": "2026-09-01",
+     "switchesAvg": 0,
+     "switchesMax": 0,
+     "usage": {
+      "cacheHit": 0.547,
+      "cost": 0.02,
+      "cr": 3500,
+      "credits": 0,
+      "heavy": [
+       {
+        "cost": 0.01,
+        "id": "thr-new",
+        "project": "api",
+        "start": 1790744401,
+        "subagents": 0,
+        "title": "APIのテストを足して"
+       },
+       {
+        "cost": 0.01,
+        "id": "thr-main",
+        "project": "web",
+        "start": 1790643601,
+        "subagents": 1,
+        "title": "ヘッダーのボタンの色"
+       }
+      ],
+      "in": 2900,
+      "models": [
+       [
+        "gpt-5.2-codex",
+        0.01,
+        4100,
+        2
+       ],
+       [
+        "gpt-5-codex",
+        0,
+        2850,
+        2
+       ],
+       [
+        "gpt-5-codex-mini",
+        0,
+        450,
+        1
+       ]
+      ],
+      "out": 1000,
+      "prefixPriced": [
+       [
+        "gpt-5.2-codex",
+        "gpt-5.2"
+       ],
+       [
+        "gpt-5-codex",
+        "gpt-5"
+       ],
+       [
+        "gpt-5-codex-mini",
+        "gpt-5"
+       ]
+      ],
+      "projects": [
+       [
+        "api",
+        0.01
+       ],
+       [
+        "web",
+        0.01
+       ]
+      ],
+      "subMin": 1,
+      "subTypes": [
+       [
+        "explorer",
+        1
+       ]
+      ],
+      "subagents": 1,
+      "tokens": 7400,
+      "unpriced": 0,
+      "unpricedModels": []
+     },
+     "waitCount": 3,
+     "waitMedian": 1,
+     "waitP90": 149,
+     "weekend": 0
+    },
+    "Kiro CLI (SQLite)": {
+     "active": 12,
+     "ai": 12,
+     "costPerAsk": null,
+     "costPerCommit": null,
+     "costPrompts": 0,
+     "days": [
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 1,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 1,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 7,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 2,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 4,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 1,
+       "switches": 0,
+       "tokens": 0
+      }
+     ],
+     "fixRate": 25,
+     "focus": [],
+     "friction": [
+      {
+       "id": "conv-a",
+       "project": "app",
+       "score": 2,
+       "start": 1790643540,
+       "title": "ログイン画面のテストを書いて",
+       "why": [
+        "言い直し 1 回"
+       ],
+       "whyEn": [
+        "1 correction"
+       ]
+      }
+     ],
+     "frictionN": 1,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "maxConc": 1,
+     "outBase": 0,
+     "outPrompts": 0,
+     "outSessions": 0,
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "parallel": 0,
+     "projectStats": [
+      {
+       "cost": 0,
+       "credits": 0,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": null,
+       "minutes": 7,
+       "models": [],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "app",
+       "prompts": 2,
+       "sessions": 1,
+       "subagents": 0,
+       "tokens": 0,
+       "top": [
+        {
+         "cost": 0,
+         "credits": 0,
+         "id": "conv-a",
+         "minutes": 7,
+         "source": "Kiro CLI (SQLite)",
+         "start": 1790643540,
+         "title": "ログイン画面のテストを書いて",
+         "tokens": 0
+        }
+       ]
+      },
+      {
+       "cost": 0,
+       "credits": 0,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": null,
+       "minutes": 4,
+       "models": [],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "ci",
+       "prompts": 1,
+       "sessions": 1,
+       "subagents": 0,
+       "tokens": 0,
+       "top": [
+        {
+         "cost": 0,
+         "credits": 0,
+         "id": "conv-b",
+         "minutes": 3,
+         "source": "Kiro CLI (SQLite)",
+         "start": 1790769600,
+         "title": "CIが落ちてる原因を調べて",
+         "tokens": 0
+        }
+       ]
+      },
+      {
+       "cost": 0,
+       "credits": 0,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": null,
+       "minutes": 1,
+       "models": [],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "infra",
+       "prompts": 1,
+       "sessions": 1,
+       "subagents": 0,
+       "tokens": 0,
+       "top": [
+        {
+         "cost": 0,
+         "credits": 0,
+         "id": "0d612aac-99c4-4a54-bda2-76ad60b6ddf3",
+         "minutes": 1,
+         "source": "Kiro CLI (SQLite)",
+         "start": 1790553600,
+         "title": "重複の会話",
+         "tokens": 0
+        }
+       ]
+      }
+     ],
+     "projects": [
+      [
+       "app",
+       7
+      ],
+      [
+       "ci",
+       4
+      ],
+      [
+       "infra",
+       1
+      ]
+     ],
+     "prompts": 4,
+     "sessions": 3,
+     "shares": {
+      "branch": [
+       {
+        "cost": 0,
+        "credits": 0,
+        "key": "app · —",
+        "minutes": 7,
+        "tokens": 0
+       },
+       {
+        "cost": 0,
+        "credits": 0,
+        "key": "ci · —",
+        "minutes": 4,
+        "tokens": 0
+       },
+       {
+        "cost": 0,
+        "credits": 0,
+        "key": "infra · —",
+        "minutes": 1,
+        "tokens": 0
+       }
+      ],
+      "source": [
+       {
+        "cost": 0,
+        "credits": 0,
+        "key": "Kiro CLI (SQLite)",
+        "minutes": 12,
+        "tokens": 0
+       }
+      ]
+     },
+     "start": "2026-09-01",
+     "switchesAvg": 0,
+     "switchesMax": 0,
+     "usage": {
+      "cacheHit": null,
+      "cost": 0,
+      "credits": 0,
+      "heavy": [],
+      "models": [],
+      "out": 0,
+      "projects": [],
+      "subMin": 0,
+      "subTypes": [],
+      "subagents": 0,
+      "tokens": 0,
+      "unpriced": 0,
+      "unpricedModels": []
+     },
+     "waitCount": 1,
+     "waitMedian": 218,
+     "waitP90": 218,
+     "weekend": 0
+    },
+    "Kiro Crew": {
+     "active": 53,
+     "ai": 54,
+     "costPerAsk": null,
+     "costPerCommit": null,
+     "costPrompts": 0,
+     "days": [
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 36,
+       "commits": 0,
+       "cost": 0,
+       "credits": 9.73,
+       "prompts": 8,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 17,
+       "commits": 0,
+       "cost": 0,
+       "credits": 2.78,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      }
+     ],
+     "fixRate": 0,
+     "focus": [],
+     "friction": [],
+     "frictionN": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "maxConc": 2,
+     "outBase": 0,
+     "outPrompts": 0,
+     "outSessions": 0,
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "parallel": 1,
+     "projectStats": [
+      {
+       "cost": 0,
+       "credits": 10.51,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": {
+        "cost": 0,
+        "credits": 6.78,
+        "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
+        "minutes": 32,
+        "source": "Kiro Crew",
+        "start": 1790668800,
+        "title": "夜間のデプロイ見張り",
+        "tokens": 0
+       },
+       "minutes": 48,
+       "models": [
+        {
+         "cost": 0,
+         "model": "auto",
+         "tokens": 0,
+         "turns": 10
+        }
+       ],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "infra",
+       "prompts": 8,
+       "sessions": 2,
+       "subagents": 1,
+       "tokens": 0,
+       "top": [
+        {
+         "cost": 0,
+         "credits": 6.78,
+         "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
+         "minutes": 32,
+         "source": "Kiro Crew",
+         "start": 1790668800,
+         "title": "夜間のデプロイ見張り",
+         "tokens": 0
+        },
+        {
+         "cost": 0,
+         "credits": 3.73,
+         "id": "1e13c3c1-d7ae-41c2-a324-e6a440665d9a",
+         "minutes": 16,
+         "source": "Kiro Crew",
+         "start": 1790632800,
+         "title": "CLIでデプロイ確認",
+         "tokens": 0
+        }
+       ]
+      },
+      {
+       "cost": 0,
+       "credits": 2,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": {
+        "cost": 0,
+        "credits": 1.25,
+        "id": "crew:dashboard:chat-9-1790000000",
+        "minutes": 1,
+        "source": "Kiro Crew",
+        "start": 1790683130,
+        "title": "Kiro Crew: dashboard:chat-9-1790000000",
+        "tokens": 0
+       },
+       "minutes": 6,
+       "models": [
+        {
+         "cost": 0,
+         "model": "auto",
+         "tokens": 0,
+         "turns": 2
+        },
+        {
+         "cost": 0,
+         "model": "deepseek-3.2",
+         "tokens": 0,
+         "turns": 1
+        }
+       ],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "(Kiro Crew)",
+       "prompts": 0,
+       "sessions": 3,
+       "subagents": 0,
+       "tokens": 0,
+       "top": [
+        {
+         "cost": 0,
+         "credits": 0.25,
+         "id": "crew:_bg:2026-09-29",
+         "minutes": 1,
+         "source": "Kiro Crew",
+         "start": 1790639997,
+         "title": "Kiro Crew background work",
+         "tokens": 0
+        },
+        {
+         "cost": 0,
+         "credits": 1.25,
+         "id": "crew:dashboard:chat-9-1790000000",
+         "minutes": 1,
+         "source": "Kiro Crew",
+         "start": 1790683130,
+         "title": "Kiro Crew: dashboard:chat-9-1790000000",
+         "tokens": 0
+        },
+        {
+         "cost": 0,
+         "credits": 0.5,
+         "id": "crew:_bg:2026-09-30",
+         "minutes": 1,
+         "source": "Kiro Crew",
+         "start": 1790726397,
+         "title": "Kiro Crew background work",
+         "tokens": 0
+        }
+       ]
+      }
+     ],
+     "projects": [
+      [
+       "infra",
+       48
+      ],
+      [
+       "(Kiro Crew)",
+       6
+      ]
+     ],
+     "prompts": 8,
+     "sessions": 5,
+     "shares": {
+      "branch": [
+       {
+        "cost": 0,
+        "credits": 10.51,
+        "key": "infra · —",
+        "minutes": 48,
+        "tokens": 0
+       },
+       {
+        "cost": 0,
+        "credits": 2,
+        "key": "(Kiro Crew) · —",
+        "minutes": 6,
+        "tokens": 0
+       }
+      ],
+      "source": [
+       {
+        "cost": 0,
+        "credits": 12.51,
+        "key": "Kiro Crew",
+        "minutes": 53,
+        "tokens": 0
+       }
+      ]
+     },
+     "start": "2026-09-01",
+     "switchesAvg": 0,
+     "switchesMax": 0,
+     "usage": {
+      "cacheHit": null,
+      "cost": 0,
+      "credits": 12.51,
+      "heavy": [],
+      "models": [],
+      "out": 0,
+      "projects": [],
+      "subMin": 16,
+      "subTypes": [
+       [
+        "reviewer",
+        1
+       ]
+      ],
+      "subagents": 1,
+      "tokens": 0,
+      "unpriced": 0,
+      "unpricedModels": []
+     },
+     "waitCount": 2,
+     "waitMedian": 180,
+     "waitP90": 180,
+     "weekend": 0
+    },
+    "Kiro IDE / CLI (V3)": {
+     "active": 101,
+     "ai": 101,
+     "costPerAsk": null,
+     "costPerCommit": null,
+     "costPrompts": 0,
+     "days": [
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 24,
+       "commits": 0,
+       "cost": 0,
+       "credits": 4.92,
+       "prompts": 3,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 22,
+       "commits": 0,
+       "cost": 0,
+       "credits": 2.08,
+       "prompts": 3,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 55,
+       "commits": 0,
+       "cost": 0,
+       "credits": 6.89,
+       "prompts": 6,
+       "switches": 0,
+       "tokens": 0
+      }
+     ],
+     "fixRate": 0,
+     "focus": [],
+     "friction": [],
+     "frictionN": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "maxConc": 1,
+     "outBase": 0,
+     "outPrompts": 0,
+     "outSessions": 0,
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "parallel": 0,
+     "projectStats": [
+      {
+       "cost": 0,
+       "credits": 13.89,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": {
+        "cost": 0,
+        "credits": 4.92,
+        "id": "sess_0ee61246",
+        "minutes": 24,
+        "source": "Kiro IDE / CLI (V3)",
+        "start": 1790550000,
+        "title": "Kiro: specを書いて",
+        "tokens": 0
+       },
+       "minutes": 101,
+       "models": [
+        {
+         "cost": 0,
+         "model": "claude-sonnet-4.5",
+         "tokens": 0,
+         "turns": 12
+        }
+       ],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "vp",
+       "prompts": 12,
+       "sessions": 4,
+       "subagents": 0,
+       "tokens": 0,
+       "top": [
+        {
+         "cost": 0,
+         "credits": 3.29,
+         "id": "sess_564f668e",
+         "minutes": 30,
+         "source": "Kiro IDE / CLI (V3)",
+         "start": 1790748000,
+         "title": "Kiro: specを書いて",
+         "tokens": 0
+        },
+        {
+         "cost": 0,
+         "credits": 3.6,
+         "id": "sess_1640c798",
+         "minutes": 25,
+         "source": "Kiro IDE / CLI (V3)",
+         "start": 1790751600,
+         "title": "Kiro: specを書いて",
+         "tokens": 0
+        },
+        {
+         "cost": 0,
+         "credits": 4.92,
+         "id": "sess_0ee61246",
+         "minutes": 24,
+         "source": "Kiro IDE / CLI (V3)",
+         "start": 1790550000,
+         "title": "Kiro: specを書いて",
+         "tokens": 0
+        }
+       ]
+      }
+     ],
+     "projects": [
+      [
+       "vp",
+       101
+      ]
+     ],
+     "prompts": 12,
+     "sessions": 4,
+     "shares": {
+      "branch": [
+       {
+        "cost": 0,
+        "credits": 13.89,
+        "key": "vp · —",
+        "minutes": 101,
+        "tokens": 0
+       }
+      ],
+      "source": [
+       {
+        "cost": 0,
+        "credits": 13.89,
+        "key": "Kiro IDE / CLI (V3)",
+        "minutes": 101,
+        "tokens": 0
+       }
+      ]
+     },
+     "start": "2026-09-01",
+     "switchesAvg": 0,
+     "switchesMax": 0,
+     "usage": {
+      "cacheHit": null,
+      "cost": 0,
+      "credits": 13.89,
+      "heavy": [],
+      "models": [],
+      "out": 0,
+      "projects": [],
+      "subMin": 0,
+      "subTypes": [],
+      "subagents": 0,
+      "tokens": 0,
+      "unpriced": 0,
+      "unpricedModels": []
+     },
+     "waitCount": 8,
+     "waitMedian": 60,
+     "waitP90": 180,
+     "weekend": 0
+    }
+   },
    "ai": 853,
    "costPerAsk": 0.124,
    "costPerCommit": null,
@@ -1024,7 +3712,9 @@
    "usage": {
     "cacheHit": 0.944,
     "cost": 5.96,
+    "cr": 9026190,
     "credits": 26.4,
+    "cw": 529853,
     "heavy": [
      {
       "cost": 1.36,
@@ -1051,6 +3741,7 @@
       "title": "READMEを整理して"
      }
     ],
+    "in": 8785,
     "models": [
      [
       "claude-opus-5-5",
@@ -1161,6 +3852,885 @@
   },
   "2026-10": {
    "active": 75,
+   "agents": {
+    "Claude Code": {
+     "active": 31,
+     "ai": 31,
+     "costPerAsk": 0.085,
+     "costPerCommit": null,
+     "costPrompts": 2,
+     "days": [
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 31,
+       "commits": 0,
+       "cost": 0.1728,
+       "credits": 0,
+       "prompts": 2,
+       "switches": 0,
+       "tokens": 540198
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      }
+     ],
+     "fixRate": 0,
+     "focus": [],
+     "friction": [],
+     "frictionN": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "maxConc": 1,
+     "outBase": 1,
+     "outPrompts": 2,
+     "outSessions": 0,
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "parallel": 0,
+     "projectStats": [
+      {
+       "cost": 0.1728,
+       "credits": 0,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": {
+        "cost": 0.1728,
+        "credits": 0,
+        "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33800",
+        "minutes": 31,
+        "source": "Claude Code",
+        "start": 1791027960,
+        "title": "評価シナリオを追加したい",
+        "tokens": 540198
+       },
+       "minutes": 31,
+       "models": [
+        {
+         "cost": 0.1082,
+         "model": "claude-haiku-4-5",
+         "tokens": 363340,
+         "turns": 10
+        },
+        {
+         "cost": 0.0646,
+         "model": "claude-sonnet-5-5",
+         "tokens": 176858,
+         "turns": 4
+        }
+       ],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "app",
+       "prompts": 2,
+       "sessions": 1,
+       "subagents": 1,
+       "tokens": 540198,
+       "top": [
+        {
+         "cost": 0.1728,
+         "credits": 0,
+         "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33800",
+         "minutes": 31,
+         "source": "Claude Code",
+         "start": 1791027960,
+         "title": "評価シナリオを追加したい",
+         "tokens": 540198
+        }
+       ]
+      }
+     ],
+     "projects": [
+      [
+       "app",
+       31
+      ]
+     ],
+     "prompts": 2,
+     "sessions": 1,
+     "shares": {
+      "branch": [
+       {
+        "cost": 0.1728,
+        "credits": 0,
+        "key": "app · main",
+        "minutes": 31,
+        "tokens": 540198
+       }
+      ],
+      "source": [
+       {
+        "cost": 0.1728,
+        "credits": 0,
+        "key": "Claude Code",
+        "minutes": 31,
+        "tokens": 540198
+       }
+      ]
+     },
+     "start": "2026-10-01",
+     "switchesAvg": 0,
+     "switchesMax": 0,
+     "usage": {
+      "cacheHit": 0.948,
+      "cost": 0.17,
+      "cr": 500049,
+      "credits": 0,
+      "cw": 26809,
+      "heavy": [
+       {
+        "cost": 0.17,
+        "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33800",
+        "project": "app",
+        "start": 1791027960,
+        "subagents": 1,
+        "title": "評価シナリオを追加したい"
+       }
+      ],
+      "in": 359,
+      "models": [
+       [
+        "claude-haiku-4-5",
+        0.11,
+        363340,
+        10
+       ],
+       [
+        "claude-sonnet-5-5",
+        0.06,
+        176858,
+        4
+       ]
+      ],
+      "out": 12981,
+      "projects": [
+       [
+        "app",
+        0.17
+       ]
+      ],
+      "subMin": 4,
+      "subTypes": [
+       [
+        "Explore",
+        1
+       ]
+      ],
+      "subagents": 1,
+      "tokens": 540198,
+      "unpriced": 0,
+      "unpricedModels": []
+     },
+     "waitCount": 1,
+     "waitMedian": 420,
+     "waitP90": 420,
+     "weekend": 31
+    },
+    "Kiro IDE / CLI (V3)": {
+     "active": 44,
+     "ai": 44,
+     "costPerAsk": null,
+     "costPerCommit": null,
+     "costPrompts": 0,
+     "days": [
+      {
+       "active": 20,
+       "commits": 0,
+       "cost": 0,
+       "credits": 4.5,
+       "prompts": 3,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 24,
+       "commits": 0,
+       "cost": 0,
+       "credits": 2.62,
+       "prompts": 3,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      }
+     ],
+     "fixRate": 0,
+     "focus": [],
+     "friction": [],
+     "frictionN": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "maxConc": 1,
+     "outBase": 0,
+     "outPrompts": 0,
+     "outSessions": 0,
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "parallel": 0,
+     "projectStats": [
+      {
+       "cost": 0,
+       "credits": 7.12,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": {
+        "cost": 0,
+        "credits": 4.5,
+        "id": "sess_76df747b",
+        "minutes": 20,
+        "source": "Kiro IDE / CLI (V3)",
+        "start": 1790820000,
+        "title": "Kiro: specを書いて",
+        "tokens": 0
+       },
+       "minutes": 44,
+       "models": [
+        {
+         "cost": 0,
+         "model": "claude-sonnet-4.5",
+         "tokens": 0,
+         "turns": 6
+        }
+       ],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "vp",
+       "prompts": 6,
+       "sessions": 2,
+       "subagents": 0,
+       "tokens": 0,
+       "top": [
+        {
+         "cost": 0,
+         "credits": 2.62,
+         "id": "sess_97d6b4d7",
+         "minutes": 24,
+         "source": "Kiro IDE / CLI (V3)",
+         "start": 1790985600,
+         "title": "Kiro: specを書いて",
+         "tokens": 0
+        },
+        {
+         "cost": 0,
+         "credits": 4.5,
+         "id": "sess_76df747b",
+         "minutes": 20,
+         "source": "Kiro IDE / CLI (V3)",
+         "start": 1790820000,
+         "title": "Kiro: specを書いて",
+         "tokens": 0
+        }
+       ]
+      }
+     ],
+     "projects": [
+      [
+       "vp",
+       44
+      ]
+     ],
+     "prompts": 6,
+     "sessions": 2,
+     "shares": {
+      "branch": [
+       {
+        "cost": 0,
+        "credits": 7.12,
+        "key": "vp · —",
+        "minutes": 44,
+        "tokens": 0
+       }
+      ],
+      "source": [
+       {
+        "cost": 0,
+        "credits": 7.12,
+        "key": "Kiro IDE / CLI (V3)",
+        "minutes": 44,
+        "tokens": 0
+       }
+      ]
+     },
+     "start": "2026-10-01",
+     "switchesAvg": 0,
+     "switchesMax": 0,
+     "usage": {
+      "cacheHit": null,
+      "cost": 0,
+      "credits": 7.12,
+      "heavy": [],
+      "models": [],
+      "out": 0,
+      "projects": [],
+      "subMin": 0,
+      "subTypes": [],
+      "subagents": 0,
+      "tokens": 0,
+      "unpriced": 0,
+      "unpricedModels": []
+     },
+     "waitCount": 4,
+     "waitMedian": 180,
+     "waitP90": 180,
+     "weekend": 24
+    }
+   },
    "ai": 75,
    "costPerAsk": 0.085,
    "costPerCommit": null,
@@ -1641,7 +5211,9 @@
    "usage": {
     "cacheHit": 0.948,
     "cost": 0.17,
+    "cr": 500049,
     "credits": 7.12,
+    "cw": 26809,
     "heavy": [
      {
       "cost": 0.17,
@@ -1652,6 +5224,7 @@
       "title": "評価シナリオを追加したい"
      }
     ],
+    "in": 359,
     "models": [
      [
       "claude-haiku-4-5",
@@ -5073,6 +8646,7 @@
     "removed": 0
    },
    "maxConc": 1,
+   "only": "Claude Code",
    "outBase": 1,
    "outPrompts": 2,
    "outSessions": 0,
@@ -5177,7 +8751,9 @@
    "usage": {
     "cacheHit": 0.945,
     "cost": 0.14,
+    "cr": 396066,
     "credits": 0,
+    "cw": 22760,
     "heavy": [
      {
       "cost": 0.14,
@@ -5188,6 +8764,7 @@
       "title": "カレンダー表示を足して"
      }
     ],
+    "in": 228,
     "models": [
      [
       "claude-haiku-4-5",
@@ -5308,6 +8885,7 @@
     "removed": 0
    },
    "maxConc": 1,
+   "only": "Claude Code",
    "outBase": 2,
    "outPrompts": 9,
    "outSessions": 0,
@@ -5428,7 +9006,9 @@
    "usage": {
     "cacheHit": 0.943,
     "cost": 1.24,
+    "cr": 1775382,
     "credits": 0,
+    "cw": 105239,
     "heavy": [
      {
       "cost": 1.06,
@@ -5447,6 +9027,7 @@
       "title": "評価シナリオを追加したい"
      }
     ],
+    "in": 1377,
     "models": [
      [
       "claude-opus-5-5",
@@ -5591,6 +9172,7 @@
     "removed": 0
    },
    "maxConc": 1,
+   "only": "Claude Code",
    "outBase": 2,
    "outPrompts": 11,
    "outSessions": 0,
@@ -5758,7 +9340,9 @@
    "usage": {
     "cacheHit": 0.947,
     "cost": 1.56,
+    "cr": 2252111,
     "credits": 0,
+    "cw": 123694,
     "heavy": [
      {
       "cost": 1.36,
@@ -5777,6 +9361,7 @@
       "title": "カレンダー表示を足して"
      }
     ],
+    "in": 1312,
     "models": [
      [
       "claude-opus-5-5",
@@ -5932,6 +9517,7 @@
     "removed": 0
    },
    "maxConc": 2,
+   "only": "Claude Code",
    "outBase": 4,
    "outPrompts": 23,
    "outSessions": 0,
@@ -6138,7 +9724,9 @@
    "usage": {
     "cacheHit": 0.942,
     "cost": 3,
+    "cr": 4599131,
     "credits": 0,
+    "cw": 278160,
     "heavy": [
      {
       "cost": 1.36,
@@ -6165,6 +9753,7 @@
       "title": "型エラー直して"
      }
     ],
+    "in": 2968,
     "models": [
      [
       "claude-opus-5-5",
@@ -6219,6 +9808,1399 @@
   },
   "2026-09-28": {
    "active": 243,
+   "agents": {
+    "Claude Code": {
+     "active": 31,
+     "ai": 31,
+     "costPerAsk": 0.085,
+     "costPerCommit": null,
+     "costPrompts": 2,
+     "days": [
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 31,
+       "commits": 0,
+       "cost": 0.1728,
+       "credits": 0,
+       "prompts": 2,
+       "switches": 0,
+       "tokens": 540198
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      }
+     ],
+     "fixRate": 0,
+     "focus": [],
+     "friction": [],
+     "frictionN": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "maxConc": 1,
+     "outBase": 1,
+     "outPrompts": 2,
+     "outSessions": 0,
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "parallel": 0,
+     "projectStats": [
+      {
+       "cost": 0.1728,
+       "credits": 0,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": {
+        "cost": 0.1728,
+        "credits": 0,
+        "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33800",
+        "minutes": 31,
+        "source": "Claude Code",
+        "start": 1791027960,
+        "title": "評価シナリオを追加したい",
+        "tokens": 540198
+       },
+       "minutes": 31,
+       "models": [
+        {
+         "cost": 0.1082,
+         "model": "claude-haiku-4-5",
+         "tokens": 363340,
+         "turns": 10
+        },
+        {
+         "cost": 0.0646,
+         "model": "claude-sonnet-5-5",
+         "tokens": 176858,
+         "turns": 4
+        }
+       ],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "app",
+       "prompts": 2,
+       "sessions": 1,
+       "subagents": 1,
+       "tokens": 540198,
+       "top": [
+        {
+         "cost": 0.1728,
+         "credits": 0,
+         "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33800",
+         "minutes": 31,
+         "source": "Claude Code",
+         "start": 1791027960,
+         "title": "評価シナリオを追加したい",
+         "tokens": 540198
+        }
+       ]
+      }
+     ],
+     "projects": [
+      [
+       "app",
+       31
+      ]
+     ],
+     "prompts": 2,
+     "sessions": 1,
+     "shares": {
+      "branch": [
+       {
+        "cost": 0.1728,
+        "credits": 0,
+        "key": "app · main",
+        "minutes": 31,
+        "tokens": 540198
+       }
+      ],
+      "source": [
+       {
+        "cost": 0.1728,
+        "credits": 0,
+        "key": "Claude Code",
+        "minutes": 31,
+        "tokens": 540198
+       }
+      ]
+     },
+     "start": "2026-09-28",
+     "switchesAvg": 0,
+     "switchesMax": 0,
+     "usage": {
+      "cacheHit": 0.948,
+      "cost": 0.17,
+      "cr": 500049,
+      "credits": 0,
+      "cw": 26809,
+      "heavy": [
+       {
+        "cost": 0.17,
+        "id": "5c2c46e3-3212-4c02-83c7-f6e31dc33800",
+        "project": "app",
+        "start": 1791027960,
+        "subagents": 1,
+        "title": "評価シナリオを追加したい"
+       }
+      ],
+      "in": 359,
+      "models": [
+       [
+        "claude-haiku-4-5",
+        0.11,
+        363340,
+        10
+       ],
+       [
+        "claude-sonnet-5-5",
+        0.06,
+        176858,
+        4
+       ]
+      ],
+      "out": 12981,
+      "projects": [
+       [
+        "app",
+        0.17
+       ]
+      ],
+      "subMin": 4,
+      "subTypes": [
+       [
+        "Explore",
+        1
+       ]
+      ],
+      "subagents": 1,
+      "tokens": 540198,
+      "unpriced": 0,
+      "unpricedModels": []
+     },
+     "waitCount": 1,
+     "waitMedian": 420,
+     "waitP90": 420,
+     "weekend": 31
+    },
+    "Codex": {
+     "active": 6,
+     "ai": 6,
+     "costPerAsk": 0.007,
+     "costPerCommit": null,
+     "costPrompts": 3,
+     "days": [
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 4,
+       "commits": 0,
+       "cost": 0.0053,
+       "credits": 0,
+       "prompts": 2,
+       "switches": 0,
+       "tokens": 3300
+      },
+      {
+       "active": 2,
+       "commits": 0,
+       "cost": 0.0123,
+       "credits": 0,
+       "prompts": 1,
+       "switches": 0,
+       "tokens": 4100
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      }
+     ],
+     "fixRate": 33.3,
+     "focus": [],
+     "friction": [
+      {
+       "id": "thr-main",
+       "project": "web",
+       "score": 2,
+       "start": 1790643601,
+       "title": "ヘッダーのボタンの色",
+       "why": [
+        "言い直し 1 回"
+       ],
+       "whyEn": [
+        "1 correction"
+       ]
+      }
+     ],
+     "frictionN": 1,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "maxConc": 1,
+     "outBase": 0,
+     "outPrompts": 0,
+     "outSessions": 0,
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "parallel": 0,
+     "projectStats": [
+      {
+       "cost": 0.0053,
+       "credits": 0,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": {
+        "cost": 0.0053,
+        "credits": 0,
+        "id": "thr-main",
+        "minutes": 3,
+        "source": "Codex",
+        "start": 1790643601,
+        "title": "ヘッダーのボタンの色",
+        "tokens": 3300
+       },
+       "minutes": 4,
+       "models": [
+        {
+         "cost": 0.0044,
+         "model": "gpt-5-codex",
+         "tokens": 2850,
+         "turns": 2
+        },
+        {
+         "cost": 0.0009,
+         "model": "gpt-5-codex-mini",
+         "tokens": 450,
+         "turns": 1
+        }
+       ],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "web",
+       "prompts": 2,
+       "sessions": 1,
+       "subagents": 1,
+       "tokens": 3300,
+       "top": [
+        {
+         "cost": 0.0053,
+         "credits": 0,
+         "id": "thr-main",
+         "minutes": 3,
+         "source": "Codex",
+         "start": 1790643601,
+         "title": "ヘッダーのボタンの色",
+         "tokens": 3300
+        }
+       ]
+      },
+      {
+       "cost": 0.0123,
+       "credits": 0,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": {
+        "cost": 0.0123,
+        "credits": 0,
+        "id": "thr-new",
+        "minutes": 1,
+        "source": "Codex",
+        "start": 1790744401,
+        "title": "APIのテストを足して",
+        "tokens": 4100
+       },
+       "minutes": 2,
+       "models": [
+        {
+         "cost": 0.0123,
+         "model": "gpt-5.2-codex",
+         "tokens": 4100,
+         "turns": 2
+        }
+       ],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "api",
+       "prompts": 1,
+       "sessions": 1,
+       "subagents": 0,
+       "tokens": 4100,
+       "top": [
+        {
+         "cost": 0.0123,
+         "credits": 0,
+         "id": "thr-new",
+         "minutes": 1,
+         "source": "Codex",
+         "start": 1790744401,
+         "title": "APIのテストを足して",
+         "tokens": 4100
+        }
+       ]
+      }
+     ],
+     "projects": [
+      [
+       "web",
+       4
+      ],
+      [
+       "api",
+       2
+      ]
+     ],
+     "prompts": 3,
+     "sessions": 2,
+     "shares": {
+      "branch": [
+       {
+        "cost": 0.0053,
+        "credits": 0,
+        "key": "web · feat/button",
+        "minutes": 4,
+        "tokens": 3300
+       },
+       {
+        "cost": 0.0123,
+        "credits": 0,
+        "key": "api · —",
+        "minutes": 2,
+        "tokens": 4100
+       }
+      ],
+      "source": [
+       {
+        "cost": 0.0176,
+        "credits": 0,
+        "key": "Codex",
+        "minutes": 6,
+        "tokens": 7400
+       }
+      ]
+     },
+     "start": "2026-09-28",
+     "switchesAvg": 0,
+     "switchesMax": 0,
+     "usage": {
+      "cacheHit": 0.547,
+      "cost": 0.02,
+      "cr": 3500,
+      "credits": 0,
+      "heavy": [
+       {
+        "cost": 0.01,
+        "id": "thr-new",
+        "project": "api",
+        "start": 1790744401,
+        "subagents": 0,
+        "title": "APIのテストを足して"
+       },
+       {
+        "cost": 0.01,
+        "id": "thr-main",
+        "project": "web",
+        "start": 1790643601,
+        "subagents": 1,
+        "title": "ヘッダーのボタンの色"
+       }
+      ],
+      "in": 2900,
+      "models": [
+       [
+        "gpt-5.2-codex",
+        0.01,
+        4100,
+        2
+       ],
+       [
+        "gpt-5-codex",
+        0,
+        2850,
+        2
+       ],
+       [
+        "gpt-5-codex-mini",
+        0,
+        450,
+        1
+       ]
+      ],
+      "out": 1000,
+      "prefixPriced": [
+       [
+        "gpt-5.2-codex",
+        "gpt-5.2"
+       ],
+       [
+        "gpt-5-codex",
+        "gpt-5"
+       ],
+       [
+        "gpt-5-codex-mini",
+        "gpt-5"
+       ]
+      ],
+      "projects": [
+       [
+        "api",
+        0.01
+       ],
+       [
+        "web",
+        0.01
+       ]
+      ],
+      "subMin": 1,
+      "subTypes": [
+       [
+        "explorer",
+        1
+       ]
+      ],
+      "subagents": 1,
+      "tokens": 7400,
+      "unpriced": 0,
+      "unpricedModels": []
+     },
+     "waitCount": 3,
+     "waitMedian": 1,
+     "waitP90": 149,
+     "weekend": 0
+    },
+    "Kiro CLI (SQLite)": {
+     "active": 12,
+     "ai": 12,
+     "costPerAsk": null,
+     "costPerCommit": null,
+     "costPrompts": 0,
+     "days": [
+      {
+       "active": 1,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 1,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 7,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 2,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 4,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 1,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      }
+     ],
+     "fixRate": 25,
+     "focus": [],
+     "friction": [
+      {
+       "id": "conv-a",
+       "project": "app",
+       "score": 2,
+       "start": 1790643540,
+       "title": "ログイン画面のテストを書いて",
+       "why": [
+        "言い直し 1 回"
+       ],
+       "whyEn": [
+        "1 correction"
+       ]
+      }
+     ],
+     "frictionN": 1,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "maxConc": 1,
+     "outBase": 0,
+     "outPrompts": 0,
+     "outSessions": 0,
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "parallel": 0,
+     "projectStats": [
+      {
+       "cost": 0,
+       "credits": 0,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": null,
+       "minutes": 7,
+       "models": [],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "app",
+       "prompts": 2,
+       "sessions": 1,
+       "subagents": 0,
+       "tokens": 0,
+       "top": [
+        {
+         "cost": 0,
+         "credits": 0,
+         "id": "conv-a",
+         "minutes": 7,
+         "source": "Kiro CLI (SQLite)",
+         "start": 1790643540,
+         "title": "ログイン画面のテストを書いて",
+         "tokens": 0
+        }
+       ]
+      },
+      {
+       "cost": 0,
+       "credits": 0,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": null,
+       "minutes": 4,
+       "models": [],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "ci",
+       "prompts": 1,
+       "sessions": 1,
+       "subagents": 0,
+       "tokens": 0,
+       "top": [
+        {
+         "cost": 0,
+         "credits": 0,
+         "id": "conv-b",
+         "minutes": 3,
+         "source": "Kiro CLI (SQLite)",
+         "start": 1790769600,
+         "title": "CIが落ちてる原因を調べて",
+         "tokens": 0
+        }
+       ]
+      },
+      {
+       "cost": 0,
+       "credits": 0,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": null,
+       "minutes": 1,
+       "models": [],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "infra",
+       "prompts": 1,
+       "sessions": 1,
+       "subagents": 0,
+       "tokens": 0,
+       "top": [
+        {
+         "cost": 0,
+         "credits": 0,
+         "id": "0d612aac-99c4-4a54-bda2-76ad60b6ddf3",
+         "minutes": 1,
+         "source": "Kiro CLI (SQLite)",
+         "start": 1790553600,
+         "title": "重複の会話",
+         "tokens": 0
+        }
+       ]
+      }
+     ],
+     "projects": [
+      [
+       "app",
+       7
+      ],
+      [
+       "ci",
+       4
+      ],
+      [
+       "infra",
+       1
+      ]
+     ],
+     "prompts": 4,
+     "sessions": 3,
+     "shares": {
+      "branch": [
+       {
+        "cost": 0,
+        "credits": 0,
+        "key": "app · —",
+        "minutes": 7,
+        "tokens": 0
+       },
+       {
+        "cost": 0,
+        "credits": 0,
+        "key": "ci · —",
+        "minutes": 4,
+        "tokens": 0
+       },
+       {
+        "cost": 0,
+        "credits": 0,
+        "key": "infra · —",
+        "minutes": 1,
+        "tokens": 0
+       }
+      ],
+      "source": [
+       {
+        "cost": 0,
+        "credits": 0,
+        "key": "Kiro CLI (SQLite)",
+        "minutes": 12,
+        "tokens": 0
+       }
+      ]
+     },
+     "start": "2026-09-28",
+     "switchesAvg": 0,
+     "switchesMax": 0,
+     "usage": {
+      "cacheHit": null,
+      "cost": 0,
+      "credits": 0,
+      "heavy": [],
+      "models": [],
+      "out": 0,
+      "projects": [],
+      "subMin": 0,
+      "subTypes": [],
+      "subagents": 0,
+      "tokens": 0,
+      "unpriced": 0,
+      "unpricedModels": []
+     },
+     "waitCount": 1,
+     "waitMedian": 218,
+     "waitP90": 218,
+     "weekend": 0
+    },
+    "Kiro Crew": {
+     "active": 53,
+     "ai": 54,
+     "costPerAsk": null,
+     "costPerCommit": null,
+     "costPrompts": 0,
+     "days": [
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 36,
+       "commits": 0,
+       "cost": 0,
+       "credits": 9.73,
+       "prompts": 8,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 17,
+       "commits": 0,
+       "cost": 0,
+       "credits": 2.78,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      }
+     ],
+     "fixRate": 0,
+     "focus": [],
+     "friction": [],
+     "frictionN": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "maxConc": 2,
+     "outBase": 0,
+     "outPrompts": 0,
+     "outSessions": 0,
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "parallel": 1,
+     "projectStats": [
+      {
+       "cost": 0,
+       "credits": 10.51,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": {
+        "cost": 0,
+        "credits": 6.78,
+        "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
+        "minutes": 32,
+        "source": "Kiro Crew",
+        "start": 1790668800,
+        "title": "夜間のデプロイ見張り",
+        "tokens": 0
+       },
+       "minutes": 48,
+       "models": [
+        {
+         "cost": 0,
+         "model": "auto",
+         "tokens": 0,
+         "turns": 10
+        }
+       ],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "infra",
+       "prompts": 8,
+       "sessions": 2,
+       "subagents": 1,
+       "tokens": 0,
+       "top": [
+        {
+         "cost": 0,
+         "credits": 6.78,
+         "id": "1cb4ad2f-90ba-4c5f-970b-5767003804b9",
+         "minutes": 32,
+         "source": "Kiro Crew",
+         "start": 1790668800,
+         "title": "夜間のデプロイ見張り",
+         "tokens": 0
+        },
+        {
+         "cost": 0,
+         "credits": 3.73,
+         "id": "1e13c3c1-d7ae-41c2-a324-e6a440665d9a",
+         "minutes": 16,
+         "source": "Kiro Crew",
+         "start": 1790632800,
+         "title": "CLIでデプロイ確認",
+         "tokens": 0
+        }
+       ]
+      },
+      {
+       "cost": 0,
+       "credits": 2,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": {
+        "cost": 0,
+        "credits": 1.25,
+        "id": "crew:dashboard:chat-9-1790000000",
+        "minutes": 1,
+        "source": "Kiro Crew",
+        "start": 1790683130,
+        "title": "Kiro Crew: dashboard:chat-9-1790000000",
+        "tokens": 0
+       },
+       "minutes": 6,
+       "models": [
+        {
+         "cost": 0,
+         "model": "auto",
+         "tokens": 0,
+         "turns": 2
+        },
+        {
+         "cost": 0,
+         "model": "deepseek-3.2",
+         "tokens": 0,
+         "turns": 1
+        }
+       ],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "(Kiro Crew)",
+       "prompts": 0,
+       "sessions": 3,
+       "subagents": 0,
+       "tokens": 0,
+       "top": [
+        {
+         "cost": 0,
+         "credits": 0.25,
+         "id": "crew:_bg:2026-09-29",
+         "minutes": 1,
+         "source": "Kiro Crew",
+         "start": 1790639997,
+         "title": "Kiro Crew background work",
+         "tokens": 0
+        },
+        {
+         "cost": 0,
+         "credits": 1.25,
+         "id": "crew:dashboard:chat-9-1790000000",
+         "minutes": 1,
+         "source": "Kiro Crew",
+         "start": 1790683130,
+         "title": "Kiro Crew: dashboard:chat-9-1790000000",
+         "tokens": 0
+        },
+        {
+         "cost": 0,
+         "credits": 0.5,
+         "id": "crew:_bg:2026-09-30",
+         "minutes": 1,
+         "source": "Kiro Crew",
+         "start": 1790726397,
+         "title": "Kiro Crew background work",
+         "tokens": 0
+        }
+       ]
+      }
+     ],
+     "projects": [
+      [
+       "infra",
+       48
+      ],
+      [
+       "(Kiro Crew)",
+       6
+      ]
+     ],
+     "prompts": 8,
+     "sessions": 5,
+     "shares": {
+      "branch": [
+       {
+        "cost": 0,
+        "credits": 10.51,
+        "key": "infra · —",
+        "minutes": 48,
+        "tokens": 0
+       },
+       {
+        "cost": 0,
+        "credits": 2,
+        "key": "(Kiro Crew) · —",
+        "minutes": 6,
+        "tokens": 0
+       }
+      ],
+      "source": [
+       {
+        "cost": 0,
+        "credits": 12.51,
+        "key": "Kiro Crew",
+        "minutes": 53,
+        "tokens": 0
+       }
+      ]
+     },
+     "start": "2026-09-28",
+     "switchesAvg": 0,
+     "switchesMax": 0,
+     "usage": {
+      "cacheHit": null,
+      "cost": 0,
+      "credits": 12.51,
+      "heavy": [],
+      "models": [],
+      "out": 0,
+      "projects": [],
+      "subMin": 16,
+      "subTypes": [
+       [
+        "reviewer",
+        1
+       ]
+      ],
+      "subagents": 1,
+      "tokens": 0,
+      "unpriced": 0,
+      "unpricedModels": []
+     },
+     "waitCount": 2,
+     "waitMedian": 180,
+     "waitP90": 180,
+     "weekend": 0
+    },
+    "Kiro IDE / CLI (V3)": {
+     "active": 145,
+     "ai": 145,
+     "costPerAsk": null,
+     "costPerCommit": null,
+     "costPrompts": 0,
+     "days": [
+      {
+       "active": 24,
+       "commits": 0,
+       "cost": 0,
+       "credits": 4.92,
+       "prompts": 3,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 22,
+       "commits": 0,
+       "cost": 0,
+       "credits": 2.08,
+       "prompts": 3,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 55,
+       "commits": 0,
+       "cost": 0,
+       "credits": 6.89,
+       "prompts": 6,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 20,
+       "commits": 0,
+       "cost": 0,
+       "credits": 4.5,
+       "prompts": 3,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 24,
+       "commits": 0,
+       "cost": 0,
+       "credits": 2.62,
+       "prompts": 3,
+       "switches": 0,
+       "tokens": 0
+      },
+      {
+       "active": 0,
+       "commits": 0,
+       "cost": 0,
+       "credits": 0,
+       "prompts": 0,
+       "switches": 0,
+       "tokens": 0
+      }
+     ],
+     "fixRate": 0,
+     "focus": [],
+     "friction": [],
+     "frictionN": 0,
+     "git": {
+      "added": 0,
+      "ai": 0,
+      "commits": 0,
+      "removed": 0
+     },
+     "maxConc": 1,
+     "outBase": 0,
+     "outPrompts": 0,
+     "outSessions": 0,
+     "outputs": {
+      "added": 0,
+      "commits": 0,
+      "prs": 0,
+      "removed": 0
+     },
+     "parallel": 0,
+     "projectStats": [
+      {
+       "cost": 0,
+       "credits": 21.01,
+       "git": {
+        "added": 0,
+        "ai": 0,
+        "commits": 0,
+        "removed": 0
+       },
+       "heavy": {
+        "cost": 0,
+        "credits": 4.92,
+        "id": "sess_0ee61246",
+        "minutes": 24,
+        "source": "Kiro IDE / CLI (V3)",
+        "start": 1790550000,
+        "title": "Kiro: specを書いて",
+        "tokens": 0
+       },
+       "minutes": 145,
+       "models": [
+        {
+         "cost": 0,
+         "model": "claude-sonnet-4.5",
+         "tokens": 0,
+         "turns": 18
+        }
+       ],
+       "outputs": {
+        "added": 0,
+        "commits": 0,
+        "prs": 0,
+        "removed": 0
+       },
+       "project": "vp",
+       "prompts": 18,
+       "sessions": 6,
+       "subagents": 0,
+       "tokens": 0,
+       "top": [
+        {
+         "cost": 0,
+         "credits": 3.29,
+         "id": "sess_564f668e",
+         "minutes": 30,
+         "source": "Kiro IDE / CLI (V3)",
+         "start": 1790748000,
+         "title": "Kiro: specを書いて",
+         "tokens": 0
+        },
+        {
+         "cost": 0,
+         "credits": 3.6,
+         "id": "sess_1640c798",
+         "minutes": 25,
+         "source": "Kiro IDE / CLI (V3)",
+         "start": 1790751600,
+         "title": "Kiro: specを書いて",
+         "tokens": 0
+        },
+        {
+         "cost": 0,
+         "credits": 4.92,
+         "id": "sess_0ee61246",
+         "minutes": 24,
+         "source": "Kiro IDE / CLI (V3)",
+         "start": 1790550000,
+         "title": "Kiro: specを書いて",
+         "tokens": 0
+        }
+       ]
+      }
+     ],
+     "projects": [
+      [
+       "vp",
+       145
+      ]
+     ],
+     "prompts": 18,
+     "sessions": 6,
+     "shares": {
+      "branch": [
+       {
+        "cost": 0,
+        "credits": 21.01,
+        "key": "vp · —",
+        "minutes": 145,
+        "tokens": 0
+       }
+      ],
+      "source": [
+       {
+        "cost": 0,
+        "credits": 21.01,
+        "key": "Kiro IDE / CLI (V3)",
+        "minutes": 145,
+        "tokens": 0
+       }
+      ]
+     },
+     "start": "2026-09-28",
+     "switchesAvg": 0,
+     "switchesMax": 0,
+     "usage": {
+      "cacheHit": null,
+      "cost": 0,
+      "credits": 21.01,
+      "heavy": [],
+      "models": [],
+      "out": 0,
+      "projects": [],
+      "subMin": 0,
+      "subTypes": [],
+      "subagents": 0,
+      "tokens": 0,
+      "unpriced": 0,
+      "unpricedModels": []
+     },
+     "waitCount": 12,
+     "waitMedian": 60,
+     "waitP90": 180,
+     "weekend": 24
+    }
+   },
    "ai": 248,
    "costPerAsk": 0.038,
    "costPerCommit": null,
@@ -6909,7 +11891,9 @@
    "usage": {
     "cacheHit": 0.944,
     "cost": 0.19,
+    "cr": 503549,
     "credits": 33.52,
+    "cw": 26809,
     "heavy": [
      {
       "cost": 0.17,
@@ -6936,6 +11920,7 @@
       "title": "ヘッダーのボタンの色"
      }
     ],
+    "in": 3259,
     "models": [
      [
       "claude-haiku-4-5",

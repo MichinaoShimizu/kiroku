@@ -67,5 +67,5 @@ const plural = (n, one, many) => isJA() ? `${n} ${t(one)}` : `${n} ${n === 1 ? o
 // 画面はカレンダーだけ。以前の版が保存した "view"（journey・project）と、Year in review の "yrOpt" は読まない
 const st = { hh: 44, colorBy: store.get("colorBy", "source") === "project" ? "project" : "source",
              week: mondayOf(today0()), month: monthOf(today0()), mode: store.get("mode", "week"), view: store.get("view", "cal") === "sum" ? "sum" : "cal",
-             hidden: new Set(), sel: null, back: [], q: "", animate: true, insK: store.get("insK", "cost"), insW: store.get("insW", "project") };
+             hidden: new Set(), sel: null, back: [], q: "", animate: true, insK: store.get("insK", "cost"), insW: store.get("insW", "project"), insAg: store.get("insAg", ""), theme: store.get("theme", "light") === "dark" ? "dark" : "light", early: store.get("calEarly", false) === true };
 

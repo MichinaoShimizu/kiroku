@@ -12,17 +12,32 @@ function summary(){
   const times = n => `${n}`;
   const F = findList(w, pw, unit);
   WK.innerHTML = flagSum(F); WK.hidden = false; const wd = WK.querySelector("details"); if (wd) wd.addEventListener("click", e => { if (e.target.closest(".hb")) e.preventDefault(); }); lastFlags = F; // 見直す候補は、カレンダーの上（期間の要点のすぐ下）に出す。押すと真ん中のダイアログで開く
-  R.innerHTML = `${head}${insightH(F)}<div class="rvgrid">
-  <section class="panel metap">${measure(w)}${foot()}</section></div>`;
-  placeFlags(R, F);
+  // エージェントで絞る：2 つ以上のエージェントが動いた期間だけ、切り替えを出す（期間の集計の agents）。絞っている間はサマリーの中だけが、そのエージェントの分になる
+  const ags = ((w.shares || {}).source || []).map(x => x.key).filter(k => w.agents && w.agents[k]), ag = ags.includes(st.insAg) ? st.insAg : "";
+  const agSw = ags.length >= 2 ? `<div class="insagbar"><span class="lab">${esc(t("Agent"))}</span><div class="segc insk" role="group" aria-label="${esc(t("Agent"))}">${["", ...ags].map(k => `<button type="button" data-ag="${esc(k)}" aria-pressed="${k === ag}">${esc(k || t("All agents"))}</button>`).join("")}</div>${ag ? `<span class="note">${esc(t("Only {agent}. Git commits made by hand are left out", {agent: ag}))}</span>` : ""}</div>` : "";
+  insFlags = F; insAg = ag;
+  agScope(ag, () => { const {S: w2, P: pw2} = period(), F2 = ag ? findList(w2, pw2, unit) : F; insFlags = F2;
+    R.innerHTML = `${head}${agSw}${insightH(F2)}<div class="rvgrid">
+  <section class="panel metap">${measure(w2)}${foot()}</section></div>`;
+    placeFlags(R, F2); });
+  R.querySelectorAll("[data-ag]").forEach(b => b.onclick = () => { st.insAg = b.dataset.ag; store.set("insAg", st.insAg); summary(); const nb = $("#review").querySelector(`[data-ag="${CSS.escape(b.dataset.ag)}"]`); if (nb) nb.focus(); });
   R.querySelectorAll(".card,.fses").forEach(c => c.onclick = () => select(c.dataset.id));
   WK.querySelectorAll("[data-goto]").forEach(b => { b.setAttribute("aria-haspopup", "dialog"); b.onclick = () => { const d = WK.querySelector("details"); openWorth(b.dataset.goto, d ? WK.querySelector("summary") : b); if (d) d.open = false; }; }); // 選んだら一覧は閉じる（閉じたダイアログはアイコンへ戻る）
-  R.querySelectorAll(".fmark").forEach(b => b.onclick = () => openWorth(b.dataset.goto, b));
-  R.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b)); // 上の帯と同じ内訳
+  R.querySelectorAll(".fmark").forEach(b => b.onclick = () => insOpenWorth(b.dataset.goto, b));
+  R.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => agScope(insAg, () => openMetric(b.dataset.metric, b))); // 上の帯と同じ内訳（絞っていれば、そのエージェントの分）
   R.querySelectorAll(".keeparch").forEach(b => b.onclick = () => { R.querySelectorAll(".keeparch").forEach(x => x.disabled = true); keepArchive(); });
   bindInsight(R); bindCopy(R); bindHelp(R); bindHelp(WK);
   if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }
+// agScope は、fn を描く間だけ DATA・WEEKS・MONTHS をエージェント ag の分に入れかえる（ag が空なら、そのまま）。
+// 描画は同期の処理なので、ほかの描画（カレンダー・上の帯）には入れかえた中身は見えない
+let insFlags = [], insAg = "";
+function agScope(ag, fn){ if (!ag) return fn();
+  const D = DATA, W = WEEKS, Mo = MONTHS, pick = o => { const r = {}; for (const [k, x] of Object.entries(o)){ const y = x && (x.agents ? x.agents[ag] : x.only === ag ? x : null); if (y) r[k] = y; } return r; };
+  DATA = D.filter(s => s.source === ag); WEEKS = pick(W); MONTHS = pick(Mo);
+  try { return fn(); } finally { DATA = D; WEEKS = W; MONTHS = Mo; } }
+// サマリーの中の見直す候補（絞っていれば、そのエージェントの候補）を開く
+const insOpenWorth = (id, from) => agScope(insAg, () => openWorth(id, from, insFlags));
 /* 期間の言い方（unit は "週" か "月"） */
 const uThis = unit => unit === "月" ? "this month" : "this week";
 const uLast = unit => unit === "月" ? "last month" : "last week";
