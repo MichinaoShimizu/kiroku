@@ -30,7 +30,7 @@ function summary(){
     ${w.friction.length ? secH(esc(t("Possible friction")), "friction") : ""}
     ${w.friction.length ? w.friction.map(f => sesCardH(sesById(f.id, f.title), `${sesMeta(f)} ${whyOf(f).map(x=>`<span class="tagx">${esc(x)}</span>`).join("")}`)).join("") : ""}
     ${repeatsOf(period().ws, period().we).length ? secH(esc(t("Repeated prompts")), "repeats") : ""}
-    ${(() => { const {ws, we} = period(), RP = repeatsOf(ws, we); return RP.length ? RP.slice(0, 3).map(c => { const v = {n: c.n, s: c.ids.size, day: md(c.last)}; return sesCardH(sesById(c.id, snipOf(c.text, 90)), esc(t(perLabel(M ? "月" : "週", "{n} times in {s} sessions this month · last on {day}", "{n} times in {s} sessions this week · last on {day}", "{n} times in {s} sessions in the month shown · last on {day}", "{n} times in {s} sessions in the week shown · last on {day}"), v))); }).join("") : ""; })()}
+    ${(() => { const {ws, we} = period(), RP = repeatsOf(ws, we); return RP.length ? RP.slice(0, 3).map(c => { const v = {n: c.n, s: c.ids.size, day: md(c.last)}; return promptCardH(c.id, snipOf(c.text, 160), esc(t(perLabel(M ? "月" : "週", "{n} times in {s} sessions this month · last on {day}", "{n} times in {s} sessions this week · last on {day}", "{n} times in {s} sessions in the month shown · last on {day}", "{n} times in {s} sessions in the week shown · last on {day}"), v))); }).join("") : ""; })()}
     ${w.friction.length || repeatsOf(period().ws, period().we).length ? "" : noneH(esc(t("No sessions with possible friction and no repeated prompts.")))}`)}
   ${fold("aiuse", panelH(4, esc(t("How you used AI")), esc(t("Cache, models and heavy sessions"))), `
     ${aiUsage(w, pw, unit) || noneH(esc(t("No token or credit records.")))}`)}

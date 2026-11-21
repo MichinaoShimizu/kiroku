@@ -146,6 +146,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .heads>div:first-child{position:sticky;left:0;z-index:9;background:var(--surface)}
 .hours span{position:absolute;right:9px;transform:translateY(-50%);font-size:var(--fs-xs);color:var(--ink-3);font-variant-numeric:tabular-nums}
 .hours span.now{right:4px;color:var(--on-acc);background:var(--acc);border-radius:5px;padding:1px 4px;font-weight:600;z-index:3}
+.hours span.near{opacity:.55} /* 今の時刻の札に重なるので、ずらした時刻 */
 .day{position:relative;border-left:1px solid var(--rule);background-image:linear-gradient(var(--rule) 1px,transparent 1px);background-size:100% var(--hh)}
 /* 平日の勤務時間（9:00〜18:00）の外は少し暗く（Google カレンダーの勤務時間のように、夜中や早朝の作業がひと目でわかる）。週末は列ごと別の地の色 */
 .day:not(.we){--off:color-mix(in oklab,var(--ink) 4.5%,transparent);background-image:linear-gradient(var(--rule) 1px,transparent 1px),linear-gradient(var(--off) 0,var(--off) calc(var(--hh) * 9),transparent calc(var(--hh) * 9),transparent calc(var(--hh) * 18),var(--off) calc(var(--hh) * 18));background-size:100% var(--hh),100% 100%;background-repeat:repeat,no-repeat}
@@ -432,6 +433,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .card .me b{margin-left:auto;font-weight:600;color:var(--ink-2);white-space:nowrap}
 .card .me{font-size:var(--fs-xs);color:var(--ink-3);display:flex;gap:8px;align-items:center;margin-top:3px;flex-wrap:wrap}
 .card .me .fq{flex-basis:100%;color:var(--ink-2);font-size:var(--fs-sm);overflow-wrap:anywhere} /* 繰り返しのプロンプト：そのセッションで書いたもの */
+.card.rpt{--c:var(--acc)}.card.rpt .rq{display:flex;gap:10px;align-items:flex-start;min-width:0}.card.rpt q{min-width:0;background:color-mix(in oklab,var(--c) var(--t2),var(--surface));border-radius:18px 18px 18px 4px;padding:6px 14px;font-weight:500;color:var(--ink);overflow-wrap:anywhere;quotes:none}.card.rpt .me{margin-left:40px} /* 繰り返したプロンプトは、セッションの行（印と題名）ではなく、プロンプトの流れと同じ吹き出しで出す */
 .tagx{font-size:var(--fs-xs);color:var(--warn);background:color-mix(in oklab,var(--warn) var(--t1),transparent);border-radius:4px;padding:0 6px}
 .none{color:var(--ink-3);font-size:var(--fs-sm)}
 .foot{margin-top:24px;padding-top:14px;border-top:1px solid var(--rule);font-size:var(--fs-xs);color:var(--ink-3);line-height:1.7}

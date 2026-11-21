@@ -133,6 +133,7 @@ const JA_TEXT = {
   "Copy this reply": "この応答をコピー",
   "Copied the first {n} characters": "先頭の {n} 文字をコピーしました",
   "Copied": "コピーしました",
+  "Open the session where you last wrote it": "最後に書いたセッションを開く",
   "Copy prompt": "プロンプトをコピー",
   "Copy the session review prompt": "セッションの振り返りのプロンプトをコピー",
   "Copy the daily report prompt for {date}": "{date} の日報のプロンプトをコピー",

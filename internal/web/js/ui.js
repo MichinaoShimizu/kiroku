@@ -48,6 +48,8 @@ const agMark = name => `<i class="agm" style="--ag:${agColor(name)}" aria-hidden
 /* セッションのカード：セッション名で始まるカードは、どこでもこの形（エージェントの色のグラデーションとエージェントの頭文字）。
    me はタイトルの下の行（HTML。呼ぶ側でエスケープする）、v は右に出す値（文字。ここでエスケープする） */
 const sesCardH = (s, me, v) => `<button class="card ag" data-id="${esc(s.id)}" style="--ag:${agColor(s.source)}"><span class="ti">${agMark(s.source)}<span>${esc(s.title)}</span></span><span class="me">${me}${v != null ? `<b>${esc(v)}</b>` : ""}</span></button>`;
+// promptCardH は、プロンプト（繰り返したものなど）のカード。プロンプトの流れと同じ人の印と吹き出しで、セッションの行と見分けられるように。押すと id のセッションを開く。me は HTML
+const promptCardH = (id, text, me) => `<button class="card rpt" data-id="${esc(id)}" title="${esc(t("Open the session where you last wrote it"))}"><span class="rq"><span class="av" aria-hidden="true">${ico("user")}</span><q>${esc(text)}</q></span><span class="me">${me}</span></button>`;
 const sesById = (id, title) => ({id, title, source: (DATA.find(x => x.id === id) || {}).source}); // 集計（Go）が id と名前だけを持つセッション
 const sesCard = (s, label) => `${label ? `<h3>${label}</h3>` : ""}${sesCardH(s, `${md(s.start)} ${hm(s.start)}–${hm(s.end)} · ${esc(s.source)}`)}`; // 詳細パネルの中のカード（時刻とエージェント）
 // sesMeta は、サマリーやダイアログのカードの下の行：「日付 · プロジェクト」に、HTML の more を「 · 」でつなぐ

@@ -199,7 +199,9 @@ function timeline(shown, inWeek, ws, we, todayKey){
   const nowS = nowMs()/1000, w = WEEKS[key(st.week)];
   let heads = '<div></div>', hours = "", cols = "";
   const nowH = nowS >= ws && nowS < we ? clockH(new Date(nowS*1000), nowS) : -9;
-  for (let h=1; h<24; h++) if (Math.abs(h - nowH) * hh >= 20) hours += `<span style="top:${h*hh}px">${String(h).padStart(2,"0")}:00</span>`;
+  // 今の時刻の札（高さ約 20px）に重なる時刻は、消さずに札の上か下へずらして薄く出す（12:00 が見えなくならないように）
+  for (let h=1; h<24; h++){ const d = (h - nowH) * hh, near = nowS >= ws && nowS < we && Math.abs(d) < 20;
+    hours += `<span${near ? ' class="near"' : ""} style="top:${near ? nowH*hh + (d >= 0 ? 20 : -20) : h*hh}px">${String(h).padStart(2,"0")}:00</span>`; }
   if (nowS >= ws && nowS < we) hours += `<span class="now" style="top:${nowH*hh}px">${hm(nowS)}</span>`;
   const runs = [], un = filtering() ? 1 : 0, G = gitShown(shown), kinds = useKinds(w ? w.days : []);
   for (let d=0; d<7; d++){

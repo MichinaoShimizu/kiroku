@@ -385,6 +385,7 @@ async function run(env) {
     check("上限の印は、そのセッションの帯の左端にある（隣の帯に重ねない）", await p.evaluate(() => [...document.querySelectorAll("#tl .lim")].every(m => { const r = m.getBoundingClientRect(), bs = [...m.closest(".day").querySelectorAll(`.run[data-sid="${CSS.escape(m.dataset.id)}"]`)].map(b => b.getBoundingClientRect());
       return !bs.length || bs.some(b => Math.abs(b.left - r.left) <= 4); })));
     check("夜遅い印も日の枠の中にある", await p.evaluate(() => [...document.querySelectorAll("#tl .day")].every(d => { const db = d.getBoundingClientRect(); return [...d.querySelectorAll(".gc, .gm")].every(m => m.getBoundingClientRect().bottom <= db.bottom + 1); })));
+    check("今の時刻の札に近い時刻も消さない（01:00〜23:00 がそろう）", await p.evaluate(() => !document.querySelector("#tl .hours span.now") || [...document.querySelectorAll("#tl .hours span:not(.now)")].map(e => e.textContent).join(",") === Array.from({length: 23}, (_, i) => String(i + 1).padStart(2, "0") + ":00").join(",")));
     check("平日の勤務時間（9:00〜18:00）の外は地の色が違う", await p.evaluate(() => { const d = [...document.querySelectorAll("#tl .day")].find(e => !e.classList.contains("we")); return !!d && (getComputedStyle(d).backgroundImage.match(/linear-gradient/g) || []).length === 2; }));
     check("見直す候補はアイコンだけ（名前は読み上げとツールチップ）", await p.evaluate(() => { const b = document.querySelector("#worth summary"); return !!b && !/[A-Za-z]{3}/.test(b.textContent) && /Worth a look/.test(b.getAttribute("aria-label") || ""); }));
     if (env.viewport.width >= 1440) check("上の帯（期間の操作と指標）は 1 行に収まる（週・月とも）", await p.evaluate(async () => { // 死守する: 指標が次の行に落ちると、カレンダーが下がる
@@ -399,6 +400,7 @@ async function run(env) {
     const n = await p.locator(".flagsum .flink").count();
     check("見直す候補はカレンダー・サマリーより上にある", await p.evaluate(() => document.querySelector("#worth").getBoundingClientRect().bottom <= document.querySelector("#review").getBoundingClientRect().top));
     check("繰り返したプロンプトの欄がある", await p.locator('#review .hb[data-help="repeats"]').count() > 0);
+    check("繰り返したプロンプトは、セッションの行ではなくプロンプトの吹き出しで出す（エージェントの印を付けない）", await p.evaluate(() => { const r = [...document.querySelectorAll("#review .card.rpt")]; return r.length > 0 && r.every(c => c.querySelector("q") && c.querySelector("q").textContent.trim() && !c.querySelector(".agm") && c.dataset.id); }));
     check("見直す候補の数だけ、サマリーの指標名の横に印が付く", n > 0 && await p.locator("#review .fmark").count() >= n, `候補 ${n}`);
     check("サマリーには理由や推移を繰り返さない（ダイアログにだけ出す）", await p.locator("#review .fl").count() === 0);
     const link = p.locator(".flagsum .flink").first(), id = await link.getAttribute("data-goto");
