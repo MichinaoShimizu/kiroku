@@ -134,8 +134,10 @@ async function run(env) {
     }
     await view("sum");
     check("サマリーに切り替えると、カレンダーは隠れる", await p.locator("#tl").isHidden() && await p.locator("#review").isVisible());
+    check("サマリーでは、色分けと稼働時間の行（カレンダーの凡例）を出さない", await p.locator("#legend").isHidden() && await p.locator("#fnote").isHidden());
     await p.keyboard.press("v"); await pause();
     check("V でカレンダーに戻る", await p.locator("#tl").isVisible());
+    check("カレンダーに戻ると、色分けと稼働時間の行がまた出る", await p.locator("#legend").isVisible());
   });
 
   await step("既定のままで消える履歴は、Data sources で残し方とバックアップ先を見せる", async () => {

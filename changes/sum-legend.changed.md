@@ -1,0 +1,1 @@
+- Summary view: the "Color by" and active time row of the calendar's legend is hidden; the summary has its own Agent switch and doesn't use the legend's hiding or the search
