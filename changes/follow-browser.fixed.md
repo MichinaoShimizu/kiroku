@@ -1,0 +1,1 @@
+- The view follows your browser's language and your system's theme again even if you picked a language or theme with the buttons of an earlier version: that saved choice could no longer be changed, so a Japanese browser could stay in English. `--lang` (or `KIROKU_LANG`) and `?lang=` still pick the language

@@ -16,7 +16,7 @@ const clock = async ctx => { if (fakeNow) await ctx.clock.install({ time: fakeNo
     localStorage.setItem("kiroku:fold:projs", "true"); localStorage.setItem("kiroku:fold:oc", "true"); } catch (e) {} }); // サマリーの画像（summary.png）には、① と ② を開いて写す（画面の既定は閉じている）
   return ctx; };
 const b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
-const ctx = await clock(await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, timezoneId: "Asia/Tokyo", locale: "en-US" }));
+const ctx = await clock(await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, timezoneId: "Asia/Tokyo", locale: "en-US", colorScheme: "light" }));
 const p = await ctx.newPage();
 await p.goto("file://" + path.resolve(html));
 await p.waitForTimeout(600);
@@ -44,7 +44,7 @@ await p.keyboard.press("Escape");
 await p.waitForTimeout(300);
 // セッションの詳細：依頼の流れに出来事（コマンド・コミット・PR など）がいちばん多い種類そろうセッションを開き、左の列（数字と依頼の流れ）だけを 2 倍で撮る。
 // 右の列にはダミーデータの一時フォルダのパスが出るので入れない
-const sc = await clock(await b.newContext({ viewport: { width: 1440, height: 1700 }, deviceScaleFactor: 2, timezoneId: "Asia/Tokyo", locale: "en-US" }));
+const sc = await clock(await b.newContext({ viewport: { width: 1440, height: 1700 }, deviceScaleFactor: 2, timezoneId: "Asia/Tokyo", locale: "en-US", colorScheme: "light" }));
 const s = await sc.newPage();
 await s.goto("file://" + path.resolve(html));
 await s.waitForTimeout(600);
@@ -72,7 +72,7 @@ const box = await s.evaluate(() => {
 });
 await s.screenshot({ path: path.join(docs, "session.png"), clip: box });
 // SNS のリンクカード用（og.png）。ふつうの画面幅（1440）で、カードの比率（1.91:1）に合わせた高さ 754 を 2 倍の 2880x1508 で撮る。デモページの og:image に使う
-const og = await clock(await b.newContext({ viewport: { width: 1440, height: 754 }, deviceScaleFactor: 2, timezoneId: "Asia/Tokyo", locale: "en-US" }));
+const og = await clock(await b.newContext({ viewport: { width: 1440, height: 754 }, deviceScaleFactor: 2, timezoneId: "Asia/Tokyo", locale: "en-US", colorScheme: "light" }));
 const q = await og.newPage();
 await q.goto("file://" + path.resolve(html));
 await q.waitForTimeout(600);

@@ -595,6 +595,10 @@ async function runJa(env) {
 
   await step("読み込み", async () => {
     check("ブラウザの言語が日本語なら、日本語で開く", await p.evaluate(() => document.documentElement.lang === "ja" && JA));
+    // 以前の版の切り替えボタンで English を選んだまま（localStorage に残っている）でも、ブラウザの言語に従う（ボタンがないので戻せないため）
+    await p.evaluate(() => localStorage.setItem("kiroku:lang", JSON.stringify("en"))); await p.reload(); await loaded(p);
+    check("以前選んだ English が残っていても、日本語で開く", await p.evaluate(() => document.documentElement.lang === "ja" && JA));
+    await p.evaluate(() => localStorage.removeItem("kiroku:lang"));
     check("期間の見出しは日本語の日付", /\d+月\d+日/.test(await p.locator("#rd").innerText()), await p.locator("#rd").innerText());
     const [sw, iw] = await overflow();
     check("横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);

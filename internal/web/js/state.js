@@ -46,12 +46,12 @@ function kfetch(url, opts = {}){
   if (k) headers.set("X-Kiroku-Key", k);
   return fetch(u.href, {cache: "no-store", ...opts, headers});
 }
-/* 画面の言語。?lang=、見る人が選んだもの、kiroku html / serve の --lang（$KIROKU_LANG）、ブラウザの言語の順。
-   どれでもなければ英語。切り替えるときは ?lang= を付けて開き直すので、localStorage が使えなくても効く */
+/* 画面の言語。?lang=、kiroku html / serve の --lang（$KIROKU_LANG）、ブラウザの言語の順。どれでもなければ英語。
+   以前の版の切り替えボタンで選んだ言語（localStorage の lang）は使わない（ボタンがないので、残ると戻せない） */
 const LANGS = ["en", "ja"];
 const LANG = (() => { let q = null; try { q = new URLSearchParams(location.search).get("lang"); } catch(e){}
   const nav = () => { try { return (navigator.languages && navigator.languages[0] || navigator.language || "").toLowerCase().startsWith("ja") ? "ja" : "en"; } catch(e){ return "en"; } };
-  const v = [q, store.get("lang", null), __LANG__].find(x => LANGS.includes(x)) || nav(); return LANGS.includes(v) ? v : "en"; })();
+  const v = [q, __LANG__].find(x => LANGS.includes(x)) || nav(); return LANGS.includes(v) ? v : "en"; })();
 const JA = LANG === "ja";
 /* AI に渡すプロンプトは英語のまま。inEnglish の中では、t・plural・日付の小物が英語を返す */
 let EN_ONLY = 0;
@@ -65,7 +65,7 @@ const wkc = i => i === 6 ? " sat" : i === 0 ? " sun" : ""; // 曜日（getDay）
 const plural = (n, one, many) => isJA() ? `${n} ${t(one)}` : `${n} ${n === 1 ? one : many || one + "s"}`; // 日本語は数と名詞（単数の形を辞書で引く）
 // hh: 週のカレンダーの 1 時間の高さ（render が作業の時間帯に合わせて決める。ズームはない。以前の版が保存した "zh" は読まない）
 // 画面はカレンダーだけ。以前の版が保存した "view"（journey・project）と、Year in review の "yrOpt" は読まない
-const st = { hh: 44, colorBy: store.get("colorBy", "source") === "project" ? "project" : "source", theme: (t => t === "light" || t === "dark" ? t : (window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"))(store.get("theme", null)), // 既定は、エージェントごとの色分けとダーク（ライトを選んだ人はライトのまま）
+const st = { hh: 44, colorBy: store.get("colorBy", "source") === "project" ? "project" : "source", theme: window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark", // テーマは OS の設定だけで決める（以前の版のボタンで選んだものは使わない） // 既定は、エージェントごとの色分けとダーク（ライトを選んだ人はライトのまま）
              week: mondayOf(today0()), month: monthOf(today0()), mode: store.get("mode", "week"), view: store.get("view", "cal") === "sum" ? "sum" : "cal",
              hidden: new Set(), sel: null, back: [], q: "", animate: true };
 
