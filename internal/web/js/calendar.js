@@ -30,7 +30,7 @@ function render(){
   // 件数は横にスクロールする並び（.lrow）の外に置く。スマホでは並びの上に出し、チップが多くても画面の外へ押し出されないように
   $("#legend").innerHTML = `<label class="cbsel"><span class="cbt">${esc(t("Color by"))}</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label><div class="lrow"><span class="lab">${esc(t("Active time"))}<small> · ${esc(t("click to hide"))}</small></span>` +
     Object.keys(cnt).sort((a,b)=>(mins[b]||0)-(mins[a]||0) || cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}" title="${esc(t("{name}: {stats} (click to show or hide)", {name: k, stats: `${mins[k] ? dur(mins[k]) + " · " : ""}${plural(cnt[k], "session")}`}))}"><span class="dot"></span>${st.colorBy === "source" ? agMark(k) : ""}<span class="cn">${esc((k))}</span><span class="n">${mins[k] ? dur(mins[k]) : "—"}<span class="sr"> ${esc(t("active"))}</span></span></button>`).join("") +
-    `</div>${filtering() ? `<span class="count">${esc(t("{n} / {total} sessions", {n: shown.length, total: inRange.length}))}</span>` : ""}`; // 件数は絞り込んでいるときだけ（ふだんは全件なので言うことがない）
+    `</div>${filtering() ? `<span class="count">${esc(t(M ? "{n} of the month's {total} sessions" : "{n} of the week's {total} sessions", {n: shown.length, total: inRange.length}))}</span>` : ""}`; // 件数は絞り込んでいるときだけ（ふだんは全件なので言うことがない）
   // 検索・凡例で絞り込んでいるあいだ、絞り込めない合計（作業時間・トークンなど）は薄くして、そう断る
   const fn = $("#fnote"); fn.hidden = !filtering() || noHit;
   fn.textContent = `${st.q ? t("This view shows only sessions matching the search and their linked records.") : t("Hidden items are left out of this view.")} ${M ? t("Gray figures, at the top and in each day and week, are totals for all sessions; sessions and commits there count only what is shown.") : t("Gray figures, at the top and under each date, are totals for all sessions; sessions and commits there count only what is shown.")}`;
@@ -105,7 +105,7 @@ function kpis(){
     // 片方（多くはクレジット）だけ超えたときは、1 日の目安の数に超過を混ぜない（「$3.20 · +5 cr 超過」は 1 日の額に読める）。
     // 数は超えていない方の目安だけにし、超えた方は短い添え書き（「クレジットは超過」）と、ポップアップの文で伝える
     const ok = xs.filter(([x]) => x.rest >= 0), ov = xs.filter(([x]) => x.rest < 0);
-    const v = ok.map(([x, f]) => f(x.per)).join(`<small> · </small>`) + (ov.length ? `<small class="ovr"> · ${esc(t(ov[0][0] === pc.credits ? "credits over" : "cost over"))}</small>` : "");
+    const v = ok.map(([x, f]) => f(x.per)).join(`<small> · </small>`) + (ov.length ? `<small class="ovr"> · ${esc(t("{v} over", {v: ov[0][1](-ov[0][0].rest, true)}))}</small>` : "");
     const tt = t(M ? "To stay at last month's total of {v}, for the {n} left" : "To stay at last week's total of {v}, for the {n} left", {v: ok.map(([x, f]) => f(x.ref, true)).join(" · "), n: plural(pc.left, "day")}) +
       ov.map(([x, f]) => " · " + t(M ? "{v} over last month's total of {r}" : "{v} over last week's total of {r}", {v: f(-x.rest, true), r: f(x.ref, true)})).join("");
     return kpi(t(M ? "A day to match last month" : "A day to match last week"), v, tt, "key", ok[0][0] === pc.cost ? "pace" : "paceCr"); };
@@ -185,9 +185,13 @@ function monthGrid(shown, ms, me, todayKey){
 }
 
 // 週のカレンダーの 0 時から CAL_D0 時は、ふだん畳んで（1 時間を 1/4 の高さで）描く。最初の画面に朝からの作業の時間帯が入り、
-// 夜中の記録も正しい位置に小さく見える。左上の「0–7」を押すと広げる（選んだものを覚える）
+// 夜中の記録も正しい位置に小さく見える。左上の「0–7時」を押すと広げる・畳む（選んだものを覚える）。
+// 選んでいなければ、その週の 0〜7 時にセッションがあるときは広げておく（実際の作業を潰さない）
 const CAL_D0 = 7;
-const calFold = () => !st.early; // 畳んでいるか
+function weekHasEarly(){ const ws = st.week.getTime()/1000, we = addDays(st.week, 7).getTime()/1000;
+  return DATA.some(s => s.segs.some(([a, b]) => { if (b <= ws || a >= we) return false;
+    for (let d = 0; d < 7; d++){ const ds = addDays(st.week, d).getTime()/1000, x = new Date(ds*1000); x.setHours(CAL_D0); if (a < x.getTime()/1000 && b > ds) return true; } return false; })); }
+const calFold = () => st.early == null ? !weekHasEarly() : !st.early; // 畳んでいるか
 // calY は、時刻（時。0〜24）の、列の上からの位置（px）
 function calY(h){ const hh = st.hh || 44; return !calFold() ? h * hh : h < CAL_D0 ? h * hh / 4 : CAL_D0 * hh / 4 + (h - CAL_D0) * hh; }
 
@@ -209,7 +213,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
   // 畳んだ時間帯には時刻を出さない（そこは「0–7」のボタン）。今の時刻の札（高さ約 20px）に重なる時刻は、消さずに札の上か下へずらして薄く出す（12:00 が見えなくならないように）
   for (let h=1; h<24; h++){ if (fold && h < CAL_D0) continue; const d = Y(h) - Y(nowH), near = nowIn && Math.abs(d) < 20;
     hours += `<span${near ? ' class="near"' : ""} style="top:${near ? Y(nowH) + (d >= 0 ? 20 : -20) : Y(h)}px">${String(h).padStart(2,"0")}:00</span>`; }
-  hours += `<button type="button" class="calfold" id="calfold" style="height:${fold ? Math.max(18, Y(CAL_D0) - 14) : 18}px" aria-expanded="${!fold}" title="${esc(fold ? t("Show 0:00–7:00 at full height") : t("Fold 0:00–7:00"))}" aria-label="${esc(fold ? t("Show 0:00–7:00 at full height") : t("Fold 0:00–7:00"))}">0–7<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${fold ? "M7 10l5 5 5-5" : "M7 14l5-5 5 5"}"/></svg></button>`;
+  hours += `<button type="button" class="calfold" id="calfold" style="height:${fold ? Math.max(18, Y(CAL_D0) - 14) : 18}px" aria-expanded="${!fold}" title="${esc(fold ? t("Show 0:00–7:00 at full height") : t("Fold 0:00–7:00"))}" aria-label="${esc(fold ? t("Show 0:00–7:00 at full height") : t("Fold 0:00–7:00"))}">${esc(t("0–7h"))}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${fold ? "M7 10l5 5 5-5" : "M7 14l5-5 5 5"}"/></svg></button>`;
   if (nowIn) hours += `<span class="now" style="top:${Y(nowH)}px">${hm(nowS)}</span>`;
   const runs = [], un = filtering() ? 1 : 0, G = gitShown(shown), kinds = useKinds(w ? w.days : []);
   for (let d=0; d<7; d++){
@@ -264,7 +268,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
       html += `<button class="gc${c.ai ? " ai" : ""}${st.sel === "git:"+c.hash ? " sel" : ""}" data-c="${esc(c.hash)}" style="top:${y}px" title="${esc(`${hm(c.t)} ${c.project}${c.branch ? " · "+c.branch : ""} · ${c.hash}\n${c.subject}\n${plural(c.nFiles, "file")} +${c.added} −${c.removed}${c.ai ? " · " + t("run by AI") : ""}`)}" aria-label="${esc(t("Commit {time} {subject}", {time: md(c.t) + " " + hm(c.t), subject: c.subject}))}">${GIT_ICON}<span>${esc(c.hash.slice(0,7))}</span></button>`; });
     limitHits(ds, de).filter(h => matches(h.s)).forEach(h => { // 上限の印は、そのセッションの帯の左端に置く（隣の帯の上に出して、ほかの作業の印に見えないように）
       const bk = blocks.find(b => b.s === h.s && b.a <= h.t && h.t <= b.b) || blocks.find(b => b.s === h.s), left = bk ? `left:calc((100% - var(--g)) * ${bk.l.toFixed(4)} + 3px);` : "";
-      html += `<button class="lim" data-id="${esc(h.s.id)}" style="${left}top:${Y(clockH(day, h.t))}px" title="${esc(t("{time} Hit the usage limit ({title})", {time: hm(h.t), title: h.s.title}))}" aria-label="${esc(t("{time} Hit the usage limit ({title})", {time: md(h.t) + " " + hm(h.t), title: h.s.title}))}">${ico("limit")}${esc(t("Limit"))}</button>`; });
+      html += `<button class="lim" data-id="${esc(h.s.id)}" data-t="${h.t}" style="${left}top:${Y(clockH(day, h.t))}px" title="${esc(t("{time} Hit the usage limit ({title})", {time: hm(h.t), title: h.s.title}))}" aria-label="${esc(t("{time} Hit the usage limit ({title})", {time: md(h.t) + " " + hm(h.t), title: h.s.title}))}">${ico("limit")}<span class="sr">${esc(t("Limit"))}</span></button>`; }); // 印だけ（狭い帯の名前を隠さないように。名前は読み上げと title）
     if (d === nowCol) html += `<div class="nowline" style="top:${Y(nowH)}px"></div>`;
     cols += `<div class="day${day.getDay()%6===0?" we":""}${wkc(day.getDay())}${isToday?" today":""}" style="height:${H}px;--g:${marks.length ? 18 : 0}px;--e0:${E0}px;--ch:${fold ? CAL_D0 : 0}">${html}</div>`;
   }
@@ -272,7 +276,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
   // 横のスクロールは本体に合わせて動かす（狭い画面でも、どの列が何日かわかるように）
   T.innerHTML = `<div class="tlhead"><div class="calin"><div class="heads">${heads}</div></div></div><div class="calscroll" style="--hh:${hh}px"><div class="calin"><div class="cgrid"><div class="hours" style="height:${H}px">${hours}</div>${cols}</div></div></div>`;
   const sc = T.querySelector(".calscroll"), th = T.querySelector(".tlhead");
-  $("#calfold").onclick = () => { st.early = !st.early; store.set("calEarly", st.early); render(); const b = $("#calfold"); if (b) b.focus({preventScroll: true}); };
+  $("#calfold").onclick = () => { st.early = calFold(); store.set("calEarly", st.early); render(); const b = $("#calfold"); if (b) b.focus({preventScroll: true}); };
   sc.addEventListener("scroll", () => { th.scrollLeft = sc.scrollLeft; }, {passive: true});
   sc.style.scrollPaddingTop = T.querySelector(".heads").offsetHeight + "px"; sc.style.scrollPaddingLeft = "56px"; // Tab で移ったブロックが、固定の日付・時刻の下に隠れないように
   if (top != null) sc.scrollTop = top;
@@ -285,7 +289,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
   sc.addEventListener("focusin", e => { if (e.target.closest(".heads") && sc.scrollTop !== seenTop) sc.scrollTop = seenTop; });
   // 日報のプロンプトのコピー（kiroku は AI を動かさない）
   T.querySelectorAll(".dayrun").forEach(b => b.onclick = e => { e.stopPropagation(); copyPrompt(b, reportPrompt(null, addDays(st.week, +b.dataset.d))); });
-  T.querySelectorAll(".lim").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); });
+  T.querySelectorAll(".lim").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); showFlowEvent("warn", +el.dataset.t); });
   bindGitEvents(T);
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });
   T.querySelectorAll(".run").forEach(el => { const bk = runs[+el.dataset.r];
@@ -332,3 +336,9 @@ document.addEventListener("pointerout", e => { const el = e.target.closest && e.
 addEventListener("scroll", () => { if (st.sel) return;
   const a = document.activeElement, r = a && a.classList && a.classList.contains("run") && a.matches(":focus-visible") && $("#tip").classList.contains("on") && a.getBoundingClientRect();
   if (r && r.bottom > 0 && r.top < innerHeight) tipMove(tipAt(a)); else tipOff(); }, {passive: true, capture: true}); // キーボードで選んだブロックは、Tab で移ったときのスクロールで消さずに付いていく
+
+// showFlowEvent は、開いた詳細のプロンプトの流れで、kind の出来事（時刻 at）を見せる（畳んだ分にあれば広げてから）。上限の印から開いたときに使う
+function showFlowEvent(kind, at){
+  const find = () => [...document.querySelectorAll(`#panel .tl li.ev.${kind}`)].find(li => (li.querySelector("time") || {}).textContent === hm(at));
+  let li = find(); if (li && li.hidden){ const all = $("#panel .pall"); if (all) all.click(); li = find(); }
+  if (!li) return; li.scrollIntoView({block: "center"}); li.classList.add("flash"); setTimeout(() => li.classList.remove("flash"), 1600); }

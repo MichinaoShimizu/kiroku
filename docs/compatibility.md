@@ -8,12 +8,12 @@ A change that breaks one of these is marked `BREAKING` in the changelog and, fro
 
 - **Commands**: `serve`, `open`, `html`, `archive`, `autostart`, `doctor`, `version`, `update` and `help` (`json` and `stats` were removed in 3.0; they now stop with a message naming what to use instead), and their arguments (such as `archive on|off` and the `ADDR` of `serve`)
 - **Options**: the names, meanings and defaults listed under [Options](guide.md#options)
-- **Environment variables** kiroku reads: `KIROKU_ARCHIVE_DIR`, `KIROKU_CONFIG_DIR`, `KIROKU_AI`, `KIROKU_LANG`, `KIROKU_NO_AI`, and the agents' own (`CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME`)
+- **Environment variables** kiroku reads: `KIROKU_ARCHIVE_DIR`, `KIROKU_CONFIG_DIR`, `KIROKU_LANG`, and the agents' own (`CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME`)
 - **Exit status**: 0 on success, and not 0 when a command fails
 - **The `--prices` file**: the JSON format described in [How you used AI](guide.md#how-you-used-ai), both the object and the array form
 - **`kiroku archive` copies**: a later version still reads the copies an earlier one kept, and `kiroku archive off` still recognizes the folder. The layout inside the folder may change if kiroku moves the old copies itself
 - **The `kiroku serve` key** kept in kiroku's config folder: a new version still accepts it, so bookmarks of the plain address (not `?key=` addresses from before v0.38.2) and `kiroku open` keep working. How the browser keeps it is not part of this: it is now in the browser's site data instead of a cookie, and a browser set up with an older version needs `kiroku open` once
-- **`kiroku serve` stays local by default**: it listens on `127.0.0.1` and checks the Host header, and anything that widens access stays opt-in (see [SECURITY.md](../SECURITY.md)). "Analyze with AI" is opt-in too (`--ai`): it runs an agent only after a confirmation in the view, only on a loopback address, and `--no-ai` keeps it off
+- **`kiroku serve` stays local by default**: it listens on `127.0.0.1` and checks the Host header, and anything that widens access stays opt-in (see [SECURITY.md](../SECURITY.md)). kiroku runs no AI agent ("Analyze with AI" was removed in 4.0; `--ai` and `--no-ai` are accepted and do nothing)
 - **Downloads are verified**: `kiroku update` and `install.sh` check `checksums.txt` (and build provenance where available) before they replace anything. Release archive names and `checksums.txt` keep their form so older versions of `kiroku update` and `install.sh` can still update
 
 ## May change in any release

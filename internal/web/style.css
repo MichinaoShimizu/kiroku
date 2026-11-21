@@ -1063,7 +1063,9 @@ header{background:var(--s-cont);border-bottom:0}
 .insh .itile{padding:12px 14px}
 .insh .itile b,.insh .itile .itv{font-size:var(--fs-2xl)}
 .insh .itile .isee{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;overflow:hidden;font-size:var(--fs-xs)}
-@media (max-width:1100px){.insh{grid-auto-columns:minmax(220px,1fr);overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}.insh>*{scroll-snap-align:start}}
+/* 狭い画面では、横に隠さずに折り返す（1100px 以下は 3 列、700px 以下は 2 列） */
+@media (max-width:1100px){.insh{grid-auto-flow:row;grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:700px){.insh{grid-template-columns:repeat(2,minmax(0,1fr))}.insh .itile{padding:10px 12px}}
 /* エージェント別の表：単位の違う費用とクレジットを混ぜずに列で並べる。狭い画面では表だけ横にスクロール */
 .iagw{overflow-x:auto}
 .iagt{width:100%;border-collapse:collapse;font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
@@ -1084,3 +1086,38 @@ header{background:var(--s-cont);border-bottom:0}
 .themebtn:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .themebtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .themebtn .sun,:root[data-theme="dark"] .themebtn .moon{display:none}:root[data-theme="dark"] .themebtn .sun{display:block}
+/* 式は「式を表示」のときだけ（ふだんは平易な 1 行と、言葉のチップ） */
+:root:not(.showfx) .fxo,:root:not(.showfx) .insdef,:root:not(.showfx) .ichip .cx{display:none}
+:root.showfx .fxp,:root.showfx .ichip .cp{display:none}
+.fxp,.iplain{font-size:var(--fs-xs);color:var(--ink-2)}
+.rvhead .fxbtn{height:28px;padding:0 12px;font-size:var(--fs-xs);margin-left:auto}
+/* エージェントの切り替えは、狭い画面でも隠さずに折り返す */
+.insagbar .segc{flex-wrap:wrap;overflow:visible}
+/* エージェント別の表は、スマホでは行ごとに「名前と値」の並びに */
+@media (max-width:600px){
+  .iagt thead{display:none}
+  .iagt,.iagt tbody,.iagt tr,.iagt th,.iagt td{display:block;width:auto}
+  .iagt tr{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;padding:10px 0;border-bottom:1px solid var(--rule)}
+  .iagt tbody th{grid-column:1/-1;border:0;padding:0 0 4px}
+  .iagt td{border:0;padding:0;text-align:left;white-space:normal}
+  .iagt td::before{content:attr(data-l);display:block;font-size:var(--fs-2xs);color:var(--ink-3)}
+  .iagt td.num{text-align:left}.iagb{width:56px}
+}
+/* コピーのボタンは、ふだんから薄く見せる（マウスを乗せなくても、あることがわかるように） */
+.tl li .pcopy{opacity:.45}.tl li:hover>.pcopy,.tl li:focus-within>.pcopy{opacity:1}
+/* スマホでは、吹き出しを広く。時刻は吹き出しの下に回す */
+@media (max-width:500px){
+  .tl li.pr:not(.ev),.tl li.rp{flex-wrap:wrap;padding-left:0;padding-right:0}
+  .tl li.pr:not(.ev)>p,.tl li.rp>p{flex:1 1 0}
+  .tl li.pr:not(.ev)>time{order:3;flex-basis:100%;text-align:right;padding:0 4px 0 0}
+  .tl li.rp>time{order:4;flex-basis:100%;padding:0 0 0 38px}
+}
+/* 返事の文がない回の、AI が動いた時間（小さく、吹き出しにしない） */
+.tl li.rp.quiet p,.drawer .tl li.rp.quiet p{background:transparent;padding:2px 4px;box-shadow:none}
+.tl li.rp.quiet .pmeta{margin:0}
+.tl li.rp.quiet>.av{width:22px;height:22px;align-self:center}.tl li.rp.quiet>.av .ic{width:12px;height:12px}
+/* 上限の印は小さな四角だけ（狭い帯の名前を隠さない） */
+.lim{padding:0 3px;border-radius:3px}
+/* 上限の印から開いたときの、流れの中のその出来事 */
+.tl li.ev.flash{outline:2px solid var(--warn);outline-offset:2px}
+:root:not(.showfx) .ichip{font-family:var(--sans)} /* 言葉のチップは、式の等幅でなく本文の字で */

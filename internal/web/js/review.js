@@ -22,9 +22,9 @@ function lightOf(ws, we){ // 編集のない短いセッションで、高いモ
   const xs = DATA.filter(s => inP(s, ws, we) && /opus/i.test(mainModel(s)) && s.nPrompts <= 3 && !s.nFiles && s.cost >= 0.3).sort((a,b) => b.cost - a.cost);
   return {xs, c: xs.reduce((t,s) => t + s.cost, 0)}; }
 /* 繰り返したプロンプト：期間中のプロンプトを、文字の 3 文字組の重なり（Jaccard 0.6 以上）でまとめ、3 つ以上のセッションで書いたものを拾う（AI は使わない） */
-const REPEAT_MIN = 12, REPEAT_SES = 3, repeatCache = {};
+const REPEAT_MIN = 12, REPEAT_SES = 3, repeatCache = new WeakMap(); // DATA の配列ごと（エージェントで絞ったサマリーは別の配列なので、絞り方が違えば別に数える）
 function repeatsOf(ws, we){
-  const ck = `${ws}:${we}:${DATA.length}`; if (repeatCache[ck]) return repeatCache[ck];
+  if (!repeatCache.has(DATA)) repeatCache.set(DATA, {}); const memo = repeatCache.get(DATA), ck = `${ws}:${we}`; if (memo[ck]) return memo[ck];
   const norm = t => String(t || "").toLowerCase().replace(/[\s　]+/g, " ").replace(/[「」『』"'`。、.,!?！？:：;；()（）\[\]]/g, "").trim();
   const C = [], idx = new Map(); // 3 文字組 → それを含む束の番号（束の代表は最初に見つけたプロンプト）
   DATA.forEach(s => s.prompts.forEach(p => {
@@ -36,7 +36,7 @@ function repeatsOf(ws, we){
     if (best < 0){ best = C.length; C.push({g, n: 0, ids: new Set(), by: new Map(), last: -1}); g.forEach(x => { if (!idx.has(x)) idx.set(x, []); idx.get(x).push(best); }); }
     const c = C[best]; c.n++; c.ids.add(s.id); c.by.set(s.id, p.text); if (p.t >= c.last){ c.last = p.t; c.id = s.id; c.text = p.text; } // 見せるのは、いちばん新しい書き方。by はセッションごとに、束に入ったプロンプト（ダイアログでどれのことかを見せる）
   }));
-  return repeatCache[ck] = C.filter(c => c.ids.size >= REPEAT_SES).sort((a,b) => b.ids.size - a.ids.size || b.n - a.n);
+  return memo[ck] = C.filter(c => c.ids.size >= REPEAT_SES).sort((a,b) => b.ids.size - a.ids.size || b.n - a.n);
 }
 const snipOf = (t, n) => { t = String(t || "").replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n) + "…" : t; };
 /* 長すぎるプロンプト：期間中に、BIG_PROMPT 文字以上のプロンプト（ログや資料をそのまま貼ったものなど） */
@@ -135,7 +135,7 @@ function findList(w, pw, unit){
     add("heavy", 30 + Math.round(idleC*50/u.cost), tx("{pct}% of estimated cost ({cost}) went to sessions with no commit or pull request", {pct: Math.round(idleC*100/u.cost), cost: usd(idleC)}), tx("Fine for research or discussion. If they stopped partway, it's worth finding out why"), tx("Sessions of $1+ total 40%+ of all cost ($2+)"), idle.map(s => s.id));
   const RP = repeatsOf(ws, we);
   if (RP.length)
-    add("repeats", 9, tx("You wrote a similar prompt {n} times across {s} sessions {period} (\"{text}\")", {n: RP[0].n, s: RP[0].ids.size, text: snipOf(RP[0].text, 40)}), tx("A prompt you type every time can be written once as a command or in CLAUDE.md"), tx("{min}+ characters, in {ses}+ sessions", {min: REPEAT_MIN, ses: REPEAT_SES}), [...new Set([RP[0].id, ...RP[0].ids])]);
+    add("repeats", 9, tx("You wrote a similar prompt {n} times across {s} sessions {period} (\"{text}\")", {n: RP[0].n, s: RP[0].ids.size, text: snipOf(RP[0].text, 40)}), tx("A prompt you type every time can be written once as a command or in the agent's project instructions (CLAUDE.md, AGENTS.md or Kiro steering)"), tx("{min}+ characters, in {ses}+ sessions", {min: REPEAT_MIN, ses: REPEAT_SES}), [...new Set([RP[0].id, ...RP[0].ids])]);
   return F.sort((a,b) => b.score - a.score);
 }
 const GOTO = {longctx: "heavy", modelfit: "models"}; // 専用の指標がない候補は、関係する指標に印を付ける

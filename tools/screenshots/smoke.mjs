@@ -141,14 +141,16 @@ async function run(env) {
   await step("テーマ", async () => {
     const bg = () => p.evaluate(() => getComputedStyle(document.body).backgroundColor);
     check("言語の切り替えボタンはなく、テーマの切り替えボタンがある", await p.locator("#lang").count() === 0 && await p.locator("#theme").count() === 1);
+    await p.evaluate(() => { try { localStorage.removeItem("kiroku:theme"); } catch (e) {} st.theme = null; applyTheme(); });
     await p.emulateMedia({ colorScheme: "light" }); await pause(); const light = await bg();
-    await p.emulateMedia({ colorScheme: "dark" }); await pause();
-    check("既定はライト（OS がダークでも同じ色）", await bg() === light && await p.evaluate(() => getComputedStyle(document.documentElement).colorScheme) === "light", await bg());
-    await p.emulateMedia({ colorScheme: "light" });
+    await p.emulateMedia({ colorScheme: "dark" }); await pause(); const dark = await bg();
+    check("選んでいなければ OS の設定に合わせる（OS がダークならダーク）", dark !== light && await p.evaluate(() => document.documentElement.dataset.theme === "dark" && getComputedStyle(document.documentElement).colorScheme === "dark"), dark);
     await p.click("#theme"); await pause();
-    check("ボタンでダークになり、押した状態と選択が残る", await bg() !== light && await p.evaluate(() => document.documentElement.dataset.theme === "dark" && getComputedStyle(document.documentElement).colorScheme === "dark" && document.querySelector("#theme").getAttribute("aria-pressed") === "true" && localStorage.getItem("kiroku:theme") === '"dark"'));
+    check("ボタンで選ぶと、OS がダークでもライトになり、選択が残る", await bg() === light && await p.evaluate(() => localStorage.getItem("kiroku:theme") === '"light"' && document.querySelector("#theme").getAttribute("aria-pressed") === "false"));
+    await p.emulateMedia({ colorScheme: "light" }); await pause();
     await p.click("#theme"); await pause();
-    check("もう一度押すとライトに戻る", await bg() === light && await p.evaluate(() => localStorage.getItem("kiroku:theme") === '"light"'));
+    check("もう一度押すと、OS がライトでもダークになり、押した状態と選択が残る", await bg() === dark && await p.evaluate(() => localStorage.getItem("kiroku:theme") === '"dark"' && document.querySelector("#theme").getAttribute("aria-pressed") === "true"));
+    await p.click("#theme"); await pause();
   });
 
   await step("週の移動", async () => {
@@ -272,7 +274,11 @@ async function run(env) {
         adv: document.querySelectorAll("#review .insadv .insa").length, flags: (lastFlags || []).length, tabs: document.querySelectorAll("#review [data-ins]").length}));
       check("上の帯の数字（推定費用・稼働時間）はサマリーのカードにもあり、押すと同じ内訳が開く", await p.evaluate(() => ["cost", "active"].every(m => document.querySelector(`#review .itile [data-metric="${m}"]`))));
       check("トークンの種類別のカードと、アドバイスの対象の費用（Σ）がある", await p.evaluate(() => !!document.querySelector("#review .itbar") && document.querySelectorAll("#review .itbar > span").length >= 2));
-      check("アドバイスは対象の費用の大きい順（費用で表せない候補はそのあと）", await p.evaluate(() => { const v = [...document.querySelectorAll("#review .insadv .insa")].map(li => { const m = /Σ \$([\d,.]+)/.exec(li.textContent); return m ? +m[1].replace(/,/g, "") : -1; }); return v.every((x, i) => i === 0 || v[i - 1] >= x); }));
+      check("見直す候補の一覧・「まず見直す」・アドバイスは同じ並び（いつもより悪い側に外れたもの → 比べられないもの → 範囲の中。同じ段は関わる費用の大きい順）", await p.evaluate(() => {
+        const F = lastFlags, side = f => insSide(f), ok = F.every((f, i) => i === 0 || side(F[i - 1]) < side(f) || side(F[i - 1]) === side(f) && ((F[i - 1].stake && F[i - 1].stake.c) ?? -1) >= ((f.stake && f.stake.c) ?? -1));
+        const adv = [...document.querySelectorAll("#review .insadv .insa .insw > b")].map(e => e.textContent), want = F.slice(0, 3).map(f => f.L.see);
+        const first = document.querySelector("#review .insh .insgo"), worth = [...document.querySelectorAll("#worth [data-goto]")].map(e => e.dataset.goto);
+        return ok && JSON.stringify(adv) === JSON.stringify(want) && (!F.length || first.dataset.goto === (GOTO[F[0].k] || F[0].k)) && (!worth.length || worth[0] === (GOTO[F[0].k] || F[0].k)); }));
       check("エージェント別の表に、エージェントごとの行がある（費用とクレジットを混ぜない）", await p.evaluate(() => document.querySelectorAll("#review .iagt tbody tr").length >= 2));
       { // エージェントで絞る：サマリーの数字がそのエージェントの分になり、上の帯（すべて）は変わらない。戻すと元の数字
         const ags = await p.evaluate(() => [...document.querySelectorAll("#review [data-ag]")].map(b => b.dataset.ag));
@@ -287,12 +293,22 @@ async function run(env) {
           check("絞ったまま、カレンダーのセッションは減らない", await p.evaluate(() => DATA.length > 0 && new Set(DATA.map(s => s.source)).size >= 2));
           await p.click('#review [data-ag=""]'); await pause();
           check("「すべて」に戻すと元の数字", await val() === all);
+          if (ags.length >= 4){ // A から B に切り替えた結果と、B を直接開いた結果が同じ（前のエージェントの候補が残らない）
+            const advice = () => p.evaluate(() => [...document.querySelectorAll("#review .insadv .insa .insw > b, #review .insh .insgo")].map(e => e.textContent).join("|"));
+            await p.click(`#review [data-ag="${ags[1]}"]`); await pause(); await p.click(`#review [data-ag="${ags[3]}"]`); await pause(); const viaA = await advice();
+            await p.click('#review [data-ag=""]'); await pause(); await p.evaluate(() => { DATA = DATA.slice(); }); await p.click(`#review [data-ag="${ags[3]}"]`); await pause(); const direct = await advice();
+            check("エージェントを切り替えても、前のエージェントのアドバイスが残らない", viaA === direct, `${viaA} / ${direct}`);
+            await p.click('#review [data-ag=""]'); await pause(); }
         }
       }
       check("ヒートマップの各行に曜日の合計がある（触れなくても読める）", await p.evaluate(() => document.querySelectorAll("#review .ihgrid > .iht:not(.ihh)").length === 7));
       check("3 列の並びの最後の段に空きを作らない（余りは横に広げる）", await p.evaluate(() => [...document.querySelectorAll("#review .istats, #review .insh")].every(g => { const k = [...g.children], cols = getComputedStyle(g).gridTemplateColumns.split(" ").length; if (k.length < 2) return true; const r = k.map(c => c.getBoundingClientRect()), last = r[r.length - 1], row = r.filter(b => Math.abs(b.top - last.top) < 2); return Math.abs(row[row.length - 1].right - g.getBoundingClientRect().right) < 2 || row.length === cols; })));
       check("カードの中の数の枠は最大 3 列", await p.evaluate(() => [...document.querySelectorAll("#review .istats")].every(g => getComputedStyle(g).gridTemplateColumns.split(" ").length <= 3)));
-      check("サマリーの頭の数字は 1 段（狭い画面では横にスクロール）", await p.evaluate(() => { const k = [...document.querySelectorAll("#review .insh > .itile")]; return k.length > 1 && k.every(c => Math.abs(c.getBoundingClientRect().top - k[0].getBoundingClientRect().top) < 2); }));
+      check("サマリーの頭の数字は、広い画面では 1 段、狭い画面では折り返し、どれも画面の中に見える", await p.evaluate(() => { const k = [...document.querySelectorAll("#review .insh > .itile")], g = document.querySelector("#review .insh").getBoundingClientRect();
+        const inside = k.every(c => { const r = c.getBoundingClientRect(); return r.left >= g.left - 1 && r.right <= g.right + 1; });
+        return k.length > 1 && inside && (innerWidth <= 1100 || k.every(c => Math.abs(c.getBoundingClientRect().top - k[0].getBoundingClientRect().top) < 2)); }));
+      check("式はふだん隠し、「式を表示」で見せる", await p.evaluate(async () => { const vis = () => [...document.querySelectorAll("#review .insight .ifx.fxo")].some(e => e.offsetParent !== null);
+        const off = !vis(); document.querySelector("#fxbtn").click(); await new Promise(r => setTimeout(r, 200)); const on = vis(); document.querySelector("#fxbtn").click(); await new Promise(r => setTimeout(r, 200)); return off && on && !vis(); }));
       check("サマリーの頭に、数字のカード 4〜6 枚（上の帯の数字を含む）・推移・累積の線・どこに使ったかの横棒・長さ別の費用・上位 3 つまでのアドバイスがある", r.heads >= 4 && r.heads <= 6 && r.svg && r.bars > 0 && r.cum === 1 && r.donut > 0 && r.hist === 6 && r.adv === Math.min(3, r.flags), JSON.stringify(r));
       const fx = await p.evaluate(() => ({chips: [...document.querySelectorAll("#review .insight .ichip.ifx")].map(e => e.textContent), def: (document.querySelector("#review .insdef") || {}).textContent || "",
         vague: /Usual|Higher|Lower|usual range|いつもの範囲|いつもどおり|高め|低め|\bQ[13]\b|IQR/.test(document.querySelector("#review .insight").innerText)}));
@@ -363,10 +379,12 @@ async function run(env) {
     await view("cal");
   });
 
-  await step("セッションを AI と振り返る", async () => {
+  await step("セッションの振り返りのプロンプト", async () => {
     const run = await clickableRun(p);
     await run.scrollIntoViewIfNeeded(); await run.click(); await pause();
     check("振り返りは、プロンプトをコピーするボタンだけ（AI を動かすボタンはない）", await p.locator("#panel #srun.ai-copy").count() === 1 && await p.locator("#panel .ai-action").count() === 0);
+    check("振り返りのボタンの下に、コピーするだけで kiroku は何も送らないと書く", /kiroku (runs nothing|は何も実行せず)/.test(await p.locator("#panel .drun").innerText()));
+    check("AI が動いた時間は、あなたの吹き出しの中に入れない", await p.evaluate(() => !document.querySelector("#panel .tl li.pr:not(.ev) .pmeta")));
     // 左（1 列の画面では間）はプロンプトの流れだけ。再開のコマンドは操作（.sact）に 1 つだけ見え、2 列なら右の列、1 列なら流れより上
     const rs = await p.evaluate(() => { const v = [...document.querySelectorAll("#panel .dresume")].filter(e => e.offsetParent !== null);
       const act = document.querySelector("#panel .sact"), flow = document.querySelector("#panel .sflow");
@@ -475,7 +493,8 @@ async function run(env) {
     const fs = p.locator("#wk .fss .card").first();
     if (await fs.count()){
       // エージェントの頭文字は、題名が長くても縮まず 1 行（.fl の overflow-wrap:anywhere で「KC」が K と C の 2 行に折れていた）
-      const marks = await p.locator("#wk .fss .card .agm").evaluateAll(es => es.map(e => { const r = document.createRange(); r.selectNodeContents(e);
+      // 見えている印だけ（畳んだ一覧の中のものは測れない）
+      const marks = await p.locator("#wk .fss .card .agm").evaluateAll(es => es.filter(e => e.getClientRects().length).map(e => { const r = document.createRange(); r.selectNodeContents(e);
         return {t: e.textContent, lines: new Set([...r.getClientRects()].map(x => Math.round(x.top))).size, fits: e.clientWidth >= r.getBoundingClientRect().width}; }));
       const bad = marks.filter(m => m.lines !== 1 || !m.fits);
       check("ダイアログのカードのエージェントの頭文字は 1 行に収まる", marks.length > 0 && !bad.length, JSON.stringify(bad[0] || {}));
