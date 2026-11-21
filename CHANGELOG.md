@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v4.1.1 - 2026-11-21
+
+### Fixed
+
+- Claude Code and Codex: a subagent that keeps working after the parent conversation's last line (such as a background subagent) now counts in the parent session's calendar bar and active time, as Kiro Crew subagents already did; before, that part of its work was left out
+
 ## v4.1.0 - 2026-11-21
 
 ### Added
