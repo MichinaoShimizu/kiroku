@@ -1,2 +1,0 @@
-- Summary: the Trend can show Kiro credits and tokens, with the usual range and the pace of the period in progress like the other metrics
-- While you look at the current week, the band and the summary's Kiro credits box show where this month's credits are heading (Month-end credits); pressing it opens the month's breakdown without leaving the week

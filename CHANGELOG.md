@@ -2,6 +2,41 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v4.1.0 - 2026-11-21
+
+### Added
+
+- Summary: an "AI edits" card shows how many files the agents changed with their edit tools in the period, the lines added and removed (an estimate from each edit's before and after), and the most changed files; a file opens the session that changed it most. Lines are now counted for Codex (`apply_patch`) and Kiro (`fs_write`, `fsWrite`, `strReplace`) edits as well as Claude Code's
+- Summary: the Trend can show Kiro credits per commit (credits ÷ Git commits other than the ones Claude Code ran) and tokens per commit (Claude Code tokens ÷ AI commits)
+- Summary: the Trend can show Kiro credits and tokens, with the usual range and the pace of the period in progress like the other metrics
+- While you look at the current week, the band and the summary's Kiro credits box show where this month's credits are heading (Month-end credits); pressing it opens the month's breakdown without leaving the week
+
+### Changed
+
+- Kiro credits are written as "credits" (「クレジット」 in Japanese) everywhere instead of "cr"
+- Summary: the running total chart can show estimated cost, Kiro credits, tokens or active time, and is titled "Cumulative, vs last week / month" (「積み上がり（前週比）」「（前月比）」)
+- Summary: the session length chart uses credits or tokens when there is no cost, instead of a count of sessions, and no longer prints n= under each bar (it is in the tooltip)
+- Month calendar: the shade of each day follows the same usage as its figure (estimated cost, tokens or credits) instead of active time, and Shade under the calendar switches it among cost, credits, tokens and active time
+- Session review prompt: when the history file can be read, it passes the session ID and the file and lists only what the history doesn't have (commits, pull requests and other events with their times), instead of copying the prompt flow
+- Week calendar: sessions are shown with a colored edge on the left and a light fill instead of an outline and a dot
+- Week and month calendars: Figures in the legend row picks the usage written for each day (estimated cost, Kiro credits, tokens or active time); the month calendar's shade follows the same choice, and the selector moved from under the month calendar to the legend
+- Session details: moving to the previous or next session (‹ ›, `←` `→`) opens it with its prompt flow shown from the beginning; on narrow windows, where the flow comes after the key numbers, and in full screen, the flow's heading is at the top
+- Summary: Where it went switches among estimated cost, Kiro credits, tokens and active time, and the Unit cost panel adds Kiro credits and tokens per prompt next to estimated cost per prompt
+- Summary: the outputs card is titled "Outputs (Git)" (「出力（Git）」 in Japanese, instead of 「成果」), and the Japanese text says 出力 for outputs elsewhere
+- Summary: the cost and outputs scatter can put Kiro credits or tokens on its horizontal axis instead of estimated cost, so agents without a cost estimate get it too
+- Session details: the history file, models used and tools used are shown at the end of the details instead of being folded under "More details"
+- Copying a review or report prompt only says it was copied and to paste it into your AI agent
+- Summary view: the "Color by" and active time row of the calendar's legend is hidden; the summary has its own Agent switch and doesn't use the legend's hiding or the search
+- Summary: the figures at the top are split into Cost (estimated cost, credits, the pace against the previous period, active time) and Output (Git commits, lines changed by AI, cost per commit) on two plain panels, without colored edges or filled boxes; a small mark under a figure says where it falls against your usual range, colored only when outside it, and what to change first is one line below them
+- Summary: the cards are grouped under Cost, Output and How you used AI. "Outputs (Git)" and "AI edits" are one Outputs card (「出力」), with the files changed most (「変更の多いファイル」) beside the figures
+- Switches (Week | Month, Calendar | Summary, Agent, the Trend and running total metrics) are a light track where the chosen item is raised, and buttons and drop-down lists share one plain style, instead of purple outlines and dividers
+- Summary: the Trend's metrics switch becomes a drop-down list whenever it doesn't fit in one row, instead of wrapping; in the month view, Month-end (estimate) shows cost and credits side by side in one box
+- Summary: figures and cards are grouped under Cost, Output and Unit cost (「単価」: cost ÷ output, such as cost, credits and tokens per commit and cost per prompt), with larger, bolder headings; cost per commit moves from the Outputs card to Unit cost
+
+### Fixed
+
+- Switching between the calendar and the summary no longer moves the period heading and the switch up and down on wide windows; the band keeps its space while hidden in the summary
+
 ## v4.0.0 - 2026-11-21
 
 ### Added

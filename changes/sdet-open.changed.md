@@ -1,2 +1,0 @@
-- Session details: the history file, models used and tools used are shown at the end of the details instead of being folded under "More details"
-- Copying a review or report prompt only says it was copied and to paste it into your AI agent

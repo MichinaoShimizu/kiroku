@@ -1,1 +1,0 @@
-- Summary: the Trend can show Kiro credits per commit (credits ÷ Git commits other than the ones Claude Code ran) and tokens per commit (Claude Code tokens ÷ AI commits)

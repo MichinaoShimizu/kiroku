@@ -1,1 +1,0 @@
-- Summary: the outputs card is titled "Outputs (Git)" (「出力（Git）」 in Japanese, instead of 「成果」), and the Japanese text says 出力 for outputs elsewhere

@@ -1,1 +1,0 @@
-- Session details: moving to the previous or next session (‹ ›, `←` `→`) opens it with its prompt flow shown from the beginning; on narrow windows, where the flow comes after the key numbers, and in full screen, the flow's heading is at the top

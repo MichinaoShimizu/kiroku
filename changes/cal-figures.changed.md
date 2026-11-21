@@ -1,1 +1,0 @@
-- Week and month calendars: Figures in the legend row picks the usage written for each day (estimated cost, Kiro credits, tokens or active time); the month calendar's shade follows the same choice, and the selector moved from under the month calendar to the legend

@@ -1,1 +1,0 @@
-- Summary: the Trend's metrics switch becomes a drop-down list whenever it doesn't fit in one row, instead of wrapping; in the month view, Month-end (estimate) shows cost and credits side by side in one box
