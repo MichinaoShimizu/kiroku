@@ -989,8 +989,13 @@ func foldCrewSubagent(parent, sub *core.Builder, info CrewInfo) {
 	}
 	parent.Measures = append(parent.Measures, sub.Measures...)
 	parent.Credits = append(parent.Credits, sub.Credits...)
+	edits := sub.FileEdits()
 	for _, f := range sub.EditedFiles() {
-		parent.Edited(f)
+		if e, ok := edits[f]; ok {
+			parent.AddFileEdits(f, e)
+		} else {
+			parent.Edited(f)
+		}
 	}
 	var start, end *float64
 	if len(sub.Times) > 0 {

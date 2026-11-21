@@ -925,6 +925,11 @@ header{background:var(--s-cont);border-bottom:0}
 .iwn{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.iwn i{flex:none;width:9px;height:9px;border-radius:50%}
 .iwb{height:12px;background:var(--surface-2);border-radius:4px;overflow:hidden}.iwb>span{display:block;height:100%;border-radius:4px}
 .iwv{color:var(--ink-2);font-variant-numeric:tabular-nums;text-align:right}.iwr b{text-align:right;font-variant-numeric:tabular-nums}
+/* いちばん変えたファイル：名前はパス（等幅・はみ出しは省略）。押すと、そのファイルをいちばん変えたセッション */
+.iwf{display:block;min-width:0;padding:0;border:0;background:none;color:var(--ink);font:inherit;font-family:var(--mono);font-size:var(--fs-xs);text-align:left;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iwf small{font-family:var(--sans);color:var(--ink-3)}.iwf:hover{color:var(--acc-ink);text-decoration:underline}
+.iwr:has(.iwf){grid-template-columns:minmax(0,42%) minmax(0,1fr) auto 3.6em}
+.iwcap{margin:14px 0 8px;font-size:var(--fs-xs);color:var(--ink-3);font-weight:600}
 /* カードの中の数の枠 */
 .istats{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
 
