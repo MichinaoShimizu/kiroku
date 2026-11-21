@@ -3,3 +3,4 @@
 - Summary layout: the figure cards sit three to a row down to narrower windows, so fewer rows end with a card on its own
 - Summary: formulas are hidden by default again, and each figure and chart has an "ƒx" button next to its name that shows its own formulas; breakdown dialogs still always show theirs
 - Summary: the chart cards are drawn at the card's size, so their text stays readable three to a row; percentages in the Trend use a 0–100% axis; the session length chart prints the number of sessions under each bucket and highlights only buckets with two or more sessions; names cut off in narrow cards end with "…"
+- Summary Unit cost: rows per Git commit, per 100 AI-edited lines, per active hour, per session and per prompt, each for estimated cost, Kiro credits and tokens where recorded; all of them can be picked in the Trend. Cost per active day is replaced by cost per active hour, and the per-session figures move here from How you used AI

@@ -53,6 +53,15 @@ function editsBasis(ws, we, k){
   const xs = DATA.filter(s => s.start >= ws && s.start < we && records(s.source, "files") && use(s) > 0);
   return {n: xs.length, used: xs.reduce((a, s) => a + use(s), 0), lines: xs.reduce((a, s) => a + sesLines(s), 0)};
 }
+/* 時間・セッション・プロンプトあたりの元（期間 [ws, we) に始まったセッションのうち、その使用量を記録したもの）。
+   分子と分母は同じセッションから。時間は各セッションの作業時間（期間の中の分。重なったセッションはそれぞれ数える） */
+const minIn = (s, ws, we) => (s.segs || []).reduce((a, [x, y]) => a + Math.max(0, Math.min(y, we) - Math.max(x, ws)) / 60, 0);
+function useBasis(ws, we, k){
+  const use = s => k === "cost" ? (sesTok(s) ? s.cost || 0 : 0) : k === "credits" ? s.credits || 0 : sesTok(s);
+  const xs = DATA.filter(s => s.start >= ws && s.start < we && use(s) > 0);
+  return {n: xs.length, used: xs.reduce((a, s) => a + use(s), 0), min: xs.reduce((a, s) => a + minIn(s, ws, we), 0), prompts: xs.reduce((a, s) => a + (s.nPrompts || 0), 0)};
+}
+const perUse = (ws, we, k, by) => { const b = useBasis(ws, we, k), d = by === "hour" ? b.min / 60 : by === "ses" ? b.n : b.prompts; return d > 0 && b.used > 0 ? b.used / d : null; };
 function perEdit(ws, we, k){ const b = editsBasis(ws, we, k); return b.lines > 0 && b.used > 0 ? b.used * 100 / b.lines : null; }
 /* 指標の値（見直す候補の推移用）。low: 大きいときに印が付く向き（良し悪しの判定ではない） */
 const pctOf = (a, b) => b ? Math.round(a * 100 / b) : null;
@@ -70,6 +79,16 @@ const MET = {
   costPerEdit: {f: (w, ws, we) => perEdit(ws, we, "cost"), fmt: v => usd(v)},
   creditsPerEdit: {f: (w, ws, we) => perEdit(ws, we, "credits"), fmt: v => cr1(v)},
   tokensPerEdit: {f: (w, ws, we) => perEdit(ws, we, "tokens"), fmt: v => tok(v)},
+  // 時間・セッション・プロンプトあたり（良し悪しの向きは付けない：1 時間あたりが高いのは、集中して任せた結果のこともある）
+  costPerHour: {f: (w, ws, we) => perUse(ws, we, "cost", "hour"), fmt: v => usd(v)},
+  creditsPerHour: {f: (w, ws, we) => perUse(ws, we, "credits", "hour"), fmt: v => cr1(v)},
+  tokensPerHour: {f: (w, ws, we) => perUse(ws, we, "tokens", "hour"), fmt: v => tok(v)},
+  costPerSes: {f: (w, ws, we) => perUse(ws, we, "cost", "ses"), fmt: v => usd(v)},
+  creditsPerSes: {f: (w, ws, we) => perUse(ws, we, "credits", "ses"), fmt: v => cr1(v)},
+  tokensPerSes: {f: (w, ws, we) => perUse(ws, we, "tokens", "ses"), fmt: v => tok(v)},
+  costPerAsk: {f: w => w.costPerAsk ?? null, fmt: v => usd(v)},
+  creditsPerAsk: {f: (w, ws, we) => perUse(ws, we, "credits", "ask"), fmt: v => cr1(v)},
+  tokensPerAsk: {f: (w, ws, we) => perUse(ws, we, "tokens", "ask"), fmt: v => tok(v)},
   modelfit: {f: (w, ws, we) => w.usage && w.usage.cost >= 0.01 ? pctOf(lightOf(ws, we).c, w.usage.cost) : null, low: true, u: "%"},
   fix: {f: w => w.fixRate, low: true, u: "%"},
   friction: {f: w => w.frictionN ?? w.friction.length, low: true, u: ""},
