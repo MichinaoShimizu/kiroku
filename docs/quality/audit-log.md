@@ -55,7 +55,7 @@ An aspect run on the v3.0.0 candidate (PR #506: leaner view and CLI, Kiro IDE (l
 ### Open items
 - Symlinked history files: kept as is (links are followed so history moved to another disk keeps working) and documented in SECURITY.md (#506)
 - UX: the opening scroll and the hover-only daily AI button stay as the maintainer asked earlier; % labels for two figures and comparisons when history starts inside the previous period stay open. Due: next ux run
-- Small: Repeated prompts rows that read the same; the phone right-edge fade over the search button (resolved: the header now stacks above the fade). Due: next ux run
+- Small: Repeated prompts rows that read the same (resolved: shown as prompt bubbles); the phone right-edge fade over the search button (resolved: the header now stacks above the fade). Due: next ux run
 
 ## 2026-11-20 — ux and i18n at 5297b6a (v1.1.2 and PR #502)
 

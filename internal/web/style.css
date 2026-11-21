@@ -22,20 +22,6 @@
   --mono:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,monospace;
   --ease:cubic-bezier(.2,0,0,1); /* M3 の standard */
 }
-:root[data-theme="dark"]{
-  color-scheme:dark;
-  --agm-mix:75%;
-  --bg:#141218; --surface:#1d1b20; --surface-2:#2b2930; --ink:#e6e0e9; --ink-2:#cac4d0; --ink-3:#938f99;
-  --s-lowest:#0f0d13; --s-cont:#211f26; --s-highest:#36343b; --pc:#4f378b; --on-pc:#eaddff; --sc:#4a4458; --on-sc:#e8def8; --inv:#e6e0e9; --on-inv:#322f35;
-  --rule:#49454f; --rule-2:#938f99; --acc:#d0bcff; --acc-ink:#d0bcff; --on-acc:#381e72; --heatk:38%; --acc-soft:rgba(208,188,255,.12); --warn:#f2b8b5; --on-warn:#601410;
-  --weekend:rgba(255,255,255,.018);
-  --sat:#93abe6; --sun:#e69393; --sat-bg:rgba(147,171,230,.05); --sun-bg:rgba(230,147,147,.05);
-  --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -16px rgba(0,0,0,.7);
-  --c0:#6191d1; --c1:#a95c3e; --c2:#45a47a; --c3:#a27323; --c4:#c47190; --c5:#4c8446; --c6:#6e6ab2; --c7:#15a0b6; --other:#6b7180;
-  --amber-ink:#f2b53a;
-  --t1:8%; --t2:14%; --t3:20%;
-  --go:#5fb08c; --go-ink:#9bd6ba; /* 暗い地では、同じ 3 段を少し濃く（淡すぎて地に沈まないように） */
-}
 
 /* ── base ───────────────────────────────────────────────── */
 *{box-sizing:border-box}
@@ -160,6 +146,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .heads>div:first-child{position:sticky;left:0;z-index:9;background:var(--surface)}
 .hours span{position:absolute;right:9px;transform:translateY(-50%);font-size:var(--fs-xs);color:var(--ink-3);font-variant-numeric:tabular-nums}
 .hours span.now{right:4px;color:var(--on-acc);background:var(--acc);border-radius:5px;padding:1px 4px;font-weight:600;z-index:3}
+.hours span.near{opacity:.55} /* 今の時刻の札に重なるので、ずらした時刻 */
 .day{position:relative;border-left:1px solid var(--rule);background-image:linear-gradient(var(--rule) 1px,transparent 1px);background-size:100% var(--hh)}
 /* 平日の勤務時間（9:00〜18:00）の外は少し暗く（Google カレンダーの勤務時間のように、夜中や早朝の作業がひと目でわかる）。週末は列ごと別の地の色 */
 .day:not(.we){--off:color-mix(in oklab,var(--ink) 4.5%,transparent);background-image:linear-gradient(var(--rule) 1px,transparent 1px),linear-gradient(var(--off) 0,var(--off) calc(var(--hh) * 9),transparent calc(var(--hh) * 9),transparent calc(var(--hh) * 18),var(--off) calc(var(--hh) * 18));background-size:100% var(--hh),100% 100%;background-repeat:repeat,no-repeat}
@@ -446,6 +433,7 @@ h3::after{content:"";flex:1;height:1px;background:var(--rule)}
 .card .me b{margin-left:auto;font-weight:600;color:var(--ink-2);white-space:nowrap}
 .card .me{font-size:var(--fs-xs);color:var(--ink-3);display:flex;gap:8px;align-items:center;margin-top:3px;flex-wrap:wrap}
 .card .me .fq{flex-basis:100%;color:var(--ink-2);font-size:var(--fs-sm);overflow-wrap:anywhere} /* 繰り返しのプロンプト：そのセッションで書いたもの */
+.card.rpt{--c:var(--acc)}.card.rpt .rq{display:flex;gap:10px;align-items:flex-start;min-width:0}.card.rpt q{min-width:0;background:color-mix(in oklab,var(--c) var(--t2),var(--surface));border-radius:18px 18px 18px 4px;padding:6px 14px;font-weight:500;color:var(--ink);overflow-wrap:anywhere;quotes:none}.card.rpt .me{margin-left:40px} /* 繰り返したプロンプトは、セッションの行（印と題名）ではなく、プロンプトの流れと同じ吹き出しで出す */
 .tagx{font-size:var(--fs-xs);color:var(--warn);background:color-mix(in oklab,var(--warn) var(--t1),transparent);border-radius:4px;padding:0 6px}
 .none{color:var(--ink-3);font-size:var(--fs-sm)}
 .foot{margin-top:24px;padding-top:14px;border-top:1px solid var(--rule);font-size:var(--fs-xs);color:var(--ink-3);line-height:1.7}
@@ -604,7 +592,7 @@ button.more{display:block;text-align:left}
 /* ── drawer（セッションの詳細） ──────────────────────────── */
 /* 画面の真ん中に出すモーダル。後ろのカレンダーはしっかり沈め、縁を線と影ではっきりさせる。ダークでは面の明るさが近いので幕を濃くする */
 .scrim{position:fixed;inset:0;z-index:20;background:rgba(10,12,16,.42);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s var(--ease)}
-:root[data-theme="dark"] .scrim{background:rgba(0,0,0,.62)}
+
 .drawer{position:fixed;top:50%;left:50%;z-index:21;width:min(760px,calc(100vw - 48px));max-height:min(92vh,1100px);background:var(--surface);border:1px solid var(--rule-2);border-radius:18px;
   box-shadow:0 40px 100px -20px rgba(0,0,0,.6);overflow:hidden;opacity:0;visibility:hidden;pointer-events:none;transform:translate(-50%,-48%) scale(.97);
   transition:transform .28s var(--ease),opacity .2s var(--ease),visibility 0s .28s;display:flex;flex-direction:column}
@@ -645,7 +633,7 @@ body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:tra
 .drawer .eyebrow{font-size:var(--fs-xs)}
 .drawer h2{font-size:var(--fs-2xl);margin:14px 0 6px} /* 上の行の右に戻る・閉じるが重なるので、題名はその下から */
 .drawer h3{font-size:var(--fs-lg);font-weight:700;color:var(--ink);margin:30px 0 12px}
-.drawer .flowhd{display:flex;align-items:center;gap:6px;margin:30px 0 12px}.drawer .flowhd>h3{margin:0}.drawer .flowhd .fcopy{width:28px;height:28px}.drawer .flowhd .fcopy .ic{width:14px;height:14px} /* 会話全体のコピーは、流れの見出しの横 */
+.drawer .flowhd{display:flex;align-items:center;gap:6px;margin:30px 0 12px}.drawer .flowhd>h3{margin:0}.drawer .flowhd .fcopy{height:28px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs)}.drawer .flowhd .fcopy .ic{width:13px;height:13px} /* 会話全体のコピーは、流れの見出しの横 */
 .drawer h3::after{background:var(--rule-2)}
 .drawer .meta span,.drawer .chips span{font-size:var(--fs-sm);padding:2px 10px}
 .drawer .chips span.mono{font-size:var(--fs-sm)}
@@ -822,14 +810,11 @@ dialog.mdlg h3{margin:20px 0 8px}
 .pill.ai-action:not(:disabled):hover{background:color-mix(in oklab,var(--go) var(--t3),var(--surface));border-color:color-mix(in oklab,var(--go) 60%,var(--surface))}
 .pill.ai-action:focus-visible{outline:2px solid var(--go);outline-offset:3px}
 .pill.ai-action:disabled{background:transparent;color:var(--ink-3);border:1px solid var(--rule-2);opacity:1;cursor:not-allowed} /* 押せないときは色のない枠だけ（押せるボタンの淡い緑と見分ける） */
+.pill.ai-copy{display:inline-flex;align-items:center;gap:6px}.pill.ai-copy .ic{width:14px;height:14px} /* AI を動かせないときの「プロンプトをコピー」 */
+.head .dd .pill.dayrun.ai-copy{padding:0;width:28px;height:28px;display:inline-grid;place-items:center;border-radius:50%}.head .dd .dayrun.ai-copy span{display:none}.head .dd .dayrun.ai-copy .ic{display:block;width:14px;height:14px} /* 日の見出しでは印だけ（文字だと狭い列からはみ出す。名前は aria-label と title） */
 
 /* Analyze with AI is off (kiroku serve --no-ai, or not on a loopback IP): an outlined button that explains how to turn it on, not an action */
-.pill.ai-off{background:transparent;color:var(--go-ink);border:1px dashed color-mix(in oklab,var(--go) 50%,var(--surface));font-weight:500;cursor:help}
-.pill.ai-off:hover{background:color-mix(in oklab,var(--go) var(--t1),var(--surface))}
-.pill.ai-off:focus-visible{outline:2px solid var(--go);outline-offset:3px}
 /* エージェントのコマンドがないとき: 押せないボタンと、その理由（全文は title に） */
-.ai-none{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
-.ai-why{display:block;margin-top:4px;font-size:var(--fs-xs);color:var(--ink-2)} /* 押せない理由は、触れずに読める文で（タッチやキーボードでも） */
 
 html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り返す（対応していないブラウザは今までどおり） */
 /* AI 分析: 経過（コマンド・ツール・エラー出力）と、返事（整えた表示か Markdown のまま） */
@@ -876,7 +861,7 @@ html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り
    1 度に見せるのはどちらか 1 つ（上の期間・数字・見直す候補・凡例は共通）。
    広い画面ではページを画面に固定して、カレンダーは残りの高さいっぱい、スクロールはカレンダーの中だけにする
    （ページとカレンダーが二重にスクロールして、ホイールがカレンダーに取られないように）。境目は影と余白ではっきりさせる */
-body[data-view="cal"] #review>.rvhead,body[data-view="cal"] #review .rvgrid>:not(.metap){display:none} /* カレンダーの表示でも、データソースとページの下（版・問題の報告）は出す */
+body[data-view="cal"] #review>.rvhead,body[data-view="cal"] #review>.insight,body[data-view="cal"] #review .rvgrid>:not(.metap){display:none} /* カレンダーの表示でも、データソースとページの下（版・問題の報告）は出す */
 body[data-view="cal"] #review .rvgrid{display:block}
 body[data-view="cal"] #review{margin-top:28px} /* カレンダーの下端とデータソースのあいだを空ける */
 body[data-view="sum"] #tl,body[data-view="sum"] #skipcal{display:none}
@@ -954,3 +939,108 @@ header{background:var(--s-cont);border-bottom:0}
 @media (min-width:821px){ .drawer{border:0;border-radius:28px;background:var(--surface-2)} }
 @media (max-width:820px){ .head .dd .pill.dayrun{height:28px;padding:0 10px;border-radius:14px} } /* スマホの日ごとの「AI 分析」は小さく（日付の見出しを高くしない） */
 .drawer .tl li.rp p{background:var(--s-lowest)} /* 応答の吹き出しが、詳細の地（surface-2）に沈まないように */
+
+/* ── サマリーの頭（要点・推移といつもの範囲・アドバイス） ── */
+.insight{margin:0 0 24px}
+.insh{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.insgrid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;align-items:start}
+.inscol{background:var(--s-lowest);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow);min-width:0}
+.inscol h4{margin:0 0 10px;font-size:var(--fs-lg);font-weight:600}
+.inshead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}.inshead h4{margin:0}
+.insk{flex-wrap:wrap}.insk button{height:28px;font-size:var(--fs-xs)}
+.insfig{margin:0}.insfig svg{width:100%;height:auto;display:block}
+.insfig .itk line{stroke:var(--rule);stroke-width:1}.insfig .itk text,.insfig .ixl{font-size:11px;fill:var(--ink-3);font-family:var(--sans)}
+.insfig .itk text{text-anchor:end}.insfig .ixl{text-anchor:middle}.insfig .ixl.cur{fill:var(--acc-ink);font-weight:600}
+.insfig .iband{fill:color-mix(in oklab,var(--go) 14%,transparent)}.insfig .imed{stroke:var(--go);stroke-dasharray:4 3;stroke-width:1.2}
+.insfig .ibar{fill:color-mix(in oklab,var(--acc) 30%,var(--surface))}.insfig .ibar.cur{fill:var(--acc)}
+.insfig .iproj{fill:none;stroke:var(--acc);stroke-dasharray:4 3;stroke-width:1.5}
+.insfig .iout{fill:var(--warn)}.insfig .ihit{fill:transparent}
+.insfig figcaption{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;font-size:var(--fs-xs);color:var(--ink-2)}
+.insfig .lg::before{content:"";display:inline-block;width:12px;height:8px;margin-right:5px;vertical-align:middle;border-radius:2px}
+.insfig .lg.iband::before{background:color-mix(in oklab,var(--go) 22%,transparent)}.insfig .lg.imed::before{height:0;border-top:1.5px dashed var(--go)}
+.insfig .lg.iproj::before{border:1.5px dashed var(--acc)}.insfig .lg.iout::before{width:8px;border-radius:50%;background:var(--warn)}
+.insnow{margin:10px 0 0;font-size:var(--fs-sm);color:var(--ink-2)}.insnow.bad{color:var(--warn)}.insnow.good{color:var(--go-ink)}
+.insadv{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;counter-reset:ia}
+.insa{padding:12px 14px 12px 44px;border-radius:12px;background:var(--s-cont);position:relative;counter-increment:ia}
+.insa::before{content:counter(ia);position:absolute;left:12px;top:12px;width:22px;height:22px;border-radius:50%;background:var(--pc);color:var(--on-pc);font-weight:700;font-size:var(--fs-xs);display:grid;place-items:center}
+.insw{display:flex;flex-direction:column;gap:4px}.insw b{font-weight:600;color:var(--ink)}
+.insb{font-size:var(--fs-xs);color:var(--ink-2)}.insb.bad{color:var(--warn)}.insb.good{color:var(--go-ink)}
+.insa .why{margin:6px 0 0;font-size:var(--fs-sm);color:var(--ink-2)}
+.insa .todo{margin:8px 0 0;font-size:var(--fs-sm);color:var(--ink)}.insa .todo span{display:inline-block;margin-right:8px;padding:1px 8px;border-radius:8px;background:var(--sc);color:var(--on-sc);font-size:var(--fs-xs);font-weight:600}
+.insa .insgo{margin-top:10px;height:30px}
+.inskeep{display:flex;gap:8px;align-items:flex-start;margin:12px 0 0;font-size:var(--fs-sm);color:var(--go-ink)}.inskeep .ic{flex:none;margin-top:2px;stroke:var(--go)}
+@media (max-width:1000px){.insgrid{grid-template-columns:minmax(0,1fr)}.insgrid>.insleft{order:2}} /* 1 列のときは、アドバイスを先に */
+@media (max-width:820px){.insh{grid-template-columns:minmax(0,1fr)}.inscol{padding:14px}}
+.insleft{display:flex;flex-direction:column;gap:16px;min-width:0}
+.insheat{margin-top:16px}
+.insfig .izone{fill:color-mix(in oklab,var(--warn) 12%,transparent)}.insfig .lg.izone::before{background:color-mix(in oklab,var(--warn) 24%,transparent)}
+.insfig .ipt{fill:color-mix(in oklab,var(--acc) 55%,transparent);stroke:var(--s-lowest);stroke-width:1;cursor:pointer}.insfig .ipt.bad{fill:var(--warn)}
+.insfig .ipt:hover,.insfig .ipt:focus{stroke:var(--ink);stroke-width:2;outline:none}
+.insfig .iax{font-size:11px;fill:var(--ink-3);text-anchor:end;font-family:var(--sans)}.insfig .iax.st{text-anchor:start}
+.ihgrid{display:grid;grid-template-columns:28px repeat(24,minmax(0,1fr));gap:2px;font-size:10px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.ihgrid .ihd{display:flex;align-items:center;font-size:var(--fs-xs)}.ihgrid .ihh{text-align:left}
+.ihgrid .ihc{height:18px;border-radius:3px;background:color-mix(in oklab,var(--acc) calc(var(--a) * 100%),var(--surface-2))}
+.ihgrid .ihc.off{outline:1px dashed color-mix(in oklab,var(--ink-3) 30%,transparent);outline-offset:-1px}
+.ptab td .pbar{display:inline-block;width:48px;height:6px;margin-right:8px;vertical-align:middle;border-radius:3px;background:var(--surface-2);overflow:hidden}.ptab td .pbar>span{display:block;height:100%;background:var(--c)}
+.ptab th:first-child,.ptab td:first-child{width:30%}
+@media (max-width:820px){.ptab th:nth-child(3),.ptab td:nth-child(3){display:none}.ihgrid{grid-template-columns:22px repeat(24,minmax(0,1fr));gap:1px}.ihgrid .ihc{height:14px}}
+
+.itile{padding:14px 18px;border-radius:16px;background:var(--s-cont);display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;border-left:4px solid var(--rule-2)}
+.itile.good{border-left-color:var(--go)}.itile.bad{border-left-color:var(--warn)}
+.itile .il{font-size:var(--fs-xs);color:var(--ink-2)}.itile b{font:700 var(--fs-3xl)/1.15 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink)}.itile b.sm{font-size:var(--fs-xl);line-height:1.4}
+.itile small{font-size:var(--fs-xs);color:var(--ink-2)}
+.ichip{display:inline-block;padding:1px 8px;border-radius:8px;font-size:var(--fs-xs);font-weight:600;background:var(--surface-2);color:var(--ink-2);white-space:nowrap}
+.ichip.good{background:color-mix(in oklab,var(--go) 16%,var(--surface));color:var(--go-ink)}.ichip.bad{background:color-mix(in oklab,var(--warn) 14%,var(--surface));color:var(--warn)}
+.insrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:16px;align-items:start}.insrow.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.insrow.two:last-child{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
+.insw{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:6px 8px}
+.insa .todo{display:flex;gap:6px;align-items:flex-start;margin:6px 0 0}.insa .todo .ti{flex:none;margin-top:3px;width:14px;height:14px;stroke:var(--acc)}
+.insa .insgo{margin-top:8px;height:28px;font-size:var(--fs-xs)}
+.inskeep b{margin-left:4px}
+.insfig .icum{fill:none;stroke:var(--acc);stroke-width:2.5;stroke-linejoin:round}.insfig .iprev{fill:none;stroke:var(--ink-3);stroke-width:1.5;stroke-dasharray:5 4}.insfig .icumd{fill:var(--acc)}
+.insfig .lg.icum::before{height:0;border-top:2.5px solid var(--acc)}.insfig .lg.iprev::before{height:0;border-top:1.5px dashed var(--ink-3)}
+.idonut{display:flex;gap:14px;align-items:center}.idonut svg{width:140px;flex:none}.idonut .idc{font:700 15px var(--sans);fill:var(--ink);text-anchor:middle}
+.idleg{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;min-width:0;flex:1;font-size:var(--fs-sm)}
+.idleg li{display:flex;align-items:center;gap:6px;min-width:0}.idleg i{flex:none;width:9px;height:9px;border-radius:50%}.idleg span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.idleg b{font-variant-numeric:tabular-nums}
+.insfig .ihb{fill:color-mix(in oklab,var(--acc) 35%,var(--surface))}.insfig .ihb.med{fill:var(--acc)}.insfig .ihn{font-size:11px;fill:var(--ink-2);text-anchor:middle;font-family:var(--sans)}
+.istat{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;margin:8px 0 0;font-size:var(--fs-sm);color:var(--ink-2)}.istat b{color:var(--ink);margin:0 2px}
+@media (max-width:1000px){.insrow,.insrow.two,.insrow.two:last-child{grid-template-columns:minmax(0,1fr)}}
+.insfig .ixl.s{text-anchor:start}.insfig .ixl.e{text-anchor:end}
+.insfig.ihist svg{max-height:220px}
+/* 式と不等式：計算だとわかるよう、等幅の小さな枠に */
+.ifx{font-family:var(--mono);font-size:var(--fs-xs);color:var(--ink-2);background:var(--surface-2);border-radius:6px;padding:1px 6px;white-space:normal;overflow-wrap:anywhere}
+.ifx.good{color:var(--go-ink);background:color-mix(in oklab,var(--go) 14%,var(--surface))}.ifx.bad{color:var(--warn);background:color-mix(in oklab,var(--warn) 12%,var(--surface))}
+.ichip.ifx{font-weight:500}
+.ifxs{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin:8px 0 0;font-size:var(--fs-xs)}
+.itile .ifx{max-width:100%}
+.idleg .iv{flex:none;color:var(--ink-3);font-variant-numeric:tabular-nums;margin-right:6px}
+.ifxs.insdef{margin:-8px 0 16px}
+/* カードの間に隙間を作らない：同じ段のカードは高さをそろえ、左の列の下のカードが残りを埋める */
+.insgrid,.insrow{align-items:stretch}
+.insleft>.inscol:last-child{flex:1}
+.inscol{display:flex;flex-direction:column}.inscol>.insfig{flex:1;display:flex;flex-direction:column}.inscol>.insfig>figcaption,.inscol>.insfig>.ifxs:last-child{margin-top:auto;padding-top:8px}
+.idonut{flex-direction:row}
+/* グラフの読み取り：見出しのすぐ下に、データから計算した 1 文 */
+.isay{margin:-4px 0 10px;font-size:var(--fs-md);font-weight:600;color:var(--ink);line-height:1.45}
+.insfig .ixl.sub{font-size:10px;fill:var(--ink-3)}
+.ithen{margin:-6px 0 10px;font-size:var(--fs-sm);color:var(--acc-ink);font-weight:500}
+.inscol>.insfig.idonut{flex-direction:row;align-items:center}
+.insrow.one{grid-template-columns:minmax(0,1fr)}
+/* どこに使ったか：大きい順の横棒（名前・棒・値・割合） */
+.iwrows{display:flex;flex-direction:column;gap:6px}
+.iwr{display:grid;grid-template-columns:minmax(0,30%) minmax(0,1fr) auto 3.2em;gap:10px;align-items:center;font-size:var(--fs-sm)}
+.iwn{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.iwn i{flex:none;width:9px;height:9px;border-radius:50%}
+.iwb{height:12px;background:var(--surface-2);border-radius:4px;overflow:hidden}.iwb>span{display:block;height:100%;border-radius:4px}
+.iwv{color:var(--ink-2);font-variant-numeric:tabular-nums;text-align:right}.iwr b{text-align:right;font-variant-numeric:tabular-nums}
+/* カードの中の数の枠 */
+.istats{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.insrow.one .istats{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.istats .stat{background:var(--s-cont);border:0;border-radius:12px}
+.istats .stat .s{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
+.istats .stat,.istats .stat:last-child:nth-child(odd){grid-column:auto} /* 2 列の欄の「最後の 1 つは横いっぱい」を、カードの中では使わない */
+.itile .itv{font:700 var(--fs-3xl)/1.15 var(--sans);letter-spacing:-.02em;color:var(--ink);text-align:left;border-radius:6px}.itile .itv:hover{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:4px}
+/* どのカードの中も最大 3 列 */
+.istats,.insrow.one .istats{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:1000px){.istats,.insrow.one .istats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.istats,.insrow.one .istats{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:1000px) and (min-width:821px){.insh{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.itile .itv.sm{font:600 var(--fs-xl)/1.4 var(--sans)}.itile .isee{font-size:var(--fs-sm);color:var(--ink-2)}

@@ -19,9 +19,9 @@ await p.addInitScript(() => { window.__hits = []; window.alert = x => { window._
 let failed = 0;
 await p.goto("file://" + path.resolve(html));
 await p.waitForTimeout(300);
-// デモでない保存した HTML には、AI の操作がない（デモだけ例外）
-{ const n = await p.locator("#rptrun, #srun, .dayrun, .ai-action, .ai-off, .ai-none").count();
-  if (n) { failed++; console.log(`  FAIL saved HTML shows AI controls: ${n}`); } else console.log("  ok   saved HTML (not the demo) shows no AI controls"); }
+// デモでない保存した HTML には、AI を動かす操作がない（デモだけ例外）。あるのはプロンプトのコピーだけ
+{ const n = await p.locator(".ai-action, #rptrun").count();
+  if (n) { failed++; console.log(`  FAIL saved HTML shows AI run controls: ${n}`); } else console.log("  ok   saved HTML (not the demo) shows no AI run controls"); }
 
 const check = async step => {
   const r = await p.evaluate(() => ({
@@ -61,6 +61,24 @@ await clickAll(".run", "session", async () => {
 });
 await clickAll(".gc", "commit");
 await clickAll(".gm", "pull request");
+// サマリー（概要のカード）。履歴の名前が文字・title・aria-label・ツールチップ・data-* に入るので、どの切り替えも押して確かめる。
+// style には決まった値（色の変数・数）だけが入る（履歴の文字は入らない）
+const summaryCheck = async label => {
+  const sw = p.locator("#view button[data-v=sum]"); if (!(await sw.count())) { console.log(`  skip summary ${label} (no view switch)`); return; }
+  await sw.click(); await p.waitForTimeout(200); await check(`summary ${label}`);
+  await clickAll("#review [data-ins]", `summary ${label} metric`);
+  await clickAll("#review [data-where]", `summary ${label} where`);
+  await clickAll("#review .insgo, #review .fmark", `summary ${label} advice`, async () => { await p.keyboard.press("Escape"); await p.waitForTimeout(80); });
+  await clickAll("#review circle[data-sid]", `summary ${label} point`, async () => { await p.keyboard.press("Escape"); await p.waitForTimeout(80); });
+  await clickAll("#review [data-metric]", `summary ${label} breakdown`, async () => { await p.keyboard.press("Escape"); await p.waitForTimeout(80); });
+  const n = await p.locator("#review [data-tip]").count();
+  for (let i = 0; i < Math.min(n, 60); i++) { await p.locator("#review [data-tip]").nth(i).hover({ force: true }).catch(() => {}); }
+  await check(`summary ${label} tooltips`);
+  const badStyle = await p.evaluate(() => [...document.querySelectorAll("#review .insight [style]")].map(e => e.getAttribute("style")).filter(v => !/^(--a:[\d.]+|(fill|background):var\(--[\w-]+\)|width:[\d.]+%;background:var\(--[\w-]+\))$/.test(v)));
+  if (badStyle.length) { failed++; console.log(`  FAIL summary ${label} style values: ${JSON.stringify(badStyle.slice(0, 5))}`); } else console.log(`  ok   summary ${label} style values`);
+  await p.click("#view button[data-v=cal]"); await p.waitForTimeout(150);
+};
+await summaryCheck("week");
 await clickAll("#review .card", "summary card");
 // 内訳のダイアログ（上の帯とサマリーの数字）。プロジェクト名やセッション名が棒やカードに入るので、どれも開いて確かめる
 await clickAll("[data-metric]", "breakdown", async () => { // 内訳の中のコミット・push・PR の行は、詳細を開く
@@ -73,7 +91,7 @@ for (const q of ["<img", "alert", "__META__", "javascript", '"><svg']) {
   await clickAll("#sres .srow", `search result ${q}`);
 }
 await p.fill("#q", "");
-try { await p.click("#mode button[data-v=month]"); await check("month"); } catch (e) { console.log("  skip month (not in this file)"); }
+try { await p.click("#mode button[data-v=month]"); await check("month"); await summaryCheck("month"); } catch (e) { console.log("  skip month (not in this file)"); }
 
 // AI に渡すプロンプト（セッションの振り返り・週報）で、履歴の改行から kiroku の行に見える偽の行を作れない（週報は週の表示でだけ作る）
 await p.evaluate(() => { if (st.mode !== "week"){ st.mode = "week"; render(); } }); // ボタンが出ない HTML もあるので、表示を直接切り替える

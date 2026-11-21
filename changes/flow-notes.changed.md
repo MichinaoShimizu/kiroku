@@ -1,0 +1,1 @@
+- Session details: the two paragraphs under the prompt flow are gone. What "AI worked" and "you replied after" measure, and what the AI's reply is, now show when you point at them (and are in the guide)

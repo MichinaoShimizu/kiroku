@@ -173,9 +173,12 @@ try {
   const pn = await ctx.newPage();
   await openWithKey(pn, none.url);
   await pn.waitForSelector(".run[data-sid]", { timeout: 15000 });
-  check("エージェントがないと、日報のボタンは出さない（理由はセッションの詳細で言う）", await pn.locator(".head .dayrun").count() === 0);
-  await pn.evaluate(() => select(DATA.find(s => s.prompts.length).id)); await pn.waitForSelector("#panel .ai-none", { timeout: 5000 });
-  check("エージェントがないと、ボタンは押せず、理由が添えてある", await pn.locator("#panel .ai-none button").isDisabled() && /No AI agent command/.test(await pn.locator("#panel .ai-why").innerText()) && /claude, codex or kiro-cli/.test(await pn.locator("#panel .ai-why").innerText()));
+  check("エージェントがないと、日報はプロンプトのコピーになる", await pn.locator(".head .dayrun.ai-copy").count() > 0 && await pn.locator(".ai-action").count() === 0);
+  await pn.evaluate(() => select(DATA.find(s => s.prompts.length).id)); await pn.waitForSelector("#panel #srun.ai-copy", { timeout: 5000 });
+  { const r = await pn.evaluate(async () => { window.__copied = null; navigator.clipboard.writeText = t => { window.__copied = t; return Promise.resolve(); };
+      document.querySelector("#panel #srun").click(); await new Promise(z => setTimeout(z, 300));
+      return {got: window.__copied || "", toast: document.querySelector("#toast").textContent, dialog: !!document.getElementById("ai-review-dialog")}; });
+    check("エージェントがないと、振り返りはプロンプトをコピーするだけ（ダイアログも実行もない）", /History data|history file/i.test(r.got) && !r.dialog && /--ai/.test(r.toast), JSON.stringify({...r, got: r.got.slice(0, 60)})); }
   await pn.close();
   // 既定（--ai なし）はオフ: 起動の 1 行がそう言い、/ai/run はなく、日報のボタンも出ない
   const dflt = await startExtra(serveArgs.filter(a => a !== "--ai"), {});
@@ -183,7 +186,7 @@ try {
   const pz = await ctx.newPage();
   await openWithKey(pz, dflt.url);
   await pz.waitForSelector(".run[data-sid]", { timeout: 15000 });
-  check("--ai を付けなければ、日報のボタンも AI の操作もない", await pz.locator(".dayrun, #srun, .ai-action").count() === 0 && !((await pz.locator("#live").getAttribute("aria-label")) || "").includes("AI on"));
+  check("--ai を付けなければ、AI を動かすボタンはなく、日報はプロンプトのコピーになる", await pz.locator(".ai-action").count() === 0 && await pz.locator(".head .dayrun.ai-copy").count() > 0 && !((await pz.locator("#live").getAttribute("aria-label")) || "").includes("AI on"));
   const sz = await pz.evaluate(async k => (await fetch("ai/run", { method: "POST", headers: { "X-Kiroku-Key": k, "X-Kiroku": "1", "Content-Type": "application/json" }, body: JSON.stringify({ agent: "codex", prompt: "x", consent: true }) })).status, key);
   check("--ai を付けなければ、鍵があっても /ai/run は 404", sz === 404, String(sz));
   await pz.close();
@@ -192,8 +195,8 @@ try {
   const po = await ctx.newPage();
   await openWithKey(po, off.url);
   await po.waitForSelector(".run[data-sid]", { timeout: 15000 });
-  await po.evaluate(() => select(DATA.find(s => s.prompts.length).id)); await po.waitForSelector("#panel .ai-off", { timeout: 5000 });
-  check("--no-ai では「Analyze with AI (off)」だけ", await po.locator(".dayrun, #srun, .ai-action").count() === 0);
+  await po.evaluate(() => select(DATA.find(s => s.prompts.length).id)); await po.waitForSelector("#panel #srun.ai-copy", { timeout: 5000 });
+  check("--no-ai では、振り返りと日報はプロンプトのコピーだけ", await po.locator(".ai-action").count() === 0 && await po.locator(".head .dayrun.ai-copy").count() > 0);
   const st = await po.evaluate(async k => (await fetch("ai/run", { method: "POST", headers: { "X-Kiroku-Key": k, "X-Kiroku": "1", "Content-Type": "application/json" }, body: JSON.stringify({ agent: "codex", prompt: "x", consent: true }) })).status, key);
   check("--no-ai では、鍵があっても /ai/run は 404", st === 404, String(st));
   await po.close();

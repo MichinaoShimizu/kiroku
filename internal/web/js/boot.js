@@ -21,4 +21,4 @@ render(); scrollToWork(); openAtWork();
 applyStaticText();
 const mq = matchMedia("(max-width:1000px)"),
  ph = () => $("#q").placeholder = t(mq.matches ? "Search" : "Prompts, files, commits"); // 狭い画面では入力欄も狭いので短く
-ph(); applyTheme();
+ph();

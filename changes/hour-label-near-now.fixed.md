@@ -1,0 +1,1 @@
+- Week calendar: the hour next to the current-time marker (such as 12:00 at 11:50) is no longer hidden; it moves just past the marker in a lighter color

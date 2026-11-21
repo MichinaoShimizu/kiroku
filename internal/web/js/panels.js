@@ -246,45 +246,6 @@ function periodGit(){
   const ps = (META.push || []).filter(p => p.t >= ws && p.t < we);
   return {files: files.size, trunc, projects: projects.size, pushes: ps.length, refs: new Set(ps.map(p => `${p.repo}\u0000${p.ref}`)).size};
 }
-/* アウトプット：使ったもの（コスト）→ git に残ったもの → その 2 つを割った指標（Compared）の順に並べる。
-   残ったものは、出したものの量であって、価値や生産性ではない */
-function outcomePanel(w, pw, unit){
-  const o = w.outputs || {commits:0}, g = w.git, u = w.usage || {};
-  const gc = g && g.commits ? g : null; // git のコミット（行・ファイル・push は git から数えるので、これがないときは出さない）
-  const hasOut = o.commits || gc || o.prs, hasCommit = o.commits || gc;
-  const po = pw && pw.outputs, V = vsPrev(pw, unit), d = (a, b) => V.diff(a, V.of(null, b)); // AI のコミットと PR は日ごとの値がないので、途中の期間は比べない
-  const n = commas, times = v => `${v}`, base = w.outBase ?? w.sessions;
-  const cost = [
-    statH(esc(t("Active time")), dur(w.active,true), V.diff(w.active, V.of("active", pw && pw.active), dur), "active", "active"),
-    statH(esc(t("Prompts")), n(w.prompts), V.diff(w.prompts, V.of("prompts", pw && pw.prompts)), "prompts", "sessions"),
-    u.tokens ? statH(esc(t("Estimated cost")), usdH(costOf(u)), costOf(u) == null ? esc(t("Models not in the price table")) : V.diff(u.cost, V.of("cost", pw && pw.usage && pw.usage.cost), usd), "cost", "cost") : "",
-    u.tokens ? statH(esc(t("Tokens")), tok(u.tokens), esc(t("Output tokens {n}", {n: tok(u.out)})), "tokens", "tokens") : "",
-    u.credits ? statH(esc(t("Kiro credits")), crN(u.credits), esc(t("Not an estimate")), "credits", "credits") : "",
-  ].join("");
-  const lines = gc ? gc.added + gc.removed : 0;
-  const out = hasOut ? [
-    gc ? statH(esc(t("Git commits")), times(gc.commits), `${esc(t("{n} by AI ({pct}%)", {n: gc.ai, pct: Math.round(gc.ai*100/gc.commits)}))}${pw && pw.git ? ` · ${V.diff(gc.commits, V.of("commits", pw.git.commits))}` : ""}`, "gitCommits", "commits") : "",
-    gc ? "" : statH(esc(t("AI commits")), times(o.commits), d(o.commits, po && po.commits), "commits", o.commits ? "aiCommits" : ""), // Git のコミットがあれば「うち AI」に出ている
-    gc ? statH(esc(t("Lines changed")), n(lines), `+${n(gc.added)} −${n(gc.removed)} · ${esc(t("{n} per Git commit", {n: n(Math.round(lines/gc.commits))}))}`, "lines", "lines") : "",
-    o.prs ? statH(esc(t("Pull requests")), times(o.prs), esc(t("Created by AI")), "prs", "prs") : "",
-  ].join("") : "";
-  // 使ったものと比べた指標。残ったものではないので別の行にして、何と何を割ったかを添える
-  const cmp = hasCommit ? [
-    w.costPerCommit != null ? statH(esc(t("Estimated cost per commit")), usdH(w.costPerCommit), esc(t("Claude Code's estimated cost ÷ {commits}", {commits: plural(o.commits, "AI commit")})), "costPerCommit", "costPerCommit") : "",
-    statH(esc(t("Sessions that reached a commit or PR")), base ? `${Math.round(w.outSessions*100/base)}<small>%</small>` : "—", esc(t("{n} of {sessions}", {n: w.outSessions, sessions: plural(base, "session")})), "outSessions", base ? "outSessions" : ""),
-  ].join("") : "";
-  // 「残ったもの」に添える一言は、実際に出したカードから作る（git を読めなかった週に、行やファイルがあるように書かないため）
-  const names = [o.commits || gc ? "commits" : "", gc ? "lines" : "", o.prs ? "pull requests" : ""].filter(Boolean); // ファイル数と push はサマリーに出さない（コミットの内訳とカレンダーの印にある）
-  const outSub = esc(!names.length ? t("From git and from history") : JA ? names.map(x => t(x)).join("・") : names.join(", ").replace(/, ([^,]+)$/, " and $1").replace(/^./, c => c.toUpperCase())); // 日本語は「・」でつなぐ
-  const side = (cls, label, sub, body) => `<div class="ocside ${cls}"><div class="ocl"><b>${label}</b><span>${sub}</span></div>${body}</div>`;
-  return fold("oc", panelH(2, esc(t("Cost and outputs")), esc(t(perLabel(unit, "What you spent this month and what it left behind", "What you spent this week and what it left behind", "What you spent in the month shown and what it left behind", "What you spent in the week shown and what it left behind"))), "outputs"), `
-    <div class="ocgrid">
-      ${side("spent", esc(t("Cost")), esc(t("Time and usage")), `<div class="stats">${cost}</div>`)}
-      <div class="ocarrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-      ${side("left", esc(t("Left behind")), outSub, out ? `<div class="stats">${out}</div>${gc ? "" : noneH(esc(t("Lines, files and pushes are counted from Git commits, which were not read here.")))}` : noneH(esc(t("No commits recorded."))))}
-    </div>
-    ${cmp ? side("occmp", esc(t("Compared")), esc(t("Cost ÷ what it left behind")), `<div class="stats">${cmp}</div>`) : ""}`);
-}
 /* 計測の状態 */
 /* kiroku html --week / --month で書き出した、1 つの期間だけのファイル。渡された人がいちばん上で、何のファイルか・ほかの期間が空の理由・
    どの時計で見ているかがわかるように */
@@ -428,23 +389,6 @@ function pacing(w, pw){ const {ws, we} = period(), now = nowMs()/1000;
   const u = w.usage || {}, p = pw.usage || {};
   const cost = one(p.tokens ? costOf(p) : null, u.tokens ? costOf(u) : 0), credits = one(p.credits, u.credits || 0);
   return cost || credits ? {left, cost, credits} : null; }
-function aiUsage(w, pw, unit){
-  const u = w.usage; if (!u || (!u.tokens && !u.credits)) return "";
-  const pj = projection(w);
-  const totalC = u.models.reduce((t,r)=>t+r[1],0) || 1, totalT = u.models.reduce((t,r)=>t+r[2],0) || 1, byCost = totalC > 0.0001;
-  return `<div class="stats">
-      ${pj && pj.cost != null ? statH(esc(t("Month-end cost (estimate)")), "≈ " + usdH(pj.cost), esc(t("If the pace of the first {n} days continues", {n: pj.days}) + bandNote(pj.band.cost, usd)), "projection", "projection") : ""}
-      ${pj && pj.credits != null ? statH(esc(t("Month-end credits (estimate)")), `≈ ${crN(pj.credits)}<small> cr</small>`, esc(t("If the pace of the first {n} days continues", {n: pj.days}) + bandNote(pj.band.credits, cr)), "projectionCr", "projectionCr") : ""}
-      ${u.tokens ? statH(esc(t("Read from cache")), u.cacheHit==null ? "—" : `${Math.round(u.cacheHit*100)}<small>%</small>`, esc(t("Share of input")), "cache", u.cacheHit == null ? "" : "cache") : ""}
-      ${(() => { const {ws, we} = period(), N = !u.subagents && unrecorded(ws, we, "subagents"); return N ? norecStat(esc(t("Subagents")), N, "subagents") : statH(esc(t("Subagents")), `${u.subagents}`, esc(u.subagents ? t("Total run time {d}", {d: dur(u.subMin)}) : t("Not used")), "subagents", u.subagents ? "subagents" : ""); })()}
-      ${w.costPerAsk != null ? statH(esc(t("Estimated cost per prompt")), usdH(w.costPerAsk), esc(w.costPrompts === 1 ? t("1 prompt with token data") : t("{n} prompts with token data", {n: commas(w.costPrompts)})), "costPerAsk", "costPerAsk") : ""}
-    </div>
-    ${u.models.length ? `${secH(esc(byCost ? t("By model (estimated cost)") : t("By model (tokens)")), "models")}
-      <div class="mstack">${u.models.map((r,i)=>`<span style="flex:${byCost?r[1]:r[2]};--o:${shade(i)}"${tipAttr((r[0]), t("Estimated cost {usd}", {usd: usd(r[1])}), t("Tokens {n}", {n: tok(r[2])}), `${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%`)}></span>`).join("")}</div>
-      ${u.models.slice(0,6).map((r,i)=>`<div class="mrow"><span class="nm"><i style="--o:${shade(i)}"></i>${esc((r[0]))}</span><span class="tm">${!r[1] && (u.unpricedModels || []).includes(r[0]) ? `<span title="${esc(t("Not in the price table"))}">—</span>` : usd(r[1])}<small>${tok(r[2])}</small></span><span class="pc">${Math.round((byCost?r[1]/totalC:r[2]/totalT)*100)}%</span></div>`).join("")}` : ""}
-    ${u.subTypes.length ? `${secH(esc(t("Subagent types (calls)")))}<div class="chips">${u.subTypes.map(([k,v])=>`<span class="mono">${esc(k)}<b>${v}</b></span>`).join("")}</div>` : ""}
-    ${u.heavy.length ? `${secH(esc(t("Heaviest sessions")), "heavy")}${u.heavy.map(h => sesCardH(sesById(h.id, h.title), sesMeta(h, h.subagents ? esc(plural(h.subagents, "subagent")) : ""), usd(h.cost))).join("")}` : ""}`;
-}
 // foot は、ページのいちばん下：作った時刻・kiroku の版（リリースのページへ）・リポジトリへのリンク。
 // リンクは押したときに開くだけで、kiroku からは何も送らない（noopener noreferrer）
 const REPO = "https://github.com/MichinaoShimizu/kiroku";

@@ -104,8 +104,9 @@ function findList(w, pw, unit){
   const F = [], u = w.usage || {}, o = w.outputs || {}, {ws, we} = period();
   const M = unit === "月", V = vsPrev(pw, unit);
   // en と L で違う値：期間の言い方と、数と名詞（plural は日本語の画面で日本語になる）
-  const en = {period: uThis(unit), last: uLast(unit), prev: V.n == null ? uLast(unit) : V.range};
-  const loc = {period: M ? t("this month") : t("this week"), last: M ? t("last month") : t("last week")}; loc.prev = V.n == null ? loc.last : V.range;
+  const cur = soFar() != null; // 表示中の期間が今の週・月でなければ「今週」と言わない
+  const en = {period: cur ? uThis(unit) : M ? "in the month shown" : "in the week shown", last: uLast(unit), prev: V.n == null ? uLast(unit) : V.range};
+  const loc = {period: cur ? (M ? t("this month") : t("this week")) : M ? t("in the month shown") : t("in the week shown"), last: M ? t("last month") : t("last week")}; loc.prev = V.n == null ? loc.last : V.range;
   const tx = (s, v = {}, l = {}) => ({en: fillEn(s, {...en, ...v}), l: t(s, {...loc, ...v, ...l})});
   const ses = n => [{sessions: pluralEn(n, "session")}, {sessions: plural(n, "session")}];
   const add = (k, score, see, why, rule, ids) => F.push({k, score, see: see.en, why: why.en, rule: rule.en, ids: ids || [],
@@ -170,7 +171,7 @@ function openWorth(id, from){
   const hd = $("#wkh"); hd.tabIndex = -1; hd.focus(); } // 最初のボタンではなく見出しへ（読み上げで何のダイアログかわかり、セッションを押した表示にもならない）
 function placeFlags(R, F){ // 基準を超えた指標の名前の横に、小さな印だけを付ける（押すと「Worth a look」と同じダイアログ。中身はダイアログにだけ出し、サマリーで繰り返さない）
   [...new Set(F.map(f => GOTO[f.k] || f.k))].forEach(id => {
-    const hb = R.querySelector(`.panel .hb[data-help="${id}"]`); if (!hb) return;
+    const hb = R.querySelector(`.insight .hb[data-help="${id}"], .panel .hb[data-help="${id}"]`); if (!hb) return;
     hb.insertAdjacentHTML("beforebegin", `<button class="fmark" data-goto="${id}" aria-haspopup="dialog" aria-label="${esc(t("Worth a look: {name}", {name: H()[id].n}))}" title="${esc(t("Crossed a threshold. Click to see why."))}">${ico("flag", "fdot")}</button>`);
     // 閉じた折りたたみの中の印は、見出しにも出す（開かずに、中に印があるとわかるように）。折りたたみが重なっていれば（③ からのパネルの中の「もっと見る」）、どれの見出しにも
     for (let dt = hb.closest("details"); dt; dt = dt.parentElement.closest("details")){ const sm = dt.querySelector(":scope > summary");

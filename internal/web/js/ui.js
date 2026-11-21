@@ -62,7 +62,6 @@ const dHead = (eyebrow, title, when, meta) => `<div class="eyebrow"><span class=
    panelH: サマリーのパネルの見出し（n は番号。null なら番号なし、s は添える一言、h は「?」の説明の id）
    secH:   パネルや詳細の中の見出し（h3）。h があれば「?」を付ける */
 const panelH = (n, t, s, h) => `<div class="ph">${n == null ? "" : `<span class="no">${n}</span>`}<h3>${t}${hb(h)}</h3>${s ? `<span>${s}</span>` : ""}</div>`;
-const secH = (t, h) => `<h3>${t}${hb(h)}</h3>`;
 /* 数の枠：k は名前、v は値（HTML）、s は下の一言（HTML）、h は「?」の説明の id、m は押すと開く内訳（metric.js の BRK の id）。
    m があれば値をボタンにし、枠全体を押せるようにする（「?」と印は枠の上に重ねて、別に押せる）。記録しないエージェントだけなら norecStat */
 // 値のボタンの読み上げの名前は、名前（k）と値をつなげたもの（aria-labelledby で両方を指す。「?」の名前は入れない）

@@ -1,0 +1,1 @@
+- Summary: the four folded panels (By project, Cost and outputs, How you worked, How you used AI) and the project cards. Their figures are in the new cards; the lists of sessions with possible friction, repeated prompts and the heaviest sessions are reached from the advice, "Worth a look" and the scatter

@@ -199,7 +199,9 @@ function timeline(shown, inWeek, ws, we, todayKey){
   const nowS = nowMs()/1000, w = WEEKS[key(st.week)];
   let heads = '<div></div>', hours = "", cols = "";
   const nowH = nowS >= ws && nowS < we ? clockH(new Date(nowS*1000), nowS) : -9;
-  for (let h=1; h<24; h++) if (Math.abs(h - nowH) * hh >= 20) hours += `<span style="top:${h*hh}px">${String(h).padStart(2,"0")}:00</span>`;
+  // 今の時刻の札（高さ約 20px）に重なる時刻は、消さずに札の上か下へずらして薄く出す（12:00 が見えなくならないように）
+  for (let h=1; h<24; h++){ const d = (h - nowH) * hh, near = nowS >= ws && nowS < we && Math.abs(d) < 20;
+    hours += `<span${near ? ' class="near"' : ""} style="top:${near ? nowH*hh + (d >= 0 ? 20 : -20) : h*hh}px">${String(h).padStart(2,"0")}:00</span>`; }
   if (nowS >= ws && nowS < we) hours += `<span class="now" style="top:${nowH*hh}px">${hm(nowS)}</span>`;
   const runs = [], un = filtering() ? 1 : 0, G = gitShown(shown), kinds = useKinds(w ? w.days : []);
   for (let d=0; d<7; d++){
@@ -207,7 +209,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
     const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${(act || dayGit.length) && (aiRun() || aiDemo()) ? `<button class="pill dayrun ai-action" data-d="${d}" type="button" aria-label="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}" title="${esc(t("Analyze with AI: daily report for {date}", {date: md(ds)}))}">${ico("ai")}<span>${esc(t("Analyze with AI"))}</span></button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calLine(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`; // まだ来ていない日に「目安」は置かない（同じ額が上の帯の「前の週並みの 1 日の目安」にある）
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${(act || dayGit.length) ? (run => `<button class="pill dayrun ${run ? "ai-action" : "ai-copy"}" data-d="${d}" type="button" aria-label="${esc(run ? t("Analyze with AI: daily report for {date}", {date: md(ds)}) : t("Copy the daily report prompt for {date}", {date: md(ds)}))}" title="${esc(run ? t("Analyze with AI: daily report for {date}", {date: md(ds)}) : t("Copy the daily report prompt for {date}", {date: md(ds)}))}">${ico(run ? "ai" : "copy")}<span>${esc(run ? t("Analyze with AI") : t("Copy prompt"))}</span></button>`)(aiRun() || aiDemo()) : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calLine(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`; // まだ来ていない日に「目安」は置かない（同じ額が上の帯の「前の週並みの 1 日の目安」にある）
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);

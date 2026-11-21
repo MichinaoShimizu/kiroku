@@ -12,8 +12,7 @@ if (fakeNow && isNaN(fakeNow)) { console.error(`KIROKU_FAKE_NOW を日時とし�
 // README と guide の画像は、ライトテーマ・プロジェクトごとの色分けで撮る（画面の既定はダーク・エージェントごと。説明の文と合わせる）。
 // 撮るためのどのコンテキストも clock を通るので、ここで決める
 const clock = async ctx => { if (fakeNow) await ctx.clock.install({ time: fakeNow });
-  await ctx.addInitScript(() => { try { localStorage.setItem("kiroku:theme", '"light"'); localStorage.setItem("kiroku:colorBy", '"project"');
-    localStorage.setItem("kiroku:fold:projs", "true"); localStorage.setItem("kiroku:fold:oc", "true"); } catch (e) {} }); // サマリーの画像（summary.png）には、① と ② を開いて写す（画面の既定は閉じている）
+  await ctx.addInitScript(() => { try { localStorage.setItem("kiroku:theme", '"light"'); localStorage.setItem("kiroku:colorBy", '"project"'); } catch (e) {} });
   return ctx; };
 const b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 const ctx = await clock(await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, timezoneId: "Asia/Tokyo", locale: "en-US", colorScheme: "light" }));
