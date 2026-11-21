@@ -2,6 +2,25 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v4.2.0 - 2026-11-21
+
+### Added
+
+- Session details: an Output section for every agent, with Git (commits during the session, with the share by AI where the agent records it, and pull requests) and AI edits (files and lines edited, with Kiro credits or estimated cost per 100 AI-edited lines). Kiro sessions used to show no output there
+- Summary: estimated cost, Kiro credits and tokens per 100 AI-edited lines, in the Unit cost row and the Trend. They divide by the lines the agents edited according to history, so unlike Kiro credits per Git commit they don't depend on commits you made by hand
+- Summary: estimated cost, Kiro credits and tokens per session in How you used AI, each divided by the sessions that record it
+- Summary Output · Git: lines and files in Git commits, repositories and days with commits, pushes and pull requests, next to Git commits; AI edits also shows files edited by AI
+
+### Changed
+
+- Outputs are kept in two parts everywhere, never added together: **Git** (commits, lines in Git commits and pull requests, from your repositories) and **AI edits** (files and lines the agents changed with their edit tools, from history, committed or not). The summary's Output and Unit cost rows, the Outputs card and session details show them under their own headings and marks. Renamed: "Lines changed" is "Lines in Git commits", "Files/Lines changed by AI" are "Files/Lines edited by AI", "Most changed files" is "Most edited files", and the unit costs per commit are per Git commit
+- Summary: formulas are always shown, and "Change first" and the formula switch are gone. Every metric that is worth a look has its mark next to a figure (Possible friction and Repeated prompts are now figures in How you worked)
+- Summary: figures are tinted green or red by which side of your usual range they fall on, stronger when far outside it, with a line between the figures in a card
+- Summary layout: the figure cards and the chart cards sit three to a row on wide windows (two, then one, as the window narrows), and a card left over at the end of a row widens to fill it. Output and Unit cost share one heading, and By agent and Outputs no longer take a full row
+- A value whose label already names its unit (Kiro credits, Month-end credits, credits per Git commit and so on) no longer repeats "credits", in the band, the summary and the breakdowns
+- Most edited files: the file name opens the file (as of the session's commits, or on this computer), and the number of edits opens the session that changed it most
+- Calendar: today has a "Today" badge and an outlined column in the week calendar, and an outlined day in the month calendar
+
 ## v4.1.1 - 2026-11-21
 
 ### Fixed
