@@ -1,3 +1,5 @@
 - Summary: the Trend draws rates (per Git commit, per 100 AI-edited lines, cache, corrections, wait) as a line with points, and keeps bars for totals (cost, Kiro credits, tokens, time)
 - Summary: the session length chart shows the average per session in each length bucket ("Cost per session, by length") instead of the bucket's total, which mostly showed which bucket had the most sessions; the total and the number of sessions are in the tooltip
-- Summary layout: cards sit three to a row from narrower windows on, so fewer rows end with a card on its own
+- Summary layout: the figure cards sit three to a row down to narrower windows, so fewer rows end with a card on its own
+- Summary: formulas are hidden by default again, and each figure and chart has an "ƒx" button next to its name that shows its own formulas; breakdown dialogs still always show theirs
+- Summary: the chart cards are drawn at the card's size, so their text stays readable three to a row; percentages in the Trend use a 0–100% axis; the session length chart prints the number of sessions under each bucket and highlights only buckets with two or more sessions; names cut off in narrow cards end with "…"

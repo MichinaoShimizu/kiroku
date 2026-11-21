@@ -915,8 +915,12 @@ const JA_TEXT = {
   "{v} per session": "1 セッションあたり {v}",
   "total": "合計",
   "per session": "1 セッションあたり",
-  "sessions of the bin": "区間のセッションの数",
-  "Sessions of {bin} took the most per session: {v} each ({sessions}, {pc}% of {metric} in total)": "1 セッションあたりがいちばん多いのは {bin} のセッション：1 つあたり {v}（{sessions}、{metric}の合計の {pc}%）",
+  "sessions of the bin": "区分のセッションの数",
+  "Sessions of {bin} took the most per session: {v} on average ({sessions}, {pc}% of {metric} in total)": "1 セッションあたりがいちばん多いのは {bin} のセッション：平均 {v}（{sessions}、{metric}の合計の {pc}%）",
+  "Show the formula: {name}": "式を見る：{name}",
+  "Hide the formula": "式を隠す",
+  "Show the formula": "式を見る",
+  "n={n}": "{n} 件",
 };
 // t は英語の文 s を今の言語にする。{name} は vars の値で埋める（日本語では語順が変わるので、文ごと鍵にする）
 function t(s, vars){

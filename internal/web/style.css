@@ -877,6 +877,7 @@ header{background:var(--s-cont);border-bottom:0}
 .insfig .iband{fill:color-mix(in oklab,var(--ink) 8%,transparent)}.insfig .imed{stroke:var(--ink-3);stroke-dasharray:4 3;stroke-width:1.2} /* いつもの範囲は色みのない灰色（緑は「よい」の意味にだけ使う） */
 .insfig .ibar{fill:color-mix(in oklab,var(--acc) 30%,var(--surface))}.insfig .ibar.cur{fill:var(--acc)}
 .insfig .iline{fill:none;stroke:color-mix(in oklab,var(--acc) 55%,var(--surface));stroke-width:2;stroke-linejoin:round}.insfig .ipt{fill:var(--surface);stroke:var(--acc);stroke-width:2}.insfig .ipt.cur{fill:var(--acc)} /* 率の指標の推移は線と点 */
+.insfig .ixn{font-size:9px;fill:var(--ink-3)} /* 長さ別のグラフの、区間ごとのセッションの数 */
 .insfig .iproj{fill:none;stroke:var(--acc);stroke-dasharray:4 3;stroke-width:1.5}
 .insfig .iout{fill:var(--warn)}.insfig .ihit{fill:transparent}
 .insfig figcaption{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;font-size:var(--fs-xs);color:var(--ink-2)}
@@ -968,7 +969,7 @@ header{background:var(--s-cont);border-bottom:0}
 /* どこに使ったか：大きい順の横棒（名前・棒・値・割合） */
 .iwrows{display:flex;flex-direction:column;gap:6px}
 .iwr{display:grid;grid-template-columns:minmax(0,30%) minmax(0,1fr) auto 3.2em;gap:10px;align-items:center;font-size:var(--fs-sm)}
-.iwn{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.iwn i{flex:none;width:9px;height:9px;border-radius:50%}
+.iwn{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.iwn i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:-1px} /* 細いカードでは名前を「…」で切る（全文は title） */
 .iwb{height:12px;background:var(--surface-2);border-radius:4px;overflow:hidden}.iwb>span{display:block;height:100%;border-radius:4px}
 .iwv{color:var(--ink-2);font-variant-numeric:tabular-nums;text-align:right}.iwr b{text-align:right;font-variant-numeric:tabular-nums}
 /* いちばん変えたファイル：名前はパス（等幅・はみ出しは省略）。押すと、そのファイルをいちばん変えたセッション */
@@ -1053,8 +1054,10 @@ header{background:var(--s-cont);border-bottom:0}
 .themebtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .themebtn .sun,:root[data-theme="dark"] .themebtn .moon{display:none}:root[data-theme="dark"] .themebtn .sun{display:block}
 /* 式は「式を表示」のときだけ（ふだんは平易な 1 行と、言葉のチップ） */
-:root:not(.showfx) .fxo,:root:not(.showfx) .insdef,:root:not(.showfx) .ichip .cx{display:none}
-:root.showfx .fxp,:root.showfx .ichip .cp{display:none}
+.fxp,.ichip .cp{display:none} /* ダイアログでは式を出し、平易な 1 行は出さない */
+#review .fxo:not(.fxon *),#review .ichip .cx:not(.fxon *){display:none} /* サマリーでは、式はその数字の「ƒx」で開いたときだけ */
+#review .fxp:not(.fxon *),#review .ichip .cp:not(.fxon *){display:inline}
+#review .insight:not(:has(.fxon)) .insdef{display:none}
 .fxp,.iplain{font-size:var(--fs-xs);color:var(--ink-2)}
 /* エージェントの切り替えは、狭い画面でも隠さずに折り返す */
 .insagbar .segc{flex-wrap:wrap;overflow:visible}
@@ -1078,11 +1081,11 @@ header{background:var(--s-cont);border-bottom:0}
 .lim{padding:0 3px;border-radius:3px}
 /* 上限の印から開いたときの、流れの中のその出来事 */
 .tl li.ev.flash{outline:2px solid var(--warn);outline-offset:2px}
-:root:not(.showfx) .ichip{font-family:var(--sans)} /* 言葉のチップは、式の等幅でなく本文の字で */
+#review .ichip:not(.fxon *){font-family:var(--sans)} /* 言葉のチップは、式の等幅でなく本文の字で */
 /* サマリーのグラフのカードは 2 列（1000px 以下は 1 列）。.full は幅いっぱい */
 .insg{display:flex;flex-direction:column;gap:16px}
 .insrow{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch}
-.insrow>.inscol{flex:1 1 290px;min-width:0;container-type:inline-size} /* グラフのカードも、広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚 */
+.insrow>.inscol{flex:1 1 360px;min-width:0;container-type:inline-size} /* グラフのカードも、広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚 */
 @container (max-width:720px){.iout2{grid-template-columns:minmax(0,1fr)}} /* 出力のカードが狭いときは、Git と AI の編集を縦に並べる */
 /* トレンドの指標：広い画面は切り替え、狭い画面は選択リスト（横に隠れて選べなくならないように） */
 .insksel{display:none}
@@ -1134,3 +1137,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .drawer.flowfull .scols{display:block}.drawer.flowfull .scols>:not(.sflow),.drawer.flowfull .sflags{display:none}
 .drawer.flowfull .sflow{max-width:960px;margin:0 auto}
 .drawer .flowhd .ffull{height:28px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs)}.drawer .flowhd .ffull .i{width:14px;height:14px}
+
+/* 式を開く「ƒx」：指標名のすぐ横に小さく。押している間は塗る */
+.fxb{margin-left:6px;padding:0 5px;border:1px solid var(--rule);border-radius:6px;background:none;color:var(--ink-2);font:italic 600 var(--fs-xs)/1.5 var(--serif,Georgia,serif);cursor:pointer;vertical-align:baseline}
+.fxb:hover{color:var(--acc-ink);border-color:var(--acc)}.fxb[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}

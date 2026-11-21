@@ -354,7 +354,11 @@ async function run(env) {
         const k = [...document.querySelectorAll("#review .insh .ikrow > .itile")], inside = k.every(c => { const r = c.getBoundingClientRect(); return r.left >= g.left - 1 && r.right <= g.right + 1; });
         const tops = G.map(x => Math.round(x.getBoundingClientRect().top));
         return G.length === 3 && k.length > 1 && inside && (innerWidth < 1300 || tops.every(x => x === tops[0])) && !document.querySelector("#review .icall"); }));
-      check("式はいつも見せ、切り替えのボタンは置かない", await p.evaluate(() => [...document.querySelectorAll("#review .insight .ifx.fxo")].some(e => e.offsetParent !== null) && !document.querySelector("#fxbtn")));
+      check("式はふだん隠し、指標名の横の「ƒx」で、その数字の式だけを開く（もう一度押すと閉じる）", await p.evaluate(async () => {
+        const vis = el => [...el.querySelectorAll(".ifx.fxo")].some(e => e.offsetParent !== null), I = document.querySelector("#review .insight");
+        const b = I.querySelector(".itile .fxb"), tile = b && b.closest(".itile"); if (!tile || vis(I) || document.querySelector("#fxbtn")) return false;
+        b.click(); await new Promise(r => setTimeout(r, 100)); const on = vis(tile) && b.getAttribute("aria-pressed") === "true" && [...I.querySelectorAll(".itile")].filter(x => x !== tile).every(x => !vis(x));
+        b.click(); await new Promise(r => setTimeout(r, 100)); return on && !vis(I); }));
       check("サマリーの頭に、数字 5〜24 個（上の帯の数字を含む。コスト・出力（Git はコミット・行・ファイル・リポジトリ・日・push・PR、AI の編集はファイルと行）・単価（Git コミットあたりと AI が編集した 100 行あたりを分ける）に分ける）・推移・累積の線・どこに使ったかの横棒・長さ別の費用があり、改善のアドバイスの枠はない", r.heads >= 5 && r.heads <= 24 && r.svg && r.bars > 0 && r.cum === 1 && r.donut > 0 && r.hist === 6 && r.adv === 0, JSON.stringify(r));
       const fx = await p.evaluate(() => ({chips: [...document.querySelectorAll("#review .insight .ichip.ifx")].map(e => e.textContent), def: (document.querySelector("#review .insdef") || {}).textContent || "",
         vague: /Usual|Higher|Lower|usual range|いつもの範囲|いつもどおり|高め|低め|\bQ[13]\b|IQR/.test(document.querySelector("#review .insight").innerText)}));
@@ -699,7 +703,7 @@ async function run(env) {
     check("どこに使ったかは、記録のある量（費用・クレジット・トークン・時間）を切り替えられる", wk.length >= 2, JSON.stringify(wk));
     for (const k of wk){ await p.locator(`#review [data-wk="${k}"]`).click(); await pause();
       check(`どこに使ったかを ${k} にすると、その量の横棒になる`, await p.evaluate(k => st.insWk === k && document.querySelector(`#review [data-wk="${k}"]`).getAttribute("aria-pressed") === "true" && document.querySelectorAll("#review .iwrows .iwr").length > 0, k)); }
-    check("長さ別の図に n= を並べない（件数はツールチップに）", !/n=\d/.test(await p.evaluate(() => (document.querySelector("#review .ihist svg") || {}).innerHTML || "")));
+    check("長さ別の図は 1 セッションあたりの平均なので、区間ごとのセッションの数を軸の下に出す（1 件だけの平均を見分けられるように）", await p.evaluate(() => { const g = document.querySelector("#review .ihist svg"); return !g || g.querySelectorAll(".ixn").length === g.querySelectorAll(".ihb").length; }));
     await view("cal");
     await p.keyboard.press("m"); await pause();
     const opts = await p.locator("#calk option").evaluateAll(xs => xs.map(x => x.value));
