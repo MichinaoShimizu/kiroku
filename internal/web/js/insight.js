@@ -138,6 +138,7 @@ function insightH(F){
     <div class="insgrid"><div class="insleft"><div class="inscol"><div class="inshead"><h4>${esc(t("Trend"))}</h4><div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${tabs}</div></div>${insChart(k)}</div>
     ${card(st.mode === "month" ? t("Cumulative cost vs the previous month") : t("Cumulative cost vs the previous week"), insCum())}</div>
     ${card(t("Advice"), insAdvice(F), " insadvc")}</div>
+    <div class="insrow one">${card(t("By agent"), insAgents())}</div>
     <div class="insrow two">${(b => b ? `<div class="inscol">${b}</div>` : "")(insWhere())}${card(t("Tokens by type"), insTokens())}</div>
     <div class="insrow two">${card(t("Cost by session length"), insHist())}${card(t("Cost vs outputs per session"), insScatter())}</div>
     <div class="insrow two">${card(t("Outputs"), insOutputs())}${card(t("How you used AI"), insUsage())}</div>
@@ -313,6 +314,20 @@ function insWork(){
 
 /* トークンの種類別：入力・出力・キャッシュへの書き込み・キャッシュからの読み込み。積み上げの横棒 1 本と、値と割合。
    キャッシュから読む割合（= キャッシュ読み ÷ 入力の全体）を、過去の期間と比べる */
+/* エージェント別：エージェントごとに単位が違う（推定費用・Kiro クレジット）ので、合計に混ぜずに並べる。
+   時間・トークン・費用・クレジットは週の集計（shares.source。同時に動いた分は按分）、セッションとプロンプトは表示中の期間に動いたものを数える */
+function insAgents(){
+  const {S: w, ws, we} = period(), src = w && w.shares && w.shares.source || []; if (src.length < 2) return "";
+  const tot = src.reduce((a, x) => a + (x.minutes || 0), 0); if (!tot) return "";
+  const cnt = k => { let n = 0, p = 0; DATA.forEach(s => { if (s.source === k && inP(s, ws, we)){ n++; p += s.prompts.filter(q => !q.t || q.t >= ws && q.t < we).length; } }); return [n, p]; };
+  const xs = src.map(x => ({...x, c: agColor(x.key), n: cnt(x.key)})).sort((a, b) => (b.minutes || 0) - (a.minutes || 0)), max = xs[0].minutes || 1;
+  const v = (x, f) => x > 0 ? esc(f(x)) : "—";
+  const head = [t("Agent"), t("Active time"), t("Sessions"), t("Prompts"), t("Estimated cost"), t("Kiro credits"), t("Tokens")].map((h, i) => `<th scope="col"${i ? ' class="num"' : ""}>${esc(h)}</th>`).join("");
+  const rows = xs.map(x => `<tr><th scope="row"><span class="iwn"><i style="background:${x.c}"></i>${esc(x.key)}</span></th><td class="num"><span class="iagb"><span style="width:${((x.minutes || 0) * 100 / max).toFixed(1)}%;background:${x.c}"></span></span>${v(x.minutes, dur)} <b>${Math.round((x.minutes || 0) * 100 / tot)}%</b></td><td class="num">${commas(x.n[0])}</td><td class="num">${commas(x.n[1])}</td><td class="num">${v(x.cost, usd)}</td><td class="num">${v(x.credits, c => `${crN(c)} cr`)}</td><td class="num">${v(x.tokens, tok)}</td></tr>`).join("");
+  const sy = t("{name}: {pc}% of {metric} ({v})", {name: xs[0].key, pc: Math.round(xs[0].minutes * 100 / tot), metric: t("Active time"), v: dur(xs[0].minutes)});
+  return `${say(sy)}<figure class="insfig"><div class="iagw"><table class="iagt">
+    <thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div><p class="ifxs">${fx(`% = ${t("Active time")} ÷ ${dur(tot)}`)}${fx(t("Time that agents ran at once is split between them"))}</p></figure>`;
+}
 function insTokens(){
   const {S: w} = period(), u = w && w.usage; if (!u || !u.tokens || u.cr == null && u.in == null) return "";
   const rows = [["in", t("Input"), u.in || 0, 0], ["out", t("Output"), u.out || 0, 1], ["cw", t("Cache write"), u.cw || 0, 2], ["cr", t("Cache read"), u.cr || 0, 6]].filter(r => r[2] > 0);

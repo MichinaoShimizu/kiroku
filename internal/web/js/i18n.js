@@ -134,6 +134,7 @@ const JA_TEXT = {
   "Copied the first {n} characters": "先頭の {n} 文字をコピーしました",
   "Copied": "コピーしました",
   "Tokens by type": "トークンの種類別",
+  "Time that agents ran at once is split between them": "複数のエージェントが同時に動いた時間は、それぞれに分けます",
   "Input": "入力",
   "Output": "出力",
   "Cache write": "キャッシュへの書き込み",

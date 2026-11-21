@@ -1,1 +1,2 @@
 - Summary: a "Tokens by type" card shows input, output, cache write and cache read as one stacked bar and as rows with the count and share, with the share read from cache against your past periods
+- Summary: a "By agent" table (when more than one agent ran) shows each agent's active time and share, sessions, prompts, estimated cost, Kiro credits and tokens side by side
