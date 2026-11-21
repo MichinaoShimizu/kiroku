@@ -1,0 +1,1 @@
+- The session's prompt flow has a button that copies the whole conversation, prompts and replies in order, as Markdown, to hand the work to another agent or paste its history into a PR or a note. In `kiroku serve`, long prompts and replies are copied in full; a saved HTML file copies the part it contains and says so

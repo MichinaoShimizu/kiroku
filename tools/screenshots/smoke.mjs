@@ -216,6 +216,11 @@ async function run(env) {
         const s = DATA.find(x => x.id === st.sel), r = s.prompts[+b.dataset.i].reply; b.click(); await new Promise(z => setTimeout(z, 300));
         return {label: b.getAttribute("aria-label"), got: window.__copied, want: String(r.text || ""), cut: r.len > 0}; });
       check("AI の応答にもコピーのボタンがあり、その応答を写す", q.none || (/Copy this reply/.test(q.label) && (q.cut ? q.want.startsWith(q.got.slice(0, 20)) : q.got === q.want)), JSON.stringify({...q, got: (q.got || "").slice(0, 40), want: (q.want || "").slice(0, 40)}));
+      const c = await p.evaluate(async () => { window.__copied = null; // 会話全体を Markdown で写す（見出しは発言者と時刻、本文はプロンプトの順）
+        const b = document.querySelector("#drawer .flowhd .fcopy"); if (!b) return {none: true};
+        const s = DATA.find(x => x.id === st.sel); b.click(); await new Promise(z => setTimeout(z, 600));
+        return {label: b.getAttribute("aria-label"), got: window.__copied || "", first: String(s.prompts[0].text || "").slice(0, 30), n: s.prompts.length}; });
+      check("会話全体を Markdown でコピーできる", !c.none && /Copy the conversation as Markdown/.test(c.label) && c.got.startsWith("# ") && (c.got.match(/^## You/gm) || []).length === c.n && c.got.includes(c.first), JSON.stringify({...c, got: c.got.slice(0, 80)}));
     }
     await p.keyboard.press("Escape"); await pause();
     check("Esc で詳細が閉じる", !await drawerOpen());
