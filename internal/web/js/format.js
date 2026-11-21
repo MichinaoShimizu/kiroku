@@ -39,7 +39,11 @@ function usdH(v){ const s = esc(usd(v)), i = s.indexOf("$"); return i < 0 ? s : 
 const costOf = u => !u ? null : !u.cost && u.unpriced ? null : (u.cost || 0);
 const NOPRICE = t("The models used are not in the price table, so the estimated cost cannot be shown. Add their prices with --prices.");
 const crN = v => v >= 10 || v <= 0 ? commas(Math.round(v)) : v >= 1 ? (Math.round(v * 10) / 10).toString() : v.toFixed(2); // クレジットは整数で。10 未満は小数 1 桁（1.33 を 1 と丸めすぎない）、1 未満は小数 2 桁
-function cr(v){ return `${crN(v)} cr`; }
+// クレジットの単位（"cr" では何の数かわからないので、言葉で。日本語は「クレジット」）
+const crUnit = v => isJA() ? "クレジット" : v === 1 ? "credit" : "credits";
+function cr(v){ return `${crN(v)} ${crUnit(v)}`; }
+const cr1 = v => `${Math.round(v * 10) / 10} ${crUnit(v)}`; // 式の中のクレジット（小数 1 桁。整数に丸めると、引き算の結果と合わなくなる）
+const crH = v => `${crN(v)}<small>&nbsp;${esc(crUnit(v))}</small>`; // HTML に入れる形（単位を小さく）
 const tokS = v => v >= 1e7 ? Math.round(v/1e6)+"M" : v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e4 ? Math.round(v/1e3)+"K" : tok(v); // 狭いマス用に、桁を減らしたトークン
 function bytes(n){ return n >= 1<<30 ? (n/(1<<30)).toFixed(1)+" GB" : n >= 1<<20 ? (n/(1<<20)).toFixed(1)+" MB" : n >= 1<<10 ? (n/(1<<10)).toFixed(1)+" KB" : n+" B"; }
 function secs(v){ return v == null ? "—" : (v < 60 ? `${v}s` : `${Math.floor(v/60)}m ${v%60}s`); }

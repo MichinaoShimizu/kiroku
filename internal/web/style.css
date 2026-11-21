@@ -6,7 +6,7 @@
   /* 地と文字は、真っ白・真っ黒を避けて少し寄せる（読みやすさの基準 4.5:1 は保ったまま、ページ全体のコントラストを強くしすぎない） */
   --bg:#fafafa; --surface:#f4f4f5; --surface-2:#e9e9ec; --ink:#1d1b20; --ink-2:#47464f; --ink-3:#5f5f68; /* 地と面は色みのない灰色（M3 の基準色の淡い色みは、緑や桃色に見えることがあるので使わない） */
   --s-lowest:#ffffff; --s-cont:#f1f1f3; --s-highest:#e4e4e7; --pc:#eaddff; --on-pc:#21005d; --sc:#e8def8; --on-sc:#1d192b; --inv:#322f35; --on-inv:#f5eff7; /* M3 の面の段（lowest・container・highest）、主・副のコンテナ、反転（トースト） */
-  --rule:#d4d4d8; --rule-2:#71717a; --acc:#6750a4; --acc-ink:#6750a4; --on-acc:#ffffff; --heatk:48%; --acc-soft:rgba(103,80,164,.08); --warn:#b3261e; --on-warn:#ffffff;
+  --rule:#d4d4d8; --rule-2:#71717a; --acc:#6750a4; --acc-ink:#6750a4; --on-acc:#ffffff; --heatk:48%; --seg-track:#e9e9ec; --seg-thumb:#ffffff; --seg-shadow:0 1px 2px rgba(0,0,0,.10),0 0 0 .5px rgba(0,0,0,.08); --ctl-bd:#d4d4d8; --acc-soft:rgba(103,80,164,.08); --warn:#b3261e; --on-warn:#ffffff;
   --weekend:rgba(35,38,44,.02);
   --sat:#3355b5; --sun:#b03a3a; --sat-bg:rgba(51,85,181,.045); --sun-bg:rgba(176,58,58,.045); /* 土曜は青、日曜は赤（日本のカレンダーと同じ） */
   --shadow:0 1px 2px rgba(0,0,0,.3),0 1px 3px 1px rgba(0,0,0,.15); /* M3 の elevation 1 */
@@ -27,7 +27,7 @@
   --agm-mix:75%;
   --bg:#141218; --surface:#1d1b20; --surface-2:#2b2930; --ink:#e6e0e9; --ink-2:#cac4d0; --ink-3:#938f99;
   --s-lowest:#0f0d13; --s-cont:#211f26; --s-highest:#36343b; --pc:#4f378b; --on-pc:#eaddff; --sc:#4a4458; --on-sc:#e8def8; --inv:#e6e0e9; --on-inv:#322f35;
-  --rule:#49454f; --rule-2:#938f99; --acc:#d0bcff; --acc-ink:#d0bcff; --on-acc:#381e72; --heatk:60%; --acc-soft:rgba(208,188,255,.12); --warn:#f2b8b5; --on-warn:#601410;
+  --rule:#49454f; --rule-2:#938f99; --acc:#d0bcff; --acc-ink:#d0bcff; --on-acc:#381e72; --heatk:60%; --seg-track:#2b2930; --seg-thumb:#47444e; --seg-shadow:0 1px 2px rgba(0,0,0,.4); --ctl-bd:#49454f; --acc-soft:rgba(208,188,255,.12); --warn:#f2b8b5; --on-warn:#601410;
   --weekend:rgba(255,255,255,.018);
   --sat:#93abe6; --sun:#e69393; --sat-bg:rgba(147,171,230,.05); --sun-bg:rgba(230,147,147,.05);
   --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -16px rgba(0,0,0,.7);
@@ -75,10 +75,10 @@ main[hidden]{display:none}
 .pill{height:30px;padding:0 12px;border:1px solid var(--rule-2);border-radius:8px;font-size:var(--fs-sm);color:var(--ink-2);background:var(--surface);transition:color .2s var(--ease),background-color .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease);white-space:nowrap}
 /* transition は変わるものだけにする（all だと、詳細を開いたときに引き継いだ visibility まで 0.2 秒遅れ、ボタンが空の枠に見える） */
 .pill:hover{border-color:var(--ink-3);color:var(--ink)}
-.segc{display:inline-flex;padding:3px;border-radius:10px;background:var(--surface-2);gap:2px}
-.segc button{height:26px;padding:0 10px;border-radius:7px;font-size:var(--fs-sm);color:var(--ink-2);transition:color .2s var(--ease),background-color .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease);white-space:nowrap}
+.segc{display:inline-flex;padding:3px;gap:2px;border-radius:11px;background:var(--seg-track);overflow:hidden} /* 切り替え：淡い溝の中で、選んだものだけが浮く */
+.segc button{height:28px;padding:0 10px;border-radius:8px;font-size:var(--fs-sm);font-weight:500;color:var(--ink-2);transition:color .2s var(--ease),background-color .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease);white-space:nowrap}
 .segc button:hover{color:var(--ink)}
-.segc button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.segc button[aria-pressed="true"]{background:var(--seg-thumb);color:var(--ink);box-shadow:var(--seg-shadow)}
 .search{position:relative}
 .search input{width:282px;height:32px;border-radius:9px;border:1px solid var(--rule-2);background:var(--surface);padding:0 30px 0 32px;font-size:var(--fs-sm);transition:border-color .2s,width .3s var(--ease)}
 .search input:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in oklab,var(--acc) 22%,transparent);width:310px}
@@ -87,7 +87,7 @@ main[hidden]{display:none}
 kbd{font:var(--fs-xs)/1 var(--mono);padding:3px 5px;border-radius:5px;border:1px solid var(--rule-2);color:var(--ink-3);background:var(--surface)}
 
 /* ── week strip ─────────────────────────────────────────── */
-.week{display:flex;align-items:flex-end;gap:32px;flex-wrap:wrap}
+.week{display:flex;align-items:flex-end;gap:12px 24px;flex-wrap:wrap}
 .wk{display:flex;align-items:center;gap:6px}
 .wk .lbl{min-width:0}
 .wk .d{min-width:7.9em} /* 「Sep 28 – Oct 4」と「May 25 – May 31」（いちばん長い。手元のフォントで 7.5em）で幅が変わって ‹ › が動き、続けて押すと外れないように、いちばん長い日付の幅をとっておく */
@@ -122,7 +122,9 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .cbsel{display:inline-block;flex:none;font-size:var(--fs-xs);color:var(--ink-3);white-space:nowrap;margin-right:6px}
 .cbsel .cbt{margin-right:6px}
 /* 週のカレンダーの右端の印の見方（カレンダーと同じ形の印を、流れに置き直す） */
-.cbsel select{height:28px;border:1px solid var(--rule-2);border-radius:8px;background:var(--surface);color:var(--ink-2);font:inherit;font-size:var(--fs-sm);padding:0 6px}
+/* 選択リスト：ボタンと同じ白い面と細い縁（色分け・月の濃さ・トレンドの指標でそろえる） */
+.cbsel select,.mshade select,.insksel{height:32px;padding:0 8px;border:1px solid var(--ctl-bd);border-radius:10px;background:var(--seg-thumb);color:var(--ink);font:inherit;font-size:var(--fs-sm);font-weight:500;box-shadow:0 1px 1px rgba(0,0,0,.03);cursor:pointer}
+.cbsel select:hover,.mshade select:hover,.insksel:hover{border-color:var(--rule-2)}
 .chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px 0 8px;border-radius:7px;font-size:var(--fs-sm);color:var(--ink-2);border:1px solid var(--rule);background:var(--surface);transition:color .2s var(--ease),background-color .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease),opacity .2s var(--ease);white-space:nowrap}
 .chip{max-width:100%}.chip>*{flex:none}
 .chip .cn{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} /* 長い名前は … で切る（狭い画面で横にはみ出さない。全部の名前は title に） */
@@ -176,7 +178,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .head.sat{background:var(--sat-bg)}.head.sun{background:var(--sun-bg)}.mgrid .mh.sat,.mgrid .mh.sun{font-weight:700}
 .day.today{background-color:color-mix(in oklab,var(--acc) var(--t1),transparent)}
 .run{position:absolute;border-radius:0;padding:4px 7px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;gap:2px;
-  background:color-mix(in oklab,var(--c) var(--fill),var(--surface));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--c) 55%,transparent);
+  background:color-mix(in oklab,var(--c) var(--fill),var(--surface));box-shadow:inset 3px 0 0 var(--c); /* 枠線では囲まず、左端の細い帯と淡い塗りでエージェントの色を示す */
   font-size:var(--fs-xs);line-height:1.3;color:var(--ink);text-align:left;
   transition:transform .18s var(--ease),box-shadow .18s var(--ease),opacity .25s var(--ease),filter .25s;
   animation:rise .25s var(--ease) both;animation-delay:var(--delay,0ms)} /* 週を替えたときの出方は短く（ずらしを入れても 0.4 秒ほどで出そろう） */
@@ -185,7 +187,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .tlbox.focus .rlab{opacity:.25}
 /* 名前は帯の高さに入る行数（--tl、calendar.js が決める）まで折り返し、入らない分は … で省く。1 行に詰めると 1440px でも「Add E2…」になるため */
 .run .t{display:flex;align-items:flex-start;gap:5px;font-weight:600;overflow:hidden;min-width:0;flex:none}
-.run .t::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c);flex:none;margin-top:4px}
+.run .t::before{content:none} /* 色は左端の帯で示すので、名前の前の点は出さない */
 .run .t span{overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--tl,1);overflow-wrap:break-word;hyphens:auto;min-width:0}
 .run .m{color:var(--ink-2);font-size:var(--fs-xs);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 /* 重なって細くなった帯（スマホや 1000px）では、印と時刻を外して名前を語の切れ目で折り返す。語の途中では切らず、入らない語と行は … で省く */
@@ -195,10 +197,10 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
    時刻も入らない帯（.nn）は色だけ。名前は aria-label とツールチップ、押せば詳細で見られる */
 .run .st{display:none;margin:0 -6px;font-size:var(--fs-2xs);font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-align:center}
 .run.nt .t,.run.nt .m,.run.nn .t,.run.nn .m{display:none}.run.nt .st{display:block}.run.thin .st{line-height:1}
-.run.cas{box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--c) 55%,transparent),0 0 0 2px var(--bg)} /* 前の帯の上に重ねた帯は、地の色の縁で前の帯と分ける */
-.run:hover{box-shadow:inset 0 0 0 1.5px var(--c),var(--shadow);z-index:4}
+.run.cas{box-shadow:inset 3px 0 0 var(--c),0 0 0 2px var(--bg)} /* 前の帯の上に重ねた帯は、地の色の縁で前の帯と分ける */
+.run:hover{box-shadow:inset 3px 0 0 var(--c),var(--shadow);z-index:4}
 .tlbox.focus .run{opacity:.25;filter:saturate(.5)}
-.tlbox.focus .run.sel{opacity:1;filter:none;box-shadow:inset 0 0 0 2px var(--c),var(--shadow);z-index:2}
+.tlbox.focus .run.sel{opacity:1;filter:none;box-shadow:inset 3px 0 0 var(--c),0 0 0 2px var(--c),var(--shadow);z-index:2}
 @keyframes rise{from{opacity:0;transform:translateY(6px)}}
 .lim{position:absolute;left:3px;z-index:3;height:16px;margin-top:-8px;padding:0 6px;border-radius:0;font-size:var(--fs-2xs);font-weight:700;line-height:16px;color:var(--on-warn);background:var(--warn);box-shadow:0 0 0 2px var(--surface)}
 .lim:hover{filter:brightness(1.1)}
@@ -302,10 +304,10 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .panel.fold[open]{padding-bottom:22px}.panel.fold[open]>summary{margin-bottom:10px}
 .panel.fold>summary:focus-visible{outline:2px solid var(--acc);outline-offset:4px}
 .panel.metap .foot{margin-top:12px} /* 計測の状態と生成時刻：ページのいちばん下 */
-.dsrc summary,.sdet summary{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none}.dsrc summary::-webkit-details-marker,.sdet summary::-webkit-details-marker{display:none}
-.dsrc .dsc,.sdet .dsc{width:12px;height:12px;stroke:var(--ink-3);fill:none;stroke-width:1.8;transition:transform .2s var(--ease)}.dsrc[open] .dsc,.sdet[open] .dsc{transform:rotate(90deg)}
-.dsrc summary h3,.sdet summary h3{margin:0}.dsrc summary .muted,.sdet summary .muted{font-size:var(--fs-xs)}
-.sdet{margin-top:22px;padding-top:14px;border-top:1px solid var(--rule)} /* 詳細の「詳しい情報」：履歴ファイル・モデル・ツール・エージェントの指標（いつもは閉じる） */
+.dsrc summary{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none}.dsrc summary::-webkit-details-marker{display:none}
+.dsrc .dsc{width:12px;height:12px;stroke:var(--ink-3);fill:none;stroke-width:1.8;transition:transform .2s var(--ease)}.dsrc[open] .dsc{transform:rotate(90deg)}
+.dsrc summary h3{margin:0}.dsrc summary .muted{font-size:var(--fs-xs)}
+.sdet{margin-top:22px;padding-top:14px;border-top:1px solid var(--rule)}.sdet>h3:first-child{margin-top:0} /* 詳細の最後の節：履歴ファイル・モデル・ツール（畳まずに出す） */
 .dsrc .dnf summary{display:list-item;list-style:revert;color:var(--ink-2)} /* 見つからなかったエージェント（0 セッション）。開くと一覧 */
 .foot .xl{color:var(--ink-2)}
 /* ── month（月カレンダー：日ごとの作業量） ───────────────── */
@@ -328,6 +330,7 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .head .cline .sep{color:var(--ink-3)}.head .cline .u{color:var(--ink-3)}
 .mlegend{display:flex;align-items:center;gap:8px;justify-content:flex-end;padding:10px 14px;font-size:var(--fs-xs);color:var(--ink-3);border-top:1px solid var(--rule)}
 .mlegend i{width:16px;height:10px;border-radius:3px;background:color-mix(in oklab,var(--acc) calc(var(--h) * var(--heatk)),var(--surface));box-shadow:inset 0 0 0 1px var(--rule)}
+.mshade{display:inline-flex;align-items:center;gap:6px;margin-right:auto}.mshade select{height:28px;font-size:var(--fs-xs)}
 .wk .mode{margin-left:10px}
 
 /* tooltip */
@@ -825,24 +828,20 @@ header{background:var(--s-cont);border-bottom:0}
 .search input{height:40px;border-radius:20px;border:0;background:var(--s-highest);padding-left:40px;font-size:var(--fs-md)}
 .search input:focus{box-shadow:0 0 0 2px var(--acc)}
 .search svg{left:14px;top:12px}.search kbd{top:10px;right:12px}
-.pill{height:36px;padding:0 12px;border-radius:18px;border:1px solid var(--rule-2);background:transparent;color:var(--acc);font-weight:500}
-.pill:hover{background:color-mix(in srgb,var(--acc) 8%,transparent);border-color:var(--rule-2);color:var(--acc)}
+/* 操作の部品：ボタンは白い面に細い縁、切り替えは淡い溝の中で選んだものだけが浮く（色の縁取りや区切り線で囲まない） */
+.pill{height:34px;padding:0 14px;border-radius:10px;border:1px solid var(--ctl-bd);background:var(--seg-thumb);color:var(--ink);font-weight:500;box-shadow:0 1px 1px rgba(0,0,0,.03)}
+.pill:hover{background:var(--surface);border-color:var(--rule-2);color:var(--ink)}
 .iconbtn{border-radius:50%}
 .iconbtn:hover{background:color-mix(in srgb,var(--ink-2) 8%,transparent)}
-.wk .nav .pill{height:36px} /* 「今週」と見直す候補も、期間・表示の切り替え（36px）とそろえる */
-.segc{padding:0;gap:0;border:1px solid var(--rule-2);border-radius:18px;background:transparent;overflow:hidden}
-.segc button{height:34px;padding:0 8px;border-radius:0;font-weight:500;color:var(--ink)}
-.segc button+button{border-left:1px solid var(--rule-2)}
-.segc button[aria-pressed="true"]{background:var(--sc);color:var(--on-sc);box-shadow:none}
+.wk .nav .pill{height:34px} /* 「今週」も、期間・表示の切り替え（34px）とそろえる */
 .kpis{border:0;border-radius:16px;background:var(--s-cont)} /* 1 枚のカードを区切り線で分ける（カードを並べると幅を取り、上の帯が 1 行に収まらない） */
-.kpi{border-color:var(--rule);padding-left:14px;padding-right:14px}
+.kpi{border-color:var(--rule);padding-left:12px;padding-right:12px}
 
 .chip{height:32px;padding:0 12px 0 10px;border-radius:8px;border-color:var(--rule);background:transparent;font-weight:500}
 .chip:hover{background:color-mix(in srgb,var(--ink-2) 8%,transparent)}
-.cbsel select{height:32px;border-radius:4px;border-color:var(--rule-2);background:transparent;padding:0 8px}
 .tlbox{border:0;background:var(--s-lowest);box-shadow:var(--shadow)}
 .heads{background:color-mix(in oklab,var(--s-lowest) 92%,transparent)}
-.run{border-radius:8px}
+.run{border-radius:6px}
 .panel{border:0;border-radius:16px;background:var(--s-cont)}
 .card{border-color:transparent;border-radius:12px;background:var(--s-lowest)}
 
@@ -856,7 +855,6 @@ header{background:var(--s-cont);border-bottom:0}
 
 /* ── サマリーの頭（要点・推移といつもの範囲・アドバイス） ── */
 .insight{margin:0 0 24px}
-.insh{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
 
 .inscol{background:var(--s-lowest);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow);min-width:0}
 .inscol h4{margin:0 0 10px;font-size:var(--fs-lg);font-weight:600}
@@ -888,12 +886,37 @@ header{background:var(--s-cont);border-bottom:0}
 
 @media (max-width:820px){.ihgrid{grid-template-columns:22px repeat(24,minmax(0,1fr));gap:1px}.ihgrid .ihc{height:14px}}
 
-.itile{padding:14px 18px;border-radius:16px;background:var(--s-cont);display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;border-left:4px solid var(--rule-2)}
-.itile.good{border-left-color:var(--go)}.itile.bad{border-left-color:var(--warn)}
+/* サマリーの頭：コストと出力の 2 段。段は 1 枚の面にして、数字は細い区切り線で分ける（数字ごとに色の線や塗りの箱を付けない）。
+   いつもの範囲から外れたことは、数字の下の小さな印（.ichip）だけで言う */
+.insh{display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
+.ikg{border:1px solid var(--rule);border-radius:16px;background:var(--s-lowest);padding:14px 4px 16px}
+/* 分類の見出し（コスト・出力・単価）：本文より大きく太く、左に色の短い線 */
+.ikgh,.inssec{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--ink);letter-spacing:.02em}
+.ikgh::before,.inssec::before{content:"";flex:none;width:4px;height:1em;border-radius:2px;background:var(--acc)}
+.ikgh{margin:0 0 12px;padding:0 18px;font-size:var(--fs-xl)}
+.ikrow{display:flex;flex-wrap:wrap;row-gap:16px} /* 数字は等分に並べ、入らなければ折り返す（折り返した段も幅いっぱいに広げる） */
+.itile{flex:1 1 170px;padding:2px 18px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+@media (max-width:700px){.itile{flex-basis:40%}.itile{padding:2px 14px}.ikgh{padding:0 14px}}
+/* カードの見出し（コスト・出力・使い方）：2 列の並びの幅いっぱいに */
+.inssec{grid-column:1/-1;margin:26px 0 -2px;padding:0 2px;font-size:var(--fs-2xl)}
+.inssec:first-child{margin-top:0}
+/* 出力のカード：左に数、右に変更の多いファイル（狭ければ縦に） */
+.iout2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px 28px;align-items:start}.iout2 .iwcap{margin-top:0}
+.iout2 .istats{grid-template-columns:repeat(2,minmax(0,1fr))}.iout2 .istats .stat:last-child:nth-child(odd){grid-column:1/-1} /* 2 列。余った 1 つは横に広げる */
+@media (max-width:520px){.iout2 .istats{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:900px){.iout2{grid-template-columns:minmax(0,1fr)}}
+/* 幅いっぱいのカードの図は、横に伸びた分だけ高くならないように（文字が大きくなりすぎない） */
+.inscol.full .insfig>svg{display:block;width:min(100%,760px);margin:0 auto}
+.icall{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;row-gap:4px;margin-bottom:12px;padding:12px 18px;border-radius:12px;background:var(--s-cont)}
+.icall .il{font-size:var(--fs-xs);font-weight:600;color:var(--ink-3)}.icall .icv{font:600 var(--fs-md)/1.4 var(--sans);color:var(--ink);text-align:left}
+.icall button.icv:hover{text-decoration:underline;text-underline-offset:3px}.icall .isee{font-size:var(--fs-sm);color:var(--ink-2);flex:1 1 320px;min-width:0}
+.icall.bad .il::before{content:"";display:inline-block;width:7px;height:7px;margin-right:6px;border-radius:50%;background:var(--warn);vertical-align:1px}
 .itile .il{font-size:var(--fs-xs);color:var(--ink-2)}.itile b{font:700 var(--fs-3xl)/1.15 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink)}.itile b.sm{font-size:var(--fs-xl);line-height:1.4}
 .itile small{font-size:var(--fs-xs);color:var(--ink-2)}
-.ichip{display:inline-block;padding:1px 8px;border-radius:8px;font-size:var(--fs-xs);font-weight:600;background:var(--surface-2);color:var(--ink-2);white-space:nowrap}
-.ichip.good{background:color-mix(in oklab,var(--go) 16%,var(--surface));color:var(--go-ink)}.ichip.bad{background:color-mix(in oklab,var(--warn) 14%,var(--surface));color:var(--warn)}
+/* いつもの範囲との比べ：塗った箱ではなく、小さな印と文字で（外れたときだけ色） */
+.ichip{display:inline-flex;align-items:baseline;gap:6px;padding:0;font-size:var(--fs-xs);font-weight:500;background:none;color:var(--ink-2);white-space:normal}
+.ichip::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--rule-2);transform:translateY(-1px)}
+.ichip.good{color:var(--go-ink)}.ichip.good::before{background:var(--go)}.ichip.bad{color:var(--warn)}.ichip.bad::before{background:var(--warn)}
 
 .insfig .icum{fill:none;stroke:var(--acc);stroke-width:2.5;stroke-linejoin:round}.insfig .iprev{fill:none;stroke:var(--ink-3);stroke-width:1.5;stroke-dasharray:5 4}.insfig .icumd{fill:var(--acc)}
 .insfig .lg.icum::before{height:0;border-top:2.5px solid var(--acc)}.insfig .lg.iprev::before{height:0;border-top:1.5px dashed var(--ink-3)}
@@ -905,7 +928,7 @@ header{background:var(--s-cont);border-bottom:0}
 /* 式と不等式：計算だとわかるよう、等幅の小さな枠に */
 .ifx{font-family:var(--mono);font-size:var(--fs-xs);color:var(--ink-2);background:var(--surface-2);border-radius:6px;padding:1px 6px;white-space:normal;overflow-wrap:anywhere}
 .ifx.good{color:var(--go-ink);background:color-mix(in oklab,var(--go) 14%,var(--surface))}.ifx.bad{color:var(--warn);background:color-mix(in oklab,var(--warn) 12%,var(--surface))}
-.ichip.ifx{font-weight:500}
+.ichip.ifx{font-weight:500;background:none;padding:0;border-radius:0}
 .ifxs{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin:8px 0 0;font-size:var(--fs-xs)}
 .itile .ifx{max-width:100%}
 
@@ -925,6 +948,11 @@ header{background:var(--s-cont);border-bottom:0}
 .iwn{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.iwn i{flex:none;width:9px;height:9px;border-radius:50%}
 .iwb{height:12px;background:var(--surface-2);border-radius:4px;overflow:hidden}.iwb>span{display:block;height:100%;border-radius:4px}
 .iwv{color:var(--ink-2);font-variant-numeric:tabular-nums;text-align:right}.iwr b{text-align:right;font-variant-numeric:tabular-nums}
+/* いちばん変えたファイル：名前はパス（等幅・はみ出しは省略）。押すと、そのファイルをいちばん変えたセッション */
+.iwf{display:block;min-width:0;padding:0;border:0;background:none;color:var(--ink);font:inherit;font-family:var(--mono);font-size:var(--fs-xs);text-align:left;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iwf small{font-family:var(--sans);color:var(--ink-3)}.iwf:hover{color:var(--acc-ink);text-decoration:underline}
+.iwr:has(.iwf){grid-template-columns:minmax(0,42%) minmax(0,1fr) auto 3.6em}
+.iwcap{margin:14px 0 8px;font-size:var(--fs-xs);color:var(--ink-3);font-weight:600}
 /* カードの中の数の枠 */
 .istats{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
 
@@ -980,14 +1008,6 @@ header{background:var(--s-cont);border-bottom:0}
 .tl li.pr .ptext>code{background:var(--chat-tag)}
 .tl .pcut,.tl li.rp .pmeta{color:var(--chat-ai-meta)}
 .tl .pexp,.tl .pload,.tl .rload{color:var(--chat-link)}.tl .pload,.tl .rload{border-color:var(--chat-link)}
-/* サマリーの頭の数字は 1 段に並べる（何枚でも等分）。狭い画面では 1 段のまま横にスクロール */
-.insh{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px}
-.insh .itile{padding:12px 14px}
-.insh .itile b,.insh .itile .itv{font-size:var(--fs-2xl)}
-.insh .itile .isee{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;overflow:hidden;font-size:var(--fs-xs)}
-/* 狭い画面では、横に隠さずに折り返す（1100px 以下は 3 列、700px 以下は 2 列） */
-@media (max-width:1100px){.insh{grid-auto-flow:row;grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-width:700px){.insh{grid-template-columns:repeat(2,minmax(0,1fr))}.insh .itile{padding:10px 12px}}
 /* エージェント別の表：単位の違う費用とクレジットを混ぜずに列で並べる。狭い画面では表だけ横にスクロール */
 .iagw{overflow-x:auto}
 .iagt{width:100%;border-collapse:collapse;font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
@@ -1040,8 +1060,9 @@ header{background:var(--s-cont);border-bottom:0}
 .insg>.inscol.full{grid-column:1/-1}
 @media (max-width:1000px){.insg{grid-template-columns:minmax(0,1fr)}}
 /* トレンドの指標：広い画面は切り替え、狭い画面は選択リスト（横に隠れて選べなくならないように） */
-.insksel{display:none;height:32px;padding:0 8px;border:1px solid var(--rule-2);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:var(--fs-sm)}
+.insksel{display:none}
 @media (max-width:820px){.insk.trendk{display:none}.insksel{display:inline-block}}
+.inshead.foldk .insk.trendk{display:none}.inshead.foldk .insksel{display:inline-block} /* 切り替えが 1 行に収まらないときも選択リスト（fitTrend） */
 /* 日報の「プロンプトをコピー」は、マウスでもいつも薄く見せる（乗せたときだけでは、あることに気づけない） */
 @media (hover:hover){.head .dd .dayrun{opacity:.5}}
 /* 式の表示の切り替えは、エージェントの切り替えと同じ行の右端に。押している間は、ほかの切り替えと同じ色 */
@@ -1056,7 +1077,9 @@ header{background:var(--s-cont);border-bottom:0}
 /* 見直す候補の印は琥珀色（紫は選択・あなたのプロンプト・グラフの色なので、注意の印と混ぜない） */
 .fdot,.fmark{color:var(--amber-ink)}.fmark:hover{background:color-mix(in oklab,var(--amber) var(--t2),transparent)}
 /* サマリーの表示では、上の帯を出さない（同じ数がすぐ下の数字の枠にあり、比べも付いているので） */
-body[data-view="sum"] #kpis{display:none}
+body[data-view="sum"] #kpis{visibility:hidden}body[data-view="sum"] .week.kwrap #kpis{display:none} /* 帯が期間の行の下に回ったとき（kWrap）は、消しても行は動かない */ /* サマリーでは上の帯を見せない。広い画面では帯が期間の行の高さを決めているので、消さずに場所を残す（切り替えるたびに期間の見出しとボタンが上下にずれないように） */
+@media (max-width:1180px){body[data-view="sum"] #kpis{display:none}} /* 狭い画面では帯は期間の行の下なので、消しても行は動かない */
+body[data-view="sum"] #legend,body[data-view="sum"] #fnote{display:none} /* サマリーは色分け・凡例での非表示・検索の絞り込みを使わない（自分のエージェントの切り替えがある）ので、その行と断り書きは出さない */
 /* 吹き出しの時刻とコピー（.pfoot）は、吹き出しのすぐ下に小さく（吹き出しから離れて浮かないように。どの幅でも同じ並び）。
    あなたの発言は右寄せ（時刻・コピーも右端）、AI の応答は左（印の右に吹き出し、その下に時刻・コピー） */
 .tl li.pr:not(.ev){display:grid;grid-template-columns:minmax(12%,1fr) auto;align-items:start;row-gap:2px;padding-left:0;padding-right:0}
@@ -1075,7 +1098,7 @@ body[data-view="sum"] #kpis{display:none}
 .wktry{display:flex;gap:8px;align-items:flex-start;margin:6px 0 14px;padding:10px 12px;border-radius:10px;background:var(--s-cont);font-size:var(--fs-sm);line-height:1.6}.wktry .ti{flex:none;width:14px;height:14px;margin-top:3px;color:var(--acc)}.wktry b{flex:none}
 .foot .keysbtn{font:inherit;color:inherit;text-decoration:underline;text-underline-offset:2px}.foot .keysbtn kbd{font:500 .92em var(--mono);padding:0 4px;border:1px solid var(--rule-2);border-radius:4px}
 /* エージェントの切り替えが折り返しても、選んだボタンの角が枠からはみ出さない */
-.insagbar .segc{overflow:hidden;border-radius:16px}
+.insagbar .segc{overflow:hidden}
 /* 内訳の名前（エージェント・モデル）は、入らなければ … で切る */
 .mbar>:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* 予定の名前は、語の途中でハイフンを入れて折らない */

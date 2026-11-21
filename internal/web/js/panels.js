@@ -350,12 +350,17 @@ function historyStart(){
 // 今日までの日数（今日を含む）で割り、月の日数を掛ける。月の初めは日数が少なく当てにならないので 7 日たつまで、
 // 最後の日は実績とほとんど変わらないので出さない。
 // 目安コスト（トークン）とクレジットは別の枠に出す。Claude Code と Kiro を両方使う人には、追うべき枠が 2 つあるため。
-function projection(w){ const {ws, we} = period(), now = nowMs()/1000, u = w.usage;
+function projection(w){ const {ws, we} = period(); return st.mode === "month" ? projAt(w, ws, we) : null; }
+// monthProj は、週の表示で、今日を含む週を見ているときの、今月の月末の推定（クレジットの枠は月ごとなので、週を見ていても月末を知りたい）
+function monthProj(){ const {ws, we} = period(), now = nowMs()/1000; if (st.mode === "month" || !(ws <= now && now < we)) return null;
+  const a = monthOf(new Date(now * 1000)), b = new Date(a.getFullYear(), a.getMonth() + 1, 1), m = MONTHS[mkey(a)];
+  return m ? projAt(m, a.getTime()/1000, b.getTime()/1000) : null; }
+function projAt(w, ws, we){ const now = nowMs()/1000, u = w.usage;
   const a = new Date(ws*1000), nd = dayNo(a, we), days = dayNo(a, now) + 1; // 今日を含めた日数（日付で数える）
-  if (st.mode !== "month" || !u || !(ws <= now && now < we) || days <= 7 || days >= nd) return null;
+  if (!u || !(ws <= now && now < we) || days <= 7 || days >= nd) return null;
   const k = nd / days, c = u.tokens ? costOf(u) : null; // 料金表にないモデルだけなら、月末の目安コストも出さない
   const b = (so, f) => so == null ? null : spread(w.days.slice(0, days - 1).map(d => (d && f(d)) || 0), so, nd, days);
-  return {cost: c == null ? null : c * k, credits: u.credits ? u.credits * k : null, tokens: u.tokens ? u.tokens * k : null, days,
+  return {cost: c == null ? null : c * k, credits: u.credits ? u.credits * k : null, tokens: u.tokens ? u.tokens * k : null, days, nd, soCredits: u.credits || 0,
     band: {cost: c == null ? null : b(c, d => d.cost), credits: u.credits ? b(u.credits, d => d.credits) : null, tokens: u.tokens ? b(u.tokens, d => d.tokens) : null}}; }
 /* 月末の推定の幅（1σ・2σ・3σ）。終わった日の 1 日あたりの量のばらつき（標本標準偏差 s、n 日）から、残りの R 日の合計のばらつきを
    s·√(R + R²/n) とみる（R 日分の日々のゆれと、1 日あたりの平均の見積もりのずれ）。日々の量は正規分布ではなく、週末や偏りもあるので、目安。

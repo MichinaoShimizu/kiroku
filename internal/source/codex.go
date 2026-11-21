@@ -1253,8 +1253,18 @@ var codexPatchMarkers = []string{"*** Add File: ", "*** Delete File: ", "*** Upd
 // apply_patch は自由形式のツール（custom_tool_call の input）、関数（arguments の input）、
 // シェルから（["apply_patch", パッチ] や bash -lc "apply_patch <<'EOF' …"）の形で呼ばれる。
 func codexEdited(s *core.Builder, name string, args any) {
-	for _, f := range codexPatchFiles(codexPatchText(name, args)) {
-		s.Edited(f)
+	text := codexPatchText(name, args)
+	files := codexPatchFiles(text)
+	if len(files) == 0 {
+		return
+	}
+	lines := core.PatchLines(text) // ファイルごとの追加・削除の行（移したファイルは、移した先の名前で）
+	for _, f := range files {
+		if n, ok := lines[f]; ok {
+			s.EditedLines(f, n[0], n[1])
+		} else {
+			s.Edited(f)
+		}
 	}
 }
 

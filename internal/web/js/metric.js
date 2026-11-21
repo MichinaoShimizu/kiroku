@@ -7,10 +7,10 @@ const BRK = {
   tokens: {n: "Tokens", h: "tokens", v: x => x.tokens, f: v => tok(v), ses: s => sesTok(s), model: 2},
   cost: {n: "Estimated cost", h: "cost", v: x => x.cost, f: v => usd(v), ses: s => s.cost, model: 1},
   projection: {n: "Month-end cost (estimate)", h: "projection", v: x => x.cost, f: v => usd(v), proj: "cost"},
-  credits: {n: "Kiro credits", h: "credits", v: x => x.credits, f: v => `${crN(v)} cr`, ses: s => s.credits},
-  projectionCr: {n: "Month-end credits (estimate)", h: "projectionCr", v: x => x.credits, f: v => `${crN(v)} cr`, proj: "credits"},
+  credits: {n: "Kiro credits", h: "credits", v: x => x.credits, f: cr, ses: s => s.credits},
+  projectionCr: {n: "Month-end credits (estimate)", h: "projectionCr", v: x => x.credits, f: cr, proj: "credits"},
   pace: {n: "A day to match the last period", h: "pace", v: x => x.cost, f: v => usd(v)},
-  paceCr: {n: "Credits a day to match the last period", h: "paceCr", v: x => x.credits, f: v => `${crN(v)} cr`},
+  paceCr: {n: "Credits a day to match the last period", h: "paceCr", v: x => x.credits, f: cr},
   active: {n: "Active time", h: "active", v: x => x.minutes ?? x.active, f: v => dur(v), ses: s => sesMin(s)},
   sessions: {n: "Sessions / prompts", h: "prompts", v: x => x.prompts, f: v => `${Math.round(v)}`, ses: s => s.nPrompts},
   limits: {n: "Usage limit hits", h: "limits"},
@@ -205,6 +205,8 @@ function bandTable(pj, m){
   return `<h3>${esc(t("Range"))}</h3><table class="mband"><tbody>${rows(b, m.f)}${tk}</tbody></table>
     <p class="note">${esc(t("How far the month-end could land from the estimate, from how much the finished days varied. Days are not independent or normally distributed, so take it as a rough guide; the low end never goes below what is already used."))}</p>`; }
 function openMetric(id, from){
+  // monthCr：週の表示から、今月のクレジットの月末の推定を開く（内訳は月の日ごとの柱なので、そのあいだだけ今月の月表示として作る）
+  if (id === "monthCr"){ const sv = [st.mode, st.month]; st.mode = "month"; st.month = monthOf(new Date(nowMs())); try { openMetric("projectionCr", from); } finally { [st.mode, st.month] = sv; } return; }
   const {S:w, ws, we} = period(), m = BRK[id]; if (!w || !m) return;
   const D = $("#md"), u = w.usage || {}, h = H()[m.h], inRange = DATA.filter(s => inP(s, ws, we));
   const agents = ((w.shares || {}).source || []).map(x => ({name: x.key, c: agColor(x.key), mark: agMark(x.key), v: m.v ? m.v(x) || 0 : 0}));

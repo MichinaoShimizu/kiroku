@@ -192,6 +192,7 @@ type Builder struct {
 	toolOrder                      []string
 	tools                          map[string]int
 	files                          map[string]bool
+	fileEdits                      map[string]*FileEdit // 編集したファイルごとの、編集の回数と変えた行の目安（edit.go）
 	modelOrder                     []string
 	models                         map[string]int
 }
@@ -252,7 +253,7 @@ func isTempDir(parent string) bool {
 }
 
 func NewBuilder(source, id string) *Builder {
-	return &Builder{Source: source, ID: id, Usage: NewUsage(), tools: map[string]int{}, files: map[string]bool{}, models: map[string]int{}}
+	return &Builder{Source: source, ID: id, Usage: NewUsage(), tools: map[string]int{}, files: map[string]bool{}, fileEdits: map[string]*FileEdit{}, models: map[string]int{}}
 }
 
 func (s *Builder) Tick(ts *float64) {
@@ -447,7 +448,54 @@ func (s *Builder) Tool(name string, args any) {
 	}
 	if fp != "" && editTools[name] {
 		s.files[fp] = true
+		a, d := EditLines(name, args)
+		s.editStat(fp, a, d)
 	}
+}
+
+// editStat は、ファイル path の編集を 1 回と、変えた行（追加 a・削除 d の目安）を数える。
+func (s *Builder) editStat(path string, a, d float64) {
+	e := s.fileEdits[path]
+	if e == nil {
+		e = &FileEdit{}
+		s.fileEdits[path] = e
+	}
+	e.Edits++
+	e.Added += a
+	e.Removed += d
+}
+
+// EditedLines は、Edited と同じく file_path の形で書かれない編集で変えたファイルを、変えた行の目安とともに足す（Codex の apply_patch）。
+func (s *Builder) EditedLines(path string, added, removed float64) {
+	if path != "" {
+		s.files[path] = true
+		s.editStat(path, added, removed)
+	}
+}
+
+// FileEdits は、編集したファイルごとの数（サブエージェントの分を親に足すため）。
+func (s *Builder) FileEdits() map[string]FileEdit {
+	out := make(map[string]FileEdit, len(s.fileEdits))
+	for f, e := range s.fileEdits {
+		out[f] = *e
+	}
+	return out
+}
+
+// AddFileEdits は、ほかの Builder（サブエージェント）の編集の数を足す。
+func (s *Builder) AddFileEdits(path string, e FileEdit) {
+	if path == "" {
+		return
+	}
+	s.files[path] = true
+	x := s.fileEdits[path]
+	if x == nil {
+		x = &FileEdit{}
+		s.fileEdits[path] = x
+	}
+	x.Edits += e.Edits
+	x.Added += e.Added
+	x.Removed += e.Removed
 }
 
 // Edited は、ツールの引数に file_path の形で書かれない編集（Codex の apply_patch など）で変えたファイルを足す。
@@ -468,6 +516,7 @@ func (s *Builder) HideText(text string) {
 	}
 	s.Notes, s.replies = nil, nil
 	s.files = map[string]bool{}
+	s.fileEdits = map[string]*FileEdit{}
 	s.FixTS = nil
 	s.Interrupts, s.InterruptTS = 0, nil
 	for i := range s.LimitResets {
@@ -498,7 +547,7 @@ func (s *Session) Hidden(text, title string) *Session {
 		c.PrivateFiles = append(append([]string(nil), s.PrivateFiles...), s.File)
 	}
 	c.Title, c.Notes, c.File, c.Synthetic = title, nil, "", true
-	c.Files, c.NFiles = []string{}, 0
+	c.Files, c.NFiles, c.FileEdits, c.EditAdded, c.EditRemoved = []string{}, 0, nil, 0, 0
 	c.Fix, c.Corrections = nil, 0
 	c.Interrupts, c.InterruptsAt = 0, []float64{}
 	c.LimitResets = nil
@@ -678,7 +727,10 @@ type Session struct {
 	NPrompts     int          `json:"nPrompts"`
 	Tools        [][2]any     `json:"tools"`
 	Files        []string     `json:"files"`
+	FileEdits    [][3]float64 `json:"fileEdits,omitempty"` // files と同じ並びで [編集の回数, 追加した行, 削除した行]（行は編集の前後を比べた目安。数えられない編集は 0）
 	NFiles       int          `json:"nFiles"`
+	EditAdded    float64      `json:"editAdded,omitempty"`   // 編集したすべてのファイル（files に載らない分も）の、追加した行の目安
+	EditRemoved  float64      `json:"editRemoved,omitempty"` // 同じく削除した行
 	Resume       *string      `json:"resume"`
 	Waits        [][2]float64 `json:"waits"`
 	Interrupts   int          `json:"interrupts"`
@@ -781,13 +833,35 @@ func (s *Builder) Finish(gapMin int) *Session {
 	tools := sortedCounts(s.toolOrder, s.tools, 8)
 	models := sortedCounts(s.modelOrder, s.models, 0)
 	var files []string
+	var editAdded, editRemoved float64
 	for f := range s.files {
 		files = append(files, f)
+		if e := s.fileEdits[f]; e != nil {
+			editAdded += e.Added
+			editRemoved += e.Removed
+		}
+	}
+	nFiles := len(files)
+	if len(files) > 30 { // 多ければ、多く変えたファイルを残す（期間の「いちばん変えたファイル」に使うので）
+		sort.Slice(files, func(i, j int) bool {
+			a, b := s.fileEdits[files[i]], s.fileEdits[files[j]]
+			wa, wb := editWeight(a), editWeight(b)
+			if wa != wb {
+				return wa > wb
+			}
+			return files[i] < files[j]
+		})
+		files = files[:30]
 	}
 	sort.Strings(files)
-	nFiles := len(files)
-	if len(files) > 30 {
-		files = files[:30]
+	var fileEdits [][3]float64
+	for i, f := range files {
+		if e := s.fileEdits[f]; e != nil {
+			if fileEdits == nil {
+				fileEdits = make([][3]float64, len(files))
+			}
+			fileEdits[i] = [3]float64{float64(e.Edits), e.Added, e.Removed}
+		}
 	}
 	prompts := s.withReplies(s.promptTimes(s.Prompts))
 	main := s.Usage.Events()
@@ -847,7 +921,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 	return &Session{
 		ID: s.ID, Source: s.Source, Project: name, ProjectPath: project, Branch: strOrNil(s.Branch), Title: title, Synthetic: s.TitleByKiroku,
 		Start: times[0], End: times[len(times)-1], Events: len(times), Segs: Segments(times, float64(gapMin*60)),
-		Prompts: prompts, Notes: s.Notes, NPrompts: len(s.Prompts), Tools: tools, Files: files, NFiles: nFiles, Resume: strOrNil(s.Resume),
+		Prompts: prompts, Notes: s.Notes, NPrompts: len(s.Prompts), Tools: tools, Files: files, FileEdits: fileEdits, NFiles: nFiles, EditAdded: editAdded, EditRemoved: editRemoved, Resume: strOrNil(s.Resume),
 		Waits: s.Waits(), Interrupts: s.Interrupts, InterruptsAt: interrupts, Limits: limits(s.Limits), LimitResets: limitResets(s.LimitResets), Compactions: compactions, CompactKinds: compactKinds, Ctx: ctx, CtxWindow: s.CtxWindow, Corrections: s.Corrections(), Models: models, Tiers: tiers,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
 		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: reported, File: s.File, PrivateFiles: s.PrivateFiles, PRs: prs, PRAt: prAt,

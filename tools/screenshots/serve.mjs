@@ -114,8 +114,7 @@ try {
   await p.goto(`${base}/`);
   await p.waitForSelector(".run[data-sid]", { timeout: 15000 });
   await p.evaluate(() => { const r = [...document.querySelectorAll(".run[data-sid]")].find(e => DATA.some(s => s.id === e.dataset.sid && s.file)); r.scrollIntoView({ block: "center" }); r.click(); });
-  check("セッションの詳細の「詳しい情報」は、いつもは閉じている", await p.evaluate(() => { const d = document.querySelector("#panel details.sdet"); return !!d && !d.open; }));
-  await p.evaluate(() => { const d = document.querySelector("#panel details.sdet"); if (d) d.open = true; }); // 履歴ファイルは「詳しい情報」の中
+  check("セッションの詳細の履歴ファイル・モデル・ツールは畳まずに出ている", await p.evaluate(() => !document.querySelector("#panel details.sdet") && !!document.querySelector("#panel .sdet a[data-hist]")));
   const link = p.locator("#panel a[data-hist]");
   await link.waitFor({ timeout: 5000 });
   const [dl] = await Promise.all([p.waitForEvent("download", { timeout: 10000 }), link.click()]);
@@ -138,7 +137,7 @@ try {
     document.querySelector(q).click(); await new Promise(z => setTimeout(z, 300));
     return {got: window.__copied || "", toast: document.querySelector("#toast").textContent, dialog: !!document.querySelector("dialog[open]")}; }, sel);
   { const r = await grab(p, ".head .dayrun");
-    check("日報のボタンは、その日の形式と前日との数字の表のプロンプトをコピーするだけ", /## Daily report: /.test(r.got) && /^\| \| This day \| Previous day \|$/m.test(r.got) && !r.dialog && /kiroku ran nothing and sent nothing; paste it into your AI agent/.test(r.toast) && !/--ai/.test(r.toast), JSON.stringify({...r, got: r.got.slice(0, 200)})); }
+    check("日報のボタンは、その日の形式と前日との数字の表のプロンプトをコピーするだけ", /## Daily report: /.test(r.got) && /^\| \| This day \| Previous day \|$/m.test(r.got) && !r.dialog && /^Copied the prompt\. Paste it into your AI agent\.$/.test(r.toast) && !/--ai/.test(r.toast), JSON.stringify({...r, got: r.got.slice(0, 200)})); }
   await p.evaluate(() => select(DATA.find(s => s.prompts.length).id)); await p.waitForSelector("#panel #srun.ai-copy", { timeout: 5000 });
   { const r = await grab(p, "#panel #srun");
     check("振り返りはプロンプトをコピーするだけ（ダイアログも実行もない）", /History data|history file/i.test(r.got) && !r.dialog && !/--ai/.test(r.toast), JSON.stringify({...r, got: r.got.slice(0, 80)})); }

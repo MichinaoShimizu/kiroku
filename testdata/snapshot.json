@@ -4395,6 +4395,23 @@
    "end": 1788369000,
    "events": 19,
    "file": "testdata/home/.claude/projects/-Users-me-vp/45502558-80a6-4028-a0ef-6476e9599703.jsonl",
+   "fileEdits": [
+    [
+     1,
+     0,
+     0
+    ],
+    [
+     1,
+     0,
+     0
+    ],
+    [
+     1,
+     0,
+     0
+    ]
+   ],
    "files": [
     "/Users/me/vp/src/x1.py",
     "/Users/me/vp/src/x2.py",
@@ -4514,6 +4531,23 @@
    "end": 1788948240,
    "events": 89,
    "file": "testdata/home/.claude/projects/-Users-me-app/68cb7e8c-a8e9-4b72-9b9f-95c791d04e02.jsonl",
+   "fileEdits": [
+    [
+     2,
+     0,
+     0
+    ],
+    [
+     2,
+     0,
+     0
+    ],
+    [
+     3,
+     0,
+     0
+    ]
+   ],
    "files": [
     "/Users/me/app/src/x2.py",
     "/Users/me/app/src/x4.py",
@@ -4786,6 +4820,13 @@
    "end": 1789217220,
    "events": 23,
    "file": "testdata/home/.claude/projects/-Users-me-app/5c2c46e3-3212-4c02-83c7-f6e31dc33803.jsonl",
+   "fileEdits": [
+    [
+     1,
+     0,
+     0
+    ]
+   ],
    "files": [
     "/Users/me/app/src/x1.py"
    ],
@@ -4908,6 +4949,28 @@
    "end": 1789441800,
    "events": 28,
    "file": "testdata/home/.claude/projects/-Users-me-blog/fa1e3455-e4a8-485a-ace2-9a6ccbaea201.jsonl",
+   "fileEdits": [
+    [
+     1,
+     0,
+     0
+    ],
+    [
+     4,
+     0,
+     0
+    ],
+    [
+     1,
+     0,
+     0
+    ],
+    [
+     1,
+     0,
+     0
+    ]
+   ],
    "files": [
     "/Users/me/blog/src/x2.py",
     "/Users/me/blog/src/x3.py",
@@ -5053,6 +5116,28 @@
    "end": 1789824240,
    "events": 84,
    "file": "testdata/home/.claude/projects/-Users-me-app/6f8a980c-3b83-43eb-b07d-758a36bc2401.jsonl",
+   "fileEdits": [
+    [
+     1,
+     0,
+     0
+    ],
+    [
+     2,
+     0,
+     0
+    ],
+    [
+     3,
+     0,
+     0
+    ],
+    [
+     2,
+     0,
+     0
+    ]
+   ],
    "files": [
     "/Users/me/app/src/x1.py",
     "/Users/me/app/src/x2.py",
@@ -5322,6 +5407,23 @@
    "end": 1790157840,
    "events": 89,
    "file": "testdata/home/.claude/projects/-Users-me-app/68cb7e8c-a8e9-4b72-9b9f-95c791d04e00.jsonl",
+   "fileEdits": [
+    [
+     2,
+     0,
+     0
+    ],
+    [
+     2,
+     0,
+     0
+    ],
+    [
+     3,
+     0,
+     0
+    ]
+   ],
    "files": [
     "/Users/me/app/src/x2.py",
     "/Users/me/app/src/x4.py",
@@ -5594,6 +5696,18 @@
    "end": 1790322960,
    "events": 24,
    "file": "testdata/home/.claude/projects/-Users-me-app/d8bda5e8-265b-4f26-8a8a-54c9c8651701.jsonl",
+   "fileEdits": [
+    [
+     1,
+     0,
+     0
+    ],
+    [
+     1,
+     0,
+     0
+    ]
+   ],
    "files": [
     "/Users/me/app/src/x2.py",
     "/Users/me/app/src/x5.py"
@@ -5736,6 +5850,23 @@
    "end": 1790412180,
    "events": 56,
    "file": "testdata/home/.claude/projects/-Users-me-vp/57c94728-2884-42b4-8c7d-b3e65e11e800.jsonl",
+   "fileEdits": [
+    [
+     2,
+     0,
+     0
+    ],
+    [
+     1,
+     0,
+     0
+    ],
+    [
+     2,
+     0,
+     0
+    ]
+   ],
    "files": [
     "/Users/me/vp/src/x1.py",
     "/Users/me/vp/src/x2.py",
@@ -5931,6 +6062,28 @@
    "end": 1790429040,
    "events": 84,
    "file": "testdata/home/.claude/projects/-Users-me-app/6f8a980c-3b83-43eb-b07d-758a36bc2400.jsonl",
+   "fileEdits": [
+    [
+     1,
+     0,
+     0
+    ],
+    [
+     2,
+     0,
+     0
+    ],
+    [
+     3,
+     0,
+     0
+    ],
+    [
+     2,
+     0,
+     0
+    ]
+   ],
    "files": [
     "/Users/me/app/src/x1.py",
     "/Users/me/app/src/x2.py",
@@ -6195,6 +6348,13 @@
    "end": 1790551440,
    "events": 13,
    "file": "testdata/home/.kiro/sessions/abc/sess_0ee61246/messages.jsonl",
+   "fileEdits": [
+    [
+     6,
+     0,
+     0
+    ]
+   ],
    "files": [
     "spec.md"
    ],
@@ -6485,6 +6645,13 @@
    "end": 1790643960,
    "events": 11,
    "file": "testdata/sqlite/kiro-cli.sqlite3",
+   "fileEdits": [
+    [
+     1,
+     0,
+     0
+    ]
+   ],
    "files": [
     "/Users/me/app/test/login.spec.ts"
    ],
@@ -6685,6 +6852,13 @@
    "end": 1790662920,
    "events": 13,
    "file": "testdata/home/.kiro/sessions/abc/sess_7e06b008/messages.jsonl",
+   "fileEdits": [
+    [
+     6,
+     0,
+     0
+    ]
+   ],
    "files": [
     "spec.md"
    ],
@@ -7070,6 +7244,13 @@
    "end": 1790749800,
    "events": 13,
    "file": "testdata/home/.kiro/sessions/abc/sess_564f668e/messages.jsonl",
+   "fileEdits": [
+    [
+     6,
+     0,
+     0
+    ]
+   ],
    "files": [
     "spec.md"
    ],
@@ -7161,6 +7342,13 @@
    "end": 1790753100,
    "events": 13,
    "file": "testdata/home/.kiro/sessions/abc/sess_1640c798/messages.jsonl",
+   "fileEdits": [
+    [
+     6,
+     0,
+     0
+    ]
+   ],
    "files": [
     "spec.md"
    ],
@@ -7324,6 +7512,13 @@
    "end": 1790821200,
    "events": 13,
    "file": "testdata/home/.kiro/sessions/abc/sess_76df747b/messages.jsonl",
+   "fileEdits": [
+    [
+     6,
+     0,
+     0
+    ]
+   ],
    "files": [
     "spec.md"
    ],
@@ -7415,6 +7610,13 @@
    "end": 1790987040,
    "events": 13,
    "file": "testdata/home/.kiro/sessions/abc/sess_97d6b4d7/messages.jsonl",
+   "fileEdits": [
+    [
+     6,
+     0,
+     0
+    ]
+   ],
    "files": [
     "spec.md"
    ],
@@ -7511,6 +7713,13 @@
    "end": 1791031620,
    "events": 23,
    "file": "testdata/home/.claude/projects/-Users-me-app/5c2c46e3-3212-4c02-83c7-f6e31dc33800.jsonl",
+   "fileEdits": [
+    [
+     1,
+     0,
+     0
+    ]
+   ],
    "files": [
     "/Users/me/app/src/x1.py"
    ],

@@ -52,6 +52,10 @@ const MET = {
   heavy: {f: (w, ws, we) => w.usage && w.usage.cost >= 0.01 ? pctOf(idleOf(ws, we).c, w.usage.cost) : null, low: true, u: "%", cap: "Share of cost with no commit or PR"},
   cost: {f: w => w.usage ? w.usage.cost : null, low: true, fmt: v => usd(v)},
   costPerCommit: {f: w => w.costPerCommit, low: true, fmt: v => usd(v)},
+  // コミットあたりのトークン：推定費用と同じく、Claude Code のセッション（期間に始まったもの）のトークン ÷ AI が実行したコミット
+  tokensPerCommit: {f: (w, ws, we) => { const c = w.outputs && w.outputs.commits; if (!c) return null; const n = DATA.filter(s => s.source === "Claude Code" && s.start >= ws && s.start < we).reduce((a, s) => a + sesTok(s), 0); return n ? n / c : null; }, low: true, fmt: v => tok(v)},
+  // コミットあたりのクレジット：Kiro は AI が実行したコミットを記録しないので、Git のコミットのうち Claude Code が実行したもの以外で割る（手で打ったコミットも入る）
+  creditsPerCommit: {f: w => { const c = w.usage && w.usage.credits, g = w.git, n = g ? g.commits - (g.ai || 0) : 0; return c && n > 0 ? c / n : null; }, low: true, fmt: v => cr1(v)},
   modelfit: {f: (w, ws, we) => w.usage && w.usage.cost >= 0.01 ? pctOf(lightOf(ws, we).c, w.usage.cost) : null, low: true, u: "%"},
   fix: {f: w => w.fixRate, low: true, u: "%"},
   friction: {f: w => w.frictionN ?? w.friction.length, low: true, u: ""},
@@ -65,6 +69,7 @@ const MET = {
   active: {f: w => w.active, fmt: v => dur(v)},
   prompts: {f: w => w.prompts, u: ""},
   tokens: {f: w => w.usage && w.usage.tokens ? w.usage.tokens : null, fmt: v => tok(v)},
+  credits: {f: w => w.usage && w.usage.credits ? w.usage.credits : null, low: true, fmt: cr}, // 推定費用と同じく、多いときに印（クレジットは使う枠）
   gitCommits: {f: w => w.git ? w.git.commits : null, u: ""},
 };
 const fmtM = (k, v) => v == null ? "—" : MET[k].fmt ? MET[k].fmt(v) : `${Math.round(v * 10) / 10}${MET[k].u ?? ""}`; // 本文と同じく「8 件」「5.2 回」

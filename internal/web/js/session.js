@@ -10,10 +10,10 @@ function detail(s){
   // 目安コスト。料金表にないモデルだけなら "—"（$0.00 と出すと、使っていないと読めてしまう）
   const sCost = costOf({cost: s.cost, unpriced: [s.usage, ...s.subagents.map(a=>a.usage)].reduce((t,u)=>t + (u ? u.unpriced||0 : 0), 0)});
   // Kiro のクレジット。Kiro Crew は Kiro 以外のバックエンドのトークンと、kiro-cli のクレジットの両方を持つことがある
-  const credH = s.credits ? `<div><div class="k">${esc(t("Kiro credits"))}</div><div class="v">${crN(s.credits)}</div></div><div><div class="k">${esc(t("Per prompt"))}</div><div class="v">${s.nPrompts ? crN(s.credits/s.nPrompts) : "—"}<small> cr</small></div></div>` : "";
+  const credH = s.credits ? `<div><div class="k">${esc(t("Kiro credits"))}</div><div class="v">${crN(s.credits)}</div></div><div><div class="k">${esc(t("Per prompt"))}</div><div class="v">${s.nPrompts ? crH(s.credits/s.nPrompts) : "—"}</div></div>` : "";
   // 操作（再開・AI 分析）。どちらもなければ節ごと出さない（右の列が「数値」から始まり、左の列と高さがそろう）
   const actH = `    ${s.resume ? `<div class="dresume"><h3>${esc(t("Resume"))}</h3>${codeH(s.resume, "resume")}</div>` : ""}
-    ${(b => b ? `<div class="drun"><h3>${esc(t("Session review"))}</h3>${b}<p class="note">${esc(t("Copies a review prompt to paste into your AI agent. kiroku runs nothing and sends nothing."))}</p></div>` : "")(s.prompts.length ? promptBtn("srun", t("Copy the session review prompt")) : "")}`.trim();
+    ${(b => b ? `<div class="drun"><h3>${esc(t("Session review"))}</h3>${b}<p class="note">${esc(t("Copies a review prompt to paste into your AI agent."))}</p></div>` : "")(s.prompts.length ? promptBtn("srun", t("Copy the session review prompt")) : "")}`.trim();
   const P = $("#panel");
   P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
     ${dHead(agMark(s.source) + esc(s.source), s.title, `${md(s.start)} ${hm(s.start)} – ${sameDay ? "" : md(s.end)+" "}${hm(s.end)}`, [projTag(s.project), branchTag(s.branch)])}
@@ -54,13 +54,13 @@ function detail(s){
         return `<div class="sub"><div class="hd"><span class="ty">${esc(a.type)}</span><span class="ds">${esc(a.desc || t("(no description)"))}</span>${a.bg?`<span class="bg">${esc(t("Background"))}</span>`:""}</div>
           <div class="lane"><span style="left:${l}%;width:${Math.min(w,100-l)}%"></span></div>
           <div class="ft">${a.start?`<span>${hm(a.start)}${a.end?"–"+hm(a.end):""}</span>`:""}${a.start&&a.end?`<span>${dur((a.end-a.start)/60)}</span>`:""}${tt?`<span>${esc(t("{n} tokens", {n: tok(tt)}))}</span>`:u.reportedTokens?`<span>${esc(t("{n} tokens (reported)", {n: tok(u.reportedTokens)}))}</span>`:""}${u.cost?`<span>${usd(u.cost)}</span>`:""}${a.model?`<span>${esc(a.model)}</span>`:""}${a.tools?`<span>${esc(plural(a.tools, "tool call"))}</span>`:""}</div></div>`; }).join("")}` : ""}
-    <details class="sdet"><summary>${ico("caret", "dsc")}<h3>${esc(t("More details"))}</h3><span class="muted">${esc(t("History file, models and tools"))}</span></summary>
+    <div class="sdet">
     ${s.file ? `<h3>${esc(t("History file"))}</h3>${codeH(s.file, "", `<a class="copy" href="${esc(LIVE ? "history?id=" + encodeURIComponent(s.id) : fileHref(s.file))}" ${LIVE ? "data-hist" : `target="_blank" rel="noopener"`}>${esc(t("Open"))}</a>`)}` : ""}
     ${s.models.length ? `<h3>${esc(t("Models used"))}</h3><div class="chips">${(mc => s.models.map(([m,n],i)=>`<span class="mono mdl" style="--m:${mc[i]}"><i aria-hidden="true"></i>${esc((m))}<b>${n}</b></span>`).join(""))(modelColors(s.models.map(([m]) => m)))}</div>` : ""}
     ${s.tiers && s.tiers.length ? `<h3>${esc(t("Service tier"))}</h3><div class="chips">${s.tiers.map(([t,n])=>`<span class="mono">${esc(t)}<b>${n}</b></span>`).join("")}</div>` : ""}
     <h3>${esc(t("Tools used"))}</h3>
     ${s.tools.length ? s.tools.map(([k,v],i)=>`<div class="trow"><span class="nm">${toolIcon(k)}<span>${esc(k)}</span></span><span class="track2"><span style="width:${v/maxT*100}%;background:var(--c${i % 8})"></span></span><span class="n">${v}</span></div>`).join("") : noneH(esc(t("None recorded")))}
-    </details>
+    </div>
     </section>
     </div>
   </div>`;
@@ -255,18 +255,21 @@ function sessionPrompt(s, active, med){ return inEnglish(() => { // AI に渡す
   const D = ["# Facts", "", "## Numbers", sessionNumbers(s, active, med), "", "## Session",
     `- Title: ${cut(s.title, 80)}`, `- Agent: ${oneLine(s.source)}`, `- Project: ${oneLine(s.project)}${s.branch ? ` (branch ${oneLine(s.branch)})` : ""}`,
     `- Time: ${md(s.start)} ${hm(s.start)}–${hm(s.end)}`];
-  if (file) D.push(`- History file: ${oneLine(file)}`);
+  if (file) D.push(`- Session ID: ${oneLine(s.id)}`, `- History file: ${oneLine(file)}`);
   // このセッションの最初と最後のプロンプトの間に、ほかのプロジェクトで書いたプロンプト（切り替えの手がかり）。凡例で隠したものは入れない（週報と同じ）
   const a = s.prompts.length ? s.prompts[0].t : s.start, b = s.prompts.length ? s.prompts[s.prompts.length - 1].t : s.end, other = new Map();
   DATA.forEach(x => { if (x.project !== s.project && !st.hidden.has(keyOf(x))) x.prompts.forEach(p => { if (p.t > a && p.t < b) other.set(x.project, (other.get(x.project) || 0) + 1); }); });
   const sw = `- Prompts I wrote in other projects while this session ran: ${other.size ? [...other].sort((x, y) => y[1] - x[1]).slice(0, 5).map(([k, v]) => `${oneLine(k)} ${v}`).join(", ") : "none"}`;
   D.push("", "## Signals for advice", ...reportSignals([s], s.start, s.end + 1, cut, [s.start - 30 * 86400, s.end + 1], sw));
   if (s.models.length > 1) D.push(`- Models in this session (responses): ${s.models.map(([m, n]) => `${oneLine(m)} ${n}`).join(", ")}`);
-  // 履歴ファイルにない、kiroku が git などから足した出来事と並べる。ファイルを読めるなら、プロンプトはファイルの中で探す目印になる頭だけ
-  D.push("", `## Prompt flow (my prompts and what happened between them, in time order; ${file ? "prompts are cut to their first words, the full text is in the history file" : "long ones are truncated"})`);
-  if (s.prompts.length) D.push(...reviewFlow(s.prompts, reviewEvents(s), 40, file ? 80 : 300));
-  else D.push("- No prompts recorded");
-  if (s.prompts.length > 40) D.push(`- ${s.nPrompts - 40} more`);
+  // 履歴ファイルを読めるなら、プロンプトと応答はそこにあるので書き写さない（セッション ID とファイルを渡すだけ）。
+  // 書くのは、履歴ファイルにない、kiroku が git などから足した出来事（コミット・PR など）の時刻だけ。読めないときは、プロンプトの流れを書き写す
+  if (file){ const ev = reviewEvents(s); D.push("", "## Events kiroku adds from git and the agent's records (time order; the prompts and replies are in the history file)");
+    D.push(...(ev.length ? ev.slice(0, 60).map(e => `- ${hm(e.t)} [${e.l}]${e.d ? ` ${cut(e.d, 120)}` : ""}`) : ["- None"])); if (ev.length > 60) D.push(`- ${ev.length - 60} more`); }
+  else { D.push("", "## Prompt flow (my prompts and what happened between them, in time order; long ones are truncated)");
+    if (s.prompts.length) D.push(...reviewFlow(s.prompts, reviewEvents(s), 40, 300));
+    else D.push("- No prompts recorded");
+    if (s.prompts.length > 40) D.push(`- ${s.nPrompts - 40} more`); }
   L.push("", "# History data", mdFence(D.join("\n")));
   return L.join("\n");
 }); }
@@ -293,7 +296,12 @@ function sesNeighbors(id){ const xs = DATA.filter(matches).sort((a, b) => a.star
 // goSession は、前後のセッションへ移る（戻るの積み上げには入れない。カレンダーもそのセッションの週・月へ）
 function goSession(s){ if (!s) return; const d = new Date(s.start * 1000);
   if (st.mode === "month") st.month = monthOf(d); else st.week = mondayOf(d);
-  st.sel = s.id; tipOff(); render(); const f = $("#drawer").classList.contains("flowfull") && $("#panel .sflow"); $("#panel").scrollTop = f ? Math.max(0, f.offsetTop - 8) : 0; dtopSync(); }
+  st.sel = s.id; tipOff(); render(); flowToTop(); dtopSync(); }
+// flowToTop は、詳細をプロンプトの流れの始まりから読める位置に戻す。全画面と、流れが下にある狭い画面では流れの見出しを上端に、
+// 広い画面では詳細のいちばん上に（流れは左の列の頭から見えている）。位置は描いた後の実際の座標で測る
+function flowToTop(){ const P = $("#panel"), f = $("#panel .sflow"); P.scrollTop = 0; if (!f) return;
+  const d = f.getBoundingClientRect().top - P.getBoundingClientRect().top;
+  if ($("#drawer").classList.contains("flowfull") || d > P.clientHeight / 3) P.scrollTop = Math.max(0, d - 8); }
 // navSync は、詳細の上の帯の ‹ › を、表示中のセッションの前後に合わせる（セッション以外の詳細では出さない）
 function navSync(){ const N = $("#snav"), s = st.sel && DATA.find(x => x.id === st.sel); N.hidden = !s; if (!s) return;
   const {prev, next} = sesNeighbors(s.id);
@@ -304,7 +312,7 @@ function navSync(){ const N = $("#snav"), s = st.sel && DATA.find(x => x.id === 
 function toggleFlowFull(on){ const D = $("#drawer"), v = on ?? !D.classList.contains("flowfull"); D.classList.toggle("flowfull", v);
   const b = $("#panel .ffull"); if (b){ b.setAttribute("aria-pressed", String(v)); b.querySelector("span").textContent = v ? t("Exit full screen") : t("Full screen");
     b.querySelector("path").setAttribute("d", v ? "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" : "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"); }
-  const f = $("#panel .sflow"); if (v && f) $("#panel").scrollTop = Math.max(0, f.offsetTop - 8); }
+  if (v) flowToTop(); }
 function select(id){ // 詳細の中で別の詳細へ移ったときは、戻れるように前のものを積む
   if (id && !st.sel) focusDrawer.next = openerOf(lastClick) || openerOf(document.activeElement);
   if (id && st.sel && id !== st.sel){ st.back.push(st.sel); (st.backTop ||= []).push($("#panel").scrollTop); } else if (!id){ st.back = []; st.backTop = []; } // 戻ったとき、読んでいた位置に戻す
