@@ -249,8 +249,11 @@ async function run(env) {
       const nb = await p.evaluate(() => { const v = b => ({dis: b.disabled, label: b.getAttribute("aria-label") || ""}); return {shown: !$("#snav").hidden, prev: v($("#sprev")), next: v($("#snext"))}; });
       check("見出しの帯に前後のセッションへのボタンがあり、名前がある", nb.shown && /session/i.test(nb.prev.label) && /session/i.test(nb.next.label), JSON.stringify(nb));
       const mv = nb.next.dis ? {key: "ArrowLeft", back: "ArrowRight", btn: "#snext"} : {key: "ArrowRight", back: "ArrowLeft", btn: "#sprev"};
+      await p.evaluate(() => { $("#panel").scrollTop = $("#panel").scrollHeight; document.activeElement.blur(); }); // 下まで読んだところから移る
       await p.keyboard.press(mv.key); await pause();
       const id1 = await p.evaluate(() => st.sel);
+      const ft = await p.evaluate(() => { const P = $("#panel"), f = $("#panel .sflow").getBoundingClientRect(), r = P.getBoundingClientRect(); return {d: Math.round(f.top - r.top), h: P.clientHeight}; });
+      check("移った先では、プロンプトの流れが頭から見えている", ft.d >= 0 && ft.d <= ft.h / 3, JSON.stringify(ft));
       check("← → で隣のセッションに移り、詳細は開いたまま", id1 && id1 !== id0 && await drawerOpen(), `${id0} → ${id1}`);
       await p.keyboard.press(mv.back); await pause();
       check("反対のキーで元のセッションに戻る", await p.evaluate(() => st.sel) === id0);

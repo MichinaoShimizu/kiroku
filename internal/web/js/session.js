@@ -293,7 +293,12 @@ function sesNeighbors(id){ const xs = DATA.filter(matches).sort((a, b) => a.star
 // goSession は、前後のセッションへ移る（戻るの積み上げには入れない。カレンダーもそのセッションの週・月へ）
 function goSession(s){ if (!s) return; const d = new Date(s.start * 1000);
   if (st.mode === "month") st.month = monthOf(d); else st.week = mondayOf(d);
-  st.sel = s.id; tipOff(); render(); const f = $("#drawer").classList.contains("flowfull") && $("#panel .sflow"); $("#panel").scrollTop = f ? Math.max(0, f.offsetTop - 8) : 0; dtopSync(); }
+  st.sel = s.id; tipOff(); render(); flowToTop(); dtopSync(); }
+// flowToTop は、詳細をプロンプトの流れの始まりから読める位置に戻す。全画面と、流れが下にある狭い画面では流れの見出しを上端に、
+// 広い画面では詳細のいちばん上に（流れは左の列の頭から見えている）。位置は描いた後の実際の座標で測る
+function flowToTop(){ const P = $("#panel"), f = $("#panel .sflow"); P.scrollTop = 0; if (!f) return;
+  const d = f.getBoundingClientRect().top - P.getBoundingClientRect().top;
+  if ($("#drawer").classList.contains("flowfull") || d > P.clientHeight / 3) P.scrollTop = Math.max(0, d - 8); }
 // navSync は、詳細の上の帯の ‹ › を、表示中のセッションの前後に合わせる（セッション以外の詳細では出さない）
 function navSync(){ const N = $("#snav"), s = st.sel && DATA.find(x => x.id === st.sel); N.hidden = !s; if (!s) return;
   const {prev, next} = sesNeighbors(s.id);
@@ -304,7 +309,7 @@ function navSync(){ const N = $("#snav"), s = st.sel && DATA.find(x => x.id === 
 function toggleFlowFull(on){ const D = $("#drawer"), v = on ?? !D.classList.contains("flowfull"); D.classList.toggle("flowfull", v);
   const b = $("#panel .ffull"); if (b){ b.setAttribute("aria-pressed", String(v)); b.querySelector("span").textContent = v ? t("Exit full screen") : t("Full screen");
     b.querySelector("path").setAttribute("d", v ? "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" : "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"); }
-  const f = $("#panel .sflow"); if (v && f) $("#panel").scrollTop = Math.max(0, f.offsetTop - 8); }
+  if (v) flowToTop(); }
 function select(id){ // 詳細の中で別の詳細へ移ったときは、戻れるように前のものを積む
   if (id && !st.sel) focusDrawer.next = openerOf(lastClick) || openerOf(document.activeElement);
   if (id && st.sel && id !== st.sel){ st.back.push(st.sel); (st.backTop ||= []).push($("#panel").scrollTop); } else if (!id){ st.back = []; st.backTop = []; } // 戻ったとき、読んでいた位置に戻す
