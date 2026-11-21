@@ -3,8 +3,8 @@
    中央値と四分位（真ん中の 50%）で見る。平均と標準偏差は、外れた週 1 つで大きく動くので使わない */
 const INS_N = 12, INS_MIN = 4; // 比べる期間の数と、比べるのに要る最低の数（それより少なければ「まだ比べられない」と言う）
 const INS_ADD = new Set(["cost", "credits", "active", "prompts", "tokens", "gitCommits", "limits", "longctx", "friction", "bigPrompts", "focus"]); // 期間の長さに比例して増える指標（途中の期間は、このペースで期間を終えたときの値で比べる）
-const INS_KEYS = ["cost", "credits", "tokens", "active", "costPerCommit", "creditsPerCommit", "tokensPerCommit", "cache", "fix", "wait"]; // グラフで切り替えて見られる指標
-const INS_SHORT = () => ({cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), active: t("Time"), costPerCommit: t("Cost per commit"), creditsPerCommit: t("Credits per commit"), tokensPerCommit: t("Tokens per commit"), cache: t("Cache"), fix: t("Corrections"), wait: t("Wait")}); // 切り替えの短い名前（正式な名前は title と、グラフの下の文）
+const INS_KEYS = ["cost", "credits", "tokens", "active", "costPerCommit", "creditsPerCommit", "tokensPerCommit", "costPerEdit", "creditsPerEdit", "tokensPerEdit", "cache", "fix", "wait"]; // グラフで切り替えて見られる指標
+const INS_SHORT = () => ({cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), active: t("Time"), costPerCommit: t("Cost per commit"), creditsPerCommit: t("Credits per commit"), tokensPerCommit: t("Tokens per commit"), costPerEdit: t("Cost per 100 AI lines"), creditsPerEdit: t("Credits per 100 AI lines"), tokensPerEdit: t("Tokens per 100 AI lines"), cache: t("Cache"), fix: t("Corrections"), wait: t("Wait")}); // 切り替えの短い名前（正式な名前は title と、グラフの下の文）
 // insNice は、目盛りの上端を切りのよい数（1・2・2.5・5・10 の 10 の累乗倍）に
 function insNice(v){ if (!(v > 0)) return 1; const e = Math.pow(10, Math.floor(Math.log10(v))); return [1, 2, 2.5, 5, 10].map(m => m * e).find(x => x >= v); }
 function insQuant(xs, q){ const s = [...xs].sort((a, b) => a - b), i = (s.length - 1) * q, lo = Math.floor(i), hi = Math.ceil(i); return s[lo] + (s[hi] - s[lo]) * (i - lo); }
@@ -59,8 +59,8 @@ const insChip = b => `<code class="ichip ifx${insTone(b)}" title="${esc(insDef(b
 /* 要点の数字（最大 3 列）：上の帯と同じ数をサマリーでも、式といつもの範囲との不等式つきで。並びは判断に使う順：
    使った額（推定費用・クレジット、なければトークン）→ 予算に対する位置（前の期間並みに収める 1 日の目安／月末の推定／前の期間との差）→ 稼働時間 → 効率（コミットあたり費用）→ まず見直すもの */
 function insHeadlines(F){
-  const {S: w, P: pw, ws, we} = period(), T = {cost: [], out: [], unit: []}, u = (w && w.usage) || {}, M = st.mode === "month";
-  let G = "cost"; // コスト（時間・クレジット・金額・トークン）・出力（コミット・変えた行）・単価（コスト ÷ 出力）に分けて並べる
+  const {S: w, P: pw, ws, we} = period(), T = {cost: [], outGit: [], outEdit: [], unitGit: [], unitEdit: [], unitAsk: []}, u = (w && w.usage) || {}, M = st.mode === "month";
+  let G = "cost"; // コスト（時間・クレジット・金額・トークン）・出力（Git と AI の編集）・単価（コスト ÷ 出力。割る数の元ごと）に分けて並べる
   const tile = (label, b, v, f, m) => T[G].push(`<div class="itile${insTone(b)}"><span class="il">${esc(label)}</span>${m ? `<button type="button" class="itv" data-metric="${m}" aria-haspopup="dialog" aria-label="${esc(`${label} ${v}`)}">${esc(v)}</button>` : `<b>${esc(v)}</b>`}${[].concat(f || []).map(x => typeof x === "object" ? fx(x.f, "", x.p) : x === t("Not an estimate") ? pln(x) : fx(x)).join("")}${b === false ? "" : insChip(b)}</div>`); // 値を押すと、上の帯と同じ内訳
   const days = Math.round((we - ws) / 86400), el = Math.round(insFrac() * days), V = vsPrev(pw, M ? "月" : "週");
   // 上の帯の増減（%）と同じ比べを式で：途中の期間は前の期間の同じ日まで、終わった期間は前の期間まるごと
@@ -86,19 +86,28 @@ function insHeadlines(F){
   else if (u.tokens && costOf(u) != null){ const a = costOf(u), dd = w.days.filter(d => d.active).length; // 終わった期間：使った日 1 日あたり（前の期間との差は推定費用のカードの式にある）
     if (dd) tile(t("Cost per active day"), false, `${usd(a / dd)}/${t("d")}`, `${usd(a)} ÷ ${dd}${t("d")} = ${usd(a / dd)}`); }
   const ba = insBase("active"); if (ba) tile(t("Active time"), ba, fmtM("active", ba.cur), [vs(ba.cur, V.of("active", pw && pw.active), v => dur(v))].concat(ba.part ? pace(ba.cur, ba.v, v => dur(v)) : "").filter(Boolean), "active");
-  G = "out";
+  // 出力は、元の違う 2 つを混ぜずに分ける：Git（リポジトリから読んだコミット）と、AI の編集（エージェントの履歴の編集ツール。コミットしたかによらない）
+  G = "outGit";
   const g = w && w.git && w.git.commits ? w.git : null, o = (w && w.outputs) || {};
   if (g) tile(t("Git commits"), insBase("gitCommits"), `${g.commits}`, {f: `AI ${g.ai} ÷ ${g.commits} = ${Math.round(g.ai * 100 / g.commits)}%`, p: t("{pc}% by AI", {pc: Math.round(g.ai * 100 / g.commits)})}, "commits");
-  else if (o.commits) tile(t("AI commits"), false, `${o.commits}`, "", "aiCommits");
+  else if (o.commits) tile(t("AI commits"), false, `${o.commits}`, t("Git not read: commits AI ran, from history"), "aiCommits");
+  G = "outEdit";
   { const xs = DATA.filter(s => s.start >= ws && s.start < we && s.nFiles > 0), a = xs.reduce((x, s) => x + (s.editAdded || 0), 0), d = xs.reduce((x, s) => x + (s.editRemoved || 0), 0);
-    if (a + d > 0) tile(t("Lines changed by AI"), false, commas(a + d), {f: `+${commas(a)} −${commas(d)}`, p: `+${commas(a)} −${commas(d)}`}); }
-  G = "unit"; // 単価：コストを出力（コミット・プロンプト）で割ったもの
+    if (a + d > 0) tile(t("Lines edited by AI"), false, commas(a + d), {f: `+${commas(a)} −${commas(d)}`, p: `+${commas(a)} −${commas(d)}`}); }
+  // 単価も、割る数の元ごとに分ける：Git のコミットあたり・AI が編集した 100 行あたり・プロンプトあたり
+  G = "unitGit";
   const bp = insBase("costPerCommit"), oc = w && w.outCost, nc = w && w.outputs && w.outputs.commits;
   if (bp) tile(t("Cost per commit"), bp, fmtM("costPerCommit", bp.cur), oc && nc ? `Claude Code ${usd(oc)} ÷ ${nc} ${t("AI commits")} = ${usd(bp.cur)}` : "", "costPerCommit");
   const bcc = insBase("creditsPerCommit"), gx = g ? g.commits - (g.ai || 0) : 0;
   if (bcc) tile(t("Kiro credits per commit"), bcc, `${Math.round(bcc.cur * 10) / 10}`, {f: `${cr1(u.credits)} ÷ ${gx} ${t("commits")} = ${fmtM("creditsPerCommit", bcc.cur)}`, p: t("÷ Git commits not run by Claude Code")});
   const btc = insBase("tokensPerCommit");
   if (btc) tile(t("Tokens per commit"), btc, fmtM("tokensPerCommit", btc.cur), nc ? `Claude Code ${t("tokens")} ÷ ${nc} ${t("AI commits")} = ${fmtM("tokensPerCommit", btc.cur)}` : "");
+  G = "unitEdit";
+  for (const [k, label, fu] of [["costPerEdit", t("Estimated cost per 100 AI-edited lines"), usd], ["creditsPerEdit", t("Kiro credits per 100 AI-edited lines"), cr1]]){ // トークンは推移だけ（数字の段を増やしすぎない）
+    const b = insBase(k); if (!b) continue;
+    const e = editsBasis(ws, we, k.replace("PerEdit", ""));
+    tile(label, b, fmtM(k, b.cur), {f: `${fu(e.used)} ÷ ${commas(e.lines)} ${t("AI-edited lines")} × 100 = ${fmtM(k, b.cur)}`, p: t("{n} sessions that record edits", {n: e.n})}); }
+  G = "unitAsk";
   if (w && w.costPerAsk != null) tile(t("Estimated cost per prompt"), false, usd(w.costPerAsk), t("cost ÷ {n} prompts with token data", {n: commas(w.costPrompts)}), "costPerAsk");
   { const cs = DATA.filter(s => s.start >= ws && s.start < we && s.credits > 0), c = cs.reduce((a, s) => a + s.credits, 0), n = cs.reduce((a, s) => a + s.nPrompts, 0); // クレジットを記録したセッションの、プロンプトあたり
     if (c && n) tile(t("Kiro credits per prompt"), false, `${Math.round(c / n * 100) / 100}`, `${cr1(c)} ÷ ${n} ${t("prompts")} = ${Math.round(c / n * 100) / 100}`); }
@@ -109,12 +118,15 @@ function insHeadlines(F){
   const C = f0 ? `<div class="icall${b0 && b0.better === false ? " bad" : ""}"><span class="il">${esc(t("Change first"))}${nIds > 1 ? ` · ${esc(t("{n} worth a look", {n: nIds}))}` : ""}</span><button type="button" class="icv insgo" data-goto="${esc(g0)}" aria-haspopup="dialog">${esc(n0)}</button><span class="isee">${esc(f0.L.see)}</span>${fx(t("Threshold: {rule}", {rule: f0.L.rule}))}${b0 ? insChip(b0) : ""}</div>`
     : `<div class="icall good"><span class="il">${esc(t("Change first"))}</span><b class="icv">${esc(t("Nothing"))}</b><span class="isee">${esc(t("No metric crossed its threshold"))}</span></div>`;
   const grp = (k, label) => T[k].length ? `<section class="ikg" aria-label="${esc(label)}"><h5 class="ikgh">${esc(label)}</h5><div class="ikrow">${T[k].join("")}</div></section>` : "";
-  return `<div class="insh">${grp("cost", t("Cost"))}${grp("out", t("Output"))}${grp("unit", t("Unit cost"))}</div>${C}<p class="ifxs insdef">${fx(insDef())}</p>`;
+  // 小見出しのある段：出どころ（Git と AI の編集）が違う数字を、同じ枠の中でも段と印で分ける
+  const sub = ([k, icon, label, note]) => T[k].length ? `<div class="iksub ${k}" role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><div class="ikrow">${T[k].join("")}</div></div>` : "";
+  const grp2 = (label, rows) => rows.some(r => T[r[0]].length) ? `<section class="ikg" aria-label="${esc(label)}"><h5 class="ikgh">${esc(label)}</h5>${rows.map(sub).join("")}</section>` : "";
+  return `<div class="insh">${grp("cost", t("Cost"))}${grp2(t("Output"), [["outGit", "commit", t("Git"), t("from your repositories")], ["outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not")]])}${grp2(t("Unit cost"), [["unitGit", "commit", t("Per Git commit"), ""], ["unitEdit", "edit", t("Per 100 AI-edited lines"), ""], ["unitAsk", "user", t("Per prompt"), ""]])}</div>${C}<p class="ifxs insdef">${fx(insDef())}</p>`;
 }
 /* 推移のグラフ：前の INS_N 期間と表示中の期間の棒。いつもの範囲（四分位）を帯、中央値を点線で重ねる。
    途中の期間は、今の値の棒と、このペースで終えたときの値の枠。範囲から大きく外れた期間には印 */
 // 目盛りの数は短く（クレジットは数だけ。単位は見出しの文にある。左の余白に収める）
-const tickM = (k, v) => k === "credits" || k === "creditsPerCommit" ? crN(v) : fmtM(k, v);
+const tickM = (k, v) => k === "credits" || k === "creditsPerCommit" || k === "creditsPerEdit" ? crN(v) : fmtM(k, v);
 function insChart(k){
   const all = []; for (let i = INS_N; i >= 0; i--){ const p = periodBack(i); all.push({p, v: p.ws < historyStart() && i ? null : metricAt(k, p)}); }
   const f0 = Math.min(Math.max(0, all.findIndex(x => x.v != null)), all.length - 6), ps = all.slice(f0); // 記録の始まる前の期間は描かない（6 期間は残す）
@@ -158,7 +170,7 @@ const insRank = F => F.map((f, i) => ({f, i, s: f.stake !== undefined ? f.stake 
 function insightH(F){
   F = insRank(F);
   const noCost = !((period().S || {}).usage || {}).tokens && !(((period().S || {}).usage || {}).cost > 0); // クレジットだけを記録するエージェントに絞ったときは、推定費用の推移を出さない
-  const avail = INS_KEYS.filter(x => insBase(x) && !(noCost && (x === "cost" || x === "costPerCommit"))), k = avail.includes(st.insK) ? st.insK : avail[0] || "active";
+  const avail = INS_KEYS.filter(x => insBase(x) && !(noCost && (x === "cost" || x === "costPerCommit" || x === "costPerEdit"))), k = avail.includes(st.insK) ? st.insK : avail[0] || "active";
   const tabs = avail.map(x => `<button type="button" data-ins="${x}" aria-pressed="${x === k}" title="${esc(insName(x))}">${esc(INS_SHORT()[x])}</button>`).join("");
   const card = (title, body, cls = "") => body ? `<div class="inscol${cls}"><h4>${esc(title)}</h4>${body}</div>` : "";
   // グラフのカードは 2 列に並べる。エージェント別の表は幅いっぱい。2 枚の組にならずに 1 枚だけ残ったカードも幅いっぱいにする（空きを作らない）
@@ -347,8 +359,8 @@ function insEditsBody(){
       x.n += e[0]; x.a += e[1]; x.d += e[2]; edits += e[0]; if (e[1] + e[2] > x.top){ x.top = e[1] + e[2]; x.sid = s.id; } by.set(k, x); }); }
   const nf = by.size + extra, fs = [...by.values()].sort((a, b) => (b.a + b.d) - (a.a + a.d) || b.n - a.n || (a.rel < b.rel ? -1 : 1)), top = fs.slice(0, 8), n = commas;
   const w0 = Math.max(1, top[0].a + top[0].d), multi = new Set(top.map(x => x.project)).size > 1;
-  const S = [insStat(t("Files changed by AI"), n(nf), esc(plural(xs.length, "session")), "aiFiles"),
-    insStat(t("Lines changed by AI"), n(add + del), fx(`+${n(add)} −${n(del)}; ${n(edits)} ${t("edits")}`, "", `+${n(add)} −${n(del)}`), "aiLines")].join("");
+  const S = [insStat(t("Files edited by AI"), n(nf), esc(plural(xs.length, "session")), "aiFiles"),
+    insStat(t("Lines edited by AI"), n(add + del), fx(`+${n(add)} −${n(del)}; ${n(edits)} ${t("edits")}`, "", `+${n(add)} −${n(del)}`), "aiLines")].join("");
   const rows = top.map(x => `<div class="iwr"><button type="button" class="iwn iwf" data-sid="${esc(x.sid)}" title="${esc(x.f)}">${multi ? `<small>${esc(x.project)}</small> ` : ""}${esc(x.rel)}</button><span class="iwb"><span style="width:${((x.a + x.d) * 100 / w0).toFixed(1)}%;background:var(--acc)"></span></span><span class="iwv">+${n(x.a)} −${n(x.d)}</span><b>${esc(t("{n}×", {n: x.n}))}</b></div>`).join("");
   return {stats: S, files: `<figure class="insfig"><figcaption class="iwcap">${esc(t("Most changed files"))}</figcaption><div class="iwrows" role="table" aria-label="${esc(t("Most changed files"))}">${rows}</div><p class="ifxs">${fx(t("+ − = lines added and removed, compared before and after each edit; × = edits"), "", t("Lines: before and after each edit, an estimate"))}</p></figure>`, nf, add, del};
 }
@@ -360,13 +372,15 @@ function insOutputs(){
   const lines = g ? g.added + g.removed : 0, sp = base ? Math.round(w.outSessions * 100 / base) : null;
   const S = [
     g ? insStat(t("Git commits"), `${g.commits}`, fx(`AI ${g.ai} ÷ ${g.commits} = ${Math.round(g.ai * 100 / g.commits)}%`), "gitCommits", "commits", "gitCommits") : insStat(t("AI commits"), `${o.commits}`, "", "commits", o.commits ? "aiCommits" : ""),
-    g ? insStat(t("Lines changed"), n(lines), fx(`+${n(g.added)} −${n(g.removed)}; ${n(lines)} ÷ ${g.commits} = ${n(Math.round(lines / g.commits))} ${t("per commit")}`), "lines", "lines") : "",
+    g ? insStat(t("Lines in Git commits"), n(lines), fx(`+${n(g.added)} −${n(g.removed)}; ${n(lines)} ÷ ${g.commits} = ${n(Math.round(lines / g.commits))} ${t("per commit")}`), "lines", "lines") : "",
     o.prs ? insStat(t("Pull requests"), `${o.prs}`, esc(t("Created by AI")), "prs", "prs") : "",
     base ? insStat(t("Sessions that reached a commit or PR"), `${sp}<small>%</small>`, fx(`${w.outSessions} ÷ ${base} ${t("Claude Code sessions")} = ${sp}%`), "outSessions", "outSessions", "outSessions") : "",
   ].join("");
   const sy = (g ? t("{c} commits, {ai}% by AI; {sp}% of Claude Code sessions reached a commit or PR", {c: g.commits, ai: Math.round(g.ai * 100 / g.commits), sp: sp ?? "—"}) : o.commits ? t("{c} AI commits; {sp}% of Claude Code sessions reached a commit or PR", {c: o.commits, sp: sp ?? "—"}) : "")
     + (E ? (g || o.commits ? t("; ") : "") + t("AI changed {n} files (+{a} −{d} lines)", {n: n(E.nf), a: n(E.add), d: n(E.del)}) : "");
-  return `${say(sy)}<div class="iout2"><div class="stats istats">${S}${E ? E.stats : ""}</div>${E ? E.files : ""}</div>`;
+  // Git（リポジトリ）と AI の編集（履歴）は元が違うので、列と小見出しで分け、足したり割ったりして混ぜない
+  const col = (cls, icon, h, note, body) => `<div class="iosec ${cls}" role="group" aria-label="${esc(h)}"><h6 class="iksh">${ico(icon)}${esc(h)} <small>${esc(note)}</small></h6>${body}</div>`;
+  return `${say(sy)}<div class="iout2">${S ? col("outGit", "commit", t("Git"), t("from your repositories"), `<div class="stats istats">${S}</div>`) : ""}${E ? col("outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not"), `<div class="stats istats">${E.stats}</div>${E.files}`) : ""}</div>`;
 }
 /* AI の使い方：トークン・キャッシュ・クレジット・プロンプト・プロンプトあたりの費用・サブエージェント・月末の推定 */
 function insUsage(){

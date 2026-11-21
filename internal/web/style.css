@@ -615,7 +615,15 @@ body.open .drawer{opacity:1;visibility:visible;pointer-events:auto;transform:tra
 .drawer .mini.tight .k{font-size:var(--fs-xs);color:var(--ink-3);line-height:1.4}
 .drawer .mini.tight .v{font-size:var(--fs-xl)}
 .drawer .mini .v.mono{font-size:var(--fs-md)} /* コミットのハッシュなど、数でない値 */
-.drawer .mini .v~.k{margin-top:2px} /* 値の下の添え書き（圧縮や利用上限の時刻） */
+.drawer .mini .v~.k{margin-top:2px}
+/* セッションの出力：Git と AI の編集は元が違うので、見出し・印・左の線で別のまとまりに見せる（混ぜて読まないように） */
+.drawer .sog{margin-top:12px;padding-left:12px;border-left:3px solid var(--rule)}
+.drawer .sog.sog-edit{border-left-style:dashed}
+.drawer .sog h4{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:0 0 8px;font-size:var(--fs-md);font-weight:700;color:var(--ink)}
+.drawer .sog h4 svg{width:16px;height:16px;flex:none}
+.drawer .sog h4 small{font-size:var(--fs-xs);font-weight:500;color:var(--ink-3)}
+.drawer .sog .mini{margin-top:0}
+.drawer .sog .none{margin:0} /* 値の下の添え書き（圧縮や利用上限の時刻） */
 .dact{margin-top:14px}.dcol>.dact:first-child{margin-top:4px} /* 詳細パネルの、外のページを開くボタンの段 */
 .drawer .tl li{font-size:var(--fs-lg)}
 .drawer .tl li.ev{font-size:var(--fs-sm)}
@@ -901,6 +909,13 @@ header{background:var(--s-cont);border-bottom:0}
 .inssec{grid-column:1/-1;margin:26px 0 -2px;padding:0 2px;font-size:var(--fs-2xl)}
 .inssec:first-child{margin-top:0}
 /* 出力のカード：左に数、右に変更の多いファイル（狭ければ縦に） */
+/* 出力の出どころ（Git と AI の編集）の小見出し。サマリーの見出しの段（.iksub）と Outputs カードの列（.iosec）で同じ形 */
+.iksub+.iksub{margin-top:14px;padding-top:14px;border-top:1px solid var(--rule)}
+.iksh{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:0 0 10px;padding:0 18px;font-size:var(--fs-md);font-weight:700;color:var(--ink)}
+.iksh svg{width:16px;height:16px;flex:none}.iksh small{font-size:var(--fs-xs);font-weight:500;color:var(--ink-2)}
+.iosec .iksh{padding:0}.iosec.outEdit{border-left:3px dashed var(--rule);padding-left:14px}.iosec.outGit{border-left:3px solid var(--rule);padding-left:14px}
+.iosec .istats{grid-template-columns:repeat(2,minmax(0,1fr))}.iosec .iwcap{margin-top:14px}
+@media (max-width:700px){.iksh{padding:0 14px}}
 .iout2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px 28px;align-items:start}.iout2 .iwcap{margin-top:0}
 .iout2 .istats{grid-template-columns:repeat(2,minmax(0,1fr))}.iout2 .istats .stat:last-child:nth-child(odd){grid-column:1/-1} /* 2 列。余った 1 つは横に広げる */
 @media (max-width:520px){.iout2 .istats{grid-template-columns:minmax(0,1fr)}}

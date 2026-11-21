@@ -44,6 +44,16 @@ const BIG_PROMPT = 4000, plen = p => p.len || String(p.text || "").length;
 function bigOf(ws, we){ const ps = [], ids = new Set();
   DATA.forEach(s => s.prompts.forEach(p => { if (p.t >= ws && p.t < we && plen(p) >= BIG_PROMPT){ ps.push(plen(p)); ids.add(s.id); } }));
   return {n: ps.length, max: Math.max(0, ...ps), ids: [...ids]}; }
+/* AI が編集した行あたりの単価の元（期間 [ws, we) に始まったセッション）。分子と分母は同じセッションから：
+   編集を記録するエージェント（RECORDS の files）のセッションのうち、その使用量（cost・credits・tokens）を記録したもの。
+   行は編集の前後を比べた目安で、コミットしたかどうかによらない（Git のコミットとは混ぜない） */
+const sesLines = s => (s.editAdded || 0) + (s.editRemoved || 0);
+function editsBasis(ws, we, k){
+  const use = s => k === "cost" ? (sesTok(s) ? s.cost || 0 : 0) : k === "credits" ? s.credits || 0 : sesTok(s);
+  const xs = DATA.filter(s => s.start >= ws && s.start < we && records(s.source, "files") && use(s) > 0);
+  return {n: xs.length, used: xs.reduce((a, s) => a + use(s), 0), lines: xs.reduce((a, s) => a + sesLines(s), 0)};
+}
+function perEdit(ws, we, k){ const b = editsBasis(ws, we, k); return b.lines > 0 && b.used > 0 ? b.used * 100 / b.lines : null; }
 /* 指標の値（見直す候補の推移用）。low: 大きいときに印が付く向き（良し悪しの判定ではない） */
 const pctOf = (a, b) => b ? Math.round(a * 100 / b) : null;
 const MET = {
@@ -56,6 +66,10 @@ const MET = {
   tokensPerCommit: {f: (w, ws, we) => { const c = w.outputs && w.outputs.commits; if (!c) return null; const n = DATA.filter(s => s.source === "Claude Code" && s.start >= ws && s.start < we).reduce((a, s) => a + sesTok(s), 0); return n ? n / c : null; }, low: true, fmt: v => tok(v)},
   // コミットあたりのクレジット：Kiro は AI が実行したコミットを記録しないので、Git のコミットのうち Claude Code が実行したもの以外で割る（手で打ったコミットも入る）
   creditsPerCommit: {f: w => { const c = w.usage && w.usage.credits, g = w.git, n = g ? g.commits - (g.ai || 0) : 0; return c && n > 0 ? c / n : null; }, low: true, fmt: v => cr1(v)},
+  // AI が編集した 100 行あたり：Git のコミットではなく、エージェントの履歴の編集ツールから数えた行で割る（editsBasis）
+  costPerEdit: {f: (w, ws, we) => perEdit(ws, we, "cost"), low: true, fmt: v => usd(v)},
+  creditsPerEdit: {f: (w, ws, we) => perEdit(ws, we, "credits"), low: true, fmt: v => cr1(v)},
+  tokensPerEdit: {f: (w, ws, we) => perEdit(ws, we, "tokens"), low: true, fmt: v => tok(v)},
   modelfit: {f: (w, ws, we) => w.usage && w.usage.cost >= 0.01 ? pctOf(lightOf(ws, we).c, w.usage.cost) : null, low: true, u: "%"},
   fix: {f: w => w.fixRate, low: true, u: "%"},
   friction: {f: w => w.frictionN ?? w.friction.length, low: true, u: ""},

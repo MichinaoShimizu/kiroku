@@ -356,7 +356,7 @@ async function run(env) {
         return G.length === 3 && k.length > 1 && inside && (innerWidth <= 1100 || G.every(x => one(x.querySelector(".ikrow")))) && !!document.querySelector("#review .icall"); }));
       check("式はふだん隠し、「式を表示」で見せる", await p.evaluate(async () => { const vis = () => [...document.querySelectorAll("#review .insight .ifx.fxo")].some(e => e.offsetParent !== null);
         const off = !vis(); document.querySelector("#fxbtn").click(); await new Promise(r => setTimeout(r, 200)); const on = vis(); document.querySelector("#fxbtn").click(); await new Promise(r => setTimeout(r, 200)); return off && on && !vis(); }));
-      check("サマリーの頭に、数字 5〜12 個（上の帯の数字を含む。コスト・出力・単価に分ける）・推移・累積の線・どこに使ったかの横棒・長さ別の費用があり、改善のアドバイスの枠はない", r.heads >= 5 && r.heads <= 12 && r.svg && r.bars > 0 && r.cum === 1 && r.donut > 0 && r.hist === 6 && r.adv === 0, JSON.stringify(r));
+      check("サマリーの頭に、数字 5〜14 個（上の帯の数字を含む。コスト・出力（Git と AI の編集）・単価（Git コミットあたりと AI が編集した 100 行あたりを分ける）に分ける）・推移・累積の線・どこに使ったかの横棒・長さ別の費用があり、改善のアドバイスの枠はない", r.heads >= 5 && r.heads <= 14 && r.svg && r.bars > 0 && r.cum === 1 && r.donut > 0 && r.hist === 6 && r.adv === 0, JSON.stringify(r));
       const fx = await p.evaluate(() => ({chips: [...document.querySelectorAll("#review .insight .ichip.ifx")].map(e => e.textContent), def: (document.querySelector("#review .insdef") || {}).textContent || "",
         vague: /Usual|Higher|Lower|usual range|いつもの範囲|いつもどおり|高め|低め|\bQ[13]\b|IQR/.test(document.querySelector("#review .insight").innerText)}));
       check("いつもとの比べは不等式（下位・上位25%点の値）で出し、定義を 1 行で示す。曖昧な言葉と Q1・Q3 の記号は使わない", fx.chips.length > 0 && fx.chips.every(c => /pct|%点|≤|needs|必要/.test(c)) && /(spread|幅) = /.test(fx.def) && !fx.vague, JSON.stringify(fx).slice(0, 300));

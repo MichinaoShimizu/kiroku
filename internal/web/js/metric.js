@@ -18,7 +18,7 @@ const BRK = {
   commits: {n: "Git commits", h: "gitCommits", v: x => x.commits, f: v => `${Math.round(v)}`},
   // ここから下は、期間の集計（Go）に日ごと・エージェントごとの値がない数。MB の関数で、履歴やコミットから組み立てる
   aiCommits: {n: "AI commits", h: "commits"},
-  lines: {n: "Lines changed", h: "lines"},
+  lines: {n: "Lines in Git commits", h: "lines"},
   prs: {n: "Pull requests", h: "prs"},
   costPerCommit: {n: "Estimated cost per commit", h: "costPerCommit"},
   outSessions: {n: "Sessions that reached a commit or PR", h: "outSessions"},
