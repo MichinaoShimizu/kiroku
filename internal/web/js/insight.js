@@ -73,16 +73,19 @@ function insSpark(b, label){
   const ps = pts.slice(f0), n = ps.length, vals = ps.filter(x => x.v != null).map(x => x.v);
   const W = 150, H = 150, L = 34, R = 6, T = 14, B = 26, mx = Math.max(...vals, b.q3 || 0);
   const top = MET[k].u === "%" && mx <= 100 ? 100 : insNice(mx * 1.05), x = i => L + (n === 1 ? (W - L - R) / 2 : i * (W - L - R) / (n - 1)), y = v => T + (H - T - B) * (1 - v / top);
-  const ticks = [0, top / 2, top].map(v => `<g class="tk"><line x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${L - 4}" y="${(y(v) + 3.5).toFixed(1)}">${esc(tickM(k, v))}</text></g>`).join("");
+  // y 軸：0 から 4 等分の目盛り（軸の外に短い線、プロットの中に点線のグリッド。値は 0・半分・上端に。数える指標で 6.25 のような値を出さないように）。x 軸：期間ごとの短い目盛り。軸そのものは実線
+  const ticks = [0, top / 4, top / 2, top * 3 / 4, top].map((v, i) => { const yy = y(v).toFixed(1);
+    return `<g class="tk">${v ? `<line class="grid" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/>` : ""}<line class="tm" x1="${L - 3}" x2="${L}" y1="${yy}" y2="${yy}"/>${i % 2 ? "" : `<text x="${L - 5}" y="${(y(v) + 3.5).toFixed(1)}">${esc(tickM(k, v))}</text>`}</g>`; }).join("")
+    + `<line class="axis" x1="${L}" x2="${L}" y1="${T}" y2="${y(0).toFixed(1)}"/><line class="axis" x1="${L}" x2="${W - R}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"/>`;
   const band = b.q1 == null ? "" : `<rect class="band" x="${L}" y="${y(b.q3).toFixed(1)}" width="${W - L - R}" height="${Math.max(1, y(b.q1) - y(b.q3)).toFixed(1)}"/><line class="med" x1="${L}" x2="${W - R}" y1="${y(b.med).toFixed(1)}" y2="${y(b.med).toFixed(1)}"/>`;
   const lab = p => { const [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? (JA ? `${mm}月` : MON[mm - 1]) : dMD(new Date(yy, mm - 1, dd)); };
-  const xl = [0, n - 1].filter((v, i, a) => a.indexOf(v) === i).map(i => `<text class="sxl${i === n - 1 ? " cur e" : i === 0 && n > 1 ? " s" : ""}" x="${x(i).toFixed(1)}" y="${H - B + 13}">${esc(lab(ps[i].p))}</text>`).join("");
+  const xtm = Array.from({length: n}, (_, i) => `<line class="tm" x1="${x(i).toFixed(1)}" x2="${x(i).toFixed(1)}" y1="${y(0).toFixed(1)}" y2="${(y(0) + 3).toFixed(1)}"/>`).join(""), xl = [0, n - 1].filter((v, i, a) => a.indexOf(v) === i).map(i => `<text class="sxl${i === n - 1 ? " cur e" : i === 0 && n > 1 ? " s" : ""}" x="${x(i).toFixed(1)}" y="${H - B + 13}">${esc(lab(ps[i].p))}</text>`).join("");
   const line = ps.map((q, i) => q.v == null || (q.cur && b.part) ? null : `${x(i).toFixed(1)},${y(q.v).toFixed(1)}`).filter(Boolean).join(" ");
   const dots = ps.map((q, i) => q.v == null || q.cur ? "" : `<circle class="pt" cx="${x(i).toFixed(1)}" cy="${y(q.v).toFixed(1)}" r="2"/>`).join("") + `<circle class="now${b.part ? " part" : ""}" cx="${x(n - 1).toFixed(1)}" cy="${y(b.v).toFixed(1)}" r="4"/>`;
   const step = n > 1 ? (W - L - R) / (n - 1) : W - L - R, hits = ps.map((q, i) => `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H - B}"${tipAttr(q.p.label, q.v == null ? t("No records") : (q.cur && b.part ? t("At this pace: {v}", {v: fm(q.v)}) : fm(q.v)))}/>`).join("");
   const yt = (INS_SHORT()[k] || label || insName(k)), xt = st.mode === "month" ? t("Month") : t("Week");
   const list = ps.map(q => `${q.p.label} ${q.v == null ? "—" : fm(q.v)}`).join(LSEP());
-  return `<span class="tspk"><span class="sr">${esc(t("Trend: {list}", {list}))}</span><svg aria-hidden="true" viewBox="0 0 ${W} ${H}"><text class="syt" x="${L}" y="8">${esc(yt)}</text>${ticks}${band}<polyline points="${line}"/>${dots}${xl}<text class="sxt" x="${(L + (W - L - R) / 2).toFixed(1)}" y="${H - 4}">${esc(xt)}</text>${hits}</svg></span>`;
+  return `<span class="tspk"><span class="sr">${esc(t("Trend: {list}", {list}))}</span><svg aria-hidden="true" viewBox="0 0 ${W} ${H}"><text class="syt" x="${L}" y="8">${esc(yt)}</text>${band}${ticks}${xtm}<polyline points="${line}"/>${dots}${xl}<text class="sxt" x="${(L + (W - L - R) / 2).toFixed(1)}" y="${H - 4}">${esc(xt)}</text>${hits}</svg></span>`;
 }
 const insChip = b => !b || b.q1 == null ? "" : `<code class="ichip ifx${insTone(b)}" title="${esc(insDef(b && b.n))}"><span class="cx">${esc(insExpr(b))}</span><span class="cp">${esc(insPlain(b))}</span></code>`;
 /* 要点の数字（最大 3 列）：上の帯と同じ数をサマリーでも、式といつもの範囲との不等式つきで。並びは判断に使う順：
