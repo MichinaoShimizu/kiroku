@@ -1,0 +1,1 @@
+- Summary: Cost, Output and Unit cost are stacked full width with two figures per row (one on narrower windows), instead of side by side with a long Unit cost column; a figure with a verdict no longer repeats the usual-range line
