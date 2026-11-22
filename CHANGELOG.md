@@ -2,6 +2,51 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v4.5.0 - 2026-11-22
+
+### Added
+
+- Summary: Output adds "AI commits changed again within 3 days" (how often a file AI committed was changed again soon after) and "AI-added lines that reached a commit" (how much of what AI wrote in a Claude Code session ended up in its commits), each with its chart and usual range
+- Summary: the Outputs card sorts the period's Git commits into kinds of work (features, fixes, refactoring, tests, docs, maintenance, reverts) from their subjects, with lines and, for AI commits, the estimated cost of their sessions; it also counts commits that were reverted and how many of them AI made
+- Summary: the Outputs card adds the median time from a session's start to its first AI commit and from a commit to the push that sent it, and the files changed most often in Git commits, split into AI commits and commits by hand
+- Summary: "What changed from the last period", a waterfall from the previous period's total through each project's increase or decrease to this period's total, for estimated cost, Kiro credits, tokens or active time
+- Summary: "Where it went" adds a donut of the shares next to its bars; new cards "Where it flowed" (a Sankey from agent to project to whether the session reached a commit or PR), "Spread per session" (a box plot of cost, time or prompts per session for each period) and "Busiest day" (a Gantt of that day's sessions, showing how many ran at once)
+
+### Changed
+
+- Calendar: each day puts its Git commits first, in green (week headings and month days), ahead of cost and time
+- Summary: "Worth a look" moves to the top, right under the title
+- Summary: unit-cost verdicts say "below" or "above typical" only when the value is at least a tenth outside the usual range, and suggest a next step only on the higher side or when the week's session habits differed
+- Summary: header charts draw the cumulative total and usage-limit marks only for usage (cost, credits, tokens, time), percentage charts scale to their data, and chart text no longer grows on wide single-column layouts
+- Summary: the Usage card no longer repeats the per-session and per-prompt figures shown in Unit cost
+- Calendar: narrow day columns drop the time, then the cost, from the heading line instead of overflowing into the next day
+- Summary: off-hours share and project switches are no longer colored good or bad; ranks in the lower half read "2nd lowest of 11 weeks"; session-length bars say "4 sessions" instead of "n=4"; Kiro credits say "Kiro's own count, not an estimate"; typical ranges write the unit once ("13.1–13.8 credits"); the By agent table gets a wide card so no column is hidden; the usual-range band is easier to see in dark mode; the kinds-of-work bars line up
+- Commit and push details show the repository path with a "Copy the git command" button instead of the whole git command
+- Summary: the value so far in a period in progress is labeled "So far" in the header charts
+- Calendar: on narrow month cells (phones), times are shortened ("5h") instead of being cut off
+- Search: file matches in sessions show the path from the project, as commit matches do
+- Summary: Unit cost shows one figure per row with a switch for estimated cost, Kiro credits or tokens (remembered), instead of up to three near-identical charts per row; rows without that measure say so
+- Summary: the vs-last-week line puts its label first ("vs last week +108"), so it does not read like the green and red line counts
+- Summary: the lower Outputs card no longer repeats the commits, lines and pull requests shown in the Output panel above
+- The "?" trends and Worth a look cover 13 weeks or months, the same span as the summary charts (they were 8)
+- Search results can be narrowed to a project with chips (the 8 projects with the most matches)
+- Calendar: in narrow day columns, the copy-prompt button sits under the date instead of over it
+- Calendar: in narrow day columns the heading keeps the figure picked in Figures and drops the commit count first; on windows up to 1,200px every day puts its copy button under the date, so all headings line up
+- Summary: the Unit cost switch says Cost / Credits / Tokens and wraps under the title on narrow screens; its rows share one heading style and drop the good/bad tint (the verdict carries it); verdicts say "below usual" / "above usual" like the rest of the summary; "pace" reads "On pace for"; kept lines add how much was rewritten or dropped, and rework says lower is usually better; the "So far" label stays readable over lines
+- Summary charts, the Trend card and the "?" trends share one span of up to 13 weeks or months
+- Summary: the Outputs card takes a full row and the cost-vs-outputs scatter its own row (it was stretched to the Outputs card's height); the most edited files list adds how many Git commits changed each file (by AI and by hand), replacing the separate Git list; the cache figure in Usage says it is a share of input tokens
+- Summary charts use larger text and every other period name on narrow cards (phones), where text was about 7px
+- Worth a look lists each session with its prompts, estimated cost and active time
+- Commit details for an AI commit say whether its files were changed again within 3 days, and by which commit
+- Search results can also be narrowed to an agent
+- Summary charts start at the first period with records (at least 4 periods, up to 13), so short histories are not squeezed into the right edge; month axes add the year to the first month and to January
+- Summary: large jumps from a small base read as the change and the base ("+72.8 credits (from 6.8 credits)") instead of "+1076%"; the separate month-end tile is gone (each figure has its own month-end estimate); figures without a chart take a full row in Cost; Output tiles drop the good/bad tint; the cache share is neutral
+- On phones, the edited-files and kinds-of-work lists put the name on its own line, charts drop the axis title, and first period names no longer overlap the y axis
+- "1 commit" instead of "1 commits" in the edited-files list
+- Worth a look sessions also show their interruptions; the Trend card says "in your lowest quarter of past weeks" instead of "below the 25th pct", and points to Worth a look at the top; the scatter uses the full card width; Most edited files has column headings; search explains itself in one line
+- Calendar: up to 1,200px the copy button sits at the right of the figures line, so day headings stay low (about 69px instead of 100px)
+- Worth a look sessions lead with their corrections and interruptions; "Daily spend to stay at last week's total" says what the daily figure is for; usage-limit marks sit on their own period with the count above; all charts start at the period where the history starts, so charts in one panel line up; the "So far" label sits below its point when there is room; on phones the edit count follows the line counts
+
 ## v4.4.0 - 2026-11-22
 
 ### Added
