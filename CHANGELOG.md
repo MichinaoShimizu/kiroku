@@ -12,7 +12,6 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 - The view is always dark, whatever the system setting; the theme button is removed. The page shown while `kiroku serve` reads history is dark too
 - Summary: cards are packed into columns at their own height instead of being stretched to the tallest card in a row, so short cards (Trend, Cumulative, Busiest day) no longer hold large empty areas
-- Summary: a chart left alone in a row of two (Active time in Cost, Per prompt in Unit cost) takes the full width with a wider chart instead of leaving the right half empty
 - Summary: "Kinds of work" spans the Outputs card under both columns; "By agent" shows two lines per agent on narrow cards instead of needing a double-width card; "How you worked" comes first in its section; the cost-vs-outputs chart is drawn wider on wide screens instead of growing tall; Busiest day uses taller rows when few sessions ran
 - Summary: header charts are drawn whenever there is at least one period with records, so Kiro credits no longer loses its chart in the month view while it has one in the week view
 - Summary: metric names in the figures are bold and dark instead of small and grey
