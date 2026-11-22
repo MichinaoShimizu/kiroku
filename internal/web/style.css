@@ -1225,7 +1225,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .ik-unit>.ikgh,.ik-unit>.tlg{grid-column:1/-1}
 @container (min-width:1100px){.ik-unit .itile:has(.tspk){max-width:none}}
 .srprj{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}.srprj .srp[aria-pressed="true"],.srprj .sra[aria-pressed="true"]{background:var(--acc-soft);border-color:var(--acc);color:var(--acc-ink)}
-@media (max-width:1200px){.head .dd .dayrun{position:static;opacity:1;margin-left:0;order:3}.head .dd:has(.dayrun)::after{content:"";flex-basis:100%;order:2}} /* 狭い画面では、どの日の列でもコピーのボタンを日付の下に（列ごとに位置が変わって見出しの高さがずれないように） */
+@media (max-width:1200px){.head{position:relative}.head .dd .dayrun{position:absolute;right:6px;bottom:6px;top:auto;opacity:1;margin:0}.head:has(.dayrun) .cline{padding-right:30px}} /* 狭い画面では、コピーのボタンを見出しの右下（数字の行の右）に置き、見出しを低く保つ。どの列も同じ位置なので高さがそろう */ /* 狭い画面では、どの日の列でもコピーのボタンを日付の下に（列ごとに位置が変わって見出しの高さがずれないように） */
 /* 単価の切り替えは、見出しの横に入らなければ次の行に。段の見出しと区切りの線は、どの段でも同じ形に。良し悪しの地の色は評価の文の色で足りるので付けない */
 .ik-unit>.ikgh{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}.ikgh .uksw{margin-left:0}
 .ik-unit>.iksub{border-top:1px solid var(--rule);padding-top:12px;margin-top:0}
@@ -1233,7 +1233,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .tspk .sofl{font-size:10px;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
 /* 出力のカードは中身が多いので 1 行を占め、散布図は次の行に（隣に並べると、散布図のカードが出力のカードの高さまで伸びて大きく空く） */
 .insrow>.inscol.iout{flex-basis:100%}
-.isccol .insfig{max-width:820px}
+.isccol .insfig{max-width:none}
 /* 狭いカード（スマホ）では、グラフが縮んで文字が 7px ほどになるので、座標の上で大きくし、期間の名前は 1 つおきに */
 @container (max-width:520px){.tspk text{font-size:16px}.tspk .sxl.alt{display:none}.tspk .sofl{font-size:15px}.tspk .slimn{font-size:13px}}
 /* 出力の枠でも、良し悪しの地の色は付けない（評価は点の色と文で。単価と同じ） */
@@ -1244,3 +1244,5 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 @container (max-width:520px){.tspk .sxt{display:none}.tspk .slimn{font-size:11px}}
 /* 狭いカード（スマホ）の一覧：名前を 1 行目に全部、棒と数を 2 行目に（名前が「src/ne…」まで切れないように） */
 @container (max-width:520px){.iwr,.ikinds .iwr{grid-template-columns:minmax(0,1fr) auto;row-gap:2px}.iwr>.iwn{grid-column:1/-1;white-space:normal;overflow-wrap:anywhere}.iwr>.iwb{grid-column:1/-1}.iwr>.iwv{font-size:var(--fs-xs)}}
+.iwr.iwh{font-size:var(--fs-2xs);color:var(--ink-3);font-weight:500}
+@container (max-width:520px){.iwr.iwh{display:none}}
