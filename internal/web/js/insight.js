@@ -364,11 +364,11 @@ function insightH(F){
   // カードは「コスト」（時間・クレジット・金額・トークン）・「出力」（コミット・変えた行）・「使い方」の 3 つに分けて並べる
   // よく見るカード（流れ・ばらつき・アウトプット・作業の種類・時間帯）を上に。ほかは「その他」として、たたんだ箱の中に（開けば見られる）
   const col = b => b ? `<div class="inscol">${b}</div>` : "";
-  // よく見る 4 枚は 1 つの見出しにまとめ、半分の幅の 2 列に詰める（見出しごとに 1〜2 枚だと、3 列の右が空く）。背の高いアウトプットを先に置くと、2 列の高さがそろう
-  const cards = [{sec: t("Charts"), two: true}, {h: card(t("Outputs"), insOutputs(), " iout wide")}, {h: col(insSankey())}, {h: col(insBox())}, {h: card(t("When you worked"), insHeat())},
+  // よく見る 5 枚は 1 つの見出しにまとめ、半分の幅の 2 列に詰める（見出しごとに 1〜2 枚だと、3 列の右が空く）。背の高いアウトプットを先に置くと、2 列の高さがそろう
+  const cards = [{sec: t("Charts"), two: true}, {h: card(t("Outputs"), insOutputs(), " iout wide")}, {h: col(insWhere())}, {h: col(insSankey())}, {h: col(insBox())}, {h: card(t("When you worked"), insHeat())},
     {sec: t("Other charts"), more: true},
     {h: `<div class="inscol"><div class="inshead"><h4>${esc(t("Trend"))}</h4><div class="segc insk trendk" role="group" aria-label="${esc(t("Metric"))}">${tabs}</div>${sel}</div>${insChart(k)}</div>`},
-    {h: col(insCum())}, {h: col(insWhere())}, {h: col(insWater())}, {h: card(t("Tokens by type"), insTokens())},
+    {h: col(insCum())}, {h: col(insWater())}, {h: card(t("Tokens by type"), insTokens())},
     {h: card((HISTK(DATA.filter(s => inP(s, period().ws, period().we))) || {}).title || "", insHist())},
     {h: card(t("By agent"), insAgents(), " agw")}, {h: card(t("Most edited files"), (insEditsBody() || {}).files)},
     {h: (b => b ? `<div class="inscol isccol">${b}</div>` : "")(insScatter())},
