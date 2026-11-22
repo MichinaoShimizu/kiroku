@@ -155,18 +155,10 @@ async function run(env) {
   });
 
   await step("テーマ", async () => {
-    const bg = () => p.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    check("言語の切り替えボタンはなく、テーマの切り替えボタンがある", await p.locator("#lang").count() === 0 && await p.locator("#theme").count() === 1);
-    await p.evaluate(() => { try { localStorage.removeItem("kiroku:theme"); } catch (e) {} st.theme = null; applyTheme(); });
-    await p.emulateMedia({ colorScheme: "light" }); await pause(); const light = await bg();
-    await p.emulateMedia({ colorScheme: "dark" }); await pause(); const dark = await bg();
-    check("選んでいなければ OS の設定に合わせる（OS がダークならダーク）", dark !== light && await p.evaluate(() => document.documentElement.dataset.theme === "dark" && getComputedStyle(document.documentElement).colorScheme === "dark"), dark);
-    await p.click("#theme"); await pause();
-    check("ボタンで選ぶと、OS がダークでもライトになり、選択が残る", await bg() === light && await p.evaluate(() => localStorage.getItem("kiroku:theme") === '"light"' && document.querySelector("#theme").getAttribute("aria-pressed") === "false"));
+    check("言語とテーマの切り替えボタンはない", await p.locator("#lang").count() === 0 && await p.locator("#theme").count() === 0);
     await p.emulateMedia({ colorScheme: "light" }); await pause();
-    await p.click("#theme"); await pause();
-    check("もう一度押すと、OS がライトでもダークになり、押した状態と選択が残る", await bg() === dark && await p.evaluate(() => localStorage.getItem("kiroku:theme") === '"dark"' && document.querySelector("#theme").getAttribute("aria-pressed") === "true"));
-    await p.click("#theme"); await pause();
+    check("OS がライトでも、画面はいつもダーク", await p.evaluate(() => document.documentElement.dataset.theme === "dark" && getComputedStyle(document.documentElement).colorScheme === "dark"));
+    await p.emulateMedia({ colorScheme: "dark" }); await pause();
   });
 
   await step("週の移動", async () => {

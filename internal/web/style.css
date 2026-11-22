@@ -1054,11 +1054,6 @@ header{background:var(--s-cont);border-bottom:0}
 .insagbar .note{font-size:var(--fs-xs);color:var(--ink-2)}
  /* 2 枚の行に 1 枚しかないとき（エージェントで絞ったときなど）は、幅いっぱい */
 /* テーマの切り替え（ヘッダーの右端）。ライトでは月、ダークでは太陽の印 */
-.themebtn{flex:none;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;color:var(--ink-2)}
-.themebtn:hover{background:color-mix(in oklab,var(--ink) 8%,transparent)}
-.themebtn:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
-.themebtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.themebtn .sun,:root[data-theme="dark"] .themebtn .moon{display:none}:root[data-theme="dark"] .themebtn .sun{display:block}
 /* 式は「式を表示」のときだけ（ふだんは平易な 1 行と、言葉のチップ） */
 .fxp,.ichip .cp{display:none} /* ダイアログでは式を出し、平易な 1 行は出さない */
 #review .fxo:not(.fxon *),#review .ichip .cx:not(.fxon *){display:none} /* サマリーでは、式はその数字の「ƒx」で開いたときだけ */

@@ -5,3 +5,4 @@
 - Summary: metric names in the figures are bold and dark instead of small and grey
 - Summary: the Cost panel's charts label each point with its change from the previous week or month (also in the point's tooltip)
 - Summary: the Cost panel is named "Cost trend" and the Unit cost panel "Unit cost calculation"
+- Summary: the Output panel is named "Outputs" (アウトプット in Japanese), as is the Outputs card
