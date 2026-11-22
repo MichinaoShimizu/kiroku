@@ -364,9 +364,8 @@ function insightH(F){
   // カードは「コスト」（時間・クレジット・金額・トークン）・「出力」（コミット・変えた行）・「使い方」の 3 つに分けて並べる
   // よく見るカード（流れ・ばらつき・アウトプット・作業の種類・時間帯）を上に。ほかは「その他」として、たたんだ箱の中に（開けば見られる）
   const col = b => b ? `<div class="inscol">${b}</div>` : "";
-  const cards = [{sec: t("Cost details")}, {h: col(insSankey())}, {h: col(insBox())},
-    {sec: t("Output and unit cost")}, {h: card(t("Outputs"), insOutputs(), " iout wide")},
-    {sec: t("How you used AI")}, {h: card(t("When you worked"), insHeat())},
+  // よく見る 4 枚は 1 つの見出しにまとめ、半分の幅の 2 列に詰める（見出しごとに 1〜2 枚だと、3 列の右が空く）。背の高いアウトプットを先に置くと、2 列の高さがそろう
+  const cards = [{sec: t("Charts"), two: true}, {h: card(t("Outputs"), insOutputs(), " iout wide")}, {h: col(insSankey())}, {h: col(insBox())}, {h: card(t("When you worked"), insHeat())},
     {sec: t("Other charts"), more: true},
     {h: `<div class="inscol"><div class="inshead"><h4>${esc(t("Trend"))}</h4><div class="segc insk trendk" role="group" aria-label="${esc(t("Metric"))}">${tabs}</div>${sel}</div>${insChart(k)}</div>`},
     {h: col(insCum())}, {h: col(insWhere())}, {h: col(insWater())}, {h: card(t("Tokens by type"), insTokens())},
@@ -376,8 +375,8 @@ function insightH(F){
     {h: card(t("How you worked"), insWork(), " iwork")}, {h: card(t("Usage"), insUsage())}, {h: col(insGantt())},
   ].filter(c => c.h || c.sec);
   // 見出しごとに、カードを折り返す横の並び（.insrow）に入れる。広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる
-  const secs = []; cards.forEach(c => c.sec ? secs.push({sec: c.sec, more: c.more, hs: []}) : secs.length && secs[secs.length - 1].hs.push(c.h));
-  const body = secs.filter(x => x.hs.length).map(x => x.more ? `<details class="insmore"${store.get("insMore", false) ? " open" : ""}><summary class="inssec">${esc(x.sec)} <small>${esc(t("{n} cards", {n: x.hs.length}))}</small></summary><div class="insrow">${x.hs.join("")}</div></details>` : `<h3 class="inssec">${esc(x.sec)}</h3><div class="insrow">${x.hs.join("")}</div>`).join("");
+  const secs = []; cards.forEach(c => c.sec ? secs.push({sec: c.sec, more: c.more, two: c.two, hs: []}) : secs.length && secs[secs.length - 1].hs.push(c.h));
+  const body = secs.filter(x => x.hs.length).map(x => x.more ? `<details class="insmore"${store.get("insMore", false) ? " open" : ""}><summary class="inssec">${esc(x.sec)} <small>${esc(t("{n} cards", {n: x.hs.length}))}</small></summary><div class="insrow">${x.hs.join("")}</div></details>` : `<h3 class="inssec">${esc(x.sec)}</h3><div class="insrow${x.two ? " two" : ""}">${x.hs.join("")}</div>`).join("");
   return `<section class="insight" aria-labelledby="ins-h"><h3 id="ins-h" class="sr">${esc(t("Overview"))}</h3>${insHeadlines(F)}
     <div class="insg">${body}</div></section>`;
 }

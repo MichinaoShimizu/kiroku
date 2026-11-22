@@ -1290,3 +1290,6 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 }
 /* グラフのない数字（前の期間に合わせる 1 日の額など）は、グラフのタイルの後ろに（グラフのタイルの並びを途中で切らない） */
 .ikrow>.itile:not(:has(.tspk)){order:1}
+/* よく見るカードの段は、半分の幅の 2 列（狭い画面では 1 列） */
+.insrow.two{grid-template-columns:repeat(auto-fill,minmax(min(100%,440px),1fr))}
+@media (min-width:1000px){.insrow.two{grid-template-columns:repeat(2,minmax(0,1fr))}}
