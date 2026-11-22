@@ -202,7 +202,7 @@ function reportPrompt(w, day){ return inEnglish(() => { //  day があれば日�
       "- Next: what is left, only if the history shows it", "",
       "(one section per project, in the order of the facts)", "",
       "### Expert observations", "Up to three meaningful evidence-based observations about progress, risks, verification or work patterns. Include strengths; do not force criticism.", "",
-      "### Next actions", "Up to three specific, proportionate actions supported by the history, each with its rationale and expected benefit, citing the figure or signal from \"Signals for advice\" it rests on where one applies (signals are candidates, not verdicts). Mark hypotheses."].join("\n")),
+      "### Next actions", "Up to three specific, proportionate actions supported by the history, each with its rationale and expected benefit, citing the figure or signal from \"Signals for advice\" it rests on where one applies (signals are candidates, not verdicts). Prefer a cheap change with a clear signal (a prompt you keep retyping, a model heavier than the work) over general advice. Mark hypotheses."].join("\n")),
     "", "# Professional review principles",
     "- Give practical advice only where the recorded evidence supports it, and state uncertainty. No invented scores or rules",
     "- Time, prompt count, tokens and commit volume are not productivity or business value. Label any proposed impact as a hypothesis",

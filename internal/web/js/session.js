@@ -222,7 +222,7 @@ function reviewFlow(prompts, ev, n, max){
 function reviewEvents(s){ // 流れの出来事のうち、振り返りに効くものを文字だけで（画面の flowEvents は HTML を作るので使わない）
   const ev = [];
   commitsOf(s).forEach(c => ev.push({t: c.t, l: c.ai ? "AI committed" : "Committed by hand", d: c.subject}));
-  (s.prAt || []).forEach(p => ev.push({t: p.t, l: "Created a pull request"}));
+  (s.prAt || []).forEach(p => ev.push({t: p.t, l: "Created a pull request", d: p.url})); // URL があれば添える（振り返りが PR を名指しできるように）
   (s.interruptsAt || []).forEach(t => ev.push({t, l: "Interrupted"}));
   (s.compactions || []).forEach(t => ev.push({t, l: "Conversation compacted"}));
   (s.limits || []).forEach(t => ev.push({t, l: "Hit a usage limit"}));
