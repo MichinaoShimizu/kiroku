@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -107,5 +108,39 @@ func TestKiroClassicCopyIDTraversal(t *testing.T) {
 		if got := totalCredits(loadKiro(t, home)); got != 0 {
 			t.Errorf("id %q: クレジット = %v, want 0（ほかの場所のファイルを読んだ）", id, got)
 		}
+	}
+}
+
+// KIRO_HOME の場所を読むときは、~/.kiro に残る V2・Kiro IDE の会話も読む（source.DefaultKiroLegacyHome）。
+// --kiro-home で場所を選んだときは、その場所だけ。
+func TestKiroLegacyHomeOption(t *testing.T) {
+	h := t.TempDir()
+	t.Setenv("HOME", h)
+	t.Setenv("USERPROFILE", h)
+	t.Setenv("KIRO_HOME", filepath.Join(h, "work"))
+	legacyOf := func(args ...string) []string {
+		fs := flag.NewFlagSet("t", flag.ContinueOnError)
+		c := addCommon(fs)
+		if err := fs.Parse(args); err != nil {
+			t.Fatal(err)
+		}
+		_, _, all := c.picked()
+		var out []string
+		for _, s := range all {
+			switch k := s.(type) {
+			case *source.KiroIDE:
+				out = append(out, k.Legacy)
+			case *source.KiroCLI:
+				out = append(out, k.Legacy)
+			}
+		}
+		return out
+	}
+	want := filepath.Join(h, ".kiro")
+	if got := legacyOf(); len(got) != 2 || got[0] != want || got[1] != want {
+		t.Errorf("KIRO_HOME: legacy = %q, want %q", got, want)
+	}
+	if got := legacyOf("--kiro-home", filepath.Join(h, "other")); len(got) != 2 || got[0] != "" || got[1] != "" {
+		t.Errorf("--kiro-home: legacy = %q, want なし", got)
 	}
 }

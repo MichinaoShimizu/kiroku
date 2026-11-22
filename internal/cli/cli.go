@@ -128,7 +128,13 @@ func (c *common) picked() (picked []source.Source, want map[string]bool, all []s
 	if *c.amazonQDB != "" || want["amazonq"] {
 		droppedOnce.Do(func() { fmt.Fprintln(droppedW, droppedAmazonQ) })
 	}
-	all = source.All(source.Options{ClaudeRoot: *c.claudeRoot, KiroHome: *c.kiroHome, KiroCLIDB: *c.kiroCLIDB,
+	// KIRO_HOME の場所を読むときは、~/.kiro に残る V2・Kiro IDE・KIRO_HOME を設定する前の会話も読む。
+	// --kiro-home で別の場所を選んだときは、その場所だけ
+	var legacy string
+	if *c.kiroHome == source.DefaultKiroHome() {
+		legacy = source.DefaultKiroLegacyHome()
+	}
+	all = source.All(source.Options{ClaudeRoot: *c.claudeRoot, KiroHome: *c.kiroHome, KiroLegacy: legacy, KiroCLIDB: *c.kiroCLIDB,
 		CrewHome: *c.crewHome, CodexHome: *c.codexHome, Archive: *c.archiveDir})
 	for _, s := range all {
 		if want[s.Family()] {

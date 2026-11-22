@@ -487,3 +487,90 @@ func TestKiroHomeOverride(t *testing.T) {
 		}
 	}
 }
+
+// KIRO_HOME を設定しても、Kiro の説明で KIRO_HOME が動かすのは V3 の保存場所だけ（https://kiro.dev/docs/configuration ）。
+// 設定する前の会話・V2・Kiro IDE の会話は ~/.kiro に残るので、そこも読む。同じ会話は 1 回だけ出す（KIRO_HOME のほうを使う）。
+func TestKiroHomeLegacy(t *testing.T) {
+	h := t.TempDir()
+	t.Setenv("HOME", h)
+	t.Setenv("USERPROFILE", h)
+	work := filepath.Join(h, "work-kiro")
+	legacy := filepath.Join(h, ".kiro")
+	for _, v := range []string{"", "rel", legacy, legacy + string(filepath.Separator)} { // 設定なし・Kiro が使わない値・~/.kiro そのもの
+		t.Setenv("KIRO_HOME", v)
+		if got := DefaultKiroLegacyHome(); got != "" {
+			t.Errorf("KIRO_HOME=%q: legacy = %q, want \"\"", v, got)
+		}
+	}
+	t.Setenv("KIRO_HOME", work)
+	if got := DefaultKiroLegacyHome(); got != legacy {
+		t.Errorf("legacy = %q, want %q", got, legacy)
+	}
+	v2 := func(id, at, credit string) string {
+		return `{"session_id": "` + id + `", "cwd": "/Users/me/app", "created_at": "` + at + `",
+  "session_state": {"conversation_metadata": {"user_turn_metadatas": [{"end_timestamp": "` + at + `", "metering_usage": [{"value": ` + credit + `, "unit": "credit"}]}]}}}`
+	}
+	writeFiles(t, legacy, map[string]string{
+		"sessions/cli/old.json":                 v2("old", "2026-09-01T00:00:00Z", "1"),
+		"sessions/cli/old.jsonl":                "",
+		"sessions/cli/dup.json":                 v2("dup", "2026-09-02T00:00:00Z", "9"),
+		"sessions/cli/mv.json":                  v2("mv", "2026-09-03T00:00:00Z", "2"),
+		"sessions/aaa/sess_ide/session.json":    `{"id": "sess_ide", "createdAt": "2026-09-04T00:00:00Z"}`,
+		"sessions/aaa/sess_ide/messages.jsonl":  `{"timestamp": "2026-09-04T00:01:00Z", "payload": {"type": "user", "content": "IDE で"}}` + "\n",
+		"sessions/aaa/sess_both/session.json":   `{"id": "sess_both", "title": "old copy", "createdAt": "2026-09-05T00:00:00Z"}`,
+		"sessions/aaa/sess_both/messages.jsonl": "",
+	})
+	writeFiles(t, work, map[string]string{
+		"sessions/cli/dup.json":                 v2("dup", "2026-09-02T00:00:00Z", "3"),
+		"sessions/cli/dup.jsonl":                "",
+		"sessions/bbb/sess_both/session.json":   `{"id": "sess_both", "title": "new", "createdAt": "2026-09-05T00:00:00Z"}`,
+		"sessions/bbb/sess_both/messages.jsonl": "",
+		// ~/.kiro の V2 の会話 mv を、KIRO_HOME を設定してから V3 で開いた写し（usage_summary はない）
+		"sessions/bbb/sess_mv/session.json":   `{"id": "sess_mv", "createdAt": "2026-09-03T00:00:00Z"}`,
+		"sessions/bbb/sess_mv/messages.jsonl": `{"timestamp": "2026-09-06T00:00:00Z", "payload": {"type": "user", "content": "続き"}}` + "\n",
+	})
+
+	byID := func(bs []*core.Builder) map[string]*core.Builder {
+		m := map[string]*core.Builder{}
+		for _, b := range bs {
+			if m[b.ID] != nil {
+				t.Errorf("%s の %s が 2 回", b.Source, b.ID)
+			}
+			m[b.ID] = b
+		}
+		return m
+	}
+	cli := byID(load(t, &KiroCLI{Home: work, Legacy: legacy}))
+	if len(cli) != 3 || cli["old"] == nil || cli["dup"] == nil || cli["mv"] == nil {
+		t.Fatalf("V2 = %v, want old・dup・mv", cli)
+	}
+	if c := cli["dup"].Finish(15).Credits; c != 3 {
+		t.Errorf("dup のクレジット = %v, want 3（KIRO_HOME のほう）", c)
+	}
+	if y := cli["mv"].Yield; y != kiroClassicYield("mv") {
+		t.Errorf("mv の Yield = %q（KIRO_HOME の V3 の写しに譲る）", y)
+	}
+
+	ide := byID(load(t, &KiroIDE{Home: work, Legacy: legacy}))
+	if len(ide) != 3 || ide["sess_ide"] == nil || ide["sess_both"] == nil || ide["sess_mv"] == nil {
+		t.Fatalf("V3 = %v, want sess_ide・sess_both・sess_mv", ide)
+	}
+	if ide["sess_both"].Title != "new" {
+		t.Errorf("sess_both = %q, want KIRO_HOME のほう", ide["sess_both"].Title)
+	}
+	if c := ide["sess_mv"].Finish(15).Credits; c != 2 {
+		t.Errorf("sess_mv のクレジット = %v, want 2（~/.kiro の V2 の会話から足す）", c)
+	}
+
+	// 同じ場所（KIRO_HOME が ~/.kiro）なら、2 回読まない
+	if bs := load(t, &KiroCLI{Home: legacy, Legacy: legacy}); len(bs) != 3 {
+		t.Errorf("Home = Legacy: %d 件, want 3", len(bs))
+	}
+	// 見張る場所に ~/.kiro も入る
+	w := strings.Join(append(WatchPaths(&KiroIDE{Home: work, Legacy: legacy}), WatchPaths(&KiroCLI{Home: work, Legacy: legacy})...), "\n")
+	for _, p := range []string{filepath.Join(legacy, "sessions"), filepath.Join(legacy, "sessions", "cli")} {
+		if !strings.Contains(w+"\n", p+"\n") {
+			t.Errorf("watch %q に %q がない", w, p)
+		}
+	}
+}
