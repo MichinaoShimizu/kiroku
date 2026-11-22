@@ -220,7 +220,7 @@ function sesFlags(s){ // 詳細の頭に、このセッションが関係する�
 }
 // line は、カードに添える 1 行（id → 文字）。繰り返しのプロンプトでは、そのセッションで書いたもの
 // 候補のセッションには、なぜ重い（長い）のかの手がかりに、プロンプトの数・推定費用・作業時間を添える
-const flagSes = (ids, line) => ids.map(id => { const s = DATA.find(x => x.id === id), l = line && line.get(id); return s ? sesCardH(s, sesMeta(s, esc(plural(s.nPrompts || 0, "prompt")), s.cost >= 0.005 ? esc(usd(s.cost)) : "", esc(dur(minIn(s, -Infinity, Infinity))), s.interrupts ? esc(plural(s.interrupts, "interruption")) : "") + (l ? `<span class="fq">${esc(snipOf(l, 90))}</span>` : "")) : ""; }).join("");
+const flagSes = (ids, line) => ids.map(id => { const s = DATA.find(x => x.id === id), l = line && line.get(id); return s ? sesCardH(s, sesMeta(s, s.corrections ? esc(plural(s.corrections, "correction")) : "", s.interrupts ? esc(plural(s.interrupts, "interruption")) : "", esc(plural(s.nPrompts || 0, "prompt")), s.cost >= 0.005 ? esc(usd(s.cost)) : "", esc(dur(minIn(s, -Infinity, Infinity)))) + (l ? `<span class="fq">${esc(snipOf(l, 90))}</span>` : "")) : ""; }).join("");
 /* 見直す候補の 1 つを、画面の真ん中のダイアログで開く（サマリーへ移らずに、何が見えて、なぜ大事で、次に何をするかを読める）。
    同じ指標に印の付く候補（GOTO）はまとめて出す。セッションを押すと、ダイアログを閉じて詳細を開く */
 let lastFlags = []; // 表示中の期間の候補（summary が入れる）
