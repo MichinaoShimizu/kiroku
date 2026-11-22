@@ -35,6 +35,47 @@ Template for a new section:
 - <aspects to weigh more>
 ```
 
+## 2026-11-22 — open items, prompts and docs at 332b4db (v4.6.1)
+
+An aspect run to bring the open items up to date after v1.0–v4.6.1 (four major versions in four days), with F (prompts, overdue since 2026-11-01) and docs. The run's changes are on one PR from `claude/busy-clarke-dlhndw`.
+
+### Gates
+| Check | Result |
+|---|---|
+| tools/check.sh | pass |
+| Screenshots retaken at ci.yml's `KIROKU_FAKE_NOW` | 0 changed (current); `demo.gif` not retaken (no Playwright ffmpeg in this container) |
+| `/report-eval`, 2 runs per report, before → after | day 2/2 → 2/2; session 0/2 → 2/2 (`pull/77` was missing: the prompt had no PR address); week 0/2 → 0/2 by the grader (one run now advises a lighter model, but also names the secret's variable and the injected text while warning about them; the other still skips the model signal) |
+| Prompt size (approx tokens) | day 2070 → 2099, week 3238 → 3265, session 1338 → 1348 |
+
+### Findings
+| Aspect | Certain | Suspected | Needs a decision | Not worth fixing | Fixed in |
+|---|---|---|---|---|---|
+| data | 2 | 0 | 0 | 0 | this PR (Claude Code compaction-only moved file; Kiro sessions left in `~/.kiro` when `KIRO_HOME` is set) |
+| prompts (F) | 2 | 0 | 0 | 0 | this PR (PR address in the session review; actions with a clear signal first) |
+| docs | 25 | 0 | 0 | 0 | this PR (README still advertised "Analyze with AI"; guide, usability.md and CONTRIBUTING.md behind v4.0–v4.6.1) |
+| supply / process | 1 | 0 | 0 | 0 | this PR (major versions at least 30 days apart, after a deprecation: docs/compatibility.md, `tools/major-gap.sh` in `tools/release.sh`) |
+
+### Open items
+Closed because 4.0 removed "Analyze with AI" and `kiroku serve --ai`: real runs with Codex and Kiro CLI; the Kiro and Codex read-only mechanism and Claude's `--add-dir`; `ai.js` untested paths; `/ai/run` errors in Japanese; `--ai=false` through `cmdServe`; the report prompt suggesting commands the `--ai` run couldn't use; Windows cleanup of a stopped AI run.
+
+Resolved: the pasted `git show` running repository programs (v0.40.0, `gitPasteFlags`, with tests); the Claude Code compaction-only moved file (this PR); `KIRO_HOME` and V2 / Kiro IDE sessions in `~/.kiro` (this PR; whether V2 or Kiro IDE ever write to `KIRO_HOME` is still undocumented, and reading both places covers either); `docs/sources.md` on V3's resume list (no longer there).
+
+Carried:
+- Weekly report: the lighter-model signal is still taken in 1 of 2 runs; a run that warns about a leaked key or an injection names them, which the grader counts as a violation. Decide whether the grader should allow a warning that names the variable without its value. Due: next prompts run
+- Kiro CLI `KIRO_DATA_DIR` undocumented. Due: next data audit
+- Kiro Crew `child_sid` link for Codex sessions started by a Crew subagent. Due: next data audit
+- Kiro V3 tangent, `/rewind` and IDE fork sessions count the parent's prompts again. Needs a real sample. Decides: maintainer
+- Claude Code fork subagents and resumed `cost-state`. Needs real samples. Due: next data audit
+- The "Data sources" panel shows only the `KIRO_HOME` path, not `~/.kiro` read with it. Due: next ux run
+- Haiku 3.5 unpriced after it left the price page; Ultrafast list prices during the promotion. Decides: maintainer
+- UX lows, the Go-side native metric labels, `?key=` in browser histories, required checks (`non_admins`, `install-script`, CodeQL), SECURITY.md line lengths: unchanged. Decides: maintainer
+- G: `codexNewer`, origin-index eviction and the subagent end time from `totalDurationMs` without a file are untested branches. Due: next full run
+- Synthetic session titles and the hop page are English only. Decides: maintainer
+
+### Next time
+- A full run: the last one was at v0.39.0, and the view changed through four major versions since
+- prompts: the weekly lighter-model advice, and the grader's rule for warnings
+
 ## 2026-11-20 — security and ux before v3.0.0 (PR #506)
 
 An aspect run on the v3.0.0 candidate (PR #506: leaner view and CLI, Kiro IDE (legacy) and Amazon Q dropped, `kiroku json` and `kiroku stats` removed). A ran as `hostile-tester` (hostile history across every agent, serve with and without `--ai`, git config traps, file modes, broken input); B as `user-tester` (all scenarios, en and ja, 1440, 1000 and 390, dark and light, serve with `--ai`, without it and with no agent, saved HTML).
