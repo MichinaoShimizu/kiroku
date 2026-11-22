@@ -61,31 +61,42 @@ function insPlain(b){
   return b.pos === "typical" ? t("{x}: within your usual {lo}–{hi}", r) : b.pos === "high" ? (b.far ? t("{x}: far above your usual {lo}–{hi}", r) : t("{x}: above your usual {lo}–{hi}", r))
     : b.far ? t("{x}: far below your usual {lo}–{hi}", r) : t("{x}: below your usual {lo}–{hi}", r);
 }
-/* insSpark は、要点の数字の下に置く推移のグラフ（正方形）：過去 INS_N 期間と表示中の期間の折れ線、いつもの範囲（真ん中の 50%）の帯と中央値、
-   y 軸の目盛りと見出し（指標の短い名前）、x 軸の期間の名前と見出し（週・月）、凡例。
-   途中の期間で期間の長さに比例する指標は、上の帯と同じくペース換算の値を白抜きの点で描く（線は終わった期間だけ） */
+/* insSpark は、要点の数字の横に置く推移のグラフ（正方形）。2 本の線を重ねる：
+   - 推移：過去 INS_N 期間と表示中の期間の値（点と線）。いつもの範囲（真ん中の 50%）の帯と中央値つき。
+     途中の期間で期間の長さに比例する指標は、上の帯と同じくペース換算の値を白抜きの点で描く（線は終わった期間だけ）
+   - 累積：期間の長さに比例する量（費用・時間・コミットなど）は、グラフの左端の期間からの足し上げ（右の軸。表示中の期間は今までの実際の値）。
+     率（コミットあたり・時間あたりなど）は足し上げられないので、左端からの期間の値の平均（同じ左の軸）
+   軸は実線、目盛りは両方の軸に、y の目盛りには点線のグリッド */
 function insSpark(b, label){
   if (!b || !b.k || !MET[b.k]) return "";
   const k = b.k, hs = historyStart(), fm = b.fmt || (x => fmtM(k, x)), pts = [];
   for (let i = INS_N; i >= 1; i--){ const p = periodBack(i); pts.push({p, v: p.ws < hs ? null : metricAt(k, p)}); }
-  pts.push({p: periodBack(0), v: b.v, cur: true});
+  pts.push({p: periodBack(0), v: b.v, a: b.cur, cur: true});
   const f0 = pts.findIndex(x => x.v != null); if (pts.filter(x => x.v != null).length < 3) return "";
-  const ps = pts.slice(f0), n = ps.length, vals = ps.filter(x => x.v != null).map(x => x.v);
-  const W = 150, H = 150, L = 34, R = 6, T = 14, B = 26, mx = Math.max(...vals, b.q3 || 0);
+  const ps = pts.slice(f0), n = ps.length, add = INS_ADD.has(k);
+  { let s = 0, c = 0; ps.forEach(q => { const a = q.cur ? q.a : q.v; if (a != null){ s += a; c++; } q.c = add ? s : c ? s / c : null; }); }
+  const vals = ps.filter(x => x.v != null).map(x => x.v).concat(add ? [] : ps.filter(x => x.c != null).map(x => x.c));
+  const W = 300, H = 300, L = 46, R = add ? 46 : 12, T = 20, B = 32, mx = Math.max(...vals, b.q3 || 0);
   const top = MET[k].u === "%" && mx <= 100 ? 100 : insNice(mx * 1.05), x = i => L + (n === 1 ? (W - L - R) / 2 : i * (W - L - R) / (n - 1)), y = v => T + (H - T - B) * (1 - v / top);
-  // y 軸：0 から 4 等分の目盛り（軸の外に短い線、プロットの中に点線のグリッド。値は 0・半分・上端に。数える指標で 6.25 のような値を出さないように）。x 軸：期間ごとの短い目盛り。軸そのものは実線
-  const ticks = [0, top / 4, top / 2, top * 3 / 4, top].map((v, i) => { const yy = y(v).toFixed(1);
-    return `<g class="tk">${v ? `<line class="grid" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/>` : ""}<line class="tm" x1="${L - 3}" x2="${L}" y1="${yy}" y2="${yy}"/>${i % 2 ? "" : `<text x="${L - 5}" y="${(y(v) + 3.5).toFixed(1)}">${esc(tickM(k, v))}</text>`}</g>`; }).join("")
-    + `<line class="axis" x1="${L}" x2="${L}" y1="${T}" y2="${y(0).toFixed(1)}"/><line class="axis" x1="${L}" x2="${W - R}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"/>`;
+  const top2 = add ? insNice(ps[n - 1].c * 1.05) : top, y2 = add ? (v => T + (H - T - B) * (1 - v / top2)) : y, y0 = y(0).toFixed(1);
+  const tk = (yy, lab, right) => `<line class="tm" x1="${right ? W - R : L - 3}" x2="${right ? W - R + 3 : L}" y1="${yy}" y2="${yy}"/>${lab == null ? "" : `<text class="${right ? "r" : ""}" x="${right ? W - R + 5 : L - 5}" y="${(+yy + 3.5).toFixed(1)}">${esc(lab)}</text>`}`;
+  // y 軸：0 から 4 等分の目盛り（軸の外に短い線、プロットの中に点線のグリッド。値は 0・半分・上端に。数える指標で 6.25 のような値を出さないように）
+  const ticks = [0, .25, .5, .75, 1].map((f, i) => { const yy = y(top * f).toFixed(1);
+    return `<g class="tk">${f ? `<line class="grid" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/>` : ""}${tk(yy, i % 2 ? null : tickM(k, top * f))}${add ? tk(y2(top2 * f).toFixed(1), i % 2 ? null : tickM(k, top2 * f), true) : ""}</g>`; }).join("")
+    + `<line class="axis" x1="${L}" x2="${L}" y1="${T}" y2="${y0}"/><line class="axis" x1="${L}" x2="${W - R}" y1="${y0}" y2="${y0}"/>${add ? `<line class="axis cum" x1="${W - R}" x2="${W - R}" y1="${T}" y2="${y0}"/>` : ""}`;
   const band = b.q1 == null ? "" : `<rect class="band" x="${L}" y="${y(b.q3).toFixed(1)}" width="${W - L - R}" height="${Math.max(1, y(b.q1) - y(b.q3)).toFixed(1)}"/><line class="med" x1="${L}" x2="${W - R}" y1="${y(b.med).toFixed(1)}" y2="${y(b.med).toFixed(1)}"/>`;
   const lab = p => { const [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? (JA ? `${mm}月` : MON[mm - 1]) : dMD(new Date(yy, mm - 1, dd)); };
-  const xtm = Array.from({length: n}, (_, i) => `<line class="tm" x1="${x(i).toFixed(1)}" x2="${x(i).toFixed(1)}" y1="${y(0).toFixed(1)}" y2="${(y(0) + 3).toFixed(1)}"/>`).join(""), xl = [0, n - 1].filter((v, i, a) => a.indexOf(v) === i).map(i => `<text class="sxl${i === n - 1 ? " cur e" : i === 0 && n > 1 ? " s" : ""}" x="${x(i).toFixed(1)}" y="${H - B + 13}">${esc(lab(ps[i].p))}</text>`).join("");
+  const xtm = ps.map((_, i) => `<line class="tm" x1="${x(i).toFixed(1)}" x2="${x(i).toFixed(1)}" y1="${y0}" y2="${(+y0 + 3).toFixed(1)}"/>`).join("");
+  const xl = [0, Math.round((n - 1) / 2), n - 1].filter((v, i, a) => a.indexOf(v) === i).map(i => `<text class="sxl${i === n - 1 ? " cur e" : i === 0 && n > 1 ? " s" : ""}" x="${x(i).toFixed(1)}" y="${H - B + 14}">${esc(lab(ps[i].p))}</text>`).join("");
+  const cpts = ps.map((q, i) => q.c == null ? null : `${x(i).toFixed(1)},${y2(q.c).toFixed(1)}`).filter(Boolean);
+  const cum = cpts.length < 2 ? "" : (add ? `<polygon class="cuma" points="${x(ps.findIndex(q => q.c != null)).toFixed(1)},${y0} ${cpts.join(" ")} ${x(n - 1).toFixed(1)},${y0}"/>` : "") + `<polyline class="cuml" points="${cpts.join(" ")}"/>`;
   const line = ps.map((q, i) => q.v == null || (q.cur && b.part) ? null : `${x(i).toFixed(1)},${y(q.v).toFixed(1)}`).filter(Boolean).join(" ");
-  const dots = ps.map((q, i) => q.v == null || q.cur ? "" : `<circle class="pt" cx="${x(i).toFixed(1)}" cy="${y(q.v).toFixed(1)}" r="2"/>`).join("") + `<circle class="now${b.part ? " part" : ""}" cx="${x(n - 1).toFixed(1)}" cy="${y(b.v).toFixed(1)}" r="4"/>`;
-  const step = n > 1 ? (W - L - R) / (n - 1) : W - L - R, hits = ps.map((q, i) => `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H - B}"${tipAttr(q.p.label, q.v == null ? t("No records") : (q.cur && b.part ? t("At this pace: {v}", {v: fm(q.v)}) : fm(q.v)))}/>`).join("");
+  const dots = ps.map((q, i) => q.v == null || q.cur ? "" : `<circle class="pt" cx="${x(i).toFixed(1)}" cy="${y(q.v).toFixed(1)}" r="2.5"/>`).join("") + `<circle class="now${b.part ? " part" : ""}" cx="${x(n - 1).toFixed(1)}" cy="${y(b.v).toFixed(1)}" r="4.5"/>`;
+  const cl = add ? t("Cumulative") : t("Running average");
+  const step = n > 1 ? (W - L - R) / (n - 1) : W - L - R, hits = ps.map((q, i) => `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H - B}"${tipAttr(q.p.label, q.v == null ? t("No records") : (q.cur && b.part ? t("At this pace: {v}", {v: fm(q.v)}) : fm(q.v)), q.c == null ? "" : `${cl}: ${fm(q.c)}`)}/>`).join("");
   const yt = (INS_SHORT()[k] || label || insName(k)), xt = st.mode === "month" ? t("Month") : t("Week");
-  const list = ps.map(q => `${q.p.label} ${q.v == null ? "—" : fm(q.v)}`).join(LSEP());
-  return `<span class="tspk"><span class="sr">${esc(t("Trend: {list}", {list}))}</span><svg aria-hidden="true" viewBox="0 0 ${W} ${H}"><text class="syt" x="${L}" y="8">${esc(yt)}</text>${band}${ticks}${xtm}<polyline points="${line}"/>${dots}${xl}<text class="sxt" x="${(L + (W - L - R) / 2).toFixed(1)}" y="${H - 4}">${esc(xt)}</text>${hits}</svg></span>`;
+  const list = ps.map(q => `${q.p.label} ${q.v == null ? "—" : fm(q.v)}${q.c == null ? "" : ` (${cl} ${fm(q.c)})`}`).join(LSEP());
+  return `<span class="tspk"><span class="sr">${esc(t("Trend: {list}", {list}))}</span><svg aria-hidden="true" viewBox="0 0 ${W} ${H}"><text class="syt" x="${L}" y="11">${esc(yt)}</text>${add ? `<text class="syt r" x="${W - R}" y="11">${esc(cl)}</text>` : ""}${band}${ticks}${xtm}${cum}<polyline class="trl" points="${line}"/>${dots}${xl}<text class="sxt" x="${(L + (W - L - R) / 2).toFixed(1)}" y="${H - 4}">${esc(xt)}</text>${hits}</svg></span>`;
 }
 const insChip = b => !b || b.q1 == null ? "" : `<code class="ichip ifx${insTone(b)}" title="${esc(insDef(b && b.n))}"><span class="cx">${esc(insExpr(b))}</span><span class="cp">${esc(insPlain(b))}</span></code>`;
 /* 要点の数字（最大 3 列）：上の帯と同じ数をサマリーでも、式といつもの範囲との不等式つきで。並びは判断に使う順：
@@ -159,8 +170,8 @@ function insHeadlines(F){
   ].map(c => ({...c, n: c.rows ? Math.max(...c.rows.map(r => T[r[0]].length)) : T[c.k].length})).filter(c => c.n > 0);
   // 推移のグラフの凡例は、カードごとに 1 つ（グラフごとに置くと、カードが縦に伸びる）
   const now = soFar() != null ? (M ? t("This month") : t("This week")) : (M ? t("Month shown") : t("Week shown"));
-  const lgd = `<p class="tlg" aria-hidden="true"><span class="lg now">${esc(now)}</span>${insFrac() < 1 ? `<span class="lg now part">${esc(t("pace"))}</span>` : ""}<span class="lg band">${esc(t("Middle half of your past {unit}", {unit: insNoun()}))}</span><span class="lg med">${esc(t("median"))}</span></p>`;
-  const card = c => `<section class="ikg ik-${c.id}" aria-label="${esc(c.label)}"><h5 class="ikgh">${esc(c.label)}</h5>${lgd}${c.rows ? c.rows.map(sub).join("") : `<div class="ikrow">${T[c.k].join("")}</div>`}</section>`;
+  const lgd = c => `<p class="tlg" aria-hidden="true"><span class="lg now">${esc(now)}</span>${insFrac() < 1 ? `<span class="lg now part">${esc(t("pace"))}</span>` : ""}<span class="lg band">${esc(t("Middle half of your past {unit}", {unit: insNoun()}))}</span><span class="lg med">${esc(t("median"))}</span><span class="lg cum">${esc(c.id === "unit" ? t("Running average") : t("Cumulative (right axis)"))}</span></p>`;
+  const card = c => `<section class="ikg ik-${c.id}" aria-label="${esc(c.label)}"><h5 class="ikgh">${esc(c.label)}</h5>${lgd(c)}${c.rows ? c.rows.map(sub).join("") : `<div class="ikrow">${T[c.k].join("")}</div>`}</section>`;
   // 見直す候補：基準を超えた指標を、見出しのすぐ下に 1 行で（押すと、その候補のダイアログ）。どれも、その指標の横の印からも開ける
   const ids = [...new Set((F || []).map(f => GOTO[f.k] || f.k))]; // 説明（HELP）のない候補も落とさない（名前は insName が ID に戻す）
   const worth = `<div class="iworth" role="group" aria-label="${esc(t("Worth a look"))}"><span class="iwl">${ico("flag")}${esc(t("Worth a look"))}${ids.length ? ` · ${ids.length}` : ""}</span>${ids.length ? ids.map(id => `<button type="button" class="iwlink" data-goto="${esc(id)}" aria-haspopup="dialog">${esc(insName(id))}</button>`).join("") : `<span class="iwnone">${esc(t("Nothing crossed a threshold this period"))}</span>`}</div>`;
