@@ -62,5 +62,5 @@ const plural = (n, one, many) => isJA() ? `${n} ${t(one)}` : `${n} ${n === 1 ? o
 // 画面はカレンダーだけ。以前の版が保存した "view"（journey・project）は読まない
 const st = { hh: 44, colorBy: store.get("colorBy", "source") === "project" ? "project" : "source",
              week: mondayOf(today0()), month: monthOf(today0()), mode: store.get("mode", "week"), view: store.get("view", "cal") === "sum" ? "sum" : "cal",
-             hidden: new Set(), sel: null, back: [], q: "", animate: true, insK: store.get("insK", "cost"), insC: store.get("insC", "cost"), insS: store.get("insS", "cost"), insWk: store.get("insWk", null), shade: store.get("mShade", null), insW: store.get("insW", "project"), insAg: store.get("insAg", ""), theme: (v => v === "dark" || v === "light" ? v : null)(store.get("theme", null)), early: store.get("calEarly", null) === true };
+             hidden: new Set(), sel: null, back: [], q: "", animate: true, insK: store.get("insK", "cost"), insC: store.get("insC", "cost"), insS: store.get("insS", "cost"), insWf: store.get("insWf", "cost"), insSk: store.get("insSk", "cost"), insBk: store.get("insBk", "cost"), insWk: store.get("insWk", null), shade: store.get("mShade", null), insW: store.get("insW", "project"), insAg: store.get("insAg", ""), theme: (v => v === "dark" || v === "light" ? v : null)(store.get("theme", null)), early: store.get("calEarly", null) === true };
 

@@ -1248,3 +1248,24 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 @container (max-width:520px){.iwr.iwh{display:none}}
 /* 狭いカードの一覧：2 行目の行数・コミットと編集の回数は、続けて流す（編集の回数が右に浮かないように） */
 @container (max-width:520px){.insfig .iwrows>.iwr:not(.iwh){display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}.insfig .iwrows>.iwr:not(.iwh)>.iwn,.insfig .iwrows>.iwr:not(.iwh)>.iwb{flex:0 0 100%}}
+/* 前の期間からの増減（ウォーターフォール）：合計は濃い色、増えた分と減った分は、良し悪しを言わない 2 つの色（量の増減に良し悪しは付けない） */
+.iwtf .wft{fill:color-mix(in oklab,var(--ink-3) 55%,var(--surface))}.iwtf .wft.cur{fill:var(--acc)}
+.iwtf .wfu{fill:color-mix(in oklab,var(--ink) 30%,var(--surface))}.iwtf .wfd{fill:color-mix(in oklab,var(--ink) 62%,var(--surface))} /* 増えた分は薄い灰、減った分は濃い灰（プロジェクトの色や良し悪しの色と重ならないように） */
+.iwtf .wfc{stroke:var(--ink-3);stroke-dasharray:3 3;stroke-width:1}
+.iwtf .wfv{font-size:11px;fill:var(--ink-2);text-anchor:middle;font-family:var(--sans);font-variant-numeric:tabular-nums}
+/* ドーナツ（どこに使ったか）：横棒の左に */
+.iwdn{display:flex;gap:18px;align-items:center}.iwdn>.iwrows{flex:1;min-width:0}.insfig.iwdn svg.idn{width:140px;height:140px;flex:none}
+.idn path{stroke:var(--surface);stroke-width:1.5}.idnv{font:700 14px var(--sans);fill:var(--ink);text-anchor:middle}.idnl{font-size:10px;fill:var(--ink-3);text-anchor:middle;font-family:var(--sans)}
+@container (max-width:520px){.iwdn{flex-direction:column;align-items:stretch}.idn{align-self:center}}
+/* サンキー（どこへ流れたか） */
+.isk svg{overflow:visible}.isk .skl{opacity:.38}.isk .skl:hover{opacity:.6}.isk .skn{stroke:none}
+.isk .skt{font-size:11px;fill:var(--ink-2);text-anchor:end;font-family:var(--sans)}.isk .skt.s{text-anchor:start}.isk .skv{fill:var(--ink-3);font-variant-numeric:tabular-nums}
+.isk .skh{font-size:11px;fill:var(--ink-3);text-anchor:middle;font-weight:600;font-family:var(--sans)}
+/* 箱ひげ（1 セッションあたりのばらつき） */
+.ibxf .ibx rect{fill:color-mix(in oklab,var(--acc) 22%,var(--surface));stroke:color-mix(in oklab,var(--acc) 60%,var(--surface))}.ibxf .ibx.cur rect{fill:color-mix(in oklab,var(--acc) 45%,var(--surface));stroke:var(--acc)}
+.ibxf .bwh{stroke:var(--ink-3)}.ibxf .bmd{stroke:var(--acc-ink);stroke-width:2}
+/* ガント（いちばん作業した日） */
+.igt .igl{font-size:11px;fill:var(--ink-2);text-anchor:end;font-family:var(--sans)}.igt .igr{cursor:pointer}.igt .igr:hover .igl,.igt .igr:focus .igl{fill:var(--ink)}.igt .igr:focus{outline:none}
+.tspk .sxl.nodat{display:none} /* 記録のない最初の期間の名前は出さない（縦軸の 0 と重ならないように） */
+.isk .skt{paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
+.iwtf .ixl,.isk .skt,.ibxf .ixl,.igt .igl,.igt .ixl{font-size:11px}

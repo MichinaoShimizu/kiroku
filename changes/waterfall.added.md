@@ -1,0 +1,2 @@
+- Summary: "What changed from the last period", a waterfall from the previous period's total through each project's increase or decrease to this period's total, for estimated cost, Kiro credits, tokens or active time
+- Summary: "Where it went" adds a donut of the shares next to its bars; new cards "Where it flowed" (a Sankey from agent to project to whether the session reached a commit or PR), "Spread per session" (a box plot of cost, time or prompts per session for each period) and "Busiest day" (a Gantt of that day's sessions, showing how many ran at once)
