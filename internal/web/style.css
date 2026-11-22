@@ -1196,3 +1196,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .iverd .ivact{color:var(--ink-2)}.iverd .iwlink,.iverd .ivgo{font:inherit;color:var(--acc-ink);text-decoration:underline;text-underline-offset:2px;padding:0;background:none;border:0;cursor:pointer}
 /* 広いカードでは数字を 2 つずつ並べ、1 つだけ残った段も半分の幅に留める（グラフが横いっぱいに大きくならないように） */
 @container (min-width:1100px){.itile:has(.tspk){max-width:50%}}
+/* 作業の種類の色（エージェントと同じ 8 色を順に） */
+.ikinds .kd{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.ikinds .k0{background:var(--c0)}.ikinds .k1{background:var(--c1)}.ikinds .k2{background:var(--c2)}.ikinds .k3{background:var(--c3)}.ikinds .k4{background:var(--c4)}.ikinds .k5{background:var(--c5)}.ikinds .k6{background:var(--c6)}.ikinds .k7{background:var(--c7)}
+.ikinds{margin-top:12px}
