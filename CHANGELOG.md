@@ -2,6 +2,38 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v4.3.0 - 2026-11-22
+
+### Added
+
+- Summary: estimated cost and Kiro credits per active hour (and tokens per active hour in the Trend), next to the unit costs per AI commit and per 100 AI-edited lines. Every unit cost can be picked in the Trend
+- Summary: a "Worth a look" line under the figures lists what crossed a threshold and opens its dialog
+- Summary: an "ƒx" button next to each figure's and chart's name shows its formulas
+- Calendar: a thin bar in each day of the month splits its active time by Color by (agent or project), following hidden legend items and search
+- Summary: each header figure has a wide trend chart of the last 12 periods overlaid with the cumulative total (right axis) or, for rates, the running average, with axis ticks, axis titles, a legend and your usual range as a band, and a note with the change from the previous week or month (percent for amounts and rates, a difference for counts)
+- Summary: the header charts mark usage-limit hits with a small red triangle on the x axis at the time of the hit (×n for several in one period; the tooltip lists the times and resets)
+- Summary: in a month or week in progress, every header amount and count shows its month-end or week-end estimate at the current pace, and its chart draws the estimate with dashed lines for the value and the cumulative total
+
+### Changed
+
+- Summary figures at the top are cut to the main ones and laid out with Cost and Output on the left and Unit cost on the right (on wide windows). Each unit cost names what it divides ("Claude Code cost per AI commit") and always shows "numerator ÷ denominator". Per session and per prompt move to Usage, and files, repositories, days with commits and pushes to the Outputs card
+- Summary: formulas are hidden until you press "ƒx" (v4.2.0 always showed them)
+- Summary: amounts (cost, credits, tokens, time, prompts, commits) are no longer colored good or bad; efficiency and habit figures keep their colors. Takeaways use plain words ("the lowest of 11 weeks", "slowest 10%"), ranges round like their values, and too little history is said once instead of under every figure
+- Summary Trend: rates are drawn as a line with points and totals as bars, percentages use a 0–100% axis, and the list of metrics is grouped by kind
+- Summary: the session length chart shows the average per session in each bucket ("Cost per session, by length"), with the number of sessions under each bucket
+- Summary: the chart cards sit three to a row on wide windows and are drawn at the card's size, and Outputs takes twice the width so Git and AI edits sit side by side
+- Japanese: Kiro credits are written "credits" instead of katakana, as in Kiro itself
+- Calendar: each day shows its active time next to its cost figure ("$2.86 · 5h 9m · 3 commits"; cost over time in the month)
+- Calendar: pressing a day in the month opens its week at that day and highlights it; closing session details after moving with ← → returns to the last session read; "This week / This month" (T) resets both the week and the month; ← → keep working after pressing the view toggles with the mouse; ‹ stops at the first period with records; an empty month says so
+- Calendar: week totals in the month count only that month's days, so they add up to the month (the whole week is in the tooltip)
+- Calendar: tall, narrow session bars keep their name instead of switching to the start time; days with only commits no longer show dashes; tooltips no longer repeat "credits"
+- Lines added are green and lines removed are red wherever "+added −removed" appears (summary, session details, commits, breakdowns), as in git diff
+
+### Removed
+
+- Summary: Kiro credits per Git commit (added in v4.2.0). Kiro does not record which commits it ran, so it divided Kiro's credits by commits made by hand or by other agents
+- Summary: cost per active day, replaced by cost per active hour
+
 ## v4.2.0 - 2026-11-21
 
 ### Added
