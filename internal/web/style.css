@@ -1293,3 +1293,6 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 /* よく見るカードの段は、半分の幅の 2 列（狭い画面では 1 列） */
 .insrow.two{grid-template-columns:repeat(auto-fill,minmax(min(100%,440px),1fr))}
 @media (min-width:1000px){.insrow.two{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* どこに使ったか：ドーナツの横に一覧を幅いっぱいに（グラフのカードの縦並びの規則より強く）。狭いカードでは上下に */
+.inscol>.insfig.iwdn{flex-direction:row;flex-wrap:wrap;align-items:center}.inscol>.insfig.iwdn>.ifxs{flex-basis:100%}
+@container (max-width:520px){.inscol>.insfig.iwdn{flex-direction:column;align-items:stretch}}

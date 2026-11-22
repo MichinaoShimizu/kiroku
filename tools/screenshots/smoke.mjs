@@ -139,7 +139,7 @@ async function run(env) {
     check("よく見るカードが上に、その他のグラフはたたんだ箱にあり、初めはたたんである。開いたかは覚える", await p.evaluate(async () => { const top = [...document.querySelectorAll("#review .insg > .insrow h4")].map(h => h.textContent);
       store.set("insMore", false); summary(); const d0 = document.querySelector("#review details.insmore"); const closed = d0 && !d0.open && !d0.querySelector(".insrow").checkVisibility();
       d0.querySelector("summary").click(); await new Promise(r => setTimeout(r, 50)); const saved = store.get("insMore", false) === true; summary();
-      return closed && saved && document.querySelector("#review details.insmore").open && top.some(x => /When you worked/.test(x)) && !top.some(x => /^Trend/.test(x)); }));
+      return closed && saved && document.querySelector("#review details.insmore").open && top.some(x => /When you worked/.test(x)) && top.some(x => /Where it went/.test(x)) && !top.some(x => /^Trend/.test(x)); }));
     check("サマリーに切り替えると、カレンダーは隠れる", await p.locator("#tl").isHidden() && await p.locator("#review").isVisible());
     const pos1 = await at();
     check("切り替えても、期間の見出しと切り替えのボタンは動かない（上の帯の高さでずれない）", JSON.stringify(pos0) === JSON.stringify(pos1), `${JSON.stringify(pos0)} → ${JSON.stringify(pos1)}`);
