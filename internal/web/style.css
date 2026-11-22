@@ -1164,7 +1164,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 @media (prefers-reduced-motion:reduce){.day.flash,.head.flash,.run.flash{animation:none}}
 /* 要点の数字の推移のグラフ（正方形。目盛り・軸の見出し・凡例つき。タイルの幅いっぱい、大きくなりすぎないように上限） */
 .tspk{display:flex;flex-direction:column;gap:4px;align-self:stretch;max-width:220px;margin:4px 0 2px}
-.tspk svg{pointer-events:none;display:block;width:100%;height:auto;aspect-ratio:1;overflow:visible}
+.tspk svg{pointer-events:none;display:block;width:100%;height:auto;overflow:visible}
 .tspk text{font-family:var(--sans);font-size:10px;fill:var(--ink-3);font-variant-numeric:tabular-nums}
 .tspk .grid{stroke:var(--rule-2);stroke-width:.8;stroke-dasharray:1.5 2.5;opacity:.7}.tspk .tm{stroke:var(--ink-3);stroke-width:1}.tspk .axis{stroke:var(--ink-3);stroke-width:1.2}.tspk .tk text{text-anchor:end}
 .tspk .sxl{text-anchor:middle}.tspk .sxl.cur{fill:var(--acc-ink);font-weight:600}.tspk .sxl.s{text-anchor:start}.tspk .sxl.e{text-anchor:end}.tspk .sxl.rot{text-anchor:end}
@@ -1181,12 +1181,12 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .tlg .lg.cum::before{height:6px;background:color-mix(in oklab,var(--amber) 16%,transparent);border-top:1.6px solid var(--amber)}.tlg .lg.band::before{background:color-mix(in oklab,var(--ink) 12%,transparent)}.tlg .lg.med::before{height:0;border-top:1.5px dashed var(--ink-3)}
 /* 足した行・消した行（git diff にならって緑と赤） */
 .la{color:var(--go-ink)}.lr{color:var(--warn)}
-/* グラフのある要点の数字は、左に名前・値・注記（2）、右に正方形のグラフ（3。値の側より広く）。カードの幅いっぱいに 1 行 1 枚（横長の黄金比に近い形）。中身が多いときは高さが伸びる */
-.itile:has(.tspk){display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);grid-auto-rows:min-content;column-gap:20px;row-gap:4px;align-content:start;justify-items:start;flex:1 1 100%;}
+/* グラフのある要点の数字は、左に名前・値・注記（1）、右に横長のグラフ（2.4。値の側より広く）。カードの幅いっぱいに 1 行 1 枚（横長の黄金比に近い形）。中身が多いときは高さが伸びる */
+.itile:has(.tspk){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.4fr);grid-auto-rows:min-content;column-gap:20px;row-gap:4px;align-content:start;justify-items:start;flex:1 1 100%;}
 .itile:has(.tspk)>*{grid-column:1}
 .itile:has(.tspk)>.tspk{grid-column:2;grid-row:1/span 12;width:100%;max-width:none;margin:0;align-self:start}
 .ikg>.tlg{padding:0 18px;margin:-2px 0 8px}
 @media (max-width:700px){.ikg>.tlg{padding:0 14px}}
 /* 狭いカード（3 枚が横に並ぶ幅や、スマホ）では、グラフを値の下に置く（値とグラフが重ならないように） */
 .ikg{container-type:inline-size}
-@container (max-width:560px){.itile:has(.tspk){grid-template-columns:minmax(0,1fr)}.itile:has(.tspk)>.tspk{grid-column:1;grid-row:auto;width:min(100%,300px)}}
+@container (max-width:560px){.itile:has(.tspk){grid-template-columns:minmax(0,1fr)}.itile:has(.tspk)>.tspk{grid-column:1;grid-row:auto;width:100%}}
