@@ -2,6 +2,17 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v4.4.0 - 2026-11-22
+
+### Added
+
+- Summary: Unit cost adds estimated cost, Kiro credits and tokens per session and per prompt, and tokens per AI commit, per 100 AI-edited lines and per active hour, each with its chart and the change from last week or month
+- Summary: each unit cost says how it went in plain words (more or less efficient, lighter or heavier than usual, or as usual), why (lowest or highest of recent weeks, several weeks in a row, or the usual range), and what to do next: what may have helped (shorter sessions, fewer prompts per session), or a likely cause that opens its dialog or the sessions that used the most
+
+### Changed
+
+- Summary: Cost, Output and Unit cost are stacked full width with two figures per row (one on narrower windows), instead of side by side with a long Unit cost column; a figure with a verdict no longer repeats the usual-range line
+
 ## v4.3.0 - 2026-11-22
 
 ### Added
