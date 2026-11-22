@@ -199,6 +199,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
    時刻も入らない帯（.nn）は色だけ。名前は aria-label とツールチップ、押せば詳細で見られる */
 .run .st{display:none;margin:0 -6px;font-size:var(--fs-2xs);font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-align:center}
 .run.nt .t,.run.nt .m,.run.nn .t,.run.nn .m{display:none}.run.nt .st{display:block}.run.thin .st{line-height:1}
+.run.bw .t,.run.bw .t span{overflow-wrap:anywhere;word-break:break-all;hyphens:auto} /* 背の高い細い帯：名前を単語の途中で折り返す */
 .run.cas{box-shadow:inset 3px 0 0 var(--c),0 0 0 2px var(--bg)} /* 前の帯の上に重ねた帯は、地の色の縁で前の帯と分ける */
 .run:hover{box-shadow:inset 3px 0 0 var(--c),var(--shadow);z-index:4}
 .tlbox.focus .run{opacity:.25;filter:saturate(.5)}
@@ -1153,3 +1154,11 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .iwlink{padding:3px 10px;border:1px solid var(--rule);border-radius:999px;background:var(--surface);color:var(--ink);font:500 var(--fs-sm)/1.4 var(--sans);cursor:pointer}.iwlink:hover{border-color:var(--acc);color:var(--acc-ink)}
 .iwnone{font-size:var(--fs-sm);color:var(--ink-2)}
 .fxb{position:relative;z-index:2} /* 値のボタンが枠いっぱいに重なる数字の枠でも、「ƒx」を押せるように */
+
+/* 月のマス：色分け（Color by）ごとの作業時間の細い帯。絞り込み・検索で該当のない日は薄く */
+.cell .mbar{display:flex;gap:1px;height:6px;margin-top:5px;box-shadow:0 0 0 1px var(--surface);border-radius:2px;overflow:hidden;width:100%}.cell .mbar i{min-width:2px;height:100%;display:block}
+.cell.dim{opacity:.4}
+/* 月のマスから開いた日・詳細を閉じて戻ったセッションを、少しのあいだ光らせる（どこに着いたかわかるように） */
+@keyframes kflash{0%{box-shadow:inset 0 0 0 3px var(--acc)}100%{box-shadow:inset 0 0 0 3px transparent}}
+.day.flash,.head.flash,.run.flash{animation:kflash 1.6s ease-out 1}
+@media (prefers-reduced-motion:reduce){.day.flash,.head.flash,.run.flash{animation:none}}

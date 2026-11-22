@@ -8,3 +8,10 @@
 - Summary layout: on wide windows Cost and Output are stacked on the left and Unit cost is on the right, and Outputs takes twice the width so its Git and AI edits columns sit side by side, leaving less empty space
 - Japanese: Kiro credits are written "credits" instead of katakana, as in Kiro itself
 - Calendar: each day shows both active time and its cost figure (the one picked in Figures: estimated cost, credits or tokens; with Active time picked, the first of those that is recorded): "$2.86 · 5h 9m · 3 commits" in the week headings, and cost over time in the month cells and week totals
+- Calendar, from a review of how it feels to use:
+  - Pressing a day in the month calendar opens its week scrolled to that day, highlights it and focuses its first session
+  - Month cells have a thin bar splitting the day's active time by Color by (agent or project); it follows hidden legend items and search, and days with nothing left are dimmed
+  - Week totals in the month calendar count only that month's days, so they add up to the month; the whole week is in the tooltip
+  - Closing session details after moving with ← → returns to the last session read, and highlights it
+  - "This week / This month" (T) resets both the week and the month; ← → keep working after pressing Week, Month, Calendar or Summary with the mouse; ‹ stops at the first week or month with records; a month with no records says so, like an empty week
+  - Tall, narrow session bars keep their name (broken inside words) instead of switching to the start time; a day with only commits no longer shows dashes for time and cost; tooltips no longer repeat "credits"

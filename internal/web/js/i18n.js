@@ -597,10 +597,8 @@ const JA_TEXT = {
   "Sessions with the most tokens": "トークンの多いセッション",
   "Sessions with ≤3 prompts, no edits and $0.3+ total 10%+ of all cost ($2+) and $1+": "プロンプト 3 件以下・編集なし・$0.3 以上のセッションの合計が、全費用（$2 以上）の 10% 以上かつ $1 以上",
   "Sessions · {n}": "セッション · {n}",
-  "Week totals include all 7 days. Click a date or week to open it.": "週の合計は前後の月の日も含む 7 日分。日付か週をクリックで開きます。",
   "Shade: {k}": "濃さ：{k}",
   "Figures": "数字",
-  "Week totals include all 7 days. Tap a date or week to open it.": "週の合計は前後の月の日も含む 7 日分。日付か週をタップで開きます。",
   "Share of cost with no commit or PR": "コミットも PR もないセッションの費用の割合",
   "Share estimated from the opening words of each prompt (such as 'No, that's wrong' or 'undo that') and interruptions. The first prompt of a conversation and words inside pasted code or logs are not counted": "各プロンプトの書き出し（「違う」「元に戻して」など）と中断から推定した割合。会話の最初のプロンプトと、貼り付けたコードやログの中の言葉は数えません",
   "Share of input": "入力に占める割合",
@@ -950,6 +948,11 @@ const JA_TEXT = {
   "Totals": "量",
   "Habits": "作業の進め方",
   "Per session": "セッションあたり",
+  "No records in {month}.": "{month} の記録はありません。",
+  "Go to the latest month with records ({month})": "記録のある最新の月へ（{month}）",
+  "Whole week, with days in other months": "ほかの月の日も含めた週全体",
+  "Week totals count this month's days. Tap a date or week to open it.": "週の合計は、この月の日の分です。日付か週をタップすると開きます。",
+  "Week totals count this month's days. Click a date or week to open it.": "週の合計は、この月の日の分です。日付か週を押すと開きます。",
 };
 // t は英語の文 s を今の言語にする。{name} は vars の値で埋める（日本語では語順が変わるので、文ごと鍵にする）
 function t(s, vars){
