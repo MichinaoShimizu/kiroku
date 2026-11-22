@@ -16,6 +16,14 @@ A change that breaks one of these is marked `BREAKING` in the changelog and, fro
 - **`kiroku serve` stays local by default**: it listens on `127.0.0.1` and checks the Host header, and anything that widens access stays opt-in (see [SECURITY.md](../SECURITY.md)). kiroku runs no AI agent ("Analyze with AI" was removed in 4.0; `--ai` and `--no-ai` are accepted and do nothing)
 - **Downloads are verified**: `kiroku update` and `install.sh` check `checksums.txt` (and build provenance where available) before they replace anything. Release archive names and `checksums.txt` keep their form so older versions of `kiroku update` and `install.sh` can still update
 
+## How breaking changes are released
+
+A new major version costs everyone who scripts kiroku or packages it a round of checking, so they are rare and batched:
+
+- **Deprecate first.** Something on the list above is first marked under `### Deprecated` in a minor release and keeps working, with a one-line notice where it is used, so it can be moved away from before it goes. Its `BREAKING:` fragment waits in a branch or an issue, not in `changes/`, until it is due.
+- **Batch.** Removals that are due go out together in one major version.
+- **At least 30 days apart.** `tools/release.sh` stops when a new major version would come less than 30 days after the previous one (`tools/major-gap.sh`). A security fix doesn't wait: it may break compatibility in any release (see below), and `KIROKU_MAJOR_OK=1` lets such a release through, with the reason in its pull request.
+
 ## May change in any release
 
 These change as kiroku and the agents it reads change. Changes are listed in the changelog, but are not `BREAKING`.

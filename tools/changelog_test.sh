@@ -156,6 +156,20 @@ else
   fail "a misplaced ## Unreleased is not reported: $(cat "$tmp/err")"
 fi
 
+# メジャー版の間隔（tools/major-gap.sh）
+mg() { sh "$here/major-gap.sh" "$@"; }
+c=$tmp/major.md
+printf '# Changelog\n\n## v2.1.0 - 2026-03-10\n\n## v2.0.0 - 2026-03-01\n\n## v1.0.0 - 2026-01-01\n' > "$c"
+if mg v3.0.0 "$c" 2026-03-20 > /dev/null 2>&1; then fail "major-gap stops a major 19 days after the last"; else ok "major-gap stops a major 19 days after the last"; fi
+if mg v3.0.0 "$c" 2026-03-31 > /dev/null 2>&1; then ok "major-gap allows a major 30 days after the last"; else fail "major-gap allows a major 30 days after the last"; fi
+if mg v3.0.0 "$c" 2027-03-01 > /dev/null 2>&1; then ok "major-gap counts across a year"; else fail "major-gap counts across a year"; fi
+if KIROKU_MAJOR_OK=1 mg v3.0.0 "$c" 2026-03-02 > /dev/null 2>&1; then ok "KIROKU_MAJOR_OK=1 lets a major through"; else fail "KIROKU_MAJOR_OK=1 lets a major through"; fi
+for nv_ in v2.2.0 v2.1.1 v1.0.0; do
+  if mg "$nv_" "$c" 2026-03-02 > /dev/null 2>&1; then ok "major-gap ignores $nv_"; else fail "major-gap ignores $nv_"; fi
+done
+printf '# Changelog\n\n## v1.4.0 - 2026-03-10\n\n## v1.0.0 - 2026-03-01\n' > "$c"
+if mg v2.0.0 "$c" 2026-03-05 > /dev/null 2>&1; then fail "major-gap stops 2.0.0 soon after 1.0.0"; else ok "major-gap stops 2.0.0 soon after 1.0.0"; fi
+
 echo
 if [ "$fails" -gt 0 ]; then
   echo "changelog_test: $fails failed"

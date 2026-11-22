@@ -41,7 +41,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 ![The week calendar (dummy data)](docs/screenshot.png)
 
-**The whole story of a session.** The prompt flow with times, separating what you typed from what entered on its own, with commands, commits, pull requests, subagents and interruptions in between, and the AI's reply after each prompt, so a session reads as the conversation it was. "Analyze with AI" reviews it with your own agent (see below).
+**The whole story of a session.** The prompt flow with times, separating what you typed from what entered on its own, with commands, commits, pull requests, subagents and interruptions in between, and the AI's reply after each prompt, so a session reads as the conversation it was. "Copy prompt" gives you a review prompt for it to paste into your own agent (see below).
 
 <img src="docs/session.png" alt="Session details (dummy data)" width="560">
 
