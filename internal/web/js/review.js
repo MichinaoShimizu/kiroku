@@ -48,7 +48,8 @@ function bigOf(ws, we){ const ps = [], ids = new Set();
    編集を記録するエージェント（RECORDS の files）のセッションのうち、その使用量（cost・credits・tokens）を記録したもの。
    行は編集の前後を比べた目安で、コミットしたかどうかによらない（Git のコミットとは混ぜない） */
 const sesLines = s => (s.editAdded || 0) + (s.editRemoved || 0);
-function editsBasis(ws, we, k){
+function editsBasis(ws, we, k){ return memoBasis("edit", ws, we, k, () => editsBasis0(ws, we, k)); }
+function editsBasis0(ws, we, k){
   const use = s => k === "cost" ? (sesTok(s) ? s.cost || 0 : 0) : k === "credits" ? s.credits || 0 : sesTok(s);
   const xs = DATA.filter(s => s.start >= ws && s.start < we && records(s.source, "files") && use(s) > 0);
   return {n: xs.length, used: xs.reduce((a, s) => a + use(s), 0), lines: xs.reduce((a, s) => a + sesLines(s), 0)};
@@ -56,7 +57,12 @@ function editsBasis(ws, we, k){
 /* 時間・セッション・プロンプトあたりの元（期間 [ws, we) に始まったセッションのうち、その使用量を記録したもの）。
    分子と分母は同じセッションから。時間は各セッションの作業時間（期間の中の分。重なったセッションはそれぞれ数える） */
 const minIn = (s, ws, we) => (s.segs || []).reduce((a, [x, y]) => a + Math.max(0, Math.min(y, we) - Math.max(x, ws)) / 60, 0);
-function useBasis(ws, we, k){
+// 同じ DATA・期間・量の集計は覚えておく（推移の 13 期間 × 指標の数だけ、全セッションをたどり直さない。エージェントで絞ると DATA が替わるので、DATA ごとに）
+const basisCache = new WeakMap();
+const memoBasis = (tag, ws, we, k, f) => { if (!basisCache.has(DATA)) basisCache.set(DATA, new Map()); const m = basisCache.get(DATA), ck = `${tag}:${ws}:${we}:${k}`;
+  if (!m.has(ck)) m.set(ck, f()); return m.get(ck); };
+function useBasis(ws, we, k){ return memoBasis("use", ws, we, k, () => useBasis0(ws, we, k)); }
+function useBasis0(ws, we, k){
   const use = s => k === "cost" ? (sesTok(s) ? s.cost || 0 : 0) : k === "credits" ? s.credits || 0 : sesTok(s);
   const xs = DATA.filter(s => s.start >= ws && s.start < we && use(s) > 0);
   return {n: xs.length, used: xs.reduce((a, s) => a + use(s), 0), min: xs.reduce((a, s) => a + minIn(s, ws, we), 0), prompts: xs.reduce((a, s) => a + (s.nPrompts || 0), 0)};

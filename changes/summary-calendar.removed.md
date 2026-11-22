@@ -1,0 +1,2 @@
+- Summary: Kiro credits per Git commit (added in v4.2.0). Kiro does not record which commits it ran, so it divided Kiro's credits by commits made by hand or by other agents
+- Summary: cost per active day, replaced by cost per active hour

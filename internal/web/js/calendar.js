@@ -199,6 +199,11 @@ function monthGrid(shown, ms, me, todayKey){
   const kinds = useKinds([...(S ? S.days : []), ...wks.map(wk => (WEEKS[key(wk)] || {}).usage)]);
   const SH = SHADE(), days = S ? S.days : [], sk = calPick(days).k; kinds.k = sk;
   const max = Math.max(1e-9, ...days.map(d => d ? SH[sk].f(d) : 0));
+  // 日ごとの、色分け（Color by）ごとの作業時間（秒）。セッションを 1 度だけたどり、日ごとに振り分ける（日ごとに全セッションを見直さない）
+  const byDay = new Map(); shown.forEach(s => { const k = keyOf(s); s.segs.forEach(([p, q]) => { if (q <= ms || p >= me) return;
+    for (let d = new Date(Math.max(p, ms) * 1000); d.getTime() / 1000 < Math.min(q, me); d = addDays(new Date(d.getFullYear(), d.getMonth(), d.getDate()), 1)){
+      const d0 = new Date(d.getFullYear(), d.getMonth(), d.getDate()), a = Math.max(p, d0.getTime() / 1000), b = Math.min(q, addDays(d0, 1).getTime() / 1000), dk = key(d0);
+      if (b > a){ if (!byDay.has(dk)) byDay.set(dk, new Map()); const m = byDay.get(dk); m.set(k, (m.get(k) || 0) + b - a); } } }); });
   let h = `<div class="mgrid"><div class="mh"></div>${[1,2,3,4,5,6,0].map(i=>`<div class="mh${wkc(i)}">${dow(i)}</div>`).join("")}`;
   for (let r = 0; r < 6; r++){
     const wk = addDays(first, 7*r); if (wk.getTime()/1000 >= me) break;
@@ -214,7 +219,7 @@ function monthGrid(shown, ms, me, todayKey){
       const nS = shown.filter(s => inP(s, ds, de)).length;
       const nC = G ? G.filter(c => c.t >= ds && c.t < de).length : x && x.commits || 0;
       // 色分け（Color by）ごとの、その日の作業時間の細い帯。凡例で隠したもの・検索に合わないものは入らない
-      const by = new Map(); shown.forEach(s => { const m = s.segs.reduce((a, [p, q]) => a + Math.max(0, Math.min(q, de) - Math.max(p, ds)), 0); if (m > 0) by.set(keyOf(s), (by.get(keyOf(s)) || 0) + m); });
+      const by = byDay.get(key(d)) || new Map();
       const tot = [...by.values()].reduce((a, v) => a + v, 0), mbar = tot ? `<span class="mbar" aria-hidden="true">${[...by].sort((a, b) => b[1] - a[1]).map(([k, v]) => `<i style="flex:${v};background:${colorOf(k)}"></i>`).join("")}</span>` : "";
       h += `<button class="cell${d.getDay()%6===0?" we":""}${wkc(d.getDay())}${key(d)===todayKey?" today":""}${d.getTime() > nowMs() ? " fut" : ""}${un && act && !nS ? " dim" : ""}" data-w="${key(mondayOf(d))}" data-d="${key(d)}" style="--heat:${(x ? SH[sk].f(x) / max : 0).toFixed(3)}"${tipAttr(md(ds), act ? [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(x), `${t("Git commits")} ${nC}`] : t("No records"))}>
         <span class="dn">${d.getDate()}</span>${act ? calShort(act, x, un, kinds) : ""}${mbar}

@@ -1,0 +1,4 @@
+- Summary: estimated cost and Kiro credits per active hour (and tokens per active hour in the Trend), next to the unit costs per AI commit and per 100 AI-edited lines. Every unit cost can be picked in the Trend
+- Summary: a "Worth a look" line under the figures lists what crossed a threshold and opens its dialog
+- Summary: an "ƒx" button next to each figure's and chart's name shows its formulas
+- Calendar: a thin bar in each day of the month splits its active time by Color by (agent or project), following hidden legend items and search
