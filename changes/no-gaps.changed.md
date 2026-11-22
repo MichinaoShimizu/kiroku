@@ -3,3 +3,4 @@
 - Summary: "Kinds of work" spans the Outputs card under both columns; "By agent" shows two lines per agent on narrow cards instead of needing a double-width card; "How you worked" comes first in its section; the cost-vs-outputs chart is drawn wider on wide screens instead of growing tall; Busiest day uses taller rows when few sessions ran
 - Summary: header charts are drawn whenever there is at least one period with records, so Kiro credits no longer loses its chart in the month view while it has one in the week view
 - Summary: metric names in the figures are bold and dark instead of small and grey
+- Summary: the Cost panel's charts label each point with its change from the previous week or month (also in the point's tooltip)

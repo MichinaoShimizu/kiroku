@@ -778,6 +778,8 @@ const JA_TEXT = {
   "this week": "今週",
   "tool call": "回のツール呼び出し",
   "vs last month": "先月比",
+  "% = change from the previous month": "% = 前月からの増減",
+  "% = change from the previous week": "% = 前週からの増減",
   "vs last week": "先週比",
   "Trend: {list}": "推移: {list}",
   "Committed": "コミットあり",

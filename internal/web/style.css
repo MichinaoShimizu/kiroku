@@ -1282,3 +1282,6 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 /* サマリーの指標名は、値の次に目に入るように太く濃く（小さな灰色だと、どの数字か探しにくい） */
 .itile .il{font-size:var(--fs-lg);font-weight:600;color:var(--ink)}
 #review .insight .stat .k{font-size:var(--fs-sm);font-weight:600;color:var(--ink)}
+/* コストのグラフの、前の期間からの増減（各点の上の %）。線に重なっても読めるよう、地の色で縁取る */
+.tspk .spc{font-size:9px;fill:var(--ink-2);text-anchor:middle;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
+.tspk .spc.e{text-anchor:end}.tlg .lg.pcl::before{display:none}
