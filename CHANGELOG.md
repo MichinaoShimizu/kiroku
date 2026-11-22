@@ -2,6 +2,13 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v4.6.1 - 2026-11-22
+
+### Changed
+
+- Summary: "Where it went" (the donut and bars of where the cost went) is back in the Charts section instead of in "Other charts"
+- Summary: in "Where it went", the list sits beside the donut at full width, so project names are no longer cut ("web-...")
+
 ## v4.6.0 - 2026-11-22
 
 ### Added
