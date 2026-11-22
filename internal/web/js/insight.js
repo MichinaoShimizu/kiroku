@@ -84,8 +84,8 @@ function insSpark(b, label){
   const tk = (yy, lab, right) => `<line class="tm" x1="${right ? W - R : L - 3}" x2="${right ? W - R + 3 : L}" y1="${yy}" y2="${yy}"/>${lab == null ? "" : `<text class="${right ? "r" : ""}" x="${right ? W - R + 5 : L - 5}" y="${(+yy + 3.5).toFixed(1)}">${esc(lab)}</text>`}`;
   // y 軸：0 から 4 等分の目盛り（軸の外に短い線、プロットの中に点線のグリッド。値は 0・半分・上端に。数える指標で 6.25 のような値を出さないように）
   const ticks = Array.from({length: Y1.n + 1}, (_, i) => { const v = Y1.step * i, yy = y(v).toFixed(1);
-    return `<g class="tk">${i ? `<line class="grid" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/>` : ""}${tk(yy, tickM(k, v))}</g>`; }).join("")
-    + (add ? Array.from({length: Y2.n + 1}, (_, i) => tk(y2(Y2.step * i).toFixed(1), tickM(k, Y2.step * i), true)).join("") : "")
+    return `<g class="tk">${i ? `<line class="grid" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/>` : ""}${tk(yy, tickS(k, v, Y1.step))}</g>`; }).join("")
+    + (add ? Array.from({length: Y2.n + 1}, (_, i) => tk(y2(Y2.step * i).toFixed(1), tickS(k, Y2.step * i, Y2.step), true)).join("") : "")
     + `<line class="axis" x1="${L}" x2="${L}" y1="${T}" y2="${y0}"/><line class="axis" x1="${L}" x2="${W - R}" y1="${y0}" y2="${y0}"/>${add ? `<line class="axis cum" x1="${W - R}" x2="${W - R}" y1="${T}" y2="${y0}"/>` : ""}`;
   const band = b.q1 == null ? "" : `<rect class="band" x="${L}" y="${y(b.q3).toFixed(1)}" width="${W - L - R}" height="${Math.max(1, y(b.q1) - y(b.q3)).toFixed(1)}"/><line class="med" x1="${L}" x2="${W - R}" y1="${y(b.med).toFixed(1)}" y2="${y(b.med).toFixed(1)}"/>`;
   const xtm = ps.map((_, i) => `<line class="tm" x1="${x(i).toFixed(1)}" x2="${x(i).toFixed(1)}" y1="${y0}" y2="${(+y0 + 3).toFixed(1)}"/>`).join("");
@@ -113,6 +113,10 @@ function insSpark(b, label){
   const list = ps.map(q => `${q.p.label} ${q.v == null ? "—" : fm(q.v)}${q.c == null ? "" : ` (${cl} ${fm(q.c)})`}`).join(LSEP());
   return `<span class="tspk"><span class="sr">${esc(t("Trend: {list}", {list}))}</span><svg aria-hidden="true" viewBox="0 0 ${W} ${H}"><text class="syt" x="${L}" y="11">${esc(yt)}</text>${add ? `<text class="syt r" x="${W - R}" y="11">${esc(cl)}</text>` : ""}${band}${ticks}${xtm}${cum}<polyline class="trl" points="${line}"/>${prj}${dots}${xl}<text class="sxt" x="${(L + (W - L - R) / 2).toFixed(1)}" y="${H - 3}">${esc(xt)}</text>${hits}${lim}</svg></span>`;
 }
+// tickS は目盛りの値。数だけの指標（クレジット・件数・割合）は刻みと同じ桁数でそろえる（0.25 刻みが「1.3」「0.75」と混ざらないように）
+const tickS = (k, v, step) => { const dp = Math.min(3, (String(+step.toPrecision(6)).split(".")[1] || "").length);
+  if (/^cost/.test(k) && dp > 2) return "$" + v.toFixed(dp); // 0.025 刻みの費用は 3 桁で（2 桁に丸めると $0.03・$0.05・$0.08 と刻みが不ぞろいに見える）
+  if (!/^credits/.test(k) && MET[k] && MET[k].fmt) return tickM(k, v); return v.toLocaleString(LOC(), {minimumFractionDigits: dp, maximumFractionDigits: dp}) + (MET[k] && MET[k].u === "%" ? "%" : ""); };
 // insEndLabel は、途中の期間をこのペースで終えたときの値の言い方（月は「月末の予測」、週は「週末の予測」）
 const insEndLabel = v => st.mode === "month" ? t("Month-end estimate: {v}", {v}) : t("Week-end estimate: {v}", {v});
 // insTicks は、0 から v までを切りのよい刻み（1・2・2.5・5 の 10 の累乗倍）で want 本ほどに分ける。数える指標は整数の刻み、時間（分）は 1 時間単位
@@ -129,7 +133,7 @@ const insChip = b => !b || b.q1 == null ? "" : `<code class="ichip ifx${insTone(
 /* 要点の数字（最大 3 列）：上の帯と同じ数をサマリーでも、式といつもの範囲との不等式つきで。並びは判断に使う順：
    使った額（推定費用・クレジット、なければトークン）→ 予算に対する位置（前の期間並みに収める 1 日の目安／月末の推定／前の期間との差）→ 稼働時間 → 効率（コミットあたり費用）→ まず見直すもの */
 function insHeadlines(F){
-  const {S: w, P: pw, ws, we} = period(), T = {cost: [], outGit: [], outEdit: [], unitGit: [], unitEdit: [], unitHour: []}, u = (w && w.usage) || {}, M = st.mode === "month";
+  const {S: w, P: pw, ws, we} = period(), T = {cost: [], outGit: [], outEdit: [], unitGit: [], unitEdit: [], unitHour: [], unitSes: [], unitAsk: []}, u = (w && w.usage) || {}, M = st.mode === "month";
   let G = "cost"; // コスト（時間・クレジット・金額・トークン）・出力（Git と AI の編集）・単価（コスト ÷ 出力。割る数の元ごと）に分けて並べる
   // 途中の期間で、期間の長さに比例する数字には、どれも期間の終わりの予測を添える（費用・クレジット・時間・トークン・コミット・行・PR）
   const tile = (label, b, v, f, m) => { f = [].concat(f || []); if (b && b.part && !f.some(x => x && x.pc)) f.push(pace(b.cur, b.v, MET[b.k] && MET[b.k].int ? (z => fmtM(b.k, Math.round(z))) : (b.fmt || (z => fmtM(b.k, z))))); tile0(label, b, v, f, m); };
@@ -189,13 +193,19 @@ function insHeadlines(F){
   for (const [k, label, kind, fu] of [["costPerHour", t("Estimated cost per active hour"), "cost", usd], ["creditsPerHour", t("Kiro credits per active hour"), "credits", cr1]]){
     const b = insBase(k); if (!b) continue; const e = useBasis(ws, we, kind);
     tile(label, b, /^credits/.test(k) ? crR(b.cur) : fmtM(k, b.cur), [{f: `${fu(e.used)} ÷ ${dur(e.min)} = ${fmtM(k, b.cur)}`, p: `${fu(e.used)} ÷ ${t("{d} of session time", {d: dur(e.min)})}`}, vsk(k, b.cur)].filter(Boolean)); }
+  // セッションあたり・プロンプトあたり：その使用量を記録したセッションの数・プロンプトの数で割る（記録のないエージェントで薄めない）
+  for (const [g, by, rows] of [["unitSes", "ses", [["costPerSes", t("Estimated cost per session"), "cost", usd], ["creditsPerSes", t("Kiro credits per session"), "credits", cr1]]], ["unitAsk", "ask", [["costPerAsk", t("Estimated cost per prompt"), "cost", usd], ["creditsPerAsk", t("Kiro credits per prompt"), "credits", cr1]]]]){
+    G = g;
+    for (const [k, label, kind, fu] of rows){
+      const b = insBase(k); if (!b) continue; const e = useBasis(ws, we, kind), den = by === "ses" ? t("{n} sessions", {n: e.n}) : plural(e.prompts, "prompt");
+      tile(label, b, /^credits/.test(k) ? crR(b.cur) : fmtM(k, b.cur), [{f: `${fu(e.used)} ÷ ${den} = ${fmtM(k, b.cur)}`, p: `${fu(e.used)} ÷ ${den}`}, vsk(k, b.cur)].filter(Boolean)); } }
   // カードは折り返す横の並びに置く：広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる
   // 小見出しのある段：出どころ（Git と AI の編集）が違う数字を、同じ枠の中でも段と印で分ける
   const sub = ([k, icon, label, note, empty]) => !T[k].length && empty ? `<div class="iksub ${k}" role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><p class="none iknone">${esc(empty)}</p></div>` : T[k].length ? `<div class="iksub ${k}" role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><div class="ikrow">${T[k].join("")}</div></div>` : "";
   const cards = [
     {id: "cost", label: t("Cost"), rows: null, k: "cost"},
     {id: "out", label: t("Output"), rows: [["outGit", "commit", t("Git"), t("from your repositories"), T.outEdit.length ? t("No Git commits for this selection") : ""], ["outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not")]]},
-    {id: "unit", label: t("Unit cost"), rows: [["unitGit", "commit", t("Per AI commit"), ""], ["unitEdit", "edit", t("Per 100 AI-edited lines"), ""], ["unitHour", "clock", t("Per active hour"), ""]]},
+    {id: "unit", label: t("Unit cost"), rows: [["unitGit", "commit", t("Per AI commit"), ""], ["unitEdit", "edit", t("Per 100 AI-edited lines"), ""], ["unitHour", "clock", t("Per active hour"), ""], ["unitSes", "agent", t("Per session"), ""], ["unitAsk", "user", t("Per prompt"), ""]]},
   ].map(c => ({...c, n: c.rows ? Math.max(...c.rows.map(r => T[r[0]].length)) : T[c.k].length})).filter(c => c.n > 0);
   // 推移のグラフの凡例は、カードごとに 1 つ（グラフごとに置くと、カードが縦に伸びる）
   const limAny = limitHits(periodBack(INS_N).ws, periodBack(0).we).length > 0; // グラフの範囲に利用上限への到達があれば、凡例に赤い縦線を足す
