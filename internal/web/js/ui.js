@@ -8,6 +8,7 @@ const ICON_PATH = {
   limit: '<path d="M4 2h8M4 14h8M5 2c0 3.2 3 4.3 3 6s-3 2.8-3 6M11 2c0 3.2-3 4.3-3 6s3 2.8 3 6"/>',
   int: '<circle cx="8" cy="8" r="6"/><path d="M6.4 5.6v4.8M9.6 5.6v4.8"/>',
   agent: '<path d="M3 2.5v4a3 3 0 0 0 3 3h7M10 6.5l3 3-3 3"/>',
+  day: '<rect x="2.2" y="3" width="11.6" height="11" rx="1.6"/><path d="M2.2 6.6h11.6M5.4 1.6v2.8M10.6 1.6v2.8"/>',
   clock: '<circle cx="8" cy="8" r="5.5"/><path d="M8 5v3.2l2 1.3"/>',
   push: '<path d="M8 12V2.8M4.2 6.6 8 2.8l3.8 3.8M3.5 14h9"/>',
   compact: '<path d="M8 1.5v4.3M5.8 3.8 8 6l2.2-2.2M8 14.5v-4.3M5.8 12.2 8 10l2.2 2.2M2.5 8h11"/>', /* 上下から寄せる（会話を要約して縮めた） */

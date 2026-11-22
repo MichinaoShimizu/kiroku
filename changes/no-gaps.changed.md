@@ -4,3 +4,4 @@
 - Summary: header charts are drawn whenever there is at least one period with records, so Kiro credits no longer loses its chart in the month view while it has one in the week view
 - Summary: metric names in the figures are bold and dark instead of small and grey
 - Summary: the Cost panel's charts label each point with its change from the previous week or month (also in the point's tooltip)
+- Summary: the Cost panel is named "Cost trend" and the Unit cost panel "Unit cost calculation"
