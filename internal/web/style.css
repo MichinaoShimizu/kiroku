@@ -1253,3 +1253,16 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .iwtf .wfu{fill:var(--amber)}.iwtf .wfd{fill:color-mix(in oklab,var(--c0) 80%,var(--surface))}
 .iwtf .wfc{stroke:var(--ink-3);stroke-dasharray:3 3;stroke-width:1}
 .iwtf .wfv{font-size:11px;fill:var(--ink-2);text-anchor:middle;font-family:var(--sans);font-variant-numeric:tabular-nums}
+/* ドーナツ（どこに使ったか）：横棒の左に */
+.iwdn{display:flex;gap:18px;align-items:center}.iwdn>.iwrows{flex:1;min-width:0}.insfig.iwdn svg.idn{width:140px;height:140px;flex:none}
+.idn path{stroke:var(--surface);stroke-width:1.5}.idnv{font:700 14px var(--sans);fill:var(--ink);text-anchor:middle}.idnl{font-size:10px;fill:var(--ink-3);text-anchor:middle;font-family:var(--sans)}
+@container (max-width:520px){.iwdn{flex-direction:column;align-items:stretch}.idn{align-self:center}}
+/* サンキー（どこへ流れたか） */
+.isk svg{overflow:visible}.isk .skl{opacity:.38}.isk .skl:hover{opacity:.6}.isk .skn{stroke:none}
+.isk .skt{font-size:11px;fill:var(--ink-2);text-anchor:end;font-family:var(--sans)}.isk .skt.s{text-anchor:start}.isk .skv{fill:var(--ink-3);font-variant-numeric:tabular-nums}
+.isk .skh{font-size:11px;fill:var(--ink-3);text-anchor:middle;font-weight:600;font-family:var(--sans)}
+/* 箱ひげ（1 セッションあたりのばらつき） */
+.ibxf .ibx rect{fill:color-mix(in oklab,var(--acc) 22%,var(--surface));stroke:color-mix(in oklab,var(--acc) 60%,var(--surface))}.ibxf .ibx.cur rect{fill:color-mix(in oklab,var(--acc) 45%,var(--surface));stroke:var(--acc)}
+.ibxf .bwh{stroke:var(--ink-3)}.ibxf .bmd{stroke:var(--acc-ink);stroke-width:2}
+/* ガント（いちばん作業した日） */
+.igt .igl{font-size:11px;fill:var(--ink-2);text-anchor:end;font-family:var(--sans)}.igt .igr{cursor:pointer}.igt .igr:hover .igl,.igt .igr:focus .igl{fill:var(--ink)}.igt .igr:focus{outline:none}

@@ -351,11 +351,11 @@ function insightH(F){
   const cards = [{sec: t("Cost details")},
     {h: `<div class="inscol"><div class="inshead"><h4>${esc(t("Trend"))}</h4><div class="segc insk trendk" role="group" aria-label="${esc(t("Metric"))}">${tabs}</div>${sel}</div>${insChart(k)}</div>`},
     {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insCum())},
-    {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insWhere())}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insWater())}, {h: card(t("Tokens by type"), insTokens())},
+    {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insWhere())}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insWater())}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insSankey())}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insBox())}, {h: card(t("Tokens by type"), insTokens())},
     {h: card((HISTK(DATA.filter(s => inP(s, period().ws, period().we))) || {}).title || "", insHist())},
     {h: card(t("By agent"), insAgents(), " wide agw")},
     {sec: t("Output and unit cost")}, {h: card(t("Outputs"), insOutputs(), " iout wide")}, {h: (b => b ? `<div class="inscol isccol">${b}</div>` : "")(insScatter())},
-    {sec: t("How you used AI")}, {h: card(t("Usage"), insUsage())}, {h: card(t("When you worked"), insHeat())}, {h: card(t("How you worked"), insWork())},
+    {sec: t("How you used AI")}, {h: card(t("Usage"), insUsage())}, {h: card(t("When you worked"), insHeat())}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insGantt())}, {h: card(t("How you worked"), insWork())},
   ].filter(c => c.h || c.sec);
   // 見出しごとに、カードを折り返す横の並び（.insrow）に入れる。広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる
   const secs = []; cards.forEach(c => c.sec ? secs.push({sec: c.sec, hs: []}) : secs.length && secs[secs.length - 1].hs.push(c.h));
@@ -385,6 +385,7 @@ function bindInsight(R){
     lab.append(b); }); // 名前の要素の中に置く（カードは縦の flex なので、外に置くと横いっぱいの帯になる）
   requestAnimationFrame(fitTrend);
   R.querySelectorAll("[data-ins]").forEach(b => b.onclick = () => { st.insK = b.dataset.ins; store.set("insK", st.insK); summary(); const nb = $("#review").querySelector(`[data-ins="${CSS.escape(b.dataset.ins)}"]`); if (nb) nb.focus(); });
+  for (const [attr, key] of [["skk", "insSk"], ["bxk", "insBk"]]) R.querySelectorAll(`[data-${attr}]`).forEach(b => b.onclick = () => { st[key] = b.dataset[attr]; store.set(key, st[key]); summary(); const nb = $("#review").querySelector(`[data-${attr}="${CSS.escape(b.dataset[attr])}"]`); if (nb) nb.focus(); });
   R.querySelectorAll("[data-wfk]").forEach(b => b.onclick = () => { st.insWf = b.dataset.wfk; store.set("insWf", st.insWf); summary(); const nb = $("#review").querySelector(`[data-wfk="${CSS.escape(b.dataset.wfk)}"]`); if (nb) nb.focus(); });
   R.querySelectorAll("[data-wk]").forEach(b => b.onclick = () => { st.insWk = b.dataset.wk; store.set("insWk", st.insWk); summary(); const nb = $("#review").querySelector(`[data-wk="${CSS.escape(b.dataset.wk)}"]`); if (nb) nb.focus(); });
   R.querySelectorAll("[data-scat]").forEach(b => b.onclick = () => { st.insS = b.dataset.scat; store.set("insS", st.insS); summary(); const nb = $("#review").querySelector(`[data-scat="${CSS.escape(b.dataset.scat)}"]`); if (nb) nb.focus(); });
@@ -521,13 +522,14 @@ function insWhere(){
   const fv = {cost: usd, credits: cr, tokens: tok, minutes: v => dur(v)}[k], name = {cost: t("Estimated cost"), credits: t("Kiro credits"), tokens: t("Tokens"), minutes: t("Active time")}[k];
   const xs = src.filter(x => x[k] > 0).sort((a, b) => b[k] - a[k]), top = xs.slice(0, 7), rest = xs.slice(7), tot = xs.reduce((a, x) => a + x[k], 0);
   if (rest.length) top.push({name: t("Other ({n})", {n: rest.length}), [k]: rest.reduce((a, x) => a + x[k], 0), c: "var(--other)"});
+  if (new Set(top.map(x => x.c)).size === 1) top.forEach((x, i) => { if (x.c !== "var(--other)") x.c = `var(--c${i % 8})`; }); // 色分けがプロジェクトでないときも、ドーナツと横棒で項目を見分けられるように
   let acc = 0, k80 = 0; for (const x of xs){ acc += x[k]; k80++; if (acc >= tot * .8) break; }
   const sy = t("{name}: {pc}% of {metric} ({v})", {name: xs[0].name, pc: Math.round(xs[0][k] * 100 / tot), metric: name, v: fv(xs[0][k])}) + (k80 < xs.length ? t("; 80% is in {k} of {n}", {k: k80, n: xs.length}) : "");
   const tabs = [["project", t("Project")], ["source", t("Agent")], ["model", t("Model")]].map(([v, l]) => `<button type="button" data-where="${v}" aria-pressed="${v === by}">${esc(l)}</button>`).join("");
   const rows = top.map(x => `<div class="iwr"><span class="iwn" title="${esc(x.name)}"><i style="background:${x.c}"></i>${esc(x.name)}</span><span class="iwb"><span style="width:${(x[k] * 100 / top[0][k]).toFixed(1)}%;background:${x.c}"></span></span><span class="iwv">${esc(fv(x[k]))}</span><b>${Math.round(x[k] * 100 / tot)}%</b></div>`).join("");
   const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-wk="${x}" aria-pressed="${x === k}">${esc({cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), minutes: t("Time")}[x])}</button>`).join("")}</div>` : "";
   return `<div class="inshead"><h4>${esc(t("Where it went"))}</h4><div class="segc insk" role="group" aria-label="${esc(t("Group by"))}">${tabs}</div>${mtabs}</div>${say(sy)}
-    <figure class="insfig"><div class="iwrows" role="table" aria-label="${esc(name)}">${rows}</div><p class="ifxs">${fx(`% = ${name} ÷ ${fv(tot)}`)}</p></figure>`;
+    <figure class="insfig iwdn">${insDonut(top.map(x => ({name: x.name, v: x[k], c: x.c})), tot, fv, name)}<div class="iwrows" role="table" aria-label="${esc(name)}">${rows}</div><p class="ifxs">${fx(`% = ${name} ÷ ${fv(tot)}`)}</p></figure>`;
 }
 /* insWater は、前の期間からの増減をプロジェクトごとに積み上げるウォーターフォール：前の期間の合計 → 増えた（減った）プロジェクト → 今の期間の合計。
    途中の期間は、前の期間の同じ日数まで（上の帯の前週比と同じ比べ方）。量は推定費用・クレジット・トークン・時間から選ぶ。セッションは始まった時刻で期間に数える */
@@ -554,6 +556,80 @@ function insWater(){
   const d = tc - tp, big = ds[0], sy = !tp ? "" : t("{d} vs {lab} ({pc}); the biggest change is {p} ({pd})", {d: `${d >= 0 ? "+" : "−"}${fv(Math.abs(d))}`, lab, pc: `${d >= 0 ? "+" : "−"}${Math.round(Math.abs(d) * 100 / tp)}%`, p: big ? big.p : "—", pd: big ? `${big.d >= 0 ? "+" : "−"}${fv(Math.abs(big.d))}` : ""});
   const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-wfk="${x}" aria-pressed="${x === k}">${esc({cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), minutes: t("Time")}[x])}</button>`).join("")}</div>` : "";
   return `<div class="inshead"><h4>${esc(t("What changed from the last period"))}</h4>${mtabs}</div>${say(sy)}<figure class="insfig iwtf"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("What changed from the last period"))}">${ticks}${body}</svg><p class="ifxs">${fx(t("Each bar between the totals is one project's change; projects are grouped by where their sessions started"), "", t("By project; sessions count in the period they started"))}</p></figure>`;
+}
+/* insDonut は、割合のドーナツ（parts: {name, v, c}。c は色の CSS 値で、こちらで決めたものだけ）。真ん中に合計 */
+function insDonut(parts, total, fv, label){
+  if (!total || parts.length < 2) return "";
+  const R = 64, r = 40, C = 70; let a0 = -Math.PI / 2;
+  const arcs = parts.map(x => { const a1 = a0 + 2 * Math.PI * Math.min(.9999, x.v / total), big = a1 - a0 > Math.PI ? 1 : 0, p = (rr, a) => `${(C + rr * Math.cos(a)).toFixed(2)} ${(C + rr * Math.sin(a)).toFixed(2)}`;
+    const d = `M${p(R, a0)} A${R} ${R} 0 ${big} 1 ${p(R, a1)} L${p(r, a1)} A${r} ${r} 0 ${big} 0 ${p(r, a0)} Z`; a0 = a1;
+    return `<path d="${d}" fill="${x.c}"${tipAttr(x.name, `${fv(x.v)} · ${Math.round(x.v * 100 / total)}%`)}/>`; }).join("");
+  return `<svg class="idn" viewBox="0 0 140 140" role="img" aria-label="${esc(label)}">${arcs}<text class="idnv" x="70" y="68">${esc(fv(total))}</text><text class="idnl" x="70" y="84">${esc(t("total"))}</text></svg>`;
+}
+/* insSankey は、量（費用・クレジット・トークン・時間）がエージェント → プロジェクト → 成果（コミットか PR に届いたか）へどう流れたか。
+   プロジェクトは多い順に 6 つまで、残りは「その他」。帯の太さは量に比例する */
+function insSankey(){
+  const {ws, we} = period(), ss = DATA.filter(s => s.start >= ws && s.start < we);
+  const val = {cost: s => sesTok(s) ? s.cost || 0 : 0, credits: s => s.credits || 0, tokens: s => sesTok(s), minutes: s => minIn(s, s.start, s.end)};
+  const ks = ["cost", "credits", "tokens", "minutes"].filter(k => ss.some(s => val[k](s) > 0)); if (!ks.length) return "";
+  const k = ks.includes(st.insSk) ? st.insSk : ks[0], fv = {cost: usd, credits: cr, tokens: tok, minutes: v => dur(v)}[k];
+  const xs = ss.map(s => ({s, v: val[k](s)})).filter(x => x.v > 0); if (xs.length < 2) return "";
+  const pt = new Map(); xs.forEach(x => pt.set(x.s.project, (pt.get(x.s.project) || 0) + x.v));
+  const topP = [...pt].sort((a, b) => b[1] - a[1]).slice(0, 6).map(x => x[0]), OTH = t("Other"), pj = p => topP.includes(p) ? p : OTH;
+  const YES = t("Reached a commit or PR"), NO = t("No commit or PR"), out = s => commitsOf(s).length || (s.prs || []).length ? YES : NO;
+  const cols = [[], [], []], vals = [new Map(), new Map(), new Map()], links = new Map();
+  const add = (m, key, v) => m.set(key, (m.get(key) || 0) + v);
+  xs.forEach(({s, v}) => { const a = s.source, b = pj(s.project), c = out(s); add(vals[0], a, v); add(vals[1], b, v); add(vals[2], c, v); add(links, `0\u0000${a}\u0000${b}`, v); add(links, `1\u0000${b}\u0000${c}`, v); });
+  vals.forEach((m, i) => cols[i] = [...m].sort((a, b) => (i === 2 ? (a[0] === YES ? -1 : 1) : b[1] - a[1])));
+  const tot = xs.reduce((a, x) => a + x.v, 0), W = 720, H = 300, T = 10, B = 10, nw = 12, gap = 10, X = [130, 360, 590];
+  const pos = cols.map(c => { const g = (c.length - 1) * gap, sc = (H - T - B - g) / tot; let y = T; const m = new Map(); c.forEach(([key, v]) => { m.set(key, {y, h: Math.max(2, v * sc), o: 0, oi: 0}); y += v * sc + gap; }); return {m, sc}; });
+  const color = (i, key) => i === 0 ? agColor(key) : i === 1 ? (key === OTH ? "var(--other)" : `var(--c${(topP.indexOf(key) + 3) % 8})`) : key === YES ? "var(--go)" : "var(--ink-3)";
+  const paths = [...links].sort((a, b) => b[1] - a[1]).map(([key, v]) => { const [ci, a, b] = key.split("\u0000"), i = +ci, A = pos[i].m.get(a), Bn = pos[i + 1].m.get(b), h = v * pos[i].sc;
+    const y0 = A.y + A.o, y1 = Bn.y + Bn.oi; A.o += h; Bn.oi += h; const x0 = X[i] + nw, x1 = X[i + 1], xm = (x0 + x1) / 2;
+    return `<path class="skl" d="M${x0} ${y0.toFixed(1)} C${xm} ${y0.toFixed(1)} ${xm} ${y1.toFixed(1)} ${x1} ${y1.toFixed(1)} L${x1} ${(y1 + h).toFixed(1)} C${xm} ${(y1 + h).toFixed(1)} ${xm} ${(y0 + h).toFixed(1)} ${x0} ${(y0 + h).toFixed(1)} Z" fill="${color(i, a)}"${tipAttr(`${a} → ${b}`, `${fv(v)} · ${Math.round(v * 100 / tot)}%`)}/>`; }).join("");
+  const short = x => x.length > 18 ? x.slice(0, 17) + "…" : x;
+  const nodes = cols.map((c, i) => c.map(([key, v]) => { const n = pos[i].m.get(key), lx = i === 2 ? X[i] + nw + 6 : X[i] - 6;
+    return `<rect class="skn" x="${X[i]}" y="${n.y.toFixed(1)}" width="${nw}" height="${n.h.toFixed(1)}" fill="${color(i, key)}"${tipAttr(key, `${fv(v)} · ${Math.round(v * 100 / tot)}%`)}/><text class="skt${i === 2 ? " s" : ""}" x="${lx}" y="${(n.y + n.h / 2 + 4).toFixed(1)}">${esc(short(key))} <tspan class="skv">${esc(fv(v))}</tspan></text>`; }).join("")).join("");
+  const yes = vals[2].get(YES) || 0, sy = t("{pc}% of {metric} went to sessions that reached a commit or PR ({v} of {tot})", {pc: Math.round(yes * 100 / tot), metric: {cost: t("Estimated cost"), credits: t("Kiro credits"), tokens: t("Tokens"), minutes: t("Active time")}[k], v: fv(yes), tot: fv(tot)});
+  const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-skk="${x}" aria-pressed="${x === k}">${esc({cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), minutes: t("Time")}[x])}</button>`).join("")}</div>` : "";
+  return `<div class="inshead"><h4>${esc(t("Where it flowed"))}</h4>${mtabs}</div>${say(sy)}<figure class="insfig isk"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("Where it flowed"))}"><text class="skh" x="${X[0] + nw / 2}" y="-2">${esc(t("Agent"))}</text><text class="skh" x="${X[1] + nw / 2}" y="-2">${esc(t("Project"))}</text><text class="skh" x="${X[2] + nw / 2}" y="-2">${esc(t("Outcome"))}</text>${paths}${nodes}</svg><p class="ifxs">${fx(t("Band width = the amount; a session reached a commit or PR when it ran one (Claude Code) or one was made in its project while it ran"), "", t("Band width is the amount"))}</p></figure>`;
+}
+/* insBox は、1 セッションあたりの量のばらつきを期間ごとに箱ひげで（箱 = 真ん中の 50%、線 = 中央値、ひげ = 下位・上位 10%）。最大 13 期間 */
+function insBox(){
+  const hs = historyStart(), K = {cost: {f: s => sesTok(s) ? s.cost || 0 : null, fv: usd, n: t("Cost")}, minutes: {f: s => minIn(s, s.start, s.end) || null, fv: v => dur(v), n: t("Time")}, prompts: {f: s => s.nPrompts || null, fv: v => `${Math.round(v)}`, n: t("Prompts")}};
+  const ps = []; for (let i = INS_N; i >= 0; i--){ const p = periodBack(i); if (p.we > hs) ps.push(p); } if (ps.length < 2) return "";
+  const ks = Object.keys(K).filter(k => DATA.some(s => s.start >= ps[0].ws && K[k].f(s) != null)); if (!ks.length) return "";
+  const k = ks.includes(st.insBk) ? st.insBk : ks[0], M = K[k];
+  const bx = ps.map(p => { const v = DATA.filter(s => s.start >= p.ws && s.start < p.we).map(M.f).filter(x => x != null && x > 0); return v.length >= 3 ? {p, n: v.length, q: [.1, .25, .5, .75, .9].map(q => insQuant(v, q))} : {p, n: v.length, q: null}; });
+  const has = bx.filter(x => x.q); if (has.length < 2) return "";
+  const W = 720, H = 240, L = 56, R = 10, T = 14, B = 34, mx = Math.max(...has.map(x => x.q[4])) * 1.05, Y = insTicks(k === "minutes" ? "active" : k === "cost" ? "cost" : "prompts", mx, 5), y = v => T + (H - T - B) * (1 - v / Y.top), n = bx.length, bw = (W - L - R) / n;
+  const ticks = Array.from({length: Y.n + 1}, (_, i) => { const v = Y.step * i, yy = y(v).toFixed(1); return `<g class="itk"><line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/><text x="${L - 8}" y="${(+yy + 4).toFixed(1)}">${esc(M.fv(v))}</text></g>`; }).join("");
+  const lab = p => { const [, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? (JA ? `${mm}月` : MON[mm - 1]) : `${mm}/${dd}`; };
+  const body = bx.map((x, i) => { const cx = L + i * bw + bw / 2, w = bw * .5, last = i === n - 1, lbl = `<text class="ixl${last ? " cur" : ""}" x="${cx.toFixed(1)}" y="${H - B + 16}">${esc(lab(x.p))}</text>`;
+    if (!x.q) return lbl; const [p10, q1, md, q3, p90] = x.q;
+    return `<g class="ibx${last ? " cur" : ""}"><line class="bwh" x1="${cx.toFixed(1)}" x2="${cx.toFixed(1)}" y1="${y(p90).toFixed(1)}" y2="${y(p10).toFixed(1)}"/><rect x="${(cx - w / 2).toFixed(1)}" y="${y(q3).toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(1, y(q1) - y(q3)).toFixed(1)}" rx="2"/><line class="bmd" x1="${(cx - w / 2).toFixed(1)}" x2="${(cx + w / 2).toFixed(1)}" y1="${y(md).toFixed(1)}" y2="${y(md).toFixed(1)}"/></g>${lbl}<rect class="ihit" x="${(L + i * bw).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${H - B}"${tipAttr(x.p.label, [`${t("median")} ${M.fv(md)}`, `${t("middle half")} ${M.fv(q1)}–${M.fv(q3)}`, t("{n} sessions", {n: x.n})])}/>`; }).join("");
+  const cur = bx[n - 1].q, past = has.filter(x => x !== bx[n - 1]).map(x => x.q[2]), um = past.length ? insQuant(past, .5) : null;
+  const sy = cur && um != null ? t("Median session {v}; across past periods the median was usually {u}", {v: M.fv(cur[2]), u: M.fv(um)}) : "";
+  const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-bxk="${x}" aria-pressed="${x === k}">${esc(K[x].n)}</button>`).join("")}</div>` : "";
+  return `<div class="inshead"><h4>${esc(t("Spread per session"))}</h4>${mtabs}</div>${say(sy)}<figure class="insfig ibxf"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("Spread per session"))}">${ticks}${body}</svg><p class="ifxs">${fx(t("Box = the middle half of sessions, line = median, whiskers = 10th to 90th percentile; periods with fewer than 3 sessions are left empty"), "", t("Box: middle half · line: median · whiskers: 10%–90%"))}</p></figure>`;
+}
+/* insGantt は、表示中の期間でいちばん作業した日の、セッションの時間の帯（ガント）。同時に動いていたセッションの数がわかる。押すとそのセッション */
+function insGantt(){
+  const {ws, we} = period(); let best = null;
+  for (let d = ws; d < we; d += 86400){ const e = d + 86400, m = DATA.reduce((a, s) => a + minIn(s, d, e), 0); if (m > 0 && (!best || m > best.m)) best = {d, e, m}; }
+  if (!best) return "";
+  const ss = DATA.filter(s => minIn(s, best.d, best.e) > 0).sort((a, b) => a.start - b.start).slice(0, 14); if (ss.length < 2) return "";
+  const segs = ss.flatMap(s => (s.segs || []).map(([a, b]) => [Math.max(a, best.d), Math.min(b, best.e)]).filter(([a, b]) => b > a));
+  const h0 = Math.floor((Math.min(...segs.map(x => x[0])) - best.d) / 3600), h1 = Math.ceil((Math.max(...segs.map(x => x[1])) - best.d) / 3600);
+  const W = 720, rh = 18, T = 18, L = 170, R = 10, H = T + ss.length * rh + 6, x = tt => L + (W - L - R) * ((tt - best.d) / 3600 - h0) / Math.max(1, h1 - h0);
+  let peak = 0; const ev = segs.flatMap(([a, b]) => [[a, 1], [b, -1]]).sort((p, q) => p[0] - q[0] || p[1] - q[1]); let c = 0; ev.forEach(([, d]) => { c += d; peak = Math.max(peak, c); });
+  const hrs = Array.from({length: h1 - h0 + 1}, (_, i) => h0 + i).filter((h, i, a) => (h1 - h0 <= 12 || i % 2 === 0) || i === a.length - 1).map(h => `<g class="itk"><line x1="${x(best.d + h * 3600).toFixed(1)}" x2="${x(best.d + h * 3600).toFixed(1)}" y1="${T - 4}" y2="${H - 4}"/><text class="ixl" x="${x(best.d + h * 3600).toFixed(1)}" y="${T - 7}">${h}:00</text></g>`).join("");
+  const short = v => v.length > 24 ? v.slice(0, 23) + "…" : v;
+  const rows = ss.map((s, i) => { const yy = T + i * rh, col = st.colorBy === "project" ? colorOf(s.project) : agColor(s.source);
+    const bars = (s.segs || []).map(([a, b]) => [Math.max(a, best.d), Math.min(b, best.e)]).filter(([a, b]) => b > a).map(([a, b]) => `<rect x="${x(a).toFixed(1)}" y="${(yy + 3).toFixed(1)}" width="${Math.max(1.5, x(b) - x(a)).toFixed(1)}" height="${rh - 6}" rx="2" fill="${col}"/>`).join("");
+    return `<g class="igr" data-sid="${esc(s.id)}" tabindex="0" role="button" aria-label="${esc(s.title)}"><text class="igl" x="${L - 8}" y="${(yy + rh / 2 + 4).toFixed(1)}">${esc(short(s.title))}</text>${bars}<rect class="ihit" x="0" y="${yy}" width="${W}" height="${rh}"${tipAttr(s.title, `${hm(s.start)}–${hm(s.end)} · ${s.project} · ${s.source}`)}/></g>`; }).join("");
+  const sy = t("{d}: {n} sessions, {h} of active time; up to {p} at the same time", {d: dMD(new Date(best.d * 1000)), n: ss.length, h: dur(Math.round(best.m)), p: peak});
+  return `<div class="inshead"><h4>${esc(t("Busiest day"))}</h4></div>${say(sy)}<figure class="insfig igt"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("Busiest day"))}">${hrs}${rows}</svg><p class="ifxs">${fx(t("Each row is a session that worked that day; bars are its active stretches. Click a row to open the session"), "", t("Click a row to open the session"))}</p></figure>`;
 }
 /* 数の枠（statH）に、いつもの範囲との不等式を添える。k は MET の指標名（なければ添えない） */
 const insStat = (label, v, sub, help, metric, k) => statH(esc(label), v, [sub, k && MET[k] ? insChip(insBase(k)) : ""].filter(Boolean).join(" "), help, metric);

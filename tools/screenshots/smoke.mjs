@@ -713,6 +713,15 @@ async function run(env) {
     for (const k of wf){ await p.locator(`#review [data-wfk="${k}"]`).click(); await pause();
       check(`前の期間からの増減を ${k} にすると、合計 2 本とプロジェクトの棒になり、1 文がある`, await p.evaluate(k => { const f = document.querySelector("#review .iwtf"), c = f && f.closest(".inscol");
         return st.insWf === k && document.querySelector(`#review [data-wfk="${k}"]`).getAttribute("aria-pressed") === "true" && f.querySelectorAll("rect.wft").length === 2 && f.querySelectorAll("rect.wfu, rect.wfd").length >= 1 && !!c.querySelector(".isay"); }, k)); }
+    // ドーナツ・サンキー・箱ひげ・ガント
+    check("どこに使ったかに、割合のドーナツがある（項目の数だけ弧）", await p.evaluate(() => { const d = document.querySelector("#review .iwdn svg.idn"); return !!d && d.querySelectorAll("path").length === document.querySelectorAll("#review .iwdn .iwr").length; }));
+    for (const [attr, key, sel, name] of [["skk", "insSk", ".isk", "どこへ流れたか"], ["bxk", "insBk", ".ibxf", "1 セッションあたりのばらつき"]]){
+      const ks2 = await p.locator(`#review [data-${attr}]`).evaluateAll(xs => xs.map(x => x.dataset[Object.keys(x.dataset)[0]]));
+      for (const k of ks2){ await p.locator(`#review [data-${attr}="${k}"]`).click(); await pause();
+        check(`${name}を ${k} にすると、その量の図と 1 文になる`, await p.evaluate(([key, k, sel]) => st[key] === k && !!document.querySelector(`#review ${sel} svg`) && !!document.querySelector(`#review ${sel}`).closest(".inscol").querySelector(".isay"), [key, k, sel])); } }
+    check("サンキーは、エージェント・プロジェクト・成果の 3 列", await p.evaluate(() => document.querySelectorAll("#review .isk .skh").length === 3 && document.querySelectorAll("#review .isk .skl").length >= 2));
+    { const g = p.locator("#review .igt .igr").first(); if (await g.count()){ const sid = await g.getAttribute("data-sid"); await g.click(); await pause();
+      check("いちばん作業した日のガントの行を押すと、そのセッションが開く", await p.evaluate(sid => st.sel === sid, sid)); await p.keyboard.press("Escape"); await pause(); } }
     check("長さ別の図は 1 セッションあたりの平均なので、区間ごとのセッションの数を軸の下に出す（1 件だけの平均を見分けられるように）", await p.evaluate(() => { const g = document.querySelector("#review .ihist svg"); return !g || g.querySelectorAll(".ixn").length === g.querySelectorAll(".ihb").length; }));
     await view("cal");
     await p.keyboard.press("m"); await pause();
