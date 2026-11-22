@@ -330,6 +330,8 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .head .cline{display:flex;align-items:baseline;gap:6px;margin-top:6px;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:0} /* 週の日の見出しの 1 行：使用量 · コミット */
 .head .cline .cu{font-size:var(--fs-md);font-weight:700;color:var(--ink)}.head .cline .cc{display:inline-flex;align-items:center;gap:3px;font-size:var(--fs-sm);font-weight:600;color:var(--ink-2)}.head .cline .cc .ic{width:12px;height:12px}
 .head .cline .sep{color:var(--ink-3)}.head .cline .u{color:var(--ink-3)}
+.head .cline .ct{font-size:var(--fs-sm);font-weight:600;color:var(--ink-2)} /* 週の日の見出しの稼働時間（コスト系の横に） */
+.cell .act{display:block;font:600 var(--fs-xs)/1.3 var(--sans);font-variant-numeric:tabular-nums;color:var(--ink-2);white-space:nowrap}.cell .act.u{color:var(--ink-3)} /* 月のマスの稼働時間（コスト系の下に） */
 .mlegend{display:flex;align-items:center;gap:8px;justify-content:flex-end;padding:10px 14px;font-size:var(--fs-xs);color:var(--ink-3);border-top:1px solid var(--rule)}
 .mlegend i{width:16px;height:10px;border-radius:3px;background:color-mix(in oklab,var(--acc) calc(var(--h) * var(--heatk)),var(--surface));box-shadow:inset 0 0 0 1px var(--rule)}
 .mshade{display:inline-flex;align-items:center;gap:6px;margin-right:auto}.mshade select{height:28px;font-size:var(--fs-xs)}

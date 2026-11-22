@@ -713,8 +713,8 @@ async function run(env) {
       const h0 = await heat(); await p.selectOption("#calk", opts[opts.length - 1]); await pause();
       check("月の濃淡の量を凡例の「数字」で選べ、塗り方が変わり、選んだものが残る", await heat() !== h0 && await p.evaluate(v => st.shade === v && document.querySelector("#calk").value === v, opts[opts.length - 1]), JSON.stringify(opts));
       await p.keyboard.press("w"); await pause();
-      const lab = await p.evaluate(() => (document.querySelector("#tl .head .cu") || {}).getAttribute?.("aria-label") || "");
-      check("週カレンダーの日の数字も、選んだ量で書く", await p.evaluate(v => document.querySelector("#calk") && document.querySelector("#calk").value === v, opts[opts.length - 1]) && lab.startsWith(await p.evaluate(v => SHADE()[v].s, opts[opts.length - 1])), lab);
+      const lab = await p.evaluate(() => [...document.querySelectorAll("#tl .head:not(.empty) .cline")].slice(0, 1).map(l => [...l.querySelectorAll(".cu, .ct")].map(e => e.getAttribute("aria-label")).join(" | ")).join(""));
+      check("週カレンダーの日の数字も、選んだ量で書く（稼働時間とコスト系の両方を並べる）", await p.evaluate(v => document.querySelector("#calk") && document.querySelector("#calk").value === v, opts[opts.length - 1]) && lab.includes(await p.evaluate(v => SHADE()[v].s, opts[opts.length - 1])) && lab.includes(await p.evaluate(() => t("Active time"))), lab);
       await p.selectOption("#calk", opts[0]); await pause(); await p.keyboard.press("m"); await pause(); }
     else console.log("  skip 月の濃淡に選べる量が 1 つしかない");
     await p.keyboard.press("w"); await pause();

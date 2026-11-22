@@ -155,20 +155,20 @@ function calPick(days){ const SH = SHADE(), avail = Object.keys(SH).filter(k => 
 const calVal = (k, act, u, short) => k === "active" ? (act ? dur(act) : "") : !u ? "" : k === "cost" ? (u.cost > 0 ? (short ? usdS(u.cost) : usd(costOf(u))) : "")
   : k === "tokens" ? (u.tokens ? (short ? tokS(u.tokens) : tok(u.tokens)) : "") : (u.credits ? (short ? crN(u.credits) : cr(u.credits)) : "");
 const useKinds = xs => ({tokens: xs.some(d => d && d.tokens), cost: xs.some(d => d && d.cost > 0), credits: xs.some(d => d && d.credits)});
+// 時間とコスト系の両方を書く。コスト系は「量」で選んだもの（時間を選んだときは、推定費用・トークン・クレジットのうち記録のあるもの）
+const useKind = kinds => kinds.k && kinds.k !== "active" ? kinds.k : kinds.cost ? "cost" : kinds.tokens ? "tokens" : kinds.credits ? "credits" : "";
 function calRows(act, u, nS, nC, kinds, un){
-  const k = un ? "k u" : "k", o = un > 1 ? "u" : "";
-  // [名前, 値（ただの文字）, class]。HTML に入れるときは、呼ぶ側で esc する
-  const use = kinds.k && [SHADE()[kinds.k].s, calVal(kinds.k, act, u) || "—", k]; // 書く量は選べる（calPick）
-  return [use, [t("Commits"), String(nC), o]].filter(Boolean);
+  const k = un ? "k u" : "k", o = un > 1 ? "u" : "", uk = useKind(kinds);
+  // [名前, 値（ただの文字）, class, 種類]。HTML に入れるときは、呼ぶ側で esc する
+  return [uk && [SHADE()[uk].s, calVal(uk, act, u) || "—", k, "use"], [t("Active time"), act ? dur(act) : "—", k, "time"], [t("Commits"), String(nC), o, "commit"]].filter(Boolean);
 }
 // 週の日の見出しは 1 行：使用量（推定費用など）と、コミットの数（印つき）。何の数かは、見出しのツールチップと読み上げの名前で言う
-const calLine = rows => `<div class="cline">${rows.filter(([, v], i) => !(i && v === "0")).map(([k, v, c], i) => `<span class="${i ? "cc" : "cu"}${c && c.includes("u") ? " u" : ""}" aria-label="${esc(`${k}: ${v}`)}">${i ? ico("commit") : ""}${esc(v)}</span>`).join(`<span class="sep" aria-hidden="true">·</span>`)}</div>`;
+const calLine = rows => `<div class="cline">${rows.filter(([, v, , ty]) => !(ty === "commit" && v === "0")).map(([k, v, c, ty]) => `<span class="${ty === "use" ? "cu" : ty === "time" ? "ct" : "cc"}${c && c.includes("u") ? " u" : ""}" aria-label="${esc(`${k}: ${v}`)}">${ty === "commit" ? ico("commit") : ""}${esc(v)}</span>`).join(`<span class="sep" aria-hidden="true">·</span>`)}</div>`;
 // スマホでは作業時間と使用量だけ。トークンとクレジットは別の行に出す（両方あれば 2 行）。
 // ひとつの枠にまとめると、Claude Code と Kiro を両方使う人には、片方しか見えないため。
-function calShort(act, u, un, kinds){
-  const q = un ? " u" : "";
-  const v = calVal(kinds.k, act, u, true);
-  return `<span class="acs${q}">${esc(v || "—")}</span>`;
+function calShort(act, u, un, kinds){ // 月のマス：コスト系（太く）と稼働時間（小さく）の 2 行
+  const q = un ? " u" : "", uk = useKind(kinds), v = uk ? calVal(uk, act, u, true) : "";
+  return `${uk ? `<span class="acs${q}">${esc(v || "—")}</span>` : ""}<span class="act${q}">${esc(act ? dur(act) : "—")}</span>`;
 }
 const filtering = () => !!st.q || st.hidden.size > 0;
 /* カレンダーに出すコミット：凡例で隠したプロジェクトのものは出さない。検索中は、一致したセッションの間のコミットと、それ自体が一致したコミットだけ */
