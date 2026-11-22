@@ -1180,3 +1180,9 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .tlg .lg.band::before{background:color-mix(in oklab,var(--ink) 12%,transparent)}.tlg .lg.med::before{height:0;border-top:1.5px dashed var(--ink-3)}
 /* 足した行・消した行（git diff にならって緑と赤） */
 .la{color:var(--go-ink)}.lr{color:var(--warn)}
+/* グラフのある要点の数字は、横長の黄金比（1.618:1）のタイル：左に名前・値・注記、右に正方形のグラフ（150px）。中身が多いときは高さが伸びる */
+.itile:has(.tspk){display:grid;grid-template-columns:minmax(0,1fr) 150px;grid-auto-rows:min-content;column-gap:12px;row-gap:4px;align-content:start;justify-items:start;flex:1 1 290px;max-width:400px;min-height:calc(150px + 4px)}
+.itile:has(.tspk)>*{grid-column:1}
+.itile:has(.tspk)>.tspk{grid-column:2;grid-row:1/span 12;width:150px;max-width:none;margin:0;align-self:start}
+.ikg>.tlg{padding:0 18px;margin:-2px 0 8px}
+@media (max-width:700px){.ikg>.tlg{padding:0 14px}}

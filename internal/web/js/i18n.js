@@ -779,6 +779,7 @@ const JA_TEXT = {
   "vs last month": "先月比",
   "vs last week": "先週比",
   "Trend: {list}": "推移: {list}",
+  "Middle half of your past {unit}": "過去の{unit}の半分が入る範囲",
   "vs {range}": "{range} 比",
   "week": "週",
   "week of {date}": "{date}の週",
