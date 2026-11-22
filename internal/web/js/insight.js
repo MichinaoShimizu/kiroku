@@ -79,7 +79,8 @@ function insSpark(b, label){
   const wk = st.mode !== "month", W = 480, H = 270, L = 50, R = add ? 50 : 12, T = 20, rot = wk && n > 1 && (W - L - R) / (n - 1) < 30, B = rot ? 46 : 34, mx = Math.max(...vals, b.q3 || 0);
   // 目盛りは、各点の値を読み取れるよう細かく（6〜10 本ほど）、切りのよい刻みで。数える指標は整数、時間は 1 時間単位の刻み
   const Y1 = insTicks(k, MET[k].u === "%" && mx <= 100 ? 100 : mx * 1.02), top = Y1.top, x = i => L + (n === 1 ? (W - L - R) / 2 : i * (W - L - R) / (n - 1)), y = v => T + (H - T - B) * (1 - v / top);
-  const Y2 = add ? insTicks(k, ps[n - 1].c * 1.02, Y1.n, true) : Y1, top2 = Y2.top, y2 = add ? (v => T + (H - T - B) * (1 - v / top2)) : y, y0 = y(0).toFixed(1);
+  const cProj = add && b.part && ps[n - 1].c != null ? ps[n - 1].c - b.cur + b.v : null; // 途中の期間：このペースで期間を終えたときの累積
+  const Y2 = add ? insTicks(k, Math.max(ps[n - 1].c, cProj || 0) * 1.02, Y1.n, true) : Y1, top2 = Y2.top, y2 = add ? (v => T + (H - T - B) * (1 - v / top2)) : y, y0 = y(0).toFixed(1);
   const tk = (yy, lab, right) => `<line class="tm" x1="${right ? W - R : L - 3}" x2="${right ? W - R + 3 : L}" y1="${yy}" y2="${yy}"/>${lab == null ? "" : `<text class="${right ? "r" : ""}" x="${right ? W - R + 5 : L - 5}" y="${(+yy + 3.5).toFixed(1)}">${esc(lab)}</text>`}`;
   // y 軸：0 から 4 等分の目盛り（軸の外に短い線、プロットの中に点線のグリッド。値は 0・半分・上端に。数える指標で 6.25 のような値を出さないように）
   const ticks = Array.from({length: Y1.n + 1}, (_, i) => { const v = Y1.step * i, yy = y(v).toFixed(1);
@@ -94,9 +95,13 @@ function insSpark(b, label){
   const cpts = ps.map((q, i) => q.c == null ? null : `${x(i).toFixed(1)},${y2(q.c).toFixed(1)}`).filter(Boolean);
   const cum = cpts.length < 2 ? "" : (add ? `<polygon class="cuma" points="${x(ps.findIndex(q => q.c != null)).toFixed(1)},${y0} ${cpts.join(" ")} ${x(n - 1).toFixed(1)},${y0}"/>` : "") + `<polyline class="cuml" points="${cpts.join(" ")}"/>`;
   const line = ps.map((q, i) => q.v == null || (q.cur && b.part) ? null : `${x(i).toFixed(1)},${y(q.v).toFixed(1)}`).filter(Boolean).join(" ");
+  // 途中の期間の予測：前の期間の点からペース換算の点まで（推移）と、前の期間の累積から予測の累積まで（累積）を破線で
+  const pv = n > 1 ? ps[n - 2] : null, prj = !b.part || !pv ? "" : (pv.v != null ? `<line class="prj" x1="${x(n - 2).toFixed(1)}" y1="${y(pv.v).toFixed(1)}" x2="${x(n - 1).toFixed(1)}" y2="${y(b.v).toFixed(1)}"/>` : "")
+    + (cProj != null && pv.c != null ? `<line class="cprj" x1="${x(n - 2).toFixed(1)}" y1="${y2(pv.c).toFixed(1)}" x2="${x(n - 1).toFixed(1)}" y2="${y2(cProj).toFixed(1)}"/><circle class="cprjd" cx="${x(n - 1).toFixed(1)}" cy="${y2(cProj).toFixed(1)}" r="3"/>` : "")
+    + `<circle class="sofar" cx="${x(n - 1).toFixed(1)}" cy="${y(b.cur).toFixed(1)}" r="2.5"/>`;
   const dots = ps.map((q, i) => q.v == null || q.cur ? "" : `<circle class="pt" cx="${x(i).toFixed(1)}" cy="${y(q.v).toFixed(1)}" r="2.5"/>`).join("") + `<circle class="now${b.part ? " part" : ""}" cx="${x(n - 1).toFixed(1)}" cy="${y(b.v).toFixed(1)}" r="4.5"/>`;
   const cl = add ? t("Cumulative") : t("Running average");
-  const step = n > 1 ? (W - L - R) / (n - 1) : W - L - R, hits = ps.map((q, i) => `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H - B}"${tipAttr(q.p.label, q.v == null ? t("No records") : (q.cur && b.part ? t("At this pace: {v}", {v: fm(q.v)}) : fm(q.v)), q.c == null ? "" : `${cl}: ${fm(q.c)}`)}/>`).join("");
+  const step = n > 1 ? (W - L - R) / (n - 1) : W - L - R, hits = ps.map((q, i) => `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H - B}"${tipAttr(q.p.label, q.v == null ? t("No records") : (q.cur && b.part ? insEndLabel(fm(q.v)) : fm(q.v)), q.cur && b.part ? `${t("So far")}: ${fm(b.cur)}` : "", q.c == null ? "" : `${cl}: ${fm(q.c)}`, q.cur && cProj != null ? `${cl} (${insEndLabel(fm(cProj))})` : "")}/>`).join("");
   // 利用上限に当たった時刻：x 軸の上の小さな赤い三角（縦線はグラフを隠すので引かない）。期間の点はその期間の真ん中なので、時刻を「点 ± 半期間」の位置に置く。同じ期間の到達は 1 本にまとめ、回数を添える
   const lim = ps.map((q, i) => ({i, q, h: limitHits(q.p.ws, q.p.we)})).filter(z => z.h.length).map(({i, q, h}) => {
     const idx = Math.min(n - 1, Math.max(0, i - .5 + (h[0].t - q.p.ws) / (q.p.we - q.p.ws))), lx = (L + (n === 1 ? (W - L - R) / 2 : idx * (W - L - R) / (n - 1))).toFixed(1);
@@ -104,8 +109,10 @@ function insSpark(b, label){
     return `<path class="slim" d="M${lx} ${(+y0 - 7).toFixed(1)}l-4.5 7h9z"/>${h.length > 1 ? `<text class="slimn${+lx > W - R - 22 ? " e" : ""}" x="${(+lx + (+lx > W - R - 22 ? -6 : 5)).toFixed(1)}" y="${(+y0 - 2).toFixed(1)}">×${h.length}</text>` : ""}<rect class="hit slimhit" x="${(+lx - 6).toFixed(1)}" y="${(+y0 - 10).toFixed(1)}" width="12" height="12"${tipAttr(h.length === 1 ? t("Usage limit hits") : `${t("Usage limit hits")} ×${h.length}`, rows)}/>`; }).join("");
   const yt = (INS_SHORT()[k] || label || insName(k)), xt = st.mode === "month" ? t("Month") : t("Week");
   const list = ps.map(q => `${q.p.label} ${q.v == null ? "—" : fm(q.v)}${q.c == null ? "" : ` (${cl} ${fm(q.c)})`}`).join(LSEP());
-  return `<span class="tspk"><span class="sr">${esc(t("Trend: {list}", {list}))}</span><svg aria-hidden="true" viewBox="0 0 ${W} ${H}"><text class="syt" x="${L}" y="11">${esc(yt)}</text>${add ? `<text class="syt r" x="${W - R}" y="11">${esc(cl)}</text>` : ""}${band}${ticks}${xtm}${cum}<polyline class="trl" points="${line}"/>${dots}${xl}<text class="sxt" x="${(L + (W - L - R) / 2).toFixed(1)}" y="${H - 3}">${esc(xt)}</text>${hits}${lim}</svg></span>`;
+  return `<span class="tspk"><span class="sr">${esc(t("Trend: {list}", {list}))}</span><svg aria-hidden="true" viewBox="0 0 ${W} ${H}"><text class="syt" x="${L}" y="11">${esc(yt)}</text>${add ? `<text class="syt r" x="${W - R}" y="11">${esc(cl)}</text>` : ""}${band}${ticks}${xtm}${cum}<polyline class="trl" points="${line}"/>${prj}${dots}${xl}<text class="sxt" x="${(L + (W - L - R) / 2).toFixed(1)}" y="${H - 3}">${esc(xt)}</text>${hits}${lim}</svg></span>`;
 }
+// insEndLabel は、途中の期間をこのペースで終えたときの値の言い方（月は「月末の予測」、週は「週末の予測」）
+const insEndLabel = v => st.mode === "month" ? t("Month-end estimate: {v}", {v}) : t("Week-end estimate: {v}", {v});
 // insTicks は、0 から v までを切りのよい刻み（1・2・2.5・5 の 10 の累乗倍）で want 本ほどに分ける。数える指標は整数の刻み、時間（分）は 1 時間単位
 // fixed なら本数を want にそろえる（右の軸の目盛りを左の軸のグリッドに合わせる）
 function insTicks(k, v, want = 8, fixed = false){
@@ -122,7 +129,9 @@ const insChip = b => !b || b.q1 == null ? "" : `<code class="ichip ifx${insTone(
 function insHeadlines(F){
   const {S: w, P: pw, ws, we} = period(), T = {cost: [], outGit: [], outEdit: [], unitGit: [], unitEdit: [], unitHour: []}, u = (w && w.usage) || {}, M = st.mode === "month";
   let G = "cost"; // コスト（時間・クレジット・金額・トークン）・出力（Git と AI の編集）・単価（コスト ÷ 出力。割る数の元ごと）に分けて並べる
-  const tile = (label, b, v, f, m) => T[G].push(`<div class="itile${insTone(b)}"><span class="il">${esc(label)}${hb(b && b.k && H()[b.k] ? b.k : m && H()[m] ? m : "")}</span>${m ? `<button type="button" class="itv" data-metric="${m}" aria-haspopup="dialog" aria-label="${esc(`${label} ${v}`)}">${esc(v)}</button>` : `<b>${esc(v)}</b>`}${[].concat(f || []).map(x => typeof x === "object" ? (x.n != null ? pln(x.n) : fx(x.f, "", x.p, x.h)) : x === t("Not an estimate") ? pln(x) : fx(x)).join("")}${insSpark(b, label)}${b === false ? "" : insChip(b)}</div>`); // 値を押すと、上の帯と同じ内訳
+  // 途中の期間で、期間の長さに比例する数字には、どれも期間の終わりの予測を添える（費用・クレジット・時間・トークン・コミット・行・PR）
+  const tile = (label, b, v, f, m) => { f = [].concat(f || []); if (b && b.part && !f.some(x => x && x.pc)) f.push(pace(b.cur, b.v, MET[b.k] && MET[b.k].int ? (z => fmtM(b.k, Math.round(z))) : (b.fmt || (z => fmtM(b.k, z))))); tile0(label, b, v, f, m); };
+  const tile0 = (label, b, v, f, m) => T[G].push(`<div class="itile${insTone(b)}"><span class="il">${esc(label)}${hb(b && b.k && H()[b.k] ? b.k : m && H()[m] ? m : "")}</span>${m ? `<button type="button" class="itv" data-metric="${m}" aria-haspopup="dialog" aria-label="${esc(`${label} ${v}`)}">${esc(v)}</button>` : `<b>${esc(v)}</b>`}${[].concat(f || []).map(x => typeof x === "object" ? (x.n != null ? pln(x.n) : fx(x.f, "", x.p, x.h)) : x === t("Not an estimate") ? pln(x) : fx(x)).join("")}${insSpark(b, label)}${b === false ? "" : insChip(b)}</div>`); // 値を押すと、上の帯と同じ内訳
   const days = Math.round((we - ws) / 86400), el = Math.round(insFrac() * days), V = vsPrev(pw, M ? "月" : "週");
   // 上の帯の増減（%）と同じ比べを式で：途中の期間は前の期間の同じ日まで、終わった期間は前の期間まるごと
   const vs = (a, b, f) => { if (b == null || !b) return ""; const pc = `${a >= b ? "+" : "−"}${Math.round(Math.abs(a - b) * 100 / b)}% ${V.n == null ? (M ? t("vs last month") : t("vs last week")) : t("vs {range}", {range: V.range})}`;
@@ -132,7 +141,7 @@ function insHeadlines(F){
     if (prev == null || cur == null) return ""; const lab = V.n == null || !MET[k].int ? (M ? t("vs last month") : t("vs last week")) : t("vs {range}", {range: V.range});
     if (MET[k].int){ const d = cur - prev, p = `${d > 0 ? "+" : d < 0 ? "−" : "±"}${fm(Math.abs(d))} ${lab}`; return {f: `${fm(cur)} − ${fm(prev)} = ${p}`, p}; }
     if (!prev) return ""; const pc = `${cur >= prev ? "+" : "−"}${Math.round(Math.abs(cur - prev) * 100 / prev)}% ${lab}`; return {f: `(${fm(cur)} − ${fm(prev)}) ÷ ${fm(prev)} = ${pc}`, p: pc}; };
-  const pace = (cur, v, f) => ({f: `${t("pace")} = ${f(cur)} × ${days}${t("d")} ÷ ${el}${t("d")} = ${f(v)}`, p: t("At this pace: {v}", {v: f(v)})});
+  const pace = (cur, v, f) => ({f: `${t("pace")} = ${f(cur)} × ${days}${t("d")} ÷ ${el}${t("d")} = ${f(v)}`, p: insEndLabel(f(v)), pc: true});
   const pu = pw && pw.usage;
   const bc = insBase("cost"); if (bc && (u.tokens || bc.cur)) tile(t("Estimated cost"), bc, fmtM("cost", bc.cur), [vs(bc.cur, V.of("cost", pu && pu.tokens ? costOf(pu) : null), usd), bc.part ? pace(bc.cur, bc.v, usd) : ""].filter(Boolean), "cost");
   if (u.credits){ const bk = insRange("credits", u.credits, p => p.S && p.S.usage ? p.S.usage.credits || null : null, true, true, cr);
@@ -189,7 +198,7 @@ function insHeadlines(F){
   // 推移のグラフの凡例は、カードごとに 1 つ（グラフごとに置くと、カードが縦に伸びる）
   const limAny = limitHits(periodBack(INS_N).ws, periodBack(0).we).length > 0; // グラフの範囲に利用上限への到達があれば、凡例に赤い縦線を足す
   const now = soFar() != null ? (M ? t("This month") : t("This week")) : (M ? t("Month shown") : t("Week shown"));
-  const lgd = c => `<p class="tlg" aria-hidden="true"><span class="lg now">${esc(now)}</span>${insFrac() < 1 ? `<span class="lg now part">${esc(t("pace"))}</span>` : ""}<span class="lg band">${esc(t("Middle half of your past {unit}", {unit: insNoun()}))}</span><span class="lg med">${esc(t("median"))}</span><span class="lg cum">${esc(c.id === "unit" ? t("Running average") : t("Cumulative (right axis)"))}</span>${limAny ? `<span class="lg lgl">${esc(t("Usage limit hits"))}</span>` : ""}</p>`;
+  const lgd = c => `<p class="tlg" aria-hidden="true"><span class="lg now">${esc(now)}</span>${insFrac() < 1 ? `<span class="lg now part">${esc(M ? t("Month-end estimate") : t("Week-end estimate"))}</span><span class="lg prj">${esc(t("Projection"))}</span>` : ""}<span class="lg band">${esc(t("Middle half of your past {unit}", {unit: insNoun()}))}</span><span class="lg med">${esc(t("median"))}</span><span class="lg cum">${esc(c.id === "unit" ? t("Running average") : t("Cumulative (right axis)"))}</span>${limAny ? `<span class="lg lgl">${esc(t("Usage limit hits"))}</span>` : ""}</p>`;
   const card = c => `<section class="ikg ik-${c.id}" aria-label="${esc(c.label)}"><h5 class="ikgh">${esc(c.label)}</h5>${lgd(c)}${c.rows ? c.rows.map(sub).join("") : `<div class="ikrow">${T[c.k].join("")}</div>`}</section>`;
   // 見直す候補：基準を超えた指標を、見出しのすぐ下に 1 行で（押すと、その候補のダイアログ）。どれも、その指標の横の印からも開ける
   const ids = [...new Set((F || []).map(f => GOTO[f.k] || f.k))]; // 説明（HELP）のない候補も落とさない（名前は insName が ID に戻す）

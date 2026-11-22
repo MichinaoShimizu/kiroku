@@ -4,3 +4,4 @@
 - Calendar: a thin bar in each day of the month splits its active time by Color by (agent or project), following hidden legend items and search
 - Summary: each header figure has a wide trend chart of the last 12 periods overlaid with the cumulative total (right axis) or, for rates, the running average, with axis ticks, axis titles, a legend and your usual range as a band, and a note with the change from the previous week or month (percent for amounts and rates, a difference for counts)
 - Summary: the header charts mark usage-limit hits with a small red triangle on the x axis at the time of the hit (×n for several in one period; the tooltip lists the times and resets)
+- Summary: in a month or week in progress, every header amount and count shows its month-end or week-end estimate at the current pace, and its chart draws the estimate with dashed lines for the value and the cumulative total
