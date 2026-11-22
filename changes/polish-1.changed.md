@@ -14,3 +14,5 @@
 - The "?" trends and Worth a look cover 13 weeks or months, the same span as the summary charts (they were 8)
 - Search results can be narrowed to a project with chips (the 8 projects with the most matches)
 - Calendar: in narrow day columns, the copy-prompt button sits under the date instead of over it
+- Calendar: in narrow day columns the heading keeps the figure picked in Figures and drops the commit count first; on windows up to 1,200px every day puts its copy button under the date, so all headings line up
+- Summary: the Unit cost switch says Cost / Credits / Tokens and wraps under the title on narrow screens; its rows share one heading style and drop the good/bad tint (the verdict carries it); verdicts say "below usual" / "above usual" like the rest of the summary; "pace" reads "On pace for"; kept lines add how much was rewritten or dropped, and rework says lower is usually better; the "So far" label stays readable over lines

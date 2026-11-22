@@ -1206,7 +1206,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 /* 狭い日の列（1200px 以下の週の表示など）では、見出しの行に収まらない稼働時間を省く（コミットと費用を残す。時間はツールチップにある） */
 .head{container-type:inline-size}
 @container (max-width:150px){.head .cline .ct,.head .cline .sep:has(+.ct){display:none}}
-@container (max-width:95px){.head .cline .cu,.head .cline .sep:has(+.cu){display:none}}
+@container (max-width:125px){.head .cline .cc,.head .cline .cc+.sep{display:none}} /* もっと狭ければ、コミットの数を省く（「数字」で選んだ量はいつも残す） */
 /* グラフの文字が、幅の広い 1 列の画面で大きくなりすぎないように（480 の座標を、最大でその 1.1 倍に） */
 .itile:has(.tspk)>.tspk{max-width:530px}
 /* 暗い表示では、いつもの範囲の帯を少し濃く（地の黒に沈まないように） */
@@ -1226,4 +1226,9 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .ik-unit>.ikgh,.ik-unit>.tlg{grid-column:1/-1}
 @container (min-width:1100px){.ik-unit .itile:has(.tspk){max-width:none}}
 .srprj{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}.srprj .srp[aria-pressed="true"]{background:var(--acc-soft);border-color:var(--acc);color:var(--acc-ink)}
-@container (max-width:130px){.head .dd .dayrun{position:static;opacity:1;margin-left:0}} /* 狭い日の列では、コピーのボタンを日付に重ねず、日付の下に */
+@media (max-width:1200px){.head .dd .dayrun{position:static;opacity:1;margin-left:0;order:3}.head .dd:has(.dayrun)::after{content:"";flex-basis:100%;order:2}} /* 狭い画面では、どの日の列でもコピーのボタンを日付の下に（列ごとに位置が変わって見出しの高さがずれないように） */
+/* 単価の切り替えは、見出しの横に入らなければ次の行に。段の見出しと区切りの線は、どの段でも同じ形に。良し悪しの地の色は評価の文の色で足りるので付けない */
+.ik-unit>.ikgh{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}.ikgh .uksw{margin-left:0}
+.ik-unit>.iksub{border-top:1px solid var(--rule);padding-top:12px;margin-top:0}
+.ik-unit .itile.good,.ik-unit .itile.bad{background:none}
+.tspk .sofl{font-size:10px;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
