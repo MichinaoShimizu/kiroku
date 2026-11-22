@@ -348,10 +348,10 @@ async function run(env) {
         }
       }
       check("ヒートマップの各行に曜日の合計がある（触れなくても読める）", await p.evaluate(() => document.querySelectorAll("#review .ihgrid > .iht:not(.ihh)").length === 7));
-      check("3 列の並びの最後の段に空きを作らない（余りは横に広げる）", await p.evaluate(() => [...document.querySelectorAll("#review .istats, #review .ikrow")].every(g => { const k = [...g.children], cols = getComputedStyle(g).gridTemplateColumns.split(" ").length; if (k.length < 2) return true; const r = k.map(c => c.getBoundingClientRect()), last = r[r.length - 1], row = r.filter(b => Math.abs(b.top - last.top) < 2); return Math.abs(row[row.length - 1].right - g.getBoundingClientRect().right) < 2 || row.length === cols; })));
+      check("3 列の並びの最後の段に空きを作らない（余りは横に広げる）", await p.evaluate(() => [...document.querySelectorAll("#review .istats, #review .ikrow")].every(g => { const k = [...g.children].filter(c => c.offsetParent !== null), /* 単価の切り替えで隠した数字は数えない */ cols = getComputedStyle(g).gridTemplateColumns.split(" ").length; if (k.length < 2) return true; const r = k.map(c => c.getBoundingClientRect()), last = r[r.length - 1], row = r.filter(b => Math.abs(b.top - last.top) < 2); return Math.abs(row[row.length - 1].right - g.getBoundingClientRect().right) < 2 || row.length === cols; })));
       check("カードの中の数の枠は最大 3 列", await p.evaluate(() => [...document.querySelectorAll("#review .istats")].every(g => getComputedStyle(g).gridTemplateColumns.split(" ").length <= 3)));
       check("サマリーの頭はコスト・出力・単価の 3 枚のカードで、幅いっぱいに上から順に積み、どの数字も画面の中に見える", await p.evaluate(() => { const G = [...document.querySelectorAll("#review .insh .ikg")], g = document.querySelector("#review .insh").getBoundingClientRect();
-        const k = [...document.querySelectorAll("#review .insh .ikrow > .itile")], inside = k.every(c => { const r = c.getBoundingClientRect(); return r.left >= g.left - 1 && r.right <= g.right + 1; });
+        const k = [...document.querySelectorAll("#review .insh .ikrow > .itile")].filter(c => c.offsetParent !== null), inside = k.every(c => { const r = c.getBoundingClientRect(); return r.left >= g.left - 1 && r.right <= g.right + 1; });
         // コスト・出力・単価のカードは、幅いっぱいに上から順に積む（左右に並べて片側を空けない）
         const r = c => document.querySelector(`#review .insh .ik-${c}`).getBoundingClientRect();
         const lay = r("out").top >= r("cost").bottom - 1 && r("unit").top >= r("out").bottom - 1 && ["out", "unit"].every(c => Math.abs(r(c).left - r("cost").left) < 2 && Math.abs(r(c).width - r("cost").width) < 2);
@@ -492,9 +492,11 @@ async function run(env) {
 
   await step("コストと残ったもの", async () => {
     await view("sum");
-    const oc = p.locator("#review .inscol:has(.hb[data-help=\"gitCommits\"])"); await oc.scrollIntoViewIfNeeded(); await pause();
-    for (const [name, id] of [["コミット", "gitCommits"], ["行", "lines"], ["成果まで届いたセッション", "outSessions"]])
-      check(`成果のカードに${name}が出る`, await oc.locator(`.hb[data-help="${id}"]`).count() === 1);
+    const oc = p.locator("#review .inscol:has(.hb[data-help=\"outSessions\"])"); await oc.scrollIntoViewIfNeeded(); await pause();
+    // コミットと行の数は上の「出力」の枠に（下の成果のカードでは繰り返さない）
+    for (const [name, id] of [["コミット", "gitCommits"], ["行", "lines"]])
+      check(`上の出力の枠に${name}が出て、下の成果のカードでは繰り返さない`, await p.locator(`#review .insh .ik-out .hb[data-help="${id}"]`).count() === 1 && await oc.locator(`.hb[data-help="${id}"]`).count() === 0);
+    check("成果のカードに成果まで届いたセッションが出る", await oc.locator('.hb[data-help="outSessions"]').count() === 1);
     check("コミットあたりの費用は、出力ではなく単価の段にある", await p.evaluate(() => { const G = [...document.querySelectorAll("#review .insh .ikg")]; return G.length === 3 && !!G[2].querySelector('[data-metric="costPerCommit"]') && !document.querySelector('#review .iout .hb[data-help="costPerCommit"]'); }));
     check("割った指標には式（÷）が添えてある", await oc.evaluate(e => [...e.querySelectorAll(".stat")].filter(s => s.querySelector('.hb[data-help="outSessions"], .hb[data-help="costPerCommit"]')).every(s => /÷/.test(s.textContent))));
     check("カードが箱からはみ出さない", await oc.evaluate(e => [...e.querySelectorAll(".stat")].every(s => s.getBoundingClientRect().right <= e.getBoundingClientRect().right + 1)));

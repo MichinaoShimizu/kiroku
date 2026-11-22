@@ -8,3 +8,6 @@
 - Summary: the value so far in a period in progress is labeled "So far" in the header charts
 - Calendar: on narrow month cells (phones), times are shortened ("5h") instead of being cut off
 - Search: file matches in sessions show the path from the project, as commit matches do
+- Summary: Unit cost shows one figure per row with a switch for estimated cost, Kiro credits or tokens (remembered), instead of up to three near-identical charts per row; rows without that measure say so
+- Summary: the vs-last-week line puts its label first ("vs last week +108"), so it does not read like the green and red line counts
+- Summary: the lower Outputs card no longer repeats the commits, lines and pull requests shown in the Output panel above

@@ -1218,3 +1218,10 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 /* 月のマスの時間：狭いマスでは短い形だけ（「4h 57m」がマスからはみ出さないように） */
 .cell{container-type:inline-size}.cell .act .tshort{display:none}
 @container (max-width:64px){.cell .act .tlong{display:none}.cell .act .tshort{display:inline}}
+/* 単価：選んだ量（費用・クレジット・トークン）の数字だけを見せる */
+.ik-unit[data-uk="cost"] [data-uk]:not([data-uk="cost"]):not(button),.ik-unit[data-uk="credits"] [data-uk]:not([data-uk="credits"]):not(button),.ik-unit[data-uk="tokens"] [data-uk]:not([data-uk="tokens"]):not(button){display:none}
+.ikgh .uksw{display:inline-flex;margin-left:14px;vertical-align:middle;font-size:var(--fs-sm)}
+/* 単価の段（コミットあたり・100 行あたり・時間・セッション・プロンプト）は、どれも数字が 1 つになるので、段を 2 列に並べる */
+.ik-unit{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,560px),1fr));column-gap:24px;align-items:start}
+.ik-unit>.ikgh,.ik-unit>.tlg{grid-column:1/-1}
+@container (min-width:1100px){.ik-unit .itile:has(.tspk){max-width:none}}
