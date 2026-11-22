@@ -189,10 +189,10 @@ func TestNoAIExecution(t *testing.T) {
 	}
 }
 
-// ビューでダークを選んだ人には、読み込み中の画面もダーク（同じサイトの localStorage の kiroku:theme を読み、暗い地の色を持つ）
-func TestLoadingFollowsDarkChoice(t *testing.T) {
+// 画面はいつもダーク。読み込み中の画面も同じ（暗い地の色を持ち、html にダークの印がある）
+func TestLoadingIsDark(t *testing.T) {
 	s := string(LoadingFor(""))
-	for _, want := range []string{`localStorage.getItem("kiroku:theme")`, `:root[data-theme="dark"]{color-scheme:dark;`} {
+	for _, want := range []string{`data-theme="dark"`, `:root[data-theme="dark"]{color-scheme:dark;`} {
 		if !strings.Contains(s, want) {
 			t.Errorf("loading page lacks %q", want)
 		}

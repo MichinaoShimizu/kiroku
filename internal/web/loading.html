@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" translate="no" data-lang="__LANG__"><head><meta charset="utf-8">
+<html lang="en" translate="no" data-lang="__LANG__" data-theme="dark"><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="__CSP__">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
@@ -83,8 +83,6 @@ pre:empty{display:none}
   <pre id="detail"></pre>
 </div></main>
 <script>
-// ビューで選んだテーマ（なければ OS の設定）に合わせる（同じサイトの localStorage。ページに置けるスクリプトは 1 つなので、ここで）
-try { const v = JSON.parse(localStorage.getItem("kiroku:theme")); if (v === "dark" || v !== "light" && matchMedia("(prefers-color-scheme: dark)").matches) document.documentElement.setAttribute("data-theme", "dark"); } catch (e) {}
 // 1 秒ごとに stamp を見て、読み終わったら本物の画面に読み直す。503 の本文があれば読み込みの失敗、403 なら鍵がない。
 // あいだは /progress を見て、エージェントごとの進み具合を出す（名前と数だけ。文字は textContent で入れる）
 (() => {

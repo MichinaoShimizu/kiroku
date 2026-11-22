@@ -22,10 +22,4 @@ applyStaticText();
 const mq = matchMedia("(max-width:1000px)"),
  ph = () => $("#q").placeholder = t(mq.matches ? "Search" : "Prompts, files, commits"); // 狭い画面では入力欄も狭いので短く
 ph();
-// テーマ：選んでいなければ OS の設定に合わせる。ヘッダーのボタンで選ぶと、それを覚えて OS によらず使う（読み込み中の画面も同じ選択を読む）
-const darkMQ = matchMedia("(prefers-color-scheme: dark)"), curTheme = () => st.theme || (darkMQ.matches ? "dark" : "light");
-function applyTheme(){ document.documentElement.setAttribute("data-theme", curTheme()); const b = $("#theme"); if (!b) return;
-  const dark = curTheme() === "dark", l = dark ? t("Light mode") : t("Dark mode"); b.setAttribute("aria-pressed", String(dark)); b.setAttribute("aria-label", t("Dark mode")); b.title = l; }
-applyTheme();
-$("#theme").onclick = () => { st.theme = curTheme() === "dark" ? "light" : "dark"; store.set("theme", st.theme); applyTheme(); };
-darkMQ.addEventListener("change", () => { if (!st.theme) applyTheme(); }); // 選んでいなければ、OS の切り替えに合わせる
+// テーマはいつもダーク（html の data-theme。読み込み中の画面も同じ）

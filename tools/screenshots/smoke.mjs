@@ -45,6 +45,7 @@ async function openContext(env, locale, csp) {
   // CSP の違反はページの中で拾って知らせる（関数を渡す仕組みは CSP の外なので止められない）
   await ctx.exposeFunction("kirokuCSPViolation", v => csp.push(v));
   await ctx.addInitScript(() => addEventListener("securitypolicyviolation", e => window.kirokuCSPViolation(`${e.effectiveDirective} ${e.blockedURI || "inline"} ${e.sourceFile || ""}:${e.lineNumber || ""}`)));
+  await ctx.addInitScript(() => { try { if (localStorage.getItem("kiroku:insMore") == null) localStorage.setItem("kiroku:insMore", "true"); } catch (e) {} }); // 「その他のグラフ」を開いた状態で確かめる（たたむことは別に確かめる）
   const p = await ctx.newPage();
   const errors = [];
   p.on("pageerror", e => errors.push(e.message));
@@ -135,6 +136,10 @@ async function run(env) {
     const at = () => p.evaluate(() => ["#rd", "#view"].map(q => { const r = document.querySelector(q).getBoundingClientRect(); return [Math.round(r.x), Math.round(r.y + scrollY)]; }));
     const pos0 = await at();
     await view("sum");
+    check("よく見るカードが上に、その他のグラフはたたんだ箱にあり、初めはたたんである。開いたかは覚える", await p.evaluate(async () => { const top = [...document.querySelectorAll("#review .insg > .insrow h4")].map(h => h.textContent);
+      store.set("insMore", false); summary(); const d0 = document.querySelector("#review details.insmore"); const closed = d0 && !d0.open && !d0.querySelector(".insrow").checkVisibility();
+      d0.querySelector("summary").click(); await new Promise(r => setTimeout(r, 50)); const saved = store.get("insMore", false) === true; summary();
+      return closed && saved && document.querySelector("#review details.insmore").open && top.some(x => /When you worked/.test(x)) && !top.some(x => /^Trend/.test(x)); }));
     check("サマリーに切り替えると、カレンダーは隠れる", await p.locator("#tl").isHidden() && await p.locator("#review").isVisible());
     const pos1 = await at();
     check("切り替えても、期間の見出しと切り替えのボタンは動かない（上の帯の高さでずれない）", JSON.stringify(pos0) === JSON.stringify(pos1), `${JSON.stringify(pos0)} → ${JSON.stringify(pos1)}`);
@@ -155,18 +160,10 @@ async function run(env) {
   });
 
   await step("テーマ", async () => {
-    const bg = () => p.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    check("言語の切り替えボタンはなく、テーマの切り替えボタンがある", await p.locator("#lang").count() === 0 && await p.locator("#theme").count() === 1);
-    await p.evaluate(() => { try { localStorage.removeItem("kiroku:theme"); } catch (e) {} st.theme = null; applyTheme(); });
-    await p.emulateMedia({ colorScheme: "light" }); await pause(); const light = await bg();
-    await p.emulateMedia({ colorScheme: "dark" }); await pause(); const dark = await bg();
-    check("選んでいなければ OS の設定に合わせる（OS がダークならダーク）", dark !== light && await p.evaluate(() => document.documentElement.dataset.theme === "dark" && getComputedStyle(document.documentElement).colorScheme === "dark"), dark);
-    await p.click("#theme"); await pause();
-    check("ボタンで選ぶと、OS がダークでもライトになり、選択が残る", await bg() === light && await p.evaluate(() => localStorage.getItem("kiroku:theme") === '"light"' && document.querySelector("#theme").getAttribute("aria-pressed") === "false"));
+    check("言語とテーマの切り替えボタンはない", await p.locator("#lang").count() === 0 && await p.locator("#theme").count() === 0);
     await p.emulateMedia({ colorScheme: "light" }); await pause();
-    await p.click("#theme"); await pause();
-    check("もう一度押すと、OS がライトでもダークになり、押した状態と選択が残る", await bg() === dark && await p.evaluate(() => localStorage.getItem("kiroku:theme") === '"dark"' && document.querySelector("#theme").getAttribute("aria-pressed") === "true"));
-    await p.click("#theme"); await pause();
+    check("OS がライトでも、画面はいつもダーク", await p.evaluate(() => document.documentElement.dataset.theme === "dark" && getComputedStyle(document.documentElement).colorScheme === "dark"));
+    await p.emulateMedia({ colorScheme: "dark" }); await pause();
   });
 
   await step("週の移動", async () => {
@@ -366,13 +363,22 @@ async function run(env) {
         vague: /Usual|Higher|Lower|usual range|いつもの範囲|いつもどおり|高め|低め|\bQ[13]\b|IQR/.test(document.querySelector("#review .insight").innerText)}));
       check("いつもとの比べは不等式（下位・上位25%点の値）で出し、定義を 1 行で示す。曖昧な言葉と Q1・Q3 の記号は使わない", fx.chips.length > 0 && fx.chips.every(c => /pct|%点|≤|needs|必要/.test(c)) && /(spread|幅) = /.test(fx.def) && !fx.vague, JSON.stringify(fx).slice(0, 300));
       const lay = await p.evaluate(() => { const cs = [...document.querySelectorAll("#review .insight .inscol")]; const say = cs.filter(c => c.querySelector(".insfig, .ihgrid") && c.querySelector(".isay")).length, charts = cs.filter(c => c.querySelector(".insfig, .ihgrid")).length;
-        // グラフのカードは見出しごとの横の並び（.insrow）。広い画面では 1 行に 3 枚。同じ行のカードは上端と下端がそろい、行は幅いっぱい（空きを作らない）
-        const rowsOk = [...document.querySelectorAll("#review .insrow")].every(r => { const rr = r.getBoundingClientRect(), byTop = {};
-          [...r.children].forEach(c => { const b = c.getBoundingClientRect(); (byTop[Math.round(b.top)] ||= []).push(b); });
-          return Object.values(byTop).every(row => row.every(b => Math.abs(b.bottom - row[0].bottom) < 1) && Math.abs(Math.max(...row.map(b => b.right)) - rr.right) < 2); });
+        // グラフのカードは見出しごとの石積み（.insrow）。広い画面では 3 列。カードは重ならず、どのカードも中の下が空かない（中身の高さのまま置く）
+        const inner = c => { const cb = c.getBoundingClientRect(); let bot = cb.top; c.querySelectorAll("*").forEach(e => { const r = e.getBoundingClientRect(); if (r.height && getComputedStyle(e).display !== "none") bot = Math.max(bot, r.bottom); }); return cb.bottom - bot; };
+        const rowsOk = [...document.querySelectorAll("#review .insrow")].every(r => { const bs = [...r.children].map(c => c.getBoundingClientRect());
+          const apart = bs.every((a, i) => bs.every((b, j) => i >= j || a.right <= b.left + 1 || b.right <= a.left + 1 || a.bottom <= b.top + 1 || b.bottom <= a.top + 1));
+          return apart && [...r.children].every(c => inner(c) <= 40); });
+        // 上の数字のグラフ：1 つだけ残ったタイル（段）も、行の幅いっぱいに広がる（右が空かない）
+        const badTiles = [...document.querySelectorAll("#review .ikrow")].filter(r => r.offsetParent).filter(r => { const rr = r.getBoundingClientRect(), ts = [...r.children].filter(c => c.offsetParent && c.querySelector(".tspk"));
+          return ts.length && Math.abs(Math.max(...ts.map(c => c.getBoundingClientRect().right)) - rr.right) >= 4; }).map(r => (r.closest(".iksub, .ikg") || r).className + " " + JSON.stringify([...r.children].map(c => [c.className.slice(0, 20), (c.querySelector(".il") || {}).textContent, Math.round(c.getBoundingClientRect().left), Math.round(c.getBoundingClientRect().right), !!c.querySelector(".tspk")])) + " " + Math.round(r.getBoundingClientRect().right));
+        // カードもタイルも単価の段も、広い画面ではページの半分より広くない（グラフのない数字の行は除く）
+        const half = innerWidth < 1100 || [...document.querySelectorAll("#review .insrow > *, #review .ikrow > .itile:has(.tspk), #review .ik-unit > .iksub")].filter(e => e.checkVisibility()).every(e => e.getBoundingClientRect().width <= innerWidth / 2 + 1);
+        const tilesOk = half && !badTiles.length
+          && [...document.querySelectorAll("#review .ik-unit")].every(u => { const ur = u.getBoundingClientRect(), ss = [...u.querySelectorAll(":scope>.iksub")]; return !ss.length || Math.abs(ss[ss.length - 1].getBoundingClientRect().right - (ur.right - parseFloat(getComputedStyle(u).paddingRight))) < 4; });
         const three = innerWidth < 1300 || [...document.querySelectorAll("#review .insrow")].some(r => r.children.length >= 3 && Math.abs(r.children[0].getBoundingClientRect().top - r.children[2].getBoundingClientRect().top) < 1);
-        return {say, charts, rows: rowsOk, grid: three}; });
-      check("どのグラフにも、データから計算した読み取りの 1 文があり、広い画面ではカードが 1 行に 3 枚並び、同じ行のカードは高さがそろって行の幅を埋める", lay.say === lay.charts && lay.rows && lay.grid, JSON.stringify(lay));
+        return {say, charts, rows: rowsOk, tiles: tilesOk, half, badTiles, grid: three}; });
+      check("どのグラフにも、データから計算した読み取りの 1 文があり、広い画面ではカードが 3 列に並び、カードは重ならず中の下が空かない。カードとグラフのタイルはページの半分より広くなく、奇数のタイルも行の幅を埋める", lay.say === lay.charts && lay.rows && lay.tiles && lay.grid, JSON.stringify(lay));
+      check("コストのグラフの各点に、前の期間からの増減（%）がある", await p.evaluate(() => { const l = [...document.querySelectorAll("#review .ik-cost .tspk:not(.ww) .spc")]; return l.length > 0 && l.every(e => /^[+−±]\d+%$/.test(e.textContent)); }));
       const tk = await p.evaluate(() => { const g = document.querySelector("#review .insk.trendk"), bs = [...g.querySelectorAll("button")], sel = document.querySelector("#review .insksel");
         const ks = (getComputedStyle(g).display === "none" ? [...sel.options].map(o => o.value) : bs.map(b => b.dataset.ins));
         return {tabs: getComputedStyle(g).display !== "none", oneRow: new Set(bs.map(b => Math.round(b.getBoundingClientRect().top))).size === 1, ks}; });
@@ -504,7 +510,7 @@ async function run(env) {
       const ed = await p.evaluate(() => { const {ws, we} = period(), xs = DATA.filter(s => s.start >= ws && s.start < we && s.nFiles > 0);
         const c = document.querySelector('#review .inscol:has(.hb[data-help="aiLines"])'); if (!c) return {none: true, n: xs.length};
         const add = xs.reduce((a, s) => a + (s.editAdded || 0), 0), del = xs.reduce((a, s) => a + (s.editRemoved || 0), 0);
-        return {n: xs.length, files: c.querySelectorAll(".iwf").length, lines: c.querySelector('.hb[data-help="aiLines"]').closest(".stat").innerText, want: commas(add + del), first: (c.querySelector(".iwf") || {}).textContent}; });
+        return {n: xs.length, files: document.querySelectorAll("#review .iwf").length, lines: c.querySelector('.hb[data-help="aiLines"]').closest(".stat").innerText, want: commas(add + del), first: (document.querySelector("#review .iwf") || {}).textContent}; }); // いちばん変えたファイルは「その他のグラフ」の自分のカード
       check("AI の編集のカードに、変えたファイル・行といちばん変えたファイルが出る", ed.none ? ed.n === 0 : ed.files > 0 && ed.lines.includes(ed.want), JSON.stringify(ed));
       if (!ed.none){ check("いちばん変えたファイルの名前は、セッションではなくファイルへのリンク（serve では、コミットのリンクがなければ文字だけ）", await p.evaluate(() => [...document.querySelectorAll("#review .iwf")].every(e => !e.matches("button") && !e.hasAttribute("data-sid"))));
         await p.locator("#review .iwses").first().click(); await pause();
@@ -749,7 +755,7 @@ async function run(env) {
     await p.keyboard.press("Escape"); await pause();
     await view("sum");
     const tile = await p.evaluate(() => { const b = document.querySelector('#review .itile [data-metric="credits"]'); return b ? b.closest(".itile").innerText : ""; });
-    check("サマリーのクレジットのカードにも、今月末の推定がある（式を出しているときは式で）", /Month-end \(this month\): ≈ |Month-end credits = /.test(tile) && tile.includes(mp.v), tile);
+    check("サマリーのクレジットのカードにも、今月末の推定がある（式を出しているときは式で）", /Month-end estimate \(this month\)|Month-end credits = /.test(tile) && tile.includes(mp.v), tile);
     await view("cal");
   });
 

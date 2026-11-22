@@ -1,0 +1,1 @@
+- Summary: Unit cost calculation adds estimated cost, Kiro credits and tokens per active day (the days on which the sessions that record each measure ran), with a chart and the usual range like the other unit costs

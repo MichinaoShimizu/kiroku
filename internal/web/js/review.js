@@ -65,9 +65,10 @@ function useBasis(ws, we, k){ return memoBasis("use", ws, we, k, () => useBasis0
 function useBasis0(ws, we, k){
   const use = s => k === "cost" ? (sesTok(s) ? s.cost || 0 : 0) : k === "credits" ? s.credits || 0 : sesTok(s);
   const xs = DATA.filter(s => s.start >= ws && s.start < we && use(s) > 0);
-  return {n: xs.length, used: xs.reduce((a, s) => a + use(s), 0), min: xs.reduce((a, s) => a + minIn(s, ws, we), 0), prompts: xs.reduce((a, s) => a + (s.nPrompts || 0), 0)};
+  let days = 0; for (let d = ws; d < we; d += 86400) if (xs.some(s => minIn(s, d, Math.min(we, d + 86400)) > 0)) days++; // 稼働した日：その使用量を記録したセッションが動いた日の数
+  return {n: xs.length, used: xs.reduce((a, s) => a + use(s), 0), min: xs.reduce((a, s) => a + minIn(s, ws, we), 0), prompts: xs.reduce((a, s) => a + (s.nPrompts || 0), 0), days};
 }
-const perUse = (ws, we, k, by) => { const b = useBasis(ws, we, k), d = by === "hour" ? b.min / 60 : by === "ses" ? b.n : b.prompts; return d > 0 && b.used > 0 ? b.used / d : null; };
+const perUse = (ws, we, k, by) => { const b = useBasis(ws, we, k), d = by === "hour" ? b.min / 60 : by === "day" ? b.days : by === "ses" ? b.n : b.prompts; return d > 0 && b.used > 0 ? b.used / d : null; };
 function perEdit(ws, we, k){ const b = editsBasis(ws, we, k); return b.lines > 0 && b.used > 0 ? b.used * 100 / b.lines : null; }
 /* Git から読むコミットの扱い（どれも決まった規則。AI は使わない）
    reworkOf: 期間 [ws, we) に AI が実行したコミットのうち、3 日以内に同じリポジトリで同じファイルを変えた別のコミット（人でも AI でも）があったものの数。
@@ -113,6 +114,9 @@ const MET = {
   costPerHour: {f: (w, ws, we) => perUse(ws, we, "cost", "hour"), fmt: v => usd(v)},
   creditsPerHour: {f: (w, ws, we) => perUse(ws, we, "credits", "hour"), fmt: v => cr1(v)},
   tokensPerHour: {f: (w, ws, we) => perUse(ws, we, "tokens", "hour"), fmt: v => tok(v)},
+  costPerDay: {f: (w, ws, we) => perUse(ws, we, "cost", "day"), fmt: v => usd(v)},
+  creditsPerDay: {f: (w, ws, we) => perUse(ws, we, "credits", "day"), fmt: v => cr1(v)},
+  tokensPerDay: {f: (w, ws, we) => perUse(ws, we, "tokens", "day"), fmt: v => tok(v)},
   costPerSes: {f: (w, ws, we) => perUse(ws, we, "cost", "ses"), fmt: v => usd(v)},
   creditsPerSes: {f: (w, ws, we) => perUse(ws, we, "credits", "ses"), fmt: v => cr1(v)},
   tokensPerSes: {f: (w, ws, we) => perUse(ws, we, "tokens", "ses"), fmt: v => tok(v)},
