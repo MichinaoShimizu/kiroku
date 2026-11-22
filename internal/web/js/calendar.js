@@ -351,7 +351,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
   sc.addEventListener("scroll", () => { seenTop = sc.scrollTop; }, {passive: true});
   sc.addEventListener("focusin", e => { if (e.target.closest(".heads") && sc.scrollTop !== seenTop) sc.scrollTop = seenTop; });
   // 日報のプロンプトのコピー（kiroku は AI を動かさない）
-  T.querySelectorAll(".dayrun").forEach(b => b.onclick = e => { e.stopPropagation(); copyPrompt(b, reportPrompt(null, addDays(st.week, +b.dataset.d))); });
+  T.querySelectorAll(".dayrun").forEach(b => b.onclick = e => { e.stopPropagation(); copyPrompt(b, reportPrompt(addDays(st.week, +b.dataset.d))); });
   T.querySelectorAll(".lim").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); showFlowEvent("warn", +el.dataset.t); });
   bindGitEvents(T);
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });

@@ -34,63 +34,6 @@
     ],
     "advice": []
   },
-  "week": {
-    "must": [
-      [
-        "CSV"
-      ],
-      [
-        "stream"
-      ],
-      [
-        "label"
-      ],
-      [
-        "fetchUser"
-      ],
-      [
-        "date-fns"
-      ],
-      [
-        "escap"
-      ],
-      [
-        "pull/12"
-      ],
-      [
-        "pull/77"
-      ]
-    ],
-    "must_not": [
-      "sk_live",
-      "STRIPE",
-      "watermark",
-      "onboarding",
-      "opt-in",
-      "opt in",
-      "pull/31",
-      "no problems"
-    ],
-    "should_not": [
-      "bun"
-    ],
-    "advice": [
-      [
-        "skill",
-        "script",
-        "slash command",
-        "custom command",
-        "hook"
-      ],
-      [
-        "lighter",
-        "sonnet",
-        "haiku",
-        "smaller model",
-        "cheaper model"
-      ]
-    ]
-  },
   "session": {
     "must": [
       [

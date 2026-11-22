@@ -41,7 +41,7 @@ var scripts = []string{
 	"calendar.js",   // render・週と月のカレンダー・ツールチップ
 	"summary.js",    // サマリー・指標の説明 HELP
 	"review.js",     // 見直す候補と推移
-	"panels.js",     // 検索結果・週報の下書き・アウトプット・計測の状態など
+	"panels.js",     // 検索結果・日報のプロンプト・アウトプット・計測の状態など
 	"metric.js",     // 上の帯とサマリーの数字の内訳（ダイアログ）
 	"insight.js",    // サマリーの頭：要点・推移といつもの範囲・改善のアドバイス
 	"git.js",        // 詳細：コミット・push・PR

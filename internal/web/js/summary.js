@@ -35,9 +35,6 @@ function agScope(ag, fn){ if (!ag) return fn();
   try { return fn(); } finally { DATA = D; WEEKS = W; MONTHS = Mo; } }
 // サマリーの中の見直す候補（絞っていれば、そのエージェントの候補）を開く
 const insOpenWorth = (id, from) => agScope(insAg, () => openWorth(id, from, insFlags));
-/* 期間の言い方（unit は "週" か "月"） */
-const uThis = unit => unit === "月" ? "this month" : "this week";
-const uLast = unit => unit === "月" ? "last month" : "last week";
 /* 指標の読み方：定義・言えること・言えないこと・打てる手。画面の「?」と、改善案プロンプトの前提に使う */
 const HELP = {
   findings: {n: "Worth a look", d: "Metrics that crossed a fixed threshold. Each is marked with a warning triangle where it appears, with what was observed, an 8-period trend (for metrics counted per period), the related sessions and the threshold", c: "Which metric is worth reviewing first", x: "Whether something is good or bad. Thresholds are generic and may not fit how you work", a: "Pick one, try it next period, and check the change with the same metric"},

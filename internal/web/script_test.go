@@ -264,7 +264,7 @@ func TestReviewFlow(t *testing.T) {
 	}
 }
 
-// 週報のプロンプトで、セッションが期間の中で動いていた時間（spanIn）。週をまたぐセッションは期間の中だけを、日ごとにまとめて出すこと。
+// 日報のプロンプトで、セッションが期間の中で動いていた時間（spanIn）。期間をまたぐセッションは期間の中だけを、日ごとにまとめて出すこと。
 // panels.js はほかのファイルに頼るので、spanIn と、それが使う日付の小物だけを取り出して Node で動かす。
 func TestSpanIn(t *testing.T) {
 	node, err := exec.LookPath("node")

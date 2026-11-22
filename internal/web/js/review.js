@@ -173,38 +173,32 @@ function spark(k, plain){ // 8 期間の推移（記録のない期間は飛ば�
   return `<span class="spark"><span class="sr">${esc(txt)}</span><span class="spk" aria-hidden="true"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><polyline points="${line}"/>${pts.map((p, i) => p.v == null ? "" : `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="1.6"/>`).join("")}${pts[SPN].v != null ? `<circle${part ? ' class="part"' : ""} cx="${x(SPN)}" cy="${y(pts[SPN].v)}" r="2.6"/>` : ""}${hits}</svg><span class="ends"><span>${sl(f0)} ${fmtM(k, pts[f0].v)}</span><span>${sl(SPN)}${part ? esc(t(" (so far)")) : ""} <b>${fmtM(k, pts[SPN].v)}</b></span></span></span><small aria-hidden="true">${esc((MET[k].cap ? `${t(MET[k].cap)} · ` : "") + (plain ? (st.mode === "month" ? t("{n}-month range {range}", {n: SPN + 1, range: rng}) : t("{n}-week range {range}", {n: SPN + 1, range: rng})) : `${GOTO[k] ? `${t(HELP[k].n)} · ` : ""}${st.mode === "month" ? (MET[k].low ? t("{n}-month range {range} · higher is worth a look", {n: SPN + 1, range: rng}) : t("{n}-month range {range} · lower is worth a look", {n: SPN + 1, range: rng})) : (MET[k].low ? t("{n}-week range {range} · higher is worth a look", {n: SPN + 1, range: rng}) : t("{n}-week range {range} · lower is worth a look", {n: SPN + 1, range: rng}))}`))}</small></span>`;
 } // 向き（高いほど・低いほど見直す）だけを書く。印が付いた基準（決まった値）は、ダイアログの見出しのすぐ下に出す
 /* 見直す候補：指標が決まった基準を超えたものを拾う（AI は使わない。判定ではなく、確かめる候補） */
-// 見直す候補の文は 2 つ持つ。en は英語のまま（週報のプロンプトに入れる。訳さない）、L は画面に出す今の言語の文。
-// 鍵は英語の文で、{name} を埋める。英語の画面では L と en は同じになる
+// 見直す候補の文（L）は、画面に出す今の言語の文。鍵は英語の文で、{name} を埋める
 const fillEn = (s, v) => s.replace(/\{(\w+)\}/g, (m, k) => Object.prototype.hasOwnProperty.call(v, k) ? String(v[k]) : m);
-const pluralEn = (n, one) => `${n} ${n === 1 ? one : one + "s"}`;
 // 見直す候補は、次に何を変えればよいかがはっきりするものだけ：利用上限・修正の多さ（またはつまずき）・長くなった会話・モデルの選び方・
 // 何も残さなかったセッションの費用・繰り返したプロンプト（費用の増え方・キャッシュ・切り替えなどは数字としてサマリーにある）
 function findList(w, pw, unit){
   const F = [], u = w.usage || {}, o = w.outputs || {}, {ws, we} = period();
   const M = unit === "月", V = vsPrev(pw, unit);
-  // en と L で違う値：期間の言い方と、数と名詞（plural は日本語の画面で日本語になる）
+  // 期間の言い方と、数と名詞（plural は日本語の画面で日本語になる）
   const cur = soFar() != null; // 表示中の期間が今の週・月でなければ「今週」と言わない
-  const en = {period: cur ? uThis(unit) : M ? "in the month shown" : "in the week shown", last: uLast(unit), prev: V.n == null ? uLast(unit) : V.range};
   const loc = {period: cur ? (M ? t("this month") : t("this week")) : M ? t("in the month shown") : t("in the week shown"), last: M ? t("last month") : t("last week")}; loc.prev = V.n == null ? loc.last : V.range;
-  const tx = (s, v = {}, l = {}) => ({en: fillEn(s, {...en, ...v}), l: t(s, {...loc, ...v, ...l})});
-  const ses = n => [{sessions: pluralEn(n, "session")}, {sessions: plural(n, "session")}];
-  const add = (k, score, see, why, rule, ids) => F.push({k, score, see: see.en, why: why.en, rule: rule.en, ids: ids || [],
-    L: {see: see.l, why: why.l, rule: rule.l}});
+  const tx = (s, v = {}) => t(s, {...loc, ...v});
+  const ses = n => ({sessions: plural(n, "session")});
+  const add = (k, score, see, why, rule, ids) => F.push({k, score, ids: ids || [], L: {see, why, rule}});
   const LH = limitHits(ws, we);
   if (LH.length){
     const hl = (rs, hs) => hs.slice(-3).map(h => h.r ? fillEn(rs, {time: `${md(h.t)} ${hm(h.t)}`, r: h.r}) : `${md(h.t)} ${hm(h.t)}`).join(TSEP()) + (hs.length > 3 ? TSEP() + "…" : "");
-    // 英語の文（週報のプロンプトにも入る）は、日付と解除時刻も英語のまま
-    const v = [{n: LH.length, list: inEnglish(() => hl("{time} (resets {r})", limitHits(ws, we)))}, {list: hl(t("{time} (resets {r})"), LH)}];
-    add("limits", 40, LH.length === 1 ? tx("Hit the usage limit once: {list}", ...v) : tx("Hit the usage limit {n} times: {list}", ...v), tx("Hitting a limit stops your work until it resets. The cause is often in how you worked just before"), tx("1+ hit"), [...new Set(LH.map(h => h.s.id))].reverse());
+    const v = {n: LH.length, list: hl(t("{time} (resets {r})"), LH)};
+    add("limits", 40, LH.length === 1 ? tx("Hit the usage limit once: {list}", v) : tx("Hit the usage limit {n} times: {list}", v), tx("Hitting a limit stops your work until it resets. The cause is often in how you worked just before"), tx("1+ hit"), [...new Set(LH.map(h => h.s.id))].reverse());
   }
   if (w.fixRate != null && w.prompts >= 10 && w.fixRate >= 20)
     add("fix", w.fixRate, tx("{pct}% of prompts had corrections or interruptions", {pct: w.fixRate}), tx("When a first prompt misses, redoing it costs time and tokens"), tx("20% or more, with 10+ prompts"), w.friction.map(f => f.id));
   else if (w.friction.length)
-    add("friction", 18, tx("{sessions} with possible friction", ...ses(w.frictionN ?? w.friction.length)), tx("Rework is concentrated in a few sessions. Opening them usually hints at the cause"), tx("A session with 1+ correction or interruption, or 15+ prompts"), w.friction.map(f => f.id));
+    add("friction", 18, tx("{sessions} with possible friction", ses(w.frictionN ?? w.friction.length)), tx("Rework is concentrated in a few sessions. Opening them usually hints at the cause"), tx("A session with 1+ correction or interruption, or 15+ prompts"), w.friction.map(f => f.id));
   const LC = longCtxOf(ws, we);
   if (LC.length){
-    const [a, b] = ses(LC.length);
-    add("longctx", 34, tx("{sessions} where the conversation grew long and the input read per response rose to {x}× the first part (peak {peak} tokens)", {...a, x: Math.round(Math.max(...LC.map(s => s.ctx[1] / s.ctx[0]))), peak: tok(Math.max(...LC.map(s => s.ctx[2])))}, b), tx("The longer a conversation, the more earlier context each response rereads, so similar prompts get heavier"), tx("Later input 4×+ the first part, peak at half the model's context window or more (100K+ tokens when the window is unknown), $0.5+"), LC.map(s => s.id));
+    add("longctx", 34, tx("{sessions} where the conversation grew long and the input read per response rose to {x}× the first part (peak {peak} tokens)", {...ses(LC.length), x: Math.round(Math.max(...LC.map(s => s.ctx[1] / s.ctx[0]))), peak: tok(Math.max(...LC.map(s => s.ctx[2])))}), tx("The longer a conversation, the more earlier context each response rereads, so similar prompts get heavier"), tx("Later input 4×+ the first part, peak at half the model's context window or more (100K+ tokens when the window is unknown), $0.5+"), LC.map(s => s.id));
   }
   const LT = lightOf(ws, we);
   if (u.cost >= 2 && LT.c >= Math.max(1, u.cost * 0.1))

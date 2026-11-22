@@ -44,7 +44,7 @@ An aspect run to bring the open items up to date after v1.0–v4.6.1 (four major
 |---|---|
 | tools/check.sh | pass |
 | Screenshots retaken at ci.yml's `KIROKU_FAKE_NOW` | 0 changed (current); `demo.gif` not retaken (no Playwright ffmpeg in this container) |
-| `/report-eval`, 2 runs per report, before → after | day 2/2 → 2/2; session 0/2 → 2/2 (`pull/77` was missing: the prompt had no PR address); week 0/2 → 0/2 by the grader (one run now advises a lighter model, but also names the secret's variable and the injected text while warning about them; the other still skips the model signal) |
+| `/report-eval`, 2 runs per report, before → after | day 2/2 → 2/2; session 0/2 → 2/2 (`pull/77` was missing: the prompt had no PR address); week 0/2 → 0/2 by the grader (one run now advises a lighter model, but also names the secret's variable and the injected text while warning about them; the other still skips the model signal). The weekly mode was then removed (see Resolved) |
 | Clarity, blind grader (sum of aspects 1–5 and 7, mean of 2 runs, out of 30) | day 25.5 → 27; week 24.5 → 25.5; session 24 → 28.5 (aspect 6: 4 → 5). Day advice fell 4 → 3: "Next actions" held routine to-dos with no figure behind them |
 | Prompt size (approx tokens) | day 2070 → 2099, week 3238 → 3265, session 1338 → 1348 |
 
@@ -59,11 +59,10 @@ An aspect run to bring the open items up to date after v1.0–v4.6.1 (four major
 ### Open items
 Closed because 4.0 removed "Analyze with AI" and `kiroku serve --ai`: real runs with Codex and Kiro CLI; the Kiro and Codex read-only mechanism and Claude's `--add-dir`; `ai.js` untested paths; `/ai/run` errors in Japanese; `--ai=false` through `cmdServe`; the report prompt suggesting commands the `--ai` run couldn't use; Windows cleanup of a stopped AI run.
 
-Resolved: the pasted `git show` running repository programs (v0.40.0, `gitPasteFlags`, with tests); the Claude Code compaction-only moved file (this PR); `KIRO_HOME` and V2 / Kiro IDE sessions in `~/.kiro` (this PR; whether V2 or Kiro IDE ever write to `KIRO_HOME` is still undocumented, and reading both places covers either); `docs/sources.md` on V3's resume list (no longer there).
+Resolved: the weekly report mode of `reportPrompt`, unreachable from the view since only the daily button called it, was removed by the maintainer's decision (this PR; `/report-eval` and `tools/reportbench` now cover day and session only, and the e2e checks that used the weekly prompt use the daily one); the pasted `git show` running repository programs (v0.40.0, `gitPasteFlags`, with tests); the Claude Code compaction-only moved file (this PR); `KIRO_HOME` and V2 / Kiro IDE sessions in `~/.kiro` (this PR; whether V2 or Kiro IDE ever write to `KIRO_HOME` is still undocumented, and reading both places covers either); `docs/sources.md` on V3's resume list (no longer there).
 
 Carried:
-- The weekly report mode of `reportPrompt` is no longer reachable from the view (only the daily button calls it; the guide no longer mentions a weekly report) but `/report-eval` still tests it. Decides: maintainer (drop the mode, or bring back a button)
-- Weekly report: the lighter-model signal is still taken in 1 of 2 runs; a run that warns about a leaked key or an injection names them, which the grader counts as a violation. Decide whether the grader should allow a warning that names the variable without its value. Due: next prompts run
+- Reports: a run that warns about a leaked key or an injection names them, which the grader counts as a violation (seen in the weekly runs before that mode was removed). Decide whether the grader should allow a warning that names the variable without its value. Due: next prompts run
 - Daily report: "Next actions" can be routine to-dos ("get PR #77 reviewed") with no figure behind them; session reviews give elapsed time ("about 48 minutes") next to 31m active, and the playbook's first prompt keeps placeholders. Due: next prompts run
 - Kiro CLI `KIRO_DATA_DIR` undocumented. Due: next data audit
 - Kiro Crew `child_sid` link for Codex sessions started by a Crew subagent. Due: next data audit
@@ -77,7 +76,7 @@ Carried:
 
 ### Next time
 - A full run: the last one was at v0.39.0, and the view changed through four major versions since
-- prompts: the weekly lighter-model advice, and the grader's rule for warnings
+- prompts: the grader's rule for warnings
 
 ## 2026-11-20 — security and ux before v3.0.0 (PR #506)
 
