@@ -1,1 +1,0 @@
-- The view is always dark, whatever the system setting; the theme button is removed. The page shown while `kiroku serve` reads history is dark too
