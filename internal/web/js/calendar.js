@@ -210,8 +210,8 @@ function monthGrid(shown, ms, me, todayKey){
     // 週の合計は、この月の日の分だけ（月の外の日を足すと、マスの数と合わない）。その週まるごとの数はツールチップに
     const W = WEEKS[key(wk)], mi = [0,1,2,3,4,5,6].map(c => addDays(wk, c)).filter(d => d.getMonth() === st.month.getMonth()).map(d => S ? S.days[d.getDate()-1] : null).filter(Boolean);
     const part = {active: mi.reduce((a, x) => a + (x.active || 0), 0), cost: mi.reduce((a, x) => a + (x.cost || 0), 0), tokens: mi.reduce((a, x) => a + (x.tokens || 0), 0), credits: mi.reduce((a, x) => a + (x.credits || 0), 0), commits: mi.reduce((a, x) => a + (x.commits || 0), 0)};
-    const whole = W && mi.length < 7 ? [`${t("Whole week, with days in other months")}: ${dur(W.active)}${W.usage && W.usage.cost > 0 ? ` · ${usd(costOf(W.usage))}` : ""}${W.usage && W.usage.credits ? ` · ${crN(W.usage.credits)} credits` : ""}`] : [];
-    h += `<button class="cell wkc" data-w="${key(wk)}"${tipAttr(t("Week {n}", {n: isoWeek(wk)}), part.active ? [`${t("Active")} ${dur(part.active)}`, ...useLines(part), `${t("Git commits")} ${part.commits}`, ...whole] : t("No records"))}><span class="dn">${isJA() ? `${isoWeek(wk)}週` : `W${isoWeek(wk)}`}</span>${part.active ? calShort(part.active, part, un, kinds) : ""}</button>`;
+    const whole = W && W.active && mi.length < 7 ? [`${t("Whole week, with days in other months")}: ${dur(W.active)}${W.usage && W.usage.cost > 0 ? ` · ${usd(costOf(W.usage))}` : ""}${W.usage && W.usage.credits ? ` · ${t("Credits")} ${crN(W.usage.credits)}` : ""}`] : [];
+    h += `<button class="cell wkc" data-w="${key(wk)}"${tipAttr(t("Week {n}", {n: isoWeek(wk)}), part.active ? [`${t("Active")} ${dur(part.active)}`, ...useLines(part), `${t("Git commits")} ${part.commits}`, ...whole] : whole.length ? [t("No records in this month's days"), ...whole] : t("No records"))}><span class="dn">${isJA() ? `${isoWeek(wk)}週` : `W${isoWeek(wk)}`}</span>${part.active ? calShort(part.active, part, un, kinds) : ""}</button>`;
     for (let c = 0; c < 7; c++){
       const d = addDays(wk, c), ds = d.getTime()/1000, de = addDays(d,1).getTime()/1000, inM = d.getMonth() === st.month.getMonth();
       if (!inM){ h += `<div class="cell out"><span class="dn">${d.getDate()}</span></div>`; continue; }
@@ -234,7 +234,8 @@ function monthGrid(shown, ms, me, todayKey){
 // その日の最初のセッション（なければ日の見出し）にフォーカスする（月のマスから来たとき、押した日を探し直さなくてよいように）
 function focusDay(dk){
   const [y, m, d] = dk.split("-").map(Number), i = (new Date(y, m-1, d).getDay() + 6) % 7, col = $("#tl").querySelectorAll(".day")[i], head = $("#tl").querySelectorAll(".head")[i];
-  if (!col) return; const sc = $("#tl .calscroll");
+  if (!col){ const e = $("#tolast") || $("#tl .empty"); if (e){ if (!e.matches("button")) e.tabIndex = -1; e.focus({preventScroll: true}); } return; } // 記録のない週：押したマスは描き直しで消えるので、空の案内へ
+  const sc = $("#tl .calscroll");
   if (sc && sc.scrollWidth > sc.clientWidth) sc.scrollLeft = Math.max(0, col.offsetLeft - (sc.querySelector(".hours") || {offsetWidth: 0}).offsetWidth);
   [col, head].forEach(e => { if (!e) return; e.classList.remove("flash"); void e.offsetWidth; e.classList.add("flash"); });
   const r = col.querySelector(".run"); (r || head).setAttribute?.("tabindex", r ? r.getAttribute("tabindex") || "0" : "-1"); (r || head).focus({preventScroll: true}); }

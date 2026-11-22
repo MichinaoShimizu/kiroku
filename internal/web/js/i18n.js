@@ -886,7 +886,6 @@ const JA_TEXT = {
   "Repositories with commits": "コミットのあったリポジトリ",
   "Days with commits": "コミットのあった日",
   "Pushes": "プッシュ",
-  "{n} commits sent": "{n} コミットを送った",
   "{n} sessions": "{n} セッション",
   "Sessions with possible friction": "つまずいたかもしれないセッション",
   "Output and unit cost": "出力と単価",
@@ -939,7 +938,6 @@ const JA_TEXT = {
   "Off-hours share {off}% is higher than in most of your past {unit} (usually up to {q3}%)": "時間外の割合 {off}% は、過去の{unit}の多くより高い（ふだんは {q3}% まで）",
   "Slowest 10%": "遅い方の 10%",
   "Nothing crossed a threshold this period": "この期間に基準を超えた指標はありません",
-  "{n} commits sent, including commits made before the period": "{n} コミットを送った（期間より前のコミットも含む）",
   "To compare with your usual range, kiroku needs {min} past {unit} with records (have {n}).": "いつもの範囲と比べるには、記録のある過去の{unit}が {min} 要ります（いまは {n}）。",
   "Cost details": "コストの内訳",
   "Usage": "使い方",
@@ -953,6 +951,8 @@ const JA_TEXT = {
   "Whole week, with days in other months": "ほかの月の日も含めた週全体",
   "Week totals count this month's days. Tap a date or week to open it.": "週の合計は、この月の日の分です。日付か週をタップすると開きます。",
   "Week totals count this month's days. Click a date or week to open it.": "週の合計は、この月の日の分です。日付か週を押すと開きます。",
+  "No records in this month's days": "この月の日には記録がありません",
+  "{c} sent, including commits made before the period": "{c}を送った（期間より前のコミットも含む）",
 };
 // t は英語の文 s を今の言語にする。{name} は vars の値で埋める（日本語では語順が変わるので、文ごと鍵にする）
 function t(s, vars){
