@@ -1,1 +1,0 @@
-- Summary: Kiro credits per Git commit. Kiro does not record which commits it ran, so it divided Kiro's credits by commits made by hand or by other agents

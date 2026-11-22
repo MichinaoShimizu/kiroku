@@ -118,3 +118,32 @@ func TestGuideRecordsTable(t *testing.T) {
 		}
 	}
 }
+
+// 見直す候補（review.js の add("…")）は、どれも説明（HELP）を持つこと。GOTO で別の指標に印を付けるものは、その先の説明を。
+// 説明がないと、サマリーの「見直す候補」の行とダイアログ（openWorth）で開けず、候補が見えなくなる
+func TestFindingsHaveHelp(t *testing.T) {
+	src, err := jsFiles.ReadFile("js/review.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	help := block(t, "HELP")
+	goTo := map[string]string{}
+	if m := regexp.MustCompile(`const GOTO = \{([^}]*)\}`).FindSubmatch(src); m != nil {
+		for _, kv := range regexp.MustCompile(`(\w+):\s*"(\w+)"`).FindAllSubmatch(m[1], -1) {
+			goTo[string(kv[1])] = string(kv[2])
+		}
+	}
+	ids := regexp.MustCompile(`\badd\("(\w+)"`).FindAllSubmatch(src, -1)
+	if len(ids) == 0 {
+		t.Fatal("review.js に見直す候補（add(\"…\")）が見つからない")
+	}
+	for _, m := range ids {
+		id := string(m[1])
+		if g, ok := goTo[id]; ok {
+			id = g
+		}
+		if !strings.Contains(help, "\n  "+id+": {n: ") {
+			t.Errorf("見直す候補 %s（印は %s）に HELP の説明がない", m[1], id)
+		}
+	}
+}

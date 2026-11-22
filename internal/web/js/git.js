@@ -34,7 +34,7 @@ function commitsOf(s){ // セッションが作ったコミットと、同じプ
 }
 function fileRows(files, n, repo){
   const num = v => v < 0 ? "bin" : v;
-  return `<ul class="gfiles">${files.map(f => `<li title="${esc(f.path)}"><span>${ico("file")}${fileA(f.url || localHref(f.path, repo), esc(f.path))}</span><b><i>+${num(f.added)}</i> −${num(f.removed)}</b></li>`).join("")}</ul>${n > files.length ? `<p class="more">${esc(JA ? t("{n} more files", {n: n - files.length}) : plural(n - files.length, "more file"))}</p>` : ""}`;
+  return `<ul class="gfiles">${files.map(f => `<li title="${esc(f.path)}"><span>${ico("file")}${fileA(f.url || localHref(f.path, repo), esc(f.path))}</span><b>${lnPM(num(f.added), num(f.removed))}</b></li>`).join("")}</ul>${n > files.length ? `<p class="more">${esc(JA ? t("{n} more files", {n: n - files.length}) : plural(n - files.length, "more file"))}</p>` : ""}`;
 }
 function fileLink(s, abs){ // セッションの間のコミットのうち、最後にそのファイルを変えたコミットでのリンク
   const p = abs.replace(/\\/g, "/");
@@ -44,7 +44,7 @@ function fileLink(s, abs){ // セッションの間のコミットのうち、�
 }
 function sessionCommits(s){
   const cs = commitsOf(s); if (!cs.length) return "";
-  return `<h3>${esc(t("Commits during this session"))} · ${cs.length}</h3>${cs.map(c => `<button class="gc-row" data-git="${esc(c.hash)}"><time>${hm(c.t)}</time><span><i class="gtag${c.ai ? " ai" : ""}">${GIT_ICON}${esc(c.hash.slice(0,7))}</i> ${esc(c.subject)}</span><b>+${c.added} −${c.removed}</b></button>`).join("")}`;
+  return `<h3>${esc(t("Commits during this session"))} · ${cs.length}</h3>${cs.map(c => `<button class="gc-row" data-git="${esc(c.hash)}"><time>${hm(c.t)}</time><span><i class="gtag${c.ai ? " ai" : ""}">${GIT_ICON}${esc(c.hash.slice(0,7))}</i> ${esc(c.subject)}</span><b>${lnPM(c.added, c.removed)}</b></button>`).join("")}`;
 }
 function commitDetail(c){
   const ses = DATA.find(x => x.id === c.session) || DATA.find(x => x.project === c.project && c.t >= x.start - 60 && c.t <= x.end + 600);
@@ -54,8 +54,8 @@ function commitDetail(c){
     <div class="dcols"><div class="dcol">
     <div class="mini">
       <div><div class="k">${esc(t("Files changed"))}</div><div class="v">${c.nFiles}</div></div>
-      <div><div class="k">${esc(t("Added"))}</div><div class="v"><small>+</small>${c.added}<small> ${esc(t("lines"))}</small></div></div>
-      <div><div class="k">${esc(t("Removed"))}</div><div class="v"><small>−</small>${c.removed}<small> ${esc(t("lines"))}</small></div></div>
+      <div><div class="k">${esc(t("Added"))}</div><div class="v la"><small>+</small>${c.added}<small> ${esc(t("lines"))}</small></div></div>
+      <div><div class="k">${esc(t("Removed"))}</div><div class="v lr"><small>−</small>${c.removed}<small> ${esc(t("lines"))}</small></div></div>
     </div>
     ${c.body ? `<h3>${esc(t("Message body"))}</h3><p class="gbody">${esc(c.body)}</p>` : ""}
     ${ses ? sesCard(ses, esc(c.session ? t("Session that made this commit") : t("Session running at this time"))) : ""}
@@ -80,7 +80,7 @@ function bindGitEvents(root){ // コミット・push・PR を開くボタン（�
   root.querySelectorAll("[data-git]").forEach(b => b.onclick = e => { e.stopPropagation(); select("git:" + b.dataset.git); });
   root.querySelectorAll("[data-push]").forEach(b => b.onclick = e => { e.stopPropagation(); select("push:" + b.dataset.push); });
   root.querySelectorAll("[data-pr]").forEach(b => b.onclick = e => { e.stopPropagation(); select("pr:" + b.dataset.pr); }); }
-const gitRow = c => `<button class="gc-row" data-git="${esc(c.hash)}"><time>${md(c.t)} ${hm(c.t)}</time><span><i class="gtag${c.ai ? " ai" : ""}">${GIT_ICON}${esc(c.hash.slice(0,7))}</i> ${esc(c.subject)}</span><b>+${c.added} −${c.removed}</b></button>`;
+const gitRow = c => `<button class="gc-row" data-git="${esc(c.hash)}"><time>${md(c.t)} ${hm(c.t)}</time><span><i class="gtag${c.ai ? " ai" : ""}">${GIT_ICON}${esc(c.hash.slice(0,7))}</i> ${esc(c.subject)}</span><b>${lnPM(c.added, c.removed)}</b></button>`;
 function pushDetail(p){
   const P = $("#panel"), byHash = new Map((META.git || []).map(c => [c.hash, c]));
   const hs = p.hashes || [], known = hs.map(h => byHash.get(h)).filter(Boolean), unknown = hs.filter(h => !byHash.has(h));

@@ -30,6 +30,8 @@ function dur(m, html){ m = Math.round(m); const h = Math.floor(m/60), r = m%60;
   const u = x => html ? `<small>${x}</small>` : x; return h ? `${h}${u("h")}${r ? ` ${r}${u("m")}` : ""}` : `${r}${u("m")}`; }
 function tok(n){ n = n || 0; return n >= 1e9 ? (n/1e9).toFixed(1)+"B" : n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? Math.round(n/1e3)+"K" : String(n); }
 const commas = n => n.toLocaleString(LOC()); // 1,234（数のカンマ区切りはこれで）
+// 足した行・消した行：git diff にならって、足した行は緑、消した行は赤（a と r は書式を整えた数の文字列）
+const lnPM = (a, r) => `<span class="la">+${esc(String(a))}</span> <span class="lr">−${esc(String(r))}</span>`;
 function usd(v){ return v == null ? "—" : v > 0 && v < 0.01 ? "<$0.01" : "$" + (v >= 100 ? commas(Math.round(v)) : v.toFixed(2)); }
 const usdS = v => v >= 9.95 ? "$" + commas(Math.round(v)) : v >= 0.05 ? "$" + v.toFixed(1) : "<$0.1"; // 小数 1 桁に丸めて 10 になる値は整数に、0.1 に届かない値は "<$0.1" に // 狭いマス用に、桁を減らした推定費用
 // usdH は usd を HTML に入れる形にする（$ を小さく出す。"<$0.01" の < もエスケープする）
