@@ -362,18 +362,22 @@ function insightH(F){
   const groups = [...new Set(avail.map(grpOf))];
   const sel = `<select class="insksel" aria-label="${esc(t("Metric"))}">${groups.map(gn => `<optgroup label="${esc(gn)}">${avail.filter(x => grpOf(x) === gn).map(x => `<option value="${x}"${x === k ? " selected" : ""}>${esc(insName(x))}</option>`).join("")}</optgroup>`).join("")}</select>`; // 狭い画面では、切り替えの代わりに選択リスト（横に隠さない）
   // カードは「コスト」（時間・クレジット・金額・トークン）・「出力」（コミット・変えた行）・「使い方」の 3 つに分けて並べる
-  const cards = [{sec: t("Cost details")},
+  // よく見るカード（流れ・ばらつき・アウトプット・作業の種類・時間帯）を上に。ほかは「その他」として、たたんだ箱の中に（開けば見られる）
+  const col = b => b ? `<div class="inscol">${b}</div>` : "";
+  const cards = [{sec: t("Cost details")}, {h: col(insSankey())}, {h: col(insBox())},
+    {sec: t("Output and unit cost")}, {h: card(t("Outputs"), insOutputs(), " iout wide")},
+    {sec: t("How you used AI")}, {h: card(t("When you worked"), insHeat())},
+    {sec: t("Other charts"), more: true},
     {h: `<div class="inscol"><div class="inshead"><h4>${esc(t("Trend"))}</h4><div class="segc insk trendk" role="group" aria-label="${esc(t("Metric"))}">${tabs}</div>${sel}</div>${insChart(k)}</div>`},
-    {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insCum())},
-    {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insWhere())}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insWater())}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insSankey())}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insBox())}, {h: card(t("Tokens by type"), insTokens())},
+    {h: col(insCum())}, {h: col(insWhere())}, {h: col(insWater())}, {h: card(t("Tokens by type"), insTokens())},
     {h: card((HISTK(DATA.filter(s => inP(s, period().ws, period().we))) || {}).title || "", insHist())},
-    {h: card(t("By agent"), insAgents(), " agw")},
-    {sec: t("Output and unit cost")}, {h: card(t("Outputs"), insOutputs(), " iout wide")}, {h: (b => b ? `<div class="inscol isccol">${b}</div>` : "")(insScatter())},
-    {sec: t("How you used AI")}, {h: card(t("How you worked"), insWork(), " iwork")}, {h: card(t("Usage"), insUsage())}, {h: card(t("When you worked"), insHeat())}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insGantt())},
+    {h: card(t("By agent"), insAgents(), " agw")}, {h: card(t("Most edited files"), (insEditsBody() || {}).files)},
+    {h: (b => b ? `<div class="inscol isccol">${b}</div>` : "")(insScatter())},
+    {h: card(t("How you worked"), insWork(), " iwork")}, {h: card(t("Usage"), insUsage())}, {h: col(insGantt())},
   ].filter(c => c.h || c.sec);
   // 見出しごとに、カードを折り返す横の並び（.insrow）に入れる。広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる
-  const secs = []; cards.forEach(c => c.sec ? secs.push({sec: c.sec, hs: []}) : secs.length && secs[secs.length - 1].hs.push(c.h));
-  const body = secs.filter(x => x.hs.length).map(x => `<h3 class="inssec">${esc(x.sec)}</h3><div class="insrow">${x.hs.join("")}</div>`).join("");
+  const secs = []; cards.forEach(c => c.sec ? secs.push({sec: c.sec, more: c.more, hs: []}) : secs.length && secs[secs.length - 1].hs.push(c.h));
+  const body = secs.filter(x => x.hs.length).map(x => x.more ? `<details class="insmore"${store.get("insMore", false) ? " open" : ""}><summary class="inssec">${esc(x.sec)} <small>${esc(t("{n} cards", {n: x.hs.length}))}</small></summary><div class="insrow">${x.hs.join("")}</div></details>` : `<h3 class="inssec">${esc(x.sec)}</h3><div class="insrow">${x.hs.join("")}</div>`).join("");
   return `<section class="insight" aria-labelledby="ins-h"><h3 id="ins-h" class="sr">${esc(t("Overview"))}</h3>${insHeadlines(F)}
     <div class="insg">${body}</div></section>`;
 }
@@ -398,6 +402,7 @@ function bindInsight(R){
   R.querySelectorAll(".uksw [data-uk]").forEach(b => b.onclick = () => { const sec = b.closest(".ik-unit"); sec.dataset.uk = b.dataset.uk; store.set("unitKind", b.dataset.uk);
     sec.querySelectorAll(".uksw [data-uk]").forEach(x => x.setAttribute("aria-pressed", String(x === b))); });
   R.querySelectorAll(".iwlink").forEach(b => b.onclick = () => insOpenWorth(b.dataset.goto, b)); // 見直す候補の 1 行
+  R.querySelectorAll("details.insmore").forEach(d => d.ontoggle = () => store.set("insMore", d.open)); // 「その他のグラフ」を開いたかを覚える
   // 式は、指標名の横の「ƒx」から、その数字（タイル・枠・グラフのカード）ごとに開く。ふだんは平易な 1 行だけを見せる
   R.querySelectorAll(".insight .itile, .insight .stat, .insight .inscol").forEach(el => {
     const own = [...el.querySelectorAll(".fxo, .ichip .cx")].some(f => f.closest(".itile, .stat, .inscol") === el); if (!own) return;
@@ -684,7 +689,7 @@ function insEditsBody(){
   const gc = new Map(); gitIn(ws, we).forEach(c => (c.files || []).forEach(f => { const k = `${c.repo}/${f.path}`, z = gc.get(k) || {n: 0, ai: 0}; z.n++; if (c.ai) z.ai++; gc.set(k, z); }));
   const gcOf = x => gc.get(x.f) || null;
   const rows = top.map(x => `<div class="iwr"><span class="iwn iwf" title="${esc(x.f)}">${multi ? `<small>${esc(x.project)}</small> ` : ""}${fileA(href(x), esc(x.rel))}</span><span class="iwb"><span style="width:${((x.a + x.d) * 100 / w0).toFixed(1)}%;background:var(--acc)"></span></span><span class="iwv">+${n(x.a)} −${n(x.d)}${(z => z ? ` · ${esc(t("{c}, {ai} by AI", {c: plural(z.n, "commit"), ai: z.ai}))}` : "")(gcOf(x))}</span><button type="button" class="iwses" data-sid="${esc(x.sid)}" title="${esc(t("Open the session that changed it most"))}">${esc(t("{n}×", {n: x.n}))}</button></div>`).join("");
-  return {stats: S, files: `<figure class="insfig"><figcaption class="iwcap">${esc(t("Most edited files"))}</figcaption><div class="iwrows" role="table" aria-label="${esc(t("Most edited files"))}"><div class="iwr iwh" aria-hidden="true"><span>${esc(t("File"))}</span><span></span><span class="iwv">${esc(t("Lines · Git commits"))}</span><span>${esc(t("Edits"))}</span></div>${rows}</div><p class="ifxs">${fx(t("+ − = lines added and removed, compared before and after each edit; × = edits"), "", t("Lines: before and after each edit, an estimate"))}</p></figure>`, nf, add, del};
+  return {stats: S, files: `${say(t("{file} changed the most: {lines} lines in {n} edits", {file: top[0].rel, lines: n(top[0].a + top[0].d), n: n(top[0].n)}))}<figure class="insfig"><div class="iwrows" role="table" aria-label="${esc(t("Most edited files"))}"><div class="iwr iwh" aria-hidden="true"><span>${esc(t("File"))}</span><span></span><span class="iwv">${esc(t("Lines · Git commits"))}</span><span>${esc(t("Edits"))}</span></div>${rows}</div><p class="ifxs">${fx(t("+ − = lines added and removed, compared before and after each edit; × = edits"), "", t("Lines: before and after each edit, an estimate"))}</p></figure>`, nf, add, del};
 }
 /* 成果：コミット（うち AI）・変えた行・PR・成果まで届いたセッション・コミットあたりの費用。割った指標は式で */
 function insOutputs(){
@@ -702,7 +707,7 @@ function insOutputs(){
   const syE = E ? t("AI edited {n} files (+{a} −{d} lines)", {n: n(E.nf), a: n(E.add), d: n(E.del)}) : "";
   // Git（リポジトリ）と AI の編集（履歴）は元が違うので、列と小見出しで分け、足したり割ったりして混ぜない
   const col = (cls, icon, h, note, body) => `<div class="iosec ${cls}" role="group" aria-label="${esc(h)}"><h6 class="iksh">${ico(icon)}${esc(h)} <small>${esc(note)}</small></h6>${body}</div>`;
-  return `<div class="iout2">${col("outGit", "commit", t("Git"), t("from your repositories"), S ? `${say(syG)}<div class="stats istats">${S}</div>` : noneH(esc(t("No Git commits for this selection"))))}${E ? col("outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not"), `${say(syE)}<div class="stats istats">${E.stats}</div>${E.files}`) : ""}${S ? `<div class="iokinds">${insKinds()}</div>` : ""}</div>`; // 作業の種類は 2 列の下に幅いっぱいで（Git の列にだけ置くと、左の列が長くなって右の列の下が空く）
+  return `<div class="iout2">${col("outGit", "commit", t("Git"), t("from your repositories"), S ? `${say(syG)}<div class="stats istats">${S}</div>` : noneH(esc(t("No Git commits for this selection"))))}${E ? col("outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not"), `${say(syE)}<div class="stats istats">${E.stats}</div>`) : ""}${S ? `<div class="iokinds">${insKinds()}</div>` : ""}</div>`; // 作業の種類は 2 列の下に幅いっぱいで（Git の列にだけ置くと、左の列が長くなって右の列の下が空く）
 }
 /* 作業の種類：コミットの件名を決まった規則で分ける（AI は使わない）。Conventional Commits の型（feat: など）があればそれを、なければ先頭の動詞を見る。
    件名は信用できない入力なので、分類にだけ使い、画面に出すときは今までどおりエスケープする */

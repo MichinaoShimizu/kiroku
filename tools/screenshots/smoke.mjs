@@ -45,6 +45,7 @@ async function openContext(env, locale, csp) {
   // CSP の違反はページの中で拾って知らせる（関数を渡す仕組みは CSP の外なので止められない）
   await ctx.exposeFunction("kirokuCSPViolation", v => csp.push(v));
   await ctx.addInitScript(() => addEventListener("securitypolicyviolation", e => window.kirokuCSPViolation(`${e.effectiveDirective} ${e.blockedURI || "inline"} ${e.sourceFile || ""}:${e.lineNumber || ""}`)));
+  await ctx.addInitScript(() => { try { if (localStorage.getItem("kiroku:insMore") == null) localStorage.setItem("kiroku:insMore", "true"); } catch (e) {} }); // 「その他のグラフ」を開いた状態で確かめる（たたむことは別に確かめる）
   const p = await ctx.newPage();
   const errors = [];
   p.on("pageerror", e => errors.push(e.message));
@@ -135,6 +136,10 @@ async function run(env) {
     const at = () => p.evaluate(() => ["#rd", "#view"].map(q => { const r = document.querySelector(q).getBoundingClientRect(); return [Math.round(r.x), Math.round(r.y + scrollY)]; }));
     const pos0 = await at();
     await view("sum");
+    check("よく見るカードが上に、その他のグラフはたたんだ箱にあり、初めはたたんである。開いたかは覚える", await p.evaluate(async () => { const top = [...document.querySelectorAll("#review .insg > .insrow h4")].map(h => h.textContent);
+      store.set("insMore", false); summary(); const d0 = document.querySelector("#review details.insmore"); const closed = d0 && !d0.open && !d0.querySelector(".insrow").checkVisibility();
+      d0.querySelector("summary").click(); await new Promise(r => setTimeout(r, 50)); const saved = store.get("insMore", false) === true; summary();
+      return closed && saved && document.querySelector("#review details.insmore").open && top.some(x => /When you worked/.test(x)) && !top.some(x => /^Trend/.test(x)); }));
     check("サマリーに切り替えると、カレンダーは隠れる", await p.locator("#tl").isHidden() && await p.locator("#review").isVisible());
     const pos1 = await at();
     check("切り替えても、期間の見出しと切り替えのボタンは動かない（上の帯の高さでずれない）", JSON.stringify(pos0) === JSON.stringify(pos1), `${JSON.stringify(pos0)} → ${JSON.stringify(pos1)}`);
@@ -502,7 +507,7 @@ async function run(env) {
       const ed = await p.evaluate(() => { const {ws, we} = period(), xs = DATA.filter(s => s.start >= ws && s.start < we && s.nFiles > 0);
         const c = document.querySelector('#review .inscol:has(.hb[data-help="aiLines"])'); if (!c) return {none: true, n: xs.length};
         const add = xs.reduce((a, s) => a + (s.editAdded || 0), 0), del = xs.reduce((a, s) => a + (s.editRemoved || 0), 0);
-        return {n: xs.length, files: c.querySelectorAll(".iwf").length, lines: c.querySelector('.hb[data-help="aiLines"]').closest(".stat").innerText, want: commas(add + del), first: (c.querySelector(".iwf") || {}).textContent}; });
+        return {n: xs.length, files: document.querySelectorAll("#review .iwf").length, lines: c.querySelector('.hb[data-help="aiLines"]').closest(".stat").innerText, want: commas(add + del), first: (document.querySelector("#review .iwf") || {}).textContent}; }); // いちばん変えたファイルは「その他のグラフ」の自分のカード
       check("AI の編集のカードに、変えたファイル・行といちばん変えたファイルが出る", ed.none ? ed.n === 0 : ed.files > 0 && ed.lines.includes(ed.want), JSON.stringify(ed));
       if (!ed.none){ check("いちばん変えたファイルの名前は、セッションではなくファイルへのリンク（serve では、コミットのリンクがなければ文字だけ）", await p.evaluate(() => [...document.querySelectorAll("#review .iwf")].every(e => !e.matches("button") && !e.hasAttribute("data-sid"))));
         await p.locator("#review .iwses").first().click(); await pause();

@@ -8,3 +8,4 @@
 - Summary: the Output panel is named "Outputs" (アウトプット in Japanese), as is the Outputs card
 - Summary: in a period in progress, figures show the value so far and the end-of-period estimate at the same size (the estimate was a small note)
 - Summary: the AI edits part of the Outputs card is left out when no edited lines are recorded (such as Kiro's `editCode`), instead of showing 0
+- Summary: the charts below the figures keep Where it flowed, Spread per session, Outputs (with the kinds of work) and When you worked; the others (Trend, Cumulative, Where it went, What changed, Tokens by type, cost by session length, By agent, Most edited files, Cost vs outputs, How you worked, Usage, Busiest day) move into "Other charts", a box that starts closed and remembers whether you opened it. Most edited files is its own card
