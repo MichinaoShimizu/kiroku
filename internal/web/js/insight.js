@@ -351,7 +351,7 @@ function insightH(F){
   const cards = [{sec: t("Cost details")},
     {h: `<div class="inscol"><div class="inshead"><h4>${esc(t("Trend"))}</h4><div class="segc insk trendk" role="group" aria-label="${esc(t("Metric"))}">${tabs}</div>${sel}</div>${insChart(k)}</div>`},
     {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insCum())},
-    {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insWhere())}, {h: card(t("Tokens by type"), insTokens())},
+    {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insWhere())}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insWater())}, {h: card(t("Tokens by type"), insTokens())},
     {h: card((HISTK(DATA.filter(s => inP(s, period().ws, period().we))) || {}).title || "", insHist())},
     {h: card(t("By agent"), insAgents(), " wide agw")},
     {sec: t("Output and unit cost")}, {h: card(t("Outputs"), insOutputs(), " iout wide")}, {h: (b => b ? `<div class="inscol isccol">${b}</div>` : "")(insScatter())},
@@ -385,6 +385,7 @@ function bindInsight(R){
     lab.append(b); }); // 名前の要素の中に置く（カードは縦の flex なので、外に置くと横いっぱいの帯になる）
   requestAnimationFrame(fitTrend);
   R.querySelectorAll("[data-ins]").forEach(b => b.onclick = () => { st.insK = b.dataset.ins; store.set("insK", st.insK); summary(); const nb = $("#review").querySelector(`[data-ins="${CSS.escape(b.dataset.ins)}"]`); if (nb) nb.focus(); });
+  R.querySelectorAll("[data-wfk]").forEach(b => b.onclick = () => { st.insWf = b.dataset.wfk; store.set("insWf", st.insWf); summary(); const nb = $("#review").querySelector(`[data-wfk="${CSS.escape(b.dataset.wfk)}"]`); if (nb) nb.focus(); });
   R.querySelectorAll("[data-wk]").forEach(b => b.onclick = () => { st.insWk = b.dataset.wk; store.set("insWk", st.insWk); summary(); const nb = $("#review").querySelector(`[data-wk="${CSS.escape(b.dataset.wk)}"]`); if (nb) nb.focus(); });
   R.querySelectorAll("[data-scat]").forEach(b => b.onclick = () => { st.insS = b.dataset.scat; store.set("insS", st.insS); summary(); const nb = $("#review").querySelector(`[data-scat="${CSS.escape(b.dataset.scat)}"]`); if (nb) nb.focus(); });
   R.querySelectorAll("[data-cum]").forEach(b => b.onclick = () => { st.insC = b.dataset.cum; store.set("insC", st.insC); summary(); const nb = $("#review").querySelector(`[data-cum="${CSS.escape(b.dataset.cum)}"]`); if (nb) nb.focus(); });
@@ -527,6 +528,32 @@ function insWhere(){
   const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-wk="${x}" aria-pressed="${x === k}">${esc({cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), minutes: t("Time")}[x])}</button>`).join("")}</div>` : "";
   return `<div class="inshead"><h4>${esc(t("Where it went"))}</h4><div class="segc insk" role="group" aria-label="${esc(t("Group by"))}">${tabs}</div>${mtabs}</div>${say(sy)}
     <figure class="insfig"><div class="iwrows" role="table" aria-label="${esc(name)}">${rows}</div><p class="ifxs">${fx(`% = ${name} ÷ ${fv(tot)}`)}</p></figure>`;
+}
+/* insWater は、前の期間からの増減をプロジェクトごとに積み上げるウォーターフォール：前の期間の合計 → 増えた（減った）プロジェクト → 今の期間の合計。
+   途中の期間は、前の期間の同じ日数まで（上の帯の前週比と同じ比べ方）。量は推定費用・クレジット・トークン・時間から選ぶ。セッションは始まった時刻で期間に数える */
+function insWater(){
+  const {ws, we} = period(), pb = periodBack(1), sf = soFar(), days = sf == null ? null : sf;
+  const ce = days == null ? we : Math.min(we, ws + days * 86400), pe = days == null ? pb.we : Math.min(pb.we, pb.ws + days * 86400);
+  if (historyStart() > pb.ws) return ""; // 前の期間の途中から記録が始まるときは比べない（上の帯と同じ）
+  const val = {cost: s => sesTok(s) ? s.cost || 0 : 0, credits: s => s.credits || 0, tokens: s => sesTok(s), minutes: s => minIn(s, s.start, s.end)};
+  const sum = (a, b, f) => { const m = new Map(); DATA.forEach(s => { if (s.start >= a && s.start < b){ const v = f(s); if (v) m.set(s.project, (m.get(s.project) || 0) + v); } }); return m; };
+  const ks = ["cost", "credits", "tokens", "minutes"].filter(k => [...sum(ws, ce, val[k]).values(), ...sum(pb.ws, pe, val[k]).values()].some(v => v > 0)); if (!ks.length) return "";
+  const k = ks.includes(st.insWf) ? st.insWf : ks[0], fv = {cost: usd, credits: cr, tokens: tok, minutes: v => dur(v)}[k];
+  const cur = sum(ws, ce, val[k]), prev = sum(pb.ws, pe, val[k]), tc = [...cur.values()].reduce((a, v) => a + v, 0), tp = [...prev.values()].reduce((a, v) => a + v, 0);
+  if (!tc && !tp) return "";
+  const ds = [...new Set([...cur.keys(), ...prev.keys()])].map(p => ({p, d: (cur.get(p) || 0) - (prev.get(p) || 0)})).filter(x => Math.abs(x.d) > (k === "minutes" ? 0.5 : 1e-6)).sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
+  const top = ds.slice(0, 6), rest = ds.slice(6); if (rest.length) top.push({p: t("Other ({n})", {n: rest.length}), d: rest.reduce((a, x) => a + x.d, 0), other: true});
+  const lab = days == null ? (st.mode === "month" ? t("Last month") : t("Last week")) : (st.mode === "month" ? t("Last month, same days") : t("Last week, same days")), now = st.mode === "month" ? (sf == null ? t("Month shown") : t("This month")) : (sf == null ? t("Week shown") : t("This week"));
+  const bars = [{l: lab, a: 0, b: tp, tot: true}]; let run = tp; top.forEach(x => { bars.push({l: x.p, a: run, b: run + x.d, d: x.d}); run += x.d; }); bars.push({l: now, a: 0, b: tc, tot: true, cur: true});
+  const W = 720, H = 250, L = 60, R = 10, T = 22, B = 46, mx = Math.max(...bars.map(x => Math.max(x.a, x.b))) * 1.08 || 1, Y = insTicks(k === "minutes" ? "active" : k, mx, 5), top_ = Y.top, y = v => T + (H - T - B) * (1 - v / top_);
+  const n = bars.length, bw = (W - L - R) / n, short = x => x.length > 12 ? x.slice(0, 11) + "…" : x;
+  const ticks = Array.from({length: Y.n + 1}, (_, i) => { const v = Y.step * i, yy = y(v).toFixed(1); return `<g class="itk"><line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/><text x="${L - 8}" y="${(+yy + 4).toFixed(1)}">${esc(k === "minutes" ? dur(v) : tickM(k === "credits" ? "credits" : k === "tokens" ? "tokens" : "cost", v))}</text></g>`; }).join("");
+  const body = bars.map((x, i) => { const x0 = L + i * bw + bw * .18, w0 = bw * .64, y1 = y(Math.max(x.a, x.b)), h = Math.max(1, Math.abs(y(x.a) - y(x.b))), cls = x.tot ? (x.cur ? "wft cur" : "wft") : x.d >= 0 ? "wfu" : "wfd";
+    const txt = x.tot ? fv(x.b) : `${x.d >= 0 ? "+" : "−"}${fv(Math.abs(x.d))}`, nxt = i < n - 1 ? `<line class="wfc" x1="${(x0 + w0).toFixed(1)}" x2="${(L + (i + 1) * bw + bw * .18).toFixed(1)}" y1="${y(x.b).toFixed(1)}" y2="${y(x.b).toFixed(1)}"/>` : "";
+    return `<g><rect class="${cls}" x="${x0.toFixed(1)}" y="${y1.toFixed(1)}" width="${w0.toFixed(1)}" height="${h.toFixed(1)}" rx="2"/>${nxt}<text class="wfv" x="${(x0 + w0 / 2).toFixed(1)}" y="${(y1 - 5).toFixed(1)}">${esc(txt)}</text><text class="ixl${x.cur ? " cur" : ""}" x="${(x0 + w0 / 2).toFixed(1)}" y="${H - B + 16}">${esc(short(x.l))}</text><rect class="ihit" x="${(L + i * bw).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${H - B}"${tipAttr(x.l, txt)}/></g>`; }).join("");
+  const d = tc - tp, big = ds[0], sy = !tp ? "" : t("{d} vs {lab} ({pc}); the biggest change is {p} ({pd})", {d: `${d >= 0 ? "+" : "−"}${fv(Math.abs(d))}`, lab, pc: `${d >= 0 ? "+" : "−"}${Math.round(Math.abs(d) * 100 / tp)}%`, p: big ? big.p : "—", pd: big ? `${big.d >= 0 ? "+" : "−"}${fv(Math.abs(big.d))}` : ""});
+  const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-wfk="${x}" aria-pressed="${x === k}">${esc({cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), minutes: t("Time")}[x])}</button>`).join("")}</div>` : "";
+  return `<div class="inshead"><h4>${esc(t("What changed from the last period"))}</h4>${mtabs}</div>${say(sy)}<figure class="insfig iwtf"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("What changed from the last period"))}">${ticks}${body}</svg><p class="ifxs">${fx(t("Each bar between the totals is one project's change; projects are grouped by where their sessions started"), "", t("By project; sessions count in the period they started"))}</p></figure>`;
 }
 /* 数の枠（statH）に、いつもの範囲との不等式を添える。k は MET の指標名（なければ添えない） */
 const insStat = (label, v, sub, help, metric, k) => statH(esc(label), v, [sub, k && MET[k] ? insChip(insBase(k)) : ""].filter(Boolean).join(" "), help, metric);

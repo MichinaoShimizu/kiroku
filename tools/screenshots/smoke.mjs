@@ -707,6 +707,12 @@ async function run(env) {
     check("どこに使ったかは、記録のある量（費用・クレジット・トークン・時間）を切り替えられる", wk.length >= 2, JSON.stringify(wk));
     for (const k of wk){ await p.locator(`#review [data-wk="${k}"]`).click(); await pause();
       check(`どこに使ったかを ${k} にすると、その量の横棒になる`, await p.evaluate(k => st.insWk === k && document.querySelector(`#review [data-wk="${k}"]`).getAttribute("aria-pressed") === "true" && document.querySelectorAll("#review .iwrows .iwr").length > 0, k)); }
+    // 前の期間からの増減（ウォーターフォール）：前の合計 → プロジェクトごとの増減 → 今の合計。最後の棒の値は、前の合計に増減を足したもの
+    const wf = await p.locator("#review [data-wfk]").evaluateAll(xs => xs.map(x => x.dataset.wfk));
+    check("前の期間からの増減は、記録のある量を切り替えられる", wf.length >= 2, JSON.stringify(wf));
+    for (const k of wf){ await p.locator(`#review [data-wfk="${k}"]`).click(); await pause();
+      check(`前の期間からの増減を ${k} にすると、合計 2 本とプロジェクトの棒になり、1 文がある`, await p.evaluate(k => { const f = document.querySelector("#review .iwtf"), c = f && f.closest(".inscol");
+        return st.insWf === k && document.querySelector(`#review [data-wfk="${k}"]`).getAttribute("aria-pressed") === "true" && f.querySelectorAll("rect.wft").length === 2 && f.querySelectorAll("rect.wfu, rect.wfd").length >= 1 && !!c.querySelector(".isay"); }, k)); }
     check("長さ別の図は 1 セッションあたりの平均なので、区間ごとのセッションの数を軸の下に出す（1 件だけの平均を見分けられるように）", await p.evaluate(() => { const g = document.querySelector("#review .ihist svg"); return !g || g.querySelectorAll(".ixn").length === g.querySelectorAll(".ihb").length; }));
     await view("cal");
     await p.keyboard.press("m"); await pause();

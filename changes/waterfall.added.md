@@ -1,0 +1,1 @@
+- Summary: "What changed from the last period", a waterfall from the previous period's total through each project's increase or decrease to this period's total, for estimated cost, Kiro credits, tokens or active time

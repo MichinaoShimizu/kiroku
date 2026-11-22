@@ -1248,3 +1248,8 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 @container (max-width:520px){.iwr.iwh{display:none}}
 /* 狭いカードの一覧：2 行目の行数・コミットと編集の回数は、続けて流す（編集の回数が右に浮かないように） */
 @container (max-width:520px){.insfig .iwrows>.iwr:not(.iwh){display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}.insfig .iwrows>.iwr:not(.iwh)>.iwn,.insfig .iwrows>.iwr:not(.iwh)>.iwb{flex:0 0 100%}}
+/* 前の期間からの増減（ウォーターフォール）：合計は濃い色、増えた分と減った分は、良し悪しを言わない 2 つの色（量の増減に良し悪しは付けない） */
+.iwtf .wft{fill:color-mix(in oklab,var(--ink-3) 55%,var(--surface))}.iwtf .wft.cur{fill:var(--acc)}
+.iwtf .wfu{fill:var(--amber)}.iwtf .wfd{fill:color-mix(in oklab,var(--c0) 80%,var(--surface))}
+.iwtf .wfc{stroke:var(--ink-3);stroke-dasharray:3 3;stroke-width:1}
+.iwtf .wfv{font-size:11px;fill:var(--ink-2);text-anchor:middle;font-family:var(--sans);font-variant-numeric:tabular-nums}
