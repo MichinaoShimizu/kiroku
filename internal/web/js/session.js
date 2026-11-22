@@ -123,7 +123,7 @@ function sessionOutputs(s){
   // 割る元は、サマリーの「AI が編集した 100 行あたり」と同じ（編集を記録するエージェントで、推定費用はトークンを記録したセッション）
   const ad = num(s.editAdded), rm = num(s.editRemoved), lines = ad + rm, nf = num(s.nFiles), A = [], rec = records(s.source, "files");
   const usd4 = v => "$" + (v < 0.01 ? v.toFixed(4) : v.toFixed(2)); // 式の中の額は、1 セント未満でも「<$0.01」にしない（式が合わなく見える）
-  if (nf) A.push(tile(t("Files edited by AI"), `${nf}`, ""), lines > 0 ? tile(t("Lines edited by AI"), commas(lines), `+${commas(ad)} −${commas(rm)}`)
+  if (nf) A.push(tile(t("Files edited by AI"), `${nf}`, ""), lines > 0 ? tile(t("Lines edited by AI"), commas(lines), lnPM(commas(ad), commas(rm)))
     : tile(t("Lines edited by AI"), "—", esc(t("The history does not keep what the edits wrote")))); // ファイルは変えたのに行が 0 なら、0 行と見せず「—」（中身の残らない編集）
   if (rec && lines >= EDIT_MIN && num(s.credits)) { const v = num(s.credits) * 100 / lines; A.push(tile(t("Kiro credits per 100 AI-edited lines"), crN(v), esc(`${cr1(num(s.credits))} ÷ ${t("{n} AI-edited lines", {n: commas(lines)})} × 100 = ${crN(v)}`))); }
   if (rec && lines >= EDIT_MIN && num(s.cost) && sesTok(s)) { const v = num(s.cost) * 100 / lines; A.push(tile(t("Estimated cost per 100 AI-edited lines"), usdH(v), esc(`${usd4(num(s.cost))} ÷ ${t("{n} AI-edited lines", {n: commas(lines)})} × 100 = ${usd(v)}`))); }

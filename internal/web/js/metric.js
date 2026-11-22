@@ -121,7 +121,7 @@ const MB = {
       mSessions("Sessions with the most commits", xs.map(s => [s, s.outputs.commits]).sort((a,b) => b[1] - a[1]).slice(0, 8), v => plural(v, "commit")) + (xs.length ? WHOLE() : "")}; },
   lines(w, {ws, we}){ const cs = gitIn(ws, we), L = c => c.added + c.removed, g = w.git || {}; if (!cs.length) return null;
     const m = {f: v => commas(v)};
-    return {big: commas(g.added + g.removed), body: `<p class="note">${esc(t("+{a} added · −{r} removed", {a: commas(g.added), r: commas(g.removed)}))}</p>` + mDays(perDay(w, cs.map(c => [c.t, L(c)])), {v: d => d.v, f: v => commas(v)}) +
+    return {big: commas(g.added + g.removed), body: `<p class="note">${esc(t("+{a} added · −{r} removed", {a: commas(g.added), r: commas(g.removed)})).replace(`+${commas(g.added)}`, `<span class="la">+${commas(g.added)}</span>`).replace(`−${commas(g.removed)}`, `<span class="lr">−${commas(g.removed)}</span>`)}</p>` + mDays(perDay(w, cs.map(c => [c.t, L(c)])), {v: d => d.v, f: v => commas(v)}) +
       mBars("By project", pjRows(sumBy(cs, c => c.project, L)), m) +
       mList("Largest commits", cs.filter(c => L(c) > 0).sort((a,b) => L(b) - L(a)).map(gitRow), 8)}; },
   prs(w, {ws, we}){ const xs = DATA.flatMap(s => (s.prAt || []).filter(r => r.t >= ws && r.t < we).map(r => ({s, r}))).sort((a,b) => b.r.t - a.r.t);

@@ -1168,3 +1168,5 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .tspk .band{fill:color-mix(in oklab,var(--ink-3) 16%,transparent)}
 .tspk circle{fill:var(--acc)}.tspk circle.part{fill:var(--surface);stroke:var(--acc);stroke-width:1.4}
 .tspk .hit{fill:transparent;pointer-events:all}.tspk .hit:hover{fill:color-mix(in oklab,var(--acc) var(--t2),transparent)}
+/* 足した行・消した行（git diff にならって緑と赤） */
+.la{color:var(--go-ink)}.lr{color:var(--warn)}

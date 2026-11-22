@@ -9,3 +9,4 @@
 - Calendar: pressing a day in the month opens its week at that day and highlights it; closing session details after moving with ← → returns to the last session read; "This week / This month" (T) resets both the week and the month; ← → keep working after pressing the view toggles with the mouse; ‹ stops at the first period with records; an empty month says so
 - Calendar: week totals in the month count only that month's days, so they add up to the month (the whole week is in the tooltip)
 - Calendar: tall, narrow session bars keep their name instead of switching to the start time; days with only commits no longer show dashes; tooltips no longer repeat "credits"
+- Lines added are green and lines removed are red wherever "+added −removed" appears (summary, session details, commits, breakdowns), as in git diff
