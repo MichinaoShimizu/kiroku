@@ -1279,3 +1279,6 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .insrow>.inscol.iout,.insrow>.inscol.isccol,.insrow>.inscol.iwork{grid-column:1/-1}
 .ik-unit>.iksub[data-solo]{grid-column:1/-1} /* 2 列のとき 1 つだけ残った段は幅いっぱいに（530px は、カードの幅 1100px で 2 列になる幅） */
 .iout2>.iokinds{grid-column:1/-1;border-left:3px solid var(--rule);padding-left:14px}.iout2>.iokinds .ikinds{margin-top:0} /* 作業の種類は Git の数字なので、Git の列と同じ実線を左に */
+/* サマリーの指標名は、値の次に目に入るように太く濃く（小さな灰色だと、どの数字か探しにくい） */
+.itile .il{font-size:var(--fs-lg);font-weight:600;color:var(--ink)}
+#review .insight .stat .k{font-size:var(--fs-sm);font-weight:600;color:var(--ink)}
