@@ -1,1 +1,1 @@
-- Summary: Unit cost adds estimated cost and Kiro credits per session and per prompt, each with its chart and the change from last week or month
+- Summary: Unit cost adds estimated cost, Kiro credits and tokens per session and per prompt, and tokens per AI commit, per 100 AI-edited lines and per active hour, each with its chart and the change from last week or month

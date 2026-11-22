@@ -183,18 +183,21 @@ function insHeadlines(F){
   G = "unitGit";
   const bp = insBase("costPerCommit"), oc = w && w.outCost, nc = w && w.outputs && w.outputs.commits;
   if (bp && oc && nc) tile(t("Claude Code cost per AI commit"), bp, fmtM("costPerCommit", bp.cur), [{f: `${usd(oc)} ÷ ${nc} ${t("AI commits")} = ${usd(bp.cur)}`, p: `${usd(oc)} ÷ ${nc} ${t("AI commits")}`}, vsk("costPerCommit", bp.cur)].filter(Boolean), "costPerCommit");
+  // トークンも金額と同じく（Claude Code のセッションのトークン ÷ AI のコミット）
+  { const bt = insBase("tokensPerCommit"), ot = DATA.filter(s => s.source === "Claude Code" && s.start >= ws && s.start < we).reduce((a, s) => a + sesTok(s), 0);
+    if (bt && ot && nc) tile(t("Claude Code tokens per AI commit"), bt, fmtM("tokensPerCommit", bt.cur), [{f: `${tok(ot)} ÷ ${nc} ${t("AI commits")} = ${tok(bt.cur)}`, p: `${tok(ot)} ÷ ${nc} ${t("AI commits")}`}, vsk("tokensPerCommit", bt.cur)].filter(Boolean)); }
   G = "unitEdit";
-  for (const [k, label, fu] of [["costPerEdit", t("Estimated cost per 100 AI-edited lines"), usd], ["creditsPerEdit", t("Kiro credits per 100 AI-edited lines"), cr1]]){
+  for (const [k, label, fu] of [["costPerEdit", t("Estimated cost per 100 AI-edited lines"), usd], ["creditsPerEdit", t("Kiro credits per 100 AI-edited lines"), cr1], ["tokensPerEdit", t("Tokens per 100 AI-edited lines"), tok]]){
     const b = insBase(k); if (!b) continue;
     const e = editsBasis(ws, we, k.replace("PerEdit", "")), den = t("{n} AI-edited lines", {n: commas(e.lines)});
     tile(label, b, /^credits/.test(k) ? crR(b.cur) : fmtM(k, b.cur), [{f: `${fu(e.used)} ÷ ${den} × 100 = ${fmtM(k, b.cur)}`, p: `${fu(e.used)} ÷ ${den} × 100 · ${t("{n} sessions", {n: e.n})}`}, vsk(k, b.cur)].filter(Boolean)); }
   // 稼働 1 時間あたり：その使用量を記録したセッションの作業時間で割る（重なったセッションはそれぞれ数えるので、上の稼働時間より長いことがある）
   G = "unitHour";
-  for (const [k, label, kind, fu] of [["costPerHour", t("Estimated cost per active hour"), "cost", usd], ["creditsPerHour", t("Kiro credits per active hour"), "credits", cr1]]){
+  for (const [k, label, kind, fu] of [["costPerHour", t("Estimated cost per active hour"), "cost", usd], ["creditsPerHour", t("Kiro credits per active hour"), "credits", cr1], ["tokensPerHour", t("Tokens per active hour"), "tokens", tok]]){
     const b = insBase(k); if (!b) continue; const e = useBasis(ws, we, kind);
     tile(label, b, /^credits/.test(k) ? crR(b.cur) : fmtM(k, b.cur), [{f: `${fu(e.used)} ÷ ${dur(e.min)} = ${fmtM(k, b.cur)}`, p: `${fu(e.used)} ÷ ${t("{d} of session time", {d: dur(e.min)})}`}, vsk(k, b.cur)].filter(Boolean)); }
   // セッションあたり・プロンプトあたり：その使用量を記録したセッションの数・プロンプトの数で割る（記録のないエージェントで薄めない）
-  for (const [g, by, rows] of [["unitSes", "ses", [["costPerSes", t("Estimated cost per session"), "cost", usd], ["creditsPerSes", t("Kiro credits per session"), "credits", cr1]]], ["unitAsk", "ask", [["costPerAsk", t("Estimated cost per prompt"), "cost", usd], ["creditsPerAsk", t("Kiro credits per prompt"), "credits", cr1]]]]){
+  for (const [g, by, rows] of [["unitSes", "ses", [["costPerSes", t("Estimated cost per session"), "cost", usd], ["creditsPerSes", t("Kiro credits per session"), "credits", cr1], ["tokensPerSes", t("Tokens per session"), "tokens", tok]]], ["unitAsk", "ask", [["costPerAsk", t("Estimated cost per prompt"), "cost", usd], ["creditsPerAsk", t("Kiro credits per prompt"), "credits", cr1], ["tokensPerAsk", t("Tokens per prompt"), "tokens", tok]]]]){
     G = g;
     for (const [k, label, kind, fu] of rows){
       const b = insBase(k); if (!b) continue; const e = useBasis(ws, we, kind), den = by === "ses" ? t("{n} sessions", {n: e.n}) : plural(e.prompts, "prompt");
