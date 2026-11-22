@@ -3,3 +3,5 @@
 - Summary: header charts draw the cumulative total and usage-limit marks only for usage (cost, credits, tokens, time), percentage charts scale to their data, and chart text no longer grows on wide single-column layouts
 - Summary: the Usage card no longer repeats the per-session and per-prompt figures shown in Unit cost
 - Calendar: narrow day columns drop the time, then the cost, from the heading line instead of overflowing into the next day
+- Summary: off-hours share and project switches are no longer colored good or bad; ranks in the lower half read "2nd lowest of 11 weeks"; session-length bars say "4 sessions" instead of "n=4"; Kiro credits say "Kiro's own count, not an estimate"; typical ranges write the unit once ("13.1–13.8 credits"); the By agent table gets a wide card so no column is hidden; the usual-range band is easier to see in dark mode; the kinds-of-work bars line up
+- Commit and push details show the repository path with a "Copy the git command" button instead of the whole git command

@@ -1209,3 +1209,8 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 @container (max-width:95px){.head .cline .cu,.head .cline .sep:has(+.cu){display:none}}
 /* グラフの文字が、幅の広い 1 列の画面で大きくなりすぎないように（480 の座標を、最大でその 1.1 倍に） */
 .itile:has(.tspk)>.tspk{max-width:530px}
+/* 暗い表示では、いつもの範囲の帯を少し濃く（地の黒に沈まないように） */
+:root[data-theme="dark"] .tspk .band{fill:color-mix(in oklab,var(--ink) 16%,transparent)}
+/* 作業の種類・よく変えるファイル：右の数の欄の幅をそろえ、棒の右端をそろえる */
+.ikinds .iwr{grid-template-columns:minmax(0,30%) minmax(0,1fr) minmax(0,15em) 3.2em}.ikinds .iwv{text-align:right}
+.insrow>.inscol.agw{flex-basis:680px} /* エージェント別の表は列が多いので、隠れないだけの幅を取る */

@@ -64,7 +64,7 @@ function commitDetail(c){
     </div><div class="dcol">
     <h3>${esc(t("Files changed"))} · ${c.nFiles}</h3>
     ${c.files.length ? fileRows(c.files, c.nFiles, c.repo) : noneH(esc(t("None")))}
-    ${c.cmd ? `<h3>${esc(t("Repository"))}</h3>${codeH(c.cmd)}` : ""}
+    ${c.cmd ? `<h3>${esc(t("Repository"))}</h3>${codeH(c.repo || "", "", "", c.cmd, t("Copy the git command"))}` : ""}
   </div></div></div>`;
   P.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.id));
   bindGitEvents(P); bindCopy(P);
@@ -101,7 +101,7 @@ function pushDetail(p){
     ${unknown.length ? `<p class="note">${esc(JA ? t("{n} commits not in kiroku's view (made before the history kiroku read, or not by you):", {n: unknown.length}) : `${plural(unknown.length, "commit")} not in kiroku's view (made before the history kiroku read, or not by you):`)} ${unknown.slice(0, 8).map(h => `<span class="mono">${esc(h.slice(0,7))}</span>`).join(", ")}${unknown.length > 8 ? " …" : ""}</p>` : ""}
     ${p.commits > hs.length ? `<p class="note">${esc(t("Showing the latest {n} of {total}.", {n: hs.length, total: p.commits}))}</p>` : ""}
     ${!hs.length ? noneH(esc(p.prev ? t("None recorded") : t("Unknown"))) : ""}
-    ${p.cmd ? `<h3>${esc(t("Repository"))}</h3>${codeH(p.cmd)}` : ""}
+    ${p.cmd ? `<h3>${esc(t("Repository"))}</h3>${codeH(p.repo || "", "", "", p.cmd, t("Copy the git command"))}` : ""}
   </div></div></div>`;
   P.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.id));
   bindGitEvents(P); bindCopy(P);
