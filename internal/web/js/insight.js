@@ -214,9 +214,15 @@ function insHeadlines(F){
   if (g && g.added + g.removed > 0){ const lines = g.added + g.removed, n = commas;
     tile(t("Lines in Git commits"), insBase("gitLines"), n(lines), [{f: `+${n(g.added)} −${n(g.removed)}; ${n(lines)} ÷ ${g.commits} = ${n(Math.round(lines / g.commits))} ${t("per commit")}`, h: lnPM(n(g.added), n(g.removed))}, vsk("gitLines", lines)].filter(Boolean), "lines"); }
   if (o.prs) tile(t("Pull requests"), insBase("prs"), `${o.prs}`, [{n: t("Created by AI")}, vsk("prs", o.prs)].filter(Boolean), "prs");
+  // AI のコミットのやり直し：3 日以内に同じファイルがまた変えられた割合（3 日たったコミットだけ）
+  { const r = reworkOf(ws, we), b = insBase("rework");
+    if (r.n && b) tile(t("AI commits changed again within 3 days"), b, `${b.cur}%`, [{f: `${r.re} ÷ ${plural(r.n, "AI commit")} = ${b.cur}%`, p: t("{re} of {n} AI commits", {re: r.re, n: r.n})}, vsk("rework", b.cur)].filter(Boolean)); }
   G = "outEdit";
   { const xs = DATA.filter(s => s.start >= ws && s.start < we && s.nFiles > 0), a = xs.reduce((x, s) => x + (s.editAdded || 0), 0), d = xs.reduce((x, s) => x + (s.editRemoved || 0), 0);
     if (a + d > 0) tile(t("Lines edited by AI"), insBase("aiLines"), commas(a + d), [{f: `+${commas(a)} −${commas(d)}`, h: lnPM(commas(a), commas(d))}, vsk("aiLines", a + d)].filter(Boolean)); }
+  // 書いた行の定着：Claude Code のセッションで AI が足した行のうち、そのセッションの AI のコミットに入った割合
+  { const k = keptOf(ws, we), b = insBase("kept");
+    if (k.edit && b) tile(t("AI-added lines that reached a commit"), b, `${b.cur}%`, [{f: `${commas(k.kept)} ÷ ${commas(k.edit)} = ${b.cur}%`, p: t("{kept} of {edit} lines · {n} Claude Code sessions", {kept: commas(k.kept), edit: commas(k.edit), n: k.n})}, vsk("kept", b.cur)].filter(Boolean)); }
   // 単価も、割る数の元ごとに分ける：Git のコミットあたり・AI が編集した 100 行あたり・プロンプトあたり
   // 単価は、割る範囲を名前に入れ、「分子 ÷ 分母」をいつも値の下に出す（式を開かなくても、隣の数と食い違って見えないように）。
   // 見出しには推定費用とクレジットだけ。トークンの単価・セッションあたり・プロンプトあたりは推移と「使い方」のカードに

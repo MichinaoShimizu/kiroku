@@ -1,0 +1,1 @@
+- Summary: Output adds "AI commits changed again within 3 days" (how often a file AI committed was changed again soon after) and "AI-added lines that reached a commit" (how much of what AI wrote in a Claude Code session ended up in its commits), each with its chart and usual range

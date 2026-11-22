@@ -265,6 +265,8 @@ Outputs come in two parts that are counted differently, so the view keeps them a
 |---|---|
 | Files edited by AI | Files an agent changed with its edit tools in the sessions that started in the period. A file changed in several sessions counts once |
 | Lines edited by AI | Lines added and removed by those edits (an estimate). Edits whose content the history does not keep count as 0 |
+| AI commits changed again within 3 days | How often what AI committed needed another pass soon after | Whether the second pass was a fix, a follow-up or planned work. A file that changes every day counts every time | When it is high, look at which files keep coming back and give the agent clearer acceptance checks before it commits |
+| AI-added lines that reached a commit | How much of what AI wrote was kept rather than rewritten or dropped | Lines you committed by hand later, or that were rewritten in another session. Only Claude Code records which commits it ran | When it is low, check sessions that edited a lot but committed little: the plan may have changed midway |
 | Estimated cost per 100 AI-edited lines | Estimated cost ÷ lines edited by AI × 100, both from the sessions that started in the period, are from an agent that records edits and record tokens. Commits made by hand do not count, and changes that were never committed do |
 | Kiro credits per 100 AI-edited lines | Kiro credits ÷ lines edited by AI × 100, from the sessions that record both (Kiro IDE / CLI). It does not depend on commits you made by hand |
 | Tokens per 100 AI-edited lines | Tokens ÷ lines edited by AI × 100, on the same basis as estimated cost per 100 AI-edited lines. In the Trend only |
