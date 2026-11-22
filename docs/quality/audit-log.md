@@ -45,6 +45,7 @@ An aspect run to bring the open items up to date after v1.0–v4.6.1 (four major
 | tools/check.sh | pass |
 | Screenshots retaken at ci.yml's `KIROKU_FAKE_NOW` | 0 changed (current); `demo.gif` not retaken (no Playwright ffmpeg in this container) |
 | `/report-eval`, 2 runs per report, before → after | day 2/2 → 2/2; session 0/2 → 2/2 (`pull/77` was missing: the prompt had no PR address); week 0/2 → 0/2 by the grader (one run now advises a lighter model, but also names the secret's variable and the injected text while warning about them; the other still skips the model signal) |
+| Clarity, blind grader (sum of aspects 1–5 and 7, mean of 2 runs, out of 30) | day 25.5 → 27; week 24.5 → 25.5; session 24 → 28.5 (aspect 6: 4 → 5). Day advice fell 4 → 3: "Next actions" held routine to-dos with no figure behind them |
 | Prompt size (approx tokens) | day 2070 → 2099, week 3238 → 3265, session 1338 → 1348 |
 
 ### Findings
@@ -62,6 +63,7 @@ Resolved: the pasted `git show` running repository programs (v0.40.0, `gitPasteF
 
 Carried:
 - Weekly report: the lighter-model signal is still taken in 1 of 2 runs; a run that warns about a leaked key or an injection names them, which the grader counts as a violation. Decide whether the grader should allow a warning that names the variable without its value. Due: next prompts run
+- Daily report: "Next actions" can be routine to-dos ("get PR #77 reviewed") with no figure behind them; session reviews give elapsed time ("about 48 minutes") next to 31m active, and the playbook's first prompt keeps placeholders. Due: next prompts run
 - Kiro CLI `KIRO_DATA_DIR` undocumented. Due: next data audit
 - Kiro Crew `child_sid` link for Codex sessions started by a Crew subagent. Due: next data audit
 - Kiro V3 tangent, `/rewind` and IDE fork sessions count the parent's prompts again. Needs a real sample. Decides: maintainer
