@@ -93,7 +93,7 @@ function insSpark(b, label){
   const xtm = ps.map((_, i) => `<line class="tm" x1="${x(i).toFixed(1)}" x2="${x(i).toFixed(1)}" y1="${y0}" y2="${(+y0 + 3).toFixed(1)}"/>`).join("");
   // x 軸は、どの期間にも名前を付ける。週は短い日付（月/日）を斜めに、月は月の名前
   const sl = (p, i) => { const [yy, mm, dd] = p.key.split("-").map(Number), yr = i === 0 || mm === 1; return wk ? `${mm}/${dd}` : JA ? (yr ? `${yy}年${mm}月` : `${mm}月`) : (yr ? `${MON[mm - 1]} ${yy}` : MON[mm - 1]); }; // 月は、最初と 1 月に年を添える（同じ月の名前が 2 度出ても見分けられるように）
-  const xl = ps.map((q, i) => rot ? `<text class="sxl rot${i === n - 1 ? " cur" : (n - 1 - i) % 2 ? " alt" : i === 0 ? " s" : ""}" transform="translate(${x(i).toFixed(1)} ${(+y0 + 8).toFixed(1)}) rotate(-45)">${esc(sl(q.p, i))}</text>` : `<text class="sxl${i === n - 1 ? " cur" : (n - 1 - i) % 2 ? " alt" : i === 0 ? " s" : ""}" x="${x(i).toFixed(1)}" y="${(+y0 + 14).toFixed(1)}">${esc(sl(q.p, i))}</text>`).join("");
+  const xl = ps.map((q, i) => rot ? `<text class="sxl rot${i === n - 1 ? " cur" : (n - 1 - i) % 2 ? " alt" : i === 0 ? " s" : ""}${i === 0 && q.v == null && n > 1 ? " nodat" : ""}" transform="translate(${x(i).toFixed(1)} ${(+y0 + 8).toFixed(1)}) rotate(-45)">${esc(sl(q.p, i))}</text>` : `<text class="sxl${i === n - 1 ? " cur" : (n - 1 - i) % 2 ? " alt" : i === 0 ? " s" : ""}${i === 0 && q.v == null && n > 1 ? " nodat" : ""}" x="${x(i).toFixed(1)}" y="${(+y0 + 14).toFixed(1)}">${esc(sl(q.p, i))}</text>`).join("");
   // 累積は時間の流れなので、途中の期間の「ここまで」は右端（期間の終わり）ではなく、期間のうち過ぎた割合の位置に置く。そこから期間の終わりの予測までを破線に
   const xc = i => ps[i].cur && b.part && n > 1 ? x(n - 2) + insFrac() * (x(n - 1) - x(n - 2)) : x(i);
   const cpts = ps.map((q, i) => q.c == null ? null : `${xc(i).toFixed(1)},${y2(q.c).toFixed(1)}`).filter(Boolean);
@@ -547,15 +547,15 @@ function insWater(){
   const top = ds.slice(0, 6), rest = ds.slice(6); if (rest.length) top.push({p: t("Other ({n})", {n: rest.length}), d: rest.reduce((a, x) => a + x.d, 0), other: true});
   const lab = days == null ? (st.mode === "month" ? t("Last month") : t("Last week")) : (st.mode === "month" ? t("Last month, same days") : t("Last week, same days")), now = st.mode === "month" ? (sf == null ? t("Month shown") : t("This month")) : (sf == null ? t("Week shown") : t("This week"));
   const bars = [{l: lab, a: 0, b: tp, tot: true}]; let run = tp; top.forEach(x => { bars.push({l: x.p, a: run, b: run + x.d, d: x.d}); run += x.d; }); bars.push({l: now, a: 0, b: tc, tot: true, cur: true});
-  const W = 720, H = 250, L = 60, R = 10, T = 22, B = 46, mx = Math.max(...bars.map(x => Math.max(x.a, x.b))) * 1.08 || 1, Y = insTicks(k === "minutes" ? "active" : k, mx, 5), top_ = Y.top, y = v => T + (H - T - B) * (1 - v / top_);
-  const n = bars.length, bw = (W - L - R) / n, short = x => x.length > 12 ? x.slice(0, 11) + "…" : x;
+  const W = 460, H = 240, L = 52, R = 8, T = 22, B = 46, mx = Math.max(...bars.map(x => Math.max(x.a, x.b))) * 1.08 || 1, Y = insTicks(k === "minutes" ? "active" : k, mx, 5), top_ = Y.top, y = v => T + (H - T - B) * (1 - v / top_);
+  const n = bars.length, bw = (W - L - R) / n, short = x => x.length > 9 ? x.slice(0, 8) + "…" : x;
   const ticks = Array.from({length: Y.n + 1}, (_, i) => { const v = Y.step * i, yy = y(v).toFixed(1); return `<g class="itk"><line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/><text x="${L - 8}" y="${(+yy + 4).toFixed(1)}">${esc(k === "minutes" ? dur(v) : tickM(k === "credits" ? "credits" : k === "tokens" ? "tokens" : "cost", v))}</text></g>`; }).join("");
-  const body = bars.map((x, i) => { const x0 = L + i * bw + bw * .18, w0 = bw * .64, y1 = y(Math.max(x.a, x.b)), h = Math.max(1, Math.abs(y(x.a) - y(x.b))), cls = x.tot ? (x.cur ? "wft cur" : "wft") : x.d >= 0 ? "wfu" : "wfd";
+  const body = bars.map((x, i) => { const x0 = L + i * bw + bw * .18, w0 = bw * .64, y1 = y(Math.max(x.a, x.b)), h = Math.max(3, Math.abs(y(x.a) - y(x.b))), cls = x.tot ? (x.cur ? "wft cur" : "wft") : x.d >= 0 ? "wfu" : "wfd";
     const txt = x.tot ? fv(x.b) : `${x.d >= 0 ? "+" : "−"}${fv(Math.abs(x.d))}`, nxt = i < n - 1 ? `<line class="wfc" x1="${(x0 + w0).toFixed(1)}" x2="${(L + (i + 1) * bw + bw * .18).toFixed(1)}" y1="${y(x.b).toFixed(1)}" y2="${y(x.b).toFixed(1)}"/>` : "";
     return `<g><rect class="${cls}" x="${x0.toFixed(1)}" y="${y1.toFixed(1)}" width="${w0.toFixed(1)}" height="${h.toFixed(1)}" rx="2"/>${nxt}<text class="wfv" x="${(x0 + w0 / 2).toFixed(1)}" y="${(y1 - 5).toFixed(1)}">${esc(txt)}</text><text class="ixl${x.cur ? " cur" : ""}" x="${(x0 + w0 / 2).toFixed(1)}" y="${H - B + 16}">${esc(short(x.l))}</text><rect class="ihit" x="${(L + i * bw).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${H - B}"${tipAttr(x.l, txt)}/></g>`; }).join("");
-  const d = tc - tp, big = ds[0], sy = !tp ? "" : t("{d} vs {lab} ({pc}); the biggest change is {p} ({pd})", {d: `${d >= 0 ? "+" : "−"}${fv(Math.abs(d))}`, lab, pc: `${d >= 0 ? "+" : "−"}${Math.round(Math.abs(d) * 100 / tp)}%`, p: big ? big.p : "—", pd: big ? `${big.d >= 0 ? "+" : "−"}${fv(Math.abs(big.d))}` : ""});
-  const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-wfk="${x}" aria-pressed="${x === k}">${esc({cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), minutes: t("Time")}[x])}</button>`).join("")}</div>` : "";
-  return `<div class="inshead"><h4>${esc(t("What changed from the last period"))}</h4>${mtabs}</div>${say(sy)}<figure class="insfig iwtf"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("What changed from the last period"))}">${ticks}${body}</svg><p class="ifxs">${fx(t("Each bar between the totals is one project's change; projects are grouped by where their sessions started"), "", t("By project; sessions count in the period they started"))}</p></figure>`;
+  const d = tc - tp, big = ds[0], vsl = days == null ? (st.mode === "month" ? t("vs last month") : t("vs last week")) : (st.mode === "month" ? t("vs the same days last month") : t("vs the same days last week")), sy = !tp ? "" : t("{d} {vs} ({pc}); the biggest change is {p} ({pd})", {d: `${d >= 0 ? "+" : "−"}${fv(Math.abs(d))}`, vs: vsl, pc: `${d >= 0 ? "+" : "−"}${Math.round(Math.abs(d) * 100 / tp)}%`, p: big ? big.p : "—", pd: big ? `${big.d >= 0 ? "+" : "−"}${fv(Math.abs(big.d))}` : ""});
+  const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-wfk="${x}" aria-pressed="${x === k}">${esc({cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), minutes: t("Session time")}[x])}</button>`).join("")}</div>` : "";
+  return `<div class="inshead"><h4>${esc(t("What changed from the last period"))}</h4>${mtabs}</div>${say(sy)}<figure class="insfig iwtf"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("What changed from the last period"))}">${ticks}${body}</svg><p class="ifxs">${fx(t("Each bar between the totals is one project's change; projects are grouped by where their sessions started"), "", t("By project · light: up · dark: down"))}</p></figure>`;
 }
 /* insDonut は、割合のドーナツ（parts: {name, v, c}。c は色の CSS 値で、こちらで決めたものだけ）。真ん中に合計 */
 function insDonut(parts, total, fv, label){
@@ -576,22 +576,24 @@ function insSankey(){
   const xs = ss.map(s => ({s, v: val[k](s)})).filter(x => x.v > 0); if (xs.length < 2) return "";
   const pt = new Map(); xs.forEach(x => pt.set(x.s.project, (pt.get(x.s.project) || 0) + x.v));
   const topP = [...pt].sort((a, b) => b[1] - a[1]).slice(0, 6).map(x => x[0]), OTH = t("Other"), pj = p => topP.includes(p) ? p : OTH;
-  const YES = t("Reached a commit or PR"), NO = t("No commit or PR"), out = s => commitsOf(s).length || (s.prs || []).length ? YES : NO;
+  // 成果を記録しないエージェント（Claude Code 以外）のセッションは「記録なし」に（コミットがなかったとは言えない）
+  const YES = t("Committed"), NO = t("No commit"), UNK = t("Not recorded"), out = s => commitsOf(s).length || (s.prs || []).length ? YES : records(s.source, "outputs") ? NO : UNK;
   const cols = [[], [], []], vals = [new Map(), new Map(), new Map()], links = new Map();
   const add = (m, key, v) => m.set(key, (m.get(key) || 0) + v);
   xs.forEach(({s, v}) => { const a = s.source, b = pj(s.project), c = out(s); add(vals[0], a, v); add(vals[1], b, v); add(vals[2], c, v); add(links, `0\u0000${a}\u0000${b}`, v); add(links, `1\u0000${b}\u0000${c}`, v); });
-  vals.forEach((m, i) => cols[i] = [...m].sort((a, b) => (i === 2 ? (a[0] === YES ? -1 : 1) : b[1] - a[1])));
-  const tot = xs.reduce((a, x) => a + x.v, 0), W = 720, H = 300, T = 10, B = 10, nw = 12, gap = 10, X = [130, 360, 590];
+  const ord = {[YES]: 0, [NO]: 1, [UNK]: 2}; vals.forEach((m, i) => cols[i] = [...m].sort((a, b) => (i === 2 ? ord[a[0]] - ord[b[0]] : b[1] - a[1])));
+  const tot = xs.reduce((a, x) => a + x.v, 0), W = 460, H = 300, T = 14, B = 10, nw = 10, gap = 10, X = [96, 222, 340];
   const pos = cols.map(c => { const g = (c.length - 1) * gap, sc = (H - T - B - g) / tot; let y = T; const m = new Map(); c.forEach(([key, v]) => { m.set(key, {y, h: Math.max(2, v * sc), o: 0, oi: 0}); y += v * sc + gap; }); return {m, sc}; });
-  const color = (i, key) => i === 0 ? agColor(key) : i === 1 ? (key === OTH ? "var(--other)" : `var(--c${(topP.indexOf(key) + 3) % 8})`) : key === YES ? "var(--go)" : "var(--ink-3)";
+  const color = (i, key) => i === 0 ? agColor(key) : i === 1 ? (key === OTH ? "var(--other)" : `var(--c${(topP.indexOf(key) + 3) % 8})`) : key === YES ? "var(--go)" : key === NO ? "var(--ink-3)" : "var(--other)";
   const paths = [...links].sort((a, b) => b[1] - a[1]).map(([key, v]) => { const [ci, a, b] = key.split("\u0000"), i = +ci, A = pos[i].m.get(a), Bn = pos[i + 1].m.get(b), h = v * pos[i].sc;
     const y0 = A.y + A.o, y1 = Bn.y + Bn.oi; A.o += h; Bn.oi += h; const x0 = X[i] + nw, x1 = X[i + 1], xm = (x0 + x1) / 2;
     return `<path class="skl" d="M${x0} ${y0.toFixed(1)} C${xm} ${y0.toFixed(1)} ${xm} ${y1.toFixed(1)} ${x1} ${y1.toFixed(1)} L${x1} ${(y1 + h).toFixed(1)} C${xm} ${(y1 + h).toFixed(1)} ${xm} ${(y0 + h).toFixed(1)} ${x0} ${(y0 + h).toFixed(1)} Z" fill="${color(i, a)}"${tipAttr(`${a} → ${b}`, `${fv(v)} · ${Math.round(v * 100 / tot)}%`)}/>`; }).join("");
-  const short = x => x.length > 18 ? x.slice(0, 17) + "…" : x;
+  const short = x => x.length > 12 ? x.slice(0, 11) + "…" : x;
   const nodes = cols.map((c, i) => c.map(([key, v]) => { const n = pos[i].m.get(key), lx = i === 2 ? X[i] + nw + 6 : X[i] - 6;
     return `<rect class="skn" x="${X[i]}" y="${n.y.toFixed(1)}" width="${nw}" height="${n.h.toFixed(1)}" fill="${color(i, key)}"${tipAttr(key, `${fv(v)} · ${Math.round(v * 100 / tot)}%`)}/><text class="skt${i === 2 ? " s" : ""}" x="${lx}" y="${(n.y + n.h / 2 + 4).toFixed(1)}">${esc(short(key))} <tspan class="skv">${esc(fv(v))}</tspan></text>`; }).join("")).join("");
-  const yes = vals[2].get(YES) || 0, sy = t("{pc}% of {metric} went to sessions that reached a commit or PR ({v} of {tot})", {pc: Math.round(yes * 100 / tot), metric: {cost: t("Estimated cost"), credits: t("Kiro credits"), tokens: t("Tokens"), minutes: t("Active time")}[k], v: fv(yes), tot: fv(tot)});
-  const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-skk="${x}" aria-pressed="${x === k}">${esc({cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), minutes: t("Time")}[x])}</button>`).join("")}</div>` : "";
+  const yes = vals[2].get(YES) || 0, rec = tot - (vals[2].get(UNK) || 0), mname = {cost: t("Estimated cost"), credits: t("Kiro credits"), tokens: t("Tokens"), minutes: t("Session time")}[k];
+  const sy = rec <= 0 ? t("These agents don't record which commits they ran, so the outcome is not known") : t("{pc}% of {metric} from agents that record commits went to sessions that reached a commit or PR ({v} of {tot})", {pc: Math.round(yes * 100 / rec), metric: mname, v: fv(yes), tot: fv(rec)});
+  const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-skk="${x}" aria-pressed="${x === k}">${esc({cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), minutes: t("Session time")}[x])}</button>`).join("")}</div>` : "";
   return `<div class="inshead"><h4>${esc(t("Where it flowed"))}</h4>${mtabs}</div>${say(sy)}<figure class="insfig isk"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("Where it flowed"))}"><text class="skh" x="${X[0] + nw / 2}" y="-2">${esc(t("Agent"))}</text><text class="skh" x="${X[1] + nw / 2}" y="-2">${esc(t("Project"))}</text><text class="skh" x="${X[2] + nw / 2}" y="-2">${esc(t("Outcome"))}</text>${paths}${nodes}</svg><p class="ifxs">${fx(t("Band width = the amount; a session reached a commit or PR when it ran one (Claude Code) or one was made in its project while it ran"), "", t("Band width is the amount"))}</p></figure>`;
 }
 /* insBox は、1 セッションあたりの量のばらつきを期間ごとに箱ひげで（箱 = 真ん中の 50%、線 = 中央値、ひげ = 下位・上位 10%）。最大 13 期間 */
@@ -602,7 +604,7 @@ function insBox(){
   const k = ks.includes(st.insBk) ? st.insBk : ks[0], M = K[k];
   const bx = ps.map(p => { const v = DATA.filter(s => s.start >= p.ws && s.start < p.we).map(M.f).filter(x => x != null && x > 0); return v.length >= 3 ? {p, n: v.length, q: [.1, .25, .5, .75, .9].map(q => insQuant(v, q))} : {p, n: v.length, q: null}; });
   const has = bx.filter(x => x.q); if (has.length < 2) return "";
-  const W = 720, H = 240, L = 56, R = 10, T = 14, B = 34, mx = Math.max(...has.map(x => x.q[4])) * 1.05, Y = insTicks(k === "minutes" ? "active" : k === "cost" ? "cost" : "prompts", mx, 5), y = v => T + (H - T - B) * (1 - v / Y.top), n = bx.length, bw = (W - L - R) / n;
+  const W = 460, H = 240, L = 50, R = 8, T = 14, B = 34, mx = Math.max(...has.map(x => x.q[4])) * 1.05, Y = insTicks(k === "minutes" ? "active" : k === "cost" ? "cost" : "prompts", mx, 5), y = v => T + (H - T - B) * (1 - v / Y.top), n = bx.length, bw = (W - L - R) / n;
   const ticks = Array.from({length: Y.n + 1}, (_, i) => { const v = Y.step * i, yy = y(v).toFixed(1); return `<g class="itk"><line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/><text x="${L - 8}" y="${(+yy + 4).toFixed(1)}">${esc(M.fv(v))}</text></g>`; }).join("");
   const lab = p => { const [, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? (JA ? `${mm}月` : MON[mm - 1]) : `${mm}/${dd}`; };
   const body = bx.map((x, i) => { const cx = L + i * bw + bw / 2, w = bw * .5, last = i === n - 1, lbl = `<text class="ixl${last ? " cur" : ""}" x="${cx.toFixed(1)}" y="${H - B + 16}">${esc(lab(x.p))}</text>`;
@@ -616,15 +618,17 @@ function insBox(){
 /* insGantt は、表示中の期間でいちばん作業した日の、セッションの時間の帯（ガント）。同時に動いていたセッションの数がわかる。押すとそのセッション */
 function insGantt(){
   const {ws, we} = period(); let best = null;
-  for (let d = ws; d < we; d += 86400){ const e = d + 86400, m = DATA.reduce((a, s) => a + minIn(s, d, e), 0); if (m > 0 && (!best || m > best.m)) best = {d, e, m}; }
+  // 日の作業時間は、重なったセッションを 1 度だけ数える（カレンダーと同じ数え方）
+  const unionMin = (d, e) => { const iv = DATA.flatMap(s => (s.segs || []).map(([a, b]) => [Math.max(a, d), Math.min(b, e)]).filter(([a, b]) => b > a)).sort((p, q) => p[0] - q[0]); let m = 0, ca = null, cb = null; iv.forEach(([a, b]) => { if (cb == null || a > cb){ if (cb != null) m += cb - ca; ca = a; cb = b; } else cb = Math.max(cb, b); }); if (cb != null) m += cb - ca; return m / 60; };
+  for (let d = ws; d < we; d += 86400){ const e = d + 86400, m = unionMin(d, e); if (m > 0 && (!best || m > best.m)) best = {d, e, m}; }
   if (!best) return "";
   const ss = DATA.filter(s => minIn(s, best.d, best.e) > 0).sort((a, b) => a.start - b.start).slice(0, 14); if (ss.length < 2) return "";
   const segs = ss.flatMap(s => (s.segs || []).map(([a, b]) => [Math.max(a, best.d), Math.min(b, best.e)]).filter(([a, b]) => b > a));
   const h0 = Math.floor((Math.min(...segs.map(x => x[0])) - best.d) / 3600), h1 = Math.ceil((Math.max(...segs.map(x => x[1])) - best.d) / 3600);
-  const W = 720, rh = 18, T = 18, L = 170, R = 10, H = T + ss.length * rh + 6, x = tt => L + (W - L - R) * ((tt - best.d) / 3600 - h0) / Math.max(1, h1 - h0);
+  const W = 460, rh = 20, T = 18, L = 130, R = 8, H = T + ss.length * rh + 6, x = tt => L + (W - L - R) * ((tt - best.d) / 3600 - h0) / Math.max(1, h1 - h0);
   let peak = 0; const ev = segs.flatMap(([a, b]) => [[a, 1], [b, -1]]).sort((p, q) => p[0] - q[0] || p[1] - q[1]); let c = 0; ev.forEach(([, d]) => { c += d; peak = Math.max(peak, c); });
   const hrs = Array.from({length: h1 - h0 + 1}, (_, i) => h0 + i).filter((h, i, a) => (h1 - h0 <= 12 || i % 2 === 0) || i === a.length - 1).map(h => `<g class="itk"><line x1="${x(best.d + h * 3600).toFixed(1)}" x2="${x(best.d + h * 3600).toFixed(1)}" y1="${T - 4}" y2="${H - 4}"/><text class="ixl" x="${x(best.d + h * 3600).toFixed(1)}" y="${T - 7}">${h}:00</text></g>`).join("");
-  const short = v => v.length > 24 ? v.slice(0, 23) + "…" : v;
+  const short = v => v.length > 18 ? v.slice(0, 17) + "…" : v;
   const rows = ss.map((s, i) => { const yy = T + i * rh, col = st.colorBy === "project" ? colorOf(s.project) : agColor(s.source);
     const bars = (s.segs || []).map(([a, b]) => [Math.max(a, best.d), Math.min(b, best.e)]).filter(([a, b]) => b > a).map(([a, b]) => `<rect x="${x(a).toFixed(1)}" y="${(yy + 3).toFixed(1)}" width="${Math.max(1.5, x(b) - x(a)).toFixed(1)}" height="${rh - 6}" rx="2" fill="${col}"/>`).join("");
     return `<g class="igr" data-sid="${esc(s.id)}" tabindex="0" role="button" aria-label="${esc(s.title)}"><text class="igl" x="${L - 8}" y="${(yy + rh / 2 + 4).toFixed(1)}">${esc(short(s.title))}</text>${bars}<rect class="ihit" x="0" y="${yy}" width="${W}" height="${rh}"${tipAttr(s.title, `${hm(s.start)}–${hm(s.end)} · ${s.project} · ${s.source}`)}/></g>`; }).join("");
