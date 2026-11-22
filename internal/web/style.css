@@ -1190,3 +1190,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 /* 狭いカード（3 枚が横に並ぶ幅や、スマホ）では、グラフを値の下に置く（値とグラフが重ならないように） */
 .ikg{container-type:inline-size}
 @container (max-width:560px){.itile:has(.tspk){grid-template-columns:minmax(0,1fr)}.itile:has(.tspk)>.tspk{grid-column:1;grid-row:auto;width:100%}}
+/* 単価の数字の評価と次の一手（値のすぐ下）。良い側は緑、悪い側は赤の字で、いつも通りは色なし */
+.iverd{display:flex;flex-direction:column;gap:2px;margin:2px 0 4px;font-size:var(--fs-sm);line-height:1.5;color:var(--ink-2)}
+.iverd p{margin:0}.itile .iverd b{font:600 var(--fs-md)/1.4 var(--sans);letter-spacing:normal;color:var(--ink)}.itile .iverd.good b{color:var(--go-ink)}.itile .iverd.bad b{color:var(--warn)}
+.iverd .ivact{color:var(--ink-2)}.iverd .iwlink,.iverd .ivgo{font:inherit;color:var(--acc-ink);text-decoration:underline;text-underline-offset:2px;padding:0;background:none;border:0;cursor:pointer}

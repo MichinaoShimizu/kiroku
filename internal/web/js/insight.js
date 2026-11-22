@@ -113,6 +113,45 @@ function insSpark(b, label){
   const list = ps.map(q => `${q.p.label} ${q.v == null ? "—" : fm(q.v)}${q.c == null ? "" : ` (${cl} ${fm(q.c)})`}`).join(LSEP());
   return `<span class="tspk"><span class="sr">${esc(t("Trend: {list}", {list}))}</span><svg aria-hidden="true" viewBox="0 0 ${W} ${H}"><text class="syt" x="${L}" y="11">${esc(yt)}</text>${add ? `<text class="syt r" x="${W - R}" y="11">${esc(cl)}</text>` : ""}${band}${ticks}${xtm}${cum}<polyline class="trl" points="${line}"/>${prj}${dots}${xl}<text class="sxt" x="${(L + (W - L - R) / 2).toFixed(1)}" y="${H - 3}">${esc(xt)}</text>${hits}${lim}</svg></span>`;
 }
+/* insVerdict は、単価の数字の「評価」と「次の一手」（AI は使わず、決まった規則で）。
+   評価：いつもの範囲（過去の真ん中 50%）より低ければ良い側（コミット・行あたりは「効率が良い」、時間・セッション・プロンプトあたりは「軽い」）。
+   根拠：過去の期間で最も低い・高い → 同じ向きに 3 期間以上続いている → いつもの範囲、の順に 1 つ。
+   次の一手：範囲の外に出たときだけ。悪い側なら、この期間の見直す候補（長い会話・モデル・繰り返し・つまずき・利用上限）から 1 つを原因の候補として開けるように。
+   なければ、使用量の大きいセッション（内訳）を開けるように */
+// insHabits は、表示中の期間の作業のしかたが、いつもとどう違ったか（セッションの長さ・1 セッションのプロンプト数）。
+// 過去 INS_N 期間の中央値より 25% 以上離れたものだけを、短い文にする。dir は「軽い側（短い・少ない）」なら -1、「重い側」なら 1
+function insHabits(){
+  const {ws, we} = period(), hs = historyStart(), f = (a, b) => { const xs = DATA.filter(s => s.start >= a && s.start < b && minIn(s, a, b) > 0);
+    return xs.length ? {min: xs.reduce((x, s) => x + minIn(s, a, b), 0) / xs.length, ask: xs.reduce((x, s) => x + (s.nPrompts || 0), 0) / xs.length} : null; };
+  const cur = f(ws, we); if (!cur) return [];
+  const past = []; for (let i = 1; i <= INS_N; i++){ const p = periodBack(i); if (p.ws >= hs){ const v = f(p.ws, p.we); if (v) past.push(v); } }
+  if (past.length < INS_MIN) return [];
+  const out = [], med = key => insQuant(past.map(v => v[key]), .5);
+  const m1 = med("min"), m2 = med("ask");
+  if (m1 && Math.abs(cur.min - m1) / m1 >= .25) out.push({dir: Math.sign(cur.min - m1), s: cur.min < m1 ? t("Shorter sessions (average {v}, usually {u})", {v: dur(Math.round(cur.min)), u: dur(Math.round(m1))}) : t("Longer sessions (average {v}, usually {u})", {v: dur(Math.round(cur.min)), u: dur(Math.round(m1))})});
+  if (m2 && Math.abs(cur.ask - m2) / m2 >= .25) out.push({dir: Math.sign(cur.ask - m2), s: cur.ask < m2 ? t("Fewer prompts per session ({v}, usually {u})", {v: Math.round(cur.ask * 10) / 10, u: Math.round(m2 * 10) / 10}) : t("More prompts per session ({v}, usually {u})", {v: Math.round(cur.ask * 10) / 10, u: Math.round(m2 * 10) / 10})});
+  return out;
+}
+function insVerdict(b, F, hab){
+  const k = b.k, eff = /PerCommit|PerEdit/.test(k), use = /^cost/.test(k) ? "cost" : /^credits/.test(k) ? "credits" : "tokens", M = st.mode === "month";
+  if (b.q1 == null) return `<p class="iverd"><b>${esc(t("Not enough history to judge yet"))}</b></p>`;
+  const tone = b.pos === "low" ? "good" : b.pos === "high" ? "bad" : "";
+  const head = b.pos === "low" ? (eff ? t("More efficient than usual") : t("Lighter than usual")) : b.pos === "high" ? (eff ? t("Less efficient than usual") : t("Heavier than usual")) : t("As usual");
+  const n = b.xs.length, fm = b.fmt || (x => fmtM(k, x));
+  const ser = []; for (let i = INS_N; i >= 1; i--){ const p = periodBack(i); if (p.ws >= historyStart()) ser.push(metricAt(k, p)); } ser.push(b.v);
+  let run = 0, dir = 0; for (let i = ser.length - 1; i > 0 && ser[i] != null && ser[i - 1] != null; i--){ const d = Math.sign(ser[i] - ser[i - 1]); if (!d || (dir && d !== dir)) break; dir = d; run++; }
+  const why = b.v < Math.min(...b.xs) ? t("Lowest of the last {n} {unit}", {n: n + 1, unit: insUnit(n + 1)}) : b.v > Math.max(...b.xs) ? t("Highest of the last {n} {unit}", {n: n + 1, unit: insUnit(n + 1)})
+    : run >= 3 ? (dir > 0 ? t("Up {n} {unit} in a row", {n: run, unit: insUnit(run)}) : t("Down {n} {unit} in a row", {n: run, unit: insUnit(run)})) : t("Typically {lo}–{hi}", {lo: fm(b.q1), hi: fm(b.q3)});
+  let act = "";
+  const good = (hab || []).filter(h => h.dir < 0), bad = (hab || []).filter(h => h.dir > 0);
+  if (b.pos === "low") act = good.length ? esc(`${t("What may have helped:")} ${good.map(h => h.s).join(LSEP())}`) : esc(soFar() != null ? (M ? t("Keep doing what you did this month") : t("Keep doing what you did this week")) : (M ? t("What you did that month worked") : t("What you did that week worked")));
+  else if (b.pos === "high"){
+    const id = ["heavy", "longctx", "modelfit", "repeats", "friction", "fix", "limits"].map(x => (F || []).find(f => f.k === x)).filter(Boolean).map(f => GOTO[f.k] || f.k)[0];
+    act = bad.length ? esc(`${t("Likely cause:")} ${bad.map(h => h.s).join(LSEP())}`) + (id ? ` · <button type="button" class="iwlink" data-goto="${esc(id)}" aria-haspopup="dialog">${esc(insName(id))}</button>` : "") : id ? `${esc(t("Likely cause:"))} <button type="button" class="iwlink" data-goto="${esc(id)}" aria-haspopup="dialog">${esc(insName(id))}</button>`
+      : `<button type="button" class="ivgo" data-metric="${use}" aria-haspopup="dialog">${esc(use === "cost" ? t("See the sessions that cost the most") : use === "credits" ? t("See the sessions that used the most credits") : t("See the sessions that used the most tokens"))}</button>`;
+  } else act = esc(t("Nothing to do"));
+  return `<div class="iverd${tone ? " " + tone : ""}"><p><b>${esc(head)}</b> — ${esc(why)}</p><p class="ivact">→ ${act}</p></div>`;
+}
 // tickS は目盛りの値。数だけの指標（クレジット・件数・割合）は刻みと同じ桁数でそろえる（0.25 刻みが「1.3」「0.75」と混ざらないように）
 const tickS = (k, v, step) => { const dp = Math.min(3, (String(+step.toPrecision(6)).split(".")[1] || "").length);
   if (/^cost/.test(k) && dp > 2) return "$" + v.toFixed(dp); // 0.025 刻みの費用は 3 桁で（2 桁に丸めると $0.03・$0.05・$0.08 と刻みが不ぞろいに見える）
@@ -135,9 +174,10 @@ const insChip = b => !b || b.q1 == null ? "" : `<code class="ichip ifx${insTone(
 function insHeadlines(F){
   const {S: w, P: pw, ws, we} = period(), T = {cost: [], outGit: [], outEdit: [], unitGit: [], unitEdit: [], unitHour: [], unitSes: [], unitAsk: []}, u = (w && w.usage) || {}, M = st.mode === "month";
   let G = "cost"; // コスト（時間・クレジット・金額・トークン）・出力（Git と AI の編集）・単価（コスト ÷ 出力。割る数の元ごと）に分けて並べる
+  let HAB = null; // 作業のしかたの違い（単価の評価で使う。期間ごとに 1 度だけ数える）
   // 途中の期間で、期間の長さに比例する数字には、どれも期間の終わりの予測を添える（費用・クレジット・時間・トークン・コミット・行・PR）
-  const tile = (label, b, v, f, m) => { f = [].concat(f || []); if (b && b.part && !f.some(x => x && x.pc)) f.push(pace(b.cur, b.v, MET[b.k] && MET[b.k].int ? (z => fmtM(b.k, Math.round(z))) : (b.fmt || (z => fmtM(b.k, z))))); tile0(label, b, v, f, m); };
-  const tile0 = (label, b, v, f, m) => T[G].push(`<div class="itile${insTone(b)}"><span class="il">${esc(label)}${hb(b && b.k && H()[b.k] ? b.k : m && H()[m] ? m : "")}</span>${m ? `<button type="button" class="itv" data-metric="${m}" aria-haspopup="dialog" aria-label="${esc(`${label} ${v}`)}">${esc(v)}</button>` : `<b>${esc(v)}</b>`}${[].concat(f || []).map(x => typeof x === "object" ? (x.n != null ? pln(x.n) : fx(x.f, "", x.p, x.h)) : x === t("Not an estimate") ? pln(x) : fx(x)).join("")}${insSpark(b, label)}${b === false ? "" : insChip(b)}</div>`); // 値を押すと、上の帯と同じ内訳
+  const tile = (label, b, v, f, m) => { f = [].concat(f || []); if (b && b.part && !f.some(x => x && x.pc)) f.push(pace(b.cur, b.v, MET[b.k] && MET[b.k].int ? (z => fmtM(b.k, Math.round(z))) : (b.fmt || (z => fmtM(b.k, z))))); if (/^unit/.test(G) && b && b.k && MET[b.k]) f.unshift({v: insVerdict(b, F, HAB || (HAB = insHabits()))}); tile0(label, b, v, f, m); };
+  const tile0 = (label, b, v, f, m) => T[G].push(`<div class="itile${insTone(b)}"><span class="il">${esc(label)}${hb(b && b.k && H()[b.k] ? b.k : m && H()[m] ? m : "")}</span>${m ? `<button type="button" class="itv" data-metric="${m}" aria-haspopup="dialog" aria-label="${esc(`${label} ${v}`)}">${esc(v)}</button>` : `<b>${esc(v)}</b>`}${[].concat(f || []).map(x => typeof x === "object" ? (x.v != null ? x.v : x.n != null ? pln(x.n) : fx(x.f, "", x.p, x.h)) : x === t("Not an estimate") ? pln(x) : fx(x)).join("")}${insSpark(b, label)}${b === false ? "" : insChip(b)}</div>`); // 値を押すと、上の帯と同じ内訳
   const days = Math.round((we - ws) / 86400), el = Math.round(insFrac() * days), V = vsPrev(pw, M ? "月" : "週");
   // 上の帯の増減（%）と同じ比べを式で：途中の期間は前の期間の同じ日まで、終わった期間は前の期間まるごと
   const vs = (a, b, f) => { if (b == null || !b) return ""; const pc = `${a >= b ? "+" : "−"}${Math.round(Math.abs(a - b) * 100 / b)}% ${V.n == null ? (M ? t("vs last month") : t("vs last week")) : t("vs {range}", {range: V.range})}`;
