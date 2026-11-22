@@ -10,7 +10,7 @@ AI testing does not replace real users. Use it as a first check to catch what mi
 sh tools/screenshots/run.sh --html /tmp/kiroku-test.html   # HTML with dummy data
 ```
 
-Scenarios 2 and 7 need `kiroku serve` (a saved HTML file has no AI actions): build kiroku, make dummy history with `python3 -I tools/screenshots/gen.py <dir>`, and start `kiroku serve` on it as `tools/screenshots/serve.mjs` does. Never press Run with a real agent: put a stand-in script named `codex` first on `PATH` and leave the real agents off it.
+Scenarios 2 and 7 only copy a prompt, so the HTML file is enough. To try `kiroku serve`, build kiroku, make dummy history with `python3 -I tools/screenshots/gen.py <dir>`, and start `kiroku serve` on it as `tools/screenshots/serve.mjs` does.
 
 Open it with Playwright and try it in the following 3 environments (the view is always dark).
 
@@ -29,7 +29,7 @@ Each scenario has the user's goal and a success condition. No steps are given. A
 | 1 | Someone opening it for the first time | Learn what this view is and what they did last week | Within 30 seconds, can say "what this view is" and "the project they spent the most time on last week" |
 | 2 | Someone writing a daily report | Turn yesterday's work into a daily report | Presses "Copy prompt" next to that day's date in the week calendar, pastes the prompt into their AI agent, and gets a report ready to share. Learns from the message after copying that kiroku ran and sent nothing |
 | 3 | Someone who wants to keep AI costs down | Decide on one thing to change from next week | Picks one action from "Worth a look" and can say in their own words what to do |
-| 4 | Someone who wants to know whether something they tried worked | Check whether what they tried last week worked | Finds the metric related to what they changed, from the 8-week trend of a marked metric or from a metric opened via "Worth a look" or "?", reads the direction of change and can judge whether it worked (including when it dropped off "Worth a look", or why it can't be judged) |
+| 4 | Someone who wants to know whether something they tried worked | Check whether what they tried last week worked | Finds the metric related to what they changed, from the 13-week trend of a marked metric or from a metric opened via "Worth a look" or "?", reads the direction of change and can judge whether it worked (including when it dropped off "Worth a look", or why it can't be judged) |
 | 5 | Someone hunting the cause of a bug | Find the session where the AI touched a particular file | Reaches the session and commit from search, and can read the prompt flow |
 | 6 | Someone who was stopped by a usage limit | Learn when and during what work they hit the limit | Finds the time and session of the limit hit, and can read what to do from "?" |
 | 7 | Someone looking back on one session | Review a session that went badly with an AI | Opens the details and copies the review prompt with "Copy prompt" under Session review, which says kiroku runs and sends nothing |

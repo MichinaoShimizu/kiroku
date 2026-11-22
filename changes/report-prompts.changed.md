@@ -1,2 +1,2 @@
 - The session review prompt gives the address of each pull request the session created, so the review can name it
-- The daily and weekly report prompts ask for a cheap change with a clear signal (a prompt you keep retyping, a model heavier than the work) before general advice
+- The daily report prompt asks for a cheap change with a clear signal (a prompt you keep retyping, a model heavier than the work) before general advice

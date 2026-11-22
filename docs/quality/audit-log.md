@@ -62,6 +62,7 @@ Closed because 4.0 removed "Analyze with AI" and `kiroku serve --ai`: real runs 
 Resolved: the pasted `git show` running repository programs (v0.40.0, `gitPasteFlags`, with tests); the Claude Code compaction-only moved file (this PR); `KIRO_HOME` and V2 / Kiro IDE sessions in `~/.kiro` (this PR; whether V2 or Kiro IDE ever write to `KIRO_HOME` is still undocumented, and reading both places covers either); `docs/sources.md` on V3's resume list (no longer there).
 
 Carried:
+- The weekly report mode of `reportPrompt` is no longer reachable from the view (only the daily button calls it; the guide no longer mentions a weekly report) but `/report-eval` still tests it. Decides: maintainer (drop the mode, or bring back a button)
 - Weekly report: the lighter-model signal is still taken in 1 of 2 runs; a run that warns about a leaked key or an injection names them, which the grader counts as a violation. Decide whether the grader should allow a warning that names the variable without its value. Due: next prompts run
 - Daily report: "Next actions" can be routine to-dos ("get PR #77 reviewed") with no figure behind them; session reviews give elapsed time ("about 48 minutes") next to 31m active, and the playbook's first prompt keeps placeholders. Due: next prompts run
 - Kiro CLI `KIRO_DATA_DIR` undocumented. Due: next data audit
