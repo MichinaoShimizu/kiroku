@@ -50,9 +50,10 @@ type claudeOrigins struct {
 
 // originSet は、元の会話のファイル 1 つにある、元の会話自身の行の印（ハッシュ）。読むのは 1 回だけ。
 type originSet struct {
-	once sync.Once
-	keys map[uint64]struct{}
-	n    int // 読み終えて total に足した印の数
+	once    sync.Once
+	keys    map[uint64]struct{}
+	compact map[uint64]struct{} // keys のうち、コンパクションの行（compact_boundary と要約の行）の印（ownLines が除く）
+	n       int                 // 読み終えて total に足した印の数
 }
 
 // usedOrigins は、1 つの会話のファイルが突き合わせた元の会話: ID と、読んだファイルの印（Stamp）。
@@ -134,6 +135,12 @@ func (o *claudeOrigins) hasIndex() bool {
 // keys は、元の会話のファイル path（会話の ID は id）にある、元の会話自身の行の印と、読んだときのファイルの印（Stamp）。
 // 同じファイル（大きさと更新時刻も同じ）は、会話をまたいで 1 回だけ読む。
 func (o *claudeOrigins) keys(path, id string) (map[uint64]struct{}, string) {
+	s, stamp := o.set(path, id)
+	return s.keys, stamp
+}
+
+// set は keys と同じだが、コンパクションの行の印（originSet.compact）も返す。
+func (o *claudeOrigins) set(path, id string) (*originSet, string) {
 	stamp := Stamp([]string{path})
 	k := path + "\x00" + stamp
 	o.mu.Lock()
@@ -148,9 +155,9 @@ func (o *claudeOrigins) keys(path, id string) (map[uint64]struct{}, string) {
 	o.touch(k)
 	o.mu.Unlock()
 	s.once.Do(func() {
-		keys := o.readKeys(path, id)
+		keys, compact := o.readKeys(path, id)
 		o.mu.Lock()
-		s.keys = keys
+		s.keys, s.compact = keys, compact
 		if o.sets[k] == s { // 読んでいる間に捨てられていなければ、合計に足す
 			s.n = len(keys)
 			o.total += s.n
@@ -158,7 +165,7 @@ func (o *claudeOrigins) keys(path, id string) (map[uint64]struct{}, string) {
 		}
 		o.mu.Unlock()
 	})
-	return s.keys, stamp
+	return s, stamp
 }
 
 // touch は k をいちばん最近使ったものにする（o.mu を持って呼ぶ）。
@@ -187,26 +194,26 @@ func (o *claudeOrigins) evict(keep string) {
 }
 
 // originFields は、元の会話の行から読む項目（ほかの項目は組み立てずに読み飛ばす。大きな行でもメモリを使わない）。
-var originFields = []string{"uuid", "type", "requestId", "sessionId", "forkedFrom", "message", "timestamp"}
+var originFields = []string{"uuid", "type", "subtype", "isCompactSummary", "requestId", "sessionId", "forkedFrom", "message", "timestamp"}
 
 // readKeys は、元の会話のファイルにある行のうち、元の会話が数える自身の行の印。元の会話の LoadUnit と同じく、
 // JSON として読めて（core.ReadJSONL が受け付ける）長すぎず、時刻があり、ほかの会話から写した行でない（copiedFrom が空）行だけ。
 // 2 つの会話が互いを元と書いた同じ行を持っていても、どちらか（その行を自分の行として持つほう）では必ず数える。
 // ふつうのファイルでない・読めないところは印が入らず、写した先で数える。maxOriginKeys 個・maxOriginBytes を超えたら、
-// そこで読むのをやめる。
-func (o *claudeOrigins) readKeys(path, id string) map[uint64]struct{} {
+// そこで読むのをやめる。2 つめの戻り値は、そのうちコンパクションの行（compactLine）の印。
+func (o *claudeOrigins) readKeys(path, id string) (map[uint64]struct{}, map[uint64]struct{}) {
 	originReads.Add(1)
-	keys := map[uint64]struct{}{}
+	keys, compact := map[uint64]struct{}{}, map[uint64]struct{}{}
 	f, err := core.OpenRegular(path)
 	if err != nil {
-		return keys
+		return keys, compact
 	}
 	defer f.Close()
 	var src io.Reader = f
 	if strings.HasSuffix(path, ".zst") {
 		d, err := core.NewZstdReader(f)
 		if err != nil {
-			return keys
+			return keys, compact
 		}
 		defer d.Close()
 		src = d
@@ -222,6 +229,9 @@ func (o *claudeOrigins) readKeys(path, id string) map[uint64]struct{} {
 					for _, k := range ks {
 						if k != "" {
 							keys[o.hash(k)] = struct{}{}
+							if compactLine(e) {
+								compact[o.hash(k)] = struct{}{}
+							}
 						}
 					}
 				}
@@ -231,7 +241,14 @@ func (o *claudeOrigins) readKeys(path, id string) map[uint64]struct{} {
 			break
 		}
 	}
-	return keys
+	return keys, compact
+}
+
+// compactLine は、行がコンパクションの行（system の compact_boundary か、user の要約の行 isCompactSummary）か。
+func compactLine(e core.Obj) bool {
+	typ := core.Str(e["type"])
+	summary, _ := e["isCompactSummary"].(bool)
+	return summary && typ == "user" || typ == "system" && core.Str(e["subtype"]) == "compact_boundary"
 }
 
 // originLine は、行から突き合わせに使う項目だけを取り出す。長い uuid などは組み立てない（lineKey が使わない）。
@@ -242,7 +259,7 @@ func originLine(line []byte) core.Obj {
 		return nil
 	}
 	e := core.Obj{}
-	for _, k := range []string{"uuid", "type", "requestId", "sessionId", "timestamp"} {
+	for _, k := range []string{"uuid", "type", "subtype", "isCompactSummary", "requestId", "sessionId", "timestamp"} {
 		if v := raw[k]; len(v) > 0 && len(v) <= maxKeyLen+2 {
 			var s any
 			if json.Unmarshal(v, &s) == nil {
@@ -295,6 +312,15 @@ func (o *claudeOrigins) adopted(key string) map[string]string {
 // あとのファイルと最初に数えるファイルの両方が同じこの判定を使うので、サブエージェントはどちらか一方で数える。
 // 印は seenBefore と同じく先に数えるファイル maxOriginsPerUnit 個までと突き合わせる。
 func (o *claudeOrigins) ownLines(path string) bool {
+	own, _ := o.ownCompactions(path)
+	return own
+}
+
+// ownCompactions は ownLines と、あとのファイル path にだけあるコンパクションの行の印。コンパクションの行は、作業の時刻に
+// 入れないのでそれだけではセッションが出ない（/cd のあと人が離れて要約されたファイル）。そこで ownLines では自身の行に数えず、
+// 最初に数えるファイルが、サブエージェントと一緒にそのコンパクションも引き取る（LoadUnit）。行の印そのもの（keys）は、
+// 写した行を 2 度数えないよう、コンパクションの行も含めて突き合わせに使う。
+func (o *claudeOrigins) ownCompactions(path string) (bool, map[uint64]struct{}) {
 	stem := stemOf(path)
 	var prior []map[uint64]struct{}
 	for _, f := range o.before(path) {
@@ -304,8 +330,9 @@ func (o *claudeOrigins) ownLines(path string) bool {
 		keys, _ := o.keys(f, stem)
 		prior = append(prior, keys)
 	}
-	mine, _ := o.keys(path, stem)
-	for h := range mine {
+	mine, _ := o.set(path, stem)
+	var compact map[uint64]struct{}
+	for h := range mine.keys {
 		seen := false
 		for _, s := range prior {
 			if _, ok := s[h]; ok {
@@ -313,11 +340,18 @@ func (o *claudeOrigins) ownLines(path string) bool {
 				break
 			}
 		}
-		if !seen {
-			return true
+		if seen {
+			continue
 		}
+		if _, ok := mine.compact[h]; !ok {
+			return true, nil
+		}
+		if compact == nil {
+			compact = map[uint64]struct{}{}
+		}
+		compact[h] = struct{}{}
 	}
-	return false
+	return false, compact
 }
 
 // dupRank は、同じ会話のファイル a を b より先に数えるか。

@@ -192,6 +192,84 @@ func TestClaudeMovedSessionAdoptsSubagentsOfDuplicateFile(t *testing.T) {
 	})
 }
 
+// 移った会話のあとのファイルに、自身の行としてコンパクションの行だけがある（/cd のあと、人が離れて会話が要約された）と、
+// そのファイルからはセッションが出ない。そのフォルダのサブエージェントとコンパクションは、先に数えるファイルのセッションで 1 回数える。
+// 写した行は先に数えるファイルの行として 2 度数えない。
+func TestClaudeMovedSessionAdoptsCompactionOnlyFile(t *testing.T) {
+	idle := []string{
+		`{"type":"system","subtype":"compact_boundary","sessionId":"orig","uuid":"k1","timestamp":"2026-09-30T02:30:00Z","compactMetadata":{"trigger":"auto","preTokens":5000}}`,
+		`{"type":"user","sessionId":"orig","uuid":"k2","timestamp":"2026-09-30T02:30:05Z","isCompactSummary":true,"message":{"role":"user","content":"This session is being continued from a previous conversation."}}`,
+	}
+	type result struct {
+		sessions    int
+		in          float64
+		compactions []float64
+		kinds       []string
+	}
+	count := func(t *testing.T, c *Claude) result {
+		t.Helper()
+		var r result
+		for _, b := range load(t, c) {
+			s := b.Finish(15)
+			if s == nil {
+				continue
+			}
+			r.sessions++
+			for _, a := range s.Subagents {
+				r.in += a.Usage.In
+			}
+			r.compactions = append(r.compactions, s.Compactions...)
+			r.kinds = append(r.kinds, s.CompactKinds...)
+		}
+		sort.Float64s(r.compactions)
+		return r
+	}
+	setup := func(t *testing.T, later []string, subagent bool) *Claude {
+		root := t.TempDir()
+		// 先に数えるファイル（パスの順で -Users-me-app-wt が先）
+		writeLines(t, filepath.Join(root, "-Users-me-app-wt", "orig.jsonl"), origLines)
+		writeLines(t, filepath.Join(root, "-Users-me-app-wt", "orig", "subagents", "agent-a.jsonl"), []string{subLine("a", 300)})
+		writeLines(t, filepath.Join(root, "-Users-me-app", "orig.jsonl"), later)
+		if subagent {
+			writeLines(t, filepath.Join(root, "-Users-me-app", "orig", "subagents", "agent-c.jsonl"), []string{subLine("c", 7)})
+		}
+		return &Claude{Root: root}
+	}
+	manual, auto := *ts(`2026-09-30T01:10:00Z`), *ts(`2026-09-30T02:30:00Z`)
+
+	t.Run("サブエージェントのあるファイル", func(t *testing.T) {
+		r := count(t, setup(t, append(slices.Clip(origLines), idle...), true))
+		if r.sessions != 1 || r.in != 307 {
+			t.Errorf("セッション %d 個・サブエージェントの入力トークン %v, want 1 個・307（agent-a 300 + agent-c 7）", r.sessions, r.in)
+		}
+		if !slices.Equal(r.compactions, []float64{manual, auto}) || !slices.Equal(r.kinds, []string{"manual", "auto"}) {
+			t.Errorf("コンパクション = %v %v, want [%v %v] [manual auto]（写した manual は 1 回、あとのファイルの auto も数える）", r.compactions, r.kinds, manual, auto)
+		}
+	})
+
+	t.Run("サブエージェントのないファイル", func(t *testing.T) {
+		c := setup(t, append(slices.Clip(origLines), idle...), false)
+		r := count(t, c)
+		if r.sessions != 1 || r.in != 300 || !slices.Equal(r.compactions, []float64{manual, auto}) {
+			t.Errorf("セッション %d 個・入力 %v・コンパクション %v, want 1 個・300・[%v %v]", r.sessions, r.in, r.compactions, manual, auto)
+		}
+		// kiroku serve: あとのファイルが変わったら、最初に数えるファイルを読み直す
+		_, tags := unitFiles(t, c)
+		writeLines(t, filepath.Join(c.Root, "-Users-me-app", "orig.jsonl"), append(slices.Clip(origLines), idle[0]))
+		if _, now := unitFiles(t, c); now["-Users-me-app-wt/orig.jsonl"] == tags["-Users-me-app-wt/orig.jsonl"] {
+			t.Errorf("最初に数えるファイルの Tag が変わらない: %q", now["-Users-me-app-wt/orig.jsonl"])
+		}
+	})
+
+	t.Run("自身の行がほかにもあれば、あとのファイルで数える", func(t *testing.T) {
+		own := strings.Replace(userLine("orig", "k3", "続き"), "2026-09-30T01:00:00Z", "2026-09-30T03:00:00Z", 1)
+		r := count(t, setup(t, append(append(slices.Clip(origLines), idle...), own), true))
+		if r.sessions != 2 || r.in != 307 || !slices.Equal(r.compactions, []float64{manual, auto}) {
+			t.Errorf("セッション %d 個・入力 %v・コンパクション %v, want 2 個・307・[%v %v]（auto はあとのファイルのセッションで 1 回）", r.sessions, r.in, r.compactions, manual, auto)
+		}
+	})
+}
+
 // サブエージェントのファイルは、まず agentId でつなぎ、残りを時刻でつなぐ。時刻でつないだファイルが、
 // あとで agentId の合う別のファイルに同じ呼び出しを取られて消えることはない（片方は呼び出しのない 1 つとして数える）。
 func TestClaudeSubagentAgentIDBeforeTime(t *testing.T) {
