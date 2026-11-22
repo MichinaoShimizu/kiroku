@@ -5,3 +5,6 @@
 - Calendar: narrow day columns drop the time, then the cost, from the heading line instead of overflowing into the next day
 - Summary: off-hours share and project switches are no longer colored good or bad; ranks in the lower half read "2nd lowest of 11 weeks"; session-length bars say "4 sessions" instead of "n=4"; Kiro credits say "Kiro's own count, not an estimate"; typical ranges write the unit once ("13.1–13.8 credits"); the By agent table gets a wide card so no column is hidden; the usual-range band is easier to see in dark mode; the kinds-of-work bars line up
 - Commit and push details show the repository path with a "Copy the git command" button instead of the whole git command
+- Summary: the value so far in a period in progress is labeled "So far" in the header charts
+- Calendar: on narrow month cells (phones), times are shortened ("5h") instead of being cut off
+- Search: file matches in sessions show the path from the project, as commit matches do

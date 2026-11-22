@@ -6,7 +6,7 @@ function snip(t, q){
   return `${a ? "…" : ""}${esc(t.slice(a, i))}<mark>${esc(t.slice(i, i + q.length))}</mark>${esc(t.slice(i + q.length, b))}${b < t.length ? "…" : ""}`;
 }
 function hitOf(s, q){
-  const tries = [["Title", [s.title]], ["Prompt", s.prompts.map(p => p.text)], ["File", s.files], ["PR", s.prs || []],
+  const tries = [["Title", [s.title]], ["Prompt", s.prompts.map(p => p.text)], ["File", s.files.map(f => s.projectPath && f.startsWith(s.projectPath + "/") ? f.slice(s.projectPath.length + 1) : f)], ["PR", s.prs || []],
     ["Commit", commitsOf(s).flatMap(c => [`${c.hash.slice(0,7)} ${c.subject}`, ...(c.files || []).map(f => f.path)])],
     ["Project", [s.project]], ["Branch", [s.branch || ""]], ["Agent", [s.source]]];
   for (const [label, xs] of tries) for (const x of xs){ const h = snip(x, q); if (h) return {label, h}; }

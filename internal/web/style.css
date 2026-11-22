@@ -1214,3 +1214,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 /* 作業の種類・よく変えるファイル：右の数の欄の幅をそろえ、棒の右端をそろえる */
 .ikinds .iwr{grid-template-columns:minmax(0,30%) minmax(0,1fr) minmax(0,15em) 3.2em}.ikinds .iwv{text-align:right}
 .insrow>.inscol.agw{flex-basis:680px} /* エージェント別の表は列が多いので、隠れないだけの幅を取る */
+.tspk .sofl{font-size:9px;fill:var(--acc-ink);text-anchor:end}
+/* 月のマスの時間：狭いマスでは短い形だけ（「4h 57m」がマスからはみ出さないように） */
+.cell{container-type:inline-size}.cell .act .tshort{display:none}
+@container (max-width:64px){.cell .act .tlong{display:none}.cell .act .tshort{display:inline}}
