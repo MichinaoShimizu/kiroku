@@ -350,12 +350,18 @@ async function run(env) {
       check("ヒートマップの各行に曜日の合計がある（触れなくても読める）", await p.evaluate(() => document.querySelectorAll("#review .ihgrid > .iht:not(.ihh)").length === 7));
       check("3 列の並びの最後の段に空きを作らない（余りは横に広げる）", await p.evaluate(() => [...document.querySelectorAll("#review .istats, #review .ikrow")].every(g => { const k = [...g.children], cols = getComputedStyle(g).gridTemplateColumns.split(" ").length; if (k.length < 2) return true; const r = k.map(c => c.getBoundingClientRect()), last = r[r.length - 1], row = r.filter(b => Math.abs(b.top - last.top) < 2); return Math.abs(row[row.length - 1].right - g.getBoundingClientRect().right) < 2 || row.length === cols; })));
       check("カードの中の数の枠は最大 3 列", await p.evaluate(() => [...document.querySelectorAll("#review .istats")].every(g => getComputedStyle(g).gridTemplateColumns.split(" ").length <= 3)));
-      check("サマリーの頭はコスト・出力・単価の 3 枚のカードで、広い画面では 1 行に 3 枚並び、どの数字も画面の中に見える", await p.evaluate(() => { const G = [...document.querySelectorAll("#review .insh .ikg")], g = document.querySelector("#review .insh").getBoundingClientRect();
+      check("サマリーの頭はコスト・出力・単価の 3 枚のカードで、広い画面ではコストと出力を左に積み単価を右に置き、どの数字も画面の中に見える", await p.evaluate(() => { const G = [...document.querySelectorAll("#review .insh .ikg")], g = document.querySelector("#review .insh").getBoundingClientRect();
         const k = [...document.querySelectorAll("#review .insh .ikrow > .itile")], inside = k.every(c => { const r = c.getBoundingClientRect(); return r.left >= g.left - 1 && r.right <= g.right + 1; });
-        const tops = G.map(x => Math.round(x.getBoundingClientRect().top));
-        return G.length === 3 && k.length > 1 && inside && (innerWidth < 1300 || tops.every(x => x === tops[0])) && !document.querySelector("#review .icall"); }));
-      check("式はいつも見せ、切り替えのボタンは置かない", await p.evaluate(() => [...document.querySelectorAll("#review .insight .ifx.fxo")].some(e => e.offsetParent !== null) && !document.querySelector("#fxbtn")));
-      check("サマリーの頭に、数字 5〜24 個（上の帯の数字を含む。コスト・出力（Git はコミット・行・ファイル・リポジトリ・日・push・PR、AI の編集はファイルと行）・単価（Git コミットあたりと AI が編集した 100 行あたりを分ける）に分ける）・推移・累積の線・どこに使ったかの横棒・長さ別の費用があり、改善のアドバイスの枠はない", r.heads >= 5 && r.heads <= 24 && r.svg && r.bars > 0 && r.cum === 1 && r.donut > 0 && r.hist === 6 && r.adv === 0, JSON.stringify(r));
+        // 広い画面では、コストと出力を左に縦に積み、単価を右に置く（短いカードの下を空けない）
+        const r = c => document.querySelector(`#review .insh .ik-${c}`).getBoundingClientRect(), wide = innerWidth >= 1100;
+        const lay = !wide || (Math.abs(r("cost").top - r("unit").top) < 2 && r("out").top >= r("cost").bottom - 1 && r("unit").left >= r("cost").right - 1 && Math.abs(r("out").left - r("cost").left) < 2);
+        return G.length === 3 && k.length > 1 && inside && lay && !document.querySelector("#review .icall"); }));
+      check("式はふだん隠し、指標名の横の「ƒx」で、その数字の式だけを開く（もう一度押すと閉じる）", await p.evaluate(async () => {
+        const vis = el => [...el.querySelectorAll(".ifx.fxo")].some(e => e.offsetParent !== null), I = document.querySelector("#review .insight");
+        const b = I.querySelector(".itile .fxb"), tile = b && b.closest(".itile"); if (!tile || vis(I) || document.querySelector("#fxbtn")) return false;
+        b.click(); await new Promise(r => setTimeout(r, 100)); const on = vis(tile) && b.getAttribute("aria-pressed") === "true" && [...I.querySelectorAll(".itile")].filter(x => x !== tile).every(x => !vis(x));
+        b.click(); await new Promise(r => setTimeout(r, 100)); return on && !vis(I); }));
+      check("サマリーの頭に、数字 5〜32 個（上の帯の数字を含む。単価は Git コミット・AI の編集行・稼働時間・セッション・プロンプトあたりの 5 段。コスト・出力（Git はコミット・行・ファイル・リポジトリ・日・push・PR、AI の編集はファイルと行）・単価（Git コミットあたりと AI が編集した 100 行あたりを分ける）に分ける）・推移・累積の線・どこに使ったかの横棒・長さ別の費用があり、改善のアドバイスの枠はない", r.heads >= 5 && r.heads <= 32 && r.svg && r.bars > 0 && r.cum === 1 && r.donut > 0 && r.hist === 6 && r.adv === 0, JSON.stringify(r));
       const fx = await p.evaluate(() => ({chips: [...document.querySelectorAll("#review .insight .ichip.ifx")].map(e => e.textContent), def: (document.querySelector("#review .insdef") || {}).textContent || "",
         vague: /Usual|Higher|Lower|usual range|いつもの範囲|いつもどおり|高め|低め|\bQ[13]\b|IQR/.test(document.querySelector("#review .insight").innerText)}));
       check("いつもとの比べは不等式（下位・上位25%点の値）で出し、定義を 1 行で示す。曖昧な言葉と Q1・Q3 の記号は使わない", fx.chips.length > 0 && fx.chips.every(c => /pct|%点|≤|needs|必要/.test(c)) && /(spread|幅) = /.test(fx.def) && !fx.vague, JSON.stringify(fx).slice(0, 300));
@@ -699,7 +705,7 @@ async function run(env) {
     check("どこに使ったかは、記録のある量（費用・クレジット・トークン・時間）を切り替えられる", wk.length >= 2, JSON.stringify(wk));
     for (const k of wk){ await p.locator(`#review [data-wk="${k}"]`).click(); await pause();
       check(`どこに使ったかを ${k} にすると、その量の横棒になる`, await p.evaluate(k => st.insWk === k && document.querySelector(`#review [data-wk="${k}"]`).getAttribute("aria-pressed") === "true" && document.querySelectorAll("#review .iwrows .iwr").length > 0, k)); }
-    check("長さ別の図に n= を並べない（件数はツールチップに）", !/n=\d/.test(await p.evaluate(() => (document.querySelector("#review .ihist svg") || {}).innerHTML || "")));
+    check("長さ別の図は 1 セッションあたりの平均なので、区間ごとのセッションの数を軸の下に出す（1 件だけの平均を見分けられるように）", await p.evaluate(() => { const g = document.querySelector("#review .ihist svg"); return !g || g.querySelectorAll(".ixn").length === g.querySelectorAll(".ihb").length; }));
     await view("cal");
     await p.keyboard.press("m"); await pause();
     const opts = await p.locator("#calk option").evaluateAll(xs => xs.map(x => x.value));
@@ -707,8 +713,8 @@ async function run(env) {
       const h0 = await heat(); await p.selectOption("#calk", opts[opts.length - 1]); await pause();
       check("月の濃淡の量を凡例の「数字」で選べ、塗り方が変わり、選んだものが残る", await heat() !== h0 && await p.evaluate(v => st.shade === v && document.querySelector("#calk").value === v, opts[opts.length - 1]), JSON.stringify(opts));
       await p.keyboard.press("w"); await pause();
-      const lab = await p.evaluate(() => (document.querySelector("#tl .head .cu") || {}).getAttribute?.("aria-label") || "");
-      check("週カレンダーの日の数字も、選んだ量で書く", await p.evaluate(v => document.querySelector("#calk") && document.querySelector("#calk").value === v, opts[opts.length - 1]) && lab.startsWith(await p.evaluate(v => SHADE()[v].s, opts[opts.length - 1])), lab);
+      const lab = await p.evaluate(() => [...document.querySelectorAll("#tl .head:not(.empty) .cline")].slice(0, 1).map(l => [...l.querySelectorAll(".cu, .ct")].map(e => e.getAttribute("aria-label")).join(" | ")).join(""));
+      check("週カレンダーの日の数字も、選んだ量で書く（稼働時間とコスト系の両方を並べる）", await p.evaluate(v => document.querySelector("#calk") && document.querySelector("#calk").value === v, opts[opts.length - 1]) && lab.includes(await p.evaluate(v => SHADE()[v].s, opts[opts.length - 1])) && lab.includes(await p.evaluate(() => t("Active time"))), lab);
       await p.selectOption("#calk", opts[0]); await pause(); await p.keyboard.press("m"); await pause(); }
     else console.log("  skip 月の濃淡に選べる量が 1 つしかない");
     await p.keyboard.press("w"); await pause();

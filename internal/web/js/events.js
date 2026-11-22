@@ -5,14 +5,16 @@
 function navEnds(){ const M = st.mode === "month";
   if (META.scope){ const a = scopeStart(), z = META.scope.mode === "week" ? addDays(a, 6) : new Date(a.getFullYear(), a.getMonth()+1, 0);
     return M ? {lo: monthOf(a), hi: monthOf(z)} : {lo: mondayOf(a), hi: mondayOf(z)}; }
-  return {lo: null, hi: M ? monthOf(today0()) : mondayOf(today0())}; }
+  const hs = historyStart(), first = isFinite(hs) ? new Date(hs * 1000) : null; // 記録の始まりより前へは行かない（空の週が続くだけなので）
+  return {lo: first ? (M ? monthOf(first) : mondayOf(first)) : null, hi: M ? monthOf(today0()) : mondayOf(today0())}; }
 function canGo(n){ const {lo, hi} = navEnds(), cur = st.mode === "month" ? st.month : st.week;
   return n > 0 ? cur < hi : !lo || cur > lo; }
 function go(n){
   if (n != null && !canGo(n)) return; // 先の週や、ファイルに入っていない期間へは行かない
   const home = META.scope ? scopeStart() : today0(); // 期間だけのファイルでは、その期間へ戻る
-  if (st.mode === "month") st.month = n == null ? monthOf(home) : new Date(st.month.getFullYear(), st.month.getMonth()+n, 1);
-  else st.week = n == null ? mondayOf(home) : addDays(st.week, 7*n);
+  if (n == null){ st.month = monthOf(home); st.week = mondayOf(home); } // 「今週・今月」は、週と月の両方を戻す（今月を開いてから週にしても今週になるように）
+  else if (st.mode === "month") st.month = new Date(st.month.getFullYear(), st.month.getMonth()+n, 1);
+  else st.week = addDays(st.week, 7*n);
   const was = document.activeElement, inCal = !!was?.closest?.("#tl");
   st.sel = null; st.back = []; st.backTop = []; st.animate = true; $("#toast").classList.remove("on"); render(); scrollToWork();
   if (inCal) keepCalFocus(n);
@@ -29,14 +31,14 @@ function setMode(m){ if (m === "month" && META.scope && META.scope.mode === "wee
   if (m === "month" && st.mode !== "month") st.month = monthOf(addDays(st.week, 3));
   if (m === "week" && st.mode === "month" && monthOf(st.week).getTime() !== st.month.getTime()) st.week = mondayOf(st.month);
   st.mode = m; store.set("mode", m); st.sel = null; st.animate = true; render(); scrollToWork(); }
-document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = () => setMode(b.dataset.v));
+document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = e => { setMode(b.dataset.v); if (e.detail) b.blur(); }); // マウスで押したら、フォーカスを外す（←→ で期間を動かせるように）
 /* 表示：カレンダーかサマリー。広い画面ではページ全体を画面に固定し、選んだほうだけが中でスクロールする（ページとカレンダーの二重のスクロールをなくす） */
 function showView(){ document.body.dataset.view = st.view;
   document.querySelectorAll("#view button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.view)); }
 function setView(v, focus){ if (v === st.view) return; st.view = v; store.set("view", v); showView();
   const m = $("main"); if (m) m.scrollTop = 0; if (v === "cal") scrollToWork(); else fitTrend();
   if (focus && v === "sum"){ const r = $("#review"); r.tabIndex = -1; r.focus({preventScroll: true}); } }
-document.querySelectorAll("#view button[data-v]").forEach(b => b.onclick = () => setView(b.dataset.v));
+document.querySelectorAll("#view button[data-v]").forEach(b => b.onclick = e => { setView(b.dataset.v); if (e.detail) b.blur(); });
 $("#skipcal").onclick = e => { e.preventDefault(); setView("sum", true); };
 $("#prev").onclick = () => go(-1); $("#next").onclick = () => go(1); $("#today").onclick = () => go(null);
 $("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); st.srN = st.scN = 0; render(); }; // 言葉が変わったら、結果はまた先頭の数件から

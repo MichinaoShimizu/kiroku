@@ -1,10 +1,11 @@
 // サマリーの頭：要点の文・推移のグラフ（自分のいつもの範囲つき）・改善のアドバイス。AI は使わず、決まった計算と規則だけで出す
 /* いつもの範囲：表示中の期間の前の INS_N 期間（記録が始まる前の期間と、記録が途中から始まる期間は除く）の分布。
    中央値と四分位（真ん中の 50%）で見る。平均と標準偏差は、外れた週 1 つで大きく動くので使わない */
+const INS_VOL = new Set(["cost", "credits", "tokens", "active", "prompts", "gitCommits"]); // 使った量・作業の量（色で良し悪しを付けない）
 const INS_N = 12, INS_MIN = 4; // 比べる期間の数と、比べるのに要る最低の数（それより少なければ「まだ比べられない」と言う）
 const INS_ADD = new Set(["cost", "credits", "active", "prompts", "tokens", "gitCommits", "limits", "longctx", "friction", "bigPrompts", "focus"]); // 期間の長さに比例して増える指標（途中の期間は、このペースで期間を終えたときの値で比べる）
-const INS_KEYS = ["cost", "credits", "tokens", "active", "costPerCommit", "creditsPerCommit", "tokensPerCommit", "costPerEdit", "creditsPerEdit", "tokensPerEdit", "cache", "fix", "wait"]; // グラフで切り替えて見られる指標
-const INS_SHORT = () => ({cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), active: t("Time"), costPerCommit: t("Cost per Git commit"), creditsPerCommit: t("Credits per Git commit"), tokensPerCommit: t("Tokens per Git commit"), costPerEdit: t("Cost per 100 AI lines"), creditsPerEdit: t("Credits per 100 AI lines"), tokensPerEdit: t("Tokens per 100 AI lines"), cache: t("Cache"), fix: t("Corrections"), wait: t("Wait")}); // 切り替えの短い名前（正式な名前は title と、グラフの下の文）
+const INS_KEYS = ["cost", "credits", "tokens", "active", "costPerCommit", "tokensPerCommit", "costPerEdit", "creditsPerEdit", "tokensPerEdit", "costPerHour", "creditsPerHour", "tokensPerHour", "costPerSes", "creditsPerSes", "tokensPerSes", "costPerAsk", "creditsPerAsk", "tokensPerAsk", "cache", "fix", "wait"]; // グラフで切り替えて見られる指標
+const INS_SHORT = () => ({cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), active: t("Time"), costPerCommit: t("Cost per AI commit"), tokensPerCommit: t("Tokens per AI commit"), costPerEdit: t("Cost per 100 AI lines"), creditsPerEdit: t("Credits per 100 AI lines"), tokensPerEdit: t("Tokens per 100 AI lines"), costPerHour: t("Cost per hour"), creditsPerHour: t("Credits per hour"), tokensPerHour: t("Tokens per hour"), costPerSes: t("Cost per session"), creditsPerSes: t("Credits per session"), tokensPerSes: t("Tokens per session"), costPerAsk: t("Cost per prompt"), creditsPerAsk: t("Credits per prompt"), tokensPerAsk: t("Tokens per prompt"), cache: t("Cache"), fix: t("Corrections"), wait: t("Wait")}); // 切り替えの短い名前（正式な名前は title と、グラフの下の文）
 // insNice は、目盛りの上端を切りのよい数（1・2・2.5・5・10 の 10 の累乗倍）に
 function insNice(v){ if (!(v > 0)) return 1; const e = Math.pow(10, Math.floor(Math.log10(v))); return [1, 2, 2.5, 5, 10].map(m => m * e).find(x => x >= v); }
 function insQuant(xs, q){ const s = [...xs].sort((a, b) => a - b), i = (s.length - 1) * q, lo = Math.floor(i), hi = Math.ceil(i); return s[lo] + (s[hi] - s[lo]) * (i - lo); }
@@ -23,7 +24,7 @@ function insRange(k, cur, f, low, add, fmt){
   if (xs.length < INS_MIN) return r;
   const q1 = insQuant(xs, .25), med = insQuant(xs, .5), q3 = insQuant(xs, .75), iqr = q3 - q1;
   const pos = v > q3 ? "high" : v < q1 ? "low" : "typical", far = v > q3 + 1.5 * iqr || v < q1 - 1.5 * iqr;
-  const better = pos === "typical" || low == null ? null : (pos === "low") === low; // 範囲の外で、よい側か（向きの決まっていない指標は null）
+  const better = pos === "typical" || low == null || INS_VOL.has(k) ? null : (pos === "low") === low; // 範囲の外で、よい側か（向きの決まっていない指標と、使った量・作業の量は null。量の増減に良し悪しは付けない）
   return {...r, q1, med, q3, pos, far, better, rank: Math.round(xs.filter(x => x < v).length * 100 / xs.length)};
 }
 const insName = k => (H()[k] || {}).n || k;
@@ -31,7 +32,7 @@ const insNoun = () => st.mode === "month" ? (JA ? "月" : "months") : (JA ? "週
 const insUnit = n => n === 1 && !JA ? (st.mode === "month" ? "month" : "week") : st.mode === "month" ? t("months") : t("weeks"); // 日本語は数によらず「か月」「週」
 const say = (s, then) => (s ? `<p class="isay">${esc(s)}</p>` : "") + (then ? `<p class="ithen">→ ${esc(then)}</p>` : ""); // グラフの読み取り（データから計算した 1 文。見出しのすぐ下）
 // 式の表示：値・式は <code class="ifx"> に入れる（文ではなく、計算だとわかるように）
-// 式は「式を表示」のときだけ見せる（.fxo。ふだんは隠す）。plain があれば、ふだんはその平易な 1 行を出す（.fxp）
+// 式はサマリーでは、その数字の「ƒx」を押したときだけ見せる（.fxo。.fxon の中）。plain があれば、ふだんはその平易な 1 行を出す（.fxp）。ダイアログでは、いつも式を出す
 const fx = (s, cls = "", plain = "") => `<code class="ifx fxo${cls}">${esc(s)}</code>` + (plain ? `<span class="fxp${cls}">${esc(plain)}</span>` : "");
 const pln = s => `<span class="iplain">${esc(s)}</span>`; // 式ではない短い文（いつも見せる）
 // 四分位は記号でなく言葉で：下位25%点・上位25%点・幅（統計に慣れていなくても読めるように）
@@ -48,20 +49,25 @@ function insExpr(b){
 }
 const insPosText = b => `${insExpr(b)} (${insDef(b && b.n)})`; // 読み上げと title 用
 const insTone = b => !b || b.q1 == null || b.better == null ? "" : (b.better ? " good" : " bad") + (b.far ? " far" : ""); // 良い側・悪い側に外れたか（大きく外れたら far）。タイルの背景の色に使う
+// insLoHi は、いつもの範囲の両端。単位は後ろに 1 度だけ（「14–35 credits」）、数えるものは整数で
+function insLoHi(fm, b){
+  const cnt = MET[b.k] && MET[b.k].int, f = cnt ? (v => fmtM(b.k, Math.round(v))) : fm, lo = f(b.q1), hi = f(b.q3), m = /^([\d.,]+)\s+(\D+)$/.exec(lo), m2 = /^([\d.,]+)\s+(\D+)$/.exec(hi);
+  return m && m2 && m[2] === m2[2] ? {lo: m[1], hi} : {lo, hi};
+}
 // insPlain は、いつもの範囲との比べを言葉で（式を表示しないときのチップ）
 function insPlain(b){
   if (!b || b.q1 == null) return insExpr(b);
-  const fm = b.fmt || (x => fmtM(b.k, x)), x = (b.part ? t("pace") + " " : b.k === "wait" ? "P90 " : "") + fm(b.v), r = {x, lo: fm(b.q1), hi: fm(b.q3)};
+  const fm = b.fmt || (x => fmtM(b.k, x)), x = (b.part ? t("pace") + " " : b.k === "wait" ? t("Slowest 10%") + " " : "") + fm(b.v), r = {x, ...insLoHi(fm, b)};
   return b.pos === "typical" ? t("{x}: within your usual {lo}–{hi}", r) : b.pos === "high" ? (b.far ? t("{x}: far above your usual {lo}–{hi}", r) : t("{x}: above your usual {lo}–{hi}", r))
     : b.far ? t("{x}: far below your usual {lo}–{hi}", r) : t("{x}: below your usual {lo}–{hi}", r);
 }
-const insChip = b => `<code class="ichip ifx${insTone(b)}" title="${esc(insDef(b && b.n))}"><span class="cx">${esc(insExpr(b))}</span><span class="cp">${esc(insPlain(b))}</span></code>`;
+const insChip = b => !b || b.q1 == null ? "" : `<code class="ichip ifx${insTone(b)}" title="${esc(insDef(b && b.n))}"><span class="cx">${esc(insExpr(b))}</span><span class="cp">${esc(insPlain(b))}</span></code>`;
 /* 要点の数字（最大 3 列）：上の帯と同じ数をサマリーでも、式といつもの範囲との不等式つきで。並びは判断に使う順：
    使った額（推定費用・クレジット、なければトークン）→ 予算に対する位置（前の期間並みに収める 1 日の目安／月末の推定／前の期間との差）→ 稼働時間 → 効率（コミットあたり費用）→ まず見直すもの */
 function insHeadlines(F){
-  const {S: w, P: pw, ws, we} = period(), T = {cost: [], outGit: [], outEdit: [], unitGit: [], unitEdit: [], unitAsk: []}, u = (w && w.usage) || {}, M = st.mode === "month";
+  const {S: w, P: pw, ws, we} = period(), T = {cost: [], outGit: [], outEdit: [], unitGit: [], unitEdit: [], unitHour: []}, u = (w && w.usage) || {}, M = st.mode === "month";
   let G = "cost"; // コスト（時間・クレジット・金額・トークン）・出力（Git と AI の編集）・単価（コスト ÷ 出力。割る数の元ごと）に分けて並べる
-  const tile = (label, b, v, f, m) => T[G].push(`<div class="itile${insTone(b)}"><span class="il">${esc(label)}</span>${m ? `<button type="button" class="itv" data-metric="${m}" aria-haspopup="dialog" aria-label="${esc(`${label} ${v}`)}">${esc(v)}</button>` : `<b>${esc(v)}</b>`}${[].concat(f || []).map(x => typeof x === "object" ? (x.n != null ? pln(x.n) : fx(x.f, "", x.p)) : x === t("Not an estimate") ? pln(x) : fx(x)).join("")}${b === false ? "" : insChip(b)}</div>`); // 値を押すと、上の帯と同じ内訳
+  const tile = (label, b, v, f, m) => T[G].push(`<div class="itile${insTone(b)}"><span class="il">${esc(label)}${hb(b && b.k && H()[b.k] ? b.k : m && H()[m] ? m : "")}</span>${m ? `<button type="button" class="itv" data-metric="${m}" aria-haspopup="dialog" aria-label="${esc(`${label} ${v}`)}">${esc(v)}</button>` : `<b>${esc(v)}</b>`}${[].concat(f || []).map(x => typeof x === "object" ? (x.n != null ? pln(x.n) : fx(x.f, "", x.p)) : x === t("Not an estimate") ? pln(x) : fx(x)).join("")}${b === false ? "" : insChip(b)}</div>`); // 値を押すと、上の帯と同じ内訳
   const days = Math.round((we - ws) / 86400), el = Math.round(insFrac() * days), V = vsPrev(pw, M ? "月" : "週");
   // 上の帯の増減（%）と同じ比べを式で：途中の期間は前の期間の同じ日まで、終わった期間は前の期間まるごと
   const vs = (a, b, f) => { if (b == null || !b) return ""; const pc = `${a >= b ? "+" : "−"}${Math.round(Math.abs(a - b) * 100 / b)}% ${V.n == null ? (M ? t("vs last month") : t("vs last week")) : t("vs {range}", {range: V.range})}`;
@@ -83,87 +89,86 @@ function insHeadlines(F){
     const xs = ["cost", "credits"].filter(k => pc[k]).map(k => ({k, x: pc[k], f: fmc(k)})), ok = xs.find(o => o.x.rest >= 0), fs = xs.map(({x, f}) => x.rest >= 0 ? `(${f(x.ref)} − ${f(x.so)}) ÷ ${pc.left}${t("d")} = ${f(x.per)}/${t("d")}` : `${f(x.so)} − ${f(x.ref)} = +${f(-x.rest)} ${t("over")}`);
     if (ok) tile(M ? t("A day to match last month") : t("A day to match last week"), false, `${ok.f(ok.x.per)}/${t("d")}`, fs, ok.k === "cost" ? "pace" : "paceCr");
     else tile(M ? t("Over last month's total") : t("Over last week's total"), false, `+${xs[0].f(-xs[0].x.rest)}`, fs, xs[0].k === "cost" ? "pace" : "paceCr"); }
-  else if (u.tokens && costOf(u) != null){ const a = costOf(u), dd = w.days.filter(d => d.active).length; // 終わった期間：使った日 1 日あたり（前の期間との差は推定費用のカードの式にある）
-    if (dd) tile(t("Cost per active day"), false, `${usd(a / dd)}/${t("d")}`, `${usd(a)} ÷ ${dd}${t("d")} = ${usd(a / dd)}`); }
   const ba = insBase("active"); if (ba) tile(t("Active time"), ba, fmtM("active", ba.cur), [vs(ba.cur, V.of("active", pw && pw.active), v => dur(v))].concat(ba.part ? pace(ba.cur, ba.v, v => dur(v)) : "").filter(Boolean), "active");
   // 出力は、元の違う 2 つを混ぜずに分ける：Git（リポジトリから読んだコミット）と、AI の編集（エージェントの履歴の編集ツール。コミットしたかによらない）
   G = "outGit";
   const g = w && w.git && w.git.commits ? w.git : null, o = (w && w.outputs) || {};
   if (g) tile(t("Git commits"), insBase("gitCommits"), `${g.commits}`, {f: `AI ${g.ai} ÷ ${g.commits} = ${Math.round(g.ai * 100 / g.commits)}%`, p: t("{pc}% by AI", {pc: Math.round(g.ai * 100 / g.commits)})}, "commits");
   else if (o.commits) tile(t("AI commits"), false, `${o.commits}`, {n: t("Commits AI ran, from history")}, "aiCommits");
-  // Git で数えられるほかの出力：変えた行・ファイル・リポジトリ・コミットのあった日・push（どれもリポジトリから。手でのコミットも入る）
-  if (g){ const cs = gitIn(ws, we), lines = g.added + g.removed, n = commas;
-    if (lines > 0) tile(t("Lines in Git commits"), false, n(lines), {f: `+${n(g.added)} −${n(g.removed)}; ${n(lines)} ÷ ${g.commits} = ${n(Math.round(lines / g.commits))} ${t("per commit")}`, p: `+${n(g.added)} −${n(g.removed)}`}, "lines");
-    const fs = new Set(); let more = 0; cs.forEach(c => { (c.files || []).forEach(f => fs.add(`${c.repo}\u0000${f.path}`)); more += Math.max(0, (c.nFiles || 0) - (c.files || []).length); });
-    if (fs.size + more) tile(t("Files in Git commits"), false, n(fs.size + more), {n: more ? t("includes about {n} from big commits that keep only their first files", {n: n(more)}) : t("Each file once")}); // 式ではない補足は、ふつうの文字で
-    const rp = new Set(cs.map(c => c.repo || c.project)), dd = new Set(cs.map(c => key(new Date(c.t * 1000))));
-    if (rp.size) tile(t("Repositories with commits"), false, `${rp.size}`, {n: [...new Set(cs.map(c => c.project))].slice(0, 3).join(LSEP()) + (rp.size > 3 ? "…" : "")});
-    if (dd.size) tile(t("Days with commits"), false, `${dd.size}`, {f: `${dd.size} ÷ ${Math.round((we - ws) / 86400)}${t("d")}`, p: t("of {n}", {n: plural(Math.round((we - ws) / 86400), "day")})});
-    const ps = (META.push || []).filter(x => x.t >= ws && x.t < we), sent = ps.reduce((a, x) => a + (x.commits || 0), 0);
-    if (ps.length) tile(t("Pushes"), false, `${ps.length}`, sent ? {n: t("{n} commits sent", {n: n(sent)})} : ""); }
+  // 見出しには主な数（コミット・行・PR）だけ。ファイル・リポジトリ・日・push は下の「出力」のカードに
+  if (g && g.added + g.removed > 0){ const lines = g.added + g.removed, n = commas;
+    tile(t("Lines in Git commits"), false, n(lines), {f: `+${n(g.added)} −${n(g.removed)}; ${n(lines)} ÷ ${g.commits} = ${n(Math.round(lines / g.commits))} ${t("per commit")}`, p: `+${n(g.added)} −${n(g.removed)}`}, "lines"); }
   if (o.prs) tile(t("Pull requests"), false, `${o.prs}`, {n: t("Created by AI")}, "prs");
   G = "outEdit";
-  { const xs = DATA.filter(s => s.start >= ws && s.start < we && s.nFiles > 0), a = xs.reduce((x, s) => x + (s.editAdded || 0), 0), d = xs.reduce((x, s) => x + (s.editRemoved || 0), 0), E = insEditsBody();
-    if (E && E.nf) tile(t("Files edited by AI"), false, commas(E.nf), {n: t("{n} sessions", {n: xs.length})});
+  { const xs = DATA.filter(s => s.start >= ws && s.start < we && s.nFiles > 0), a = xs.reduce((x, s) => x + (s.editAdded || 0), 0), d = xs.reduce((x, s) => x + (s.editRemoved || 0), 0);
     if (a + d > 0) tile(t("Lines edited by AI"), false, commas(a + d), {f: `+${commas(a)} −${commas(d)}`, p: `+${commas(a)} −${commas(d)}`}); }
   // 単価も、割る数の元ごとに分ける：Git のコミットあたり・AI が編集した 100 行あたり・プロンプトあたり
+  // 単価は、割る範囲を名前に入れ、「分子 ÷ 分母」をいつも値の下に出す（式を開かなくても、隣の数と食い違って見えないように）。
+  // 見出しには推定費用とクレジットだけ。トークンの単価・セッションあたり・プロンプトあたりは推移と「使い方」のカードに
   G = "unitGit";
   const bp = insBase("costPerCommit"), oc = w && w.outCost, nc = w && w.outputs && w.outputs.commits;
-  if (bp) tile(t("Estimated cost per Git commit"), bp, fmtM("costPerCommit", bp.cur), oc && nc ? `Claude Code ${usd(oc)} ÷ ${nc} ${t("AI commits")} = ${usd(bp.cur)}` : "", "costPerCommit");
-  const bcc = insBase("creditsPerCommit"), gx = g ? g.commits - (g.ai || 0) : 0;
-  if (bcc) tile(t("Kiro credits per Git commit"), bcc, `${Math.round(bcc.cur * 10) / 10}`, {f: `${cr1(u.credits)} ÷ ${gx} ${t("commits")} = ${fmtM("creditsPerCommit", bcc.cur)}`, p: t("÷ Git commits not run by Claude Code")});
-  const btc = insBase("tokensPerCommit");
-  if (btc) tile(t("Tokens per Git commit"), btc, fmtM("tokensPerCommit", btc.cur), nc ? `Claude Code ${t("tokens")} ÷ ${nc} ${t("AI commits")} = ${fmtM("tokensPerCommit", btc.cur)}` : "");
+  if (bp && oc && nc) tile(t("Claude Code cost per AI commit"), bp, fmtM("costPerCommit", bp.cur), {f: `${usd(oc)} ÷ ${nc} ${t("AI commits")} = ${usd(bp.cur)}`, p: `${usd(oc)} ÷ ${nc} ${t("AI commits")}`}, "costPerCommit");
   G = "unitEdit";
-  for (const [k, label, fu] of [["costPerEdit", t("Estimated cost per 100 AI-edited lines"), usd], ["creditsPerEdit", t("Kiro credits per 100 AI-edited lines"), cr1]]){ // トークンは推移だけ（数字の段を増やしすぎない）
+  for (const [k, label, fu] of [["costPerEdit", t("Estimated cost per 100 AI-edited lines"), usd], ["creditsPerEdit", t("Kiro credits per 100 AI-edited lines"), cr1]]){
     const b = insBase(k); if (!b) continue;
-    const e = editsBasis(ws, we, k.replace("PerEdit", ""));
-    tile(label, b, k === "creditsPerEdit" ? crN(b.cur) : fmtM(k, b.cur), {f: `${fu(e.used)} ÷ ${t("{n} AI-edited lines", {n: commas(e.lines)})} × 100 = ${fmtM(k, b.cur)}`, p: k === "creditsPerEdit" ? t("lines of the {n} sessions with Kiro credits", {n: e.n}) : t("lines of the {n} sessions with an estimated cost", {n: e.n})}); }
-  G = "unitAsk";
-  if (w && w.costPerAsk != null) tile(t("Estimated cost per prompt"), false, usd(w.costPerAsk), t("cost ÷ {n} prompts with token data", {n: commas(w.costPrompts)}), "costPerAsk");
-  { const cs = DATA.filter(s => s.start >= ws && s.start < we && s.credits > 0), c = cs.reduce((a, s) => a + s.credits, 0), n = cs.reduce((a, s) => a + s.nPrompts, 0); // クレジットを記録したセッションの、プロンプトあたり
-    if (c && n) tile(t("Kiro credits per prompt"), false, `${Math.round(c / n * 100) / 100}`, `${cr1(c)} ÷ ${n} ${t("prompts")} = ${Math.round(c / n * 100) / 100}`); }
-  if (u.tokens && w && w.costPrompts) tile(t("Tokens per prompt"), false, tok(u.tokens / w.costPrompts), `${tok(u.tokens)} ÷ ${commas(w.costPrompts)} ${t("prompts")} = ${tok(u.tokens / w.costPrompts)}`);
+    const e = editsBasis(ws, we, k.replace("PerEdit", "")), den = t("{n} AI-edited lines", {n: commas(e.lines)});
+    tile(label, b, /^credits/.test(k) ? crR(b.cur) : fmtM(k, b.cur), {f: `${fu(e.used)} ÷ ${den} × 100 = ${fmtM(k, b.cur)}`, p: `${fu(e.used)} ÷ ${den} × 100 · ${t("{n} sessions", {n: e.n})}`}); }
+  // 稼働 1 時間あたり：その使用量を記録したセッションの作業時間で割る（重なったセッションはそれぞれ数えるので、上の稼働時間より長いことがある）
+  G = "unitHour";
+  for (const [k, label, kind, fu] of [["costPerHour", t("Estimated cost per active hour"), "cost", usd], ["creditsPerHour", t("Kiro credits per active hour"), "credits", cr1]]){
+    const b = insBase(k); if (!b) continue; const e = useBasis(ws, we, kind);
+    tile(label, b, /^credits/.test(k) ? crR(b.cur) : fmtM(k, b.cur), {f: `${fu(e.used)} ÷ ${dur(e.min)} = ${fmtM(k, b.cur)}`, p: `${fu(e.used)} ÷ ${t("{d} of session time", {d: dur(e.min)})}`}); }
   // カードは折り返す横の並びに置く：広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる
   // 小見出しのある段：出どころ（Git と AI の編集）が違う数字を、同じ枠の中でも段と印で分ける
   const sub = ([k, icon, label, note, empty]) => !T[k].length && empty ? `<div class="iksub ${k}" role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><p class="none iknone">${esc(empty)}</p></div>` : T[k].length ? `<div class="iksub ${k}" role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><div class="ikrow">${T[k].join("")}</div></div>` : "";
   const cards = [
-    {label: t("Cost"), rows: null, k: "cost"},
-    {label: t("Output"), rows: [["outGit", "commit", t("Git"), t("from your repositories"), T.outEdit.length ? t("No Git commits for this selection") : ""], ["outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not")]]},
-    {label: t("Unit cost"), rows: [["unitGit", "commit", t("Per Git commit"), ""], ["unitEdit", "edit", t("Per 100 AI-edited lines"), ""], ["unitAsk", "user", t("Per prompt"), ""]]},
+    {id: "cost", label: t("Cost"), rows: null, k: "cost"},
+    {id: "out", label: t("Output"), rows: [["outGit", "commit", t("Git"), t("from your repositories"), T.outEdit.length ? t("No Git commits for this selection") : ""], ["outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not")]]},
+    {id: "unit", label: t("Unit cost"), rows: [["unitGit", "commit", t("Per AI commit"), ""], ["unitEdit", "edit", t("Per 100 AI-edited lines"), ""], ["unitHour", "clock", t("Per active hour"), ""]]},
   ].map(c => ({...c, n: c.rows ? Math.max(...c.rows.map(r => T[r[0]].length)) : T[c.k].length})).filter(c => c.n > 0);
-  const card = c => `<section class="ikg" aria-label="${esc(c.label)}"><h5 class="ikgh">${esc(c.label)}</h5>${c.rows ? c.rows.map(sub).join("") : `<div class="ikrow">${T[c.k].join("")}</div>`}</section>`;
-  return `<div class="insh">${cards.map(card).join("")}</div><p class="ifxs insdef">${fx(insDef())}</p>`;
+  const card = c => `<section class="ikg ik-${c.id}" aria-label="${esc(c.label)}"><h5 class="ikgh">${esc(c.label)}</h5>${c.rows ? c.rows.map(sub).join("") : `<div class="ikrow">${T[c.k].join("")}</div>`}</section>`;
+  // 見直す候補：基準を超えた指標を、見出しのすぐ下に 1 行で（押すと、その候補のダイアログ）。どれも、その指標の横の印からも開ける
+  const ids = [...new Set((F || []).map(f => GOTO[f.k] || f.k))].filter(id => H()[id]);
+  const worth = `<div class="iworth" role="group" aria-label="${esc(t("Worth a look"))}"><span class="iwl">${ico("flag")}${esc(t("Worth a look"))}${ids.length ? ` · ${ids.length}` : ""}</span>${ids.length ? ids.map(id => `<button type="button" class="iwlink" data-goto="${esc(id)}" aria-haspopup="dialog">${esc(H()[id].n)}</button>`).join("") : `<span class="iwnone">${esc(t("Nothing crossed a threshold this period"))}</span>`}</div>`;
+  const nb = insBase("active"), few = nb && nb.q1 == null ? `<p class="note insfew">${esc(t("To compare with your usual range, kiroku needs {min} past {unit} with records (have {n}).", {min: INS_MIN, unit: insUnit(INS_MIN), n: nb.n}))}</p>` : ""; // 比べられないことは、数字ごとでなく 1 度だけ言う
+  return `<div class="insh">${cards.map(card).join("")}</div>${worth}${few}<p class="ifxs insdef">${fx(insDef())}</p>`;
 }
 /* 推移のグラフ：前の INS_N 期間と表示中の期間の棒。いつもの範囲（四分位）を帯、中央値を点線で重ねる。
    途中の期間は、今の値の棒と、このペースで終えたときの値の枠。範囲から大きく外れた期間には印 */
 // 目盛りの数は短く（クレジットは数だけ。単位は見出しの文にある。左の余白に収める）
-const tickM = (k, v) => k === "credits" || k === "creditsPerCommit" || k === "creditsPerEdit" ? crN(v) : fmtM(k, v);
+const tickM = (k, v) => /^credits/.test(k) ? crN(v) : fmtM(k, v);
 function insChart(k){
   const all = []; for (let i = INS_N; i >= 0; i--){ const p = periodBack(i); all.push({p, v: p.ws < historyStart() && i ? null : metricAt(k, p)}); }
   const f0 = Math.min(Math.max(0, all.findIndex(x => x.v != null)), all.length - 6), ps = all.slice(f0); // 記録の始まる前の期間は描かない（6 期間は残す）
   const b = insBase(k), cur = ps[ps.length - 1], proj = b && b.part ? b.v : null;
   const vals = ps.map(x => x.v).filter(v => v != null); if (!vals.length) return `<p class="note">${esc(t("No records"))}</p>`;
   // 狭い画面は小さな座標で描く（縮めて文字が読めなくならないように）
-  const narrow = innerWidth < 600, W = narrow ? 360 : 720, Hh = narrow ? 180 : 200, L = narrow ? 52 : 64, R = 8, T = 12, B = 26, top = insNice(Math.max(...vals, proj || 0, b && b.q3 || 0) * 1.05);
+  // カードの幅（1 行に 2〜3 枚）に合う小さな座標で描く（大きな座標を縮めると、文字と点が読めないほど小さくなる）
+  const narrow = true, W = 360, Hh = 180, L = 52, R = 8, T = 12, B = 26, mx = Math.max(...vals, proj || 0, b && b.q3 || 0);
+  const top = MET[k] && MET[k].u === "%" && mx <= 100 ? 100 : insNice(mx * 1.05); // 割合は 100% まで（200% の軸では線が平らに見える）
   const bw = (W - L - R) / ps.length, x = i => L + i * bw, y = v => T + (Hh - T - B) * (1 - v / top);
   const ticks = [0, top / 2, top].map(v => `<g class="itk"><line x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${L - 8}" y="${(y(v) + 4).toFixed(1)}">${esc(tickM(k, v))}</text></g>`).join("");
   const band = b && b.q1 != null ? `<rect class="iband" x="${L}" y="${y(b.q3).toFixed(1)}" width="${W - L - R}" height="${Math.max(1, y(b.q1) - y(b.q3)).toFixed(1)}"/><line class="imed" x1="${L}" x2="${W - R}" y1="${y(b.med).toFixed(1)}" y2="${y(b.med).toFixed(1)}"/>` : "";
   const lab = p => { const [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? (JA ? `${mm}月` : MON[mm - 1]) : dMD(new Date(yy, mm - 1, dd)); };
   const out = v => b && b.q1 != null && (v > b.q3 + 1.5 * (b.q3 - b.q1) || v < b.q1 - 1.5 * (b.q3 - b.q1));
   const n = ps.length, every = Math.ceil(n / (narrow ? 4 : 7)); // 期間の名前は間引く（右端の表示中の期間は必ず）
+  // 合計の指標（期間の長さに比例して増える量）は棒、率の指標（コミットあたり・行あたり・割合・待ち時間）は線と点で描く。率は足し上げる量ではないので、棒の高さで面積を比べさせない
+  const rate = !INS_ADD.has(k);
+  const line = rate ? (() => { const segs = []; let cur = []; ps.forEach(({v}, i) => { if (v == null){ if (cur.length) segs.push(cur); cur = []; } else cur.push(`${(x(i) + bw / 2).toFixed(1)},${y(v).toFixed(1)}`); }); if (cur.length) segs.push(cur);
+    return segs.map(sg => sg.length > 1 ? `<polyline class="iline" points="${sg.join(" ")}"/>` : "").join(""); })() : "";
   const bars = ps.map(({p, v}, i) => { const last = i === n - 1, cx = x(i) + bw / 2;
-    return `<g>${v == null ? "" : `<rect class="ibar${last ? " cur" : ""}" x="${(x(i) + bw * .18).toFixed(1)}" y="${y(v).toFixed(1)}" width="${(bw * .64).toFixed(1)}" height="${Math.max(0, Hh - B - y(v)).toFixed(1)}" rx="3"/>`}`
+    return `<g>${v == null ? "" : rate ? `<circle class="ipt${last ? " cur" : ""}" cx="${cx.toFixed(1)}" cy="${y(v).toFixed(1)}" r="${last ? 5 : 3.5}"/>` : `<rect class="ibar${last ? " cur" : ""}" x="${(x(i) + bw * .18).toFixed(1)}" y="${y(v).toFixed(1)}" width="${(bw * .64).toFixed(1)}" height="${Math.max(0, Hh - B - y(v)).toFixed(1)}" rx="3"/>`}`
       + (last && proj != null ? `<rect class="iproj" x="${(x(i) + bw * .18).toFixed(1)}" y="${y(proj).toFixed(1)}" width="${(bw * .64).toFixed(1)}" height="${Math.max(0, Hh - B - y(proj)).toFixed(1)}" rx="3"/>` : "")
       + (v != null && !last && out(v) ? `<circle class="iout" cx="${cx.toFixed(1)}" cy="${(y(v) - 7).toFixed(1)}" r="3"/>` : "")
       + ((n - 1 - i) % every === 0 ? `<text class="ixl${last ? " cur" : ""}" x="${cx.toFixed(1)}" y="${Hh - 8}">${esc(lab(p))}</text>` : "")
       + `<rect class="ihit" x="${x(i).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${Hh}"${tipAttr(p.label, v == null ? t("No records") : fmtM(k, v), last && proj != null ? t("At this pace: {v}", {v: fmtM(k, proj)}) : "")}/></g>`; }).join("");
   const list = ps.filter(x => x.v != null).map(x => `${x.p.label} ${fmtM(k, x.v)}`).join(LSEP());
   let sy = b ? t("{x}; {need}", {x: (b.part ? t("pace") + " " : "") + fmtM(k, b.v), need: insExpr(b)}) : ""; if (b && b.q1 != null){ const all = [...b.xs, b.v], r = 1 + b.xs.filter(z => z > b.v).length, d = b.v - b.med, pc = b.med ? Math.round(d * 100 / b.med) : null;
-    sy = t("{x}: {r} highest of {n} {unit}; {d} from the median {m}{pc}", {x: (b.part ? t("At this pace") + " " : "") + fmtM(k, b.v), r: JA ? r : `${r}${["th", "st", "nd", "rd"][r % 100 > 10 && r % 100 < 14 ? 0 : r % 10 < 4 ? r % 10 : 0]}`, n: all.length, unit: insUnit(all.length), d: (d >= 0 ? "+" : "−") + fmtM(k, Math.abs(d)), m: fmtM(k, b.med), pc: pc == null ? "" : ` (${pc >= 0 ? "+" : ""}${pc}%)`}); }
-  const th = !b || b.q1 == null ? "" : b.pos === "typical" ? t("Within the middle half of your past {unit}", {unit: insNoun()}) : b.better === false ? t("Outside the middle half, on the worse side; the warning marks show where it came from") : b.better ? t("Outside the middle half, on the better side; keep what you changed") : b.pos === "high" ? t("Above the 75th pct of your past {unit}", {unit: insNoun()}) : t("Below the 25th pct of your past {unit}", {unit: insNoun()});
-  return `${say(sy, th)}<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(t("{metric} over the last {n} {unit}", {metric: insName(k), n, unit: insUnit(n)}))}">${ticks}${band}${bars}</svg>
-    <figcaption><span class="lg iband">${esc(t("Middle half of the last {n} {unit}", {n: b ? b.n : 0, unit: insUnit(b ? b.n : 0)}))}</span><span class="lg imed">${fx(t("median"), "", t("median"))}</span>${proj != null ? `<span class="lg iproj">${fx(`${t("pace")} = ${t("so far")} × ${t("period")} ÷ ${t("elapsed")}`, "", t("At this pace"))}</span>` : ""}<span class="lg iout">${fx(`< ${LO()} − 1.5×${SP()} ${t("or")} > ${HI()} + 1.5×${SP()}`, "", t("Far above or below the other periods"))}</span></figcaption>
+    const rk = r === 1 ? t("the highest of {n} {unit}", {n: all.length, unit: insUnit(all.length)}) : r === all.length ? t("the lowest of {n} {unit}", {n: all.length, unit: insUnit(all.length)}) : t("{r} highest of {n} {unit}", {r: JA ? r : `${r}${["th", "st", "nd", "rd"][r % 100 > 10 && r % 100 < 14 ? 0 : r % 10 < 4 ? r % 10 : 0]}`, n: all.length, unit: insUnit(all.length)}); // 1 位・最下位は言葉で
+    sy = t("{x}: {rank}; {d} from the median {m}{pc}", {rank: rk, x: (b.part ? t("At this pace") + " " : "") + fmtM(k, b.v), n: all.length, unit: insUnit(all.length), d: (d >= 0 ? "+" : "−") + fmtM(k, Math.abs(d)), m: fmtM(k, b.med), pc: pc == null ? "" : ` (${pc >= 0 ? "+" : "−"}${Math.abs(pc)}%)`}); }
+  const th = !b || b.q1 == null ? "" : b.pos === "typical" ? t("Within the middle half of your past {unit}", {unit: insNoun()}) : b.better === false ? t("Outside the middle half, on the worse side; see Worth a look under the figures") : b.better ? t("Outside the middle half, on the better side") : b.pos === "high" ? t("Above the 75th pct of your past {unit}", {unit: insNoun()}) : t("Below the 25th pct of your past {unit}", {unit: insNoun()});
+  return `${say(sy, th)}<figure class="insfig"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(t("{metric} over the last {n} {unit}", {metric: insName(k), n, unit: insUnit(n)}))}">${ticks}${band}${line}${bars}</svg>
+    <figcaption>${b && b.q1 != null ? `<span class="lg iband">${esc(t("Middle half of the last {n} {unit}", {n: b.n, unit: insUnit(b.n)}))}</span><span class="lg imed">${fx(t("median"), "", t("median"))}</span>` : ""}${proj != null ? `<span class="lg iproj">${fx(`${t("pace")} = ${t("so far")} × ${t("period")} ÷ ${t("elapsed")}`, "", t("At this pace"))}</span>` : ""}${b && b.q1 != null ? `<span class="lg iout">${fx(`< ${LO()} − 1.5×${SP()} ${t("or")} > ${HI()} + 1.5×${SP()}`, "", t("Far above or below the other periods"))}</span>` : ""}</figcaption>
     <p class="sr">${esc(list)} — ${esc(insPosText(b))}</p></figure>`;
 }
 /* 見直す候補の対象の費用（そのセッションの推定費用の合計）。費用で表せない候補（利用上限・繰り返し・長すぎるプロンプト）は null */
@@ -182,19 +187,22 @@ const insRank = F => F.map((f, i) => ({f, i, s: f.stake !== undefined ? f.stake 
 function insightH(F){
   F = insRank(F);
   const noCost = !((period().S || {}).usage || {}).tokens && !(((period().S || {}).usage || {}).cost > 0); // クレジットだけを記録するエージェントに絞ったときは、推定費用の推移を出さない
-  const avail = INS_KEYS.filter(x => insBase(x) && !(noCost && (x === "cost" || x === "costPerCommit" || x === "costPerEdit"))), k = avail.includes(st.insK) ? st.insK : avail[0] || "active";
+  const avail = INS_KEYS.filter(x => insBase(x) && !(noCost && /^cost/.test(x))), k = avail.includes(st.insK) ? st.insK : avail[0] || "active";
   const tabs = avail.map(x => `<button type="button" data-ins="${x}" aria-pressed="${x === k}" title="${esc(insName(x))}">${esc(INS_SHORT()[x])}</button>`).join("");
   const card = (title, body, cls = "") => body ? `<div class="inscol${cls}"><h4>${esc(title)}</h4>${body}</div>` : "";
-  const sel = `<select class="insksel" aria-label="${esc(t("Metric"))}">${avail.map(x => `<option value="${x}"${x === k ? " selected" : ""}>${esc(INS_SHORT()[x])}</option>`).join("")}</select>`; // 狭い画面では、切り替えの代わりに選択リスト（横に隠さない）
+  // 選択リストは、指標の種類ごとにまとめ、見出しの数字と同じ正式な名前で並べる
+  const grpOf = x => INS_VOL.has(x) ? t("Totals") : /PerCommit$/.test(x) ? t("Per AI commit") : /PerEdit$/.test(x) ? t("Per 100 AI-edited lines") : /PerHour$/.test(x) ? t("Per active hour") : /PerSes$/.test(x) ? t("Per session") : /PerAsk$/.test(x) ? t("Per prompt") : t("Habits");
+  const groups = [...new Set(avail.map(grpOf))];
+  const sel = `<select class="insksel" aria-label="${esc(t("Metric"))}">${groups.map(gn => `<optgroup label="${esc(gn)}">${avail.filter(x => grpOf(x) === gn).map(x => `<option value="${x}"${x === k ? " selected" : ""}>${esc(insName(x))}</option>`).join("")}</optgroup>`).join("")}</select>`; // 狭い画面では、切り替えの代わりに選択リスト（横に隠さない）
   // カードは「コスト」（時間・クレジット・金額・トークン）・「出力」（コミット・変えた行）・「使い方」の 3 つに分けて並べる
-  const cards = [{sec: t("Cost")},
+  const cards = [{sec: t("Cost details")},
     {h: `<div class="inscol"><div class="inshead"><h4>${esc(t("Trend"))}</h4><div class="segc insk trendk" role="group" aria-label="${esc(t("Metric"))}">${tabs}</div>${sel}</div>${insChart(k)}</div>`},
     {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insCum())},
     {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insWhere())}, {h: card(t("Tokens by type"), insTokens())},
     {h: card((HISTK(DATA.filter(s => inP(s, period().ws, period().we))) || {}).title || "", insHist())},
     {h: card(t("By agent"), insAgents())},
-    {sec: t("Output and unit cost")}, {h: card(t("Outputs"), insOutputs(), " iout")}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insScatter())},
-    {sec: t("How you used AI")}, {h: card(t("How you used AI"), insUsage())}, {h: card(t("When you worked"), insHeat())}, {h: card(t("How you worked"), insWork())},
+    {sec: t("Output and unit cost")}, {h: card(t("Outputs"), insOutputs(), " iout wide")}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insScatter())},
+    {sec: t("How you used AI")}, {h: card(t("Usage"), insUsage())}, {h: card(t("When you worked"), insHeat())}, {h: card(t("How you worked"), insWork())},
   ].filter(c => c.h || c.sec);
   // 見出しごとに、カードを折り返す横の並び（.insrow）に入れる。広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる
   const secs = []; cards.forEach(c => c.sec ? secs.push({sec: c.sec, hs: []}) : secs.length && secs[secs.length - 1].hs.push(c.h));
@@ -209,6 +217,16 @@ function fitTrend(){ const g = $("#review .insk.trendk"); if (!g) return; const 
   if (bs[bs.length - 1].offsetTop !== bs[0].offsetTop || g.getBoundingClientRect().right > h.getBoundingClientRect().right + 1) h.classList.add("foldk"); }
 addEventListener("resize", () => fitTrend());
 function bindInsight(R){
+  R.querySelectorAll(".iwlink").forEach(b => b.onclick = () => insOpenWorth(b.dataset.goto, b)); // 見直す候補の 1 行
+  // 式は、指標名の横の「ƒx」から、その数字（タイル・枠・グラフのカード）ごとに開く。ふだんは平易な 1 行だけを見せる
+  R.querySelectorAll(".insight .itile, .insight .stat, .insight .inscol").forEach(el => {
+    const own = [...el.querySelectorAll(".fxo, .ichip .cx")].some(f => f.closest(".itile, .stat, .inscol") === el); if (!own) return;
+    const lab = el.matches(".itile") ? el.querySelector(".il") : el.matches(".stat") ? el.querySelector(".k > span") : el.querySelector(":scope > h4, :scope > .inshead > h4, :scope h4"); if (!lab) return;
+    const name = (lab.textContent || "").trim(), b = document.createElement("button");
+    b.type = "button"; b.className = "fxb"; b.textContent = "ƒx"; b.setAttribute("aria-pressed", "false");
+    b.title = t("Show the formula"); b.setAttribute("aria-label", t("Show the formula: {name}", {name}));
+    b.onclick = e => { e.stopPropagation(); const on = el.classList.toggle("fxon"); b.setAttribute("aria-pressed", String(on)); b.title = on ? t("Hide the formula") : t("Show the formula"); };
+    lab.append(b); }); // 名前の要素の中に置く（カードは縦の flex なので、外に置くと横いっぱいの帯になる）
   requestAnimationFrame(fitTrend);
   R.querySelectorAll("[data-ins]").forEach(b => b.onclick = () => { st.insK = b.dataset.ins; store.set("insK", st.insK); summary(); const nb = $("#review").querySelector(`[data-ins="${CSS.escape(b.dataset.ins)}"]`); if (nb) nb.focus(); });
   R.querySelectorAll("[data-wk]").forEach(b => b.onclick = () => { st.insWk = b.dataset.wk; store.set("insWk", st.insWk); summary(); const nb = $("#review").querySelector(`[data-wk="${CSS.escape(b.dataset.wk)}"]`); if (nb) nb.focus(); });
@@ -272,7 +290,7 @@ function insHeat(){
   const hrs = `<span></span>` + Array.from({length: 24}, (_, h) => `<span class="ihh">${h % 3 ? "" : h}</span>`).join("") + `<span class="ihh iht">${esc(t("Total"))}</span>`;
   const peak = `${dow(days[best.d])} ${best.h}–${best.h + 3}${JA ? "時" : ":00"}`;
   const tot = insOffM(g).all, sy = t("Busiest {p}: {h} = {pc}% of the {all} in this chart; off-hours {off}%", {p: peak, h: dur(best.v), pc: tot ? Math.round(best.v * 100 / tot) : 0, all: dur(tot), off: off == null ? "—" : off});
-  const th = b && b.q1 != null && b.pos === "high" ? t("Off-hours share {off}% is above the 75th pct = {q3}% of your past {unit}", {off, q3: Math.round(b.q3), unit: insNoun()}) : "";
+  const th = b && b.q1 != null && b.pos === "high" ? t("Off-hours share {off}% is higher than in most of your past {unit} (usually up to {q3}%)", {off, q3: Math.round(b.q3), unit: insNoun()}) : "";
   return `${say(sy, th)}<div class="ihgrid" role="img" aria-label="${esc(t("Busiest: {p}", {p: peak}))}">${hrs}${cells}</div>
     <p class="ifxs">${fx(`${t("peak 3h")} = ${peak} (${dur(best.v)})`)}${off != null ? fx(`${t("off-hours")} = ${dur(insOffM(g).off)} ÷ ${dur(insOffM(g).all)} ${t("(session time in the period)")} = ${off}%`) : ""}${off != null ? insChip(b) : ""}</p>
     <p class="note">${esc(t("Off-hours: Saturday, Sunday, and weekdays before 9:00 or from 18:00. The chart counts time while sessions were running; Active time also counts the short pauses inside a stretch of work, so it can be a little longer"))}</p>`;
@@ -292,15 +310,15 @@ function insCum(){
   const fr = insFrac(), n = Math.max(w.days.length, pw ? pw.days.length : 0), upto = fr < 1 ? Math.max(1, Math.ceil(fr * w.days.length)) : w.days.length;
   const cur = cum(w.days).slice(0, upto), prev = pw ? cum(pw.days) : []; // 前の期間は全部（月の日数が違っても、合計は前の月まるごと）
   const top = insNice(Math.max(...cur, ...prev, 0) * 1.05);
-  const narrow = innerWidth < 600, W = narrow ? 360 : 720, Hh = narrow ? 180 : 170, L = narrow ? 52 : 64, R = 10, T = 10, B = 24;
+  const narrow = true, W = 360, Hh = 180, L = 52, R = 10, T = 10, B = 24; // カードの幅に合う小さな座標（推移と同じ）
   const x = i => L + (W - L - R) * (n === 1 ? 0 : i / (n - 1)), y = v => T + (Hh - T - B) * (1 - v / top), line = a => a.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
   const ticks = [0, top / 2, top].map(v => `<g class="itk"><line x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${L - 6}" y="${(y(v) + 4).toFixed(1)}">${esc(k === "credits" ? crN(v) : fm(v))}</text></g>`).join("");
   const a = new Date(period().ws * 1000), xl = [0, n - 1].map(i => `<text class="ixl ${i ? "e" : "s"}" x="${x(i).toFixed(1)}" y="${Hh - 6}">${esc(dMD(addDays(a, i)))}</text>`).join(""); // 両端の日付は、内側に寄せる（はみ出さないように）
   if (C[k].tot){ const a = C[k].tot(w.usage || {}), b = pw ? C[k].tot(pw.usage || {}) : null; // 合計は帯と同じ値（日ごとの丸めを足すと、帯と 1 セントずれる）
     if (a != null && cur.length) cur[cur.length - 1] = a; if (b != null && prev.length) prev[prev.length - 1] = b; }
   const last = cur.length - 1, ptot = prev.length ? prev[prev.length - 1] : null, pref = fr >= 1 ? ptot : prev.length > last ? prev[last] : null, diff = pref == null ? null : cur[last] - pref; // 終わった期間は前の期間の合計と、途中の期間は同じ日までと比べる
-  const sy = diff == null ? "" : (fr >= 1 ? t("Total {diff} ({pc}) vs the previous period's total", {diff: (diff >= 0 ? "+" : "−") + fm(Math.abs(diff)), pc: pref ? `${diff >= 0 ? "+" : ""}${Math.round(diff * 100 / pref)}%` : "—"})
-      : t("Day {d} of {n}: {diff} ({pc}) vs the previous period", {d: last + 1, n: w.days.length, diff: (diff >= 0 ? "+" : "−") + fm(Math.abs(diff)), pc: pref ? `${diff >= 0 ? "+" : ""}${Math.round(diff * 100 / pref)}%` : "—"}))
+  const sy = diff == null ? "" : (fr >= 1 ? t("Total {diff} ({pc}) vs the previous period's total", {diff: (diff >= 0 ? "+" : "−") + fm(Math.abs(diff)), pc: pref ? `${diff >= 0 ? "+" : "−"}${Math.abs(Math.round(diff * 100 / pref))}%` : "—"})
+      : t("Day {d} of {n}: {diff} ({pc}) vs the previous period", {d: last + 1, n: w.days.length, diff: (diff >= 0 ? "+" : "−") + fm(Math.abs(diff)), pc: pref ? `${diff >= 0 ? "+" : "−"}${Math.abs(Math.round(diff * 100 / pref))}%` : "—"}))
     + (fr < 1 && ptot != null ? t("; at this pace {end} at the end vs {prev}", {end: fm(cur[last] / fr), prev: fm(ptot)}) : "");
   const left = n - (last + 1), rem = ptot == null ? null : ptot - cur[last];
   const th = fr >= 1 || rem == null || !useCost ? "" : rem <= 0 ? t("Already {x} over the previous period's total {prev}", {x: fm(-rem), prev: fm(ptot)}) : left === 1 ? t("To stay within the previous period's {prev}: at most {rem} tomorrow", {prev: fm(ptot), rem: fm(rem)}) : left > 0 ? t("To stay within the previous period's {prev}: at most {rem} in the {d} left = {per}/day", {prev: fm(ptot), rem: fm(rem), d: plural(left, "day"), per: fm(rem / left)}) : "";
@@ -311,25 +329,26 @@ function insCum(){
 /* セッションの長さ別の費用：表示中の期間に動いたセッションを、期間の中の作業時間で 6 つに分け、区分ごとの推定費用の合計を棒に（件数は棒の下）。
    費用の記録がなければ件数で。どの長さのセッションに費用が集まっているかを読む */
 // 長さ別の図に使う量：推定費用 → クレジット → トークンの順に、期間のセッションに記録のあるもの
-const HISTK = ss => ss.some(s => s.cost > 0) ? {k: "cost", v: s => s.cost, f: usd, n: t("cost"), title: t("Cost by session length")}
-  : ss.some(s => s.credits > 0) ? {k: "credits", v: s => s.credits, f: cr, n: t("credits"), title: t("Credits by session length")}
-  : ss.some(s => sesTok(s) > 0) ? {k: "tokens", v: s => sesTok(s), f: tok, n: t("tokens"), title: t("Tokens by session length")} : null;
+const HISTK = ss => ss.some(s => s.cost > 0) ? {k: "cost", v: s => s.cost, f: usd, n: t("cost"), title: t("Cost per session, by length")}
+  : ss.some(s => s.credits > 0) ? {k: "credits", v: s => s.credits, f: cr, n: t("credits"), title: t("Credits per session, by length")}
+  : ss.some(s => sesTok(s) > 0) ? {k: "tokens", v: s => sesTok(s), f: tok, n: t("tokens"), title: t("Tokens per session, by length")} : null;
 function insHist(){
-  // 長さごとに使った量（推定費用、なければクレジット、それもなければトークン）。件数だけでは、長いセッションが重いかを読めないので、量のないときは出さない
+  // 長さごとの、1 セッションあたりの量（推定費用、なければクレジット、それもなければトークン）。合計だと、セッションの多い区間が大きく見えるだけなので平均にする。
+  // 区間の合計とセッションの数は、ツールチップと読み取りの文に残す。強調するのは 2 セッション以上の区間（1 つだけでは傾向と言えない）。量のないときは出さない
   const {ws, we} = period(), all = DATA.filter(s => inP(s, ws, we)), K = HISTK(all); if (!K) return "";
   const ss = all.map(s => ({m: sesMin(s), c: K.v(s) || 0})).filter(x => x.m > 0); if (ss.length < 3) return "";
   const edges = [0, 5, 15, 30, 60, 120, Infinity], labs = ["<5m", "5–15m", "15–30m", "30–60m", "1–2h", "2h+"], useC = K.k === "cost";
   const bins = labs.map((_, i) => ss.filter(x => x.m >= edges[i] && x.m < edges[i + 1])), val = b => b.reduce((a, x) => a + x.c, 0);
-  const vs = bins.map(val), tot = vs.reduce((a, v) => a + v, 0), mi = vs.indexOf(Math.max(...vs)), med = insQuant(ss.map(x => x.m), .5);
-  const max = Math.max(...vs) || 1, W = innerWidth < 600 ? 360 : 560, Hh = 180, B = 20, T = 16, bw = W / labs.length, fv = K.f;
+  const sums = bins.map(val), tot = sums.reduce((a, v) => a + v, 0), vs = bins.map((b, i) => b.length ? sums[i] / b.length : 0), many = vs.map((v, i) => bins[i].length >= 2 ? v : -1), mi = Math.max(...many) >= 0 ? many.indexOf(Math.max(...many)) : vs.indexOf(Math.max(...vs)), med = insQuant(ss.map(x => x.m), .5);
+  const max = Math.max(...vs) || 1, W = 360, Hh = 196, B = 34, T = 16, bw = W / labs.length, fv = K.f; // カードの幅に合う小さな座標。下に長さとセッションの数
   const bars = vs.map((v, i) => { const h = (Hh - B - T) * v / max, xx = i * bw;
-    return `<rect class="ihb${i === mi ? " med" : ""}" x="${(xx + bw * .14).toFixed(1)}" y="${(Hh - B - h).toFixed(1)}" width="${(bw * .72).toFixed(1)}" height="${h.toFixed(1)}" rx="3"${tipAttr(labs[i], plural(bins[i].length, "session"), fv(v))}/>`
-      + (v ? `<text class="ihn" x="${(xx + bw / 2).toFixed(1)}" y="${(Hh - B - h - 4).toFixed(1)}">${esc(fv(v))}</text>` : "") + `<text class="ixl" x="${(xx + bw / 2).toFixed(1)}" y="${Hh - 4}">${labs[i]}</text>`; }).join(""); // 件数は棒のツールチップに（上の 1 文にも）
-  const sy = t("Sessions of {bin}: {pc}% of {metric} ({usd}) in {sessions}", {bin: labs[mi], pc: Math.round(vs[mi] * 100 / tot), metric: K.n, usd: fv(vs[mi]), sessions: plural(bins[mi].length, "session")});
+    return `<rect class="ihb${i === mi ? " med" : ""}" x="${(xx + bw * .14).toFixed(1)}" y="${(Hh - B - h).toFixed(1)}" width="${(bw * .72).toFixed(1)}" height="${h.toFixed(1)}" rx="3"${tipAttr(labs[i], t("{v} per session", {v: fv(v)}), `${plural(bins[i].length, "session")} · ${t("total")} ${fv(sums[i])}`)}/>`
+      + (v ? `<text class="ihn" x="${(xx + bw / 2).toFixed(1)}" y="${(Hh - B - h - 4).toFixed(1)}">${esc(fv(v))}</text>` : "") + `<text class="ixl" x="${(xx + bw / 2).toFixed(1)}" y="${Hh - 18}">${labs[i]}</text><text class="ixl ixn" x="${(xx + bw / 2).toFixed(1)}" y="${Hh - 4}">${esc(t("n={n}", {n: bins[i].length}))}</text>`; }).join(""); // 件数は棒のツールチップに（上の 1 文にも）
+  const sy = t("Sessions of {bin} took the most per session: {v} on average ({sessions}, {pc}% of {metric} in total)", {bin: labs[mi], v: fv(vs[mi]), sessions: plural(bins[mi].length, "session"), pc: Math.round(sums[mi] * 100 / tot), metric: K.n});
   const LC = useC ? longCtxOf(ws, we) : [];
   const th = mi >= 4 && LC.length ? t("{n} of the long sessions grew their input per response to up to {x}× the start: split them at a stopping point", {n: LC.length, x: Math.round(Math.max(...LC.map(s => s.ctx[1] / s.ctx[0])))}) : "";
-  return `${say(sy, th)}<figure class="insfig ihist"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(labs.map((l, i) => `${l} ${fv(vs[i])} (${plural(bins[i].length, "session")})`).join(", "))}">${bars}</svg>
-    <p class="ifxs">${fx(`${t("median")}(${t("active time of {n} sessions", {n: ss.length})}) = ${dur(med)}`)}${fx(`% = ${K.n} ${t("of the bin")} ÷ ${fv(tot)}`)}</p></figure>`;
+  return `${say(sy, th)}<figure class="insfig ihist"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(labs.map((l, i) => `${l} ${t("{v} per session", {v: fv(vs[i])})} (${plural(bins[i].length, "session")})`).join(", "))}">${bars}</svg>
+    <p class="ifxs">${fx(`${t("median")}(${t("active time of {n} sessions", {n: ss.length})}) = ${dur(med)}`)}${fx(`${t("per session")} = ${K.n} ${t("of the bin")} ÷ ${t("sessions of the bin")}`)}</p></figure>`;
 }
 
 /* どこに使ったか：プロジェクト・エージェント・モデルごとの費用（なければクレジット・トークン・時間）を、大きい順の横棒で。上位 7 つとその他 */
@@ -385,6 +404,7 @@ function insOutputs(){
     g ? insStat(t("Git commits"), `${g.commits}`, fx(`AI ${g.ai} ÷ ${g.commits} = ${Math.round(g.ai * 100 / g.commits)}%`), "gitCommits", "commits", "gitCommits") : o.commits ? insStat(t("AI commits"), `${o.commits}`, esc(t("Commits AI ran, from history")), "commits", "aiCommits") : "", // AI のコミットが 0 なら出さない（記録しないエージェントで「0」と読めてしまう）
     g ? insStat(t("Lines in Git commits"), n(lines), fx(`+${n(g.added)} −${n(g.removed)}; ${n(lines)} ÷ ${g.commits} = ${n(Math.round(lines / g.commits))} ${t("per commit")}`), "lines", "lines") : "",
     o.prs ? insStat(t("Pull requests"), `${o.prs}`, esc(t("Created by AI")), "prs", "prs") : "",
+    ...gitMore(),
     base ? insStat(t("Sessions that reached a commit or PR"), `${sp}<small>%</small>`, fx(`${w.outSessions} ÷ ${base} ${t("Claude Code sessions")} = ${sp}%`), "outSessions", "outSessions", "outSessions") : "",
   ].join("");
   // 読み取りの 1 文も、Git と AI の編集で列ごとに分ける（1 つの文につなぐと、2 つを足した数に読めてしまう）
@@ -394,6 +414,19 @@ function insOutputs(){
   const col = (cls, icon, h, note, body) => `<div class="iosec ${cls}" role="group" aria-label="${esc(h)}"><h6 class="iksh">${ico(icon)}${esc(h)} <small>${esc(note)}</small></h6>${body}</div>`;
   return `<div class="iout2">${col("outGit", "commit", t("Git"), t("from your repositories"), S ? `${say(syG)}<div class="stats istats">${S}</div>` : noneH(esc(t("No Git commits for this selection"))))}${E ? col("outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not"), `${say(syE)}<div class="stats istats">${E.stats}</div>${E.files}`) : ""}</div>`;
 }
+/* Git のほかの出力（ファイル・リポジトリ・コミットのあった日・push）。どれもリポジトリから。途中の期間は、今日までの日数で割る */
+function gitMore(){
+  const {S: w, ws, we} = period(), g = w && w.git && w.git.commits ? w.git : null; if (!g) return [];
+  const cs = gitIn(ws, we), n = commas, out = [], fs = new Set(); let more = 0;
+  cs.forEach(c => { (c.files || []).forEach(f => fs.add(`${c.repo}\u0000${f.path}`)); more += Math.max(0, (c.nFiles || 0) - (c.files || []).length); });
+  if (fs.size + more) out.push(insStat(t("Files in Git commits"), n(fs.size + more), esc(more ? t("includes about {n} from big commits that keep only their first files", {n: n(more)}) : t("Each file once"))));
+  const rp = [...new Set(cs.map(c => c.project))], dd = new Set(cs.map(c => key(new Date(c.t * 1000)))), sf = soFar(), nd = sf == null ? Math.round((we - ws) / 86400) : sf;
+  if (rp.length) out.push(insStat(t("Repositories with commits"), `${rp.length}`, esc(rp.slice(0, 3).join(LSEP()) + (rp.length > 3 ? "…" : ""))));
+  if (dd.size) out.push(insStat(t("Days with commits"), `${dd.size}`, fx(`${dd.size} ÷ ${nd}${t("d")}`, "", sf == null ? t("of {n}", {n: plural(nd, "day")}) : t("of {n} so far", {n: plural(nd, "day")}))));
+  const ps = (META.push || []).filter(x => x.t >= ws && x.t < we), sent = ps.reduce((a, x) => a + (x.commits || 0), 0);
+  if (ps.length) out.push(insStat(t("Pushes"), `${ps.length}`, esc(sent ? t("{n} commits sent, including commits made before the period", {n: n(sent)}) : "")));
+  return out;
+}
 /* AI の使い方：トークン・キャッシュ・クレジット・プロンプト・プロンプトあたりの費用・サブエージェント・月末の推定 */
 function insUsage(){
   const {S: w, ws, we} = period(), u = w && w.usage; if (!u || (!u.tokens && !u.credits)) return "";
@@ -401,10 +434,8 @@ function insUsage(){
   const S = [
     u.tokens ? insStat(t("Tokens"), tok(u.tokens), fx(`${t("output")} ${tok(u.out)} = ${Math.round(u.out * 100 / u.tokens)}%`), "tokens", "tokens", "tokens") : "",
     u.tokens ? insStat(t("Read from cache"), u.cacheHit == null ? "—" : `${Math.round(u.cacheHit * 100)}<small>%</small>`, fx(t("cache reads ÷ input")), "cache", u.cacheHit == null ? "" : "cache", "cache") : "",
-    u.credits ? insStat(t("Kiro credits"), crN(u.credits), esc(t("Not an estimate")), "credits", "credits") : "",
     insStat(t("Prompts"), commas(w.prompts), "", "prompts", "sessions", "prompts"),
-    w.costPerAsk != null ? insStat(t("Estimated cost per prompt"), usdH(w.costPerAsk), fx(t("cost ÷ {n} prompts with token data", {n: commas(w.costPrompts)})), "costPerAsk", "costPerAsk") : "",
-    ...perSession(ws, we),
+    ...perUseStats(ws, we),
     N ? norecStat(esc(t("Subagents")), N, "subagents") : insStat(t("Subagents"), `${u.subagents}`, u.subagents ? esc(t("Total run time {d}", {d: dur(u.subMin)})) + (u.subTypes.length ? " · " + esc(u.subTypes.slice(0, 3).map(([k, v]) => `${k} ${v}`).join(", ")) : "") : esc(t("Not used")), "subagents", u.subagents ? "subagents" : ""),
     pj && pj.cost != null ? insStat(t("Month-end cost (estimate)"), "≈ " + usdH(pj.cost), fx(`${t("so far")} ÷ ${pj.days}${t("d")} × ${w.days.length}${t("d")}`), "projection", "projection") : "",
     pj && pj.credits != null ? insStat(t("Month-end credits (estimate)"), `≈ ${crN(pj.credits)}`, fx(`${t("so far")} ÷ ${pj.days}${t("d")} × ${w.days.length}${t("d")}`), "projectionCr", "projectionCr") : "",
@@ -412,15 +443,14 @@ function insUsage(){
   const sy = u.tokens ? t("{t} tokens; {c}% of input read from cache", {t: tok(u.tokens), c: u.cacheHit == null ? "—" : Math.round(u.cacheHit * 100)}) : t("{c} Kiro credits", {c: crN(u.credits)});
   return `${say(sy)}<div class="stats istats">${S}</div>`;
 }
-/* セッションあたり：期間に始まったセッションのうち、その使用量（推定費用・クレジット・トークン）を記録したものの平均。
-   エージェントごとに記録するものが違うので、それぞれ記録したセッションだけで割る */
-function perSession(ws, we){
-  const xs = DATA.filter(s => s.start >= ws && s.start < we), out = [];
-  const avg = f => { const ys = xs.filter(s => f(s) > 0); return ys.length ? {n: ys.length, sum: ys.reduce((a, s) => a + f(s), 0)} : null; };
-  const c = avg(s => sesTok(s) ? s.cost || 0 : 0), k = avg(s => s.credits || 0), tk = avg(sesTok);
-  if (c) out.push(insStat(t("Estimated cost per session"), usdH(c.sum / c.n), fx(`${usd(c.sum)} ÷ ${c.n} ${t("sessions")} = ${usd(c.sum / c.n)}`), "costPerSes"));
-  if (k) out.push(insStat(t("Kiro credits per session"), crN(k.sum / k.n), fx(`${cr1(k.sum)} ÷ ${k.n} ${t("sessions")} = ${cr1(k.sum / k.n)}`), "creditsPerSes"));
-  if (tk) out.push(insStat(t("Tokens per session"), tok(tk.sum / tk.n), fx(`${tok(tk.sum)} ÷ ${tk.n} ${t("sessions")} = ${tok(tk.sum / tk.n)}`), "tokensPerSes"));
+/* セッションあたり・プロンプトあたり（「使い方」のカード）。その使用量を記録したセッションだけで、分子と分母をそろえる（useBasis） */
+function perUseStats(ws, we){
+  const out = [];
+  for (const [by, rows] of [["ses", [["costPerSes", t("Estimated cost per session"), "cost", usd], ["creditsPerSes", t("Kiro credits per session"), "credits", cr1], ["tokensPerSes", t("Tokens per session"), "tokens", tok]]],
+    ["ask", [["costPerAsk", t("Estimated cost per prompt"), "cost", usd], ["creditsPerAsk", t("Kiro credits per prompt"), "credits", cr1], ["tokensPerAsk", t("Tokens per prompt"), "tokens", tok]]]]){
+    for (const [k, label, kind, fu] of rows){ const b = insBase(k); if (!b) continue; const e = useBasis(ws, we, kind);
+      const d = by === "ses" ? `${e.n} ${t("sessions")}` : `${commas(e.prompts)} ${t("prompts")}`;
+      out.push(insStat(label, /^credits/.test(k) ? crR(b.cur) : k === "costPerAsk" || k === "costPerSes" ? usdH(b.cur) : esc(fmtM(k, b.cur)), fx(`${fu(e.used)} ÷ ${d} = ${fmtM(k, b.cur)}`, "", `${fu(e.used)} ÷ ${d}`), k, k === "costPerAsk" ? "costPerAsk" : "", k)); } }
   return out;
 }
 /* 作業の進め方：言い直し・利用上限・コンパクション・長すぎるプロンプト・集中ブロック・切り替え・待ち時間 */
@@ -437,7 +467,7 @@ function insWork(){
     insStat(t("Wait time (median)"), secsH(w.waitMedian), fx(`P90 ${secs(w.waitP90)}; n = ${w.waitCount}`), "wait", w.waitCount ? "wait" : "", "wait"),
     // 見直す候補になる指標は、どれもここか上の数字に「?」を持ち、その横の印から開けるようにする
     insStat(t("Sessions with possible friction"), `${w.frictionN ?? (w.friction || []).length}`, "", "friction", "", "friction"),
-    (rp => insStat(t("Repeated prompts"), `${rp.length}`, rp.length ? esc(snipOf(rp[0].text || "", 40)) : "", "repeats"))(repeatsOf(ws, we)),
+    (rp => insStat(t("Repeated prompts"), `${rp.length}`, rp.length ? esc(`“${snipOf(rp[0].text || "", 40)}”`) : "", "repeats"))(repeatsOf(ws, we)),
   ].join("");
   const sy = t("Corrections {f}% of {p} prompts; {l} usage limit hits; {c} compactions", {f: w.fixRate ?? "—", p: commas(w.prompts), l: H.length, c: C.length});
   return `${say(sy)}<div class="stats istats">${S}</div>`;
@@ -455,7 +485,7 @@ function insAgents(){
   const v = (x, f) => x > 0 ? esc(f(x)) : "—";
   const head = [t("Agent"), t("Active time"), t("Sessions"), t("Prompts"), t("Estimated cost"), t("Kiro credits"), t("Tokens")].map((h, i) => `<th scope="col"${i ? ' class="num"' : ""}>${esc(h)}</th>`).join("");
   const L = [t("Active time"), t("Sessions"), t("Prompts"), t("Estimated cost"), t("Kiro credits"), t("Tokens")].map(esc);
-  const rows = xs.map(x => `<tr><th scope="row"><span class="iwn"><i style="background:${x.c}"></i>${esc(x.key)}</span></th><td class="num" data-l="${L[0]}"><span class="iagb"><span style="width:${((x.minutes || 0) * 100 / max).toFixed(1)}%;background:${x.c}"></span></span>${v(x.minutes, dur)} <b>${Math.round((x.minutes || 0) * 100 / tot)}%</b></td><td class="num" data-l="${L[1]}">${commas(x.n[0])}</td><td class="num" data-l="${L[2]}">${commas(x.n[1])}</td><td class="num" data-l="${L[3]}">${v(x.cost, usd)}</td><td class="num" data-l="${L[4]}">${v(x.credits, cr)}</td><td class="num" data-l="${L[5]}">${v(x.tokens, tok)}</td></tr>`).join("");
+  const rows = xs.map(x => `<tr><th scope="row"><span class="iwn" title="${esc(x.key)}"><i style="background:${x.c}"></i>${esc(x.key)}</span></th><td class="num" data-l="${L[0]}"><span class="iagb"><span style="width:${((x.minutes || 0) * 100 / max).toFixed(1)}%;background:${x.c}"></span></span>${v(x.minutes, dur)} <b>${Math.round((x.minutes || 0) * 100 / tot)}%</b></td><td class="num" data-l="${L[1]}">${commas(x.n[0])}</td><td class="num" data-l="${L[2]}">${commas(x.n[1])}</td><td class="num" data-l="${L[3]}">${v(x.cost, usd)}</td><td class="num" data-l="${L[4]}">${v(x.credits, cr)}</td><td class="num" data-l="${L[5]}">${v(x.tokens, tok)}</td></tr>`).join("");
   const sy = t("{name}: {pc}% of {metric} ({v})", {name: xs[0].key, pc: Math.round(xs[0].minutes * 100 / tot), metric: t("Active time"), v: dur(xs[0].minutes)});
   return `${say(sy)}<figure class="insfig"><div class="iagw"><table class="iagt">
     <thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div><p class="ifxs">${fx(`% = ${t("Active time")} ÷ ${dur(tot)}`)}${fx(t("Time that agents ran at once is split between them"))}</p></figure>`;
@@ -466,10 +496,10 @@ function insTokens(){
   const tot = rows.reduce((a, r) => a + r[2], 0); if (!tot) return "";
   const pc = v => Math.round(v * 100 / tot), inAll = (u.in || 0) + (u.cw || 0) + (u.cr || 0), b = insBase("cache");
   const bar = `<div class="itbar" role="img" aria-label="${esc(rows.map(r => `${r[1]} ${pc(r[2])}%`).join(", "))}">${rows.map(r => `<span style="flex:${r[2]};background:var(--c${r[3]})"${tipAttr(r[1], `${tok(r[2])} · ${pc(r[2])}%`)}></span>`).join("")}</div>`;
-  const list = rows.map(r => `<div class="iwr"><span class="iwn"><i style="background:var(--c${r[3]})"></i>${esc(r[1])}</span><span class="iwb"><span style="width:${(r[2] * 100 / Math.max(...rows.map(x => x[2]))).toFixed(1)}%;background:var(--c${r[3]})"></span></span><span class="iwv">${esc(tok(r[2]))}</span><b>${pc(r[2])}%</b></div>`).join("");
+  const list = rows.map(r => `<div class="iwr"><span class="iwn" title="${esc(r[1])}"><i style="background:var(--c${r[3]})"></i>${esc(r[1])}</span><span class="iwb"><span style="width:${(r[2] * 100 / Math.max(...rows.map(x => x[2]))).toFixed(1)}%;background:var(--c${r[3]})"></span></span><span class="iwv">${esc(tok(r[2]))}</span><b>${pc(r[2])}%</b></div>`).join("");
   const top = rows.reduce((a, r) => r[2] > a[2] ? r : a);
   const sy = t("{name}: {pc}% of tokens ({v})", {name: top[1], pc: pc(top[2]), v: tok(top[2])});
   const th = b && b.better === false ? (H().cache || {}).a || "" : "";
   return `${say(sy, th)}<figure class="insfig">${bar}<div class="iwrows">${list}</div>
-    <p class="ifxs">${fx(`% = ${t("tokens of the type")} ÷ ${tok(tot)}`)}${inAll ? fx(`${t("read from cache")} = ${tok(u.cr || 0)} ÷ ${tok(inAll)} = ${Math.round((u.cr || 0) * 100 / inAll)}%`) : ""}${b ? insChip(b) : ""}</p></figure>`;
+    <p class="ifxs">${fx(`% = ${t("tokens of the type")} ÷ ${tok(tot)}`)}${inAll ? fx(`${t("read from cache")} = ${tok(u.cr || 0)} ÷ ${tok(inAll)} = ${Math.round((u.cr || 0) * 100 / inAll)}%`) : ""}</p></figure>`; // いつもの範囲との比べは、入力に対する割合（「使い方」の「キャッシュから読んだ割合」）にだけ付ける
 }

@@ -20,7 +20,7 @@ const BRK = {
   aiCommits: {n: "AI commits", h: "commits"},
   lines: {n: "Lines in Git commits", h: "lines"},
   prs: {n: "Pull requests", h: "prs"},
-  costPerCommit: {n: "Estimated cost per Git commit", h: "costPerCommit"},
+  costPerCommit: {n: "Claude Code cost per AI commit", h: "costPerCommit"},
   outSessions: {n: "Sessions that reached a commit or PR", h: "outSessions"},
   focus: {n: "Focus blocks (60+ min)", h: "focus"},
   fix: {n: "Prompts with corrections or interruptions", h: "fix"},
@@ -128,7 +128,7 @@ const MB = {
     return {big: `${(w.outputs || {}).prs || xs.length}`, body: mBars("By agent", agRows(countBy(xs, x => x.s.source)), cnt) + mBars("By project", pjRows(countBy(xs, x => x.s.project)), cnt) + mList("Pull requests", xs.map(prRow), 15)}; },
   costPerCommit(w, {inRange}){ const o = w.outputs || {}; if (w.costPerCommit == null || !o.commits) return null;
     const xs = inRange.filter(s => s.outputs && s.outputs.commits > 0 && s.cost > 0).map(s => [s, s.cost / s.outputs.commits]).sort((a,b) => b[1] - a[1]);
-    return {big: usdH(w.costPerCommit), body: calcH([["Claude Code's estimated cost", `≈ ${esc(usd(w.costPerCommit * o.commits))}`], "÷", ["AI commits", `${o.commits}`], "=", ["Per commit", esc(usd(w.costPerCommit))]]) +
+    return {big: usdH(w.costPerCommit), body: calcH([["Claude Code's estimated cost", `${esc(usd(w.outCost ?? w.costPerCommit * o.commits))}`], "÷", ["AI commits", `${o.commits}`], "=", ["Per commit", esc(usd(w.costPerCommit))]]) +
       mSessions("Sessions with the highest cost per commit", xs.slice(0, 8), usd) + (xs.length ? WHOLE() : "")}; },
   outSessions(w, {inRange}){ const base = w.outBase ?? w.sessions; if (!base) return null;
     const xs = inRange.filter(s => s.outputs && (s.outputs.commits || s.outputs.prs)).sort((a,b) => b.start - a.start);

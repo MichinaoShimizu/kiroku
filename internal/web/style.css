@@ -199,6 +199,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
    時刻も入らない帯（.nn）は色だけ。名前は aria-label とツールチップ、押せば詳細で見られる */
 .run .st{display:none;margin:0 -6px;font-size:var(--fs-2xs);font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-align:center}
 .run.nt .t,.run.nt .m,.run.nn .t,.run.nn .m{display:none}.run.nt .st{display:block}.run.thin .st{line-height:1}
+.run.bw .t,.run.bw .t span{overflow-wrap:anywhere;word-break:break-all;hyphens:auto} /* 背の高い細い帯：名前を単語の途中で折り返す */
 .run.cas{box-shadow:inset 3px 0 0 var(--c),0 0 0 2px var(--bg)} /* 前の帯の上に重ねた帯は、地の色の縁で前の帯と分ける */
 .run:hover{box-shadow:inset 3px 0 0 var(--c),var(--shadow);z-index:4}
 .tlbox.focus .run{opacity:.25;filter:saturate(.5)}
@@ -330,6 +331,8 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .head .cline{display:flex;align-items:baseline;gap:6px;margin-top:6px;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:0} /* 週の日の見出しの 1 行：使用量 · コミット */
 .head .cline .cu{font-size:var(--fs-md);font-weight:700;color:var(--ink)}.head .cline .cc{display:inline-flex;align-items:center;gap:3px;font-size:var(--fs-sm);font-weight:600;color:var(--ink-2)}.head .cline .cc .ic{width:12px;height:12px}
 .head .cline .sep{color:var(--ink-3)}.head .cline .u{color:var(--ink-3)}
+.head .cline .ct{font-size:var(--fs-sm);font-weight:600;color:var(--ink-2)} /* 週の日の見出しの稼働時間（コスト系の横に） */
+.cell .act{display:block;font:600 var(--fs-xs)/1.3 var(--sans);font-variant-numeric:tabular-nums;color:var(--ink-2);white-space:nowrap}.cell .act.u{color:var(--ink-3)} /* 月のマスの稼働時間（コスト系の下に） */
 .mlegend{display:flex;align-items:center;gap:8px;justify-content:flex-end;padding:10px 14px;font-size:var(--fs-xs);color:var(--ink-3);border-top:1px solid var(--rule)}
 .mlegend i{width:16px;height:10px;border-radius:3px;background:color-mix(in oklab,var(--acc) calc(var(--h) * var(--heatk)),var(--surface));box-shadow:inset 0 0 0 1px var(--rule)}
 .mshade{display:inline-flex;align-items:center;gap:6px;margin-right:auto}.mshade select{height:28px;font-size:var(--fs-xs)}
@@ -876,6 +879,8 @@ header{background:var(--s-cont);border-bottom:0}
 .insfig .itk text{text-anchor:end}.insfig .ixl{text-anchor:middle}.insfig .ixl.cur{fill:var(--acc-ink);font-weight:600}
 .insfig .iband{fill:color-mix(in oklab,var(--ink) 8%,transparent)}.insfig .imed{stroke:var(--ink-3);stroke-dasharray:4 3;stroke-width:1.2} /* いつもの範囲は色みのない灰色（緑は「よい」の意味にだけ使う） */
 .insfig .ibar{fill:color-mix(in oklab,var(--acc) 30%,var(--surface))}.insfig .ibar.cur{fill:var(--acc)}
+.insfig .iline{fill:none;stroke:color-mix(in oklab,var(--acc) 55%,var(--surface));stroke-width:2;stroke-linejoin:round}.insfig .ipt{fill:var(--surface);stroke:var(--acc);stroke-width:2}.insfig .ipt.cur{fill:var(--acc)} /* 率の指標の推移は線と点 */
+.insfig .ixn{font-size:9px;fill:var(--ink-3)} /* 長さ別のグラフの、区間ごとのセッションの数 */
 .insfig .iproj{fill:none;stroke:var(--acc);stroke-dasharray:4 3;stroke-width:1.5}
 .insfig .iout{fill:var(--warn)}.insfig .ihit{fill:transparent}
 .insfig figcaption{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;font-size:var(--fs-xs);color:var(--ink-2)}
@@ -900,7 +905,10 @@ header{background:var(--s-cont);border-bottom:0}
 /* サマリーの頭：コストと出力の 2 段。段は 1 枚の面にして、数字は細い区切り線で分ける（数字ごとに色の線や塗りの箱を付けない）。
    いつもの範囲から外れたことは、数字の下の小さな印（.ichip）だけで言う */
 .insh{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
-.insh>.ikg{flex:1 1 380px;min-width:0} /* 広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる */
+.insh>.ikg{flex:1 1 290px;min-width:0}.insh>.ikg:last-child{flex-grow:2}
+/* 広い画面：コストと出力を左に縦に積み、数字の多い単価を右に置く（横に 3 枚並べると、短いカードの下が大きく空く） */
+@media (min-width:1100px){.insh:has(>.ik-unit){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"cost unit" "out unit";align-items:start}
+  .insh>.ik-cost{grid-area:cost}.insh>.ik-out{grid-area:out}.insh>.ik-unit{grid-area:unit;align-self:stretch}} /* 単価（いちばん数字が多いカード）は幅を 2 倍に取り、1 段に 3 つ並べて縦に長くしない */ /* 広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる */
 .ikrow>.itile{border-left:1px solid var(--rule)}.ikrow{margin-left:-1px;clip-path:inset(0 0 0 1px)} /* 数字の間に縦の区切り線。折り返した行の左端の線は、1px ずらして切り落とす */
 /* タイルの背景：いつもの範囲より良い側は緑、悪い側は赤（大きく外れたら濃く）。範囲の中と、向きの決まっていない指標は色なし */
 .itile.good,.itile.bad{border-radius:12px;padding-top:10px;padding-bottom:10px}
@@ -967,7 +975,7 @@ header{background:var(--s-cont);border-bottom:0}
 /* どこに使ったか：大きい順の横棒（名前・棒・値・割合） */
 .iwrows{display:flex;flex-direction:column;gap:6px}
 .iwr{display:grid;grid-template-columns:minmax(0,30%) minmax(0,1fr) auto 3.2em;gap:10px;align-items:center;font-size:var(--fs-sm)}
-.iwn{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.iwn i{flex:none;width:9px;height:9px;border-radius:50%}
+.iwn{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.iwn i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:-1px} /* 細いカードでは名前を「…」で切る（全文は title） */
 .iwb{height:12px;background:var(--surface-2);border-radius:4px;overflow:hidden}.iwb>span{display:block;height:100%;border-radius:4px}
 .iwv{color:var(--ink-2);font-variant-numeric:tabular-nums;text-align:right}.iwr b{text-align:right;font-variant-numeric:tabular-nums}
 /* いちばん変えたファイル：名前はパス（等幅・はみ出しは省略）。押すと、そのファイルをいちばん変えたセッション */
@@ -1052,8 +1060,10 @@ header{background:var(--s-cont);border-bottom:0}
 .themebtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .themebtn .sun,:root[data-theme="dark"] .themebtn .moon{display:none}:root[data-theme="dark"] .themebtn .sun{display:block}
 /* 式は「式を表示」のときだけ（ふだんは平易な 1 行と、言葉のチップ） */
-:root:not(.showfx) .fxo,:root:not(.showfx) .insdef,:root:not(.showfx) .ichip .cx{display:none}
-:root.showfx .fxp,:root.showfx .ichip .cp{display:none}
+.fxp,.ichip .cp{display:none} /* ダイアログでは式を出し、平易な 1 行は出さない */
+#review .fxo:not(.fxon *),#review .ichip .cx:not(.fxon *){display:none} /* サマリーでは、式はその数字の「ƒx」で開いたときだけ */
+#review .fxp:not(.fxon *),#review .ichip .cp:not(.fxon *){display:inline}
+#review .insight:not(:has(.fxon)) .insdef{display:none}
 .fxp,.iplain{font-size:var(--fs-xs);color:var(--ink-2)}
 /* エージェントの切り替えは、狭い画面でも隠さずに折り返す */
 .insagbar .segc{flex-wrap:wrap;overflow:visible}
@@ -1077,11 +1087,11 @@ header{background:var(--s-cont);border-bottom:0}
 .lim{padding:0 3px;border-radius:3px}
 /* 上限の印から開いたときの、流れの中のその出来事 */
 .tl li.ev.flash{outline:2px solid var(--warn);outline-offset:2px}
-:root:not(.showfx) .ichip{font-family:var(--sans)} /* 言葉のチップは、式の等幅でなく本文の字で */
+#review .ichip:not(.fxon *){font-family:var(--sans)} /* 言葉のチップは、式の等幅でなく本文の字で */
 /* サマリーのグラフのカードは 2 列（1000px 以下は 1 列）。.full は幅いっぱい */
 .insg{display:flex;flex-direction:column;gap:16px}
 .insrow{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch}
-.insrow>.inscol{flex:1 1 400px;min-width:0;container-type:inline-size} /* グラフのカードも、広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚 */
+.insrow>.inscol{flex:1 1 360px;min-width:0;container-type:inline-size}.insrow>.inscol.wide{flex-grow:2} /* 出力のカードは中身が多いので、横に広く取り、中を 2 列にして背を低くする */ /* グラフのカードも、広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚 */
 @container (max-width:720px){.iout2{grid-template-columns:minmax(0,1fr)}} /* 出力のカードが狭いときは、Git と AI の編集を縦に並べる */
 /* トレンドの指標：広い画面は切り替え、狭い画面は選択リスト（横に隠れて選べなくならないように） */
 .insksel{display:none}
@@ -1133,3 +1143,22 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .drawer.flowfull .scols{display:block}.drawer.flowfull .scols>:not(.sflow),.drawer.flowfull .sflags{display:none}
 .drawer.flowfull .sflow{max-width:960px;margin:0 auto}
 .drawer .flowhd .ffull{height:28px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs)}.drawer .flowhd .ffull .i{width:14px;height:14px}
+
+/* 式を開く「ƒx」：指標名のすぐ横に小さく。押している間は塗る */
+.fxb{margin-left:6px;padding:0 5px;border:1px solid var(--rule);border-radius:6px;background:none;color:var(--ink-2);font:italic 600 var(--fs-xs)/1.5 var(--serif,Georgia,serif);cursor:pointer;vertical-align:baseline}
+.fxb:hover{color:var(--acc-ink);border-color:var(--acc)}.fxb[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+
+/* 見直す候補の 1 行：見出しのカードのすぐ下。基準を超えた指標の名前を並べ、押すとその候補のダイアログ */
+.iworth{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 12px;padding:10px 14px;border:1px solid var(--rule);border-radius:12px;background:var(--s-lowest)}
+.iworth .iwl{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:var(--fs-sm);color:var(--ink)}.iworth .iwl svg{width:14px;height:14px;color:var(--warn)}
+.iwlink{padding:3px 10px;border:1px solid var(--rule);border-radius:999px;background:var(--surface);color:var(--ink);font:500 var(--fs-sm)/1.4 var(--sans);cursor:pointer}.iwlink:hover{border-color:var(--acc);color:var(--acc-ink)}
+.iwnone{font-size:var(--fs-sm);color:var(--ink-2)}
+.fxb{position:relative;z-index:2} /* 値のボタンが枠いっぱいに重なる数字の枠でも、「ƒx」を押せるように */
+
+/* 月のマス：色分け（Color by）ごとの作業時間の細い帯。絞り込み・検索で該当のない日は薄く */
+.cell .mbar{display:flex;gap:1px;height:6px;margin-top:5px;box-shadow:0 0 0 1px var(--surface);border-radius:2px;overflow:hidden;width:100%}.cell .mbar i{min-width:2px;height:100%;display:block}
+.cell.dim{opacity:.4}
+/* 月のマスから開いた日・詳細を閉じて戻ったセッションを、少しのあいだ光らせる（どこに着いたかわかるように） */
+@keyframes kflash{0%{box-shadow:inset 0 0 0 3px var(--acc)}100%{box-shadow:inset 0 0 0 3px transparent}}
+.day.flash,.head.flash,.run.flash{animation:kflash 1.6s ease-out 1}
+@media (prefers-reduced-motion:reduce){.day.flash,.head.flash,.run.flash{animation:none}}

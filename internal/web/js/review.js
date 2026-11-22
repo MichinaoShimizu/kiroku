@@ -53,38 +53,55 @@ function editsBasis(ws, we, k){
   const xs = DATA.filter(s => s.start >= ws && s.start < we && records(s.source, "files") && use(s) > 0);
   return {n: xs.length, used: xs.reduce((a, s) => a + use(s), 0), lines: xs.reduce((a, s) => a + sesLines(s), 0)};
 }
+/* 時間・セッション・プロンプトあたりの元（期間 [ws, we) に始まったセッションのうち、その使用量を記録したもの）。
+   分子と分母は同じセッションから。時間は各セッションの作業時間（期間の中の分。重なったセッションはそれぞれ数える） */
+const minIn = (s, ws, we) => (s.segs || []).reduce((a, [x, y]) => a + Math.max(0, Math.min(y, we) - Math.max(x, ws)) / 60, 0);
+function useBasis(ws, we, k){
+  const use = s => k === "cost" ? (sesTok(s) ? s.cost || 0 : 0) : k === "credits" ? s.credits || 0 : sesTok(s);
+  const xs = DATA.filter(s => s.start >= ws && s.start < we && use(s) > 0);
+  return {n: xs.length, used: xs.reduce((a, s) => a + use(s), 0), min: xs.reduce((a, s) => a + minIn(s, ws, we), 0), prompts: xs.reduce((a, s) => a + (s.nPrompts || 0), 0)};
+}
+const perUse = (ws, we, k, by) => { const b = useBasis(ws, we, k), d = by === "hour" ? b.min / 60 : by === "ses" ? b.n : b.prompts; return d > 0 && b.used > 0 ? b.used / d : null; };
 function perEdit(ws, we, k){ const b = editsBasis(ws, we, k); return b.lines > 0 && b.used > 0 ? b.used * 100 / b.lines : null; }
 /* 指標の値（見直す候補の推移用）。low: 大きいときに印が付く向き（良し悪しの判定ではない） */
 const pctOf = (a, b) => b ? Math.round(a * 100 / b) : null;
 const MET = {
-  limits: {f: (w, ws, we) => limitHits(ws, we).length, low: true, u: ""},
-  longctx: {f: (w, ws, we) => longCtxOf(ws, we).length, low: true, u: ""},
+  limits: {f: (w, ws, we) => limitHits(ws, we).length, low: true, u: "", int: true},
+  longctx: {f: (w, ws, we) => longCtxOf(ws, we).length, low: true, u: "", int: true},
   heavy: {f: (w, ws, we) => w.usage && w.usage.cost >= 0.01 ? pctOf(idleOf(ws, we).c, w.usage.cost) : null, low: true, u: "%", cap: "Share of cost with no commit or PR"},
   cost: {f: w => w.usage ? w.usage.cost : null, low: true, fmt: v => usd(v)},
   costPerCommit: {f: w => w.costPerCommit, low: true, fmt: v => usd(v)},
   // コミットあたりのトークン：推定費用と同じく、Claude Code のセッション（期間に始まったもの）のトークン ÷ AI が実行したコミット
   tokensPerCommit: {f: (w, ws, we) => { const c = w.outputs && w.outputs.commits; if (!c) return null; const n = DATA.filter(s => s.source === "Claude Code" && s.start >= ws && s.start < we).reduce((a, s) => a + sesTok(s), 0); return n ? n / c : null; }, low: true, fmt: v => tok(v)},
-  // コミットあたりのクレジット：Kiro は AI が実行したコミットを記録しないので、Git のコミットのうち Claude Code が実行したもの以外で割る（手で打ったコミットも入る）
-  creditsPerCommit: {f: w => { const c = w.usage && w.usage.credits, g = w.git, n = g ? g.commits - (g.ai || 0) : 0; return c && n > 0 ? c / n : null; }, low: true, fmt: v => cr1(v)},
   // AI が編集した 100 行あたり（良し悪しの向きは付けない：行あたりが下がるのは、多く・冗長に書いただけのこともある）：Git のコミットではなく、エージェントの履歴の編集ツールから数えた行で割る（editsBasis）
   costPerEdit: {f: (w, ws, we) => perEdit(ws, we, "cost"), fmt: v => usd(v)},
   creditsPerEdit: {f: (w, ws, we) => perEdit(ws, we, "credits"), fmt: v => cr1(v)},
   tokensPerEdit: {f: (w, ws, we) => perEdit(ws, we, "tokens"), fmt: v => tok(v)},
+  // 時間・セッション・プロンプトあたり（良し悪しの向きは付けない：1 時間あたりが高いのは、集中して任せた結果のこともある）
+  costPerHour: {f: (w, ws, we) => perUse(ws, we, "cost", "hour"), fmt: v => usd(v)},
+  creditsPerHour: {f: (w, ws, we) => perUse(ws, we, "credits", "hour"), fmt: v => cr1(v)},
+  tokensPerHour: {f: (w, ws, we) => perUse(ws, we, "tokens", "hour"), fmt: v => tok(v)},
+  costPerSes: {f: (w, ws, we) => perUse(ws, we, "cost", "ses"), fmt: v => usd(v)},
+  creditsPerSes: {f: (w, ws, we) => perUse(ws, we, "credits", "ses"), fmt: v => cr1(v)},
+  tokensPerSes: {f: (w, ws, we) => perUse(ws, we, "tokens", "ses"), fmt: v => tok(v)},
+  costPerAsk: {f: w => w.costPerAsk ?? null, fmt: v => usd(v)},
+  creditsPerAsk: {f: (w, ws, we) => perUse(ws, we, "credits", "ask"), fmt: v => cr1(v)},
+  tokensPerAsk: {f: (w, ws, we) => perUse(ws, we, "tokens", "ask"), fmt: v => tok(v)},
   modelfit: {f: (w, ws, we) => w.usage && w.usage.cost >= 0.01 ? pctOf(lightOf(ws, we).c, w.usage.cost) : null, low: true, u: "%"},
   fix: {f: w => w.fixRate, low: true, u: "%"},
-  friction: {f: w => w.frictionN ?? w.friction.length, low: true, u: ""},
-  bigPrompts: {f: (w, ws, we) => bigOf(ws, we).n, low: true, u: ""},
+  friction: {f: w => w.frictionN ?? w.friction.length, low: true, u: "", int: true},
+  bigPrompts: {f: (w, ws, we) => bigOf(ws, we).n, low: true, u: "", int: true},
   cache: {f: w => w.usage && w.usage.cacheHit != null ? Math.round(w.usage.cacheHit * 100) : null, low: false, u: "%"},
   outSessions: {f: w => pctOf(w.outSessions, w.outBase ?? w.sessions), low: false, u: "%"},
   switches: {f: w => w.switchesAvg, low: true, u: ""},
-  focus: {f: w => w.focus.length, low: false, u: ""},
-  wait: {f: w => w.waitP90, low: true, fmt: v => secs(v), cap: "90th percentile"},
+  focus: {f: w => w.focus.length, low: false, u: "", int: true},
+  wait: {f: w => w.waitP90, low: true, fmt: v => secs(Math.round(v)), cap: "90th percentile"},
   // 見直す候補にはならないが、「?」の説明に推移を出す指標（試したことが効いたかを、印が付いていなくても確かめられるように）
   active: {f: w => w.active, fmt: v => dur(v)},
-  prompts: {f: w => w.prompts, u: ""},
+  prompts: {f: w => w.prompts, u: "", int: true},
   tokens: {f: w => w.usage && w.usage.tokens ? w.usage.tokens : null, fmt: v => tok(v)},
   credits: {f: w => w.usage && w.usage.credits ? w.usage.credits : null, low: true, fmt: cr}, // 推定費用と同じく、多いときに印（クレジットは使う枠）
-  gitCommits: {f: w => w.git ? w.git.commits : null, u: ""},
+  gitCommits: {f: w => w.git ? w.git.commits : null, u: "", int: true},
 };
 const fmtM = (k, v) => v == null ? "—" : MET[k].fmt ? MET[k].fmt(v) : `${Math.round(v * 10) / 10}${MET[k].u ?? ""}`; // 本文と同じく「8 件」「5.2 回」
 function periodBack(i){ // 表示中の期間から i 個前の期間
