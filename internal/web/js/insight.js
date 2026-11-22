@@ -61,21 +61,30 @@ function insPlain(b){
   return b.pos === "typical" ? t("{x}: within your usual {lo}–{hi}", r) : b.pos === "high" ? (b.far ? t("{x}: far above your usual {lo}–{hi}", r) : t("{x}: above your usual {lo}–{hi}", r))
     : b.far ? t("{x}: far below your usual {lo}–{hi}", r) : t("{x}: below your usual {lo}–{hi}", r);
 }
-/* insSpark は、要点の数字の下に置く小さな推移：過去 INS_N 期間と表示中の期間の折れ線、いつもの範囲（真ん中の 50%）の帯、表示中の期間の点。
+/* insSpark は、要点の数字の下に置く推移のグラフ（正方形）：過去 INS_N 期間と表示中の期間の折れ線、いつもの範囲（真ん中の 50%）の帯と中央値、
+   y 軸の目盛りと見出し（指標の短い名前）、x 軸の期間の名前と見出し（週・月）、凡例。
    途中の期間で期間の長さに比例する指標は、上の帯と同じくペース換算の値を白抜きの点で描く（線は終わった期間だけ） */
-function insSpark(b){
+function insSpark(b, label){
   if (!b || !b.k || !MET[b.k]) return "";
-  const hs = historyStart(), fm = b.fmt || (x => fmtM(b.k, x)), pts = [];
-  for (let i = INS_N; i >= 1; i--){ const p = periodBack(i); pts.push({v: p.ws < hs ? null : metricAt(b.k, p), l: p.label}); }
-  pts.push({v: b.v, l: b.part ? t("{period} (so far)", {period: periodBack(0).label}) : periodBack(0).label, cur: true});
-  const f0 = pts.findIndex(p => p.v != null); if (pts.filter(p => p.v != null).length < 3) return "";
-  const W = 132, H = 26, n = pts.length - 1, ys = pts.filter(p => p.v != null).map(p => p.v).concat(b.q1 != null ? [b.q1, b.q3] : []);
-  const lo = Math.min(...ys), hi = Math.max(...ys), x = i => 3 + (i - f0) * (W - 6) / (n - f0), y = v => hi === lo ? H / 2 : H - 3 - (v - lo) / (hi - lo) * (H - 6);
-  const line = pts.map((p, i) => p.v == null || (p.cur && b.part) ? null : `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).filter(Boolean).join(" ");
-  const band = b.q1 == null ? "" : `<rect class="band" x="0" y="${y(b.q3).toFixed(1)}" width="${W}" height="${Math.max(1, y(b.q1) - y(b.q3)).toFixed(1)}"/>`;
-  const step = (W - 6) / (n - f0), hits = pts.map((p, i) => i < f0 ? "" : `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H}"${tipAttr(p.l, p.v == null ? t("No records") : (p.cur && b.part ? t("At this pace: {v}", {v: fm(p.v)}) : fm(p.v)))}/>`).join("");
-  const list = pts.slice(f0).map(p => `${p.l} ${p.v == null ? "—" : fm(p.v)}`).join(LSEP());
-  return `<span class="tspk"><span class="sr">${esc(t("Trend: {list}", {list}))}</span><svg aria-hidden="true" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${band}<polyline points="${line}"/><circle${b.part ? ' class="part"' : ""} cx="${x(n).toFixed(1)}" cy="${y(b.v).toFixed(1)}" r="2.6"/>${hits}</svg></span>`;
+  const k = b.k, hs = historyStart(), fm = b.fmt || (x => fmtM(k, x)), pts = [];
+  for (let i = INS_N; i >= 1; i--){ const p = periodBack(i); pts.push({p, v: p.ws < hs ? null : metricAt(k, p)}); }
+  pts.push({p: periodBack(0), v: b.v, cur: true});
+  const f0 = pts.findIndex(x => x.v != null); if (pts.filter(x => x.v != null).length < 3) return "";
+  const ps = pts.slice(f0), n = ps.length, vals = ps.filter(x => x.v != null).map(x => x.v);
+  const W = 220, H = 220, L = 44, R = 8, T = 18, B = 34, mx = Math.max(...vals, b.q3 || 0);
+  const top = MET[k].u === "%" && mx <= 100 ? 100 : insNice(mx * 1.05), x = i => L + (n === 1 ? (W - L - R) / 2 : i * (W - L - R) / (n - 1)), y = v => T + (H - T - B) * (1 - v / top);
+  const ticks = [0, top / 2, top].map(v => `<g class="tk"><line x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${L - 4}" y="${(y(v) + 3.5).toFixed(1)}">${esc(tickM(k, v))}</text></g>`).join("");
+  const band = b.q1 == null ? "" : `<rect class="band" x="${L}" y="${y(b.q3).toFixed(1)}" width="${W - L - R}" height="${Math.max(1, y(b.q1) - y(b.q3)).toFixed(1)}"/><line class="med" x1="${L}" x2="${W - R}" y1="${y(b.med).toFixed(1)}" y2="${y(b.med).toFixed(1)}"/>`;
+  const lab = p => { const [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? (JA ? `${mm}月` : MON[mm - 1]) : dMD(new Date(yy, mm - 1, dd)); };
+  const xl = [0, Math.round((n - 1) / 2), n - 1].filter((v, i, a) => a.indexOf(v) === i).map(i => `<text class="sxl${i === n - 1 ? " cur e" : i === 0 && n > 1 ? " s" : ""}" x="${x(i).toFixed(1)}" y="${H - B + 13}">${esc(lab(ps[i].p))}</text>`).join("");
+  const line = ps.map((q, i) => q.v == null || (q.cur && b.part) ? null : `${x(i).toFixed(1)},${y(q.v).toFixed(1)}`).filter(Boolean).join(" ");
+  const dots = ps.map((q, i) => q.v == null || q.cur ? "" : `<circle class="pt" cx="${x(i).toFixed(1)}" cy="${y(q.v).toFixed(1)}" r="2"/>`).join("") + `<circle class="now${b.part ? " part" : ""}" cx="${x(n - 1).toFixed(1)}" cy="${y(b.v).toFixed(1)}" r="4"/>`;
+  const step = n > 1 ? (W - L - R) / (n - 1) : W - L - R, hits = ps.map((q, i) => `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H - B}"${tipAttr(q.p.label, q.v == null ? t("No records") : (q.cur && b.part ? t("At this pace: {v}", {v: fm(q.v)}) : fm(q.v)))}/>`).join("");
+  const yt = (INS_SHORT()[k] || label || insName(k)), xt = st.mode === "month" ? t("Month") : t("Week");
+  const list = ps.map(q => `${q.p.label} ${q.v == null ? "—" : fm(q.v)}`).join(LSEP());
+  const now = soFar() != null ? (st.mode === "month" ? t("This month") : t("This week")) : (st.mode === "month" ? t("Month shown") : t("Week shown"));
+  const lg = `<span class="lg now${b.part ? " part" : ""}">${esc(b.part ? `${now} (${t("pace")})` : now)}</span>` + (b.q1 == null ? "" : `<span class="lg band">${esc(t("Middle half of the last {n} {unit}", {n: b.n, unit: insUnit(b.n)}))}</span><span class="lg med">${esc(t("median"))}</span>`);
+  return `<span class="tspk"><span class="sr">${esc(t("Trend: {list}", {list}))}</span><svg aria-hidden="true" viewBox="0 0 ${W} ${H}"><text class="syt" x="${L}" y="10">${esc(yt)}</text>${ticks}${band}<polyline points="${line}"/>${dots}${xl}<text class="sxt" x="${(L + (W - L - R) / 2).toFixed(1)}" y="${H - 4}">${esc(xt)}</text>${hits}</svg><span class="tlg" aria-hidden="true">${lg}</span></span>`;
 }
 const insChip = b => !b || b.q1 == null ? "" : `<code class="ichip ifx${insTone(b)}" title="${esc(insDef(b && b.n))}"><span class="cx">${esc(insExpr(b))}</span><span class="cp">${esc(insPlain(b))}</span></code>`;
 /* 要点の数字（最大 3 列）：上の帯と同じ数をサマリーでも、式といつもの範囲との不等式つきで。並びは判断に使う順：
@@ -83,7 +92,7 @@ const insChip = b => !b || b.q1 == null ? "" : `<code class="ichip ifx${insTone(
 function insHeadlines(F){
   const {S: w, P: pw, ws, we} = period(), T = {cost: [], outGit: [], outEdit: [], unitGit: [], unitEdit: [], unitHour: []}, u = (w && w.usage) || {}, M = st.mode === "month";
   let G = "cost"; // コスト（時間・クレジット・金額・トークン）・出力（Git と AI の編集）・単価（コスト ÷ 出力。割る数の元ごと）に分けて並べる
-  const tile = (label, b, v, f, m) => T[G].push(`<div class="itile${insTone(b)}"><span class="il">${esc(label)}${hb(b && b.k && H()[b.k] ? b.k : m && H()[m] ? m : "")}</span>${m ? `<button type="button" class="itv" data-metric="${m}" aria-haspopup="dialog" aria-label="${esc(`${label} ${v}`)}">${esc(v)}</button>` : `<b>${esc(v)}</b>`}${[].concat(f || []).map(x => typeof x === "object" ? (x.n != null ? pln(x.n) : fx(x.f, "", x.p, x.h)) : x === t("Not an estimate") ? pln(x) : fx(x)).join("")}${insSpark(b)}${b === false ? "" : insChip(b)}</div>`); // 値を押すと、上の帯と同じ内訳
+  const tile = (label, b, v, f, m) => T[G].push(`<div class="itile${insTone(b)}"><span class="il">${esc(label)}${hb(b && b.k && H()[b.k] ? b.k : m && H()[m] ? m : "")}</span>${m ? `<button type="button" class="itv" data-metric="${m}" aria-haspopup="dialog" aria-label="${esc(`${label} ${v}`)}">${esc(v)}</button>` : `<b>${esc(v)}</b>`}${[].concat(f || []).map(x => typeof x === "object" ? (x.n != null ? pln(x.n) : fx(x.f, "", x.p, x.h)) : x === t("Not an estimate") ? pln(x) : fx(x)).join("")}${insSpark(b, label)}${b === false ? "" : insChip(b)}</div>`); // 値を押すと、上の帯と同じ内訳
   const days = Math.round((we - ws) / 86400), el = Math.round(insFrac() * days), V = vsPrev(pw, M ? "月" : "週");
   // 上の帯の増減（%）と同じ比べを式で：途中の期間は前の期間の同じ日まで、終わった期間は前の期間まるごと
   const vs = (a, b, f) => { if (b == null || !b) return ""; const pc = `${a >= b ? "+" : "−"}${Math.round(Math.abs(a - b) * 100 / b)}% ${V.n == null ? (M ? t("vs last month") : t("vs last week")) : t("vs {range}", {range: V.range})}`;
