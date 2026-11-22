@@ -6,3 +6,5 @@
 - Summary: the Cost panel's charts label each point with its change from the previous week or month (also in the point's tooltip)
 - Summary: the Cost panel is named "Cost trend" and the Unit cost panel "Unit cost calculation"
 - Summary: the Output panel is named "Outputs" (アウトプット in Japanese), as is the Outputs card
+- Summary: in a period in progress, figures show the value so far and the end-of-period estimate at the same size (the estimate was a small note)
+- Summary: the AI edits part of the Outputs card is left out when no edited lines are recorded (such as Kiro's `editCode`), instead of showing 0

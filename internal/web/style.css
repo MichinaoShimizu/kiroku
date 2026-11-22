@@ -1280,3 +1280,6 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 /* コストのグラフの、前の期間からの増減（各点の上の %）。線に重なっても読めるよう、地の色で縁取る */
 .tspk .spc{font-size:9px;fill:var(--ink-2);text-anchor:middle;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
 .tspk .spc.e{text-anchor:end}.tlg .lg.pcl::before{display:none}
+/* 期間の途中：今までの値と、期間の終わりの推定を同じ大きさで縦に並べる（推定は小さな注記にしない）。それぞれの上に小さな名前 */
+.itile .ivk{font-size:var(--fs-xs);color:var(--ink-2);margin-bottom:-4px}
+.itile .ivbig{display:flex;flex-direction:column;gap:0;margin-top:2px}.itile .ivbig b{color:var(--ink-2)}

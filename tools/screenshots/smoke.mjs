@@ -747,7 +747,7 @@ async function run(env) {
     await p.keyboard.press("Escape"); await pause();
     await view("sum");
     const tile = await p.evaluate(() => { const b = document.querySelector('#review .itile [data-metric="credits"]'); return b ? b.closest(".itile").innerText : ""; });
-    check("サマリーのクレジットのカードにも、今月末の推定がある（式を出しているときは式で）", /Month-end \(this month\): ≈ |Month-end credits = /.test(tile) && tile.includes(mp.v), tile);
+    check("サマリーのクレジットのカードにも、今月末の推定がある（式を出しているときは式で）", /Month-end estimate \(this month\)|Month-end credits = /.test(tile) && tile.includes(mp.v), tile);
     await view("cal");
   });
 
