@@ -1167,7 +1167,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .tspk svg{pointer-events:none;display:block;width:100%;height:auto;aspect-ratio:1;overflow:visible}
 .tspk text{font-family:var(--sans);font-size:10px;fill:var(--ink-3);font-variant-numeric:tabular-nums}
 .tspk .grid{stroke:var(--rule-2);stroke-width:.8;stroke-dasharray:1.5 2.5;opacity:.7}.tspk .tm{stroke:var(--ink-3);stroke-width:1}.tspk .axis{stroke:var(--ink-3);stroke-width:1.2}.tspk .tk text{text-anchor:end}
-.tspk .sxl{text-anchor:middle}.tspk .sxl.cur{fill:var(--acc-ink);font-weight:600}.tspk .sxl.s{text-anchor:start}.tspk .sxl.e{text-anchor:end}
+.tspk .sxl{text-anchor:middle}.tspk .sxl.cur{fill:var(--acc-ink);font-weight:600}.tspk .sxl.s{text-anchor:start}.tspk .sxl.e{text-anchor:end}.tspk .sxl.rot{text-anchor:end}
 .tspk .syt{text-anchor:start;fill:var(--ink-2);font-weight:600}.tspk .sxt{text-anchor:middle;fill:var(--ink-2);font-weight:600}
 .tspk .trl{fill:none;stroke:var(--acc);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
 .tspk .pt{fill:var(--acc)}
