@@ -79,6 +79,9 @@ function gitByRepo(){ const G = META.git || [];
   if (gitByRepoCache && gitByRepoCache.g === G) return gitByRepoCache.m;
   const m = new Map(); G.forEach(c => { if (!m.has(c.repo)) m.set(c.repo, []); m.get(c.repo).push(c); }); m.forEach(xs => xs.sort((a, b) => a.t - b.t));
   gitByRepoCache = {g: G, m}; return m; }
+// reworkFor は、コミット c のファイルを 3 日以内に変えた最初の別のコミット（なければ null）
+function reworkFor(c){ if (!(c.files || []).length) return null; const fs = new Set(c.files.map(f => f.path));
+  return (gitByRepo().get(c.repo) || []).find(d => d.hash !== c.hash && d.t > c.t && d.t <= c.t + REWORK_S && (d.files || []).some(f => fs.has(f.path))) || null; }
 function reworkOf0(ws, we){
   const now = nowMs() / 1000, R = gitByRepo(), out = {n: 0, re: 0, xs: []};
   (META.git || []).forEach(c => { if (!c.ai || c.t < ws || c.t >= we || c.t + REWORK_S > now || !(c.files || []).length) return;
@@ -216,7 +219,8 @@ function sesFlags(s){ // 詳細の頭に、このセッションが関係する�
   return ids.length ? `<div class="sflags"><span class="lbl" title="${esc(t("This session is one of the sessions behind these flags"))}">${ico("flag", "fdot")}${esc(t("Worth a look"))}</span>${ids.map(id => `<button class="flink" data-goto="${id}" aria-haspopup="dialog">${esc(H()[id].n)}</button>`).join("")}</div>` : "";
 }
 // line は、カードに添える 1 行（id → 文字）。繰り返しのプロンプトでは、そのセッションで書いたもの
-const flagSes = (ids, line) => ids.map(id => { const s = DATA.find(x => x.id === id), l = line && line.get(id); return s ? sesCardH(s, sesMeta(s) + (l ? `<span class="fq">${esc(snipOf(l, 90))}</span>` : "")) : ""; }).join("");
+// 候補のセッションには、なぜ重い（長い）のかの手がかりに、プロンプトの数・推定費用・作業時間を添える
+const flagSes = (ids, line) => ids.map(id => { const s = DATA.find(x => x.id === id), l = line && line.get(id); return s ? sesCardH(s, sesMeta(s, esc(plural(s.nPrompts || 0, "prompt")), s.cost >= 0.005 ? esc(usd(s.cost)) : "", esc(dur(minIn(s, -Infinity, Infinity)))) + (l ? `<span class="fq">${esc(snipOf(l, 90))}</span>` : "")) : ""; }).join("");
 /* 見直す候補の 1 つを、画面の真ん中のダイアログで開く（サマリーへ移らずに、何が見えて、なぜ大事で、次に何をするかを読める）。
    同じ指標に印の付く候補（GOTO）はまとめて出す。セッションを押すと、ダイアログを閉じて詳細を開く */
 let lastFlags = []; // 表示中の期間の候補（summary が入れる）

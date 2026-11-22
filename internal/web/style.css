@@ -1200,7 +1200,6 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .ikinds .kd{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
 .ikinds .k0{background:var(--c0)}.ikinds .k1{background:var(--c1)}.ikinds .k2{background:var(--c2)}.ikinds .k3{background:var(--c3)}.ikinds .k4{background:var(--c4)}.ikinds .k5{background:var(--c5)}.ikinds .k6{background:var(--c6)}.ikinds .k7{background:var(--c7)}
 .ikinds{margin-top:12px}
-.ihot{display:flex}.ihot>span{border-radius:0}.ihot{--hot-hand:color-mix(in oklab,var(--acc) 35%,var(--surface))} /* 手のコミット（style 属性は決まった形だけにするため、色は変数で渡す） */
 /* 月のマスのコミットの数（成果を先に、緑で） */
 .cell .acm{display:inline-flex;align-items:center;gap:2px;font:700 var(--fs-xs)/1.2 var(--sans);font-variant-numeric:tabular-nums;color:var(--go-ink);margin-top:2px}.cell .acm .ic{width:11px;height:11px}
 /* 狭い日の列（1200px 以下の週の表示など）では、見出しの行に収まらない稼働時間を省く（コミットと費用を残す。時間はツールチップにある） */
@@ -1225,10 +1224,15 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .ik-unit{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,560px),1fr));column-gap:24px;align-items:start}
 .ik-unit>.ikgh,.ik-unit>.tlg{grid-column:1/-1}
 @container (min-width:1100px){.ik-unit .itile:has(.tspk){max-width:none}}
-.srprj{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}.srprj .srp[aria-pressed="true"]{background:var(--acc-soft);border-color:var(--acc);color:var(--acc-ink)}
+.srprj{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}.srprj .srp[aria-pressed="true"],.srprj .sra[aria-pressed="true"]{background:var(--acc-soft);border-color:var(--acc);color:var(--acc-ink)}
 @media (max-width:1200px){.head .dd .dayrun{position:static;opacity:1;margin-left:0;order:3}.head .dd:has(.dayrun)::after{content:"";flex-basis:100%;order:2}} /* 狭い画面では、どの日の列でもコピーのボタンを日付の下に（列ごとに位置が変わって見出しの高さがずれないように） */
 /* 単価の切り替えは、見出しの横に入らなければ次の行に。段の見出しと区切りの線は、どの段でも同じ形に。良し悪しの地の色は評価の文の色で足りるので付けない */
 .ik-unit>.ikgh{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}.ikgh .uksw{margin-left:0}
 .ik-unit>.iksub{border-top:1px solid var(--rule);padding-top:12px;margin-top:0}
 .ik-unit .itile.good,.ik-unit .itile.bad{background:none}
 .tspk .sofl{font-size:10px;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
+/* 出力のカードは中身が多いので 1 行を占め、散布図は次の行に（隣に並べると、散布図のカードが出力のカードの高さまで伸びて大きく空く） */
+.insrow>.inscol.iout{flex-basis:100%}
+.isccol .insfig{max-width:820px}
+/* 狭いカード（スマホ）では、グラフが縮んで文字が 7px ほどになるので、座標の上で大きくし、期間の名前は 1 つおきに */
+@container (max-width:520px){.tspk text{font-size:16px}.tspk .sxl.alt{display:none}.tspk .sofl{font-size:15px}.tspk .slimn{font-size:13px}}

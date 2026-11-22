@@ -57,6 +57,9 @@ function commitDetail(c){
       <div><div class="k">${esc(t("Added"))}</div><div class="v la"><small>+</small>${c.added}<small> ${esc(t("lines"))}</small></div></div>
       <div><div class="k">${esc(t("Removed"))}</div><div class="v lr"><small>−</small>${c.removed}<small> ${esc(t("lines"))}</small></div></div>
     </div>
+    ${c.ai ? (() => { // AI のコミットは、3 日以内に同じファイルがまた変えられたか（サマリーの「3 日以内にまた変えられた AI のコミット」と同じ数え方）
+      if (c.t + REWORK_S > nowMs() / 1000) return `<p class="note">${esc(t("Changed again within 3 days: not known yet (less than 3 days old)"))}</p>`;
+      const d = reworkFor(c); return d ? `<h3>${esc(t("Changed again within 3 days"))}</h3>${gitRow(d)}` : `<p class="note">${esc(t("No other commit changed its files within 3 days"))}</p>`; })() : ""}
     ${c.body ? `<h3>${esc(t("Message body"))}</h3><p class="gbody">${esc(c.body)}</p>` : ""}
     ${ses ? sesCard(ses, esc(c.session ? t("Session that made this commit") : t("Session running at this time"))) : ""}
     ${pushedIn(c).map(p => `<h3>${esc(t("Pushed"))}</h3><button class="gc-row" data-push="${esc(pushKey(p))}"><time>${md(p.t)} ${hm(p.t)}</time><span><i class="gtag">${ico("push")}${esc(p.ref)}</i>${p.commits ? ` ${plural(p.commits, "commit")}` : ""}</span><b></b></button>`).join("")}

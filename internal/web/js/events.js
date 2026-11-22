@@ -41,7 +41,7 @@ function setView(v, focus){ if (v === st.view) return; st.view = v; store.set("v
 document.querySelectorAll("#view button[data-v]").forEach(b => b.onclick = e => { setView(b.dataset.v); if (e.detail) b.blur(); });
 $("#skipcal").onclick = e => { e.preventDefault(); setView("sum", true); };
 $("#prev").onclick = () => go(-1); $("#next").onclick = () => go(1); $("#today").onclick = () => go(null);
-$("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); st.srN = st.scN = 0; st.srP = ""; render(); }; // 言葉が変わったら、結果はまた先頭の数件から
+$("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); st.srN = st.scN = 0; st.srP = st.srA = ""; render(); }; // 言葉が変わったら、結果はまた先頭の数件から
 // 検索欄で Enter か ↓：最初の結果へフォーカスを移す（結果はカレンダーの上）。結果の中では ↑↓ で隣へ、最初の結果で ↑ なら検索欄へ
 $("#q").addEventListener("keydown", e => { if ((e.key !== "Enter" && e.key !== "ArrowDown") || e.isComposing || !st.q) return;
   const f = $("#sres .srow") || $("#srh"); if (f){ e.preventDefault(); f.focus(); } });
