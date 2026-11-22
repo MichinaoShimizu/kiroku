@@ -273,7 +273,7 @@ function insHeadlines(F){
       tile(label, b, /^credits/.test(k) ? crR(b.cur) : fmtM(k, b.cur), [{f: `${fu(e.used)} ÷ ${den} = ${fmtM(k, b.cur)}`, p: `${fu(e.used)} ÷ ${den}`}, vsk(k, b.cur)].filter(Boolean), k === "costPerAsk" ? "costPerAsk" : undefined); } } // プロンプトあたりの費用は、押すと内訳
   // カードは折り返す横の並びに置く：広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる
   // 小見出しのある段：出どころ（Git と AI の編集）が違う数字を、同じ枠の中でも段と印で分ける
-  const sub = ([k, icon, label, note, empty]) => !T[k].length && empty ? `<div class="iksub ${k}" role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><p class="none iknone">${esc(empty)}</p></div>` : T[k].length ? `<div class="iksub ${k}"${T[k].some(h => h.includes("data-solo")) ? " data-solo" : ""} role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><div class="ikrow">${T[k].join("")}</div></div>` : "";
+  const sub = ([k, icon, label, note, empty]) => !T[k].length && empty ? `<div class="iksub ${k}" role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><p class="none iknone">${esc(empty)}</p></div>` : T[k].length ? `<div class="iksub ${k}"${U3.has(k) ? " data-third" : ""} role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><div class="ikrow">${T[k].join("")}</div></div>` : "";
   const cards = [
     {id: "cost", label: t("Cost trend"), rows: null, k: "cost"},
     {id: "out", label: t("Outputs"), rows: [["outGit", "commit", t("Git"), t("from your repositories"), T.outEdit.length ? t("No Git commits for this selection") : ""], ["outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not")]]},
@@ -288,10 +288,10 @@ function insHeadlines(F){
   const ukSw = ukAll.length > 1 ? `<div class="segc uksw" role="group" aria-label="${esc(t("Measure"))}">${ukAll.map(k => `<button type="button" data-uk="${k}" aria-pressed="${k === ukCur}">${esc(ukName(k))}</button>`).join("")}</div>` : "";
   // 選んだ量の数字がない段には、ないことを 1 行で（Kiro はどのコミットを実行したかを記録しないので、コミットあたりのクレジットはない、など）
   ["unitGit", "unitEdit", "unitHour", "unitDay", "unitSes", "unitAsk"].forEach(g => { if (!T[g].length) return; ukAll.forEach(k => { if (!T[g].some(h => h.includes(`data-uk="${k}"`))) T[g].push(`<p class="none iknone" data-uk="${k}">${esc(k === "credits" && g === "unitGit" ? t("Kiro does not record which commits it ran") : t("Not recorded for this measure"))}</p>`); }); });
-  // 広いカードで 1 つだけ残ったグラフのタイルは、行の幅いっぱいに広げ、横に長い形のグラフ（文字の大きさは同じ）を足す（半分の幅に置くと、右に大きく空く）
-  const wide = (g, i) => { const z = SP[g][i]; if (!z || !z.sp) return; T[g][i] = T[g][i].replace('<div ', '<div data-solo ').replace(z.sp, z.sp + insSpark(z.b, z.label, 1040, g === "cost").replace('class="tspk"', 'class="tspk ww"')); };
-  ["cost", "outGit", "outEdit"].forEach(g => { const n = SP[g].filter(z => z && z.sp).length; if (n % 2) wide(g, SP[g].map(z => !!(z && z.sp)).lastIndexOf(true)); });
-  { const us = ["unitGit", "unitEdit", "unitHour", "unitDay", "unitSes", "unitAsk"].filter(g => T[g].length); if (us.length % 2) { const g = us[us.length - 1]; SP[g].forEach((_, i) => wide(g, i)); } }
+  // ページの半分より広いカードは作らない：グラフのタイルが奇数なら、最後の 3 つを 3 等分で並べる（1 つだけ半分の幅に残して、右を空けない）
+  const U3 = new Set(), third = (g, ix) => ix.forEach(i => { T[g][i] = T[g][i].replace("<div ", "<div data-third "); });
+  ["cost", "outGit", "outEdit"].forEach(g => { const ix = SP[g].map((z, i) => z && z.sp ? i : -1).filter(i => i >= 0); if (ix.length % 2 && ix.length >= 3) third(g, ix.slice(-3)); });
+  { const us = ["unitGit", "unitEdit", "unitHour", "unitDay", "unitSes", "unitAsk"].filter(g => T[g].length); if (us.length % 2 && us.length >= 3) us.slice(-3).forEach(g => U3.add(g)); }
   const card = c => `<section class="ikg ik-${c.id}"${c.id === "unit" && ukCur ? ` data-uk="${ukCur}"` : ""} aria-label="${esc(c.label)}"><h5 class="ikgh">${esc(c.label)}${c.id === "unit" ? ukSw : ""}</h5>${lgd(c)}${c.rows ? c.rows.map(sub).join("") : `<div class="ikrow">${T[c.k].join("")}</div>`}</section>`;
   // 見直す候補：基準を超えた指標を、見出しのすぐ下に 1 行で（押すと、その候補のダイアログ）。どれも、その指標の横の印からも開ける
   const ids = [...new Set((F || []).map(f => GOTO[f.k] || f.k))]; // 説明（HELP）のない候補も落とさない（名前は insName が ID に戻す）

@@ -369,12 +369,15 @@ async function run(env) {
           const apart = bs.every((a, i) => bs.every((b, j) => i >= j || a.right <= b.left + 1 || b.right <= a.left + 1 || a.bottom <= b.top + 1 || b.bottom <= a.top + 1));
           return apart && [...r.children].every(c => inner(c) <= 40); });
         // 上の数字のグラフ：1 つだけ残ったタイル（段）も、行の幅いっぱいに広がる（右が空かない）
-        const tilesOk = [...document.querySelectorAll("#review .ikrow")].filter(r => r.offsetParent).every(r => { const rr = r.getBoundingClientRect(), ts = [...r.children].filter(c => c.offsetParent && c.querySelector(".tspk"));
-          return !ts.length || Math.abs(Math.max(...ts.map(c => c.getBoundingClientRect().right)) - rr.right) < 4; })
+        const badTiles = [...document.querySelectorAll("#review .ikrow")].filter(r => r.offsetParent).filter(r => { const rr = r.getBoundingClientRect(), ts = [...r.children].filter(c => c.offsetParent && c.querySelector(".tspk"));
+          return ts.length && Math.abs(Math.max(...ts.map(c => c.getBoundingClientRect().right)) - rr.right) >= 4; }).map(r => (r.closest(".iksub, .ikg") || r).className + " " + JSON.stringify([...r.children].map(c => [c.className.slice(0, 20), (c.querySelector(".il") || {}).textContent, Math.round(c.getBoundingClientRect().left), Math.round(c.getBoundingClientRect().right), !!c.querySelector(".tspk")])) + " " + Math.round(r.getBoundingClientRect().right));
+        // カードもタイルも単価の段も、広い画面ではページの半分より広くない（グラフのない数字の行は除く）
+        const half = innerWidth < 1100 || [...document.querySelectorAll("#review .insrow > *, #review .ikrow > .itile:has(.tspk), #review .ik-unit > .iksub")].filter(e => e.checkVisibility()).every(e => e.getBoundingClientRect().width <= innerWidth / 2 + 1);
+        const tilesOk = half && !badTiles.length
           && [...document.querySelectorAll("#review .ik-unit")].every(u => { const ur = u.getBoundingClientRect(), ss = [...u.querySelectorAll(":scope>.iksub")]; return !ss.length || Math.abs(ss[ss.length - 1].getBoundingClientRect().right - (ur.right - parseFloat(getComputedStyle(u).paddingRight))) < 4; });
         const three = innerWidth < 1300 || [...document.querySelectorAll("#review .insrow")].some(r => r.children.length >= 3 && Math.abs(r.children[0].getBoundingClientRect().top - r.children[2].getBoundingClientRect().top) < 1);
-        return {say, charts, rows: rowsOk, tiles: tilesOk, grid: three}; });
-      check("どのグラフにも、データから計算した読み取りの 1 文があり、広い画面ではカードが 3 列に並び、カードは重ならず中の下が空かない。1 つだけ残ったグラフのタイルも行の幅を埋める", lay.say === lay.charts && lay.rows && lay.tiles && lay.grid, JSON.stringify(lay));
+        return {say, charts, rows: rowsOk, tiles: tilesOk, half, badTiles, grid: three}; });
+      check("どのグラフにも、データから計算した読み取りの 1 文があり、広い画面ではカードが 3 列に並び、カードは重ならず中の下が空かない。カードとグラフのタイルはページの半分より広くなく、奇数のタイルも行の幅を埋める", lay.say === lay.charts && lay.rows && lay.tiles && lay.grid, JSON.stringify(lay));
       check("コストのグラフの各点に、前の期間からの増減（%）がある", await p.evaluate(() => { const l = [...document.querySelectorAll("#review .ik-cost .tspk:not(.ww) .spc")]; return l.length > 0 && l.every(e => /^[+−±]\d+%$/.test(e.textContent)); }));
       const tk = await p.evaluate(() => { const g = document.querySelector("#review .insk.trendk"), bs = [...g.querySelectorAll("button")], sel = document.querySelector("#review .insksel");
         const ks = (getComputedStyle(g).display === "none" ? [...sel.options].map(o => o.value) : bs.map(b => b.dataset.ins));
