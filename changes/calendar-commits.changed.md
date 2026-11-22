@@ -1,0 +1,1 @@
+- Calendar: each day puts its Git commits first, in green (week headings and month days), ahead of cost and time

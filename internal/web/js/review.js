@@ -69,6 +69,29 @@ function useBasis0(ws, we, k){
 }
 const perUse = (ws, we, k, by) => { const b = useBasis(ws, we, k), d = by === "hour" ? b.min / 60 : by === "ses" ? b.n : b.prompts; return d > 0 && b.used > 0 ? b.used / d : null; };
 function perEdit(ws, we, k){ const b = editsBasis(ws, we, k); return b.lines > 0 && b.used > 0 ? b.used * 100 / b.lines : null; }
+/* Git から読むコミットの扱い（どれも決まった規則。AI は使わない）
+   reworkOf: 期間 [ws, we) に AI が実行したコミットのうち、3 日以内に同じリポジトリで同じファイルを変えた別のコミット（人でも AI でも）があったものの数。
+     3 日たっていないコミット（今に近いもの）は、まだ決まらないので数えない。ファイルはコミットごとに先頭の一定数までしか持たないので、少なめに数えることがある
+   keptOf: 期間に始まった Claude Code のセッションで AI が編集した行（足した行）のうち、そのセッションの AI のコミットに入った行の割合（セッションごとに編集した行を上限に） */
+const REWORK_S = 3 * 86400;
+let gitByRepoCache = null;
+function gitByRepo(){ const G = META.git || [];
+  if (gitByRepoCache && gitByRepoCache.g === G) return gitByRepoCache.m;
+  const m = new Map(); G.forEach(c => { if (!m.has(c.repo)) m.set(c.repo, []); m.get(c.repo).push(c); }); m.forEach(xs => xs.sort((a, b) => a.t - b.t));
+  gitByRepoCache = {g: G, m}; return m; }
+function reworkOf0(ws, we){
+  const now = nowMs() / 1000, R = gitByRepo(), out = {n: 0, re: 0, xs: []};
+  (META.git || []).forEach(c => { if (!c.ai || c.t < ws || c.t >= we || c.t + REWORK_S > now || !(c.files || []).length) return;
+    const fs = new Set(c.files.map(f => f.path)), later = (R.get(c.repo) || []).find(d => d.hash !== c.hash && d.t > c.t && d.t <= c.t + REWORK_S && (d.files || []).some(f => fs.has(f.path)));
+    out.n++; if (later){ out.re++; out.xs.push({c, by: later}); } });
+  return out; }
+function reworkOf(ws, we){ return memoBasis("rework", ws, we, "", () => reworkOf0(ws, we)); }
+function keptOf0(ws, we){
+  const by = new Map(); (META.git || []).forEach(c => { if (c.ai && c.session) by.set(c.session, (by.get(c.session) || 0) + (c.added || 0)); });
+  const xs = DATA.filter(s => s.source === "Claude Code" && s.start >= ws && s.start < we && (s.editAdded || 0) > 0);
+  const edit = xs.reduce((a, s) => a + s.editAdded, 0), kept = xs.reduce((a, s) => a + Math.min(s.editAdded, by.get(s.id) || 0), 0);
+  return {n: xs.length, edit, kept}; }
+function keptOf(ws, we){ return memoBasis("kept", ws, we, "", () => keptOf0(ws, we)); }
 /* 指標の値（見直す候補の推移用）。low: 大きいときに印が付く向き（良し悪しの判定ではない） */
 const pctOf = (a, b) => b ? Math.round(a * 100 / b) : null;
 const MET = {
@@ -110,6 +133,8 @@ const MET = {
   gitCommits: {f: w => w.git ? w.git.commits : null, u: "", int: true},
   gitLines: {f: w => w.git && w.git.commits ? w.git.added + w.git.removed : null, fmt: v => commas(Math.round(v)), int: true},
   prs: {f: w => w.outputs ? w.outputs.prs || 0 : null, u: "", int: true},
+  rework: {f: (w, ws, we) => { const r = reworkOf(ws, we); return r.n ? Math.round(r.re * 100 / r.n) : null; }, low: true, u: "%"},
+  kept: {f: (w, ws, we) => { const k = keptOf(ws, we); return k.edit ? Math.round(k.kept * 100 / k.edit) : null; }, low: false, u: "%"},
   aiLines: {f: (w, ws, we) => memoBasis("lines", ws, we, "", () => DATA.reduce((x, s) => s.start >= ws && s.start < we && s.nFiles > 0 ? x + (s.editAdded || 0) + (s.editRemoved || 0) : x, 0)), fmt: v => commas(Math.round(v)), int: true},
 };
 const fmtM = (k, v) => v == null ? "—" : MET[k].fmt ? MET[k].fmt(v) : `${Math.round(v * 10) / 10}${MET[k].u ?? ""}`; // 本文と同じく「8 件」「5.2 回」

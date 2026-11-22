@@ -164,7 +164,8 @@ function calRows(act, u, nS, nC, kinds, un){
   const k = un ? "k u" : "k", o = un > 1 ? "u" : "", uk = useKind(kinds);
   // [名前, 値（ただの文字）, class, 種類]。HTML に入れるときは、呼ぶ側で esc する
   // 作業のない日（コミットだけの日）は、時間とコストの「—」を並べず、コミットだけ
-  return [act && uk && [SHADE()[uk].s, calVal(uk, act, u) || "—", k, "use"], act && [t("Active time"), dur(act), k, "time"], [t("Commits"), String(nC), o, "commit"]].filter(Boolean);
+  // 成果（コミット）を先頭に。使ったもの（費用・時間）はその後ろ
+  return [[t("Commits"), String(nC), o, "commit"], act && uk && [SHADE()[uk].s, calVal(uk, act, u) || "—", k, "use"], act && [t("Active time"), dur(act), k, "time"]].filter(Boolean);
 }
 // 週の日の見出しは 1 行：使用量（推定費用など）と、コミットの数（印つき）。何の数かは、見出しのツールチップと読み上げの名前で言う
 const calLine = rows => `<div class="cline">${rows.filter(([, v, , ty]) => !(ty === "commit" && v === "0")).map(([k, v, c, ty]) => `<span class="${ty === "use" ? "cu" : ty === "time" ? "ct" : "cc"}${c && c.includes("u") ? " u" : ""}" aria-label="${esc(`${k}: ${v}`)}">${ty === "commit" ? ico("commit") : ""}${esc(v)}</span>`).join(`<span class="sep" aria-hidden="true">·</span>`)}</div>`;
@@ -222,7 +223,7 @@ function monthGrid(shown, ms, me, todayKey){
       const by = byDay.get(key(d)) || new Map();
       const tot = [...by.values()].reduce((a, v) => a + v, 0), mbar = tot ? `<span class="mbar" aria-hidden="true">${[...by].sort((a, b) => b[1] - a[1]).map(([k, v]) => `<i style="flex:${v};background:${colorOf(k)}"></i>`).join("")}</span>` : "";
       h += `<button class="cell${d.getDay()%6===0?" we":""}${wkc(d.getDay())}${key(d)===todayKey?" today":""}${d.getTime() > nowMs() ? " fut" : ""}${un && act && !nS ? " dim" : ""}" data-w="${key(mondayOf(d))}" data-d="${key(d)}" style="--heat:${(x ? SH[sk].f(x) / max : 0).toFixed(3)}"${tipAttr(md(ds), act ? [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(x), `${t("Git commits")} ${nC}`] : t("No records"))}>
-        <span class="dn">${d.getDate()}</span>${act ? calShort(act, x, un, kinds) : ""}${mbar}
+        <span class="dn">${d.getDate()}</span>${x.commits ? `<span class="acm" aria-label="${esc(`${t("Git commits")}: ${x.commits}`)}">${ico("commit")}${x.commits}</span>` : ""}${act ? calShort(act, x, un, kinds) : ""}${mbar}
         </button>`;
     }
   }

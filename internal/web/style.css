@@ -329,7 +329,7 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .cell .acs{display:block;font:700 var(--fs-md)/1.2 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap;margin-top:auto} /* 月のマスは使用量の 1 つだけ（作業時間はマスの濃さで見える） */
 .cell .acs.u,.kpis.unf .v{color:var(--ink-3)} /* 絞り込みの最中の、絞り込まれていない合計 */
 .head .cline{display:flex;align-items:baseline;gap:6px;margin-top:6px;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:0} /* 週の日の見出しの 1 行：使用量 · コミット */
-.head .cline .cu{font-size:var(--fs-md);font-weight:700;color:var(--ink)}.head .cline .cc{display:inline-flex;align-items:center;gap:3px;font-size:var(--fs-sm);font-weight:600;color:var(--ink-2)}.head .cline .cc .ic{width:12px;height:12px}
+.head .cline .cu{font-size:var(--fs-md);font-weight:700;color:var(--ink)}.head .cline .cc{display:inline-flex;align-items:center;gap:3px;font-size:var(--fs-md);font-weight:700;color:var(--go-ink)}.head .cline .cc .ic{width:12px;height:12px}
 .head .cline .sep{color:var(--ink-3)}.head .cline .u{color:var(--ink-3)}
 .head .cline .ct{font-size:var(--fs-sm);font-weight:600;color:var(--ink-2)} /* 週の日の見出しの稼働時間（コスト系の横に） */
 .cell .act{display:block;font:600 var(--fs-xs)/1.3 var(--sans);font-variant-numeric:tabular-nums;color:var(--ink-2);white-space:nowrap}.cell .act.u{color:var(--ink-3)} /* 月のマスの稼働時間（コスト系の下に） */
@@ -1196,3 +1196,10 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .iverd .ivact{color:var(--ink-2)}.iverd .iwlink,.iverd .ivgo{font:inherit;color:var(--acc-ink);text-decoration:underline;text-underline-offset:2px;padding:0;background:none;border:0;cursor:pointer}
 /* 広いカードでは数字を 2 つずつ並べ、1 つだけ残った段も半分の幅に留める（グラフが横いっぱいに大きくならないように） */
 @container (min-width:1100px){.itile:has(.tspk){max-width:50%}}
+/* 作業の種類の色（エージェントと同じ 8 色を順に） */
+.ikinds .kd{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.ikinds .k0{background:var(--c0)}.ikinds .k1{background:var(--c1)}.ikinds .k2{background:var(--c2)}.ikinds .k3{background:var(--c3)}.ikinds .k4{background:var(--c4)}.ikinds .k5{background:var(--c5)}.ikinds .k6{background:var(--c6)}.ikinds .k7{background:var(--c7)}
+.ikinds{margin-top:12px}
+.ihot{display:flex}.ihot>span{border-radius:0}.ihot{--hot-hand:color-mix(in oklab,var(--acc) 35%,var(--surface))} /* 手のコミット（style 属性は決まった形だけにするため、色は変数で渡す） */
+/* 月のマスのコミットの数（成果を先に、緑で） */
+.cell .acm{display:inline-flex;align-items:center;gap:2px;font:700 var(--fs-xs)/1.2 var(--sans);font-variant-numeric:tabular-nums;color:var(--go-ink);margin-top:2px}.cell .acm .ic{width:11px;height:11px}
