@@ -547,7 +547,7 @@ function insOutputs(){
   const syE = E ? t("AI edited {n} files (+{a} −{d} lines)", {n: n(E.nf), a: n(E.add), d: n(E.del)}) : "";
   // Git（リポジトリ）と AI の編集（履歴）は元が違うので、列と小見出しで分け、足したり割ったりして混ぜない
   const col = (cls, icon, h, note, body) => `<div class="iosec ${cls}" role="group" aria-label="${esc(h)}"><h6 class="iksh">${ico(icon)}${esc(h)} <small>${esc(note)}</small></h6>${body}</div>`;
-  return `<div class="iout2">${col("outGit", "commit", t("Git"), t("from your repositories"), S ? `${say(syG)}<div class="stats istats">${S}</div>${insKinds()}` : noneH(esc(t("No Git commits for this selection"))))}${E ? col("outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not"), `${say(syE)}<div class="stats istats">${E.stats}</div>${E.files}`) : ""}</div>`;
+  return `<div class="iout2">${col("outGit", "commit", t("Git"), t("from your repositories"), S ? `${say(syG)}<div class="stats istats">${S}</div>${insKinds()}${insHot()}` : noneH(esc(t("No Git commits for this selection"))))}${E ? col("outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not"), `${say(syE)}<div class="stats istats">${E.stats}</div>${E.files}`) : ""}</div>`;
 }
 /* 作業の種類：コミットの件名を決まった規則で分ける（AI は使わない）。Conventional Commits の型（feat: など）があればそれを、なければ先頭の動詞を見る。
    件名は信用できない入力なので、分類にだけ使い、画面に出すときは今までどおりエスケープする */
@@ -588,6 +588,16 @@ function insKinds(){
   const rvLine = rv.length ? `<p class="note">${esc(t("{n} reverted, {ai} of them AI commits", {n: plural(rv.length, "commit"), ai: rvAI}))}</p>` : "";
   return `<figure class="insfig ikinds"><figcaption class="iwcap">${esc(t("Kinds of work, from commit subjects"))}</figcaption><div class="iwrows" role="table" aria-label="${esc(t("Kinds of work, from commit subjects"))}">${rows}</div>${rvLine}<p class="ifxs">${fx(t("Sorted by the type in the subject (feat:, fix: …) or its first verb (Add, Fix …); the cost of an AI commit is its session's estimated cost divided by that session's AI commits"), "", t("By the commit subject; cost only for AI commits"))}</p></figure>`;
 }
+/* よく変えるファイル（Git）：表示中の期間のコミットで、変えた回数の多いファイル。AI のコミットと、手（ほかの道具）のコミットに分けて。
+   何度も戻ってくる場所の目安。コミットごとに先頭のファイルだけを持つので、大きなコミットのファイルは少なめに数える */
+function insHot(){
+  const {ws, we} = period(), cs = gitIn(ws, we); if (!cs.length) return "";
+  const H = new Map(); cs.forEach(c => (c.files || []).forEach(f => { const k = `${c.repo}\u0000${f.path}`, x = H.get(k) || {f, c, n: 0, ai: 0}; x.n++; if (c.ai) x.ai++; H.set(k, x); }));
+  const top = [...H.values()].filter(x => x.n >= 2).sort((a, b) => b.n - a.n || b.ai - a.ai).slice(0, 8); if (!top.length) return "";
+  const multi = new Set(top.map(x => x.c.project)).size > 1, n0 = top[0].n;
+  const rows = top.map(x => `<div class="iwr"><span class="iwn iwf" title="${esc(x.f.path)}">${multi ? `<small>${esc(x.c.project)}</small> ` : ""}${fileA(x.f.url || localHref(x.f.path, x.c.repo), esc(x.f.path))}</span><span class="iwb ihot"><span class="hai" style="width:${(x.ai * 100 / n0).toFixed(1)}%"></span><span class="hhand" style="width:${((x.n - x.ai) * 100 / n0).toFixed(1)}%"></span></span><span class="iwv">${esc(t("{n} times, {ai} by AI", {n: x.n, ai: x.ai}))}</span></div>`).join("");
+  return `<figure class="insfig ikinds"><figcaption class="iwcap">${esc(t("Files changed most in Git commits"))}</figcaption><div class="iwrows" role="table" aria-label="${esc(t("Files changed most in Git commits"))}">${rows}</div><p class="ifxs">${fx(t("Files changed in 2 or more commits this period; dark = AI commits, light = by hand or other tools. Only the first files of big commits are counted"), "", t("Dark: by AI · light: by hand"))}</p></figure>`;
+}
 /* Git のほかの出力（ファイル・リポジトリ・コミットのあった日・push）。どれもリポジトリから。途中の期間は、今日までの日数で割る */
 function gitMore(){
   const {S: w, ws, we} = period(), g = w && w.git && w.git.commits ? w.git : null; if (!g) return [];
@@ -599,6 +609,13 @@ function gitMore(){
   if (dd.size) out.push(insStat(t("Days with commits"), `${dd.size}`, fx(`${dd.size} ÷ ${nd}${t("d")}`, "", sf == null ? t("of {n}", {n: plural(nd, "day")}) : t("of {n} so far", {n: plural(nd, "day")}))));
   const ps = (META.push || []).filter(x => x.t >= ws && x.t < we), sent = ps.reduce((a, x) => a + (x.commits || 0), 0);
   if (ps.length) out.push(insStat(t("Pushes"), `${ps.length}`, esc(sent ? t("{c} sent, including commits made before the period", {c: plural(sent, "commit")}) : "")));
+  // 時間の目安（中央値）：セッションを始めてから、そのセッションの最初の AI のコミットまで。コミットしてから、それを送った push まで
+  const first = new Map(); (META.git || []).forEach(c => { if (c.ai && c.session && (!first.has(c.session) || c.t < first.get(c.session))) first.set(c.session, c.t); });
+  const tf = DATA.filter(s => s.start >= ws && s.start < we && first.has(s.id)).map(s => (first.get(s.id) - s.start) / 60).filter(m => m >= 0);
+  if (tf.length) out.push(insStat(t("From session start to its first commit"), esc(dur(Math.round(insQuant(tf, .5)))), esc(t("median of {n}", {n: plural(tf.length, "session")}))));
+  const byHash = new Map((META.git || []).map(c => [c.hash, c])), tp = [];
+  ps.forEach(p => (p.hashes || []).forEach(h => { const c = byHash.get(h); if (c && p.t >= c.t) tp.push((p.t - c.t) / 60); }));
+  if (tp.length) out.push(insStat(t("From commit to push"), esc(dur(Math.round(insQuant(tp, .5)))), esc(t("median of {n}", {n: plural(tp.length, "commit")}))));
   return out;
 }
 /* AI の使い方：トークン・キャッシュ・クレジット・プロンプト・プロンプトあたりの費用・サブエージェント・月末の推定 */

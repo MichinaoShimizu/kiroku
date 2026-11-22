@@ -1200,3 +1200,4 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .ikinds .kd{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
 .ikinds .k0{background:var(--c0)}.ikinds .k1{background:var(--c1)}.ikinds .k2{background:var(--c2)}.ikinds .k3{background:var(--c3)}.ikinds .k4{background:var(--c4)}.ikinds .k5{background:var(--c5)}.ikinds .k6{background:var(--c6)}.ikinds .k7{background:var(--c7)}
 .ikinds{margin-top:12px}
+.ihot{display:flex}.ihot>span{border-radius:0}.ihot .hai{background:var(--acc)}.ihot .hhand{background:color-mix(in oklab,var(--acc) 35%,var(--surface))}
