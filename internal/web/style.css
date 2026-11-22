@@ -1203,3 +1203,9 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .ihot{display:flex}.ihot>span{border-radius:0}.ihot{--hot-hand:color-mix(in oklab,var(--acc) 35%,var(--surface))} /* 手のコミット（style 属性は決まった形だけにするため、色は変数で渡す） */
 /* 月のマスのコミットの数（成果を先に、緑で） */
 .cell .acm{display:inline-flex;align-items:center;gap:2px;font:700 var(--fs-xs)/1.2 var(--sans);font-variant-numeric:tabular-nums;color:var(--go-ink);margin-top:2px}.cell .acm .ic{width:11px;height:11px}
+/* 狭い日の列（1200px 以下の週の表示など）では、見出しの行に収まらない稼働時間を省く（コミットと費用を残す。時間はツールチップにある） */
+.head{container-type:inline-size}
+@container (max-width:150px){.head .cline .ct,.head .cline .sep:has(+.ct){display:none}}
+@container (max-width:95px){.head .cline .cu,.head .cline .sep:has(+.cu){display:none}}
+/* グラフの文字が、幅の広い 1 列の画面で大きくなりすぎないように（480 の座標を、最大でその 1.1 倍に） */
+.itile:has(.tspk)>.tspk{max-width:530px}

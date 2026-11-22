@@ -1,0 +1,5 @@
+- Summary: "Worth a look" moves to the top, right under the title
+- Summary: unit-cost verdicts say "below" or "above typical" only when the value is at least a tenth outside the usual range, and suggest a next step only on the higher side or when the week's session habits differed
+- Summary: header charts draw the cumulative total and usage-limit marks only for usage (cost, credits, tokens, time), percentage charts scale to their data, and chart text no longer grows on wide single-column layouts
+- Summary: the Usage card no longer repeats the per-session and per-prompt figures shown in Unit cost
+- Calendar: narrow day columns drop the time, then the cost, from the heading line instead of overflowing into the next day
