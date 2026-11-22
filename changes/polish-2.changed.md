@@ -1,0 +1,4 @@
+- Summary charts start at the first period with records (at least 4 periods, up to 13), so short histories are not squeezed into the right edge; month axes add the year to the first month and to January
+- Summary: large jumps from a small base read as the change and the base ("+72.8 credits (from 6.8 credits)") instead of "+1076%"; the separate month-end tile is gone (each figure has its own month-end estimate); figures without a chart take a full row in Cost; Output tiles drop the good/bad tint; the cache share is neutral
+- On phones, the edited-files and kinds-of-work lists put the name on its own line, charts drop the axis title, and first period names no longer overlap the y axis
+- "1 commit" instead of "1 commits" in the edited-files list

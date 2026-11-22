@@ -1236,3 +1236,11 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .isccol .insfig{max-width:820px}
 /* 狭いカード（スマホ）では、グラフが縮んで文字が 7px ほどになるので、座標の上で大きくし、期間の名前は 1 つおきに */
 @container (max-width:520px){.tspk text{font-size:16px}.tspk .sxl.alt{display:none}.tspk .sofl{font-size:15px}.tspk .slimn{font-size:13px}}
+/* 出力の枠でも、良し悪しの地の色は付けない（評価は点の色と文で。単価と同じ） */
+.ik-out .itile.good,.ik-out .itile.bad{background:none}
+/* グラフのないタイル（先週並みに収める 1 日の目安など）は 1 行を使い、グラフのタイルを 3 つ並べて縮めない */
+.ik-cost .itile:not(:has(.tspk)){flex-basis:100%;max-width:none}
+/* 狭いカードでは、軸の見出し（「週」）を出さない（日付で分かる）。利用上限の数は小さく */
+@container (max-width:520px){.tspk .sxt{display:none}.tspk .slimn{font-size:11px}}
+/* 狭いカード（スマホ）の一覧：名前を 1 行目に全部、棒と数を 2 行目に（名前が「src/ne…」まで切れないように） */
+@container (max-width:520px){.iwr,.ikinds .iwr{grid-template-columns:minmax(0,1fr) auto;row-gap:2px}.iwr>.iwn{grid-column:1/-1;white-space:normal;overflow-wrap:anywhere}.iwr>.iwb{grid-column:1/-1}.iwr>.iwv{font-size:var(--fs-xs)}}
