@@ -108,6 +108,9 @@ const MET = {
   tokens: {f: w => w.usage && w.usage.tokens ? w.usage.tokens : null, fmt: v => tok(v)},
   credits: {f: w => w.usage && w.usage.credits ? w.usage.credits : null, low: true, fmt: cr}, // 推定費用と同じく、多いときに印（クレジットは使う枠）
   gitCommits: {f: w => w.git ? w.git.commits : null, u: "", int: true},
+  gitLines: {f: w => w.git && w.git.commits ? w.git.added + w.git.removed : null, fmt: v => commas(Math.round(v)), int: true},
+  prs: {f: w => w.outputs ? w.outputs.prs || 0 : null, u: "", int: true},
+  aiLines: {f: (w, ws, we) => memoBasis("lines", ws, we, "", () => DATA.reduce((x, s) => s.start >= ws && s.start < we && s.nFiles > 0 ? x + (s.editAdded || 0) + (s.editRemoved || 0) : x, 0)), fmt: v => commas(Math.round(v)), int: true},
 };
 const fmtM = (k, v) => v == null ? "—" : MET[k].fmt ? MET[k].fmt(v) : `${Math.round(v * 10) / 10}${MET[k].u ?? ""}`; // 本文と同じく「8 件」「5.2 回」
 function periodBack(i){ // 表示中の期間から i 個前の期間
