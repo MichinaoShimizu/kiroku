@@ -907,8 +907,8 @@ header{background:var(--s-cont);border-bottom:0}
 .insh{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
 .insh>.ikg{flex:1 1 290px;min-width:0}.insh>.ikg:last-child{flex-grow:2}
 /* 広い画面：コストと出力を左に縦に積み、数字の多い単価を右に置く（横に 3 枚並べると、短いカードの下が大きく空く） */
-@media (min-width:1100px){.insh:has(>.ik-unit){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"cost unit" "out unit";align-items:start}
-  .insh>.ik-cost{grid-area:cost}.insh>.ik-out{grid-area:out}.insh>.ik-unit{grid-area:unit;align-self:stretch}} /* 単価（いちばん数字が多いカード）は幅を 2 倍に取り、1 段に 3 つ並べて縦に長くしない */ /* 広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる */
+/* コスト・出力・単価のカードは、幅いっぱいに縦に積む（推移のグラフが付いて単価のカードが長くなったので、左右に並べると片側に大きな空きができる）。カードの中で数字を 2 つずつ並べる */
+.insh>.ikg{flex-basis:100%}
 .ikrow>.itile{border-left:1px solid var(--rule)}.ikrow{margin-left:-1px;clip-path:inset(0 0 0 1px)} /* 数字の間に縦の区切り線。折り返した行の左端の線は、1px ずらして切り落とす */
 /* タイルの背景：いつもの範囲より良い側は緑、悪い側は赤（大きく外れたら濃く）。範囲の中と、向きの決まっていない指標は色なし */
 .itile.good,.itile.bad{border-radius:12px;padding-top:10px;padding-bottom:10px}
@@ -1174,7 +1174,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .tspk .cuma{fill:color-mix(in oklab,var(--amber) 12%,transparent)}.tspk .cuml{fill:none;stroke:var(--amber);stroke-width:1.6;stroke-linejoin:round}.tspk .axis.cum{stroke:var(--amber)}.tspk text.r{text-anchor:start}.tspk .syt.r{text-anchor:end;fill:var(--amber-ink)}
 .tspk .band{fill:color-mix(in oklab,var(--ink) 8%,transparent)}.tspk .med{stroke:var(--ink-3);stroke-dasharray:4 3;stroke-width:1}
 .tspk .now{fill:var(--acc)}.tspk .now.part{fill:var(--surface);stroke:var(--acc);stroke-width:1.8}
-.tspk .prj{stroke:var(--acc);stroke-width:1.6;stroke-dasharray:4 3}.tspk .cprj{stroke:var(--amber);stroke-width:1.4;stroke-dasharray:4 3}.tspk .cprjd{fill:var(--surface);stroke:var(--amber);stroke-width:1.4}.tspk .sofar{fill:var(--acc)}.tspk .hit{fill:transparent;pointer-events:all}.tspk .slim{fill:var(--warn)}.tspk .slimn{fill:var(--warn);font-weight:600;font-size:9px}.tspk .slimn.e{text-anchor:end}.tspk .slimhit:hover{fill:color-mix(in oklab,var(--warn) 20%,transparent)}.tspk .hit:hover{fill:color-mix(in oklab,var(--acc) var(--t2),transparent)}
+.tspk .prj{stroke:var(--acc);stroke-width:1.6;stroke-dasharray:4 3}.tspk .cprj{stroke:var(--amber);stroke-width:1.4;stroke-dasharray:4 3}.tspk .cprjd{fill:var(--surface);stroke:var(--amber);stroke-width:1.4}.tspk .sofar{fill:var(--acc)}.tspk .hit{fill:transparent;pointer-events:all}.tspk .slim{fill:var(--warn);opacity:.7}.tspk .slimn{fill:var(--warn);font-weight:600;font-size:9px}.tspk .slimn.e{text-anchor:end}.tspk .slimhit:hover{fill:color-mix(in oklab,var(--warn) 20%,transparent)}.tspk .hit:hover{fill:color-mix(in oklab,var(--acc) var(--t2),transparent)}
 .tlg{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:var(--fs-2xs);color:var(--ink-3);line-height:1.4}
 .tlg .lg::before{content:"";display:inline-block;width:10px;height:8px;margin-right:4px;vertical-align:middle;border-radius:2px}
 .tlg .lg.now::before{width:8px;border-radius:50%;background:var(--acc)}.tlg .lg.now.part::before{background:var(--surface);border:1.5px solid var(--acc);box-sizing:border-box}
@@ -1182,7 +1182,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 /* 足した行・消した行（git diff にならって緑と赤） */
 .la{color:var(--go-ink)}.lr{color:var(--warn)}
 /* グラフのある要点の数字は、左に名前・値・注記（1）、右に横長のグラフ（2.4。値の側より広く）。カードの幅いっぱいに 1 行 1 枚（横長の黄金比に近い形）。中身が多いときは高さが伸びる */
-.itile:has(.tspk){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.4fr);grid-auto-rows:min-content;column-gap:20px;row-gap:4px;align-content:start;justify-items:start;flex:1 1 100%;}
+.itile:has(.tspk){display:grid;grid-template-columns:minmax(190px,1fr) minmax(0,2.2fr);grid-auto-rows:min-content;column-gap:20px;row-gap:4px;align-content:start;justify-items:start;flex:1 1 560px;}
 .itile:has(.tspk)>*{grid-column:1}
 .itile:has(.tspk)>.tspk{grid-column:2;grid-row:1/span 12;width:100%;max-width:none;margin:0;align-self:start}
 .ikg>.tlg{padding:0 18px;margin:-2px 0 8px}
@@ -1194,3 +1194,5 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .iverd{display:flex;flex-direction:column;gap:2px;margin:2px 0 4px;font-size:var(--fs-sm);line-height:1.5;color:var(--ink-2)}
 .iverd p{margin:0}.itile .iverd b{font:600 var(--fs-md)/1.4 var(--sans);letter-spacing:normal;color:var(--ink)}.itile .iverd.good b{color:var(--go-ink)}.itile .iverd.bad b{color:var(--warn)}
 .iverd .ivact{color:var(--ink-2)}.iverd .iwlink,.iverd .ivgo{font:inherit;color:var(--acc-ink);text-decoration:underline;text-underline-offset:2px;padding:0;background:none;border:0;cursor:pointer}
+/* 広いカードでは数字を 2 つずつ並べ、1 つだけ残った段も半分の幅に留める（グラフが横いっぱいに大きくならないように） */
+@container (min-width:1100px){.itile:has(.tspk){max-width:50%}}
