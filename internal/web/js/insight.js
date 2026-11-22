@@ -68,7 +68,7 @@ function insPlain(b){
    - 累積：期間の長さに比例する量（費用・時間・コミットなど）は、グラフの左端の期間からの足し上げ（右の軸。表示中の期間は今までの実際の値）。
      率（コミットあたり・時間あたりなど）は足し上げられないので、左端からの期間の値の平均（同じ左の軸）
    軸は実線、目盛りは両方の軸に、y の目盛りには点線のグリッド */
-function insSpark(b, label){
+function insSpark(b, label, W = 480){
   if (!b || !b.k || !MET[b.k]) return "";
   const k = b.k, hs = historyStart(), fm = b.fmt || (x => fmtM(k, x)), pts = [];
   for (let i = INS_N; i >= 1; i--){ const p = periodBack(i); pts.push({p, v: p.ws < hs ? null : metricAt(k, p)}); }
@@ -78,7 +78,7 @@ function insSpark(b, label){
   const f0 = Math.min(Math.max(0, pts.findIndex(x => x.p.we > hs)), pts.length - 4), ps = pts.slice(f0), n = ps.length, /* 記録の始まる前の期間は描かない（履歴の短い人のグラフが、右端に寄って空かないように。最大 13 期間で「?」の推移と同じ） */ use = INS_USE.has(k), add = use, cnt = INS_ADD.has(k) && !use;
   { let s = 0, c = 0; ps.forEach(q => { const a = q.cur ? q.a : q.v; if (a != null){ s += a; c++; } q.c = cnt || !c ? null : add ? s : s / c; }); }
   const vals = ps.filter(x => x.v != null).map(x => x.v).concat(add ? [] : ps.filter(x => x.c != null).map(x => x.c));
-  const wk = st.mode !== "month", W = 480, H = 270, L = 50, R = add ? 50 : 12, T = 20, rot = wk && n > 1 && (W - L - R) / (n - 1) < 30, B = rot ? 46 : 34, mx = Math.max(...vals, b.q3 || 0);
+  const wk = st.mode !== "month", H = 270, L = 50, R = add ? 50 : 12, T = 20, rot = wk && n > 1 && (W - L - R) / (n - 1) < 30, B = rot ? 46 : 34, mx = Math.max(...vals, b.q3 || 0);
   // 目盛りは、各点の値を読み取れるよう細かく（6〜10 本ほど）、切りのよい刻みで。数える指標は整数、時間は 1 時間単位の刻み
   const Y1 = insTicks(k, MET[k].u === "%" ? Math.min(100, mx * 1.1) : mx * 1.02), top = Y1.top, x = i => L + (n === 1 ? (W - L - R) / 2 : i * (W - L - R) / (n - 1)), y = v => T + (H - T - B) * (1 - v / top);
   const cProj = add && b.part && ps[n - 1].c != null ? ps[n - 1].c - b.cur + b.v : null; // 途中の期間：このペースで期間を終えたときの累積
@@ -185,7 +185,8 @@ function insHeadlines(F){
     // 単価は、費用・クレジット・トークンのどれで見るかを、カードの頭の切り替えで選ぶ（同じ形のグラフが 3 つずつ並ばないように）
     if (/^unit/.test(G) && b && b.k){ const uk = /^cost/.test(b.k) ? "cost" : /^credits/.test(b.k) ? "credits" : "tokens"; T[G][T[G].length - 1] = T[G][T[G].length - 1].replace('<div class="itile', `<div data-uk="${uk}" class="itile`); UK.add(uk); } };
   const UK = new Set(); // 単価で記録のある量
-  const tile0 = (label, b, v, f, m) => T[G].push(`<div class="itile${insTone(b)}"><span class="il">${esc(label)}${hb(b && b.k && H()[b.k] ? b.k : m && H()[m] ? m : "")}</span>${m ? `<button type="button" class="itv" data-metric="${m}" aria-haspopup="dialog" aria-label="${esc(`${label} ${v}`)}">${esc(v)}</button>` : `<b>${esc(v)}</b>`}${[].concat(f || []).map(x => typeof x === "object" ? (x.v != null ? x.v : x.n != null ? pln(x.n) : fx(x.f, "", x.p, x.h)) : x === t("Kiro's own count, not an estimate") ? pln(x) : fx(x)).join("")}${insSpark(b, label)}${b === false || [].concat(f || []).some(x => x && x.v != null) ? "" : insChip(b)}</div>`); // 値を押すと、上の帯と同じ内訳
+  const SP = Object.fromEntries(Object.keys(T).map(g => [g, []])); // 各タイルのグラフ（1 つだけ残ったタイルに、横に広い形を足すため）
+  const tile0 = (label, b, v, f, m) => T[G].push(`<div class="itile${insTone(b)}"><span class="il">${esc(label)}${hb(b && b.k && H()[b.k] ? b.k : m && H()[m] ? m : "")}</span>${m ? `<button type="button" class="itv" data-metric="${m}" aria-haspopup="dialog" aria-label="${esc(`${label} ${v}`)}">${esc(v)}</button>` : `<b>${esc(v)}</b>`}${[].concat(f || []).map(x => typeof x === "object" ? (x.v != null ? x.v : x.n != null ? pln(x.n) : fx(x.f, "", x.p, x.h)) : x === t("Kiro's own count, not an estimate") ? pln(x) : fx(x)).join("")}${(SP[G][T[G].length] = {b, label, sp: insSpark(b, label)}).sp}${b === false || [].concat(f || []).some(x => x && x.v != null) ? "" : insChip(b)}</div>`); // 値を押すと、上の帯と同じ内訳
   const days = Math.round((we - ws) / 86400), el = Math.round(insFrac() * days), V = vsPrev(pw, M ? "月" : "週");
   // 上の帯の増減（%）と同じ比べを式で：途中の期間は前の期間の同じ日まで、終わった期間は前の期間まるごと
   const vs = (a, b, f) => { if (b == null || !b) return "";
@@ -263,7 +264,7 @@ function insHeadlines(F){
       tile(label, b, /^credits/.test(k) ? crR(b.cur) : fmtM(k, b.cur), [{f: `${fu(e.used)} ÷ ${den} = ${fmtM(k, b.cur)}`, p: `${fu(e.used)} ÷ ${den}`}, vsk(k, b.cur)].filter(Boolean), k === "costPerAsk" ? "costPerAsk" : undefined); } } // プロンプトあたりの費用は、押すと内訳
   // カードは折り返す横の並びに置く：広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる
   // 小見出しのある段：出どころ（Git と AI の編集）が違う数字を、同じ枠の中でも段と印で分ける
-  const sub = ([k, icon, label, note, empty]) => !T[k].length && empty ? `<div class="iksub ${k}" role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><p class="none iknone">${esc(empty)}</p></div>` : T[k].length ? `<div class="iksub ${k}" role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><div class="ikrow">${T[k].join("")}</div></div>` : "";
+  const sub = ([k, icon, label, note, empty]) => !T[k].length && empty ? `<div class="iksub ${k}" role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><p class="none iknone">${esc(empty)}</p></div>` : T[k].length ? `<div class="iksub ${k}"${T[k].some(h => h.includes("data-solo")) ? " data-solo" : ""} role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><div class="ikrow">${T[k].join("")}</div></div>` : "";
   const cards = [
     {id: "cost", label: t("Cost"), rows: null, k: "cost"},
     {id: "out", label: t("Output"), rows: [["outGit", "commit", t("Git"), t("from your repositories"), T.outEdit.length ? t("No Git commits for this selection") : ""], ["outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not")]]},
@@ -278,6 +279,10 @@ function insHeadlines(F){
   const ukSw = ukAll.length > 1 ? `<div class="segc uksw" role="group" aria-label="${esc(t("Measure"))}">${ukAll.map(k => `<button type="button" data-uk="${k}" aria-pressed="${k === ukCur}">${esc(ukName(k))}</button>`).join("")}</div>` : "";
   // 選んだ量の数字がない段には、ないことを 1 行で（Kiro はどのコミットを実行したかを記録しないので、コミットあたりのクレジットはない、など）
   ["unitGit", "unitEdit", "unitHour", "unitSes", "unitAsk"].forEach(g => { if (!T[g].length) return; ukAll.forEach(k => { if (!T[g].some(h => h.includes(`data-uk="${k}"`))) T[g].push(`<p class="none iknone" data-uk="${k}">${esc(k === "credits" && g === "unitGit" ? t("Kiro does not record which commits it ran") : t("Not recorded for this measure"))}</p>`); }); });
+  // 広いカードで 1 つだけ残ったグラフのタイルは、行の幅いっぱいに広げ、横に長い形のグラフ（文字の大きさは同じ）を足す（半分の幅に置くと、右に大きく空く）
+  const wide = (g, i) => { const z = SP[g][i]; if (!z || !z.sp) return; T[g][i] = T[g][i].replace('<div ', '<div data-solo ').replace(z.sp, z.sp + insSpark(z.b, z.label, 1040).replace('class="tspk"', 'class="tspk ww"')); };
+  ["cost", "outGit", "outEdit"].forEach(g => { const n = SP[g].filter(z => z && z.sp).length; if (n % 2) wide(g, SP[g].map(z => !!(z && z.sp)).lastIndexOf(true)); });
+  { const us = ["unitGit", "unitEdit", "unitHour", "unitSes", "unitAsk"].filter(g => T[g].length); if (us.length % 2) { const g = us[us.length - 1]; SP[g].forEach((_, i) => wide(g, i)); } }
   const card = c => `<section class="ikg ik-${c.id}"${c.id === "unit" && ukCur ? ` data-uk="${ukCur}"` : ""} aria-label="${esc(c.label)}"><h5 class="ikgh">${esc(c.label)}${c.id === "unit" ? ukSw : ""}</h5>${lgd(c)}${c.rows ? c.rows.map(sub).join("") : `<div class="ikrow">${T[c.k].join("")}</div>`}</section>`;
   // 見直す候補：基準を超えた指標を、見出しのすぐ下に 1 行で（押すと、その候補のダイアログ）。どれも、その指標の横の印からも開ける
   const ids = [...new Set((F || []).map(f => GOTO[f.k] || f.k))]; // 説明（HELP）のない候補も落とさない（名前は insName が ID に戻す）
@@ -353,9 +358,9 @@ function insightH(F){
     {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insCum())},
     {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insWhere())}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insWater())}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insSankey())}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insBox())}, {h: card(t("Tokens by type"), insTokens())},
     {h: card((HISTK(DATA.filter(s => inP(s, period().ws, period().we))) || {}).title || "", insHist())},
-    {h: card(t("By agent"), insAgents(), " wide agw")},
+    {h: card(t("By agent"), insAgents(), " agw")},
     {sec: t("Output and unit cost")}, {h: card(t("Outputs"), insOutputs(), " iout wide")}, {h: (b => b ? `<div class="inscol isccol">${b}</div>` : "")(insScatter())},
-    {sec: t("How you used AI")}, {h: card(t("Usage"), insUsage())}, {h: card(t("When you worked"), insHeat())}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insGantt())}, {h: card(t("How you worked"), insWork())},
+    {sec: t("How you used AI")}, {h: card(t("How you worked"), insWork(), " iwork")}, {h: card(t("Usage"), insUsage())}, {h: card(t("When you worked"), insHeat())}, {h: (b => b ? `<div class="inscol">${b}</div>` : "")(insGantt())},
   ].filter(c => c.h || c.sec);
   // 見出しごとに、カードを折り返す横の並び（.insrow）に入れる。広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚。余ったカードは行の残りの幅に広がる
   const secs = []; cards.forEach(c => c.sec ? secs.push({sec: c.sec, hs: []}) : secs.length && secs[secs.length - 1].hs.push(c.h));
@@ -369,6 +374,17 @@ function fitTrend(){ const g = $("#review .insk.trendk"); if (!g) return; const 
   const bs = g.querySelectorAll("button"); if (!g.offsetParent || bs.length < 2) return;
   if (bs[bs.length - 1].offsetTop !== bs[0].offsetTop || g.getBoundingClientRect().right > h.getBoundingClientRect().right + 1) h.classList.add("foldk"); }
 addEventListener("resize", () => fitTrend());
+// insPack は、サマリーのカードを列に詰めて並べる（石積み）。行ごとに高さをそろえると、低いカードの中が大きく空くので、
+// 各カードを自分の高さのまま、空いている列のいちばん上に置く。カードの高さは中身や幅で変わるので、変わるたびに測り直す
+let insRO = null;
+function insPack(R){
+  const rows = [...R.querySelectorAll(".insrow")], gap = 16;
+  const fit = () => rows.forEach(r => { if (!r.isConnected) return;
+    [...r.children].forEach(c => c.style.setProperty("--rs", String(Math.ceil(c.getBoundingClientRect().height) + gap))); });
+  fit();
+  if (insRO) insRO.disconnect();
+  if (window.ResizeObserver){ insRO = new ResizeObserver(() => requestAnimationFrame(fit)); rows.forEach(r => { insRO.observe(r); [...r.children].forEach(c => insRO.observe(c)); }); }
+}
 function bindInsight(R){
   R.querySelectorAll(".uksw [data-uk]").forEach(b => b.onclick = () => { const sec = b.closest(".ik-unit"); sec.dataset.uk = b.dataset.uk; store.set("unitKind", b.dataset.uk);
     sec.querySelectorAll(".uksw [data-uk]").forEach(x => x.setAttribute("aria-pressed", String(x === b))); });
@@ -384,6 +400,7 @@ function bindInsight(R){
     b.onclick = e => { e.stopPropagation(); const on = el.classList.toggle("fxon"); b.setAttribute("aria-pressed", String(on)); b.title = on ? t("Hide the formula") : t("Show the formula"); };
     lab.append(b); }); // 名前の要素の中に置く（カードは縦の flex なので、外に置くと横いっぱいの帯になる）
   requestAnimationFrame(fitTrend);
+  insPack(R);
   R.querySelectorAll("[data-ins]").forEach(b => b.onclick = () => { st.insK = b.dataset.ins; store.set("insK", st.insK); summary(); const nb = $("#review").querySelector(`[data-ins="${CSS.escape(b.dataset.ins)}"]`); if (nb) nb.focus(); });
   for (const [attr, key] of [["skk", "insSk"], ["bxk", "insBk"]]) R.querySelectorAll(`[data-${attr}]`).forEach(b => b.onclick = () => { st[key] = b.dataset[attr]; store.set(key, st[key]); summary(); const nb = $("#review").querySelector(`[data-${attr}="${CSS.escape(b.dataset[attr])}"]`); if (nb) nb.focus(); });
   R.querySelectorAll("[data-wfk]").forEach(b => b.onclick = () => { st.insWf = b.dataset.wfk; store.set("insWf", st.insWf); summary(); const nb = $("#review").querySelector(`[data-wfk="${CSS.escape(b.dataset.wfk)}"]`); if (nb) nb.focus(); });
@@ -409,7 +426,7 @@ function insScatter(){
   const tabs = avail.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${avail.map(x => `<button type="button" data-scat="${x}" aria-pressed="${x === k}">${esc(K[x].s)}</button>`).join("")}</div>` : "";
   const head = `<div class="inshead"><h4>${esc(M.title)}</h4>${tabs}</div>`;
   const cs = xs.map(x => x.c), thr = Math.max(M.floor, insQuant(cs, .75)), maxC = insNice(Math.max(...cs)), maxO = Math.max(4, ...xs.map(x => x.o));
-  const narrow = innerWidth < 600, W = narrow ? 360 : 720, Hh = narrow ? 214 : 234, L = narrow ? 40 : 48, R = 12, T = 12, B = 44; // 下に目盛りと軸の名前（点に重ならないように、目盛りの下）
+  const narrow = innerWidth < 600, W = narrow ? 360 : innerWidth < 1200 ? 720 : 1200, Hh = narrow ? 214 : innerWidth < 1200 ? 234 : 290, /* 1 行を占める広い画面では、横に長い座標で描く（文字と点が大きくなりすぎて、縦に空かないように） */ L = narrow ? 40 : 48, R = 12, T = 12, B = 44; // 下に目盛りと軸の名前（点に重ならないように、目盛りの下）
   const x = c => L + (W - L - R) * Math.sqrt(c / maxC), y = o => T + (Hh - T - B) * (1 - o / maxO);
   const bad = xs.filter(p => p.o === 0 && p.c >= thr), badC = bad.reduce((t, p) => t + p.c, 0);
   const xt = [0, maxC / 4, maxC].map(c => `<g class="itk"><line x1="${x(c).toFixed(1)}" x2="${x(c).toFixed(1)}" y1="${T}" y2="${Hh - B}"/><text class="ixl" x="${x(c).toFixed(1)}" y="${Hh - B + 16}">${esc(k === "credits" ? crN(c) : fv(c))}</text></g>`).join("");
@@ -625,7 +642,7 @@ function insGantt(){
   const ss = DATA.filter(s => minIn(s, best.d, best.e) > 0).sort((a, b) => a.start - b.start).slice(0, 14); if (ss.length < 2) return "";
   const segs = ss.flatMap(s => (s.segs || []).map(([a, b]) => [Math.max(a, best.d), Math.min(b, best.e)]).filter(([a, b]) => b > a));
   const h0 = Math.floor((Math.min(...segs.map(x => x[0])) - best.d) / 3600), h1 = Math.ceil((Math.max(...segs.map(x => x[1])) - best.d) / 3600);
-  const W = 460, rh = 20, T = 18, L = 130, R = 8, H = T + ss.length * rh + 6, x = tt => L + (W - L - R) * ((tt - best.d) / 3600 - h0) / Math.max(1, h1 - h0);
+  const W = 460, rh = ss.length <= 6 ? 30 : ss.length <= 10 ? 24 : 20, T = 18, /* セッションが少ない日は行を太く（カードの下が空かないように） */ L = 130, R = 8, H = T + ss.length * rh + 6, x = tt => L + (W - L - R) * ((tt - best.d) / 3600 - h0) / Math.max(1, h1 - h0);
   let peak = 0; const ev = segs.flatMap(([a, b]) => [[a, 1], [b, -1]]).sort((p, q) => p[0] - q[0] || p[1] - q[1]); let c = 0; ev.forEach(([, d]) => { c += d; peak = Math.max(peak, c); });
   const hrs = Array.from({length: h1 - h0 + 1}, (_, i) => h0 + i).filter((h, i, a) => (h1 - h0 <= 12 || i % 2 === 0) || i === a.length - 1).map(h => `<g class="itk"><line x1="${x(best.d + h * 3600).toFixed(1)}" x2="${x(best.d + h * 3600).toFixed(1)}" y1="${T - 4}" y2="${H - 4}"/><text class="ixl" x="${x(best.d + h * 3600).toFixed(1)}" y="${T - 7}">${h}:00</text></g>`).join("");
   const short = v => v.length > 18 ? v.slice(0, 17) + "…" : v;
@@ -676,7 +693,7 @@ function insOutputs(){
   const syE = E ? t("AI edited {n} files (+{a} −{d} lines)", {n: n(E.nf), a: n(E.add), d: n(E.del)}) : "";
   // Git（リポジトリ）と AI の編集（履歴）は元が違うので、列と小見出しで分け、足したり割ったりして混ぜない
   const col = (cls, icon, h, note, body) => `<div class="iosec ${cls}" role="group" aria-label="${esc(h)}"><h6 class="iksh">${ico(icon)}${esc(h)} <small>${esc(note)}</small></h6>${body}</div>`;
-  return `<div class="iout2">${col("outGit", "commit", t("Git"), t("from your repositories"), S ? `${say(syG)}<div class="stats istats">${S}</div>${insKinds()}` : noneH(esc(t("No Git commits for this selection"))))}${E ? col("outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not"), `${say(syE)}<div class="stats istats">${E.stats}</div>${E.files}`) : ""}</div>`;
+  return `<div class="iout2">${col("outGit", "commit", t("Git"), t("from your repositories"), S ? `${say(syG)}<div class="stats istats">${S}</div>` : noneH(esc(t("No Git commits for this selection"))))}${E ? col("outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not"), `${say(syE)}<div class="stats istats">${E.stats}</div>${E.files}`) : ""}${S ? `<div class="iokinds">${insKinds()}</div>` : ""}</div>`; // 作業の種類は 2 列の下に幅いっぱいで（Git の列にだけ置くと、左の列が長くなって右の列の下が空く）
 }
 /* 作業の種類：コミットの件名を決まった規則で分ける（AI は使わない）。Conventional Commits の型（feat: など）があればそれを、なければ先頭の動詞を見る。
    件名は信用できない入力なので、分類にだけ使い、画面に出すときは今までどおりエスケープする */
@@ -786,7 +803,9 @@ function insAgents(){
   const L = [t("Active time"), t("Sessions"), t("Prompts"), t("Estimated cost"), t("Kiro credits"), t("Tokens")].map(esc);
   const rows = xs.map(x => `<tr><th scope="row"><span class="iwn" title="${esc(x.key)}"><i style="background:${x.c}"></i>${esc(x.key)}</span></th><td class="num" data-l="${L[0]}"><span class="iagb"><span style="width:${((x.minutes || 0) * 100 / max).toFixed(1)}%;background:${x.c}"></span></span>${v(x.minutes, dur)} <b>${Math.round((x.minutes || 0) * 100 / tot)}%</b></td><td class="num" data-l="${L[1]}">${commas(x.n[0])}</td><td class="num" data-l="${L[2]}">${commas(x.n[1])}</td><td class="num" data-l="${L[3]}">${v(x.cost, usd)}</td><td class="num" data-l="${L[4]}">${v(x.credits, cr)}</td><td class="num" data-l="${L[5]}">${v(x.tokens, tok)}</td></tr>`).join("");
   const sy = t("{name}: {pc}% of {metric} ({v})", {name: xs[0].key, pc: Math.round(xs[0].minutes * 100 / tot), metric: t("Active time"), v: dur(xs[0].minutes)});
-  return `${say(sy)}<figure class="insfig"><div class="iagw"><table class="iagt">
+  // 狭いカード（3 列に並べたときの 1 枚やスマホ）では、表の代わりに、エージェントごとに 2 行（名前と時間、残りの数字を 1 行に）。列は隠さない
+  const list = xs.map(x => `<div class="iagi" role="listitem"><div class="iagr"><span class="iwn" title="${esc(x.key)}"><i style="background:${x.c}"></i>${esc(x.key)}</span><span class="iagb"><span style="width:${((x.minutes || 0) * 100 / max).toFixed(1)}%;background:${x.c}"></span></span><span class="iagv">${v(x.minutes, dur)} <b>${Math.round((x.minutes || 0) * 100 / tot)}%</b></span></div><p class="iagm">${[[L[1], commas(x.n[0])], [L[2], commas(x.n[1])], [L[3], v(x.cost, usd)], [L[4], v(x.credits, cr)], [L[5], v(x.tokens, tok)]].filter(z => z[1] !== "—").map(z => `${z[0]} <b>${z[1]}</b>`).join(" · ")}</p></div>`).join("");
+  return `${say(sy)}<figure class="insfig"><div class="iagl" role="list" aria-label="${esc(t("By agent"))}">${list}</div><div class="iagw"><table class="iagt">
     <thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div><p class="ifxs">${fx(`% = ${t("Active time")} ÷ ${dur(tot)}`)}${fx(t("Time that agents ran at once is split between them"))}</p></figure>`;
 }
 function insTokens(){

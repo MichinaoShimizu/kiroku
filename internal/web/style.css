@@ -1067,15 +1067,15 @@ header{background:var(--s-cont);border-bottom:0}
 .fxp,.iplain{font-size:var(--fs-xs);color:var(--ink-2)}
 /* エージェントの切り替えは、狭い画面でも隠さずに折り返す */
 .insagbar .segc{flex-wrap:wrap;overflow:visible}
-/* エージェント別の表は、スマホでは行ごとに「名前と値」の並びに */
-@media (max-width:600px){
-  .iagt thead{display:none}
-  .iagt,.iagt tbody,.iagt tr,.iagt th,.iagt td{display:block;width:auto}
-  .iagt tr{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;padding:10px 0;border-bottom:1px solid var(--rule)}
-  .iagt tbody th{grid-column:1/-1;border:0;padding:0 0 4px}
-  .iagt td{border:0;padding:0;text-align:left;white-space:normal}
-  .iagt td::before{content:attr(data-l);display:block;font-size:var(--fs-2xs);color:var(--ink-3)}
-  .iagt td.num{text-align:left}.iagb{width:56px}
+/* エージェント別：広いカードでは表、狭いカード（3 列に並べたときの 1 枚・スマホ）では、エージェントごとに 2 行の並び。どちらも列（数字）を隠さない */
+.iagl{display:none}
+@container (max-width:600px){
+  .iagw{display:none}.iagl{display:block}
+  .iagi{padding:8px 0;border-bottom:1px solid var(--rule)}
+  .iagr{display:grid;grid-template-columns:minmax(0,1fr) 56px auto;align-items:center;gap:10px;font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
+  .iagr .iagb{width:100%;margin:0}.iagr .iwn{font-weight:600}.iagv b,.iagm b{font-weight:600}.iagv b{margin-left:4px;font-size:var(--fs-xs);color:var(--ink-2)}
+  .iagm{margin:3px 0 0;font-size:var(--fs-xs);color:var(--ink-2);font-variant-numeric:tabular-nums}.iagm b{color:var(--ink)}
+}
 }
 /* コピーのボタンは、ふだんから薄く見せる（マウスを乗せなくても、あることがわかるように） */
 .tl li .pcopy{opacity:.45}.tl li:hover>.pcopy,.tl li:focus-within>.pcopy{opacity:1}
@@ -1090,8 +1090,7 @@ header{background:var(--s-cont);border-bottom:0}
 #review .ichip:not(.fxon *){font-family:var(--sans)} /* 言葉のチップは、式の等幅でなく本文の字で */
 /* サマリーのグラフのカードは 2 列（1000px 以下は 1 列）。.full は幅いっぱい */
 .insg{display:flex;flex-direction:column;gap:16px}
-.insrow{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch}
-.insrow>.inscol{flex:1 1 360px;min-width:0;container-type:inline-size}.insrow>.inscol.wide{flex-grow:2} /* 出力のカードは中身が多いので、横に広く取り、中を 2 列にして背を低くする */ /* グラフのカードも、広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚 */
+.insrow>.inscol{min-width:0;container-type:inline-size} /* 中身の幅で形を変える（エージェント別の表・出力の 2 列など） */
 @container (max-width:720px){.iout2{grid-template-columns:minmax(0,1fr)}} /* 出力のカードが狭いときは、Git と AI の編集を縦に並べる */
 /* トレンドの指標：広い画面は切り替え、狭い画面は選択リスト（横に隠れて選べなくならないように） */
 .insksel{display:none}
@@ -1195,7 +1194,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .iverd p{margin:0}.itile .iverd b{font:600 var(--fs-md)/1.4 var(--sans);letter-spacing:normal;color:var(--ink)}.itile .iverd.good b{color:var(--go-ink)}.itile .iverd.bad b{color:var(--warn)}
 .iverd .ivact{color:var(--ink-2)}.iverd .iwlink,.iverd .ivgo{font:inherit;color:var(--acc-ink);text-decoration:underline;text-underline-offset:2px;padding:0;background:none;border:0;cursor:pointer}
 /* 広いカードでは数字を 2 つずつ並べ、1 つだけ残った段も半分の幅に留める（グラフが横いっぱいに大きくならないように） */
-@container (min-width:1100px){.itile:has(.tspk){max-width:50%}}
+@container (min-width:1100px){.itile:has(.tspk){max-width:50%}} /* 1 つだけ残ったタイルは [data-solo] で幅いっぱいに（下） */
 /* 作業の種類の色（エージェントと同じ 8 色を順に） */
 .ikinds .kd{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
 .ikinds .k0{background:var(--c0)}.ikinds .k1{background:var(--c1)}.ikinds .k2{background:var(--c2)}.ikinds .k3{background:var(--c3)}.ikinds .k4{background:var(--c4)}.ikinds .k5{background:var(--c5)}.ikinds .k6{background:var(--c6)}.ikinds .k7{background:var(--c7)}
@@ -1212,7 +1211,6 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 :root[data-theme="dark"] .tspk .band{fill:color-mix(in oklab,var(--ink) 16%,transparent)}
 /* 作業の種類・よく変えるファイル：右の数の欄の幅をそろえ、棒の右端をそろえる */
 .ikinds .iwr{grid-template-columns:minmax(0,30%) minmax(0,1fr) minmax(0,15em) 3.2em}.ikinds .iwv{text-align:right}
-.insrow>.inscol.agw{flex-basis:680px} /* エージェント別の表は列が多いので、隠れないだけの幅を取る */
 .tspk .sofl{font-size:9px;fill:var(--acc-ink);text-anchor:end}
 /* 月のマスの時間：狭いマスでは短い形だけ（「4h 57m」がマスからはみ出さないように） */
 .cell{container-type:inline-size}.cell .act .tshort{display:none}
@@ -1221,7 +1219,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .ik-unit[data-uk="cost"] [data-uk]:not([data-uk="cost"]):not(button),.ik-unit[data-uk="credits"] [data-uk]:not([data-uk="credits"]):not(button),.ik-unit[data-uk="tokens"] [data-uk]:not([data-uk="tokens"]):not(button){display:none}
 .ikgh .uksw{display:inline-flex;margin-left:14px;vertical-align:middle;font-size:var(--fs-sm)}
 /* 単価の段（コミットあたり・100 行あたり・時間・セッション・プロンプト）は、どれも数字が 1 つになるので、段を 2 列に並べる */
-.ik-unit{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,560px),1fr));column-gap:24px;align-items:start}
+.ik-unit{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,530px),1fr));column-gap:24px;align-items:start}
 .ik-unit>.ikgh,.ik-unit>.tlg{grid-column:1/-1}
 @container (min-width:1100px){.ik-unit .itile:has(.tspk){max-width:none}}
 .srprj{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}.srprj .srp[aria-pressed="true"],.srprj .sra[aria-pressed="true"]{background:var(--acc-soft);border-color:var(--acc);color:var(--acc-ink)}
@@ -1232,7 +1230,6 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .ik-unit .itile.good,.ik-unit .itile.bad{background:none}
 .tspk .sofl{font-size:10px;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
 /* 出力のカードは中身が多いので 1 行を占め、散布図は次の行に（隣に並べると、散布図のカードが出力のカードの高さまで伸びて大きく空く） */
-.insrow>.inscol.iout{flex-basis:100%}
 .isccol .insfig{max-width:none}
 /* 狭いカード（スマホ）では、グラフが縮んで文字が 7px ほどになるので、座標の上で大きくし、期間の名前は 1 つおきに */
 @container (max-width:520px){.tspk text{font-size:16px}.tspk .sxl.alt{display:none}.tspk .sofl{font-size:15px}.tspk .slimn{font-size:13px}}
@@ -1269,3 +1266,16 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .tspk .sxl.nodat{display:none} /* 記録のない最初の期間の名前は出さない（縦軸の 0 と重ならないように） */
 .isk .skt{paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
 .iwtf .ixl,.isk .skt,.ibxf .ixl,.igt .igl,.igt .ixl{font-size:11px}
+/* 余白を残さない：広いカードで 1 つだけ残ったグラフのタイル（段）は行の幅いっぱいに。横に長い形のグラフに替える（文字の大きさは 2 つ並びのときと同じ） */
+.tspk.ww{display:none}
+@container (min-width:1100px){
+  .itile[data-solo]:has(.tspk){max-width:none;grid-template-columns:minmax(190px,1fr) minmax(0,4.6fr)}
+  .itile[data-solo]>.tspk:not(.ww){display:none}.itile[data-solo]>.tspk.ww{display:block;max-width:none}
+}
+/* カードは石積みに並べる（insPack が各カードの高さを --rs に入れる。1px の行をその数だけ使う）。行ごとに高さをそろえないので、低いカードの中が空かない */
+.insrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));grid-auto-rows:1px;grid-auto-flow:row dense;column-gap:16px;row-gap:0;align-items:start}
+.insrow>*{grid-row-end:span var(--rs,300)}
+.insrow>.inscol{align-self:start}
+.insrow>.inscol.iout,.insrow>.inscol.isccol,.insrow>.inscol.iwork{grid-column:1/-1}
+.ik-unit>.iksub[data-solo]{grid-column:1/-1} /* 2 列のとき 1 つだけ残った段は幅いっぱいに（530px は、カードの幅 1100px で 2 列になる幅） */
+.iout2>.iokinds{grid-column:1/-1;border-left:3px solid var(--rule);padding-left:14px}.iout2>.iokinds .ikinds{margin-top:0} /* 作業の種類は Git の数字なので、Git の列と同じ実線を左に */

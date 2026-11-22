@@ -366,13 +366,18 @@ async function run(env) {
         vague: /Usual|Higher|Lower|usual range|いつもの範囲|いつもどおり|高め|低め|\bQ[13]\b|IQR/.test(document.querySelector("#review .insight").innerText)}));
       check("いつもとの比べは不等式（下位・上位25%点の値）で出し、定義を 1 行で示す。曖昧な言葉と Q1・Q3 の記号は使わない", fx.chips.length > 0 && fx.chips.every(c => /pct|%点|≤|needs|必要/.test(c)) && /(spread|幅) = /.test(fx.def) && !fx.vague, JSON.stringify(fx).slice(0, 300));
       const lay = await p.evaluate(() => { const cs = [...document.querySelectorAll("#review .insight .inscol")]; const say = cs.filter(c => c.querySelector(".insfig, .ihgrid") && c.querySelector(".isay")).length, charts = cs.filter(c => c.querySelector(".insfig, .ihgrid")).length;
-        // グラフのカードは見出しごとの横の並び（.insrow）。広い画面では 1 行に 3 枚。同じ行のカードは上端と下端がそろい、行は幅いっぱい（空きを作らない）
-        const rowsOk = [...document.querySelectorAll("#review .insrow")].every(r => { const rr = r.getBoundingClientRect(), byTop = {};
-          [...r.children].forEach(c => { const b = c.getBoundingClientRect(); (byTop[Math.round(b.top)] ||= []).push(b); });
-          return Object.values(byTop).every(row => row.every(b => Math.abs(b.bottom - row[0].bottom) < 1) && Math.abs(Math.max(...row.map(b => b.right)) - rr.right) < 2); });
+        // グラフのカードは見出しごとの石積み（.insrow）。広い画面では 3 列。カードは重ならず、どのカードも中の下が空かない（中身の高さのまま置く）
+        const inner = c => { const cb = c.getBoundingClientRect(); let bot = cb.top; c.querySelectorAll("*").forEach(e => { const r = e.getBoundingClientRect(); if (r.height && getComputedStyle(e).display !== "none") bot = Math.max(bot, r.bottom); }); return cb.bottom - bot; };
+        const rowsOk = [...document.querySelectorAll("#review .insrow")].every(r => { const bs = [...r.children].map(c => c.getBoundingClientRect());
+          const apart = bs.every((a, i) => bs.every((b, j) => i >= j || a.right <= b.left + 1 || b.right <= a.left + 1 || a.bottom <= b.top + 1 || b.bottom <= a.top + 1));
+          return apart && [...r.children].every(c => inner(c) <= 40); });
+        // 上の数字のグラフ：1 つだけ残ったタイル（段）も、行の幅いっぱいに広がる（右が空かない）
+        const tilesOk = [...document.querySelectorAll("#review .ikrow")].filter(r => r.offsetParent).every(r => { const rr = r.getBoundingClientRect(), ts = [...r.children].filter(c => c.offsetParent && c.querySelector(".tspk"));
+          return !ts.length || Math.abs(Math.max(...ts.map(c => c.getBoundingClientRect().right)) - rr.right) < 4; })
+          && [...document.querySelectorAll("#review .ik-unit")].every(u => { const ur = u.getBoundingClientRect(), ss = [...u.querySelectorAll(":scope>.iksub")]; return !ss.length || Math.abs(ss[ss.length - 1].getBoundingClientRect().right - (ur.right - parseFloat(getComputedStyle(u).paddingRight))) < 4; });
         const three = innerWidth < 1300 || [...document.querySelectorAll("#review .insrow")].some(r => r.children.length >= 3 && Math.abs(r.children[0].getBoundingClientRect().top - r.children[2].getBoundingClientRect().top) < 1);
-        return {say, charts, rows: rowsOk, grid: three}; });
-      check("どのグラフにも、データから計算した読み取りの 1 文があり、広い画面ではカードが 1 行に 3 枚並び、同じ行のカードは高さがそろって行の幅を埋める", lay.say === lay.charts && lay.rows && lay.grid, JSON.stringify(lay));
+        return {say, charts, rows: rowsOk, tiles: tilesOk, grid: three}; });
+      check("どのグラフにも、データから計算した読み取りの 1 文があり、広い画面ではカードが 3 列に並び、カードは重ならず中の下が空かない。1 つだけ残ったグラフのタイルも行の幅を埋める", lay.say === lay.charts && lay.rows && lay.tiles && lay.grid, JSON.stringify(lay));
       const tk = await p.evaluate(() => { const g = document.querySelector("#review .insk.trendk"), bs = [...g.querySelectorAll("button")], sel = document.querySelector("#review .insksel");
         const ks = (getComputedStyle(g).display === "none" ? [...sel.options].map(o => o.value) : bs.map(b => b.dataset.ins));
         return {tabs: getComputedStyle(g).display !== "none", oneRow: new Set(bs.map(b => Math.round(b.getBoundingClientRect().top))).size === 1, ks}; });

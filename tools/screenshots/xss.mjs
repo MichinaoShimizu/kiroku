@@ -74,7 +74,7 @@ const summaryCheck = async label => {
   const n = await p.locator("#review [data-tip]").count();
   for (let i = 0; i < Math.min(n, 60); i++) { await p.locator("#review [data-tip]").nth(i).hover({ force: true }).catch(() => {}); }
   await check(`summary ${label} tooltips`);
-  const badStyle = await p.evaluate(() => [...document.querySelectorAll("#review .insight [style]")].map(e => e.getAttribute("style")).filter(v => !/^(--a:[\d.]+|(fill|background):var\(--[\w-]+\)|(width:[\d.]+%|flex:[\d.]+);background:var\(--[\w-]+\))$/.test(v)));
+  const badStyle = await p.evaluate(() => [...document.querySelectorAll("#review .insight [style]")].map(e => e.getAttribute("style")).filter(v => !/^(--a:[\d.]+|--rs: [\d]+;|(fill|background):var\(--[\w-]+\)|(width:[\d.]+%|flex:[\d.]+);background:var\(--[\w-]+\))$/.test(v)));
   if (badStyle.length) { failed++; console.log(`  FAIL summary ${label} style values: ${JSON.stringify(badStyle.slice(0, 5))}`); } else console.log(`  ok   summary ${label} style values`);
   await p.click("#view button[data-v=cal]"); await p.waitForTimeout(150);
 };
