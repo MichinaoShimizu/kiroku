@@ -16,7 +16,7 @@
 - Calendar: in narrow day columns, the copy-prompt button sits under the date instead of over it
 - Calendar: in narrow day columns the heading keeps the figure picked in Figures and drops the commit count first; on windows up to 1,200px every day puts its copy button under the date, so all headings line up
 - Summary: the Unit cost switch says Cost / Credits / Tokens and wraps under the title on narrow screens; its rows share one heading style and drop the good/bad tint (the verdict carries it); verdicts say "below usual" / "above usual" like the rest of the summary; "pace" reads "On pace for"; kept lines add how much was rewritten or dropped, and rework says lower is usually better; the "So far" label stays readable over lines
-- Summary charts and the Trend card always span 13 weeks or months, with gaps where there is no record, the same span as the "?" trends
+- Summary charts, the Trend card and the "?" trends share one span of up to 13 weeks or months
 - Summary: the Outputs card takes a full row and the cost-vs-outputs scatter its own row (it was stretched to the Outputs card's height); the most edited files list adds how many Git commits changed each file (by AI and by hand), replacing the separate Git list; the cache figure in Usage says it is a share of input tokens
 - Summary charts use larger text and every other period name on narrow cards (phones), where text was about 7px
 - Worth a look lists each session with its prompts, estimated cost and active time
