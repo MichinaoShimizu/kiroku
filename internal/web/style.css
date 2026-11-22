@@ -1225,3 +1225,5 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .ik-unit{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,560px),1fr));column-gap:24px;align-items:start}
 .ik-unit>.ikgh,.ik-unit>.tlg{grid-column:1/-1}
 @container (min-width:1100px){.ik-unit .itile:has(.tspk){max-width:none}}
+.srprj{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}.srprj .srp[aria-pressed="true"]{background:var(--acc-soft);border-color:var(--acc);color:var(--acc-ink)}
+@container (max-width:130px){.head .dd .dayrun{position:static;opacity:1;margin-left:0}} /* 狭い日の列では、コピーのボタンを日付に重ねず、日付の下に */

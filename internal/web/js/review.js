@@ -147,21 +147,23 @@ function periodBack(i){ // 表示中の期間から i 個前の期間
 function periodLabel(mode, k){ const [y, m, d] = k.split("-").map(Number); // 期間の名前（"2026-05" か "2026-05-04"）
   return mode === "month" ? dMY(new Date(y, m-1, 1)) : t("week of {date}", {date: dMD(new Date(y, m-1, d))}); } // 画面の言語で
 function metricAt(k, p){ if (!MET[k] || !p.S) return null; const v = MET[k].f(p.S, p.ws, p.we); return v == null || Number.isNaN(v) ? null : v; }
+// 推移は、見出しのグラフと同じ期間（過去 INS_N と表示中の期間）
+const SPN = 12;
 function spark(k, plain){ // 8 期間の推移（記録のない期間は飛ばす。記録のある最初の期間から、幅いっぱいに描く）。plain は「?」の説明に添えるもの（見直す向きは書かない）
   if (!MET[k]) return "";
-  const pts = []; for (let i = 7; i >= 0; i--){ const p = periodBack(i); pts.push({v: metricAt(k, p), l: p.label}); }
+  const pts = []; for (let i = SPN; i >= 0; i--){ const p = periodBack(i); pts.push({v: metricAt(k, p), l: p.label}); }
   // 表示中の期間がまだ途中なら、そう書いて点を白抜きにする（数える指標は、途中の期間だけ小さく見えるので）
-  const part = Date.now() / 1000 < periodBack(0).we; if (part) pts[7].l = t("{period} (so far)", {period: pts[7].l});
+  const part = Date.now() / 1000 < periodBack(0).we; if (part) pts[SPN].l = t("{period} (so far)", {period: pts[SPN].l});
   const vs = pts.filter(p => p.v != null).map(p => p.v); if (vs.length < 2) return "";
   // 使い始めて間もないなど、はじめの期間に記録がないときは、その期間を描かずに記録のある最初の期間を左端にする（線が箱の途中から始まって短く見えないように）
-  const W = 168, H = 34, f0 = pts.findIndex(p => p.v != null), step = (W - 8) / (7 - f0); // 値が 2 つ以上あるので f0 は 6 以下
+  const W = 168, H = 34, f0 = pts.findIndex(p => p.v != null), step = (W - 8) / (SPN - f0); // 値が 2 つ以上あるので f0 は SPN − 1 以下
   const lo = Math.min(...vs), hi = Math.max(...vs), rng = lo === hi ? fmtM(k, lo) : `${fmtM(k, lo)}–${fmtM(k, hi)}`, x = i => 4 + (i - f0) * step, y = v => hi === lo ? H / 2 : H - 4 - (v - lo) / (hi - lo) * (H - 8);
   const line = pts.map((p, i) => p.v == null ? null : `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).filter(Boolean).join(" ");
-  const list = pts.map(p => `${p.l} ${fmtM(k, p.v)}`).join(LSEP()), txt = st.mode === "month" ? t("8-month trend: {list}", {list}) : t("8-week trend: {list}", {list});
+  const list = pts.map(p => `${p.l} ${fmtM(k, p.v)}`).join(LSEP()), txt = st.mode === "month" ? t("{n}-month trend: {list}", {n: SPN + 1, list}) : t("{n}-week trend: {list}", {n: SPN + 1, list});
   const hits = pts.map((p, i) => i < f0 ? "" : `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H}"${tipAttr(p.l, fmtM(k, p.v) === "—" ? t("No records") : fmtM(k, p.v))}/>`).join(""); // 点ごとに、その期間の値を出す
   // 両端（記録のある最初の期間と、表示中の期間）には、触れなくても読めるよう期間と値を添える
-  const sl = i => { const p = periodBack(7 - i), [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? MON[mm - 1] : dMD(new Date(yy, mm - 1, dd)); };
-  return `<span class="spark"><span class="sr">${esc(txt)}</span><span class="spk" aria-hidden="true"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><polyline points="${line}"/>${pts.map((p, i) => p.v == null ? "" : `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="1.6"/>`).join("")}${pts[7].v != null ? `<circle${part ? ' class="part"' : ""} cx="${x(7)}" cy="${y(pts[7].v)}" r="2.6"/>` : ""}${hits}</svg><span class="ends"><span>${sl(f0)} ${fmtM(k, pts[f0].v)}</span><span>${sl(7)}${part ? esc(t(" (so far)")) : ""} <b>${fmtM(k, pts[7].v)}</b></span></span></span><small aria-hidden="true">${esc((MET[k].cap ? `${t(MET[k].cap)} · ` : "") + (plain ? (st.mode === "month" ? t("8-month range {range}", {range: rng}) : t("8-week range {range}", {range: rng})) : `${GOTO[k] ? `${t(HELP[k].n)} · ` : ""}${st.mode === "month" ? (MET[k].low ? t("8-month range {range} · higher is worth a look", {range: rng}) : t("8-month range {range} · lower is worth a look", {range: rng})) : (MET[k].low ? t("8-week range {range} · higher is worth a look", {range: rng}) : t("8-week range {range} · lower is worth a look", {range: rng}))}`))}</small></span>`;
+  const sl = i => { const p = periodBack(SPN - i), [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? MON[mm - 1] : dMD(new Date(yy, mm - 1, dd)); };
+  return `<span class="spark"><span class="sr">${esc(txt)}</span><span class="spk" aria-hidden="true"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><polyline points="${line}"/>${pts.map((p, i) => p.v == null ? "" : `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="1.6"/>`).join("")}${pts[SPN].v != null ? `<circle${part ? ' class="part"' : ""} cx="${x(SPN)}" cy="${y(pts[SPN].v)}" r="2.6"/>` : ""}${hits}</svg><span class="ends"><span>${sl(f0)} ${fmtM(k, pts[f0].v)}</span><span>${sl(SPN)}${part ? esc(t(" (so far)")) : ""} <b>${fmtM(k, pts[SPN].v)}</b></span></span></span><small aria-hidden="true">${esc((MET[k].cap ? `${t(MET[k].cap)} · ` : "") + (plain ? (st.mode === "month" ? t("{n}-month range {range}", {n: SPN + 1, range: rng}) : t("{n}-week range {range}", {n: SPN + 1, range: rng})) : `${GOTO[k] ? `${t(HELP[k].n)} · ` : ""}${st.mode === "month" ? (MET[k].low ? t("{n}-month range {range} · higher is worth a look", {n: SPN + 1, range: rng}) : t("{n}-month range {range} · lower is worth a look", {n: SPN + 1, range: rng})) : (MET[k].low ? t("{n}-week range {range} · higher is worth a look", {n: SPN + 1, range: rng}) : t("{n}-week range {range} · lower is worth a look", {n: SPN + 1, range: rng}))}`))}</small></span>`;
 } // 向き（高いほど・低いほど見直す）だけを書く。印が付いた基準（決まった値）は、ダイアログの見出しのすぐ下に出す
 /* 見直す候補：指標が決まった基準を超えたものを拾う（AI は使わない。判定ではなく、確かめる候補） */
 // 見直す候補の文は 2 つ持つ。en は英語のまま（週報のプロンプトに入れる。訳さない）、L は画面に出す今の言語の文。

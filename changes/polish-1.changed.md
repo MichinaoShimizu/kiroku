@@ -11,3 +11,6 @@
 - Summary: Unit cost shows one figure per row with a switch for estimated cost, Kiro credits or tokens (remembered), instead of up to three near-identical charts per row; rows without that measure say so
 - Summary: the vs-last-week line puts its label first ("vs last week +108"), so it does not read like the green and red line counts
 - Summary: the lower Outputs card no longer repeats the commits, lines and pull requests shown in the Output panel above
+- The "?" trends and Worth a look cover 13 weeks or months, the same span as the summary charts (they were 8)
+- Search results can be narrowed to a project with chips (the 8 projects with the most matches)
+- Calendar: in narrow day columns, the copy-prompt button sits under the date instead of over it
