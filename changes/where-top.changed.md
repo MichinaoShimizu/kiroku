@@ -1,2 +1,0 @@
-- Summary: "Where it went" (the donut and bars of where the cost went) is back in the Charts section instead of in "Other charts"
-- Summary: in "Where it went", the list sits beside the donut at full width, so project names are no longer cut ("web-...")
