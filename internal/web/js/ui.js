@@ -70,7 +70,8 @@ const statH = (k, v, s, h, m) => { const id = "st" + (++statN); return `<div cla
 /* 空のときの一言：text は HTML（呼ぶ側でエスケープする） */
 const noneH = text => `<p class="none">${text}</p>`;
 /* コードの枠：text は文字（ここでエスケープする）。cls は枠に足すクラス、extra はコピーの前に置くもの（HTML。「Open」のリンクなど） */
-const codeH = (text, cls, extra) => `<div class="code${cls ? " " + cls : ""}"><code>${esc(text)}</code>${extra || ""}${copyBtn(esc(t("Copy")), `data-copy="${esc(text)}"`, "copy")}</div>`;
+// cp は写す文字（見せる文字と違うとき。たとえば、見せるのはリポジトリの場所で、写すのは git のコマンド）、lab はボタンの文字
+const codeH = (text, cls, extra, cp = text, lab = t("Copy")) => `<div class="code${cls ? " " + cls : ""}"><code>${esc(text)}</code>${extra || ""}${copyBtn(esc(lab), `data-copy="${esc(cp)}"`, "copy")}</div>`;
 /* コピーのボタン：label は文字、attrs は属性（HTML。呼ぶ側でエスケープする）。押してコピーできると、印が 1.6 秒だけ ✓ に変わる（copied） */
 const copyBtn = (label, attrs, cls = "pill") => `<button class="${cls} cp" ${attrs}>${ico("copy", "cpi")}${ico("check", "cpok")}${label}</button>`;
 /* 詳細の頭の札：プロジェクトとブランチは、同じ形の札が並ぶので印で見分ける（意味はツールチップと読み上げでも出す） */

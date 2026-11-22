@@ -6,7 +6,7 @@ function snip(t, q){
   return `${a ? "…" : ""}${esc(t.slice(a, i))}<mark>${esc(t.slice(i, i + q.length))}</mark>${esc(t.slice(i + q.length, b))}${b < t.length ? "…" : ""}`;
 }
 function hitOf(s, q){
-  const tries = [["Title", [s.title]], ["Prompt", s.prompts.map(p => p.text)], ["File", s.files], ["PR", s.prs || []],
+  const tries = [["Title", [s.title]], ["Prompt", s.prompts.map(p => p.text)], ["File", s.files.map(f => s.projectPath && f.startsWith(s.projectPath + "/") ? f.slice(s.projectPath.length + 1) : f)], ["PR", s.prs || []],
     ["Commit", commitsOf(s).flatMap(c => [`${c.hash.slice(0,7)} ${c.subject}`, ...(c.files || []).map(f => f.path)])],
     ["Project", [s.project]], ["Branch", [s.branch || ""]], ["Agent", [s.source]]];
   for (const [label, xs] of tries) for (const x of xs){ const h = snip(x, q); if (h) return {label, h}; }
@@ -23,8 +23,16 @@ const SR_FIRST = 10, SR_STEP = 50; // 検索結果は、はじめに 10 件、�
 function searchPanel(){
   const R = $("#sres"), q = st.q, nS = st.srN || SR_FIRST, nC = st.scN || SR_FIRST;
   $("#review").innerHTML = ""; R.hidden = false;
-  const ss = DATA.filter(s => !st.hidden.has(keyOf(s)) && searchText(s).includes(q)).sort((a,b) => b.start - a.start);
-  const cs = (META.git || []).filter(gitHit).sort((a,b) => b.t - a.t);
+  const ss0 = DATA.filter(s => !st.hidden.has(keyOf(s)) && searchText(s).includes(q)).sort((a,b) => b.start - a.start);
+  const cs0 = (META.git || []).filter(gitHit).sort((a,b) => b.t - a.t);
+  // プロジェクトで絞る：結果の多いプロジェクトから 8 つまでを札にする（もう一度押すと、すべてに戻る）
+  const pc = new Map(); [...ss0.map(s => s.project), ...cs0.map(c => c.project)].forEach(p => pc.set(p, (pc.get(p) || 0) + 1));
+  const projs = [...pc].sort((a, b) => b[1] - a[1]).slice(0, 8), sp = st.srP && pc.has(st.srP) ? st.srP : "";
+  // エージェントで絞る（セッションだけ。コミットはエージェントを持たないので、エージェントを選ぶと AI が実行したコミットだけにする）
+  const ac = new Map(); ss0.forEach(s => ac.set(s.source, (ac.get(s.source) || 0) + 1)); const sa = st.srA && ac.has(st.srA) ? st.srA : "";
+  const ss = ss0.filter(s => (!sp || s.project === sp) && (!sa || s.source === sa)), cs = cs0.filter(c => (!sp || c.project === sp) && (!sa || (c.ai && ss0.some(s => s.id === c.session && s.source === sa))));
+  const chips = projs.length > 1 ? `<div class="srprj" role="group" aria-label="${esc(t("Project"))}">${[["", t("All projects"), ss0.length + cs0.length], ...projs].map(([p, name, n]) => `<button type="button" class="pill srp" data-p="${esc(p)}" aria-pressed="${p === sp}">${esc(p === "" ? name : p)} <span class="muted">${n ?? name}</span></button>`).join("")}</div>` : "";
+  const achips = ac.size > 1 ? `<div class="srprj" role="group" aria-label="${esc(t("Agent"))}">${[["", t("All agents"), ss0.length], ...[...ac].sort((a, b) => b[1] - a[1])].map(([a, name, n]) => `<button type="button" class="pill sra" data-a="${esc(a)}" aria-pressed="${a === sa}">${esc(a === "" ? name : a)} <span class="muted">${n ?? name}</span></button>`).join("")}</div>` : "";
   const row = s => { const h = hitOf(s, q);
     return `<button class="srow ag" data-s="${esc(s.id)}" style="--c:${colorOf(keyOf(s))};--ag:${agColor(s.source)}"><time>${md(s.start)}<small>${hm(s.start)}</small></time>
       <span class="b"><span class="ti">${agMark(s.source)}${h.h && h.label === "Title" ? h.h : esc(s.title)}</span><span class="me">${esc(s.project)}${s.branch ? ` · ${esc(s.branch)}` : ""} · ${esc((s.source))}</span>
@@ -34,7 +42,7 @@ function searchPanel(){
       ${(() => { const f = (c.files || []).find(f => f.path.toLowerCase().includes(q)); return f ? `<span class="hit"><em>${esc(t("File"))}</em>${snip(f.path, q)}</span>` : ""; })()}</span></button>`;
   const more = (id, shown, all) => all > shown ? `<button class="pill srmore" id="${id}">${esc(all - shown <= SR_STEP ? t("Show the remaining {n}", {n: all - shown}) : t("Show {n} more", {n: SR_STEP}))} <span class="muted">${esc(t("({shown} of {all} shown)", {shown, all}))}</span></button>` : "";
   R.innerHTML = `<div class="rvhead"><h2 id="srh" tabindex="-1">${esc(t("Search results"))}</h2><p>${esc(META.scope ? t('Matches for "{q}" in this file, newest first.', {q}) : t('Matches for "{q}" (all time), newest first.', {q}))} ${esc(t("Sessions are matched on prompts, project, branch, agent, files changed by AI, pull requests and commits made during the session; commits on subject, body, hash and changed files. Click one to see its details; the calendar below moves to its week."))}</p>
-      <button class="pill" id="sclear">${esc(t("Clear search"))}</button></div>
+      <button class="pill" id="sclear">${esc(t("Clear search"))}</button></div>${chips}${achips}
     <div class="rvgrid srgrid">
       <section class="panel">${panelH(null, esc(t("Sessions · {n}", {n: ss.length})))}
         ${ss.length ? ss.slice(0, nS).map(row).join("") + more("srmS", nS, ss.length) : noneH(esc(t("No matching sessions.")))}</section>
@@ -48,6 +56,8 @@ function searchPanel(){
   const open = (t, id) => { st.mode = "week"; store.set("mode", "week"); st.week = mondayOf(new Date(t*1000)); select(id); };
   R.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { const s = DATA.find(x => x.id === b.dataset.s); if (s) open(s.start, s.id); });
   R.querySelectorAll("[data-c]").forEach(b => b.onclick = () => { const c = META.git.find(x => x.hash === b.dataset.c); if (c) open(c.t, "git:" + c.hash); });
+  R.querySelectorAll(".sra").forEach(b => b.onclick = () => { st.srA = b.dataset.a === st.srA ? "" : b.dataset.a; st.srN = st.scN = 0; searchPanel(); const nb = R.querySelector(`.sra[data-a="${CSS.escape(b.dataset.a)}"]`); if (nb) nb.focus(); });
+  R.querySelectorAll(".srp").forEach(b => b.onclick = () => { st.srP = b.dataset.p === st.srP ? "" : b.dataset.p; st.srN = st.scN = 0; searchPanel(); const nb = R.querySelector(`.srp[data-p="${CSS.escape(b.dataset.p)}"]`); if (nb) nb.focus(); });
   $("#sclear").onclick = () => { $("#q").value = ""; st.q = ""; st.srN = st.scN = 0; render(); };
 }
 /* 週報の事実：プロジェクトごとに、時間・コミット・PR を Markdown で並べる。週報を書く AI に、変えずに使ってもらう土台。

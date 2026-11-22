@@ -173,7 +173,9 @@ const calLine = rows => `<div class="cline">${rows.filter(([, v, , ty]) => !(ty 
 // ひとつの枠にまとめると、Claude Code と Kiro を両方使う人には、片方しか見えないため。
 function calShort(act, u, un, kinds){ // 月のマス：コスト系（太く）と稼働時間（小さく）の 2 行
   const q = un ? " u" : "", uk = useKind(kinds), v = uk ? calVal(uk, act, u, true) : "";
-  return `${uk ? `<span class="acs${q}">${esc(v || "—")}</span>` : ""}<span class="act${q}">${esc(act ? dur(act) : "—")}</span>`;
+  // 時間は 2 通り書き、マスが狭い（スマホの月）ときは短い方（「5h」）だけを見せる
+  const sh = !act ? "—" : act < 60 ? `${Math.round(act)}m` : `${Math.round(act / 60)}h`;
+  return `${uk ? `<span class="acs${q}">${esc(v || "—")}</span>` : ""}<span class="act${q}"><span class="tlong">${esc(act ? dur(act) : "—")}</span><span class="tshort" aria-hidden="true">${esc(sh)}</span></span>`;
 }
 const filtering = () => !!st.q || st.hidden.size > 0;
 /* カレンダーに出すコミット：凡例で隠したプロジェクトのものは出さない。検索中は、一致したセッションの間のコミットと、それ自体が一致したコミットだけ */

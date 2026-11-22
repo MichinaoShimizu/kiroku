@@ -1,0 +1,24 @@
+- Summary: "Worth a look" moves to the top, right under the title
+- Summary: unit-cost verdicts say "below" or "above typical" only when the value is at least a tenth outside the usual range, and suggest a next step only on the higher side or when the week's session habits differed
+- Summary: header charts draw the cumulative total and usage-limit marks only for usage (cost, credits, tokens, time), percentage charts scale to their data, and chart text no longer grows on wide single-column layouts
+- Summary: the Usage card no longer repeats the per-session and per-prompt figures shown in Unit cost
+- Calendar: narrow day columns drop the time, then the cost, from the heading line instead of overflowing into the next day
+- Summary: off-hours share and project switches are no longer colored good or bad; ranks in the lower half read "2nd lowest of 11 weeks"; session-length bars say "4 sessions" instead of "n=4"; Kiro credits say "Kiro's own count, not an estimate"; typical ranges write the unit once ("13.1–13.8 credits"); the By agent table gets a wide card so no column is hidden; the usual-range band is easier to see in dark mode; the kinds-of-work bars line up
+- Commit and push details show the repository path with a "Copy the git command" button instead of the whole git command
+- Summary: the value so far in a period in progress is labeled "So far" in the header charts
+- Calendar: on narrow month cells (phones), times are shortened ("5h") instead of being cut off
+- Search: file matches in sessions show the path from the project, as commit matches do
+- Summary: Unit cost shows one figure per row with a switch for estimated cost, Kiro credits or tokens (remembered), instead of up to three near-identical charts per row; rows without that measure say so
+- Summary: the vs-last-week line puts its label first ("vs last week +108"), so it does not read like the green and red line counts
+- Summary: the lower Outputs card no longer repeats the commits, lines and pull requests shown in the Output panel above
+- The "?" trends and Worth a look cover 13 weeks or months, the same span as the summary charts (they were 8)
+- Search results can be narrowed to a project with chips (the 8 projects with the most matches)
+- Calendar: in narrow day columns, the copy-prompt button sits under the date instead of over it
+- Calendar: in narrow day columns the heading keeps the figure picked in Figures and drops the commit count first; on windows up to 1,200px every day puts its copy button under the date, so all headings line up
+- Summary: the Unit cost switch says Cost / Credits / Tokens and wraps under the title on narrow screens; its rows share one heading style and drop the good/bad tint (the verdict carries it); verdicts say "below usual" / "above usual" like the rest of the summary; "pace" reads "On pace for"; kept lines add how much was rewritten or dropped, and rework says lower is usually better; the "So far" label stays readable over lines
+- Summary charts and the Trend card always span 13 weeks or months, with gaps where there is no record, the same span as the "?" trends
+- Summary: the Outputs card takes a full row and the cost-vs-outputs scatter its own row (it was stretched to the Outputs card's height); the most edited files list adds how many Git commits changed each file (by AI and by hand), replacing the separate Git list; the cache figure in Usage says it is a share of input tokens
+- Summary charts use larger text and every other period name on narrow cards (phones), where text was about 7px
+- Worth a look lists each session with its prompts, estimated cost and active time
+- Commit details for an AI commit say whether its files were changed again within 3 days, and by which commit
+- Search results can also be narrowed to an agent
