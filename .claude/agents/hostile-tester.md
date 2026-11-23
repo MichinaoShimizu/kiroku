@@ -29,7 +29,7 @@ go build -o "$T/kiroku" .
 
 ```bash
 python3 -I tools/screenshots/hostile.py "$T/h"
-TZ=UTC "$T/kiroku" html --no-open --sources claude --claude-root "$T/h/fx/projects" --week 2026-10-05 -o "$T/xss.html"
+TZ=UTC go run ./tools/html --no-open --sources claude --claude-root "$T/h/fx/projects" --week 2026-10-05 -o "$T/xss.html"
 node tools/screenshots/xss.mjs "$T/xss.html"
 ```
 
@@ -63,11 +63,11 @@ node tools/screenshots/xss.mjs "$T/xss.html"
 
 ### 4. git
 
-履歴の `cwd` が指すリポジトリを `$T` に作り、`.git/config` に `core.fsmonitor`・`core.hooksPath`（フックは目印のファイルを作るだけ）・`core.pager`・`diff.external`・`filter.*` などを仕込みます。`kiroku serve --html` と `serve` を動かしたあと、目印のファイルができていないことを確かめます。コミットメッセージ・ブランチ名・リモートの URL に入れた差しこみが画面で動かないことも 1 と同じように確かめます。
+履歴の `cwd` が指すリポジトリを `$T` に作り、`.git/config` に `core.fsmonitor`・`core.hooksPath`（フックは目印のファイルを作るだけ）・`core.pager`・`diff.external`・`filter.*` などを仕込みます。`go run ./tools/html`（e2e とデモが使う開発用の書き出し）と `kiroku serve` を動かしたあと、目印のファイルができていないことを確かめます。コミットメッセージ・ブランチ名・リモートの URL に入れた差しこみが画面で動かないことも 1 と同じように確かめます。
 
 ### 5. 書き出すファイル
 
-- `kiroku serve --html -o` の出力が `0600` になる。出力先に `$T` の外を指すシンボリックリンクを置いても、リンク先は書き換えられない
+- `go run ./tools/html -o` の出力が `0600` になる。出力先に `$T` の外を指すシンボリックリンクを置いても、リンク先は書き換えられない
 - `kiroku serve --archive on` のあとの写しのフォルダが `0700`、ファイルが `0600`
 - `kiroku serve --archive off` が、`on` で印を付けていないフォルダや `.zst` 以外のファイルを消さない
 
