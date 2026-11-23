@@ -407,15 +407,31 @@ const tr = trend([2,5,8,11]); eq(tr.a, 2, "trend a"); eq(tr.b, 3, "trend b"); if
 }
 
 // JA_TEXT（i18n.js）のどの鍵も、画面のスクリプト・テンプレート・Go のどこかで使われている（消した画面の訳を残さない）。
-// 鍵は英語の文そのものなので、ほかのファイルにその文（i18n.js と同じ書き方）があるかで見る
+// 鍵は英語の文そのものなので、ほかのファイルにその文がまるごと 1 つの文字列（"…"・'…'・`…`）として書いてあるか、
+// template.html の要素の文字（>…<。data-t の要素を applyStaticText が訳す）として書いてあるかで見る。
+// 長い文の一部に同じ言葉があるだけでは、使われているとみなさない（"Run" が "Run kiroku …" の中にあるなど）。
+// i18n.js のうち JA_TEXT の外（localizeTitles が Go の組み立てた題を引く t("Kiro Crew memory consolidation ({slot})") など）も見る
 func TestI18nNoUnusedKeys(t *testing.T) {
-	src, err := jsFiles.ReadFile("js/i18n.js")
+	b, err := jsFiles.ReadFile("js/i18n.js")
 	if err != nil {
 		t.Fatal(err)
 	}
+	src := string(b)
+	start := strings.Index(src, "const JA_TEXT = {\n")
+	end := strings.Index(src, "\n};\n")
+	if start < 0 || end < start {
+		t.Fatal("i18n.js に JA_TEXT が見つからない")
+	}
+	dict := src[start:end]
 	var other strings.Builder
+	other.WriteString(src[:start])
+	other.WriteString(src[end:])
+	tmpl, err := os.ReadFile("template.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	other.Write(tmpl)
 	names, _ := filepath.Glob("js/*.js")
-	names = append(names, "template.html")
 	goFiles, _ := filepath.Glob("../*/*.go")
 	for _, f := range goFiles {
 		if !strings.HasSuffix(f, "_test.go") {
@@ -430,22 +446,31 @@ func TestI18nNoUnusedKeys(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		other.Write(b)
 		other.WriteByte('\n')
+		other.Write(b)
 	}
 	all := other.String()
+	used := func(k string) bool {
+		for _, q := range []string{`"`, `'`, "`"} {
+			if strings.Contains(all, q+k+q) {
+				return true
+			}
+		}
+		// テンプレートの要素の文字は、テンプレートでだけ見る（Go が書くほかのページの <p>Run <code>… を数えない）
+		return regexp.MustCompile(`>\s*` + regexp.QuoteMeta(k) + `\s*<`).Match(tmpl)
+	}
+	keys := regexp.MustCompile(`(?m)^  "((?:[^"\\]|\\.)*)": `).FindAllStringSubmatch(dict, -1)
+	if len(keys) < 100 {
+		t.Fatalf("JA_TEXT の鍵が %d 個しか読めない", len(keys))
+	}
 	var unused []string
-	for _, m := range regexp.MustCompile(`(?m)^  "((?:[^"\\]|\\.)*)": `).FindAllStringSubmatch(string(src), -1) {
+	for _, m := range keys {
 		raw := m[1]
 		var plain string
 		if err := json.Unmarshal([]byte(`"`+raw+`"`), &plain); err != nil {
 			plain = raw
 		}
-		head := plain // Go が組み立てる題（"Kiro Crew memory consolidation (" + slot + ")" など）は、{ の前までで見る
-		if i := strings.Index(plain, "{"); i > 8 {
-			head = plain[:i]
-		}
-		if !strings.Contains(all, raw) && !strings.Contains(all, plain) && !strings.Contains(all, head) {
+		if !used(raw) && !used(plain) {
 			unused = append(unused, plain)
 		}
 	}
