@@ -93,7 +93,7 @@ function insSpark(b, label, W = 480, bar = false){
   // 利用上限に当たった期間（棒のグラフでは、棒に重ねず x 軸のすぐ下の段に印を置き、期間の名前をその分だけ下げる）
   const lh = use ? ps.map(q => limitHits(q.p.ws, q.p.we)) : [], LB = bar && lh.some(h => h.length) ? 12 : 0;
   const wk = st.mode !== "month", H = 270, L = 50, R = add ? 50 : 12, T = 20, PX = !bar && n > 1 ? 16 : 0, step = bar ? (W - L - R) / n : n > 1 ? (W - L - R - 2 * PX) / (n - 1) : W - L - R;
-  const rot = wk && n > 1 && (bar ? step : (W - L - R - 32) / (n - 1)) < 30, B = (rot ? 46 : 34) + LB, mx = Math.max(...vals, b.q3 || 0);
+  const thin = wk && n > 1 && (bar ? step : (W - L - R - 32) / (n - 1)) < 32, B = 34 + LB, mx = Math.max(...vals, b.q3 || 0);
   // 目盛りは、各点の値を読み取れるよう細かく（6〜10 本ほど）、切りのよい刻みで。数える指標は整数、時間は 1 時間単位の刻み
   const Y1 = insTicks(k, MET[k].u === "%" ? Math.min(100, mx * 1.1) : mx * 1.02), top = Y1.top, x = i => bar ? L + (i + .5) * step : L + (n === 1 ? (W - L - R) / 2 : PX + i * step), y = v => T + (H - T - B) * (1 - v / top);
   const cProj = add && b.part && ps[n - 1].c != null ? ps[n - 1].c - b.cur + b.v : null; // 途中の期間：このペースで期間を終えたときの累積
@@ -108,9 +108,10 @@ function insSpark(b, label, W = 480, bar = false){
   const band = b.q1 == null ? "" : `<rect class="band" x="${L}" y="${y(b.q3).toFixed(1)}" width="${W - L - R}" height="${Math.max(1, y(b.q1) - y(b.q3)).toFixed(1)}"/>`;
   const med = b.q1 == null ? "" : `<line class="med" x1="${L}" x2="${W - R}" y1="${y(b.med).toFixed(1)}" y2="${y(b.med).toFixed(1)}"/>`;
   const xtm = ps.map((_, i) => `<line class="tm" x1="${x(i).toFixed(1)}" x2="${x(i).toFixed(1)}" y1="${y0}" y2="${(+y0 + 3).toFixed(1)}"/>`).join("");
-  // x 軸は、どの期間にも名前を付ける。週は短い日付（月/日）を斜めに、月は月の名前
+  // x 軸は、どの期間にも名前を付ける。週は短い日付（月/日）、月は月の名前
   const sl = (p, i) => { const [yy, mm, dd] = p.key.split("-").map(Number), yr = i === 0 || mm === 1; return wk ? `${mm}/${dd}` : JA ? (yr ? `${yy}年${mm}月` : `${mm}月`) : (yr ? `${MON[mm - 1]} ${yy}` : MON[mm - 1]); }; // 月は、最初と 1 月に年を添える（同じ月の名前が 2 度出ても見分けられるように）
-  const xl = ps.map((q, i) => rot ? `<text class="sxl rot${i === n - 1 ? " cur" : (n - 1 - i) % 2 && n > 6 ? " alt" : i === 0 && !wk ? " s" : ""}${i === 0 && q.v == null && n > 1 ? " nodat" : ""}" transform="translate(${x(i).toFixed(1)} ${(+y0 + 8 + LB).toFixed(1)}) rotate(-45)">${esc(sl(q.p, i))}</text>` : `<text class="sxl${i === n - 1 ? " cur" : (n - 1 - i) % 2 && n > 6 ? " alt" : i === 0 && !wk && !bar ? " s" : ""}${i === 0 && q.v == null && n > 1 ? " nodat" : ""}" x="${x(i).toFixed(1)}" y="${(+y0 + 14 + LB).toFixed(1)}">${esc(sl(q.p, i))}</text>`).join("");
+  // 名前はいつも横書き（斜めにすると読みにくく、下の段の上限の印とも重なる）。間が狭いとき（週の日付が 1 期間の幅に収まらない）は、1 つおきに出す（表示中の期間と、そこから 2 つおきは残す）
+  const xl = ps.map((q, i) => { const alt = (n - 1 - i) % 2 && (n > 6 || thin); return `<text class="sxl${i === n - 1 ? " cur" : alt ? ` alt${thin ? " thin" : ""}` : i === 0 && !wk && !bar ? " s" : ""}${i === 0 && q.v == null && n > 1 ? " nodat" : ""}" x="${x(i).toFixed(1)}" y="${(+y0 + 14 + LB).toFixed(1)}">${esc(sl(q.p, i))}</text>`; }).join("");
   // 累積は時間の流れなので、途中の期間の「ここまで」は右端（期間の終わり）ではなく、期間のうち過ぎた割合の位置に置く。そこから期間の終わりの予測までを破線に
   const xc = i => ps[i].cur && b.part && n > 1 ? x(n - 2) + insFrac() * (x(n - 1) - x(n - 2)) : x(i);
   const cpts = ps.map((q, i) => q.c == null ? null : `${xc(i).toFixed(1)},${y2(q.c).toFixed(1)}`).filter(Boolean);
@@ -141,7 +142,7 @@ function insSpark(b, label, W = 480, bar = false){
     return `<path class="slim" d="M${lx.toFixed(1)} ${(ty - 7).toFixed(1)}l-4.5 7h9z"/>${h.length > 1 ? `<text class="slimn${bar ? " s" : ""}" x="${(bar ? lx + 5.5 : lx).toFixed(1)}" y="${(bar ? ty : ty - 10).toFixed(1)}">×${h.length}</text>` : ""}<rect class="hit slimhit" x="${(x(i) - 6 - (bar ? 4 : 0)).toFixed(1)}" y="${(ty - 10).toFixed(1)}" width="${bar ? 20 : 12}" height="12"${tipAttr(h.length === 1 ? t("Usage limit hits") : `${t("Usage limit hits")} ×${h.length}`, rows)}/>`; }).join("");
   const yt = (INS_SHORT()[k] || label || insName(k)), xt = st.mode === "month" ? t("Month") : t("Week");
   const list = ps.map(q => `${q.p.label} ${q.v == null ? "—" : fm(q.v)}${q.c == null ? "" : ` (${cl} ${fm(q.c)})`}`).join(LSEP());
-  return `<span class="tspk${bar ? " tbar" : ""}"><span class="sr">${esc(t("Trend: {list}", {list}))}</span><svg aria-hidden="true" viewBox="0 0 ${W} ${H}"><text class="syt" x="${L}" y="11">${esc(yt)}</text>${add ? `<text class="syt r" x="${W - R}" y="11">${esc(cl)}</text>` : ""}${bar ? band + ticks + xtm + cuma + marks + med + cuml + cprj : band + med + ticks + xtm + cuma + cuml + marks}${pcl}${xl}<text class="sxt" x="${(L + (W - L - R) / 2).toFixed(1)}" y="${H - 3}">${esc(xt)}</text>${hits}${lim}</svg></span>`;
+  return `<span class="tspk${bar ? " tbar" : ""}"><span class="sr">${esc(t("Trend: {list}", {list}))}</span><svg aria-hidden="true"${LB ? ` class="lb"` : ""} viewBox="0 0 ${W} ${H}"><text class="syt" x="${L}" y="11">${esc(yt)}</text>${add ? `<text class="syt r" x="${W - R}" y="11">${esc(cl)}</text>` : ""}${bar ? band + ticks + xtm + cuma + marks + med + cuml + cprj : band + med + ticks + xtm + cuma + cuml + marks}${pcl}${xl}<text class="sxt" x="${(L + (W - L - R) / 2).toFixed(1)}" y="${H - 3}">${esc(xt)}</text>${hits}${lim}</svg></span>`;
 }
 /* insVerdict は、単価の数字の「評価」と「次の一手」（AI は使わず、決まった規則で）。
    評価：いつもの範囲（過去の真ん中 50%）より低ければ良い側（コミット・行あたりは「効率が良い」、時間・セッション・プロンプトあたりは「軽い」）。

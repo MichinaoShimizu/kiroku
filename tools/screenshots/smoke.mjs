@@ -398,6 +398,14 @@ async function run(env) {
           return {p: [...g.classList].find(c => c.startsWith("ik-")), items: items.map(x => x.textContent), bad: items.filter(x => !x.dataset.lg || !svg || !svg.querySelector(x.dataset.lg)).map(x => x.textContent)}; }));
         check(`${when}：パネルの凡例の項目は、どれもそのパネルのグラフに描いた印の説明`, r.length === 4 && r.every(x => x.items.length > 0 && x.bad.length === 0), JSON.stringify(r)); return r; };
       await lgCheck("開いた期間");
+      // x 軸の期間の名前は、どのパネルのグラフでも横書き（rotate しない）。名前どうしも、x 軸の下の段の利用上限の印（三角・×n）とも重ならない
+      const xlCheck = async when => { const r = await p.evaluate(() => [...document.querySelectorAll("#review .insh .ikrow > .itile .tspk svg")].filter(s => s.checkVisibility()).map(s => {
+          const hit = (a, b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+          const xs = [...s.querySelectorAll("text.sxl")], vis = xs.filter(x => x.checkVisibility()).map(x => x.getBoundingClientRect()), lim = [...s.querySelectorAll("path.slim, text.slimn")].map(x => x.getBoundingClientRect());
+          return {ch: s.closest("[data-ch]").dataset.ch, rot: xs.filter(x => /rotate/.test(x.getAttribute("transform") || "") || x.classList.contains("rot")).length, n: vis.length, lim: lim.length,
+            overL: vis.filter((a, i) => vis.some((b, j) => j !== i && hit(a, b))).length, overM: vis.filter(a => lim.some(b => hit(a, b))).length}; }));
+        check(`${when}：パネルのグラフの x 軸の名前は横書きで、名前どうしも利用上限の印とも重ならない`, r.length >= 4 && r.every(x => x.rot === 0 && x.n >= 2 && x.overL === 0 && x.overM === 0), JSON.stringify(r.filter(x => x.rot || x.overL || x.overM || x.n < 2))); };
+      await xlCheck("開いた期間");
       check("投入・出力のパネルのグラフは期間ごとの棒（表示中の期間の棒は 1 本で、点と線はない）、単価のパネルのグラフは点と線（棒はない）。切り替えで隠れたタイルも", await p.evaluate(() => ["cost", "out", "uin", "unit"].every(c => { const ss = [...document.querySelectorAll(`#review .insh .ik-${c} .ikrow > .itile .tspk svg`)];
         return ss.length > 0 && ss.every(s => { const bars = s.querySelectorAll("rect.sbar").length, cur = s.querySelectorAll("rect.sbar.cur").length, dots = s.querySelectorAll("polyline.trl, circle.now, circle.pt").length;
           return c === "cost" || c === "out" ? bars >= 2 && cur === 1 && dots === 0 : bars === 0 && s.querySelectorAll("circle.now").length === 1 && !!s.querySelector("polyline.trl"); }); })));
@@ -415,6 +423,7 @@ async function run(env) {
           return {ch: x.dataset.ch, same: e.top < v.bottom && e.bottom > v.top && Math.abs(e.bottom - v.bottom) < 8, inside: e.right <= t.right + 1 && v.right <= t.right + 1, below: e.top >= v.bottom - 2}; }));
         check("途中の期間の推定は、今までの値と同じ行に並ぶ（1100px より狭い画面では次の行に折り返してよい）。どれもパネルの中", r.length >= 2 && r.every(x => x.inside && (env.viewport.width >= 1100 ? x.same : x.same || x.below)), JSON.stringify(r));
         if (env.viewport.width >= 900){ const t = await chartTops(); check("途中の期間でも、横に並んだ 2 枚のパネルのグラフは同じ高さから始まる（4px 以内）", aligned(t), JSON.stringify(t)); }
+        await xlCheck("途中の期間");
         check("途中の期間：投入のグラフは、今までの値の棒と、期間の終わりの推定までの破線の棒（凡例にも）", await p.evaluate(() => { const g = document.querySelector("#review .insh .ik-cost"), t = [...g.querySelectorAll(".ikrow > .itile")].find(x => x.checkVisibility()), s = t && t.querySelector(".tspk svg");
           const cur = s && s.querySelector("rect.sbar.cur"), ext = s && s.querySelector("rect.sbar.ext"), lg = [...g.querySelectorAll(":scope > .tlg .lg")].filter(x => x.checkVisibility()).map(x => x.dataset.lg);
           return !!cur && !!ext && Math.abs(+ext.getAttribute("y") + +ext.getAttribute("height") - +cur.getAttribute("y")) < 0.2 && lg.includes("rect.sbar.ext") && lg.includes("rect.sbar.cur"); }));
