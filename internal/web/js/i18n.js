@@ -255,7 +255,7 @@ const JA_TEXT = {
   "Copy prompt": "プロンプトをコピー",
   "Copy the session review prompt": "セッションの振り返りのプロンプトをコピー",
   "Copy the daily report prompt for {date}": "{date} の日報のプロンプトをコピー",
-  "Copied the prompt. Paste it into your AI agent.": "プロンプトをコピーしました。AI エージェントに貼り付けてください。",
+  "Copied the prompt. kiroku ran and sent nothing. Paste it into your AI agent.": "プロンプトをコピーしました。kiroku は何も実行・送信していません。AI エージェントに貼り付けてください。",
   "From the prompt to the AI's last activity (an estimate from the history's timestamps)": "プロンプトから AI が最後に動いたときまで（履歴の時刻からの推定）",
   "From the AI's last activity to your next prompt (an estimate)": "AI が最後に動いたときから次のプロンプトまで（推定）",
   "The last thing the AI wrote to you in this turn, in its own words (not its thinking or tool output)": "AI がこのターンの最後に自分の言葉で書いたもの（思考やツールの出力は含まない）",
