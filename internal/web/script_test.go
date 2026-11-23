@@ -478,3 +478,42 @@ func TestI18nNoUnusedKeys(t *testing.T) {
 		t.Errorf("JA_TEXT に使われていない鍵が %d 個ある（消すか、使う場所を直す）:\n%s", len(unused), strings.Join(unused, "\n"))
 	}
 }
+
+// 読み込み中の画面（loading.html）は、本物の画面（state.js の LANG）と同じ言語になる。?lang=、--lang、ブラウザの言語の順で、
+// 以前の版の切り替えボタンが localStorage に残した言語（kiroku:lang）は、どちらも使わない
+func TestLoadingLangMatchesView(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	state, err := jsFiles.ReadFile("js/state.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	view := regexp.MustCompile(`(?s)const LANGS = .*?\}\)\(\);\n`).FindString(string(state))
+	pick := regexp.MustCompile(`(?s)const pick = \(\) => \{.*?\};\n  const JA = `).FindString(loading)
+	if view == "" || pick == "" {
+		t.Fatal("state.js の LANG か loading.html の pick が見つからない")
+	}
+	pick = strings.TrimSuffix(pick, "\n  const JA = ")
+	args, _ := json.Marshal([]string{view + "return LANG;", pick + "return pick();"})
+	code := `const [view, pick] = ` + string(args) + `;
+const viewLang = new Function("location", "navigator", "localStorage", "__LANG__", view);
+const loadLang = new Function("location", "navigator", "localStorage", "document", pick);
+let bad = 0;
+for (const q of ["", "?lang=ja", "?lang=en", "?lang=fr"]) for (const flag of ["", "en", "ja"]) for (const nav of ["en-US", "ja-JP", "ja", ""]) for (const saved of [null, "ja", "en"]) {
+  const loc = {search: q}, nv = {languages: nav ? [nav] : [], language: nav}, ls = {getItem: k => k === "kiroku:lang" && saved ? JSON.stringify(saved) : null};
+  const v = viewLang(loc, nv, ls, flag), l = loadLang(loc, nv, ls, {documentElement: {dataset: {lang: flag}}});
+  const want = ["en", "ja"].includes(q.slice(6)) ? q.slice(6) : flag || (nav.startsWith("ja") ? "ja" : "en");
+  if (v !== want || l !== want) { bad++; console.error(JSON.stringify({q, flag, nav, saved}), "view", v, "loading", l, "want", want); }
+}
+if (bad) process.exit(1);
+`
+	f := filepath.Join(t.TempDir(), "lang.js")
+	if err := os.WriteFile(f, []byte(code), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("読み込み中の画面と本物の画面で言語が違う:\n%s", out)
+	}
+}

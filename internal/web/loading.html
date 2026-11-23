@@ -87,11 +87,11 @@ pre:empty{display:none}
 // あいだは /progress を見て、エージェントごとの進み具合を出す（名前と数だけ。文字は textContent で入れる）
 (() => {
   const $ = id => document.getElementById(id);
-  // 言語は本物の画面と同じ順で決める（?lang=、画面で選んだ言語、--lang、ブラウザの言語）。日本語のときだけ下の表で置きかえる
+  // 言語は本物の画面（state.js の LANG）と同じ順で決める（?lang=、--lang、ブラウザの言語）。以前の版で選んだ言語は使わない。
+  // 日本語のときだけ下の表で置きかえる
   const pick = () => { try { const q = new URLSearchParams(location.search).get("lang"); if (q === "en" || q === "ja") return q; } catch(e){}
-    try { const s = JSON.parse(localStorage.getItem("kiroku:lang")); if (s === "en" || s === "ja") return s; } catch(e){}
     const d = document.documentElement.dataset.lang; if (d === "en" || d === "ja") return d;
-    return /^ja\b/i.test((navigator.languages && navigator.languages[0]) || navigator.language || "") ? "ja" : "en"; };
+    try { return ((navigator.languages && navigator.languages[0]) || navigator.language || "").toLowerCase().startsWith("ja") ? "ja" : "en"; } catch(e){ return "en"; } };
   const JA = pick() === "ja" ? {
     "Reading your history…": "履歴を読んでいます…",
     "The first read can take a while with a lot of history. This page opens the view as soon as it is ready.": "履歴が多いと、最初の読み込みに時間がかかります。読み終わるとすぐに画面を開きます。",
