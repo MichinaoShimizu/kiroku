@@ -61,26 +61,12 @@ The view is in Japanese when your browser prefers Japanese; `--lang` (or `KIROKU
 
 ## Reviews and advice, written by your own agent
 
-"Copy prompt" in session details and next to each date in the week calendar copies a prompt to paste into the AI agent you already use, such as Claude Code or Codex. kiroku runs no agent and sends nothing; where you paste it is your choice. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, as a professional advisor on prompts and engineering work would.
-
-| Scope | Where | What you get |
-|---|---|---|
-| A session | "Copy prompt" in session details | Summary, numbers, an assessment of your prompts, up to three prioritized pieces of advice (each quoting the prompt with its time and giving an improved prompt), and a playbook of prompts for similar work |
-| A day | "Copy prompt" next to each date with history in the week calendar | A daily report: summary, numbers next to the previous day, what was done in each project and why, expert observations and next actions |
-
-The advice is grounded in your history, not generic tips. Each point names what it is based on: a figure, a prompt with its time, or a signal kiroku counted. Where the history shows it, the advice covers
-
-- **how you write prompts**: context, constraints and done criteria that were missing, and corrections a clearer first prompt would have avoided
-- **how you use agents**: splitting and ordering work, checking results, long sessions, waiting
-- **model and context**: whether the model fits the work (for example a one-line question on an Opus-class model), conversations that grew long, compactions, and switching between projects
-- **what to move out of your prompts**: an instruction you keep typing into a skill or the project's agent instructions, a separate role into a subagent, fixed steps into a script
-
-An excerpt of advice written from dummy history:
+"Copy prompt" in session details (a session review) and next to each date in the week calendar (a daily report) copies a prompt to paste into the AI agent you already use, such as Claude Code or Codex. kiroku runs no agent and sends nothing; where you paste it is your choice. The prompt carries the facts kiroku counted and points the agent to the history files, so the advice is grounded in what really happened, not generic tips: how you write prompts, how you use agents, model and context, and what to move out of your prompts into a skill, a subagent or a script. Each point names what it is based on: a figure, a prompt with its time, or a signal kiroku counted. An excerpt of advice written from dummy history:
 
 > - **Turn the repeated check into a skill or script.** You typed "Run the full test suite and the linter, fix anything that fails, and show me the summary" 3 times in 3 sessions. Make it a skill or a project script the agent runs before each commit.
 > - **Use a lighter model for quick questions.** On Thu, Aug 13 at 10:00 you asked a one-line question in a separate Opus session. A lighter model is enough for questions like this.
 
-The prompts stay light: a report carries a short digest of each session, and the agent opens a history file only when the digest isn't enough. See the [guide](docs/guide.md#reviews-and-reports-with-your-agent) for what each prompt contains.
+See the [guide](docs/guide.md#reviews-and-reports-with-your-agent) for what each prompt contains and the format of what you get.
 
 ## Privacy
 
