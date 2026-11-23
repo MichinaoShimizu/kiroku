@@ -2,6 +2,20 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v4.6.5 - 2026-11-23
+
+### Changed
+
+- The prompt flow's blue-gray background and green bubbles are slightly toned down
+- Summary: the Input and Output panels draw their 12-period charts as bars, since they show amounts; the period shown is the darker bar, and a period in progress shows the bar so far with a lighter dashed bar up to the end-of-period estimate. Usage limit hits sit in their own row just under the x axis, and the period names stay horizontal (every other one when space is short). The unit cost panels stay line charts
+- Summary: Breakdown starts closed, with a one-line list of what is inside, to keep the page short ("Other charts" is inside it). The view remembers whether you opened it, and pressing a Worth a look item whose card is inside opens it
+- Summary panels: a choice with nothing to show for the period is no longer hidden. It stays in the switch, dimmed, with the reason as its tooltip and in one line when pressed (for example "Kiro IDE / CLI (V3) doesn't record pull requests, so there is nothing to divide by", or Pushes with one agent picked)
+- Unit cost per output: Commits is now offered with Credits, and with Cost or Tokens when no AI commit is recorded, as the period's whole total per Git commit (the Git commits in Output). With AI commits, Cost and Tokens still show Claude Code's figure per AI commit; the figure's name says which
+
+### Fixed
+
+- Where it flowed: the takeaway now accounts for the whole amount in one sentence, such as "Of $15.14 estimated cost, $8.67 (57%) went to sessions with a commit or PR, $4.42 (29%) to sessions without, and $2.04 (14%) is from agents that don't record commits", leaving out parts that are zero. It used to divide only by the recorded part, so 834 of 3,000 credits could read as "100%". Its percentages, and those listed under the chart, are rounded to add up to 100
+
 ## v4.6.4 - 2026-11-23
 
 ### Changed
