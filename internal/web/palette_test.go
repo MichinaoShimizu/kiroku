@@ -136,7 +136,7 @@ func deltaE(a, b string, sim *[3][3]float64) float64 {
 // プロンプトの流れ（.tl）は、メッセージアプリの形の吹き出し（色は特定のアプリに寄せない）。字と地の組み合わせが読めることを確かめる:
 //   - 吹き出しの字・時刻・小さな字（4.5:1 以上。WCAG 2.x の相対輝度のコントラスト比）
 //   - コピーのボタン・AI の印・出来事の印・言い直しの破線など小さな印（3:1 以上）
-//   - AI の白い吹き出しと流れの地（3:1 以上）
+//   - AI の吹き出しと流れの地は、明るさの差で見分けられる（ΔE 8 以上）
 //
 // 色は LINE のトーク画面（地 #7494c0・緑 #8de055）から十分に離す（ΔE 15 以上。寄せすぎだという声で離した）。
 //
@@ -180,7 +180,6 @@ func TestChatContrast(t *testing.T) {
 		{"correction or long tag in your prompt", v("chat-me-warn"), tag, 4.5},
 		{"correction's dashed outline", v("chat-me-warn"), me, 3},
 		{"AI reply", v("chat-ai-ink"), ai, 4.5},
-		{"AI bubble on the background", ai, bg, 3},
 		{"AI reply meta and cut note", v("chat-ai-meta"), ai, 4.5},
 		{"link in an AI reply", v("chat-link"), ai, 4.5},
 		{"AI mark in its round avatar", v("chat-ai-mark"), ai, 3},
@@ -194,6 +193,11 @@ func TestChatContrast(t *testing.T) {
 		if r := contrast(c.fg, c.bg); r < c.min {
 			t.Errorf("%s: %s on %s is %.2f:1, want at least %.1f:1", c.name, c.fg, c.bg, r, c.min)
 		}
+	}
+	// AI の吹き出しは、暗い地より一段明るい暗い灰（字は上で 4.5:1 以上）。吹き出しの形は字で読めるので 3:1 の境目は求めないが、
+	// 地と見分けられる明るさの差（ΔE 8 以上）はあること
+	if d := deltaE(ai, bg, nil); d < 8 {
+		t.Errorf("AI bubble %s is too close to the background %s (ΔE %.1f), want at least 8", ai, bg, d)
 	}
 	for _, c := range []struct{ name, got, line string }{
 		{"background", bg, "#7494c0"},
