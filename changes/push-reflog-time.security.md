@@ -1,0 +1,1 @@
+- Pushes whose reflog time is negative or past the year 9999 (a reflog line edited by hand, which git prints wrapped around as about 1.8e19) are dropped instead of being passed to the page as dates it can't show

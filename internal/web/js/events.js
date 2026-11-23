@@ -36,7 +36,7 @@ document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = e => 
 function showView(){ document.body.dataset.view = st.view;
   document.querySelectorAll("#view button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.view)); }
 function setView(v, focus){ if (v === st.view) return; st.view = v; store.set("view", v); showView();
-  const m = $("main"); if (m) m.scrollTop = 0; if (v === "cal") scrollToWork(); else fitTrend();
+  const m = $("main"); if (m) m.scrollTop = 0; if (v === "cal") scrollToWork(); else { fitTrend(); skBack($("#review")); } // サンキーの名前の札は、見えているときにしか測れない（隠れたまま描いたサマリーを開いたときに敷く）
   if (focus && v === "sum"){ const r = $("#review"); r.tabIndex = -1; r.focus({preventScroll: true}); } }
 document.querySelectorAll("#view button[data-v]").forEach(b => b.onclick = e => { setView(b.dataset.v); if (e.detail) b.blur(); });
 $("#skipcal").onclick = e => { e.preventDefault(); setView("sum", true); };

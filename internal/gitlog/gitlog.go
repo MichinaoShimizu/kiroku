@@ -324,6 +324,15 @@ func reflogStamp(common string) string {
 	return sb.String()
 }
 
+// maxPushTime は push の時刻として受け入れる最後の時刻（9999-12-31T23:59:59Z）。reflog の時刻は書き換えられる。
+// 負の値や大きすぎる値（git は 2^64 で折り返して 1.8e19 のように出す）を画面に渡すと、日付が作れない。
+const maxPushTime = 253402300799
+
+// pushTimeOK は reflog の時刻が push の時刻として使えるか（0 以上、maxPushTime 以下、有限）。
+func pushTimeOK(t float64) bool {
+	return !math.IsNaN(t) && t >= 0 && t <= maxPushTime
+}
+
 // readPushes はリモート追跡ブランチの reflog から「update by push」の行を読む。repoKey のあと（r.web が決まってから）に呼ぶ。
 // pushed は、1 回の push で送ったコミットの数と、そのうち先頭 MaxPushHashes 件。
 type pushed struct {
@@ -361,7 +370,7 @@ func readPushes(ctx context.Context, r *repo, counts map[string]pushed) []Push {
 				continue
 			}
 			t, err := strconv.ParseFloat(strings.TrimSuffix(f[1][at+2:], "}"), 64)
-			if err != nil || t < r.since-86400 {
+			if err != nil || !pushTimeOK(t) || t < r.since-86400 {
 				continue
 			}
 			p := Push{T: t, Project: r.project, Repo: r.top, Ref: branchOf(ref), Hash: f[0], URL: commitURL(r.web, f[0])}

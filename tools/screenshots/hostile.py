@@ -21,6 +21,35 @@ if not os.path.exists(os.path.join(REPO, ".git")):
     g("commit", "-q", "-m", "<img src=x onerror=alert(14)> __META__ {{x}}   </script><script>alert(15)</script>",
       "-m", "body <img src=x onerror=alert(16)> [c](javascript:alert(17)) __DATA__")
     g("remote", "add", "origin", 'https://example.com/o/r"><img src=x onerror=alert(18)>')
+# push の記録：リモート追跡ブランチの reflog（update by push）。名前は git が受け付ける範囲で悪意のあるもの（refs/remotes/origin/x<svg/onload=alert(40)>"'）。
+# 取ってくる先（url）は悪意のある URL のまま、送る先（pushurl）だけを手元の bare リポジトリにする。時刻は reflog に残る（GIT_COMMITTER_DATE）
+HREF = "x<svg/onload=alert(40)>\"'"
+def pushes(repo, ref, at):
+    def gg(when, *a): subprocess.run(["git", "-C", repo, *a], check=True, capture_output=True,
+                                     env=dict(env, GIT_AUTHOR_DATE=when, GIT_COMMITTER_DATE=when))
+    bare = repo + ".remote.git"
+    if os.path.exists(bare): return
+    subprocess.run(["git", "init", "-q", "--bare", bare], check=True, capture_output=True)
+    if subprocess.run(["git", "-C", repo, "remote", "get-url", "origin"], capture_output=True).returncode:
+        gg(at[0], "remote", "add", "origin", bare)
+    gg(at[0], "remote", "set-url", "--push", "origin", bare)
+    for k, when in enumerate(at):
+        if k:
+            open(os.path.join(repo, f"p{k}.txt"), "w").write("p\n")
+            gg(when, "add", "-A"); gg(when, "commit", "-q", "-m", f"p{k} <img src=x onerror=alert(41)>")
+        gg(when, "push", "-q", "origin", "HEAD:refs/heads/" + ref)
+pushes(REPO, HREF, ["2026-10-05T10:40:00Z", "2026-10-05T11:40:00Z"])
+# プロジェクト名が __proto__ と constructor"><img …>（オブジェクトの鍵や HTML の属性に入ったとき）のリポジトリ。セッションとコミットと push がある
+for n, name in enumerate(["__proto__", 'constructor"><img src=x onerror=alert(42)>']):
+    d = os.path.join(S, "fx", name)
+    if not os.path.exists(os.path.join(d, ".git")):
+        os.makedirs(d, exist_ok=True)
+        subprocess.run(["git", "-C", d, "init", "-q", "-b", "main"], check=True, capture_output=True, env=env)
+        open(os.path.join(d, "a.txt"), "w").write("a\n")
+        subprocess.run(["git", "-C", d, "add", "-A"], check=True, capture_output=True, env=env)
+        subprocess.run(["git", "-C", d, "commit", "-q", "-m", "init " + name], check=True, capture_output=True,
+                       env=dict(env, GIT_AUTHOR_DATE=f"2026-10-06T{14+n:02d}:10:00Z", GIT_COMMITTER_DATE=f"2026-10-06T{14+n:02d}:10:00Z"))
+    pushes(d, "main" if n == 0 else HREF, [f"2026-10-06T{14+n:02d}:20:00Z", f"2026-10-06T{14+n:02d}:40:00Z"])
 root = os.path.join(S, "fx", "projects", "-p")
 os.makedirs(root, exist_ok=True)
 REP = "fix: <img src=x onerror=alert(20)> https://example.com/" + "a" * 120 + " please fix the build again"  # 空白のない長い語も（画面を横にはみ出させないか）
@@ -77,5 +106,13 @@ for n, name in enumerate(["a-very-long-project-name-without-any-spaces-that-keep
         for x in [{"cwd": "/" + name, "sessionId": sid, "type": "user", "timestamp": "2026-10-07T09:00:00Z", "message": {"role": "user", "content": "long"}},
                   {"cwd": "/" + name, "sessionId": sid, "type": "assistant", "timestamp": "2026-10-07T09:01:00Z", "requestId": f"rl{n}", "message": {"id": f"ml{n}", "model": "claude-opus-4-1", "role": "assistant",
                    "content": [{"type": "text", "text": "ok"}], "usage": {"input_tokens": 10, "output_tokens": 10}}}]:
+            f.write(json.dumps(x) + "\n")
+# __proto__ と constructor"><img …> のプロジェクトのセッション（push と同じ時間に）
+for n, name in enumerate(["__proto__", 'constructor"><img src=x onerror=alert(42)>']):
+    sid, d = str(uuid.UUID(int=30 + n)), os.path.join(S, "fx", name)
+    with open(os.path.join(root, sid + ".jsonl"), "w") as f:
+        for x in [{"cwd": d, "gitBranch": "main", "sessionId": sid, "type": "user", "timestamp": f"2026-10-06T{14+n:02d}:00:00Z", "message": {"role": "user", "content": "push " + name}},
+                  {"cwd": d, "gitBranch": "main", "sessionId": sid, "type": "assistant", "timestamp": f"2026-10-06T{14+n:02d}:45:00Z", "requestId": f"rp{n}", "message": {"id": f"mp{n}", "model": "claude-opus-4-1", "role": "assistant",
+                   "content": [{"type": "tool_use", "id": f"tp{n}", "name": "Bash", "input": {"command": "git push"}}], "usage": {"input_tokens": 10, "output_tokens": 10}}}]:
             f.write(json.dumps(x) + "\n")
 print(REPO)

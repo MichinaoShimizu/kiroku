@@ -52,7 +52,7 @@ let best = 0, most = -1;
 for (let i = 0, n = await s.locator(".run").count(); i < n; i++) {
   await s.locator(".run").nth(i).click({ force: true });
   await s.waitForTimeout(200);
-  const kinds = await s.evaluate(() => new Set([...document.querySelectorAll("#panel .kev")].map(e => e.className)).size);
+  const kinds = await s.evaluate(() => new Set([...document.querySelectorAll("#panel .tl li.ev")].map(e => e.classList[1])).size); // 出来事の種類（commit・pr・warn など）
   if (kinds > most) { most = kinds; best = i; }
   await s.keyboard.press("Escape");
   await s.waitForTimeout(150);
