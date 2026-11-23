@@ -186,6 +186,57 @@ func TestNoAIExecution(t *testing.T) {
 	}
 }
 
+// 取り除いた画面の部品（言語・テーマの切り替え、指標ガイド、ズーム、流れの出し方の切り替えと凡例、「まず見直す」の行と期間の行の ⚠、
+// 改善のアドバイスの枠、式をまとめて開くボタン、プロジェクトのカード、単価の表のカード、問題の報告・診断のコピー、週報のボタン、
+// Journey・Project の表示）が template.html と js/*.js に戻っていない。ブラウザの e2e で 1 つずつ数える代わりに、ここでまとめて見る。
+// id は id="x"・#x・getElementById("x") の形で、class は class="…" の中の語・セレクタの .x・classList の引数の形で探す（ほかの語の一部は数えない）
+func TestRemovedUIStaysGone(t *testing.T) {
+	ids := []string{"lang", "theme", "guide", "mg", "zin", "zout", "flowBy", "worth", "fxbtn", "rptcopy", "rptbar", "rptrun", "journeybtn", "projectbtn", "calendarbtn"}
+	classes := []string{"zoom", "tlkey", "tlkeyd", "icall", "insadv", "insadvc", "pcard", "ptab", "iunits", "iusw", "reportlink", "diagcopy", "insgo", "iksub"}
+	files := map[string]string{"template.html": skeleton}
+	ents, err := jsFiles.ReadDir("js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range ents {
+		b, err := jsFiles.ReadFile("js/" + e.Name())
+		if err != nil {
+			t.Fatal(err)
+		}
+		files["js/"+e.Name()] = string(b)
+	}
+	if len(files) < 5 {
+		t.Fatalf("read only %d files", len(files))
+	}
+	const end = `(?:[^\w-]|$)`
+	classAttr := regexp.MustCompile(`class=["']([^"']*)["']`)
+	for _, id := range ids {
+		q := regexp.QuoteMeta(id)
+		re := regexp.MustCompile(`id=["']` + q + `["']|#` + q + end + `|getElementById\(\s*["'` + "`" + `]` + q + `["'` + "`" + `]`)
+		for name, s := range files {
+			if m := re.FindString(s); m != "" {
+				t.Errorf("%s: removed id %q is back (%q)", name, id, m)
+			}
+		}
+	}
+	for _, c := range classes {
+		q := regexp.QuoteMeta(c)
+		re := regexp.MustCompile(`(?:^|[\s"'` + "`" + `,(>~+])\.` + q + end + `|classList\.\w+\(\s*["'` + "`" + `]` + q + `["'` + "`" + `]`)
+		for name, s := range files {
+			if m := re.FindString(s); m != "" {
+				t.Errorf("%s: removed class %q is back (%q)", name, c, m)
+			}
+			for _, a := range classAttr.FindAllStringSubmatch(s, -1) {
+				for _, tok := range strings.Fields(a[1]) {
+					if tok == c {
+						t.Errorf("%s: removed class %q is back (%q)", name, c, a[0])
+					}
+				}
+			}
+		}
+	}
+}
+
 // 画面はいつもダーク。読み込み中の画面も同じ（ダークの配色と暗い地の色だけを持ち、ライトの配色は持たない）
 func TestLoadingIsDark(t *testing.T) {
 	s := string(LoadingFor(""))

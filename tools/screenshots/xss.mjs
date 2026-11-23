@@ -22,7 +22,7 @@ await p.addInitScript(() => { window.__lsKeys = new Set(); const gi = Storage.pr
 // 同じ働きのものを 1 度だけ押すための鍵（描き直すと要素が替わるので、要素そのものでなく中身で見分ける）。どの切り替えの、どの選択肢の中のものかも入れる
 await p.addInitScript(() => { window.__keyOf = el => { const chs = []; for (let x = el.closest("[data-ch]"); x; x = x.parentElement && x.parentElement.closest("[data-ch]")) chs.push(x.dataset.ch);
   return [el.tagName, el.getAttribute("class") || "", el.getAttribute("aria-label") || "", ...[...el.attributes].filter(a => a.name.startsWith("data-")).map(a => `${a.name}=${a.value}`),
-    (el.textContent || "").trim().slice(0, 80), ...chs, (el.closest(".ikg, .iusw, .inscol") || {}).className || "",
+    (el.textContent || "").trim().slice(0, 80), ...chs, (el.closest(".ikg, .inscol") || {}).className || "",
     (document.querySelector("#review [data-ag][aria-pressed=true]") || {dataset: {}}).dataset.ag || ""].join("|"); }; });
 let failed = 0, disabledN = 0; // disabledN: 押せない（理由つきの）切り替えの選択肢の数
 await p.goto("file://" + path.resolve(html));
@@ -90,7 +90,7 @@ await clickAll(".gm", "pull request");
 const SUM_TARGETS = [ // [名前, 押すもの（#review の中）, 押し方]
   ["formula", ".fxb", "click"],                       // 式（ƒx）。開いたままにして、式の中の印やボタンも見えるようにする
   ["help", ".hb[data-help]", "click"],                // 「?」の説明
-  ["advice", ".insgo, .fmark, .iwlink", "click"],     // 見直す候補（Worth a look）のダイアログ
+  ["advice", ".fmark, .iwlink", "click"],             // 見直す候補（Worth a look）のダイアログ
   ["breakdown", "[data-metric]", "click"],            // 内訳のダイアログ
   ["point", "[data-sid]", "click"],                   // 散布図の点・ガントの行・いちばん変えたファイルのセッション
   ["tooltip", "[data-tip]", "hover"],                 // ツールチップ
@@ -148,7 +148,7 @@ const summaryCheck = async label => {
         if (!(await reach(b))) { failed++; console.log(`  FAIL summary ${label} switch ${g}=${v}: exists but is not visible`); continue; }
         if (await off(b, `${g}=${v}`)) continue; // 押せない選択肢は、理由があることだけを確かめる（押しても何も描かない）
         await b.click(); await p.waitForTimeout(80); await check(`summary ${label} switch ${g}=${v}`);
-        const dg = p.locator(`#review .iksw[data-sw="${g}"]`).locator('xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " ikg ") or contains(concat(" ", normalize-space(@class), " "), " iusw ")][1]').locator('.iksw[data-dim="d"]');
+        const dg = p.locator(`#review .iksw[data-sw="${g}"]`).locator('xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " ikg ")][1]').locator('.iksw[data-dim="d"]');
         const ds = (await dg.count()) ? await dg.locator("[data-v]").evaluateAll(xs => xs.map(x => x.dataset.v)) : [];
         if (!ds.length) { await sweep(`${state}, ${g}=${v}`); continue; }
         for (const d of ds) {

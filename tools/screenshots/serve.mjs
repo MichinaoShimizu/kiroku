@@ -126,7 +126,6 @@ try {
   // 日報と振り返りは、プロンプトをコピーするだけ（kiroku は AI を動かさない）。AI を動かすボタン・ダイアログ・/ai/run はない
   await p.goto(`${base}/`);
   await p.waitForSelector(".head .dayrun", { timeout: 15000 });
-  check("週報のボタンはない（日報とセッションの振り返りだけ）", await p.locator("#rptbar, #rptrun").count() === 0);
   check("AI を動かすボタンはなく、日報はプロンプトのコピー", await p.locator(".ai-action").count() === 0 && await p.locator(".head .dayrun.ai-copy").count() > 0);
   check("バッジ（点だけ）の名前に AI はない", !((await p.locator("#live").getAttribute("aria-label")) || "").includes("AI"));
   const dayBtn = p.locator(".head .dayrun").first();
@@ -146,7 +145,7 @@ try {
   check("鍵があっても /ai/run は 404", sz === 404, String(sz));
   await p.click("#mode button[data-v=month]");
   await p.waitForFunction(() => document.querySelector("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");
-  check("月の表示には、報告のボタンがない", await p.locator(".dayrun, #rptrun").count() === 0);
+  check("月の表示には、報告のボタンがない", await p.locator(".dayrun").count() === 0);
   await p.click("#mode button[data-v=week]");
   await p.waitForSelector(".head .dayrun", { timeout: 5000 });
 
