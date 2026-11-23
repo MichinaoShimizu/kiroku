@@ -1,0 +1,1 @@
+- Summary: the last column of "Where it flowed" is named "Output" (出力 in Japanese) instead of "Outcome" (成果): it shows whether a session reached a commit or a pull request, not whether the work succeeded
