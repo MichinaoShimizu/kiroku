@@ -234,7 +234,7 @@ async function run(env) {
         return {bg: getComputedStyle(tl).backgroundColor, me: getComputedStyle(pr.querySelector(":scope>p")).backgroundColor, ai: getComputedStyle(rp.querySelector(":scope>p")).backgroundColor,
           meRight: box.right - a.b.right < 40, meTime: a.t.right <= a.b.left + 1 && Math.abs(a.t.bottom - a.b.bottom) < 8,
           aiTime: r.t.left >= r.b.right - 1 && Math.abs(r.t.bottom - r.b.bottom) < 8, aiAv: rp.querySelector(".av").getBoundingClientRect().right <= r.b.left }; });
-      check("流れは青灰色の地に、あなたは右の緑、AI は左の白の吹き出し", lay.bg === "rgb(116, 148, 192)" && lay.me === "rgb(141, 224, 85)" && lay.ai === "rgb(255, 255, 255)" && lay.meRight && lay.aiAv, JSON.stringify(lay));
+      check("流れは青灰色の地に、あなたは右の緑、AI は左の白の吹き出し", lay.bg === "rgb(113, 130, 154)" && lay.me === "rgb(130, 212, 110)" && lay.ai === "rgb(255, 255, 255)" && lay.meRight && lay.aiAv, JSON.stringify(lay));
       check("時刻は吹き出しの下の端の横（あなたは左、AI は右）", lay.meTime && lay.aiTime, JSON.stringify(lay));
       // 依頼と応答の間に起きたこと（コミットなど）は応答の上に出るので、それを飛ばした手前が依頼
       check("応答は依頼のすぐ後に並ぶ", await p.evaluate(() => { const li = [...document.querySelectorAll("#panel .tl li")], i = li.findIndex(x => x.classList.contains("rp"));
@@ -916,6 +916,11 @@ async function run(env) {
     check("どこへ流れたか（サンキー）は、4 枚のパネルのすぐ下の幅いっぱいの 1 枚で、内訳の段には繰り返さない", await p.evaluate(() => { const h = document.querySelector("#review .insh"), k = document.querySelector("#review .iskw"); if (!k || !k.querySelector(".isk")) return false;
       const hr = h.getBoundingClientRect(), kr = k.getBoundingClientRect(), between = [...document.querySelectorAll("#review .insg, #review .insrow")].every(x => x.getBoundingClientRect().top >= kr.bottom - 1);
       return kr.top >= hr.bottom - 1 && Math.abs(kr.left - hr.left) < 2 && Math.abs(kr.right - hr.right) < 2 && between && document.querySelectorAll("#review .isk").length === 1 && !k.closest(".insrow"); }));
+    { // サンキーの 1 文の割合は全体に対して：記録のない分があれば、分母から外さずにその量を言う（全体の一部しか届いていないのに 100% と読ませない）
+      const sk = await p.evaluate(() => { const c = document.querySelector("#review .isk"); if (!c) return null; const say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay");
+        const unk = [...c.querySelectorAll("text.skt, .sklist .skn2")].some(x => /Not recorded|記録なし/.test(x.textContent)); return {unk, txt: say ? say.textContent : ""}; });
+      check("サンキーの 1 文は、記録のない分があれば全体に対する割合と記録のない量を言う", !sk || !sk.unk || /doesn't record commits|記録しないエージェント/.test(sk.txt), JSON.stringify(sk));
+    }
     { // サンキーの名前は、どれもカードの地の色の札の上（色の帯に直接乗らない）
       const lb = await p.evaluate(() => { const ts = [...document.querySelectorAll("#review .isk text.skt")].filter(x => x.checkVisibility());
         const bad = ts.filter(x => { const r = x.previousElementSibling; if (!r || !r.matches("rect.skbg")) return true; const a = x.getBoundingClientRect(), b = r.getBoundingClientRect(), f = getComputedStyle(r).fill;

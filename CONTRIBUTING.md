@@ -38,7 +38,7 @@ The view lives in `internal/web`: `template.html` (markup), `style.css` and the 
 
 - The view is in English and Japanese: pass text shown in the view through `t()` and add its Japanese to `js/i18n.js`. Metric explanations live in `HELP`, and a test checks them against the Tells you, Doesn't tell you and What to try columns of the metric tables in `docs/guide.md`
 - Check 1440px, 1000px and phone widths (the view is always dark)
-- Update the README (both `README.md` and `README.ja.md`), the guides and the screenshots (`sh tools/screenshots/run.sh`) in the same change
+- Update the README (`README.md`, in Japanese), the guides and the screenshots (`sh tools/screenshots/run.sh`) in the same change
 - Try the user scenarios in [docs/usability.md](docs/usability.md)
 
 The full checklist is in [Changing the view](docs/development.md#changing-the-view).

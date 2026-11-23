@@ -671,7 +671,11 @@ function insSankey(){
       const mid = n.y + n.h / 2, ex = i === 0 ? X[0] : NX[i] + nw, lead = Math.abs(ys[j] - 4 - mid) > 2 ? `<path class="sklead" d="M${ex} ${mid.toFixed(1)} L${(i === 0 ? lx + 2 : lx - 2)} ${(ys[j] - 4).toFixed(1)}"/>` : ""; // ずらした名前は、節まで短い線でつなぐ
       return r(NX[i]) + (i === 1 ? r(X[2], " o") : "") + lead + `<text class="skt${i ? " s" : ""}" x="${lx}" y="${ys[j].toFixed(1)}">${esc(short(key))} <tspan class="skv">${esc(fv(v))}</tspan></text>`; }).join(""); }).join("");
   const yes = vals[2].get(YES) || 0, rec = tot - (vals[2].get(UNK) || 0), mname = {cost: t("Estimated cost"), credits: t("Kiro credits"), tokens: t("Tokens"), minutes: t("Session time")}[k];
-  const sy = rec <= 0 ? t("These agents don't record their commits, so it is not known which sessions led to one") : t("{pc}% of {metric} ({v} of {tot}) went to sessions with a commit or PR", {pc: Math.round(yes * 100 / rec), metric: mname, v: fv(yes), tot: fv(rec)});
+  // 割合は全体（記録なしも含む）に対して出す。記録なしを分母から外すと、全体の一部しか届いていないのに「100%」と読めてしまう
+  const unk = tot - rec;
+  const sy = rec <= 0 ? t("These agents don't record their commits, so it is not known which sessions led to one")
+    : unk > 0 ? t("{v} of {tot} {metric} ({pc}%) went to sessions with a commit or PR; {u} ({pu}%) is from sessions whose agent doesn't record commits", {v: fv(yes), tot: fv(tot), metric: mname, pc: Math.round(yes * 100 / tot), u: fv(unk), pu: Math.round(unk * 100 / tot)})
+    : t("{pc}% of {metric} ({v} of {tot}) went to sessions with a commit or PR", {pc: Math.round(yes * 100 / rec), metric: mname, v: fv(yes), tot: fv(rec)});
   const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-skk="${x}" aria-pressed="${x === k}">${esc(INS_SW_NAME()[x])}</button>`).join("")}</div>` : "";
   const heads = [t("Agent"), t("Project"), t("Output")], hx = [X[0] + nw / 2, X[1] + nw / 2 + (nw + LW) / 2, X[3] + nw / 2];
   // 狭い画面の一覧：列ごとに、色の印・名前・量・割合（図の文字の代わり。読み上げもこちらで）

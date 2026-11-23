@@ -1,0 +1,1 @@
+- The prompt flow's blue-gray background and green bubbles are slightly toned down
