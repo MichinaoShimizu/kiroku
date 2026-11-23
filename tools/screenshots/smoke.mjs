@@ -136,6 +136,8 @@ async function run(env) {
     const at = () => p.evaluate(() => ["#rd", "#view"].map(q => { const r = document.querySelector(q).getBoundingClientRect(); return [Math.round(r.x), Math.round(r.y + scrollY)]; }));
     const pos0 = await at();
     await view("sum");
+    check("カレンダーからサマリーを開くと、すぐサンキーの名前の後ろに札がある（隠れたまま描いた図でも、開いたときに敷く）", await p.evaluate(() => { const ts = [...document.querySelectorAll("#review .isk text.skt")].filter(x => x.checkVisibility());
+      return innerWidth <= 600 || !document.querySelector("#review .isk") || (ts.length > 0 && ts.every(x => x.previousElementSibling && x.previousElementSibling.matches("rect.skbg"))); }));
     check("よく見るカードが上に、その他のグラフはたたんだ箱にあり、初めはたたんである。開いたかは覚える", await p.evaluate(async () => { const top = [...document.querySelectorAll("#review .insg > .insrow h4")].map(h => h.textContent);
       store.set("insMore", false); summary(); const d0 = document.querySelector("#review details.insmore"); const closed = d0 && !d0.open && !d0.querySelector(".insrow").checkVisibility();
       d0.querySelector("summary").click(); await new Promise(r => setTimeout(r, 50)); const saved = store.get("insMore", false) === true; summary();
@@ -381,12 +383,24 @@ async function run(env) {
       if (env.viewport.width >= 900){ const t = await chartTops(); check("横に並んだ 2 枚のパネルのグラフは、同じ高さから始まる（4px 以内）", aligned(t), JSON.stringify(t)); }
       check("各パネルの凡例はグラフの下にある", await p.evaluate(() => [...document.querySelectorAll("#review .insh .ikg")].every(g => { const t = [...g.querySelectorAll(".ikrow > .itile")].find(x => x.checkVisibility()), s = t && t.querySelector(".tspk svg"), l = g.querySelector(":scope > .tlg");
         return !s || (!!l && l.getBoundingClientRect().top >= s.getBoundingClientRect().bottom - 1); })));
+      // 凡例の項目は、どれもそのパネルで見せているグラフが描いた印の説明（描いていない推定・予測などを並べない）
+      const lgCheck = async when => { const r = await p.evaluate(() => [...document.querySelectorAll("#review .insh .ikg")].map(g => { const t = [...g.querySelectorAll(".ikrow > .itile")].find(x => x.checkVisibility()), svg = t && t.querySelector(".tspk svg");
+          const items = [...g.querySelectorAll(":scope > .tlg .lg")].filter(x => x.checkVisibility());
+          return {p: [...g.classList].find(c => c.startsWith("ik-")), items: items.map(x => x.textContent), bad: items.filter(x => !x.dataset.lg || !svg || !svg.querySelector(x.dataset.lg)).map(x => x.textContent)}; }));
+        check(`${when}：パネルの凡例の項目は、どれもそのパネルのグラフに描いた印の説明`, r.length === 4 && r.every(x => x.items.length > 0 && x.bad.length === 0), JSON.stringify(r)); return r; };
+      await lgCheck("開いた期間");
+      if (env.viewport.width >= 900){ // 頭の段は subgrid で横の 2 枚と同じ高さ。片方の頭にだけ注の行があると、もう片方の頭の下が空く
+        const hg = await p.evaluate(() => { const slack = c => { const h = document.querySelector(`#review .insh .ik-${c} > .ikhd`), last = [...h.children].filter(x => x.checkVisibility()).pop();
+          return Math.round(h.getBoundingClientRect().bottom - last.getBoundingClientRect().bottom); }; return {uin: slack("uin"), unit: slack("unit"), cost: slack("cost"), out: slack("out")}; });
+        check("横に並んだパネルの頭は、どちらも中身の高さ（片方の頭の注のために、もう片方の頭の下が空かない）", Math.abs(hg.uin - hg.unit) <= 4 && Math.abs(hg.cost - hg.out) <= 4, JSON.stringify(hg)); }
       { // 途中の期間：期間の終わりの推定は、今までの値と同じ行に並ぶ（狭い画面では折り返してよいが、パネルの外に出ない）
         await p.evaluate(() => document.activeElement && document.activeElement.blur()); const lab0 = await p.locator("#rd").innerText(); await p.keyboard.press("t"); await pause();
         const r = await p.evaluate(() => [...document.querySelectorAll("#review .insh .ikrow > .itile")].filter(x => x.checkVisibility() && x.querySelector(".ivbig")).map(x => { const v = x.querySelector(".ivnow > .itv, .ivnow > b").getBoundingClientRect(), e = x.querySelector(".ivbig b").getBoundingClientRect(), t = x.getBoundingClientRect();
           return {ch: x.dataset.ch, same: e.top < v.bottom && e.bottom > v.top && Math.abs(e.bottom - v.bottom) < 8, inside: e.right <= t.right + 1 && v.right <= t.right + 1, below: e.top >= v.bottom - 2}; }));
         check("途中の期間の推定は、今までの値と同じ行に並ぶ（1100px より狭い画面では次の行に折り返してよい）。どれもパネルの中", r.length >= 2 && r.every(x => x.inside && (env.viewport.width >= 1100 ? x.same : x.same || x.below)), JSON.stringify(r));
         if (env.viewport.width >= 900){ const t = await chartTops(); check("途中の期間でも、横に並んだ 2 枚のパネルのグラフは同じ高さから始まる（4px 以内）", aligned(t), JSON.stringify(t)); }
+        { const r = await lgCheck("途中の期間"); const u = r.filter(x => x.p === "ik-uin" || x.p === "ik-unit");
+          check("途中の期間でも、単価のパネルの凡例に推定・予測は出ない（単価のグラフには描かない）", u.length === 2 && u.every(x => !x.items.some(i => /estimate|Projection|予測/.test(i))), JSON.stringify(u)); }
         for (let i = 0; i < 30 && await p.locator("#rd").innerText() !== lab0; i++){ await p.keyboard.press("ArrowLeft"); await pause(); } check("今週から元の週に戻る", await p.locator("#rd").innerText() === lab0);
       }
       { // パネルの切り替え：押すと別の選択肢のタイル（とグラフ）になり、開き直しても覚えている
@@ -897,18 +911,18 @@ async function run(env) {
         return {n: ts.length, bad, narrow: innerWidth <= 600}; });
       check("サンキーの名前と量は、どれも不透明な札の上にある（狭い画面では図の名前を出さず、下の一覧）", lb.narrow ? lb.n === 0 : lb.n > 0 && lb.bad.length === 0, JSON.stringify(lb));
     }
-    { // サンキーの帯は、左から右まで同じ色（カレンダーの色分けと同じ）。エージェントで色分けなら、そのエージェントの帯はプロジェクトの先でも同じ色。プロジェクトに替えると、プロジェクトの色になる
-      const col = by => p.evaluate(by => { const ps = [...document.querySelectorAll("#review .isk path.skl")], fill = e => e.getAttribute("fill");
-        const ok = ps.every(e => fill(e) === colorOf(e.dataset.c)) && ps.every(e => by === "source" ? (e.dataset.l !== "0" || e.dataset.c === e.dataset.a) : DATA.some(s => s.project === e.dataset.c));
-        const keys = [...new Set(ps.map(e => e.dataset.c))], both = keys.filter(k => ps.some(e => e.dataset.c === k && e.dataset.l === "0") && ps.some(e => e.dataset.c === k && e.dataset.l === "1"));
-        return {ok, keys: keys.length, both: both.length === keys.length, colorBy: st.colorBy}; }, by);
-      const by0 = await p.evaluate(() => st.colorBy), a = await col(by0);
-      check(`サンキーの帯は、色分け（${by0}）の色で左から右まで同じ色`, a.ok && a.both && a.keys >= 2, JSON.stringify(a));
-      const other = by0 === "source" ? "project" : "source";
-      await p.evaluate(by => { st.colorBy = by; render(); }, other); await pause(); if (await p.evaluate(() => st.view !== "sum")) await view("sum");
-      const c = await col(other);
-      check(`色分けを ${other} に替えると、サンキーの帯もその色になる`, c.ok && c.both && c.colorBy === other, JSON.stringify(c));
-      await p.evaluate(by => { st.colorBy = by; render(); }, by0); await pause();
+    { // サンキーの色：エージェントから出る帯はエージェントの色、プロジェクトは左右 2 本の節の間を、そのプロジェクトの色の帯が埋め、プロジェクトから出る帯もプロジェクトの色
+      const sc = await p.evaluate(() => { const f = document.querySelector("#review .isk svg"); if (!f) return null; const fill = e => e.getAttribute("fill"), r = e => e.getBoundingClientRect(), near = (x, y) => Math.abs(x - y) < 1.5;
+        const sk = [...f.querySelectorAll("rect.skp")], L = [...f.querySelectorAll("rect.skn:not(.o)")], O = [...f.querySelectorAll("rect.skn.o")], cvar = /^var\(--(c[0-7]|other)\)$/;
+        const band = sk.filter(e => { const b = r(e), l = L.find(x => near(r(x).right, b.left) && near(r(x).top, b.top)), o = O.find(x => near(r(x).left, b.right) && near(r(x).top, b.top));
+          return !!l && !!o && near(r(l).height, b.height) && near(r(o).height, b.height) && b.width > 40 && fill(e) === fill(l) && fill(e) === fill(o) && cvar.test(fill(e)) && +getComputedStyle(e).opacity >= +getComputedStyle(f.querySelector("path.skl")).opacity; }).length;
+        const ps = [...f.querySelectorAll("path.skl")], ag = ps.filter(e => e.dataset.l === "0"), po = ps.filter(e => e.dataset.l === "1"), pc = new Map(sk.map(e => [e.dataset.p, fill(e)]));
+        return {projects: O.length, skp: sk.length, band, agent: ag.length, agentOk: ag.filter(e => fill(e) === agColor(e.dataset.a)).length, proj: po.length, projOk: po.filter(e => pc.has(e.dataset.a) && fill(e) === pc.get(e.dataset.a)).length}; });
+      if (sc){
+        check("サンキーのプロジェクトは、どれも左右の節の間がそのプロジェクトの色の帯で埋まっている", sc.projects >= 2 && sc.skp === sc.projects && sc.band === sc.projects, JSON.stringify(sc));
+        check("サンキーのエージェントから出る帯は、エージェントの色", sc.agent >= 2 && sc.agentOk === sc.agent, JSON.stringify(sc));
+        check("サンキーのプロジェクトから出る帯は、プロジェクトの色", sc.proj >= 2 && sc.projOk === sc.proj, JSON.stringify(sc));
+      }
     }
     check("サンキーは、エージェント・プロジェクト・成果の 3 列", await p.evaluate(() => document.querySelectorAll("#review .isk .skh").length === 3 && document.querySelectorAll("#review .isk .skl").length >= 2));
     { const g = p.locator("#review .igt .igr").first(); if (await g.count()){ const sid = await g.getAttribute("data-sid"); await g.click(); await pause();

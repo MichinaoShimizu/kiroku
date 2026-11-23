@@ -1151,6 +1151,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .tspk .band{fill:color-mix(in oklab,var(--ink) 16%,transparent)}.tspk .med{stroke:var(--ink-3);stroke-dasharray:4 3;stroke-width:1}
 .tspk .now{fill:var(--acc)}.tspk .now.part{fill:var(--surface);stroke:var(--acc);stroke-width:1.8}
 .tspk .prj{stroke:var(--acc);stroke-width:1.6;stroke-dasharray:4 3}.tspk .cprj{stroke:var(--amber);stroke-width:1.4;stroke-dasharray:4 3}.tspk .cprjd{fill:var(--surface);stroke:var(--amber);stroke-width:1.4}.tspk .sofar{fill:var(--acc)}.tspk .hit{fill:transparent;pointer-events:all}.tspk .slim{fill:var(--warn);opacity:.7}.tspk .slimn{fill:var(--warn);font-weight:600;font-size:9px}.tspk .slimn{text-anchor:middle}.tspk .slimhit:hover{fill:color-mix(in oklab,var(--warn) 20%,transparent)}.tspk .hit:hover{fill:color-mix(in oklab,var(--acc) var(--t2),transparent)}
+.tlg .lg[hidden]{display:none}
 .tlg{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:var(--fs-2xs);color:var(--ink-3);line-height:1.4}
 .tlg .lg::before{content:"";display:inline-block;width:10px;height:8px;margin-right:4px;vertical-align:middle;border-radius:2px}
 .tlg .lg.now::before{width:8px;border-radius:50%;background:var(--acc)}.tlg .lg.now.part::before{background:var(--surface);border:1.5px solid var(--acc);box-sizing:border-box}
@@ -1219,7 +1220,8 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .idn path{stroke:var(--surface);stroke-width:1.5}.idnv{font:700 14px var(--sans);fill:var(--ink);text-anchor:middle}.idnl{font-size:10px;fill:var(--ink-3);text-anchor:middle;font-family:var(--sans)}
 @container (max-width:520px){.iwdn{flex-direction:column;align-items:stretch}.idn{align-self:center}}
 /* サンキー（どこへ流れたか） */
-.isk svg{overflow:visible}.isk .skl{opacity:.38}.isk .skl:hover{opacity:.6}.isk .skn{stroke:none}
+.isk svg{overflow:visible}.isk .skl{opacity:.38}.isk .skl:hover{opacity:.6}.isk .skp{opacity:.46}.isk .skp:hover{opacity:.6} /* プロジェクトの列の、2 本の節の間の帯（ほかの帯より少し濃く） */
+.isk .skn{stroke:none}
 .isk .skt{font-size:11px;fill:var(--ink-2);text-anchor:end;font-family:var(--sans)}.isk .skt.s{text-anchor:start}.isk .skv{fill:var(--ink-3);font-variant-numeric:tabular-nums}
 .isk .skh{font-size:11px;fill:var(--ink-3);text-anchor:middle;font-weight:600;font-family:var(--sans)}
 /* 箱ひげ（1 セッションあたりのばらつき） */
