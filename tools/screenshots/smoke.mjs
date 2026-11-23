@@ -539,6 +539,29 @@ async function run(env) {
     check("コミットあたりの費用は、出力ではなく単価の段にある", await p.evaluate(() => { const G = [...document.querySelectorAll("#review .insh .ikg")]; return G.length === 3 && !!G[2].querySelector('[data-metric="costPerCommit"]') && !document.querySelector('#review .iout .hb[data-help="costPerCommit"]'); }));
     check("割った指標には式（÷）が添えてある", await oc.evaluate(e => [...e.querySelectorAll(".mrow")].filter(s => s.querySelector('.hb[data-help="outSessions"], .hb[data-help="costPerCommit"]')).every(s => /÷/.test(s.textContent))));
     check("カードが箱からはみ出さない", await oc.evaluate(e => [...e.querySelectorAll(".mrow")].every(s => s.getBoundingClientRect().right <= e.getBoundingClientRect().right + 1)));
+    { // 数字の大きさの段：3 つのパネルの値がいちばん大きく、内訳のカードの値（Outputs の行・数の枠）はそれより小さい
+      const fs = await p.evaluate(() => { const px = sel => [...document.querySelectorAll(sel)].filter(e => e.checkVisibility()).map(e => parseFloat(getComputedStyle(e).fontSize));
+        return {panel: px("#review .insh .ikg .itile .itv, #review .insh .ikg .itile > b"), card: px("#review .insrow .mrow .mv, #review .insrow .stat .v")}; });
+      check("パネルの値は、内訳のカードの値より大きい（1.5 倍以上）", fs.panel.length >= 3 && fs.card.length > 0 && Math.min(...fs.panel) >= 1.5 * Math.max(...fs.card), JSON.stringify(fs));
+    }
+    { // いつもの範囲から大きく外れた量（かなり上・下）だけが、中立の色（.odd）と札（「Far above usual」など）を持つ。単価は評価の文の色があるので付けない。
+      // 期間をさかのぼって、外れた数字のある期間を少なくとも 1 つ見る
+      const odd = () => p.evaluate(() => { const far = /far (above|below)|かなり(上|下)/, bad = [];
+        let n = 0;
+        document.querySelectorAll("#review .insh .ikg .itile").forEach(e => { const v = e.querySelector(":scope > .itv, :scope > b"), c = e.querySelector(".ichip .cp"); if (!v) return;
+          const want = !e.closest(".ik-unit") && !!c && far.test(c.textContent), has = v.classList.contains("odd"), mk = e.querySelector(":scope > .iodd");
+          if (has) n++; if (want !== has || want !== !!mk || (mk && !/Far (above|below) usual|いつもよりかなり(高|低)い/.test(mk.textContent))) bad.push(`${e.dataset.ch}:${want}/${has}/${!!mk}`); });
+        document.querySelectorAll("#review .insrow .mrow").forEach(e => { const m = e.querySelector(".imk"); if (!m) return;
+          const want = far.test(m.querySelector(".sr").textContent) && !m.matches(".good, .bad"), has = !!e.querySelector(".mv .odd");
+          if (has) n++; if (want !== has || want !== m.classList.contains("odd")) bad.push(`${e.querySelector(".mk").textContent}:${want}/${has}`); });
+        document.querySelectorAll("#review .ik-unit .odd, #review .ik-unit .iodd, #review .iunits .odd, #review .iunits .iodd").forEach(e => bad.push("unit cost marked: " + e.textContent));
+        return {n, bad}; });
+      await p.evaluate(() => document.activeElement && document.activeElement.blur());
+      let seen = 0, back = 0; const bads = [];
+      for (; back < 8; back++){ const r = await odd(); seen += r.n; bads.push(...r.bad); if (seen && back) break; await p.keyboard.press("ArrowLeft"); await pause(); }
+      check("大きく外れた量だけに中立の色と札が付き、いつもの範囲の数字と単価には付かない", seen > 0 && bads.length === 0, JSON.stringify({seen, back, bads}));
+      for (let i = 0; i < back; i++){ await p.keyboard.press("ArrowRight"); await pause(); }
+    }
     { // アウトプットは数の枠ではなく、Git と AI の編集の 2 つの列の 1 行ずつの一覧（名前・値・いつもの範囲の印・「ƒx」「?」）。長い説明は「ƒx」で開くまで隠す
       const o = await oc.evaluate(e => { const cols = [...e.querySelectorAll(".iosec")].map(c => [...c.querySelectorAll(".mrow")]), rows = cols.flat();
         const r = id => { const h = e.querySelector(`.mrow .hb[data-help="${id}"]`); return h && h.closest(".mrow"); }, gl = r("lines");
