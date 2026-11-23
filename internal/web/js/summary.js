@@ -34,7 +34,11 @@ function agScope(ag, fn){ if (!ag) return fn();
   DATA = per[ag] || (per[ag] = D.filter(s => s.source === ag)); WEEKS = pick(W); MONTHS = pick(Mo);
   try { return fn(); } finally { DATA = D; WEEKS = W; MONTHS = Mo; } }
 // サマリーの中の見直す候補（絞っていれば、そのエージェントの候補）を開く
-const insOpenWorth = (id, from) => agScope(insAg, () => openWorth(id, from, insFlags));
+// 印の付いたカードが、たたんだ箱（内訳・その他のグラフ）の中にあれば、その箱を開く（ダイアログを閉じたとき、そのカードが見えるように。開いたことは箱ごとに覚える）
+const insOpenWorth = (id, from) => { insReveal(id); agScope(insAg, () => openWorth(id, from, insFlags)); };
+// insReveal は、サマリーの中で指標 id のカード（見直す候補の印、なければ「?」）を囲む、たたんだ箱を開く
+function insReveal(id){ const R = $("#review"), q = CSS.escape(String(id)), el = R && (R.querySelector(`.fmark[data-goto="${q}"]`) || R.querySelector(`.hb[data-help="${q}"]`));
+  for (let d = el && el.closest("details"); d && R.contains(d); d = d.parentElement.closest("details")) if (!d.open) d.open = true; }
 /* 指標の読み方：定義・言えること・言えないこと・打てる手。画面の「?」と、改善案プロンプトの前提に使う */
 const HELP = {
   findings: {n: "Worth a look", d: "Metrics that crossed a fixed threshold. Each is marked with a warning triangle where it appears, with what was observed, an 8-period trend (for metrics counted per period), the related sessions and the threshold", c: "Which metric is worth reviewing first", x: "Whether something is good or bad. Thresholds are generic and may not fit how you work", a: "Pick one, try it next period, and check the change with the same metric"},

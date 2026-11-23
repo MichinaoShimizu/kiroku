@@ -83,8 +83,8 @@ await clickAll(".run", "session", async () => {
 await clickAll(".gc", "commit");
 await clickAll(".gm", "pull request");
 // サマリー（概要のカード）。履歴の名前が文字・title・aria-label・ツールチップ・data-* に入るので、どの切り替えも押して確かめる。
-// パネルとカードの多くは切り替えで選んだものだけを見せ、「その他のグラフ」はたたんである。見えないものは押せないので、
-// 切り替えの選択肢を 1 つずつ選び（量 × 割る数も）、「その他のグラフ」を開いて、そのたびに見えるようになったものを押して確かめる。
+// パネルとカードの多くは切り替えで選んだものだけを見せ、「内訳」と、その中の「その他のグラフ」はたたんである。見えないものは押せないので、
+// 切り替えの選択肢を 1 つずつ選び（量 × 割る数も）、「内訳」と「その他のグラフ」を開いて、そのたびに見えるようになったものを押して確かめる。
 // どの状態でも見えなかったもの（あるのに確かめられなかったもの）は、最後に NG にする。
 // style には決まった値（色の変数・数）だけが入る（履歴の文字は入らない）
 const SUM_TARGETS = [ // [名前, 押すもの（#review の中）, 押し方]
@@ -102,8 +102,11 @@ const summaryCheck = async label => {
   const seen = new Set(), hidden = new Map(), count = {}, badStyles = new Set();
   const onSummary = async () => {
     if ((await sw.getAttribute("aria-pressed")) !== "true") { await sw.click(); await p.waitForTimeout(200); }
-    const more = p.locator("#review details.insmore:not([open]) > summary"); // 「その他のグラフ」を開く
-    if (await more.count()) { await more.first().scrollIntoViewIfNeeded(); await more.first().click(); await p.waitForTimeout(100); }
+    // たたんだ「内訳」と、その中の「その他のグラフ」を開く（外から順に。たたんだ箱の中の箱は見えないので押せない）
+    for (const sel of ["#review details.insbrk:not([open]) > summary", "#review details.insmore:not([open]) > summary"]) {
+      const more = p.locator(sel);
+      if (await more.count()) { await more.first().scrollIntoViewIfNeeded(); await more.first().click(); await p.waitForTimeout(100); }
+    }
   };
   const close = async () => { await p.keyboard.press("Escape"); await p.waitForTimeout(50); await p.keyboard.press("Escape"); await p.waitForTimeout(50); await onSummary(); };
   // 今の状態で見えるものを押す（まだ押していないものだけ）。式を開くと中にボタンが増えるので、増えなくなるまで繰り返す

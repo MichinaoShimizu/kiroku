@@ -45,7 +45,7 @@ async function openContext(env, locale, csp) {
   // CSP の違反はページの中で拾って知らせる（関数を渡す仕組みは CSP の外なので止められない）
   await ctx.exposeFunction("kirokuCSPViolation", v => csp.push(v));
   await ctx.addInitScript(() => addEventListener("securitypolicyviolation", e => window.kirokuCSPViolation(`${e.effectiveDirective} ${e.blockedURI || "inline"} ${e.sourceFile || ""}:${e.lineNumber || ""}`)));
-  await ctx.addInitScript(() => { try { if (localStorage.getItem("kiroku:insMore") == null) localStorage.setItem("kiroku:insMore", "true"); } catch (e) {} }); // 「その他のグラフ」を開いた状態で確かめる（たたむことは別に確かめる）
+  await ctx.addInitScript(() => { try { for (const k of ["kiroku:insBrk", "kiroku:insMore"]) if (localStorage.getItem(k) == null) localStorage.setItem(k, "true"); } catch (e) {} }); // 「内訳」と「その他のグラフ」を開いた状態で確かめる（たたむことは別に確かめる）
   const p = await ctx.newPage();
   const errors = [];
   p.on("pageerror", e => errors.push(e.message));
@@ -138,10 +138,19 @@ async function run(env) {
     await view("sum");
     check("カレンダーからサマリーを開くと、すぐサンキーの名前の後ろに札がある（隠れたまま描いた図でも、開いたときに敷く）", await p.evaluate(() => { const ts = [...document.querySelectorAll("#review .isk text.skt")].filter(x => x.checkVisibility());
       return innerWidth <= 600 || !document.querySelector("#review .isk") || (ts.length > 0 && ts.every(x => x.previousElementSibling && x.previousElementSibling.matches("rect.skbg"))); }));
-    check("よく見るカードが上に、その他のグラフはたたんだ箱にあり、初めはたたんである。開いたかは覚える", await p.evaluate(async () => { const top = [...document.querySelectorAll("#review .insg > .insrow h4")].map(h => h.textContent);
-      store.set("insMore", false); summary(); const d0 = document.querySelector("#review details.insmore"); const closed = d0 && !d0.open && !d0.querySelector(".insrow").checkVisibility();
-      d0.querySelector("summary").click(); await new Promise(r => setTimeout(r, 50)); const saved = store.get("insMore", false) === true; summary();
-      return closed && saved && document.querySelector("#review details.insmore").open && top.some(x => /When you worked/.test(x)) && top.some(x => /Where it went/.test(x)) && !top.some(x => /^Trend/.test(x)); }));
+    check("内訳は初めはたたんであり、見出しの横に中のカードの名前と「その他のグラフ」の枚数が 1 行ある。押すと開き、開いたかは覚える。よく見るカードが上に、その他のグラフは内訳の中のたたんだ箱（初めはたたんであり、開いたかは覚える）", await p.evaluate(async () => {
+      const wait = () => new Promise(r => setTimeout(r, 50));
+      store.set("insBrk", false); store.set("insMore", false); summary(); const B = document.querySelector("#review details.insbrk"), sm = B && B.querySelector(":scope > summary"); if (!sm) return false;
+      const closed = !B.open && !B.querySelector(".insrow").checkVisibility() && /Output, Where it went/.test(sm.textContent) && /\d+ other charts/.test(sm.textContent) && !document.querySelector("#review details.insmore").checkVisibility();
+      sm.click(); await wait(); const saved = store.get("insBrk", false) === true; const d0 = B.querySelector("details.insmore"), inner = !!d0 && !d0.open && !d0.querySelector(".insrow").checkVisibility();
+      d0.querySelector("summary").click(); await wait(); const saved2 = store.get("insMore", false) === true; summary();
+      const B2 = document.querySelector("#review details.insbrk"), top = [...B2.querySelectorAll(":scope > .insg > .insrow h4")].map(h => h.textContent);
+      return closed && saved && inner && saved2 && B2.open && B2.querySelector("details.insmore").open && top.some(x => /When you worked/.test(x)) && top.some(x => /Where it went/.test(x)) && !top.some(x => /^Trend/.test(x)); }));
+    check("見直す候補（Worth a look）のリンクの指標のカードが、たたんだ内訳の中にあれば、リンクで内訳が開く（開いたことも覚える）", await p.evaluate(async () => {
+      store.set("insBrk", false); summary(); const B = document.querySelector("#review details.insbrk");
+      const id = [...B.querySelectorAll(".fmark")].map(x => x.dataset.goto).find(id => document.querySelector(`#review .iworth .iwlink[data-goto="${id}"]`)); if (!id || B.open) return false;
+      document.querySelector(`#review .iworth .iwlink[data-goto="${id}"]`).click(); await new Promise(r => setTimeout(r, 50));
+      const ok = document.querySelector("#wk").open && B.open && store.get("insBrk", false) === true; document.querySelector("#wk").close(); return ok; }));
     check("サマリーに切り替えると、カレンダーは隠れる", await p.locator("#tl").isHidden() && await p.locator("#review").isVisible());
     const pos1 = await at();
     check("切り替えても、期間の見出しと切り替えのボタンは動かない（上の帯の高さでずれない）", JSON.stringify(pos0) === JSON.stringify(pos1), `${JSON.stringify(pos0)} → ${JSON.stringify(pos1)}`);
@@ -389,6 +398,9 @@ async function run(env) {
           return {p: [...g.classList].find(c => c.startsWith("ik-")), items: items.map(x => x.textContent), bad: items.filter(x => !x.dataset.lg || !svg || !svg.querySelector(x.dataset.lg)).map(x => x.textContent)}; }));
         check(`${when}：パネルの凡例の項目は、どれもそのパネルのグラフに描いた印の説明`, r.length === 4 && r.every(x => x.items.length > 0 && x.bad.length === 0), JSON.stringify(r)); return r; };
       await lgCheck("開いた期間");
+      check("投入・出力のパネルのグラフは期間ごとの棒（表示中の期間の棒は 1 本で、点と線はない）、単価のパネルのグラフは点と線（棒はない）。切り替えで隠れたタイルも", await p.evaluate(() => ["cost", "out", "uin", "unit"].every(c => { const ss = [...document.querySelectorAll(`#review .insh .ik-${c} .ikrow > .itile .tspk svg`)];
+        return ss.length > 0 && ss.every(s => { const bars = s.querySelectorAll("rect.sbar").length, cur = s.querySelectorAll("rect.sbar.cur").length, dots = s.querySelectorAll("polyline.trl, circle.now, circle.pt").length;
+          return c === "cost" || c === "out" ? bars >= 2 && cur === 1 && dots === 0 : bars === 0 && s.querySelectorAll("circle.now").length === 1 && !!s.querySelector("polyline.trl"); }); })));
       if (env.viewport.width >= 900){ // 頭の段は subgrid で横の 2 枚と同じ高さ。片方の頭にだけ注の行があると、もう片方の頭の下が空く。1 つのエージェントに絞ったときも（push あたりの注を頭に置かない）
         const heads = when => p.evaluate(() => { const slack = c => { const h = document.querySelector(`#review .insh .ik-${c} > .ikhd`); if (!h) return null; const last = [...h.children].filter(x => x.checkVisibility()).pop();
           return Math.round(h.getBoundingClientRect().bottom - last.getBoundingClientRect().bottom); }; return {uin: slack("uin"), unit: slack("unit"), cost: slack("cost"), out: slack("out")}; })
@@ -403,6 +415,9 @@ async function run(env) {
           return {ch: x.dataset.ch, same: e.top < v.bottom && e.bottom > v.top && Math.abs(e.bottom - v.bottom) < 8, inside: e.right <= t.right + 1 && v.right <= t.right + 1, below: e.top >= v.bottom - 2}; }));
         check("途中の期間の推定は、今までの値と同じ行に並ぶ（1100px より狭い画面では次の行に折り返してよい）。どれもパネルの中", r.length >= 2 && r.every(x => x.inside && (env.viewport.width >= 1100 ? x.same : x.same || x.below)), JSON.stringify(r));
         if (env.viewport.width >= 900){ const t = await chartTops(); check("途中の期間でも、横に並んだ 2 枚のパネルのグラフは同じ高さから始まる（4px 以内）", aligned(t), JSON.stringify(t)); }
+        check("途中の期間：投入のグラフは、今までの値の棒と、期間の終わりの推定までの破線の棒（凡例にも）", await p.evaluate(() => { const g = document.querySelector("#review .insh .ik-cost"), t = [...g.querySelectorAll(".ikrow > .itile")].find(x => x.checkVisibility()), s = t && t.querySelector(".tspk svg");
+          const cur = s && s.querySelector("rect.sbar.cur"), ext = s && s.querySelector("rect.sbar.ext"), lg = [...g.querySelectorAll(":scope > .tlg .lg")].filter(x => x.checkVisibility()).map(x => x.dataset.lg);
+          return !!cur && !!ext && Math.abs(+ext.getAttribute("y") + +ext.getAttribute("height") - +cur.getAttribute("y")) < 0.2 && lg.includes("rect.sbar.ext") && lg.includes("rect.sbar.cur"); }));
         { const r = await lgCheck("途中の期間"); const u = r.filter(x => x.p === "ik-uin" || x.p === "ik-unit");
           check("途中の期間でも、単価のパネルの凡例に推定・予測は出ない（単価のグラフには描かない）", u.length === 2 && u.every(x => !x.items.some(i => /estimate|Projection|予測/.test(i))), JSON.stringify(u)); }
         for (let i = 0; i < 30 && await p.locator("#rd").innerText() !== lab0; i++){ await p.keyboard.press("ArrowLeft"); await pause(); } check("今週から元の週に戻る", await p.locator("#rd").innerText() === lab0);
@@ -934,10 +949,13 @@ async function run(env) {
     check("どこへ流れたか（サンキー）は、4 枚のパネルのすぐ下の幅いっぱいの 1 枚で、内訳の段には繰り返さない", await p.evaluate(() => { const h = document.querySelector("#review .insh"), k = document.querySelector("#review .iskw"); if (!k || !k.querySelector(".isk")) return false;
       const hr = h.getBoundingClientRect(), kr = k.getBoundingClientRect(), between = [...document.querySelectorAll("#review .insg, #review .insrow")].every(x => x.getBoundingClientRect().top >= kr.bottom - 1);
       return kr.top >= hr.bottom - 1 && Math.abs(kr.left - hr.left) < 2 && Math.abs(kr.right - hr.right) < 2 && between && document.querySelectorAll("#review .isk").length === 1 && !k.closest(".insrow"); }));
-    { // サンキーの 1 文の割合は全体に対して：記録のない分があれば、分母から外さずにその量を言う（全体の一部しか届いていないのに 100% と読ませない）
-      const sk = await p.evaluate(() => { const c = document.querySelector("#review .isk"); if (!c) return null; const say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay");
-        const unk = [...c.querySelectorAll("text.skt, .sklist .skn2")].some(x => /Not recorded|記録なし/.test(x.textContent)); return {unk, txt: say ? say.textContent : ""}; });
-      check("サンキーの 1 文は、記録のない分があれば全体に対する割合と記録のない量を言う", !sk || !sk.unk || /doesn't record commits|記録しないエージェント/.test(sk.txt), JSON.stringify(sk));
+    { // サンキーの 1 文は、全体がどこへ行ったかを言い切る：コミットか PR あり・なし（None）・記録しないエージェントの分のうち 0 でないものを全部、全体に対する割合で。割合は足して 100
+      const sk = await p.evaluate(() => { const c = document.querySelector("#review .isk"); if (!c) return null; const say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay"), out = [...c.querySelectorAll(".sklist .skcol:last-child .skn2")].map(x => x.textContent);
+        return {unk: out.some(x => /^(Not recorded|記録なし)$/.test(x)), none: out.some(x => /^(None|なし)$/.test(x)), yes: out.some(x => /^(Commit or PR|コミットか PR)$/.test(x)), txt: say ? say.textContent : "", list: [...c.querySelectorAll(".sklist .skcol")].map(g => [...g.querySelectorAll("li b")].reduce((a, b) => a + parseInt(b.textContent), 0))}; });
+      const pcs = sk ? [...sk.txt.matchAll(/(\d+)%/g)].map(m => +m[1]) : [];
+      check("サンキーの 1 文は、出力の部分（コミットか PR あり・なし・記録しないエージェントの分）を全部言い、その割合は足して 100", !sk || (!sk.yes && !sk.none ? pcs.length === 0 : pcs.length === sk.yes + sk.none + sk.unk && pcs.reduce((a, v) => a + v, 0) === 100
+        && (!sk.none || /without|もない/.test(sk.txt)) && (!sk.unk || /don't record commits|記録しないエージェント/.test(sk.txt)) && (!sk.yes || /with a commit or PR|PR のあった/.test(sk.txt))), JSON.stringify({sk, pcs}));
+      check("サンキーの一覧の割合は、列ごとに足して 100", !sk || sk.list.every(v => v === 100), JSON.stringify(sk && sk.list));
     }
     { // サンキーの名前は、どれもカードの地の色の札の上（色の帯に直接乗らない）
       const lb = await p.evaluate(() => { const ts = [...document.querySelectorAll("#review .isk text.skt")].filter(x => x.checkVisibility());
