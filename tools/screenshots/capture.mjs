@@ -1,4 +1,4 @@
-// docs/screenshot.png・docs/summary.png・docs/worth.png・docs/session.png・docs/og.png を撮る。gen.py と mkgit.py で作ったダミーデータの HTML を使う。
+// docs/screenshot.png・docs/summary.png・docs/sum-io.png・docs/sum-unit.png・docs/sum-sankey.png・docs/worth.png・docs/session.png・docs/og.png を撮る。gen.py と mkgit.py で作ったダミーデータの HTML を使う。
 //   node capture.mjs <kiroku.html> <docs のディレクトリ>
 // Playwright が必要（このディレクトリで npm ci --ignore-scripts と npx playwright install chromium。版は package.json で固定）。英語表示（en-US）・プロジェクトごとの色分け（画面の既定ではない）・時刻は Asia/Tokyo・1440x900。
 import { chromium } from "playwright";
@@ -30,6 +30,20 @@ await p.waitForTimeout(300);
 await p.evaluate(() => { const e = document.querySelector("#review"), m = document.querySelector("main"); m.scrollTop += e.getBoundingClientRect().top - document.querySelector("header").offsetHeight - 16; });
 await p.waitForTimeout(400);
 await p.screenshot({ path: path.join(docs, "summary.png") });
+// README のサマリーの主要なグラフ：投入と出力（1 段目）、投入単価と出力単価（2 段目）、投入から出力の流れ（サンキー）。
+// パネルの組は、2 枚を囲む範囲を少し余白をつけて切り抜く（2×2 のまま 1 枚にすると縦に長く、README で字が読めない）
+const rect = sel => p.evaluate(s => { const r = document.querySelector(s).getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom }; }, sel);
+// shotPair は、パネル a と b を囲む範囲を撮る。top は上の余白（1 段目は IN・OUT の札まで入れる）
+const shotPair = async (a, b, file, top = 28) => { const x = await rect(a), y = await rect(b), l = Math.min(x.l, y.l), t = Math.min(x.t, y.t);
+  await p.screenshot({ path: path.join(docs, file), clip: { x: l - 12, y: t - top, width: Math.max(x.r, y.r) - l + 24, height: Math.max(x.b, y.b) - t + top + 12 } }); };
+// 縦に長い窓にして、パネル 2 段とサンキーがスクロールせずに入るようにする（main の中のスクロールでは、切り抜きが窓の外に出る）
+await p.setViewportSize({ width: 1440, height: 3200 });
+await p.evaluate(() => { const e = document.querySelector("#review"), m = document.querySelector("main"); m.scrollTop += e.getBoundingClientRect().top - document.querySelector("header").offsetHeight - 16; });
+await p.waitForTimeout(500);
+await shotPair("#review .ik-cost", "#review .ik-out", "sum-io.png");
+await shotPair("#review .ik-uin", "#review .ik-unit", "sum-unit.png", 8);
+await p.locator("#review .iskw").screenshot({ path: path.join(docs, "sum-sankey.png") });
+await p.setViewportSize({ width: 1440, height: 900 });
 await p.locator('#view button[data-v="cal"]').click(); // 以降の画像はカレンダーで
 await p.waitForTimeout(300);
 // 見直す候補（Worth a look）：「Possible friction」のダイアログ

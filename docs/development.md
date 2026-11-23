@@ -263,7 +263,7 @@ This only checks that things work. Clarity and wording are checked with the scen
 
 ## Screenshots
 
-The README's animation (`docs/demo.gif`) and the images in the README and the guide (`docs/screenshot.png`, `docs/session.png`, `docs/worth.png`, `docs/summary.png`) and the demo's link-card image (`docs/og.png`) can be retaken from dummy data. When you change the view, update them as well.
+The README's animation (`docs/demo.gif`) and the images in the README and the guide (`docs/screenshot.png`, `docs/session.png`, `docs/worth.png`, `docs/summary.png`, and the summary's main charts `docs/sum-io.png`, `docs/sum-unit.png` and `docs/sum-sankey.png`) and the demo's link-card image (`docs/og.png`) can be retaken from dummy data. When you change the view, update them as well.
 
 ```bash
 (cd tools/screenshots && npm ci --ignore-scripts && npx playwright install chromium)
