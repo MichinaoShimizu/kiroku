@@ -232,10 +232,44 @@ func TestSummaryContrast(t *testing.T) {
 		{"value in a stat box", v("ink"), v("surface-2")},
 		{"unusual value and its mark in a panel or card", v("odd-ink"), v("s-lowest")},
 		{"unusual value and its mark in a stat box", v("odd-ink"), v("surface-2")},
+		{"IN label above the panels", v("in"), v("bg")},
+		{"OUT label above the panels", v("out"), v("bg")},
+		{"IN label in a panel (one column)", v("in"), v("s-lowest")},
+		{"OUT label in a panel (one column)", v("out"), v("s-lowest")},
+		{"Sankey name on its backing", v("ink-2"), v("s-lowest")},
+		{"Sankey amount on its backing", v("ink-3"), v("s-lowest")},
 	} {
 		if r := contrast(c.fg, c.bg); r < 4.5 {
 			t.Errorf("%s: %s on %s is %.2f:1, want at least 4.5:1", c.name, c.fg, c.bg, r)
 		}
+	}
+}
+
+// 投入（IN）と出力（OUT）の側を分ける縦線とパネルの見出しの印：線は地に対して 3:1 以上（WCAG の UI の部品）。2 色は互いに違う色相で、良し悪しの緑・赤ではない
+func TestSideColors(t *testing.T) {
+	i := strings.Index(style, ":root{")
+	block := style[i : i+strings.Index(style[i:], "\n}")]
+	v := func(name string) string {
+		m := regexp.MustCompile(`--` + name + `:(#[0-9a-fA-F]{6});`).FindStringSubmatch(block)
+		if m == nil {
+			t.Fatalf("--%s is not a #rrggbb color in :root", name)
+		}
+		return m[1]
+	}
+	for _, side := range []string{"in", "out"} {
+		for _, bg := range []string{"bg", "s-lowest"} {
+			if r := contrast(v(side), v(bg)); r < 3 {
+				t.Errorf("--%s on --%s is %.2f:1, want at least 3:1", side, bg, r)
+			}
+		}
+		for _, other := range []string{"go", "warn", "odd-ink"} {
+			if v(side) == v(other) {
+				t.Errorf("--%s is the same color as --%s, which means good, bad or unusual", side, other)
+			}
+		}
+	}
+	if v("in") == v("out") {
+		t.Error("--in and --out are the same color")
 	}
 }
 

@@ -15,7 +15,7 @@
   --c0:#6191d1; --c1:#a95c3e; --c2:#45a47a; --c3:#a27323; --c4:#c47190; --c5:#4c8446; --c6:#6e6ab2; --c7:#15a0b6; --other:#6b7180;
   --amber:var(--c3); --amber-ink:#f2b53a; --note:var(--c6); /* 役目の名前（コマンドの札・自動で入ったもの）。色の番号は上の 8 色から */
   --t1:8%; --t2:14%; --t3:20%; /* 色を地に混ぜる濃さは 3 段だけ（淡い地・吹き出しや札・強め） */
-  --odd-ink:#f2b53a; /* いつもの範囲から大きく外れた量（上でも下でも同じ中立の色。良し悪しの緑・赤とは別。札も添えて色だけに頼らない）。--s-lowest と --surface-2 の上で 4.5:1 以上（palette_test.go） */
+  --odd-ink:#f2b53a; --in:#7cc4f2; --out:#d9a6f2; /* 投入の側（左の列）と出力の側（右の列）の色。良し悪しの緑・赤や、外れた量の琥珀とは別の、青と紫。線は 3:1、札の字は 4.5:1 以上（palette_test.go） */ /* いつもの範囲から大きく外れた量（上でも下でも同じ中立の色。良し悪しの緑・赤とは別。札も添えて色だけに頼らない）。--s-lowest と --surface-2 の上で 4.5:1 以上（palette_test.go） */
   --go:#5fb08c; --go-ink:#9bd6ba; /* 良い側の緑（いつもより良い数・AI のコミットなど。塗りではなく、淡い地に明るい緑の字） */
   --sans:"Roboto","Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",system-ui,sans-serif; /* 英語の画面なので欧文の書体を先に。日本語のプロンプトは後ろの和文の書体で出す */
   /* 文字の大きさは 10 段だけ（2xs は狭い画面の月のマスだけ、hero はサマリーの 3 つのパネルの値だけ）。太さは 400・500・600・700、行間は 1.2（数字・見出し）・1.5（UI）・1.6〜1.7（長い文） */
@@ -862,10 +862,29 @@ header{background:var(--s-cont);border-bottom:0}
 
 /* サマリーの頭：コストと出力の 2 段。段は 1 枚の面にして、数字は細い区切り線で分ける（数字ごとに色の線や塗りの箱を付けない）。
    いつもの範囲から外れたことは、数字の下の小さな印（.ichip）だけで言う */
-/* コスト・出力・単価のパネルは、どれもグラフ 1 つ（切り替えで選ぶ）。広い画面では 3 枚を横に並べ（ページの半分より広くしない）、狭くなれば縦に積む */
+/* 投入・出力・投入単価・出力単価のパネルは、どれもグラフ 1 つ（切り替えで選ぶ）。広い画面では 2×2：左の列が投入の側（投入の上、投入単価の下）、右の列が出力の側。
+   列の間に 2 色の縦線と、その上に IN・OUT の札。狭い画面では 1 列（投入・出力・投入単価・出力単価の順）で、札は各パネルの上に */
 .insh{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin-bottom:12px}
-@media (min-width:1100px){.insh{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .insh>.ikg{min-width:0}
+.insio,.insdiv{display:none}
+.ikio{display:block;margin:0 18px 6px;font:700 var(--fs-2xs)/1.4 var(--sans);letter-spacing:.12em}
+.side-in .ikio,.insio.in{color:var(--in)}.side-out .ikio,.insio.out{color:var(--out)}
+.side-in .ikgh::before{background:var(--in)}.side-out .ikgh::before{background:var(--out)}
+@media (max-width:700px){.ikio{margin:0 14px 6px}}
+/* 2 列では、横に並んだ 2 枚の頭・値の段・グラフ・印・凡例の高さを subgrid でそろえる（グラフの上端が同じ高さになる）。
+   行は「札」1 本と、パネルの段ごとに 5 本（頭・値の段・グラフ・印・凡例）。パネルの置き場所は決めておく（ないパネルの場所は空けて、左右の側を崩さない） */
+@media (min-width:900px){
+  .insh{grid-template-columns:minmax(0,1fr) 4px minmax(0,1fr);grid-template-rows:auto repeat(10,auto);column-gap:16px;row-gap:0}
+  .insio{display:block;grid-row:1;margin-bottom:6px;font:700 var(--fs-xs)/1.4 var(--sans);letter-spacing:.12em}
+  .insio.in{grid-column:1;justify-self:end}.insio.out{grid-column:3;justify-self:start}
+  .insdiv{display:block;grid-column:2;grid-row:1/-1;border-radius:2px;background:linear-gradient(to right,var(--in) 50%,var(--out) 50%)}
+  .ikio{display:none}
+  .insh>.ikg{display:grid;grid-template-rows:subgrid;grid-template-columns:minmax(0,1fr);row-gap:0;align-content:start}
+  .insh>.ik-cost{grid-column:1;grid-row:2/span 5}.insh>.ik-out{grid-column:3;grid-row:2/span 5}
+  .insh>.ik-uin{grid-column:1;grid-row:7/span 5;margin-top:16px}.insh>.ik-unit{grid-column:3;grid-row:7/span 5;margin-top:16px}
+  .insh>.ikg>.ikrow{grid-row:span 3;display:grid;grid-template-rows:subgrid;grid-template-columns:minmax(0,1fr);row-gap:0}
+  .insh>.ikg>.ikrow>.itile:not([hidden]){grid-row:span 3;grid-template-rows:subgrid;row-gap:0}
+}
 .ikg [data-ch][hidden]{display:none} /* 切り替えで選んでいない選択肢 */
 .ikrow>.itile{border-left:1px solid var(--rule)}.ikrow{margin-left:-1px;clip-path:inset(0 0 0 1px)} /* 数字の間に縦の区切り線。折り返した行の左端の線は、1px ずらして切り落とす */
 /* タイルの背景：いつもの範囲より良い側は緑、悪い側は赤（大きく外れたら濃く）。範囲の中と、向きの決まっていない指標は色なし */
@@ -1142,11 +1161,10 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .itile:has(.tspk){display:grid;grid-template-columns:minmax(190px,1fr) minmax(0,2.2fr);grid-auto-rows:min-content;column-gap:20px;row-gap:4px;align-content:start;justify-items:start;flex:1 1 560px;}
 .itile:has(.tspk)>*{grid-column:1}
 .itile:has(.tspk)>.tspk{grid-column:2;grid-row:1/span 12;width:100%;max-width:none;margin:0;align-self:start}
-.ikg>.tlg{padding:0 18px;margin:-2px 0 8px}
+.ikg>.tlg{padding:0 18px;margin:10px 0 0;align-self:start}
 @media (max-width:700px){.ikg>.tlg{padding:0 14px}}
 /* 狭いカード（3 枚が横に並ぶ幅や、スマホ）では、グラフを値の下に置く（値とグラフが重ならないように） */
-.ikg{container-type:inline-size}
-@container (max-width:560px){.itile:has(.tspk){grid-template-columns:minmax(0,1fr)}.itile:has(.tspk)>.tspk{grid-column:1;grid-row:auto;width:100%}}
+.ikg .tspk{container-type:inline-size} /* 大きさを問い合わせる箱はグラフ自身（パネルに置くと、レイアウトの封じ込めで subgrid にできない） */
 /* 単価の数字の評価と次の一手（値のすぐ下）。良い側は緑、悪い側は赤の字で、いつも通りは色なし */
 .iverd{display:flex;flex-direction:column;gap:2px;margin:2px 0 4px;font-size:var(--fs-sm);line-height:1.5;color:var(--ink-2)}
 .iverd p{margin:0}.itile .iverd b{font:600 var(--fs-md)/1.4 var(--sans);letter-spacing:normal;color:var(--ink)}.itile .iverd.good b{color:var(--go-ink)}.itile .iverd.bad b{color:var(--warn)}
@@ -1175,18 +1193,16 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .srprj{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}.srprj .srp[aria-pressed="true"],.srprj .sra[aria-pressed="true"]{background:var(--acc-soft);border-color:var(--acc);color:var(--acc-ink)}
 @media (max-width:1200px){.head{position:relative}.head .dd .dayrun{position:absolute;right:6px;bottom:6px;top:auto;opacity:1;margin:0}.head:has(.dayrun) .cline{padding-right:30px}} /* 狭い画面では、コピーのボタンを見出しの右下（数字の行の右）に置き、見出しを低く保つ。どの列も同じ位置なので高さがそろう */ /* 狭い画面では、どの日の列でもコピーのボタンを日付の下に（列ごとに位置が変わって見出しの高さがずれないように） */
 /* 単価のパネルの良し悪しの地の色は、評価の文の色で足りるので付けない */
-.ik-unit .itile.good,.ik-unit .itile.bad{background:none}
-/* 単価の表のカード：割り方ごとの小見出しと、費用・クレジット・トークンの数の枠 */
-.iunits .iu1 .stat{margin-top:4px}
+.ik-unit .itile.good,.ik-unit .itile.bad,.ik-uin .itile.good,.ik-uin .itile.bad{background:none}
 .tspk .sofl{font-size:10px;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
 /* 出力のカードは中身が多いので 1 行を占め、散布図は次の行に（隣に並べると、散布図のカードが出力のカードの高さまで伸びて大きく空く） */
 .isccol .insfig{max-width:none}
 /* 狭いカード（スマホ）では、グラフが縮んで文字が 7px ほどになるので、座標の上で大きくし、期間の名前は 1 つおきに */
-@container (max-width:520px){.tspk text{font-size:16px}.tspk .sxl.alt{display:none}.tspk .sofl{font-size:15px}.tspk .slimn{font-size:13px}}
+@container (max-width:484px){.tspk text{font-size:16px}.tspk .sxl.alt{display:none}.tspk .sofl{font-size:15px}.tspk .slimn{font-size:13px}}
 /* 出力の枠でも、良し悪しの地の色は付けない（評価は点の色と文で。単価と同じ） */
 .ik-out .itile.good,.ik-out .itile.bad{background:none}
 /* 狭いカードでは、軸の見出し（「週」）を出さない（日付で分かる）。利用上限の数は小さく */
-@container (max-width:520px){.tspk .sxt{display:none}.tspk .slimn{font-size:11px}}
+@container (max-width:484px){.tspk .sxt{display:none}.tspk .slimn{font-size:11px}}
 /* 狭いカード（スマホ）の一覧：名前を 1 行目に全部、棒と数を 2 行目に（名前が「src/ne…」まで切れないように） */
 @container (max-width:520px){.iwr,.ikinds .iwr{grid-template-columns:minmax(0,1fr) auto;row-gap:2px}.iwr>.iwn{grid-column:1/-1;white-space:normal;overflow-wrap:anywhere}.iwr>.iwb{grid-column:1/-1}.iwr>.iwv{font-size:var(--fs-xs)}}
 .iwr.iwh{font-size:var(--fs-2xs);color:var(--ink-3);font-weight:500}
@@ -1212,7 +1228,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 /* ガント（いちばん作業した日） */
 .igt .igl{font-size:11px;fill:var(--ink-2);text-anchor:end;font-family:var(--sans)}.igt .igr{cursor:pointer}.igt .igr:hover .igl,.igt .igr:focus .igl{fill:var(--ink)}.igt .igr:focus{outline:none}
 .tspk .sxl.nodat{display:none} /* 記録のない最初の期間の名前は出さない（縦軸の 0 と重ならないように） */
-.isk .skt{paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
+.isk .skbg{fill:var(--s-lowest);pointer-events:none}.isk .sklead{fill:none;stroke:var(--ink-3);stroke-width:1}
 .iwtf .ixl,.isk .skt,.ibxf .ixl,.igt .igl,.igt .ixl{font-size:11px}
 /* カードは石積みに並べる（insPack が各カードの高さを --rs に入れる。1px の行をその数だけ使う）。行ごとに高さをそろえないので、低いカードの中が空かない */
 .insrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));grid-auto-rows:1px;grid-auto-flow:row dense;column-gap:16px;row-gap:0;align-items:start}
@@ -1226,8 +1242,11 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .tspk .spc{font-size:9px;fill:var(--ink-2);text-anchor:middle;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
 .tspk .spc.e{text-anchor:end}.tlg .lg.pcl::before{display:none}
 /* 期間の途中：今までの値と、期間の終わりの推定を同じ大きさで縦に並べる（推定は小さな注記にしない）。それぞれの上に小さな名前 */
-.itile .ivk{font-size:var(--fs-xs);color:var(--ink-2);margin-bottom:-4px}
-.itile .ivbig{display:flex;flex-direction:column;gap:0;margin-top:2px}.itile .ivbig b{color:var(--ink-2)}
+.itile .ivk{font-size:var(--fs-xs);color:var(--ink-2)}
+/* 値の段：今までの値と期間の終わりの推定を同じ行に（同じ基準線。推定は 1 段小さく淡く、「≈」付き）。それぞれの名前は数字の後ろに小さく。入らなければ次の行へ折り返す */
+.ivrow{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:18px;row-gap:2px;max-width:100%}
+.ivnow,.itile .ivbig{display:inline-flex;align-items:baseline;flex-wrap:wrap;column-gap:6px;min-width:0}
+.itile .ivbig b{color:var(--ink-2)}
 /* その他のグラフ：たたんだ箱。見出しを押すと開く（開いたかは覚える） */
 .insmore>summary{cursor:pointer;list-style:none;margin:26px 0 12px}.insmore>summary::-webkit-details-marker{display:none}
 .insmore>summary::after{content:"";flex:none;width:8px;height:8px;margin-left:4px;border-right:2px solid var(--ink-2);border-bottom:2px solid var(--ink-2);transform:rotate(-45deg);transition:transform .2s var(--ease)}
@@ -1243,7 +1262,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .inscol>.insfig.iwdn{flex-direction:row;flex-wrap:wrap;align-items:center}.inscol>.insfig.iwdn>.ifxs{flex-basis:100%}
 @container (max-width:520px){.inscol>.insfig.iwdn{flex-direction:column;align-items:stretch}}
 /* 切り替えで、今の量では数字のない割る数のボタンは隠す。単価のカードも、選んでいない組の数字は隠す */
-.iksw [data-v][hidden],.iusw [data-ch][hidden]{display:none}
+.iksw [data-v][hidden]{display:none}
 .iknote{margin:0 18px 8px}@media (max-width:700px){.iknote{margin:0 14px 8px}}
 /* カードは自分の高さのまま（石積みの隣のカードの高さに伸ばさない） */
 .insrow>*{align-self:start}
@@ -1270,12 +1289,22 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .isk .sklist li i{width:9px;height:9px;border-radius:50%}.isk .sklist li b{text-align:right;font-variant-numeric:tabular-nums}
 .isk .sklist .skn2{min-width:0;overflow-wrap:anywhere}
 @media (max-width:600px){.isk svg text.skt{display:none}.isk .sklist{display:grid}}
-.iusw .iksw{flex-wrap:wrap;overflow:visible;max-width:100%} /* 割る数は 5 つあるので、狭いカードでは折り返す（横にはみ出して隠さない） */
-/* 数字の大きさの段：3 つのパネルの値がページでいちばん大きく太い数字（hero）。内訳のカードの値（Outputs の行・Unit costs などの数の枠）は 1 段小さくそろえる。
+.ikgh .iksw{flex-wrap:wrap;overflow:visible;max-width:100%} /* 割る数は 4 つあるので、狭いパネルでは折り返す（横にはみ出して隠さない） */
+/* 数字の大きさの段：4 つのパネルの値がページでいちばん大きく太い数字（hero）。内訳のカードの値（出力の行・使い方などの数の枠）は 1 段小さくそろえる。
    「vs last week」や式などの添え書きは小さく淡いまま */
-.ikg .itile .itv,.ikg .itile>b,.ikg .itile .ivbig b{font:700 var(--fs-hero)/1.1 var(--sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.ikg .itile .itv,.ikg .ivrow b{font:700 var(--fs-hero)/1.1 var(--sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.ikg .ivrow .ivbig b{font-size:var(--fs-4xl)}
 .mrow .mv,#review .insight .stat .v{font:600 var(--fs-2xl)/1.3 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 /* いつもの範囲から大きく外れた量（insOdd）：値を中立の色に。上でも下でも同じ色で、良し悪しは言わない。札（.iodd・.imk.odd）が色だけに頼らない目印 */
-.itile .itv.odd,.itile>b.odd,.mrow .mv .odd,.stat .v .odd{color:var(--odd-ink)}
-.iodd{display:inline-flex;align-items:baseline;gap:4px;padding:0 6px;border:1px solid currentColor;border-radius:5px;font-size:var(--fs-xs);font-weight:600;line-height:1.6;color:var(--odd-ink);white-space:nowrap}
+.itile .itv.odd,.ivrow b.odd,.mrow .mv .odd,.stat .v .odd{color:var(--odd-ink)}
+.iodd{display:inline-block;margin-left:4px;font-weight:700;font-size:.75em;line-height:1;color:var(--odd-ink)} /* 値の横の矢印だけ（言葉は .sr と title） */
+.ivrow .iodd{font-size:var(--fs-3xl);margin-left:2px}
 .imk.odd{color:var(--odd-ink);font-weight:600}.imk.odd::before{background:var(--odd-ink)}
+/* サマリーの頭のパネル：タイルはいつも 1 列（頭の段、その下に幅いっぱいのグラフ、その下に印）。頭・グラフ・印を分けておき、2 列のときは subgrid で横の 2 枚とそろえる */
+.insh .itile:has(.tspk):not([hidden]){display:grid;grid-template-columns:minmax(0,1fr);row-gap:4px;justify-items:stretch}
+.insh .itile:has(.tspk)>.tspk{grid-column:1;grid-row:auto;width:100%;max-width:none;margin:4px 0 2px}
+.ithd{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+.itft{min-width:0}
+/* どこへ流れたか（サンキー）：投入と出力の 2×2 のすぐ下に、幅いっぱいの 1 枚（サマリーで唯一の全幅のカード）。狭いカードでは文字を座標の上で大きく */
+.inscol.iskw{margin:0 0 12px;container-type:inline-size}
+@container (max-width:900px){.iskw .isk .skt,.iskw .isk .skh{font-size:14px}}
