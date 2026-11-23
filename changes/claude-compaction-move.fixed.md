@@ -1,1 +1,0 @@
-- Claude Code: when a session moved to another folder (for example with `/cd`) and the later file only added a compaction (such as an idle compaction), that file's subagents and compaction were lost. They are now counted once, in the session they belong to

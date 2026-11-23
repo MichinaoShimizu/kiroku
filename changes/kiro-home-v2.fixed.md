@@ -1,1 +1,0 @@
-- With `KIRO_HOME` set, Kiro CLI (V2) and Kiro IDE / CLI (V3) sessions left in `~/.kiro` (from Kiro CLI V2, Kiro IDE, or from before `KIRO_HOME` was set) are read too, instead of being missed. A session in both places is counted once, from `KIRO_HOME`. `--kiro-home` still reads only the location it names

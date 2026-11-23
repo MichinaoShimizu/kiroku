@@ -1,2 +1,0 @@
-- Summary: "Where it flowed" (the Sankey from agent to project to commit or PR) is now the first card under Charts, since it shows the period's state at a glance; the other cards keep their order
-- Summary: the column names and long agent names of "Where it flowed" stay inside the chart instead of running over the takeaway above it and the card's edge

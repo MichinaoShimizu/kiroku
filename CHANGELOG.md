@@ -2,6 +2,31 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v4.6.2 - 2026-11-23
+
+### Changed
+
+- Session details: the prompt flow takes the colors of a dark-mode messaging app: your prompts are green bubbles with dark text, the AI's replies dark gray bubbles with light text, on a dark neutral gray background. Labels, links and notes inside your bubbles turn dark to stay readable, and a test checks the contrast of every text and mark in the flow (at least 4.5:1 for text, 3:1 for small marks)
+- After you copy a session review or daily report prompt, the message also says that kiroku ran nothing and sent nothing
+- Summary: the last column of "Where it flowed" is named "Output" (出力 in Japanese) instead of "Outcome" (成果): it shows whether a session reached a commit or a pull request, not whether the work succeeded
+- Summary: "Where it flowed" says what it counts more plainly: the last column is "Commit or PR", "None" or "Not recorded" (a session with only a pull request was shown as "Committed"), the takeaway no longer says the share comes only from agents that record commits (sessions of other agents with a commit in their project count too), and the note says a commit up to 10 minutes after a session's end counts
+- Summary: the figure panels are named as trends: "Cost trend", "Output trend" (was "Outputs") and "Unit cost trend" (was "Unit cost calculation"); in Japanese コスト推移, アウトプット推移 and 単価推移. The Outputs card under Charts keeps its name
+- The session review prompt gives the address of each pull request the session created, so the review can name it
+- The daily report prompt asks for a cheap change with a clear signal (a prompt you keep retyping, a model heavier than the work) before general advice
+- Summary: "Where it flowed" (the Sankey from agent to project to commit or PR) is now the first card under Charts, since it shows the period's state at a glance; the other cards keep their order
+- Summary: the column names and long agent names of "Where it flowed" stay inside the chart instead of running over the takeaway above it and the card's edge
+
+### Fixed
+
+- Claude Code: when a session moved to another folder (for example with `/cd`) and the later file only added a compaction (such as an idle compaction), that file's subagents and compaction were lost. They are now counted once, in the session they belong to
+- `kiroku doctor` no longer suggests `--amazonq-db` when it finds no history: the option is still accepted but reads nothing
+- The short page `kiroku open` and `kiroku serve` show while they hand the key to the browser is dark like the view, so it no longer flashes white before the view opens
+- With `KIRO_HOME` set, Kiro CLI (V2) and Kiro IDE / CLI (V3) sessions left in `~/.kiro` (from Kiro CLI V2, Kiro IDE, or from before `KIRO_HOME` was set) are read too, instead of being missed. A session in both places is counted once, from `KIRO_HOME`. `--kiro-home` still reads only the location it names
+- The page `kiroku serve` shows while it reads your history picks its language the same way as the view (`?lang=`, then `--lang` or `KIROKU_LANG`, then the browser). Before, a language chosen with the button of an earlier version still won there, so the loading page could be in a different language from the view
+- The pages `kiroku serve` shows to a browser without its key, and for an old address with the key in it, are dark like the view instead of white with default blue links, and follow `--lang` (or `KIROKU_LANG`) when it is set, before the browser's language
+- The page that hands the key to the browser after `kiroku open` picks its language the same way as the view (`?lang=`, then `--lang` or `KIROKU_LANG`, then the browser). Before, it ignored `--lang` and a language chosen with the button of an earlier version still won there
+- The session review prompt states its time zone in a sentence of its own, instead of in parentheses after "not simply write longer prompts"
+
 ## v4.6.1 - 2026-11-22
 
 ### Changed

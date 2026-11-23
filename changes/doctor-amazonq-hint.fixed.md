@@ -1,1 +1,0 @@
-- `kiroku doctor` no longer suggests `--amazonq-db` when it finds no history: the option is still accepted but reads nothing
