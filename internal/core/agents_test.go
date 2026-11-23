@@ -7,7 +7,7 @@ import (
 
 // core.Agents の中身が、画面と CLI で使える形になっている。
 func TestAgents(t *testing.T) {
-	seen := map[string]bool{}
+	seen, slot := map[string]bool{}, map[int]string{}
 	for _, a := range Agents {
 		if a.Name == "" || a.Family == "" || a.Mark == "" {
 			t.Errorf("名前・Family・頭文字のどれかが空: %+v", a)
@@ -16,9 +16,13 @@ func TestAgents(t *testing.T) {
 			t.Errorf("%q が 2 回ある", a.Name)
 		}
 		seen[a.Name] = true
-		if a.Slot < 0 || a.Slot >= 8 || slices.Contains(AgentWarnSlots, a.Slot) { // 画面の色は --c0 〜 --c7（state.js の SLOTS）
-			t.Errorf("%s の色 %d は使えない（警告の色 %v か範囲外）", a.Name, a.Slot, AgentWarnSlots)
+		if a.Slot < 0 || a.Slot >= AgentColors { // 画面の色は --a0 〜（style.css）
+			t.Errorf("%s の色 %d は範囲外（0〜%d）", a.Name, a.Slot, AgentColors-1)
 		}
+		if b, ok := slot[a.Slot]; ok && b != "Kiro CLI (V2)" && b != "Kiro CLI (SQLite)" {
+			t.Errorf("%s と %s が同じ色 %d", a.Name, b, a.Slot)
+		}
+		slot[a.Slot] = a.Name
 		if _, ok := Records[a.Name]; !ok {
 			t.Errorf("core.Records に %q がない", a.Name)
 		}

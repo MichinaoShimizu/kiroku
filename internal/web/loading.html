@@ -10,7 +10,7 @@
    エージェントごとの進み具合（/progress）を並べ、読み終わったものから件数と時間を出す */
 :root{color-scheme:dark;--bg:#141218;--surface:#1d1b20;--ink:#e6e0e9;--ink-2:#cac4d0;--ink-3:#938f99;--rule:#49454f;--acc:#d0bcff;--warn:#f2b8b5;
   --glow:rgba(208,188,255,.16);--shadow:0 1px 2px rgba(0,0,0,.5),0 28px 60px -24px rgba(0,0,0,.8);
-  --c0:#6191d1;--c1:#a95c3e;--c2:#45a47a;--c3:#a27323;--c4:#c47190;--c5:#4c8446;--c6:#6e6ab2;--c7:#15a0b6;--other:#6b7180; /* ビューと同じくいつもダーク。8 色は style.css と同じ値 */
+  --a0:#495ae6;--a1:#9781fe;--a2:#984d98;--a3:#e95ab4;--a4:#2d99c0;--other:#6b7180; /* ビューと同じくいつもダーク。エージェントの色は style.css と同じ値（palette_test.go） */
   --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,system-ui,sans-serif;--mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
   --ease:cubic-bezier(.2,.7,.1,1)}
 *{box-sizing:border-box}
@@ -108,9 +108,9 @@ pre:empty{display:none}
     ["agents", "stages"].forEach(id => $(id).setAttribute("aria-label", t($(id).getAttribute("aria-label")))); }
   const card = $("card"), title = $("title"), note = $("note"), detail = $("detail"), list = $("agents"), clock = $("clock"),
     wait = [title.textContent, note.textContent];
-  // エージェントの色は本物の画面と同じ（core.Agents の Slot。web.go が埋めこむ）
+  // エージェントの色は本物の画面と同じ（core.Agents の Slot が --a の番号。web.go が埋めこむ）
   const SLOT = Object.fromEntries(__AGENTS__.map(a => [a.name, a.slot]));
-  const color = n => n in SLOT ? `var(--c${SLOT[n]})` : "var(--other)";
+  const color = n => n in SLOT ? `var(--a${SLOT[n]})` : "var(--other)";
   // kiroku serve の鍵。?code= の中継のページが localStorage にしまったものを X-Kiroku-Key ヘッダーで送る
   const kf = url => { let k = null; try { k = localStorage.getItem("kiroku:key"); } catch(e){}
     return fetch(url, {cache:"no-store", headers: k && /^[0-9a-f]{64}$/.test(k) ? {"X-Kiroku-Key": k} : {}}); };

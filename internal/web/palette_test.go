@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
 
 // カテゴリーの 8 色（--c0〜--c7）は、画面の暗い地（いつもダーク）で、決めた基準を満たす組み合わせだけを使う。
@@ -131,12 +133,12 @@ func deltaE(a, b string, sim *[3][3]float64) float64 {
 	return 100 * math.Sqrt((x[0]-y[0])*(x[0]-y[0])+(x[1]-y[1])*(x[1]-y[1])+(x[2]-y[2])*(x[2]-y[2]))
 }
 
-// プロンプトの流れ（.tl）の色は、メッセージアプリ（LINE の昔からのトーク画面）に寄せた吹き出し。字と地の組み合わせが読めることを確かめる:
+// プロンプトの流れ（.tl）は、メッセージアプリの形の吹き出し（色は特定のアプリに寄せない）。字と地の組み合わせが読めることを確かめる:
 //   - 吹き出しの字・時刻・小さな字（4.5:1 以上。WCAG 2.x の相対輝度のコントラスト比）
 //   - コピーのボタン・AI の印・出来事の印・言い直しの破線など小さな印（3:1 以上）
 //   - AI の白い吹き出しと流れの地（3:1 以上）
 //
-// 形は同じでも、色は LINE そのもの（地 #7494c0・緑 #8de055）から少しずらしてある。同じ値に戻らないことも確かめる。
+// 色は LINE のトーク画面（地 #7494c0・緑 #8de055）から十分に離す（ΔE 15 以上。寄せすぎだという声で離した）。
 //
 // 半透明の地（--chat-me-tag と出来事の札の --chat-sys）と、ふだん薄く見せるコピーのボタン（最後に書いた .tl li .pcopy{opacity:…}）は、下の地と混ぜた色で比べる。
 func TestChatContrast(t *testing.T) {
@@ -197,8 +199,8 @@ func TestChatContrast(t *testing.T) {
 		{"background", bg, "#7494c0"},
 		{"your bubble", me, "#8de055"},
 	} {
-		if d := deltaE(c.got, c.line, nil); d < 3 {
-			t.Errorf("%s %s is too close to LINE's %s (ΔE %.1f), want at least 3", c.name, c.got, c.line, d)
+		if d := deltaE(c.got, c.line, nil); d < 15 {
+			t.Errorf("%s %s is too close to LINE's %s (ΔE %.1f), want at least 15", c.name, c.got, c.line, d)
 		}
 	}
 }
@@ -303,4 +305,163 @@ func contrast(a, b string) float64 {
 		x, y = y, x
 	}
 	return (x + 0.05) / (y + 0.05)
+}
+
+// rootVar は style.css の :root にある #rrggbb の色
+func rootVar(t *testing.T, name string) string {
+	t.Helper()
+	i := strings.Index(style, ":root{")
+	block := style[i : i+strings.Index(style[i:], "\n}")]
+	m := regexp.MustCompile(`--` + name + `:(#[0-9a-fA-F]{6});`).FindStringSubmatch(block)
+	if m == nil {
+		t.Fatalf("--%s is not a #rrggbb color in :root", name)
+	}
+	return m[1]
+}
+
+func hue(h string) float64 {
+	o := oklab(linRGB(h))
+	return math.Mod(math.Atan2(o[2], o[1])*180/math.Pi+360, 360)
+}
+
+// エージェントの色（--a0〜、core.Agents の Slot）。週のカレンダーの帯・凡例・月のマスの細い棒・Sankey のエージェントの列・By agent の表で同じ色:
+//   - どの 2 色も、ふつうの見え方で ΔE 15 以上、1 型・2 型の色覚で 6 以上（区分の 8 色の隣どうしと同じ基準を、すべての組に）
+//   - 良し悪しの緑・赤、外れた量の琥珀に見えない（OKLCH の色相が 195°〜355°、青・紫・ピンクの側）。IN・OUT・琥珀・良い側の緑とも ΔE 12 以上離す
+//   - 帯の左端の線は地に対して 3:1 以上
+//   - 読み込み中の画面（loading.html）も同じ値
+func TestAgentPalette(t *testing.T) {
+	var pal []string
+	for k := 0; k < core.AgentColors; k++ {
+		pal = append(pal, rootVar(t, "a"+strconv.Itoa(k)))
+	}
+	for i, a := range pal {
+		if h := hue(a); h < 195 || h > 355 {
+			t.Errorf("--a%d %s has hue %.0f°, which reads as green, red or amber (want 195°–355°)", i, a, h)
+		}
+		for _, o := range []string{"in", "out", "amber-ink", "odd-ink", "go", "go-ink", "warn", "other"} {
+			if d := deltaE(a, rootVar(t, o), nil); d < 12 {
+				t.Errorf("--a%d %s is too close to --%s (ΔE %.1f, want at least 12)", i, a, o, d)
+			}
+		}
+		for _, bg := range []string{"surface", "s-lowest"} {
+			if r := contrast(a, rootVar(t, bg)); r < 3 {
+				t.Errorf("--a%d %s on --%s is %.2f:1, want at least 3:1", i, a, bg, r)
+			}
+		}
+		if !strings.Contains(loading, "--a"+strconv.Itoa(i)+":"+a+";") {
+			t.Errorf("loading.html does not set --a%d:%s like style.css", i, a)
+		}
+		for j := i + 1; j < len(pal); j++ {
+			b := pal[j]
+			if d := deltaE(a, b, nil); d < 15 {
+				t.Errorf("--a%d %s and --a%d %s differ by %.1f, want at least 15", i, a, j, b, d)
+			}
+			for name, mx := range map[string]*[3][3]float64{"protan": &protan, "deutan": &deutan} {
+				if d := deltaE(a, b, mx); d < 6 {
+					t.Errorf("--a%d %s and --a%d %s differ by %.1f for %s, want at least 6", i, a, j, b, d, name)
+				}
+			}
+		}
+	}
+}
+
+// 週のカレンダーの帯は、色分け（エージェント・プロジェクト）の色を地（--surface）に --fill だけ混ぜた塗り。
+// いちばん濃い帯（calendar.js の --fill の上限）でも、名前（--ink）と時刻（--ink-2）が 4.5:1 以上。区分の 8 色・エージェントの色・灰色のすべてで確かめる
+func TestCalendarBlockContrast(t *testing.T) {
+	if !strings.Contains(style, "background:color-mix(in srgb,var(--c) var(--fill,") {
+		t.Fatal("style.css .run does not mix --c into the fill in srgb (the blend below assumes it)")
+	}
+	src, err := jsFiles.ReadFile("js/calendar.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`--fill:\$\{Math\.round\((\d+)\+(\d+)\*dens\)\}%`).FindStringSubmatch(string(src))
+	if m == nil {
+		t.Fatal("calendar.js has no --fill:${Math.round(A+B*dens)}%")
+	}
+	lo, _ := strconv.Atoi(m[1])
+	span, _ := strconv.Atoi(m[2])
+	if lo < 20 {
+		t.Errorf("the lightest block mixes %d%% of its color, want at least 20%% so Color by shows", lo)
+	}
+	maxFill := float64(lo+span) / 100
+	cols := []string{"other"}
+	for k := 0; k < 8; k++ {
+		cols = append(cols, "c"+strconv.Itoa(k))
+	}
+	for k := 0; k < core.AgentColors; k++ {
+		cols = append(cols, "a"+strconv.Itoa(k))
+	}
+	surface := rootVar(t, "surface")
+	for _, c := range cols {
+		fill := blend(rootVar(t, c), surface, maxFill)
+		for _, ink := range []string{"ink", "ink-2"} {
+			if r := contrast(rootVar(t, ink), fill); r < 4.5 {
+				t.Errorf("--%s on a block of --%s at %.0f%% (%s) is %.2f:1, want at least 4.5:1", ink, c, maxFill*100, fill, r)
+			}
+		}
+	}
+}
+
+// 月のカレンダーの濃さ（--heat-c を --heatk まで地に混ぜる）は中立の灰青: エージェントの色と取り違えない（濃さは鮮やかさ 0.05 以下、エージェントの色は 0.10 以上）。
+// 凡例の 5 段（0・¼・½・¾・1）は隣どうし ΔE 4 以上で見分けられ、いちばん濃いマス（土日の淡い地を重ねても）の字が 4.5:1 以上。
+// 土日の地は土曜も日曜も同じ中立の色で、赤や青の曜日の色は使わない
+func TestMonthShadeAndWeekend(t *testing.T) {
+	hc := rootVar(t, "heat-c")
+	if _, c := lch(hc); c > 0.05 {
+		t.Errorf("--heat-c %s has chroma %.3f, want a neutral (at most 0.05)", hc, c)
+	}
+	for k := 0; k < core.AgentColors; k++ { // エージェントの色は鮮やか（0.10 以上）、濃さは灰色（0.05 以下）なので取り違えない
+		if a := rootVar(t, "a"+strconv.Itoa(k)); func() bool { _, c := lch(a); return c < 0.10 }() {
+			t.Errorf("--a%d %s is too gray to tell from the month shade", k, a)
+		}
+	}
+	m := regexp.MustCompile(`--heatk:(\d+)%`).FindStringSubmatch(style)
+	if m == nil {
+		t.Fatal("no --heatk")
+	}
+	k, _ := strconv.ParseFloat(m[1], 64)
+	k /= 100
+	for _, sel := range []string{"\n.cell{", "\n.mlegend i{"} {
+		i := strings.Index(style, sel)
+		if i < 0 || !strings.Contains(style[i:i+strings.Index(style[i:], "}")], "color-mix(in srgb,var(--heat-c)") {
+			t.Errorf("%s does not mix --heat-c in srgb", strings.TrimSpace(sel))
+		}
+	}
+	surface := rootVar(t, "surface")
+	var steps []string
+	for _, v := range []float64{0, .25, .5, .75, 1} {
+		steps = append(steps, blend(hc, surface, k*v))
+	}
+	for i := 0; i+1 < len(steps); i++ {
+		if d := deltaE(steps[i], steps[i+1], nil); d < 4 {
+			t.Errorf("month shade steps %d and %d (%s, %s) differ by %.1f, want at least 4", i, i+1, steps[i], steps[i+1], d)
+		}
+	}
+	off := regexp.MustCompile(`--off:rgba\((\d+),(\d+),(\d+),([0-9.]+)\)`).FindStringSubmatch(style)
+	if off == nil {
+		t.Fatal("--off is not rgba(r,g,b,a) in :root")
+	}
+	var rgb [3]int
+	for i := range rgb {
+		rgb[i], _ = strconv.Atoi(off[1+i])
+	}
+	if lo, hi := min(rgb[0], rgb[1], rgb[2]), max(rgb[0], rgb[1], rgb[2]); hi-lo > 12 {
+		t.Errorf("--off rgb(%d,%d,%d) is tinted, want a neutral", rgb[0], rgb[1], rgb[2])
+	}
+	if !strings.Contains(style, "--weekend:var(--off);") {
+		t.Error("--weekend is not the same neutral as the off-hours (--off)")
+	}
+	a, _ := strconv.ParseFloat(off[4], 64)
+	top := blend("#"+strconv.FormatInt(int64(rgb[0]<<16|rgb[1]<<8|rgb[2])+0x1000000, 16)[1:], steps[len(steps)-1], a)
+	for _, ink := range []string{"ink", "ink-2"} {
+		if r := contrast(rootVar(t, ink), top); r < 4.5 {
+			t.Errorf("--%s on the darkest weekend day (%s) is %.2f:1, want at least 4.5:1", ink, top, r)
+		}
+	}
+	for _, bad := range []string{"--sat", "--sun", ".sat", ".sun"} {
+		if strings.Contains(style, bad) {
+			t.Errorf("style.css still has %q (Saturday and Sunday share one neutral weekend look)", bad)
+		}
+	}
 }

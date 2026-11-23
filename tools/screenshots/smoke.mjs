@@ -145,10 +145,11 @@ async function run(env) {
       d0.querySelector("summary").click(); await wait(); const saved2 = store.get("insMore", false) === true; summary();
       const B2 = document.querySelector("#review details.insbrk"), top = [...B2.querySelectorAll(":scope > .insg > .insrow h4")].map(h => h.textContent);
       return closed && saved && inner && saved2 && B2.open && B2.querySelector("details.insmore").open && top.some(x => /When you worked/.test(x)) && top.some(x => /Where it went/.test(x)) && !top.some(x => /^Trend/.test(x)); }));
-    check("見直す候補（Worth a look）のリンクの指標のカードが、たたんだ内訳の中にあれば、リンクで内訳が開く（開いたことも覚える）", await p.evaluate(async () => {
+    check("サマリーの頭に見直す候補の行はない", await p.evaluate(() => !document.querySelector("#review .iworth") && !/Worth a look/.test(document.querySelector("#review .insight").textContent.slice(0, 400))));
+    check("見直す候補（Worth a look）の指標のカードが、たたんだ内訳の中にあれば、その候補を開くと内訳が開く（開いたことも覚える）", await p.evaluate(async () => {
       store.set("insBrk", false); summary(); const B = document.querySelector("#review details.insbrk");
-      const id = [...B.querySelectorAll(".fmark")].map(x => x.dataset.goto).find(id => document.querySelector(`#review .iworth .iwlink[data-goto="${id}"]`)); if (!id || B.open) return false;
-      document.querySelector(`#review .iworth .iwlink[data-goto="${id}"]`).click(); await new Promise(r => setTimeout(r, 50));
+      const id = [...B.querySelectorAll(".fmark")].map(x => x.dataset.goto)[0]; if (!id || B.open) return false;
+      insOpenWorth(id); await new Promise(r => setTimeout(r, 50));
       const ok = document.querySelector("#wk").open && B.open && store.get("insBrk", false) === true; document.querySelector("#wk").close(); return ok; }));
     check("サマリーに切り替えると、カレンダーは隠れる", await p.locator("#tl").isHidden() && await p.locator("#review").isVisible());
     const pos1 = await at();
@@ -241,7 +242,7 @@ async function run(env) {
         return {bg: getComputedStyle(tl).backgroundColor, me: getComputedStyle(pr.querySelector(":scope>p")).backgroundColor, ai: getComputedStyle(rp.querySelector(":scope>p")).backgroundColor,
           meRight: box.right - a.b.right < 40, meTime: a.t.right <= a.b.left + 1 && Math.abs(a.t.bottom - a.b.bottom) < 8,
           aiTime: r.t.left >= r.b.right - 1 && Math.abs(r.t.bottom - r.b.bottom) < 8, aiAv: rp.querySelector(".av").getBoundingClientRect().right <= r.b.left }; });
-      check("流れは青灰色の地に、あなたは右の緑、AI は左の白の吹き出し", lay.bg === "rgb(113, 130, 154)" && lay.me === "rgb(130, 212, 110)" && lay.ai === "rgb(255, 255, 255)" && lay.meRight && lay.aiAv, JSON.stringify(lay));
+      check("流れは灰青のスレートの地に、あなたは右のくすんだ緑、AI は左の白い吹き出し", lay.bg === "rgb(74, 84, 102)" && lay.me === "rgb(169, 196, 174)" && lay.ai === "rgb(242, 243, 245)" && lay.meRight && lay.aiAv, JSON.stringify(lay));
       check("時刻は吹き出しの下の端の横（あなたは左、AI は右）", lay.meTime && lay.aiTime, JSON.stringify(lay));
       // 依頼と応答の間に起きたこと（コミットなど）は応答の上に出るので、それを飛ばした手前が依頼
       check("応答は依頼のすぐ後に並ぶ", await p.evaluate(() => { const li = [...document.querySelectorAll("#panel .tl li")], i = li.findIndex(x => x.classList.contains("rp"));
@@ -419,14 +420,14 @@ async function run(env) {
         for (let i = 0; i < 30 && await p.locator("#rd").innerText() !== lab0; i++){ await p.keyboard.press("ArrowLeft"); await pause(); } check("今週から元の週に戻る", await p.locator("#rd").innerText() === lab0);
       }
       { // パネルの切り替え：押すと別の選択肢のタイル（とグラフ）になり、開き直しても覚えている
-        const sws = await p.evaluate(() => [...document.querySelectorAll("#review .insh .iksw")].map(g => ({sw: g.dataset.sw, vs: [...g.querySelectorAll("[data-v]")].map(b => b.dataset.v), on: [...g.querySelectorAll('[data-v]:not([aria-disabled="true"])')].map(b => b.dataset.v), hid: g.querySelectorAll("[data-v][hidden]").length, cur: g.querySelector('[aria-pressed="true"]').dataset.v})));
+        const sws = await p.evaluate(() => [...document.querySelectorAll("#review .insh .iksw")].map(g => ({sw: g.dataset.sw, vs: [...g.querySelectorAll("[data-v]")].map(b => b.dataset.v), on: [...g.querySelectorAll('[data-v]:not([hidden])')].map(b => b.dataset.v), cur: g.querySelector('[aria-pressed="true"]').dataset.v})));
         const want = {cost: ["cost", "credits", "tokens", "active"], out: ["commit", "push", "pr"], unitN: ["cost", "credits", "tokens"], unitD: ["commit", "push", "pr", "edit"], uinN: ["cost", "credits", "tokens"], uinD: ["Hour", "Day", "Ses", "Ask"]};
-        check("どのパネルにも切り替えがあり（単価は量と割る数の 2 つ）、選択肢はいつも同じ並びで、どれも消えない（隠さない）", Object.keys(want).every(k => { const x = sws.find(z => z.sw === k); return x && x.vs.join() === want[k].join() && x.hid === 0; }), JSON.stringify(sws));
+        check("どのパネルにも切り替えがあり（単価は量と割る数の 2 つ）、選択肢はいつも同じ並びで、数字のあるものだけ", Object.keys(want).every(k => { const x = sws.find(z => z.sw === k); return x && x.on.length > 0 && x.vs.join() === want[k].filter(v => x.vs.includes(v)).join() && x.on.includes(x.cur); }), JSON.stringify(sws));
         const shown = sw => p.evaluate(sw => { const g = document.querySelector(`#review .iksw[data-sw="${sw}"]`), sec = g.closest(".ikg"), v = [...sec.querySelectorAll(".ikrow > [data-ch]")].filter(x => x.checkVisibility());
           return {n: v.length, ch: v[0] && v[0].dataset.ch, svg: v[0] ? (v[0].querySelector(".tspk svg") || {}).innerHTML || "" : "", label: v[0] ? (v[0].querySelector(".il") || v[0]).textContent : ""}; }, sw);
         const picked = {};
         for (const {sw} of sws){
-          const {on, cur} = await p.evaluate(sw => { const g = document.querySelector(`#review .insh .iksw[data-sw="${sw}"]`); return {on: [...g.querySelectorAll('[data-v]:not([aria-disabled="true"])')].map(b => b.dataset.v), cur: g.querySelector('[aria-pressed="true"]').dataset.v}; }, sw); // 量を変えると、選べる割る数が変わる
+          const {on, cur} = await p.evaluate(sw => { const g = document.querySelector(`#review .insh .iksw[data-sw="${sw}"]`); return {on: [...g.querySelectorAll('[data-v]:not([hidden])')].map(b => b.dataset.v), cur: g.querySelector('[aria-pressed="true"]').dataset.v}; }, sw); // 量を変えると、選べる割る数が変わる
           const before = await shown(sw), to = on.find(v => v !== cur), b = p.locator(`#review .iksw[data-sw="${sw}"] [data-v="${to}"]`);
           await b.click(); await pause(); const after = await shown(sw);
           check(`切り替え ${sw}: ${to} を押すと、そのタイルだけが見え、グラフが変わり、ボタンが選ばれてフォーカスが残る`, after.n === 1 && after.ch.split(":")[/D$/.test(sw) ? 1 : 0] === to && after.svg !== before.svg && after.label !== before.label
@@ -466,7 +467,7 @@ async function run(env) {
         const three = innerWidth < 1300 || [...document.querySelectorAll("#review .insrow")].some(r => r.children.length >= 3 && Math.abs(r.children[0].getBoundingClientRect().top - r.children[2].getBoundingClientRect().top) < 1);
         return {say, charts, rows: rowsOk, tiles: tilesOk, half, badTiles, grid: three}; });
       check("どのグラフにも、データから計算した読み取りの 1 文があり、広い画面ではカードが 3 列に並び、カードは重ならず中の下が空かない。カードとグラフのタイルはページの半分より広くなく、奇数のタイルも行の幅を埋める", lay.say === lay.charts && lay.rows && lay.tiles && lay.grid, JSON.stringify(lay));
-      check("コストのグラフの各点に、前の期間からの増減（%）がある", await p.evaluate(() => { const l = [...document.querySelectorAll("#review .ik-cost .tspk:not(.ww) .spc")]; return l.length > 0 && l.every(e => /^[+−±]\d+%$/.test(e.textContent)); }));
+      check("投入と出力の棒の上には、% ではなくその期間の実際の量がある", await p.evaluate(() => { const l = [...document.querySelectorAll("#review .ik-cost .tspk:not(.ww) .spc, #review .ik-out .tspk:not(.ww) .spc")]; return l.length > 0 && l.every(e => /^\$?\d+(\.\d)?[kMh]?$|^\d+m$/.test(e.textContent)); }));
       const tk = await p.evaluate(() => { const g = document.querySelector("#review .insk.trendk"), bs = [...g.querySelectorAll("button")], sel = document.querySelector("#review .insksel");
         const ks = (getComputedStyle(g).display === "none" ? [...sel.options].map(o => o.value) : bs.map(b => b.dataset.ins));
         return {tabs: getComputedStyle(g).display !== "none", oneRow: new Set(bs.map(b => Math.round(b.getBoundingClientRect().top))).size === 1, ks}; });
@@ -675,10 +676,10 @@ async function run(env) {
         return {pairs, none: g.querySelectorAll(".iknone").length, items: [...g.querySelectorAll(".ikrow > [data-ch]")].map(x => x.dataset.ch), ns: [...g.querySelectorAll('.iksw[data-dim="n"] [data-v]')].map(b => b.dataset.v)}; }, id);
       check(`${id} の単価のパネルは、数字のある組だけ（空の選択肢がない）`, !!u && u.none === 0 && u.items.length === u.pairs.length, JSON.stringify(u));
       if (u) for (const n of u.ns){ await p.locator(`#review .ik-${id} .iksw[data-dim="n"] [data-v="${n}"]`).click(); await pause();
-        const r = await p.evaluate(id => { const g = document.querySelector(`#review .ik-${id}`), on = [...g.querySelectorAll('.iksw[data-dim="d"] [data-v]:not([aria-disabled="true"])')].map(b => b.dataset.v), off = [...g.querySelectorAll('.iksw [data-v][aria-disabled="true"]')].map(b => ({v: b.dataset.v, t: b.title, sr: (b.querySelector(".iswhy") || {}).textContent || "", hid: b.hidden})), v = [...g.querySelectorAll(".ikrow > [data-ch]")].filter(x => x.checkVisibility());
+        const r = await p.evaluate(id => { const g = document.querySelector(`#review .ik-${id}`), on = [...g.querySelectorAll('.iksw[data-dim="d"] [data-v]:not([hidden])')].map(b => b.dataset.v), off = [...g.querySelectorAll('.iksw[data-dim="d"] [data-v][hidden]')].map(b => b.dataset.v), v = [...g.querySelectorAll(".ikrow > [data-ch]")].filter(x => x.checkVisibility());
           return {n: g.dataset.n, on, off, ch: v.map(x => x.dataset.ch), pairs: g.dataset.pairs.split(" "), note: [...g.querySelectorAll(".ikrow > .itile:not([hidden]) .iplain")].map(x => x.textContent).join(" ")}; }, id);
         check(`${id} の単価を ${n} にすると、押せる割る数はその量で数字のあるものだけで、見える数字は 1 つ`, r.on.every(d => r.pairs.includes(`${n}:${d}`)) && r.ch.length === 1 && r.ch[0].startsWith(n + ":"), JSON.stringify(r));
-        check(`${id} の単価を ${n} にしたとき、押せない選択肢は隠さず、理由を title と読み上げの文字に持つ`, r.off.every(x => !x.hid && x.t.length > 10 && x.sr.includes(x.t)), JSON.stringify(r.off));
+        check(`${id} の単価を ${n} にしたとき、その量で数字のない割る数は出さない`, r.off.every(d => !r.pairs.includes(`${n}:${d}`)) && r.on.length > 0, JSON.stringify(r));
         if (id === "unit" && n === "credits") check("クレジットでもコミットで割れる（期間の合計 ÷ Git のコミット。名前でそう言う）", r.on.includes("commit") && r.pairs.includes("credits:commit"), JSON.stringify(r));
         if (r.ch[0] === `${n}:pr`) check(`${n} ÷ PR の注は「費用」と決めつけない`, !/^Cost can/.test(r.note), r.note); }
       if (u) await p.locator(`#review .ik-${id} .iksw[data-dim="n"] [data-v="${u.ns[0]}"]`).click(); await pause();
@@ -689,20 +690,15 @@ async function run(env) {
       const all0 = await unitKeys();
       if (ags.length){ await p.click(`#review [data-ag="${ags[0]}"]`); await pause();
         const r = await p.evaluate(() => { const g = document.querySelector("#review .ik-unit"), o = document.querySelector("#review .ik-out");
-          return {unit: g ? [...g.querySelectorAll("[data-ch]")].map(x => x.dataset.ch) : [], note: g ? [...g.querySelectorAll(".ikrow > .itile:not([hidden]) .fxn")].map(x => x.textContent).join(" ") : "", head: g ? (() => { const h = g.querySelector(".ikhd").cloneNode(true); h.querySelectorAll(".iksw").forEach(x => x.remove()); return h.textContent; })() : "", pushB: g ? (() => { const b = g.querySelector('.iksw[data-dim="d"] [data-v="push"]'); return {off: b.getAttribute("aria-disabled") === "true", t: b.title}; })() : null, push: o ? (o.querySelector('[data-ch="push"]') || {}).textContent || "" : "", hasPush: (META.push || []).length > 0}; });
+          return {unit: g ? [...g.querySelectorAll("[data-ch]")].map(x => x.dataset.ch) : [], note: g ? [...g.querySelectorAll(".ikrow > .itile:not([hidden]) .fxn")].map(x => x.textContent).join(" ") : "", head: g ? (() => { const h = g.querySelector(".ikhd").cloneNode(true); h.querySelectorAll(".iksw").forEach(x => x.remove()); return h.textContent; })() : "", pushB: g ? [...g.querySelectorAll('.iksw[data-dim="d"] [data-v="push"]')].filter(b => b.checkVisibility()).length : 0, push: o ? (o.querySelector('[data-ch="push"]') || {}).textContent || "" : "", hasPush: (META.push || []).length > 0}; });
         check("1 つのエージェントに絞ると、単価に push あたりを出さない", !r.unit.some(k => k.endsWith(":push")), JSON.stringify(r.unit));
-        check("1 つのエージェントに絞ると、割る数の Pushes は隠さず押せない形にし、理由を添える", !!r.pushB && r.pushB.off && /All agents only/.test(r.pushB.t), JSON.stringify(r.pushB));
-        { // PR を記録しないエージェント（Kiro・Codex）に絞ると、PRs は押せない形で理由つき。押しても選ばず、理由を 1 行で出す
+        check("1 つのエージェントに絞ると、割る数に Pushes を出さない", r.pushB === 0, JSON.stringify(r.pushB));
+        { // PR を記録しないエージェント（Kiro・Codex）に絞ると、単価の割る数にも出力の切り替えにも PRs を出さない
           const np = ags.find(a => a !== "Claude Code");
           if (np){ await p.click(`#review [data-ag="${np}"]`); await pause();
-            const q = await p.evaluate(() => { const g = document.querySelector("#review .ik-unit"), o = document.querySelector("#review .ik-out"), b = g && g.querySelector('.iksw[data-dim="d"] [data-v="pr"]'), ob = o && o.querySelector('.iksw [data-v="pr"]');
-              return {u: b ? {off: b.getAttribute("aria-disabled"), t: b.title, sr: b.textContent} : null, o: ob ? {off: ob.getAttribute("aria-disabled"), t: ob.title} : null, d: g && g.dataset.d}; });
-            check(`${np} に絞ると、単価と出力の PRs は押せない形で、PR を記録しないと理由を添える`, !!q.u && q.u.off === "true" && /doesn't record pull requests, so there is nothing to divide by/.test(q.u.t) && q.u.sr.includes(q.u.t) && !!q.o && q.o.off === "true" && /doesn't record pull requests/.test(q.o.t), JSON.stringify(q));
-            const pb = p.locator('#review .ik-unit .iksw[data-dim="d"] [data-v="pr"]'); await pb.click({force: true}); await pause(); // Playwright は aria-disabled のボタンを押せないものとみなすので、force で押す（人は押せる）
-            const a = await p.evaluate(() => { const g = document.querySelector("#review .ik-unit"); return {d: g.dataset.d, pressed: g.querySelector('.iksw[data-dim="d"] [aria-pressed="true"]').dataset.v, note: g.querySelector(".iknote").textContent, vis: [...g.querySelectorAll(".ikrow > [data-ch]")].filter(x => x.checkVisibility()).map(x => x.dataset.ch)}; });
-            check("押せない PRs を押すと、選択は変えず、理由をパネルに 1 行で出す", a.d === q.d && a.pressed === q.d && a.note === q.u.t && a.vis.length === 1 && !a.vis[0].endsWith(":pr"), JSON.stringify(a));
-            const en = p.locator('#review .ik-unit .iksw[data-dim="d"] [data-v]:not([aria-disabled="true"])').first(); await en.click(); await pause();
-            check("押せる選択肢を押すと、理由の 1 行は消える", await p.locator("#review .ik-unit .iknote").textContent() === "");
+            const q = await p.evaluate(() => { const vis = sel => [...document.querySelectorAll(sel)].filter(b => b.checkVisibility()).length;
+              return {u: vis('#review .ik-unit .iksw[data-dim="d"] [data-v="pr"]'), o: vis('#review .ik-out .iksw [data-v="pr"]'), ch: [...document.querySelectorAll("#review .ik-unit .ikrow > [data-ch], #review .ik-out .ikrow > [data-ch]")].map(x => x.dataset.ch)}; });
+            check(`${np} に絞ると、単価と出力に PRs の選択肢を出さない`, q.u === 0 && q.o === 0 && !q.ch.some(k => k === "pr" || k.endsWith(":pr")), JSON.stringify(q));
           }
         }
         check("1 つのエージェントに絞ると、push がエージェントで分けられないことを出力単価の式（ƒx）の中で 1 行で言う（パネルの頭には置かない）", !r.hasPush || (/push/i.test(r.note) && /every agent/.test(r.push) && !/All agents only|「すべて」のときだけ/.test(r.head)), `${r.note} / ${r.head} / ${r.push.slice(0, 120)}`);
@@ -750,7 +746,7 @@ async function run(env) {
 
   await step("見直す候補", async () => {
     await view("sum");
-    check("日の見出しの 1 行は、名前つきのただの文字（HTML を含まない）", await p.evaluate(() => [...document.querySelectorAll("#tl .head .cline > span[aria-label]")].every(e => !/[<>]/.test(e.getAttribute("aria-label")) && e.querySelectorAll("*:not(svg):not(svg *)").length === 0)));
+    check("日の見出しの 1 行は、名前つきのただの文字（HTML を含まない）", await p.evaluate(() => [...document.querySelectorAll("#tl .head .cline > span[aria-label]")].every(e => !/[<>]/.test(e.getAttribute("aria-label")) && e.querySelectorAll("*:not(svg):not(svg *):not(small)").length === 0)));
     check("上限の印は、そのセッションの帯の左端にある（隣の帯に重ねない）", await p.evaluate(() => [...document.querySelectorAll("#tl .lim")].every(m => { const r = m.getBoundingClientRect(), bs = [...m.closest(".day").querySelectorAll(`.run[data-sid="${CSS.escape(m.dataset.id)}"]`)].map(b => b.getBoundingClientRect());
       return !bs.length || bs.some(b => Math.abs(b.left - r.left) <= 4); })));
     check("夜遅い印も日の枠の中にある", await p.evaluate(() => [...document.querySelectorAll("#tl .day")].every(d => { const db = d.getBoundingClientRect(); return [...d.querySelectorAll(".gc, .gm")].every(m => m.getBoundingClientRect().bottom <= db.bottom + 1); })));
@@ -868,9 +864,9 @@ async function run(env) {
     await p.locator("#q").fill(word); await pause();
     const heading = await p.locator("#sres h2").first().innerText();
     check("検索結果が出る", heading === "Search results", heading);
-    check("検索結果はカレンダーより上にある", await p.evaluate(() => document.querySelector("#sres").getBoundingClientRect().bottom <= document.querySelector("#tl").getBoundingClientRect().top));
+    check("検索の最中は結果だけ（期間の行・凡例・カレンダー・サマリーは隠す）", await p.evaluate(() => document.querySelector("#sres").checkVisibility() && ["#tl", "#review", "#legend", ".week"].every(q => !document.querySelector(q).checkVisibility())));
     check("一致したセッションがある", await p.locator(".srow[data-s]").count() > 0, word);
-    check("検索結果は枠の中でスクロールし、カレンダーを押し出さない", await p.evaluate(() => [...document.querySelectorAll("#sres .panel")].every(e => e.getBoundingClientRect().height <= Math.min(innerHeight * .52, 520) + 1)));
+    check("検索結果は枠の中でスクロールする（どの一覧も長くなりすぎない）", await p.evaluate(() => [...document.querySelectorAll("#sres .panel")].every(e => e.getBoundingClientRect().height <= Math.min(innerHeight * .52, 520) + 1)));
     const more = p.locator("#srmS");
     if (await more.count()){ const before = await p.locator(".srow[data-s]").count();
       await more.click(); await pause();
@@ -929,19 +925,19 @@ async function run(env) {
         return st.insWf === k && document.querySelector(`#review [data-wfk="${k}"]`).getAttribute("aria-pressed") === "true" && f.querySelectorAll("rect.wft").length === 2 && f.querySelectorAll("rect.wfu, rect.wfd").length >= 1 && !!c.querySelector(".isay"); }, k)); }
     // ドーナツ・サンキー・箱ひげ・ガント
     check("どこに使ったかに、割合のドーナツがある（項目の数だけ弧）", await p.evaluate(() => { const d = document.querySelector("#review .iwdn svg.idn"); return !!d && d.querySelectorAll("path").length === document.querySelectorAll("#review .iwdn .iwr").length; }));
-    for (const [attr, key, sel, name] of [["skk", "insSk", ".isk", "どこへ流れたか"], ["bxk", "insBk", ".ibxf", "1 セッションあたりのばらつき"]]){
+    for (const [attr, key, sel, name] of [["skk", "insSk", ".isk", "投入から出力の流れ"], ["bxk", "insBk", ".ibxf", "1 セッションあたりのばらつき"]]){
       const ks2 = await p.locator(`#review [data-${attr}]`).evaluateAll(xs => xs.map(x => x.dataset[Object.keys(x.dataset)[0]]));
       for (const k of ks2){ await p.locator(`#review [data-${attr}="${k}"]`).click(); await pause();
         check(`${name}を ${k} にすると、その量の図と 1 文になる`, await p.evaluate(([key, k, sel]) => st[key] === k && !!document.querySelector(`#review ${sel} svg`) && !!document.querySelector(`#review ${sel}`).closest(".inscol").querySelector(".isay"), [key, k, sel])); } }
-    check("どこへ流れたか（サンキー）は、4 枚のパネルのすぐ下の幅いっぱいの 1 枚で、内訳の段には繰り返さない", await p.evaluate(() => { const h = document.querySelector("#review .insh"), k = document.querySelector("#review .iskw"); if (!k || !k.querySelector(".isk")) return false;
-      const hr = h.getBoundingClientRect(), kr = k.getBoundingClientRect(), between = [...document.querySelectorAll("#review .insg, #review .insrow")].every(x => x.getBoundingClientRect().top >= kr.bottom - 1);
-      return kr.top >= hr.bottom - 1 && Math.abs(kr.left - hr.left) < 2 && Math.abs(kr.right - hr.right) < 2 && between && document.querySelectorAll("#review .isk").length === 1 && !k.closest(".insrow"); }));
+    check("投入から出力の流れ（サンキー）は、4 枚のパネルのすぐ上の幅いっぱいの 1 枚で、内訳の段には繰り返さない", await p.evaluate(() => { const h = document.querySelector("#review .insh"), k = document.querySelector("#review .iskw"); if (!k || !k.querySelector(".isk")) return false;
+      const hr = h.getBoundingClientRect(), kr = k.getBoundingClientRect(), between = [...document.querySelectorAll("#review .insg, #review .insrow")].every(x => x.getBoundingClientRect().top >= hr.bottom - 1);
+      return hr.top >= kr.bottom - 1 && Math.abs(kr.left - hr.left) < 2 && Math.abs(kr.right - hr.right) < 2 && between && document.querySelectorAll("#review .isk").length === 1 && !k.closest(".insrow"); }));
     { // サンキーの 1 文は、全体がどこへ行ったかを言い切る：コミットか PR あり・なし（None）・記録しないエージェントの分のうち 0 でないものを全部、全体に対する割合で。割合は足して 100
       const sk = await p.evaluate(() => { const c = document.querySelector("#review .isk"); if (!c) return null; const say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay"), out = [...c.querySelectorAll(".sklist .skcol:last-child .skn2")].map(x => x.textContent);
-        return {unk: out.some(x => /^(Not recorded|記録なし)$/.test(x)), none: out.some(x => /^(None|なし)$/.test(x)), yes: out.some(x => /^(Commit or PR|コミットか PR)$/.test(x)), txt: say ? say.textContent : "", list: [...c.querySelectorAll(".sklist .skcol")].map(g => [...g.querySelectorAll("li b")].reduce((a, b) => a + parseInt(b.textContent), 0))}; });
+        return {unk: out.some(x => /^(Not recorded|記録なし)$/.test(x)), none: out.some(x => /^(None|なし)$/.test(x)), fil: out.some(x => /^(Files changed only|ファイルの変更だけ)$/.test(x)), yes: out.some(x => /^(Commit or PR|コミットか PR)$/.test(x)), txt: say ? say.textContent : "", list: [...c.querySelectorAll(".sklist .skcol")].map(g => [...g.querySelectorAll("li b")].reduce((a, b) => a + parseInt(b.textContent), 0))}; });
       const pcs = sk ? [...sk.txt.matchAll(/(\d+)%/g)].map(m => +m[1]) : [];
-      check("サンキーの 1 文は、出力の部分（コミットか PR あり・なし・記録しないエージェントの分）を全部言い、その割合は足して 100", !sk || (!sk.yes && !sk.none ? pcs.length === 0 : pcs.length === sk.yes + sk.none + sk.unk && pcs.reduce((a, v) => a + v, 0) === 100
-        && (!sk.none || /without|もない/.test(sk.txt)) && (!sk.unk || /don't record commits|記録しないエージェント/.test(sk.txt)) && (!sk.yes || /with a commit or PR|PR のあった/.test(sk.txt))), JSON.stringify({sk, pcs}));
+      check("サンキーの 1 文は、出力の部分（コミットか PR あり・ファイルの変更だけ・なし・記録しないエージェントの分）を全部言い、その割合は足して 100", !sk || (!sk.yes && !sk.none && !sk.fil ? pcs.length === 0 : pcs.length === sk.yes + sk.fil + sk.none + sk.unk && pcs.reduce((a, v) => a + v, 0) === 100
+        && (!sk.fil || /changed files|ファイルを変えた/.test(sk.txt)) && (!sk.none || /without|no files|もない|ファイルも変えなかった/.test(sk.txt)) && (!sk.unk || /don't record commits|記録しないエージェント/.test(sk.txt)) && (!sk.yes || /with a commit or PR|PR のあった/.test(sk.txt))), JSON.stringify({sk, pcs}));
       check("サンキーの一覧の割合は、列ごとに足して 100", !sk || sk.list.every(v => v === 100), JSON.stringify(sk && sk.list));
     }
     { // サンキーの名前は、どれもカードの地の色の札の上（色の帯に直接乗らない）
@@ -993,11 +989,72 @@ async function run(env) {
     check("押すと、今月の日ごとの内訳（月末の推定）が開き、週の表示はそのまま", dlg.open && dlg.txt.includes(mp.v) && dlg.txt.includes(mp.so) && await p.evaluate(() => st.mode === "week"), dlg.txt.slice(0, 120));
     await p.keyboard.press("Escape"); await pause();
     await view("sum");
-    await p.locator('#review .iksw[data-sw="cost"] [data-v="credits"]').click(); await pause(); // コストのパネルでクレジットを選ぶ
-    const tile = await p.evaluate(() => { const b = document.querySelector('#review .itile [data-metric="credits"]'); return b ? b.closest(".itile").innerText : ""; });
-    await p.locator('#review .iksw[data-sw="cost"] [data-v="cost"]').click(); await pause();
-    check("サマリーのクレジットのカードにも、今月末の推定がある（式を出しているときは式で）", /Month-end estimate \(this month\)|Month-end credits = /.test(tile) && tile.includes(mp.v), tile);
+    const cb = p.locator('#review .iksw[data-sw="cost"] [data-v="credits"]');
+    if (await cb.count()){ // 今週にクレジットの記録がなければ、投入のパネルにクレジットの選択肢は出ない（数字のない選択肢は出さない）
+      await cb.click(); await pause(); // コストのパネルでクレジットを選ぶ
+      const tile = await p.evaluate(() => { const b = document.querySelector('#review .itile [data-metric="credits"]'); return b ? b.closest(".itile").innerText : ""; });
+      await p.locator('#review .iksw[data-sw="cost"] [data-v]').first().click(); await pause();
+      check("サマリーのクレジットのカードにも、今月末の推定がある（式を出しているときは式で）", /Month-end estimate \(this month\)|Month-end credits = /.test(tile) && tile.includes(mp.v), tile);
+    } else check("今週にクレジットの記録がなければ、投入のパネルにクレジットの選択肢を出さない", await p.evaluate(() => !((WEEKS[key(st.week)] || {}).usage || {}).credits));
     await view("cal");
+  });
+
+  // カレンダーの色と数の単位（週・月）。ブロックの塗りは色分けの色を混ぜたもので、色分けを変えると変わる。土日は中立の同じ地、月の濃さはエージェントの色ではない。
+  // 週の日の見出し・月のマス・上の帯の数には、どれも英語の単位（5 commits・44 credits・$2.22・3h）があり、はみ出さない。今日の印は控えめ
+  await step("カレンダーの色と単位", async () => {
+    await open();
+    const rgb = s => (s.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+    const fills = () => p.evaluate(() => [...document.querySelectorAll("#tl .run[data-sid]")].map(e => getComputedStyle(e).backgroundColor));
+    const sur = await p.evaluate(() => { const d = document.createElement("div"); d.style.background = "var(--surface)"; document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; });
+    const setBy = v => p.evaluate(v => { const s = document.querySelector("#cb2"); s.value = v; s.dispatchEvent(new Event("change")); }, v);
+    await setBy("source"); await pause();
+    const fa = await fills();
+    const tinted = f => { const [r, g, b] = rgb(f), [R, G, B] = rgb(sur); return Math.abs(r - R) + Math.abs(g - G) + Math.abs(b - B) >= 18; };
+    check("週のブロックの塗りは、色分けの色を地に混ぜたもの（地の色のままではない）", fa.length > 0 && fa.every(tinted), fa.filter(f => !tinted(f)).slice(0, 3).join(" / "));
+    await setBy("project"); await pause();
+    const fp = await fills();
+    check("Color by を変えると、ブロックの塗りも変わる", fp.length === fa.length && fp.some((f, i) => f !== fa[i]), `${fa.slice(0, 3)} → ${fp.slice(0, 3)}`);
+    await setBy("source"); await pause();
+    const reddish = c => { const [r, g, b] = rgb(c); return r - Math.max(g, b) > 12; };
+    const we = await p.evaluate(() => [...document.querySelectorAll("#tl .head.we, #tl .day.we")].map(e => [e.className, getComputedStyle(e).backgroundColor, getComputedStyle(e.querySelector("b") || e).color]));
+    check("土日は中立の同じ地（赤い地や字はない。土曜と日曜で同じ）", we.length >= 4 && we.every(([, bg, c]) => !reddish(bg) && !reddish(c)) && new Set(we.filter(([k]) => /head/.test(k)).map(([, bg, c]) => bg + c)).size === 1, JSON.stringify(we.slice(0, 4)));
+    const unitOK = s => !/\d/.test(s.replace(/\$[\d.,]+[KMB]?|\b\d+[hm]\b|[\d.,]+[KMB]? (commits?|credits?|tokens)\b/g, ""));
+    const audit = () => p.evaluate(() => { const bad = [], txt = [];
+      for (const box of document.querySelectorAll("#tl .head, .mgrid .cell:not(.out), #kpis .kpi")) { const r = box.getBoundingClientRect(); if (!r.width) continue;
+        for (const e of box.querySelectorAll(".cline > span, .acs, .acm, .act, .v")) { if (!e.getClientRects().length) continue;
+          const q = e.getBoundingClientRect(); txt.push(e.innerText.replace(/\s+/g, " ").trim());
+          if (q.left < r.left - 1 || q.right > r.right + 1 || e.scrollWidth > e.clientWidth + 1) bad.push(txt.at(-1)); } }
+      const lines = [...document.querySelectorAll("#tl .head .cline")].flatMap(l => l.innerText.split("\n").map(x => x.trim()).filter(Boolean));
+      return {bad, txt, lines}; });
+    const wide = [1440, 1000, 390].includes(env.viewport.width);
+    for (const m of ["week", "month"]) for (const k of ["cost", "credits", "tokens", "active"]) {
+      await p.evaluate(([m, k]) => { st.shade = k; setMode(m); render(); }, [m, k]); await p.waitForTimeout(100);
+      const a = await audit(), noUnit = a.txt.filter(s => !unitOK(s));
+      check(`${m} · ${k}: 日の見出し・月のマス・上の帯の数には、どれも単位がある`, a.txt.length > 0 && noUnit.length === 0, noUnit.slice(0, 4).join(" / "));
+      if (wide) check(`${m} · ${k}: 日の見出し・月のマス・上の帯の数は、枠からはみ出さない`, a.bad.length === 0, a.bad.slice(0, 4).join(" / "));
+      if (m === "week") check(`${m} · ${k}: 日の見出しの行は「·」で始まったり終わったりしない`, a.lines.every(l => !/^·|·$/.test(l)), a.lines.filter(l => /^·|·$/.test(l)).slice(0, 3).join(" / "));
+    }
+    await p.evaluate(() => { st.shade = "cost"; setMode("month"); render(); }); await pause();
+    const heat = await p.evaluate(() => [...document.querySelectorAll(".mgrid .cell:not(.wkc):not(.out)")].filter(c => +c.style.getPropertyValue("--heat") > .5).map(c => getComputedStyle(c).backgroundColor));
+    const agents = await p.evaluate(() => AGENTS.map(a => { const d = document.createElement("div"); d.style.background = `var(--a${a.slot})`; document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; }));
+    const sat = c => { const [r, g, b] = rgb(c); return Math.max(r, g, b) - Math.min(r, g, b); };
+    check("月の濃さはエージェントの色相ではなく中立の灰青（鮮やかさが低い）", heat.length > 0 && heat.every(c => sat(c) <= 24 && !agents.includes(c)), heat.slice(0, 3).join(" / "));
+    const td = await p.evaluate(() => { const c = document.querySelector(".mgrid .cell.today"); if (!c) return null; const s = getComputedStyle(c), d = getComputedStyle(c.querySelector(".dn"));
+      return {shadow: s.boxShadow, outline: s.outlineStyle, chip: d.backgroundColor}; });
+    check("月の今日のマスは枠で囲まず、日付も塗らない", !td || (td.shadow === "none" && td.outline === "none" && /rgba\(0, 0, 0, 0\)|transparent/.test(td.chip)), JSON.stringify(td));
+    await p.evaluate(() => { setMode("week"); render(); }); await pause();
+  });
+
+  await step("記録のない週・月も空のカレンダー", async () => {
+    const w0 = await p.evaluate(() => key(st.week));
+    for (const mode of ["week", "month"]){
+      await p.evaluate(m => { setMode(m); const far = addDays(mondayOf(new Date(Math.min(...DATA.map(s => s.start)) * 1000)), -7 * 20); if (m === "week") st.week = far; else st.month = monthOf(far); render(); }, mode); await pause();
+      const r = await p.evaluate(() => ({note: (document.querySelector("#tl .empty") || {}).textContent || "", grid: document.querySelectorAll("#tl .day, #tl .mgrid .cell").length, go: !!document.querySelector("#tolast"), runs: document.querySelectorAll("#tl .run").length}));
+      check(`記録のない${mode === "week" ? "週" : "月"}も、枠（曜日・時刻・マス）を描き、上に「ない」の 1 行と記録のある最後の期間へのボタン`, r.grid >= 7 && r.runs === 0 && /No records/.test(r.note) && r.go, JSON.stringify(r));
+      await p.click("#tolast"); await pause();
+      check(`ボタンで記録のある${mode === "week" ? "週" : "月"}へ行き、案内は消える`, await p.evaluate(m => !document.querySelector("#tl .empty") && (m === "month" || document.querySelectorAll("#tl .run").length > 0), mode));
+    }
+    await p.evaluate(w => { setMode("week"); const [y, m, d] = w.split("-").map(Number); st.week = new Date(y, m - 1, d); render(); }, w0); await pause();
   });
 
   check("スクリプトのエラーがない", errors.length === 0, errors.join(" / "));

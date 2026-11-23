@@ -6,17 +6,19 @@
   /* 地と文字は、真っ白・真っ黒を避けて少し寄せる（読みやすさの基準 4.5:1 は保ったまま、ページ全体のコントラストを強くしすぎない） */
   --bg:#141218; --surface:#1d1b20; --surface-2:#2b2930; --ink:#e6e0e9; --ink-2:#cac4d0; --ink-3:#938f99;
   --s-lowest:#0f0d13; --s-cont:#211f26; --s-highest:#36343b; --pc:#4f378b; --on-pc:#eaddff; --sc:#4a4458; --on-sc:#e8def8; --inv:#e6e0e9; --on-inv:#322f35; /* M3 の面の段（lowest・container・highest）、主・副のコンテナ、反転（トースト） */
-  --rule:#49454f; --rule-2:#938f99; --acc:#d0bcff; --acc-ink:#d0bcff; --on-acc:#381e72; --heatk:60%; --seg-track:#2b2930; --seg-thumb:#47444e; --seg-shadow:0 1px 2px rgba(0,0,0,.4); --ctl-bd:#49454f; --acc-soft:rgba(208,188,255,.12); --warn:#f2b8b5; --on-warn:#601410;
-  --weekend:rgba(255,255,255,.018);
-  --sat:#93abe6; --sun:#e69393; --sat-bg:rgba(147,171,230,.05); --sun-bg:rgba(230,147,147,.05); /* 土曜は青、日曜は赤（日本のカレンダーと同じ） */
+  --rule:#49454f; --rule-2:#938f99; --acc:#d0bcff; --acc-ink:#d0bcff; --on-acc:#381e72; --heat-c:#8f9db6; --heatk:37%; /* 月のマスの濃さ（使用量）。エージェントの色と重ならない中立の灰青を地に混ぜる。5 段が見分けられ、いちばん濃いマスでも字が 4.5:1 以上（palette_test.go） */ --seg-track:#2b2930; --seg-thumb:#47444e; --seg-shadow:0 1px 2px rgba(0,0,0,.4); --ctl-bd:#49454f; --acc-soft:rgba(208,188,255,.12); --warn:#f2b8b5; --on-warn:#601410;
+  --off:rgba(230,224,233,.045); --weekend:var(--off); /* 勤務時間の外（平日の 9:00〜18:00 の外）と土日は、同じ中立の淡い地。土日も同じ扱いで、赤（警告に見える）や青は使わない */
   --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -16px rgba(0,0,0,.7);
   /* カテゴリーの色（プロジェクト・エージェント・モデル）。この順で検証した 8 色（隣どうしは色覚の違いでも見分けられ、明るさと鮮やかさがそろう）。8 色とも同じ鮮やかさ（灰色に見えない下限の少し上）で、どれかだけが強く見えないように。見分けは明るさの差でつける。
      順は青・オレンジ・アクア・黄・マゼンタ・緑・紫・ティール。増やすときも並べ替えるときも、検証し直してから（palette_test.go） */
   --c0:#6191d1; --c1:#a95c3e; --c2:#45a47a; --c3:#a27323; --c4:#c47190; --c5:#4c8446; --c6:#6e6ab2; --c7:#15a0b6; --other:#6b7180;
+  /* エージェントの色（core.Agents の Slot がこの番号）。区分の 8 色とは別の組で、良し悪しの緑・赤や、外れた量の琥珀に見える色は使わない。
+     青・紫・プラム・ピンク・シアン。どの 2 色も、ふつうの見え方と 1 型・2 型の色覚で見分けられ、帯の淡い地の上で字が 4.5:1 以上（palette_test.go） */
+  --a0:#495ae6; --a1:#9781fe; --a2:#984d98; --a3:#e95ab4; --a4:#2d99c0;
   --amber:var(--c3); --amber-ink:#f2b53a; --note:var(--c6); /* 役目の名前（コマンドの札・自動で入ったもの）。色の番号は上の 8 色から */
   --t1:8%; --t2:14%; --t3:20%; /* 色を地に混ぜる濃さは 3 段だけ（淡い地・吹き出しや札・強め） */
   --odd-ink:#f2b53a; --in:#7cc4f2; --out:#d9a6f2; /* 投入の側（左の列）と出力の側（右の列）の色。良し悪しの緑・赤や、外れた量の琥珀とは別の、青と紫。線は 3:1、札の字は 4.5:1 以上（palette_test.go） */ /* いつもの範囲から大きく外れた量（上でも下でも同じ中立の色。良し悪しの緑・赤とは別。札も添えて色だけに頼らない）。--s-lowest と --surface-2 の上で 4.5:1 以上（palette_test.go） */
-  --go:#5fb08c; --go-ink:#9bd6ba; /* 良い側の緑（いつもより良い数・AI のコミットなど。塗りではなく、淡い地に明るい緑の字） */
+  --go:#5fb08c; --go-ink:#9bd6ba; --go-2:#3d7d66; /* --go-2 は、サンキーの「ファイルの変更だけ」（コミットか PR の緑より一段暗く） */ /* 良い側の緑（いつもより良い数・AI のコミットなど。塗りではなく、淡い地に明るい緑の字） */
   --sans:"Roboto","Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",system-ui,sans-serif; /* 英語の画面なので欧文の書体を先に。日本語のプロンプトは後ろの和文の書体で出す */
   /* 文字の大きさは 10 段だけ（2xs は狭い画面の月のマスだけ、hero はサマリーの 3 つのパネルの値だけ）。太さは 400・500・600・700、行間は 1.2（数字・見出し）・1.5（UI）・1.6〜1.7（長い文） */
   --fs-2xs:10px; --fs-xs:11px; --fs-sm:12px; --fs-md:13px; --fs-lg:14px; --fs-xl:16px; --fs-2xl:20px; --fs-3xl:24px; --fs-4xl:30px; --fs-hero:40px;
@@ -133,7 +135,6 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .head b{font:700 var(--fs-xl)/1.1 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .head i{font-style:normal;font-size:var(--fs-xs);color:var(--ink-3)}
 .head small{display:block;font-size:var(--fs-xs);color:var(--ink-3);font-variant-numeric:tabular-nums;margin-top:2px}
-.head.today{box-shadow:inset 0 -2px 0 var(--acc)}
 .head .dd .dayrun{margin-left:auto;align-self:center;font-size:var(--fs-xs);padding:2px 8px;white-space:nowrap} /* 日報の「AI 分析」（記録のある日だけ）。日付の右端に小さく、入らなければ日付の下の行に */
 /* 7 日分のボタンが並ぶと落ち着かないので、マウスで使う画面では日付の見出しに触れたとき（キーボードで入ったとき）だけ見せる。タッチの画面ではいつも出す */
 .head .dd .dayrun .ic{display:none}
@@ -141,8 +142,7 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 @media (hover:hover){.head .dd .dayrun{padding:0;width:24px;height:24px;display:inline-grid;place-items:center;border-radius:50%}.head .dd .dayrun span{display:none}.head .dd .dayrun .ic{display:block;width:13px;height:13px}}
 @media (hover:hover){.head{position:relative}.head .dd .dayrun{position:absolute;top:6px;right:6px;z-index:2;opacity:0;transition:opacity .15s var(--ease)}.head:hover .dd .dayrun,.head:focus-within .dd .dayrun{opacity:1}} /* 隠しているあいだは場所も取らない（見出しの上に重ねて出す） */
 .head.today b,.head.today i{color:var(--acc-ink)}
-.head .tdy{display:inline-block;margin-left:6px;padding:0 6px;border-radius:999px;background:var(--acc);color:var(--on-acc);font:700 var(--fs-xs)/1.6 var(--sans);vertical-align:middle} /* 「今日」の印 */
-.cell.today{box-shadow:inset 0 0 0 2px var(--acc)} /* 月のカレンダーの今日のマス */
+.head .tdy{display:inline-block;margin-left:6px;color:var(--acc-ink);font:600 var(--fs-xs)/1.6 var(--sans);vertical-align:middle} /* 「今日」の印 */
 .hours{position:sticky;left:0;z-index:6;background:var(--surface)}
 .heads>div:first-child{position:sticky;left:0;z-index:9;background:var(--surface)}
 .hours span{position:absolute;right:9px;transform:translateY(-50%);font-size:var(--fs-xs);color:var(--ink-3);font-variant-numeric:tabular-nums}
@@ -157,15 +157,13 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 /* 0 時から --ch 時（calendar.js の CAL_D0）を畳んでいるときは、その高さ --e0 を淡い地の帯にし（線は引かない）、1 時間の線はその下から。色の --c0 とは別の名前 */
 .day{--e0:0px;--ch:0;--early:var(--surface-2);background-image:linear-gradient(var(--early) 0,var(--early) var(--e0),transparent var(--e0)),linear-gradient(var(--rule) 1px,transparent 1px);background-size:100% 100%,100% var(--hh);background-position:0 0,0 var(--e0);background-repeat:no-repeat,repeat-y}
 /* 平日の勤務時間（9:00〜18:00）の外は少し暗く（Google カレンダーの勤務時間のように、夜中や早朝の作業がひと目でわかる）。週末は列ごと別の地の色 */
-.day:not(.we){--off:color-mix(in oklab,var(--ink) 4.5%,transparent);background-image:linear-gradient(var(--early) 0,var(--early) var(--e0),transparent var(--e0)),linear-gradient(var(--rule) 1px,transparent 1px),linear-gradient(var(--off) 0,var(--off) calc(var(--e0) + var(--hh) * (9 - var(--ch))),transparent calc(var(--e0) + var(--hh) * (9 - var(--ch))),transparent calc(var(--e0) + var(--hh) * (18 - var(--ch))),var(--off) calc(var(--e0) + var(--hh) * (18 - var(--ch))));background-size:100% 100%,100% var(--hh),100% 100%;background-position:0 0,0 var(--e0),0 0;background-repeat:no-repeat,repeat-y,no-repeat}
-.day.we{background-color:var(--weekend)}
-.day.sat{background-color:var(--sat-bg)}.day.sun{background-color:var(--sun-bg)}
-.head.sat b,.head.sat i,.mgrid .mh.sat,.cell.sat .dn{color:var(--sat)}
-.head.sun b,.head.sun i,.mgrid .mh.sun,.cell.sun .dn{color:var(--sun)}
-.head.sat{background:var(--sat-bg)}.head.sun{background:var(--sun-bg)}.mgrid .mh.sat,.mgrid .mh.sun{font-weight:700}
-.day.today{background-color:color-mix(in oklab,var(--acc) var(--t2),transparent);box-shadow:inset 2px 0 0 var(--acc),inset -2px 0 0 var(--acc)} /* 今日の列：色と左右の線で、ひと目でわかるように */
+.day:not(.we){background-image:linear-gradient(var(--early) 0,var(--early) var(--e0),transparent var(--e0)),linear-gradient(var(--rule) 1px,transparent 1px),linear-gradient(var(--off) 0,var(--off) calc(var(--e0) + var(--hh) * (9 - var(--ch))),transparent calc(var(--e0) + var(--hh) * (9 - var(--ch))),transparent calc(var(--e0) + var(--hh) * (18 - var(--ch))),var(--off) calc(var(--e0) + var(--hh) * (18 - var(--ch))));background-size:100% 100%,100% var(--hh),100% 100%;background-position:0 0,0 var(--e0),0 0;background-repeat:no-repeat,repeat-y,no-repeat}
+.day.we{background-color:var(--weekend)} /* 土日は列ごと、勤務時間の外と同じ淡い地（土曜と日曜で同じ。色の名前の印はつけない） */
+.head.we,.mgrid .mh.we{background:var(--weekend)}
+.day.today{background-color:color-mix(in oklab,var(--acc) 5%,transparent)} /* 今日の列：ごく淡い地だけ（枠や線で囲まない。日付はアクセントの色） */
 .run{position:absolute;border-radius:0;padding:4px 7px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;gap:2px;
-  background:color-mix(in oklab,var(--c) var(--fill),var(--surface));box-shadow:inset 3px 0 0 var(--c); /* 枠線では囲まず、左端の細い帯と淡い塗りでエージェントの色を示す */
+  background:color-mix(in srgb,var(--c) var(--fill,22%),var(--surface));box-shadow:inset 4px 0 0 var(--c); /* 枠線では囲まず、左端の帯と、色分け（エージェント・プロジェクト）の色を地に混ぜた塗りで示す。
+  混ぜる量 --fill は 22%〜38%（calendar.js。1 分あたりのメッセージが多いほど濃い）。38% でも字が 4.5:1 以上（palette_test.go）。混ぜ方は srgb（テストの計算と同じ） */
   font-size:var(--fs-xs);line-height:1.3;color:var(--ink);text-align:left;
   transition:transform .18s var(--ease),box-shadow .18s var(--ease),opacity .25s var(--ease),filter .25s;
   animation:rise .25s var(--ease) both;animation-delay:var(--delay,0ms)} /* 週を替えたときの出方は短く（ずらしを入れても 0.4 秒ほどで出そろう） */
@@ -185,18 +183,17 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 .run .st{display:none;margin:0 -6px;font-size:var(--fs-2xs);font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-align:center}
 .run.nt .t,.run.nt .m,.run.nn .t,.run.nn .m{display:none}.run.nt .st{display:block}.run.thin .st{line-height:1}
 .run.bw .t,.run.bw .t span{overflow-wrap:anywhere;word-break:break-all;hyphens:auto} /* 背の高い細い帯：名前を単語の途中で折り返す */
-.run.cas{box-shadow:inset 3px 0 0 var(--c),0 0 0 2px var(--bg)} /* 前の帯の上に重ねた帯は、地の色の縁で前の帯と分ける */
-.run:hover{box-shadow:inset 3px 0 0 var(--c),var(--shadow);z-index:4}
+.run.cas{box-shadow:inset 4px 0 0 var(--c),0 0 0 2px var(--bg)} /* 前の帯の上に重ねた帯は、地の色の縁で前の帯と分ける */
+.run:hover{box-shadow:inset 4px 0 0 var(--c),var(--shadow);z-index:4}
 .tlbox.focus .run{opacity:.25;filter:saturate(.5)}
-.tlbox.focus .run.sel{opacity:1;filter:none;box-shadow:inset 3px 0 0 var(--c),0 0 0 2px var(--c),var(--shadow);z-index:2}
+.tlbox.focus .run.sel{opacity:1;filter:none;box-shadow:inset 4px 0 0 var(--c),0 0 0 2px var(--c),var(--shadow);z-index:2}
 @keyframes rise{from{opacity:0;transform:translateY(6px)}}
 .lim{position:absolute;left:3px;z-index:3;height:16px;margin-top:-8px;padding:0 6px;border-radius:0;font-size:var(--fs-2xs);font-weight:700;line-height:16px;color:var(--on-warn);background:var(--warn);box-shadow:0 0 0 2px var(--surface)}
 .lim:hover{filter:brightness(1.1)}
 .nowline{position:absolute;left:0;right:0;height:0;border-top:1.5px solid var(--acc);z-index:3;pointer-events:none}
 .nowline::before{content:"";position:absolute;left:-4px;top:-4.5px;width:8px;height:8px;border-radius:50%;background:var(--acc)}
-.empty{padding:56px 16px 60px;text-align:center;color:var(--ink-3)}
-.empty svg{width:56px;height:56px;color:var(--rule-2);stroke-width:1.2}
-.empty p{margin:10px 0 0}
+.empty{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px;margin:0 0 10px;padding:10px 16px;border:1px solid var(--rule);border-radius:12px;background:var(--s-lowest);text-align:center;color:var(--ink-2);font-size:var(--fs-md)} /* 記録のない週・月の案内：空のカレンダーの上に 1 行 */
+.empty p{margin:0}
 
 /* ── project（プロジェクト別のまとめ） ──────────────────── */
 .fss,.fss-rest{display:flex;flex-direction:column;min-width:0}.fss-rest[hidden]{display:none}
@@ -280,22 +277,22 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .mgrid .mh:first-child{border-left:0}
 .cell.wkc{border-left:0;background:var(--surface-2)}.cell.wkc .dn{font-size:var(--fs-xs);color:var(--ink-3)}.cell.wkc:hover .dn{color:var(--acc-ink)} /* 週の合計（左の列） */
 .cell{position:relative;min-height:104px;padding:8px 10px 10px;border-left:1px solid var(--rule);border-bottom:1px solid var(--rule);text-align:left;display:flex;flex-direction:column;gap:4px;
-  background:color-mix(in oklab,var(--acc) calc(var(--heat,0) * var(--heatk)),var(--surface));transition:box-shadow .2s var(--ease)}
+  background:color-mix(in srgb,var(--heat-c) calc(var(--heat,0) * var(--heatk)),var(--surface));transition:box-shadow .2s var(--ease)}
 .cell:hover{box-shadow:inset 0 0 0 1.5px var(--acc);z-index:1}
 .cell.out{background:var(--surface);opacity:.35;pointer-events:none}
 .cell.we{background-image:linear-gradient(var(--weekend),var(--weekend))}
-.cell.sat{background-image:linear-gradient(var(--sat-bg),var(--sat-bg))}.cell.sun{background-image:linear-gradient(var(--sun-bg),var(--sun-bg))}
 .cell .dn{font:700 var(--fs-lg)/1 var(--sans);font-variant-numeric:tabular-nums}
-.cell.today .dn{color:var(--acc-ink);background:color-mix(in oklab,var(--acc) var(--t3),var(--surface));border-radius:6px;padding:3px 5px;margin:-3px 0 0 -5px;align-self:flex-start}
+.cell.today .dn{color:var(--acc-ink);text-decoration:underline 2px;text-underline-offset:3px} /* 月の今日のマス：日付をアクセントの色と細い下線で示すだけ（マスを枠で囲まず、日付も塗らない） */
 .cell .acs{display:block;font:700 var(--fs-md)/1.2 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap;margin-top:auto} /* 月のマスは使用量の 1 つだけ（作業時間はマスの濃さで見える） */
 .cell .acs.u,.kpis.unf .v{color:var(--ink-3)} /* 絞り込みの最中の、絞り込まれていない合計 */
-.head .cline{display:flex;align-items:baseline;gap:6px;margin-top:6px;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:0} /* 週の日の見出しの 1 行：使用量 · コミット */
-.head .cline .cu{font-size:var(--fs-md);font-weight:700;color:var(--ink)}.head .cline .cc{display:inline-flex;align-items:center;gap:3px;font-size:var(--fs-md);font-weight:700;color:var(--go-ink)}.head .cline .cc .ic{width:12px;height:12px}
-.head .cline .sep{color:var(--ink-3)}.head .cline .u{color:var(--ink-3)}
+.head .cline{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;margin-top:6px;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:0} /* 週の日の見出しの行：コミット・使用量・作業時間を間隔で分ける（「·」は折り返した行の頭に残るので使わない）。入らない列では、数と単位の組ごとに折り返す（単位は省かない） */
+.head .cline .cu{font-size:var(--fs-md);font-weight:700;color:var(--ink)}.head .cline .cc{display:inline-flex;align-items:center;gap:3px;font-size:var(--fs-md);font-weight:700;color:var(--ink-2)}.head .cline .cc .ic{width:12px;height:12px}
+.head .cline small,.cell .acs small,.cell .acm small{font-size:var(--fs-xs);font-weight:500;letter-spacing:0} /* 数の単位（commits・credits・tokens）は小さく */
+.head .cline .u{color:var(--ink-3)}
 .head .cline .ct{font-size:var(--fs-sm);font-weight:600;color:var(--ink-2)} /* 週の日の見出しの稼働時間（コスト系の横に） */
 .cell .act{display:block;font:600 var(--fs-xs)/1.3 var(--sans);font-variant-numeric:tabular-nums;color:var(--ink-2);white-space:nowrap}.cell .act.u{color:var(--ink-3)} /* 月のマスの稼働時間（コスト系の下に） */
 .mlegend{display:flex;align-items:center;gap:8px;justify-content:flex-end;padding:10px 14px;font-size:var(--fs-xs);color:var(--ink-3);border-top:1px solid var(--rule)}
-.mlegend i{width:16px;height:10px;border-radius:3px;background:color-mix(in oklab,var(--acc) calc(var(--h) * var(--heatk)),var(--surface));box-shadow:inset 0 0 0 1px var(--rule)}
+.mlegend i{width:16px;height:10px;border-radius:3px;background:color-mix(in srgb,var(--heat-c) calc(var(--h) * var(--heatk)),var(--surface));box-shadow:inset 0 0 0 1px var(--rule)}
 .mshade{display:inline-flex;align-items:center;gap:6px;margin-right:auto}.mshade select{height:28px;font-size:var(--fs-xs)}
 .wk .mode{margin-left:10px}
 
@@ -759,6 +756,7 @@ body[data-view="cal"] #review>.rvhead,body[data-view="cal"] #review>.insight,bod
 body[data-view="cal"] #review .rvgrid{display:block}
 body[data-view="cal"] #review{margin-top:28px} /* カレンダーの下端とデータソースのあいだを空ける */
 body[data-view="sum"] #tl,body[data-view="sum"] #skipcal{display:none}
+body.srch .week,body.srch #legend,body.srch #fnote,body.srch #tl,body.srch #review,body.srch #skipcal{display:none} /* 検索の最中は結果だけ（全期間から探すので、期間・カレンダー・サマリーは要らない。結果を押すと詳細が開き、検索を消すとその週のカレンダー） */
 /* 上の帯の間は、どちらの表示でも同じに（切り替えたときに上の帯が動かないように）。カレンダーに高さを回すため少しだけ詰める */
 .week{padding:24px 0 16px}.legend{padding-bottom:12px}
 /* スクロールはページだけ（何も固定しない。上の帯はスクロールで流れていく）。カレンダーの中ではスクロールさせず、1 日を全部の高さで出す。
@@ -980,12 +978,12 @@ header{background:var(--s-cont);border-bottom:0}
 @media (max-width:520px){.istats .stat:last-child:nth-child(odd){grid-column:auto}}
 /* スマホ：指標の切り替えは折り返さず、横にスクロール */
 @media (max-width:820px){.insk{flex-wrap:nowrap;overflow-x:auto;max-width:100%;scrollbar-width:none}.insk::-webkit-scrollbar{display:none}.insk button{flex:none}.inshead{flex-wrap:wrap}}
-/* ── プロンプトの流れ：メッセージアプリ（LINE の昔からのトーク画面）の会話の見た目。色と形だけを借りる（ロゴ・印・字体は使わない）。画面のほかの部分はダークのまま ──
-   青灰色の地に、あなたの発言は右の緑の吹き出しに黒い字（右に小さなしっぽ。自分の印は出さない）、AI の応答は左の白い吹き出しに黒い字（左にしっぽ、その左に丸い印）。
+/* ── プロンプトの流れ：メッセージアプリの会話の形（吹き出し・しっぽ・左右）。色は特定のアプリに寄せず、画面のダークに合う落ち着いた色 ──
+   灰青のスレートの地に、あなたの発言は右のくすんだ緑の吹き出しに黒い字（右に小さなしっぽ。自分の印は出さない）、AI の応答は左の白い吹き出しに黒い字（左にしっぽ、その左に丸い印）。
    時刻とコピーは吹き出しの下の端の横（あなたは吹き出しの左、AI は右）。あいだに起きたこと（コミット・PR・中断など）は、真ん中の半透明の濃い札に白い字（上限と中断は赤い札）。
-   時刻は小さいので、青の上で 4.5:1 に届く濃い字にする（白い字は 3.1:1 で足りない）。
+   時刻・コピーなど吹き出しの外の字は、暗い地の上なので明るい字にする。
    字と地の組み合わせは palette_test.go の TestChatContrast で確かめる（字は 4.5:1、小さな印は 3:1 以上）。値を変えるときは両方を直す */
-.tl{--chat-bg:#71829a;--chat-ink:#08101b;--chat-me:#82d46e;--chat-me-ink:#111111;--chat-me-meta:#2b4a12;--chat-me-tag:rgba(0,0,0,.1);--chat-me-warn:#6b0d08;--chat-ai:#ffffff;--chat-ai-ink:#111111;--chat-ai-meta:#5c5c5c;--chat-ai-mark:#3d5a85;--chat-link:#1f5fbf;--chat-sys:rgba(0,0,0,.4);--chat-sys-ink:#ffffff;--chat-note:#c9c6ff;--chat-warn:#a8201a;--chat-warn-ink:#ffffff;--chat-gap:#56677e;background:var(--chat-bg);border-radius:16px;padding:14px 12px}
+.tl{--chat-bg:#4a5466;--chat-ink:#eef1f5;--chat-me:#a9c4ae;--chat-me-ink:#111111;--chat-me-meta:#2b4a12;--chat-me-tag:rgba(0,0,0,.1);--chat-me-warn:#6b0d08;--chat-ai:#f2f3f5;--chat-ai-ink:#111111;--chat-ai-meta:#5c5c5c;--chat-ai-mark:#3d5a85;--chat-link:#1f5fbf;--chat-sys:rgba(0,0,0,.4);--chat-sys-ink:#ffffff;--chat-note:#c9c6ff;--chat-warn:#a8201a;--chat-warn-ink:#ffffff;--chat-gap:#3d4656;background:var(--chat-bg);border-radius:16px;padding:14px 12px}
 .tl li>time,.tl time,.drawer .tl time{color:var(--chat-ink)}
 .tl :focus-visible,.tl li.pr:focus-visible{outline-color:var(--chat-ink)}
 .tl li.pr:not(.ev)>.av{display:none}
@@ -1001,7 +999,7 @@ header{background:var(--s-cont);border-bottom:0}
 .tl li.pr:not(.ev) p::after{right:-6px;clip-path:polygon(0 0,100% 0,0 100%)}
 .tl li.rp:not(.quiet) p::after{left:-6px;clip-path:polygon(0 0,100% 0,100% 100%)}
 .tl .av.rpav{background:var(--chat-ai);color:var(--chat-ai-mark)}
-.tl li .pcopy{color:var(--chat-ink)}.tl li .pcopy:hover{background:rgba(255,255,255,.3);color:var(--chat-ink)}
+.tl li .pcopy{color:var(--chat-ink)}.tl li .pcopy:hover{background:rgba(255,255,255,.14);color:var(--chat-ink)}
 .tl li.ev,.tl li.ev.note{background:var(--chat-sys);color:var(--chat-sys-ink)}
 .tl li.ev>.ic,.tl li.ev>time,.drawer .tl li.ev>time{color:var(--chat-sys-ink)}.tl li.ev.ai>.ic,.tl li.ev.pr>.ic{color:var(--acc)}.tl li.ev.note>.ic{color:var(--chat-note)}
 .tl li.ev.note .evl{color:var(--chat-sys-ink)}.tl li.ev.note .evd{color:var(--chat-sys-ink)}.tl li.ev.int .evl,.tl li.ev.warn .evl{color:var(--chat-warn-ink)}
@@ -1121,11 +1119,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .fxb{margin-left:6px;padding:0 5px;border:1px solid var(--rule);border-radius:6px;background:none;color:var(--ink-2);font:italic 600 var(--fs-xs)/1.5 var(--serif,Georgia,serif);cursor:pointer;vertical-align:baseline}
 .fxb:hover{color:var(--acc-ink);border-color:var(--acc)}.fxb[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
 
-/* 見直す候補の 1 行：見出しのカードのすぐ下。基準を超えた指標の名前を並べ、押すとその候補のダイアログ */
-.iworth{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 12px;padding:10px 14px;border:1px solid var(--rule);border-radius:12px;background:var(--s-lowest)}
-.iworth .iwl{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:var(--fs-sm);color:var(--ink)}.iworth .iwl svg{width:14px;height:14px;color:var(--warn)}
 .iwlink{padding:3px 10px;border:1px solid var(--rule);border-radius:999px;background:var(--surface);color:var(--ink);font:500 var(--fs-sm)/1.4 var(--sans);cursor:pointer}.iwlink:hover{border-color:var(--acc);color:var(--acc-ink)}
-.iwnone{font-size:var(--fs-sm);color:var(--ink-2)}
 .fxb{position:relative;z-index:2} /* 値のボタンが枠いっぱいに重なる数字の枠でも、「ƒx」を押せるように */
 
 /* 月のマス：色分け（Color by）ごとの作業時間の細い帯。絞り込み・検索で該当のない日は薄く */
@@ -1172,11 +1166,11 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .ikinds .k0{background:var(--c0)}.ikinds .k1{background:var(--c1)}.ikinds .k2{background:var(--c2)}.ikinds .k3{background:var(--c3)}.ikinds .k4{background:var(--c4)}.ikinds .k5{background:var(--c5)}.ikinds .k6{background:var(--c6)}.ikinds .k7{background:var(--c7)}
 .ikinds{margin-top:12px}
 /* 月のマスのコミットの数（成果を先に、緑で） */
-.cell .acm{display:inline-flex;align-items:center;gap:2px;font:700 var(--fs-xs)/1.2 var(--sans);font-variant-numeric:tabular-nums;color:var(--go-ink);margin-top:2px}.cell .acm .ic{width:11px;height:11px}
+.cell .acm{display:inline-flex;align-items:center;gap:2px;font:700 var(--fs-xs)/1.2 var(--sans);font-variant-numeric:tabular-nums;color:var(--ink-2);margin-top:2px}.cell .acm .ic{width:11px;height:11px}
+@media (max-width:820px){.cell .acs,.cell .acm{white-space:normal}.cell .acm{display:block}.cell .acs small,.cell .acm small{display:block;font-size:var(--fs-2xs);letter-spacing:-.03em}} /* 狭い月のマスでは、単位（commits・credits・tokens）を数の下の行に回す。単位は省かない */
+@media (max-width:360px){.cell .acs small,.cell .acm small{overflow-wrap:anywhere}} /* いちばん狭い画面では、単位の語もマスの幅で折り返す（はみ出さず、省かない） */
 /* 狭い日の列（1200px 以下の週の表示など）では、見出しの行に収まらない稼働時間を省く（コミットと費用を残す。時間はツールチップにある） */
 .head{container-type:inline-size}
-@container (max-width:150px){.head .cline .ct,.head .cline .sep:has(+.ct){display:none}}
-@container (max-width:125px){.head .cline .cc,.head .cline .cc+.sep{display:none}} /* もっと狭ければ、コミットの数を省く（「数字」で選んだ量はいつも残す） */
 /* グラフの文字が、幅の広い 1 列の画面で大きくなりすぎないように（480 の座標を、最大でその 1.1 倍に） */
 .itile:has(.tspk)>.tspk{max-width:530px}
 /* 暗い表示では、いつもの範囲の帯を少し濃く（地の黒に沈まないように） */
@@ -1235,9 +1229,9 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 /* サマリーの指標名は、値の次に目に入るように太く濃く（小さな灰色だと、どの数字か探しにくい） */
 .itile .il{font-size:var(--fs-lg);font-weight:600;color:var(--ink)}
 #review .insight .stat .k{font-size:var(--fs-sm);font-weight:600;color:var(--ink)}
-/* コストのグラフの、前の期間からの増減（各点の上の %）。線に重なっても読めるよう、地の色で縁取る */
-.tspk .spc{font-size:9px;fill:var(--ink-2);text-anchor:middle;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
-.tlg .lg.pcl::before{display:none}
+/* 量のパネルの棒の上の、その期間の実際の量（insBarS）。棒や線に重なっても読めるよう、地の色の縁取り。表示中の期間は濃く */
+.tspk .spc{font-size:9px;fill:var(--ink-2);text-anchor:middle;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}.tspk .spc.cur{fill:var(--ink);font-weight:600}
+
 /* 量のパネル（投入・出力）の棒：過去の期間は淡く、表示中の期間は濃く。途中の期間は、期間の終わりの推定までを淡い破線の棒で */
 .tspk .sbar{fill:color-mix(in oklab,var(--acc) 40%,var(--surface))}.tspk .sbar.cur{fill:var(--acc)}
 .tspk .sbar.ext{fill:color-mix(in oklab,var(--acc) 14%,transparent);stroke:var(--acc);stroke-width:1.2;stroke-dasharray:3 2}
@@ -1268,8 +1262,6 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 @container (max-width:520px){.inscol>.insfig.iwdn{flex-direction:column;align-items:stretch}}
 /* 切り替えで、今の量では数字のない割る数のボタンは隠す。単価のカードも、選んでいない組の数字は隠す */
 .iksw [data-v][hidden]{display:none}
-.iksw [aria-disabled="true"],.iksw [aria-disabled="true"]:hover{color:var(--ink-3);cursor:not-allowed} /* 今の期間・量では数字のない選択肢：隠さずに薄く（理由は title と読み上げの文字。押すと .iknote に 1 行） */
-.iknote{margin:0;font-size:var(--fs-sm);font-weight:400;color:var(--ink-2)}.iknote:not(:empty){margin-top:6px}
 /* カードは自分の高さのまま（石積みの隣のカードの高さに伸ばさない） */
 .insrow>*{align-self:start}
 /* 指標の 1 行（rowH）：名前と「?」「ƒx」・値の 1 段目、いつもの範囲の印と前の期間との比べの 2 段目。式と注は「ƒx」で 3 段目に */
@@ -1313,4 +1305,6 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .itft{min-width:0}
 /* どこへ流れたか（サンキー）：投入と出力の 2×2 のすぐ下に、幅いっぱいの 1 枚（サマリーで唯一の全幅のカード）。狭いカードでは文字を座標の上で大きく */
 .inscol.iskw{margin:0 0 12px;container-type:inline-size}
+.iskw .skgh{padding:0;margin-bottom:10px}.iskw .skgh::before{background:linear-gradient(var(--in),var(--out))} /* 投入から出力へ：パネルの見出しと同じ大きさで、左の線は投入の青から出力の紫へ */
+.iskw .skil{margin:0;font-size:var(--fs-lg);font-weight:600;color:var(--ink)} /* 図の名前は、パネルの中の指標の名前（.itile .il）と同じ段 */
 @container (max-width:900px){.iskw .isk .skt,.iskw .isk .skh{font-size:14px}}

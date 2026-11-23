@@ -139,7 +139,7 @@ func (p *Parts) HTML(live bool) (string, error) {
 	if !ValidLang(lang) {
 		lang = ""
 	}
-	for k, v := range map[string]any{"__LANG__": lang, "__LIVE__": live, "__PROMPT_RUNES__": core.PromptRunes, "__REPLY_RUNES__": core.ReplyRunes, "__RECORDS__": core.Records, "__AGENTS__": core.Agents, "__AGENT_WARN__": core.AgentWarnSlots} {
+	for k, v := range map[string]any{"__LANG__": lang, "__LIVE__": live, "__PROMPT_RUNES__": core.PromptRunes, "__REPLY_RUNES__": core.ReplyRunes, "__RECORDS__": core.Records, "__AGENTS__": core.Agents} {
 		b, err := json.Marshal(v)
 		if err != nil {
 			return "", err

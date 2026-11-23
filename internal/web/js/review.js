@@ -263,7 +263,8 @@ function openWorth(id, from, F = lastFlags){
   const hd = $("#wkh"); hd.tabIndex = -1; hd.focus(); } // 最初のボタンではなく見出しへ（読み上げで何のダイアログかわかり、セッションを押した表示にもならない）
 function placeFlags(R, F){ // 基準を超えた指標の名前の横に、小さな印だけを付ける（押すと「Worth a look」と同じダイアログ。中身はダイアログにだけ出し、サマリーで繰り返さない）
   [...new Set(F.map(f => GOTO[f.k] || f.k))].forEach(id => {
-    const hs = [...R.querySelectorAll(`.insight .hb[data-help="${id}"], .panel .hb[data-help="${id}"]`)], hb = hs.find(h => !h.closest("[hidden]")) || hs[0]; if (!hb) return; // パネルの切り替えで隠れた選択肢の「?」より、見えているものに
+    // 「?」のない候補（コミットにつながらなかった費用など）は、関係する図の見出しの印の場所（data-flag）に置く
+    const hs = [...R.querySelectorAll(`.insight .hb[data-help="${id}"], .panel .hb[data-help="${id}"]`)], hb = hs.find(h => !h.closest("[hidden]")) || hs[0] || R.querySelector(`.insight [data-flag="${id}"]`); if (!hb) return; // パネルの切り替えで隠れた選択肢の「?」より、見えているものに
     hb.insertAdjacentHTML("beforebegin", `<button class="fmark" data-goto="${id}" aria-haspopup="dialog" aria-label="${esc(t("Worth a look: {name}", {name: H()[id].n}))}" title="${esc(t("Crossed a threshold. Click to see why."))}">${ico("flag", "fdot")}</button>`);
     // 閉じた折りたたみの中の印は、見出しにも出す（開かずに、中に印があるとわかるように）。折りたたみが重なっていれば（③ からのパネルの中の「もっと見る」）、どれの見出しにも
     for (let dt = hb.closest("details"); dt; dt = dt.parentElement.closest("details")){ const sm = dt.querySelector(":scope > summary");

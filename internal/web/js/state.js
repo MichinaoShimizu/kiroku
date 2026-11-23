@@ -19,7 +19,7 @@ function shiftTimes(x){ if (!SHIFT) return x;
 const LIVE = __LIVE__; // kiroku serve で開いたとき true
 const PROMPT_RUNES = __PROMPT_RUNES__; // HTML に入れるプロンプトの長さ（core.PromptRunes）
 const REPLY_RUNES = __REPLY_RUNES__; // HTML に入れる応答の長さ（core.ReplyRunes）
-const AGENTS = __AGENTS__, AG_WARN = __AGENT_WARN__; // エージェントの名前・色・頭文字（core.Agents）と、エージェントに使わない警告の色
+const AGENTS = __AGENTS__; // エージェントの名前・色（--a<slot>）・頭文字（core.Agents）
 const RECORDS = __RECORDS__; // エージェントごとに、履歴から読めるもの（core.Records）。ないものは「0」ではなく「記録されていない」と出す
 const records = (src, what) => (RECORDS[src] || []).includes(what);
 // 期間 [ws, we) のセッションのエージェントのどれも what を記録しないなら、それらのエージェントの名前。どれかが記録するか、セッションがなければ null
@@ -56,7 +56,7 @@ const LOC = () => isJA() ? "ja-JP" : "en-US";
 const DOW_EN = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"], DOW_JA = ["日","月","火","水","木","金","土"];
 const DOW = new Proxy(DOW_EN, {get: (a, k) => (isJA() ? DOW_JA : DOW_EN)[k]}); // DOW[i] がその時の言語の曜日
 const dow = i => DOW[i];
-const wkc = i => i === 6 ? " sat" : i === 0 ? " sun" : ""; // 曜日（getDay）から、土日の色のクラス
+const wkc = i => i % 6 === 0 ? " we" : ""; // 曜日（getDay）から、土日のクラス（土曜も日曜も同じ中立の地）
 const plural = (n, one, many) => isJA() ? `${n} ${t(one)}` : `${n} ${n === 1 ? one : many || one + "s"}`; // 日本語は数と名詞（単数の形を辞書で引く）
 // hh: 週のカレンダーの 1 時間の高さ（render が作業の時間帯に合わせて決める。ズームはない。以前の版が保存した "zh" は読まない）
 // 画面はカレンダーだけ。以前の版が保存した "view"（journey・project）は読まない
