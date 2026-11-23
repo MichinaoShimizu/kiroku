@@ -35,5 +35,3 @@ checksum:
   name_template: checksums.txt
 release:
   prerelease: auto # v0.1.0-rc.1 のようなタグはプレリリースにする
-changelog:
-  use: github
