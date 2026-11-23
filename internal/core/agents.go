@@ -6,7 +6,7 @@ import (
 )
 
 // Agent は、エージェントごとの決まりごと。エージェントを足したりやめたりするときは、まずここを直す。
-// ここから作るもの: --sources の既定値と説明（internal/cli）、kiroku autostart が書き残す環境変数、
+// ここから作るもの: --sources の既定値と説明（internal/cli）、kiroku 4 の autostart が書き残した環境変数、
 // kiroku archive のフォルダ、画面の色と頭文字（web が __AGENTS__ として埋めこむ）。
 // TestAgentsCoverEverySource が、source.All の Name・Family と食い違っていないかを確かめる。
 type Agent struct {
@@ -14,7 +14,7 @@ type Agent struct {
 	Family  string   `json:"-"`               // --sources で選ぶ名前（Source.Family()）
 	Slot    int      `json:"slot"`            // 画面の色（style.css の --a<Slot>。0 から AgentColors-1）
 	Mark    string   `json:"mark"`            // バッジに出す頭文字
-	Env     []string `json:"-"`               // 読む場所を変える、エージェント自身の環境変数（kiroku autostart が書き残す）
+	Env     []string `json:"-"`               // 読む場所を変える、エージェント自身の環境変数（kiroku 4 の autostart が書き残した）
 	Archive string   `json:"-"`               // kiroku archive がコピーを置く、保存場所の下のフォルダ（空ならコピーしない）
 	Note    string   `json:"-"`               // --sources の説明で、Family に添える一言
 	About   string   `json:"about,omitempty"` // 画面の「Data sources」で名前に添える説明（名前だけでは何の履歴かわかりにくいとき）

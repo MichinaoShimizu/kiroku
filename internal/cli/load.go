@@ -1,4 +1,4 @@
-// Package cli は kiroku のコマンド（serve・html・json・archive・autostart・doctor・update など）。
+// Package cli は kiroku のコマンド（serve・serve --check・serve --archive・update・help）と、tools/html が使う HTML の書き出し。
 // 入口はリポジトリ直下の main.go で、使い方は cli.go（kiroku help）を見てね。
 package cli
 

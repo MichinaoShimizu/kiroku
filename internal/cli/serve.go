@@ -551,10 +551,23 @@ func scanWatchPaths(all []source.Source, want map[string]bool) []string {
 	return out
 }
 
-// openRunning は、addr で kiroku serve がもう動いていれば（鍵が通る）、止めずに、動いている画面を鍵つきで開く（5.0 より前の kiroku open）。
+// looksLikeServe は、addr で答えるのが kiroku serve らしいか。鍵は送らない（ポートをほかのプログラムが握っていても、鍵を渡さない）。
+// 鍵のない問い合わせに kiroku serve が返す 403 の案内で見分ける。まねされても、開くときに渡すのは使い捨てのコードだけ（鍵は出さない）
+var looksLikeServe = func(addr string) bool {
+	c := http.Client{Timeout: 700 * time.Millisecond}
+	r, err := c.Get("http://" + addr + "/stamp")
+	if err != nil {
+		return false
+	}
+	defer r.Body.Close()
+	b, _ := io.ReadAll(io.LimitReader(r.Body, 64<<10))
+	return r.StatusCode == http.StatusForbidden && (strings.Contains(string(b), "<h1>Open kiroku with its key</h1>") || strings.Contains(string(b), "<h1>鍵を付けて kiroku を開いてください</h1>"))
+}
+
+// openRunning は、addr で kiroku serve がもう動いていれば（鍵は送らずに確かめる）、止めずに、動いている画面を鍵つきで開く（5.0 より前の kiroku open）。
 // open が false（--no-open）なら、開かずにアドレスだけ出す。動いていなければ false
 func openRunning(addr string, open bool) (bool, error) {
-	if probe(probeAddr(addr)) == noAnswer {
+	if !looksLikeServe(probeAddr(addr)) {
 		return false, nil
 	}
 	url := viewURL(addr)

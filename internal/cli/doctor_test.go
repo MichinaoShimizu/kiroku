@@ -11,7 +11,7 @@ import (
 
 // kiroku serve --check：消える設定のままなら「!」で設定の場所と kiroku serve --archive on を案内し、archive がオンなら安心と出す。
 func TestDoctorReport(t *testing.T) {
-	fakeAutostart(t, "darwin", noAnswer)
+	fakeAutostart(t, "darwin")
 	old := lookGit
 	t.Cleanup(func() { lookGit = old })
 	lookGit = func() bool { return false }
@@ -68,7 +68,7 @@ func TestDoctorReport(t *testing.T) {
 
 // 読めないファイルがあったエージェントは、0 件でもまとめずに出す（問題を隠さない）。
 func TestDoctorKeepsErrors(t *testing.T) {
-	fakeAutostart(t, "darwin", noAnswer)
+	fakeAutostart(t, "darwin")
 	fakeKirokuPath(t, "/x/bin/kiroku", "/x/bin/kiroku")
 	msg := "permission denied"
 	rep := []source.Report{
@@ -89,7 +89,7 @@ func TestDoctorKeepsErrors(t *testing.T) {
 
 // Kiro Crew の 0 日（Now）は「0 日残す」ではなく、次の片付けで消えると「!」で出す。archive がオンなら安心と出す。
 func TestDoctorZeroDayRetention(t *testing.T) {
-	fakeAutostart(t, "darwin", noAnswer)
+	fakeAutostart(t, "darwin")
 	fakeKirokuPath(t, "/x/bin/kiroku", "/x/bin/kiroku")
 	dir := t.TempDir()
 	rep := []source.Report{{Name: "Kiro CLI (V2)", N: 3, Where: "/x/.kiro/sessions/cli", Keep: &source.Retention{Days: 0, Now: true, Set: true, Who: "Kiro Crew",
@@ -127,7 +127,7 @@ func fakeKirokuPath(t *testing.T, exe, first string) {
 
 // PATH の前のほうに別の kiroku があれば、doctor もそれを知らせる（install.sh と同じ）。
 func TestDoctorShadowedExe(t *testing.T) {
-	fakeAutostart(t, "darwin", noAnswer)
+	fakeAutostart(t, "darwin")
 	old := version
 	t.Cleanup(func() { version = old })
 	version = "0.16.0"
@@ -160,7 +160,7 @@ func TestDoctorShadowedExe(t *testing.T) {
 
 // 新しい版が出ていれば「!」と kiroku update を案内し、最新なら ✓、確かめられなければそう書く。手元でビルドしたものは確かめない。
 func TestDoctorVersion(t *testing.T) {
-	fakeAutostart(t, "darwin", noAnswer)
+	fakeAutostart(t, "darwin")
 	old := version
 	t.Cleanup(func() { version = old })
 	version = "0.11.0"

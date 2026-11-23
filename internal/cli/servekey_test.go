@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -385,48 +386,73 @@ func TestOpenWithKey(t *testing.T) {
 func TestOpenRunning(t *testing.T) {
 	t.Setenv("KIROKU_CONFIG_DIR", filepath.Join(t.TempDir(), "kiroku"))
 	var opened []string
-	oldOpen, oldProbe := openBrowser, probe
-	defer func() { openBrowser, probe = oldOpen, oldProbe }()
+	oldOpen, oldLooks := openBrowser, looksLikeServe
+	defer func() { openBrowser, looksLikeServe = oldOpen, oldLooks }()
 	openBrowser = func(target string) { opened = append(opened, target) }
 	key, _ := serveKey(true)
-	probe = func(addr string) int {
+	running := false
+	looksLikeServe = func(addr string) bool {
 		if addr != "127.0.0.1:18999" {
-			t.Errorf("probe(%q)", addr)
+			t.Errorf("looksLikeServe(%q)", addr)
 		}
-		return noAnswer
+		return running
 	}
-	if running, err := openRunning("0.0.0.0:18999", true); running || err != nil || len(opened) != 0 {
-		t.Fatalf("動いていないのに開いた: %v %v %q", running, err, opened)
+	if ok, err := openRunning("0.0.0.0:18999", true); ok || err != nil || len(opened) != 0 {
+		t.Fatalf("動いていないのに開いた: %v %v %q", ok, err, opened)
 	}
-	probe = func(string) int { return ready }
+	running = true
 	out := captureOutput(t, func() {
-		if running, err := openRunning("127.0.0.1:18999", false); !running || err != nil {
-			t.Fatalf("--no-open: %v %v", running, err)
+		if ok, err := openRunning("127.0.0.1:18999", false); !ok || err != nil {
+			t.Fatalf("--no-open: %v %v", ok, err)
 		}
 	})
 	if len(opened) != 0 || !strings.Contains(out, "already running at http://localhost:18999/") {
 		t.Errorf("--no-open で開いた、またはアドレスを出さない: %q %q", opened, out)
 	}
 	captureOutput(t, func() {
-		if running, err := openRunning("127.0.0.1:18999", true); !running || err != nil {
-			t.Fatal(running, err)
+		if ok, err := openRunning("127.0.0.1:18999", true); !ok || err != nil {
+			t.Fatal(ok, err)
 		}
 	})
 	if len(opened) != 1 || strings.Contains(opened[0], key) {
 		t.Errorf("開いたもの = %q", opened)
 	}
+	if b, err := os.ReadFile(opened[0]); err != nil || strings.Contains(string(b), key) {
+		t.Errorf("中継のページに鍵が入っている、または読めない: %v", err)
+	}
 }
 
-// autostart の確かめ（probe）は鍵を付けて問い合わせる（鍵がないと 403 しか返らない）。
-func TestProbeSendsKey(t *testing.T) {
+// ポートが使用中のとき、kiroku serve かどうかは鍵を送らずに確かめる（ポートをほかのプログラムが握っていても、鍵を渡さない。セキュリティ）。
+// kiroku serve の鍵なしの 403 の案内（英語・日本語）だけを kiroku serve とみなす
+func TestLooksLikeServeSendsNoKey(t *testing.T) {
 	t.Setenv("KIROKU_CONFIG_DIR", filepath.Join(t.TempDir(), "kiroku"))
 	key, _ := serveKey(true)
-	srv := httptest.NewServer(nil)
-	defer srv.Close()
-	addr := strings.TrimPrefix(srv.URL, "http://")
-	srv.Config.Handler = requireKey(addr, key, "", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	if got := probe(addr); got != ready {
-		t.Errorf("probe = %d, want ready", got)
+	for _, c := range []struct {
+		name string
+		code int
+		body string
+		want bool
+	}{
+		{"kiroku serve (en)", 403, lockedPage, true},
+		{"kiroku serve (ja)", 403, lockedPageJA, true},
+		{"other program", 200, "hello", false},
+		{"other 403", 403, "<h1>Forbidden</h1>", false},
+	} {
+		var got http.Header
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			got = r.Header.Clone()
+			w.WriteHeader(c.code)
+			io.WriteString(w, c.body)
+		}))
+		if ok := looksLikeServe(strings.TrimPrefix(srv.URL, "http://")); ok != c.want {
+			t.Errorf("%s: %v, want %v", c.name, ok, c.want)
+		}
+		srv.Close()
+		for k, v := range got {
+			if strings.Contains(strings.Join(v, " "), key) {
+				t.Errorf("%s: the key was sent in %s", c.name, k)
+			}
+		}
 	}
 }
 

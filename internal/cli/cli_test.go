@@ -91,7 +91,7 @@ func TestAIRemovedNote(t *testing.T) {
 	}
 }
 
-// --ai と --no-ai は 4.0 で外したが、kiroku serve --autostart on で登録した起動などのために受け付ける（約束: docs/compatibility.md）
+// --ai と --no-ai は 4.0 で外したが、kiroku 4 の autostart で登録した起動などのために受け付ける（約束: docs/compatibility.md）
 func TestServeAcceptsRemovedAIFlags(t *testing.T) {
 	for _, f := range []string{"--ai", "--no-ai"} {
 		if err := cmdServe([]string{f, "--help"}); err != nil {

@@ -314,7 +314,7 @@ func quiet(err error) error {
 }
 
 func cmdServe(args []string) error {
-	fs := newFS("serve", "serve [flags] [ADDR]\n\nADDR defaults to "+defaultAddr+". A bare port such as :8485 also listens on 127.0.0.1 only.\nTo let other devices open it, write the address explicitly (e.g. 0.0.0.0:8485); anyone on your network can then see your history.\n\nAs its first flag, serve also takes --check, --open, --archive, --autostart or --html\n(run \"kiroku serve --check --help\" and so on for theirs).")
+	fs := newFS("serve", "serve [flags] [ADDR]\n\nADDR defaults to "+defaultAddr+". A bare port such as :8485 also listens on 127.0.0.1 only.\nTo let other devices open it, write the address explicitly (e.g. 0.0.0.0:8485); anyone on your network can then see your history.\nIf kiroku serve already runs at ADDR, this opens the running view in your browser instead.\n\nAs its first flag, serve also takes --check or --archive (run \"kiroku serve --check --help\" for theirs).")
 	c := addCommon(fs)
 	interval := fs.Duration("interval", 5*time.Second, "how often to check the history for changes (reloads after writes settle)")
 	noOpen := fs.Bool("no-open", false, "do not open a browser")

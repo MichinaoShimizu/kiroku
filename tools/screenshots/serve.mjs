@@ -1,7 +1,7 @@
 // kiroku serve の鍵を、本物のブラウザで確かめる（CI の e2e）。
 //   go build -o /tmp/kiroku . && python3 -I tools/screenshots/gen.py /tmp/gen && node tools/screenshots/serve.mjs /tmp/kiroku /tmp/gen
 // ダミーの履歴（gen.py）だけを読む kiroku serve を、使い捨ての HOME と設定の場所で空いているポートに立て、
-//   - kiroku serve --open --print の使い捨てのコード（?code=）で開くと履歴が出て、どの URL にも鍵が載らない（ブラウザの履歴に鍵が残らない）。
+//   - 動いている kiroku serve をもう一度打つと、使い捨てのコード（?code=）つきの中継のページを開く。そのコードで開くと履歴が出て、どの URL にも鍵が載らない（ブラウザの履歴に鍵が残らない）。
 //     鍵は中継のページの POST の答えでだけ受け取り、コードは 2 回目には使えない
 //   - 以前の版の /?key= は、鍵が合っていても 403 で、履歴を出さず、鍵をしまわない（1.0 から）
 //   - 鍵なしの / を開き直しても出る（localStorage の鍵）。履歴ファイルの「Open」は鍵を付けて読んで保存する
@@ -13,7 +13,7 @@
 import { chromium } from "playwright";
 import { execFileSync, spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -63,12 +63,18 @@ try {
   p.on("pageerror", e => errors.push(e.message));
   p.on("console", m => { if (m.type() === "error" && /Content Security Policy|Refused/.test(m.text())) errors.push(m.text()); });
 
-  // kiroku serve --open --print の使い捨てのコード。開いた URL（ブラウザの履歴に残るもの）のどれにも鍵が載らない
+  // 動いている kiroku serve をもう一度打つ（5.0 で消した kiroku open の代わり）：止まらずに、使い捨てのコードの中継のページ（設定の場所の open.html）を
+  // ブラウザで開く。ここではブラウザを開くコマンド（xdg-open・open）を何もしないものに差しかえ、中継のページからコードの URL を取り出す。
+  // 開いた URL（ブラウザの履歴に残るもの）のどれにも鍵が載らない
   const pc = await (await b.newContext()).newPage();
   const visited = [];
   pc.on("request", r => visited.push(r.url()));
-  const once = execFileSync(path.resolve(bin), ["open", "--print", `127.0.0.1:${port}`], { env, encoding: "utf8" }).split("\n")[0].trim();
-  check("kiroku serve --open --print は使い捨てのコードの URL で、鍵を出さない", /^http:\/\/localhost:\d+\/\?code=[0-9a-f]{64}$/.test(once) && !once.includes(key), once);
+  const fakeBin = path.join(work, "fakebin"); await mkdir(fakeBin, { recursive: true });
+  for (const name of ["xdg-open", "open"]) { await writeFile(path.join(fakeBin, name), "#!/bin/sh\nexit 0\n"); await chmod(path.join(fakeBin, name), 0o755); }
+  const again = execFileSync(path.resolve(bin), ["serve", `127.0.0.1:${port}`], { env: { ...env, PATH: `${fakeBin}${path.delimiter}${process.env.PATH}` }, encoding: "utf8" });
+  const hopFile = await readFile(path.join(env.KIROKU_CONFIG_DIR, "open.html"), "utf8");
+  const once = (hopFile.match(/http:\/\/localhost:\d+\/\?code=[0-9a-f]{64}/) || [""])[0];
+  check("動いている kiroku serve をもう一度打つと、止まらずにそれを開く（使い捨てのコードの URL で、鍵は出さない）", /already running at/.test(again) && !!once && !hopFile.includes(key) && !again.includes(key), `${again} / ${once}`);
   await pc.goto(once);
   await pc.waitForURL(u => !u.search.includes("code="), { timeout: 10000 });
   await pc.waitForSelector(".run[data-sid]", { timeout: 15000 });
@@ -173,7 +179,7 @@ try {
   await q.goto(`${base}/`);
   await q.waitForSelector("#locked", { timeout: 10000 });
   const text = await q.evaluate(() => document.body.innerText);
-  check("鍵のないブラウザには案内が出る", text.includes("Open kiroku with its key") && text.includes("kiroku serve --open"));
+  check("鍵のないブラウザには案内が出る", text.includes("Open kiroku with its key") && text.includes("kiroku serve") && !text.includes("--open") && !text.includes("--print"));
   check("鍵のないブラウザには履歴が出ない", !text.includes(title) && await q.locator(".run[data-sid]").count() === 0 && await q.evaluate(() => DATA.length) === 0);
   const html = await (await q.request.get(`${base}/`)).text();
   check("鍵なしの / の HTML に履歴の題が入っていない", !html.includes(title));

@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,7 +12,6 @@ import (
 	"runtime"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
@@ -184,37 +182,6 @@ func currentAutostart(args []string) (autostartPlan, error) {
 
 // autostartPort は、設定ファイルに書いた待ち受け先（なければ既定）。
 var autostartPort = regexp.MustCompile(`[\w.\-\[\]]*:\d{2,5}\b`)
-
-// probe の答え。kiroku serve は先に待ち受けてから履歴を読むので、読んでいる間は /stamp が 503 を返す。
-const (
-	noAnswer = iota // 何も答えない（まだ起動していない・起動に失敗した）
-	loading         // 答えるが、まだ履歴を読んでいる
-	ready           // 画面を開ける
-)
-
-// probe は、待ち受け先で kiroku serve が答えるか（手元への問い合わせだけ）。テストで差しかえる。
-var probe = func(addr string) int {
-	c := http.Client{Timeout: 700 * time.Millisecond}
-	req, err := http.NewRequest(http.MethodGet, "http://"+addr+"/stamp", nil)
-	if err != nil {
-		return noAnswer
-	}
-	if key, err := serveKey(false); err == nil { // 鍵がないと、鍵を確かめる画面（403）しか返らない
-		req.Header.Set(keyHeader, key)
-	}
-	r, err := c.Do(req)
-	if err != nil {
-		return noAnswer
-	}
-	r.Body.Close()
-	switch r.StatusCode {
-	case http.StatusOK:
-		return ready
-	case http.StatusServiceUnavailable:
-		return loading
-	}
-	return noAnswer
-}
 
 // autostartAddr は、autostart で動かす kiroku serve の待ち受け先（autostart がオフなら false）。
 func autostartAddr(p autostartPlan) (string, bool) {

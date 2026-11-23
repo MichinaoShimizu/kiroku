@@ -8,13 +8,13 @@ import (
 )
 
 // fakeAutostart は、ホーム・OS・launchctl / systemctl・待ち受けの確認を差しかえ、実行したコマンドを返す。
-func fakeAutostart(t *testing.T, goos string, answer int) (home string, ran *[]string) {
+func fakeAutostart(t *testing.T, goos string) (home string, ran *[]string) {
 	t.Helper()
 	home = t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", "")
-	oldOS, oldExe, oldHome, oldRun, oldProbe := autostartGOOS, autostartExe, autostartHome, runCmd, probe
+	oldOS, oldExe, oldHome, oldRun := autostartGOOS, autostartExe, autostartHome, runCmd
 	t.Cleanup(func() {
-		autostartGOOS, autostartExe, autostartHome, runCmd, probe = oldOS, oldExe, oldHome, oldRun, oldProbe
+		autostartGOOS, autostartExe, autostartHome, runCmd = oldOS, oldExe, oldHome, oldRun
 	})
 	autostartHome = func() (string, error) { return home, nil }
 	autostartGOOS = goos
@@ -24,7 +24,6 @@ func fakeAutostart(t *testing.T, goos string, answer int) (home string, ran *[]s
 		cmds = append(cmds, name+" "+strings.Join(args, " "))
 		return nil
 	}
-	probe = func(string) int { return answer }
 	return home, &cmds
 }
 
@@ -93,7 +92,7 @@ func TestPlanAutostart(t *testing.T) {
 // kiroku serve --check は、登録が残っていればその外し方を言う。登録がなければ、何も外さない
 func TestAutostartRemoved(t *testing.T) {
 	for _, goos := range []string{"linux", "darwin"} {
-		_, ran := fakeAutostart(t, goos, ready)
+		_, ran := fakeAutostart(t, goos)
 		p, err := currentAutostart(nil)
 		if err != nil {
 			t.Fatal(err)
