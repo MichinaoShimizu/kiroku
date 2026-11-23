@@ -2,9 +2,11 @@ package gitlog
 
 import (
 	"context"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
 	"strings"
@@ -193,6 +195,69 @@ func TestRemotePath(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		if cs, _, _ := NewCache().Collect([]*core.Session{{ID: "s", ProjectPath: `\\kiroku-test-nonexistent.invalid\share\repo`, Start: 1}}); len(cs) != 0 {
 			t.Errorf("UNC パスを読んだ: %+v", cs)
+		}
+	}
+}
+
+// reflog の時刻は書き換えられる。大きすぎる時刻（1e17、1.8e19、桁あふれ）や負の時刻の push 行を読んでも、
+// 止まらず、落ちず、その push は捨てる（画面で日付にできない時刻を渡さない）。ふつうの push は残る。
+func TestCollectPushesHostileReflogTime(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git がない")
+	}
+	remote, dir := t.TempDir(), t.TempDir()
+	run(t, remote, nil, "init", "-q", "--bare")
+	run(t, dir, nil, "init", "-q", "-b", "main")
+	run(t, dir, nil, "config", "user.email", "me@example.com")
+	run(t, dir, nil, "config", "user.name", "me")
+	run(t, dir, nil, "remote", "add", "origin", remote)
+	if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("a\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	run(t, dir, nil, "add", "a.txt")
+	run(t, dir, nil, "commit", "-q", "-m", "a")
+	run(t, dir, nil, "push", "-q", "-u", "origin", "main")
+	logf := filepath.Join(dir, ".git", "logs", "refs", "remotes", "origin", "main")
+	b, err := os.ReadFile(logf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	line := strings.TrimSpace(string(b)) // <old> <new> <name> <email> <時刻> <tz>\tupdate by push
+	m := regexp.MustCompile(`> (\d+) ([+-]\d{4})\t`).FindStringSubmatchIndex(line)
+	if m == nil {
+		t.Fatalf("reflog の行が読めない: %q", line)
+	}
+	with := func(ts string) string { return line[:m[2]] + ts + line[m[3]:] }
+	var sb strings.Builder
+	for _, ts := range []string{"100000000000000000", "18000000000000000000", "-5", "-100000000000000000", "99999999999999999999999", "253402300800"} {
+		sb.WriteString(with(ts) + "\n")
+	}
+	sb.WriteString(line + "\n") // 最後（いちばん新しい行）は、ふつうの push
+	if err := os.WriteFile(logf, []byte(sb.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := &core.Session{ID: "s1", Project: "app", ProjectPath: dir, Start: float64(time.Now().Add(-time.Hour).Unix())}
+	done := make(chan []Push, 1)
+	go func() { _, ps, _ := NewCache().Collect([]*core.Session{s}); done <- ps }()
+	select {
+	case ps := <-done:
+		if len(ps) != 1 {
+			t.Fatalf("push = %+v, want ふつうの push 1 つだけ", ps)
+		}
+		if !pushTimeOK(ps[0].T) || ps[0].T < s.Start-86400 {
+			t.Errorf("push の時刻 = %v", ps[0].T)
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("reflog の時刻の読み取りが終わらない")
+	}
+	for _, v := range []float64{-1, 1e17, 1.8e19, math.Inf(1), math.Inf(-1), math.NaN(), maxPushTime + 1} {
+		if pushTimeOK(v) {
+			t.Errorf("pushTimeOK(%v) = true, want false", v)
+		}
+	}
+	for _, v := range []float64{0, 1.7e9, maxPushTime} {
+		if !pushTimeOK(v) {
+			t.Errorf("pushTimeOK(%v) = false, want true", v)
 		}
 	}
 }
