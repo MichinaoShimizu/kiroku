@@ -985,7 +985,7 @@ header{background:var(--s-cont);border-bottom:0}
    時刻とコピーは吹き出しの下の端の横（あなたは吹き出しの左、AI は右）。あいだに起きたこと（コミット・PR・中断など）は、真ん中の半透明の濃い札に白い字（上限と中断は赤い札）。
    時刻は小さいので、青の上で 4.5:1 に届く濃い字にする（白い字は 3.1:1 で足りない）。
    字と地の組み合わせは palette_test.go の TestChatContrast で確かめる（字は 4.5:1、小さな印は 3:1 以上）。値を変えるときは両方を直す */
-.tl{--chat-bg:#7494c0;--chat-ink:#0e1a2b;--chat-me:#8de055;--chat-me-ink:#111111;--chat-me-meta:#2b4a12;--chat-me-tag:rgba(0,0,0,.1);--chat-me-warn:#6b0d08;--chat-ai:#ffffff;--chat-ai-ink:#111111;--chat-ai-meta:#5c5c5c;--chat-ai-mark:#3d5a85;--chat-link:#1f5fbf;--chat-sys:rgba(0,0,0,.4);--chat-sys-ink:#ffffff;--chat-note:#c9c6ff;--chat-warn:#a8201a;--chat-warn-ink:#ffffff;--chat-gap:#4f6d96;background:var(--chat-bg);border-radius:16px;padding:14px 12px}
+.tl{--chat-bg:#71829a;--chat-ink:#08101b;--chat-me:#82d46e;--chat-me-ink:#111111;--chat-me-meta:#2b4a12;--chat-me-tag:rgba(0,0,0,.1);--chat-me-warn:#6b0d08;--chat-ai:#ffffff;--chat-ai-ink:#111111;--chat-ai-meta:#5c5c5c;--chat-ai-mark:#3d5a85;--chat-link:#1f5fbf;--chat-sys:rgba(0,0,0,.4);--chat-sys-ink:#ffffff;--chat-note:#c9c6ff;--chat-warn:#a8201a;--chat-warn-ink:#ffffff;--chat-gap:#56677e;background:var(--chat-bg);border-radius:16px;padding:14px 12px}
 .tl li>time,.tl time,.drawer .tl time{color:var(--chat-ink)}
 .tl :focus-visible,.tl li.pr:focus-visible{outline-color:var(--chat-ink)}
 .tl li.pr:not(.ev)>.av{display:none}
