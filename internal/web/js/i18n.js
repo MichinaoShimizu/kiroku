@@ -817,6 +817,7 @@ const JA_TEXT = {
   "Where it flowed": "どこへ流れたか",
   "Commit or PR": "コミットか PR",
   "These agents don't record their commits, so it is not known which sessions led to one": "このエージェントはコミットを記録しないので、どのセッションがコミットにつながったかはわかりません",
+  "{v} of {tot} {metric} ({pc}%) went to sessions with a commit or PR; {u} ({pu}%) is from sessions whose agent doesn't record commits": "{metric} {tot} のうち、コミットか PR のあったセッションの分は {v}（{pc}%）。{u}（{pu}%）はコミットを記録しないエージェントのセッションの分",
   "{pc}% of {metric} ({v} of {tot}) went to sessions with a commit or PR": "{metric}の {pc}%（{tot} のうち {v}）は、コミットか PR のあったセッションの分",
   "Band width = the amount. A session has a commit or PR when it made one, or when a commit was made in its project from its start to 10 minutes after its end. A session of an agent that doesn't record its commits, with no commit found that way, is \"Not recorded\" and left out of the %": "帯の太さ = 量。コミットか PR のあったセッションとは、自分でコミットか PR を作ったセッションと、始まりから終わりの 10 分後までに同じプロジェクトでコミットがあったセッション。コミットを記録しないエージェントのセッションで、そうしたコミットも見つからないものは「記録なし」として、% から除く",
   "Band width is the amount": "帯の太さが量",

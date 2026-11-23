@@ -1,0 +1,1 @@
+- Where it flowed: when some sessions come from agents that don't record commits (such as Kiro), the takeaway gives the share of the whole amount and says how much of it is not recorded. It used to divide only by the recorded part, so 834 of 3,000 credits could read as "100%"
