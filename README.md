@@ -2,98 +2,96 @@
 
 [![CI](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml/badge.svg)](https://github.com/MichinaoShimizu/kiroku/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/MichinaoShimizu/kiroku)](https://github.com/MichinaoShimizu/kiroku/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![CodeQL](https://github.com/MichinaoShimizu/kiroku/actions/workflows/codeql.yml/badge.svg)](https://github.com/MichinaoShimizu/kiroku/actions/workflows/codeql.yml) [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/MichinaoShimizu/kiroku/badge)](https://scorecard.dev/viewer/?uri=github.com/MichinaoShimizu/kiroku) [![Go](https://img.shields.io/github/go-mod/go-version/MichinaoShimizu/kiroku)](go.mod) [![Downloads](https://img.shields.io/github/downloads/MichinaoShimizu/kiroku/total)](https://github.com/MichinaoShimizu/kiroku/releases)
 
-English | [日本語](README.ja.md)
+**AI と積み重ねた仕事を、記録から価値へ。**
 
-**Your AI work, remembered.**
+何を作り、どう働いたかを振り返り、次の AI 活用につなげる。
 
-See what you built, understand how you worked, and make your next AI session better.
+kiroku は、Claude Code、Kiro（IDE・CLI・Kiro Crew）、Codex CLI のローカル履歴を 1 つにまとめます。アカウント・テレメトリ・アップロードは不要です。kiroku が AI エージェントを動かすこともありません。
 
-kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew) and Codex CLI together in one place. No account, telemetry or uploads, and kiroku never runs an AI agent.
+**[デモを試す →](https://michinaoshimizu.github.io/kiroku/)**（ダミーデータ。ブラウザーだけで動きます）
 
-**[Try the live demo →](https://michinaoshimizu.github.io/kiroku/)** (dummy data, runs in your browser)
+[![週のカレンダー、セッションの詳細、推定費用の内訳、検索、月の表示（ダミーデータ）](docs/demo.gif)](https://michinaoshimizu.github.io/kiroku/)
 
-[![The week calendar, a session, the estimated cost breakdown, search and the month view (dummy data)](docs/demo.gif)](https://michinaoshimizu.github.io/kiroku/)
+## kiroku の特長
 
-## Why kiroku
+- **どのエージェントも 1 つのカレンダーに。** Claude Code・Codex・Kiro を並べて見られます。エージェントごとにダッシュボードを開く必要はありません。
+- **数えるだけでなく、読めるセッション。** 何を頼み、AI が何と答え、その間にどんなコマンド・コミット・プルリクエストがあったかを、時間・トークン・費用と並べて見られます。
+- **AI との働き方の変化がわかる。** 稼働時間・トークン・推定費用と、その移り変わりを、1 つのセッションから 1 か月まで確かめられます。
+- **振り返りは、あなたのエージェントが書く。** 「プロンプトをコピー」で、履歴に基づく振り返りや報告のプロンプトを、いつものエージェントに貼れます。
+- **履歴は PC の外に出ません。** バイナリ 1 つで動き、アカウントもテレメトリもありません。kiroku 自身が AI エージェントを動かすこともありません。
 
-- **Every agent on one calendar.** Claude Code, Codex and Kiro side by side, instead of one dashboard per agent.
-- **Sessions you can read, not just count.** What you asked, what the AI replied, and the commands, commits and pull requests in between, next to time, tokens and cost.
-- **How your work with AI changes.** Active time, tokens, estimated cost and patterns over time, from one session to a month.
-- **Reviews written by your own agent.** "Copy prompt" gives you a review or report prompt grounded in your history to paste into the agent you already use.
-- **Your history stays on your computer.** A single binary, no account, no telemetry, and kiroku never runs an AI agent itself.
-
-## Install
+## インストール
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install.sh | sh   # macOS and Linux
-kiroku doctor   # what kiroku found, and whether any history is about to be deleted
-kiroku serve    # open the view at http://localhost:8484/
+curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install.sh | sh   # macOS と Linux
+kiroku doctor   # 見つかった履歴と、消されそうな履歴がないかを表示
+kiroku serve    # http://localhost:8484/ で画面を開く
 ```
 
-The installer checks the download against `checksums.txt` and, with the [GitHub CLI](https://cli.github.com/), its build provenance. On Windows, use the zip from [Releases](https://github.com/MichinaoShimizu/kiroku/releases); with Go, `go install github.com/MichinaoShimizu/kiroku@latest`. See the [guide](docs/guide.md#install) for more.
+インストーラーは、ダウンロードしたファイルを `checksums.txt` で確かめます。[GitHub CLI](https://cli.github.com/) があれば、ビルドの来歴（build provenance）も確かめます。Windows では [Releases](https://github.com/MichinaoShimizu/kiroku/releases) の zip を、Go があれば `go install github.com/MichinaoShimizu/kiroku@latest` を使ってください。詳しくは[ガイド](docs/guide.md#install)（英語）にあります。
 
 > [!IMPORTANT]
-> **Claude Code deletes conversations older than 30 days by default**, and kiroku can only show what is still there. Set `"cleanupPeriodDays": 3650` in `~/.claude/settings.json` ([docs](https://code.claude.com/docs/en/settings-reference#cleanupperioddays)), or run `kiroku archive on` to let kiroku keep compressed copies ([details](docs/guide.md#keep-a-copy-of-history-in-kiroku)).
+> **Claude Code は、既定では 30 日より古い会話を消します。** kiroku が見せられるのは、残っている履歴だけです。`~/.claude/settings.json` に `"cleanupPeriodDays": 3650` を設定するか（[公式ドキュメント](https://code.claude.com/docs/en/settings-reference#cleanupperioddays)）、`kiroku archive on` で kiroku に圧縮したコピーを残させてください（[詳しく](docs/guide.md#keep-a-copy-of-history-in-kiroku)）。
 
-## What you get
+## できること
 
-**Every session on a calendar.** When, in which project and what you asked, by week or month, with each day's active time, estimated cost and Git commits side by side. It records activity, not progress.
+**すべてのセッションをカレンダーに。** いつ、どのプロジェクトで、何を頼んだかを週・月で表示し、日ごとの稼働時間・推定費用・Git コミットを並べます。作業の記録で、進み具合を示すものではありません。
 
-![The week calendar (dummy data)](docs/screenshot.png)
+![週のカレンダー（ダミーデータ）](docs/screenshot.png)
 
-**The whole story of a session.** The prompt flow with times, separating what you typed from what entered on its own, with commands, commits, pull requests, subagents and interruptions in between, and the AI's reply after each prompt, so a session reads as the conversation it was. "Copy prompt" gives you a review prompt for it to paste into your own agent (see below).
+**セッションを会話として読める。** プロンプトの流れを時刻つきで表示し、自分で打ったプロンプトと自動で入ったものを分けます。その間のコマンド・コミット・プルリクエスト・サブエージェント・中断も並べ、プロンプトごとに AI の応答を添えます。「プロンプトをコピー」で、振り返りのプロンプトをあなたのエージェントに貼れます（下を参照）。
 
-<img src="docs/session.png" alt="Session details (dummy data)" width="560">
+<img src="docs/session.png" alt="セッションの詳細（ダミーデータ）" width="560">
 
-**Every number opens up.** Click any figure, at the top or in the weekly summary, such as estimated cost or Git commits, to see it by day, agent, project and model, with the sessions, commits or prompts behind it.
+**どの数字も開ける。** 上の数字や週のサマリーの数字（推定費用・Git コミットなど）を押すと、日・エージェント・プロジェクト・モデルごとの内訳と、その元になったセッション・コミット・プロンプトが見られます。
 
-**What's worth a look.** Metrics that crossed a threshold are marked in the summary. Press one to see what was observed, why it matters, the sessions behind it, a 13-week trend and what to try, without leaving the calendar.
+**見直す候補。** 基準を超えた指標にはサマリーで印が付きます。押すと、何が起きたか、なぜ大事か、元になったセッション、13 週の推移、試すとよいことが、カレンダーを離れずに見られます。
 
-<img src="docs/worth.png" alt="A flagged metric opened from Worth a look (dummy data)" width="560">
+<img src="docs/worth.png" alt="見直す候補から開いた指標（ダミーデータ）" width="560">
 
-**A summary that tells you what to change.** The weekly and monthly summary is a page of charts, computed in your browser. It opens with four panels: what you put in (estimated cost, credits, tokens or active time) and what came out (Git commits, pushes or pull requests) side by side, each with its unit cost under it, such as per AI commit, per push or per active hour. Right under them, at full width, is where the amount flowed from agent to project to a commit or PR. The Breakdown below shows where it went (project, agent, model, session length) and what it left behind, in two parts kept apart: Git, and the lines AI edited according to history. Each figure is compared with your own past in plain words (such as "$31.23: above your usual $19.92–$27.35") on a chart of its last 12 weeks or months, ƒx shows the formula, and every chart opens with a takeaway. While a week or month is in progress, amounts show their end-of-period estimate. Estimated cost covers Claude Code, Codex and Kiro Crew's non-Kiro backends at public API rates, and not every agent records everything; see the [guide](docs/guide.md#weekly-and-monthly-summary) and [what each agent records](docs/guide.md#what-each-agent-records).
+**何を変えればよいかがわかるサマリー。** 週・月のサマリーは、ブラウザーの中で計算するグラフの 1 ページです。頭の 4 つのパネルは、投入（推定費用・クレジット・トークン・稼働時間）と出力（Git コミット・プッシュ・PR）を左右に並べ、その下にそれぞれの単価（AI コミットあたり・プッシュあたり・稼働 1 時間あたりなど）を置きます。そのすぐ下に、エージェントからプロジェクト、コミットや PR へと量が流れた先を幅いっぱいの図で見せます。下の内訳では、使い道（プロジェクト・エージェント・モデル・セッションの長さ）と、残ったもの（Git と、履歴から数えた AI の編集行を分けて）を見られます。どの数字も、過去 12 週（または月）のグラフの上で自分の過去と言葉で比べ（例：「$31.23：いつもの範囲（$19.92〜$27.35）より上」）、ƒx で式を見られ、グラフごとに読み取りを 1 文で示します。週や月の途中なら、量の数字に期間の終わりの予測を出します。推定費用は Claude Code・Codex・Kiro Crew の Kiro 以外のバックエンドを公開 API の料金で計算したもので、記録する内容はエージェントによって違います。詳しくは[ガイド](docs/guide.md#weekly-and-monthly-summary)と[エージェントごとに記録されること](docs/guide.md#what-each-agent-records)にあります。
 
-![Weekly summary (dummy data)](docs/summary.png)
+![週のサマリー（ダミーデータ）](docs/summary.png)
 
-**Search across all time.** Prompts, edited files and commits, with excerpts showing where they matched.
+**全期間を検索。** プロンプト・編集したファイル・コミットを、合った箇所の抜粋つきで探せます。
 
-The view is in Japanese when your browser prefers Japanese; `--lang` (or `KIROKU_LANG`) picks English or 日本語.
+画面は、ブラウザーの言語が日本語なら日本語で表示されます。`--lang`（または `KIROKU_LANG`）で English と日本語を選べます。
 
-## Reviews and advice, written by your own agent
+## 振り返りとアドバイスは、あなたのエージェントが書く
 
-"Copy prompt" in session details (a session review) and the copy icon next to each date in the week calendar (a daily report) copy a prompt to paste into the AI agent you already use, such as Claude Code or Codex. kiroku runs no agent and sends nothing; where you paste it is your choice. The prompt carries the facts kiroku counted and points the agent to the history files, so the advice is grounded in what really happened, not generic tips: how you write prompts, how you use agents, model and context, and what to move out of your prompts into a skill, a subagent or a script. Each point names what it is based on: a figure, a prompt with its time, or a signal kiroku counted. An excerpt of advice written from dummy history:
+セッションの詳細の「プロンプトをコピー」（セッションの振り返り）と、週のカレンダーの日付の横のコピーのアイコン（日報）で、いつも使っている AI エージェント（Claude Code や Codex など）に貼るプロンプトをコピーできます。kiroku はエージェントを動かさず、何も送りません。どこに貼るかはあなたが決めます。プロンプトには kiroku が数えた事実と履歴ファイルの場所が入っているので、アドバイスはよくある一般論ではなく、実際に起きたことに基づきます。プロンプトの書き方、エージェントの使い方、モデルとコンテキスト、プロンプトからスキル・サブエージェント・スクリプトに出せることに触れます。どの指摘にも、根拠（数字、時刻つきのプロンプト、kiroku が数えた兆候）が書かれます。ダミーの履歴から書かせた助言の抜粋（英語）:
 
 > - **Turn the repeated check into a skill or script.** You typed "Run the full test suite and the linter, fix anything that fails, and show me the summary" 3 times in 3 sessions. Make it a skill or a project script the agent runs before each commit.
 > - **Use a lighter model for quick questions.** On Thu, Aug 13 at 10:00 you asked a one-line question in a separate Opus session. A lighter model is enough for questions like this.
 
-See the [guide](docs/guide.md#reviews-and-reports-with-your-agent) for what each prompt contains and the format of what you get.
+各プロンプトの中身と、得られるものの形は[ガイド](docs/guide.md#reviews-and-reports-with-your-agent)にあります。
 
-## Privacy
+## プライバシー
 
-- Your history never leaves your computer: no telemetry, no account, no AI service, and kiroku never runs an AI agent. The only network access is checking for and downloading kiroku's own releases from GitHub.
-- Files kiroku writes from your history are readable only by you, and `kiroku serve` listens on `127.0.0.1` and opens only for browsers that have its key.
-- The HTML contains your prompts, the AI's replies, file paths and commit messages as they are. Check it before sharing.
-- The review and report prompts you copy point an AI agent to your history files, and the agent reads them and may send them to its provider. Use an agent you'd trust with them.
+- 履歴は PC の外に出ません。テレメトリも、アカウントも、AI サービスもなく、kiroku が AI エージェントを動かすこともありません。ネットワークを使うのは、kiroku 自身の新しい版を GitHub で確かめてダウンロードするときだけです。
+- kiroku が履歴から書くファイルは、あなたしか読めません。`kiroku serve` は `127.0.0.1` で待ち受け、鍵を持つブラウザーにだけ開きます。
+- HTML には、プロンプト・AI の応答・ファイルのパス・コミットメッセージがそのまま入っています。人に渡す前に中身を確かめてください。
+- コピーした振り返りと報告のプロンプトは、AI エージェントに履歴ファイルの場所を教え、エージェントはそれを読んで、提供元に送ることがあります。履歴を任せられるエージェントを使ってください。
 
-See [SECURITY.md](SECURITY.md) for details and for verifying a release.
+詳しいことと、リリースの確かめ方は [SECURITY.md](SECURITY.md) にあります。
 
-## Usage
+## 使い方
 
 ```bash
-kiroku serve              # the view at http://localhost:8484/, updated as new history arrives
-kiroku open               # open it in another browser (it needs serve's key once)
-kiroku autostart on       # start kiroku serve each time you log in (macOS and Linux)
-kiroku html --week last   # write only last week as one HTML file, to show someone
-kiroku update             # update to the latest release
-kiroku help               # all commands ("kiroku <command> --help" for options)
+kiroku serve              # http://localhost:8484/ の画面。新しい履歴が入るたびに更新
+kiroku open               # 別のブラウザーで開く（最初に一度 serve の鍵が要る）
+kiroku autostart on       # ログインのたびに kiroku serve を起動（macOS と Linux）
+kiroku html --week last   # 先週だけを 1 つの HTML に書き出して、人に見せる
+kiroku update             # 最新の版に更新
+kiroku help               # すべてのコマンド（オプションは "kiroku <command> --help"）
 ```
 
-The [guide](docs/guide.md) explains the view, every metric, which histories are read, all options, and [how to uninstall](docs/guide.md#uninstall). [Compatibility](docs/compatibility.md) says what a version number promises.
+画面の見方、すべての指標、読む履歴、すべてのオプション、[アンインストールの方法](docs/guide.md#uninstall)は[ガイド](docs/guide.md)に、版の番号が約束することは[互換性](docs/compatibility.md)にあります（どちらも英語）。
 
-## Contributing
+## 貢献
 
-If kiroku is useful to you, a ⭐ helps others find it. Issues and pull requests are welcome in English or Japanese. See [CONTRIBUTING.md](CONTRIBUTING.md), and report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+kiroku が役に立ったら、⭐ を付けてもらえると、ほかの人が見つけやすくなります。Issue とプルリクエストは英語でも日本語でも歓迎します。[CONTRIBUTING.md](CONTRIBUTING.md) を読んでください。脆弱性は [SECURITY.md](SECURITY.md) の方法で、非公開で知らせてください。
 
-## License
+## ライセンス
 
 [MIT](LICENSE)
