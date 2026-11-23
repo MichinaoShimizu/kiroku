@@ -3,7 +3,7 @@
 # プロンプト・タイトル・ブランチ・ファイル名・コミット・モデル名・ツール名などに HTML やスクリプトを入れ、
 # 同じプロンプトを 4 セッションで繰り返す（「Worth a look」の繰り返しの指摘にも出るように）。
 #   python3 tools/screenshots/hostile.py <作業ディレクトリ>  → <作業ディレクトリ>/fx/projects が --claude-root
-# 日付は 2026-10-05 の週なので、kiroku serve --html --week 2026-10-05 で書き出す。Windows ではファイル名に使えない文字があるので、Linux と macOS 用。
+# 日付は 2026-10-05 の週なので、go run ./tools/html --week 2026-10-05 で書き出す。Windows ではファイル名に使えない文字があるので、Linux と macOS 用。
 import json, os, subprocess, sys, uuid
 S = sys.argv[1]
 P = '"><svg onload=alert(11)>'

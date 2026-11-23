@@ -26,42 +26,35 @@ Usage:
   kiroku <command> [flags] [args]
 
 Commands:
-  serve [ADDR]          Open the view in your browser and keep it updated as new history arrives (default 127.0.0.1:8484)
+  serve [ADDR]          Open the view in your browser and keep it updated as new history arrives (default 127.0.0.1:8484);
+                        run it again while it runs to open the running view
+  serve --check         Check what kiroku can read, whether any history will be deleted, and what to run next
+  serve --archive [on|off]
+                        Keep compressed copies of history that agents delete (Claude Code, Kiro Crew); no argument shows the status
   update                Update kiroku to the latest release
   help                  Show this help (--version prints only the version)
 
-serve also does these, each as its first flag:
-  serve --check         Check what kiroku can read, whether any history will be deleted, and what to run next
-  serve --open [ADDR]   Open the view of a running "kiroku serve" with its key (--print shows the address for another device)
-  serve --archive [on|off]
-                        Keep compressed copies of history that agents delete (Claude Code, Kiro Crew); no argument shows the status
-  serve --autostart [on [ADDR]|off]
-                        Start "kiroku serve" in the background each time you log in; no argument shows the status
-  serve --html          Write the view as a single static HTML file (default kiroku.html) and open it
-                        (--week or --month writes only that period, for sharing)
-
-The older commands open, html, archive, autostart, doctor and version still work in kiroku 4,
-with a note naming what to use instead; kiroku 5 removes them.
-
-Run "kiroku serve --help" or "kiroku serve --check --help" (and so on) for the flags.
+Run "kiroku serve --help", "kiroku serve --check --help" or "kiroku serve --archive --help" for the flags.
 Get started: kiroku serve --check, then kiroku serve
 `
 
-// serveModes は、kiroku serve の最初の引数で選ぶ、ほかの仕事（前はサブコマンドだったもの）。
-// 名前は、ヘルプとエラーの「kiroku serve --open --help」の形にも使う
-var serveModes = map[string]func([]string) error{
-	"--check": cmdDoctor, "--open": cmdOpen, "--archive": cmdArchive, "--autostart": cmdAutostart, "--html": cmdHTML,
+// serveModes は、kiroku serve の最初の引数で選ぶ、ほかの仕事（5.0 より前はサブコマンドだったもの）。
+var serveModes = map[string]func([]string) error{"--check": cmdDoctor, "--archive": cmdArchive}
+
+// removedCmds は、5.0 で消したサブコマンドと、代わりに何を使うか。打つと、この 1 行を出して止まる（0 でない終了コード）。
+// autostart だけは、4 で登録したログイン時の起動を外す（消したコマンドでは外せなくなるので）
+var removedCmds = map[string]string{
+	"open":      `run "kiroku serve" (running it again while it runs opens the running view in your browser)`,
+	"html":      `use "kiroku serve"; kiroku no longer writes the view to a file`,
+	"doctor":    `use "kiroku serve --check"`,
+	"archive":   `use "kiroku serve --archive"`,
+	"version":   `use "kiroku --version"`,
+	"autostart": `run "kiroku serve" when you want the view`,
 }
 
-// deprecatedCmds は、4.7 で廃止予定にしたサブコマンドと、その代わり（kiroku 5 で消す）。
-var deprecatedCmds = map[string]string{
-	"open": "serve --open", "html": "serve --html", "archive": "serve --archive", "autostart": "serve --autostart", "doctor": "serve --check", "version": "--version",
-}
-
-// deprecatedNote は、廃止予定のサブコマンド name を使ったときの 1 行（標準エラーに出す。動きは変えない）。
-func deprecatedNote(name string) string {
-	return fmt.Sprintf("note: \"kiroku %s\" is deprecated and will be removed in kiroku 5.0; use \"kiroku %s\" instead", name, deprecatedCmds[name])
-}
+// WriteHTML は、画面を 1 つの HTML ファイルに書く（引数は 4 までの kiroku html と同じ）。利用者のコマンドではなく、
+// e2e・スクリーンショット・GitHub Pages のデモを作る tools/html から使う
+func WriteHTML(args []string) error { return cmdHTML(args) }
 
 // Main は kiroku のコマンドを動かす。v はリリース時に入る版（ルートの main.go から渡す）。
 func Main(v string) {
@@ -81,8 +74,11 @@ func dispatch(args []string) error {
 		printHelp(os.Stdout)
 		return nil
 	}
-	if _, ok := deprecatedCmds[args[0]]; ok {
-		fmt.Fprintln(os.Stderr, styleFor(os.Stderr).warn(deprecatedNote(args[0])))
+	if hint, ok := removedCmds[args[0]]; ok {
+		if args[0] == "autostart" {
+			removeAutostart()
+		}
+		return fmt.Errorf("\"kiroku %s\" was removed in kiroku 5.0; %s", args[0], hint)
 	}
 	switch args[0] {
 	case "serve":
@@ -92,19 +88,9 @@ func dispatch(args []string) error {
 			}
 		}
 		return cmdServe(args[1:])
-	case "html":
-		return cmdHTML(args[1:])
 	case "json", "stats":
-		return fmt.Errorf("\"kiroku %s\" was removed in kiroku 3.0; use \"kiroku serve\" (or \"kiroku serve --html\" for a file) to see your history", args[0])
-	case "archive":
-		return cmdArchive(args[1:])
-	case "open":
-		return cmdOpen(args[1:])
-	case "autostart":
-		return cmdAutostart(args[1:])
-	case "doctor":
-		return cmdDoctor(args[1:])
-	case "version", "--version", "-version", "-v":
+		return fmt.Errorf("\"kiroku %s\" was removed in kiroku 3.0; use \"kiroku serve\" to see your history", args[0])
+	case "--version", "-version", "-v":
 		return runVersion()
 	case "update":
 		return runUpdate(args[1:])
@@ -283,7 +269,7 @@ func newFS(name, usage string) *flag.FlagSet {
 		fmt.Fprintf(fs.Output(), "Usage:\n  kiroku %s\n", usage)
 		n := 0
 		fs.VisitAll(func(*flag.Flag) { n++ })
-		if n > 0 { // kiroku serve --autostart のようにオプションがないコマンドでは、空の「Flags:」を出さない
+		if n > 0 { // オプションがないコマンドでは、空の「Flags:」を出さない
 			fmt.Fprint(fs.Output(), "\nFlags:\n")
 			fs.PrintDefaults()
 		}
@@ -303,7 +289,7 @@ func langFlag(fs *flag.FlagSet) *string {
 }
 
 // aiRemovedNote は、4.0 で外した「Analyze with AI」の --ai（$KIROKU_AI）を付けて起動したときに出す 1 行（なければ ""）。
-// 止めずに続ける（kiroku serve --autostart on で登録した起動が、古い値のまま動き続けられるように）。kiroku は AI のエージェントを動かさない
+// 止めずに続ける（kiroku 4 の autostart で登録した起動が、古い値のまま動き続けられるように）。kiroku は AI のエージェントを動かさない
 func aiRemovedNote(ai bool) string {
 	env := strings.ToLower(strings.TrimSpace(os.Getenv("KIROKU_AI")))
 	if !ai && env != "1" && env != "true" && env != "yes" && env != "on" {
@@ -362,7 +348,7 @@ func cmdServe(args []string) error {
 }
 
 func cmdHTML(args []string) error {
-	fs := newFS("serve --html", "serve --html [flags]")
+	fs := newFS("html", "html [flags]   (go run ./tools/html; not part of the released kiroku)")
 	c := addCommon(fs)
 	out := fs.String("o", "kiroku.html", "output `file`")
 	fs.StringVar(out, "out", "kiroku.html", "same as -o")
@@ -463,7 +449,7 @@ func writePrivate(out string, b []byte) error {
 // legacyForm は、v1.0 の前に消した前の書き方（kiroku --serve、--json、-o など）に、いまの書き方を教える。
 func legacyForm(arg string) error {
 	name, _, _ := strings.Cut(strings.TrimLeft(arg, "-"), "=")
-	now := map[string]string{"serve": "kiroku serve", "json": "kiroku serve --html -o FILE", "o": "kiroku serve --html -o FILE", "out": "kiroku serve --html -o FILE",
+	now := map[string]string{"serve": "kiroku serve", "json": "kiroku serve", "o": "kiroku serve", "out": "kiroku serve",
 		"weekly": "kiroku serve", "monthly": "kiroku serve"}[name]
 	if now == "" {
 		return fmt.Errorf("unknown command: %s (run \"kiroku help\" for the list)", arg)

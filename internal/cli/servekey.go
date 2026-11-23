@@ -27,7 +27,7 @@ import (
 
 // kiroku serve の鍵。127.0.0.1 で待ち受けていても、同じコンピューターのほかのユーザーはつなげてしまう。
 // そこで、本人しか読めないファイル（0600）に置いた鍵を知っているブラウザにだけ履歴を見せる。
-// kiroku serve --open は、鍵そのものではなく使い捨てのコード（openCodeTTL のあいだ 1 回だけ使える）を ?code= に付けて開く。
+// kiroku serve は、鍵そのものではなく使い捨てのコード（openCodeTTL のあいだ 1 回だけ使える）を ?code= に付けて開く。
 // ブラウザは開いた URL を履歴に残し、同期していれば送ってしまうので、残るのが使い終わったコードだけになるように。
 // 中継のページが鍵を localStorage にしまい、そのあとは鍵なしの URL（ブックマーク）で開ける。
 // 以前の版の ?key=<鍵> の URL は受け付けない（1.0 から）。ブラウザの履歴に鍵が残るので、開かれたら鍵のない案内（locked）を返す。
@@ -47,7 +47,7 @@ func configDir() (string, error) {
 const keyFile = "serve-key"
 
 // errNoKey は、まだ kiroku serve を一度も動かしていない（鍵がない）こと。
-var errNoKey = errors.New("kiroku serve has not been started yet (run \"kiroku serve\" or \"kiroku serve --autostart on\" first)")
+var errNoKey = errors.New("kiroku serve has not been started yet (run \"kiroku serve\" first)")
 
 // serveKey は鍵を読む。create なら、なければ作る（2 つの serve が同時に作っても、先に作ったほうの鍵にそろう）。
 // ほかのユーザーが読める鍵や、形のおかしい鍵は使わない（作り直す）。
@@ -145,7 +145,7 @@ func requireKey(addr, key, lang string, next http.Handler) http.Handler {
 		}
 		get := r.Method == http.MethodGet || r.Method == http.MethodHead
 		q := r.URL.Query()
-		if q.Has("key") { // 以前の版の ?key=<鍵>。鍵が合っていても使わない（kiroku serve --open で開き直してもらう）
+		if q.Has("key") { // 以前の版の ?key=<鍵>。鍵が合っていても使わない（kiroku serve で開き直してもらう）
 			lockedPage403(w, r, lang, oldKeyPage, oldKeyPageJA)
 			return
 		}
@@ -199,7 +199,7 @@ func hopTarget(path string) string {
 	return (&url.URL{Path: "/" + rest}).EscapedPath()
 }
 
-// locked は、鍵のない問い合わせへの答え（403 と、kiroku serve --open を案内するページ。画面の showLocked と同じ文）。
+// locked は、鍵のない問い合わせへの答え（403 と、kiroku serve を案内するページ。画面の showLocked と同じ文）。
 func locked(w http.ResponseWriter, r *http.Request, lang string) {
 	lockedPage403(w, r, lang, lockedPage, lockedPageJA)
 }
@@ -229,29 +229,27 @@ func prefersJA(al string) bool {
 // lockedPage の文は、画面の骨組みが鍵なしで開かれたときの知らせ（js/live.js の showLocked）と同じ。
 var lockedPage = lockedHTML("en", `<h1>Open kiroku with its key</h1>
 <p>kiroku serve shows your history only to a browser that has its key, so that other users of this computer can't read it.</p>
-<p>Run <code>kiroku serve --open</code> in a terminal to open this page with the key. After that, this browser can open it without the key.</p>
-<p>To open it on another device, run <code>kiroku serve --open --print</code> and open the address it prints there.</p>
+<p>Run <code>kiroku serve</code> in a terminal to open this page with the key. After that, this browser can open it without the key.</p>
 `)
 
 // lockedPageJA は lockedPage の日本語（i18n.js の showLocked の文と同じ）。
 var lockedPageJA = lockedHTML("ja", `<h1>鍵を付けて kiroku を開いてください</h1>
 <p>kiroku serve は、この PC のほかのユーザーに履歴を読まれないよう、鍵を持つブラウザーにだけ履歴を見せます。</p>
-<p>ターミナルで <code>kiroku serve --open</code> を実行すると、鍵を付けてこの画面を開きます。そのあとは、このブラウザーなら鍵なしで開けます。</p>
-<p>ほかの機器で開くときは、<code>kiroku serve --open --print</code> を実行し、表示されたアドレスをその機器で開いてください。</p>
+<p>ターミナルで <code>kiroku serve</code> を実行すると、鍵を付けてこの画面を開きます。そのあとは、このブラウザーなら鍵なしで開けます。</p>
 `)
 
-// oldKeyPage は、以前の版の ?key=<鍵> のアドレスで開かれたときの案内。そのアドレスがもう使えないこと、kiroku serve --open のあとは
+// oldKeyPage は、以前の版の ?key=<鍵> のアドレスで開かれたときの案内。そのアドレスがもう使えないこと、kiroku serve のあとは
 // 鍵のない / を開く（ブックマークし直す）こと、履歴とブックマークから消して鍵も変えることを言う。リンクは決まった / だけ。
 var oldKeyPage = lockedHTML("en", `<h1>This address no longer opens kiroku</h1>
 <p>It was made by kiroku before v0.38.2 and has the key in it, so kiroku 1.0 and later refuse it.</p>
-<p>Run <code>kiroku serve --open</code> in a terminal. After that, open <a href="/">kiroku without the key in the address</a> and bookmark that instead.</p>
+<p>Run <code>kiroku serve</code> in a terminal. After that, open <a href="/">kiroku without the key in the address</a> and bookmark that instead.</p>
 <p>Delete this address from your browser's history and bookmarks. Because it was in your history with the key, also change the key: stop <code>kiroku serve</code>, delete <code>serve-key</code> in kiroku's settings folder, and start it again.</p>
 `)
 
 // oldKeyPageJA は oldKeyPage の日本語。
 var oldKeyPageJA = lockedHTML("ja", `<h1>このアドレスでは kiroku を開けません</h1>
 <p>v0.38.2 より前の kiroku が作った、鍵の入ったアドレスです。kiroku 1.0 からは受け付けません。</p>
-<p>ターミナルで <code>kiroku serve --open</code> を実行してください。そのあとは、<a href="/">鍵の入っていないアドレスの kiroku</a> を開き、そちらをブックマークしてください。</p>
+<p>ターミナルで <code>kiroku serve</code> を実行してください。そのあとは、<a href="/">鍵の入っていないアドレスの kiroku</a> を開き、そちらをブックマークしてください。</p>
 <p>このアドレスは、ブラウザーの履歴とブックマークから消してください。鍵が履歴に残っていたので、鍵も変えてください（<code>kiroku serve</code> を止め、kiroku の設定の場所の <code>serve-key</code> を消して、起動し直します）。</p>
 `)
 
@@ -288,7 +286,7 @@ const hopKeyScript = `(async () => {
   if (q.has("code")){
     k = "";
     try { const r = await fetch(location.href, {method: "POST", headers: {"X-Kiroku": "1"}, cache: "no-store"}); if (r.ok) k = await r.text(); } catch(e){}
-    if (!k) why = ja ? "この一度だけのアドレスは、もう使われたか期限が切れています。もう一度 kiroku serve --open を実行してください。" : "This one-time address was already used or has expired. Run kiroku serve --open again.";
+    if (!k) why = ja ? "この一度だけのアドレスは、もう使われたか期限が切れています。もう一度 kiroku serve を実行してください。" : "This one-time address was already used or has expired. Run kiroku serve again.";
   }
   if (/^[0-9a-f]{64}$/.test(k)) try { localStorage.setItem("` + keyStorage + `", k); ok = localStorage.getItem("` + keyStorage + `") === k; } catch(e){}
   if (ok){ location.replace(to.getAttribute("href")); return; }
@@ -339,7 +337,7 @@ const hopStyle = `<style>html{--bg:#141218;--acc:#d0bcff;background:var(--bg);co
 	`a{color:inherit;animation:show .3s 2s forwards}@keyframes show{to{color:var(--acc)}}` +
 	`#msg.show{color:CanvasText;max-width:32em;padding:0 16px}</style>`
 
-// openCodeTTL は、kiroku serve --open のコードを使えるあいだ（ほかの機器で --print の URL を打ちこむ時間も見こむ）。
+// openCodeTTL は、kiroku serve が開くときのコードを使えるあいだ。
 const openCodeTTL = 10 * time.Minute
 
 // openCodeDir は、使い捨てのコードを置くフォルダ（鍵と同じ設定のフォルダの中。0700）。

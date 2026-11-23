@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -38,21 +37,6 @@ var runCmd = func(name string, args ...string) error {
 		return errors.New(msg)
 	}
 	return nil
-}
-
-// autostartRetry は、登録のコマンドが失敗したときに待つ時間（テストで 0 にする）。
-// launchctl は、前の登録を外した直後だと bootstrap に失敗することがあるため、少し待って何回か試す。
-var autostartRetry = 500 * time.Millisecond
-
-func runRetry(c []string) error {
-	var err error
-	for i := 0; i < 4; i++ {
-		if err = runCmd(c[0], c[1:]...); err == nil {
-			return nil
-		}
-		time.Sleep(autostartRetry)
-	}
-	return err
 }
 
 // autostartGOOS は OS、autostartExe は kiroku の実行ファイル、autostartHome はホーム（テストで差しかえる）。
@@ -198,12 +182,6 @@ func currentAutostart(args []string) (autostartPlan, error) {
 	return planAutostart(autostartGOOS, home, exe, args, env)
 }
 
-// autostartState は、自動起動の状態（kiroku serve --check と kiroku autostart で出す）。
-type autostartState struct {
-	on, running bool
-	mark, text  string
-	url, addr   string
-}
 
 // autostartPort は、設定ファイルに書いた待ち受け先（なければ既定）。
 var autostartPort = regexp.MustCompile(`[\w.\-\[\]]*:\d{2,5}\b`)
@@ -239,30 +217,6 @@ var probe = func(addr string) int {
 	return noAnswer
 }
 
-// autostartWait は、登録したあと kiroku serve が答えるまで待つ時間（テストで 0 にする）。
-var autostartWait = 10 * time.Second
-
-func autostartStatus() autostartState {
-	p, err := currentAutostart(nil)
-	if err != nil {
-		return autostartState{mark: "·", text: "not available on this system"}
-	}
-	addr, ok := autostartAddr(p)
-	if !ok {
-		return autostartState{mark: "·", text: "off (run \"kiroku serve --autostart on\" to start kiroku serve when you log in)"}
-	}
-	_, port, _ := net.SplitHostPort(addr)
-	url := "http://localhost:" + port + "/"
-	s := autostartState{on: true, url: url}
-	host, _, _ := net.SplitHostPort(addr)
-	if host == "" || host == "0.0.0.0" || host == "::" || host == "[::]" {
-		addr = "127.0.0.1:" + port
-	}
-	s.addr = addr
-	s.describe(probe(addr), p.log)
-	return s
-}
-
 // autostartAddr は、autostart で動かす kiroku serve の待ち受け先（autostart がオフなら false）。
 func autostartAddr(p autostartPlan) (string, bool) {
 	b, err := os.ReadFile(p.path)
@@ -275,106 +229,25 @@ func autostartAddr(p autostartPlan) (string, bool) {
 	return listenAddr(defaultAddr), true
 }
 
-// describe は、probe の答えから状態の一言を決める。
-func (s *autostartState) describe(answer int, log string) {
-	switch answer {
-	case ready:
-		s.running, s.mark, s.text = true, "✓", "on, running at "+s.url
-	case loading:
-		s.running, s.mark, s.text = true, "✓", fmt.Sprintf("on, reading your history at %s (the page opens the view when it is ready)", s.url)
-	default:
-		s.running, s.mark, s.text = false, "!", fmt.Sprintf("on, but nothing answers at %s (see the output: %s)", s.url, log)
-	}
-}
-
-func cmdAutostart(args []string) error {
-	fs := newFS("serve --autostart", "serve --autostart [on [ADDR] | off]\n\nStarts \"kiroku serve\" in the background each time you log in, so the view is always at\nhttp://localhost:8484/ (macOS: launchd, Linux: systemd --user). Run \"kiroku serve --open\" once to give your\nbrowser the key of kiroku serve.\n\n  kiroku autostart          show the status\n  kiroku serve --autostart on       start now and at every login (ADDR such as :8485 changes the port)\n  kiroku serve --autostart off      stop it and remove it from login")
-	pos, err := parse(fs, args, 2)
+// removeAutostart は、kiroku 4 の「kiroku autostart on」で登録した、ログイン時の kiroku serve の起動を外す。
+// 5.0 で autostart を消したので、登録したままの人が外せるよう、消したコマンドを打ったときにここを通る。登録がなければ何もしない
+func removeAutostart() {
+	p, err := currentAutostart(nil)
 	if err != nil {
-		return quiet(err)
+		return
 	}
-	cmd := ""
-	if len(pos) > 0 {
-		cmd = pos[0]
+	if _, err := os.Stat(p.path); err != nil {
+		return
 	}
-	var extra []string
-	if len(pos) == 2 {
-		if cmd != "on" || !addrRe.MatchString(pos[1]) {
-			return fmt.Errorf("unknown argument: %s (use \"kiroku serve --autostart on :8485\" to change the port)", pos[1])
-		}
-		extra = []string{pos[1]}
+	for _, c := range p.off {
+		_ = runCmd(c[0], c[1:]...) // 動いていなくても、設定ファイルは消す
 	}
-	switch cmd {
-	case "":
-		s := autostartStatus()
-		fmt.Printf("autostart: %s\n", s.text)
-		return nil
-	case "on":
-		p, err := currentAutostart(extra)
-		if err != nil {
-			return err
-		}
-		if strings.Contains(p.exe, "go-build") {
-			return fmt.Errorf("kiroku is running from a temporary build (go run); install it first (go install or install.sh), then run \"kiroku serve --autostart on\" again")
-		}
-		if err := os.MkdirAll(filepath.Dir(p.path), 0o755); err != nil {
-			return err
-		}
-		if err := os.WriteFile(p.path, []byte(p.content), 0o644); err != nil {
-			return err
-		}
-		for _, c := range p.reloadOn {
-			_ = runCmd(c[0], c[1:]...) // まだ登録していなければ失敗するが、それでよい
-		}
-		for _, c := range p.on {
-			if err := runRetry(c); err != nil {
-				for _, c := range p.off {
-					_ = runCmd(c[0], c[1:]...)
-				}
-				os.Remove(p.path) // 登録できなければ、途中まで登録したものも、書いた設定も残さない
-				hint := ""
-				if autostartGOOS == "linux" {
-					hint = "\nsystemd user services may not be available here (WSL or a container, for example); run \"kiroku serve\" yourself instead"
-				}
-				return fmt.Errorf("could not register kiroku serve to start at login: %w%s", err, hint)
-			}
-		}
-		fmt.Printf("autostart is on: kiroku serve starts now and each time you log in\nsettings: %s\noutput: %s\n", p.path, p.log)
-		// serve は起動するとすぐ待ち受けるので、答えるまで少しだけ待って結果を出す（前は答えないまま「on」とだけ出て、壊れて見えた）
-		s := autostartStatus()
-		answer := noAnswer
-		for end := time.Now().Add(autostartWait); s.on; time.Sleep(250 * time.Millisecond) {
-			if answer = probe(s.addr); answer != noAnswer || !time.Now().Before(end) {
-				break
-			}
-		}
-		s.describe(answer, p.log)
-		fmt.Printf("%s %s\n", s.mark, s.text)
-		if !s.running {
-			return fmt.Errorf("kiroku serve did not answer within %s; check the output above, or run \"kiroku serve --check\"", autostartWait)
-		}
-		fmt.Println("open it with \"kiroku serve --open\" (needed once per browser; after that, the address above works)")
-		return nil
-	case "off":
-		p, err := currentAutostart(nil)
-		if err != nil {
-			return err
-		}
-		if _, err := os.Stat(p.path); os.IsNotExist(err) {
-			fmt.Println("autostart is already off")
-			return nil
-		}
-		for _, c := range p.off {
-			_ = runCmd(c[0], c[1:]...) // 動いていなくても、設定ファイルは消す
-		}
-		if err := os.Remove(p.path); err != nil {
-			return err
-		}
-		if autostartGOOS == "linux" {
-			_ = runCmd("systemctl", "--user", "daemon-reload")
-		}
-		fmt.Println("autostart is off: kiroku serve no longer starts when you log in")
-		return nil
+	if err := os.Remove(p.path); err != nil {
+		fmt.Fprintf(os.Stderr, "could not remove the login item %s: %v\n", p.path, err)
+		return
 	}
-	return fmt.Errorf("unknown argument: %s (use \"kiroku serve --autostart\", \"kiroku serve --autostart on\" or \"kiroku serve --autostart off\")", cmd)
+	if autostartGOOS == "linux" {
+		_ = runCmd("systemctl", "--user", "daemon-reload")
+	}
+	fmt.Println("removed the login item that kiroku 4 added: kiroku serve no longer starts when you log in")
 }

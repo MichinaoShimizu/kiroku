@@ -101,7 +101,7 @@ async function saveHistory(s, a){
     const url = URL.createObjectURL(await r.blob()), d = document.createElement("a");
     d.href = url; d.download = histName(s.file); d.hidden = true; document.body.append(d); d.click(); d.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
-  } catch(e){ toast(t("Couldn't open the history file. If kiroku serve is running, run kiroku serve --open and try again."), 5000); }
+  } catch(e){ toast(t("Couldn't open the history file. If kiroku serve is running, run kiroku serve and try again."), 5000); }
   finally { a.removeAttribute("aria-busy"); }
 }
 /* プロンプトの流れ: プロンプトと、その間に起きたこと（コミット・PR・利用上限・中断・サブエージェント）を時刻の順に 1 本に並べる */

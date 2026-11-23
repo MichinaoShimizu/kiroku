@@ -28,7 +28,7 @@ func TestDoctorReport(t *testing.T) {
 	for _, want := range []string{"✓ Claude Code", "12 sessions, since", "/x/projects",
 		`! Claude Code deletes history older than 30 days`, `add "cleanupPeriodDays": 3650 to /x/settings.json`,
 		`! Kiro Crew deletes history older than 30 days (session.archive_retention_days is at its default)`, `add "session": {"archive_retention_days": 3650} to /x/crew/config.local.json`, `Run "kiroku serve --archive on"`,
-		"git: not found", "autostart: off", "kiroku serve --archive on    keep copies", "kiroku serve"} {
+		"git: not found", "kiroku serve --archive on    keep copies", "kiroku serve"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("%q がない:\n%s", want, out)
 		}
@@ -46,7 +46,7 @@ func TestDoctorReport(t *testing.T) {
 	if out := b.String(); !strings.Contains(out, "· Codex") || !strings.Contains(out, "/x/.codex") || strings.Contains(out, "no history yet") {
 		t.Errorf("--all なのに場所が出ていない:\n%s", out)
 	}
-	if err := dispatch([]string{"archive", "on", "--archive-dir", dir, "--claude-root", t.TempDir(), "--sources", "claude"}); err != nil {
+	if err := dispatch([]string{"serve", "--archive", "on", "--archive-dir", dir, "--claude-root", t.TempDir(), "--sources", "claude"}); err != nil {
 		t.Fatal(err)
 	}
 	b.Reset()
@@ -106,7 +106,7 @@ func TestDoctorZeroDayRetention(t *testing.T) {
 	if strings.Contains(out, "keeps history for 0 days") {
 		t.Errorf("0 日を「0 日残す」と出している:\n%s", out)
 	}
-	if err := dispatch([]string{"archive", "on", "--archive-dir", dir, "--claude-root", t.TempDir(), "--sources", "claude"}); err != nil {
+	if err := dispatch([]string{"serve", "--archive", "on", "--archive-dir", dir, "--claude-root", t.TempDir(), "--sources", "claude"}); err != nil {
 		t.Fatal(err)
 	}
 	b.Reset()
@@ -197,7 +197,7 @@ func TestDoctorVersion(t *testing.T) {
 		want int
 	}{{"0.11.0", nil, 1}, {"0.11.0", []string{"--no-update-check"}, 0}, {"dev", nil, 0}} {
 		version, asked = c.v, 0
-		if err := dispatch(append([]string{"doctor", "--claude-root", t.TempDir(), "--sources", "claude"}, c.args...)); err != nil {
+		if err := dispatch(append([]string{"serve", "--check", "--claude-root", t.TempDir(), "--sources", "claude"}, c.args...)); err != nil {
 			t.Fatal(err)
 		}
 		if asked != c.want {

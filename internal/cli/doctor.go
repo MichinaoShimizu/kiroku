@@ -160,8 +160,11 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 	} else {
 		fmt.Fprintf(w, "  %s git: not found, so commits and pushes are not shown\n", s.dim("·"))
 	}
-	a := autostartStatus()
-	fmt.Fprintf(w, "  %s autostart: %s\n", s.mark(a.mark), a.text)
+	if p, err := currentAutostart(nil); err == nil { // kiroku 4 の autostart で登録したログイン時の起動が残っていれば、外し方を言う
+		if _, ok := autostartAddr(p); ok {
+			fmt.Fprintf(w, "  %s autostart: a login item from kiroku 4 still starts kiroku serve; run %s to remove it\n", s.warn("!"), s.bold("\"kiroku autostart\""))
+		}
+	}
 	cur := "v" + strings.TrimPrefix(version, "v")
 	newer := false
 	switch {
@@ -198,11 +201,7 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 	if newer {
 		fmt.Fprintf(w, "  %s install %s\n", s.cmd("kiroku update", 28), rel.latest)
 	}
-	if a.running {
-		fmt.Fprintf(w, "  open %s\n", s.bold(a.url))
-	} else {
-		fmt.Fprintf(w, "  %s open the view in your browser\n", s.cmd("kiroku serve", 28))
-	}
+	fmt.Fprintf(w, "  %s open the view in your browser (or the running one)\n", s.cmd("kiroku serve", 28))
 }
 
 // runningExe は、動いている kiroku の場所（テストで差しかえる）。

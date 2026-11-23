@@ -551,6 +551,24 @@ func scanWatchPaths(all []source.Source, want map[string]bool) []string {
 	return out
 }
 
+// openRunning は、addr で kiroku serve がもう動いていれば（鍵が通る）、止めずに、動いている画面を鍵つきで開く（5.0 より前の kiroku open）。
+// open が false（--no-open）なら、開かずにアドレスだけ出す。動いていなければ false
+func openRunning(addr string, open bool) (bool, error) {
+	if probe(probeAddr(addr)) == noAnswer {
+		return false, nil
+	}
+	url := viewURL(addr)
+	if !open {
+		fmt.Printf("kiroku serve is already running at %s\n", url)
+		return true, nil
+	}
+	if err := openWithKey(url); err != nil {
+		return true, err
+	}
+	fmt.Printf("kiroku serve is already running at %s; opened it in your browser\n", url)
+	return true, nil
+}
+
 // serveLiveWith は kiroku serve。allow は Host として受け付ける名前を足すもの、keep は画面から kiroku archive をオンにする関数、
 // lang は画面の言語（--lang）、watch は picked のほかに見張る場所（scanWatchPaths）。
 // 先に待ち受けてから読む（履歴が多いと最初の読み込みに時間がかかり、その間ポートが開いていないとブラウザが「つながらない」になるため）。
@@ -562,6 +580,9 @@ func serveLiveWith(addr string, allow []string, every time.Duration, picked []so
 	addr = listenAddr(addr)
 	ln, err := net.Listen("tcp", addr) // ポートがふさがっていたら、読む前にすぐ止める
 	if err != nil {
+		if running, err := openRunning(addr, open); running {
+			return err
+		}
 		return fmt.Errorf("could not listen on %s (try another port, e.g. \"kiroku serve :8485\"): %w", addr, err)
 	}
 	var paths []string
@@ -584,7 +605,7 @@ func serveLiveWith(addr string, allow []string, every time.Duration, picked []so
 	st := styleFor(l.print)
 	fmt.Fprintf(l.print, "serving %s %s\n", st.bold(url), st.dim("(reading history…; press Ctrl+C to stop)"))
 	startLive(l, every)
-	fmt.Fprintln(l.print, st.dim("only browsers with its key can open it (to protect it from other users of this computer); \"kiroku serve --open\" opens it with the key"))
+	fmt.Fprintln(l.print, st.dim("only browsers with its key can open it (to protect it from other users of this computer); run \"kiroku serve\" again to open it in another browser"))
 	if open {
 		if err := openWithKey(url); err != nil {
 			fmt.Fprintf(l.print, "could not open a browser: %v\n", err)

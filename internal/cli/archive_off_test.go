@@ -21,7 +21,7 @@ func TestArchiveOffDeletesOnlyCopies(t *testing.T) {
 	writeClaude(t, root, "s1")
 	flags := []string{"--claude-root", root, "--sources", "claude", "--archive-dir", dir}
 	captureOutput(t, func() {
-		if err := dispatch(append([]string{"archive", "on"}, flags...)); err != nil {
+		if err := dispatch(append([]string{"serve", "--archive", "on"}, flags...)); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -30,7 +30,7 @@ func TestArchiveOffDeletesOnlyCopies(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := captureOutput(t, func() {
-		if err := dispatch(append([]string{"archive", "off"}, flags...)); err != nil {
+		if err := dispatch(append([]string{"serve", "--archive", "off"}, flags...)); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -51,7 +51,7 @@ func TestArchiveOffDeletesOnlyCopies(t *testing.T) {
 	os.WriteFile(keep, []byte("x"), 0o600)
 	asked = 0
 	out = captureOutput(t, func() {
-		if err := dispatch([]string{"archive", "off", "--archive-dir", other}); err != nil {
+		if err := dispatch([]string{"serve", "--archive", "off", "--archive-dir", other}); err != nil {
 			t.Fatal(err)
 		}
 	})

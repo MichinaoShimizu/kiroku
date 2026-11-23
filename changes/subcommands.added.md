@@ -1,1 +1,0 @@
-- `kiroku serve` takes the other jobs as its first flag: `--check`, `--open`, `--archive`, `--autostart` and `--html`, with the same arguments and flags as the commands they replace. `kiroku help` lists only `serve`, `update` and `help`

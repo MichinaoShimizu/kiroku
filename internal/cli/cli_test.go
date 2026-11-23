@@ -3,8 +3,6 @@ package cli
 import (
 	"flag"
 	"fmt"
-	"io"
-	"os"
 	"strings"
 	"testing"
 )
@@ -52,9 +50,9 @@ func TestLegacyFormsRemoved(t *testing.T) {
 		"--serve":           `use "kiroku serve"`,
 		"--serve=:9000":     `use "kiroku serve"`,
 		"-serve":            `use "kiroku serve"`,
-		"--json x.json":     `use "kiroku serve --html -o FILE"`,
-		"-o x.html":         `use "kiroku serve --html -o FILE"`,
-		"--out=x.html":      `use "kiroku serve --html -o FILE"`,
+		"--json x.json":     `use "kiroku serve"`,
+		"-o x.html":         `use "kiroku serve"`,
+		"--out=x.html":      `use "kiroku serve"`,
 		"--weekly":          `use "kiroku serve"`,
 		"--monthly 2026-09": `use "kiroku serve"`,
 		"--sources kiro":    "unknown command: --sources",
@@ -69,7 +67,7 @@ func TestLegacyFormsRemoved(t *testing.T) {
 
 // --root は --claude-root になった。前の名前では、新しい名前を教える。
 func TestRootRenamed(t *testing.T) {
-	for _, args := range [][]string{{"html", "--root", "x"}, {"doctor", "--root=x"}, {"serve", "-root", "x"}} {
+	for _, args := range [][]string{{"serve", "--check", "--root=x"}, {"serve", "--archive", "--root", "x"}, {"serve", "-root", "x"}} {
 		var err error
 		captureOutput(t, func() { err = dispatch(args) })
 		if err == nil || err.Error() != "--root has been renamed to --claude-root" {
@@ -102,47 +100,33 @@ func TestServeAcceptsRemovedAIFlags(t *testing.T) {
 	}
 }
 
-// 4.7 で、serve・update・help のほかのサブコマンドは serve の最初の引数（--check・--open・--archive・--autostart・--html）に移した。
-// 古いサブコマンドは kiroku 5 まで同じように動き、使うたびに代わりを 1 行で知らせる。新しい形では知らせない。
-func TestServeModesAndDeprecatedCommands(t *testing.T) {
-	stderr := func(f func()) string {
-		r, w, err := os.Pipe()
-		if err != nil {
-			t.Fatal(err)
+// 5.0 で、コマンドは serve・update・help だけにした。点検と履歴のコピーは serve の最初の引数（--check・--archive）。
+// 消したコマンドは、何を使うかを 1 行で言って止まる（0 でない終了コード）。ヘルプには出さない
+func TestRemovedCommands(t *testing.T) {
+	for name, hint := range removedCmds {
+		if name == "autostart" {
+			continue // ログイン時の起動を外すので、TestAutostartRemoved で
 		}
-		old := os.Stderr
-		os.Stderr = w
-		f()
-		os.Stderr = old
-		w.Close()
-		b, _ := io.ReadAll(r)
-		return string(b)
-	}
-	for _, c := range []struct {
-		old, now string
-	}{{"archive", "serve --archive"}, {"autostart", "serve --autostart"}} {
-		var errOld, errNow error
-		note := stderr(func() { errOld = dispatch([]string{c.old, "bogus"}) })
-		quietNow := stderr(func() { errNow = dispatch(append(strings.Fields(c.now), "bogus")) })
-		if errOld == nil || errNow == nil || errOld.Error() != errNow.Error() || !strings.Contains(errNow.Error(), "kiroku "+c.now) {
-			t.Errorf("%s: old %v, new %v; want the same error naming \"kiroku %s\"", c.old, errOld, errNow, c.now)
+		err := dispatch([]string{name})
+		if err == nil || !strings.Contains(err.Error(), `"kiroku `+name+`" was removed in kiroku 5.0`) || !strings.Contains(err.Error(), hint) {
+			t.Errorf("kiroku %s = %v", name, err)
 		}
-		if !strings.Contains(note, `"kiroku `+c.old+`" is deprecated`) || !strings.Contains(note, `use "kiroku `+c.now+`"`) {
-			t.Errorf("%s: no deprecation note on stderr: %q", c.old, note)
-		}
-		if strings.Contains(quietNow, "deprecated") {
-			t.Errorf("%s: the new form %q should not print a deprecation note: %q", c.old, c.now, quietNow)
+		if strings.Contains(helpText, "\n  "+name+" ") {
+			t.Errorf("help still lists %q:\n%s", name, helpText)
 		}
 	}
-	for name, now := range deprecatedCmds {
-		if _, ok := serveModes[strings.TrimPrefix(now, "serve ")]; !ok && now != "--version" {
-			t.Errorf("%s: its replacement %q is not a serve mode", name, now)
-		}
-		if !strings.Contains(helpText, "kiroku "+now) && !strings.Contains(helpText, now) {
-			t.Errorf("help does not mention %q", now)
+	err := dispatch([]string{"serve", "--archive", "bogus"})
+	if err == nil || !strings.Contains(err.Error(), "kiroku serve --archive") {
+		t.Errorf("kiroku serve --archive bogus = %v, want an error naming kiroku serve --archive", err)
+	}
+	for _, m := range []string{"--open", "--html", "--autostart"} {
+		if _, ok := serveModes[m]; ok {
+			t.Errorf("serve %s should not exist", m)
 		}
 	}
-	if strings.Contains(helpText, "\n  doctor ") || strings.Contains(helpText, "\n  open ") {
-		t.Errorf("help still lists the deprecated commands as commands:\n%s", helpText)
+	for _, want := range []string{"serve --check", "serve --archive", "update", "help"} {
+		if !strings.Contains(helpText, "  "+want) {
+			t.Errorf("help does not list %q", want)
+		}
 	}
 }

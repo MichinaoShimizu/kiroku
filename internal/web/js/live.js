@@ -17,7 +17,7 @@ function startLive(){
       badge.classList.remove("off"); badge.title = t("Updates automatically as your history grows (last checked {time})", {time: hm(Date.now()/1000)});
     } catch(e){
       badge.classList.add("off");
-      // 403 は鍵が変わった（kiroku serve を起動し直しても直らない。kiroku serve --open が要る）
+      // 403 は鍵が変わった（kiroku serve を起動し直しても直らない。kiroku serve が要る）
       badge.title = String(e && e.message) === "403" ? t("Open kiroku with its key") : t("Not connected to kiroku serve. If you stopped it, start it again to resume.");
     }
     if (j){
@@ -34,8 +34,8 @@ function startLive(){
   setInterval(poll, 3000); document.addEventListener("visibilitychange", poll);
 }
 /* kiroku serve の / は鍵なしでも開けるので、履歴を入れていない骨組み（META.shell）。localStorage の鍵を付けて data.json を読み、
-   届いてから最初の描画（期間を選ぶところから）をする。鍵がない・違う（403）ときは、履歴の代わりに kiroku serve --open の案内を出す */
-// showLocked は、履歴の代わりに出す案内。key なら kiroku serve --open の案内（lockedPage と同じ文）、そうでなければ、つながらないこと。
+   届いてから最初の描画（期間を選ぶところから）をする。鍵がない・違う（403）ときは、履歴の代わりに kiroku serve の案内を出す */
+// showLocked は、履歴の代わりに出す案内。key なら kiroku serve の案内（lockedPage と同じ文）、そうでなければ、つながらないこと。
 // 文字はすべて textContent で入れる
 function showLocked(key){
   $("main").hidden = true;
@@ -44,8 +44,7 @@ function showLocked(key){
   // {cmd} のところにコマンドを code で入れる（訳では語順が変わるので、文ごと辞書で引いてから分ける）
   const withCmd = (s, cmd) => { const p = document.createElement("p"), [a, b] = s.split("{cmd}"); p.append(a, el("code", cmd), b || ""); return p; };
   if (key) box.append(el("h2", t("Open kiroku with its key")), el("p", t("kiroku serve shows your history only to a browser that has its key, so that other users of this computer can't read it.")),
-    withCmd(t("Run {cmd} in a terminal to open this page with the key. After that, this browser can open it without the key."), "kiroku serve --open"),
-    withCmd(t("To open it on another device, run {cmd} and open the address it prints there."), "kiroku serve --open --print"));
+    withCmd(t("Run {cmd} in a terminal to open this page with the key. After that, this browser can open it without the key."), "kiroku serve"));
   else box.append(el("h2", t("Not connected to kiroku serve")), el("p", t("If you stopped it, start it again, then reload this page.")));
   $("main").after(box);
 }

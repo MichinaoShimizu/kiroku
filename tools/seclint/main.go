@@ -47,8 +47,6 @@ type exception struct {
 
 // allow は、安全だとわかっていて認めるもの
 var allow = []exception{
-	{Rule: "file-mode", File: "internal/cli/autostart.go", Func: "cmdAutostart",
-		Reason: "the LaunchAgent plist or systemd user unit (0644, in a 0755 folder) holds only the kiroku path and serve options, no history; launchd and systemd read it as usual"},
 	{Rule: "file-mode", File: "tools/prices/main.go", Func: "run",
 		Reason: "developer tool: creates docs/upstream (0755), a folder of the repository with public price tables"},
 	{Rule: "file-mode", File: "tools/prices/main.go", Func: "write",

@@ -113,7 +113,7 @@ func TestRequireKey(t *testing.T) {
 		{"マニフェストへの PUT", "PUT", "/manifest.webmanifest", "", nil},
 	} {
 		w := do(c.method, c.target, c.hdr, c.cookie)
-		if w.Code != 403 || w.Body.String() == "history" || !strings.Contains(w.Body.String(), "kiroku serve --open") {
+		if w.Code != 403 || w.Body.String() == "history" || !strings.Contains(w.Body.String(), "kiroku serve</code>") {
 			t.Errorf("%s: %d %q", c.name, w.Code, w.Body.String())
 		}
 		for _, ck := range w.Result().Cookies() {
@@ -380,38 +380,36 @@ func TestOpenWithKey(t *testing.T) {
 	}
 }
 
-// kiroku serve --open: 鍵がなければ案内し、--print は鍵つきの URL を出す。開くのは答える kiroku serve があるときだけで、
-// 開くときも鍵はブラウザのコマンドに渡さない。
-func TestCmdOpen(t *testing.T) {
+// kiroku serve は、そのアドレスで kiroku serve がもう動いていれば、止めずに、動いている画面を鍵つきで開く（5.0 で消した kiroku open の代わり）。
+// 動いていなければ開かない。--no-open なら開かずにアドレスだけ。鍵はブラウザのコマンドに渡さない
+func TestOpenRunning(t *testing.T) {
 	t.Setenv("KIROKU_CONFIG_DIR", filepath.Join(t.TempDir(), "kiroku"))
 	var opened []string
 	oldOpen, oldProbe := openBrowser, probe
 	defer func() { openBrowser, probe = oldOpen, oldProbe }()
 	openBrowser = func(target string) { opened = append(opened, target) }
-	if err := cmdOpen([]string{":18999"}); err != errNoKey {
-		t.Fatalf("鍵がないのに err = %v", err)
-	}
 	key, _ := serveKey(true)
-	if out := captureOutput(t, func() {
-		if err := cmdOpen([]string{"--print", ":18999"}); err != nil {
-			t.Fatal(err)
-		}
-	}); !regexp.MustCompile(`^http://localhost:18999/\?code=[0-9a-f]{64}\n`).MatchString(out) || strings.Contains(out, key) {
-		t.Errorf("--print = %q", out)
-	}
 	probe = func(addr string) int {
 		if addr != "127.0.0.1:18999" {
 			t.Errorf("probe(%q)", addr)
 		}
 		return noAnswer
 	}
-	if err := cmdOpen([]string{"0.0.0.0:18999"}); err == nil || !strings.Contains(err.Error(), "nothing answers") || len(opened) != 0 {
-		t.Fatalf("動いていないのに開いた: %v %q", err, opened)
+	if running, err := openRunning("0.0.0.0:18999", true); running || err != nil || len(opened) != 0 {
+		t.Fatalf("動いていないのに開いた: %v %v %q", running, err, opened)
 	}
 	probe = func(string) int { return ready }
+	out := captureOutput(t, func() {
+		if running, err := openRunning("127.0.0.1:18999", false); !running || err != nil {
+			t.Fatalf("--no-open: %v %v", running, err)
+		}
+	})
+	if len(opened) != 0 || !strings.Contains(out, "already running at http://localhost:18999/") {
+		t.Errorf("--no-open で開いた、またはアドレスを出さない: %q %q", opened, out)
+	}
 	captureOutput(t, func() {
-		if err := cmdOpen([]string{":18999"}); err != nil {
-			t.Fatal(err)
+		if running, err := openRunning("127.0.0.1:18999", true); !running || err != nil {
+			t.Fatal(running, err)
 		}
 	})
 	if len(opened) != 1 || strings.Contains(opened[0], key) {
@@ -502,7 +500,7 @@ func TestLockedPageLanguage(t *testing.T) {
 			}
 		}
 	}
-	if !strings.Contains(hopKeyScript, "もう一度 kiroku serve --open を実行してください") {
+	if !strings.Contains(hopKeyScript, "もう一度 kiroku serve を実行してください") {
 		t.Error("中継のページに日本語の知らせがない")
 	}
 }

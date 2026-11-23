@@ -538,12 +538,12 @@ func TestServeLive(t *testing.T) {
 	}
 	port := m[1]
 	base := "http://127.0.0.1:" + port
-	if !strings.Contains(out.String(), `"kiroku serve --open" opens it with the key`) {
-		t.Errorf("kiroku serve --open を案内するはず: %q", out.String())
+	if !strings.Contains(out.String(), `run "kiroku serve" again to open it in another browser`) {
+		t.Errorf("もう一度 kiroku serve を打てばよいと案内するはず: %q", out.String())
 	}
 	// 鍵のないブラウザ（同じコンピューターのほかのユーザーなど）には、履歴を見せない
 	for _, path := range []string{"/stamp", "/data.json", "/progress"} {
-		if code, body, _ := fetchHost(t, "GET", base+path, "localhost:"+port); code != 403 || !strings.Contains(body, "kiroku serve --open") {
+		if code, body, _ := fetchHost(t, "GET", base+path, "localhost:"+port); code != 403 || !strings.Contains(body, "kiroku serve</code>") {
 			t.Errorf("鍵なしの %s = %d %.80q, want 403", path, code, body)
 		}
 	}
