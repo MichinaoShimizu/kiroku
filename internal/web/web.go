@@ -105,17 +105,6 @@ func ValidLang(lang string) bool {
 	return false
 }
 
-// Render は __DATA__ などの置き場に JSON を入れる。
-// encoding/json は < > & を < などに変えるので、</script> で閉じられる心配はない。
-// live が true なら、画面は /stamp を見張って新しい履歴を取り込む（--serve 用）。
-func Render(data, weeks, months, meta any, generated float64, live bool) (string, error) {
-	p, err := Marshal(data, weeks, months, meta, generated)
-	if err != nil {
-		return "", err
-	}
-	return p.HTML(live)
-}
-
 // Parts は、画面に入れるデータを JSON にしたもの。kiroku serve は同じデータを HTML と /data.json の
 // 両方で配るので、1 回だけ JSON にして使い回す（1 年分の履歴で、セッションだけで 20 MB ほどになる）。
 type Parts struct {
@@ -141,7 +130,9 @@ func Marshal(data, weeks, months, meta any, generated float64) (*Parts, error) {
 	return p, nil
 }
 
-// HTML は、置き場にデータを入れた画面。
+// HTML は、置き場（__DATA__ など）にデータを入れた画面。
+// encoding/json は < > & を \u003c などに変えるので、</script> で閉じられる心配はない。
+// live が true なら、画面は /stamp を見張って新しい履歴を取り込む（kiroku serve 用）。
 func (p *Parts) HTML(live bool) (string, error) {
 	repl := []string{"__DATA__", string(p.data), "__WEEKS__", string(p.weeks), "__MONTHS__", string(p.months), "__META__", string(p.meta), "__GEN__", string(p.gen)}
 	lang := p.Lang // 空なら、画面がブラウザの言語に合わせる

@@ -60,6 +60,10 @@ func TestDoctorReport(t *testing.T) {
 	if out := b.String(); !strings.Contains(out, "No history found") || !strings.Contains(out, "/x") || !strings.Contains(out, "not installed") {
 		t.Errorf("履歴がないときの案内がない:\n%s", out)
 	}
+	// --amazonq-db は受け付けるだけで何もしないので、案内に出さない
+	if out := b.String(); strings.Contains(out, "--amazonq-db") {
+		t.Errorf("何もしないオプションを案内している:\n%s", out)
+	}
 }
 
 // 読めないファイルがあったエージェントは、0 件でもまとめずに出す（問題を隠さない）。

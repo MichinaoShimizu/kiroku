@@ -329,7 +329,7 @@ func TestKiroCrewNonKiroBackends(t *testing.T) {
 		t.Errorf("Claude Code の seam: usage = %+v, cost = %v, models = %v（トークンとコストは Claude Code の履歴で数える）", cc.Usage, cc.Cost, cc.Models)
 	}
 	if n := nativeOf(cc); n["コンテキストの最大使用率"].V != 25 || n["正常に終わらなかったターン"].V != 0 || n["正常に終わらなかったターン"].N != 1 {
-		t.Errorf("Claude Code の seam の参考指標 = %+v", core.AggregateNative(cc.Source, cc.Meas))
+		t.Errorf("Claude Code の seam の参考指標 = %+v", aggregateNative(cc.Source, cc.Meas))
 	}
 	gs := get("chat-2-200")
 	if gs.Usage.In != 1500 || gs.Usage.Out != 300 || gs.Usage.CW != 0 || gs.Usage.CR != 0 || math.Abs(gs.Cost-0.75) > 1e-9 || gs.Usage.Unpriced != 0 {
@@ -339,16 +339,16 @@ func TestKiroCrewNonKiroBackends(t *testing.T) {
 		t.Errorf("goose: project = %q, models = %v", gs.ProjectPath, gs.Models)
 	}
 	if n := nativeOf(gs); n["コンテキストの最大使用率"].V != 100 || n["正常に終わらなかったターン"].V != 1 || n["ターン"].V != 2 {
-		t.Errorf("goose の参考指標 = %+v（上限を超えた使用率は 100%%、cancelled は正常に終わらなかったターン）", core.AggregateNative(gs.Source, gs.Meas))
+		t.Errorf("goose の参考指標 = %+v（上限を超えた使用率は 100%%、cancelled は正常に終わらなかったターン）", aggregateNative(gs.Source, gs.Meas))
 	}
 	if cx := get("chat-3-300"); cx.Usage.Total() != 0 || nativeOf(cx)["コンテキストの最大使用率"].N != 0 {
-		t.Errorf("Codex: usage = %+v, native = %+v（窓が 0 の使用率は使わない）", cx.Usage, core.AggregateNative(cx.Source, cx.Meas))
+		t.Errorf("Codex: usage = %+v, native = %+v（窓が 0 の使用率は使わない）", cx.Usage, aggregateNative(cx.Source, cx.Meas))
 	}
 	if f := get("chat-4-400"); f.Usage.Unpriced != 330 || f.Cost != 0 {
 		t.Errorf("料金表にないモデル: usage = %+v, cost = %v", f.Usage, f.Cost)
 	}
 	if f := get("chat-5-500"); math.Abs(f.Cost-0.0015) > 1e-12 || nativeOf(f)["コンテキストの最大使用率"].N != 0 {
-		t.Errorf("料金表で見積もる: cost = %v, native = %+v（負の使用量は使わない）", f.Cost, core.AggregateNative(f.Source, f.Meas))
+		t.Errorf("料金表で見積もる: cost = %v, native = %+v（負の使用量は使わない）", f.Cost, aggregateNative(f.Source, f.Meas))
 	}
 	if f := get("chat-6-600"); f.Usage.Total() != 0 || f.Cost != 0 {
 		t.Errorf("壊れた値: usage = %+v, cost = %v", f.Usage, f.Cost)
@@ -378,7 +378,7 @@ func TestKiroCrewNativeOnKiroCLISession(t *testing.T) {
 		t.Errorf("クレジット = %v, want 5（kiro-cli の記録のほうが多い）", f.Credits)
 	}
 	if n := nativeOf(f); n["コンテキストの最大使用率"].V != 20 || n["正常に終わらなかったターン"].V != 1 {
-		t.Errorf("参考指標 = %+v", core.AggregateNative(f.Source, f.Meas))
+		t.Errorf("参考指標 = %+v", aggregateNative(f.Source, f.Meas))
 	}
 }
 
@@ -586,7 +586,7 @@ func TestKiroCrewSubagentUsage(t *testing.T) {
 	}
 	f := sa.Finish(15)
 	if f.Credits != 4 || nativeOf(f)["ターン"].V != 2 || nativeOf(f)["うちサブエージェント"].V != 1 {
-		t.Errorf("残すサブエージェント: credits = %v, native = %+v", f.Credits, core.AggregateNative(f.Source, f.Meas))
+		t.Errorf("残すサブエージェント: credits = %v, native = %+v", f.Credits, aggregateNative(f.Source, f.Meas))
 	}
 	if by["crew:subagent:keep1"] != nil {
 		t.Error("kiro-cli の会話に結びついた使用量を、別の Crew のセッションにしない")
@@ -732,7 +732,7 @@ func TestKiroCrewSubagentsFoldViaCrewLog(t *testing.T) {
 		t.Fatalf("p1 のサブエージェント = %+v", f.Subagents)
 	}
 	if f.Credits != 1.75 || nativeOf(f)["うちサブエージェント"].V != 2 {
-		t.Errorf("p1: credits = %v, native = %+v", f.Credits, core.AggregateNative(f.Source, f.Meas))
+		t.Errorf("p1: credits = %v, native = %+v", f.Credits, aggregateNative(f.Source, f.Meas))
 	}
 }
 
@@ -833,7 +833,7 @@ func TestKiroCrewRebind(t *testing.T) {
 		t.Errorf("切りかえ前の kiro-cli の会話: credits = %v, source = %q", f.Credits, f.Source)
 	}
 	if f := get("crew:dashboard:chat-2-200"); f.Credits != 0 || nativeOf(f)["ターン"].V != 1 {
-		t.Errorf("切りかえ後の Crew のセッション: credits = %v, native = %+v（kiro-cli のころのクレジットは k2 で数える）", f.Credits, core.AggregateNative(f.Source, f.Meas))
+		t.Errorf("切りかえ後の Crew のセッション: credits = %v, native = %+v（kiro-cli のころのクレジットは k2 で数える）", f.Credits, aggregateNative(f.Source, f.Meas))
 	}
 	// (c)
 	if f := get("k3"); f.Credits != 0.25 {
@@ -1145,7 +1145,11 @@ func TestKiroCrewPrivateConversations(t *testing.T) {
 	if i := strings.Index(string(data), "SECRET"); i >= 0 {
 		t.Errorf("JSON に中身が残っている: …%s…", string(data)[max(0, i-200):min(len(data), i+40)])
 	}
-	if html, err := web.Render(ss, nil, nil, nil, 0, false); err != nil || strings.Contains(html, "SECRET") {
+	parts, err := web.Marshal(ss, nil, nil, nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if html, err := parts.HTML(false); err != nil || strings.Contains(html, "SECRET") {
 		t.Errorf("HTML に中身が残っている（err = %v）", err)
 	}
 	const title = "Kiro Crew private conversation"
@@ -1862,4 +1866,9 @@ func keysOf(by map[string]*core.Builder) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// readCrewKey は会話キーの記録を読む（readCrewStemIn）。
+func readCrewKey(home, arch, key string, errs *fileErrs) (meta crewMeta, rows []crewRow) {
+	return readCrewStemIn(newCrewArchiveIndex(home, arch), safeKey(key), errs)
 }

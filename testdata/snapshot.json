@@ -292,9 +292,6 @@
        "title": "カレンダー表示を足して",
        "why": [
         "言い直し 2 回"
-       ],
-       "whyEn": [
-        "2 corrections"
        ]
       },
       {
@@ -305,9 +302,6 @@
        "title": "カレンダー表示を足して",
        "why": [
         "言い直し 2 回"
-       ],
-       "whyEn": [
-        "2 corrections"
        ]
       },
       {
@@ -318,9 +312,6 @@
        "title": "カレンダー表示を足して",
        "why": [
         "言い直し 1 回"
-       ],
-       "whyEn": [
-        "1 correction"
        ]
       }
      ],
@@ -333,7 +324,6 @@
      },
      "maxConc": 2,
      "outBase": 9,
-     "outPrompts": 45,
      "outSessions": 0,
      "outputs": {
       "added": 0,
@@ -859,9 +849,6 @@
        "title": "ヘッダーのボタンの色",
        "why": [
         "言い直し 1 回"
-       ],
-       "whyEn": [
-        "1 correction"
        ]
       }
      ],
@@ -874,7 +861,6 @@
      },
      "maxConc": 1,
      "outBase": 0,
-     "outPrompts": 0,
      "outSessions": 0,
      "outputs": {
       "added": 0,
@@ -1346,9 +1332,6 @@
        "title": "ログイン画面のテストを書いて",
        "why": [
         "言い直し 1 回"
-       ],
-       "whyEn": [
-        "1 correction"
        ]
       }
      ],
@@ -1361,7 +1344,6 @@
      },
      "maxConc": 1,
      "outBase": 0,
-     "outPrompts": 0,
      "outSessions": 0,
      "outputs": {
       "added": 0,
@@ -1801,7 +1783,6 @@
      },
      "maxConc": 2,
      "outBase": 0,
-     "outPrompts": 0,
      "outSessions": 0,
      "outputs": {
       "added": 0,
@@ -2213,7 +2194,6 @@
      },
      "maxConc": 1,
      "outBase": 0,
-     "outPrompts": 0,
      "outSessions": 0,
      "outputs": {
       "added": 0,
@@ -2585,9 +2565,6 @@
      "title": "カレンダー表示を足して",
      "why": [
       "言い直し 2 回"
-     ],
-     "whyEn": [
-      "2 corrections"
      ]
     },
     {
@@ -2598,9 +2575,6 @@
      "title": "カレンダー表示を足して",
      "why": [
       "言い直し 2 回"
-     ],
-     "whyEn": [
-      "2 corrections"
      ]
     },
     {
@@ -2611,9 +2585,6 @@
      "title": "カレンダー表示を足して",
      "why": [
       "言い直し 1 回"
-     ],
-     "whyEn": [
-      "1 correction"
      ]
     }
    ],
@@ -2626,7 +2597,6 @@
    },
    "maxConc": 2,
    "outBase": 9,
-   "outPrompts": 45,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -3420,7 +3390,6 @@
      },
      "maxConc": 1,
      "outBase": 1,
-     "outPrompts": 2,
      "outSessions": 0,
      "outputs": {
       "added": 0,
@@ -3838,7 +3807,6 @@
      },
      "maxConc": 1,
      "outBase": 0,
-     "outPrompts": 0,
      "outSessions": 0,
      "outputs": {
       "added": 0,
@@ -4220,7 +4188,6 @@
    },
    "maxConc": 1,
    "outBase": 1,
-   "outPrompts": 2,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -7973,7 +7940,6 @@
    "maxConc": 1,
    "only": "Claude Code",
    "outBase": 1,
-   "outPrompts": 2,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -8176,7 +8142,6 @@
    "maxConc": 1,
    "only": "Claude Code",
    "outBase": 2,
-   "outPrompts": 9,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -8395,9 +8360,6 @@
      "title": "カレンダー表示を足して",
      "why": [
       "言い直し 2 回"
-     ],
-     "whyEn": [
-      "2 corrections"
      ]
     }
    ],
@@ -8411,7 +8373,6 @@
    "maxConc": 1,
    "only": "Claude Code",
    "outBase": 2,
-   "outPrompts": 11,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -8661,9 +8622,6 @@
      "title": "カレンダー表示を足して",
      "why": [
       "言い直し 2 回"
-     ],
-     "whyEn": [
-      "2 corrections"
      ]
     },
     {
@@ -8674,9 +8632,6 @@
      "title": "カレンダー表示を足して",
      "why": [
       "言い直し 1 回"
-     ],
-     "whyEn": [
-      "1 correction"
      ]
     }
    ],
@@ -8690,7 +8645,6 @@
    "maxConc": 2,
    "only": "Claude Code",
    "outBase": 4,
-   "outPrompts": 23,
    "outSessions": 0,
    "outputs": {
     "added": 0,
@@ -8965,7 +8919,6 @@
      },
      "maxConc": 1,
      "outBase": 1,
-     "outPrompts": 2,
      "outSessions": 0,
      "outputs": {
       "added": 0,
@@ -9166,9 +9119,6 @@
        "title": "ヘッダーのボタンの色",
        "why": [
         "言い直し 1 回"
-       ],
-       "whyEn": [
-        "1 correction"
        ]
       }
      ],
@@ -9181,7 +9131,6 @@
      },
      "maxConc": 1,
      "outBase": 0,
-     "outPrompts": 0,
      "outSessions": 0,
      "outputs": {
       "added": 0,
@@ -9446,9 +9395,6 @@
        "title": "ログイン画面のテストを書いて",
        "why": [
         "言い直し 1 回"
-       ],
-       "whyEn": [
-        "1 correction"
        ]
       }
      ],
@@ -9461,7 +9407,6 @@
      },
      "maxConc": 1,
      "outBase": 0,
-     "outPrompts": 0,
      "outSessions": 0,
      "outputs": {
       "added": 0,
@@ -9694,7 +9639,6 @@
      },
      "maxConc": 2,
      "outBase": 0,
-     "outPrompts": 0,
      "outSessions": 0,
      "outputs": {
       "added": 0,
@@ -9899,7 +9843,6 @@
      },
      "maxConc": 1,
      "outBase": 0,
-     "outPrompts": 0,
      "outSessions": 0,
      "outputs": {
       "added": 0,
@@ -10064,9 +10007,6 @@
      "title": "ログイン画面のテストを書いて",
      "why": [
       "言い直し 1 回"
-     ],
-     "whyEn": [
-      "1 correction"
      ]
     },
     {
@@ -10077,9 +10017,6 @@
      "title": "ヘッダーのボタンの色",
      "why": [
       "言い直し 1 回"
-     ],
-     "whyEn": [
-      "1 correction"
      ]
     }
    ],
@@ -10092,7 +10029,6 @@
    },
    "maxConc": 2,
    "outBase": 1,
-   "outPrompts": 2,
    "outSessions": 0,
    "outputs": {
     "added": 0,

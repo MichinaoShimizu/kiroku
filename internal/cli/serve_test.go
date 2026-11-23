@@ -823,3 +823,8 @@ func TestServeArchiveRequiresOrigin(t *testing.T) {
 		t.Errorf("Origin なし: %d, archive on = %v; want 403 and not turned on", res.StatusCode, called)
 	}
 }
+
+// serveLive は、言語と追加で見張る場所を指定しない serveLiveWith（テスト用）。
+func serveLive(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool) error {
+	return serveLiveWith(addr, allow, every, picked, load, keep, open, "", nil)
+}

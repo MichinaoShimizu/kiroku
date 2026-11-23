@@ -23,7 +23,7 @@ func TestScriptParses(t *testing.T) {
 	if err != nil {
 		t.Skip("node がないので省略")
 	}
-	html, err := Render([]any{}, map[string]any{}, map[string]any{}, map[string]any{"report": []any{}, "git": []any{}}, 0, false)
+	html, err := render([]any{}, map[string]any{}, map[string]any{}, map[string]any{"report": []any{}, "git": []any{}}, 0, false)
 	if err != nil {
 		t.Fatal(err)
 	}

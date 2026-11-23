@@ -124,13 +124,13 @@ func TestPriceOfOverrideWins(t *testing.T) {
 // 1 回の応答の入力が 272K を超えたら、その応答の全部を長いコンテキストの料金にする。
 func TestCostOfRequestLongContext(t *testing.T) {
 	short := Tokens{In: 100_000, CR: 100_000, CW: 50_000, Out: 10_000}
-	c, ok := CostOfRequest("gpt-5.5", short)
+	c, ok := requestCost("gpt-5.5", short)
 	// 0.1M*5 + 0.1M*0.5 + 0.05M*5（gpt-5.5 は書き込みの料金がないので入力と同じ）+ 0.01M*30
 	if want := 0.5 + 0.05 + 0.25 + 0.3; !ok || !near(c, want) {
 		t.Errorf("short = %v, want %v", c, want)
 	}
 	long := Tokens{In: 200_000, CR: 100_000, Out: 10_000}
-	c, _ = CostOfRequest("gpt-5.5", long)
+	c, _ = requestCost("gpt-5.5", long)
 	if want := 0.2*10 + 0.1*1 + 0.01*45; !near(c, want) {
 		t.Errorf("long = %v, want %v", c, want)
 	}
@@ -140,11 +140,11 @@ func TestCostOfRequestLongContext(t *testing.T) {
 		t.Errorf("CostOf = %v, want %v", c, want)
 	}
 	// 長いコンテキストの料金がないモデルは境目を超えても同じ
-	c, _ = CostOfRequest("gpt-5.4-mini", long)
+	c, _ = requestCost("gpt-5.4-mini", long)
 	if want := 0.2*0.75 + 0.1*0.075 + 0.01*4.5; !near(c, want) {
 		t.Errorf("gpt-5.4-mini = %v, want %v", c, want)
 	}
-	c, _ = CostOfRequest("gpt-6-sol", Tokens{In: 1_000_000, CW: 1_000_000, CR: 1_000_000, Out: 1_000_000})
+	c, _ = requestCost("gpt-6-sol", Tokens{In: 1_000_000, CW: 1_000_000, CR: 1_000_000, Out: 1_000_000})
 	if want := 4.0 + 5 + 0.4 + 15; !near(c, want) {
 		t.Errorf("gpt-6-sol long = %v, want %v", c, want)
 	}
@@ -163,18 +163,18 @@ func TestSonnet55CacheRead(t *testing.T) {
 func TestHaiku55PromptTiers(t *testing.T) {
 	// 40K + 30K + 20K + 10K = 100K ちょうどは安い料金
 	at := Tokens{In: 40_000, CW: 30_000, CW1h: 20_000, CR: 10_000, Out: 10_000}
-	c, ok := CostOfRequest("claude-haiku-5-5", at)
+	c, ok := requestCost("claude-haiku-5-5", at)
 	if want := (40_000*0.10 + 30_000*0.125 + 20_000*0.20 + 10_000*0.01 + 10_000*0.50) / 1e6; !ok || !near(c, want) {
 		t.Errorf("100K = %v, want %v", c, want)
 	}
 	// 入力は 1K でも、キャッシュの読み込みを足して 100K を超えれば高い料金
 	over := Tokens{In: 1_000, CR: 100_000, Out: 10_000}
-	c, _ = CostOfRequest("claude-haiku-5-5-20261001", over)
+	c, _ = requestCost("claude-haiku-5-5-20261001", over)
 	if want := (1_000*0.50 + 100_000*0.05 + 10_000*2.50) / 1e6; !near(c, want) {
 		t.Errorf("over 100K = %v, want %v", c, want)
 	}
 	all := Tokens{In: 1e6, CW: 1e6, CW1h: 1e6, CR: 1e6, Out: 1e6}
-	c, _ = CostOfRequest("claude-haiku-5-5", all)
+	c, _ = requestCost("claude-haiku-5-5", all)
 	if want := 0.50 + 0.625 + 1 + 0.05 + 2.50; !near(c, want) {
 		t.Errorf("long = %v, want %v", c, want)
 	}
@@ -183,7 +183,7 @@ func TestHaiku55PromptTiers(t *testing.T) {
 	if want := 0.10 + 0.125 + 0.20 + 0.01 + 0.50; !near(c, want) {
 		t.Errorf("CostOf = %v, want %v", c, want)
 	}
-	c, _ = CostOfRequest("claude-haiku-4-5", all)
+	c, _ = requestCost("claude-haiku-4-5", all)
 	if want := 1 + 1.25 + 2 + 0.10 + 5.0; !near(c, want) {
 		t.Errorf("Haiku 4.5 = %v, want %v", c, want)
 	}
@@ -303,4 +303,10 @@ func TestServiceTier(t *testing.T) {
 	if TierName(TierFast) != "Fast" || TierName("") != "Standard" || TierName(TierUltrafast) != "Ultrafast" || TierName("scale") != "scale" {
 		t.Error("TierName")
 	}
+}
+
+// requestCost は、u が応答 1 回分のときの目安コスト（EventCostTier と同じ。ティアは Standard）。
+func requestCost(model string, u Tokens) (float64, bool) {
+	c, ok, _ := EventCostTier(Event{Model: model, U: u, Req: true})
+	return c, ok
 }

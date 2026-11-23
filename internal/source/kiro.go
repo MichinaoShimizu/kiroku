@@ -8,8 +8,6 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
@@ -860,59 +858,4 @@ func (k *KiroCLI) ScanPaths() []string { return []string{k.CrewHome, k.CrewArchi
 func realDir(p string) bool {
 	st, err := os.Lstat(p)
 	return err == nil && st.IsDir()
-}
-
-// Kiro IDE（v1.0 より前）が依頼の文に足すもの。参考実装 kiro-history（server/ide.ts の cleanUserContent）が外すものと同じ。
-var (
-	kiroSteeringRe = regexp.MustCompile(`(?s)<steering-reminder>(.*?)</steering-reminder>`)
-	kiroEnvRe      = regexp.MustCompile(`(?s)<EnvironmentContext>(.*?)</EnvironmentContext>`)
-)
-
-// kiroRulesHead は、Kiro IDE が依頼に足す steering の規則の見出し。
-const kiroRulesHead = "## Included Rules"
-
-// kiroUserText は Kiro IDE（v1.0 より前）の依頼の文を、人が打った文と、Kiro が足した文（notes）に分ける。
-// 足した文は <steering-reminder>…</steering-reminder>・<EnvironmentContext>…</EnvironmentContext>・
-// 「## Included Rules」から始まる塊。塊の終わりは kiroRulesEnd。
-// kiro-history の正規表現 /## Included Rules[\s\S]*?(?=\n\n[^#\s]|\n\n$|$)/g と同じ（Go の regexp には先読みがないので、手で探す）。
-func kiroUserText(text string) (prompt string, notes []string) {
-	for _, re := range []*regexp.Regexp{kiroSteeringRe, kiroEnvRe} {
-		for _, m := range re.FindAllStringSubmatch(text, -1) {
-			notes = append(notes, m[1])
-		}
-		text = re.ReplaceAllString(text, "")
-	}
-	var b strings.Builder
-	for {
-		i := strings.Index(text, kiroRulesHead)
-		if i < 0 {
-			b.WriteString(text)
-			break
-		}
-		b.WriteString(text[:i])
-		end := kiroRulesEnd(text, i+len(kiroRulesHead))
-		notes = append(notes, text[i:end])
-		text = text[end:]
-	}
-	return strings.TrimSpace(b.String()), notes
-}
-
-// kiroRulesEnd は、from から探して「## Included Rules」の塊が終わる位置。空行（\n\n）のあとに「#」でも空白でもない文字が来るか、
-// 空行で文が終わるなら、その空行の前。どちらもなければ文の終わり。
-func kiroRulesEnd(text string, from int) int {
-	for j := from; j < len(text); j++ {
-		k := strings.Index(text[j:], "\n\n")
-		if k < 0 {
-			break
-		}
-		j += k
-		rest := text[j+2:]
-		if rest == "" {
-			return j
-		}
-		if r, _ := utf8.DecodeRuneInString(rest); r != '#' && !unicode.IsSpace(r) {
-			return j
-		}
-	}
-	return len(text)
 }

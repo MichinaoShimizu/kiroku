@@ -216,7 +216,7 @@ func TestPeriodsMatchFullScan(t *testing.T) {
 	data, _ := collect(all, map[string]bool{"claude": true, "kiro": true, "codex": true}, 15)
 	for k, w := range report.AllWeeks(data) {
 		ws, _ := time.ParseInLocation("2006-01-02", k, time.Local)
-		if full, _ := json.Marshal(report.Stats(data, ws)); string(full) != mustJSON(t, w) {
+		if full, _ := json.Marshal(report.SummarizeByAgent(data, ws, report.AddDays(ws, 7))); string(full) != mustJSON(t, w) {
 			t.Errorf("週 %s: 期間に関わるセッションだけで集計すると、結果が変わる", k)
 		}
 	}

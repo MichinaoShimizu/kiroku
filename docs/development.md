@@ -106,7 +106,7 @@ The context windows of Claude models (for Claude Code's Peak context usage and t
 2. Implement `Source` (`Name` / `Family` / `Where` / `Load`) in `internal/source` and add it to `source.All`
 3. In `Load`, build a `core.Builder` for each conversation and `emit` it (times, prompts, tools, models, tokens, credits)
 4. If the same conversation is also stored elsewhere, make `Builder.Key` match (only the one read first is used)
-5. Record numbers only that agent tracks with `Builder.Measure`, and add their definitions to `core.NativeDefs`
+5. Record numbers only that agent tracks with `Builder.Measure`. They are not shown in the view; to check them in tests, add their definitions to `nativeDefs` in `internal/source/native_test.go`
 6. Add the agent's `Name` to `core.Records` (`internal/core/records.go`) with what its history records (interruptions, usage limits, compactions, edited files, subagents, outputs). The view shows "Not recorded" and "… doesn't record this" instead of 0 for anything not listed, and `TestRecordsCoverEverySource` fails if the name is missing. Add a column for it to "What each agent records" in the guide; `TestGuideRecordsTable` checks the rows that come from `core.Records`
 7. If `Where()` alone is not enough for what `kiroku serve` watches, implement `Watch()` (`internal/source/watch.go`)
 8. If each conversation is in its own file and can be read without cross-checking other files, also implement `Splitter` (`Units` / `LoadUnit`). `kiroku serve` then reloads only the conversations that changed (without it, the whole agent is reloaded when a watched location changes)

@@ -208,19 +208,6 @@ func TestKiroIDERepliesWithoutUsableTime(t *testing.T) {
 	}
 }
 
-func TestKiroUserText(t *testing.T) {
-	for _, c := range []struct{ in, prompt string }{
-		{"直して", "直して"},
-		{"## Included Rules\na\n\n\n直して", "直して"},                 // 空行が続いても、最初の「空白でない文字」の前で終わる
-		{"前\n## Included Rules\na\n\n## b\n\n直して", "前\n\n\n直して"}, // 「#」で始まる段落は規則の続き
-		{"## Included Rules\na\n\n  インデント", ""},                  // 空白で始まる段落も規則の続き
-	} {
-		if p, _ := kiroUserText(c.in); p != c.prompt {
-			t.Errorf("kiroUserText(%q) = %q, want %q", c.in, p, c.prompt)
-		}
-	}
-}
-
 func TestKiroIDENoHistory(t *testing.T) {
 	if bs := load(t, &KiroIDE{Home: filepath.Join(t.TempDir(), "none")}); len(bs) != 0 {
 		t.Errorf("履歴がなければ何も出さない: %d 件", len(bs))

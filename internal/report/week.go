@@ -42,7 +42,6 @@ type Friction struct {
 	Start   float64  `json:"start"`
 	Score   int      `json:"score"`
 	Why     []string `json:"why"`
-	WhyEn   []string `json:"whyEn"` // 英語表示のときの理由（Why と同じ順）
 }
 
 type Heavy struct {
@@ -89,7 +88,6 @@ type Summary struct {
 	Outputs       core.OutputTotal   `json:"outputs"`           // AI が実行したコミット・PR 作成・変更した行（アウトプットの量）
 	OutSessions   int                `json:"outSessions"`       // コミットか PR 作成まで行ったセッションの数
 	OutBase       int                `json:"outBase"`           // そのうち、アウトプットを記録できるエージェント（いまは Claude Code）のセッションの数。OutSessions の割合の分母
-	OutPrompts    int                `json:"outPrompts"`        // アウトプットを記録できるエージェントのセッションの依頼の数（1 コミットあたりの依頼の分子）
 	CostPerCommit *float64           `json:"costPerCommit"`     // 1 コミットあたりの目安コスト。コミットかトークンの記録がなければ nil
 	OutCost       *float64           `json:"outCost,omitempty"` // CostPerCommit の分子（コミットを数えたセッションの目安コスト）。画面で式を見せるため
 	Git           GitTotal           `json:"git"`               // 手元の git リポジトリのコミット（gitlog）
@@ -185,11 +183,6 @@ func fptr(v float64) *float64 { return &v }
 func MonthOf(ts float64) time.Time {
 	d := time.Unix(0, int64(ts*1e9)).In(time.Local)
 	return Midnight(d.Year(), d.Month(), 1, time.Local)
-}
-
-// Stats は 1 週ぶんの集計（エージェントごとの集計つき。AllWeeks と同じ）。動いていた時間がなければ nil。
-func Stats(data []*core.Session, wsT time.Time, commits ...gitlog.Commit) *Week {
-	return SummarizeByAgent(data, wsT, AddDays(wsT, 7), commits...)
 }
 
 // GitTotal は期間の git のコミットのまとめ。
@@ -412,24 +405,21 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 		if !(ws <= d.Start && d.Start < we) {
 			continue
 		}
-		why, whyEn, score := []string{}, []string{}, 0
+		why, score := []string{}, 0
 		if d.Corrections > 0 {
 			why = append(why, fmt.Sprintf("言い直し %d 回", d.Corrections))
-			whyEn = append(whyEn, plural(d.Corrections, "correction"))
 			score += 2 * d.Corrections
 		}
 		if d.Interrupts > 0 {
 			why = append(why, fmt.Sprintf("中断 %d 回", d.Interrupts))
-			whyEn = append(whyEn, plural(d.Interrupts, "interruption"))
 			score += 2 * d.Interrupts
 		}
 		if d.NPrompts >= 15 {
 			why = append(why, fmt.Sprintf("依頼 %d 回", d.NPrompts))
-			whyEn = append(whyEn, plural(d.NPrompts, "prompt"))
 			score += (d.NPrompts-15)/5 + 1
 		}
 		if score > 0 {
-			friction = append(friction, Friction{d.ID, d.Title, d.Project, d.Start, score, why, whyEn})
+			friction = append(friction, Friction{d.ID, d.Title, d.Project, d.Start, score, why})
 		}
 	}
 	sort.SliceStable(friction, func(i, j int) bool { return friction[i].Score > friction[j].Score })
@@ -462,7 +452,7 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 	}
 	// 1 依頼あたりのコストは、トークンを記録するセッションの依頼だけで割る（Kiro のようにクレジットだけのエージェントの依頼が
 	// 分母に混ざると、低く出る）。1 コミットあたりの依頼も同じく、アウトプットを記録できるセッションの依頼だけで出す
-	costPrompts, outPrompts := 0, 0
+	costPrompts := 0
 	for _, d := range data {
 		n := 0
 		for _, p := range d.Prompts {
@@ -472,9 +462,6 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 		}
 		if len(d.UEv) > 0 {
 			costPrompts += n
-		}
-		if d.OutTracked {
-			outPrompts += n
 		}
 	}
 	np := len(prompts)
@@ -525,7 +512,7 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 		outCostP = fptr(core.Round(outCost, 2))
 	}
 	return &Summary{
-		Outputs: outs, OutSessions: outSes, OutBase: outBase, OutPrompts: outPrompts, CostPerCommit: costPerCommit, OutCost: outCostP, Git: gitTot,
+		Outputs: outs, OutSessions: outSes, OutBase: outBase, CostPerCommit: costPerCommit, OutCost: outCostP, Git: gitTot,
 		ProjectStats: projectStats(data, ws, we, projects, projOrder, commits),
 		Shares:       map[string][]Share{"branch": shares(data, ws, we, mins, ShareKeys["branch"]), "source": shares(data, ws, we, mins, ShareKeys["source"])},
 		FixRate:      fixRate, CostPerAsk: costPer, CostPrompts: costPrompts, Usage: usage, Start: wsT.Format("2006-01-02"), Sessions: sessions, Prompts: np,
@@ -795,12 +782,4 @@ func commitsWithin(commits []gitlog.Commit, ws, we float64) []gitlog.Commit {
 		}
 	}
 	return out
-}
-
-// plural は英語表示のための「1 correction」「2 corrections」。
-func plural(n int, word string) string {
-	if n == 1 {
-		return "1 " + word
-	}
-	return fmt.Sprintf("%d %ss", n, word)
 }

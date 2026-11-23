@@ -445,7 +445,7 @@ func byModel[V any](table map[string]V, model string) (V, bool) {
 }
 
 // CostOf は API 換算の目安コスト（トークンの料金とウェブ検索の料金の和）。料金表にないモデルは ok=false。
-// 長いコンテキストの料金は使わない（応答 1 回分かどうか分からないとき用。CostOfRequest を参照）。
+// 長いコンテキストの料金は使わない（応答 1 回分かどうか分からないとき用。EventCostTier を参照）。
 func CostOf(model string, u Tokens) (float64, bool) {
 	c, ok := tokenCost(model, u)
 	if !ok {
@@ -463,14 +463,8 @@ func tokenCost(model string, u Tokens) (float64, bool) {
 	return costAt(p.Rates, u), true
 }
 
-// CostOfRequest は、u が応答 1 回分と分かっているときの目安コスト。入力（キャッシュの読み書きを含む）が境目を超えたら
-// （OpenAI は OpenAILongContext、Anthropic は LongPrices の Over）、その応答の全部を長いコンテキストの料金にする。
-func CostOfRequest(model string, u Tokens) (float64, bool) {
-	c, ok, _ := costOfRequest(model, "", u, u.Input())
-	return c, ok
-}
-
-// costOfRequest は CostOfRequest と同じだが、境目と比べるプロンプトの大きさを prompt で渡す（Event.Prompt を参照）。
+// costOfRequest は、u が応答 1 回分と分かっているときの目安コスト。境目と比べるプロンプトの大きさ（Event.Prompt を参照）が
+// 境目を超えたら（OpenAI は OpenAILongContext、Anthropic は LongPrices の Over）、その応答の全部を長いコンテキストの料金にする。
 // tier は OpenAI のサービスティア（"" は Standard）。std は、ティアの料金が公式になく標準の料金で見積もったか。
 func costOfRequest(model, tier string, u Tokens, prompt float64) (c float64, ok, std bool) {
 	p, ok := PriceOfTier(model, tier)
