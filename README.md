@@ -18,7 +18,7 @@ kiroku serve --check  # 見つかった履歴と、消されそうな履歴が�
 kiroku serve          # http://localhost:8484/ で画面を開く
 ```
 
-インストーラーはダウンロードを `checksums.txt`（[GitHub CLI](https://cli.github.com/) があればビルドの来歴も）で確かめます。Windows は [Releases](https://github.com/MichinaoShimizu/kiroku/releases) の zip を、Go があれば `go install github.com/MichinaoShimizu/kiroku@latest` を使えます（[ガイド](docs/guide.md#install)）。
+インストーラーはダウンロードを `checksums.txt`（[GitHub CLI](https://cli.github.com/) があればビルドの来歴も）で確かめます。Windows は [Releases](https://github.com/MichinaoShimizu/kiroku/releases) の zip を、Go があれば `go install github.com/MichinaoShimizu/kiroku@latest` を使えます。GitHub CLI なら `gh release download -R MichinaoShimizu/kiroku -p kiroku-darwin-arm64 -O ~/bin/kiroku` のように実行ファイルを 1 行で取れます。社内の GitHub リポジトリから配って `kiroku update` で更新する方法もガイドにあります（[ガイド](docs/guide.md#install)）。
 
 > [!IMPORTANT]
 > **Claude Code は既定で 30 日より古い会話を消します。** `~/.claude/settings.json` に `"cleanupPeriodDays": 3650` を設定するか（[公式](https://code.claude.com/docs/en/settings-reference#cleanupperioddays)）、`kiroku serve --archive on` で kiroku にコピーを残させてください（[詳しく](docs/guide.md#keep-a-copy-of-history-in-kiroku)）。

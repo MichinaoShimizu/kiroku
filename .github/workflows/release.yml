@@ -77,6 +77,8 @@ jobs:
           subject-path: |
             dist/*.tar.gz
             dist/*.zip
+            dist/kiroku_*/kiroku
+            dist/kiroku_*/kiroku.exe
             dist/*.sbom.json
             dist/checksums.txt
       # 同じ証明（Sigstore の署名つきバンドル）をリリースにも載せる。GitHub の API に届かなくても、

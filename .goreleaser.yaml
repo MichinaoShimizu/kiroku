@@ -9,13 +9,20 @@ builds:
     goarch: [amd64, arm64]
     flags: [-trimpath]
     mod_timestamp: "{{ .CommitTimestamp }}"
-    ldflags: ["-s -w -X main.version={{.Version}}"]
+    # 公開のリポジトリ（MichinaoShimizu/kiroku）以外の GitHub Actions でビルドしたときだけ、更新を取りに行くリポジトリ
+    # （HOST/OWNER/REPO）を埋め込む。kiroku update はそこから gh で取る（社内のプライベートのリポジトリでも届くように）。
+    # 公開のリポジトリのビルドの ldflags はこれまでと同じなので、tools/reproduce.sh で同じバイナリになる
+    ldflags:
+      - >-
+        -s -w -X main.version={{.Version}}{{ if and (envOrDefault "GITHUB_REPOSITORY" "") (ne (envOrDefault "GITHUB_REPOSITORY" "") "MichinaoShimizu/kiroku") }}
+        -X github.com/MichinaoShimizu/kiroku/internal/cli.releaseRepo={{ trimprefix (envOrDefault "GITHUB_SERVER_URL" "https://github.com") "https://" }}/{{ .Env.GITHUB_REPOSITORY }}{{ end }}
 archives:
   - formats: [tar.gz]
     format_overrides:
       - goos: windows
         formats: [zip]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    # （kiroku update と install.sh はこのアーカイブを使う。名前の形は変えない：docs/compatibility.md）
     # 同じコミットからは同じアーカイブができるよう、入れるファイルの時刻もコミットの時刻にそろえる
     files:
       - src: README.md
@@ -27,6 +34,11 @@ archives:
       - src: CHANGELOG.md
         info:
           mtime: "{{ .CommitDate }}"
+  # 実行ファイルそのもの（kiroku-darwin-arm64、kiroku-windows-amd64.exe など）。gh release download の 1 行で
+  # 入れられるように、アーカイブと並べて置く。checksums.txt と出どころの証明にも入る
+  - id: binary
+    formats: [binary]
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
 # アーカイブごとに、中の kiroku が何でできているか（Go の版と依存モジュールとその版）を SPDX の SBOM にする。
 # syft が要る（リリースのワークフローで入れる）。SBOM も checksums.txt と出どころの証明に入る
 sboms:

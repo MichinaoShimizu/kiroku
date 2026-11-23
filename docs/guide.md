@@ -43,6 +43,36 @@ go install github.com/MichinaoShimizu/kiroku@latest
 
 > On macOS, opening a `kiroku` downloaded with a browser may show "“kiroku” Not Opened" (because it is not notarized by Apple). `install.sh` and `go install` do not trigger this warning. If you downloaded it with a browser, run `xattr -d com.apple.quarantine ./kiroku`, or open it with "Open Anyway" in System Settings → Privacy & Security.
 
+### With the GitHub CLI
+
+Each release also has the binary on its own: `kiroku-darwin-arm64`, `kiroku-darwin-amd64`, `kiroku-linux-amd64`, `kiroku-linux-arm64`, `kiroku-windows-amd64.exe` and `kiroku-windows-arm64.exe`. With the [GitHub CLI](https://cli.github.com/), one command downloads it to a place you choose (files `gh` downloads get no quarantine attribute on macOS):
+
+```bash
+gh release download -R MichinaoShimizu/kiroku -p kiroku-darwin-arm64 -O ~/bin/kiroku && chmod +x ~/bin/kiroku
+```
+
+They are listed in `checksums.txt` and carry build provenance like the archives (`gh attestation verify ~/bin/kiroku --repo MichinaoShimizu/kiroku`).
+
+### Inside an organization (a private repository)
+
+To hand kiroku out from your organization's own GitHub repository, private or internal, push this repository there under any name and push a `v*` tag: `release.yml` builds and publishes the release in that repository. A build made in any repository other than `MichinaoShimizu/kiroku` remembers where it was built (`HOST/OWNER/REPO`), and its `kiroku update` and the update check of `kiroku serve --check` ask that repository through the GitHub CLI and its login, so they reach a private repository. kiroku keeps no token of its own, and verifies the download with `checksums.txt` as usual.
+
+For the people who use it:
+
+```bash
+gh auth login                                                   # once
+gh release download -R your-org/your-repo -p kiroku-darwin-arm64 -O ~/bin/kiroku && chmod +x ~/bin/kiroku
+kiroku serve
+kiroku update                                                   # later: updates from your-org/your-repo
+```
+
+On Windows, download `kiroku-windows-amd64.exe` (or `-arm64.exe`) the same way, for example to `-O "$env:LOCALAPPDATA\Programs\kiroku\kiroku.exe"`, and add that folder to your `PATH`.
+
+- `kiroku update` there needs `gh` installed and logged in with access to the repository (with SAML single sign-on, authorize the login for the organization). Without them it stops and says what to do; it never falls back to the public repository
+- In that repository you only need `release.yml` (and `ci.yml` if you like). The other workflows (`pages.yml`, `prices.yml`, `upstream.yml`, `scorecard.yml`, `codeql.yml`, `tag.yml`, `fuzz.yml`) are for this public repository and can be deleted. Your enterprise's Actions policy must allow the actions `release.yml` uses, and build provenance for a private repository needs GitHub Enterprise Cloud
+- Take each new release of `MichinaoShimizu/kiroku` in soon: only the latest release is supported, and security fixes go there
+- `tools/reproduce.sh` checks releases of `MichinaoShimizu/kiroku`. A build from your repository embeds its name, so it differs from the public binary of the same version
+
 ## Commands
 
 | Command | Description |
@@ -51,7 +81,7 @@ go install github.com/MichinaoShimizu/kiroku@latest
 | `kiroku serve --check` | Checks your setup in one go and only reads (see the notes below the table). Run it right after installing, or when something you expect is missing from the view. `kiroku serve --check --report` prints only a short block for a bug report (kiroku --version, OS, and per agent the number of sessions, newest version seen, unreadable lines and unknown kinds with counts; no paths, project names, IDs or content) for you to review and paste into a GitHub issue yourself; kiroku sends nothing |
 | `kiroku serve --archive [on\|off]` | Keeps compressed copies of history that agents delete automatically (Claude Code, Kiro Crew) in kiroku's own folder (see "[Keep a copy of history in kiroku](#keep-a-copy-of-history-in-kiroku)"). With no argument, shows the status (on or off, location, number and size of files) |
 | `kiroku --version` | Prints the version (also on the first line of `kiroku help`) |
-| `kiroku update` | Downloads the latest release for the same OS and CPU from GitHub Releases, verifies it with `checksums.txt`, and replaces itself. In a terminal it shows how much of the download has arrived. In a location you cannot write to (such as `/usr/local/bin`), run `sudo kiroku update`. kiroku installed with `go install` or built from source (version `dev`) is not replaced, so update it with `go install …@latest`. `--to v1.2.3` installs a chosen version (only names such as `v1.2.3` or `v1.2.3-rc.1` are accepted); going back to an older version than the one running also needs `--force`. v0.1.1 and earlier have no `update`, so reinstall once with `install.sh` or from Releases |
+| `kiroku update` | Downloads the latest release for the same OS and CPU from GitHub Releases, verifies it with `checksums.txt`, and replaces itself. In a terminal it shows how much of the download has arrived. In a location you cannot write to (such as `/usr/local/bin`), run `sudo kiroku update`. kiroku installed with `go install` or built from source (version `dev`) is not replaced, so update it with `go install …@latest`. `--to v1.2.3` installs a chosen version (only names such as `v1.2.3` or `v1.2.3-rc.1` are accepted); going back to an older version than the one running also needs `--force`. v0.1.1 and earlier have no `update`, so reinstall once with `install.sh` or from Releases. A kiroku built in your organization's own repository updates from there with the GitHub CLI (see [Inside an organization](#inside-an-organization-a-private-repository)) |
 
 `kiroku help` lists commands; `kiroku serve --help`, `kiroku serve --check --help`, `kiroku serve --archive --help` and `kiroku update --help` show their options.
 
