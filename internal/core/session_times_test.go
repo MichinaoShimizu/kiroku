@@ -119,8 +119,10 @@ func TestPromptTimesSameTimestampScales(t *testing.T) {
 	// 8 倍にする。線形なら約 8 倍（n log n でも 10 倍ほど）、2 乗なら 64 倍。どちらも時計の粗さ（Windows）より十分長くなる数にし、
 	// 小さいほうがキャッシュに収まって速く出ることもあるので、下限を置いて余裕のある閾値で比べる
 	small, large := run(50_000), run(400_000)
-	if small < 2*time.Millisecond {
-		small = 2 * time.Millisecond
+	// 下限は 5ms。50k が 3.5ms ほどで終わる速い機械（Windows の CI）では、400k だけがキャッシュに収まらず 32 倍ほどになることがある。
+	// 2 乗の計算なら 50k でも秒の単位になるので、下限を上げても見逃さない
+	if small < 5*time.Millisecond {
+		small = 5 * time.Millisecond
 	}
 	t.Logf("50k: %v, 400k: %v", small, large)
 	if large > 30*small {
