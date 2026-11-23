@@ -8,6 +8,7 @@ set -eu
 v=${1:?usage: sh tools/major-gap.sh vX.Y.Z [CHANGELOG.md] [YYYY-MM-DD]}
 file=${2:-CHANGELOG.md}
 today=${3:-$(date -u +%Y-%m-%d)}
+case "$today" in [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;; *) echo "major-gap: bad date: $today" >&2; exit 2 ;; esac
 gap=${KIROKU_MAJOR_GAP_DAYS:-30}
 case "$v" in
   v[0-9]*.0.0) ;;
@@ -15,7 +16,8 @@ case "$v" in
 esac
 ma=${v#v}; ma=${ma%%.*}
 [ "$ma" -ge 2 ] || exit 0
-prev=$(awk -v v="$v" '/^## v[0-9]+\.0\.0 - [0-9]{4}-[0-9]{2}-[0-9]{2}/ && $2 != v { print $2, $4; exit }' "$file")
+# 見出しは信用しない：版と日付が形どおり（日付は数字だけ）の見出しだけを数える。日付の残りを算術式に渡さないため
+prev=$(awk -v v="$v" '$1 == "##" && $2 ~ /^v[0-9]+\.0\.0$/ && $3 == "-" && $4 ~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/ && NF == 4 && $2 != v { print $2, $4; exit }' "$file")
 [ -n "$prev" ] || exit 0
 pv=${prev% *} pd=${prev#* }
 # 日付を通算の日数にする（GNU と BSD の date に頼らない）
@@ -23,6 +25,7 @@ days() {
   IFS=- read -r y m d <<D
 $1
 D
+  case "$y$m$d" in *[!0-9]*) echo "major-gap: bad date: $1" >&2; exit 2 ;; esac
   y=${y#0} m=${m#0} d=${d#0}
   [ "$m" -le 2 ] && { y=$((y - 1)); m=$((m + 12)); }
   echo $((365 * y + y / 4 - y / 100 + y / 400 + (153 * (m - 3) + 2) / 5 + d))

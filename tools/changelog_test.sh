@@ -164,6 +164,18 @@ if KIROKU_MAJOR_OK=1 mg v3.0.0 "$c" 2026-03-02 > /dev/null 2>&1; then ok "KIROKU
 for nv_ in v2.2.0 v2.1.1 v1.0.0; do
   if mg "$nv_" "$c" 2026-03-02 > /dev/null 2>&1; then ok "major-gap ignores $nv_"; else fail "major-gap ignores $nv_"; fi
 done
+# 見出しの日付に式を仕込んでも、コマンドは動かない（bash は $(( )) の中の名前の値を式として評価する）
+mk=$tmp/pwned
+# shellcheck disable=SC2016 # 式は展開させずに見出しに入れる
+printf '# Changelog\n\n## v2.0.0 - 2026-03-01-gap[$(touch${IFS}%s)]\n\n## v2.0.0 - 2026-01-01\n' "$mk" > "$c"
+for sh_ in sh bash; do
+  command -v "$sh_" >/dev/null 2>&1 || continue
+  "$sh_" "$here/major-gap.sh" v3.0.0 "$c" 2026-01-20 > /dev/null 2>&1
+  if [ -e "$mk" ]; then fail "major-gap runs a command from a CHANGELOG heading ($sh_)"; rm -f "$mk"; else ok "major-gap ignores a hostile CHANGELOG heading ($sh_)"; fi
+done
+if mg v3.0.0 "$c" 2026-01-20 > /dev/null 2>&1; then fail "major-gap still finds the well-formed heading after a hostile one"; else ok "major-gap still finds the well-formed heading after a hostile one"; fi
+# shellcheck disable=SC2016
+if mg v3.0.0 "$c" '2026-01-01-x[$(id)]' > /dev/null 2>&1; then fail "major-gap refuses a bad today"; else ok "major-gap refuses a bad today"; fi
 printf '# Changelog\n\n## v1.4.0 - 2026-03-10\n\n## v1.0.0 - 2026-03-01\n' > "$c"
 if mg v2.0.0 "$c" 2026-03-05 > /dev/null 2>&1; then fail "major-gap stops 2.0.0 soon after 1.0.0"; else ok "major-gap stops 2.0.0 soon after 1.0.0"; fi
 
