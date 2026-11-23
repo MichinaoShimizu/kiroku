@@ -16,6 +16,9 @@ p.on("dialog", async d => { dialogs.push(d.message()); await d.dismiss(); });
 p.on("pageerror", e => errors.push(e.message));
 p.on("request", r => { if (!/^(file|data|blob):/.test(r.url())) external.push(r.url()); });
 await p.addInitScript(() => { window.__hits = []; window.alert = x => { window.__hits.push(String(x)); }; });
+// 画面が読む localStorage の鍵（kiroku:…）を覚えておく（あとで、どの鍵にも壊れた値を入れて開き直す）
+await p.addInitScript(() => { window.__lsKeys = new Set(); const gi = Storage.prototype.getItem;
+  Storage.prototype.getItem = function (k) { if (typeof k === "string" && k.startsWith("kiroku:")) window.__lsKeys.add(k); return gi.call(this, k); }; });
 // 同じ働きのものを 1 度だけ押すための鍵（描き直すと要素が替わるので、要素そのものでなく中身で見分ける）。どの切り替えの、どの選択肢の中のものかも入れる
 await p.addInitScript(() => { window.__keyOf = el => { const chs = []; for (let x = el.closest("[data-ch]"); x; x = x.parentElement && x.parentElement.closest("[data-ch]")) chs.push(x.dataset.ch);
   return [el.tagName, el.getAttribute("class") || "", el.getAttribute("aria-label") || "", ...[...el.attributes].filter(a => a.name.startsWith("data-")).map(a => `${a.name}=${a.value}`),
@@ -28,8 +31,8 @@ await p.waitForTimeout(300);
 { const n = await p.locator(".ai-action, #rptrun, #ai-review-dialog").count();
   if (n) { failed++; console.log(`  FAIL saved HTML shows AI run controls: ${n}`); } else console.log("  ok   saved HTML shows no AI run controls"); }
 
-const check = async step => {
-  const r = await p.evaluate(() => ({
+const check = async (step, pg = p) => {
+  const r = await pg.evaluate(() => ({
     hits: window.__hits.splice(0),
     injected: [...document.querySelectorAll('img[src="x"], svg[onload], [onerror], [onload], [onclick], [onmouseover]')].map(e => e.outerHTML.slice(0, 120)),
     scripts: document.querySelectorAll("script").length,
@@ -58,6 +61,10 @@ const clickAll = async (sel, step, after) => {
 };
 
 await check("load");
+// push の記録（リモート追跡ブランチの reflog）が、悪意のある ref の名前と、__proto__・constructor"><img …> のプロジェクト名で読めている（確かめる対象に入っている）
+{ const r = await p.evaluate(() => { const ps = META.push || []; return {n: ps.length, projects: [...new Set(ps.map(x => x.project))], refs: [...new Set(ps.map(x => x.ref))]}; });
+  const ok = r.n >= 6 && r.projects.includes("__proto__") && r.projects.some(x => x.startsWith('constructor"><img')) && r.refs.some(x => x.includes("<svg/onload=alert(40)>"));
+  if (!ok) { failed++; console.log(`  FAIL hostile push records are not in the page (the test would not cover them): ${JSON.stringify(r)}`); } else console.log(`  ok   hostile push records are in the page (${r.n})`); }
 // 見直す候補の中身（繰り返したプロンプトの文など）は、ダイアログにだけ出る。どれも開いて確かめる
 const ids = await p.evaluate(() => [...new Set((lastFlags || []).map(f => GOTO[f.k] || f.k))]); // 期間の行の一覧は出さないので、候補のダイアログを 1 つずつ開く
 if (!ids.includes("repeats")) { failed++; console.log("  FAIL the repeated-prompt finding is not shown (the test would not cover it)"); }
@@ -157,6 +164,8 @@ const summaryCheck = async label => {
   const vals = attr => p.evaluate(a => [...new Set([...document.querySelectorAll(`#review [data-${a}]`)].map(x => x.getAttribute(`data-${a}`)))], attr);
 
   await onSummary(); await check(`summary ${label}`);
+  // 出力のパネルに Pushes の選択肢がある（push の数・グラフ・ツールチップを、切り替えを押して確かめる）
+  if (!(await p.locator('#review .iksw[data-sw="out"] [data-v="push"]').count())) { failed++; console.log(`  FAIL summary ${label}: Output has no Pushes switch (push records are not checked)`); }
   const agents = await vals("ag");
   for (const ag of agents.length ? agents : [null]) { // エージェントで絞ると、どの数も変わる
     if (ag !== null && !(await pick("ag", ag))) continue;
@@ -211,6 +220,35 @@ await p.evaluate(() => { if (st.mode !== "week"){ st.mode = "week"; render(); } 
 await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(200);
 const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
 if (sw > iw) { failed++; console.log(`  FAIL overflows sideways at 390px: ${sw} > ${iw}`); } else console.log("  ok   no sideways overflow at 390px");
+
+// localStorage を書き換えられていても（同じ PC のほかのページ・拡張機能・手で）、開いた画面にスクリプトや要素が入らず、
+// Object.prototype が汚れず、ページのエラーにならない。画面が読むどの kiroku: の鍵にも、壊れた値を 1 つずつ入れて開き直す
+{
+  const keys = [...new Set([...(await p.evaluate(() => [...window.__lsKeys])),
+    ...(await p.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith("kiroku:"))))])].sort();
+  const VALUES = [["__proto__", JSON.stringify("__proto__")], ["constructor", JSON.stringify("constructor")], ["raw __proto__", "__proto__"],
+    ["html", JSON.stringify('"><img src=x onerror=alert(50)><svg onload=alert(51)>')], ["raw html", '<img src=x onerror=alert(52)>'],
+    ["proto object", '{"__proto__":{"polluted":1}}'], ["constructor object", '{"constructor":{"prototype":{"polluted":1}}}'], ["array", '["__proto__",{"polluted":1}]'],
+    ["invalid JSON", "{"], ["unknown switch value", JSON.stringify("no-such-choice")], ["number", "1e309"], ["long", JSON.stringify("A".repeat(200 * 1024))]];
+  if (keys.length < 10) { failed++; console.log(`  FAIL localStorage tamper: found only ${keys.length} kiroku: keys: ${JSON.stringify(keys)}`); }
+  for (const [name, raw] of VALUES) {
+    const pg = await ctx.newPage(), errs = [], dl = [];
+    pg.on("pageerror", e => errs.push(e.message)); pg.on("dialog", async d => { dl.push(d.message()); await d.dismiss(); });
+    await pg.addInitScript(() => { window.__hits = []; window.alert = x => { window.__hits.push(String(x)); }; });
+    await pg.addInitScript(([keys, raw]) => { let n = 0; for (const k of keys) { try { localStorage.setItem(k, raw); n++; } catch (e) {} } window.__tampered = n; }, [keys, raw]);
+    try {
+      await pg.goto("file://" + path.resolve(html)); await pg.waitForTimeout(300);
+      const sw = pg.locator("#view button[data-v=sum]");
+      if ((await sw.getAttribute("aria-pressed")) !== "true") { await sw.click(); await pg.waitForTimeout(300); }
+      await check(`localStorage ${name}`, pg);
+      const r = await pg.evaluate(() => ({polluted: ({}).polluted, objPolluted: Object.prototype.polluted, tampered: window.__tampered, summary: !!document.querySelector("#review .insh .ikg")}));
+      if (r.polluted !== undefined || r.objPolluted !== undefined || !r.tampered || !r.summary || errs.length || dl.length) { failed++; console.log(`  FAIL localStorage ${name}: ${JSON.stringify({...r, errors: errs.slice(0, 3), dialogs: dl})}`); }
+      else console.log(`  ok   localStorage ${name}: no pollution, no page error, summary shown (${r.tampered} keys)`);
+    } catch (e) { failed++; console.log(`  FAIL localStorage ${name}: could not be checked: ${e.message.split("\n")[0]}`); }
+    await pg.evaluate(() => localStorage.clear()).catch(() => {});
+    await pg.close();
+  }
+}
 
 if (dialogs.length) { failed++; console.log(`  FAIL dialogs: ${JSON.stringify(dialogs)}`); }
 if (errors.length) { failed++; console.log(`  FAIL page errors: ${JSON.stringify(errors)}`); }
