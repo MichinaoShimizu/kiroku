@@ -102,7 +102,7 @@ let pushFirst = null;
 const pushesIn = (ws, we) => { const P = META.push || []; if (!P.length) return null;
   if (!pushFirst || pushFirst.p !== P) pushFirst = {p: P, t: P.reduce((m, x) => Math.min(m, x.t), Infinity)};
   return we <= pushFirst.t ? null : P.filter(x => x.t >= ws && x.t < we).length; };
-/* push・PR あたりの単価：期間の量（推定費用・クレジット・トークン）の合計 ÷ 数。push と PR は AI の分だけを取り出せないので、期間の合計で割る */
+/* push・PR・Git のコミットあたりの単価：期間の量（推定費用・クレジット・トークン）の合計 ÷ 数。どれも AI の分だけを取り出せないので、期間の合計で割る */
 const usedOf = (w, k) => { const u = w.usage; if (!u) return null; const x = k === "cost" ? u.cost : k === "credits" ? u.credits : u.tokens; return x > 0 ? x : null; };
 const perOut = (w, k, n) => { const x = usedOf(w, k); return n > 0 && x ? x / n : null; };
 /* 指標の値（見直す候補の推移用）。low: 大きいときに印が付く向き（良し悪しの判定ではない） */
@@ -157,6 +157,10 @@ const MET = {
   costPerPr: {f: w => perOut(w, "cost", w.outputs && w.outputs.prs), fmt: v => usd(v)},
   creditsPerPr: {f: w => perOut(w, "credits", w.outputs && w.outputs.prs), fmt: v => cr1(v)},
   tokensPerPr: {f: w => perOut(w, "tokens", w.outputs && w.outputs.prs), fmt: v => tok(v)},
+  // Git のコミットあたり（良し悪しの向きは付けない）：期間の合計 ÷ 期間の Git のコミット（出力のパネルと同じ数）。クレジットと、AI のコミットがない期間の費用・トークンに使う
+  costPerGitCommit: {f: w => perOut(w, "cost", w.git && w.git.commits), fmt: v => usd(v)},
+  creditsPerGitCommit: {f: w => perOut(w, "credits", w.git && w.git.commits), fmt: v => cr1(v)},
+  tokensPerGitCommit: {f: w => perOut(w, "tokens", w.git && w.git.commits), fmt: v => tok(v)},
   rework: {f: (w, ws, we) => { const r = reworkOf(ws, we); return r.n ? Math.round(r.re * 100 / r.n) : null; }, low: true, u: "%"},
   kept: {f: (w, ws, we) => { const k = keptOf(ws, we); return k.edit ? Math.round(k.kept * 100 / k.edit) : null; }, low: false, u: "%"},
   aiLines: {f: (w, ws, we) => memoBasis("lines", ws, we, "", () => DATA.reduce((x, s) => s.start >= ws && s.start < we && s.nFiles > 0 ? x + (s.editAdded || 0) + (s.editRemoved || 0) : x, 0)), fmt: v => commas(Math.round(v)), int: true},
