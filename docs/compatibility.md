@@ -12,9 +12,17 @@ A change that breaks one of these is marked `BREAKING` in the changelog and, fro
 - **Exit status**: 0 on success, and not 0 when a command fails
 - **The `--prices` file**: the JSON format described in [How you used AI](guide.md#how-you-used-ai), both the object and the array form
 - **`kiroku archive` copies**: a later version still reads the copies an earlier one kept, and `kiroku archive off` still recognizes the folder. The layout inside the folder may change if kiroku moves the old copies itself
-- **The `kiroku serve` key** kept in kiroku's config folder: a new version still accepts it, so bookmarks of the plain address (not `?key=` addresses from before v0.38.2) and `kiroku open` keep working. How the browser keeps it is not part of this: it is now in the browser's site data instead of a cookie, and a browser set up with an older version needs `kiroku open` once
+- **The `kiroku serve` key** kept in kiroku's config folder: a new version still accepts it, so bookmarks of the plain address (not old `?key=` addresses) and `kiroku open` keep working. How the browser keeps it is not part of this: it is now in the browser's site data instead of a cookie, and a browser set up with an older version needs `kiroku open` once
 - **`kiroku serve` stays local by default**: it listens on `127.0.0.1` and checks the Host header, and anything that widens access stays opt-in (see [SECURITY.md](../SECURITY.md)). kiroku runs no AI agent ("Analyze with AI" was removed in 4.0; `--ai` and `--no-ai` are accepted and do nothing)
 - **Downloads are verified**: `kiroku update` and `install.sh` check `checksums.txt` (and build provenance where available) before they replace anything. Release archive names and `checksums.txt` keep their form so older versions of `kiroku update` and `install.sh` can still update
+
+## How breaking changes are released
+
+A new major version costs everyone who scripts kiroku or packages it a round of checking, so they are rare and batched:
+
+- **Deprecate first.** Something on the list above is first marked under `### Deprecated` in a minor release and keeps working, with a one-line notice where it is used, so it can be moved away from before it goes. Its `BREAKING:` fragment waits in a branch or an issue, not in `changes/`, until it is due.
+- **Batch.** Removals that are due go out together in one major version.
+- **At least 30 days apart.** `tools/release.sh` stops when a new major version would come less than 30 days after the previous one (`tools/major-gap.sh`). A security fix doesn't wait: it may break compatibility in any release (see below), and `KIROKU_MAJOR_OK=1` lets such a release through, with the reason in its pull request.
 
 ## May change in any release
 

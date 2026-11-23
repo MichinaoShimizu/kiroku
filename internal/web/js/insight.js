@@ -276,8 +276,8 @@ function insHeadlines(F){
   const sub = ([k, icon, label, note, empty]) => !T[k].length && empty ? `<div class="iksub ${k}" role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><p class="none iknone">${esc(empty)}</p></div>` : T[k].length ? `<div class="iksub ${k}"${U3.has(k) ? " data-third" : ""} role="group" aria-label="${esc(label)}"><h6 class="iksh">${ico(icon)}${esc(label)}${note ? ` <small>${esc(note)}</small>` : ""}</h6><div class="ikrow">${T[k].join("")}</div></div>` : "";
   const cards = [
     {id: "cost", label: t("Cost trend"), rows: null, k: "cost"},
-    {id: "out", label: t("Outputs"), rows: [["outGit", "commit", t("Git"), t("from your repositories"), T.outEdit.length ? t("No Git commits for this selection") : ""], ["outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not")]]},
-    {id: "unit", label: t("Unit cost calculation"), rows: [["unitGit", "commit", t("Per AI commit"), ""], ["unitEdit", "edit", t("Per 100 AI-edited lines"), ""], ["unitHour", "clock", t("Per active hour"), ""], ["unitDay", "day", t("Per active day"), ""], ["unitSes", "agent", t("Per session"), ""], ["unitAsk", "user", t("Per prompt"), ""]]},
+    {id: "out", label: t("Output trend"), rows: [["outGit", "commit", t("Git"), t("from your repositories"), T.outEdit.length ? t("No Git commits for this selection") : ""], ["outEdit", "edit", t("AI edits"), t("from the agents' history, committed or not")]]},
+    {id: "unit", label: t("Unit cost trend"), rows: [["unitGit", "commit", t("Per AI commit"), ""], ["unitEdit", "edit", t("Per 100 AI-edited lines"), ""], ["unitHour", "clock", t("Per active hour"), ""], ["unitDay", "day", t("Per active day"), ""], ["unitSes", "agent", t("Per session"), ""], ["unitAsk", "user", t("Per prompt"), ""]]},
   ].map(c => ({...c, n: c.rows ? Math.max(...c.rows.map(r => T[r[0]].length)) : T[c.k].length})).filter(c => c.n > 0);
   // 推移のグラフの凡例は、カードごとに 1 つ（グラフごとに置くと、カードが縦に伸びる）
   const limAny = limitHits(periodBack(INS_N).ws, periodBack(0).we).length > 0; // グラフの範囲に利用上限への到達があれば、凡例に赤い縦線を足す
@@ -364,8 +364,9 @@ function insightH(F){
   // カードは「コスト」（時間・クレジット・金額・トークン）・「出力」（コミット・変えた行）・「使い方」の 3 つに分けて並べる
   // よく見るカード（流れ・ばらつき・アウトプット・作業の種類・時間帯）を上に。ほかは「その他」として、たたんだ箱の中に（開けば見られる）
   const col = b => b ? `<div class="inscol">${b}</div>` : "";
-  // よく見る 5 枚は 1 つの見出しにまとめ、半分の幅の 2 列に詰める（見出しごとに 1〜2 枚だと、3 列の右が空く）。背の高いアウトプットを先に置くと、2 列の高さがそろう
-  const cards = [{sec: t("Charts"), two: true}, {h: card(t("Outputs"), insOutputs(), " iout wide")}, {h: col(insWhere())}, {h: col(insSankey())}, {h: col(insBox())}, {h: card(t("When you worked"), insHeat())},
+  // よく見る 5 枚は 1 つの見出しにまとめ、半分の幅の 2 列に詰める（見出しごとに 1〜2 枚だと、3 列の右が空く）。
+  // 先頭は「どこへ流れたか」（エージェント → プロジェクト → 成果。いまの状態がいちばんひと目でわかる）。その隣に背の高いアウトプット
+  const cards = [{sec: t("Charts"), two: true}, {h: col(insSankey())}, {h: card(t("Outputs"), insOutputs(), " iout wide")}, {h: col(insWhere())}, {h: col(insBox())}, {h: card(t("When you worked"), insHeat())},
     {sec: t("Other charts"), more: true},
     {h: `<div class="inscol"><div class="inshead"><h4>${esc(t("Trend"))}</h4><div class="segc insk trendk" role="group" aria-label="${esc(t("Metric"))}">${tabs}</div>${sel}</div>${insChart(k)}</div>`},
     {h: col(insCum())}, {h: col(insWater())}, {h: card(t("Tokens by type"), insTokens())},
@@ -426,8 +427,8 @@ function bindInsight(R){
   R.querySelectorAll(".insfig [data-sid]:not(.iwses)").forEach(c => { c.onclick = () => select(c.dataset.sid); c.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); select(c.dataset.sid); } }; }); // 散布図の点は、そのセッションを開く
 }
 
-/* 費用と成果の散布図：表示中の期間に始まったセッションごとに、横は推定費用（平方根の目盛り）、縦は成果（そのセッションの間のコミットと作った PR）。
-   費用が上位 25%（かつ $0.5 以上）なのに成果のないセッションを「見直す価値のある領域」として色を変え、件数と費用を文で言う */
+/* 費用と出力の散布図：表示中の期間に始まったセッションごとに、横は推定費用（平方根の目盛り）、縦は出力（そのセッションの間のコミットと作った PR）。
+   費用が上位 25%（かつ $0.5 以上）なのに出力のないセッションを「見直す価値のある領域」として色を変え、件数と費用を文で言う */
 // 散布図の横軸に使える量（セッションごとの値・書き方・目立たせる下限・名前）。推定費用のないエージェントでも、クレジットやトークンで描ける
 const SCAT = () => ({cost: {v: s => s.cost, f: usd, floor: 0.5, n: t("cost"), title: t("Cost vs outputs per session"), ax: t("Estimated cost (√ scale) →"), s: t("Cost")},
   credits: {v: s => s.credits, f: cr, floor: 1, n: t("credits"), title: t("Credits vs outputs per session"), ax: t("Kiro credits (√ scale) →"), s: t("Credits")},
@@ -446,7 +447,7 @@ function insScatter(){
   const yt = [0, Math.round(maxO / 2), maxO].map(o => `<g class="itk"><line x1="${L}" x2="${W - R}" y1="${y(o).toFixed(1)}" y2="${y(o).toFixed(1)}"/><text x="${L - 8}" y="${(y(o) + 4).toFixed(1)}">${o}</text></g>`).join("");
   const zx = Math.min(W - R, x(Math.min(thr, maxC))); // しきい値が軸の外（どのセッションも $0.50 未満）なら、帯は描かない
   const zone = zx >= W - R ? "" : `<rect class="izone" x="${zx.toFixed(1)}" y="${(y(0) - 14).toFixed(1)}" width="${(W - R - zx).toFixed(1)}" height="14"/>`;
-  const pts = xs.map((p, i) => { const hit = p.o === 0 && p.c >= thr, jy = p.o === 0 ? -((i * 37) % 9) - 3 : 0; // 成果 0 の点は重なりやすいので、縦に少しずらす
+  const pts = xs.map((p, i) => { const hit = p.o === 0 && p.c >= thr, jy = p.o === 0 ? -((i * 37) % 9) - 3 : 0; // 出力 0 の点は重なりやすいので、縦に少しずらす
     return `<circle class="ipt${hit ? " bad" : ""}" cx="${x(p.c).toFixed(1)}" cy="${(y(p.o) + jy).toFixed(1)}" r="${narrow ? 4 : 5}" tabindex="0" role="button" data-sid="${esc(p.s.id)}" aria-label="${esc(`${p.s.title || p.s.id}: ${fv(p.c)}, ${plural(p.o, "output")}`)}"${tipAttr(p.s.title || "", `${fv(p.c)} · ${plural(p.o, "output")}`, p.s.project)}/>`; }).join("");
   const note = `${t("outputs")} = 0 ∧ ${M.n} ≥ ${fv(thr)} : ${bad.length} · ${fv(badC)}`;
   const tq = xs.filter(p => p.c >= thr).length, all$ = cs.reduce((a, c) => a + c, 0);
@@ -596,7 +597,7 @@ function insDonut(parts, total, fv, label){
     return `<path d="${d}" fill="${x.c}"${tipAttr(x.name, `${fv(x.v)} · ${Math.round(x.v * 100 / total)}%`)}/>`; }).join("");
   return `<svg class="idn" viewBox="0 0 140 140" role="img" aria-label="${esc(label)}">${arcs}<text class="idnv" x="70" y="68">${esc(fv(total))}</text><text class="idnl" x="70" y="84">${esc(t("total"))}</text></svg>`;
 }
-/* insSankey は、量（費用・クレジット・トークン・時間）がエージェント → プロジェクト → 成果（コミットか PR に届いたか）へどう流れたか。
+/* insSankey は、量（費用・クレジット・トークン・時間）がエージェント → プロジェクト → 出力（コミットか PR に届いたか）へどう流れたか。
    プロジェクトは多い順に 6 つまで、残りは「その他」。帯の太さは量に比例する */
 function insSankey(){
   const {ws, we} = period(), ss = DATA.filter(s => s.start >= ws && s.start < we);
@@ -606,12 +607,13 @@ function insSankey(){
   const xs = ss.map(s => ({s, v: val[k](s)})).filter(x => x.v > 0); if (xs.length < 2) return "";
   const pt = new Map(); xs.forEach(x => pt.set(x.s.project, (pt.get(x.s.project) || 0) + x.v));
   const topP = [...pt].sort((a, b) => b[1] - a[1]).slice(0, 6).map(x => x[0]), OTH = t("Other"), pj = p => topP.includes(p) ? p : OTH;
-  // 成果を記録しないエージェント（Claude Code 以外）のセッションは「記録なし」に（コミットがなかったとは言えない）
-  const YES = t("Committed"), NO = t("No commit"), UNK = t("Not recorded"), out = s => commitsOf(s).length || (s.prs || []).length ? YES : records(s.source, "outputs") ? NO : UNK;
+  // 出力を記録しないエージェント（Claude Code 以外）のセッションは「記録なし」に（コミットがなかったとは言えない）
+  const YES = t("Commit or PR"), NO = t("None"), UNK = t("Not recorded"), out = s => commitsOf(s).length || (s.prs || []).length ? YES : records(s.source, "outputs") ? NO : UNK;
   const cols = [[], [], []], vals = [new Map(), new Map(), new Map()], links = new Map();
   const add = (m, key, v) => m.set(key, (m.get(key) || 0) + v);
   xs.forEach(({s, v}) => { const a = s.source, b = pj(s.project), c = out(s); add(vals[0], a, v); add(vals[1], b, v); add(vals[2], c, v); add(links, `0\u0000${a}\u0000${b}`, v); add(links, `1\u0000${b}\u0000${c}`, v); });
   const ord = {[YES]: 0, [NO]: 1, [UNK]: 2}; vals.forEach((m, i) => cols[i] = [...m].sort((a, b) => (i === 2 ? ord[a[0]] - ord[b[0]] : b[1] - a[1])));
+  // 座標の外（上の列の名前・左のエージェントの名前）も、図の枠の中に入れる（上の 1 文や、カードの余白に重ねない）
   const tot = xs.reduce((a, x) => a + x.v, 0), W = 460, H = 300, T = 14, B = 10, nw = 10, gap = 10, X = [96, 222, 340];
   const pos = cols.map(c => { const g = (c.length - 1) * gap, sc = (H - T - B - g) / tot; let y = T; const m = new Map(); c.forEach(([key, v]) => { m.set(key, {y, h: Math.max(2, v * sc), o: 0, oi: 0}); y += v * sc + gap; }); return {m, sc}; });
   const color = (i, key) => i === 0 ? agColor(key) : i === 1 ? (key === OTH ? "var(--other)" : `var(--c${(topP.indexOf(key) + 3) % 8})`) : key === YES ? "var(--go)" : key === NO ? "var(--ink-3)" : "var(--other)";
@@ -622,9 +624,9 @@ function insSankey(){
   const nodes = cols.map((c, i) => c.map(([key, v]) => { const n = pos[i].m.get(key), lx = i === 2 ? X[i] + nw + 6 : X[i] - 6;
     return `<rect class="skn" x="${X[i]}" y="${n.y.toFixed(1)}" width="${nw}" height="${n.h.toFixed(1)}" fill="${color(i, key)}"${tipAttr(key, `${fv(v)} · ${Math.round(v * 100 / tot)}%`)}/><text class="skt${i === 2 ? " s" : ""}" x="${lx}" y="${(n.y + n.h / 2 + 4).toFixed(1)}">${esc(short(key))} <tspan class="skv">${esc(fv(v))}</tspan></text>`; }).join("")).join("");
   const yes = vals[2].get(YES) || 0, rec = tot - (vals[2].get(UNK) || 0), mname = {cost: t("Estimated cost"), credits: t("Kiro credits"), tokens: t("Tokens"), minutes: t("Session time")}[k];
-  const sy = rec <= 0 ? t("These agents don't record which commits they ran, so the outcome is not known") : t("{pc}% of {metric} from agents that record commits went to sessions that reached a commit or PR ({v} of {tot})", {pc: Math.round(yes * 100 / rec), metric: mname, v: fv(yes), tot: fv(rec)});
+  const sy = rec <= 0 ? t("These agents don't record their commits, so it is not known which sessions led to one") : t("{pc}% of {metric} ({v} of {tot}) went to sessions with a commit or PR", {pc: Math.round(yes * 100 / rec), metric: mname, v: fv(yes), tot: fv(rec)});
   const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-skk="${x}" aria-pressed="${x === k}">${esc({cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), minutes: t("Session time")}[x])}</button>`).join("")}</div>` : "";
-  return `<div class="inshead"><h4>${esc(t("Where it flowed"))}</h4>${mtabs}</div>${say(sy)}<figure class="insfig isk"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("Where it flowed"))}"><text class="skh" x="${X[0] + nw / 2}" y="-2">${esc(t("Agent"))}</text><text class="skh" x="${X[1] + nw / 2}" y="-2">${esc(t("Project"))}</text><text class="skh" x="${X[2] + nw / 2}" y="-2">${esc(t("Outcome"))}</text>${paths}${nodes}</svg><p class="ifxs">${fx(t("Band width = the amount; a session reached a commit or PR when it ran one (Claude Code) or one was made in its project while it ran"), "", t("Band width is the amount"))}</p></figure>`;
+  return `<div class="inshead"><h4>${esc(t("Where it flowed"))}</h4>${mtabs}</div>${say(sy)}<figure class="insfig isk"><svg viewBox="-24 -18 ${W + 24} ${H + 18}" role="img" aria-label="${esc(t("Where it flowed"))}"><text class="skh" x="${X[0] + nw / 2}" y="-2">${esc(t("Agent"))}</text><text class="skh" x="${X[1] + nw / 2}" y="-2">${esc(t("Project"))}</text><text class="skh" x="${X[2] + nw / 2}" y="-2">${esc(t("Output"))}</text>${paths}${nodes}</svg><p class="ifxs">${fx(t("Band width = the amount. A session has a commit or PR when it made one, or when a commit was made in its project from its start to 10 minutes after its end. A session of an agent that doesn't record its commits, with no commit found that way, is \"Not recorded\" and left out of the %"), "", t("Band width is the amount"))}</p></figure>`;
 }
 /* insBox は、1 セッションあたりの量のばらつきを期間ごとに箱ひげで（箱 = 真ん中の 50%、線 = 中央値、ひげ = 下位・上位 10%）。最大 13 期間 */
 function insBox(){
@@ -690,7 +692,7 @@ function insEditsBody(){
   const rows = top.map(x => `<div class="iwr"><span class="iwn iwf" title="${esc(x.f)}">${multi ? `<small>${esc(x.project)}</small> ` : ""}${fileA(href(x), esc(x.rel))}</span><span class="iwb"><span style="width:${((x.a + x.d) * 100 / w0).toFixed(1)}%;background:var(--acc)"></span></span><span class="iwv">+${n(x.a)} −${n(x.d)}${(z => z ? ` · ${esc(t("{c}, {ai} by AI", {c: plural(z.n, "commit"), ai: z.ai}))}` : "")(gcOf(x))}</span><button type="button" class="iwses" data-sid="${esc(x.sid)}" title="${esc(t("Open the session that changed it most"))}">${esc(t("{n}×", {n: x.n}))}</button></div>`).join("");
   return {stats: S, files: `${say(t("{file} changed the most: {lines} lines in {n} edits", {file: top[0].rel, lines: n(top[0].a + top[0].d), n: n(top[0].n)}))}<figure class="insfig"><div class="iwrows" role="table" aria-label="${esc(t("Most edited files"))}"><div class="iwr iwh" aria-hidden="true"><span>${esc(t("File"))}</span><span></span><span class="iwv">${esc(t("Lines · Git commits"))}</span><span>${esc(t("Edits"))}</span></div>${rows}</div><p class="ifxs">${fx(t("+ − = lines added and removed, compared before and after each edit; × = edits"), "", t("Lines: before and after each edit, an estimate"))}</p></figure>`, nf, add, del};
 }
-/* 成果：コミット（うち AI）・変えた行・PR・成果まで届いたセッション・コミットあたりの費用。割った指標は式で */
+/* 出力：コミット（うち AI）・変えた行・PR・出力まで届いたセッション・コミットあたりの費用。割った指標は式で */
 function insOutputs(){
   const {S: w} = period(); if (!w) return "";
   const o = w.outputs || {commits: 0}, g = w.git && w.git.commits ? w.git : null, base = w.outBase ?? w.sessions, n = commas, E = insEditsBody() || null;

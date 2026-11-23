@@ -1,0 +1,174 @@
+package source
+
+import (
+	"sort"
+	"testing"
+
+	"github.com/MichinaoShimizu/kiroku/internal/core"
+)
+
+// 参考指標（Builder.Measure で記録した観測）を、エージェントごとの定義でまとめる。画面には出さない値で、
+// 読み取りが観測を正しく記録しているかをテストで確かめるためのもの。
+
+// nativeDef は参考指標の定義。Agg は sum / avg / median / max / ratio（Num÷Den）。
+type nativeDef struct {
+	Key, Label, Unit, Agg string
+	LabelEn               string  // 英語表示のときのラベル
+	Num, Den              string  // ratio のとき
+	Scale                 float64 // 表示用の倍率（割合なら 100）
+}
+
+// nativeDefs はエージェント（Source の名前）ごとの参考指標。並びは画面の順。
+var nativeDefs = map[string][]nativeDef{
+	"Claude Code": {
+		{Key: "responses", Label: "応答の数", LabelEn: "Responses", Unit: "回", Agg: "sum"},
+		{Key: "out_per_response", Label: "1 応答あたりの出力トークン", LabelEn: "Output tokens per response", Unit: "トークン", Agg: "avg"},
+		{Key: "context_used", Label: "コンテキストの最大使用率", LabelEn: "Peak context usage", Unit: "%", Agg: "max", Scale: 100}, // ContextUsed（context.go）
+		{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},
+	},
+	"Kiro CLI (V2)": {
+		{Key: "credits", Label: "クレジット", LabelEn: "Credits", Unit: "クレジット", Agg: "sum"},
+		{Key: "turns", Label: "ターン", LabelEn: "Turns", Unit: "回", Agg: "sum"},
+		{Key: "credits_per_turn", Label: "1 ターンあたりのクレジット", LabelEn: "Credits per turn", Unit: "クレジット", Agg: "ratio", Num: "credits", Den: "turns", Scale: 1},
+		{Key: "requests", Label: "モデルへのリクエスト", LabelEn: "Model requests", Unit: "回", Agg: "sum"},
+		{Key: "builtin_tools", Label: "組み込みツールの実行", LabelEn: "Built-in tool runs", Unit: "回", Agg: "sum"},
+	},
+	"Kiro IDE / CLI (V3)": {
+		{Key: "credits", Label: "クレジット", LabelEn: "Credits", Unit: "クレジット", Agg: "sum"},
+		{Key: "turns", Label: "ターン", LabelEn: "Turns", Unit: "回", Agg: "sum"},
+		{Key: "credits_per_turn", Label: "1 ターンあたりのクレジット", LabelEn: "Credits per turn", Unit: "クレジット", Agg: "ratio", Num: "credits", Den: "turns", Scale: 1},
+		{Key: "requests", Label: "モデルへのリクエスト", LabelEn: "Model requests", Unit: "回", Agg: "sum"},                       // usage_summary.requestIds の数
+		{Key: "context_used", Label: "コンテキストの最大使用率", LabelEn: "Peak context usage", Unit: "%", Agg: "max", Scale: 100}, // session_metadata の contextUsage
+		{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},
+	},
+
+	"Kiro CLI (SQLite)": qstoreNativeDefs,
+	"Kiro Crew": {
+		{Key: "crew_sessions", Label: "Crew から動かした会話", LabelEn: "Conversations run from Crew", Unit: "件", Agg: "sum"},
+		{Key: "crew_subagents", Label: "うちサブエージェント", LabelEn: "Of which subagents", Unit: "件", Agg: "sum"},
+		{Key: "credits", Label: "クレジット", LabelEn: "Credits", Unit: "クレジット", Agg: "sum"},
+		{Key: "turns", Label: "ターン", LabelEn: "Turns", Unit: "回", Agg: "sum"},
+		{Key: "context_used", Label: "コンテキストの最大使用率", LabelEn: "Peak context usage", Unit: "%", Agg: "max", Scale: 100},    // context_used ÷ context_window
+		{Key: "stopped_early", Label: "正常に終わらなかったターン", LabelEn: "Turns that did not end normally", Unit: "回", Agg: "sum"}, // stop_reason が end_turn 以外
+	},
+	"Codex": {
+		{Key: "responses", Label: "応答の数", LabelEn: "Responses", Unit: "回", Agg: "sum"},
+		{Key: "reasoning", Label: "推論トークン", LabelEn: "Reasoning tokens", Unit: "トークン", Agg: "sum"},
+		{Key: "reasoning_ratio", Label: "出力のうち推論の割合", LabelEn: "Share of output spent on reasoning", Unit: "%", Agg: "ratio", Num: "reasoning", Den: "output", Scale: 100},
+		{Key: "context_used", Label: "コンテキストの最大使用率", LabelEn: "Peak context usage", Unit: "%", Agg: "max", Scale: 100},
+		// 利用上限の枠の使用率（%）。枠の長さ（window_minutes）ごとに分け、わからないものは primary / secondary で出す
+		{Key: "rate_limit_5h", Label: "5 時間枠の最大使用率", LabelEn: "Peak 5-hour limit usage", Unit: "%", Agg: "max"},
+		{Key: "rate_limit_daily", Label: "1 日枠の最大使用率", LabelEn: "Peak daily limit usage", Unit: "%", Agg: "max"},
+		{Key: "rate_limit_weekly", Label: "週の枠の最大使用率", LabelEn: "Peak weekly limit usage", Unit: "%", Agg: "max"},
+		{Key: "rate_limit_monthly", Label: "月の枠の最大使用率", LabelEn: "Peak monthly limit usage", Unit: "%", Agg: "max"},
+		{Key: "rate_limit_annual", Label: "年の枠の最大使用率", LabelEn: "Peak annual limit usage", Unit: "%", Agg: "max"},
+		{Key: "rate_limit", Label: "レート制限の最大使用率", LabelEn: "Peak rate-limit usage", Unit: "%", Agg: "max"},
+		{Key: "rate_limit_secondary", Label: "2 つめのレート制限の最大使用率", LabelEn: "Peak secondary rate-limit usage", Unit: "%", Agg: "max"},
+		{Key: "ttft", Label: "最初のトークンまでの時間（中央値）", LabelEn: "Time to first token (median)", Unit: "秒", Agg: "median"},
+		{Key: "turn_duration", Label: "ターンにかかった時間（中央値）", LabelEn: "Turn duration (median)", Unit: "秒", Agg: "median"},
+		{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},
+	},
+}
+
+var qstoreNativeDefs = []nativeDef{
+	{Key: "ttfc", Label: "最初の返事までの時間（中央値）", LabelEn: "Time to first reply (median)", Unit: "秒", Agg: "median"},
+	{Key: "latency", Label: "応答にかかった時間（中央値）", LabelEn: "Response time (median)", Unit: "秒", Agg: "median"},
+	{Key: "response_size", Label: "応答の大きさ（平均）", LabelEn: "Response size (average)", Unit: "バイト", Agg: "avg"}, // 応答の文とツール入力の JSON のバイト数（文字数ではない）,
+	{Key: "tool_calls", Label: "ツール呼び出し", LabelEn: "Tool calls", Unit: "回", Agg: "sum"},
+	// CLI と同じ見積もり（文字数 ÷ 4）で数えた、保存された履歴の大きさ ÷ コンテキストの上限（qstore.go の qContextChars）
+	{Key: "context_used", Label: "コンテキストの最大使用率（見積もり）", LabelEn: "Peak context usage (estimate)", Unit: "%", Agg: "max", Scale: 100},
+	{Key: "context_window", Label: "コンテキストの上限", LabelEn: "Context window", Unit: "トークン", Agg: "max"}, // model_info.context_window_tokens
+}
+
+// nativeValue は 1 つの参考指標の値。
+type nativeValue struct {
+	Label   string  `json:"label"`
+	LabelEn string  `json:"labelEn"` // 英語表示のときのラベル
+	Unit    string  `json:"unit"`
+	V       float64 `json:"v"`
+	N       int     `json:"n"` // 元になった観測の数
+}
+
+// aggregateNative は観測を定義に沿ってまとめる。観測のない指標は出さない（0 と見せないため）。
+func aggregateNative(source string, ms []core.Measure) []nativeValue {
+	by := map[string][]float64{}
+	for _, m := range ms {
+		by[m.Key] = append(by[m.Key], m.V)
+	}
+	sum := func(xs []float64) float64 {
+		s := 0.0
+		for _, x := range xs {
+			s += x
+		}
+		return s
+	}
+	out := []nativeValue{}
+	for _, d := range nativeDefs[source] {
+		scale := d.Scale
+		if scale == 0 {
+			scale = 1
+		}
+		var v float64
+		var n int
+		switch d.Agg {
+		case "ratio":
+			num, den := by[d.Num], by[d.Den]
+			if len(den) == 0 || sum(den) == 0 {
+				continue
+			}
+			v, n = sum(num)/sum(den)*scale, len(den)
+		default:
+			xs := by[d.Key]
+			if len(xs) == 0 {
+				continue
+			}
+			n = len(xs)
+			switch d.Agg {
+			case "sum":
+				v = sum(xs)
+			case "avg":
+				v = sum(xs) / float64(n)
+			case "max":
+				v = xs[0]
+				for _, x := range xs {
+					v = max(v, x)
+				}
+			case "median":
+				s := append([]float64(nil), xs...)
+				sort.Float64s(s)
+				if n%2 == 1 {
+					v = s[n/2]
+				} else {
+					v = (s[n/2-1] + s[n/2]) / 2
+				}
+			}
+			v *= scale
+		}
+		out = append(out, nativeValue{Label: d.Label, LabelEn: d.LabelEn, Unit: d.Unit, V: core.Round(v, 2), N: n})
+	}
+	return out
+}
+
+func TestAggregateNative(t *testing.T) {
+	ms := []core.Measure{
+		{Key: "credits", V: 1.5}, {Key: "turns", V: 1}, {Key: "credits", V: 0.5}, {Key: "turns", V: 1},
+		{Key: "requests", V: 3},
+	}
+	got := map[string]nativeValue{}
+	for _, v := range aggregateNative("Kiro CLI (V2)", ms) {
+		got[v.Label] = v
+	}
+	if got["クレジット"].V != 2 || got["1 ターンあたりのクレジット"].V != 1 || got["モデルへのリクエスト"].N != 1 {
+		t.Errorf("集計 = %+v", got)
+	}
+	if _, ok := got["組み込みツールの実行"]; ok {
+		t.Error("観測のない指標は出さない（0 と見せない）")
+	}
+	med := aggregateNative("Kiro CLI (SQLite)", []core.Measure{{Key: "latency", V: 3}, {Key: "latency", V: 1}, {Key: "latency", V: 10}, {Key: "latency", V: 2}})
+	if len(med) != 1 || med[0].V != 2.5 {
+		t.Errorf("中央値 = %+v", med)
+	}
+	if aggregateNative("知らないエージェント", ms) == nil || len(aggregateNative("知らないエージェント", ms)) != 0 {
+		t.Error("定義のないエージェントは空")
+	}
+}

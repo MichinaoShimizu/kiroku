@@ -1,0 +1,1 @@
+- The session review prompt states its time zone in a sentence of its own, instead of in parentheses after "not simply write longer prompts"

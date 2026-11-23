@@ -8,19 +8,39 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 )
 
 // KiroIDE は Kiro IDE v1.0 以降と Kiro CLI V3 が共有する保存場所: <KIRO_HOME>/sessions/<hash>/sess_<id>/{session.json,messages.jsonl}（行ごとに timestamp あり）。
 // どちらが作った会話かは記録されないので、"Kiro IDE / CLI (V3)" として出す。
-type KiroIDE struct{ Home string }
+// Legacy は、KIRO_HOME を使っているときの ~/.kiro（DefaultKiroLegacyHome）。Kiro IDE の会話と、KIRO_HOME を設定する前の
+// 会話が残るので、そこも読む。同じ会話（id、なければフォルダ名）は Home のほうを使う。
+type KiroIDE struct{ Home, Legacy string }
 
 func (k *KiroIDE) Name() string   { return "Kiro IDE / CLI (V3)" }
 func (k *KiroIDE) Family() string { return "kiro" }
 func (k *KiroIDE) Where() string  { return filepath.Join(k.Home, "sessions") }
+
+// Watch は読む場所（Legacy のもふくむ）。
+func (k *KiroIDE) Watch() []string {
+	var out []string
+	for _, h := range kiroHomes(k.Home, k.Legacy) {
+		out = append(out, filepath.Join(h, "sessions"))
+	}
+	return out
+}
+
+// classicPath は、3.0 へ移した Kiro CLI V2 の会話 x のメタデータ（sessions/cli/<x>.json）。homes の順に探し、どこにもなければ ""。
+func classicPath(homes []string, x string) string {
+	for _, h := range homes {
+		p := filepath.Join(h, "sessions", "cli", x+".json")
+		if st, err := os.Stat(p); err == nil && st.Mode().IsRegular() {
+			return p
+		}
+	}
+	return ""
+}
 
 // kiroMaxCredits は、1 つの記録で使ったクレジットとして受けとる上限。いちばん大きいプランでも月 10,000 なので、
 // これを超えるものは壊れた記録とみなす（足し算で無限大にならないように）。
@@ -69,13 +89,24 @@ func kiroNotUser(p core.Obj) string {
 
 // Load は全部の会話を読む。読めないファイルがあっても読めた分は出し、最初のエラー（と残りの数）を返す。
 func (k *KiroIDE) Load(emit func(*core.Builder)) error {
-	base := filepath.Join(k.Home, "sessions")
-	if !isDir(base) {
-		return nil
+	homes := kiroHomes(k.Home, k.Legacy)
+	type metaFile struct {
+		path string
+		home int // homes の何番目か
+	}
+	var metas []metaFile
+	for i, h := range homes {
+		if base := filepath.Join(h, "sessions"); isDir(base) {
+			for _, p := range glob(filepath.Join(base, "*", "*", "session.json")) {
+				metas = append(metas, metaFile{p, i})
+			}
+		}
 	}
 	var errs fileErrs
 	classic := map[string]bool{} // 使用量を足した V2 の会話
-	for _, metaPath := range glob(filepath.Join(base, "*", "*", "session.json")) {
+	seen := map[string]int{}     // 出した会話の ID → homes の何番目で出したか（Home と Legacy の両方にあれば、先に読んだ Home のほう）
+	for _, mf := range metas {
+		metaPath := mf.path
 		dir := filepath.Dir(metaPath)
 		if filepath.Base(filepath.Dir(dir)) == "cli" {
 			continue
@@ -83,7 +114,12 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		raw, err := core.ReadJSONFile(metaPath)
 		errs.file(metaPath, err)
 		meta := core.Map(raw)
-		s := core.NewBuilder("Kiro IDE / CLI (V3)", firstNonEmpty(core.Str(meta["id"]), filepath.Base(dir)))
+		sid := firstNonEmpty(core.Str(meta["id"]), filepath.Base(dir))
+		if i, ok := seen[sid]; ok && i != mf.home {
+			continue // 同じ場所の中の同じ ID は、これまでどおりどちらも出す
+		}
+		seen[sid] = mf.home
+		s := core.NewBuilder("Kiro IDE / CLI (V3)", sid)
 		// Claim は、3.0 へ移した Kiro CLI V2 の会話（kiroClassicYield）と重ねて数えないため。id のない会話（フォルダ名の ID）は Claim しない
 		id := core.Str(meta["id"])
 		if id != "" {
@@ -205,7 +241,9 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		// 同じ id の写しが 2 つあっても、V2 の使用量は 1 回だけ足す。読めない V2 の会話は KiroCLI が知らせる
 		if x, ok := strings.CutPrefix(id, "sess_"); ok && safeName(x) && !classic[x] {
 			classic[x] = true
-			addClassicUsage(s, filepath.Join(base, "cli", x+".json"))
+			if p := classicPath(homes, x); p != "" {
+				addClassicUsage(s, p)
+			}
 		}
 		// 再開のコマンド。IDE と CLI V3 のどちらが作った会話かは記録されないが、どちらも同じ保存場所なので、
 		// kiro-cli の会話 ID（session.json の id、なければフォルダ名）で開くコマンドを出す
@@ -308,6 +346,7 @@ func replyAt(t *float64, turnEnds []*float64, n int, asked *float64) *float64 {
 // Kiro Crew から動かした会話には、Crew の目印とタイトルをつける（crew.go）。
 type KiroCLI struct {
 	Home        string
+	Legacy      string // KIRO_HOME を使っているときの ~/.kiro（KiroIDE.Legacy と同じ）。V2 の会話は Home のほうを使う
 	CrewHome    string
 	CrewArchive string   // kiroku archive の Crew のコピーの場所（<保存場所>/crew）
 	crew        int      // Crew から動かした kiro-cli の会話
@@ -413,8 +452,14 @@ func (k *KiroCLI) Where() string  { return filepath.Join(k.Home, "sessions", "cl
 
 // Load は全部の会話を読む（Crew の記録も）。読めないファイルがあっても読めた分は出し、最初のエラー（と残りの数）を返す。
 func (k *KiroCLI) Load(emit func(*core.Builder)) error {
-	base := k.Where()
-	if !isDir(base) {
+	homes := kiroHomes(k.Home, k.Legacy)
+	var bases []string // 会話のある sessions/cli（homes の順）
+	for _, h := range homes {
+		if b := filepath.Join(h, "sessions", "cli"); isDir(b) {
+			bases = append(bases, b)
+		}
+	}
+	if len(bases) == 0 {
 		// kiro-cli の JSON の履歴がなくても、SQLite の写しを隠せるように、中身を出さない会話は調べる
 		priv := newCrewPrivacy(k.CrewHome, k.CrewArchive)
 		var sids []string
@@ -463,16 +508,34 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 	owners := map[string][]*crewOwner{} // 使用量の記録の slot → Crew から動かした kiro-cli の会話
 	var plain []*core.Builder           // Crew の目印のない kiro-cli の会話（前の会話を見つけてから出す）
 	moved := map[string]bool{}          // 3.0 へ移した写し（sessions/<hash>/sess_<id>）のある V2 の会話の ID
-	for _, d := range glob(filepath.Join(k.Home, "sessions", "*", "sess_*", "session.json")) {
-		moved[strings.TrimPrefix(filepath.Base(filepath.Dir(d)), "sess_")] = true
+	for _, h := range homes {
+		for _, d := range glob(filepath.Join(h, "sessions", "*", "sess_*", "session.json")) {
+			moved[strings.TrimPrefix(filepath.Base(filepath.Dir(d)), "sess_")] = true
+		}
+	}
+	type metaFile struct {
+		path string
+		base int // bases の何番目か
+	}
+	var metas []metaFile
+	for i, b := range bases {
+		for _, p := range glob(filepath.Join(b, "*.json")) {
+			metas = append(metas, metaFile{p, i})
+		}
 	}
 	seenRows := map[string]bool{} // 会話の記録を使った（kiro-cli の会話に結びついた）会話キー
-	for _, metaPath := range glob(filepath.Join(base, "*.json")) {
+	seenSid := map[string]int{}   // 読んだ会話の ID → bases の何番目で読んだか（Home と Legacy の両方にあれば、先に読んだ Home のほう）
+	for _, mf := range metas {
+		metaPath := mf.path
 		raw, err := core.ReadJSONFile(metaPath)
 		errs.file(metaPath, err)
 		meta := core.Map(raw)
 		stem := strings.TrimSuffix(filepath.Base(metaPath), ".json")
 		sid := firstNonEmpty(core.Str(meta["session_id"]), core.Str(meta["id"]), stem)
+		if i, ok := seenSid[sid]; ok && i != mf.base {
+			continue // 同じ場所の中の同じ ID は、これまでどおり読む（読み込む側が Key で 1 つにする）
+		}
+		seenSid[sid] = mf.base
 		s := core.NewBuilder("Kiro CLI (V2)", sid)
 		s.File = strings.TrimSuffix(metaPath, ".json") + ".jsonl"
 		s.Key = "kiro-cli:" + sid
@@ -795,59 +858,4 @@ func (k *KiroCLI) ScanPaths() []string { return []string{k.CrewHome, k.CrewArchi
 func realDir(p string) bool {
 	st, err := os.Lstat(p)
 	return err == nil && st.IsDir()
-}
-
-// Kiro IDE（v1.0 より前）が依頼の文に足すもの。参考実装 kiro-history（server/ide.ts の cleanUserContent）が外すものと同じ。
-var (
-	kiroSteeringRe = regexp.MustCompile(`(?s)<steering-reminder>(.*?)</steering-reminder>`)
-	kiroEnvRe      = regexp.MustCompile(`(?s)<EnvironmentContext>(.*?)</EnvironmentContext>`)
-)
-
-// kiroRulesHead は、Kiro IDE が依頼に足す steering の規則の見出し。
-const kiroRulesHead = "## Included Rules"
-
-// kiroUserText は Kiro IDE（v1.0 より前）の依頼の文を、人が打った文と、Kiro が足した文（notes）に分ける。
-// 足した文は <steering-reminder>…</steering-reminder>・<EnvironmentContext>…</EnvironmentContext>・
-// 「## Included Rules」から始まる塊。塊の終わりは kiroRulesEnd。
-// kiro-history の正規表現 /## Included Rules[\s\S]*?(?=\n\n[^#\s]|\n\n$|$)/g と同じ（Go の regexp には先読みがないので、手で探す）。
-func kiroUserText(text string) (prompt string, notes []string) {
-	for _, re := range []*regexp.Regexp{kiroSteeringRe, kiroEnvRe} {
-		for _, m := range re.FindAllStringSubmatch(text, -1) {
-			notes = append(notes, m[1])
-		}
-		text = re.ReplaceAllString(text, "")
-	}
-	var b strings.Builder
-	for {
-		i := strings.Index(text, kiroRulesHead)
-		if i < 0 {
-			b.WriteString(text)
-			break
-		}
-		b.WriteString(text[:i])
-		end := kiroRulesEnd(text, i+len(kiroRulesHead))
-		notes = append(notes, text[i:end])
-		text = text[end:]
-	}
-	return strings.TrimSpace(b.String()), notes
-}
-
-// kiroRulesEnd は、from から探して「## Included Rules」の塊が終わる位置。空行（\n\n）のあとに「#」でも空白でもない文字が来るか、
-// 空行で文が終わるなら、その空行の前。どちらもなければ文の終わり。
-func kiroRulesEnd(text string, from int) int {
-	for j := from; j < len(text); j++ {
-		k := strings.Index(text[j:], "\n\n")
-		if k < 0 {
-			break
-		}
-		j += k
-		rest := text[j+2:]
-		if rest == "" {
-			return j
-		}
-		if r, _ := utf8.DecodeRuneInString(rest); r != '#' && !unicode.IsSpace(r) {
-			return j
-		}
-	}
-	return len(text)
 }

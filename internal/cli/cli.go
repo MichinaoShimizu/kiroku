@@ -93,10 +93,12 @@ func dispatch(args []string) error {
 type common struct {
 	claudeRoot, kiroHome, crewHome, kiroCLIDB, amazonQDB, codexHome, sources, prices, archiveDir *string
 	gap                                                                                          *int
+	fs                                                                                           *flag.FlagSet // 何を明示したかを見る（--kiro-home）
 }
 
 func addCommon(fs *flag.FlagSet) *common {
 	return &common{
+		fs:         fs,
 		claudeRoot: fs.String("claude-root", source.DefaultClaudeRoot(), "Claude Code history directory ($CLAUDE_CONFIG_DIR/projects or ~/.claude/projects)"),
 		kiroHome:   fs.String("kiro-home", source.DefaultKiroHome(), "Kiro data directory ($KIRO_HOME)"),
 		crewHome:   fs.String("crew-home", "", "Kiro Crew data directory (default $KIROCREW_HOME or ~/.kiro/crew; not moved by --kiro-home or $KIRO_HOME)"),
@@ -128,7 +130,17 @@ func (c *common) picked() (picked []source.Source, want map[string]bool, all []s
 	if *c.amazonQDB != "" || want["amazonq"] {
 		droppedOnce.Do(func() { fmt.Fprintln(droppedW, droppedAmazonQ) })
 	}
-	all = source.All(source.Options{ClaudeRoot: *c.claudeRoot, KiroHome: *c.kiroHome, KiroCLIDB: *c.kiroCLIDB,
+	// KIRO_HOME の場所を読むときは、~/.kiro に残る V2・Kiro IDE・KIRO_HOME を設定する前の会話も読む。
+	// --kiro-home を付けたときは（$KIRO_HOME と同じ場所でも）、その場所だけ
+	explicit := false
+	if c.fs != nil {
+		c.fs.Visit(func(f *flag.Flag) { explicit = explicit || f.Name == "kiro-home" })
+	}
+	var legacy string
+	if !explicit && *c.kiroHome == source.DefaultKiroHome() {
+		legacy = source.DefaultKiroLegacyHome()
+	}
+	all = source.All(source.Options{ClaudeRoot: *c.claudeRoot, KiroHome: *c.kiroHome, KiroLegacy: legacy, KiroCLIDB: *c.kiroCLIDB,
 		CrewHome: *c.crewHome, CodexHome: *c.codexHome, Archive: *c.archiveDir})
 	for _, s := range all {
 		if want[s.Family()] {

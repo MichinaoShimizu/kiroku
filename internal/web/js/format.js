@@ -22,8 +22,6 @@ const dMY = d => isJA() ? `${d.getFullYear()}年${d.getMonth()+1}月` : `${MONTH
 // dSpan は a から b まで（"Sep 28 – Oct 4"）。y なら年も付ける（"Sep 28 – Oct 4, 2026"、年をまたぐときは両方に）
 function dSpan(a, b, y){ if (a.toDateString() === b.toDateString()) return y ? dMDY(a) : dMD(a); // 同じ日なら 1 度だけ（Oct 5 – Oct 5 にしない）
   return !y ? `${dMD(a)} – ${dMD(b)}` : a.getFullYear() !== b.getFullYear() ? `${dMDY(a)} – ${dMDY(b)}` : isJA() ? `${dMDY(a)} – ${dMD(b)}` : `${dMD(a)} – ${dMDY(b)}`; }
-// dPeriod は、文面（週報の下書き・AI へのプロンプト）に書く期間の名前。月は "October 2026"、週は "Sep 28 – Oct 4, 2026"
-const dPeriod = (M, a, b) => M ? dMY(a) : dSpan(a, b, true);
 function dStamp(t){ return `${dMDY(new Date(t*1000))}${isJA() ? " " : ", "}${hm(t)}`; } // Oct 6, 2026, 17:14（時刻はカレンダーと同じ 24 時間で）
 function md(t){ const d = new Date(t*1000); return isJA() ? `${dMD(d)}(${DOW[d.getDay()]})` : `${DOW[d.getDay()]}, ${dMD(d)}`; } // Mon, Sep 28・9月28日(月)
 function dur(m, html){ m = Math.round(m); const h = Math.floor(m/60), r = m%60;

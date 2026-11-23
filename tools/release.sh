@@ -8,6 +8,7 @@
 # 流れ:
 #   1. 作業ツリーに変更があれば止まる（コミットするか、別のブランチに置いてから。素の git stash は使わない）
 #   2. origin の main を取ってきて、tools/next-version.sh で次の版 vX.Y.Z を決め、そこから claude/release-vX.Y.Z を作る
+#      メジャー版が前のメジャー版から 30 日たっていなければ止まる（tools/major-gap.sh。急ぐセキュリティの修正は KIROKU_MAJOR_OK=1）
 #   3. tools/changelog.sh --release で、changes/ の断片と「## Unreleased」を「## vX.Y.Z - <今日（UTC）>」にまとめる
 #   4. Chromium があれば（CHROMIUM か Playwright の Chromium）、スクリーンショットを撮り直し、tools/screenshots/keep-changed.sh で
 #      ゆらぎだけの画像を戻す。ダミーデータの「今」は KIROKU_FAKE_NOW（なければ ci.yml の e2e と同じ決まった時刻）。
@@ -60,6 +61,7 @@ main() {
   git switch --quiet --detach FETCH_HEAD
   v=$(sh tools/next-version.sh) || back "nothing to release (no fragments in changes/ and no \"## Unreleased\" in CHANGELOG.md)"
   printf '%s\n' "$v" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || back "next-version.sh printed \"$v\""
+  sh tools/major-gap.sh "$v" || back "$v is a new major version too soon after the last one (see above)"
   branch=claude/release-$v
   if git show-ref --verify --quiet "refs/heads/$branch"; then
     back "the branch $branch already exists. Delete it (git branch -D $branch) or finish that release"

@@ -164,7 +164,7 @@ function calRows(act, u, nS, nC, kinds, un){
   const k = un ? "k u" : "k", o = un > 1 ? "u" : "", uk = useKind(kinds);
   // [名前, 値（ただの文字）, class, 種類]。HTML に入れるときは、呼ぶ側で esc する
   // 作業のない日（コミットだけの日）は、時間とコストの「—」を並べず、コミットだけ
-  // 成果（コミット）を先頭に。使ったもの（費用・時間）はその後ろ
+  // 出力（コミット）を先頭に。使ったもの（費用・時間）はその後ろ
   return [[t("Commits"), String(nC), o, "commit"], act && uk && [SHADE()[uk].s, calVal(uk, act, u) || "—", k, "use"], act && [t("Active time"), dur(act), k, "time"]].filter(Boolean);
 }
 // 週の日の見出しは 1 行：使用量（推定費用など）と、コミットの数（印つき）。何の数かは、見出しのツールチップと読み上げの名前で言う
@@ -351,7 +351,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
   sc.addEventListener("scroll", () => { seenTop = sc.scrollTop; }, {passive: true});
   sc.addEventListener("focusin", e => { if (e.target.closest(".heads") && sc.scrollTop !== seenTop) sc.scrollTop = seenTop; });
   // 日報のプロンプトのコピー（kiroku は AI を動かさない）
-  T.querySelectorAll(".dayrun").forEach(b => b.onclick = e => { e.stopPropagation(); copyPrompt(b, reportPrompt(null, addDays(st.week, +b.dataset.d))); });
+  T.querySelectorAll(".dayrun").forEach(b => b.onclick = e => { e.stopPropagation(); copyPrompt(b, reportPrompt(addDays(st.week, +b.dataset.d))); });
   T.querySelectorAll(".lim").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); showFlowEvent("warn", +el.dataset.t); });
   bindGitEvents(T);
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });

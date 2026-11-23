@@ -1,0 +1,1 @@
+- After you copy a session review or daily report prompt, the message also says that kiroku ran nothing and sent nothing

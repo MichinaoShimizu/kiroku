@@ -1,21 +1,18 @@
 <!doctype html>
-<html lang="en" translate="no" data-lang="__LANG__" data-theme="dark"><head><meta charset="utf-8">
+<html lang="en" translate="no" data-lang="__LANG__"><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="__CSP__">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="dark">
 <title>kiroku</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2315171c'/%3E%3Crect x='6' y='8' width='13' height='4' rx='2' fill='%23818cf8'/%3E%3Crect x='11' y='14' width='15' height='4' rx='2' fill='%23fff'/%3E%3Crect x='6' y='20' width='9' height='4' rx='2' fill='%23fff' opacity='.55'/%3E%3C/svg%3E">
 <style>
 /* kiroku serve が最初の読み込みを終えるまで出す画面。外のものは読まない。
    エージェントごとの進み具合（/progress）を並べ、読み終わったものから件数と時間を出す */
-:root{color-scheme:light;--bg:#fafafa;--surface:#f4f4f5;--ink:#1d1b20;--ink-2:#47464f;--ink-3:#5f5f68;--rule:#d4d4d8;--acc:#6750a4;--warn:#b3261e;
-  --glow:rgba(103,80,164,.14);--shadow:0 1px 2px rgba(16,18,24,.05),0 24px 48px -20px rgba(16,18,24,.2);
-  --c0:#6da1e5;--c1:#b26140;--c2:#51b588;--c3:#a16f16;--c4:#ca7393;--c5:#508b4a;--c6:#9794e3;--c7:#008a9d;--other:#9aa0ab; /* style.css と同じ 8 色 */
+:root{color-scheme:dark;--bg:#141218;--surface:#1d1b20;--ink:#e6e0e9;--ink-2:#cac4d0;--ink-3:#938f99;--rule:#49454f;--acc:#d0bcff;--warn:#f2b8b5;
+  --glow:rgba(208,188,255,.16);--shadow:0 1px 2px rgba(0,0,0,.5),0 28px 60px -24px rgba(0,0,0,.8);
+  --c0:#6191d1;--c1:#a95c3e;--c2:#45a47a;--c3:#a27323;--c4:#c47190;--c5:#4c8446;--c6:#6e6ab2;--c7:#15a0b6;--other:#6b7180; /* ビューと同じくいつもダーク。8 色は style.css と同じ値 */
   --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,system-ui,sans-serif;--mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
   --ease:cubic-bezier(.2,.7,.1,1)}
-:root[data-theme="dark"]{color-scheme:dark;--bg:#141218;--surface:#1d1b20;--ink:#e6e0e9;--ink-2:#cac4d0;--ink-3:#938f99;--rule:#49454f;--acc:#d0bcff;--warn:#f2b8b5;
-  --glow:rgba(208,188,255,.16);--shadow:0 1px 2px rgba(0,0,0,.5),0 28px 60px -24px rgba(0,0,0,.8);
-  --c0:#6191d1;--c1:#a95c3e;--c2:#45a47a;--c3:#a27323;--c4:#c47190;--c5:#4c8446;--c6:#6e6ab2;--c7:#15a0b6;--other:#6b7180} /* ビューでダークを選んでいれば（style.css と同じ値） */
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:13px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
 body{background:radial-gradient(60vmax 40vmax at 50% -10%,var(--glow),transparent 70%),var(--bg)}
@@ -87,11 +84,11 @@ pre:empty{display:none}
 // あいだは /progress を見て、エージェントごとの進み具合を出す（名前と数だけ。文字は textContent で入れる）
 (() => {
   const $ = id => document.getElementById(id);
-  // 言語は本物の画面と同じ順で決める（?lang=、画面で選んだ言語、--lang、ブラウザの言語）。日本語のときだけ下の表で置きかえる
+  // 言語は本物の画面（state.js の LANG）と同じ順で決める（?lang=、--lang、ブラウザの言語）。以前の版で選んだ言語は使わない。
+  // 日本語のときだけ下の表で置きかえる
   const pick = () => { try { const q = new URLSearchParams(location.search).get("lang"); if (q === "en" || q === "ja") return q; } catch(e){}
-    try { const s = JSON.parse(localStorage.getItem("kiroku:lang")); if (s === "en" || s === "ja") return s; } catch(e){}
     const d = document.documentElement.dataset.lang; if (d === "en" || d === "ja") return d;
-    return /^ja\b/i.test((navigator.languages && navigator.languages[0]) || navigator.language || "") ? "ja" : "en"; };
+    try { return ((navigator.languages && navigator.languages[0]) || navigator.language || "").toLowerCase().startsWith("ja") ? "ja" : "en"; } catch(e){ return "en"; } };
   const JA = pick() === "ja" ? {
     "Reading your history…": "履歴を読んでいます…",
     "The first read can take a while with a lot of history. This page opens the view as soon as it is ready.": "履歴が多いと、最初の読み込みに時間がかかります。読み終わるとすぐに画面を開きます。",

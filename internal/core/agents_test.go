@@ -28,11 +28,6 @@ func TestAgents(t *testing.T) {
 			t.Errorf("core.Records の %q が core.Agents にない", name)
 		}
 	}
-	for name := range NativeDefs {
-		if !seen[name] {
-			t.Errorf("core.NativeDefs の %q が core.Agents にない", name)
-		}
-	}
 }
 
 // 表から作るものが、表を変える前と同じ（--sources の既定値と説明、kiroku autostart の環境変数、kiroku archive のフォルダ）。

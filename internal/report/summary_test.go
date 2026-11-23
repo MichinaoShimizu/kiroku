@@ -28,7 +28,7 @@ func TestSummarizeGitCommits(t *testing.T) {
 		{Hash: "d", T: at(-1, 23, 59), Project: "app", Added: 100}, // 前の週
 		{Hash: "e", T: at(7, 0, 0), Project: "app", Added: 100},    // 次の週の月曜 0 時
 	}
-	w := Stats([]*core.Session{sess("s1", "Claude Code", "app", ws, 10, 30)}, ws, commits...)
+	w := weekStats([]*core.Session{sess("s1", "Claude Code", "app", ws, 10, 30)}, ws, commits...)
 	if w == nil {
 		t.Fatal("summary is nil")
 	}
@@ -58,7 +58,7 @@ func TestFriction(t *testing.T) {
 	worst.Interrupts = 4
 	before := sess("before", "Claude Code", "app", ws, -2, 10) // 前の週に始まった
 	before.Corrections = 9
-	w := Stats([]*core.Session{calm, one, mixed, long, worst, before}, ws)
+	w := weekStats([]*core.Session{calm, one, mixed, long, worst, before}, ws)
 	if w == nil {
 		t.Fatal("summary is nil")
 	}
@@ -73,17 +73,11 @@ func TestFriction(t *testing.T) {
 	for _, f := range w.Friction {
 		byID[f.ID] = f
 	}
-	if f := byID["mixed"]; f.Score != 6 || !reflect.DeepEqual(f.Why, []string{"言い直し 2 回", "中断 1 回"}) ||
-		!reflect.DeepEqual(f.WhyEn, []string{"2 corrections", "1 interruption"}) {
+	if f := byID["mixed"]; f.Score != 6 || !reflect.DeepEqual(f.Why, []string{"言い直し 2 回", "中断 1 回"}) {
 		t.Errorf("mixed = %+v", f)
 	}
-	if f := byID["long"]; f.Score != 3 || !reflect.DeepEqual(f.WhyEn, []string{"25 prompts"}) {
+	if f := byID["long"]; f.Score != 3 || !reflect.DeepEqual(f.Why, []string{"依頼 25 回"}) {
 		t.Errorf("long = %+v", f)
-	}
-	// 3 件に入らなくても、1 回の言い直しは単数で書く
-	w = Stats([]*core.Session{one}, ws)
-	if len(w.Friction) != 1 || !reflect.DeepEqual(w.Friction[0].WhyEn, []string{"1 correction"}) {
-		t.Errorf("one = %+v", w.Friction)
 	}
 }
 
@@ -117,4 +111,9 @@ func keys[V any](m map[string]V) []string {
 		out = append(out, k)
 	}
 	return out
+}
+
+// weekStats は 1 週ぶんの集計（エージェントごとの集計つき。AllWeeks と同じ）。
+func weekStats(data []*core.Session, ws time.Time, commits ...gitlog.Commit) *Week {
+	return SummarizeByAgent(data, ws, AddDays(ws, 7), commits...)
 }

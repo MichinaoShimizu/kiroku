@@ -317,7 +317,13 @@ func (c *Claude) Units() []Unit {
 	adopt := map[string]map[string]string{}
 	for i := range out {
 		f, ok := first[stemOf(out[i].Key)]
-		if len(befores[i]) == 0 || len(out[i].Files) < 2 || !ok {
+		if len(befores[i]) == 0 || !ok {
+			continue
+		}
+		// 自身の行がコンパクションの行だけのあとのファイルは、最初に数えるファイルがそのコンパクションを引き取る
+		// （adoptCompactions）。あとのファイルか先に数えるファイルが変わったら、最初に数えるファイルを読み直す
+		out[f].Tag += " later:" + Stamp(append([]string{out[i].Key}, befores[i]...))
+		if len(out[i].Files) < 2 {
 			continue
 		}
 		key := out[f].Key
@@ -380,6 +386,44 @@ func (c *Claude) subagentFiles(u Unit) []string {
 		}
 	}
 	return out
+}
+
+// adoptCompactions は、会話の最初に数えるファイル path のセッション s に、同じ会話のあとのファイルのうち自身の行が
+// コンパクションの行だけのもの（そのファイルからはセッションが出ない。ownCompactions）のコンパクションを足す。
+// あとのファイルに自身の行がほかにもあれば、そちらのセッションで数える。
+func (c *Claude) adoptCompactions(path string, s *core.Builder) {
+	stem := stemOf(path)
+	if len(c.orig.before(path)) > 0 {
+		return
+	}
+	for _, later := range c.orig.files(stem) {
+		if later == path {
+			continue
+		}
+		own, compact := c.orig.ownCompactions(later)
+		if own || len(compact) == 0 {
+			continue
+		}
+		core.ReadJSONL(later, func(e core.Obj) {
+			key := lineKey(e)
+			if key == "" || !compactLine(e) || copiedFrom(e, stem) != "" {
+				return
+			}
+			if _, ok := compact[c.orig.hash(key)]; !ok {
+				return
+			}
+			t := ts(e["timestamp"])
+			if sidechain, _ := e["isSidechain"].(bool); t == nil || sidechain {
+				return
+			}
+			if core.Str(e["type"]) == "system" {
+				s.Compact(t, core.Str(core.Map(e["compactMetadata"])["trigger"]))
+				return
+			}
+			s.Compact(t, "")
+			s.Inject(t, "compact", core.TextOf(core.Map(e["message"])["content"]))
+		})
+	}
 }
 
 // dropSeenSubagents は、同じ会話の先に数えるファイル（before）に同じ名前のサブエージェントのファイルがあれば、それを除く
@@ -646,6 +690,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	if !fm.Empty() {
 		s.Format = &fm
 	}
+	c.adoptCompactions(path, s)
 	// サブエージェントの別ファイル（新しい版）を、agentId か時刻でつなぐ
 	var files []subFile
 	// 親の会話の最初の時刻。サブエージェントは親より前には動かないので、それより前の時刻（別の会話から流用されたファイル、

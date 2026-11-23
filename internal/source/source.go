@@ -105,6 +105,7 @@ type Kept struct{ Src, Dst string }
 type Options struct {
 	ClaudeRoot string
 	KiroHome   string
+	KiroLegacy string // KIRO_HOME を使っているときの ~/.kiro（DefaultKiroLegacyHome）。空なら KiroHome だけ読む
 	CrewHome   string // 空なら KIROCREW_HOME か ~/.kiro/crew（Crew は KIRO_HOME を見ない）
 	KiroCLIDB  string // 空なら OS ごとの場所
 	CodexHome  string // 空なら CODEX_HOME か ~/.codex
@@ -122,8 +123,8 @@ func q(v, def string) string {
 func All(o Options) []Source {
 	return []Source{
 		&Claude{Root: o.ClaudeRoot, Archive: sub(o.Archive, core.ArchiveDirOf("Claude Code"))},
-		&KiroIDE{Home: o.KiroHome},
-		&KiroCLI{Home: o.KiroHome, CrewHome: q(o.CrewHome, DefaultCrewHome()), CrewArchive: sub(o.Archive, core.ArchiveDirOf("Kiro Crew"))},
+		&KiroIDE{Home: o.KiroHome, Legacy: o.KiroLegacy},
+		&KiroCLI{Home: o.KiroHome, Legacy: o.KiroLegacy, CrewHome: q(o.CrewHome, DefaultCrewHome()), CrewArchive: sub(o.Archive, core.ArchiveDirOf("Kiro Crew"))},
 		&QStore{Label: "Kiro CLI (SQLite)", Fam: "kiro", DB: q(o.KiroCLIDB, filepath.Join(DataDir("kiro-cli"), "data.sqlite3")), Command: "kiro-cli chat --resume", ResumeID: "kiro-cli chat --resume-id"},
 		&Codex{Home: q(o.CodexHome, DefaultCodexHome())},
 	}
@@ -157,6 +158,33 @@ func DefaultKiroHome() string {
 		return d
 	}
 	return filepath.Join(home(), ".kiro")
+}
+
+// DefaultKiroLegacyHome は、KIRO_HOME を使っているときの ~/.kiro（使っていない・~/.kiro と同じなら ""）。
+// Kiro の説明で KIRO_HOME が動かすのは V3 の保存場所だけ（https://kiro.dev/docs/configuration ）なので、V2（sessions/cli）・
+// Kiro IDE の会話と、KIRO_HOME を設定する前の会話は ~/.kiro に残る。読む側はそこも読み、同じ会話は KIRO_HOME のほうを使う。
+func DefaultKiroLegacyHome() string {
+	d := kiroHomeOverride(os.Getenv("KIRO_HOME"))
+	if d == "" || home() == "" {
+		return ""
+	}
+	return otherKiroHome(d, filepath.Join(home(), ".kiro"))
+}
+
+// otherKiroHome は、legacy が home と別の場所ならその場所（同じなら ""）。
+func otherKiroHome(home, legacy string) string {
+	if legacy == "" || filepath.Clean(legacy) == filepath.Clean(home) {
+		return ""
+	}
+	return filepath.Clean(legacy)
+}
+
+// kiroHomes は、読む Kiro の場所（home、legacy が別の場所ならそれも。この順で、先のほうを使う）。
+func kiroHomes(home, legacy string) []string {
+	if l := otherKiroHome(home, legacy); l != "" {
+		return []string{home, l}
+	}
+	return []string{home}
 }
 
 // kiroHomeOverride は、Kiro が使う KIRO_HOME の値（使わないものは ""）。

@@ -17,7 +17,7 @@ func FuzzRender(f *testing.F) {
 	meta := map[string]any{"report": []any{}, "git": []any{}}
 	f.Fuzz(func(t *testing.T, s string) {
 		data := []any{map[string]any{"title": s, "prompts": []any{s}, "project": s}}
-		page, err := Render(data, map[string]any{s: s}, map[string]any{}, meta, 0, false)
+		page, err := render(data, map[string]any{s: s}, map[string]any{}, meta, 0, false)
 		if err != nil {
 			t.Fatal(err)
 		}

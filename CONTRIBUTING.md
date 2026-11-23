@@ -30,16 +30,18 @@ In Claude Code, run the `/pre-pr` skill before opening a pull request: it runs `
 
 ## Changelog
 
-Describe user-visible changes in a new file under [changes/](changes/README.md), not in CHANGELOG.md, so pull requests don't conflict: `changes/<short-name>.<section>.md`, where the section is `added`, `changed`, `deprecated`, `removed`, `fixed` or `security`, holding one or more `- ` bullets in English. `sh tools/changelog.sh --check` checks the file. The release merges the fragments into [CHANGELOG.md](CHANGELOG.md); together with any entries still under `## Unreleased`, they become the release notes and decide the next version: `BREAKING:` (a change that breaks commands, options or output files) bumps minor while in 0.x and major from 1.0, an `added` change bumps minor, and anything else bumps patch (`sh tools/next-version.sh`).
+Describe user-visible changes in a new file under [changes/](changes/README.md), not in CHANGELOG.md, so pull requests don't conflict: `changes/<short-name>.<section>.md`, where the section is `added`, `changed`, `deprecated`, `removed`, `fixed` or `security`, holding one or more `- ` bullets in English. `sh tools/changelog.sh --check` checks the file. The release merges the fragments into [CHANGELOG.md](CHANGELOG.md), and they decide the next version (see [The version number](docs/development.md#the-version-number)).
 
 ## Changing the view
 
 The view lives in `internal/web`: `template.html` (markup), `style.css` and the script split by role into `js/*.js`, put together into one HTML file by `web.go`. The script files are joined in the order listed in `scripts` in `web.go` and share one `<script>` scope; add a new file to that list. When you change it:
 
-- The view is in English and Japanese: pass text shown in the view through `t()` and add its Japanese to `js/i18n.js`. Metric explanations live in `HELP`, and a test checks them against the "How to read the metrics" table in `docs/guide.md`
-- Check light and dark, and 1440px, 1000px and phone widths
+- The view is in English and Japanese: pass text shown in the view through `t()` and add its Japanese to `js/i18n.js`. Metric explanations live in `HELP`, and a test checks them against the Tells you, Doesn't tell you and What to try columns of the metric tables in `docs/guide.md`
+- Check 1440px, 1000px and phone widths (the view is always dark)
 - Update the README (both `README.md` and `README.ja.md`), the guides and the screenshots (`sh tools/screenshots/run.sh`) in the same change
 - Try the user scenarios in [docs/usability.md](docs/usability.md)
+
+The full checklist is in [Changing the view](docs/development.md#changing-the-view).
 
 ## Privacy
 

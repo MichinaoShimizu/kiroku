@@ -188,8 +188,8 @@ func TestClaudeContextUsage(t *testing.T) {
 	}
 	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644)
 	s := load(t, &Claude{Root: root})[0].Finish(15)
-	var got []core.NativeValue
-	for _, n := range core.AggregateNative(s.Source, s.Meas) {
+	var got []nativeValue
+	for _, n := range aggregateNative(s.Source, s.Meas) {
 		if n.LabelEn == "Peak context usage" {
 			got = append(got, n)
 		}
@@ -208,7 +208,7 @@ func TestClaudeContextUsage(t *testing.T) {
 	}
 	os.WriteFile(filepath.Join(dir, "s1.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644)
 	s = load(t, &Claude{Root: root})[0].Finish(15)
-	for _, n := range core.AggregateNative(s.Source, s.Meas) {
+	for _, n := range aggregateNative(s.Source, s.Meas) {
 		if n.LabelEn == "Peak context usage" && n.V != 30 {
 			t.Errorf("Peak context usage = %v, want 30（300K ÷ 1M。[1m] の版とみなす）", n.V)
 		}
@@ -526,7 +526,7 @@ func TestClaudeAdvisorUsage(t *testing.T) {
 		t.Errorf("目安コスト = %v・入力 %v・出力 %v, want 1.04・400000・3000（advisor の分も入れる）", s.Cost, s.Usage.In, s.Usage.Out)
 	}
 	seen := 0
-	for _, n := range core.AggregateNative(s.Source, s.Meas) {
+	for _, n := range aggregateNative(s.Source, s.Meas) {
 		switch n.LabelEn {
 		case "Responses":
 			seen++
@@ -541,7 +541,7 @@ func TestClaudeAdvisorUsage(t *testing.T) {
 		}
 	}
 	if seen != 2 {
-		t.Errorf("Responses・Peak context usage が出ていない: %+v", core.AggregateNative(s.Source, s.Meas))
+		t.Errorf("Responses・Peak context usage が出ていない: %+v", aggregateNative(s.Source, s.Meas))
 	}
 }
 

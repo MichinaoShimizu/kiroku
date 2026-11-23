@@ -45,3 +45,9 @@ From the PR records; not necessarily who decided.
 - DL-9
 - DL-1
 - DL-10
+
+---
+
+## Addendum 2026-11-23 (Claude Code)
+
+C1 and C2 no longer hold for `kiroku json`. [PR #506](https://github.com/MichinaoShimizu/kiroku/pull/506) removed `kiroku json` and `kiroku stats` (BREAKING, 3.0.0): running either stops with a message naming `kiroku serve` and `kiroku html`, and the `kiroku json` fields and `schemaVersion` left docs/compatibility.md. The rest of C1 (commands, options, env vars, exit status, the `--prices` file, archive copies, the serve key, local-only serve) is still listed there. C3 and C4 are unchanged.

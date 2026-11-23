@@ -14,7 +14,13 @@ import (
 // Watcher は、Where() だけでは見張る場所が足りない Source が実装する。
 type Watcher interface{ Watch() []string }
 
-func (k *KiroCLI) Watch() []string { return []string{k.Where(), k.CrewHome} }
+func (k *KiroCLI) Watch() []string {
+	var out []string
+	for _, h := range kiroHomes(k.Home, k.Legacy) {
+		out = append(out, filepath.Join(h, "sessions", "cli"))
+	}
+	return append(out, k.CrewHome)
+}
 
 // SQLite は書き込みが -wal に先に入るので、それも見る。
 func (q *QStore) Watch() []string { return []string{q.DB, q.DB + "-wal"} }

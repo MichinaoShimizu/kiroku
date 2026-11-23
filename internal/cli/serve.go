@@ -83,7 +83,7 @@ func shellMeta(meta map[string]any) map[string]any {
 	return out
 }
 
-// start は最初の読み込みをして、そのあと履歴を見張る（watch）。serveLive が待ち受けを始めてから別の goroutine で呼ぶ。
+// start は最初の読み込みをして、そのあと履歴を見張る（watch）。serveLiveWith が待ち受けを始めてから別の goroutine で呼ぶ。
 // 失敗しても止めず、読み込み中の画面にエラーを出して見張りを続ける（履歴が変われば読み直しを試す）。
 func (l *live) start(every time.Duration, stop <-chan struct{}) {
 	t0 := time.Now()
@@ -534,13 +534,6 @@ func newServer(h http.Handler) *http.Server {
 	}
 }
 
-// serveLive は kiroku serve。allow は Host として受け付ける名前を足すもの、keep は画面から kiroku archive をオンにする関数。
-// 先に待ち受けてから読む（履歴が多いと最初の読み込みに時間がかかり、その間ポートが開いていないとブラウザが「つながらない」になるため）。
-// 読み終わるまでは、読み込み中の画面を出す。
-func serveLive(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool) error {
-	return serveLiveWith(addr, allow, every, picked, load, keep, open, "", nil)
-}
-
 // scanWatchPaths は、選んでいない Source のうち source.ClaimScanner のものが調べる場所（Kiro を選んでいないときの Kiro Crew の場所）。
 // kiroku serve はここも見張り、変わったら読み直す。あとから中身を残さない会話になった Crew の会話（session_map の flags、
 // 会話の記録の memory_mode、state.json、crew-log）の Codex・Claude Code の写しを、ほかの履歴が変わるのを待たずに隠すため。
@@ -558,7 +551,10 @@ func scanWatchPaths(all []source.Source, want map[string]bool) []string {
 	return out
 }
 
-// serveLiveWith は serveLive。lang は画面の言語（--lang）、watch は picked のほかに見張る場所（scanWatchPaths）。
+// serveLiveWith は kiroku serve。allow は Host として受け付ける名前を足すもの、keep は画面から kiroku archive をオンにする関数、
+// lang は画面の言語（--lang）、watch は picked のほかに見張る場所（scanWatchPaths）。
+// 先に待ち受けてから読む（履歴が多いと最初の読み込みに時間がかかり、その間ポートが開いていないとブラウザが「つながらない」になるため）。
+// 読み終わるまでは、読み込み中の画面を出す。
 func serveLiveWith(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool, lang string, watch []string) error {
 	if every < time.Second {
 		every = time.Second
@@ -594,7 +590,7 @@ func serveLiveWith(addr string, allow []string, every time.Duration, picked []so
 			fmt.Fprintf(l.print, "could not open a browser: %v\n", err)
 		}
 	}
-	err = serveHTTP(newServer(secureHeaders(sameOrigin(addr, allow, requireKey(addr, key, l.handler())))), ln)
+	err = serveHTTP(newServer(secureHeaders(sameOrigin(addr, allow, requireKey(addr, key, lang, l.handler())))), ln)
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}

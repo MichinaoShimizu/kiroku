@@ -131,7 +131,11 @@ func oldKeyCookie(addr string) string {
 // ?code=<使い捨てのコード> で開かれたら、中継のページ（hopKeyPage）が鍵を localStorage にしまい、
 // それを消した URL へ移る。GET / とマニフェスト（keyless）だけは鍵なしで通す。そこで返すのは履歴を入れていない画面の骨組みか
 // 読み込み中の画面で、画面が localStorage の鍵を付けて data.json を読む（ブックマークなどの移動ではヘッダーを付けられないため）。
-func requireKey(addr, key string, next http.Handler) http.Handler {
+// lang は --lang（"" ならブラウザーの言語）。中継のページと鍵のない案内の言語を、画面と同じ順で決めるのに使う。
+func requireKey(addr, key, lang string, next http.Handler) http.Handler {
+	if !web.ValidLang(lang) {
+		lang = ""
+	}
 	old := oldKeyCookie(addr)
 	_, port, _ := net.SplitHostPort(addr)
 	match := func(s string) bool { return subtle.ConstantTimeCompare([]byte(s), []byte(key)) == 1 }
@@ -142,7 +146,7 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 		get := r.Method == http.MethodGet || r.Method == http.MethodHead
 		q := r.URL.Query()
 		if q.Has("key") { // 以前の版の ?key=<鍵>。鍵が合っていても使わない（kiroku open で開き直してもらう）
-			lockedPage403(w, r, oldKeyPage, oldKeyPageJA)
+			lockedPage403(w, r, lang, oldKeyPage, oldKeyPageJA)
 			return
 		}
 		if q.Has("code") {
@@ -160,7 +164,7 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 				return
 			}
 			if !get {
-				locked(w, r)
+				locked(w, r, lang)
 				return
 			}
 			q.Del("code")
@@ -170,14 +174,14 @@ func requireKey(addr, key string, next http.Handler) http.Handler {
 			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Header().Set("Cache-Control", "no-store")
-			_, _ = io.WriteString(w, hopKeyPage(to))
+			_, _ = io.WriteString(w, hopKeyPage(to, lang))
 			return
 		}
 		if (get && keyless(r.URL.Path)) || match(r.Header.Get(keyHeader)) {
 			next.ServeHTTP(w, r)
 			return
 		}
-		locked(w, r)
+		locked(w, r, lang)
 	})
 }
 
@@ -195,18 +199,20 @@ func hopTarget(path string) string {
 	return (&url.URL{Path: "/" + rest}).EscapedPath()
 }
 
-// locked は、鍵のない問い合わせへの答え（403 と、kiroku open を案内するページ）。ブラウザーの言語（Accept-Language）が
-// 日本語なら日本語のページ（画面の showLocked と同じ文）にする。
-func locked(w http.ResponseWriter, r *http.Request) { lockedPage403(w, r, lockedPage, lockedPageJA) }
+// locked は、鍵のない問い合わせへの答え（403 と、kiroku open を案内するページ。画面の showLocked と同じ文）。
+func locked(w http.ResponseWriter, r *http.Request, lang string) {
+	lockedPage403(w, r, lang, lockedPage, lockedPageJA)
+}
 
 // lockedPage403 は、決まったページ（英語か日本語）を 403 で返す。ページに問い合わせの中身は入れない。
-func lockedPage403(w http.ResponseWriter, r *http.Request, en, ja string) {
+// 言語は --lang（lang）があればそれ、なければブラウザーの言語（Accept-Language）。
+func lockedPage403(w http.ResponseWriter, r *http.Request, lang, en, ja string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Add("Vary", "Accept-Language")
 	w.WriteHeader(http.StatusForbidden)
 	page := en
-	if prefersJA(r.Header.Get("Accept-Language")) {
+	if lang == "ja" || (lang == "" && prefersJA(r.Header.Get("Accept-Language"))) {
 		page = ja
 	}
 	_, _ = w.Write([]byte(page))
@@ -221,49 +227,50 @@ func prefersJA(al string) bool {
 }
 
 // lockedPage の文は、画面の骨組みが鍵なしで開かれたときの知らせ（js/live.js の showLocked）と同じ。
-const lockedPage = `<!doctype html>
-<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>kiroku</title>
-<style>body{font:16px/1.6 system-ui,sans-serif;max-width:36em;margin:4em auto;padding:0 16px}code{background:rgba(127,127,127,.15);padding:.1em .3em;border-radius:4px;white-space:nowrap}html:lang(ja){word-break:auto-phrase}</style>
-<h1>Open kiroku with its key</h1>
+var lockedPage = lockedHTML("en", `<h1>Open kiroku with its key</h1>
 <p>kiroku serve shows your history only to a browser that has its key, so that other users of this computer can't read it.</p>
 <p>Run <code>kiroku open</code> in a terminal to open this page with the key. After that, this browser can open it without the key.</p>
 <p>To open it on another device, run <code>kiroku open --print</code> and open the address it prints there.</p>
-</html>
-`
+`)
 
 // lockedPageJA は lockedPage の日本語（i18n.js の showLocked の文と同じ）。
-const lockedPageJA = `<!doctype html>
-<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>kiroku</title>
-<style>body{font:16px/1.6 system-ui,sans-serif;max-width:36em;margin:4em auto;padding:0 16px}code{background:rgba(127,127,127,.15);padding:.1em .3em;border-radius:4px;white-space:nowrap}html:lang(ja){word-break:auto-phrase}</style>
-<h1>鍵を付けて kiroku を開いてください</h1>
+var lockedPageJA = lockedHTML("ja", `<h1>鍵を付けて kiroku を開いてください</h1>
 <p>kiroku serve は、この PC のほかのユーザーに履歴を読まれないよう、鍵を持つブラウザーにだけ履歴を見せます。</p>
 <p>ターミナルで <code>kiroku open</code> を実行すると、鍵を付けてこの画面を開きます。そのあとは、このブラウザーなら鍵なしで開けます。</p>
 <p>ほかの機器で開くときは、<code>kiroku open --print</code> を実行し、表示されたアドレスをその機器で開いてください。</p>
-</html>
-`
+`)
 
 // oldKeyPage は、以前の版の ?key=<鍵> のアドレスで開かれたときの案内。そのアドレスがもう使えないこと、kiroku open のあとは
 // 鍵のない / を開く（ブックマークし直す）こと、履歴とブックマークから消して鍵も変えることを言う。リンクは決まった / だけ。
-const oldKeyPage = `<!doctype html>
-<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>kiroku</title>
-<style>body{font:16px/1.6 system-ui,sans-serif;max-width:36em;margin:4em auto;padding:0 16px}code{background:rgba(127,127,127,.15);padding:.1em .3em;border-radius:4px;white-space:nowrap}html:lang(ja){word-break:auto-phrase}</style>
-<h1>This address no longer opens kiroku</h1>
+var oldKeyPage = lockedHTML("en", `<h1>This address no longer opens kiroku</h1>
 <p>It was made by kiroku before v0.38.2 and has the key in it, so kiroku 1.0 and later refuse it.</p>
 <p>Run <code>kiroku open</code> in a terminal. After that, open <a href="/">kiroku without the key in the address</a> and bookmark that instead.</p>
 <p>Delete this address from your browser's history and bookmarks. Because it was in your history with the key, also change the key: stop <code>kiroku serve</code>, delete <code>serve-key</code> in kiroku's settings folder, and start it again.</p>
-</html>
-`
+`)
 
 // oldKeyPageJA は oldKeyPage の日本語。
-const oldKeyPageJA = `<!doctype html>
-<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>kiroku</title>
-<style>body{font:16px/1.6 system-ui,sans-serif;max-width:36em;margin:4em auto;padding:0 16px}code{background:rgba(127,127,127,.15);padding:.1em .3em;border-radius:4px;white-space:nowrap}html:lang(ja){word-break:auto-phrase}</style>
-<h1>このアドレスでは kiroku を開けません</h1>
+var oldKeyPageJA = lockedHTML("ja", `<h1>このアドレスでは kiroku を開けません</h1>
 <p>v0.38.2 より前の kiroku が作った、鍵の入ったアドレスです。kiroku 1.0 からは受け付けません。</p>
 <p>ターミナルで <code>kiroku open</code> を実行してください。そのあとは、<a href="/">鍵の入っていないアドレスの kiroku</a> を開き、そちらをブックマークしてください。</p>
 <p>このアドレスは、ブラウザーの履歴とブックマークから消してください。鍵が履歴に残っていたので、鍵も変えてください（<code>kiroku serve</code> を止め、kiroku の設定の場所の <code>serve-key</code> を消して、起動し直します）。</p>
-</html>
-`
+`)
+
+// lockedStyle は鍵のない案内のページの見た目。画面と loading.html と同じく暗い背景（色は loading.html の --bg・--ink・--ink-2・--acc）。
+const lockedStyle = `<style>:root{color-scheme:dark;--bg:#141218;--ink:#e6e0e9;--ink-2:#cac4d0;--acc:#d0bcff}` +
+	`html{background:var(--bg)}body{color:var(--ink-2);font:16px/1.6 system-ui,sans-serif;max-width:36em;margin:4em auto;padding:0 16px}` +
+	`h1{color:var(--ink);font-size:1.5em;line-height:1.3}a{color:var(--acc)}` +
+	`code{color:var(--ink);background:rgba(208,188,255,.12);padding:.1em .3em;border-radius:4px;white-space:nowrap}html:lang(ja){word-break:auto-phrase}</style>`
+
+// lockedCSP は鍵のない案内のページの CSP。スクリプトはなく、<style> は lockedStyle のハッシュだけ。
+var lockedCSP = "default-src 'none'; style-src " + cspHash(strings.TrimSuffix(strings.TrimPrefix(lockedStyle, "<style>"), "</style>")) +
+	"; base-uri 'none'; form-action 'none'"
+
+// lockedHTML は鍵のない案内のページ。lang は "en" か "ja"、body は決まった文（問い合わせの中身は入れない）。
+func lockedHTML(lang, body string) string {
+	return "<!doctype html>\n<html lang=\"" + lang + "\"><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
+		"<meta name=\"color-scheme\" content=\"dark\"><meta http-equiv=\"Content-Security-Policy\" content=\"" + lockedCSP + "\">" +
+		"<meta name=\"referrer\" content=\"no-referrer\"><title>kiroku</title>\n" + lockedStyle + "\n" + body + "</html>\n"
+}
 
 // hopKeyScript は、?code= で開かれたときの中継のページのスクリプト（中身は変わらないので、CSP のハッシュは 1 回だけ作る）。
 // 同じアドレスへの POST でコードを鍵に換える。形（64 桁の 16 進数）を確かめて localStorage にしまい、
@@ -271,8 +278,11 @@ const oldKeyPageJA = `<!doctype html>
 // 換えられなかった（使い終わった・期限切れ）ときや、しまえなかったとき（このアドレスのサイトのデータを止めているなど）は、そう伝える。
 const hopKeyScript = `(async () => {
   const to = document.getElementById("to"), msg = document.getElementById("msg"), q = new URLSearchParams(location.search);
-  const ja = (() => { try { const v = q.get("lang") || JSON.parse(localStorage.getItem("kiroku:lang") || "null"); if (v === "ja" || v === "en") return v === "ja"; } catch(e){}
-    try { return (navigator.languages && navigator.languages[0] || navigator.language || "").toLowerCase().startsWith("ja"); } catch(e){ return false; } })();
+  // 言語は画面（state.js の LANG）と loading.html と同じ順で決める（?lang=、--lang（<html data-lang>）、ブラウザーの言語）。以前の版で選んだ言語は使わない
+  const pick = () => { try { const v = q.get("lang"); if (v === "en" || v === "ja") return v; } catch(e){}
+    const d = document.documentElement.dataset.lang; if (d === "en" || d === "ja") return d;
+    try { return ((navigator.languages && navigator.languages[0]) || navigator.language || "").toLowerCase().startsWith("ja") ? "ja" : "en"; } catch(e){ return "en"; } };
+  const ja = pick() === "ja";
   if (ja){ document.documentElement.lang = "ja"; to.textContent = "kiroku を開く"; }
   let k = "", ok = false, why = ja ? "このブラウザーは kiroku の鍵をしまえない（このアドレスのサイトのデータが止められているかもしれません）ので、ここでは履歴を見せられません。" : "This browser doesn't let kiroku keep its key (site data may be blocked for this address), so it can't show your history here.";
   if (q.has("code")){
@@ -289,9 +299,13 @@ const hopKeyScript = `(async () => {
 
 // hopKeyPage は、?code= で開かれたときの中継のページ。to はそれを消した、このサイトの中の URL。ページに鍵は入れない。
 // スクリプトと <style> は CSP のハッシュで許したものだけで、問い合わせは同じオリジンへの POST だけ、Referer も送らない。
-func hopKeyPage(to string) string {
+// lang は --lang（"en"・"ja" のほかは ""）。スクリプトの外の属性に入れるので、CSP のハッシュは変わらない（loading.html と同じ）。
+func hopKeyPage(to, lang string) string {
 	to = html.EscapeString(to)
-	return "<!doctype html>\n<html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"light\">" +
+	if !web.ValidLang(lang) {
+		lang = ""
+	}
+	return "<!doctype html>\n<html lang=\"en\" data-lang=\"" + lang + "\"><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"dark\">" +
 		"<meta http-equiv=\"Content-Security-Policy\" content=\"" + hopKeyCSP + "\"><meta name=\"referrer\" content=\"no-referrer\">" +
 		"\n<title>kiroku</title>\n" + hopStyle +
 		"\n<p><a id=\"to\" href=\"" + to + "\">Open kiroku</a></p><p id=\"msg\"></p>\n<script>" + hopKeyScript + "</script>\n</html>\n"
@@ -314,13 +328,13 @@ func cspHash(s string) string {
 // リンクは 2 秒たってから見えるようにする。head は <meta> などのタグだけ（中身はエスケープしない）。
 func hopPage(to, head string) string {
 	to = html.EscapeString(to)
-	return "<!doctype html>\n<html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"light\">" + head +
+	return "<!doctype html>\n<html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"dark\">" + head +
 		"\n<meta http-equiv=\"refresh\" content=\"0;url=" + to + "\">\n<title>kiroku</title>\n" + hopStyle +
 		"\n<p><a href=\"" + to + "\">Open kiroku</a></p>\n</html>\n"
 }
 
 // hopStyle の色は loading.html の --bg と --acc。#msg.show は hopKeyPage で鍵をしまえなかったときの知らせ（すぐに見せる）。
-const hopStyle = `<style>html{--bg:#fafafa;--acc:#6750a4;background:var(--bg);color:var(--bg)}` +
+const hopStyle = `<style>html{--bg:#141218;--acc:#d0bcff;background:var(--bg);color:var(--bg)}` +
 	`body{margin:0;min-height:100vh;display:grid;place-items:center;font:13px/1.5 system-ui,sans-serif}` +
 	`a{color:inherit;animation:show .3s 2s forwards}@keyframes show{to{color:var(--acc)}}` +
 	`#msg.show{color:CanvasText;max-width:32em;padding:0 16px}</style>`

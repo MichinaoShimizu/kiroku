@@ -228,8 +228,8 @@ func compare(want, got any, path string, diffs *[]string) {
 			if (k == "unpriced" || k == "unpricedModels" || k == "prefixPriced") && strings.HasSuffix(path, ".usage") || k == "native" ||
 				inDay && (k == "tokens" || k == "cost" || k == "credits") || // Go 版で足した日ごとの使用量
 				k == "projectStats" || k == "shares" || k == "limits" || k == "limitResets" || k == "ctx" || k == "ctxWindow" || k == "outputs" || k == "file" || k == "prs" || k == "outSessions" || k == "outBase" || k == "costPerCommit" || k == "outCost" || strings.HasSuffix(path, ".usage") && (k == "in" || k == "cw" || k == "cr") || k == "git" || k == "agents" || k == "only" || inDay && k == "commits" || // Go 版で足したプロジェクト別のまとめ・アウトプット
-				k == "costPerAsk" || k == "costPrompts" || k == "outPrompts" || // Go 版で、トークンやアウトプットを記録するセッションの依頼だけで割るようにした
-				k == "whyEn" || k == "labelEn" || k == "detailEn" || // Go 版で足した英語表示の文言
+				k == "costPerAsk" || k == "costPrompts" || // Go 版で、トークンを記録するセッションの依頼だけで割るようにした
+				k == "detailEn" || // Go 版で足した英語表示の文言
 				k == "interruptsAt" || k == "prAt" || k == "fileEdits" || k == "editAdded" || k == "editRemoved" || // Go 版で足したファイルごとの編集の数
 				strings.Contains(path, ".prompts[") && (k == "work" || k == "wait" || k == "len") { // Go 版で足した依頼の流れの出来事と時間
 				continue
@@ -334,7 +334,7 @@ func TestLoadPricesOverridesLongPrices(t *testing.T) {
 	if err := loadPrices(path); err != nil {
 		t.Fatal(err)
 	}
-	c, ok := core.CostOfRequest("claude-haiku-5-5", core.Tokens{In: 200_000, Out: 1_000_000})
+	c, ok, _ := core.EventCostTier(core.Event{Model: "claude-haiku-5-5", U: core.Tokens{In: 200_000, Out: 1_000_000}, Req: true})
 	if want := 0.2 + 2.0; !ok || math.Abs(c-want) > 1e-9 {
 		t.Errorf("cost = %v, want %v", c, want)
 	}

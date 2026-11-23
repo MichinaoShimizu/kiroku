@@ -25,7 +25,7 @@ func TestAssemble(t *testing.T) {
 func TestCSP(t *testing.T) {
 	for _, live := range []bool{false, true} {
 		data := []any{map[string]any{"title": "</script><script>alert(1)</script>"}}
-		page, err := Render(data, map[string]any{}, map[string]any{}, map[string]any{"report": []any{}, "git": []any{}}, 0, live)
+		page, err := render(data, map[string]any{}, map[string]any{}, map[string]any{"report": []any{}, "git": []any{}}, 0, live)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -151,9 +151,6 @@ func TestPartsJSON(t *testing.T) {
 	if strings.Contains(page, "</script><b>") || strings.Contains(page, `"<!--"`) {
 		t.Error("履歴の文字をエスケープせずに HTML に入れた")
 	}
-	if old, _ := Render(data, weeks, months, meta, 1759999999.25, true); old != page {
-		t.Error("Render と Parts.HTML の結果が違う")
-	}
 }
 
 // 読み込み中の画面は --lang を属性に入れる。知らない値は入れない（属性を抜け出させない）
@@ -174,7 +171,7 @@ func TestLoadingForLang(t *testing.T) {
 // 振り返り・日報はプロンプトをコピーするだけ
 func TestNoAIExecution(t *testing.T) {
 	for _, live := range []bool{false, true} {
-		page, err := Render([]any{}, map[string]any{}, map[string]any{}, map[string]any{"report": []any{}, "git": []any{}}, 0, live)
+		page, err := render([]any{}, map[string]any{}, map[string]any{}, map[string]any{"report": []any{}, "git": []any{}}, 0, live)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -189,12 +186,26 @@ func TestNoAIExecution(t *testing.T) {
 	}
 }
 
-// 画面はいつもダーク。読み込み中の画面も同じ（暗い地の色を持ち、html にダークの印がある）
+// 画面はいつもダーク。読み込み中の画面も同じ（ダークの配色と暗い地の色だけを持ち、ライトの配色は持たない）
 func TestLoadingIsDark(t *testing.T) {
 	s := string(LoadingFor(""))
-	for _, want := range []string{`data-theme="dark"`, `:root[data-theme="dark"]{color-scheme:dark;`} {
+	for _, want := range []string{`<meta name="color-scheme" content="dark">`, `:root{color-scheme:dark;--bg:#141218;`} {
 		if !strings.Contains(s, want) {
 			t.Errorf("loading page lacks %q", want)
 		}
 	}
+	for _, bad := range []string{"color-scheme:light", "light dark", "data-theme", "prefers-color-scheme"} {
+		if strings.Contains(s, bad) {
+			t.Errorf("loading page still has %q", bad)
+		}
+	}
+}
+
+// render は Marshal と HTML を続けて呼ぶ。
+func render(data, weeks, months, meta any, generated float64, live bool) (string, error) {
+	p, err := Marshal(data, weeks, months, meta, generated)
+	if err != nil {
+		return "", err
+	}
+	return p.HTML(live)
 }

@@ -23,7 +23,7 @@ func TestScriptParses(t *testing.T) {
 	if err != nil {
 		t.Skip("node がないので省略")
 	}
-	html, err := Render([]any{}, map[string]any{}, map[string]any{}, map[string]any{"report": []any{}, "git": []any{}}, 0, false)
+	html, err := render([]any{}, map[string]any{}, map[string]any{}, map[string]any{"report": []any{}, "git": []any{}}, 0, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -264,7 +264,7 @@ func TestReviewFlow(t *testing.T) {
 	}
 }
 
-// 週報のプロンプトで、セッションが期間の中で動いていた時間（spanIn）。週をまたぐセッションは期間の中だけを、日ごとにまとめて出すこと。
+// 日報のプロンプトで、セッションが期間の中で動いていた時間（spanIn）。期間をまたぐセッションは期間の中だけを、日ごとにまとめて出すこと。
 // panels.js はほかのファイルに頼るので、spanIn と、それが使う日付の小物だけを取り出して Node で動かす。
 func TestSpanIn(t *testing.T) {
 	node, err := exec.LookPath("node")
@@ -407,15 +407,31 @@ const tr = trend([2,5,8,11]); eq(tr.a, 2, "trend a"); eq(tr.b, 3, "trend b"); if
 }
 
 // JA_TEXT（i18n.js）のどの鍵も、画面のスクリプト・テンプレート・Go のどこかで使われている（消した画面の訳を残さない）。
-// 鍵は英語の文そのものなので、ほかのファイルにその文（i18n.js と同じ書き方）があるかで見る
+// 鍵は英語の文そのものなので、ほかのファイルにその文がまるごと 1 つの文字列（"…"・'…'・`…`）として書いてあるか、
+// template.html の要素の文字（>…<。data-t の要素を applyStaticText が訳す）として書いてあるかで見る。
+// 長い文の一部に同じ言葉があるだけでは、使われているとみなさない（"Run" が "Run kiroku …" の中にあるなど）。
+// i18n.js のうち JA_TEXT の外（localizeTitles が Go の組み立てた題を引く t("Kiro Crew memory consolidation ({slot})") など）も見る
 func TestI18nNoUnusedKeys(t *testing.T) {
-	src, err := jsFiles.ReadFile("js/i18n.js")
+	b, err := jsFiles.ReadFile("js/i18n.js")
 	if err != nil {
 		t.Fatal(err)
 	}
+	src := strings.ReplaceAll(string(b), "\r\n", "\n") // Windows のチェックアウトは CRLF
+	start := strings.Index(src, "const JA_TEXT = {\n")
+	end := strings.Index(src, "\n};\n")
+	if start < 0 || end < start {
+		t.Fatal("i18n.js に JA_TEXT が見つからない")
+	}
+	dict := src[start:end]
 	var other strings.Builder
+	other.WriteString(src[:start])
+	other.WriteString(src[end:])
+	tmpl, err := os.ReadFile("template.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	other.Write(tmpl)
 	names, _ := filepath.Glob("js/*.js")
-	names = append(names, "template.html")
 	goFiles, _ := filepath.Glob("../*/*.go")
 	for _, f := range goFiles {
 		if !strings.HasSuffix(f, "_test.go") {
@@ -430,26 +446,75 @@ func TestI18nNoUnusedKeys(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		other.Write(b)
 		other.WriteByte('\n')
+		other.Write(b)
 	}
 	all := other.String()
+	used := func(k string) bool {
+		for _, q := range []string{`"`, `'`, "`"} {
+			if strings.Contains(all, q+k+q) {
+				return true
+			}
+		}
+		// テンプレートの要素の文字は、テンプレートでだけ見る（Go が書くほかのページの <p>Run <code>… を数えない）
+		return regexp.MustCompile(`>\s*` + regexp.QuoteMeta(k) + `\s*<`).Match(tmpl)
+	}
+	keys := regexp.MustCompile(`(?m)^  "((?:[^"\\]|\\.)*)": `).FindAllStringSubmatch(dict, -1)
+	if len(keys) < 100 {
+		t.Fatalf("JA_TEXT の鍵が %d 個しか読めない", len(keys))
+	}
 	var unused []string
-	for _, m := range regexp.MustCompile(`(?m)^  "((?:[^"\\]|\\.)*)": `).FindAllStringSubmatch(string(src), -1) {
+	for _, m := range keys {
 		raw := m[1]
 		var plain string
 		if err := json.Unmarshal([]byte(`"`+raw+`"`), &plain); err != nil {
 			plain = raw
 		}
-		head := plain // Go が組み立てる題（"Kiro Crew memory consolidation (" + slot + ")" など）は、{ の前までで見る
-		if i := strings.Index(plain, "{"); i > 8 {
-			head = plain[:i]
-		}
-		if !strings.Contains(all, raw) && !strings.Contains(all, plain) && !strings.Contains(all, head) {
+		if !used(raw) && !used(plain) {
 			unused = append(unused, plain)
 		}
 	}
 	if len(unused) > 0 {
 		t.Errorf("JA_TEXT に使われていない鍵が %d 個ある（消すか、使う場所を直す）:\n%s", len(unused), strings.Join(unused, "\n"))
+	}
+}
+
+// 読み込み中の画面（loading.html）は、本物の画面（state.js の LANG）と同じ言語になる。?lang=、--lang、ブラウザの言語の順で、
+// 以前の版の切り替えボタンが localStorage に残した言語（kiroku:lang）は、どちらも使わない
+func TestLoadingLangMatchesView(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	state, err := jsFiles.ReadFile("js/state.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lf := func(x string) string { return strings.ReplaceAll(x, "\r\n", "\n") } // Windows のチェックアウトは CRLF
+	view := regexp.MustCompile(`(?s)const LANGS = .*?\}\)\(\);\n`).FindString(lf(string(state)))
+	pick := regexp.MustCompile(`(?s)const pick = \(\) => \{.*?\};\n  const JA = `).FindString(lf(loading))
+	if view == "" || pick == "" {
+		t.Fatal("state.js の LANG か loading.html の pick が見つからない")
+	}
+	pick = strings.TrimSuffix(pick, "\n  const JA = ")
+	args, _ := json.Marshal([]string{view + "return LANG;", pick + "return pick();"})
+	code := `const [view, pick] = ` + string(args) + `;
+const viewLang = new Function("location", "navigator", "localStorage", "__LANG__", view);
+const loadLang = new Function("location", "navigator", "localStorage", "document", pick);
+let bad = 0;
+for (const q of ["", "?lang=ja", "?lang=en", "?lang=fr"]) for (const flag of ["", "en", "ja"]) for (const nav of ["en-US", "ja-JP", "ja", ""]) for (const saved of [null, "ja", "en"]) {
+  const loc = {search: q}, nv = {languages: nav ? [nav] : [], language: nav}, ls = {getItem: k => k === "kiroku:lang" && saved ? JSON.stringify(saved) : null};
+  const v = viewLang(loc, nv, ls, flag), l = loadLang(loc, nv, ls, {documentElement: {dataset: {lang: flag}}});
+  const want = ["en", "ja"].includes(q.slice(6)) ? q.slice(6) : flag || (nav.startsWith("ja") ? "ja" : "en");
+  if (v !== want || l !== want) { bad++; console.error(JSON.stringify({q, flag, nav, saved}), "view", v, "loading", l, "want", want); }
+}
+if (bad) process.exit(1);
+`
+	f := filepath.Join(t.TempDir(), "lang.js")
+	if err := os.WriteFile(f, []byte(code), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("読み込み中の画面と本物の画面で言語が違う:\n%s", out)
 	}
 }

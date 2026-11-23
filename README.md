@@ -41,7 +41,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 ![The week calendar (dummy data)](docs/screenshot.png)
 
-**The whole story of a session.** The prompt flow with times, separating what you typed from what entered on its own, with commands, commits, pull requests, subagents and interruptions in between, and the AI's reply after each prompt, so a session reads as the conversation it was. "Analyze with AI" reviews it with your own agent (see below).
+**The whole story of a session.** The prompt flow with times, separating what you typed from what entered on its own, with commands, commits, pull requests, subagents and interruptions in between, and the AI's reply after each prompt, so a session reads as the conversation it was. "Copy prompt" gives you a review prompt for it to paste into your own agent (see below).
 
 <img src="docs/session.png" alt="Session details (dummy data)" width="560">
 
@@ -51,7 +51,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 <img src="docs/worth.png" alt="A flagged metric opened from Worth a look (dummy data)" width="560">
 
-**A summary that tells you what to change.** The weekly and monthly summary is a page of charts: time, tokens, estimated cost (Claude Code, Codex and Kiro Crew's non-Kiro backends, at public API rates) and credits, where they went (project, agent, model, session length), next to what it left behind, in two parts kept apart (Git commits, and the lines AI edited according to history) and the cost per Git commit and per 100 AI-edited lines. Each figure has a chart of its last 12 weeks or months with your usual range, the running total and usage-limit hits, the change from last week or month, and a comparison with your own past as an inequality against their 25th and 75th percentiles (such as "$31.23 > 75th pct = $27.35"). Computed figures show their formula under ƒx, and every chart opens with a takeaway. While a week or month is in progress, each amount shows its month-end (or week-end) estimate, and the days still to come show how much a day keeps it at the last one's total, with no budget to set. Not every agent records everything; the guide lists [what each agent records](docs/guide.md#what-each-agent-records).
+**A summary that tells you what to change.** The weekly and monthly summary is a page of charts: time, tokens, estimated cost (Claude Code, Codex and Kiro Crew's non-Kiro backends, at public API rates) and credits, where they went (project, agent, model, session length), next to what it left behind, in two parts kept apart (Git commits, and the lines AI edited according to history) and the cost per AI commit and per 100 AI-edited lines. Each figure has a chart of its last 12 weeks or months with your usual range, the running total and usage-limit hits, the change from last week or month, and a comparison with your own past in plain words (such as "$31.23: above your usual $19.92–$27.35"). ƒx shows the same comparison as an inequality and the formula behind computed figures, and every chart opens with a takeaway. While a week or month is in progress, each amount shows its month-end (or week-end) estimate, and the days still to come show how much a day keeps it at the last one's total, with no budget to set. Not every agent records everything; the guide lists [what each agent records](docs/guide.md#what-each-agent-records).
 
 ![Weekly summary (dummy data)](docs/summary.png)
 
@@ -61,26 +61,12 @@ The view is in Japanese when your browser prefers Japanese; `--lang` (or `KIROKU
 
 ## Reviews and advice, written by your own agent
 
-"Copy prompt" in session details and next to each date in the week calendar copies a prompt to paste into the AI agent you already use, such as Claude Code or Codex. kiroku runs no agent and sends nothing; where you paste it is your choice. The prompt carries the facts kiroku counted and points the agent to the history files, so the agent reads what really happened and writes a review in a fixed format, as a professional advisor on prompts and engineering work would.
-
-| Scope | Where | What you get |
-|---|---|---|
-| A session | "Copy prompt" in session details | Summary, numbers, an assessment of your prompts, up to three prioritized pieces of advice (each quoting the prompt with its time and giving an improved prompt), and a playbook of prompts for similar work |
-| A day | "Copy prompt" next to each date with history in the week calendar | A daily report: summary, numbers next to the previous day, what was done in each project and why, expert observations and next actions |
-
-The advice is grounded in your history, not generic tips. Each point names what it is based on: a figure, a prompt with its time, or a signal kiroku counted. Where the history shows it, the advice covers
-
-- **how you write prompts**: context, constraints and done criteria that were missing, and corrections a clearer first prompt would have avoided
-- **how you use agents**: splitting and ordering work, checking results, long sessions, waiting
-- **model and context**: whether the model fits the work (for example a one-line question on an Opus-class model), conversations that grew long, compactions, and switching between projects
-- **what to move out of your prompts**: an instruction you keep typing into a skill or the project's agent instructions, a separate role into a subagent, fixed steps into a script
-
-An excerpt of advice written from dummy history:
+"Copy prompt" in session details (a session review) and the copy icon next to each date in the week calendar (a daily report) copy a prompt to paste into the AI agent you already use, such as Claude Code or Codex. kiroku runs no agent and sends nothing; where you paste it is your choice. The prompt carries the facts kiroku counted and points the agent to the history files, so the advice is grounded in what really happened, not generic tips: how you write prompts, how you use agents, model and context, and what to move out of your prompts into a skill, a subagent or a script. Each point names what it is based on: a figure, a prompt with its time, or a signal kiroku counted. An excerpt of advice written from dummy history:
 
 > - **Turn the repeated check into a skill or script.** You typed "Run the full test suite and the linter, fix anything that fails, and show me the summary" 3 times in 3 sessions. Make it a skill or a project script the agent runs before each commit.
 > - **Use a lighter model for quick questions.** On Thu, Aug 13 at 10:00 you asked a one-line question in a separate Opus session. A lighter model is enough for questions like this.
 
-The prompts stay light: a report carries a short digest of each session, and the agent opens a history file only when the digest isn't enough. See the [guide](docs/guide.md#reviews-and-reports-with-your-agent) for what each prompt contains.
+See the [guide](docs/guide.md#reviews-and-reports-with-your-agent) for what each prompt contains and the format of what you get.
 
 ## Privacy
 

@@ -39,7 +39,7 @@ const loaded = p => p.waitForFunction(() => document.querySelector("#rd") && doc
 
 // openContext は、画面の幅 env・言語 locale のブラウザを開く。スクリプトのエラーは errors に、CSP に止められたものは csp にためる
 async function openContext(env, locale, csp) {
-  const ctx = await b.newContext({ ...env, locale, timezoneId: "Asia/Tokyo", acceptDownloads: true, colorScheme: "dark" }); // テーマは OS に合わせるので、ダークの OS で確かめる（「テーマ」の手順でライトも見る）
+  const ctx = await b.newContext({ ...env, locale, timezoneId: "Asia/Tokyo", acceptDownloads: true, colorScheme: "dark" }); // 画面はいつもダーク（「テーマ」の手順で、OS がライトでも変わらないことを見る）
   ctx.setDefaultTimeout(5000);
   if (fakeNow) await ctx.clock.install({ time: fakeNow }); // 時計はこの時刻から普通に進む（タイマーも動く）
   // CSP の違反はページの中で拾って知らせる（関数を渡す仕組みは CSP の外なので止められない）
@@ -162,7 +162,7 @@ async function run(env) {
   await step("テーマ", async () => {
     check("言語とテーマの切り替えボタンはない", await p.locator("#lang").count() === 0 && await p.locator("#theme").count() === 0);
     await p.emulateMedia({ colorScheme: "light" }); await pause();
-    check("OS がライトでも、画面はいつもダーク", await p.evaluate(() => document.documentElement.dataset.theme === "dark" && getComputedStyle(document.documentElement).colorScheme === "dark"));
+    check("OS がライトでも、画面はいつもダーク", await p.evaluate(() => getComputedStyle(document.documentElement).colorScheme === "dark" && getComputedStyle(document.body).backgroundColor === "rgb(20, 18, 24)"));
     await p.emulateMedia({ colorScheme: "dark" }); await pause();
   });
 
@@ -618,31 +618,38 @@ async function run(env) {
     { const r = await p.evaluate(async () => { window.__copied = null; navigator.clipboard.writeText = t => { window.__copied = t; return Promise.resolve(); };
         document.querySelector(".head .dayrun").click(); await new Promise(z => setTimeout(z, 300)); return {got: window.__copied || "", dialog: !!document.querySelector("dialog[open]")}; });
       check("日報のボタンは、その日のプロンプトをコピーするだけ", /## Daily report: /.test(r.got) && !r.dialog, r.got.slice(0, 120)); }
-    const text = await p.evaluate(() => { const {S, P} = period(); return reportPrompt(S); });
-    check("事実の期間は「Sep 28 – Oct 4, 2026」の形", /^## Work for [A-Z][a-z]{2} \d{1,2} – ([A-Z][a-z]{2} \d{1,2}, )?\d{4}$|^## Work for [A-Z][a-z]{2} \d{1,2}, \d{4} – /m.test(text), JSON.stringify(text.slice(0, 80)));
+    // 試す日は、表示中の週で、コミットのある日のうちセッションのいちばん多い日（ダミーデータの「今」は KIROKU_FAKE_NOW で決まる）
+    const dayLabel = await p.evaluate(() => { let best = null, score = -1;
+      for (let i = 0; i < 7; i++){ const d = addDays(st.week, i), ws = d.getTime() / 1000, we = addDays(d, 1).getTime() / 1000;
+        const n = DATA.filter(s => s.segs.some(([a, b]) => b > ws && a < we)).length, c = (META.git || []).some(c => c.t >= ws && c.t < we && c.project);
+        const sc = n ? n + (c ? 1000 : 0) : -1; if (sc > score){ score = sc; best = d; } }
+      window.__rptDay = best; return best ? best.toDateString() : ""; });
+    check("日報を試す、セッションのある日がある", !!dayLabel);
+    const text = await p.evaluate(() => reportPrompt(window.__rptDay));
+    check("事実の見出しは「Work on Wed, Oct 14, 2026」の形", /^## Work on [A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2}, \d{4}$/m.test(text) && /^## Daily report: /m.test(text), JSON.stringify(text.slice(0, 80)) + " " + dayLabel);
     check("履歴ファイルのパスと、読む範囲の決まりがある", /History file: \//.test(text) && /Read only the files listed/.test(text));
     check("決まった形式と、kiroku が埋めた数字の表がある", /# Format/.test(text) && /### By project/.test(text) && /^\| Active time \| \S/m.test(text) && /^\| Git commits \(by AI\) \| \d+ \(\d+\) \|/m.test(text), JSON.stringify(text.match(/^\| Active time.*$/m)));
-    // 長い日本語のプロンプトが多い週でも、エージェントに貼れる大きさに収まる（要約を短くし、そう書く）
-    const big = await p.evaluate(() => { const was = DATA; const {ws, we, S} = period();
-      try { const inWeek = DATA.filter(s => s.segs.some(([a, b]) => b > ws && a < we));
-        const many = []; for (let i = 0; i < 120; i++) inWeek.forEach(s => many.push({...s, id: s.id + "-x" + i,
+    // 長い日本語のプロンプトが多い日でも、エージェントに貼れる大きさに収まる（要約を短くし、そう書く）
+    const big = await p.evaluate(() => { const was = DATA, day = window.__rptDay, ws = day.getTime() / 1000, we = addDays(day, 1).getTime() / 1000;
+      try { const inDay = DATA.filter(s => s.segs.some(([a, b]) => b > ws && a < we));
+        const many = []; for (let i = 0; i < 120; i++) inDay.forEach(s => many.push({...s, id: s.id + "-x" + i,
           prompts: s.prompts.map(q => ({...q, text: "日本語の長いプロンプト。".repeat(40), reply: {t: q.t, text: "日本語の長い応答。".repeat(40)}}))}));
-        DATA = was.concat(many); const t = reportPrompt(S); return {size: utf8Len(t), short: /Shortened to keep this prompt small/.test(t), budget: PROMPT_BUDGET}; }
+        DATA = was.concat(many); const t = reportPrompt(day); return {size: utf8Len(t), short: /Shortened to keep this prompt small/.test(t), budget: PROMPT_BUDGET}; }
       finally { DATA = was; } });
-    check("長い週でも、報告のプロンプトは送れる大きさに収まり、短くしたと書く", big.size <= big.budget && big.short, JSON.stringify(big));
+    check("長い日でも、報告のプロンプトは送れる大きさに収まり、短くしたと書く", big.size <= big.budget && big.short, JSON.stringify(big));
     check("デモでは、記録のある日付の見出しに日報のボタンが出る", await p.locator(".head .dayrun").count() > 0);
     check("セッションごとに、プロンプトと応答の要約がある", /^  - [A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2} \d\d:\d\d Prompt: /m.test(text));
     check("事実と履歴は、コードブロックの中にある", /# History data\n`{3,}text\n# Facts/.test(text));
-    check("週報には週の決まりだけがあり、ほかのコマンドを禁じる", /next-week priorities/.test(text) && !/tomorrow's next step|sustained trends/.test(text) && /don't run other commands, change or write files, or send anything to another service/.test(text));
+    check("日報には日の決まりだけがあり、ほかのコマンドを禁じる", /tomorrow's next step/.test(text) && !/next-week priorities|sustained trends/.test(text) && /don't run other commands, change or write files, or send anything to another service/.test(text));
     // セッション全体の目安コストは、期間の数（Numbers）と合わないので、手がかりの行に入れない
     const sig = text.slice(text.indexOf("## Signals for advice"), text.indexOf("# Sessions"));
     check("モデルと短いセッションの手がかりに、セッション全体のコストを入れない", !/^- (Main model of each session|Short sessions).*\$\d/m.test(sig), sig.split("\n").filter(l => /Main model|Short sessions/.test(l)).join(" / "));
     // 凡例で隠したプロジェクトは、セッションだけでなく、コミット・プロジェクトの節・繰り返しの手がかりからも外す
-    const hid = await p.evaluate(() => { const {ws, we, S} = period();
+    const hid = await p.evaluate(() => { const day = window.__rptDay, ws = day.getTime() / 1000, we = addDays(day, 1).getTime() / 1000;
       const c = (META.git || []).find(c => c.t >= ws && c.t < we && c.project); if (!c) return null;
       const by = st.colorBy, was = new Set(st.hidden); st.colorBy = "project"; st.hidden = new Set([c.project]);
       try { return {project: c.project, hash: c.hash.slice(0, 12), others: (META.git || []).filter(x => x.t >= ws && x.t < we && x.project === c.project).map(x => x.hash.slice(0, 12)),
-        text: reportPrompt(S)}; } finally { st.colorBy = by; st.hidden = was; } });
+        text: reportPrompt(day)}; } finally { st.colorBy = by; st.hidden = was; } });
     if (hid){ const facts = hid.text.slice(hid.text.indexOf("# History data"));
       check("隠したプロジェクトのコミットと節を報告に入れない", hid.others.every(h => !facts.includes(h)) && !facts.includes("### `" + hid.project + "`") && !facts.includes(`- ${hid.project} · `), hid.project);
       check("隠したものがあると、Numbers の表はそれも数えると伝える", /left out of this report on purpose/.test(hid.text) && !/left out of this report on purpose/.test(text)); }
@@ -725,6 +732,7 @@ async function run(env) {
       const ks2 = await p.locator(`#review [data-${attr}]`).evaluateAll(xs => xs.map(x => x.dataset[Object.keys(x.dataset)[0]]));
       for (const k of ks2){ await p.locator(`#review [data-${attr}="${k}"]`).click(); await pause();
         check(`${name}を ${k} にすると、その量の図と 1 文になる`, await p.evaluate(([key, k, sel]) => st[key] === k && !!document.querySelector(`#review ${sel} svg`) && !!document.querySelector(`#review ${sel}`).closest(".inscol").querySelector(".isay"), [key, k, sel])); } }
+    check("「グラフ」の先頭のカードは、どこへ流れたか（サンキー）", await p.evaluate(() => { const r = document.querySelector("#review .insrow.two"), c = r && r.firstElementChild; return !!c && !!c.querySelector(".isk") && [...r.children].every(x => x === c || x.getBoundingClientRect().top >= c.getBoundingClientRect().top - 1); }));
     check("サンキーは、エージェント・プロジェクト・成果の 3 列", await p.evaluate(() => document.querySelectorAll("#review .isk .skh").length === 3 && document.querySelectorAll("#review .isk .skl").length >= 2));
     { const g = p.locator("#review .igt .igr").first(); if (await g.count()){ const sid = await g.getAttribute("data-sid"); await g.click(); await pause();
       check("いちばん作業した日のガントの行を押すと、そのセッションが開く", await p.evaluate(sid => st.sel === sid, sid)); await p.keyboard.press("Escape"); await pause(); } }

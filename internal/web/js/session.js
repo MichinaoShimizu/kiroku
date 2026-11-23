@@ -222,7 +222,7 @@ function reviewFlow(prompts, ev, n, max){
 function reviewEvents(s){ // 流れの出来事のうち、振り返りに効くものを文字だけで（画面の flowEvents は HTML を作るので使わない）
   const ev = [];
   commitsOf(s).forEach(c => ev.push({t: c.t, l: c.ai ? "AI committed" : "Committed by hand", d: c.subject}));
-  (s.prAt || []).forEach(p => ev.push({t: p.t, l: "Created a pull request"}));
+  (s.prAt || []).forEach(p => ev.push({t: p.t, l: "Created a pull request", d: p.url})); // URL があれば添える（振り返りが PR を名指しできるように）
   (s.interruptsAt || []).forEach(t => ev.push({t, l: "Interrupted"}));
   (s.compactions || []).forEach(t => ev.push({t, l: "Conversation compacted"}));
   (s.limits || []).forEach(t => ev.push({t, l: "Hit a usage limit"}));
@@ -247,10 +247,10 @@ function sessionNumbers(s, active, med){
   rows.push(["Compactions (conversation summarized to free context)", String((s.compactions || []).length)], ["Usage limit hits", String((s.limits || []).length)]);
   return ["| | This session |", "|---|---|", ...rows.map(r => `| ${r.join(" | ")} |`)].join("\n");
 }
-/* 1 つのセッションを AI と振り返るためのプロンプト（kiroku 自身は AI を呼ばない）。週報・月報と同じ作り: 決まった形式と、kiroku が埋めた数字の表 */
+/* 1 つのセッションを AI と振り返るためのプロンプト（kiroku 自身は AI を呼ばない）。日報と同じ作り: 決まった形式と、kiroku が埋めた数字の表 */
 function sessionPrompt(s, active, med){ return inEnglish(() => { // AI に渡すので英語のまま
   const file = reviewFile(s), cut = (t, n) => { t = oneLine(t); return t.length > n ? t.slice(0, n) + "…" : t; };
-  const L = [`Act as a professional AI prompt advisor. Review this session using established prompt-engineering and agent-workflow principles, not a proprietary scoring framework. Help me improve real outcomes, not simply write longer prompts (times are ${utcOff(s.start)}). kiroku, a tool on this computer that aggregates my AI agent history, gives you the facts below${file ? " and points to the session's history file" : ""}.`,
+  const L = [`Act as a professional AI prompt advisor. Review this session using established prompt-engineering and agent-workflow principles, not a proprietary scoring framework. Help me improve real outcomes, not simply write longer prompts. Times are ${utcOff(s.start)}. kiroku, a tool on this computer that aggregates my AI agent history, gives you the facts below${file ? " and points to the session's history file" : ""}.`,
     ...(file ? ["", "# Read the history file first",
       "- The full record of this session is in the history file named under \"History data\": my prompts in full, the AI's replies, its tool calls and their results. Read it before judging, and use it to see what the AI did between my prompts",
       `- Read only that file${s.source === "Claude Code" ? " and, if it exists, the folder next to it with the same name (subagents' records)" : ""}. Don't read or change anything else${/\.zst$/.test(file) ? ". It is compressed with zstd: read it with zstd -dc. If you can only read files, not run commands, write from the facts below instead" : ""}`] : []),
@@ -278,7 +278,7 @@ function sessionPrompt(s, active, med){ return inEnglish(() => { // AI に渡す
     `- Title: ${cut(s.title, 80)}`, `- Agent: ${oneLine(s.source)}`, `- Project: ${oneLine(s.project)}${s.branch ? ` (branch ${oneLine(s.branch)})` : ""}`,
     `- Time: ${md(s.start)} ${hm(s.start)}–${hm(s.end)}`];
   if (file) D.push(`- Session ID: ${oneLine(s.id)}`, `- History file: ${oneLine(file)}`);
-  // このセッションの最初と最後のプロンプトの間に、ほかのプロジェクトで書いたプロンプト（切り替えの手がかり）。凡例で隠したものは入れない（週報と同じ）
+  // このセッションの最初と最後のプロンプトの間に、ほかのプロジェクトで書いたプロンプト（切り替えの手がかり）。凡例で隠したものは入れない（日報と同じ）
   const a = s.prompts.length ? s.prompts[0].t : s.start, b = s.prompts.length ? s.prompts[s.prompts.length - 1].t : s.end, other = new Map();
   DATA.forEach(x => { if (x.project !== s.project && !st.hidden.has(keyOf(x))) x.prompts.forEach(p => { if (p.t > a && p.t < b) other.set(x.project, (other.get(x.project) || 0) + 1); }); });
   const sw = `- Prompts I wrote in other projects while this session ran: ${other.size ? [...other].sort((x, y) => y[1] - x[1]).slice(0, 5).map(([k, v]) => `${oneLine(k)} ${v}`).join(", ") : "none"}`;

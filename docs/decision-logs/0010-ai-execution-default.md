@@ -47,3 +47,9 @@ From the PR records; not necessarily who decided.
 - DL-11
 - DL-12
 - DL-1
+
+---
+
+## Addendum 2026-11-23 (Claude Code)
+
+C4 no longer holds. [PR #504](https://github.com/MichinaoShimizu/kiroku/pull/504) made "Analyze with AI" off by default (`--ai` to turn it on, BREAKING, 2.0.0), and [PR #520](https://github.com/MichinaoShimizu/kiroku/pull/520) removed it (BREAKING, 4.0.0): `internal/ai` and `/ai/run` are gone (404 even with the key), and `--ai`, `--no-ai`, `KIROKU_AI` and `KIROKU_NO_AI` are still accepted and do nothing. Review and report prompts are only copied ("Copy prompt").

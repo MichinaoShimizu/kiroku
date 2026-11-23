@@ -38,3 +38,9 @@ From the PR records; not necessarily who decided.
 
 - [ADR 0029 (removed)](https://github.com/MichinaoShimizu/kiroku/blob/27e8298bdc0367afc623bc4db5c450ca0bad38b1/docs/adr/0029-japanese-ui.md)
 - [old Decision Log 0018 (removed)](https://github.com/MichinaoShimizu/kiroku/blob/ef66c137df557123c0f71a342dbf2f82be064131/docs/decision-log/0018-language-policy.md)
+
+---
+
+## Addendum 2026-11-23 (Claude Code)
+
+C3 has changed. [PR #506](https://github.com/MichinaoShimizu/kiroku/pull/506) removed the language button, and [PR #510](https://github.com/MichinaoShimizu/kiroku/pull/510) made the view ignore a language saved with it (`kiroku:lang`): the language is `?lang=`, then `--lang` or `KIROKU_LANG`, then the browser's. The catalog keyed by the English sentence is unchanged.

@@ -1,0 +1,2 @@
+- The pages `kiroku serve` shows to a browser without its key, and for an old address with the key in it, are dark like the view instead of white with default blue links, and follow `--lang` (or `KIROKU_LANG`) when it is set, before the browser's language
+- The page that hands the key to the browser after `kiroku open` picks its language the same way as the view (`?lang=`, then `--lang` or `KIROKU_LANG`, then the browser). Before, it ignored `--lang` and a language chosen with the button of an earlier version still won there

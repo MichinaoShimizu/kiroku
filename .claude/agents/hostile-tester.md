@@ -44,7 +44,7 @@ node tools/screenshots/xss.mjs "$T/xss.html"
 - `testdata/codex`・`testdata/crew`・`testdata/sqlite`・`testdata/home` の形を写して `$T` に置き、プロンプト・返答・タイトル・モデル名・ツール名・ファイルパス・ブランチ・作業ディレクトリ・エラー文・セッション ID の文字列に `<img src=x onerror=alert(N)>`、`"><svg onload=alert(N)>`、`</script><script>alert(N)</script>`、`javascript:alert(N)`、`{{constructor}}`、`__DATA__` などを入れる（N はどこから来たかがわかる番号）
 - SQLite は `python3 -I` の `sqlite3` でコピーを書き換える
 - 書き出した HTML を `xss.mjs` と同じやり方（`alert` の差し替え、差しこまれた要素、`<script>` の数、`href` の形、外部へのリクエスト、Content-Security-Policy の違反）で、セッション詳細・検索・各ダイアログ・月表示を開いて確かめる
-- 画面の「コピー」が作る文字列（週報の下書き、プロンプトの書き出し、AI に渡すプロンプト、再開コマンド）も取り出し、Markdown の記法がエスケープされているか、AI 向けのプロンプトが履歴をデータとして囲んでいるかを見る
+- 画面の「コピー」が作る文字列（日報のプロンプト、プロンプトの書き出し、AI に渡すプロンプト、再開コマンド）も取り出し、Markdown の記法がエスケープされているか、AI 向けのプロンプトが履歴をデータとして囲んでいるかを見る
 
 ### 2. 再開コマンドとシェル
 

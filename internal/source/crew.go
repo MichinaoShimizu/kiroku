@@ -1074,28 +1074,19 @@ func crewTranscriptPath(home, key string) string {
 	return filepath.Join(home, "sessions", safeKey(key)+".jsonl")
 }
 
-// readCrewKey は会話キーの記録を読む（readCrewStem）。
-func readCrewKey(home, arch, key string, errs *fileErrs) (meta crewMeta, rows []crewRow) {
-	return readCrewStem(home, arch, safeKey(key), errs)
-}
-
 // crewSeg は退避した記録のファイル 1 つ（Crew の history._archive_lines が書く。同じ秒に重なれば <日時>-<番号>。番号は 1 から。番号なしが先）。
 type crewSeg struct {
 	path, stamp string
 	n           int
 }
 
-// readCrewStem は会話の記録（sessions/<stem>.jsonl。stem は safeKey の名前）を読む。Crew は古い行を sessions/archive/<名前>__<日時>.jsonl に退避する
+// readCrewStemIn は会話の記録（sessions/<stem>.jsonl。stem は safeKey の名前）を読む。Crew は古い行を sessions/archive/<名前>__<日時>.jsonl に退避する
 // （残す期間は session.archive_retention_days で決まる。既定 30 日。crewRetentionDays）ので、残っていればそちらも書いた順に読む。
 // 退避した記録が消えていても、kiroku archive のコピー（arch の下の同じ並び。.jsonl.zst）があればそれを読む。
 // 名前が <stem>__ で始まっても、そのあとが日時でないもの（<stem>__x という別の会話のもの）は読まない。
 // 退避した記録は、あふれた古い行（reason "rotate"）だけではない（crewArchiveRows）。
 // fork した会話なら、元の会話から写した行は除く（ownRows）。
-func readCrewStem(home, arch, stem string, errs *fileErrs) (meta crewMeta, rows []crewRow) {
-	return readCrewStemIn(newCrewArchiveIndex(home, arch), stem, errs)
-}
-
-// readCrewStemIn は readCrewStem と同じ。退避した記録は idx（1 回の読み込みで 1 度だけ並べたもの）から探す。
+// 退避した記録は idx（1 回の読み込みで 1 度だけ並べたもの）から探す。
 func readCrewStemIn(idx *crewArchiveIndex, stem string, errs *fileErrs) (meta crewMeta, rows []crewRow) {
 	for _, err := range idx.errs { // 同じエラーは 1 度だけ数える
 		errs.add(err)
@@ -1755,7 +1746,7 @@ func addCrewNative(s *core.Builder, turns []crewTurn) {
 
 // crewOnly は kiro-cli の会話に結びつかない Crew の記録を、Crew のセッションにする。
 // 裏方の処理（_bg と、記憶の場所ごとの記憶の整理。crewBackground）は 1 日ごとにまとめる。skipped は、crewElsewhere でトークンとドル額を足さなかった行の数。
-// title と rows は、その slot の会話の記録（のうち kiro-cli の会話に結びつかなかった行。readCrewKey）。裏方の処理では使わない。
+// title と rows は、その slot の会話の記録（のうち kiro-cli の会話に結びつかなかった行。readCrewStemIn）。裏方の処理では使わない。
 func crewOnly(home, slot string, turns []crewTurn, info *CrewInfo, title string, rows []crewRow) (out []*core.Builder, skipped int) {
 	bg := crewBackground(slot)
 	if bg {

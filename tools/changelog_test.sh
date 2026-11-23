@@ -88,21 +88,18 @@ expect_out v0.36.1 "next-version after creating ## Unreleased" nv Unreleased "$c
 printf -- '- A new thing\n' > "$tmp/fresh/changes/thing.added.md"
 expect_out v0.37.0 "an Added fragment with an existing Unreleased → minor" nv Unreleased "$c"
 
-# STABLE: の項目は、0.x から 1.0.0 にする（BREAKING があっても）。1.0 以降は意味を持たない
+# 1.0 以降の BREAKING: は major
 copy fresh
 c=$tmp/fresh/CHANGELOG.md
-printf -- '- STABLE: kiroku 1.0\n' > "$tmp/fresh/changes/one.changed.md"
-printf -- '- BREAKING: renamed\n' > "$tmp/fresh/changes/two.changed.md"
-expect_out v1.0.0 "a STABLE: fragment in 0.x → 1.0.0" nv Unreleased "$c"
 cl --release v1.0.0 --date 2026-11-20 "$c" > /dev/null
-printf -- '- STABLE: again\n- BREAKING: later\n' > "$tmp/fresh/changes/three.changed.md"
-expect_out v2.0.0 "after 1.0, STABLE: means nothing and BREAKING → major" nv Unreleased "$c"
+printf -- '- BREAKING: later\n' > "$tmp/fresh/changes/three.changed.md"
+expect_out v2.0.0 "after 1.0, BREAKING → major" nv Unreleased "$c"
 
-# STABLE: と BREAKING: は、いちばん上の段の項目の頭だけ（入れ子の項目や、文の中の語は数えない）
+# BREAKING: は、いちばん上の段の項目の頭だけ（入れ子の項目や、文の中の語は数えない）
 copy fresh
 c=$tmp/fresh/CHANGELOG.md
-printf -- '- Fix a typo\n  - STABLE: nested\n- Not BREAKING anything\n' > "$tmp/fresh/changes/nest.fixed.md"
-expect_out v0.36.1 "a nested STABLE: or a BREAKING in prose → patch" nv Unreleased "$c"
+printf -- '- Fix a typo\n  - BREAKING: nested\n- Not BREAKING anything\n' > "$tmp/fresh/changes/nest.fixed.md"
+expect_out v0.36.1 "a nested BREAKING: or a BREAKING in prose → patch" nv Unreleased "$c"
 
 # 断片も「## Unreleased」もないとき
 copy fresh
@@ -155,6 +152,32 @@ elif grep -q 'must be the first "## " section' "$tmp/err"; then
 else
   fail "a misplaced ## Unreleased is not reported: $(cat "$tmp/err")"
 fi
+
+# メジャー版の間隔（tools/major-gap.sh）
+mg() { sh "$here/major-gap.sh" "$@"; }
+c=$tmp/major.md
+printf '# Changelog\n\n## v2.1.0 - 2026-03-10\n\n## v2.0.0 - 2026-03-01\n\n## v1.0.0 - 2026-01-01\n' > "$c"
+if mg v3.0.0 "$c" 2026-03-20 > /dev/null 2>&1; then fail "major-gap stops a major 19 days after the last"; else ok "major-gap stops a major 19 days after the last"; fi
+if mg v3.0.0 "$c" 2026-03-31 > /dev/null 2>&1; then ok "major-gap allows a major 30 days after the last"; else fail "major-gap allows a major 30 days after the last"; fi
+if mg v3.0.0 "$c" 2027-03-01 > /dev/null 2>&1; then ok "major-gap counts across a year"; else fail "major-gap counts across a year"; fi
+if KIROKU_MAJOR_OK=1 mg v3.0.0 "$c" 2026-03-02 > /dev/null 2>&1; then ok "KIROKU_MAJOR_OK=1 lets a major through"; else fail "KIROKU_MAJOR_OK=1 lets a major through"; fi
+for nv_ in v2.2.0 v2.1.1 v1.0.0; do
+  if mg "$nv_" "$c" 2026-03-02 > /dev/null 2>&1; then ok "major-gap ignores $nv_"; else fail "major-gap ignores $nv_"; fi
+done
+# 見出しの日付に式を仕込んでも、コマンドは動かない（bash は $(( )) の中の名前の値を式として評価する）
+mk=$tmp/pwned
+# shellcheck disable=SC2016 # 式は展開させずに見出しに入れる
+printf '# Changelog\n\n## v2.0.0 - 2026-03-01-gap[$(touch${IFS}%s)]\n\n## v2.0.0 - 2026-01-01\n' "$mk" > "$c"
+for sh_ in sh bash; do
+  command -v "$sh_" >/dev/null 2>&1 || continue
+  "$sh_" "$here/major-gap.sh" v3.0.0 "$c" 2026-01-20 > /dev/null 2>&1
+  if [ -e "$mk" ]; then fail "major-gap runs a command from a CHANGELOG heading ($sh_)"; rm -f "$mk"; else ok "major-gap ignores a hostile CHANGELOG heading ($sh_)"; fi
+done
+if mg v3.0.0 "$c" 2026-01-20 > /dev/null 2>&1; then fail "major-gap still finds the well-formed heading after a hostile one"; else ok "major-gap still finds the well-formed heading after a hostile one"; fi
+# shellcheck disable=SC2016
+if mg v3.0.0 "$c" '2026-01-01-x[$(id)]' > /dev/null 2>&1; then fail "major-gap refuses a bad today"; else ok "major-gap refuses a bad today"; fi
+printf '# Changelog\n\n## v1.4.0 - 2026-03-10\n\n## v1.0.0 - 2026-03-01\n' > "$c"
+if mg v2.0.0 "$c" 2026-03-05 > /dev/null 2>&1; then fail "major-gap stops 2.0.0 soon after 1.0.0"; else ok "major-gap stops 2.0.0 soon after 1.0.0"; fi
 
 echo
 if [ "$fails" -gt 0 ]; then

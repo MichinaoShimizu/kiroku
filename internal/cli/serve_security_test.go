@@ -176,7 +176,7 @@ func TestServeShellHasNoHistory(t *testing.T) {
 	}
 	l.markReady()
 	key := strings.Repeat("ef", 32)
-	srv := httptest.NewServer(secureHeaders(sameOrigin("127.0.0.1:8484", nil, requireKey("127.0.0.1:8484", key, l.handler()))))
+	srv := httptest.NewServer(secureHeaders(sameOrigin("127.0.0.1:8484", nil, requireKey("127.0.0.1:8484", key, "", l.handler()))))
 	defer srv.Close()
 	const host = "localhost:8484"
 	code, body, _ := fetchHost(t, "GET", srv.URL+"/", host)

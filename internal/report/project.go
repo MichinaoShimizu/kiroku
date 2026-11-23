@@ -30,7 +30,7 @@ type ModelShare struct {
 	Model  string  `json:"model"`
 	Tokens float64 `json:"tokens"`
 	Cost   float64 `json:"cost"`
-	Turns  int     `json:"turns"` // 応答（Kiro などトークンのないエージェントはクレジットの記録）の数
+	Turns  int     `json:"-"` // 並べる順だけに使う（JSON に入れない）。応答（Kiro などトークンのないエージェントはクレジットの記録）の数
 }
 
 type TopSession struct {

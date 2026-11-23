@@ -98,7 +98,7 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 		fmt.Fprintf(w, "      %s\n", s.dim("\"kiroku doctor --all\" shows where kiroku looks for each one"))
 	}
 	if total == 0 {
-		fmt.Fprintf(w, "  %s No history found. If your agents keep it somewhere else, point kiroku to it\n      %s\n", s.warn("!"), s.dim("(--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db, --amazonq-db; see \"kiroku doctor --help\")"))
+		fmt.Fprintf(w, "  %s No history found. If your agents keep it somewhere else, point kiroku to it\n      %s\n", s.warn("!"), s.dim("(--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db; see \"kiroku doctor --help\")"))
 	}
 
 	formatCheck(w, rep)

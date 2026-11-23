@@ -39,3 +39,9 @@ From the PR records; not necessarily who decided.
 - [ADR 0033 (removed)](https://github.com/MichinaoShimizu/kiroku/blob/27e8298bdc0367afc623bc4db5c450ca0bad38b1/docs/adr/0033-calendar-only-view.md)
 - [ADR 0026 (removed)](https://github.com/MichinaoShimizu/kiroku/blob/27e8298bdc0367afc623bc4db5c450ca0bad38b1/docs/adr/0026-complementary-history-views.md)
 - [ADR 0027 (removed)](https://github.com/MichinaoShimizu/kiroku/blob/27e8298bdc0367afc623bc4db5c450ca0bad38b1/docs/adr/0027-project-view.md)
+
+---
+
+## Addendum 2026-11-23 (Claude Code)
+
+C3 has changed in part. `5ce0796` ([PR #496](https://github.com/MichinaoShimizu/kiroku/pull/496)) brought back a View switch, "Calendar | Summary" (or `V`), which shows either the calendar or the summary. The Journey and Project views and "Copy knowledge prompt" are still gone.
