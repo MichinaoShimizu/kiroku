@@ -61,7 +61,7 @@ kiroku serve    # http://localhost:8484/ で画面を開く
 
 ## 振り返りとアドバイスは、あなたのエージェントが書く
 
-セッションの詳細（セッションの振り返り）と、週のカレンダーの日付の横（日報）の「プロンプトをコピー」で、いつも使っている AI エージェント（Claude Code や Codex など）に貼るプロンプトをコピーできます。kiroku はエージェントを動かさず、何も送りません。どこに貼るかはあなたが決めます。プロンプトには kiroku が数えた事実と履歴ファイルの場所が入っているので、アドバイスはよくある一般論ではなく、実際に起きたことに基づきます。プロンプトの書き方、エージェントの使い方、モデルとコンテキスト、プロンプトからスキル・サブエージェント・スクリプトに出せることに触れます。どの指摘にも、根拠（数字、時刻つきのプロンプト、kiroku が数えた兆候）が書かれます。ダミーの履歴から書かせた助言の抜粋（英語）:
+セッションの詳細の「プロンプトをコピー」（セッションの振り返り）と、週のカレンダーの日付の横のコピーのアイコン（日報）で、いつも使っている AI エージェント（Claude Code や Codex など）に貼るプロンプトをコピーできます。kiroku はエージェントを動かさず、何も送りません。どこに貼るかはあなたが決めます。プロンプトには kiroku が数えた事実と履歴ファイルの場所が入っているので、アドバイスはよくある一般論ではなく、実際に起きたことに基づきます。プロンプトの書き方、エージェントの使い方、モデルとコンテキスト、プロンプトからスキル・サブエージェント・スクリプトに出せることに触れます。どの指摘にも、根拠（数字、時刻つきのプロンプト、kiroku が数えた兆候）が書かれます。ダミーの履歴から書かせた助言の抜粋（英語）:
 
 > - **Turn the repeated check into a skill or script.** You typed "Run the full test suite and the linter, fix anything that fails, and show me the summary" 3 times in 3 sessions. Make it a skill or a project script the agent runs before each commit.
 > - **Use a lighter model for quick questions.** On Thu, Aug 13 at 10:00 you asked a one-line question in a separate Opus session. A lighter model is enough for questions like this.

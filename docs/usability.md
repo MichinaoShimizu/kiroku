@@ -27,7 +27,7 @@ Each scenario has the user's goal and a success condition. No steps are given. A
 | # | User | Goal | Success condition |
 |---|---|---|---|
 | 1 | Someone opening it for the first time | Learn what this view is and what they did last week | Within 30 seconds, can say "what this view is" and "the project they spent the most time on last week" |
-| 2 | Someone writing a daily report | Turn yesterday's work into a daily report | Presses "Copy prompt" next to that day's date in the week calendar, pastes the prompt into their AI agent, and gets a report ready to share. Learns from the message after copying that kiroku ran and sent nothing |
+| 2 | Someone writing a daily report | Turn yesterday's work into a daily report | Presses the copy icon next to that day's date in the week calendar, pastes the prompt into their AI agent, and gets a report ready to share. Learns from the message after copying that kiroku ran and sent nothing |
 | 3 | Someone who wants to keep AI costs down | Decide on one thing to change from next week | Picks one action from "Worth a look" and can say in their own words what to do |
 | 4 | Someone who wants to know whether something they tried worked | Check whether what they tried last week worked | Finds the metric related to what they changed, from the 13-week trend of a marked metric or from a metric opened via "Worth a look" or "?", reads the direction of change and can judge whether it worked (including when it dropped off "Worth a look", or why it can't be judged) |
 | 5 | Someone hunting the cause of a bug | Find the session where the AI touched a particular file | Reaches the session and commit from search, and can read the prompt flow |
