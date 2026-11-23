@@ -1,0 +1,6 @@
+- The summary's three figure panels are compact: Cost trend, Output trend and Unit cost trend each show one trend chart with a switch, and the view remembers each choice
+  - Cost trend switches between Cost, Credits, Tokens and Active time; Output trend between Commits, Pushes and PRs, with the change (%) on each point
+  - Unit cost trend has two switches, the measure (Cost, Credits or Tokens) and what it divides by (Commits, Pushes or PRs). Per push and per PR divide the period's whole total, since pushes and pull requests can't be split into the part AI did
+  - Figures that left the panels moved to the cards below: lines in Git commits and AI commits changed again within 3 days to the Git column of Outputs, AI-added lines that reached a commit to its AI edits column, the other unit costs (per 100 AI-edited lines, per active hour and day, per session and per prompt) to a new Unit costs card, and the day's spend to stay at the last period's total to Usage
+  - The section of charts under the panels is now called Breakdown
+  - In Japanese, the Cost and Credits switches read 費用 and クレジット everywhere

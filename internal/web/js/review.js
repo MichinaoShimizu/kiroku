@@ -96,6 +96,15 @@ function keptOf0(ws, we){
   const edit = xs.reduce((a, s) => a + s.editAdded, 0), kept = xs.reduce((a, s) => a + Math.min(s.editAdded, by.get(s.id) || 0), 0);
   return {n: xs.length, edit, kept}; }
 function keptOf(ws, we){ return memoBasis("kept", ws, we, "", () => keptOf0(ws, we)); }
+/* push の数：この PC の git の reflog から読んだ push（META.push）のうち、期間 [ws, we) のもの。
+   push の記録が 1 つもないとき、いちばん古い push より前に終わった期間は null（0 と言わない。reflog は既定で 90 日しか残らないので、古い期間の 0 で推移やいつもの範囲を下げないように） */
+let pushFirst = null;
+const pushesIn = (ws, we) => { const P = META.push || []; if (!P.length) return null;
+  if (!pushFirst || pushFirst.p !== P) pushFirst = {p: P, t: P.reduce((m, x) => Math.min(m, x.t), Infinity)};
+  return we <= pushFirst.t ? null : P.filter(x => x.t >= ws && x.t < we).length; };
+/* push・PR あたりの単価：期間の量（推定費用・クレジット・トークン）の合計 ÷ 数。push と PR は AI の分だけを取り出せないので、期間の合計で割る */
+const usedOf = (w, k) => { const u = w.usage; if (!u) return null; const x = k === "cost" ? u.cost : k === "credits" ? u.credits : u.tokens; return x > 0 ? x : null; };
+const perOut = (w, k, n) => { const x = usedOf(w, k); return n > 0 && x ? x / n : null; };
 /* 指標の値（見直す候補の推移用）。low: 大きいときに印が付く向き（良し悪しの判定ではない） */
 const pctOf = (a, b) => b ? Math.round(a * 100 / b) : null;
 const MET = {
@@ -140,6 +149,14 @@ const MET = {
   gitCommits: {f: w => w.git ? w.git.commits : null, u: "", int: true},
   gitLines: {f: w => w.git && w.git.commits ? w.git.added + w.git.removed : null, fmt: v => commas(Math.round(v)), int: true},
   prs: {f: w => w.outputs ? w.outputs.prs || 0 : null, u: "", int: true},
+  pushes: {f: (w, ws, we) => pushesIn(ws, we), u: "", int: true},
+  // push・PR あたり（良し悪しの向きは付けない）：期間の合計 ÷ push・AI が作った PR の数
+  costPerPush: {f: (w, ws, we) => perOut(w, "cost", pushesIn(ws, we)), fmt: v => usd(v)},
+  creditsPerPush: {f: (w, ws, we) => perOut(w, "credits", pushesIn(ws, we)), fmt: v => cr1(v)},
+  tokensPerPush: {f: (w, ws, we) => perOut(w, "tokens", pushesIn(ws, we)), fmt: v => tok(v)},
+  costPerPr: {f: w => perOut(w, "cost", w.outputs && w.outputs.prs), fmt: v => usd(v)},
+  creditsPerPr: {f: w => perOut(w, "credits", w.outputs && w.outputs.prs), fmt: v => cr1(v)},
+  tokensPerPr: {f: w => perOut(w, "tokens", w.outputs && w.outputs.prs), fmt: v => tok(v)},
   rework: {f: (w, ws, we) => { const r = reworkOf(ws, we); return r.n ? Math.round(r.re * 100 / r.n) : null; }, low: true, u: "%"},
   kept: {f: (w, ws, we) => { const k = keptOf(ws, we); return k.edit ? Math.round(k.kept * 100 / k.edit) : null; }, low: false, u: "%"},
   aiLines: {f: (w, ws, we) => memoBasis("lines", ws, we, "", () => DATA.reduce((x, s) => s.start >= ws && s.start < we && s.nFiles > 0 ? x + (s.editAdded || 0) + (s.editRemoved || 0) : x, 0)), fmt: v => commas(Math.round(v)), int: true},
@@ -242,7 +259,7 @@ function openWorth(id, from, F = lastFlags){
   const hd = $("#wkh"); hd.tabIndex = -1; hd.focus(); } // 最初のボタンではなく見出しへ（読み上げで何のダイアログかわかり、セッションを押した表示にもならない）
 function placeFlags(R, F){ // 基準を超えた指標の名前の横に、小さな印だけを付ける（押すと「Worth a look」と同じダイアログ。中身はダイアログにだけ出し、サマリーで繰り返さない）
   [...new Set(F.map(f => GOTO[f.k] || f.k))].forEach(id => {
-    const hb = R.querySelector(`.insight .hb[data-help="${id}"], .panel .hb[data-help="${id}"]`); if (!hb) return;
+    const hs = [...R.querySelectorAll(`.insight .hb[data-help="${id}"], .panel .hb[data-help="${id}"]`)], hb = hs.find(h => !h.closest("[hidden]")) || hs[0]; if (!hb) return; // パネルの切り替えで隠れた選択肢の「?」より、見えているものに
     hb.insertAdjacentHTML("beforebegin", `<button class="fmark" data-goto="${id}" aria-haspopup="dialog" aria-label="${esc(t("Worth a look: {name}", {name: H()[id].n}))}" title="${esc(t("Crossed a threshold. Click to see why."))}">${ico("flag", "fdot")}</button>`);
     // 閉じた折りたたみの中の印は、見出しにも出す（開かずに、中に印があるとわかるように）。折りたたみが重なっていれば（③ からのパネルの中の「もっと見る」）、どれの見出しにも
     for (let dt = hb.closest("details"); dt; dt = dt.parentElement.closest("details")){ const sm = dt.querySelector(":scope > summary");
