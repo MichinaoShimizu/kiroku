@@ -182,7 +182,6 @@ func currentAutostart(args []string) (autostartPlan, error) {
 	return planAutostart(autostartGOOS, home, exe, args, env)
 }
 
-
 // autostartPort は、設定ファイルに書いた待ち受け先（なければ既定）。
 var autostartPort = regexp.MustCompile(`[\w.\-\[\]]*:\d{2,5}\b`)
 
