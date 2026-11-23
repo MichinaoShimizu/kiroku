@@ -434,7 +434,7 @@ func TestProbeSendsKey(t *testing.T) {
 // 移る先はエスケープし、open.html は Referer に鍵つきの URL を出さない。
 func TestHopPage(t *testing.T) {
 	p := hopPage(`/x?a="><script>`, "")
-	for _, want := range []string{`name="color-scheme" content="light"`, "background:var(--bg);color:var(--bg)", "a{color:inherit;animation:show .3s 2s forwards}"} {
+	for _, want := range []string{`name="color-scheme" content="dark"`, "background:var(--bg);color:var(--bg)", "a{color:inherit;animation:show .3s 2s forwards}"} {
 		if !strings.Contains(p, want) {
 			t.Errorf("中継のページに %q がない: %s", want, p)
 		}

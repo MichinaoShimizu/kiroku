@@ -291,7 +291,7 @@ const hopKeyScript = `(async () => {
 // スクリプトと <style> は CSP のハッシュで許したものだけで、問い合わせは同じオリジンへの POST だけ、Referer も送らない。
 func hopKeyPage(to string) string {
 	to = html.EscapeString(to)
-	return "<!doctype html>\n<html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"light\">" +
+	return "<!doctype html>\n<html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"dark\">" +
 		"<meta http-equiv=\"Content-Security-Policy\" content=\"" + hopKeyCSP + "\"><meta name=\"referrer\" content=\"no-referrer\">" +
 		"\n<title>kiroku</title>\n" + hopStyle +
 		"\n<p><a id=\"to\" href=\"" + to + "\">Open kiroku</a></p><p id=\"msg\"></p>\n<script>" + hopKeyScript + "</script>\n</html>\n"
@@ -314,13 +314,13 @@ func cspHash(s string) string {
 // リンクは 2 秒たってから見えるようにする。head は <meta> などのタグだけ（中身はエスケープしない）。
 func hopPage(to, head string) string {
 	to = html.EscapeString(to)
-	return "<!doctype html>\n<html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"light\">" + head +
+	return "<!doctype html>\n<html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"dark\">" + head +
 		"\n<meta http-equiv=\"refresh\" content=\"0;url=" + to + "\">\n<title>kiroku</title>\n" + hopStyle +
 		"\n<p><a href=\"" + to + "\">Open kiroku</a></p>\n</html>\n"
 }
 
 // hopStyle の色は loading.html の --bg と --acc。#msg.show は hopKeyPage で鍵をしまえなかったときの知らせ（すぐに見せる）。
-const hopStyle = `<style>html{--bg:#fafafa;--acc:#6750a4;background:var(--bg);color:var(--bg)}` +
+const hopStyle = `<style>html{--bg:#141218;--acc:#d0bcff;background:var(--bg);color:var(--bg)}` +
 	`body{margin:0;min-height:100vh;display:grid;place-items:center;font:13px/1.5 system-ui,sans-serif}` +
 	`a{color:inherit;animation:show .3s 2s forwards}@keyframes show{to{color:var(--acc)}}` +
 	`#msg.show{color:CanvasText;max-width:32em;padding:0 16px}</style>`
