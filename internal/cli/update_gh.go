@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -29,7 +30,7 @@ func viaGH() bool { return releaseRepo != "" }
 // releasesPage は、案内に出す Releases の場所。
 func releasesPage() string {
 	if viaGH() {
-		return "https://" + releaseRepo + "/releases"
+		return "https://" + termSafe(releaseRepo, 200) + "/releases"
 	}
 	return releaseBase + "/releases"
 }
@@ -53,31 +54,43 @@ func (e *ghError) Error() string { return e.msg }
 var ghMaxStdout = 200 << 20
 
 // capWriter は limit を超えて書かれたらエラーにする（gh の出力でメモリを使い切らないため）。
+// discard なら、エラーにせず limit を超えた分を捨てる（標準エラー。説明に使うのは最初の行だけなので）。
 type capWriter struct {
-	buf   bytes.Buffer
-	limit int
-	over  bool
+	buf     bytes.Buffer
+	limit   int
+	over    bool
+	discard bool
 }
 
 func (w *capWriter) Write(p []byte) (int, error) {
 	if w.buf.Len()+len(p) > w.limit {
 		w.over = true
+		if w.discard {
+			w.buf.Write(p[:max(0, w.limit-w.buf.Len())])
+			return len(p), nil
+		}
 		return 0, errors.New("output too large")
 	}
 	return w.buf.Write(p)
 }
 
+// ghWaitDelay は、gh を止めたあと（か gh が終わったあと）、gh から起動されたものが出力をつかんだままでも待つ上限。
+// これがないと、gh がラッパーのスクリプトで子が残ったとき、締め切りを過ぎても終わらない。
+const ghWaitDelay = 3 * time.Second
+
 // runGH は gh を args で起動し、標準出力を返す。show があれば、届いた分をそこに見せる。
 // 標準エラーは、失敗したときの説明に最初の行だけを使う（端末に出せる形にして）。
 func runGH(ctx context.Context, show io.Writer, args ...string) ([]byte, error) {
 	if !repoPattern.MatchString(releaseRepo) {
-		return nil, fmt.Errorf("this kiroku was built to update from %q, which is not of the form HOST/OWNER/REPO", termSafe(releaseRepo, 200))
+		return nil, errOddRepo
 	}
-	path, err := exec.LookPath(ghCommand) // 今いるフォルダの gh は使わない（exec.ErrDot）
-	if err != nil {
+	// 今いるフォルダの gh は使わない（exec.ErrDot。GODEBUG=execerrdot=0 でゆるめられても、絶対パスでなければ使わない）
+	path, err := exec.LookPath(ghCommand)
+	if err != nil || !filepath.IsAbs(path) {
 		return nil, errGHNotFound
 	}
 	cmd := exec.CommandContext(ctx, path, args...)
+	cmd.WaitDelay = ghWaitDelay
 	// 聞き返さない・gh 自身の更新の案内や色を出さない
 	cmd.Env = append(os.Environ(), "GH_PROMPT_DISABLED=1", "GH_NO_UPDATE_NOTIFIER=1", "NO_COLOR=1", "GH_SPINNER_DISABLED=1")
 	out := &capWriter{limit: ghMaxStdout}
@@ -87,10 +100,10 @@ func runGH(ctx context.Context, show io.Writer, args ...string) ([]byte, error) 
 		defer p.done()
 		w = io.MultiWriter(out, p)
 	}
-	var stderr capWriter
-	stderr.limit = 64 << 10
+	stderr := capWriter{limit: 64 << 10, discard: true}
 	cmd.Stdout, cmd.Stderr = w, &stderr
-	if err := cmd.Run(); err != nil {
+	if err := cmd.Run(); err != nil && !(errors.Is(err, exec.ErrWaitDelay) && ctx.Err() == nil) {
+		// （ErrWaitDelay だけなら、gh は締め切りの前に成功して終わり、残った子が出力をつかんでいただけ）
 		if out.over {
 			return nil, fmt.Errorf("the download is larger than %d MiB", ghMaxStdout>>20)
 		}
@@ -111,16 +124,23 @@ func runGH(ctx context.Context, show io.Writer, args ...string) ([]byte, error) 
 	return out.buf.Bytes(), nil
 }
 
+// errOddRepo は、埋め込まれた releaseRepo が HOST/OWNER/REPO の形でないとき（ビルドのまちがい）。
+var errOddRepo = errors.New("this kiroku was built to update from a repository that is not of the form HOST/OWNER/REPO")
+
 // ghFailure は gh のエラーを、どうすればよいかの案内つきにする。
 func ghFailure(what string, err error) error {
+	if errors.Is(err, errOddRepo) {
+		return fmt.Errorf("%s: %w (%q)", what, err, termSafe(releaseRepo, 200))
+	}
+	repo := termSafe(releaseRepo, 200) // 形は確かめてあるが、念のため
 	if errors.Is(err, errGHNotFound) {
-		return fmt.Errorf("%s: this kiroku updates from %s, which needs the GitHub CLI (gh) to be installed and logged in (https://cli.github.com/, then \"gh auth login\")", what, releaseRepo)
+		return fmt.Errorf("%s: this kiroku updates from %s, which needs the GitHub CLI (gh) to be installed and logged in (https://cli.github.com/, then \"gh auth login\")", what, repo)
 	}
 	var ge *ghError
 	if errors.As(err, &ge) && !ge.notFound {
-		return fmt.Errorf("%s from %s (is gh logged in with access to it? try \"gh auth status\"): %w", what, releaseRepo, err)
+		return fmt.Errorf("%s from %s (is gh logged in with access to it? try \"gh auth status\"): %w", what, repo, err)
 	}
-	return fmt.Errorf("%s from %s: %w", what, releaseRepo, err)
+	return fmt.Errorf("%s from %s: %w", what, repo, err)
 }
 
 // ghLatest は gh で最新の版を確かめる（gh release view。プレリリースは入らない、releases/latest と同じ）。

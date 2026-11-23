@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 // fakeGH は、gh の代わりに動く sh のスクリプトを置き、releaseRepo と ghCommand をそれに向ける。
@@ -25,6 +26,9 @@ printf '%s\n' "$*" >> "` + log + `"
 case "$GH_FAKE_MODE" in
   auth) echo "HTTP 404: Not Found (https://api.github.com/repos/corp/kiroku/releases/latest)" >&2; exit 1 ;;
   esc) printf 'bad \033[31mred\033[0m \342\200\256 thing\nsecond line\n' >&2; exit 1 ;;
+  hangchild) sleep 30 & echo "` + latest + `"; exit 0 ;;
+  hang) sleep 30; exit 0 ;;
+  bigstderr) head -c 100000 /dev/zero | tr '\0' w >&2; echo "` + latest + `"; exit 0 ;;
 esac
 if [ "$1 $2" = "release view" ]; then
   [ -n "` + latest + `" ] || { echo "release not found" >&2; exit 1; }
@@ -172,7 +176,7 @@ func TestGHFailures(t *testing.T) {
 		check(t, selfUpdate(newUpdateClient(), "v9.9.9", "linux", "amd64", exe), "that version may not exist; see https://github.com/corp/kiroku/releases")
 	})
 	t.Run("odd tag", func(t *testing.T) {
-		for _, tag := range []string{"v1.2.3/../x", "latest", "-v1.2.3"} {
+		for _, tag := range []string{"v1.2.3/../x", "latest", "-v1.2.3", "--repo=evil/x", "../../etc", "v1.1.0\\nv9.9.9"} {
 			fakeGH(t, tag, "")
 			if v, err := latestVersion(newUpdateClient()); err == nil || !strings.Contains(err.Error(), "unexpected release version") {
 				t.Errorf("%q: latestVersion = %q, %v", tag, v, err)
@@ -204,15 +208,45 @@ func TestGHErrorIsTerminalSafe(t *testing.T) {
 
 // 埋め込まれた releaseRepo が HOST/OWNER/REPO の形でなければ、gh を起動しない（- で始まる部分はオプションと取り違えうる）。
 func TestGHRejectsOddRepo(t *testing.T) {
-	for _, repo := range []string{"-R/x/y", "github.com/-x/y", "github.com/corp/kiroku;rm", "corp/kiroku", "github.com/corp/kiroku/extra", "github.com/corp/kiroku\n", "github.com/corp/ kiroku"} {
+	for _, repo := range []string{"-R/x/y", "github.com/-x/y", "github.com/corp/kiroku;rm", "corp/kiroku", "github.com/corp/kiroku/extra", "github.com/corp/kiroku\n", "github.com/corp/ kiroku", "github.com/a/b\x1b[31m"} {
 		_, calls := fakeGH(t, "v9.9.9", "")
 		releaseRepo = repo
-		if v, err := latestVersion(newUpdateClient()); err == nil || !strings.Contains(err.Error(), "not of the form HOST/OWNER/REPO") {
+		if v, err := latestVersion(newUpdateClient()); err == nil || !strings.Contains(err.Error(), "not of the form HOST/OWNER/REPO") || strings.ContainsAny(err.Error(), "\x1b\n") {
 			t.Errorf("%q: latestVersion = %q, %v", repo, v, err)
 		}
 		if c := calls(); len(c) != 0 {
 			t.Errorf("%q: gh was run: %v", repo, c)
 		}
+	}
+}
+
+// gh が終わっても、gh から起動されたものが出力をつかんだままなら、待ち続けない（成功した gh の出力は使う）。
+// gh 自身が終わらないときは、締め切りで止まる。
+func TestGHDoesNotHang(t *testing.T) {
+	fakeGH(t, "v9.9.9", "hangchild")
+	start := time.Now()
+	if v, err := ghLatest(20 * time.Second); err != nil || v != "v9.9.9" {
+		t.Errorf("ghLatest = %q, %v", v, err)
+	}
+	if d := time.Since(start); d > 10*time.Second {
+		t.Errorf("took %v", d)
+	}
+
+	fakeGH(t, "v9.9.9", "hang")
+	start = time.Now()
+	if v, err := ghLatest(time.Second); err == nil || !strings.Contains(err.Error(), "did not finish in time") {
+		t.Errorf("ghLatest = %q, %v", v, err)
+	}
+	if d := time.Since(start); d > 10*time.Second {
+		t.Errorf("took %v", d)
+	}
+}
+
+// 成功した gh の標準エラーが長くても（デバッグの出力など）、失敗にしない。
+func TestGHLongStderr(t *testing.T) {
+	fakeGH(t, "v9.9.9", "bigstderr")
+	if v, err := latestVersion(newUpdateClient()); err != nil || v != "v9.9.9" {
+		t.Errorf("latestVersion = %q, %v", v, err)
 	}
 }
 
