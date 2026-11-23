@@ -2,6 +2,30 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v4.6.4 - 2026-11-23
+
+### Changed
+
+- Session details: the prompt flow looks like a classic messaging app again: a blue-gray background, your prompts as green bubbles with black text on the right and the AI's replies as white bubbles with black text on the left next to a round robot mark, each with a small tail. Times sit small beside the bubble's bottom edge, with the copy button above them, and events are dark labels with white text in the middle (red for limits and interruptions). The rest of the view stays dark, and a test checks the contrast of every text and mark in the flow (at least 4.5:1 for text, 3:1 for small marks)
+- The summary opens with four panels, two by two on wide windows: Input and Output side by side (were Cost trend and Output trend), and under them Unit cost per input and Unit cost per output, with a two-colored line between the input and output sides and IN / OUT at its top (one column, each with its IN or OUT label, on narrow screens)
+  - Unit cost per output divides by commits, pushes, pull requests and now 100 AI-edited lines; Unit cost per input divides by active hour, active day, session or prompt. Both replace the Unit cost trend panel and the Breakdown's Unit costs card, which is gone; the choices you made there are kept
+  - In a period in progress, the week-end or month-end estimate sits on the same row as the value ("$6.87 So far ≈ $16.03 End-of-week estimate") instead of under it, and each panel's legend is under its chart, so the charts of panels side by side start at the same height
+  - Each panel's legend lists only what its chart draws (the unit cost panels no longer list an end-of-period estimate and projection they don't draw), and Unit cost per input's note that each divides only by the sessions that record what it divides moved into its "ƒx", so Unit cost per output no longer has an empty line under its heading
+  - With one agent picked, the note that per push is shown for All agents only moved from Unit cost per output's heading into the "ƒx" of its figures, so Unit cost per input no longer has an empty line under its heading
+  - A panel switch with a single choice is shown too (it says what the panel counts or divides by), and on wide windows the two unit cost panels put Measure and Divided by on a line each, so panels side by side keep headings of the same height whichever agent is picked
+  - A figure outside your usual range keeps the same box as the others: the green or red background and its extra padding are gone (the amber value with ↑ or ↓, and the verdict line of unit costs, say it), so metric names line up with the panel beside them
+  - A value far outside your usual range keeps its amber color with a small ↑ or ↓ next to it instead of the "Far above usual" / "Far below usual" label (the words are read by screen readers and shown as the tooltip)
+- Where it flowed (the Sankey) moved out of Breakdown to right under the four panels, at the full width of the page: each project is now one band in its project color across the project column (the gap between its two nodes, where its name sits, was empty), and every name sits on a backing so it never lies on a colored band
+- The Breakdown's Outputs card is now called Output, the same word as the panel and the Sankey's last column
+
+### Fixed
+
+- Session details: a turn where the AI wrote no text reply shows its small note without a bubble again (a stray brace in the stylesheet had dropped that rule)
+
+### Security
+
+- Pushes whose reflog time is negative or past the year 9999 (a reflog line edited by hand, which git prints wrapped around as about 1.8e19) are dropped instead of being passed to the page as dates it can't show
+
 ## v4.6.3 - 2026-11-23
 
 ### Changed
