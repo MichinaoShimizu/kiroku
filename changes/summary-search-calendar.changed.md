@@ -4,3 +4,4 @@
 - A week or month without records shows the empty calendar, with a one-line note and the button to the latest period with records above it, instead of only the note
 - While searching, the page shows only the results: the period, legend, calendar and summary are hidden, since the results come from all time. Pressing a result opens its details; clearing the search shows the calendar at that result's week or month
 - The prompt flow's colors move further from a messaging app's: a slate background, a muted sage bubble for your prompts and an off-white one for replies, with light text for times and copy buttons
+- "From input to output" is headed at the same level as Input and Output, with "Sankey diagram" one level smaller under it

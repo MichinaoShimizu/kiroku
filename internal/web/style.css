@@ -1305,4 +1305,6 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .itft{min-width:0}
 /* どこへ流れたか（サンキー）：投入と出力の 2×2 のすぐ下に、幅いっぱいの 1 枚（サマリーで唯一の全幅のカード）。狭いカードでは文字を座標の上で大きく */
 .inscol.iskw{margin:0 0 12px;container-type:inline-size}
+.iskw .skgh{padding:0;margin-bottom:10px}.iskw .skgh::before{background:linear-gradient(var(--in),var(--out))} /* 投入から出力へ：パネルの見出しと同じ大きさで、左の線は投入の青から出力の紫へ */
+.iskw .skil{margin:0;font-size:var(--fs-lg);font-weight:600;color:var(--ink)} /* 図の名前は、パネルの中の指標の名前（.itile .il）と同じ段 */
 @container (max-width:900px){.iskw .isk .skt,.iskw .isk .skh{font-size:14px}}

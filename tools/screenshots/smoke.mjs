@@ -989,10 +989,13 @@ async function run(env) {
     check("押すと、今月の日ごとの内訳（月末の推定）が開き、週の表示はそのまま", dlg.open && dlg.txt.includes(mp.v) && dlg.txt.includes(mp.so) && await p.evaluate(() => st.mode === "week"), dlg.txt.slice(0, 120));
     await p.keyboard.press("Escape"); await pause();
     await view("sum");
-    await p.locator('#review .iksw[data-sw="cost"] [data-v="credits"]').click(); await pause(); // コストのパネルでクレジットを選ぶ
-    const tile = await p.evaluate(() => { const b = document.querySelector('#review .itile [data-metric="credits"]'); return b ? b.closest(".itile").innerText : ""; });
-    await p.locator('#review .iksw[data-sw="cost"] [data-v="cost"]').click(); await pause();
-    check("サマリーのクレジットのカードにも、今月末の推定がある（式を出しているときは式で）", /Month-end estimate \(this month\)|Month-end credits = /.test(tile) && tile.includes(mp.v), tile);
+    const cb = p.locator('#review .iksw[data-sw="cost"] [data-v="credits"]');
+    if (await cb.count()){ // 今週にクレジットの記録がなければ、投入のパネルにクレジットの選択肢は出ない（数字のない選択肢は出さない）
+      await cb.click(); await pause(); // コストのパネルでクレジットを選ぶ
+      const tile = await p.evaluate(() => { const b = document.querySelector('#review .itile [data-metric="credits"]'); return b ? b.closest(".itile").innerText : ""; });
+      await p.locator('#review .iksw[data-sw="cost"] [data-v]').first().click(); await pause();
+      check("サマリーのクレジットのカードにも、今月末の推定がある（式を出しているときは式で）", /Month-end estimate \(this month\)|Month-end credits = /.test(tile) && tile.includes(mp.v), tile);
+    } else check("今週にクレジットの記録がなければ、投入のパネルにクレジットの選択肢を出さない", await p.evaluate(() => !((WEEKS[key(st.week)] || {}).usage || {}).credits));
     await view("cal");
   });
 
