@@ -38,3 +38,9 @@ From the PR records; not necessarily who decided.
 ## Related logs
 
 - DL-10
+
+---
+
+## Addendum 2026-11-23 (Claude Code)
+
+C1 and C2 no longer hold. [PR #504](https://github.com/MichinaoShimizu/kiroku/pull/504) removed the weekly "Analyze with AI" report, and [PR #520](https://github.com/MichinaoShimizu/kiroku/pull/520) removed "Analyze with AI" (there is no run dialog, in the demo or elsewhere); the daily report and the session review are copied with "Copy prompt". On [PR #543](https://github.com/MichinaoShimizu/kiroku/pull/543) (open when this was written), commit `fed6a35` removed the weekly mode of the report prompt, which no button called any more; the maintainer said the weekly report is not used. No monthly report was added.

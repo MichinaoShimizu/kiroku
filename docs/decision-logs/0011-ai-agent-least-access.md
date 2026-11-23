@@ -34,3 +34,9 @@ From the PR records; not necessarily who decided.
 ## Related logs
 
 - DL-10
+
+---
+
+## Addendum 2026-11-23 (Claude Code)
+
+C1 no longer applies: [PR #520](https://github.com/MichinaoShimizu/kiroku/pull/520) removed "Analyze with AI", so kiroku runs no agent. Sessions left by earlier runs are still hidden (`core.IsAIRunDir`).
