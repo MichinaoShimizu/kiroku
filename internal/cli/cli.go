@@ -27,20 +27,41 @@ Usage:
 
 Commands:
   serve [ADDR]          Open the view in your browser and keep it updated as new history arrives (default 127.0.0.1:8484)
-  open [ADDR]           Open the view of a running "kiroku serve" with its key (--print shows the address for another device)
-  html                  Write the view as a single static HTML file (default kiroku.html) and open it
-                        (--week or --month writes only that period, for sharing)
-  archive [on|off]      Keep compressed copies of history that agents delete (Claude Code, Kiro Crew); no argument shows the status
-  autostart [on [ADDR]|off]
-                        Start "kiroku serve" in the background each time you log in; no argument shows the status
-  doctor                Check what kiroku can read, whether any history will be deleted, and what to run next
-  version               Print the version
   update                Update kiroku to the latest release
-  help                  Show this help
+  help                  Show this help (--version prints only the version)
 
-Run "kiroku <command> --help" for a command's flags.
-Get started: kiroku doctor, then kiroku serve
+serve also does these, each as its first flag:
+  serve --check         Check what kiroku can read, whether any history will be deleted, and what to run next
+  serve --open [ADDR]   Open the view of a running "kiroku serve" with its key (--print shows the address for another device)
+  serve --archive [on|off]
+                        Keep compressed copies of history that agents delete (Claude Code, Kiro Crew); no argument shows the status
+  serve --autostart [on [ADDR]|off]
+                        Start "kiroku serve" in the background each time you log in; no argument shows the status
+  serve --html          Write the view as a single static HTML file (default kiroku.html) and open it
+                        (--week or --month writes only that period, for sharing)
+
+The older commands open, html, archive, autostart, doctor and version still work in kiroku 4,
+with a note naming what to use instead; kiroku 5 removes them.
+
+Run "kiroku serve --help" or "kiroku serve --check --help" (and so on) for the flags.
+Get started: kiroku serve --check, then kiroku serve
 `
+
+// serveModes は、kiroku serve の最初の引数で選ぶ、ほかの仕事（前はサブコマンドだったもの）。
+// 名前は、ヘルプとエラーの「kiroku serve --open --help」の形にも使う
+var serveModes = map[string]func([]string) error{
+	"--check": cmdDoctor, "--open": cmdOpen, "--archive": cmdArchive, "--autostart": cmdAutostart, "--html": cmdHTML,
+}
+
+// deprecatedCmds は、4.7 で廃止予定にしたサブコマンドと、その代わり（kiroku 5 で消す）。
+var deprecatedCmds = map[string]string{
+	"open": "serve --open", "html": "serve --html", "archive": "serve --archive", "autostart": "serve --autostart", "doctor": "serve --check", "version": "--version",
+}
+
+// deprecatedNote は、廃止予定のサブコマンド name を使ったときの 1 行（標準エラーに出す。動きは変えない）。
+func deprecatedNote(name string) string {
+	return fmt.Sprintf("note: \"kiroku %s\" is deprecated and will be removed in kiroku 5.0; use \"kiroku %s\" instead", name, deprecatedCmds[name])
+}
 
 // Main は kiroku のコマンドを動かす。v はリリース時に入る版（ルートの main.go から渡す）。
 func Main(v string) {
@@ -60,13 +81,21 @@ func dispatch(args []string) error {
 		printHelp(os.Stdout)
 		return nil
 	}
+	if _, ok := deprecatedCmds[args[0]]; ok {
+		fmt.Fprintln(os.Stderr, styleFor(os.Stderr).warn(deprecatedNote(args[0])))
+	}
 	switch args[0] {
 	case "serve":
+		if len(args) > 1 {
+			if f, ok := serveModes[args[1]]; ok {
+				return f(args[2:])
+			}
+		}
 		return cmdServe(args[1:])
 	case "html":
 		return cmdHTML(args[1:])
 	case "json", "stats":
-		return fmt.Errorf("\"kiroku %s\" was removed in kiroku 3.0; use \"kiroku serve\" (or \"kiroku html\" for a file) to see your history", args[0])
+		return fmt.Errorf("\"kiroku %s\" was removed in kiroku 3.0; use \"kiroku serve\" (or \"kiroku serve --html\" for a file) to see your history", args[0])
 	case "archive":
 		return cmdArchive(args[1:])
 	case "open":
@@ -108,7 +137,7 @@ func addCommon(fs *flag.FlagSet) *common {
 		sources:    fs.String("sources", strings.Join(core.Families(), ","), "comma-separated sources to read: "+core.FamiliesHelp()),
 		prices:     fs.String("prices", "", "JSON file overriding the model price table"),
 		gap:        fs.Int("gap", 15, "idle `minutes` that split a session into separate blocks"),
-		archiveDir: fs.String("archive-dir", archive.DefaultDir(), "where \"kiroku archive\" keeps copies of deleted history ($KIROKU_ARCHIVE_DIR)"),
+		archiveDir: fs.String("archive-dir", archive.DefaultDir(), "where \"kiroku serve --archive\" keeps copies of deleted history ($KIROKU_ARCHIVE_DIR)"),
 	}
 }
 
@@ -254,7 +283,7 @@ func newFS(name, usage string) *flag.FlagSet {
 		fmt.Fprintf(fs.Output(), "Usage:\n  kiroku %s\n", usage)
 		n := 0
 		fs.VisitAll(func(*flag.Flag) { n++ })
-		if n > 0 { // kiroku autostart のようにオプションがないコマンドでは、空の「Flags:」を出さない
+		if n > 0 { // kiroku serve --autostart のようにオプションがないコマンドでは、空の「Flags:」を出さない
 			fmt.Fprint(fs.Output(), "\nFlags:\n")
 			fs.PrintDefaults()
 		}
@@ -274,7 +303,7 @@ func langFlag(fs *flag.FlagSet) *string {
 }
 
 // aiRemovedNote は、4.0 で外した「Analyze with AI」の --ai（$KIROKU_AI）を付けて起動したときに出す 1 行（なければ ""）。
-// 止めずに続ける（kiroku autostart on で登録した起動が、古い値のまま動き続けられるように）。kiroku は AI のエージェントを動かさない
+// 止めずに続ける（kiroku serve --autostart on で登録した起動が、古い値のまま動き続けられるように）。kiroku は AI のエージェントを動かさない
 func aiRemovedNote(ai bool) string {
 	env := strings.ToLower(strings.TrimSpace(os.Getenv("KIROKU_AI")))
 	if !ai && env != "1" && env != "true" && env != "yes" && env != "on" {
@@ -299,7 +328,7 @@ func quiet(err error) error {
 }
 
 func cmdServe(args []string) error {
-	fs := newFS("serve", "serve [flags] [ADDR]\n\nADDR defaults to "+defaultAddr+". A bare port such as :8485 also listens on 127.0.0.1 only.\nTo let other devices open it, write the address explicitly (e.g. 0.0.0.0:8485); anyone on your network can then see your history.")
+	fs := newFS("serve", "serve [flags] [ADDR]\n\nADDR defaults to "+defaultAddr+". A bare port such as :8485 also listens on 127.0.0.1 only.\nTo let other devices open it, write the address explicitly (e.g. 0.0.0.0:8485); anyone on your network can then see your history.\n\nAs its first flag, serve also takes --check, --open, --archive, --autostart or --html\n(run \"kiroku serve --check --help\" and so on for theirs).")
 	c := addCommon(fs)
 	interval := fs.Duration("interval", 5*time.Second, "how often to check the history for changes (reloads after writes settle)")
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
@@ -333,7 +362,7 @@ func cmdServe(args []string) error {
 }
 
 func cmdHTML(args []string) error {
-	fs := newFS("html", "html [flags]")
+	fs := newFS("serve --html", "serve --html [flags]")
 	c := addCommon(fs)
 	out := fs.String("o", "kiroku.html", "output `file`")
 	fs.StringVar(out, "out", "kiroku.html", "same as -o")
@@ -385,7 +414,7 @@ func cmdHTML(args []string) error {
 
 func writeHTML(snap snapshot, out string, open bool, lang string) error {
 	if len(snap.data) == 0 {
-		return fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db; see \"kiroku doctor --all\")")
+		return fmt.Errorf("no history found; check where your agents keep it (--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db; see \"kiroku serve --check --all\")")
 	}
 	parts, err := web.Marshal(snap.data, snap.weeks, snap.months, snap.meta, snap.gen)
 	if err != nil {
@@ -434,7 +463,7 @@ func writePrivate(out string, b []byte) error {
 // legacyForm は、v1.0 の前に消した前の書き方（kiroku --serve、--json、-o など）に、いまの書き方を教える。
 func legacyForm(arg string) error {
 	name, _, _ := strings.Cut(strings.TrimLeft(arg, "-"), "=")
-	now := map[string]string{"serve": "kiroku serve", "json": "kiroku html -o FILE", "o": "kiroku html -o FILE", "out": "kiroku html -o FILE",
+	now := map[string]string{"serve": "kiroku serve", "json": "kiroku serve --html -o FILE", "o": "kiroku serve --html -o FILE", "out": "kiroku serve --html -o FILE",
 		"weekly": "kiroku serve", "monthly": "kiroku serve"}[name]
 	if now == "" {
 		return fmt.Errorf("unknown command: %s (run \"kiroku help\" for the list)", arg)

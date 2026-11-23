@@ -16,12 +16,12 @@ body:
     id: screen
     attributes:
       label: Screen
-      description: Where in kiroku you saw it (for example Calendar (week), Calendar (month), kiroku doctor, kiroku serve)
+      description: Where in kiroku you saw it (for example Calendar (week), Calendar (month), kiroku serve --check, kiroku serve)
   - type: input
     id: version
     attributes:
-      label: kiroku version
-      description: Output of `kiroku version`
+      label: kiroku --version
+      description: Output of `kiroku --version`
     validations:
       required: true
   - type: input
@@ -50,7 +50,7 @@ body:
     id: diagnostics
     attributes:
       label: Diagnostics
-      description: Paste the output of `kiroku doctor --report`. It holds kinds and counts only, but check it first.
+      description: Paste the output of `kiroku serve --check --report`. It holds kinds and counts only, but check it first.
       render: text
   - type: textarea
     id: steps

@@ -6,9 +6,9 @@ Thanks for your interest in kiroku. Issues and pull requests are welcome in Engl
 
 Changes must keep kiroku's promises:
 
-- No external API calls, and no history leaves the machine. The only network access is checking for and downloading kiroku's own releases from GitHub (`install.sh`, `kiroku update`, `kiroku doctor`)
+- No external API calls, and no history leaves the machine. The only network access is checking for and downloading kiroku's own releases from GitHub (`install.sh`, `kiroku update`, `kiroku serve --check`)
 - kiroku has no AI or AI service of its own and runs no AI agent; review and report prompts are only copied for you to paste
-- The view is one self-contained HTML page: a file from `kiroku html`, or served by `kiroku serve` on loopback
+- The view is one self-contained HTML page: a file from `kiroku serve --html`, or served by `kiroku serve` on loopback
 
 ## Development
 

@@ -38,9 +38,9 @@ type Report struct {
 	Error    *string       `json:"error"`
 	Oldest   float64       `json:"oldest,omitempty"`    // いちばん古い記録の時刻（UNIX 秒）。これより前は見られない
 	Keep     *Retention    `json:"retention,omitempty"` // エージェントが履歴を自動で消す設定
-	IDs      []string      `json:"-"`                   // 読んだセッションの ID（kiroku html --week などで、期間の分だけ数え直すため）
+	IDs      []string      `json:"-"`                   // 読んだセッションの ID（kiroku serve --html --week などで、期間の分だけ数え直すため）
 	Took     time.Duration `json:"-"`                   // 読むのにかかった時間（serve などの端末の行に出す）
-	// 履歴の形の手がかり（core.Format。kiroku doctor の「Format check」と --report、画面の「Data sources」）。
+	// 履歴の形の手がかり（core.Format。kiroku serve --check の「Format check」と --report、画面の「Data sources」）。
 	// 種類の名前（core.SafeKind）と数と版（core.SafeVersion）だけで、パス・プロジェクト名・ID・中身は入れない
 	Unknown      map[string]int `json:"unknown,omitempty"`      // kiroku の知らない記録の種類と、その行の数
 	BadLines     int            `json:"badLines,omitempty"`     // JSON として読めなかった行の数
@@ -48,7 +48,7 @@ type Report struct {
 	Checked      bool           `json:"kindsChecked,omitempty"` // 知らない記録の種類を数える Source か（FormatChecker）
 }
 
-// FormatChecker は、知らない記録の種類を数える Source が実装する（kiroku doctor の「Format check」で、数えていないものと分ける）。
+// FormatChecker は、知らない記録の種類を数える Source が実装する（kiroku serve --check の「Format check」で、数えていないものと分ける）。
 type FormatChecker interface {
 	ChecksFormat() bool
 }
@@ -60,9 +60,9 @@ type Retention struct {
 	Set     bool   `json:"set"`            // 利用者が設定しているか（false なら既定値のまま）
 	Who     string `json:"who,omitempty"`  // 履歴を消すもの（Report の Name と違うとき。Kiro CLI の履歴の中の Kiro Crew など）
 	Setting string `json:"setting"`        // 設定の名前
-	Snippet string `json:"snippet"`        // 長く残すために設定ファイルへ足す JSON（画面と kiroku doctor で案内する）
+	Snippet string `json:"snippet"`        // 長く残すために設定ファイルへ足す JSON（画面と kiroku serve --check で案内する）
 	Docs    string `json:"docs"`           // 公式ドキュメント
-	File    string `json:"file,omitempty"` // 設定を書くファイル（画面と kiroku doctor で案内する。わからなければ空）
+	File    string `json:"file,omitempty"` // 設定を書くファイル（画面と kiroku serve --check で案内する。わからなければ空）
 }
 
 // Retainer は、履歴を自動で消すエージェントの Source が実装する。

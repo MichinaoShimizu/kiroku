@@ -73,7 +73,7 @@ func TestStyleCmd(t *testing.T) {
 	if !strings.Contains(got, "kiroku serve") || !strings.HasSuffix(got, strings.Repeat(" ", 8)) {
 		t.Errorf("色つきで桁がそろっていない: %q", got)
 	}
-	if got := on.cmd("kiroku archive on", 5); got != on.bold("kiroku archive on") {
+	if got := on.cmd("kiroku serve --archive on", 5); got != on.bold("kiroku serve --archive on") {
 		t.Errorf("幅より長いときに余計なものが付いている: %q", got)
 	}
 }

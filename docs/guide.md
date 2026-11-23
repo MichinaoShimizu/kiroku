@@ -48,15 +48,17 @@ go install github.com/MichinaoShimizu/kiroku@latest
 | Command | Description |
 |---|---|
 | `kiroku serve [ADDR]` | Serves the view at `http://localhost:8484/` and keeps it up to date (see the notes below the table). Change the port with, for example, `kiroku serve :8485` (a bare port still listens on `127.0.0.1` only). Only browsers that have its key can open the view (see "[The key of kiroku serve](#the-key-of-kiroku-serve)"); the browser it opens gets the key. Press Ctrl+C to quit |
-| `kiroku open [ADDR]` | Opens the view of a running `kiroku serve` in your browser with its key. A browser needs this once; after that, `http://localhost:8484/` (or your bookmark) opens it. `--print` prints a one-time address instead, to open the view on another device. ADDR defaults to the address `kiroku autostart` uses, or `127.0.0.1:8484` |
-| `kiroku html [-o FILE]` | Reads all history up to now and writes it to a single HTML file, then opens it in your browser (`--no-open` to skip). Use it to carry the view around or to look at it without starting a server. Run it again to include later history. The file is readable only by you (`0600`). `--week` or `--month` writes only one period (see "[Share one week or month](#share-one-week-or-month)") |
-| `kiroku doctor` | Checks your setup in one go and only reads (see the notes below the table). Run it right after installing, or when something you expect is missing from the view. `kiroku doctor --report` prints only a short block for a bug report (kiroku version, OS, and per agent the number of sessions, newest version seen, unreadable lines and unknown kinds with counts; no paths, project names, IDs or content) for you to review and paste into a GitHub issue yourself; kiroku sends nothing |
-| `kiroku autostart [on\|off]` | Starts `kiroku serve` in the background each time you log in, so the view is always at `http://localhost:8484/` (see "[Start kiroku when you log in](#start-kiroku-when-you-log-in)"). With no argument, shows the status |
-| `kiroku archive [on\|off]` | Keeps compressed copies of history that agents delete automatically (Claude Code, Kiro Crew) in kiroku's own folder (see "[Keep a copy of history in kiroku](#keep-a-copy-of-history-in-kiroku)"). With no argument, shows the status (on or off, location, number and size of files) |
-| `kiroku version` | Prints the version |
+| `kiroku serve --open [ADDR]` | Opens the view of a running `kiroku serve` in your browser with its key. A browser needs this once; after that, `http://localhost:8484/` (or your bookmark) opens it. `--print` prints a one-time address instead, to open the view on another device. ADDR defaults to the address `kiroku serve --autostart` uses, or `127.0.0.1:8484` |
+| `kiroku serve --html [-o FILE]` | Reads all history up to now and writes it to a single HTML file, then opens it in your browser (`--no-open` to skip). Use it to carry the view around or to look at it without starting a server. Run it again to include later history. The file is readable only by you (`0600`). `--week` or `--month` writes only one period (see "[Share one week or month](#share-one-week-or-month)") |
+| `kiroku serve --check` | Checks your setup in one go and only reads (see the notes below the table). Run it right after installing, or when something you expect is missing from the view. `kiroku serve --check --report` prints only a short block for a bug report (kiroku --version, OS, and per agent the number of sessions, newest version seen, unreadable lines and unknown kinds with counts; no paths, project names, IDs or content) for you to review and paste into a GitHub issue yourself; kiroku sends nothing |
+| `kiroku serve --autostart [on\|off]` | Starts `kiroku serve` in the background each time you log in, so the view is always at `http://localhost:8484/` (see "[Start kiroku when you log in](#start-kiroku-when-you-log-in)"). With no argument, shows the status |
+| `kiroku serve --archive [on\|off]` | Keeps compressed copies of history that agents delete automatically (Claude Code, Kiro Crew) in kiroku's own folder (see "[Keep a copy of history in kiroku](#keep-a-copy-of-history-in-kiroku)"). With no argument, shows the status (on or off, location, number and size of files) |
+| `kiroku --version` | Prints the version (also on the first line of `kiroku help`) |
 | `kiroku update` | Downloads the latest release for the same OS and CPU from GitHub Releases, verifies it with `checksums.txt`, and replaces itself. In a terminal it shows how much of the download has arrived. In a location you cannot write to (such as `/usr/local/bin`), run `sudo kiroku update`. kiroku installed with `go install` or built from source (version `dev`) is not replaced, so update it with `go install …@latest`. `--to v1.2.3` installs a chosen version (only names such as `v1.2.3` or `v1.2.3-rc.1` are accepted); going back to an older version than the one running also needs `--force`. v0.1.1 and earlier have no `update`, so reinstall once with `install.sh` or from Releases |
 
-`kiroku help` lists commands; `kiroku <command> --help` shows its options.
+`kiroku help` lists commands; `kiroku serve --help`, `kiroku serve --check --help` (and so on) and `kiroku update --help` show their options.
+
+kiroku has three commands: `serve`, `update` and `help`. `serve` also does the other jobs, each chosen with its first flag (`--check`, `--open`, `--archive`, `--autostart`, `--html`). The older commands `open`, `html`, `archive`, `autostart`, `doctor` and `version` still work in kiroku 4 and print a one-line note naming their replacement; kiroku 5 removes them.
 
 `kiroku serve`:
 
@@ -65,9 +67,9 @@ go install github.com/MichinaoShimizu/kiroku@latest
 - Every few seconds it checks the history folders for changes (file names, sizes and modification times only) and reloads once writing settles: when changes stop for 10 seconds, and within 60 seconds at most even if an agent keeps writing
 - New history appears while the week or month you are viewing and the selected session stay as they are, and `LIVE` is shown at the top left
 
-`kiroku doctor`:
+`kiroku serve --check`:
 
-- It checks which histories were found (sessions and the oldest date for each agent, and where it looked), whether an agent will delete old history (Claude Code on its 30-day default) and which settings file to change, whether `kiroku archive` is on, whether git is found, whether autostart is on, which kiroku is running, and whether a newer kiroku is out
+- It checks which histories were found (sessions and the oldest date for each agent, and where it looked), whether an agent will delete old history (Claude Code on its 30-day default) and which settings file to change, whether `kiroku serve --archive` is on, whether git is found, whether autostart is on, which kiroku is running, and whether a newer kiroku is out
 - For a newer kiroku it asks GitHub Releases while it reads history; `--no-update-check` skips this, and builds from source are not checked
 - Agents with no history yet are summed up in one line, so the lines that ask you to do something stay in view; `--all` lists each of them with the place kiroku looks
 - If another kiroku comes first in your `PATH`, so that `kiroku` runs that one instead, it says so
@@ -125,11 +127,11 @@ The old forms `kiroku --serve`, `--json`, `-o` and `--weekly` / `--monthly` have
   - Git commits and files changed: if the remote (`origin`) is GitHub, GitLab, Bitbucket or similar, they open the page for that commit or file
   - A session's "Files edited by AI": a file changed by a commit made during that session opens the page for that file as of that commit
   - A session's "Pull requests created": opens pull requests created by AI (URLs that appeared in the results of `gh pr create` or GitHub tools)
-  - A session's "History file" (at the end of session details): opens the original history of that session. In `kiroku serve`, "Open" saves it from the view (only history files of loaded sessions, inside the folders kiroku reads history from or `kiroku archive`'s folder, are served, and only to the view on your machine); in `kiroku html` it opens via `file://`. SQLite histories cannot be opened, so you can only copy the path
+  - A session's "History file" (at the end of session details): opens the original history of that session. In `kiroku serve`, "Open" saves it from the view (only history files of loaded sessions, inside the folders kiroku reads history from or `kiroku serve --archive`'s folder, are served, and only to the view on your machine); in `kiroku serve --html` it opens via `file://`. SQLite histories cannot be opened, so you can only copy the path
 - The page shows either the calendar or the weekly or monthly summary: switch with View "Calendar | Summary" next to Week | Month (or `V`); kiroku remembers the choice. Only the page scrolls: nothing is fixed, the top scrolls away, and the week calendar shows the whole day with no scroll of its own. 0:00–7:00 is folded at the top, at a quarter of the height as a shaded band, so the working hours fit the first screen; in a week with sessions in those hours it starts unfolded, so that work isn't squeezed. "0–7h" at the top of the hours unfolds or folds it, and kiroku remembers the choice. The day headings stick under the page header while you scroll, so you always see which day is which; on narrow windows the calendar scrolls sideways and the headings follow it. When you open this week and its work starts further down, the page opens scrolled to that hour (scroll up for the figures; not in the demo). Data sources and the footer (when the page was made, the version and a link to GitHub) are at the bottom in both views.
 - The summary is one page of cards (see [Weekly and monthly summary](#weekly-and-monthly-summary)). "Breakdown" starts closed, and the view remembers whether you opened it. Press a figure's value to open its breakdown, or its "?" for what it means
   - Worth a look: a metric that crossed a threshold has a small warning triangle next to its name in the summary; press it to open its dialog. Its 13-week trend (13 months in month view), the same span as the summary charts, starts at the first period with records, labels that period and the one shown with their values, and says whether higher or lower is worth a look. A metric is flagged by a fixed threshold, shown right under the headline in the dialog ("Threshold: 1+ hit"), not by being high or low within its trend. To see whether something you tried worked, check the trend in later periods
-  - At the bottom, "Data sources" (history read, the newest agent version seen and record kinds kiroku doesn't know, retention and the price table for estimated cost; agents with no sessions are folded under "Not found: N") at the very bottom, always folded into one line; a ⚠ next to its name marks something that needs your attention (a file that couldn't be read, history about to be deleted at its default setting or at the next cleanup because Kiro Crew keeps it 0 days, or models not in the price table, or models priced as a similar model ID). The footer under it shows when the view was generated, the kiroku version (a link to its release) and a link to the GitHub repository; they only open in your browser when you press them. To report a problem, run `kiroku doctor --report` and paste its output (kinds and counts only) into a new issue
+  - At the bottom, "Data sources" (history read, the newest agent version seen and record kinds kiroku doesn't know, retention and the price table for estimated cost; agents with no sessions are folded under "Not found: N") at the very bottom, always folded into one line; a ⚠ next to its name marks something that needs your attention (a file that couldn't be read, history about to be deleted at its default setting or at the next cleanup because Kiro Crew keeps it 0 days, or models not in the price table, or models priced as a similar model ID). The footer under it shows when the view was generated, the kiroku --version (a link to its release) and a link to the GitHub repository; they only open in your browser when you press them. To report a problem, run `kiroku serve --check --report` and paste its output (kinds and counts only) into a new issue
 - Press "?" on any metric to see, in a popover next to it, its definition, then a small table of what it tells you, what it doesn't tell you, and what to try. For metrics with a history (such as active time, prompts, tokens, Git commits, estimated cost, the cache share and the metrics "Worth a look" can flag), it also shows the 13-week trend (13 months in month view), the same span as the summary charts, whether or not the metric is flagged, so you can check whether something you tried changed it
 - Search (top right, `/`; on phones a magnifier that widens when you press it): in addition to prompts, titles, projects, branches and agents, it searches files edited by AI, pull requests and commits made during each session (subject, hash, files). While searching, the page shows only the results, from all time: the period, the legend, the calendar and the summary are hidden. The results come in two lists, Sessions and Commits (matched on subject, body, hash and files changed), newest first, with excerpts showing where they matched. Each list shows 10 results first and scrolls in its own box; "Show 50 more (10 of M shown)" adds up to 50 at a time, and "Show the remaining N" the rest. Items hidden in the legend before searching are left out. Enter or ↓ in the search box moves the focus to the first result; ↑ and ↓ move between results, and ↑ on the first result goes back to the search box. Press a result to show its details; clearing the search shows the calendar at that result's week or month
 - Daily reports: the copy icon next to each date with history in the week calendar copies a prompt asking an AI agent, such as Claude Code or Codex, to write the report. There is no weekly or monthly report: the summary already covers the week. See [Reviews and reports with your agent](#reviews-and-reports-with-your-agent) for what these prompts contain
@@ -378,7 +380,7 @@ Not every agent's history records everything kiroku shows. Active time, Focus bl
 | Kiro credits | — | — | ✓ | ✓ | ✓ | — |
 | Long conversations | ✓ | ✓ | — | — | Partly (backends other than kiro-cli) | — |
 | Resume command | ✓ | ✓ | ✓ (`kiro-cli chat --v3 --resume-id`) | ✓ | — (shown for conversations kept in the kiro-cli history) | ✓ |
-| History retention and `kiroku archive` | ✓ | — | — | — | ✓ | — |
+| History retention and `kiroku serve --archive` | ✓ | — | — | — | ✓ | — |
 
 Why an agent doesn't record a metric is in [What history records](sources.md#what-history-records).
 
@@ -411,7 +413,7 @@ How each history is read and how duplicates are excluded is described in [source
 
 ### History retention
 
-Some agents delete old history automatically. Deleted history cannot be shown by kiroku and cannot be recovered, so set this up early if you want to look back further. In the view, "Data sources" shows the oldest record for each agent, and while Claude Code or Kiro Crew is still on its 30-day default, it is flagged there (with a ⚠ on the folded section) with a link to the docs and the two ways to keep the history: the setting and the file to put it in, or a backup to kiroku's folder, which it names. `kiroku doctor` shows the same under "Keeping history".
+Some agents delete old history automatically. Deleted history cannot be shown by kiroku and cannot be recovered, so set this up early if you want to look back further. In the view, "Data sources" shows the oldest record for each agent, and while Claude Code or Kiro Crew is still on its 30-day default, it is flagged there (with a ⚠ on the folded section) with a link to the docs and the two ways to keep the history: the setting and the file to put it in, or a backup to kiroku's folder, which it names. `kiroku serve --check` shows the same under "Keeping history".
 
 | Agent | Deletes automatically? | Setting |
 |---|---|---|
@@ -443,7 +445,7 @@ Example for Kiro Crew (`~/.kiro/crew/config.local.json`; its values win over `co
 }
 ```
 
-`-1` instead of `3650` turns Crew's cleanup off, and kiroku then shows no retention for it. With `0`, Crew deletes every archived record at its next cleanup (the next time it moves records to `sessions/archive/`), so "Data sources" and `kiroku doctor` say so (unless `kiroku archive` keeps a copy).
+`-1` instead of `3650` turns Crew's cleanup off, and kiroku then shows no retention for it. With `0`, Crew deletes every archived record at its next cleanup (the next time it moves records to `sessions/archive/`), so "Data sources" and `kiroku serve --check` say so (unless `kiroku serve --archive` keeps a copy).
 
 kiroku reads `config.json` and `config.local.json` the same way Crew does. A period of exactly 30 counts as Crew's default, so it is still flagged ([why](sources.md#history-retention)).
 
@@ -451,27 +453,27 @@ kiroku reads `config.json` and `config.local.json` the same way Crew does. A per
 
 If you'd rather not change the setting, kiroku can keep a copy of the history instead. It is off until you turn it on.
 
-- Run `kiroku archive on`, or press "Back up to this folder" under "Data sources" in the `kiroku serve` view (the folder is named next to it). kiroku saves the current history right away, then saves new and appended history each time it reads history (`serve` reloads and `html`)
+- Run `kiroku serve --archive on`, or press "Back up to this folder" under "Data sources" in the `kiroku serve` view (the folder is named next to it). kiroku saves the current history right away, then saves new and appended history each time it reads history (`serve` reloads and `html`)
 - Only history from agents that delete it automatically is saved (Claude Code conversations, and Kiro Crew's `sessions/archive/`). Each file is compressed with zstd and kept in the same layout as the original
 - When the original conversation is deleted, kiroku shows it from the copy. "Data sources" shows how many conversations came from the copy, and the number and size of the saved files. Claude Code conversations shown from the copy have no "Resume" command (Claude Code no longer has them)
 - The copies live in `~/.local/share/kiroku/archive` on Linux (under `XDG_DATA_HOME` if set), `~/Library/Application Support/kiroku/archive` on macOS and `%LocalAppData%\kiroku\archive` on Windows. Change it with `--archive-dir` or `KIROKU_ARCHIVE_DIR`. Copies stay on this computer and are never sent anywhere
-- `kiroku archive off` stops saving and asks whether to delete the copies already kept (only if you answer `y` in a terminal). It deletes only the compressed copies (`.zst` files) kiroku saved, and folders left empty; other files in the folder stay. It only offers this in a folder where `kiroku archive on` was run, so a mistyped `--archive-dir` never deletes anything. If you keep them, kiroku still shows them
+- `kiroku serve --archive off` stops saving and asks whether to delete the copies already kept (only if you answer `y` in a terminal). It deletes only the compressed copies (`.zst` files) kiroku saved, and folders left empty; other files in the folder stay. It only offers this in a folder where `kiroku serve --archive on` was run, so a mistyped `--archive-dir` never deletes anything. If you keep them, kiroku still shows them
 - History deleted while kiroku is not opened cannot be saved, so open kiroku at least once before the period ends. The conversations exist in one more place, so even conversations you deleted on purpose remain in kiroku's copy, and so does the text of Kiro Crew's incognito and temporary conversations that Crew moved to `sessions/archive/` (kiroku does not show it; see the note on Kiro Crew under "Notes")
 
 ### Start kiroku when you log in
 
-`kiroku autostart on` registers `kiroku serve --no-open` to start each time you log in starts it right away and waits a few seconds until it answers. The view is then always at `http://localhost:8484/` (run `kiroku open` once to give your browser the key); while the first read of your history is running, the page says so and switches to the view by itself. With `kiroku archive on`, history is kept as soon as it is written.
+`kiroku serve --autostart on` registers `kiroku serve --no-open` to start each time you log in starts it right away and waits a few seconds until it answers. The view is then always at `http://localhost:8484/` (run `kiroku serve --open` once to give your browser the key); while the first read of your history is running, the page says so and switches to the view by itself. With `kiroku serve --archive on`, history is kept as soon as it is written.
 
 - macOS: a launchd agent, `~/Library/LaunchAgents/io.github.michinaoshimizu.kiroku.plist`. Output goes to `~/Library/Logs/kiroku.log`
 - Linux: a systemd user service, `~/.config/systemd/user/kiroku.service` (under `XDG_CONFIG_HOME` if set). See its output with `journalctl --user -u kiroku`
 - Windows is not supported yet. Put a shortcut to `kiroku serve --no-open` in your Startup folder (Win+R, `shell:startup`) instead
-- To use another port, run `kiroku autostart on :8485`. A login session does not see the variables set in your shell, so `PATH` (to find git), `CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME`, `KIROKU_ARCHIVE_DIR`, `KIROKU_CONFIG_DIR`, `KIROKU_LANG` (the view's language), `XDG_CONFIG_HOME` (where the key of kiroku serve is kept) and `XDG_DATA_HOME` (on Linux, where `kiroku archive` and Kiro CLI keep their data) are written into the settings as they are when you run it (on Linux, a value with a newline or another control character is refused). Run `kiroku autostart on` again after changing them
-- It uses the `kiroku` you ran, at its path. `kiroku update` replaces it in place; after reinstalling it somewhere else, run `kiroku autostart on` again
-- `kiroku autostart` (and `kiroku doctor`) shows whether it is on, reading your history, or answering. If `autostart on` reports that nothing answered, the output above (log) says why; a common cause is another `kiroku serve` you started yourself already using the port
+- To use another port, run `kiroku serve --autostart on :8485`. A login session does not see the variables set in your shell, so `PATH` (to find git), `CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME`, `KIROKU_ARCHIVE_DIR`, `KIROKU_CONFIG_DIR`, `KIROKU_LANG` (the view's language), `XDG_CONFIG_HOME` (where the key of kiroku serve is kept) and `XDG_DATA_HOME` (on Linux, where `kiroku serve --archive` and Kiro CLI keep their data) are written into the settings as they are when you run it (on Linux, a value with a newline or another control character is refused). Run `kiroku serve --autostart on` again after changing them
+- It uses the `kiroku` you ran, at its path. `kiroku update` replaces it in place; after reinstalling it somewhere else, run `kiroku serve --autostart on` again
+- `kiroku serve --autostart` (and `kiroku serve --check`) shows whether it is on, reading your history, or answering. If `autostart on` reports that nothing answered, the output above (log) says why; a common cause is another `kiroku serve` you started yourself already using the port
 
 #### Open kiroku in a window of its own
 
-In Chrome or Edge, open the view (`kiroku open`) and choose "Install kiroku" in the address bar or the browser's menu (Edge: Apps → Install this site as an app). kiroku then opens in its own window, with its icon in the Dock or taskbar, like a desktop app. With `kiroku autostart on`, it is there whenever you log in.
+In Chrome or Edge, open the view (`kiroku serve --open`) and choose "Install kiroku" in the address bar or the browser's menu (Edge: Apps → Install this site as an app). kiroku then opens in its own window, with its icon in the Dock or taskbar, like a desktop app. With `kiroku serve --autostart on`, it is there whenever you log in.
 
 - The app window shows the view of `kiroku serve` at the same address, with the key your browser already has. If `kiroku serve` isn't running, it shows the browser's "can't connect" page
 - `localhost:8484` and `127.0.0.1:8484` are different apps; install from the address you use. After changing the port, install again
@@ -481,7 +483,7 @@ In Chrome or Edge, open the view (`kiroku open`) and choose "Install kiroku" in 
 
 #### Turn it off
 
-`kiroku autostart off` stops it and removes it from login. Run it before deleting kiroku.
+`kiroku serve --autostart off` stops it and removes it from login. Run it before deleting kiroku.
 
 If kiroku is already gone, remove it by hand:
 
@@ -501,16 +503,16 @@ systemctl --user daemon-reload
 `127.0.0.1` keeps other computers out, but not other users of the same computer (a shared server you log in to with SSH, for example): any of them could open `http://localhost:8484/`. So `kiroku serve` shows your history only to a browser that has its key.
 
 - The key is made the first time `kiroku serve` runs and kept in `serve-key` in kiroku's settings folder (`~/.config/kiroku` on Linux, `~/Library/Application Support/kiroku` on macOS, `%AppData%\kiroku` on Windows, or `$KIROKU_CONFIG_DIR`), readable only by you. Every `kiroku serve` of yours uses the same key
-- `kiroku serve` (unless `--no-open`) and `kiroku open` open the view with a one-time code (`?code=`), not the key: browsers keep every address they open in their history, and sync it when history sync is on. The code works once, within 10 minutes, and `kiroku serve` hands the key to the page it opens. They don't pass the address to the browser on its command line (other users can see that); they open `open.html` in the same folder, readable only by you, which forwards to it
-- An address with `?key=` (made by versions before v0.38.2) no longer opens kiroku (run `kiroku open` instead). It may still be in your browser's history with the key in it: delete those entries, or change the key (below)
-- The browser then keeps the key in its site data (`localStorage`) for that address and port, and the address without the key works, including bookmarks: the page asks `kiroku serve` for your history with the key. Another browser, a private window, a browser whose site data was cleared, or the same port under another name (`127.0.0.1` instead of `localhost`) shows "Open kiroku with its key"; run `kiroku open` again
-- After upgrading from a version that kept the key in a cookie, run `kiroku open` once in each browser; kiroku removes the old cookie (why it no longer uses one is in [SECURITY.md](../SECURITY.md))
-- To open the view on another device (with `kiroku serve 0.0.0.0:8484`), run `kiroku open --print` and open the printed address there within 10 minutes, with `localhost` replaced by this computer's address. It works once; whoever opens it first gets the key and can read your history, and the connection is not encrypted, so do this only on a network you trust
-- To change the key, stop `kiroku serve`, delete `serve-key` and start it again. Browsers then need `kiroku open` again
+- `kiroku serve` (unless `--no-open`) and `kiroku serve --open` open the view with a one-time code (`?code=`), not the key: browsers keep every address they open in their history, and sync it when history sync is on. The code works once, within 10 minutes, and `kiroku serve` hands the key to the page it opens. They don't pass the address to the browser on its command line (other users can see that); they open `open.html` in the same folder, readable only by you, which forwards to it
+- An address with `?key=` (made by versions before v0.38.2) no longer opens kiroku (run `kiroku serve --open` instead). It may still be in your browser's history with the key in it: delete those entries, or change the key (below)
+- The browser then keeps the key in its site data (`localStorage`) for that address and port, and the address without the key works, including bookmarks: the page asks `kiroku serve` for your history with the key. Another browser, a private window, a browser whose site data was cleared, or the same port under another name (`127.0.0.1` instead of `localhost`) shows "Open kiroku with its key"; run `kiroku serve --open` again
+- After upgrading from a version that kept the key in a cookie, run `kiroku serve --open` once in each browser; kiroku removes the old cookie (why it no longer uses one is in [SECURITY.md](../SECURITY.md))
+- To open the view on another device (with `kiroku serve 0.0.0.0:8484`), run `kiroku serve --open --print` and open the printed address there within 10 minutes, with `localhost` replaced by this computer's address. It works once; whoever opens it first gets the key and can read your history, and the connection is not encrypted, so do this only on a network you trust
+- To change the key, stop `kiroku serve`, delete `serve-key` and start it again. Browsers then need `kiroku serve --open` again
 
 ## Share one week or month
 
-`kiroku html --week last` (or `this`, or any date in the week such as `2026-10-05`) and `kiroku html --month last` (or `this`, or `2026-09`) write an HTML file with only that period, named like `kiroku-2026-09-28.html` or `kiroku-2026-09.html` unless you give `-o`. Use it to show a week to a teammate without handing over all of your history.
+`kiroku serve --html --week last` (or `this`, or any date in the week such as `2026-10-05`) and `kiroku serve --html --month last` (or `this`, or `2026-09`) write an HTML file with only that period, named like `kiroku-2026-09-28.html` or `kiroku-2026-09.html` unless you give `-o`. Use it to show a week to a teammate without handing over all of your history.
 
 - The file has only the sessions that overlap the period, and only the commits and pushes made within it. A session that crosses the edge of the period is included whole, prompts and all
 - It opens on that week or month and says at the very top that it holds only that period; "Back to this file's week" / "Back to this file's month" brings you back to it, and ‹ › (or ← →) only move within that period. Search looks only in this file. Other periods are empty, so the trends have only that period. A week-only file has no month view
@@ -533,7 +535,7 @@ Common to the commands that read history (`serve`, `html`, `doctor`, `archive`):
 | `--codex-home` | `~/.codex` | Location of Codex data (`CODEX_HOME` is also used) |
 | `--gap` | `15` | Idle time (minutes) that splits session bars |
 | `--prices` | | Override the price table with JSON (see "How you used AI") |
-| `--archive-dir` | Per-OS location (see "Keep a copy of history in kiroku") | Where `kiroku archive` keeps copies (`KIROKU_ARCHIVE_DIR` is also used) |
+| `--archive-dir` | Per-OS location (see "Keep a copy of history in kiroku") | Where `kiroku serve --archive` keeps copies (`KIROKU_ARCHIVE_DIR` is also used) |
 
 Per command:
 
@@ -548,7 +550,7 @@ Per command:
 | `html` | `-o`, `--out` | `kiroku.html` | HTML file to write |
 | `doctor` | `--no-update-check` | | Don't ask GitHub whether a newer release exists |
 | `doctor` | `--all` | | List every agent kiroku looks at, including those with no history, with where it looks |
-| `doctor` | `--report` | | Print only kinds and counts for a bug report (kiroku version, OS, per agent sessions, newest version seen, unreadable lines, unknown kinds); no paths, project names, IDs or content |
+| `doctor` | `--report` | | Print only kinds and counts for a bug report (kiroku --version, OS, per agent sessions, newest version seen, unreadable lines, unknown kinds); no paths, project names, IDs or content |
 | `open` | `[ADDR]` | the autostart address, or `127.0.0.1:8484` | `--print`: print a one-time address (works once, within 10 minutes) instead of opening a browser |
 | `autostart on` | `[ADDR]` | `127.0.0.1:8484` | Where the started `kiroku serve` listens, as for `serve` |
 | `html` | `--week` / `--month` | | Write only one week (`this`, `last` or a date in it) or month (`this`, `last` or `YYYY-MM`); see "[Share one week or month](#share-one-week-or-month)" |
@@ -556,17 +558,17 @@ Per command:
 
 ## Uninstall
 
-1. If you turned on autostart, run `kiroku autostart off`. It stops `kiroku serve` and removes it from login (if kiroku is already deleted, see [how to remove it by hand](#turn-it-off))
-2. If you turned on `kiroku archive`, run `kiroku archive off` and answer `y` to delete the copies of history it kept. Or delete the folder yourself: `kiroku archive` shows where it is (by default `~/.local/share/kiroku` on Linux, `~/Library/Application Support/kiroku` on macOS, `%LocalAppData%\kiroku` on Windows)
+1. If you turned on autostart, run `kiroku serve --autostart off`. It stops `kiroku serve` and removes it from login (if kiroku is already deleted, see [how to remove it by hand](#turn-it-off))
+2. If you turned on `kiroku serve --archive`, run `kiroku serve --archive off` and answer `y` to delete the copies of history it kept. Or delete the folder yourself: `kiroku serve --archive` shows where it is (by default `~/.local/share/kiroku` on Linux, `~/Library/Application Support/kiroku` on macOS, `%LocalAppData%\kiroku` on Windows)
 3. Delete kiroku's settings folder, which holds the key of `kiroku serve` (`~/.config/kiroku` on Linux, `~/Library/Application Support/kiroku` on macOS, `%AppData%\kiroku` on Windows, or `$KIROKU_CONFIG_DIR`)
-4. On macOS, delete the log of `kiroku serve` that autostart wrote, `~/Library/Logs/kiroku.log` (`kiroku autostart off` leaves it)
+4. On macOS, delete the log of `kiroku serve` that autostart wrote, `~/Library/Logs/kiroku.log` (`kiroku serve --autostart off` leaves it)
 5. Delete the binary: `rm "$(command -v kiroku)"` (with `sudo` if it is in `/usr/local/bin`)
 
-Apart from these, kiroku keeps nothing of its own (HTML files you wrote with `kiroku html` stay where you put them); view settings are stored in your browser.
+Apart from these, kiroku keeps nothing of its own (HTML files you wrote with `kiroku serve --html` stay where you put them); view settings are stored in your browser.
 
 ## Notes
 
 - In a terminal, kiroku colours its output: green `✓` for what is fine, yellow `!` for what needs attention, red for what failed, dim for notes you can skip, and bold for the commands and addresses you are meant to use. Output that goes to a pipe or a file is plain, and so is a terminal where `NO_COLOR` is set (see [no-color.org](https://no-color.org/)) or `TERM=dumb`. `install.sh` follows the same rules
 - The HTML output contains your prompts, the AI's replies, file paths and commit messages as they are. Check the content before giving it to anyone (this repository's `.gitignore` excludes `*.html`). kiroku writes it readable only by you (`0600`), through a temporary file that replaces the old one, so a symbolic link at the output path is replaced rather than followed
-- Kiro Crew conversations you held in incognito or temporary mode are shown with counts and times only (time span, prompts, turns, model, tools, credits, tokens and cost), titled "Kiro Crew private conversation". Their prompts, replies, title and files are not in the view or the prompts kiroku copies for an AI, and neither are their copies in the Kiro CLI SQLite, Codex and Claude Code history that kiroku can match (also with `--sources codex` or `--sources claude`). Git commits made during their time span are still listed, since they come from the repository. Some copies can't be matched and are shown in full, such as a temporary subagent's own session; the cases are in [sources.md](sources.md#kiro-crew). `kiroku archive` copies Crew's `sessions/archive/` files as they are, so its copy still holds their text
+- Kiro Crew conversations you held in incognito or temporary mode are shown with counts and times only (time span, prompts, turns, model, tools, credits, tokens and cost), titled "Kiro Crew private conversation". Their prompts, replies, title and files are not in the view or the prompts kiroku copies for an AI, and neither are their copies in the Kiro CLI SQLite, Codex and Claude Code history that kiroku can match (also with `--sources codex` or `--sources claude`). Git commits made during their time span are still listed, since they come from the repository. Some copies can't be matched and are shown in full, such as a temporary subagent's own session; the cases are in [sources.md](sources.md#kiro-crew). `kiroku serve --archive` copies Crew's `sessions/archive/` files as they are, so its copy still holds their text
 - By default, `kiroku serve` can be reached only from your own computer, and only by browsers that have its key (see "[The key of kiroku serve](#the-key-of-kiroku-serve)"). If you expose it, as in `kiroku serve 0.0.0.0:8484`, devices on the same network can reach it, and anyone who gets the address with the key can view your history. See [SECURITY.md](../SECURITY.md) for how it still guards against other sites

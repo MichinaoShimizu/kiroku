@@ -63,13 +63,13 @@ node tools/screenshots/xss.mjs "$T/xss.html"
 
 ### 4. git
 
-履歴の `cwd` が指すリポジトリを `$T` に作り、`.git/config` に `core.fsmonitor`・`core.hooksPath`（フックは目印のファイルを作るだけ）・`core.pager`・`diff.external`・`filter.*` などを仕込みます。`kiroku html` と `serve` を動かしたあと、目印のファイルができていないことを確かめます。コミットメッセージ・ブランチ名・リモートの URL に入れた差しこみが画面で動かないことも 1 と同じように確かめます。
+履歴の `cwd` が指すリポジトリを `$T` に作り、`.git/config` に `core.fsmonitor`・`core.hooksPath`（フックは目印のファイルを作るだけ）・`core.pager`・`diff.external`・`filter.*` などを仕込みます。`kiroku serve --html` と `serve` を動かしたあと、目印のファイルができていないことを確かめます。コミットメッセージ・ブランチ名・リモートの URL に入れた差しこみが画面で動かないことも 1 と同じように確かめます。
 
 ### 5. 書き出すファイル
 
-- `kiroku html -o` の出力が `0600` になる。出力先に `$T` の外を指すシンボリックリンクを置いても、リンク先は書き換えられない
-- `kiroku archive on` のあとの写しのフォルダが `0700`、ファイルが `0600`
-- `kiroku archive off` が、`on` で印を付けていないフォルダや `.zst` 以外のファイルを消さない
+- `kiroku serve --html -o` の出力が `0600` になる。出力先に `$T` の外を指すシンボリックリンクを置いても、リンク先は書き換えられない
+- `kiroku serve --archive on` のあとの写しのフォルダが `0700`、ファイルが `0600`
+- `kiroku serve --archive off` が、`on` で印を付けていないフォルダや `.zst` 以外のファイルを消さない
 
 ### 6. 壊れた入力と大きな入力
 

@@ -514,7 +514,7 @@ func TestReplaceExe(t *testing.T) {
 	}
 }
 
-// kiroku version は版と OS/arch を出す。
+// kiroku --version は版と OS/arch を出す。
 func TestRunVersion(t *testing.T) {
 	old := version
 	t.Cleanup(func() { version = old })

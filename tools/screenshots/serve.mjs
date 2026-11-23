@@ -1,7 +1,7 @@
 // kiroku serve の鍵を、本物のブラウザで確かめる（CI の e2e）。
 //   go build -o /tmp/kiroku . && python3 -I tools/screenshots/gen.py /tmp/gen && node tools/screenshots/serve.mjs /tmp/kiroku /tmp/gen
 // ダミーの履歴（gen.py）だけを読む kiroku serve を、使い捨ての HOME と設定の場所で空いているポートに立て、
-//   - kiroku open --print の使い捨てのコード（?code=）で開くと履歴が出て、どの URL にも鍵が載らない（ブラウザの履歴に鍵が残らない）。
+//   - kiroku serve --open --print の使い捨てのコード（?code=）で開くと履歴が出て、どの URL にも鍵が載らない（ブラウザの履歴に鍵が残らない）。
 //     鍵は中継のページの POST の答えでだけ受け取り、コードは 2 回目には使えない
 //   - 以前の版の /?key= は、鍵が合っていても 403 で、履歴を出さず、鍵をしまわない（1.0 から）
 //   - 鍵なしの / を開き直しても出る（localStorage の鍵）。履歴ファイルの「Open」は鍵を付けて読んで保存する
@@ -43,7 +43,7 @@ try {
   const until = async (what, f, ms = 30000) => { const end = Date.now() + ms; for (;;) { const v = await f(); if (v) return v; if (Date.now() > end) throw new Error(`${what} にならない: ${log}`); await new Promise(r => setTimeout(r, 100)); } };
   const port = await until("待ち受け", () => (log.match(/serving http:\/\/localhost:(\d+)\//) || [])[1]);
   const key = (await until("鍵", () => readFile(path.join(env.KIROKU_CONFIG_DIR, "serve-key"), "utf8").catch(() => ""))).trim();
-  // 別のポートの serve は別のオリジンなので、その localStorage に鍵をしまってから開く（kiroku open の中継のページと同じこと）
+  // 別のポートの serve は別のオリジンなので、その localStorage に鍵をしまってから開く（kiroku serve --open の中継のページと同じこと）
   const openWithKey = async (page, url) => {
     await page.goto(`${url}/`);
     await page.evaluate(k => localStorage.setItem("kiroku:key", k), key);
@@ -63,12 +63,12 @@ try {
   p.on("pageerror", e => errors.push(e.message));
   p.on("console", m => { if (m.type() === "error" && /Content Security Policy|Refused/.test(m.text())) errors.push(m.text()); });
 
-  // kiroku open --print の使い捨てのコード。開いた URL（ブラウザの履歴に残るもの）のどれにも鍵が載らない
+  // kiroku serve --open --print の使い捨てのコード。開いた URL（ブラウザの履歴に残るもの）のどれにも鍵が載らない
   const pc = await (await b.newContext()).newPage();
   const visited = [];
   pc.on("request", r => visited.push(r.url()));
   const once = execFileSync(path.resolve(bin), ["open", "--print", `127.0.0.1:${port}`], { env, encoding: "utf8" }).split("\n")[0].trim();
-  check("kiroku open --print は使い捨てのコードの URL で、鍵を出さない", /^http:\/\/localhost:\d+\/\?code=[0-9a-f]{64}$/.test(once) && !once.includes(key), once);
+  check("kiroku serve --open --print は使い捨てのコードの URL で、鍵を出さない", /^http:\/\/localhost:\d+\/\?code=[0-9a-f]{64}$/.test(once) && !once.includes(key), once);
   await pc.goto(once);
   await pc.waitForURL(u => !u.search.includes("code="), { timeout: 10000 });
   await pc.waitForSelector(".run[data-sid]", { timeout: 15000 });
@@ -93,7 +93,7 @@ try {
   const cookies = await ctx.cookies();
   check("鍵の Cookie がない", !cookies.some(c => c.value.includes(key) || c.name.startsWith("kiroku_key_")), JSON.stringify(cookies));
 
-  await openWithKey(p, base); // kiroku open の中継のページがしまうのと同じく、localStorage に鍵を置いてから鍵なしの / を開く
+  await openWithKey(p, base); // kiroku serve --open の中継のページがしまうのと同じく、localStorage に鍵を置いてから鍵なしの / を開く
   await p.waitForSelector(".run[data-sid]", { timeout: 15000 });
   check("鍵なしの / を開き直しても履歴が出る", await p.locator(".run[data-sid]").count() > 0);
   const title = await p.evaluate(() => DATA.length ? DATA[DATA.length - 1].title : "");
@@ -173,7 +173,7 @@ try {
   await q.goto(`${base}/`);
   await q.waitForSelector("#locked", { timeout: 10000 });
   const text = await q.evaluate(() => document.body.innerText);
-  check("鍵のないブラウザには案内が出る", text.includes("Open kiroku with its key") && text.includes("kiroku open"));
+  check("鍵のないブラウザには案内が出る", text.includes("Open kiroku with its key") && text.includes("kiroku serve --open"));
   check("鍵のないブラウザには履歴が出ない", !text.includes(title) && await q.locator(".run[data-sid]").count() === 0 && await q.evaluate(() => DATA.length) === 0);
   const html = await (await q.request.get(`${base}/`)).text();
   check("鍵なしの / の HTML に履歴の題が入っていない", !html.includes(title));

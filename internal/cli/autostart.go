@@ -198,7 +198,7 @@ func currentAutostart(args []string) (autostartPlan, error) {
 	return planAutostart(autostartGOOS, home, exe, args, env)
 }
 
-// autostartState は、自動起動の状態（kiroku doctor と kiroku autostart で出す）。
+// autostartState は、自動起動の状態（kiroku serve --check と kiroku autostart で出す）。
 type autostartState struct {
 	on, running bool
 	mark, text  string
@@ -249,7 +249,7 @@ func autostartStatus() autostartState {
 	}
 	addr, ok := autostartAddr(p)
 	if !ok {
-		return autostartState{mark: "·", text: "off (run \"kiroku autostart on\" to start kiroku serve when you log in)"}
+		return autostartState{mark: "·", text: "off (run \"kiroku serve --autostart on\" to start kiroku serve when you log in)"}
 	}
 	_, port, _ := net.SplitHostPort(addr)
 	url := "http://localhost:" + port + "/"
@@ -288,7 +288,7 @@ func (s *autostartState) describe(answer int, log string) {
 }
 
 func cmdAutostart(args []string) error {
-	fs := newFS("autostart", "autostart [on [ADDR] | off]\n\nStarts \"kiroku serve\" in the background each time you log in, so the view is always at\nhttp://localhost:8484/ (macOS: launchd, Linux: systemd --user). Run \"kiroku open\" once to give your\nbrowser the key of kiroku serve.\n\n  kiroku autostart          show the status\n  kiroku autostart on       start now and at every login (ADDR such as :8485 changes the port)\n  kiroku autostart off      stop it and remove it from login")
+	fs := newFS("serve --autostart", "serve --autostart [on [ADDR] | off]\n\nStarts \"kiroku serve\" in the background each time you log in, so the view is always at\nhttp://localhost:8484/ (macOS: launchd, Linux: systemd --user). Run \"kiroku serve --open\" once to give your\nbrowser the key of kiroku serve.\n\n  kiroku autostart          show the status\n  kiroku serve --autostart on       start now and at every login (ADDR such as :8485 changes the port)\n  kiroku serve --autostart off      stop it and remove it from login")
 	pos, err := parse(fs, args, 2)
 	if err != nil {
 		return quiet(err)
@@ -300,7 +300,7 @@ func cmdAutostart(args []string) error {
 	var extra []string
 	if len(pos) == 2 {
 		if cmd != "on" || !addrRe.MatchString(pos[1]) {
-			return fmt.Errorf("unknown argument: %s (use \"kiroku autostart on :8485\" to change the port)", pos[1])
+			return fmt.Errorf("unknown argument: %s (use \"kiroku serve --autostart on :8485\" to change the port)", pos[1])
 		}
 		extra = []string{pos[1]}
 	}
@@ -315,7 +315,7 @@ func cmdAutostart(args []string) error {
 			return err
 		}
 		if strings.Contains(p.exe, "go-build") {
-			return fmt.Errorf("kiroku is running from a temporary build (go run); install it first (go install or install.sh), then run \"kiroku autostart on\" again")
+			return fmt.Errorf("kiroku is running from a temporary build (go run); install it first (go install or install.sh), then run \"kiroku serve --autostart on\" again")
 		}
 		if err := os.MkdirAll(filepath.Dir(p.path), 0o755); err != nil {
 			return err
@@ -351,9 +351,9 @@ func cmdAutostart(args []string) error {
 		s.describe(answer, p.log)
 		fmt.Printf("%s %s\n", s.mark, s.text)
 		if !s.running {
-			return fmt.Errorf("kiroku serve did not answer within %s; check the output above, or run \"kiroku doctor\"", autostartWait)
+			return fmt.Errorf("kiroku serve did not answer within %s; check the output above, or run \"kiroku serve --check\"", autostartWait)
 		}
-		fmt.Println("open it with \"kiroku open\" (needed once per browser; after that, the address above works)")
+		fmt.Println("open it with \"kiroku serve --open\" (needed once per browser; after that, the address above works)")
 		return nil
 	case "off":
 		p, err := currentAutostart(nil)
@@ -376,5 +376,5 @@ func cmdAutostart(args []string) error {
 		fmt.Println("autostart is off: kiroku serve no longer starts when you log in")
 		return nil
 	}
-	return fmt.Errorf("unknown argument: %s (use \"kiroku autostart\", \"kiroku autostart on\" or \"kiroku autostart off\")", cmd)
+	return fmt.Errorf("unknown argument: %s (use \"kiroku serve --autostart\", \"kiroku serve --autostart on\" or \"kiroku serve --autostart off\")", cmd)
 }

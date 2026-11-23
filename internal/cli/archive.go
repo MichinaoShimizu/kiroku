@@ -34,7 +34,7 @@ func keepCopies(picked []source.Source, dir string) int {
 var keptDirs = core.ArchiveDirs()
 
 func cmdArchive(args []string) error {
-	fs := newFS("archive", "archive [flags] [on|off]\n\nAgents such as Claude Code delete old history (Claude Code: after 30 days unless cleanupPeriodDays is set).\n\"kiroku archive on\" makes kiroku keep compressed copies of that history every time it reads it,\nand show deleted conversations from the copies. Copies stay on this computer only.\n\n  kiroku archive        show the status\n  kiroku archive on     start keeping copies (and keep a copy of the current history now)\n  kiroku archive off    stop keeping copies (asks whether to delete the copies already kept)")
+	fs := newFS("serve --archive", "serve --archive [flags] [on|off]\n\nAgents such as Claude Code delete old history (Claude Code: after 30 days unless cleanupPeriodDays is set).\n\"kiroku serve --archive on\" makes kiroku keep compressed copies of that history every time it reads it,\nand show deleted conversations from the copies. Copies stay on this computer only.\n\n  kiroku archive        show the status\n  kiroku serve --archive on     start keeping copies (and keep a copy of the current history now)\n  kiroku serve --archive off    stop keeping copies (asks whether to delete the copies already kept)")
 	c := addCommon(fs)
 	pos, err := parse(fs, args, 1)
 	if err != nil {
@@ -54,7 +54,7 @@ func cmdArchive(args []string) error {
 		files, size := archive.Usage(dir)
 		fmt.Printf("archive: %s\nlocation: %s\nkept: %s, %s\n", state, dir, nFiles(files), humanBytes(size))
 		if state == "off" {
-			fmt.Println(`run "kiroku archive on" to keep copies of history that agents delete`)
+			fmt.Println(`run "kiroku serve --archive on" to keep copies of history that agents delete`)
 		}
 		return nil
 	case "on":
@@ -77,7 +77,7 @@ func cmdArchive(args []string) error {
 			return nil
 		}
 		if !marked { // まちがった --archive-dir や KIROKU_ARCHIVE_DIR で、ほかのフォルダのファイルを消さない
-			fmt.Printf("%s does not look like a kiroku archive folder (kiroku archive on was not run there), so kiroku did not offer to delete anything in it\n", dir)
+			fmt.Printf("%s does not look like a kiroku archive folder (kiroku serve --archive on was not run there), so kiroku did not offer to delete anything in it\n", dir)
 			return nil
 		}
 		if askYes(fmt.Sprintf("delete the %s (%s) already kept in %s? deleted history cannot be shown again [y/N] ", nFiles(files), humanBytes(size), dir)) {
@@ -92,7 +92,7 @@ func cmdArchive(args []string) error {
 		fmt.Printf("the kept copies stay in %s, and kiroku still shows them\n", dir)
 		return nil
 	}
-	return fmt.Errorf("unknown argument: %s (use \"kiroku archive\", \"kiroku archive on\" or \"kiroku archive off\")", cmd)
+	return fmt.Errorf("unknown argument: %s (use \"kiroku serve --archive\", \"kiroku serve --archive on\" or \"kiroku serve --archive off\")", cmd)
 }
 
 // askYes は端末で y と答えたときだけ true（端末でなければ聞かずに false）。テストで差しかえる。

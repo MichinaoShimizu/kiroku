@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Format は、履歴を読んで見つけた形の手がかり（kiroku doctor の「Format check」と「Data sources」に出す）。
+// Format は、履歴を読んで見つけた形の手がかり（kiroku serve --check の「Format check」と「Data sources」に出す）。
 // エージェントが履歴の形を変えると、kiroku の知らない記録の種類や読めない行が増え、版も新しくなる。
 // 中身は種類の名前（SafeKind で確かめたもの）と数と版（SafeVersion）だけで、パス・プロジェクト名・ID・発言は入れない。
 type Format struct {

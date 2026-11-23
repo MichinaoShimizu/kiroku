@@ -44,7 +44,7 @@ func writeClaude(t *testing.T, root, id string) string {
 	return p
 }
 
-// kiroku archive on で保存を始め、Claude Code が会話を消しても読める。off は保存をやめる（コピーは残して読む）。
+// kiroku serve --archive on で保存を始め、Claude Code が会話を消しても読める。off は保存をやめる（コピーは残して読む）。
 func TestArchiveCommand(t *testing.T) {
 	root, dir := t.TempDir(), filepath.Join(t.TempDir(), "archive")
 	p := writeClaude(t, root, "s1")

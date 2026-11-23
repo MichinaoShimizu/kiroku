@@ -214,7 +214,7 @@ function reportPrompt(day){ return inEnglish(() => { // AI に渡すので英語
   return L.join("\n");
 }); }
 /* 計測の状態 */
-/* kiroku html --week / --month で書き出した、1 つの期間だけのファイル。渡された人がいちばん上で、何のファイルか・ほかの期間が空の理由・
+/* kiroku serve --html --week / --month で書き出した、1 つの期間だけのファイル。渡された人がいちばん上で、何のファイルか・ほかの期間が空の理由・
    どの時計で見ているかがわかるように */
 function scopeNote(){
   const sc = META.scope; if (!sc) return "";
@@ -228,13 +228,13 @@ function scopeNote(){
 // 週・月の集計は書き出した人の時間帯で区切っていて、ほかの時間帯で開くと from が前の日になり、前の週を開いてしまうため
 function scopeStart(){ const [y, m, d] = META.scope.key.split("-").map(Number); return new Date(y, m-1, d || 1); }
 function archOn(){ return !!(META.archive && META.archive.on); }
-// keepArchive は「kiroku にコピーを残す」（kiroku serve のときだけ）。kiroku archive on と同じことをして、集計を取り込み直す。
+// keepArchive は「kiroku にコピーを残す」（kiroku serve のときだけ）。kiroku serve --archive on と同じことをして、集計を取り込み直す。
 async function keepArchive(){
   try {
     const r = await kfetch("archive", {method:"POST", headers:{"X-Kiroku":"1"}}); if (!r.ok) throw new Error(r.status);
     applyData(await r.json()); render();
     toast(t("Backed up to {dir}. kiroku adds new history to it each time it reads your history.", {dir: (META.archive && META.archive.dir) || t("kiroku's folder")}), 6000);
-  } catch(e){ toast(t("Couldn't start the backup. Run kiroku archive on instead."), 4500); }
+  } catch(e){ toast(t("Couldn't start the backup. Run kiroku serve --archive on instead."), 4500); }
 }
 function keepRow(r){ // 計測の状態に添える：どこまでさかのぼれるか、いつ消えるか
   const o = r.oldest ? dMDY(new Date(r.oldest*1000)) : "";
@@ -243,7 +243,7 @@ function keepRow(r){ // 計測の状態に添える：どこまでさかのぼ�
   // how は、既定のままで消える履歴を残す 2 つの方法。バックアップ先のフォルダを先に見せる（押す前に、どこに何ができるかわかるように）
   const dir = META.archive && META.archive.dir, how = () => { const v = {snippet: {h: `<code>${esc(k.snippet || `"${k.setting}": 3650`)}</code>`},
       file: {h: `<code>${esc(k.file || "")}</code>`}, dir: dir ? {h: `<code>${esc(dir)}</code>`} : t("a folder on this computer"),
-      on: {h: "<code>kiroku archive on</code>"}, off: {h: "<code>kiroku archive off</code>"}};
+      on: {h: "<code>kiroku serve --archive on</code>"}, off: {h: "<code>kiroku serve --archive off</code>"}};
     const s = LIVE ? (k.file ? "To keep them, set {snippet} in {file}, or let kiroku back them up to {dir} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and {off} stops it)"
         : "To keep them, set {snippet}, or let kiroku back them up to {dir} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and {off} stops it)")
       : (k.file ? "To keep them, set {snippet} in {file}, or run {on} to let kiroku back them up to {dir} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and {off} stops it)"
@@ -269,7 +269,7 @@ function kindsText(u){
 function formatRow(r){
   const v = safeVer(r.agentVersion), k = kindsText(r.unknown), bad = Number.isFinite(r.badLines) && r.badLines > 0 ? Math.floor(r.badLines) : 0;
   return (v ? ` · ${esc(t("newest version seen: {v}", {v}))}` : "") + (bad ? ` · ${esc(plural(bad, "unreadable line"))}` : "") +
-    (k ? `<br><span class="kw">${esc(t("Record kinds kiroku doesn't know: {list}", {list: k}))}</span> ${tph("The agent may have changed its history format; please report them with {cmd}", {cmd: {h: "<code>kiroku doctor --report</code>"}})}` : "");
+    (k ? `<br><span class="kw">${esc(t("Record kinds kiroku doesn't know: {list}", {list: k}))}</span> ${tph("The agent may have changed its history format; please report them with {cmd}", {cmd: {h: "<code>kiroku serve --check --report</code>"}})}` : "");
 }
 // measure は、計測の状態（読んだ履歴・消える設定・kiroku のコピー・料金表）。ふだんはたたみ、
 // 気をつけること（読めないファイル・既定のままで消える履歴・料金表にないモデル・似た ID の料金を当てたモデル）があるときは、見出しに印を付けて開いておく

@@ -9,7 +9,7 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/source"
 )
 
-// kiroku doctor：消える設定のままなら「!」で設定の場所と kiroku archive on を案内し、archive がオンなら安心と出す。
+// kiroku serve --check：消える設定のままなら「!」で設定の場所と kiroku serve --archive on を案内し、archive がオンなら安心と出す。
 func TestDoctorReport(t *testing.T) {
 	fakeAutostart(t, "darwin", noAnswer)
 	old := lookGit
@@ -27,8 +27,8 @@ func TestDoctorReport(t *testing.T) {
 	out := b.String()
 	for _, want := range []string{"✓ Claude Code", "12 sessions, since", "/x/projects",
 		`! Claude Code deletes history older than 30 days`, `add "cleanupPeriodDays": 3650 to /x/settings.json`,
-		`! Kiro Crew deletes history older than 30 days (session.archive_retention_days is at its default)`, `add "session": {"archive_retention_days": 3650} to /x/crew/config.local.json`, `Run "kiroku archive on"`,
-		"git: not found", "autostart: off", "kiroku archive on    keep copies", "kiroku serve"} {
+		`! Kiro Crew deletes history older than 30 days (session.archive_retention_days is at its default)`, `add "session": {"archive_retention_days": 3650} to /x/crew/config.local.json`, `Run "kiroku serve --archive on"`,
+		"git: not found", "autostart: off", "kiroku serve --archive on    keep copies", "kiroku serve"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("%q がない:\n%s", want, out)
 		}
@@ -98,7 +98,7 @@ func TestDoctorZeroDayRetention(t *testing.T) {
 	doctorReport(&b, rep, 3, dir, release{}, false)
 	out := b.String()
 	for _, want := range []string{"! Kiro Crew deletes old history at its next cleanup (session.archive_retention_days is 0)",
-		`add "session": {"archive_retention_days": 3650} to /x/crew/config.local.json`, `Run "kiroku archive on"`} {
+		`add "session": {"archive_retention_days": 3650} to /x/crew/config.local.json`, `Run "kiroku serve --archive on"`} {
 		if !strings.Contains(out, want) {
 			t.Errorf("%q がない:\n%s", want, out)
 		}
@@ -180,12 +180,12 @@ func TestDoctorVersion(t *testing.T) {
 		if !strings.Contains(out, c.want) || c.deny != "" && strings.Contains(out, c.deny) {
 			t.Errorf("%+v:\n%s", c.rel, out)
 		}
-		if c.rel.latest == "v0.12.0" && !strings.Contains(out, "kiroku update        install v0.12.0") {
+		if c.rel.latest == "v0.12.0" && !strings.Contains(out, "kiroku update                install v0.12.0") {
 			t.Errorf("Next に kiroku update がない:\n%s", out)
 		}
 	}
 
-	// kiroku doctor は、履歴を読むのと同時に最新の版を確かめる。--no-update-check と手元のビルドでは確かめない
+	// kiroku serve --check は、履歴を読むのと同時に最新の版を確かめる。--no-update-check と手元のビルドでは確かめない
 	oldLatest := doctorLatest
 	t.Cleanup(func() { doctorLatest = oldLatest })
 	asked := 0

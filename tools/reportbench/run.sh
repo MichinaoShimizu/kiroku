@@ -12,6 +12,6 @@ mkdir -p "$work"
 work=$(cd "$work" && pwd)
 python3 -I "$here/fixture.py" "$work" >/dev/null
 (cd "$root" && go build -o "$work/kiroku" .)
-(cd "$work" && HOME="$work/home" TZ=Asia/Tokyo GIT_CONFIG_GLOBAL=/dev/null ./kiroku html --no-open --sources claude \
+(cd "$work" && HOME="$work/home" TZ=Asia/Tokyo GIT_CONFIG_GLOBAL=/dev/null ./kiroku serve --html --no-open --sources claude \
   --claude-root "$work/home/.claude/projects" --archive-dir "$work/archive" -o "$work/kiroku.html" >/dev/null 2>&1)
 node "$here/prompts.mjs" "$work/kiroku.html" "$work/prompts"

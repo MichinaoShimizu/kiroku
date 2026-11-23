@@ -508,7 +508,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	var branchAt *float64 // 数えなかった（元の会話にあった）写した行のいちばん遅い時刻（会話を分けた時刻）
 	var version string    // いちばん新しい行を書いた Claude Code の版（行の version）
 	var versionT float64  // その行の時刻
-	var fm core.Format    // 形の手がかり（kiroku doctor の「Format check」）
+	var fm core.Format    // 形の手がかり（kiroku serve --check の「Format check」）
 	readErr := fileErr(path, core.ReadJSONLBad(path, func(e core.Obj) {
 		typ := core.Str(e["type"])
 		if !claudeKinds[typ] {
@@ -911,7 +911,7 @@ func (c *Claude) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	return readErr
 }
 
-// claudeKinds は、kiroku が知っている Claude Code の行の type（kiroku doctor の「Format check」で、知らない種類に数えない）。
+// claudeKinds は、kiroku が知っている Claude Code の行の type（kiroku serve --check の「Format check」で、知らない種類に数えない）。
 // 読むもの: user・assistant・system・attachment・summary・custom-title・ai-title・cost-state。
 // 残りは、あることを知っていて、わざと読まないもの（ファイルの編集の控え・送る前の依頼の列・途中経過・最後の依頼の写し・
 // 会話の名前や色・モード・PR へのリンク・ワークツリー・置きかえた中身・要約の控えなど）。形は公開されていないので、実際の履歴に見えたものを並べる

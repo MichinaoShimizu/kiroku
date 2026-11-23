@@ -9,8 +9,8 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/archive"
 )
 
-// kiroku archive off で「消す」と答えると、kiroku が書いたコピー（.zst）だけを消し、ほかのファイルは残す。
-// kiroku archive on をしたことのないフォルダ（まちがった --archive-dir）では、消すかどうかを聞きもしない。
+// kiroku serve --archive off で「消す」と答えると、kiroku が書いたコピー（.zst）だけを消し、ほかのファイルは残す。
+// kiroku serve --archive on をしたことのないフォルダ（まちがった --archive-dir）では、消すかどうかを聞きもしない。
 func TestArchiveOffDeletesOnlyCopies(t *testing.T) {
 	old := askYes
 	defer func() { askYes = old }()
@@ -44,7 +44,7 @@ func TestArchiveOffDeletesOnlyCopies(t *testing.T) {
 		t.Errorf(".zst でないファイルを消した: %v", err)
 	}
 
-	// kiroku archive on をしたことのないフォルダ
+	// kiroku serve --archive on をしたことのないフォルダ
 	other := t.TempDir()
 	keep := filepath.Join(other, "claude", "photos", "a.jsonl.zst")
 	os.MkdirAll(filepath.Dir(keep), 0o700)

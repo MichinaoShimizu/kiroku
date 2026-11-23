@@ -41,7 +41,7 @@ func copyCompat(t *testing.T, v, name string) string {
 	return dst
 }
 
-// 前の版の kiroku archive のコピーを、元の履歴が消えたあとも読める。kiroku archive off も保存場所だとわかる。
+// 前の版の kiroku archive のコピーを、元の履歴が消えたあとも読める。kiroku serve --archive off も保存場所だとわかる。
 func TestCompatArchive(t *testing.T) {
 	for _, v := range compatVersions {
 		t.Run(v, func(t *testing.T) {
@@ -77,7 +77,7 @@ func TestCompatArchive(t *testing.T) {
 	}
 }
 
-// 前の版の kiroku serve の鍵をそのまま使う（ブックマークや kiroku open がそのまま使える）。
+// 前の版の kiroku serve の鍵をそのまま使う（ブックマークや kiroku serve --open がそのまま使える）。
 func TestCompatServeKey(t *testing.T) {
 	for _, v := range compatVersions {
 		t.Run(v, func(t *testing.T) {

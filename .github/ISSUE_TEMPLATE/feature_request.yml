@@ -15,4 +15,4 @@ body:
       label: Your idea
   - type: markdown
     attributes:
-      value: kiroku stays local-only. It reads your history on this computer and shows it with `kiroku serve` (on 127.0.0.1) or a static HTML file from `kiroku html`; it runs no AI agent and sends no telemetry. Ideas that send history or anything derived from it off the machine, need a hosted service or an external API, or run an AI agent are out of scope.
+      value: kiroku stays local-only. It reads your history on this computer and shows it with `kiroku serve` (on 127.0.0.1) or a static HTML file from `kiroku serve --html`; it runs no AI agent and sends no telemetry. Ideas that send history or anything derived from it off the machine, need a hosted service or an external API, or run an AI agent are out of scope.

@@ -14,14 +14,14 @@ Claude Code・Kiro（IDE・CLI・Kiro Crew）・Codex CLI のローカル履歴�
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install.sh | sh   # macOS と Linux
-kiroku doctor   # 見つかった履歴と、消されそうな履歴がないかを表示
-kiroku serve    # http://localhost:8484/ で画面を開く
+kiroku serve --check  # 見つかった履歴と、消されそうな履歴がないかを表示
+kiroku serve          # http://localhost:8484/ で画面を開く
 ```
 
 インストーラーはダウンロードを `checksums.txt`（[GitHub CLI](https://cli.github.com/) があればビルドの来歴も）で確かめます。Windows は [Releases](https://github.com/MichinaoShimizu/kiroku/releases) の zip を、Go があれば `go install github.com/MichinaoShimizu/kiroku@latest` を使えます（[ガイド](docs/guide.md#install)）。
 
 > [!IMPORTANT]
-> **Claude Code は既定で 30 日より古い会話を消します。** `~/.claude/settings.json` に `"cleanupPeriodDays": 3650` を設定するか（[公式](https://code.claude.com/docs/en/settings-reference#cleanupperioddays)）、`kiroku archive on` で kiroku にコピーを残させてください（[詳しく](docs/guide.md#keep-a-copy-of-history-in-kiroku)）。
+> **Claude Code は既定で 30 日より古い会話を消します。** `~/.claude/settings.json` に `"cleanupPeriodDays": 3650` を設定するか（[公式](https://code.claude.com/docs/en/settings-reference#cleanupperioddays)）、`kiroku serve --archive on` で kiroku にコピーを残させてください（[詳しく](docs/guide.md#keep-a-copy-of-history-in-kiroku)）。
 
 ## できること
 
@@ -67,12 +67,13 @@ kiroku serve    # http://localhost:8484/ で画面を開く
 ## 使い方
 
 ```bash
-kiroku serve              # 画面を開き、新しい履歴が入るたびに更新
-kiroku open               # 別のブラウザーで開く
-kiroku autostart on       # ログインのたびに kiroku serve を起動（macOS と Linux）
-kiroku html --week last   # 先週だけを 1 つの HTML に書き出す
-kiroku update             # 最新の版に更新
-kiroku help               # すべてのコマンド
+kiroku serve                        # 画面を開き、新しい履歴が入るたびに更新
+kiroku serve --open                 # 別のブラウザーで開く
+kiroku serve --autostart on         # ログインのたびに kiroku serve を起動（macOS と Linux）
+kiroku serve --archive on           # エージェントが消す履歴のコピーを残す
+kiroku serve --html --week last     # 先週だけを 1 つの HTML に書き出す
+kiroku update                       # 最新の版に更新
+kiroku help                         # すべての使い方
 ```
 
 画面の見方・指標・オプション・[アンインストール](docs/guide.md#uninstall)は[ガイド](docs/guide.md)、版の約束は[互換性](docs/compatibility.md)にあります（どちらも英語）。

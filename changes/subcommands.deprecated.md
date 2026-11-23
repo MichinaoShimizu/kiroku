@@ -1,0 +1,7 @@
+- The commands `open`, `html`, `archive`, `autostart`, `doctor` and `version` are deprecated and will be removed in kiroku 5.0. They keep working and print a one-line note naming their replacement:
+  - `kiroku open` → `kiroku serve --open`
+  - `kiroku html` → `kiroku serve --html`
+  - `kiroku archive` → `kiroku serve --archive`
+  - `kiroku autostart` → `kiroku serve --autostart`
+  - `kiroku doctor` → `kiroku serve --check`
+  - `kiroku version` → `kiroku --version`

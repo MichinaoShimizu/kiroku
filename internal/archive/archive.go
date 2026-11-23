@@ -2,7 +2,7 @@
 //
 // 保存場所の下に、元の場所からの相対パスのまま <名前>.zst で置く。元のファイルの更新時刻をコピーにも付けて、
 // 次からは更新時刻が変わったファイルだけを圧縮し直す。保存するかどうかは、保存場所の enabled というファイルで決める
-// （kiroku archive on / off）。止めても、すでに保存したコピーは読む。
+// （kiroku serve --archive on / off）。止めても、すでに保存したコピーは読む。
 package archive
 
 import (
@@ -21,7 +21,7 @@ import (
 // marker があれば保存する。
 const marker = "enabled"
 
-// stamp は、kiroku archive の保存場所だという印。オフにしても消さない（kiroku archive off でコピーを消す前に確かめる）。
+// stamp は、kiroku archive の保存場所だという印。オフにしても消さない（kiroku serve --archive off でコピーを消す前に確かめる）。
 const stamp = ".kiroku-archive"
 
 // DefaultDir は保存場所。KIROKU_ARCHIVE_DIR があればそこ。
@@ -63,7 +63,7 @@ func Enable(dir string) error {
 	if err := os.WriteFile(filepath.Join(dir, stamp), []byte("this folder holds kiroku archive copies of agent history\n"), 0o600); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(dir, marker), []byte("kiroku keeps compressed copies of agent history here (kiroku archive off to stop)\n"), 0o600)
+	return os.WriteFile(filepath.Join(dir, marker), []byte("kiroku keeps compressed copies of agent history here (kiroku serve --archive off to stop)\n"), 0o600)
 }
 
 // Marked は、dir が kiroku archive の保存場所らしいか（オンになっているか、前にオンにした印があるか）。

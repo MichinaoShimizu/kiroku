@@ -113,7 +113,7 @@ func TestRequireKey(t *testing.T) {
 		{"マニフェストへの PUT", "PUT", "/manifest.webmanifest", "", nil},
 	} {
 		w := do(c.method, c.target, c.hdr, c.cookie)
-		if w.Code != 403 || w.Body.String() == "history" || !strings.Contains(w.Body.String(), "kiroku open") {
+		if w.Code != 403 || w.Body.String() == "history" || !strings.Contains(w.Body.String(), "kiroku serve --open") {
 			t.Errorf("%s: %d %q", c.name, w.Code, w.Body.String())
 		}
 		for _, ck := range w.Result().Cookies() {
@@ -380,7 +380,7 @@ func TestOpenWithKey(t *testing.T) {
 	}
 }
 
-// kiroku open: 鍵がなければ案内し、--print は鍵つきの URL を出す。開くのは答える kiroku serve があるときだけで、
+// kiroku serve --open: 鍵がなければ案内し、--print は鍵つきの URL を出す。開くのは答える kiroku serve があるときだけで、
 // 開くときも鍵はブラウザのコマンドに渡さない。
 func TestCmdOpen(t *testing.T) {
 	t.Setenv("KIROKU_CONFIG_DIR", filepath.Join(t.TempDir(), "kiroku"))
@@ -502,7 +502,7 @@ func TestLockedPageLanguage(t *testing.T) {
 			}
 		}
 	}
-	if !strings.Contains(hopKeyScript, "もう一度 kiroku open を実行してください") {
+	if !strings.Contains(hopKeyScript, "もう一度 kiroku serve --open を実行してください") {
 		t.Error("中継のページに日本語の知らせがない")
 	}
 }

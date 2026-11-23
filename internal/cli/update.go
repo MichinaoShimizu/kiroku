@@ -27,7 +27,7 @@ var (
 	updateExe   = os.Executable
 )
 
-// runVersion は kiroku version。
+// runVersion は kiroku --version。
 func runVersion() error {
 	fmt.Printf("kiroku %s (%s/%s)\n", version, runtime.GOOS, runtime.GOARCH)
 	return nil

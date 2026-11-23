@@ -54,21 +54,21 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | `main.go` | The entry point only (kept at the root so `go install github.com/MichinaoShimizu/kiroku@latest` works); the commands are in `internal/cli` |
 | `internal/cli/cli.go` | Subcommands (`serve`, `open`, `html`, `archive`, `autostart`, `doctor`, `version`, `update`, `help`), option parsing, and the message that points the removed old syntax (`kiroku --serve` and so on) to the new one |
 | `internal/cli/load.go` | Loading history (removing duplicates), overriding the price table |
-| `internal/cli/archive.go` | `kiroku archive` (status, `on`, and `off`, which offers to delete the copies only in a folder marked by `on`) |
+| `internal/cli/archive.go` | `kiroku serve --archive` (status, `on`, and `off`, which offers to delete the copies only in a folder marked by `on`) |
 | `internal/cli/update.go` | `kiroku update` (downloads from Releases, verifies, and replaces itself) |
-| `internal/cli/doctor.go` | `kiroku doctor` (lists what was found and what to run next; only reads) |
-| `internal/cli/autostart.go` | `kiroku autostart` (a launchd agent on macOS, a systemd user service on Linux) |
-| `internal/cli/scope.go` | `kiroku html --week` / `--month` (keeps only one period's sessions, commits and pushes) |
+| `internal/cli/doctor.go` | `kiroku serve --check` (lists what was found and what to run next; only reads) |
+| `internal/cli/autostart.go` | `kiroku serve --autostart` (a launchd agent on macOS, a systemd user service on Linux) |
+| `internal/cli/scope.go` | `kiroku serve --html --week` / `--month` (keeps only one period's sessions, commits and pushes) |
 | `internal/cli/serve.go` | `kiroku serve` (watches history for changes, reloads, and pushes to the view) |
-| `internal/cli/servekey.go` | The key of `kiroku serve` (`serve-key`, `0600`; the `X-Kiroku-Key` header, the one-time `?code=` of `kiroku open` (`open-codes/`) and the page that stores the key in the browser) |
-| `internal/cli/open.go` | `kiroku open` |
-| `internal/cli/diagnose.go` | "Format check" and `kiroku doctor --report` (only counts, versions and record kinds that look like identifiers; never paths or history text) |
+| `internal/cli/servekey.go` | The key of `kiroku serve` (`serve-key`, `0600`; the `X-Kiroku-Key` header, the one-time `?code=` of `kiroku serve --open` (`open-codes/`) and the page that stores the key in the browser) |
+| `internal/cli/open.go` | `kiroku serve --open` |
+| `internal/cli/diagnose.go` | "Format check" and `kiroku serve --check --report` (only counts, versions and record kinds that look like identifiers; never paths or history text) |
 | `internal/cli/progress.go` | The progress of the first load of `kiroku serve`, shown by the loading page through `/progress` (agent names, counts and times only) |
 | `internal/cli/cache.go` | On reload, skips history unchanged since last time (using a per-agent fingerprint and the per-conversation marks of `source.Splitter`) |
 | `internal/cli/color.go` | Colour and emphasis for what is written to the terminal (`styleFor` turns it off for pipes, files, `NO_COLOR` and `TERM=dumb`) |
-| `internal/archive` | The copies `kiroku archive` keeps: the on/off marks, compressing history to `.zst` (`Sync`), usage, and deleting only the `.zst` copies (`Clear`) |
+| `internal/archive` | The copies `kiroku serve --archive` keeps: the on/off marks, compressing history to `.zst` (`Sync`), usage, and deleting only the `.zst` copies (`Clear`) |
 | `internal/source` | Adapters that read each agent's history. Details on how they read are in [sources.md](sources.md) |
-| `internal/core` | The common session shape (`Builder` → `Session`), tokens and pricing, agent-specific measures (collected but no longer shown), and `Agents` (`agents.go`: each agent's name, `--sources` name, color, initials, environment variables and `kiroku archive` folder) |
+| `internal/core` | The common session shape (`Builder` → `Session`), tokens and pricing, agent-specific measures (collected but no longer shown), and `Agents` (`agents.go`: each agent's name, `--sources` name, color, initials, environment variables and `kiroku serve --archive` folder) |
 | `internal/report` | Weekly and monthly aggregates (`Summarize`), per-project summaries (`project.go`), shares by branch and agent (`share.go`) |
 | `internal/gitlog` | Reads commits, and pushes from the reflog, from the git repository in each session's working directory (skipped without git), with the repository's own settings that run programs turned off |
 | `internal/web` | The view. Written as `template.html` (markup), `style.css` and the script in `js/*.js`, split by role (`state.js` data and view state, `format.js` helpers, `ui.js` shared components, `calendar.js` week and month calendars, `summary.js` / `insight.js` / `review.js` / `panels.js` the summary, `metric.js` the breakdown dialogs, `git.js` / `session.js` the details panel, `copyprompt.js` the "Copy prompt" buttons (kiroku runs no AI), `markdown.js` escaping history text put into Markdown (report drafts, exported prompts, prompts for an AI), `i18n.js` the Japanese catalog, `events.js` input and keyboard, `boot.js` start-up, `live.js` updates under `kiroku serve`; `loading.html` is the page `kiroku serve` shows while it first reads history); `web.go` joins the script files in the fixed order of its `scripts` list into one `<script>` and combines everything with the aggregate JSON into one HTML file; `app.go` is the install-as-app manifest and its icons, which `kiroku serve` returns without the key (`AppPaths`; nothing in them comes from history). `help_test.go`, `script_test.go` and `ui_test.go` check the view's explanations, script and use of the shared components |
@@ -102,7 +102,7 @@ The context windows of Claude models (for Claude Code's Peak context usage and t
 
 ### Adding an agent
 
-1. Add the agent to `core.Agents` (`internal/core/agents.go`): the name shown in the view (its `Source.Name()`), its `--sources` name (`Family`), its color and initials in the view, the environment variables that move its history, and the `kiroku archive` folder if it deletes history. The default and help of `--sources`, the environment variables `kiroku autostart` writes down, the folders `kiroku archive off` clears, and the view's colors and badges all come from this table; `TestAgentsCoverEverySource`, `TestNoAgentTablesInScripts` and `TestGuideNamesEveryAgent` check that nothing disagrees with it
+1. Add the agent to `core.Agents` (`internal/core/agents.go`): the name shown in the view (its `Source.Name()`), its `--sources` name (`Family`), its color and initials in the view, the environment variables that move its history, and the `kiroku serve --archive` folder if it deletes history. The default and help of `--sources`, the environment variables `kiroku serve --autostart` writes down, the folders `kiroku serve --archive off` clears, and the view's colors and badges all come from this table; `TestAgentsCoverEverySource`, `TestNoAgentTablesInScripts` and `TestGuideNamesEveryAgent` check that nothing disagrees with it
 2. Implement `Source` (`Name` / `Family` / `Where` / `Load`) in `internal/source` and add it to `source.All`
 3. In `Load`, build a `core.Builder` for each conversation and `emit` it (times, prompts, tools, models, tokens, credits)
 4. If the same conversation is also stored elsewhere, make `Builder.Key` match (only the one read first is used)
@@ -110,7 +110,7 @@ The context windows of Claude models (for Claude Code's Peak context usage and t
 6. Add the agent's `Name` to `core.Records` (`internal/core/records.go`) with what its history records (interruptions, usage limits, compactions, edited files, subagents, outputs). The view shows "Not recorded" and "… doesn't record this" instead of 0 for anything not listed, and `TestRecordsCoverEverySource` fails if the name is missing. Add a column for it to "What each agent records" in the guide; `TestGuideRecordsTable` checks the rows that come from `core.Records`
 7. If `Where()` alone is not enough for what `kiroku serve` watches, implement `Watch()` (`internal/source/watch.go`)
 8. If each conversation is in its own file and can be read without cross-checking other files, also implement `Splitter` (`Units` / `LoadUnit`). `kiroku serve` then reloads only the conversations that changed (without it, the whole agent is reloaded when a watched location changes)
-9. For an agent that deletes history automatically, implement `Retainer` (`Retention()`) and `Keeper` (`Keep()`, which keeps a copy with `kiroku archive` and reads the copy once the original is gone); implement `Detailer` to add a note to the data sources status
+9. For an agent that deletes history automatically, implement `Retainer` (`Retention()`) and `Keeper` (`Keep()`, which keeps a copy with `kiroku serve --archive` and reads the copy once the original is gone); implement `Detailer` to add a note to the data sources status
 10. To make its location configurable, add `source.Options`, an option in `addCommon`, and an environment variable (`Default…`)
 11. Put synthetic data in `testdata/` and write tests (golden covers only the Python version's 4 histories, so check new adapters in `internal/source/<name>_test.go`). Also add it to the loading in `internal/cli/snapshot_test.go` and regenerate the snapshot
 12. Update "Histories read" and "History retention" in the guide, `docs/sources.md` (including the "What history records" table), the supported agents in the README, and the help in `internal/cli/cli.go`
@@ -119,7 +119,7 @@ Aggregation (`internal/report`) and the view only see the common session shape, 
 
 To check the adapters against the agents' public sources and official docs again (after an agent changes its format or prices, or from time to time), run the `/source-audit` skill in Claude Code (`.claude/skills/source-audit/SKILL.md`). It updates the "What history records" table in `docs/sources.md` and fixes what it finds in one PR per agent.
 
-To stop supporting an agent, run the `/drop-agent` skill (`.claude/skills/drop-agent/SKILL.md`). It removes the adapter and everything that only that agent uses (the view's colors and marks, records, metrics, test data, docs) in one PR, while keeping its options, environment variables and `--sources` name working with a warning and leaving `kiroku archive` copies in place, as [compatibility.md](compatibility.md) promises.
+To stop supporting an agent, run the `/drop-agent` skill (`.claude/skills/drop-agent/SKILL.md`). It removes the adapter and everything that only that agent uses (the view's colors and marks, records, metrics, test data, docs) in one PR, while keeping its options, environment variables and `--sources` name working with a warning and leaving `kiroku serve --archive` copies in place, as [compatibility.md](compatibility.md) promises.
 
 ## Golden data
 
@@ -133,7 +133,7 @@ To stop supporting an agent, run the `/drop-agent` skill (`.claude/skills/drop-a
 
 `testdata/snapshot.json` is the Go version's output (sessions, weeks, months and data sources status) from reading all synthetic data in `testdata/` (Claude Code, Kiro IDE / CLI (V3), Kiro CLI (V2), Kiro Crew, Kiro CLI in SQLite, Codex). `TestSnapshot` (`internal/cli/snapshot_test.go`) checks that numbers haven't changed unintentionally, including histories and fields golden doesn't cover.
 
-`testdata/compat/<version>/` holds files kiroku itself wrote at that version: a `kiroku archive` folder (with one copy of a synthetic Claude Code session) and a `kiroku serve` key. `TestCompatArchive` and `TestCompatServeKey` (`internal/cli/compat_test.go`) check that the current version still reads them, as [compatibility.md](compatibility.md) promises. When you change how kiroku writes them, keep the old folder, add one for the new version (written by the new code) and add it to `compatVersions`.
+`testdata/compat/<version>/` holds files kiroku itself wrote at that version: a `kiroku serve --archive` folder (with one copy of a synthetic Claude Code session) and a `kiroku serve` key. `TestCompatArchive` and `TestCompatServeKey` (`internal/cli/compat_test.go`) check that the current version still reads them, as [compatibility.md](compatibility.md) promises. When you change how kiroku writes them, keep the old folder, add one for the new version (written by the new code) and add it to `compatVersions`.
 
 - The comparison allows only rounding differences in numbers (which vary by OS and CPU), and reports added or removed fields as differences. Path separators are normalized to `/`, and Codex's temporary directory to `$CODEX`
 - When you change aggregation or JSON fields, check that the difference is intended and explain why in the PR before regenerating
@@ -187,7 +187,7 @@ The version number is decided by semantic versioning from what is unreleased: th
 
 | Unreleased changes (fragments and `## Unreleased`) | Part to bump |
 |---|---|
-| A change marked `BREAKING` (one that breaks something [compatibility.md](compatibility.md) keeps compatible, such as commands, options or `kiroku archive` copies; changes to the view or the metrics don't count) | major from 1.0, minor while in 0.x; a major comes at least 30 days after the previous one, after a deprecation ([How breaking changes are released](compatibility.md#how-breaking-changes-are-released)) |
+| A change marked `BREAKING` (one that breaks something [compatibility.md](compatibility.md) keeps compatible, such as commands, options or `kiroku serve --archive` copies; changes to the view or the metrics don't count) | major from 1.0, minor while in 0.x; a major comes at least 30 days after the previous one, after a deprecation ([How breaking changes are released](compatibility.md#how-breaking-changes-are-released)) |
 | Has an Added change (`*.added.md`, `### Added`) | minor |
 | Anything else (Changed, Fixed, Removed and so on) | patch |
 
@@ -281,7 +281,7 @@ The dummy data is dated from now, so images taken on another day differ in their
 
 `gen.py` creates about 12 weeks of Claude Code history and about 5 weeks from the other agents (the 7 earlier weeks use their own random seeds, so the last 5 weeks stay the same), for 4 made-up projects from Claude Code, Codex CLI (with subagents), Kiro CLI (V2) and Kiro IDE / CLI (V3), and `mkgit.py` creates matching git repositories, in a temporary directory. `capture.mjs` takes the week calendar, the weekly summary and the flagged metrics (`worth.png`) for last week at 1440x900 (English, colored by project, Asia/Tokyo); the left column of the session whose prompt flow has the most kinds of events at 2x (`session.png`; the right column shows the dummy data's temporary paths, so it is left out); and the week calendar again at 1440x754 at 2x for `og.png` (2880x1508). `demo.mjs` records a 1280x800 video of last week's calendar, a session, the estimated cost breakdown, search and the month view, with a dot standing in for the mouse pointer, and `run.sh` turns it into `demo.gif` (880 wide, 10 fps). The `Demo` workflow adds the link-card tags that point at `og.png` with `ogp.py`; HTML you write yourself never gets them.
 
-`sh tools/screenshots/run.sh --html <output.html>` builds only the dummy-data HTML (no Node needed). kiroku reads only the dummy data: every history location, including the `kiroku archive` folder, points into the temporary directory, and `HOME` is replaced too (Kiro IDE before v1.0 has no option for its location), so your own history never ends up in a screenshot or the demo. It sets `KIROKU_DEMO=1` and shows a Japan-time clock from any time zone. The git repositories in the temporary directory are deleted, so commit links don't open.
+`sh tools/screenshots/run.sh --html <output.html>` builds only the dummy-data HTML (no Node needed). kiroku reads only the dummy data: every history location, including the `kiroku serve --archive` folder, points into the temporary directory, and `HOME` is replaced too (Kiro IDE before v1.0 has no option for its location), so your own history never ends up in a screenshot or the demo. It sets `KIROKU_DEMO=1` and shows a Japan-time clock from any time zone. The git repositories in the temporary directory are deleted, so commit links don't open.
 
 ## User testing
 

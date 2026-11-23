@@ -91,7 +91,7 @@ func TestPlanAutostart(t *testing.T) {
 	}
 }
 
-// kiroku autostart on で設定を書いて登録し、off で外して消す。登録に失敗したら設定を残さない。
+// kiroku serve --autostart on で設定を書いて登録し、off で外して消す。登録に失敗したら設定を残さない。
 func TestAutostartCommand(t *testing.T) {
 	home, ran := fakeAutostart(t, "linux", loading)
 	unit := filepath.Join(home, ".config", "systemd", "user", "kiroku.service")

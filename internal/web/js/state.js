@@ -6,7 +6,7 @@ let META = __META__;
 let GENERATED = __GEN__;
 // applyData は kiroku serve から届いた新しいデータに入れかえる（上の名前を書きかえるので、ここに置く）
 function applyData(j){ DATA = j.sessions || []; WEEKS = j.weeks || {}; MONTHS = j.months || {}; META = j.meta; GENERATED = j.generated; localizeTitles(DATA); if (st.sel && !DATA.some(s => s.id === st.sel)) st.sel = null; }
-/* デモ（GitHub Pages）と、kiroku html --week / --month で書き出した期間だけのファイルは、作った人の時間帯の時計で見せる。
+/* デモ（GitHub Pages）と、kiroku serve --html --week / --month で書き出した期間だけのファイルは、作った人の時間帯の時計で見せる。
    どこから開いても「朝から夜に作業した」ように見え、日ごとの集計（作った時間帯で区切っている）とも食い違わない。
    時刻らしい数（UNIX 秒）と「今」を同じだけずらす */
 const CLOCK = META && (META.demo || META.scope);
@@ -41,7 +41,7 @@ function kfetch(url, opts = {}){
   if (k) headers.set("X-Kiroku-Key", k);
   return fetch(u.href, {cache: "no-store", ...opts, headers});
 }
-/* 画面の言語。?lang=、kiroku html / serve の --lang（$KIROKU_LANG）、ブラウザの言語の順。どれでもなければ英語。
+/* 画面の言語。?lang=、kiroku serve --html / serve の --lang（$KIROKU_LANG）、ブラウザの言語の順。どれでもなければ英語。
    以前の版の切り替えボタンで選んだ言語（localStorage の lang）は使わない（ボタンがないので、残ると戻せない） */
 const LANGS = ["en", "ja"];
 const LANG = (() => { let q = null; try { q = new URLSearchParams(location.search).get("lang"); } catch(e){}

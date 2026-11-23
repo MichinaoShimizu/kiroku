@@ -5,10 +5,10 @@ import (
 	"strings"
 )
 
-// cmdOpen は kiroku open: 動いている kiroku serve の画面を、鍵をつけてブラウザで開く。
+// cmdOpen は kiroku serve --open: 動いている kiroku serve の画面を、鍵をつけてブラウザで開く。
 // --print は開かずに、使い捨てのコードつきの URL を出す（ほかの機器で開くとき）。
 func cmdOpen(args []string) error {
-	fs := newFS("open", "open [flags] [ADDR]\n\nOpens the view of a running \"kiroku serve\" in your browser with its key.\nkiroku serve shows your history only to browsers that have the key, so that other users of\nthis computer can't read it. A browser needs this once; after that, the plain address works.\nADDR defaults to the address \"kiroku autostart\" uses, or "+defaultAddr+".")
+	fs := newFS("serve --open", "serve --open [flags] [ADDR]\n\nOpens the view of a running \"kiroku serve\" in your browser with its key.\nkiroku serve shows your history only to browsers that have the key, so that other users of\nthis computer can't read it. A browser needs this once; after that, the plain address works.\nADDR defaults to the address \"kiroku serve --autostart\" uses, or "+defaultAddr+".")
 	printURL := fs.Bool("print", false, "print a one-time address instead of opening a browser (to open the view on another device); it works once, within 10 minutes, and anyone who opens it first can read your history")
 	pos, err := parse(fs, args, 1)
 	if err != nil {
@@ -41,7 +41,7 @@ func cmdOpen(args []string) error {
 		return nil
 	}
 	if probe(probeAddr(addr)) == noAnswer {
-		return fmt.Errorf("nothing answers at %s; start it with \"kiroku serve\" (or \"kiroku autostart on\")", url)
+		return fmt.Errorf("nothing answers at %s; start it with \"kiroku serve\" (or \"kiroku serve --autostart on\")", url)
 	}
 	if err := openWithKey(url); err != nil {
 		return err

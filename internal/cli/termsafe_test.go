@@ -24,7 +24,7 @@ func TestTermSafe(t *testing.T) {
 	}
 }
 
-// 1.x の kiroku json と kiroku stats は 3.0 でなくした。使うと、代わり（kiroku serve・kiroku html）を教えてエラーで終わる
+// 1.x の kiroku json と kiroku stats は 3.0 でなくした。使うと、代わり（kiroku serve・kiroku serve --html）を教えてエラーで終わる
 func TestRemovedJSONAndStats(t *testing.T) {
 	for _, c := range []string{"json", "stats"} {
 		err := dispatch([]string{c})
@@ -32,7 +32,7 @@ func TestRemovedJSONAndStats(t *testing.T) {
 			t.Errorf("%s: err = %v", c, err)
 		}
 	}
-	if err := dispatch([]string{"--json"}); err == nil || !strings.Contains(err.Error(), "kiroku html") {
+	if err := dispatch([]string{"--json"}); err == nil || !strings.Contains(err.Error(), "kiroku serve --html") {
 		t.Errorf("--json: err = %v", err)
 	}
 }
