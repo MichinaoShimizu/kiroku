@@ -3,6 +3,7 @@ package web
 import (
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -24,21 +25,71 @@ func block(t *testing.T, name string) string {
 	return template[i : i+j]
 }
 
-// 画面の「?」の説明（HELP）と、ガイドの「How to read the metrics」の表が食い違わないようにする。
+// guideMetricsHead は、ガイドの指標の表（定義と読み方を 1 つにした表）の見出しの行。
+const guideMetricsHead = "| Metric | Definition | Tells you | Doesn't tell you | What to try |"
+
+// 画面の「?」の説明（HELP）と、ガイドの指標の表（Tells you・Doesn't tell you・What to try の欄）が食い違わないようにする。
+// どの HELP の行もガイドにちょうど 1 行あり、3 つの欄が同じ文であること。ガイドの表の行も、どれも HELP にあること。
 func TestHelpMatchesGuide(t *testing.T) {
 	guide, err := os.ReadFile("../../docs/guide.md")
 	if err != nil {
 		t.Fatal(err)
+	}
+	// 指標の表の行を、名前 → 読み方の 3 つの欄にする
+	rowsOf := map[string][]string{}
+	tables := 0
+	lines := strings.Split(strings.ReplaceAll(string(guide), "\r\n", "\n"), "\n")
+	for i := 0; i < len(lines); i++ {
+		if lines[i] != guideMetricsHead {
+			continue
+		}
+		tables++
+		if i+1 >= len(lines) || lines[i+1] != "|---|---|---|---|---|" {
+			t.Errorf("docs/guide.md の %d 行目の指標の表に区切りの行がない", i+1)
+			continue
+		}
+		for i += 2; i < len(lines) && strings.HasPrefix(lines[i], "| "); i++ {
+			line := lines[i]
+			if !strings.HasSuffix(line, " |") {
+				t.Errorf("docs/guide.md の %d 行目が表の行の形でない: %.60s", i+1, line)
+				continue
+			}
+			cs := strings.Split(line[2:len(line)-2], " | ")
+			if len(cs) != 5 || slices.Contains(cs, "") {
+				t.Errorf("docs/guide.md の %d 行目は 5 つの欄が埋まっていない: %.60s", i+1, line)
+				continue
+			}
+			if _, dup := rowsOf[cs[0]]; dup {
+				t.Errorf("docs/guide.md の指標の表に %s の行が 2 つある", cs[0])
+			}
+			rowsOf[cs[0]] = cs[2:]
+		}
+	}
+	if tables == 0 {
+		t.Fatalf("docs/guide.md に指標の表（%s）がない", guideMetricsHead)
 	}
 	re := regexp.MustCompile(`\{n: "([^"]+)", d: "[^"]+", c: "([^"]+)", x: "([^"]+)", a: "([^"]+)"\}`)
 	rows := re.FindAllStringSubmatch(block(t, "HELP"), -1)
 	if len(rows) == 0 {
 		t.Fatal("HELP が見つからない")
 	}
+	inHelp := map[string]bool{}
 	for _, r := range rows {
-		want := "| " + r[1] + " | " + r[2] + " | " + r[3] + " | " + r[4] + " |"
-		if !strings.Contains(string(guide), want) {
-			t.Errorf("docs/guide.md の「How to read the metrics」に %s の行がない（または画面と違う）", r[1])
+		inHelp[r[1]] = true
+		got, ok := rowsOf[r[1]]
+		if !ok {
+			t.Errorf("docs/guide.md の指標の表に %s の行がない", r[1])
+			continue
+		}
+		for j, col := range []string{"Tells you", "Doesn't tell you", "What to try"} {
+			if got[j] != r[j+2] {
+				t.Errorf("docs/guide.md の %s の「%s」が画面と違う: %q、HELP は %q", r[1], col, got[j], r[j+2])
+			}
+		}
+	}
+	for name := range rowsOf {
+		if !inHelp[name] {
+			t.Errorf("docs/guide.md の指標の表の %s が HELP にない", name)
 		}
 	}
 }

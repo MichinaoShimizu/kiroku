@@ -51,7 +51,7 @@ sh tools/screenshots/run.sh
 - 逆向きにも確かめる: ドキュメントにある名前（ボタン・見出し・指標・オプション・環境変数）を `grep` で `internal/` から探し、今もあるか、同じ綴りかを見る。消えたものの説明が残っていたら消す
 - `kiroku help` と各コマンドの `--help` の出力を、guide のコマンド表・オプション表と見比べる
 - README は入口なので、主な機能の一覧が今の画面と合っているか（大きな機能が抜けていないか、なくなった機能を宣伝していないか）を見る
-- 指標の説明は `HELP` と guide の「How to read the metrics」の表を `TestHelpMatchesGuide` が突き合わせている。表を直したら `HELP` も直す
+- 指標の説明は `HELP` と guide の指標の表（Tells you・Doesn't tell you・What to try の欄）を `TestHelpMatchesGuide` が突き合わせている。表を直したら `HELP` も直す
 
 ## 4. 長すぎるところを削る
 
