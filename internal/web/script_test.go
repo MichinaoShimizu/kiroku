@@ -416,7 +416,7 @@ func TestI18nNoUnusedKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	src := string(b)
+	src := strings.ReplaceAll(string(b), "\r\n", "\n") // Windows のチェックアウトは CRLF
 	start := strings.Index(src, "const JA_TEXT = {\n")
 	end := strings.Index(src, "\n};\n")
 	if start < 0 || end < start {
@@ -490,8 +490,9 @@ func TestLoadingLangMatchesView(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	view := regexp.MustCompile(`(?s)const LANGS = .*?\}\)\(\);\n`).FindString(string(state))
-	pick := regexp.MustCompile(`(?s)const pick = \(\) => \{.*?\};\n  const JA = `).FindString(loading)
+	lf := func(x string) string { return strings.ReplaceAll(x, "\r\n", "\n") } // Windows のチェックアウトは CRLF
+	view := regexp.MustCompile(`(?s)const LANGS = .*?\}\)\(\);\n`).FindString(lf(string(state)))
+	pick := regexp.MustCompile(`(?s)const pick = \(\) => \{.*?\};\n  const JA = `).FindString(lf(loading))
 	if view == "" || pick == "" {
 		t.Fatal("state.js の LANG か loading.html の pick が見つからない")
 	}
