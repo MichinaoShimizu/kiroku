@@ -347,12 +347,36 @@ async function run(env) {
       check("ヒートマップの各行に曜日の合計がある（触れなくても読める）", await p.evaluate(() => document.querySelectorAll("#review .ihgrid > .iht:not(.ihh)").length === 7));
       check("3 列の並びの最後の段に空きを作らない（余りは横に広げる）", await p.evaluate(() => [...document.querySelectorAll("#review .istats, #review .ikrow")].every(g => { const k = [...g.children].filter(c => c.offsetParent !== null), /* 単価の切り替えで隠した数字は数えない */ cols = getComputedStyle(g).gridTemplateColumns.split(" ").length; if (k.length < 2) return true; const r = k.map(c => c.getBoundingClientRect()), last = r[r.length - 1], row = r.filter(b => Math.abs(b.top - last.top) < 2); return Math.abs(row[row.length - 1].right - g.getBoundingClientRect().right) < 2 || row.length === cols; })));
       check("カードの中の数の枠は最大 3 列", await p.evaluate(() => [...document.querySelectorAll("#review .istats")].every(g => getComputedStyle(g).gridTemplateColumns.split(" ").length <= 3)));
-      check("サマリーの頭はコスト・出力・単価の 3 枚のカードで、幅いっぱいに上から順に積み、どの数字も画面の中に見える", await p.evaluate(() => { const G = [...document.querySelectorAll("#review .insh .ikg")], g = document.querySelector("#review .insh").getBoundingClientRect();
+      check("サマリーの頭はコスト・出力・単価の 3 枚のパネルで、どれもグラフ 1 つ（選んだ選択肢のタイルだけが見える）。広い画面では横に 3 枚、狭ければ上から順に積み、どの数字も画面の中に見える", await p.evaluate(() => { const G = [...document.querySelectorAll("#review .insh .ikg")], g = document.querySelector("#review .insh").getBoundingClientRect();
         const k = [...document.querySelectorAll("#review .insh .ikrow > .itile")].filter(c => c.offsetParent !== null), inside = k.every(c => { const r = c.getBoundingClientRect(); return r.left >= g.left - 1 && r.right <= g.right + 1; });
-        // コスト・出力・単価のカードは、幅いっぱいに上から順に積む（左右に並べて片側を空けない）
+        const one = G.every(c => [...c.querySelectorAll(".ikrow > [data-ch]")].filter(x => x.checkVisibility()).length === 1 && c.querySelectorAll(".ikrow > .itile .tspk svg").length >= 1);
         const r = c => document.querySelector(`#review .insh .ik-${c}`).getBoundingClientRect();
-        const lay = r("out").top >= r("cost").bottom - 1 && r("unit").top >= r("out").bottom - 1 && ["out", "unit"].every(c => Math.abs(r(c).left - r("cost").left) < 2 && Math.abs(r(c).width - r("cost").width) < 2);
-        return G.length === 3 && k.length > 1 && inside && lay && !document.querySelector("#review .icall"); }));
+        const lay = innerWidth >= 1100 ? Math.abs(r("out").top - r("cost").top) < 2 && Math.abs(r("unit").top - r("cost").top) < 2 && r("out").left >= r("cost").right - 1 && r("unit").left >= r("out").right - 1
+          : r("out").top >= r("cost").bottom - 1 && r("unit").top >= r("out").bottom - 1 && ["out", "unit"].every(c => Math.abs(r(c).left - r("cost").left) < 2 && Math.abs(r(c).width - r("cost").width) < 2);
+        return G.length === 3 && k.length === 3 && one && inside && lay && !document.querySelector("#review .icall"); }));
+      { // パネルの切り替え：押すと別の選択肢のタイル（とグラフ）になり、開き直しても覚えている
+        const sws = await p.evaluate(() => [...document.querySelectorAll("#review .insh .iksw")].map(g => ({sw: g.dataset.sw, vs: [...g.querySelectorAll("[data-v]")].map(b => b.dataset.v), on: [...g.querySelectorAll("[data-v]:not([hidden])")].map(b => b.dataset.v), cur: g.querySelector('[aria-pressed="true"]').dataset.v})));
+        const want = {cost: ["cost", "credits", "tokens", "active"], out: ["commit", "push", "pr"], unitN: ["cost", "credits", "tokens"], unitD: ["commit", "push", "pr"]};
+        check("どのパネルにも切り替えがあり（単価は量と割る数の 2 つ）、記録のある選択肢が並ぶ", Object.keys(want).every(k => { const x = sws.find(z => z.sw === k); return x && want[k].every(v => x.vs.includes(v)); }), JSON.stringify(sws));
+        const shown = sw => p.evaluate(sw => { const g = document.querySelector(`#review .iksw[data-sw="${sw}"]`), sec = g.closest(".ikg"), v = [...sec.querySelectorAll(".ikrow > [data-ch]")].filter(x => x.checkVisibility());
+          return {n: v.length, ch: v[0] && v[0].dataset.ch, svg: v[0] ? (v[0].querySelector(".tspk svg") || {}).innerHTML || "" : "", label: v[0] ? (v[0].querySelector(".il") || v[0]).textContent : ""}; }, sw);
+        const picked = {};
+        for (const {sw} of sws){
+          const {on, cur} = await p.evaluate(sw => { const g = document.querySelector(`#review .insh .iksw[data-sw="${sw}"]`); return {on: [...g.querySelectorAll("[data-v]:not([hidden])")].map(b => b.dataset.v), cur: g.querySelector('[aria-pressed="true"]').dataset.v}; }, sw); // 量を変えると、選べる割る数が変わる
+          const before = await shown(sw), to = on.find(v => v !== cur), b = p.locator(`#review .iksw[data-sw="${sw}"] [data-v="${to}"]`);
+          await b.click(); await pause(); const after = await shown(sw);
+          check(`切り替え ${sw}: ${to} を押すと、そのタイルだけが見え、グラフが変わり、ボタンが選ばれてフォーカスが残る`, after.n === 1 && after.ch.split(":")[sw === "unitD" ? 1 : 0] === to && after.svg !== before.svg && after.label !== before.label
+            && await b.getAttribute("aria-pressed") === "true" && await b.evaluate(e => document.activeElement === e && e.closest('[role="group"]') !== null), `${JSON.stringify(before).slice(0, 80)} → ${JSON.stringify(after).slice(0, 80)}`);
+          picked[sw] = {to, ch: after.ch};
+        }
+        // 選択は覚えておき（localStorage）、描き直してもそのまま。file:// を開き直すと、Chromium が localStorage を空で始めることがあるので、開き直しではなくサマリーを描き直して見る
+        const kept = await p.evaluate(() => ({costKind: store.get("costKind"), outKind: store.get("outKind"), unitKind: store.get("unitKind"), unitDen: store.get("unitDen")}));
+        check("切り替えの選択は localStorage に覚えている", kept.costKind === picked.cost.to && kept.outKind === picked.out.to && kept.unitKind === picked.unitN.to && kept.unitDen === picked.unitD.to, JSON.stringify(kept));
+        await view("cal"); await view("sum"); await p.evaluate(() => summary()); await pause();
+        for (const sw of Object.keys(picked)){ const x = await shown(sw), pr = await p.locator(`#review .iksw[data-sw="${sw}"] [aria-pressed="true"]`).getAttribute("data-v");
+          check(`切り替え ${sw} の選択は、描き直しても覚えている`, pr === picked[sw].to && x.ch.split(":")[sw === "unitD" ? 1 : 0] === picked[sw].to, `${pr} ${x.ch}`); }
+        for (const {sw, cur} of sws){ await p.locator(`#review .iksw[data-sw="${sw}"] [data-v="${cur}"]`).click(); await pause(); } // 元に戻す（ほかの確かめは最初の選択肢で）
+      }
       check("式はふだん隠し、指標名の横の「ƒx」で、その数字の式だけを開く（もう一度押すと閉じる）", await p.evaluate(async () => {
         const vis = el => [...el.querySelectorAll(".ifx.fxo")].some(e => e.offsetParent !== null), I = document.querySelector("#review .insight");
         const b = I.querySelector(".itile .fxb"), tile = b && b.closest(".itile"); if (!tile || vis(I) || document.querySelector("#fxbtn")) return false;
@@ -372,9 +396,9 @@ async function run(env) {
         const badTiles = [...document.querySelectorAll("#review .ikrow")].filter(r => r.offsetParent).filter(r => { const rr = r.getBoundingClientRect(), ts = [...r.children].filter(c => c.offsetParent && c.querySelector(".tspk"));
           return ts.length && Math.abs(Math.max(...ts.map(c => c.getBoundingClientRect().right)) - rr.right) >= 4; }).map(r => (r.closest(".iksub, .ikg") || r).className + " " + JSON.stringify([...r.children].map(c => [c.className.slice(0, 20), (c.querySelector(".il") || {}).textContent, Math.round(c.getBoundingClientRect().left), Math.round(c.getBoundingClientRect().right), !!c.querySelector(".tspk")])) + " " + Math.round(r.getBoundingClientRect().right));
         // カードもタイルも単価の段も、広い画面ではページの半分より広くない（グラフのない数字の行は除く）
-        const half = innerWidth < 1100 || [...document.querySelectorAll("#review .insrow > *, #review .ikrow > .itile:has(.tspk), #review .ik-unit > .iksub")].filter(e => e.checkVisibility()).every(e => e.getBoundingClientRect().width <= innerWidth / 2 + 1);
+        const half = innerWidth < 1100 || [...document.querySelectorAll("#review .insrow > *, #review .insh > .ikg, #review .ikrow > .itile:has(.tspk)")].filter(e => e.checkVisibility()).every(e => e.getBoundingClientRect().width <= innerWidth / 2 + 1);
         const tilesOk = half && !badTiles.length
-          && [...document.querySelectorAll("#review .ik-unit")].every(u => { const ur = u.getBoundingClientRect(), ss = [...u.querySelectorAll(":scope>.iksub")]; return !ss.length || Math.abs(ss[ss.length - 1].getBoundingClientRect().right - (ur.right - parseFloat(getComputedStyle(u).paddingRight))) < 4; });
+;
         const three = innerWidth < 1300 || [...document.querySelectorAll("#review .insrow")].some(r => r.children.length >= 3 && Math.abs(r.children[0].getBoundingClientRect().top - r.children[2].getBoundingClientRect().top) < 1);
         return {say, charts, rows: rowsOk, tiles: tilesOk, half, badTiles, grid: three}; });
       check("どのグラフにも、データから計算した読み取りの 1 文があり、広い画面ではカードが 3 列に並び、カードは重ならず中の下が空かない。カードとグラフのタイルはページの半分より広くなく、奇数のタイルも行の幅を埋める", lay.say === lay.charts && lay.rows && lay.tiles && lay.grid, JSON.stringify(lay));
@@ -499,23 +523,112 @@ async function run(env) {
   await step("コストと残ったもの", async () => {
     await view("sum");
     const oc = p.locator("#review .inscol:has(.hb[data-help=\"outSessions\"])"); await oc.scrollIntoViewIfNeeded(); await pause();
-    // コミットと行の数は上の「出力」の枠に（下の成果のカードでは繰り返さない）
-    for (const [name, id] of [["コミット", "gitCommits"], ["行", "lines"]])
-      check(`上の出力の枠に${name}が出て、下の成果のカードでは繰り返さない`, await p.locator(`#review .insh .ik-out .hb[data-help="${id}"]`).count() === 1 && await oc.locator(`.hb[data-help="${id}"]`).count() === 0);
+    // コミット・push・PR の数は上の「出力」のパネルに（下の成果のカードでは繰り返さない）。Git の行・やり直し、AI の編集の定着は成果のカードに
+    for (const [name, id] of [["コミット", "gitCommits"], ["push", "pushes"], ["PR", "prs"]])
+      check(`上の出力のパネルに${name}が出て、下の成果のカードでは繰り返さない`, await p.locator(`#review .insh .ik-out .hb[data-help="${id}"]`).count() === 1 && await oc.locator(`.hb[data-help="${id}"]`).count() === 0);
+    const rwk = await p.evaluate(() => { const {ws, we} = period(); return reworkOf(ws, we).n > 0; }); // やり直しは 3 日たった AI のコミットがある期間だけ
+    for (const id of ["lines", ...(rwk ? ["rework"] : []), "kept", "aiLines", "aiFiles"])
+      check(`パネルから外した ${id} は成果のカードにある`, await oc.locator(`.hb[data-help="${id}"]`).count() === 1 && await p.locator(`#review .insh .hb[data-help="${id}"]`).count() === 0);
+    { // パネルから外した単価は、単価の表のカードに。HELP のある指標は、どれもサマリーのどこかに「?」がある
+      const miss = await p.evaluate(() => ["costPerEdit", "costPerHour", "costPerDay", "costPerSes", "costPerAsk", "tokensPerEdit", "tokensPerHour", "tokensPerDay", "tokensPerSes", "tokensPerAsk", "creditsPerHour", "creditsPerSes", "creditsPerAsk"].filter(k => !document.querySelector(`#review .iunits .hb[data-help="${k}"]`)));
+      check("単価の表のカードに、100 行・時間・日・セッション・プロンプトあたりの単価がある", miss.length === 0, miss.join(","));
+      const none = await p.evaluate(rwk => ["cost", "credits", "tokens", "active", "gitCommits", "lines", "prs", "pushes", "aiLines", "aiFiles", ...(rwk ? ["rework"] : []), "kept", "outSessions", "costPerCommit", "tokensPerCommit", "perPush", "perPr", "prompts", "cache", "subagents", "fix", "limits", "focus", "switches", "wait", "bigPrompts", "repeats", "friction", "compactions"].filter(k => !document.querySelector(`#review .hb[data-help="${k}"]`)), rwk);
+      check("HELP のある指標は、サマリーのどこかに「?」がある", none.length === 0, none.join(","));
+    }
     check("成果のカードに成果まで届いたセッションが出る", await oc.locator('.hb[data-help="outSessions"]').count() === 1);
     check("コミットあたりの費用は、出力ではなく単価の段にある", await p.evaluate(() => { const G = [...document.querySelectorAll("#review .insh .ikg")]; return G.length === 3 && !!G[2].querySelector('[data-metric="costPerCommit"]') && !document.querySelector('#review .iout .hb[data-help="costPerCommit"]'); }));
-    check("割った指標には式（÷）が添えてある", await oc.evaluate(e => [...e.querySelectorAll(".stat")].filter(s => s.querySelector('.hb[data-help="outSessions"], .hb[data-help="costPerCommit"]')).every(s => /÷/.test(s.textContent))));
-    check("カードが箱からはみ出さない", await oc.evaluate(e => [...e.querySelectorAll(".stat")].every(s => s.getBoundingClientRect().right <= e.getBoundingClientRect().right + 1)));
+    check("割った指標には式（÷）が添えてある", await oc.evaluate(e => [...e.querySelectorAll(".mrow")].filter(s => s.querySelector('.hb[data-help="outSessions"], .hb[data-help="costPerCommit"]')).every(s => /÷/.test(s.textContent))));
+    check("カードが箱からはみ出さない", await oc.evaluate(e => [...e.querySelectorAll(".mrow")].every(s => s.getBoundingClientRect().right <= e.getBoundingClientRect().right + 1)));
+    { // アウトプットは数の枠ではなく、Git と AI の編集の 2 つの列の 1 行ずつの一覧（名前・値・いつもの範囲の印・「ƒx」「?」）。長い説明は「ƒx」で開くまで隠す
+      const o = await oc.evaluate(e => { const cols = [...e.querySelectorAll(".iosec")].map(c => [...c.querySelectorAll(".mrow")]), rows = cols.flat();
+        const r = id => { const h = e.querySelector(`.mrow .hb[data-help="${id}"]`); return h && h.closest(".mrow"); }, gl = r("lines");
+        const side = cols.length < 2 || e.getBoundingClientRect().width < 500 || Math.abs(cols[0][0].getBoundingClientRect().top - cols[1][0].getBoundingClientRect().top) < 40;
+        return {n: cols.map(c => c.length), stats: e.querySelectorAll(".iosec .stat").length, named: rows.every(x => x.querySelector(".mk > span") && x.querySelector(".mv")),
+          fxb: rows.filter(x => x.querySelector(".mx")).every(x => x.querySelector(".fxb")), hidden: rows.every(x => !x.querySelector(".mx") || !x.querySelector(".mx").checkVisibility()),
+          mark: !!(gl && gl.querySelector(".mm .imk")), vs: !!(gl && /vs|比/.test(gl.querySelector(".mm").textContent)), side}; });
+      check("アウトプットは Git と AI の編集の 2 列の 1 行ずつの一覧で、数の枠を使わない", o.n.length === 2 && o.n[0] >= 5 && o.n[1] >= 2 && o.stats === 0 && o.named && o.side, JSON.stringify(o));
+      check("アウトプットの行は、式と説明を「ƒx」で開くまで隠し、Git の行にはいつもの範囲の印と前の週との比べがある", o.fxb && o.hidden && o.mark && o.vs, JSON.stringify(o));
+      const row = oc.locator('.mrow:has(.hb[data-help="rework"]), .mrow:has(.hb[data-help="kept"])').first(); await row.locator(".fxb").click(); await pause();
+      check("行の「ƒx」を押すと、その行の式と注が開く（やり直し・定着の注は消えずにここにある）", await row.evaluate(r => r.querySelector(".mx").checkVisibility() && /÷/.test(r.querySelector(".mx").textContent) && r.querySelectorAll(".fxn").length >= 1));
+      await row.locator(".fxb").click(); await pause();
+    }
     { // AI の編集：ファイルの数・行と、いちばん変えたファイル（期間に始まったセッションの編集から。押すと、いちばん変えたセッション）
       const ed = await p.evaluate(() => { const {ws, we} = period(), xs = DATA.filter(s => s.start >= ws && s.start < we && s.nFiles > 0);
         const c = document.querySelector('#review .inscol:has(.hb[data-help="aiLines"])'); if (!c) return {none: true, n: xs.length};
         const add = xs.reduce((a, s) => a + (s.editAdded || 0), 0), del = xs.reduce((a, s) => a + (s.editRemoved || 0), 0);
-        return {n: xs.length, files: document.querySelectorAll("#review .iwf").length, lines: c.querySelector('.hb[data-help="aiLines"]').closest(".stat").innerText, want: commas(add + del), first: (document.querySelector("#review .iwf") || {}).textContent}; }); // いちばん変えたファイルは「その他のグラフ」の自分のカード
+        return {n: xs.length, files: document.querySelectorAll("#review .iwf").length, lines: c.querySelector('.hb[data-help="aiLines"]').closest(".mrow").innerText, want: commas(add + del), first: (document.querySelector("#review .iwf") || {}).textContent}; }); // いちばん変えたファイルは「その他のグラフ」の自分のカード
       check("AI の編集のカードに、変えたファイル・行といちばん変えたファイルが出る", ed.none ? ed.n === 0 : ed.files > 0 && ed.lines.includes(ed.want), JSON.stringify(ed));
       if (!ed.none){ check("いちばん変えたファイルの名前は、セッションではなくファイルへのリンク（serve では、コミットのリンクがなければ文字だけ）", await p.evaluate(() => [...document.querySelectorAll("#review .iwf")].every(e => !e.matches("button") && !e.hasAttribute("data-sid"))));
         await p.locator("#review .iwses").first().click(); await pause();
         check("いちばん変えたファイルの編集の回数を押すと、そのファイルを変えたセッションが開く", await drawerOpen() && await p.evaluate(f => { const s = DATA.find(x => x.id === st.sel); return !!s && s.files.some(x => x.endsWith(f.replace("↗", "").trim().split(" ").pop())); }, ed.first)); // 名前の後ろのリンクの印（↗）は除く
         await p.keyboard.press("Escape"); await pause(); }
+    }
+    await view("cal");
+  });
+
+  await step("単価のカード・単価の組・エージェントで絞ったとき・サンキーの名前・月の目盛り", async () => {
+    await view("sum");
+    { // 単価のカード：量と割る数の 2 つの切り替えで、数字 1 つ（値・式・いつもの範囲・評価・「?」）。選んだものは覚える
+      const uc = p.locator("#review .iunits"); await uc.scrollIntoViewIfNeeded(); await pause();
+      const st0 = () => uc.evaluate(c => { const v = [...c.querySelectorAll("[data-ch]")].filter(x => x.checkVisibility()), w = c.querySelector(".iusw");
+        const okD = [...c.querySelectorAll('.iksw[data-dim="d"] [data-v]:not([hidden])')].map(b => b.dataset.v);
+        return {n: v.length, ch: v[0] && v[0].dataset.ch, name: v[0] ? v[0].querySelector(".k > span").textContent : "", fx: !!(v[0] && v[0].querySelector(".fxo")), hb: !!(v[0] && v[0].querySelector(".hb")), verd: !!(v[0] && v[0].querySelector(".iverd")),
+          pairs: w.dataset.pairs.split(" "), cur: `${w.dataset.n}:${w.dataset.d}`, okD, nn: [...c.querySelectorAll('.iksw[data-dim="n"] [data-v]')].map(b => b.dataset.v), stats: c.querySelectorAll(".stat").length}; });
+      const a = await st0();
+      check("単価のカードは、量と割る数の切り替えで数字 1 つを見せる（値・式・評価・「?」）", a.n === 1 && a.ch === a.cur && a.fx && a.hb && a.verd && a.nn.length >= 2 && a.okD.length >= 2 && a.stats === a.pairs.length, JSON.stringify(a));
+      check("単価のカードの割る数は、選んだ量で数字のあるものだけ", a.okD.every(d => a.pairs.includes(`${a.cur.split(":")[0]}:${d}`)), JSON.stringify(a));
+      const toD = a.okD.find(d => d !== a.cur.split(":")[1]); await uc.locator(`.iksw[data-dim="d"] [data-v="${toD}"]`).click(); await pause();
+      const b = await st0();
+      check("単価のカードの割る数を押すと、その数字だけが見え、名前が変わる", b.n === 1 && b.ch.endsWith(":" + toD) && b.name !== a.name, `${a.name} → ${b.name}`);
+      const toN = a.nn.find(n => n !== a.cur.split(":")[0]); await uc.locator(`.iksw[data-dim="n"] [data-v="${toN}"]`).click(); await pause();
+      const c = await st0();
+      check("単価のカードの量を押すと、その量の数字になり、割る数はその量で数字のあるものだけになる", c.n === 1 && c.ch.startsWith(toN + ":") && c.okD.every(d => c.pairs.includes(`${toN}:${d}`)) && c.okD.includes(c.ch.split(":")[1]), JSON.stringify(c));
+      const kept = await p.evaluate(() => [store.get("ucKind"), store.get("ucDen")]);
+      check("単価のカードの選択は覚えている", kept[0] === toN && kept[1] === toD, JSON.stringify(kept));
+      await p.evaluate(() => summary()); await pause();
+      const d = await st0();
+      check("単価のカードの選択は、描き直しても残る", d.cur.startsWith(toN + ":") && d.n === 1, JSON.stringify(d));
+      await uc.locator(`.iksw[data-dim="n"] [data-v="${a.cur.split(":")[0]}"]`).click(); await pause(); await uc.locator(`.iksw[data-dim="d"] [data-v="${a.cur.split(":")[1]}"]`).click(); await pause();
+    }
+    { // 単価の推移のパネル：数字のない組（Kiro のクレジット ÷ コミットなど）は選べない。空のパネルや「記録がない」の 1 行を出さない
+      const u = await p.evaluate(() => { const g = document.querySelector("#review .insh .ik-unit"); if (!g) return null; const pairs = g.dataset.pairs.split(" ");
+        return {pairs, none: g.querySelectorAll(".iknone").length, items: [...g.querySelectorAll(".ikrow > [data-ch]")].map(x => x.dataset.ch), ns: [...g.querySelectorAll('.iksw[data-dim="n"] [data-v]')].map(b => b.dataset.v)}; });
+      check("単価の推移のパネルは、数字のある組だけ（空の選択肢がない）", !!u && u.none === 0 && u.items.length === u.pairs.length, JSON.stringify(u));
+      if (u) for (const n of u.ns){ await p.locator(`#review .ik-unit .iksw[data-dim="n"] [data-v="${n}"]`).click(); await pause();
+        const r = await p.evaluate(() => { const g = document.querySelector("#review .ik-unit"), on = [...g.querySelectorAll('.iksw[data-dim="d"] [data-v]:not([hidden])')].map(b => b.dataset.v), v = [...g.querySelectorAll(".ikrow > [data-ch]")].filter(x => x.checkVisibility());
+          return {n: g.dataset.n, on, ch: v.map(x => x.dataset.ch), pairs: g.dataset.pairs.split(" "), note: [...g.querySelectorAll(".ikrow > .itile:not([hidden]) .iplain")].map(x => x.textContent).join(" ")}; });
+        check(`単価の推移を ${n} にすると、割る数はその量で数字のあるものだけで、見える数字は 1 つ`, r.on.every(d => r.pairs.includes(`${n}:${d}`)) && r.ch.length === 1 && r.ch[0].startsWith(n + ":"), JSON.stringify(r));
+        if (r.ch[0] === `${n}:pr`) check(`${n} ÷ PR の注は「費用」と決めつけない`, !/^Cost can/.test(r.note), r.note); }
+      if (u) await p.locator(`#review .ik-unit .iksw[data-dim="n"] [data-v="${u.ns[0]}"]`).click(); await pause();
+    }
+    { // エージェントで絞ったとき：push はエージェントごとに分けられないので、push あたりは出さず、そう 1 行で言う。push の数には全員の分だと添える
+      const ags = await p.locator("#review [data-ag]").evaluateAll(xs => xs.map(x => x.dataset.ag).filter(Boolean));
+      const unitKeys = () => p.evaluate(() => [...document.querySelectorAll("#review .ik-unit [data-ch]")].map(x => x.dataset.ch).join(" "));
+      const all0 = await unitKeys();
+      if (ags.length){ await p.click(`#review [data-ag="${ags[0]}"]`); await pause();
+        const r = await p.evaluate(() => { const g = document.querySelector("#review .ik-unit"), o = document.querySelector("#review .ik-out");
+          return {unit: g ? [...g.querySelectorAll("[data-ch]")].map(x => x.dataset.ch) : [], note: g ? (g.querySelector(".iknote") || {}).textContent || "" : "", push: o ? (o.querySelector('[data-ch="push"]') || {}).textContent || "" : "", hasPush: (META.push || []).length > 0}; });
+        check("1 つのエージェントに絞ると、単価に push あたりを出さない", !r.unit.some(k => k.endsWith(":push")), JSON.stringify(r.unit));
+        check("1 つのエージェントに絞ると、push がエージェントで分けられないことを 1 行で言う", !r.hasPush || (/push/i.test(r.note) && /every agent/.test(r.push)), `${r.note} / ${r.push.slice(0, 120)}`);
+        await p.click('#review [data-ag=""]'); await pause();
+        check("すべてに戻すと、単価の組が元に戻る", await unitKeys() === all0, all0);
+      }
+    }
+    { // サンキーの名前と量は、色の帯に重ねない。狭い画面（600px 以下）では、図の文字の代わりに下の一覧
+      const sk = await p.evaluate(() => { const f = document.querySelector("#review .isk"); if (!f) return null;
+        const ts = [...f.querySelectorAll("text.skt")].filter(x => x.checkVisibility()).map(x => x.getBoundingClientRect()), bs = [...f.querySelectorAll("path.skl")].map(x => x.getBoundingClientRect());
+        const hit = (a, b) => a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+        const li = [...f.querySelectorAll(".sklist li")].filter(x => x.checkVisibility()).length, nodes = f.querySelectorAll("rect.skn:not(.o)").length;
+        return {narrow: innerWidth <= 600, texts: ts.length, over: ts.filter(t => bs.some(b => hit(t, b))).length, overT: ts.filter((t, i) => ts.some((u, j) => j !== i && hit(t, u))).length, li, nodes}; });
+      if (sk) check(sk.narrow ? "狭い画面のサンキーは、図の文字を消し、名前と量を下の一覧で見せる" : "サンキーの名前と量は、帯にも互いにも重ならない", sk.narrow ? sk.texts === 0 && sk.li === sk.nodes : sk.texts === sk.nodes && sk.over === 0 && sk.overT === 0 && sk.li === 0, JSON.stringify(sk));
+    }
+    check("内訳のカードは、隣のカードの高さに伸ばさない（中身の高さのまま）", await p.evaluate(() => [...document.querySelectorAll("#review .insrow.two > .inscol")].every(c => { const last = [...c.children].filter(x => x.checkVisibility()).pop(); if (!last) return true;
+      return c.getBoundingClientRect().bottom - last.getBoundingClientRect().bottom <= parseFloat(getComputedStyle(c).paddingBottom) + 24; })));
+    { // 月で見ると、点が少ないパネルのグラフでも、どの点にも月の名前がある
+      await p.keyboard.press("m"); await pause();
+      const lab = await p.evaluate(() => [...document.querySelectorAll("#review .insh .ikrow > .itile:not([hidden]) .tspk svg")].map(s => { const xs = [...s.querySelectorAll("text.sxl")]; return {n: xs.length, shown: xs.filter(x => x.checkVisibility() && !x.classList.contains("nodat")).length, nodat: xs.filter(x => x.classList.contains("nodat")).length}; }));
+      check("点が 6 つ以下のパネルのグラフは、どの点にも期間の名前を出す", lab.every(x => x.n > 6 || x.shown + x.nodat === x.n), JSON.stringify(lab));
+      await p.keyboard.press("w"); await pause();
     }
     await view("cal");
   });
@@ -762,7 +875,9 @@ async function run(env) {
     check("押すと、今月の日ごとの内訳（月末の推定）が開き、週の表示はそのまま", dlg.open && dlg.txt.includes(mp.v) && dlg.txt.includes(mp.so) && await p.evaluate(() => st.mode === "week"), dlg.txt.slice(0, 120));
     await p.keyboard.press("Escape"); await pause();
     await view("sum");
+    await p.locator('#review .iksw[data-sw="cost"] [data-v="credits"]').click(); await pause(); // コストのパネルでクレジットを選ぶ
     const tile = await p.evaluate(() => { const b = document.querySelector('#review .itile [data-metric="credits"]'); return b ? b.closest(".itile").innerText : ""; });
+    await p.locator('#review .iksw[data-sw="cost"] [data-v="cost"]').click(); await pause();
     check("サマリーのクレジットのカードにも、今月末の推定がある（式を出しているときは式で）", /Month-end estimate \(this month\)|Month-end credits = /.test(tile) && tile.includes(mp.v), tile);
     await view("cal");
   });
@@ -803,9 +918,9 @@ async function runJa(env) {
   const untranslated = () => p.evaluate(() => {
     const hist = new Set();
     for (const s of DATA) for (const v of [s.title, s.project, s.branch, s.source, ...(s.prompts || []).map(x => x.text)]) if (typeof v === "string") hist.add(v.trim());
-    const bad = new Set(), el = n => n.nodeType === 3 ? n.parentElement : n;
+    const bad = new Set(), el = n => n.nodeType === 3 ? n.parentElement : n, ja = new Set(Object.values(JA_TEXT)); // ほかの文の訳と同じ文字（「PRs」の訳の「PR」など）は、訳したもの
     const look = (n, v) => { v = (v || "").trim();
-      if (v && Object.prototype.hasOwnProperty.call(JA_TEXT, v) && JA_TEXT[v] !== v && !hist.has(v) && (el(n).closest("[lang]") || {}).lang === "ja") bad.add(v); };
+      if (v && Object.prototype.hasOwnProperty.call(JA_TEXT, v) && JA_TEXT[v] !== v && !ja.has(v) && !hist.has(v) && (el(n).closest("[lang]") || {}).lang === "ja") bad.add(v); };
     const w = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
     for (let n = w.nextNode(); n; n = w.nextNode()) {
       if (n.nodeType === 3) look(n, n.nodeValue);
@@ -849,6 +964,14 @@ async function runJa(env) {
     check("内訳の見出しが日本語", (await p.locator("#mdh").innerText()) !== "Estimated cost", await p.locator("#mdh").innerText());
     await noEnglish("内訳のダイアログ");
     await p.keyboard.press("Escape"); await isClosed("#md");
+  });
+
+  await step("量の名前は 1 つ", async () => {
+    await p.locator('#view button[data-v="sum"]').click(); await p.waitForTimeout(300);
+    const txt = await p.evaluate(() => ["#kpis", "#legend", "#tl", "#review"].map(q => (document.querySelector(q) || {}).innerText || "").join("\n"));
+    check("日本語の画面では、クレジットは Kiro と同じ「credits」で書く（カタカナと混ぜない）", !/クレジット/.test(txt), (txt.match(/.{0,20}クレジット.{0,10}/) || [""])[0]);
+    check("日本語のサマリーでは、費用をコストと呼ばない", !/コスト/.test(await p.locator("#review .insight").innerText()));
+    await p.locator('#view button[data-v="cal"]').click(); await p.waitForTimeout(300);
   });
 
   await step("月表示", async () => {

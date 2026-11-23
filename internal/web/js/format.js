@@ -39,7 +39,7 @@ function usdH(v){ const s = esc(usd(v)), i = s.indexOf("$"); return i < 0 ? s : 
 const costOf = u => !u ? null : !u.cost && u.unpriced ? null : (u.cost || 0);
 const NOPRICE = t("The models used are not in the price table, so the estimated cost cannot be shown. Add their prices with --prices.");
 const crN = v => v >= 10 || v <= 0 ? commas(Math.round(v)) : v >= 1 ? (Math.round(v * 10) / 10).toString() : v.toFixed(2); // クレジットは整数で。10 未満は小数 1 桁（1.33 を 1 と丸めすぎない）、1 未満は小数 2 桁
-// クレジットの単位（"cr" では何の数かわからないので、言葉で。日本語の画面でも英字の「credits」）
+// クレジットの単位（"cr" では何の数かわからないので、言葉で）。日本語の画面では、名前（クレジット・Kiro クレジット）と同じくカタカナ
 const crUnit = v => v === 1 && !isJA() ? "credit" : "credits"; // 日本語でもカタカナにせず「credits」（Kiro の画面と同じ言葉）
 function cr(v){ return `${crN(v)} ${crUnit(v)}`; }
 const crR = v => v >= 100 ? commas(Math.round(v)) : (Math.round(v * 10) / 10).toLocaleString(LOC()); // クレジットの率（小数 1 桁。いつもの範囲の数と同じ丸め）
