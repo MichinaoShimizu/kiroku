@@ -139,13 +139,20 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		// （executionId）だけ、session なら以後のターンが to のモデルになり、session.json の modelId も to に書き換わる。
 		// usage_summary にはモデルがないので、ターンのモデルは最後に決める（それまでのターンは、切り替えの from）
 		turnModel := map[string]string{} // executionId → そのターンだけのモデル
-		var turns []string               // まだモデルを決めていないターンの executionId
+		type kturn struct {
+			ex string
+			ci int // そのターンのクレジット（s.Credits の位置。なければ -1）
+		}
+		var turns []kturn // まだモデルを決めていないターン
 		settle := func(m string) {
-			for _, ex := range turns {
-				if tm := turnModel[ex]; tm != "" {
-					s.Model(tm)
-				} else {
-					s.Model(m)
+			for _, x := range turns {
+				tm := turnModel[x.ex]
+				if tm == "" {
+					tm = m
+				}
+				s.Model(tm)
+				if x.ci >= 0 {
+					s.Credits[x.ci].M = tm
 				}
 			}
 			turns = turns[:0]
@@ -195,7 +202,9 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 				s.Measure("tool_calls", t, 1)
 			case "usage_summary":
 				used := creditsOf(p["promptTurnSummaries"], "unit", "usage")
+				ci := -1
 				if used != 0 {
+					ci = len(s.Credits)
 					s.Credits = append(s.Credits, core.Credit{T: t, V: used})
 				}
 				s.Measure("credits", t, used)
@@ -205,7 +214,7 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 				if ids, ok := p["requestIds"].([]any); ok {
 					s.Measure("requests", t, float64(len(ids)))
 				}
-				turns = append(turns, core.Str(p["executionId"]))
+				turns = append(turns, kturn{core.Str(p["executionId"]), ci})
 				modeled = true
 			case "session_metadata":
 				// {key: "contextUsage", value: {usagePercentage: 0〜100}}。参考実装 codeburn のテストデータ（tests/providers/kiro.test.ts）だけにある形。
@@ -286,7 +295,7 @@ func addClassicUsage(s *core.Builder, path string) {
 		}
 		used := creditsOf(tm["metering_usage"], "unit", "value")
 		if used != 0 {
-			s.Credits = append(s.Credits, core.Credit{T: te, V: used})
+			s.Credits = append(s.Credits, core.Credit{T: te, V: used, M: firstNonEmpty(core.Str(tm["model"]), core.Str(core.Get(core.Map(raw), "session_state", "rts_model_state", "model_info", "model_id")))})
 		}
 		s.Measure("credits", te, used)
 		s.Measure("turns", te, 1)
@@ -556,7 +565,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 			s.Agent(te)
 			used := creditsOf(tm["metering_usage"], "unit", "value")
 			if used != 0 {
-				s.Credits = append(s.Credits, core.Credit{T: te, V: used})
+				s.Credits = append(s.Credits, core.Credit{T: te, V: used, M: firstNonEmpty(core.Str(tm["model"]), defaultModel)})
 			}
 			s.Measure("credits", te, used)
 			s.Measure("turns", te, 1)

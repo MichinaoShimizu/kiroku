@@ -63,6 +63,7 @@ func TestMatchesPythonVersion(t *testing.T) {
 	}
 	dropLegacy(want, got)
 	dropSubagentActivity(want, got)
+	dropModelCredits(got)
 	var diffs []string
 	compare(want, got, "", &diffs)
 	for i, d := range diffs {
@@ -429,4 +430,39 @@ func dropSubagentActivity(want, got any) {
 			}
 		}
 	}
+}
+
+// dropModelCredits は、モデル別の行の 5 つめ（どのモデルで使ったかを記録したクレジット）を外し、
+// クレジットだけの行（費用・トークン・回数が 0。Python 版はクレジットをモデル別にしなかった）を除く。
+func dropModelCredits(got any) {
+	var walk func(x any)
+	walk = func(x any) {
+		switch v := x.(type) {
+		case map[string]any:
+			for k, c := range v {
+				if rows, ok := c.([]any); ok && k == "models" {
+					keep := []any{}
+					for _, r := range rows {
+						row, ok := r.([]any)
+						if !ok || len(row) != 5 {
+							keep = append(keep, r)
+							continue
+						}
+						if row[1] == 0.0 && row[2] == 0.0 && row[3] == 0.0 {
+							continue
+						}
+						keep = append(keep, row[:4])
+					}
+					v[k] = keep
+					continue
+				}
+				walk(c)
+			}
+		case []any:
+			for _, c := range v {
+				walk(c)
+			}
+		}
+	}
+	walk(got)
 }

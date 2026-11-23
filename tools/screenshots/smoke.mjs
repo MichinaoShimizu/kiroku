@@ -145,10 +145,11 @@ async function run(env) {
       d0.querySelector("summary").click(); await wait(); const saved2 = store.get("insMore", false) === true; summary();
       const B2 = document.querySelector("#review details.insbrk"), top = [...B2.querySelectorAll(":scope > .insg > .insrow h4")].map(h => h.textContent);
       return closed && saved && inner && saved2 && B2.open && B2.querySelector("details.insmore").open && top.some(x => /When you worked/.test(x)) && top.some(x => /Where it went/.test(x)) && !top.some(x => /^Trend/.test(x)); }));
-    check("見直す候補（Worth a look）のリンクの指標のカードが、たたんだ内訳の中にあれば、リンクで内訳が開く（開いたことも覚える）", await p.evaluate(async () => {
+    check("サマリーの頭に見直す候補の行はない", await p.evaluate(() => !document.querySelector("#review .iworth") && !/Worth a look/.test(document.querySelector("#review .insight").textContent.slice(0, 400))));
+    check("見直す候補（Worth a look）の指標のカードが、たたんだ内訳の中にあれば、その候補を開くと内訳が開く（開いたことも覚える）", await p.evaluate(async () => {
       store.set("insBrk", false); summary(); const B = document.querySelector("#review details.insbrk");
-      const id = [...B.querySelectorAll(".fmark")].map(x => x.dataset.goto).find(id => document.querySelector(`#review .iworth .iwlink[data-goto="${id}"]`)); if (!id || B.open) return false;
-      document.querySelector(`#review .iworth .iwlink[data-goto="${id}"]`).click(); await new Promise(r => setTimeout(r, 50));
+      const id = [...B.querySelectorAll(".fmark")].map(x => x.dataset.goto)[0]; if (!id || B.open) return false;
+      insOpenWorth(id); await new Promise(r => setTimeout(r, 50));
       const ok = document.querySelector("#wk").open && B.open && store.get("insBrk", false) === true; document.querySelector("#wk").close(); return ok; }));
     check("サマリーに切り替えると、カレンダーは隠れる", await p.locator("#tl").isHidden() && await p.locator("#review").isVisible());
     const pos1 = await at();
@@ -241,7 +242,7 @@ async function run(env) {
         return {bg: getComputedStyle(tl).backgroundColor, me: getComputedStyle(pr.querySelector(":scope>p")).backgroundColor, ai: getComputedStyle(rp.querySelector(":scope>p")).backgroundColor,
           meRight: box.right - a.b.right < 40, meTime: a.t.right <= a.b.left + 1 && Math.abs(a.t.bottom - a.b.bottom) < 8,
           aiTime: r.t.left >= r.b.right - 1 && Math.abs(r.t.bottom - r.b.bottom) < 8, aiAv: rp.querySelector(".av").getBoundingClientRect().right <= r.b.left }; });
-      check("流れは青灰色の地に、あなたは右の緑、AI は左の白の吹き出し", lay.bg === "rgb(113, 130, 154)" && lay.me === "rgb(130, 212, 110)" && lay.ai === "rgb(255, 255, 255)" && lay.meRight && lay.aiAv, JSON.stringify(lay));
+      check("流れは灰青のスレートの地に、あなたは右のくすんだ緑、AI は左の白い吹き出し", lay.bg === "rgb(74, 84, 102)" && lay.me === "rgb(169, 196, 174)" && lay.ai === "rgb(242, 243, 245)" && lay.meRight && lay.aiAv, JSON.stringify(lay));
       check("時刻は吹き出しの下の端の横（あなたは左、AI は右）", lay.meTime && lay.aiTime, JSON.stringify(lay));
       // 依頼と応答の間に起きたこと（コミットなど）は応答の上に出るので、それを飛ばした手前が依頼
       check("応答は依頼のすぐ後に並ぶ", await p.evaluate(() => { const li = [...document.querySelectorAll("#panel .tl li")], i = li.findIndex(x => x.classList.contains("rp"));
@@ -863,9 +864,9 @@ async function run(env) {
     await p.locator("#q").fill(word); await pause();
     const heading = await p.locator("#sres h2").first().innerText();
     check("検索結果が出る", heading === "Search results", heading);
-    check("検索結果はカレンダーより上にある", await p.evaluate(() => document.querySelector("#sres").getBoundingClientRect().bottom <= document.querySelector("#tl").getBoundingClientRect().top));
+    check("検索の最中は結果だけ（期間の行・凡例・カレンダー・サマリーは隠す）", await p.evaluate(() => document.querySelector("#sres").checkVisibility() && ["#tl", "#review", "#legend", ".week"].every(q => !document.querySelector(q).checkVisibility())));
     check("一致したセッションがある", await p.locator(".srow[data-s]").count() > 0, word);
-    check("検索結果は枠の中でスクロールし、カレンダーを押し出さない", await p.evaluate(() => [...document.querySelectorAll("#sres .panel")].every(e => e.getBoundingClientRect().height <= Math.min(innerHeight * .52, 520) + 1)));
+    check("検索結果は枠の中でスクロールする（どの一覧も長くなりすぎない）", await p.evaluate(() => [...document.querySelectorAll("#sres .panel")].every(e => e.getBoundingClientRect().height <= Math.min(innerHeight * .52, 520) + 1)));
     const more = p.locator("#srmS");
     if (await more.count()){ const before = await p.locator(".srow[data-s]").count();
       await more.click(); await pause();
@@ -933,10 +934,10 @@ async function run(env) {
       return kr.top >= hr.bottom - 1 && Math.abs(kr.left - hr.left) < 2 && Math.abs(kr.right - hr.right) < 2 && between && document.querySelectorAll("#review .isk").length === 1 && !k.closest(".insrow"); }));
     { // サンキーの 1 文は、全体がどこへ行ったかを言い切る：コミットか PR あり・なし（None）・記録しないエージェントの分のうち 0 でないものを全部、全体に対する割合で。割合は足して 100
       const sk = await p.evaluate(() => { const c = document.querySelector("#review .isk"); if (!c) return null; const say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay"), out = [...c.querySelectorAll(".sklist .skcol:last-child .skn2")].map(x => x.textContent);
-        return {unk: out.some(x => /^(Not recorded|記録なし)$/.test(x)), none: out.some(x => /^(None|なし)$/.test(x)), yes: out.some(x => /^(Commit or PR|コミットか PR)$/.test(x)), txt: say ? say.textContent : "", list: [...c.querySelectorAll(".sklist .skcol")].map(g => [...g.querySelectorAll("li b")].reduce((a, b) => a + parseInt(b.textContent), 0))}; });
+        return {unk: out.some(x => /^(Not recorded|記録なし)$/.test(x)), none: out.some(x => /^(None|なし)$/.test(x)), fil: out.some(x => /^(Files changed only|ファイルの変更だけ)$/.test(x)), yes: out.some(x => /^(Commit or PR|コミットか PR)$/.test(x)), txt: say ? say.textContent : "", list: [...c.querySelectorAll(".sklist .skcol")].map(g => [...g.querySelectorAll("li b")].reduce((a, b) => a + parseInt(b.textContent), 0))}; });
       const pcs = sk ? [...sk.txt.matchAll(/(\d+)%/g)].map(m => +m[1]) : [];
-      check("サンキーの 1 文は、出力の部分（コミットか PR あり・なし・記録しないエージェントの分）を全部言い、その割合は足して 100", !sk || (!sk.yes && !sk.none ? pcs.length === 0 : pcs.length === sk.yes + sk.none + sk.unk && pcs.reduce((a, v) => a + v, 0) === 100
-        && (!sk.none || /without|もない/.test(sk.txt)) && (!sk.unk || /don't record commits|記録しないエージェント/.test(sk.txt)) && (!sk.yes || /with a commit or PR|PR のあった/.test(sk.txt))), JSON.stringify({sk, pcs}));
+      check("サンキーの 1 文は、出力の部分（コミットか PR あり・ファイルの変更だけ・なし・記録しないエージェントの分）を全部言い、その割合は足して 100", !sk || (!sk.yes && !sk.none && !sk.fil ? pcs.length === 0 : pcs.length === sk.yes + sk.fil + sk.none + sk.unk && pcs.reduce((a, v) => a + v, 0) === 100
+        && (!sk.fil || /changed files|ファイルを変えた/.test(sk.txt)) && (!sk.none || /without|no files|もない|ファイルも変えなかった/.test(sk.txt)) && (!sk.unk || /don't record commits|記録しないエージェント/.test(sk.txt)) && (!sk.yes || /with a commit or PR|PR のあった/.test(sk.txt))), JSON.stringify({sk, pcs}));
       check("サンキーの一覧の割合は、列ごとに足して 100", !sk || sk.list.every(v => v === 100), JSON.stringify(sk && sk.list));
     }
     { // サンキーの名前は、どれもカードの地の色の札の上（色の帯に直接乗らない）
@@ -1039,6 +1040,18 @@ async function run(env) {
       return {shadow: s.boxShadow, outline: s.outlineStyle, chip: d.backgroundColor}; });
     check("月の今日のマスは枠で囲まず、日付も塗らない", !td || (td.shadow === "none" && td.outline === "none" && /rgba\(0, 0, 0, 0\)|transparent/.test(td.chip)), JSON.stringify(td));
     await p.evaluate(() => { setMode("week"); render(); }); await pause();
+  });
+
+  await step("記録のない週・月も空のカレンダー", async () => {
+    const w0 = await p.evaluate(() => key(st.week));
+    for (const mode of ["week", "month"]){
+      await p.evaluate(m => { setMode(m); const far = addDays(mondayOf(new Date(Math.min(...DATA.map(s => s.start)) * 1000)), -7 * 20); if (m === "week") st.week = far; else st.month = monthOf(far); render(); }, mode); await pause();
+      const r = await p.evaluate(() => ({note: (document.querySelector("#tl .empty") || {}).textContent || "", grid: document.querySelectorAll("#tl .day, #tl .mgrid .cell").length, go: !!document.querySelector("#tolast"), runs: document.querySelectorAll("#tl .run").length}));
+      check(`記録のない${mode === "week" ? "週" : "月"}も、枠（曜日・時刻・マス）を描き、上に「ない」の 1 行と記録のある最後の期間へのボタン`, r.grid >= 7 && r.runs === 0 && /No records/.test(r.note) && r.go, JSON.stringify(r));
+      await p.click("#tolast"); await pause();
+      check(`ボタンで記録のある${mode === "week" ? "週" : "月"}へ行き、案内は消える`, await p.evaluate(m => !document.querySelector("#tl .empty") && (m === "month" || document.querySelectorAll("#tl .run").length > 0), mode));
+    }
+    await p.evaluate(w => { setMode("week"); const [y, m, d] = w.split("-").map(Number); st.week = new Date(y, m - 1, d); render(); }, w0); await pause();
   });
 
   check("スクリプトのエラーがない", errors.length === 0, errors.join(" / "));

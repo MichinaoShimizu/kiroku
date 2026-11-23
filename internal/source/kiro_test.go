@@ -451,6 +451,14 @@ func TestKiroIDEModelFallback(t *testing.T) {
 		if got["claude-sonnet-4.5"] != 1 || got["claude-haiku-4.5"] != 1 {
 			t.Errorf("%s: モデル = %v, want sonnet 1・haiku 1", id, got)
 		}
+		// クレジットにも、そのターンのモデルを付ける（サマリーのモデル別）
+		cr := map[string]float64{}
+		for _, c := range find(bs, id).Credits {
+			cr[c.M] += c.V
+		}
+		if len(cr) != 2 || cr["claude-sonnet-4.5"] != 1 || cr["claude-haiku-4.5"] != 1 {
+			t.Errorf("%s: モデル別のクレジット = %v, want sonnet 1・haiku 1", id, cr)
+		}
 	}
 }
 

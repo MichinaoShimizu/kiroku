@@ -62,7 +62,7 @@ type WeekUsage struct {
 	Cost      float64  `json:"cost"`
 	Credits   float64  `json:"credits"`
 	CacheHit  *float64 `json:"cacheHit"`
-	Models    [][4]any `json:"models"`   // [model, cost, tokens, msgs]
+	Models    [][5]any `json:"models"`   // [model, cost, tokens, msgs, credits]（credits は、どのモデルで使ったかを記録したクレジット。Kiro）
 	Projects  [][2]any `json:"projects"` // [project, cost]
 	Subagents int      `json:"subagents"`
 	SubMin    float64  `json:"subMin"`
@@ -525,7 +525,7 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 
 // weekUsage は AI の使い方: トークン・目安コスト・クレジット・モデル・サブエージェント。
 func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
-	type mm struct{ tokens, cost, msgs, unpriced, priced float64 }
+	type mm struct{ tokens, cost, msgs, unpriced, priced, credits float64 }
 	models := map[string]*mm{}
 	var modelOrder []string
 	byProj := map[string]float64{}
@@ -590,6 +590,13 @@ func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
 			if ws <= t && t < we {
 				credits += c.V
 				addProj(d.Project, 0)
+				if c.M != "" { // どのモデルで使ったかがわかるクレジットは、モデル別にも
+					if models[c.M] == nil {
+						models[c.M] = &mm{}
+						modelOrder = append(modelOrder, c.M)
+					}
+					models[c.M].credits += c.V
+				}
 			}
 		}
 	}
@@ -618,18 +625,21 @@ func weekUsage(data []*core.Session, ws, we float64) WeekUsage {
 	if reads > 0 {
 		cacheHit = fptr(core.Round(tot.CR/reads, 3))
 	}
-	mrows := [][4]any{}
+	mrows := [][5]any{}
 	sort.SliceStable(modelOrder, func(i, j int) bool {
 		a, b := models[modelOrder[i]], models[modelOrder[j]]
 		ca, cb := core.Round(a.cost, 2), core.Round(b.cost, 2)
 		if ca != cb {
 			return ca > cb
 		}
-		return a.tokens > b.tokens
+		if a.tokens != b.tokens {
+			return a.tokens > b.tokens
+		}
+		return a.credits > b.credits
 	})
 	for _, m := range modelOrder {
 		v := models[m]
-		mrows = append(mrows, [4]any{m, core.Round(v.cost, 2), v.tokens, v.msgs})
+		mrows = append(mrows, [5]any{m, core.Round(v.cost, 2), v.tokens, v.msgs, core.Round(v.credits, 3)})
 	}
 	unpricedM := []string{}
 	for _, m := range modelOrder {

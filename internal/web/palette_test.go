@@ -133,12 +133,12 @@ func deltaE(a, b string, sim *[3][3]float64) float64 {
 	return 100 * math.Sqrt((x[0]-y[0])*(x[0]-y[0])+(x[1]-y[1])*(x[1]-y[1])+(x[2]-y[2])*(x[2]-y[2]))
 }
 
-// プロンプトの流れ（.tl）の色は、メッセージアプリ（LINE の昔からのトーク画面）に寄せた吹き出し。字と地の組み合わせが読めることを確かめる:
+// プロンプトの流れ（.tl）は、メッセージアプリの形の吹き出し（色は特定のアプリに寄せない）。字と地の組み合わせが読めることを確かめる:
 //   - 吹き出しの字・時刻・小さな字（4.5:1 以上。WCAG 2.x の相対輝度のコントラスト比）
 //   - コピーのボタン・AI の印・出来事の印・言い直しの破線など小さな印（3:1 以上）
 //   - AI の白い吹き出しと流れの地（3:1 以上）
 //
-// 形は同じでも、色は LINE そのもの（地 #7494c0・緑 #8de055）から少しずらしてある。同じ値に戻らないことも確かめる。
+// 色は LINE のトーク画面（地 #7494c0・緑 #8de055）から十分に離す（ΔE 15 以上。寄せすぎだという声で離した）。
 //
 // 半透明の地（--chat-me-tag と出来事の札の --chat-sys）と、ふだん薄く見せるコピーのボタン（最後に書いた .tl li .pcopy{opacity:…}）は、下の地と混ぜた色で比べる。
 func TestChatContrast(t *testing.T) {
@@ -199,8 +199,8 @@ func TestChatContrast(t *testing.T) {
 		{"background", bg, "#7494c0"},
 		{"your bubble", me, "#8de055"},
 	} {
-		if d := deltaE(c.got, c.line, nil); d < 3 {
-			t.Errorf("%s %s is too close to LINE's %s (ΔE %.1f), want at least 3", c.name, c.got, c.line, d)
+		if d := deltaE(c.got, c.line, nil); d < 15 {
+			t.Errorf("%s %s is too close to LINE's %s (ΔE %.1f), want at least 15", c.name, c.got, c.line, d)
 		}
 	}
 }

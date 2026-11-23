@@ -1702,7 +1702,7 @@ func addCrewTurns(s *core.Builder, turns []crewTurn, label string) (skipped int)
 		s.Tick(&st)
 		s.Agent(&t)
 		if x.credits != 0 {
-			s.Credits = append(s.Credits, core.Credit{T: &t, V: x.credits})
+			s.Credits = append(s.Credits, core.Credit{T: &t, V: x.credits, M: x.model})
 		}
 		s.Measure("credits", &t, x.credits)
 		s.Measure("turns", &t, 1)

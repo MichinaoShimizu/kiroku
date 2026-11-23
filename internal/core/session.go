@@ -155,6 +155,7 @@ type Subagent struct {
 type Credit struct {
 	T *float64
 	V float64
+	M string // そのクレジットを使ったモデル（わかるときだけ。サマリーのモデル別に使う）
 }
 
 // Builder は 1 つのセッションを読みながら組み立てる。アダプターはこれだけを触る。

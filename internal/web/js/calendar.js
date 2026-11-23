@@ -19,6 +19,7 @@ function render(){
   $("#prev").setAttribute("aria-label", M ? t("Previous month") : t("Previous week")); $("#next").setAttribute("aria-label", M ? t("Next month") : t("Next week"));
   document.querySelectorAll("#mode button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.mode));
   showView(); // カレンダーかサマリーか（画面いっぱいに 1 つだけ）
+  document.body.classList.toggle("srch", !!st.q); // 検索の最中は、結果だけを見せる（期間の行・凡例・カレンダー・サマリーは隠す。結果はどれも全期間から）
 
   const inRange = DATA.filter(s => s.end >= ws && s.start < we);
   const shown = inRange.filter(matches);
@@ -189,17 +190,18 @@ function gitShown(shown){
 /* 月のカレンダー：日ごとの量を濃さで。濃さの量は選べる（推定費用・クレジット・トークン・稼働時間）。
    既定は、マスに書く数と同じ量（推定費用、なければトークン、なければクレジット）。どれもなければ稼働時間 */
 const SHADE = () => ({cost: {f: d => d.cost > 0 ? d.cost : 0, s: t("Cost")}, credits: {f: d => d.credits || 0, s: t("Credits")}, tokens: {f: d => d.tokens || 0, s: t("Tokens")}, active: {f: d => d.active || 0, s: t("Active time")}});
-// emptyCal は、記録のない週・月の 1 枚（「ない」の一言と、記録のある最後の期間へ行くボタン）。文は呼ぶ側の t() で、ここでエスケープする
-function emptyCal(T, msg, btn, onClick){
-  T.innerHTML = `<div class="empty"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><p>${esc(msg)}</p>${btn ? `<p><button class="pill" id="tolast">${esc(btn)}</button></p>` : ""}</div>`;
-  if (btn) $("#tolast").onclick = onClick; }
+// emptyNote は、記録のない週・月の案内（「ない」の一言と、記録のある最後の期間へ行くボタン）。カレンダーは空のまま描き、その上に 1 行で置く
+// （案内だけの 1 枚にすると、曜日や時刻の枠まで消えて、今どこを見ているかがわからない）。文は呼ぶ側の t() で、ここでエスケープする。押したときの動きは emptyBind
+const emptyNote = (msg, btn) => `<div class="empty" role="status"><p>${esc(msg)}</p>${btn ? `<button class="pill" id="tolast" type="button">${esc(btn)}</button>` : ""}</div>`;
+const emptyBind = onClick => { const b = $("#tolast"); if (b) b.onclick = onClick; };
 function monthGrid(shown, ms, me, todayKey){
   const T = $("#tl"), S = MONTHS[mkey(st.month)], first = mondayOf(st.month);
   const un = filtering() ? 1 : 0, G = un ? gitShown(shown) : null;
-  if (!un && !META.scope && !(S && S.days.some(d => d && d.active))){ // 記録のない月は、空のマスと濃さの目盛りではなく、週と同じく「ない」と言い、記録のある最後の月へ行けるようにする
+  let note = "", noteGo = null;
+  if (!un && !META.scope && !(S && S.days.some(d => d && d.active))){ // 記録のない月も空のマスを描き、上に「ない」の 1 行と、記録のある最後の月へ行くボタン
     const last = DATA.length ? monthOf(new Date(Math.max(...DATA.map(s => s.end)) * 1000)) : null, jump = last && last.getTime() !== st.month.getTime();
-    emptyCal(T, t("No records in {month}.", {month: dMY(st.month)}), jump ? t("Go to the latest month with records ({month})", {month: dMY(last)}) : "", () => { st.month = last; st.sel = null; st.animate = true; render(); });
-    return; }
+    note = emptyNote(t("No records in {month}.", {month: dMY(st.month)}), jump ? t("Go to the latest month with records ({month})", {month: dMY(last)}) : "");
+    noteGo = () => { st.month = last; st.sel = null; st.animate = true; render(); }; }
   const wks = []; for (let r = 0; r < 6 && addDays(first, 7*r).getTime()/1000 < me; r++) wks.push(addDays(first, 7*r));
   const kinds = useKinds([...(S ? S.days : []), ...wks.map(wk => (WEEKS[key(wk)] || {}).usage)]);
   const SH = SHADE(), days = S ? S.days : [], sk = calPick(days).k; kinds.k = sk;
@@ -227,12 +229,12 @@ function monthGrid(shown, ms, me, todayKey){
       const by = byDay.get(key(d)) || new Map();
       const tot = [...by.values()].reduce((a, v) => a + v, 0), mbar = tot ? `<span class="mbar" aria-hidden="true">${[...by].sort((a, b) => b[1] - a[1]).map(([k, v]) => `<i style="flex:${v};background:${colorOf(k)}"></i>`).join("")}</span>` : "";
       h += `<button class="cell${wkc(d.getDay())}${key(d)===todayKey?" today":""}${d.getTime() > nowMs() ? " fut" : ""}${un && act && !nS ? " dim" : ""}" data-w="${key(mondayOf(d))}" data-d="${key(d)}" style="--heat:${(x ? SH[sk].f(x) / max : 0).toFixed(3)}"${tipAttr(md(ds), act ? [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(x), `${t("Git commits")} ${nC}`] : t("No records"))}>
-        <span class="dn">${d.getDate()}</span>${x.commits ? `<span class="acm" aria-label="${esc(`${t("Git commits")}: ${x.commits}`)}">${ico("commit")}<span>${unitH(nUnit(x.commits, "commit"))}</span></span>` : ""}${act ? calShort(act, x, un, kinds) : ""}${mbar}
+        <span class="dn">${d.getDate()}</span>${x && x.commits ? `<span class="acm" aria-label="${esc(`${t("Git commits")}: ${x.commits}`)}">${ico("commit")}<span>${unitH(nUnit(x.commits, "commit"))}</span></span>` : ""}${act ? calShort(act, x, un, kinds) : ""}${mbar}
         </button>`;
     }
   }
   h += `</div><div class="mlegend"><span class="mshade">${esc(t("Shade: {k}", {k: SH[sk].s}))}</span> <span class="nw">${esc(t("Less"))}</span> ${[0,.25,.5,.75,1].map(v=>`<i style="--h:${v}"></i>`).join("")} ${esc(t("More"))} · ${esc(matchMedia("(max-width:820px)").matches ? t("Week totals count this month's days. Tap a date or week to open it.") : t("Week totals count this month's days. Click a date or week to open it."))}</div>`;
-  T.innerHTML = h;
+  T.innerHTML = note + h; if (note) emptyBind(noteGo);
   T.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { const [y,m,dd] = b.dataset.w.split("-").map(Number); st.week = new Date(y, m-1, dd); tipOff(); setMode("week"); if (b.dataset.d) focusDay(b.dataset.d); });
 }
 // focusDay は、週のカレンダーで日 dk（YYYY-MM-DD）を見せる：横に流れる狭い画面ではその日の列までスクロールし、列を少し光らせ、
@@ -264,12 +266,13 @@ function calY(h){ const hh = st.hh || 44; return !calFold() ? h * hh : h < CAL_D
 function timeline(shown, inWeek, ws, we, todayKey){
   const T = $("#tl"), hh = st.hh || 44, Y = calY, H = Y(24), fold = calFold(), E0 = fold ? Y(CAL_D0) : 0;
   if (inWeek.length && !shown.length && st.q && !DATA.some(matches)){ T.innerHTML = ""; return; } // 検索がどこにも当たらないときは、上の検索結果の「ない」だけにする
+  let note = "", noteGo = null;
   if (!inWeek.length || !shown.length){
-    // 記録のない週は、ここで 1 度だけ「ない」と言い、記録のある最後の週へ行けるようにする（月は大文字のまま。toLowerCase で "jul 6" にしない）
+    // 記録のない週も、曜日と時刻の枠は描き、上に 1 度だけ「ない」と言い、記録のある最後の週へ行けるようにする（月は大文字のまま。toLowerCase で "jul 6" にしない）
     const last = !inWeek.length && !META.scope && DATA.length ? mondayOf(new Date(Math.max(...DATA.map(s => s.end))*1000)) : null, jump = last && last.getTime() !== st.week.getTime();
-    emptyCal(T, inWeek.length ? t("No sessions match the current filters.") : META.scope ? t("This file has no records for this week.") : st.week.getTime() === mondayOf(today0()).getTime() ? t("No records this week.") : t("No records in the week of {date}.", {date: dMD(st.week)}),
-      jump ? t("Go to the latest week with records ({date})", {date: dMD(last)}) : "", () => { st.week = last; st.sel = null; st.animate = true; render(); scrollToWork(); });
-    return;
+    note = emptyNote(inWeek.length ? t("No sessions match the current filters.") : META.scope ? t("This file has no records for this week.") : st.week.getTime() === mondayOf(today0()).getTime() ? t("No records this week.") : t("No records in the week of {date}.", {date: dMD(st.week)}),
+      jump ? t("Go to the latest week with records ({date})", {date: dMD(last)}) : "");
+    noteGo = () => { st.week = last; st.sel = null; st.animate = true; render(); scrollToWork(); };
   }
   const keep = T.querySelector(".calscroll"), top = keep ? keep.scrollTop : null;
   const nowS = nowMs()/1000, w = WEEKS[key(st.week)];
@@ -339,7 +342,8 @@ function timeline(shown, inWeek, ws, we, todayKey){
   }
   // 曜日の見出しは、横にスクロールする本体（.calscroll）の外に置き、ページのスクロールで上に貼り付ける（.tlhead）。
   // 横のスクロールは本体に合わせて動かす（狭い画面でも、どの列が何日かわかるように）
-  T.innerHTML = `<div class="tlhead"><div class="calin"><div class="heads">${heads}</div></div></div><div class="calscroll" style="--hh:${hh}px"><div class="calin"><div class="cgrid"><div class="hours" style="height:${H}px">${hours}</div>${cols}</div></div></div>`;
+  T.innerHTML = note + `<div class="tlhead"><div class="calin"><div class="heads">${heads}</div></div></div><div class="calscroll" style="--hh:${hh}px"><div class="calin"><div class="cgrid"><div class="hours" style="height:${H}px">${hours}</div>${cols}</div></div></div>`;
+  if (note) emptyBind(noteGo);
   const sc = T.querySelector(".calscroll"), th = T.querySelector(".tlhead");
   $("#calfold").onclick = () => { st.early = calFold(); store.set("calEarly", st.early); render(); const b = $("#calfold"); if (b) b.focus({preventScroll: true}); };
   sc.addEventListener("scroll", () => { th.scrollLeft = sc.scrollLeft; }, {passive: true});
