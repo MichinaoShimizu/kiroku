@@ -59,7 +59,6 @@ kiroku serve          # http://localhost:8484/ で画面を開く
 
 - 履歴は PC の外に出ません。ネットワークを使うのは、kiroku 自身の新しい版を GitHub で確かめてダウンロードするときだけです。
 - kiroku が書くファイルはあなたしか読めません。`kiroku serve` は `127.0.0.1` で待ち受け、鍵を持つブラウザーにだけ開きます。
-- HTML にはプロンプト・応答・パス・コミットメッセージがそのまま入ります。人に渡す前に確かめてください。
 - コピーしたプロンプトを貼ったエージェントは履歴ファイルを読み、提供元に送ることがあります。履歴を任せられるエージェントを使ってください。
 
 詳しくは [SECURITY.md](SECURITY.md) にあります。
@@ -67,13 +66,10 @@ kiroku serve          # http://localhost:8484/ で画面を開く
 ## 使い方
 
 ```bash
-kiroku serve                        # 画面を開き、新しい履歴が入るたびに更新
-kiroku serve --open                 # 別のブラウザーで開く
-kiroku serve --autostart on         # ログインのたびに kiroku serve を起動（macOS と Linux）
-kiroku serve --archive on           # エージェントが消す履歴のコピーを残す
-kiroku serve --html --week last     # 先週だけを 1 つの HTML に書き出す
-kiroku update                       # 最新の版に更新
-kiroku help                         # すべての使い方
+kiroku serve               # 画面を開き、新しい履歴が入るたびに更新（動いているときは、その画面を開く）
+kiroku serve --archive on  # エージェントが消す履歴のコピーを残す
+kiroku update              # 最新の版に更新
+kiroku help                # すべての使い方
 ```
 
 画面の見方・指標・オプション・[アンインストール](docs/guide.md#uninstall)は[ガイド](docs/guide.md)、版の約束は[互換性](docs/compatibility.md)にあります（どちらも英語）。
