@@ -408,14 +408,14 @@ async function run(env) {
         for (let i = 0; i < 30 && await p.locator("#rd").innerText() !== lab0; i++){ await p.keyboard.press("ArrowLeft"); await pause(); } check("今週から元の週に戻る", await p.locator("#rd").innerText() === lab0);
       }
       { // パネルの切り替え：押すと別の選択肢のタイル（とグラフ）になり、開き直しても覚えている
-        const sws = await p.evaluate(() => [...document.querySelectorAll("#review .insh .iksw")].map(g => ({sw: g.dataset.sw, vs: [...g.querySelectorAll("[data-v]")].map(b => b.dataset.v), on: [...g.querySelectorAll("[data-v]:not([hidden])")].map(b => b.dataset.v), cur: g.querySelector('[aria-pressed="true"]').dataset.v})));
+        const sws = await p.evaluate(() => [...document.querySelectorAll("#review .insh .iksw")].map(g => ({sw: g.dataset.sw, vs: [...g.querySelectorAll("[data-v]")].map(b => b.dataset.v), on: [...g.querySelectorAll('[data-v]:not([aria-disabled="true"])')].map(b => b.dataset.v), hid: g.querySelectorAll("[data-v][hidden]").length, cur: g.querySelector('[aria-pressed="true"]').dataset.v})));
         const want = {cost: ["cost", "credits", "tokens", "active"], out: ["commit", "push", "pr"], unitN: ["cost", "credits", "tokens"], unitD: ["commit", "push", "pr", "edit"], uinN: ["cost", "credits", "tokens"], uinD: ["Hour", "Day", "Ses", "Ask"]};
-        check("どのパネルにも切り替えがあり（単価は量と割る数の 2 つ）、記録のある選択肢が並ぶ", Object.keys(want).every(k => { const x = sws.find(z => z.sw === k); return x && want[k].every(v => x.vs.includes(v)); }), JSON.stringify(sws));
+        check("どのパネルにも切り替えがあり（単価は量と割る数の 2 つ）、選択肢はいつも同じ並びで、どれも消えない（隠さない）", Object.keys(want).every(k => { const x = sws.find(z => z.sw === k); return x && x.vs.join() === want[k].join() && x.hid === 0; }), JSON.stringify(sws));
         const shown = sw => p.evaluate(sw => { const g = document.querySelector(`#review .iksw[data-sw="${sw}"]`), sec = g.closest(".ikg"), v = [...sec.querySelectorAll(".ikrow > [data-ch]")].filter(x => x.checkVisibility());
           return {n: v.length, ch: v[0] && v[0].dataset.ch, svg: v[0] ? (v[0].querySelector(".tspk svg") || {}).innerHTML || "" : "", label: v[0] ? (v[0].querySelector(".il") || v[0]).textContent : ""}; }, sw);
         const picked = {};
         for (const {sw} of sws){
-          const {on, cur} = await p.evaluate(sw => { const g = document.querySelector(`#review .insh .iksw[data-sw="${sw}"]`); return {on: [...g.querySelectorAll("[data-v]:not([hidden])")].map(b => b.dataset.v), cur: g.querySelector('[aria-pressed="true"]').dataset.v}; }, sw); // 量を変えると、選べる割る数が変わる
+          const {on, cur} = await p.evaluate(sw => { const g = document.querySelector(`#review .insh .iksw[data-sw="${sw}"]`); return {on: [...g.querySelectorAll('[data-v]:not([aria-disabled="true"])')].map(b => b.dataset.v), cur: g.querySelector('[aria-pressed="true"]').dataset.v}; }, sw); // 量を変えると、選べる割る数が変わる
           const before = await shown(sw), to = on.find(v => v !== cur), b = p.locator(`#review .iksw[data-sw="${sw}"] [data-v="${to}"]`);
           await b.click(); await pause(); const after = await shown(sw);
           check(`切り替え ${sw}: ${to} を押すと、そのタイルだけが見え、グラフが変わり、ボタンが選ばれてフォーカスが残る`, after.n === 1 && after.ch.split(":")[/D$/.test(sw) ? 1 : 0] === to && after.svg !== before.svg && after.label !== before.label
@@ -663,9 +663,11 @@ async function run(env) {
         return {pairs, none: g.querySelectorAll(".iknone").length, items: [...g.querySelectorAll(".ikrow > [data-ch]")].map(x => x.dataset.ch), ns: [...g.querySelectorAll('.iksw[data-dim="n"] [data-v]')].map(b => b.dataset.v)}; }, id);
       check(`${id} の単価のパネルは、数字のある組だけ（空の選択肢がない）`, !!u && u.none === 0 && u.items.length === u.pairs.length, JSON.stringify(u));
       if (u) for (const n of u.ns){ await p.locator(`#review .ik-${id} .iksw[data-dim="n"] [data-v="${n}"]`).click(); await pause();
-        const r = await p.evaluate(id => { const g = document.querySelector(`#review .ik-${id}`), on = [...g.querySelectorAll('.iksw[data-dim="d"] [data-v]:not([hidden])')].map(b => b.dataset.v), v = [...g.querySelectorAll(".ikrow > [data-ch]")].filter(x => x.checkVisibility());
-          return {n: g.dataset.n, on, ch: v.map(x => x.dataset.ch), pairs: g.dataset.pairs.split(" "), note: [...g.querySelectorAll(".ikrow > .itile:not([hidden]) .iplain")].map(x => x.textContent).join(" ")}; }, id);
-        check(`${id} の単価を ${n} にすると、割る数はその量で数字のあるものだけで、見える数字は 1 つ`, r.on.every(d => r.pairs.includes(`${n}:${d}`)) && r.ch.length === 1 && r.ch[0].startsWith(n + ":"), JSON.stringify(r));
+        const r = await p.evaluate(id => { const g = document.querySelector(`#review .ik-${id}`), on = [...g.querySelectorAll('.iksw[data-dim="d"] [data-v]:not([aria-disabled="true"])')].map(b => b.dataset.v), off = [...g.querySelectorAll('.iksw [data-v][aria-disabled="true"]')].map(b => ({v: b.dataset.v, t: b.title, sr: (b.querySelector(".iswhy") || {}).textContent || "", hid: b.hidden})), v = [...g.querySelectorAll(".ikrow > [data-ch]")].filter(x => x.checkVisibility());
+          return {n: g.dataset.n, on, off, ch: v.map(x => x.dataset.ch), pairs: g.dataset.pairs.split(" "), note: [...g.querySelectorAll(".ikrow > .itile:not([hidden]) .iplain")].map(x => x.textContent).join(" ")}; }, id);
+        check(`${id} の単価を ${n} にすると、押せる割る数はその量で数字のあるものだけで、見える数字は 1 つ`, r.on.every(d => r.pairs.includes(`${n}:${d}`)) && r.ch.length === 1 && r.ch[0].startsWith(n + ":"), JSON.stringify(r));
+        check(`${id} の単価を ${n} にしたとき、押せない選択肢は隠さず、理由を title と読み上げの文字に持つ`, r.off.every(x => !x.hid && x.t.length > 10 && x.sr.includes(x.t)), JSON.stringify(r.off));
+        if (id === "unit" && n === "credits") check("クレジットでもコミットで割れる（期間の合計 ÷ Git のコミット。名前でそう言う）", r.on.includes("commit") && r.pairs.includes("credits:commit"), JSON.stringify(r));
         if (r.ch[0] === `${n}:pr`) check(`${n} ÷ PR の注は「費用」と決めつけない`, !/^Cost can/.test(r.note), r.note); }
       if (u) await p.locator(`#review .ik-${id} .iksw[data-dim="n"] [data-v="${u.ns[0]}"]`).click(); await pause();
     }
@@ -675,11 +677,27 @@ async function run(env) {
       const all0 = await unitKeys();
       if (ags.length){ await p.click(`#review [data-ag="${ags[0]}"]`); await pause();
         const r = await p.evaluate(() => { const g = document.querySelector("#review .ik-unit"), o = document.querySelector("#review .ik-out");
-          return {unit: g ? [...g.querySelectorAll("[data-ch]")].map(x => x.dataset.ch) : [], note: g ? [...g.querySelectorAll(".ikrow > .itile:not([hidden]) .fxn")].map(x => x.textContent).join(" ") : "", head: g ? (g.querySelector(".ikhd") || {}).textContent || "" : "", push: o ? (o.querySelector('[data-ch="push"]') || {}).textContent || "" : "", hasPush: (META.push || []).length > 0}; });
+          return {unit: g ? [...g.querySelectorAll("[data-ch]")].map(x => x.dataset.ch) : [], note: g ? [...g.querySelectorAll(".ikrow > .itile:not([hidden]) .fxn")].map(x => x.textContent).join(" ") : "", head: g ? (() => { const h = g.querySelector(".ikhd").cloneNode(true); h.querySelectorAll(".iksw").forEach(x => x.remove()); return h.textContent; })() : "", pushB: g ? (() => { const b = g.querySelector('.iksw[data-dim="d"] [data-v="push"]'); return {off: b.getAttribute("aria-disabled") === "true", t: b.title}; })() : null, push: o ? (o.querySelector('[data-ch="push"]') || {}).textContent || "" : "", hasPush: (META.push || []).length > 0}; });
         check("1 つのエージェントに絞ると、単価に push あたりを出さない", !r.unit.some(k => k.endsWith(":push")), JSON.stringify(r.unit));
+        check("1 つのエージェントに絞ると、割る数の Pushes は隠さず押せない形にし、理由を添える", !!r.pushB && r.pushB.off && /All agents only/.test(r.pushB.t), JSON.stringify(r.pushB));
+        { // PR を記録しないエージェント（Kiro・Codex）に絞ると、PRs は押せない形で理由つき。押しても選ばず、理由を 1 行で出す
+          const np = ags.find(a => a !== "Claude Code");
+          if (np){ await p.click(`#review [data-ag="${np}"]`); await pause();
+            const q = await p.evaluate(() => { const g = document.querySelector("#review .ik-unit"), o = document.querySelector("#review .ik-out"), b = g && g.querySelector('.iksw[data-dim="d"] [data-v="pr"]'), ob = o && o.querySelector('.iksw [data-v="pr"]');
+              return {u: b ? {off: b.getAttribute("aria-disabled"), t: b.title, sr: b.textContent} : null, o: ob ? {off: ob.getAttribute("aria-disabled"), t: ob.title} : null, d: g && g.dataset.d}; });
+            check(`${np} に絞ると、単価と出力の PRs は押せない形で、PR を記録しないと理由を添える`, !!q.u && q.u.off === "true" && /doesn't record pull requests, so there is nothing to divide by/.test(q.u.t) && q.u.sr.includes(q.u.t) && !!q.o && q.o.off === "true" && /doesn't record pull requests/.test(q.o.t), JSON.stringify(q));
+            const pb = p.locator('#review .ik-unit .iksw[data-dim="d"] [data-v="pr"]'); await pb.click({force: true}); await pause(); // Playwright は aria-disabled のボタンを押せないものとみなすので、force で押す（人は押せる）
+            const a = await p.evaluate(() => { const g = document.querySelector("#review .ik-unit"); return {d: g.dataset.d, pressed: g.querySelector('.iksw[data-dim="d"] [aria-pressed="true"]').dataset.v, note: g.querySelector(".iknote").textContent, vis: [...g.querySelectorAll(".ikrow > [data-ch]")].filter(x => x.checkVisibility()).map(x => x.dataset.ch)}; });
+            check("押せない PRs を押すと、選択は変えず、理由をパネルに 1 行で出す", a.d === q.d && a.pressed === q.d && a.note === q.u.t && a.vis.length === 1 && !a.vis[0].endsWith(":pr"), JSON.stringify(a));
+            const en = p.locator('#review .ik-unit .iksw[data-dim="d"] [data-v]:not([aria-disabled="true"])').first(); await en.click(); await pause();
+            check("押せる選択肢を押すと、理由の 1 行は消える", await p.locator("#review .ik-unit .iknote").textContent() === "");
+          }
+        }
         check("1 つのエージェントに絞ると、push がエージェントで分けられないことを出力単価の式（ƒx）の中で 1 行で言う（パネルの頭には置かない）", !r.hasPush || (/push/i.test(r.note) && /every agent/.test(r.push) && !/All agents only|「すべて」のときだけ/.test(r.head)), `${r.note} / ${r.head} / ${r.push.slice(0, 120)}`);
         await p.click('#review [data-ag=""]'); await pause();
         check("すべてに戻すと、単価の組が元に戻る", await unitKeys() === all0, all0);
+        const gn = await p.evaluate(() => { const x = document.querySelector('#review .ik-unit [data-ch="credits:commit"] .il'); return x ? x.textContent : null; });
+        if (gn != null) check("クレジット ÷ コミットは、Git のコミットで割ると名前で言う", /per Git commit|Git コミットあたり/.test(gn), gn);
       }
     }
     { // サンキーの名前と量は、色の帯に重ねない。狭い画面（600px 以下）では、図の文字の代わりに下の一覧

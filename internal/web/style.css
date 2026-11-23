@@ -1258,6 +1258,8 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 @container (max-width:520px){.inscol>.insfig.iwdn{flex-direction:column;align-items:stretch}}
 /* 切り替えで、今の量では数字のない割る数のボタンは隠す。単価のカードも、選んでいない組の数字は隠す */
 .iksw [data-v][hidden]{display:none}
+.iksw [aria-disabled="true"],.iksw [aria-disabled="true"]:hover{color:var(--ink-3);cursor:not-allowed} /* 今の期間・量では数字のない選択肢：隠さずに薄く（理由は title と読み上げの文字。押すと .iknote に 1 行） */
+.iknote{margin:0;font-size:var(--fs-sm);font-weight:400;color:var(--ink-2)}.iknote:not(:empty){margin-top:6px}
 /* カードは自分の高さのまま（石積みの隣のカードの高さに伸ばさない） */
 .insrow>*{align-self:start}
 /* 指標の 1 行（rowH）：名前と「?」「ƒx」・値の 1 段目、いつもの範囲の印と前の期間との比べの 2 段目。式と注は「ƒx」で 3 段目に */

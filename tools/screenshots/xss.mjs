@@ -24,7 +24,7 @@ await p.addInitScript(() => { window.__keyOf = el => { const chs = []; for (let 
   return [el.tagName, el.getAttribute("class") || "", el.getAttribute("aria-label") || "", ...[...el.attributes].filter(a => a.name.startsWith("data-")).map(a => `${a.name}=${a.value}`),
     (el.textContent || "").trim().slice(0, 80), ...chs, (el.closest(".ikg, .iusw, .inscol") || {}).className || "",
     (document.querySelector("#review [data-ag][aria-pressed=true]") || {dataset: {}}).dataset.ag || ""].join("|"); }; });
-let failed = 0;
+let failed = 0, disabledN = 0; // disabledN: 押せない（理由つきの）切り替えの選択肢の数
 await p.goto("file://" + path.resolve(html));
 await p.waitForTimeout(300);
 // 保存した HTML には、AI を動かす操作がない（kiroku は AI を動かさない）。あるのはプロンプトのコピーだけ
@@ -134,19 +134,24 @@ const summaryCheck = async label => {
     }
     for (const v of await p.evaluate(() => [...document.querySelectorAll("#review .insight [style]")].map(e => e.getAttribute("style")).filter(v => !/^(--a:[\d.]+|--rs: [\d]+;|(fill|background):var\(--[\w-]+\)|(width:[\d.]+%|flex:[\d.]+);background:var\(--[\w-]+\))$/.test(v)))) badStyles.add(v);
   };
+  // 押せない選択肢（aria-disabled）は数えておき、理由（title と読み上げの文字）があることを確かめる。押せないものを黙って飛ばさない
+  const off = async (b, step) => { const r = await b.evaluate(e => e.getAttribute("aria-disabled") === "true" ? {t: e.title, sr: (e.querySelector(".iswhy") || {}).textContent || ""} : null); if (!r) return false;
+    disabledN++; if (!r.t || !r.sr.includes(r.t)) { failed++; console.log(`  FAIL summary ${label} switch ${step}: disabled without a reason`); } return true; };
   // パネルとカードの切り替え（描き直さずに選んだものだけを見せる）。量を選ぶたびに、その量で選べる割る数をどれも選ぶ
   const panels = async state => {
     for (const g of await p.evaluate(() => [...document.querySelectorAll('#review .iksw[data-dim="n"]')].map(x => x.dataset.sw))) {
       for (const v of await p.evaluate(g => [...document.querySelectorAll(`#review .iksw[data-sw="${g}"] [data-v]`)].map(x => x.dataset.v), g)) {
         const b = p.locator(`#review .iksw[data-sw="${g}"] [data-v="${v}"]`);
         if (!(await reach(b))) { failed++; console.log(`  FAIL summary ${label} switch ${g}=${v}: exists but is not visible`); continue; }
+        if (await off(b, `${g}=${v}`)) continue; // 押せない選択肢は、理由があることだけを確かめる（押しても何も描かない）
         await b.click(); await p.waitForTimeout(80); await check(`summary ${label} switch ${g}=${v}`);
         const dg = p.locator(`#review .iksw[data-sw="${g}"]`).locator('xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " ikg ") or contains(concat(" ", normalize-space(@class), " "), " iusw ")][1]').locator('.iksw[data-dim="d"]');
-        const ds = (await dg.count()) ? await dg.locator("[data-v]:not([hidden])").evaluateAll(xs => xs.map(x => x.dataset.v)) : [];
+        const ds = (await dg.count()) ? await dg.locator("[data-v]").evaluateAll(xs => xs.map(x => x.dataset.v)) : [];
         if (!ds.length) { await sweep(`${state}, ${g}=${v}`); continue; }
         for (const d of ds) {
           const db = dg.locator(`[data-v="${d}"]`);
           if (!(await reach(db))) { failed++; console.log(`  FAIL summary ${label} switch ${g}=${v} ÷ ${d}: exists but is not visible`); continue; }
+          if (await off(db, `${g}=${v} ÷ ${d}`)) continue;
           await db.click(); await p.waitForTimeout(80); await check(`summary ${label} switch ${g}=${v} ÷ ${d}`);
           await sweep(`${state}, ${g}=${v} ÷ ${d}`);
         }
@@ -177,7 +182,7 @@ const summaryCheck = async label => {
   for (const [name] of SUM_TARGETS) if (!count[name]) console.log(`  none summary ${label} ${name} (no such element in this file)`);
   for (const [key, where] of hidden) if (!seen.has(key)) { failed++; console.log(`  FAIL summary ${label} ${where}: exists but was never visible in any switch state, so it was not checked: ${key.slice(0, 160)}`); }
   if (badStyles.size) { failed++; console.log(`  FAIL summary ${label} style values: ${JSON.stringify([...badStyles].slice(0, 5))}`); } else console.log(`  ok   summary ${label} style values`);
-  console.log(`  ---- summary ${label}: checked ${seen.size} targets (${Object.entries(count).map(([k, n]) => `${k} ${n}`).join(", ")})`);
+  console.log(`  ---- summary ${label}: checked ${seen.size} targets, ${disabledN} disabled choices with a reason (${Object.entries(count).map(([k, n]) => `${k} ${n}`).join(", ")})`);
   await p.click("#view button[data-v=cal]"); await p.waitForTimeout(150);
 };
 await summaryCheck("week");
