@@ -186,12 +186,17 @@ func TestNoAIExecution(t *testing.T) {
 	}
 }
 
-// 画面はいつもダーク。読み込み中の画面も同じ（暗い地の色を持ち、html にダークの印がある）
+// 画面はいつもダーク。読み込み中の画面も同じ（ダークの配色と暗い地の色だけを持ち、ライトの配色は持たない）
 func TestLoadingIsDark(t *testing.T) {
 	s := string(LoadingFor(""))
-	for _, want := range []string{`data-theme="dark"`, `:root[data-theme="dark"]{color-scheme:dark;`} {
+	for _, want := range []string{`<meta name="color-scheme" content="dark">`, `:root{color-scheme:dark;--bg:#141218;`} {
 		if !strings.Contains(s, want) {
 			t.Errorf("loading page lacks %q", want)
+		}
+	}
+	for _, bad := range []string{"color-scheme:light", "light dark", "data-theme", "prefers-color-scheme"} {
+		if strings.Contains(s, bad) {
+			t.Errorf("loading page still has %q", bad)
 		}
 	}
 }

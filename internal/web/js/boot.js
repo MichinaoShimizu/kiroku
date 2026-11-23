@@ -22,4 +22,4 @@ applyStaticText();
 const mq = matchMedia("(max-width:1000px)"),
  ph = () => $("#q").placeholder = t(mq.matches ? "Search" : "Prompts, files, commits"); // 狭い画面では入力欄も狭いので短く
 ph();
-// テーマはいつもダーク（html の data-theme。読み込み中の画面も同じ）
+// テーマはいつもダーク（style.css の :root。読み込み中の画面も同じ）

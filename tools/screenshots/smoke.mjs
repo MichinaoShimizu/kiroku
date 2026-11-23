@@ -39,7 +39,7 @@ const loaded = p => p.waitForFunction(() => document.querySelector("#rd") && doc
 
 // openContext は、画面の幅 env・言語 locale のブラウザを開く。スクリプトのエラーは errors に、CSP に止められたものは csp にためる
 async function openContext(env, locale, csp) {
-  const ctx = await b.newContext({ ...env, locale, timezoneId: "Asia/Tokyo", acceptDownloads: true, colorScheme: "dark" }); // テーマは OS に合わせるので、ダークの OS で確かめる（「テーマ」の手順でライトも見る）
+  const ctx = await b.newContext({ ...env, locale, timezoneId: "Asia/Tokyo", acceptDownloads: true, colorScheme: "dark" }); // 画面はいつもダーク（「テーマ」の手順で、OS がライトでも変わらないことを見る）
   ctx.setDefaultTimeout(5000);
   if (fakeNow) await ctx.clock.install({ time: fakeNow }); // 時計はこの時刻から普通に進む（タイマーも動く）
   // CSP の違反はページの中で拾って知らせる（関数を渡す仕組みは CSP の外なので止められない）
@@ -162,7 +162,7 @@ async function run(env) {
   await step("テーマ", async () => {
     check("言語とテーマの切り替えボタンはない", await p.locator("#lang").count() === 0 && await p.locator("#theme").count() === 0);
     await p.emulateMedia({ colorScheme: "light" }); await pause();
-    check("OS がライトでも、画面はいつもダーク", await p.evaluate(() => document.documentElement.dataset.theme === "dark" && getComputedStyle(document.documentElement).colorScheme === "dark"));
+    check("OS がライトでも、画面はいつもダーク", await p.evaluate(() => getComputedStyle(document.documentElement).colorScheme === "dark" && getComputedStyle(document.body).backgroundColor === "rgb(20, 18, 24)"));
     await p.emulateMedia({ colorScheme: "dark" }); await pause();
   });
 

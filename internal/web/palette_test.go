@@ -8,9 +8,9 @@ import (
 	"testing"
 )
 
-// カテゴリーの 8 色（--c0〜--c7）は、明るい地と暗い地のそれぞれで、決めた基準を満たす組み合わせだけを使う。
+// カテゴリーの 8 色（--c0〜--c7）は、画面の暗い地（いつもダーク）で、決めた基準を満たす組み合わせだけを使う。
 // プロジェクトは多い順にこの順で色を取るので、隣どうし（積み上げの帯・凡例で並ぶ色）が見分けられることを確かめる:
-//   - 明るさ（OKLCH の L）がそろっている（明るい地 0.43〜0.77、暗い地 0.48〜0.67）
+//   - 明るさ（OKLCH の L）がそろっている（0.48〜0.67）
 //   - 鮮やかさ（C）が 0.10 以上（灰色に見えない）で、8 色の差が 0.02 以内（どれかだけが強く見えない）
 //   - 隣どうしの OKLab の差（×100）が、ふつうの見え方で 15 以上、1 型・2 型の色覚（Machado 2009）で 6 以上
 //
@@ -21,8 +21,7 @@ func TestCategoricalPalette(t *testing.T) {
 		name, sel string
 		lo, hi    float64
 	}{
-		{"light", ":root{", 0.43, 0.77},
-		{"dark", `:root[data-theme="dark"]{`, 0.48, 0.67},
+		{"dark", ":root{", 0.48, 0.67},
 	} {
 		i := strings.Index(css, m.sel)
 		if i < 0 {
@@ -60,6 +59,26 @@ func TestCategoricalPalette(t *testing.T) {
 				if d := deltaE(a, b, mx); d < 6 {
 					t.Errorf("%s: --c%d %s と --c%d %s の %s での差 %.1f が 6 未満", m.name, k, a, k+1, b, name, d)
 				}
+			}
+		}
+	}
+}
+
+// 画面はいつもダーク。配色は :root の 1 組だけで、ライトの配色や OS の設定に合わせる切り替えは残さない
+func TestViewIsDarkOnly(t *testing.T) {
+	if n := strings.Count(style, ":root{"); n != 1 {
+		t.Errorf("style.css has %d :root{ blocks, want 1", n)
+	}
+	if !strings.Contains(style, ":root{\n  color-scheme:dark;") {
+		t.Error("style.css :root does not start with color-scheme:dark")
+	}
+	if !strings.Contains(skeleton, `<meta name="color-scheme" content="dark">`) {
+		t.Error(`template.html lacks <meta name="color-scheme" content="dark">`)
+	}
+	for name, s := range map[string]string{"style.css": style, "template.html": skeleton} {
+		for _, bad := range []string{"color-scheme:light", "light dark", "data-theme", "prefers-color-scheme"} {
+			if strings.Contains(s, bad) {
+				t.Errorf("%s still has %q", name, bad)
 			}
 		}
 	}

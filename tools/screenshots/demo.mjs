@@ -9,12 +9,12 @@ import path from "node:path";
 const [html, out] = process.argv.slice(2);
 const W = 1280, H = 800;
 const b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
-const ctx = await b.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1, timezoneId: "Asia/Tokyo", locale: "en-US", colorScheme: "light", recordVideo: { dir: out, size: { width: W, height: H } } });
+const ctx = await b.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1, timezoneId: "Asia/Tokyo", locale: "en-US", colorScheme: "dark", recordVideo: { dir: out, size: { width: W, height: H } } });
 // KIROKU_FAKE_NOW があれば、ブラウザの時計もその時刻から進める（gen.py・mkgit.py と同じ「今」。capture.mjs・smoke.mjs と同じ）
 const fakeNow = process.env.KIROKU_FAKE_NOW ? new Date(process.env.KIROKU_FAKE_NOW) : null;
 if (fakeNow && isNaN(fakeNow)) { console.error(`KIROKU_FAKE_NOW を日時として読めません: ${process.env.KIROKU_FAKE_NOW}`); process.exit(2); }
 if (fakeNow) await ctx.clock.install({ time: fakeNow });
-// README と guide の画像は、ライトテーマ・プロジェクトごとの色分けで撮る（画面の既定はダーク・エージェントごと。説明の文と合わせる）
+// README と guide の画像は、プロジェクトごとの色分けで撮る（画面の既定はエージェントごと。説明の文と合わせる）。画面はいつもダーク
 await ctx.addInitScript(() => { try { localStorage.setItem("kiroku:colorBy", '"project"'); } catch (e) {} });
 const p = await ctx.newPage();
 const tStart = Date.now(); // 録画の始まり（ほぼ）
