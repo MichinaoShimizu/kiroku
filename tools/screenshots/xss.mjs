@@ -92,18 +92,18 @@ const SUM_TARGETS = [ // [名前, 押すもの（#review の中）, 押し方]
   ["help", ".hb[data-help]", "click"],                // 「?」の説明
   ["advice", ".fmark, .iwlink", "click"],             // 見直す候補（Worth a look）のダイアログ
   ["breakdown", "[data-metric]", "click"],            // 内訳のダイアログ
-  ["point", "[data-sid]", "click"],                   // 散布図の点・ガントの行・いちばん変えたファイルのセッション
+  ["point", "[data-sid]", "click"],                   // いちばん変えたファイルのセッション
   ["tooltip", "[data-tip]", "hover"],                 // ツールチップ
 ];
 // 押すと描き直す切り替え（カードの指標・エージェントなど）
-const SUM_SWITCHES = ["ag", "ins", "skk", "bxk", "wfk", "wk", "scat", "cum", "where"];
+const SUM_SWITCHES = ["ag", "skk", "wfk", "wk", "where"];
 const summaryCheck = async label => {
   const sw = p.locator("#view button[data-v=sum]"); if (!(await sw.count())) { failed++; console.log(`  FAIL summary ${label}: no view switch`); return; }
   const seen = new Set(), hidden = new Map(), count = {}, badStyles = new Set();
   const onSummary = async () => {
     if ((await sw.getAttribute("aria-pressed")) !== "true") { await sw.click(); await p.waitForTimeout(200); }
     // たたんだ「内訳」と、その中の「その他のグラフ」を開く（外から順に。たたんだ箱の中の箱は見えないので押せない）
-    for (const sel of ["#review details.insbrk:not([open]) > summary", "#review details.insmore:not([open]) > summary"]) {
+    for (const sel of ["#review details.insbrk:not([open]) > summary"]) {
       const more = p.locator(sel);
       if (await more.count()) { await more.first().scrollIntoViewIfNeeded(); await more.first().click(); await p.waitForTimeout(100); }
     }
@@ -159,9 +159,7 @@ const summaryCheck = async label => {
   };
   // 描き直す切り替えを 1 つ選ぶ（選べなければ NG）
   const pick = async (attr, v) => {
-    const b = p.locator(`#review [data-${attr}="${v}"]`).first(), sl = p.locator("#review .insksel");
-    if (attr === "ins" && !(await b.isVisible()) && await reach(sl)) { // トレンドの切り替えが 1 行に収まらないときは、選択リストで選ぶ（fitTrend）
-      await sl.selectOption(v); await p.waitForTimeout(200); await onSummary(); await check(`summary ${label} switch ${attr}=${v} (list)`); return true; }
+    const b = p.locator(`#review [data-${attr}="${v}"]`).first();
     if (!(await reach(b))) { failed++; console.log(`  FAIL summary ${label} switch ${attr}=${v}: exists but is not visible`); return false; }
     await b.click(); await p.waitForTimeout(200); await onSummary(); await check(`summary ${label} switch ${attr}=${v}`); return true;
   };
