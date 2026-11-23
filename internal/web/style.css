@@ -884,14 +884,11 @@ header{background:var(--s-cont);border-bottom:0}
   .insh>.ik-uin{grid-column:1;grid-row:7/span 5;margin-top:16px}.insh>.ik-unit{grid-column:3;grid-row:7/span 5;margin-top:16px}
   .insh>.ikg>.ikrow{grid-row:span 3;display:grid;grid-template-rows:subgrid;grid-template-columns:minmax(0,1fr);row-gap:0}
   .insh>.ikg>.ikrow>.itile:not([hidden]){grid-row:span 3;grid-template-rows:subgrid;row-gap:0}
+  .insh .ikgh .ikbr{display:block;flex-basis:100%;height:0}.insh .ikgh .ikbr+.iksw{margin-left:0} /* 単価のパネルの切り替えは、量と割る数をそれぞれ 1 行に */
 }
 .ikg [data-ch][hidden]{display:none} /* 切り替えで選んでいない選択肢 */
+/* タイルは、いつもの範囲から外れても（.good・.bad・.far）地の色も余白も変えない。外れたことは値の琥珀の色と矢印・評価の文で示し、指標の名前は隣のパネルと同じ位置にそろえる */
 .ikrow>.itile{border-left:1px solid var(--rule)}.ikrow{margin-left:-1px;clip-path:inset(0 0 0 1px)} /* 数字の間に縦の区切り線。折り返した行の左端の線は、1px ずらして切り落とす */
-/* タイルの背景：いつもの範囲より良い側は緑、悪い側は赤（大きく外れたら濃く）。範囲の中と、向きの決まっていない指標は色なし */
-.itile.good,.itile.bad{border-radius:12px;padding-top:10px;padding-bottom:10px}
-.itile.good{background:color-mix(in oklab,var(--go) 10%,transparent)}.itile.good.far{background:color-mix(in oklab,var(--go) 20%,transparent)}
-.itile.bad{background:color-mix(in oklab,var(--warn) 10%,transparent)}.itile.bad.far{background:color-mix(in oklab,var(--warn) 20%,transparent)}
-.ikrow>.itile.good+.itile,.ikrow>.itile.bad+.itile,.ikrow>.itile.good,.ikrow>.itile.bad{border-left-color:transparent} /* 色の付いたタイルの横は、区切り線の代わりに色で分かれる */
 .ikg{border:1px solid var(--rule);border-radius:16px;background:var(--s-lowest);padding:14px 4px 16px}
 /* 分類の見出し（コスト・出力・単価）：本文より大きく太く、左に色の短い線 */
 .ikgh,.inssec{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--ink);letter-spacing:.02em}
@@ -1190,18 +1187,14 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .cell{container-type:inline-size}.cell .act .tshort{display:none}
 @container (max-width:64px){.cell .act .tlong{display:none}.cell .act .tshort{display:inline}}
 /* パネルの切り替え：見出しの横に。入らなければ次の行に */
-.ikgh{flex-wrap:wrap;row-gap:6px}.ikgh .iksw{display:inline-flex;margin-left:6px;font-size:var(--fs-sm);font-weight:500;letter-spacing:normal}
+.ikbr{display:none}.ikgh{flex-wrap:wrap;row-gap:6px}.ikgh .iksw{display:inline-flex;margin-left:6px;font-size:var(--fs-sm);font-weight:500;letter-spacing:normal}
 .srprj{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}.srprj .srp[aria-pressed="true"],.srprj .sra[aria-pressed="true"]{background:var(--acc-soft);border-color:var(--acc);color:var(--acc-ink)}
 @media (max-width:1200px){.head{position:relative}.head .dd .dayrun{position:absolute;right:6px;bottom:6px;top:auto;opacity:1;margin:0}.head:has(.dayrun) .cline{padding-right:30px}} /* 狭い画面では、コピーのボタンを見出しの右下（数字の行の右）に置き、見出しを低く保つ。どの列も同じ位置なので高さがそろう */ /* 狭い画面では、どの日の列でもコピーのボタンを日付の下に（列ごとに位置が変わって見出しの高さがずれないように） */
-/* 単価のパネルの良し悪しの地の色は、評価の文の色で足りるので付けない */
-.ik-unit .itile.good,.ik-unit .itile.bad,.ik-uin .itile.good,.ik-uin .itile.bad{background:none}
 .tspk .sofl{font-size:10px;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
 /* 出力のカードは中身が多いので 1 行を占め、散布図は次の行に（隣に並べると、散布図のカードが出力のカードの高さまで伸びて大きく空く） */
 .isccol .insfig{max-width:none}
 /* 狭いカード（スマホ）では、グラフが縮んで文字が 7px ほどになるので、座標の上で大きくし、期間の名前は 1 つおきに */
 @container (max-width:484px){.tspk text{font-size:16px}.tspk .sxl.alt{display:none}.tspk .sofl{font-size:15px}.tspk .slimn{font-size:13px}}
-/* 出力の枠でも、良し悪しの地の色は付けない（評価は点の色と文で。単価と同じ） */
-.ik-out .itile.good,.ik-out .itile.bad{background:none}
 /* 狭いカードでは、軸の見出し（「週」）を出さない（日付で分かる）。利用上限の数は小さく */
 @container (max-width:484px){.tspk .sxt{display:none}.tspk .slimn{font-size:11px}}
 /* 狭いカード（スマホ）の一覧：名前を 1 行目に全部、棒と数を 2 行目に（名前が「src/ne…」まで切れないように） */
@@ -1265,7 +1258,6 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 @container (max-width:520px){.inscol>.insfig.iwdn{flex-direction:column;align-items:stretch}}
 /* 切り替えで、今の量では数字のない割る数のボタンは隠す。単価のカードも、選んでいない組の数字は隠す */
 .iksw [data-v][hidden]{display:none}
-.iknote{margin:0 18px 8px}@media (max-width:700px){.iknote{margin:0 14px 8px}}
 /* カードは自分の高さのまま（石積みの隣のカードの高さに伸ばさない） */
 .insrow>*{align-self:start}
 /* 指標の 1 行（rowH）：名前と「?」「ƒx」・値の 1 段目、いつもの範囲の印と前の期間との比べの 2 段目。式と注は「ƒx」で 3 段目に */

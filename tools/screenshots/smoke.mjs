@@ -389,10 +389,14 @@ async function run(env) {
           return {p: [...g.classList].find(c => c.startsWith("ik-")), items: items.map(x => x.textContent), bad: items.filter(x => !x.dataset.lg || !svg || !svg.querySelector(x.dataset.lg)).map(x => x.textContent)}; }));
         check(`${when}：パネルの凡例の項目は、どれもそのパネルのグラフに描いた印の説明`, r.length === 4 && r.every(x => x.items.length > 0 && x.bad.length === 0), JSON.stringify(r)); return r; };
       await lgCheck("開いた期間");
-      if (env.viewport.width >= 900){ // 頭の段は subgrid で横の 2 枚と同じ高さ。片方の頭にだけ注の行があると、もう片方の頭の下が空く
-        const hg = await p.evaluate(() => { const slack = c => { const h = document.querySelector(`#review .insh .ik-${c} > .ikhd`), last = [...h.children].filter(x => x.checkVisibility()).pop();
-          return Math.round(h.getBoundingClientRect().bottom - last.getBoundingClientRect().bottom); }; return {uin: slack("uin"), unit: slack("unit"), cost: slack("cost"), out: slack("out")}; });
-        check("横に並んだパネルの頭は、どちらも中身の高さ（片方の頭の注のために、もう片方の頭の下が空かない）", Math.abs(hg.uin - hg.unit) <= 4 && Math.abs(hg.cost - hg.out) <= 4, JSON.stringify(hg)); }
+      if (env.viewport.width >= 900){ // 頭の段は subgrid で横の 2 枚と同じ高さ。片方の頭にだけ注の行があると、もう片方の頭の下が空く。1 つのエージェントに絞ったときも（push あたりの注を頭に置かない）
+        const heads = when => p.evaluate(() => { const slack = c => { const h = document.querySelector(`#review .insh .ik-${c} > .ikhd`); if (!h) return null; const last = [...h.children].filter(x => x.checkVisibility()).pop();
+          return Math.round(h.getBoundingClientRect().bottom - last.getBoundingClientRect().bottom); }; return {uin: slack("uin"), unit: slack("unit"), cost: slack("cost"), out: slack("out")}; })
+          .then(hg => check(`${when}：横に並んだパネルの頭は、どちらも中身の高さ（片方の頭の注のために、もう片方の頭の下が空かない）`, (hg.uin == null || hg.unit == null || Math.abs(hg.uin - hg.unit) <= 4) && (hg.cost == null || hg.out == null || Math.abs(hg.cost - hg.out) <= 4), JSON.stringify(hg)));
+        await heads("すべて");
+        const ags = await p.locator("#review [data-ag]").evaluateAll(xs => xs.map(x => x.dataset.ag).filter(Boolean));
+        for (const ag of ags){ await p.click(`#review [data-ag="${ag}"]`); await pause(); await heads(`エージェント ${ag}`); }
+        if (ags.length){ await p.click('#review [data-ag=""]'); await pause(); } }
       { // 途中の期間：期間の終わりの推定は、今までの値と同じ行に並ぶ（狭い画面では折り返してよいが、パネルの外に出ない）
         await p.evaluate(() => document.activeElement && document.activeElement.blur()); const lab0 = await p.locator("#rd").innerText(); await p.keyboard.press("t"); await pause();
         const r = await p.evaluate(() => [...document.querySelectorAll("#review .insh .ikrow > .itile")].filter(x => x.checkVisibility() && x.querySelector(".ivbig")).map(x => { const v = x.querySelector(".ivnow > .itv, .ivnow > b").getBoundingClientRect(), e = x.querySelector(".ivbig b").getBoundingClientRect(), t = x.getBoundingClientRect();
@@ -610,11 +614,19 @@ async function run(env) {
           if (has) n++; if (want !== has || want !== m.classList.contains("odd") || want !== !!mk || (mk && !arrow(mk, v)) || words) bad.push(`${e.querySelector(".mk").textContent}:${want}/${has}/${!!mk}/${words}`); });
         if ([...document.querySelectorAll("#review .iodd")].some(e => e.innerText.replace((e.querySelector(".sr") || {}).innerText || "", "").trim().length > 1)) bad.push("words next to an arrow");
         document.querySelectorAll("#review .ik-unit .odd, #review .ik-unit .iodd, #review .ik-uin .odd, #review .ik-uin .iodd").forEach(e => bad.push("unit cost marked: " + e.textContent));
-        return {n, bad}; });
+        // 大きく外れたタイル（.far・.odd）も、ふつうのタイルと同じ余白と箱：指標の名前は、横に並んだパネルの名前と同じ高さ、パネルの左端から同じ位置
+        const vt = c => [...document.querySelectorAll(`#review .insh .ik-${c} .ikrow > .itile`)].find(x => x.checkVisibility()), farT = [], mis = [];
+        const nm = c => { const x = vt(c), g = document.querySelector(`#review .insh .ik-${c}`); if (!x) return null; const r = x.querySelector(".il").getBoundingClientRect(), cs = getComputedStyle(x);
+          if (x.matches(".far") || x.querySelector(".ivrow .odd")) farT.push(c); return {top: r.top, left: r.left - g.getBoundingClientRect().left, pad: cs.padding, bg: cs.backgroundColor}; };
+        const T = Object.fromEntries(["cost", "out", "uin", "unit"].map(c => [c, nm(c)])), ref = Object.values(T).find(Boolean);
+        for (const [a, b] of [["cost", "out"], ["uin", "unit"]]) if (T[a] && T[b] && innerWidth >= 900 && Math.abs(T[a].top - T[b].top) > 1) mis.push(`${a}/${b} top ${Math.round(T[a].top)}/${Math.round(T[b].top)}`);
+        for (const [c, x] of Object.entries(T)) if (x && (Math.abs(x.left - ref.left) > 1 || x.pad !== ref.pad || x.bg !== ref.bg)) mis.push(`${c} ${JSON.stringify(x)} vs ${JSON.stringify(ref)}`);
+        return {n, bad, far: farT, mis}; });
       await p.evaluate(() => document.activeElement && document.activeElement.blur());
-      let seen = 0, back = 0; const bads = [];
-      for (; back < 8; back++){ const r = await odd(); seen += r.n; bads.push(...r.bad); if (seen && back) break; await p.keyboard.press("ArrowLeft"); await pause(); }
+      let seen = 0, back = 0, farSeen = 0; const bads = [], mis = [];
+      for (; back < 8; back++){ const r = await odd(); seen += r.n; bads.push(...r.bad); farSeen += r.far.length; mis.push(...r.mis.map(m => `-${back}: ${m}`)); if (seen && back && farSeen) break; await p.keyboard.press("ArrowLeft"); await pause(); }
       check("大きく外れた量だけに中立の色と値の横の矢印（言葉は読み上げと title だけ）が付き、いつもの範囲の数字と単価には付かない", seen > 0 && bads.length === 0, JSON.stringify({seen, back, bads}));
+      check("大きく外れた値のタイルも、ふつうのタイルと同じ余白と箱（地の色なし）で、指標の名前は横のパネルの名前とそろう", farSeen > 0 && mis.length === 0, JSON.stringify({farSeen, back, mis}));
       for (let i = 0; i < back; i++){ await p.keyboard.press("ArrowRight"); await pause(); }
     }
     { // アウトプットは数の枠ではなく、Git と AI の編集の 2 つの列の 1 行ずつの一覧（名前・値・いつもの範囲の印・「ƒx」「?」）。長い説明は「ƒx」で開くまで隠す
@@ -663,9 +675,9 @@ async function run(env) {
       const all0 = await unitKeys();
       if (ags.length){ await p.click(`#review [data-ag="${ags[0]}"]`); await pause();
         const r = await p.evaluate(() => { const g = document.querySelector("#review .ik-unit"), o = document.querySelector("#review .ik-out");
-          return {unit: g ? [...g.querySelectorAll("[data-ch]")].map(x => x.dataset.ch) : [], note: g ? (g.querySelector(".iknote") || {}).textContent || "" : "", push: o ? (o.querySelector('[data-ch="push"]') || {}).textContent || "" : "", hasPush: (META.push || []).length > 0}; });
+          return {unit: g ? [...g.querySelectorAll("[data-ch]")].map(x => x.dataset.ch) : [], note: g ? [...g.querySelectorAll(".ikrow > .itile:not([hidden]) .fxn")].map(x => x.textContent).join(" ") : "", head: g ? (g.querySelector(".ikhd") || {}).textContent || "" : "", push: o ? (o.querySelector('[data-ch="push"]') || {}).textContent || "" : "", hasPush: (META.push || []).length > 0}; });
         check("1 つのエージェントに絞ると、単価に push あたりを出さない", !r.unit.some(k => k.endsWith(":push")), JSON.stringify(r.unit));
-        check("1 つのエージェントに絞ると、push がエージェントで分けられないことを 1 行で言う", !r.hasPush || (/push/i.test(r.note) && /every agent/.test(r.push)), `${r.note} / ${r.push.slice(0, 120)}`);
+        check("1 つのエージェントに絞ると、push がエージェントで分けられないことを出力単価の式（ƒx）の中で 1 行で言う（パネルの頭には置かない）", !r.hasPush || (/push/i.test(r.note) && /every agent/.test(r.push) && !/All agents only|「すべて」のときだけ/.test(r.head)), `${r.note} / ${r.head} / ${r.push.slice(0, 120)}`);
         await p.click('#review [data-ag=""]'); await pause();
         check("すべてに戻すと、単価の組が元に戻る", await unitKeys() === all0, all0);
       }

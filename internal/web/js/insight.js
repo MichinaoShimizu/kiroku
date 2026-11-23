@@ -199,7 +199,8 @@ const INS_SIDE = {cost: "in", uin: "in", out: "out", unit: "out"}; // 投入の�
 const INS_IN = () => JA ? "投入" : "Input";
 // insSwH は、パネルとカードの切り替え（選んだ選択肢だけを見せる。押したときの動きは bindInsight）。dim は選択を入れる data-*（量は n、割る数は d）。
 // ok が偽の選択肢は、今の量では数字がないので隠す（量を切り替えたときに bindInsight が見せ直す）
-const insSwH = (sw, label, opts, cur, dim = "n", ok = () => true) => opts.length > 1 ? `<div class="segc iksw" role="group" aria-label="${esc(label)}" data-sw="${sw}" data-dim="${dim}">${opts.map(([k, l]) => `<button type="button" data-v="${k}" aria-pressed="${k === cur}"${ok(k) ? "" : " hidden"}>${esc(l)}</button>`).join("")}</div>` : "";
+// 選択肢が 1 つでも出す（何を数えているか・何で割っているかがわかり、横に並んだパネルの頭の高さがそろう）
+const insSwH = (sw, label, opts, cur, dim = "n", ok = () => true) => opts.length ? `<div class="segc iksw" role="group" aria-label="${esc(label)}" data-sw="${sw}" data-dim="${dim}">${opts.map(([k, l]) => `<button type="button" data-v="${k}" aria-pressed="${k === cur}"${ok(k) ? "" : " hidden"}>${esc(l)}</button>`).join("")}</div>` : "";
 // insPickD は、量 n で数字のある割る数のうち、覚えている want（なければ最初）
 const insPickD = (pairs, n, ds, want) => { const ok = ds.filter(d => pairs.has(`${n}:${d}`)); return ok.includes(want) ? want : ok[0] || ds[0]; };
 // insCmp は、前の期間との比べ（上の帯の増減と同じ）。パネルのタイルと、内訳のカードの行で同じ比べ方にする
@@ -227,8 +228,10 @@ function insHeadlines(F){
   const {S: w, P: pw, ws, we} = period(), u = (w && w.usage) || {}, M = st.mode === "month";
   const P = {cost: [], out: [], unit: [], uin: []}; // パネルごとの選択肢 {key, h}
   let HAB = null; // 作業のしかたの違い（単価の評価で使う。期間ごとに 1 度だけ数える）
+  // エージェントで絞っていて期間に push があるときは、出力単価の各タイルの式（ƒx）の中に「push あたりは「すべて」のときだけ」と書く。パネルの頭に置くと、横の投入単価の頭が 1 行ぶん空く（subgrid で行の高さをそろえるため）
+  const pushNote = insAg && pushesIn(ws, we) ? t("Per push is shown for All agents only: Git doesn't record which agent's work a push sent") : "";
   // 途中の期間で、期間の長さに比例する数字には、どれも期間の終わりの予測を添える（費用・クレジット・時間・トークン・コミット・push・PR）
-  const tile = (panel, key, label, b, v, f, m, help) => { f = [].concat(f || []).filter(Boolean); const ob = INS_RATE.has(panel) ? null : b; // 単価には評価の文の色（insVerdict）があるので、大きく外れた印（insOdd）は重ねない
+  const tile = (panel, key, label, b, v, f, m, help) => { f = [].concat(f || []).filter(Boolean); if (panel === "unit" && pushNote) f.push({fn: pushNote}); const ob = INS_RATE.has(panel) ? null : b; // 単価には評価の文の色（insVerdict）があるので、大きく外れた印（insOdd）は重ねない
     if (b && b.part && !f.some(x => x && x.pc)) f.push(pace(b.cur, b.v, MET[b.k] && MET[b.k].int ? (z => fmtM(b.k, Math.round(z))) : (b.fmt || (z => fmtM(b.k, z)))));
     if (INS_RATE.has(panel) && b && b.k && MET[b.k]) f.unshift({v: insVerdict(b, F, HAB || (HAB = insHabits()))});
     const obj = x => x && typeof x === "object", big = f.filter(x => obj(x) && x.big); /* 文字列には String.prototype.big があるので、オブジェクトだけを見る */
@@ -299,9 +302,10 @@ function insHeadlines(F){
   const two = (id, label, dOrder, note) => { if (!P[id].length) return "";
     const ns = ["cost", "credits", "tokens"].filter(k => P[id].some(x => x.key.startsWith(k + ":"))), ds = dOrder.filter(d => P[id].some(x => x.key.endsWith(":" + d)));
     const pairs = new Set(P[id].map(x => x.key)), n = pick(id + "N", ns), d = insPickD(pairs, n, ds, store.get(INS_SW[id + "D"], ""));
-    return card(id, label, swH(id + "N", t("Measure"), ns, n) + swH(id + "D", t("Divided by"), ds, d, "d", k => pairs.has(`${n}:${k}`)), ` data-n="${n}" data-d="${d}" data-pairs="${[...pairs].join(" ")}"`, `${n}:${d}`, P[id], note); };
-  const unit = two("unit", t("Unit cost per output"), ["commit", "push", "pr", "edit"], insAg && nps ? `<p class="note iknote">${esc(t("Per push is shown for All agents only: Git doesn't record which agent's work a push sent"))}</p>` : "");
-  // 「割る量を記録したセッションだけで割る」の注は、各タイルの式（ƒx）の中に。頭に置くと、横の出力単価の頭が 1 行ぶん空く（subgrid で行の高さをそろえるため）
+    const br = `<span class="ikbr" aria-hidden="true"></span>`; // 広い画面の 2×2 では、量と割る数をそれぞれ 1 行に（選択肢の数で折り返す位置が変わり、横のパネルと頭の高さがずれないように）
+    return card(id, label, br + swH(id + "N", t("Measure"), ns, n) + br + swH(id + "D", t("Divided by"), ds, d, "d", k => pairs.has(`${n}:${k}`)), ` data-n="${n}" data-d="${d}" data-pairs="${[...pairs].join(" ")}"`, `${n}:${d}`, P[id], note); };
+  const unit = two("unit", t("Unit cost per output"), ["commit", "push", "pr", "edit"]);
+  // 「割る量を記録したセッションだけで割る」の注は、各タイルの式（ƒx）の中に。頭に置くと、横の出力単価の頭が 1 行ぶん空く（subgrid で行の高さをそろえるため）。push あたりの注（pushNote）も同じ
   const uin = two("uin", t("Unit cost per input"), ["Hour", "Day", "Ses", "Ask"]);
   // 見直す候補：基準を超えた指標を、見出しのすぐ下に 1 行で（押すと、その候補のダイアログ）。どれも、その指標の横の印からも開ける
   const ids = [...new Set((F || []).map(f => GOTO[f.k] || f.k))]; // 説明（HELP）のない候補も落とさない（名前は insName が ID に戻す）
