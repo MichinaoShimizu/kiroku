@@ -428,7 +428,7 @@ function insightH(F){
   // 内訳は、たたんだ箱で始める（ページを短く。開いたかは見る人ごとに覚える）。見出しの横に、中にあるカードの名前と「その他のグラフ」の枚数を 1 行で
   const names = main.flatMap(x => x.ns), line = esc(names.join(LSEP()) + (more ? `${names.length ? " · " : ""}${t("{n} other charts", {n: more.hs.length})}` : ""));
   const body = main.length || more ? `<details class="insbrk"${store.get("insBrk", false) ? " open" : ""}><summary class="inssec"><span>${esc(t("Breakdown"))}</span> <small>${line}</small></summary><div class="insg">${main.map(x => `<div class="insrow${x.two ? " two" : ""}">${x.hs.join("")}</div>`).join("")}${moreH}</div></details>` : "";
-  return `<section class="insight" aria-labelledby="ins-h"><h3 id="ins-h" class="sr">${esc(t("Overview"))}</h3>${insHeadlines(F)}${(b => b ? `<div class="inscol iskw">${b}</div>` : "")(insSankey())}
+  return `<section class="insight" aria-labelledby="ins-h"><h3 id="ins-h" class="sr">${esc(t("Overview"))}</h3>${(b => b ? `<div class="inscol iskw">${b}</div>` : "")(insSankey())}${insHeadlines(F)}
     <div class="insg">${body}</div></section>`;
 }
 // fitTrend は、トレンドの指標の切り替えが 1 行に収まらないとき（指標が多い・カードが狭い・言語で幅が違う）、選択リストに替える。
@@ -695,7 +695,7 @@ function insSankey(){
   const shr = cols.map(c => { const ps = insPct(c.map(x => x[1])); return new Map(c.map(([key], j) => [key, ps[j]])); }); // 列ごとの割合（足して 100）
   // 名前と量は、帯に重ねない：エージェントは左の外、成果は右の外、プロジェクトは節の右に帯を通さない余白（LW）を空けて、そこに置く。
   // プロジェクトから成果への帯は、余白の右の細い節から出る。狭い画面（600px 以下）では図の文字を消し、同じ名前と量を図の下の一覧で見せる
-  // 投入と出力の間の、幅いっぱいのカード（サマリーで唯一の全幅）。見出しは投入・出力のパネルと同じ段（.ikgh）で、その下に一段小さく図の名前（サンキーダイアグラム）と量の切り替え。列の間を広くとり、名前も長めに出す
+  // サマリーの先頭の、幅いっぱいのカード（サマリーで唯一の全幅。期間の全体がどこへ流れたかを先に見せ、いつもとの比べは下のパネルで）。見出しは投入・出力のパネルと同じ段（.ikgh）で、その下に一段小さく図の名前（サンキーダイアグラム）と量の切り替え。列の間を広くとり、名前も長めに出す
   const tot = xs.reduce((a, x) => a + x.v, 0), H = 300, T = 14, B = 10, nw = 10, gap = 10, LW = 200, X = [170, 440, 440 + nw + LW, 860], W = X[3] + nw + 170;
   const pos = cols.map(c => { const g = (c.length - 1) * gap, sc = (H - T - B - g) / tot; let y = T; const m = new Map(); c.forEach(([key, v]) => { m.set(key, {y, h: Math.max(2, v * sc), o: 0, oi: 0}); y += v * sc + gap; }); return {m, sc}; });
   // 色：エージェントからの帯はエージェントの色、プロジェクトの節と、そこから出る帯はプロジェクトの色、成果はコミットの有無の色
