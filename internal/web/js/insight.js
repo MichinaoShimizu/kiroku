@@ -53,6 +53,11 @@ function insExpr(b){
   return b.far ? `${x} < ${LO()} − 1.5×${SP()} = ${fm(b.q1 - 1.5 * iqr)}` : `${x} < ${LO()} = ${fm(b.q1)}`;
 }
 const insPosText = b => `${insExpr(b)} (${insDef(b && b.n)})`; // 読み上げと title 用
+// insOdd は、良し悪しの決まらない数字（使った量・作業の量など。insTone が付かないもの）が、いつもの範囲から大きく外れたか。
+// 「かなり上・下」（insPlain）や推移の赤い点と同じ決まり（上位25%点 + 1.5×幅より上か、下位25%点 − 1.5×幅より下）。上でも下でも同じ中立の色で目を留め、色だけに頼らないよう札（insOddH）も添える
+const insOdd = b => !!(b && b.q1 != null && b.far && b.better == null);
+const insOddT = b => b.pos === "high" ? t("Far above usual") : t("Far below usual");
+const insOddH = b => insOdd(b) ? `<span class="iodd"><span aria-hidden="true">${b.pos === "high" ? "↑" : "↓"}</span>${esc(insOddT(b))}</span>` : "";
 const insTone = b => !b || b.q1 == null || b.better == null ? "" : (b.better ? " good" : " bad") + (b.far ? " far" : ""); // 良い側・悪い側に外れたか（大きく外れたら far）。タイルの背景の色に使う
 // insLoHi は、いつもの範囲の両端。単位は後ろに 1 度だけ（「14–35 credits」）、数えるものは整数で
 function insLoHi(fm, b){
@@ -217,12 +222,12 @@ function insHeadlines(F){
   const P = {cost: [], out: [], unit: []}; // パネルごとの選択肢 {key, h}
   let HAB = null; // 作業のしかたの違い（単価の評価で使う。期間ごとに 1 度だけ数える）
   // 途中の期間で、期間の長さに比例する数字には、どれも期間の終わりの予測を添える（費用・クレジット・時間・トークン・コミット・push・PR）
-  const tile = (panel, key, label, b, v, f, m, help) => { f = [].concat(f || []).filter(Boolean);
+  const tile = (panel, key, label, b, v, f, m, help) => { f = [].concat(f || []).filter(Boolean); const ob = panel === "unit" ? null : b; // 単価には評価の文の色（insVerdict）があるので、大きく外れた印（insOdd）は重ねない
     if (b && b.part && !f.some(x => x && x.pc)) f.push(pace(b.cur, b.v, MET[b.k] && MET[b.k].int ? (z => fmtM(b.k, Math.round(z))) : (b.fmt || (z => fmtM(b.k, z)))));
     if (panel === "unit" && b && b.k && MET[b.k]) f.unshift({v: insVerdict(b, F, HAB || (HAB = insHabits()))});
     const obj = x => x && typeof x === "object", big = f.filter(x => obj(x) && x.big); /* 文字列には String.prototype.big があるので、オブジェクトだけを見る */
     const hk = help || (b && b.k && H()[b.k] ? b.k : m && H()[m] ? m : "");
-    P[panel].push({key, h: `<div class="itile${insTone(b)}" data-ch="${key}"><span class="il">${esc(label)}${hb(hk)}</span>${big.length ? `<span class="ivk">${esc(t("So far"))}</span>` : ""}${m ? `<button type="button" class="itv" data-metric="${m}" aria-haspopup="dialog" aria-label="${esc(`${label} ${v}`)}">${esc(v)}</button>` : `<b>${esc(v)}</b>`}${big.map(x => `<span class="ivbig"><span class="ivk">${esc(x.big.l)}</span><b>${esc(x.big.v)}</b></span>`).join("")}${f.map(x => obj(x) ? (x.big ? fx(x.f) : x.v != null ? x.v : x.n != null ? pln(x.n) : fx(x.f, "", x.p, x.h)) : x === t("Kiro's own count, not an estimate") ? pln(x) : fx(x)).join("")}${insSpark(b, label, 480, panel !== "unit")}${b === false || f.some(x => obj(x) && x.v != null) ? "" : insChip(b)}</div>`}); }; // 値を押すと、上の帯と同じ内訳
+    P[panel].push({key, h: `<div class="itile${insTone(b)}" data-ch="${key}"><span class="il">${esc(label)}${hb(hk)}</span>${big.length ? `<span class="ivk">${esc(t("So far"))}</span>` : ""}${m ? `<button type="button" class="itv${insOdd(ob) ? " odd" : ""}" data-metric="${m}" aria-haspopup="dialog" aria-label="${esc(`${label} ${v}`)}">${esc(v)}</button>` : `<b${insOdd(ob) ? ' class="odd"' : ""}>${esc(v)}</b>`}${insOddH(ob)}${big.map(x => `<span class="ivbig"><span class="ivk">${esc(x.big.l)}</span><b>${esc(x.big.v)}</b></span>`).join("")}${f.map(x => obj(x) ? (x.big ? fx(x.f) : x.v != null ? x.v : x.n != null ? pln(x.n) : fx(x.f, "", x.p, x.h)) : x === t("Kiro's own count, not an estimate") ? pln(x) : fx(x)).join("")}${insSpark(b, label, 480, panel !== "unit")}${b === false || f.some(x => obj(x) && x.v != null) ? "" : insChip(b)}</div>`}); }; // 値を押すと、上の帯と同じ内訳
   const days = Math.round((we - ws) / 86400), el = Math.round(insFrac() * days), {V, vs, vsInt, vsk} = insCmp();
   const pace = (cur, v, f, fv = f) => ({f: `${t("pace")} = ${f(cur)} × ${days}${t("d")} ÷ ${el}${t("d")} = ${f(v)}`, big: {l: M ? t("Month-end estimate") : t("End-of-week estimate"), v: fv(v)}, pc: true}); // fv は大きな数字の形（今までの値と同じ形に） // 期間の終わりの推定は、今までの値と同じ大きさで並べる
   // 直近の期間（表示中と過去 INS_N）のどれかに 1 以上あるか（今の期間が 0 でも、推移は見られるように選択肢に残す）
@@ -667,14 +672,16 @@ function insGantt(){
   return `<div class="inshead"><h4>${esc(t("Busiest day"))}</h4></div>${say(sy)}<figure class="insfig igt"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("Busiest day"))}">${hrs}${rows}</svg><p class="ifxs">${fx(t("Each row is a session that worked that day; bars are its active stretches. Click a row to open the session"), "", t("Click a row to open the session"))}</p></figure>`;
 }
 /* 数の枠（statH）に、いつもの範囲との不等式を添える。k は MET の指標名（なければ添えない） */
-const insStat = (label, v, sub, help, metric, k) => statH(esc(label), v, [sub, k && MET[k] ? insChip(insBase(k)) : ""].filter(Boolean).join(" "), help, metric);
+// 大きく外れた量は、値を中立の色にして札を添える（insOdd）。verd は評価の文（insVerdict）の色が付く数字で、印を重ねない
+const insStat = (label, v, sub, help, metric, k, verd = false) => { const b = k && MET[k] ? insBase(k) : null, ob = verd ? null : b;
+  return statH(esc(label), insOdd(ob) ? `<span class="odd">${v}</span>` : v, [insOddH(ob), sub, insChip(b)].filter(Boolean).join(" "), help, metric); };
 /* insRow は、内訳のカードの 1 行（rowH）。short は値の横にいつも見せる短い添え書き（HTML）、fxs は「ƒx」で開く式（文字）と注（{n: 文字}）、
    k はいつもの範囲と比べる MET の指標（印を出し、範囲の不等式は「ƒx」に）、vs は前の期間との比べ（insCmp の {f, p}。ふだんは平易な形） */
-const insMark = b => !b || b.q1 == null ? "" : `<span class="imk${insTone(b)}${b.pos === "typical" ? "" : " off"}"><span aria-hidden="true">${esc(b.pos === "high" ? t("Above usual") : b.pos === "low" ? t("Below usual") : t("As usual"))}</span><span class="sr">${esc(insPlain(b))}</span></span>`;
+const insMark = b => !b || b.q1 == null ? "" : `<span class="imk${insTone(b)}${b.pos === "typical" ? "" : " off"}${insOdd(b) ? " odd" : ""}"><span aria-hidden="true">${insOdd(b) ? `${b.pos === "high" ? "↑" : "↓"} ${esc(insOddT(b))}` : esc(b.pos === "high" ? t("Above usual") : b.pos === "low" ? t("Below usual") : t("As usual"))}</span><span class="sr">${esc(insPlain(b))}</span></span>`;
 const insRow = (label, v, {short = "", fxs = [], k = "", help = "", metric = "", vs = ""} = {}) => { const b = k && MET[k] ? insBase(k) : null;
   const mark = [short ? `<span class="mrs">${short}</span>` : "", insMark(b), vs ? fx(vs.f, "", vs.p) : ""].filter(Boolean).join("");
   const more = fxs.filter(Boolean).map(x => typeof x === "string" ? fx(x) : `<span class="fxo fxn">${esc(x.n)}</span>`).join("") + (b && b.q1 != null ? `<code class="ifx fxo">${esc(insExpr(b))}</code>` : "");
-  return rowH(esc(label), v, mark, more, help, metric); };
+  return rowH(esc(label), insOdd(b) ? `<span class="odd">${v}</span>` : v, mark, more, help, metric); }; // 大きく外れた量は、値も中立の色に（印の札が色だけに頼らない目印）
 /* AI が変えたファイル：表示中の期間に始まったセッションで、編集のツールが変えたファイルの数・行（編集の前後を比べた目安）と、
    いちばん変えたファイル。git ではなく履歴のツール呼び出しから数えるので、コミットしなかった変更や、あとで戻した変更も入る。
    セッションごとに載るファイルは多く変えた 30 まで（それより多いセッションは、残りをファイルの数にだけ足す） */
@@ -821,7 +828,7 @@ function insUnits(F){
     const e = by === "Edit" ? editsBasis(ws, we, kind) : useBasis(ws, we, kind), fu = FU[kind], v = fmtM(k, b.cur);
     const den = by === "Edit" ? t("{n} AI-edited lines", {n: commas(e.lines)}) : by === "Hour" ? dur(e.min) : by === "Day" ? t("{n} active days", {n: e.days}) : by === "Ses" ? t("{n} sessions", {n: e.n}) : plural(e.prompts, "prompt");
     const f = by === "Edit" ? `${fu(e.used)} ÷ ${den} × 100 = ${v}` : `${fu(e.used)} ÷ ${den} = ${v}`, plain = by === "Edit" ? `${fu(e.used)} ÷ ${den} × 100` : by === "Hour" ? `${fu(e.used)} ÷ ${t("{d} of session time", {d: dur(e.min)})}` : `${fu(e.used)} ÷ ${den}`;
-    items.push({key: `${kind}:${by}`, h: `<div class="iu1" data-ch="${kind}:${by}">${insStat(insName(k), esc(kind === "credits" ? crR(b.cur) : v), fx(f, "", plain) + insVerdict(b, F, hab), k, k === "costPerAsk" ? "costPerAsk" : "", k)}</div>`}); } // プロンプトあたりの費用は、押すと内訳
+    items.push({key: `${kind}:${by}`, h: `<div class="iu1" data-ch="${kind}:${by}">${insStat(insName(k), esc(kind === "credits" ? crR(b.cur) : v), fx(f, "", plain) + insVerdict(b, F, hab), k, k === "costPerAsk" ? "costPerAsk" : "", k, true)}</div>`}); } // プロンプトあたりの費用は、押すと内訳
   if (!items.length) return "";
   const pairs = new Set(items.map(x => x.key)), ns = ["cost", "credits", "tokens"].filter(n => items.some(x => x.key.startsWith(n + ":"))), ds = DS.filter(([d]) => items.some(x => x.key.endsWith(":" + d)));
   const n = (want => ns.includes(want) ? want : ns[0])(store.get(INS_SW.ucN, "")), d = insPickD(pairs, n, ds.map(x => x[0]), store.get(INS_SW.ucD, ""));

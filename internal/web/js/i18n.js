@@ -878,6 +878,8 @@ const JA_TEXT = {
   "As usual": "いつも通り",
   "Below usual": "いつもより低い",
   "Above usual": "いつもより高い",
+  "Far above usual": "いつもよりかなり高い",
+  "Far below usual": "いつもよりかなり低い",
   "Different this week:": "今週いつもと違ったこと：",
   "Different this month:": "今月いつもと違ったこと：",
   "Lowest of the last {n} {unit}": "過去 {n} {unit}で最も低い",

@@ -184,6 +184,31 @@ func TestChatContrast(t *testing.T) {
 	}
 }
 
+// サマリーの数字の字と地（4.5:1 以上）。パネルとカードの地は --s-lowest、数の枠（.stat）の地は --surface-2。
+// いつもの範囲から大きく外れた量の色（--odd-ink）も、値と札の字なので同じ基準で確かめる
+func TestSummaryContrast(t *testing.T) {
+	i := strings.Index(style, ":root{")
+	block := style[i : i+strings.Index(style[i:], "\n}")]
+	v := func(name string) string {
+		m := regexp.MustCompile(`--` + name + `:(#[0-9a-fA-F]{6});`).FindStringSubmatch(block)
+		if m == nil {
+			t.Fatalf("--%s is not a #rrggbb color in :root", name)
+		}
+		return m[1]
+	}
+	for _, c := range []struct{ name, fg, bg string }{
+		{"panel and card value", v("ink"), v("s-lowest")},
+		{"secondary line in a card", v("ink-2"), v("s-lowest")},
+		{"value in a stat box", v("ink"), v("surface-2")},
+		{"unusual value and its mark in a panel or card", v("odd-ink"), v("s-lowest")},
+		{"unusual value and its mark in a stat box", v("odd-ink"), v("surface-2")},
+	} {
+		if r := contrast(c.fg, c.bg); r < 4.5 {
+			t.Errorf("%s: %s on %s is %.2f:1, want at least 4.5:1", c.name, c.fg, c.bg, r)
+		}
+	}
+}
+
 // blend は、fg を不透明度 a で bg の上に重ねた色（sRGB の値で混ぜる。ブラウザーの合成と同じ）
 func blend(fg, bg string, a float64) string {
 	out := "#"

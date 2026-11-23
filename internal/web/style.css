@@ -15,10 +15,11 @@
   --c0:#6191d1; --c1:#a95c3e; --c2:#45a47a; --c3:#a27323; --c4:#c47190; --c5:#4c8446; --c6:#6e6ab2; --c7:#15a0b6; --other:#6b7180;
   --amber:var(--c3); --amber-ink:#f2b53a; --note:var(--c6); /* 役目の名前（コマンドの札・自動で入ったもの）。色の番号は上の 8 色から */
   --t1:8%; --t2:14%; --t3:20%; /* 色を地に混ぜる濃さは 3 段だけ（淡い地・吹き出しや札・強め） */
+  --odd-ink:#f2b53a; /* いつもの範囲から大きく外れた量（上でも下でも同じ中立の色。良し悪しの緑・赤とは別。札も添えて色だけに頼らない）。--s-lowest と --surface-2 の上で 4.5:1 以上（palette_test.go） */
   --go:#5fb08c; --go-ink:#9bd6ba; /* 良い側の緑（いつもより良い数・AI のコミットなど。塗りではなく、淡い地に明るい緑の字） */
   --sans:"Roboto","Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",system-ui,sans-serif; /* 英語の画面なので欧文の書体を先に。日本語のプロンプトは後ろの和文の書体で出す */
-  /* 文字の大きさは 9 段だけ（2xs は狭い画面の月のマスだけ）。太さは 400・500・600・700、行間は 1.2（数字・見出し）・1.5（UI）・1.6〜1.7（長い文） */
-  --fs-2xs:10px; --fs-xs:11px; --fs-sm:12px; --fs-md:13px; --fs-lg:14px; --fs-xl:16px; --fs-2xl:20px; --fs-3xl:24px; --fs-4xl:30px;
+  /* 文字の大きさは 10 段だけ（2xs は狭い画面の月のマスだけ、hero はサマリーの 3 つのパネルの値だけ）。太さは 400・500・600・700、行間は 1.2（数字・見出し）・1.5（UI）・1.6〜1.7（長い文） */
+  --fs-2xs:10px; --fs-xs:11px; --fs-sm:12px; --fs-md:13px; --fs-lg:14px; --fs-xl:16px; --fs-2xl:20px; --fs-3xl:24px; --fs-4xl:30px; --fs-hero:40px;
   --mono:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,monospace;
   --ease:cubic-bezier(.2,0,0,1); /* M3 の standard */
 }
@@ -1268,3 +1269,11 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .isk .sklist .skn2{min-width:0;overflow-wrap:anywhere}
 @media (max-width:600px){.isk svg text.skt{display:none}.isk .sklist{display:grid}}
 .iusw .iksw{flex-wrap:wrap;overflow:visible;max-width:100%} /* 割る数は 5 つあるので、狭いカードでは折り返す（横にはみ出して隠さない） */
+/* 数字の大きさの段：3 つのパネルの値がページでいちばん大きく太い数字（hero）。内訳のカードの値（Outputs の行・Unit costs などの数の枠）は 1 段小さくそろえる。
+   「vs last week」や式などの添え書きは小さく淡いまま */
+.ikg .itile .itv,.ikg .itile>b,.ikg .itile .ivbig b{font:700 var(--fs-hero)/1.1 var(--sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.mrow .mv,#review .insight .stat .v{font:600 var(--fs-2xl)/1.3 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+/* いつもの範囲から大きく外れた量（insOdd）：値を中立の色に。上でも下でも同じ色で、良し悪しは言わない。札（.iodd・.imk.odd）が色だけに頼らない目印 */
+.itile .itv.odd,.itile>b.odd,.mrow .mv .odd,.stat .v .odd{color:var(--odd-ink)}
+.iodd{display:inline-flex;align-items:baseline;gap:4px;padding:0 6px;border:1px solid currentColor;border-radius:5px;font-size:var(--fs-xs);font-weight:600;line-height:1.6;color:var(--odd-ink);white-space:nowrap}
+.imk.odd{color:var(--odd-ink);font-weight:600}.imk.odd::before{background:var(--odd-ink)}
