@@ -2,6 +2,40 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v5.0.0 - 2026-11-23
+
+### Changed
+
+- Week calendar bars are filled with a tint of their Color by color (agent or project) and a wider stripe, so switching Color by visibly recolors them; busier sessions get a stronger tint
+- Agents have their own set of colors, distinguishable also for red-green color-blind readers and never green, red or amber: Claude Code blue, Kiro IDE / CLI (V3) violet, Kiro CLI (V2) and Kiro CLI (SQLite) plum, Kiro Crew pink, Codex cyan
+- Saturday and Sunday share one neutral background (no red Sunday, no blue Saturday), and the month calendar's shade is a neutral gray-blue that no longer looks like an agent's color and keeps its text readable on the busiest days
+- Every number in the calendar and the band above it has an English unit, also in the Japanese view: "5 commits", "44 credits", "12M tokens"; the commit count is no longer green, and day headings wrap instead of hiding figures in narrow columns
+- Today is marked more quietly: its date in the accent color, without an outline around the day or a filled date chip
+- The Summary's Breakdown is one box with eight cards: Output, Where it went, When you worked, What changed from the last period, Tokens by type, By agent, Most edited files and How you worked. The "Other charts" box inside it is gone
+- Removed the cards that repeated the panels or the calendar, or that seldom led to a next step: Trend, Cumulative, Spread per session, Cost per session by length, Cost vs outputs per session, Busiest day and Usage. Usage's read-from-cache share, prompts, subagents and the daily amount to stay at the last period's total moved to How you worked; its tokens and month-end estimates are in the Input panel
+- Summary panels no longer offer choices that have nothing to show for the period (such as PRs with Kiro alone, or Pushes with one agent picked). Before, these were dimmed, and pressing one showed its reason in a line that pushed the chart down. The divisor switch of the unit cost panels shows only the divisors that have a figure for the measure picked
+- The Input and Output bars are labeled with each period's amount (such as $1.2k, 44, 12M or 18h) instead of the change from the previous period; the change is in the bar's tooltip
+- The Sankey diagram's heading is now "From input to output" (投入から出力の流れ)
+- In the Input and Output bar charts, a bar more than 2.5 times the next highest is cut at the top with a break mark and its amount written on it, and the scale fits the other bars, so one unusual period no longer flattens the rest. The legend explains the mark
+- The Summary no longer has the "Worth a look" line at the top. Each flagged metric still has its warning triangle, which opens its dialog, and the share of cost that reached no commit or PR is flagged on the Sankey diagram's heading
+- The Sankey diagram's output column has "Files changed only" for sessions that created or changed files without a commit or PR, between "Commit or PR" and "None"
+- By model in Where it went now includes Kiro credits: Kiro IDE / CLI (V3), Kiro CLI (V2) and Kiro Crew record which model each turn used, and kiroku now keeps that model with the turn's credits
+- A week or month without records shows the empty calendar, with a one-line note and the button to the latest period with records above it, instead of only the note
+- While searching, the page shows only the results: the period, legend, calendar and summary are hidden, since the results come from all time. Pressing a result opens its details; clearing the search shows the calendar at that result's week or month
+- The prompt flow's colors move further from a messaging app's: a slate background, a muted sage bubble for your prompts and an off-white one for replies, with light text for times and copy buttons
+- "From input to output" is headed at the same level as Input and Output, with "Sankey diagram" one level smaller under it
+- The summary opens with "From input to output" (the Sankey diagram) at the full width, above the Input, Output and unit cost panels
+
+### Removed
+
+- BREAKING: kiroku has three commands: `serve`, `update` and `help`. The other commands were removed and stop with a message naming what to use instead:
+  - `kiroku doctor` → `kiroku serve --check`
+  - `kiroku archive [on|off]` → `kiroku serve --archive [on|off]`
+  - `kiroku version` → `kiroku --version`
+  - `kiroku open` → `kiroku serve`: running it while kiroku serve already runs at that address opens the running view in your browser with its key (with `--no-open`, it prints the address). It tells kiroku serve apart without sending the key, so a program holding the port never gets it. There is no longer a one-time address for another device (`--print`)
+  - `kiroku autostart`: kiroku no longer starts at login. Running `kiroku autostart` once removes the login item that kiroku 4 added, and `kiroku serve --check` says so while one is left
+  - `kiroku html`, with `--week` and `--month`: kiroku no longer writes the view to a file. The view, with its prompts, paths and commit messages, stays in kiroku serve on your computer
+
 ## v4.6.5 - 2026-11-23
 
 ### Changed
