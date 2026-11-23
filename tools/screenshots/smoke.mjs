@@ -969,7 +969,7 @@ async function runJa(env) {
   await step("量の名前は 1 つ", async () => {
     await p.locator('#view button[data-v="sum"]').click(); await p.waitForTimeout(300);
     const txt = await p.evaluate(() => ["#kpis", "#legend", "#tl", "#review"].map(q => (document.querySelector(q) || {}).innerText || "").join("\n"));
-    check("日本語の画面では、クレジットはカタカナで書く（credits と混ぜない）", !/credits?/.test(txt), (txt.match(/.{0,20}credits?.{0,10}/) || [""])[0]);
+    check("日本語の画面では、クレジットは Kiro と同じ「credits」で書く（カタカナと混ぜない）", !/クレジット/.test(txt), (txt.match(/.{0,20}クレジット.{0,10}/) || [""])[0]);
     check("日本語のサマリーでは、費用をコストと呼ばない", !/コスト/.test(await p.locator("#review .insight").innerText()));
     await p.locator('#view button[data-v="cal"]').click(); await p.waitForTimeout(300);
   });
