@@ -1,0 +1,1 @@
+- Session details: a turn where the AI wrote no text reply shows its small note without a bubble again (a stray brace in the stylesheet had dropped that rule)

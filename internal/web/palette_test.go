@@ -131,11 +131,11 @@ func deltaE(a, b string, sim *[3][3]float64) float64 {
 	return 100 * math.Sqrt((x[0]-y[0])*(x[0]-y[0])+(x[1]-y[1])*(x[1]-y[1])+(x[2]-y[2])*(x[2]-y[2]))
 }
 
-// プロンプトの流れ（.tl）の色は、メッセージアプリ（LINE のダーク）に寄せた吹き出し。字と地の組み合わせが読めることを確かめる:
+// プロンプトの流れ（.tl）の色は、メッセージアプリ（LINE の昔からのトーク画面）に寄せた吹き出し。字と地の組み合わせが読めることを確かめる:
 //   - 吹き出しの字・時刻・小さな字（4.5:1 以上。WCAG 2.x の相対輝度のコントラスト比）
-//   - コピーのボタン・出来事の印など小さな印（3:1 以上）
+//   - コピーのボタン・AI の印・出来事の印・言い直しの破線など小さな印（3:1 以上）
 //
-// 半透明の地（--chat-me-tag）と、ふだん薄く見せるコピーのボタン（opacity .45）は、下の地と混ぜた色で比べる。
+// 半透明の地（--chat-me-tag と出来事の札の --chat-sys）と、ふだん薄く見せるコピーのボタン（最後に書いた .tl li .pcopy{opacity:…}）は、下の地と混ぜた色で比べる。
 func TestChatContrast(t *testing.T) {
 	i := strings.Index(style, ".tl{--chat-bg:")
 	if i < 0 {
@@ -149,18 +149,22 @@ func TestChatContrast(t *testing.T) {
 		}
 		return m[1]
 	}
-	tagA := regexp.MustCompile(`--chat-me-tag:rgba\(0,0,0,([0-9.]+)\)`).FindStringSubmatch(block)
-	if tagA == nil {
-		t.Fatal("--chat-me-tag is not rgba(0,0,0,a)")
+	black := func(name string) float64 { // rgba(0,0,0,a) の a
+		m := regexp.MustCompile(`--` + name + `:rgba\(0,0,0,([0-9.]+)\)`).FindStringSubmatch(block)
+		if m == nil {
+			t.Fatalf("--%s is not rgba(0,0,0,a) in .tl", name)
+		}
+		a, _ := strconv.ParseFloat(m[1], 64)
+		return a
 	}
-	a, _ := strconv.ParseFloat(tagA[1], 64)
-	op := regexp.MustCompile(`\.tl li \.pcopy\{opacity:([0-9.]+)\}`).FindStringSubmatch(style)
-	if op == nil {
+	ops := regexp.MustCompile(`\.tl li \.pcopy\{opacity:([0-9.]+)\}`).FindAllStringSubmatch(style, -1)
+	if ops == nil {
 		t.Fatal("style.css has no .tl li .pcopy{opacity:…}")
 	}
-	o, _ := strconv.ParseFloat(op[1], 64)
-	bg, me, ai, sys := v("chat-bg"), v("chat-me"), v("chat-ai"), v("chat-sys")
-	tag := blend("#000000", me, a)
+	o, _ := strconv.ParseFloat(ops[len(ops)-1][1], 64) // 後に書いたものが効く
+	bg, me, ai, ink := v("chat-bg"), v("chat-me"), v("chat-ai"), v("chat-ink")
+	tag := blend("#000000", me, black("chat-me-tag"))
+	sys := blend("#000000", bg, black("chat-sys"))
 	for _, c := range []struct {
 		name, fg, bg string
 		min          float64
@@ -169,11 +173,14 @@ func TestChatContrast(t *testing.T) {
 		{"your prompt's meta and cut note", v("chat-me-meta"), me, 4.5},
 		{"tag in your prompt", v("chat-me-ink"), tag, 4.5},
 		{"correction or long tag in your prompt", v("chat-me-warn"), tag, 4.5},
+		{"correction's dashed outline", v("chat-me-warn"), me, 3},
 		{"AI reply", v("chat-ai-ink"), ai, 4.5},
-		{"AI reply meta", v("chat-ai-meta"), ai, 4.5},
+		{"AI reply meta and cut note", v("chat-ai-meta"), ai, 4.5},
 		{"link in an AI reply", v("chat-link"), ai, 4.5},
-		{"time under a bubble", v("chat-ink"), bg, 4.5},
-		{"copy button at rest", blend(v("chat-ink"), bg, o), bg, 3},
+		{"AI mark in its round avatar", v("chat-ai-mark"), ai, 3},
+		{"time beside a bubble, gap and quiet reply text", ink, bg, 4.5},
+		{"focus ring on the background", ink, bg, 3},
+		{"copy button at rest", blend(ink, bg, o), bg, 3},
 		{"event text", v("chat-sys-ink"), sys, 4.5},
 		{"note mark", v("chat-note"), sys, 3},
 		{"limit or interruption text", v("chat-warn-ink"), v("chat-warn"), 4.5},
@@ -181,6 +188,29 @@ func TestChatContrast(t *testing.T) {
 		if r := contrast(c.fg, c.bg); r < c.min {
 			t.Errorf("%s: %s on %s is %.2f:1, want at least %.1f:1", c.name, c.fg, c.bg, r, c.min)
 		}
+	}
+}
+
+// style.css の { } がそろっている。余分な } があると、ブラウザはその後ろの規則をひとつ黙って捨てる
+// （プロンプトの流れの、返事の文がない回の見た目がこれで消えていた）
+func TestStyleBraces(t *testing.T) {
+	s := regexp.MustCompile(`(?s)/\*.*?\*/`).ReplaceAllStringFunc(style, func(c string) string { return strings.Repeat("\n", strings.Count(c, "\n")) })
+	depth := 0
+	for i, line := range strings.Split(s, "\n") {
+		for _, ch := range line {
+			switch ch {
+			case '{':
+				depth++
+			case '}':
+				depth--
+				if depth < 0 {
+					t.Fatalf("style.css line %d: } without a matching {", i+1)
+				}
+			}
+		}
+	}
+	if depth != 0 {
+		t.Fatalf("style.css ends with %d unclosed {", depth)
 	}
 }
 

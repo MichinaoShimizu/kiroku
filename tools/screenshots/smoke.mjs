@@ -225,6 +225,15 @@ async function run(env) {
       await rep.scrollIntoViewIfNeeded();
       check("応答の中身が読める", (await rep.locator(".reptext").innerText()).trim().length > 0);
       check("だれの発言か分かる", await rep.locator(".rpav svg").count() === 1);
+      // LINE のトーク画面のように：青灰色の地、あなたは右の緑・AI は左の白、時刻は吹き出しの下の端の横（あなたは左、AI は右）
+      const lay = await p.evaluate(() => { const tl = document.querySelector("#panel .tl"), pr = tl.querySelector("li.pr:not(.ev)"), rp = tl.querySelector("li.rp:not(.quiet)");
+        const side = li => { const b = li.querySelector(":scope>p").getBoundingClientRect(), t = li.querySelector(".pfoot time").getBoundingClientRect(); return {b, t}; };
+        const a = side(pr), r = side(rp), box = tl.getBoundingClientRect();
+        return {bg: getComputedStyle(tl).backgroundColor, me: getComputedStyle(pr.querySelector(":scope>p")).backgroundColor, ai: getComputedStyle(rp.querySelector(":scope>p")).backgroundColor,
+          meRight: box.right - a.b.right < 40, meTime: a.t.right <= a.b.left + 1 && Math.abs(a.t.bottom - a.b.bottom) < 8,
+          aiTime: r.t.left >= r.b.right - 1 && Math.abs(r.t.bottom - r.b.bottom) < 8, aiAv: rp.querySelector(".av").getBoundingClientRect().right <= r.b.left }; });
+      check("流れは青灰色の地に、あなたは右の緑、AI は左の白の吹き出し", lay.bg === "rgb(116, 148, 192)" && lay.me === "rgb(141, 224, 85)" && lay.ai === "rgb(255, 255, 255)" && lay.meRight && lay.aiAv, JSON.stringify(lay));
+      check("時刻は吹き出しの下の端の横（あなたは左、AI は右）", lay.meTime && lay.aiTime, JSON.stringify(lay));
       // 依頼と応答の間に起きたこと（コミットなど）は応答の上に出るので、それを飛ばした手前が依頼
       check("応答は依頼のすぐ後に並ぶ", await p.evaluate(() => { const li = [...document.querySelectorAll("#panel .tl li")], i = li.findIndex(x => x.classList.contains("rp"));
         let j = i - 1; while (j >= 0 && li[j].classList.contains("ev")) j--;
