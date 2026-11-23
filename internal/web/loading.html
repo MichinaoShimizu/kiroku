@@ -99,7 +99,7 @@ pre:empty{display:none}
     "Not connected to kiroku serve": "kiroku serve に接続していません",
     "If you stopped it, start it again; this page reconnects on its own.": "止めた場合は起動し直してください。この画面はつながると自動で戻ります。",
     "Open kiroku with its key": "鍵を付けて kiroku を開いてください",
-    "Run kiroku open in a terminal to open this page with the key. After that, this browser can open it without the key.": "ターミナルで kiroku open を実行すると、鍵を付けてこの画面を開きます。そのあとは、このブラウザーなら鍵なしで開けます。",
+    "Run kiroku serve in a terminal to open this page with the key. After that, this browser can open it without the key.": "ターミナルで kiroku serve を実行すると、鍵を付けてこの画面を開きます。そのあとは、このブラウザーなら鍵なしで開けます。",
   } : null;
   const t = s => JA && JA[s] || s;
   if (JA){ document.documentElement.lang = "ja";
@@ -156,7 +156,7 @@ pre:empty{display:none}
   async function poll(){
     try {
       const r = await kf("stamp");
-      if (r.status === 403){ live = false; show(true, t("Open kiroku with its key"), t("Run kiroku open in a terminal to open this page with the key. After that, this browser can open it without the key.")); setTimeout(poll, 2000); return; }
+      if (r.status === 403){ live = false; show(true, t("Open kiroku with its key"), t("Run kiroku serve in a terminal to open this page with the key. After that, this browser can open it without the key.")); setTimeout(poll, 2000); return; }
       if (r.ok){ live = false; document.body.classList.add("done"); title.textContent = t("Ready"); setTimeout(() => location.reload(), 250); return; }
       const txt = (await r.text()).trim();
       if (r.status === 503 && txt){ live = false; show(true, t("Could not read your history"), t("kiroku serve keeps running and tries again when your history changes. You can also stop it and run it again."), txt); }

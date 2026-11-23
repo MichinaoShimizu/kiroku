@@ -9,9 +9,9 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/source"
 )
 
-// kiroku doctor：消える設定のままなら「!」で設定の場所と kiroku archive on を案内し、archive がオンなら安心と出す。
+// kiroku serve --check：消える設定のままなら「!」で設定の場所と kiroku serve --archive on を案内し、archive がオンなら安心と出す。
 func TestDoctorReport(t *testing.T) {
-	fakeAutostart(t, "darwin", noAnswer)
+	fakeAutostart(t, "darwin")
 	old := lookGit
 	t.Cleanup(func() { lookGit = old })
 	lookGit = func() bool { return false }
@@ -27,8 +27,8 @@ func TestDoctorReport(t *testing.T) {
 	out := b.String()
 	for _, want := range []string{"✓ Claude Code", "12 sessions, since", "/x/projects",
 		`! Claude Code deletes history older than 30 days`, `add "cleanupPeriodDays": 3650 to /x/settings.json`,
-		`! Kiro Crew deletes history older than 30 days (session.archive_retention_days is at its default)`, `add "session": {"archive_retention_days": 3650} to /x/crew/config.local.json`, `Run "kiroku archive on"`,
-		"git: not found", "autostart: off", "kiroku archive on    keep copies", "kiroku serve"} {
+		`! Kiro Crew deletes history older than 30 days (session.archive_retention_days is at its default)`, `add "session": {"archive_retention_days": 3650} to /x/crew/config.local.json`, `Run "kiroku serve --archive on"`,
+		"git: not found", "kiroku serve --archive on    keep copies", "kiroku serve"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("%q がない:\n%s", want, out)
 		}
@@ -46,7 +46,7 @@ func TestDoctorReport(t *testing.T) {
 	if out := b.String(); !strings.Contains(out, "· Codex") || !strings.Contains(out, "/x/.codex") || strings.Contains(out, "no history yet") {
 		t.Errorf("--all なのに場所が出ていない:\n%s", out)
 	}
-	if err := dispatch([]string{"archive", "on", "--archive-dir", dir, "--claude-root", t.TempDir(), "--sources", "claude"}); err != nil {
+	if err := dispatch([]string{"serve", "--archive", "on", "--archive-dir", dir, "--claude-root", t.TempDir(), "--sources", "claude"}); err != nil {
 		t.Fatal(err)
 	}
 	b.Reset()
@@ -68,7 +68,7 @@ func TestDoctorReport(t *testing.T) {
 
 // 読めないファイルがあったエージェントは、0 件でもまとめずに出す（問題を隠さない）。
 func TestDoctorKeepsErrors(t *testing.T) {
-	fakeAutostart(t, "darwin", noAnswer)
+	fakeAutostart(t, "darwin")
 	fakeKirokuPath(t, "/x/bin/kiroku", "/x/bin/kiroku")
 	msg := "permission denied"
 	rep := []source.Report{
@@ -89,7 +89,7 @@ func TestDoctorKeepsErrors(t *testing.T) {
 
 // Kiro Crew の 0 日（Now）は「0 日残す」ではなく、次の片付けで消えると「!」で出す。archive がオンなら安心と出す。
 func TestDoctorZeroDayRetention(t *testing.T) {
-	fakeAutostart(t, "darwin", noAnswer)
+	fakeAutostart(t, "darwin")
 	fakeKirokuPath(t, "/x/bin/kiroku", "/x/bin/kiroku")
 	dir := t.TempDir()
 	rep := []source.Report{{Name: "Kiro CLI (V2)", N: 3, Where: "/x/.kiro/sessions/cli", Keep: &source.Retention{Days: 0, Now: true, Set: true, Who: "Kiro Crew",
@@ -98,7 +98,7 @@ func TestDoctorZeroDayRetention(t *testing.T) {
 	doctorReport(&b, rep, 3, dir, release{}, false)
 	out := b.String()
 	for _, want := range []string{"! Kiro Crew deletes old history at its next cleanup (session.archive_retention_days is 0)",
-		`add "session": {"archive_retention_days": 3650} to /x/crew/config.local.json`, `Run "kiroku archive on"`} {
+		`add "session": {"archive_retention_days": 3650} to /x/crew/config.local.json`, `Run "kiroku serve --archive on"`} {
 		if !strings.Contains(out, want) {
 			t.Errorf("%q がない:\n%s", want, out)
 		}
@@ -106,7 +106,7 @@ func TestDoctorZeroDayRetention(t *testing.T) {
 	if strings.Contains(out, "keeps history for 0 days") {
 		t.Errorf("0 日を「0 日残す」と出している:\n%s", out)
 	}
-	if err := dispatch([]string{"archive", "on", "--archive-dir", dir, "--claude-root", t.TempDir(), "--sources", "claude"}); err != nil {
+	if err := dispatch([]string{"serve", "--archive", "on", "--archive-dir", dir, "--claude-root", t.TempDir(), "--sources", "claude"}); err != nil {
 		t.Fatal(err)
 	}
 	b.Reset()
@@ -127,7 +127,7 @@ func fakeKirokuPath(t *testing.T, exe, first string) {
 
 // PATH の前のほうに別の kiroku があれば、doctor もそれを知らせる（install.sh と同じ）。
 func TestDoctorShadowedExe(t *testing.T) {
-	fakeAutostart(t, "darwin", noAnswer)
+	fakeAutostart(t, "darwin")
 	old := version
 	t.Cleanup(func() { version = old })
 	version = "0.16.0"
@@ -160,7 +160,7 @@ func TestDoctorShadowedExe(t *testing.T) {
 
 // 新しい版が出ていれば「!」と kiroku update を案内し、最新なら ✓、確かめられなければそう書く。手元でビルドしたものは確かめない。
 func TestDoctorVersion(t *testing.T) {
-	fakeAutostart(t, "darwin", noAnswer)
+	fakeAutostart(t, "darwin")
 	old := version
 	t.Cleanup(func() { version = old })
 	version = "0.11.0"
@@ -180,12 +180,12 @@ func TestDoctorVersion(t *testing.T) {
 		if !strings.Contains(out, c.want) || c.deny != "" && strings.Contains(out, c.deny) {
 			t.Errorf("%+v:\n%s", c.rel, out)
 		}
-		if c.rel.latest == "v0.12.0" && !strings.Contains(out, "kiroku update        install v0.12.0") {
+		if c.rel.latest == "v0.12.0" && !strings.Contains(out, "kiroku update                install v0.12.0") {
 			t.Errorf("Next に kiroku update がない:\n%s", out)
 		}
 	}
 
-	// kiroku doctor は、履歴を読むのと同時に最新の版を確かめる。--no-update-check と手元のビルドでは確かめない
+	// kiroku serve --check は、履歴を読むのと同時に最新の版を確かめる。--no-update-check と手元のビルドでは確かめない
 	oldLatest := doctorLatest
 	t.Cleanup(func() { doctorLatest = oldLatest })
 	asked := 0
@@ -197,7 +197,7 @@ func TestDoctorVersion(t *testing.T) {
 		want int
 	}{{"0.11.0", nil, 1}, {"0.11.0", []string{"--no-update-check"}, 0}, {"dev", nil, 0}} {
 		version, asked = c.v, 0
-		if err := dispatch(append([]string{"doctor", "--claude-root", t.TempDir(), "--sources", "claude"}, c.args...)); err != nil {
+		if err := dispatch(append([]string{"serve", "--check", "--claude-root", t.TempDir(), "--sources", "claude"}, c.args...)); err != nil {
 			t.Fatal(err)
 		}
 		if asked != c.want {

@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// kiroku html / json が書くファイルは、ほかのユーザーが読めない（0600）。前からある 0644 のファイルも 0600 にし、
+// kiroku serve --html / json が書くファイルは、ほかのユーザーが読めない（0600）。前からある 0644 のファイルも 0600 にし、
 // 置き場所にシンボリックリンクがあっても、その先は書きかえない。書きかけの一時ファイルは残さない。
 func TestHTMLIsPrivate(t *testing.T) {
 	setup(t)
@@ -19,12 +19,9 @@ func TestHTMLIsPrivate(t *testing.T) {
 		if err := os.WriteFile(out, []byte("old"), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		args := append([]string{c.cmd, "-o", out}, common...)
-		if c.cmd == "html" {
-			args = append(args, "--no-open")
-		}
+		args := append([]string{"-o", out, "--no-open"}, common...)
 		captureOutput(t, func() {
-			if err := dispatch(args); err != nil {
+			if err := WriteHTML(args); err != nil {
 				t.Fatal(err)
 			}
 		})
@@ -46,9 +43,9 @@ func TestHTMLIsPrivate(t *testing.T) {
 		if err := os.Symlink(target, link); err != nil {
 			t.Fatal(err)
 		}
-		args = append([]string{c.cmd, "-o", link}, args[3:]...)
+		args = append([]string{"-o", link}, args[2:]...)
 		captureOutput(t, func() {
-			if err := dispatch(args); err != nil {
+			if err := WriteHTML(args); err != nil {
 				t.Fatal(err)
 			}
 		})

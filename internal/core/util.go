@@ -196,7 +196,7 @@ func ReadJSONL(path string, fn func(Obj)) error {
 }
 
 // ReadJSONLBad は ReadJSONL と同じ。bad が nil でなければ、JSON のオブジェクトとして読めなかった行を数える
-// （kiroku doctor の「Format check」）。空白だけの行と、改行で終わっていない最後の行（エージェントが書いている途中）は数えない。
+// （kiroku serve --check の「Format check」）。空白だけの行と、改行で終わっていない最後の行（エージェントが書いている途中）は数えない。
 func ReadJSONLBad(path string, fn func(Obj), bad *int) error {
 	f, err := OpenRegular(path)
 	if err != nil {

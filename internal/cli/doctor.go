@@ -19,24 +19,24 @@ var lookGit = func() bool {
 	return err == nil
 }
 
-// doctorLatest は kiroku doctor で最新の版を確かめる（テストで差しかえる）。doctor を待たせないよう、短めに切る。
+// doctorLatest は kiroku serve --check で最新の版を確かめる（テストで差しかえる）。doctor を待たせないよう、短めに切る。
 var doctorLatest = func() (string, error) {
 	c := newUpdateClient()
 	c.Timeout = 5 * time.Second
 	return latestVersion(c)
 }
 
-// release は kiroku doctor が確かめた最新の版（checked が false なら確かめていない）。
+// release は kiroku serve --check が確かめた最新の版（checked が false なら確かめていない）。
 type release struct {
 	checked bool
 	latest  string
 	err     error
 }
 
-// cmdDoctor は kiroku doctor。どの履歴が読めたか、消える設定のままか、kiroku archive・git・自動起動・新しい版はどうかを一覧にして、
+// cmdDoctor は kiroku serve --check。どの履歴が読めたか、消える設定のままか、kiroku archive・git・自動起動・新しい版はどうかを一覧にして、
 // 次に打つコマンドを案内する。読むだけで、設定もファイルも変えない。
 func cmdDoctor(args []string) error {
-	fs := newFS("doctor", "doctor [flags]\n\nChecks what kiroku can read, whether your history is at risk of being deleted\nand whether a newer kiroku is out, and suggests what to run next.\nIt only reads; nothing is changed.\n\nWith --report it prints only kinds and counts for a bug report, for you to\nreview and paste yourself; kiroku sends nothing.")
+	fs := newFS("serve --check", "serve --check [flags]\n\nChecks what kiroku can read, whether your history is at risk of being deleted\nand whether a newer kiroku is out, and suggests what to run next.\nIt only reads; nothing is changed.\n\nWith --report it prints only kinds and counts for a bug report, for you to\nreview and paste yourself; kiroku sends nothing.")
 	noCheck := fs.Bool("no-update-check", false, "do not ask GitHub whether a newer release exists")
 	all := fs.Bool("all", false, "list every agent kiroku looks at, including the ones with no history")
 	diag := fs.Bool("report", false, "print only kinds and counts (versions, unreadable lines, unknown kinds) to paste into a GitHub issue;\nno paths, project names, IDs or content")
@@ -67,7 +67,7 @@ func cmdDoctor(args []string) error {
 	return nil
 }
 
-// doctorReport は kiroku doctor の一覧を書く。all が true なら、履歴がなかったエージェントも場所まで並べる。
+// doctorReport は kiroku serve --check の一覧を書く。all が true なら、履歴がなかったエージェントも場所まで並べる。
 func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string, rel release, all bool) {
 	s := styleFor(w)
 	fmt.Fprintf(w, "kiroku %s\n\n%s\n", version, s.bold("History found"))
@@ -95,10 +95,10 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 	}
 	if len(none) > 0 {
 		fmt.Fprintf(w, "  %s %-18s %s\n", s.dim("·"), "no history yet", s.dim(strings.Join(none, ", ")))
-		fmt.Fprintf(w, "      %s\n", s.dim("\"kiroku doctor --all\" shows where kiroku looks for each one"))
+		fmt.Fprintf(w, "      %s\n", s.dim("\"kiroku serve --check --all\" shows where kiroku looks for each one"))
 	}
 	if total == 0 {
-		fmt.Fprintf(w, "  %s No history found. If your agents keep it somewhere else, point kiroku to it\n      %s\n", s.warn("!"), s.dim("(--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db; see \"kiroku doctor --help\")"))
+		fmt.Fprintf(w, "  %s No history found. If your agents keep it somewhere else, point kiroku to it\n      %s\n", s.warn("!"), s.dim("(--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db; see \"kiroku serve --check --help\")"))
 	}
 
 	formatCheck(w, rep)
@@ -149,7 +149,7 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 	case on:
 		fmt.Fprintf(w, "  %s kiroku archive: on (%s, %s in %s)\n", s.ok("✓"), nFiles(files), humanBytes(size), tilde(archiveDir))
 	case risky:
-		fmt.Fprintf(w, "  %s kiroku archive: off. Run %s to keep copies of history before it is deleted\n", s.warn("!"), s.bold("\"kiroku archive on\""))
+		fmt.Fprintf(w, "  %s kiroku archive: off. Run %s to keep copies of history before it is deleted\n", s.warn("!"), s.bold("\"kiroku serve --archive on\""))
 	default:
 		fmt.Fprintf(w, "  %s kiroku archive: off %s\n", s.dim("·"), s.dim("(not needed while your agents keep their history)"))
 	}
@@ -160,8 +160,11 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 	} else {
 		fmt.Fprintf(w, "  %s git: not found, so commits and pushes are not shown\n", s.dim("·"))
 	}
-	a := autostartStatus()
-	fmt.Fprintf(w, "  %s autostart: %s\n", s.mark(a.mark), a.text)
+	if p, err := currentAutostart(nil); err == nil { // kiroku 4 の autostart で登録したログイン時の起動が残っていれば、外し方を言う
+		if _, ok := autostartAddr(p); ok {
+			fmt.Fprintf(w, "  %s autostart: a login item from kiroku 4 still starts kiroku serve; run %s to remove it\n", s.warn("!"), s.bold("\"kiroku autostart\""))
+		}
+	}
 	cur := "v" + strings.TrimPrefix(version, "v")
 	newer := false
 	switch {
@@ -189,20 +192,16 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 
 	fmt.Fprintf(w, "\n%s\n", s.bold("Next"))
 	if total == 0 {
-		fmt.Fprintln(w, "  use an agent for a while, or point kiroku to your history, then run \"kiroku doctor\" again")
+		fmt.Fprintln(w, "  use an agent for a while, or point kiroku to your history, then run \"kiroku serve --check\" again")
 		return
 	}
 	if risky { // 消えた履歴は戻らないので、見るより先に
-		fmt.Fprintf(w, "  %s keep copies of history before it is deleted (or change the setting above)\n", s.cmd("kiroku archive on", 20))
+		fmt.Fprintf(w, "  %s keep copies of history before it is deleted (or change the setting above)\n", s.cmd("kiroku serve --archive on", 28))
 	}
 	if newer {
-		fmt.Fprintf(w, "  %s install %s\n", s.cmd("kiroku update", 20), rel.latest)
+		fmt.Fprintf(w, "  %s install %s\n", s.cmd("kiroku update", 28), rel.latest)
 	}
-	if a.running {
-		fmt.Fprintf(w, "  open %s\n", s.bold(a.url))
-	} else {
-		fmt.Fprintf(w, "  %s open the view in your browser\n", s.cmd("kiroku serve", 20))
-	}
+	fmt.Fprintf(w, "  %s open the view in your browser (or the running one)\n", s.cmd("kiroku serve", 28))
 }
 
 // runningExe は、動いている kiroku の場所（テストで差しかえる）。

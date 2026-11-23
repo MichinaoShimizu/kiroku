@@ -538,12 +538,12 @@ func TestServeLive(t *testing.T) {
 	}
 	port := m[1]
 	base := "http://127.0.0.1:" + port
-	if !strings.Contains(out.String(), `"kiroku open" opens it with the key`) {
-		t.Errorf("kiroku open を案内するはず: %q", out.String())
+	if !strings.Contains(out.String(), `run "kiroku serve" again to open it in another browser`) {
+		t.Errorf("もう一度 kiroku serve を打てばよいと案内するはず: %q", out.String())
 	}
 	// 鍵のないブラウザ（同じコンピューターのほかのユーザーなど）には、履歴を見せない
 	for _, path := range []string{"/stamp", "/data.json", "/progress"} {
-		if code, body, _ := fetchHost(t, "GET", base+path, "localhost:"+port); code != 403 || !strings.Contains(body, "kiroku open") {
+		if code, body, _ := fetchHost(t, "GET", base+path, "localhost:"+port); code != 403 || !strings.Contains(body, "kiroku serve</code>") {
 			t.Errorf("鍵なしの %s = %d %.80q, want 403", path, code, body)
 		}
 	}
@@ -749,27 +749,29 @@ func TestServeHistoryGone(t *testing.T) {
 	}
 }
 
-// autostart と doctor が見る probe は、読み込み中（503）・開ける（200）・kiroku でない・止まっているを見分ける。
-func TestProbeStamp(t *testing.T) {
+// 本物の kiroku serve（鍵なしでは 403 の案内）は、鍵を送らない looksLikeServe で見分けられる。ほかのサーバーと止まっているものは違う。
+func TestLooksLikeRealServe(t *testing.T) {
+	t.Setenv("KIROKU_CONFIG_DIR", filepath.Join(t.TempDir(), "kiroku"))
+	key, _ := serveKey(true)
 	l := &live{snap: snapshot{gen: 1}}
-	srv := httptest.NewServer(l.handler())
+	srv := httptest.NewServer(requireKey("127.0.0.1:8484", key, "", l.handler()))
 	defer srv.Close()
 	addr := strings.TrimPrefix(srv.URL, "http://")
-	if got := probe(addr); got != loading {
-		t.Errorf("読み込み中 = %d, want %d", got, loading)
+	if !looksLikeServe(addr) {
+		t.Error("読み込み中の kiroku serve を見分けられない")
 	}
 	l.markReady()
-	if got := probe(addr); got != ready {
-		t.Errorf("読み終わった = %d, want %d", got, ready)
+	if !looksLikeServe(addr) {
+		t.Error("読み終わった kiroku serve を見分けられない")
 	}
 	other := httptest.NewServer(http.NotFoundHandler())
 	defer other.Close()
-	if got := probe(strings.TrimPrefix(other.URL, "http://")); got != noAnswer {
-		t.Errorf("kiroku でないサーバー = %d, want %d", got, noAnswer)
+	if looksLikeServe(strings.TrimPrefix(other.URL, "http://")) {
+		t.Error("kiroku でないサーバーを kiroku serve とみなした")
 	}
 	srv.Close()
-	if got := probe(addr); got != noAnswer {
-		t.Errorf("止まっている = %d, want %d", got, noAnswer)
+	if looksLikeServe(addr) {
+		t.Error("止まっているのに kiroku serve とみなした")
 	}
 }
 

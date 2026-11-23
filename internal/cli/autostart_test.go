@@ -8,17 +8,15 @@ import (
 )
 
 // fakeAutostart は、ホーム・OS・launchctl / systemctl・待ち受けの確認を差しかえ、実行したコマンドを返す。
-func fakeAutostart(t *testing.T, goos string, answer int) (home string, ran *[]string) {
+func fakeAutostart(t *testing.T, goos string) (home string, ran *[]string) {
 	t.Helper()
 	home = t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", "")
-	oldOS, oldExe, oldHome, oldRun, oldProbe, oldRetry, oldWait := autostartGOOS, autostartExe, autostartHome, runCmd, probe, autostartRetry, autostartWait
+	oldOS, oldExe, oldHome, oldRun := autostartGOOS, autostartExe, autostartHome, runCmd
 	t.Cleanup(func() {
-		autostartGOOS, autostartExe, autostartHome, runCmd, probe, autostartRetry, autostartWait = oldOS, oldExe, oldHome, oldRun, oldProbe, oldRetry, oldWait
+		autostartGOOS, autostartExe, autostartHome, runCmd = oldOS, oldExe, oldHome, oldRun
 	})
-	autostartWait = 0
 	autostartHome = func() (string, error) { return home, nil }
-	autostartRetry = 0
 	autostartGOOS = goos
 	autostartExe = func() (string, error) { return filepath.Join(home, "bin", "kiroku"), nil }
 	var cmds []string
@@ -26,7 +24,6 @@ func fakeAutostart(t *testing.T, goos string, answer int) (home string, ran *[]s
 		cmds = append(cmds, name+" "+strings.Join(args, " "))
 		return nil
 	}
-	probe = func(string) int { return answer }
 	return home, &cmds
 }
 
@@ -91,70 +88,40 @@ func TestPlanAutostart(t *testing.T) {
 	}
 }
 
-// kiroku autostart on で設定を書いて登録し、off で外して消す。登録に失敗したら設定を残さない。
-func TestAutostartCommand(t *testing.T) {
-	home, ran := fakeAutostart(t, "linux", loading)
-	unit := filepath.Join(home, ".config", "systemd", "user", "kiroku.service")
-	if err := dispatch([]string{"autostart", "on", ":8485"}); err != nil {
-		t.Fatal(err)
-	}
-	b, err := os.ReadFile(unit)
-	if err != nil || !strings.Contains(string(b), `"serve" "--no-open" ":8485"`) {
-		t.Fatalf("ユニットが書かれていない: %v\n%s", err, b)
-	}
-	if got := strings.Join(*ran, "\n"); !strings.Contains(got, "systemctl --user enable kiroku.service") || !strings.Contains(got, "systemctl --user restart kiroku.service") {
-		t.Errorf("登録していない:\n%s", got)
-	}
-	if s := autostartStatus(); !s.on || !s.running || s.url != "http://localhost:8485/" || !strings.Contains(s.text, "reading your history") {
-		t.Errorf("状態: %+v", s)
-	}
-	*ran = nil
-	if err := dispatch([]string{"autostart", "off"}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := os.Stat(unit); !os.IsNotExist(err) {
-		t.Error("off でユニットが消えていない")
-	}
-	if got := strings.Join(*ran, "\n"); !strings.Contains(got, "systemctl --user disable --now kiroku.service") {
-		t.Errorf("登録を外していない:\n%s", got)
-	}
-	if s := autostartStatus(); s.on {
-		t.Errorf("off のあとも on: %+v", s)
-	}
-
-	*ran = nil
-	runCmd = func(name string, args ...string) error {
-		*ran = append(*ran, name+" "+strings.Join(args, " "))
-		if strings.Contains(strings.Join(args, " "), "restart") {
-			return os.ErrPermission
+// 5.0 で autostart を消した。kiroku 4 で登録したログイン時の起動は、「kiroku autostart」を打つと外れ、コマンドはエラーで止まる。
+// kiroku serve --check は、登録が残っていればその外し方を言う。登録がなければ、何も外さない
+func TestAutostartRemoved(t *testing.T) {
+	for _, goos := range []string{"linux", "darwin"} {
+		_, ran := fakeAutostart(t, goos)
+		p, err := currentAutostart(nil)
+		if err != nil {
+			t.Fatal(err)
 		}
-		return nil
-	}
-	if err := dispatch([]string{"autostart", "on"}); err == nil {
-		t.Error("登録に失敗したのにエラーにならない")
-	}
-	if got := strings.Join(*ran, "\n"); strings.Count(got, "restart kiroku.service") != 4 || !strings.HasSuffix(got, "systemctl --user disable --now kiroku.service") {
-		t.Errorf("何回か試してから、途中までの登録を外していない:\n%s", got)
-	}
-	if _, err := os.Stat(unit); !os.IsNotExist(err) {
-		t.Error("登録に失敗したのにユニットが残っている")
-	}
-	if err := dispatch([]string{"autostart", "of"}); err == nil {
-		t.Error("打ちまちがいがエラーにならない")
-	}
-}
-
-// 登録しても serve が答えなければ、登録は残したまま（ログで原因を見られるよう）エラーで知らせる。
-func TestAutostartOnNoAnswer(t *testing.T) {
-	home, _ := fakeAutostart(t, "linux", noAnswer)
-	err := dispatch([]string{"autostart", "on"})
-	if err == nil || !strings.Contains(err.Error(), "did not answer") {
-		t.Errorf("エラー: %v", err)
-	}
-	if _, err := os.Stat(filepath.Join(home, ".config", "systemd", "user", "kiroku.service")); err != nil {
-		t.Error("答えないときも、登録は残す")
-	}
-	if s := autostartStatus(); !s.on || s.running || !strings.Contains(s.text, "nothing answers") {
-		t.Errorf("状態: %+v", s)
+		if err := os.MkdirAll(filepath.Dir(p.path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p.path, []byte(p.content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var b strings.Builder
+		doctorReport(&b, nil, 1, t.TempDir(), release{}, false)
+		if !strings.Contains(b.String(), `run "kiroku autostart" to remove it`) {
+			t.Errorf("%s: serve --check does not say how to remove the old login item:\n%s", goos, b.String())
+		}
+		err = dispatch([]string{"autostart", "on"})
+		if err == nil || !strings.Contains(err.Error(), "removed in kiroku 5.0") {
+			t.Errorf("%s: kiroku autostart on = %v, want an error naming 5.0", goos, err)
+		}
+		if _, err := os.Stat(p.path); !os.IsNotExist(err) {
+			t.Errorf("%s: the login item %s is still there", goos, p.path)
+		}
+		if len(*ran) == 0 {
+			t.Errorf("%s: the login item was not unregistered", goos)
+		}
+		*ran = nil
+		_ = dispatch([]string{"autostart"})
+		if len(*ran) != 0 {
+			t.Errorf("%s: ran %v with no login item", goos, *ran)
+		}
 	}
 }

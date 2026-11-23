@@ -11,7 +11,7 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/source"
 )
 
-// 履歴の形の手がかり。kiroku は何も送らない。kiroku doctor --report が書いた文を、利用者が読んで、
+// 履歴の形の手がかり。kiroku は何も送らない。kiroku serve --check --report が書いた文を、利用者が読んで、
 // 自分で GitHub の issue に貼る。中身は種類の名前と数と版だけで、パス・プロジェクト名・ID・発言は入れない。
 
 // formatShown は、Format check と --report に出すエージェントか（セッションがあるか、形の手がかりがあるもの）。
@@ -49,7 +49,7 @@ func kindList(unknown map[string]int) string {
 	return strings.Join(parts, ", ")
 }
 
-// formatCheck は kiroku doctor の「Format check」。エージェントごとに、履歴にあったいちばん新しい版、読めなかった行、知らない記録の種類。
+// formatCheck は kiroku serve --check の「Format check」。エージェントごとに、履歴にあったいちばん新しい版、読めなかった行、知らない記録の種類。
 func formatCheck(w io.Writer, rep []source.Report) {
 	s := styleFor(w)
 	fmt.Fprintf(w, "\n%s\n", s.bold("Format check"))
@@ -85,11 +85,11 @@ func formatCheck(w io.Writer, rep []source.Report) {
 		fmt.Fprintf(w, "  %s %s\n", s.dim("·"), s.dim("no history to check"))
 	}
 	if odd {
-		fmt.Fprintf(w, "      %s\n", s.dim("unknown kinds can mean the agent changed its history format; please report them with \"kiroku doctor --report\" (review it before you share it)"))
+		fmt.Fprintf(w, "      %s\n", s.dim("unknown kinds can mean the agent changed its history format; please report them with \"kiroku serve --check --report\" (review it before you share it)"))
 	}
 }
 
-// diagnostics は kiroku doctor --report の文（GitHub の issue に貼るためのもの）。kiroku の版、OS、エージェントごとの
+// diagnostics は kiroku serve --check --report の文（GitHub の issue に貼るためのもの）。kiroku の版、OS、エージェントごとの
 // セッションの数・いちばん新しい版・読めなかった行・知らない種類と数だけを書く。パス・プロジェクト名・ID・中身・ホームのフォルダは書かない。
 // 画面の「Copy diagnostics」（internal/web/js）も同じ形の文を作る。
 func diagnostics(w io.Writer, rep []source.Report) {

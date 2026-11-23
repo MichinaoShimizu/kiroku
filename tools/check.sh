@@ -99,7 +99,7 @@ e2e_run() {
   sh tools/screenshots/run.sh --html "$work/kiroku.html" &&
     node tools/screenshots/smoke.mjs "$work/kiroku.html" &&
     python3 -I tools/screenshots/hostile.py "$work/hostile" &&
-    TZ=UTC go run . html --no-open --sources claude --claude-root "$work/hostile/fx/projects" --week 2026-10-05 -o "$work/xss.html" &&
+    TZ=UTC go run ./tools/html --no-open --sources claude --claude-root "$work/hostile/fx/projects" --week 2026-10-05 -o "$work/xss.html" &&
     node tools/screenshots/xss.mjs "$work/xss.html" &&
     go build -o "$work/kiroku" . &&
     python3 -I tools/screenshots/gen.py "$work/gen" >/dev/null &&

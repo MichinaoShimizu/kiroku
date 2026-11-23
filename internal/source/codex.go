@@ -466,7 +466,7 @@ func codexParent(p core.Obj) string {
 func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 	var errs fileErrs
 	var all []*codexFile
-	var fm core.Format // 形の手がかり（kiroku doctor の「Format check」）。このまとまりで最初に出すセッションに付ける
+	var fm core.Format // 形の手がかり（kiroku serve --check の「Format check」）。このまとまりで最初に出すセッションに付ける
 	for _, chain := range c.codexChains(u.Files) {
 		cf := &codexFile{path: chain[len(chain)-1].path, windows: map[string]float64{}}
 		var userMsgs, fallback []codexMsg
@@ -1002,7 +1002,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 
 // codexKinds は、kiroku が知っている rollout の行の type。codexEvents と codexItems は event_msg と response_item の payload.type。
 // どれも、読むものと、あることを知っていてわざと読まないもの（作業の時刻にだけ入れる）を並べる。ここにないものは、
-// kiroku doctor の「Format check」で知らない種類に数える（event_msg と response_item の中のものは「event_msg:名前」の形）。
+// kiroku serve --check の「Format check」で知らない種類に数える（event_msg と response_item の中のものは「event_msg:名前」の形）。
 // 名前は codex-rs の protocol（RolloutItem・EventMsg・ResponseItem）から。item_completed の中の TurnItem は数えない
 var (
 	codexKinds = map[string]bool{"session_meta": true, "turn_context": true, "event_msg": true, "response_item": true, "compacted": true, "token_usage_record": true,

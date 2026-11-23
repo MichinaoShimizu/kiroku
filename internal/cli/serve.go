@@ -331,7 +331,7 @@ func (l *live) handler() http.Handler {
 		}
 		return p.Reply.Full()
 	}))
-	// POST /archive は、画面の「kiroku にコピーを残す」（kiroku archive on と同じ）。新しい集計を返す。
+	// POST /archive は、画面の「kiroku にコピーを残す」（kiroku serve --archive on と同じ）。新しい集計を返す。
 	// ほかのサイトのページから押させないよう、画面だけが付ける X-Kiroku ヘッダーを求める
 	// （付けるとブラウザは先に確認の問い合わせ（preflight）をするが、ここは答えないので、ほかのサイトからは送れない）。
 	mux.HandleFunc("/archive", func(w http.ResponseWriter, r *http.Request) {
@@ -551,6 +551,37 @@ func scanWatchPaths(all []source.Source, want map[string]bool) []string {
 	return out
 }
 
+// looksLikeServe は、addr で答えるのが kiroku serve らしいか。鍵は送らない（ポートをほかのプログラムが握っていても、鍵を渡さない）。
+// 鍵のない問い合わせに kiroku serve が返す 403 の案内で見分ける。まねされても、開くときに渡すのは使い捨てのコードだけ（鍵は出さない）
+var looksLikeServe = func(addr string) bool {
+	c := http.Client{Timeout: 700 * time.Millisecond}
+	r, err := c.Get("http://" + addr + "/stamp")
+	if err != nil {
+		return false
+	}
+	defer r.Body.Close()
+	b, _ := io.ReadAll(io.LimitReader(r.Body, 64<<10))
+	return r.StatusCode == http.StatusForbidden && (strings.Contains(string(b), "<h1>Open kiroku with its key</h1>") || strings.Contains(string(b), "<h1>鍵を付けて kiroku を開いてください</h1>"))
+}
+
+// openRunning は、addr で kiroku serve がもう動いていれば（鍵は送らずに確かめる）、止めずに、動いている画面を鍵つきで開く（5.0 より前の kiroku open）。
+// open が false（--no-open）なら、開かずにアドレスだけ出す。動いていなければ false
+func openRunning(addr string, open bool) (bool, error) {
+	if !looksLikeServe(probeAddr(addr)) {
+		return false, nil
+	}
+	url := viewURL(addr)
+	if !open {
+		fmt.Printf("kiroku serve is already running at %s\n", url)
+		return true, nil
+	}
+	if err := openWithKey(url); err != nil {
+		return true, err
+	}
+	fmt.Printf("kiroku serve is already running at %s; opened it in your browser\n", url)
+	return true, nil
+}
+
 // serveLiveWith は kiroku serve。allow は Host として受け付ける名前を足すもの、keep は画面から kiroku archive をオンにする関数、
 // lang は画面の言語（--lang）、watch は picked のほかに見張る場所（scanWatchPaths）。
 // 先に待ち受けてから読む（履歴が多いと最初の読み込みに時間がかかり、その間ポートが開いていないとブラウザが「つながらない」になるため）。
@@ -562,6 +593,9 @@ func serveLiveWith(addr string, allow []string, every time.Duration, picked []so
 	addr = listenAddr(addr)
 	ln, err := net.Listen("tcp", addr) // ポートがふさがっていたら、読む前にすぐ止める
 	if err != nil {
+		if running, err := openRunning(addr, open); running {
+			return err
+		}
 		return fmt.Errorf("could not listen on %s (try another port, e.g. \"kiroku serve :8485\"): %w", addr, err)
 	}
 	var paths []string
@@ -584,7 +618,7 @@ func serveLiveWith(addr string, allow []string, every time.Duration, picked []so
 	st := styleFor(l.print)
 	fmt.Fprintf(l.print, "serving %s %s\n", st.bold(url), st.dim("(reading history…; press Ctrl+C to stop)"))
 	startLive(l, every)
-	fmt.Fprintln(l.print, st.dim("only browsers with its key can open it (to protect it from other users of this computer); \"kiroku open\" opens it with the key"))
+	fmt.Fprintln(l.print, st.dim("only browsers with its key can open it (to protect it from other users of this computer); run \"kiroku serve\" again to open it in another browser"))
 	if open {
 		if err := openWithKey(url); err != nil {
 			fmt.Fprintf(l.print, "could not open a browser: %v\n", err)

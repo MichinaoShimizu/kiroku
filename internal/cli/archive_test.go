@@ -44,15 +44,15 @@ func writeClaude(t *testing.T, root, id string) string {
 	return p
 }
 
-// kiroku archive on で保存を始め、Claude Code が会話を消しても読める。off は保存をやめる（コピーは残して読む）。
+// kiroku serve --archive on で保存を始め、Claude Code が会話を消しても読める。off は保存をやめる（コピーは残して読む）。
 func TestArchiveCommand(t *testing.T) {
 	root, dir := t.TempDir(), filepath.Join(t.TempDir(), "archive")
 	p := writeClaude(t, root, "s1")
 	flags := []string{"--claude-root", root, "--sources", "claude", "--archive-dir", dir}
-	if err := dispatch(append([]string{"archive"}, flags...)); err != nil || archive.Enabled(dir) {
+	if err := dispatch(append([]string{"serve", "--archive"}, flags...)); err != nil || archive.Enabled(dir) {
 		t.Fatalf("状態を見るだけでオンにした: %v", err)
 	}
-	if err := dispatch(append([]string{"archive", "on"}, flags...)); err != nil || !archive.Enabled(dir) {
+	if err := dispatch(append([]string{"serve", "--archive", "on"}, flags...)); err != nil || !archive.Enabled(dir) {
 		t.Fatalf("on: %v", err)
 	}
 	if files, _ := archive.Usage(dir); files != 1 {
@@ -73,7 +73,7 @@ func TestArchiveCommand(t *testing.T) {
 	if a := snap.meta["archive"].(map[string]any); a["on"] != true || a["files"] != 2 {
 		t.Errorf("meta.archive = %v", a)
 	}
-	if err := dispatch(append([]string{"archive", "off"}, flags...)); err != nil || archive.Enabled(dir) {
+	if err := dispatch(append([]string{"serve", "--archive", "off"}, flags...)); err != nil || archive.Enabled(dir) {
 		t.Fatalf("off: %v", err)
 	}
 	if files, _ := archive.Usage(dir); files != 2 {
@@ -82,7 +82,7 @@ func TestArchiveCommand(t *testing.T) {
 	if snap := load(); len(snap.data) != 2 {
 		t.Errorf("止めたあとも、残したコピーは読む: %d", len(snap.data))
 	}
-	if err := dispatch(append([]string{"archive", "maybe"}, flags...)); err == nil {
+	if err := dispatch(append([]string{"serve", "--archive", "maybe"}, flags...)); err == nil {
 		t.Error("知らない引数でエラーにならない")
 	}
 }

@@ -1,0 +1,7 @@
+- BREAKING: kiroku has three commands: `serve`, `update` and `help`. The other commands were removed and stop with a message naming what to use instead:
+  - `kiroku doctor` → `kiroku serve --check`
+  - `kiroku archive [on|off]` → `kiroku serve --archive [on|off]`
+  - `kiroku version` → `kiroku --version`
+  - `kiroku open` → `kiroku serve`: running it while kiroku serve already runs at that address opens the running view in your browser with its key (with `--no-open`, it prints the address). It tells kiroku serve apart without sending the key, so a program holding the port never gets it. There is no longer a one-time address for another device (`--print`)
+  - `kiroku autostart`: kiroku no longer starts at login. Running `kiroku autostart` once removes the login item that kiroku 4 added, and `kiroku serve --check` says so while one is left
+  - `kiroku html`, with `--week` and `--month`: kiroku no longer writes the view to a file. The view, with its prompts, paths and commit messages, stays in kiroku serve on your computer

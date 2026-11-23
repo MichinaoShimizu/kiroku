@@ -12,7 +12,7 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/source"
 )
 
-// kiroku doctor --report は、種類と数と版だけを書く。履歴にあるパス・プロジェクト名・セッション ID・発言・応答・ホームのフォルダは書かない
+// kiroku serve --check --report は、種類と数と版だけを書く。履歴にあるパス・プロジェクト名・セッション ID・発言・応答・ホームのフォルダは書かない
 // （名前の形でない種類も other にまとめる）。
 func TestDiagnosticsHaveNoHistory(t *testing.T) {
 	old := logw
@@ -73,7 +73,7 @@ func TestDiagnosticsHaveNoHistory(t *testing.T) {
 	b.Reset()
 	formatCheck(&b, rep)
 	if out := b.String(); !strings.Contains(out, "! Claude Code") || !strings.Contains(out, "newest version seen 2.1.300") ||
-		!strings.Contains(out, "1 unreadable line") || !strings.Contains(out, `kiroku doctor --report`) {
+		!strings.Contains(out, "1 unreadable line") || !strings.Contains(out, `kiroku serve --check --report`) {
 		t.Errorf("Format check:\n%s", out)
 	}
 }

@@ -9,8 +9,8 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/archive"
 )
 
-// kiroku archive off で「消す」と答えると、kiroku が書いたコピー（.zst）だけを消し、ほかのファイルは残す。
-// kiroku archive on をしたことのないフォルダ（まちがった --archive-dir）では、消すかどうかを聞きもしない。
+// kiroku serve --archive off で「消す」と答えると、kiroku が書いたコピー（.zst）だけを消し、ほかのファイルは残す。
+// kiroku serve --archive on をしたことのないフォルダ（まちがった --archive-dir）では、消すかどうかを聞きもしない。
 func TestArchiveOffDeletesOnlyCopies(t *testing.T) {
 	old := askYes
 	defer func() { askYes = old }()
@@ -21,7 +21,7 @@ func TestArchiveOffDeletesOnlyCopies(t *testing.T) {
 	writeClaude(t, root, "s1")
 	flags := []string{"--claude-root", root, "--sources", "claude", "--archive-dir", dir}
 	captureOutput(t, func() {
-		if err := dispatch(append([]string{"archive", "on"}, flags...)); err != nil {
+		if err := dispatch(append([]string{"serve", "--archive", "on"}, flags...)); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -30,7 +30,7 @@ func TestArchiveOffDeletesOnlyCopies(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := captureOutput(t, func() {
-		if err := dispatch(append([]string{"archive", "off"}, flags...)); err != nil {
+		if err := dispatch(append([]string{"serve", "--archive", "off"}, flags...)); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -44,14 +44,14 @@ func TestArchiveOffDeletesOnlyCopies(t *testing.T) {
 		t.Errorf(".zst でないファイルを消した: %v", err)
 	}
 
-	// kiroku archive on をしたことのないフォルダ
+	// kiroku serve --archive on をしたことのないフォルダ
 	other := t.TempDir()
 	keep := filepath.Join(other, "claude", "photos", "a.jsonl.zst")
 	os.MkdirAll(filepath.Dir(keep), 0o700)
 	os.WriteFile(keep, []byte("x"), 0o600)
 	asked = 0
 	out = captureOutput(t, func() {
-		if err := dispatch([]string{"archive", "off", "--archive-dir", other}); err != nil {
+		if err := dispatch([]string{"serve", "--archive", "off", "--archive-dir", other}); err != nil {
 			t.Fatal(err)
 		}
 	})

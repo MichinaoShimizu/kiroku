@@ -50,9 +50,9 @@ func TestLegacyFormsRemoved(t *testing.T) {
 		"--serve":           `use "kiroku serve"`,
 		"--serve=:9000":     `use "kiroku serve"`,
 		"-serve":            `use "kiroku serve"`,
-		"--json x.json":     `use "kiroku html -o FILE"`,
-		"-o x.html":         `use "kiroku html -o FILE"`,
-		"--out=x.html":      `use "kiroku html -o FILE"`,
+		"--json x.json":     `use "kiroku serve"`,
+		"-o x.html":         `use "kiroku serve"`,
+		"--out=x.html":      `use "kiroku serve"`,
 		"--weekly":          `use "kiroku serve"`,
 		"--monthly 2026-09": `use "kiroku serve"`,
 		"--sources kiro":    "unknown command: --sources",
@@ -67,7 +67,7 @@ func TestLegacyFormsRemoved(t *testing.T) {
 
 // --root は --claude-root になった。前の名前では、新しい名前を教える。
 func TestRootRenamed(t *testing.T) {
-	for _, args := range [][]string{{"html", "--root", "x"}, {"doctor", "--root=x"}, {"serve", "-root", "x"}} {
+	for _, args := range [][]string{{"serve", "--check", "--root=x"}, {"serve", "--archive", "--root", "x"}, {"serve", "-root", "x"}} {
 		var err error
 		captureOutput(t, func() { err = dispatch(args) })
 		if err == nil || err.Error() != "--root has been renamed to --claude-root" {
@@ -91,11 +91,42 @@ func TestAIRemovedNote(t *testing.T) {
 	}
 }
 
-// --ai と --no-ai は 4.0 で外したが、kiroku autostart on で登録した起動などのために受け付ける（約束: docs/compatibility.md）
+// --ai と --no-ai は 4.0 で外したが、kiroku 4 の autostart で登録した起動などのために受け付ける（約束: docs/compatibility.md）
 func TestServeAcceptsRemovedAIFlags(t *testing.T) {
 	for _, f := range []string{"--ai", "--no-ai"} {
 		if err := cmdServe([]string{f, "--help"}); err != nil {
 			t.Errorf("kiroku serve %s: %v", f, err)
+		}
+	}
+}
+
+// 5.0 で、コマンドは serve・update・help だけにした。点検と履歴のコピーは serve の最初の引数（--check・--archive）。
+// 消したコマンドは、何を使うかを 1 行で言って止まる（0 でない終了コード）。ヘルプには出さない
+func TestRemovedCommands(t *testing.T) {
+	for name, hint := range removedCmds {
+		if name == "autostart" {
+			continue // ログイン時の起動を外すので、TestAutostartRemoved で
+		}
+		err := dispatch([]string{name})
+		if err == nil || !strings.Contains(err.Error(), `"kiroku `+name+`" was removed in kiroku 5.0`) || !strings.Contains(err.Error(), hint) {
+			t.Errorf("kiroku %s = %v", name, err)
+		}
+		if strings.Contains(helpText, "\n  "+name+" ") {
+			t.Errorf("help still lists %q:\n%s", name, helpText)
+		}
+	}
+	err := dispatch([]string{"serve", "--archive", "bogus"})
+	if err == nil || !strings.Contains(err.Error(), "kiroku serve --archive") {
+		t.Errorf("kiroku serve --archive bogus = %v, want an error naming kiroku serve --archive", err)
+	}
+	for _, m := range []string{"--open", "--html", "--autostart"} {
+		if _, ok := serveModes[m]; ok {
+			t.Errorf("serve %s should not exist", m)
+		}
+	}
+	for _, want := range []string{"serve --check", "serve --archive", "update", "help"} {
+		if !strings.Contains(helpText, "  "+want) {
+			t.Errorf("help does not list %q", want)
 		}
 	}
 }
