@@ -241,7 +241,7 @@ async function run(env) {
         return {bg: getComputedStyle(tl).backgroundColor, me: getComputedStyle(pr.querySelector(":scope>p")).backgroundColor, ai: getComputedStyle(rp.querySelector(":scope>p")).backgroundColor,
           meRight: box.right - a.b.right < 40, meTime: a.t.right <= a.b.left + 1 && Math.abs(a.t.bottom - a.b.bottom) < 8,
           aiTime: r.t.left >= r.b.right - 1 && Math.abs(r.t.bottom - r.b.bottom) < 8, aiAv: rp.querySelector(".av").getBoundingClientRect().right <= r.b.left }; });
-      check("流れは灰青のスレートの地に、あなたは右のくすんだ緑、AI は左の白い吹き出し", lay.bg === "rgb(74, 84, 102)" && lay.me === "rgb(169, 196, 174)" && lay.ai === "rgb(242, 243, 245)" && lay.meRight && lay.aiAv, JSON.stringify(lay));
+      check("流れは画面と同じ暗い地に、あなたは右の紫、AI は左の暗い灰の吹き出し", lay.bg === "rgb(29, 27, 32)" && lay.me === "rgb(208, 188, 255)" && lay.ai === "rgb(54, 52, 59)" && lay.meRight && lay.aiAv, JSON.stringify(lay));
       check("時刻は吹き出しの下の端の横（あなたは左、AI は右）", lay.meTime && lay.aiTime, JSON.stringify(lay));
       // 依頼と応答の間に起きたこと（コミットなど）は応答の上に出るので、それを飛ばした手前が依頼
       check("応答は依頼のすぐ後に並ぶ", await p.evaluate(() => { const li = [...document.querySelectorAll("#panel .tl li")], i = li.findIndex(x => x.classList.contains("rp"));

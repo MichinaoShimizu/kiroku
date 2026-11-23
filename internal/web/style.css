@@ -960,12 +960,12 @@ header{background:var(--s-cont);border-bottom:0}
 @media (max-width:520px){.istats .stat:last-child:nth-child(odd){grid-column:auto}}
 /* スマホ：指標の切り替えは折り返さず、横にスクロール */
 @media (max-width:820px){.insk{flex-wrap:nowrap;overflow-x:auto;max-width:100%;scrollbar-width:none}.insk::-webkit-scrollbar{display:none}.insk button{flex:none}.inshead{flex-wrap:wrap}}
-/* ── プロンプトの流れ：メッセージアプリの会話の形（吹き出し・しっぽ・左右）。色は特定のアプリに寄せず、画面のダークに合う落ち着いた色 ──
-   灰青のスレートの地に、あなたの発言は右のくすんだ緑の吹き出しに黒い字（右に小さなしっぽ。自分の印は出さない）、AI の応答は左の白い吹き出しに黒い字（左にしっぽ、その左に丸い印）。
+/* ── プロンプトの流れ：メッセージアプリの会話の形（吹き出し・しっぽ・左右）。色は画面のダークに合わせる ──
+   画面と同じ暗い地に、あなたの発言は右の kiroku の紫の吹き出しに濃い紫の字（右に小さなしっぽ。自分の印は出さない）、AI の応答は左の一段明るい暗い灰の吹き出しに明るい字
+   （左にしっぽ、その左に丸い印）。自分の発言がアクセントの色なので、どこで指示したかを拾いやすく、長い応答はまぶしくない。
    時刻とコピーは吹き出しの下の端の横（あなたは吹き出しの左、AI は右）。あいだに起きたこと（コミット・PR・中断など）は、真ん中の半透明の濃い札に白い字（上限と中断は赤い札）。
-   時刻・コピーなど吹き出しの外の字は、暗い地の上なので明るい字にする。
    字と地の組み合わせは palette_test.go の TestChatContrast で確かめる（字は 4.5:1、小さな印は 3:1 以上）。値を変えるときは両方を直す */
-.tl{--chat-bg:#4a5466;--chat-ink:#eef1f5;--chat-me:#a9c4ae;--chat-me-ink:#111111;--chat-me-meta:#2b4a12;--chat-me-tag:rgba(0,0,0,.1);--chat-me-warn:#6b0d08;--chat-ai:#f2f3f5;--chat-ai-ink:#111111;--chat-ai-meta:#5c5c5c;--chat-ai-mark:#3d5a85;--chat-link:#1f5fbf;--chat-sys:rgba(0,0,0,.4);--chat-sys-ink:#ffffff;--chat-note:#c9c6ff;--chat-warn:#a8201a;--chat-warn-ink:#ffffff;--chat-gap:#3d4656;background:var(--chat-bg);border-radius:16px;padding:14px 12px}
+.tl{--chat-bg:#1d1b20;--chat-ink:#cac4d0;--chat-me:#d0bcff;--chat-me-ink:#21005d;--chat-me-meta:#4a3880;--chat-me-tag:rgba(0,0,0,.1);--chat-me-warn:#701410;--chat-ai:#36343b;--chat-ai-ink:#ece6f0;--chat-ai-meta:#bdb6c4;--chat-ai-mark:#d0bcff;--chat-link:#a8c7fa;--chat-sys:rgba(0,0,0,.5);--chat-sys-ink:#ffffff;--chat-note:#c9c6ff;--chat-warn:#a8201a;--chat-warn-ink:#ffffff;--chat-gap:#2b2930;background:var(--chat-bg);border-radius:16px;padding:14px 12px}
 .tl li>time,.tl time,.drawer .tl time{color:var(--chat-ink)}
 .tl :focus-visible,.tl li.pr:focus-visible{outline-color:var(--chat-ink)}
 .tl li.pr:not(.ev)>.av{display:none}

@@ -1,0 +1,1 @@
+- The prompt flow is easier to read: it sits on the view's own dark background, your prompts are in kiroku's purple with dark text, and replies are in a slightly lighter dark gray with light text, so your prompts stand out and long replies aren't bright
