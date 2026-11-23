@@ -1233,9 +1233,9 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 /* サマリーの指標名は、値の次に目に入るように太く濃く（小さな灰色だと、どの数字か探しにくい） */
 .itile .il{font-size:var(--fs-lg);font-weight:600;color:var(--ink)}
 #review .insight .stat .k{font-size:var(--fs-sm);font-weight:600;color:var(--ink)}
-/* コストのグラフの、前の期間からの増減（各点の上の %）。線に重なっても読めるよう、地の色で縁取る */
-.tspk .spc{font-size:9px;fill:var(--ink-2);text-anchor:middle;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
-.tlg .lg.pcl::before{display:none}
+/* 量のパネルの棒の上の、その期間の実際の量（insBarS）。棒や線に重なっても読めるよう、地の色の縁取り。表示中の期間は濃く */
+.tspk .spc{font-size:9px;fill:var(--ink-2);text-anchor:middle;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}.tspk .spc.cur{fill:var(--ink);font-weight:600}
+
 /* 量のパネル（投入・出力）の棒：過去の期間は淡く、表示中の期間は濃く。途中の期間は、期間の終わりの推定までを淡い破線の棒で */
 .tspk .sbar{fill:color-mix(in oklab,var(--acc) 40%,var(--surface))}.tspk .sbar.cur{fill:var(--acc)}
 .tspk .sbar.ext{fill:color-mix(in oklab,var(--acc) 14%,transparent);stroke:var(--acc);stroke-width:1.2;stroke-dasharray:3 2}
@@ -1266,8 +1266,6 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 @container (max-width:520px){.inscol>.insfig.iwdn{flex-direction:column;align-items:stretch}}
 /* 切り替えで、今の量では数字のない割る数のボタンは隠す。単価のカードも、選んでいない組の数字は隠す */
 .iksw [data-v][hidden]{display:none}
-.iksw [aria-disabled="true"],.iksw [aria-disabled="true"]:hover{color:var(--ink-3);cursor:not-allowed} /* 今の期間・量では数字のない選択肢：隠さずに薄く（理由は title と読み上げの文字。押すと .iknote に 1 行） */
-.iknote{margin:0;font-size:var(--fs-sm);font-weight:400;color:var(--ink-2)}.iknote:not(:empty){margin-top:6px}
 /* カードは自分の高さのまま（石積みの隣のカードの高さに伸ばさない） */
 .insrow>*{align-self:start}
 /* 指標の 1 行（rowH）：名前と「?」「ƒx」・値の 1 段目、いつもの範囲の印と前の期間との比べの 2 段目。式と注は「ƒx」で 3 段目に */
