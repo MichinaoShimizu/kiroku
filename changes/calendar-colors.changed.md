@@ -1,5 +1,0 @@
-- Week calendar bars are filled with a tint of their Color by color (agent or project) and a wider stripe, so switching Color by visibly recolors them; busier sessions get a stronger tint
-- Agents have their own set of colors, distinguishable also for red-green color-blind readers and never green, red or amber: Claude Code blue, Kiro IDE / CLI (V3) violet, Kiro CLI (V2) and Kiro CLI (SQLite) plum, Kiro Crew pink, Codex cyan
-- Saturday and Sunday share one neutral background (no red Sunday, no blue Saturday), and the month calendar's shade is a neutral gray-blue that no longer looks like an agent's color and keeps its text readable on the busiest days
-- Every number in the calendar and the band above it has an English unit, also in the Japanese view: "5 commits", "44 credits", "12M tokens"; the commit count is no longer green, and day headings wrap instead of hiding figures in narrow columns
-- Today is marked more quietly: its date in the accent color, without an outline around the day or a filled date chip

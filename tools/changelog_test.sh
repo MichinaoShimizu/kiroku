@@ -3,6 +3,7 @@
 # 一時ディレクトリに写して動かし、結果を want*.md と比べる。tools/check.sh から動かす。
 #   sh tools/changelog_test.sh
 set -u
+unset KIROKU_MAJOR_OK # リリースを KIROKU_MAJOR_OK=1 で作るときも、major-gap のテストは既定の動きで確かめる
 here=$(cd "$(dirname "$0")" && pwd)
 fx=$here/testdata/changelog
 tmp=$(mktemp -d)

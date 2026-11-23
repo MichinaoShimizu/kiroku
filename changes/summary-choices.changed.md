@@ -1,3 +1,0 @@
-- Summary panels no longer offer choices that have nothing to show for the period (such as PRs with Kiro alone, or Pushes with one agent picked). Before, these were dimmed, and pressing one showed its reason in a line that pushed the chart down. The divisor switch of the unit cost panels shows only the divisors that have a figure for the measure picked
-- The Input and Output bars are labeled with each period's amount (such as $1.2k, 44, 12M or 18h) instead of the change from the previous period; the change is in the bar's tooltip
-- The Sankey diagram's heading is now "From input to output" (投入から出力の流れ)
