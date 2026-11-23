@@ -781,6 +781,7 @@ const JA_TEXT = {
   "{d} {vs} ({pc}); the biggest change is {p} ({pd})": "{vs} {d}（{pc}）。いちばん変わったのは {p}（{pd}）",
   "From input to output": "投入から出力の流れ",
   "Sankey diagram": "サンキーダイアグラム",
+  "Cut bar: beyond the scale, with its amount on it": "上を切った棒：目盛りを超える（量は棒の中）",
   "Commit or PR": "コミットか PR",
   "Files changed only": "ファイルの変更だけ",
   "{v} ({pc}%) to sessions that changed files without one": "コミットも PR もないがファイルを変えたセッションに {v}（{pc}%）",

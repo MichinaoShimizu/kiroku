@@ -95,7 +95,11 @@ function insSpark(b, label, W = 480, bar = false){
   // 利用上限に当たった期間（棒のグラフでは、棒に重ねず x 軸のすぐ下の段に印を置き、期間の名前をその分だけ下げる）
   const lh = use ? ps.map(q => limitHits(q.p.ws, q.p.we)) : [], LB = bar && lh.some(h => h.length) ? 12 : 0;
   const wk = st.mode !== "month", H = 270, L = 50, R = add ? 50 : 12, T = 20, PX = !bar && n > 1 ? 16 : 0, step = bar ? (W - L - R) / n : n > 1 ? (W - L - R - 2 * PX) / (n - 1) : W - L - R;
-  const thin = wk && n > 1 && (bar ? step : (W - L - R - 32) / (n - 1)) < 32, B = 34 + LB, mx = Math.max(...vals, b.q3 || 0);
+  // 棒のグラフで 1 本だけ飛び抜けている（2 番目の 2.5 倍を超える）ときは、目盛りを 2 番目といつもの範囲に合わせ、その棒だけ上を切る
+  // （ほかの棒が潰れて読めなくならないように）。切った棒には切れ目の印を付け、実際の量は棒の中に書く（insBarS）。対数の目盛りは使わない（棒の長さが量に比例しなくなる）
+  const tops = !bar ? [] : ps.map(q => q.v == null ? 0 : q.cur && b.part ? Math.max(b.v, b.cur) : q.v).filter(v => v > 0).sort((p, q) => q - p);
+  const cut = tops.length >= 3 && tops[0] > 2.5 * tops[1] ? Math.max(tops[1], b.q3 || 0, ...(add ? [] : vals.filter(v => v < tops[0]))) * 1.15 : null;
+  const thin = wk && n > 1 && (bar ? step : (W - L - R - 32) / (n - 1)) < 32, B = 34 + LB, mx = cut != null ? cut : Math.max(...vals, b.q3 || 0);
   // 目盛りは、各点の値を読み取れるよう細かく（6〜10 本ほど）、切りのよい刻みで。数える指標は整数、時間は 1 時間単位の刻み
   const Y1 = insTicks(k, MET[k].u === "%" ? Math.min(100, mx * 1.1) : mx * 1.02), top = Y1.top, x = i => bar ? L + (i + .5) * step : L + (n === 1 ? (W - L - R) / 2 : PX + i * step), y = v => T + (H - T - B) * (1 - v / top);
   const cProj = add && b.part && ps[n - 1].c != null ? ps[n - 1].c - b.cur + b.v : null; // 途中の期間：このペースで期間を終えたときの累積
@@ -121,7 +125,8 @@ function insSpark(b, label, W = 480, bar = false){
   const cprj = cProj != null && ps[n - 1].c != null ? `<line class="cprj" x1="${xc(n - 1).toFixed(1)}" y1="${y2(ps[n - 1].c).toFixed(1)}" x2="${x(n - 1).toFixed(1)}" y2="${y2(cProj).toFixed(1)}"/><circle class="cprjd" cx="${x(n - 1).toFixed(1)}" cy="${y2(cProj).toFixed(1)}" r="3"/>` : "";
   let marks;
   if (bar){ // 棒：過去の期間は淡い色、表示中の期間は濃い色。途中の期間は、今までの値の棒の上に、期間の終わりの推定までの淡い破線の棒
-    const bw = Math.min(22, step * .64), rc = (cls, i, v0, v1) => `<rect class="${cls}" x="${(x(i) - bw / 2).toFixed(1)}" y="${y(v1).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0, y(v0) - y(v1)).toFixed(1)}"/>`;
+    const bw = Math.min(22, step * .64), yc = v => y(Math.min(v, top)), rc = (cls, i, v0, v1) => `<rect class="${cls}" x="${(x(i) - bw / 2).toFixed(1)}" y="${yc(v1).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0, yc(v0) - yc(v1)).toFixed(1)}"/>`
+      + (v1 > top ? `<path class="sbrk" d="M${(x(i) - bw / 2 - 2).toFixed(1)} ${(T + 12).toFixed(1)}l${(bw + 4).toFixed(1)} -5m0 5l${(-bw - 4).toFixed(1)} 5"/>` : ""); // 上を切った棒の切れ目（地の色の 2 本の斜め線）
     marks = ps.map((q, i) => q.v == null ? "" : !q.cur ? rc("sbar", i, 0, q.v) : b.part ? (b.v > b.cur ? rc("sbar ext", i, b.cur, b.v) : "") + rc("sbar cur", i, 0, b.cur) : rc("sbar cur", i, 0, q.v)).join("");
   } else {
     const line = ps.map((q, i) => q.v == null || (q.cur && b.part) ? null : `${x(i).toFixed(1)},${y(q.v).toFixed(1)}`).filter(Boolean).join(" ");
@@ -136,8 +141,8 @@ function insSpark(b, label, W = 480, bar = false){
   const pcS = v => `${v > 0 ? "+" : v < 0 ? "−" : "±"}${Math.abs(v)}%`, vsL = st.mode === "month" ? t("vs last month") : t("vs last week");
   // 数字が棒の間に収まらない（9px の字で 1 字 5.5px ほど）ときだけ、1 つおきに（表示中の期間と、そこから 2 つおきは残す）
   const bv = q => q.v == null ? null : insBarS(k, q.cur && b.part ? b.cur : q.v), alt = bar && Math.max(0, ...ps.map(q => (bv(q) || "").length)) * 5.5 > step - 3;
-  const pcl = !bar ? "" : ps.map((q, i) => { if (q.v == null || ((n - 1 - i) % 2 && alt)) return ""; const yy = y(q.cur && b.part ? Math.max(b.v, b.cur) : q.v), up = yy > T + 12;
-    return `<text class="spc${q.cur ? " cur" : ""}" x="${x(i).toFixed(1)}" y="${(up ? yy - 4 : yy + 12).toFixed(1)}">${esc(bv(q))}</text>`; }).join(""); // 上端に近い棒は、棒の中に
+  const pcl = !bar ? "" : ps.map((q, i) => { const hv = q.v == null ? 0 : q.cur && b.part ? Math.max(b.v, b.cur) : q.v, over = hv > top; if (q.v == null || (!over && (n - 1 - i) % 2 && alt)) return ""; const yy = y(Math.min(hv, top)), up = yy > T + 12;
+    return `<text class="spc${q.cur ? " cur" : ""}${over ? " over" : ""}" x="${x(i).toFixed(1)}" y="${(over ? T + 28 : up ? yy - 4 : yy + 12).toFixed(1)}">${esc(bv(q))}</text>`; }).join(""); // 上端に近い棒は棒の中に。上を切った棒は、切れ目の下に
   const hits = ps.map((q, i) => `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H - B}"${tipAttr(q.p.label, q.v == null ? t("No records") : (q.cur && b.part ? insEndLabel(fm(q.v)) : fm(q.v)), q.cur && b.part ? `${t("So far")}: ${fm(b.cur)}` : "", q.c == null ? "" : `${cl}: ${fm(q.c)}`, pcOf(i) == null ? "" : `${vsL} ${pcS(pcOf(i))}`, q.cur && cProj != null ? `${cl} (${insEndLabel(fm(cProj))})` : "")}/>`).join("");
   // 利用上限に当たった時刻：小さな赤い三角（縦線はグラフを隠すので引かない）。同じ期間の到達は 1 つにまとめ、回数を添える。
   // 棒のグラフでは x 軸のすぐ下の段に（棒の上に重ねると、棒の色に紛れる）、線のグラフでは x 軸の上に
@@ -324,7 +329,7 @@ function insHeadlines(F){
   const L1 = (cls, sel, text) => `<span class="lg ${cls}" data-lg="${sel}">${esc(text)}</span>`;
   // 量のパネル（投入・出力）は棒、単価のパネルは点と線（insSpark）。凡例の印もそれに合わせる
   const lgd = id => { const bar = !INS_RATE.has(id), est = M ? t("Month-end estimate") : t("End-of-week estimate");
-    return `<p class="tlg" aria-hidden="true">${bar ? L1("bnow", "rect.sbar.cur", now) : L1("now", "circle.now", now)}${insFrac() < 1 ? (bar ? L1("bnow part", "rect.sbar.ext", est) + L1("prj cumj", "line.cprj", t("Projection")) : L1("now part", "circle.now.part", est) + L1("prj", "line.prj, line.cprj", t("Projection"))) : ""}${L1("band", "rect.band", t("Middle half of your past {unit}", {unit: insNoun()}))}${L1("med", "line.med", t("median"))}${id === "out" ? "" : L1("cum", "polyline.cuml", INS_RATE.has(id) ? t("Running average") : t("Cumulative (right axis)"))}${limAny && id === "cost" ? L1("lgl", "path.slim", t("Usage limit hits")) : ""}</p>`; };
+    return `<p class="tlg" aria-hidden="true">${bar ? L1("bnow", "rect.sbar.cur", now) : L1("now", "circle.now", now)}${insFrac() < 1 ? (bar ? L1("bnow part", "rect.sbar.ext", est) + L1("prj cumj", "line.cprj", t("Projection")) : L1("now part", "circle.now.part", est) + L1("prj", "line.prj, line.cprj", t("Projection"))) : ""}${L1("band", "rect.band", t("Middle half of your past {unit}", {unit: insNoun()}))}${bar ? L1("brk", "path.sbrk", t("Cut bar: beyond the scale, with its amount on it")) : ""}${L1("med", "line.med", t("median"))}${id === "out" ? "" : L1("cum", "polyline.cuml", INS_RATE.has(id) ? t("Running average") : t("Cumulative (right axis)"))}${limAny && id === "cost" ? L1("lgl", "path.slim", t("Usage limit hits")) : ""}</p>`; };
   // パネル：頭（見出し・切り替え・注）、タイル（値の段・グラフ・印）、凡例。投入（cost・uin）は左の列、出力（out・unit）は右の列（INS_SIDE）
   const card = (id, label, sws, data, cur, items, note = "") => `<section class="ikg ik-${id} side-${INS_SIDE[id]}"${data} aria-label="${esc(label)}"><div class="ikhd"><span class="ikio" aria-hidden="true">${INS_SIDE[id] === "in" ? "IN" : "OUT"}</span><h5 class="ikgh">${esc(label)}${sws}</h5>${note}</div><div class="ikrow">${items.map(x => x.key === cur ? x.h : x.h.replace(`data-ch="${x.key}"`, `data-ch="${x.key}" hidden`)).join("")}</div>${lgd(id)}</section>`;
   // 選択肢はいつも同じ並び。数字のないものは出さない（覚えている選択が使えなければ、最初の使えるものに）

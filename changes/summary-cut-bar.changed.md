@@ -1,0 +1,1 @@
+- In the Input and Output bar charts, a bar more than 2.5 times the next highest is cut at the top with a break mark and its amount written on it, and the scale fits the other bars, so one unusual period no longer flattens the rest. The legend explains the mark

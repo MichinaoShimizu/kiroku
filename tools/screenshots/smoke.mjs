@@ -467,6 +467,11 @@ async function run(env) {
         return {say, charts, rows: rowsOk, tiles: tilesOk, half, badTiles, grid: three}; });
       check("どのグラフにも、データから計算した読み取りの 1 文があり、広い画面ではカードが 3 列に並び、カードは重ならず中の下が空かない。カードとグラフのタイルはページの半分より広くなく、奇数のタイルも行の幅を埋める", lay.say === lay.charts && lay.rows && lay.tiles && lay.grid, JSON.stringify(lay));
       check("投入と出力の棒の上には、% ではなくその期間の実際の量がある", await p.evaluate(() => { const l = [...document.querySelectorAll("#review .ik-cost .tspk:not(.ww) .spc, #review .ik-out .tspk:not(.ww) .spc")]; return l.length > 0 && l.every(e => /^\$?\d+(\.\d)?[kMh]?$|^\d+m$/.test(e.textContent)); }));
+      check("1 本だけ飛び抜けた棒は上を切り、切れ目の印と実際の量を付ける（ほかの棒が潰れない）。戻せば切らない", await p.evaluate(() => {
+        const ks = Object.keys(WEEKS).sort(), w = WEEKS[ks[ks.length - 5]], old = w.usage.cost; w.usage.cost = 240; summary();
+        const g = document.querySelector("#review .ik-cost .tspk:not(.ww)"), cut = !!g && g.querySelectorAll("path.sbrk").length === 1 && [...g.querySelectorAll(".spc.over")].some(e => e.textContent === "$240") && !!document.querySelector('#review .ik-cost .tlg [data-lg="path.sbrk"]:not([hidden])');
+        w.usage.cost = old; summary(); const g2 = document.querySelector("#review .ik-cost .tspk:not(.ww)");
+        return cut && !!g2 && g2.querySelectorAll("path.sbrk").length === 0; }));
       const h = await p.evaluate(() => ({rows: document.querySelectorAll("#review .ihgrid .ihd").length, cells: document.querySelectorAll("#review .ihgrid .ihc").length}));
       check("曜日×時間のヒートマップ（7×24）がある", h.rows === 7 && h.cells === 168, JSON.stringify(h));
       check("推移・累積・散布図・長さ別・箱ひげ・ガントのカードはない（上のパネルとカレンダーと重なるので消した）", await p.evaluate(() => !document.querySelector("#review .trendk, #review .insksel, #review polyline.icum, #review .ipt, #review .ihist, #review .ibxf, #review .igt, #review [data-ins], #review [data-cum], #review [data-scat], #review [data-bxk]")));
