@@ -9,7 +9,6 @@ One file per kind of change: `changes/<short-name>.<section>.md`
 - `<short-name>`: lowercase letters, digits and `-`, starting with a letter or digit, for example the branch name (`serve-key`, `codex-subagents`). It only keeps files apart; it never appears in the changelog.
 - `<section>`: one of `added`, `changed`, `deprecated`, `removed`, `fixed`, `security`. It becomes `### Added`, `### Changed` and so on.
 - Content: one or more `- ` bullets in English, written as they should appear in the release notes. A line that continues a bullet, or a nested `  - ` bullet, is indented by two spaces. Blank lines are dropped. Nothing else: no headings, no text outside a bullet.
-- While kiroku is in 0.x, start a bullet with `STABLE:` to make the next release 1.0.0, the version from which [docs/compatibility.md](../docs/compatibility.md) holds. It means nothing after 1.0.
 - Start a bullet with `BREAKING:` for a change that breaks what [docs/compatibility.md](../docs/compatibility.md) keeps compatible. It bumps the minor version while in 0.x and the major version from 1.0. Deprecate it first and add the `BREAKING:` fragment only when the removal is due ([How breaking changes are released](../docs/compatibility.md#how-breaking-changes-are-released)).
 
 A pull request with changes of more than one kind adds one file per section, for example `serve-key.security.md` and `serve-key.fixed.md`.
