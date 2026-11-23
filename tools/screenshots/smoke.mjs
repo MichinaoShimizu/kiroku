@@ -750,7 +750,7 @@ async function run(env) {
 
   await step("見直す候補", async () => {
     await view("sum");
-    check("日の見出しの 1 行は、名前つきのただの文字（HTML を含まない）", await p.evaluate(() => [...document.querySelectorAll("#tl .head .cline > span[aria-label]")].every(e => !/[<>]/.test(e.getAttribute("aria-label")) && e.querySelectorAll("*:not(svg):not(svg *)").length === 0)));
+    check("日の見出しの 1 行は、名前つきのただの文字（HTML を含まない）", await p.evaluate(() => [...document.querySelectorAll("#tl .head .cline > span[aria-label]")].every(e => !/[<>]/.test(e.getAttribute("aria-label")) && e.querySelectorAll("*:not(svg):not(svg *):not(small)").length === 0)));
     check("上限の印は、そのセッションの帯の左端にある（隣の帯に重ねない）", await p.evaluate(() => [...document.querySelectorAll("#tl .lim")].every(m => { const r = m.getBoundingClientRect(), bs = [...m.closest(".day").querySelectorAll(`.run[data-sid="${CSS.escape(m.dataset.id)}"]`)].map(b => b.getBoundingClientRect());
       return !bs.length || bs.some(b => Math.abs(b.left - r.left) <= 4); })));
     check("夜遅い印も日の枠の中にある", await p.evaluate(() => [...document.querySelectorAll("#tl .day")].every(d => { const db = d.getBoundingClientRect(); return [...d.querySelectorAll(".gc, .gm")].every(m => m.getBoundingClientRect().bottom <= db.bottom + 1); })));
@@ -998,6 +998,52 @@ async function run(env) {
     await p.locator('#review .iksw[data-sw="cost"] [data-v="cost"]').click(); await pause();
     check("サマリーのクレジットのカードにも、今月末の推定がある（式を出しているときは式で）", /Month-end estimate \(this month\)|Month-end credits = /.test(tile) && tile.includes(mp.v), tile);
     await view("cal");
+  });
+
+  // カレンダーの色と数の単位（週・月）。ブロックの塗りは色分けの色を混ぜたもので、色分けを変えると変わる。土日は中立の同じ地、月の濃さはエージェントの色ではない。
+  // 週の日の見出し・月のマス・上の帯の数には、どれも英語の単位（5 commits・44 credits・$2.22・3h）があり、はみ出さない。今日の印は控えめ
+  await step("カレンダーの色と単位", async () => {
+    await open();
+    const rgb = s => (s.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+    const fills = () => p.evaluate(() => [...document.querySelectorAll("#tl .run[data-sid]")].map(e => getComputedStyle(e).backgroundColor));
+    const sur = await p.evaluate(() => { const d = document.createElement("div"); d.style.background = "var(--surface)"; document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; });
+    const setBy = v => p.evaluate(v => { const s = document.querySelector("#cb2"); s.value = v; s.dispatchEvent(new Event("change")); }, v);
+    await setBy("source"); await pause();
+    const fa = await fills();
+    const tinted = f => { const [r, g, b] = rgb(f), [R, G, B] = rgb(sur); return Math.abs(r - R) + Math.abs(g - G) + Math.abs(b - B) >= 18; };
+    check("週のブロックの塗りは、色分けの色を地に混ぜたもの（地の色のままではない）", fa.length > 0 && fa.every(tinted), fa.filter(f => !tinted(f)).slice(0, 3).join(" / "));
+    await setBy("project"); await pause();
+    const fp = await fills();
+    check("Color by を変えると、ブロックの塗りも変わる", fp.length === fa.length && fp.some((f, i) => f !== fa[i]), `${fa.slice(0, 3)} → ${fp.slice(0, 3)}`);
+    await setBy("source"); await pause();
+    const reddish = c => { const [r, g, b] = rgb(c); return r - Math.max(g, b) > 12; };
+    const we = await p.evaluate(() => [...document.querySelectorAll("#tl .head.we, #tl .day.we")].map(e => [e.className, getComputedStyle(e).backgroundColor, getComputedStyle(e.querySelector("b") || e).color]));
+    check("土日は中立の同じ地（赤い地や字はない。土曜と日曜で同じ）", we.length >= 4 && we.every(([, bg, c]) => !reddish(bg) && !reddish(c)) && new Set(we.filter(([k]) => /head/.test(k)).map(([, bg, c]) => bg + c)).size === 1, JSON.stringify(we.slice(0, 4)));
+    const unitOK = s => !/\d/.test(s.replace(/\$[\d.,]+[KMB]?|\b\d+[hm]\b|[\d.,]+[KMB]? (commits?|credits?|tokens)\b/g, ""));
+    const audit = () => p.evaluate(() => { const bad = [], txt = [];
+      for (const box of document.querySelectorAll("#tl .head, .mgrid .cell:not(.out), #kpis .kpi")) { const r = box.getBoundingClientRect(); if (!r.width) continue;
+        for (const e of box.querySelectorAll(".cline > span, .acs, .acm, .act, .v")) { if (!e.getClientRects().length) continue;
+          const q = e.getBoundingClientRect(); txt.push(e.innerText.replace(/\s+/g, " ").trim());
+          if (q.left < r.left - 1 || q.right > r.right + 1 || e.scrollWidth > e.clientWidth + 1) bad.push(txt.at(-1)); } }
+      const lines = [...document.querySelectorAll("#tl .head .cline")].flatMap(l => l.innerText.split("\n").map(x => x.trim()).filter(Boolean));
+      return {bad, txt, lines}; });
+    const wide = [1440, 1000, 390].includes(env.viewport.width);
+    for (const m of ["week", "month"]) for (const k of ["cost", "credits", "tokens", "active"]) {
+      await p.evaluate(([m, k]) => { st.shade = k; setMode(m); render(); }, [m, k]); await p.waitForTimeout(100);
+      const a = await audit(), noUnit = a.txt.filter(s => !unitOK(s));
+      check(`${m} · ${k}: 日の見出し・月のマス・上の帯の数には、どれも単位がある`, a.txt.length > 0 && noUnit.length === 0, noUnit.slice(0, 4).join(" / "));
+      if (wide) check(`${m} · ${k}: 日の見出し・月のマス・上の帯の数は、枠からはみ出さない`, a.bad.length === 0, a.bad.slice(0, 4).join(" / "));
+      if (m === "week") check(`${m} · ${k}: 日の見出しの行は「·」で始まったり終わったりしない`, a.lines.every(l => !/^·|·$/.test(l)), a.lines.filter(l => /^·|·$/.test(l)).slice(0, 3).join(" / "));
+    }
+    await p.evaluate(() => { st.shade = "cost"; setMode("month"); render(); }); await pause();
+    const heat = await p.evaluate(() => [...document.querySelectorAll(".mgrid .cell:not(.wkc):not(.out)")].filter(c => +c.style.getPropertyValue("--heat") > .5).map(c => getComputedStyle(c).backgroundColor));
+    const agents = await p.evaluate(() => AGENTS.map(a => { const d = document.createElement("div"); d.style.background = `var(--a${a.slot})`; document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; }));
+    const sat = c => { const [r, g, b] = rgb(c); return Math.max(r, g, b) - Math.min(r, g, b); };
+    check("月の濃さはエージェントの色相ではなく中立の灰青（鮮やかさが低い）", heat.length > 0 && heat.every(c => sat(c) <= 24 && !agents.includes(c)), heat.slice(0, 3).join(" / "));
+    const td = await p.evaluate(() => { const c = document.querySelector(".mgrid .cell.today"); if (!c) return null; const s = getComputedStyle(c), d = getComputedStyle(c.querySelector(".dn"));
+      return {shadow: s.boxShadow, outline: s.outlineStyle, chip: d.backgroundColor}; });
+    check("月の今日のマスは枠で囲まず、日付も塗らない", !td || (td.shadow === "none" && td.outline === "none" && /rgba\(0, 0, 0, 0\)|transparent/.test(td.chip)), JSON.stringify(td));
+    await p.evaluate(() => { setMode("week"); render(); }); await pause();
   });
 
   check("スクリプトのエラーがない", errors.length === 0, errors.join(" / "));

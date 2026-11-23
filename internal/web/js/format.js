@@ -40,11 +40,13 @@ const costOf = u => !u ? null : !u.cost && u.unpriced ? null : (u.cost || 0);
 const NOPRICE = t("The models used are not in the price table, so the estimated cost cannot be shown. Add their prices with --prices.");
 const crN = v => v >= 10 || v <= 0 ? commas(Math.round(v)) : v >= 1 ? (Math.round(v * 10) / 10).toString() : v.toFixed(2); // クレジットは整数で。10 未満は小数 1 桁（1.33 を 1 と丸めすぎない）、1 未満は小数 2 桁
 // クレジットの単位（"cr" では何の数かわからないので、言葉で）。日本語の画面では、名前（クレジット・Kiro クレジット）と同じくカタカナ
-const crUnit = v => v === 1 && !isJA() ? "credit" : "credits"; // 日本語でもカタカナにせず「credits」（Kiro の画面と同じ言葉）
+const crUnit = v => v === 1 ? "credit" : "credits"; // 日本語の画面でもカタカナにせず英語の「credit(s)」（Kiro の画面と同じ言葉）
 function cr(v){ return `${crN(v)} ${crUnit(v)}`; }
 const crR = v => v >= 100 ? commas(Math.round(v)) : (Math.round(v * 10) / 10).toLocaleString(LOC()); // クレジットの率（小数 1 桁。いつもの範囲の数と同じ丸め）
 const cr1 = v => `${Math.round(v * 10) / 10} ${crUnit(v)}`; // 式の中のクレジット（小数 1 桁。整数に丸めると、引き算の結果と合わなくなる）
 const crH = v => `${crN(v)}<small>&nbsp;${esc(crUnit(v))}</small>`; // HTML に入れる形（単位を小さく）
+// 英語の単位を付けた数（カレンダーの数は、日本語の画面でも英語の単位：5 commits・1 commit・12M tokens）
+const nUnit = (n, one, many) => `${commas(n)} ${n === 1 ? one : many || one + "s"}`;
 const tokS = v => v >= 1e7 ? Math.round(v/1e6)+"M" : v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e4 ? Math.round(v/1e3)+"K" : tok(v); // 狭いマス用に、桁を減らしたトークン
 function bytes(n){ return n >= 1<<30 ? (n/(1<<30)).toFixed(1)+" GB" : n >= 1<<20 ? (n/(1<<20)).toFixed(1)+" MB" : n >= 1<<10 ? (n/(1<<10)).toFixed(1)+" KB" : n+" B"; }
 function secs(v){ return v == null ? "—" : (v < 60 ? `${v}s` : `${Math.floor(v/60)}m ${v%60}s`); }
@@ -53,19 +55,15 @@ function isoWeek(d){ d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getD
   const y0 = new Date(Date.UTC(d.getUTCFullYear(),0,1)); return Math.ceil(((d-y0)/864e5+1)/7); }
 const keyOf = s => st.colorBy === "project" ? s.project : s.source;
 // エージェントの色は、どの画面でも同じにする（色分けの切り替えや件数の順では変わらない）。
-// 色は core.Agents の Slot（警告に見えないよう、AG_WARN のオレンジと黄色は使わない）。
-// 表にないエージェントは、表でも警告でも使っていない色を、多い順にあてる
+// 色は core.Agents の Slot が指すエージェントの色（--a0〜、区分の 8 色とは別の組）。表にないエージェントは灰色
 const AG_SLOT = Object.fromEntries(AGENTS.map(a => [a.name, a.slot]));
-let slot = Object.create(null), agSlot = Object.create(null); // 名前（プロジェクト名など、履歴から来る）を鍵にするので、__proto__ などがふつうの鍵になるように
+let slot = Object.create(null); // 名前（プロジェクト名など、履歴から来る）を鍵にするので、__proto__ などがふつうの鍵になるように
 function assignColors(){ // 全期間の多い順に固定。週を変えても、非表示にしても色は変わらない
   const count = f => { const n = Object.create(null); DATA.forEach(s => n[f(s)] = (n[f(s)]||0) + 1); return Object.keys(n).sort((a,b)=>n[b]-n[a]); };
-  const free = [...Array(SLOTS).keys()].filter(i => !Object.values(AG_SLOT).includes(i) && !AG_WARN.includes(i));
-  agSlot = Object.create(null); count(s => s.source).filter(k => !Object.hasOwn(AG_SLOT, k)).forEach((k,i) => { if (i < free.length) agSlot[k] = free[i]; });
   slot = Object.create(null); if (st.colorBy === "source") return;
   count(keyOf).forEach((k,i) => slot[k] = i < SLOTS ? `var(--c${i})` : "var(--other)");
 }
-const agIdx = name => (Object.hasOwn(AG_SLOT, name) ? AG_SLOT[name] : undefined) ?? agSlot[name]; // 色の番号（--c0〜--c7）。色がなければ undefined
-const agColor = name => { const i = agIdx(name); return i == null ? "var(--other)" : `var(--c${i})`; };
+const agColor = name => Object.hasOwn(AG_SLOT, name) ? `var(--a${AG_SLOT[name]})` : "var(--other)";
 /* モデル名の色（--c0〜--c7）。系統（Opus・Sonnet・Haiku・GPT など）ごとに決まった色で、知らない名前は名前から決める。
    同じ一覧の中で色が重なったら（同じ系統の別の版など）、空いている次の色にして、モデル名ごとに見分けられるようにする */
 const MODEL_FAM = [[/opus/i, 6], [/sonnet/i, 0], [/haiku/i, 2], [/fable/i, 1], [/gpt|codex|^o\d/i, 5], [/gemini/i, 4], [/kiro|amazon|nova/i, 3]];

@@ -12,7 +12,7 @@ import (
 type Agent struct {
 	Name    string   `json:"name"`            // 画面とセッションの source に出る名前（Source.Name()。Kiro Crew のように、ほかの Source が読むものもある）
 	Family  string   `json:"-"`               // --sources で選ぶ名前（Source.Family()）
-	Slot    int      `json:"slot"`            // 画面の色（--c<Slot>）。警告の色（AgentWarnSlots）は使わない
+	Slot    int      `json:"slot"`            // 画面の色（style.css の --a<Slot>。0 から AgentColors-1）
 	Mark    string   `json:"mark"`            // バッジに出す頭文字
 	Env     []string `json:"-"`               // 読む場所を変える、エージェント自身の環境変数（kiroku autostart が書き残す）
 	Archive string   `json:"-"`               // kiroku archive がコピーを置く、保存場所の下のフォルダ（空ならコピーしない）
@@ -20,18 +20,19 @@ type Agent struct {
 	About   string   `json:"about,omitempty"` // 画面の「Data sources」で名前に添える説明（名前だけでは何の履歴かわかりにくいとき）
 }
 
-// AgentWarnSlots は、警告に見えるのでエージェントに使わない色（オレンジ・黄色）。
-var AgentWarnSlots = []int{1, 3}
+// AgentColors は、エージェントの色（style.css の --a0〜）の数。区分の 8 色とは別の組で、良し悪しの緑・赤や琥珀は入れない。
+// 違うエージェントには違う色をあてる（Kiro CLI (V2) と Kiro CLI (SQLite) は同じものの新旧なので同じ色）
+const AgentColors = 5
 
 // Agents は対応しているエージェント。並びは --sources の既定値と説明、環境変数の順。
 var Agents = []Agent{
 	{Name: "Claude Code", Family: "claude", Slot: 0, Mark: "CC", Env: []string{"CLAUDE_CONFIG_DIR"}, Archive: "claude"},
-	{Name: "Kiro IDE / CLI (V3)", Family: "kiro", Slot: 6, Mark: "KI", Env: []string{"KIRO_HOME"},
+	{Name: "Kiro IDE / CLI (V3)", Family: "kiro", Slot: 1, Mark: "KI", Env: []string{"KIRO_HOME"},
 		About: "Kiro IDE 1.x and Kiro CLI V3, which share one history that doesn't record which of them ran a session"},
-	{Name: "Kiro CLI (V2)", Family: "kiro", Slot: 7, Mark: "KC", Env: []string{"KIRO_HOME"}, About: "Kiro CLI V2 (kiro-cli --v2, and the default before Kiro CLI 3.0); V3 sessions are under Kiro IDE / CLI (V3)"},
-	{Name: "Kiro CLI (SQLite)", Family: "kiro", Slot: 7, Mark: "KC", About: "older Kiro CLI versions"},
-	{Name: "Kiro Crew", Family: "kiro", Slot: 4, Mark: "KW", Env: []string{"KIROCREW_HOME"}, Archive: "crew", Note: "includes Kiro Crew"},
-	{Name: "Codex", Family: "codex", Slot: 2, Mark: "CX", Env: []string{"CODEX_HOME"}},
+	{Name: "Kiro CLI (V2)", Family: "kiro", Slot: 2, Mark: "KC", Env: []string{"KIRO_HOME"}, About: "Kiro CLI V2 (kiro-cli --v2, and the default before Kiro CLI 3.0); V3 sessions are under Kiro IDE / CLI (V3)"},
+	{Name: "Kiro CLI (SQLite)", Family: "kiro", Slot: 2, Mark: "KC", About: "older Kiro CLI versions"},
+	{Name: "Kiro Crew", Family: "kiro", Slot: 3, Mark: "KW", Env: []string{"KIROCREW_HOME"}, Archive: "crew", Note: "includes Kiro Crew"},
+	{Name: "Codex", Family: "codex", Slot: 4, Mark: "CX", Env: []string{"CODEX_HOME"}},
 }
 
 // AgentOf は名前 name のエージェント。ないものは ok=false。
