@@ -1,9 +1,11 @@
 package cli
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -66,7 +68,7 @@ func TestServeKey(t *testing.T) {
 // GET / だけは鍵なしで通す（履歴を入れない画面の骨組みを返すところ。TestServeShellHasNoHistory）。
 func TestRequireKey(t *testing.T) {
 	key := strings.Repeat("ab", 32)
-	h := requireKey("127.0.0.1:8484", key, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("history")) }))
+	h := requireKey("127.0.0.1:8484", key, "", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("history")) }))
 	do := func(method, target string, hdr string, c *http.Cookie) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(method, target, nil)
 		if hdr != "" {
@@ -190,7 +192,7 @@ func TestOpenCode(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "kiroku")
 	t.Setenv("KIROKU_CONFIG_DIR", dir)
 	key, _ := serveKey(true)
-	h := sameOrigin("127.0.0.1:8484", nil, requireKey("127.0.0.1:8484", key, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("history")) })))
+	h := sameOrigin("127.0.0.1:8484", nil, requireKey("127.0.0.1:8484", key, "", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("history")) })))
 	do := func(method, target string, hdr map[string]string) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(method, target, nil)
 		r.Host = "localhost:8484"
@@ -424,7 +426,7 @@ func TestProbeSendsKey(t *testing.T) {
 	srv := httptest.NewServer(nil)
 	defer srv.Close()
 	addr := strings.TrimPrefix(srv.URL, "http://")
-	srv.Config.Handler = requireKey(addr, key, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	srv.Config.Handler = requireKey(addr, key, "", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	if got := probe(addr); got != ready {
 		t.Errorf("probe = %d, want ready", got)
 	}
@@ -473,20 +475,116 @@ func TestHopTargetStaysOnSite(t *testing.T) {
 	}
 }
 
-// 鍵のないブラウザーへの案内は、Accept-Language が日本語なら日本語にする（画面の showLocked と同じ文）。
+// 鍵のないブラウザーへの案内と、以前の版の ?key= への案内は、--lang があればその言語、なければ Accept-Language の言語にする
+// （画面の showLocked と同じ文）。
 func TestLockedPageLanguage(t *testing.T) {
 	key := strings.Repeat("a", 64)
-	h := requireKey("127.0.0.1:8484", key, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	for al, want := range map[string]string{"ja,en;q=0.8": "鍵を付けて kiroku を開いてください", "ja-JP": "鍵を付けて kiroku を開いてください", "en-US,ja;q=0.5": "Open kiroku with its key", "": "Open kiroku with its key"} {
-		req := httptest.NewRequest("GET", "http://127.0.0.1:8484/data.json", nil)
-		req.Header.Set("Accept-Language", al)
-		rec := httptest.NewRecorder()
-		h.ServeHTTP(rec, req)
-		if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), want) {
-			t.Errorf("Accept-Language %q: %d %q, want %q", al, rec.Code, rec.Body.String(), want)
+	const lockedEN, lockedJA = "Open kiroku with its key", "鍵を付けて kiroku を開いてください"
+	const oldEN, oldJA = "This address no longer opens kiroku", "このアドレスでは kiroku を開けません"
+	for _, c := range []struct{ lang, al, locked, old string }{
+		{"", "ja,en;q=0.8", lockedJA, oldJA},
+		{"", "ja-JP", lockedJA, oldJA},
+		{"", "en-US,ja;q=0.5", lockedEN, oldEN},
+		{"", "", lockedEN, oldEN},
+		{"en", "ja-JP", lockedEN, oldEN},
+		{"ja", "en-US", lockedJA, oldJA},
+		{"ja", "", lockedJA, oldJA},
+		{"fr", "ja-JP", lockedJA, oldJA}, // 知らない言語は指定なしと同じ
+	} {
+		h := requireKey("127.0.0.1:8484", key, c.lang, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+		for target, want := range map[string]string{"/data.json": c.locked, "/?key=" + key: c.old} {
+			req := httptest.NewRequest("GET", "http://127.0.0.1:8484"+target, nil)
+			req.Header.Set("Accept-Language", c.al)
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, req)
+			if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), want) {
+				t.Errorf("--lang %q, Accept-Language %q, %s: %d %q, want %q", c.lang, c.al, target, rec.Code, rec.Body.String(), want)
+			}
 		}
 	}
 	if !strings.Contains(hopKeyScript, "もう一度 kiroku open を実行してください") {
 		t.Error("中継のページに日本語の知らせがない")
+	}
+}
+
+// 鍵のない案内のページは、画面や loading.html と同じく暗い（白い背景と青いリンクにしない）。
+// <style> は CSP のハッシュで許したものだけで、スクリプトはない。
+func TestLockedPageDark(t *testing.T) {
+	hash := regexp.MustCompile(`style-src ('sha256-[A-Za-z0-9+/=]+')`)
+	for name, p := range map[string]string{"lockedPage": lockedPage, "lockedPageJA": lockedPageJA, "oldKeyPage": oldKeyPage, "oldKeyPageJA": oldKeyPageJA} {
+		for _, want := range []string{`<meta name="color-scheme" content="dark">`, "color-scheme:dark", "--bg:#141218", "html{background:var(--bg)}", "a{color:var(--acc)}", "--acc:#d0bcff",
+			`<meta http-equiv="Content-Security-Policy" content="` + lockedCSP + `">`} {
+			if !strings.Contains(p, want) {
+				t.Errorf("%s に %q がない: %s", name, want, p)
+			}
+		}
+		styles := regexp.MustCompile(`(?s)<style>(.*?)</style>`).FindAllStringSubmatch(p, -1)
+		m := hash.FindStringSubmatch(p)
+		if len(styles) != 1 || m == nil || m[1] != cspHash(styles[0][1]) {
+			t.Errorf("%s の <style> が CSP のハッシュと合わない: %v %v", name, styles, m)
+		}
+		if strings.Contains(p, "<script") || strings.Contains(p, "style=") || !strings.Contains(lockedCSP, "default-src 'none'") || strings.Contains(lockedCSP, "unsafe-inline") {
+			t.Errorf("%s にスクリプトかインラインのスタイルがある、または CSP がゆるい: %s", name, p)
+		}
+	}
+}
+
+// 中継のページ（?code=）は、--lang を <html data-lang> で渡す（ValidLang のものだけ。スクリプトの外なので CSP のハッシュは同じ）。
+func TestHopKeyPageLang(t *testing.T) {
+	key := strings.Repeat("a", 64)
+	for lang, want := range map[string]string{"": `data-lang=""`, "en": `data-lang="en"`, "ja": `data-lang="ja"`, `x"><script>`: `data-lang=""`} {
+		h := requireKey("127.0.0.1:8484", key, lang, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest("GET", "http://127.0.0.1:8484/?code="+strings.Repeat("c", 64), nil))
+		body := rec.Body.String()
+		if !strings.Contains(body, `<html lang="en" `+want+`>`) || strings.Count(body, "<script>") != 1 || !strings.Contains(body, "<script>"+hopKeyScript+"</script>") {
+			t.Errorf("--lang %q: %q", lang, body)
+		}
+		if got := hopKeyPage("/", lang); !strings.Contains(got, want) {
+			t.Errorf("hopKeyPage(%q) = %q", lang, got)
+		}
+	}
+	if strings.Contains(hopKeyScript, "kiroku:lang") {
+		t.Error("中継のページが、以前の版で選んだ言語（kiroku:lang）をまだ読む")
+	}
+}
+
+// 中継のページの言語は、画面（state.js の LANG）と同じ順で決まる（?lang=、--lang、ブラウザーの言語。以前の版で選んだ言語は使わない）。
+// web の TestLoadingLangMatchesView と同じく、両方を node で動かして比べる。
+func TestHopKeyLangMatchesView(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	state, err := os.ReadFile(filepath.Join("internal", "web", "js", "state.js")) // TestMain がリポジトリの直下に移る
+	if err != nil {
+		t.Fatal(err)
+	}
+	lf := func(x string) string { return strings.ReplaceAll(x, "\r\n", "\n") } // Windows のチェックアウトは CRLF
+	view := regexp.MustCompile(`(?s)const LANGS = .*?\}\)\(\);\n`).FindString(lf(string(state)))
+	pick := regexp.MustCompile(`(?s)const pick = \(\) => \{.*?\};\n  const ja = `).FindString(hopKeyScript)
+	if view == "" || pick == "" {
+		t.Fatal("state.js の LANG か hopKeyScript の pick が見つからない")
+	}
+	pick = strings.TrimSuffix(pick, "\n  const ja = ")
+	args, _ := json.Marshal([]string{view + "return LANG;", "const q = new URLSearchParams(location.search);\n" + pick + "return pick();"})
+	code := `const [view, pick] = ` + string(args) + `;
+const viewLang = new Function("location", "navigator", "localStorage", "__LANG__", view);
+const hopLang = new Function("location", "navigator", "localStorage", "document", pick);
+let bad = 0;
+for (const q of ["", "?lang=ja", "?lang=en", "?lang=fr"]) for (const flag of ["", "en", "ja"]) for (const nav of ["en-US", "ja-JP", "ja", ""]) for (const saved of [null, "ja", "en"]) {
+  const loc = {search: q}, nv = {languages: nav ? [nav] : [], language: nav}, ls = {getItem: k => k === "kiroku:lang" && saved ? JSON.stringify(saved) : null};
+  const v = viewLang(loc, nv, ls, flag), h = hopLang(loc, nv, ls, {documentElement: {dataset: {lang: flag}}});
+  const want = ["en", "ja"].includes(q.slice(6)) ? q.slice(6) : flag || (nav.startsWith("ja") ? "ja" : "en");
+  if (v !== want || h !== want) { bad++; console.error(JSON.stringify({q, flag, nav, saved}), "view", v, "hop", h, "want", want); }
+}
+if (bad) process.exit(1);
+`
+	f := filepath.Join(t.TempDir(), "lang.js")
+	if err := os.WriteFile(f, []byte(code), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("中継のページと画面で言語が違う:\n%s", out)
 	}
 }

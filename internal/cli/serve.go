@@ -590,7 +590,7 @@ func serveLiveWith(addr string, allow []string, every time.Duration, picked []so
 			fmt.Fprintf(l.print, "could not open a browser: %v\n", err)
 		}
 	}
-	err = serveHTTP(newServer(secureHeaders(sameOrigin(addr, allow, requireKey(addr, key, l.handler())))), ln)
+	err = serveHTTP(newServer(secureHeaders(sameOrigin(addr, allow, requireKey(addr, key, lang, l.handler())))), ln)
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}
