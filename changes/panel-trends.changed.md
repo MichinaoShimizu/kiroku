@@ -1,1 +1,0 @@
-- Summary: the figure panels are named as trends: "Cost trend", "Output trend" (was "Outputs") and "Unit cost trend" (was "Unit cost calculation"); in Japanese コスト推移, アウトプット推移 and 単価推移. The Outputs card under Charts keeps its name

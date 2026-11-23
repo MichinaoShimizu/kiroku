@@ -1,1 +1,0 @@
-- The page `kiroku serve` shows while it reads your history picks its language the same way as the view (`?lang=`, then `--lang` or `KIROKU_LANG`, then the browser). Before, a language chosen with the button of an earlier version still won there, so the loading page could be in a different language from the view

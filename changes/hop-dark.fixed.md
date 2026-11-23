@@ -1,1 +1,0 @@
-- The short page `kiroku open` and `kiroku serve` show while they hand the key to the browser is dark like the view, so it no longer flashes white before the view opens
