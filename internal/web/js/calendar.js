@@ -186,7 +186,7 @@ function gitShown(shown){
 }
 /* 月のカレンダー：日ごとの量を濃さで。濃さの量は選べる（推定費用・クレジット・トークン・稼働時間）。
    既定は、マスに書く数と同じ量（推定費用、なければトークン、なければクレジット）。どれもなければ稼働時間 */
-const SHADE = () => ({cost: {f: d => d.cost > 0 ? d.cost : 0, s: t("Est. cost")}, credits: {f: d => d.credits || 0, s: t("Credits")}, tokens: {f: d => d.tokens || 0, s: t("Tokens")}, active: {f: d => d.active || 0, s: t("Active time")}});
+const SHADE = () => ({cost: {f: d => d.cost > 0 ? d.cost : 0, s: t("Cost")}, credits: {f: d => d.credits || 0, s: t("Credits")}, tokens: {f: d => d.tokens || 0, s: t("Tokens")}, active: {f: d => d.active || 0, s: t("Active time")}});
 // emptyCal は、記録のない週・月の 1 枚（「ない」の一言と、記録のある最後の期間へ行くボタン）。文は呼ぶ側の t() で、ここでエスケープする
 function emptyCal(T, msg, btn, onClick){
   T.innerHTML = `<div class="empty"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><p>${esc(msg)}</p>${btn ? `<p><button class="pill" id="tolast">${esc(btn)}</button></p>` : ""}</div>`;

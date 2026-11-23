@@ -17,6 +17,7 @@ var uiRules = []struct {
 }{
 	{regexp.MustCompile(`class="card[ "]`), "セッションのカードは sesCardH か sesCard で作る", ""},
 	{regexp.MustCompile(`class="stat[ "]`), "数の枠は statH か norecStat で作る", ""},
+	{regexp.MustCompile(`class="mrow[ "]`), "指標の 1 行は rowH で作る", ""},
 	{regexp.MustCompile(`class="ph"`), "パネルの見出しは panelH で作る", ""},
 	{regexp.MustCompile(`class="eyebrow"><span class="dot">`), "詳細パネルの頭は dHead で作る", ""},
 	{regexp.MustCompile(`class="none"`), "空のときの一言は noneH で作る", ""},

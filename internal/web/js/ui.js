@@ -68,6 +68,9 @@ const panelH = (n, t, s, h) => `<div class="ph">${n == null ? "" : `<span class=
 // 値のボタンの読み上げの名前は、名前（k）と値をつなげたもの（aria-labelledby で両方を指す。「?」の名前は入れない）
 let statN = 0;
 const statH = (k, v, s, h, m) => { const id = "st" + (++statN); return `<div class="stat${m ? " mstat" : ""}"><div class="k"><span id="${id}k">${k}</span>${hb(h)}</div>${m ? `<button type="button" class="v" id="${id}v" data-metric="${m}" aria-haspopup="dialog" aria-labelledby="${id}k ${id}v" title="${esc(t("Click for the breakdown"))}">${v}</button>` : `<div class="v">${v}</div>`}${s ? `<div class="s">${s}</div>` : ""}</div>`; };
+/* 指標の 1 行（数の枠より小さく、カードの中の一覧に並べる）：k は名前、v は値（HTML）、mark は値の下にいつも見せる短い添え書き（HTML。いつもの範囲の印など）、
+   more は「ƒx」で開く式と注（HTML）、h は「?」の説明の id、m は押すと開く内訳。値のボタンの読み上げは statH と同じく名前と値 */
+const rowH = (k, v, mark, more, h, m) => { const id = "mr" + (++statN); return `<div class="mrow"><div class="mk"><span id="${id}k">${k}</span>${hb(h)}</div>${m ? `<button type="button" class="mv" id="${id}v" data-metric="${m}" aria-haspopup="dialog" aria-labelledby="${id}k ${id}v" title="${esc(t("Click for the breakdown"))}">${v}</button>` : `<div class="mv">${v}</div>`}${mark ? `<div class="mm">${mark}</div>` : ""}${more ? `<div class="mx">${more}</div>` : ""}</div>`; };
 /* 空のときの一言：text は HTML（呼ぶ側でエスケープする） */
 const noneH = text => `<p class="none">${text}</p>`;
 /* コードの枠：text は文字（ここでエスケープする）。cls は枠に足すクラス、extra はコピーの前に置くもの（HTML。「Open」のリンクなど） */
