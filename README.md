@@ -12,7 +12,7 @@ kiroku brings the local history of Claude Code, Kiro (IDE, CLI and Kiro Crew) an
 
 **[Try the live demo →](https://michinaoshimizu.github.io/kiroku/)** (dummy data, runs in your browser)
 
-[![The week calendar, a session, the token breakdown, search and the month view (dummy data)](docs/demo.gif)](https://michinaoshimizu.github.io/kiroku/)
+[![The week calendar, a session, the estimated cost breakdown, search and the month view (dummy data)](docs/demo.gif)](https://michinaoshimizu.github.io/kiroku/)
 
 ## Why kiroku
 
@@ -51,7 +51,7 @@ The installer checks the download against `checksums.txt` and, with the [GitHub 
 
 <img src="docs/worth.png" alt="A flagged metric opened from Worth a look (dummy data)" width="560">
 
-**A summary that tells you what to change.** The weekly and monthly summary is a page of charts: time, tokens, estimated cost (Claude Code, Codex and Kiro Crew's non-Kiro backends, at public API rates) and credits, where they went (project, agent, model, session length), next to what it left behind, in two parts kept apart (Git commits, pushes and pull requests, and the lines AI edited according to history) and unit costs such as per AI commit, per push and per 100 AI-edited lines. It opens with four compact panels, input and output side by side with the unit cost of each under them, each one chart with a switch for the measure (remembered), and right under them, at full width, where the amount flowed from agent to project to commits. Each figure has a chart of its last 12 weeks or months with your usual range, the running total and usage-limit hits, the change from last week or month, and a comparison with your own past in plain words (such as "$31.23: above your usual $19.92–$27.35"). ƒx shows the same comparison as an inequality and the formula behind computed figures, and every chart opens with a takeaway. While a week or month is in progress, each amount shows its month-end (or week-end) estimate, and the days still to come show how much a day keeps it at the last one's total, with no budget to set. Not every agent records everything; the guide lists [what each agent records](docs/guide.md#what-each-agent-records).
+**A summary that tells you what to change.** The weekly and monthly summary is a page of charts, computed in your browser. It opens with four panels: what you put in (estimated cost, credits, tokens or active time) and what came out (Git commits, pushes or pull requests) side by side, each with its unit cost under it, such as per AI commit, per push or per active hour. Right under them, at full width, is where the amount flowed from agent to project to a commit or PR. The Breakdown below shows where it went (project, agent, model, session length) and what it left behind, in two parts kept apart: Git, and the lines AI edited according to history. Each figure is compared with your own past in plain words (such as "$31.23: above your usual $19.92–$27.35") on a chart of its last 12 weeks or months, ƒx shows the formula, and every chart opens with a takeaway. While a week or month is in progress, amounts show their end-of-period estimate. Estimated cost covers Claude Code, Codex and Kiro Crew's non-Kiro backends at public API rates, and not every agent records everything; see the [guide](docs/guide.md#weekly-and-monthly-summary) and [what each agent records](docs/guide.md#what-each-agent-records).
 
 ![Weekly summary (dummy data)](docs/summary.png)
 

@@ -35,6 +35,7 @@ sh tools/screenshots/run.sh
 ```
 
 - Playwright の Chromium を取ってこられない環境（クラウドのコンテナなど）では、入っている Chromium を指定する: `CHROMIUM=/opt/pw-browsers/chromium sh tools/screenshots/run.sh`
+- `demo.gif` の録画には Playwright の ffmpeg も要る。ないときは `tools/screenshots` で `npx playwright install ffmpeg` を一度試す
 - 撮る前の画像を一時ディレクトリに控え、撮ったあと 1 枚ずつ Read で開いて新旧を見比べる。確かめること:
   - 1 で見つけた変更が映っている
   - 崩れ・重なり・切れた文字・空の欄がない
