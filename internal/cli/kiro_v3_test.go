@@ -143,4 +143,7 @@ func TestKiroLegacyHomeOption(t *testing.T) {
 	if got := legacyOf("--kiro-home", filepath.Join(h, "other")); len(got) != 2 || got[0] != "" || got[1] != "" {
 		t.Errorf("--kiro-home: legacy = %q, want なし", got)
 	}
+	if got := legacyOf("--kiro-home", filepath.Join(h, "work")); len(got) != 2 || got[0] != "" || got[1] != "" {
+		t.Errorf("--kiro-home を $KIRO_HOME と同じ場所で: legacy = %q, want なし", got)
+	}
 }
