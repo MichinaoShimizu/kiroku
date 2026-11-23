@@ -964,11 +964,11 @@ header{background:var(--s-cont);border-bottom:0}
 @media (max-width:520px){.istats .stat:last-child:nth-child(odd){grid-column:auto}}
 /* スマホ：指標の切り替えは折り返さず、横にスクロール */
 @media (max-width:820px){.insk{flex-wrap:nowrap;overflow-x:auto;max-width:100%;scrollbar-width:none}.insk::-webkit-scrollbar{display:none}.insk button{flex:none}.inshead{flex-wrap:wrap}}
-/* ── プロンプトの流れ：メッセージアプリの会話の見た目 ──
-   kiroku の面の色（M3 の段）の地に、あなたの発言は右の紫の容器の吹き出し（自分の印は出さない）、AI の応答は左の白い吹き出しと印。
-   時刻は吹き出しの外の下の端。あいだに起きたこと（コミット・PR・中断など）は、真ん中の灰色の札（上限と中断は赤の容器） */
-.tl{--chat-bg:var(--s-cont);--chat-me:var(--pc);--chat-me-ink:var(--on-pc);--chat-me-meta:#cbb8f5;--chat-ai:var(--surface-2);--chat-ai-ink:var(--ink);--chat-ai-meta:var(--ink-2);--chat-sys:var(--s-highest);--chat-sys-ink:var(--ink-2);--chat-warn:#601410;--chat-warn-ink:#f9dedc;--chat-ink:var(--ink-2);--chat-tag:rgba(0,0,0,.22);--chat-tag-ink:var(--amber-ink);--chat-link:var(--acc-ink);--chat-gap:var(--rule);background:var(--chat-bg);border-radius:16px;padding:14px 12px}
-/* ダーク：同じ役目の暗い面の色（M3 の段）。あなたの吹き出しは紫の容器 */
+/* ── プロンプトの流れ：メッセージアプリ（LINE のダーク）の会話の見た目。色だけを借りる（ロゴや印は使わない） ──
+   暗い中立の灰色の地に、あなたの発言は右の緑の吹き出しに黒に近い字（自分の印は出さない）、AI の応答は左の濃い灰色の吹き出しに明るい字と印。
+   時刻とコピーは吹き出しの外の下の端。あいだに起きたこと（コミット・PR・中断など）は、真ん中の明るめの灰色の札（上限と中断は赤の容器）。
+   字と地の組み合わせは palette_test.go の TestChatContrast で確かめる（字は 4.5:1、小さな印は 3:1 以上）。値を変えるときは両方を直す */
+.tl{--chat-bg:#1c1c1e;--chat-me:#5ac463;--chat-me-ink:#0d1a10;--chat-me-meta:#1f4426;--chat-me-tag:rgba(0,0,0,.1);--chat-me-warn:#550c09;--chat-ai:#2c2c2e;--chat-ai-ink:#e6e0e9;--chat-ai-meta:#cac4d0;--chat-sys:#3a3a3c;--chat-sys-ink:#cac4d0;--chat-note:#9b97dc;--chat-warn:#601410;--chat-warn-ink:#f9dedc;--chat-ink:#cac4d0;--chat-tag:rgba(0,0,0,.22);--chat-tag-ink:var(--amber-ink);--chat-link:#d0bcff;--chat-gap:#48484a;background:var(--chat-bg);border-radius:16px;padding:14px 12px}
 .tl li>time,.tl time{color:var(--chat-ink)}
 .tl li.pr:not(.ev){justify-content:flex-end;padding-right:0;padding-left:12%}
 .tl li.pr:not(.ev)>.av{display:none}
@@ -982,7 +982,7 @@ header{background:var(--s-cont);border-bottom:0}
 .tl li .pcopy{color:var(--chat-ink)}
 @media (max-width:600px){.tl li.pr:not(.ev){padding-left:0}.tl li.rp{padding-right:0}}
 .tl li.ev,.tl li.ev.note{background:var(--chat-sys);color:var(--chat-sys-ink)}
-.tl li.ev>.ic,.tl li.ev>time{color:var(--chat-sys-ink)}.tl li.ev.ai>.ic,.tl li.ev.pr>.ic{color:var(--acc)}.tl li.ev.note>.ic{color:var(--note)}
+.tl li.ev>.ic,.tl li.ev>time{color:var(--chat-sys-ink)}.tl li.ev.ai>.ic,.tl li.ev.pr>.ic{color:var(--acc)}.tl li.ev.note>.ic{color:var(--chat-note)}
 .tl li.ev.note .evl{color:var(--ink)}.tl li.ev.note .evd{color:var(--chat-sys-ink)}.tl li.ev.int .evl,.tl li.ev.warn .evl{color:var(--chat-warn-ink)}
 .tl li.ev.int,.tl li.ev.warn{background:var(--chat-warn);color:var(--chat-warn-ink)}
 .tl li.ev.int>.ic,.tl li.ev.warn>.ic,.tl li.ev.int>time,.tl li.ev.warn>time{color:var(--chat-warn-ink)}
@@ -994,6 +994,13 @@ header{background:var(--s-cont);border-bottom:0}
 .tl li.pr .ptext>code{background:var(--chat-tag)}
 .tl .pcut,.tl li.rp .pmeta{color:var(--chat-ai-meta)}
 .tl .pexp,.tl .pload,.tl .rload{color:var(--chat-link)}.tl .pload,.tl .rload{border-color:var(--chat-link)}
+/* 緑の吹き出しの中の小さな字（札・コード・続きを読む・途中まで）は、暗い字で（明るい色の字は緑の上で読めない） */
+.tl li.pr:not(.ev) .pkind{color:var(--chat-me-ink);background:var(--chat-me-tag)}
+.tl li.pr:not(.ev) .pkind.fix,.tl li.pr:not(.ev) .pkind.big{color:var(--chat-me-warn);background:var(--chat-me-tag)}
+.tl li.pr:not(.ev) .ptext>code{background:var(--chat-me-tag)}
+.tl li.pr:not(.ev) .pcut{color:var(--chat-me-meta)}
+.tl li.pr:not(.ev) .pexp,.tl li.pr:not(.ev) .pload{color:var(--chat-me-ink);text-decoration:underline;text-underline-offset:2px}.tl li.pr:not(.ev) .pload{border-color:var(--chat-me-ink)}
+.tl li.pr:not(.ev) p :focus-visible{outline-color:var(--chat-me-ink)}
 /* エージェント別の表：単位の違う費用とクレジットを混ぜずに列で並べる。狭い画面では表だけ横にスクロール */
 .iagw{overflow-x:auto}
 .iagt{width:100%;border-collapse:collapse;font-size:var(--fs-sm);font-variant-numeric:tabular-nums}

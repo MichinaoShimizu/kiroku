@@ -130,3 +130,76 @@ func deltaE(a, b string, sim *[3][3]float64) float64 {
 	x, y := conv(a), conv(b)
 	return 100 * math.Sqrt((x[0]-y[0])*(x[0]-y[0])+(x[1]-y[1])*(x[1]-y[1])+(x[2]-y[2])*(x[2]-y[2]))
 }
+
+// プロンプトの流れ（.tl）の色は、メッセージアプリ（LINE のダーク）に寄せた吹き出し。字と地の組み合わせが読めることを確かめる:
+//   - 吹き出しの字・時刻・小さな字（4.5:1 以上。WCAG 2.x の相対輝度のコントラスト比）
+//   - コピーのボタン・出来事の印など小さな印（3:1 以上）
+//
+// 半透明の地（--chat-me-tag）と、ふだん薄く見せるコピーのボタン（opacity .45）は、下の地と混ぜた色で比べる。
+func TestChatContrast(t *testing.T) {
+	i := strings.Index(style, ".tl{--chat-bg:")
+	if i < 0 {
+		t.Fatal("style.css has no .tl{--chat-bg: block")
+	}
+	block := style[i : i+strings.Index(style[i:], "}")]
+	v := func(name string) string {
+		m := regexp.MustCompile(`--` + name + `:(#[0-9a-fA-F]{6})[;}]?`).FindStringSubmatch(block + "}")
+		if m == nil {
+			t.Fatalf("--%s is not a #rrggbb color in .tl", name)
+		}
+		return m[1]
+	}
+	tagA := regexp.MustCompile(`--chat-me-tag:rgba\(0,0,0,([0-9.]+)\)`).FindStringSubmatch(block)
+	if tagA == nil {
+		t.Fatal("--chat-me-tag is not rgba(0,0,0,a)")
+	}
+	a, _ := strconv.ParseFloat(tagA[1], 64)
+	op := regexp.MustCompile(`\.tl li \.pcopy\{opacity:([0-9.]+)\}`).FindStringSubmatch(style)
+	if op == nil {
+		t.Fatal("style.css has no .tl li .pcopy{opacity:…}")
+	}
+	o, _ := strconv.ParseFloat(op[1], 64)
+	bg, me, ai, sys := v("chat-bg"), v("chat-me"), v("chat-ai"), v("chat-sys")
+	tag := blend("#000000", me, a)
+	for _, c := range []struct {
+		name, fg, bg string
+		min          float64
+	}{
+		{"your prompt", v("chat-me-ink"), me, 4.5},
+		{"your prompt's meta and cut note", v("chat-me-meta"), me, 4.5},
+		{"tag in your prompt", v("chat-me-ink"), tag, 4.5},
+		{"correction or long tag in your prompt", v("chat-me-warn"), tag, 4.5},
+		{"AI reply", v("chat-ai-ink"), ai, 4.5},
+		{"AI reply meta", v("chat-ai-meta"), ai, 4.5},
+		{"link in an AI reply", v("chat-link"), ai, 4.5},
+		{"time under a bubble", v("chat-ink"), bg, 4.5},
+		{"copy button at rest", blend(v("chat-ink"), bg, o), bg, 3},
+		{"event text", v("chat-sys-ink"), sys, 4.5},
+		{"note mark", v("chat-note"), sys, 3},
+		{"limit or interruption text", v("chat-warn-ink"), v("chat-warn"), 4.5},
+	} {
+		if r := contrast(c.fg, c.bg); r < c.min {
+			t.Errorf("%s: %s on %s is %.2f:1, want at least %.1f:1", c.name, c.fg, c.bg, r, c.min)
+		}
+	}
+}
+
+// blend は、fg を不透明度 a で bg の上に重ねた色（sRGB の値で混ぜる。ブラウザーの合成と同じ）
+func blend(fg, bg string, a float64) string {
+	out := "#"
+	for i := 0; i < 3; i++ {
+		f, _ := strconv.ParseUint(fg[1+2*i:3+2*i], 16, 8)
+		b, _ := strconv.ParseUint(bg[1+2*i:3+2*i], 16, 8)
+		out += strconv.FormatInt(int64(math.Round(a*float64(f)+(1-a)*float64(b)))+0x100, 16)[1:]
+	}
+	return out
+}
+
+func contrast(a, b string) float64 {
+	lum := func(h string) float64 { c := linRGB(h); return 0.2126*c[0] + 0.7152*c[1] + 0.0722*c[2] }
+	x, y := lum(a), lum(b)
+	if x < y {
+		x, y = y, x
+	}
+	return (x + 0.05) / (y + 0.05)
+}
