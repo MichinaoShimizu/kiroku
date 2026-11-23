@@ -69,7 +69,7 @@ func TestViewIsDarkOnly(t *testing.T) {
 	if n := strings.Count(style, ":root{"); n != 1 {
 		t.Errorf("style.css has %d :root{ blocks, want 1", n)
 	}
-	if !strings.Contains(style, ":root{\n  color-scheme:dark;") {
+	if !strings.Contains(strings.ReplaceAll(style, "\r\n", "\n"), ":root{\n  color-scheme:dark;") { // Windows のチェックアウトは CRLF
 		t.Error("style.css :root does not start with color-scheme:dark")
 	}
 	if !strings.Contains(skeleton, `<meta name="color-scheme" content="dark">`) {
