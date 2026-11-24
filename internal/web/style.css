@@ -1279,8 +1279,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .itft{min-width:0}
 /* どこへ流れたか（サンキー）：投入と出力の 2×2 のすぐ下に、幅いっぱいの 1 枚（サマリーで唯一の全幅のカード）。狭いカードでは文字を座標の上で大きく */
 .inscol.iskw{margin:0 0 12px;container-type:inline-size}
-.iskw .skgh{padding:0;margin-bottom:10px}.iskw .skgh::before{background:linear-gradient(var(--in),var(--out))} /* 投入から出力へ：パネルの見出しと同じ大きさで、左の線は投入の青から出力の紫へ */
-.iskw .skil{margin:0;font-size:var(--fs-lg);font-weight:600;color:var(--ink)} /* 図の名前は、パネルの中の指標の名前（.itile .il）と同じ段 */
+.iskw .skgh{padding:0;margin:0}.iskw .skgh::before{background:linear-gradient(var(--in),var(--out))} /* 投入から出力へ：パネルの見出しと同じ大きさで、左の線は投入の青から出力の紫へ */
 @container (max-width:900px){.iskw .isk .skt,.iskw .isk .skh{font-size:14px}}
 /* 作業のしかた：12 の指標は、細いタイルの 3 列ではなく、出力のカードと同じ 1 行 1 指標の一覧に（名前は左、値は右、評価の文はその下）。
    124px の幅のタイルでは名前が 3〜4 行に折れ、段の高さがいちばん高いタイルにそろって、カードの中が空く */
