@@ -35,6 +35,73 @@ Template for a new section:
 - <aspects to weigh more>
 ```
 
+## 2026-11-24 — full at 4046bd8 (v5.1.1)
+
+A full run after v4.6.1 → v5.1.1 (20 commits: kiroku 5's serve/update/help, the Summary IN/OUT panels and Sankey, the prompt flow colors, updates through `gh` from an organization's repository, standalone binaries, Kiro duplicate sessions). A ran as `hostile-tester`, B as `user-tester`, C, D, E, G and H/I (together) as general-purpose agents; J myself. F was not run: the daily report and session review prompts have not changed since the prompts run of 2026-11-22 (only the repository URL helper and a search sentence). The fixes are on one PR from `claude/optimistic-ptolemy-6wsgtn`; the maintainer chose to take the provenance check of `kiroku update` and the Kiro Crew `child_sid` fix into it rather than separate PRs.
+
+### Gates
+| Check | Result |
+|---|---|
+| tools/check.sh | pass |
+| e2e and XSS | pass |
+| go test -count=3 (order and time) | pass (G also ran `-shuffle=on` under `TZ=Pacific/Kiritimati`, `-race` under `TZ=America/Los_Angeles`, and the timing tests 10× at `-cpu 1,4`: pass) |
+| main CI, last 20 runs | 0 failures. Prices failed on 2026-11-09 and 11-16 and passed on 11-23 (not investigated) |
+| govulncheck | clean; OSV (which includes GHSA) has no advisory for any module in go.mod |
+| Reproducible build of v5.1.1 | matches (linux/amd64) |
+| Coverage by package | archive 80.6% (0), cli 88.5% (+0.3 vs 2026-11-20), core 85.3% (+1.6), gitlog 92.9%, report 89.4% (−0.4), source 95.1% (+0.6), web 91.9% (+0.4); tools/upstream 33.9% |
+| Benchmark, BenchmarkLarge (vs 332b4db, n=6) | memory and allocations unchanged (read 901 MiB, 10.41M allocs; render −4.5% B/op). Time on an idle machine: read ≈ 970 ms (+10% vs the 881 ms recorded 2026-11-20), aggregate ≈ 410 ms (−19%), render 255–335 ms (noisy). A first run at 1853 ms for read was taken while four review agents were running |
+| Stale PRs, issues, Dependabot | none open |
+
+### Findings
+| Aspect | Certain | Suspected | Needs a decision | Not worth fixing | Fixed in |
+|---|---|---|---|---|---|
+| A. security | 3 | 2 | 0 | 0 | this PR (control characters from a history `cwd` in the git timeout line and two other messages; Copy as Markdown header escaped; the guide verifies a standalone binary before it replaces anything) |
+| B. ux | 15 | 1 (week-over-week % for credits when Kiro history starts mid-week) | 4 (M1 Sankey total vs the Input card, M4 mid-week off-hours share, L1 Worth a look hard to find, L8 first screen) | 0 | this PR (M2 "Close to usual", M3 what Repeated prompts counts; M5 by decision: the guide follows the view's "credits") |
+| C. i18n | 15 | 1 (unused-looking JA keys besides "outputs") | 3 (one name for the archive feature, 推定/予測, the pace figure's three names) | 0 | this PR (untranslated "Reached a commit or PR", `serve --archive --help`, duplicate JA key with a test) |
+| D. docs | 8 | 0 | 0 | 0 | this PR (7: today marker, cumulative line only in Input, `--force` for dev builds, package table, `update_gh.go`, standalone binaries in releases); install.sh has no `--help` (open) |
+| E. data | 3 | 3 (`/chat load` copies, Claude Code resumed `cost-state`, `/tangent merge` summary) | 0 | 0 | this PR (#560 regression: a V3 copy naming another `id` hid that conversation; Crew `child_sid` + `harness` for pruned Codex subagents; `/chat load` added to the known limit) |
+| G. code | 11 | 7 | 0 | 0 | this PR (removed command in help, browser launch error reported, dead JS/CSS, stale `serve --html` comments) |
+| H/I. arch, supply | 7 | 0 | 2 (H1, I5) | 0 | this PR (running-serve probe follows no redirects; `kiroku update` through `gh` checks build provenance; standalone binaries named in `subject-path`; development.md table) |
+| J. perf | 0 | 0 | 0 | 0 | — |
+
+A side note: while checking `install.sh`'s help, D ran `sh install.sh --help`, which installed v5.1.1 into the audit container (provenance verified; no repository change). That is finding D-8.
+
+`/pre-pr` on this PR found more in the new code, all fixed on it with tests: `hostile-tester` showed that `gh`'s message quotes certificate values (a branch or workflow name such as `fix-timeout`), so a provenance mismatch could be read as "could not reach GitHub" and only warn — in the new `kiroku update` check and, since before, in `install.sh` (now: mismatch markers first; `install.sh` has a test that runs it with a fake `curl` and `gh`); two Kiro V3 copies naming the same foreign `id` kept one ID; reading a crew-log was quadratic in its session IDs; `mdCode` overflowed the stack on very many backticks. `user-tester` found the "?" of Repeated prompts promising a list the dialog doesn't show, "Close to usual" next to a range whose shown end equals the value (now "As usual" when they round the same), and the range wrapping mid-way at 390 px.
+
+### Open items
+Resolved: Kiro Crew `child_sid` for Codex subagents (this PR, from crew-log closers and usage `harness`; the time-based split of reused slots by `acp_session_id` is not used yet, see below); "Sessions that reached a commit or PR" names Claude Code in its "?" and the Git line (the card label itself is still open); the demo prompt's UTC offset (fixed earlier); the `% labels for two figures` (gone with the Summary redesign).
+
+Carried and new:
+- H1: v5.0.0 came 2 days after v4.0.0 and removed commands and options with no `### Deprecated` release first, against docs/compatibility.md. Record the exception (Decision Log or a note in compatibility.md) and decide whether CI (not only `tools/release.sh`) should enforce the gap and the deprecation. Decides: maintainer
+- I5: required checks are not listed anywhere but this log (e2e required since 2026-10-14; `non_admins`, `install-script`, CodeQL not required). List them in development.md. Decides: maintainer
+- B: M1 (Sankey counts sessions started in the period, the Input card counts cost incurred in it), M4 (mid-week off-hours share compared with full weeks), L1 (Worth a look only as ⚠ icons), L8 (first screen doesn't say what kiroku is), the "Sessions that reached a commit or PR" card label, the KIRO_HOME-only path in `serve` / `serve --check` output (`kiro.go` `Where()`), and the small ones (L2 range wording at the edges, L3 relative % on shares, L4 truncated waterfall labels, L5 mid-word breaks at 1000 px, L6 accessible names that don't start with the visible text, L7 unclear small labels). Decides: maintainer for M1, M4, L1, L8; the rest due: next ux run
+- C: one name for the archive feature (kiroku archive / keep a copy / バックアップ / コピー), 推定 vs 予測, the pace figure's three names, unreachable HELP entries (findings, projects, outputs) and their stale text, 残したもの / 出力 left after 投入/産出, "output tokens" in English, the calendar tooltip's "credits 8.4 credits", mixed-language aria-labels, small Japanese term splits, README wording, guide Definition column drift, dead `localizeTitles` entries and `update --help` missing from `kiroku help`. Decides: maintainer for the names; the rest due: next i18n run
+- B (new, low): the unit-cost cards don't say that "Close to usual" means within 10% of the range edge (ƒx could). Due: next ux run
+- A (new, low): `Math.max(...DATA.map(…))` in calendar.js and insight.js spreads arrays as arguments; a history with very many sessions could overflow the stack like `mdCode` did. Due: next code run
+- D-8: `install.sh` ignores its arguments, so `sh install.sh --help` installs. Due: next supply run
+- E: Kiro Crew usage rows' `acp_session_id` could replace the time-based `crewOwnerAt` split for reused slots (and the model-ID test in `crewCodexRow`); Claude Code-backed Crew subagents still don't yield. Due: next data audit
+- E: Claude Code resumed `cost-state` may now carry the earlier process's totals (CHANGELOG 2.1.277, 2.1.302), which kiroku would spread again; needs a real sample. Due: next data audit
+- E: GPT-5.6 Sol's promotional price ends 2026-11-30: rerun `/price-update` after 2026-12-01. Due: 2026-12-01
+- E: Kiro CLI `KIRO_DATA_DIR` undocumented; V3 tangent, `/rewind`, IDE fork and `/chat load` copies counted again (and `/tangent merge`); Claude Code fork subagents. Need real samples. Decides: maintainer (samples)
+- E: Haiku 3.5 and Claude 3.x unpriced; Ultrafast list price during the promotion; Codex 12-hour cache writes priced at 30 minutes. Decides: maintainer
+- G: untested branches (`codexNewer`, origin-index eviction, subagent end time and usage from `totalDurationMs` without a file, two-model subagent files, `Main`, `cleanupOldExe`, the Windows rollback whose second error is dropped, `cmdServe`'s `keepFn`/`splitList`/port-busy path); the gh update tests run only on Linux; per-OS default paths have no table test; v4 autostart content code kept alive by its test; e2e fixed waits (`pause()`, `view()`, the favicon wait); `TestPromptTimesSameTimestampScales` measures time; `gen.py` uses unseeded `uuid4`; unset `HOME` makes default folders relative; `crewFilePrivate` treats read errors as "not private"; same-second commits sorted unstably; live update errors only logged. Due: next full run (crewFilePrivate: next security run)
+- A: `serve.go` `%v` errors that may carry paths (101, 191, 356); Windows shell tests for `!`, backtick and `"`. Due: next security run
+- H: `internal/cli/open.go` holds only `probeAddr`; `WriteHTML`/`cmdHTML`/`scope.go` serve only `tools/html` but ship in `internal/cli`. I3: `verify-release.sh` doesn't verify provenance of SBOMs and `checksums.txt`. I4: `install.sh` accepts looser version names than `validTag`. I6: shellcheck, staticcheck, govulncheck, GoReleaser and syft versions aren't tracked by Dependabot. Due: next supply run
+- Previous: the reports grader's rule for a warning that names a variable; "Next actions" without a figure; Synthetic session titles and the hop page in English only; the Go-side native metric labels, `?key=` in browser histories, SECURITY.md line lengths. Decides: maintainer
+
+### Loop
+| Run | Findings (certain) | Fixed | Median days to fix | Open items | Overdue | Previous items resolved |
+|---|---|---|---|---|---|---|
+| 2026-11-24 full | 62 (+9 in /pre-pr) | 28 (+9) | 0 (same day; PR open) | 14 groups | 0 | 4 of 13 |
+| 2026-11-20 ux, i18n | 25 | 25 | 0 (same day; PR open) | 2 new (and 26 not rechecked) | 1 (F, from 2026-11-19) | — (aspect run) |
+| 2026-11-19 full | 60 | 34 | 0 (same day; PR open) | 26 | 1 (F) | 9 of 24 |
+| 2026-10-18 full | 64 | 36 | 0 (fixed the same day; PRs open) | 24 | 0 | 8 of 17 |
+
+### Next time
+- i18n and ux: the most findings this run (C 15, B 15), mostly naming after the Summary redesign; settle the names with the maintainer first
+- data on 2026-12-01 (price) and when a real sample of Kiro V3 forks or Claude Code resume arrives
+- code: the untested branches carried since 2026-11-19
+
 ## 2026-11-22 — open items, prompts and docs at 332b4db (v4.6.1)
 
 An aspect run to bring the open items up to date after v1.0–v4.6.1 (four major versions in four days), with F (prompts, overdue since 2026-11-01) and docs. The run's changes are on one PR from `claude/busy-clarke-dlhndw`.

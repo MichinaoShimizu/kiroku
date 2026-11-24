@@ -56,6 +56,7 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | `internal/cli/load.go` | Loading history (removing duplicates), overriding the price table |
 | `internal/cli/archive.go` | `kiroku serve --archive` (status, `on`, and `off`, which offers to delete the copies only in a folder marked by `on`) |
 | `internal/cli/update.go` | `kiroku update` (downloads from Releases, verifies, and replaces itself) |
+| `internal/cli/update_gh.go` | The repository a build remembers (`releaseRepo`) and the footer link (`projectURL`); builds from another repository check and download releases through the GitHub CLI (`gh`) |
 | `internal/cli/doctor.go` | `kiroku serve --check` (lists what was found and what to run next; only reads) |
 | `internal/cli/autostart.go` | Removes the login item kiroku 4's `autostart` registered (a launchd agent on macOS, a systemd user service on Linux) when `kiroku autostart` is run, and lets `kiroku serve --check` warn about one |
 | `internal/cli/scope.go` | `--week` / `--month` of `tools/html` (keeps only one period's sessions, commits and pushes) |
@@ -79,7 +80,7 @@ Packages import each other in one direction only; keep it that way when adding c
 
 | Package | Imports (internal) |
 |---|---|
-| `core`, `ai` | none |
+| `core` | none |
 | `source`, `archive`, `gitlog`, `web` | `core` |
 | `report` | `core`, `gitlog` |
 | `cli` | all of the above |
@@ -164,7 +165,7 @@ Beyond what CI checks, the `hostile-tester` agent (`.claude/agents/hostile-teste
 Other workflows:
 
 - `Tag` (`tag.yml`): when CHANGELOG.md changes on main (and manually). See "Making a release" below
-- `Release` (`release.yml`): on a push of a `v*` tag, or when called from Tag. GoReleaser builds the archives, an SPDX SBOM per archive (`sboms:` in `.goreleaser.yaml`, written by syft) and `checksums.txt` (which covers the SBOMs too), and `attest-build-provenance` signs all of them. The signed provenance bundle is also attached to the release as `kiroku_<version>.sigstore.json`. The binaries are reproducible from the tag; see "Verifying a release" in [SECURITY.md](../SECURITY.md) and `tools/reproduce.sh`
+- `Release` (`release.yml`): on a push of a `v*` tag, or when called from Tag. GoReleaser builds the archives, the standalone binaries (`kiroku-<os>-<arch>`, `.exe` on Windows), an SPDX SBOM per archive (`sboms:` in `.goreleaser.yaml`, written by syft) and `checksums.txt` (which covers the SBOMs too), and `attest-build-provenance` signs all of them. The signed provenance bundle is also attached to the release as `kiroku_<version>.sigstore.json`. The binaries are reproducible from the tag; see "Verifying a release" in [SECURITY.md](../SECURITY.md) and `tools/reproduce.sh`
 - `CodeQL` (`codeql.yml`): on PRs, pushes to main and every Tuesday, analyzes Go (built with `go build ./...`, `setup-go` without cache) and JavaScript (`internal/web/js`, `tools/screenshots`) and uploads the results to code scanning. It is the "advanced setup", so CodeQL's default setup must stay off in Settings → Code security
 - `Scorecard` (`scorecard.yml`): on pushes to main, every Monday and when branch protection rules change, runs OpenSSF Scorecard, publishes the result to scorecard.dev (the README badge) and uploads it to code scanning. Publishing makes scorecard.dev check the workflow itself: no top-level `env` or `defaults`, no workflow-level write permissions, and only `actions/checkout`, `actions/upload-artifact`, `github/codeql-action/upload-sarif`, `ossf/scorecard-action` and `step-security/harden-runner` in its job. Keep it that way, or publishing fails
 - `Fuzz` (`fuzz.yml`): on pushes to main that change Go code or testdata, every Wednesday and manually, runs each `Fuzz*` test for 45 seconds. It doesn't run on PRs, so a newly found input never turns an unrelated PR red. When it finds a failing input, the job fails and uploads `testdata/fuzz/` as an artifact: reproduce it with `go test -run '<Fuzz name>/<file>' ./<package>`, fix the code, and commit the input under the package's `testdata/fuzz/<Fuzz name>/` so `go test ./...` keeps checking it
@@ -227,9 +228,9 @@ If the CHANGELOG has no section for the tagged version, the release stops withou
 sh tools/verify-release.sh v0.1.8     # --keep leaves the downloads in place
 ```
 
-It downloads the release's assets over HTTPS into a new temporary directory, never extracts or runs them, and checks that the asset names and count match `.goreleaser.yaml` and `release.yml` (read from the tag when it is fetched locally), that every archive and SBOM matches `checksums.txt` and nothing else is listed there, and, when `gh` is installed, that each archive's build provenance verifies (`gh attestation verify`, the same conditions as `install.sh`, falling back to the release's `kiroku_<version>.sigstore.json` when gh can't reach the attestation API). Without `gh` it says it skipped that check. It exits 1 when anything is wrong.
+It downloads the release's assets over HTTPS into a new temporary directory, never extracts or runs them, and checks that the asset names and count match `.goreleaser.yaml` and `release.yml` (read from the tag when it is fetched locally), that every archive, standalone binary and SBOM matches `checksums.txt` and nothing else is listed there, and, when `gh` is installed, that each archive's and standalone binary's build provenance verifies (`gh attestation verify`, the same conditions as `install.sh`, falling back to the release's `kiroku_<version>.sigstore.json` when gh can't reach the attestation API). Without `gh` it says it skipped that check. It exits 1 when anything is wrong.
 
-Release (`.github/workflows/release.yml`) tests on 3 OSes, then uses GoReleaser to build files and checksums for macOS, Linux and Windows (amd64 / arm64) and publishes them to Releases. It also writes an SPDX SBOM for each archive with syft, and then attests the archives, the SBOMs and `checksums.txt` with `actions/attest-build-provenance` (the job has `id-token: write` and `attestations: write`), so `gh attestation verify <file> --repo MichinaoShimizu/kiroku` and `install.sh` can check where they were built. Versions with a `-`, such as `v0.2.0-rc.1`, become prereleases (`prerelease: auto` in `.goreleaser.yaml`). The number check compares the part before the `-` (`v0.2.0`) with the result of `next-version.sh`. `tools/release.sh` makes only regular versions; for a prerelease, run `sh tools/changelog.sh --release v0.2.0-rc.1` yourself.
+Release (`.github/workflows/release.yml`) tests on 3 OSes, then uses GoReleaser to build files and checksums for macOS, Linux and Windows (amd64 / arm64) and publishes them to Releases. It also builds standalone binaries (`kiroku-<os>-<arch>`, `.exe` on Windows; no SBOM of their own) and writes an SPDX SBOM for each archive with syft, and then attests the archives, the standalone binaries, the SBOMs and `checksums.txt` with `actions/attest-build-provenance` (the job has `id-token: write` and `attestations: write`), so `gh attestation verify <file> --repo MichinaoShimizu/kiroku` and `install.sh` can check where they were built. Versions with a `-`, such as `v0.2.0-rc.1`, become prereleases (`prerelease: auto` in `.goreleaser.yaml`). The number check compares the part before the `-` (`v0.2.0`) with the result of `next-version.sh`. `tools/release.sh` makes only regular versions; for a prerelease, run `sh tools/changelog.sh --release v0.2.0-rc.1` yourself.
 
 ## Changing the view
 

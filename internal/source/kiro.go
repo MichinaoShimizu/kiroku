@@ -128,7 +128,10 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		errs.file(metaPath, err)
 		meta := core.Map(raw)
 		sid := firstNonEmpty(core.Str(meta["id"]), filepath.Base(dir))
-		if c := picked[sid]; c != nil && c.lines {
+		// 同じ会話の写し（別の bucket の sess_X）は、Claim と同じくフォルダ名でまとめる。session.json の id でまとめると、
+		// ほかの会話の id を書いた写しが、その会話を隠してしまう
+		key := filepath.Base(dir)
+		if c := picked[key]; c != nil && c.lines {
 			continue
 		}
 		s := core.NewBuilder("Kiro IDE / CLI (V3)", sid)
@@ -263,15 +266,29 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		if s.Project != "" {
 			s.Resume = core.ResumeCmd(s.Project, "kiro-cli chat --v3 --resume-id", s.ID)
 		}
-		if picked[sid] == nil {
-			order = append(order, sid)
+		if picked[key] == nil {
+			order = append(order, key)
 		}
-		if c := picked[sid]; c == nil || lines {
-			picked[sid] = &kcopy{s, filepath.Base(dir), lines}
+		if c := picked[key]; c == nil || lines {
+			picked[key] = &kcopy{s, filepath.Base(dir), lines}
 		}
 	}
-	for _, sid := range order {
-		s, dir := picked[sid].s, picked[sid].dir
+	// ほかの会話の id を session.json に書いた写しは、その会話と同じ ID で出さない（画面は ID で会話を引くので、混ざる）。
+	// 自分のフォルダ名を ID にし、再開のコマンドもそれで出す
+	// 同じ id を書いた写しが 2 つあっても（その id のフォルダがなくても）、2 つめからは自分のフォルダ名を ID にする
+	used := map[string]bool{}
+	for _, key := range order {
+		s := picked[key].s
+		if s.ID != key && (picked[s.ID] != nil || used[s.ID]) {
+			s.ID = key
+			if s.Project != "" {
+				s.Resume = core.ResumeCmd(s.Project, "kiro-cli chat --v3 --resume-id", s.ID)
+			}
+		}
+		used[s.ID] = true
+	}
+	for _, key := range order {
+		s, dir := picked[key].s, picked[key].dir
 		// Kiro CLI V2 の会話 X を 3.0 で開く（--resume-id X）と、sess_X に写される。V2 の会話は残るが、
 		// こちらを使う（KiroCLI の Yield）。写しには usage_summary の行がないので、切り替える前のクレジットなどを V2 から足す
 		// 同じ id の写しが 2 つあっても、V2 の使用量は 1 回だけ足す。読めない V2 の会話は KiroCLI が知らせる

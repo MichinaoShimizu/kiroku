@@ -58,6 +58,7 @@ var errGHNotFound = errors.New("not found")
 type ghError struct {
 	msg      string
 	notFound bool
+	detail   string // 標準エラーの全体（64 KiB まで、端末に出せる形で）。gh attestation verify の結果を見分けるため
 }
 
 func (e *ghError) Error() string { return e.msg }
@@ -131,7 +132,7 @@ func runGH(ctx context.Context, show io.Writer, args ...string) ([]byte, error) 
 		if line == "" {
 			line = err.Error()
 		}
-		return nil, &ghError{msg: "gh: " + termSafe(line, 300), notFound: nf}
+		return nil, &ghError{msg: "gh: " + termSafe(line, 300), notFound: nf, detail: termSafe(strings.ReplaceAll(stderr.buf.String(), "\n", " "), 64<<10)}
 	}
 	return out.buf.Bytes(), nil
 }
@@ -180,3 +181,85 @@ func ghFetch(tag, name string, show io.Writer) ([]byte, error) {
 	defer cancel()
 	return runGH(ctx, show, "release", "download", tag, "--repo", releaseRepo, "--pattern", name, "--output", "-")
 }
+
+// ghAttestNote は、gh で出どころの証明を確かめられなかったときに出す 1 行の書き先（テストで差しかえる）。
+var ghAttestNote io.Writer = os.Stderr
+
+// ghVerifyAttestation は、gh で落としたアーカイブ（checksums.txt と合ったもの）が、releaseRepo の release.yml で
+// GitHub のランナーが作ったものか（artifact attestation）を、置きかえる前に gh attestation verify で確かめる。install.sh と同じ決まり：
+//   - 証明が見つからない・合わない：止める（置きかえない）
+//   - 確かめられない（古い gh・GitHub に届かない）：警告だけ。KIROKU_REQUIRE_ATTESTATION=1 なら止める
+//   - KIROKU_SKIP_ATTESTATION=1：確かめない
+//
+// gh には、本人だけが読める一時フォルダ（0700）に書いたファイル（0600）を渡す。引数はどれも確かめた形（repoPattern・validTag）だけ。
+func ghVerifyAttestation(tag, name string, archive []byte) error {
+	require := os.Getenv("KIROKU_REQUIRE_ATTESTATION") == "1"
+	if os.Getenv("KIROKU_SKIP_ATTESTATION") == "1" {
+		if require {
+			return errors.New("KIROKU_SKIP_ATTESTATION=1 and KIROKU_REQUIRE_ATTESTATION=1 cannot be used together")
+		}
+		fmt.Fprintln(ghAttestNote, "KIROKU_SKIP_ATTESTATION=1: not checking the build provenance (checksums.txt matched)")
+		return nil
+	}
+	if !repoPattern.MatchString(releaseRepo) || !validTag(tag) {
+		return errOddRepo
+	}
+	parts := strings.SplitN(releaseRepo, "/", 2) // HOST と OWNER/REPO
+	host, repo := parts[0], parts[1]
+	dir, err := os.MkdirTemp("", "kiroku-update-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(dir)
+	if abs, err := filepath.Abs(dir); err == nil { // TMPDIR が - で始まる相対パスでも、gh の旗にならないように
+		dir = abs
+	}
+	file := filepath.Join(dir, name)
+	if err := os.WriteFile(file, archive, 0o600); err != nil {
+		return err
+	}
+	unchecked := func(why string) error {
+		if require {
+			return fmt.Errorf("%s, and KIROKU_REQUIRE_ATTESTATION=1 is set", why)
+		}
+		fmt.Fprintf(ghAttestNote, "warning: %s; checksums.txt matched, so updating anyway (KIROKU_REQUIRE_ATTESTATION=1 makes this check required)\n", why)
+		return nil
+	}
+	// 作ったのは release.yml。もとにしたのは、tag.yml が main で動いたときは main、タグを手で push したときはそのタグ
+	var last error
+	for _, ref := range []string{"refs/heads/main", "refs/tags/" + tag} {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		_, err := runGH(ctx, nil, "attestation", "verify", "--repo", repo, "--hostname", host,
+			"--signer-workflow", releaseRepo+"/.github/workflows/release.yml", "--source-ref", ref, "--deny-self-hosted-runners", "--", file)
+		cancel()
+		if err == nil {
+			return nil
+		}
+		last = err
+		var ge *ghError
+		if !errors.As(err, &ge) || !strings.Contains(ge.detail, "SourceRepositoryRef") {
+			break // 合わなかったのが「もとにした ref」だけなら、もう一方で試す
+		}
+	}
+	var ge *ghError
+	if !errors.As(last, &ge) {
+		return ghFailure("could not check the build provenance of "+name, last)
+	}
+	low := strings.ToLower(ge.detail + " " + ge.msg)
+	// gh の説明には、証明書の値（ブランチ名・ワークフローのファイル名など、リリースを作れる人が選べる文字）がそのまま入る。
+	// 「合わない」の印が 1 つでもあれば、ほかにどんな言葉（timeout など）があっても止める（確かめられなかったことにしない）
+	if attestMismatch.MatchString(low) {
+		return fmt.Errorf("the build provenance of %s does not match %s, not updating (gh attestation verify failed; set KIROKU_SKIP_ATTESTATION=1 to skip this check)", name, termSafe(releaseRepo, 200))
+	}
+	switch {
+	case strings.Contains(low, "unknown command") || strings.Contains(low, "unknown flag"):
+		return unchecked("this gh is too old to check the build provenance (gh attestation verify)")
+	case regexp.MustCompile(`http (401|403|429|5\d\d)|sigstore verifier|dial tcp|no such host|connection (refused|reset)|timeout|tls handshake|network is unreachable`).MatchString(low):
+		return unchecked("gh could not reach " + host + " to check the build provenance")
+	}
+	return fmt.Errorf("the build provenance of %s does not match %s, not updating (gh attestation verify failed; set KIROKU_SKIP_ATTESTATION=1 to skip this check)", name, termSafe(releaseRepo, 200))
+}
+
+// attestMismatch は、gh attestation verify が「証明が見つからない・合わない」と言うときの印（小文字で）。
+// gh の書式（"expected %s to be %s, got %s"・"no matching CertificateIdentity found"・"no attestations found" など）と HTTP 404。
+var attestMismatch = regexp.MustCompile(`expected \S+ to be|no matching|no attestations|does not match|verification failed|failed to verify|http 404`)

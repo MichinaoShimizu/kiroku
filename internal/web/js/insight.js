@@ -51,7 +51,6 @@ function insExpr(b){
   if (b.pos === "high") return b.far ? `${x} > ${HI()} + 1.5×${SP()} = ${fm(b.q3 + 1.5 * iqr)}` : `${x} > ${HI()} = ${fm(b.q3)}`;
   return b.far ? `${x} < ${LO()} − 1.5×${SP()} = ${fm(b.q1 - 1.5 * iqr)}` : `${x} < ${LO()} = ${fm(b.q1)}`;
 }
-const insPosText = b => `${insExpr(b)} (${insDef(b && b.n)})`; // 読み上げと title 用
 // insOdd は、良し悪しの決まらない数字（使った量・作業の量など。insTone が付かないもの）が、いつもの範囲から大きく外れたか。
 // 「かなり上・下」（insPlain）や推移の赤い点と同じ決まり（上位25%点 + 1.5×幅より上か、下位25%点 − 1.5×幅より下）。上でも下でも同じ中立の色で目を留め、色だけに頼らないよう札（insOddH）も添える
 const insOdd = b => !!(b && b.q1 != null && b.far && b.better == null);
@@ -178,12 +177,14 @@ function insVerdict(b, F, hab){
   if (b.q1 == null) return `<p class="iverd"><b>${esc(t("Not enough history to judge yet"))}</b></p>`;
   // 範囲の端からの離れ方が 1 割に満たなければ「いつも通り」と言う（わずかな差で良し悪しを言わない）
   const off = b.pos === "low" ? (b.q1 - b.v) / (b.q1 || 1) : b.pos === "high" ? (b.v - b.q3) / (b.q3 || 1) : 0, pos = b.far || off >= .1 ? b.pos : "typical";
+  const fm0 = b.fmt || (x => fmtM(k, x)), tie = b.pos === "low" ? fm0(b.v) === fm0(b.q1) : b.pos === "high" ? fm0(b.v) === fm0(b.q3) : false; // 見せる桁で範囲の端と同じなら、範囲の中と読める
   const tone = pos === "low" ? "good" : pos === "high" ? "bad" : "";
-  const head = pos === "low" ? t("Below usual") : pos === "high" ? t("Above usual") : t("As usual");
+  // 範囲の外だが 1 割に満たないときは「ほぼいつも通り」（「いつも通り」と範囲を並べると、範囲の外の値と食い違って読める）
+  const head = pos === "low" ? t("Below usual") : pos === "high" ? t("Above usual") : tie ? t("As usual") : b.pos === "low" ? t("Close to usual (slightly below)") : b.pos === "high" ? t("Close to usual (slightly above)") : t("As usual");
   const n = b.xs.length, fm = b.fmt || (x => fmtM(k, x));
   const ser = []; for (let i = INS_N; i >= 1; i--){ const p = periodBack(i); if (p.ws >= historyStart()) ser.push(metricAt(k, p)); } ser.push(b.v);
   let run = 0, dir = 0; for (let i = ser.length - 1; i > 0 && ser[i] != null && ser[i - 1] != null; i--){ const d = Math.sign(ser[i] - ser[i - 1]); if (!d || (dir && d !== dir)) break; dir = d; run++; }
-  const rng = () => { let lo = fm(b.q1); const hi = fm(b.q3), sx = (/\s[^\d\s]+$/.exec(hi) || [""])[0]; if (sx && lo.endsWith(sx)) lo = lo.slice(0, -sx.length); return {lo, hi}; }; // 「13.1 credits〜13.8 credits」を「13.1〜13.8 credits」に
+  const rng = () => { let lo = fm(b.q1); const hi = fm(b.q3), sx = (/\s[^\d\s]+$/.exec(hi) || [""])[0]; if (sx && lo.endsWith(sx)) lo = lo.slice(0, -sx.length); return {lo: lo.replace(/ /g, "\u00a0"), hi: "\u2060" + hi.replace(/ /g, "\u00a0")}; }; // 範囲は途中で折り返さない（「–」のあとと単位の前で切らない） // 「13.1 credits〜13.8 credits」を「13.1〜13.8 credits」に
   const why = pos === "typical" ? t("Typically {lo}–{hi}", rng()) : b.v < Math.min(...b.xs) ? t("Lowest of the last {n} {unit}", {n: n + 1, unit: insUnit(n + 1)}) : b.v > Math.max(...b.xs) ? t("Highest of the last {n} {unit}", {n: n + 1, unit: insUnit(n + 1)})
     : run >= 3 ? (dir > 0 ? t("Up {n} {unit} in a row", {n: run, unit: insUnit(run)}) : t("Down {n} {unit} in a row", {n: run, unit: insUnit(run)})) : t("Typically {lo}–{hi}", rng());
   let act = "";
@@ -741,7 +742,8 @@ function insWork(){
     insStat(t("Wait time (median)"), secsH(w.waitMedian), fx(`P90 ${secs(w.waitP90)}; n = ${w.waitCount}`), "wait", w.waitCount ? "wait" : "", "wait"),
     // 見直す候補になる指標は、どれもここか上の数字に「?」を持ち、その横の印から開けるようにする
     insStat(t("Sessions with possible friction"), `${w.frictionN ?? (w.friction || []).length}`, "", "friction", "", "friction"),
-    (rp => insStat(t("Repeated prompts"), `${rp.length}`, rp.length ? esc(`“${snipOf(rp[0].text || "", 40)}”`) : "", "repeats"))(repeatsOf(ws, we)),
+    // 数は、3 つ以上のセッションで書いた似たプロンプトの組の数。添えるのはいちばん多い組と、その回数（ダイアログの数と同じ）
+    (rp => insStat(t("Repeated prompts"), `${rp.length}`, rp.length ? esc(t("{n} kinds; most: “{p}” {c}× in {s}", {n: rp.length, p: snipOf(rp[0].text || "", 40), c: rp[0].n, s: plural(rp[0].ids.size, "session")})) : "", "repeats"))(repeatsOf(ws, we)),
     ...insUseStats(w, ws, we),
   ].join("");
   const sy = t("Corrections {f}% of {p} prompts; {l} usage limit hits; {c} compactions", {f: w.fixRate ?? "—", p: commas(w.prompts), l: H.length, c: C.length});

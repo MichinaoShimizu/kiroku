@@ -463,6 +463,14 @@ func TestI18nNoUnusedKeys(t *testing.T) {
 	if len(keys) < 100 {
 		t.Fatalf("JA_TEXT の鍵が %d 個しか読めない", len(keys))
 	}
+	// 同じ鍵が 2 つあると、あとのほうが黙って勝つ（前の訳は使われない）
+	seen := map[string]bool{}
+	for _, m := range keys {
+		if seen[m[1]] {
+			t.Errorf("JA_TEXT に同じ鍵が 2 つある: %q", m[1])
+		}
+		seen[m[1]] = true
+	}
 	var unused []string
 	for _, m := range keys {
 		raw := m[1]

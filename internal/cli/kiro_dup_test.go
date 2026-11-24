@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -176,5 +177,61 @@ func TestKiroV3CopyWithAnotherIDDoesNotTakeOver(t *testing.T) {
 	data, _ := collect(all, map[string]bool{"kiro": true}, 15)
 	if n := ids(data); n["Kiro CLI (V2) k1"] != 1 {
 		t.Errorf("sessions = %v, want the V2 conversation k1 kept", n)
+	}
+}
+
+// ほかの会話の id を session.json に書いた写し（壊れた・まねたファイル）が新しくても、本物の sess_k1 を隠さない
+// （同じ会話の写しは、Claim と同じくフォルダ名で 1 つにまとめる）
+func TestKiroV3CopyWithAnotherIDDoesNotHideTheReal(t *testing.T) {
+	home := t.TempDir()
+	writeTree(t, home, map[string]string{
+		"sessions/b1/sess_k1/session.json":      `{"id": "sess_k1"}`,
+		"sessions/b1/sess_k1/messages.jsonl":    v3Prompt("2026-09-29T10:00:00Z", "real one") + v3Prompt("2026-09-29T10:05:00Z", "real two"),
+		"sessions/b2/sess_other/session.json":   `{"id": "sess_k1"}`,
+		"sessions/b2/sess_other/messages.jsonl": v3Prompt("2026-09-29T11:00:00Z", "other"),
+	})
+	old := time.Now().Add(-time.Hour)
+	if err := os.Chtimes(filepath.Join(home, "sessions", "b1", "sess_k1", "messages.jsonl"), old, old); err != nil {
+		t.Fatal(err)
+	}
+	var texts []string
+	data := loadKiro(t, home)
+	if n := ids(data); n["Kiro IDE / CLI (V3) sess_k1"] != 1 || n["Kiro IDE / CLI (V3) sess_other"] != 1 {
+		t.Errorf("sessions = %v, want sess_k1 and sess_other once each", n)
+	}
+	for _, s := range data {
+		for _, p := range s.Prompts {
+			texts = append(texts, p.Text)
+		}
+	}
+	got := strings.Join(texts, "|")
+	if !strings.Contains(got, "real one") || !strings.Contains(got, "real two") {
+		t.Errorf("prompts = %q, want the real sess_k1's prompts kept", got)
+	}
+}
+
+// 2 つの写しが同じ（どのフォルダのものでもない）id を書いていても、同じ ID の会話を 2 つ出さない（画面は ID で会話を引くので、混ざる）
+func TestKiroV3SharedForeignIDStaysUnique(t *testing.T) {
+	for name, tree := range map[string]map[string]string{
+		"no owner": {
+			"sessions/b1/sess_a/session.json": `{"id": "sess_z"}`, "sessions/b1/sess_a/messages.jsonl": v3Prompt("2026-09-29T10:00:00Z", "a"),
+			"sessions/b2/sess_b/session.json": `{"id": "sess_z"}`, "sessions/b2/sess_b/messages.jsonl": v3Prompt("2026-09-29T11:00:00Z", "b"),
+		},
+		"chain": {
+			"sessions/b1/sess_b/session.json": `{"id": "sess_c"}`, "sessions/b1/sess_b/messages.jsonl": v3Prompt("2026-09-29T10:00:00Z", "b"),
+			"sessions/b2/sess_e/session.json": `{"id": "sess_c"}`, "sessions/b2/sess_e/messages.jsonl": v3Prompt("2026-09-29T11:00:00Z", "e"),
+		},
+	} {
+		home := t.TempDir()
+		writeTree(t, home, tree)
+		data := loadKiro(t, home)
+		if len(data) != 2 {
+			t.Errorf("%s: %d sessions, want 2", name, len(data))
+		}
+		for id, n := range ids(data) {
+			if n > 1 {
+				t.Errorf("%s: %q appears %d times", name, id, n)
+			}
+		}
 	}
 }

@@ -3,6 +3,7 @@ package cli
 import (
 	"flag"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 )
@@ -129,4 +130,48 @@ func TestRemovedCommands(t *testing.T) {
 			t.Errorf("help does not list %q", want)
 		}
 	}
+}
+
+// どのコマンドのヘルプも、5.0 で消したコマンド（kiroku archive など）を打つようには言わない。
+func TestHelpNamesNoRemovedCommand(t *testing.T) {
+	helps := map[string]string{"help": helpText}
+	for _, args := range [][]string{{"serve", "--help"}, {"serve", "--check", "--help"}, {"serve", "--archive", "--help"}, {"update", "--help"}} {
+		helps[strings.Join(args, " ")] = stderrOf(t, func() { _ = dispatch(args) })
+	}
+	for cmd, text := range helps {
+		if !strings.Contains(text, "kiroku") {
+			t.Errorf("kiroku %s printed no help: %q", cmd, text)
+		}
+		for name := range removedCmds {
+			for _, line := range strings.Split(text, "\n") {
+				if strings.Contains(line+" ", "kiroku "+name+" ") {
+					t.Errorf("kiroku %s help names the removed %q: %q", cmd, "kiroku "+name, line)
+				}
+			}
+		}
+	}
+}
+
+// stderrOf は fn のあいだの標準エラーを返す（標準出力は捨てる）。
+func stderrOf(t *testing.T, fn func()) string {
+	t.Helper()
+	f, err := os.CreateTemp(t.TempDir(), "stderr")
+	if err != nil {
+		t.Fatal(err)
+	}
+	null, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldOut, oldErr := os.Stdout, os.Stderr
+	os.Stdout, os.Stderr = null, f
+	func() {
+		defer func() { os.Stdout, os.Stderr = oldOut, oldErr; null.Close(); f.Close() }()
+		fn()
+	}()
+	b, err := os.ReadFile(f.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
 }

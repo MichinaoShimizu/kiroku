@@ -8,7 +8,7 @@ A change that breaks one of these is marked `BREAKING` in the changelog and, fro
 
 - **Commands**: `serve` (with `--check` and `--archive`), `update` and `help`, and their arguments (such as `serve --archive on|off` and the `ADDR` of `serve`). `open`, `html`, `archive`, `autostart`, `doctor` and `version` were removed in 5.0 and stop with a message naming what to use instead (`autostart` first removes a login item kiroku 4 registered), as `json` and `stats` do since 3.0
 - **Options**: the names, meanings and defaults listed under [Options](guide.md#options)
-- **Environment variables** kiroku reads: `KIROKU_ARCHIVE_DIR`, `KIROKU_CONFIG_DIR`, `KIROKU_LANG`, and the agents' own (`CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME`)
+- **Environment variables** kiroku reads: `KIROKU_ARCHIVE_DIR`, `KIROKU_CONFIG_DIR`, `KIROKU_LANG`, `KIROKU_REQUIRE_ATTESTATION` and `KIROKU_SKIP_ATTESTATION` (for `kiroku update` through `gh`, as in `install.sh`), and the agents' own (`CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME`)
 - **Exit status**: 0 on success, and not 0 when a command fails
 - **The `--prices` file**: the JSON format described in [How you used AI](guide.md#how-you-used-ai), both the object and the array form
 - **`kiroku serve --archive` copies**: a later version still reads the copies an earlier one kept, and `kiroku serve --archive off` still recognizes the folder. The layout inside the folder may change if kiroku moves the old copies itself

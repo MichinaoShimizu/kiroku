@@ -5,7 +5,7 @@
   --agm-mix:75%; /* エージェントの頭文字の色を文字の色に寄せて読めるようにする（.agm） */
   /* 地と文字は、真っ白・真っ黒を避けて少し寄せる（読みやすさの基準 4.5:1 は保ったまま、ページ全体のコントラストを強くしすぎない） */
   --bg:#141218; --surface:#1d1b20; --surface-2:#2b2930; --ink:#e6e0e9; --ink-2:#cac4d0; --ink-3:#938f99;
-  --s-lowest:#0f0d13; --s-cont:#211f26; --s-highest:#36343b; --pc:#4f378b; --on-pc:#eaddff; --sc:#4a4458; --on-sc:#e8def8; --inv:#e6e0e9; --on-inv:#322f35; /* M3 の面の段（lowest・container・highest）、主・副のコンテナ、反転（トースト） */
+  --s-lowest:#0f0d13; --s-cont:#211f26; --s-highest:#36343b; --inv:#e6e0e9; --on-inv:#322f35; /* M3 の面の段（lowest・container・highest）、反転（トースト） */
   --rule:#49454f; --rule-2:#938f99; --acc:#d0bcff; --acc-ink:#d0bcff; --on-acc:#381e72; --heat-c:#8f9db6; --heatk:37%; /* 月のマスの濃さ（使用量）。エージェントの色と重ならない中立の灰青を地に混ぜる。5 段が見分けられ、いちばん濃いマスでも字が 4.5:1 以上（palette_test.go） */ --seg-track:#2b2930; --seg-thumb:#47444e; --seg-shadow:0 1px 2px rgba(0,0,0,.4); --ctl-bd:#49454f; --acc-soft:rgba(208,188,255,.12); --warn:#f2b8b5; --on-warn:#601410;
   --off:rgba(230,224,233,.045); --weekend:var(--off); /* 勤務時間の外（平日の 9:00〜18:00 の外）と土日は、同じ中立の淡い地。土日も同じ扱いで、赤（警告に見える）や青は使わない */
   --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -16px rgba(0,0,0,.7);
@@ -671,7 +671,7 @@ dialog.mdlg h3{margin:20px 0 8px}
 
 /* ── responsive ─────────────────────────────────────────── */
 @media (max-width:1320px){.rvgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel.time{grid-column:1/-1}}
-/* 広い画面：③ はカードがいちばん多いので、横いっぱいにしてカードを 4 列に。④ も横いっぱい（.panel.aiuse）、⑤ はその下に
+/* 広い画面：③ はカードがいちばん多いので、横いっぱいにしてカードを 4 列に。④ も横いっぱい、⑤ はその下に
    （3 つを横に並べると、③ だけが倍ほど長く、④ の下に大きな空きができていた） */
 @media (min-width:1321px){
   .panel.time{grid-column:1/-1}
@@ -891,8 +891,7 @@ header{background:var(--s-cont);border-bottom:0}
 .iksh svg{width:16px;height:16px;flex:none}.iksh small{font-size:var(--fs-xs);font-weight:500;color:var(--ink-2)}
 .iosec .iksh{padding:0}.iosec.outEdit{border-left:3px dashed var(--rule);padding-left:14px}.iosec.outGit{border-left:3px solid var(--rule);padding-left:14px}
 .iosec .istats{grid-template-columns:repeat(2,minmax(0,1fr))}.iosec .iwcap{margin-top:14px}
-.iknone{margin:0;padding:0 18px}
-@media (max-width:700px){.iksh{padding:0 14px}.iknone{padding:0 14px}}
+@media (max-width:700px){.iksh{padding:0 14px}}
 .iout2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px 28px;align-items:start}.iout2 .iwcap{margin-top:0}
 .iout2 .istats{grid-template-columns:repeat(2,minmax(0,1fr))}.iout2 .istats .stat:last-child:nth-child(3n+1),.iout2 .istats .stat:last-child:nth-child(3n+2){grid-column:auto}.iout2 .istats .stat:last-child:nth-child(odd){grid-column:1/-1} /* 2 列。余った 1 つは横に広げる（3 列の欄の決まりは使わない） */
 @media (max-width:520px){.iout2 .istats{grid-template-columns:minmax(0,1fr)}}

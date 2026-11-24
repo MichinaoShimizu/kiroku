@@ -206,7 +206,7 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 			pushes = []gitlog.Push{}
 		}
 		for _, r := range stale {
-			fmt.Fprintf(logw, "  git: timed out reading %s (kept the previous result)\n", r)
+			fmt.Fprint(logw, gitTimeoutLine(r))
 		}
 		tracker.setStage("view")
 		files, size := archive.Usage(dir)
@@ -417,7 +417,9 @@ func writeHTML(snap snapshot, out string, open bool, lang string) error {
 	fmt.Printf("%s → %s\n", plural(len(snap.data), "session"), out)
 	if open {
 		if abs, err := filepath.Abs(out); err == nil {
-			openBrowser(abs)
+			if err := openBrowser(abs); err != nil {
+				fmt.Fprintf(os.Stderr, "could not open a browser: %v\n", err)
+			}
 		}
 	}
 	return nil
@@ -455,4 +457,9 @@ func legacyForm(arg string) error {
 		return fmt.Errorf("unknown command: %s (run \"kiroku help\" for the list)", arg)
 	}
 	return fmt.Errorf("\"kiroku %s\" has been removed; use \"%s\" instead", arg, now)
+}
+
+// gitTimeoutLine は、git の読み取りが時間切れになったリポジトリを言う 1 行。フォルダ名は履歴の cwd から来るので、端末の制御文字を除く
+func gitTimeoutLine(repo string) string {
+	return "  git: timed out reading " + termMsg(repo) + " (kept the previous result)\n"
 }

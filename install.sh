@@ -141,6 +141,11 @@ if [ "$attest" = yes ]; then
   done
   if [ "$status" -eq 0 ]; then
     say "${c_ok}verified the build provenance with gh${c_off}"
+  elif grep -Eqi 'expected [^ ]+ to be|no matching|no attestations|does not match|verification failed|failed to verify|HTTP 404' "$tmp/attest.log"; then
+    # 証明が見つからない・合わない。gh の説明には証明書の値（ブランチ名・ワークフロー名など、リリースを作れる人が選べる文字）が
+    # 入るので、下の「届かない」「古い gh」の言葉（timeout など）より先に見て、止める
+    grep . "$tmp/attest.log" >&2 || true
+    die "the build provenance of $file does not match $REPO (gh attestation verify failed; set KIROKU_SKIP_ATTESTATION=1 to skip this check)"
   elif [ "$status" -eq 4 ]; then
     # 4 は gh にログインしていないとき
     unchecked "gh is not logged in (\"gh auth login\"), so the build provenance was not checked"

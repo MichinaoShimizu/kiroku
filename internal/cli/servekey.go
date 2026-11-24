@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"html"
 	"io"
 	"io/fs"
@@ -474,6 +475,8 @@ func openWithKey(url string) error {
 	if err := writePrivate(path, []byte(page)); err != nil {
 		return err
 	}
-	openBrowser(path)
+	if err := openBrowser(path); err != nil {
+		return fmt.Errorf("%w; open %s in your browser instead", err, path)
+	}
 	return nil
 }

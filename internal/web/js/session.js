@@ -169,7 +169,7 @@ async function fullText(s, i, rp){
 }
 /* セッションの会話を Markdown に（別のエージェントへの引き継ぎや、PR・メモに経緯を貼るため）。見出しは発言者と時刻、本文は記録のまま */
 async function sessionMarkdown(s){
-  const head = [`# ${oneLine(s.title || s.id)}`, "", [s.source, s.project, s.branch, `${md(s.start)} ${hm(s.start)} – ${hm(s.end)}`].filter(Boolean).join(" · ")];
+  const head = mdSessionHead(s, `${md(s.start)} ${hm(s.start)} – ${hm(s.end)}`); // 見出しは打ち消す。本文は記録のまま（会話の写しとして貼るため）
   const parts = [], items = [];
   s.prompts.forEach((p, i) => { items.push([i, false, p]); if (p.reply) items.push([i, true, p.reply]); });
   const texts = [];

@@ -830,3 +830,20 @@ func TestServeArchiveRequiresOrigin(t *testing.T) {
 func serveLive(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool) error {
 	return serveLiveWith(addr, allow, every, picked, load, keep, open, "", nil)
 }
+
+// ポートを握るほかのプログラムがリダイレクトを返しても、looksLikeServe はたどらない（kiroku からほかの URL を取りに行かない）
+func TestLooksLikeServeIgnoresRedirects(t *testing.T) {
+	var hit atomic.Bool
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { hit.Store(true) }))
+	defer target.Close()
+	redir := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target.URL+"/elsewhere", http.StatusFound)
+	}))
+	defer redir.Close()
+	if looksLikeServe(strings.TrimPrefix(redir.URL, "http://")) {
+		t.Error("リダイレクトを返すサーバーを kiroku serve とみなした")
+	}
+	if hit.Load() {
+		t.Error("looksLikeServe がリダイレクトをたどった")
+	}
+}

@@ -88,7 +88,7 @@ func writeClaudeHistory(tb testing.TB, root string, days, perDay int) int {
 }
 
 // BenchmarkLarge は kiroku serve の読み直し 1 回ぶんを、段階ごとに測る。
-//   - read: 履歴を読む（キャッシュなし。kiroku serve --html と serve の最初の読み込み）
+//   - read: 履歴を読む（キャッシュなし。tools/html と serve の最初の読み込み）
 //   - aggregate: すべての週と月を集計する
 //   - render: HTML と /data.json を作る
 //

@@ -289,7 +289,7 @@ func (l *live) handler() http.Handler {
 		w.Header().Set("Cache-Control", "no-store")
 		if _, err := io.Copy(w, body); err != nil && errors.Is(err, core.ErrZstdTooLarge) {
 			// ほどいた大きさが上限を超えた .zst は、途中までを全体に見せないよう、応答を切る（ブラウザでは失敗になる）
-			l.logf("could not send history file %s: %v\n", path, err)
+			l.logf("could not send history file %s: %v\n", termMsg(path), err)
 			panic(http.ErrAbortHandler)
 		}
 	})
@@ -554,7 +554,9 @@ func scanWatchPaths(all []source.Source, want map[string]bool) []string {
 // looksLikeServe は、addr で答えるのが kiroku serve らしいか。鍵は送らない（ポートをほかのプログラムが握っていても、鍵を渡さない）。
 // 鍵のない問い合わせに kiroku serve が返す 403 の案内で見分ける。まねされても、開くときに渡すのは使い捨てのコードだけ（鍵は出さない）
 var looksLikeServe = func(addr string) bool {
-	c := http.Client{Timeout: 700 * time.Millisecond}
+	// リダイレクトをたどらず、プロキシも使わない（ポートを握るほかのプログラムに、kiroku からほかの URL を取りに行かせない）
+	c := http.Client{Timeout: 700 * time.Millisecond, Transport: &http.Transport{Proxy: nil},
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	r, err := c.Get("http://" + addr + "/stamp")
 	if err != nil {
 		return false

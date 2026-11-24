@@ -5,8 +5,11 @@ function mdText(s){ // 記号を \ で打ち消し、@ で始まる語はコー�
   return oneLine(s).replace(/[\\`*_[\]<>~|]/g, "\\$&").replace(/(^|[^\w@])(@[\w.-]*\w)/g, "$1`$2`"); }
 function mdCode(s){ // インラインコードにする。中のバッククォートより長い囲みを使う
   s = oneLine(s); if (!s) return "";
-  const f = "`".repeat(Math.max(0, ...(s.match(/`+/g) || []).map(x => x.length)) + 1), pad = /^`|`$/.test(s) ? " " : "";
+  const f = "`".repeat((s.match(/`+/g) || []).reduce((m, x) => Math.max(m, x.length), 0) + 1), pad = /^`|`$/.test(s) ? " " : ""; // 数が多くても落ちないよう、引数に広げずに数える
   return f + pad + s + pad + f; }
+// セッションを Markdown に書き出すときの見出し（題・エージェント・プロジェクト・ブランチ・時刻）。どれも履歴の文字なので打ち消す
+function mdSessionHead(s, when){
+  return [`# ${mdText(s.title || s.id)}`, "", [mdText(s.source), mdText(s.project), mdCode(s.branch), when].filter(Boolean).join(" · ")]; }
 function mdURL(u){ // http(s) の URL だけをリンクにできる形で（括弧や空白は % にして、[](url) が途中で切れないように）。ほかはコードに
   u = String(u ?? "").trim();
   return /^https?:\/\/\S/i.test(u) ? u.replace(/[\s()<>"'`\\]/g, c => c.charCodeAt(0) < 128 ? "%" + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0") : encodeURIComponent(c)) : mdCode(u); }

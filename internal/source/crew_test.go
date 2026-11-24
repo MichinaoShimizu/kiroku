@@ -1872,3 +1872,108 @@ func keysOf(by map[string]*core.Builder) []string {
 func readCrewKey(home, arch, key string, errs *fileErrs) (meta crewMeta, rows []crewRow) {
 	return readCrewStemIn(newCrewArchiveIndex(home, arch), safeKey(key), errs)
 }
+
+// Crew が state.json を消したあと（届けて 1 時間）も、親の crew-log の subagent/completed・subagent/failed の child_sid と、
+// 使用量の行の harness（新しい Crew が書く）から、Codex の backend のサブエージェントを Codex のスレッドに譲る（2 度数えない）。
+// harness が Codex でない（ここでは goose）・書いていないサブエージェントは、これまでどおり親にまとめる。
+func TestKiroCrewPrunedCodexSubagentYieldsByChildSid(t *testing.T) {
+	kiro, crew, cx := t.TempDir(), t.TempDir(), t.TempDir()
+	const thread = "019a0000-0000-7000-8000-0000000b1e55"
+	writeFiles(t, kiro, map[string]string{"sessions/cli/.keep": ""})
+	row := func(ts, slot, model, harness string) string {
+		return fmt.Sprintf(`{"_type": "tokens", "ts": %q, "slot": %q, "provider": "acp", "harness": %q, "acp_session_id": "x", "model": %q, "input": 1000, "output": 100, "cost": 0.5, "credits": 0}`, ts, slot, harness, model)
+	}
+	writeFiles(t, crew, map[string]string{
+		"session_map.json": `{"dashboard:chat-9-900": {"sid": "", "cwd": "/w"}}`,
+		"sessions/dashboard_chat-9-900.jsonl": `{"_type": "metadata", "title": "親の会話"}` + "\n" +
+			`{"role": "user", "content": "サブエージェントに任せて", "ts": "2026-10-06T00:00:00+00:00", "meta": {"human": true}}` + "\n",
+		"crew-log/sessions/c1/log.jsonl": strings.Join([]string{
+			`{"type": "session", "id": "parent-acp", "slot": "dashboard:chat-9-900", "cwd": "/w"}`,
+			`{"type": "subagent/spawned", "data": {"agent_id": "cx1", "agent": "coder", "task": "パーサーを直す"}}`,
+			`{"type": "subagent/spawned", "data": {"agent_id": "gs1", "agent": "helper", "task": "調べる"}}`,
+			`{"type": "subagent/completed", "data": {"agent_id": "cx1", "ms": 60000, "child_sid": "` + thread + `"}}`,
+			`{"type": "subagent/failed", "data": {"agent_id": "gs1", "outcome": "stopped", "child_sid": "goose-sid-1"}}`,
+		}, "\n") + "\n",
+		"usage/tokens/2026-10-06.jsonl": strings.Join([]string{
+			row("2026-10-06T00:01:00+00:00", "subagent:cx1", "gpt-6-sol", "codex"),
+			row("2026-10-06T00:02:00+00:00", "subagent:gs1", "glm-5", "goose"),
+		}, "\n") + "\n",
+	})
+	writeCodex(t, cx, thread,
+		`{"timestamp":"2026-10-06T00:00:30.000Z","type":"session_meta","payload":{"id":"`+thread+`","timestamp":"2026-10-06T00:00:30.000Z","cwd":"/w"}}`,
+		`{"timestamp":"2026-10-06T00:00:31.000Z","type":"event_msg","payload":{"type":"user_message","message":"パーサーを直す"}}`,
+	)
+	by := map[string]*core.Builder{}
+	for _, b := range load(t, &KiroCLI{Home: kiro, CrewHome: crew}) {
+		by[b.ID] = b
+	}
+	sub := by["crew:subagent:cx1"]
+	if sub == nil {
+		t.Fatalf("Codex のサブエージェントが親にまとめられた（sessions = %v）", keysOf(by))
+	}
+	if sub.Yield != codexClaim(thread) {
+		t.Errorf("Yield = %q, want %q (child_sid の Codex のスレッド)", sub.Yield, codexClaim(thread))
+	}
+	if _, ok := by["crew:subagent:gs1"]; ok {
+		t.Errorf("goose のサブエージェントは親にまとめる")
+	}
+}
+
+// 中身を残さない親の会話の crew-log の child_sid も、ほかのエージェントの履歴の写しを隠す鍵に入る。形の合わない child_sid は使わない
+func TestCrewPrivateSidsIncludeChildSid(t *testing.T) {
+	crew := t.TempDir()
+	writeFiles(t, crew, map[string]string{
+		"crew-log/sessions/c1/log.jsonl": strings.Join([]string{
+			`{"type": "session", "id": "parent-acp", "slot": "dashboard:chat-1-100", "cwd": "/w"}`,
+			`{"type": "session/class", "data": {"memory": "incognito"}}`,
+			`{"type": "subagent/completed", "data": {"agent_id": "a1", "child_sid": "child-sid-1"}}`,
+			`{"type": "subagent/completed", "data": {"agent_id": "a2", "child_sid": "-bad sid"}}`,
+		}, "\n") + "\n",
+	})
+	got := crewPrivateSids(crew, nil, nil)
+	if !slices.Contains(got, "child-sid-1") || slices.Contains(got, "-bad sid") {
+		t.Errorf("crewPrivateSids = %v, want child-sid-1 and not the malformed one", got)
+	}
+}
+
+// crew-log に会話 ID（child_sid など）がたくさんあっても、読む時間は行数にほぼ比例する（2 乗にならない）。
+// 機械の速さによらないよう、行を 4 倍にしたときの時間の比で見る（2 乗なら 16 倍ほど）
+func TestCrewLogManyIDsIsLinear(t *testing.T) {
+	if testing.Short() {
+		t.Skip("timing")
+	}
+	write := func(n int) string {
+		var b strings.Builder
+		b.WriteString(`{"type": "session", "id": "p", "slot": "dashboard:chat-1-100", "cwd": "/w"}` + "\n")
+		for i := 0; i < n; i++ {
+			fmt.Fprintf(&b, `{"type": "subagent/completed", "data": {"agent_id": "a%d", "child_sid": "sid-%d"}}`+"\n", i, i)
+		}
+		p := filepath.Join(t.TempDir(), "log.jsonl")
+		if err := os.WriteFile(p, []byte(b.String()), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	best := func(p string, n int) time.Duration {
+		var min time.Duration
+		for range 3 {
+			d := &crewLogDir{}
+			start := time.Now()
+			if err := readCrewLog(p, map[string]bool{}, d); err != nil {
+				t.Fatal(err)
+			}
+			if len(d.ids) != n+1 {
+				t.Fatalf("ids = %d, want %d", len(d.ids), n+1)
+			}
+			if e := time.Since(start); min == 0 || e < min {
+				min = e
+			}
+		}
+		return min
+	}
+	small, big := write(10000), write(40000)
+	a, b := best(small, 10000), best(big, 40000)
+	if b > 8*a {
+		t.Errorf("4× the lines took %.1f× as long (%v vs %v): reading is not linear", float64(b)/float64(a), b, a)
+	}
+}
