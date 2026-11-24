@@ -17,6 +17,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
@@ -171,7 +172,65 @@ var RepoTimeout = 30 * time.Second
 // ref の位置・reflog・user.email・origin・セッションから決まる範囲が同じなら、コミットも push も同じ。
 type Cache struct {
 	repos  map[string]repoCache // 共通の git ディレクトリごと
+	mu     sync.Mutex           // counts を守る（リポジトリは並べて読む）
 	counts map[string]pushed    // push で送ったコミット（prev..hash ごと。あとから変わらない）
+	tops   map[string]topCache  // 作業場所 → 作業ツリーのルートと共通の git ディレクトリ（読み直しのたびに git rev-parse を呼ばない）
+}
+
+// topCache は repoOf の結果と、それを確かめた時刻・作業場所の更新時刻。
+// 作業場所の更新時刻が変わったとき（git init で .git ができた、など）と、TopTTL を過ぎたときに調べ直す。
+// リポジトリだった作業場所は、作業ツリーのルートか共通の git ディレクトリがなくなったときにも調べ直す
+type topCache struct {
+	tc    [2]string
+	at    time.Time
+	mtime time.Time
+}
+
+// TopTTL は、作業場所がどのリポジトリにあるかを覚えておく長さ。外から気づけない変化（親のディレクトリでの git init など）も、この長さのうちには拾う
+var TopTTL = 10 * time.Minute
+
+// workers は、git を同時に動かす数（リポジトリの数だけ動かすと、プロセスを作るのに CPU とディスクを取り合う）
+func workers(n int) int { return max(1, min(n, 8, max(2, runtime.NumCPU()))) }
+
+// each は f(0)..f(n-1) を、workers(n) 本で並べて動かし、全部が終わるまで待つ
+func each(n int, f func(i int)) {
+	next := make(chan int)
+	var wg sync.WaitGroup
+	for range workers(n) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := range next {
+				f(i)
+			}
+		}()
+	}
+	for i := range n {
+		next <- i
+	}
+	close(next)
+	wg.Wait()
+}
+
+// top は作業場所 p の repoOf を、覚えていればそれを使って返す（覚えた結果がまだ正しいかは、ファイルの情報だけで確かめる）
+func (c *Cache) top(p string, now time.Time) (topCache, bool) {
+	tc, ok := c.tops[p]
+	if !ok || now.Sub(tc.at) >= TopTTL {
+		return tc, false
+	}
+	st, err := os.Stat(p)
+	if err != nil || !st.IsDir() || !st.ModTime().Equal(tc.mtime) {
+		return tc, false
+	}
+	if tc.tc[0] != "" {
+		if _, err := os.Stat(tc.tc[0]); err != nil {
+			return tc, false
+		}
+		if _, err := os.Stat(tc.tc[1]); err != nil {
+			return tc, false
+		}
+	}
+	return tc, true
 }
 
 type repoCache struct {
@@ -180,7 +239,9 @@ type repoCache struct {
 	pushes  []Push
 }
 
-func NewCache() *Cache { return &Cache{repos: map[string]repoCache{}, counts: map[string]pushed{}} }
+func NewCache() *Cache {
+	return &Cache{repos: map[string]repoCache{}, counts: map[string]pushed{}, tops: map[string]topCache{}}
+}
 
 // Collect は CollectAll と同じ。前回から変わっていないリポジトリは読み直さない。
 // 時間切れになったリポジトリは前回の結果を使い（なければ何も出さない）、そのルートを stale で返す。
@@ -188,22 +249,45 @@ func (c *Cache) Collect(data []*core.Session) (commits []Commit, pushes []Push, 
 	if _, err := exec.LookPath("git"); err != nil {
 		return nil, nil, nil
 	}
-	tops := map[string][2]string{} // 作業場所 → [作業ツリーのルート, 共通の git ディレクトリ]（リポジトリでなければ空）
-	repos := map[string]*repo{}    // 共通の git ディレクトリごと。本体と git worktree は同じリポジトリとしてまとめる
+	// 作業場所 → [作業ツリーのルート, 共通の git ディレクトリ]（リポジトリでなければ空）。覚えていない作業場所だけ、並べて git rev-parse で調べる
+	now, tops, seenP := time.Now(), map[string]topCache{}, map[string]bool{}
+	var ask []string
+	for _, d := range data {
+		p := d.ProjectPath
+		if p == "" || !filepath.IsAbs(p) || remotePath(runtime.GOOS, p) || seenP[p] {
+			continue
+		}
+		seenP[p] = true
+		if tc, ok := c.top(p, now); ok {
+			tops[p] = tc
+		} else {
+			ask = append(ask, p)
+		}
+	}
+	got := make([]topCache, len(ask))
+	each(len(ask), func(i int) {
+		p := ask[i]
+		var mt time.Time
+		if st, err := os.Stat(p); err == nil { // 調べる前の更新時刻（調べている間に変われば、次の読み直しで調べ直す）
+			mt = st.ModTime()
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), RepoTimeout)
+		got[i] = topCache{tc: repoOf(ctx, p), at: now, mtime: mt}
+		cancel()
+	})
+	for i, p := range ask {
+		tops[p] = got[i]
+	}
+	c.tops = tops               // 今回の履歴にない作業場所は忘れる
+	repos := map[string]*repo{} // 共通の git ディレクトリごと。本体と git worktree は同じリポジトリとしてまとめる
 	var order []string
 	for _, d := range data {
 		p := d.ProjectPath
-		if p == "" || !filepath.IsAbs(p) || remotePath(runtime.GOOS, p) {
-			continue
-		}
 		tc, ok := tops[p]
 		if !ok {
-			ctx, cancel := context.WithTimeout(context.Background(), RepoTimeout)
-			tc = repoOf(ctx, p)
-			cancel()
-			tops[p] = tc
+			continue
 		}
-		top, common := tc[0], tc[1]
+		top, common := tc.tc[0], tc.tc[1]
 		if top == "" {
 			continue
 		}
@@ -228,9 +312,15 @@ func (c *Cache) Collect(data []*core.Session) (commits []Commit, pushes []Push, 
 	}
 	seen := map[string]bool{}
 	next := map[string]repoCache{}
-	for _, common := range order {
+	type res struct {
+		rc repoCache
+		ok bool
+	}
+	rs := make([]res, len(order)) // リポジトリは並べて読み、結果はいつも同じ順に並べる
+	each(len(order), func(i int) { rc, ok := c.read(order[i], repos[order[i]]); rs[i] = res{rc, ok} })
+	for i, common := range order {
 		r := repos[common]
-		rc, ok := c.read(common, r)
+		rc, ok := rs[i].rc, rs[i].ok
 		if !ok {
 			stale = append(stale, r.top)
 		}
@@ -266,7 +356,7 @@ func (c *Cache) read(common string, r *repo) (rc repoCache, ok bool) {
 		return prev, true
 	}
 	rc = repoCache{key: key, commits: readRepo(ctx, r)}
-	rc.pushes = readPushes(ctx, r, c.counts)
+	rc.pushes = readPushes(ctx, r, &c.mu, c.counts)
 	if ctx.Err() != nil {
 		return prev, false
 	}
@@ -341,7 +431,7 @@ type pushed struct {
 }
 
 // 送ったコミットは counts に覚えておき、同じ push のために git rev-list を何度も呼ばない。
-func readPushes(ctx context.Context, r *repo, counts map[string]pushed) []Push {
+func readPushes(ctx context.Context, r *repo, mu *sync.Mutex, counts map[string]pushed) []Push {
 	refs, err := git(ctx, r.top, "for-each-ref", "--format=%(refname)", "refs/remotes")
 	if err != nil {
 		return nil
@@ -378,12 +468,17 @@ func readPushes(ctx context.Context, r *repo, counts map[string]pushed) []Push {
 				if prev := strings.SplitN(lines[j+1], "\x1f", 2)[0]; prev != "" && prev != f[0] {
 					rng := prev + ".." + f[0]
 					p.Prev = prev
-					if c, ok := counts[rng]; ok {
+					mu.Lock()
+					c, ok := counts[rng]
+					mu.Unlock()
+					if ok {
 						p.Commits, p.Hashes = c.n, c.hashes
 					} else if out, err := git(ctx, r.top, "rev-list", rng); err == nil {
 						hs := strings.Fields(out)
 						c := pushed{n: len(hs), hashes: hs[:min(len(hs), MaxPushHashes)]}
+						mu.Lock()
 						counts[rng] = c
+						mu.Unlock()
 						p.Commits, p.Hashes = c.n, c.hashes
 					}
 				}
