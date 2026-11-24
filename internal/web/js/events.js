@@ -30,12 +30,12 @@ function keepCalFocus(n){ // カレンダーの中にいたまま期間を移っ
 function setMode(m){ if (m === "month" && META.scope && META.scope.mode === "week") return; // 週だけのファイルの月表示は、1 か月ぶんに見えて紛らわしい
   if (m === "month" && st.mode !== "month") st.month = monthOf(addDays(st.week, 3));
   if (m === "week" && st.mode === "month" && monthOf(st.week).getTime() !== st.month.getTime()) st.week = mondayOf(st.month);
-  st.mode = m; store.set("mode", m); st.sel = null; st.animate = true; render(); scrollToWork(); }
+  st.mode = m; st.sel = null; st.animate = true; render(); scrollToWork(); }
 document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = e => { setMode(b.dataset.v); if (e.detail) b.blur(); }); // マウスで押したら、フォーカスを外す（←→ で期間を動かせるように）
 /* 表示：カレンダーかサマリー。広い画面ではページ全体を画面に固定し、選んだほうだけが中でスクロールする（ページとカレンダーの二重のスクロールをなくす） */
 function showView(){ document.body.dataset.view = st.view;
   document.querySelectorAll("#view button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.view)); }
-function setView(v, focus){ if (v === st.view) return; st.view = v; store.set("view", v); showView();
+function setView(v, focus){ if (v === st.view) return; st.view = v; showView();
   const m = $("main"); if (m) m.scrollTop = 0; if (v === "cal") scrollToWork(); else skBack($("#review")); // サンキーの名前の札は、見えているときにしか測れない（隠れたまま描いたサマリーを開いたときに敷く）
   if (focus && v === "sum"){ const r = $("#review"); r.tabIndex = -1; r.focus({preventScroll: true}); } }
 document.querySelectorAll("#view button[data-v]").forEach(b => b.onclick = e => { setView(b.dataset.v); if (e.detail) b.blur(); });

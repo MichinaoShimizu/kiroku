@@ -59,8 +59,8 @@ const dow = i => DOW[i];
 const wkc = i => i % 6 === 0 ? " we" : ""; // 曜日（getDay）から、土日のクラス（土曜も日曜も同じ中立の地）
 const plural = (n, one, many) => isJA() ? `${n} ${t(one)}` : `${n} ${n === 1 ? one : many || one + "s"}`; // 日本語は数と名詞（単数の形を辞書で引く）
 // hh: 週のカレンダーの 1 時間の高さ（render が作業の時間帯に合わせて決める。ズームはない。以前の版が保存した "zh" は読まない）
-// 画面はカレンダーだけ。以前の版が保存した "view"（journey・project）は読まない
+// 開くたびに今週のカレンダーから始める。表示（カレンダー・サマリー）と週・月は覚えない（以前の版が保存した "view"・"mode" も読まない）
 const st = { hh: 44, colorBy: store.get("colorBy", "source") === "project" ? "project" : "source",
-             week: mondayOf(today0()), month: monthOf(today0()), mode: store.get("mode", "week"), view: store.get("view", "cal") === "sum" ? "sum" : "cal",
+             week: mondayOf(today0()), month: monthOf(today0()), mode: "week", view: "cal",
              hidden: new Set(), sel: null, back: [], q: "", animate: true, insWf: store.get("insWf", "cost"), insSk: store.get("insSk", "cost"), insWk: store.get("insWk", null), shade: store.get("mShade", null), insW: store.get("insW", "project"), insAg: store.get("insAg", ""), early: store.get("calEarly", null) === true };
 

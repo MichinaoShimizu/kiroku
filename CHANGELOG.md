@@ -2,6 +2,12 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## Unreleased
+
+### Changed
+
+- The page (including `kiroku serve`) always opens on this week's calendar instead of the view (Calendar or Summary) and Week | Month used last time. Other choices, such as the figures in the calendar and the summary's switches, are still remembered
+
 ## v5.1.1 - 2026-11-24
 
 ### Fixed
