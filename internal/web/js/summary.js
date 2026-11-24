@@ -7,35 +7,19 @@ function summary(){
   if (!w){ R.innerHTML = foot(); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
   const F = insRank(findList(w, pw, unit)); // 見直す候補（「まず見直す」とダイアログで同じ並び）
   lastFlags = F; // 見直す候補（詳細の頭の印と「まず見直す」が使う）
-  // エージェントで絞る：2 つ以上のエージェントが動いた期間だけ、切り替えを出す（期間の集計の agents）。絞っている間はサマリーの中だけが、そのエージェントの分になる
-  const ags = ((w.shares || {}).source || []).map(x => x.key).filter(k => w.agents && Object.hasOwn(w.agents, k)).sort((a, b) => AGENTS.findIndex(x => x.name === a) - AGENTS.findIndex(x => x.name === b)), ag = ags.includes(st.insAg) ? st.insAg : "";
-  const agPart = ags.length >= 2 ? `<span class="lab">${esc(t("Agent"))}</span><div class="segc insk" role="group" aria-label="${esc(t("Agent"))}">${["", ...ags].map(k => `<button type="button" data-ag="${esc(k)}" aria-pressed="${k === ag}">${esc(k || t("All agents"))}</button>`).join("")}</div>${ag ? `<span class="note">${esc(t("Only {agent}. Its active time counts time it shared with other agents in full (the By agent table and the legend split it). Git commits made by hand are left out. The band at the top of the page stays for all agents", {agent: ag}))}</span>` : ""}` : "";
-  const agSw = agPart ? `<div class="insagbar">${agPart}</div>` : "";
-  insFlags = F; insAg = ag;
-  agScope(ag, () => { const {S: w2, P: pw2} = period(), F2 = ag ? insRank(findList(w2, pw2, unit)) : F; insFlags = F2;
-    R.innerHTML = `${head}${agSw}${insightH(F2)}<div class="rvgrid">
-  <section class="panel metap">${measure(w2)}${foot()}</section></div>`;
-    placeFlags(R, F2); });
-  R.querySelectorAll("[data-ag]").forEach(b => b.onclick = () => { st.insAg = b.dataset.ag; store.set("insAg", st.insAg); summary(); const nb = $("#review").querySelector(`[data-ag="${CSS.escape(b.dataset.ag)}"]`); if (nb) nb.focus(); });
+  R.innerHTML = `${head}${insightH(F)}<div class="rvgrid">
+  <section class="panel metap">${measure(w)}${foot()}</section></div>`;
+  placeFlags(R, F);
   R.querySelectorAll(".card,.fses").forEach(c => c.onclick = () => select(c.dataset.id));
   R.querySelectorAll(".fmark").forEach(b => b.onclick = () => insOpenWorth(b.dataset.goto, b));
-  R.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => agScope(insAg, () => openMetric(b.dataset.metric, b))); // 上の帯と同じ内訳（絞っていれば、そのエージェントの分）
+  R.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b)); // 上の帯と同じ内訳
   R.querySelectorAll(".keeparch").forEach(b => b.onclick = () => { R.querySelectorAll(".keeparch").forEach(x => x.disabled = true); keepArchive(); });
   bindInsight(R); bindCopy(R); bindHelp(R);
   if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }
-// agScope は、fn を描く間だけ DATA・WEEKS・MONTHS をエージェント ag の分に入れかえる（ag が空なら、そのまま）。
-// 描画は同期の処理なので、ほかの描画（カレンダー・上の帯）には入れかえた中身は見えない
-let insFlags = [], insAg = "";
-const agData = new WeakMap();
-function agScope(ag, fn){ if (!ag) return fn();
-  const D = DATA, W = WEEKS, Mo = MONTHS, pick = o => { const r = {}; for (const [k, x] of Object.entries(o)){ const y = x && (x.agents ? (Object.hasOwn(x.agents, ag) ? x.agents[ag] : null) : x.only === ag ? x : null); if (y) r[k] = y; } return r; };
-  if (!agData.has(D)) agData.set(D, {}); const per = agData.get(D); // 絞った配列は、もとの DATA ごとに使い回す（配列ごとに覚える計算を、絞るたびにやり直さない）
-  DATA = per[ag] || (per[ag] = D.filter(s => s.source === ag)); WEEKS = pick(W); MONTHS = pick(Mo);
-  try { return fn(); } finally { DATA = D; WEEKS = W; MONTHS = Mo; } }
-// サマリーの中の見直す候補（絞っていれば、そのエージェントの候補）を開く
+// サマリーの中の見直す候補を開く
 // 印の付いたカードが、たたんだ箱（内訳・その他のグラフ）の中にあれば、その箱を開く（ダイアログを閉じたとき、そのカードが見えるように。開いたことは箱ごとに覚える）
-const insOpenWorth = (id, from) => { insReveal(id); agScope(insAg, () => openWorth(id, from, insFlags)); };
+const insOpenWorth = (id, from) => { insReveal(id); openWorth(id, from, lastFlags); };
 // insReveal は、サマリーの中で指標 id のカード（見直す候補の印、なければ「?」）を囲む、たたんだ箱を開く
 function insReveal(id){ const R = $("#review"), q = CSS.escape(String(id)), el = R && (R.querySelector(`.fmark[data-goto="${q}"]`) || R.querySelector(`.hb[data-help="${q}"]`));
   for (let d = el && el.closest("details"); d && R.contains(d); d = d.parentElement.closest("details")) if (!d.open) d.open = true; }
@@ -114,7 +98,7 @@ function hintBody(id){ const h = H()[id]; if (!h) return "";
 // 同じ ? をもう一度・Esc・吹き出しの外を押すと閉じる（Esc では ? にフォーカスを戻す）。描き直しで ? が消えたら閉じる
 let hpopFor = null;
 function bindHelp(root){ root.querySelectorAll(".hb").forEach(b => b.onclick = e => { e.stopPropagation(); hpopFor === b ? hideHint() : showHint(b); }); }
-function showHint(b){ const P = $("#hpop"), body = b.closest("#review") ? agScope(insAg, () => hintBody(b.dataset.help)) : hintBody(b.dataset.help); if (!body) return; // サマリーの「?」の推移は、エージェントで絞っていればその分
+function showHint(b){ const P = $("#hpop"), body = hintBody(b.dataset.help); if (!body) return;
   hideHint(); P.innerHTML = body; P.setAttribute("aria-label", b.getAttribute("aria-label")); P.hidden = false; hpopFor = b; b.setAttribute("aria-expanded", "true");
   const r = b.getBoundingClientRect(), w = P.offsetWidth, h = P.offsetHeight, m = 12;
   const left = Math.min(Math.max(m, r.left + r.width/2 - w/2), innerWidth - w - m); // 画面の端からはみ出さない

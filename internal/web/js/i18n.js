@@ -4,8 +4,6 @@
 const JA_TEXT = {
   "Kiro credits": "Kiro credits",
   "credits": "credits",
-  "Pushes count every agent: Git doesn't record which agent's work a push sent": "プッシュはすべてのエージェントの分です。どのエージェントの作業を送ったかは Git に記録されません",
-  "Per push is shown for All agents only: Git doesn't record which agent's work a push sent": "プッシュあたりは「すべて」のときだけ出します。どのエージェントの作業を送ったかは Git に記録されません",
   "Pull requests can't be split into AI's share, so this divides the period's whole total": "PR は AI の分だけを取り出せないので、期間の合計で割っています",
   "100 AI lines": "AI 100 行",
   "Active hour": "稼働 1 時間",
@@ -125,7 +123,6 @@ const JA_TEXT = {
   "{x}: far below your usual {lo}–{hi}": "{x}：いつもの範囲（{lo}〜{hi}）よりかなり下",
   "Show 0:00–7:00 at full height": "0:00〜7:00 を広げる",
   "Fold 0:00–7:00": "0:00〜7:00 を畳む",
-  "Only {agent}. Its active time counts time it shared with other agents in full (the By agent table and the legend split it). Git commits made by hand are left out. The band at the top of the page stays for all agents": "{agent} だけ。稼働時間は、ほかのエージェントと同時に動いた時間もそのまま数えます（エージェント別の表と凡例は分けて数えます）。手でのコミットは入れません。ページの上の帯の数字は、すべてのエージェントのままです",
   "Agents and projects with fewer than 3 replies are left out of the medians.": "応答が 3 回未満のエージェントとプロジェクトは、中央値から除いています。",
   "At a good stopping point, write down the key points and continue in a new session": "区切りのよいところで要点を書き出し、新しいセッションで続ける",
   "Back": "戻る",

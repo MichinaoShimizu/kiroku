@@ -22,8 +22,7 @@ await p.addInitScript(() => { window.__lsKeys = new Set(); const gi = Storage.pr
 // 同じ働きのものを 1 度だけ押すための鍵（描き直すと要素が替わるので、要素そのものでなく中身で見分ける）。どの切り替えの、どの選択肢の中のものかも入れる
 await p.addInitScript(() => { window.__keyOf = el => { const chs = []; for (let x = el.closest("[data-ch]"); x; x = x.parentElement && x.parentElement.closest("[data-ch]")) chs.push(x.dataset.ch);
   return [el.tagName, el.getAttribute("class") || "", el.getAttribute("aria-label") || "", ...[...el.attributes].filter(a => a.name.startsWith("data-")).map(a => `${a.name}=${a.value}`),
-    (el.textContent || "").trim().slice(0, 80), ...chs, (el.closest(".ikg, .inscol") || {}).className || "",
-    (document.querySelector("#review [data-ag][aria-pressed=true]") || {dataset: {}}).dataset.ag || ""].join("|"); }; });
+    (el.textContent || "").trim().slice(0, 80), ...chs, (el.closest(".ikg, .inscol") || {}).className || ""].join("|"); }; });
 let failed = 0;
 await p.goto("file://" + path.resolve(html));
 await p.waitForTimeout(300);

@@ -753,7 +753,7 @@ html:lang(ja){word-break:auto-phrase} /* 日本語は文節の切れ目で折り
    1 度に見せるのはどちらか 1 つ（上の期間・数字・見直す候補・凡例は共通）。
    広い画面ではページを画面に固定して、カレンダーは残りの高さいっぱい、スクロールはカレンダーの中だけにする
    （ページとカレンダーが二重にスクロールして、ホイールがカレンダーに取られないように）。境目は影と余白ではっきりさせる */
-body[data-view="cal"] #review>.rvhead,body[data-view="cal"] #review>.insight,body[data-view="cal"] #review>.insagbar,body[data-view="cal"] #review .rvgrid>:not(.metap){display:none} /* カレンダーの表示でも、データソースとページの下（版・問題の報告）は出す */
+body[data-view="cal"] #review>.rvhead,body[data-view="cal"] #review>.insight,body[data-view="cal"] #review .rvgrid>:not(.metap){display:none} /* カレンダーの表示でも、データソースとページの下（版・問題の報告）は出す */
 body[data-view="cal"] #review .rvgrid{display:block}
 body[data-view="cal"] #review{margin-top:28px} /* カレンダーの下端とデータソースのあいだを空ける */
 body[data-view="sum"] #tl,body[data-view="sum"] #skipcal{display:none}
@@ -1027,19 +1027,12 @@ header{background:var(--s-cont);border-bottom:0}
 .iagt .num{text-align:right}
 .iagt td b{margin-left:4px;font-size:var(--fs-xs);color:var(--ink-2)}
 .iagb{display:inline-block;vertical-align:middle;width:80px;height:8px;margin-right:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}.iagb>span{display:block;height:100%;border-radius:4px}
-/* サマリーをエージェントで絞る切り替え（見出しの下） */
-.insagbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:-4px 0 14px}
-.insagbar .lab{font-size:var(--fs-xs);color:var(--ink-2)}
-.insagbar .note{font-size:var(--fs-xs);color:var(--ink-2)}
- /* 2 枚の行に 1 枚しかないとき（エージェントで絞ったときなど）は、幅いっぱい */
 /* 式は「式を表示」のときだけ（ふだんは平易な 1 行と、言葉のチップ） */
 .fxp,.ichip .cp{display:none} /* ダイアログでは式を出し、平易な 1 行は出さない */
 #review .fxo:not(.fxon *),#review .ichip .cx:not(.fxon *){display:none} /* サマリーでは、式はその数字の「ƒx」で開いたときだけ */
 #review .fxp:not(.fxon *),#review .ichip .cp:not(.fxon *){display:inline}
 #review .insight:not(:has(.fxon)) .insdef{display:none}
 .fxp,.iplain{font-size:var(--fs-xs);color:var(--ink-2)}
-/* エージェントの切り替えは、狭い画面でも隠さずに折り返す */
-.insagbar .segc{flex-wrap:wrap;overflow:visible}
 /* エージェント別：広いカードでは表、狭いカード（3 列に並べたときの 1 枚・スマホ）では、エージェントごとに 2 行の並び。どちらも列（数字）を隠さない */
 .iagl{display:none}
 @container (max-width:600px){
@@ -1081,8 +1074,6 @@ body[data-view="sum"] #legend,body[data-view="sum"] #fnote{display:none} /* サ�
 .mgrid .cell.fut{background:repeating-linear-gradient(135deg,transparent 0 6px,color-mix(in oklab,var(--ink) 5%,transparent) 6px 8px)}
 .wktry{display:flex;gap:8px;align-items:flex-start;margin:6px 0 14px;padding:10px 12px;border-radius:10px;background:var(--s-cont);font-size:var(--fs-sm);line-height:1.6}.wktry .ti{flex:none;width:14px;height:14px;margin-top:3px;color:var(--acc)}.wktry b{flex:none}
 .foot .keysbtn{font:inherit;color:inherit;text-decoration:underline;text-underline-offset:2px}.foot .keysbtn kbd{font:500 .92em var(--mono);padding:0 4px;border:1px solid var(--rule-2);border-radius:4px}
-/* エージェントの切り替えが折り返しても、選んだボタンの角が枠からはみ出さない */
-.insagbar .segc{overflow:hidden}
 /* 内訳の名前（エージェント・モデル）は、入らなければ … で切る */
 .mbar>:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* 予定の名前は、語の途中でハイフンを入れて折らない */
@@ -1304,3 +1295,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .itile .imods li b{font:600 var(--fs-xs)/1.3 var(--sans);letter-spacing:normal;font-variant-numeric:tabular-nums;color:var(--ink);text-align:right} /* .itile b（大きな値）を受け継がない */
 /* 累積・平均の線の右端の値（insSpark の cEnd）。線と同じ琥珀色、地の色の縁取り。棒のグラフでは右の軸の目盛りの位置に */
 .tspk .cud{fill:var(--amber)}.tspk text.cuv{font-size:9px;font-weight:600;fill:var(--amber);text-anchor:end;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
+/* Kiro credits の棒は、エージェントの色で積み上げる（過去の期間は淡く、表示中の期間は濃く。区分の間に地の色の細い線）。グラフの下に色の凡例 */
+.tspk .sbar.sg{fill:color-mix(in oklab,var(--c) 60%,var(--surface));stroke:var(--surface);stroke-width:.6}.tspk .sbar.sg.cur{fill:var(--c)}
+.tagk{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:var(--fs-2xs);color:var(--ink-2);line-height:1.4}
+.tagk .lg::before{content:"";display:inline-block;width:8px;height:8px;margin-right:4px;vertical-align:middle;border-radius:2px;background:var(--c)}
