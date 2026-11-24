@@ -33,3 +33,10 @@ eq(oneLine("a\u0085b c d\u000be\u0000f"), "a b c d e f");
 eq(oneLine(null), "");
 eq(oneLine("👨‍👩‍👧 team"), "👨‍👩‍👧 team"); // ZWJ でつないだ絵文字は壊さない
 eq(mdText("x\u0085- y"), "x - y");
+// セッションの書き出しの見出し：題・プロジェクト・ブランチは HTML・リンク・メンションにならない
+{
+  const h = mdSessionHead({title: "CLI</script><script>alert(42)</script> @channel", source: "Codex", project: "[p](javascript:x)", branch: 'feat/button"><svg onload=alert(17)>'}, "Nov 24 10:00 – 11:00");
+  eq(h[0], "# CLI\\</script\\>\\<script\\>alert(42)\\</script\\> `@channel`");
+  eq(h[2], "Codex · \\[p\\](javascript:x) · `feat/button\"><svg onload=alert(17)>` · Nov 24 10:00 – 11:00");
+  eq(mdSessionHead({id: "abc"}, "t").join("\n"), "# abc\n\nt");
+}

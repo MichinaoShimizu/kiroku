@@ -289,7 +289,7 @@ func (l *live) handler() http.Handler {
 		w.Header().Set("Cache-Control", "no-store")
 		if _, err := io.Copy(w, body); err != nil && errors.Is(err, core.ErrZstdTooLarge) {
 			// ほどいた大きさが上限を超えた .zst は、途中までを全体に見せないよう、応答を切る（ブラウザでは失敗になる）
-			l.logf("could not send history file %s: %v\n", path, err)
+			l.logf("could not send history file %s: %v\n", termMsg(path), err)
 			panic(http.ErrAbortHandler)
 		}
 	})

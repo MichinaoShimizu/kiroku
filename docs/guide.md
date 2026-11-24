@@ -48,10 +48,12 @@ go install github.com/MichinaoShimizu/kiroku@latest
 Each release also has the binary on its own: `kiroku-darwin-arm64`, `kiroku-darwin-amd64`, `kiroku-linux-amd64`, `kiroku-linux-arm64`, `kiroku-windows-amd64.exe` and `kiroku-windows-arm64.exe`. With the [GitHub CLI](https://cli.github.com/), one command downloads it to a place you choose (files `gh` downloads get no quarantine attribute on macOS):
 
 ```bash
-gh release download -R MichinaoShimizu/kiroku -p kiroku-darwin-arm64 -O ~/bin/kiroku && chmod +x ~/bin/kiroku
+gh release download -R MichinaoShimizu/kiroku -p kiroku-darwin-arm64 -O ~/bin/kiroku.new \
+  && gh attestation verify ~/bin/kiroku.new --repo MichinaoShimizu/kiroku \
+  && chmod +x ~/bin/kiroku.new && mv ~/bin/kiroku.new ~/bin/kiroku
 ```
 
-They are listed in `checksums.txt` and carry build provenance like the archives (`gh attestation verify ~/bin/kiroku --repo MichinaoShimizu/kiroku`).
+This checks the file's build provenance before it replaces anything in `~/bin`. The binaries are also listed in `checksums.txt`, like the archives.
 
 ### Inside an organization (a private repository)
 
@@ -61,7 +63,9 @@ For the people who use it:
 
 ```bash
 gh auth login                                                   # once
-gh release download -R your-org/your-repo -p kiroku-darwin-arm64 -O ~/bin/kiroku && chmod +x ~/bin/kiroku
+gh release download -R your-org/your-repo -p kiroku-darwin-arm64 -O ~/bin/kiroku.new \
+  && gh attestation verify ~/bin/kiroku.new --repo your-org/your-repo \
+  && chmod +x ~/bin/kiroku.new && mv ~/bin/kiroku.new ~/bin/kiroku
 kiroku serve
 kiroku update                                                   # later: updates from your-org/your-repo
 ```

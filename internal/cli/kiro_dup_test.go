@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -176,5 +177,35 @@ func TestKiroV3CopyWithAnotherIDDoesNotTakeOver(t *testing.T) {
 	data, _ := collect(all, map[string]bool{"kiro": true}, 15)
 	if n := ids(data); n["Kiro CLI (V2) k1"] != 1 {
 		t.Errorf("sessions = %v, want the V2 conversation k1 kept", n)
+	}
+}
+
+// ほかの会話の id を session.json に書いた写し（壊れた・まねたファイル）が新しくても、本物の sess_k1 を隠さない
+// （同じ会話の写しは、Claim と同じくフォルダ名で 1 つにまとめる）
+func TestKiroV3CopyWithAnotherIDDoesNotHideTheReal(t *testing.T) {
+	home := t.TempDir()
+	writeTree(t, home, map[string]string{
+		"sessions/b1/sess_k1/session.json":      `{"id": "sess_k1"}`,
+		"sessions/b1/sess_k1/messages.jsonl":    v3Prompt("2026-09-29T10:00:00Z", "real one") + v3Prompt("2026-09-29T10:05:00Z", "real two"),
+		"sessions/b2/sess_other/session.json":   `{"id": "sess_k1"}`,
+		"sessions/b2/sess_other/messages.jsonl": v3Prompt("2026-09-29T11:00:00Z", "other"),
+	})
+	old := time.Now().Add(-time.Hour)
+	if err := os.Chtimes(filepath.Join(home, "sessions", "b1", "sess_k1", "messages.jsonl"), old, old); err != nil {
+		t.Fatal(err)
+	}
+	var texts []string
+	data := loadKiro(t, home)
+	if n := ids(data); n["Kiro IDE / CLI (V3) sess_k1"] != 1 || n["Kiro IDE / CLI (V3) sess_other"] != 1 {
+		t.Errorf("sessions = %v, want sess_k1 and sess_other once each", n)
+	}
+	for _, s := range data {
+		for _, p := range s.Prompts {
+			texts = append(texts, p.Text)
+		}
+	}
+	got := strings.Join(texts, "|")
+	if !strings.Contains(got, "real one") || !strings.Contains(got, "real two") {
+		t.Errorf("prompts = %q, want the real sess_k1's prompts kept", got)
 	}
 }

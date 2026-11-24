@@ -7,6 +7,9 @@ function mdCode(s){ // インラインコードにする。中のバッククォ
   s = oneLine(s); if (!s) return "";
   const f = "`".repeat(Math.max(0, ...(s.match(/`+/g) || []).map(x => x.length)) + 1), pad = /^`|`$/.test(s) ? " " : "";
   return f + pad + s + pad + f; }
+// セッションを Markdown に書き出すときの見出し（題・エージェント・プロジェクト・ブランチ・時刻）。どれも履歴の文字なので打ち消す
+function mdSessionHead(s, when){
+  return [`# ${mdText(s.title || s.id)}`, "", [mdText(s.source), mdText(s.project), mdCode(s.branch), when].filter(Boolean).join(" · ")]; }
 function mdURL(u){ // http(s) の URL だけをリンクにできる形で（括弧や空白は % にして、[](url) が途中で切れないように）。ほかはコードに
   u = String(u ?? "").trim();
   return /^https?:\/\/\S/i.test(u) ? u.replace(/[\s()<>"'`\\]/g, c => c.charCodeAt(0) < 128 ? "%" + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0") : encodeURIComponent(c)) : mdCode(u); }

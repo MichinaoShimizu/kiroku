@@ -1,1 +1,3 @@
 - `kiroku serve`'s check for an already running kiroku no longer follows redirects or uses a proxy, so another program holding the port can't make kiroku fetch other URLs (nothing private was sent)
+- Terminal output removes control characters from a repository folder named in history when git times out, and from paths in two other messages
+- "Copy as Markdown" in a session escapes the title, project and branch, so they can't become links, HTML or mentions where you paste them

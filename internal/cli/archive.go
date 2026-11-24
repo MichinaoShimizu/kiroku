@@ -23,7 +23,7 @@ func keepCopies(picked []source.Source, dir string) int {
 			m, err := archive.Sync(x.Src, x.Dst)
 			n += m
 			if err != nil {
-				fmt.Fprintf(logw, "  %s: could not keep a copy of some files in %s (%v)\n", s.Name(), dir, err)
+				fmt.Fprintf(logw, "  %s: could not keep a copy of some files in %s (%s)\n", s.Name(), termMsg(dir), termMsg(err.Error()))
 			}
 		}
 	}

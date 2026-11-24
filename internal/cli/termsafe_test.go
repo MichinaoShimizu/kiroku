@@ -36,3 +36,11 @@ func TestRemovedJSONAndStats(t *testing.T) {
 		t.Errorf("--json: err = %v", err)
 	}
 }
+
+// git が時間切れになったリポジトリのフォルダ名（履歴の cwd から来る）は、端末の制御文字を除いて出す
+func TestGitTimeoutLineIsTermSafe(t *testing.T) {
+	got := gitTimeoutLine("/tmp/r\x1b]0;PWNED\x07\x1b[31mRED")
+	if strings.ContainsAny(got, "\x1b\x07") || !strings.Contains(got, "timed out reading") || !strings.HasSuffix(got, "(kept the previous result)\n") {
+		t.Errorf("gitTimeoutLine = %q", got)
+	}
+}
