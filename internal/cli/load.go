@@ -131,6 +131,9 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 			fm.Merge(o.format)
 			if o.yield != "" && claimed[o.yield] {
 				dup++
+				if o.key != "" {
+					seen[o.key] = true // 同じ会話のほかの写し（Kiro CLI の SQLite）も、譲った先の会話だけを使う
+				}
 				continue
 			}
 			if o.key != "" {

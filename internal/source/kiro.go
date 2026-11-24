@@ -97,14 +97,18 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 	var metas []metaFile
 	for i, h := range homes {
 		if base := filepath.Join(h, "sessions"); isDir(base) {
+			var ms []metaFile
 			for _, p := range glob(filepath.Join(base, "*", "*", "session.json")) {
-				metas = append(metas, metaFile{p, i})
+				ms = append(ms, metaFile{p, i})
 			}
+			// 同じ会話の写しが 2 つの bucket（作業場所）にあれば、最後に書いたほうを使う（読み込む側が Key で 1 つにする）
+			sortNewestFirst(ms, func(m metaFile) string { return m.path })
+			metas = append(metas, ms...)
 		}
 	}
 	var errs fileErrs
 	classic := map[string]bool{} // 使用量を足した V2 の会話
-	seen := map[string]int{}     // 出した会話の ID → homes の何番目で出したか（Home と Legacy の両方にあれば、先に読んだ Home のほう）
+	seen := map[string]bool{}    // 出した会話の ID（Home と Legacy の両方にあれば、先に読んだ Home のほう）
 	for _, mf := range metas {
 		metaPath := mf.path
 		dir := filepath.Dir(metaPath)
@@ -115,10 +119,10 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		errs.file(metaPath, err)
 		meta := core.Map(raw)
 		sid := firstNonEmpty(core.Str(meta["id"]), filepath.Base(dir))
-		if i, ok := seen[sid]; ok && i != mf.home {
-			continue // 同じ場所の中の同じ ID は、これまでどおりどちらも出す
+		if seen[sid] {
+			continue // 同じ会話の写しは 1 つだけ出す（カレンダーに同じセッションが 2 つ並ばないように）
 		}
-		seen[sid] = mf.home
+		seen[sid] = true
 		s := core.NewBuilder("Kiro IDE / CLI (V3)", sid)
 		// Claim は、3.0 へ移した Kiro CLI V2 の会話（kiroClassicYield）と重ねて数えないため。id のない会話（フォルダ名の ID）は Claim しない
 		id := core.Str(meta["id"])
@@ -262,6 +266,27 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		emit(s)
 	}
 	return errs.err()
+}
+
+// sortNewestFirst は ms を、会話（messages.jsonl、なければ session.json）を最後に書いた順に並べる。同じ時刻ならパスの順。
+func sortNewestFirst[T any](ms []T, path func(T) string) {
+	mod := make(map[string]int64, len(ms))
+	for _, m := range ms {
+		p := path(m)
+		for _, f := range []string{filepath.Join(filepath.Dir(p), "messages.jsonl"), p} {
+			if st, err := os.Stat(f); err == nil {
+				mod[p] = st.ModTime().UnixNano()
+				break
+			}
+		}
+	}
+	sort.SliceStable(ms, func(i, j int) bool {
+		a, b := path(ms[i]), path(ms[j])
+		if mod[a] != mod[b] {
+			return mod[a] > mod[b]
+		}
+		return a < b
+	})
 }
 
 // kiroReply は、入れるのを待っている Kiro IDE / CLI (V3) の応答。
