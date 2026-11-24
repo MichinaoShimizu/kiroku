@@ -331,11 +331,15 @@ async function run(env) {
       check("見直す候補はどれも、サマリーの指標の横の印から開ける", await p.evaluate(() => [...new Set(lastFlags.map(f => GOTO[f.k] || f.k))].every(id => document.querySelector(`#review .fmark[data-goto="${id}"]`))));
       check("エージェント別の表に、エージェントごとの行がある（費用とクレジットを混ぜない）", await p.evaluate(() => document.querySelectorAll("#review .iagt tbody tr").length >= 2));
       check("サマリーにエージェントの切り替えはない（いつもすべてのエージェント）", await p.evaluate(() => !document.querySelector("#review [data-ag]")));
-      { // Kiro credits：Kiro のどのエージェントの分もまとめ、棒はエージェントの色で積み上げる。色の凡例に名前を添える
-        const cr = await p.evaluate(() => { const t = document.querySelector('#review .ik-cost .itile[data-ch="credits"]'); if (!t) return null;
+      { // 投入の量（推定費用・Kiro credits・トークン）は、どのエージェントの分もまとめ、棒はエージェントの色で積み上げる。色の凡例に名前を添える
+        const stack = ch => p.evaluate(ch => { const t = document.querySelector(`#review .ik-cost .itile[data-ch="${ch}"]`); if (!t) return null;
           const segs = [...t.querySelectorAll("rect.sbar.sg")], names = [...t.querySelectorAll(".tagk .lg")].map(e => e.textContent);
-          return {segs: segs.length, colors: new Set(segs.map(r => r.style.getPropertyValue("--c"))).size, names, kiro: names.every(n => /^Kiro /.test(n)), tip: [...t.querySelectorAll("rect.hit")].some(h => names.some(n => (h.dataset.tip || "").includes(n + ":")))}; });
-        check("Kiro credits の棒は、Kiro のエージェントごとの色で積み上げ、凡例と棒のツールチップにエージェントの名前がある", !!cr && cr.segs >= 2 && cr.colors >= 2 && cr.names.length >= 2 && cr.kiro && cr.tip, JSON.stringify(cr));
+          return {segs: segs.length, colors: new Set(segs.map(r => r.style.getPropertyValue("--c"))).size, names, tip: [...t.querySelectorAll("rect.hit")].some(h => names.some(n => (h.dataset.tip || "").includes(n + ":")))}; }, ch);
+        const ok = r => !!r && r.segs >= 2 && r.colors >= 2 && r.names.length >= 2 && r.tip;
+        const cr = await stack("credits");
+        check("Kiro credits の棒は、Kiro のエージェントごとの色で積み上げ、凡例と棒のツールチップにエージェントの名前がある", ok(cr) && cr.names.every(n => /^Kiro /.test(n)), JSON.stringify(cr));
+        for (const ch of ["cost", "tokens"]){ const r = await stack(ch);
+          check(`${ch} の棒は、エージェントごとの色で積み上げる（Claude Code と Codex を 1 つの量に）`, ok(r) && r.names.includes("Claude Code") && r.names.includes("Codex"), JSON.stringify(r)); }
       }
       check("ヒートマップの各行に曜日の合計がある（触れなくても読める）", await p.evaluate(() => document.querySelectorAll("#review .ihgrid > .iht:not(.ihh)").length === 7));
       check("3 列の並びの最後の段に空きを作らない（余りは横に広げる）", await p.evaluate(() => [...document.querySelectorAll("#review .istats")].every(g => { const k = [...g.children].filter(c => c.offsetParent !== null), /* 単価の切り替えで隠した数字は数えない */ cols = getComputedStyle(g).gridTemplateColumns.split(" ").length; if (k.length < 2) return true; const r = k.map(c => c.getBoundingClientRect()), last = r[r.length - 1], row = r.filter(b => Math.abs(b.top - last.top) < 2); return Math.abs(row[row.length - 1].right - g.getBoundingClientRect().right) < 2 || row.length === cols; })));
@@ -395,8 +399,8 @@ async function run(env) {
         if (env.viewport.width >= 900){ const t = await chartTops(); check("途中の期間でも、横に並んだ 2 枚のパネルのグラフは同じ高さから始まる（4px 以内）", aligned(t), JSON.stringify(t)); }
         await xlCheck("途中の期間");
         check("途中の期間：投入のグラフは、今までの値の棒と、期間の終わりの推定までの破線の棒（凡例にも）", await p.evaluate(() => { const g = document.querySelector("#review .insh .ik-cost"), t = [...g.querySelectorAll(".ikrow > .itile")].find(x => x.checkVisibility()), s = t && t.querySelector(".tspk svg");
-          const cur = s && s.querySelector("rect.sbar.cur"), ext = s && s.querySelector("rect.sbar.ext"), lg = [...g.querySelectorAll(":scope > .tlg .lg")].filter(x => x.checkVisibility()).map(x => x.dataset.lg);
-          return !!cur && !!ext && Math.abs(+ext.getAttribute("y") + +ext.getAttribute("height") - +cur.getAttribute("y")) < 0.2 && lg.includes("rect.sbar.ext") && lg.includes("rect.sbar.cur"); }));
+          const cur = s && [...s.querySelectorAll("rect.sbar.cur")].sort((p, q) => +p.getAttribute("y") - +q.getAttribute("y"))[0] /* 積み上げでは、いちばん上の区分 */, ext = s && s.querySelector("rect.sbar.ext"), lg = [...g.querySelectorAll(":scope > .tlg .lg")].filter(x => x.checkVisibility()).map(x => x.dataset.lg);
+          return !!cur && !!ext && Math.abs(+ext.getAttribute("y") + +ext.getAttribute("height") - +cur.getAttribute("y")) < 0.2 && lg.includes("rect.sbar.ext") && lg.some(x => /^rect\.sbar\.(sg\.)?cur/.test(x)); }));
         { const r = await lgCheck("途中の期間"); const u = r.filter(x => x.p === "ik-uin" || x.p === "ik-unit");
           check("途中の期間でも、単価のパネルの凡例に推定・予測は出ない（単価のグラフには描かない）", u.length === 2 && u.every(x => !x.items.some(i => /estimate|Projection|予測/.test(i))), JSON.stringify(u)); }
         for (let i = 0; i < 30 && await p.locator("#rd").innerText() !== lab0; i++){ await p.keyboard.press("ArrowLeft"); await pause(); } check("今週から元の週に戻る", await p.locator("#rd").innerText() === lab0);

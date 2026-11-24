@@ -1296,6 +1296,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 /* 累積・平均の線の右端の値（insSpark の cEnd）。線と同じ琥珀色、地の色の縁取り。棒のグラフでは右の軸の目盛りの位置に */
 .tspk .cud{fill:var(--amber)}.tspk text.cuv{font-size:9px;font-weight:600;fill:var(--amber);text-anchor:end;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
 /* Kiro credits の棒は、エージェントの色で積み上げる（過去の期間は淡く、表示中の期間は濃く。区分の間に地の色の細い線）。グラフの下に色の凡例 */
-.tspk .sbar.sg{fill:color-mix(in oklab,var(--c) 60%,var(--surface));stroke:var(--surface);stroke-width:.6}.tspk .sbar.sg.cur{fill:var(--c)}
+.tspk .sbar.sg{fill:color-mix(in oklab,var(--c) 60%,var(--surface));stroke:var(--surface);stroke-width:1}.tspk .sbar.sg.cur{fill:var(--c)}
 .tagk{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:var(--fs-2xs);color:var(--ink-2);line-height:1.4}
 .tagk .lg::before{content:"";display:inline-block;width:8px;height:8px;margin-right:4px;vertical-align:middle;border-radius:2px;background:var(--c)}
+.tlg .lg.bnow.sg::before{background:linear-gradient(90deg,var(--ink-2) 0 50%,color-mix(in oklab,var(--ink-2) 45%,var(--surface)) 50%)} /* 積み上げの棒：色はエージェント（グラフの下の凡例）。ここは濃い＝表示中・淡い＝過去だけを、エージェントの色に似ない灰色で */

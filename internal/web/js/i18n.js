@@ -220,6 +220,7 @@ const JA_TEXT = {
   "In {sessions}": "{sessions}で",
   "Month shown": "表示中の月",
   "Week shown": "表示中の週",
+  "past periods pale": "過去の期間は淡い色",
   "Where it went": "どこに使ったか",
   "Group by": "分け方",
   "Model": "モデル",
