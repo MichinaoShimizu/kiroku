@@ -4,6 +4,10 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ## Unreleased
 
+### Added
+
+- Summary: the line charts of the two unit cost panels show each point's value next to it, as the bar charts do above their bars, so you can read the numbers without hovering. A period still in progress shows its value so far next to "So far"
+
 ### Changed
 
 - The page (including `kiroku serve`) always opens on this week's calendar instead of the view (Calendar or Summary) and Week | Month used last time. Other choices, such as the figures in the calendar and the summary's switches, are still remembered

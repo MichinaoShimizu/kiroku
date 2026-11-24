@@ -84,6 +84,7 @@ const insBarS = (k, v) => { const kn = x => x >= 1e6 ? `${+(x / 1e6).toFixed(x >
 function insSpark(b, label, W = 480, bar = false){
   if (!b || !b.k || !MET[b.k]) return "";
   const k = b.k, hs = historyStart(), fm = b.fmt || (x => fmtM(k, x)), pts = [];
+  const ptS = v => { const s = fm(v), m = s.match(/^(\S+) \D+$/); return m ? m[1] : s; }; // 線の点に添える値（単位の語は軸の名前にあるので落とす：「12.9 credits」→「12.9」）
   for (let i = INS_N; i >= 1; i--){ const p = periodBack(i); pts.push({p, v: p.ws < hs ? null : metricAt(k, p)}); }
   pts.push({p: periodBack(0), v: b.v, a: b.cur, cur: true});
   if (!pts.some(x => x.v != null)) return ""; // 記録が 1 期間でもあれば描く（月で見ると、履歴の短いエージェントのグラフだけが消えて、週と月で並びが変わらないように）
@@ -131,8 +132,13 @@ function insSpark(b, label, W = 480, bar = false){
     const line = ps.map((q, i) => q.v == null || (q.cur && b.part) ? null : `${x(i).toFixed(1)},${y(q.v).toFixed(1)}`).filter(Boolean).join(" ");
     // 途中の期間の予測：前の期間の点からペース換算の点まで（推移）と、前の期間の累積から予測の累積まで（累積）を破線で
     const pv = n > 1 ? ps[n - 2] : null, prj = !b.part || !pv ? "" : (pv.v != null ? `<line class="prj" x1="${x(n - 2).toFixed(1)}" y1="${y(pv.v).toFixed(1)}" x2="${x(n - 1).toFixed(1)}" y2="${y(b.v).toFixed(1)}"/>` : "")
-      + `<circle class="sofar" cx="${xc(n - 1).toFixed(1)}" cy="${y(b.cur).toFixed(1)}" r="2.5"/><text class="sofl" x="${(xc(n - 1) - 5).toFixed(1)}" y="${(y(b.cur) + (y(b.cur) < H - B - 22 ? 15 : -7)).toFixed(1)}">${esc(t("So far"))}</text>`; // 途中の期間の今までの値（印だけだと、データのずれに見える）
-    marks = `<polyline class="trl" points="${line}"/>${prj}` + ps.map((q, i) => q.v == null || q.cur ? "" : `<circle class="pt" cx="${x(i).toFixed(1)}" cy="${y(q.v).toFixed(1)}" r="2.5"/>`).join("") + `<circle class="now${b.part ? " part" : ""}" cx="${x(n - 1).toFixed(1)}" cy="${y(b.v).toFixed(1)}" r="4.5"/>`;
+      + `<circle class="sofar" cx="${xc(n - 1).toFixed(1)}" cy="${y(b.cur).toFixed(1)}" r="2.5"/><text class="sofl" x="${(xc(n - 1) - 5).toFixed(1)}" y="${(y(b.cur) + (y(b.cur) < H - B - 22 ? 15 : -7)).toFixed(1)}">${esc(t("So far"))} ${esc(ptS(b.cur))}</text>`; // 途中の期間の今までの値（印だけだと、データのずれに見える）
+    // 各点の実際の値を点の上に（谷の点と上端に近い点は下に）。棒の上の数字と同じく、間に収まらないときは 1 つおきに（表示中の期間と、そこから 2 つおきは残す）。途中の期間は「So far」に添える（予測の点には付けない）
+    const palt = Math.max(0, ...ps.map(q => q.v == null ? 0 : ptS(q.v).length)) * 5.5 > step - 3;
+    const pvl = ps.map((q, i) => { if (q.v == null || (q.cur && b.part) || ((n - 1 - i) % 2 && palt)) return ""; const yy = y(q.v), r = q.cur ? 4.5 : 2.5;
+      const nb = [ps[i - 1], ps[i + 1]].filter(z => z && z.v != null && !(z.cur && b.part)).map(z => z.v), dn = (nb.length && q.v < nb.reduce((a, c) => a + c, 0) / nb.length && yy < H - B - 14) || yy <= T + 14; // 谷の点は下に（線と重ならないように）
+      return `<text class="spc${q.cur ? " cur" : ""}" x="${x(i).toFixed(1)}" y="${(dn ? yy + r + 10 : yy - r - 4).toFixed(1)}">${esc(ptS(q.v))}</text>`; }).join("");
+    marks = `<polyline class="trl" points="${line}"/>${prj}` + ps.map((q, i) => q.v == null || q.cur ? "" : `<circle class="pt" cx="${x(i).toFixed(1)}" cy="${y(q.v).toFixed(1)}" r="2.5"/>`).join("") + `<circle class="now${b.part ? " part" : ""}" cx="${x(n - 1).toFixed(1)}" cy="${y(b.v).toFixed(1)}" r="4.5"/>` + pvl;
   }
   const cl = add ? t("Cumulative") : t("Running average");
   // 前の期間からの増減は、ツールチップに（vsL・pcS）。棒の上には、その期間の実際の量を小さく（insBarS。途中の期間は今までの値を、推定の棒の上に）
