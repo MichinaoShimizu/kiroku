@@ -728,6 +728,16 @@ async function run(env) {
     await hb.click(); await pause(); await p.mouse.click(4, env.viewport.height - 4); await pause();
     check("吹き出しの外を押すと閉じる", !(await p.locator("#hpop").isVisible()));
     await view("cal");
+    { // 近い時刻に 5 つ以上かたまった印は、2 つと「+N」にたたみ、押すとその日の印を重ならないように並べ直す
+      const g = await p.evaluate(() => { const ws = st.week.getTime() / 1000, base = (META.git || []).find(c => c.t >= ws && c.t < ws + 7 * 86400); if (!base) return null;
+        const keep = META.git.slice(); for (let i = 1; i <= 6; i++) META.git.push({...base, hash: base.hash.slice(0, -3) + "zz" + i, t: base.t + i * 30}); META.git.sort((a, b) => a.t - b.t); render();
+        const day = () => [...document.querySelectorAll("#tl .day")].find(d => d.querySelector(".gmore")), vis = d => [...d.querySelectorAll(".gc, .gm")].filter(x => x.checkVisibility());
+        const d0 = day(), m = d0 && d0.querySelector(".gmore"), shut = d0 ? vis(d0).length : 0, txt = m ? m.textContent : ""; if (m) m.click();
+        const d1 = day(), ys = d1 ? [...d1.querySelectorAll(".gc, .gm, .gmore")].map(x => x.getBoundingClientRect().top).sort((a, b) => a - b) : [], open = d1 ? vis(d1).length : 0;
+        const r = {txt, shut, open, exp: d1 ? d1.querySelector(".gmore").getAttribute("aria-expanded") : "", gap: Math.min(99, ...ys.slice(1).map((y, i) => y - ys[i]))};
+        META.git = keep; st.gopen.clear(); render(); return r; });
+      if (g) check("かたまった印は「+N」にたたみ、開くと全部を重ならずに並べる", /^\+\d+$/.test(g.txt) && g.open === g.shut + +g.txt.slice(1) && g.exp === "true" && g.gap >= 16, JSON.stringify(g));
+    }
   });
 
   await step("見直す候補", async () => {
@@ -907,9 +917,9 @@ async function run(env) {
       const ks2 = await p.locator(`#review [data-${attr}]`).evaluateAll(xs => xs.map(x => x.dataset[Object.keys(x.dataset)[0]]));
       for (const k of ks2){ await p.locator(`#review [data-${attr}="${k}"]`).click(); await pause();
         check(`${name}を ${k} にすると、その量の図と 1 文になる`, await p.evaluate(([key, k, sel]) => st[key] === k && !!document.querySelector(`#review ${sel} svg`) && !!document.querySelector(`#review ${sel}`).closest(".inscol").querySelector(".isay"), [key, k, sel])); } }
-    check("投入から産出の流れ（サンキー）は、4 枚のパネルのすぐ上の幅いっぱいの 1 枚で、内訳の段には繰り返さない", await p.evaluate(() => { const h = document.querySelector("#review .insh"), k = document.querySelector("#review .iskw"); if (!k || !k.querySelector(".isk")) return false;
-      const hr = h.getBoundingClientRect(), kr = k.getBoundingClientRect(), between = [...document.querySelectorAll("#review .insg, #review .insrow")].every(x => x.getBoundingClientRect().top >= hr.bottom - 1);
-      return hr.top >= kr.bottom - 1 && Math.abs(kr.left - hr.left) < 2 && Math.abs(kr.right - hr.right) < 2 && between && document.querySelectorAll("#review .isk").length === 1 && !k.closest(".insrow"); }));
+    check("投入から産出の流れ（サンキー）は、4 枚のパネルのすぐ下（内訳の上）の幅いっぱいの 1 枚で、内訳の段には繰り返さない", await p.evaluate(() => { const h = document.querySelector("#review .insh"), k = document.querySelector("#review .iskw"); if (!k || !k.querySelector(".isk")) return false;
+      const hr = h.getBoundingClientRect(), kr = k.getBoundingClientRect(), between = [...document.querySelectorAll("#review .insg, #review .insrow")].every(x => x.getBoundingClientRect().top >= kr.bottom - 1);
+      return kr.top >= hr.bottom - 1 && Math.abs(kr.left - hr.left) < 2 && Math.abs(kr.right - hr.right) < 2 && between && document.querySelectorAll("#review .isk").length === 1 && !k.closest(".insrow"); }));
     { // サンキーの 1 文は、全体がどこへ行ったかを言い切る：コミットか PR あり・なし（None）・記録しないエージェントの分のうち 0 でないものを全部、全体に対する割合で。割合は足して 100
       const sk = await p.evaluate(() => { const c = document.querySelector("#review .isk"); if (!c) return null; const say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay"), out = [...c.querySelectorAll(".sklist .skcol:last-child .skn2")].map(x => x.textContent);
         return {unk: out.some(x => /^(Not recorded|記録なし)$/.test(x)), none: out.some(x => /^(None|なし)$/.test(x)), fil: out.some(x => /^(Files changed only|ファイルの変更だけ)$/.test(x)), yes: out.some(x => /^(Commit or PR|コミットか PR)$/.test(x)), txt: say ? say.textContent : "", list: [...c.querySelectorAll(".sklist .skcol")].map(g => [...g.querySelectorAll("li b")].reduce((a, b) => a + parseInt(b.textContent), 0))}; });
@@ -926,7 +936,7 @@ async function run(env) {
       check("サンキーの名前と量は、どれも不透明な札の上にある（狭い画面では図の名前を出さず、下の一覧）", lb.narrow ? lb.n === 0 : lb.n > 0 && lb.bad.length === 0, JSON.stringify(lb));
     }
     { // サンキーの色：エージェントから出る帯はエージェントの色、プロジェクトは左右 2 本の節の間を、そのプロジェクトの色の帯が埋め、プロジェクトから出る帯もプロジェクトの色
-      const sc = await p.evaluate(() => { const f = document.querySelector("#review .isk svg"); if (!f) return null; const fill = e => e.getAttribute("fill"), r = e => e.getBoundingClientRect(), near = (x, y) => Math.abs(x - y) < 1.5;
+      const sc = await p.evaluate(() => { const f = document.querySelector("#review .isk svg"); if (!f || !f.checkVisibility()) return null; /* 狭い画面では図を出さない（一覧だけ） */ const fill = e => e.getAttribute("fill"), r = e => e.getBoundingClientRect(), near = (x, y) => Math.abs(x - y) < 1.5;
         const sk = [...f.querySelectorAll("rect.skp")], L = [...f.querySelectorAll("rect.skn:not(.o)")], O = [...f.querySelectorAll("rect.skn.o")], cvar = /^var\(--(c[0-7]|other)\)$/;
         const band = sk.filter(e => { const b = r(e), l = L.find(x => near(r(x).right, b.left) && near(r(x).top, b.top)), o = O.find(x => near(r(x).left, b.right) && near(r(x).top, b.top));
           return !!l && !!o && near(r(l).height, b.height) && near(r(o).height, b.height) && b.width > 40 && fill(e) === fill(l) && fill(e) === fill(o) && cvar.test(fill(e)) && +getComputedStyle(e).opacity >= +getComputedStyle(f.querySelector("path.skl")).opacity; }).length;
@@ -1010,6 +1020,7 @@ async function run(env) {
       if (m === "week") check(`${m} · ${k}: 日の見出しの行は「·」で始まったり終わったりしない`, a.lines.every(l => !/^·|·$/.test(l)), a.lines.filter(l => /^·|·$/.test(l)).slice(0, 3).join(" / "));
     }
     await p.evaluate(() => { st.shade = "cost"; setMode("month"); render(); }); await pause();
+    check("月の濃さは凡例と同じ段（0・¼・½・¾・1）だけ", await p.evaluate(() => [...document.querySelectorAll(".mgrid .cell[style*='--heat']")].every(c => ["0", "0.25", "0.5", "0.75", "1"].includes(c.style.getPropertyValue("--heat").trim()))));
     const heat = await p.evaluate(() => [...document.querySelectorAll(".mgrid .cell:not(.wkc):not(.out)")].filter(c => +c.style.getPropertyValue("--heat") > .5).map(c => getComputedStyle(c).backgroundColor));
     const agents = await p.evaluate(() => AGENTS.map(a => { const d = document.createElement("div"); d.style.background = `var(--a${a.slot})`; document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; }));
     const sat = c => { const [r, g, b] = rgb(c); return Math.max(r, g, b) - Math.min(r, g, b); };

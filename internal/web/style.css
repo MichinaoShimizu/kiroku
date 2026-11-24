@@ -254,6 +254,8 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .gm{position:absolute;right:1px;display:grid;place-items:center;width:16px;height:16px;margin-top:-8px;border-radius:8px;background:var(--surface);border:1px solid var(--rule-2);color:var(--ink-2);z-index:4} /* push と PR の印（コミットと同じ溝） */
 .gm .ic{width:10px;height:10px;stroke-width:1.8}
 .gm.prm{color:var(--acc-ink);border-color:var(--acc)}
+.gmore{position:absolute;right:1px;min-width:16px;height:16px;margin-top:-8px;padding:0 3px;border-radius:4px;background:var(--surface-2);border:1px dashed var(--rule-2);color:var(--ink-2);font:600 var(--fs-2xs)/1 var(--sans);font-variant-numeric:tabular-nums;cursor:pointer;z-index:4}
+.gmore:hover,.gmore:focus-visible{box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 35%,transparent);z-index:5}.gmore[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--acc);color:var(--acc-ink)}
 .gm{padding:0;cursor:pointer;font:inherit}.gm:hover,.gm:focus-visible,.gm.sel{box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 35%,transparent);z-index:5}
 .gi{width:13px;height:13px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;vertical-align:-2px;margin-right:2px}
 .gtag{display:inline-flex;align-items:center;gap:2px;padding:0 5px 0 3px;border-radius:8px;border:1px solid var(--ink-3);font:600 var(--fs-xs)/16px var(--mono);font-style:normal;color:var(--ink-2)}.gtag.ai{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
@@ -291,7 +293,7 @@ a.pill{display:inline-flex;align-items:center;text-decoration:none}
 .head .cline .ct{font-size:var(--fs-sm);font-weight:600;color:var(--ink-2)} /* 週の日の見出しの稼働時間（コスト系の横に） */
 .cell .act{display:block;font:600 var(--fs-xs)/1.3 var(--sans);font-variant-numeric:tabular-nums;color:var(--ink-2);white-space:nowrap}.cell .act.u{color:var(--ink-3)} /* 月のマスの稼働時間（コスト系の下に） */
 .mlegend{display:flex;align-items:center;gap:8px;justify-content:flex-end;padding:10px 14px;font-size:var(--fs-xs);color:var(--ink-3);border-top:1px solid var(--rule)}
-.mlegend i{width:16px;height:10px;border-radius:3px;background:color-mix(in srgb,var(--heat-c) calc(var(--h) * var(--heatk)),var(--surface));box-shadow:inset 0 0 0 1px var(--rule)}
+.mlegend i{width:22px;height:14px;border-radius:3px;background:color-mix(in srgb,var(--heat-c) calc(var(--h) * var(--heatk)),var(--surface));box-shadow:inset 0 0 0 1px var(--rule)}
 .mshade{display:inline-flex;align-items:center;gap:6px;margin-right:auto}.mshade select{height:28px;font-size:var(--fs-xs)}
 .wk .mode{margin-left:10px}
 
@@ -702,6 +704,8 @@ dialog.mdlg h3{margin:20px 0 8px}
   .wk .d{font-size:var(--fs-3xl)}
   .legend{flex-wrap:wrap;row-gap:6px}.legend .count{order:-1;flex-basis:100%;padding-left:0} /* スマホでは件数を色分けの並びの上に（横にスクロールする並びの右端だと、画面の外に隠れる） */
   .legend .lrow{order:1;flex-basis:100%} /* スマホでは色分けのチップを自分の行に（「Color by」の横では幅が足りず、長い名前のチップが切れる） */
+  .legend .lrow{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent);padding-right:24px}.legend .lrow .chip{flex:none} /* チップは 1 行にして横にスクロール（折り返すと 3〜4 行を使い、カレンダーが画面の下へ押し出される）。右端をぼかして続きがあると示す */
+  .kpi .v .sep{display:block;height:0;overflow:hidden} /* 「費用 · クレジット」は、区切りで 2 行に分ける（3 列の枠では途中で折り返して読みにくい） */
   .wk{flex-wrap:wrap;row-gap:10px} /* 英語のように長い文言でも、移動のボタンが画面の外に出ないように */
   .wk .nav{flex-wrap:wrap;row-gap:8px;margin-left:0;min-width:0} /* ボタンが増えても、狭い画面では折り返す */
   .kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -709,7 +713,7 @@ dialog.mdlg h3{margin:20px 0 8px}
   .kpi{border-left:1px solid var(--rule);border-top:1px solid var(--rule);padding:8px 10px 7px;margin:0;min-width:0}
   .kpi:nth-child(-n+3){border-top:0}.kpi:nth-child(3n+1){border-left:0}
   .kpi .k{font-size:var(--fs-2xs);white-space:normal;line-height:1.3}.kpi .v{font-size:var(--fs-xl);min-width:0;white-space:normal;overflow-wrap:anywhere} /* 3 列では、添え字（「/ 14（今日まで）」など）を切らずに折り返す */
-  .kpi{display:flex;flex-direction:column;justify-content:space-between} /* 見出しが 2 行になっても、数字の高さをそろえる */
+  .kpi{display:flex;flex-direction:column;justify-content:flex-start}.kpi .k{min-height:2.6em} /* 見出しを 2 行ぶんの高さにそろえ、数字の 1 行目を同じ高さに（下にそろえると、2 行の数字だけ上にずれる） */
   .calin{min-width:860px} /* スマホでは横にスクロールさせ、1 日の幅を確保する（コミットの印の溝があっても帯を読めるように） */
   .calscroll{max-height:70vh}
   .rvgrid{grid-template-columns:minmax(0,1fr)}
@@ -1115,10 +1119,10 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .tspk .syt{text-anchor:start;fill:var(--ink-2);font-weight:600}.tspk .sxt{text-anchor:middle;fill:var(--ink-2);font-weight:600}
 .tspk .trl{fill:none;stroke:var(--acc);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
 .tspk .pt{fill:var(--acc)}
-.tspk .cuma{fill:color-mix(in oklab,var(--amber) 12%,transparent)}.tspk .cuml{fill:none;stroke:var(--amber);stroke-width:1.6;stroke-linejoin:round}.tspk .axis.cum{stroke:var(--amber)}.tspk text.r{text-anchor:start}.tspk .syt.r{text-anchor:end;fill:var(--amber-ink)}
+.tspk .cuml{fill:none;stroke:var(--amber);stroke-width:1.6;stroke-linejoin:round}
 .tspk .band{fill:color-mix(in oklab,var(--ink) 16%,transparent)}.tspk .med{stroke:var(--ink-3);stroke-dasharray:4 3;stroke-width:1}
 .tspk .now{fill:var(--acc)}.tspk .now.part{fill:var(--surface);stroke:var(--acc);stroke-width:1.8}
-.tspk .prj{stroke:var(--acc);stroke-width:1.6;stroke-dasharray:4 3}.tspk .cprj{stroke:var(--amber);stroke-width:1.4;stroke-dasharray:4 3}.tspk .cprjd{fill:var(--surface);stroke:var(--amber);stroke-width:1.4}.tspk .sofar{fill:var(--acc)}.tspk .hit{fill:transparent;pointer-events:all}.tspk .slim{fill:var(--warn);opacity:.7}.tspk .slimn{fill:var(--warn);font-weight:600;font-size:9px}.tspk .slimn{text-anchor:middle}.tspk .slimhit:hover{fill:color-mix(in oklab,var(--warn) 20%,transparent)}.tspk .hit:hover{fill:color-mix(in oklab,var(--acc) var(--t2),transparent)}
+.tspk .prj{stroke:var(--acc);stroke-width:1.6;stroke-dasharray:4 3}.tspk .sofar{fill:var(--acc)}.tspk .hit{fill:transparent;pointer-events:all}.tspk .slim{fill:var(--warn);opacity:.7}.tspk .slimn{fill:var(--warn);font-weight:600;font-size:9px}.tspk .slimn{text-anchor:middle}.tspk .slimhit:hover{fill:color-mix(in oklab,var(--warn) 20%,transparent)}.tspk .hit:hover{fill:color-mix(in oklab,var(--acc) var(--t2),transparent)}
 .tlg .lg[hidden]{display:none}
 .tlg{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:var(--fs-2xs);color:var(--ink-3);line-height:1.4}
 .tlg .lg::before{content:"";display:inline-block;width:10px;height:8px;margin-right:4px;vertical-align:middle;border-radius:2px}
@@ -1164,6 +1168,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .tspk .sofl{font-size:10px;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
 /* 狭いカード（スマホ）では、グラフが縮んで文字が 7px ほどになるので、座標の上で大きくし、期間の名前は 1 つおきに */
 @container (max-width:484px){.tspk text{font-size:16px}.tspk .sxl.alt{display:none}.tspk .sofl{font-size:15px}.tspk .slimn{font-size:13px}}
+@container (max-width:484px){.tspk svg text.spc,.tspk svg text.cuv{font-size:14px}.tspk text.spc.k2{display:none}} /* 狭いカードでは、点と棒の値も大きく（9px のままだと 6px ほどに縮む）。入らないので 1 つおきに（表示中の期間から 2 つおきは残す） */
 /* 狭いカードでは、軸の見出し（「週」）を出さない（日付で分かる）。利用上限の数は小さく */
 @container (max-width:484px){.tspk .sxt{display:none}.tspk .slimn{font-size:11px}}
 /* 狭いカードでは文字が大きいので、x 軸の下に利用上限の印の段があるグラフは、期間の名前をさらに下げる（印と重ならないように。軸の見出しを出さないので下が空いている） */
@@ -1207,11 +1212,10 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .tspk .sbar{fill:color-mix(in oklab,var(--acc) 40%,var(--surface))}.tspk .sbar.cur{fill:var(--acc)}
 .tspk .sbar.ext{fill:color-mix(in oklab,var(--acc) 14%,transparent);stroke:var(--acc);stroke-width:1.2;stroke-dasharray:3 2}
 .tspk.tbar .med{stroke:var(--ink-2)}.tspk .slimn.s{text-anchor:start}
-.tspk .sbrk{fill:none;stroke:var(--s-lowest);stroke-width:2.5;stroke-linecap:round} /* 上を切った棒の切れ目：カードの地の色の 2 本の斜め線 */
+.tspk .sbrk{fill:none;stroke:var(--s-lowest);stroke-width:2.5;stroke-linecap:round}.tspk .ybrk{stroke:var(--ink-2);stroke-width:1.3}.tlg .lg.ybrk::before{width:9px;height:9px;border-radius:0;background:linear-gradient(160deg,transparent 0 38%,var(--ink-2) 38% 48%,transparent 48% 58%,var(--ink-2) 58% 68%,transparent 68%)} /* 0 から始まらない縦軸の印 */ /* 上を切った棒の切れ目：カードの地の色の 2 本の斜め線 */
 .tspk .spc.over{fill:var(--ink);font-weight:600;stroke:color-mix(in oklab,var(--acc) 30%,var(--surface))}
 .tlg .lg.brk::before{width:7px;height:10px;border-radius:1px;background:linear-gradient(160deg,var(--acc) 0 40%,var(--s-lowest) 40% 55%,var(--acc) 55%)}
 .tlg .lg.bnow::before{width:7px;height:10px;border-radius:1px;background:var(--acc)}.tlg .lg.bnow.part::before{background:color-mix(in oklab,var(--acc) 14%,transparent);border:1.2px dashed var(--acc);box-sizing:border-box}
-.tlg .lg.prj.cumj::before{border-top-color:var(--amber)}
 /* 期間の途中：今までの値と、期間の終わりの推定を同じ大きさで縦に並べる（推定は小さな注記にしない）。それぞれの上に小さな名前 */
 .itile .ivk{font-size:var(--fs-xs);color:var(--ink-2)}
 /* 値の段：今までの値と期間の終わりの推定を同じ行に（同じ基準線。推定は 1 段小さく淡く、「≈」付き）。それぞれの名前は数字の後ろに小さく。入らなければ次の行へ折り返す */
@@ -1260,7 +1264,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .isk .sklist li{display:grid;grid-template-columns:auto minmax(0,1fr) auto 3.2em;gap:8px;align-items:center;font-size:var(--fs-sm)}
 .isk .sklist li i{width:9px;height:9px;border-radius:50%}.isk .sklist li b{text-align:right;font-variant-numeric:tabular-nums}
 .isk .sklist .skn2{min-width:0;overflow-wrap:anywhere}
-@media (max-width:600px){.isk svg text.skt{display:none}.isk .sklist{display:grid}}
+@media (max-width:600px){.inscol .isk>svg{display:none}.isk .sklist{display:grid}.isk .ifxs .fxp{display:none}} /* スマホでは、縮んで読めない図の代わりに、同じ数の表だけを出す */
 .ikgh .iksw{flex-wrap:wrap;overflow:visible;max-width:100%} /* 割る数は 4 つあるので、狭いパネルでは折り返す（横にはみ出して隠さない） */
 /* 数字の大きさの段：4 つのパネルの値がページでいちばん大きく太い数字（hero）。内訳のカードの値（出力の行・使い方などの数の枠）は 1 段小さくそろえる。
    「vs last week」や式などの添え書きは小さく淡いまま */
@@ -1278,7 +1282,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .ithd{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
 .itft{min-width:0}
 /* どこへ流れたか（サンキー）：投入と出力の 2×2 のすぐ下に、幅いっぱいの 1 枚（サマリーで唯一の全幅のカード）。狭いカードでは文字を座標の上で大きく */
-.inscol.iskw{margin:0 0 12px;container-type:inline-size}
+.inscol.iskw{margin:16px 0 12px;container-type:inline-size}
 .iskw .skgh{padding:0;margin:0}.iskw .skgh::before{background:linear-gradient(var(--in),var(--out))} /* 投入から出力へ：パネルの見出しと同じ大きさで、左の線は投入の青から出力の紫へ */
 @container (max-width:900px){.iskw .isk .skt,.iskw .isk .skh{font-size:14px}}
 /* 作業のしかた：12 の指標は、細いタイルの 3 列ではなく、出力のカードと同じ 1 行 1 指標の一覧に（名前は左、値は右、評価の文はその下）。
@@ -1299,4 +1303,4 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .imods li i{width:8px;height:8px;border-radius:50%}.imods .imn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:14em}
 .itile .imods li b{font:600 var(--fs-xs)/1.3 var(--sans);letter-spacing:normal;font-variant-numeric:tabular-nums;color:var(--ink);text-align:right} /* .itile b（大きな値）を受け継がない */
 /* 累積・平均の線の右端の値（insSpark の cEnd）。線と同じ琥珀色、地の色の縁取り。棒のグラフでは右の軸の目盛りの位置に */
-.tspk .cud{fill:var(--amber)}.tspk text.cuv{font-size:9px;font-weight:600;fill:var(--amber);text-anchor:end;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}.tspk text.cuv.r{text-anchor:start}
+.tspk .cud{fill:var(--amber)}.tspk text.cuv{font-size:9px;font-weight:600;fill:var(--amber);text-anchor:end;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}

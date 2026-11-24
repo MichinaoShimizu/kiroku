@@ -31,7 +31,7 @@ const commas = n => n.toLocaleString(LOC()); // 1,234（数のカンマ区切り
 // 足した行・消した行：git diff にならって、足した行は緑、消した行は赤（a と r は書式を整えた数の文字列）
 const lnPM = (a, r) => `<span class="la">+${esc(String(a))}</span> <span class="lr">−${esc(String(r))}</span>`;
 function usd(v){ return v == null ? "—" : v > 0 && v < 0.01 ? "<$0.01" : "$" + (v >= 100 ? commas(Math.round(v)) : v.toFixed(2)); }
-const usdS = v => v >= 9.95 ? "$" + commas(Math.round(v)) : v >= 0.05 ? "$" + v.toFixed(1) : "<$0.1"; // 小数 1 桁に丸めて 10 になる値は整数に、0.1 に届かない値は "<$0.1" に // 狭いマス用に、桁を減らした推定費用
+const usdS = v => v >= 9.995 ? "$" + commas(Math.round(v)) : v >= 0.005 ? "$" + v.toFixed(2) : "<$0.01"; // 狭いマス用の推定費用：$10 からは整数、それより下は週の表示（usd）と同じ小数 2 桁（「$0.8」は 80 セントに読みにくい）。小数 2 桁に丸めて 10 になる値は整数に
 // usdH は usd を HTML に入れる形にする（$ を小さく出す。"<$0.01" の < もエスケープする）
 function usdH(v){ const s = esc(usd(v)), i = s.indexOf("$"); return i < 0 ? s : s.slice(0, i) + "<small>$</small>" + s.slice(i + 1); }
 // costOf は使用量の目安コスト。見積もれた分がなく、料金表にないモデルのトークンだけなら null（usd・usdH が "—" にする）。
