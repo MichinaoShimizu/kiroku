@@ -35,6 +35,23 @@ if [ "$1 $2" = "release view" ]; then
   echo "` + latest + `"
   exit 0
 fi
+if [ "$1 $2" = "attestation verify" ]; then
+  f=$3
+  [ -f "$f" ] || { echo "no such file" >&2; exit 1; }
+  # 渡されたファイルは本人だけが読める（0600）
+  case "$(ls -l "$f")" in -rw-------*) ;; *) echo "file mode $(ls -l "$f")" >&2; exit 1 ;; esac
+  ref=""
+  while [ $# -gt 0 ]; do [ "$1" = --source-ref ] && ref=$2; shift; done
+  case "$GH_ATTEST" in
+    ""|ok) exit 0 ;;
+    tagonly) [ "$ref" = refs/tags/v9.9.9 ] && exit 0
+      printf 'Loaded digest sha256:abc for file://x\nError: verifying with issuer "sigstore.dev"\nexpected SourceRepositoryRef to be %s\n' "$ref" >&2; exit 1 ;;
+    mismatch) printf 'Loaded digest sha256:abc for file://x\nLoaded 1 attestation from GitHub API\nError: verifying with issuer "sigstore.dev"\n\342\234\227 Verification failed\n' >&2; exit 1 ;;
+    old) echo 'unknown command "attestation" for "gh"' >&2; exit 1 ;;
+    net) printf 'Loaded digest sha256:abc for file://x\nError: failed to fetch attestations: Get "https://api.github.com/x": dial tcp: lookup api.github.com: no such host\n' >&2; exit 1 ;;
+  esac
+  exit 3
+fi
 if [ "$1 $2" = "release download" ]; then
   pat=""
   while [ $# -gt 0 ]; do [ "$1" = --pattern ] && pat=$2; shift; done
@@ -95,8 +112,16 @@ func TestGHUpdate(t *testing.T) {
 		"release view --repo github.com/corp/kiroku --json tagName --jq .tagName",
 		"release download v9.9.9 --repo github.com/corp/kiroku --pattern " + name + " --output -",
 		"release download v9.9.9 --repo github.com/corp/kiroku --pattern checksums.txt --output -",
+		"attestation verify * --repo corp/kiroku --hostname github.com --signer-workflow github.com/corp/kiroku/.github/workflows/release.yml --source-ref refs/heads/main --deny-self-hosted-runners",
 	}
-	if got := calls(); strings.Join(got, "\n") != strings.Join(want, "\n") {
+	got := calls()
+	for i := range got { // 一時ファイルの場所は毎回違う
+		if f := strings.Fields(got[i]); len(f) > 2 && f[0] == "attestation" {
+			f[2] = "*"
+			got[i] = strings.Join(f, " ")
+		}
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("gh の引数:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
 
@@ -274,5 +299,50 @@ func TestProjectURL(t *testing.T) {
 		if got := projectURL(); got != want {
 			t.Errorf("projectURL(%q) = %q, want %q", repo, got, want)
 		}
+	}
+}
+
+// gh で更新するビルドは、置きかえる前に出どころの証明（gh attestation verify）を確かめる。合わなければ置きかえない。
+// 確かめられない（古い gh・GitHub に届かない）ときは警告だけで、KIROKU_REQUIRE_ATTESTATION=1 なら止める。KIROKU_SKIP_ATTESTATION=1 なら確かめない
+func TestGHUpdateChecksProvenance(t *testing.T) {
+	for _, c := range []struct {
+		attest, require, skip string
+		replaced              bool
+		err, note             string
+	}{
+		{attest: "ok", replaced: true},
+		{attest: "tagonly", replaced: true},
+		{attest: "mismatch", err: "does not match github.com/corp/kiroku, not updating"},
+		{attest: "old", replaced: true, note: "too old"},
+		{attest: "old", require: "1", err: "KIROKU_REQUIRE_ATTESTATION=1"},
+		{attest: "net", replaced: true, note: "could not reach github.com"},
+		{attest: "net", require: "1", err: "could not reach github.com"},
+		{attest: "mismatch", skip: "1", replaced: true, note: "KIROKU_SKIP_ATTESTATION=1"},
+		{attest: "ok", skip: "1", require: "1", err: "cannot be used together"},
+	} {
+		t.Run(c.attest+c.require+c.skip, func(t *testing.T) {
+			dir, _ := fakeGH(t, "v9.9.9", "")
+			putRelease(t, dir, "v9.9.9", "kiroku v9.9.9")
+			t.Setenv("GH_ATTEST", c.attest)
+			t.Setenv("KIROKU_REQUIRE_ATTESTATION", c.require)
+			t.Setenv("KIROKU_SKIP_ATTESTATION", c.skip)
+			var note strings.Builder
+			old := ghAttestNote
+			ghAttestNote = &note
+			defer func() { ghAttestNote = old }()
+			exe := filepath.Join(t.TempDir(), "kiroku")
+			os.WriteFile(exe, []byte("old"), 0o755)
+			err := selfUpdate(newUpdateClient(), "v9.9.9", "linux", "amd64", exe)
+			if c.err == "" && err != nil || c.err != "" && (err == nil || !strings.Contains(err.Error(), c.err)) {
+				t.Fatalf("err = %v, want %q", err, c.err)
+			}
+			got, _ := os.ReadFile(exe)
+			if replaced := string(got) == "kiroku v9.9.9"; replaced != c.replaced {
+				t.Errorf("replaced = %v, want %v", replaced, c.replaced)
+			}
+			if !strings.Contains(note.String(), c.note) {
+				t.Errorf("note = %q, want %q", note.String(), c.note)
+			}
+		})
 	}
 }

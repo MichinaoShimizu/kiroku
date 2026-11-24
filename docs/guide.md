@@ -20,7 +20,7 @@ curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install
 | --- | --- |
 | `KIROKU_VERSION` | The version to install (e.g. `v0.1.7`). The latest if not set |
 | `KIROKU_INSTALL_DIR` | Where to place `kiroku`. `/usr/local/bin` if not set (`~/.local/bin` if that is not writable) |
-| `KIROKU_SKIP_ATTESTATION=1` | Do not check the build provenance with `gh`, even if it is installed |
+| `KIROKU_SKIP_ATTESTATION=1` | Do not check the build provenance with `gh`, even if it is installed (also for `kiroku update` in a build from your organization's repository) |
 | `KIROKU_REQUIRE_ATTESTATION=1` | Require the build provenance check: stop instead of installing when `gh` is missing or not logged in, cannot reach GitHub, or the version is older than v0.12.0 |
 
 `install.sh` checks each download against `checksums.txt` and, when the [GitHub CLI](https://cli.github.com/) (`gh`) is installed, its build provenance (see [Verifying a release](../SECURITY.md#verifying-a-release)). You can also check a file you downloaded yourself:
@@ -72,7 +72,8 @@ kiroku update                                                   # later: updates
 
 On Windows, download `kiroku-windows-amd64.exe` (or `-arm64.exe`) the same way, for example to `-O "$env:LOCALAPPDATA\Programs\kiroku\kiroku.exe"`, and add that folder to your `PATH`.
 
-- `kiroku update` there needs `gh` installed and logged in with access to the repository (with SAML single sign-on, authorize the login for the organization). Without them it stops and says what to do; it never falls back to the public repository
+- `kiroku update` there needs `gh` installed and logged in with access to the repository (with SAML single sign-on, authorize the login for the organization). Without them it stops and says what to do
+- Before it replaces anything, `kiroku update` there also checks the build provenance with `gh attestation verify` (made by that repository's `release.yml` on a GitHub-hosted runner), as `install.sh` does: it stops if the provenance doesn't match, warns if `gh` is too old or can't reach the host, and follows `KIROKU_REQUIRE_ATTESTATION=1` and `KIROKU_SKIP_ATTESTATION=1`. On GitHub Enterprise Server without artifact attestations, set `KIROKU_SKIP_ATTESTATION=1`; it never falls back to the public repository
 - In that repository you only need `release.yml` (and `ci.yml` if you like). The other workflows (`pages.yml`, `prices.yml`, `upstream.yml`, `scorecard.yml`, `codeql.yml`, `tag.yml`, `fuzz.yml`) are for this public repository and can be deleted. Your enterprise's Actions policy must allow the actions `release.yml` uses, and build provenance for a private repository needs GitHub Enterprise Cloud
 - The links at the bottom of the view (GitHub, and the release of the running version) point to that repository too
 - To put the demo page (dummy data, no one's history) on an internal web server, build it with `KIROKU_REPO=github.com/your-org/your-repo sh tools/screenshots/run.sh --html index.html` (needs Go, Python 3 and git). Its dummy data covers the five weeks up to the day it was built. Never put a view of real history on a shared server

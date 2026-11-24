@@ -1,0 +1,1 @@
+- `kiroku update` in a build from your organization's repository checks the build provenance with `gh attestation verify` before it replaces anything, as `install.sh` does (`KIROKU_REQUIRE_ATTESTATION=1` and `KIROKU_SKIP_ATTESTATION=1` work the same way)

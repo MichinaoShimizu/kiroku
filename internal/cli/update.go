@@ -278,6 +278,11 @@ func selfUpdate(client *http.Client, tag, goos, goarch, exe string) error {
 	if got := sha256.Sum256(archive); hex.EncodeToString(got[:]) != want {
 		return fmt.Errorf("checksum mismatch, not updating (%s)", name)
 	}
+	if viaGH() { // gh があるので、出どころの証明も置きかえる前に確かめる
+		if err := ghVerifyAttestation(tag, name, archive); err != nil {
+			return err
+		}
+	}
 	bin := "kiroku"
 	if goos == "windows" {
 		bin = "kiroku.exe"
