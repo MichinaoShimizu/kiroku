@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -211,8 +212,11 @@ func spyGit(t *testing.T, hang func(dir string, args []string) bool) map[string]
 	orig, timeout := git, RepoTimeout
 	t.Cleanup(func() { git, RepoTimeout = orig, timeout })
 	calls := map[string]int{}
+	var mu sync.Mutex // リポジトリは並べて読むので、数えるところを守る
 	git = func(ctx context.Context, dir string, args ...string) (string, error) {
+		mu.Lock()
 		calls[args[0]]++
+		mu.Unlock()
 		if hang != nil && hang(dir, args) {
 			<-ctx.Done()
 			return "", ctx.Err()
@@ -349,5 +353,52 @@ func TestCacheRepoTimeout(t *testing.T) {
 	cs, _, stale = NewCache().Collect(data)
 	if len(cs) != 2 || cs[0].Project != "fast" || len(stale) != 1 {
 		t.Errorf("前回なし: コミット %+v、stale %v", cs, stale)
+	}
+}
+
+// 作業場所がどのリポジトリにあるかは覚えておき、読み直しのたびに git rev-parse を呼ばない。
+// 作業場所でリポジトリが作られた・リポジトリが消えたときは、次の読み直しで気づく
+func TestCacheRemembersWorkingDirs(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git がない")
+	}
+	dir, _ := newRepo(t, "app")
+	plain := filepath.Join(t.TempDir(), "plain")
+	os.MkdirAll(plain, 0o755)
+	calls := spyGit(t, nil)
+	start := float64(time.Now().Add(-time.Hour).Unix())
+	data := []*core.Session{{ID: "s1", Project: "app", ProjectPath: dir, Start: start}, {ID: "s2", Project: "plain", ProjectPath: plain, Start: start}}
+	c := NewCache()
+	if cs, _, _ := c.Collect(data); len(cs) != 1 || calls["rev-parse"] != 2 {
+		t.Fatalf("1 回目: コミット %d、rev-parse %d", len(cs), calls["rev-parse"])
+	}
+	clear(calls)
+	if cs, _, _ := c.Collect(data); len(cs) != 1 || calls["rev-parse"] != 0 {
+		t.Errorf("変化なし: コミット %d、rev-parse %d, want 1 と 0", len(cs), calls["rev-parse"])
+	}
+
+	run(t, plain, nil, "init", "-q", "-b", "main") // リポジトリでなかった作業場所が、リポジトリになった
+	run(t, plain, nil, "config", "user.email", "me@example.com")
+	run(t, plain, nil, "config", "user.name", "me")
+	os.WriteFile(filepath.Join(plain, "p.txt"), []byte("p\n"), 0o644)
+	run(t, plain, nil, "add", "p.txt")
+	run(t, plain, nil, "commit", "-q", "-m", "p")
+	clear(calls)
+	if cs, _, _ := c.Collect(data); len(cs) != 2 || calls["rev-parse"] != 1 {
+		t.Errorf("git init のあと: コミット %d、rev-parse %d, want 2 と 1", len(cs), calls["rev-parse"])
+	}
+
+	os.RemoveAll(filepath.Join(plain, ".git")) // リポジトリが消えた
+	clear(calls)
+	if cs, _, _ := c.Collect(data); len(cs) != 1 {
+		t.Errorf(".git を消したあと: コミット %d, want 1（%v）", len(cs), calls)
+	}
+
+	TopTTL = 0 // 覚えておく長さを過ぎれば、変化がなくても調べ直す
+	t.Cleanup(func() { TopTTL = 10 * time.Minute })
+	clear(calls)
+	c.Collect(data)
+	if calls["rev-parse"] != 2 {
+		t.Errorf("TopTTL を過ぎたあと: rev-parse %d, want 2", calls["rev-parse"])
 	}
 }
