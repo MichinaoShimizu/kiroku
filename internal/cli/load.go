@@ -248,8 +248,9 @@ func loadPrices(path string) error {
 	return nil
 }
 
-// openBrowser は、ファイルの絶対パスか URL を既定のブラウザで開く。
-var openBrowser = func(target string) {
+// openBrowser は、ファイルの絶対パスか URL を既定のブラウザで開く。開くコマンド（xdg-open など）を起動できなければ、そのエラーを返す
+// （ブラウザのない Linux・WSL・コンテナで、開いたと言わないように）。
+var openBrowser = func(target string) error {
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "darwin":
@@ -259,7 +260,11 @@ var openBrowser = func(target string) {
 	default:
 		cmd = exec.Command("xdg-open", target)
 	}
-	_ = cmd.Start()
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	go func() { _ = cmd.Wait() }() // 終わったプロセスを残さない
+	return nil
 }
 
 // cleanupOldExe は、Windows で update したときに残る kiroku.exe.old を消す（使っていなければ）。

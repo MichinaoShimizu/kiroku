@@ -11,7 +11,7 @@ import (
 	"github.com/MichinaoShimizu/kiroku/internal/source"
 )
 
-// period は kiroku serve --html --week / --month で選んだ期間（ローカル時刻の from 以上 to 未満）。
+// period は tools/html の --week / --month で選んだ期間（ローカル時刻の from 以上 to 未満）。
 type period struct {
 	mode     string // "week" か "month"
 	key      string // 週は月曜の日付（2026-10-05）、月は 2026-10

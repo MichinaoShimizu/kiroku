@@ -214,7 +214,7 @@ function reportPrompt(day){ return inEnglish(() => { // AI に渡すので英語
   return L.join("\n");
 }); }
 /* 計測の状態 */
-/* kiroku serve --html --week / --month で書き出した、1 つの期間だけのファイル。渡された人がいちばん上で、何のファイルか・ほかの期間が空の理由・
+/* tools/html の --week / --month で書き出した、1 つの期間だけのファイル。渡された人がいちばん上で、何のファイルか・ほかの期間が空の理由・
    どの時計で見ているかがわかるように */
 function scopeNote(){
   const sc = META.scope; if (!sc) return "";

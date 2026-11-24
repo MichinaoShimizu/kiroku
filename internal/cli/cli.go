@@ -417,7 +417,9 @@ func writeHTML(snap snapshot, out string, open bool, lang string) error {
 	fmt.Printf("%s → %s\n", plural(len(snap.data), "session"), out)
 	if open {
 		if abs, err := filepath.Abs(out); err == nil {
-			openBrowser(abs)
+			if err := openBrowser(abs); err != nil {
+				fmt.Fprintf(os.Stderr, "could not open a browser: %v\n", err)
+			}
 		}
 	}
 	return nil

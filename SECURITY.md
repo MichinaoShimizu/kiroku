@@ -57,7 +57,7 @@ Only the latest release is supported.
 
 ## Verifying a release
 
-Each release archive comes with an SPDX SBOM (`<archive>.sbom.json`) that lists the Go version and every Go module, with its version, built into the binary. The archives, the SBOMs and `checksums.txt` all carry build provenance. Releases have SBOMs from v0.14.0 and Sigstore bundles (below) from v0.15.0. In the commands below, replace `X.Y.Z` with the version you downloaded.
+Each release archive comes with an SPDX SBOM (`<archive>.sbom.json`) that lists the Go version and every Go module, with its version, built into the binary. The standalone binaries (`kiroku-<os>-<arch>`, `.exe` on Windows) have no SBOM of their own; each holds the same binary as its archive. The archives, the standalone binaries, the SBOMs and `checksums.txt` all carry build provenance. Releases have SBOMs from v0.14.0 and Sigstore bundles (below) from v0.15.0. In the commands below, replace `X.Y.Z` with the version you downloaded.
 
 Check that a file was built by this repository's release workflow (needs the [GitHub CLI](https://cli.github.com/)):
 

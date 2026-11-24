@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -358,7 +359,7 @@ func TestOpenWithKey(t *testing.T) {
 	t.Setenv("KIROKU_CONFIG_DIR", dir)
 	var opened []string
 	old := openBrowser
-	openBrowser = func(target string) { opened = append(opened, target) }
+	openBrowser = func(target string) error { opened = append(opened, target); return nil }
 	defer func() { openBrowser = old }()
 	key, _ := serveKey(true)
 	if err := openWithKey("http://localhost:8484/"); err != nil {
@@ -388,7 +389,7 @@ func TestOpenRunning(t *testing.T) {
 	var opened []string
 	oldOpen, oldLooks := openBrowser, looksLikeServe
 	defer func() { openBrowser, looksLikeServe = oldOpen, oldLooks }()
-	openBrowser = func(target string) { opened = append(opened, target) }
+	openBrowser = func(target string) error { opened = append(opened, target); return nil }
 	key, _ := serveKey(true)
 	running := false
 	looksLikeServe = func(addr string) bool {
@@ -471,7 +472,7 @@ func TestHopPage(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "kiroku")
 	t.Setenv("KIROKU_CONFIG_DIR", dir)
 	old := openBrowser
-	openBrowser = func(string) {}
+	openBrowser = func(string) error { return nil }
 	defer func() { openBrowser = old }()
 	if err := openWithKey("http://localhost:8484/"); err != nil {
 		t.Fatal(err)
@@ -610,5 +611,19 @@ if (bad) process.exit(1);
 	}
 	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
 		t.Errorf("中継のページと画面で言語が違う:\n%s", out)
+	}
+}
+
+// ブラウザを開くコマンドを起動できないとき（xdg-open のない Linux など）は、開いたと言わずにエラーを返し、
+// 代わりに開くファイル（本人しか読めない open.html）を言う
+func TestOpenWithKeyReportsBrowserFailure(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "kiroku")
+	t.Setenv("KIROKU_CONFIG_DIR", dir)
+	old := openBrowser
+	openBrowser = func(string) error { return errors.New(`exec: "xdg-open": executable file not found in $PATH`) }
+	defer func() { openBrowser = old }()
+	err := openWithKey("http://localhost:8484/")
+	if err == nil || !strings.Contains(err.Error(), "xdg-open") || !strings.Contains(err.Error(), filepath.Join(dir, "open.html")) {
+		t.Fatalf("openWithKey = %v, want the launch error and the path of open.html", err)
 	}
 }

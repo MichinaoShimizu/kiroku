@@ -34,7 +34,7 @@ func keepCopies(picked []source.Source, dir string) int {
 var keptDirs = core.ArchiveDirs()
 
 func cmdArchive(args []string) error {
-	fs := newFS("serve --archive", "serve --archive [flags] [on|off]\n\nAgents such as Claude Code delete old history (Claude Code: after 30 days unless cleanupPeriodDays is set).\n\"kiroku serve --archive on\" makes kiroku keep compressed copies of that history every time it reads it,\nand show deleted conversations from the copies. Copies stay on this computer only.\n\n  kiroku archive        show the status\n  kiroku serve --archive on     start keeping copies (and keep a copy of the current history now)\n  kiroku serve --archive off    stop keeping copies (asks whether to delete the copies already kept)")
+	fs := newFS("serve --archive", "serve --archive [flags] [on|off]\n\nAgents such as Claude Code delete old history (Claude Code: after 30 days unless cleanupPeriodDays is set).\n\"kiroku serve --archive on\" makes kiroku keep compressed copies of that history every time it reads it,\nand show deleted conversations from the copies. Copies stay on this computer only.\n\n  kiroku serve --archive        show the status\n  kiroku serve --archive on     start keeping copies (and keep a copy of the current history now)\n  kiroku serve --archive off    stop keeping copies (asks whether to delete the copies already kept)")
 	c := addCommon(fs)
 	pos, err := parse(fs, args, 1)
 	if err != nil {

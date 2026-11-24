@@ -1,0 +1,3 @@
+- `kiroku serve --archive --help` no longer tells you to run `kiroku archive`, which 5.0 removed
+- When kiroku can't start a browser (no `xdg-open`, as on a headless Linux, WSL or a container), it now says so and names the file to open, instead of saying it opened the view
+- The Japanese view translates "Reached a commit or PR" in the sessions-that-reached-a-commit dialog

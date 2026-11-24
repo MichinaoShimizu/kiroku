@@ -38,7 +38,7 @@ type Report struct {
 	Error    *string       `json:"error"`
 	Oldest   float64       `json:"oldest,omitempty"`    // いちばん古い記録の時刻（UNIX 秒）。これより前は見られない
 	Keep     *Retention    `json:"retention,omitempty"` // エージェントが履歴を自動で消す設定
-	IDs      []string      `json:"-"`                   // 読んだセッションの ID（kiroku serve --html --week などで、期間の分だけ数え直すため）
+	IDs      []string      `json:"-"`                   // 読んだセッションの ID（tools/html --week などで、期間の分だけ数え直すため）
 	Took     time.Duration `json:"-"`                   // 読むのにかかった時間（serve などの端末の行に出す）
 	// 履歴の形の手がかり（core.Format。kiroku serve --check の「Format check」と --report、画面の「Data sources」）。
 	// 種類の名前（core.SafeKind）と数と版（core.SafeVersion）だけで、パス・プロジェクト名・ID・中身は入れない
