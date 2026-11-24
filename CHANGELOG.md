@@ -2,6 +2,17 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v5.1.1 - 2026-11-24
+
+### Fixed
+
+- Claude Code: running out of usage credits in the middle of a response (`Usage credits ran out before the response was finished.`, the wording since Claude Code 2.1.328) is counted as a usage limit hit again
+- Kiro: the calendar no longer shows the same session twice. A Kiro IDE / CLI (V3) session stored in two workspace folders (`sessions/<hash>/sess_<id>/`) is shown once, from the copy written last that has readable lines, and a Kiro CLI (SQLite) conversation that was moved to V2 and then opened in V3 is shown once, as its V3 session, instead of also as a Kiro CLI (SQLite) session
+
+### Security
+
+- Kiro: a Kiro IDE / CLI (V3) copy of a private (incognito or temporary) Kiro Crew conversation is now hidden even when its `session.json` has no usable `id` (missing, not a string, or cut off while Kiro was writing it); before, such a copy was shown with its prompts
+
 ## v5.1.0 - 2026-11-24
 
 ### Added
