@@ -23,7 +23,7 @@ import (
 
 // releaseBase は Releases の置き場所、updateExe は置きかえる kiroku の実行ファイル（テストで差しかえる）。
 var (
-	releaseBase = "https://github.com/MichinaoShimizu/kiroku"
+	releaseBase = upstreamURL
 	updateExe   = os.Executable
 )
 
@@ -177,6 +177,9 @@ func latestVersion(client *http.Client) (string, error) {
 	if c.Timeout == 0 || c.Timeout > latestCheckTimeout {
 		c.Timeout = latestCheckTimeout
 	}
+	if viaGH() {
+		return ghLatest(c.Timeout)
+	}
 	c.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	resp, err := c.Get(releaseBase + "/releases/latest")
 	if err != nil {
@@ -238,16 +241,29 @@ func selfUpdate(client *http.Client, tag, goos, goarch, exe string) error {
 	}
 	name := fmt.Sprintf("kiroku_%s_%s_%s%s", strings.TrimPrefix(tag, "v"), goos, goarch, ext)
 	base := releaseBase + "/releases/download/" + tag + "/"
-	archive, err := fetchShow(client, base+name, updateProgress)
+	get := func(file string, show io.Writer) ([]byte, error) {
+		if viaGH() {
+			return ghFetch(tag, file, show)
+		}
+		return fetchShow(client, base+file, show)
+	}
+	archive, err := get(name, updateProgress)
 	if err != nil {
 		var he *httpError
-		if errors.As(err, &he) && he.code == http.StatusNotFound { // 版がない・その OS/CPU 向けがない
-			return fmt.Errorf("%s has no %s (that version may not exist; see %s/releases)", tag, name, releaseBase)
+		var ge *ghError
+		if (errors.As(err, &he) && he.code == http.StatusNotFound) || (errors.As(err, &ge) && ge.notFound) { // 版がない・その OS/CPU 向けがない
+			return fmt.Errorf("%s has no %s (that version may not exist; see %s)", tag, name, releasesPage())
+		}
+		if viaGH() {
+			return ghFailure("could not download "+name, err)
 		}
 		return fmt.Errorf("could not download %s: %w", name, err)
 	}
-	sums, err := fetch(client, base+"checksums.txt")
+	sums, err := get("checksums.txt", nil)
 	if err != nil {
+		if viaGH() {
+			return ghFailure("could not download checksums.txt", err)
+		}
 		return fmt.Errorf("could not download checksums.txt: %w", err)
 	}
 	want := ""

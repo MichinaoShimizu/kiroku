@@ -128,7 +128,7 @@ function sessionOutputs(s){
   if (rec && lines >= EDIT_MIN && num(s.credits)) { const v = num(s.credits) * 100 / lines; A.push(tile(t("Kiro credits per 100 AI-edited lines"), crN(v), esc(`${cr1(num(s.credits))} ÷ ${t("{n} AI-edited lines", {n: commas(lines)})} × 100 = ${crN(v)}`))); }
   if (rec && lines >= EDIT_MIN && num(s.cost) && sesTok(s)) { const v = num(s.cost) * 100 / lines; A.push(tile(t("Estimated cost per 100 AI-edited lines"), usdH(v), esc(`${usd4(num(s.cost))} ÷ ${t("{n} AI-edited lines", {n: commas(lines)})} × 100 = ${usd(v)}`))); }
   const editH = A.length ? `<div class="mini tight">${A.join("")}</div>` : noneH(esc(rec ? t("None") : notRec([s.source])));
-  return `<h3>${esc(t("Output"))}</h3>${grp("sog-git", "commit", t("Git"), t("from your repositories"), gitH)}${grp("sog-edit", "edit", t("AI edits"), t("from the agent's history, committed or not"), editH)}`;
+  return `<h3>${esc(INS_OUT())}</h3>${grp("sog-git", "commit", t("Git"), t("from your repositories"), gitH)}${grp("sog-edit", "edit", t("AI edits"), t("from the agent's history, committed or not"), editH)}`;
 }
 function span(v){ return v < 3600 ? secs(v) : dur(v / 60); } // 秒数を、1 時間からは時間と分で
 function prName(url){ // GitHub の PR は「リポジトリ#番号」と短く（狭い画面でも番号が見えるように）

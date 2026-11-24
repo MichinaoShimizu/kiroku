@@ -354,7 +354,7 @@ async function run(env) {
       check("ヒートマップの各行に曜日の合計がある（触れなくても読める）", await p.evaluate(() => document.querySelectorAll("#review .ihgrid > .iht:not(.ihh)").length === 7));
       check("3 列の並びの最後の段に空きを作らない（余りは横に広げる）", await p.evaluate(() => [...document.querySelectorAll("#review .istats")].every(g => { const k = [...g.children].filter(c => c.offsetParent !== null), /* 単価の切り替えで隠した数字は数えない */ cols = getComputedStyle(g).gridTemplateColumns.split(" ").length; if (k.length < 2) return true; const r = k.map(c => c.getBoundingClientRect()), last = r[r.length - 1], row = r.filter(b => Math.abs(b.top - last.top) < 2); return Math.abs(row[row.length - 1].right - g.getBoundingClientRect().right) < 2 || row.length === cols; })));
       check("カードの中の数の枠は最大 3 列", await p.evaluate(() => [...document.querySelectorAll("#review .istats")].every(g => getComputedStyle(g).gridTemplateColumns.split(" ").length <= 3)));
-      check("サマリーの頭は投入・出力・投入単価・出力単価の 4 枚のパネルで、どれもグラフ 1 つ（選んだ選択肢のタイルだけが見える）。広い画面では 2×2（左の列が投入の側、右の列が出力の側）、狭ければ投入・出力・投入単価・出力単価の順に積み、どの数字も画面の中に見える", await p.evaluate(() => { const G = [...document.querySelectorAll("#review .insh .ikg")], g = document.querySelector("#review .insh").getBoundingClientRect();
+      check("サマリーの頭は投入・産出・投入単価・産出単価の 4 枚のパネルで、どれもグラフ 1 つ（選んだ選択肢のタイルだけが見える）。広い画面では 2×2（左の列が投入の側、右の列が産出の側）、狭ければ投入・産出・投入単価・産出単価の順に積み、どの数字も画面の中に見える", await p.evaluate(() => { const G = [...document.querySelectorAll("#review .insh .ikg")], g = document.querySelector("#review .insh").getBoundingClientRect();
         const k = [...document.querySelectorAll("#review .insh .ikrow > .itile")].filter(c => c.offsetParent !== null), inside = k.every(c => { const r = c.getBoundingClientRect(); return r.left >= g.left - 1 && r.right <= g.right + 1; });
         const one = G.every(c => [...c.querySelectorAll(".ikrow > [data-ch]")].filter(x => x.checkVisibility()).length === 1 && c.querySelectorAll(".ikrow > .itile .tspk svg").length >= 1);
         const r = c => document.querySelector(`#review .insh .ik-${c}`).getBoundingClientRect();
@@ -366,7 +366,7 @@ async function run(env) {
       out: !!document.querySelector("#review .iout") && [...document.querySelector("#review .iout").querySelectorAll(":scope > h4")].map(h => [...h.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join("").trim()).join("")}));
         const n = await panelNames();
         check("パネルの名前は Input・Output・Unit cost per input・Unit cost per output、内訳のカードは「Output」", JSON.stringify(n.panels) === JSON.stringify(["Input", "Output", "Unit cost per input", "Unit cost per output"]) && n.out === "Output", JSON.stringify(n)); }
-      check("パネルは投入の側（投入・投入単価）と出力の側（出力・出力単価）に分かれ、広い画面では列の間の 2 色の線の上に IN・OUT、狭い画面では各パネルの上に IN・OUT がある", await p.evaluate(() => {
+      check("パネルは投入の側（投入・投入単価）と産出の側（産出・産出単価）に分かれ、広い画面では列の間の 2 色の線の上に IN・OUT、狭い画面では各パネルの上に IN・OUT がある", await p.evaluate(() => {
         const side = {cost: "in", uin: "in", out: "out", unit: "out"}, vis = e => !!e && e.checkVisibility(), G = Object.keys(side).map(c => document.querySelector(`#review .insh .ik-${c}`));
         const cls = G.every((g, i) => g.classList.contains("side-" + Object.values(side)[i]));
         if (innerWidth >= 900){ const d = document.querySelector("#review .insdiv"), dr = d.getBoundingClientRect(), I = document.querySelector("#review .insio.in"), O = document.querySelector("#review .insio.out"), c = G[0].getBoundingClientRect(), o = G[2].getBoundingClientRect(), u = G[3].getBoundingClientRect();
@@ -393,7 +393,7 @@ async function run(env) {
             overL: vis.filter((a, i) => vis.some((b, j) => j !== i && hit(a, b))).length, overM: vis.filter(a => lim.some(b => hit(a, b))).length}; }));
         check(`${when}：パネルのグラフの x 軸の名前は横書きで、名前どうしも利用上限の印とも重ならない`, r.length >= 4 && r.every(x => x.rot === 0 && x.n >= 2 && x.overL === 0 && x.overM === 0), JSON.stringify(r.filter(x => x.rot || x.overL || x.overM || x.n < 2))); };
       await xlCheck("開いた期間");
-      check("投入・出力のパネルのグラフは期間ごとの棒（表示中の期間の棒は 1 本で、点と線はない）、単価のパネルのグラフは点と線（棒はない）。切り替えで隠れたタイルも", await p.evaluate(() => ["cost", "out", "uin", "unit"].every(c => { const ss = [...document.querySelectorAll(`#review .insh .ik-${c} .ikrow > .itile .tspk svg`)];
+      check("投入・産出のパネルのグラフは期間ごとの棒（表示中の期間の棒は 1 本で、点と線はない）、単価のパネルのグラフは点と線（棒はない）。切り替えで隠れたタイルも", await p.evaluate(() => ["cost", "out", "uin", "unit"].every(c => { const ss = [...document.querySelectorAll(`#review .insh .ik-${c} .ikrow > .itile .tspk svg`)];
         return ss.length > 0 && ss.every(s => { const bars = s.querySelectorAll("rect.sbar").length, cur = s.querySelectorAll("rect.sbar.cur").length, dots = s.querySelectorAll("polyline.trl, circle.now, circle.pt").length;
           return c === "cost" || c === "out" ? bars >= 2 && cur === 1 && dots === 0 : bars === 0 && s.querySelectorAll("circle.now").length === 1 && !!s.querySelector("polyline.trl"); }); })));
       if (env.viewport.width >= 900){ // 頭の段は subgrid で横の 2 枚と同じ高さ。片方の頭にだけ注の行があると、もう片方の頭の下が空く。1 つのエージェントに絞ったときも（push あたりの注を頭に置かない）
@@ -446,7 +446,7 @@ async function run(env) {
         const b = I.querySelector(".itile .fxb"), tile = b && b.closest(".itile"); if (!tile || vis(I)) return false;
         b.click(); await new Promise(r => setTimeout(r, 100)); const on = vis(tile) && b.getAttribute("aria-pressed") === "true" && [...I.querySelectorAll(".itile")].filter(x => x !== tile).every(x => !vis(x));
         b.click(); await new Promise(r => setTimeout(r, 100)); return on && !vis(I); }));
-      check("サマリーの頭に、数字 5〜32 個（上の帯の数字を含む。単価は Git コミット・AI の編集行・稼働時間・セッション・プロンプトあたりの 5 段。コスト・出力（Git はコミット・行・ファイル・リポジトリ・日・push・PR、AI の編集はファイルと行）・単価（Git コミットあたりと AI が編集した 100 行あたりを分ける）に分ける）・どこに使ったかの横棒がある", r.heads >= 5 && r.heads <= 32 && r.svg && r.donut > 0, JSON.stringify(r));
+      check("サマリーの頭に、数字 5〜32 個（上の帯の数字を含む。単価は Git コミット・AI の編集行・稼働時間・セッション・プロンプトあたりの 5 段。コスト・産出（Git はコミット・行・ファイル・リポジトリ・日・push・PR、AI の編集はファイルと行）・単価（Git コミットあたりと AI が編集した 100 行あたりを分ける）に分ける）・どこに使ったかの横棒がある", r.heads >= 5 && r.heads <= 32 && r.svg && r.donut > 0, JSON.stringify(r));
       const fx = await p.evaluate(() => ({chips: [...document.querySelectorAll("#review .insight .ichip.ifx")].map(e => e.textContent), def: (document.querySelector("#review .insdef") || {}).textContent || "",
         vague: /Usual|Higher|Lower|usual range|いつもの範囲|いつもどおり|高め|低め|\bQ[13]\b|IQR/.test(document.querySelector("#review .insight").innerText)}));
       check("いつもとの比べは不等式（下位・上位25%点の値）で出し、定義を 1 行で示す。曖昧な言葉と Q1・Q3 の記号は使わない", fx.chips.length > 0 && fx.chips.every(c => /pct|%点|≤|needs|必要/.test(c)) && /(spread|幅) = /.test(fx.def) && !fx.vague, JSON.stringify(fx).slice(0, 300));
@@ -466,7 +466,7 @@ async function run(env) {
         const three = innerWidth < 1300 || [...document.querySelectorAll("#review .insrow")].some(r => r.children.length >= 3 && Math.abs(r.children[0].getBoundingClientRect().top - r.children[2].getBoundingClientRect().top) < 1);
         return {say, charts, rows: rowsOk, tiles: tilesOk, half, badTiles, grid: three}; });
       check("どのグラフにも、データから計算した読み取りの 1 文があり、広い画面ではカードが 3 列に並び、カードは重ならず中の下が空かない。カードとグラフのタイルはページの半分より広くなく、奇数のタイルも行の幅を埋める", lay.say === lay.charts && lay.rows && lay.tiles && lay.grid, JSON.stringify(lay));
-      check("投入と出力の棒の上には、% ではなくその期間の実際の量がある", await p.evaluate(() => { const l = [...document.querySelectorAll("#review .ik-cost .tspk:not(.ww) .spc, #review .ik-out .tspk:not(.ww) .spc")]; return l.length > 0 && l.every(e => /^\$?\d+(\.\d)?[kMh]?$|^\d+m$/.test(e.textContent)); }));
+      check("投入と産出の棒の上には、% ではなくその期間の実際の量がある", await p.evaluate(() => { const l = [...document.querySelectorAll("#review .ik-cost .tspk:not(.ww) .spc, #review .ik-out .tspk:not(.ww) .spc")]; return l.length > 0 && l.every(e => /^\$?\d+(\.\d)?[kMh]?$|^\d+m$/.test(e.textContent)); }));
       check("1 本だけ飛び抜けた棒は上を切り、切れ目の印と実際の量を付ける（ほかの棒が潰れない）。戻せば切らない", await p.evaluate(() => {
         const ks = Object.keys(WEEKS).sort(), w = WEEKS[ks[ks.length - 5]], old = w.usage.cost; w.usage.cost = 240; summary();
         const g = document.querySelector("#review .ik-cost .tspk:not(.ww)"), cut = !!g && g.querySelectorAll("path.sbrk").length === 1 && [...g.querySelectorAll(".spc.over")].some(e => e.textContent === "$240") && !!document.querySelector('#review .ik-cost .tlg [data-lg="path.sbrk"]:not([hidden])');
@@ -575,20 +575,20 @@ async function run(env) {
   await step("コストと残ったもの", async () => {
     await view("sum");
     const oc = p.locator("#review .inscol:has(.hb[data-help=\"outSessions\"])"); await oc.scrollIntoViewIfNeeded(); await pause();
-    // コミット・push・PR の数は上の「出力」のパネルに（下の成果のカードでは繰り返さない）。Git の行・やり直し、AI の編集の定着は成果のカードに
+    // コミット・push・PR の数は上の「産出」のパネルに（下の成果のカードでは繰り返さない）。Git の行・やり直し、AI の編集の定着は成果のカードに
     for (const [name, id] of [["コミット", "gitCommits"], ["push", "pushes"], ["PR", "prs"]])
-      check(`上の出力のパネルに${name}が出て、下の成果のカードでは繰り返さない`, await p.locator(`#review .insh .ik-out .hb[data-help="${id}"]`).count() === 1 && await oc.locator(`.hb[data-help="${id}"]`).count() === 0);
+      check(`上の産出のパネルに${name}が出て、下の成果のカードでは繰り返さない`, await p.locator(`#review .insh .ik-out .hb[data-help="${id}"]`).count() === 1 && await oc.locator(`.hb[data-help="${id}"]`).count() === 0);
     const rwk = await p.evaluate(() => { const {ws, we} = period(); return reworkOf(ws, we).n > 0; }); // やり直しは 3 日たった AI のコミットがある期間だけ
     for (const id of ["lines", ...(rwk ? ["rework"] : []), "kept", "aiLines", "aiFiles"])
       check(`パネルから外した ${id} は成果のカードにある`, await oc.locator(`.hb[data-help="${id}"]`).count() === 1 && await p.locator(`#review .insh .hb[data-help="${id}"]`).count() === 0);
-    { // 100 行あたりは出力単価、時間・日・セッション・プロンプトあたりは投入単価のパネルに（単価の表のカードはない）。HELP のある指標は、どれもサマリーのどこかに「?」がある
+    { // 100 行あたりは産出単価、時間・日・セッション・プロンプトあたりは投入単価のパネルに（単価の表のカードはない）。HELP のある指標は、どれもサマリーのどこかに「?」がある
       const miss = await p.evaluate(() => [...["costPerEdit", "tokensPerEdit"].map(k => ["unit", k]), ...["costPerHour", "costPerDay", "costPerSes", "costPerAsk", "tokensPerHour", "tokensPerDay", "tokensPerSes", "tokensPerAsk", "creditsPerHour", "creditsPerSes", "creditsPerAsk"].map(k => ["uin", k])].filter(([g, k]) => !document.querySelector(`#review .insh .ik-${g} .hb[data-help="${k}"]`)).map(x => x.join(":")));
-      check("出力単価のパネルに 100 行あたり、投入単価のパネルに時間・日・セッション・プロンプトあたりの単価がある", miss.length === 0, miss.join(","));
+      check("産出単価のパネルに 100 行あたり、投入単価のパネルに時間・日・セッション・プロンプトあたりの単価がある", miss.length === 0, miss.join(","));
       const none = await p.evaluate(rwk => ["cost", "credits", "tokens", "active", "gitCommits", "lines", "prs", "pushes", "aiLines", "aiFiles", ...(rwk ? ["rework"] : []), "kept", "outSessions", "costPerCommit", "tokensPerCommit", "perPush", "perPr", "prompts", "cache", "subagents", "fix", "limits", "focus", "switches", "wait", "bigPrompts", "repeats", "friction", "compactions"].filter(k => !document.querySelector(`#review .hb[data-help="${k}"]`)), rwk);
       check("HELP のある指標は、サマリーのどこかに「?」がある", none.length === 0, none.join(","));
     }
     check("成果のカードに成果まで届いたセッションが出る", await oc.locator('.hb[data-help="outSessions"]').count() === 1);
-    check("コミットあたりの費用は、出力ではなく出力単価のパネルにある", await p.evaluate(() => !!document.querySelector('#review .insh .ik-unit [data-metric="costPerCommit"]') && !document.querySelector('#review .ik-out [data-metric="costPerCommit"], #review .iout .hb[data-help="costPerCommit"]')));
+    check("コミットあたりの費用は、産出ではなく産出単価のパネルにある", await p.evaluate(() => !!document.querySelector('#review .insh .ik-unit [data-metric="costPerCommit"]') && !document.querySelector('#review .ik-out [data-metric="costPerCommit"], #review .iout .hb[data-help="costPerCommit"]')));
     check("割った指標には式（÷）が添えてある", await oc.evaluate(e => [...e.querySelectorAll(".mrow")].filter(s => s.querySelector('.hb[data-help="outSessions"], .hb[data-help="costPerCommit"]')).every(s => /÷/.test(s.textContent))));
     check("カードが箱からはみ出さない", await oc.evaluate(e => [...e.querySelectorAll(".mrow")].every(s => s.getBoundingClientRect().right <= e.getBoundingClientRect().right + 1)));
     { // 数字の大きさの段：4 つのパネルの値がいちばん大きく、内訳のカードの値（Output の行・数の枠）はそれより小さい
@@ -657,7 +657,7 @@ async function run(env) {
 
   await step("単価のカード・単価の組・エージェントで絞ったとき・サンキーの名前・月の目盛り", async () => {
     await view("sum");
-    for (const id of ["unit", "uin"]){ // 単価のパネル（出力単価・投入単価）：数字のない組（Kiro のクレジット ÷ コミットなど）は選べない。空のパネルや「記録がない」の 1 行を出さない
+    for (const id of ["unit", "uin"]){ // 単価のパネル（産出単価・投入単価）：数字のない組（Kiro のクレジット ÷ コミットなど）は選べない。空のパネルや「記録がない」の 1 行を出さない
       const u = await p.evaluate(id => { const g = document.querySelector(`#review .insh .ik-${id}`); if (!g) return null; const pairs = g.dataset.pairs.split(" ");
         return {pairs, none: g.querySelectorAll(".iknone").length, items: [...g.querySelectorAll(".ikrow > [data-ch]")].map(x => x.dataset.ch), ns: [...g.querySelectorAll('.iksw[data-dim="n"] [data-v]')].map(b => b.dataset.v)}; }, id);
       check(`${id} の単価のパネルは、数字のある組だけ（空の選択肢がない）`, !!u && u.none === 0 && u.items.length === u.pairs.length, JSON.stringify(u));
@@ -679,15 +679,15 @@ async function run(env) {
           return {unit: g ? [...g.querySelectorAll("[data-ch]")].map(x => x.dataset.ch) : [], note: g ? [...g.querySelectorAll(".ikrow > .itile:not([hidden]) .fxn")].map(x => x.textContent).join(" ") : "", head: g ? (() => { const h = g.querySelector(".ikhd").cloneNode(true); h.querySelectorAll(".iksw").forEach(x => x.remove()); return h.textContent; })() : "", pushB: g ? [...g.querySelectorAll('.iksw[data-dim="d"] [data-v="push"]')].filter(b => b.checkVisibility()).length : 0, push: o ? (o.querySelector('[data-ch="push"]') || {}).textContent || "" : "", hasPush: (META.push || []).length > 0}; });
         check("1 つのエージェントに絞ると、単価に push あたりを出さない", !r.unit.some(k => k.endsWith(":push")), JSON.stringify(r.unit));
         check("1 つのエージェントに絞ると、割る数に Pushes を出さない", r.pushB === 0, JSON.stringify(r.pushB));
-        { // PR を記録しないエージェント（Kiro・Codex）に絞ると、単価の割る数にも出力の切り替えにも PRs を出さない
+        { // PR を記録しないエージェント（Kiro・Codex）に絞ると、単価の割る数にも産出の切り替えにも PRs を出さない
           const np = ags.find(a => a !== "Claude Code");
           if (np){ await p.click(`#review [data-ag="${np}"]`); await pause();
             const q = await p.evaluate(() => { const vis = sel => [...document.querySelectorAll(sel)].filter(b => b.checkVisibility()).length;
               return {u: vis('#review .ik-unit .iksw[data-dim="d"] [data-v="pr"]'), o: vis('#review .ik-out .iksw [data-v="pr"]'), ch: [...document.querySelectorAll("#review .ik-unit .ikrow > [data-ch], #review .ik-out .ikrow > [data-ch]")].map(x => x.dataset.ch)}; });
-            check(`${np} に絞ると、単価と出力に PRs の選択肢を出さない`, q.u === 0 && q.o === 0 && !q.ch.some(k => k === "pr" || k.endsWith(":pr")), JSON.stringify(q));
+            check(`${np} に絞ると、単価と産出に PRs の選択肢を出さない`, q.u === 0 && q.o === 0 && !q.ch.some(k => k === "pr" || k.endsWith(":pr")), JSON.stringify(q));
           }
         }
-        check("1 つのエージェントに絞ると、push がエージェントで分けられないことを出力単価の式（ƒx）の中で 1 行で言う（パネルの頭には置かない）", !r.hasPush || (/push/i.test(r.note) && /every agent/.test(r.push) && !/All agents only|「すべて」のときだけ/.test(r.head)), `${r.note} / ${r.head} / ${r.push.slice(0, 120)}`);
+        check("1 つのエージェントに絞ると、push がエージェントで分けられないことを産出単価の式（ƒx）の中で 1 行で言う（パネルの頭には置かない）", !r.hasPush || (/push/i.test(r.note) && /every agent/.test(r.push) && !/All agents only|「すべて」のときだけ/.test(r.head)), `${r.note} / ${r.head} / ${r.push.slice(0, 120)}`);
         await p.click('#review [data-ag=""]'); await pause();
         check("すべてに戻すと、単価の組が元に戻る", await unitKeys() === all0, all0);
         const gn = await p.evaluate(() => { const x = document.querySelector('#review .ik-unit [data-ch="credits:commit"] .il'); return x ? x.textContent : null; });
@@ -903,18 +903,18 @@ async function run(env) {
         return st.insWf === k && document.querySelector(`#review [data-wfk="${k}"]`).getAttribute("aria-pressed") === "true" && f.querySelectorAll("rect.wft").length === 2 && f.querySelectorAll("rect.wfu, rect.wfd").length >= 1 && !!c.querySelector(".isay"); }, k)); }
     // ドーナツ・サンキー
     check("どこに使ったかに、割合のドーナツがある（項目の数だけ弧）", await p.evaluate(() => { const d = document.querySelector("#review .iwdn svg.idn"); return !!d && d.querySelectorAll("path").length === document.querySelectorAll("#review .iwdn .iwr").length; }));
-    for (const [attr, key, sel, name] of [["skk", "insSk", ".isk", "投入から出力の流れ"]]){
+    for (const [attr, key, sel, name] of [["skk", "insSk", ".isk", "投入から産出の流れ"]]){
       const ks2 = await p.locator(`#review [data-${attr}]`).evaluateAll(xs => xs.map(x => x.dataset[Object.keys(x.dataset)[0]]));
       for (const k of ks2){ await p.locator(`#review [data-${attr}="${k}"]`).click(); await pause();
         check(`${name}を ${k} にすると、その量の図と 1 文になる`, await p.evaluate(([key, k, sel]) => st[key] === k && !!document.querySelector(`#review ${sel} svg`) && !!document.querySelector(`#review ${sel}`).closest(".inscol").querySelector(".isay"), [key, k, sel])); } }
-    check("投入から出力の流れ（サンキー）は、4 枚のパネルのすぐ上の幅いっぱいの 1 枚で、内訳の段には繰り返さない", await p.evaluate(() => { const h = document.querySelector("#review .insh"), k = document.querySelector("#review .iskw"); if (!k || !k.querySelector(".isk")) return false;
+    check("投入から産出の流れ（サンキー）は、4 枚のパネルのすぐ上の幅いっぱいの 1 枚で、内訳の段には繰り返さない", await p.evaluate(() => { const h = document.querySelector("#review .insh"), k = document.querySelector("#review .iskw"); if (!k || !k.querySelector(".isk")) return false;
       const hr = h.getBoundingClientRect(), kr = k.getBoundingClientRect(), between = [...document.querySelectorAll("#review .insg, #review .insrow")].every(x => x.getBoundingClientRect().top >= hr.bottom - 1);
       return hr.top >= kr.bottom - 1 && Math.abs(kr.left - hr.left) < 2 && Math.abs(kr.right - hr.right) < 2 && between && document.querySelectorAll("#review .isk").length === 1 && !k.closest(".insrow"); }));
     { // サンキーの 1 文は、全体がどこへ行ったかを言い切る：コミットか PR あり・なし（None）・記録しないエージェントの分のうち 0 でないものを全部、全体に対する割合で。割合は足して 100
       const sk = await p.evaluate(() => { const c = document.querySelector("#review .isk"); if (!c) return null; const say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay"), out = [...c.querySelectorAll(".sklist .skcol:last-child .skn2")].map(x => x.textContent);
         return {unk: out.some(x => /^(Not recorded|記録なし)$/.test(x)), none: out.some(x => /^(None|なし)$/.test(x)), fil: out.some(x => /^(Files changed only|ファイルの変更だけ)$/.test(x)), yes: out.some(x => /^(Commit or PR|コミットか PR)$/.test(x)), txt: say ? say.textContent : "", list: [...c.querySelectorAll(".sklist .skcol")].map(g => [...g.querySelectorAll("li b")].reduce((a, b) => a + parseInt(b.textContent), 0))}; });
       const pcs = sk ? [...sk.txt.matchAll(/(\d+)%/g)].map(m => +m[1]) : [];
-      check("サンキーの 1 文は、出力の部分（コミットか PR あり・ファイルの変更だけ・なし・記録しないエージェントの分）を全部言い、その割合は足して 100", !sk || (!sk.yes && !sk.none && !sk.fil ? pcs.length === 0 : pcs.length === sk.yes + sk.fil + sk.none + sk.unk && pcs.reduce((a, v) => a + v, 0) === 100
+      check("サンキーの 1 文は、産出の部分（コミットか PR あり・ファイルの変更だけ・なし・記録しないエージェントの分）を全部言い、その割合は足して 100", !sk || (!sk.yes && !sk.none && !sk.fil ? pcs.length === 0 : pcs.length === sk.yes + sk.fil + sk.none + sk.unk && pcs.reduce((a, v) => a + v, 0) === 100
         && (!sk.fil || /changed files|ファイルを変えた/.test(sk.txt)) && (!sk.none || /without|no files|もない|ファイルも変えなかった/.test(sk.txt)) && (!sk.unk || /don't record commits|記録しないエージェント/.test(sk.txt)) && (!sk.yes || /with a commit or PR|PR のあった/.test(sk.txt))), JSON.stringify({sk, pcs}));
       check("サンキーの一覧の割合は、列ごとに足して 100", !sk || sk.list.every(v => v === 100), JSON.stringify(sk && sk.list));
     }
@@ -1125,7 +1125,7 @@ async function runJa(env) {
     { const panelNames = () => p.evaluate(() => ({panels: [...document.querySelectorAll("#review .insh .ikg .ikgh")].map(h => [...h.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join("").trim()),
       out: !!document.querySelector("#review .iout") && [...document.querySelector("#review .iout").querySelectorAll(":scope > h4")].map(h => [...h.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join("").trim()).join("")}));
       const n = await panelNames();
-      check("日本語のパネルの名前は 投入・出力・投入単価・出力単価、内訳のカードは「出力」", JSON.stringify(n.panels) === JSON.stringify(["投入", "出力", "投入単価", "出力単価"]) && n.out === "出力", JSON.stringify(n)); }
+      check("日本語のパネルの名前は 投入・産出・投入単価・産出単価、内訳のカードは「産出」（「出力」は出力トークンと取り違える）", JSON.stringify(n.panels) === JSON.stringify(["投入", "産出", "投入単価", "産出単価"]) && n.out === "産出", JSON.stringify(n)); }
     await p.locator('#view button[data-v="cal"]').click(); await p.waitForTimeout(300);
   });
 
