@@ -5,8 +5,8 @@
 #
 # 新しい一時ディレクトリにリリースのファイルを落とし、次を確かめる。どれか 1 つでも合わなければ 1 で終わる。
 #   1. ファイルの数と名前が、.goreleaser.yaml（と release.yml が足す出どころの証明のバンドル）から決まるものと同じ
-#   2. 各ファイルの sha256 が checksums.txt と合い、checksums.txt がアーカイブと SBOM をすべて、それだけを並べている
-#   3. gh があれば、各アーカイブの出どころの証明（gh attestation verify。install.sh と同じ条件）。なければ飛ばしたと言う
+#   2. 各ファイルの sha256 が checksums.txt と合い、checksums.txt がアーカイブ・実行ファイル・SBOM をすべて、それだけを並べている
+#   3. gh があれば、各アーカイブと実行ファイルの出どころの証明（gh attestation verify。install.sh と同じ条件）。なければ飛ばしたと言う
 #
 # 落とすのは HTTPS だけ（install.sh と同じく --proto '=https' --tlsv1.2）。落としたものは開かず、動かさない
 # （アーカイブも展開しない）。ネットワークから来た名前は、決まった形のものだけを使う。
@@ -100,7 +100,7 @@ main() {
     fi
     awk '{ print $2 }' "$sums" | sort > "$tmp/listed"
     if cmp -s "$tmp/summed" "$tmp/listed"; then
-      pass "checksums.txt lists the $(wc -l < "$tmp/listed" | tr -d ' ') archives and SBOMs, and nothing else"
+      pass "checksums.txt lists the $(wc -l < "$tmp/listed" | tr -d ' ') archives, binaries and SBOMs, and nothing else"
     else
       comm -23 "$tmp/summed" "$tmp/listed" | sed 's/^/FAIL  not in checksums.txt: /'
       comm -13 "$tmp/summed" "$tmp/listed" | sed 's/^/FAIL  in checksums.txt but not expected: /'
@@ -127,7 +127,7 @@ main() {
     echo "skip  build provenance: gh (GitHub CLI) is not installed, so gh attestation verify was not run"
   else
     bundle=$tmp/dl/kiroku_$ver.sigstore.json
-    grep -E '\.(tar\.gz|zip)$' "$tmp/want" > "$tmp/archives"
+    grep -E '\.(tar\.gz|zip)$|^[A-Za-z0-9_]+-[a-z0-9]+-[a-z0-9]+(\.exe)?$' "$tmp/want" > "$tmp/archives" # アーカイブと実行ファイル
     while IFS= read -r name; do
       [ -f "$tmp/dl/$name" ] || continue
       rc=0
@@ -193,6 +193,13 @@ expected() {
     { echo "verify-release: the archive name_template in .goreleaser.yaml changed (\"$template\"); update tools/verify-release.sh" >&2; return 1; }
   sbom=
   if grep -Eq '^ *- artifacts: *archive *$' "$g"; then sbom=1; fi
+  # 実行ファイルそのもの（archives の「formats: [binary]」。名前は <project>-<os>-<arch>、Windows は .exe）
+  bin=
+  if grep -Eq '^ *formats: *\[binary\] *$' "$g"; then
+    grep -Fq 'name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"' "$g" ||
+      { echo "verify-release: the name_template of the binary archive in .goreleaser.yaml changed; update tools/verify-release.sh" >&2; return 1; }
+    bin=1
+  fi
   for os in $oses; do
     for arch in $arches; do
       f=$formats
@@ -201,6 +208,9 @@ expected() {
       a="${project}_${2}_${os}_${arch}.$f"
       echo "$a"
       [ -z "$sbom" ] || echo "$a.sbom.json"
+      if [ -n "$bin" ]; then
+        if [ "$os" = windows ]; then echo "${project}-${os}-${arch}.exe"; else echo "${project}-${os}-${arch}"; fi
+      fi
     done
   done
   echo "$checksum"
