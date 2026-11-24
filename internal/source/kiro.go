@@ -97,14 +97,27 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 	var metas []metaFile
 	for i, h := range homes {
 		if base := filepath.Join(h, "sessions"); isDir(base) {
+			var ms []metaFile
 			for _, p := range glob(filepath.Join(base, "*", "*", "session.json")) {
-				metas = append(metas, metaFile{p, i})
+				ms = append(ms, metaFile{p, i})
 			}
+			// 同じ会話の写しが 2 つの bucket（作業場所）にあれば、最後に書いたほうを使う（読み込む側が Key で 1 つにする）
+			sortNewestFirst(ms, func(m metaFile) string { return m.path })
+			metas = append(metas, ms...)
 		}
 	}
 	var errs fileErrs
 	classic := map[string]bool{} // 使用量を足した V2 の会話
-	seen := map[string]int{}     // 出した会話の ID → homes の何番目で出したか（Home と Legacy の両方にあれば、先に読んだ Home のほう）
+	// 同じ会話の写しが何か所かにあれば 1 つだけ出す（カレンダーに同じセッションが 2 つ並ばないように）。
+	// Home を Legacy より先に、同じ場所の中では最後に書いた写しを先に見て、会話の行を 1 行でも読めた最初の写しを使う
+	// （書いている途中・壊れた写しのために、本物の写しを隠さないように）。どれも読めなければ最初の写し
+	type kcopy struct {
+		s     *core.Builder
+		dir   string // 写しのフォルダの名前（sess_<id>）
+		lines bool   // messages.jsonl の行を読めたか
+	}
+	picked := map[string]*kcopy{}
+	var order []string // 会話の ID（最初に見た順）
 	for _, mf := range metas {
 		metaPath := mf.path
 		dir := filepath.Dir(metaPath)
@@ -115,16 +128,15 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		errs.file(metaPath, err)
 		meta := core.Map(raw)
 		sid := firstNonEmpty(core.Str(meta["id"]), filepath.Base(dir))
-		if i, ok := seen[sid]; ok && i != mf.home {
-			continue // 同じ場所の中の同じ ID は、これまでどおりどちらも出す
+		if c := picked[sid]; c != nil && c.lines {
+			continue
 		}
-		seen[sid] = mf.home
 		s := core.NewBuilder("Kiro IDE / CLI (V3)", sid)
-		// Claim は、3.0 へ移した Kiro CLI V2 の会話（kiroClassicYield）と重ねて数えないため。id のない会話（フォルダ名の ID）は Claim しない
-		id := core.Str(meta["id"])
-		if id != "" {
-			s.Claim = "kiro-ide:" + id
-		}
+		// Claim は、3.0 へ移した Kiro CLI V2 の会話（kiroClassicYield）と重ねて数えないため。また、中身を残さない Kiro Crew の会話の写しを隠すため
+		// （KiroCLI.WithheldClaims）。V2 が譲るかどうか（KiroCLI の moved）と同じく、フォルダ名（sess_<id>）で決める。
+		// session.json の id が読めない（書いている途中・壊れている）写しも隠し、ほかの会話の id を書いた写しに、その会話を譲らない
+		s.Claim = "kiro-ide:" + filepath.Base(dir)
+		lines := false
 		s.File = filepath.Join(dir, "messages.jsonl")
 		s.Title = core.Str(meta["title"])
 		for _, key := range []string{"workspacePaths", "rootPaths"} {
@@ -174,6 +186,7 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 			pending = nil
 		}
 		errs.file(s.File, core.ReadJSONL(s.File, func(e core.Obj) {
+			lines = true
 			t := ts(e["timestamp"])
 			p := core.Map(e["payload"])
 			typ := core.Str(p["type"])
@@ -245,23 +258,53 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		if !modeled && len(s.Prompts) > 0 {
 			s.Model(model) // usage_summary がなければ、会話のモデル（modelId）を 1 回数える（v1.0 より前の selectedModel と同じ）
 		}
-		// Kiro CLI V2 の会話 X を 3.0 で開く（--resume-id X）と、sess_X に写される。V2 の会話は残るが、
-		// こちらを使う（KiroCLI の Yield）。写しには usage_summary の行がないので、切り替える前のクレジットなどを V2 から足す
-		// 同じ id の写しが 2 つあっても、V2 の使用量は 1 回だけ足す。読めない V2 の会話は KiroCLI が知らせる
-		if x, ok := strings.CutPrefix(id, "sess_"); ok && safeName(x) && !classic[x] {
-			classic[x] = true
-			if p := classicPath(homes, x); p != "" {
-				addClassicUsage(s, p)
-			}
-		}
 		// 再開のコマンド。IDE と CLI V3 のどちらが作った会話かは記録されないが、どちらも同じ保存場所なので、
 		// kiro-cli の会話 ID（session.json の id、なければフォルダ名）で開くコマンドを出す
 		if s.Project != "" {
 			s.Resume = core.ResumeCmd(s.Project, "kiro-cli chat --v3 --resume-id", s.ID)
 		}
+		if picked[sid] == nil {
+			order = append(order, sid)
+		}
+		if c := picked[sid]; c == nil || lines {
+			picked[sid] = &kcopy{s, filepath.Base(dir), lines}
+		}
+	}
+	for _, sid := range order {
+		s, dir := picked[sid].s, picked[sid].dir
+		// Kiro CLI V2 の会話 X を 3.0 で開く（--resume-id X）と、sess_X に写される。V2 の会話は残るが、
+		// こちらを使う（KiroCLI の Yield）。写しには usage_summary の行がないので、切り替える前のクレジットなどを V2 から足す
+		// 同じ id の写しが 2 つあっても、V2 の使用量は 1 回だけ足す。読めない V2 の会話は KiroCLI が知らせる
+		if x, ok := strings.CutPrefix(dir, "sess_"); ok && safeName(x) && !classic[x] {
+			classic[x] = true
+			if p := classicPath(homes, x); p != "" {
+				addClassicUsage(s, p)
+			}
+		}
 		emit(s)
 	}
 	return errs.err()
+}
+
+// sortNewestFirst は ms を、会話（messages.jsonl、なければ session.json）を最後に書いた順に並べる。同じ時刻ならパスの順。
+func sortNewestFirst[T any](ms []T, path func(T) string) {
+	mod := make(map[string]int64, len(ms))
+	for _, m := range ms {
+		p := path(m)
+		for _, f := range []string{filepath.Join(filepath.Dir(p), "messages.jsonl"), p} {
+			if st, err := os.Stat(f); err == nil {
+				mod[p] = st.ModTime().UnixNano()
+				break
+			}
+		}
+	}
+	sort.SliceStable(ms, func(i, j int) bool {
+		a, b := path(ms[i]), path(ms[j])
+		if mod[a] != mod[b] {
+			return mod[a] > mod[b]
+		}
+		return a < b
+	})
 }
 
 // kiroReply は、入れるのを待っている Kiro IDE / CLI (V3) の応答。

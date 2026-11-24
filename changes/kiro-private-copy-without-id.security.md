@@ -1,0 +1,1 @@
+- Kiro: a Kiro IDE / CLI (V3) copy of a private (incognito or temporary) Kiro Crew conversation is now hidden even when its `session.json` has no usable `id` (missing, not a string, or cut off while Kiro was writing it); before, such a copy was shown with its prompts

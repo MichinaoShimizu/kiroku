@@ -1,0 +1,1 @@
+- Claude Code: running out of usage credits in the middle of a response (`Usage credits ran out before the response was finished.`, the wording since Claude Code 2.1.328) is counted as a usage limit hit again

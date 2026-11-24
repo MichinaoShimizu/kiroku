@@ -5,7 +5,7 @@ A new version is a reason to check that kiroku still reads its history (`/source
 
 | Agent | Latest | Source |
 |---|---|---|
-| Claude Code | 2.1.327 | npm @anthropic-ai/claude-code |
-| Codex | 0.170.0 | npm @openai/codex |
+| Claude Code | 2.1.331 | npm @anthropic-ai/claude-code |
+| Codex | 0.172.0 | npm @openai/codex |
 | Kiro CLI | 3.5 | kiro.dev/changelog (CLI entries) |
-| Kiro IDE | 1.4.236 | kiro.dev/changelog (IDE entries) |
+| Kiro IDE | 1.5 | kiro.dev/changelog (IDE entries) |

@@ -1,0 +1,1 @@
+- Kiro: the calendar no longer shows the same session twice. A Kiro IDE / CLI (V3) session stored in two workspace folders (`sessions/<hash>/sess_<id>/`) is shown once, from the copy written last that has readable lines, and a Kiro CLI (SQLite) conversation that was moved to V2 and then opened in V3 is shown once, as its V3 session, instead of also as a Kiro CLI (SQLite) session

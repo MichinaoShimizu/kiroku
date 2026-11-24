@@ -278,3 +278,32 @@ func TestCollectCrewCodexBackendCountedOnce(t *testing.T) {
 		t.Errorf("Codex を読まないときの Crew のセッション = %d 件", len(data))
 	}
 }
+
+// Kiro Crew の incognito の会話の 3.0 の写しは、session.json の id が読めなくても（ない・文字でない・書いている途中で切れている）
+// フォルダ名の ID で中身を出さない。
+func TestKiroPrivateV3CopyWithoutUsableID(t *testing.T) {
+	old := logw
+	logw = io.Discard
+	defer func() { logw = old }()
+	for _, meta := range []string{`{}`, `{"id": ""}`, `{"id": 1}`, `{"id": "sess_k1", "workspa`} {
+		dir := t.TempDir()
+		kiro, crew := filepath.Join(dir, "kiro"), filepath.Join(dir, "crew")
+		writeTree(t, dir, map[string]string{
+			"kiro/sessions/cli/.keep":                 "",
+			"kiro/sessions/b1/sess_k1/session.json":   meta,
+			"kiro/sessions/b1/sess_k1/messages.jsonl": `{"timestamp": "2026-09-29T10:02:00Z", "payload": {"type": "user", "content": "SECRET-V3-PROMPT"}}` + "\n",
+			"crew/session_map.json":                   `{"dashboard:chat-1-100": {"sid": "k1", "cwd": "/w"}}`,
+			"crew/sessions/dashboard_chat-1-100.jsonl": `{"_type": "metadata", "title": "SECRET-TITLE", "memory_mode": "incognito"}` + "\n" +
+				`{"role": "user", "content": "SECRET-CREW-PROMPT", "ts": "2026-09-29T10:01:00+00:00"}` + "\n",
+		})
+		all := []source.Source{&source.KiroIDE{Home: kiro}, &source.KiroCLI{Home: kiro, CrewHome: crew}}
+		data, _ := collect(all, map[string]bool{"kiro": true}, 15)
+		b, err := json.Marshal(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(b), "SECRET") {
+			t.Errorf("session.json %s: the private conversation's content is shown", meta)
+		}
+	}
+}
