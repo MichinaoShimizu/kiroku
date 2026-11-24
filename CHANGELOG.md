@@ -10,6 +10,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Changed
 
+- Summary: cards waste less space. In narrow cards, the lists in Where it went, Tokens by type, Kinds of work and Most edited files show each item on two lines (its name and figures, then its bar) instead of three, the donut stays left of its list, and How you worked lists one figure per row (name on the left, value on the right) instead of narrow tiles in three columns
 - The page (including `kiroku serve`) always opens on this week's calendar instead of the view (Calendar or Summary) and Week | Month used last time. Other choices, such as the figures in the calendar and the summary's switches, are still remembered
 
 ## v5.1.1 - 2026-11-24
