@@ -276,7 +276,8 @@ function insHeadlines(F){
     // パネルの頭（.ithd）・グラフ・下の印（.itft）を分けておき、横に並んだパネルのグラフの上端を CSS の subgrid でそろえる
     const row = `<div class="ivrow">${big.length ? `<span class="ivnow">${vh}${insOddH(ob)}<span class="ivk">${esc(t("So far"))}</span></span>${big.map(x => `<span class="ivbig"><b>≈ ${esc(x.big.v)}</b><span class="ivk">${esc(x.big.l)}</span></span>`).join("")}` : vh + insOddH(ob)}</div>`;
     const chip = b === false || f.some(x => obj(x) && x.v != null) ? "" : insChip(b);
-    P[panel].push({key, h: `<div class="itile${insTone(b)}" data-ch="${key}"><div class="ithd"><span class="il">${esc(label)}${hb(hk)}</span>${row}${f.map(x => obj(x) ? (x.big ? fx(x.f) : x.v != null ? x.v : x.n != null ? pln(x.n) : x.fn != null ? `<span class="fxo fxn">${esc(x.fn)}</span>` : fx(x.f, "", x.p, x.h)) : x === t("Kiro's own count, not an estimate") ? pln(x) : fx(x)).join("")}</div>${insSpark(b, label, 480, !INS_RATE.has(panel))}${chip ? `<div class="itft">${chip}</div>` : ""}</div>`}); }; // 値を押すと、上の帯と同じ内訳
+    const mix = panel === "cost" ? insModelMix(u, key) : "";
+    P[panel].push({key, h: `<div class="itile${insTone(b)}" data-ch="${key}"><div class="ithd${mix ? " hasm" : ""}">${mix ? `<div class="ithl">` : ""}<span class="il">${esc(label)}${hb(hk)}</span>${row}${f.map(x => obj(x) ? (x.big ? fx(x.f) : x.v != null ? x.v : x.n != null ? pln(x.n) : x.fn != null ? `<span class="fxo fxn">${esc(x.fn)}</span>` : fx(x.f, "", x.p, x.h)) : x === t("Kiro's own count, not an estimate") ? pln(x) : fx(x)).join("")}${mix ? `</div>${mix}` : ""}</div>${insSpark(b, label, 480, !INS_RATE.has(panel))}${chip ? `<div class="itft">${chip}</div>` : ""}</div>`}); }; // 値を押すと、上の帯と同じ内訳
   const days = Math.round((we - ws) / 86400), el = Math.round(insFrac() * days), {V, vs, vsInt, vsk} = insCmp();
   const pace = (cur, v, f, fv = f) => ({f: `${t("pace")} = ${f(cur)} × ${days}${t("d")} ÷ ${el}${t("d")} = ${f(v)}`, big: {l: M ? t("Month-end estimate") : t("End-of-week estimate"), v: fv(v)}, pc: true}); // fv は大きな数字の形（今までの値と同じ形に） // 期間の終わりの推定は、今までの値と同じ大きさで並べる
   // 直近の期間（表示中と過去 INS_N）のどれかに 1 以上あるか（今の期間が 0 でも、推移は見られるように選択肢に残す）
@@ -523,13 +524,27 @@ function insWater(){
   return `<div class="inshead"><h4>${esc(t("What changed from the last period"))}</h4>${mtabs}</div>${say(sy)}<figure class="insfig iwtf"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("What changed from the last period"))}">${ticks}${body}</svg><p class="ifxs">${fx(t("Each bar between the totals is one project's change; projects are grouped by where their sessions started"), "", t("By project · light: up · dark: down"))}${k === "minutes" ? INS_STIME() : ""}</p></figure>`;
 }
 /* insDonut は、割合のドーナツ（parts: {name, v, c}。c は色の CSS 値で、こちらで決めたものだけ）。真ん中に合計 */
-function insDonut(parts, total, fv, label){
+function insDonut(parts, total, fv, label, bare){ // bare：真ん中の合計を書かない（小さく置くとき）
   if (!total || parts.length < 2) return "";
   const R = 64, r = 40, C = 70; let a0 = -Math.PI / 2;
   const arcs = parts.map(x => { const a1 = a0 + 2 * Math.PI * Math.min(.9999, x.v / total), big = a1 - a0 > Math.PI ? 1 : 0, p = (rr, a) => `${(C + rr * Math.cos(a)).toFixed(2)} ${(C + rr * Math.sin(a)).toFixed(2)}`;
     const d = `M${p(R, a0)} A${R} ${R} 0 ${big} 1 ${p(R, a1)} L${p(r, a1)} A${r} ${r} 0 ${big} 0 ${p(r, a0)} Z`; a0 = a1;
     return `<path d="${d}" fill="${x.c}"${tipAttr(x.name, `${fv(x.v)} · ${Math.round(x.v * 100 / total)}%`)}/>`; }).join("");
-  return `<svg class="idn" viewBox="0 0 140 140" role="img" aria-label="${esc(label)}">${arcs}<text class="idnv" x="70" y="68">${esc(fv(total))}</text><text class="idnl" x="70" y="84">${esc(t("total"))}</text></svg>`;
+  return `<svg class="idn" viewBox="0 0 140 140" role="img" aria-label="${esc(label)}">${arcs}${bare ? "" : `<text class="idnv" x="70" y="68">${esc(fv(total))}</text><text class="idnl" x="70" y="84">${esc(t("total"))}</text>`}</svg>`;
+}
+/* insModelMix は、投入のパネルの値の右に置く、モデルごとの割合（小さなドーナツと上位 4 つ＋その他）。量はパネルで選んだもの（推定費用・クレジット・トークン）。
+   応答ごとに、その応答のモデルに数える（u.models。内訳の「どこに使ったか」のモデル別と同じ）。時間はモデルに分けられないので出さない。モデルが 1 つなら出さない */
+const INS_MIX = {cost: [1, usd], tokens: [2, tok], credits: [4, cr]};
+const modelShort = m => String(m).replace(/^claude-/, "").replace(/-20\d{6}$/, "");
+function insModelMix(u, key){
+  const f = INS_MIX[key]; if (!f) return "";
+  const xs = (u.models || []).map(r => ({name: String(r[0]), v: +r[f[0]] || 0})).filter(x => x.v > 0).sort((a, b) => b.v - a.v); if (xs.length < 2) return "";
+  const top = xs.slice(0, 4), rest = xs.slice(4), tot = xs.reduce((a, x) => a + x.v, 0);
+  if (rest.length) top.push({name: t("Other ({n})", {n: rest.length}), v: rest.reduce((a, x) => a + x.v, 0), other: true});
+  top.forEach((x, i) => x.c = x.other ? "var(--other)" : `var(--c${i % 8})`);
+  const pc = insPct(top.map(x => x.v)), name = t("By model");
+  const rows = top.map((x, i) => `<li${tipAttr(x.name, `${f[1](x.v)} · ${pc[i]}%`)}><i style="background:${x.c}"></i><span class="imn">${esc(x.other ? x.name : modelShort(x.name))}</span><b>${pc[i]}%</b></li>`).join("");
+  return `<div class="imods"><span class="imh">${esc(name)}</span><div class="imb">${insDonut(top, tot, f[1], name, true)}<ul role="list" aria-label="${esc(name)}">${rows}</ul></div></div>`;
 }
 // insPct は、量の並び xs の割合（整数の %）。最大剰余法で丸め、0 でないものの合計がちょうど 100 になるように（四捨五入だと 99 や 101 になる）
 function insPct(xs){ const tot = xs.reduce((a, v) => a + Math.max(0, v), 0); if (!(tot > 0)) return xs.map(() => 0);
