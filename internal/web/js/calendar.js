@@ -328,28 +328,27 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const marks = [...dayGit.map(c => ({t: c.t, c})),
       ...(META.push || []).filter(p => p.t >= ds && p.t < de && showP(p)).map(p => ({t: p.t, p})),
       ...shown.flatMap(s => (s.prAt || []).filter(x => x.t >= ds && x.t < de).map(x => ({t: x.t, r: x, s})))].map(m => ({...m, y0: Y(clockH(day, m.t))})).sort((a, b) => a.t - b.t);
-    // 近い時刻（24px 以内）に 4 つ以上かたまった印は、最初の 2 つと「+N」の札にたたむ（溝に縦に長く積み上がって、離れた時刻の印に見えないように）。札を押すと、その日の印をぜんぶ出す
-    const sel = m => st.sel === (m.p ? "push:" + pushKey(m.p) : m.r ? "pr:" + prKey(m.s, m.r) : m.c ? "git:" + m.c.hash : ""), items = [];
-    for (let i = 0; i < marks.length;){ let j = i + 1; while (j < marks.length && marks[j].y0 - marks[i].y0 <= 24) j++;
-      const grp = marks.slice(i, j); if (grp.length < 4) items.push(...grp); else { items.push(grp[0], grp[1]); const rest = grp.slice(2); items.push({more: rest, y0: rest[0].y0}); }
-      i = j; }
-    const gopen = items.some(m => m.more && m.more.some(sel));
+    // 近い時刻（24px 以内）に 5 つ以上かたまった印は、最初の 2 つと「+N」の札にたたむ（溝に縦に長く積み上がって、離れた時刻の印に見えないように）。
+    // 札を押すと、その日の印をぜんぶ並べ直して出す（st.gopen。札は「−」になり、押すとまたたたむ）。たたんだ印を選んでいるときは開いておく
+    const sel = m => st.sel === (m.p ? "push:" + pushKey(m.p) : m.r ? "pr:" + prKey(m.s, m.r) : m.c ? "git:" + m.c.hash : ""), grps = [];
+    for (let i = 0; i < marks.length;){ let j = i + 1; while (j < marks.length && marks[j].y0 - marks[i].y0 <= 24) j++; grps.push(marks.slice(i, j)); i = j; }
+    const big = grps.filter(g => g.length >= 5), gopen = big.length > 0 && (st.gopen.has(key(day)) || big.some(g => g.slice(2).some(sel))), items = [];
+    grps.forEach(g => { if (g.length < 5) items.push(...g); else if (gopen) items.push(g[0], g[1], {more: g.length - 2, y0: g[2].y0}, ...g.slice(2)); else items.push(g[0], g[1], {more: g.length - 2, y0: g[2].y0}); });
     // 印の縦の位置：重ならないよう下へ積み、日の終わり（24:00）を越える分は上へ戻す（夜遅い印が枠の外に出て見えなくならないように）
     const ys = []; { let g = -99; items.forEach(m => { g = Math.max(m.y0, g + 17); ys.push(g); });
       for (let i = ys.length - 1; i >= 0; i--) ys[i] = Math.min(ys[i], i === ys.length - 1 ? H - 16 : ys[i+1] - 17); }
     const flat = []; items.forEach((m, i) => { if (!m.more){ flat.push({...m, y: ys[i]}); return; }
-      html += `<button type="button" class="gmore" style="top:${ys[i]}px" aria-expanded="${gopen}" title="${esc(t("{n} more: commits, pushes and pull requests", {n: m.more.length}))}" aria-label="${esc(t("{n} more: commits, pushes and pull requests", {n: m.more.length}))}">+${m.more.length}</button>`;
-      m.more.forEach((x, k) => flat.push({...x, y: ys[i] + 17 * (k + 1), gx: true})); }); // たたんだ印は札の下に並べ、開いたときだけ見せる
-    flat.forEach(({t: at, c, p, r, s, y, gx}) => { // 読み上げの名前には日付も入れる（セッションと同じく、どの日のものかわかるように）
-      const gxc = gx ? " gx" : "";
-      if (p){ html += `<button class="gm push${gxc}${st.sel === "push:" + pushKey(p) ? " sel" : ""}" data-push="${esc(pushKey(p))}" style="top:${y}px" title="${esc((p.commits ? t("{time} Pushed to {ref} ({commits}) · {project}", {time: hm(at), ref: p.ref, commits: plural(p.commits, "commit"), project: p.project}) : t("{time} Pushed to {ref} · {project}", {time: hm(at), ref: p.ref, project: p.project})) + "\n" + t("From this computer (git reflog)"))}" aria-label="${esc(t("Push {time} to {ref}", {time: md(at) + " " + hm(at), ref: p.ref}))}">${ico("push")}</button>`; return; }
-      if (r){ html += `<button class="gm prm${gxc}${st.sel === "pr:" + prKey(s, r) ? " sel" : ""}" data-pr="${esc(prKey(s, r))}" style="top:${y}px" title="${esc(t("{time} Created a pull request · {project}", {time: hm(at), project: s.project}) + (r.url ? "\n" + r.url : "") + "\n" + t("Recorded when an agent created it"))}" aria-label="${esc(t("Pull request {time}", {time: md(at) + " " + hm(at)}))}">${ico("pr")}</button>`; return; }
-      html += `<button class="gc${gxc}${c.ai ? " ai" : ""}${st.sel === "git:"+c.hash ? " sel" : ""}" data-c="${esc(c.hash)}" style="top:${y}px" title="${esc(`${hm(c.t)} ${c.project}${c.branch ? " · "+c.branch : ""} · ${c.hash}\n${c.subject}\n${plural(c.nFiles, "file")} +${c.added} −${c.removed}${c.ai ? " · " + t("run by AI") : ""}`)}" aria-label="${esc(t("Commit {time} {subject}", {time: md(c.t) + " " + hm(c.t), subject: c.subject}))}">${GIT_ICON}<span>${esc(c.hash.slice(0,7))}</span></button>`; });
+      const lab = gopen ? t("Fold the commits, pushes and pull requests") : t("{n} more: commits, pushes and pull requests", {n: m.more});
+      html += `<button type="button" class="gmore" data-day="${key(day)}" style="top:${ys[i]}px" aria-expanded="${gopen}" title="${esc(lab)}" aria-label="${esc(lab)}">${gopen ? "−" : "+" + m.more}</button>`; });
+    flat.forEach(({t: at, c, p, r, s, y}) => { // 読み上げの名前には日付も入れる（セッションと同じく、どの日のものかわかるように）
+            if (p){ html += `<button class="gm push${st.sel === "push:" + pushKey(p) ? " sel" : ""}" data-push="${esc(pushKey(p))}" style="top:${y}px" title="${esc((p.commits ? t("{time} Pushed to {ref} ({commits}) · {project}", {time: hm(at), ref: p.ref, commits: plural(p.commits, "commit"), project: p.project}) : t("{time} Pushed to {ref} · {project}", {time: hm(at), ref: p.ref, project: p.project})) + "\n" + t("From this computer (git reflog)"))}" aria-label="${esc(t("Push {time} to {ref}", {time: md(at) + " " + hm(at), ref: p.ref}))}">${ico("push")}</button>`; return; }
+      if (r){ html += `<button class="gm prm${st.sel === "pr:" + prKey(s, r) ? " sel" : ""}" data-pr="${esc(prKey(s, r))}" style="top:${y}px" title="${esc(t("{time} Created a pull request · {project}", {time: hm(at), project: s.project}) + (r.url ? "\n" + r.url : "") + "\n" + t("Recorded when an agent created it"))}" aria-label="${esc(t("Pull request {time}", {time: md(at) + " " + hm(at)}))}">${ico("pr")}</button>`; return; }
+      html += `<button class="gc${c.ai ? " ai" : ""}${st.sel === "git:"+c.hash ? " sel" : ""}" data-c="${esc(c.hash)}" style="top:${y}px" title="${esc(`${hm(c.t)} ${c.project}${c.branch ? " · "+c.branch : ""} · ${c.hash}\n${c.subject}\n${plural(c.nFiles, "file")} +${c.added} −${c.removed}${c.ai ? " · " + t("run by AI") : ""}`)}" aria-label="${esc(t("Commit {time} {subject}", {time: md(c.t) + " " + hm(c.t), subject: c.subject}))}">${GIT_ICON}<span>${esc(c.hash.slice(0,7))}</span></button>`; });
     limitHits(ds, de).filter(h => matches(h.s)).forEach(h => { // 上限の印は、そのセッションの帯の左端に置く（隣の帯の上に出して、ほかの作業の印に見えないように）
       const bk = blocks.find(b => b.s === h.s && b.a <= h.t && h.t <= b.b) || blocks.find(b => b.s === h.s), left = bk ? `left:calc((100% - var(--g)) * ${bk.l.toFixed(4)} + 3px);` : "";
       html += `<button class="lim" data-id="${esc(h.s.id)}" data-t="${h.t}" style="${left}top:${Y(clockH(day, h.t))}px" title="${esc(t("{time} Hit the usage limit ({title})", {time: hm(h.t), title: h.s.title}))}" aria-label="${esc(t("{time} Hit the usage limit ({title})", {time: md(h.t) + " " + hm(h.t), title: h.s.title}))}">${ico("limit")}<span class="sr">${esc(t("Limit"))}</span></button>`; }); // 印だけ（狭い帯の名前を隠さないように。名前は読み上げと title）
     if (d === nowCol) html += `<div class="nowline" style="top:${Y(nowH)}px"></div>`;
-    cols += `<div class="day${wkc(day.getDay())}${isToday?" today":""}${gopen ? " gopen" : ""}" style="height:${H}px;--g:${marks.length ? 18 : 0}px;--e0:${E0}px;--ch:${fold ? CAL_D0 : 0}">${html}</div>`;
+    cols += `<div class="day${wkc(day.getDay())}${isToday?" today":""}" style="height:${H}px;--g:${marks.length ? 18 : 0}px;--e0:${E0}px;--ch:${fold ? CAL_D0 : 0}">${html}</div>`;
   }
   // 曜日の見出しは、横にスクロールする本体（.calscroll）の外に置き、ページのスクロールで上に貼り付ける（.tlhead）。
   // 横のスクロールは本体に合わせて動かす（狭い画面でも、どの列が何日かわかるように）
@@ -371,7 +370,8 @@ function timeline(shown, inWeek, ws, we, todayKey){
   T.querySelectorAll(".dayrun").forEach(b => b.onclick = e => { e.stopPropagation(); copyPrompt(b, reportPrompt(addDays(st.week, +b.dataset.d))); });
   T.querySelectorAll(".lim").forEach(el => el.onclick = e => { e.stopPropagation(); select(el.dataset.id); showFlowEvent("warn", +el.dataset.t); });
   bindGitEvents(T);
-  T.querySelectorAll(".gmore").forEach(b => b.onclick = e => { e.stopPropagation(); const d = b.closest(".day"), o = d.classList.toggle("gopen"); b.setAttribute("aria-expanded", o); });
+  T.querySelectorAll(".gmore").forEach(b => b.onclick = e => { e.stopPropagation(); const k = b.dataset.day; if (st.gopen.has(k)) st.gopen.delete(k); else st.gopen.add(k);
+    st.animate = false; render(); const n = T.querySelector(`.gmore[data-day="${k}"]`); if (n) n.focus({preventScroll: true}); });
   T.querySelectorAll(".gc").forEach(el => el.onclick = e => { e.stopPropagation(); select("git:" + el.dataset.c); });
   T.querySelectorAll(".run").forEach(el => { const bk = runs[+el.dataset.r];
     el.onclick = e => { e.stopPropagation(); select(bk.s.id); };

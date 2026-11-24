@@ -894,6 +894,8 @@ const JA_TEXT = {
   "{n} more not shown": "ほか {n} 件は省略",
   "{n} more sessions": "ほか {n} セッション",
   "{n} more: commits, pushes and pull requests": "ほか {n} 件（コミット・push・PR）",
+  "Fold the commits, pushes and pull requests": "コミット・push・PR をたたむ",
+  "Axis doesn't start at 0": "縦軸は 0 から始まらない",
   "{n} read": "{n}を読み込み",
   "{n} replies answered · 90th percentile {p}": "応答 {n} 回 · 90 パーセンタイル {p}",
   "{n} reply answered · 90th percentile {p}": "応答 {n} 回 · 90 パーセンタイル {p}",

@@ -728,6 +728,16 @@ async function run(env) {
     await hb.click(); await pause(); await p.mouse.click(4, env.viewport.height - 4); await pause();
     check("吹き出しの外を押すと閉じる", !(await p.locator("#hpop").isVisible()));
     await view("cal");
+    { // 近い時刻に 5 つ以上かたまった印は、2 つと「+N」にたたみ、押すとその日の印を重ならないように並べ直す
+      const g = await p.evaluate(() => { const ws = st.week.getTime() / 1000, base = (META.git || []).find(c => c.t >= ws && c.t < ws + 7 * 86400); if (!base) return null;
+        const keep = META.git.slice(); for (let i = 1; i <= 6; i++) META.git.push({...base, hash: base.hash.slice(0, -3) + "zz" + i, t: base.t + i * 30}); META.git.sort((a, b) => a.t - b.t); render();
+        const day = () => [...document.querySelectorAll("#tl .day")].find(d => d.querySelector(".gmore")), vis = d => [...d.querySelectorAll(".gc, .gm")].filter(x => x.checkVisibility());
+        const d0 = day(), m = d0 && d0.querySelector(".gmore"), shut = d0 ? vis(d0).length : 0, txt = m ? m.textContent : ""; if (m) m.click();
+        const d1 = day(), ys = d1 ? [...d1.querySelectorAll(".gc, .gm, .gmore")].map(x => x.getBoundingClientRect().top).sort((a, b) => a - b) : [], open = d1 ? vis(d1).length : 0;
+        const r = {txt, shut, open, exp: d1 ? d1.querySelector(".gmore").getAttribute("aria-expanded") : "", gap: Math.min(99, ...ys.slice(1).map((y, i) => y - ys[i]))};
+        META.git = keep; st.gopen.clear(); render(); return r; });
+      if (g) check("かたまった印は「+N」にたたみ、開くと全部を重ならずに並べる", /^\+\d+$/.test(g.txt) && g.open === g.shut + +g.txt.slice(1) && g.exp === "true" && g.gap >= 16, JSON.stringify(g));
+    }
   });
 
   await step("見直す候補", async () => {
