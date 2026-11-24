@@ -1020,6 +1020,7 @@ async function run(env) {
       if (m === "week") check(`${m} · ${k}: 日の見出しの行は「·」で始まったり終わったりしない`, a.lines.every(l => !/^·|·$/.test(l)), a.lines.filter(l => /^·|·$/.test(l)).slice(0, 3).join(" / "));
     }
     await p.evaluate(() => { st.shade = "cost"; setMode("month"); render(); }); await pause();
+    check("月の濃さは凡例と同じ段（0・¼・½・¾・1）だけ", await p.evaluate(() => [...document.querySelectorAll(".mgrid .cell[style*='--heat']")].every(c => ["0", "0.25", "0.5", "0.75", "1"].includes(c.style.getPropertyValue("--heat").trim()))));
     const heat = await p.evaluate(() => [...document.querySelectorAll(".mgrid .cell:not(.wkc):not(.out)")].filter(c => +c.style.getPropertyValue("--heat") > .5).map(c => getComputedStyle(c).backgroundColor));
     const agents = await p.evaluate(() => AGENTS.map(a => { const d = document.createElement("div"); d.style.background = `var(--a${a.slot})`; document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; }));
     const sat = c => { const [r, g, b] = rgb(c); return Math.max(r, g, b) - Math.min(r, g, b); };

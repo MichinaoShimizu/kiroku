@@ -8,3 +8,5 @@
 - Calendar: in the week, sessions that start together next to a longer one keep at least a third of the day's width each, so their names or start times fit instead of leaving empty boxes
 - Calendar: in the month, estimated costs under $10 show cents ($3.80, $0.78) like the week, instead of one decimal ($3.8, $0.8); the shading legend's swatches are larger
 - On phones, the legend's chips stay in one row that scrolls sideways instead of taking three or four rows, and "Estimated cost · credits" at the top shows the cost and the credits on two lines instead of breaking in the middle
+- Calendar: the month's shade of each day snaps to the four steps of its legend instead of a continuous tint, so days can be told apart and matched to the legend. The darkest step stays where its text keeps a 4.5:1 contrast
+- Phones: the values over the summary's bars and points are readable (about 9px instead of 6px) and show every other period, always including the one shown; the key figures at the top line up their first lines even when a heading or value takes two lines

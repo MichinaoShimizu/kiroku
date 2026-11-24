@@ -141,7 +141,7 @@ function insSpark(b, label, W = 480, bar = false){
     const palt = Math.max(0, ...ps.map(q => q.v == null ? 0 : ptS(q.v).length)) * 5.5 > step - 3;
     const pvl = ps.map((q, i) => { if (q.v == null || (q.cur && b.part) || ((n - 1 - i) % 2 && palt)) return ""; const yy = y(q.v), r = q.cur ? 4.5 : 2.5;
       const nb = [ps[i - 1], ps[i + 1]].filter(z => z && z.v != null && !(z.cur && b.part)).map(z => z.v), dn = (nb.length && q.v < nb.reduce((a, c) => a + c, 0) / nb.length && yy < H - B - 14) || yy <= T + 14; // 谷の点は下に（線と重ならないように）
-      return `<text class="spc${q.cur ? " cur" : ""}" x="${x(i).toFixed(1)}" y="${(dn ? yy + r + 10 : yy - r - 4).toFixed(1)}">${esc(ptS(q.v))}</text>`; }).join("");
+      return `<text class="spc${q.cur ? " cur" : ""}${(n - 1 - i) % 2 ? " k2" : ""}" x="${x(i).toFixed(1)}" y="${(dn ? yy + r + 10 : yy - r - 4).toFixed(1)}">${esc(ptS(q.v))}</text>`; }).join("");
     marks = `<polyline class="trl" points="${line}"/>${prj}` + ps.map((q, i) => q.v == null || q.cur ? "" : `<circle class="pt" cx="${x(i).toFixed(1)}" cy="${y(q.v).toFixed(1)}" r="2.5"/>`).join("") + `<circle class="now${b.part ? " part" : ""}" cx="${x(n - 1).toFixed(1)}" cy="${y(b.v).toFixed(1)}" r="4.5"/>` + pvl;
   }
   const cl = t("Running average");
@@ -151,7 +151,7 @@ function insSpark(b, label, W = 480, bar = false){
   // 数字が棒の間に収まらない（9px の字で 1 字 5.5px ほど）ときだけ、1 つおきに（表示中の期間と、そこから 2 つおきは残す）
   const bv = q => q.v == null ? null : insBarS(k, q.cur && b.part ? b.cur : q.v), alt = bar && Math.max(0, ...ps.map(q => (bv(q) || "").length)) * 5.5 > step - 3;
   const pcl = !bar ? "" : ps.map((q, i) => { const hv = q.v == null ? 0 : q.cur && b.part ? Math.max(b.v, b.cur) : q.v, over = hv > top; if (q.v == null || (!over && (n - 1 - i) % 2 && alt)) return ""; const yy = y(Math.min(hv, top)), up = yy > T + 12;
-    return `<text class="spc${q.cur ? " cur" : ""}${over ? " over" : ""}" x="${x(i).toFixed(1)}" y="${(over ? T + 28 : up ? yy - 4 : yy + 12).toFixed(1)}">${esc(bv(q))}</text>`; }).join(""); // 上端に近い棒は棒の中に。上を切った棒は、切れ目の下に
+    return `<text class="spc${q.cur ? " cur" : ""}${over ? " over" : ""}${(n - 1 - i) % 2 && !over ? " k2" : ""}" x="${x(i).toFixed(1)}" y="${(over ? T + 28 : up ? yy - 4 : yy + 12).toFixed(1)}">${esc(bv(q))}</text>`; }).join(""); // 上端に近い棒は棒の中に。上を切った棒は、切れ目の下に
   const hits = ps.map((q, i) => `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H - B}"${tipAttr(q.p.label, q.v == null ? t("No records") : (q.cur && b.part ? insEndLabel(fm(q.v)) : fm(q.v)), q.cur && b.part ? `${t("So far")}: ${fm(b.cur)}` : "", q.c == null ? "" : `${cl}: ${fm(q.c)}`, pcOf(i) == null ? "" : `${vsL} ${pcS(pcOf(i))}`)}/>`).join("");
   // 利用上限に当たった時刻：小さな赤い三角（縦線はグラフを隠すので引かない）。同じ期間の到達は 1 つにまとめ、回数を添える。
   // 棒のグラフでは x 軸のすぐ下の段に（棒の上に重ねると、棒の色に紛れる）、線のグラフでは x 軸の上に

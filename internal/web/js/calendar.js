@@ -174,6 +174,9 @@ const unitH = v => esc(v).replace(/^(.*\d) ([A-Za-z]+)$/, "$1 <small lang=\"en\"
 const calLine = rows => `<div class="cline">${rows.map(([k, v, c, ty]) => `<span class="${ty === "use" ? "cu" : ty === "time" ? "ct" : "cc"}${c && c.includes("u") ? " u" : ""}" aria-label="${esc(`${k}: ${v}`)}">${ty === "commit" ? ico("commit") : ""}${unitH(v)}</span>`).join("")}</div>`;
 // スマホでは作業時間と使用量だけ。トークンとクレジットは別の行に出す（両方あれば 2 行）。
 // ひとつの枠にまとめると、Claude Code と Kiro を両方使う人には、片方しか見えないため。
+// heatStep は、月のマスの濃さを凡例と同じ 4 段（¼・½・¾・1）に丸める。連続した濃さだと、いちばん濃いマスで字を読める濃さ（--heatk）までの狭い幅に
+// 31 日が散らばって見分けられない。段にすれば、マスどうしも凡例とも同じ色で比べられる。記録があればいつも ¼ 以上（記録のない日と見分ける）
+const heatStep = r => r > 0 ? Math.min(4, Math.ceil(r * 4 - 1e-9)) / 4 : 0;
 function calShort(act, u, un, kinds){ // 月のマス：コスト系（太く）と稼働時間（小さく）の 2 行
   const q = un ? " u" : "", uk = useKind(kinds), v = uk ? calVal(uk, act, u, true) : "";
   // 時間は 2 通り書き、マスが狭い（スマホの月）ときは短い方（「5h」）だけを見せる
@@ -228,7 +231,7 @@ function monthGrid(shown, ms, me, todayKey){
       // 色分け（Color by）ごとの、その日の作業時間の細い帯。凡例で隠したもの・検索に合わないものは入らない
       const by = byDay.get(key(d)) || new Map();
       const tot = [...by.values()].reduce((a, v) => a + v, 0), mbar = tot ? `<span class="mbar" aria-hidden="true">${[...by].sort((a, b) => b[1] - a[1]).map(([k, v]) => `<i style="flex:${v};background:${colorOf(k)}"></i>`).join("")}</span>` : "";
-      h += `<button class="cell${wkc(d.getDay())}${key(d)===todayKey?" today":""}${d.getTime() > nowMs() ? " fut" : ""}${un && act && !nS ? " dim" : ""}" data-w="${key(mondayOf(d))}" data-d="${key(d)}" style="--heat:${(x ? SH[sk].f(x) / max : 0).toFixed(3)}"${tipAttr(md(ds), act ? [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(x), `${t("Git commits")} ${nC}`] : t("No records"))}>
+      h += `<button class="cell${wkc(d.getDay())}${key(d)===todayKey?" today":""}${d.getTime() > nowMs() ? " fut" : ""}${un && act && !nS ? " dim" : ""}" data-w="${key(mondayOf(d))}" data-d="${key(d)}" style="--heat:${heatStep(x ? SH[sk].f(x) / max : 0)}"${tipAttr(md(ds), act ? [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(x), `${t("Git commits")} ${nC}`] : t("No records"))}>
         <span class="dn">${d.getDate()}</span>${x && x.commits ? `<span class="acm" aria-label="${esc(`${t("Git commits")}: ${x.commits}`)}">${ico("commit")}<span>${unitH(nUnit(x.commits, "commit"))}</span></span>` : ""}${act ? calShort(act, x, un, kinds) : ""}${mbar}
         </button>`;
     }
