@@ -108,7 +108,15 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 	}
 	var errs fileErrs
 	classic := map[string]bool{} // 使用量を足した V2 の会話
-	seen := map[string]bool{}    // 出した会話の ID（Home と Legacy の両方にあれば、先に読んだ Home のほう）
+	// 同じ会話の写しが何か所かにあれば 1 つだけ出す（カレンダーに同じセッションが 2 つ並ばないように）。
+	// Home を Legacy より先に、同じ場所の中では最後に書いた写しを先に見て、会話の行を 1 行でも読めた最初の写しを使う
+	// （書いている途中・壊れた写しのために、本物の写しを隠さないように）。どれも読めなければ最初の写し
+	type kcopy struct {
+		s     *core.Builder
+		lines bool // messages.jsonl の行を読めたか
+	}
+	picked := map[string]*kcopy{}
+	var order []string // 会話の ID（最初に見た順）
 	for _, mf := range metas {
 		metaPath := mf.path
 		dir := filepath.Dir(metaPath)
@@ -119,16 +127,14 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		errs.file(metaPath, err)
 		meta := core.Map(raw)
 		sid := firstNonEmpty(core.Str(meta["id"]), filepath.Base(dir))
-		if seen[sid] {
-			continue // 同じ会話の写しは 1 つだけ出す（カレンダーに同じセッションが 2 つ並ばないように）
+		if c := picked[sid]; c != nil && c.lines {
+			continue
 		}
-		seen[sid] = true
 		s := core.NewBuilder("Kiro IDE / CLI (V3)", sid)
-		// Claim は、3.0 へ移した Kiro CLI V2 の会話（kiroClassicYield）と重ねて数えないため。id のない会話（フォルダ名の ID）は Claim しない
-		id := core.Str(meta["id"])
-		if id != "" {
-			s.Claim = "kiro-ide:" + id
-		}
+		// Claim は、3.0 へ移した Kiro CLI V2 の会話（kiroClassicYield）と重ねて数えないため。また、中身を残さない Kiro Crew の会話の写しを隠すため
+		// （KiroCLI.WithheldClaims）。session.json の id が読めない（書いている途中・壊れている）写しも、フォルダ名の ID で隠す
+		s.Claim = "kiro-ide:" + sid
+		lines := false
 		s.File = filepath.Join(dir, "messages.jsonl")
 		s.Title = core.Str(meta["title"])
 		for _, key := range []string{"workspacePaths", "rootPaths"} {
@@ -178,6 +184,7 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 			pending = nil
 		}
 		errs.file(s.File, core.ReadJSONL(s.File, func(e core.Obj) {
+			lines = true
 			t := ts(e["timestamp"])
 			p := core.Map(e["payload"])
 			typ := core.Str(p["type"])
@@ -249,19 +256,28 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		if !modeled && len(s.Prompts) > 0 {
 			s.Model(model) // usage_summary がなければ、会話のモデル（modelId）を 1 回数える（v1.0 より前の selectedModel と同じ）
 		}
-		// Kiro CLI V2 の会話 X を 3.0 で開く（--resume-id X）と、sess_X に写される。V2 の会話は残るが、
-		// こちらを使う（KiroCLI の Yield）。写しには usage_summary の行がないので、切り替える前のクレジットなどを V2 から足す
-		// 同じ id の写しが 2 つあっても、V2 の使用量は 1 回だけ足す。読めない V2 の会話は KiroCLI が知らせる
-		if x, ok := strings.CutPrefix(id, "sess_"); ok && safeName(x) && !classic[x] {
-			classic[x] = true
-			if p := classicPath(homes, x); p != "" {
-				addClassicUsage(s, p)
-			}
-		}
 		// 再開のコマンド。IDE と CLI V3 のどちらが作った会話かは記録されないが、どちらも同じ保存場所なので、
 		// kiro-cli の会話 ID（session.json の id、なければフォルダ名）で開くコマンドを出す
 		if s.Project != "" {
 			s.Resume = core.ResumeCmd(s.Project, "kiro-cli chat --v3 --resume-id", s.ID)
+		}
+		if picked[sid] == nil {
+			order = append(order, sid)
+		}
+		if c := picked[sid]; c == nil || lines {
+			picked[sid] = &kcopy{s, lines}
+		}
+	}
+	for _, sid := range order {
+		s := picked[sid].s
+		// Kiro CLI V2 の会話 X を 3.0 で開く（--resume-id X）と、sess_X に写される。V2 の会話は残るが、
+		// こちらを使う（KiroCLI の Yield）。写しには usage_summary の行がないので、切り替える前のクレジットなどを V2 から足す
+		// 同じ id の写しが 2 つあっても、V2 の使用量は 1 回だけ足す。読めない V2 の会話は KiroCLI が知らせる
+		if x, ok := strings.CutPrefix(sid, "sess_"); ok && safeName(x) && !classic[x] {
+			classic[x] = true
+			if p := classicPath(homes, x); p != "" {
+				addClassicUsage(s, p)
+			}
 		}
 		emit(s)
 	}

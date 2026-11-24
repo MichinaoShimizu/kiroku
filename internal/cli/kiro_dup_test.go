@@ -81,3 +81,45 @@ func TestKiroSQLiteCopyOfConvertedConversationShownOnce(t *testing.T) {
 		t.Errorf("sessions = %v, want only the 3.0 copy sess_k1", n)
 	}
 }
+
+// 最後に書いた写しが空・壊れている・会話の行がないときは、行を読めるほうの写しを出す（本物の会話を隠さない）。
+func TestKiroV3NewestBrokenCopyDoesNotHideReal(t *testing.T) {
+	for name, newer := range map[string]map[string]string{
+		"empty":       {"sessions/b2/sess_u/session.json": `{"id": "sess_u"}`, "sessions/b2/sess_u/messages.jsonl": ""},
+		"unparseable": {"sessions/b2/sess_u/session.json": `{"id": "sess_u"}`, "sessions/b2/sess_u/messages.jsonl": "{not json\n"},
+		"no messages": {"sessions/b2/sess_u/session.json": `{"id": "sess_u", "createdAt": "2026-09-29T12:00:00Z"}`},
+		"dir":         {"sessions/b2/sess_u/session.json": `{"id": "sess_u"}`, "sessions/b2/sess_u/messages.jsonl/x": ""},
+	} {
+		home := t.TempDir()
+		writeTree(t, home, map[string]string{
+			"sessions/b1/sess_u/session.json":   `{"id": "sess_u"}`,
+			"sessions/b1/sess_u/messages.jsonl": v3Prompt("2026-09-29T11:00:00Z", "本物"),
+		})
+		old := time.Now().Add(-time.Hour)
+		if err := os.Chtimes(filepath.Join(home, "sessions", "b1", "sess_u", "messages.jsonl"), old, old); err != nil {
+			t.Fatal(err)
+		}
+		writeTree(t, home, newer)
+		data := loadKiro(t, home)
+		if len(data) != 1 || len(data[0].Prompts) != 1 || data[0].Prompts[0].Text != "本物" {
+			t.Errorf("%s: sessions = %v, want the real copy once", name, ids(data))
+		}
+	}
+}
+
+// session.json の id が読めない 3.0 の写しも、フォルダ名の ID で V2 の会話を引き継ぐ（1 回だけ数え、V2 のクレジットを足す）。
+func TestKiroClassicCopyWithoutIDCountsOnce(t *testing.T) {
+	home := t.TempDir()
+	writeTree(t, home, map[string]string{
+		"sessions/cli/u1.json":               classicMeta("u1", "2026-09-29T10:01:00Z", 10),
+		"sessions/b1/sess_u1/session.json":   `{}`,
+		"sessions/b1/sess_u1/messages.jsonl": v3Prompt("2026-09-29T11:00:00Z", "続き"),
+	})
+	data := loadKiro(t, home)
+	if n := ids(data); len(n) != 1 || n["Kiro IDE / CLI (V3) sess_u1"] != 1 {
+		t.Fatalf("sessions = %v, want only the 3.0 copy sess_u1", n)
+	}
+	if got := totalCredits(data); got != 10 {
+		t.Errorf("credits = %v, want 10", got)
+	}
+}
