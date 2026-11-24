@@ -113,7 +113,8 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 	// （書いている途中・壊れた写しのために、本物の写しを隠さないように）。どれも読めなければ最初の写し
 	type kcopy struct {
 		s     *core.Builder
-		lines bool // messages.jsonl の行を読めたか
+		dir   string // 写しのフォルダの名前（sess_<id>）
+		lines bool   // messages.jsonl の行を読めたか
 	}
 	picked := map[string]*kcopy{}
 	var order []string // 会話の ID（最初に見た順）
@@ -132,8 +133,9 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		}
 		s := core.NewBuilder("Kiro IDE / CLI (V3)", sid)
 		// Claim は、3.0 へ移した Kiro CLI V2 の会話（kiroClassicYield）と重ねて数えないため。また、中身を残さない Kiro Crew の会話の写しを隠すため
-		// （KiroCLI.WithheldClaims）。session.json の id が読めない（書いている途中・壊れている）写しも、フォルダ名の ID で隠す
-		s.Claim = "kiro-ide:" + sid
+		// （KiroCLI.WithheldClaims）。V2 が譲るかどうか（KiroCLI の moved）と同じく、フォルダ名（sess_<id>）で決める。
+		// session.json の id が読めない（書いている途中・壊れている）写しも隠し、ほかの会話の id を書いた写しに、その会話を譲らない
+		s.Claim = "kiro-ide:" + filepath.Base(dir)
 		lines := false
 		s.File = filepath.Join(dir, "messages.jsonl")
 		s.Title = core.Str(meta["title"])
@@ -265,15 +267,15 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 			order = append(order, sid)
 		}
 		if c := picked[sid]; c == nil || lines {
-			picked[sid] = &kcopy{s, lines}
+			picked[sid] = &kcopy{s, filepath.Base(dir), lines}
 		}
 	}
 	for _, sid := range order {
-		s := picked[sid].s
+		s, dir := picked[sid].s, picked[sid].dir
 		// Kiro CLI V2 の会話 X を 3.0 で開く（--resume-id X）と、sess_X に写される。V2 の会話は残るが、
 		// こちらを使う（KiroCLI の Yield）。写しには usage_summary の行がないので、切り替える前のクレジットなどを V2 から足す
 		// 同じ id の写しが 2 つあっても、V2 の使用量は 1 回だけ足す。読めない V2 の会話は KiroCLI が知らせる
-		if x, ok := strings.CutPrefix(sid, "sess_"); ok && safeName(x) && !classic[x] {
+		if x, ok := strings.CutPrefix(dir, "sess_"); ok && safeName(x) && !classic[x] {
 			classic[x] = true
 			if p := classicPath(homes, x); p != "" {
 				addClassicUsage(s, p)

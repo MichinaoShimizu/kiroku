@@ -111,7 +111,9 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 			}
 		}
 	}
-	seen := map[string]bool{} // 同じ会話が 2 か所に残っていたら、先に読んだほうを使う
+	// 同じ会話が 2 か所に残っていたら、先に読んだほうを使う。withheld と同じく、エージェントの家族（Family）が同じものだけ
+	// （同じ形の Key を使う別のエージェントの会話を落とさないように）
+	seen := map[string]bool{} // Family + "\x00" + Key
 	// Claim した会話のうち、セッションになったもの（時刻のない空の会話では、ほかの場所の写しを隠さない）
 	claimed := map[string]bool{}
 	for i := range picked {
@@ -132,16 +134,16 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 			if o.yield != "" && claimed[o.yield] {
 				dup++
 				if o.key != "" {
-					seen[o.key] = true // 同じ会話のほかの写し（Kiro CLI の SQLite）も、譲った先の会話だけを使う
+					seen[s.Family()+"\x00"+o.key] = true // 同じ会話のほかの写し（Kiro CLI の SQLite）も、譲った先の会話だけを使う
 				}
 				continue
 			}
 			if o.key != "" {
-				if seen[o.key] {
+				if seen[s.Family()+"\x00"+o.key] {
 					dup++
 					continue
 				}
-				seen[o.key] = true
+				seen[s.Family()+"\x00"+o.key] = true
 			}
 			n++
 			if sess := o.sess; sess != nil {
