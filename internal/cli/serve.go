@@ -554,7 +554,9 @@ func scanWatchPaths(all []source.Source, want map[string]bool) []string {
 // looksLikeServe は、addr で答えるのが kiroku serve らしいか。鍵は送らない（ポートをほかのプログラムが握っていても、鍵を渡さない）。
 // 鍵のない問い合わせに kiroku serve が返す 403 の案内で見分ける。まねされても、開くときに渡すのは使い捨てのコードだけ（鍵は出さない）
 var looksLikeServe = func(addr string) bool {
-	c := http.Client{Timeout: 700 * time.Millisecond}
+	// リダイレクトをたどらず、プロキシも使わない（ポートを握るほかのプログラムに、kiroku からほかの URL を取りに行かせない）
+	c := http.Client{Timeout: 700 * time.Millisecond, Transport: &http.Transport{Proxy: nil},
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	r, err := c.Get("http://" + addr + "/stamp")
 	if err != nil {
 		return false

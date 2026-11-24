@@ -1,0 +1,1 @@
+- `kiroku serve`'s check for an already running kiroku no longer follows redirects or uses a proxy, so another program holding the port can't make kiroku fetch other URLs (nothing private was sent)
