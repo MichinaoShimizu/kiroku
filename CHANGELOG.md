@@ -2,18 +2,39 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
-## Unreleased
+## v5.2.0 - 2026-11-24
 
 ### Added
 
 - Summary: the line charts of the two unit cost panels show each point's value next to it, as the bar charts do above their bars, so you can read the numbers without hovering. A period still in progress shows its value so far next to "So far". The orange line (the cumulative total in Input, the running average in the unit cost panels) shows its latest value at its right end
 - Summary: the Input panel shows each model's share next to the figure ("By model": a small donut with the top four models and Other) for Cost, Credits and Tokens, so the model mix no longer needs Breakdown opened and Where it went switched to Model
+- `kiroku update` in a build from your organization's repository checks the build provenance with `gh attestation verify` before it replaces anything, as `install.sh` does (`KIROKU_REQUIRE_ATTESTATION=1` and `KIROKU_SKIP_ATTESTATION=1` work the same way)
 
 ### Changed
 
 - Summary: cards waste less space. In narrow cards, the lists in Where it went, Tokens by type, Kinds of work and Most edited files show each item on two lines (its name and figures, then its bar) instead of three, the donut stays left of its list, and How you worked lists one figure per row (name on the left, value on the right) instead of narrow tiles in three columns
 - Summary: From input to output no longer has a "Sankey diagram" heading of its own; its switch for the amount sits on the heading's line
 - The page (including `kiroku serve`) always opens on this week's calendar instead of the view (Calendar or Summary) and Week | Month used last time. Other choices, such as the figures in the calendar and the summary's switches, are still remembered
+
+### Fixed
+
+- `kiroku serve --archive --help` no longer tells you to run `kiroku archive`, which 5.0 removed
+- When kiroku can't start a browser (no `xdg-open`, as on a headless Linux, WSL or a container), it now says so and names the file to open, instead of saying it opened the view
+- The Japanese view translates "Reached a commit or PR" in the sessions-that-reached-a-commit dialog
+- A Kiro IDE / CLI (V3) session whose `session.json` names another conversation's `id` no longer hides that conversation; it is shown under its own folder name
+- Summary: a value just outside your usual range says "Close to usual (slightly below/above)" instead of "As usual" next to a range it isn't in
+- Summary: the Repeated prompts card says the number is how many kinds of prompt you repeated, and gives the most repeated one's count
+- Kiro Crew: a subagent on the Codex backend is still counted once, as its Codex session, after Crew deletes its `state.json`, using `child_sid` from the parent's crew-log and `harness` from the usage records that newer Crew versions write; a `child_sid` from a conversation that keeps no content is hidden in other agents' history too
+- Kiro IDE / CLI (V3): two copies that name the same `id` (with no folder of that name) are shown as two sessions with their own folder names, not two sessions with one ID
+- Kiro Crew: reading a crew-log with many session IDs no longer slows down with the square of their number
+
+### Security
+
+- `kiroku serve`'s check for an already running kiroku no longer follows redirects or uses a proxy, so another program holding the port can't make kiroku fetch other URLs (nothing private was sent)
+- Terminal output removes control characters from a repository folder named in history when git times out, and from paths in two other messages
+- "Copy as Markdown" in a session escapes the title, project and branch, so they can't become links, HTML or mentions where you paste them
+- `install.sh` no longer treats a build provenance mismatch as "could not reach GitHub" when `gh`'s message quotes a branch or workflow name containing words such as "timeout"; it now stops, as for any other mismatch
+- Copy as Markdown and the daily report prompt no longer fail on a branch or folder name from history with very many backticks
 
 ## v5.1.1 - 2026-11-24
 
