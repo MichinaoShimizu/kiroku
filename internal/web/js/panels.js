@@ -53,7 +53,7 @@ function searchPanel(){
   const grow = (k, n, sel) => { const b = R.querySelector(sel === "s" ? "#srmS" : "#srmC"); if (!b) return;
     b.onclick = () => { st[k] = n + SR_STEP; searchPanel(); const f = R.querySelectorAll(`.srow[data-${sel}]`)[n]; if (f) f.focus(); }; };
   grow("srN", nS, "s"); grow("scN", nC, "c");
-  const open = (t, id) => { st.mode = "week"; store.set("mode", "week"); st.week = mondayOf(new Date(t*1000)); select(id); };
+  const open = (t, id) => { st.mode = "week"; st.week = mondayOf(new Date(t*1000)); select(id); };
   R.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { const s = DATA.find(x => x.id === b.dataset.s); if (s) open(s.start, s.id); });
   R.querySelectorAll("[data-c]").forEach(b => b.onclick = () => { const c = META.git.find(x => x.hash === b.dataset.c); if (c) open(c.t, "git:" + c.hash); });
   R.querySelectorAll(".sra").forEach(b => b.onclick = () => { st.srA = b.dataset.a === st.srA ? "" : b.dataset.a; st.srN = st.scN = 0; searchPanel(); const nb = R.querySelector(`.sra[data-a="${CSS.escape(b.dataset.a)}"]`); if (nb) nb.focus(); });

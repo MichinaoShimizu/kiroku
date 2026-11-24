@@ -1168,12 +1168,12 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 @container (max-width:484px){.tspk .sxt{display:none}.tspk .slimn{font-size:11px}}
 /* 狭いカードでは文字が大きいので、x 軸の下に利用上限の印の段があるグラフは、期間の名前をさらに下げる（印と重ならないように。軸の見出しを出さないので下が空いている） */
 @container (max-width:484px){.tspk svg.lb .sxl{translate:0 7px}}
-/* 狭いカード（スマホ）の一覧：名前を 1 行目に全部、棒と数を 2 行目に（名前が「src/ne…」まで切れないように） */
-@container (max-width:520px){.iwr,.ikinds .iwr{grid-template-columns:minmax(0,1fr) auto;row-gap:2px}.iwr>.iwn{grid-column:1/-1;white-space:normal;overflow-wrap:anywhere}.iwr>.iwb{grid-column:1/-1}.iwr>.iwv{font-size:var(--fs-xs)}}
+/* 狭いカード（スマホ・サマリーの 3 列）の一覧：1 行目に名前と数（数は右に寄せる）、2 行目に棒。名前は切らずに全部出し（「src/ne…」まで切れないように）、
+   数と並びきらないときだけ、数が名前の下の行へ回る（1 項目 3 行にして、カードの中を空けないように） */
+@container (max-width:520px){.iwr:not(.iwh),.ikinds .iwr:not(.iwh){display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 10px}
+  .iwr>.iwn{flex:1 1 auto;min-width:0;white-space:normal;overflow-wrap:anywhere}.iwr>.iwv{margin-left:auto;font-size:var(--fs-xs)}.iwr>.iwb{order:9;flex:0 0 100%}}
 .iwr.iwh{font-size:var(--fs-2xs);color:var(--ink-3);font-weight:500}
 @container (max-width:520px){.iwr.iwh{display:none}}
-/* 狭いカードの一覧：2 行目の行数・コミットと編集の回数は、続けて流す（編集の回数が右に浮かないように） */
-@container (max-width:520px){.insfig .iwrows>.iwr:not(.iwh){display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}.insfig .iwrows>.iwr:not(.iwh)>.iwn,.insfig .iwrows>.iwr:not(.iwh)>.iwb{flex:0 0 100%}}
 /* 前の期間からの増減（ウォーターフォール）：合計は濃い色、増えた分と減った分は、良し悪しを言わない 2 つの色（量の増減に良し悪しは付けない） */
 .iwtf .wft{fill:color-mix(in oklab,var(--ink-3) 55%,var(--surface))}.iwtf .wft.cur{fill:var(--acc)}
 .iwtf .wfu{fill:color-mix(in oklab,var(--ink) 30%,var(--surface))}.iwtf .wfd{fill:color-mix(in oklab,var(--ink) 62%,var(--surface))} /* 増えた分は薄い灰、減った分は濃い灰（プロジェクトの色や良し悪しの色と重ならないように） */
@@ -1182,7 +1182,8 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 /* ドーナツ（どこに使ったか）：横棒の左に */
 .iwdn{display:flex;gap:18px;align-items:center}.iwdn>.iwrows{flex:1;min-width:0}.insfig.iwdn svg.idn{width:140px;height:140px;flex:none}
 .idn path{stroke:var(--surface);stroke-width:1.5}.idnv{font:700 14px var(--sans);fill:var(--ink);text-anchor:middle}.idnl{font-size:10px;fill:var(--ink-3);text-anchor:middle;font-family:var(--sans)}
-@container (max-width:520px){.iwdn{flex-direction:column;align-items:stretch}.idn{align-self:center}}
+@container (max-width:339px){.iwdn{flex-direction:column;align-items:stretch}.idn{align-self:center}}
+@container (max-width:520px){.insfig.iwdn{gap:14px}.insfig.iwdn svg.idn{width:104px;height:104px}} /* 狭いカードでもドーナツは一覧の左に（上に置くと、両脇が空いて縦に長くなる） */
 /* サンキー（どこへ流れたか） */
 .isk svg{overflow:visible}.isk .skl{opacity:.38}.isk .skl:hover{opacity:.6}.isk .skp{opacity:.46}.isk .skp:hover{opacity:.6} /* プロジェクトの列の、2 本の節の間の帯（ほかの帯より少し濃く） */
 .isk .skn{stroke:none}
@@ -1232,7 +1233,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 @media (min-width:1000px){.insrow.two{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* どこに使ったか：ドーナツの横に一覧を幅いっぱいに（グラフのカードの縦並びの規則より強く）。狭いカードでは上下に */
 .inscol>.insfig.iwdn{flex-direction:row;flex-wrap:wrap;align-items:center}.inscol>.insfig.iwdn>.ifxs{flex-basis:100%}
-@container (max-width:520px){.inscol>.insfig.iwdn{flex-direction:column;align-items:stretch}}
+@container (max-width:339px){.inscol>.insfig.iwdn{flex-direction:column;align-items:stretch}}
 /* 切り替えで、今の量では数字のない割る数のボタンは隠す。単価のカードも、選んでいない組の数字は隠す */
 .iksw [data-v][hidden]{display:none}
 /* カードは自分の高さのまま（石積みの隣のカードの高さに伸ばさない） */
@@ -1278,6 +1279,24 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .itft{min-width:0}
 /* どこへ流れたか（サンキー）：投入と出力の 2×2 のすぐ下に、幅いっぱいの 1 枚（サマリーで唯一の全幅のカード）。狭いカードでは文字を座標の上で大きく */
 .inscol.iskw{margin:0 0 12px;container-type:inline-size}
-.iskw .skgh{padding:0;margin-bottom:10px}.iskw .skgh::before{background:linear-gradient(var(--in),var(--out))} /* 投入から出力へ：パネルの見出しと同じ大きさで、左の線は投入の青から出力の紫へ */
-.iskw .skil{margin:0;font-size:var(--fs-lg);font-weight:600;color:var(--ink)} /* 図の名前は、パネルの中の指標の名前（.itile .il）と同じ段 */
+.iskw .skgh{padding:0;margin:0}.iskw .skgh::before{background:linear-gradient(var(--in),var(--out))} /* 投入から出力へ：パネルの見出しと同じ大きさで、左の線は投入の青から出力の紫へ */
 @container (max-width:900px){.iskw .isk .skt,.iskw .isk .skh{font-size:14px}}
+/* 作業のしかた：12 の指標は、細いタイルの 3 列ではなく、出力のカードと同じ 1 行 1 指標の一覧に（名前は左、値は右、評価の文はその下）。
+   124px の幅のタイルでは名前が 3〜4 行に折れ、段の高さがいちばん高いタイルにそろって、カードの中が空く */
+.iwork .istats{grid-template-columns:minmax(0,1fr);gap:0}
+.iwork .istats .stat,.iwork .istats .stat:last-child:nth-child(n){grid-column:auto;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:baseline;background:none;border-radius:8px;border-top:1px solid var(--rule);padding:9px 8px}
+.iwork .istats .stat:first-child{border-top:0}
+.iwork .istats .stat .k{grid-column:1;grid-row:1}.iwork .istats .stat.mstat .v,.iwork .istats .stat>.v{grid-column:2;grid-row:1;width:auto;text-align:right;margin:0}
+.iwork .istats .stat .s{grid-column:1/-1;grid-row:2;margin-top:2px}
+/* 投入のパネル：値の右に、モデルごとの割合（insModelMix）。入らない幅では値の下へ回る */
+.ithd.hasm{flex-direction:row;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;column-gap:16px;align-self:stretch}
+.ithl{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;flex:1 1 200px}
+.imods{flex:none;display:flex;flex-direction:column;gap:4px;max-width:100%}
+.imh{font-size:var(--fs-xs);font-weight:600;color:var(--ink-2)}
+.imb{display:flex;align-items:center;gap:10px}.imb svg.idn{width:64px;height:64px;flex:none}
+.imods ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;font-size:var(--fs-xs);min-width:0}
+.imods li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px}
+.imods li i{width:8px;height:8px;border-radius:50%}.imods .imn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:14em}
+.itile .imods li b{font:600 var(--fs-xs)/1.3 var(--sans);letter-spacing:normal;font-variant-numeric:tabular-nums;color:var(--ink);text-align:right} /* .itile b（大きな値）を受け継がない */
+/* 累積・平均の線の右端の値（insSpark の cEnd）。線と同じ琥珀色、地の色の縁取り。棒のグラフでは右の軸の目盛りの位置に */
+.tspk .cud{fill:var(--amber)}.tspk text.cuv{font-size:9px;font-weight:600;fill:var(--amber);text-anchor:end;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}.tspk text.cuv.r{text-anchor:start}
