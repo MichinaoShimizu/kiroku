@@ -2,6 +2,19 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v5.1.0 - 2026-11-24
+
+### Added
+
+- Each release also has the kiroku binary on its own (`kiroku-darwin-arm64`, `kiroku-windows-amd64.exe` and so on), listed in `checksums.txt` and with build provenance, so `gh release download -R MichinaoShimizu/kiroku -p kiroku-darwin-arm64 -O ~/bin/kiroku` installs it in one command
+- kiroku can be handed out from an organization's own GitHub repository, private or internal: a release built by `release.yml` in another repository remembers it, and its `kiroku update` (and the update check of `kiroku serve --check`) gets releases from there through the GitHub CLI and its login (run directly with fixed arguments, no shell and no token kept by kiroku; the download is still checked with `checksums.txt`). See "Inside an organization" in the guide
+  - The links at the bottom of the view point to that repository, and `KIROKU_REPO=github.com/your-org/your-repo sh tools/screenshots/run.sh --html index.html` builds the demo page with them
+
+### Changed
+
+- The prompt flow is easier to read: it sits on the view's own dark background, your prompts are in kiroku's purple with dark text, and replies are in a slightly lighter dark gray with light text, so your prompts stand out and long replies aren't bright
+- Japanese view: the Output panel, its unit cost and the flow from input are now named 産出 (産出単価, 投入から産出の流れ), paired with 投入, instead of 出力, which reads as LLM output tokens. Output tokens are still 出力
+
 ## v5.0.0 - 2026-11-23
 
 ### Changed
