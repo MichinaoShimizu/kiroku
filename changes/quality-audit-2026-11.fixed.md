@@ -4,3 +4,4 @@
 - A Kiro IDE / CLI (V3) session whose `session.json` names another conversation's `id` no longer hides that conversation; it is shown under its own folder name
 - Summary: a value just outside your usual range says "Close to usual (slightly below/above)" instead of "As usual" next to a range it isn't in
 - Summary: the Repeated prompts card says the number is how many kinds of prompt you repeated, and gives the most repeated one's count
+- Kiro Crew: a subagent on the Codex backend is still counted once, as its Codex session, after Crew deletes its `state.json`, using `child_sid` from the parent's crew-log and `harness` from the usage records that newer Crew versions write; a `child_sid` from a conversation that keeps no content is hidden in other agents' history too

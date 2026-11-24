@@ -75,7 +75,8 @@ type CrewInfo struct {
 // Codex の記録のスレッドにはターン・時刻・トークンが残るので、Crew の記録から作るサブエージェントの会話は親の会話にまとめず
 // （crewHeld.flush）、そのスレッドのセッションがあれば数えない（ターンと時刻を 2 度数えず、Crew の会話の記録の依頼（task）を
 // 人の依頼として出さない）。Crew は届け終えたサブエージェントの state.json を 1 時間で消すので、そのあとは結びつけられない
-// （crew-log の subagent/spawned からは会話 ID を読まない）。中身を残さない会話の写しを隠す鍵は、これより広い crewSidClaims。
+// （新しい Crew は親の crew-log の subagent/completed・subagent/failed に child_sid を、使用量の行に harness を書くので、
+// それがあれば結びつける。crewOnly）。中身を残さない会話の写しを隠す鍵は、これより広い crewSidClaims。
 func (i CrewInfo) codexClaim() string {
 	if i.Former || i.Provider != "codex" || i.Sid == "" {
 		return ""
@@ -189,7 +190,10 @@ type crewLogDir struct {
 	ids       []string    // 1 行目の id と、session/opened の data.previous.sid（同じ会話キーの前の会話）
 	private   bool        // session/opened の data.class か session/class の data が、persistent でない memory を記録した（crewClassPrivate）
 	spawns    []crewSpawn // subagent/spawned（同じ id は最初のものだけ）
-	errs      []error     // 読めなかったファイル（ファイル名つき）
+	// childSid は subagent/completed・subagent/failed の data.child_sid（サブエージェントの id → 子が最後に動いた backend の会話 ID）。
+	// Crew が state.json を消したあとも、子の Codex・Claude Code の記録と結びつけるため（crew_log/emit_children.py の _child_sid_field）
+	childSid map[string]string
+	errs     []error // 読めなかったファイル（ファイル名つき）
 }
 
 // report は、読めなかったファイルを errs に足す。
@@ -745,7 +749,7 @@ func loadCrewSpawns(home string, errs *fileErrs, priv *crewPrivacy) map[string]C
 			if _, dup := out[key]; dup {
 				continue
 			}
-			info := CrewInfo{Subagent: true, Key: slot, Agent: x.agent, Task: x.task, Cwd: cwd, UsageSlot: key, Private: private}
+			info := CrewInfo{Subagent: true, Key: slot, Agent: x.agent, Task: x.task, Cwd: cwd, UsageSlot: key, Private: private, Sid: d.childSid[x.id]}
 			if private {
 				info.Task = ""
 			}
@@ -788,14 +792,20 @@ func crewLogSegments(dir string) ([]string, error) {
 // 文字列のエスケープ（"session\/class"・"session\u002fclass" など）で書いた行はこれを含まないので、\ のある行は
 // type だけを読んで確かめる（crewLogWanted。読み落として、中身を残さない会話を見逃さないように）。
 var (
-	crewOpenedMark = []byte(`"session/opened"`)
-	crewClassMark  = []byte(`"session/class"`)
+	crewOpenedMark    = []byte(`"session/opened"`)
+	crewClassMark     = []byte(`"session/class"`)
+	crewCompletedMark = []byte(`"subagent/completed"`)
+	crewFailedMark    = []byte(`"subagent/failed"`)
 )
+
+// crewSidPattern は、crew-log の child_sid として受け取る会話 ID の形（UUID など。Claim の鍵にするので、ほかの文字は受け取らない）。
+var crewSidPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
 
 // crewLogWanted は、crew-log の 2 行目からの line が、readCrewLog が読む行（session/opened・session/class・subagent/spawned）かもしれないか。
 // 決まった文字があれば読む。なくても \ のある行（エスケープで書いたかもしれない）は、type だけを JSON として読んで確かめる。
 func crewLogWanted(line []byte) bool {
-	if bytes.Contains(line, crewOpenedMark) || bytes.Contains(line, crewClassMark) || bytes.Contains(line, crewSpawnedMark) {
+	if bytes.Contains(line, crewOpenedMark) || bytes.Contains(line, crewClassMark) || bytes.Contains(line, crewSpawnedMark) ||
+		bytes.Contains(line, crewCompletedMark) || bytes.Contains(line, crewFailedMark) {
 		return true
 	}
 	if bytes.IndexByte(line, '\\') < 0 {
@@ -809,7 +819,7 @@ func crewLogWanted(line []byte) bool {
 	if json.Unmarshal(probe["type"], &t) != nil {
 		return false
 	}
-	return t == "session/opened" || t == "session/class" || t == "subagent/spawned"
+	return t == "session/opened" || t == "session/class" || t == "subagent/spawned" || t == "subagent/completed" || t == "subagent/failed"
 }
 
 // readCrewLog は crew-log のファイル 1 つを読んで d に足す: 会話キー（1 行目の slot か、session/opened の data.slot）と作業場所、
@@ -872,6 +882,15 @@ func readCrewLog(p string, seen map[string]bool, d *crewLogDir) error {
 					seen[id] = true
 					d.spawns = append(d.spawns, crewSpawn{id: id, agent: core.Runes(core.Str(data["agent"]), 120),
 						task: core.Runes(strings.TrimSpace(core.Str(data["task"])), 120)})
+				}
+			case "subagent/completed", "subagent/failed":
+				// 子が動いた会話の ID。あとの行ほど新しい（子が最後に動いた会話）。親が中身を残さないなら、この ID の写しも隠す（ids）
+				if id, sid := core.Str(data["agent_id"]), core.Str(data["child_sid"]); id != "" && crewSidPattern.MatchString(sid) {
+					if d.childSid == nil {
+						d.childSid = map[string]string{}
+					}
+					d.childSid[id] = sid
+					addID(sid)
 				}
 			}
 		}
@@ -1550,6 +1569,7 @@ func claimCrewFormer(ow []*crewOwner, turns []crewTurn, plain []*core.Builder, i
 type crewTurn struct {
 	t, start, credits float64
 	model, provider   string      // provider は行の "provider"（"acp"・"claude_code"・"codex" など。crewElsewhere）
+	harness           string      // その会話の実際の backend（"codex"・"kiro"・"claude_code" など。新しい Crew だけが書く。metrics/harness.py）
 	u                 core.Tokens // input → In、output → Out、cache_create → CW、cache_read → CR（重ならない）
 	cost              float64     // backend が返した USD（kiro-cli の行は 0）
 	ctx               float64     // context_used ÷ context_window（わからなければ -1）
@@ -1585,7 +1605,7 @@ func loadCrewUsage(home string, errs *fileErrs) map[string][]crewTurn {
 			if d, ok := core.Num(e["duration_ms"]); ok && d > 0 {
 				start -= d / 1000
 			}
-			x := crewTurn{t: *t, start: start, credits: c, model: core.Str(e["model"]), provider: core.Str(e["provider"]),
+			x := crewTurn{t: *t, start: start, credits: c, model: core.Str(e["model"]), provider: core.Str(e["provider"]), harness: core.Str(e["harness"]),
 				u:    core.Tokens{In: crewCount(e["input"]), Out: crewCount(e["output"]), CW: crewCount(e["cache_create"]), CR: crewCount(e["cache_read"])},
 				cost: crewCount(e["cost"]), ctx: -1, stop: core.Str(e["stop_reason"])}
 			// コンテキストの使用率。窓がない・0 の行は使わない（Crew の context_occupancy と同じ）
@@ -1780,6 +1800,11 @@ func crewOnly(home, slot string, turns []crewTurn, info *CrewInfo, title string,
 		s.Key = "kiro-crew:" + id[len("crew:"):]
 		if !bg && info != nil {
 			s.Yield = info.codexClaim() // Codex の backend の会話は、Codex の記録のセッションがあればそちらだけを数える
+			// state.json が消えて backend がわからないサブエージェントでも、crew-log の child_sid があり、
+			// 使用量の行が Codex の会話（harness "codex"）だと言っていれば、そのスレッドに譲る
+			if s.Yield == "" && info.Provider == "" && info.Sid != "" && crewRowsHarness(groups[g]) == "codex" {
+				s.Yield = codexClaim(info.Sid)
+			}
 		}
 		switch {
 		case slot == "_bg":
@@ -1904,4 +1929,16 @@ func configObject(path string) map[string]any {
 	}
 	m, _ := v.(map[string]any)
 	return m
+}
+
+// crewRowsHarness は、行のどれもが同じ harness を書いていればそれ（書いていない行があれば、ほかの backend かもしれないので空）。
+func crewRowsHarness(rows []crewTurn) string {
+	h := ""
+	for _, x := range rows {
+		if x.harness == "" || h != "" && x.harness != h {
+			return ""
+		}
+		h = x.harness
+	}
+	return h
 }
