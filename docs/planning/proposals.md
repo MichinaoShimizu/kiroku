@@ -28,6 +28,45 @@ Status: proposed · adopted #<issue> · declined <reason> · deferred <until / w
 - <mismatch for /source-audit, /price-update or /quality-audit>
 ```
 
+## 2026-11-24 — spec at 638901d (v5.2.2)
+
+Second run on the same day, after the v5.2.0–v5.2.2 Summary and calendar redesign. Upstream was checked only for new versions (Claude Code is still 2.1.331; Codex and Kiro were checked a few hours earlier), so this run looks at gaps in the current behavior. The opposing read was done by this run itself (two small candidates), not by a separate reviewer.
+
+### Upstream versions seen
+| Agent | Version | Changes that matter to users |
+|---|---|---|
+| Claude Code | 2.1.331 (CHANGELOG) | No change since the previous run |
+| Codex, Kiro IDE / CLI, Kiro Crew | not checked again | Checked in the previous run a few hours earlier |
+
+### Proposals
+| ID | Title | Axes | Score | Size | Status |
+|---|---|---|---|---|---|
+| P-202611-6 | Session review prompt: pushes and AI-edited files and lines, as the session view shows them | dx, literacy | 2.0 | S | proposed |
+| P-202611-7 | Kiro CLI (V2) peak context from `final_context_usage_percentage` | cost, literacy | 0.5 | M | proposed (candidate) |
+
+Notes:
+- P-202611-6: the session view's prompt flow shows pushes from this computer in the session's project during the session (internal/web/js/session.js:145), but `reviewEvents` (session.js:222-231), the "Events kiroku adds from git and the agent's records" of the review prompt, leaves them out. Pushes come from `git reflog`, not from the history file, so the AI can't find them by reading the file. The view also shows files and lines edited by AI (session.js:124-127, `nFiles`, `editAdded`, `editRemoved`), while `sessionNumbers` (session.js:233-243) has no such row; for SQLite histories, which are not handed to the AI, nothing tells it what was edited. Add a "Pushes" event (ref and commit count, same window as the view) and a "Files / lines edited by AI" row only for agents that record files (`records(s.source, "files")`), "not recorded" otherwise, never 0. Word the push as "pushed from this computer while the session ran", not as the session's own act (two sessions in one project see the same push). Goes through `/report-eval session`. The day report could take pushes the same way; left for later with P-202611-3.
+- P-202611-7: docs/sources.md:248 lists `user_turn_metadatas[].final_context_usage_percentage` (else `context_usage_percentage`) as Not read for Kiro CLI (V2); Kiro Crew's `usage.py` reads it. The window (`model_info.context_window_tokens`, sources.md:247) is Not read too. Kiro CLI V3 is the current CLI, so fewer people benefit; the shape was taken from the table, not opened in `testdata/` (certainty ×0.5).
+
+### Updates to earlier proposals
+- P-202611-1: adopted #569, still open; `lightOf` still matches `/opus/i` only at 638901d (internal/web/js/review.js:21-23)
+- P-202611-2: adopted #570, still open
+- P-202611-3, P-202611-4, P-202611-5: still proposed (no answer yet). P-202611-4 still waits for the effort row in docs/sources.md
+
+### Not proposed
+- PR title, status and reviews, DORA metrics — need GitHub or other data kiroku doesn't read; kiroku never asks GitHub (precondition 1, docs/guide.md:160, 175)
+- Codex credits used, from changes in the recorded balance — only the balance is recorded; usage would be inferred, not read (precondition 3)
+- Kiro credits in USD — no price is recorded and the plan is unknown (precondition 3; sources.md:246)
+- Remembering the view or Week / Month between visits — documented behavior (guide.md:166), no new evidence
+- Flagging oversized prompts, cache share, switches or wait time in Worth a look — listed on purpose as not flagged (guide.md:264), no new evidence
+- Weekly or monthly report — decision log 0012
+- Worth-a-look flags (`sesFlags`) in the session review prompt — the signals behind them are already in "Signals for advice" (`reportSignals`, panels.js:120-)
+- Claude Code `compactMetadata.preTokens` — declined in the previous run
+
+### Passed on
+- `/source-audit`: the reasoning-effort row is still missing from docs/sources.md (needed by P-202611-4)
+- `/quality-audit`: the open items of 2026-11-24 (Sankey counting sessions started in the period vs cost in it, mid-week off-hours share, Worth a look only as icons, the first screen not saying what kiroku is) are the maintainer's decisions (docs/quality/audit-log.md:71-89)
+
 ## 2026-11-24 — all at 1a5487b (v5.1.1)
 
 First run; no earlier proposals to update.
