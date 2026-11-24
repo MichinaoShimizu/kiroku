@@ -43,8 +43,8 @@ First run; no earlier proposals to update.
 ### Proposals
 | ID | Title | Axes | Score | Size | Status |
 |---|---|---|---|---|---|
-| P-202611-1 | "Expensive models for light work" also counts Fable (not only Opus) | cost, literacy | 3.0 | S | proposed |
-| P-202611-2 | Reset time on Codex usage limit hits | dx, cost | 2.0 | S | proposed |
+| P-202611-1 | "Expensive models for light work" also counts Fable (not only Opus) | cost, literacy | 3.0 | S | adopted #569 |
+| P-202611-2 | Reset time on Codex usage limit hits | dx, cost | 2.0 | S | adopted #570 |
 | P-202611-3 | Usage limit hits in the day report | cost, literacy | 2.0 | S | proposed |
 | P-202611-4 | Codex reasoning effort per turn in the session view | cost, literacy | 1.5 | M | proposed (needs a `/source-audit` row first) |
 | P-202611-5 | Kiro Crew compactions from the crew log (kiro-cli backend only) | cost, literacy | 0.5 | M | proposed (candidate) |
