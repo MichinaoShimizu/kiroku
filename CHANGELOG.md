@@ -2,6 +2,22 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v5.2.2 - 2026-11-24
+
+### Changed
+
+- Summary: the Input panel's Cost, Credits and Tokens bars are stacked by agent in the agent's color, with a key under the chart and each agent's amount in the bar's tooltip. Cost and Tokens add up Claude Code, Codex and the other agents that record tokens; Credits adds up every Kiro agent (Kiro IDE / CLI (V3), Kiro CLI (V2), Kiro CLI (SQLite) and Kiro Crew). Credits is offered whenever a period in the chart has credits, so months from an agent you moved away from stay next to the current ones
+
+### Removed
+
+- Summary: the Agent switch (All agents or one agent) is gone; the summary always counts every agent. The By agent table in Breakdown and the agent colors in the charts still show each agent's share
+
+### Fixed
+
+- Summary: in a period still in progress, the Input bar's value (the amount so far) sits just above the solid bar instead of on top of the dashed estimate box, where it read like the estimate
+- Summary: the Input bars' tooltip says the amount is 0 (such as "0 credits") for a period that has records but none of that amount, instead of "No records"
+- Summary: Japanese tooltips of the Input bars use the full-width colon throughout (「これまで：80 credits」), as the estimate line already did
+
 ## v5.2.1 - 2026-11-24
 
 ### Changed

@@ -1,1 +1,0 @@
-- Summary: the Agent switch (All agents or one agent) is gone; the summary always counts every agent. The By agent table in Breakdown and the agent colors in the charts still show each agent's share
