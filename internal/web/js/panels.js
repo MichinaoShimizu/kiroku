@@ -363,8 +363,14 @@ function pacing(w, pw){ const {ws, we} = period(), now = nowMs()/1000;
   return cost || credits ? {left, cost, credits} : null; }
 // foot は、ページのいちばん下：作った時刻・kiroku の版（リリースのページへ）・リポジトリへのリンク。
 // リンクは押したときに開くだけで、kiroku からは何も送らない（noopener noreferrer）
-const REPO = "https://github.com/MichinaoShimizu/kiroku";
+// リポジトリは META.repo（社内のリポジトリでビルドしたものはそこ）。https://HOST/OWNER/REPO の形でなければ公開のリポジトリ
+const REPO_DEFAULT = "https://github.com/MichinaoShimizu/kiroku";
+function repoURL(){
+  const r = META && META.repo;
+  return typeof r === "string" && /^https:\/\/[A-Za-z0-9][A-Za-z0-9.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(r) ? r : REPO_DEFAULT;
+}
 function foot(){
+  const REPO = repoURL();
   const v = String((META && META.version) || ""), rel = /^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/.test(v);
   return `<div class="foot"><div>${esc(t("Generated {date}", {date: dStamp(GENERATED)}))} · ${rel ? ext(`${REPO}/releases/tag/v${v}`, esc(`kiroku v${v}`)) : `kiroku${v ? " " + esc(v) : ""}`} · ${ext(REPO, "GitHub")} · <button type="button" class="lnk keysbtn" data-keys>${esc(t("Keyboard shortcuts"))} <kbd>?</kbd></button></div></div>`;
 }

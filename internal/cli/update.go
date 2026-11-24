@@ -23,7 +23,7 @@ import (
 
 // releaseBase は Releases の置き場所、updateExe は置きかえる kiroku の実行ファイル（テストで差しかえる）。
 var (
-	releaseBase = "https://github.com/MichinaoShimizu/kiroku"
+	releaseBase = upstreamURL
 	updateExe   = os.Executable
 )
 

@@ -70,6 +70,8 @@ On Windows, download `kiroku-windows-amd64.exe` (or `-arm64.exe`) the same way, 
 
 - `kiroku update` there needs `gh` installed and logged in with access to the repository (with SAML single sign-on, authorize the login for the organization). Without them it stops and says what to do; it never falls back to the public repository
 - In that repository you only need `release.yml` (and `ci.yml` if you like). The other workflows (`pages.yml`, `prices.yml`, `upstream.yml`, `scorecard.yml`, `codeql.yml`, `tag.yml`, `fuzz.yml`) are for this public repository and can be deleted. Your enterprise's Actions policy must allow the actions `release.yml` uses, and build provenance for a private repository needs GitHub Enterprise Cloud
+- The links at the bottom of the view (GitHub, and the release of the running version) point to that repository too
+- To put the demo page (dummy data, no one's history) on an internal web server, build it with `KIROKU_REPO=github.com/your-org/your-repo sh tools/screenshots/run.sh --html index.html` (needs Go, Python 3 and git) and rebuild it every week, since its dummy data covers the five weeks up to the day it was built. Never put a view of real history on a shared server
 - Take each new release of `MichinaoShimizu/kiroku` in soon: only the latest release is supported, and security fixes go there
 - `tools/reproduce.sh` checks releases of `MichinaoShimizu/kiroku`. A build from your repository embeds its name, so it differs from the public binary of the same version
 

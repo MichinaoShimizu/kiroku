@@ -259,3 +259,20 @@ func TestNoGHByDefault(t *testing.T) {
 		t.Errorf("releasesPage = %q", got)
 	}
 }
+
+// 画面のいちばん下のリンク先は、埋め込まれたリポジトリ（形が正しいときだけ）、なければ公開のリポジトリ。
+func TestProjectURL(t *testing.T) {
+	old := releaseRepo
+	t.Cleanup(func() { releaseRepo = old })
+	for repo, want := range map[string]string{
+		"":                         "https://github.com/MichinaoShimizu/kiroku",
+		"github.com/corp/kiroku":   "https://github.com/corp/kiroku",
+		"github.com/corp/kiroku;x": "https://github.com/MichinaoShimizu/kiroku",
+		"-x/corp/kiroku":           "https://github.com/MichinaoShimizu/kiroku",
+	} {
+		releaseRepo = repo
+		if got := projectURL(); got != want {
+			t.Errorf("projectURL(%q) = %q, want %q", repo, got, want)
+		}
+	}
+}

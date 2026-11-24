@@ -35,6 +35,18 @@ func releasesPage() string {
 	return releaseBase + "/releases"
 }
 
+// upstreamURL は公開のリポジトリ。
+const upstreamURL = "https://github.com/MichinaoShimizu/kiroku"
+
+// projectURL は、画面のいちばん下のリンク（GitHub・その版のリリース）が指すリポジトリ。
+// releaseRepo が埋め込まれていれば（社内のリポジトリのビルドやデモ）そこ、なければ公開のリポジトリ。
+func projectURL() string {
+	if viaGH() && repoPattern.MatchString(releaseRepo) {
+		return "https://" + releaseRepo
+	}
+	return upstreamURL
+}
+
 // ghCommand は起動する gh の名前（テストで差しかえる）。
 var ghCommand = "gh"
 

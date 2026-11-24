@@ -518,3 +518,40 @@ if (bad) process.exit(1);
 		t.Errorf("読み込み中の画面と本物の画面で言語が違う:\n%s", out)
 	}
 }
+
+// ページのいちばん下のリンク先（repoURL）。META.repo が https://HOST/OWNER/REPO の形のときだけ使い、
+// それ以外（javascript: や、ほかの形、文字列でないもの）は公開のリポジトリにする。
+func TestRepoURL(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/panels.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := strings.ReplaceAll(string(src), "\r\n", "\n")
+	def := regexp.MustCompile(`(?m)^const REPO_DEFAULT = .*;$`).FindString(text)
+	fn := regexp.MustCompile(`(?ms)^function repoURL\(\)\{.*?^\}$`).FindString(text)
+	if def == "" || fn == "" {
+		t.Fatal("panels.js に REPO_DEFAULT か repoURL が見つからない")
+	}
+	cases := `let META;
+const up = "https://github.com/MichinaoShimizu/kiroku";
+const want = (meta, w) => { META = meta; const got = repoURL(); if (got !== w) { console.error(JSON.stringify(meta), "→", got, "want", w); process.exitCode = 1; } };
+want(null, up);
+want({}, up);
+want({repo: "https://github.com/corp/kiroku"}, "https://github.com/corp/kiroku");
+want({repo: "https://corp.ghe.com/team/kiroku-dist"}, "https://corp.ghe.com/team/kiroku-dist");
+for (const bad of ["javascript:alert(1)", "http://github.com/corp/kiroku", "https://github.com/corp/kiroku/", "https://github.com/corp/kiroku?x=1",
+  "https://github.com/corp/kiroku\"onmouseover=x", "https://github.com/corp", "https://github.com/corp/kiroku/extra", "https://-x/corp/kiroku", "https://github.com/corp/ki roku", 42, ["https://github.com/corp/kiroku"]])
+  want({repo: bad}, up);
+`
+	f := filepath.Join(t.TempDir(), "repo.js")
+	if err := os.WriteFile(f, []byte(def+"\n"+fn+"\n"+cases), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("repoURL が違う:\n%s", out)
+	}
+}

@@ -4,9 +4,21 @@
 #   sh tools/screenshots/run.sh --html <出力先.html>   # ダミーデータの HTML だけを作る（git のリポジトリは一時ディレクトリごと消えるので、コミットのリンクは開けない）
 # 必要なもの: Go、Python 3、git、Node.js と Playwright（このディレクトリで npm ci --ignore-scripts。版は package.json で固定）
 # KIROKU_FAKE_NOW（例: 2026-10-14T15:00:00+09:00）を渡すと、今ではなくその時刻を「今」としてダミーデータを作る（e2e は決まった時刻で回す）
+# KIROKU_REPO（例: github.com/your-org/kiroku）を渡すと、画面のいちばん下のリンク（GitHub・その版のリリース）をそのリポジトリに向ける
+# （社内のサーバにデモを置くとき。形は HOST/OWNER/REPO）
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)
+ldflags=""
+if [ -n "${KIROKU_REPO:-}" ]; then
+  # 形を確かめてから -X に渡す（空白や - で始まる部分があると、go build のオプションと取り違える）
+  case "$KIROKU_REPO" in *[!A-Za-z0-9._/-]*) KIROKU_REPO=- ;; esac # 改行や空白などがあれば、下で必ず断る
+  if ! printf '%s\n' "$KIROKU_REPO" | grep -Eqx '[A-Za-z0-9][A-Za-z0-9.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*'; then
+    echo "KIROKU_REPO は HOST/OWNER/REPO の形にしてください（例: github.com/your-org/kiroku）" >&2
+    exit 1
+  fi
+  ldflags="-X github.com/MichinaoShimizu/kiroku/internal/cli.releaseRepo=$KIROKU_REPO"
+fi
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 python3 "$here/gen.py" "$work"
@@ -15,7 +27,7 @@ python3 "$here/mkgit.py" "$work"
 if [ "${1:-}" = "--html" ]; then demo=1; else demo=; fi
 # 読むのはダミーデータだけ。自分の履歴や kiroku archive の写しを混ぜないよう、読む場所をすべて一時ディレクトリに向け、
 # 場所を変えるオプションのない Kiro IDE（v1.0 より前）のためにホームも替える（go のキャッシュはそのままにしたいので、先にビルドする）
-(cd "$root" && go build -o "$work/kiroku" ./tools/html)
+(cd "$root" && go build -ldflags "$ldflags" -o "$work/kiroku" ./tools/html)
 (cd "$work" && HOME="$work/home" TZ=Asia/Tokyo KIROKU_LANG="" KIROKU_DEMO=$demo ./kiroku --no-open --sources claude,codex,kiro \
   --claude-root "$work/home/.claude/projects" --codex-home "$work/home/.codex" --kiro-home "$work/home/.kiro" \
   --crew-home "$work/home/.kiro/crew" --kiro-cli-db "$work/none.sqlite3" --archive-dir "$work/archive" -o "$work/kiroku.html")
