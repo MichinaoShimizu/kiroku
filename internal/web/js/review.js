@@ -258,7 +258,7 @@ function openWorth(id, from, F = lastFlags){
     rest.hidden = false; b.remove(); const first = rest.querySelector("[data-id]"); if (first) first.focus(); });
   D.onclose = () => { if (from && from.isConnected && (!st.sel || from.closest("#panel")) && !document.activeElement?.closest?.("#review")) from.focus(); }; // 閉じたら押したリンクへ（サマリーや別のセッションへ移ったときは除く）
   D.querySelectorAll("[data-nav]").forEach(b => b.onclick = () => { const i = ids.indexOf(id), next = ids[(i + +b.dataset.nav + ids.length) % ids.length];
-    (F === insFlags ? insOpenWorth : (x, fr) => openWorth(x, fr, F))(next, from); const nb = D.querySelector(`[data-nav="${b.dataset.nav}"]`); if (nb) nb.focus(); });
+    (F === lastFlags ? insOpenWorth : (x, fr) => openWorth(x, fr, F))(next, from); const nb = D.querySelector(`[data-nav="${b.dataset.nav}"]`); if (nb) nb.focus(); });
   if (!D.open) D.showModal(); D.scrollTop = 0;
   const hd = $("#wkh"); hd.tabIndex = -1; hd.focus(); } // 最初のボタンではなく見出しへ（読み上げで何のダイアログかわかり、セッションを押した表示にもならない）
 function placeFlags(R, F){ // 基準を超えた指標の名前の横に、小さな印だけを付ける（押すと「Worth a look」と同じダイアログ。中身はダイアログにだけ出し、サマリーで繰り返さない）

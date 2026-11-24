@@ -91,6 +91,10 @@ function insSpark(b, label, W = 480, bar = false){
   // 利用上限の印は、使った量（費用・クレジット・トークン・時間）だけ。棒のグラフには線を重ねない（以前は累積を右の軸で重ねていたが、
   // 軸が 2 本になって読み比べにくく、累積の値が右の軸の目盛りと重なった）。線のグラフ（単価）には、いつもの水準として平均の線を重ねる
   const f0 = Math.min(Math.max(0, pts.findIndex(x => x.p.we > hs)), pts.length - 4), ps = pts.slice(f0), n = ps.length, /* 記録の始まる前の期間は描かない（履歴の短い人のグラフが、右端に寄って空かないように。最大 13 期間で「?」の推移と同じ） */ use = INS_USE.has(k), cnt = bar || INS_ADD.has(k);
+  const fs = k === "credits" ? cr1 : fm; // 積み上げの区分の量（credits は小数 1 桁まで。整数に丸めると、区分の合計が棒の値と合わなく見える）
+  // 積むのは、グラフに 2 つ以上のエージェントが出てくるときだけ（1 つなら、いつもの色の棒のまま）
+  const stk0 = bar && b.stack ? ps.map(q => q.v == null ? null : b.stack(q.p)) : null, stkA0 = stk0 ? [...new Set(stk0.flatMap(xs => (xs || []).map(z => z[0])))].sort((p, q) => agOrd(p) - agOrd(q)) : [];
+  const stk = stkA0.length > 1 ? stk0 : null, stkA = stk ? stkA0 : []; // 積み上げの区分（期間ごとの [名前, 量]）と、グラフに出てくる名前
   { let s = 0, c = 0; ps.forEach(q => { const a = q.cur ? q.a : q.v; if (a != null){ s += a; c++; } q.c = cnt || !c ? null : s / c; }); }
   const vals = ps.filter(x => x.v != null).map(x => x.v).concat(ps.filter(x => x.c != null).map(x => x.c));
   // 利用上限に当たった期間（棒のグラフでは、棒に重ねず x 軸のすぐ下の段に印を置き、期間の名前をその分だけ下げる）
@@ -131,7 +135,12 @@ function insSpark(b, label, W = 480, bar = false){
   if (bar){ // 棒：過去の期間は淡い色、表示中の期間は濃い色。途中の期間は、今までの値の棒の上に、期間の終わりの推定までの淡い破線の棒
     const bw = Math.min(22, step * .64), yc = v => y(Math.min(v, top)), rc = (cls, i, v0, v1) => `<rect class="${cls}" x="${(x(i) - bw / 2).toFixed(1)}" y="${yc(v1).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0, yc(v0) - yc(v1)).toFixed(1)}"/>`
       + (v1 > top ? `<path class="sbrk" d="M${(x(i) - bw / 2 - 2).toFixed(1)} ${(T + 12).toFixed(1)}l${(bw + 4).toFixed(1)} -5m0 5l${(-bw - 4).toFixed(1)} 5"/>` : ""); // 上を切った棒の切れ目（地の色の 2 本の斜め線）
-    marks = ps.map((q, i) => q.v == null ? "" : !q.cur ? rc("sbar", i, 0, q.v) : b.part ? (b.v > b.cur ? rc("sbar ext", i, b.cur, b.v) : "") + rc("sbar cur", i, 0, b.cur) : rc("sbar cur", i, 0, q.v)).join("");
+    // 積み上げ（b.stack。Kiro credits のエージェント別）：今までの値の棒を、エージェントの色で下から順に分ける。上を切った棒の切れ目は、棒ごとに 1 つ
+    const sg = (cls, i, tot) => { const xs = stk[i], sum = xs.reduce((a, z) => a + z[1], 0); if (!(sum > 0)) return rc(cls, i, 0, tot); let v0 = 0;
+      return xs.map(([a, v]) => { const v1 = v0 + v * tot / sum, h = `<rect class="${cls} sg" style="--c:${agColor(a)}" x="${(x(i) - bw / 2).toFixed(1)}" y="${yc(v1).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0, yc(v0) - yc(v1)).toFixed(1)}"/>`; v0 = v1; return h; }).join("")
+        + (tot > top ? `<path class="sbrk" d="M${(x(i) - bw / 2 - 2).toFixed(1)} ${(T + 12).toFixed(1)}l${(bw + 4).toFixed(1)} -5m0 5l${(-bw - 4).toFixed(1)} 5"/>` : ""); };
+    const fill = (cls, i, v) => stk && stk[i] ? sg(cls, i, v) : rc(cls, i, 0, v);
+    marks = ps.map((q, i) => q.v == null ? "" : !q.cur ? fill("sbar", i, q.v) : b.part ? (b.v > b.cur ? rc("sbar ext", i, b.cur, b.v) : "") + fill("sbar cur", i, b.cur) : fill("sbar cur", i, q.v)).join("");
   } else {
     const line = ps.map((q, i) => q.v == null || (q.cur && b.part) ? null : `${x(i).toFixed(1)},${y(q.v).toFixed(1)}`).filter(Boolean).join(" ");
     // 途中の期間の予測：前の期間の点からペース換算の点まで（推移）と、前の期間の累積から予測の累積まで（累積）を破線で
@@ -150,9 +159,9 @@ function insSpark(b, label, W = 480, bar = false){
   const pcS = v => `${v > 0 ? "+" : v < 0 ? "−" : "±"}${Math.abs(v)}%`, vsL = st.mode === "month" ? t("vs last month") : t("vs last week");
   // 数字が棒の間に収まらない（9px の字で 1 字 5.5px ほど）ときだけ、1 つおきに（表示中の期間と、そこから 2 つおきは残す）
   const bv = q => q.v == null ? null : insBarS(k, q.cur && b.part ? b.cur : q.v), alt = bar && Math.max(0, ...ps.map(q => (bv(q) || "").length)) * 5.5 > step - 3;
-  const pcl = !bar ? "" : ps.map((q, i) => { const hv = q.v == null ? 0 : q.cur && b.part ? Math.max(b.v, b.cur) : q.v, over = hv > top; if (q.v == null || (!over && (n - 1 - i) % 2 && alt)) return ""; const yy = y(Math.min(hv, top)), up = yy > T + 12;
+  const pcl = !bar ? "" : ps.map((q, i) => { const hv = q.v == null ? 0 : q.cur && b.part ? b.cur : q.v, over = hv > top; /* 途中の期間の数字（今までの値）は、今までの値の棒のすぐ上に（推定の破線の箱の上に置くと、推定の値に見える） */ if (q.v == null || (!over && (n - 1 - i) % 2 && alt)) return ""; const yy = y(Math.min(hv, top)), up = yy > T + 12;
     return `<text class="spc${q.cur ? " cur" : ""}${over ? " over" : ""}${(n - 1 - i) % 2 && !over ? " k2" : ""}" x="${x(i).toFixed(1)}" y="${(over ? T + 28 : up ? yy - 4 : yy + 12).toFixed(1)}">${esc(bv(q))}</text>`; }).join(""); // 上端に近い棒は棒の中に。上を切った棒は、切れ目の下に
-  const hits = ps.map((q, i) => `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H - B}"${tipAttr(q.p.label, q.v == null ? t("No records") : (q.cur && b.part ? insEndLabel(fm(q.v)) : fm(q.v)), q.cur && b.part ? `${t("So far")}: ${fm(b.cur)}` : "", q.c == null ? "" : `${cl}: ${fm(q.c)}`, pcOf(i) == null ? "" : `${vsL} ${pcS(pcOf(i))}`)}/>`).join("");
+  const hits = ps.map((q, i) => `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H - B}"${tipAttr(q.p.label, q.v == null ? (bar && q.p.S && q.p.ws >= hs ? fm(0) : t("No records")) : (q.cur && b.part ? insEndLabel(fm(q.v)) : fm(q.v)), q.cur && b.part ? kv(t("So far"), fm(b.cur)) : "", q.c == null ? "" : kv(cl, fm(q.c)), pcOf(i) == null ? "" : `${vsL} ${pcS(pcOf(i))}`, stk && stk[i] ? [...stk[i]].reverse().map(([a, v]) => kv(a, fs(v))) : "")}/>`).join("");
   // 利用上限に当たった時刻：小さな赤い三角（縦線はグラフを隠すので引かない）。同じ期間の到達は 1 つにまとめ、回数を添える。
   // 棒のグラフでは x 軸のすぐ下の段に（棒の上に重ねると、棒の色に紛れる）、線のグラフでは x 軸の上に
   const lim = !use ? "" : ps.map((q, i) => ({i, q, h: lh[i]})).filter(z => z.h.length && z.q.v != null).map(({i, h}) => {
@@ -160,8 +169,10 @@ function insSpark(b, label, W = 480, bar = false){
     const rows = h.slice(0, 6).map(z => z.r ? t("{time} (resets {r})", {time: `${md(z.t)} ${hm(z.t)}`, r: z.r}) : `${md(z.t)} ${hm(z.t)}`).concat(h.length > 6 ? ["…"] : []);
     return `<path class="slim" d="M${lx.toFixed(1)} ${(ty - 7).toFixed(1)}l-4.5 7h9z"/>${h.length > 1 ? `<text class="slimn${bar ? " s" : ""}" x="${(bar ? lx + 5.5 : lx).toFixed(1)}" y="${(bar ? ty : ty - 10).toFixed(1)}">×${h.length}</text>` : ""}<rect class="hit slimhit" x="${(x(i) - 6 - (bar ? 4 : 0)).toFixed(1)}" y="${(ty - 10).toFixed(1)}" width="${bar ? 20 : 12}" height="12"${tipAttr(h.length === 1 ? t("Usage limit hits") : `${t("Usage limit hits")} ×${h.length}`, rows)}/>`; }).join("");
   const yt = (INS_SHORT()[k] || label || insName(k)), xt = st.mode === "month" ? t("Month") : t("Week");
-  const list = ps.map(q => `${q.p.label} ${q.v == null ? "—" : fm(q.v)}${q.c == null ? "" : ` (${cl} ${fm(q.c)})`}`).join(LSEP());
-  return `<span class="tspk${bar ? " tbar" : ""}"><span class="sr">${esc(t("Trend: {list}", {list}))}</span><svg aria-hidden="true"${LB ? ` class="lb"` : ""} viewBox="0 0 ${W} ${H}"><text class="syt" x="${L}" y="11">${esc(yt)}</text>${bar ? band + ticks + xtm + marks + med : band + med + ticks + xtm + cuml + marks}${pcl}${cEnd}${xl}<text class="sxt" x="${(L + (W - L - R) / 2).toFixed(1)}" y="${H - 3}">${esc(xt)}</text>${hits}${lim}</svg></span>`;
+  const list = ps.map((q, i) => `${q.p.label} ${q.v == null ? "—" : fm(q.v)}${q.c == null ? "" : ` (${cl} ${fm(q.c)})`}${stk && stk[i] ? ` (${[...stk[i]].reverse().map(([a, v]) => `${a} ${fs(v)}`).join(", ")})` : ""}`).join(LSEP());
+  // 積み上げの色の凡例（グラフのすぐ下。色だけに頼らないよう、名前を添える）
+  const skey = stkA.length ? `<span class="tagk" aria-hidden="true">${stkA.map(a => `<span class="lg" style="--c:${agColor(a)}">${esc(a)}</span>`).join("")}</span>` : "";
+  return `<span class="tspk${bar ? " tbar" : ""}"><span class="sr">${esc(t("Trend: {list}", {list}))}</span><svg aria-hidden="true"${LB ? ` class="lb"` : ""} viewBox="0 0 ${W} ${H}"><text class="syt" x="${L}" y="11">${esc(yt)}</text>${bar ? band + ticks + xtm + marks + med : band + med + ticks + xtm + cuml + marks}${pcl}${cEnd}${xl}<text class="sxt" x="${(L + (W - L - R) / 2).toFixed(1)}" y="${H - 3}">${esc(xt)}</text>${hits}${lim}</svg>${skey}</span>`;
 }
 /* insVerdict は、単価の数字の「評価」と「次の一手」（AI は使わず、決まった規則で）。
    評価：いつもの範囲（過去の真ん中 50%）より低ければ良い側（コミット・行あたりは「効率が良い」、時間・セッション・プロンプトあたりは「軽い」）。
@@ -212,6 +223,8 @@ const tickS = (k, v, step) => { const dp = Math.min(3, (String(+step.toPrecision
   if (/^cost/.test(k) && dp > 2) return "$" + v.toFixed(dp); // 0.025 刻みの費用は 3 桁で（2 桁に丸めると $0.03・$0.05・$0.08 と刻みが不ぞろいに見える）
   if (!/^credits/.test(k) && MET[k] && MET[k].fmt) return tickM(k, v); return (dp ? v.toFixed(dp) : commas(v)) + (MET[k] && MET[k].u === "%" ? "%" : ""); };
 // insEndLabel は、途中の期間をこのペースで終えたときの値の言い方（月は「月末の予測」、週は「週末の予測」）
+// kv は、ツールチップの「名前: 値」。日本語は全角のコロン（「月末の予測：176 credits」と同じ書き方にそろえる）
+const kv = (k, v) => isJA() ? `${k}：${v}` : `${k}: ${v}`;
 const insEndLabel = v => st.mode === "month" ? t("Month-end estimate: {v}", {v}) : t("End-of-week estimate: {v}", {v});
 // insTicks は、0 から v までを切りのよい刻み（1・2・2.5・5 の 10 の累乗倍）で want 本ほどに分ける。数える指標は整数の刻み、時間（分）は 1 時間単位
 // fixed なら本数を want にそろえる（右の軸の目盛りを左の軸のグリッドに合わせる）
@@ -274,10 +287,8 @@ function insHeadlines(F){
   const {S: w, P: pw, ws, we} = period(), u = (w && w.usage) || {}, M = st.mode === "month";
   const P = {cost: [], out: [], unit: [], uin: []}; // パネルごとの選択肢 {key, h}
   let HAB = null; // 作業のしかたの違い（単価の評価で使う。期間ごとに 1 度だけ数える）
-  // エージェントで絞っていて期間に push があるときは、出力単価の各タイルの式（ƒx）の中に「push あたりは「すべて」のときだけ」と書く。パネルの頭に置くと、横の投入単価の頭が 1 行ぶん空く（subgrid で行の高さをそろえるため）
-  const pushNote = insAg && pushesIn(ws, we) ? t("Per push is shown for All agents only: Git doesn't record which agent's work a push sent") : "";
   // 途中の期間で、期間の長さに比例する数字には、どれも期間の終わりの予測を添える（費用・クレジット・時間・トークン・コミット・push・PR）
-  const tile = (panel, key, label, b, v, f, m, help) => { f = [].concat(f || []).filter(Boolean); if (panel === "unit" && pushNote) f.push({fn: pushNote}); const ob = INS_RATE.has(panel) ? null : b; // 単価には評価の文の色（insVerdict）があるので、大きく外れた印（insOdd）は重ねない
+  const tile = (panel, key, label, b, v, f, m, help) => { f = [].concat(f || []).filter(Boolean); const ob = INS_RATE.has(panel) ? null : b; // 単価には評価の文の色（insVerdict）があるので、大きく外れた印（insOdd）は重ねない
     if (b && b.part && !f.some(x => x && x.pc)) f.push(pace(b.cur, b.v, MET[b.k] && MET[b.k].int ? (z => fmtM(b.k, Math.round(z))) : (b.fmt || (z => fmtM(b.k, z)))));
     if (INS_RATE.has(panel) && b && b.k && MET[b.k]) f.unshift({v: insVerdict(b, F, HAB || (HAB = insHabits()))});
     const obj = x => x && typeof x === "object", big = f.filter(x => obj(x) && x.big); /* 文字列には String.prototype.big があるので、オブジェクトだけを見る */
@@ -295,12 +306,14 @@ function insHeadlines(F){
   const seen = k => Array.from({length: INS_N + 1}, (_, i) => periodBack(i)).some(p => metricAt(k, p) > 0);
   const pu = pw && pw.usage;
   // ── コスト：推定費用・Kiro のクレジット・トークン・稼働時間 ──
-  const bc = insBase("cost"); if (bc && (u.tokens || bc.cur)) tile("cost", "cost", t("Estimated cost"), bc, fmtM("cost", bc.cur), [vs(bc.cur, V.of("cost", pu && pu.tokens ? costOf(pu) : null), usd), bc.part ? pace(bc.cur, bc.v, usd) : ""], "cost");
-  if (u.credits){ const bk = insRange("credits", u.credits, p => p.S && p.S.usage ? p.S.usage.credits || null : null, true, true, cr);
+  const bc = insBase("cost"); if (bc) bc.stack = shareBy("cost"); if (bc && (u.tokens || bc.cur)) tile("cost", "cost", t("Estimated cost"), bc, fmtM("cost", bc.cur), [vs(bc.cur, V.of("cost", pu && pu.tokens ? costOf(pu) : null), usd), bc.part ? pace(bc.cur, bc.v, usd) : ""], "cost");
+  // Kiro credits は、Kiro のどのエージェント（Kiro IDE / CLI (V3)・Kiro CLI (V2)・Kiro Crew など）の分もまとめて 1 つの量にする。
+  // 表示中の期間に credits がなくても、推移のグラフの期間のどこかにあれば出す（使うエージェントを替えても、前の期間の credits と並べて見られるように）。棒はエージェントの色で積み上げる
+  if (u.credits || seen("credits")){ const bk = insRange("credits", u.credits || 0, p => p.S && p.S.usage ? p.S.usage.credits || null : null, true, true, cr); bk.stack = shareBy("credits");
     const mp = monthProj(), r1 = cr1; // 週の表示でも、クレジットの今月末の推定を添える（クレジットは月ごとの枠）
     const me = mp && mp.credits != null ? {f: `${t("Month-end credits")} = ${t("this month")} ${r1(mp.soCredits)} ÷ ${mp.days}${t("d")} × ${mp.nd}${t("d")} = ${r1(mp.credits)}`, big: {l: t("Month-end estimate (this month)"), v: crN(mp.credits)}} : "";
-    tile("cost", "credits", t("Kiro credits"), bk, crN(u.credits), [vs(u.credits, V.of("credits", pu && pu.credits), r1)].concat(bk.part ? pace(u.credits, bk.v, r1, crN) : t("Kiro's own count, not an estimate"), me), "credits"); }
-  if (u.tokens){ const bt = insBase("tokens"); if (bt) tile("cost", "tokens", t("Tokens"), bt, tok(u.tokens), [vs(u.tokens, V.of("tokens", pu && pu.tokens), tok), `${t("output")} ${tok(u.out)} ÷ ${tok(u.tokens)} = ${Math.round(u.out * 100 / u.tokens)}%`], "tokens"); }
+    tile("cost", "credits", t("Kiro credits"), bk, crN(u.credits || 0), [vs(u.credits || 0, V.of("credits", pu && pu.credits), r1)].concat(bk.part ? pace(u.credits || 0, bk.v, r1, crN) : t("Kiro's own count, not an estimate"), me), "credits"); }
+  if (u.tokens){ const bt = insBase("tokens"); if (bt){ bt.stack = shareBy("tokens"); tile("cost", "tokens", t("Tokens"), bt, tok(u.tokens), [vs(u.tokens, V.of("tokens", pu && pu.tokens), tok), `${t("output")} ${tok(u.out)} ÷ ${tok(u.tokens)} = ${Math.round(u.out * 100 / u.tokens)}%`], "tokens"); } }
   const ba = insBase("active"); if (ba) tile("cost", "active", t("Active time"), ba, fmtM("active", ba.cur), [vs(ba.cur, V.of("active", pw && pw.active), v => dur(v)), ba.part ? pace(ba.cur, ba.v, v => dur(v)) : ""], "active");
   // ── 出力：コミット・push・PR（どれも Git の側。AI の編集の行は下の Outputs のカード） ──
   const g = w && w.git && w.git.commits ? w.git : null, o = (w && w.outputs) || {};
@@ -310,7 +323,7 @@ function insHeadlines(F){
   const bpu = insBase("pushes");
   if (bpu && seen("pushes")){ const ps = (META.push || []).filter(x => x.t >= ws && x.t < we), sent = ps.reduce((a, x) => a + (x.commits || 0), 0), pb = periodBack(1);
     const prev = V.partial || !pb.S ? null : pushesIn(pb.ws, V.n == null ? pb.we : Math.min(pb.we, addDays(new Date(pb.ws * 1000), V.n).getTime() / 1000)); // 途中の期間は、前の期間の同じ日まで
-    tile("out", "push", t("Pushes"), bpu, commas(ps.length), [insAg ? {n: t("Pushes count every agent: Git doesn't record which agent's work a push sent")} : "", sent ? {n: t("{c} sent, including commits made before the period", {c: plural(sent, "commit")})} : "", vsInt("pushes", ps.length, prev)], "", "pushes"); }
+    tile("out", "push", t("Pushes"), bpu, commas(ps.length), [sent ? {n: t("{c} sent, including commits made before the period", {c: plural(sent, "commit")})} : "", vsInt("pushes", ps.length, prev)], "", "pushes"); }
   const bpr = insBase("prs"); if (bpr && (o.prs || seen("prs"))) tile("out", "pr", t("Pull requests"), bpr, `${o.prs || 0}`, [{n: t("Created by AI")}, vsk("prs", o.prs || 0)], o.prs ? "prs" : "", "prs");
   // ── 単価：量（費用・クレジット・トークン）÷ 出力（コミット・push・PR）。割る範囲を名前に入れ、「分子 ÷ 分母」をいつも値の下に出す ──
   const UL = {cost: [t("Estimated cost per push"), t("Estimated cost per pull request"), usd, t("Estimated cost per Git commit")], credits: [t("Kiro credits per push"), t("Kiro credits per pull request"), cr1, t("Kiro credits per Git commit")], tokens: [t("Tokens per push"), t("Tokens per pull request"), tok, t("Tokens per Git commit")]};
@@ -327,8 +340,7 @@ function insHeadlines(F){
     else perGit("tokens"); }
   perGit("credits");
   // push・PR は AI の分だけを取り出せないので、期間の量の合計で割る（そう書き添える）
-  // エージェントで絞っているときは、push あたりを出さない（push はどのエージェントの分かわからないので、1 つのエージェントの量 ÷ 全員の push になってしまう）。PR は作ったエージェントの分だけを数える
-  for (const [d, n, sfx, help, note] of [["push", insAg ? 0 : nps, "PerPush", "perPush", t("Pushes can't be split into AI's share, so this divides the period's whole total")], ["pr", o.prs, "PerPr", "perPr", t("Pull requests can't be split into AI's share, so this divides the period's whole total")]])
+  for (const [d, n, sfx, help, note] of [["push", nps, "PerPush", "perPush", t("Pushes can't be split into AI's share, so this divides the period's whole total")], ["pr", o.prs, "PerPr", "perPr", t("Pull requests can't be split into AI's share, so this divides the period's whole total")]])
     for (const kind of ["cost", "credits", "tokens"]){
       const k = kind + sfx, b = insBase(k); if (!b || !n) continue; const fu = UL[kind][2], used = usedOf(w, kind), den = d === "push" ? plural(n, "push", "pushes") : plural(n, "PR");
       tile("unit", `${kind}:${d}`, UL[kind][d === "push" ? 0 : 1], b, kind === "credits" ? crR(b.cur) : fmtM(k, b.cur), [{f: `${t("total")} ${fu(used)} ÷ ${den} = ${fmtM(k, b.cur)}`, p: `${fu(used)} ÷ ${den}`}, {n: note}, vsk(k, b.cur)], "", help); }
@@ -351,7 +363,7 @@ function insHeadlines(F){
   const L1 = (cls, sel, text) => `<span class="lg ${cls}" data-lg="${sel}">${esc(text)}</span>`;
   // 量のパネル（投入・出力）は棒、単価のパネルは点と線（insSpark）。凡例の印もそれに合わせる
   const lgd = id => { const bar = !INS_RATE.has(id), est = M ? t("Month-end estimate") : t("End-of-week estimate");
-    return `<p class="tlg" aria-hidden="true">${bar ? L1("bnow", "rect.sbar.cur", now) : L1("now", "circle.now", now)}${insFrac() < 1 ? (bar ? L1("bnow part", "rect.sbar.ext", est) : L1("now part", "circle.now.part", est) + L1("prj", "line.prj", t("Projection"))) : ""}${L1("band", "rect.band", t("Middle half of your past {unit}", {unit: insNoun()}))}${bar ? L1("brk", "path.sbrk", t("Cut bar: beyond the scale, with its amount on it")) : ""}${L1("med", "line.med", t("median"))}${bar ? "" : L1("cum", "polyline.cuml", t("Running average"))}${bar ? "" : L1("ybrk", "path.ybrk", t("Axis doesn't start at 0"))}${limAny && id === "cost" ? L1("lgl", "path.slim", t("Usage limit hits")) : ""}</p>`; };
+    return `<p class="tlg" aria-hidden="true">${bar ? L1("bnow", "rect.sbar.cur:not(.sg)", now) + L1("bnow sg", "rect.sbar.sg.cur", `${now} · ${t("past periods pale")}`) : L1("now", "circle.now", now)}${insFrac() < 1 ? (bar ? L1("bnow part", "rect.sbar.ext", est) : L1("now part", "circle.now.part", est) + L1("prj", "line.prj", t("Projection"))) : ""}${L1("band", "rect.band", t("Middle half of your past {unit}", {unit: insNoun()}))}${bar ? L1("brk", "path.sbrk", t("Cut bar: beyond the scale, with its amount on it")) : ""}${L1("med", "line.med", t("median"))}${bar ? "" : L1("cum", "polyline.cuml", t("Running average"))}${bar ? "" : L1("ybrk", "path.ybrk", t("Axis doesn't start at 0"))}${limAny && id === "cost" ? L1("lgl", "path.slim", t("Usage limit hits")) : ""}</p>`; };
   // パネル：頭（見出し・切り替え・注）、タイル（値の段・グラフ・印）、凡例。投入（cost・uin）は左の列、出力（out・unit）は右の列（INS_SIDE）
   const card = (id, label, sws, data, cur, items, note = "") => `<section class="ikg ik-${id} side-${INS_SIDE[id]}"${data} aria-label="${esc(label)}"><div class="ikhd"><span class="ikio" aria-hidden="true">${INS_SIDE[id] === "in" ? "IN" : "OUT"}</span><h5 class="ikgh">${esc(label)}${sws}</h5>${note}</div><div class="ikrow">${items.map(x => x.key === cur ? x.h : x.h.replace(`data-ch="${x.key}"`, `data-ch="${x.key}" hidden`)).join("")}</div>${lgd(id)}</section>`;
   // 選択肢はいつも同じ並び。数字のないものは出さない（覚えている選択が使えなければ、最初の使えるものに）
@@ -371,6 +383,10 @@ function insHeadlines(F){
   const nb = insBase("active"), few = nb && nb.q1 == null ? `<p class="note insfew">${esc(t("To compare with your usual range, kiroku needs {min} past {unit} with records (have {n}).", {min: INS_MIN, unit: insUnit(INS_MIN), n: nb.n}))}</p>` : ""; // 比べられないことは、数字ごとでなく 1 度だけ言う
   return `${few}<div class="insh"><span class="insio in" aria-hidden="true">IN</span><span class="insdiv" aria-hidden="true"></span><span class="insio out" aria-hidden="true">OUT</span>${one("cost", INS_IN())}${one("out", INS_OUT())}${uin}${unit}</div><p class="ifxs insdef">${fx(insDef())}</p>`;
 }
+// shareBy(f) は、期間 p の量 f（cost・credits・tokens）をエージェントごとに [名前, 量] で返す関数（エージェントの表の順。色と積む順をいつも同じに）。
+// 推定費用とトークンは Claude Code・Codex など、credits は Kiro のエージェントの分を、それぞれ 1 つの量として積み上げる
+const agOrd = a => { const i = AGENTS.findIndex(z => z.name === a); return i < 0 ? AGENTS.length : i; };
+const shareBy = f => p => { const xs = ((p.S && p.S.shares || {}).source || []).filter(x => x[f] > 0).map(x => [x.key, x[f]]); return xs.length ? xs.sort((a, b) => agOrd(a[0]) - agOrd(b[0])) : null; };
 const tickM = (k, v) => /^credits/.test(k) ? crN(v) : fmtM(k, v);
 /* 見直す候補の対象の費用（そのセッションの推定費用の合計）。費用で表せない候補（利用上限・繰り返し・長すぎるプロンプト）は null */
 function insStake(f){
@@ -663,7 +679,7 @@ function insOutputs(){
   // コミット・push・PR の数は、上の「出力」のパネルにある（ここでは繰り返さない）。ここには、パネルにない Git の数だけ
   const r = reworkOf(w0.ws, w0.we), br = insBase("rework"), {vsk, vsInt, V} = insCmp(), pb = periodBack(1);
   // Git の行の前の期間との比べ：途中の期間は、前の期間の同じ日まで（日ごとの行の数はないので、コミットから数える。上の帯と同じ比べ方）
-  const pl = !g || V.partial || !pb.S || (insAg && V.n != null) ? null : V.n == null ? metricAt("gitLines", pb) : gitIn(pb.ws, Math.min(pb.we, addDays(new Date(pb.ws * 1000), V.n).getTime() / 1000)).reduce((a, c) => a + (c.added || 0) + (c.removed || 0), 0);
+  const pl = !g || V.partial || !pb.S ? null : V.n == null ? metricAt("gitLines", pb) : gitIn(pb.ws, Math.min(pb.we, addDays(new Date(pb.ws * 1000), V.n).getTime() / 1000)).reduce((a, c) => a + (c.added || 0) + (c.removed || 0), 0);
   // 1 行ずつの一覧（名前・値・いつもの範囲の印・前の期間との比べ）。長い説明と式は、その行の「ƒx」と「?」に
   const S = [
     g && lines ? insRow(t("Lines in Git commits"), n(lines), {short: lnPM(n(g.added), n(g.removed)), fxs: [`+${n(g.added)} −${n(g.removed)}; ${n(lines)} ÷ ${g.commits} = ${n(Math.round(lines / g.commits))} ${t("per commit")}`], k: "gitLines", help: "lines", metric: "lines", vs: vsInt("gitLines", lines, pl)}) : "",

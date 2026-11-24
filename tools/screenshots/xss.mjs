@@ -22,8 +22,7 @@ await p.addInitScript(() => { window.__lsKeys = new Set(); const gi = Storage.pr
 // 同じ働きのものを 1 度だけ押すための鍵（描き直すと要素が替わるので、要素そのものでなく中身で見分ける）。どの切り替えの、どの選択肢の中のものかも入れる
 await p.addInitScript(() => { window.__keyOf = el => { const chs = []; for (let x = el.closest("[data-ch]"); x; x = x.parentElement && x.parentElement.closest("[data-ch]")) chs.push(x.dataset.ch);
   return [el.tagName, el.getAttribute("class") || "", el.getAttribute("aria-label") || "", ...[...el.attributes].filter(a => a.name.startsWith("data-")).map(a => `${a.name}=${a.value}`),
-    (el.textContent || "").trim().slice(0, 80), ...chs, (el.closest(".ikg, .inscol") || {}).className || "",
-    (document.querySelector("#review [data-ag][aria-pressed=true]") || {dataset: {}}).dataset.ag || ""].join("|"); }; });
+    (el.textContent || "").trim().slice(0, 80), ...chs, (el.closest(".ikg, .inscol") || {}).className || ""].join("|"); }; });
 let failed = 0;
 await p.goto("file://" + path.resolve(html));
 await p.waitForTimeout(300);
@@ -95,8 +94,8 @@ const SUM_TARGETS = [ // [名前, 押すもの（#review の中）, 押し方]
   ["point", "[data-sid]", "click"],                   // いちばん変えたファイルのセッション
   ["tooltip", "[data-tip]", "hover"],                 // ツールチップ
 ];
-// 押すと描き直す切り替え（カードの指標・エージェントなど）
-const SUM_SWITCHES = ["ag", "skk", "wfk", "wk", "where"];
+// 押すと描き直す切り替え（カードの指標など）
+const SUM_SWITCHES = ["skk", "wfk", "wk", "where"];
 const summaryCheck = async label => {
   const sw = p.locator("#view button[data-v=sum]"); if (!(await sw.count())) { failed++; console.log(`  FAIL summary ${label}: no view switch`); return; }
   const seen = new Set(), hidden = new Map(), count = {}, badStyles = new Set();
@@ -135,7 +134,7 @@ const summaryCheck = async label => {
         if (name !== "formula") await close();
       }
     }
-    for (const v of await p.evaluate(() => [...document.querySelectorAll("#review .insight [style]")].map(e => e.getAttribute("style")).filter(v => !/^(--a:[\d.]+|--rs: [\d]+;|(fill|background):var\(--[\w-]+\)|(width:[\d.]+%|flex:[\d.]+);background:var\(--[\w-]+\))$/.test(v)))) badStyles.add(v);
+    for (const v of await p.evaluate(() => [...document.querySelectorAll("#review .insight [style]")].map(e => e.getAttribute("style")).filter(v => !/^(--a:[\d.]+|--rs: [\d]+;|(fill|background):var\(--[\w-]+\)|--c:var\(--(a\d+|other)\)|(width:[\d.]+%|flex:[\d.]+);background:var\(--[\w-]+\))$/.test(v)))) badStyles.add(v);
   };
   // パネルとカードの切り替え（描き直さずに選んだものだけを見せる）。量を選ぶたびに、その量で選べる割る数をどれも選ぶ
   const panels = async state => {
@@ -168,14 +167,9 @@ const summaryCheck = async label => {
   await onSummary(); await check(`summary ${label}`);
   // 出力のパネルに Pushes の選択肢がある（push の数・グラフ・ツールチップを、切り替えを押して確かめる）
   if (!(await p.locator('#review .iksw[data-sw="out"] [data-v="push"]').count())) { failed++; console.log(`  FAIL summary ${label}: Output has no Pushes switch (push records are not checked)`); }
-  const agents = await vals("ag");
-  for (const ag of agents.length ? agents : [null]) { // エージェントで絞ると、どの数も変わる
-    if (ag !== null && !(await pick("ag", ag))) continue;
-    const st0 = ag === null ? "" : `agent ${ag || "all"}`;
-    await sweep(st0 || "default");
-    await panels(st0 || "default");
-    for (const attr of SUM_SWITCHES.slice(1)) for (const v of await vals(attr)) { if (await pick(attr, v)) await sweep(`${st0 ? st0 + ", " : ""}${attr}=${v}`); }
-  }
+  await sweep("default");
+  await panels("default");
+  for (const attr of SUM_SWITCHES) for (const v of await vals(attr)) { if (await pick(attr, v)) await sweep(`${attr}=${v}`); }
   for (const [name] of SUM_TARGETS) if (!count[name]) console.log(`  none summary ${label} ${name} (no such element in this file)`);
   for (const [key, where] of hidden) if (!seen.has(key)) { failed++; console.log(`  FAIL summary ${label} ${where}: exists but was never visible in any switch state, so it was not checked: ${key.slice(0, 160)}`); }
   if (badStyles.size) { failed++; console.log(`  FAIL summary ${label} style values: ${JSON.stringify([...badStyles].slice(0, 5))}`); } else console.log(`  ok   summary ${label} style values`);

@@ -113,7 +113,7 @@ func keys[V any](m map[string]V) []string {
 	return out
 }
 
-// weekStats は 1 週ぶんの集計（エージェントごとの集計つき。AllWeeks と同じ）。
+// weekStats は 1 週ぶんの集計（AllWeeks と同じ）。
 func weekStats(data []*core.Session, ws time.Time, commits ...gitlog.Commit) *Week {
-	return SummarizeByAgent(data, ws, AddDays(ws, 7), commits...)
+	return Summarize(data, ws, AddDays(ws, 7), commits...)
 }

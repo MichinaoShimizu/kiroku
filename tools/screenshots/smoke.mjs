@@ -125,7 +125,7 @@ async function run(env) {
       await p.click("#calfold"); await pause();
       check("もう一度押すと畳む", (await pos()).exp === "false");
     }
-    check("カレンダーの表示に、サマリーの部品（エージェントの切り替えなど）が出ない", await p.evaluate(() => st.view !== "cal" || [...document.querySelectorAll("#review .insagbar, #review .insight")].every(e => !e.offsetParent)));
+    check("カレンダーの表示に、サマリーの部品が出ない", await p.evaluate(() => st.view !== "cal" || [...document.querySelectorAll("#review .insight")].every(e => !e.offsetParent)));
     check("スクロールはページだけ：カレンダーの中ではスクロールしない", await p.evaluate(() => { const c = document.querySelector("#tl .calscroll"); return !c || c.scrollHeight <= c.clientHeight + 1; }));
     { // どの幅でも、曜日の見出しがページの見出しの下に貼り付く（狭い画面は横のスクロールにも合わせる）
       await p.evaluate(() => window.scrollTo(0, document.querySelector("#tl").getBoundingClientRect().top + scrollY + 400)); await pause();
@@ -330,26 +330,16 @@ async function run(env) {
         return ok; }));
       check("見直す候補はどれも、サマリーの指標の横の印から開ける", await p.evaluate(() => [...new Set(lastFlags.map(f => GOTO[f.k] || f.k))].every(id => document.querySelector(`#review .fmark[data-goto="${id}"]`))));
       check("エージェント別の表に、エージェントごとの行がある（費用とクレジットを混ぜない）", await p.evaluate(() => document.querySelectorAll("#review .iagt tbody tr").length >= 2));
-      { // エージェントで絞る：サマリーの数字がそのエージェントの分になり、上の帯（すべて）は変わらない。戻すと元の数字
-        const ags = await p.evaluate(() => [...document.querySelectorAll("#review [data-ag]")].map(b => b.dataset.ag));
-        check("サマリーにエージェントの切り替えがある（すべて + 2 つ以上）", ags.length >= 3 && ags[0] === "");
-        if (ags.length >= 3){
-          const val = () => p.evaluate(() => (document.querySelector('#review .itile [data-metric="active"]') || {}).textContent || "");
-          const band = () => p.evaluate(() => document.querySelector(".kpis").textContent);
-          const all = await val(), b0 = await band();
-          await p.click(`#review [data-ag="${ags[2]}"]`); await pause();
-          const one = await val(), b1 = await band();
-          check("絞ると稼働時間が変わり、エージェント別の表は消え、上の帯は変わらない", one !== all && b1 === b0 && await p.evaluate(() => !document.querySelector("#review .iagt") && !!document.querySelector('#review [data-ag][aria-pressed="true"]:not([data-ag=""])')));
-          check("絞ったまま、カレンダーのセッションは減らない", await p.evaluate(() => DATA.length > 0 && new Set(DATA.map(s => s.source)).size >= 2));
-          await p.click('#review [data-ag=""]'); await pause();
-          check("「すべて」に戻すと元の数字", await val() === all);
-          if (ags.length >= 4){ // A から B に切り替えた結果と、B を直接開いた結果が同じ（前のエージェントの候補が残らない）
-            const advice = () => p.evaluate(() => [...document.querySelectorAll("#review .fmark")].map(e => e.dataset.goto).join("|"));
-            await p.click(`#review [data-ag="${ags[1]}"]`); await pause(); await p.click(`#review [data-ag="${ags[3]}"]`); await pause(); const viaA = await advice();
-            await p.click('#review [data-ag=""]'); await pause(); await p.evaluate(() => { DATA = DATA.slice(); }); await p.click(`#review [data-ag="${ags[3]}"]`); await pause(); const direct = await advice();
-            check("エージェントを切り替えても、前のエージェントのアドバイスが残らない", viaA === direct, `${viaA} / ${direct}`);
-            await p.click('#review [data-ag=""]'); await pause(); }
-        }
+      check("サマリーにエージェントの切り替えはない（いつもすべてのエージェント）", await p.evaluate(() => !document.querySelector("#review [data-ag]")));
+      { // 投入の量（推定費用・Kiro credits・トークン）は、どのエージェントの分もまとめ、棒はエージェントの色で積み上げる。色の凡例に名前を添える
+        const stack = ch => p.evaluate(ch => { const t = document.querySelector(`#review .ik-cost .itile[data-ch="${ch}"]`); if (!t) return null;
+          const segs = [...t.querySelectorAll("rect.sbar.sg")], names = [...t.querySelectorAll(".tagk .lg")].map(e => e.textContent);
+          return {segs: segs.length, colors: new Set(segs.map(r => r.style.getPropertyValue("--c"))).size, names, tip: [...t.querySelectorAll("rect.hit")].some(h => names.some(n => (h.dataset.tip || "").includes(n + ":")))}; }, ch);
+        const ok = r => !!r && r.segs >= 2 && r.colors >= 2 && r.names.length >= 2 && r.tip;
+        const cr = await stack("credits");
+        check("Kiro credits の棒は、Kiro のエージェントごとの色で積み上げ、凡例と棒のツールチップにエージェントの名前がある", ok(cr) && cr.names.every(n => /^Kiro /.test(n)), JSON.stringify(cr));
+        for (const ch of ["cost", "tokens"]){ const r = await stack(ch);
+          check(`${ch} の棒は、エージェントごとの色で積み上げる（Claude Code と Codex を 1 つの量に）`, ok(r) && r.names.includes("Claude Code") && r.names.includes("Codex"), JSON.stringify(r)); }
       }
       check("ヒートマップの各行に曜日の合計がある（触れなくても読める）", await p.evaluate(() => document.querySelectorAll("#review .ihgrid > .iht:not(.ihh)").length === 7));
       check("3 列の並びの最後の段に空きを作らない（余りは横に広げる）", await p.evaluate(() => [...document.querySelectorAll("#review .istats")].every(g => { const k = [...g.children].filter(c => c.offsetParent !== null), /* 単価の切り替えで隠した数字は数えない */ cols = getComputedStyle(g).gridTemplateColumns.split(" ").length; if (k.length < 2) return true; const r = k.map(c => c.getBoundingClientRect()), last = r[r.length - 1], row = r.filter(b => Math.abs(b.top - last.top) < 2); return Math.abs(row[row.length - 1].right - g.getBoundingClientRect().right) < 2 || row.length === cols; })));
@@ -394,16 +384,13 @@ async function run(env) {
         check(`${when}：パネルのグラフの x 軸の名前は横書きで、名前どうしも利用上限の印とも重ならない`, r.length >= 4 && r.every(x => x.rot === 0 && x.n >= 2 && x.overL === 0 && x.overM === 0), JSON.stringify(r.filter(x => x.rot || x.overL || x.overM || x.n < 2))); };
       await xlCheck("開いた期間");
       check("投入・産出のパネルのグラフは期間ごとの棒（表示中の期間の棒は 1 本で、点と線はない）、単価のパネルのグラフは点と線（棒はない）。切り替えで隠れたタイルも", await p.evaluate(() => ["cost", "out", "uin", "unit"].every(c => { const ss = [...document.querySelectorAll(`#review .insh .ik-${c} .ikrow > .itile .tspk svg`)];
-        return ss.length > 0 && ss.every(s => { const bars = s.querySelectorAll("rect.sbar").length, cur = s.querySelectorAll("rect.sbar.cur").length, dots = s.querySelectorAll("polyline.trl, circle.now, circle.pt").length;
+        return ss.length > 0 && ss.every(s => { const bars = s.querySelectorAll("rect.sbar").length, cur = new Set([...s.querySelectorAll("rect.sbar.cur")].map(r => r.getAttribute("x"))).size, /* 積み上げ（Kiro credits）は区分ごとの rect なので、棒の位置で数える */ dots = s.querySelectorAll("polyline.trl, circle.now, circle.pt").length;
           return c === "cost" || c === "out" ? bars >= 2 && cur === 1 && dots === 0 : bars === 0 && s.querySelectorAll("circle.now").length === 1 && !!s.querySelector("polyline.trl"); }); })));
-      if (env.viewport.width >= 900){ // 頭の段は subgrid で横の 2 枚と同じ高さ。片方の頭にだけ注の行があると、もう片方の頭の下が空く。1 つのエージェントに絞ったときも（push あたりの注を頭に置かない）
+      if (env.viewport.width >= 900){ // 頭の段は subgrid で横の 2 枚と同じ高さ。片方の頭にだけ注の行があると、もう片方の頭の下が空く
         const heads = when => p.evaluate(() => { const slack = c => { const h = document.querySelector(`#review .insh .ik-${c} > .ikhd`); if (!h) return null; const last = [...h.children].filter(x => x.checkVisibility()).pop();
           return Math.round(h.getBoundingClientRect().bottom - last.getBoundingClientRect().bottom); }; return {uin: slack("uin"), unit: slack("unit"), cost: slack("cost"), out: slack("out")}; })
           .then(hg => check(`${when}：横に並んだパネルの頭は、どちらも中身の高さ（片方の頭の注のために、もう片方の頭の下が空かない）`, (hg.uin == null || hg.unit == null || Math.abs(hg.uin - hg.unit) <= 4) && (hg.cost == null || hg.out == null || Math.abs(hg.cost - hg.out) <= 4), JSON.stringify(hg)));
-        await heads("すべて");
-        const ags = await p.locator("#review [data-ag]").evaluateAll(xs => xs.map(x => x.dataset.ag).filter(Boolean));
-        for (const ag of ags){ await p.click(`#review [data-ag="${ag}"]`); await pause(); await heads(`エージェント ${ag}`); }
-        if (ags.length){ await p.click('#review [data-ag=""]'); await pause(); } }
+        await heads("すべて"); }
       { // 途中の期間：期間の終わりの推定は、今までの値と同じ行に並ぶ（狭い画面では折り返してよいが、パネルの外に出ない）
         await p.evaluate(() => document.activeElement && document.activeElement.blur()); const lab0 = await p.locator("#rd").innerText(); await p.keyboard.press("t"); await pause();
         const r = await p.evaluate(() => [...document.querySelectorAll("#review .insh .ikrow > .itile")].filter(x => x.checkVisibility() && x.querySelector(".ivbig")).map(x => { const v = x.querySelector(".ivnow > .itv, .ivnow > b").getBoundingClientRect(), e = x.querySelector(".ivbig b").getBoundingClientRect(), t = x.getBoundingClientRect();
@@ -412,8 +399,8 @@ async function run(env) {
         if (env.viewport.width >= 900){ const t = await chartTops(); check("途中の期間でも、横に並んだ 2 枚のパネルのグラフは同じ高さから始まる（4px 以内）", aligned(t), JSON.stringify(t)); }
         await xlCheck("途中の期間");
         check("途中の期間：投入のグラフは、今までの値の棒と、期間の終わりの推定までの破線の棒（凡例にも）", await p.evaluate(() => { const g = document.querySelector("#review .insh .ik-cost"), t = [...g.querySelectorAll(".ikrow > .itile")].find(x => x.checkVisibility()), s = t && t.querySelector(".tspk svg");
-          const cur = s && s.querySelector("rect.sbar.cur"), ext = s && s.querySelector("rect.sbar.ext"), lg = [...g.querySelectorAll(":scope > .tlg .lg")].filter(x => x.checkVisibility()).map(x => x.dataset.lg);
-          return !!cur && !!ext && Math.abs(+ext.getAttribute("y") + +ext.getAttribute("height") - +cur.getAttribute("y")) < 0.2 && lg.includes("rect.sbar.ext") && lg.includes("rect.sbar.cur"); }));
+          const cur = s && [...s.querySelectorAll("rect.sbar.cur")].sort((p, q) => +p.getAttribute("y") - +q.getAttribute("y"))[0] /* 積み上げでは、いちばん上の区分 */, ext = s && s.querySelector("rect.sbar.ext"), lg = [...g.querySelectorAll(":scope > .tlg .lg")].filter(x => x.checkVisibility()).map(x => x.dataset.lg);
+          return !!cur && !!ext && Math.abs(+ext.getAttribute("y") + +ext.getAttribute("height") - +cur.getAttribute("y")) < 0.2 && lg.includes("rect.sbar.ext") && lg.some(x => /^rect\.sbar\.(sg\.)?cur/.test(x)); }));
         { const r = await lgCheck("途中の期間"); const u = r.filter(x => x.p === "ik-uin" || x.p === "ik-unit");
           check("途中の期間でも、単価のパネルの凡例に推定・予測は出ない（単価のグラフには描かない）", u.length === 2 && u.every(x => !x.items.some(i => /estimate|Projection|予測/.test(i))), JSON.stringify(u)); }
         for (let i = 0; i < 30 && await p.locator("#rd").innerText() !== lab0; i++){ await p.keyboard.press("ArrowLeft"); await pause(); } check("今週から元の週に戻る", await p.locator("#rd").innerText() === lab0);
@@ -670,30 +657,8 @@ async function run(env) {
         if (r.ch[0] === `${n}:pr`) check(`${n} ÷ PR の注は「費用」と決めつけない`, !/^Cost can/.test(r.note), r.note); }
       if (u) await p.locator(`#review .ik-${id} .iksw[data-dim="n"] [data-v="${u.ns[0]}"]`).click(); await pause();
     }
-    { // エージェントで絞ったとき：push はエージェントごとに分けられないので、push あたりは出さず、そう 1 行で言う。push の数には全員の分だと添える
-      const ags = await p.locator("#review [data-ag]").evaluateAll(xs => xs.map(x => x.dataset.ag).filter(Boolean));
-      const unitKeys = () => p.evaluate(() => [...document.querySelectorAll("#review .ik-unit [data-ch]")].map(x => x.dataset.ch).join(" "));
-      const all0 = await unitKeys();
-      if (ags.length){ await p.click(`#review [data-ag="${ags[0]}"]`); await pause();
-        const r = await p.evaluate(() => { const g = document.querySelector("#review .ik-unit"), o = document.querySelector("#review .ik-out");
-          return {unit: g ? [...g.querySelectorAll("[data-ch]")].map(x => x.dataset.ch) : [], note: g ? [...g.querySelectorAll(".ikrow > .itile:not([hidden]) .fxn")].map(x => x.textContent).join(" ") : "", head: g ? (() => { const h = g.querySelector(".ikhd").cloneNode(true); h.querySelectorAll(".iksw").forEach(x => x.remove()); return h.textContent; })() : "", pushB: g ? [...g.querySelectorAll('.iksw[data-dim="d"] [data-v="push"]')].filter(b => b.checkVisibility()).length : 0, push: o ? (o.querySelector('[data-ch="push"]') || {}).textContent || "" : "", hasPush: (META.push || []).length > 0}; });
-        check("1 つのエージェントに絞ると、単価に push あたりを出さない", !r.unit.some(k => k.endsWith(":push")), JSON.stringify(r.unit));
-        check("1 つのエージェントに絞ると、割る数に Pushes を出さない", r.pushB === 0, JSON.stringify(r.pushB));
-        { // PR を記録しないエージェント（Kiro・Codex）に絞ると、単価の割る数にも産出の切り替えにも PRs を出さない
-          const np = ags.find(a => a !== "Claude Code");
-          if (np){ await p.click(`#review [data-ag="${np}"]`); await pause();
-            const q = await p.evaluate(() => { const vis = sel => [...document.querySelectorAll(sel)].filter(b => b.checkVisibility()).length;
-              return {u: vis('#review .ik-unit .iksw[data-dim="d"] [data-v="pr"]'), o: vis('#review .ik-out .iksw [data-v="pr"]'), ch: [...document.querySelectorAll("#review .ik-unit .ikrow > [data-ch], #review .ik-out .ikrow > [data-ch]")].map(x => x.dataset.ch)}; });
-            check(`${np} に絞ると、単価と産出に PRs の選択肢を出さない`, q.u === 0 && q.o === 0 && !q.ch.some(k => k === "pr" || k.endsWith(":pr")), JSON.stringify(q));
-          }
-        }
-        check("1 つのエージェントに絞ると、push がエージェントで分けられないことを産出単価の式（ƒx）の中で 1 行で言う（パネルの頭には置かない）", !r.hasPush || (/push/i.test(r.note) && /every agent/.test(r.push) && !/All agents only|「すべて」のときだけ/.test(r.head)), `${r.note} / ${r.head} / ${r.push.slice(0, 120)}`);
-        await p.click('#review [data-ag=""]'); await pause();
-        check("すべてに戻すと、単価の組が元に戻る", await unitKeys() === all0, all0);
-        const gn = await p.evaluate(() => { const x = document.querySelector('#review .ik-unit [data-ch="credits:commit"] .il'); return x ? x.textContent : null; });
-        if (gn != null) check("クレジット ÷ コミットは、Git のコミットで割ると名前で言う", /per Git commit|Git コミットあたり/.test(gn), gn);
-      }
-    }
+    { const gn = await p.evaluate(() => { const x = document.querySelector('#review .ik-unit [data-ch="credits:commit"] .il'); return x ? x.textContent : null; });
+      if (gn != null) check("クレジット ÷ コミットは、Git のコミットで割ると名前で言う", /per Git commit|Git コミットあたり/.test(gn), gn); }
     { // サンキーの名前と量は、色の帯に重ねない。狭い画面（600px 以下）では、図の文字の代わりに下の一覧
       const sk = await p.evaluate(() => { const f = document.querySelector("#review .isk"); if (!f) return null;
         const ts = [...f.querySelectorAll("text.skt")].filter(x => x.checkVisibility()).map(x => x.getBoundingClientRect()), bs = [...f.querySelectorAll("path.skl")].map(x => x.getBoundingClientRect());
