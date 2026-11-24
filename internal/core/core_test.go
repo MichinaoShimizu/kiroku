@@ -320,6 +320,8 @@ func TestIsLimitError(t *testing.T) {
 		"API Error: status 429",
 		// Console の前払いクレジットが尽きた（Usage limits の "Credit balance is too low"）
 		"Credit balance is too low",
+		// 使用量クレジットが応答の途中で尽きた（Claude Code 2.1.328 から。それまでは rate limit と書いていた）
+		"Usage credits ran out before the response was finished.",
 		`API Error: 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API."}}`,
 		// 使用量のクレジットに切りかえる確認に答えがなく、上限で止まった
 		"Fable limit reached · continuing on Fable 5.1 uses usage credits, and the prompt to confirm went unanswered",
