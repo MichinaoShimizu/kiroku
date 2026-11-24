@@ -1,0 +1,1 @@
+- Japanese view: the Output panel, its unit cost and the flow from input are now named 産出 (産出単価, 投入から産出の流れ), paired with 投入, instead of 出力, which reads as LLM output tokens. Output tokens are still 出力

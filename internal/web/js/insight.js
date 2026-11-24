@@ -218,9 +218,12 @@ const insChip = b => !b || b.q1 == null ? "" : `<code class="ichip ifx${insTone(
    パネルにない数字（Git の行・ファイル・リポジトリ・日、AI の編集、ほかの単価、前の期間に収める 1 日の目安）は、下の「内訳」と「その他のグラフ」のカードにある */
 const INS_SW = {cost: "costKind", out: "outKind", unitN: "unitKind", unitD: "unitDen", uinN: "ucKind", uinD: "ucDen"}; // 切り替えの選択を覚える鍵（単価は量と割る数の 2 つ。投入単価は、前の「単価」のカードの鍵をそのまま使い、選んでいたものを引き継ぐ）
 const INS_RATE = new Set(["unit", "uin"]); // 単価のパネル（評価の文が付き、% の増減と累積の線は付けない）
-const INS_SIDE = {cost: "in", uin: "in", out: "out", unit: "out"}; // 投入の側（左の列）と出力の側（右の列）
+const INS_SIDE = {cost: "in", uin: "in", out: "out", unit: "out"}; // 投入の側（左の列）と産出の側（右の列）
 // 投入のパネルの名前。英語の「Input」は、トークンの種類の「入力」（t("Input")）と同じ語なので、辞書を分けられるよう、ここで言語ごとに決める
 const INS_IN = () => JA ? "投入" : "Input";
+// 産出のパネル（コミット・push・PR）の名前。同じく、英語の「Output」はトークンの種類の「出力」と同じ語なので、ここで決める
+// （日本語は「投入」と対の「産出」。「出力」は LLM の出力トークン、「成果」は事業の成果と取り違えるため使わない）
+const INS_OUT = () => JA ? "産出" : "Output";
 // insSwH は、パネルとカードの切り替え（選んだ選択肢だけを見せる。押したときの動きは bindInsight）。dim は選択を入れる data-*（量は n、割る数は d）。
 // 数字のない選択肢は出さない。割る数は量によって数字のあるものが変わるので、ぜんぶ描いて、今の量で数字のないものを hidden にする（量を切り替えたときは bindInsight が付け替える）
 // 選択肢が 1 つでも出す（何を数えているか・何で割っているかがわかり、横に並んだパネルの頭の高さがそろう）
@@ -335,7 +338,7 @@ function insHeadlines(F){
   // 選択肢はいつも同じ並び。数字のないものは出さない（覚えている選択が使えなければ、最初の使えるものに）
   const ORDER = {cost: ["cost", "credits", "tokens", "active"], out: ["commit", "push", "pr"]}, MS = ["cost", "credits", "tokens"];
   const one = (id, label) => { const ks = P[id].map(x => x.key); if (!ks.length) return ""; const cur = pick(id, ks);
-    return card(id, label, swH(id, id === "out" ? t("Output") : t("Measure"), ORDER[id].filter(k => ks.includes(k)), cur), ` data-n="${cur}"`, cur, P[id]); };
+    return card(id, label, swH(id, id === "out" ? INS_OUT() : t("Measure"), ORDER[id].filter(k => ks.includes(k)), cur), ` data-n="${cur}"`, cur, P[id]); };
   // 単価のパネルは、量と割る数の 2 つの切り替え。数字のある組だけを選べる（Kiro は PR を記録しないので、クレジットを選ぶと PR は出ない、など）。
   // 割る数は、どれかの量で数字のあるものだけを描き、今の量で数字のないものは隠す（量を切り替えたら bindInsight が付け替える）
   const two = (id, label, dOrder, note) => { if (!P[id].length) return "";
@@ -347,7 +350,7 @@ function insHeadlines(F){
   // 「割る量を記録したセッションだけで割る」の注は、各タイルの式（ƒx）の中に。頭に置くと、横の出力単価の頭が 1 行ぶん空く（subgrid で行の高さをそろえるため）。push あたりの注（pushNote）も同じ
   const uin = two("uin", t("Unit cost per input"), ["Hour", "Day", "Ses", "Ask"]);
   const nb = insBase("active"), few = nb && nb.q1 == null ? `<p class="note insfew">${esc(t("To compare with your usual range, kiroku needs {min} past {unit} with records (have {n}).", {min: INS_MIN, unit: insUnit(INS_MIN), n: nb.n}))}</p>` : ""; // 比べられないことは、数字ごとでなく 1 度だけ言う
-  return `${few}<div class="insh"><span class="insio in" aria-hidden="true">IN</span><span class="insdiv" aria-hidden="true"></span><span class="insio out" aria-hidden="true">OUT</span>${one("cost", INS_IN())}${one("out", t("Output"))}${uin}${unit}</div><p class="ifxs insdef">${fx(insDef())}</p>`;
+  return `${few}<div class="insh"><span class="insio in" aria-hidden="true">IN</span><span class="insdiv" aria-hidden="true"></span><span class="insio out" aria-hidden="true">OUT</span>${one("cost", INS_IN())}${one("out", INS_OUT())}${uin}${unit}</div><p class="ifxs insdef">${fx(insDef())}</p>`;
 }
 const tickM = (k, v) => /^credits/.test(k) ? crN(v) : fmtM(k, v);
 /* 見直す候補の対象の費用（そのセッションの推定費用の合計）。費用で表せない候補（利用上限・繰り返し・長すぎるプロンプト）は null */
@@ -369,7 +372,7 @@ function insightH(F){
   const col = b => b ? `<div class="inscol">${b}</div>` : "";
   // 内訳：上のサンキーとパネルにない数字と図だけ（出力の内訳・どこに使ったか・時間帯・前の期間からの増減・トークンの種類・エージェント別・よく変えたファイル・作業の進め方）。
   // 先頭は背の高い出力のカード。広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚（.insrow。各カードは自分の高さのまま詰める）
-  const cards = [[t("Output"), card(t("Output"), insOutputs(), " iout wide")], [t("Where it went"), col(insWhere())], [t("When you worked"), card(t("When you worked"), insHeat())],
+  const cards = [[INS_OUT(), card(INS_OUT(), insOutputs(), " iout wide")], [t("Where it went"), col(insWhere())], [t("When you worked"), card(t("When you worked"), insHeat())],
     [t("What changed from the last period"), col(insWater())], [t("Tokens by type"), card(t("Tokens by type"), insTokens())],
     [t("By agent"), card(t("By agent"), insAgents(), " agw")], [t("Most edited files"), card(t("Most edited files"), (insEditsBody() || {}).files)],
     [t("How you worked"), card(t("How you worked"), insWork(), " iwork")]].filter(c => c[1]);
@@ -575,7 +578,7 @@ function insSankey(){
   const sy = yes + fil + no <= 0 ? t("These agents don't record their commits, so it is not known which sessions led to one")
     : t("Of {tot} {metric}, {parts}", {tot: fv(tot), metric: mname, parts: JA ? parts.join("、") : parts.length < 3 ? parts.join(" and ") : `${parts.slice(0, -1).join(", ")}, and ${parts[parts.length - 1]}`});
   const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-skk="${x}" aria-pressed="${x === k}">${esc(INS_SW_NAME()[x])}</button>`).join("")}</div>` : "";
-  const heads = [t("Agent"), t("Project"), t("Output")], hx = [X[0] + nw / 2, X[1] + nw / 2 + (nw + LW) / 2, X[3] + nw / 2];
+  const heads = [t("Agent"), t("Project"), INS_OUT()], hx = [X[0] + nw / 2, X[1] + nw / 2 + (nw + LW) / 2, X[3] + nw / 2];
   // 狭い画面の一覧：列ごとに、色の印・名前・量・割合（図の文字の代わり。読み上げもこちらで）
   const list = `<div class="sklist">${cols.map((c, i) => `<div class="skcol" role="group" aria-label="${esc(heads[i])}"><h6 class="iksh">${esc(heads[i])}</h6><ul>${c.map(([key, v]) => `<li><i style="background:${color(i, key)}"></i><span class="skn2">${esc(key)}</span><span class="iwv">${esc(fv(v))}</span><b>${shr[i].get(key)}%</b></li>`).join("")}</ul></div>`).join("")}</div>`;
   return `<h4 class="ikgh skgh">${esc(t("From input to output"))}</h4><div class="inshead"><h5 class="skil">${esc(t("Sankey diagram"))}<span data-flag="heavy"></span></h5>${mtabs}</div>${say(sy)}<figure class="insfig isk"><svg viewBox="-24 -18 ${W + 24} ${H + 18}" role="img" aria-label="${esc(t("From input to output"))}">${heads.map((h, i) => `<text class="skh" x="${hx[i]}" y="-2">${esc(h)}</text>`).join("")}${paths}${pband}${nodes}</svg>${list}<p class="ifxs">${fx(t("Band width = the amount. A session has a commit or PR when it made one, or when a commit was made in its project from its start to 10 minutes after its end. A session of an agent that doesn't record its commits, with no commit found that way, is \"Not recorded\""), "", t("Band width is the amount"))}${k === "minutes" ? INS_STIME() : ""}</p></figure>`;

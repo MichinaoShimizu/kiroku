@@ -30,7 +30,7 @@ await p.waitForTimeout(300);
 await p.evaluate(() => { const e = document.querySelector("#review"), m = document.querySelector("main"); m.scrollTop += e.getBoundingClientRect().top - document.querySelector("header").offsetHeight - 16; });
 await p.waitForTimeout(400);
 await p.screenshot({ path: path.join(docs, "summary.png") });
-// README のサマリーの主要なグラフ：投入と出力（1 段目）、投入単価と出力単価（2 段目）、投入から出力の流れ（サンキー）。
+// README のサマリーの主要なグラフ：投入と産出（1 段目）、投入単価と産出単価（2 段目）、投入から産出の流れ（サンキー）。
 // パネルの組は、2 枚を囲む範囲を少し余白をつけて切り抜く（2×2 のまま 1 枚にすると縦に長く、README で字が読めない）
 const rect = sel => p.evaluate(s => { const r = document.querySelector(s).getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom }; }, sel);
 // shotPair は、パネル a と b を囲む範囲を撮る。top は上の余白（1 段目は IN・OUT の札まで入れる）
