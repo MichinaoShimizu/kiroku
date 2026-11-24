@@ -66,6 +66,8 @@ A full run after v4.6.1 → v5.1.1 (20 commits: kiroku 5's serve/update/help, th
 
 A side note: while checking `install.sh`'s help, D ran `sh install.sh --help`, which installed v5.1.1 into the audit container (provenance verified; no repository change). That is finding D-8.
 
+`/pre-pr` on this PR found more in the new code, all fixed on it with tests: `hostile-tester` showed that `gh`'s message quotes certificate values (a branch or workflow name such as `fix-timeout`), so a provenance mismatch could be read as "could not reach GitHub" and only warn — in the new `kiroku update` check and, since before, in `install.sh` (now: mismatch markers first; `install.sh` has a test that runs it with a fake `curl` and `gh`); two Kiro V3 copies naming the same foreign `id` kept one ID; reading a crew-log was quadratic in its session IDs; `mdCode` overflowed the stack on very many backticks. `user-tester` found the "?" of Repeated prompts promising a list the dialog doesn't show, "Close to usual" next to a range whose shown end equals the value (now "As usual" when they round the same), and the range wrapping mid-way at 390 px.
+
 ### Open items
 Resolved: Kiro Crew `child_sid` for Codex subagents (this PR, from crew-log closers and usage `harness`; the time-based split of reused slots by `acp_session_id` is not used yet, see below); "Sessions that reached a commit or PR" names Claude Code in its "?" and the Git line (the card label itself is still open); the demo prompt's UTC offset (fixed earlier); the `% labels for two figures` (gone with the Summary redesign).
 
@@ -74,6 +76,8 @@ Carried and new:
 - I5: required checks are not listed anywhere but this log (e2e required since 2026-10-14; `non_admins`, `install-script`, CodeQL not required). List them in development.md. Decides: maintainer
 - B: M1 (Sankey counts sessions started in the period, the Input card counts cost incurred in it), M4 (mid-week off-hours share compared with full weeks), L1 (Worth a look only as ⚠ icons), L8 (first screen doesn't say what kiroku is), the "Sessions that reached a commit or PR" card label, the KIRO_HOME-only path in `serve` / `serve --check` output (`kiro.go` `Where()`), and the small ones (L2 range wording at the edges, L3 relative % on shares, L4 truncated waterfall labels, L5 mid-word breaks at 1000 px, L6 accessible names that don't start with the visible text, L7 unclear small labels). Decides: maintainer for M1, M4, L1, L8; the rest due: next ux run
 - C: one name for the archive feature (kiroku archive / keep a copy / バックアップ / コピー), 推定 vs 予測, the pace figure's three names, unreachable HELP entries (findings, projects, outputs) and their stale text, 残したもの / 出力 left after 投入/産出, "output tokens" in English, the calendar tooltip's "credits 8.4 credits", mixed-language aria-labels, small Japanese term splits, README wording, guide Definition column drift, dead `localizeTitles` entries and `update --help` missing from `kiroku help`. Decides: maintainer for the names; the rest due: next i18n run
+- B (new, low): the unit-cost cards don't say that "Close to usual" means within 10% of the range edge (ƒx could). Due: next ux run
+- A (new, low): `Math.max(...DATA.map(…))` in calendar.js and insight.js spreads arrays as arguments; a history with very many sessions could overflow the stack like `mdCode` did. Due: next code run
 - D-8: `install.sh` ignores its arguments, so `sh install.sh --help` installs. Due: next supply run
 - E: Kiro Crew usage rows' `acp_session_id` could replace the time-based `crewOwnerAt` split for reused slots (and the model-ID test in `crewCodexRow`); Claude Code-backed Crew subagents still don't yield. Due: next data audit
 - E: Claude Code resumed `cost-state` may now carry the earlier process's totals (CHANGELOG 2.1.277, 2.1.302), which kiroku would spread again; needs a real sample. Due: next data audit
@@ -88,7 +92,7 @@ Carried and new:
 ### Loop
 | Run | Findings (certain) | Fixed | Median days to fix | Open items | Overdue | Previous items resolved |
 |---|---|---|---|---|---|---|
-| 2026-11-24 full | 62 | 28 | 0 (same day; PR open) | 14 groups | 0 | 4 of 13 |
+| 2026-11-24 full | 62 (+9 in /pre-pr) | 28 (+9) | 0 (same day; PR open) | 14 groups | 0 | 4 of 13 |
 | 2026-11-20 ux, i18n | 25 | 25 | 0 (same day; PR open) | 2 new (and 26 not rechecked) | 1 (F, from 2026-11-19) | — (aspect run) |
 | 2026-11-19 full | 60 | 34 | 0 (same day; PR open) | 26 | 1 (F) | 9 of 24 |
 | 2026-10-18 full | 64 | 36 | 0 (fixed the same day; PRs open) | 24 | 0 | 8 of 17 |

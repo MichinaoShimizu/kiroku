@@ -523,7 +523,7 @@ const JA_TEXT = {
   "Prompts (sessions that record tokens)": "プロンプト（トークンを記録するセッション）",
   "Prompts by agent": "エージェント別のプロンプト",
   "Prompts by project": "プロジェクト別のプロンプト",
-  "Prompts of 12+ characters in the period, grouped by how similar their text is. The number is how many groups you wrote in 3 or more sessions; the card quotes the one in the most sessions with its count, and the dialog lists up to 3": "期間中の 12 文字以上のプロンプトを文面の似ている度合いでまとめたもの。数は、3 つ以上のセッションで書いた組の数。カードには書いたセッションのいちばん多い組とその回数を、ダイアログには 3 件までを出します",
+  "Prompts of 12+ characters in the period, grouped by how similar their text is. The number is how many kinds you wrote in 3 or more sessions; the card quotes the one in the most sessions with its count": "期間中の 12 文字以上のプロンプトを文面の似ている度合いでまとめたもの。数は、3 つ以上のセッションで書いた種類の数。カードには、書いたセッションのいちばん多いものとその回数を出します",
   "Prompts with corrections or interruptions": "言い直しや中断のあったプロンプト",
   "Prompts, files, commits": "プロンプト・ファイル・コミット",
   "Pull request": "プルリクエスト",
