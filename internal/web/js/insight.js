@@ -178,7 +178,8 @@ function insVerdict(b, F, hab){
   // 範囲の端からの離れ方が 1 割に満たなければ「いつも通り」と言う（わずかな差で良し悪しを言わない）
   const off = b.pos === "low" ? (b.q1 - b.v) / (b.q1 || 1) : b.pos === "high" ? (b.v - b.q3) / (b.q3 || 1) : 0, pos = b.far || off >= .1 ? b.pos : "typical";
   const tone = pos === "low" ? "good" : pos === "high" ? "bad" : "";
-  const head = pos === "low" ? t("Below usual") : pos === "high" ? t("Above usual") : t("As usual");
+  // 範囲の外だが 1 割に満たないときは「ほぼいつも通り」（「いつも通り」と範囲を並べると、範囲の外の値と食い違って読める）
+  const head = pos === "low" ? t("Below usual") : pos === "high" ? t("Above usual") : b.pos === "low" ? t("Close to usual (slightly below)") : b.pos === "high" ? t("Close to usual (slightly above)") : t("As usual");
   const n = b.xs.length, fm = b.fmt || (x => fmtM(k, x));
   const ser = []; for (let i = INS_N; i >= 1; i--){ const p = periodBack(i); if (p.ws >= historyStart()) ser.push(metricAt(k, p)); } ser.push(b.v);
   let run = 0, dir = 0; for (let i = ser.length - 1; i > 0 && ser[i] != null && ser[i - 1] != null; i--){ const d = Math.sign(ser[i] - ser[i - 1]); if (!d || (dir && d !== dir)) break; dir = d; run++; }
@@ -740,7 +741,8 @@ function insWork(){
     insStat(t("Wait time (median)"), secsH(w.waitMedian), fx(`P90 ${secs(w.waitP90)}; n = ${w.waitCount}`), "wait", w.waitCount ? "wait" : "", "wait"),
     // 見直す候補になる指標は、どれもここか上の数字に「?」を持ち、その横の印から開けるようにする
     insStat(t("Sessions with possible friction"), `${w.frictionN ?? (w.friction || []).length}`, "", "friction", "", "friction"),
-    (rp => insStat(t("Repeated prompts"), `${rp.length}`, rp.length ? esc(`“${snipOf(rp[0].text || "", 40)}”`) : "", "repeats"))(repeatsOf(ws, we)),
+    // 数は、3 つ以上のセッションで書いた似たプロンプトの組の数。添えるのはいちばん多い組と、その回数（ダイアログの数と同じ）
+    (rp => insStat(t("Repeated prompts"), `${rp.length}`, rp.length ? esc(t("{n} kinds; most: “{p}” {c}× in {s}", {n: rp.length, p: snipOf(rp[0].text || "", 40), c: rp[0].n, s: plural(rp[0].ids.size, "session")})) : "", "repeats"))(repeatsOf(ws, we)),
     ...insUseStats(w, ws, we),
   ].join("");
   const sy = t("Corrections {f}% of {p} prompts; {l} usage limit hits; {c} compactions", {f: w.fixRate ?? "—", p: commas(w.prompts), l: H.length, c: C.length});

@@ -2,3 +2,5 @@
 - When kiroku can't start a browser (no `xdg-open`, as on a headless Linux, WSL or a container), it now says so and names the file to open, instead of saying it opened the view
 - The Japanese view translates "Reached a commit or PR" in the sessions-that-reached-a-commit dialog
 - A Kiro IDE / CLI (V3) session whose `session.json` names another conversation's `id` no longer hides that conversation; it is shown under its own folder name
+- Summary: a value just outside your usual range says "Close to usual (slightly below/above)" instead of "As usual" next to a range it isn't in
+- Summary: the Repeated prompts card says the number is how many kinds of prompt you repeated, and gives the most repeated one's count
