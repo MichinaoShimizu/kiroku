@@ -1935,3 +1935,45 @@ func TestCrewPrivateSidsIncludeChildSid(t *testing.T) {
 		t.Errorf("crewPrivateSids = %v, want child-sid-1 and not the malformed one", got)
 	}
 }
+
+// crew-log に会話 ID（child_sid など）がたくさんあっても、読む時間は行数にほぼ比例する（2 乗にならない）。
+// 機械の速さによらないよう、行を 4 倍にしたときの時間の比で見る（2 乗なら 16 倍ほど）
+func TestCrewLogManyIDsIsLinear(t *testing.T) {
+	if testing.Short() {
+		t.Skip("timing")
+	}
+	write := func(n int) string {
+		var b strings.Builder
+		b.WriteString(`{"type": "session", "id": "p", "slot": "dashboard:chat-1-100", "cwd": "/w"}` + "\n")
+		for i := 0; i < n; i++ {
+			fmt.Fprintf(&b, `{"type": "subagent/completed", "data": {"agent_id": "a%d", "child_sid": "sid-%d"}}`+"\n", i, i)
+		}
+		p := filepath.Join(t.TempDir(), "log.jsonl")
+		if err := os.WriteFile(p, []byte(b.String()), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	best := func(p string, n int) time.Duration {
+		var min time.Duration
+		for range 3 {
+			d := &crewLogDir{}
+			start := time.Now()
+			if err := readCrewLog(p, map[string]bool{}, d); err != nil {
+				t.Fatal(err)
+			}
+			if len(d.ids) != n+1 {
+				t.Fatalf("ids = %d, want %d", len(d.ids), n+1)
+			}
+			if e := time.Since(start); min == 0 || e < min {
+				min = e
+			}
+		}
+		return min
+	}
+	small, big := write(10000), write(40000)
+	a, b := best(small, 10000), best(big, 40000)
+	if b > 8*a {
+		t.Errorf("4× the lines took %.1f× as long (%v vs %v): reading is not linear", float64(b)/float64(a), b, a)
+	}
+}

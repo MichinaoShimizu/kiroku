@@ -40,3 +40,9 @@ eq(mdText("x\u0085- y"), "x - y");
   eq(h[2], "Codex · \\[p\\](javascript:x) · `feat/button\"><svg onload=alert(17)>` · Nov 24 10:00 – 11:00");
   eq(mdSessionHead({id: "abc"}, "t").join("\n"), "# abc\n\nt");
 }
+// バッククォートの組がとても多い名前（履歴のブランチ・作業場所）でも落ちない（引数に広げて Math.max すると、スタックがあふれる）
+{
+  const many = "`a".repeat(250000);
+  eq(mdCode(many).startsWith("``"), true);
+  eq(mdSessionHead({title: "t", branch: many}, "w")[2].length > 500000, true);
+}

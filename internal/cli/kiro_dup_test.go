@@ -209,3 +209,29 @@ func TestKiroV3CopyWithAnotherIDDoesNotHideTheReal(t *testing.T) {
 		t.Errorf("prompts = %q, want the real sess_k1's prompts kept", got)
 	}
 }
+
+// 2 つの写しが同じ（どのフォルダのものでもない）id を書いていても、同じ ID の会話を 2 つ出さない（画面は ID で会話を引くので、混ざる）
+func TestKiroV3SharedForeignIDStaysUnique(t *testing.T) {
+	for name, tree := range map[string]map[string]string{
+		"no owner": {
+			"sessions/b1/sess_a/session.json": `{"id": "sess_z"}`, "sessions/b1/sess_a/messages.jsonl": v3Prompt("2026-09-29T10:00:00Z", "a"),
+			"sessions/b2/sess_b/session.json": `{"id": "sess_z"}`, "sessions/b2/sess_b/messages.jsonl": v3Prompt("2026-09-29T11:00:00Z", "b"),
+		},
+		"chain": {
+			"sessions/b1/sess_b/session.json": `{"id": "sess_c"}`, "sessions/b1/sess_b/messages.jsonl": v3Prompt("2026-09-29T10:00:00Z", "b"),
+			"sessions/b2/sess_e/session.json": `{"id": "sess_c"}`, "sessions/b2/sess_e/messages.jsonl": v3Prompt("2026-09-29T11:00:00Z", "e"),
+		},
+	} {
+		home := t.TempDir()
+		writeTree(t, home, tree)
+		data := loadKiro(t, home)
+		if len(data) != 2 {
+			t.Errorf("%s: %d sessions, want 2", name, len(data))
+		}
+		for id, n := range ids(data) {
+			if n > 1 {
+				t.Errorf("%s: %q appears %d times", name, id, n)
+			}
+		}
+	}
+}

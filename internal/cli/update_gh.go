@@ -211,6 +211,9 @@ func ghVerifyAttestation(tag, name string, archive []byte) error {
 		return err
 	}
 	defer os.RemoveAll(dir)
+	if abs, err := filepath.Abs(dir); err == nil { // TMPDIR が - で始まる相対パスでも、gh の旗にならないように
+		dir = abs
+	}
 	file := filepath.Join(dir, name)
 	if err := os.WriteFile(file, archive, 0o600); err != nil {
 		return err
@@ -226,8 +229,8 @@ func ghVerifyAttestation(tag, name string, archive []byte) error {
 	var last error
 	for _, ref := range []string{"refs/heads/main", "refs/tags/" + tag} {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-		_, err := runGH(ctx, nil, "attestation", "verify", file, "--repo", repo, "--hostname", host,
-			"--signer-workflow", releaseRepo+"/.github/workflows/release.yml", "--source-ref", ref, "--deny-self-hosted-runners")
+		_, err := runGH(ctx, nil, "attestation", "verify", "--repo", repo, "--hostname", host,
+			"--signer-workflow", releaseRepo+"/.github/workflows/release.yml", "--source-ref", ref, "--deny-self-hosted-runners", "--", file)
 		cancel()
 		if err == nil {
 			return nil
@@ -243,11 +246,20 @@ func ghVerifyAttestation(tag, name string, archive []byte) error {
 		return ghFailure("could not check the build provenance of "+name, last)
 	}
 	low := strings.ToLower(ge.detail + " " + ge.msg)
+	// gh の説明には、証明書の値（ブランチ名・ワークフローのファイル名など、リリースを作れる人が選べる文字）がそのまま入る。
+	// 「合わない」の印が 1 つでもあれば、ほかにどんな言葉（timeout など）があっても止める（確かめられなかったことにしない）
+	if attestMismatch.MatchString(low) {
+		return fmt.Errorf("the build provenance of %s does not match %s, not updating (gh attestation verify failed; set KIROKU_SKIP_ATTESTATION=1 to skip this check)", name, termSafe(releaseRepo, 200))
+	}
 	switch {
 	case strings.Contains(low, "unknown command") || strings.Contains(low, "unknown flag"):
 		return unchecked("this gh is too old to check the build provenance (gh attestation verify)")
-	case regexp.MustCompile(`http (401|403|429|5\d\d)|sigstore verifier|dial tcp|no such host|connection (refused|reset)|timeout|tls handshake|network is unreachable|did not finish in time`).MatchString(low):
+	case regexp.MustCompile(`http (401|403|429|5\d\d)|sigstore verifier|dial tcp|no such host|connection (refused|reset)|timeout|tls handshake|network is unreachable`).MatchString(low):
 		return unchecked("gh could not reach " + host + " to check the build provenance")
 	}
 	return fmt.Errorf("the build provenance of %s does not match %s, not updating (gh attestation verify failed; set KIROKU_SKIP_ATTESTATION=1 to skip this check)", name, termSafe(releaseRepo, 200))
 }
+
+// attestMismatch は、gh attestation verify が「証明が見つからない・合わない」と言うときの印（小文字で）。
+// gh の書式（"expected %s to be %s, got %s"・"no matching CertificateIdentity found"・"no attestations found" など）と HTTP 404。
+var attestMismatch = regexp.MustCompile(`expected \S+ to be|no matching|no attestations|does not match|verification failed|failed to verify|http 404`)

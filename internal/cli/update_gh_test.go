@@ -36,18 +36,20 @@ if [ "$1 $2" = "release view" ]; then
   exit 0
 fi
 if [ "$1 $2" = "attestation verify" ]; then
-  f=$3
+  ref="" f=""
+  while [ $# -gt 0 ]; do [ "$1" = --source-ref ] && ref=$2; [ "$1" = -- ] && f=$2; shift; done
+  # ファイルは -- のあと（旗と取り違えない）で、絶対パス、本人だけが読める（0600）
+  case "$f" in /*) ;; *) echo "file not after -- or not absolute: $f" >&2; exit 1 ;; esac
   [ -f "$f" ] || { echo "no such file" >&2; exit 1; }
-  # 渡されたファイルは本人だけが読める（0600）
   case "$(ls -l "$f")" in -rw-------*) ;; *) echo "file mode $(ls -l "$f")" >&2; exit 1 ;; esac
-  ref=""
-  while [ $# -gt 0 ]; do [ "$1" = --source-ref ] && ref=$2; shift; done
   case "$GH_ATTEST" in
     ""|ok) exit 0 ;;
     tagonly) [ "$ref" = refs/tags/v9.9.9 ] && exit 0
       printf 'Loaded digest sha256:abc for file://x\nError: verifying with issuer "sigstore.dev"\nexpected SourceRepositoryRef to be %s\n' "$ref" >&2; exit 1 ;;
     mismatch) printf 'Loaded digest sha256:abc for file://x\nLoaded 1 attestation from GitHub API\nError: verifying with issuer "sigstore.dev"\n\342\234\227 Verification failed\n' >&2; exit 1 ;;
     old) echo 'unknown command "attestation" for "gh"' >&2; exit 1 ;;
+    evilref) printf 'Loaded digest sha256:abc for file://x\nError: verifying with issuer "sigstore.dev"\nexpected SourceRepositoryRef to be %s, got refs/heads/fix-timeout\n' "$ref" >&2; exit 1 ;;
+    evilsan) printf 'Loaded digest sha256:abc for file://x\nError: verifying with issuer "sigstore.dev": no matching CertificateIdentity found, last error: expected SAN to match x/release.yml, got x/workflows/ci-timeout.yml@refs/heads/main (dial tcp)\n' >&2; exit 1 ;;
     net) printf 'Loaded digest sha256:abc for file://x\nError: failed to fetch attestations: Get "https://api.github.com/x": dial tcp: lookup api.github.com: no such host\n' >&2; exit 1 ;;
   esac
   exit 3
@@ -112,12 +114,12 @@ func TestGHUpdate(t *testing.T) {
 		"release view --repo github.com/corp/kiroku --json tagName --jq .tagName",
 		"release download v9.9.9 --repo github.com/corp/kiroku --pattern " + name + " --output -",
 		"release download v9.9.9 --repo github.com/corp/kiroku --pattern checksums.txt --output -",
-		"attestation verify * --repo corp/kiroku --hostname github.com --signer-workflow github.com/corp/kiroku/.github/workflows/release.yml --source-ref refs/heads/main --deny-self-hosted-runners",
+		"attestation verify --repo corp/kiroku --hostname github.com --signer-workflow github.com/corp/kiroku/.github/workflows/release.yml --source-ref refs/heads/main --deny-self-hosted-runners -- *",
 	}
 	got := calls()
 	for i := range got { // 一時ファイルの場所は毎回違う
 		if f := strings.Fields(got[i]); len(f) > 2 && f[0] == "attestation" {
-			f[2] = "*"
+			f[len(f)-1] = "*"
 			got[i] = strings.Join(f, " ")
 		}
 	}
@@ -313,6 +315,9 @@ func TestGHUpdateChecksProvenance(t *testing.T) {
 		{attest: "ok", replaced: true},
 		{attest: "tagonly", replaced: true},
 		{attest: "mismatch", err: "does not match github.com/corp/kiroku, not updating"},
+		// 証明書の値（ブランチ名・ワークフロー名）に timeout などが入っていても、合わないものは合わない（警告にしない）
+		{attest: "evilref", err: "does not match github.com/corp/kiroku, not updating"},
+		{attest: "evilsan", err: "does not match github.com/corp/kiroku, not updating"},
 		{attest: "old", replaced: true, note: "too old"},
 		{attest: "old", require: "1", err: "KIROKU_REQUIRE_ATTESTATION=1"},
 		{attest: "net", replaced: true, note: "could not reach github.com"},

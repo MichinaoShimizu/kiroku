@@ -12,7 +12,6 @@ import (
 	"os/user"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -193,7 +192,8 @@ type crewLogDir struct {
 	// childSid は subagent/completed・subagent/failed の data.child_sid（サブエージェントの id → 子が最後に動いた backend の会話 ID）。
 	// Crew が state.json を消したあとも、子の Codex・Claude Code の記録と結びつけるため（crew_log/emit_children.py の _child_sid_field）
 	childSid map[string]string
-	errs     []error // 読めなかったファイル（ファイル名つき）
+	hasID    map[string]bool // ids にあるもの
+	errs     []error         // 読めなかったファイル（ファイル名つき）
 }
 
 // report は、読めなかったファイルを errs に足す。
@@ -838,7 +838,11 @@ func readCrewLog(p string, seen map[string]bool, d *crewLogDir) error {
 	r := bufio.NewReaderSize(f, 1<<16)
 	long := 0
 	addID := func(id string) {
-		if id != "" && !slices.Contains(d.ids, id) {
+		if id != "" && !d.hasID[id] { // map で見る（行の多い crew-log で、読むのが行数の 2 乗にならないように）
+			if d.hasID == nil {
+				d.hasID = map[string]bool{}
+			}
+			d.hasID[id] = true
 			d.ids = append(d.ids, id)
 		}
 	}

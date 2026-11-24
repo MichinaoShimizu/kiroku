@@ -50,10 +50,11 @@ Each release also has the binary on its own: `kiroku-darwin-arm64`, `kiroku-darw
 ```bash
 gh release download -R MichinaoShimizu/kiroku -p kiroku-darwin-arm64 -O ~/bin/kiroku.new \
   && gh attestation verify ~/bin/kiroku.new --repo MichinaoShimizu/kiroku \
+     --signer-workflow MichinaoShimizu/kiroku/.github/workflows/release.yml --deny-self-hosted-runners \
   && chmod +x ~/bin/kiroku.new && mv ~/bin/kiroku.new ~/bin/kiroku
 ```
 
-This checks the file's build provenance before it replaces anything in `~/bin`. The binaries are also listed in `checksums.txt`, like the archives.
+This checks the file's build provenance (made by `release.yml` on a GitHub-hosted runner) before it replaces anything in `~/bin`. If the check fails, nothing is replaced; delete `~/bin/kiroku.new` before you try again (`gh release download` doesn't overwrite a file). The binaries are also listed in `checksums.txt`, like the archives.
 
 ### Inside an organization (a private repository)
 
@@ -65,12 +66,13 @@ For the people who use it:
 gh auth login                                                   # once
 gh release download -R your-org/your-repo -p kiroku-darwin-arm64 -O ~/bin/kiroku.new \
   && gh attestation verify ~/bin/kiroku.new --repo your-org/your-repo \
+     --signer-workflow your-org/your-repo/.github/workflows/release.yml --deny-self-hosted-runners \
   && chmod +x ~/bin/kiroku.new && mv ~/bin/kiroku.new ~/bin/kiroku
 kiroku serve
 kiroku update                                                   # later: updates from your-org/your-repo
 ```
 
-On Windows, download `kiroku-windows-amd64.exe` (or `-arm64.exe`) the same way, for example to `-O "$env:LOCALAPPDATA\Programs\kiroku\kiroku.exe"`, and add that folder to your `PATH`.
+On Windows, download `kiroku-windows-amd64.exe` (or `-arm64.exe`) the same way to a new file such as `-O "$env:LOCALAPPDATA\Programs\kiroku\kiroku.new.exe"`, check it with the same `gh attestation verify` line, then rename it to `kiroku.exe` and add that folder to your `PATH`.
 
 - `kiroku update` there needs `gh` installed and logged in with access to the repository (with SAML single sign-on, authorize the login for the organization). Without them it stops and says what to do
 - Before it replaces anything, `kiroku update` there also checks the build provenance with `gh attestation verify` (made by that repository's `release.yml` on a GitHub-hosted runner), as `install.sh` does: it stops if the provenance doesn't match, warns if `gh` is too old or can't reach the host, and follows `KIROKU_REQUIRE_ATTESTATION=1` and `KIROKU_SKIP_ATTESTATION=1`. On GitHub Enterprise Server without artifact attestations, set `KIROKU_SKIP_ATTESTATION=1`; it never falls back to the public repository

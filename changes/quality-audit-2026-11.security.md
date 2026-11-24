@@ -1,3 +1,5 @@
 - `kiroku serve`'s check for an already running kiroku no longer follows redirects or uses a proxy, so another program holding the port can't make kiroku fetch other URLs (nothing private was sent)
 - Terminal output removes control characters from a repository folder named in history when git times out, and from paths in two other messages
 - "Copy as Markdown" in a session escapes the title, project and branch, so they can't become links, HTML or mentions where you paste them
+- `install.sh` no longer treats a build provenance mismatch as "could not reach GitHub" when `gh`'s message quotes a branch or workflow name containing words such as "timeout"; it now stops, as for any other mismatch
+- Copy as Markdown and the daily report prompt no longer fail on a branch or folder name from history with very many backticks

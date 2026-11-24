@@ -275,15 +275,17 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 	}
 	// ほかの会話の id を session.json に書いた写しは、その会話と同じ ID で出さない（画面は ID で会話を引くので、混ざる）。
 	// 自分のフォルダ名を ID にし、再開のコマンドもそれで出す
+	// 同じ id を書いた写しが 2 つあっても（その id のフォルダがなくても）、2 つめからは自分のフォルダ名を ID にする
+	used := map[string]bool{}
 	for _, key := range order {
-		if s := picked[key].s; s.ID != key {
-			if c := picked[s.ID]; c != nil {
-				s.ID = key
-				if s.Project != "" {
-					s.Resume = core.ResumeCmd(s.Project, "kiro-cli chat --v3 --resume-id", s.ID)
-				}
+		s := picked[key].s
+		if s.ID != key && (picked[s.ID] != nil || used[s.ID]) {
+			s.ID = key
+			if s.Project != "" {
+				s.Resume = core.ResumeCmd(s.Project, "kiro-cli chat --v3 --resume-id", s.ID)
 			}
 		}
+		used[s.ID] = true
 	}
 	for _, key := range order {
 		s, dir := picked[key].s, picked[key].dir
