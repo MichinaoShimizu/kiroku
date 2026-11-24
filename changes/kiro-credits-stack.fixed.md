@@ -1,0 +1,3 @@
+- Summary: in a period still in progress, the Input bar's value (the amount so far) sits just above the solid bar instead of on top of the dashed estimate box, where it read like the estimate
+- Summary: the Input bars' tooltip says the amount is 0 (such as "0 credits") for a period that has records but none of that amount, instead of "No records"
+- Summary: Japanese tooltips of the Input bars use the full-width colon throughout (「これまで：80 credits」), as the estimate line already did
