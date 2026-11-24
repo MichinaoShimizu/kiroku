@@ -1299,3 +1299,5 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .imods li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px}
 .imods li i{width:8px;height:8px;border-radius:50%}.imods .imn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:14em}
 .itile .imods li b{font:600 var(--fs-xs)/1.3 var(--sans);letter-spacing:normal;font-variant-numeric:tabular-nums;color:var(--ink);text-align:right} /* .itile b（大きな値）を受け継がない */
+/* 累積・平均の線の右端の値（insSpark の cEnd）。線と同じ琥珀色、地の色の縁取り。棒のグラフでは右の軸の目盛りの位置に */
+.tspk .cud{fill:var(--amber)}.tspk text.cuv{font-size:9px;font-weight:600;fill:var(--amber);text-anchor:end;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}.tspk text.cuv.r{text-anchor:start}

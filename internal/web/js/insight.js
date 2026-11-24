@@ -122,6 +122,10 @@ function insSpark(b, label, W = 480, bar = false){
   const xc = i => ps[i].cur && b.part && n > 1 ? x(n - 2) + insFrac() * (x(n - 1) - x(n - 2)) : x(i);
   const cpts = ps.map((q, i) => q.c == null ? null : `${xc(i).toFixed(1)},${y2(q.c).toFixed(1)}`).filter(Boolean);
   const cuma = cpts.length < 2 || !add ? "" : `<polygon class="cuma" points="${x(ps.findIndex(q => q.c != null)).toFixed(1)},${y0} ${cpts.join(" ")} ${xc(n - 1).toFixed(1)},${y0}"/>`, cuml = cpts.length < 2 ? "" : `<polyline class="cuml" points="${cpts.join(" ")}"/>`;
+  // 累積・平均（オレンジの線）は、右端の値だけを書く（全部の点に書くと、紫の数字と重なる）。棒のグラフは右の軸の上に、線のグラフは線の終わりの点の左に。
+  // 途中の期間は今までの値（予測の点ではなく）。紫の点より上なら上に、下なら下に
+  const cEnd = cpts.length < 2 || ps[n - 1].c == null ? "" : (() => { const cv = ps[n - 1].c, ex = xc(n - 1), ey = y2(cv), yp = y(bar ? (ps[n - 1].cur && b.part ? Math.max(b.v, b.cur) : ps[n - 1].v || 0) : b.v), up = ey < yp;
+    return `<circle class="cud" cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="2.5"/><text class="cuv${add ? " r" : ""}" x="${(add ? W - R + 5 : ex - 7).toFixed(1)}" y="${(add ? ey + 3.5 : up ? Math.max(T + 8, ey - 6) : ey + 13).toFixed(1)}">${esc(ptS(cv))}</text>`; })();
   const cprj = cProj != null && ps[n - 1].c != null ? `<line class="cprj" x1="${xc(n - 1).toFixed(1)}" y1="${y2(ps[n - 1].c).toFixed(1)}" x2="${x(n - 1).toFixed(1)}" y2="${y2(cProj).toFixed(1)}"/><circle class="cprjd" cx="${x(n - 1).toFixed(1)}" cy="${y2(cProj).toFixed(1)}" r="3"/>` : "";
   let marks;
   if (bar){ // 棒：過去の期間は淡い色、表示中の期間は濃い色。途中の期間は、今までの値の棒の上に、期間の終わりの推定までの淡い破線の棒
@@ -157,7 +161,7 @@ function insSpark(b, label, W = 480, bar = false){
     return `<path class="slim" d="M${lx.toFixed(1)} ${(ty - 7).toFixed(1)}l-4.5 7h9z"/>${h.length > 1 ? `<text class="slimn${bar ? " s" : ""}" x="${(bar ? lx + 5.5 : lx).toFixed(1)}" y="${(bar ? ty : ty - 10).toFixed(1)}">×${h.length}</text>` : ""}<rect class="hit slimhit" x="${(x(i) - 6 - (bar ? 4 : 0)).toFixed(1)}" y="${(ty - 10).toFixed(1)}" width="${bar ? 20 : 12}" height="12"${tipAttr(h.length === 1 ? t("Usage limit hits") : `${t("Usage limit hits")} ×${h.length}`, rows)}/>`; }).join("");
   const yt = (INS_SHORT()[k] || label || insName(k)), xt = st.mode === "month" ? t("Month") : t("Week");
   const list = ps.map(q => `${q.p.label} ${q.v == null ? "—" : fm(q.v)}${q.c == null ? "" : ` (${cl} ${fm(q.c)})`}`).join(LSEP());
-  return `<span class="tspk${bar ? " tbar" : ""}"><span class="sr">${esc(t("Trend: {list}", {list}))}</span><svg aria-hidden="true"${LB ? ` class="lb"` : ""} viewBox="0 0 ${W} ${H}"><text class="syt" x="${L}" y="11">${esc(yt)}</text>${add ? `<text class="syt r" x="${W - R}" y="11">${esc(cl)}</text>` : ""}${bar ? band + ticks + xtm + cuma + marks + med + cuml + cprj : band + med + ticks + xtm + cuma + cuml + marks}${pcl}${xl}<text class="sxt" x="${(L + (W - L - R) / 2).toFixed(1)}" y="${H - 3}">${esc(xt)}</text>${hits}${lim}</svg></span>`;
+  return `<span class="tspk${bar ? " tbar" : ""}"><span class="sr">${esc(t("Trend: {list}", {list}))}</span><svg aria-hidden="true"${LB ? ` class="lb"` : ""} viewBox="0 0 ${W} ${H}"><text class="syt" x="${L}" y="11">${esc(yt)}</text>${add ? `<text class="syt r" x="${W - R}" y="11">${esc(cl)}</text>` : ""}${bar ? band + ticks + xtm + cuma + marks + med + cuml + cprj : band + med + ticks + xtm + cuma + cuml + marks}${pcl}${cEnd}${xl}<text class="sxt" x="${(L + (W - L - R) / 2).toFixed(1)}" y="${H - 3}">${esc(xt)}</text>${hits}${lim}</svg></span>`;
 }
 /* insVerdict は、単価の数字の「評価」と「次の一手」（AI は使わず、決まった規則で）。
    評価：いつもの範囲（過去の真ん中 50%）より低ければ良い側（コミット・行あたりは「効率が良い」、時間・セッション・プロンプトあたりは「軽い」）。

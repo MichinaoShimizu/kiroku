@@ -6,7 +6,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Added
 
-- Summary: the line charts of the two unit cost panels show each point's value next to it, as the bar charts do above their bars, so you can read the numbers without hovering. A period still in progress shows its value so far next to "So far"
+- Summary: the line charts of the two unit cost panels show each point's value next to it, as the bar charts do above their bars, so you can read the numbers without hovering. A period still in progress shows its value so far next to "So far". The orange line (the cumulative total in Input, the running average in the unit cost panels) shows its latest value at its right end
 - Summary: the Input panel shows each model's share next to the figure ("By model": a small donut with the top four models and Other) for Cost, Credits and Tokens, so the model mix no longer needs Breakdown opened and Where it went switched to Model
 
 ### Changed
