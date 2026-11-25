@@ -20,7 +20,9 @@ type KiroIDE struct{ Home, Legacy string }
 
 func (k *KiroIDE) Name() string   { return "Kiro IDE / CLI (V3)" }
 func (k *KiroIDE) Family() string { return "kiro" }
-func (k *KiroIDE) Where() string  { return filepath.Join(k.Home, "sessions") }
+
+// Where は読む場所。KIRO_HOME のほかに ~/.kiro も読むときは、両方を並べる（片方だけ出すと、もう片方の会話がどこから来たかわからない）
+func (k *KiroIDE) Where() string { return strings.Join(k.Watch(), ", ") }
 
 // Watch は読む場所（Legacy のもふくむ）。
 func (k *KiroIDE) Watch() []string {
@@ -517,7 +519,15 @@ func (k *KiroCLI) Retention() *Retention {
 		File:    filepath.Join(k.CrewHome, "config.local.json")}
 }
 func (k *KiroCLI) Family() string { return "kiro" }
-func (k *KiroCLI) Where() string  { return filepath.Join(k.Home, "sessions", "cli") }
+
+// Where は読む場所（KiroIDE.Where と同じく、KIRO_HOME と ~/.kiro の両方を読むときは両方）
+func (k *KiroCLI) Where() string {
+	var ps []string
+	for _, h := range kiroHomes(k.Home, k.Legacy) {
+		ps = append(ps, filepath.Join(h, "sessions", "cli"))
+	}
+	return strings.Join(ps, ", ")
+}
 
 // Load は全部の会話を読む（Crew の記録も）。読めないファイルがあっても読めた分は出し、最初のエラー（と残りの数）を返す。
 func (k *KiroCLI) Load(emit func(*core.Builder)) error {

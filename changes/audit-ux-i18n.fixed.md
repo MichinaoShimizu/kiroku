@@ -12,3 +12,6 @@
 - Screen readers: the copy buttons and the calendar's 0–7h switch are named starting with their visible text, and a value's name no longer includes "Show the formula"
 - Japanese: month sparklines say "10月" instead of English month names, "push" is プッシュ, the calendar's day labels and the Cost and output over time tooltip use Japanese separators and brackets, and the week calendar's tooltips say "Kiro credits 8.4" and "Active time" instead of "Credits 8.4 credits" and "Active"
 - The "?" text for Usage limit hits says Claude Code reset times are shown in 24-hour time, and Long conversations mentions that only sessions with 8 or more responses count
+- `kiroku serve --check` and Data sources list both `$KIRO_HOME` and `~/.kiro` for Kiro IDE / CLI (V3) and Kiro CLI (V2) when kiroku reads both
+- "Close to usual" says, in its tooltip and "ƒx", that the value is outside the usual range by less than 10% of its edge, and the "Expensive models for light work" threshold reads as a sentence
+- `kiroku help` points to `kiroku update --help`, which says that a build from your organization's repository updates through `gh` and checks the build provenance

@@ -211,7 +211,7 @@ function insVerdict(b, F, hab){
   const n = b.xs.length, fm = b.fmt || (x => fmtM(k, x));
   const ser = []; for (let i = INS_N; i >= 1; i--){ const p = periodBack(i); if (p.ws >= historyStart()) ser.push(metricAt(k, p)); } ser.push(b.v);
   let run = 0, dir = 0; for (let i = ser.length - 1; i > 0 && ser[i] != null && ser[i - 1] != null; i--){ const d = Math.sign(ser[i] - ser[i - 1]); if (!d || (dir && d !== dir)) break; dir = d; run++; }
-  const rng = () => { let {lo, hi} = insLoHi(fm, b); sx = (/\s[^\d\s]+$/.exec(hi) || [""])[0]; if (sx && lo.endsWith(sx)) lo = lo.slice(0, -sx.length); return {lo: lo.replace(/ /g, "\u00a0"), hi: "\u2060" + hi.replace(/ /g, "\u00a0")}; }; // 範囲は途中で折り返さない（「–」のあとと単位の前で切らない） // 「13.1 credits〜13.8 credits」を「13.1〜13.8 credits」に
+  const rng = () => { let {lo, hi} = insLoHi(fm, b); const sx = (/\s[^\d\s]+$/.exec(hi) || [""])[0]; if (sx && lo.endsWith(sx)) lo = lo.slice(0, -sx.length); return {lo: lo.replace(/ /g, "\u00a0"), hi: "\u2060" + hi.replace(/ /g, "\u00a0")}; }; // 範囲は途中で折り返さない（「–」のあとと単位の前で切らない） // 「13.1 credits〜13.8 credits」を「13.1〜13.8 credits」に
   const why = pos === "typical" ? t("Typically {lo}–{hi}", rng()) : b.v < Math.min(...b.xs) ? t("Lowest of the last {n} {unit}", {n: n + 1, unit: insUnit(n + 1)}) : b.v > Math.max(...b.xs) ? t("Highest of the last {n} {unit}", {n: n + 1, unit: insUnit(n + 1)})
     : run >= 3 ? (dir > 0 ? t("Up {n} {unit} in a row", {n: run, unit: insUnit(run)}) : t("Down {n} {unit} in a row", {n: run, unit: insUnit(run)})) : t("Typically {lo}–{hi}", rng());
   let act = "";
@@ -222,7 +222,9 @@ function insVerdict(b, F, hab){
     act = bad.length ? esc(`${t("Likely cause:")} ${bad.map(h => h.s).join(LSEP())}`) + (id ? ` · <button type="button" class="iwlink" data-goto="${esc(id)}" aria-haspopup="dialog">${esc(insName(id))}</button>` : "") : id ? `${esc(t("Likely cause:"))} <button type="button" class="iwlink" data-goto="${esc(id)}" aria-haspopup="dialog">${esc(insName(id))}</button>`
       : `<button type="button" class="ivgo" data-metric="${use}" aria-haspopup="dialog">${esc(use === "cost" ? t("See the sessions that cost the most") : use === "credits" ? t("See the sessions that used the most credits") : t("See the sessions that used the most tokens"))}</button>`;
   }
-  return `<div class="iverd${tone ? " " + tone : ""}"><p><b>${esc(head)}</b> — ${esc(why)}</p>${act ? `<p class="ivact">→ ${act}</p>` : ""}</div>`;
+  // 「ほぼいつも通り」は、範囲の外でも端から 1 割以内のこと。見出しの title と「ƒx」で、その決まりを言う
+  const close = pos === "typical" && !tie && b.pos !== "typical", rule = close ? t("Close to usual: outside your usual range, but by less than 10% of its edge") : "";
+  return `<div class="iverd${tone ? " " + tone : ""}"><p><b${close ? ` title="${esc(rule)}"` : ""}>${esc(head)}</b> — ${esc(why)}</p>${close ? fx(rule) : ""}${act ? `<p class="ivact">→ ${act}</p>` : ""}</div>`;
 }
 // tickS は目盛りの値。数だけの指標（クレジット・件数・割合）は刻みと同じ桁数でそろえる（0.25 刻みが「1.3」「0.75」と混ざらないように）
 const tickS = (k, v, step) => { const dp = Math.min(3, (String(+step.toPrecision(6)).split(".")[1] || "").length);

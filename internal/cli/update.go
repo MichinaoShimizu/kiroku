@@ -35,7 +35,7 @@ func runVersion() error {
 
 // runUpdate は kiroku update: 最新（か --to の版）を落とし、checksums.txt で確かめてから自分自身を置きかえる。
 func runUpdate(args []string) error {
-	fs := newFS("update", "update [flags]\n\nDownloads the release for this OS/arch, verifies it against checksums.txt\nand replaces the running binary.")
+	fs := newFS("update", "update [flags]\n\nDownloads the release for this OS/arch, verifies it against checksums.txt\nand replaces the running binary. A build made from your organization's own\nrepository downloads through the GitHub CLI (gh, logged in with access to it)\nand also checks the build provenance with gh attestation verify.")
 	check := fs.Bool("check", false, "only check whether a newer release exists")
 	to := fs.String("to", "", "install this `version` (e.g. v0.12.0) instead of the latest; an older version than this one also needs --force")
 	force := fs.Bool("force", false, "replace even when already up to date, when running a dev build, or when --to names an older version")

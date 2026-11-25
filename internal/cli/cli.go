@@ -34,7 +34,8 @@ Commands:
   update                Update kiroku to the latest release
   help                  Show this help (--version prints only the version)
 
-Run "kiroku serve --help", "kiroku serve --check --help" or "kiroku serve --archive --help" for the flags.
+Run "kiroku serve --help", "kiroku serve --check --help", "kiroku serve --archive --help"
+or "kiroku update --help" for the flags.
 Get started: kiroku serve --check, then kiroku serve
 `
 
