@@ -230,7 +230,11 @@ func where(p string) string {
 	if p == "" || p == "none" {
 		return "not installed"
 	}
-	return tilde(p)
+	ps := strings.Split(p, ", ") // Kiro は KIRO_HOME と ~/.kiro の両方を読むので、場所が 2 つ並ぶことがある
+	for i := range ps {
+		ps[i] = tilde(ps[i])
+	}
+	return strings.Join(ps, ", ")
 }
 
 // plural は「1 session」「2 sessions」。
