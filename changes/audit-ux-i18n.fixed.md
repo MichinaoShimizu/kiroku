@@ -8,3 +8,7 @@
 - Session details: Tab goes from the prompt flow (left) to the right column on wide windows instead of jumping right, left and back
 - Kinds of work shows "—" instead of $0.00 for a kind with no AI commits
 - A usual range is no longer rounded across the value ("On pace for 11.7: above your usual 9–12"), and both ends have the same decimals ("50.8%–64.0%")
+- Durations keep "1h 24m" on one line, and What changed from the last period fits more of each project's name under its bar, with the full name in its tooltip and the chart's screen-reader text
+- Screen readers: the copy buttons and the calendar's 0–7h switch are named starting with their visible text, and a value's name no longer includes "Show the formula"
+- Japanese: month sparklines say "10月" instead of English month names, "push" is プッシュ, the calendar's day labels and the Cost and output over time tooltip use Japanese separators and brackets, and the week calendar's tooltips say "Kiro credits 8.4" and "Active time" instead of "Credits 8.4 credits" and "Active"
+- The "?" text for Usage limit hits says Claude Code reset times are shown in 24-hour time, and Long conversations mentions that only sessions with 8 or more responses count

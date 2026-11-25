@@ -21,7 +21,7 @@ const BRK = {
   lines: {n: "Lines in Git commits", h: "lines"},
   prs: {n: "Pull requests", h: "prs"},
   costPerCommit: {n: "Claude Code cost per AI commit", h: "costPerCommit"},
-  outSessions: {n: "Sessions that reached a commit or PR", h: "outSessions"},
+  outSessions: {n: "Claude Code sessions that reached a commit or PR", h: "outSessions"},
   focus: {n: "Focus blocks (60+ min)", h: "focus"},
   fix: {n: "Prompts with corrections or interruptions", h: "fix"},
   bigPrompts: {n: "Oversized prompts", h: "bigPrompts"},
@@ -134,7 +134,7 @@ const MB = {
     const xs = inRange.filter(s => s.outputs && (s.outputs.commits || s.outputs.prs)).sort((a,b) => b.start - a.start);
     const what = s => [s.outputs.commits ? plural(s.outputs.commits, "commit") : "", s.outputs.prs ? plural(s.outputs.prs, "PR") : ""].filter(Boolean).join(" · ");
     return {big: `${Math.round(w.outSessions*100/base)}<small>%</small>`, body: calcH([["Reached a commit or PR", `${w.outSessions}`], "÷", ["Claude Code sessions", `${base}`]]) +
-      mBars("By project", pjRows(countBy(xs, s => s.project)), cnt) + mList("Sessions that reached a commit or PR", xs.map(s => sesCardH(s, sesMeta(s), what(s))), 10)}; },
+      mBars("By project", pjRows(countBy(xs, s => s.project)), cnt) + mList("Claude Code sessions that reached a commit or PR", xs.map(s => sesCardH(s, sesMeta(s), what(s))), 10)}; },
   focus(w){ if (!w.focus.length) return null; const {ws, we} = period(), ses = DATA.filter(s => inP(s, ws, we));
     const main = b => { const a = b.t, e = b.t + b.min*60; let best = null, bv = 0; // その時間にいちばん長く動いていた、同じプロジェクトのセッション
       ses.forEach(s => { if (s.project !== b.project) return; const v = s.segs.reduce((t, [x, y]) => t + Math.max(0, Math.min(y, e) - Math.max(x, a)), 0); if (v > bv){ bv = v; best = s; } }); return best; };

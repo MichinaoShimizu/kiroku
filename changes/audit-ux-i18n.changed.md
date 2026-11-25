@@ -1,0 +1,2 @@
+- The Output card's row is named "Claude Code sessions that reached a commit or PR", and the change in a share from the previous period is in percentage points ("+8 pts vs last week") rather than a percent of a percent
+- Tokens by type names its rows "Input tokens" and "Output tokens"

@@ -270,8 +270,9 @@ async function run(env) {
       const c = await p.evaluate(async () => { window.__copied = null; // 会話全体を Markdown で写す（見出しは発言者と時刻、本文はプロンプトの順）
         const b = document.querySelector("#drawer .flowhd .fcopy"); if (!b) return {none: true};
         const s = DATA.find(x => x.id === st.sel); b.click(); await new Promise(z => setTimeout(z, 600));
-        return {label: b.getAttribute("aria-label"), got: window.__copied || "", first: String(s.prompts[0].text || "").slice(0, 30), n: s.prompts.length}; });
-      check("会話全体を Markdown でコピーできる", !c.none && /Copy the conversation as Markdown/.test(c.label) && c.got.startsWith("# ") && (c.got.match(/^## You/gm) || []).length === c.n && c.got.includes(c.first), JSON.stringify({...c, got: c.got.slice(0, 80)}));
+        return {label: b.getAttribute("aria-label"), title: b.title, text: b.textContent.trim(), got: window.__copied || "", first: String(s.prompts[0].text || "").slice(0, 30), n: s.prompts.length}; });
+      // 読み上げの名前は見えている文字から始まる（aria-label で別の名前にしない。説明は title に）
+      check("会話全体を Markdown でコピーできる", !c.none && !c.label && c.text === "Copy as Markdown" && /Copy the conversation as Markdown/.test(c.title) && c.got.startsWith("# ") && (c.got.match(/^## You/gm) || []).length === c.n && c.got.includes(c.first), JSON.stringify({...c, got: c.got.slice(0, 80)}));
     }
     { // 前後のセッションへ（キーと、見出しの帯の ‹ ›）・キーで流れをスクロール・流れの全画面
       const id0 = await p.evaluate(() => st.sel);

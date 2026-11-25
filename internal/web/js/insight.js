@@ -286,6 +286,8 @@ function insCmp(){
   // 前の期間との比べ（率は %、数えるものは差）。数えるものは、途中の期間なら前の期間の同じ日数まで（上の帯と同じ）。率は前の期間まるごとと
   const vsk = (k, cur, field) => { if (MET[k].int) return vsInt(k, cur, V.of(field, metricAt(k, periodBack(1))));
     const prev = V.partial ? null : metricAt(k, periodBack(1)); if (!prev || cur == null) return "";
+    // 割合（%）どうしは、差をポイントで（「16%、先週比 +100%」は 8% から 16% のこと。割合の割合は読み違えやすい）
+    if (MET[k].u === "%"){ const d = Math.round(cur - prev), p = `${d > 0 ? "+" : d < 0 ? "−" : "±"}${t("{n} pts", {n: Math.abs(d)}).replace(/ /g, "\u00a0")} ${M ? t("vs last month") : t("vs last week")}`; return {f: `${fmtM(k, cur)} − ${fmtM(k, prev)} = ${p}`, p: vsFirst(p)}; }
     const pc = `${cur >= prev ? "+" : "−"}${Math.round(Math.abs(cur - prev) * 100 / prev)}% ${M ? t("vs last month") : t("vs last week")}`; return {f: `(${fmtM(k, cur)} − ${fmtM(k, prev)}) ÷ ${fmtM(k, prev)} = ${pc}`, p: vsFirst(pc)}; };
   return {V, lab0, vs, vsInt, vsk, vsFirst};
 }
@@ -472,7 +474,9 @@ function bindInsight(R){
     b.type = "button"; b.className = "fxb"; b.textContent = "ƒx"; b.setAttribute("aria-pressed", "false");
     b.title = t("Show the formula"); b.setAttribute("aria-label", t("Show the formula: {name}", {name}));
     b.onclick = e => { e.stopPropagation(); const on = el.classList.toggle("fxon"); b.setAttribute("aria-pressed", String(on)); b.title = on ? t("Hide the formula") : t("Show the formula"); };
-    lab.append(b); }); // 名前の要素の中に置く（カードは縦の flex なので、外に置くと横いっぱいの帯になる）
+    // 名前の要素の中に置く（カードは縦の flex なので、外に置くと横いっぱいの帯になる）。ただし、値のボタンが aria-labelledby で指す名前（枠・行の span）には
+    // 入れず、そのすぐ後ろに（値の読み上げに「Show the formula」が混ざらないように）。見出しには、名前だけを読み上げの名前にする
+    if (el.matches(".stat, .mrow")) lab.after(b); else { if (/^H\d$/.test(lab.tagName)) lab.setAttribute("aria-label", name); lab.append(b); } });
   requestAnimationFrame(() => skBack(R));
   insPack(R);
   for (const [attr, key] of [["skk", "insSk"]]) R.querySelectorAll(`[data-${attr}]`).forEach(b => b.onclick = () => { st[key] = b.dataset[attr]; store.set(key, st[key]); summary(); const nb = $("#review").querySelector(`[data-${attr}="${CSS.escape(b.dataset[attr])}"]`); if (nb) nb.focus(); });
@@ -551,14 +555,14 @@ function insWater(){
   const lab = days == null ? (st.mode === "month" ? t("Last month") : t("Last week")) : (st.mode === "month" ? t("Last month, same days") : t("Last week, same days")), now = st.mode === "month" ? (sf == null ? t("Month shown") : t("This month")) : (sf == null ? t("Week shown") : t("This week"));
   const bars = [{l: lab, a: 0, b: tp, tot: true}]; let run = tp; top.forEach(x => { bars.push({l: x.p, a: run, b: run + x.d, d: x.d}); run += x.d; }); bars.push({l: now, a: 0, b: tc, tot: true, cur: true});
   const W = 460, H = 240, L = 52, R = 8, T = 22, B = 46, mx = Math.max(...bars.map(x => Math.max(x.a, x.b))) * 1.08 || 1, Y = insTicks(k === "minutes" ? "active" : k, mx, 5), top_ = Y.top, y = v => T + (H - T - B) * (1 - v / top_);
-  const n = bars.length, bw = (W - L - R) / n, short = x => x.length > 9 ? x.slice(0, 8) + "…" : x;
+  const n = bars.length, bw = (W - L - R) / n, mc = Math.max(6, Math.floor(bw / 6.5)), short = x => x.length > mc ? x.slice(0, mc - 1) + "…" : x; // 棒の幅に入るだけ（切ったら、名前の全体は title・ツールチップ・読み上げに）
   const ticks = Array.from({length: Y.n + 1}, (_, i) => { const v = Y.step * i, yy = y(v).toFixed(1); return `<g class="itk"><line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/><text x="${L - 8}" y="${(+yy + 4).toFixed(1)}">${esc(k === "minutes" ? dur(v) : tickM(k === "credits" ? "credits" : k === "tokens" ? "tokens" : "cost", v))}</text></g>`; }).join("");
   const body = bars.map((x, i) => { const x0 = L + i * bw + bw * .18, w0 = bw * .64, y1 = y(Math.max(x.a, x.b)), h = Math.max(3, Math.abs(y(x.a) - y(x.b))), cls = x.tot ? (x.cur ? "wft cur" : "wft") : x.d >= 0 ? "wfu" : "wfd";
     const txt = x.tot ? fv(x.b) : `${x.d >= 0 ? "+" : "−"}${fv(Math.abs(x.d))}`, nxt = i < n - 1 ? `<line class="wfc" x1="${(x0 + w0).toFixed(1)}" x2="${(L + (i + 1) * bw + bw * .18).toFixed(1)}" y1="${y(x.b).toFixed(1)}" y2="${y(x.b).toFixed(1)}"/>` : "";
-    return `<g><rect class="${cls}" x="${x0.toFixed(1)}" y="${y1.toFixed(1)}" width="${w0.toFixed(1)}" height="${h.toFixed(1)}" rx="2"/>${nxt}<text class="wfv" x="${(x0 + w0 / 2).toFixed(1)}" y="${(y1 - 5).toFixed(1)}">${esc(txt)}</text><text class="ixl${x.cur ? " cur" : ""}" x="${(x0 + w0 / 2).toFixed(1)}" y="${H - B + 16}">${esc(short(x.l))}</text><rect class="ihit" x="${(L + i * bw).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${H - B}"${tipAttr(x.l, txt)}/></g>`; }).join("");
+    return `<g><rect class="${cls}" x="${x0.toFixed(1)}" y="${y1.toFixed(1)}" width="${w0.toFixed(1)}" height="${h.toFixed(1)}" rx="2"/>${nxt}<text class="wfv" x="${(x0 + w0 / 2).toFixed(1)}" y="${(y1 - 5).toFixed(1)}">${esc(txt)}</text><text class="ixl${x.cur ? " cur" : ""}" x="${(x0 + w0 / 2).toFixed(1)}" y="${H - B + 16}">${short(x.l) === x.l ? "" : `<title>${esc(x.l)}</title>`}${esc(short(x.l))}</text><rect class="ihit" x="${(L + i * bw).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${H - B}"${tipAttr(x.l, txt)}/></g>`; }).join("");
   const d = tc - tp, big = ds[0], vsl = days == null ? (st.mode === "month" ? t("vs last month") : t("vs last week")) : (st.mode === "month" ? t("vs the same days last month") : t("vs the same days last week")), sy = !tp ? "" : t("{d} {vs} ({pc}); the biggest change is {p} ({pd})", {d: `${d >= 0 ? "+" : "−"}${fv(Math.abs(d))}`, vs: vsl, pc: `${d >= 0 ? "+" : "−"}${Math.round(Math.abs(d) * 100 / tp)}%`, p: big ? big.p : "—", pd: big ? `${big.d >= 0 ? "+" : "−"}${fv(Math.abs(big.d))}` : ""});
   const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-wfk="${x}" aria-pressed="${x === k}">${esc(INS_SW_NAME()[x])}</button>`).join("")}</div>` : "";
-  return `<div class="inshead"><h4>${esc(t("What changed from the last period"))}</h4>${mtabs}</div>${say(sy)}<figure class="insfig iwtf"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("What changed from the last period"))}">${ticks}${body}</svg><p class="ifxs">${fx(t("Each bar between the totals is one project's change; projects are grouped by where their sessions started"), "", t("By project · light: up · dark: down"))}${k === "minutes" ? INS_STIME() : ""}</p></figure>`;
+  return `<div class="inshead"><h4>${esc(t("What changed from the last period"))}</h4>${mtabs}</div>${say(sy)}<figure class="insfig iwtf"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(kv(t("What changed from the last period"), bars.map(x => `${x.l} ${x.tot ? fv(x.b) : `${x.d >= 0 ? "+" : "−"}${fv(Math.abs(x.d))}`}`).join(LSEP())))}">${ticks}${body}</svg><p class="ifxs">${fx(t("Each bar between the totals is one project's change; projects are grouped by where their sessions started"), "", t("By project · light: up · dark: down"))}${k === "minutes" ? INS_STIME() : ""}</p></figure>`;
 }
 /* insDonut は、割合のドーナツ（parts: {name, v, c}。c は色の CSS 値で、こちらで決めたものだけ）。真ん中に合計 */
 function insDonut(parts, total, fv, label, bare){ // bare：真ん中の合計を書かない（小さく置くとき）
@@ -696,7 +700,7 @@ function insOutputs(){
     ...gitMore(),
     // AI のコミットのやり直し：3 日以内に同じファイルがまた変えられた割合（3 日たったコミットだけ）
     r.n && br ? insRow(t("AI commits changed again within 3 days"), `${br.cur}<small>%</small>`, {fxs: [`${r.re} ÷ ${plural(r.n, "AI commit")} = ${br.cur}%`, {n: t("Lower is usually better: fewer files needed another pass")}], k: "rework", help: "rework", vs: vsk("rework", br.cur)}) : "",
-    base ? insRow(t("Sessions that reached a commit or PR"), `${sp}<small>%</small>`, {fxs: [`${w.outSessions} ÷ ${base} ${t("Claude Code sessions")} = ${sp}%`], k: "outSessions", help: "outSessions", metric: "outSessions"}) : "",
+    base ? insRow(t("Claude Code sessions that reached a commit or PR"), `${sp}<small>%</small>`, {fxs: [`${w.outSessions} ÷ ${base} ${t("Claude Code sessions")} = ${sp}%`], k: "outSessions", help: "outSessions", metric: "outSessions"}) : "",
   ].join("");
   // 読み取りの 1 文も、Git と AI の編集で列ごとに分ける（1 つの文につなぐと、2 つを足した数に読めてしまう）
   const syG = g ? t("{c} commits, {ai}% by AI; {sp}% of Claude Code sessions reached a commit or PR", {c: g.commits, ai: Math.round(g.ai * 100 / g.commits), sp: sp ?? "—"}) : o.commits ? t("{c} AI commits; {sp}% of Claude Code sessions reached a commit or PR", {c: o.commits, sp: sp ?? "—"}) : "";
