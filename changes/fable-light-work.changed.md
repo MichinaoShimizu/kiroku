@@ -1,0 +1,1 @@
+- "Expensive models for light work" in Worth a look and the short-session signal in report and review prompts count Fable models as well as Opus
