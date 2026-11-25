@@ -534,7 +534,7 @@ Common to the commands that read history (`serve`, `serve --check`, `serve --arc
 | `--prices` | | Override the price table with JSON (see "How you used AI") |
 | `--archive-dir` | Per-OS location (see "Keep a copy of history in kiroku") | Where `kiroku serve --archive` keeps copies (`KIROKU_ARCHIVE_DIR` is also used) |
 
-The `~` defaults come from your home folder. When it is unknown (`HOME` unset or empty) and no option or environment variable names a folder, kiroku reads nothing for that agent (`serve --check` says "folder unknown: HOME is not set") and `serve --archive` refuses, rather than reading or writing history under the current folder.
+The `~` defaults come from your home folder. When it is unknown (`HOME` unset or empty) and no option or environment variable names a folder (a relative `XDG_DATA_HOME` doesn't count), kiroku reads nothing for that agent (`serve --check` says "folder unknown: HOME is not set") and `serve --archive` refuses, rather than reading or writing history under the current folder.
 
 Per command:
 
