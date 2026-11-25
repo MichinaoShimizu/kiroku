@@ -26,7 +26,7 @@ Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachang
 
 ### Fixed
 
-- `kiroku archive` copies a history file that is a symbolic link in full and copies it again when the file it points to changes; before, the copy was cut to the length of the link and never refreshed
+- `kiroku serve --archive` copies a history file that is a symbolic link in full and copies it again when the file it points to changes; before, the copy was cut to the length of the link and never refreshed
 - `kiroku serve`: pressing "Keep a copy in this folder" no longer closes Data sources; the row updates in place and the focus moves to it
 - A panel figure's name that wraps keeps its last word with "?" and "ƒx", and the headings of From input to output and Estimated cost and output over time keep "ƒx" beside the name on narrow phones
 - A copy that `kiroku serve --archive` was still writing when kiroku was stopped (a `.kiroku-tmp-*` file) is removed once it is an hour old, and by `kiroku serve --archive off`
