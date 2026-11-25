@@ -579,6 +579,17 @@ var looksLikeServe = func(addr string) bool {
 	return r.StatusCode == http.StatusForbidden && (strings.Contains(string(b), "<h1>Open kiroku with its key</h1>") || strings.Contains(string(b), "<h1>鍵を付けて kiroku を開いてください</h1>"))
 }
 
+// probeAddr は、すべてのネットワークで待ち受けるアドレスを、手元から問い合わせるアドレスにする。
+func probeAddr(addr string) string {
+	if strings.HasPrefix(addr, "0.0.0.0:") {
+		return "127.0.0.1:" + strings.TrimPrefix(addr, "0.0.0.0:")
+	}
+	if strings.HasPrefix(addr, "[::]:") {
+		return "127.0.0.1:" + strings.TrimPrefix(addr, "[::]:")
+	}
+	return addr
+}
+
 // openRunning は、addr で kiroku serve がもう動いていれば（鍵は送らずに確かめる）、止めずに、動いている画面を鍵つきで開く（5.0 より前の kiroku open）。
 // open が false（--no-open）なら、開かずにアドレスだけ出す。動いていなければ false
 func openRunning(addr string, open bool) (bool, error) {
