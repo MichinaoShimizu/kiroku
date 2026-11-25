@@ -639,7 +639,7 @@ dialog.mdlg h3{margin:20px 0 8px}
 .mdays.wk .mtrend{top:16px;height:calc(100% - 34px)}.mdays.wk .mbl{bottom:calc(18px + (100% - 34px) * var(--y) / 100%)}
 .mtrend{position:absolute;left:0;right:0;top:0;height:calc(100% - 18px);width:100%;overflow:visible;pointer-events:none} /* トレンド線（終わった日の直線を月末まで） */
 .mtrend line{stroke:var(--ink-2);stroke-width:1.5;vector-effect:non-scaling-stroke}.mtrend line.fut{stroke-dasharray:5 4}
-.mbkey .tr::before{border-top:1.5px solid var(--ink-2)!important;opacity:1!important}
+.mbkey .tr::before{border-top:1.5px solid var(--ink-2)!important;opacity:1!important}.mbkey .trf::before{border-top:0;height:1.5px;background:repeating-linear-gradient(90deg,var(--ink-2) 0 5px,transparent 5px 9px)} /* 延ばしたトレンド線と同じ 5・4 の破線 */
 
 .mbkey span{display:inline-block;margin-right:8px;padding-left:16px;position:relative;font-weight:600;color:var(--ink-2)}.mbkey span::before{content:"";position:absolute;left:0;top:50%;width:12px;border-top:1.5px dotted var(--ink-2)}
 .mbkey .k1::before{opacity:.95}.mbkey .k2::before{opacity:.65;border-top-style:dashed}.mbkey .k3::before{opacity:.4}.mbkey .pace::before{border-top:1px dashed var(--ink-3)}

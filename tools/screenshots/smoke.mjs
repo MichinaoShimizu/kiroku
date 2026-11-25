@@ -1040,6 +1040,21 @@ async function run(env) {
     await p.evaluate(w => { setMode("week"); const [y, m, d] = w.split("-").map(Number); st.week = new Date(y, m - 1, d); render(); }, w0); await pause();
   });
 
+  if (env === envs[0]) await step("前の週並みに収める 1 日の目安", async () => {
+    await p.evaluate(() => go(null)); await pause();
+    const b = p.locator('#kpis [data-metric="pace"]');
+    if (!(await b.count())) { console.log("  skip 今週に 1 日の目安がない"); return; }
+    await b.click(); await p.waitForFunction(() => document.querySelector("#md").open);
+    const r = await p.evaluate(() => { const md = document.querySelector("#md"), fut = !!md.querySelector(".mtrend line.fut"), key = [...md.querySelectorAll(".mbkey span")].map(x => x.className);
+      const cr = [...md.querySelectorAll("h3")].find(h => h.textContent === "Kiro credits"), calc = cr && cr.nextElementSibling, last = calc && calc.matches(".mcalc") ? calc.lastElementChild.querySelector("b").textContent : null;
+      return {fut, key, last, out: /Output \(commits\): /.test(md.innerText) && !/Left behind/.test(md.innerText)}; });
+    // 破線は 2 本（1 日の目安と、日曜まで延ばしたトレンド）。凡例も 2 つに分ける。クレジットの式の答えには単位を
+    check("延ばしたトレンド線があれば、凡例に「Trend, projected」を 1 日の目安とは別に出す", !r.fut || (r.key.includes("pace") && r.key.includes("trf")), JSON.stringify(r.key));
+    check("Kiro credits の 1 日の目安の式の答えに単位がある", r.last == null || /credits?$/.test(r.last), String(r.last));
+    check("残したコミットの行は「Output (commits):」（日本語の 産出（コミット） と同じ）", r.out);
+    await p.keyboard.press("Escape"); await pause();
+  });
+
   check("スクリプトのエラーがない", errors.length === 0, errors.join(" / "));
   check("CSP に止められたものがない", csp.length === 0, csp.join(" / "));
   if (env === envs[0]) await step("CSP が効いている", async () => { // 履歴から HTML がまぎれこんでも、スクリプトは動かない
