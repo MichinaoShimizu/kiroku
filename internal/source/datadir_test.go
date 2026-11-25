@@ -37,3 +37,18 @@ func TestKiroCLIDBWithoutHome(t *testing.T) {
 		t.Errorf("kiroCLIDB() = %q, want \"\"", d)
 	}
 }
+
+// Claude Code の組織の設定の場所は OS ごとに決まっている（https://code.claude.com/docs/en/managed-settings ）。ほかの OS では読まない
+func TestManagedDirPerOS(t *testing.T) {
+	for goos, want := range map[string]string{
+		"darwin":  "/Library/Application Support/ClaudeCode",
+		"linux":   "/etc/claude-code",
+		"windows": `C:\Program Files\ClaudeCode`,
+		"freebsd": "",
+		"":        "",
+	} {
+		if got := managedDir(goos); got != want {
+			t.Errorf("managedDir(%q) = %q, want %q", goos, got, want)
+		}
+	}
+}

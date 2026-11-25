@@ -84,13 +84,23 @@ func settingsFile(path string) (settings map[string]any, broken bool) {
 	return settings, settings == nil
 }
 
-// claudeManagedDir は、Claude Code の組織の設定のファイル（managed-settings.json と managed-settings.d/）を置く場所。
+// claudeManagedDir は、この OS で Claude Code の組織の設定のファイル（managed-settings.json と managed-settings.d/）を置く場所。
+// テストで差しかえる。
+var claudeManagedDir = managedDir(runtime.GOOS)
+
+// managedDir は OS ごとの claudeManagedDir（ほかの OS は ""。組織の設定を読まない）。
 // 出典: https://code.claude.com/docs/en/managed-settings （File-based）
-var claudeManagedDir = map[string]string{
-	"darwin":  "/Library/Application Support/ClaudeCode",
-	"linux":   "/etc/claude-code",
-	"windows": `C:\Program Files\ClaudeCode`,
-}[runtime.GOOS]
+func managedDir(goos string) string {
+	switch goos {
+	case "darwin":
+		return "/Library/Application Support/ClaudeCode"
+	case "linux":
+		return "/etc/claude-code"
+	case "windows":
+		return `C:\Program Files\ClaudeCode`
+	}
+	return ""
+}
 
 // managedCleanupDays は、組織の設定のファイルにある cleanupPeriodDays と、それを書いたファイル。なければ 0。
 // Claude Code と同じく managed-settings.json を先に、managed-settings.d/ の *.json（隠しファイルを除く）を名前の順に重ね、
