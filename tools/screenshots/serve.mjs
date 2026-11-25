@@ -110,7 +110,8 @@ try {
   await p.waitForURL(u => u.port === String(otherPort), { timeout: 10000 });
   await p.goto(`http://localhost:${otherPort}/typed`);
   await p.goto(`http://127.0.0.1:${otherPort}/typed-ip`);
-  await p.waitForTimeout(500); // favicon を取りに来るのを待つ
+  // favicon を取りに来るのを待つ（来たらすぐ先へ。ブラウザが取りに来なくても、長くて 2 秒で先へ）
+  for (const end = Date.now() + 2000; Date.now() < end && !["localhost", "127.0.0.1"].every(h => seen.some(r => r.url === "/favicon.ico" && (r.headers.host || "").startsWith(h + ":")));) await p.waitForTimeout(50);
   check("ほかのポートのサーバーに届いた（確かめになっている）", seen.length >= 3, String(seen.length));
   const leaks = seen.filter(r => JSON.stringify(r).includes(key));
   check("ほかのポートのサーバーへの問い合わせに鍵が載らない", leaks.length === 0, JSON.stringify(leaks));

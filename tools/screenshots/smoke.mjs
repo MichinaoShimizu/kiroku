@@ -67,7 +67,10 @@ async function run(env) {
   // 1 つの流れが途中で止まっても、失敗として数えて次の流れへ進む（開き直して、記録のそろった先週から始める）
   const open = async () => { await p.goto(url); await loaded(p); await p.keyboard.press("ArrowLeft"); await pause(); };
   // 表示の切り替え（カレンダー / サマリー）。サマリーを触る確認は、サマリーに切り替えてから行い、終わったらカレンダーへ戻す
-  const view = async v => { await p.locator(`#view button[data-v="${v}"]`).click(); await p.waitForTimeout(150); };
+  // 表示を切りかえ、切りかわったこと（body の data-view と押したボタン）を待つ。そのあと 1 フレーム描かせる
+  const view = async v => { await p.locator(`#view button[data-v="${v}"]`).click();
+    await p.waitForFunction(v => document.body.dataset.view === v && document.querySelector(`#view button[data-v="${v}"]`).getAttribute("aria-pressed") === "true", v);
+    await p.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))); };
   async function step(name, fn) {
     const before = failed;
     try { await fn(); } catch (e) { check(name, false, e.message.split("\n")[0]); }
