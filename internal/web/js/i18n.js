@@ -1036,6 +1036,15 @@ const JA_TEXT = {
   "Week totals count this month's days. Click a date or week to open it.": "週の合計は、この月の日の分です。日付か週を押すと開きます。",
   "No records in this month's days": "この月の日には記録がありません",
   "{c} sent, including commits made before the period": "{c}を送った（期間より前のコミットも含む）",
+  "Cost and output over time": "費用と産出の推移",
+  "No stretch where {in} rose 15 points or more while {o} stayed flat": "{in}だけが 15 ポイント以上伸びて、{o}が止まった区間はありません",
+  "Solid: {in} · dashed: {o}{s}": "実線：{in} · 破線：{o}{s}",
+  " · shaded: {in} up, {o} flat": " · 塗り：{in}が伸び、{o}が止まった区間",
+  "From {a} to {b}: {in} +{pi}%, {o} +{po}% of the period's totals": "{a}から{b}まで：{in}は期間の合計の +{pi}%、{o}は +{po}%",
+  "A session's AI-edited lines are spread over its active time too": "AI が編集した行も、セッションの稼働時間に配っています",
+  "Both lines are the running total as a share of the period's total; a session's {in} is spread over its active time": "どちらの線も、期間の合計に対する累積の割合。セッションの{in}は、その稼働時間に配っています",
+  "Open the calendar for those days to see whether it was research, waiting or going in circles": "その日をカレンダーで開き、調べものか、待ちか、堂々めぐりかを確かめる",
+  "{pc}% so far": "ここまで {pc}%",
 };
 // t は英語の文 s を今の言語にする。{name} は vars の値で埋める（日本語では語順が変わるので、文ごと鍵にする）
 function t(s, vars){
