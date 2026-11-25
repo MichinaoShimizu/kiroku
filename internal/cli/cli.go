@@ -168,7 +168,12 @@ func (c *common) picked() (picked []source.Source, want map[string]bool, all []s
 // keepFn は、kiroku serve の画面から kiroku archive をオンにする関数（コピーは次の読み直しで残す）。
 func (c *common) keepFn() func() error {
 	dir := *c.archiveDir
-	return func() error { return archive.Enable(dir) }
+	return func() error {
+		if dir == "" {
+			return errNoArchiveDir
+		}
+		return archive.Enable(dir)
+	}
 }
 
 // loader は、選んだ履歴を読んで集計する関数を作る。kiroku archive がオンなら、読む前に消える履歴のコピーを残す。
@@ -185,7 +190,7 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 	gcache := gitlog.NewCache() // git も、変わっていないリポジトリは読み直さない
 	rcache := report.NewCache() // 週と月も、セッションとコミットが変わっていない期間は集計し直さない
 	load := func() snapshot {
-		on := archive.Enabled(dir)
+		on := archiveOn(dir)
 		if on {
 			keepCopies(picked, dir)
 		}
@@ -209,7 +214,7 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 			fmt.Fprint(logw, gitTimeoutLine(r))
 		}
 		tracker.setStage("view")
-		files, size := archive.Usage(dir)
+		files, size := archiveUsage(dir)
 		meta := map[string]any{"report": rep, "git": commits, "push": pushes, "prices": map[string]any{"asOf": core.PricesAsOf, "custom": *c.prices != ""},
 			"archive": map[string]any{"on": on, "dir": dir, "files": files, "bytes": size}, "version": version,
 			"repo": projectURL(), "os": runtime.GOOS + "/" + runtime.GOARCH} // os は「Report a problem」と「Copy diagnostics」に入れる（履歴ではない）

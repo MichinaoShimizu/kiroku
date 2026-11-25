@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MichinaoShimizu/kiroku/internal/archive"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
 )
 
@@ -103,7 +102,7 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 
 	formatCheck(w, rep)
 
-	on := archive.Enabled(archiveDir)
+	on := archiveOn(archiveDir)
 	fmt.Fprintf(w, "\n%s\n", s.bold("Keeping history"))
 	risky := false
 	for _, r := range rep {
@@ -144,7 +143,7 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 			fmt.Fprintf(w, "      %s\n", s.dim("how to set it: "+k.Docs))
 		}
 	}
-	files, size := archive.Usage(archiveDir)
+	files, size := archiveUsage(archiveDir)
 	switch {
 	case on:
 		fmt.Fprintf(w, "  %s kiroku archive: on (%s, %s in %s)\n", s.ok("✓"), nFiles(files), humanBytes(size), tilde(archiveDir))

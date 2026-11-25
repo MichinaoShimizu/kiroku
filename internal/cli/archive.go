@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -30,6 +31,21 @@ func keepCopies(picked []source.Source, dir string) int {
 	return n
 }
 
+// errNoArchiveDir は、ホームがわからず（HOME が空など）、kiroku archive の保存場所が決まらないときのエラー。
+// 今のフォルダの下に履歴のコピーを書かないよう、オンにするのを断る。
+var errNoArchiveDir = errors.New("kiroku could not find your home folder ($HOME is not set), so it has no place to keep archive copies; set HOME, or choose a folder with KIROKU_ARCHIVE_DIR or --archive-dir")
+
+// archiveOn は保存がオンか（保存場所が決まらなければオフ。今のフォルダを見ない）。
+func archiveOn(dir string) bool { return dir != "" && archive.Enabled(dir) }
+
+// archiveUsage は保存したコピーの数と大きさ（保存場所が決まらなければ 0）。
+func archiveUsage(dir string) (int, int64) {
+	if dir == "" {
+		return 0, 0
+	}
+	return archive.Usage(dir)
+}
+
 // keptDirs は保存場所の下で kiroku archive が使うフォルダ（core.Agents の Archive）。
 var keptDirs = core.ArchiveDirs()
 
@@ -41,6 +57,9 @@ func cmdArchive(args []string) error {
 		return quiet(err)
 	}
 	dir := *c.archiveDir
+	if dir == "" {
+		return errNoArchiveDir
+	}
 	cmd := ""
 	if len(pos) == 1 {
 		cmd = pos[0]

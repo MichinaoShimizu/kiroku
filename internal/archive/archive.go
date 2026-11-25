@@ -26,25 +26,39 @@ const stamp = ".kiroku-archive"
 
 // DefaultDir は保存場所。KIROKU_ARCHIVE_DIR があればそこ。
 // Linux は $XDG_DATA_HOME か ~/.local/share、macOS は ~/Library/Application Support、Windows は %LocalAppData% の下の kiroku/archive。
+// ホームがわからず（HOME が空など）、環境変数でも決まらなければ ""（今のフォルダの下に履歴のコピーを書かない。使う側が断る）。
 func DefaultDir() string {
-	if d := os.Getenv("KIROKU_ARCHIVE_DIR"); d != "" {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		home = ""
+	}
+	return defaultDir(runtime.GOOS, home, os.Getenv)
+}
+
+// defaultDir は OS ごとの DefaultDir（テストで OS を変えられるよう、ホームと環境変数を受け取る）。
+func defaultDir(goos, home string, getenv func(string) string) string {
+	if d := getenv("KIROKU_ARCHIVE_DIR"); d != "" {
 		return d
 	}
-	home, _ := os.UserHomeDir()
 	var base string
-	switch runtime.GOOS {
+	switch goos {
 	case "darwin":
-		base = filepath.Join(home, "Library", "Application Support")
+		if home != "" {
+			base = filepath.Join(home, "Library", "Application Support")
+		}
 	case "windows":
-		base = os.Getenv("LocalAppData")
-		if base == "" {
+		base = getenv("LocalAppData")
+		if base == "" && home != "" {
 			base = filepath.Join(home, "AppData", "Local")
 		}
 	default:
-		base = os.Getenv("XDG_DATA_HOME")
-		if base == "" {
+		base = getenv("XDG_DATA_HOME")
+		if base == "" && home != "" {
 			base = filepath.Join(home, ".local", "share")
 		}
+	}
+	if base == "" {
+		return ""
 	}
 	return filepath.Join(base, "kiroku", "archive")
 }
